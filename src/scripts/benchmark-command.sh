@@ -1,5 +1,10 @@
 #!/bin/sh
 
+# Copyright (C) 2010-2012 Olivier Boudeville
+#
+# This file is part of the Ceylan Erlang library.
+
+
 USAGE="
 Usage: "`basename $0`" <COMMAND>: returns a mean resource consumption for the specified command."
 

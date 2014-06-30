@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2013 Olivier Boudeville
+% Copyright (C) 2003-2014 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -26,91 +26,112 @@
 
 
 % Unit tests for the file_utils toolbox.
+%
 % See the file_utils.erl tested module.
+%
 -module(file_utils_test).
 
--export([run/0]).
 
--define(Tested_module,file_utils).
+% For run/0 export and al:
+-include("test_facilities.hrl").
 
 
-
+-spec run() -> no_return().
 run() ->
 
-	io:format( "--> Testing module ~s.~n", [ ?Tested_module ] ),
+	test_facilities:start( ?MODULE ),
 
 	CurrentDir = file_utils:get_current_directory(),
 
-	{_RegularFiles,_Directories,_OtherFiles,_Devices} = Elements
+	{ _RegularFiles, _Directories, _OtherFiles, _Devices } = Elements
 		= file_utils:list_dir_elements( CurrentDir ),
 
 	BeamExtension = ".beam",
 
-	io:format( "~n   File elements in the current directory (~s):~n~p~n",
-			  [CurrentDir,Elements] ),
+	test_facilities:display(
+			  "File elements in the current directory (~s):~n~p",
+			  [ CurrentDir, Elements ] ),
 
 	% Too many outputs:
-	%io:format( "   Regular BEAM files in the current directory:~n~p~n",
-	%	[ file_utils:filter_by_extension(RegularFiles,BeamExtension) ] ),
+	%test_facilities:display( "Regular BEAM files in the current directory: "
+	% ~n~p", [ file_utils:filter_by_extension( RegularFiles, BeamExtension) ] ),
 
-	io:format( "~n   All files found recursively "
-		"from the current directory:~n~p~n",
-		[ file_utils:find_files_from(CurrentDir) ] ),
+	test_facilities:display( "All files found recursively "
+		"from the current directory:~n~p",
+		[ file_utils:find_files_from( CurrentDir ) ] ),
 
 
-	io:format( "~n   All BEAM files found recursively "
-		"from the current directory:~n~p~n",
+	test_facilities:display( "All BEAM files found recursively "
+		"from the current directory:~n~p",
 		[ file_utils:find_files_with_extension_from( CurrentDir,
 													BeamExtension ) ] ),
 
 	ExcludedDirs = [ ".svn", "non-existing-dir" ],
 
-	io:format( "~n   All files found recursively "
-		"from the current directory, with directories ~p excluded:~n~p~n",
+	test_facilities:display( "All files found recursively "
+		"from the current directory, with directories ~p excluded:~n~p",
 		[ ExcludedDirs, file_utils:find_files_with_excluded_dirs(
 						CurrentDir, ExcludedDirs ) ] ),
 
 
 	ExcludedSuffixes = [ ".erl", ".beam", "non-existing-suffix" ],
 
-	io:format( "~n   All files found recursively "
-		"from the current directory, with suffixes ~p excluded:~n~p~n",
+	test_facilities:display( "All files found recursively "
+		"from the current directory, with suffixes ~p excluded:~n~p",
 		[ ExcludedSuffixes, file_utils:find_files_with_excluded_suffixes(
 						CurrentDir, ExcludedSuffixes ) ] ),
 
 
-	io:format( "~n   All files found recursively "
+	test_facilities:display( "All files found recursively "
 			  "from the current directory, with directories ~p and suffixes ~p "
-			  "excluded:~n~p~n",
+			  "excluded:~n~p",
 		[ ExcludedDirs, ExcludedSuffixes,
 		  file_utils:find_files_with_excluded_dirs_and_suffixes(
 						CurrentDir, ExcludedDirs, ExcludedSuffixes ) ] ),
 
 
+	true  = file_utils:is_absolute_path( "/etc/host.conf" ),
+	false = file_utils:is_absolute_path( "my-dir/my-file" ),
+	false = file_utils:is_absolute_path( "" ),
+
+	RelativePath = "my-local-dir/a-file",
+
+	test_facilities:display( "Ensuring '~s' is absolute: ~s", [ RelativePath,
+					file_utils:ensure_path_is_absolute( RelativePath ) ] ),
+
+	BasePath ="/etc",
+
+	test_facilities:display(
+	  "Ensuring '~s' is absolute with base path '~s': '~s'",
+	  [ RelativePath, BasePath,
+		file_utils:ensure_path_is_absolute( RelativePath, BasePath ) ] ),
+
+
 	FirstFilename = "media/frame/1-23-2-98.oaf",
 
-	io:format( "   Path '~s', once transformed into a variable name, "
-		"results in: ~s~n",
-		[ FirstFilename, file_utils:path_to_variable_name(FirstFilename) ] ),
+	test_facilities:display( "Path '~s', once transformed into a variable name,"
+		" results in: ~s",
+		[ FirstFilename, file_utils:path_to_variable_name( FirstFilename ) ] ),
+
 
 
 	SecondFilename = "./mnt/zadok/44_12.oaf",
 
-	io:format( "   Path '~s', once transformed into a variable name, "
-		"results in: ~s~n",
-		[ SecondFilename, file_utils:path_to_variable_name(SecondFilename) ] ),
+	test_facilities:display( "Path '~s', once transformed into a variable name,"
+		" results in: ~s", [ SecondFilename,
+						file_utils:path_to_variable_name( SecondFilename ) ] ),
 
 
 	FirstString = "My name is Bond",
-	io:format( "   String '~s', once transformed into a file name, "
-		"results in: '~s'~n",
-		[ FirstString, file_utils:convert_to_filename(FirstString) ] ),
+	test_facilities:display( "String '~s', "
+		"once transformed into a file name, results in: '~s'",
+		[ FirstString, file_utils:convert_to_filename( FirstString ) ] ),
 
 
 	SecondString = "James,  James <Bond> ('Special' \"Agent\"), Sir",
-	io:format( "   String '~s', once transformed into a file name, "
-		"results in: '~s'~n",
-		[ SecondString, file_utils:convert_to_filename(SecondString) ] ),
+	test_facilities:display( "String '~s', once transformed into a file name,"
+		"results in: '~s'",
+		[ SecondString, file_utils:convert_to_filename( SecondString ) ] ),
 
 
 	SourceFilename  = "/home/jack/rosie.ttf",
@@ -120,9 +141,9 @@ run() ->
 	NewFilename = file_utils:replace_extension( SourceFilename, SourceExtension,
 		TargetExtension ),
 
-	io:format( "   Replacing extension '~s' by '~s' in '~s' results in: "
-		" '~s'.~n",
-		[SourceExtension,TargetExtension,SourceFilename,NewFilename] ),
+	test_facilities:display( "Replacing extension '~s' by '~s' in '~s' "
+		"results in: '~s'.",
+		[ SourceExtension, TargetExtension, SourceFilename, NewFilename ] ),
 
 
 	% Commented as not wanting to have too many side-effects:
@@ -131,8 +152,14 @@ run() ->
 	%file_utils:create_directory( "tmp-tst/first/second", create_parents ),
 
 	Bin = file_utils:read_whole( "GNUmakefile" ),
-	io:format( "   Read file: ~p.~n", [Bin] ),
+	test_facilities:display( "Read file: ~p.", [ Bin ] ),
 	%file_utils:write_whole( "test.dat", Bin ),
 
-	io:format( "--> End of test for module ~s.~n", [ ?Tested_module ] ),
-	erlang:halt().
+	LsPath = "/bin/ls" = executable_utils:find_executable( "ls" ),
+	true = file_utils:is_executable( LsPath ),
+
+	NonExistingPath = "ls-non-existing-exec",
+	false = executable_utils:lookup_executable( NonExistingPath ),
+	false = file_utils:is_executable( NonExistingPath ),
+
+	test_facilities:stop().

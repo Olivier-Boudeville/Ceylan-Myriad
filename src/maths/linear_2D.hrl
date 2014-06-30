@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2013 Olivier Boudeville
+% Copyright (C) 2003-2014 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -23,3 +23,6 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+
+
+% A 2D point is simply a pair of numbers, often integers, like in: P = {3,45}.

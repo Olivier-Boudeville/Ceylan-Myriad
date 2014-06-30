@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2013 Olivier Boudeville
+% Copyright (C) 2003-2014 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -25,8 +25,11 @@
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
 
 
-
-% When using floating-point coordinates, equality of points is defined
-% relatively to the epsilon distance: P1 is deemed equal to P2 iff the distance
-% between P1 and P2 is below epsilon.
+% Numerical margin to account for rounding/quantisation errors induced by the
+% use of floating-point numbers.
+%
+% For example, when using floating-point coordinates, equality of points is
+% defined relatively to the epsilon distance: P1 is deemed equal to P2 iff the
+% distance between P1 and P2 is below epsilon.
+%
 -define( epsilon, 1.0e-6 ).

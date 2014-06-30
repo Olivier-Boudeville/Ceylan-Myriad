@@ -1,4 +1,4 @@
- % Copyright (C) 2003-2010 Olivier Boudeville
+% Copyright (C) 2003-2014 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -25,38 +25,47 @@
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
 
 
+
 % Unit tests for the net_utils toolbox.
+%
 % See the net_utils.erl tested module.
+%
 -module(net_utils_test).
 
 
--export([ run/0 ]).
-
-
--define( Tested_module, net_utils ).
+% For run/0 export and al:
+-include("test_facilities.hrl").
 
 
 
+-spec run() -> no_return().
 run() ->
 
-	io:format( "--> Testing module ~s.~n", [ ?Tested_module ] ),
+	test_facilities:start( ?MODULE ),
 
 	Localhost = net_utils:localhost(),
 
-	io:format( "   Pinging now localhost ~s.~n", [ Localhost ] ),
+	test_facilities:display( "Pinging now localhost, whose FQDN is '~s' "
+							 "(short name: '~s').",
+							 [ Localhost, net_utils:localhost( short ) ] ),
+
 
 	case net_utils:ping( Localhost ) of
 
 		true ->
-			io:format( "   Ping success of localhost.~n");
+			test_facilities:display( "Ping success of localhost.");
 
 		false ->
-			throw( could_not_ping_localhost )
+			% Deactivated as a laptop using DHCP may not be able to resolve its
+			% own name:
+			% throw( could_not_ping_localhost )
+			test_facilities:display( "Warning: the local host is not able to "
+									"ping itself.")
 
 	end,
 
-	io:format( "   (will ping a non-existing host, "
-		"depending on the DNS settings the operation might be quite long)~n" ),
+	test_facilities:display( "(will ping a non-existing host, "
+		"depending on the DNS settings the operation might be quite long)" ),
 
 	case net_utils:ping( "non.existing.host" ) of
 
@@ -64,28 +73,33 @@ run() ->
 			throw( could_ping_non_existing_host );
 
 		false ->
-			io:format(
-				"   Ping could not ping a non-existing host, as expected.~n")
+			test_facilities:display(
+				"Ping could not ping a non-existing host, as expected.")
 
 	end,
 
+	test_facilities:display( "Detected usable network interfaces: ~p",
+				[ net_utils:get_local_ip_addresses() ] ),
 
-	io:format( "   Connected nodes are: ~w.~n",
+
+	test_facilities:display( "Connected nodes are: ~w.",
 			  [ net_utils:get_all_connected_nodes() ] ),
 
 
 	NamingMode = net_utils:get_node_naming_mode(),
 
-	io:format( "   Naming mode for this node: ~w.~n", [ NamingMode ] ),
+	test_facilities:display( "Naming mode for this node: ~w.",
+							[ NamingMode ] ),
 
-	io:format( "   Naming-compliant hostname for '~s' is '~s'.~n", [ Localhost,
+	test_facilities:display( "Naming-compliant hostname for '~s' is '~s'.",
+		[ Localhost,
 		  net_utils:get_naming_compliant_hostname( Localhost, NamingMode ) ] ),
 
 
 	TestName = "I have \"<spaces>\" / \ & ~ # @ { } [ ] | $ * ? ! + , . ; :"
 		"(and also 'I have quotes')",
 
-	io:format( "   Node name generated from '~s' is '~s'.~n",
+	test_facilities:display( "Node name generated from '~s' is '~s'.",
 		[TestName,net_utils:generate_valid_node_name_from(TestName)] ),
 
 
@@ -95,36 +109,98 @@ run() ->
 	TCPSettings = {10000,14000},
 	AdditionalOptions = "-noshell -smp auto +K true +A 8 +P 400000",
 
-	io:format( "   Example of node launching command: '~s'.~n", [
+	test_facilities:display( "Example of node launching command: '~s'.", [
 		  net_utils:get_basic_node_launching_command( NodeName, NodeNamingMode,
 		  EpmdSettings, TCPSettings, AdditionalOptions ) ] ),
 
 
 	FirstIP = {74,125,127,100},
-	io:format( "   Reverse look-up of ~p is '~s'.~n",
+	test_facilities:display( "Reverse look-up of ~p is '~s'.",
 		[ net_utils:ipv4_to_string(FirstIP),
 		  net_utils:reverse_lookup(FirstIP) ] ),
 
 
 	SecondIP = {82,225,152,215},
-	io:format( "   Reverse look-up of ~p is '~s'.~n",
+	test_facilities:display( "Reverse look-up of ~p is '~s'.",
 		[ net_utils:ipv4_to_string(SecondIP),
 		  net_utils:reverse_lookup(SecondIP) ] ),
 
 
 	ThirdIP = {90,59,94,64},
-	io:format( "   Reverse look-up of ~p is '~s'.~n",
+	test_facilities:display( "Reverse look-up of ~p is '~s'.",
 		[ net_utils:ipv4_to_string(ThirdIP),
 		  net_utils:reverse_lookup(ThirdIP) ] ),
 
 	FourthIP = {10,22,22,22},
-	io:format( "   Reverse look-up of ~p is '~s'.~n",
+	test_facilities:display( "Reverse look-up of ~p is '~s'.",
 		[ net_utils:ipv4_to_string(FourthIP),
 		  net_utils:reverse_lookup(FourthIP) ] ),
 
 
-	io:format( "   All connected nodes are: ~w.~n",
+	test_facilities:display( "All connected nodes are: ~w.",
 			  [ net_utils:get_all_connected_nodes() ] ),
 
-	io:format( "--> End of test for module ~s.~n", [ ?Tested_module ] ),
-	erlang:halt().
+
+	test_facilities:display( "Testing node availability (various forms):" ),
+
+	FirstNonExistingNodeName = non_existing,
+	%FirstNonExistingNodeName = erlang:node(),
+
+	SecondNonExistingNodeName = "Non existing",
+	%SecondNonExistingNodeName = atom_to_list( FirstNonExistingNodeName ),
+
+	ExistingNodeName = node(),
+
+	CandidateNodeNames = [ FirstNonExistingNodeName, SecondNonExistingNodeName,
+				ExistingNodeName ],
+
+	[ test_facilities:display( "  + direct for ~p: ~p",
+			  [ N, net_utils:check_node_availability( N ) ] )
+	 || N <- CandidateNodeNames ],
+
+
+	[ test_facilities:display( "  + immediate for ~p: ~p",
+			  [ N, net_utils:check_node_availability( N, immediate ) ] )
+	 || N <- CandidateNodeNames ],
+
+
+	[ test_facilities:display( "  + with waiting for ~p: ~p",
+			  [ N, net_utils:check_node_availability( N, with_waiting ) ] )
+	 || N <- CandidateNodeNames ],
+
+
+	%Durations = [ 0, 1, 10, 100, 200, 510, 1000, 2050 ],
+	Durations = [ 0, 1, 10, 100, 200 ],
+
+	[ [ test_facilities:display( "  + with duration ~B for ~p: ~p",
+			  [ D, N, net_utils:check_node_availability( N, D )
+			   ] ) || N <- CandidateNodeNames ] || D <- Durations ],
+
+	test_facilities:display( "To test send_file/2, receive_file/1, "
+							 "receive_file/2 and receive_file/3, two "
+							 "nodes are needed, and two shells, A and B." ),
+
+	test_facilities:display( "On A, launched by: "
+							 "'erl -name node_a -setcookie abc', enter: "
+							 "'basic_utils:register_as( self(), shell_a, "
+							 "global_only ).'" ),
+
+	% Sleep needed for the synchronization of the atom table:
+	test_facilities:display( "On B, launched by: "
+							 "'erl -name node_b -setcookie abc', enter: "
+							 "pong = net_adm:ping( 'node_a@foobar.org' ), "
+							 "timer:sleep(500), "
+							 "basic_utils:register_as( self(), shell_b, "
+							 "global_only ), "
+							 "ShellA = basic_utils:get_registered_pid_for( "
+							 "shell_a, global ), "
+							 "net_utils:receive_file( ShellA, \"/tmp\" ).'" ),
+
+	test_facilities:display( "Back on A: "
+							 "'ShellB = basic_utils:get_registered_pid_for( "
+							 "shell_b, global ), "
+							 "net_utils:send_file( \"/home/joe/test-file.txt\","
+							 " ShellB ).'" ),
+
+
+	test_facilities:stop().

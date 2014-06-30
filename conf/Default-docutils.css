@@ -2,7 +2,7 @@
 :Author: Olivier Boudeville
 :Copyright: This stylesheet has been placed in the public domain.
 
-Stylesheet for use with Docutils.  
+Stylesheet for use with Docutils.
 See: http://docutils.sourceforge.net/docs/howto/html-stylesheets.html
 */
 
@@ -71,7 +71,7 @@ div.sidebar p.sidebar-subtitle {
 
 /* Red Bordeaux */
 div.system-messages h1 {
-  color: #cc470c 
+  color: #cc470c
 }
 
 
@@ -81,34 +81,34 @@ div.system-message p.system-message-title {
   font-weight: cc470c
 }
 
-  
-  
-/* Black */ 
+
+
+/* Black */
 p.rubric {
-  color: #000000 
+  color: #000000
 }
-  
-  
-/* Dark grey */ 
+
+
+/* Dark grey */
 pre.literal-block, pre.doctest-block {
-  background-color: #444444 
+  background-color: #444444
 }
 
 
 
 /* Red Bordeaux */
 span.problematic {
-  color: red 
+  color: red
 }
 
-  
-/* Dark grey */ 
+
+/* Dark grey */
 tt.docutils {
   background-color: #666666
 }
-  
 
-/* Blue */  
+
+/* Blue */
 a:link {
   text-decoration:none;
   color: #8aa0d2
@@ -125,8 +125,8 @@ a:active {
 }
 
 
-a:hover { 
-  color:#8aa0d2 
+a:hover {
+  color:#8aa0d2
 }
 
 
@@ -139,34 +139,34 @@ div.contents a.reference {
 }
 
 
-div.contents a:hover.reference { 
+div.contents a:hover.reference {
   text-decoration: underline;
-  color:#FFFFFF 
+  color:#FFFFFF
 }
 
 
-a.section-title { 
+a.section-title {
   text-decoration: none
 }
 
 
-/* Softer orange */  
-a.toc-backref { 
-  color: #ec8b23; 
+/* Softer orange */
+a.toc-backref {
+  color: #ec8b23;
   text-decoration: none
 }
 
 
-h1 a.toc-backref { 
+h1 a.toc-backref {
   color: #ec8b23
 }
 
 
-h2 a.toc-backref { 
+h2 a.toc-backref {
   color: #06b1dc
 }
 
-h3 a.toc-backref { 
+h3 a.toc-backref {
   color: #4da04b
 }
 
@@ -176,35 +176,35 @@ div.warning p.admonition-title {
 }
 
 
-/* Orange */  
+/* Orange */
 div.attention p.admonition-title {
   color: #e6841b }
 
-/* Orange */  
+/* Orange */
 div.caution p.admonition-title {
   color: #e6841b }
 
-/* Red Bordeaux */  
+/* Red Bordeaux */
 div.danger p.admonition-title {
   color: #cc470c }
 
-/* Red Bordeaux */  
+/* Red Bordeaux */
 div.error p.admonition-title {
   color: #cc470c }
 
-/* Green */  
+/* Green */
 div.hint p.admonition-title {
   color: #4da04b }
 
-/* Blue */  
+/* Blue */
 div.important p.admonition-title {
   color: #06b1dc }
 
-/* Violet */  
+/* Violet */
 div.note p.admonition-title {
   color: #bf48d9 }
 
-/* Green */  
+/* Green */
 div.tip p.admonition-title {
   color: #4da04b }
 
@@ -244,4 +244,3 @@ dt {
   margin-top: 1%;
   font-weight: bold
 }
-

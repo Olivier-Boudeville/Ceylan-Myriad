@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2013 Olivier Boudeville
+% Copyright (C) 2003-2014 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -27,7 +27,9 @@
 
 
 % Gathering of various convenient facilities regarding files.
+%
 % See file_utils_test.erl for the corresponding test.
+%
 -module(file_utils).
 
 
@@ -36,38 +38,83 @@
 
 
 % Filename-related operations.
--export([ join/1, join/2, convert_to_filename/1, replace_extension/3, exists/1,
-	get_type_of/1, is_file/1, is_existing_file/1,
-	is_directory/1, is_existing_directory/1, list_dir_elements/1,
-	get_current_directory/0,
-	filter_by_extension/2,
-	filter_by_included_suffixes/2, filter_by_excluded_suffixes/2,
-	find_files_from/1, find_files_with_extension_from/2,
-	find_files_with_excluded_dirs/2,
-	find_files_with_excluded_suffixes/2,
-	find_files_with_excluded_dirs_and_suffixes/3,
-	find_directories_from/1,
-	create_directory/1, create_directory/2,
-	remove_file/1, remove_file_if_existing/1,
-	remove_files/1, remove_files_if_existing/1,
-	path_to_variable_name/1, path_to_variable_name/2,
-	get_image_file_png/1, get_image_file_gif/1 ]).
+%
+-export([ join/1, join/2, convert_to_filename/1, replace_extension/3,
+
+		  exists/1, get_type_of/1, is_file/1, is_existing_file/1,
+		  is_executable/1, is_directory/1, is_existing_directory/1,
+		  list_dir_elements/1,
+
+		  get_current_directory/0, set_current_directory/1,
+
+		  filter_by_extension/2,
+		  filter_by_included_suffixes/2, filter_by_excluded_suffixes/2,
+
+		  find_files_from/1, find_files_with_extension_from/2,
+		  find_files_with_excluded_dirs/2,
+		  find_files_with_excluded_suffixes/2,
+		  find_files_with_excluded_dirs_and_suffixes/3,
+		  find_directories_from/1,
+
+		  create_directory/1, create_directory/2,
+		  create_directory_if_not_existing/1,
+
+		  remove_file/1, remove_file_if_existing/1,
+		  remove_files/1, remove_files_if_existing/1,
+
+		  copy_file/2, copy_file_if_existing/2,
+
+		  is_absolute_path/1,
+		  ensure_path_is_absolute/1, ensure_path_is_absolute/2,
+
+		  path_to_variable_name/1, path_to_variable_name/2,
+
+		  get_image_file_png/1, get_image_file_gif/1 ]).
+
 
 
 % I/O section.
--export([ open/2, open/3, read_whole/1, write_whole/2 ]).
+%
+-export([ open/2, open/3, close/1, close/2, read/2, write/2,
+		  read_whole/1, write_whole/2 ]).
 
 
 % Zip-related operations.
+%
 -export([ file_to_zipped_term/1, zipped_term_to_unzipped_file/1,
-	zipped_term_to_unzipped_file/2, files_to_zipped_term/1,
-	zipped_term_to_unzipped_files/1, zipped_term_to_unzipped_files/2 ]).
+		  zipped_term_to_unzipped_file/2,
+		  files_to_zipped_term/1, files_to_zipped_term/2,
+		  zipped_term_to_unzipped_files/1, zipped_term_to_unzipped_files/2 ]).
 
 
 
 % For the file_info record:
 -include_lib("kernel/include/file.hrl").
 
+
+% Type declarations:
+
+% A path may designate either a file or a directory.
+-type path() :: string().
+-type bin_path() :: binary().
+
+-type file_name() :: path().
+-type bin_file_name() :: binary().
+
+-type directory_name() :: path().
+-type bin_directory_name() :: binary().
+
+-type extension() :: string().
+
+
+% All known types of file entries:
+-type entry_type() :: 'device' | 'directory' | 'other' | 'regular' | 'symlink'.
+
+
+-export_type([ path/0, bin_path/0,
+			   file_name/0, bin_file_name/0,
+			   directory_name/0, bin_directory_name/0,
+			   extension/0 ]).
 
 
 
@@ -76,28 +123,27 @@
 
 % Joins the specified list of path elements.
 %
-% Note: join/1 added back to file_utils, filename:join(Components) can be used
-% instead.
+% Note: join/1 added back to file_utils, filename:join( Components ) can be used
+% instead. However filename:join( [ "", "my_dir" ] ) results in "/my_dir",
+% whereas often we would want "my_dir", which is returned by file_utils:join/1.
 %
-% However filename:join(["","my_dir"]) results in "/my_dir", whereas often we
-% would want "my_dir", which is returned by file_utils:join/1.
-%
-join( [""|T] ) ->
+-spec join( [ path() ] ) -> path().
+join( _ComponentList=[ "" | T ] ) ->
 	filename:join( T );
 
 join( ComponentList ) ->
 	filename:join( ComponentList ).
 
 
+
 % Joins the two specified path elements.
 %
-% Note: join/2 added back to file_utils, filename:join(Name1, Name2) can be used
-% instead.
+% Note: join/2 added back to file_utils, filename:join( Name1, Name2 ) can be
+% used instead. However filename:join( "", "my_dir" ) results in "/my_dir",
+% whereas often we would want "my_dir", which is returned by file_utils:join/2.
 %
-% However filename:join("","my_dir") results in "/my_dir", whereas often we
-% would want "my_dir", which is returned by file_utils:join/2.
-%
-join( "", SecondPath ) ->
+-spec join( path(), path() ) -> path().
+join( _FirstPath="", SecondPath ) ->
 	SecondPath ;
 
 join( FirstPath, SecondPath ) ->
@@ -108,7 +154,10 @@ join( FirstPath, SecondPath ) ->
 
 
 % Converts specified name to an acceptable filename, filesystem-wise.
-convert_to_filename(Name) ->
+%
+-spec convert_to_filename( string() ) ->
+		file_name(). % none() in case of erlang:error/2
+convert_to_filename( Name ) ->
 
 	% Currently we use exactly the same translation rules both for node names
 	% and file names (see net_utils:generate_valid_node_name_from/1).
@@ -126,10 +175,11 @@ convert_to_filename(Name) ->
 	% exactly one underscore:
 	%
 	% (see also: net_utils:generate_valid_node_name_from/1)
+	%
 	re:replace( lists:flatten(Name),
 			   "( |<|>|,|\\(|\\)|'|\"|/|\\\\|\&|~|"
 			   "#|@|{|}|\\[|\\]|\\||\\$|\\*|\\?|!|\\+|;|:)+", "_",
-		 [global,{return, list}] ).
+		 [ global, { return, list } ] ).
 
 
 
@@ -137,6 +187,8 @@ convert_to_filename(Name) ->
 %
 % Ex: replace_extension( "/home/jack/rosie.ttf", ".ttf", ".wav" ) should return
 % "/home/jack/rosie.wav".
+%
+-spec replace_extension( file_name(), extension(), extension() ) -> file_name().
 replace_extension( Filename, SourceExtension, TargetExtension ) ->
 	Index = string:rstr( Filename, SourceExtension ),
 	string:substr( Filename, 1, Index-1 ) ++ TargetExtension.
@@ -144,34 +196,46 @@ replace_extension( Filename, SourceExtension, TargetExtension ) ->
 
 
 % Tells whether specified file entry exists, regardless of its type.
-exists(EntryName) ->
-	case file:read_file_info(EntryName) of
+%
+-spec exists( file_name() ) -> boolean().
+exists( EntryName ) ->
 
-		{ok,_FileInfo} ->
+	case file:read_file_info( EntryName ) of
+
+		{ ok, _FileInfo } ->
 			true;
 
-		{error,_Reason} ->
+		{ error, _Reason } ->
 			false
 
 	end.
 
 
 
-% Returns the type of the specified file entry, in:
-% device | directory | regular | other.
-get_type_of(EntryName) ->
-	case file:read_file_info(EntryName) of
+% Returns the type of the specified file entry.
+%
+-spec get_type_of( file_name() ) -> entry_type().
+get_type_of( EntryName ) ->
 
-		{ok,FileInfo} ->
-			#file_info{ type = FileType } = FileInfo,
+	% We used to rely on file:read_file_info/1, but an existing symlink pointing
+	% to a non-existing entry was triggering the enoent error, while we just
+	% wanted to know that the specified entry is an existing (yet dead) symlink.
+
+	% Some tools (e.g. emacs) used thus to get in the way, as apparently they
+	% create dead symlinks on purpose, to store information.
+
+	case file:read_link_info( EntryName ) of
+
+		{ ok, FileInfo } ->
+			#file_info{ type=FileType } = FileInfo,
 			FileType;
 
-		{error,eloop} ->
+		{ error, eloop } ->
 			% Probably a recursive symlink:
-			throw({too_many_symlink_levels,EntryName});
+			throw( { too_many_symlink_levels, EntryName } );
 
-		{error,enoent} ->
-			throw({non_existing_entry,EntryName})
+		{ error, enoent } ->
+			throw( { non_existing_entry, EntryName } )
 
 	end.
 
@@ -180,10 +244,12 @@ get_type_of(EntryName) ->
 % Returns whether the specified entry, supposedly existing, is a regular file.
 %
 % If the specified entry happens not to exist, a
-% '{non_existing_entry,EntryName}' exception will be thrown.
+% '{ non_existing_entry, EntryName }' exception will be thrown.
 %
-is_file(EntryName) ->
-	case get_type_of(EntryName) of
+-spec is_file( file_name() ) -> boolean().
+is_file( EntryName ) ->
+
+	case get_type_of( EntryName ) of
 
 		regular ->
 			true ;
@@ -192,13 +258,17 @@ is_file(EntryName) ->
 			false
 
 	end.
+
 
 
 % Returns whether the specified entry exists and is a regular file.
 %
 % Returns true or false, and cannot trigger an exception.
-is_existing_file(EntryName) ->
-	case exists(EntryName) andalso get_type_of(EntryName) of
+%
+-spec is_existing_file( file_name() ) -> boolean().
+is_existing_file( EntryName ) ->
+
+	case exists( EntryName ) andalso get_type_of( EntryName ) of
 
 		regular ->
 			true ;
@@ -209,13 +279,60 @@ is_existing_file(EntryName) ->
 	end.
 
 
+
+% Returns whether the specified entry exists and is executable for its current
+% owner (can be either a regular file or a symbolic link).
+%
+% Returns true or false, and cannot trigger an exception.
+%
+-spec is_executable( file_name() ) -> boolean().
+is_executable( ExecutableName ) ->
+
+	case file:read_file_info( ExecutableName ) of
+
+		{ ok, FileInfo } ->
+
+			#file_info{ type=FileType, mode=Mode } = FileInfo,
+
+			case FileType of
+
+				regular ->
+
+					OwnerExecMask = 8#00100,
+					case Mode band OwnerExecMask of
+
+						0 ->
+							% Not executable:
+							false;
+
+						_ ->
+							% One positive case:
+							true
+
+					end;
+
+				_ ->
+
+					false
+
+			end;
+
+		_ ->
+			false
+
+	end.
+
+
+
 % Returns whether the specified entry, supposedly existing, is a directory.
 %
 % If the specified entry happens not to exist, a
-% '{non_existing_entry,EntryName}' exception will be thrown.
+% '{ non_existing_entry, EntryName }' exception will be thrown.
 %
-is_directory(EntryName) ->
-	case get_type_of(EntryName) of
+-spec is_directory( directory_name() ) -> boolean().
+is_directory( EntryName ) ->
+
+	case get_type_of( EntryName ) of
 
 		directory ->
 			true ;
@@ -226,11 +343,15 @@ is_directory(EntryName) ->
 	end.
 
 
+
 % Returns whether the specified entry exists and is a directory.
 %
 % Returns true or false, and cannot trigger an exception.
-is_existing_directory(EntryName) ->
-	case exists(EntryName) andalso get_type_of(EntryName) of
+%
+-spec is_existing_directory( directory_name() ) -> boolean().
+is_existing_directory( EntryName ) ->
+
+	case exists( EntryName ) andalso get_type_of( EntryName ) of
 
 		directory ->
 			true ;
@@ -243,11 +364,21 @@ is_existing_directory(EntryName) ->
 
 
 % Returns a tuple made of a four lists describing the file elements found in
-% specified directory: {RegularFiles,Directories,OtherFiles,Devices}.
-list_dir_elements(Dirname) ->
-	%io:format( "list_dir_elements for '~s'.~n", [Dirname] ),
-	{ok,LocalDirElements} = file:list_dir(Dirname),
-	classify_dir_elements( Dirname, LocalDirElements, [], [], [], [] ).
+% specified directory: { Files, Directories, OtherFiles, Devices }.
+%
+% Note that Files include symbolic links (dead or not).
+%
+-spec list_dir_elements( directory_name() )
+		-> { [ file_name() ], [ directory_name() ], [ file_name() ],
+			[ file_name() ] }.
+list_dir_elements( Dirname ) ->
+
+	%io:format( "list_dir_elements for '~s'.~n", [ Dirname ] ),
+
+	{ ok, LocalDirElements } = file:list_dir( Dirname ),
+
+	classify_dir_elements( Dirname, LocalDirElements, _Devices=[],
+			_Directories=[], _Files=[], _OtherFiles=[] ).
 
 
 
@@ -255,66 +386,102 @@ list_dir_elements(Dirname) ->
 %
 % Throws an exception on failure.
 %
+-spec get_current_directory() -> directory_name().
 get_current_directory() ->
 
 	case file:get_cwd() of
 
-		{ok,Dir} ->
+		{ ok, Dir } ->
 			Dir;
 
-		{error,Reason} ->
-			throw( {failed_to_determine_current_directory,Reason} )
+		{ error, Reason } ->
+			throw( { failed_to_determine_current_directory, Reason } )
 
 	end.
 
 
 
-% Returns a tuple containing four lists corresponding to the sorting of all
-% file elements: {Directories,RegularFiles,Devices,OtherFiles}.
-classify_dir_elements( _Dirname, [],
-		Devices, Directories, RegularFiles, OtherFiles ) ->
-	% Note the reordering:
-	{RegularFiles,Directories,OtherFiles,Devices};
+% Sets the specified directory as current directory.
+%
+% Throws an exception on failure.
+%
+-spec set_current_directory( directory_name() ) -> basic_utils:void().
+set_current_directory( DirName ) ->
 
-classify_dir_elements( Dirname, [H|T],
-		Devices, Directories, RegularFiles, OtherFiles ) ->
+	 % For more detail of { 'error', atom() }, refer to type specifications of
+	 % erlang files: file.erl and file.hrl.
+
+	case file:set_cwd( DirName ) of
+
+		ok ->
+			ok;
+
+		{ error, Error } ->
+			throw( { set_current_directory_failed, DirName, Error } )
+
+	end.
+
+
+
+% Helper function.
+%
+% Returns a tuple containing four lists corresponding to the sorting of all
+% file elements: { Directories, Files, Devices, OtherFiles }.
+%
+% Note that Files include symbolic links (dead or not).
+%
+classify_dir_elements( _Dirname, _Elements=[], Devices, Directories, Files,
+					  OtherFiles ) ->
+	% Note the reordering:
+	{ Files, Directories, OtherFiles, Devices };
+
+classify_dir_elements( Dirname, _Elements=[ H | T ],
+		Devices, Directories, Files, OtherFiles ) ->
 
 	 case get_type_of( filename:join( Dirname, H ) ) of
 
 		device ->
-			classify_dir_elements( Dirname, T,
-				[H|Devices], Directories, RegularFiles, OtherFiles ) ;
+			classify_dir_elements( Dirname, T, [ H | Devices ], Directories,
+								   Files, OtherFiles ) ;
 
 		directory ->
-			classify_dir_elements( Dirname, T,
-				Devices, [H|Directories], RegularFiles, OtherFiles ) ;
+			classify_dir_elements( Dirname, T, Devices, [ H | Directories ],
+								   Files, OtherFiles ) ;
 
 		regular ->
-			classify_dir_elements( Dirname, T,
-				Devices, Directories, [H|RegularFiles], OtherFiles ) ;
+			classify_dir_elements( Dirname, T, Devices, Directories,
+								  [ H | Files ], OtherFiles ) ;
+
+		% Managed as regular files:
+		symlink ->
+			classify_dir_elements( Dirname, T, Devices, Directories,
+								   [ H | Files ], OtherFiles ) ;
 
 		other ->
-			classify_dir_elements( Dirname, T,
-				Devices, Directories, RegularFiles, [H|OtherFiles] )
+			classify_dir_elements( Dirname, T, Devices, Directories,
+								   Files, [ H | OtherFiles ] )
 
 	end.
 
 
 
 % Returns a list containing all elements of Filenames list whose extension is
-% the specified one.
+% the specified one (ex: ".dat").
+%
+-spec filter_by_extension( [ file_name() ], extension() ) -> [ file_name() ].
 filter_by_extension( Filenames, Extension ) ->
-	filter_by_extension( Filenames, Extension, [] ).
+	filter_by_extension( Filenames, Extension, _Acc=[] ).
 
 
-filter_by_extension( [], _Extension, Acc ) ->
+filter_by_extension( _Filenames=[], _Extension, Acc ) ->
 	Acc ;
 
-filter_by_extension( [H|T], Extension, Acc ) ->
-	case filename:extension(H) of
+filter_by_extension( _Filenames=[ H | T ], Extension, Acc ) ->
+
+	case filename:extension( H ) of
 
 		Extension ->
-			filter_by_extension( T, Extension, [H|Acc] ) ;
+			filter_by_extension( T, Extension, [ H | Acc ] ) ;
 
 		_Other ->
 			filter_by_extension( T, Extension, Acc )
@@ -325,27 +492,35 @@ filter_by_extension( [H|T], Extension, Acc ) ->
 
 % Returns a list containing all elements of the Filenames list which match any
 % of the specified suffixes.
+%
+-spec filter_by_included_suffixes( [ file_name() ], [ string() ] ) ->
+										 [ file_name() ].
 filter_by_included_suffixes( Filenames, IncludedSuffixes ) ->
-	[ F || F <- Filenames, has_matching_suffix( F, IncludedSuffixes )].
+	[ F || F <- Filenames, has_matching_suffix( F, IncludedSuffixes ) ].
 
 
 % Returns a list containing all elements of the Filenames list which do not
 % match any of the specified suffixes.
+%
+-spec filter_by_excluded_suffixes( [ file_name() ], [ string() ] ) ->
+										 [ file_name() ].
 filter_by_excluded_suffixes( Filenames, ExcludedSuffixes ) ->
-	[ F || F <- Filenames, not has_matching_suffix( F, ExcludedSuffixes )].
+	[ F || F <- Filenames, not has_matching_suffix( F, ExcludedSuffixes ) ].
 
 
 
+
+-spec has_matching_suffix( file_name(), [ string() ] ) -> boolean().
 has_matching_suffix( _Filename, _ExcludedSuffixes=[] ) ->
 	false;
 
-has_matching_suffix( Filename, [S|OtherS] ) ->
+has_matching_suffix( Filename, [ S | OtherS ] ) ->
 
 	% We have to avoid feeding string:substr/2 with a start position that is not
-	% strictly positive, otherwise we would have a function clause:
+	% strictly positive, otherwise we would trigger a function clause error:
 
-	LenFile = length(Filename),
-	LenSuffix = length(S),
+	LenFile = length( Filename ),
+	LenSuffix = length( S ),
 
 	case LenFile - LenSuffix + 1 of
 
@@ -382,20 +557,22 @@ has_matching_suffix( Filename, [S|OtherS] ) ->
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
 %
+-spec find_files_from( directory_name() ) -> [file_name()].
 find_files_from( RootDir ) ->
 	find_files_from( RootDir, _CurrentRelativeDir="", _Acc=[] ).
 
 
+
+% Helper.
 find_files_from( RootDir, CurrentRelativeDir, Acc ) ->
 
 	%io:format( "find_files_from with root = '~s', current = '~s'.~n",
-	%	[RootDir,CurrentRelativeDir] ),
+	%	[ RootDir, CurrentRelativeDir ] ),
 
-	{RegularFiles,Directories,_OtherFiles,_Devices} = list_dir_elements(
+	{ RegularFiles, Directories, _OtherFiles, _Devices } = list_dir_elements(
 		join( RootDir, CurrentRelativeDir ) ),
 
-	Acc ++ list_files_in_subdirs( Directories,
-			RootDir, CurrentRelativeDir, [] )
+	Acc ++ list_files_in_subdirs( Directories, RootDir, CurrentRelativeDir, [] )
 		++ prefix_files_with( CurrentRelativeDir, RegularFiles ).
 
 
@@ -403,14 +580,13 @@ find_files_from( RootDir, CurrentRelativeDir, Acc ) ->
 list_files_in_subdirs( _Dirs=[], _RootDir, _CurrentRelativeDir, Acc ) ->
 	Acc;
 
-list_files_in_subdirs( _Dirs=[H|T], RootDir, CurrentRelativeDir, Acc ) ->
+list_files_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir, Acc ) ->
 
 	%io:format( "list_files_in_subdirs with root = '~s', current = '~s' "
-	%	"and H='~s'.~n", [RootDir,CurrentRelativeDir,H] ),
+	%	"and H='~s'.~n", [ RootDir, CurrentRelativeDir, H ] ),
 
 	list_files_in_subdirs( T, RootDir, CurrentRelativeDir,
-		find_files_from( RootDir, join(CurrentRelativeDir,H), [] ) ++ Acc ).
-
+		find_files_from( RootDir, join( CurrentRelativeDir, H ), [] ) ++ Acc ).
 
 
 
@@ -419,33 +595,38 @@ list_files_in_subdirs( _Dirs=[H|T], RootDir, CurrentRelativeDir, Acc ) ->
 %
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
+%
+-spec find_files_with_extension_from( directory_name(), extension() )
+		-> [ file_name() ].
 find_files_with_extension_from( RootDir, Extension ) ->
 	find_files_with_extension_from( RootDir, "", Extension, [] ).
 
 
+
+% Helper.
 find_files_with_extension_from( RootDir, CurrentRelativeDir, Extension, Acc ) ->
 
-	%io:format( "find_files_from in ~s.~n", [CurrentRelativeDir] ),
+	%io:format( "find_files_from in ~s.~n", [ CurrentRelativeDir ] ),
 
-	{RegularFiles,Directories,_OtherFiles,_Devices} = list_dir_elements(
-		join(RootDir,CurrentRelativeDir) ),
+	{ RegularFiles, Directories, _OtherFiles, _Devices } = list_dir_elements(
+		join( RootDir, CurrentRelativeDir ) ),
 
 	Acc ++ list_files_in_subdirs_with_extension( Directories, Extension,
-			RootDir, CurrentRelativeDir, [] )
+										RootDir, CurrentRelativeDir, [] )
 		++ prefix_files_with( CurrentRelativeDir,
-			filter_by_extension(RegularFiles,Extension) ).
+			filter_by_extension( RegularFiles, Extension ) ).
 
 
 % Helper for find_files_with_extension_from/4:
-list_files_in_subdirs_with_extension( [], _Extension, _RootDir,
+list_files_in_subdirs_with_extension( _Dirs=[], _Extension, _RootDir,
 									  _CurrentRelativeDir, Acc) ->
 	Acc;
 
-list_files_in_subdirs_with_extension( [H|T], Extension, RootDir,
+list_files_in_subdirs_with_extension( _Dirs=[ H| T ], Extension, RootDir,
 									  CurrentRelativeDir, Acc ) ->
 	list_files_in_subdirs_with_extension( T, Extension, RootDir,
 		CurrentRelativeDir,
-		find_files_with_extension_from( RootDir, join(CurrentRelativeDir,H),
+		find_files_with_extension_from( RootDir, join( CurrentRelativeDir, H ),
 			Extension, [] ) ++ Acc ).
 
 
@@ -468,25 +649,31 @@ list_files_in_subdirs_with_extension( [H|T], Extension, RootDir,
 %
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
+%
+-spec find_files_with_excluded_dirs( directory_name(), [ directory_name() ] )
+		-> [ file_name() ].
 find_files_with_excluded_dirs( RootDir, ExcludedDirList ) ->
 	find_files_with_excluded_dirs( RootDir, _CurrentRelativeDir="",
 								  ExcludedDirList, _Acc=[] ).
 
+
+% Helper.
 find_files_with_excluded_dirs( RootDir, CurrentRelativeDir, ExcludedDirList,
 							Acc ) ->
 
 	%io:format( "find_files_with_excluded_dirs in ~s.~n",
-	% [CurrentRelativeDir] ),
+	% [ CurrentRelativeDir ] ),
 
-	{RegularFiles,Directories,_OtherFiles,_Devices} = list_dir_elements(
+	{ RegularFiles, Directories, _OtherFiles, _Devices } = list_dir_elements(
 		join( RootDir, CurrentRelativeDir ) ),
 
 	% If for example ExcludedDirList=[ ".svn" ], we want to eliminate not only
 	% ".svn" but also all "foo/bar/.svn", i.e. all directories having the same
 	% (last) name:
+	%
 	FilteredDirectories = [ D || D <- Directories,
-		not ( lists:member( join(CurrentRelativeDir,D), ExcludedDirList )
-			 or lists:member( D, ExcludedDirList ) )],
+		not ( lists:member( join( CurrentRelativeDir, D ), ExcludedDirList )
+			 or lists:member( D, ExcludedDirList ) ) ],
 
 	Acc ++ list_files_in_subdirs_excluded_dirs( FilteredDirectories, RootDir,
 								CurrentRelativeDir, ExcludedDirList, _Acc=[] )
@@ -498,12 +685,12 @@ list_files_in_subdirs_excluded_dirs( _Dirs=[], _RootDir,
 		_CurrentRelativeDir, _ExcludedDirList, Acc ) ->
 	Acc;
 
-list_files_in_subdirs_excluded_dirs( _Dirs=[H|T], RootDir,
+list_files_in_subdirs_excluded_dirs( _Dirs=[ H | T ], RootDir,
 		CurrentRelativeDir, ExcludedDirList, Acc ) ->
 
 	list_files_in_subdirs_excluded_dirs( T, RootDir, CurrentRelativeDir,
 		ExcludedDirList,
-		find_files_with_excluded_dirs( RootDir, join(CurrentRelativeDir,H),
+		find_files_with_excluded_dirs( RootDir, join( CurrentRelativeDir, H ),
 			ExcludedDirList, [] ) ++ Acc ).
 
 
@@ -515,37 +702,46 @@ list_files_in_subdirs_excluded_dirs( _Dirs=[H|T], RootDir,
 %
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
+%
+-spec find_files_with_excluded_suffixes( directory_name(), [ string() ])
+		-> [ file_name() ].
 find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes ) ->
 	find_files_with_excluded_suffixes( RootDir, _CurrentRelativeDir="",
 									  ExcludedSuffixes, _Acc=[] ).
 
 
+
+% Helper:
 find_files_with_excluded_suffixes( RootDir, CurrentRelativeDir,
 										ExcludedSuffixes, Acc ) ->
 
 	%io:format( "find_files_with_excluded_suffixes in ~s.~n",
-	% [CurrentRelativeDir] ),
+	% [ CurrentRelativeDir ] ),
 
-	{RegularFiles,Directories,_OtherFiles,_Devices} = list_dir_elements(
+	{ RegularFiles, Directories, _OtherFiles, _Devices } = list_dir_elements(
 		join( RootDir, CurrentRelativeDir ) ),
 
 	Acc ++ list_files_in_subdirs_with_excluded_suffixes( Directories,
 			ExcludedSuffixes, RootDir, CurrentRelativeDir, [] )
 		++ prefix_files_with( CurrentRelativeDir,
-			filter_by_excluded_suffixes(RegularFiles,ExcludedSuffixes) ).
+			filter_by_excluded_suffixes( RegularFiles, ExcludedSuffixes ) ).
+
+
 
 
 % Helper for find_files_with_excluded_suffixes/4:
+-spec list_files_in_subdirs_with_excluded_suffixes( list(), [ string() ],
+		directory_name(), directory_name(), [ file_name() ]) -> [ file_name() ].
 list_files_in_subdirs_with_excluded_suffixes( [], _ExcludedSuffixes, _RootDir,
-									_CurrentRelativeDir, Acc) ->
+									_CurrentRelativeDir, Acc ) ->
 	Acc;
 
-list_files_in_subdirs_with_excluded_suffixes( [H|T], ExcludedSuffixes, RootDir,
-									CurrentRelativeDir, Acc ) ->
+list_files_in_subdirs_with_excluded_suffixes( [ H | T ], ExcludedSuffixes,
+								  RootDir, CurrentRelativeDir, Acc ) ->
 	list_files_in_subdirs_with_excluded_suffixes( T, ExcludedSuffixes, RootDir,
 		CurrentRelativeDir,
-		find_files_with_excluded_suffixes( RootDir, join(CurrentRelativeDir,H),
-			ExcludedSuffixes, [] ) ++ Acc ).
+		find_files_with_excluded_suffixes( RootDir,
+			 join( CurrentRelativeDir, H ), ExcludedSuffixes, [] ) ++ Acc ).
 
 
 
@@ -568,33 +764,38 @@ list_files_in_subdirs_with_excluded_suffixes( [H|T], ExcludedSuffixes, RootDir,
 %
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
+%
+-spec find_files_with_excluded_dirs_and_suffixes( directory_name(),
+		[ directory_name() ], [ string() ] ) -> [ file_name() ].
 find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirList,
 										   ExcludedSuffixes ) ->
 
-	%{ok,CurrentDir} = file:get_cwd(),
+	%{ ok, CurrentDir } = file:get_cwd(),
 	%io:format( "find_files_with_excluded_dirs_and_suffixes: current is ~s, "
-	%		  "root is ~s.~n", [CurrentDir,RootDir] ),
+	%		  "root is ~s.~n", [ CurrentDir, RootDir ] ),
 
 	find_files_with_excluded_dirs_and_suffixes( RootDir,
 			_CurrentRelativeDir="", ExcludedDirList, ExcludedSuffixes, _Acc=[]
 											   ).
 
 
+% Helper:
 find_files_with_excluded_dirs_and_suffixes( RootDir, CurrentRelativeDir,
 		ExcludedDirList, ExcludedSuffixes, Acc ) ->
 
 	%io:format( "find_files_with_excluded_dirs_and_suffixes in ~s / ~s.~n",
-	% [RootDir, CurrentRelativeDir] ),
+	% [ RootDir, CurrentRelativeDir ] ),
 
-	{RegularFiles,Directories,_OtherFiles,_Devices} = list_dir_elements(
+	{ RegularFiles, Directories, _OtherFiles, _Devices } = list_dir_elements(
 		join( RootDir, CurrentRelativeDir ) ),
 
 	% If for example ExcludedDirList=[ ".svn" ], we want to eliminate not only
 	% ".svn" but also all "foo/bar/.svn", i.e. all directories having the same
 	% (last) name:
+	%
 	FilteredDirectories = [ D || D <- Directories,
-		not ( lists:member( join(CurrentRelativeDir,D), ExcludedDirList )
-			 or lists:member( D, ExcludedDirList ) )],
+		not ( lists:member( join( CurrentRelativeDir, D ), ExcludedDirList )
+			 or lists:member( D, ExcludedDirList ) ) ],
 
 	Acc ++ list_files_in_subdirs_excluded_dirs_and_suffixes(
 			FilteredDirectories, RootDir, CurrentRelativeDir,
@@ -604,77 +805,88 @@ find_files_with_excluded_dirs_and_suffixes( RootDir, CurrentRelativeDir,
 
 
 
+
 % Specific helper for find_files_with_excluded_dirs_and_suffixes/5 above:
 list_files_in_subdirs_excluded_dirs_and_suffixes( _Dirs=[], _RootDir,
 		_CurrentRelativeDir, _ExcludedDirList, _ExcludedSuffixes, Acc ) ->
 	Acc;
 
-list_files_in_subdirs_excluded_dirs_and_suffixes( _Dirs=[H|T], RootDir,
+list_files_in_subdirs_excluded_dirs_and_suffixes( _Dirs=[ H | T ], RootDir,
 		CurrentRelativeDir, ExcludedDirList, ExcludedSuffixes, Acc ) ->
 	list_files_in_subdirs_excluded_dirs_and_suffixes( T, RootDir,
 		CurrentRelativeDir, ExcludedDirList, ExcludedSuffixes,
 		find_files_with_excluded_dirs_and_suffixes( RootDir,
-			join(CurrentRelativeDir,H),	ExcludedDirList, ExcludedSuffixes, [] )
+			join(CurrentRelativeDir,H), ExcludedDirList, ExcludedSuffixes, [] )
 		++ Acc ).
 
 
 
 
-
+-spec prefix_files_with( directory_name(), [ file_name() ] ) -> [ file_name() ].
 prefix_files_with( RootDir, Files ) ->
-	%io:format( "Prefixing ~p with '~s'.~n", [Files,RootDir] ),
-	prefix_files_with( RootDir, Files, [] ).
+	%io:format( "Prefixing ~p with '~s'.~n", [ Files, RootDir ] ),
+	prefix_files_with( RootDir, Files, _Acc=[] ).
 
 
-prefix_files_with( _RootDir, [], Acc ) ->
+% Helper:
+prefix_files_with( _RootDir, _Files=[], Acc ) ->
 	Acc;
 
-prefix_files_with( RootDir, [H|T], Acc ) ->
-	prefix_files_with( RootDir, T, [join(RootDir,H)|Acc] ).
+prefix_files_with( RootDir, [ H| T ], Acc ) ->
+	prefix_files_with( RootDir, T, [ join( RootDir, H ) | Acc ] ).
 
 
 
 
-
-
-
-
-% Returns the list of all directories found from the root, in the
-%  whole subtree (i.e. recursively).
+% Returns the list of all directories found from the root, in the whole subtree
+% (i.e. recursively).
+%
 % All returned pathnames are relative to this root.
 % Ex: [ "./my-dir", "./tmp/other-dir" ].
+%
+-spec find_directories_from( directory_name() ) -> [ directory_name() ].
 find_directories_from( RootDir ) ->
-	find_directories_from( RootDir, "", [] ).
+	find_directories_from( RootDir, "", _Acc=[] ).
 
 
+% Helper:
 find_directories_from( RootDir, CurrentRelativeDir, Acc ) ->
-	%io:format( "find_directories_from in ~s.~n", [CurrentRelativeDir] ),
-	{_RegularFiles,Directories,_OtherFiles,_Devices} = list_dir_elements(
-		join(RootDir,CurrentRelativeDir) ),
+
+	%io:format( "find_directories_from in ~s.~n", [ CurrentRelativeDir ] ),
+
+	{ _RegularFiles, Directories, _OtherFiles, _Devices } = list_dir_elements(
+		join( RootDir, CurrentRelativeDir ) ),
+
 	Acc ++ list_directories_in_subdirs( Directories,
-			RootDir, CurrentRelativeDir, [] )
+			RootDir, CurrentRelativeDir, _Acc=[] )
 		++ prefix_files_with( CurrentRelativeDir, Directories ).
 
 
 
-list_directories_in_subdirs( [], _RootDir, _CurrentRelativeDir, Acc ) ->
+% Helper:
+list_directories_in_subdirs( _Dirs=[], _RootDir, _CurrentRelativeDir, Acc ) ->
 	Acc;
 
-list_directories_in_subdirs( [H|T], RootDir, CurrentRelativeDir, Acc ) ->
+list_directories_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir,
+							 Acc ) ->
 	list_directories_in_subdirs( T, RootDir, CurrentRelativeDir,
-		find_directories_from( RootDir, join(CurrentRelativeDir,H), [] )
+		find_directories_from( RootDir, join( CurrentRelativeDir, H ), _Acc=[] )
 		++ Acc ).
 
 
 
 % Creates specified directory, without creating any intermediate (parent)
 % directory that would not exist.
+%
 % Throws an exception if the operation failed.
+%
+-spec create_directory( directory_name() ) -> basic_utils:void().
 create_directory( Dirname ) ->
 	create_directory( Dirname, create_no_parent ).
 
 
-% Creates specified directory.
+
+% Creates the specified directory.
 %
 % If 'create_no_parent' is specified, no intermediate (parent) directory will be
 % created.
@@ -683,14 +895,18 @@ create_directory( Dirname ) ->
 % directory will be created.
 %
 % Throws an exception if the operation fails.
+%
+-spec create_directory( directory_name(),
+	   'create_no_parent' | 'create_parents' ) -> basic_utils:void().
 create_directory( Dirname, create_no_parent ) ->
+
 	case file:make_dir( Dirname ) of
 
 		ok ->
 			ok;
 
-		{error,Reason} ->
-			throw( {create_directory_failed,Dirname,Reason} )
+		{ error, Reason } ->
+			throw( { create_directory_failed, Dirname, Reason } )
 
 	end;
 
@@ -699,11 +915,34 @@ create_directory( Dirname, create_parents ) ->
 
 
 
-create_dir_elem( [], _Prefix ) ->
+% Creates specified directory (but not any parents), if not already existing.
+%
+% Throws an exception if the operation fails.
+%
+-spec create_directory_if_not_existing( directory_name() ) ->
+											  basic_utils:void().
+create_directory_if_not_existing( Dirname ) ->
+
+	case is_existing_directory( Dirname ) of
+
+		true ->
+			ok;
+
+		false ->
+			create_directory( Dirname )
+
+	end.
+
+
+
+% Helper:
+create_dir_elem( _Elems=[], _Prefix ) ->
 	ok;
 
-create_dir_elem( [H|T], Prefix ) ->
-	NewPrefix = join(Prefix,H),
+create_dir_elem( _Elems=[ H | T ], Prefix ) ->
+
+	NewPrefix = join( Prefix, H ),
+
 	case exists( NewPrefix ) of
 
 		true ->
@@ -718,7 +957,13 @@ create_dir_elem( [H|T], Prefix ) ->
 
 
 % Removes specified file, specified as a plain string.
+%
+% Throws an exception is a problem occurs.
+%
+-spec remove_file( file_name() ) -> basic_utils:void().
 remove_file( Filename ) ->
+
+	%io:format( "## Removing file '~s'.~n", [ Filename ] ),
 
 	case file:delete( Filename ) of
 
@@ -726,13 +971,15 @@ remove_file( Filename ) ->
 			ok;
 
 		Error ->
-			throw( {remove_file_failed,Filename,Error} )
+			throw( { remove_file_failed, Filename, Error } )
 
 	end.
 
 
 
 % Removes specified files, specified as a list of plain strings.
+%
+-spec remove_files( [ file_name() ] ) -> basic_utils:void().
 remove_files( FilenameList ) ->
 	[ remove_file( Filename ) || Filename <- FilenameList ].
 
@@ -740,6 +987,8 @@ remove_files( FilenameList ) ->
 
 % Removes specified file, specified as a plain string, iff it is already
 % existing, otherwise does nothing.
+%
+-spec remove_file_if_existing( file_name() ) -> basic_utils:void().
 remove_file_if_existing( Filename ) ->
 
 	case is_existing_file( Filename ) of
@@ -756,8 +1005,126 @@ remove_file_if_existing( Filename ) ->
 
 % Removes each specified file, in specified list of plain strings, iff it is
 % already existing.
+%
+-spec remove_files_if_existing( [ file_name() ] ) -> basic_utils:void().
 remove_files_if_existing( FilenameList ) ->
-	[ remove_file( Filename ) || Filename <- FilenameList ].
+	[ remove_file_if_existing( Filename ) || Filename <- FilenameList ].
+
+
+
+% Copies a specified file to a given destination.
+%
+% Note: content is copied and permissions are preserved (ex: the copy of an
+% executable file will be itself executable).
+%
+-spec copy_file( file_name(), file_name() ) -> basic_utils:void().
+copy_file( SourceFilename, DestinationFilename ) ->
+
+	% First, checks the source file exists and retrieves its meta-information:
+	case file:read_file_info( SourceFilename ) of
+
+		{ ok, #file_info{ mode=Mode } } ->
+
+			case file:copy( SourceFilename, DestinationFilename ) of
+
+				{ ok, _ByteCount } ->
+
+					% Now sets the permissions of the copy:
+					ok = file:change_mode( DestinationFilename, Mode );
+
+				Error ->
+					throw( { copy_file_failed, SourceFilename,
+							DestinationFilename, Error } )
+
+			end;
+
+		{ error, Reason } ->
+			throw( { copy_file_failed, SourceFilename, Reason } )
+
+	end.
+
+
+
+% Copies a specified file to a given destination iff it is already existing.
+%
+% Note: content is copied and permissions are preserved (ex: the copy of an
+% executable file will be itself executable).
+%
+-spec copy_file_if_existing( file_name(), file_name() ) -> basic_utils:void().
+	copy_file_if_existing( SourceFilename, DestinationFilename ) ->
+
+	case is_existing_file( SourceFilename ) of
+
+		true ->
+			copy_file( SourceFilename, DestinationFilename );
+
+		false ->
+			ok
+
+	end.
+
+
+
+% Tells whether the specified path is an absolute one.
+%
+% A path is deemed absolute iff it starts with "/".
+%
+-spec is_absolute_path( path() ) -> boolean().
+is_absolute_path( _Path=[ $/ | _Rest ] ) ->
+	true;
+
+is_absolute_path( _Path ) ->
+	false.
+
+
+
+% Returns an absolute path corresponding to specified path.
+%
+% If it is not already abolute, it will made so by using the current working
+% directory.
+%
+ensure_path_is_absolute( Path ) ->
+
+	case is_absolute_path( Path ) of
+
+		true ->
+			% Already absolute:
+			Path;
+
+		false ->
+			% Relative, using current directory as base:
+			join( get_current_directory(), Path )
+
+	end.
+
+
+
+% Returns an absolute path corresponding to specified path, using base path as
+% root directory (this must be an absolute path).
+%
+% Ex: ensure_path_is_absolute( "tmp/foo", "/home/dalton" ) will return
+% "/home/dalton/tmp/foo".
+%
+ensure_path_is_absolute( TargetPath, BasePath ) ->
+
+	case is_absolute_path( TargetPath ) of
+
+		true ->
+			% Already absolute:
+			TargetPath;
+
+		false ->
+			% Relative, using specified base directory:
+			case is_absolute_path( BasePath ) of
+
+				true ->
+					join( BasePath, TargetPath );
+
+				false ->
+					throw( { base_path_not_absolute, BasePath } )
+			end
+
+	end.
 
 
 
@@ -772,27 +1139,35 @@ remove_files_if_existing( FilenameList ) ->
 %  - '.' becomes '_'
 %  - '/' becomes '_'
 %
-path_to_variable_name(Filename) ->
-	path_to_variable_name(Filename,"File_").
-
-
-% Removes any leading './':
-path_to_variable_name([$.,$/|T],Prefix) ->
-	convert(T,Prefix);
-
-path_to_variable_name(Filename,Prefix) ->
-	convert(Filename,Prefix).
+-spec path_to_variable_name( path() ) -> string().
+path_to_variable_name( Filename ) ->
+	path_to_variable_name( Filename, "File_" ).
 
 
 
-% Helper function.
-convert(Filename,Prefix) ->
+% Removes any leading './'.
+%
+-spec path_to_variable_name( path(), string() ) -> string().
+path_to_variable_name( [ $.,$/ | T ], Prefix ) ->
+	convert( T, Prefix );
+
+path_to_variable_name( Filename, Prefix ) ->
+	convert( Filename, Prefix ).
+
+
+
+% Helper function:
+%
+convert( Filename, Prefix ) ->
+
 	NoDashName = re:replace( lists:flatten(Filename), "-+", "_",
-		[global,{return, list}] ),
+		[ global, { return, list } ] ),
+
 	NoDotName = re:replace( NoDashName, "\\.+", "_",
-		[global,{return, list}] ),
+		[ global, { return, list } ] ),
+
 	Prefix ++ re:replace( NoDotName, "/+", "_",
-		[global,{return, list}] ).
+		[ global, { return, list } ] ).
 
 
 
@@ -801,14 +1176,18 @@ convert(Filename,Prefix) ->
 
 
 % Returns the image path corresponding to the specified file.
-get_image_file_png(Image) ->
-  filename:join([ ?ResourceDir, "images", Image ++ ".png" ]).
+%
+-spec get_image_file_png( file_name() ) -> path().
+get_image_file_png( Image ) ->
+  filename:join( [ ?ResourceDir, "images", Image ++ ".png" ] ).
 
 
 
 % Returns the image path corresponding to the specified file.
-get_image_file_gif(Image) ->
-  filename:join([ ?ResourceDir, "images", Image ++ ".gif" ]).
+%
+-spec get_image_file_gif( file_name() ) -> path().
+get_image_file_gif( Image ) ->
+  filename:join( [ ?ResourceDir, "images", Image ++ ".gif" ] ).
 
 
 
@@ -816,7 +1195,7 @@ get_image_file_gif(Image) ->
 % I/O section.
 
 
-% Opens the file corresponding to specified filename with specified list of
+% Opens the file corresponding to the specified filename, with specified list of
 % options.
 %
 % Returns the file reference, or throws an exception.
@@ -825,16 +1204,20 @@ get_image_file_gif(Image) ->
 % not seem a viable solution right now (risk of exhausting the descriptors,
 % making the VM fail for example when loading a new BEAM).
 %
+-spec open( file_name(), list() ) -> file:io_device().
 open( Filename, Options ) ->
 	open( Filename, Options, _Default=try_once ).
 
 
+
 % Opens the file corresponding to specified filename (first parameter) with
-% specified list of options (second parameter).
+% specified list of options (second parameter; refer to file:open/2 for detailed
+% documentation).
 %
-% Third parameter is either 'try_once' or 'try_endlessly', depending
-% respectively on whether we want to try to open the file once (no other attempt
-% will be made) or endlessly, until a file descriptor can be gained.
+% Third parameter is the "attempt mode", either 'try_once', 'try_endlessly' or
+% 'try_endlessly_safer', depending respectively on whether we want to try to
+% open the file once (no other attempt will be made), endlessly (until a file
+% descriptor can be gained), possibly with a safer setting.
 %
 % Returns the file reference, or throws an exception.
 %
@@ -852,8 +1235,16 @@ open( Filename, Options ) ->
 %                                 %
 % This is done in order to support situations where potentially more Erlang
 % processes than available file descriptors try to access to files. An effort is
-% made to desynchroniopen/2ze these processes to smooth the use of descriptors.
-open( Filename, Options, try_endlessly_safer ) ->
+% made to desynchronize these processes to smooth the use of descriptors.
+%
+% (file:mode() not exported currently unfortunately)
+%
+-spec open( file_name(), [ file:mode() | 'ram' ],
+		   'try_once' | 'try_endlessly' | 'try_endlessly_safer' )
+		  -> file:io_device().
+		% For the contents in above tuple(): reference to type #file_descriptor
+		% of erlang module: file.hrl
+open( Filename, Options, _AttemptMode=try_endlessly_safer ) ->
 
 	File = open( Filename, Options, try_endlessly ),
 
@@ -862,20 +1253,21 @@ open( Filename, Options, try_endlessly_safer ) ->
 	% than one spare descriptor.
 	%
 	% The correct solution would involve knowing the max number of descriptors
-	% for that process and the current number of open ones, none information we
+	% for that process and the current number of open ones, no information we
 	% seems able to know.
 	%
-	% So for the moment we do not do anything more:
+	% So for the moment we do not do anything more than 'try_endlessly':
 	File;
 
-open( Filename, Options, try_endlessly ) ->
+
+open( Filename, Options, _AttemptMode=try_endlessly ) ->
 
 	case file:open( Filename, Options ) of
 
-		{ok,File} ->
+		{ ok, File } ->
 			 File;
 
-		{error,FileError} when FileError == emfile
+		{ error, FileError } when FileError == emfile
 				orelse FileError == system_limit ->
 
 			% File descriptors exhausted for this OS process.
@@ -894,27 +1286,108 @@ open( Filename, Options, try_endlessly ) ->
 
 			end;
 
-		{error,OtherFileError} ->
-			throw( {open_failed, {Filename,Options}, OtherFileError } )
+		{ error, OtherFileError } ->
+			throw( { open_failed, { Filename, Options }, OtherFileError } )
 
 	end;
 
-open( Filename, Options, try_once ) ->
+
+open( Filename, Options, _AttemptMode=try_once ) ->
 
 	case file:open( Filename, Options ) of
 
-		{ok,File} ->
+		{ ok, File } ->
 			 File;
 
-		{error,emfile} ->
-			throw( {too_many_open_files, {Filename,Options}} );
+		{ error, emfile } ->
+			throw( { too_many_open_files, { Filename, Options } } );
 
-		{error,system_limit} ->
+		{ error, system_limit } ->
 			% Never had system_limit without this cause (yet!):
-			throw( {too_many_open_files, {Filename,Options}, system_limit} );
+			throw( { too_many_open_files, { Filename, Options },
+					 system_limit } );
 
-		{error,OtherError} ->
-			throw( {open_failed, {Filename,Options}, OtherError } )
+		{ error, OtherError } ->
+			throw( { open_failed, { Filename, Options }, OtherError } )
+
+	end.
+
+
+
+% Closes specified file reference.
+%
+% Throws an exception on failure.
+%
+-spec close( file:io_device() ) -> basic_utils:void().
+close( File ) ->
+	close( File, throw_if_failed ).
+
+
+
+% Closes specified file reference.
+%
+% Throws an exception on failure or not, depending on specified failure mode.
+%
+-spec close( file:io_device(), 'overcome_failure' | 'throw_if_failed' )
+		   -> basic_utils:void().
+close( File, _FailureMode=throw_if_failed ) ->
+
+	case file:close( File ) of
+
+		ok ->
+			ok;
+
+		{ error, Reason } ->
+			throw( { file_closing_failed, Reason } )
+
+	end;
+
+close( File, _FailureMode=overcome_failure ) ->
+	file:close( File ).
+
+
+
+% Reads specified number of bytes/characters from the specified file.
+%
+% Returns either { ok, Data } if at least some data could be read, or eof if at
+% least one element was to read and end of file was reached before anything at
+% all could be read.
+%
+% Throws an exception on failure.
+%
+-spec read( file:io_device(), basic_utils:count() ) ->
+				  { 'ok', string() | binary() } | 'eof'.
+read( File, Count ) ->
+
+	case file:read( File, Count ) of
+
+		R={ ok, _Data } ->
+			R;
+
+		eof ->
+			eof;
+
+		{ error, Reason } ->
+			throw( { read_failed, Reason } )
+
+	end.
+
+
+
+% Writes specified content into specified file.
+%
+% Throws an exception on failure.
+%
+-spec write( file:io_device(), iodata() ) -> basic_utils:void().
+write( File, Content ) ->
+
+	case file:write( File, Content ) of
+
+		ok ->
+			ok;
+
+		{ error, Reason } ->
+			throw( { write_failed, Reason } )
 
 	end.
 
@@ -923,15 +1396,19 @@ open( Filename, Options, try_once ) ->
 % Reads the content of the specified file, based on its filename specified as a
 % plain string, and returns the corresponding binary, or throws an exception on
 % failure.
+%
+% See also: file:consult/1 to read directly Erlang terms.
+%
+-spec read_whole( file_name() ) -> binary().
 read_whole( Filename ) ->
 
 	case file:read_file( Filename ) of
 
-		{ok,Binary} ->
+		{ ok, Binary } ->
 			Binary;
 
-		{error,Error} ->
-			throw( {read_whole_failed,Filename,Error} )
+		{ error, Error } ->
+			throw( { read_whole_failed, Filename, Error } )
 
 	end.
 
@@ -939,6 +1416,8 @@ read_whole( Filename ) ->
 
 % Writes the specified binary in specified file, whose filename is specified as
 % a plain string. Throws an exception on failure.
+%
+-spec write_whole( file_name(), binary() ) -> basic_utils:void().
 write_whole( Filename, Binary ) ->
 
 	case file:write_file( Filename, Binary ) of
@@ -946,8 +1425,8 @@ write_whole( Filename, Binary ) ->
 		ok ->
 			ok;
 
-		{error,Error} ->
-			throw( {write_whole_failed,Filename,Error} )
+		{ error, Error } ->
+			throw( { write_whole_failed, Filename, Error } )
 
 	end.
 
@@ -958,18 +1437,20 @@ write_whole( Filename, Binary ) ->
 
 
 % Reads in memory the file specified from its filename, zips the corresponding
-% term, and returns it.
+% term, and returns it, as a compressed binary.
 %
 % Note: useful for network transfers of small files.
 %
 % Larger ones should be transferred with TCP/IP and by chunks.
 %
 % Returns a binary.
-file_to_zipped_term(Filename)  ->
+%
+-spec file_to_zipped_term( file_name() ) -> binary().
+file_to_zipped_term( Filename ) ->
 	DummyFileName = "dummy",
-	{ok,{_DummyFileName,Bin}} =
-		%zip:zip( DummyFileName, [Filename], [verbose,memory] ),
-		zip:zip( DummyFileName, [Filename], [memory] ),
+	{ ok, { _DummyFileName, Bin } } =
+		%zip:zip( DummyFileName, [ Filename ], [ verbose, memory ] ),
+		zip:zip( DummyFileName, [ Filename ], [ memory ] ),
 	Bin.
 
 
@@ -978,9 +1459,11 @@ file_to_zipped_term(Filename)  ->
 % in current directory.
 %
 % Returns the filename of the unzipped file.
-zipped_term_to_unzipped_file(ZippedTerm) ->
-	%zip:unzip(ZippedTerm,[verbose]).
-	{ok,[FileName]} = zip:unzip(ZippedTerm),
+%
+-spec zipped_term_to_unzipped_file( binary() ) -> file_name().
+zipped_term_to_unzipped_file( ZippedTerm ) ->
+	%zip:unzip( ZippedTerm, [ verbose ] ).
+	{ ok, [ FileName ] } = zip:unzip( ZippedTerm ),
 	FileName.
 
 
@@ -993,12 +1476,16 @@ zipped_term_to_unzipped_file(ZippedTerm) ->
 %
 % Note: only one file is expected to be stored in the specified archive.
 %
-zipped_term_to_unzipped_file(ZippedTerm,TargetFilename) ->
-	{ok,[{_AFilename,Binary}]} = zip:unzip(ZippedTerm,[memory]),
-	%% {ok,File} = file:open( TargetFilename, [write] ),
-	%% ok = io:format( File, "~s", [ binary_to_list(Binary) ] ),
-	%% ok = file:write_file( File, "~s", [ binary_to_list(Binary) ] ),
-	%% ok = file:close(File).
+-spec zipped_term_to_unzipped_file( binary(), file_name() )
+								  -> basic_utils:void().
+zipped_term_to_unzipped_file( ZippedTerm, TargetFilename ) ->
+
+	{ ok, [ { _AFilename, Binary } ] } = zip:unzip( ZippedTerm, [ memory ] ),
+
+	% { ok, File } = file:open( TargetFilename, [ write ] ),
+	% ok = io:format( File, "~s", [ binary_to_list(Binary) ] ),
+	% ok = file:write_file( File, "~s", [ binary_to_list(Binary) ] ),
+	% ok = file:close( File ).
 	write_whole( TargetFilename, Binary ).
 
 
@@ -1012,11 +1499,65 @@ zipped_term_to_unzipped_file(ZippedTerm,TargetFilename) ->
 %
 % Returns a binary.
 %
-files_to_zipped_term( FilenameList )  ->
+-spec files_to_zipped_term( [file_name()] ) -> binary().
+files_to_zipped_term( FilenameList ) ->
+
 	DummyFileName = "dummy",
-	{ok,{_DummyFileName,Bin}} =	zip:zip( DummyFileName, FilenameList,
-										[memory] ),
+
+	{ ok, { _DummyFileName, Bin } } = zip:zip( DummyFileName, FilenameList,
+										[ memory ] ),
+
 	Bin.
+
+
+
+% Reads in memory the files specified from their filenames, assuming their path
+% is relative to the specified base directory, zips the corresponding term, and
+% returns it.
+%
+% Note: useful for network transfers of small files.
+%
+% Larger ones should be transferred with TCP/IP and by chunks.
+%
+% Returns a binary.
+%
+-spec files_to_zipped_term( [ file_name() ], directory_name() ) -> binary().
+files_to_zipped_term( FilenameList, BaseDirectory ) ->
+
+
+
+
+	DummyFileName = "dummy",
+
+
+	%io:format( "files_to_zipped_term operating from ~s on files: ~p.~n",
+	%		  [ BaseDirectory, FilenameList ] ),
+
+	 case zip:zip( DummyFileName, FilenameList,
+						[ memory, { cwd, BaseDirectory } ] ) of
+
+		 { ok, { _DummyFileName, Bin } } ->
+			 Bin;
+
+
+		 { error, enoent } ->
+
+			 % Such a short error might be difficult to diagnose:
+
+			 %io:format( "~nfiles_to_zipped_term/2 failed from '~s':~n"
+			 %			"~n - directory '~p' exists? ~p",
+			 %		[ get_current_directory(), BaseDirectory,
+			 %			is_existing_directory( BaseDirectory ) ] ),
+
+			 % [ io:format( "~n - file '~p' exists? ~p", [ F,
+			 %	   is_existing_file( F ) ] ) || F <- FilenameList ],
+
+			 throw( { zip_failed, BaseDirectory, FilenameList } );
+
+		 { error, Other } ->
+			 throw( { zip_failed, Other, BaseDirectory, FilenameList } )
+
+	 end.
 
 
 
@@ -1025,10 +1566,12 @@ files_to_zipped_term( FilenameList )  ->
 %
 % Returns the list of filenames corresponding to the unzipped files.
 %
+-spec zipped_term_to_unzipped_files( binary() ) -> [ file_name() ].
 zipped_term_to_unzipped_files( ZippedTerm ) ->
-	%{ok,FileNames} = zip:unzip(ZippedTerm,[verbose]),
-	{ok,FileNames} = zip:unzip(ZippedTerm),
+	%{ ok, FileNames } = zip:unzip( ZippedTerm, [ verbose ] ),
+	{ ok, FileNames } = zip:unzip( ZippedTerm ),
 	FileNames.
+
 
 
 % Reads specified binary, extracts the zipped files in it and writes them on
@@ -1036,15 +1579,18 @@ zipped_term_to_unzipped_files( ZippedTerm ) ->
 %
 % Returns the list of filenames corresponding to the unzipped files.
 %
+-spec zipped_term_to_unzipped_files( binary(), directory_name() )
+		-> [ file_name() ].
 zipped_term_to_unzipped_files( ZippedTerm, TargetDirectory ) ->
-	%{ok,FileNames} = zip:unzip(ZippedTerm,[verbose]),
-	case is_existing_directory(TargetDirectory) of
+	%{ ok, FileNames } = zip:unzip( ZippedTerm, [ verbose ] ),
+	case is_existing_directory( TargetDirectory ) of
 
 		true ->
-			{ok,FileNames} = zip:unzip( ZippedTerm, [ {cwd,TargetDirectory} ] ),
+			{ ok, FileNames } = zip:unzip( ZippedTerm,
+										   [ { cwd, TargetDirectory } ] ),
 			FileNames;
 
 		false ->
-			throw( {non_existing_unzip_directory,TargetDirectory} )
+			throw( { non_existing_unzip_directory, TargetDirectory } )
 
 	end.

@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2013 Olivier Boudeville
+% Copyright (C) 2003-2014 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -26,54 +26,84 @@
 
 
 % Unit tests for the math basic toolbox facilities.
-%
 % See the math_utils tested module.
+%
 -module(math_utils_test).
 
 
--define(Tested_modules,[math_utils]).
-
-
-% For test_finished/0 and al:
+% For run/0 export and al:
 -include("test_facilities.hrl").
 
 
 
+-spec run() -> no_return().
 run() ->
 
-	io:format( "--> Testing modules ~p.~n", [ ?Tested_modules ] ),
+	test_facilities:start( ?MODULE ),
 
 	Roundings = [ -1.1, -1.0, -0.9, 0.0, 0.9, 1.0, 1.1 ],
 
-	[ io:format( "    Floor for ~p is ~p.~n", [ V,
+	[ test_facilities:display( "Floor for ~p is ~p.", [ V,
 			math_utils:floor(V) ] ) || V <- Roundings ],
 
-	[ io:format( "    Ceiling for ~p is ~p.~n", [ V,
+	[ test_facilities:display( "Ceiling for ~p is ~p.", [ V,
 			math_utils:ceiling(V) ] ) || V <- Roundings ],
+
+	TruncateTargets = [ - 12345.6789, -1.23456789, 0.0, 12.3456789, 123.4568 ],
+
+	[
+	 [ test_facilities:display( "Rounding ~p after ~B digit(s) is ~p.", [ V, D,
+			math_utils:round_after( V, D ) ] ) || V <- TruncateTargets ]
+	 || D <- [ 0, 1, 2, 3 ] ],
 
 
 	Modulo = 3,
-	[ io:format( "    ~p modulo ~p is ~p.~n", [ X, Modulo,
-			math_utils:modulo(X,Modulo) ] ) || X <- lists:seq(-7,7) ],
+	[ test_facilities:display( "~p modulo ~p is ~p.", [ X, Modulo,
+			math_utils:modulo( X, Modulo ) ] ) || X <- lists:seq(-7,7) ],
 
-	[ io:format( "    Canonical form for ~p degrees is ~p degrees.~n", [ A,
-			math_utils:canonify(A) ] ) ||
+	2 = math_utils:clamp( 1, 3, 2 ),
+	1 = math_utils:clamp( 1, 3, 0 ),
+	3 = math_utils:clamp( 1, 3, 6 ),
+
+	2.0 = math_utils:clamp( 1, 3, 2.0 ),
+	1   = math_utils:clamp( 1, 3, 0.0 ),
+	3   = math_utils:clamp( 1, 3, 6.0 ),
+
+	2   = math_utils:clamp( 1.0, 3.0, 2 ),
+	1.0 = math_utils:clamp( 1.0, 3.0, 0 ),
+	3.0 = math_utils:clamp( 1.0, 3.0, 6 ),
+
+
+	[ test_facilities:display( "Canonical form for ~p degrees is ~p degrees.",
+							  [ A, math_utils:canonify(A) ] ) ||
 		A <- [ -721, -721.0, -720, -720.0, -719, -719.0, -100, -100.0,
 			   0, 0.0, 100, 100.0, 359, 359.0, 360, 360.0, 361, 361.0,
 			   400, 400.0 ] ],
 
-	X1 = 3.0,
-	X2 = 3.1,
-	X3 = 3.0000000000001,
-	Y  = 3.0,
 
-	true  = math_utils:are_close(X1,Y),
-	false = math_utils:are_close(X2,Y),
-	true  = math_utils:are_close(X3,Y),
+	X1 = 300000.0,
+	X2 = 300000.1,
+	X3 = 300000.0000000000001,
+	Y  = 300000.0,
 
-	% ° does not output well on the console (ex: "90.000000 Â°."):
-	[ io:format( "    Angle ~p rad is ~f degrees.~n", [ Angle,
+
+	% Only the result of the fourth test should make a difference between
+	% absolute/relative comparisons:
+
+	true  = math_utils:are_close( X1, Y ),
+	false = math_utils:are_close( X1, 0 ),
+	true  = math_utils:are_close( X3, Y ),
+	false = math_utils:are_close( X2, Y ),
+
+	true  = math_utils:are_relatively_close( X1, Y ),
+	false = math_utils:are_relatively_close( X1, 0 ),
+	true  = math_utils:are_relatively_close( X3, Y ),
+	true  = math_utils:are_relatively_close( X2, Y ),
+
+
+	% '°' does not output well on the console (ex: "90.000000 Â°."):
+	[ test_facilities:display( "Angle ~p rad is ~f degrees.", [ Angle,
 			math_utils:radian_to_degree( Angle ) ] ) || Angle <-
-				   [0,math:pi()/2,1.0,math:pi(), 2*math:pi() ] ],
+				   [ 0, math:pi()/2, 1.0, math:pi(), 2*math:pi() ] ],
 
-	test_finished().
+	test_facilities:stop().

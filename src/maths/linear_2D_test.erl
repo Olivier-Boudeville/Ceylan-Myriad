@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2013 Olivier Boudeville
+% Copyright (C) 2003-2014 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -26,21 +26,20 @@
 
 
 % Unit tests for the linear 2D facilities.
-%
 % See the linear_2D tested module.
 -module(linear_2D_test).
 
 
--define(Tested_modules,[linear_2D]).
 
-
-% For test_finished/0 and al:
+% For run/0 export and al:
 -include("test_facilities.hrl").
 
 
+
+-spec run() -> no_return().
 run() ->
 
-	io:format( "--> Testing modules ~p.~n", [ ?Tested_modules ] ),
+	test_facilities:start( ?MODULE ),
 
 	V={9,1},
 
@@ -50,8 +49,8 @@ run() ->
 	0 = linear_2D:dot_product( V, NL ),
 	0 = linear_2D:dot_product( V, NR ),
 
-	io:format( "    ~p is a (non-unit) left normal for vector ~p, "
-			   "and ~p is a right normal.~n", [NL,V,NR] ),
+	test_facilities:display( "~p is a (non-unit) left normal for vector ~p, "
+			   "and ~p is a right normal.", [NL,V,NR] ),
 
 	true  = linear_2D:is_strictly_on_the_right( NR, {0,0}, V ),
 	false = linear_2D:is_strictly_on_the_right( NL, {0,0}, V ),
@@ -81,8 +80,8 @@ run() ->
 	C2={-2,-1},
 	C3={1,-4},
 
-	[ io:format( "    Unoriented angle between the vertex ~w and ~w, "
-				 "~w is ~f degrees, oriented angle is ~f degrees.~n",
+	[ test_facilities:display( "Unoriented angle between the vertex ~w and ~w, "
+				 "~w is ~f degrees, oriented angle is ~f degrees.",
 				 [ P1, P2, P3, linear_2D:abs_angle_deg( P1, P2, P3 ),
 					 linear_2D:angle_deg( P1, P2, P3 ) ] ) || P1 <- [A],
 														P2 <- [B1,B2,B3],
@@ -95,4 +94,4 @@ run() ->
 	true  = linear_2D:is_within( A, B1, 1-0.0000001 ),
 	false = linear_2D:is_within( A, B2, 2 ),
 
-	test_finished().
+	test_facilities:stop().

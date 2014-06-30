@@ -1,5 +1,9 @@
 #!/usr/bin/env escript
 
+% Copyright (C) 2010-2012 Olivier Boudeville
+%
+% This file is part of the Ceylan Erlang library.
+
 
 % See benchmark-command.sh which is simpler and probably more reliable
 % (execution seems to behave differently with os:cmd).
@@ -45,8 +49,8 @@ parse_time( TimeAtom ) ->
 
 
 %% parse_float( FloatAtom ) ->
-%% 	{F,[]} = string:to_float( atom_to_list(FloatAtom) ),
-%% 	F.
+%%	{F,[]} = string:to_float( atom_to_list(FloatAtom) ),
+%%	F.
 
 
 parse_integer( IntAtom ) ->
@@ -74,9 +78,9 @@ run_command( Command, CurrentCount, Count, {WTotal,STotal,MTotal,UTotal} ) ->
 				{WTotal+W,STotal+S,MTotal+M,UTotal+U} ).
 
 
-display_result( {W,S,U,M}, CommandToBenchmark, MeasureCount ) -> 
+display_result( {W,S,U,M}, CommandToBenchmark, MeasureCount ) ->
 	io:format( "The execution of command '~s' led, after ~B measures, to:~n"
-			   " - a mean wall-clock time of ~.1f milliseconds~n"  
+			   " - a mean wall-clock time of ~.1f milliseconds~n"
 			   " - a mean system time of ~.1f milliseconds~n"
 			   " - a mean user time of ~.1f milliseconds~n"
 			   " - a mean total memory of ~f KB~n",
@@ -85,7 +89,7 @@ display_result( {W,S,U,M}, CommandToBenchmark, MeasureCount ) ->
 
 
 main([CommandToBenchmark]) ->
-	
+
 	%io:format( "Benchmarked command is: '~p'.~n", [CommandToBenchmark] ),
 
 	ActualCommand = get_benchmark_command(CommandToBenchmark),
@@ -94,7 +98,7 @@ main([CommandToBenchmark]) ->
 	MeasureCount = 5,
 	Res = run_command( ActualCommand, MeasureCount ),
 	display_result( Res, CommandToBenchmark, MeasureCount ),
-	
+
 	ok;
 
 main(_) ->
@@ -102,8 +106,7 @@ main(_) ->
 
 
 usage() ->
-    io:format( "Usage: benchmark-command.escript <COMMAND>: "
+	io:format( "Usage: benchmark-command.escript <COMMAND>: "
 			  "returns a mean resource consumption for the specified command.\n"
 			  "Example: benchmark-command.escript \"my_script.sh 1 2\"" ),
-    halt(5).
-
+	halt(5).

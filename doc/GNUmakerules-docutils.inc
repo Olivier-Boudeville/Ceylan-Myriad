@@ -1,5 +1,5 @@
-# OVERALL_DOCUMENT_SOURCE, COMMON_TOP and DOCUTILS_TOP should have been
-# defined beforehand.
+# OVERALL_DOCUMENT_SOURCE, COMMON_TOP and DOCUTILS_TOP should have been defined
+# beforehand.
 
 
 
@@ -7,7 +7,6 @@
  make-doc-repository view-doc to-print info-doc-local info-doc-tools           \
  clean clean-doc-repository clean-generated clean-dot clean-doc-logs           \
  clean-gnuplot clean-png clean-rst
-
 
 
 
@@ -89,7 +88,7 @@ GRAPH_PNG = $(GRAPH_SRC:%.graph=%.png)
 	@$(PYTHON) $<
 
 # To trigger the automatic rendering of a created plot, add 'VIEW_PLOT='
-# at the end of the command line (ex: 'make MyData.png VIEW_PLOT=')
+# at the end of the command line (ex : 'make MyData.png VIEW_PLOT=')
 #VIEW_PLOT := yes
 VIEW_PLOT := no
 
@@ -99,6 +98,14 @@ GNUPLOT := `which gnuplot`
 	@echo "     Generating plot $@"
 	@$(GNUPLOT) $<
 	@if [ "$(VIEW_PLOT)" != "no" ] ; then $(IMG_VIEWER) $@ & fi
+
+
+# Some plots do not need data files:
+%.png: %.plot
+	@echo "     Generating plot $@"
+	@$(GNUPLOT) $<
+	@if [ "$(VIEW_PLOT)" != "no" ] ; then $(IMG_VIEWER) $@ & fi
+
 
 %.png: %.py
 	@echo "     Generating image $@ from $<"
@@ -131,17 +138,18 @@ AUX_GENERATED_FILES  = $(patsubst %.rst,%.aux,$(RST_FILES))
 TEX_GENERATED_FILES  = $(patsubst %.rst,%.tex,$(RST_FILES))
 OUT_GENERATED_FILES  = $(patsubst %.rst,%.out,$(RST_FILES))
 LOG_GENERATED_FILES  = $(patsubst %.rst,%.log,$(RST_FILES))
+TOC_GENERATED_FILES  = $(patsubst %.rst,%.toc,$(RST_FILES))
 HTML_GENERATED_FILES = $(patsubst %.rst,%.html,$(RST_FILES))
 PDF_GENERATED_FILES  = $(patsubst %.rst,%.pdf,$(RST_FILES))
 
 
 RST_GENERATED_FILES =  $(AUX_GENERATED_FILES) $(TEX_GENERATED_FILES)      \
-	$(OUT_GENERATED_FILES) $(LOG_GENERATED_FILES) $(HTML_GENERATED_FILES) \
-	$(PDF_GENERATED_FILES) $(GENERATOR_LOG_FILE)
+	$(OUT_GENERATED_FILES) $(LOG_GENERATED_FILES) $(TOC_GENERATED_FILES)  \
+	$(HTML_GENERATED_FILES) $(PDF_GENERATED_FILES) $(GENERATOR_LOG_FILE)
 
 
 #RST_GENERATOR = update-docutils.sh
-RST_GENERATOR = `PATH=$(COMMON_TOP)/src:$$PATH which generate-docutils.sh`
+RST_GENERATOR = `PATH=$(COMMON_TOP)/doc:$$PATH which generate-docutils.sh`
 
 
 PDF_VIEWER := `which evince`
@@ -201,7 +209,9 @@ info-doc-tools:
 
 # Centralization of documentation sources is necessary, as the LateX generator
 # from docutils will not find images in directories otherwise.
-# Note: cannot use a 'doc' target, as it would induce in an infinite recursion.
+#
+# Note: cannot use a 'doc' target, as it would result in an infinite recursion.
+#
 full-doc: create-doc
 
 
@@ -221,7 +231,7 @@ regenerate-doc:
 make-doc-repository:
 	@echo "     Copying documentation sources to $(TMP_RST_REPOSITORY)"
 	@mkdir -p $(TMP_RST_REPOSITORY)
-	@find $(DOCUTILS_TOP) -name $(TMP_RST_REPOSITORY) -prune -o \( -name '*.rst' -o -name '*.png' \) -exec cp -f '{}' $(TMP_RST_REPOSITORY) ';'
+	@find $(DOCUTILS_TOP) -name $(TMP_RST_REPOSITORY) -prune -o \( -name '*.rst' -o -name '*.png' \) -exec /bin/cp -f '{}' $(TMP_RST_REPOSITORY) ';'
 
 
 view-doc:
@@ -242,12 +252,12 @@ clean: clean-doc-repository clean-generated clean-dot clean-doc-logs \
 
 
 clean-doc-repository:
-	@echo "     Cleaning documentation repository in $(TMP_RST_REPOSITORY)"
+	@#echo "     Cleaning documentation repository in $(TMP_RST_REPOSITORY)"
 	-@/bin/rm -rf $(TMP_RST_REPOSITORY)
 
 
 clean-generated:
-	@echo "     Cleaning generated files"
+	@#echo "     Cleaning generated files"
 	-@/bin/rm -f $(RST_GENERATED_FILES)
 
 
@@ -263,8 +273,8 @@ clean-doc-logs:
 	-@/bin/rm -f *.log
 
 
+# Let's hope we do not remove user files:
 clean-gnuplot:
-	@# Let's hope we do not remove user files:
 	-@if [ `basename $$PWD` != "doc" ]; then \
 	/bin/rm -f *robe*.dat *robe*.p; fi
 

@@ -2,19 +2,19 @@
 
 # Copyright (C) 2009-2014 Olivier Boudeville
 #
-# This file is part of the Ceylan Erlang library.
+# This file is part of the Ceylan-Myriad project.
 
 
 LANG=C; export LANG
 
 
 # Current stable:
-erlang_version="R16B01"
-erlang_md5="266b95db35560e505c9f69cc3e539e41"
+erlang_version="17.1"
+erlang_md5="9c90706ce70e01651adde34a2b79bf4c"
 
-# Cutting-edge release candidate:
-erlang_version_candidate="17.0-rc2"
-erlang_md5_candidate="12c41cbab1b8708ab13b9d2cc4dc7387"
+# Cutting-edge release candidate (or previous stable version):
+erlang_version_candidate="17.0"
+erlang_md5_candidate="a5f78c1cf0eb7724de3a59babc1a28e5"
 
 
 plt_file="Erlang-$erlang_version.plt"
@@ -53,7 +53,7 @@ For Debian-based distributions, you should preferably run beforehand, as root: '
 # On some distributions (ex: Arch Linux), the wx module is not available, as
 # WxWidget is not detected.
 #
-# The root of the problem is that no /bin/wx-config executable is found. 
+# The root of the problem is that no /bin/wx-config executable is found.
 #
 # One may have to run, as root: 'cd /bin && ln -s wx-config-2.8 wx-config' for
 # example.
@@ -138,7 +138,8 @@ while [ $token_eaten -eq 0 ] ; do
 
 		erlang_version="${erlang_version_candidate}"
 		erlang_md5="${erlang_md5_candidate}"
-		
+		plt_file="Erlang-$erlang_version_candidate"
+
 		echo "Warning: using latest beta ${erlang_version} (non stable) version of Erlang."
 
 		token_eaten=0

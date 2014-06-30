@@ -106,7 +106,7 @@ The ``Common`` services are split into various themes:
  - general settings
  - maths services
  - data-management services
- - helpers for graphical user interface (GUI) programing
+ - helpers for graphical user interface (GUI) programming
  - all-purpose helper scripts
  - utility toolbox
 

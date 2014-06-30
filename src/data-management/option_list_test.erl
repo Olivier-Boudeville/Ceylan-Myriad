@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2013 Olivier Boudeville
+% Copyright (C) 2003-2014 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -25,56 +25,62 @@
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
 % Creation date: Saturday, February 20, 2010.
 
-% Unit tests for the option list implementation.
-% See the option_list.erl tested module.
 
+% Unit tests for the option list implementation.
+%
+% See the option_list.erl tested module.
+%
 -module(option_list_test).
 
 
--define(Tested_modules,[option_list]).
-
-% For test_finished/0 and al:
+% For run/0 export and al:
 -include("test_facilities.hrl").
 
 
+
+-spec run() -> no_return().
 run() ->
 
-	io:format( "--> Testing module ~p.~n", [ ?Tested_modules ] ),
+	test_facilities:start( ?MODULE ),
 
-	SingleOptionList = [{blue,2}],
+	SingleOptionList = option_list:new( [ {blue,2 } ] ),
 	2 = option_list:get( blue, SingleOptionList ),
 
 	% Pattern-match:
-	SingleOptionList = option_list:set( {blue,2}, [] ),
+	SingleOptionList = option_list:set( {blue,2}, option_list:new() ),
 
 	InitialOptionList = [ {yellow,1}, {blue,1}, {red,1}, {green,1},
-						  {purple,1} ],
+						 {purple,1} ],
 
-	io:format( "   Initial option list: ~w.~n", [InitialOptionList] ),
+	test_facilities:display( "Initial option list: ~w.",
+							[InitialOptionList] ),
 
 	BlackOptionList = option_list:set( {black,1}, InitialOptionList ),
-	io:format( "   Option list with black entry added: ~w.~n",
+	test_facilities:display( "Option list with black entry added: ~w.",
 			   [BlackOptionList] ),
 
 	RedOptionList = option_list:set( {red,2}, BlackOptionList ),
-	io:format( "   Option list with red entry incremented: ~w.~n",
+	test_facilities:display( "Option list with red entry incremented: ~w.",
 			   [RedOptionList] ),
 
 	EndpointOptionList = option_list:set( {black,2},
 		option_list:set( {purple,2}, RedOptionList ) ),
 
-	io:format( "   Option list with endpoints updated: ~w.~n",
+	test_facilities:display( "Option list with endpoints updated: ~w.",
 			   [EndpointOptionList] ),
 
 	SecondOptionList = option_list:set( {magenta,1}, SingleOptionList ),
 	UpdatingOptionList = option_list:set( {black,3}, SecondOptionList ),
 
 	UpdatedOptionList = option_list:update_with(
-						   EndpointOptionList, UpdatingOptionList),
+						EndpointOptionList, UpdatingOptionList),
 
-	io:format( "   Update of previous option list with option_list ~w is: "
-			   "~w.~n", [ UpdatingOptionList, UpdatedOptionList ] ),
+	test_facilities:display( "Update of previous option list "
+			"with option_list ~w is: ~w.",
+			[ UpdatingOptionList, UpdatedOptionList ] ),
 
 	3 = option_list:get( black ,UpdatedOptionList ),
 
-	test_finished().
+	InitialOptionList = option_list:enumerate( InitialOptionList ),
+
+	test_facilities:stop().

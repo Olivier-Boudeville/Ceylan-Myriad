@@ -1,12 +1,26 @@
 COMMON_TOP = .
 
+
+.PHONY: register-version-in-header info-paths info-settings
+
+#MODULES_DIRS = contrib src doc
 MODULES_DIRS = src doc
 
-all:
-	@echo "   Building all, in parallel over $(CORE_COUNT) core(s), from "$(PWD) #`basename $(PWD)`
-	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m &&  \
-		$(MAKE) -s all-recurse -j $(CORE_COUNT) && cd .. ; else echo "     (directory $$m skipped)" ; \
-	fi ) ; then exit 1; fi ; done
+
+# To override the 'all' default target with a parallel version:
+BASE_MAKEFILE := true
 
 
 include $(COMMON_TOP)/GNUmakesettings.inc
+
+
+register-version-in-header:
+	@echo "-define( common_version, \"$(COMMON_VERSION)\" )." >> $(VERSION_FILE)
+
+
+info-paths:
+	@echo "BEAM_PATH_OPT = $(BEAM_PATH_OPT)"
+
+
+info-settings:
+	@echo "ERLANG_COMPILER_OPT = $(ERLANG_COMPILER_OPT)"

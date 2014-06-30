@@ -1,15 +1,12 @@
 COMMON_TOP = ..
 
-.PHONY: full-doc pdf-doc html-doc
+.PHONY: uml-diagram-test
 
 
-full-doc: pdf-doc html-doc
+test: uml-diagram-test
 
-DOC_TARGET := Ceylan-Common-manual
-
-pdf-doc: $(DOC_TARGET).pdf
-
-html-doc: $(DOC_TARGET).html
+uml-diagram-test:
+	$(MAKE) uml_class_diagram_example.png
 
 
 include $(COMMON_TOP)/GNUmakesettings.inc

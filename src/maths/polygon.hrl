@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2013 Olivier Boudeville
+% Copyright (C) 2003-2014 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -26,17 +26,24 @@
 
 
 % Describes a polygon, convex or not, simple or not.
+%
 -record( polygon, {
 
-		% List of points:
-		vertices = [],
+		   % List of points:
+		   vertices = [] :: [ linear_2D:point() ],
 
-		% Rendering information, if any, as an option list.
-		rendering = [],
+		   % Rendering information, if any, as an option list.
+		   %
+		   % Supported options:
+		   %   - edge_color :: gui_color:color_by_decimal()
+		   %   - fill_color :: gui_color:color_by_decimal()
+		   %
+		   rendering = [] :: option_list:option_list(),
 
-		% Bounding-box information:
-		% (can be for example: {disc,Center,Radius})
-		bounding_box = undefined
+		   % Bounding-box information:
+		   % (can be for example a circle or a right_cuboid)
+		   bounding_box = undefined :: 'undefined' |
+									  bounding_box:bounding_box()
 
 		  }
 

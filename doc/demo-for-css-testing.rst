@@ -1,7 +1,7 @@
 .. This is a comment. Note how any initial comments are moved by
    transforms to after the document title, subtitle, and docinfo.
 
-.. Example used by the Ceylan project (http://ceylan.sourceforge.net).
+.. Example used by the Ceylan project (http://ceylan.sourceforge.net), and modified accordingly.
 
 
 ================================

@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2013 Olivier Boudeville
+% Copyright (C) 2003-2014 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -27,28 +27,3 @@
 
 % All tests should export such a function:
 -export([ run/0 ]).
-
-
-% Comment out to be able to use the interpreter after the test:
--define(ExitAfterTest,).
-
-
--ifdef(ExitAfterTest).
-
-test_finished() ->
-	io:format( "--> End of test for modules ~p.~n", [ ?Tested_modules ] ),
-	% Cannot be here as we are not in WOOPER: check_pending_wooper_results(),
-	io:format( "(test finished, interpreter halted)~n" ),
-	% To ensure all outputs are indeed performed before the VM is halted:
-	timer:sleep(500),
-	erlang:halt().
-
--else.
-
-test_finished() ->
-	io:format( "--> End of test for modules ~p.~n", [ ?Tested_modules ] ),
-	% Cannot be here as we are not in WOOPER: check_pending_wooper_results(),
-	io:format( "(test finished, interpreter still running)~n" ),
-	test_success.
-
--endif.

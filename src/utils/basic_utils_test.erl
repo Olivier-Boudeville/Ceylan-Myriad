@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2013 Olivier Boudeville
+% Copyright (C) 2003-2014 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -26,118 +26,69 @@
 
 
 % Unit tests for the basic utils toolbox.
+%
 % See the basic_utils.erl tested module.
+%
 -module(basic_utils_test).
 
 
--export([ run/0 ]).
+% For run/0 export and al:
+-include("test_facilities.hrl").
 
 
--define( Tested_module, basic_utils ).
-
-
+-spec check_process_specific_values( integer(), integer() ) ->
+										   basic_utils:void().
 check_process_specific_values( Min, Max ) ->
+
 	Self = self(),
-	F = fun() -> Self ! basic_utils:get_process_specific_value(Min,Max) end,
 
-	[ spawn(F) || _X <- lists:seq(1,10) ],
+	F = fun() -> Self ! basic_utils:get_process_specific_value( Min, Max ) end,
 
-	G = fun() -> receive V -> V end end,
-	[ io:format( "   Generating a process-specific value in [~B;~B[: ~w.~n",
-				[ Min, Max, G() ] ) || _Y <- lists:seq(1,10) ].
+	[ spawn( F ) || _X <- lists:seq( 1, 10 ) ],
+
+	G = fun() ->
+				receive V ->
+						V
+				end
+		end,
+
+	[ test_facilities:display(
+				"Generating a process-specific value in [~B;~B[: ~p.",
+				[ Min, Max, G() ] ) || _Y <- lists:seq( 1, 10 ) ].
 
 
 
-
+-spec run() -> no_return().
 run() ->
 
-	io:format( "--> Testing module ~s.~n", [ ?Tested_module ] ),
+	test_facilities:start( ?MODULE ),
+
+	test_facilities:display( "Testing the display of a static test message." ),
+
+	test_facilities:display( "Testing the display of a ~s test message.",
+							[ dynamic ] ),
 
 	InitialTimestamp = basic_utils:get_timestamp(),
 	InitialPreciseTimestamp = basic_utils:get_precise_timestamp(),
 
-	io:format( "   Timestamp is ~s.~n", [
-		basic_utils:get_textual_timestamp(InitialTimestamp) ] ),
+	test_facilities:display( "Timestamp is ~s.", [
+		basic_utils:get_textual_timestamp( InitialTimestamp ) ] ),
 
-	io:format( "   Timestamp for path is ~s.~n", [
-		basic_utils:get_textual_timestamp_for_path(InitialTimestamp) ] ),
+	test_facilities:display( "Timestamp for path is ~s.", [
+		basic_utils:get_textual_timestamp_for_path( InitialTimestamp ) ] ),
 
-	basic_utils:checkpoint(1),
+	TextualTimeStamp = "14/4/2011 18:48:51",
+	test_facilities:display( "Parsed timestamp for '~s' is ~p.", [
+		TextualTimeStamp,
+		basic_utils:string_to_timestamp( TextualTimeStamp ) ] ),
 
-	basic_utils:start_random_source( default_seed ),
+	basic_utils:checkpoint( 1 ),
 
-	RandomList = [ basic_utils:get_random_value(5) || _X <- lists:seq(1,15) ],
+	basic_utils:checkpoint( 2 ),
 
-	basic_utils:stop_random_source(),
+	basic_utils:display( "standalone display" ),
 
-	basic_utils:checkpoint(2),
-
-	io:format( "   Current module being used as random source: ~w.~n",
-		[basic_utils:get_random_module_name()] ),
-
-	io:format( "   A list of integer random values between 1 and 5 "
-		"(both included): ~w.~n", [RandomList] ),
-
-
-	% Testing list management:
-	L = [ 12, 4, 13, 2, 56, 0 ],
-
-	GetIndex = 3,
-
-	GetValue = basic_utils:get_element_at(L,GetIndex),
-	io:format( "   Getting item #~B of list ~w: ~B.~n", [GetIndex,L,GetValue] ),
-
-	13 = GetValue,
-
-
-	%OutOfBoundsIndex = 0,
-	%OutOfBoundsIndex = 100,
-	%io:format( "   Getting item #~B of list ~w: ~B.~n", [OutOfBoundsIndex,L,
-	%	basic_utils:get_element_at(L,OutOfBoundsIndex) ] ),
-
-	RemoveIndex = 3,
-
-	ShortenList = basic_utils:remove_element_at( L, RemoveIndex ),
-
-	io:format( "   List obtained after having removed item #~B of list ~w: "
-		" ~w.~n", [RemoveIndex,L,ShortenList] ),
-
-	% Hardcoded for checking:
-	CorrectShortenList = [ 12, 4, 2, 56, 0 ],
-
-	ShortenList = CorrectShortenList,
-
-
-	%OutOfBoundsIndex = 0,
-	%OutOfBoundsIndex = 100,
-	%io:format( "   List obtained after having removed item #~B of list ~w: "
-	%	" ~w.~n", [OutOfBoundsIndex,L,
-	%	basic_utils:remove_element_at( L, OutOfBoundsIndex )] ),
-
-	io:format( "   List obtained after having uniformly permuted list ~w: "
-		" ~w.~n", [L,basic_utils:random_permute(L)] ),
-
-	io:format( "   List obtained after having uniformly permuted list ~w "
-		"(again): ~w.~n", [L,basic_utils:random_permute(L)] ),
-
-	L1 = [1,2,3,4,2],
-
-	L2 = [2,3],
-
-	Subtracted = basic_utils:subtract_all_duplicates( L1, L2 ),
-
-	io:format( "   Displaying the subtraction with duplicates removal "
-		"of ~w by ~w: ~w.~n", [ L1, L2, Subtracted ] ),
-
-	[1,4] = Subtracted,
-
-	Uniquified = basic_utils:uniquify( L1 ),
-
-	io:format( "   Displaying a uniquified version of ~w: ~w.~n",
-			   [ L1, Uniquified ] ),
-
-	% Supposedly the order will be consistent, although this is not requested:
-	[3,2,1,4] = Uniquified,
+	basic_utils:display( "display ~s", [ "with a format string" ] ),
 
 	UnregisteredName = test_non_registered,
 	try basic_utils:get_registered_pid_for( UnregisteredName ) of
@@ -147,10 +98,12 @@ run() ->
 
 	catch
 
-		{neither_registered_locally_nor_globally,UnregisteredName} ->
+		{ neither_registered_locally_nor_globally, UnregisteredName } ->
 			ok
 
 	end,
+
+	not_registered = basic_utils:is_registered( UnregisteredName ),
 
 	RegisteredName = test_registered,
 	PidToRegister = self(),
@@ -164,57 +117,173 @@ run() ->
 	catch
 
 		Exception ->
-			throw( {test_should_have_succeeded,Exception} )
+			throw( { test_should_have_succeeded, Exception } )
 
 	end,
 
 
-	FirstVersion  = {0,0,0},
-	SecondVersion = {0,0,1},
-	ThirdVersion  = {0,1,0},
-	FourthVersion = {1,0,0},
-	FifthVersion  = {1,1,1},
+	case basic_utils:is_registered( RegisteredName ) of
 
-	first_bigger = basic_utils:compare_versions( SecondVersion, FirstVersion),
-	first_bigger = basic_utils:compare_versions( ThirdVersion, SecondVersion),
-	first_bigger = basic_utils:compare_versions( FifthVersion, FirstVersion),
+		not_registered ->
+			throw( { neither_registered_locally_nor_globally,
+					RegisteredName } );
 
-	second_bigger = basic_utils:compare_versions( FirstVersion, FourthVersion),
-	second_bigger = basic_utils:compare_versions( ThirdVersion, FourthVersion),
-	second_bigger = basic_utils:compare_versions( SecondVersion, ThirdVersion),
+		Pid when is_pid(Pid) ->
+			ok
+
+	end,
+
+	FirstVersion  = { 0, 0, 0 },
+	SecondVersion = { 0, 0, 1 },
+	ThirdVersion  = { 0, 1, 0 },
+	FourthVersion = { 1, 0, 0 },
+	FifthVersion  = { 1, 1, 1 },
+
+	first_bigger = basic_utils:compare_versions( SecondVersion, FirstVersion ),
+	first_bigger = basic_utils:compare_versions( ThirdVersion, SecondVersion ),
+	first_bigger = basic_utils:compare_versions( FifthVersion, FirstVersion ),
+
+	second_bigger = basic_utils:compare_versions( FirstVersion, FourthVersion ),
+	second_bigger = basic_utils:compare_versions( ThirdVersion, FourthVersion ),
+	second_bigger = basic_utils:compare_versions( SecondVersion, ThirdVersion ),
 
 	equal = basic_utils:compare_versions( FirstVersion, FirstVersion ),
 	equal = basic_utils:compare_versions( ThirdVersion, ThirdVersion ),
 	equal = basic_utils:compare_versions( FifthVersion, FifthVersion ),
 
-	io:format( "   Comparisons of versions like ~s succeeded.~n",
+	test_facilities:display( "Comparisons of versions like ~s succeeded.",
 		[ text_utils:version_to_string(ThirdVersion) ] ),
 
-	DrawList = [ {first,1}, {second,2}, {third,1} ],
 
-	io:format( "   Drawing an element from ~w, got: '~w'.~n",
-		[ DrawList, basic_utils:draw_element( DrawList ) ] ),
+	FirstShortVersion  = { 0, 0 },
+	SecondShortVersion = { 0, 1 },
+	ThirdShortVersion  = { 1, 0 },
 
-	io:format( "   Drawing an element from ~w, got: '~w'.~n",
-		[ DrawList, basic_utils:draw_element( DrawList ) ] ),
+	first_bigger = basic_utils:compare_versions( SecondShortVersion,
+												FirstShortVersion ),
 
-	io:format( "   Drawing an element from ~w, got: '~w'.~n",
-		[ DrawList, basic_utils:draw_element( DrawList ) ] ),
+	first_bigger = basic_utils:compare_versions( ThirdShortVersion,
+												SecondShortVersion ),
 
-	io:format( "   Generating a new UUID:"
-		" '~s'.~n", [ basic_utils:generate_uuid() ] ),
+	first_bigger = basic_utils:compare_versions( ThirdShortVersion,
+												FirstShortVersion ),
 
-	io:format( "   Generating a process-specific value: ~w.~n",
+
+	second_bigger = basic_utils:compare_versions( FirstShortVersion,
+												 SecondShortVersion ),
+
+	second_bigger = basic_utils:compare_versions( SecondShortVersion,
+												 ThirdShortVersion ),
+
+	second_bigger = basic_utils:compare_versions( FirstShortVersion,
+												 ThirdShortVersion ),
+
+
+	equal = basic_utils:compare_versions( FirstShortVersion,
+										 FirstShortVersion ),
+
+	equal = basic_utils:compare_versions( SecondShortVersion,
+										 SecondShortVersion ),
+
+	equal = basic_utils:compare_versions( ThirdShortVersion,
+										 ThirdShortVersion ),
+
+
+	test_facilities:display( "Comparisons of versions like ~s succeeded.",
+		[ text_utils:version_to_string(ThirdVersion) ] ),
+
+
+	{ 4, 22, 11 } = basic_utils:parse_version( "4.22.11" ),
+
+	test_facilities:display( "Generating a new UUID:"
+		" '~s'.", [ basic_utils:generate_uuid() ] ),
+
+
+	test_facilities:display( "Testing typing information." ),
+
+	boolean = basic_utils:get_type_of( true ),
+
+	atom = basic_utils:get_type_of( 'an atom' ),
+
+	binary = basic_utils:get_type_of( list_to_binary( "1" ) ),
+
+	float = basic_utils:get_type_of( 1.0 ),
+
+	function = basic_utils:get_type_of( fun(X) -> X + 1 end ),
+
+	integer = basic_utils:get_type_of( 42 ),
+
+	pid = basic_utils:get_type_of( self() ),
+
+	list = basic_utils:get_type_of( [ 1, 2 ] ),
+
+	%port = basic_utils:get_type_of( APort ),
+
+	tuple = basic_utils:get_type_of( { a, b } ),
+
+	reference = basic_utils:get_type_of( make_ref() ),
+
+
+	test_facilities:display( "Testing term recursive transformation." ),
+
+	% This term transformer does not change anything in the terms it scans, and
+	% just comment the traversal it does:
+	IdTermTransformer = fun( Term, UserData ) ->
+
+		NewUserData = [ io_lib:format( "Inspected '~p', ",
+									  [ Term ] ) | UserData ],
+
+		{ Term, NewUserData }
+
+						end,
+
+	TermToTraverse = { pseudo_record, [], { a, 1.0},
+					   [ { b, 42 }, "hello", [ <<"foo">> ] ], self() },
+
+	{ TraversedTerm, InspectData } = basic_utils:traverse_term( TermToTraverse,
+						_Type=atom, IdTermTransformer, _UserData=[] ),
+
+	test_facilities:display( "Traversal of term:~n'~p' with "
+							 "id term transformer "
+							 "yielded:~n'~p', producing user data '~s'",
+							 [ TermToTraverse, TraversedTerm,
+							   lists:reverse( InspectData ) ] ),
+
+	% This term transformer changes a term into a textual representation, and
+	% does not do anything with user data:
+	TextTermTransformer = fun( Term, UserData ) ->
+
+		{ io_lib:format( "~w", [ Term ] ), UserData }
+
+						end,
+
+	% Requested to operate only on PIDs:
+	{ NewTraversedTerm, _UselessData } = basic_utils:traverse_term(
+				TermToTraverse, _OtherType=pid, TextTermTransformer,
+				_OtherUserData=undefined ),
+
+	test_facilities:display( "Traversal of term:~n'~p' with "
+							 "text term transformer yielded:~n'~p'.",
+							 [ TermToTraverse, NewTraversedTerm ] ),
+
+
+	test_facilities:display( "Generating a process-specific value: ~w.",
 			  [ basic_utils:get_process_specific_value() ] ),
 
-	{Min,Max} = {3,16},
+	{ Min, Max } = { 3, 16 },
 	check_process_specific_values( Min, Max ),
+
+	basic_utils:display_process_info( self() ),
+
+	test_facilities:display( "This test was compiled with the execution target "
+							 "set to '~s', and debug mode is ~s.",
+							[ basic_utils:get_execution_target(),
+							  basic_utils:is_debug_mode_enabled() ] ),
 
 	FinalPreciseTimestamp = basic_utils:get_precise_timestamp(),
 
-	io:format( "   Precise duration in test is ~p ms.~n", [
-		basic_utils:get_precise_duration(InitialPreciseTimestamp,
-										 FinalPreciseTimestamp) ] ),
+	test_facilities:display( "Precise duration in test is ~p ms.", [
+		basic_utils:get_precise_duration( InitialPreciseTimestamp,
+										 FinalPreciseTimestamp ) ] ),
 
-	io:format( "--> End of test for module ~s.~n", [ ?Tested_module ] ),
-	erlang:halt().
+	test_facilities:stop().
