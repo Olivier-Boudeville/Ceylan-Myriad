@@ -64,7 +64,9 @@ For Debian-based distributions, you should preferably run beforehand, as root: '
 # Another related problem is that libtinfo.so might not be found. A solution is
 # to create a symlink to libncurses, which include it:
 # cd /usr/lib ; ln -s libncurses.so.5 -T libtinfo.so.5
-
+#
+# For Arch display-less servers:
+# pacman -S gcc make openssl
 
 
 # By default, will download files:
