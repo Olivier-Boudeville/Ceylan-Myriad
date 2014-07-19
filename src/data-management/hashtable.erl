@@ -57,6 +57,10 @@
 -compile( { inline, [ get_bucket_index/2 ] } ).
 
 
+% We want to be able to use our size/1 from here as well:
+-compile( { no_auto_import, [ size/1 ] } ).
+
+
 
 % Directly depends on the text_utils module.
 
@@ -90,7 +94,8 @@
 		  getEntry/2, addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToEntry/3, deleteFromEntry/3, popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
-		  isEmpty/1, getEntryCount/1,
+		  isEmpty/1, size/1, getEntryCount/1,
+		  mapOnEntries/2, mapOnValues/2,
 		  merge/2, optimise/1, toString/1, toString/2, display/1, display/2 ]).
 
 
@@ -151,8 +156,11 @@ new() ->
 %
 -spec new( entry_count() | entries() ) -> hashtable().
 new( ExpectedNumberOfEntries ) when is_integer( ExpectedNumberOfEntries ) ->
+
 	NumberOfBuckets = get_ideal_bucket_count( ExpectedNumberOfEntries ),
+
 	create_tuple( NumberOfBuckets, _DefaultValue=[] );
+
 
 new( InitialEntries ) when is_list( InitialEntries ) ->
 
@@ -362,14 +370,87 @@ getEntry( Key, Hashtable ) ->
 
 
 
-% Returns the number of entries (key/value pairs) stored in the specified
-% hashtable.
+
+% Applies (maps) the specified anonymous function to each of the key-value
+% entries contained in this hashtable.
 %
-% Note: might be a bit expensive.
+% Allows to apply "in-place" an operation on all entries without having to
+% enumerate the content of the hashtable and iterate on it (hence without having
+% to duplicate the whole content in memory).
 %
--spec getEntryCount( hashtable() ) -> entry_count().
-getEntryCount( Hashtable ) ->
-	erlang:length( enumerate( Hashtable ) ).
+% Note: as the fun may return modified keys, the whole structure of the
+% hashtable may change (ex: different buckets used for replaced entries,
+% colliding keys resulting in having less entries afterwards, etc.).
+%
+% One may request the returned hashtable to be optimised after this call.
+%
+-spec mapOnEntries( fun( ( entry() ) -> entry() ), hashtable() ) -> hashtable().
+mapOnEntries( Fun, Hashtable ) ->
+
+	BucketList = tuple_to_list( Hashtable ),
+
+	BlankHashtable = new(),
+
+	% We have to rebuild the table, as entries might be modified by the
+	% function, hence their hash may change:
+	%
+	map_on_entries( Fun, BucketList, BlankHashtable ).
+
+
+
+% Returns a new hashtable, with the entries from specified bucket list transformed.q
+%
+% (helper)
+%
+map_on_entries( _Fun, _BucketList=[], Hashtable ) ->
+	Hashtable;
+
+map_on_entries( Fun, _BucketList=[ Bucket | T ], Hashtable ) ->
+
+	NewHashtable = lists:foldl(
+		fun( Entry, AccTable ) ->
+
+				{ NewKey, NewValue } = Fun( Entry ),
+
+				% NewKey may not be in the same bucket as Key:
+				addEntry( NewKey, NewValue, AccTable )
+
+		end,
+		_InitialAcc=Hashtable,
+		_List=Bucket ),
+
+	map_on_entries( Fun, T, NewHashtable ).
+
+
+
+% Applies (maps) the specified anonymous function to each of the values
+% contained in this hashtable.
+%
+% Allows to apply "in-place" an operation on all values without having to
+% enumerate the content of the hashtable and iterate on it (hence without having
+% to duplicate the whole content in memory).
+%
+% Note: the keys are left as are, hence the structure of the hashtable does not
+% change.
+%
+-spec mapOnValues( fun( ( value() ) -> value() ), hashtable() ) -> hashtable().
+mapOnValues( Fun, Hashtable ) ->
+
+	BucketList = tuple_to_list( Hashtable ),
+
+	NewBucketList = [ map_bucket_for_values( Fun, Bucket )
+					  || Bucket <- BucketList ],
+
+	list_to_tuple( NewBucketList ).
+
+
+
+% Maps specified function to all values of specified bucket.
+%
+% (helper)
+%
+map_bucket_for_values( Fun, Bucket ) ->
+	[ { K, Fun( V ) } || { K, V } <- Bucket ].
 
 
 
@@ -407,7 +488,7 @@ addToEntry( Key, Value, Hashtable ) ->
 subtractFromEntry( Key, Value, Hashtable ) ->
 
 	case lookupInList( Key,
-		element(get_bucket_index( Key, Hashtable ), Hashtable ) ) of
+		element( get_bucket_index( Key, Hashtable ), Hashtable ) ) of
 
 		{ value, Number } ->
 			addEntry( Key, Number - Value, Hashtable );
@@ -462,9 +543,9 @@ merge( HashtableBase, HashtableAdd ) ->
 	% associated value is the one of the latest to be added.
 
 	lists:foldl(
-		fun( {Key,Value}, Acc ) -> addEntry( Key, Value, Acc ) end,
+		fun( { Key, Value }, Acc ) -> addEntry( Key, Value, Acc ) end,
 		_InitialAcc=HashtableAdd,
-		_List=enumerate(HashtableBase) ).
+		_List=enumerate( HashtableBase ) ).
 
 
 
@@ -546,7 +627,7 @@ popFromEntry( Key, Hashtable ) ->
 %
 -spec enumerate( hashtable() ) -> entries().
 enumerate( Hashtable ) ->
-	lists:flatten( tuple_to_list(Hashtable) ).
+	lists:flatten( tuple_to_list( Hashtable ) ).
 
 
 
@@ -616,6 +697,29 @@ is_empty( _Any ) ->
 	% itself not an empty list, thus there is at least one entry and we can stop
 	% here:
 	false.
+
+
+
+% Returns the size (number of entries) of this hashtable.
+%
+-spec size( hashtable() ) -> entry_count().
+size( Hashtable ) ->
+
+	lists:foldl( fun( Bucket, Sum ) ->
+						 Sum + length( Bucket )
+				 end,
+				 _InitialAcc=0,
+				 _List=tuple_to_list( Hashtable )
+			   ).
+
+
+
+% Returns the number of entries (key/value pairs) stored in the specified
+% hashtable.
+%
+-spec getEntryCount( hashtable() ) -> entry_count().
+getEntryCount( Hashtable ) ->
+	size( Hashtable ).
 
 
 

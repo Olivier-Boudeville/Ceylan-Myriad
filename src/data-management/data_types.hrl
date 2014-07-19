@@ -54,6 +54,10 @@
 -define(list_impl,gb_sets).
 
 
+% For homogeneous lists (at least to declare them as such):
+% -type ?list_impl( T ) :: ?list_impl().
+
+
 % The type of list_impl, for specifications:
 %
 -define(list_impl_type,gb_sets:set()).

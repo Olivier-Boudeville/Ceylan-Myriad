@@ -18,7 +18,6 @@ ifndef PROJECT_VERSION
 endif
 
 
-
 ifndef PACKAGE_NAME
 	PACKAGE_NAME = common
 endif
@@ -32,15 +31,16 @@ endif
 ARCHIVE_ROOT := $$HOME/Archives/$(PROJECT_NAME)
 
 
-ARCHIVE_FILE := $(ARCHIVE_ROOT)/`date +'%Y%m%d'`-$(PROJECT_NAME).tar.xz
-
-VCS_ARCHIVE_FILE := $(ARCHIVE_ROOT)/`date +'%Y%m%d'`-$(PROJECT_NAME).git-bundle
+ARCHIVE_FILE := $(ARCHIVE_ROOT)/$$(date +'%Y%m%d')-$(PROJECT_NAME).tar.xz
 
 
-ARCHIVE_BRANCH_FILE = $(ARCHIVE_ROOT)/`date +'%Y%m%d'`-$(PROJECT_NAME)-branch-$(shell basename `pwd`).tar.xz
+VCS_ARCHIVE_FILE := $(ARCHIVE_ROOT)/$$(date +'%Y%m%d')-$(PROJECT_NAME).git-bundle
 
 
-SNAPSHOT_ARCHIVE_FILE := $(ARCHIVE_ROOT)/`date +'%Y%m%d'`-$(PROJECT_NAME)-snapshot.tar.xz
+ARCHIVE_BRANCH_FILE = $(ARCHIVE_ROOT)/$$(date +'%Y%m%d')-$(PROJECT_NAME)-branch-$(shell basename `pwd`).tar.xz
+
+
+SNAPSHOT_ARCHIVE_FILE := $(ARCHIVE_ROOT)/$$(date +'%Y%m%d')-$(PROJECT_NAME)-snapshot.tar.xz
 
 
 PROJECT_RELEASE_BASE        := $(PROJECT_NAME)-$(PROJECT_VERSION)
@@ -69,7 +69,8 @@ PACKAGE_INSTALLATION_PREFIX = $(INSTALLATION_PREFIX)/$(PACKAGE_NAME)
 
 
 # Could rely on the permissions instead:
-EXEC_TO_INSTALL := `find $(PACKAGE_TOP) -name '*.sh' -a ! -name '*.exe'`
+EXEC_TO_INSTALL := $$(find $(PACKAGE_TOP) -name '*.sh' -a ! -name '*.exe')
+
 
 
 BEAMS_TO_INSTALL := `find $(PACKAGE_TOP) -name examples -prune -o \( -name '*.beam' -a ! -name '*_test.beam' -a ! -name 'class_Test*.beam' \) -a -print`
@@ -110,7 +111,8 @@ COMMON_INC = -I$(COMMON_SRC)
 INC += $(foreach dir,$(BEAM_DIRS),-I$(dir))
 
 
-# To detect the sole root makefile:
+# To know when the including makefile is the sole root one:
+#
 ifndef ROOT_MAKEFILE
 
 	   ROOT_MAKEFILE = false
@@ -118,8 +120,10 @@ ifndef ROOT_MAKEFILE
 endif
 
 
-# Unless specified otherwise, a makefile is not the one used as the base of a
-# given layer (hence, for example, it is not expected to build in parallel):
+# Unless specified otherwise, the including makefile is not the one used as the
+# base of a given layer (hence, for example, it is not expected to build in
+# parallel):
+#
 ifndef BASE_MAKEFILE
 
 	   BASE_MAKEFILE = false
@@ -226,7 +230,8 @@ endif
 
 ERLANG_USUAL_ROOT := ~/Software/Erlang/Erlang-current-install
 
-ERLANG_COMPILER := `PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which erlc`
+ERLANG_COMPILER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which erlc 2>/dev/null)
+
 
 ERLANG_BIN_ROOT := $(shell dirname $(ERLANG_COMPILER) )
 
@@ -243,10 +248,11 @@ ERLANG_COMPILER_OPT_DEBUG := +debug_info
 
 
 # The number of available cores on this computer:
-CORE_COUNT := `grep -c processor /proc/cpuinfo`
+CORE_COUNT := $$(grep -c processor /proc/cpuinfo)
 
 
-ERLANG_INTERPRETER := `PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which erl`
+ERLANG_INTERPRETER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which erl 2>/dev/null)
+
 
 # Not using '-smp auto' anymore, as the SMP mode is needed even with a single
 # core if GUI (WxWindows) is to be used:
@@ -257,26 +263,29 @@ ERLANG_INTERPRETER_OPT_DEBUG := -init_debug -smp
 # Finally not useful:
 #ifndef FQDN
 
-#FQDN    := `host \`hostname\` | awk '{ print $$1 }' | head -n 1`
-FQDN    := `hostname -f`
+		#FQDN    := $$(host `hostname` | awk '{ print $$1 }' | head -n 1)
+		FQDN    := $$(hostname -f)
 
-#FQDN_OPT= "--fqdn $(FQDN)"
+		#FQDN_OPT= "--fqdn $(FQDN)"
 
 #endif
 
 
+
+
+ifndef VM_NAME
+
+	   VM_NAME := ceylan_debug
+
+endif
+
+
 ifndef VM_TEST_NAME
 
-VM_NAME := ceylan_debug
+	   VM_TEST_NAME := ceylan_test
 
 endif
 
-
-ifndef VM_TEST_NAME
-
-VM_TEST_NAME := ceylan_test
-
-endif
 
 
 #DISTRIBUTED_NODE_OPT := -sname $(VM_NAME) -setcookie $(PROJECT_NAME)
@@ -331,27 +340,10 @@ ERLANG_COMPILER_WARNING_OPT += -W$(WARNING_LEVEL) +warn_export_all  \
 
 
 
-# Options for smart exceptions:
-
-# Two versions of this package are available, we do not use the so-called
-# 'stable' one, as it induced warnings (thus errors) at compilation-time (ex:
-# hashtable.erl: Warning: variable 'KeyIndex' exported from 'case').
-# The original code was correct, but the parse-transformed one not.
-#SMART_EXCEPTION_PATH := $(COMMON_CONTRIB)/smart-exceptions/stable
-#SMART_EXCEPTION_PATH := $(COMMON_CONTRIB)/smart-exceptions/devel/src
-
-
-# Note: activating smart exceptions may induce a (small) performance penalty:
-# (currently they are disabled, as explained in the 'The display/1 Gotcha'
-# thread of the erlang-question mailing list)
-# ERLANG_SMART_EXCEPTION_OPT += +'{parse_transform,smart_exceptions}' \
-#  -pa $(SMART_EXCEPTION_PATH)
-
-
 ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_BASE_OPT) $(INC)           \
 	$(ERLANG_COMPILER_EXEC_TARGET_OPT) $(ERLANG_COMPILER_DEBUG_OPT) \
 	$(ERLANG_COMPILER_NATIVE_COMPILATION_OPT)                       \
-	$(ERLANG_COMPILER_WARNING_OPT) $(ERLANG_SMART_EXCEPTION_OPT)    \
+	$(ERLANG_COMPILER_WARNING_OPT)                                  \
 	$(ERLANG_COMPILER_OPT_DEBUG) +bin_opt_info
 
 
@@ -365,9 +357,8 @@ ERLANG_INTERPRETER_OPT := -pz $(BEAM_DIRS) $(DISTRIBUTED_NODE_OPT)
 # We can force the launched VM to use TCP/IP connections in a range of ports
 # enabled by the firewalls and/or to rely on a non-standard EPMD port:
 #
-
 # (note that, should the user code launch other VMs and/or have to communicate
-# with others VMs, the corresponding settings will have to match these ones -
+# with other VMs, the corresponding settings will have to match these ones -
 # think to all upper layers which may rely implicitly on that port information)
 #
 #FIREWALL_OPT :=
@@ -398,6 +389,7 @@ BEAM_PATH_OPT = $(foreach dir,$(BEAM_DIRS),--beam-dir `pwd`/$(dir))
 
 # Increases the distribution buffer busy limit (default is 1024):
 # See http://erlang.org/doc/man/erl.html#+zdbbl.
+#
 # 1024*1024 = 1048576
 BUSY_LIMIT_OPT := --busy-limit 1048576
 
@@ -432,7 +424,8 @@ NODE_NAMING="--sn"
 INTERNAL_OPTIONS := -start-verbatim-options $(INTERNAL_OPTIONS)
 
 
-DIALYZER := `PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which dialyzer`
+DIALYZER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which dialyzer 2>/dev/null)
+
 
 # Options for Dialyzer, see http://www.erlang.org/doc/man/dialyzer.html:
 # Could be added: -Wunderspecs (obsolete: -Wbehaviours)
@@ -441,7 +434,7 @@ DIALYZER_OPT := -Wrace_conditions
 
 # To use a generic rule to produce it (unless already defined):
 ifndef PLT_FILE
-		PLT_FILE = $(PACKAGE_TOP)/$(PACKAGE_NAME).plt
+	   PLT_FILE = $(PACKAGE_TOP)/$(PACKAGE_NAME).plt
 endif
 
 # To use a generic rule to produce it (unless already defined):

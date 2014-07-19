@@ -262,6 +262,16 @@ run() ->
 	[ "93171810", "95a0", "4382", "ad73" ] = text_utils:split( UUIDText,
 														_OtherSep="-" ),
 
+	TestSplit = "  abcxdefxgh ",
+
+	{ "  abc", "defxgh " } = text_utils:split_at_first( $x, TestSplit ),
+
+	none_found = text_utils:split_at_first( $y, TestSplit ),
+
+	{ "  ", "bcxdefxgh " } = text_utils:split_at_first( $a, TestSplit ),
+
+	{ "", " abcxdefxgh " } = text_utils:split_at_first(  $ , TestSplit ),
+
 
 	RemovalCount = 3,
 

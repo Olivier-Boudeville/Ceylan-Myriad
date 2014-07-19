@@ -61,7 +61,11 @@ run() ->
 	MyH4 = tracked_hashtable:addEntry( ?MySecondKey, [1,2,3], MyH3 ),
 	false = tracked_hashtable:isEmpty( MyH4 ),
 
-	tracked_hashtable:display( "The tracked hashtable",	MyH4 ),
+	tracked_hashtable:display( "The tracked hashtable", MyH4 ),
+
+	MyH4Size = tracked_hashtable:size( MyH4 ),
+	test_facilities:display( "Size of table '~s': ~B entries",
+							 [ tracked_hashtable:toString( MyH4 ), MyH4Size ] ),
 
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
 		tracked_hashtable:lookupEntry( ?MyFirstKey, MyH4 ) ] ),
@@ -77,8 +81,7 @@ run() ->
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MySecondKey,
 			tracked_hashtable:lookupEntry( ?MySecondKey, MyH5 ) ] ),
 
-	{ value, [1,2,3] } =
-		tracked_hashtable:lookupEntry( ?MySecondKey, MyH5 ),
+	{ value, [1,2,3] } = tracked_hashtable:lookupEntry( ?MySecondKey, MyH5 ),
 
 	test_facilities:display( "Removing the last entry." ),
 	MyH55 = tracked_hashtable:removeEntry( ?MySecondKey, MyH5 ),
@@ -107,6 +110,32 @@ run() ->
 
 	test_facilities:display( "Listing the hashtable values: ~p",
 		[ tracked_hashtable:values( MyH4 ) ] ),
+
+
+	test_facilities:display( "Applying a fun to all values of "
+							 "previous hashtable:" ),
+
+	FunValue = fun( V ) ->
+				io:format( " - hello value '~p'!~n", [ V ] ),
+				% Unchanged here:
+				V
+	end,
+
+	tracked_hashtable:mapOnValues( FunValue, MyH4 ),
+
+
+	test_facilities:display( "Applying a fun to all entries of "
+							 "previous hashtable:" ),
+
+	FunEntry = fun( E={ K, V } ) ->
+				io:format( " - hello, key '~p' associated to value '~p'!~n",
+						   [ K, V ] ),
+				% Unchanged here:
+				E
+	end,
+
+	tracked_hashtable:mapOnEntries( FunEntry, MyH4 ),
+
 
 	true = list_utils:unordered_compare( [ ?MyFirstKey, ?MySecondKey ],
 										 tracked_hashtable:keys( MyH4 ) ),

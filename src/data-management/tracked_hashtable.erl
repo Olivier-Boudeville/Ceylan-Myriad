@@ -55,7 +55,7 @@
 %
 % - Hashtable is a hashtable(), refer to the hashtable module for more detail
 %
-% - NumberOfEntries represents the number of the entries in the hashtable; it is
+% - NumberOfEntries represents the number of entries in the hashtable; it is
 % zero when a new hashtable is created
 %
 % - NumberOfBuckets is the number of buckets of the internal hashtable; a
@@ -72,7 +72,8 @@
 		  getEntry/2, addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToEntry/3, deleteFromEntry/3, popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
-		  isEmpty/1, getEntryCount/1,
+		  isEmpty/1, size/1, getEntryCount/1,
+		  mapOnEntries/2, mapOnValues/2,
 		  merge/2, optimise/1, toString/1, toString/2, display/1, display/2 ]).
 
 
@@ -87,8 +88,14 @@
 
 -type value() :: hashtable:value().
 
+-type entry() :: hashtable:entry().
 
--export_type([ tracked_hashtable/0, key/0, value/0 ]).
+
+-export_type([ tracked_hashtable/0, key/0, value/0, entry/0 ]).
+
+
+% We want to be able to use our size/1 from here as well:
+-compile( { no_auto_import, [ size/1 ] } ).
 
 
 
@@ -117,12 +124,14 @@ new() ->
 % As tracked hashtables manage by themselves their size, no need to specify any
 % target size. This function is only defined so that we can transparently switch
 % APIs with the hashtable module.
+%
 new( _ExpectedNumberOfEntries ) ->
 	new().
 
 
 
 % Defined also to allow seamless change of hashtable modules:
+%
 new_with_buckets( _NumberOfBuckets ) ->
 	new().
 
@@ -134,7 +143,8 @@ new_with_buckets( _NumberOfBuckets ) ->
 %
 % As the load factor of the tracked hashtable is verified at each additional
 % entry, the tracked hashtable is optimised as soon as possible.
--spec addEntry( hashtable:key(), hashtable:value(), tracked_hashtable() )
+%
+-spec addEntry( key(), value(), tracked_hashtable() )
 		-> tracked_hashtable().
 addEntry( Key, Value,
 		 _TrackedHashtable={ Hashtable, EntryCount, NumberOfBuckets } ) ->
@@ -195,6 +205,7 @@ addEntries( EntryList,
 	% We want to optimise only at end (to avoid useless reshuffles with longer
 	% entry lists) yet counting the total number of entries correctly
 	% (w.r.t. duplicated keys):
+	%
 	AugmentedTable = hashtable:addEntries( EntryList, Hashtable ),
 
 	Entries = hashtable:enumerate( AugmentedTable ),
@@ -224,7 +235,7 @@ addEntries( EntryList,
 %
 % Does nothing if the key is not found.
 %
--spec removeEntry( hashtable:key(), tracked_hashtable() ) ->
+-spec removeEntry( key(), tracked_hashtable() ) ->
 						 tracked_hashtable().
 removeEntry( Key, TrackedHashtable={ Hashtable, EntryCount, BucketCount } ) ->
 
@@ -266,15 +277,15 @@ removeEntry( Key, TrackedHashtable={ Hashtable, EntryCount, BucketCount } ) ->
 % table, or {value,Value}, with Value being the value associated to the
 % specified key.
 %
--spec lookupEntry( hashtable:key(), tracked_hashtable() ) ->
-	'hashtable_key_not_found' | {'value',hashtable:value()}.
+-spec lookupEntry( key(), tracked_hashtable() ) ->
+	'hashtable_key_not_found' | { 'value', value() }.
 lookupEntry( Key, _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 	hashtable:lookupEntry( Key, Hashtable ).
 
 
 % Looks-up specified entry (designated by its key) in specified tracked
 % hashtable: returns eigher true or false.
--spec hasEntry( hashtable:key(), tracked_hashtable() ) -> boolean().
+-spec hasEntry( key(), tracked_hashtable() ) -> boolean().
 hasEntry( Key, _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 	hashtable:hasEntry( Key, Hashtable ).
 
@@ -283,17 +294,56 @@ hasEntry( Key, _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 %
 % The key/value pair is expected to exist already, otherwise a bad match is
 % triggered.
--spec getEntry( hashtable:key(), tracked_hashtable() ) -> hashtable:value().
+-spec getEntry( key(), tracked_hashtable() ) -> value().
 getEntry( Key, _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 	hashtable:getEntry( Key, Hashtable ).
 
 
 
-% Returns the number of entries (key/value pairs) stored in the specified
-% tracked hashtable.
--spec getEntryCount( tracked_hashtable() ) -> hashtable:entry_count().
-getEntryCount( _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
-	erlang:length( hashtable:enumerate( Hashtable ) ).
+% Applies (maps) the specified anonymous function to each of the key-value
+% entries contained in this hashtable.
+%
+% Allows to apply "in-place" an operation on all entries without having to
+% enumerate the content of the hashtable and iterate on it (hence without having
+% to duplicate the whole content in memory).
+%
+% Note: as the fun may return modified keys, the whole structure of the
+% hashtable may change (ex: different buckets used for replaced entries,
+% colliding keys resulting in having less entries afterwards, etc.).
+%
+% One may request the returned hashtable to be optimised after this call.
+%
+-spec mapOnEntries( fun( ( entry() ) -> entry() ), tracked_hashtable() ) ->
+						  tracked_hashtable().
+mapOnEntries( Fun, _TrackedHashtable={ Hashtable, _NEnt, _NBuck }  ) ->
+
+	NewHashtable = hashtable:mapOnEntries( Fun, Hashtable ),
+
+	% Might have changed as well:
+	NEnt = hashtable:size( NewHashtable ),
+	NBuck = hashtable:get_bucket_count( NewHashtable ),
+
+	{ NewHashtable, NEnt, NBuck }.
+
+
+
+% Applies (maps) the specified anonymous function to each of the values
+% contained in this hashtable.
+%
+% Allows to apply "in-place" an operation on all values without having to
+% enumerate the content of the hashtable and iterate on it (hence without having
+% to duplicate the whole content in memory).
+%
+% Note: the keys are left as are, hence the structure of the hashtable does not
+% change.
+%
+-spec mapOnValues( fun( ( value() ) -> value() ), tracked_hashtable() ) ->
+						  tracked_hashtable().
+mapOnValues( Fun, _TrackedHashtable={ Hashtable, NEnt, NBuck }  ) ->
+
+	NewHashtable = hashtable:mapOnValues( Fun, Hashtable ),
+
+	{ NewHashtable, NEnt, NBuck }.
 
 
 
@@ -301,6 +351,7 @@ getEntryCount( _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 % was enriched with the TrackedHashtableAdd entries whose keys where not
 % already in TrackedHashtableBase (if a key is in both tables, the one from
 % TrackedHashtableBase will be kept).
+%
 -spec merge( tracked_hashtable(), tracked_hashtable() ) -> tracked_hashtable().
 merge( _TrackedHashtableBase={ HashtableBase, _NEntB, _NBuckB },
 	 _TrackedHashtableAdd={ HashtableAdd, _NEntA, _NBuckA } ) ->
@@ -329,6 +380,7 @@ merge( _TrackedHashtableBase={ HashtableBase, _NEntB, _NBuckB },
 
 
 
+
 % Optimises this hashtable.
 %
 % A no-operation for tracked hashtables.
@@ -344,7 +396,8 @@ optimise( Hashtable ) ->
 %
 % A case clause is triggered if the key did not exist; a bad arithm is triggered
 % if no addition can be performed on the associated value.
--spec addToEntry( hashtable:key(), number(), tracked_hashtable() )
+%
+-spec addToEntry( key(), number(), tracked_hashtable() )
 	-> tracked_hashtable().
 addToEntry( Key, Value, TrackedHashtable ) ->
 	{ value, Number } = lookupEntry( Key, TrackedHashtable ),
@@ -358,7 +411,7 @@ addToEntry( Key, Value, TrackedHashtable ) ->
 % A case clause is triggered if the key did not exist, a bad arithm is triggered
 % if no subtraction can be performed on the associated value.
 %
--spec subtractFromEntry( hashtable:key(), number(), tracked_hashtable() )
+-spec subtractFromEntry( key(), number(), tracked_hashtable() )
 	-> tracked_hashtable().
 subtractFromEntry( Key, Value, TrackedHashtable ) ->
 	{ value, Number } = lookupEntry( Key, TrackedHashtable ),
@@ -372,7 +425,7 @@ subtractFromEntry( Key, Value, TrackedHashtable ) ->
 % A case clause is triggered if the entry does not exist or it is not a boolean
 % value.
 %
--spec toggleEntry( hashtable:key(), tracked_hashtable() )
+-spec toggleEntry( key(), tracked_hashtable() )
 	-> tracked_hashtable().
 toggleEntry( Key, _TrackedHashtable={ Hashtable, EntryCount, NumberOfBuckets } )
 		->
@@ -388,8 +441,9 @@ toggleEntry( Key, _TrackedHashtable={ Hashtable, EntryCount, NumberOfBuckets } )
 %
 % Note: no check is performed to ensure the value is a list indeed, and the
 % '[|]' operation will not complain if not.
--spec appendToEntry( hashtable:key(), term(), tracked_hashtable() )
-	-> tracked_hashtable().
+%
+-spec appendToEntry( key(), term(), tracked_hashtable() )
+				   -> tracked_hashtable().
 appendToEntry( Key, Element, TrackedHashtable ) ->
 	{ value, List } = lookupEntry( Key, TrackedHashtable ),
 	addEntry( Key, [ Element | List ], TrackedHashtable ).
@@ -402,21 +456,21 @@ appendToEntry( Key, Element, TrackedHashtable ) ->
 % A case clause is triggered if the entry did not exist.
 % If the element is not in the specified list, the list will not be modified.
 %
--spec deleteFromEntry( hashtable:key(), term(), tracked_hashtable() )
+-spec deleteFromEntry( key(), term(), tracked_hashtable() )
 	-> tracked_hashtable().
 deleteFromEntry( Key, Element, TrackedHashtable ) ->
 	{ value, List } = lookupEntry( Key, TrackedHashtable ),
-	addEntry( Key, lists:delete(Element,List), TrackedHashtable ).
+	addEntry( Key, lists:delete( Element, List ), TrackedHashtable ).
 
 
 
 % Pops the head of the value (supposed to be a list) associated to specified
 % key, and returns a pair made of the popped head and the new hashtable.
 %
--spec popFromEntry( hashtable:key(), tracked_hashtable() ) ->
+-spec popFromEntry( key(), tracked_hashtable() ) ->
 						  { term(), tracked_hashtable() }.
 popFromEntry( Key, TrackedHashtable ) ->
-	{ value, [H|T] } = lookupEntry( Key, TrackedHashtable ),
+	{ value, [ H | T ] } = lookupEntry( Key, TrackedHashtable ),
 	{ H, addEntry( Key, T, TrackedHashtable ) }.
 
 
@@ -433,8 +487,8 @@ enumerate( _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 
 % Returns a list of key/value pairs corresponding to the list of specified keys,
 % or throws a badmatch is at least one key is not found.
--spec selectEntries( [hashtable:key()], tracked_hashtable() ) ->
-						   hashtable:entries().
+%
+-spec selectEntries( [ key() ], tracked_hashtable() ) -> hashtable:entries().
 selectEntries( Keys, _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 
 	hashtable:selectEntries( Keys, Hashtable ).
@@ -442,7 +496,7 @@ selectEntries( Keys, _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 
 % Returns a list containing all the keys of this hashtable.
 %
--spec keys( tracked_hashtable() ) -> [ hashtable:key() ].
+-spec keys( tracked_hashtable() ) -> [ key() ].
 keys( _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 	hashtable:keys( Hashtable ).
 
@@ -451,7 +505,7 @@ keys( _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 %
 % Ex: useful if the key was used as an index to generate this table first.
 %
--spec values( tracked_hashtable() ) -> [ hashtable:value() ].
+-spec values( tracked_hashtable() ) -> [ value() ].
 values( _TrackedHashtable={ Hashtable, _NEnt, _NBuck }  ) ->
 	hashtable:values( Hashtable ).
 
@@ -462,6 +516,22 @@ values( _TrackedHashtable={ Hashtable, _NEnt, _NBuck }  ) ->
 -spec isEmpty( tracked_hashtable() ) -> boolean().
 isEmpty( _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 	hashtable:isEmpty( Hashtable ).
+
+
+
+% Returns the size (number of entries) of this hashtable.
+%
+-spec size( tracked_hashtable() ) -> hashtable:entry_count().
+size( _TrackedHashTable={ _Hashtable, NEntries, _NBuckets } ) ->
+	NEntries.
+
+
+
+% Returns the number of entries (key/value pairs) stored in the specified
+% tracked hashtable.
+-spec getEntryCount( tracked_hashtable() ) -> hashtable:entry_count().
+getEntryCount( TrackedHashtable  ) ->
+	size( TrackedHashtable ).
 
 
 

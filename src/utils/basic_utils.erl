@@ -58,6 +58,8 @@
 		  get_registered_pid_for/1, get_registered_pid_for/2,
 		  get_locally_registered_pid_for/2,
 
+		  get_registered_names/1,
+
 		  is_registered/1, is_registered/2,
 		  wait_for_global_registration_of/1, wait_for_local_registration_of/1,
 		  wait_for_remote_local_registrations_of/2,
@@ -93,12 +95,13 @@
 		  parse_version/1, compare_versions/2,
 		  get_process_specific_value/0, get_process_specific_value/2,
 		  get_execution_target/0, is_alive/2, is_debug_mode_enabled/0,
-		  generate_uuid/0, get_type_of/1, traverse_term/4 ]).
+		  generate_uuid/0, get_type_of/1, traverse_term/4, crash/0 ]).
 
 
 
 % To tell that a returned value is not of interest to the caller:
 % (could/should be: "-type void() :: 'VoiD'" for example)
+%
 %-opaque void() :: any().
 -type void() :: any().
 
@@ -620,6 +623,18 @@ get_locally_registered_pid_for( Name, TargetNode ) ->
 
 
 
+% Returns a list of the names of the registered processes, for specified look-up
+% scope.
+%
+-spec get_registered_names( look_up_scope() ) -> [ registration_name() ].
+get_registered_names( _LookUpScope=global ) ->
+	global:registered_names();
+
+get_registered_names( _LookUpScope=local ) ->
+	erlang:registered().
+
+
+
 % Tells whether specified name is registered in the specified local/global
 % context: if no, returns the 'not_registered' atom, otherwise returns the
 % corresponding PID.
@@ -943,12 +958,69 @@ get_type_of( Term ) when is_reference( Term ) ->
 % function might replace, for example, floats by <<bar>>; then T'={ a, [ "foo",
 % { c, [ <<bar>>, 45 ] } ] } would be returned.
 %
+% Note: the transformed terms are themselves recursively transformed, to ensure
+% nesting is managed. Of course this implies that the term transform should not
+% result in iterating the transformation infinitely.
+%
 -spec traverse_term( term(), type_description(), term_transformer(),
 					 user_data() ) -> { term(), user_data() }.
 
-% Here the term is a list:
+% Here the term is a list and this is the type we want to intercept:
+traverse_term( TargetTerm, _TypeDescription=list, TermTransformer, UserData )
+  when is_list( TargetTerm ) ->
+
+	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
+
+	traverse_transformed_term( TransformedTerm, _TypeDescription=list,
+							   TermTransformer, NewUserData );
+
+
+% Here the term is a list and we are not interested in them:
 traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData )
   when is_list( TargetTerm ) ->
+
+	traverse_list( TargetTerm, TypeDescription, TermTransformer, UserData );
+
+
+% Here the term is a tuple (or a record...), and we want to intercept them:
+traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData )
+  when is_tuple( TargetTerm )
+	andalso ( TypeDescription =:= tuple orelse TypeDescription =:= record ) ->
+
+	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
+
+	traverse_transformed_term( TransformedTerm, TypeDescription,
+							   TermTransformer, NewUserData );
+
+
+% Here the term is a tuple (or a record...), and we are not interested in them:
+traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData )
+  when is_tuple( TargetTerm ) ->
+
+	traverse_tuple( TargetTerm, TypeDescription, TermTransformer, UserData );
+
+
+% Base case (current term is not a binding structure, it is a leaf of the
+% underlying syntax tree):
+%
+traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData ) ->
+
+	case get_type_of( TargetTerm ) of
+
+		TypeDescription ->
+			TermTransformer( TargetTerm, UserData );
+
+		_ ->
+			% Unchanged:
+			{ TargetTerm, UserData }
+
+	end.
+
+
+
+% Helper to traverse a list.
+%
+traverse_list( TargetList, TypeDescription, TermTransformer, UserData ) ->
 
 	{ NewList, NewUserData } = lists:foldl( fun( Elem, { AccList, AccData } ) ->
 
@@ -962,38 +1034,60 @@ traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData )
 
 											_Acc0={ _Elems=[], UserData },
 
-											TargetTerm ),
+											TargetList ),
 
-	{ lists:reverse( NewList ), NewUserData };
+	{ lists:reverse( NewList ), NewUserData }.
 
 
-% Here the term is a tuple (or a record...):
-traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData )
-  when is_tuple( TargetTerm ) ->
+
+% Helper to traverse a tuple.
+%
+traverse_tuple( TargetTuple, TypeDescription, TermTransformer, UserData ) ->
 
 	% We do exactly as with lists:
-	TermAsList = tuple_to_list( TargetTerm ),
+	TermAsList = tuple_to_list( TargetTuple ),
 
-	{ NewList, NewUserData } = traverse_term( TermAsList, TypeDescription,
+	{ NewList, NewUserData } = traverse_list( TermAsList, TypeDescription,
 											  TermTransformer, UserData ),
 
-	{ list_to_tuple( NewList ), NewUserData };
+	{ list_to_tuple( NewList ), NewUserData }.
 
 
-% Base case (current term is not a binding structure, it is a leaf of the
-% underlying syntax tree):
-traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData ) ->
 
-	case get_type_of( TargetTerm ) of
+% Helper to traverse a transformed term (ex: if looking for a { user_id, String
+% } pair, we must recurse in nested tuples like: { 3, { user_id, "Hello" }, 1 }.
+traverse_transformed_term( TargetTerm, TypeDescription, TermTransformer,
+						   UserData ) ->
 
-		TypeDescription ->
-			TermTransformer( TargetTerm, UserData );
+	case TermTransformer( TargetTerm, UserData ) of
 
-		_ ->
-			% Unchanged:
-			{ TargetTerm, UserData }
+		{ TransformedTerm, NewUserData } when is_list( TransformedTerm ) ->
+			traverse_list( TransformedTerm, TypeDescription, TermTransformer,
+						   NewUserData );
+
+		{ TransformedTerm, NewUserData } when is_tuple( TransformedTerm ) ->
+			traverse_tuple( TransformedTerm, TypeDescription, TermTransformer,
+						   NewUserData );
+
+		% { ImmediateTerm, NewUserData } ->
+		Other ->
+			Other
 
 	end.
+
+
+
+% Crashes the current process immediately.
+%
+-spec crash() -> any().
+crash() ->
+
+	% Must outsmart the compiler; there should be simpler solutions:
+	A = system_utils:get_core_count(),
+	B = system_utils:get_core_count(),
+
+	% Dividing thus by zero:
+	1 / ( A - B ).
 
 
 
@@ -1279,11 +1373,12 @@ wait_for( Message, Count, TimeOutDuration, TimeOutFormatString ) ->
 
 
 % Waits until receiving from all expected senders the specified acknowledgement
-% message.
+% message, expected to be in the form of { AckReceiveAtom, WaitedSenderPid }.
 %
-% Throws specified exception on time-out.
+% Throws a { ThrowAtom, StillWaitedSenders } exception on time-out (if any, as
+% the time-out can be disabled if set to 'infinity').
 %
-% See wait_for_many_acks/{4,5} if having many senders waited for.
+% See wait_for_many_acks/{4,5} if having a large number of senders waited for.
 %
 -spec wait_for_acks( [ pid() ], time_out(), atom(), atom() ) ->
 						   basic_utils:void().
@@ -1296,11 +1391,12 @@ wait_for_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 
 
 % Waits until receiving from all expected senders the specified acknowledgement
-% message.
+% message, expected to be in the form of { AckReceiveAtom, WaitedSenderPid },
+% ensuring a check is performed at least at specified period.
 %
-% Throws specified exception on time-out, checking at the specified period.
+% Throws a { ThrowAtom, StillWaitedSenders } exception on time-out.
 %
-% See wait_for_many_acks/{4,5} if having many senders waited for.
+% See wait_for_many_acks/{4,5} if having a large number of senders waited for.
 %
 -spec wait_for_acks( [ pid() ], unit_utils:milliseconds(),
 		unit_utils:milliseconds(), atom(), atom() ) -> basic_utils:void().

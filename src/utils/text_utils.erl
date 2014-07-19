@@ -63,9 +63,14 @@
 
 % Other string operations:
 -export([ uppercase_initial_letter/1,
-		  join/2, split/2, split_camel_case/1, is_uppercase/1, is_figure/1,
+		  join/2,
+		  split/2, split_at_first/2, split_camel_case/1,
+		  is_uppercase/1, is_figure/1,
 		  remove_ending_carriage_return/1, remove_last_characters/2,
-		  trim_whitespaces/1,
+
+		  trim_whitespaces/1, trim_leading_whitespaces/1,
+		  trim_trailing_whitespaces/1,
+
 		  format_text_for_width/2, pad_string/2,
 		  is_string/1, is_list_of_strings/1 ]).
 
@@ -873,11 +878,37 @@ join( Separator, _ListToJoin=[ H | T ], Acc ) ->
 % Splits the specified string into a list of strings, based on the list of
 % specified characters to be interpreted as delimiters.
 %
-% Defined here not to chase after string:tokens/2.
+% Defined here not to chase anymore after string:tokens/2.
 %
 -spec split( string(), [ char() ] ) -> [ string() ].
 split( String, Delimiters ) ->
 	string:tokens( String, Delimiters ).
+
+
+
+% Splits the specified string according to the first occurrence of specified
+% character, return a pair of two strings, containing respectively all
+% characters strictly before and strictly after the first occurrence of the
+% marker (which thus is not kept).
+%
+% Ex: split_at_first( $x, "  aaaxbbbxccc" ) shall return { "  aaa", "bbbxccc" }.
+%
+-spec split_at_first( char(), string() ) ->
+							'none_found' | { string(), string() }.
+split_at_first( Marker, String ) ->
+	split_at_first( Marker, String, _Acc=[] ).
+
+
+% Helper:
+split_at_first( _Marker, _ToRead=[], _Read ) ->
+	none_found;
+
+split_at_first( Marker, _ToRead=[ Marker | T ], Read ) ->
+	{ lists:reverse( Read ), T };
+
+split_at_first( Marker, _ToRead=[ Other | T ], Read ) ->
+	split_at_first( Marker, T, [ Other | Read ] ).
+
 
 
 
@@ -970,12 +1001,29 @@ remove_last_characters( String, Count ) ->
 -spec trim_whitespaces( string() ) -> string().
 trim_whitespaces( InputString ) ->
 
+	% Should be done in one pass:
+	trim_leading_whitespaces( trim_trailing_whitespaces( InputString ) ).
+
+
+% Removes all leading whitespaces.
+%
+-spec trim_leading_whitespaces( string() ) -> string().
+trim_leading_whitespaces( InputString ) ->
+
 	% Largely inspired from http://www.trapexit.org/Trimming_Blanks_from_String:
-	TrimmedRight = re:replace( InputString, "^\\s*", "",
-							  [ unicode, { return, list } ] ),
+	re:replace( InputString, "^\\s*", "",
+			[ unicode, { return, list } ] ).
+
+
+% Removes all trailing whitespaces.
+%
+-spec trim_trailing_whitespaces( string() ) -> string().
+trim_trailing_whitespaces( InputString ) ->
 
 	% The $ confuses some syntax highlighting:
-	re:replace( TrimmedRight, "\\s*$", "", [ unicode, { return, list } ] ).
+	re:replace( InputString, "\\s*$", "", [ unicode, { return, list } ] ).
+
+
 
 
 

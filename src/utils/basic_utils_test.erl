@@ -228,10 +228,11 @@ run() ->
 
 	% This term transformer does not change anything in the terms it scans, and
 	% just comment the traversal it does:
+	%
 	IdTermTransformer = fun( Term, UserData ) ->
 
-		NewUserData = [ io_lib:format( "Inspected '~p', ",
-									  [ Term ] ) | UserData ],
+		NewUserData = [
+					io_lib:format( "Inspected '~p', ", [ Term ] ) | UserData ],
 
 		{ Term, NewUserData }
 
@@ -249,13 +250,14 @@ run() ->
 							 [ TermToTraverse, TraversedTerm,
 							   lists:reverse( InspectData ) ] ),
 
+
 	% This term transformer changes a term into a textual representation, and
 	% does not do anything with user data:
 	TextTermTransformer = fun( Term, UserData ) ->
 
 		{ io_lib:format( "~w", [ Term ] ), UserData }
 
-						end,
+						  end,
 
 	% Requested to operate only on PIDs:
 	{ NewTraversedTerm, _UselessData } = basic_utils:traverse_term(
