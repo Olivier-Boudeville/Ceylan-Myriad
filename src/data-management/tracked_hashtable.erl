@@ -69,11 +69,13 @@
 % Same as hashtable:
 -export([ new/0, new/1, new_with_buckets/1, addEntry/3, addEntries/2,
 		  removeEntry/2, lookupEntry/2, hasEntry/2,
-		  getEntry/2, addToEntry/3, subtractFromEntry/3, toggleEntry/2,
+		  getEntry/2, extractEntry/2,
+		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToEntry/3, deleteFromEntry/3, popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
 		  isEmpty/1, size/1, getEntryCount/1,
 		  mapOnEntries/2, mapOnValues/2,
+		  foldOnEntries/3,
 		  merge/2, optimise/1, toString/1, toString/2, display/1, display/2 ]).
 
 
@@ -283,6 +285,7 @@ lookupEntry( Key, _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 	hashtable:lookupEntry( Key, Hashtable ).
 
 
+
 % Looks-up specified entry (designated by its key) in specified tracked
 % hashtable: returns eigher true or false.
 -spec hasEntry( key(), tracked_hashtable() ) -> boolean().
@@ -290,13 +293,33 @@ hasEntry( Key, _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 	hashtable:hasEntry( Key, Hashtable ).
 
 
+
 % Retrieves the value corresponding to specified key and returns it directly.
 %
 % The key/value pair is expected to exist already, otherwise a bad match is
 % triggered.
+%
 -spec getEntry( key(), tracked_hashtable() ) -> value().
 getEntry( Key, _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 	hashtable:getEntry( Key, Hashtable ).
+
+
+
+% Extracts specified entry from specified hashtable, i.e. returns the associated
+% value and removes that entry from the table.
+%
+% The key/value pair is expected to exist already, otherwise an exception is
+% raised.
+%
+-spec extractEntry( key(), tracked_hashtable() ) ->
+						  { value(), tracked_hashtable() }.
+extractEntry( Key, _TrackedHashtable={ Hashtable, NEnt, NBuck } ) ->
+
+	{ Value, NewHashtable } = hashtable:extractEntry( Key, Hashtable ),
+
+	NewTrackedTable = { NewHashtable, NEnt - 1, NBuck },
+
+	{ Value, NewTrackedTable }.
 
 
 
@@ -344,6 +367,23 @@ mapOnValues( Fun, _TrackedHashtable={ Hashtable, NEnt, NBuck }  ) ->
 	NewHashtable = hashtable:mapOnValues( Fun, Hashtable ),
 
 	{ NewHashtable, NEnt, NBuck }.
+
+
+
+% Folds specified anonymous function on all entries of the specified tracked
+% hashtable.
+%
+% The order of transformation for entries is not specified.
+%
+% Returns the final accumulator.
+%
+-spec foldOnEntries( fun( ( entry(), basic_utils:accumulator() )
+						  -> basic_utils:accumulator() ),
+					 basic_utils:accumulator(),
+					 tracked_hashtable() ) ->
+						   basic_utils:accumulator().
+foldOnEntries( Fun, InitialAcc, _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
+	hashtable:foldOnEntries( Fun, InitialAcc, Hashtable ).
 
 
 

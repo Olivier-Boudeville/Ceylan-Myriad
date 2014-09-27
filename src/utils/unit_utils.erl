@@ -105,7 +105,9 @@
 -type km_per_hour() :: float().
 -type meters_per_second() :: float().
 
--export_type([ km_per_hour/0, meters_per_second/0 ]).
+-type meters_per_tick() :: float().
+
+-export_type([ km_per_hour/0, meters_per_second/0, meters_per_tick/0 ]).
 
 
 % Volume-related section.
@@ -153,6 +155,16 @@
 -export_type([
 			  joules/0, energy_reference_unit/0, energy_units/0
 			  ]).
+
+
+
+% Temperature units.
+
+% In degree Celsius (°C):
+-type celsius() :: float().
+
+
+-export_type([ celsius/0 ]).
 
 
 

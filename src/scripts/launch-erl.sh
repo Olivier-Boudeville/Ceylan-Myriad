@@ -18,9 +18,11 @@
 
 
 # Default (0) is to use run_erl (the preferred way, in order to have the VM be
-# able to resist to the crash of others):
-use_run_erl=0
-#use_run_erl=1
+# able to resist to the crash of others; however then some tests may fail while
+# either returning success or may terminate in an open shell):
+#
+#use_run_erl=0
+use_run_erl=1
 
 
 default_node_name="ceylan_default"

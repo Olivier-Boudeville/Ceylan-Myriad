@@ -60,7 +60,7 @@ run() ->
 	MyH3 = lazy_hashtable:addEntry( ?MyFirstKey, "MyFirstValue", MyH2 ),
 	false = lazy_hashtable:isEmpty( MyH3 ),
 
-	MyH4 = lazy_hashtable:addEntry( ?MySecondKey, [1,2,3], MyH3 ),
+	MyH4 = lazy_hashtable:addEntry( ?MySecondKey, [ 1, 2, 3 ], MyH3 ),
 	false = lazy_hashtable:isEmpty( MyH4 ),
 
 	lazy_hashtable:display( "The lazy hashtable", MyH4 ),
@@ -77,8 +77,12 @@ run() ->
 
 	test_facilities:display( "Removing that entry." ),
 	MyH5 = lazy_hashtable:removeEntry( ?MyFirstKey, MyH4 ),
-	false = lazy_hashtable:isEmpty( MyH5 )
-		,
+	false = lazy_hashtable:isEmpty( MyH5 ),
+
+	test_facilities:display( "Extracting the same entry from "
+							 "the same initial table." ),
+	{ "MyFirstValue", MyH5 } = lazy_hashtable:extractEntry( ?MyFirstKey, MyH4 ),
+
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
 		lazy_hashtable:lookupEntry( ?MyFirstKey, MyH5 ) ] ),
 
@@ -126,6 +130,17 @@ run() ->
 
 	lazy_hashtable:mapOnEntries( FunEntry, MyH4 ),
 
+
+	test_facilities:display( "Folding on the same initial hashtable to "
+							 "count the number of entries." ),
+
+	FunCount = fun( _Entry, AccCount ) ->
+					   AccCount + 1
+			   end,
+
+	2 = lazy_hashtable:foldOnEntries( FunCount, _InitialCount=0, MyH4 ),
+
+	0 = lazy_hashtable:foldOnEntries( FunCount, _InitialCount=0, MyH1 ),
 
 
 	true = list_utils:unordered_compare( [ ?MyFirstKey, ?MySecondKey ],

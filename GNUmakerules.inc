@@ -239,6 +239,7 @@ all-recurse: $(BEAM_FILES)
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval `echo $@|sed 's|_run|_test:run()|1'` $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
 
 
+# Again and again one will remove the '@' to inspect the actual command-line:
 %_run: %_test
 	@echo "		Running unitary test $@ (third form) from $^"
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval `echo $@|sed 's|_run|_test:run()|1'` $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
@@ -251,7 +252,7 @@ all-recurse: $(BEAM_FILES)
 
 
 test: all test-recurse
-	@for t in $(TEST_TARGETS); do if ! $(MAKE) -s `echo $$t|sed 's|_test|_run|1'` CMD_LINE_OPT="${CMD_LINE_OPT} --batch"; then exit 1; fi ; done
+	@for t in $(TEST_TARGETS); do if ! $(MAKE) -s `echo $$t|sed 's|_test|_run|1'` CMD_LINE_OPT="${CMD_LINE_OPT} --batch"; then echo "Test failed." 1>&2 ; exit 1; fi ; done
 
 
 test-recurse:
@@ -471,13 +472,20 @@ clean-recurse:
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then      \
 	cd $$m && $(MAKE) -s clean CMD_LINE_OPT="${CMD_LINE_OPT}" &&   \
 	cd .. ; else echo "		(directory $$m skipped)" ; fi ) ; then \
-	 exit 1; fi ; done
+	exit 1; fi ; done
 
 endif
 
 
 # To be enriched by user layers:
-real-clean: clean
+real-clean: clean real-clean-recurse
+
+real-clean-recurse:
+	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then      \
+	cd $$m && $(MAKE) -s real-clean CMD_LINE_OPT="${CMD_LINE_OPT}" &&   \
+	cd .. ; else echo "		(directory $$m skipped)" ; fi ) ; then \
+	exit 1; fi ; done
+
 
 
 info: info-files

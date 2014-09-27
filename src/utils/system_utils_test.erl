@@ -42,7 +42,7 @@ print_sizes( [] ) ->
 
 print_sizes( [ H | T ] ) ->
 
-	Size = system_utils:get_size(H),
+	Size = system_utils:get_size( H ),
 	test_facilities:display( "     - exact size of ~p is ~s",
 		[ H, system_utils:interpret_byte_size( Size ) ] ),
 
@@ -60,11 +60,11 @@ run() ->
 	% User-related functions.
 
 	test_facilities:display( "Determining what is the name of the current user:"
-							" ~s.", [ system_utils:get_user_name() ] ),
+							 " ~s.", [ system_utils:get_user_name() ] ),
 
 	test_facilities:display( "Determining what is the home directory "
-			 "of the current user: ~s.",
-			 [ system_utils:get_user_home_directory() ] ),
+							 "of the current user: ~s.",
+							 [ system_utils:get_user_home_directory() ] ),
 
 	TotalRAM = system_utils:get_total_physical_memory(),
 
@@ -90,10 +90,10 @@ run() ->
 	{ UsedSwap, TotalSwap } = system_utils:get_swap_status(),
 
 	test_facilities:display( "Determining the total swap memory "
-					"on this computer: ~B bytes, which is ~s.~n"
-					"Swap use amounts to ~B byte(s), which is ~s.",
-					[ TotalSwap, system_utils:interpret_byte_size( TotalSwap ),
-					  UsedSwap, system_utils:interpret_byte_size( UsedSwap ) ] ),
+				"on this computer: ~B bytes, which is ~s.~n"
+				"Swap use amounts to ~B byte(s), which is ~s.",
+				[ TotalSwap, system_utils:interpret_byte_size( TotalSwap ),
+				  UsedSwap, system_utils:interpret_byte_size( UsedSwap ) ] ),
 
 
 	% Lower-level services tested as well:
@@ -102,13 +102,19 @@ run() ->
 	% System-related functions.
 
 	test_facilities:display(
+		"Determining a description of the current operating system: ~s.",
+		[ system_utils:get_operating_system_description() ] ),
+
+
+	test_facilities:display(
 		"Determining the current version of the interpreter (VM): ~s.",
 		[ system_utils:get_interpreter_version() ] ),
 
 	Application = kernel,
 
-	test_facilities:display( "Determining the current version of the '~s' application: ~w.",
-		[ Application, system_utils:get_application_version( Application ) ] ),
+	test_facilities:display( "Determining the current version of "
+							 "the '~s' application: ~w.", [ Application,
+					system_utils:get_application_version( Application ) ] ),
 
 	test_facilities:display( "Determining the size of a VM word: ~B bytes.",
 		[ system_utils:get_size_of_vm_word() ] ),
@@ -168,15 +174,19 @@ run() ->
 
 	test_facilities:display( "The aggregated CPU usage during this test: ~f%.",
 							[ system_utils:compute_cpu_usage_between(
-										   InitialCounters, FinalCounters ) ] ),
+								InitialCounters, FinalCounters ) ] ),
 
 	 { UserPercent, NicePercent, SystemPercent, IdlePercent, OtherPercent } =
 	  system_utils:compute_detailed_cpu_usage( InitialCounters, FinalCounters ),
 
 	test_facilities:display( "The detailed CPU usage: user = ~f%, "
-							"nice = ~f%, system = ~f%, idle = ~f%, "
-							"other = ~f%.",
-							[  UserPercent, NicePercent, SystemPercent,
-							 IdlePercent, OtherPercent ] ),
+							 "nice = ~f%, system = ~f%, idle = ~f%, "
+							 "other = ~f%.",
+							 [  UserPercent, NicePercent, SystemPercent,
+
+								IdlePercent, OtherPercent ] ),
+
+	test_facilities:display( "Full system information: ~ts",
+							 [ system_utils:get_system_description() ] ),
 
 	test_facilities:stop().

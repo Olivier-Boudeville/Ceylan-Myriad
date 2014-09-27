@@ -141,6 +141,7 @@ round_after( F, DigitCount ) ->
 	erlang:round( Multiplier * F ) / Multiplier.
 
 
+
 % Returns the positive remainder of the division of X by Y, in [0;Y[.
 %
 % In Erlang, -5 rem 3 is -2, whereas this function will return 1,
@@ -185,7 +186,7 @@ clamp( _Min, _Max, Value ) ->
 % Returns the square, augmented of a little margin, of the specified element.
 %
 squarify( L ) ->
-	% "Taylor series", square(epsilon) is negligible here:
+	% "Taylor series", square( epsilon ) is negligible here:
 	L * ( L + ?epsilon ).
 
 

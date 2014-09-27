@@ -42,6 +42,7 @@
 
 
 % Conversions between terms and strings.
+%
 -export([ term_to_string/1, term_to_string/2, term_to_string/3,
 		  integer_to_string/1, atom_to_string/1, pid_to_string/1,
 		  record_to_string/1,
@@ -58,10 +59,13 @@
 		  string_to_atom/1, strings_to_atoms/1, binary_to_atom/1,
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
-		  duration_to_string/1 ]).
+		  duration_to_string/1,
+		  format/2 ]).
+
 
 
 % Other string operations:
+%
 -export([ uppercase_initial_letter/1,
 		  join/2,
 		  split/2, split_at_first/2, split_camel_case/1,
@@ -126,13 +130,33 @@
 -type bin_string() :: binary().
 
 
-% A Unicode string:
+% A Unicode string.
+%
+% This is our new default.
 %
 -type unicode_string() :: unicode:chardata().
 
 
+% A Unicode character.
+%
+ % Unicode codepoint for the character.
+%
+% (unfortunately we cannot define a text_utils:char/0 type, as "type char()
+% is a builtin type; it cannot be redefined").
+%
+-type uchar() :: integer().
+
+
+% Now our default:
+%
+% (unfortunately we cannot define a text_utils:string/0 type, as "type string()
+% is a builtin type; it cannot be redefined").
+%
+-type ustring() :: unicode_string().
+
+
 -export_type([ format_string/0, regex_string/0, title/0, label/0,
-			   bin_string/0, unicode_string/0 ]).
+			   bin_string/0, unicode_string/0, ustring/0, uchar/0 ]).
 
 
 
@@ -288,8 +312,10 @@ pid_to_string( Pid ) ->
 % way of determining the name of their fields at runtime.
 %
 -spec record_to_string( _ ) -> none().
-record_to_string( _Record ) -> % No 'when is_record(Record,Tag) ->' here.
+record_to_string( _Record ) -> % No 'when is_record( Record, Tag ) ->' here.
+
 	throw( { not_implemented, record_to_string } ).
+
 	%RF = fun(R,L) when R == element(1,Record) ->
 	%	% Needs apparently a parse transform:
 	%   Fields = '#info-'(Record),
@@ -304,35 +330,35 @@ record_to_string( _Record ) -> % No 'when is_record(Record,Tag) ->' here.
 % Returns a string which pretty-prints specified list of strings, with default
 % bullets.
 %
--spec string_list_to_string( [ string() ] ) -> string().
+-spec string_list_to_string( [ ustring() ] ) -> ustring().
 string_list_to_string( ListOfStrings ) ->
-	io_lib:format( "~n~s", [ string_list_to_string(
-								 ListOfStrings, _Acc=[], _Bullet=" + " ) ] ).
+	io_lib:format( "~n~ts", [ string_list_to_string(
+								ListOfStrings, _Acc=[], _Bullet=" + " ) ] ).
 
 
 % Returns a string which pretty-prints specified list of strings, with
 % user-specified bullets.
 %
--spec string_list_to_string( [ string() ], string() ) -> string().
+-spec string_list_to_string( [ ustring() ], ustring() ) -> ustring().
 string_list_to_string( ListOfStrings, Bullet ) ->
-	io_lib:format( "~n~s", [ string_list_to_string(
-								 ListOfStrings, _Acc=[], Bullet ) ] ).
+	io_lib:format( "~n~ts", [ string_list_to_string(
+								ListOfStrings, _Acc=[], Bullet ) ] ).
 
 
 string_list_to_string( _ListOfStrings=[], Acc, _Bullet ) ->
 	 Acc;
 
 string_list_to_string( _ListOfStrings=[ H | T ], Acc, Bullet )
-  when is_list(H) ->
-	string_list_to_string( T, Acc ++ Bullet ++ io_lib:format( "~s~n", [ H ] ),
-						  Bullet ).
+  when is_list( H ) ->
+	string_list_to_string( T, Acc ++ Bullet ++ io_lib:format( "~ts~n", [ H ] ),
+						   Bullet ).
 
 
 
 % Returns a string which pretty-prints specified list of strings, with default
 % bullets.
 %
--spec strings_to_string( [ string() ] ) -> string().
+-spec strings_to_string( [ ustring() ] ) -> ustring().
 strings_to_string( ListOfStrings ) ->
 	string_list_to_string( ListOfStrings ).
 
@@ -341,7 +367,7 @@ strings_to_string( ListOfStrings ) ->
 % Returns a string which pretty-prints specified list of strings, with
 % user-specified bullets.
 %
--spec strings_to_string( [ string() ], string() ) -> string().
+-spec strings_to_string( [ ustring() ], ustring() ) -> ustring().
 strings_to_string( ListOfStrings, Bullet ) ->
 	string_list_to_string( ListOfStrings, Bullet ).
 
@@ -351,7 +377,7 @@ strings_to_string( ListOfStrings, Bullet ) ->
 % Returns a string which pretty-prints specified list of binary strings, with
 % default bullets.
 %
--spec binary_list_to_string( [ binary() ] ) -> string().
+-spec binary_list_to_string( [ binary() ] ) -> ustring().
 binary_list_to_string( ListOfBinaries ) ->
 	binaries_to_string( ListOfBinaries ).
 
@@ -360,7 +386,7 @@ binary_list_to_string( ListOfBinaries ) ->
 % Returns a string which pretty-prints specified list of binary strings, with
 % user-specified bullets.
 %
--spec binaries_to_string( [ binary() ] ) -> string().
+-spec binaries_to_string( [ binary() ] ) -> ustring().
 binaries_to_string( ListOfBinaries ) ->
 	Strings = binaries_to_strings( ListOfBinaries ),
 	string_list_to_string( Strings ).
@@ -369,22 +395,22 @@ binaries_to_string( ListOfBinaries ) ->
 
 % Returns a string which pretty-prints specified list of atoms, with bullets.
 %
--spec atom_list_to_string( [ atom() ] ) -> string().
+-spec atom_list_to_string( [ atom() ] ) -> ustring().
 atom_list_to_string( ListOfAtoms ) ->
-	io_lib:format( "~n~s", [ atom_list_to_string( ListOfAtoms, [] ) ] ).
+	io_lib:format( "~n~ts", [ atom_list_to_string( ListOfAtoms, [] ) ] ).
 
 
 atom_list_to_string( [], Acc ) ->
 	 Acc;
 
 atom_list_to_string( [ H | T ], Acc ) when is_atom( H)  ->
-	atom_list_to_string( T, Acc ++ io_lib:format( " + ~s~n", [ H ] ) ).
+	atom_list_to_string( T, Acc ++ io_lib:format( " + ~ts~n", [ H ] ) ).
 
 
 
 % Returns a string which pretty-prints specified list of atoms, with bullets.
 %
--spec atoms_to_string( [ atom() ] ) -> string().
+-spec atoms_to_string( [ atom() ] ) -> ustring().
 atoms_to_string( ListOfAtoms ) ->
 	atom_list_to_string( ListOfAtoms ).
 
@@ -395,8 +421,8 @@ atoms_to_string( ListOfAtoms ) ->
 %
 % Ex: string_list_to_atom_list( ["abc", "def"] ) should return [abc,def].
 %
--spec string_list_to_atom_list( [ string() ] ) -> [ atom() ].
-string_list_to_atom_list( StringList ) when is_list(StringList) ->
+-spec string_list_to_atom_list( [ ustring() ] ) -> [ atom() ].
+string_list_to_atom_list( StringList ) when is_list( StringList ) ->
 	[ list_to_atom( X ) || X <- StringList ].
 
 
@@ -464,12 +490,12 @@ distance_to_string( Millimeters ) ->
 					 [];
 
 				 KmNonNull->
-					 [ io_lib:format( "~Bkm", [KmNonNull] ) ]
+					 [ io_lib:format( "~Bkm", [ KmNonNull ] ) ]
 
    end,
 
 	DistAfterKm = Millimeters rem Km,
-	%io:format( "DistAfterKm = ~B.~n", [DistAfterKm] ),
+	%io:format( "DistAfterKm = ~B.~n", [ DistAfterKm ] ),
 
 	ListWithMeters = case DistAfterKm div Meters of
 
@@ -477,7 +503,7 @@ distance_to_string( Millimeters ) ->
 					 ListWithKm;
 
 				 MetersNonNull->
-					 [ io_lib:format( "~Bm", [MetersNonNull] ) | ListWithKm ]
+					 [ io_lib:format( "~Bm", [ MetersNonNull ] ) | ListWithKm ]
 
    end,
 
@@ -490,12 +516,13 @@ distance_to_string( Millimeters ) ->
 					 ListWithMeters;
 
 				 CentNonNull->
-					 [ io_lib:format( "~Bcm", [CentNonNull]) | ListWithMeters ]
+					 [ io_lib:format( "~Bcm", [ CentNonNull ] )
+					   | ListWithMeters ]
 
    end,
 
 	DistAfterCentimeters = DistAfterMeters rem Centimeters,
-	%io:format( "DistAfterCentimeters = ~B.~n", [DistAfterCentimeters] ),
+	%io:format( "DistAfterCentimeters = ~B.~n", [ DistAfterCentimeters ] ),
 
 	ListWithMillimeters = case DistAfterCentimeters of
 
@@ -508,7 +535,7 @@ distance_to_string( Millimeters ) ->
 
 	end,
 
-	%io:format( "Unit list is: ~w.~n", [ListWithMillimeters] ),
+	%io:format( "Unit list is: ~w.~n", [ ListWithMillimeters ] ),
 
 	% Preparing for final display:
 	case ListWithMillimeters of
@@ -520,7 +547,7 @@ distance_to_string( Millimeters ) ->
 			OneElement;
 
 		[ Smaller | Bigger ] ->
-			join( ", ", lists:reverse(Bigger) ) ++ " and " ++ Smaller
+			join( ", ", lists:reverse( Bigger ) ) ++ " and " ++ Smaller
 
 	end.
 
@@ -538,7 +565,7 @@ distance_to_string( Millimeters ) ->
 -spec distance_to_short_string( unit_utils:millimeters()
 							   | unit_utils:int_millimeters() ) -> string().
 distance_to_short_string( Millimeters ) when is_float(Millimeters) ->
-	distance_to_short_string( round(Millimeters) );
+	distance_to_short_string( round( Millimeters ) );
 
 % Returns an approximate textual description of the specified distance, expected
 % to be expressed as an integer number of millimeters.
@@ -699,9 +726,25 @@ duration_to_string( Milliseconds ) ->
 
 
 
+% Formats specified string as io_lib:format/2 would do, and returns a flattened
+% version of it.
+%
+% Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected
+% Unicode inputs resulting on crashes afterwards.
+%
+-spec format( format_string(), [ term() ] ) -> ustring().
+format( FormatString, Values ) ->
+
+	% Using 'flatten' allows for example to have clearer strings output in case
+	% of error:
+	%
+	lists:flatten( io_lib:format( FormatString, Values ) ).
+
+
+
 % Converts a plain (list-based) string into a binary.
 %
--spec string_to_binary( string() ) -> binary().
+-spec string_to_binary( ustring() ) -> binary().
 string_to_binary( String ) ->
 	erlang:list_to_binary( String ).
 
@@ -709,7 +752,7 @@ string_to_binary( String ) ->
 
 % Converts a binary into a plain (list-based) string.
 %
--spec binary_to_string( binary() ) -> string().
+-spec binary_to_string( binary() ) -> ustring().
 binary_to_string( Binary ) ->
 	erlang:binary_to_list( Binary ).
 
@@ -719,10 +762,10 @@ binary_to_string( Binary ) ->
 %
 % Order of items remains unaffected.
 %
--spec strings_to_binaries( [ string() ] ) -> [ binary() ].
+-spec strings_to_binaries( [ ustring() ] ) -> [ binary() ].
 strings_to_binaries( StringList ) ->
 	% Order must be preserved:
-	[ erlang:list_to_binary(S) || S <- StringList ].
+	[ erlang:list_to_binary( S ) || S <- StringList ].
 
 
 
@@ -730,7 +773,7 @@ strings_to_binaries( StringList ) ->
 %
 % Order of items remains unaffected.
 %
--spec binaries_to_strings( [ binary() ] ) -> [ string() ].
+-spec binaries_to_strings( [ binary() ] ) -> [ ustring() ].
 binaries_to_strings( BinaryList ) ->
 	% Order must be preserved:
 	[ erlang:binary_to_list( B ) || B <- BinaryList ].
@@ -741,7 +784,7 @@ binaries_to_strings( BinaryList ) ->
 %
 % Throws an exception if the conversion failed.
 %
--spec string_to_integer( string() ) -> integer().
+-spec string_to_integer( ustring() ) -> integer().
 string_to_integer( String ) ->
 
 	try list_to_integer( String ) of
@@ -763,7 +806,7 @@ string_to_integer( String ) ->
 %
 % Throws an exception if the conversion failed.
 %
--spec string_to_float( string() ) -> float().
+-spec string_to_float( ustring() ) -> float().
 string_to_float( String ) ->
 
 	try list_to_float( String ) of
@@ -797,7 +840,7 @@ string_to_float( String ) ->
 % Note that a bounded number of atoms should be created that way, lest the atom
 % table gets saturated.
 %
--spec string_to_atom( string() ) -> atom().
+-spec string_to_atom( ustring() ) -> atom().
 string_to_atom( String ) ->
 	erlang:list_to_atom( String ).
 
@@ -808,7 +851,7 @@ string_to_atom( String ) ->
 % Note that a bounded number of atoms should be created that way, lest the atom
 % table gets saturated.
 %
--spec strings_to_atoms( [ string() ] ) -> [ atom() ].
+-spec strings_to_atoms( [ ustring() ] ) -> [ atom() ].
 strings_to_atoms( StringList ) ->
 	[ string_to_atom( S ) || S <- StringList ].
 
@@ -829,7 +872,7 @@ binary_to_atom( Binary ) ->
 % Returns the specified string, ensuring that its first letter is a majuscule,
 % uppercasing it if necessary.
 %
--spec uppercase_initial_letter( string() ) -> string().
+-spec uppercase_initial_letter( ustring() ) -> ustring().
 uppercase_initial_letter( _Letters=[] ) ->
 	[];
 
@@ -853,7 +896,7 @@ uppercase_initial_letter( _Letters=[ First | Others ] ) ->
 %
 % Note: conversely, use string:tokens to split the string.
 %
--spec join( string() | char(), iolist() ) -> string().
+-spec join( ustring() | uchar(), [ ustring() ] ) -> ustring().
 join( _Separator, _ListToJoin=[] ) ->
 	"";
 
@@ -880,21 +923,21 @@ join( Separator, _ListToJoin=[ H | T ], Acc ) ->
 %
 % Defined here not to chase anymore after string:tokens/2.
 %
--spec split( string(), [ char() ] ) -> [ string() ].
+-spec split( ustring(), [ uchar() ] ) -> [ ustring() ].
 split( String, Delimiters ) ->
 	string:tokens( String, Delimiters ).
 
 
 
 % Splits the specified string according to the first occurrence of specified
-% character, return a pair of two strings, containing respectively all
+% character: returns a pair of two strings, containing respectively all
 % characters strictly before and strictly after the first occurrence of the
 % marker (which thus is not kept).
 %
 % Ex: split_at_first( $x, "  aaaxbbbxccc" ) shall return { "  aaa", "bbbxccc" }.
 %
--spec split_at_first( char(), string() ) ->
-							'none_found' | { string(), string() }.
+-spec split_at_first( uchar(), ustring() ) ->
+							'none_found' | { ustring(), ustring() }.
 split_at_first( Marker, String ) ->
 	split_at_first( Marker, String, _Acc=[] ).
 
@@ -921,23 +964,24 @@ split_at_first( Marker, _ToRead=[ Other | T ], Read ) ->
 % "Waste", "Source" ], while split_camel_case( "TheySaidNYCWasGreat" ) shall
 % return [ "They", "Said", "NYC", "Was", "Great" ].
 %
--spec split_camel_case( string() ) -> [ string() ].
-split_camel_case( String )->
+-spec split_camel_case( ustring() ) -> [ ustring() ].
+split_camel_case( _String )->
 	% TO-DO:
 	%lists:reverse( split_camel_case( String, _CurrentWord=[], _AccWords=[] ) ).
-	String.
+	%String.
 
 %% split_camel_case( _String=[ C | T ], CurrentWord, AccWords )->
 
 %%	case is_uppercase( C ) of
 
 %%		true ->
+	throw( not_implemented_yet ).
 
 
 
 % Tells whether specified character is an uppercase one.
 %
--spec is_uppercase( char() ) -> boolean().
+-spec is_uppercase( uchar() ) -> boolean().
 is_uppercase( Char ) ->
 
 	% Simplistic but working:
@@ -955,21 +999,23 @@ is_uppercase( Char ) ->
 	end.
 
 
+
 % Tells whether specified character is a figure (in 0..9).
 %
 -spec is_figure( char() ) -> boolean().
-is_figure( Char ) when is_integer(Char) andalso Char >= $0 andalso Char =< $9 ->
+is_figure( Char ) when is_integer( Char ) andalso Char >= $0
+					   andalso Char =< $9 ->
 	true;
 
-is_figure( Char ) when is_integer(Char) ->
+is_figure( Char ) when is_integer( Char ) ->
 	false.
 
 
 
 % Removes the ending "\n" character(s) of specified string.
 %
--spec remove_ending_carriage_return( string() ) -> string().
-remove_ending_carriage_return( String ) when is_list(String) ->
+-spec remove_ending_carriage_return( ustring() ) -> ustring().
+remove_ending_carriage_return( String ) when is_list( String ) ->
 
 	% See also: list_utils:remove_last_element/1.
 
@@ -980,11 +1026,12 @@ remove_ending_carriage_return( String ) when is_list(String) ->
 
 % Removes the last Count characters from String.
 %
--spec remove_last_characters( string(), integer() ) -> string().
+-spec remove_last_characters( ustring(), basic_utils:count() ) -> ustring().
 remove_last_characters( String, Count ) ->
 
 	% Not necessarily the most efficient, but at least it is not an illegal
 	% pattern:
+	%
 	case length( String ) of
 
 		C when C >= Count ->
@@ -998,16 +1045,17 @@ remove_last_characters( String, Count ) ->
 
 % Removes all leading and trailing whitespaces.
 %
--spec trim_whitespaces( string() ) -> string().
+-spec trim_whitespaces( ustring() ) -> ustring().
 trim_whitespaces( InputString ) ->
 
 	% Should be done in one pass:
 	trim_leading_whitespaces( trim_trailing_whitespaces( InputString ) ).
 
 
+
 % Removes all leading whitespaces.
 %
--spec trim_leading_whitespaces( string() ) -> string().
+-spec trim_leading_whitespaces( ustring() ) -> ustring().
 trim_leading_whitespaces( InputString ) ->
 
 	% Largely inspired from http://www.trapexit.org/Trimming_Blanks_from_String:
@@ -1015,12 +1063,13 @@ trim_leading_whitespaces( InputString ) ->
 			[ unicode, { return, list } ] ).
 
 
+
 % Removes all trailing whitespaces.
 %
--spec trim_trailing_whitespaces( string() ) -> string().
+-spec trim_trailing_whitespaces( ustring() ) -> ustring().
 trim_trailing_whitespaces( InputString ) ->
 
-	% The $ confuses some syntax highlighting:
+	% The $ confuses some syntax highlighting systems (like the one of emacs):
 	re:replace( InputString, "\\s*$", "", [ unicode, { return, list } ] ).
 
 
@@ -1031,7 +1080,7 @@ trim_trailing_whitespaces( InputString ) ->
 %
 % Returns a list of strings, each of which having Width characters.
 %
--spec format_text_for_width( string(), pos_integer() ) -> [ list() ].
+-spec format_text_for_width( ustring(), pos_integer() ) -> [ ustring() ].
 format_text_for_width( Text, Width ) ->
 
 	% Whitespaces converted to spaces:
@@ -1064,7 +1113,7 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 		CurrentLineLen ) ->
 
 	%io:format( "Managing word '~s' (len=~B), current line is '~s' (len=~B), "
-	%	"width = ~B.~n", [ Word, length(Word), CurrentLine, CurrentLineLen,
+	%	"width = ~B.~n", [ Word, length( Word ), CurrentLine, CurrentLineLen,
 	% Width ] ),
 
 	% Length should be incremented, as a space must be inserted before that
@@ -1088,7 +1137,7 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 		CompatibleWidth when CompatibleWidth =< Width ->
 			% Word width is manageable.
 			% Will this word fit on the current line?
-			% It depends on the
+			%
 			case CurrentLineLen + CompatibleWidth of
 
 				FittingLen when FittingLen =< Width ->
@@ -1120,14 +1169,18 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 
 			end;
 
+
 		_TooLargeWidth ->
+
 			% Will break words as many times as needed:
 			%io:format( "Word '~s' is too large (len=~B), breaking it.~n",
-			%	[Word,length(Word)] ),
+			%	[ Word, length( Word ) ] ),
 			Subwords = break_word( Word, Width ),
+
 			PaddedCurrentLine = pad_string( CurrentLine, Width ),
+
 			join_words( Subwords ++ RemainingWords, Width,
-				[ PaddedCurrentLine | AccLines ], "", 0 )
+						[ PaddedCurrentLine | AccLines ], "", 0 )
 
 	end.
 
@@ -1136,8 +1189,8 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 % Returns the specified string, padded with spaces to specified width,
 % left-justified.
 %
--spec pad_string( string(), integer() ) -> string().
-pad_string( String, Width ) when length(String) =< Width ->
+-spec pad_string( ustring(), integer() ) -> ustring().
+pad_string( String, Width ) when length( String ) =< Width ->
 	lists:flatten( io_lib:format( "~*.s", [ -Width, String ] ) ).
 
 
@@ -1154,11 +1207,11 @@ pad_string( String, Width ) when length(String) =< Width ->
 is_string( [] ) ->
 	true;
 
-is_string( [H|_] ) when not is_integer(H) ->
+is_string( [ H | _ ] ) when not is_integer( H ) ->
 	false;
 
-is_string( [_|T] ) ->
-	is_string(T);
+is_string( [ _ | T ] ) ->
+	is_string( T );
 
 is_string( _Other ) ->
 	false.
@@ -1212,10 +1265,10 @@ break_word( Word, Width ) ->
 %
 cut_into_chunks( _String=[], _ChunkSize, Acc ) ->
 	%io:format( "cut_into_chunks return ~p.", [lists:reverse(Acc)]),
-	lists:reverse(Acc);
+	lists:reverse( Acc );
 
 % Last word may take the full width (no dash to add):
-cut_into_chunks( String, ChunkSize, Acc ) when length(String) =< ChunkSize ->
+cut_into_chunks( String, ChunkSize, Acc ) when length( String ) =< ChunkSize ->
 	cut_into_chunks( [], ChunkSize, [ String | Acc ] );
 
 % Here we have to cut the string anyway:
@@ -1228,13 +1281,13 @@ cut_into_chunks( String, ChunkSize, Acc ) ->
 
 	% Each underscore will result into another character (\) being added:
 	%io:format( "FirstPart = '~s' (~B), Remaining = '~s'.~n",
-	%	[FirstPart,length(FirstPart),Remaining] ),
+	%	[ FirstPart, length( FirstPart ), Remaining ] ),
 	cut_into_chunks( Remaining, ChunkSize, [ FirstPart ++ "-" | Acc ] ).
 
 
 
 aggregate_word( String, 0, Acc ) ->
-	{ lists:reverse(Acc), String };
+	{ lists:reverse( Acc ), String };
 
 
 % An underscore once escaped would not fit, as it would result into two
@@ -1261,12 +1314,12 @@ aggregate_word( [ H | T ], Count, Acc ) ->
 % Generates a RST-compatible standard title, with the proper ASCII art.
 % Follows our general conventions regarding title level, from H1 to Hn.
 %
--spec generate_title( string(), 1..9 ) -> string().
+-spec generate_title( ustring(), 1..9 ) -> ustring().
 generate_title( Title, Level ) ->
 
 	{ Char, Layout } = get_title_rendering_for( Level ),
 
-	TitleLine = get_line_of( Char, length(Title) ) ++ "\n",
+	TitleLine = get_line_of( Char, length( Title ) ) ++ "\n",
 
 	case Layout of
 
@@ -1351,7 +1404,7 @@ get_line_of( Character, Length ) ->
 % Directly inspired from:
 % http://stackoverflow.com/questions/114196/url-encode-in-erlang
 %
--spec encode_as_url( option_list:option_list() ) -> string().
+-spec encode_as_url( option_list:option_list() ) -> ustring().
 encode_as_url( OptionList ) ->
    encode_as_url( OptionList, _Acc=[] ).
 
@@ -1370,7 +1423,7 @@ encode_as_url( [ { Key, Value } | T ], Acc ) ->
 
 % Encodes specified element so that it can be used in an URL.
 %
--spec encode_element_as_url( string() ) -> string().
+-spec encode_element_as_url( ustring() ) -> ustring().
 encode_element_as_url( E ) ->
 	% They seem to produce quite similar results in our few test cases:
 	edoc_lib:escape_uri( E ).
@@ -1380,7 +1433,7 @@ encode_element_as_url( E ) ->
 
 % Escapes specified list of {Key,Value} pairs so that it can used into some URL.
 %
--spec escape( option_list:option_list() ) -> string().
+-spec escape( option_list:option_list() ) -> ustring().
 escape( OptionList ) ->
 	%io:format( "~n~nEscaping '~p'.~n", [ OptionList ] ),
 	escape( OptionList, _Acc=[] ).
@@ -1400,16 +1453,17 @@ escape( [ { Key, Value } | T ], Acc ) ->
 
 % Escapes specified element so that it can be used in some URL.
 %
--spec escape_key( option_list:key() ) -> string().
+-spec escape_key( option_list:key() ) -> ustring().
 escape_key( Key ) when is_atom( Key ) ->
 	text_utils:atom_to_string( Key ).
 
 
--spec escape_value( string() ) -> string().
+-spec escape_value( ustring() ) -> ustring().
 escape_value( String ) ->
 	R = lists:flatten( [ escape_char( C ) || C <- String ] ),
 	%io:format( "'~s' became '~s'.~n", [ String, R ] ),
 	R.
+
 
 
 % Escapes specified character.
@@ -1443,7 +1497,7 @@ escape_char( C ) ->
 %
 % See also: file_utils:convert_to_filename/1.
 %
--spec generate_text_name_from( term() ) -> string().
+-spec generate_text_name_from( term() ) -> ustring().
 generate_text_name_from( Term ) ->
 	String = term_to_string( Term ),
 	fix_characters( String ).
@@ -1454,7 +1508,7 @@ generate_text_name_from( Term ) ->
 % Non-exported helper functions.
 
 fix_characters( String ) ->
-	lists:reverse( fix_characters( lists:flatten(String), [] ) ).
+	lists:reverse( fix_characters( lists:flatten( String ), [] ) ).
 
 
 fix_characters( [], Acc ) ->

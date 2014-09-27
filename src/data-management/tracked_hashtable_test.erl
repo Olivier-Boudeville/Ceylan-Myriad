@@ -58,7 +58,7 @@ run() ->
 	false = tracked_hashtable:isEmpty( MyH3 ),
 	tracked_hashtable:display("The tracked hashtable", MyH3 ),
 
-	MyH4 = tracked_hashtable:addEntry( ?MySecondKey, [1,2,3], MyH3 ),
+	MyH4 = tracked_hashtable:addEntry( ?MySecondKey, [ 1, 2, 3 ], MyH3 ),
 	false = tracked_hashtable:isEmpty( MyH4 ),
 
 	tracked_hashtable:display( "The tracked hashtable", MyH4 ),
@@ -77,6 +77,11 @@ run() ->
 
 	MyH5 = tracked_hashtable:removeEntry( ?MyFirstKey, MyH4 ),
 	false = tracked_hashtable:isEmpty( MyH5 ),
+
+	test_facilities:display( "Extracting the same entry from "
+							 "the same initial table." ),
+	{ "MyFirstValue", MyH5 } = tracked_hashtable:extractEntry( ?MyFirstKey,
+															   MyH4 ),
 
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MySecondKey,
 			tracked_hashtable:lookupEntry( ?MySecondKey, MyH5 ) ] ),
@@ -135,6 +140,17 @@ run() ->
 	end,
 
 	tracked_hashtable:mapOnEntries( FunEntry, MyH4 ),
+
+	test_facilities:display( "Folding on the same initial hashtable to "
+							 "count the number of entries." ),
+
+	FunCount = fun( _Entry, AccCount ) ->
+					   AccCount + 1
+			   end,
+
+	2 = tracked_hashtable:foldOnEntries( FunCount, _InitialCount=0, MyH4 ),
+
+	0 = tracked_hashtable:foldOnEntries( FunCount, _InitialCount=0, MyH1 ),
 
 
 	true = list_utils:unordered_compare( [ ?MyFirstKey, ?MySecondKey ],

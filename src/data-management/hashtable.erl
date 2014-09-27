@@ -91,11 +91,13 @@
 		  addEntries/2, addDiagnosedEntries/2,
 		  removeEntry/2, removeDiagnosedEntry/2,
 		  lookupEntry/2, hasEntry/2,
-		  getEntry/2, addToEntry/3, subtractFromEntry/3, toggleEntry/2,
+		  getEntry/2, extractEntry/2,
+		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToEntry/3, deleteFromEntry/3, popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
 		  isEmpty/1, size/1, getEntryCount/1,
 		  mapOnEntries/2, mapOnValues/2,
+		  foldOnEntries/3,
 		  merge/2, optimise/1, toString/1, toString/2, display/1, display/2 ]).
 
 
@@ -118,7 +120,7 @@
 % Not necessarily an atom, but surely not a string (as lists are interpreted as
 % lists of keys):
 %
--type key() :: atom() | binary() | pid() | tuple().
+-type key() :: number() | atom() | binary() | pid() | tuple().
 
 -type value() :: term().
 
@@ -370,6 +372,35 @@ getEntry( Key, Hashtable ) ->
 
 
 
+% Extracts specified entry from specified hashtable, i.e. returns the associated
+% value and removes that entry from the table.
+%
+% The key/value pair is expected to exist already, otherwise an exception is
+% raised.
+%
+-spec extractEntry( key(), hashtable() ) -> { value(), hashtable() }.
+extractEntry( Key, Hashtable ) ->
+
+	BucketIndex = get_bucket_index( Key, Hashtable ),
+
+	case extractFromList( Key, element( BucketIndex, Hashtable ) ) of
+
+		hashtable_key_not_found ->
+
+			% Badmatches are not informative enough:
+			throw( { hashtable_key_not_found, Key } );
+
+
+		{ Value, ShortenBucket } ->
+
+			NewTable = erlang:setelement( BucketIndex, _Tuple=Hashtable,
+										  _Value=ShortenBucket ),
+
+			{ Value, NewTable }
+
+	end.
+
+
 
 % Applies (maps) the specified anonymous function to each of the key-value
 % entries contained in this hashtable.
@@ -451,6 +482,41 @@ mapOnValues( Fun, Hashtable ) ->
 %
 map_bucket_for_values( Fun, Bucket ) ->
 	[ { K, Fun( V ) } || { K, V } <- Bucket ].
+
+
+
+% Folds specified anonymous function on all entries of the specified hashtable.
+%
+% The order of transformation for entries is not specified.
+%
+% Returns the final accumulator.
+%
+-spec foldOnEntries( fun( ( entry(), basic_utils:accumulator() )
+						  -> basic_utils:accumulator() ),
+					 basic_utils:accumulator(),
+					 hashtable() ) ->
+						   basic_utils:accumulator().
+foldOnEntries( Fun, InitialAcc, Hashtable ) ->
+
+	BucketList = tuple_to_list( Hashtable ),
+
+	fold_on_entries( Fun, BucketList, InitialAcc ).
+
+
+
+% (helper)
+%
+% Could be itself a fold!
+%
+fold_on_entries( _Fun, _BucketList=[], Acc ) ->
+	Acc;
+
+fold_on_entries( Fun, _BucketList=[ Bucket | T ], Acc ) ->
+
+	NewAcc = lists:foldl( Fun, Acc, _List=Bucket ),
+
+	fold_on_entries( Fun, T, NewAcc ).
+
 
 
 
@@ -1039,6 +1105,28 @@ lookupInList( Key, _TargetList=[ { Key, Value } | _T ] ) ->
 
 lookupInList( Key, _TargetList=[ _H | T ] ) ->
 	lookupInList( Key, T ).
+
+
+
+% Returns the value corresponding to the key in the specified list, and the list
+% without this entry: { Value, ShortenList }, or 'hashtable_key_not_found'.
+%
+extractFromList( Key, TargetList ) ->
+	extractFromList( Key, TargetList, _AccList=[] ).
+
+
+extractFromList( _Key, _TargetList=[], _AccList ) ->
+	%{ hashtable_key_not_found, Key };
+	hashtable_key_not_found;
+
+extractFromList( Key, _TargetList=[ { Key, Value } | T ], AccList ) ->
+	% Entry order does not matter:
+	{ Value, T ++ AccList };
+
+extractFromList( Key, _TargetList=[ H | T ], AccList ) ->
+	extractFromList( Key, T, [ H | AccList ] ).
+
+
 
 
 

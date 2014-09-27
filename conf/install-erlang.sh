@@ -660,7 +660,11 @@ if [ $do_generate_plt -eq 0 ] ; then
 	# Less detailed:
 	echo "Generating now a PLT file for that Erlang install in $actual_plt_file. Note that this operation is generally quite long (ex: about one hour and a half)."
 
-	$dialyzer_exec --build_plt -r $erlang_beam_root --output_plt $actual_plt_file
+	# In R17.1, dialyzer is not able to dereference symlinks, so instead of
+	# generating with '--output_plt $actual_plt_file' and doing '/bin/ln -s
+	# $actual_plt_file $actual_plt_link' we proceed the other way round:
+
+	$dialyzer_exec --build_plt -r $erlang_beam_root --output_plt $actual_plt_link
 	res=$?
 
 	if [ $res -eq 0 ] ; then
@@ -673,7 +677,8 @@ if [ $do_generate_plt -eq 0 ] ; then
 	fi
 
 	# To include a PLT without knowing the current Erlang version:
-	/bin/ln -s $actual_plt_file $actual_plt_link
+	# (reversed symlink better than a copy)
+	/bin/ln -s $actual_plt_link $actual_plt_file
 
 fi
 

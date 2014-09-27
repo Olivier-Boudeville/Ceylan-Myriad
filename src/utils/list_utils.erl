@@ -333,8 +333,8 @@ subtract_all_duplicates( L1, L2 ) ->
 
 
 % Returns a copy of the specified list where the first element matching Elem is
-% deleted, ensuring at least one of these element exists (as opposed to
-% lists:delete/2). The element order of the specified list is preserved.
+% deleted, ensuring at least one of these elements exists (as opposed to
+% lists:delete/2). The order of the specified list is preserved.
 %
 -spec delete_existing( term(), list() ) -> list().
 delete_existing( Elem, List ) ->

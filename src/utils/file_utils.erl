@@ -41,13 +41,14 @@
 %
 -export([ join/1, join/2, convert_to_filename/1, replace_extension/3,
 
-		  exists/1, get_type_of/1, is_file/1, is_existing_file/1,
+		  exists/1, get_type_of/1, is_file/1,
+		  is_existing_file/1, is_existing_file_or_link/1,
 		  is_executable/1, is_directory/1, is_existing_directory/1,
 		  list_dir_elements/1,
 
 		  get_current_directory/0, set_current_directory/1,
 
-		  filter_by_extension/2,
+		  filter_by_extension/2, filter_by_extensions/2,
 		  filter_by_included_suffixes/2, filter_by_excluded_suffixes/2,
 
 		  find_files_from/1, find_files_with_extension_from/2,
@@ -64,18 +65,20 @@
 
 		  copy_file/2, copy_file_if_existing/2,
 
+		  move_file/2,
+
 		  is_absolute_path/1,
 		  ensure_path_is_absolute/1, ensure_path_is_absolute/2,
 
 		  path_to_variable_name/1, path_to_variable_name/2,
 
-		  get_image_file_png/1, get_image_file_gif/1 ]).
+		  get_image_extensions/0, get_image_file_png/1, get_image_file_gif/1 ]).
 
 
 
 % I/O section.
 %
--export([ open/2, open/3, close/1, close/2, read/2, write/2,
+-export([ open/2, open/3, close/1, close/2, read/2, write/2, write/3,
 		  read_whole/1, write_whole/2 ]).
 
 
@@ -280,6 +283,29 @@ is_existing_file( EntryName ) ->
 
 
 
+% Returns whether the specified entry exists and is either a regular file or a
+% symbolic link.
+%
+% Returns true or false, and cannot trigger an exception.
+%
+-spec is_existing_file_or_link( file_name() ) -> boolean().
+is_existing_file_or_link( EntryName ) ->
+
+	case exists( EntryName ) andalso get_type_of( EntryName ) of
+
+		regular ->
+			true ;
+
+		symlink ->
+			true ;
+
+		_ ->
+			false
+
+	end.
+
+
+
 % Returns whether the specified entry exists and is executable for its current
 % owner (can be either a regular file or a symbolic link).
 %
@@ -368,9 +394,8 @@ is_existing_directory( EntryName ) ->
 %
 % Note that Files include symbolic links (dead or not).
 %
--spec list_dir_elements( directory_name() )
-		-> { [ file_name() ], [ directory_name() ], [ file_name() ],
-			[ file_name() ] }.
+-spec list_dir_elements( directory_name() ) ->
+	{ [ file_name() ], [ directory_name() ], [ file_name() ], [ file_name() ] }.
 list_dir_elements( Dirname ) ->
 
 	%io:format( "list_dir_elements for '~s'.~n", [ Dirname ] ),
@@ -465,6 +490,11 @@ classify_dir_elements( Dirname, _Elements=[ H | T ],
 
 
 
+
+% Regarding extensions: we could canonicalise their case, so that ".png" and
+% ".PNG" are treated the same.
+
+
 % Returns a list containing all elements of Filenames list whose extension is
 % the specified one (ex: ".dat").
 %
@@ -485,6 +515,32 @@ filter_by_extension( _Filenames=[ H | T ], Extension, Acc ) ->
 
 		_Other ->
 			filter_by_extension( T, Extension, Acc )
+
+	end.
+
+
+
+% Returns a list containing all elements of Filenames list whose extension
+% corresponds to one of the specified extensions (ex: [ ".dat", ".png" ]).
+%
+-spec filter_by_extensions( [ file_name() ], [ extension() ] ) ->
+								 [ file_name() ].
+filter_by_extensions( Filenames, Extensions ) ->
+	filter_by_extensions( Filenames, Extensions, _Acc=[] ).
+
+
+filter_by_extensions( _Filenames=[], _Extensions, Acc ) ->
+	Acc ;
+
+filter_by_extensions( _Filenames=[ F | T ], Extensions, Acc ) ->
+
+	case lists:member( filename:extension( F ), Extensions ) of
+
+		true ->
+			filter_by_extensions( T, Extensions, [ F | Acc ] ) ;
+
+		false ->
+			filter_by_extensions( T, Extensions, Acc )
 
 	end.
 
@@ -557,7 +613,7 @@ has_matching_suffix( Filename, [ S | OtherS ] ) ->
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
 %
--spec find_files_from( directory_name() ) -> [file_name()].
+-spec find_files_from( directory_name() ) -> [ file_name() ].
 find_files_from( RootDir ) ->
 	find_files_from( RootDir, _CurrentRelativeDir="", _Acc=[] ).
 
@@ -622,7 +678,7 @@ list_files_in_subdirs_with_extension( _Dirs=[], _Extension, _RootDir,
 									  _CurrentRelativeDir, Acc) ->
 	Acc;
 
-list_files_in_subdirs_with_extension( _Dirs=[ H| T ], Extension, RootDir,
+list_files_in_subdirs_with_extension( _Dirs=[ H | T ], Extension, RootDir,
 									  CurrentRelativeDir, Acc ) ->
 	list_files_in_subdirs_with_extension( T, Extension, RootDir,
 		CurrentRelativeDir,
@@ -958,7 +1014,7 @@ create_dir_elem( _Elems=[ H | T ], Prefix ) ->
 
 % Removes specified file, specified as a plain string.
 %
-% Throws an exception is a problem occurs.
+% Throws an exception if any problem occurs.
 %
 -spec remove_file( file_name() ) -> basic_utils:void().
 remove_file( Filename ) ->
@@ -1065,6 +1121,29 @@ copy_file( SourceFilename, DestinationFilename ) ->
 
 
 
+% Moves specified file so that it is now designated by specified filename.
+%
+%
+-spec move_file( file_name(), file_name() ) -> basic_utils:void().
+move_file( SourceFilename, DestinationFilename ) ->
+
+	%copy_file( SourceFilename, DestinationFilename ),
+	%remove_file( SourceFilename ).
+
+	% Simpler, better:
+	case file:rename( SourceFilename, DestinationFilename ) of
+
+		ok ->
+			ok;
+
+		Error ->
+			throw( { move_file_failed, Error,  SourceFilename,
+					 DestinationFilename } )
+
+	end.
+
+
+
 % Tells whether the specified path is an absolute one.
 %
 % A path is deemed absolute iff it starts with "/".
@@ -1160,7 +1239,7 @@ path_to_variable_name( Filename, Prefix ) ->
 %
 convert( Filename, Prefix ) ->
 
-	NoDashName = re:replace( lists:flatten(Filename), "-+", "_",
+	NoDashName = re:replace( lists:flatten( Filename ), "-+", "_",
 		[ global, { return, list } ] ),
 
 	NoDotName = re:replace( NoDashName, "\\.+", "_",
@@ -1169,6 +1248,15 @@ convert( Filename, Prefix ) ->
 	Prefix ++ re:replace( NoDotName, "/+", "_",
 		[ global, { return, list } ] ).
 
+
+
+
+% Returns a list of the known file extensions that refer image files.
+%
+-spec get_image_extensions() -> [ extension() ].
+get_image_extensions() ->
+	% TIFF, TGA and al deemed deprecated:
+	[ ".png", ".jpg", ".jpeg", ".bmp" ].
 
 
 
@@ -1196,7 +1284,7 @@ get_image_file_gif( Image ) ->
 
 
 % Opens the file corresponding to the specified filename, with specified list of
-% options.
+% options (as listed in file:open/2).
 %
 % Returns the file reference, or throws an exception.
 %
@@ -1382,6 +1470,28 @@ read( File, Count ) ->
 write( File, Content ) ->
 
 	case file:write( File, Content ) of
+
+		ok ->
+			ok;
+
+		{ error, Reason } ->
+			throw( { write_failed, Reason } )
+
+	end.
+
+
+
+% Writes specified formatted content into specified file.
+%
+% Throws an exception on failure.
+%
+-spec write( file:io_device(), text_utils:format_string(), [ term() ] ) ->
+				   basic_utils:void().
+write( File, FormatString, Values ) ->
+
+	Text = io_lib:format( FormatString, Values ),
+
+	case file:write( File, Text ) of
 
 		ok ->
 			ok;
@@ -1582,7 +1692,9 @@ zipped_term_to_unzipped_files( ZippedTerm ) ->
 -spec zipped_term_to_unzipped_files( binary(), directory_name() )
 		-> [ file_name() ].
 zipped_term_to_unzipped_files( ZippedTerm, TargetDirectory ) ->
+
 	%{ ok, FileNames } = zip:unzip( ZippedTerm, [ verbose ] ),
+
 	case is_existing_directory( TargetDirectory ) of
 
 		true ->

@@ -52,6 +52,12 @@
 -type distance() :: number().
 
 
+% Mostly for clarity:
+%
+-type radius() :: distance().
+
+
+
 % Integer distance between two points (ex: to express lengths):
 %
 -type integer_distance() :: integer().
@@ -70,5 +76,5 @@
 
 
 -export_type([ coordinate/0, integer_coordinate/0,
-			   distance/0, integer_distance/0, square_distance/0,
+			   distance/0, radius/0, integer_distance/0, square_distance/0,
 			   area/0 ]).

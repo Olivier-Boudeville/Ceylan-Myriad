@@ -66,11 +66,13 @@
 %
 -export([ new/0, new/1, addEntry/3, addEntries/2,
 		  removeEntry/2, lookupEntry/2, hasEntry/2,
-		  getEntry/2, addToEntry/3, subtractFromEntry/3, toggleEntry/2,
+		  getEntry/2, extractEntry/2,
+		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToEntry/3, deleteFromEntry/3, popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
 		  isEmpty/1, size/1, getEntryCount/1,
 		  mapOnEntries/2, mapOnValues/2,
+		  foldOnEntries/3,
 		  merge/2, optimise/1, toString/1, toString/2, display/1, display/2 ]).
 
 
@@ -91,7 +93,7 @@
 -opaque lazy_hashtable() :: { hashtable:hashtable(), operation_count() }.
 %-type lazy_hashtable() :: { hashtable:hashtable(), operation_count() }.
 
--type key() :: key().
+-type key() :: hashtable:key().
 
 -type value() :: hashtable:value().
 
@@ -128,7 +130,7 @@ new() ->
 
 	NewHashtable = hashtable:new_with_buckets( NumberOfBuckets ),
 
-	{ NewHashtable, _InitialOperationCount=0 }.
+	{ NewHashtable, _InitialOpCount=0 }.
 
 
 
@@ -169,12 +171,12 @@ new_with_buckets( _NumberOfBuckets ) ->
 %
 -spec addEntry( key(), value(), lazy_hashtable() )
 	-> lazy_hashtable().
-addEntry( Key, Value, _LazyHashtable={ Hashtable, OperationCount } ) ->
+addEntry( Key, Value, _LazyHashtable={ Hashtable, OpCount } ) ->
 
 	AugmentedTable = hashtable:addEntry( Key, Value, Hashtable ),
 
 	% Optimization to be performed if enough operations were done:
-	optimise_table_if_necessary( { AugmentedTable, OperationCount+1 } ).
+	optimise_table_if_necessary( { AugmentedTable, OpCount + 1 } ).
 
 
 
@@ -184,16 +186,16 @@ addEntry( Key, Value, _LazyHashtable={ Hashtable, OperationCount } ) ->
 % replaced by the specified one.
 %
 -spec addEntries( hashtable:entries(), lazy_hashtable() ) -> lazy_hashtable().
-addEntries( EntryList, _LazyHashtable={ Hashtable, OperationCount } ) ->
+addEntries( EntryList, _LazyHashtable={ Hashtable, OpCount } ) ->
 
 	AugmentedTable = hashtable:addEntries( EntryList, Hashtable ),
 
 	% This may lead to a count vastly greater than the threshold, but it is not
 	% a problem:
 	%
-	UpdatedOperationCount = OperationCount + length( EntryList ),
+	UpdatedOpCount = OpCount + length( EntryList ),
 
-	optimise_table_if_necessary( { AugmentedTable, UpdatedOperationCount } ).
+	optimise_table_if_necessary( { AugmentedTable, UpdatedOpCount } ).
 
 
 
@@ -205,11 +207,11 @@ addEntries( EntryList, _LazyHashtable={ Hashtable, OperationCount } ) ->
 % Returns an updated lazy table.
 %
 -spec removeEntry( key(), lazy_hashtable() ) -> lazy_hashtable().
-removeEntry( Key, _LazyHashtable={ Hashtable, OperationCount } ) ->
+removeEntry( Key, _LazyHashtable={ Hashtable, OpCount } ) ->
 
 	UpdatedTable = hashtable:removeEntry( Key, Hashtable ),
 
-	optimise_table_if_necessary( { UpdatedTable, OperationCount+1 } ).
+	optimise_table_if_necessary( { UpdatedTable, OpCount + 1 } ).
 
 
 
@@ -243,6 +245,23 @@ hasEntry( Key, _LazyHashtable={ Hashtable, _OpCount } ) ->
 -spec getEntry( key(), lazy_hashtable() ) -> value().
 getEntry( Key, _LazyHashtable={ Hashtable, _OpCount } ) ->
 	hashtable:getEntry( Key, Hashtable ).
+
+
+
+% Extracts specified entry from specified hashtable, i.e. returns the associated
+% value and removes that entry from the table.
+%
+% The key/value pair is expected to exist already, otherwise an exception is
+% raised.
+%
+-spec extractEntry( key(), lazy_hashtable() ) -> { value(), lazy_hashtable() }.
+extractEntry( Key, _LazyHashtable={ Hashtable, OpCount } ) ->
+
+	{ Value, NewHashtable } = hashtable:extractEntry( Key, Hashtable ),
+
+	NewLazyTable = { NewHashtable, OpCount + 1 },
+
+	{ Value, NewLazyTable }.
 
 
 
@@ -287,6 +306,22 @@ mapOnValues( Fun, _LazyHashtable={ Hashtable, OpCount } ) ->
 
 	{ NewHashtable, OpCount }.
 
+
+
+% Folds specified anonymous function on all entries of the specified lazy
+% hashtable.
+%
+% The order of transformation for entries is not specified.
+%
+% Returns the final accumulator.
+%
+-spec foldOnEntries( fun( ( entry(), basic_utils:accumulator() )
+						  -> basic_utils:accumulator() ),
+					 basic_utils:accumulator(),
+					 lazy_hashtable() ) ->
+						   basic_utils:accumulator().
+foldOnEntries( Fun, InitialAcc, _LazyHashtable={ Hashtable, _OpCount } ) ->
+	hashtable:foldOnEntries( Fun, InitialAcc, Hashtable ).
 
 
 
@@ -345,8 +380,8 @@ subtractFromEntry( Key, Value, LazyHashtable ) ->
 % not a boolean.
 %
 -spec toggleEntry( key(), lazy_hashtable() ) -> lazy_hashtable().
-toggleEntry( Key, _LazyHashtable={ Hashtable, OperationCount } ) ->
-	{ hashtable:toggleEntry( Key, Hashtable ), OperationCount + 1 }.
+toggleEntry( Key, _LazyHashtable={ Hashtable, OpCount } ) ->
+	{ hashtable:toggleEntry( Key, Hashtable ), OpCount + 1 }.
 
 
 
@@ -369,9 +404,9 @@ merge( _LazyHashtableBase={ HashtableBase, BaseOptCount },
 	%
 	EntryCountInAddedTable = hashtable:getEntryCount( HashtableAdd ),
 
-	UpdatedOperationCount = BaseOptCount + EntryCountInAddedTable,
+	UpdatedOpCount = BaseOptCount + EntryCountInAddedTable,
 
-	optimise_table_if_necessary( { UpdatedHashtable, UpdatedOperationCount } ).
+	optimise_table_if_necessary( { UpdatedHashtable, UpdatedOpCount } ).
 
 
 
@@ -505,7 +540,7 @@ popFromEntry( Key, LazyHashtable ) ->
 % Ex: [ {K1,V1}, {K2,V2}, ... ].
 %
 -spec enumerate( lazy_hashtable() ) -> hashtable:entries().
-enumerate( _LazyHashtable={ Hashtable, _OperationCount } ) ->
+enumerate( _LazyHashtable={ Hashtable, _OpCount } ) ->
 	lists:flatten( tuple_to_list( Hashtable ) ).
 
 
@@ -515,14 +550,14 @@ enumerate( _LazyHashtable={ Hashtable, _OperationCount } ) ->
 %
 -spec selectEntries( [ key() ], lazy_hashtable() )
 	-> hashtable:entries().
-selectEntries( Keys, _LazyHashtable={ Hashtable, _OperationCount } ) ->
+selectEntries( Keys, _LazyHashtable={ Hashtable, _OpCount } ) ->
 	hashtable:selectEntries( Keys, Hashtable ).
 
 
 % Returns a list containing all the keys of this hashtable.
 %
 -spec keys( lazy_hashtable() ) -> [ key() ].
-keys( _LazyHashtable={ Hashtable, _OperationCount } ) ->
+keys( _LazyHashtable={ Hashtable, _OpCount } ) ->
 	hashtable:keys( Hashtable ).
 
 
@@ -531,7 +566,7 @@ keys( _LazyHashtable={ Hashtable, _OperationCount } ) ->
 % Ex: useful if the key was used as an index to generate this table first.
 %
 -spec values( lazy_hashtable() ) -> [ value() ].
-values( _LazyHashtable={ Hashtable, _OperationCount }  ) ->
+values( _LazyHashtable={ Hashtable, _OpCount }  ) ->
 	hashtable:values( Hashtable ).
 
 
@@ -540,7 +575,7 @@ values( _LazyHashtable={ Hashtable, _OperationCount }  ) ->
 % pair).
 %
 -spec isEmpty( lazy_hashtable() ) -> boolean().
-isEmpty( _LazyHashtable={ Hashtable, _OperationCount } ) ->
+isEmpty( _LazyHashtable={ Hashtable, _OpCount } ) ->
 	hashtable:isEmpty( Hashtable ).
 
 
@@ -565,7 +600,7 @@ getEntryCount( LazyHashtable ) ->
 % Returns a textual description of the specified hashtable.
 %
 -spec toString( lazy_hashtable() ) -> string().
-toString( _LazyHashtable={ Hashtable, _OperationCount } ) ->
+toString( _LazyHashtable={ Hashtable, _OpCount } ) ->
 	hashtable:toString( Hashtable ).
 
 
@@ -574,7 +609,7 @@ toString( _LazyHashtable={ Hashtable, _OperationCount } ) ->
 % elaborate (if using 'user_friendly').
 %
 -spec toString( lazy_hashtable(), 'internal' | 'user_friendly' ) -> string().
-toString( _LazyHashtable={ Hashtable, _OperationCount }, DescriptionType ) ->
+toString( _LazyHashtable={ Hashtable, _OpCount }, DescriptionType ) ->
 	hashtable:toString( Hashtable, DescriptionType ).
 
 
@@ -582,11 +617,11 @@ toString( _LazyHashtable={ Hashtable, _OperationCount }, DescriptionType ) ->
 % Displays the specified hashtable on the standard output.
 %
 -spec display( lazy_hashtable() ) -> basic_utils:void().
-display( _LazyHashtable={ Hashtable, OperationCount } ) ->
+display( _LazyHashtable={ Hashtable, OpCount } ) ->
 
 	hashtable:display( Hashtable ),
 
-	display_operation_count( OperationCount ) .
+	display_operation_count( OpCount ) .
 
 
 
@@ -594,11 +629,11 @@ display( _LazyHashtable={ Hashtable, OperationCount } ) ->
 % title on top.
 %
 -spec display( string(), lazy_hashtable() ) -> basic_utils:void().
-display( Title, _LazyHashtable={ Hashtable, OperationCount } ) ->
+display( Title, _LazyHashtable={ Hashtable, OpCount } ) ->
 
 	hashtable:display( Title, Hashtable ),
 
-	display_operation_count( OperationCount ) .
+	display_operation_count( OpCount ) .
 
 
 

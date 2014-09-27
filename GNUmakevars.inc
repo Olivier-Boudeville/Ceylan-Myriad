@@ -134,6 +134,7 @@ endif
 
 # Overall settings section.
 
+#EXECUTION_TARGET = production
 
 ifndef EXECUTION_TARGET
 
@@ -238,6 +239,10 @@ ERLANG_BIN_ROOT := $(shell dirname $(ERLANG_COMPILER) )
 ERLANG_ROOT := $(shell dirname $(ERLANG_BIN_ROOT) )
 
 
+# Note that at least some versions of dialyzer (ex: the one shipped with 17.1)
+# will not deference anymore symlinks (if Erlang.plt pointing to Erlang-17.1.plt
+# for example, it will not be found; this is managed in our installation script):
+#
 ERLANG_PLT_FILE := $(ERLANG_ROOT)/Erlang.plt
 
 

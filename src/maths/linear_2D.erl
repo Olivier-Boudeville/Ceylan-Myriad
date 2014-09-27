@@ -66,7 +66,7 @@
 
 % Textual conversions:
 %
--export([ to_string/1 ]).
+-export([ to_string/1, to_string/2 ]).
 
 
 % Only useful for tests:
@@ -915,6 +915,51 @@ compute_graham_scan_hull( L, NewPoint, [ Next | OtherNext ] ) ->
 
 % Textual conversion section.
 
+
+% Returns a precise textual representation of specified point.
+%
 -spec to_string( point() ) -> string().
 to_string( { X, Y } ) ->
 	io_lib:format( "{ ~w, ~w }", [ X, Y ] ).
+
+
+
+% Returns a human-friendly, approximated textual representation of specified
+% point, based on specified print-out precision (number of digits after the
+% comma).
+%
+-spec to_string( point(), basic_utils:count() ) -> string().
+to_string( { X, Y }, DigitCountAfterComma ) ->
+
+	% We want to avoid displaying larger texts for coordinates, like
+	% 0.10000000000000009:
+
+	%XRounded = math_utils:round_after( X, DigitCountAfterComma ),
+
+	%YRounded = math_utils:round_after( Y, DigitCountAfterComma ),
+
+	%text_utils:format( "{ ~.*w, ~.*w }", [ Precision, X, Precision, Y ] ).
+
+	XString = case is_float( X ) of
+
+				  true ->
+					  text_utils:format( "~.*f", [ DigitCountAfterComma, X ] );
+
+				  false ->
+					  % Integer:
+					  text_utils:format( "~B", [ X ] )
+
+	end,
+
+	YString = case is_float( Y ) of
+
+				  true ->
+					  text_utils:format( "~.*f", [ DigitCountAfterComma, Y ] );
+
+				  false ->
+					  % Integer:
+					  text_utils:format( "~B", [ Y ] )
+
+	end,
+
+	text_utils:format( "{ ~s, ~s }", [ XString, YString ] ).

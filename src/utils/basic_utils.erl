@@ -94,8 +94,26 @@
 		  checkpoint/1, display/1, display/2, debug/1, debug/2,
 		  parse_version/1, compare_versions/2,
 		  get_process_specific_value/0, get_process_specific_value/2,
-		  get_execution_target/0, is_alive/2, is_debug_mode_enabled/0,
+		  get_execution_target/0,
+		  is_alive/1, is_alive/2,
+		  is_debug_mode_enabled/0,
 		  generate_uuid/0, get_type_of/1, traverse_term/4, crash/0 ]).
+
+
+
+% Hints about retrieving the name of the function being currently evaluated by a
+% process (as a ?FUNCTION macro could do):
+%
+% - either:
+%
+% current_function() ->
+%    catch throw( x ), [_, {_, F, _, _} | _] = erlang:get_stacktrace(),
+%    F.
+%
+% - or, maybe better:
+%
+% erlang:element( 2, erlang:element( 2, erlang:process_info( self(),
+%   current_function ) ) ) ).
 
 
 
@@ -131,6 +149,11 @@
 %
 -type user_data() :: any().
 
+
+% Designates an accumulator (of any type), to document typically fold-like
+% operations:
+%
+-type accumulator() :: any().
 
 
 % Type-related section.
@@ -211,7 +234,7 @@
 -export_type([
 
 			  void/0, count/0, bit_mask/0, exit_reason/0, maybe/1, user_data/0,
-			  type_description/0, term_transformer/0,
+			  accumulator/0, type_description/0, term_transformer/0,
 			  timestamp/0, precise_timestamp/0, time_out/0,
 			  registration_name/0, registration_scope/0, look_up_scope/0,
 			  version_number/0, version/0, two_digit_version/0, any_version/0,
@@ -1082,6 +1105,8 @@ traverse_transformed_term( TargetTerm, TypeDescription, TermTransformer,
 -spec crash() -> any().
 crash() ->
 
+	io:format( "*** Crashing on purpose process ~w ***~n", [ self() ] ),
+
 	% Must outsmart the compiler; there should be simpler solutions:
 	A = system_utils:get_core_count(),
 	B = system_utils:get_core_count(),
@@ -1398,8 +1423,8 @@ wait_for_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 %
 % See wait_for_many_acks/{4,5} if having a large number of senders waited for.
 %
--spec wait_for_acks( [ pid() ], unit_utils:milliseconds(),
-		unit_utils:milliseconds(), atom(), atom() ) -> basic_utils:void().
+-spec wait_for_acks( [ pid() ], time_out(), unit_utils:milliseconds(),
+					 atom(), atom() ) -> basic_utils:void().
 wait_for_acks( WaitedSenders, MaxDurationInSeconds, Period,
 			   AckReceiveAtom, ThrowAtom ) ->
 
@@ -1436,7 +1461,8 @@ wait_for_acks_helper( WaitedSenders, InitialTimestamp, MaxDurationInSeconds,
 			NewDuration = basic_utils:get_duration( InitialTimestamp,
 											  get_timestamp() ),
 
-			case NewDuration > MaxDurationInSeconds of
+			case ( MaxDurationInSeconds =/= infinity ) andalso
+					  ( NewDuration > MaxDurationInSeconds ) of
 
 				true ->
 					throw( { ThrowAtom, WaitedSenders } );
@@ -1863,11 +1889,23 @@ get_execution_target() ->
 
 
 
+% Tells whether the specified process (designated by its PID) was still existing
+% at the moment of this call.
+%
+% Note: generally not to be used when relying on a good design.
+%
+-spec is_alive( pid() ) -> boolean().
+is_alive( TargetPid ) ->
+	is_alive( TargetPid, node( TargetPid ) ).
+
+
+
 % Tells whether the specified process (designated by its PID) supposed to run on
 % specified node (specified as an atom) was still existing at the moment of this
 % call.
 %
-% Note: generally not to be used when relying on a good design.
+% Note: generally not to be used when relying on a good design; and is_alive/1
+% should be preferred.
 %
 -spec is_alive( pid(), net_utils:atom_node_name() ) -> boolean().
 is_alive( TargetPid, Node ) ->

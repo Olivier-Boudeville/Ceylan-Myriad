@@ -63,7 +63,7 @@ run() ->
 	MyH3 = hashtable:addEntry( ?MyFirstKey, "MyFirstValue", MyH2 ),
 	false = hashtable:isEmpty( MyH3 ),
 
-	MyH4 = hashtable:addEntry( ?MySecondKey, [1,2,3], MyH3 ),
+	MyH4 = hashtable:addEntry( ?MySecondKey, [ 1, 2, 3 ], MyH3 ),
 	false = hashtable:isEmpty( MyH4 ),
 
 	hashtable:display( MyH4 ),
@@ -79,6 +79,10 @@ run() ->
 	test_facilities:display( "Removing that entry." ),
 	MyH5 = hashtable:removeEntry( ?MyFirstKey, MyH4 ),
 	false = hashtable:isEmpty( MyH5 ),
+
+	test_facilities:display( "Extracting the same entry from "
+							 "the same initial table." ),
+	{ "MyFirstValue", MyH5 } = hashtable:extractEntry( ?MyFirstKey, MyH4 ),
 
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
 		hashtable:lookupEntry( ?MyFirstKey, MyH5 ) ] ),
@@ -126,6 +130,16 @@ run() ->
 
 	hashtable:mapOnEntries( FunEntry, MyH4 ),
 
+	test_facilities:display( "Folding on the same initial hashtable to "
+							 "count the number of entries." ),
+
+	FunCount = fun( _Entry, AccCount ) ->
+					   AccCount + 1
+			   end,
+
+	2 = hashtable:foldOnEntries( FunCount, _InitialCount=0, MyH4 ),
+
+	0 = hashtable:foldOnEntries( FunCount, _InitialCount=0, MyH1 ),
 
 	true = list_utils:unordered_compare( [ ?MyFirstKey, ?MySecondKey ],
 										 hashtable:keys( MyH4 ) ),

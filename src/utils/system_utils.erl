@@ -125,8 +125,23 @@ get_user_home_directory() ->
 % the displaying and the halting.
 %
 -spec await_output_completion() -> basic_utils:void().
+
+-ifdef(debug_mode_is_enabled).
+
+% Default time-out duration (one second):
 await_output_completion() ->
-	await_output_completion( _TimeOut=500 ).
+	await_output_completion( _TimeOut=1000 ).
+
+-else. % debug_mode_is_enabled
+
+
+% Extended time-out (one minute), if for example being in production, on a
+% possibly heavily loaded system:
+%
+await_output_completion() ->
+	await_output_completion( _TimeOut=60000 ).
+
+-endif. % debug_mode_is_enabled
 
 
 
@@ -141,7 +156,7 @@ await_output_completion() ->
 await_output_completion( TimeOut ) ->
 
 	% Not sure it is really the proper way of waiting, however should be still
-	% better than timer:sleep(500):
+	% better than timer:sleep( 500 ):
 	%
 	% (we suppose that the time-out here is in milliseconds)
 
@@ -437,11 +452,11 @@ display_memory_summary() ->
 
 	io:format( "  - system size: ~s (~s)~n",
 			  [ interpret_byte_size_with_unit( SysSize ),
-			   text_utils:percent_to_string( SysSize / Sum ) ] ),
+				text_utils:percent_to_string( SysSize / Sum ) ] ),
 
 	io:format( "  - process size: ~s (~s)~n",
 			  [ interpret_byte_size_with_unit( ProcSize ),
-			   text_utils:percent_to_string( ProcSize / Sum ) ] ).
+				text_utils:percent_to_string( ProcSize / Sum ) ] ).
 
 
 
@@ -750,17 +765,35 @@ get_disk_usage() ->
 -spec get_operating_system_description() -> string().
 get_operating_system_description() ->
 
-	IdentifierPath = "/etc/issue.net",
+	OSfile = "/etc/os-release",
 
-	case file_utils:is_existing_file( IdentifierPath ) of
+	case file_utils:is_existing_file_or_link( OSfile ) of
+
 
 		true ->
-			BinString = file_utils:read_whole( IdentifierPath ),
-			text_utils:trim_whitespaces(
-						   text_utils:binary_to_string( BinString ) );
+
+			Res= os:cmd( "cat " ++ OSfile ++
+					" | grep PRETTY_NAME | sed 's|^PRETTY_NAME=\"||1' "
+					"| sed 's|\"$||1' 2>/dev/null" ),
+
+			text_utils:remove_ending_carriage_return( Res );
+
 
 		false ->
-			"(unknown operating system)"
+
+			IdentifierPath = "/etc/issue.net",
+
+			case file_utils:is_existing_file( IdentifierPath ) of
+
+				true ->
+					BinString = file_utils:read_whole( IdentifierPath ),
+					text_utils:trim_whitespaces(
+						   text_utils:binary_to_string( BinString ) );
+
+				false ->
+					"(unknown operating system)"
+
+			end
 
 	end.
 
@@ -789,6 +822,9 @@ get_system_description() ->
 
 	end,
 
+	% We use ~ts instead of ~s as in some cases, Unicode strings might be
+	% returned:
+	%
 	Subjects = [
 
 		io_lib:format( "number of cores: ~B", [ get_core_count() ] ),
@@ -796,31 +832,31 @@ get_system_description() ->
 		io_lib:format( "size of a VM word: ~B bytes",
 					  [ get_size_of_vm_word() ] ),
 
-		io_lib:format( "operating system: ~s",
+		io_lib:format( "operating system: ~ts",
 					  [ get_operating_system_description() ] ),
 
 		io_lib:format( "number of existing Erlang processes: ~B ",
 					  [ get_process_count() ] ),
 
-		io_lib:format( "total physical memory: ~s",
+		io_lib:format( "total physical memory: ~ts",
 					  [ interpret_byte_size( get_total_physical_memory() ) ] ),
 
 		io_lib:format( "memory used by VM: ~s over a total of ~s (~s)",
 					  [ interpret_byte_size( UsedRAM ),
-					   interpret_byte_size( TotalRAM ),
-					   text_utils:percent_to_string( UsedRAM / TotalRAM ) ] ),
+						interpret_byte_size( TotalRAM ),
+						text_utils:percent_to_string( UsedRAM / TotalRAM ) ] ),
 
 		SwapInfo,
 
-		io_lib:format( "user name: ~s", [ get_user_name() ] ),
+		io_lib:format( "user name: ~ts", [ get_user_name() ] ),
 
-		io_lib:format( "user home directory: ~s",
+		io_lib:format( "user home directory: ~ts",
 					  [ get_user_home_directory() ] ),
 
-		io_lib:format( "current directory: ~s",
+		io_lib:format( "current directory: ~ts",
 					  [ file_utils:get_current_directory() ] ),
 
-		io_lib:format( "current disk usage:~n~s", [ get_disk_usage() ] )
+		io_lib:format( "current disk usage:~n~ts", [ get_disk_usage() ] )
 
 				],
 
