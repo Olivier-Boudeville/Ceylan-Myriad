@@ -41,4 +41,37 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
+	SourceFilename = "GNUmakefile",
+
+	OriginalContent = file_utils:read_whole( SourceFilename ),
+
+	EncryptedFilename = "GNUmakefile.encrypted",
+
+	KeyFilename = "my-test-key.cipher",
+
+	test_facilities:display( "Encrypting '~s' in '~s', using key file '~s'.",
+							 [ SourceFilename, EncryptedFilename, KeyFilename ] ),
+
+	cipher_utils:encrypt( SourceFilename, EncryptedFilename, KeyFilename ),
+
+
+	DecryptedFilename = "GNUmakefile.decrypted",
+
+	test_facilities:display( "Decrypting '~s' in '~s', using the same key.",
+							 [ EncryptedFilename, DecryptedFilename ] ),
+
+	cipher_utils:decrypt( EncryptedFilename, DecryptedFilename, KeyFilename ),
+
+	FinalContent = file_utils:read_whole( DecryptedFilename ),
+
+	case OriginalContent =:= FinalContent of
+
+		true ->
+			ok;
+
+		false ->
+			throw( decrypted_content_differs )
+
+	end,
+
 	test_facilities:stop().
