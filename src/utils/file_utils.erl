@@ -65,7 +65,7 @@
 
 		  copy_file/2, copy_file_if_existing/2,
 
-		  move_file/2,
+		  rename/2, move_file/2,
 
 		  is_absolute_path/1,
 		  ensure_path_is_absolute/1, ensure_path_is_absolute/2,
@@ -79,7 +79,7 @@
 % I/O section.
 %
 -export([ open/2, open/3, close/1, close/2, read/2, write/2, write/3,
-		  read_whole/1, write_whole/2 ]).
+		  read_whole/1, write_whole/2, read_terms/1 ]).
 
 
 % Zip-related operations.
@@ -1121,8 +1121,13 @@ copy_file( SourceFilename, DestinationFilename ) ->
 
 
 
-% Moves specified file so that it is now designated by specified filename.
+% Renames specified file.
 %
+rename( SourceFilename, DestinationFilename ) ->
+	move_file( SourceFilename, DestinationFilename ).
+
+
+% Moves specified file so that it is now designated by specified filename.
 %
 -spec move_file( file_name(), file_name() ) -> basic_utils:void().
 move_file( SourceFilename, DestinationFilename ) ->
@@ -1507,7 +1512,7 @@ write( File, FormatString, Values ) ->
 % plain string, and returns the corresponding binary, or throws an exception on
 % failure.
 %
-% See also: file:consult/1 to read directly Erlang terms.
+% See also: read_terms/1 to read directly Erlang terms.
 %
 -spec read_whole( file_name() ) -> binary().
 read_whole( Filename ) ->
@@ -1540,6 +1545,27 @@ write_whole( Filename, Binary ) ->
 
 	end.
 
+
+
+% Reads specified file, tries to read a list of terms from it, and returns it.
+%
+% Throws an exception on error.
+%
+read_terms( Filename ) ->
+
+	case file:consult( Filename ) of
+
+		{ ok, Terms } ->
+			Terms;
+
+		{ error, Error } when is_atom( Error ) ->
+			throw( { reading_failed, Filename, Error } );
+
+		{ error, Error } ->
+			Reason = file:format_error( Error ),
+			throw( { interpretation_failed, Filename, Reason } )
+
+	end.
 
 
 
