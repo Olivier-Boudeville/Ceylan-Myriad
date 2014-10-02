@@ -41,23 +41,46 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
+	TransformList = [ id, id ],
+
+	KeyFilename = "my-test-key-file.cipher",
+
+
+	test_facilities:display( "Generating a key from transform list '~p', "
+							 "to be stored in file '~s'.",
+							 [ TransformList, KeyFilename ] ),
+
+	case file_utils:is_existing_file( KeyFilename ) of
+
+		true ->
+			% Otherwise generation will halt on error:
+			test_facilities:display( "(removing previously existing "
+									 "key file '~s')~n", [ KeyFilename ] ),
+			file_utils:remove_file( KeyFilename );
+
+		false ->
+			ok
+
+	end,
+
+	cipher_utils:generate_key( KeyFilename, TransformList ),
+
 	SourceFilename = "GNUmakefile",
 
 	OriginalContent = file_utils:read_whole( SourceFilename ),
 
 	EncryptedFilename = "GNUmakefile.encrypted",
 
-	KeyFilename = "my-test-key.cipher",
 
-	test_facilities:display( "Encrypting '~s' in '~s', using key file '~s'.",
-							 [ SourceFilename, EncryptedFilename, KeyFilename ] ),
+	test_facilities:display( "Encrypting '~s' into '~s', using key file '~s'.",
+					 [ SourceFilename, EncryptedFilename, KeyFilename ] ),
 
 	cipher_utils:encrypt( SourceFilename, EncryptedFilename, KeyFilename ),
 
 
 	DecryptedFilename = "GNUmakefile.decrypted",
 
-	test_facilities:display( "Decrypting '~s' in '~s', using the same key.",
+	test_facilities:display( "Decrypting '~s' into '~s', using the same key.",
 							 [ EncryptedFilename, DecryptedFilename ] ),
 
 	cipher_utils:decrypt( EncryptedFilename, DecryptedFilename, KeyFilename ),
@@ -67,11 +90,14 @@ run() ->
 	case OriginalContent =:= FinalContent of
 
 		true ->
-			ok;
+			test_facilities:display( "Original file and decrypted one match." );
 
 		false ->
 			throw( decrypted_content_differs )
 
 	end,
+
+	file_utils:remove_files( [ KeyFilename, EncryptedFilename,
+							   DecryptedFilename ] ),
 
 	test_facilities:stop().
