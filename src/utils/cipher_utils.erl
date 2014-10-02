@@ -70,7 +70,8 @@
 %
 % - offset: the specified value is added to all bytes of the file
 %
-% - compress: the file content is replaced by a compressed version thereof, using xz
+% - compress: the file content is replaced by a compressed version thereof,
+% using one of the supported formats (see compress_format/0)
 %
 % - insert_random: based on the specified seed and on the specified range R, a
 % series of strictly positive values is uniformly drawn in [1,R]; these values
@@ -97,10 +98,10 @@
 -type offset_transform() :: { 'offset', integer() }.
 
 
--type compress_tool() :: 'zip' | 'bz2' | 'xz'.
+-type compress_format() :: 'zip' | 'bz2' | 'xz'.
 
 
--type compress_transform() :: { 'compress', compress_tool() }.
+-type compress_transform() :: { 'compress', compress_format() }.
 
 
 -type insert_random_transform() :: { 'insert_random', random_utils:seed() }.
@@ -135,8 +136,33 @@
 
 -spec generate_key( file_utils:file_name(), [ cipher_transform() ] ) ->
 						  basic_utils:void().
-generate_key( _TargetFilename, _Transforms ) ->
-	ok.
+generate_key( KeyFilename, Transforms ) ->
+
+	case file_utils:exists( KeyFilename ) of
+
+		true ->
+			throw( { already_existing_key_file, KeyFilename } );
+
+		false ->
+			ok
+
+	end,
+
+	KeyFile = file_utils:open( KeyFilename, _Opts=[ write, raw ] ),
+
+	Header = text_utils:format( "% Key generated on ~s, by ~s, on ~s.~n",
+								[ basic_utils:get_textual_timestamp(),
+								  system_utils:get_user_name(),
+								  net_utils:localhost() ] ),
+
+	file_utils:write( KeyFile, Header ),
+
+	file_utils:write( KeyFile, "~n~w.~n~n", [ Transforms ] ),
+
+	file_utils:write( KeyFile, "% End of key file.~n", [] ),
+
+	file_utils:close( KeyFile ).
+
 
 
 % Encrypts specified source file using specified key file, and writes the result
@@ -167,16 +193,7 @@ encrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 
 	end,
 
-
-	KeyInfos = case file_utils:is_existing_file_or_link( KeyFilename ) of
-
-		true ->
-			file_utils:read_terms( KeyFilename );
-
-		false ->
-			throw( { non_existing_key_file, KeyFilename } )
-
-	end,
+	KeyInfos = read_key( KeyFilename ),
 
 	io:format( "Encrypting source file '~s' with key file '~s', "
 			   "storing the result in '~s'. Key: '~p'.~n",
@@ -184,6 +201,7 @@ encrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 
 	TempFilename = apply_key( KeyInfos, SourceFilename ),
 
+	io:format( "Renaming '~s' to '~s'.~n", [ TempFilename, TargetFilename ] ),
 	file_utils:rename( TempFilename, TargetFilename ).
 
 
@@ -219,19 +237,75 @@ decrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 	end,
 
 
-	KeyInfos = case file_utils:is_existing_file_or_link( KeyFilename ) of
+	KeyInfos = read_key( KeyFilename ),
+
+	io:format( "Decrypting source file '~s' with key file '~s', "
+			   "storing the result in '~s'. Key: '~p'.~n",
+			   [ SourceFilename, KeyFilename, TargetFilename, KeyInfos ] ),
+
+
+	ReverseKey = get_reverse_key_from( KeyInfos ),
+
+	io:format( "Determined reverse key: '~p', using it.~n", [ ReverseKey ] ),
+
+	TempFilename = apply_key( ReverseKey, SourceFilename ),
+
+	io:format( "Renaming '~s' to '~s'.~n", [ TempFilename, TargetFilename ] ),
+	file_utils:rename( TempFilename, TargetFilename ).
+
+
+
+% Helper section.
+
+
+% Reads key from specified filename.
+%
+% (helper)
+%
+read_key( KeyFilename ) ->
+
+	case file_utils:is_existing_file_or_link( KeyFilename ) of
 
 		true ->
-			file_utils:read_terms( KeyFilename );
+			case file_utils:read_terms( KeyFilename ) of
+
+				[] ->
+					throw( { empty_key, KeyFilename } );
+
+				[ Key ] ->
+					Key;
+
+				Invalid ->
+					throw( { invalid_multiline_key, Invalid } )
+
+			end;
 
 		false ->
 			throw( { non_existing_key_file, KeyFilename } )
 
-	end,
+	end.
 
-	io:format( "Decrypting source file '~s' with key file '~s', "
-			   "storing the result in '~s'. Key: '~p'.~n",
-			   [ SourceFilename, KeyFilename, TargetFilename, KeyInfos ] ).
+
+
+% Returns the reverse key of specified one.
+%
+% (helper)
+%
+get_reverse_key_from( KeyInfos ) ->
+	get_reverse_key_from( KeyInfos, _Acc=[] ).
+
+
+
+get_reverse_key_from( _KeyInfos=[], Acc ) ->
+	% Order already reversed by design:
+	Acc;
+
+get_reverse_key_from( _KeyInfos=[ K | H ], Acc ) ->
+	ReversedK = reserve_cipher( K ),
+	get_reverse_key_from( H, [ ReversedK | Acc ] ).
+
+
+
 
 
 % Applies specified key to specified file.
@@ -239,28 +313,30 @@ decrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 % Returns the filename of the resulting file.
 %
 apply_key( KeyInfos, SourceFilename ) ->
-	apply_key( KeyInfos, SourceFilename, _IsFirstTransform=true ).
+	apply_key( KeyInfos, SourceFilename, _CipherCount=1 ).
 
 
-apply_key( _KeyInfos=[], SourceFilename, _IsFirstTransform ) ->
+apply_key( _KeyInfos=[], SourceFilename, _CipherCount ) ->
 	SourceFilename;
 
-apply_key( _KeyInfos=[ K | H ], SourceFilename, IsFirstTransform ) ->
+apply_key( _KeyInfos=[ K | H ], SourceFilename, CipherCount ) ->
+
+	io:format( " - applying cipher #~B: '~p'~n", [ CipherCount, K ] ),
 
 	NewFilename = apply_cipher( K, SourceFilename ),
 
-	case IsFirstTransform of
+	case CipherCount of
 
-		true ->
+		1 ->
 			ok;
 
-		false ->
+		_ ->
 			% Not wanting to saturate the storage space with intermediate files:
 			file_utils:remove_file( SourceFilename )
 
 	end,
 
-	apply_key( H, NewFilename, _IsFirstTransform=false ).
+	apply_key( H, NewFilename, CipherCount + 1 ).
 
 
 
@@ -272,9 +348,17 @@ apply_cipher( id, SourceFilename ) ->
 	id_cipher( SourceFilename );
 
 apply_cipher( C, _SourceFilename ) ->
-	throw( { unknown_cipher, C } ).
+	throw( { unknown_cipher_to_apply, C } ).
 
 
+
+% Returns the reverse cipher of the specified one.
+%
+reserve_cipher( id ) ->
+	id;
+
+reserve_cipher( C ) ->
+	throw( { unknown_cipher_to_reverse, C } ).
 
 
 
@@ -287,7 +371,7 @@ apply_cipher( C, _SourceFilename ) ->
 id_cipher( SourceFilename ) ->
 	CipheredFilename = generate_filename(),
 	file_utils:copy_file( SourceFilename, CipheredFilename ),
-	SourceFilename.
+	CipheredFilename.
 
 
 id_decipher( SourceFilename ) ->
