@@ -80,8 +80,16 @@
 		 get_default_scp_executable_path/0,
 
 		 get_gnuplot_path/0,
+		 get_current_gnuplot_version/0,
 
-		 get_current_gnuplot_version/0
+		 get_default_zip_compress_tool/0,
+		 get_default_zip_decompress_tool/0,
+
+		 get_default_bzip2_compress_tool/0,
+		 get_default_bzip2_decompress_tool/0,
+
+		 get_default_xz_compress_tool/0,
+		 get_default_xz_decompress_tool/0
 
 		 ]).
 
@@ -431,6 +439,50 @@ get_current_gnuplot_version() ->
 													   ReturnedVersion ),
 
 	basic_utils:parse_version( GnuplotVersionInString ).
+
+
+% Returns the default tool to use to compress in the ZIP format.
+%
+-spec get_default_zip_compress_tool() -> file_utils:file_name().
+get_default_zip_compress_tool() ->
+	find_executable( "zip" ).
+
+
+% Returns the default tool to use to decompress in the ZIP format.
+%
+-spec get_default_zip_decompress_tool() -> file_utils:file_name().
+get_default_zip_decompress_tool() ->
+	find_executable( "unzip" ).
+
+
+% Returns the default tool to use to decompress in the BZIP2 format.
+%
+-spec get_default_bzip2_compress_tool() -> file_utils:file_name().
+get_default_bzip2_compress_tool() ->
+	find_executable( "bzip2" ).
+
+
+% Returns the default tool to use to decompress in the BZIP2 format.
+%
+-spec get_default_bzip2_decompress_tool() -> file_utils:file_name().
+get_default_bzip2_decompress_tool() ->
+	find_executable( "bunzip2" ).
+
+
+% Returns the default tool to use to compress in the XZ format.
+%
+-spec get_default_xz_compress_tool() -> file_utils:file_name().
+get_default_xz_compress_tool() ->
+	find_executable( "xz" ).
+
+
+% Returns the default tool to use to decompress in the XZ format.
+%
+-spec get_default_xz_decompress_tool() -> file_utils:file_name().
+get_default_xz_decompress_tool() ->
+	find_executable( "unxz" ).
+
+
 
 
 
