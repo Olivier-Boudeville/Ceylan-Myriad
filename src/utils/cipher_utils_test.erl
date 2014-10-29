@@ -41,7 +41,11 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	TransformList = [ id, id ],
+	%TransformList = [ id ],
+	%TransformList = [ id, id ],
+	%TransformList = [ { offset, 117 } ],
+	%TransformList = [ delta_combine ],
+	TransformList = [ { offset, 10 }, delta_combine ],
 
 	KeyFilename = "my-test-key-file.cipher",
 
