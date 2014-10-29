@@ -344,12 +344,17 @@ ERLANG_COMPILER_WARNING_OPT += -W$(WARNING_LEVEL) +warn_export_all  \
 # -compile( {inline_size,64} ).
 
 
-
+# +bin_opt_info removed, as even efficient binary handling yields "warning"
+# messages ("OPTIMIZED: creation of sub binary delayed"), which are treated as
+# errors afterwards.
+#
+# Instead 'export ERL_COMPILER_OPTIONS=bin_opt_info' shall be punctually used.
+#
 ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_BASE_OPT) $(INC)           \
 	$(ERLANG_COMPILER_EXEC_TARGET_OPT) $(ERLANG_COMPILER_DEBUG_OPT) \
 	$(ERLANG_COMPILER_NATIVE_COMPILATION_OPT)                       \
 	$(ERLANG_COMPILER_WARNING_OPT)                                  \
-	$(ERLANG_COMPILER_OPT_DEBUG) +bin_opt_info
+	$(ERLANG_COMPILER_OPT_DEBUG)
 
 
 
