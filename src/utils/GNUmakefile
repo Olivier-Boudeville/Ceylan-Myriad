@@ -1,8 +1,15 @@
 COMMON_TOP = ../..
 
+.PHONY: clean-local test-local
 
 # So that it remains the default target:
 all:
+
+clean: clean-local
+
+
+clean-local:
+	-@/bin/rm -f *.encrypted *.decrypted my-test-key-file.cipher .cipher-*
 
 
 test: test-local
