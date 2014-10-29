@@ -38,9 +38,6 @@
 -export([ generate_key/2, encrypt/3, decrypt/3 ]).
 
 
-% Ciphers:
-%-export([ id_cipher/1, id_decipher/1 ]).
-
 
 
 % Implementation notes.
@@ -105,10 +102,7 @@
 -type offset_transform() :: { 'offset', integer() }.
 
 
--type compress_format() :: 'zip' | 'bz2' | 'xz'.
-
-
--type compress_transform() :: { 'compress', compress_format() }.
+-type compress_transform() :: { 'compress', file_utils:compression_format() }.
 
 
 -type insert_random_transform() :: { 'insert_random', random_utils:seed() }.
@@ -359,7 +353,10 @@ apply_key( _KeyInfos=[ K | H ], SourceFilename, CipherCount ) ->
 apply_cipher( id, SourceFilename, CipheredFilename ) ->
 	id_cipher( SourceFilename, CipheredFilename );
 
+
 apply_cipher( { offset, Offset }, SourceFilename, CipheredFilename ) ->
+
+	% CypherState is simply the constant offset used:
 
 	OffsetFun = fun( InputByte, CypherState ) ->
 						OutputByte = InputByte + Offset,
@@ -368,6 +365,36 @@ apply_cipher( { offset, Offset }, SourceFilename, CipheredFilename ) ->
 
 	apply_byte_level_cipher( SourceFilename, CipheredFilename,
 							 _Transform=OffsetFun, _InitialCipherState=Offset );
+
+
+apply_cipher( delta_combine, SourceFilename, CipheredFilename ) ->
+
+	% CypherState is simply the last value read:
+
+	DeltaFun = fun( InputByte, CypherState ) ->
+						OutputByte = InputByte - CypherState,
+						{ OutputByte, InputByte }
+				end,
+
+	apply_byte_level_cipher( SourceFilename, CipheredFilename,
+							 _Transform=DeltaFun, _InitialCipherState=100 );
+
+
+apply_cipher( delta_combine_reverse, SourceFilename, CipheredFilename ) ->
+
+	% CypherState is simply the last value read:
+
+	ReverseDeltaFun = fun( InputByte, CypherState ) ->
+						OutputByte = InputByte + CypherState,
+						{ OutputByte, OutputByte }
+				end,
+
+	apply_byte_level_cipher( SourceFilename, CipheredFilename,
+					 _Transform=ReverseDeltaFun, _InitialCipherState=100 );
+
+
+%apply_cipher( { compress, CompressFormat }, SourceFilename,
+%			  CipheredFilename ) ->
 
 apply_cipher( C, _SourceFilename, _CipheredFilename ) ->
 	throw( { unknown_cipher_to_apply, C } ).
@@ -381,6 +408,12 @@ reverse_cipher( id ) ->
 
 reverse_cipher( { offset, Offset } ) ->
 	{ offset, 256 - Offset };
+
+reverse_cipher( delta_combine ) ->
+	delta_combine_reverse;
+
+reverse_cipher( delta_combine_reverse ) ->
+	delta_reverse;
 
 reverse_cipher( C ) ->
 	throw( { unknown_cipher_to_reverse, C } ).
@@ -437,7 +470,7 @@ apply_byte_level_helper( SourceFile, TargetFile, CipherFun,
 
 
 
-% There must be a way of folding onto binaries:
+% There must be a way of folding onto binaries (bitstring comprehensions):
 transform_bytes( DataBin, CipherFun, CipherInitialState ) ->
 	transform_bytes( DataBin, CipherFun, CipherInitialState, _AccBin = <<>> ).
 
