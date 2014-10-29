@@ -9,19 +9,19 @@ LANG=C; export LANG
 
 
 # Current stable:
-erlang_version="17.1"
-erlang_md5="9c90706ce70e01651adde34a2b79bf4c"
+erlang_version="17.3"
+erlang_md5="1d0bb2d54dfe1bb6844756b99902ba20"
 
 # Cutting-edge release candidate (or previous stable version):
-erlang_version_candidate="17.0"
-erlang_md5_candidate="a5f78c1cf0eb7724de3a59babc1a28e5"
+erlang_version_candidate="17.1"
+erlang_md5_candidate="9c90706ce70e01651adde34a2b79bf4c"
 
 
 plt_file="Erlang-$erlang_version.plt"
 plt_link="Erlang.plt"
 
 
-usage="Usage: "`basename $0`" [-h|--help] [-c|--cutting-edge] [-d|--doc-install] [-g|--generate-plt] [-n|--no-download] [-np|--no-patch] [<base install directory>]: downloads, patches, builds and installs a fresh $erlang_version Erlang version in specified base directory (if any), or in default directory, and in this case adds a symbolic link pointing to it from its parent directory so that Erlang-current-install always points to the latest installed version.
+usage="Usage: "$(basename $0)" [-h|--help] [-c|--cutting-edge] [-d|--doc-install] [-g|--generate-plt] [-n|--no-download] [-np|--no-patch] [<base install directory>]: downloads, patches, builds and installs a fresh $erlang_version Erlang version in specified base directory (if any), or in default directory, and in this case adds a symbolic link pointing to it from its parent directory so that Erlang-current-install always points to the latest installed version.
 
 Note that, if relevant archives are found in the current directory, they will be used, even if the user did not specify a 'no download' option.
 
