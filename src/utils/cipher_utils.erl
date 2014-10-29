@@ -39,7 +39,7 @@
 
 
 % Ciphers:
--export([ id_cipher/1, id_decipher/1 ]).
+%-export([ id_cipher/1, id_decipher/1 ]).
 
 
 
@@ -60,6 +60,13 @@
 % - the whole file is streamed, hence it will never be loaded fully in memory
 %
 % - we expect that the free storage capacity is at least 2.N bytes
+%
+% - we could apply all transformations in-memory once (instead of writing as
+% many intermediate files as there are transformations), however it would be
+% difficult to implement (as such, and because of streaming, and because, from a
+% transformation to another, the access patterns are usually different)
+
+
 
 
 % Available transformations are:
@@ -301,7 +308,7 @@ get_reverse_key_from( _KeyInfos=[], Acc ) ->
 	Acc;
 
 get_reverse_key_from( _KeyInfos=[ K | H ], Acc ) ->
-	ReversedK = reserve_cipher( K ),
+	ReversedK = reverse_cipher( K ),
 	get_reverse_key_from( H, [ ReversedK | Acc ] ).
 
 
@@ -311,6 +318,7 @@ get_reverse_key_from( _KeyInfos=[ K | H ], Acc ) ->
 % Applies specified key to specified file.
 %
 % Returns the filename of the resulting file.
+%
 %
 apply_key( KeyInfos, SourceFilename ) ->
 	apply_key( KeyInfos, SourceFilename, _CipherCount=1 ).
@@ -323,7 +331,10 @@ apply_key( _KeyInfos=[ K | H ], SourceFilename, CipherCount ) ->
 
 	io:format( " - applying cipher #~B: '~p'~n", [ CipherCount, K ] ),
 
-	NewFilename = apply_cipher( K, SourceFilename ),
+	% Filename of the ciphered version:
+	CipheredFilename = generate_filename(),
+
+	apply_cipher( K, SourceFilename, CipheredFilename ),
 
 	case CipherCount of
 
@@ -336,28 +347,42 @@ apply_key( _KeyInfos=[ K | H ], SourceFilename, CipherCount ) ->
 
 	end,
 
-	apply_key( H, NewFilename, CipherCount + 1 ).
+	apply_key( H, CipheredFilename, CipherCount + 1 ).
 
 
 
 % Applies specified cipher to specified file.
 %
-% Returns the filename of the resulting file.
+% Some ciphers are better managed if special-cased, whereas others can rely on
+% base (yet generic) mechanisms.
 %
-apply_cipher( id, SourceFilename ) ->
-	id_cipher( SourceFilename );
+apply_cipher( id, SourceFilename, CipheredFilename ) ->
+	id_cipher( SourceFilename, CipheredFilename );
 
-apply_cipher( C, _SourceFilename ) ->
+apply_cipher( { offset, Offset }, SourceFilename, CipheredFilename ) ->
+
+	OffsetFun = fun( InputByte, CypherState ) ->
+						OutputByte = InputByte + Offset,
+						{ OutputByte, CypherState }
+				end,
+
+	apply_byte_level_cipher( SourceFilename, CipheredFilename,
+							 _Transform=OffsetFun, _InitialCipherState=Offset );
+
+apply_cipher( C, _SourceFilename, _CipheredFilename ) ->
 	throw( { unknown_cipher_to_apply, C } ).
 
 
 
 % Returns the reverse cipher of the specified one.
 %
-reserve_cipher( id ) ->
+reverse_cipher( id ) ->
 	id;
 
-reserve_cipher( C ) ->
+reverse_cipher( { offset, Offset } ) ->
+	{ offset, 256 - Offset };
+
+reverse_cipher( C ) ->
 	throw( { unknown_cipher_to_reverse, C } ).
 
 
@@ -365,18 +390,78 @@ reserve_cipher( C ) ->
 % Cipher section.
 
 
+% For all ciphers that can be expressed by a byte-level, stateful transformation
+% fun.
+%
+apply_byte_level_cipher( SourceFilename, CipheredFilename, CipherFun,
+					   CipherInitialState ) ->
+
+	% No need for intermediate buffering, thanks to read_ahead and
+	% delayed_write;
+
+	SourceFile = file_utils:open( SourceFilename,
+								  _ReadOpts=[ read, raw, binary, read_ahead ] ),
+
+	TargetFile = file_utils:open( CipheredFilename,
+								  _WriteOpts=[ write, raw, delayed_write ] ),
+
+	apply_byte_level_helper( SourceFile, TargetFile, CipherFun,
+							 CipherInitialState ).
+
+
+
+% Actual application of a byte-level transform.
+%
+apply_byte_level_helper( SourceFile, TargetFile, CipherFun,
+						 CipherInitialState ) ->
+
+	Count = 1024 * 8,
+
+	case file_utils:read( SourceFile, Count ) of
+
+		eof ->
+			file_utils:close( SourceFile ),
+			file_utils:close( TargetFile );
+
+		{ ok, DataBin } ->
+
+			{ NewDataBin, NewCipherState } = transform_bytes( DataBin,
+									CipherFun, CipherInitialState ),
+
+			file_utils:write( TargetFile, NewDataBin ),
+
+			apply_byte_level_helper( SourceFile, TargetFile, CipherFun,
+									 NewCipherState )
+
+	end.
+
+
+
+% There must be a way of folding onto binaries:
+transform_bytes( DataBin, CipherFun, CipherInitialState ) ->
+	transform_bytes( DataBin, CipherFun, CipherInitialState, _AccBin = <<>> ).
+
+
+transform_bytes( <<>>, _CipherFun, CipherState, AccBin ) ->
+	{ AccBin, CipherState };
+
+transform_bytes( _A = << InputByte:8, T/binary >>, CipherFun,
+				 CipherState, AccBin ) ->
+
+	{ OutputByte, NewCipherState } = CipherFun( InputByte, CipherState ),
+
+	transform_bytes( T, CipherFun, NewCipherState,
+					 << AccBin/binary, OutputByte >> ).
+
+
+
+
 % We must though create a new file, as the semantics is to create an additional
 % file in all cases.
 %
-id_cipher( SourceFilename ) ->
-	CipheredFilename = generate_filename(),
-	file_utils:copy_file( SourceFilename, CipheredFilename ),
-	CipheredFilename.
+id_cipher( SourceFilename, CipheredFilename ) ->
+	file_utils:copy_file( SourceFilename, CipheredFilename ).
 
-
-id_decipher( SourceFilename ) ->
-	% Symmetric here:
-	id_cipher( SourceFilename ).
 
 
 
