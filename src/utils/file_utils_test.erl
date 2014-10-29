@@ -146,7 +146,7 @@ run() ->
 		[ SourceExtension, TargetExtension, SourceFilename, NewFilename ] ),
 
 
-	% Commented as not wanting to have too many side-effects:
+	% Commented out, as not wanting to have too many side-effects:
 
 	%file_utils:create_directory( "tmp-tst" ),
 	%file_utils:create_directory( "tmp-tst/first/second", create_parents ),
@@ -161,5 +161,19 @@ run() ->
 	NonExistingPath = "ls-non-existing-exec",
 	false = executable_utils:lookup_executable( NonExistingPath ),
 	false = file_utils:is_executable( NonExistingPath ),
+
+
+	test_facilities:display( "Testing compression support." ),
+
+	TargetFile = "GNUmakefile",
+
+	ZippedFile = file_utils:compress( TargetFile, zip ),
+	file_utils:decompress( ZippedFile, zip ),
+
+	Bzip2File = file_utils:compress( TargetFile, bzip2 ),
+	file_utils:decompress( Bzip2File, bzip2 ),
+
+	XzFile = file_utils:compress( TargetFile, xz ),
+	file_utils:decompress( XzFile, xz ),
 
 	test_facilities:stop().
