@@ -84,7 +84,7 @@
 
 % Compression-related operations.
 %
--export([ compress/2, decompress/2,
+-export([ get_extension_for/1, compress/2, decompress/2,
 		  file_to_zipped_term/1, zipped_term_to_unzipped_file/1,
 		  zipped_term_to_unzipped_file/2,
 		  files_to_zipped_term/1, files_to_zipped_term/2,
@@ -1588,19 +1588,42 @@ read_terms( Filename ) ->
 % Compression-related operations.
 
 
+% Returns the file extension corresponding to filenames compressed with
+% specified format.
+%
+-spec get_extension_for( compression_format() ) -> extension().
+get_extension_for( _CompressionFormat=zip ) ->
+	".zip";
+
+get_extension_for( _CompressionFormat=bzip2 ) ->
+	".bz2";
+
+get_extension_for( _CompressionFormat=xz ) ->
+	".xz".
+
+
+
 % Compresses specified file: creates a new, compressed version thereof, whose
 % filename, established based on usual conventions, is returned. If a file with
 % that name already exists, it will be overwritten.
 %
+% For example, compress( "hello.png", zip ) will generate a "hello.png.zip"
+% file.
+%
 % The original file remain as is.
+%
+% Note: this function just takes care of compressing a single file, even if some
+% compressors (ex: zip) include features to create an archive of multiple files
+% first.
 %
 -spec compress( file_name(), compression_format() ) -> file_name().
 compress( Filename, _CompressionFormat=zip ) ->
 
 	ZipExec = executable_utils:get_default_zip_compress_tool(),
 
-	ZipFilename = Filename ++ ".zip",
+	ZipFilename = Filename ++ get_extension_for( zip ),
 
+	% Exctly this one file in the archive:
 	Command = ZipExec ++ " --quiet " ++ ZipFilename ++ " " ++ Filename,
 
 	[] = os:cmd( Command ),
@@ -1618,7 +1641,7 @@ compress( Filename, _CompressionFormat=bzip2 ) ->
 	[] = os:cmd( Bzip2Exec ++ " --keep --force --quiet " ++ Filename ),
 
 	% Check:
-	Bzip2Filename = Filename ++ ".bz2",
+	Bzip2Filename = Filename ++ get_extension_for( bzip2 ),
 	true = is_existing_file( Bzip2Filename ),
 
 	Bzip2Filename;
@@ -1633,7 +1656,7 @@ compress( Filename, _CompressionFormat=xz ) ->
 	[] = os:cmd( Command ),
 
 	% Check:
-	XZFilename = Filename ++ ".xz",
+	XZFilename = Filename ++ get_extension_for( xz ),
 	true = is_existing_file( XZFilename ),
 
 	XZFilename;
@@ -1643,26 +1666,41 @@ compress( _Filename, CompressionFormat ) ->
 
 
 
-% Decompresses specified archive file: recreates the original, decompressed
+% Decompresses specified compressed file, expected to bear the extension
+% corresponding to the specified format: recreates the original, decompressed
 % version thereof, whose filename, established based on usual conventions, is
-% returned. If a file with that name already exists, it will be overwritten.
+% returned: the name of the input file without its extension.
 %
-% The archive file remain as is.
+% This function works in pair with compress/2, and as such expects that each
+% compressed file contains exactly one file, bear the same filename except the
+% compressor extension.
+%
+% Typically, when a format MY_FORMAT is specified, converts a compressed file
+% name foo.extension_of(MY_FORMAT) into an uncompressed version of it named
+% 'foo'.
+%
+% So, for example, decompress( "foo.xz", xz ) will generate a "foo" file.
+%
+% If a file with that name already exists, it will be overwritten.
+%
+% The compressed file remains as is.
 %
 -spec decompress( file_name(), compression_format() ) -> file_name().
 decompress( ZipFilename, _CompressionFormat=zip ) ->
 
 	UnzipExec = executable_utils:get_default_zip_decompress_tool(),
 
-	% Removes extension:
-	Filename = replace_extension( ZipFilename, ".zip", "" ),
+	% Checks and removes extension:
+	Filename = replace_extension( ZipFilename, get_extension_for( zip ), "" ),
 
 	% Quiet, overwrite:
-	Command = UnzipExec ++ " -q -o " ++ ZipFilename ++ " " ++ Filename,
+	Command = UnzipExec ++ " -q -o " ++ ZipFilename,
 
 	[] = os:cmd( Command ),
 
-	% Check:
+	% We expect here than only the compression feature (not the archive-making
+	% feature) of zip has been used, as for all other compressors:
+	%
 	true = is_existing_file( Filename ),
 
 	Filename;
@@ -1672,11 +1710,12 @@ decompress( Bzip2Filename, _CompressionFormat=bzip2 ) ->
 
 	Bzip2Exec = executable_utils:get_default_bzip2_decompress_tool(),
 
-	% Removes extension:
-	Filename = replace_extension( Bzip2Filename, ".bz2", "" ),
+	% Checks and removes extension:
+	Filename = replace_extension( Bzip2Filename, get_extension_for( bzip2 ),
+								  "" ),
 
-	[] = os:cmd( Bzip2Exec ++ " --keep --force --quiet " ++ Bzip2Filename ++ " "
-				 ++ Filename ),
+	% The result will be named Filename by bunzip2:
+	[] = os:cmd( Bzip2Exec ++ " --keep --force --quiet " ++ Bzip2Filename ),
 
 	% Check:
 	true = is_existing_file( Filename ),
@@ -1688,9 +1727,10 @@ decompress( XzFilename, _CompressionFormat=xz ) ->
 
 	XZExec = executable_utils:get_default_xz_decompress_tool(),
 
-	% Removes extension:
-	Filename = replace_extension( XzFilename, ".xz", "" ),
+	% Checks and removes extension:
+	Filename = replace_extension( XzFilename, get_extension_for( xz ), "" ),
 
+	% The result will be named Filename by unxz:
 	[] = os:cmd( XZExec ++ " --keep --force --quiet " ++ XzFilename ),
 
 	% Check:
