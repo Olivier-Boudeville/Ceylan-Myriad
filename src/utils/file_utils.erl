@@ -1148,6 +1148,9 @@ rename( SourceFilename, DestinationFilename ) ->
 -spec move_file( file_name(), file_name() ) -> basic_utils:void().
 move_file( SourceFilename, DestinationFilename ) ->
 
+	%io:format( "## Moving file '~s' to '~s'.~n",
+	%		   [ SourceFilename, DestinationFilename ] ),
+
 	%copy_file( SourceFilename, DestinationFilename ),
 	%remove_file( SourceFilename ).
 
@@ -1619,14 +1622,18 @@ get_extension_for( _CompressionFormat=xz ) ->
 -spec compress( file_name(), compression_format() ) -> file_name().
 compress( Filename, _CompressionFormat=zip ) ->
 
-	ZipExec = executable_utils:get_default_zip_compress_tool(),
+	% Rather than using a standalone zip tool, we use the Erlang support here:
+
+	%ZipExec = executable_utils:get_default_zip_compress_tool(),
 
 	ZipFilename = Filename ++ get_extension_for( zip ),
 
-	% Exctly this one file in the archive:
-	Command = ZipExec ++ " --quiet " ++ ZipFilename ++ " " ++ Filename,
+	% Exactly this one file in the archive:
+	%Command = ZipExec ++ " --quiet " ++ ZipFilename ++ " " ++ Filename,
 
-	[] = os:cmd( Command ),
+	%[] = os:cmd( Command ),
+
+	zip:zip( ZipFilename, [ Filename ] ),
 
 	% Check:
 	true = is_existing_file( ZipFilename ),
@@ -1638,6 +1645,7 @@ compress( Filename, _CompressionFormat=bzip2 ) ->
 
 	Bzip2Exec = executable_utils:get_default_bzip2_compress_tool(),
 
+	% --keep allows to avoid that bzip2 removes the original file:
 	[] = os:cmd( Bzip2Exec ++ " --keep --force --quiet " ++ Filename ),
 
 	% Check:
@@ -1688,15 +1696,25 @@ compress( _Filename, CompressionFormat ) ->
 -spec decompress( file_name(), compression_format() ) -> file_name().
 decompress( ZipFilename, _CompressionFormat=zip ) ->
 
-	UnzipExec = executable_utils:get_default_zip_decompress_tool(),
+	% An annoying problem with zip is that the name of the (single) file in the
+	% archive might differ from the filename deduced from the archive name (ex:
+	% "foo.zi"p might contain "bar" instead of "foo"). We need to return "bar",
+	% not "foo".
+
+	% Rather than using a standalone zip tool, we use the Erlang support here:
+
+	%UnzipExec = executable_utils:get_default_zip_decompress_tool(),
 
 	% Checks and removes extension:
-	Filename = replace_extension( ZipFilename, get_extension_for( zip ), "" ),
+	%Filename = replace_extension( ZipFilename, get_extension_for( zip ), "" ),
 
 	% Quiet, overwrite:
-	Command = UnzipExec ++ " -q -o " ++ ZipFilename,
+	%Command = UnzipExec ++ " -q -o " ++ ZipFilename,
 
-	[] = os:cmd( Command ),
+	%[] = os:cmd( Command ),
+
+	% Exactly one file per such archives:
+	{ ok, [ Filename ] } = zip:unzip( ZipFilename ),
 
 	% We expect here than only the compression feature (not the archive-making
 	% feature) of zip has been used, as for all other compressors:
@@ -1833,9 +1851,6 @@ files_to_zipped_term( FilenameList ) ->
 %
 -spec files_to_zipped_term( [ file_name() ], directory_name() ) -> binary().
 files_to_zipped_term( FilenameList, BaseDirectory ) ->
-
-
-
 
 	DummyFileName = "dummy",
 
