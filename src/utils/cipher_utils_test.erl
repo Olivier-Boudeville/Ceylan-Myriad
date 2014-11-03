@@ -44,8 +44,13 @@ run() ->
 	%TransformList = [ id ],
 	%TransformList = [ id, id ],
 	%TransformList = [ { offset, 117 } ],
+
+	%TransformList = [ { compress, zip } ],
+	%TransformList = [ { compress, bzip2 } ],
+	TransformList = [ { compress, xz } ],
+
 	%TransformList = [ delta_combine ],
-	TransformList = [ { offset, 10 }, delta_combine ],
+	%TransformList = [ { offset, 10 }, delta_combine ],
 
 	KeyFilename = "my-test-key-file.cipher",
 
@@ -69,11 +74,14 @@ run() ->
 
 	cipher_utils:generate_key( KeyFilename, TransformList ),
 
-	SourceFilename = "GNUmakefile",
+	SourceFilename = "my-content-file",
+
+	% Add some content:
+	file_utils:copy_file( "GNUmakefile", SourceFilename ),
 
 	OriginalContent = file_utils:read_whole( SourceFilename ),
 
-	EncryptedFilename = "GNUmakefile.encrypted",
+	EncryptedFilename = SourceFilename ++ ".encrypted",
 
 
 	test_facilities:display( "Encrypting '~s' into '~s', using key file '~s'.",
@@ -82,7 +90,7 @@ run() ->
 	cipher_utils:encrypt( SourceFilename, EncryptedFilename, KeyFilename ),
 
 
-	DecryptedFilename = "GNUmakefile.decrypted",
+	DecryptedFilename =  SourceFilename ++ ".decrypted",
 
 	test_facilities:display( "Decrypting '~s' into '~s', using the same key.",
 							 [ EncryptedFilename, DecryptedFilename ] ),
