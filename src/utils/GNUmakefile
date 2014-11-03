@@ -9,7 +9,8 @@ clean: clean-local
 
 
 clean-local:
-	-@/bin/rm -f *.encrypted *.decrypted my-test-key-file.cipher .cipher-*
+	-@/bin/rm -f my-content-file my-content-file.encrypted \
+		my-content-file.decrypted my-test-key-file.cipher .cipher-*
 
 
 test: test-local
