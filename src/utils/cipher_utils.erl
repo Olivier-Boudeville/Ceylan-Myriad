@@ -52,7 +52,7 @@
 % aforementioned file, which contains Erlang terms for that.
 
 
-% When ciphering or deciphering a file of size N:
+% When ciphering or deciphering a file of size N, as much as possible:
 %
 % - the whole file is streamed, hence it will never be loaded fully in memory
 %
@@ -169,6 +169,8 @@ generate_key( KeyFilename, Transforms ) ->
 % Encrypts specified source file using specified key file, and writes the result
 % in specified target file.
 %
+% The original file is kept as is.
+%
 -spec encrypt( file_utils:file_name(), file_utils:file_name(),
 			   file_utils:file_name() ) -> basic_utils:void().
 encrypt( SourceFilename, TargetFilename, KeyFilename ) ->
@@ -202,7 +204,6 @@ encrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 
 	TempFilename = apply_key( KeyInfos, SourceFilename ),
 
-	io:format( "Renaming '~s' to '~s'.~n", [ TempFilename, TargetFilename ] ),
 	file_utils:rename( TempFilename, TargetFilename ).
 
 
@@ -211,6 +212,8 @@ encrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 
 % Decrypts specified source file using specified key file, and writes the result
 % in specified target file.
+%
+% The ciphered file is kept as is.
 %
 -spec decrypt( file_utils:file_name(), file_utils:file_name(),
 			   file_utils:file_name() ) -> basic_utils:void().
@@ -251,7 +254,6 @@ decrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 
 	TempFilename = apply_key( ReverseKey, SourceFilename ),
 
-	io:format( "Renaming '~s' to '~s'.~n", [ TempFilename, TargetFilename ] ),
 	file_utils:rename( TempFilename, TargetFilename ).
 
 
@@ -367,6 +369,14 @@ apply_cipher( { offset, Offset }, SourceFilename, CipheredFilename ) ->
 							 _Transform=OffsetFun, _InitialCipherState=Offset );
 
 
+apply_cipher( { compress, CompressFormat }, SourceFilename,
+			  CipheredFilename ) ->
+	compress_cipher( SourceFilename, CipheredFilename, CompressFormat );
+
+apply_cipher( { decompress, CompressFormat }, SourceFilename,
+			  CipheredFilename ) ->
+	decompress_cipher( SourceFilename, CipheredFilename, CompressFormat );
+
 apply_cipher( delta_combine, SourceFilename, CipheredFilename ) ->
 
 	% CypherState is simply the last value read:
@@ -393,9 +403,6 @@ apply_cipher( delta_combine_reverse, SourceFilename, CipheredFilename ) ->
 					 _Transform=ReverseDeltaFun, _InitialCipherState=100 );
 
 
-%apply_cipher( { compress, CompressFormat }, SourceFilename,
-%			  CipheredFilename ) ->
-
 apply_cipher( C, _SourceFilename, _CipheredFilename ) ->
 	throw( { unknown_cipher_to_apply, C } ).
 
@@ -408,6 +415,9 @@ reverse_cipher( id ) ->
 
 reverse_cipher( { offset, Offset } ) ->
 	{ offset, 256 - Offset };
+
+reverse_cipher( { compress, CompressFormat } ) ->
+	{ decompress, CompressFormat };
 
 reverse_cipher( delta_combine ) ->
 	delta_combine_reverse;
@@ -495,6 +505,37 @@ transform_bytes( _A = << InputByte:8, T/binary >>, CipherFun,
 id_cipher( SourceFilename, CipheredFilename ) ->
 	file_utils:copy_file( SourceFilename, CipheredFilename ).
 
+
+
+compress_cipher( SourceFilename, CipheredFilename, CompressFormat ) ->
+
+	CompressedFilename = file_utils:compress( SourceFilename, CompressFormat ),
+
+	% Preserves the caller-naming convention:
+	file_utils:rename( CompressedFilename, CipheredFilename ).
+
+
+decompress_cipher( CipheredFilename, TargetFilename, CompressFormat ) ->
+
+	% The decompressing function will check for the relevant extension:
+
+	% We must avoid, to decompress X, to rename it to X.bzip2 and then to
+	% decompress it, as this would produce a new decompressed file named X,
+	% overwriting the initial one.
+
+	%NewCipheredFilename = CipheredFilename
+	NewCipheredFilename = generate_filename()
+		++ file_utils:get_extension_for( CompressFormat ),
+
+	file_utils:rename( CipheredFilename, NewCipheredFilename ),
+
+	DecompressedFilename = file_utils:decompress( NewCipheredFilename,
+												  CompressFormat ),
+
+	file_utils:rename( NewCipheredFilename, CipheredFilename ),
+
+	% Preserves the caller-naming convention:
+	file_utils:rename( DecompressedFilename, TargetFilename ).
 
 
 
