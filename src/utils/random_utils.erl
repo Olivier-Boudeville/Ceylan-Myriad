@@ -147,6 +147,9 @@ get_random_values_helper( Nmin, Nmax, Count, Acc ) ->
 
 
 
+% To test compilation:
+%-define(use_crypto_module,).
+
 
 -ifdef(use_crypto_module).
 
@@ -208,17 +211,6 @@ get_random_value( Nmin, Nmax ) when Nmin =< Nmax ->
 
 
 
-% Returns an integer random value generated from an uniform distribution in
-% [Nmin;Nmax] (i.e. both bounds included), updating the random state in the
-% process dictionary.
-%
-% Spec already specified, for all random settings.
-%
--spec get_random_value() -> float().
-get_random_value( N ) ->
-	crypto:rand_uniform( 1, N+1 ).
-
-
 % Returns the name of the module managing the random generation.
 %
 % Spec already specified, for all random settings.
@@ -263,7 +255,7 @@ set_random_state( _NewState ) ->
 % Default random module used here.
 %
 % The seed and state management is per-process (stored in the process
-% dictionary).
+% dictionary). We prefer that.
 
 start_random_source( A, B, C ) ->
 	random:seed( A, B, C ).
@@ -415,8 +407,8 @@ get_random_seed() ->
 % Ex: { 0, 0, 0 } does not yield a correct random series.
 %
 -spec check_random_seed( seed() ) -> basic_utils:void().
-check_random_seed( { A, B, C } )  when is_integer(A) andalso is_integer(B)
-			andalso is_integer(C) andalso A > 0 andalso B > 0 andalso C > 0 ->
+check_random_seed( { A, B, C } )  when is_integer( A ) andalso is_integer( B )
+			andalso is_integer( C ) andalso A > 0 andalso B > 0 andalso C > 0 ->
 	ok;
 
 check_random_seed( S ) ->
