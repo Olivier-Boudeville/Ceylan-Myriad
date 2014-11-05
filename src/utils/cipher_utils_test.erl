@@ -47,10 +47,16 @@ run() ->
 
 	%TransformList = [ { compress, zip } ],
 	%TransformList = [ { compress, bzip2 } ],
-	TransformList = [ { compress, xz } ],
+	%TransformList = [ { compress, xz } ],
+
+	%TransformList = [ { insert_random, _Seed={ 4, 48, 25 },
+	%				  _Range=10 } ],
 
 	%TransformList = [ delta_combine ],
-	%TransformList = [ { offset, 10 }, delta_combine ],
+
+	TransformList = [ {compress, xz }, { offset, 10 }, delta_combine,
+					  { insert_random, _Seed={ 412, 1418, 2565 },
+						_Range=10 }	],
 
 	KeyFilename = "my-test-key-file.cipher",
 
@@ -110,6 +116,6 @@ run() ->
 	end,
 
 	file_utils:remove_files( [ KeyFilename, EncryptedFilename,
-							   DecryptedFilename ] ),
+							   DecryptedFilename, SourceFilename ] ),
 
 	test_facilities:stop().
