@@ -70,8 +70,6 @@
 %
 % - id: identity (content not changed)
 %
-% - set_seed: set the random seed to be used from now on (content not changed)
-%
 % - offset: the specified value is added to all bytes of the file
 %
 % - compress: the file content is replaced by a compressed version thereof,
@@ -105,7 +103,8 @@
 -type compress_transform() :: { 'compress', file_utils:compression_format() }.
 
 
--type insert_random_transform() :: { 'insert_random', random_utils:seed() }.
+-type insert_random_transform() :: { 'insert_random', random_utils:seed(),
+									 basic_utils:count() }.
 
 
 -type delta_combine_transform() :: 'delta_combine'.
@@ -202,6 +201,9 @@ encrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 			   "storing the result in '~s'. Key: '~p'.~n",
 			   [ SourceFilename, KeyFilename, TargetFilename, KeyInfos ] ),
 
+	% We may use randomised ciphers:
+	random_utils:start_random_source( default_seed ),
+
 	TempFilename = apply_key( KeyInfos, SourceFilename ),
 
 	file_utils:rename( TempFilename, TargetFilename ).
@@ -247,6 +249,8 @@ decrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 			   "storing the result in '~s'. Key: '~p'.~n",
 			   [ SourceFilename, KeyFilename, TargetFilename, KeyInfos ] ),
 
+	% We may use randomised ciphers:
+	random_utils:start_random_source( default_seed ),
 
 	ReverseKey = get_reverse_key_from( KeyInfos ),
 
@@ -369,13 +373,31 @@ apply_cipher( { offset, Offset }, SourceFilename, CipheredFilename ) ->
 							 _Transform=OffsetFun, _InitialCipherState=Offset );
 
 
+apply_cipher( { insert_random, Seed, Range }, SourceFilename,
+			  CipheredFilename ) ->
+
+	random_utils:start_random_source( Seed ),
+
+	insert_random_cipher( SourceFilename, CipheredFilename, Range );
+
+
+apply_cipher( { extract_random, Seed, Range }, SourceFilename,
+			  CipheredFilename ) ->
+
+	random_utils:start_random_source( Seed ),
+
+	extract_random_cipher( SourceFilename, CipheredFilename, Range );
+
+
 apply_cipher( { compress, CompressFormat }, SourceFilename,
 			  CipheredFilename ) ->
 	compress_cipher( SourceFilename, CipheredFilename, CompressFormat );
 
+
 apply_cipher( { decompress, CompressFormat }, SourceFilename,
 			  CipheredFilename ) ->
 	decompress_cipher( SourceFilename, CipheredFilename, CompressFormat );
+
 
 apply_cipher( delta_combine, SourceFilename, CipheredFilename ) ->
 
@@ -418,6 +440,9 @@ reverse_cipher( { offset, Offset } ) ->
 
 reverse_cipher( { compress, CompressFormat } ) ->
 	{ decompress, CompressFormat };
+
+reverse_cipher( { insert_random, Seed, Range } ) ->
+	{ extract_random, Seed, Range };
 
 reverse_cipher( delta_combine ) ->
 	delta_combine_reverse;
@@ -536,6 +561,121 @@ decompress_cipher( CipheredFilename, TargetFilename, CompressFormat ) ->
 
 	% Preserves the caller-naming convention:
 	file_utils:rename( DecompressedFilename, TargetFilename ).
+
+
+
+insert_random_cipher( SourceFilename, CipheredFilename, Range )
+  when Range > 1 ->
+
+	SourceFile = file_utils:open( SourceFilename,
+								  _ReadOpts=[ read, raw, binary, read_ahead ] ),
+
+	TargetFile = file_utils:open( CipheredFilename,
+								  _WriteOpts=[ write, raw, delayed_write ] ),
+
+	_InsertedCount = insert_helper( SourceFile, TargetFile, Range, _Count=0 ).
+
+	%io:format( "insert_random_cipher: inserted ~B bytes.~n",
+	%		   [ InsertedCount ] ).
+
+
+% We insert at random places random values in the content:
+insert_helper( SourceFile, TargetFile, Range, Count ) ->
+
+	NextInsertionOffset = random_utils:get_random_value( Range ),
+
+	case file_utils:read( SourceFile, NextInsertionOffset ) of
+
+		eof ->
+			file_utils:close( SourceFile ),
+			file_utils:close( TargetFile ),
+			Count;
+
+
+		{ ok, DataBin } when size( DataBin ) =:= NextInsertionOffset ->
+
+			RandomByte = random_utils:get_random_value( 255 ),
+
+			NewDataBin = << DataBin/binary, RandomByte:8 >>,
+
+			file_utils:write( TargetFile, NewDataBin ),
+
+			insert_helper( SourceFile, TargetFile, Range, Count + 1 );
+
+
+		{ ok, PartialDataBin } ->
+
+			% Drawn offset not reachable, just finished then:
+
+			file_utils:write( TargetFile, PartialDataBin ),
+			file_utils:close( SourceFile ),
+			file_utils:close( TargetFile ),
+			Count
+
+	end.
+
+
+
+
+extract_random_cipher( CipheredFilename, TargetFilename, Range )
+  when Range > 1 ->
+
+	CipheredFile = file_utils:open( CipheredFilename,
+							  _ReadOpts=[ read, raw, binary, read_ahead ] ),
+
+	TargetFile = file_utils:open( TargetFilename,
+								  _WriteOpts=[ write, raw, delayed_write ] ),
+
+	_ExtractedCount = extract_helper( CipheredFile, TargetFile, Range,
+									 _Count=0 ).
+
+	%io:format( "extract_random_cipher: extracted ~B bytes.~n",
+	%		   [ ExtractedCount ] ).
+
+
+
+% We extract at random places the bytes found in the content:
+extract_helper( CipheredFile, TargetFile, Range, Count ) ->
+
+	NextExtractionOffset = random_utils:get_random_value( Range ),
+
+	case file_utils:read( CipheredFile, NextExtractionOffset ) of
+
+		eof ->
+			file_utils:close( CipheredFile ),
+			file_utils:close( TargetFile ),
+			Count;
+
+		{ ok, DataBin } when size( DataBin ) =:= NextExtractionOffset ->
+
+			% We drop on the floor the previously inserted byte:
+			case file_utils:read( CipheredFile, 1 ) of
+
+				eof ->
+					file_utils:close( CipheredFile ),
+					file_utils:close( TargetFile ),
+					Count;
+
+				{ ok, <<_ExtractedByte:8>> } ->
+
+					% Dummy operation, needed to reproduce the insertion random
+					% state:
+					_RandomByte = random_utils:get_random_value( 255 ),
+
+					file_utils:write( TargetFile, DataBin ),
+
+					extract_helper( CipheredFile, TargetFile, Range, Count + 1 )
+
+			end;
+
+		{ ok, PartialDataBin } ->
+			% Finished:
+			file_utils:write( TargetFile, PartialDataBin ),
+			file_utils:close( CipheredFile ),
+			file_utils:close( TargetFile ),
+			Count
+
+	end.
 
 
 
