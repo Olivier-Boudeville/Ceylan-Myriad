@@ -84,8 +84,8 @@
 % byte, with B0=128; hence Bk+1 is replaced by Bk+1 - Bk (Bk having obeyed the
 % same rule)
 %
-% - shuffle: based on specified length L, each series of up to L bytes is
-% uniformly shuffled
+% - shuffle: based on the specified seed and length L, each series of up to L
+% bytes is uniformly shuffled
 %
 % - xor: based on the specified list of bytes, the content of the file is XOR'ed
 %
@@ -110,10 +110,11 @@
 -type delta_combine_transform() :: 'delta_combine'.
 
 
--type shuffle_transform() :: 'shuffle'.
+-type shuffle_transform() :: { 'shuffle', random_utils:seed(),
+							   basic_utils:count() }.
 
 
--type xor_transform() :: { 'xor', integer() }.
+-type xor_transform() :: { 'xor', [ integer() ] }.
 
 
 -type mealy_state() :: integer().
@@ -373,22 +374,6 @@ apply_cipher( { offset, Offset }, SourceFilename, CipheredFilename ) ->
 							 _Transform=OffsetFun, _InitialCipherState=Offset );
 
 
-apply_cipher( { insert_random, Seed, Range }, SourceFilename,
-			  CipheredFilename ) ->
-
-	random_utils:start_random_source( Seed ),
-
-	insert_random_cipher( SourceFilename, CipheredFilename, Range );
-
-
-apply_cipher( { extract_random, Seed, Range }, SourceFilename,
-			  CipheredFilename ) ->
-
-	random_utils:start_random_source( Seed ),
-
-	extract_random_cipher( SourceFilename, CipheredFilename, Range );
-
-
 apply_cipher( { compress, CompressFormat }, SourceFilename,
 			  CipheredFilename ) ->
 	compress_cipher( SourceFilename, CipheredFilename, CompressFormat );
@@ -397,6 +382,22 @@ apply_cipher( { compress, CompressFormat }, SourceFilename,
 apply_cipher( { decompress, CompressFormat }, SourceFilename,
 			  CipheredFilename ) ->
 	decompress_cipher( SourceFilename, CipheredFilename, CompressFormat );
+
+
+apply_cipher( { insert_random, Seed, Range }, SourceFilename,
+			  CipheredFilename ) ->
+
+	random_utils:set_random_state( Seed ),
+
+	insert_random_cipher( SourceFilename, CipheredFilename, Range );
+
+
+apply_cipher( { extract_random, Seed, Range }, SourceFilename,
+			  CipheredFilename ) ->
+
+	random_utils:set_random_state( Seed ),
+
+	extract_random_cipher( SourceFilename, CipheredFilename, Range );
 
 
 apply_cipher( delta_combine, SourceFilename, CipheredFilename ) ->
@@ -425,6 +426,21 @@ apply_cipher( delta_combine_reverse, SourceFilename, CipheredFilename ) ->
 					 _Transform=ReverseDeltaFun, _InitialCipherState=100 );
 
 
+apply_cipher( { shuffle, Seed, Length }, SourceFilename, CipheredFilename ) ->
+
+	random_utils:set_random_state( Seed ),
+
+	shuffle_cipher( SourceFilename, CipheredFilename, Length, direct );
+
+
+apply_cipher( { reciprocal_shuffle, Seed, Length }, SourceFilename,
+			  CipheredFilename ) ->
+
+	random_utils:set_random_state( Seed ),
+
+	shuffle_cipher( SourceFilename, CipheredFilename, Length, reciprocal );
+
+
 apply_cipher( C, _SourceFilename, _CipheredFilename ) ->
 	throw( { unknown_cipher_to_apply, C } ).
 
@@ -449,6 +465,9 @@ reverse_cipher( delta_combine ) ->
 
 reverse_cipher( delta_combine_reverse ) ->
 	delta_reverse;
+
+reverse_cipher( { shuffle, _Seed, _Length } ) ->
+	{ reciprocal_shuffle, _Seed, _Length };
 
 reverse_cipher( C ) ->
 	throw( { unknown_cipher_to_reverse, C } ).
@@ -520,6 +539,7 @@ transform_bytes( _A = << InputByte:8, T/binary >>, CipherFun,
 
 	transform_bytes( T, CipherFun, NewCipherState,
 					 << AccBin/binary, OutputByte >> ).
+
 
 
 
@@ -616,7 +636,6 @@ insert_helper( SourceFile, TargetFile, Range, Count ) ->
 
 
 
-
 extract_random_cipher( CipheredFilename, TargetFilename, Range )
   when Range > 1 ->
 
@@ -674,6 +693,48 @@ extract_helper( CipheredFile, TargetFile, Range, Count ) ->
 			file_utils:close( CipheredFile ),
 			file_utils:close( TargetFile ),
 			Count
+
+	end.
+
+
+% Direction is either 'direct' or 'reciprocal':
+shuffle_cipher( SourceFilename, CipheredFilename, Length, Direction ) ->
+
+	% Wanting to read lists, not binaries:
+	SourceFile = file_utils:open( SourceFilename,
+									_ReadOpts=[ read, raw, read_ahead ] ),
+
+	TargetFile = file_utils:open( CipheredFilename,
+								  _WriteOpts=[ write, raw, delayed_write ] ),
+
+	shuffle_helper( SourceFile, TargetFile, Length, Direction ).
+
+
+
+shuffle_helper( SourceFile, TargetFile, Length, Direction ) ->
+
+	case file_utils:read( SourceFile, Length ) of
+
+		eof ->
+			file_utils:close( SourceFile ),
+			file_utils:close( TargetFile );
+
+		% When will hit the end of file, may perform shuffle on a smaller chunk:
+		{ ok, ByteList } ->
+
+			ShuffledByteList = case Direction of
+
+				direct ->
+					list_utils:random_permute( ByteList );
+
+				reciprocal ->
+					list_utils:random_permute_reciprocal( ByteList )
+
+			end,
+
+			file_utils:write( TargetFile, ShuffledByteList ),
+
+			shuffle_helper( SourceFile, TargetFile, Length, Direction )
 
 	end.
 
