@@ -41,7 +41,8 @@
 
 % Basic list operations:
 %
--export([ get_element_at/2, remove_element_at/2, remove_last_element/1,
+-export([ get_element_at/2, insert_element_at/3,
+		  remove_element_at/2, remove_last_element/1,
 		  get_last_element/1, get_index_of/2, split_at/2, uniquify/1,
 		  has_duplicates/1, get_duplicates/1, intersect/2,
 		  subtract_all_duplicates/2, delete_existing/2, delete_all_in/2,
@@ -73,7 +74,7 @@
 
 % Random operations on lists:
 %
--export([ random_permute/1,
+-export([ random_permute/1, random_permute_reciprocal/1,
 		  draw_element/1, draw_element/2, draw_element_weighted/1,
 		  draw_elements_from/2 ]).
 
@@ -104,7 +105,40 @@
 %
 -spec get_element_at( list(), basic_utils:positive_index() ) -> any().
 get_element_at( List, Index ) ->
+
+	%io:format( " - getting element #~B of ~w~n", [ Index, List ] ),
+
 	lists:nth( Index, List ).
+
+
+% Inserts specified element at specified position in specified list.
+%
+% For example, insert_element_at( foo, [ a, b, c, d ], 3 ) will return
+% [ a, b, foo, c, d ].
+%
+-spec insert_element_at( any(), list(), basic_utils:positive_index() ) ->
+							   list().
+insert_element_at( Element, List, Index ) ->
+
+	%io:format( " - inserting element ~p at #~B in ~w~n",
+	%		   [ Element, Index, List ] ),
+
+	insert_element_at( Element, List, Index, _Acc=[] ).
+
+
+insert_element_at( Element, _List=[], _Index=1, Acc ) ->
+	lists:reverse( [ Element | Acc ] );
+
+insert_element_at( _Element, _List=[], Index, Acc ) ->
+	% Rebuilds input parameters:
+	throw( { invalid_index, Index + length( Acc ), lists:reverse( Acc ) } );
+
+insert_element_at( Element, List, _Index=1, Acc ) ->
+	lists:reverse( [ Element | Acc ] ) ++ List;
+
+insert_element_at( Element, _List=[ H | T ], Index, Acc ) ->
+	insert_element_at( Element, T, Index - 1, [ H | Acc ] ).
+
 
 
 
@@ -562,17 +596,56 @@ random_permute( _List, _RemainingLen=0 ) ->
 
 random_permute( List, RemainingLen ) ->
 
-	% Cheking is commented-out:
-	%RemainingLen = length(List),
+	% Checking is commented-out:
+	%RemainingLen = length( List ),
 
 	% (using remove_element_at/2 should be quicker than using
 	% proplists:delete/2, as we stop at the first matching element found)
 	%
 	Index = random_utils:get_random_value( RemainingLen ),
 
-	[ list_utils:get_element_at( List, Index )
-		| random_permute( list_utils:remove_element_at( List, Index ),
+	%io:format( "Index=~p, ", [ Index ] ),
+
+	% We put the drawn element at head, and recurse in the remaining list:
+	[ get_element_at( List, Index )
+		| random_permute( remove_element_at( List, Index ),
 						  RemainingLen - 1 ) ].
+
+
+
+% Returns a reciprocal random uniform permutation of the specified list,
+% compared to random_permute/1.
+%
+% Consists on the reciprocal operation, so that, if starting from a random state
+% S (see set_random_state/1) and if L2 = random_permute( L1 ), then, if starting
+% again from S, L1 = random_permute_reciprocal( L2 ).
+%
+-spec random_permute_reciprocal( list() ) -> list().
+random_permute_reciprocal( List ) ->
+
+	% This is a little trickier than random_permute/1; we have to reverse
+	% operations for latest to first, hence we must start with the latest drawn
+	% value. So we draw them all first, and start by the end of that list,
+	% taking into account that the range is decremented at each draw:
+	%
+	ReciprocalIndex = lists:reverse( [ random_utils:get_random_value( L )
+			|| L <- lists:reverse( lists:seq( 1, length( List ) ) ) ] ),
+
+	%io:format( "Reciprocal index = ~p~n", [ ReciprocalIndex ] ),
+
+	random_permute_reciprocal( lists:reverse( List ), ReciprocalIndex,
+							   _Acc=[] ).
+
+
+random_permute_reciprocal( _List=[], _ReciprocalIndex=[], Acc ) ->
+	Acc;
+
+random_permute_reciprocal( _List=[ H | T ], _ReciprocalIndex=[ I | Is ],
+						 Acc ) ->
+
+	NewAcc = insert_element_at( _Elem=H, Acc, _Index=I ),
+
+	random_permute_reciprocal( T, Is, NewAcc ).
 
 
 

@@ -206,16 +206,30 @@ run() ->
 		  [ DrawCount, L, list_utils:draw_elements_from( List1, DrawCount ) ] ),
 
 
-	L = [ 12, 4, 13, 2, 56, 0 ],
+	ASeed = { 113, 798, 8914 },
+	random_utils:set_random_state( ASeed ),
+
+	Lpermuted = list_utils:random_permute( L ),
 
 	test_facilities:display(
 		"List obtained after having uniformly permuted list ~w:  ~w.",
-		[ L, list_utils:random_permute( L ) ] ),
+		[ L, Lpermuted ] ),
 
 	test_facilities:display(
 		"List obtained after having uniformly permuted list ~w (again): ~w.",
-		[ L, list_utils:random_permute( L ) ] ),
+		[ L, list_utils:random_permute( Lpermuted ) ] ),
 
+	random_utils:set_random_state( ASeed ),
+
+	Lreciprocal = list_utils:random_permute_reciprocal( Lpermuted ),
+
+	test_facilities:display( "List obtained after having restored the random "
+							 "state and performed a reciprocal permutation on "
+							 "~w: ~w.",
+							 [ Lpermuted, Lreciprocal ] ),
+
+	% Must match:
+	L = Lreciprocal,
 
 	DrawList = [ {first,1}, {second,2}, {third,1} ],
 
