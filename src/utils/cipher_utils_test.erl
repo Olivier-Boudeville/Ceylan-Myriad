@@ -49,17 +49,27 @@ run() ->
 	%TransformList = [ { compress, bzip2 } ],
 	%TransformList = [ { compress, xz } ],
 
-	%TransformList = [ delta_combine ],
-
-	TransformList = [ { shuffle, _Seed={ 140, 98, 250 }, _Length=7 } ],
-
 	%TransformList = [ { insert_random, _Seed={ 4, 48, 25 },
 	%				  _Range=10 } ],
 
+	%TransformList = [ delta_combine ],
 
-	%TransformList = [ {compress, xz }, { offset, 10 }, delta_combine,
-	%				  { insert_random, _Seed={ 412, 1418, 2565 },
-	%					_Range=10 } ],
+	%TransformList = [ { shuffle, _Seed={ 140, 98, 250 }, _Length=7 } ],
+
+	%TransformList = [ { 'xor', _XOR="A string can be used as well" } ],
+
+
+	TransformList = [
+					  delta_combine,
+					  {compress, xz },
+					  { offset, 41 },
+					  { insert_random, _InsertSeed={ 412, 1418, 2565 },
+						_Range=10 },
+					  { shuffle, _ShuffleSeed={ 140, 98, 250 }, _Length=79 },
+					  { 'xor', "All human beings are born free and equal "
+						"in dignity and rights." },
+					  delta_combine
+					],
 
 	KeyFilename = "my-test-key-file.cipher",
 

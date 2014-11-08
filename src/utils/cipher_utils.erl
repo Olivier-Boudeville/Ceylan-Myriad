@@ -87,7 +87,8 @@
 % - shuffle: based on the specified seed and length L, each series of up to L
 % bytes is uniformly shuffled
 %
-% - xor: based on the specified list of bytes, the content of the file is XOR'ed
+% - bin_xor: based on the specified list of bytes, the content of the file is
+% XOR'ed
 %
 % - mealy: based on specified state-transition data, the content of the file is
 % modified accordingly
@@ -199,7 +200,7 @@ encrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 	KeyInfos = read_key( KeyFilename ),
 
 	io:format( "Encrypting source file '~s' with key file '~s', "
-			   "storing the result in '~s'. Key: '~p'.~n",
+			   "storing the result in '~s'.~nKey: '~p'.~n",
 			   [ SourceFilename, KeyFilename, TargetFilename, KeyInfos ] ),
 
 	% We may use randomised ciphers:
@@ -247,7 +248,7 @@ decrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 	KeyInfos = read_key( KeyFilename ),
 
 	io:format( "Decrypting source file '~s' with key file '~s', "
-			   "storing the result in '~s'. Key: '~p'.~n",
+			   "storing the result in '~s'.~nKey: '~p'.~n",
 			   [ SourceFilename, KeyFilename, TargetFilename, KeyInfos ] ),
 
 	% We may use randomised ciphers:
@@ -441,6 +442,11 @@ apply_cipher( { reciprocal_shuffle, Seed, Length }, SourceFilename,
 	shuffle_cipher( SourceFilename, CipheredFilename, Length, reciprocal );
 
 
+apply_cipher( { 'xor', XORList }, SourceFilename, CipheredFilename ) ->
+
+	xor_cipher( SourceFilename, CipheredFilename, XORList );
+
+
 apply_cipher( C, _SourceFilename, _CipheredFilename ) ->
 	throw( { unknown_cipher_to_apply, C } ).
 
@@ -448,8 +454,8 @@ apply_cipher( C, _SourceFilename, _CipheredFilename ) ->
 
 % Returns the reverse cipher of the specified one.
 %
-reverse_cipher( id ) ->
-	id;
+reverse_cipher( C=id ) ->
+	C;
 
 reverse_cipher( { offset, Offset } ) ->
 	{ offset, 256 - Offset };
@@ -468,6 +474,9 @@ reverse_cipher( delta_combine_reverse ) ->
 
 reverse_cipher( { shuffle, _Seed, _Length } ) ->
 	{ reciprocal_shuffle, _Seed, _Length };
+
+reverse_cipher( C={ 'xor', _XORList } ) ->
+	C;
 
 reverse_cipher( C ) ->
 	throw( { unknown_cipher_to_reverse, C } ).
@@ -735,6 +744,44 @@ shuffle_helper( SourceFile, TargetFile, Length, Direction ) ->
 			file_utils:write( TargetFile, ShuffledByteList ),
 
 			shuffle_helper( SourceFile, TargetFile, Length, Direction )
+
+	end.
+
+
+
+xor_cipher( SourceFilename, CipheredFilename, XORList ) ->
+
+	% Wanting to read lists, not binaries:
+	SourceFile = file_utils:open( SourceFilename,
+									_ReadOpts=[ read, raw, read_ahead ] ),
+
+	TargetFile = file_utils:open( CipheredFilename,
+								  _WriteOpts=[ write, raw, delayed_write ] ),
+
+	XORRing = list_utils:list_to_ring( XORList ),
+
+	xor_helper( SourceFile, TargetFile, XORRing ).
+
+
+
+xor_helper( SourceFile, TargetFile, XORRing ) ->
+
+	case file_utils:read( SourceFile, 1 ) of
+
+		eof ->
+			file_utils:close( SourceFile ),
+			file_utils:close( TargetFile );
+
+		% When will hit the end of file, may perform shuffle on a smaller chunk:
+		{ ok, [ Byte ] } ->
+
+			{ H, NewXORRing } = list_utils:head( XORRing ),
+
+			NewByte = Byte bxor H,
+
+			file_utils:write( TargetFile, NewByte ),
+
+			xor_helper( SourceFile, TargetFile, NewXORRing )
 
 	end.
 
