@@ -58,25 +58,32 @@ run() ->
 
 	%TransformList = [ { 'xor', _XOR="A string can be used as well" } ],
 
+	MyMealyTable = cipher_utils:generate_mealy_table( _StateCount=500 ),
 
+	%TransformList = [ { mealy, _InitialState=2, MyMealyTable } ],
+
+	% A rather complete key (compression is better be done among the first):
 	TransformList = [
 					  delta_combine,
-					  {compress, xz },
+					  { compress, xz },
 					  { offset, 41 },
-					  { insert_random, _InsertSeed={ 412, 1418, 2565 },
-						_Range=10 },
+					  { insert_random, _FirstInsertSeed={ 412, 1418, 2565 },
+						_FirstRange=10 },
 					  { shuffle, _ShuffleSeed={ 140, 98, 250 }, _Length=79 },
 					  { 'xor', "All human beings are born free and equal "
 						"in dignity and rights." },
+					  delta_combine,
+					  { mealy, _InitialMealyState=50, MyMealyTable },
+					  { insert_random, _SecondInsertSeed={ 432, 4118, 255 },
+						_SecondRange=11 },
 					  delta_combine
 					],
 
 	KeyFilename = "my-test-key-file.cipher",
 
 
-	test_facilities:display( "Generating a key from transform list '~p', "
-							 "to be stored in file '~s'.",
-							 [ TransformList, KeyFilename ] ),
+	test_facilities:display( "Generating a key from specified transform list, "
+							 "to be stored in file '~s'.", [ KeyFilename ] ),
 
 	case file_utils:is_existing_file( KeyFilename ) of
 
@@ -128,7 +135,7 @@ run() ->
 
 	end,
 
-	%file_utils:remove_files( [ KeyFilename, EncryptedFilename,
-	%						   DecryptedFilename, SourceFilename ] ),
+	file_utils:remove_files( [ KeyFilename, EncryptedFilename,
+							   DecryptedFilename, SourceFilename ] ),
 
 	test_facilities:stop().
