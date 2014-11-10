@@ -350,7 +350,8 @@ command="${command} ${cookie_opt} ${tcp_port_opt}"
 if [ -z "${fqdn}" ] ; then
 
 	# Not used anymore:
-	fqdn=`host \`hostname\` | awk '{ print $1 }' | head -n 1`
+	#fqdn=`host \`hostname\` | awk '{ print $1 }' | head -n 1`
+	fqdn=$(hostname -f)
 	#echo "Guessed FQDN is ${fqdn}"
 
 fi
