@@ -96,7 +96,7 @@
 % modified accordingly; the input and output alphabet are the same, B, the set
 % of all bytes (i.e. integers in [0,255]), while the states are strictly
 % positive integers; the transition and output function are coalesced into a
-% single fucntion: f( { CurrentState, InputByte } ) -> { NewState, OutputByte };
+% single function: f( { CurrentState, InputByte } ) -> { NewState, OutputByte };
 % for more information: https://en.wikipedia.org/wiki/Mealy_machine
 
 
@@ -354,7 +354,7 @@ decrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 
 	ReverseKey = get_reverse_key_from( KeyInfos ),
 
-	io:format( "Determined reverse key:~n~s~n", 
+	io:format( "Determined reverse key:~n~s~n",
 			   [ key_to_string( ReverseKey ) ] ),
 
 	TempFilename = apply_key( ReverseKey, SourceFilename ),
