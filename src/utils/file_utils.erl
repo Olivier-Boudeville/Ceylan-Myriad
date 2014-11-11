@@ -59,9 +59,12 @@
 
 		  create_directory/1, create_directory/2,
 		  create_directory_if_not_existing/1,
+		  create_temporary_directory/0,
 
 		  remove_file/1, remove_file_if_existing/1,
 		  remove_files/1, remove_files_if_existing/1,
+
+		  remove_directory/1,
 
 		  copy_file/2, copy_file_if_existing/2,
 
@@ -1028,6 +1031,29 @@ create_dir_elem( _Elems=[ H | T ], Prefix ) ->
 
 
 
+% Creates a non previously existing temporary directory, and returs its full
+% path.
+%
+-spec create_temporary_directory() -> directory_name().
+create_temporary_directory() ->
+
+	TmpDir = join( [ "/tmp", system_utils:get_user_name(),
+					 basic_utils:generate_uuid() ] ),
+
+	case exists( TmpDir ) of
+
+		true ->
+			% Very bad luck apparently, or same random root:
+			create_temporary_directory();
+
+		false ->
+			create_directory( TmpDir, create_parents ),
+			TmpDir
+
+	end.
+
+
+
 % Removes specified file, specified as a plain string.
 %
 % Throws an exception if any problem occurs.
@@ -1081,6 +1107,23 @@ remove_file_if_existing( Filename ) ->
 -spec remove_files_if_existing( [ file_name() ] ) -> basic_utils:void().
 remove_files_if_existing( FilenameList ) ->
 	[ remove_file_if_existing( Filename ) || Filename <- FilenameList ].
+
+
+
+% Removes specified directory, which must be empty.
+%
+-spec remove_directory( directory_name() ) -> basic_utils:void().
+remove_directory( DirectoryName ) ->
+
+	case file:del_dir( DirectoryName ) of
+
+		ok ->
+			ok;
+
+		{ error, Reason } ->
+			throw( { remove_directory_failed, Reason, DirectoryName } )
+
+	end.
 
 
 
