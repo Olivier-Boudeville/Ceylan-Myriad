@@ -69,6 +69,9 @@
 -export([ uppercase_initial_letter/1,
 		  join/2,
 		  split/2, split_at_first/2, split_camel_case/1,
+
+		  substitute/3,
+
 		  is_uppercase/1, is_figure/1,
 		  remove_ending_carriage_return/1, remove_last_characters/2,
 
@@ -976,6 +979,28 @@ split_camel_case( _String )->
 
 %%		true ->
 	throw( not_implemented_yet ).
+
+
+
+% Substitutes in specified string the source character with the target one.
+%
+% Note: simpler and probably more efficient that a regular expression.
+%
+-spec substitute( uchar(), uchar(), ustring() ) -> ustring().
+substitute( SourceChar, TargetChar, String ) ->
+	substitute( SourceChar, TargetChar, String, _Acc=[] ).
+
+
+substitute( _SourceChar, _TargetChar, _String=[], Acc ) ->
+	lists:reverse( Acc );
+
+substitute( SourceChar, TargetChar, _String=[ SourceChar | T ], Acc ) ->
+	substitute( SourceChar, TargetChar, T, [ TargetChar | Acc ] );
+
+substitute( SourceChar, TargetChar, _String=[ OtherChar | T ], Acc ) ->
+	substitute( SourceChar, TargetChar, T, [ OtherChar | Acc ] ).
+
+
 
 
 

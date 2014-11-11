@@ -272,6 +272,7 @@ run() ->
 
 	{ "", " abcxdefxgh " } = text_utils:split_at_first(  $ , TestSplit ),
 
+	"Helli wirld" = text_utils:substitute( $o, $i, "Hello world" ),
 
 	RemovalCount = 3,
 
