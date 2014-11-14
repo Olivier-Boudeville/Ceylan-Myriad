@@ -42,7 +42,8 @@
 
 % Color-related operations.
 %
--export([ get_colors/0, get_color/1, get_color_for_gnuplot/1 ]).
+-export([ get_colors/0, get_color/1, get_color_for_gnuplot/1,
+		  get_random_colors/1 ]).
 
 
 
@@ -272,3 +273,17 @@ get_color_for_gnuplot( _Color={ _R, _G, _B } ) ->
 
 get_color_for_gnuplot( ColorName ) ->
 	io_lib:format( "~s", [ ColorName ] ).
+
+
+
+% Returns a list of the specified number of different colors.
+%
+-spec get_random_colors( basic_utils:count() ) -> [ color_by_decimal() ].
+get_random_colors( ColorCount ) ->
+
+	AllColors = get_colors(),
+
+	% Only keep RBG values, not the atom-based name:
+	%
+	[ RGB || { _Name, RGB } <-
+				 list_utils:draw_elements_from( AllColors, ColorCount ) ].

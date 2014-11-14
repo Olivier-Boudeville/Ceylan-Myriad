@@ -143,7 +143,7 @@ resize( Canvas=#canvas{ bitmap=Bitmap, back_buffer=BackBuffer },
 
 
 
-% Clears the back-bufferof the specified canvas.
+% Clears the back-buffer of the specified canvas.
 %
 -spec clear( canvas() ) -> basic_utils:void().
 clear( #canvas{ back_buffer=BackBuffer } ) ->
@@ -281,7 +281,11 @@ draw_line( #canvas{ back_buffer=BackBuffer }, P1, P2 ) ->
 -spec draw_line( canvas(), linear_2D:point(), linear_2D:point(),
 				 gui_color:color() ) -> basic_utils:void().
 draw_line( Canvas, P1, P2, Color ) ->
+
+	%io:format( "draw_line from ~p to ~p with color ~p.~n", [ P1, P2, Color ] ),
+
 	set_draw_color( Canvas, Color ),
+
 	draw_line( Canvas, P1, P2 ).
 
 

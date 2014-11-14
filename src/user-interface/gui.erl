@@ -26,11 +26,12 @@
 % Creation date: Monday, February 15, 2010.
 
 
-% Gathering of various facilities for Graphical User Interface.
+% Gathering of various facilities for Graphical User Interfaces.
 %
 % See gui_test.erl for the corresponding test.
 %
 -module(gui).
+
 
 % For canvas record:
 -include("gui_canvas.hrl").
@@ -46,6 +47,7 @@
 % Formerly based on the gs module, now on the wx one.
 
 
+
 % Implementation notes:
 
 % This module used to rely on the gs module, whose API was quite simple and
@@ -57,7 +59,7 @@
 % The general convention is still to put as first argument the object on which
 % the operation is to be applied (ex: the window).
 %
-% See also: canvas.erl for all canvas-related operations.
+% See also: gui_canvas.erl for all canvas-related operations.
 
 
 
@@ -761,7 +763,7 @@ create_sizer_with_labelled_box( Orientation, Parent, Label ) ->
 
 	ActualOrientation = get_orientation( Orientation ),
 
-	wxStaticBoxSizer:new( ActualOrientation, Parent, [ {label,Label} ] ).
+	wxStaticBoxSizer:new( ActualOrientation, Parent, [ { label, Label } ] ).
 
 
 
