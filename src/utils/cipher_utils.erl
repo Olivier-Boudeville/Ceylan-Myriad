@@ -109,16 +109,26 @@
 
 -type compress_transform() :: { 'compress', file_utils:compression_format() }.
 
+-type decompress_transform() :: { 'decompress',
+								  file_utils:compression_format() }.
+
 
 -type insert_random_transform() :: { 'insert_random', random_utils:seed(),
 									 basic_utils:count() }.
 
+-type extract_random_transform() :: { 'extract_random', random_utils:seed(),
+									  basic_utils:count() }.
+
 
 -type delta_combine_transform() :: 'delta_combine'.
+-type delta_combine_reverse_transform() :: 'delta_combine_reverse'.
 
 
 -type shuffle_transform() :: { 'shuffle', random_utils:seed(),
 							   basic_utils:count() }.
+
+-type reciprocal_shuffle_transform() :: { 'reciprocal_shuffle',
+					   random_utils:seed(), basic_utils:count() }.
 
 
 -type xor_transform() :: { 'xor', [ integer() ] }.
@@ -172,7 +182,8 @@
 
 
 
--type cipher_transform() :: id_transform()
+-type cipher_transform() ::
+					 id_transform()
 				   | offset_transform()
 				   | compress_transform()
 				   | insert_random_transform()
@@ -182,10 +193,25 @@
 				   | mealy_transform().
 
 
+% For ciphers which require specific reverse transformations:
+-type decipher_transform() ::
+					 decompress_transform()
+				   | extract_random_transform()
+				   | delta_combine_reverse_transform()
+				   | reciprocal_shuffle_transform().
+
+
+-type any_transform() :: cipher_transform() | decipher_transform().
+
+
+% User may specify either some licit transform, or possibly mistakes:
+-type user_specified_transform() :: any().
+
+
 -type key() :: [ cipher_transform() ].
 
 
--export_type([ cipher_transform/0 ]).
+-export_type([ cipher_transform/0, decipher_transform/0 ]).
 
 
 
@@ -367,10 +393,11 @@ decrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 % Helper section.
 
 
-% Reads key from specified filename.
+% Reads key from specified filename, and returns it.
 %
 % (helper)
 %
+-spec read_key( file_utils:file_name() ) -> [ user_specified_transform() ].
 read_key( KeyFilename ) ->
 
 	case file_utils:is_existing_file_or_link( KeyFilename ) of
@@ -381,7 +408,7 @@ read_key( KeyFilename ) ->
 				[] ->
 					throw( { empty_key, KeyFilename } );
 
-				[ Key ] ->
+				[ Key ] when is_list( Key ) ->
 					Key;
 
 				Invalid ->
@@ -400,6 +427,8 @@ read_key( KeyFilename ) ->
 %
 % (helper)
 %
+-spec get_reverse_key_from( [ user_specified_transform() ] ) -> 
+								  [ any_transform() ].
 get_reverse_key_from( KeyInfos ) ->
 	get_reverse_key_from( KeyInfos, _Acc=[] ).
 
