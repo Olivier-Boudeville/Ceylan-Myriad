@@ -44,6 +44,7 @@
 -export([ start_random_source/3, start_random_source/1, stop_random_source/0,
 		  get_random_value/0, get_random_value/1, get_random_value/2,
 		  get_random_values/2, get_random_values/3,
+		  get_random_subset/2,
 		  get_random_module_name/0,
 		  get_random_state/0, set_random_state/1,
 		  get_random_seed/0, check_random_seed/1 ]).
@@ -130,7 +131,7 @@ get_random_values_helper( N, Count, Acc ) ->
 
 
 
-% Generates a list of Count elements uniformly drawn in [ Nmin, Nmax ].
+% Generates a list of Count elements uniformly drawn in [Nmin;Nmax].
 %
 -spec get_random_values( integer(), integer(), basic_utils:count() ) ->
 							   [ integer() ].
@@ -143,8 +144,7 @@ get_random_values_helper( _Nmin, _Nmax, _Count=0, Acc ) ->
 
 get_random_values_helper( Nmin, Nmax, Count, Acc ) ->
 	get_random_values_helper( Nmin, Nmax, Count - 1,
-					   [ get_random_value( Nmin, Nmax ) | Acc ] ).
-
+							  [ get_random_value( Nmin, Nmax ) | Acc ] ).
 
 
 % To test compilation:
@@ -209,6 +209,17 @@ get_random_value( N ) ->
 get_random_value( Nmin, Nmax ) when Nmin =< Nmax ->
 	crypto:rand_uniform( Nmin, Nmax+1 ).
 
+
+
+% Returns an integer random value generated from an uniform distribution in
+% [Nmin;Nmax] (i.e. both bounds included), updating the random state in the
+% process dictionary.
+%
+% Spec already specified, for all random settings.
+%
+-spec get_random_value() -> float().
+get_random_value( N ) ->
+	crypto:rand_uniform( 1, N+1 ).
 
 
 % Returns the name of the module managing the random generation.
@@ -381,6 +392,23 @@ set_random_state( NewState ) ->
 
 
 -endif. % use_crypto_module not defined
+
+
+
+
+% Section which does not depend on defines.
+
+
+
+% Returns a list of the specified number of unique elements drawn from input
+% list (i.e. so that there is no duplicate in the returned list).
+%
+% Note: defined to ease interface look-up, use directly
+% list_utils:draw_elements_from/2 instead.
+%
+-spec get_random_subset( basic_utils:count(), list() ) -> list().
+get_random_subset( ValueCount, InputList ) ->
+	list_utils:draw_elements_from( InputList, ValueCount ).
 
 
 
