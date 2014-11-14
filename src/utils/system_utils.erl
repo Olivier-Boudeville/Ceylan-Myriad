@@ -190,9 +190,10 @@ get_interpreter_version() ->
 
 				V ->
 					% Ex: V=17 Newer release (ex: 17.0-rc1) do not comply to the
-					% traditional scheme, applying it for uniformity and
-					% nostalgia:
-					io_lib:format( "R~BB", [ V ] )
+					% traditional scheme, applying it for uniformity and maybe a
+					% bit of nostalgia:
+					%
+					lists:flatten( io_lib:format( "R~BB", [ V ] ) )
 
 			catch
 
