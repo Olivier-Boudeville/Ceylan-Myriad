@@ -47,6 +47,13 @@
 		  dot_product/2 ]).
 
 
+
+% Operations common to points and vectors:
+%
+-export([ add/1, add/2 ]).
+
+
+
 % Textual conversions:
 %
 -export([ to_string/1 ]).
@@ -244,6 +251,8 @@ scale( _V={X,Y,Z}, Factor ) ->
 
 
 
+
+
 % Returns the specified vector with an unit length (magnitude of 1):
 %
 % (epsilon-based test for null vectors with floating-point coordinates could
@@ -259,9 +268,33 @@ make_unit( V ) ->
 
 
 % Returns the dot product of the two specified vectors.
+%
 -spec dot_product( vector(), vector() ) -> number().
 dot_product( _V1={X1,Y1,Z1}, _V2={X2,Y2,Z2} ) ->
 	X1*X2 + Y1*Y2 + Z1*Z2.
+
+
+
+% Returns the sum of the two specified vectors.
+%
+-spec add( vector(), vector() ) -> vector().
+add( { X1, Y1, Z1 }, { X2, Y2, Z2 } ) ->
+	{ X1 + X2, Y1 + Y2, Z1 + Z2 }.
+
+
+
+% Returns the sum of all vectors in specified lists.
+%
+-spec add( [ vector() ] ) -> vector().
+add( Vectors ) ->
+
+	lists:foldl( fun( { X, Y, Z }, _AccVec={ Xa, Ya, Za } ) ->
+						 { X + Xa, Y + Ya, Z + Za }
+				 end,
+				 _InitialAcc={ 0, 0, 0 },
+				 _List=Vectors ).
+
+
 
 
 

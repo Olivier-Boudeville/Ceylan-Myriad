@@ -26,7 +26,9 @@
 
 
 % Unit tests for the linear 2D facilities.
+%
 % See the linear_2D tested module.
+%
 -module(linear_2D_test).
 
 
