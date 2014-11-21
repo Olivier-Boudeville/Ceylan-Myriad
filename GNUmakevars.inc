@@ -37,7 +37,7 @@ ARCHIVE_FILE := $(ARCHIVE_ROOT)/$$(date +'%Y%m%d')-$(PROJECT_NAME).tar.xz
 VCS_ARCHIVE_FILE := $(ARCHIVE_ROOT)/$$(date +'%Y%m%d')-$(PROJECT_NAME).git-bundle
 
 
-ARCHIVE_BRANCH_FILE = $(ARCHIVE_ROOT)/$$(date +'%Y%m%d')-$(PROJECT_NAME)-branch-$(shell basename `pwd`).tar.xz
+ARCHIVE_BRANCH_FILE = $(ARCHIVE_ROOT)/$$(date +'%Y%m%d')-$(PROJECT_NAME)-branch-$(shell basename $$(pwd)).tar.xz
 
 
 SNAPSHOT_ARCHIVE_FILE := $(ARCHIVE_ROOT)/$$(date +'%Y%m%d')-$(PROJECT_NAME)-snapshot.tar.xz
@@ -394,7 +394,7 @@ endif
 # as, otherwise, as soon as a process changes the current working directory, any
 # further loading of a user-defined module, for example if used then for the
 # first time, would fail).
-BEAM_PATH_OPT = $(foreach dir,$(BEAM_DIRS),--beam-dir `pwd`/$(dir))
+BEAM_PATH_OPT = $(foreach dir,$(BEAM_DIRS),--beam-dir $$(pwd)/$(dir))
 
 
 # Increases the distribution buffer busy limit (default is 1024):
