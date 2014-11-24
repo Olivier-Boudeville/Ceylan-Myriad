@@ -224,6 +224,15 @@
 % To distinguish with the builtin type, which can be a parameterised module:
 -type module_name() :: atom().
 
+-type function_name() :: atom().
+
+-type argument() :: any().
+
+
+% A mfa (module-function-arguments) command:
+-type command_spec() :: { module_name(), function_name(), [ argument() ] }.
+
+
 
 % To store (UNIX-like) user names:
 -type user_name() :: nonempty_string().
@@ -238,7 +247,8 @@
 			  timestamp/0, precise_timestamp/0, time_out/0,
 			  registration_name/0, registration_scope/0, look_up_scope/0,
 			  version_number/0, version/0, two_digit_version/0, any_version/0,
-			  positive_index/0, module_name/0, user_name/0, atom_user_name/0
+			  positive_index/0, module_name/0, command_spec/0,
+			  user_name/0, atom_user_name/0
 
 			  ]).
 
