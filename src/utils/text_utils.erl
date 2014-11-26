@@ -60,7 +60,7 @@
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
 		  duration_to_string/1,
-		  format/2 ]).
+		  format/2, bin_format/2 ]).
 
 
 
@@ -729,8 +729,9 @@ duration_to_string( Milliseconds ) ->
 
 
 
-% Formats specified string as io_lib:format/2 would do, and returns a flattened
-% version of it.
+% Formats specified string as io_lib:format/2 would do, except it returns a
+% flattened version of it and cannot fail (so that for example a badly formatted
+% log cannot crash anymore its emitter process).
 %
 % Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected
 % Unicode inputs resulting on crashes afterwards.
@@ -738,10 +739,53 @@ duration_to_string( Milliseconds ) ->
 -spec format( format_string(), [ term() ] ) -> ustring().
 format( FormatString, Values ) ->
 
+	String = try
+
+				 io_lib:format( FormatString, Values )
+
+			 catch
+
+				 _:_ ->
+
+					 io_lib:format( "[error: badly formatted output] "
+									"Format: '~p', values: '~p'",
+									[ FormatString, Values] )
+
+	end,
+
 	% Using 'flatten' allows for example to have clearer strings output in case
 	% of error:
 	%
-	lists:flatten( io_lib:format( FormatString, Values ) ).
+	lists:flatten( String ).
+
+
+
+% Formats specified binary string as io_lib:format/2 would do, except it returns
+% a flattened version of it and cannot fail (so that for example a badly
+% formatted log cannot crash anymore its emitter process).
+%
+% Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected
+% Unicode inputs resulting on crashes afterwards.
+%
+-spec bin_format( format_string(), [ term() ] ) -> ustring().
+bin_format( FormatString, Values ) ->
+
+	String = try
+
+				 io_lib:format( FormatString, Values )
+
+			 catch
+
+				 _:_ ->
+
+					 io_lib:format( "[error: badly formatted output] "
+									"Format: '~p', values: '~p'",
+									[ FormatString, Values] )
+
+	end,
+
+	% No flattening needed here:
+	erlang:list_to_binary( String ).
 
 
 
