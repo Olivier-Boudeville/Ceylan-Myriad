@@ -167,13 +167,54 @@ run() ->
 
 	TargetFile = "GNUmakefile",
 
+	OriginalContent = file_utils:read_whole( TargetFile ),
+
 	ZippedFile = file_utils:compress( TargetFile, zip ),
-	file_utils:decompress( ZippedFile, zip ),
+	UnzippedFile = file_utils:decompress( ZippedFile, zip ),
+	UnzippedContent = file_utils:read_whole( UnzippedFile ),
+
+	case UnzippedContent =:= OriginalContent of
+
+		true ->
+			test_facilities:display( "Original file and unzipped one "
+									 "(~s) match.", [ UnzippedFile ] );
+
+		false ->
+			throw( unzipped_content_differs )
+
+	end,
+
 
 	Bzip2File = file_utils:compress( TargetFile, bzip2 ),
-	file_utils:decompress( Bzip2File, bzip2 ),
+	Unbzip2File = file_utils:decompress( Bzip2File, bzip2 ),
+	UnbzippedContent = file_utils:read_whole( Unbzip2File ),
+
+	case UnbzippedContent =:= OriginalContent of
+
+		true ->
+			test_facilities:display( "Original file and unbzip2-ed one "
+									 "(~s) match.", [ Unbzip2File ] );
+
+		false ->
+			throw( unbzip2ed_content_differs )
+
+	end,
 
 	XzFile = file_utils:compress( TargetFile, xz ),
-	file_utils:decompress( XzFile, xz ),
+	UnxzFile = file_utils:decompress( XzFile, xz ),
+	UnxzContent = file_utils:read_whole( UnxzFile ),
+
+	case UnxzContent =:= OriginalContent of
+
+		true ->
+			test_facilities:display( "Original file and unxz-ed one "
+									 "(~s) match.", [ UnxzFile ] );
+
+		false ->
+			throw( unxz_content_differs )
+
+	end,
+
+	file_utils:remove_files( [ ZippedFile, Bzip2File, XzFile ] ),
 
 	test_facilities:stop().

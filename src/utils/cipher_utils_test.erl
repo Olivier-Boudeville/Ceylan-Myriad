@@ -116,7 +116,7 @@ run() ->
 	cipher_utils:encrypt( SourceFilename, EncryptedFilename, KeyFilename ),
 
 
-	DecryptedFilename =  SourceFilename ++ ".decrypted",
+	DecryptedFilename = SourceFilename ++ ".decrypted",
 
 	test_facilities:display( "Decrypting '~s' into '~s', using the same key.",
 							 [ EncryptedFilename, DecryptedFilename ] ),

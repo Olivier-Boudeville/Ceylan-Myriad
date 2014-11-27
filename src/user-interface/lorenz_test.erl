@@ -49,29 +49,6 @@
 
 
 
-% Simulation section.
-
-
-
-% Simulation time:
-%
--type time() :: float().
-
-
-% Definition depends on the function of interest, more precisely on the
-% dimension of the space the function to evaluate is an endomorphism of:
-%
-% (vectors and points are not distinguished here)
-%
--type vector() :: linear_3D:vector().
-
-
-% The function f in the equation that we want to solve numerically:
-%
--type f() :: fun( ( time(), vector() ) -> vector() ).
-
-
-
 % Rendering section.
 
 -type zoom_factor() :: float().
@@ -94,32 +71,11 @@
 
 
 
-% Solver section.
-
-% We use here the "original" Runge–Kutta method, i.e. the classic fourth-order
-% method.
-%
-% See: http://en.wikipedia.org/wiki/List_of_Runge–Kutta_methods
-%
-% We want to evaluate a given function f, whose spec could be:
-%     f( time(), vector() ) -> vector()
-%
-% complying to equation dy/dt = f( t, y ).
-%
-% For that we compute yn+1 = yn + h.sum(bi.ki) with ki = f( ti, yi ), with ti
-% and yi depending on the order, and h being the chosen timestep.
-%
-% The implementation of f corresponds here to the anonymous function F.
-
-
-
-
-
 % Resolves the specified equations based on the specified initial conditions and
 % derivate function, notifying the specified listener of the new computations.
 %
--spec solver_main_loop( f(), vector(), time(), time(), screen(), pid() ) ->
-							  no_return().
+-spec solver_main_loop( rk4_solver:f(), rk4_solver:vector(), rk4_solver:time(),
+						rk4_solver:time(), screen(), pid() ) -> no_return().
 solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 				  ListenerPid ) ->
 
@@ -165,7 +121,7 @@ solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 			ListenerPid ! { draw_points, NewProjectedPoints, self() },
 
 			% Explicit yielding, otherwise you may experience problems:
-			timer:sleep( 100 ),
+			timer:sleep( 1 ),
 
 			solver_main_loop( F, LastPoint, NewTime, Timestep, Screen,
 							  ListenerPid )
@@ -190,7 +146,7 @@ compute_next_estimates( _F, Point, NextTime, _Timestep, _Screen, _PointCount=0,
 
 compute_next_estimates( F, Point, Time, Timestep, Screen, PointCount, Acc ) ->
 
-	NewPoint = compute_next_estimate( F, Point, Time, Timestep ),
+	NewPoint = rk4_solver:compute_next_estimate( F, Point, Time, Timestep ),
 
 	NewProjectedPoint = project_2D( NewPoint, Screen ),
 
@@ -198,63 +154,6 @@ compute_next_estimates( F, Point, Time, Timestep, Screen, PointCount, Acc ) ->
 							PointCount - 1, [ NewProjectedPoint | Acc ] ).
 
 
-
-% Computes the next point (yn+1), based on the current one (yn), the function
-% (F) and the timestep (h).
-%
--spec compute_next_estimate( f(), vector(), time(), time() ) -> vector().
-compute_next_estimate( F, Point, Time, Step ) ->
-
-	%io:format( "~w computing at ~p from point ~p.~n",
-	%		   [ self(), Time, Point ] ),
-
-	% Ad-hoc implementation of a Butcher tableau, for RK4 (s=4):
-
-	% yn+1 = yn + h.sum(i=1 to s, bi.ki)
-	%
-	% with ki = f( tn + ci.h, yn + h.sum(j=1 to s, aij.kj) )
-
-	% Here:
-	%
-	% yn+1 = yn + h.( 1/6.k1 + 1/3.k2 + 1/3.k3 + 1/6.k4 )
-
-	% With:
-	%
-	% k1 = f( tn,       yn          )
-	% k2 = f( tn + h/2, yn + h/2.k1 )
-	% k3 = f( tn + h/2, yn + h/2.k2 )
-	% k4 = f( tn + h,   yn + h.  k3 )
-
-	K1 = F( Time, Point ),
-
-	HalfStep = Step / 2.0,
-
-	% tn + h/2:
-	OneHalfStepAfter = Time + HalfStep,
-
-	% yn + h/2.k1:
-	SecondPoint = linear_3D:add( Point, linear_3D:scale( K1, HalfStep ) ),
-
-	K2 = F( OneHalfStepAfter, SecondPoint ),
-
-	% yn + h/2.k2:
-	ThirdPoint = linear_3D:add( Point, linear_3D:scale( K2, HalfStep ) ),
-
-	K3 = F( OneHalfStepAfter, ThirdPoint ),
-
-	% yn + h.k3:
-	FourthPoint = linear_3D:add( Point, linear_3D:scale( K3, Step ) ),
-
-	OneFullStepAfter = Time + Step,
-	K4 = F( OneFullStepAfter, FourthPoint ),
-
-	SK1 = linear_3D:scale( K1, Step / 6.0 ),
-	SK2 = linear_3D:scale( K2, Step / 3.0 ),
-	SK3 = linear_3D:scale( K3, Step / 3.0 ),
-	SK4 = linear_3D:scale( K4, Step / 6.0 ),
-
-	% yn+1 = yn + h.( 1/6.k1 + 1/3.k2 + 1/3.k3 + 1/6.k4 )
-	linear_3D:add( [ Point, SK1, SK2, SK3, SK4 ] ).
 
 
 
