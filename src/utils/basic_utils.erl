@@ -97,7 +97,8 @@
 		  get_execution_target/0,
 		  is_alive/1, is_alive/2,
 		  is_debug_mode_enabled/0,
-		  generate_uuid/0, get_type_of/1, traverse_term/4, crash/0 ]).
+		  generate_uuid/0, get_type_of/1, traverse_term/4,
+		  crash/0, enter_infinite_loop/0 ]).
 
 
 
@@ -247,7 +248,8 @@
 			  timestamp/0, precise_timestamp/0, time_out/0,
 			  registration_name/0, registration_scope/0, look_up_scope/0,
 			  version_number/0, version/0, two_digit_version/0, any_version/0,
-			  positive_index/0, module_name/0, command_spec/0,
+			  positive_index/0,
+			  module_name/0, function_name/0, argument/0, command_spec/0,
 			  user_name/0, atom_user_name/0
 
 			  ]).
@@ -283,9 +285,9 @@ get_textual_timestamp() ->
 %
 -spec get_textual_timestamp( { unit_utils:date(), unit_utils:time() } ) ->
 								   string().
-get_textual_timestamp( { {Year,Month,Day}, {Hour,Minute,Second} } ) ->
+get_textual_timestamp( { { Year, Month, Day }, { Hour, Minute, Second } } ) ->
 	io_lib:format( "~p/~p/~p ~B:~2..0B:~2..0B",
-		[ Year, Month, Day, Hour, Minute, Second ] ).
+				   [ Year, Month, Day, Hour, Minute, Second ] ).
 
 
 
@@ -301,9 +303,10 @@ get_textual_timestamp_for_path() ->
 % part of a path, like: "2010-11-18-at-13h-30m-35s.".
 %
 -spec get_textual_timestamp_for_path( timestamp() ) -> string().
-get_textual_timestamp_for_path( { {Year,Month,Day}, {Hour,Minute,Second} } ) ->
+get_textual_timestamp_for_path( { { Year, Month, Day },
+								  { Hour, Minute, Second } } ) ->
 	io_lib:format( "~p-~p-~p-at-~Bh-~2..0Bm-~2..0Bs",
-		[ Year, Month, Day, Hour, Minute, Second ] ).
+				   [ Year, Month, Day, Hour, Minute, Second ] ).
 
 
 
@@ -1112,6 +1115,8 @@ traverse_transformed_term( TargetTerm, TypeDescription, TermTransformer,
 
 % Crashes the current process immediately.
 %
+% Useful for testing reliability, for example.
+%
 -spec crash() -> any().
 crash() ->
 
@@ -1125,6 +1130,19 @@ crash() ->
 	1 / ( A - B ).
 
 
+
+% Makes the current process enter in an infinite, mostly idle loop.
+%
+% Useful for testing reliability, for example.
+%
+enter_infinite_loop() ->
+
+	io:format( "~p in infinite loop...", [ self() ] ),
+
+	% Loops every minute:
+	timer:sleep( 60000 ),
+
+	enter_infinite_loop().
 
 
 
