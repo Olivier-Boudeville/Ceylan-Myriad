@@ -489,13 +489,12 @@ map_bucket_for_values( Fun, Bucket ) ->
 %
 % The order of transformation for entries is not specified.
 %
-% Returns the final accumulator.
+% Returns the final accumulator, i.e. the resulting hashtable.
 %
 -spec foldOnEntries( fun( ( entry(), basic_utils:accumulator() )
 						  -> basic_utils:accumulator() ),
 					 basic_utils:accumulator(),
-					 hashtable() ) ->
-						   basic_utils:accumulator().
+					 hashtable() ) -> basic_utils:accumulator().
 foldOnEntries( Fun, InitialAcc, Hashtable ) ->
 
 	BucketList = tuple_to_list( Hashtable ),
