@@ -478,8 +478,8 @@ get_total_physical_memory() ->
 	MemorySizeString = text_utils:remove_ending_carriage_return(
 								os:cmd( ValueCommand ) ),
 
-	% They were kB (not kiB):
-	list_to_integer( MemorySizeString ) * 1000.
+	% They were probably kiB:
+	list_to_integer( MemorySizeString ) * 1024.
 
 
 
@@ -500,8 +500,8 @@ get_total_physical_memory_on( Node ) ->
 	MemorySizeString = text_utils:remove_ending_carriage_return(
 								ValueCommandOutput ),
 
-	% They were kB (not kiB):
-	list_to_integer( MemorySizeString ) * 1000.
+	% They were probably kiB:
+	list_to_integer( MemorySizeString ) * 1024.
 
 
 
@@ -537,26 +537,83 @@ get_total_memory_used() ->
 	% We have: H = C + D + E + F, and G = A - H. D is never used (obsolete).
 	% We return here { G, A }, thus { G, G+H }.
 
-	MemoryInfo = os:cmd(
-				   "free -b | grep 'buffers/cache:' | awk '{print $3,$4}'" ),
+	% Avoid locale and greps 'buffers/cache:' (ex: on Debian) as well as
+	% 'buff/cache' (ex: on Arch)
+	%MemoryInfo = os:cmd( "LANG= free -b | grep '/cache' "
+	%					 "| awk '{print $3,$4}'" ),
 
 	% Converts MemoryInfo from "a b\n" to ["a","b\n"]
-	[ AppliUsedString, TotalFreeTermString ] = string:tokens( MemoryInfo, " " ),
+	%[ AppliUsedString, TotalFreeTermString ] =
+	%  string:tokens( MemoryInfo, " " ),
+
+	% Unfortunately on Arch we have quite different outputs, like:
+	%          total        used        free      shared  buff/cache   available
+	% Mem:   8047428     2476488     1124396      362228     4446544     4893712
+	% Swap:        0           0           0
+
 
 	% This is G:
-	AppliUsedSize = text_utils:string_to_integer( AppliUsedString ),
+	%AppliUsedSize = text_utils:string_to_integer( AppliUsedString ),
 
-	TotalFreeString = text_utils:remove_ending_carriage_return(
-														TotalFreeTermString ),
+	%TotalFreeString = text_utils:remove_ending_carriage_return(
+	%													TotalFreeTermString ),
 
 	% This is H:
-	TotalFreeSize = text_utils:string_to_integer( TotalFreeString ),
+	%TotalFreeSize = text_utils:string_to_integer( TotalFreeString ),
 
 	% { G, G+H }:
-	{ AppliUsedSize, AppliUsedSize + TotalFreeSize }.
+	%{ AppliUsedSize, AppliUsedSize + TotalFreeSize }.
+
+	% So finally we prefered /proc/meminfo:
+	TotalString = text_utils:remove_ending_carriage_return( os:cmd(
+		  "LANG= cat /proc/meminfo|grep '^MemTotal:'|awk '{print $2,$3}'" ) ),
+
+	[ Total, "kB" ] = string:tokens( TotalString, " " ),
+
+	TotalByte = text_utils:string_to_integer( Total ) * 1024,
 
 
+	FreeString = case os:cmd(
+						"LANG= cat /proc/meminfo|grep '^MemAvailable:'|awk "
+						"'{print $2,$3}'" )  of
 
+		[] ->
+			%io:format( "## using MemFree~n" ),
+			% In some cases (ex: Debian 6.0), no 'MemAvailable' is defined, we
+			% use 'MemFree' instead:
+			os:cmd( "LANG= cat /proc/meminfo|grep '^MemFree:'|awk "
+					"'{print $2,$3}'" );
+
+		Res ->
+			%io:format( "## using MemAvailable~n" ),
+			Res
+
+	end,
+
+	FreeByte = case FreeString of
+
+		[] ->
+			%io:format( "## using free~n" ),
+			% As a last resort we do as before:
+			UsedString = text_utils:remove_ending_carriage_return( os:cmd(
+				"LANG= free -b | grep '/cache' | awk '{print $3}'" ) ),
+
+			% Already in bytes:
+			text_utils:string_to_integer( UsedString );
+
+
+		_ ->
+			UsedString = text_utils:remove_ending_carriage_return( FreeString ),
+
+			[ Used, "kB" ] = string:tokens( UsedString, " " ),
+
+			text_utils:string_to_integer( Used ) * 1024
+
+	end,
+
+	UsedByte = TotalByte - FreeByte,
+
+	{ UsedByte, TotalByte }.
 
 
 
@@ -567,16 +624,26 @@ get_total_memory_used() ->
 -spec get_swap_status() -> { byte_size(), byte_size() }.
 get_swap_status() ->
 
-	SwapInfos = os:cmd( "free -b | grep 'Swap:' | awk '{print $2, $3}'" ),
+	% Same reason as for get_total_memory_used/0:
+	%SwapInfos = os:cmd( "free -b | grep 'Swap:' | awk '{print $2, $3}'" ),
+	SwapTotalString = text_utils:remove_ending_carriage_return( os:cmd(
+		  "LANG= cat /proc/meminfo|grep '^SwapTotal:'|awk '{print $2,$3}'" ) ),
 
-	[ TotalSwapString, UsedSwapWith ] = string:tokens( SwapInfos, " " ),
+	[ TotalString, "kB" ] = string:tokens( SwapTotalString, " " ),
 
-	UsedSwapString = text_utils:remove_ending_carriage_return( UsedSwapWith ),
+	TotalByte = text_utils:string_to_integer( TotalString ) * 1024,
 
-	TotalSwap = text_utils:string_to_integer( TotalSwapString ),
-	UsedSwap = text_utils:string_to_integer( UsedSwapString ),
 
-	{ UsedSwap, TotalSwap }.
+	SwapFreeString = text_utils:remove_ending_carriage_return( os:cmd(
+		  "LANG= cat /proc/meminfo|grep '^SwapFree:'|awk '{print $2,$3}'" ) ),
+
+	[ FreeString, "kB" ] = string:tokens( SwapFreeString, " " ),
+
+	FreeByte = text_utils:string_to_integer( FreeString ) * 1024,
+
+	UsedByte = TotalByte - FreeByte,
+
+	{ UsedByte, TotalByte }.
 
 
 

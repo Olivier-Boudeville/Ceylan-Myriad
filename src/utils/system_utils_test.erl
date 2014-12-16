@@ -43,8 +43,9 @@ print_sizes( [] ) ->
 print_sizes( [ H | T ] ) ->
 
 	Size = system_utils:get_size( H ),
+
 	test_facilities:display( "     - exact size of ~p is ~s",
-		[ H, system_utils:interpret_byte_size( Size ) ] ),
+							 [ H, system_utils:interpret_byte_size( Size ) ] ),
 
 	print_sizes( T ).
 
@@ -69,29 +70,29 @@ run() ->
 	TotalRAM = system_utils:get_total_physical_memory(),
 
 	test_facilities:display( "Determining the total physical volatile memory "
-			  "on this computer: ~B bytes, which is ~s.",
+							 "on this computer: ~B bytes, which is ~s.",
 			  [ TotalRAM, system_utils:interpret_byte_size( TotalRAM ) ] ),
 
 
 	UsedMemory = system_utils:get_memory_used_by_vm(),
 
 	test_facilities:display( "Determining the total memory used "
-			"by this Erlang VM: ~B bytes, which is ~s.",
+							 "by this Erlang VM: ~B bytes, which is ~s.",
 			[ UsedMemory, system_utils:interpret_byte_size( UsedMemory ) ] ),
 
 
 	{ UsedRAM, _TotalRAM } = system_utils:get_total_memory_used(),
 
 	test_facilities:display( "Determining the total memory used "
-			"by all applications: ~B bytes, which is ~s.",
+							 "by all applications: ~B bytes, which is ~s.",
 			[ UsedRAM, system_utils:interpret_byte_size( UsedRAM ) ] ),
 
 
 	{ UsedSwap, TotalSwap } = system_utils:get_swap_status(),
 
 	test_facilities:display( "Determining the total swap memory "
-				"on this computer: ~B bytes, which is ~s.~n"
-				"Swap use amounts to ~B byte(s), which is ~s.",
+							 "on this computer: ~B bytes, which is ~s.~n"
+							 "Swap use amounts to ~B byte(s), which is ~s.",
 				[ TotalSwap, system_utils:interpret_byte_size( TotalSwap ),
 				  UsedSwap, system_utils:interpret_byte_size( UsedSwap ) ] ),
 
@@ -117,30 +118,30 @@ run() ->
 					system_utils:get_application_version( Application ) ] ),
 
 	test_facilities:display( "Determining the size of a VM word: ~B bytes.",
-		[ system_utils:get_size_of_vm_word() ] ),
+							 [ system_utils:get_size_of_vm_word() ] ),
 
 	Kilo = 1024,
 	Mega = Kilo*Kilo,
 	Giga = Kilo*Mega,
 
 	SizesToInterpret = [ 0, 1, Kilo-1, Kilo, Kilo+1, 2*Kilo - 1, 2*Kilo,
-						2*Kilo + 1, 10000, Mega-1, Mega, Mega+1,
-						10000000, Giga - 1, Giga, Giga + 1,
-						1140328500,
-						Giga + Kilo, Giga + Mega, Giga + Mega + Kilo,
-						2* Giga,
-						1234567890123],
+						 2*Kilo + 1, 10000, Mega-1, Mega, Mega+1,
+						 10000000, Giga - 1, Giga, Giga + 1,
+						 1140328500,
+						 Giga + Kilo, Giga + Mega, Giga + Mega + Kilo,
+						 2* Giga,
+						 1234567890123],
 
 	test_facilities:display( "Testing size-describing facilities:" ),
 
 	[ test_facilities:display( "    + '~B bytes' translates to: '~s', or "
-			"'~s', in terms of units",
+							   "'~s', in terms of units",
 	  [ X, system_utils:interpret_byte_size( X ),
 	   system_utils:interpret_byte_size_with_unit( X ) ] )
 	 || X <- SizesToInterpret ],
 
 	test_facilities:display(
-			"Evaluating the size in memory of a few terms:" ),
+	  "Evaluating the size in memory of a few terms:" ),
 
 	AFullSentence = "All human beings are born free and equal in dignity "
 		"and rights. They are endowed with reason and conscience and "
@@ -149,8 +150,8 @@ run() ->
 	BinaryVersion = text_utils:string_to_binary( AFullSentence ),
 
 	TermsForSize = [ an_atom, 5, "aaa", "aaaa", [], [1], [1,2], {}, {1}, {1,2},
-		self(), dict:new(), orddict:new(), hashtable:new(), AFullSentence,
-					BinaryVersion ],
+					 self(), dict:new(), orddict:new(), hashtable:new(), 
+					 AFullSentence,	BinaryVersion ],
 
 	print_sizes( TermsForSize ),
 
@@ -164,17 +165,17 @@ run() ->
 	system_utils:display_memory_summary(),
 
 	test_facilities:display( "The number of detected cores is ~B.",
-							[ system_utils:get_core_count() ] ),
+							 [ system_utils:get_core_count() ] ),
 
 	test_facilities:display( "The number of Erlang processes "
-							"currently existing on the local node is ~B.",
-							[ system_utils:get_process_count() ] ),
+							 "currently existing on the local node is ~B.",
+							 [ system_utils:get_process_count() ] ),
 
 	FinalCounters = system_utils:get_cpu_usage_counters(),
 
 	test_facilities:display( "The aggregated CPU usage during this test: ~f%.",
-							[ system_utils:compute_cpu_usage_between(
-								InitialCounters, FinalCounters ) ] ),
+							 [ system_utils:compute_cpu_usage_between(
+								 InitialCounters, FinalCounters ) ] ),
 
 	 { UserPercent, NicePercent, SystemPercent, IdlePercent, OtherPercent } =
 	  system_utils:compute_detailed_cpu_usage( InitialCounters, FinalCounters ),
@@ -182,9 +183,8 @@ run() ->
 	test_facilities:display( "The detailed CPU usage: user = ~f%, "
 							 "nice = ~f%, system = ~f%, idle = ~f%, "
 							 "other = ~f%.",
-							 [  UserPercent, NicePercent, SystemPercent,
-
-								IdlePercent, OtherPercent ] ),
+							 [ UserPercent, NicePercent, SystemPercent,
+							   IdlePercent, OtherPercent ] ),
 
 	test_facilities:display( "Full system information: ~ts",
 							 [ system_utils:get_system_description() ] ),

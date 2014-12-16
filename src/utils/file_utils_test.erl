@@ -107,6 +107,9 @@ run() ->
 		file_utils:ensure_path_is_absolute( RelativePath, BasePath ) ] ),
 
 
+	"/home/lisa/tube" = file_utils:normalise_path(
+						  "/home/garfield/../lisa/./src/.././tube" ),
+
 	FirstFilename = "media/frame/1-23-2-98.oaf",
 
 	test_facilities:display( "Path '~s', once transformed into a variable name,"

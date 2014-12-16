@@ -169,8 +169,7 @@ new_with_buckets( _NumberOfBuckets ) ->
 % specified threshold, we will verify whether an hashtable optimization is
 % necessary and, if yes, it will be performed.
 %
--spec addEntry( key(), value(), lazy_hashtable() )
-	-> lazy_hashtable().
+-spec addEntry( key(), value(), lazy_hashtable() ) -> lazy_hashtable().
 addEntry( Key, Value, _LazyHashtable={ Hashtable, OpCount } ) ->
 
 	AugmentedTable = hashtable:addEntry( Key, Value, Hashtable ),
@@ -222,7 +221,7 @@ removeEntry( Key, _LazyHashtable={ Hashtable, OpCount } ) ->
 % specified key.
 %
 -spec lookupEntry( key(), lazy_hashtable() ) ->
-	 'hashtable_key_not_found' | { 'value', value() }.
+						 'hashtable_key_not_found' | { 'value', value() }.
 lookupEntry( Key, _LazyHashtable={ Hashtable, _OpCount } ) ->
 	hashtable:lookupEntry( Key, Hashtable ).
 
@@ -331,8 +330,7 @@ foldOnEntries( Fun, InitialAcc, _LazyHashtable={ Hashtable, _OpCount } ) ->
 % An exception is thrown if the key does not exist, a bad arithm is triggered if
 % no addition can be performed on the associated value.
 %
--spec addToEntry( key(), number(), lazy_hashtable() )
-	-> lazy_hashtable().
+-spec addToEntry( key(), number(), lazy_hashtable() ) -> lazy_hashtable().
 addToEntry( Key, Value, LazyHashtable ) ->
 
 	case lookupEntry( Key, LazyHashtable ) of
@@ -356,7 +354,7 @@ addToEntry( Key, Value, LazyHashtable ) ->
 % no subtraction can be performed on the associated value.
 %
 -spec subtractFromEntry( key(), number(), lazy_hashtable() )
-	-> lazy_hashtable().
+					   -> lazy_hashtable().
 subtractFromEntry( Key, Value, LazyHashtable ) ->
 
 	case lookupEntry( Key, LazyHashtable ) of
@@ -395,7 +393,7 @@ toggleEntry( Key, _LazyHashtable={ Hashtable, OpCount } ) ->
 %
 -spec merge( lazy_hashtable(), lazy_hashtable() ) -> lazy_hashtable().
 merge( _LazyHashtableBase={ HashtableBase, BaseOptCount },
-	 _LazyHashtableAdd={ HashtableAdd, _HashOptCount } ) ->
+	   _LazyHashtableAdd={ HashtableAdd, _HashOptCount } ) ->
 
 	UpdatedHashtable = hashtable:merge( HashtableBase, HashtableAdd ),
 
@@ -440,6 +438,7 @@ optimise_table_if_necessary( LazyTable={ Hashtable, CurrentOpCount } ) ->
 
 			% Number of elements of the underlying tuple:
 			BucketCount = hashtable:get_bucket_count( Hashtable ),
+
 			case hashtable:must_optimise( EntryCount, BucketCount ) of
 
 				true ->
@@ -495,8 +494,7 @@ appendToEntry( Key, Element, LazyHashtable ) ->
 %
 % If the element is not in the specified list, the list will not be modified.
 %
--spec deleteFromEntry( key(), term(), lazy_hashtable() )
-	-> lazy_hashtable().
+-spec deleteFromEntry( key(), term(), lazy_hashtable() ) -> lazy_hashtable().
 deleteFromEntry( Key, Element, LazyHashtable ) ->
 
 	case lookupEntry( Key, LazyHashtable ) of
@@ -548,8 +546,7 @@ enumerate( _LazyHashtable={ Hashtable, _OpCount } ) ->
 % Returns a list of key/value pairs corresponding to the list of specified keys,
 % or throws a badmatch is at least one key is not found.
 %
--spec selectEntries( [ key() ], lazy_hashtable() )
-	-> hashtable:entries().
+-spec selectEntries( [ key() ], lazy_hashtable() ) -> hashtable:entries().
 selectEntries( Keys, _LazyHashtable={ Hashtable, _OpCount } ) ->
 	hashtable:selectEntries( Keys, Hashtable ).
 
@@ -637,6 +634,7 @@ display( Title, _LazyHashtable={ Hashtable, OpCount } ) ->
 
 
 
+
 % Section for helper functions.
 
 
@@ -646,10 +644,10 @@ display_operation_count( OpCount ) ->
 
 		?operation_count_trigger ->
 			io:format( "No operation performed on this lazy hashtable since "
-				"last optimisation.~n" );
+					   "last optimisation.~n" );
 
 		_Other ->
-			io:format( "~B operation(s) have been performed on this "
-					  "lazy hashtable since last optimisation.~n", [ OpCount ] )
+			io:format( "~B operation(s) have been performed on this lazy "
+					   "hashtable since last optimisation.~n", [ OpCount ] )
 
 	end.

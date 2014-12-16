@@ -72,6 +72,7 @@
 
 		  is_absolute_path/1,
 		  ensure_path_is_absolute/1, ensure_path_is_absolute/2,
+		  normalise_path/1,
 
 		  path_to_variable_name/1, path_to_variable_name/2,
 
@@ -1271,6 +1272,58 @@ ensure_path_is_absolute( TargetPath, BasePath ) ->
 			end
 
 	end.
+
+
+% Normalises path, by translating it so that no '.' or '..' is present
+% afterwards.
+%
+% For example, "/home/garfield/../lisa/./src/.././tube" shall be normalised in
+% "/home/lisa/tube".
+%
+
+normalise_path( Path ) ->
+
+	ElemList = filename:split( Path ),
+
+	join( filter_elems( ElemList, _Acc=[] ) ).
+
+
+filter_elems( _ElemList=[], Acc ) ->
+	lists:reverse( Acc );
+
+filter_elems( _ElemList=[ "." | T ], Acc ) ->
+	filter_elems( T, Acc );
+
+filter_elems( _ElemList=[ ".." | T ], Acc ) ->
+	filter_elems( T, tl( Acc ) );
+
+filter_elems( _ElemList=[ E | T ], Acc ) ->
+	filter_elems( T, [ E | Acc ] ).
+
+
+
+% The approach below would not work with, for example, "X/Y/Z/../../A":
+
+%	RevElemList = lists:reverse( filename:split( Path ) ),
+
+%	% Returns in the right order:
+%	join( filter_elems( RevElemList, _Acc=[] ) ).
+
+
+% filter_elems( _Elems=[], Acc ) ->
+%	Acc;
+
+% filter_elems( _Elems=[ "." | T ], Acc ) ->
+%	filter_elems( T, Acc );
+
+% filter_elems( _Elems=[ "..", _E | T ], Acc ) ->
+%	filter_elems( T, Acc );
+
+% filter_elems( _Elems=[ E | T ], Acc ) ->
+%	filter_elems( T, [ E | Acc ] ).
+
+
+
 
 
 

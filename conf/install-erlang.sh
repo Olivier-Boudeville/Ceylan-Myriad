@@ -9,8 +9,8 @@ LANG=C; export LANG
 
 
 # Current stable:
-erlang_version="17.3"
-erlang_md5="1d0bb2d54dfe1bb6844756b99902ba20"
+erlang_version="17.4"
+erlang_md5="3d33c4c6bd7950240dcd7479edd9c7d8"
 
 # Cutting-edge release candidate (or previous stable version):
 erlang_version_candidate="17.1"

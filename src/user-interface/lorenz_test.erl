@@ -314,7 +314,7 @@ start() ->
 					  [ { proportion, 2 }, { flag, [ expand_fully ] } ] ),
 
 	ControlBoxSizer = gui:create_sizer_with_labelled_box( vertical, LeftPanel,
-											"Controls" ),
+														  "Controls" ),
 
 	% Adding the buttons to the control panel:
 
@@ -338,7 +338,7 @@ start() ->
 
 
 	QuitButton = gui:create_button( "Quit", Position, ButtonSize, ButtonStyle,
-		get_id( 'QuitButton' ), ParentButton ),
+									get_id( 'QuitButton' ), ParentButton ),
 
 	gui:connect( QuitButton, command_button_clicked ),
 

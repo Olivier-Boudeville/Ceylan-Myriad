@@ -208,7 +208,7 @@
 -type user_specified_transform() :: any().
 
 
--type key() :: [ cipher_transform() ].
+-type key() :: [ any_transform() ].
 
 
 -export_type([ cipher_transform/0, decipher_transform/0 ]).
@@ -261,6 +261,7 @@ key_to_string( Key ) ->
 key_to_string( [], Acc ) ->
 	Acc;
 
+
 key_to_string( [ _Cipher={ mealy, InitialState, Table } | T ], Acc ) ->
 
 	% Much info:
@@ -279,6 +280,7 @@ key_to_string( [ _Cipher={ mealy, InitialState, Table } | T ], Acc ) ->
 					 [ InitialState, StateCount, AlphabetSize ] ),
 
 	key_to_string( T, [ CipherString | Acc ] );
+
 
 key_to_string( [ Cipher | T ], Acc ) ->
 
@@ -427,7 +429,7 @@ read_key( KeyFilename ) ->
 %
 % (helper)
 %
--spec get_reverse_key_from( [ user_specified_transform() ] ) -> 
+-spec get_reverse_key_from( [ user_specified_transform() ] ) ->
 								  [ any_transform() ].
 get_reverse_key_from( KeyInfos ) ->
 	get_reverse_key_from( KeyInfos, _Acc=[] ).
@@ -491,7 +493,8 @@ get_cipher_description( { mealy, InitialState, _Table } ) ->
 
 
 get_cipher_description( OtherCipher ) ->
-			OtherCipher.
+	OtherCipher.
+
 
 
 % Applies specified cipher to specified file.
@@ -861,7 +864,7 @@ shuffle_cipher( SourceFilename, CipheredFilename, Length, Direction ) ->
 
 	% Wanting to read lists, not binaries:
 	SourceFile = file_utils:open( SourceFilename,
-									_ReadOpts=[ read, raw, read_ahead ] ),
+								  _ReadOpts=[ read, raw, read_ahead ] ),
 
 	TargetFile = file_utils:open( CipheredFilename,
 								  _WriteOpts=[ write, raw, delayed_write ] ),
@@ -903,7 +906,7 @@ xor_cipher( SourceFilename, CipheredFilename, XORList ) ->
 
 	% Wanting to read lists, not binaries:
 	SourceFile = file_utils:open( SourceFilename,
-									_ReadOpts=[ read, raw, read_ahead ] ),
+								  _ReadOpts=[ read, raw, read_ahead ] ),
 
 	TargetFile = file_utils:open( CipheredFilename,
 								  _WriteOpts=[ write, raw, delayed_write ] ),
@@ -928,7 +931,8 @@ xor_helper( SourceFile, TargetFile, XORRing ) ->
 
 			NewByte = Byte bxor H,
 
-			file_utils:write( TargetFile, NewByte ),
+			% In a list, as an integer is not licit, io_list() needed:
+			file_utils:write( TargetFile, [ NewByte ] ),
 
 			xor_helper( SourceFile, TargetFile, NewXORRing )
 
@@ -941,7 +945,7 @@ mealy_cipher( SourceFilename, CipheredFilename, InitialMealyState,
 
 	% Wanting to read lists, not binaries:
 	SourceFile = file_utils:open( SourceFilename,
-									_ReadOpts=[ read, raw, read_ahead ] ),
+								  _ReadOpts=[ read, raw, read_ahead ] ),
 
 	TargetFile = file_utils:open( CipheredFilename,
 								  _WriteOpts=[ write, raw, delayed_write ] ),

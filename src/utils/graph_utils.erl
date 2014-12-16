@@ -43,6 +43,7 @@
 
 % The type of data-structure accounting for storing the already-explored
 % vertices (semantically used as a list):
+%
 -define( list_impl, gb_sets ).
 
 
@@ -118,7 +119,7 @@ find_breadth_first( InitialVertex, Predicate, Feeder, UserData ) ->
 	Explored = ?list_impl:new(),
 
 	find_bfs_helper( Predicate, Feeder, InitialQueue, Explored,
-							  UserData ).
+					 UserData ).
 
 
 
@@ -156,20 +157,20 @@ find_bfs_helper( Predicate, Feeder, CandidateQueue, ExploredList, UserData ) ->
 								  not ?list_impl:is_member( C, ExploredList ) ],
 
 					%io:format( "Vertex ~p not suitable, enqueuing ~w.~n",
-					%		  [ Vertex, SelectedChildren ] ),
+					%			[ Vertex, SelectedChildren ] ),
 
 					% Uncomment if wanting to check the cycle management:
 
-					%% case SelectedChildren of
+					% case SelectedChildren of
 
-					%%	Children ->
-					%%		ok;
+					%	Children ->
+					%		ok;
 
-					%%	_ ->
-					%%		io:format( "Removed: ~w.~n", [ lists:subtract(
-					%%						 Children, SelectedChildren ) ] )
+					%	_ ->
+					%		io:format( "Removed: ~w.~n", [ lists:subtract(
+					%						 Children, SelectedChildren ) ] )
 
-					%% end,
+					% end,
 
 					NewQueue = lists:foldl( fun( C, Q ) ->
 													queue:in( [ C | Path ], Q )
@@ -180,7 +181,7 @@ find_bfs_helper( Predicate, Feeder, CandidateQueue, ExploredList, UserData ) ->
 					NewExplored = ?list_impl:add( Vertex, ExploredList ),
 
 					find_bfs_helper( Predicate, Feeder, NewQueue,
-											   NewExplored, UserData )
+									 NewExplored, UserData )
 
 			end
 

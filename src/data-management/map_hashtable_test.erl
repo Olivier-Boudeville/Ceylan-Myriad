@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2014 Olivier Boudeville
+% Copyright (C) 2014 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -22,15 +22,16 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 
-% Creation date: January 4, 2012.
-% Author: Jingxuan Ma (jingxuan.ma@edf.fr)
+% Creation date: Tuesday, December 2, 2014
+% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
 
 
-% Unit tests for the lazy hashtable implementation.
+
+% Unit tests for the map-based hashtable implementation.
 %
-% See the lazy_hashtable.erl tested module.
+% See the map_hashtable.erl tested module.
 %
--module(lazy_hashtable_test).
+-module(map_hashtable_test).
 
 
 % For run/0 export and al:
@@ -48,62 +49,62 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	MyH1 = lazy_hashtable:new( 10 ),
+	MyH1 = map_hashtable:new( 10 ),
 
-	true = lazy_hashtable:isEmpty( MyH1 ),
+	true = map_hashtable:isEmpty( MyH1 ),
 
-	lazy_hashtable:display( "Vanilla lazy hashtable", MyH1 ),
+	map_hashtable:display( "Vanilla map hashtable", MyH1 ),
 
-	%lazy_hashtable:display( MyH1 ),
-	test_facilities:display( "Adding entries in lazy hashtable." ),
-	MyH2 = lazy_hashtable:new( 4 ),
-	MyH3 = lazy_hashtable:addEntry( ?MyFirstKey, "MyFirstValue", MyH2 ),
-	false = lazy_hashtable:isEmpty( MyH3 ),
+	%map_hashtable:display( MyH1 ),
+	test_facilities:display( "Adding entries in map hashtable." ),
+	MyH2 = map_hashtable:new( 4 ),
+	MyH3 = map_hashtable:addEntry( ?MyFirstKey, "MyFirstValue", MyH2 ),
+	false = map_hashtable:isEmpty( MyH3 ),
 
-	MyH4 = lazy_hashtable:addEntry( ?MySecondKey, [ 1, 2, 3 ], MyH3 ),
-	false = lazy_hashtable:isEmpty( MyH4 ),
+	MyH4 = map_hashtable:addEntry( ?MySecondKey, [ 1, 2, 3 ], MyH3 ),
+	false = map_hashtable:isEmpty( MyH4 ),
 
-	lazy_hashtable:display( "The lazy hashtable", MyH4 ),
+	map_hashtable:display( "The map hashtable", MyH4 ),
 
-	MyH4Size = lazy_hashtable:size( MyH4 ),
+	MyH4Size = map_hashtable:size( MyH4 ),
 	test_facilities:display( "Size of table '~s': ~B entries",
-							 [ lazy_hashtable:toString( MyH4 ), MyH4Size ] ),
+							 [ map_hashtable:toString( MyH4 ), MyH4Size ] ),
 
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
-			lazy_hashtable:lookupEntry( ?MyFirstKey, MyH4 ) ] ),
+			map_hashtable:lookupEntry( ?MyFirstKey, MyH4 ) ] ),
 
-	{ value, "MyFirstValue" } = lazy_hashtable:lookupEntry( ?MyFirstKey,
+	{ value, "MyFirstValue" } = map_hashtable:lookupEntry( ?MyFirstKey,
 															MyH4 ),
 
 	test_facilities:display( "Removing that entry." ),
-	MyH5 = lazy_hashtable:removeEntry( ?MyFirstKey, MyH4 ),
-	false = lazy_hashtable:isEmpty( MyH5 ),
+	MyH5 = map_hashtable:removeEntry( ?MyFirstKey, MyH4 ),
+	false = map_hashtable:isEmpty( MyH5 ),
 
 	test_facilities:display( "Extracting the same entry from "
 							 "the same initial table." ),
-	{ "MyFirstValue", MyH5 } = lazy_hashtable:extractEntry( ?MyFirstKey, MyH4 ),
+	{ "MyFirstValue", MyH5 } = map_hashtable:extractEntry( ?MyFirstKey, MyH4 ),
 
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
-		lazy_hashtable:lookupEntry( ?MyFirstKey, MyH5 ) ] ),
+		map_hashtable:lookupEntry( ?MyFirstKey, MyH5 ) ] ),
 
-	hashtable_key_not_found = lazy_hashtable:lookupEntry( ?MyFirstKey, MyH5 ),
+	hashtable_key_not_found = map_hashtable:lookupEntry( ?MyFirstKey, MyH5 ),
 
 	% removeEntry can also be used if the specified key is not here, will return
 	% an identical table.
-	lazy_hashtable:display( MyH5 ),
+	map_hashtable:display( MyH5 ),
 	test_facilities:display( "Testing double key registering." ),
 
-	MyH6 = lazy_hashtable:addEntry( ?MySecondKey, anything, MyH5 ),
-	lazy_hashtable:display( MyH6 ),
+	MyH6 = map_hashtable:addEntry( ?MySecondKey, anything, MyH5 ),
+	map_hashtable:display( MyH6 ),
 
 	test_facilities:display( "Enumerating the hashtable: ~p.",
-		[ lazy_hashtable:enumerate( MyH4 ) ] ),
+		[ map_hashtable:enumerate( MyH4 ) ] ),
 
 	test_facilities:display( "Listing the hashtable keys: ~p.",
-		[ lazy_hashtable:keys( MyH4 ) ] ),
+		[ map_hashtable:keys( MyH4 ) ] ),
 
 	test_facilities:display( "Listing the hashtable values: ~p",
-		[ lazy_hashtable:values( MyH4 ) ] ),
+		[ map_hashtable:values( MyH4 ) ] ),
 
 	test_facilities:display( "Applying a fun to all values of "
 							 "previous hashtable" ),
@@ -115,7 +116,7 @@ run() ->
 				V
 	end,
 
-	lazy_hashtable:mapOnValues( FunValue, MyH4 ),
+	map_hashtable:mapOnValues( FunValue, MyH4 ),
 
 
 	test_facilities:display( "Applying a fun to all entries of "
@@ -128,7 +129,7 @@ run() ->
 				E
 	end,
 
-	lazy_hashtable:mapOnEntries( FunEntry, MyH4 ),
+	map_hashtable:mapOnEntries( FunEntry, MyH4 ),
 
 
 	test_facilities:display( "Folding on the same initial hashtable to "
@@ -138,26 +139,26 @@ run() ->
 					   AccCount + 1
 			   end,
 
-	2 = lazy_hashtable:foldOnEntries( FunCount, _InitialCount=0, MyH4 ),
+	2 = map_hashtable:foldOnEntries( FunCount, _InitialCount=0, MyH4 ),
 
-	0 = lazy_hashtable:foldOnEntries( FunCount, _InitialCount=0, MyH1 ),
+	0 = map_hashtable:foldOnEntries( FunCount, _InitialCount=0, MyH1 ),
 
 
 	true = list_utils:unordered_compare( [ ?MyFirstKey, ?MySecondKey ],
-										 lazy_hashtable:keys( MyH4 ) ),
+										 map_hashtable:keys( MyH4 ) ),
 
-	MyH7 = lazy_hashtable:addEntry( ?MyThirdKey, 3, MyH6 ),
+	MyH7 = map_hashtable:addEntry( ?MyThirdKey, 3, MyH6 ),
 
 	% MyH8 should have { AnotherKey, [1,2,3] } and { ?MyThirdKey, 3 }:
-	MyH8 = lazy_hashtable:merge( MyH4, MyH7 ),
+	MyH8 = map_hashtable:merge( MyH4, MyH7 ),
 
 	% Any optimisation would be automatic:
 	test_facilities:display( "Merged table: ~s.",
-							 [ lazy_hashtable:toString( MyH8 ) ] ),
+							 [ map_hashtable:toString( MyH8 ) ] ),
 
 	Keys = [ ?MyFirstKey, ?MyThirdKey ],
 
 	test_facilities:display( "Listing the entries for keys ~p:~n ~p",
-					[ Keys, lazy_hashtable:selectEntries( Keys, MyH8 ) ] ),
+					[ Keys, map_hashtable:selectEntries( Keys, MyH8 ) ] ),
 
 	test_facilities:stop().

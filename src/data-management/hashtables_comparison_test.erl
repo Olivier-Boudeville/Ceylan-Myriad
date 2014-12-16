@@ -25,14 +25,14 @@
 % Author: Jingxuan Ma (jingxuan.ma@edf.fr)
 
 
-% Tests for comparing and illustrating the differences of three types of
-% hashtables: hashtable, tracked hashtable and lazy hashtable.
+% Tests for comparing and illustrating the differences of four types of
+% hashtables: hashtable, tracked hashtable, lazy hashtable and map hashtable.
 %
-% See also hashtable.erl, tracked_hashtable.erl, lazy_hashtable.erl and their
-% respective test modules.
+% See also hashtable.erl, tracked_hashtable.erl, lazy_hashtable.erl,
+% map_hashtable.erl and their respective test modules.
 %
 % Directly depends on the following modules: hashtable, tracked_hashtable,
-% lazy_hashtable.
+% lazy_hashtable, map_hashtable.
 %
 -module(hashtables_comparison_test).
 
@@ -68,9 +68,17 @@ run() ->
 	test_facilities:display( "" ),
 	MyLH1 = lazy_hashtable:new( 10 ),
 	true = lazy_hashtable:isEmpty( MyLH1 ),
-
 	lazy_hashtable:display( "Vanilla lazy hashtable", MyLH1 ),
+
+	test_facilities:display( "" ),
+	MyM1 = map_hashtable:new( 10 ),
+	true = map_hashtable:isEmpty( MyM1 ),
+	map_hashtable:display( "Vanilla map hashtable", MyM1 ),
+
+
 	test_facilities:display( "End of the comparison of tables creation." ),
+
+
 
 	test_facilities:display(
 						 "Comparison of tables' state after adding entries:" ),
@@ -241,6 +249,7 @@ run() ->
 	test_facilities:display( "Listing the entries for keys ~p in tracked table:"
 		" ~n ~p", [ Keys, tracked_hashtable:selectEntries( Keys, MyTH9 ) ] ),
 
+
 	test_facilities:display( "" ),
 	MyLH7 = lazy_hashtable:addEntry( ?MyThirdKey, anything, MyLH6 ),
 	lazy_hashtable:display( MyLH7 ),
@@ -267,5 +276,9 @@ run() ->
 
 	test_facilities:display( "Listing the entries for keys in lazy table ~p:"
 		"~n ~p", [ Keys, lazy_hashtable:selectEntries( Keys, MyLH9 ) ] ),
+
+
+
+
 
 	test_facilities:stop().
