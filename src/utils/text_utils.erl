@@ -284,27 +284,27 @@ pid_to_string( Pid ) ->
 	list_utils:remove_last_element( Rest ).
 
 
-	%% ActualFirst = case First of
+	% ActualFirst = case First of
 
-	%%		"0" ->
-	%%			[];
+	%		"0" ->
+	%			[];
 
-	%%		_ ->
-	%%			First ++ "."
+	%		_ ->
+	%			First ++ "."
 
-	%% end,
+	% end,
 
-	%% ActualThird = case Third of
+	% ActualThird = case Third of
 
-	%%		"0" ->
-	%%			[];
+	%		"0" ->
+	%			[];
 
-	%%		_ ->
-	%%			"." ++ Third
+	%		_ ->
+	%			"." ++ Third
 
-	%% end,
+	% end,
 
-	%% ActualFirst ++ Second ++ ActualThird.
+	% ActualFirst ++ Second ++ ActualThird.
 
 
 
@@ -473,8 +473,8 @@ percent_to_string( Value, Precision ) ->
 %
 -spec distance_to_string( unit_utils:millimeters()
 						 | unit_utils:int_millimeters() ) -> string().
-distance_to_string( Millimeters ) when is_float(Millimeters) ->
-	distance_to_string( round(Millimeters) );
+distance_to_string( Millimeters ) when is_float( Millimeters ) ->
+	distance_to_string( round( Millimeters ) );
 
 % Returns an exact textual description of the specified distance, expected to be
 % expressed as an integer number of millimeters.
@@ -511,7 +511,7 @@ distance_to_string( Millimeters ) ->
    end,
 
 	DistAfterMeters = DistAfterKm rem Meters,
-	%io:format( "DistAfterMeters = ~B.~n", [DistAfterMeters] ),
+	%io:format( "DistAfterMeters = ~B.~n", [ DistAfterMeters ] ),
 
 	ListWithCentimeters = case DistAfterMeters div Centimeters of
 
@@ -534,7 +534,7 @@ distance_to_string( Millimeters ) ->
 
 				 AtLeastOneMillimeter ->
 					 [ io_lib:format( "~Bmm", [ AtLeastOneMillimeter ] )
-						   | ListWithCentimeters ]
+					   | ListWithCentimeters ]
 
 	end,
 
@@ -567,7 +567,7 @@ distance_to_string( Millimeters ) ->
 %
 -spec distance_to_short_string( unit_utils:millimeters()
 							   | unit_utils:int_millimeters() ) -> string().
-distance_to_short_string( Millimeters ) when is_float(Millimeters) ->
+distance_to_short_string( Millimeters ) when is_float( Millimeters ) ->
 	distance_to_short_string( round( Millimeters ) );
 
 % Returns an approximate textual description of the specified distance, expected
@@ -586,7 +586,7 @@ distance_to_short_string( Millimeters ) ->
 
 	Centimeters = 10,
 	Meters = 100 * Centimeters,
-	Km = Meters*Meters,
+	Km = Meters * Meters,
 
 	% First, guess the most suitable unit, then use it:
 
@@ -677,7 +677,7 @@ duration_to_string( Milliseconds ) ->
 						  [ "1 minute" | ListWithHours ];
 
 					  _ ->
-						  [ io_lib:format("~B minutes", [ Minutes ] )
+						  [ io_lib:format( "~B minutes", [ Minutes ] )
 							   | ListWithHours ]
 
 	end,
@@ -692,7 +692,7 @@ duration_to_string( Milliseconds ) ->
 
 					  _ ->
 						  [ io_lib:format( "~B seconds", [ Seconds ] ) |
-							   ListWithMinutes ]
+							ListWithMinutes ]
 
 	end,
 
@@ -704,12 +704,12 @@ duration_to_string( Milliseconds ) ->
 						   ListWithSeconds;
 
 					   1 ->
-						   [ "1 millisecond" |ListWithSeconds];
+						   [ "1 millisecond" | ListWithSeconds];
 
 					   _ ->
-						   [ io_lib:format("~B milliseconds",
-										   [ ActualMilliseconds ] )
-									| ListWithSeconds ]
+						   [ io_lib:format( "~B milliseconds",
+											[ ActualMilliseconds ] )
+							 | ListWithSeconds ]
 
 	end,
 
@@ -723,7 +723,7 @@ duration_to_string( Milliseconds ) ->
 			OneElement;
 
 		[ Smaller | Bigger ] ->
-			join( ", ", lists:reverse(Bigger) ) ++ " and " ++ Smaller
+			join( ", ", lists:reverse( Bigger ) ) ++ " and " ++ Smaller
 
 	end.
 
@@ -868,7 +868,7 @@ string_to_float( String ) ->
 			try list_to_integer( String ) of
 
 				I ->
-					float(I)
+					float( I )
 
 			catch
 
@@ -1129,7 +1129,7 @@ trim_leading_whitespaces( InputString ) ->
 
 	% Largely inspired from http://www.trapexit.org/Trimming_Blanks_from_String:
 	re:replace( InputString, "^\\s*", "",
-			[ unicode, { return, list } ] ).
+				[ unicode, { return, list } ] ).
 
 
 
@@ -1154,7 +1154,7 @@ format_text_for_width( Text, Width ) ->
 
 	% Whitespaces converted to spaces:
 	CleanedTest = re:replace( lists:flatten( Text ), "\\s+", " ",
-		[ global, { return, list } ] ),
+							  [ global, { return, list } ] ),
 
 	WordList = string:tokens( CleanedTest, " " ),
 
@@ -1167,7 +1167,7 @@ format_text_for_width( Text, Width ) ->
 %
 join_words( WordList, Width ) ->
 	join_words( WordList, Width, _Lines=[], _CurrentLine="",
-		_CurrentLineLen=0 ).
+				_CurrentLineLen=0 ).
 
 
 join_words( [], _Width, AccLines, _CurrentLine, _CurrentLineLen=0 ) ->
@@ -1179,7 +1179,7 @@ join_words( [], Width, AccLines, CurrentLine, _CurrentLineLen ) ->
 	lists:reverse( [ pad_string( CurrentLine, Width ) | AccLines ] );
 
 join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
-		CurrentLineLen ) ->
+			CurrentLineLen ) ->
 
 	%io:format( "Managing word '~s' (len=~B), current line is '~s' (len=~B), "
 	%	"width = ~B.~n", [ Word, length( Word ), CurrentLine, CurrentLineLen,
@@ -1225,7 +1225,7 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 
 					%io:format("Current line is now '~s'.~n", [NewCurrentLine]),
 					join_words( RemainingWords, Width, AccLines, NewCurrentLine,
-						NewLineLen );
+								NewLineLen );
 
 				_ExceedingLen ->
 					% No, with this word the current line would be too wide,
@@ -1233,8 +1233,8 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 					PaddedCurrentLine = pad_string( CurrentLine, Width ),
 					%io:format( "Inserting line '~s'.~n", [PaddedCurrentLine] ),
 					join_words( RemainingWords, Width,
-						[ PaddedCurrentLine | AccLines ], Word,
-							   CompatibleWidth )
+								[ PaddedCurrentLine | AccLines ], Word,
+								CompatibleWidth )
 
 			end;
 
@@ -1325,7 +1325,7 @@ break_word( Word, Width ) ->
 	% chunk, finally directly cutting the word into appropriate pieces:
 	% CutIndex = length(Word) div 2,
 	% CutIndex = Width-1,
-	cut_into_chunks( Word, Width, [] ).
+	cut_into_chunks( Word, Width, _Acc=[] ).
 
 
 
@@ -1333,7 +1333,7 @@ break_word( Word, Width ) ->
 % width.
 %
 cut_into_chunks( _String=[], _ChunkSize, Acc ) ->
-	%io:format( "cut_into_chunks return ~p.", [lists:reverse(Acc)]),
+	%io:format( "cut_into_chunks return ~p.", [ lists:reverse( Acc ) ] ),
 	lists:reverse( Acc );
 
 % Last word may take the full width (no dash to add):
