@@ -150,8 +150,8 @@ run() ->
 	BinaryVersion = text_utils:string_to_binary( AFullSentence ),
 
 	TermsForSize = [ an_atom, 5, "aaa", "aaaa", [], [1], [1,2], {}, {1}, {1,2},
-					 self(), dict:new(), orddict:new(), hashtable:new(), 
-					 AFullSentence,	BinaryVersion ],
+					 self(), dict:new(), orddict:new(), hashtable:new(),
+					 AFullSentence, BinaryVersion ],
 
 	print_sizes( TermsForSize ),
 
@@ -185,6 +185,16 @@ run() ->
 							 "other = ~f%.",
 							 [ UserPercent, NicePercent, SystemPercent,
 							   IdlePercent, OtherPercent ] ),
+
+	MountPoints = system_utils:get_mount_points(),
+	test_facilities:display( "Displaying information about the local, "
+							 "actual (non-pseudo) mount points ~p:",
+							 [ MountPoints ] ),
+
+	[ test_facilities:display( " - information for filesystem '~s': ~s~n",
+							   [ M, system_utils:filesystem_info_to_string(
+								  system_utils:get_filesystem_info( M ) ) ] )
+								 || M <- MountPoints ],
 
 	test_facilities:display( "Full system information: ~ts",
 							 [ system_utils:get_system_description() ] ),

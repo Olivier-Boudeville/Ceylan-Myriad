@@ -45,23 +45,32 @@
 
 % System-related functions.
 -export([ get_interpreter_version/0, get_application_version/1,
+
 		  get_size_of_vm_word/0, get_size/1,
 		  interpret_byte_size/1, interpret_byte_size_with_unit/1,
-		  convert_byte_size_with_unit/1, display_memory_summary/0,
-		  get_total_physical_memory/0, get_total_physical_memory_on/1,
-		  get_memory_used_by_vm/0, get_total_memory_used/0,
+		  convert_byte_size_with_unit/1,
+
+		  display_memory_summary/0, get_total_physical_memory/0,
+		  get_total_physical_memory_on/1, get_memory_used_by_vm/0,
+		  get_total_memory_used/0,
+
 		  get_swap_status/0, get_core_count/0, get_process_count/0,
 		  compute_cpu_usage_between/2, compute_cpu_usage_for/1,
 		  compute_detailed_cpu_usage/2, get_cpu_usage_counters/0,
-		  get_disk_usage/0,
-		  get_operating_system_description/0,
-		  get_system_description/0 ]).
+
+		  get_disk_usage/0, get_mount_points/0,
+		  get_known_pseudo_filesystems/0, get_filesystem_info/1,
+		  filesystem_info_to_string/1,
+
+		  get_operating_system_description/0, get_system_description/0 ]).
 
 
+% Size, in number of bytes:
 -type byte_size() :: integer().
 
+
 -opaque cpu_usage_info() :: { integer(), integer(), integer(), integer(),
-							 integer() }.
+							  integer() }.
 
 
 -type cpu_usage_percentages() :: { math_utils:percent(), math_utils:percent(),
@@ -81,8 +90,60 @@
 -type host_dynamic_info() :: #host_dynamic_info{}.
 
 
+
+% Known real, actual types of filesystems:
+-type actual_filesystem_type() :: 'ext2' | 'ext3' | 'ext4' | 'vfat'.
+
+
+% Known pseudo filesystems:
+-type pseudo_filesystem_type() :: 'devtmpfs' | 'tmpfs'.
+
+
+% All the known types of filesystems (atom, to capture even lacking ones):
+-type filesystem_type() :: actual_filesystem_type()
+						 | pseudo_filesystem_type()
+						 | atom().
+
+
+% Stores information about a filesystem:
+%
+-record( fs_info, {
+
+		   % Device name (ex: /dev/sda5):
+		   filesystem :: file_utils:path(),
+
+		   % Mount point (ex: /boot):
+		   mount_point :: file_utils:path(),
+
+		   % Filesystem type (ex: 'ext4'):
+		   type :: filesystem_type(),
+
+		   % Used size, in bytes:
+		   used_size :: byte_size(),
+
+		   % Available size, in bytes:
+		   available_size :: byte_size(),
+
+		   % Number of used inodes:
+		   used_inodes :: basic_utils:count(),
+
+		   % Number of available inodes:
+		   available_inodes :: basic_utils:count()
+
+		  } ).
+
+
+-type fs_info() :: #fs_info{}.
+
+
 -export_type([ byte_size/0, cpu_usage_info/0, cpu_usage_percentages/0,
-			   host_static_info/0, host_dynamic_info/0 ]).
+			   host_static_info/0, host_dynamic_info/0,
+
+			   actual_filesystem_type/0, pseudo_filesystem_type/0,
+			   filesystem_type/0, fs_info/0
+
+			 ]).
+
 
 
 
@@ -820,11 +881,119 @@ get_cpu_usage_counters() ->
 
 
 
-% Returns the current usage of disks.
+% Returns the current usage of disks, as a human-readable string.
 %
--spec get_disk_usage() -> string().
+-spec get_disk_usage() -> text_utils:ustring().
 get_disk_usage() ->
-	 text_utils:remove_ending_carriage_return( os:cmd( "df -h" ) ).
+	 text_utils:remove_ending_carriage_return( os:cmd( "LANG= /bin/df -h" ) ).
+
+
+
+
+% Returns a list of the known types of pseudo-filesystems.
+%
+-spec get_known_pseudo_filesystems() -> [ pseudo_filesystem_type() ].
+get_known_pseudo_filesystems() ->
+
+	% A list of all current filesystems can be obtained thanks to: 'df -T'.
+	[ tmpfs, devtmpfs ].
+
+
+% Returns a list of the current, local mount points (excluding the
+% pseudo-filesystems).
+%
+-spec get_mount_points() -> [ file_utils:path() ].
+get_mount_points() ->
+
+	Cmd = "LANG= /bin/df -h --local --output=target"
+		++ get_exclude_pseudo_fs_opt() ++ "|grep -v 'Mounted on'",
+
+	ResAsOneString = text_utils:remove_ending_carriage_return( os:cmd( Cmd ) ),
+
+	text_utils:split( ResAsOneString, "\n" ).
+
+
+
+% (helper for df)
+%
+get_exclude_pseudo_fs_opt() ->
+
+	Excludes = [ " --exclude-type=" ++ text_utils:atom_to_string( P )
+				 || P <- get_known_pseudo_filesystems() ],
+
+	text_utils:join( _Sep=" ", Excludes ).
+
+
+
+% Returns information about the specified filesystem.
+%
+-spec get_filesystem_info( file_utils:path() ) -> fs_info().
+get_filesystem_info( FilesystemPath ) ->
+
+	Cmd = "LANG= /bin/df --block-size=1K --local "
+		++ get_exclude_pseudo_fs_opt()
+		++ " --output=source,target,fstype,used,avail,iused,iavail '"
+		++ FilesystemPath ++ "' | grep -v 'Mounted on'",
+
+	ResAsOneString = text_utils:remove_ending_carriage_return( os:cmd( Cmd ) ),
+
+	% Order of the columns: 'Filesystem / Mounted on / Type / Used / Avail /
+	% IUsed / IFree':
+	%
+	[ Fs, Mount, Type, USize, ASize, Uinodes, Ainodes ] = text_utils:split(
+														ResAsOneString, " " ),
+
+	% df outputs kiB, not kB:
+	#fs_info{ filesystem=Fs, mount_point=Mount,
+			  type=get_filesystem_type( Type ),
+			  used_size = 1024 * text_utils:string_to_integer( USize ),
+			  available_size = 1024 * text_utils:string_to_integer( ASize ),
+			  used_inodes = text_utils:string_to_integer( Uinodes ),
+			  available_inodes = text_utils:string_to_integer( Ainodes ) }.
+
+
+
+% Returns a textual description of the specified filesystem information.
+%
+-spec filesystem_info_to_string( fs_info() ) -> text_utils:ustring().
+filesystem_info_to_string( #fs_info{ filesystem=Fs, mount_point=Mount,
+									 type=Type,
+									 used_size=USize, available_size=ASize,
+									 used_inodes=Uinodes,
+									 available_inodes=Ainodes } ) ->
+
+	% For example vfat does not have inodes:
+	InodeString = case Uinodes + Ainodes of
+
+					  0 ->
+						  "";
+
+					  S ->
+						  Percent = 100 * Uinodes / S,
+						  text_utils:format( ", hence used at ~.1f%",
+											 [ Percent ] )
+
+	end,
+
+	text_utils:format( "filesystem ~s mounted on ~s (type: ~s). "
+					   "Used size: ~B bytes (i.e. ~s), available size: "
+					   "~B bytes (i.e. ~s) hence used at ~.1f% "
+					   "(total size: ~s), "
+					   "using ~B inodes and having ~B of them available~s",
+					   [ Fs, Mount, Type, USize,
+						 interpret_byte_size_with_unit( USize ), ASize,
+						 interpret_byte_size_with_unit( ASize ),
+						 100 * USize / ( USize + ASize ),
+						 interpret_byte_size_with_unit( USize + ASize ),
+						 Uinodes, Ainodes, InodeString ] ).
+
+
+
+-spec get_filesystem_type( text_utils:ustring() ) -> filesystem_type().
+get_filesystem_type( TypeString ) ->
+	% Better for now than relying on an uncomplete list:
+	text_utils:string_to_atom( TypeString ).
+
 
 
 
