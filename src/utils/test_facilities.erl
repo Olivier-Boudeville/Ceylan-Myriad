@@ -104,7 +104,7 @@ finished() ->
 	erlang:halt( 0 ).
 
 
--else.
+-else. % ExitAfterTest
 
 
 finished() ->
@@ -116,7 +116,7 @@ finished() ->
 	test_success.
 
 
--endif.
+-endif. % ExitAfterTest
 
 
 
