@@ -434,7 +434,7 @@ register_as( Name, RegistrationType ) ->
 % RegistrationType in 'local_only', 'global_only', 'local_and_global',
 % 'none', depending on what kind of registration is requested.
 %
-% Throws an exception on failure.
+% Throws an exception on failure (ex: if that name is already registered).
 %
 -spec register_as( pid(), registration_name(), registration_scope() ) -> void().
 register_as( Pid, Name, local_only ) when is_atom( Name ) ->
