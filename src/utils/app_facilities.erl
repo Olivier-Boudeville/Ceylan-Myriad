@@ -91,7 +91,7 @@ finished() ->
 	% local return:
 	app_success.
 
--else.
+-else. % ExitAfterApp
 
 finished() ->
 
@@ -101,7 +101,7 @@ finished() ->
 
 	app_success.
 
--endif.
+-endif. % ExitAfterApp
 
 
 
