@@ -163,6 +163,45 @@ all-recurse: $(BEAM_FILES)
 
 
 
+# The two sets of rules below are functional, yet they use very different
+# solutions (run_erl/eval) that can tested independently. 
+
+
+# To run an application as a service.
+#
+# Exactly like when running as %_exec_background, except services are shared
+# hence their node name must no depend on any user name; they are directly named
+# as their core target (ex: 'make X_exec_service' results in a node named
+# 'X@LOCALHOSTNAME').
+#
+# (these rules uses run_erl, that runs in the background)
+
+
+%_exec_service: %_app.beam %.beam
+	@echo "		Executing application $^ as a service (first form)"
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) `echo $@|sed 's|_exec_service$$||1'` --daemon --eval `echo $@|sed 's|_exec_service|_app:exec()|1'` $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+
+
+%_exec_service: %_app.beam
+	@echo "		Executing application $^ as a service (second form)"
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) `echo $@|sed 's|_exec_service$$||1'` --daemon --eval `echo $@|sed 's|_exec_service|_app:exec()|1'` $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+
+
+
+# Interactive variants, for service debugging:
+#
+# (these rules uses a standard 'erl -eval' put in the background)
+
+%_exec_service_debug: %_app.beam %.beam
+	@echo "		Executing application $^ as a debugged service (first form)"
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) `echo $@|sed 's|_exec_service_debug$$||1'` --background --eval `echo $@|sed 's|_exec_service_debug|_app:exec()|1'` $(INTERNAL_OPTIONS) $(CMD_LINE_OPT) &
+
+
+%_exec_service_debug: %_app.beam
+	@echo "		Executing application $^ as a debugged service (second form)"
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) `echo $@|sed 's|_exec_service_debug$$||1'` --background --eval `echo $@|sed 's|_exec_service_debug|_app:exec()|1'` $(INTERNAL_OPTIONS) $(CMD_LINE_OPT) &
+
+
 
 # Test section.
 
