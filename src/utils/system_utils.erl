@@ -927,7 +927,11 @@ get_exclude_pseudo_fs_opt() ->
 
 % Returns information about the specified filesystem.
 %
--spec get_filesystem_info( file_utils:path() ) -> fs_info().
+-spec get_filesystem_info( file_utils:bin_path() | file_utils:path() ) -> 
+								 fs_info().
+get_filesystem_info( BinFilesystemPath ) when is_binary( BinFilesystemPath ) ->
+	get_filesystem_info( text_utils:binary_to_string( BinFilesystemPath ) );
+
 get_filesystem_info( FilesystemPath ) ->
 
 	Cmd = "LANG= /bin/df --block-size=1K --local "
