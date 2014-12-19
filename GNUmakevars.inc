@@ -241,7 +241,8 @@ ERLANG_ROOT := $(shell dirname $(ERLANG_BIN_ROOT) )
 
 # Note that at least some versions of dialyzer (ex: the one shipped with 17.1)
 # will not deference anymore symlinks (if Erlang.plt pointing to Erlang-17.1.plt
-# for example, it will not be found; this is managed in our installation script):
+# for example, it will not be found; this is managed in our installation
+# script):
 #
 ERLANG_PLT_FILE := $(ERLANG_ROOT)/Erlang.plt
 
@@ -316,10 +317,19 @@ ERL_LAUNCHER = $(COMMON_SRC)/scripts/launch-erl.sh
 
 # Base compilation options that should be used for all modules (third-party
 # included):
+#
 # -v/+verbose causes inlining to be too verbose, ex:
 # "Old inliner: threshold=0 functions=[{setAttribute,3},.."
+#
 ERLANG_COMPILER_BASE_OPT += -b beam                                \
 						  +\"{debug_info_key,\\\"Ceylan-common\\\"}\"
+
+
+# To apply a parse transform, not only it must be already compiled, but also,
+# when compiling the module to be transformed, the BEAM of the transform must be
+# found:
+#
+ERLANG_COMPILER_PARSE_TRANSFORM_OPT += -pz $(COMMON_TOP)/src/utils
 
 
 # Warning-related options (may or may not be included):
@@ -351,6 +361,7 @@ ERLANG_COMPILER_WARNING_OPT += -W$(WARNING_LEVEL) +warn_export_all  \
 # Instead 'export ERL_COMPILER_OPTIONS=bin_opt_info' shall be punctually used.
 #
 ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_BASE_OPT) $(INC)           \
+	$(ERLANG_COMPILER_PARSE_TRANSFORM_OPT)                          \
 	$(ERLANG_COMPILER_EXEC_TARGET_OPT) $(ERLANG_COMPILER_DEBUG_OPT) \
 	$(ERLANG_COMPILER_NATIVE_COMPILATION_OPT)                       \
 	$(ERLANG_COMPILER_WARNING_OPT)                                  \
