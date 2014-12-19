@@ -16,6 +16,7 @@ TEST_SOURCES = $(wildcard *_test.erl)
 TEST_TARGETS = $(patsubst %.erl,%,$(TEST_SOURCES))
 
 
+
 # Regarding dependency management.
 
 # One can just ignore dependencies and rebuild "blindly" every module in current
@@ -74,7 +75,7 @@ TEST_TARGETS = $(patsubst %.erl,%,$(TEST_SOURCES))
 ifeq ($(BASE_MAKEFILE),true)
 
 # CORE_COUNT defined in common/GNUmakevars.inc :
-all: all-pre-hook
+all: all-pre-hook all-parse-transforms
 	@echo "   Building all, in parallel over $(CORE_COUNT) core(s), from "$(PWD) #`basename $(PWD)`
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m &&  \
 		$(MAKE) -s all-recurse -j $(CORE_COUNT) && cd .. ; else echo "     (directory $$m skipped)" ; \
@@ -82,18 +83,43 @@ all: all-pre-hook
 
 else
 
-all: all-pre-hook all-recurse $(BEAM_FILES)
+all: all-recurse-pre-hook all-recurse $(BEAM_FILES)
 
 endif
 
 
+# List here all parse transforms declared by this layer:
+#
+COMMON_PARSE_TRANSFORMS := $(COMMON_TOP)/src/utils/common_parse_transform.beam \
+						   $(COMMON_TOP)/src/utils/example_parse_transform.beam
 
-# Allows to insert arbitrary rules *before* other specified prerequisite
-# targets.
+
+PARSE_TRANSFORMS += $(COMMON_PARSE_TRANSFORMS)
+
+all-parse-transforms: all-parse-transforms-common
+
+all-parse-transforms-common:
+	@echo "   Building first all common parse transforms"
+	@$(MAKE) -s $(COMMON_PARSE_TRANSFORMS)
+
+
+# all*-pre-hook targets allow to insert arbitrary rules *before* other specified
+# prerequisite targets, at each level.
 #
 # Meant to be enriched with prerequisite targets by above layers:
-#
-all-pre-hook:
+
+# Called once per layer, when starting compiling it:
+all-pre-hook: all-pre-hook-common
+
+all-pre-hook-common:
+
+
+
+# Called once per subdirectory of the current layer, when starting compiling it:
+all-recurse-pre-hook: all-recurse-pre-hook-common
+
+all-recurse-pre-hook-common:
+
 
 
 # This rule is not used by default, as we use the -j option from the root
@@ -108,6 +134,15 @@ all-recurse: $(BEAM_FILES)
 	@echo "   Building all in "$(PWD) #`basename $(PWD)`
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s all CMD_LINE_OPT="${CMD_LINE_OPT}" && cd .. ; else echo "	 (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
 
+
+
+# We must first go into the directory in which the source of the parse transform
+# lies, otherwise the BEAM file will be created on the current (ex: root)
+# directory:
+#
+%_parse_transform.beam: %_parse_transform.erl
+	@echo "		Compiling parse transform $<"
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT) -o $$beam_file  $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
 
 %.beam: %.erl %.hrl
@@ -164,7 +199,7 @@ all-recurse: $(BEAM_FILES)
 
 
 # The two sets of rules below are functional, yet they use very different
-# solutions (run_erl/eval) that can tested independently. 
+# solutions (run_erl/eval) that can tested independently.
 
 
 # To run an application as a service.
@@ -423,7 +458,9 @@ info-install:
 
 # Allows to generate a file listing all the types defined in the specified
 # Erlang source tree.
+#
 # Ex: 'make generate-list-of-erlang-types ERLANG_SOURCE_ROOT=~/otp_src_R15B/'
+#
 generate-list-of-erlang-types:
 	@if [ -z "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, no ERLANG_SOURCE_ROOT variable specified." ; exit 15 ; fi ; if [ ! -d "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, specified directory (ERLANG_SOURCE_ROOT=$$ERLANG_SOURCE_ROOT) does not exist." ; exit 16 ; fi ; target_file="declared-types-in-Erlang.txt" ; erl="$(ERLANG_INTERPRETER)" ; target_path=`echo $$erl|sed "s|/bin/erl$$|/$$target_file|1"` ; echo "  Generating the list of types declared in the Erlang runtime..." &&  $(COMMON_TOP)/src/scripts/list-available-types.sh "$$ERLANG_SOURCE_ROOT" > $$target_path && echo "  Types have been collected in '$$target_path'."
 
