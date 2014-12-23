@@ -56,7 +56,7 @@
 %
 parse_transform( AST, _Options ) ->
 
-	io:format( "  (applying parse transform '~p')~n", [ ?MODULE ] ),
+	%io:format( "  (applying parse transform '~p')~n", [ ?MODULE ] ),
 
 	% We will be replacing here all calls to the 'table' pseudo-module by calls
 	% to the actual module designated by the default_hashtable_type local macro.
@@ -70,11 +70,14 @@ parse_transform( AST, _Options ) ->
 	%                               {atom,Line4,FunctionName}},
 	%              ListArgs }
 
+	% We will do the same kind of conversion for the type specifications (ex:
+	% function specs, type definitions, etc.)
+
 	%io:format( "Input AST:~n~p~n", [ AST ] ),
 
 	OutputAST = replace_table( AST ),
 
-	%io:format( "Output AST:~n~p~n", [ OutputAST ] ),
+	%io:format( "~n~nOutput AST:~n~p~n", [ OutputAST ] ),
 
 	OutputAST.
 
@@ -96,23 +99,38 @@ replace_table( AST ) ->
 
 	TransformFun = fun
 
-					   ( _Term={ call, L1, { remote, L2,
-											 { atom, Line3, table },
-											 { atom, Line4, FunctionName } },
-								 ListArgs }, UserData ) ->
+			   ( _Term={ call, L1, { remote, L2,
+									 { atom, Line3, table },
+									 { atom, Line4, FunctionName } },
+						 ListArgs }, UserData ) ->
 
-						   %io:format( " - transforming table:~s at line ~B~n",
-						   %			  [ FunctionName, Line3 ] ),
+				   %io:format( " - transforming table:~s call at line ~B~n",
+				   %			  [ FunctionName, Line3 ] ),
 
-						   NewTerm = { call, L1, { remote, L2,
-										 { atom, Line3, ?default_hashtable_type },
-										 { atom, Line4, FunctionName } },
-								 ListArgs },
+				   NewTerm = { call, L1, { remote, L2,
+								 { atom, Line3, ?default_hashtable_type },
+								 { atom, Line4, FunctionName } },
+							   ListArgs },
 
-						   { NewTerm, UserData };
+				   { NewTerm, UserData };
 
-					   ( Term, UserData ) ->
-						   { Term, UserData }
+
+				( _Term={ remote_type, L1, [
+								  { atom, L2, table},
+								  { atom, L3, table }, [] ] }, UserData ) ->
+
+					%io:format( " - transforming table spec at line ~B~n",
+					%		  [ L1 ] ),
+
+					NewTerm = { remote_type, L1, [
+								  { atom, L2, ?default_hashtable_type },
+								  { atom, L3, ?default_hashtable_type }, [] ] },
+
+					{ NewTerm, UserData };
+
+
+			   ( Term, UserData ) ->
+				   { Term, UserData }
 
 	end,
 
