@@ -309,6 +309,10 @@ get_size_of_vm_word() ->
 %
 -spec get_size( term() ) -> byte_size().
 get_size( Term ) ->
+
+	% With sharing taken into account:
+	% use erts_debug:size/1 * get_size_of_vm_word()
+	%
 	erts_debug:flat_size( Term ) * get_size_of_vm_word().
 
 
@@ -927,7 +931,7 @@ get_exclude_pseudo_fs_opt() ->
 
 % Returns information about the specified filesystem.
 %
--spec get_filesystem_info( file_utils:bin_path() | file_utils:path() ) -> 
+-spec get_filesystem_info( file_utils:bin_path() | file_utils:path() ) ->
 								 fs_info().
 get_filesystem_info( BinFilesystemPath ) when is_binary( BinFilesystemPath ) ->
 	get_filesystem_info( text_utils:binary_to_string( BinFilesystemPath ) );
