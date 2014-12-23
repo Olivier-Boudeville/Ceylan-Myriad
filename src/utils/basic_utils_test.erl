@@ -196,77 +196,7 @@ run() ->
 	{ 4, 22, 11 } = basic_utils:parse_version( "4.22.11" ),
 
 	test_facilities:display( "Generating a new UUID:"
-		" '~s'.", [ basic_utils:generate_uuid() ] ),
-
-
-	test_facilities:display( "Testing typing information." ),
-
-	boolean = basic_utils:get_type_of( true ),
-
-	atom = basic_utils:get_type_of( 'an atom' ),
-
-	binary = basic_utils:get_type_of( list_to_binary( "1" ) ),
-
-	float = basic_utils:get_type_of( 1.0 ),
-
-	function = basic_utils:get_type_of( fun(X) -> X + 1 end ),
-
-	integer = basic_utils:get_type_of( 42 ),
-
-	pid = basic_utils:get_type_of( self() ),
-
-	list = basic_utils:get_type_of( [ 1, 2 ] ),
-
-	%port = basic_utils:get_type_of( APort ),
-
-	tuple = basic_utils:get_type_of( { a, b } ),
-
-	reference = basic_utils:get_type_of( make_ref() ),
-
-
-	test_facilities:display( "Testing term recursive transformation." ),
-
-	% This term transformer does not change anything in the terms it scans, and
-	% just comment the traversal it does:
-	%
-	IdTermTransformer = fun( Term, UserData ) ->
-
-		NewUserData = [
-					io_lib:format( "Inspected '~p', ", [ Term ] ) | UserData ],
-
-		{ Term, NewUserData }
-
-						end,
-
-	TermToTraverse = { pseudo_record, [], { a, 1.0},
-					   [ { b, 42 }, "hello", [ <<"foo">> ] ], self() },
-
-	{ TraversedTerm, InspectData } = basic_utils:traverse_term( TermToTraverse,
-						_Type=atom, IdTermTransformer, _UserData=[] ),
-
-	test_facilities:display( "Traversal of term:~n'~p' with "
-							 "id term transformer "
-							 "yielded:~n'~p', producing user data '~s'",
-							 [ TermToTraverse, TraversedTerm,
-							   lists:reverse( InspectData ) ] ),
-
-
-	% This term transformer changes a term into a textual representation, and
-	% does not do anything with user data:
-	TextTermTransformer = fun( Term, UserData ) ->
-
-		{ io_lib:format( "~w", [ Term ] ), UserData }
-
-						  end,
-
-	% Requested to operate only on PIDs:
-	{ NewTraversedTerm, _UselessData } = basic_utils:traverse_term(
-				TermToTraverse, _OtherType=pid, TextTermTransformer,
-				_OtherUserData=undefined ),
-
-	test_facilities:display( "Traversal of term:~n'~p' with "
-							 "text term transformer yielded:~n'~p'.",
-							 [ TermToTraverse, NewTraversedTerm ] ),
+							 " '~s'.", [ basic_utils:generate_uuid() ] ),
 
 
 	test_facilities:display( "Generating a process-specific value: ~w.",

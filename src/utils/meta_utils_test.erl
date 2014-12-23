@@ -48,6 +48,73 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	test_facilities:display( "Testing parse transform support." ),
+	test_facilities:display( "Testing typing information." ),
+
+	boolean = meta_utils:get_type_of( true ),
+
+	atom = meta_utils:get_type_of( 'an atom' ),
+
+	binary = meta_utils:get_type_of( list_to_binary( "1" ) ),
+
+	float = meta_utils:get_type_of( 1.0 ),
+
+	function = meta_utils:get_type_of( fun(X) -> X + 1 end ),
+
+	integer = meta_utils:get_type_of( 42 ),
+
+	pid = meta_utils:get_type_of( self() ),
+
+	list = meta_utils:get_type_of( [ 1, 2 ] ),
+
+	%port = meta_utils:get_type_of( APort ),
+
+	tuple = meta_utils:get_type_of( { a, b } ),
+
+	reference = meta_utils:get_type_of( make_ref() ),
+
+
+	test_facilities:display( "Testing term recursive transformation." ),
+
+	% This term transformer does not change anything in the terms it scans, and
+	% just comment the traversal it does:
+	%
+	IdTermTransformer = fun( Term, UserData ) ->
+
+		NewUserData = [
+					io_lib:format( "Inspected '~p', ", [ Term ] ) | UserData ],
+
+		{ Term, NewUserData }
+
+						end,
+
+	TermToTraverse = { pseudo_record, [], { a, 1.0},
+					   [ { b, 42 }, "hello", [ <<"foo">> ] ], self() },
+
+	{ TraversedTerm, InspectData } = meta_utils:traverse_term( TermToTraverse,
+						_Type=atom, IdTermTransformer, _UserData=[] ),
+
+	test_facilities:display( "Traversal of term:~n'~p' with "
+							 "id term transformer "
+							 "yielded:~n'~p', producing user data '~s'",
+							 [ TermToTraverse, TraversedTerm,
+							   lists:reverse( InspectData ) ] ),
+
+
+	% This term transformer changes a term into a textual representation, and
+	% does not do anything with user data:
+	TextTermTransformer = fun( Term, UserData ) ->
+
+		{ io_lib:format( "~w", [ Term ] ), UserData }
+
+						  end,
+
+	% Requested to operate only on PIDs:
+	{ NewTraversedTerm, _UselessData } = meta_utils:traverse_term(
+				TermToTraverse, _OtherType=pid, TextTermTransformer,
+				_OtherUserData=undefined ),
+
+	test_facilities:display( "Traversal of term:~n'~p' with "
+							 "text term transformer yielded:~n'~p'.",
+							 [ TermToTraverse, NewTraversedTerm ] ),
 
 	test_facilities:stop().
