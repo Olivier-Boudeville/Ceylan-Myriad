@@ -46,7 +46,11 @@
 %
 parse_transform( AST, _Options ) ->
 
-	io:format( "Applying parse transform '~p' on:~n~p",
-			   [ ?MODULE, AST ] ),
+	% Less verbose:
+	io:format( "       (applying example parse transform '~p')~n", 
+			   [ ?MODULE ] ),
+
+	%io:format( "Applying example parse transform '~p' on:~n~p",
+	%		   [ ?MODULE, AST ] ),
 
 	AST.
