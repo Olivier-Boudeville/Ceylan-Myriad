@@ -31,6 +31,25 @@
 %
 % See list_hashtable_test.erl for the corresponding test.
 %
+% We provide different multiple types of hashtables, including:
+%
+% - 'hashtable', the most basic, safest, reference implementation
+% - and quite efficient as well
+%
+% - 'tracked_hashtable', an attempt of optimisation of it (not necessarily the
+% best)
+%
+% - 'lazy_hashtable', deciding to optimise in a less costly way
+% than 'tracked_hashtable'
+%
+% - 'map_hashtable', which is probably the most efficient implementation
+% (speed/size compromise)
+%
+% - 'list_hashtable' (this module), a list-based implementation, efficient for
+% smaller table (and only them)
+%
+% They are to provide the same API (signatures and contracts).
+
 -module(list_hashtable).
 
 
@@ -140,18 +159,18 @@ removeEntry( Key, Hashtable ) ->
 
 % Looks-up specified entry (designated by its key) in specified hashtable.
 %
-% Returns either 'hashtable_key_not_found' if no such key is registered in the
+% Returns either 'key_not_found' if no such key is registered in the
 % table, or { value, Value }, with Value being the value associated to the
 % specified key.
 %
 -spec lookupEntry( key(), list_hashtable() ) ->
-				 'hashtable_key_not_found' | { 'value', value() }.
+				 'key_not_found' | { 'value', value() }.
 lookupEntry( Key, Hashtable ) ->
 
 	case lists:keyfind( Key, _N=1, Hashtable ) of
 
 		false ->
-			hashtable_key_not_found;
+			key_not_found;
 
 		{ Key, Value } ->
 			{ value, Value }
@@ -185,7 +204,7 @@ getEntry( Key, Hashtable ) ->
 
 		false ->
 			% Badmatches are not informative enough:
-			throw( { hashtable_key_not_found, Key } )
+			throw( { key_not_found, Key } )
 
 	end.
 
@@ -207,7 +226,7 @@ extractEntry( Key, Hashtable ) ->
 
 		false ->
 			% Badmatches are not informative enough:
-			throw( { hashtable_key_not_found, Key } )
+			throw( { key_not_found, Key } )
 
 	end.
 
@@ -281,7 +300,7 @@ addToEntry( Key, Number, Hashtable ) ->
 
 
 		false ->
-			throw( { hashtable_key_not_found, Key } )
+			throw( { key_not_found, Key } )
 
 	end.
 
@@ -303,7 +322,7 @@ subtractFromEntry( Key, Number, Hashtable ) ->
 
 
 		false ->
-			throw( { hashtable_key_not_found, Key } )
+			throw( { key_not_found, Key } )
 
 	end.
 
@@ -330,7 +349,7 @@ toggleEntry( Key, Hashtable ) ->
 			throw( { non_boolean_value, Other } );
 
 		false ->
-			throw( { hashtable_key_not_found, Key } )
+			throw( { key_not_found, Key } )
 
 	end.
 
@@ -368,7 +387,7 @@ appendToEntry( Key, Element, Hashtable ) ->
 			[ { Key, [ Element | ListValue ] } | ShrunkHashtable ];
 
 		false ->
-			throw( { hashtable_key_not_found, Key } )
+			throw( { key_not_found, Key } )
 
 	end.
 
@@ -390,7 +409,7 @@ deleteFromEntry( Key, Element, Hashtable ) ->
 			[ { Key, lists:delete( Element, ListValue ) } | ShrunkHashtable ];
 
 		false ->
-			throw( { hashtable_key_not_found, Key } )
+			throw( { key_not_found, Key } )
 
 	end.
 
@@ -409,7 +428,7 @@ popFromEntry( Key, Hashtable ) ->
 			{ H, NewTable };
 
 		false ->
-			throw( { hashtable_key_not_found, Key } )
+			throw( { key_not_found, Key } )
 
 	end.
 
@@ -442,7 +461,7 @@ selectEntries( _Keys=[ K | T ], Hashtable, Acc ) ->
 
 		false ->
 			% Badmatches are not informative enough:
-			throw( { hashtable_key_not_found, K } );
+			throw( { key_not_found, K } );
 
 		%{ K, V } ->
 		Entry ->

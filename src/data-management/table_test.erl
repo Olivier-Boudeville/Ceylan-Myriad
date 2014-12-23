@@ -90,7 +90,7 @@ run() ->
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
 		table:lookupEntry( ?MyFirstKey, MyH5 ) ] ),
 
-	hashtable_key_not_found  = table:lookupEntry( ?MyFirstKey, MyH5 ),
+	key_not_found  = table:lookupEntry( ?MyFirstKey, MyH5 ),
 
 	% removeEntry can also be used if the specified key is not here, will return
 	% an identical table.
@@ -152,7 +152,7 @@ run() ->
 	% MyH8 should have { MySecondKey, [1,2,3] } and { ?MyThirdKey, 3 }:
 	MyH8 = table:merge( MyH4, MyH7 ),
 	test_facilities:display( "Merged table: ~s",
-							[ table:toString( MyH8 ) ] ),
+							 [ table:toString( MyH8 ) ] ),
 
 	MyH9 = table:optimise( MyH8 ),
 	table:display( "Optimised merged table", MyH9 ),
@@ -160,6 +160,6 @@ run() ->
 	Keys = [ ?MyFirstKey, ?MyThirdKey ],
 
 	test_facilities:display( "Listing the entries for keys ~p:~n ~p",
-							[ Keys, table:selectEntries( Keys, MyH9 ) ] ),
+							 [ Keys, table:selectEntries( Keys, MyH9 ) ] ),
 
 	test_facilities:stop().

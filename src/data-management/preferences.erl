@@ -238,7 +238,7 @@ server_main_loop( Hashtable ) ->
 
 			Answer = case ?hashtable_type:lookupEntry( Key, Hashtable ) of
 
-				hashtable_key_not_found ->
+				key_not_found ->
 							 undefined;
 
 				{ value, V } ->
@@ -269,7 +269,7 @@ server_main_loop( Hashtable ) ->
 
 					% Enforces a consistent order:
 					Strings = [ io_lib:format( "~p: ~p", [ K, V ] )
-					   || { K, V } <- lists:sort( L ) ],
+								|| { K, V } <- lists:sort( L ) ],
 
 					io_lib:format( "~B preferences recorded:~s~n",
 								 [ length( L ),
@@ -331,6 +331,7 @@ add_preferences_from( Filename, Table ) ->
 			Table
 
 	end.
+
 
 
 % Checks specified entries.

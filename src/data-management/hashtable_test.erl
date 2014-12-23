@@ -87,7 +87,7 @@ run() ->
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
 		hashtable:lookupEntry( ?MyFirstKey, MyH5 ) ] ),
 
-	hashtable_key_not_found  = hashtable:lookupEntry( ?MyFirstKey, MyH5 ),
+	key_not_found  = hashtable:lookupEntry( ?MyFirstKey, MyH5 ),
 
 	% removeEntry can also be used if the specified key is not here, will return
 	% an identical table.

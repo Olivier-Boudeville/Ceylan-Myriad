@@ -211,7 +211,7 @@ run_basic_tests() ->
 	test_facilities:display( "Looking up for ~s hashtable: ~p", [ ?MyFirstKey,
 		hashtable:lookupEntry( ?MyFirstKey, MyH6 ) ] ),
 
-	hashtable_key_not_found = hashtable:lookupEntry( ?MyFirstKey, MyH6 ),
+	key_not_found = hashtable:lookupEntry( ?MyFirstKey, MyH6 ),
 
 	% removeEntry can also be used if the specified key is not here, will return
 	% an identical table.
@@ -234,7 +234,7 @@ run_basic_tests() ->
 		[ ?MyFirstKey,
 		  tracked_hashtable:lookupEntry( ?MyFirstKey, MyTH6 ) ] ),
 
-	hashtable_key_not_found = tracked_hashtable:lookupEntry( ?MyFirstKey,
+	key_not_found = tracked_hashtable:lookupEntry( ?MyFirstKey,
 															 MyTH6 ),
 
 	% removeEntry can also be used if the specified key is not here, will return
@@ -255,7 +255,7 @@ run_basic_tests() ->
 	test_facilities:display( "Looking up for ~s in lazy hashtable: ~p",
 		[ ?MyFirstKey, lazy_hashtable:lookupEntry( ?MyFirstKey, MyLH6 ) ] ),
 
-	hashtable_key_not_found = lazy_hashtable:lookupEntry( ?MyFirstKey, MyLH6 ),
+	key_not_found = lazy_hashtable:lookupEntry( ?MyFirstKey, MyLH6 ),
 
 	% removeEntry can also be used if the specified key is not here, will return
 	% an identical table.
@@ -275,14 +275,14 @@ run_basic_tests() ->
 	test_facilities:display( "Looking up for ~s in map hashtable: ~p",
 		[ ?MyFirstKey, map_hashtable:lookupEntry( ?MyFirstKey, MyMH6 ) ] ),
 
-	hashtable_key_not_found = map_hashtable:lookupEntry( ?MyFirstKey, MyMH6 ),
+	key_not_found = map_hashtable:lookupEntry( ?MyFirstKey, MyMH6 ),
 
 
 	test_facilities:display( "Looking up for ~s in list hashtable: ~p",
 		[ ?MyFirstKey, list_hashtable:lookupEntry( ?MyFirstKey, MyL5 ) ] ),
 
 	{ value, "MyFirstValue" } = list_hashtable:lookupEntry( ?MyFirstKey,
-														   MyL5 ),
+															MyL5 ),
 
 	test_facilities:display( "Removing that entry." ),
 	MyL6 = list_hashtable:removeEntry( ?MyFirstKey, MyL5 ),
@@ -291,7 +291,7 @@ run_basic_tests() ->
 	test_facilities:display( "Looking up for ~s in list hashtable: ~p",
 		[ ?MyFirstKey, list_hashtable:lookupEntry( ?MyFirstKey, MyL6 ) ] ),
 
-	hashtable_key_not_found = list_hashtable:lookupEntry( ?MyFirstKey, MyL6 ),
+	key_not_found = list_hashtable:lookupEntry( ?MyFirstKey, MyL6 ),
 
 	% removeEntry can also be used if the specified key is not here, will return
 	% an identical table.

@@ -36,19 +36,25 @@
 % containing key/value pairs.
 %
 %
-% Note: we provide different three types of hashtables:
+% We provide different multiple types of hashtables, including:
 %
 % - 'hashtable' (this module), the most basic, safest, reference implementation
+% - and quite efficient as well
 %
 % - 'tracked_hashtable', an attempt of optimisation of it (not necessarily the
 % best)
 %
-% - 'lazy_hashtable', which is probably the most efficient implementation
+% - 'lazy_hashtable', deciding to optimise in a less costly way
+% than 'tracked_hashtable'
+%
+% - 'map_hashtable', which is probably the most efficient implementation
+% (speed/size compromise)
+%
+% - 'list_hashtable', a list-based implementation, efficient for smaller table
+% (and only them)
 %
 % They are to provide the same API (signatures and contracts).
 %
-% A fourth implementation could be map-based (R17 and above) and aggressively
-% inlined.
 %
 -module(hashtable).
 
@@ -316,12 +322,12 @@ removeDiagnosedEntry( Key, Hashtable ) ->
 
 % Looks-up specified entry (designated by its key) in specified hashtable.
 %
-% Returns either 'hashtable_key_not_found' if no such key is registered in the
+% Returns either 'key_not_found' if no such key is registered in the
 % table, or { value, Value }, with Value being the value associated to the
 % specified key.
 %
 -spec lookupEntry( key(), hashtable() ) ->
-				 'hashtable_key_not_found' | { 'value', value() }.
+				 'key_not_found' | { 'value', value() }.
 lookupEntry( Key, Hashtable ) ->
 	lookupInList( Key, element( get_bucket_index( Key, Hashtable ),
 		Hashtable ) ).
@@ -339,7 +345,7 @@ hasEntry( Key, Hashtable ) ->
 		{ value, _Value } ->
 			true;
 
-		% hashtable_key_not_found ->
+		% key_not_found ->
 		_ ->
 			false
 
@@ -357,16 +363,16 @@ hasEntry( Key, Hashtable ) ->
 getEntry( Key, Hashtable ) ->
 
 	case lookupInList( Key, element( get_bucket_index( Key, Hashtable ),
-									Hashtable ) ) of
+									 Hashtable ) ) of
 
 		% Most likely case first:
 		{ value, Value } ->
 			Value;
 
-		%hashtable_key_not_found ->
+		%key_not_found ->
 		_ ->
 			% Badmatches are not informative enough:
-			throw( { hashtable_key_not_found, Key } )
+			throw( { key_not_found, Key } )
 
 	end.
 
@@ -385,10 +391,10 @@ extractEntry( Key, Hashtable ) ->
 
 	case extractFromList( Key, element( BucketIndex, Hashtable ) ) of
 
-		hashtable_key_not_found ->
+		key_not_found ->
 
 			% Badmatches are not informative enough:
-			throw( { hashtable_key_not_found, Key } );
+			throw( { key_not_found, Key } );
 
 
 		{ Value, ShortenBucket } ->
@@ -429,7 +435,8 @@ mapOnEntries( Fun, Hashtable ) ->
 
 
 
-% Returns a new hashtable, with the entries from specified bucket list transformed.q
+% Returns a new hashtable, with the entries from specified bucket list
+% transformed.
 %
 % (helper)
 %
@@ -494,8 +501,7 @@ map_bucket_for_values( Fun, Bucket ) ->
 -spec foldOnEntries( fun( ( entry(), basic_utils:accumulator() )
 						  -> basic_utils:accumulator() ),
 					 basic_utils:accumulator(),
-					 hashtable() ) ->
-						   basic_utils:accumulator().
+					 hashtable() ) -> basic_utils:accumulator().
 foldOnEntries( Fun, InitialAcc, Hashtable ) ->
 
 	BucketList = tuple_to_list( Hashtable ),
@@ -535,10 +541,10 @@ addToEntry( Key, Value, Hashtable ) ->
 		{ value, Number } ->
 			addEntry( Key, Number + Value, Hashtable );
 
-		%hashtable_key_not_found ->
+		%key_not_found ->
 		_ ->
 			% Badmatches are not informative enough:
-			throw( { hashtable_key_not_found, Key } )
+			throw( { key_not_found, Key } )
 
 	end.
 
@@ -559,10 +565,10 @@ subtractFromEntry( Key, Value, Hashtable ) ->
 		{ value, Number } ->
 			addEntry( Key, Number - Value, Hashtable );
 
-		%hashtable_key_not_found ->
+		%key_not_found ->
 		_ ->
 			% Badmatches are not informative enough:
-			throw( { hashtable_key_not_found, Key } )
+			throw( { key_not_found, Key } )
 
 	end.
 
@@ -590,9 +596,9 @@ toggleEntry( Key, Hashtable ) ->
 		{ value, Other } ->
 			throw( { non_boolean_value, Other } );
 
-		%hashtable_key_not_found ->
+		%key_not_found ->
 		_ ->
-			throw( { hashtable_key_not_found, Key } )
+			throw( { key_not_found, Key } )
 
 	end.
 
@@ -632,9 +638,9 @@ appendToEntry( Key, Element, Hashtable ) ->
 		{ value, List } ->
 			addEntry( Key, [ Element | List ], Hashtable );
 
-		%hashtable_key_not_found ->
+		%key_not_found ->
 		_ ->
-			throw( { hashtable_key_not_found, Key } )
+			throw( { key_not_found, Key } )
 
 	end.
 
@@ -656,10 +662,10 @@ deleteFromEntry( Key, Element, Hashtable ) ->
 		{ value, List } ->
 			addEntry( Key, lists:delete( Element, List ), Hashtable );
 
-		%hashtable_key_not_found ->
+		%key_not_found ->
 		_ ->
 			% Badmatches are not informative enough:
-			throw( { hashtable_key_not_found, Key } )
+			throw( { key_not_found, Key } )
 
 	end.
 
@@ -676,10 +682,10 @@ popFromEntry( Key, Hashtable ) ->
 		{ value, [ H | T ] } ->
 			{ H, addEntry( Key, T, Hashtable ) };
 
-		%hashtable_key_not_found ->
+		%key_not_found ->
 		_ ->
 			% Badmatches are not informative enough:
-			throw( { hashtable_key_not_found, Key } )
+			throw( { key_not_found, Key } )
 
 	end.
 
@@ -714,10 +720,10 @@ selectEntries( _Keys=[ K | T ], Hashtable, Acc ) ->
 		{ value, V } ->
 			selectEntries( T, Hashtable, [ { K, V } | Acc ] );
 
-		%hashtable_key_not_found ->
+		%key_not_found ->
 		_ ->
 			% Badmatches are not informative enough:
-			throw( { hashtable_key_not_found, K } )
+			throw( { key_not_found, K } )
 
 	end.
 
@@ -813,7 +819,7 @@ optimise( Hashtable ) ->
 		% Outside bounds, re-hash:
 		true ->
 			optimise_unconditionally( EntryCount, BucketCount, Entries,
-									 Hashtable );
+									  Hashtable );
 
 		false ->
 			Hashtable
@@ -881,7 +887,7 @@ toString( Hashtable, user_friendly ) ->
 
 			% Enforces a consistent order:
 			Strings = [ io_lib:format( "~p: ~p", [ K, V ] )
-					   || { K, V } <- lists:sort( L ) ],
+						|| { K, V } <- lists:sort( L ) ],
 
 			% Flatten is needed, in order to use the result with ~s:
 			lists:flatten( io_lib:format( "Hashtable with ~B entry(ies):~s~n",
@@ -1093,12 +1099,12 @@ lookupInList( _Key, _TargetList=[] ) ->
 	% We hesitated and considered returning the key since, if this function is
 	% used like '{value,V} = hashtable:lookupInList( K,L)', if the key is not
 	% found, the raised 'badmatch' will directly specify the offending key
-	% instead of a mere {badmatch,hashtable_key_not_found}.
+	% instead of a mere {badmatch,key_not_found}.
 	%
 	% However now getEntry/2 throws an exception and should be used instead.
 
-	%{ hashtable_key_not_found, Key };
-	hashtable_key_not_found;
+	%{ key_not_found, Key };
+	key_not_found;
 
 lookupInList( Key, _TargetList=[ { Key, Value } | _T ] ) ->
 	{ value, Value };
@@ -1109,15 +1115,15 @@ lookupInList( Key, _TargetList=[ _H | T ] ) ->
 
 
 % Returns the value corresponding to the key in the specified list, and the list
-% without this entry: { Value, ShortenList }, or 'hashtable_key_not_found'.
+% without this entry: { Value, ShortenList }, or 'key_not_found'.
 %
 extractFromList( Key, TargetList ) ->
 	extractFromList( Key, TargetList, _AccList=[] ).
 
 
 extractFromList( _Key, _TargetList=[], _AccList ) ->
-	%{ hashtable_key_not_found, Key };
-	hashtable_key_not_found;
+	%{ key_not_found, Key };
+	key_not_found;
 
 extractFromList( Key, _TargetList=[ { Key, Value } | T ], AccList ) ->
 	% Entry order does not matter:
