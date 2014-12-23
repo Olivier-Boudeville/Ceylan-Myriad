@@ -88,19 +88,12 @@ all: all-recurse-pre-hook all-recurse $(BEAM_FILES)
 endif
 
 
-# List here all parse transforms declared by this layer:
-#
-COMMON_PARSE_TRANSFORMS := $(COMMON_TOP)/src/utils/common_parse_transform.beam \
-						   $(COMMON_TOP)/src/utils/example_parse_transform.beam
 
+all-parse-transforms: $(BOOTSTRAP_MODULES) all-parse-transforms-common
 
-PARSE_TRANSFORMS += $(COMMON_PARSE_TRANSFORMS)
-
-all-parse-transforms: all-parse-transforms-common
-
-all-parse-transforms-common:
+all-parse-transforms-common: 
 	@echo "   Building first all common parse transforms"
-	@$(MAKE) -s $(COMMON_PARSE_TRANSFORMS)
+	@$(MAKE) -s $(LAYER_PARSE_TRANSFORMS)
 
 
 # all*-pre-hook targets allow to insert arbitrary rules *before* other specified
@@ -142,7 +135,15 @@ all-recurse: $(BEAM_FILES)
 #
 %_parse_transform.beam: %_parse_transform.erl
 	@echo "		Compiling parse transform $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT) -o $$beam_file  $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file  $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
+
+# Must be special-cased: should not be built with parse-transforms, by design
+#  not available yet:
+#
+%meta_utils.beam: %meta_utils.erl
+	@echo "		Compiling bootstrap module $<"
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file  $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
 
 %.beam: %.erl %.hrl
