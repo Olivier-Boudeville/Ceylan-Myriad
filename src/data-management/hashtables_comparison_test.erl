@@ -40,6 +40,10 @@
 % Directly depends on the following modules: hashtable, tracked_hashtable,
 % lazy_hashtable, map_hashtable, list_hashtable.
 %
+% Note that the 'table' pseudo-module is not tested here: not only it is
+% actually one of the previous implementations, but also modules are applied
+% dynamically here, hence the parse transform will not replace anything.
+%
 -module(hashtables_comparison_test).
 
 
