@@ -26,13 +26,14 @@
 % Creation date: August 30, 2007.
 
 
-% Gathering of various convenient facilities.
+% Gathering of various Finite State Machine related facilities.
+%
 % See fsm_utils_test.erl for the corresponding test.
+%
 -module(fsm_utils).
 
 
 -export([ create_blank_fsm_state/0, setFsmAttribute/3, getFsmAttribute/2 ]).
-
 
 
 
@@ -41,25 +42,24 @@
 
 
 
-
 % Creates an attribute table appropriate to store a FSM state.
 %
 % setFsmAttribute, getFsmAttribute and getFsmAttr are to be used with these
 % variables too.
 %
--spec create_blank_fsm_state() -> hashtable:hashtable().
+-spec create_blank_fsm_state() -> table:table().
 create_blank_fsm_state() ->
-	hashtable:new( ?FSMAttributeCountUpperBound ).
+	table:new( ?FSMAttributeCountUpperBound ).
 
 
 
 
 % Sets specified FSM state attribute.
 %
--spec setFsmAttribute( hashtable:hashtable(), hashtable:key(),
-					  hashtable:value() ) -> hashtable:hashtable().
+-spec setFsmAttribute( table:table(), table:key(), table:value() ) -> 
+							 table:table().
 setFsmAttribute( FsmState, AttributeName, AttributeValue ) ->
-	hashtable:addEntry( AttributeName, AttributeValue, FsmState ).
+	table:addEntry( AttributeName, AttributeValue, FsmState ).
 
 
 
@@ -69,13 +69,13 @@ setFsmAttribute( FsmState, AttributeName, AttributeValue ) ->
 % Returns either a {value,Value} pair, if the attribute is found, or
 % 'attribute_not_found'.
 %
--spec getFsmAttribute(hashtable:hashtable(),hashtable:key())
-		-> hashtable:value() | 'attribute_not_found'.
+-spec getFsmAttribute( table:table(), table:key() )
+					 -> table:value() | 'attribute_not_found'.
 getFsmAttribute( FsmState, AttributeName ) ->
 
-	case hashtable:lookupEntry( AttributeName, FsmState) of
+	case table:lookupEntry( AttributeName, FsmState ) of
 
-		hashtable_key_not_found->
+		key_not_found->
 			attribute_not_found ;
 
 		Other ->
