@@ -90,14 +90,14 @@
 
 % Miscellaneous functions.
 %
--export([ display_process_info/1,
+-export([ size/1, display_process_info/1,
 		  checkpoint/1, display/1, display/2, debug/1, debug/2,
 		  parse_version/1, compare_versions/2,
 		  get_process_specific_value/0, get_process_specific_value/2,
 		  get_execution_target/0,
 		  is_alive/1, is_alive/2,
 		  is_debug_mode_enabled/0,
-		  generate_uuid/0, get_type_of/1, traverse_term/4,
+		  generate_uuid/0,
 		  crash/0, enter_infinite_loop/0 ]).
 
 
@@ -155,28 +155,6 @@
 % operations:
 %
 -type accumulator() :: any().
-
-
-% Type-related section.
-
-
-% The "most precise" description of a type (ex: 'boolean' and 'atom' coexist,
-% 'number ' are not used), etc.
-%
--type type_description() :: 'atom' | 'binary' | 'boolean' | 'float' | 'function'
-						  | 'integer' | 'list' | 'pid' | 'port' | 'record'
-						  | 'reference' | 'tuple'.
-
-
-
-% Type of functions to transform terms during a recursive traversal (see
-% traverse_term/4).
-%
-% Note: apparently we cannot use the 'when' notation here (InputTerm ... when
-% InputTerm :: term()).
-%
--type term_transformer() :: fun( ( term(), user_data() ) ->
-							  { term(), user_data() } ).
 
 
 
@@ -244,7 +222,7 @@
 -export_type([
 
 			  void/0, count/0, bit_mask/0, exit_reason/0, maybe/1, user_data/0,
-			  accumulator/0, type_description/0, term_transformer/0,
+			  accumulator/0,
 			  timestamp/0, precise_timestamp/0, time_out/0,
 			  registration_name/0, registration_scope/0, look_up_scope/0,
 			  version_number/0, version/0, two_digit_version/0, any_version/0,
@@ -394,6 +372,7 @@ get_precise_timestamp() ->
 % Returns the (signed) duration in milliseconds between the two specified
 % precise timestamps (as obtained thanks to get_precise_duration/0), using the
 % first one as starting time and the second one as stopping time.
+%
 -spec get_precise_duration( precise_timestamp(), precise_timestamp() ) ->
 					integer().
 get_precise_duration( _FirstTimestamp={ A1, A2, A3 },
@@ -938,181 +917,6 @@ generate_uuid() ->
 
 
 
-% Returns an atom describing, as precisely as possible, the type of the
-% specified term.
-%
-% 'is_num', 'is_record', etc. not usable here.
-%
--spec get_type_of( term() ) -> type_description().
-get_type_of( Term ) when is_boolean( Term ) ->
-	'boolean';
-
-get_type_of( Term ) when is_atom( Term ) ->
-	'atom';
-
-get_type_of( Term ) when is_binary( Term ) ->
-	'binary';
-
-get_type_of( Term ) when is_float( Term ) ->
-	'float';
-
-get_type_of( Term ) when is_function( Term ) ->
-	'function';
-
-get_type_of( Term ) when is_integer( Term ) ->
-	'integer';
-
-get_type_of( Term ) when is_pid( Term ) ->
-	'pid';
-
-get_type_of( Term ) when is_list( Term ) ->
-	'list';
-
-get_type_of( Term ) when is_port( Term ) ->
-	'port';
-
-%get_type_of( Term ) when is_record( Term ) ->
-%	'record';
-
-get_type_of( Term ) when is_tuple( Term ) ->
-	'tuple';
-
-get_type_of( Term ) when is_reference( Term ) ->
-	'reference'.
-
-
-
-
-% Traverses specified term (possibly with nested subterms - the function will
-% recurse in lists and tuples), calling specified transformer function on each
-% instance of specified type, in order to replace that instance by the result of
-% that function.
-%
-% Returns an updated term, with these replacements made.
-%
-% Ex: the input term could be T={ a, [ "foo", { c, [ 2.0, 45 ] } ] } and the
-% function might replace, for example, floats by <<bar>>; then T'={ a, [ "foo",
-% { c, [ <<bar>>, 45 ] } ] } would be returned.
-%
-% Note: the transformed terms are themselves recursively transformed, to ensure
-% nesting is managed. Of course this implies that the term transform should not
-% result in iterating the transformation infinitely.
-%
--spec traverse_term( term(), type_description(), term_transformer(),
-					 user_data() ) -> { term(), user_data() }.
-
-% Here the term is a list and this is the type we want to intercept:
-traverse_term( TargetTerm, _TypeDescription=list, TermTransformer, UserData )
-  when is_list( TargetTerm ) ->
-
-	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
-
-	traverse_transformed_term( TransformedTerm, _TypeDescription=list,
-							   TermTransformer, NewUserData );
-
-
-% Here the term is a list and we are not interested in them:
-traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData )
-  when is_list( TargetTerm ) ->
-
-	traverse_list( TargetTerm, TypeDescription, TermTransformer, UserData );
-
-
-% Here the term is a tuple (or a record...), and we want to intercept them:
-traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData )
-  when is_tuple( TargetTerm )
-	andalso ( TypeDescription =:= tuple orelse TypeDescription =:= record ) ->
-
-	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
-
-	traverse_transformed_term( TransformedTerm, TypeDescription,
-							   TermTransformer, NewUserData );
-
-
-% Here the term is a tuple (or a record...), and we are not interested in them:
-traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData )
-  when is_tuple( TargetTerm ) ->
-
-	traverse_tuple( TargetTerm, TypeDescription, TermTransformer, UserData );
-
-
-% Base case (current term is not a binding structure, it is a leaf of the
-% underlying syntax tree):
-%
-traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData ) ->
-
-	case get_type_of( TargetTerm ) of
-
-		TypeDescription ->
-			TermTransformer( TargetTerm, UserData );
-
-		_ ->
-			% Unchanged:
-			{ TargetTerm, UserData }
-
-	end.
-
-
-
-% Helper to traverse a list.
-%
-traverse_list( TargetList, TypeDescription, TermTransformer, UserData ) ->
-
-	{ NewList, NewUserData } = lists:foldl( fun( Elem, { AccList, AccData } ) ->
-
-			{ TransformedElem, UpdatedData } = traverse_term( Elem,
-							TypeDescription, TermTransformer, AccData ),
-
-			% New accumulator, produces a reversed element list:
-			{ [ TransformedElem | AccList ], UpdatedData }
-
-											end,
-
-											_Acc0={ _Elems=[], UserData },
-
-											TargetList ),
-
-	{ lists:reverse( NewList ), NewUserData }.
-
-
-
-% Helper to traverse a tuple.
-%
-traverse_tuple( TargetTuple, TypeDescription, TermTransformer, UserData ) ->
-
-	% We do exactly as with lists:
-	TermAsList = tuple_to_list( TargetTuple ),
-
-	{ NewList, NewUserData } = traverse_list( TermAsList, TypeDescription,
-											  TermTransformer, UserData ),
-
-	{ list_to_tuple( NewList ), NewUserData }.
-
-
-
-% Helper to traverse a transformed term (ex: if looking for a { user_id, String
-% } pair, we must recurse in nested tuples like: { 3, { user_id, "Hello" }, 1 }.
-traverse_transformed_term( TargetTerm, TypeDescription, TermTransformer,
-						   UserData ) ->
-
-	case TermTransformer( TargetTerm, UserData ) of
-
-		{ TransformedTerm, NewUserData } when is_list( TransformedTerm ) ->
-			traverse_list( TransformedTerm, TypeDescription, TermTransformer,
-						   NewUserData );
-
-		{ TransformedTerm, NewUserData } when is_tuple( TransformedTerm ) ->
-			traverse_tuple( TransformedTerm, TypeDescription, TermTransformer,
-						   NewUserData );
-
-		% { ImmediateTerm, NewUserData } ->
-		Other ->
-			Other
-
-	end.
-
-
-
 % Crashes the current process immediately.
 %
 % Useful for testing reliability, for example.
@@ -1628,6 +1432,14 @@ send_to_pid_list_impl( Message, { Pid, NewIterator }, Count ) ->
 
 
 % Miscellaneous functions.
+
+
+% Returns the number of bytes used by specified term.
+%
+-spec size( term() ) -> system_utils:byte_size().
+size( Term ) ->
+	system_utils:get_size( Term ).
+
 
 
 % Displays information about the process(es) identified by specified PID.
