@@ -315,21 +315,49 @@ ERL_LAUNCHER = $(COMMON_SRC)/scripts/launch-erl.sh
 # Compiler section.
 
 
+# Modules needed for the bootstrapping for others (hence to be built first):
+#
+# (typically used by parse-transforms)
+#
+BOOTSTRAP_MODULES = $(COMMON_TOP)/src/utils/meta_utils.beam
+
+
+
+## Parse-transform related section.
+
+
+# List here all parse transforms declared by this layer:
+#
+COMMON_PARSE_TRANSFORMS := $(COMMON_TOP)/src/utils/common_parse_transform.beam \
+						   $(COMMON_TOP)/src/utils/example_parse_transform.beam
+
+
+LAYER_PARSE_TRANSFORMS += $(COMMON_PARSE_TRANSFORMS)
+
+
 # Base compilation options that should be used for all modules (third-party
 # included):
 #
 # -v/+verbose causes inlining to be too verbose, ex:
 # "Old inliner: threshold=0 functions=[{setAttribute,3},.."
 #
-ERLANG_COMPILER_BASE_OPT += -b beam                                \
-						  +\"{debug_info_key,\\\"Ceylan-common\\\"}\"
+# (src/utils is specified as all modules - parse-transform'd or not - need to be
+# able to find the BEAMs of parse-transforms)
+#
+ERLANG_COMPILER_BASE_OPT += -b beam                                   \
+						  +\"{debug_info_key,\\\"Ceylan-common\\\"}\" \
+						  -pz $(COMMON_TOP)/src/utils
 
 
 # To apply a parse transform, not only it must be already compiled, but also,
 # when compiling the module to be transformed, the BEAM of the transform must be
 # found:
 #
-ERLANG_COMPILER_PARSE_TRANSFORM_OPT += -pz $(COMMON_TOP)/src/utils
+# (add -P to generate, when compiling X.erl, a X.P file listing the transformed
+#  sources that are actually compiled)
+#
+ERLANG_COMPILER_PARSE_TRANSFORM_OPT += \
+									"+{parse_transform,common_parse_transform}"
 
 
 # Warning-related options (may or may not be included):
@@ -360,12 +388,25 @@ ERLANG_COMPILER_WARNING_OPT += -W$(WARNING_LEVEL) +warn_export_all  \
 #
 # Instead 'export ERL_COMPILER_OPTIONS=bin_opt_info' shall be punctually used.
 #
-ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_BASE_OPT) $(INC)           \
-	$(ERLANG_COMPILER_PARSE_TRANSFORM_OPT)                          \
+ERLANG_COMPILER_OPT_BASE += $(ERLANG_COMPILER_BASE_OPT) $(INC)      \
 	$(ERLANG_COMPILER_EXEC_TARGET_OPT) $(ERLANG_COMPILER_DEBUG_OPT) \
 	$(ERLANG_COMPILER_NATIVE_COMPILATION_OPT)                       \
 	$(ERLANG_COMPILER_WARNING_OPT)                                  \
 	$(ERLANG_COMPILER_OPT_DEBUG)
+
+
+
+# To compile parse transforms themselves:
+#
+ERLANG_COMPILER_OPT_FOR_PT = $(ERLANG_COMPILER_OPT_BASE)
+
+
+# For all modules that are not parse transforms (hence may be
+# parse-transformed):
+#
+ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_OPT_BASE)            \
+					   $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT)
+
 
 
 
