@@ -91,7 +91,7 @@ endif
 
 all-parse-transforms: $(BOOTSTRAP_MODULES) all-parse-transforms-common
 
-all-parse-transforms-common: 
+all-parse-transforms-common:
 	@echo "   Building first all common parse transforms"
 	@$(MAKE) -s $(LAYER_PARSE_TRANSFORMS)
 
