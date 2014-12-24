@@ -90,12 +90,21 @@ parse_transform( AST, _Options ) ->
 %
 replace_table( AST ) ->
 
-	_TargetModule = ?default_hashtable_type,
-
-	%io:format( "Replacing calls to 'table' by calls to '~s':~n",
-	%		   [ TargetModule ] ),
 
 	% The Ln variables designate line numbers.
+
+	DesiredTableType = case lookup_table_select_attribute( AST ) of
+
+						   undefined ->
+							   ?default_hashtable_type;
+
+						   TableType ->
+							   TableType
+
+	end,
+
+	io:format( "Replacing calls to 'table' by calls to '~s':~n",
+			   [ DesiredTableType ] ),
 
 	TransformFun = fun
 
@@ -123,8 +132,8 @@ replace_table( AST ) ->
 					%		  [ L1 ] ),
 
 					NewTerm = { remote_type, L1, [
-								  { atom, L2, ?default_hashtable_type },
-								  { atom, L3, ?default_hashtable_type }, [] ] },
+								  { atom, L2, DesiredTableType },
+								  { atom, L3, DesiredTableType }, [] ] },
 
 					{ NewTerm, UserData };
 
@@ -141,3 +150,51 @@ replace_table( AST ) ->
 								 _UserData=undefined ),
 
 	NewAST.
+
+
+
+% Returns any module-level explicit replacement for the table pseudo-type,
+% specified thanks to a '-table_type( my_type ).' attribute, with for example
+% '-table_type( list_hashtable ).
+%
+% Only searches through top-level attributes as intended, and checks that the
+% table type is defined up to once only.
+%
+lookup_table_select_attribute( AST ) ->
+	lookup_table_select_attribute( AST, _Found=undefined ).
+
+
+lookup_table_select_attribute( _AST=[], Found ) ->
+	Found;
+
+lookup_table_select_attribute(
+  _AST=[ { attribute, _L, table_type, Type } | T ],
+  _Found=undefined ) ->
+	lookup_table_select_attribute( T, Type );
+
+% Here Found has already been set:
+lookup_table_select_attribute(
+  _AST=[ { attribute, L, table_type, AType } | _T ], Found ) ->
+	raise_error( { table_type_defined_more_than_once, { line, L },
+				   Found, AType } );
+
+lookup_table_select_attribute( _AST=[ _H | T ], Found ) ->
+	lookup_table_select_attribute( T, Found ).
+
+
+
+% Used to be throw, but then the error message was garbled in messages like:
+%
+% """
+% internal error in lint_module;
+% crash reason: function_clause
+%
+%  in function  erl_lint:'-compiler_options/1-lc$^0/1-0-'/1
+%     called as erl_lint:'-compiler_options/1-lc$^0/1-0-'({
+% table_type_defined_more_than_once,{line,12},foo_hashtable,bar_hashtable})
+%
+raise_error( ErrorTerm ) ->
+
+	%throw( ErrorTerm )
+	%io:format( "~n~n*** Error: ~p.~n", [ ErrorTerm ] ),
+	erlang:exit( ErrorTerm ).
