@@ -356,8 +356,17 @@ ERLANG_COMPILER_BASE_OPT += -b beam                                   \
 # (add -P to generate, when compiling X.erl, a X.P file listing the transformed
 #  sources that are actually compiled)
 #
-ERLANG_COMPILER_PARSE_TRANSFORM_OPT += \
+# We conditionally defined this option, as upper layers may want to trigger
+# their own parse transforms *instead* (possibly calling directly by themselves,
+# at the Erlang level, this common parse transform):
+#
+ifndef ERLANG_COMPILER_PARSE_TRANSFORM_OPT
+
+ERLANG_COMPILER_PARSE_TRANSFORM_OPT = \
 									"+{parse_transform,common_parse_transform}"
+
+endif
+
 
 
 # Warning-related options (may or may not be included):
