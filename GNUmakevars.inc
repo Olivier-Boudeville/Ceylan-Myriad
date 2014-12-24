@@ -413,8 +413,12 @@ ERLANG_COMPILER_OPT_FOR_PT = $(ERLANG_COMPILER_OPT_BASE)
 # For all modules that are not parse transforms (hence may be
 # parse-transformed):
 #
-ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_OPT_BASE)            \
-					   $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT)
+ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_OPT_BASE)
+
+# To centralise all options but the parse transform trigger:
+ERLANG_COMPILER_OPT_NO_PT := $(ERLANG_COMPILER_OPT)
+
+ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT)
 
 
 
