@@ -26,6 +26,7 @@
 
 
 % Unit tests for the system utils toolbox.
+%
 % See the system_utils.erl tested module.
 %
 -module(system_utils_test).
@@ -150,7 +151,7 @@ run() ->
 	BinaryVersion = text_utils:string_to_binary( AFullSentence ),
 
 	TermsForSize = [ an_atom, 5, "aaa", "aaaa", [], [1], [1,2], {}, {1}, {1,2},
-					 self(), dict:new(), orddict:new(), hashtable:new(),
+					 self(), dict:new(), orddict:new(), table:new(),
 					 AFullSentence, BinaryVersion ],
 
 	print_sizes( TermsForSize ),
