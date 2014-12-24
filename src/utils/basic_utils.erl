@@ -200,7 +200,7 @@
 -type positive_index() :: pos_integer().
 
 
-% To distinguish with the builtin type, which can be a parameterised module:
+% To distinguish with the built-in type, which can be a parameterised module:
 -type module_name() :: atom().
 
 -type function_name() :: atom().
