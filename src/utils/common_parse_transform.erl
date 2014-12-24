@@ -103,8 +103,8 @@ replace_table( AST ) ->
 
 	end,
 
-	io:format( "Replacing calls to 'table' by calls to '~s':~n",
-			   [ DesiredTableType ] ),
+	%io:format( "Replacing calls to 'table' by calls to '~s':~n",
+	%		   [ DesiredTableType ] ),
 
 	TransformFun = fun
 
