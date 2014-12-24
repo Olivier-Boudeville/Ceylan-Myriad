@@ -33,6 +33,9 @@
 %
 % See meta_utils_test.erl for the corresponding test.
 %
+% Note that this module is a prerequisite of parse transforms, hence it must be
+% bootstrapped before they are built, and cannot used them.
+%
 -module(meta_utils).
 
 
