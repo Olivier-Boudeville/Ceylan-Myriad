@@ -34,6 +34,9 @@
 -module(common_parse_transform).
 
 
+-type ast() :: meta_utils:ast().
+
+
 
 % Implementation notes:
 %
@@ -54,6 +57,7 @@
 % The parse transform itself, transforming the specified Abstract Format code
 % into another one.
 %
+-spec parse_transform( ast(), list() ) -> ast().
 parse_transform( AST, _Options ) ->
 
 	%io:format( "  (applying parse transform '~p')~n", [ ?MODULE ] ),
@@ -88,6 +92,7 @@ parse_transform( AST, _Options ) ->
 %
 % We preserve element order.
 %
+-spec replace_table( ast() ) -> ast().
 replace_table( AST ) ->
 
 
@@ -175,26 +180,8 @@ lookup_table_select_attribute(
 % Here Found has already been set:
 lookup_table_select_attribute(
   _AST=[ { attribute, L, table_type, AType } | _T ], Found ) ->
-	raise_error( { table_type_defined_more_than_once, { line, L },
+	meta_utils:raise_error( { table_type_defined_more_than_once, { line, L },
 				   Found, AType } );
 
 lookup_table_select_attribute( _AST=[ _H | T ], Found ) ->
 	lookup_table_select_attribute( T, Found ).
-
-
-
-% Used to be throw, but then the error message was garbled in messages like:
-%
-% """
-% internal error in lint_module;
-% crash reason: function_clause
-%
-%  in function  erl_lint:'-compiler_options/1-lc$^0/1-0-'/1
-%     called as erl_lint:'-compiler_options/1-lc$^0/1-0-'({
-% table_type_defined_more_than_once,{line,12},foo_hashtable,bar_hashtable})
-%
-raise_error( ErrorTerm ) ->
-
-	%throw( ErrorTerm )
-	%io:format( "~n~n*** Error: ~p.~n", [ ErrorTerm ] ),
-	erlang:exit( ErrorTerm ).
