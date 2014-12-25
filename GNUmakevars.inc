@@ -254,7 +254,11 @@ ERLANG_COMPILER_OPT_DEBUG := +debug_info
 
 
 # The number of available cores on this computer:
+#
+# (set to 1 in order to restore a sequential build)
+#
 CORE_COUNT := $$(grep -c processor /proc/cpuinfo)
+#CORE_COUNT := 1
 
 
 ERLANG_INTERPRETER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which erl 2>/dev/null)
@@ -326,13 +330,15 @@ BOOTSTRAP_MODULES = $(COMMON_TOP)/src/utils/meta_utils.beam
 ## Parse-transform related section.
 
 
-# List here all parse transforms declared by this layer:
+# List here all the directories expected to contain parse transforms:
 #
-COMMON_PARSE_TRANSFORMS := $(COMMON_TOP)/src/utils/common_parse_transform.beam \
-						   $(COMMON_TOP)/src/utils/example_parse_transform.beam
+# (to be overridden by each upper layer)
+#
+ifndef PARSE_TRANSFORM_DIRS
 
+PARSE_TRANSFORM_DIRS = $(COMMON_TOP)/src/utils
 
-LAYER_PARSE_TRANSFORMS += $(COMMON_PARSE_TRANSFORMS)
+endif
 
 
 # Base compilation options that should be used for all modules (third-party
@@ -407,7 +413,7 @@ ERLANG_COMPILER_OPT_BASE += $(ERLANG_COMPILER_BASE_OPT) $(INC)      \
 
 # To compile parse transforms themselves:
 #
-ERLANG_COMPILER_OPT_FOR_PT = $(ERLANG_COMPILER_OPT_BASE)
+ERLANG_COMPILER_OPT_FOR_PT += $(ERLANG_COMPILER_OPT_BASE)
 
 
 # For all modules that are not parse transforms (hence may be
@@ -425,8 +431,9 @@ ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT)
 
 # +v (verbose) option removed, as only active if the interpreter has been
 # compiled in debug mode (otherwise a warning is displayed at each execution).
+#
 # (note: variable generally not used, as using the ERL_LAUNCHER script instead)
-ERLANG_INTERPRETER_OPT := -pz $(BEAM_DIRS) $(DISTRIBUTED_NODE_OPT)
+#ERLANG_INTERPRETER_OPT := -pz $(BEAM_DIRS) $(DISTRIBUTED_NODE_OPT)
 
 
 # We can force the launched VM to use TCP/IP connections in a range of ports
