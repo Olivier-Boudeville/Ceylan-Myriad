@@ -89,11 +89,26 @@ endif
 
 
 
-all-parse-transforms: $(BOOTSTRAP_MODULES) all-parse-transforms-common
+all-parse-transforms: $(BOOTSTRAP_MODULES) make-all-parse-transforms
 
-all-parse-transforms-common:
-	@echo "   Building first all common parse transforms"
-	@$(MAKE) -s $(LAYER_PARSE_TRANSFORMS)
+
+make-all-parse-transforms:
+	@echo "   Building first all parse transforms"
+	@for d in $(PARSE_TRANSFORM_DIRS) ; do ( cd $$d && \
+	$(MAKE) -s local-parse-transforms ) ; done
+
+
+LOCAL_TRANSFORM_SRC = $(wildcard *_parse_transform.erl)
+
+LOCAL_TRANSFORM_BEAM = $(patsubst %.erl,%.beam,$(LOCAL_TRANSFORM_SRC))
+
+
+# It is necessary to compile parse-transforms from their directory, as they may
+# use bootstrapped BEAMs or lower layers, so the _TOP variable must be correct
+# in order the -pz directories to be relevant:
+#
+local-parse-transforms: $(LOCAL_TRANSFORM_BEAM)
+
 
 
 # all*-pre-hook targets allow to insert arbitrary rules *before* other specified
@@ -122,7 +137,6 @@ all-parallel-recurse:
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s all -j $(CORE_COUNT) CMD_LINE_OPT="${CMD_LINE_OPT}" && cd .. ; else echo "	  (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
 
 
-
 all-recurse: $(BEAM_FILES)
 	@echo "   Building all in "$(PWD) #`basename $(PWD)`
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s all CMD_LINE_OPT="${CMD_LINE_OPT}" && cd .. ; else echo "	 (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
@@ -133,15 +147,22 @@ all-recurse: $(BEAM_FILES)
 # lies, otherwise the BEAM file will be created on the current (ex: root)
 # directory:
 #
+#%_parse_transform.beam: %_parse_transform.erl
+#	@echo "		Compiling parse transform $<"
+#	@beam_file=$$(basename $@) ; cd $$(dirname $@) && echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file  $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+#	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file  $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
 %_parse_transform.beam: %_parse_transform.erl
 	@echo "		Compiling parse transform $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file  $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $@ $<
+
+
 
 
 # Must be special-cased: should not be built with parse-transforms, by design
 #  not available yet:
 #
-%meta_utils.beam: %meta_utils.erl
+%utils/meta_utils.beam: %utils/meta_utils.erl
 	@echo "		Compiling bootstrap module $<"
 	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file  $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
