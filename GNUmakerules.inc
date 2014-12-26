@@ -147,11 +147,6 @@ all-recurse: $(BEAM_FILES)
 # lies, otherwise the BEAM file will be created on the current (ex: root)
 # directory:
 #
-#%_parse_transform.beam: %_parse_transform.erl
-#	@echo "		Compiling parse transform $<"
-#	@beam_file=$$(basename $@) ; cd $$(dirname $@) && echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file  $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
-#	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file  $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
-
 %_parse_transform.beam: %_parse_transform.erl
 	@echo "		Compiling parse transform $<"
 	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $@ $<
