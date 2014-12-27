@@ -97,17 +97,25 @@
 -type operation_count() :: non_neg_integer().
 
 
--opaque lazy_hashtable() :: { hashtable:hashtable(), operation_count() }.
-%-type lazy_hashtable() :: { hashtable:hashtable(), operation_count() }.
-
 -type key() :: hashtable:key().
 
 -type value() :: hashtable:value().
 
 -type entry() :: hashtable:entry().
 
+-type entries() :: [ entry() ].
 
--export_type([ lazy_hashtable/0, key/0, value/0, entry/0 ]).
+-type entry_count() :: basic_utils:count().
+
+
+-opaque lazy_hashtable() :: { hashtable:hashtable(), operation_count() }.
+
+-opaque lazy_hashtable( K, V ) ::
+		  { hashtable:hashtable( K, V ), operation_count() }.
+
+
+-export_type([ key/0, value/0, entry/0, entries/0, entry_count/0,
+			   lazy_hashtable/0, lazy_hashtable/2 ]).
 
 
 % We want to be able to use our size/1 from here as well:

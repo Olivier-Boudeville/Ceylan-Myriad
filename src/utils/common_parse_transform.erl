@@ -60,7 +60,7 @@
 -spec parse_transform( ast(), list() ) -> ast().
 parse_transform( AST, _Options ) ->
 
-	%io:format( "  (applying parse transform '~p')~n", [ ?MODULE ] ),
+	io:format( "  (applying parse transform '~p')~n", [ ?MODULE ] ),
 
 	% We will be replacing here all calls to the 'table' pseudo-module by calls
 	% to the actual module designated by the default_hashtable_type local macro.

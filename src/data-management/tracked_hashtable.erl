@@ -89,21 +89,27 @@
 		  merge/2, optimise/1, toString/1, toString/2, display/1, display/2 ]).
 
 
-%-type tracked_hashtable() :: { hashtable:hashtable(), hashtable:entry_count(),
-%	hashtable:bucket_count() }.
-
--opaque tracked_hashtable() :: { hashtable:hashtable(), hashtable:entry_count(),
-	hashtable:bucket_count() }.
-
-
 -type key() :: hashtable:key().
 
 -type value() :: hashtable:value().
 
 -type entry() :: hashtable:entry().
 
+-type entries() :: [ entry() ].
 
--export_type([ tracked_hashtable/0, key/0, value/0, entry/0 ]).
+-type entry_count() :: basic_utils:count().
+
+
+-opaque tracked_hashtable() :: { hashtable:hashtable(), hashtable:entry_count(),
+	hashtable:bucket_count() }.
+
+-opaque tracked_hashtable( K, V ) ::
+		  { hashtable:hashtable( K, V ), hashtable:entry_count(),
+			hashtable:bucket_count() }.
+
+
+-export_type([ key/0, value/0, entry/0, entries/0, entry_count/0,
+			   tracked_hashtable/0,  tracked_hashtable/2 ]).
 
 
 % We want to be able to use our size/1 from here as well:
@@ -393,7 +399,7 @@ mapOnValues( Fun, _TrackedHashtable={ Hashtable, NEnt, NBuck }  ) ->
 					 basic_utils:accumulator(),
 					 tracked_hashtable() ) ->
 						   basic_utils:accumulator().
-foldOnEntries( Fun, InitialAcc, _TrackedHashtable={ Hashtable, _NEnt, _NBuck } 
+foldOnEntries( Fun, InitialAcc, _TrackedHashtable={ Hashtable, _NEnt, _NBuck }
 			 ) ->
 	hashtable:foldOnEntries( Fun, InitialAcc, Hashtable ).
 

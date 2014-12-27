@@ -68,9 +68,6 @@
 
 
 
--opaque list_hashtable() :: [ { key(), value() } ].
-
-
 -type key() :: hashtable:key().
 
 -type value() :: hashtable:value().
@@ -82,7 +79,13 @@
 -type entry_count() :: basic_utils:count().
 
 
--export_type([ list_hashtable/0, key/0, value/0, entry/0 ]).
+-opaque list_hashtable() :: [ { key(), value() } ].
+
+-opaque list_hashtable( K, V ) :: [ { K, V } ].
+
+
+-export_type([ key/0, value/0, entry/0, entries/0, entry_count/0,
+			   list_hashtable/0, list_hashtable/2 ]).
 
 
 

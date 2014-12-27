@@ -131,21 +131,24 @@
 -type value() :: term().
 
 -type entry() :: { key(), value() }.
+
 -type entries() :: [ entry() ].
 
 -type entry_count() :: basic_utils:count().
+
 -type bucket_count() :: pos_integer().
 
 
 % A problem is that the number of buckets (hence the size of the tuple) is
 % determined at runtime:
 %
-%-type hashtable() :: tuple().
 -opaque hashtable() :: tuple().
-%-opaque hashtable( K, V ) :: tuple( [ { K, V } ] ).
+
+-opaque hashtable( K, V ) :: tuple( { K, V } ).
+
 
 -export_type([ key/0, value/0, entry/0, entries/0, entry_count/0,
-			   bucket_count/0, hashtable/0 ]).
+			   bucket_count/0, hashtable/0, hashtable/2 ]).
 
 
 

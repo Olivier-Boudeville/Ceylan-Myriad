@@ -72,18 +72,24 @@
 
 
 
--opaque map_hashtable() :: map().
-%-type map_hashtable() :: map().
-
-
 -type key() :: hashtable:key().
 
 -type value() :: hashtable:value().
 
 -type entry() :: hashtable:entry().
 
+-type entries() :: [ entry() ].
 
--export_type([ map_hashtable/0, key/0, value/0, entry/0 ]).
+-type entry_count() :: basic_utils:count().
+
+
+-opaque map_hashtable() :: map().
+
+-opaque map_hashtable( K, V ) :: map( K, V ).
+
+
+-export_type([ key/0, value/0, entry/0, entries/0, entry_count/0,
+			   map_hashtable/0, map_hashtable/2 ]).
 
 
 
