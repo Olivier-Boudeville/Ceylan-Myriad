@@ -34,9 +34,9 @@
 % See meta_utils_test.erl for the corresponding test.
 %
 % Note that this module is a prerequisite of parse transforms, hence it must be
-% bootstrapped before they are built, and cannot used them.
+% bootstrapped before they are built, and cannot use them.
 %
-% So, to compile it, just gp to the root of the layer and execute for example
+% So, to compile it, just go to the root of this layer and execute for example
 % 'make all'.
 %
 -module(meta_utils).
@@ -102,6 +102,10 @@
 
 
 
+% For function_info:
+-include("meta_utils.hrl").
+
+
 % Type-related section.
 
 
@@ -140,6 +144,12 @@
 -type function_name() :: basic_utils:function_name().
 
 
+% Declaration of a function based on a name with an arity (unique function
+% signature within a module):
+%
+-type function_id() :: { function_name(), arity() }.
+
+
 % The form corresponding to the definition of a clause of a function:
 %
 -type clause_def() :: ast().
@@ -148,24 +158,6 @@
 % The type definition (if any) of that function, as an abstract form:
 -type function_spec() :: ast().
 
-
-% Describes a function.
-%
--record( function_info, {
-
-		   % The name of that function:
-		   name = undefined :: function_name(),
-
-		   % The arity of that function:
-		   arity = undefined :: arity(),
-
-		   % The abstract form of its definition:
-		   definition = undefined :: [ clause_def() ],
-
-		   % The type definition (if any) of that function, as an abstract form:
-		   spec = undefined :: function_spec()
-
-} ).
 
 
 -type function_info() :: #function_info{}.
@@ -208,7 +200,8 @@
 
 -export_type([ file_loc/0, ast/0,
 			   attribute_name/0, attribute_value/0, attribute/0,
-			   function_name/0, clause_def/0, function_spec/0, function_info/0,
+			   function_name/0, function_id/0,
+			   clause_def/0, function_spec/0, function_info/0,
 			   type_name/0, type_arity/0, type_description/0, type/0,
 			   term_transformer/0
 			 ]).
@@ -217,9 +210,42 @@
 
 % Parse-transform related functions:
 
--export([ get_type_of/1, traverse_term/4, form_to_ast/1, form_to_ast/2,
-		  term_to_ast/1, term_to_ast/2, raise_error/1 ]).
+-export([ function_info_to_string/1, get_type_of/1, traverse_term/4,
+		  form_to_ast/1, form_to_ast/2, term_to_ast/1, term_to_ast/2,
+		  raise_error/1 ]).
 
+
+% Returns a textual description of the specified function information.
+%
+-spec function_info_to_string( function_info() ) -> text_utils:ustring().
+function_info_to_string( #function_info{
+		   name=Name,
+		   arity=Arity,
+		   definition={ function, _Line, _Name, _Arity, Clauses },
+		   spec=Spec
+						   } ) ->
+
+	DefString = case Clauses of
+
+					undefined ->
+						"no definition";
+
+					_ ->
+						io_lib:format( "~B clauses defined", [ length( Clauses ) ] )
+
+	end,
+
+	SpecString = case Spec of
+
+					 undefined ->
+						 "no type specification";
+
+					 _ ->
+						 "a type specification"
+
+	end,
+
+	io_lib:format( "~s/~B with ~s and ~s", [ Name, Arity, DefString, SpecString ] ).
 
 
 
