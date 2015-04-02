@@ -9,12 +9,12 @@ LANG=C; export LANG
 
 
 # Current stable:
-erlang_version="17.4"
-erlang_md5="3d33c4c6bd7950240dcd7479edd9c7d8"
+erlang_version="17.5"
+erlang_md5="346dd0136bf1cc28cebc140e505206bb"
 
 # Cutting-edge release candidate (or previous stable version):
-erlang_version_candidate="17.1"
-erlang_md5_candidate="9c90706ce70e01651adde34a2b79bf4c"
+erlang_version_candidate="17.4"
+erlang_md5_candidate="3d33c4c6bd7950240dcd7479edd9c7d8"
 
 
 plt_file="Erlang-$erlang_version.plt"
@@ -30,7 +30,7 @@ If no base install directory is specified, then, if this script is run by root, 
 If a base install directory MY_DIR is specified, then Erlang will be installed into MY_DIR/Erlang/Erlang-${erlang_version}/.
 
 Options:
-	-c or --cutting-edge: use, instead of the latest stable Erlang version, the latest supported release candidate version (namely, currently, ${erlang_version_candidate})
+	-c or --cutting-edge: use, instead of the latest stable Erlang version, the latest supported release candidate version (if any), otherwise the lastly supported stable version (namely, currently, ${erlang_version_candidate})
 	-d or --doc-install: download and install the corresponding documentation as well
 	-g or --generate-plt: generate the PLT file ($plt_file) for Dialyzer corresponding to this Erlang/OTP install
 	-n or --no-download: do not attempt to download anything, expect that needed files are already available (useful if not having a direct access to the Internet)
