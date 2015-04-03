@@ -159,27 +159,7 @@
 -type function_spec() :: ast().
 
 
-% Describes a function.
-%
--record( function_info, {
-
-		   % The name of that function:
-		   name = undefined :: function_name(),
-
-		   % The arity of that function:
-		   arity = undefined :: arity(),
-
-		   % The abstract form of its definition (if any):
-		   definition = undefined :: [ clause_def() ],
-
-		   % The type definition (if any) of that function, as an abstract form:
-		   spec_def = undefined :: function_spec(),
-
-		   % Tells whether this function is exported by its defining module:
-		   is_exported = undefined :: boolean()
-
-} ).
-
+% Defined in the header file:
 -type function_info() :: #function_info{}.
 
 
