@@ -32,27 +32,17 @@
 % See hashtable.erl
 %
 %
-% We provide different multiple types of hashtables, including:
+% Note: we provide different three types of hashtables:
 %
-% - 'hashtable', the most basic, safest, reference implementation - and quite
-% efficient as well
+% - 'hashtable', the most basic, safest, reference implementation
 %
 % - 'tracked_hashtable' (this module), an attempt of optimisation of it (not
 % necessarily the best)
 %
-% - 'lazy_hashtable', deciding to optimise in a less costly way
-% than 'tracked_hashtable'
-%
-% - 'map_hashtable', which is probably the most efficient implementation
-% (speed/size compromise)
-%
-% - 'list_hashtable', a list-based implementation, efficient for smaller table
-% (and only them)
+% - 'lazy_hashtable', which is probably the most efficient implementation
 %
 % They are to provide the same API (signatures and contracts).
-
-
-
+%
 % However this tracked version is deemed less effective than the lazy version,
 % and thus is not updated/tested as much as the others (for example: error cases
 % have not been uniformised, insofar that they can still issue badmatches while
@@ -89,27 +79,21 @@
 		  merge/2, optimise/1, toString/1, toString/2, display/1, display/2 ]).
 
 
+%-type tracked_hashtable() :: { hashtable:hashtable(), hashtable:entry_count(),
+%	hashtable:bucket_count() }.
+
+-opaque tracked_hashtable() :: { hashtable:hashtable(), hashtable:entry_count(),
+	hashtable:bucket_count() }.
+
+
 -type key() :: hashtable:key().
 
 -type value() :: hashtable:value().
 
 -type entry() :: hashtable:entry().
 
--type entries() :: [ entry() ].
 
--type entry_count() :: basic_utils:count().
-
-
--opaque tracked_hashtable() :: { hashtable:hashtable(), hashtable:entry_count(),
-	hashtable:bucket_count() }.
-
--opaque tracked_hashtable( K, V ) ::
-		  { hashtable:hashtable( K, V ), hashtable:entry_count(),
-			hashtable:bucket_count() }.
-
-
--export_type([ key/0, value/0, entry/0, entries/0, entry_count/0,
-			   tracked_hashtable/0,  tracked_hashtable/2 ]).
+-export_type([ tracked_hashtable/0, key/0, value/0, entry/0 ]).
 
 
 % We want to be able to use our size/1 from here as well:
@@ -291,12 +275,12 @@ removeEntry( Key, TrackedHashtable={ Hashtable, EntryCount, BucketCount } ) ->
 % Looks-up specified entry (designated by its key) in specified tracked
 % hashtable.
 %
-% Returns either 'key_not_found' if no such key is registered in the
+% Returns either 'hashtable_key_not_found' if no such key is registered in the
 % table, or {value,Value}, with Value being the value associated to the
 % specified key.
 %
 -spec lookupEntry( key(), tracked_hashtable() ) ->
-	'key_not_found' | { 'value', value() }.
+	'hashtable_key_not_found' | { 'value', value() }.
 lookupEntry( Key, _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 	hashtable:lookupEntry( Key, Hashtable ).
 
@@ -304,7 +288,6 @@ lookupEntry( Key, _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 
 % Looks-up specified entry (designated by its key) in specified tracked
 % hashtable: returns eigher true or false.
-%
 -spec hasEntry( key(), tracked_hashtable() ) -> boolean().
 hasEntry( Key, _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 	hashtable:hasEntry( Key, Hashtable ).
@@ -399,8 +382,7 @@ mapOnValues( Fun, _TrackedHashtable={ Hashtable, NEnt, NBuck }  ) ->
 					 basic_utils:accumulator(),
 					 tracked_hashtable() ) ->
 						   basic_utils:accumulator().
-foldOnEntries( Fun, InitialAcc, _TrackedHashtable={ Hashtable, _NEnt, _NBuck }
-			 ) ->
+foldOnEntries( Fun, InitialAcc, _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 	hashtable:foldOnEntries( Fun, InitialAcc, Hashtable ).
 
 

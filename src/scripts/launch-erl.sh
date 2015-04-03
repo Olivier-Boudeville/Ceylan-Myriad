@@ -1,14 +1,11 @@
 #!/bin/sh
 
-# Copyright (C) 2008-2015 Olivier Boudeville
+# Copyright (C) 2008-2013 Olivier Boudeville
 #
 # This file is part of the Ceylan Erlang library.
 
 
-
 # Implementation notes:
-
-# For daemon use:
 
 # Previously the specified code was run with 'erl -eval [...]'. This was simple,
 # however none of the execution facilities offered by the 'init' module ("-s",
@@ -16,16 +13,15 @@
 # first remote node to crash would trigger a 'noconnection' exception that would
 # make the launched node crash).
 #
-# So we allowed to switch to using run_erl, which is more heavyweight but
-# restores the resistance to exceptions (ex: relying on pipes).
+# So we switched to using run_erl, which is more heavyweight but restores the
+# resistance to exceptions (ex: relying on pipes).
 
-# Using run_erl allows to have the VM be able to resist to the crash of others;
-# however then some tests may fail while either returning success or may
-# terminate in an open shell). So the default is still not using run_erl, unless
-# the --daemon option is specified (in which case the log directory will be the
-# one from which this script is run):
 
-# Default is false (1):
+# Default (0) is to use run_erl (the preferred way, in order to have the VM be
+# able to resist to the crash of others; however then some tests may fail while
+# either returning success or may terminate in an open shell):
+#
+#use_run_erl=0
 use_run_erl=1
 
 
@@ -64,7 +60,6 @@ Detailed options:
 	--busy-limit size: specify the distribution buffer busy limit, in kB (default: 1024)
 	--async-thread-count thread_count: specify the number of asynchronous threads for driver calls (default: ${asynch_thread_count})
 	--background: run the launched interpreter in the background (ideal to run as a daemon, ex: on a server)
-	--daemon: run the node as a daemon (relies on run_erl and implies --background)
 	--non-interactive: run the launched interpreter with no shell nor input reading (ideal to run through a job manager, ex: on a cluster)
 	--eval 'an Erlang expression': start by evaluating this expression
 	--no-auto-start: disables the automatic execution at VM start-up
@@ -81,13 +76,13 @@ Example: launch-erl.sh -v --ln ceylan --eval 'class_TimeManager_test:run()'"
 
 
 #ERL=/usr/bin/erl
-ERL=$(which erl)
+ERL=`which erl`
 
-RUN_ERL=$(which run_erl)
-TO_ERL=$(which to_erl)
+RUN_ERL=`which run_erl`
+TO_ERL=`which to_erl`
 
 
-CEYLAN_ERLANG=$(dirname $0)/../..
+CEYLAN_ERLANG=`dirname $0`/../..
 #echo "CEYLAN_ERLANG = ${CEYLAN_ERLANG}"
 
 
@@ -201,12 +196,6 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ] ; do
 		token_eaten=0
 	fi
 
-	if [ "$1" = "--daemon" ] ; then
-		use_run_erl=0
-		#in_background=0
-		token_eaten=0
-	fi
-
 	if [ "$1" = "--non-interactive" ] ; then
 		non_interactive=0
 		token_eaten=0
@@ -226,14 +215,8 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ] ; do
 		shift
 		# We can use -s instead, which would allow to send multiple commands
 		# in a row.
-
-		# Yes, these two versions *are* needed:
 		to_eval="-eval $1"
-		to_eval_run_erl="-eval '$1'"
-
-		# Not used, as write pipe not used either anymore:
 		eval_content="$1"
-
 		token_eaten=0
 	fi
 
@@ -270,8 +253,8 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ] ; do
 	fi
 
 	if [ $token_eaten -eq 1 ] ; then
-		echo "Warning, unknown argument ('$1'), adding \
-it 'as is' to command-line." 1>&2
+		echo "Warning, unknown argument ('$1'), "
+		"adding it 'as is' to command-line." 1>&2
 		verbatim_opt="${verbatim_opt} $1"
 	fi
 
@@ -289,9 +272,8 @@ shell_pid=$$
 
 if [ $use_run_erl -eq 0 ] ; then
 
-	# Suffixes the PID, for unicity (the / suffix does not seem relevant,
-	# despite http://www.erlang.org/doc/man/run_erl.html):
-	run_pipe="/tmp/launch-erl-${shell_pid}"
+	# Suffixes the PID, for unicity:
+	run_pipe=/tmp/launch-erl-${shell_pid}
 
 	write_pipe="${run_pipe}.w"
 
@@ -312,12 +294,12 @@ if [ $use_run_erl -eq 0 ] ; then
 
 
 	if [ -e "${write_pipe}" ] ; then
-		echo "  Error, write pipe (${write_pipe}) resisted deletion." 1>&2
+		echo "  Error, write pipe resisted deletion." 1>&2
 		exit 50
 	fi
 
 	if [ -e "${read_pipe}" ] ; then
-		echo "  Error, read pipe (${read_pipe}) resisted deletion." 1>&2
+		echo "  Error, read pipe resisted deletion." 1>&2
 		exit 55
 	fi
 
@@ -470,17 +452,8 @@ command="${command} ${background_opt} ${non_interactive_opt} ${verbatim_opt}"
 
 if [ $use_run_erl -eq 0 ] ; then
 
-	log_dir=$(pwd)
-
-	#echo "Launching a VM, using run_erl and log_dir=$log_dir."
-
-	# The -daemon must be there (see
-	# http://www.erlang.org/doc/man/run_erl.html):
-
-	# We could not include to_eval here (i.e. no 'exec ${ERL} ${to_eval}...')
-	# and write it in the pipe afterwards:
-	#
-	final_command="${RUN_ERL} -daemon ${run_pipe} ${log_dir} \"exec ${ERL} ${to_eval_run_erl} ${command}\""
+	#echo "Launching a VM, using run_erl."
+	final_command="${RUN_ERL} -daemon ${run_pipe} . \"exec ${ERL} ${command}\""
 
 else
 
@@ -501,13 +474,9 @@ fi
 
 if [ $use_run_erl -eq 0 ] ; then
 
-	#echo "run_erl command: ${final_command}"
-
 	# eval is needed for nested expansion, otherwise:
 	# 'Syntax error: Unterminated quoted string'.
 	eval "${final_command}"
-
-	# Disabled as not working properly:
 
 	# We want to halt the next 'tail -f' when the interpreter stops. For that we
 	# have to find its PID.
@@ -525,7 +494,6 @@ if [ $use_run_erl -eq 0 ] ; then
 
 else
 
-	#echo "direct command: ${final_command}"
 	${final_command}
 
 fi
@@ -555,6 +523,7 @@ if [ $use_run_erl -eq 0 ] && [ $autostart -eq 0 ] ; then
 	#echo "Waiting for the creation of write pipe '${write_pipe}'."
 
 	# Wait for creation:
+	#
 
 	# Number of seconds before time-out:
 	wait_max=60
@@ -567,11 +536,10 @@ if [ $use_run_erl -eq 0 ] && [ $autostart -eq 0 ] ; then
 
 		if [ $wait_remain -eq 0 ] ; then
 
-			echo  "Error, time-out while waiting for the creation of write pipe (${write_pipe})." 1>&2
-			echo "Check that there is no identically named Erlang VM running in the background that would block this launch." 1>&2
+			echo  "Error, time-out while waiting for the creation of write pipe. Check that there is no identically named Erlang VM running in the background that would block this launch." 1>&2
 
 			# On at least some cases, the name is never found (too long
-			# command-line truncated), hence this has been disabled:
+			# command-line truncated):
 			#ps -edf | grep beam | grep "$actual_name" | grep -v grep >&2
 
 			exit 25
@@ -581,7 +549,7 @@ if [ $use_run_erl -eq 0 ] && [ $autostart -eq 0 ] ; then
 		# Do not start displaying the count-down before 5 seconds, then only
 		# every 5 seconds:
 		#
-		if [ $wait_count -gt 4 ] && [ $(expr $wait_count % 5) -eq 0 ] ; then
+		if [ $wait_count -gt 4 ] && [ `expr $wait_count % 5` -eq 0 ] ; then
 			echo " (launch time-out in $wait_remain seconds)"
 		fi
 
@@ -591,51 +559,15 @@ if [ $use_run_erl -eq 0 ] && [ $autostart -eq 0 ] ; then
 
 	done
 
-	wait_count=0
-	wait_max=5
-
-	# If a node with the same name already exists, the write pipe will exist for
-	# a brief time then will be removed:
-
-	echo "Write pipe '${write_pipe}' found, waiting $wait_max seconds to ensure start-up is successful indeed."
-
-	while [ $wait_count -lt $wait_max ] ; do
-
-		sleep 1
-
-		if [ ! -e "${write_pipe}" ] ; then
-
-			echo -e "\n  Error, launch failed, write pipe disappeared. Check that a node with the same name is not already existing.\n" 1>&2
-
-			exit 55
-
-		fi
-
-		wait_count=$(($wait_count+1))
-
-	done
-
-
-
-	echo -e "\n  **************************************************************"
-	echo "  ** Node '${actual_name}' ready and running as a daemon."
-
-	echo "  ** Use 'to_erl $run_pipe' to connect to that node."
-	echo "  ** To exit without killing the node, use CTRL-D."
-	echo -e "  **************************************************************"
-
-
-	# Example of what can be done afterwards than to the pipes and to_erl:
-
-	# (now the eval information are directly passed when running run_erl)
+	#echo "Write pipe '${write_pipe}' found."
 
 	#echo "Evaluating: '${eval_content}.'"
 
 	# Then send the actual command:
-	#echo "${eval_content}." >> ${write_pipe}
+	echo "${eval_content}." >> ${write_pipe}
 
 	#echo "Running '${TO_ERL} $run_pipe' now."
-	#${TO_ERL} $run_pipe
+	${TO_ERL} $run_pipe
 	#echo "(to_erl just finished)"
 
 	# Apparently, with run_erl/to_erl, in some cases some VMs linger, though
@@ -650,17 +582,17 @@ if [ $use_run_erl -eq 0 ] && [ $autostart -eq 0 ] ; then
 
 	# Clean-up:
 
-	#if [ -e "${write_pipe}" ] ; then
+	if [ -e "${write_pipe}" ] ; then
 
-	#	/bin/rm -f "${write_pipe}"
+		/bin/rm -f "${write_pipe}"
 
-	#fi
+	fi
 
 
-	#if [ -e "${read_pipe}" ] ; then
+	if [ -e "${read_pipe}" ] ; then
 
-	#	/bin/rm -f "${read_pipe}"
+		/bin/rm -f "${read_pipe}"
 
-	#fi
+	fi
 
 fi

@@ -241,8 +241,7 @@ ERLANG_ROOT := $(shell dirname $(ERLANG_BIN_ROOT) )
 
 # Note that at least some versions of dialyzer (ex: the one shipped with 17.1)
 # will not deference anymore symlinks (if Erlang.plt pointing to Erlang-17.1.plt
-# for example, it will not be found; this is managed in our installation
-# script):
+# for example, it will not be found; this is managed in our installation script):
 #
 ERLANG_PLT_FILE := $(ERLANG_ROOT)/Erlang.plt
 
@@ -254,11 +253,7 @@ ERLANG_COMPILER_OPT_DEBUG := +debug_info
 
 
 # The number of available cores on this computer:
-#
-# (set to 1 in order to restore a sequential build)
-#
 CORE_COUNT := $$(grep -c processor /proc/cpuinfo)
-#CORE_COUNT := 1
 
 
 ERLANG_INTERPRETER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which erl 2>/dev/null)
@@ -319,60 +314,12 @@ ERL_LAUNCHER = $(COMMON_SRC)/scripts/launch-erl.sh
 # Compiler section.
 
 
-# Modules needed for the bootstrapping for others (hence to be built first):
-#
-# (typically used by parse-transforms)
-#
-BOOTSTRAP_MODULES = $(COMMON_TOP)/src/utils/meta_utils.beam
-
-
-
-## Parse-transform related section.
-
-
-# List here all the directories expected to contain parse transforms:
-#
-# (to be overridden by each upper layer)
-#
-ifndef PARSE_TRANSFORM_DIRS
-
-PARSE_TRANSFORM_DIRS = $(COMMON_TOP)/src/utils
-
-endif
-
-
 # Base compilation options that should be used for all modules (third-party
 # included):
-#
 # -v/+verbose causes inlining to be too verbose, ex:
 # "Old inliner: threshold=0 functions=[{setAttribute,3},.."
-#
-# (src/utils is specified as all modules - parse-transform'd or not - need to be
-# able to find the BEAMs of parse-transforms)
-#
-ERLANG_COMPILER_BASE_OPT += -b beam                                   \
-						  +\"{debug_info_key,\\\"Ceylan-common\\\"}\" \
-						  -pz $(COMMON_TOP)/src/utils
-
-
-# To apply a parse transform, not only it must be already compiled, but also,
-# when compiling the module to be transformed, the BEAM of the transform must be
-# found:
-#
-# (add -P to generate, when compiling X.erl, a X.P file listing the transformed
-#  sources that are actually compiled)
-#
-# We conditionally defined this option, as upper layers may want to trigger
-# their own parse transforms *instead* (possibly calling directly by themselves,
-# at the Erlang level, this common parse transform):
-#
-ifndef ERLANG_COMPILER_PARSE_TRANSFORM_OPT
-
-ERLANG_COMPILER_PARSE_TRANSFORM_OPT = \
-									"+{parse_transform,common_parse_transform}"
-
-endif
-
+ERLANG_COMPILER_BASE_OPT += -b beam                                \
+						  +\"{debug_info_key,\\\"Ceylan-common\\\"}\"
 
 
 # Warning-related options (may or may not be included):
@@ -403,7 +350,7 @@ ERLANG_COMPILER_WARNING_OPT += -W$(WARNING_LEVEL) +warn_export_all  \
 #
 # Instead 'export ERL_COMPILER_OPTIONS=bin_opt_info' shall be punctually used.
 #
-ERLANG_COMPILER_OPT_BASE += $(ERLANG_COMPILER_BASE_OPT) $(INC)      \
+ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_BASE_OPT) $(INC)           \
 	$(ERLANG_COMPILER_EXEC_TARGET_OPT) $(ERLANG_COMPILER_DEBUG_OPT) \
 	$(ERLANG_COMPILER_NATIVE_COMPILATION_OPT)                       \
 	$(ERLANG_COMPILER_WARNING_OPT)                                  \
@@ -411,29 +358,10 @@ ERLANG_COMPILER_OPT_BASE += $(ERLANG_COMPILER_BASE_OPT) $(INC)      \
 
 
 
-# To compile parse transforms themselves:
-#
-ERLANG_COMPILER_OPT_FOR_PT += $(ERLANG_COMPILER_OPT_BASE)
-
-
-# For all modules that are not parse transforms (hence may be
-# parse-transformed):
-#
-ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_OPT_BASE)
-
-# To centralise all options but the parse transform trigger:
-ERLANG_COMPILER_OPT_NO_PT := $(ERLANG_COMPILER_OPT)
-
-ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT)
-
-
-
-
 # +v (verbose) option removed, as only active if the interpreter has been
 # compiled in debug mode (otherwise a warning is displayed at each execution).
-#
 # (note: variable generally not used, as using the ERL_LAUNCHER script instead)
-#ERLANG_INTERPRETER_OPT := -pz $(BEAM_DIRS) $(DISTRIBUTED_NODE_OPT)
+ERLANG_INTERPRETER_OPT := -pz $(BEAM_DIRS) $(DISTRIBUTED_NODE_OPT)
 
 
 # We can force the launched VM to use TCP/IP connections in a range of ports

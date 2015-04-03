@@ -157,7 +157,7 @@ find_bfs_helper( Predicate, Feeder, CandidateQueue, ExploredList, UserData ) ->
 								  not ?list_impl:is_member( C, ExploredList ) ],
 
 					%io:format( "Vertex ~p not suitable, enqueuing ~w.~n",
-					%			[ Vertex, SelectedChildren ] ),
+					%		    [ Vertex, SelectedChildren ] ),
 
 					% Uncomment if wanting to check the cycle management:
 

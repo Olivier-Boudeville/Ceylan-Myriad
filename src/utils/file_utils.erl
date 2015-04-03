@@ -1183,10 +1183,8 @@ copy_file( SourceFilename, DestinationFilename ) ->
 
 % Renames specified file.
 %
--spec rename( file_name(), file_name() ) -> basic_utils:void().
 rename( SourceFilename, DestinationFilename ) ->
 	move_file( SourceFilename, DestinationFilename ).
-
 
 
 % Moves specified file so that it is now designated by specified filename.
@@ -1227,15 +1225,14 @@ is_absolute_path( _Path ) ->
 
 
 
-% Returns an absolute, normalised path corresponding to specified path.
+% Returns an absolute path corresponding to specified path.
 %
-% If it is not already absolute, it will made so by using the current working
+% If it is not already abolute, it will made so by using the current working
 % directory.
 %
--spec ensure_path_is_absolute( path() ) -> path().
 ensure_path_is_absolute( Path ) ->
 
-	AbsPath = case is_absolute_path( Path ) of
+	case is_absolute_path( Path ) of
 
 		true ->
 			% Already absolute:
@@ -1245,9 +1242,7 @@ ensure_path_is_absolute( Path ) ->
 			% Relative, using current directory as base:
 			join( get_current_directory(), Path )
 
-	end,
-
-	normalise_path( AbsPath ).
+	end.
 
 
 
@@ -1257,7 +1252,6 @@ ensure_path_is_absolute( Path ) ->
 % Ex: ensure_path_is_absolute( "tmp/foo", "/home/dalton" ) will return
 % "/home/dalton/tmp/foo".
 %
--spec ensure_path_is_absolute( path(), path() ) -> path().
 ensure_path_is_absolute( TargetPath, BasePath ) ->
 
 	case is_absolute_path( TargetPath ) of
@@ -1280,14 +1274,13 @@ ensure_path_is_absolute( TargetPath, BasePath ) ->
 	end.
 
 
-
 % Normalises path, by translating it so that no '.' or '..' is present
 % afterwards.
 %
 % For example, "/home/garfield/../lisa/./src/.././tube" shall be normalised in
 % "/home/lisa/tube".
 %
--spec normalise_path( path() ) -> path().
+
 normalise_path( Path ) ->
 
 	ElemList = filename:split( Path ),
@@ -1328,6 +1321,8 @@ filter_elems( _ElemList=[ E | T ], Acc ) ->
 
 % filter_elems( _Elems=[ E | T ], Acc ) ->
 %	filter_elems( T, [ E | Acc ] ).
+
+
 
 
 

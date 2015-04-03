@@ -33,28 +33,26 @@
 %
 % See map_table_test.erl for the corresponding test.
 % See hashtable.erl for parent, base implementation.
-%
-%
-% We provide different multiple types of hashtables, including:
+
+
+% Note that no less than four different types of hashtables are provided here:
 %
 % - 'hashtable', the most basic, safest, reference implementation
-% - and quite efficient as well
 %
 % - 'tracked_hashtable', an attempt of optimisation of it (not necessarily the
 % best)
 %
-% - 'lazy_hashtable', deciding to optimise in a less costly way
-% than 'tracked_hashtable'
+% - 'lazy_hashtable', probably the most efficient pure-Erlang implementation,
+% supposedly as reliable as hashtable
 %
-% - 'map_hashtable' (this module), which is probably the most efficient
-% implementation (speed/size compromise)
-%
-% - 'list_hashtable', a list-based implementation, efficient for smaller table
-% (and only them)
+% - 'map_hashtable' (this module), probably the most efficient implementation
 %
 % They are to provide the same API (signatures and contracts).
 %
 -module(map_hashtable).
+
+
+% Directly depends on the hashtable module.
 
 
 % Exact same API as the one of hashtable:
@@ -72,24 +70,18 @@
 
 
 
+-opaque map_hashtable() :: map().
+%-type map_hashtable() :: map().
+
+
 -type key() :: hashtable:key().
 
 -type value() :: hashtable:value().
 
 -type entry() :: hashtable:entry().
 
--type entries() :: [ entry() ].
 
--type entry_count() :: basic_utils:count().
-
-
--opaque map_hashtable() :: map().
-
--opaque map_hashtable( K, V ) :: map( K, V ).
-
-
--export_type([ key/0, value/0, entry/0, entries/0, entry_count/0,
-			   map_hashtable/0, map_hashtable/2 ]).
+-export_type([ map_hashtable/0, key/0, value/0, entry/0 ]).
 
 
 
@@ -168,18 +160,18 @@ removeEntry( Key, MapHashtable ) ->
 
 % Looks-up specified entry (designated by its key) in specified map table.
 %
-% Returns either 'key_not_found' if no such key is registered in the
+% Returns either 'hashtable_key_not_found' if no such key is registered in the
 % table, or { value, Value }, with Value being the value associated to the
 % specified key.
 %
 -spec lookupEntry( key(), map_hashtable() ) ->
-						 'key_not_found' | { 'value', value() }.
+						 'hashtable_key_not_found' | { 'value', value() }.
 % Not supported in 17.3:
 % lookupEntry( Key, #{ Key := Value } ) ->
 %	{ value, Key };
 
 % lookupEntry( _Key, _MapHashtable ) ->
-%	key_not_found.
+%	hashtable_key_not_found.
 lookupEntry( Key, MapHashtable ) ->
 
 	case maps:find( Key, MapHashtable ) of
@@ -188,7 +180,7 @@ lookupEntry( Key, MapHashtable ) ->
 			{ value, Value };
 
 		error ->
-			key_not_found
+			hashtable_key_not_found
 
 	end.
 
@@ -330,7 +322,7 @@ foldOnEntries( Fun, InitialAcc, MapHashtable ) ->
 %	MapHashtable#{ Key => BaseValue + Value };
 %
 % addToEntry( _Key, _Value, _MapHashtable ) ->
-%	throw( { key_not_found, Key } ).
+%	throw( { hashtable_key_not_found, Key } ).
 %
 addToEntry( Key, Value, MapHashtable ) ->
 
@@ -340,7 +332,7 @@ addToEntry( Key, Value, MapHashtable ) ->
 			maps:put( Key, BaseValue + Value, MapHashtable );
 
 		error ->
-			throw( { key_not_found, Key } )
+			throw( { hashtable_key_not_found, Key } )
 
 	end.
 
@@ -357,7 +349,7 @@ addToEntry( Key, Value, MapHashtable ) ->
 %	MapHashtable#{ Key => BaseValue - Value };
 %
 % subtractFromEntry( _Key, _Value, _MapHashtable ) ->
-%	throw( { key_not_found, Key } ).
+%	throw( { hashtable_key_not_found, Key } ).
 %
 subtractFromEntry( Key, Value, MapHashtable ) ->
 
@@ -367,7 +359,7 @@ subtractFromEntry( Key, Value, MapHashtable ) ->
 			maps:put( Key, BaseValue - Value, MapHashtable );
 
 		error ->
-			throw( { key_not_found, Key } )
+			throw( { hashtable_key_not_found, Key } )
 
 	end.
 
@@ -437,7 +429,7 @@ optimise( Hashtable ) ->
 %	MapHashtable#{ Key => [ Element | ListValue ] };
 %
 %appendToEntry( Key, _Element, _MapHashtable ) ->
-%	throw( { key_not_found, Key } ).
+%	throw( { hashtable_key_not_found, Key } ).
 %
 appendToEntry( Key, Element, MapHashtable ) ->
 
@@ -459,7 +451,7 @@ appendToEntry( Key, Element, MapHashtable ) ->
 %	MapHashtable#{ Key => lists:delete( Element, ListValue ) };
 %
 %deleteFromEntry( Key, _Element, _MapHashtable ) ->
-%	throw( { key_not_found, Key } ).
+%	throw( { hashtable_key_not_found, Key } ).
 %
 deleteFromEntry( Key, Element, MapHashtable ) ->
 
@@ -477,7 +469,7 @@ deleteFromEntry( Key, Element, MapHashtable ) ->
 %	{ H, MapHashtable#{ Key => T } };
 %
 %popFromEntry( Key, _MapHashtable ) ->
-%	throw( { key_not_found, Key } ).
+%	throw( { hashtable_key_not_found, Key } ).
 %
 popFromEntry( Key, MapHashtable ) ->
 

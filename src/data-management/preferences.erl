@@ -50,11 +50,11 @@
 % Can be 'undefined' (no difference between a non-registered key and a key
 % registered to 'undefined':
 %
--type value() :: table:value().
+-type value() :: hashtable:value().
 
 
--type entry() :: table:entry().
--type entries() :: table:entries().
+-type entry() :: hashtable:entry().
+-type entries() :: hashtable:entries().
 
 
 -export_type([ key/0, value/0, entry/0, entries/0 ]).
@@ -79,6 +79,9 @@
 
 % Name of the preferences file (searched at the root of the user account):
 -define( preferences_filename, ".ceylan-erlang-preferences.txt" ).
+
+
+-define( hashtable_type, lazy_hashtable ).
 
 
 
@@ -183,12 +186,12 @@ to_string() ->
 server_main_run( SpawnerPid ) ->
 
 	case basic_utils:register_or_return_registered( ?preferences_server_name,
-													global_only ) of
+												  global_only ) of
 
 		registered ->
 
 			% We gain the shared name, we are the one and only server:
-			EmptyTable = table:new(),
+			EmptyTable = ?hashtable_type:new(),
 
 			PrefFilename = file_utils:join(
 							 system_utils:get_user_home_directory(),
@@ -223,19 +226,19 @@ server_main_run( SpawnerPid ) ->
 
 % Main loop of the preferences server.
 %
-server_main_loop( Table ) ->
+server_main_loop( Hashtable ) ->
 
 	%io:format( "Waiting for preferences-related request, "
-	%		    "having ~B recorded preferences.~n",
-	%		   [ table:getEntryCount( Table ) ] ),
+	%		   "having ~B recorded preferences.~n",
+	%		   [ ?hashtable_type:getEntryCount( Hashtable ) ] ),
 
 	receive
 
 		{ get_preference, Key, SenderPid } ->
 
-			Answer = case table:lookupEntry( Key, Table ) of
+			Answer = case ?hashtable_type:lookupEntry( Key, Hashtable ) of
 
-				key_not_found ->
+				hashtable_key_not_found ->
 							 undefined;
 
 				{ value, V } ->
@@ -245,19 +248,19 @@ server_main_loop( Table ) ->
 
 			SenderPid ! { notify_preference, Answer },
 
-			server_main_loop( Table );
+			server_main_loop( Hashtable );
 
 
 		{ set_preference, Key, Value } ->
 
-			NewTable = table:addEntry( Key, Value, Table ),
+			NewTable = ?hashtable_type:addEntry( Key, Value, Hashtable ),
 
 			server_main_loop( NewTable );
 
 
 		{ to_string, SenderPid } ->
 
-			Res = case table:enumerate( Table ) of
+			Res = case ?hashtable_type:enumerate( Hashtable ) of
 
 				[] ->
 					"no preferences recorded";
@@ -266,7 +269,7 @@ server_main_loop( Table ) ->
 
 					% Enforces a consistent order:
 					Strings = [ io_lib:format( "~p: ~p", [ K, V ] )
-								|| { K, V } <- lists:sort( L ) ],
+					   || { K, V } <- lists:sort( L ) ],
 
 					io_lib:format( "~B preferences recorded:~s~n",
 								 [ length( L ),
@@ -276,7 +279,7 @@ server_main_loop( Table ) ->
 
 			SenderPid ! { notify_preferences_status, Res },
 
-			server_main_loop( Table )
+			server_main_loop( Hashtable )
 
 
 	end.
@@ -299,10 +302,10 @@ add_preferences_from( Filename, Table ) ->
 			case check_entries( Entries ) of
 
 				ok ->
-					NewTable = table:addEntries( Entries, Table ),
+					NewTable = ?hashtable_type:addEntries( Entries, Table ),
 					%io:format( "Loaded from preferences file '~s' "
 					%           "following entries:~s",
-					% [ PrefFilename, table:toString( NewTable ) ] ),
+					% [ PrefFilename, ?hashtable_type:toString( NewTable ) ] ),
 				   io:format( "Preferences file '~s' loaded.~n", [ Filename ] ),
 				   NewTable;
 
@@ -328,7 +331,6 @@ add_preferences_from( Filename, Table ) ->
 			Table
 
 	end.
-
 
 
 % Checks specified entries.

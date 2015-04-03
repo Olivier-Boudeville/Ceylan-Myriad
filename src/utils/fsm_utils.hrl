@@ -32,7 +32,7 @@
 % Returns an updated state.
 %
 -define( setFsmAttribute( FsmState, AttributeName, AttributeValue ),
-	table:addEntry( AttributeName, AttributeValue, FsmState )
+	hashtable:addEntry( AttributeName, AttributeValue, FsmState )
 ).
 
 
@@ -44,9 +44,9 @@
 % See also: getAttr/1.
 %
 -define( getFsmAttribute( FsmState, AttributeName ),
-	case table:lookupEntry( AttributeName, FsmState ) of
+	case hashtable:lookupEntry( AttributeName, FsmState ) of
 
-		key_not_found ->
+		hashtable_key_not_found ->
 			attribute_not_found ;
 
 		Other ->
@@ -64,5 +64,4 @@
 % Beware to the implicit use of the 'FsmState' variable: in some cases other
 % states should be used. See the getAttribute/2 macro.
 %
--define( getFsmAttr( AttributeName ), 
-		 ?getFsmAttribute( FsmState, AttributeName ) ).
+-define( getFsmAttr(AttributeName), ?getFsmAttribute(FsmState,AttributeName) ).

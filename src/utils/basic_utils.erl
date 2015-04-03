@@ -90,15 +90,14 @@
 
 % Miscellaneous functions.
 %
--export([ size/1, display_process_info/1,
+-export([ display_process_info/1,
 		  checkpoint/1, display/1, display/2, debug/1, debug/2,
 		  parse_version/1, compare_versions/2,
 		  get_process_specific_value/0, get_process_specific_value/2,
 		  get_execution_target/0,
 		  is_alive/1, is_alive/2,
 		  is_debug_mode_enabled/0,
-		  generate_uuid/0,
-		  crash/0, enter_infinite_loop/0 ]).
+		  generate_uuid/0, get_type_of/1, traverse_term/4, crash/0 ]).
 
 
 
@@ -157,6 +156,28 @@
 -type accumulator() :: any().
 
 
+% Type-related section.
+
+
+% The "most precise" description of a type (ex: 'boolean' and 'atom' coexist,
+% 'number ' are not used), etc.
+%
+-type type_description() :: 'atom' | 'binary' | 'boolean' | 'float' | 'function'
+						  | 'integer' | 'list' | 'pid' | 'port' | 'record'
+						  | 'reference' | 'tuple'.
+
+
+
+% Type of functions to transform terms during a recursive traversal (see
+% traverse_term/4).
+%
+% Note: apparently we cannot use the 'when' notation here (InputTerm ... when
+% InputTerm :: term()).
+%
+-type term_transformer() :: fun( ( term(), user_data() ) ->
+									   { term(), user_data() } ).
+
+
 
 % Time-related section.
 
@@ -200,7 +221,7 @@
 -type positive_index() :: pos_integer().
 
 
-% To distinguish with the built-in type, which can be a parameterised module:
+% To distinguish with the builtin type, which can be a parameterised module:
 -type module_name() :: atom().
 
 -type function_name() :: atom().
@@ -222,12 +243,11 @@
 -export_type([
 
 			  void/0, count/0, bit_mask/0, exit_reason/0, maybe/1, user_data/0,
-			  accumulator/0,
+			  accumulator/0, type_description/0, term_transformer/0,
 			  timestamp/0, precise_timestamp/0, time_out/0,
 			  registration_name/0, registration_scope/0, look_up_scope/0,
 			  version_number/0, version/0, two_digit_version/0, any_version/0,
-			  positive_index/0,
-			  module_name/0, function_name/0, argument/0, command_spec/0,
+			  positive_index/0, module_name/0, command_spec/0,
 			  user_name/0, atom_user_name/0
 
 			  ]).
@@ -265,7 +285,7 @@ get_textual_timestamp() ->
 								   string().
 get_textual_timestamp( { { Year, Month, Day }, { Hour, Minute, Second } } ) ->
 	io_lib:format( "~p/~p/~p ~B:~2..0B:~2..0B",
-				   [ Year, Month, Day, Hour, Minute, Second ] ).
+		[ Year, Month, Day, Hour, Minute, Second ] ).
 
 
 
@@ -303,7 +323,7 @@ string_to_timestamp( TimestampString ) ->
 	case string:tokens( TimestampString, _Sep=" :/" ) of
 
 		[ DayString, MonthString, YearString, HourString, MinuteString,
-		 SecondString ] ->
+		  SecondString ] ->
 
 			Day   = text_utils:string_to_integer( DayString ),
 			Month = text_utils:string_to_integer( MonthString ),
@@ -313,7 +333,7 @@ string_to_timestamp( TimestampString ) ->
 			Minute = text_utils:string_to_integer( MinuteString ),
 			Second = text_utils:string_to_integer( SecondString ),
 
-			 { {Year,Month,Day}, {Hour,Minute,Second} };
+			 { { Year, Month, Day }, { Hour, Minute, Second } };
 
 		_ ->
 			throw( { timestamp_parsing_failed, TimestampString } )
@@ -343,11 +363,12 @@ get_duration( FirstTimestamp, SecondTimestamp ) ->
 %
 -spec get_textual_duration( timestamp(), timestamp() ) -> string().
 get_textual_duration( FirstTimestamp, SecondTimestamp ) ->
-	{ Days, {Hour, Minute, Second} } = calendar:seconds_to_daystime(
-		get_duration(FirstTimestamp,SecondTimestamp) ),
+	{ Days, { Hour, Minute, Second } } = calendar:seconds_to_daystime(
+		get_duration( FirstTimestamp, SecondTimestamp ) ),
 
 	lists:flatten( io_lib:format( "~B day(s), ~B hour(s), ~B minute(s) "
-		"and ~B second(s)", [ Days, Hour, Minute, Second ] ) ).
+								  "and ~B second(s)",
+								  [ Days, Hour, Minute, Second ] ) ).
 
 
 
@@ -372,7 +393,6 @@ get_precise_timestamp() ->
 % Returns the (signed) duration in milliseconds between the two specified
 % precise timestamps (as obtained thanks to get_precise_duration/0), using the
 % first one as starting time and the second one as stopping time.
-%
 -spec get_precise_duration( precise_timestamp(), precise_timestamp() ) ->
 					integer().
 get_precise_duration( _FirstTimestamp={ A1, A2, A3 },
@@ -413,7 +433,7 @@ register_as( Name, RegistrationType ) ->
 % RegistrationType in 'local_only', 'global_only', 'local_and_global',
 % 'none', depending on what kind of registration is requested.
 %
-% Throws an exception on failure (ex: if that name is already registered).
+% Throws an exception on failure.
 %
 -spec register_as( pid(), registration_name(), registration_scope() ) -> void().
 register_as( Pid, Name, local_only ) when is_atom( Name ) ->
@@ -430,11 +450,11 @@ register_as( Pid, Name, local_only ) when is_atom( Name ) ->
 
 		ExceptionType:Exception ->
 			throw( { local_registration_failed, Name,
-					{ ExceptionType, Exception } } )
+					 { ExceptionType, Exception } } )
 
 	end;
 
-register_as( Pid, Name, global_only ) when is_atom(Name) ->
+register_as( Pid, Name, global_only ) when is_atom( Name ) ->
 	case global:register_name( Name, Pid ) of
 
 		yes ->
@@ -445,7 +465,7 @@ register_as( Pid, Name, global_only ) when is_atom(Name) ->
 
 	end;
 
-register_as( Pid, Name, local_and_global ) when is_atom(Name) ->
+register_as( Pid, Name, local_and_global ) when is_atom( Name ) ->
 	register_as( Pid, Name, local_only ),
 	register_as( Pid, Name, global_only );
 
@@ -522,7 +542,7 @@ unregister( Name, local_only ) ->
 
 		ExceptionType:Exception ->
 			throw( { local_unregistration_failed, Name,
-					{ ExceptionType, Exception } } )
+					 { ExceptionType, Exception } } )
 
 	end;
 
@@ -536,7 +556,7 @@ unregister( Name, global_only ) ->
 
 		ExceptionType:Exception ->
 			throw( { global_unregistration_failed, Name,
-					{ ExceptionType, Exception } } )
+					 { ExceptionType, Exception } } )
 
 	end;
 
@@ -819,20 +839,20 @@ wait_for_remote_local_registrations_of( RegisteredName, Nodes ) ->
 	RemainingAttempts = round( 10 / 0.5 ),
 
 	wait_for_remote_local_registrations_of( RegisteredName, Nodes,
-									RemainingAttempts ).
+											RemainingAttempts ).
 
 
 % Helper function.
 wait_for_remote_local_registrations_of( RegisteredName, Nodes,
-									_RemainingAttempts=0 ) ->
+										_RemainingAttempts=0 ) ->
 	throw( { time_out_while_waiting_remote_local_registration, RegisteredName,
-			Nodes } );
+			 Nodes } );
 
 wait_for_remote_local_registrations_of( RegisteredName, Nodes,
-									   RemainingAttempts ) ->
+										RemainingAttempts ) ->
 
 	{ ResList, BadNodes } = rpc:multicall( Nodes, erlang, whereis,
-				[ RegisteredName  ], _Timeout=2000 ),
+										   [ RegisteredName  ], _Timeout=2000 ),
 
 	case BadNodes of
 
@@ -841,7 +861,7 @@ wait_for_remote_local_registrations_of( RegisteredName, Nodes,
 
 		_ ->
 			throw( { bad_nodes_while_waiting_remote_local_registration,
-					RegisteredName, BadNodes } )
+					 RegisteredName, BadNodes } )
 
 	end,
 
@@ -857,7 +877,7 @@ wait_for_remote_local_registrations_of( RegisteredName, Nodes,
 			% for it:
 			timer:sleep( 500 ),
 			wait_for_remote_local_registrations_of( RegisteredName, Nodes,
-									   RemainingAttempts-1 );
+													RemainingAttempts - 1 );
 
 		false ->
 			ok
@@ -872,7 +892,7 @@ wait_for_remote_local_registrations_of( RegisteredName, Nodes,
 display_registered() ->
 
 	io:format( "On a total of ~B existing processes on node '~s':~n",
-			  [ length( processes() ), node() ] ),
+			   [ length( processes() ), node() ] ),
 
 	case global:registered_names() of
 
@@ -881,7 +901,7 @@ display_registered() ->
 
 		Globals ->
 			io:format( " - ~B processes are globally-registered:~n~p~n",
-					  [ length( Globals ), Globals ] )
+					   [ length( Globals ), Globals ] )
 
 	end,
 
@@ -892,7 +912,7 @@ display_registered() ->
 
 		Locals ->
 			io:format( " - ~B processes are locally-registered:~n~p~n",
-					  [ length( Locals ), Locals ] )
+					   [ length( Locals ), Locals ] )
 
 	end.
 
@@ -906,20 +926,228 @@ display_registered() ->
 -spec generate_uuid() -> string().
 generate_uuid() ->
 
-	Exec = executable_utils:find_executable( "uuidgen" ),
+	case executable_utils:lookup_executable( "uuidgen" ) of
 
-	% Random-based, rather than time-based (otherwise we end up collecting a
-	% rather constant suffix):
-	Res = os:cmd( Exec ++ " -r" ),
+		false ->
+			io:format( "~nWarning: no 'uuidgen' found on system, "
+					   "defaulting to our failsafe implementation.~n~n" ),
+			uuidgen_internal();
 
-	% Removes the final end-of-line:
-	tl( lists:reverse( Res ) ).
+		Exec ->
+
+			% Random-based, rather than time-based (otherwise we end up
+			% collecting a rather constant suffix):
+			Res = os:cmd( Exec ++ " -r" ),
+
+			% Removes the final end-of-line:
+			tl( lists:reverse( Res ) )
+
+	end.
+
+
+
+% Quick and dirty replacement:
+%
+uuidgen_internal() ->
+
+	% Using /dev/random instead would incur waiting of a few seconds that were
+	% deemed too long for this use:
+	%
+	case system_utils:execute_command(
+		   "/bin/dd if=/dev/urandom bs=1 count=32 2>/dev/null" ) of
+
+		{ _ReturnCode=0, Output } ->
+			% We translate these bytes into hexadecimal values:
+			V = [ string:to_lower( hd(
+				  io_lib:format( "~.16B", [ B rem 16 ] ) ) )  || B <- Output ],
+
+			lists:flatten( io_lib:format(
+							 "~s~s~s~s~s~s~s~s-~s~s~s~s-~s~s~s~s-~s~s~s~s-"
+							 "~s~s~s~s~s~s~s~s~s~s~s~s", V ) );
+
+		{ ErrorCode, ErrorOutput } ->
+			throw( { uuidgen_internal_failed, ErrorCode, ErrorOutput } )
+
+	end.
+
+
+
+% Returns an atom describing, as precisely as possible, the type of the
+% specified term.
+%
+% 'is_num', 'is_record', etc. not usable here.
+%
+-spec get_type_of( term() ) -> type_description().
+get_type_of( Term ) when is_boolean( Term ) ->
+	'boolean';
+
+get_type_of( Term ) when is_atom( Term ) ->
+	'atom';
+
+get_type_of( Term ) when is_binary( Term ) ->
+	'binary';
+
+get_type_of( Term ) when is_float( Term ) ->
+	'float';
+
+get_type_of( Term ) when is_function( Term ) ->
+	'function';
+
+get_type_of( Term ) when is_integer( Term ) ->
+	'integer';
+
+get_type_of( Term ) when is_pid( Term ) ->
+	'pid';
+
+get_type_of( Term ) when is_list( Term ) ->
+	'list';
+
+get_type_of( Term ) when is_port( Term ) ->
+	'port';
+
+%get_type_of( Term ) when is_record( Term ) ->
+%	'record';
+
+get_type_of( Term ) when is_tuple( Term ) ->
+	'tuple';
+
+get_type_of( Term ) when is_reference( Term ) ->
+	'reference'.
+
+
+
+
+% Traverses specified term (possibly with nested subterms - the function will
+% recurse in lists and tuples), calling specified transformer function on each
+% instance of specified type, in order to replace that instance by the result of
+% that function.
+%
+% Returns an updated term, with these replacements made.
+%
+% Ex: the input term could be T={ a, [ "foo", { c, [ 2.0, 45 ] } ] } and the
+% function might replace, for example, floats by <<bar>>; then T'={ a, [ "foo",
+% { c, [ <<bar>>, 45 ] } ] } would be returned.
+%
+% Note: the transformed terms are themselves recursively transformed, to ensure
+% nesting is managed. Of course this implies that the term transform should not
+% result in iterating the transformation infinitely.
+%
+-spec traverse_term( term(), type_description(), term_transformer(),
+					 user_data() ) -> { term(), user_data() }.
+
+% Here the term is a list and this is the type we want to intercept:
+traverse_term( TargetTerm, _TypeDescription=list, TermTransformer, UserData )
+  when is_list( TargetTerm ) ->
+
+	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
+
+	traverse_transformed_term( TransformedTerm, _TypeDescription=list,
+							   TermTransformer, NewUserData );
+
+
+% Here the term is a list and we are not interested in them:
+traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData )
+  when is_list( TargetTerm ) ->
+
+	traverse_list( TargetTerm, TypeDescription, TermTransformer, UserData );
+
+
+% Here the term is a tuple (or a record...), and we want to intercept them:
+traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData )
+  when is_tuple( TargetTerm )
+	andalso ( TypeDescription =:= tuple orelse TypeDescription =:= record ) ->
+
+	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
+
+	traverse_transformed_term( TransformedTerm, TypeDescription,
+							   TermTransformer, NewUserData );
+
+
+% Here the term is a tuple (or a record...), and we are not interested in them:
+traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData )
+  when is_tuple( TargetTerm ) ->
+
+	traverse_tuple( TargetTerm, TypeDescription, TermTransformer, UserData );
+
+
+% Base case (current term is not a binding structure, it is a leaf of the
+% underlying syntax tree):
+%
+traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData ) ->
+
+	case get_type_of( TargetTerm ) of
+
+		TypeDescription ->
+			TermTransformer( TargetTerm, UserData );
+
+		_ ->
+			% Unchanged:
+			{ TargetTerm, UserData }
+
+	end.
+
+
+
+% Helper to traverse a list.
+%
+traverse_list( TargetList, TypeDescription, TermTransformer, UserData ) ->
+
+	{ NewList, NewUserData } = lists:foldl( fun( Elem, { AccList, AccData } ) ->
+
+			{ TransformedElem, UpdatedData } = traverse_term( Elem,
+							TypeDescription, TermTransformer, AccData ),
+
+			% New accumulator, produces a reversed element list:
+			{ [ TransformedElem | AccList ], UpdatedData }
+
+											end,
+
+											_Acc0={ _Elems=[], UserData },
+
+											TargetList ),
+
+	{ lists:reverse( NewList ), NewUserData }.
+
+
+
+% Helper to traverse a tuple.
+%
+traverse_tuple( TargetTuple, TypeDescription, TermTransformer, UserData ) ->
+
+	% We do exactly as with lists:
+	TermAsList = tuple_to_list( TargetTuple ),
+
+	{ NewList, NewUserData } = traverse_list( TermAsList, TypeDescription,
+											  TermTransformer, UserData ),
+
+	{ list_to_tuple( NewList ), NewUserData }.
+
+
+
+% Helper to traverse a transformed term (ex: if looking for a { user_id, String
+% } pair, we must recurse in nested tuples like: { 3, { user_id, "Hello" }, 1 }.
+traverse_transformed_term( TargetTerm, TypeDescription, TermTransformer,
+						   UserData ) ->
+
+	case TermTransformer( TargetTerm, UserData ) of
+
+		{ TransformedTerm, NewUserData } when is_list( TransformedTerm ) ->
+			traverse_list( TransformedTerm, TypeDescription, TermTransformer,
+						   NewUserData );
+
+		{ TransformedTerm, NewUserData } when is_tuple( TransformedTerm ) ->
+			traverse_tuple( TransformedTerm, TypeDescription, TermTransformer,
+							NewUserData );
+
+		% { ImmediateTerm, NewUserData } ->
+		Other ->
+			Other
+
+	end.
 
 
 
 % Crashes the current process immediately.
-%
-% Useful for testing reliability, for example.
 %
 -spec crash() -> any().
 crash() ->
@@ -934,19 +1162,6 @@ crash() ->
 	1 / ( A - B ).
 
 
-
-% Makes the current process enter in an infinite, mostly idle loop.
-%
-% Useful for testing reliability, for example.
-%
-enter_infinite_loop() ->
-
-	io:format( "~p in infinite loop...", [ self() ] ),
-
-	% Loops every minute:
-	timer:sleep( 60000 ),
-
-	enter_infinite_loop().
 
 
 
@@ -1059,7 +1274,7 @@ deploy_modules( Modules, Nodes, Timeout ) ->
 	wait_for_remote_local_registrations_of( code_server, Nodes ),
 
 	% Then for each module in turn, contact each and every node in parallel:
-	[ deploy_module( M, get_code_for(M), Nodes, Timeout ) || M <- Modules ].
+	[ deploy_module( M, get_code_for( M ), Nodes, Timeout ) || M <- Modules ].
 
 
 
@@ -1099,7 +1314,7 @@ deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
 
 		_ ->
 			throw( { module_deployment_failed, ModuleName,
-					{ ResList, BadNodes } } )
+					 { ResList, BadNodes } } )
 
 	end.
 
@@ -1199,7 +1414,7 @@ wait_for( Message, Count ) ->
 % _Duration=2000, "Still waiting for ~B task(s) to complete" ).
 %
 -spec wait_for( any(), count(), unit_utils:milliseconds(),
-			   text_utils:format_string() ) -> void().
+				text_utils:format_string() ) -> void().
 wait_for( _Message, _Count=0, _TimeOutDuration, _TimeOutFormatString ) ->
 	ok;
 
@@ -1216,7 +1431,7 @@ wait_for( Message, Count, TimeOutDuration, TimeOutFormatString ) ->
 	after TimeOutDuration ->
 
 		io:format( TimeOutFormatString ++ " after ~s",
-			  [ Count, text_utils:duration_to_string( TimeOutDuration ) ] )
+				   [ Count, text_utils:duration_to_string( TimeOutDuration ) ] )
 
 	end.
 
@@ -1291,7 +1506,7 @@ wait_for_acks_helper( WaitedSenders, InitialTimestamp, MaxDurationInSeconds,
 	after Period ->
 
 			NewDuration = basic_utils:get_duration( InitialTimestamp,
-											  get_timestamp() ),
+													get_timestamp() ),
 
 			case ( MaxDurationInSeconds =/= infinity ) andalso
 					  ( NewDuration > MaxDurationInSeconds ) of
@@ -1325,7 +1540,7 @@ wait_for_acks_helper( WaitedSenders, InitialTimestamp, MaxDurationInSeconds,
 -spec wait_for_many_acks( ?list_impl_type, unit_utils:milliseconds(), atom(),
 						  atom() ) -> basic_utils:void().
 wait_for_many_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
-			   ThrowAtom ) ->
+					ThrowAtom ) ->
 
 	wait_for_many_acks( WaitedSenders, MaxDurationInSeconds,
 						_DefaultPeriod=1000, AckReceiveAtom, ThrowAtom ).
@@ -1340,7 +1555,7 @@ wait_for_many_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 -spec wait_for_many_acks( ?list_impl_type, unit_utils:milliseconds(),
 		unit_utils:milliseconds(), atom(), atom() ) -> basic_utils:void().
 wait_for_many_acks( WaitedSenders, MaxDurationInSeconds, Period,
-			   AckReceiveAtom, ThrowAtom ) ->
+					AckReceiveAtom, ThrowAtom ) ->
 
 	InitialTimestamp = basic_utils:get_timestamp(),
 
@@ -1434,14 +1649,6 @@ send_to_pid_list_impl( Message, { Pid, NewIterator }, Count ) ->
 % Miscellaneous functions.
 
 
-% Returns the number of bytes used by specified term.
-%
--spec size( term() ) -> system_utils:byte_size().
-size( Term ) ->
-	system_utils:get_size( Term ).
-
-
-
 % Displays information about the process(es) identified by specified PID.
 %
 -spec display_process_info( pid() | [ pid() ] ) -> void().
@@ -1461,7 +1668,7 @@ display_process_info( Pid ) when is_pid( Pid ) ->
 
 				undefined ->
 					io:format( "PID ~w refers to a (local) dead process~n",
-							  [ Pid ] );
+							   [ Pid ] );
 
 				PropList ->
 					Strings = [ io_lib:format( "~s: ~p", [ K, V ] )
@@ -1492,12 +1699,12 @@ display_process_info( Pid ) when is_pid( Pid ) ->
 				PropList ->
 
 					Strings = [ io_lib:format( "~s: ~p", [ K, V ] )
-							   || { K, V } <- PropList ],
+								|| { K, V } <- PropList ],
 
 					io:format( "PID ~w refers to a live process on "
 							   "remote node ~s, whose information are:~s",
 							   [ Pid, OtherNode,
-								text_utils:strings_to_string( Strings ) ] )
+								 text_utils:strings_to_string( Strings ) ] )
 
 			end
 
@@ -1719,13 +1926,13 @@ registration_to_look_up_scope( _Scope=local_and_global ) ->
 get_execution_target() ->
 	production.
 
--else.
+-else. % exec_target_is_production
 
 -spec get_execution_target() -> 'development'.
 get_execution_target() ->
 	development.
 
--endif.
+-endif. % exec_target_is_production
 
 
 
@@ -1761,7 +1968,7 @@ is_alive( TargetPid, Node ) ->
 			%io:format( "Testing liveliness of process ~p on node ~p.~n",
 			%		  [ TargetPid, Node ] ),
 			rpc:call( Node, _Mod=erlang, _Fun=is_process_alive,
-					   _Args=[ TargetPid ] )
+					  _Args=[ TargetPid ] )
 
 	end.
 
@@ -1781,10 +1988,10 @@ is_alive( TargetPid, Node ) ->
 is_debug_mode_enabled() ->
 	true.
 
--else.
+-else. % debug_mode_is_enabled
 
 -spec is_debug_mode_enabled() -> false.
 is_debug_mode_enabled() ->
 	false.
 
--endif.
+-endif. % debug_mode_is_enabled

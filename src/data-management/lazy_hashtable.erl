@@ -45,22 +45,15 @@
 % can be triggered appropriately
 %
 %
-% We provide different multiple types of hashtables, including:
+% Note: we provide different three types of hashtables:
 %
-% - 'hashtable', the most basic, safest, reference implementation - and quite
-% efficient as well
+% - 'hashtable', the most basic, safest, reference implementation
 %
 % - 'tracked_hashtable', an attempt of optimisation of it (not necessarily the
 % best)
 %
-% - 'lazy_hashtable' (this module), deciding to optimise in a less costly way
-% than 'tracked_hashtable'
-%
-% - 'map_hashtable', which is probably the most efficient implementation
-% (speed/size compromise)
-%
-% - 'list_hashtable', a list-based implementation, efficient for smaller table
-% (and only them)
+% - 'lazy_hashtable' (this module), which is probably the most efficient
+% implementation, supposedly as reliable as hashtable
 %
 % They are to provide the same API (signatures and contracts).
 %
@@ -97,25 +90,17 @@
 -type operation_count() :: non_neg_integer().
 
 
+-opaque lazy_hashtable() :: { hashtable:hashtable(), operation_count() }.
+%-type lazy_hashtable() :: { hashtable:hashtable(), operation_count() }.
+
 -type key() :: hashtable:key().
 
 -type value() :: hashtable:value().
 
 -type entry() :: hashtable:entry().
 
--type entries() :: [ entry() ].
 
--type entry_count() :: basic_utils:count().
-
-
--opaque lazy_hashtable() :: { hashtable:hashtable(), operation_count() }.
-
--opaque lazy_hashtable( K, V ) ::
-		  { hashtable:hashtable( K, V ), operation_count() }.
-
-
--export_type([ key/0, value/0, entry/0, entries/0, entry_count/0,
-			   lazy_hashtable/0, lazy_hashtable/2 ]).
+-export_type([ lazy_hashtable/0, key/0, value/0, entry/0 ]).
 
 
 % We want to be able to use our size/1 from here as well:
@@ -231,12 +216,12 @@ removeEntry( Key, _LazyHashtable={ Hashtable, OpCount } ) ->
 
 % Looks-up specified entry (designated by its key) in specified lazy table.
 %
-% Returns either 'key_not_found' if no such key is registered in the
+% Returns either 'hashtable_key_not_found' if no such key is registered in the
 % table, or { value, Value }, with Value being the value associated to the
 % specified key.
 %
 -spec lookupEntry( key(), lazy_hashtable() ) ->
-						 'key_not_found' | { 'value', value() }.
+						 'hashtable_key_not_found' | { 'value', value() }.
 lookupEntry( Key, _LazyHashtable={ Hashtable, _OpCount } ) ->
 	hashtable:lookupEntry( Key, Hashtable ).
 
@@ -353,10 +338,10 @@ addToEntry( Key, Value, LazyHashtable ) ->
 		{ value, Number } ->
 			addEntry( Key, Number + Value, LazyHashtable );
 
-		%key_not_found ->
+		%hashtable_key_not_found ->
 		_ ->
 			% Badmatches are not informative enough:
-			throw( { key_not_found, Key } )
+			throw( { hashtable_key_not_found, Key } )
 
 	end.
 
@@ -377,10 +362,10 @@ subtractFromEntry( Key, Value, LazyHashtable ) ->
 		{ value, Number } ->
 			addEntry( Key, Number - Value, LazyHashtable );
 
-		%key_not_found ->
+		%hashtable_key_not_found ->
 		_ ->
 			% Badmatches are not informative enough:
-			throw( { key_not_found, Key } )
+			throw( { hashtable_key_not_found, Key } )
 
 	end.
 
@@ -495,8 +480,8 @@ appendToEntry( Key, Element, LazyHashtable ) ->
 		{ value, List } ->
 			addEntry( Key, [ Element | List ], LazyHashtable );
 
-		key_not_found ->
-			throw( { key_not_found, Key } )
+		hashtable_key_not_found ->
+			throw( { hashtable_key_not_found, Key } )
 
 	end.
 
@@ -517,10 +502,10 @@ deleteFromEntry( Key, Element, LazyHashtable ) ->
 		{ value, List } ->
 			addEntry( Key, lists:delete( Element, List ), LazyHashtable );
 
-		%key_not_found ->
+		%hashtable_key_not_found ->
 		_ ->
 			% Badmatches are not informative enough:
-			throw( { key_not_found, Key } )
+			throw( { hashtable_key_not_found, Key } )
 
 	end.
 
@@ -538,10 +523,10 @@ popFromEntry( Key, LazyHashtable ) ->
 		{ value, [ H | T ] } ->
 			{ H, addEntry( Key, T, LazyHashtable ) };
 
-		%key_not_found ->
+		%hashtable_key_not_found ->
 		_ ->
 			% Badmatches are not informative enough:
-			throw( { key_not_found, Key } )
+			throw( { hashtable_key_not_found, Key } )
 
 	end.
 

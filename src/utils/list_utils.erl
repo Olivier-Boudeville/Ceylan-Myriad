@@ -186,16 +186,14 @@ remove_element_at( [ H | RemainingList ], Index, Result ) ->
 %
 -spec remove_last_element( list() ) -> list().
 remove_last_element( List ) ->
-	lists:droplast( List ).
-
-%	remove_last_element( List, _Acc=[] ).
+	remove_last_element( List, _Acc=[] ).
 
 
-%remove_last_element( _List=[ _Last ], Acc ) ->
-%	lists:reverse( Acc );
+remove_last_element( _List=[ _Last ], Acc ) ->
+	lists:reverse( Acc );
 
-%remove_last_element( _List=[ H | T ], Acc ) ->
-%	remove_last_element( T, [ H | Acc ] ).
+remove_last_element( _List=[ H | T ], Acc ) ->
+	remove_last_element( T, [ H | Acc ] ).
 
 
 

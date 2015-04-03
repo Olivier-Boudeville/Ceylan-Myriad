@@ -16,7 +16,6 @@ TEST_SOURCES = $(wildcard *_test.erl)
 TEST_TARGETS = $(patsubst %.erl,%,$(TEST_SOURCES))
 
 
-
 # Regarding dependency management.
 
 # One can just ignore dependencies and rebuild "blindly" every module in current
@@ -75,7 +74,7 @@ TEST_TARGETS = $(patsubst %.erl,%,$(TEST_SOURCES))
 ifeq ($(BASE_MAKEFILE),true)
 
 # CORE_COUNT defined in common/GNUmakevars.inc :
-all: all-pre-hook all-parse-transforms
+all: all-pre-hook
 	@echo "   Building all, in parallel over $(CORE_COUNT) core(s), from "$(PWD) #`basename $(PWD)`
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m &&  \
 		$(MAKE) -s all-recurse -j $(CORE_COUNT) && cd .. ; else echo "     (directory $$m skipped)" ; \
@@ -83,51 +82,18 @@ all: all-pre-hook all-parse-transforms
 
 else
 
-all: all-recurse-pre-hook all-recurse $(BEAM_FILES)
+all: all-pre-hook all-recurse $(BEAM_FILES)
 
 endif
 
 
 
-all-parse-transforms: $(BOOTSTRAP_MODULES) make-all-parse-transforms
-
-
-make-all-parse-transforms:
-	@echo "   Building first all parse transforms"
-	@for d in $(PARSE_TRANSFORM_DIRS) ; do ( cd $$d && \
-	$(MAKE) -s local-parse-transforms ) ; done
-
-
-LOCAL_TRANSFORM_SRC = $(wildcard *_parse_transform.erl)
-
-LOCAL_TRANSFORM_BEAM = $(patsubst %.erl,%.beam,$(LOCAL_TRANSFORM_SRC))
-
-
-# It is necessary to compile parse-transforms from their directory, as they may
-# use bootstrapped BEAMs or lower layers, so the _TOP variable must be correct
-# in order the -pz directories to be relevant:
-#
-local-parse-transforms: $(LOCAL_TRANSFORM_BEAM)
-
-
-
-# all*-pre-hook targets allow to insert arbitrary rules *before* other specified
-# prerequisite targets, at each level.
+# Allows to insert arbitrary rules *before* other specified prerequisite
+# targets.
 #
 # Meant to be enriched with prerequisite targets by above layers:
-
-# Called once per layer, when starting compiling it:
-all-pre-hook: all-pre-hook-common
-
-all-pre-hook-common:
-
-
-
-# Called once per subdirectory of the current layer, when starting compiling it:
-all-recurse-pre-hook: all-recurse-pre-hook-common
-
-all-recurse-pre-hook-common:
-
+#
+all-pre-hook:
 
 
 # This rule is not used by default, as we use the -j option from the root
@@ -137,29 +103,11 @@ all-parallel-recurse:
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s all -j $(CORE_COUNT) CMD_LINE_OPT="${CMD_LINE_OPT}" && cd .. ; else echo "	  (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
 
 
+
 all-recurse: $(BEAM_FILES)
 	@echo "   Building all in "$(PWD) #`basename $(PWD)`
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s all CMD_LINE_OPT="${CMD_LINE_OPT}" && cd .. ; else echo "	 (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
 
-
-
-# We must first go into the directory in which the source of the parse transform
-# lies, otherwise the BEAM file will be created on the current (ex: root)
-# directory:
-#
-%_parse_transform.beam: %_parse_transform.erl
-	@echo "		Compiling parse transform $<"
-	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $@ $<
-
-
-
-
-# Must be special-cased: should not be built with parse-transforms, by design
-#  not available yet:
-#
-%utils/meta_utils.beam: %utils/meta_utils.erl
-	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file  $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
 
 %.beam: %.erl %.hrl
@@ -213,45 +161,6 @@ all-recurse: $(BEAM_FILES)
 	@echo "		Executing application $^ in the background (second form)"
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) `echo $@|sed 's|_background$$||1'`-$$USER --background --eval `echo $@|sed 's|_exec_background|_app:exec()|1'` $(INTERNAL_OPTIONS) $(CMD_LINE_OPT) &
 
-
-
-# The two sets of rules below are functional, yet they use very different
-# solutions (run_erl/eval) that can tested independently.
-
-
-# To run an application as a service.
-#
-# Exactly like when running as %_exec_background, except services are shared
-# hence their node name must no depend on any user name; they are directly named
-# as their core target (ex: 'make X_exec_service' results in a node named
-# 'X@LOCALHOSTNAME').
-#
-# (these rules uses run_erl, that runs in the background)
-
-
-%_exec_service: %_app.beam %.beam
-	@echo "		Executing application $^ as a service (first form)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) `echo $@|sed 's|_exec_service$$||1'` --daemon --eval `echo $@|sed 's|_exec_service|_app:exec()|1'` $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
-
-
-%_exec_service: %_app.beam
-	@echo "		Executing application $^ as a service (second form)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) `echo $@|sed 's|_exec_service$$||1'` --daemon --eval `echo $@|sed 's|_exec_service|_app:exec()|1'` $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
-
-
-
-# Interactive variants, for service debugging:
-#
-# (these rules uses a standard 'erl -eval' put in the background)
-
-%_exec_service_debug: %_app.beam %.beam
-	@echo "		Executing application $^ as a debugged service (first form)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) `echo $@|sed 's|_exec_service_debug$$||1'` --background --eval `echo $@|sed 's|_exec_service_debug|_app:exec()|1'` $(INTERNAL_OPTIONS) $(CMD_LINE_OPT) &
-
-
-%_exec_service_debug: %_app.beam
-	@echo "		Executing application $^ as a debugged service (second form)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) `echo $@|sed 's|_exec_service_debug$$||1'` --background --eval `echo $@|sed 's|_exec_service_debug|_app:exec()|1'` $(INTERNAL_OPTIONS) $(CMD_LINE_OPT) &
 
 
 
@@ -475,9 +384,7 @@ info-install:
 
 # Allows to generate a file listing all the types defined in the specified
 # Erlang source tree.
-#
 # Ex: 'make generate-list-of-erlang-types ERLANG_SOURCE_ROOT=~/otp_src_R15B/'
-#
 generate-list-of-erlang-types:
 	@if [ -z "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, no ERLANG_SOURCE_ROOT variable specified." ; exit 15 ; fi ; if [ ! -d "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, specified directory (ERLANG_SOURCE_ROOT=$$ERLANG_SOURCE_ROOT) does not exist." ; exit 16 ; fi ; target_file="declared-types-in-Erlang.txt" ; erl="$(ERLANG_INTERPRETER)" ; target_path=`echo $$erl|sed "s|/bin/erl$$|/$$target_file|1"` ; echo "  Generating the list of types declared in the Erlang runtime..." &&  $(COMMON_TOP)/src/scripts/list-available-types.sh "$$ERLANG_SOURCE_ROOT" > $$target_path && echo "  Types have been collected in '$$target_path'."
 

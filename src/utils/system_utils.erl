@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2014 Olivier Boudeville
+% Copyright (C) 2003-2015 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -44,7 +44,11 @@
 
 
 % System-related functions.
--export([ get_interpreter_version/0, get_application_version/1,
+-export([
+
+		  execute_command/1, execute_background_command/1,
+
+		  get_interpreter_version/0, get_application_version/1,
 
 		  get_size_of_vm_word/0, get_size/1,
 		  interpret_byte_size/1, interpret_byte_size_with_unit/1,
@@ -102,7 +106,7 @@
 % All the known types of filesystems (atom, to capture even lacking ones):
 -type filesystem_type() :: actual_filesystem_type()
 						 | pseudo_filesystem_type()
-						 | atom().
+						 | 'unknown' | atom().
 
 
 % Stores information about a filesystem:
@@ -136,11 +140,37 @@
 -type fs_info() :: #fs_info{}.
 
 
+
+% Describes a shell command:
+%
+-type command() :: text_utils:ustring().
+
+
+% Return code of a shell command (a.k.a. exit status):
+%
+% (0 means success, strictly positive mean error)
+%
+-type return_code() :: basic_utils:count().
+
+
+% Output of a shell command:
+%
+-type command_output() :: text_utils:ustring().
+
+
+% All information returned by a shell command:
+%
+-type command_outcome() :: { return_code(), command_output() }.
+
+
+
 -export_type([ byte_size/0, cpu_usage_info/0, cpu_usage_percentages/0,
 			   host_static_info/0, host_dynamic_info/0,
 
 			   actual_filesystem_type/0, pseudo_filesystem_type/0,
-			   filesystem_type/0, fs_info/0
+			   filesystem_type/0, fs_info/0,
+
+			   command/0, return_code/0, command_output/0, command_outcome/0
 
 			 ]).
 
@@ -230,7 +260,94 @@ await_output_completion( TimeOut ) ->
 
 
 
-% Erlang System-related functions.
+
+% Functions relative to the local Erlang system.
+
+
+
+% Executes (synchronously) specified shell command (specified as a single,
+% standalone one, or as a list of command elements), and returns its return code
+% (exit status) and its outputs (both the standard and the error ones).
+%
+% We wish we could specify the command as a single, standalone one, or as a list
+% of command elements, but the lack of a string type prevents it.
+%
+%-spec execute_command( command() | [ command() ] ) -> command_outcome().
+%execute_command( Commands ) when is_list( Commands ) ->
+-spec execute_command( command() ) -> command_outcome().
+%execute_command( Commands ) ->
+
+%	ActualCommand = text_utils:join( _Sep=" ", Commands ),
+
+%	execute_command( ActualCommand );
+
+
+execute_command( Command ) ->
+
+	PortOpts = [ stream, exit_status, use_stdio, stderr_to_stdout, in, eof ],
+
+	Port = open_port( { spawn, Command }, PortOpts ),
+
+	read_port( Port, _Data=[] ).
+
+
+
+% Helper to read command data from a port.
+%
+read_port( Port, Data ) ->
+
+	receive
+
+		{ Port, { data, NewData } } ->
+			read_port( Port, [ NewData | Data ] );
+
+		{ Port, eof } ->
+
+			port_close( Port ),
+
+			receive
+
+				{ Port, { exit_status, ExitStatus } } ->
+
+					% Otherwise we have an enclosing list and last character is
+					% always "\n":
+					%
+					Output = text_utils:remove_ending_carriage_return(
+							   lists:flatten( lists:reverse( Data ) ) ),
+
+					{ ExitStatus, Output }
+
+			 end
+
+
+	 end.
+
+
+
+% Executes asynchronously, in the background, specified shell command
+%
+% As a consequence it returns no return code (exit status) nor output.
+%
+
+% We wish we could specify the command as a single, standalone one, or as a list
+% of command elements, but the lack of a string type prevents it.
+%
+%-spec execute_background_command( command() | [ command() ] ) ->
+%										basic_utils:void().
+
+-spec execute_background_command( command() ) -> basic_utils:void().
+
+
+%execute_background_command( Commands ) when is_list( Commands ) ->
+
+%	ActualCommand = text_utils:join( _Sep=" ", Commands ),
+
+%	execute_background_command( ActualCommand );
+
+
+execute_background_command( Command ) ->
+	os:cmd( Command ++ " &" ).
+
 
 
 % Returns the version informations of the current Erlang interpreter (actually
@@ -535,16 +652,39 @@ get_total_physical_memory() ->
 	% First check the expected unit is returned, by pattern-matching:
 	UnitCommand = "cat /proc/meminfo | grep 'MemTotal:' | awk '{print $3}'",
 
-	"kB\n" = os:cmd( UnitCommand ),
+	case execute_command( UnitCommand ) of
 
-	ValueCommand = "cat /proc/meminfo | grep 'MemTotal:' | awk '{print $2}'",
+		 { _ExitCode=0, _Output="kB" } ->
 
-	% The returned value of following command is like "12345\n", in bytes:
-	MemorySizeString = text_utils:remove_ending_carriage_return(
-								os:cmd( ValueCommand ) ),
+			% Ok, using kB indeed.
 
-	% They were probably kiB:
-	list_to_integer( MemorySizeString ) * 1024.
+			ValueCommand =
+				"cat /proc/meminfo | grep 'MemTotal:' | awk '{print $2}'",
+
+			% The returned value of following command is like "12345\n", in
+			% bytes:
+			%
+			case execute_command( ValueCommand ) of
+
+				{ _ExitCode=0, MemSizeString } ->
+
+					% They were probably kiB:
+					list_to_integer( MemSizeString ) * 1024;
+
+				{ ExitCode, ErrorOutput } ->
+					throw( { total_physical_memory_inquiry_failed, ExitCode,
+							 ErrorOutput } )
+
+			end;
+
+		{ ExitCode, ErrorOutput } ->
+			throw( { total_physical_memory_inquiry_failed, ExitCode,
+					 ErrorOutput } )
+
+	end.
+
+
+
 
 
 
@@ -629,50 +769,87 @@ get_total_memory_used() ->
 	% { G, G+H }:
 	%{ AppliUsedSize, AppliUsedSize + TotalFreeSize }.
 
-	% So finally we prefered /proc/meminfo:
-	TotalString = text_utils:remove_ending_carriage_return( os:cmd(
-		  "LANG= cat /proc/meminfo|grep '^MemTotal:'|awk '{print $2,$3}'" ) ),
+
+	% So finally we prefered /proc/meminfo, used first to get MemTotal:
+	%
+	TotalString = case execute_command(
+		  "cat /proc/meminfo|grep '^MemTotal:'|awk '{print $2,$3}'" ) of
+
+		{ _TotalExitCode=0, TotalOutput } ->
+			%io:format( "TotalOutput: '~p'~n", [ TotalOutput ] ),
+			TotalOutput;
+
+		{ TotalExitCode, TotalErrorOutput } ->
+			throw( { total_memory_used_inquiry_failed, TotalExitCode,
+					 TotalErrorOutput } )
+
+	end,
 
 	[ Total, "kB" ] = string:tokens( TotalString, " " ),
 
 	TotalByte = text_utils:string_to_integer( Total ) * 1024,
 
-
-	FreeString = case os:cmd(
-						"LANG= cat /proc/meminfo|grep '^MemAvailable:'|awk "
+	% MemAvailable does not seem always available:
+	%
+	FreeString = case execute_command(
+						"cat /proc/meminfo|grep '^MemAvailable:'|awk "
 						"'{print $2,$3}'" )  of
 
-		[] ->
-			%io:format( "## using MemFree~n" ),
-			% In some cases (ex: Debian 6.0), no 'MemAvailable' is defined, we
-			% use 'MemFree' instead:
-			os:cmd( "LANG= cat /proc/meminfo|grep '^MemFree:'|awk "
-					"'{print $2,$3}'" );
-
-		Res ->
+		{ _AvailExitCode=0, MemAvailOutput } ->
 			%io:format( "## using MemAvailable~n" ),
-			Res
+			MemAvailOutput;
+
+		{ _AvailExitCode, _AvailErrorOutput } ->
+
+			% In some cases (ex: Debian 6.0), no 'MemAvailable' is defined, we
+			% use 'MemFree' instead (we consider they are synonymous):
+
+			%io:format( "## using MemFree~n" ),
+
+			case execute_command(
+				   "cat /proc/meminfo|grep '^MemFree:'|awk "
+				   "'{print $2,$3}'" ) of
+
+				{ _FreeExitCode=0, MemFreeOutput } ->
+					MemFreeOutput;
+
+				{ FreeExitCode, FreeErrorOutput } ->
+					throw( { total_memory_used_inquiry_failed, FreeExitCode,
+							 FreeErrorOutput } )
+
+			end
 
 	end,
 
+	% The problem is that even if MemAvailable is not found, we have a zero exit
+	% code (and an empty string):
+	%
 	FreeByte = case FreeString of
 
 		[] ->
+
+			% As a last resort we do as before, i.e. we use free:
+
 			%io:format( "## using free~n" ),
-			% As a last resort we do as before:
-			UsedString = text_utils:remove_ending_carriage_return( os:cmd(
-				"LANG= free -b | grep '/cache' | awk '{print $3}'" ) ),
 
-			% Already in bytes:
-			text_utils:string_to_integer( UsedString );
+			case execute_command(
+				"free -b | grep '/cache' | awk '{print $3}'" ) of
 
+				{ _ExitCode=0, FreeOutput } ->
+					% Already in bytes:
+					text_utils:string_to_integer( FreeOutput );
+
+				{ ExitCode, ErrorOutput } ->
+					throw( { total_memory_used_inquiry_failed, ExitCode,
+							 ErrorOutput } )
+
+			end;
 
 		_ ->
-			UsedString = text_utils:remove_ending_carriage_return( FreeString ),
 
-			[ Used, "kB" ] = string:tokens( UsedString, " " ),
+			[ Free, "kB" ] = string:tokens( FreeString, " " ),
 
-			text_utils:string_to_integer( Used ) * 1024
+			text_utils:string_to_integer( Free ) * 1024
 
 	end,
 
@@ -691,16 +868,33 @@ get_swap_status() ->
 
 	% Same reason as for get_total_memory_used/0:
 	%SwapInfos = os:cmd( "free -b | grep 'Swap:' | awk '{print $2, $3}'" ),
-	SwapTotalString = text_utils:remove_ending_carriage_return( os:cmd(
-		  "LANG= cat /proc/meminfo|grep '^SwapTotal:'|awk '{print $2,$3}'" ) ),
+	SwapTotalString = case execute_command(
+		  "cat /proc/meminfo|grep '^SwapTotal:'|awk '{print $2,$3}'" ) of
+
+		{ _TotalExitCode=0, TotalOutput } ->
+			TotalOutput;
+
+		{ TotalExitCode, TotalErrorOutput } ->
+			throw( { swap_inquiry_failed, TotalExitCode, TotalErrorOutput } )
+
+	end,
 
 	[ TotalString, "kB" ] = string:tokens( SwapTotalString, " " ),
 
 	TotalByte = text_utils:string_to_integer( TotalString ) * 1024,
 
 
-	SwapFreeString = text_utils:remove_ending_carriage_return( os:cmd(
-		  "LANG= cat /proc/meminfo|grep '^SwapFree:'|awk '{print $2,$3}'" ) ),
+	SwapFreeString = case execute_command(
+		  "cat /proc/meminfo|grep '^SwapFree:'|awk '{print $2,$3}'" ) of
+
+		{ _FreeExitCode=0, FreeOutput } ->
+			FreeOutput;
+
+		{ FreeExitCode, FreeErrorOutput } ->
+			throw( { swap_inquiry_failed, FreeExitCode, FreeErrorOutput } )
+
+	end,
+
 
 	[ FreeString, "kB" ] = string:tokens( SwapFreeString, " " ),
 
@@ -719,17 +913,25 @@ get_swap_status() ->
 -spec get_core_count() -> integer().
 get_core_count() ->
 
-	String = text_utils:remove_ending_carriage_return(
-				os:cmd( "cat /proc/cpuinfo | grep -c processor" ) ),
+	CoreString = case execute_command(
+						"cat /proc/cpuinfo | grep -c processor" ) of
+
+		{ _ExitCode=0, Output } ->
+			Output;
+
+		{ ExitCode, ErrorOutput } ->
+			throw( { core_count_inquiry_failed, ExitCode, ErrorOutput } )
+
+	end,
 
 	try
 
-		text_utils:string_to_integer( String )
+		text_utils:string_to_integer( CoreString )
 
 	catch
 
-		{ integer_conversion_failed, String } ->
-			throw( { could_not_determine_core_count, String } )
+		{ integer_conversion_failed, CoreString } ->
+			throw( { could_not_determine_core_count, CoreString } )
 
 	end.
 
@@ -858,8 +1060,16 @@ compute_detailed_cpu_usage( _StartCounters={ U1, N1, S1, I1, O1 },
 get_cpu_usage_counters() ->
 
 	% grep more versatile than: '| head -n 1':
-	StatString = text_utils:remove_ending_carriage_return(
-					   os:cmd( "cat /proc/stat | grep 'cpu '" ) ),
+	StatString = case execute_command( "cat /proc/stat | grep 'cpu '" ) of
+
+		{ _ExitCode=0, Output } ->
+						 Output;
+
+		{ ExitCode, ErrorOutput } ->
+						 throw( { cpu_counters_inquiry_failed, ExitCode,
+								  ErrorOutput } )
+
+	end,
 
 	% Ex: cpu  1331302 11435 364777 150663306 82509 249 3645 0 0
 
@@ -889,8 +1099,17 @@ get_cpu_usage_counters() ->
 %
 -spec get_disk_usage() -> text_utils:ustring().
 get_disk_usage() ->
-	 text_utils:remove_ending_carriage_return( os:cmd( "LANG= /bin/df -h" ) ).
 
+	case execute_command( "/bin/df -h" ) of
+
+		{ _ExitCode=0, Output } ->
+			Output;
+
+		{ ExitCode, ErrorOutput } ->
+			throw( { disk_usage_inquiry_failed, ExitCode,
+					 ErrorOutput } )
+
+	end.
 
 
 
@@ -903,18 +1122,42 @@ get_known_pseudo_filesystems() ->
 	[ tmpfs, devtmpfs ].
 
 
+
 % Returns a list of the current, local mount points (excluding the
 % pseudo-filesystems).
 %
 -spec get_mount_points() -> [ file_utils:path() ].
 get_mount_points() ->
 
-	Cmd = "LANG= /bin/df -h --local --output=target"
+	FirstCmd = "/bin/df -h --local --output=target"
 		++ get_exclude_pseudo_fs_opt() ++ "|grep -v 'Mounted on'",
 
-	ResAsOneString = text_utils:remove_ending_carriage_return( os:cmd( Cmd ) ),
+	case execute_command( FirstCmd ) of
 
-	text_utils:split( ResAsOneString, "\n" ).
+		{ _FirstExitCode=0, ResAsOneString } ->
+			%io:format( "## using direct df~n" ),
+			text_utils:split( ResAsOneString, "\n" );
+
+		{ _FirstExitCode, _FirstErrorOutput } ->
+
+			% Older versions of df may not know the --output option:
+			SecondCmd = "/bin/df -h --local "
+				++ get_exclude_pseudo_fs_opt()
+				++ "|grep -v 'Mounted on' | awk '{print $6}'",
+
+			case execute_command( SecondCmd ) of
+
+				{ _SecondExitCode=0, ResAsOneString } ->
+					%io:format( "## using legacy df~n" ),
+					text_utils:split( ResAsOneString, "\n" );
+
+				{ SecondExitCode, SecondErrorOutput } ->
+					throw( { mount_point_inquiry_failed, SecondExitCode,
+							 SecondErrorOutput } )
+
+			end
+
+	end.
 
 
 
@@ -938,26 +1181,93 @@ get_filesystem_info( BinFilesystemPath ) when is_binary( BinFilesystemPath ) ->
 
 get_filesystem_info( FilesystemPath ) ->
 
-	Cmd = "LANG= /bin/df --block-size=1K --local "
+	Cmd = "/bin/df --block-size=1K --local "
 		++ get_exclude_pseudo_fs_opt()
 		++ " --output=source,target,fstype,used,avail,iused,iavail '"
 		++ FilesystemPath ++ "' | grep -v 'Mounted on'",
 
-	ResAsOneString = text_utils:remove_ending_carriage_return( os:cmd( Cmd ) ),
+	case execute_command( Cmd ) of
 
-	% Order of the columns: 'Filesystem / Mounted on / Type / Used / Avail /
-	% IUsed / IFree':
-	%
-	[ Fs, Mount, Type, USize, ASize, Uinodes, Ainodes ] = text_utils:split(
-														ResAsOneString, " " ),
+		{ _ExitCode=0, ResAsOneString } ->
+			% Order of the columns: 'Filesystem / Mounted on / Type / Used /
+			% Avail / IUsed / IFree':
+			%
+			case text_utils:split( ResAsOneString, " " ) of
 
-	% df outputs kiB, not kB:
-	#fs_info{ filesystem=Fs, mount_point=Mount,
-			  type=get_filesystem_type( Type ),
-			  used_size = 1024 * text_utils:string_to_integer( USize ),
-			  available_size = 1024 * text_utils:string_to_integer( ASize ),
-			  used_inodes = text_utils:string_to_integer( Uinodes ),
-			  available_inodes = text_utils:string_to_integer( Ainodes ) }.
+				[ Fs, Mount, Type, USize, ASize, Uinodes, Ainodes ] ->
+
+					%io:format( "## using direct df~n" ),
+
+					% df outputs kiB, not kB:
+					#fs_info{
+					  filesystem=Fs,
+					  mount_point=Mount,
+					  type=get_filesystem_type( Type ),
+					  used_size = 1024 * text_utils:string_to_integer( USize ),
+					  available_size = 1024 *
+						  text_utils:string_to_integer( ASize ),
+					  used_inodes = text_utils:string_to_integer( Uinodes ),
+					  available_inodes =
+						  text_utils:string_to_integer( Ainodes )
+				 };
+
+				_ ->
+					get_filesystem_info_alternate( FilesystemPath )
+
+			end;
+
+		{ _ExitCode, _ErrorOutput } ->
+			get_filesystem_info_alternate( FilesystemPath )
+
+	end.
+
+
+
+
+% Alternate version, if the base version failed.
+%
+get_filesystem_info_alternate( FilesystemPath ) ->
+
+	% df must have failed, probably outdated and not understanding --output,
+	% defaulting to a less precise syntax:
+
+	%io:format( "## using alternate df~n" ),
+
+	Cmd = "/bin/df --block-size=1K --local "
+		++ get_exclude_pseudo_fs_opt() ++ " "
+		++ FilesystemPath ++ "| grep -v 'Mounted on'",
+
+	case execute_command( Cmd ) of
+
+		{ _ExitCode=0, ResAsOneString } ->
+
+			case text_utils:split( ResAsOneString, " " ) of
+
+				[ Fs, _1KBlocks,  USize, ASize, _UsedPercent, Mount ] ->
+
+					% df outputs kiB, not kB:
+					#fs_info{
+					  filesystem=Fs,
+					  mount_point=Mount,
+					  type=unknown,
+					  used_size = 1024 * text_utils:string_to_integer( USize ),
+					  available_size = 1024 *
+						  text_utils:string_to_integer( ASize ),
+					  used_inodes = 0,
+					  available_inodes = 0
+					};
+
+				_ ->
+					throw( { filesystem_inquiry_failed, FilesystemPath,
+							 ResAsOneString } )
+
+			end;
+
+		{ _ExitCode, ErrorOutput } ->
+			throw( { filesystem_inquiry_failed, FilesystemPath,
+					 ErrorOutput } )
+
+	end.
 
 
 
@@ -1014,31 +1324,39 @@ get_operating_system_description() ->
 
 	case file_utils:is_existing_file_or_link( OSfile ) of
 
-
 		true ->
 
-			Res= os:cmd( "cat " ++ OSfile ++
+			case execute_command( "cat " ++ OSfile ++
 					" | grep PRETTY_NAME | sed 's|^PRETTY_NAME=\"||1' "
-					"| sed 's|\"$||1' 2>/dev/null" ),
+					" | sed 's|\"$||1' 2>/dev/null" ) of
 
-			text_utils:remove_ending_carriage_return( Res );
+				{ _ExitCode=0, Output } ->
+					Output;
 
+				{ _ExitCode, _ErrorOutput } ->
+					get_operating_system_description_alternate()
+
+			end;
 
 		false ->
+			get_operating_system_description_alternate()
 
-			IdentifierPath = "/etc/issue.net",
+	end.
 
-			case file_utils:is_existing_file( IdentifierPath ) of
 
-				true ->
-					BinString = file_utils:read_whole( IdentifierPath ),
-					text_utils:trim_whitespaces(
-						   text_utils:binary_to_string( BinString ) );
+get_operating_system_description_alternate() ->
 
-				false ->
-					"(unknown operating system)"
+	IdentifierPath = "/etc/issue.net",
 
-			end
+	case file_utils:is_existing_file( IdentifierPath ) of
+
+		true ->
+			BinString = file_utils:read_whole( IdentifierPath ),
+			text_utils:trim_whitespaces(
+			  text_utils:binary_to_string( BinString ) );
+
+		false ->
+			"(unknown operating system)"
 
 	end.
 
@@ -1086,7 +1404,7 @@ get_system_description() ->
 		io_lib:format( "total physical memory: ~ts",
 					  [ interpret_byte_size( get_total_physical_memory() ) ] ),
 
-		io_lib:format( "memory used by VM: ~s over a total of ~s (~s)",
+		io_lib:format( "memory used: ~s, over a total of ~s (~s)",
 					  [ interpret_byte_size( UsedRAM ),
 						interpret_byte_size( TotalRAM ),
 						text_utils:percent_to_string( UsedRAM / TotalRAM ) ] ),
