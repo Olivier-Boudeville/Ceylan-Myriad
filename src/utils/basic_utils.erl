@@ -257,7 +257,7 @@
 % Timestamp-related functions.
 
 
-% Returns a tipmestamp tuple describing the current time.
+% Returns a timestamp tuple describing the current time.
 %
 % Ex: { {Year,Month,Day}, {Hour,Minute,Second} } = basic_utils:get_timestamp()
 % may return '{ {2007,9,6}, {15,9,14} }'.
