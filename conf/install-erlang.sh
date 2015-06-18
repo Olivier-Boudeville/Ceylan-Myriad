@@ -12,7 +12,7 @@ LANG=C; export LANG
 erlang_version="17.5"
 erlang_md5="346dd0136bf1cc28cebc140e505206bb"
 
-# Cutting-edge release candidate (or previous stable version):
+# Previous version (ex: cutting-edge or previous stable version):
 erlang_version_candidate="17.4"
 erlang_md5_candidate="3d33c4c6bd7950240dcd7479edd9c7d8"
 
@@ -21,7 +21,7 @@ plt_file="Erlang-$erlang_version.plt"
 plt_link="Erlang.plt"
 
 
-usage="Usage: "$(basename $0)" [-h|--help] [-c|--cutting-edge] [-d|--doc-install] [-g|--generate-plt] [-n|--no-download] [-np|--no-patch] [<base install directory>]: downloads, patches, builds and installs a fresh $erlang_version Erlang version in specified base directory (if any), or in default directory, and in this case adds a symbolic link pointing to it from its parent directory so that Erlang-current-install always points to the latest installed version.
+usage="Usage: "$(basename $0)" [-h|--help] [-d|--doc-install] [-g|--generate-plt] [-n|--no-download] [-np|--no-patch] [-p|--previous] [<base install directory>]: downloads, patches, builds and installs a fresh $erlang_version Erlang version in specified base directory (if any), or in default directory, and in this case adds a symbolic link pointing to it from its parent directory so that Erlang-current-install always points to the latest installed version.
 
 Note that, if relevant archives are found in the current directory, they will be used, even if the user did not specify a 'no download' option.
 
@@ -30,15 +30,15 @@ If no base install directory is specified, then, if this script is run by root, 
 If a base install directory MY_DIR is specified, then Erlang will be installed into MY_DIR/Erlang/Erlang-${erlang_version}/.
 
 Options:
-	-c or --cutting-edge: use, instead of the latest stable Erlang version, the latest supported release candidate version (if any), otherwise the lastly supported stable version (namely, currently, ${erlang_version_candidate})
 	-d or --doc-install: download and install the corresponding documentation as well
 	-g or --generate-plt: generate the PLT file ($plt_file) for Dialyzer corresponding to this Erlang/OTP install
 	-n or --no-download: do not attempt to download anything, expect that needed files are already available (useful if not having a direct access to the Internet)
 	-np or --no-patch: disable the automatic patching we make use of
+	-p or --previous: use, instead of the current Erlang version registered for installation (i.e. ${erlang_version}), the previous one (ex: latest supported release candidate version otherwise the lastly supported stable version), namely, currently, ${erlang_version_candidate}
 
 
 Example:
-  install-erlang.sh --cutting-edge --doc-install --no-download --generate-plt
+  install-erlang.sh  --doc-install --no-download --generate-plt
 	will install latest available version of Erlang, with its documentation, in the ~/Software/Erlang directory, without downloading anything,
 	  - or -
   install-erlang.sh --doc-install ~/my-directory
@@ -99,7 +99,7 @@ set_wget()
 
 	if [ -z "${wget}" ] ; then
 
-		wget=`which wget`
+		wget=$(which wget)
 
 		if [ ! -x "${wget}" ] ; then
 
@@ -134,15 +134,13 @@ while [ $token_eaten -eq 0 ] ; do
 
 
 
-	if [ "$1" = "-c" -o "$1" = "--cutting-edge" ] ; then
-
-		echo "Warning: not using latest beta (unstable) version of Erlang, as the corresponding stable version is more recent."
+	if [ "$1" = "-p" -o "$1" = "--previous" ] ; then
 
 		erlang_version="${erlang_version_candidate}"
 		erlang_md5="${erlang_md5_candidate}"
 		plt_file="Erlang-$erlang_version_candidate"
 
-		echo "Warning: using latest beta ${erlang_version} (non stable) version of Erlang."
+		echo "Warning: not installing the default version of Erlang currently supported, using previous one, i.e. version ${erlang_version}." 1>&2
 
 		token_eaten=0
 
@@ -198,7 +196,7 @@ if [ -z "$read_parameter" ] ; then
 
    # Here no base installation directory was specified:
 
-   if [ `id -u` -eq 0 ] ; then
+   if [ $(id -u) -eq 0 ] ; then
 
 	   # Run as root, no prefix specified, thus:
 	   use_prefix=1
@@ -246,7 +244,7 @@ fi
 
 if [ $do_patch -eq 0 ] ; then
 
-	patch_tool=`which patch`
+	patch_tool=$(which patch)
 
 	if [ ! -x "$patch_tool" ] ; then
 
@@ -259,7 +257,7 @@ if [ $do_patch -eq 0 ] ; then
 fi
 
 
-md5sum=`which md5sum`
+md5sum=$(which md5sum)
 
 # Archives are not available by default:
 src_available=1
@@ -273,9 +271,9 @@ if [ $do_download -eq 0 ] ; then
 
 		if [ -x "${md5sum}" ] ; then
 
-			md5_res=`${md5sum} ${erlang_src_archive}`
+			md5_res=$( ${md5sum} ${erlang_src_archive} )
 
-			computed_md5=`echo ${md5_res}|awk '{printf $1}'`
+			computed_md5=$( echo ${md5_res}|awk '{printf $1}' )
 
 			if [ "${computed_md5}" = "${erlang_md5}" ] ; then
 
@@ -338,7 +336,7 @@ else
 
 	if [ ! -f "${erlang_src_archive}" ] ; then
 
-		echo "  Error, Erlang source archive (${erlang_src_archive}) could not be found from current directory ('"`pwd`"'), and no download was requested." 1>&2
+		echo "  Error, Erlang source archive (${erlang_src_archive}) could not be found from current directory ($(pwd)), and no download was requested." 1>&2
 		exit 20
 
 	fi
@@ -365,9 +363,9 @@ if [ ! -x "${md5sum}" ] ; then
 
 else
 
-	md5_res=`${md5sum} ${erlang_src_archive}`
+	md5_res=$( ${md5sum} ${erlang_src_archive} )
 
-	computed_md5=`echo ${md5_res}| awk '{printf $1}'`
+	computed_md5=$( echo ${md5_res}| awk '{printf $1}' )
 
 	if [ "${computed_md5}" = "${erlang_md5}" ] ; then
 		echo "MD5 sum for Erlang source archive matches."
@@ -387,7 +385,7 @@ fi
 # (a similar case happened with the otp_src_17.0-rc1 release, which was put in
 # an otp_src_17 archive root directory)
 #
-erlang_extracted_prefix=`echo "${erlang_src_prefix}" | sed 's|-[0-9]*$||' | sed 's|\.[0-9]*-rc[0-9]*$||'`
+erlang_extracted_prefix=$( echo "${erlang_src_prefix}" | sed 's|-[0-9]*$||' | sed 's|\.[0-9]*-rc[0-9]*$||' )
 
 if [ $use_prefix -eq 0 ] ; then
 
@@ -426,7 +424,7 @@ if [ ! $? -eq 0 ] ; then
 	exit 50
 fi
 
-initial_path=`pwd`
+initial_path=$( pwd )
 
 # Corrects any extracted root directory, like 'R15B03' instead of 'R15B03-1':
 if [ ! -d "${erlang_src_prefix}" ] ; then

@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2014 Olivier Boudeville
+% Copyright (C) 2003-2015 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -193,7 +193,7 @@ enumerate( OptionList ) ->
 
 % Returns a string describing the specified option list.
 %
--spec to_string( option_list() ) -> string().
+-spec to_string( option_list() ) -> text_utils:ustring().
 to_string( OptionList ) ->
 	Strings = [ io_lib:format( "~p: ~p", [ K, V ] ) || { K, V } <- OptionList ],
 	text_utils:strings_to_string( Strings ).

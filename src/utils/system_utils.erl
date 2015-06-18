@@ -36,7 +36,8 @@
 
 
 % User-related functions.
--export([ get_user_name/0, get_user_home_directory/0 ]).
+-export([ get_user_name/0, get_user_name_string/0,
+		  get_user_home_directory/0, get_user_home_directory_string/0 ]).
 
 
 % Lower-level services.
@@ -50,23 +51,33 @@
 
 		  get_interpreter_version/0, get_application_version/1,
 
-		  get_size_of_vm_word/0, get_size/1,
+		  get_size_of_vm_word/0, get_size_of_vm_word_string/0,
+		  get_size/1,
+
 		  interpret_byte_size/1, interpret_byte_size_with_unit/1,
 		  convert_byte_size_with_unit/1,
 
-		  display_memory_summary/0, get_total_physical_memory/0,
+		  display_memory_summary/0,
+		  get_total_physical_memory/0, get_total_physical_memory_string/0,
 		  get_total_physical_memory_on/1, get_memory_used_by_vm/0,
 		  get_total_memory_used/0,
 
-		  get_swap_status/0, get_core_count/0, get_process_count/0,
+		  get_swap_status/0, get_swap_status_string/0,
+		  get_core_count/0, get_core_count_string/0,
+		  get_process_count/0, get_process_count_string/0,
 		  compute_cpu_usage_between/2, compute_cpu_usage_for/1,
 		  compute_detailed_cpu_usage/2, get_cpu_usage_counters/0,
 
-		  get_disk_usage/0, get_mount_points/0,
+		  get_disk_usage/0, get_disk_usage_string/0,
+		  get_mount_points/0,
 		  get_known_pseudo_filesystems/0, get_filesystem_info/1,
 		  filesystem_info_to_string/1,
 
-		  get_operating_system_description/0, get_system_description/0 ]).
+		  get_current_directory_string/0,
+
+		  get_operating_system_description/0,
+		  get_operating_system_description_string/0,
+		  get_system_description/0 ]).
 
 
 % Size, in number of bytes:
@@ -188,6 +199,25 @@ get_user_name() ->
 
 
 
+% Returns a textual description of the name of the current user.
+%
+% Cannot crash.
+%
+-spec get_user_name_string() -> text_utils:ustring().
+get_user_name_string() ->
+
+	try
+
+		io_lib:format( "user name: ~ts", [ get_user_name() ] )
+
+	catch _AnyClass:Exception ->
+			io_lib:format( "no user name information could be obtained (~p)",
+						   [ Exception ] )
+
+	end.
+
+
+
 % Returns the home directory of the current user, as a plain string.
 %
 -spec get_user_home_directory() -> string().
@@ -201,6 +231,26 @@ get_user_home_directory() ->
 
 		Error ->
 			throw( { home_directory_not_found, Error } )
+
+	end.
+
+
+
+% Returns a textual description of the home directory of the current user.
+%
+% Cannot crash.
+%
+-spec get_user_home_directory_string() -> text_utils:ustring().
+get_user_home_directory_string() ->
+
+	try
+
+		io_lib:format( "user home directory: ~ts",
+					   [ get_user_home_directory() ] )
+
+	catch _AnyClass:Exception ->
+			io_lib:format( "no home directory information could be "
+						   "obtained (~p)", [ Exception ] )
 
 	end.
 
@@ -420,6 +470,27 @@ get_application_version( Application ) ->
 -spec get_size_of_vm_word() -> basic_utils:count().
 get_size_of_vm_word() ->
 	erlang:system_info( wordsize ).
+
+
+
+% Returns a textual description of the size of a VM word.
+%
+% Cannot crash.
+%
+-spec get_size_of_vm_word_string() -> text_utils:ustring().
+get_size_of_vm_word_string() ->
+
+	try
+
+		io_lib:format( "size of a VM word: ~B bytes",
+					   [ get_size_of_vm_word() ] )
+
+	catch _AnyClass:Exception ->
+			io_lib:format( "size of a VM word could not be obtained (~p)",
+						   [ Exception ] )
+
+	end.
+
 
 
 % Returns the size of specified term, in bytes.
@@ -685,6 +756,24 @@ get_total_physical_memory() ->
 
 
 
+% Returns a textual description of the total installed physical memory.
+%
+% Cannot crash.
+%
+-spec get_total_physical_memory_string() -> text_utils:ustring().
+get_total_physical_memory_string() ->
+
+	try
+
+		io_lib:format( "total physical memory: ~ts",
+					  [ interpret_byte_size( get_total_physical_memory() ) ] )
+
+	catch _AnyClass:Exception ->
+			io_lib:format( "no total physical RAM information could be "
+						   "obtained (~p)", [ Exception ] )
+
+	end.
+
 
 
 
@@ -859,9 +948,42 @@ get_total_memory_used() ->
 
 
 
+% Returns a textual description of the current RAM status.
+%
+% Cannot crash.
+%
+-spec get_ram_status_string() -> text_utils:ustring().
+get_ram_status_string() ->
+
+	try
+
+		case get_total_memory_used() of
+
+			{ _UsedRAM, _TotalRAM=0 } ->
+				"total RAM size could not be obtained (found null)";
+
+			{ UsedRAM, TotalRAM } ->
+				io_lib:format( "RAM memory used: ~s, over a total of ~s (~s)",
+					[ interpret_byte_size( UsedRAM ),
+					  interpret_byte_size( TotalRAM ),
+					  text_utils:percent_to_string( UsedRAM / TotalRAM ) ] )
+
+		end
+
+	catch _AnyClass:Exception ->
+			io_lib:format( "no RAM information could be obtained (~p)",
+						   [ Exception ] )
+
+	end.
+
+
+
+
 % Returns { UsedSwap, TotalSwap } where UsedSwap is the size of the used swap
 % and TotalSwap is the total amount of swap space on the local host, both
 % expressed in bytes.
+%
+% Will crash if the information cannot be retrieved properly.
 %
 -spec get_swap_status() -> { byte_size(), byte_size() }.
 get_swap_status() ->
@@ -906,6 +1028,39 @@ get_swap_status() ->
 
 
 
+% Returns a textual description of the current swap status.
+%
+% Cannot crash.
+%
+-spec get_swap_status_string() -> text_utils:ustring().
+get_swap_status_string() ->
+
+	try
+
+		case get_swap_status() of
+
+			{ _UsedSwap, _TotalSwap=0 } ->
+					   "no swap found";
+
+			{ UsedSwap, TotalSwap } ->
+					   io_lib:format( "swap used: ~s over a total of ~s (~s)",
+									  [ interpret_byte_size( UsedSwap ),
+										interpret_byte_size( TotalSwap ),
+										text_utils:percent_to_string(
+										  UsedSwap / TotalSwap ) ] )
+
+		end
+
+
+	catch _AnyClass:Exception ->
+			io_lib:format( "no swap information could be obtained (~p)",
+						   [ Exception ] )
+
+	end.
+
+
+
+
 % Returns the number of cores available on the local host.
 %
 % Throws an exception on failure.
@@ -937,11 +1092,52 @@ get_core_count() ->
 
 
 
+% Returns a textual description of the number of the local processing cores.
+%
+% Cannot crash.
+%
+-spec get_core_count_string() -> text_utils:ustring().
+get_core_count_string() ->
+
+	try
+
+		io_lib:format( "number of cores: ~B", [ get_core_count() ] )
+
+	catch _AnyClass:Exception ->
+			io_lib:format( "no core information could be obtained (~p)",
+						   [ Exception ] )
+
+	end.
+
+
+
+
 % Returns the number of live Erlang processes on the current node.
 %
 -spec get_process_count() -> basic_utils:count().
 get_process_count() ->
 	erlang:system_info( process_count ).
+
+
+
+% Returns a textual description of the number of live Erlang processes on the
+% current node.
+%
+% Cannot crash.
+%
+-spec get_process_count_string() -> text_utils:ustring().
+get_process_count_string() ->
+
+	try
+
+		io_lib:format( "number of existing Erlang processes: ~B ",
+					  [ get_process_count() ] )
+
+	catch _AnyClass:Exception ->
+			io_lib:format( "no information about the number of live Erlang "
+						   "processes could be obtained (~p)", [ Exception ] )
+
+	end.
 
 
 
@@ -1110,6 +1306,27 @@ get_disk_usage() ->
 					 ErrorOutput } )
 
 	end.
+
+
+
+% Returns a textual description of the current disk usage.
+%
+% Cannot crash.
+%
+-spec get_disk_usage_string() -> text_utils:ustring().
+get_disk_usage_string() ->
+
+	try
+
+		io_lib:format( "current disk usage:~n~ts", [ get_disk_usage() ] )
+
+	catch _AnyClass:Exception ->
+			io_lib:format( "no disk usage information could be obtained (~p)",
+						   [ Exception ] )
+
+	end.
+
+
 
 
 
@@ -1314,10 +1531,29 @@ get_filesystem_type( TypeString ) ->
 
 
 
+% Returns a textual description of the current working directory.
+%
+% Cannot crash.
+%
+-spec get_current_directory_string() -> text_utils:ustring().
+get_current_directory_string() ->
+
+	try
+
+		io_lib:format( "current directory: ~ts",
+					   [ file_utils:get_current_directory() ] )
+
+	catch _AnyClass:Exception ->
+			io_lib:format( "no information about the current directory "
+						   "could be obtained (~p)", [ Exception ] )
+
+	end.
+
+
 
 % Returns a string describing the current operating system.
 %
--spec get_operating_system_description() -> string().
+-spec get_operating_system_description() -> text_utils:ustring().
 get_operating_system_description() ->
 
 	OSfile = "/etc/os-release",
@@ -1362,64 +1598,60 @@ get_operating_system_description_alternate() ->
 
 
 
+% Returns a textual description of the operating system being used.
+%
+% Cannot crash.
+%
+-spec get_operating_system_description_string() -> text_utils:ustring().
+get_operating_system_description_string() ->
+
+	try
+
+		io_lib:format( "operating system: ~ts",
+					   [ get_operating_system_description() ] )
+
+	catch _AnyClass:Exception ->
+			io_lib:format( "no information about the operating system "
+						   "could be obtained (~p)", [ Exception ] )
+
+	end.
+
+
+
+
 % Returns a string describing the current state of the local system.
+%
+% Will not crash, even if some information could not be retrieved.
 %
 -spec get_system_description() -> string().
 get_system_description() ->
-
-	{ UsedRAM, TotalRAM } = get_total_memory_used(),
-
-	{ UsedSwap, TotalSwap } = get_swap_status(),
-
-	SwapInfo = "swap used: " ++ case TotalSwap of
-
-				   0 ->
-					   "none (no swap)";
-
-				   _ ->
-					   io_lib:format( "~s over a total of ~s (~s)",
-									  [ interpret_byte_size( UsedSwap ),
-										interpret_byte_size( TotalSwap ),
-										text_utils:percent_to_string(
-										  UsedSwap / TotalSwap ) ] )
-
-	end,
 
 	% We use ~ts instead of ~s as in some cases, Unicode strings might be
 	% returned:
 	%
 	Subjects = [
 
-		io_lib:format( "number of cores: ~B", [ get_core_count() ] ),
+		get_core_count_string(),
 
-		io_lib:format( "size of a VM word: ~B bytes",
-					  [ get_size_of_vm_word() ] ),
+		get_size_of_vm_word_string(),
 
-		io_lib:format( "operating system: ~ts",
-					  [ get_operating_system_description() ] ),
+		get_operating_system_description_string(),
 
-		io_lib:format( "number of existing Erlang processes: ~B ",
-					  [ get_process_count() ] ),
+		get_process_count_string(),
 
-		io_lib:format( "total physical memory: ~ts",
-					  [ interpret_byte_size( get_total_physical_memory() ) ] ),
+		get_total_physical_memory_string(),
 
-		io_lib:format( "memory used: ~s, over a total of ~s (~s)",
-					  [ interpret_byte_size( UsedRAM ),
-						interpret_byte_size( TotalRAM ),
-						text_utils:percent_to_string( UsedRAM / TotalRAM ) ] ),
+		get_ram_status_string(),
 
-		SwapInfo,
+		get_swap_status_string(),
 
-		io_lib:format( "user name: ~ts", [ get_user_name() ] ),
+		get_user_name_string(),
 
-		io_lib:format( "user home directory: ~ts",
-					  [ get_user_home_directory() ] ),
+		get_user_home_directory_string(),
 
-		io_lib:format( "current directory: ~ts",
-					  [ file_utils:get_current_directory() ] ),
+		get_current_directory_string(),
 
-		io_lib:format( "current disk usage:~n~ts", [ get_disk_usage() ] )
+		get_disk_usage_string()
 
 				],
 

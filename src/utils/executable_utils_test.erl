@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2014 Olivier Boudeville
+% Copyright (C) 2003-2015 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -26,7 +26,9 @@
 
 
 % Unit tests for the executable_utils toolbox.
+%
 % See the executable_utils.erl tested module.
+%
 -module(executable_utils_test).
 
 
@@ -41,6 +43,6 @@ run() ->
 	test_facilities:start( ?MODULE ),
 
 	test_facilities:display( "SSH mute option: '~s'.",
-			  [executable_utils:get_ssh_mute_option()] ),
+							 [ executable_utils:get_ssh_mute_option() ] ),
 
 	test_facilities:stop().

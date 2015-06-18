@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2014 Olivier Boudeville
+% Copyright (C) 2003-2015 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -141,11 +141,14 @@ find_executable( ExecutableName ) ->
 % Section for most usual commands.
 
 
-% By default do not crash if dot outputs some warnings.
+% By default does not crash if dot outputs some warnings but does not yield an
+% error exit status.
+%
 -spec generate_png_from_graph_file( file_utils:path(), file_utils:path() ) ->
-										  any().
+										  text_utils:ustring().
 generate_png_from_graph_file( PNGFilename, GraphFilename ) ->
-	generate_png_from_graph_file( PNGFilename, GraphFilename, false ).
+	generate_png_from_graph_file( PNGFilename, GraphFilename,
+								  _HaltOnDotOutput=false ).
 
 
 
@@ -163,20 +166,24 @@ generate_png_from_graph_file( PNGFilename, GraphFilename ) ->
 %
 -spec generate_png_from_graph_file( file_utils:path(), file_utils:path(),
 								   boolean() ) -> string().
-generate_png_from_graph_file( PNGFilename, GraphFilename, true ) ->
+generate_png_from_graph_file( PNGFilename, GraphFilename,
+							  _HaltOnDotOutput=true ) ->
 
 	case execute_dot( PNGFilename, GraphFilename ) of
 
 		[] ->
+			% Most correct case:
 			[];
 
 		ErrorMessage ->
-			throw( {graph_generation_failed,ErrorMessage} )
+			throw( { graph_generation_failed, PNGFilename, GraphFilename,
+					 ErrorMessage } )
 
 	end;
 
 % Any output remains available to the caller.
-generate_png_from_graph_file( PNGFilename, GraphFilename, false ) ->
+generate_png_from_graph_file( PNGFilename, GraphFilename,
+							  _HaltOnDotOutput=false ) ->
 	execute_dot( PNGFilename, GraphFilename ).
 
 
@@ -188,10 +195,11 @@ generate_png_from_graph_file( PNGFilename, GraphFilename, false ) ->
 %
 % Throws an exception if an error occurs.
 %
--spec display_png_file( file_utils:path() ) -> string().
+-spec display_png_file( file_utils:path() ) -> basic_utils:void().
 display_png_file( PNGFilename ) ->
 	% Viewer output is ignored:
-	os:cmd( get_default_image_viewer_path() ++ " " ++ PNGFilename ++ " &" ).
+	system_utils:execute_background_command( get_default_image_viewer_path()
+											 ++ " " ++ PNGFilename  ).
 
 
 
@@ -202,9 +210,10 @@ display_png_file( PNGFilename ) ->
 %
 % Throws an exception if an error occurs.
 %
--spec browse_images_in( file_utils:path() ) -> string().
+-spec browse_images_in( file_utils:path() ) -> basic_utils:void().
 browse_images_in( DirectoryName ) ->
-	os:cmd( get_default_image_browser_path() ++ " " ++ DirectoryName ++ " &" ).
+	system_utils:execute_background_command( get_default_image_browser_path()
+											 ++ " " ++ DirectoryName ).
 
 
 
@@ -215,10 +224,10 @@ browse_images_in( DirectoryName ) ->
 %
 % Throws an exception if an error occurs.
 %
--spec display_pdf_file( file_utils:path() ) -> string().
+-spec display_pdf_file( file_utils:path() ) -> basic_utils:void().
 display_pdf_file( PDFFilename ) ->
-	% Viewer output is ignored:
-	os:cmd( get_default_pdf_viewer_path() ++ " " ++ PDFFilename ++ " &" ).
+	system_utils:execute_background_command( get_default_pdf_viewer_path()
+											 ++ " " ++ PDFFilename ).
 
 
 
@@ -230,8 +239,17 @@ display_pdf_file( PDFFilename ) ->
 %
 -spec display_text_file( file_utils:path() ) -> string().
 display_text_file( TextFilename ) ->
-	% Viewer output is ignored:
-	os:cmd( get_default_text_viewer_path() ++ " " ++ TextFilename ).
+
+	case system_utils:execute_command( get_default_text_viewer_path()
+									   ++ " " ++ TextFilename ) of
+
+		{ _ExitCode=0, Output } ->
+			Output;
+
+		{ ExitCode, ErrorOutput } ->
+			throw( { display_failed_for_text_file, ExitCode, ErrorOutput } )
+
+	end.
 
 
 
@@ -243,9 +261,19 @@ display_text_file( TextFilename ) ->
 %
 -spec display_wide_text_file( file_utils:path(), pos_integer() ) -> string().
 display_wide_text_file( TextFilename, CharacterWidth ) ->
-	% Viewer output is ignored:
-	os:cmd( get_default_wide_text_viewer_path(CharacterWidth) ++ " "
-		   ++ TextFilename ).
+
+	case system_utils:execute_command(
+		   get_default_wide_text_viewer_path( CharacterWidth )
+		   ++ " " ++ TextFilename ) of
+
+		{ _ExitCode=0, Output } ->
+			Output;
+
+		{ ExitCode, ErrorOutput } ->
+			throw( { wide_display_failed_for_text_file, ExitCode,
+					 ErrorOutput } )
+
+	end.
 
 
 
@@ -354,8 +382,8 @@ get_default_wide_text_viewer_name( _CharacterWidth ) ->
 -spec get_default_wide_text_viewer_path( non_neg_integer() )
 								  -> file_utils:file_name().
 get_default_wide_text_viewer_path( CharacterWidth ) ->
-	% Could be: io_lib:format( "nedit -column ~B", [CharacterWidth] )
-	find_executable( get_default_wide_text_viewer_name(CharacterWidth) ).
+	% Could be: io_lib:format( "nedit -column ~B", [ CharacterWidth ] )
+	find_executable( get_default_wide_text_viewer_name( CharacterWidth ) ).
 
 
 
@@ -430,15 +458,21 @@ get_gnuplot_path() ->
 -spec get_current_gnuplot_version() -> basic_utils:two_digit_version().
 get_current_gnuplot_version() ->
 
-	Gnuplot = get_gnuplot_path(),
+	Cmd = get_gnuplot_path() ++ " -V | awk '{print $2}'",
 
-	% The returned value of following command is like "4.2\n"
-	ReturnedVersion = os:cmd( Gnuplot ++ " -V | awk '{print $2}'"),
+	% The returned value of following command is like "4.2":
+	%
+	case system_utils:execute_command( Cmd ) of
 
-	GnuplotVersionInString = text_utils:remove_ending_carriage_return(
-													   ReturnedVersion ),
+			{ _ExitCode=0, GnuplotVersionInString } ->
+				basic_utils:parse_version( GnuplotVersionInString );
 
-	basic_utils:parse_version( GnuplotVersionInString ).
+			{ ExitCode, ErrorOutput } ->
+				throw( { gnuplot_version_detection_failed, ExitCode,
+						 ErrorOutput } )
+
+	end.
+
 
 
 % Returns the default tool to use to compress in the ZIP format.
@@ -505,10 +539,22 @@ is_batch() ->
 
 % Helper functions.
 
--spec execute_dot( file_utils:file_name(), file_utils:file_name() ) -> string().
+-spec execute_dot( file_utils:file_name(), file_utils:file_name() ) ->
+						 text_utils:ustring().
 execute_dot( PNGFilename, GraphFilename ) ->
 
 	DotExec = find_executable( "dot" ),
 
+	Cmd = DotExec ++ " -o" ++ PNGFilename ++ " -Tpng " ++ GraphFilename,
+
 	% Dot might issue non-serious warnings:
-	os:cmd( DotExec ++ " -o" ++ PNGFilename ++ " -Tpng " ++ GraphFilename ).
+	case system_utils:execute_command( Cmd ) of
+
+		{ _ExitCode=0, Output } ->
+			Output;
+
+		{ ExitCode, ErrorOutput } ->
+			throw( { rendering_failed, GraphFilename, PNGFilename, ExitCode,
+					 ErrorOutput } )
+
+	end.

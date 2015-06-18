@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2014 Olivier Boudeville
+% Copyright (C) 2003-2015 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -104,7 +104,7 @@ finished() ->
 	erlang:halt( 0 ).
 
 
--else.
+-else. % ExitAfterTest
 
 
 finished() ->
@@ -116,7 +116,7 @@ finished() ->
 	test_success.
 
 
--endif.
+-endif. % ExitAfterTest
 
 
 

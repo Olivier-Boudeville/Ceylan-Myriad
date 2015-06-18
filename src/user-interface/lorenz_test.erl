@@ -1,4 +1,4 @@
-% Copyright (C) 2014 Olivier Boudeville
+% Copyright (C) 2014-2015 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -42,10 +42,6 @@
 
 % Utility functions:
 -export([ get_name/1 ]).
-
-
-
--define( hashtable_type, lazy_hashtable ).
 
 
 
@@ -196,7 +192,7 @@ lorenz_function( _Time, _Vector={ X0, Y0, Z0 } ) ->
 		  % The solver table is an associative table whose keys are the PID of
 		  % each solver, and whose values are { Color, LastPoint } pairs:
 		  %
-		  solver_table :: ?hashtable_type:?hashtable_type()
+		  solver_table :: table:table()
 
 		  }
 ).
@@ -429,7 +425,7 @@ create_solver_table( Derivative, Colors, InitialPoint, InitialTime,
 
 create_solver_table( _Derivative, _Colors=[], _InitialPoint, _InitialTime,
 					 _InitialTimestep, _Screen, Acc ) ->
-	?hashtable_type:new( Acc );
+	table:new( Acc );
 
 create_solver_table( Derivative, _Colors=[ C | T ],
 					 _PreviousInitialPoint={ X, Y, Z }, InitialTime,
@@ -498,7 +494,7 @@ gui_main_loop( State=#gui_state{ main_frame=MainFrame,
 			 event=#wxCommand{ type=command_button_clicked } } ->
 			test_facilities:display( "Quit button clicked." ),
 
-			[ SolverPid ! stop || SolverPid <- ?hashtable_type:keys(
+			[ SolverPid ! stop || SolverPid <- table:keys(
 											State#gui_state.solver_table ) ],
 
 			quit;
@@ -528,15 +524,15 @@ gui_main_loop( State=#gui_state{ main_frame=MainFrame,
 			%io:format( "Drawing ~B points from ~w.~n", [ length( NewPoints ),
 			%											 SendingSolverPid ] ),
 
-			{ Color, LastPoint } = ?hashtable_type:getEntry( SendingSolverPid,
-															 SolverTable ),
+			{ Color, LastPoint } = table:getEntry( SendingSolverPid,
+												   SolverTable ),
 
 			NewLastPoint = draw_lines( Canvas, [ LastPoint | NewPoints ],
 									   Color ),
 
 			gui_canvas:blit( Canvas ),
 
-			NewSolverTable = ?hashtable_type:addEntry( _K=SendingSolverPid,
+			NewSolverTable = table:addEntry( _K=SendingSolverPid,
 								_V={ Color, NewLastPoint }, SolverTable ),
 
 			State#gui_state{ solver_table=NewSolverTable };
@@ -547,8 +543,8 @@ gui_main_loop( State=#gui_state{ main_frame=MainFrame,
 			io:format( " - drawing ~p (from ~p)~n",
 					   [ NewPoint, SendingSolverPid ] ),
 
-			{ Color, LastPoint } = ?hashtable_type:getEntry( SendingSolverPid,
-															 SolverTable ),
+			{ Color, LastPoint } = table:getEntry( SendingSolverPid,
+												   SolverTable ),
 
 			SourceDrawPoint = project_2D( LastPoint, Screen ),
 
@@ -559,7 +555,7 @@ gui_main_loop( State=#gui_state{ main_frame=MainFrame,
 
 			gui_canvas:blit( Canvas ),
 
-			NewSolverTable = ?hashtable_type:addEntry( _K=SendingSolverPid,
+			NewSolverTable = table:addEntry( _K=SendingSolverPid,
 								_V={ Color, NewPoint }, SolverTable ),
 
 			State#gui_state{ solver_table=NewSolverTable };

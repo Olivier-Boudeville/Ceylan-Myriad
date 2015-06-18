@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2014 Olivier Boudeville
+% Copyright (C) 2003-2015 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -1183,8 +1183,10 @@ copy_file( SourceFilename, DestinationFilename ) ->
 
 % Renames specified file.
 %
+-spec rename( file_name(), file_name() ) -> basic_utils:void().
 rename( SourceFilename, DestinationFilename ) ->
 	move_file( SourceFilename, DestinationFilename ).
+
 
 
 % Moves specified file so that it is now designated by specified filename.
@@ -1225,14 +1227,15 @@ is_absolute_path( _Path ) ->
 
 
 
-% Returns an absolute path corresponding to specified path.
+% Returns an absolute, normalised path corresponding to specified path.
 %
-% If it is not already abolute, it will made so by using the current working
+% If it is not already absolute, it will made so by using the current working
 % directory.
 %
+-spec ensure_path_is_absolute( path() ) -> path().
 ensure_path_is_absolute( Path ) ->
 
-	case is_absolute_path( Path ) of
+	AbsPath = case is_absolute_path( Path ) of
 
 		true ->
 			% Already absolute:
@@ -1242,7 +1245,9 @@ ensure_path_is_absolute( Path ) ->
 			% Relative, using current directory as base:
 			join( get_current_directory(), Path )
 
-	end.
+	end,
+
+	normalise_path( AbsPath ).
 
 
 
@@ -1252,6 +1257,7 @@ ensure_path_is_absolute( Path ) ->
 % Ex: ensure_path_is_absolute( "tmp/foo", "/home/dalton" ) will return
 % "/home/dalton/tmp/foo".
 %
+-spec ensure_path_is_absolute( path(), path() ) -> path().
 ensure_path_is_absolute( TargetPath, BasePath ) ->
 
 	case is_absolute_path( TargetPath ) of
@@ -1274,14 +1280,21 @@ ensure_path_is_absolute( TargetPath, BasePath ) ->
 	end.
 
 
-% Normalises path, by translating it so that no '.' or '..' is present
-% afterwards.
+
+% Normalises path, by translating it so that no superfluous '.' or '..' is
+% present afterwards.
 %
 % For example, "/home/garfield/../lisa/./src/.././tube" shall be normalised in
 % "/home/lisa/tube".
 %
+-spec normalise_path( path() ) -> path().
+normalise_path( _Path="." ) ->
+	".";
+	%get_current_directory();
 
 normalise_path( Path ) ->
+
+	%io:format( "Normalising path '~p'.~n", [ Path ] ),
 
 	ElemList = filename:split( Path ),
 
@@ -1321,8 +1334,6 @@ filter_elems( _ElemList=[ E | T ], Acc ) ->
 
 % filter_elems( _Elems=[ E | T ], Acc ) ->
 %	filter_elems( T, [ E | Acc ] ).
-
-
 
 
 
@@ -1742,28 +1753,45 @@ compress( Filename, _CompressionFormat=bzip2 ) ->
 	Bzip2Exec = executable_utils:get_default_bzip2_compress_tool(),
 
 	% --keep allows to avoid that bzip2 removes the original file:
-	[] = os:cmd( Bzip2Exec ++ " --keep --force --quiet " ++ Filename ),
+	case system_utils:execute_command( Bzip2Exec ++ " --keep --force --quiet "
+									   ++ Filename ) of
 
-	% Check:
-	Bzip2Filename = Filename ++ get_extension_for( bzip2 ),
-	true = is_existing_file( Bzip2Filename ),
+		{ _ExitCode=0, _Output=[] } ->
+			% Check:
+			Bzip2Filename = Filename ++ get_extension_for( bzip2 ),
+			true = is_existing_file( Bzip2Filename ),
+			Bzip2Filename;
 
-	Bzip2Filename;
+		{ _ExitCode=0, Output } ->
+			throw( { bzip2_compress_failed, Filename, Output } );
+
+		{ ExitCode, Output } ->
+			throw( { bzip2_compress_failed, Filename, ExitCode, Output } )
+
+	end;
 
 
 compress( Filename, _CompressionFormat=xz ) ->
 
 	XZExec = executable_utils:get_default_xz_compress_tool(),
 
-	Command = XZExec ++ " --keep --force --quiet " ++ Filename,
+	% --keep allows to avoid that bzip2 removes the original file:
+	case system_utils:execute_command( XZExec ++ " --keep --force --quiet "
+									   ++ Filename ) of
 
-	[] = os:cmd( Command ),
+		{ _ExitCode=0, _Output=[] } ->
+			% Check:
+			XZFilename = Filename ++ get_extension_for( xz ),
+			true = is_existing_file( XZFilename ),
+			XZFilename;
 
-	% Check:
-	XZFilename = Filename ++ get_extension_for( xz ),
-	true = is_existing_file( XZFilename ),
+		{ _ExitCode=0, Output } ->
+			throw( { xz_compress_failed, Filename, Output } );
 
-	XZFilename;
+		{ ExitCode, Output } ->
+			throw( { xz_compress_failed, Filename, ExitCode, Output } )
+
+	end;
 
 compress( _Filename, CompressionFormat ) ->
 	throw( { unsupported_compression_format, CompressionFormat } ).
@@ -1829,12 +1857,23 @@ decompress( Bzip2Filename, _CompressionFormat=bzip2 ) ->
 								  "" ),
 
 	% The result will be named Filename by bunzip2:
-	[] = os:cmd( Bzip2Exec ++ " --keep --force --quiet " ++ Bzip2Filename ),
 
-	% Check:
-	true = is_existing_file( Filename ),
+	case system_utils:execute_command( Bzip2Exec ++ " --keep --force --quiet "
+									   ++ Bzip2Filename ) of
 
-	Filename;
+		{ _ExitCode=0, _Output=[] } ->
+			% Check:
+			Bzip2Filename = Filename ++ get_extension_for( bzip2 ),
+			true = is_existing_file( Filename ),
+			Filename;
+
+		{ _ExitCode=0, Output } ->
+			throw( { bzip2_decompress_failed, Filename, Output } );
+
+		{ ExitCode, Output } ->
+			throw( { bzip2_decompress_failed, Filename, ExitCode, Output } )
+
+	end;
 
 
 decompress( XzFilename, _CompressionFormat=xz ) ->
@@ -1844,13 +1883,21 @@ decompress( XzFilename, _CompressionFormat=xz ) ->
 	% Checks and removes extension:
 	Filename = replace_extension( XzFilename, get_extension_for( xz ), "" ),
 
-	% The result will be named Filename by unxz:
-	[] = os:cmd( XZExec ++ " --keep --force --quiet " ++ XzFilename ),
+	case system_utils:execute_command( XZExec ++ " --keep --force --quiet "
+									   ++ XzFilename ) of
 
-	% Check:
-	true = is_existing_file( Filename ),
+		{ _ExitCode=0, _Output=[] } ->
+			% Check:
+			true = is_existing_file( Filename ),
+			Filename;
 
-	Filename;
+		{ _ExitCode=0, Output } ->
+			throw( { xz_decompress_failed, Filename, Output } );
+
+		{ ExitCode, Output } ->
+			throw( { xz_decompress_failed, Filename, ExitCode, Output } )
+
+	end;
 
 
 decompress( _Filename, CompressionFormat ) ->
