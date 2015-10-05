@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2014 Olivier Boudeville
+% Copyright (C) 2003-2015 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -86,7 +86,7 @@ run() ->
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
 		lazy_hashtable:lookupEntry( ?MyFirstKey, MyH5 ) ] ),
 
-	hashtable_key_not_found = lazy_hashtable:lookupEntry( ?MyFirstKey, MyH5 ),
+	key_not_found = lazy_hashtable:lookupEntry( ?MyFirstKey, MyH5 ),
 
 	% removeEntry can also be used if the specified key is not here, will return
 	% an identical table.

@@ -175,10 +175,10 @@ else ifeq ($(EXECUTION_TARGET),production)
   ENABLE_DEBUG = false
 
   # Native compilation may be enabled - with care:
-  #ENABLE_NATIVE_COMPILATION = true
+  ENABLE_NATIVE_COMPILATION = true
 
   # Problem with orddict:erase/2; lists:fold/3, etc., thus switched off:
-  ENABLE_NATIVE_COMPILATION = false
+  #ENABLE_NATIVE_COMPILATION = false
 
   ERLANG_COMPILER_EXEC_TARGET_OPT = -Dexec_target_is_production
   ERLANG_COMPILER_DEBUG_OPT =

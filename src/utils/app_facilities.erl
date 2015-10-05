@@ -1,4 +1,4 @@
-% Copyright (C) 2011-2014 Olivier Boudeville
+% Copyright (C) 2011-2015 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -91,7 +91,7 @@ finished() ->
 	% local return:
 	app_success.
 
--else.
+-else. % ExitAfterApp
 
 finished() ->
 
@@ -101,7 +101,7 @@ finished() ->
 
 	app_success.
 
--endif.
+-endif. % ExitAfterApp
 
 
 

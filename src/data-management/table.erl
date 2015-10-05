@@ -26,6 +26,15 @@
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
 
 
+%% IMPORTANT NOTE
+%%
+%% This file was added to the 2.2.x branch (it is actually just
+%% map_hashtable.erl verbatim once map_hashtable was replaced by table) in order
+%% to prepare for the use of the parse transforms in 2.3.x, thanks to which
+%% table becomes a pseudo-module.
+%%
+%% So, currently, it is a not-so-pseudo module, before its scheduled removal.
+
 
 % Implementation of an hashtable based on the then newly-introduced standard
 % type: the map, supposedly the most efficient available implementation of an
@@ -46,7 +55,7 @@
 % - 'lazy_hashtable', deciding to optimise in a less costly way
 % than 'tracked_hashtable'
 %
-% - 'map_hashtable' (this module), which is probably the most efficient
+% - 'table' (this module), which is probably the most efficient
 % implementation (speed/size compromise)
 %
 % - 'list_hashtable', a list-based implementation, efficient for smaller table
@@ -54,7 +63,7 @@
 %
 % They are to provide the same API (signatures and contracts).
 %
--module(map_hashtable).
+-module(table).
 
 
 % Exact same API as the one of hashtable:
@@ -83,13 +92,13 @@
 -type entry_count() :: basic_utils:count().
 
 
--opaque map_hashtable() :: map().
+-opaque table() :: map().
 
--opaque map_hashtable( K, V ) :: map( K, V ).
+-opaque table( K, V ) :: map( K, V ).
 
 
 -export_type([ key/0, value/0, entry/0, entries/0, entry_count/0,
-			   map_hashtable/0, map_hashtable/2 ]).
+			   table/0, table/2 ]).
 
 
 
@@ -109,7 +118,7 @@
 
 % Returns a new empty map table.
 %
--spec new() -> map_hashtable().
+-spec new() -> table().
 new() ->
 	% Empty map:
 	#{}.
@@ -120,7 +129,7 @@ new() ->
 % target size. This function is only defined so that we can transparently switch
 % APIs with the hashtable module.
 %
--spec new( hashtable:entry_count() | hashtable:entries() ) -> map_hashtable().
+-spec new( hashtable:entry_count() | hashtable:entries() ) -> table().
 new( ExpectedNumberOfEntries ) when is_integer( ExpectedNumberOfEntries ) ->
 	#{};
 
@@ -134,7 +143,7 @@ new( InitialEntries ) when is_list( InitialEntries ) ->
 % If there is already a pair with this key, then its previous value will be
 % replaced by the specified one.
 %
--spec addEntry( key(), value(), map_hashtable() ) -> map_hashtable().
+-spec addEntry( key(), value(), table() ) -> table().
 addEntry( Key, Value, MapHashtable ) ->
 	% Not supported in 17.3: MapHashtable#{ Key => Value }.
 	maps:put( Key, Value, MapHashtable ).
@@ -146,7 +155,7 @@ addEntry( Key, Value, MapHashtable ) ->
 % If there is already a pair with this key, then its previous value will be
 % replaced by the specified one.
 %
--spec addEntries( hashtable:entries(), map_hashtable() ) -> map_hashtable().
+-spec addEntries( hashtable:entries(), table() ) -> table().
 addEntries( EntryList, MapHashtable ) ->
 
 	lists:foldl( fun( { K, V }, Map ) ->
@@ -165,7 +174,7 @@ addEntries( EntryList, MapHashtable ) ->
 %
 % Returns an updated map table.
 %
--spec removeEntry( key(), map_hashtable() ) -> map_hashtable().
+-spec removeEntry( key(), table() ) -> table().
 removeEntry( Key, MapHashtable ) ->
 	% Same semantics:
 	maps:remove( Key, MapHashtable ).
@@ -178,7 +187,7 @@ removeEntry( Key, MapHashtable ) ->
 % table, or { value, Value }, with Value being the value associated to the
 % specified key.
 %
--spec lookupEntry( key(), map_hashtable() ) ->
+-spec lookupEntry( key(), table() ) ->
 						 'key_not_found' | { 'value', value() }.
 % Not supported in 17.3:
 % lookupEntry( Key, #{ Key := Value } ) ->
@@ -202,7 +211,7 @@ lookupEntry( Key, MapHashtable ) ->
 
 % Tells whether the specified key exists in the table: returns true or false.
 %
--spec hasEntry( key(), map_hashtable() ) -> boolean().
+-spec hasEntry( key(), table() ) -> boolean().
 hasEntry( Key, MapHashtable ) ->
 	maps:is_key( Key, MapHashtable ).
 
@@ -220,7 +229,7 @@ hasEntry( Key, MapHashtable ) ->
 % The key/value pair is expected to exist already, otherwise an exception
 % (bad_key) is triggered.
 %
--spec getEntry( key(), map_hashtable() ) -> value().
+-spec getEntry( key(), table() ) -> value().
 %getEntry( Key,  #{ Key := Value } ) ->
 %	Value.
 getEntry( Key, MapHashtable ) ->
@@ -234,7 +243,7 @@ getEntry( Key, MapHashtable ) ->
 % The key/value pair is expected to exist already, otherwise an exception is
 % raised.
 %
--spec extractEntry( key(), map_hashtable() ) -> { value(), map_hashtable() }.
+-spec extractEntry( key(), table() ) -> { value(), table() }.
 %extractEntry( Key, MapHashtable=#{ Key := Value} ) ->
 %	{ Value, maps:remove( Key, MapHashtable ) }.
 %
@@ -257,8 +266,8 @@ extractEntry( Key, MapHashtable ) ->
 %
 % One may request the returned hashtable to be optimised after this call.
 %
--spec mapOnEntries( fun( ( entry() ) -> entry() ), map_hashtable() ) ->
-						  map_hashtable().
+-spec mapOnEntries( fun( ( entry() ) -> entry() ), table() ) ->
+						  table().
 mapOnEntries( Fun, MapHashtable ) ->
 
 	% maps:map/2 keeps the same keys, not relevant here.
@@ -281,8 +290,8 @@ mapOnEntries( Fun, MapHashtable ) ->
 % Note: the keys are left as are, hence the structure of the hashtable does not
 % change.
 %
--spec mapOnValues( fun( ( value() ) -> value() ), map_hashtable() ) ->
-						 map_hashtable().
+-spec mapOnValues( fun( ( value() ) -> value() ), table() ) ->
+						 table().
 mapOnValues( Fun, MapHashtable ) ->
 
 	% Still not maps:map/2, whose fun takes an entry, not just a value:
@@ -304,7 +313,7 @@ mapOnValues( Fun, MapHashtable ) ->
 -spec foldOnEntries( fun( ( entry(), basic_utils:accumulator() )
 						  -> basic_utils:accumulator() ),
 					 basic_utils:accumulator(),
-					 map_hashtable() ) -> basic_utils:accumulator().
+					 table() ) -> basic_utils:accumulator().
 foldOnEntries( Fun, InitialAcc, MapHashtable ) ->
 
 	% Not exactly as maps:fold/3: we want f( { X, Y }, Acc ), not
@@ -331,7 +340,7 @@ foldOnEntries( Fun, InitialAcc, MapHashtable ) ->
 % An exception is thrown if the key does not exist, a bad arithm is triggered if
 % no addition can be performed on the associated value.
 %
--spec addToEntry( key(), number(), map_hashtable() ) -> map_hashtable().
+-spec addToEntry( key(), number(), table() ) -> table().
 % addToEntry( Key, Value, MapHashtable=#{ Key => BaseValue } ) ->
 %	MapHashtable#{ Key => BaseValue + Value };
 %
@@ -358,7 +367,7 @@ addToEntry( Key, Value, MapHashtable ) ->
 % An exception is thrown if the key does not exist, a bad arithm is triggered if
 % no subtraction can be performed on the associated value.
 %
--spec subtractFromEntry( key(), number(), map_hashtable() ) -> map_hashtable().
+-spec subtractFromEntry( key(), number(), table() ) -> table().
 % subtractFromEntry( Key, Value, MapHashtable=#{ Key => BaseValue } ) ->
 %	MapHashtable#{ Key => BaseValue - Value };
 %
@@ -385,7 +394,7 @@ subtractFromEntry( Key, Value, MapHashtable ) ->
 % An exception is thrown if the key does not exist or if its associated value is
 % not a boolean.
 %
--spec toggleEntry( key(), map_hashtable() ) -> map_hashtable().
+-spec toggleEntry( key(), table() ) -> table().
 % toggleEntry( Key, MapHashtable=#{ Key => true } ) ->
 %	MapHashtable#{ Key => false };
 %
@@ -413,7 +422,7 @@ toggleEntry( Key, MapHashtable )->
 % Said differently: if a key exists in both tables, the value in MapHashtableAdd
 % will be superseded by the value in MapHashtableBase.
 %
--spec merge( map_hashtable(), map_hashtable() ) -> map_hashtable().
+-spec merge( table(), table() ) -> table().
 merge( MapHashtableBase, MapHashtableAdd ) ->
 	% Order matters:
 	maps:merge( MapHashtableAdd, MapHashtableBase ).
@@ -424,7 +433,7 @@ merge( MapHashtableBase, MapHashtableAdd ) ->
 %
 % A no-operation for map hashtables.
 %
--spec optimise( map_hashtable() ) -> map_hashtable().
+-spec optimise( table() ) -> table().
 optimise( Hashtable ) ->
 	Hashtable.
 
@@ -438,7 +447,7 @@ optimise( Hashtable ) ->
 % Note: no check is performed to ensure the value is a list indeed, and the
 % '[|]' operation will not complain if not.
 %
--spec appendToEntry( key(), term(), map_hashtable() ) -> map_hashtable().
+-spec appendToEntry( key(), term(), table() ) -> table().
 %appendToEntry( Key, Element, MapHashtable=#{ Key => ListValue } ) ->
 %	MapHashtable#{ Key => [ Element | ListValue ] };
 %
@@ -460,7 +469,7 @@ appendToEntry( Key, Element, MapHashtable ) ->
 %
 % If the element is not in the specified list, the list will not be modified.
 %
--spec deleteFromEntry( key(), term(), map_hashtable() ) -> map_hashtable().
+-spec deleteFromEntry( key(), term(), table() ) -> table().
 %deleteFromEntry( Key, Element, MapHashtable=#{ Key => ListValue } ) ->
 %	MapHashtable#{ Key => lists:delete( Element, ListValue ) };
 %
@@ -478,7 +487,7 @@ deleteFromEntry( Key, Element, MapHashtable ) ->
 % Pops the head of the value (supposed to be a list) associated to specified
 % key, and returns a pair made of the popped head and the new hashtable.
 %
--spec popFromEntry( key(), map_hashtable() ) -> { term(), map_hashtable() }.
+-spec popFromEntry( key(), table() ) -> { term(), table() }.
 %popFromEntry( Key, MapHashtable=#{ Key => [ H | T ] } ) ->
 %	{ H, MapHashtable#{ Key => T } };
 %
@@ -498,7 +507,7 @@ popFromEntry( Key, MapHashtable ) ->
 %
 % Ex: [ {K1,V1}, {K2,V2}, ... ].
 %
--spec enumerate( map_hashtable() ) -> hashtable:entries().
+-spec enumerate( table() ) -> hashtable:entries().
 enumerate( MapHashtable ) ->
 	maps:to_list( MapHashtable ).
 
@@ -507,7 +516,7 @@ enumerate( MapHashtable ) ->
 % Returns a list of key/value pairs corresponding to the list of specified keys,
 % or throws a badmatch is at least one key is not found.
 %
--spec selectEntries( [ key() ], map_hashtable() ) -> hashtable:entries().
+-spec selectEntries( [ key() ], table() ) -> hashtable:entries().
 selectEntries( Keys, MapHashtable ) ->
 
 	SubMap = maps:with( Keys, MapHashtable ),
@@ -518,7 +527,7 @@ selectEntries( Keys, MapHashtable ) ->
 
 % Returns a list containing all the keys of this hashtable.
 %
--spec keys( map_hashtable() ) -> [ key() ].
+-spec keys( table() ) -> [ key() ].
 keys( MapHashtable ) ->
 	maps:keys( MapHashtable ).
 
@@ -527,7 +536,7 @@ keys( MapHashtable ) ->
 %
 % Ex: useful if the key was used as an index to generate this table first.
 %
--spec values( map_hashtable() ) -> [ value() ].
+-spec values( table() ) -> [ value() ].
 values( MapHashtable ) ->
 	maps:values( MapHashtable ).
 
@@ -536,7 +545,7 @@ values( MapHashtable ) ->
 % Returns whether the specified hashtable is empty (not storing any key/value
 % pair).
 %
--spec isEmpty( map_hashtable() ) -> boolean().
+-spec isEmpty( table() ) -> boolean().
 %isEmpty( _MapHashtable=#{} ) ->
 %	true;
 %
@@ -553,7 +562,7 @@ isEmpty( _MapHashtable ) ->
 
 % Returns the size (number of entries) of this hashtable.
 %
--spec size( map_hashtable() ) -> hashtable:entry_count().
+-spec size( table() ) -> hashtable:entry_count().
 size( MapHashtable ) ->
 	map_size( MapHashtable ).
 
@@ -562,7 +571,7 @@ size( MapHashtable ) ->
 % Returns the number of entries (key/value pairs) stored in the specified map
 % hashtable.
 %
--spec getEntryCount( map_hashtable() ) -> hashtable:entry_count().
+-spec getEntryCount( table() ) -> hashtable:entry_count().
 getEntryCount( MapHashtable ) ->
 	map_size( MapHashtable ).
 
@@ -570,7 +579,7 @@ getEntryCount( MapHashtable ) ->
 
 % Returns a textual description of the specified hashtable.
 %
--spec toString( map_hashtable() ) -> string().
+-spec toString( table() ) -> string().
 toString( MapHashtable ) ->
 
 	case maps:to_list( MapHashtable ) of
@@ -599,7 +608,7 @@ toString( MapHashtable ) ->
 %
 % For this implementation, the requested description type does not matter.
 %
--spec toString( map_hashtable(), 'internal' | 'user_friendly' ) -> string().
+-spec toString( table(), 'internal' | 'user_friendly' ) -> string().
 toString( MapHashtable, _DescriptionType ) ->
 	toString( MapHashtable ).
 
@@ -607,7 +616,7 @@ toString( MapHashtable, _DescriptionType ) ->
 
 % Displays the specified hashtable on the standard output.
 %
--spec display( map_hashtable() ) -> basic_utils:void().
+-spec display( table() ) -> basic_utils:void().
 display( MapHashtable ) ->
 	io:format( "~s~n", [ toString( MapHashtable ) ] ).
 
@@ -616,6 +625,6 @@ display( MapHashtable ) ->
 % Displays the specified hashtable on the standard output, with the specified
 % title on top.
 %
--spec display( string(), map_hashtable() ) -> basic_utils:void().
+-spec display( string(), table() ) -> basic_utils:void().
 display( Title, MapHashtable ) ->
 	io:format( "~s:~n~s~n", [ Title, toString( MapHashtable ) ] ).

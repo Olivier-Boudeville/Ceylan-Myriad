@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2014 Olivier Boudeville
+% Copyright (C) 2003-2015 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -70,15 +70,13 @@ run_test_gui() ->
 -spec run() -> no_return().
 run() ->
 
-	io:format( "rrr" ),
-
 	test_facilities:start( ?MODULE ),
 
 	case executable_utils:is_batch() of
 
 		true ->
 			test_facilities:display( "(not running the GUI test, "
-									"being in batch mode)" );
+									 "being in batch mode)" );
 
 		false ->
 			run_test_gui()

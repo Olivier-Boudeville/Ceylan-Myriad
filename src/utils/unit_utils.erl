@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2014 Olivier Boudeville
+% Copyright (C) 2003-2015 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -72,11 +72,9 @@
 					 | 'minutes' | 'milliseconds' | 'microseconds'.
 
 
--export_type([
-			  date/0, time/0, megaseconds/0, years/0, days/0, hours/0,
-			  minutes/0, seconds/0, milliseconds/0, microseconds/0,
-			  hertz/0, time_reference_unit/0, time_units/0
-			  ]).
+-export_type([ date/0, time/0, megaseconds/0, years/0, days/0, hours/0,
+			   minutes/0, seconds/0, milliseconds/0, microseconds/0,
+			   hertz/0, time_reference_unit/0, time_units/0 ]).
 
 
 
@@ -90,13 +88,11 @@
 -type length_reference_unit() :: 'meters'.
 
 -type length_units() :: length_reference_unit() | 'millimeters'
-   | 'int_millimeters'.
+					  | 'int_millimeters'.
 
 
--export_type([
-			  meters/0, millimeters/0, int_millimeters/0,
-			  length_reference_unit/0, length_units/0
-			  ]).
+-export_type([ meters/0, millimeters/0, int_millimeters/0,
+			   length_reference_unit/0, length_units/0 ]).
 
 
 
@@ -110,6 +106,17 @@
 -export_type([ km_per_hour/0, meters_per_second/0, meters_per_tick/0 ]).
 
 
+% Surface-related section.
+
+-type square_meters() :: float().
+
+-type surface_reference_unit() :: square_meters().
+
+-type surface_units() :: square_meters().
+
+-export_type([ square_meters/0, surface_reference_unit/0, surface_units/0 ]).
+
+
 % Volume-related section.
 
 -type cubic_meters() :: float().
@@ -120,9 +127,8 @@
 -type volume_units() :: volume_reference_unit() | 'litre'.
 
 
--export_type([
-			  cubic_meters/0, litre/0, volume_reference_unit/0, volume_units/0
-			  ]).
+-export_type([ cubic_meters/0, litre/0, volume_reference_unit/0,
+			   volume_units/0 ]).
 
 
 
@@ -137,9 +143,8 @@
 -type mass_units() :: mass_reference_unit() | 'tons' | 'grams'.
 
 
--export_type([
-			  tons/0, kilograms/0, grams/0, mass_reference_unit/0, mass_units/0
-			  ]).
+-export_type([ tons/0, kilograms/0, grams/0, mass_reference_unit/0,
+			   mass_units/0 ]).
 
 
 
@@ -152,9 +157,7 @@
 -type energy_units() :: energy_reference_unit().
 
 
--export_type([
-			  joules/0, energy_reference_unit/0, energy_units/0
-			  ]).
+-export_type([ joules/0, energy_reference_unit/0, energy_units/0 ]).
 
 
 
@@ -192,10 +195,8 @@
 -type angle_units() :: angle_reference_unit() | 'degrees' | 'int_degrees'.
 
 
--export_type([
-			  radians/0, degrees/0, int_degrees/0, angle_reference_unit/0,
-			  angle_units/0
-			  ]).
+-export_type([ radians/0, degrees/0, int_degrees/0, angle_reference_unit/0,
+			   angle_units/0 ]).
 
 
 
@@ -210,12 +211,15 @@
 
 % Conversion section.
 
+-export([ km_per_hour_to_meters_per_second/1,
+		  meters_per_second_to_km_per_hour/1 ]).
+
+
+-export([ human_time_to_milliseconds/5 ]).
+
 
 
 % Converting speeds.
-
--export([ km_per_hour_to_meters_per_second/1,
-		  meters_per_second_to_km_per_hour/1 ]).
 
 
 -spec km_per_hour_to_meters_per_second( km_per_hour() ) -> meters_per_second().
@@ -226,3 +230,22 @@ km_per_hour_to_meters_per_second( K ) ->
 -spec meters_per_second_to_km_per_hour( meters_per_second() ) -> km_per_hour().
 meters_per_second_to_km_per_hour( M ) ->
 	M * 3600 / 1000.
+
+
+
+% Converting durations.
+
+
+% Converts specified duration, expressed in a user-friendly time (for humans,
+% typically obtained from text_utils:duration_to_string/1) into an integer
+% number of milliseconds.
+%
+% Ex: "1 day, 12 hours, 31 minutes, 9 seconds and 235 milliseconds" translates
+% to { 1, 12, 31, 9, 235 } which, applied to this function, returns
+% milliseconds.
+%
+-spec human_time_to_milliseconds( days(), hours(), minutes(), seconds(),
+								  milliseconds() ) -> milliseconds().
+human_time_to_milliseconds( Day, Hour, Minute, Second, Millisecond ) ->
+	( ( ( Day * 24 + Hour ) * 60 + Minute ) * 60 + Second ) * 1000
+		+ Millisecond.

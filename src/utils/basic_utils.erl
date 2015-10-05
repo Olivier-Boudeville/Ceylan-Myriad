@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2014 Olivier Boudeville
+% Copyright (C) 2003-2015 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -61,7 +61,8 @@
 		  get_registered_names/1,
 
 		  is_registered/1, is_registered/2,
-		  wait_for_global_registration_of/1, wait_for_local_registration_of/1,
+		  wait_for_global_registration_of/1, wait_for_global_registration_of/2,
+		  wait_for_local_registration_of/1,
 		  wait_for_remote_local_registrations_of/2,
 		  display_registered/0 ]).
 
@@ -75,7 +76,12 @@
 
 % Code-related functions.
 %
--export([ get_code_for/1, deploy_modules/2, deploy_modules/3 ]).
+-export([ get_code_for/1, deploy_modules/2, deploy_modules/3,
+		  declare_beam_directory/1, declare_beam_directory/2,
+		  declare_beam_directories/1, declare_beam_directories/2,
+		  get_code_path/0,
+		  list_beams_in_path/0, is_beam_in_path/1
+		]).
 
 
 
@@ -83,6 +89,7 @@
 %
 -export([ flush_pending_messages/0, flush_pending_messages/1,
 		  wait_for/2, wait_for/4, wait_for_acks/4, wait_for_acks/5,
+		  wait_for_summable_acks/5,
 		  wait_for_many_acks/4, wait_for_many_acks/5,
 		  send_to_pid_list_impl/2 ]).
 
@@ -90,14 +97,14 @@
 
 % Miscellaneous functions.
 %
--export([ display_process_info/1,
+-export([ size/1, display_process_info/1,
 		  checkpoint/1, display/1, display/2, debug/1, debug/2,
 		  parse_version/1, compare_versions/2,
 		  get_process_specific_value/0, get_process_specific_value/2,
 		  get_execution_target/0,
 		  is_alive/1, is_alive/2,
 		  is_debug_mode_enabled/0,
-		  generate_uuid/0, get_type_of/1, traverse_term/4, crash/0 ]).
+		  generate_uuid/0, crash/0, enter_infinite_loop/0 ]).
 
 
 
@@ -156,28 +163,6 @@
 -type accumulator() :: any().
 
 
-% Type-related section.
-
-
-% The "most precise" description of a type (ex: 'boolean' and 'atom' coexist,
-% 'number ' are not used), etc.
-%
--type type_description() :: 'atom' | 'binary' | 'boolean' | 'float' | 'function'
-						  | 'integer' | 'list' | 'pid' | 'port' | 'record'
-						  | 'reference' | 'tuple'.
-
-
-
-% Type of functions to transform terms during a recursive traversal (see
-% traverse_term/4).
-%
-% Note: apparently we cannot use the 'when' notation here (InputTerm ... when
-% InputTerm :: term()).
-%
--type term_transformer() :: fun( ( term(), user_data() ) ->
-									   { term(), user_data() } ).
-
-
 
 % Time-related section.
 
@@ -221,7 +206,7 @@
 -type positive_index() :: pos_integer().
 
 
-% To distinguish with the builtin type, which can be a parameterised module:
+% To distinguish with the built-in type, which can be a parameterised module:
 -type module_name() :: atom().
 
 -type function_name() :: atom().
@@ -243,11 +228,12 @@
 -export_type([
 
 			  void/0, count/0, bit_mask/0, exit_reason/0, maybe/1, user_data/0,
-			  accumulator/0, type_description/0, term_transformer/0,
+			  accumulator/0,
 			  timestamp/0, precise_timestamp/0, time_out/0,
 			  registration_name/0, registration_scope/0, look_up_scope/0,
 			  version_number/0, version/0, two_digit_version/0, any_version/0,
-			  positive_index/0, module_name/0, command_spec/0,
+			  positive_index/0,
+			  module_name/0, function_name/0, argument/0, command_spec/0,
 			  user_name/0, atom_user_name/0
 
 			  ]).
@@ -257,7 +243,7 @@
 % Timestamp-related functions.
 
 
-% Returns a timestamp tuple describing the current time.
+% Returns a tipmestamp tuple describing the current time.
 %
 % Ex: { {Year,Month,Day}, {Hour,Minute,Second} } = basic_utils:get_timestamp()
 % may return '{ {2007,9,6}, {15,9,14} }'.
@@ -285,7 +271,7 @@ get_textual_timestamp() ->
 								   string().
 get_textual_timestamp( { { Year, Month, Day }, { Hour, Minute, Second } } ) ->
 	io_lib:format( "~p/~p/~p ~B:~2..0B:~2..0B",
-		[ Year, Month, Day, Hour, Minute, Second ] ).
+				   [ Year, Month, Day, Hour, Minute, Second ] ).
 
 
 
@@ -393,10 +379,11 @@ get_precise_timestamp() ->
 % Returns the (signed) duration in milliseconds between the two specified
 % precise timestamps (as obtained thanks to get_precise_duration/0), using the
 % first one as starting time and the second one as stopping time.
+%
 -spec get_precise_duration( precise_timestamp(), precise_timestamp() ) ->
 					integer().
 get_precise_duration( _FirstTimestamp={ A1, A2, A3 },
-					 _SecondTimestamp={ B1, B2, B3 } ) ->
+					  _SecondTimestamp={ B1, B2, B3 } ) ->
 
 	% Seconds to be converted in milliseconds:
 	1000 * ( ( B1 - A1 ) * 1000000 + B2 - A2 ) + round( ( B3 - A3 ) / 1000 ).
@@ -419,7 +406,7 @@ get_precise_duration( _FirstTimestamp={ A1, A2, A3 },
 % RegistrationType in 'local_only', 'global_only', 'local_and_global', 'none'
 % depending on what kind of registration is requested.
 %
-% Throws an exception on failure.
+% Throws an exception on failure (ex: if that name is already registered).
 %
 -spec register_as( registration_name(), registration_scope() ) -> void().
 register_as( Name, RegistrationType ) ->
@@ -774,7 +761,7 @@ is_registered( Name, _LookUpScope=global_only ) ->
 % Waits (up to 10 seconds) until specified name is globally registered.
 %
 % Returns the resolved PID, or throws
-% {global_registration_waiting_timeout,Name}.
+% { global_registration_waiting_timeout, Name }.
 %
 -spec wait_for_global_registration_of( registration_name() ) -> pid().
 wait_for_global_registration_of( Name ) ->
@@ -937,10 +924,16 @@ generate_uuid() ->
 
 			% Random-based, rather than time-based (otherwise we end up
 			% collecting a rather constant suffix):
-			Res = os:cmd( Exec ++ " -r" ),
+			%
+			case system_utils:execute_command( Exec ++ " -r" ) of
 
-			% Removes the final end-of-line:
-			tl( lists:reverse( Res ) )
+				{ _ExitCode=0, Res } ->
+					Res;
+
+				{ ExitCode, ErrorOutput } ->
+					throw( { uuid_generation_failed, ExitCode, ErrorOutput } )
+
+			end
 
 	end.
 
@@ -972,182 +965,9 @@ uuidgen_internal() ->
 
 
 
-% Returns an atom describing, as precisely as possible, the type of the
-% specified term.
-%
-% 'is_num', 'is_record', etc. not usable here.
-%
--spec get_type_of( term() ) -> type_description().
-get_type_of( Term ) when is_boolean( Term ) ->
-	'boolean';
-
-get_type_of( Term ) when is_atom( Term ) ->
-	'atom';
-
-get_type_of( Term ) when is_binary( Term ) ->
-	'binary';
-
-get_type_of( Term ) when is_float( Term ) ->
-	'float';
-
-get_type_of( Term ) when is_function( Term ) ->
-	'function';
-
-get_type_of( Term ) when is_integer( Term ) ->
-	'integer';
-
-get_type_of( Term ) when is_pid( Term ) ->
-	'pid';
-
-get_type_of( Term ) when is_list( Term ) ->
-	'list';
-
-get_type_of( Term ) when is_port( Term ) ->
-	'port';
-
-%get_type_of( Term ) when is_record( Term ) ->
-%	'record';
-
-get_type_of( Term ) when is_tuple( Term ) ->
-	'tuple';
-
-get_type_of( Term ) when is_reference( Term ) ->
-	'reference'.
-
-
-
-
-% Traverses specified term (possibly with nested subterms - the function will
-% recurse in lists and tuples), calling specified transformer function on each
-% instance of specified type, in order to replace that instance by the result of
-% that function.
-%
-% Returns an updated term, with these replacements made.
-%
-% Ex: the input term could be T={ a, [ "foo", { c, [ 2.0, 45 ] } ] } and the
-% function might replace, for example, floats by <<bar>>; then T'={ a, [ "foo",
-% { c, [ <<bar>>, 45 ] } ] } would be returned.
-%
-% Note: the transformed terms are themselves recursively transformed, to ensure
-% nesting is managed. Of course this implies that the term transform should not
-% result in iterating the transformation infinitely.
-%
--spec traverse_term( term(), type_description(), term_transformer(),
-					 user_data() ) -> { term(), user_data() }.
-
-% Here the term is a list and this is the type we want to intercept:
-traverse_term( TargetTerm, _TypeDescription=list, TermTransformer, UserData )
-  when is_list( TargetTerm ) ->
-
-	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
-
-	traverse_transformed_term( TransformedTerm, _TypeDescription=list,
-							   TermTransformer, NewUserData );
-
-
-% Here the term is a list and we are not interested in them:
-traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData )
-  when is_list( TargetTerm ) ->
-
-	traverse_list( TargetTerm, TypeDescription, TermTransformer, UserData );
-
-
-% Here the term is a tuple (or a record...), and we want to intercept them:
-traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData )
-  when is_tuple( TargetTerm )
-	andalso ( TypeDescription =:= tuple orelse TypeDescription =:= record ) ->
-
-	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
-
-	traverse_transformed_term( TransformedTerm, TypeDescription,
-							   TermTransformer, NewUserData );
-
-
-% Here the term is a tuple (or a record...), and we are not interested in them:
-traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData )
-  when is_tuple( TargetTerm ) ->
-
-	traverse_tuple( TargetTerm, TypeDescription, TermTransformer, UserData );
-
-
-% Base case (current term is not a binding structure, it is a leaf of the
-% underlying syntax tree):
-%
-traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData ) ->
-
-	case get_type_of( TargetTerm ) of
-
-		TypeDescription ->
-			TermTransformer( TargetTerm, UserData );
-
-		_ ->
-			% Unchanged:
-			{ TargetTerm, UserData }
-
-	end.
-
-
-
-% Helper to traverse a list.
-%
-traverse_list( TargetList, TypeDescription, TermTransformer, UserData ) ->
-
-	{ NewList, NewUserData } = lists:foldl( fun( Elem, { AccList, AccData } ) ->
-
-			{ TransformedElem, UpdatedData } = traverse_term( Elem,
-							TypeDescription, TermTransformer, AccData ),
-
-			% New accumulator, produces a reversed element list:
-			{ [ TransformedElem | AccList ], UpdatedData }
-
-											end,
-
-											_Acc0={ _Elems=[], UserData },
-
-											TargetList ),
-
-	{ lists:reverse( NewList ), NewUserData }.
-
-
-
-% Helper to traverse a tuple.
-%
-traverse_tuple( TargetTuple, TypeDescription, TermTransformer, UserData ) ->
-
-	% We do exactly as with lists:
-	TermAsList = tuple_to_list( TargetTuple ),
-
-	{ NewList, NewUserData } = traverse_list( TermAsList, TypeDescription,
-											  TermTransformer, UserData ),
-
-	{ list_to_tuple( NewList ), NewUserData }.
-
-
-
-% Helper to traverse a transformed term (ex: if looking for a { user_id, String
-% } pair, we must recurse in nested tuples like: { 3, { user_id, "Hello" }, 1 }.
-traverse_transformed_term( TargetTerm, TypeDescription, TermTransformer,
-						   UserData ) ->
-
-	case TermTransformer( TargetTerm, UserData ) of
-
-		{ TransformedTerm, NewUserData } when is_list( TransformedTerm ) ->
-			traverse_list( TransformedTerm, TypeDescription, TermTransformer,
-						   NewUserData );
-
-		{ TransformedTerm, NewUserData } when is_tuple( TransformedTerm ) ->
-			traverse_tuple( TransformedTerm, TypeDescription, TermTransformer,
-							NewUserData );
-
-		% { ImmediateTerm, NewUserData } ->
-		Other ->
-			Other
-
-	end.
-
-
-
 % Crashes the current process immediately.
+%
+% Useful for testing reliability, for example.
 %
 -spec crash() -> any().
 crash() ->
@@ -1163,6 +983,20 @@ crash() ->
 
 
 
+% Makes the current process enter in an infinite, mostly idle loop.
+%
+% Useful for testing reliability, for example.
+%
+enter_infinite_loop() ->
+
+	io:format( "~p in infinite loop...", [ self() ] ),
+
+	% Loops every minute:
+	timer:sleep( 60000 ),
+
+	enter_infinite_loop().
+
+
 
 
 % Notification-related functions.
@@ -1172,7 +1006,8 @@ crash() ->
 %
 -spec speak( string() ) -> void().
 speak( Message ) ->
-	[] = os:cmd( "espeak -s 140 \"" ++ Message ++ "\" &" ).
+	system_utils:execute_background_command(
+	  "espeak -s 140 \"" ++ Message ++ "\"" ).
 
 
 
@@ -1319,31 +1154,183 @@ deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
 	end.
 
 	% Optionally, do some checking:
-	%% Check = [ { N, rpc:call( N, code, is_loaded, [ ModuleName ] ) }
-	%%   || N <- Nodes ],
+	% Check = [ { N, rpc:call( N, code, is_loaded, [ ModuleName ] ) }
+	%   || N <- Nodes ],
 
-	%% % Performs two tasks, error selection and badrpc removal:
-	%% RPCErrors = [ {N,Reason} || { N, {badrpc,Reason} } <- Check ],
-	%% LoadFailingNodes = [ N || { N, false } <- Check ],
-	%% case RPCErrors of
+	% % Performs two tasks, error selection and badrpc removal:
+	% RPCErrors = [ {N,Reason} || { N, {badrpc,Reason} } <- Check ],
+	% LoadFailingNodes = [ N || { N, false } <- Check ],
+	% case RPCErrors of
 
-	%%	[] ->
+	%	[] ->
 
-	%%		case LoadFailingNodes of
+	%		case LoadFailingNodes of
 
-	%%			[] ->
-	%%				ok;
+	%			[] ->
+	%				ok;
 
-	%%			_ ->
-	%%				throw( { deploy_module_checking_failed, LoadFailingNodes } )
+	%			_ ->
+	%				throw( { deploy_module_checking_failed, LoadFailingNodes } )
 
-	%%		end;
+	%		end;
 
-	%%	_ ->
-	%%		throw( { deploy_module_checking_error, RPCErrors, LoadFailingNodes }
-	%% )
+	%	_ ->
+	%		throw( { deploy_module_checking_error, RPCErrors, LoadFailingNodes }
+	% )
 
-	%% end.
+	% end.
+
+
+
+% Declares specified directory as an additional code path where BEAM files will
+% be looked up by the VM, adding it at first position in the code path.
+%
+% Throws an exception if the directory does not exist.
+%
+-spec declare_beam_directory( file_utils:directory_name() ) ->
+									  basic_utils:void().
+declare_beam_directory( Dir ) ->
+	declare_beam_directory( Dir, first_position ).
+
+
+
+% Declares specified directory as an additional code path where BEAM files will
+% be looked up by the VM, adding it at first position in the code path.
+%
+% Throws an exception if the directory does not exist.
+%
+-spec declare_beam_directory( file_utils:directory_name(),
+		 'first_position' | 'last_position' ) -> basic_utils:void().
+declare_beam_directory( Dir, first_position ) ->
+
+	case code:add_patha( Dir ) of
+
+		true ->
+			ok;
+
+		{ error, bad_directory } ->
+			throw( { non_existing_beam_directory, Dir } )
+
+	end;
+
+declare_beam_directory( Dir, last_position ) ->
+
+	case code:add_pathz( Dir ) of
+
+		true ->
+			ok;
+
+		{ error, bad_directory } ->
+			throw( { non_existing_beam_directory, Dir } )
+
+	end.
+
+
+
+% Declares specified directories as additional code paths where BEAM files will
+% be looked up by the VM, adding them at first position in the code path.
+%
+% Throws an exception if at least one of the directories does not exist.
+%
+-spec declare_beam_directories( [ file_utils:directory_name() ] ) ->
+									  basic_utils:void().
+declare_beam_directories( Dirs ) ->
+	declare_beam_directories( Dirs, first_position ).
+
+
+
+% Declares specified directories as additional code paths where BEAM files will
+% be looked up by the VM, adding them either at first or last position in the
+% code path.
+%
+% Throws an exception if at least one of the directories does not exist.
+%
+-spec declare_beam_directories( [ file_utils:directory_name() ],
+			'first_position' | 'last_position' ) -> basic_utils:void().
+declare_beam_directories( Dirs, first_position ) ->
+	check_beam_dirs( Dirs ),
+	code:add_pathsa( Dirs );
+
+declare_beam_directories( Dirs, last_position ) ->
+	check_beam_dirs( Dirs ),
+	code:add_pathsz( Dirs ).
+
+
+
+% Checks that specified directories exist.
+%
+% (helper)
+%
+check_beam_dirs( _Dirs=[] ) ->
+	ok;
+
+check_beam_dirs( _Dirs=[ D | T ] ) ->
+
+	case file_utils:is_existing_directory( D ) of
+
+		true ->
+			check_beam_dirs( T );
+
+		false ->
+			throw( { non_existing_beam_directory, D } )
+
+	end.
+
+
+
+% Returns a normalised, sorted list of directories in the current code path
+% (without duplicates).
+%
+-spec get_code_path() -> [ file_utils:directory_name() ].
+get_code_path() ->
+
+	NormalisedPaths =
+		[ file_utils:normalise_path( P ) || P <- code:get_path() ],
+
+	lists:sort( list_utils:uniquify( NormalisedPaths ) ).
+
+
+
+% Lists all BEAM files that exist in the current code path.
+%
+-spec list_beams_in_path() -> [ file_utils:file_name() ].
+list_beams_in_path() ->
+
+	% Directly inspired from:
+	% http://alind.io/post/5664209650/all-erlang-modules-in-the-code-path
+
+	[ list_to_atom( filename:basename( File, ".beam") )
+		|| Path <- code:get_path(),
+		   File <- filelib:wildcard( "*.beam", Path ) ].
+
+
+
+% Tells whether specified module has its BEAM file in the current code path.
+%
+% Returns either a list of its paths (if being available at least once), or
+% 'not_found'.
+%
+% Note that a given module can be nevertheless more than once, typically if
+% reachable from the current directory and an absolute one in the code path.
+%
+-spec is_beam_in_path( module_name() ) -> 'not_found' | [ file_utils:path() ].
+is_beam_in_path( ModuleName ) ->
+
+	ModuleNameString = text_utils:atom_to_string( ModuleName ),
+
+	case list_utils:uniquify(
+		   [ file_utils:normalise_path( file_utils:join( Path, File ) )
+			 || Path <- code:get_path(),
+				File <- filelib:wildcard( "*.beam", Path ),
+				filename:basename( File, ".beam") =:= ModuleNameString ] ) of
+
+		[] ->
+			not_found;
+
+		Paths ->
+			Paths
+
+	end.
 
 
 
@@ -1410,7 +1397,7 @@ wait_for( Message, Count ) ->
 % received, displaying repeatedly on the console a notification should the
 % duration between two receivings exceed the specified time-out.
 %
-% Typical usage: basic_utils:wait_for( { wooper_result, done }, _Count=5,
+% Typical usage: basic_utils:wait_for( { foobar_result, done }, _Count=5,
 % _Duration=2000, "Still waiting for ~B task(s) to complete" ).
 %
 -spec wait_for( any(), count(), unit_utils:milliseconds(),
@@ -1523,6 +1510,100 @@ wait_for_acks_helper( WaitedSenders, InitialTimestamp, MaxDurationInSeconds,
 					wait_for_acks_helper( WaitedSenders, InitialTimestamp,
 						MaxDurationInSeconds, Period, AckReceiveAtom,
 						ThrowAtom )
+
+			end
+
+	end.
+
+
+
+% Waits until receiving from all expected senders the specified acknowledgement
+% message, expected to be in the form of:
+% { AckReceiveAtom, ToAdd, WaitedSenderPid }.
+%
+% Returns the sum of the specified initial value with all the ToAdd received
+% values.
+%
+% Throws a { ThrowAtom, StillWaitedSenders } exception on time-out (if any, as
+% the time-out can be disabled if set to 'infinity').
+%
+%
+-spec wait_for_summable_acks( [ pid() ], number(), time_out(), atom(),
+							  atom() ) -> number().
+wait_for_summable_acks( WaitedSenders, InitialValue, MaxDurationInSeconds,
+						AckReceiveAtom, ThrowAtom ) ->
+
+	wait_for_summable_acks( WaitedSenders, InitialValue, MaxDurationInSeconds,
+							_DefaultPeriod=1000, AckReceiveAtom, ThrowAtom ).
+
+
+
+% Waits until receiving from all expected senders the specified acknowledgement
+% message, expected to be in the form of:
+% { AckReceiveAtom, ToAdd, WaitedSenderPid }
+%
+% ensuring a check is performed at least at specified period and summing all
+% ToAdd values with the specified initial one
+%
+% Throws a { ThrowAtom, StillWaitedSenders } exception on time-out.
+%
+%
+-spec wait_for_summable_acks( [ pid() ], number(), time_out(),
+		   unit_utils:milliseconds(), atom(), atom() ) -> number().
+wait_for_summable_acks( WaitedSenders, CurrentValue, MaxDurationInSeconds,
+						Period, AckReceiveAtom, ThrowAtom ) ->
+
+	InitialTimestamp = basic_utils:get_timestamp(),
+
+	wait_for_summable_acks_helper( WaitedSenders, CurrentValue,
+								   InitialTimestamp, MaxDurationInSeconds,
+								   Period, AckReceiveAtom, ThrowAtom ).
+
+
+
+% (helper)
+%
+wait_for_summable_acks_helper( _WaitedSenders=[], CurrentValue,
+							   _InitialTimestamp, _MaxDurationInSeconds,
+							   _Period, _AckReceiveAtom, _ThrowAtom ) ->
+	CurrentValue;
+
+wait_for_summable_acks_helper( WaitedSenders, CurrentValue, InitialTimestamp,
+			MaxDurationInSeconds, Period, AckReceiveAtom, ThrowAtom ) ->
+
+	receive
+
+		{ AckReceiveAtom, ToAdd, WaitedPid } ->
+
+			NewWaited = list_utils:delete_existing( WaitedPid, WaitedSenders ),
+
+			%io:format( "(received ~p, still waiting for instances ~p)~n",
+			%		   [ WaitedPid, NewWaited ] ),
+
+			wait_for_summable_acks_helper( NewWaited, CurrentValue + ToAdd,
+				  InitialTimestamp, MaxDurationInSeconds, Period,
+				  AckReceiveAtom, ThrowAtom )
+
+	after Period ->
+
+			NewDuration = basic_utils:get_duration( InitialTimestamp,
+													get_timestamp() ),
+
+			case ( MaxDurationInSeconds =/= infinity ) andalso
+					  ( NewDuration > MaxDurationInSeconds ) of
+
+				true ->
+					throw( { ThrowAtom, WaitedSenders } );
+
+				false ->
+					% Still waiting then:
+
+					%io:format( "(still waiting for instances ~p)~n",
+					%   [ WaitedSenders ] ),
+
+					wait_for_summable_acks_helper( WaitedSenders, CurrentValue,
+						InitialTimestamp, MaxDurationInSeconds, Period,
+						AckReceiveAtom,	ThrowAtom )
 
 			end
 
@@ -1647,6 +1728,13 @@ send_to_pid_list_impl( Message, { Pid, NewIterator }, Count ) ->
 
 
 % Miscellaneous functions.
+
+
+% Returns the number of bytes used by specified term.
+%
+-spec size( term() ) -> system_utils:byte_size().
+size( Term ) ->
+	system_utils:get_size( Term ).
 
 
 % Displays information about the process(es) identified by specified PID.

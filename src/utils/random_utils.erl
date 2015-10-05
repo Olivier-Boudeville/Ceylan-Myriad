@@ -1,4 +1,4 @@
-% Copyright (C) 2007-2014 Olivier Boudeville
+% Copyright (C) 2007-2015 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
