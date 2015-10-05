@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2015 Olivier Boudeville
+% Copyright (C) 2015-2015 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -21,42 +21,54 @@
 % along with this library.
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
-%
+
+% Creation date: Tuesday, May 12, 2015
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
-% Creation date: Tuesday, January 29, 2013
 
 
-% Header to export gui-related defines.
+
+% Unit tests for the const-table facilities.
 %
-% See gui.erl for the corresponding implementation.
-
-
-
-% For WxWindows defines:
--include_lib("wx/include/wx.hrl").
-
-
--define( any_id, ?wxID_ANY ).
-
--define( no_parent, wx:null() ).
-
-
-% The special color that means "transparent" (i.e. no filling):
--define( transparent_color, ?wxTRANSPARENT_BRUSH ).
-
-
-
-% Rewriting of '-record(wx,' could have been, with maybe a better naming:
+% See the const_table.erl tested module.
 %
-%-record( gui_event, {
-%
-%		   id :: id(),
-%		   event_source :: gui_object(),
-%		   user_data :: user_data(),
-%		   event_type :: event_type()
-%
-%}).
-%
-%-type gui_event() :: #gui_event{}.
-%
-% Anyway we receive messages as wx records, and cannot change that easily.
+-module(const_table_test).
+
+
+% For run/0 export and al:
+-include("test_facilities.hrl").
+
+
+
+
+-spec run() -> no_return().
+run() ->
+
+	test_facilities:start( ?MODULE ),
+
+	NestedTerm =  { "semper fidelis", true, [ 1, 1.0, ?MODULE ] },
+
+	TargetTable = table:addEntries( [
+
+									  { 'foo', 42.0 },
+									  { 'baz', "hello" },
+									  { 'composite', NestedTerm }
+
+									],
+									table:new() ),
+
+	ModuleName = 'foobar',
+
+	io:format( "Generating pseudo-module '~s' from following table:~n~s",
+			   [ ModuleName, table:toString( TargetTable ) ] ),
+
+	const_table:generate( ModuleName, TargetTable ),
+
+	42.0 = foobar:foo(),
+	"hello" = foobar:baz(),
+	NestedTerm = foobar:composite(),
+
+	io:format( "Nested term: ~p~n", [ foobar:composite() ] ),
+
+	%will_crash = foobar:non_existing(),
+
+	test_facilities:stop().

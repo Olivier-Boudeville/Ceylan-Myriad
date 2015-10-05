@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2015 Olivier Boudeville
+% Copyright (C) 2015-2015 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -22,41 +22,44 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
+% Creation date: Thursday, April 30, 2015
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
-% Creation date: Tuesday, January 29, 2013
 
 
-% Header to export gui-related defines.
+
+% Minor utilities to manage pairs (2-element tuples).
 %
-% See gui.erl for the corresponding implementation.
+-module(pair).
+
+-export([ first/1, second/1, swap/1 ]).
+
+-compile( { inline, [ first/1, second/1, swap/1 ] } ).
 
 
 
-% For WxWindows defines:
--include_lib("wx/include/wx.hrl").
+-type pair() :: { any(), any() }.
+
+-export_type([ pair/0 ]).
 
 
--define( any_id, ?wxID_ANY ).
-
--define( no_parent, wx:null() ).
-
-
-% The special color that means "transparent" (i.e. no filling):
--define( transparent_color, ?wxTRANSPARENT_BRUSH ).
-
-
-
-% Rewriting of '-record(wx,' could have been, with maybe a better naming:
+% Returns the first element of specified pair.
 %
-%-record( gui_event, {
+-spec first( pair() ) -> pair().
+first( { X, _Y } ) ->
+	X.
+
+
+
+% Returns the second element of specified pair.
 %
-%		   id :: id(),
-%		   event_source :: gui_object(),
-%		   user_data :: user_data(),
-%		   event_type :: event_type()
+-spec second( pair() ) -> pair().
+second( { _X, Y } ) ->
+	Y.
+
+
+
+% Returns a pair whose elements have been swapped compared to specified one.
 %
-%}).
-%
-%-type gui_event() :: #gui_event{}.
-%
-% Anyway we receive messages as wx records, and cannot change that easily.
+-spec swap( pair() ) -> pair().
+swap( { X, Y } ) ->
+	{ Y, X }.

@@ -1,4 +1,4 @@
-% Copyright (C) 2007-2014 Olivier Boudeville
+% Copyright (C) 2007-2015 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -129,17 +129,16 @@
 -spec ping( string_host_name() ) -> boolean().
 ping( Hostname ) when is_list( Hostname ) ->
 
-	Command = "if ping " ++ Hostname ++ " -q -c 1 1>/dev/null 2>&1; "
-		"then echo ping_ok ; else echo ping_failed ; fi",
+	Command = "/bin/ping " ++ Hostname ++ " -q -c 1 ",
 
 	%io:format( "Ping command: ~s~n.", [ Command ] ),
 
-	case os:cmd( Command ) of
+	case system_utils:execute_command( Command ) of
 
-		"ping_ok\n" ->
-			true ;
+		{ _ExitCode=0, _Output } ->
+			true;
 
-		"ping_failed\n" ->
+		{ _ExitCode, _Output } ->
 			false
 
 	end.
@@ -175,20 +174,21 @@ localhost( fqdn ) ->
 	% even "hostname: Name or service not known" if there are issues in terms of
 	% name resolution.
 
-	% Most reliable (ending carriage return must be removed):
-	case text_utils:remove_ending_carriage_return( os:cmd( "hostname -f" ) ) of
+	% Most reliable:
+	case system_utils:execute_command( "hostname -f" ) of
 
-		"localhost" ->
+		{ _ExitCode=0, _Output="localhost" } ->
 			localhost_last_resort();
 
-		"localhost.localdomain" ->
+		{ _ExitCode=0, _Output="localhost.localdomain" } ->
 			localhost_last_resort();
 
-		"hostname: Name or service not known" ->
-			localhost_last_resort();
+		{ _ExitCode=0, Output } ->
+			% Must be legit:
+			Output;
 
-		Other ->
-			Other
+		{ _ExitCode, _Output } ->
+			localhost_last_resort()
 
 	end;
 
@@ -209,19 +209,22 @@ localhost( short ) ->
 -spec localhost_last_resort() -> string_host_name().
 localhost_last_resort() ->
 
-	case text_utils:remove_ending_carriage_return( os:cmd( "hostname" ) ) of
+	case system_utils:execute_command( "hostname" ) of
 
-		"localhost" ->
+		{ _ExitCode=0, _Output="localhost" } ->
 			throw( could_not_determine_localhost );
 
-		"localhost.localdomain" ->
+
+		{ _ExitCode=0, _Output="localhost.localdomain" } ->
 			throw( could_not_determine_localhost );
 
-		"hostname: Name or service not known" ->
-			throw( could_not_determine_localhost );
 
-		Other ->
-			Other
+		{ _ExitCode=0, Output } ->
+			% Must be legit:
+			Output;
+
+		{ ExitCode, Output } ->
+			throw( { could_not_determine_localhost, ExitCode, Output } )
 
 	end.
 
@@ -342,6 +345,12 @@ get_local_ip_address() ->
 		[] ->
 			throw( no_local_ip_address_established );
 
+		% In some cases, the user wants to select another network interface than
+		% the selected one:
+
+		%[ _FirstAddr, SecondAddr | _T ] ->
+		%       SecondAddr;
+
 		[ Addr | _T ] ->
 				Addr
 
@@ -355,20 +364,30 @@ get_local_ip_address() ->
 -spec reverse_lookup( ip_v4_address() ) -> string_host_name() | 'unknown_dns'.
 reverse_lookup( IPAddress ) ->
 
-	Command = "host -W 1 " ++ ipv4_to_string( IPAddress ) ++ " 2>/dev/null",
+	Cmd = "host -W 1 " ++ ipv4_to_string( IPAddress ) ++ " 2>/dev/null",
 
-	Res = os:cmd( Command ),
+	case system_utils:execute_command( Cmd ) of
 
-	%io:format( "Host command: ~s, result: ~s.~n", [Command,Res] ),
+			  { _ExitCode=0, Output } ->
 
-	case string:tokens( Res," " ) of
+				  %io:format( "Host command: ~s, result: ~s.~n",
+				  %  [ Command, Res ] ),
 
-		[ _ArpaString, "domain", "name", "pointer", Domain ] ->
-			% Removes ending ".~n":
-			string:sub_string( Domain, 1, length( Domain )-2 );
+				  case string:tokens( Output, " " ) of
 
-		_Other  ->
-			unknown_dns
+					  [ _ArpaString, "domain", "name", "pointer", Domain ] ->
+						  % There is a trailing dot:
+						  text_utils:remove_last_characters( Domain, _Count=1 );
+
+					  _Other  ->
+						  unknown_dns
+
+				  end;
+
+			  { _ExitCode, _ErrorOutput } ->
+				  %throw( { reverse_lookup_failed, IPAddress, ExitCode,
+				  %		   ErrorOutput } )
+				  unknown_dns
 
 	end.
 

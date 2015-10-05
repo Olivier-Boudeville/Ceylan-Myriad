@@ -1,4 +1,4 @@
-% Copyright (C) 2014 Olivier Boudeville
+% Copyright (C) 2014-2015 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -248,7 +248,8 @@ extractEntry( Key, Hashtable ) ->
 %
 % One may request the returned hashtable to be optimised after this call.
 %
--spec mapOnEntries( fun( ( entry() ) -> entry() ), list_hashtable() ) -> list_hashtable().
+-spec mapOnEntries( fun( ( entry() ) -> entry() ), list_hashtable() ) ->
+						  list_hashtable().
 mapOnEntries( Fun, Hashtable ) ->
 	[ Fun( E ) || E <- Hashtable ].
 
@@ -265,7 +266,8 @@ mapOnEntries( Fun, Hashtable ) ->
 % Note: the keys are left as are, hence the structure of the hashtable does not
 % change.
 %
--spec mapOnValues( fun( ( value() ) -> value() ), list_hashtable() ) -> list_hashtable().
+-spec mapOnValues( fun( ( value() ) -> value() ), list_hashtable() ) ->
+						 list_hashtable().
 mapOnValues( Fun, Hashtable ) ->
 	lists:keymap( Fun, _N=2, Hashtable ).
 
@@ -309,13 +311,14 @@ addToEntry( Key, Number, Hashtable ) ->
 
 
 
-% Subtracts specified number from the value, supposed to be numerical, associated
-% to specified key.
+% Subtracts specified number from the value, supposed to be numerical,
+% associated to specified key.
 %
 % An exception is thrown if the key does not exist, a bad arithm is triggered if
 % no subtraction can be performed on the associated value.
 %
--spec subtractFromEntry( key(), number(), list_hashtable() ) -> list_hashtable().
+-spec subtractFromEntry( key(), number(), list_hashtable() ) ->
+							   list_hashtable().
 subtractFromEntry( Key, Number, Hashtable ) ->
 
 	case lists:keytake( Key, _N=1, Hashtable ) of

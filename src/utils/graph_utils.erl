@@ -1,4 +1,4 @@
-% Copyright (C) 2012-2014 Olivier Boudeville
+% Copyright (C) 2012-2015 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -157,7 +157,7 @@ find_bfs_helper( Predicate, Feeder, CandidateQueue, ExploredList, UserData ) ->
 								  not ?list_impl:is_member( C, ExploredList ) ],
 
 					%io:format( "Vertex ~p not suitable, enqueuing ~w.~n",
-					%		    [ Vertex, SelectedChildren ] ),
+					%			[ Vertex, SelectedChildren ] ),
 
 					% Uncomment if wanting to check the cycle management:
 
