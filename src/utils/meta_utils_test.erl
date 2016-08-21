@@ -1,4 +1,4 @@
-% Copyright (C) 2014-2015 Olivier Boudeville
+% Copyright (C) 2014-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -35,9 +35,7 @@
 
 % Triggers the call to the specified parse transform:
 %
-% (currently commented out in the 2.2.x branch, not relying on meta-prgramming)
-%
-%-compile( { parse_transform, example_parse_transform } ).
+-compile( { parse_transform, example_parse_transform } ).
 
 
 % For run/0 export and al:
@@ -73,6 +71,12 @@ run() ->
 	tuple = meta_utils:get_type_of( { a, b } ),
 
 	reference = meta_utils:get_type_of( make_ref() ),
+
+
+	{ false, { boolean, float } } = meta_utils:is_homogeneous(
+									  { true, 1.0, false } ),
+
+	{ true, integer } = meta_utils:is_homogeneous( [ 0, -4, 47, 12 ] ),
 
 
 	test_facilities:display( "Testing term recursive transformation." ),
@@ -128,7 +132,7 @@ run() ->
 
 	io:format( "AST= ~p~n", [ ModuleAST ] ),
 
-	ModuleInfo = meta_utils:process_module_ast( ModuleAST ),
+	ModuleInfo = meta_utils:extract_module_info_from_ast( ModuleAST ),
 
 	test_facilities:display( meta_utils:module_info_to_string( ModuleInfo ) ),
 

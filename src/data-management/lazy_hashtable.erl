@@ -1,4 +1,4 @@
-% Copyright (C) 2011-2015 Olivier Boudeville
+% Copyright (C) 2011-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -73,7 +73,7 @@
 %
 -export([ new/0, new/1, addEntry/3, addEntries/2,
 		  removeEntry/2, lookupEntry/2, hasEntry/2,
-		  getEntry/2, extractEntry/2,
+		  getEntry/2, extractEntry/2, getValues/2, getAllValues/2,
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToEntry/3, deleteFromEntry/3, popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
@@ -110,12 +110,15 @@
 
 -opaque lazy_hashtable() :: { hashtable:hashtable(), operation_count() }.
 
--opaque lazy_hashtable( K, V ) ::
-		  { hashtable:hashtable( K, V ), operation_count() }.
+
+% Not supported since Erlang 18.0:
+%
+%-opaque lazy_hashtable( K, V ) ::
+%		  { hashtable:hashtable( K, V ), operation_count() }.
 
 
 -export_type([ key/0, value/0, entry/0, entries/0, entry_count/0,
-			   lazy_hashtable/0, lazy_hashtable/2 ]).
+			   lazy_hashtable/0 ]).
 
 
 % We want to be able to use our size/1 from here as well:
@@ -276,6 +279,68 @@ extractEntry( Key, _LazyHashtable={ Hashtable, OpCount } ) ->
 	NewLazyTable = { NewHashtable, OpCount + 1 },
 
 	{ Value, NewLazyTable }.
+
+
+
+% Returns the (ordered) list of values that correspond to the specified
+% (ordered) list of keys of this table.
+%
+% The key/value pairs are expected to exist already, otherwise an exception is
+% raised.
+%
+% Ex: [ Color, Age, Mass ] = lazy_hashtable:getValues( [ color, age, mass ],
+%   MyLazyTable ] )
+%
+-spec getValues( [ key() ], lazy_hashtable() ) -> [ value() ].
+getValues( Keys, Hashtable ) ->
+
+	{ RevValues, _FinalTable } = lists:foldl(
+
+				fun( _Elem=Key, _Acc={ Values, Table } ) ->
+
+					   { Value, ShrunkTable } = extractEntry( Key, Table ),
+					   { [ Value | Values ], ShrunkTable }
+
+				end,
+				_Acc0={ [], Hashtable },
+				_List=Keys ),
+
+	lists:reverse( RevValues ).
+
+
+
+% Returns the (ordered) list of values that correspond to the specified
+% (ordered) list of keys of this table, ensuring all entries have been read,
+% otherwise throwing an exception.
+%
+% The key/value pairs are expected to exist already, otherwise an exception is
+% raised.
+%
+% Ex: [ Color=red, Age=23, Mass=51 ] = lazy_hashtable:getAllValues( [ color,
+%   age, mass ], [ { color, red }, { mass, 51 }, { age, 23 } ] )
+%
+-spec getAllValues( [ key() ], lazy_hashtable() ) -> [ value() ].
+getAllValues( Keys, Hashtable ) ->
+
+	{ RevValues, FinalTable } = lists:foldl(
+		   fun( _Elem=Key, _Acc={ Values, Table } ) ->
+
+				   { Value, ShrunkTable } = extractEntry( Key, Table ),
+				   { [ Value | Values ], ShrunkTable }
+
+		   end,
+		   _Acc0={ [], Hashtable },
+		   _List=Keys ),
+
+	case isEmpty( FinalTable ) of
+
+		true ->
+			lists:reverse( RevValues );
+
+		false ->
+			throw( { remaining_keys, keys( FinalTable ) } )
+
+	end.
 
 
 

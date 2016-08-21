@@ -1,4 +1,4 @@
-% Copyright (C) 2014-2015 Olivier Boudeville
+% Copyright (C) 2014-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -59,10 +59,14 @@ run() ->
 	%list_hashtable:display( MyH1 ),
 	test_facilities:display( "Adding entries in map hashtable." ),
 	MyH2 = list_hashtable:new( 4 ),
-	MyH3 = list_hashtable:addEntry( ?MyFirstKey, "MyFirstValue", MyH2 ),
+
+	MyFirstValue = "MyFirstValue",
+
+	MyH3 = list_hashtable:addEntry( ?MyFirstKey, MyFirstValue, MyH2 ),
 	false = list_hashtable:isEmpty( MyH3 ),
 
-	MyH4 = list_hashtable:addEntry( ?MySecondKey, [ 1, 2, 3 ], MyH3 ),
+	MySecondValue = [ 1, 2, 3 ],
+	MyH4 = list_hashtable:addEntry( ?MySecondKey, MySecondValue, MyH3 ),
 	false = list_hashtable:isEmpty( MyH4 ),
 
 	list_hashtable:display( "The map hashtable", MyH4 ),
@@ -74,8 +78,7 @@ run() ->
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
 			list_hashtable:lookupEntry( ?MyFirstKey, MyH4 ) ] ),
 
-	{ value, "MyFirstValue" } = list_hashtable:lookupEntry( ?MyFirstKey,
-															MyH4 ),
+	{ value, MyFirstValue } = list_hashtable:lookupEntry( ?MyFirstKey, MyH4 ),
 
 	test_facilities:display( "Removing that entry." ),
 	MyH5 = list_hashtable:removeEntry( ?MyFirstKey, MyH4 ),
@@ -83,12 +86,15 @@ run() ->
 
 	test_facilities:display( "Extracting the same entry from "
 							 "the same initial table." ),
-	{ "MyFirstValue", MyH5 } = list_hashtable:extractEntry( ?MyFirstKey, MyH4 ),
+	{ MyFirstValue, MyH5 } = list_hashtable:extractEntry( ?MyFirstKey, MyH4 ),
 
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
 		list_hashtable:lookupEntry( ?MyFirstKey, MyH5 ) ] ),
 
 	key_not_found = list_hashtable:lookupEntry( ?MyFirstKey, MyH5 ),
+
+	[ MySecondValue, MyFirstValue ] = list_hashtable:getAllValues(
+										[ ?MySecondKey, ?MyFirstKey ], MyH4 ),
 
 	% removeEntry can also be used if the specified key is not here, will return
 	% an identical table.

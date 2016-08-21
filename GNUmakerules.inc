@@ -6,12 +6,46 @@
 
 # Now defining the generic rules operating on the variables.
 
-ERL_FILES = $(wildcard *.erl)
+ALL_ERL_FILES = $(wildcard *.erl)
+
+
+
+# Excluded sources, as depending on prerequisites:
+
+
+ifeq ($(USE_HDF5),false)
+
+  EXCLUDED_SOURCES := $(EXCLUDED_SOURCES) hdf5_support.erl      \
+										  hdf5_support_test.erl \
+										  raw_hdf5_test.erl
+
+endif
+
+
+ifeq ($(USE_REST),false)
+
+  EXCLUDED_SOURCES := $(EXCLUDED_SOURCES) rest_support.erl rest_support_test.erl
+
+endif
+
+
+ifeq ($(USE_SQLITE),false)
+
+  EXCLUDED_SOURCES := $(EXCLUDED_SOURCES) sql_support.erl sql_support_test.erl
+
+endif
+
+
+
+ERL_FILES = $(filter-out $(EXCLUDED_SOURCES), $(ALL_ERL_FILES))
+
 
 # Includes test beams:
 BEAM_FILES = $(patsubst %.erl,%.beam,$(ERL_FILES))
 
-TEST_SOURCES = $(wildcard *_test.erl)
+
+# Excludes the tests depending on prerequisites:
+TEST_SOURCES = $(filter-out $(EXCLUDED_SOURCES), $(wildcard *_test.erl))
 
 TEST_TARGETS = $(patsubst %.erl,%,$(TEST_SOURCES))
 
@@ -73,41 +107,108 @@ TEST_TARGETS = $(patsubst %.erl,%,$(TEST_SOURCES))
 # accordingly:
 ifeq ($(BASE_MAKEFILE),true)
 
-# CORE_COUNT defined in common/GNUmakevars.inc :
-all: all-pre-hook
-	@echo "   Building all, in parallel over $(CORE_COUNT) core(s), from "$(PWD) #`basename $(PWD)`
+# CORE_COUNT defined in common/GNUmakevars.inc:
+all: all-pre-hook all-parse-transforms
+	@echo "   Building all, in parallel over $(CORE_COUNT) core(s), from "$(PWD) #$$(basename $(PWD))
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m &&  \
 		$(MAKE) -s all-recurse -j $(CORE_COUNT) && cd .. ; else echo "     (directory $$m skipped)" ; \
 	fi ) ; then exit 1; fi ; done
 
 else
 
-all: all-pre-hook all-recurse $(BEAM_FILES)
+all: all-recurse-pre-hook all-recurse $(BEAM_FILES)
 
 endif
 
 
 
-# Allows to insert arbitrary rules *before* other specified prerequisite
-# targets.
+all-parse-transforms: $(BOOTSTRAP_MODULES) make-all-parse-transforms
+
+
+make-all-parse-transforms:
+	@echo "   Building first all layer-specific parse transforms"
+	@for d in $(PARSE_TRANSFORM_DIRS) ; do ( cd $$d && \
+	$(MAKE) -s local-parse-transforms ) ; done
+
+
+LOCAL_TRANSFORM_SRC = $(wildcard *_parse_transform.erl)
+
+LOCAL_TRANSFORM_BEAM = $(patsubst %.erl,%.beam,$(LOCAL_TRANSFORM_SRC))
+
+
+# It is necessary to compile parse-transforms from their directory, as they may
+# use bootstrapped BEAMs or lower layers, so the _TOP variable must be correct
+# in order the -pz directories to be relevant:
+#
+local-parse-transforms: $(LOCAL_TRANSFORM_BEAM)
+
+
+
+# all*-pre-hook targets allow to insert arbitrary rules *before* other specified
+# prerequisite targets, at each level.
 #
 # Meant to be enriched with prerequisite targets by above layers:
-#
+
+# Called once per layer, when starting compiling it:
 all-pre-hook:
+
+
+
+# Called once per subdirectory of the current layer, when starting compiling it:
+all-recurse-pre-hook:
 
 
 # This rule is not used by default, as we use the -j option from the root
 # makefile, letting then 'make' use its job server for that task:
 all-parallel-recurse:
-	@echo "   Building all on parallel over $(CORE_COUNT) cores (in "$(PWD) #`basename $(PWD)`
+	@echo "   Building all on parallel over $(CORE_COUNT) cores (in "$(PWD) #$$(basename $(PWD))
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s all -j $(CORE_COUNT) CMD_LINE_OPT="${CMD_LINE_OPT}" && cd .. ; else echo "	  (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
 
 
 
 all-recurse: $(BEAM_FILES)
-	@echo "   Building all in "$(PWD) #`basename $(PWD)`
-	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s all CMD_LINE_OPT="${CMD_LINE_OPT}" && cd .. ; else echo "	 (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
+	@echo "   Building all in "$(PWD) #$$(basename $(PWD))
+	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s all CMD_LINE_OPT="${CMD_LINE_OPT}" USE_HDF5=$(USE_HDF5) USE_REST=$(USE_REST) USE_SQLITE=$(USE_SQLITE) && cd .. ; else echo "	 (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
 
+
+
+# We must first go into the directory in which the source of the parse transform
+# lies, otherwise the BEAM file will be created on the current (ex: root)
+# directory:
+#
+%_parse_transform.beam: %_parse_transform.erl
+	@echo "		Compiling parse transform $<"
+	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $@ $<
+
+
+
+# Bootstrap section.
+
+
+# Bootstrapped modules must be special-cased, as they should not be built with
+# parse-transforms (by design not available yet) and the resulting BEAM must be
+# produced in the right directory (not at the root).
+#
+# Exactly the same processing applies to each of them.
+
+
+src/utils/meta_utils.beam: src/utils/meta_utils.erl
+	@echo "		Compiling bootstrap module $<"
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
+
+src/utils/text_utils.beam: src/utils/text_utils.erl
+	@echo "		Compiling bootstrap module $<"
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
+
+src/data-management/map_hashtable.beam: src/data-management/map_hashtable.erl
+	@echo "		Compiling bootstrap module $<"
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
+
+
+# Standard general rules:
 
 
 %.beam: %.erl %.hrl
@@ -136,12 +237,12 @@ all-recurse: $(BEAM_FILES)
 
 %_exec: %_app.beam %.beam
 	@echo "		Executing application $^ (first form)"
-	$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval `echo $@|sed 's|_exec|_app:exec()|1'` $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
 
 
 %_exec: %_app.beam
 	@echo "		Executing application $^ (second form)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval `echo $@|sed 's|_exec|_app:exec()|1'` $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
 
 
 
@@ -154,13 +255,51 @@ all-recurse: $(BEAM_FILES)
 
 %_exec_background: %_app.beam %.beam
 	@echo "		Executing application $^ in the background (first form)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) `echo $@|sed 's|_background$$||1'`-$$USER --background --eval `echo $@|sed 's|_exec_background|_app:exec()|1'` $(INTERNAL_OPTIONS) $(CMD_LINE_OPT) &
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_background$$||1')-$$USER --background --eval $$(echo $@|sed 's|_exec_background$$|_app:exec()|1') $(INTERNAL_OPTIONS) $(CMD_LINE_OPT) &
 
 
 %_exec_background: %_app.beam
 	@echo "		Executing application $^ in the background (second form)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) `echo $@|sed 's|_background$$||1'`-$$USER --background --eval `echo $@|sed 's|_exec_background|_app:exec()|1'` $(INTERNAL_OPTIONS) $(CMD_LINE_OPT) &
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_background$$||1')-$$USER --background --eval $$(echo $@|sed 's|_exec_background$$|_app:exec()|1') $(INTERNAL_OPTIONS) $(CMD_LINE_OPT) &
 
+
+# The two sets of rules below are functional, yet they use very different
+# solutions (run_erl/eval) that can tested independently.
+
+
+# To run an application as a service.
+#
+# Exactly like when running as %_exec_background, except services are shared
+# hence their node name must no depend on any user name; they are directly named
+# as their core target (ex: 'make X_exec_service' results in a node named
+# 'X@LOCALHOSTNAME').
+#
+# (these rules uses run_erl, that runs in the background)
+
+
+%_exec_service: %_app.beam %.beam
+	@echo "		Executing application $^ as a service (first form)"
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_exec_service$$||1') --daemon --eval $$(echo $@|sed 's|_exec_service$$|_app:exec()|1') $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+
+
+%_exec_service: %_app.beam
+	@echo "		Executing application $^ as a service (second form)"
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_exec_service$$||1') --daemon --eval $$(echo $@|sed 's|_exec_service$$|_app:exec()|1') $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+
+
+
+# Interactive variants, for service debugging:
+#
+# (these rules uses a standard 'erl -eval' put in the background)
+
+%_exec_service_debug: %_app.beam %.beam
+	@echo "		Executing application $^ as a debugged service (first form)"
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_exec_service_debug$$||1') --background --eval $$(echo $@|sed 's|_exec_service_debug$$|_app:exec()|1') $(INTERNAL_OPTIONS) $(CMD_LINE_OPT) &
+
+
+%_exec_service_debug: %_app.beam
+	@echo "		Executing application $^ as a debugged service (second form)"
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_exec_service_debug$$||1') --background --eval $$(echo $@|sed 's|_exec_service_debug$$|_app:exec()|1') $(INTERNAL_OPTIONS) $(CMD_LINE_OPT) &
 
 
 
@@ -205,7 +344,7 @@ all-recurse: $(BEAM_FILES)
 %_integration_run: %_integration_test.beam %_integration_dependencies
 	@echo "		Running integration test $@ from $^ "
 	"with $(ERL_PARAMETERIZED_LAUNCHER)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval `echo $@|sed 's|_run|_test:run()|1'` $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
 
 
 
@@ -216,12 +355,12 @@ all-recurse: $(BEAM_FILES)
 
 %_cluster_run: %_test.beam %.beam
 	@echo "		Executing test $^ for the cluster (first form)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) `echo $@|sed 's|_cluster_run$$|_run|1'`-$$USER --non-interactive --eval `echo $@|sed 's|_cluster_run|_test:run()|1'` $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_cluster_run$$|_run|1')-$$USER --non-interactive --eval $$(echo $@|sed 's|_cluster_run$$|_test:run()|1') $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
 
 
 %_cluster_run: %_test.beam
 	@echo "		Executing test $^ for the cluster (second form)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) `echo $@|sed 's|_cluster_run$$|_run|1'`-$$USER --non-interactive --eval `echo $@|sed 's|_cluster_run|_test:run()|1'` $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_cluster_run$$|_run|1')-$$USER --non-interactive --eval $$(echo $@|sed 's|_cluster_run$$|_test:run()|1') $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
 
 
 
@@ -231,18 +370,18 @@ all-recurse: $(BEAM_FILES)
 
 %_run: %_test %_test_dependencies
 	@echo "		Running unitary test $@ (first form) from $^, with $(ERL_PARAMETERIZED_LAUNCHER)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval `echo $@|sed 's|_run|_test:run()|1'` $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
 
 
 %_run: %_test %.beam
 	@echo "		Running unitary test $@ (second form) from $^"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval `echo $@|sed 's|_run|_test:run()|1'` $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
 
 
 # Again and again one will remove the '@' to inspect the actual command-line:
 %_run: %_test
 	@echo "		Running unitary test $@ (third form) from $^"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval `echo $@|sed 's|_run|_test:run()|1'` $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
 
 
 %_shell: %_test
@@ -252,11 +391,11 @@ all-recurse: $(BEAM_FILES)
 
 
 test: all test-recurse
-	@for t in $(TEST_TARGETS); do if ! $(MAKE) -s `echo $$t|sed 's|_test|_run|1'` CMD_LINE_OPT="${CMD_LINE_OPT} --batch"; then echo "Test failed." 1>&2 ; exit 1; fi ; done
+	@for t in $(TEST_TARGETS); do if ! $(MAKE) -s $$(echo $$t|sed 's|_test$$|_run|1') CMD_LINE_OPT="${CMD_LINE_OPT} --batch"; then echo "Test failed." 1>&2 ; exit 1; fi ; done
 
 
 test-recurse:
-	@echo "   Testing all in "`basename $(PWD)`
+	@echo "   Testing all in $$(basename $(PWD))"
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s test CMD_LINE_OPT="${CMD_LINE_OPT} --batch" && cd .. ; else echo "	  (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
 
 
@@ -264,7 +403,7 @@ test-recurse:
 doc: doc-recurse
 
 doc-recurse:
-	@echo "   Preparing documentation in "$(PWD) #`basename $(PWD)`
+	@echo "   Preparing documentation in "$(PWD) #$$(basename $(PWD))
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s doc CMD_LINE_OPT="${CMD_LINE_OPT}" && cd .. ; else echo "	 (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
 
 
@@ -384,14 +523,16 @@ info-install:
 
 # Allows to generate a file listing all the types defined in the specified
 # Erlang source tree.
+#
 # Ex: 'make generate-list-of-erlang-types ERLANG_SOURCE_ROOT=~/otp_src_R15B/'
+#
 generate-list-of-erlang-types:
-	@if [ -z "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, no ERLANG_SOURCE_ROOT variable specified." ; exit 15 ; fi ; if [ ! -d "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, specified directory (ERLANG_SOURCE_ROOT=$$ERLANG_SOURCE_ROOT) does not exist." ; exit 16 ; fi ; target_file="declared-types-in-Erlang.txt" ; erl="$(ERLANG_INTERPRETER)" ; target_path=`echo $$erl|sed "s|/bin/erl$$|/$$target_file|1"` ; echo "  Generating the list of types declared in the Erlang runtime..." &&  $(COMMON_TOP)/src/scripts/list-available-types.sh "$$ERLANG_SOURCE_ROOT" > $$target_path && echo "  Types have been collected in '$$target_path'."
+	@if [ -z "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, no ERLANG_SOURCE_ROOT variable specified." ; exit 15 ; fi ; if [ ! -d "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, specified directory (ERLANG_SOURCE_ROOT=$$ERLANG_SOURCE_ROOT) does not exist." ; exit 16 ; fi ; target_file="declared-types-in-Erlang.txt" ; erl="$(ERLANG_INTERPRETER)" ; target_path=$$(echo $$erl|sed "s|/bin/erl$$|/$$target_file|1") ; echo "  Generating the list of types declared in the Erlang runtime..." &&  $(COMMON_TOP)/src/scripts/list-available-types.sh "$$ERLANG_SOURCE_ROOT" > $$target_path && echo "  Types have been collected in '$$target_path'."
 
 
 
 generate-list-of-local-types:
-	@echo "    Listing all types defined in package '$(PACKAGE_NAME)', in the "`basename $(TYPE_LIST_FILE)`" file"
+	@echo "    Listing all types defined in package '$(PACKAGE_NAME)', in the $$(basename $(TYPE_LIST_FILE)) file"
 	@$(COMMON_TOP)/src/scripts/list-available-types.sh > $(TYPE_LIST_FILE)
 
 
@@ -399,10 +540,24 @@ generate-list-of-local-types:
 $(PLT_FILE): generate-local-plt
 
 
+# Overriding BASE_PLT is useful to take into account third-party prerequisites:
+ifndef BASE_PLT
+
+  BASE_PLT := $(PREDECESSOR_PLT)
+
+endif
+
+
 # We do not want to issue an error if only warnings (code: 2) were emitted:
-generate-local-plt:
-	@echo "    Generating PLT for $(PACKAGE_NAME) ($(PLT_FILE)), based on $(PREDECESSOR_PLT)"
-	@$(DIALYZER) --add_to_plt --output_plt $(PLT_FILE) -r $(PACKAGE_TOP)/src --plt $(PREDECESSOR_PLT); if [ $$? -eq 1 ] ; then exit 1 ; else exit 0 ; fi
+generate-local-plt: add-prerequisite-plts
+	@echo "    Generating PLT for $(PACKAGE_NAME) ($(PLT_FILE)), based on $(BASE_PLT)"
+	@$(DIALYZER) --add_to_plt --output_plt $(PLT_FILE) -r $(PACKAGE_TOP)/src --plt $(BASE_PLT); if [ $$? -eq 1 ] ; then exit 1 ; else exit 0 ; fi
+
+
+# Made to be enriched (with child targets) on a per-layer basis:
+add-prerequisite-plts:
+	@echo "Prerequisite PLTs added."
+
 
 
 self-check-against-plt: all $(PLT_FILE)
@@ -432,7 +587,7 @@ clean: clean-erlang clean-database clean-override clean-recurse
 
 
 clean-erlang:
-	@echo "    Cleaning all in "$(PWD) #`basename $(PWD)`
+	@echo "    Cleaning all in "$(PWD) #$$(basename $(PWD))
 	-@/bin/rm -f *.beam *.jam erl_crash.dump erlang.log.*
 
 
@@ -461,7 +616,7 @@ ifeq ($(ROOT_MAKEFILE),true)
 # More talkative:
 clean-recurse:
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then      \
-	echo "   Cleaning in '"`basename $$m`"' layer" ; cd $$m &&            \
+	echo "   Cleaning in '$$(basename $$m)' layer" ; cd $$m &&            \
 	$(MAKE) -s clean CMD_LINE_OPT="${CMD_LINE_OPT}" &&   \
 	cd .. ; else echo "		(directory $$m skipped)" ; fi ) ; then \
 	exit 1; fi ; done

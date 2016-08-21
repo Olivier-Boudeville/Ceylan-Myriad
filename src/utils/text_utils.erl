@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2015 Olivier Boudeville
+% Copyright (C) 2003-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -48,9 +48,10 @@
 		  record_to_string/1,
 		  string_list_to_string/1, string_list_to_string/2,
 		  strings_to_string/1, strings_to_string/2,
+		  strings_to_enumerated_string/1,
 		  binary_list_to_string/1, binaries_to_string/1,
 		  atom_list_to_string/1, atoms_to_string/1,
-		  string_list_to_atom_list/1,
+		  string_list_to_atom_list/1, proplist_to_string/1,
 		  version_to_string/1,
 		  atom_to_binary/1,
 		  string_to_binary/1, binary_to_string/1,
@@ -70,7 +71,9 @@
 		  join/2,
 		  split/2, split_at_first/2, split_camel_case/1,
 
-		  substitute/3,
+		  substitute/3, filter/2, split_after_prefix/2,
+
+		  list_whitespaces/0,
 
 		  is_uppercase/1, is_figure/1,
 		  remove_ending_carriage_return/1, remove_last_characters/2,
@@ -335,15 +338,18 @@ record_to_string( _Record ) -> % No 'when is_record( Record, Tag ) ->' here.
 %
 -spec string_list_to_string( [ ustring() ] ) -> ustring().
 string_list_to_string( ListOfStrings ) ->
+	% Leading '~n' had been removed for some unknown reason:
 	io_lib:format( "~n~ts", [ string_list_to_string(
 								ListOfStrings, _Acc=[], _Bullet=" + " ) ] ).
 
 
 % Returns a string which pretty-prints specified list of strings, with
-% user-specified bullets.
+% user-specified bullets; this can be a solution to nest bullet lists, by
+% specifying a bullet with an offset, such as "  * ".
 %
 -spec string_list_to_string( [ ustring() ], ustring() ) -> ustring().
 string_list_to_string( ListOfStrings, Bullet ) ->
+	% Leading '~n' had been removed for some unknown reason:
 	io_lib:format( "~n~ts", [ string_list_to_string(
 								ListOfStrings, _Acc=[], Bullet ) ] ).
 
@@ -353,8 +359,29 @@ string_list_to_string( _ListOfStrings=[], Acc, _Bullet ) ->
 
 string_list_to_string( _ListOfStrings=[ H | T ], Acc, Bullet )
   when is_list( H ) ->
+	% Byproduct of the trailing newline: an empty line at the end if nested.
 	string_list_to_string( T, Acc ++ Bullet ++ io_lib:format( "~ts~n", [ H ] ),
 						   Bullet ).
+
+
+% Returns a string which pretty-prints specified list of strings, with
+% enumerated (i.e. 1, 2, 3) bullets.
+%
+-spec strings_to_enumerated_string( [ ustring() ] ) -> ustring().
+strings_to_enumerated_string( ListOfStrings ) ->
+
+	{ _FinalCount, ReversedStrings } = lists:foldl(
+				 fun( String, _Acc={ Count, Strings } ) ->
+
+						 NewStrings = [ text_utils:format( "  ~B. ~ts~n",
+										   [ Count, String ] ) | Strings ],
+						 { Count + 1, NewStrings }
+
+				 end,
+				 _Acc0={ 1, "" },
+				 _List=ListOfStrings ),
+
+	lists:reverse( ReversedStrings ).
 
 
 
@@ -422,12 +449,31 @@ atoms_to_string( ListOfAtoms ) ->
 % Returns a list whose elements are atoms corresponding to the strings
 % supposedly composing the specified list.
 %
-% Ex: string_list_to_atom_list( ["abc", "def"] ) should return [abc,def].
+% Ex: string_list_to_atom_list( ["abc","def"] ) should return [abc,def].
 %
 -spec string_list_to_atom_list( [ ustring() ] ) -> [ atom() ].
 string_list_to_atom_list( StringList ) when is_list( StringList ) ->
 	[ list_to_atom( X ) || X <- StringList ].
 
+
+
+% Returns a string which pretty-prints specified list of key (as binary, string
+% or atom) / value pairs, with bullets, after having been sorted.
+%
+% Ex: proplist_to_string( [ { ccc, 42 }, { "beta", 1.0 } ] ) returns a bullet
+% list like:
+%
+%  + beta: 1.0
+%  + ccc: 42
+%
+-spec proplist_to_string( list_hashtable:list_hashtable() ) -> ustring().
+proplist_to_string( Proplist ) ->
+
+	% In this context, key and value known to be strings or atoms:
+	Strings = [ io_lib:format( "~s: ~s", [ K, V ] )
+				|| { K, V } <- lists:sort( Proplist ) ],
+
+	string_list_to_string( Strings ).
 
 
 
@@ -704,7 +750,7 @@ duration_to_string( Milliseconds ) ->
 						   ListWithSeconds;
 
 					   1 ->
-						   [ "1 millisecond" | ListWithSeconds];
+						   [ "1 millisecond" | ListWithSeconds ];
 
 					   _ ->
 						   [ io_lib:format( "~B milliseconds",
@@ -749,11 +795,11 @@ format( FormatString, Values ) ->
 
 					 io_lib:format( "[error: badly formatted output] "
 									"Format: '~p', values: '~p'",
-									[ FormatString, Values] )
+									[ FormatString, Values ] )
 
 	end,
 
-	% Using 'flatten' allows for example to have clearer strings output in case
+	% Using 'flatten' allows for example to have clearer string outputs in case
 	% of error:
 	%
 	lists:flatten( String ).
@@ -780,7 +826,7 @@ bin_format( FormatString, Values ) ->
 
 					 io_lib:format( "[error: badly formatted output] "
 									"Format: '~p', values: '~p'",
-									[ FormatString, Values] )
+									[ FormatString, Values ] )
 
 	end,
 
@@ -970,6 +1016,9 @@ join( Separator, _ListToJoin=[ H | T ], Acc ) ->
 %
 % Defined here not to chase anymore after string:tokens/2.
 %
+% See list_whitespaces/0 to get a list of all whitespaces, as potential
+% delimiters.
+%
 -spec split( ustring(), [ uchar() ] ) -> [ ustring() ].
 split( String, Delimiters ) ->
 	string:tokens( String, Delimiters ).
@@ -1046,6 +1095,52 @@ substitute( SourceChar, TargetChar, _String=[ OtherChar | T ], Acc ) ->
 
 
 
+% Filters out in specified string the specified character, so that it does not
+% occur anymore on the returned string.
+%
+% Note: simpler and probably more efficient that a regular expression.
+%
+-spec filter( uchar(), ustring() ) -> ustring().
+filter( CharToRemove, String ) ->
+	filter( CharToRemove, String, _Acc=[] ).
+
+
+filter( _CharToRemove, _String=[], Acc ) ->
+	lists:reverse( Acc );
+
+filter( CharToRemove, _String=[ CharToRemove | T ], Acc ) ->
+	% Just drop that character:
+	filter( CharToRemove, T, Acc );
+
+filter( CharToRemove, _String=[ OtherChar | T ], Acc ) ->
+	filter( CharToRemove, T, [ OtherChar | Acc ] ).
+
+
+
+% Splits the specified string after specified prefix and returns the remaining
+% part, otherwise returns that the prefix was not found.
+%
+% Ex: split_after_prefix( "Foo", "Foobar is baz." ) returns "bar is baz.";
+% split_after_prefix( "ABC", "Foobar is baz." ) return 'no_prefix'.
+%
+-spec split_after_prefix( string(), string() ) -> string() | 'no_prefix'.
+split_after_prefix( _Prefix=[], String ) ->
+	String;
+
+split_after_prefix( _Prefix=[ C | T ], _String=[ C | StringT ] ) ->
+	split_after_prefix( T, StringT );
+
+split_after_prefix( _Prefix, _String ) ->
+	no_prefix.
+
+
+
+% Returns a list of all known whitespaces.
+%
+-spec list_whitespaces() -> [ char() ].
+list_whitespaces() ->
+	" \t\n".
+
 
 
 % Tells whether specified character is an uppercase one.
@@ -1110,6 +1205,7 @@ remove_last_characters( String, Count ) ->
 			throw( { removal_failed, String, Count } )
 
 	end.
+
 
 
 % Removes all leading and trailing whitespaces.

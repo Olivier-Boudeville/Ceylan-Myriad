@@ -1,4 +1,4 @@
-% Copyright (C) 2014-2015 Olivier Boudeville
+% Copyright (C) 2014-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -62,6 +62,15 @@
 %   http://chlorophil.blogspot.fr/2007/04/atomiser-part-vii.html
 
 
+% We consider here that an AST is an ordered list of forms.
+%
+% We often use located counterparts of the standard elements (ex: forms, ASTs)
+% so that we can recreate and modify the order of (possibly transformed, added
+% or removed) forms in an AST.
+%
+% See the definition of the location/0 type for further information.
+
+
 % Standard modules of interest:
 %
 % - erl_scan ('The Erlang Token Scanner'): functions for tokenizing characters
@@ -122,15 +131,16 @@
 -type parse_transform_options() :: proplists:proplist().
 
 
-% Line-related location in a source file:
--type file_loc() :: erl_scan:location().
+% Line location (i.e. line number) of a form in a source file:
+-type line() :: erl_anno:line().
 
 
-% Line location in a source file:
--type line() :: erl_scan:line().
+% Line-related location in a source file (either line() or {line(), column()}):
+%
+-type file_loc() :: erl_anno:location().
 
 
-% Abstract form, part of an AST:
+% Abstract form, part of an AST (ex: {attribute,40,file,{"foo.erl",40}}):
 %
 -type form() :: erl_parse:abstract_form().
 
@@ -141,7 +151,41 @@
 %
 % For more information: http://www.erlang.org/doc/apps/erts/absform.html
 %
--type ast() :: erl_parse:abstract_form().
+-type ast() :: [ form() ].
+
+
+
+% Location of a form in an AST, so that the order of forms can be recreated.
+%
+% We use sortable identifiers so that any number of new forms can be introduced
+% between two of them, if needed.
+%
+% Location is relative to the position of a form in a given AST, while the line
+% information embedded in forms is relative to the file in which they are
+% defined.
+%
+-type location() :: basic_utils:sortable_id().
+
+
+
+% When processing an AST (ex: read from a BEAM file), the order of the forms
+% matters (for example to report compile errors, which are relative to a context
+% defined by the last '-file' attribute previously encountered, i.e. like
+% {attribute,40,file,{"foo.erl",40}}). So even if we store forms in tables
+% according to their type, when (re)generating the AST we have to recreate the
+% same order.
+%
+% To do so, instead of managing a list of forms, we manage any sets of located
+% forms by including in each form an identifier allowing to recreate the form
+% order in the original AST.
+%
+-type located_form() :: { location(), form() }.
+
+
+% An AST including location information:
+%
+-type located_ast() :: [ located_form() ].
+
 
 
 % The name of a (parse-level) attribute (ex: '-my_attribute( my_value ).').
@@ -175,15 +219,21 @@
 % The form corresponding to the definition of a clause of a function, typically
 % { clause, LINE, Rep(Ps), Rep(Gs), Rep(B) } for '( Ps ) when Gs -> B':
 %
--type clause_def() :: ast().
+-type clause_def() :: form().
 
 
-% The full type definition (if any) of that function, as an abstract form;
+
+% The full type specification (if any) of that function, as an abstract form;
 % typically:
 %
 % { attribute, L, spec, { {foobar,Arity}, [{type,L,'fun', [{type,L,...
 %
--type function_spec() :: ast().
+-type function_spec() :: form().
+
+
+% Located type specification of a function:
+%
+-type located_function_spec() :: { location(), function_spec() }.
 
 
 
@@ -203,8 +253,16 @@
 -type type_arity() :: basic_utils:count().
 
 
-% The "most precise" description of a primitive, simple type (ex: 'boolean' and
-% 'atom' coexist, 'number ' are not used), etc.
+% The "most precise" description of a primitive, simple types (ex: 'boolean' and
+% 'atom') coexist, 'number' are not used, etc.
+%
+% A note about Erlang floats: they are actually IEEE 754 double-precision
+% floating-point numbers, a format that occupies 8 bytes (64 bits) per float in
+% memory.
+
+% More precisely, as one can see in erts/emulator/beam/erl_term.h, a float_def
+% is an union able to contain a ieee754_8 datatype, aliased to the 'double' C
+% datatype.
 %
 -type type_description() :: 'atom' | 'binary' | 'boolean' | 'float' | 'function'
 						  | 'integer' | 'list' | 'pid' | 'port' | 'record'
@@ -227,36 +285,77 @@
 
 
 
-
 -type module_info() :: #module_info{}.
 
 
--export_type([ parse_transform_options/0, file_loc/0, line/0, ast/0, form/0,
+
+% Directly inspired from erl_lint:
+
+
+% Description of a compilation-related issue (error or warning).
+%
+-type issue_description() :: term().
+
+
+% Full information about a compilation-related issue.
+%
+% The module is the one emitting that issue (ex: erl_lint)
+%
+-type issue_info() :: { line(), module(), issue_description() }.
+
+
+% A warning regarding a source file, corresponding to a list of error
+% informations.
+%
+-type issue_report() :: { file_utils:file_name(), [ issue_info() ] }.
+
+
+
+-export_type([ parse_transform_options/0, line/0, file_loc/0, form/0, ast/0,
+			   location/0, located_form/0, located_ast/0,
 			   attribute_name/0, attribute_value/0, attribute/0,
 			   function_name/0, function_id/0,
-			   clause_def/0, function_spec/0, function_info/0,
+			   clause_def/0, function_spec/0, located_function_spec/0,
+			   function_info/0,
 			   type_name/0, type_arity/0, type_description/0, type/0,
-			   term_transformer/0,
-			   module_info/0
+			   term_transformer/0, module_info/0,
+			   issue_description/0, issue_info/0, issue_report/0
 			 ]).
 
 
 
 % Parse-transform related functions:
-
+%
 -export([ init_module_info/0,
-		  function_info_to_string/1, get_type_of/1, traverse_term/4,
-		  term_to_form/1, variable_names_to_form/2,
-		  form_to_ast/1, form_to_ast/2, term_to_ast/1, term_to_ast/2,
-		  beam_to_ast/1, process_module_ast/1,
+		  function_info_to_string/1,
+		  get_type_of/1, get_elementary_types/0, type_to_string/1, is_type/1,
+		  is_of_type/2, is_homogeneous/1,
+		  traverse_term/4,
+		  term_to_form/1, variable_names_to_ast/2,
+		  string_to_form/1, string_to_form/2,
+		  string_to_expressions/1, string_to_expressions/2,
+		  beam_to_ast/1,
+		  extract_module_info_from_ast/1, recompose_ast_from_module_info/1,
 		  erl_to_ast/1,
 		  check_module_info/1, module_info_to_string/1,
+		  write_ast_to_file/2,
 		  raise_error/1 ]).
+
+
+% General functions:
+%
+-export([ list_exported_functions/1 ]).
+
+
+% For debugging:
+-export([ interpret_issue_reports/1, interpret_issue_report/1,
+		  interpret_issue_info/2, interpret_issue_description/2 ] ).
 
 
 
 % Returns a new, blank instance of the module_info record.
 %
+-spec init_module_info() -> module_info().
 init_module_info() ->
 
 	% No table pseudo-module available from meta_utils, as it cannot be
@@ -275,8 +374,9 @@ init_module_info() ->
 function_info_to_string( #function_info{
 		   name=Name,
 		   arity=Arity,
+		   location=_Location,
 		   definition=Clauses,
-		   spec=Spec,
+		   spec=LocatedSpec,
 		   exported=Exported } ) ->
 
 	ExportString = case Exported of
@@ -291,7 +391,7 @@ function_info_to_string( #function_info{
 
 	DefString = io_lib:format( "~B clause(s) defined", [ length( Clauses ) ] ),
 
-	SpecString = case Spec of
+	SpecString = case LocatedSpec of
 
 					 undefined ->
 						 "no type specification";
@@ -303,6 +403,33 @@ function_info_to_string( #function_info{
 
 	io_lib:format( "~s/~B, ~s, with ~s and ~s",
 				   [ Name, Arity, ExportString, DefString, SpecString ] ).
+
+
+
+% Returns a list of the elementary, "atomic" types.
+%
+-spec get_elementary_types() -> [ type_name() ].
+get_elementary_types() ->
+	[ 'atom', 'binary', 'boolean', 'float', 'function', 'integer', 'list',
+	  'pid', 'port', 'record', 'reference', 'tuple' ].
+
+
+
+% Returns a textual description of specified type.
+%
+-spec type_to_string( type_description() ) -> string().
+type_to_string( Type ) ->
+	text_utils:format( "~p", [ Type ] ).
+
+
+
+% Tells whether specified term designates a type.
+%
+% (only the elementary types are currently recognised)
+%
+-spec is_type( term() ) -> boolean().
+is_type( T ) ->
+	lists:member( T, get_elementary_types() ).
 
 
 
@@ -348,6 +475,67 @@ get_type_of( Term ) when is_tuple( Term ) ->
 get_type_of( Term ) when is_reference( Term ) ->
 	'reference'.
 
+
+
+% Tells whether specified term is of specified type (predicate).
+%
+-spec is_of_type( term(), type_description() ) -> boolean().
+is_of_type( Term, Type ) ->
+
+	case get_type_of( Term ) of
+
+		Type ->
+			true;
+
+		_ ->
+			false
+
+	end.
+
+
+
+% Tells whether specified non-empty container (list or tuple) is homogeneous in
+% terms of type, i.e. whether all its elements are of the same type.
+%
+% If true, returns the common type.
+% If false, returns two of the different types found in the container.
+%
+-spec is_homogeneous( list() | tuple() ) ->
+		{ 'true', type_description() }
+	|   { 'false', { type_description(), type_description() } }.
+is_homogeneous( _List=[] ) ->
+	% We want to return types:
+	throw( empty_container );
+
+is_homogeneous( _List=[ H | T ] ) ->
+
+	Type = get_type_of( H ),
+
+	is_homogeneous_helper( T, Type );
+
+is_homogeneous( Tuple ) when is_tuple( Tuple ) ->
+
+	ElemList = tuple_to_list( Tuple ),
+
+	is_homogeneous( ElemList ).
+
+
+
+% Helper:
+is_homogeneous_helper( _Elems=[], Type ) ->
+	{ true, Type };
+
+is_homogeneous_helper( _Elems=[ H | T ], Type ) ->
+
+	case get_type_of( H ) of
+
+		Type ->
+			is_homogeneous_helper( T, Type );
+
+		OtherType ->
+			{ false, { Type, OtherType } }
+
+	end.
 
 
 
@@ -488,19 +676,22 @@ traverse_transformed_term( TargetTerm, TypeDescription, TermTransformer,
 
 
 
-% Section to generate AST.
+% Section to manage ASTs and forms.
 
 
 % Converts the specified Erlang term (ex: the float '42.0') into a corresponding
 % form (ex: '{ float, _Line=0, 42.0 }').
 %
--spec term_to_form( term() ) -> ast().
+-spec term_to_form( term() ) -> form().
 term_to_form( Term ) ->
 
 	case erl_syntax:abstract( Term ) of
 
-		badarg ->
-			throw( { term_abstraction_failed, Term } );
+		% Either the doc or the type information for erl_syntax:abstract/1 is
+		% incorrect:
+
+		%badarg ->
+		%	throw( { term_abstraction_failed, Term } );
 
 		SyntaxTree ->
 
@@ -512,44 +703,45 @@ term_to_form( Term ) ->
 
 
 
-% Converts a list of names of variables into the corresponding form.
+% Converts a list of names of variables into the corresponding AST.
 %
-% Ex: variable_names_to_form( [ "V1", "Alpha", "A" ], _Line=0 ) = [ {cons,0,
+% Ex: variable_names_to_ast( [ "V1", "Alpha", "A" ], _Line=0 ) = [ {cons,0,
 % {var,0,'V1'}, {cons,0,{var,0,'Alpha'}, {cons,0,{var,0,'A'}, {nil,0} } } } ]
 %
--spec variable_names_to_form( [ string() ], line() ) -> form().
-variable_names_to_form( VariableNames, Line ) ->
+-spec variable_names_to_ast( [ string() ], line() ) -> ast().
+variable_names_to_ast( VariableNames, Line ) ->
 
 	% Could be done directly recursively by incrementally 'consing' reversed
 	% list.
 
 	NameListString = "[ " ++ text_utils:join( ", ",  VariableNames ) ++ " ].",
 
-	term_to_ast( NameListString, Line ).
+	string_to_expressions( NameListString, Line ).
 
 
 
 
 
-% Converts the specified source code of a form (i.e., a string) into its
+% Converts the specified source code of a form (as a string) into its
 % corresponding abstract form (assuming being in line #1).
 %
-% Ex: form_to_ast( "f() -> hello_world." ) returns
+% Ex: string_to_form( "f() -> hello_world." ) returns
 %   { function, 1, f, 0, [ { clause, 1, [], [], [ {atom,1,hello_world} ] } ] }
 %
--spec form_to_ast( string() ) -> ast().
-form_to_ast( FormString ) ->
-	form_to_ast( FormString, _Loc=1 ).
+-spec string_to_form( string() ) -> form().
+string_to_form( FormString ) ->
+	string_to_form( FormString, _Loc=1 ).
+
 
 
 % Converts the specified source code of a form (i.e., a string) into its
 % corresponding abstract form.
 %
-% Ex: form_to_ast( "f() -> hello_world.", 42 ) returns
+% Ex: string_to_form( "f() -> hello_world.", 42 ) returns
 %   { function, 1, f, 0, [ { clause, 42, [], [], [ {atom,1,hello_world} ] } ] }
 %
--spec form_to_ast( string(), file_loc() ) -> ast().
-form_to_ast( FormString, Location ) ->
+-spec string_to_form( string(), file_loc() ) -> form().
+string_to_form( FormString, Location ) ->
 
 	% First get Erlang tokens from that string:
 	Tokens = case erl_scan:string( FormString, Location ) of
@@ -578,30 +770,29 @@ form_to_ast( FormString, Location ) ->
 
 
 
-% Converts the specified source code of a term (i.e., a string) into its
-% corresponding abstract form (assuming being in line #1).
+% Converts the specified source code of a list of expressions (i.e., a string)
+% into its corresponding AST (assuming being in line #1).
 %
-% Ex: term_to_ast( "[ { a, 1 }, foobar ]" ) returns
+% Ex: string_to_expressions( "[ { a, 1 }, foobar ]" ) returns
 %   [ { cons, 1, { tuple, 1, [ {atom,1,a}, {integer,1,1} ] },
 %     { cons, 1, {atom,1,foobar}, {nil,1} } } ]
 %
--spec term_to_ast( string() ) -> ast().
-term_to_ast( TermString ) ->
-	term_to_ast( TermString, _Loc=1 ).
-
+-spec string_to_expressions( string() ) -> ast().
+string_to_expressions( ExpressionString ) ->
+	string_to_expressions( ExpressionString, _Loc=1 ).
 
 
 % Converts the specified source code of a term (i.e., a string) into its
 % corresponding abstract form.
 %
-% Ex: term_to_ast( "[ { a, 1 }, foobar ]", _Loc=42 ) returns
+% Ex: string_to_expressions( "[ { a, 1 }, foobar ]", _Loc=42 ) returns
 %   [ { cons, 42, { tuple, 42, [ {atom,42,a}, {integer,42,1} ] },
 %     { cons, 42, {atom,42,foobar}, {nil,42} } } ]
 %
-term_to_ast( TermString, Location ) ->
+string_to_expressions( ExpressionString, Location ) ->
 
 	% First get Erlang tokens from that string:
-	Tokens = case erl_scan:string( TermString, Location ) of
+	Tokens = case erl_scan:string( ExpressionString, Location ) of
 
 		% Ex: [ {'[',42}, {'{',42}, {atom,42,a}, {',',42}, {integer,42,1},
 		% {'}',42}, {',',42}, {atom,42,foobar}, {']',42} ]
@@ -610,7 +801,7 @@ term_to_ast( TermString, Location ) ->
 			Toks;
 
 		ErrorTok ->
-			throw( { term_tokenizing_error, TermString, ErrorTok } )
+			throw( { expression_tokenizing_error, ExpressionString, ErrorTok } )
 
 	end,
 
@@ -622,7 +813,8 @@ term_to_ast( TermString, Location ) ->
 				  ParseTree;
 
 			  ErrorPar ->
-				  throw( { term_parsing_error, TermString, ErrorPar } )
+				  throw( { expression_parsing_error, ExpressionString,
+						   ErrorPar } )
 
 	end.
 
@@ -669,7 +861,7 @@ beam_to_ast( BeamFilename ) ->
 	Chunks = [ abstract_code ],
 
 	% Everything but the code AST:
-	%Chunks = [ attributes, compile_info, exports,
+	% OtherChunks = [ attributes, compile_info, exports,
 	%		   labeled_exports, imports, indexed_imports, locals,
 	%		   labeled_locals, atoms ],
 
@@ -693,30 +885,108 @@ beam_to_ast( BeamFilename ) ->
 % Processes the specified AST relative to a whole module, and returns the
 % corresponding information gathered.
 %
--spec process_module_ast( ast() ) -> module_info().
-process_module_ast( AST ) ->
+-spec extract_module_info_from_ast( ast() ) -> module_info().
+extract_module_info_from_ast( AST ) ->
 
 	%io:format( "Processing following AST:~n~p~n", [ AST ] ),
-	io:format( "Processing AST:~n" ),
+	%io:format( "Processing AST:~n" ),
+
+	%write_ast_to_file( AST, "original-extracted-ast.txt" ),
+
+	% First we check whether the corresponding code compiles:
+
+	% We could define specific compile options, yet they could be too
+	% restrictive (more than the ones of the compiler) and moreover it would
+	% force us to specify a filename.
+
+	% We cannot simply count errors and warnings, as we have in each case a list
+	% of per-file elements (a list of lists), in the order of the specified AST
+	% (thus additionally a given file may happen multiple times); a count is not
+	% useful here anyway.
+
+	% Finally we have not real freedom in terms of output, as we prefer to
+	% respect the native display format of the error messages so that tools (ex:
+	% emacs, possible erlide and all) are still able to manage them.
+
+	pre_check_ast( AST ),
 
 	InitModuleInfo = init_module_info(),
 
-	ModuleInfo = process_ast( AST, InitModuleInfo ),
+	ModuleInfo = process_ast( AST, InitModuleInfo, _InitialFormCounter=1 ),
 
-	% Uncomment with care: ultimately depends on non-bootstrapped modules (like
-	% text_utils):
+	% Uncomment with care, as must ultimately depend *only* on non-bootstrapped
+	% modules (like {meta,text}_utils) - this should be the case here:
 	%
 	%io:format( "Resulting module information:~n~s~n",
 	%		   [ module_info_to_string( ModuleInfo ) ] ),
 
-	%check_module_info( ModuleInfo ),
+	case ModuleInfo#module_info.unhandled_forms of
+
+		[] ->
+			ok;
+
+		UnhandledForms ->
+
+			UnHandledStrings = [ text_utils:format( "~p", [ Form ] )
+								 || { _Loc, Form } <- UnhandledForms ],
+
+			io:format( "Warning, ~B forms have not be handled: ~s",
+					   [ length( UnhandledForms ),
+						 text_utils:strings_to_string( UnHandledStrings ) ] )
+
+	end,
+
+	% Additional linting, just after extraction:
+	check_module_info( ModuleInfo ),
 
 	ModuleInfo.
 
 
+pre_check_ast( AST ) ->
+
+	%io:format( "~p~n", [ AST ] ),
+
+	% Finally interpret_issue_reports/1 directly outputs the issues:
+	case erl_lint:module( AST ) of
+
+		{ ok, _Warnings=[] } ->
+			%io:format( "(no warning or error emitted)~n" ),
+			ok;
+
+		{ ok, Warnings } ->
+			%io:format( "Warnings, reported as errors: ~s~n",
+			%		   [ interpret_issue_reports( Warnings ) ] ),
+			interpret_issue_reports( Warnings ),
+			exit( warning_reported );
+
+		{ error, Errors, _Warnings=[] } ->
+			%io:format( "Errors reported: ~s~n",
+			%		   [ interpret_issue_reports( Errors ) ] ),
+			interpret_issue_reports( Errors ),
+			exit( error_reported );
+
+		{ error, Errors, Warnings } ->
+			%io:format( "Errors reported: ~s~n",
+			%		   [ interpret_issue_reports( Errors ) ] ),
+			interpret_issue_reports( Errors ),
+
+			%io:format( "Warnings, reported as errors: ~s~n",
+			%		   [ interpret_issue_reports( Warnings ) ] ),
+			interpret_issue_reports( Warnings ),
+
+			exit( error_reported )
+
+	end.
 
 
-% Here all relevant parts of the specified AST are matched in turn:
+
+% Here all relevant parts of the specified AST (located forms) are matched in
+% turn, and stored in the specified module_info once located using
+% basic_utils:sortable_id/0 identifiers.
+%
+% Each of these initial sortable identifiers is here just a list of one integer,
+% a counter incremented at each form (see basic_utils:sortable_id/0 for the
+% description of these expandable identifiers).
 
 
 % Module section:
@@ -724,22 +994,30 @@ process_module_ast( AST ) ->
 % Any lacking, invalid or duplicated module declaration will be caught by the
 % compiler anyway:
 %
--spec process_ast( [ ast() ], module_info() ) -> module_info().
-process_ast( _AST=[ F={ attribute, _Line, module, ModuleName } | T ],
-			 W=#module_info{ module=undefined, module_def=undefined } ) ->
+-spec process_ast( located_ast(), module_info(), basic_utils:count() ) ->
+						 module_info().
+process_ast( _AST=[ Form={ attribute, _Line, module, ModuleName } | T ],
+			 W=#module_info{ module=undefined, module_def=undefined },
+			 FormCounter ) ->
 
 	%io:format( " - module declaration for ~s~n", [ ModuleName ] ),
 
-	% When processing X.beam, we could remove the lines like:
-	% {attribute,37,file,{"X.erl",37}
+	% When processing X.beam, we should not remove the lines like:
+	% {attribute,37,file,{"X.erl",37} as they allow to report errors
+	% appropriately.
 
-	process_ast( T, W#module_info{ module=ModuleName, module_def=F } );
+	LocForm = { _BasicLocation=[ FormCounter ], Form },
+
+	process_ast( T, W#module_info{ module=ModuleName, module_def=LocForm },
+				 FormCounter+1 );
+
 
 
 % Include section:
 %
-process_ast( _AST=[ F={ attribute, _Line, file, { Filename, _N } } | T ],
-			 W=#module_info{ includes=Inc, include_defs=IncDefs } ) ->
+process_ast( _AST=[ Form={ attribute, _Line, file, { Filename, _N } } | T ],
+			 W=#module_info{ includes=Inc, include_defs=IncDefs },
+			 FormCounter ) ->
 
 	%io:format( " - file declaration with ~s~n", [ Filename ] ),
 
@@ -749,7 +1027,7 @@ process_ast( _AST=[ F={ attribute, _Line, file, { Filename, _N } } | T ],
 	%NormFilename = file_utils:normalise_path( Filename ),
 	NormFilename = Filename,
 
-	% Avoids duplicates (in 'includes' only):
+	% Avoids duplicates (in 'includes' only, not in definitions):
 	%
 	NewFilenames = case lists:member( NormFilename, Inc ) of
 
@@ -761,37 +1039,48 @@ process_ast( _AST=[ F={ attribute, _Line, file, { Filename, _N } } | T ],
 
 	end,
 
+	LocForm = { _BasicLocation=[ FormCounter ], Form },
+
 	process_ast( T, W#module_info{ includes=NewFilenames,
-								   include_defs=[ F | IncDefs ] } );
+								   include_defs=[ LocForm | IncDefs ] },
+				 FormCounter+1 );
 
 
 
 % Type definition section:
 %
-process_ast( _AST=[ F={ attribute, _Line, type,
-						{ TypeName, TypeDef, _SubTypeList } } | T ],
+process_ast( _AST=[ Form={ attribute, _Line, type,
+						   { TypeName, TypeDef, _SubTypeList } } | T ],
 			 W=#module_info{ type_definitions=TypeDefs,
-							 type_definition_defs=TypeDefsDefs } ) ->
+							 type_definition_defs=TypeDefsDefs },
+			 FormCounter ) ->
 
 	%io:format( " - type declaration for ~p: ~p~n", [ TypeName, F ] ),
 
+	LocForm = { _BasicLocation=[ FormCounter ], Form },
+
 	process_ast( T, W#module_info{
 				   type_definitions=[ { TypeName, TypeDef } | TypeDefs ],
-				   type_definition_defs=[ F | TypeDefsDefs ] } );
+				   type_definition_defs=[ LocForm | TypeDefsDefs ] },
+				 FormCounter+1 );
 
 
 
 % Type export section:
 %
-process_ast( _AST=[ F={ attribute, _Line, export_type, DeclaredTypes } | T ],
+process_ast( _AST=[ Form={ attribute, _Line, export_type, DeclaredTypes } | T ],
 			 W=#module_info{ type_exports=TypeExports,
-							 type_export_defs=TypeExportDefs } )
-  when is_list( DeclaredTypes ) ->
+							 type_export_defs=TypeExportDefs },
+			 FormCounter ) when is_list( DeclaredTypes ) ->
 
 	%io:format( " - export type declaration for ~p~n", [ DeclaredTypes ] ),
 
+	LocForm = { _BasicLocation=[ FormCounter ], Form },
+
 	process_ast( T, W#module_info{ type_exports= DeclaredTypes ++ TypeExports,
-								   type_export_defs=[ F | TypeExportDefs ] } );
+								   type_export_defs=
+									   [ LocForm | TypeExportDefs ] },
+				 FormCounter+1 );
 
 
 
@@ -799,7 +1088,7 @@ process_ast( _AST=[ F={ attribute, _Line, export_type, DeclaredTypes } | T ],
 %
 process_ast( _AST=[ Form={ attribute, _Line, export, FunctionIds } | T ],
 			 W=#module_info{ function_exports=FunExports,
-							 functions=FunctionTable } ) ->
+							 functions=FunctionTable }, FormCounter ) ->
 
 	%io:format( " - export declaration for ~p~n", [ FunctionIds ] ),
 
@@ -817,16 +1106,17 @@ process_ast( _AST=[ Form={ attribute, _Line, export, FunctionIds } | T ],
 						 name=Name,
 						 arity=Arity,
 						 % Implicit:
+						 %location=undefined
+						 %line=undefined
 						 %definition=[],
 						 %spec=undefined
 						 exported=true
-
 						};
 
 				 % A function *might* be exported more than once:
-				 { value, F } -> % F=#function_info{ exported=false } } ->
-					  % Just add the form then:
-					  F#function_info{ exported=true }
+				 { value, FunInfo } -> % F=#function_info{ exported=false } } ->
+					  % Just add the fact that the function is exported then:
+					  FunInfo#function_info{ exported=true }
 
 			end,
 
@@ -837,15 +1127,18 @@ process_ast( _AST=[ Form={ attribute, _Line, export, FunctionIds } | T ],
 						 _Acc0=FunctionTable,
 						 _List=FunctionIds ),
 
+	LocForm = { _BasicLocation=[ FormCounter ], Form },
+
 	process_ast( T, W#module_info{
-					  function_exports=[ Form | FunExports ],
-					  functions=NewFunctionTable } );
+					  function_exports=[ LocForm | FunExports ],
+					  functions=NewFunctionTable }, FormCounter+1 );
+
 
 
 % Function definition section:
 %
-process_ast( _AST=[ _Form={ function, _Line, Name, Arity, Clauses } | T ],
-			 W=#module_info{ functions=FunctionTable } ) ->
+process_ast( _AST=[ _Form={ function, Line, Name, Arity, Clauses } | T ],
+			 W=#module_info{ functions=FunctionTable }, FormCounter ) ->
 
 	%io:format( " - function definition for ~p:~p~n", [ Name, Arity ] ),
 
@@ -856,6 +1149,8 @@ process_ast( _AST=[ _Form={ function, _Line, Name, Arity, Clauses } | T ],
 
 	FunId = { Name, Arity },
 
+	BasicLocation = [ FormCounter ],
+
 	FunInfo = case map_hashtable:lookupEntry( FunId, FunctionTable ) of
 
 		key_not_found ->
@@ -864,14 +1159,19 @@ process_ast( _AST=[ _Form={ function, _Line, Name, Arity, Clauses } | T ],
 					  #function_info{
 						 name=Name,
 						 arity=Arity,
+						 location=BasicLocation,
+						 line=Line,
 						 definition=Clauses
 						 % Implicit:
 						 %spec=undefined
 						};
 
 		{ value, F=#function_info{ definition=[] } } ->
-					  % Just add the form then:
-					  F#function_info{ definition=Clauses };
+					  % Already here because of an export; just add the missing
+					  % information then:
+					  F#function_info{ location=BasicLocation,
+									   line=Line,
+									   definition=Clauses };
 
 		% Here a definition was already set:
 		_ ->
@@ -885,7 +1185,8 @@ process_ast( _AST=[ _Form={ function, _Line, Name, Arity, Clauses } | T ],
 	%io:format( "function ~s/~B with ~B clauses registered.~n",
 	%		   [ Name, Arity, length( Clauses ) ] ),
 
-	process_ast( T, W#module_info{ functions=NewFunctionTable }  );
+	process_ast( T, W#module_info{ functions=NewFunctionTable },
+				 FormCounter+1 );
 
 
 
@@ -893,9 +1194,14 @@ process_ast( _AST=[ _Form={ function, _Line, Name, Arity, Clauses } | T ],
 process_ast( _AST=[ Form={ attribute, _Line, spec, {
 											   FunId={ FunctionName, Arity },
 											   _SpecList } } | T ],
-			 W=#module_info{ functions=FunctionTable } ) ->
+			 W=#module_info{ functions=FunctionTable },
+			 FormCounter ) ->
 
 	%io:format( " - spec definition for ~p:~p~n", [ FunctionName, Arity ] ),
+
+	BasicLocation = [ FormCounter ],
+
+	LocatedSpec = { BasicLocation, Form },
 
 	FunInfo = case map_hashtable:lookupEntry( FunId, FunctionTable ) of
 
@@ -906,13 +1212,15 @@ process_ast( _AST=[ Form={ attribute, _Line, spec, {
 						 name=FunctionName,
 						 arity=Arity,
 						 % Implicit:
+						 %location=undefined,
+						 %line=undefined,
 						 %definition=[]
-						 spec=Form
+						 spec=LocatedSpec
 						};
 
 		{ value, F=#function_info{ spec=undefined } } ->
 					  % Just add the form then:
-					  F#function_info{ spec=Form };
+					  F#function_info{ spec=LocatedSpec };
 
 		% Here a spec was already set:
 		_ ->
@@ -926,40 +1234,49 @@ process_ast( _AST=[ Form={ attribute, _Line, spec, {
 	%io:format( "spec for function ~s/~B registered.~n",
 	%		   [ FunctionName, Arity ] ),
 
-	process_ast( T, W#module_info{ functions=NewFunctionTable } );
+	process_ast( T, W#module_info{ functions=NewFunctionTable },
+				 FormCounter+1 );
 
 
 
 % Other attribute section:
 %
-process_ast( _AST=[ F={ attribute, _Line, AttributeName, AttributeValue }
-					   | T ],
+process_ast( _AST=[ Form={ attribute, _Line, AttributeName, AttributeValue }
+					| T ],
 			 W=#module_info{ parse_attributes=Attributes,
-							 parse_attribute_defs=AttributeDefs } ) ->
+							 parse_attribute_defs=AttributeDefs },
+			 FormCounter ) ->
 
 	%io:format( " - attribute definition for ~p~n", [ AttributeName ] ),
+
+	LocForm = { _BasicLocation=[ FormCounter ], Form },
 
 	process_ast( T, W#module_info{
 				   parse_attributes=[ { AttributeName, AttributeValue }
 									  | Attributes ],
-				   parse_attribute_defs=[ F | AttributeDefs ] } );
+				   parse_attribute_defs=[ LocForm | AttributeDefs ] },
+				 FormCounter+1 );
 
 
 
 % We expect the module name to be known when ending the processing:
 %
-process_ast( _AST=[ _F={ eof, _Line } ],
-			 Infos=#module_info{ module=undefined } ) ->
+process_ast( _AST=[ _Form={ eof, _Line } ],
+			 Infos=#module_info{ module=undefined }, _FormCounter ) ->
 	raise_error( { eof_while_no_module, Infos } );
 
 
 
-% Form expected to be defined once, and not kept as will be added back later:
+% Form expected to be defined once, and to be the last one:
 %
-process_ast( _AST=[ _F={ eof, Line } ], W=#module_info{ last_line=undefined,
-							   module=Module, includes=Inc } ) ->
+process_ast( _AST=[ Form={ eof, _Line } ], W=#module_info{ last_line=undefined,
+							   module=Module, includes=Inc }, FormCounter ) ->
 
 	%io:format( " - eof declaration at ~p~n", [ Line ] ),
+
+	LocForm = { _BasicLocation=[ FormCounter ], Form },
+
+	% End of file found, doing some housekeeping.
 
 	% We do not want to have the filename of the currently processed module in
 	% the includes:
@@ -970,22 +1287,187 @@ process_ast( _AST=[ _F={ eof, Line } ], W=#module_info{ last_line=undefined,
 	% Due to the removal of include duplicates, can be listed only up to once:
 	NoModInc = lists:delete( ModFilename, Inc ),
 
-	% Only "normal" exit of that function:
-	W#module_info{ last_line=Line, includes=NoModInc };
+	% Only "normal", non-recursing exit of that function:
+	W#module_info{ includes=NoModInc, last_line=LocForm };
 
 
-% We ensure that we captured all possible forms:
+% Handling errors:
 %
-process_ast( _AST=[ H | _T ], _Infos ) ->
+% Apparently parse transforms *have* to manage errors by themselves. Indeed we
+% stored them in the unhandled_forms field of the module_info record and
+% reinjected them in the returned AST, hoping that the compiler chain would
+% complain appropriately (at least as it does without parse transforms).
+%
+% However it does not seem to be the case, as reinserting the error forms (where
+% they were, thanks to their location information) results in (when adding an
+% intentional error in the source file):
+%
+% foo.erl: internal error in lint_module;
+% crash reason: badarg
+%
+% in function  erl_anno:set/3
+%    called as erl_anno:set(file,"class_Mesh.erl",undefined)
+% in call from erl_lint:set_form_file/2 (erl_lint.erl, line 690)
+% in call from erl_lint:eval_file_attr/2 (erl_lint.erl, line 679)
+% in call from erl_lint:forms/2 (erl_lint.erl, line 641)
+% in call from erl_lint:module/3 (erl_lint.erl, line 498)
+% in call from compile:lint_module/1 (compile.erl, line 999)
+% in call from compile:'-internal_comp/4-anonymous-1-'/2 (compile.erl, line 295)
+% in call from compile:fold_comp/3 (compile.erl, line 321)
+%
+% So we manage the errors by ourselves (losing the emacs error mode support).
 
-	%io:format( "WARNING: unhandled form '~p' not managed.~n", [ H ] ),
-	%process_ast( T, Infos );
 
-	raise_error( { unhandled_form, H } );
+% (for some reason, the reported lines are incremented, we have to decrement
+% them)
 
 
-process_ast( _AST=[], Infos ) ->
+% Preprocessor (eep) errors:
+
+process_ast( _AST=[ _Form={ error,
+	   { Line, epp, { include, file, FileName } } } | _T ], _Infos,
+			 _FormCounter ) ->
+
+	raise_error( { include_file_not_found, FileName, { line, Line-1 } } );
+
+
+process_ast( _AST=[ _Form={ error,
+	   { Line, epp, { undefined, VariableName, none } } } | _T ], _Infos,
+			 _FormCounter ) ->
+
+	raise_error( { undefined_macro_variable, VariableName, { line, Line-1 } } );
+
+
+process_ast( _AST=[ _Form={ error, { Line, epp, Reason } } | _T ], _Infos,
+			 _FormCounter ) ->
+
+	raise_error( { preprocessing_failed, Reason, { line, Line-1 } } );
+
+
+
+% Parser (erl_parse) errors:
+
+process_ast( _AST=[ _Form={ error, { Line, erl_parse, Reason } } | _T ],
+			 _Infos, _FormCounter ) ->
+
+	raise_error( { parsing_failed, text_utils:format( Reason, [] ),
+			   { line, Line-1 } } );
+
+
+% Catch-all, to ensure that we captured all possible forms:
+%
+process_ast( _AST=[ Form | T ], W=#module_info{
+									 unhandled_forms=UnhandledForms },
+			 FormCounter ) ->
+
+	% io:format( "WARNING: unhandled form '~p' not managed.~n", [ Form ] ),
+	% raise_error( { unhandled_form, Form } );
+
+	LocForm = { _BasicLocation=[ FormCounter ], Form },
+
+	NewUnhandledForms = [ LocForm | UnhandledForms ],
+
+	process_ast( T, W#module_info{ unhandled_forms=NewUnhandledForms },
+				 FormCounter+1 );
+
+
+process_ast( _AST=[], Infos, _FormCounter ) ->
 	raise_error( { no_eof_found, Infos } ).
+
+
+
+
+
+% Recomposes an AST from specified module information.
+%
+-spec recompose_ast_from_module_info( module_info() ) -> ast().
+recompose_ast_from_module_info( #module_info{
+
+			% Between parentheses: fields unused here
+
+			% (module)
+			module_def=ModuleDef,
+			compilation_option_defs=CompileOptDefs,
+			% (parse_attributes)
+			parse_attribute_defs=ParseAttributeDefs,
+			% (includes)
+			include_defs=IncludeDefs,
+			% (type_definitions)
+			type_definition_defs=TypeDefsDefs,
+			% (type_exports)
+			type_export_defs=TypeExportsDefs,
+			function_exports=FunctionExports,
+			% The main part of the AST:
+			functions=Functions,
+			last_line=LastLineDef,
+			unhandled_forms=UnhandledForms
+
+								  } ) ->
+
+	FunctionDefs = get_located_forms_of_functions( Functions ),
+
+	% All these definitions are located:
+	UnorderedLocatedAST = [ ModuleDef, LastLineDef | TypeExportsDefs
+							++ TypeDefsDefs
+							++ FunctionExports
+							++ ParseAttributeDefs
+							++ IncludeDefs
+							++ CompileOptDefs
+							++ FunctionDefs
+							++ UnhandledForms ],
+
+	% As the order of forms matters, we sort them according to their location:
+	OrderedLocatedAST = lists:keysort( _LocIndex=1, UnorderedLocatedAST ),
+
+	OrderedAST = [ Form || { _Location, Form } <- OrderedLocatedAST ],
+
+	%io:format( "Recomposed AST:~n~p~n", [ OrderedAST ] ),
+
+	OrderedAST.
+
+
+
+
+% Returns a list of the located forms corresponding to all the functions
+% (definition and spec) described in the specified table.
+%
+-spec get_located_forms_of_functions ( map_hashtable:map_hashtable() ) ->
+											 ast().
+get_located_forms_of_functions( FunctionTable ) ->
+
+	% Dropping the keys (function_id(), i.e. function identifiers), focusing on
+	% function_info():
+	%
+	FunInfos = map_hashtable:values( FunctionTable ),
+
+	lists:foldl( fun( FunInfo, ASTAcc ) ->
+						 get_forms_for_fun( FunInfo ) ++ ASTAcc
+				 end,
+				 _Acc0=[],
+				 _List=FunInfos ).
+
+
+
+% Returns an AST corresponding to specified function information.
+%
+-spec get_forms_for_fun( function_info() ) -> ast().
+get_forms_for_fun( #function_info{
+					name=Name,
+					arity=Arity,
+					location=Location,
+					line=Line,
+					definition=Clauses,
+					spec=undefined } ) ->
+	[ { Location, { function, Line, Name, Arity, Clauses } } ];
+
+get_forms_for_fun( #function_info{
+					name=Name,
+					arity=Arity,
+					location=Location,
+					line=Line,
+					definition=Clauses,
+					spec=LocSpec } ) ->
+	[ LocSpec, { Location, { function, Line, Name, Arity, Clauses } } ].
 
 
 
@@ -994,7 +1476,7 @@ process_ast( _AST=[], Infos ) ->
 % For example useful to debug a parse transform first separately from the
 % compile pipe-line, relying here on the usual, convenient error management
 % instead of having little informative messages like: 'undefined parse transform
-% 'foobar'' as soon as a call to a non-existing module/function is made.
+% 'foobar'' as soon as a call to a non-existing module:function/arity is made.
 %
 -spec erl_to_ast( file_utils:file_name() ) -> ast().
 erl_to_ast( ErlSourceFilename ) ->
@@ -1023,13 +1505,20 @@ check_module_info( #module_info{ module_def=undefined } ) ->
 check_module_info( #module_info{ last_line=undefined } ) ->
 	raise_error( no_last_line_found );
 
-check_module_info( Module ) ->
+
+check_module_info( ModuleInfo=#module_info{ unhandled_forms=[] } ) ->
 	%io:format( "Checking AST.~n" ),
-	check_module_parse( Module ),
-	check_module_include( Module ),
-	check_module_type_definition( Module ),
-	check_module_export( Module ),
-	check_module_functions( Module ).
+	check_module_parse( ModuleInfo ),
+	check_module_include( ModuleInfo ),
+	check_module_type_definition( ModuleInfo ),
+	check_module_export( ModuleInfo ),
+	check_module_functions( ModuleInfo );
+
+check_module_info( #module_info{ unhandled_forms=UnhandledForms } ) ->
+
+	Forms = [ F || { _Loc, F } <- UnhandledForms ],
+
+	raise_error( { unhandled_forms, Forms } ).
 
 
 
@@ -1048,7 +1537,7 @@ check_module_parse( #module_info{
 
 		_ ->
 			raise_error( { parse_attribute_mismatch, ParseAttributes,
-									  ParseAttributeDefs } )
+						   ParseAttributeDefs } )
 
 	end.
 
@@ -1066,7 +1555,7 @@ check_module_include( #module_info{
 		% Includes are filtered (ex: for duplicates):
 		L when L < Len ->
 			raise_error( { include_mismatch, Includes,
-									  IncludeDefs } );
+						   IncludeDefs } );
 
 		_ ->
 			ok
@@ -1077,8 +1566,8 @@ check_module_include( #module_info{
 % Helper to check module type definitions.
 %
 check_module_type_definition( #module_info{
-						 type_definitions=TypeDefs,
-						 type_definition_defs=TypeDefsDefs } ) ->
+								 type_definitions=TypeDefs,
+								 type_definition_defs=TypeDefsDefs } ) ->
 
 	Len = length( TypeDefs ),
 
@@ -1089,7 +1578,7 @@ check_module_type_definition( #module_info{
 
 		_ ->
 			raise_error( { type_definition_mismatch, TypeDefs,
-									  TypeDefsDefs } )
+						   TypeDefsDefs } )
 
 	end.
 
@@ -1108,7 +1597,7 @@ check_module_export( #module_info{
 		%
 		L when L > Len ->
 			raise_error( { type_export_mismatch, TypeExports,
-									  TypeExportDefs } );
+						   TypeExportDefs } );
 
 		_ ->
 			ok
@@ -1133,23 +1622,27 @@ check_function( FunId, _FunInfo=#function_info{ definition=[] } ) ->
 	raise_error( { no_definition_found_for, FunId } );
 
 check_function( _FunId={ Name, Arity }, _FunInfo=#function_info{
-										  name=Name,
-										  arity=Arity } ) ->
+													name=Name,
+													arity=Arity } ) ->
 	% Match:
 	ok;
 
 check_function( FunId, _FunInfo=#function_info{
-						 name=SecondName,
-						 arity=SecondArity } ) ->
+								   name=SecondName,
+								   arity=SecondArity } ) ->
 	raise_error( { definition_mismatch, FunId,
-							  { SecondName, SecondArity } } ).
+				   { SecondName, SecondArity } } ).
 
 
 
+% Returns a textual description of specified module information.
+%
+% Note: the location information is dropped for all located definitions.
+%
 -spec module_info_to_string( module_info() ) -> text_utils:ustring().
 module_info_to_string( #module_info{
 						 module=Module,
-						 module_def=ModuleDef,
+						 module_def={ _, ModuleDef },
 						 compilation_option_defs=CompileOptDefs,
 						 parse_attributes=ParseAttributes,
 						 parse_attribute_defs=ParseAttributeDefs,
@@ -1161,13 +1654,43 @@ module_info_to_string( #module_info{
 						 type_export_defs=TypeExportDefs,
 						 function_exports=FunctionExports,
 						 functions=Functions,
-						 last_line=LastLine
+						 last_line=LastLine,
+						 unhandled_forms=UnhandledForms
 						} ) ->
 
-	FunctionStrings = [ io_lib:format( "for function ~s/~B: ~s",
-							[ Name, Arity, function_info_to_string( Info ) ] )
-							  || { { Name, Arity }, Info } <-
-									 map_hashtable:enumerate( Functions ) ],
+	FunctionStrings = [ io_lib:format( "~s",
+									   [ function_info_to_string( Info ) ] )
+						|| { _FunId, Info } <-
+							   map_hashtable:enumerate( Functions ) ],
+
+	LastLineString = case LastLine of
+
+						 undefined ->
+							 "unknown";
+
+						 { _Loc, { eof, Count } } ->
+							 text_utils:format( "~B", [ Count ] )
+
+	end,
+
+	% To mark an additional offset for the sublists:
+	Bullet = "   * ",
+
+	UnhandledString = case UnhandledForms of
+
+			  [] ->
+				  "(no unhandled form)";
+
+			  _ ->
+				  UnhandledStrings = [ text_utils:format( "~p", [ Form ] )
+								|| { _Loc, Form } <- UnhandledForms ],
+
+				  text_utils:format( "~B unhandled forms: ~s",
+						[ length( UnhandledForms ),
+						  text_utils:strings_to_string( UnhandledStrings,
+														Bullet )
+						] )
+	end,
 
 	Infos = [
 
@@ -1175,46 +1698,71 @@ module_info_to_string( #module_info{
 			  text_utils:format( "module definition: ~p~n", [ ModuleDef ] ),
 
 			  text_utils:format( "~B compile option definitions: ~p~n",
-								 [ length( CompileOptDefs ), CompileOptDefs ] ),
+								 [ length( CompileOptDefs ),
+								   [ C || { _, C } <- CompileOptDefs ] ] ),
 
 			  text_utils:format( "~B parse attributes: ~p~n",
 								 [ length( ParseAttributes ),
 								   ParseAttributes ] ),
 
 			  text_utils:format( "parse attribute definitions: ~p~n",
-								 [ ParseAttributeDefs ] ),
+								 [ [ P || { _, P } <- ParseAttributeDefs ] ] ),
 
 			  text_utils:format( "~B actual includes: ~p~n",
 								 [ length( Includes ), Includes ] ),
 
-			  text_utils:format( "include definitions: ~p~n", [ IncludeDefs ] ),
+			  text_utils:format( "include definitions: ~p~n",
+								 [ [ I || { _, I } <- IncludeDefs ] ] ),
 
 			  text_utils:format( "~B type definitions: ~p~n",
 								 [ length( TypeDefs ), TypeDefs ] ),
 
 			  text_utils:format( "type definitions: ~p~n",
-								 [ TypeDefsDefs ] ),
+								 [ [ T || { _, T } <- TypeDefsDefs ] ] ),
 
 			  text_utils:format( "~B type exports: ~p~n",
 								 [ length( TypeExports ), TypeExports ] ),
 
 			  text_utils:format( "type export definitions: ~p~n",
-								 [ TypeExportDefs ] ),
+								 [ [ E || { _, E } <- TypeExportDefs ] ] ),
 
 			  text_utils:format( "~B function export definitions: ~p~n",
-					 [ length( FunctionExports ), FunctionExports ] ),
+					 [ length( FunctionExports ),
+					   [ F || { _, F } <- FunctionExports ] ] ),
 
 			  text_utils:format( "~B functions: ~s~n",
 					 [ length( FunctionStrings ),
 					   text_utils:strings_to_string( FunctionStrings,
-													 _Bullet="   * " ) ] ),
+													 Bullet ) ] ),
 
-			  text_utils:format( "line count: ~B", [ LastLine ] )
+			  text_utils:format( "line count: ~s~n", [ LastLineString ] ),
+
+			  UnhandledString
 
 			  ],
 
 	text_utils:format( "Information about module '~s':~n~s",
 					   [ Module, text_utils:strings_to_string( Infos ) ] ).
+
+
+
+
+% Writes specified AST into specified (text) file.
+%
+% Useful for example to determine differences between AST.
+%
+-spec write_ast_to_file( ast(), file_utils:file_name() ) -> basic_utils:void().
+write_ast_to_file( AST, Filename ) ->
+
+	% We cannot actually use file_utils, which is not a prerequisite of the
+	% 'Common' parse transform:
+
+	% We overwrite any pre-existing file:
+	{ ok, File } = file:open( Filename, [ write, raw ] ),
+
+	[ ok = file:write( File, io_lib:format( "~p~n", [ F ] )  ) || F <- AST ],
+
+	ok = file:close( File ).
 
 
 
@@ -1242,3 +1790,91 @@ raise_error( ErrorTerm ) ->
 	%erlang:exit( { ErrorTerm, erlang:get_stacktrace() } ).
 
 	erlang:exit( ErrorTerm ).
+
+
+
+% Interprets specified list of issue reports.
+%
+-spec interpret_issue_reports( [ issue_report() ] ) -> basic_utils:void().
+interpret_issue_reports( _IssueReports=[] ) ->
+	% Should never happen:
+	io:format( "(no remark emitted)" );
+
+% No need to further special-case the number of issue reports, as it is not
+% meaningful (one may include an arbitrary long list):
+
+%interpret_issue_reports( _IssueReports=[ OneIssueReport ] ) ->
+%	interpret_issue_report( OneIssueReport );
+
+interpret_issue_reports( IssueReports ) ->
+
+	[ interpret_issue_report( R ) || R <- IssueReports ].
+
+	%text_utils:format( "~B remarks: ~s", [ length( IssueReports ),
+	%					text_utils:strings_to_string( ReportStrings ) ] ).
+
+
+% Interprets specific issue report.
+%
+-spec interpret_issue_report( issue_report() ) -> basic_utils:void().
+interpret_issue_report( _IssueReport={ Filename, IssueInfos } ) ->
+
+	% We could normalise it instead, yet file_utils would become a dependency:
+	CanonicFilename = filename:basename( Filename ),
+
+	[ interpret_issue_info( CanonicFilename, E ) || E <- IssueInfos ].
+
+	%text_utils:format( "in file '~s': ~s", [ CanonicFilename,
+	%		   text_utils:strings_to_string( IssueStrings ) ] ).
+
+
+
+% Interprets specific error description.
+%
+-spec interpret_issue_info( file_utils:file_name(), issue_info() ) -> string().
+interpret_issue_info( Filename,
+					  _IssueInfo={ Line, DetectorModule, IssueDesc } ) ->
+
+	% Module is the detecting one, typically erl_lint:
+	%text_utils:format( "line #~B, module '~p', ~s", [ Line, Module,
+	%						interpret_issue_description( IssueDesc ) ] ).
+
+	%text_utils:format( "line #~B: ~s", [ Line,
+	%		interpret_issue_description( IssueDesc, DetectorModule ) ] ).
+
+	io:format( "~s:~B: ~s~n", [ Filename, Line,
+			interpret_issue_description( IssueDesc, DetectorModule ) ] ).
+
+
+
+% Interprets specific issue description, detected by specified module.
+%
+% Note: full control is offered here to enrich this function at will, if wanted.
+%
+-spec interpret_issue_description( issue_description(),
+								   basic_utils:module_name() ) -> string().
+interpret_issue_description( IssueDescription, DectectorModule ) ->
+	%For example, the detector module may be erl_lint:
+	DectectorModule:format_error( IssueDescription ).
+
+
+
+% Lists (in the order of their definition) all the functions ({Name,Arity}) that
+% are exported by the specified module, expected to be found in the code path.
+%
+-spec list_exported_functions( basic_utils:module_name() ) ->
+									 [ function_id() ].
+list_exported_functions( ModuleName ) ->
+
+	% To avoid a unclear message like 'undefined function XXX:module_info/1':
+	case code_utils:is_beam_in_path( ModuleName ) of
+
+		not_found ->
+			throw( { module_not_found_in_path, ModuleName } );
+
+		_ ->
+			ok
+
+	end,
+
+	ModuleName:module_info(exports).

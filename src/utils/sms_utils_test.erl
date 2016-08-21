@@ -4,7 +4,7 @@
 % text is garbled due to a wrong encoding.
 
 
-% Copyright (C) 2013-2015 Olivier Boudeville
+% Copyright (C) 2013-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %

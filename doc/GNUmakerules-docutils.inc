@@ -4,7 +4,8 @@
 
 
 .PHONY: doc doc-recurse info info-doc-local full-doc create-doc regenerate-doc \
- make-doc-repository view-doc to-print info-doc-local info-doc-tools           \
+ make-doc-repository view-doc to-print check-dot                               \
+ info-doc-local info-doc-tools                                                 \
  clean clean-doc-repository clean-generated clean-dot clean-doc-logs           \
  clean-gnuplot clean-png clean-rst
 
@@ -16,10 +17,10 @@
 
 # Image section.
 
-#IMG_VIEWER := `which xv`
-IMG_VIEWER := `which eog`
+#IMG_VIEWER := $(which xv)
+IMG_VIEWER := $$(which eog)
 
-IMAGE_MAGICK := `which convert`
+IMAGE_MAGICK := $$(which convert)
 
 
 # Not all python scripts generate images:
@@ -57,12 +58,13 @@ BORDERED_PNG = $(patsubst %.png,%-bordered.png,$(wildcard *.png))
 
 # Graph rendering section.
 
-DOT_OPT := -Gcharset=latin1
 
 # Dot must found directly from the environment, since it is needed by
 # both the Make system and the Erlang application.
-# DOT := `PATH=$(DOT_ROOT)/bin:$$PATH which dot` $(DOT_OPT)
-DOT := `which dot` $(DOT_OPT)
+# DOT := $$(PATH=$(DOT_ROOT)/bin:$$PATH which dot)
+DOT := $$(which dot)
+
+DOT_OPT := -Gcharset=latin1
 
 # To trigger the automatic rendering of a created graph, add 'VIEW_GRAPH='
 # at the end of the command line (ex : 'make MyFSM.png VIEW_GRAPH=')
@@ -70,11 +72,14 @@ VIEW_GRAPH := no
 #VIEW_GRAPH :=
 
 
-
+# Often used: 'make foo.png && eog foo.png' to force display even if already
+# generated:
+#
 %.png: %.graph
 	@echo "     Generating $@ from graph $<"
-	@$(DOT) -o$@ -Tpng $<
-	@if [ "$(VIEW_GRAPH)" != "no" ] ; then $(IMG_VIEWER) $@ & fi
+	@$(MAKE) check-dot
+	@if $(DOT) $(DOT_OPT) -o$@ -Tpng $< ; then if [ "$(VIEW_GRAPH)" != "no" ] ; then $(IMG_VIEWER) $@ ; fi ; fi
+
 
 GRAPH_SRC = $(wildcard *.graph)
 GRAPH_PNG = $(GRAPH_SRC:%.graph=%.png)
@@ -92,7 +97,7 @@ GRAPH_PNG = $(GRAPH_SRC:%.graph=%.png)
 #VIEW_PLOT := yes
 VIEW_PLOT := no
 
-GNUPLOT := `which gnuplot`
+GNUPLOT := $$(which gnuplot)
 
 %.png: %.plot %.dat
 	@echo "     Generating plot $@"
@@ -149,10 +154,10 @@ RST_GENERATED_FILES =  $(AUX_GENERATED_FILES) $(TEX_GENERATED_FILES)      \
 
 
 #RST_GENERATOR = update-docutils.sh
-RST_GENERATOR = `PATH=$(COMMON_TOP)/doc:$$PATH which generate-docutils.sh`
+RST_GENERATOR := $$(PATH=$(COMMON_TOP)/src/scripts:$$PATH which generate-docutils.sh)
 
 
-PDF_VIEWER := `which evince`
+PDF_VIEWER := $$(which evince)
 
 
 # To trigger the automatic rendering of a created PDF, add 'VIEW_PDF='
@@ -246,6 +251,10 @@ to-print: create-doc
 	@scp $(TMP_RST_REPOSITORY)/$(OVERALL_DOCUMENT_TARGET) $(PRINT_LOCATION)
 
 
+check-dot:
+		@if [ ! -x "$(DOT)" ] ; then echo "  Error, 'dot' tool, from graphviz, not found." 1>&2 ; exit 5 ; fi
+
+
 clean: clean-doc-repository clean-generated clean-dot clean-doc-logs \
 	clean-gnuplot clean-png clean-rst
 
@@ -265,7 +274,7 @@ clean-generated:
 
 # Some .png must be kept (ex: dia-exported ones).
 clean-dot:
-	-@if [ `basename $$PWD` != "doc" ]; then \
+	-@if [ $$(basename $$PWD) != "doc" ]; then \
 	/bin/rm -f $(STATE_MACHINES_DIAGRAMS) *.map; fi
 
 
@@ -275,7 +284,7 @@ clean-doc-logs:
 
 # Let's hope we do not remove user files:
 clean-gnuplot:
-	-@if [ `basename $$PWD` != "doc" ]; then \
+	-@if [ $$(basename $$PWD) != "doc" ]; then \
 	/bin/rm -f *robe*.dat *robe*.p; fi
 
 

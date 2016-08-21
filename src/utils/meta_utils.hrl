@@ -1,4 +1,4 @@
-% Copyright (C) 2014-2015 Olivier Boudeville
+% Copyright (C) 2014-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -28,13 +28,14 @@
 
 
 
-% A record to store and centralise information gathered about a module.
+% A record to store and centralise information gathered about an Erlang
+% (compiled) module.
 %
 % Allows to perform checkings and to reorder and transform the returned version
-% of it.
+% of it (for that, located ASTs and forms are used).
 %
-% We preserve the forms whenever possible (in *_def* counterpart fields),
-% notably to keep line numbers.
+% We store the located forms verbatim whenever possible (in *_def* counterpart
+% fields), notably to preserve line numbers.
 %
 -record( module_info, {
 
@@ -44,22 +45,23 @@
 
 
 		% Module definition:
-		module_def = undefined :: meta_utils:ast(),
+		module_def = undefined :: 'undefined' | meta_utils:located_form(),
 
 
 		% Ex: '{compile, { inline, [ { FunName, Arity } ] } }'):
 		%
-		compilation_option_defs = [] :: [ meta_utils:ast() ],
+		compilation_option_defs = [] :: meta_utils:located_ast(),
 
 
-		% Parse-level attributes (ex: '-my_attribute( my_value ).'):
+		% Parse-level attributes (ex: '-my_attribute( my_value ).'), as
+		% attribute name/value pairs (ex: { my_attribute, my_value } ).
 		%
 		parse_attributes = [] :: [ meta_utils:attribute() ],
 
 
-		% Parse attribute definitions (as abstract forms):
+		% Parse attribute definitions (as located, abstract forms):
 		%
-		parse_attribute_defs = [] :: [ meta_utils:ast() ],
+		parse_attribute_defs = [] :: meta_utils:located_ast(),
 
 
 		% Include files (typically *.hrl files).
@@ -77,7 +79,7 @@
 		% (possibly a given file might be included more than once; the module
 		% being currently compiled is generally listed here more than once)
 		%
-		include_defs = [] :: [ meta_utils:ast() ],
+		include_defs = [] :: meta_utils:located_ast(),
 
 
 		% Type definitions:
@@ -90,7 +92,7 @@
 
 		% The abstract forms corresponding to type definitions:
 		%
-		type_definition_defs = [] :: [ meta_utils:ast() ],
+		type_definition_defs = [] :: meta_utils:located_ast(),
 
 
 		% All type exports:
@@ -99,7 +101,7 @@
 
 
 		% The type export definitions:
-		type_export_defs = [] :: [ meta_utils:ast() ],
+		type_export_defs = [] :: meta_utils:located_ast(),
 
 
 		% Whether a function (possibly any kind of method) is exported is
@@ -108,22 +110,34 @@
 		% methods) are recorded here (better that way, as an export attribute
 		% may define any number of exports and we want to record its line):
 		%
-		function_exports = [] :: [ meta_utils:ast() ],
+		function_exports = [] :: meta_utils:located_ast(),
 
 
 		% All information about the functions defined in that module:
 		%
-		% (we cannot use table here: this meta module is not parse-transformed;
-		% we thus use only map_hashtable here, knowing that this module is
-		% bootstrapped as well)
+		% (we cannot use the 'table' module here: this meta module is not
+		% parse-transformed; we thus use only map_hashtable here, knowing that
+		% this module is bootstrapped as well)
 		%
-		functions :: map_hashtable:map_hashtable( meta_utils:function_id(),
-												  meta_utils:function_info() ),
+		%functions :: map_hashtable:map_hashtable( meta_utils:function_id(),
+		%										   meta_utils:function_info() ),
+		functions :: map_hashtable:map_hashtable(),
 
 
-		% The number of the last line in the original source file:
+		% The definition of the last line in the original source file:
 		%
-		last_line :: basic_utils:count()
+		% (we keep it as a located form rather than a simple meta_utils:line()
+		% to avoid a costly addition in last position)
+		%
+		last_line :: meta_utils:located_form(),
+
+
+		% List of all the located forms that are unhandled, which are typically
+		% errors, like:
+		%
+		% '{error,{LineNumber,erl_parse, ["syntax error before: ","')'"]}}''.
+		%
+		unhandled_forms = [] :: meta_utils:located_ast()
 
 
 } ).
@@ -140,13 +154,27 @@
 		   % The arity of that function:
 		   arity = undefined :: arity(),
 
-		   % Function actual definition, a list of the abstract form of its
+		   % Corresponds to the location of the full form for the definition of
+		   % this function (not of the spec):
+		   %
+		   location = undefined :: 'undefined' | meta_utils:location(),
+
+		   % Corresponds to the line of the first defined clause (in its source
+		   % file):
+		   %
+		   % (this information is a priori redundant with the one in the first
+		   % clause, yet present in the forms, thus kept here)
+		   %
+		   line = undefined :: 'undefined' | meta_utils:line(),
+
+		   % Function actual definition, a list of the abstract forms of its
 		   % definition:
 		   %
 		   definition = [] :: [ meta_utils:clause_def() ],
 
-		   % The type definition (if any) of that function, as an abstract form:
-		   spec = undefined :: meta_utils:function_spec() | 'undefined',
+		   % The type specification (if any) of that function, as an abstract
+		   % form:
+		   spec = undefined :: meta_utils:located_function_spec() | 'undefined',
 
 		   % Tells whether this function has been exported:
 		   exported = false :: boolean()

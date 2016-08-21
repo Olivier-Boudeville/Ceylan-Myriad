@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2015 Olivier Boudeville
+% Copyright (C) 2003-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -97,7 +97,7 @@
 		  addEntries/2, addDiagnosedEntries/2,
 		  removeEntry/2, removeDiagnosedEntry/2,
 		  lookupEntry/2, hasEntry/2,
-		  getEntry/2, extractEntry/2,
+		  getEntry/2, extractEntry/2, getValues/2, getAllValues/2,
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToEntry/3, deleteFromEntry/3, popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
@@ -108,7 +108,7 @@
 
 
 
-% These functions are exported only to ease the tracked_hashtable
+% These functions are exported only to ease the alternate *_hashtable
 % implementation, so that we can switch implementations.
 %
 % Not intended to be used in user code.
@@ -131,12 +131,17 @@
 -type value() :: term().
 
 -type entry() :: { key(), value() }.
+-type entry( K, V ) :: { K, V }.
 
 -type entries() :: [ entry() ].
+-type entries( K, V ) :: [ { K, V } ].
 
 -type entry_count() :: basic_utils:count().
 
 -type bucket_count() :: pos_integer().
+
+-type bucket() :: [ entries() ].
+-type bucket( K, V ) :: [ entries( K, V ) ].
 
 
 % A problem is that the number of buckets (hence the size of the tuple) is
@@ -144,11 +149,13 @@
 %
 -opaque hashtable() :: tuple().
 
--opaque hashtable( K, V ) :: tuple( { K, V } ).
+% Since 18.0, type tuple/1 does not seem to exist anymore:
+%-opaque hashtable( K, V ) :: tuple( bucket( K, V ) ).
 
 
--export_type([ key/0, value/0, entry/0, entries/0, entry_count/0,
-			   bucket_count/0, hashtable/0, hashtable/2 ]).
+-export_type([ key/0, value/0, entry/0, entry/2, entries/0, entries/2,
+			   entry_count/0, bucket/0, bucket/2, bucket_count/0,
+			   hashtable/0 ]).
 
 
 
@@ -406,6 +413,68 @@ extractEntry( Key, Hashtable ) ->
 										  _Value=ShortenBucket ),
 
 			{ Value, NewTable }
+
+	end.
+
+
+
+% Returns the (ordered) list of values that correspond to the specified
+% (ordered) list of keys of this table.
+%
+% The key/value pairs are expected to exist already, otherwise an exception is
+% raised.
+%
+% Ex: [ Color, Age, Mass ] = hashtable:getValues( [ color, age, mass ],
+%   MyTable ] )
+%
+-spec getValues( [ key() ], hashtable() ) -> [ value() ].
+getValues( Keys, Hashtable ) ->
+
+	{ RevValues, _FinalTable } = lists:foldl(
+
+				fun( _Elem=Key, _Acc={ Values, Table } ) ->
+
+					   { Value, ShrunkTable } = extractEntry( Key, Table ),
+					   { [ Value | Values ], ShrunkTable }
+
+				end,
+				_Acc0={ [], Hashtable },
+				_List=Keys ),
+
+	lists:reverse( RevValues ).
+
+
+
+% Returns the (ordered) list of values that correspond to the specified
+% (ordered) list of keys of this table, ensuring all entries have been read,
+% otherwise throwing an exception.
+%
+% The key/value pairs are expected to exist already, otherwise an exception is
+% raised.
+%
+% Ex: [ Color=red, Age=23, Mass=51 ] = hashtable:getAllValues( [ color, age,
+%   mass ], [ { color, red }, { mass, 51 }, { age, 23 } ] )
+%
+-spec getAllValues( [ key() ], hashtable() ) -> [ value() ].
+getAllValues( Keys, Hashtable ) ->
+
+	{ RevValues, FinalTable } = lists:foldl(
+		   fun( _Elem=Key, _Acc={ Values, Table } ) ->
+
+				   { Value, ShrunkTable } = extractEntry( Key, Table ),
+				   { [ Value | Values ], ShrunkTable }
+
+		   end,
+		   _Acc0={ [], Hashtable },
+		   _List=Keys ),
+
+	case isEmpty( FinalTable ) of
+
+		true ->
+			lists:reverse( RevValues );
+
+		false ->
+			throw( { remaining_keys, keys( FinalTable ) } )
 
 	end.
 

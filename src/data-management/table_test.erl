@@ -1,4 +1,4 @@
-% Copyright (C) 2014-2015 Olivier Boudeville
+% Copyright (C) 2014-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -63,10 +63,13 @@ run() ->
 
 	table:display( MyH1 ),
 	MyH2 = table:new( 4 ),
-	MyH3 = table:addEntry( ?MyFirstKey, "MyFirstValue", MyH2 ),
+
+	MyFirstValue = "MyFirstValue",
+	MyH3 = table:addEntry( ?MyFirstKey, MyFirstValue, MyH2 ),
 	false = table:isEmpty( MyH3 ),
 
-	MyH4 = table:addEntry( ?MySecondKey, [ 1, 2, 3 ], MyH3 ),
+	MySecondValue = [ 1, 2, 3 ],
+	MyH4 = table:addEntry( ?MySecondKey, MySecondValue, MyH3 ),
 	false = table:isEmpty( MyH4 ),
 
 	table:display( MyH4 ),
@@ -77,7 +80,7 @@ run() ->
 
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
 		table:lookupEntry( ?MyFirstKey, MyH4 ) ] ),
-	{ value, "MyFirstValue" } = table:lookupEntry( ?MyFirstKey, MyH4 ),
+	{ value, MyFirstValue } = table:lookupEntry( ?MyFirstKey, MyH4 ),
 
 	test_facilities:display( "Removing that entry." ),
 	MyH5 = table:removeEntry( ?MyFirstKey, MyH4 ),
@@ -85,12 +88,15 @@ run() ->
 
 	test_facilities:display( "Extracting the same entry from "
 							 "the same initial table." ),
-	{ "MyFirstValue", MyH5 } = table:extractEntry( ?MyFirstKey, MyH4 ),
+	{ MyFirstValue, MyH5 } = table:extractEntry( ?MyFirstKey, MyH4 ),
 
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
 		table:lookupEntry( ?MyFirstKey, MyH5 ) ] ),
 
 	key_not_found  = table:lookupEntry( ?MyFirstKey, MyH5 ),
+
+	[ MySecondValue, MyFirstValue ] = table:getAllValues( 
+										[ ?MySecondKey, ?MyFirstKey ], MyH4 ),
 
 	% removeEntry can also be used if the specified key is not here, will return
 	% an identical table.

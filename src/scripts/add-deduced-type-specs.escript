@@ -2,11 +2,9 @@
 %% -*- erlang -*-
 %%! -smp enable
 
-
-% Copyright (C) 2010-2012 EDF R&D
-
-% This file is part of Sim-Diasca, and has been an accepted as a contribution to
-% the Ceylan Erlang library, in this 'Common' package.
+% Copyright (C) 2010-2016 Olivier Boudeville
+%
+% This file is part of the Ceylan Erlang library.
 
 
 
@@ -58,106 +56,6 @@ get_usage() ->
 	"   Note that BEAM files must be already compiled, and "
 	"with debug information (see the '+debug_info' compile flag)."
 	"\n".
-
-
-
-% We want this escript to be standalone, thus we copy here "verbatim" (module
-% references fixed) the functions of interest, so that there is no prerequisite.
-
-
-% Taken from common/src/utils/text_utils.erl:
-
-% join(Separator,ListToJoin), ex: join( '-', [ "Barbara", "Ann" ] ).
-%
-% Python-like 'join', combines items in a list into a string using a separator
-% between each item representation.
-%
-% Inspired from http://www.trapexit.org/String_join_with.
-%
-% For file-related paths, you are expected to use portable standard
-% filename:join functions instead.
-%
-% Note: use string:tokens to split the string.
-join(_Separator,[]) ->
-	"";
-
-join(Separator,ListToJoin) ->
-	lists:flatten( lists:reverse( join(Separator, ListToJoin, []) ) ).
-
-
-join(_Separator,[],Acc) ->
-	Acc;
-
-join(_Separator,[H| [] ],Acc) ->
-	[H|Acc];
-
-join(Separator,[H|T],Acc) ->
-	join(Separator, T, [Separator,H|Acc]).
-
-
-% End of the common/src/utils/text_utils.erl section.
-
-
-
-
-
-% Taken from common/src/utils/file_utils.erl:
-
-
-% For the file_info record:
--include_lib("kernel/include/file.hrl").
-
-
-% Tells whether specified file entry exists, regardless of its type.
-exists(EntryName) ->
-	case file:read_file_info(EntryName) of
-
-		{ok,_FileInfo} ->
-			true;
-
-		{error,_Reason} ->
-			false
-
-	end.
-
-
-
-% Returns the type of the specified file entry, in:
-% device | directory | regular | other.
-get_type_of(EntryName) ->
-
-	case file:read_file_info(EntryName) of
-
-		{ok,FileInfo} ->
-			#file_info{ type=FileType } = FileInfo,
-			FileType;
-
-		{error,eloop} ->
-			% Probably a recursive symlink:
-			throw({too_many_symlink_levels,EntryName});
-
-		{error,enoent} ->
-			throw({non_existing_entry,EntryName})
-
-	end.
-
-
-% Returns whether the specified entry exists and is a directory.
-%
-% Returns true or false, and cannot trigger an exception.
-is_existing_directory(EntryName) ->
-	case exists(EntryName) andalso get_type_of(EntryName) of
-
-		directory ->
-			true ;
-
-		_ ->
-			false
-
-	end.
-
-
-% End of the common/src/utils/file_utils.erl section.
 
 
 
@@ -980,3 +878,113 @@ notify( Message ) ->
 			ok
 
 	end.
+
+
+
+%%
+%% Verbatime duplication sections.
+%%
+%% Maybe using common/src/utils/script_utils.erl would be better than
+%% duplicating code here.
+%%
+
+
+% We want this escript to be standalone, thus we copy here "verbatim" (module
+% references fixed) the functions of interest, so that there is no prerequisite.
+
+
+% Taken from common/src/utils/text_utils.erl:
+
+% join(Separator,ListToJoin), ex: join( '-', [ "Barbara", "Ann" ] ).
+%
+% Python-like 'join', combines items in a list into a string using a separator
+% between each item representation.
+%
+% Inspired from http://www.trapexit.org/String_join_with.
+%
+% For file-related paths, you are expected to use portable standard
+% filename:join functions instead.
+%
+% Note: use string:tokens to split the string.
+join( _Separator, []) ->
+	"";
+
+join(Separator,ListToJoin) ->
+	lists:flatten( lists:reverse( join(Separator, ListToJoin, []) ) ).
+
+
+join(_Separator,[],Acc) ->
+	Acc;
+
+join(_Separator,[H| [] ],Acc) ->
+	[H|Acc];
+
+join(Separator,[H|T],Acc) ->
+	join(Separator, T, [Separator,H|Acc]).
+
+
+% End of the common/src/utils/text_utils.erl section.
+
+
+
+
+
+% Taken from common/src/utils/file_utils.erl:
+
+
+% For the file_info record:
+-include_lib("kernel/include/file.hrl").
+
+
+% Tells whether specified file entry exists, regardless of its type.
+exists(EntryName) ->
+	case file:read_file_info(EntryName) of
+
+		{ok,_FileInfo} ->
+			true;
+
+		{error,_Reason} ->
+			false
+
+	end.
+
+
+
+% Returns the type of the specified file entry, in:
+% device | directory | regular | other.
+get_type_of(EntryName) ->
+
+	case file:read_file_info(EntryName) of
+
+		{ok,FileInfo} ->
+			#file_info{ type=FileType } = FileInfo,
+			FileType;
+
+		{error,eloop} ->
+			% Probably a recursive symlink:
+			throw({too_many_symlink_levels,EntryName});
+
+		{error,enoent} ->
+			throw({non_existing_entry,EntryName})
+
+	end.
+
+
+% Returns whether the specified entry exists and is a directory.
+%
+% Returns true or false, and cannot trigger an exception.
+is_existing_directory(EntryName) ->
+	case exists(EntryName) andalso get_type_of(EntryName) of
+
+		directory ->
+			true ;
+
+		_ ->
+			false
+
+	end.
+
+
+% End of the common/src/utils/file_utils.erl section.
+
+

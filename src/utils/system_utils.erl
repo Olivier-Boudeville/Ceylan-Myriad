@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2015 Olivier Boudeville
+% Copyright (C) 2010-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -47,7 +47,17 @@
 % System-related functions.
 -export([
 
-		  execute_command/1, execute_background_command/1,
+		  run_executable/1, run_executable/2, run_executable/3,
+		  monitor_port/2,
+		  evaluate_shell_expression/1, evaluate_shell_expression/2,
+
+		  run_background_executable/1, run_background_executable/2,
+		  evaluate_background_shell_expression/1,
+		  evaluate_background_shell_expression/2,
+
+		  get_environment_prefix/1, get_actual_expression/2,
+		  get_environment_variable/1, set_environment_variable/2,
+		  get_environment/0, environment_to_string/0, environment_to_string/1,
 
 		  get_interpreter_version/0, get_application_version/1,
 
@@ -152,19 +162,20 @@
 
 
 
-% Describes a shell command:
+% Describes a command to be run (i.e. path to an executable, with possibly
+% parameters):
 %
 -type command() :: text_utils:ustring().
 
 
-% Return code of a shell command (a.k.a. exit status):
+% Return code of a run executable (a.k.a. exit status):
 %
 % (0 means success, strictly positive mean error)
 %
 -type return_code() :: basic_utils:count().
 
 
-% Output of a shell command:
+% Output of the run of an executable:
 %
 -type command_output() :: text_utils:ustring().
 
@@ -175,13 +186,61 @@
 
 
 
+% Describes a shell expression:
+%
+-type shell_expression() :: text_utils:ustring().
+
+
+% Output of the evaluation of a shell expression (at least currently, only its
+% standard output; no exit status):
+%
+-type expression_outcome() :: text_utils:ustring().
+
+
+
+% Name of a shell environment variable:
+-type env_variable_name() :: string().
+
+
+% Value of a shell environment variable ('false' meaning that the corresponding
+% variable is not set)
+%
+-type env_variable_value() :: string() | 'false'.
+
+
+% Represents a shell environment (a set of variables):
+-type environment() :: [ { env_variable_name(), env_variable_value() } ].
+
+
+% Working directory of an executed command:
+-type working_dir() :: file_utils:directory_name()
+					 | file_utils:bin_directory_name()
+					 | 'undefined'.
+
+
+% Basic authentication information:
+
+-type user_name() :: string().
+-type password() :: string().
+
+-type basic_credential() :: { user_name(), password() }.
+
+
+
 -export_type([ byte_size/0, cpu_usage_info/0, cpu_usage_percentages/0,
 			   host_static_info/0, host_dynamic_info/0,
 
 			   actual_filesystem_type/0, pseudo_filesystem_type/0,
 			   filesystem_type/0, fs_info/0,
 
-			   command/0, return_code/0, command_output/0, command_outcome/0
+			   command/0, return_code/0, command_output/0, command_outcome/0,
+
+			   shell_expression/0, expression_outcome/0,
+
+			   env_variable_name/0, env_variable_value/0, environment/0,
+			   working_dir/0,
+
+			   user_name/0, password/0, basic_credential/0
 
 			 ]).
 
@@ -301,9 +360,14 @@ await_output_completion( TimeOut ) ->
 	%
 	% (we suppose that the time-out here is in milliseconds)
 
-	% We added finally a short waiting, just out of safety:
+	%io:format( "(awaiting output completion)~n", [] ),
+
+	% We had added finally a short waiting, just out of safety:
 	%
-	timer:sleep( 200 ),
+	%timer:sleep( 200 ),
+	%
+	% yet it was slowing down the tests too much, hence probably just a yield:
+	timer:sleep( 10 ),
 
 	sys:get_status( error_logger, TimeOut ).
 
@@ -314,29 +378,84 @@ await_output_completion( TimeOut ) ->
 % Functions relative to the local Erlang system.
 
 
+% Section to run executables and evaluation shell expressions.
+%
+% The former will return both the exit code and the command output, while the
+% latter will be able only to return the command output (command being either an
+% executable with arguments or a shell expression).
 
-% Executes (synchronously) specified shell command (specified as a single,
-% standalone one, or as a list of command elements), and returns its return code
-% (exit status) and its outputs (both the standard and the error ones).
+
+% We wish we could specify a command as a single, standalone one, or as a list
+% of command elements, but the lack of a string type prevents it (as the
+% parameter of the called functions would be a list in both cases).
+
+
+% Runs (synchronously) specified executable with arguments, specified as a
+% single, standalone string, with no specific environment, from the current
+% working directory, and returns its return code (exit status) and its outputs
+% (both the standard and the error ones).
 %
-% We wish we could specify the command as a single, standalone one, or as a list
-% of command elements, but the lack of a string type prevents it.
+% This function will run a specific executable, not evaluate a shell expression
+% (that would possibly run executables).
 %
-%-spec execute_command( command() | [ command() ] ) -> command_outcome().
-%execute_command( Commands ) when is_list( Commands ) ->
--spec execute_command( command() ) -> command_outcome().
-%execute_command( Commands ) ->
+% So one should not try to abuse this function by adding '&' at the end to
+% trigger a background launch - this would just be interpreted as a last
+% argument. Use run_background_executable/{1,2} in this module instead.
+%
+%-spec run_executable( command() | [ command() ] ) -> command_outcome().
+%run_executable( Commands ) when is_list( Commands ) ->
+-spec run_executable( command() ) -> command_outcome().
+%run_executable( Commands ) ->
 
 %	ActualCommand = text_utils:join( _Sep=" ", Commands ),
 
-%	execute_command( ActualCommand );
+%	run_executable( ActualCommand );
 
 
-execute_command( Command ) ->
 
-	PortOpts = [ stream, exit_status, use_stdio, stderr_to_stdout, in, eof ],
+run_executable( Command ) ->
+	run_executable( Command, _Environment=[] ).
 
-	Port = open_port( { spawn, Command }, PortOpts ),
+
+
+% Executes (synchronously) specified shell command (specified as a single,
+% standalone string) in specified shell environment and current directory, and
+% returns its return code (exit status) and its outputs (both the standard and
+% the error ones).
+%
+-spec run_executable( command(), environment() ) -> command_outcome().
+run_executable( Command, Environment ) ->
+	run_executable( Command, Environment, _WorkingDir=undefined ).
+
+
+
+% Executes (synchronously) specified shell command (specified as a single,
+% standalone string) in specified shell environment and directory, and returns
+% its return code (exit status) and its outputs (both the standard and the error
+% ones).
+%
+-spec run_executable( command(), environment(), working_dir() ) ->
+							command_outcome().
+run_executable( Command, Environment, WorkingDir ) ->
+
+	%io:format( "Running executable: '~s' with environment '~s' "
+	%		   "from working directory '~p'.~n",
+	%		   [ Command, environment_to_string( Environment ), WorkingDir ] ),
+
+	PortOpts = [ stream, exit_status, use_stdio, stderr_to_stdout, in, eof,
+				 { env, Environment } ],
+
+	PortOptsWithPath = case WorkingDir of
+
+						   undefined ->
+							   PortOpts;
+
+						   _ ->
+							   [ { cd, WorkingDir } | PortOpts ]
+
+	end,
+
+	Port = open_port( { spawn, Command }, PortOptsWithPath ),
 
 	read_port( Port, _Data=[] ).
 
@@ -346,18 +465,26 @@ execute_command( Command ) ->
 %
 read_port( Port, Data ) ->
 
+	%io:format( "Reading port ~p (data: '~p').~n", [ Port, Data ] ),
+
 	receive
 
 		{ Port, { data, NewData } } ->
+			%io:format( "Received data: '~p'.~n", [ NewData ] ),
 			read_port( Port, [ NewData | Data ] );
 
-		{ Port, eof } ->
+		% As mentioned in the documentation, "the eof message and the
+		% exit_status message appear in an unspecified order":
 
+		{ Port, eof } ->
+			%io:format( "Received eof (first).~n" ),
 			port_close( Port ),
 
 			receive
 
 				{ Port, { exit_status, ExitStatus } } ->
+
+					%io:format( "Received exit_status (second).~n" ),
 
 					% Otherwise we have an enclosing list and last character is
 					% always "\n":
@@ -367,36 +494,351 @@ read_port( Port, Data ) ->
 
 					{ ExitStatus, Output }
 
-			 end
+			end;
 
+		{ Port, { exit_status, ExitStatus } } ->
+
+			%io:format( "Received exit_status (first).~n" ),
+
+			receive
+
+				{ Port, eof } ->
+					%io:format( "Received eof (second).~n" ),
+
+					port_close( Port ),
+
+					Output = text_utils:remove_ending_carriage_return(
+							   lists:flatten( lists:reverse( Data ) ) ),
+
+					{ ExitStatus, Output }
+
+			end;
+
+		% Added by ourselves so that we can avoid process leakage:
+		terminate_port ->
+			% Anyway no PID to send information to:
+			port_terminated
 
 	 end.
 
 
 
-% Executes asynchronously, in the background, specified shell command
+% Monitors a port: reads command data and signals from a port, and report it.
+%
+monitor_port( Port, Data ) ->
+
+	io:format( "Process ~p starting the monitoring of port ~p (data: '~p').~n",
+			   [ self(), Port, Data ] ),
+
+	receive
+
+		{ Port, { data, NewData } } ->
+			io:format( "Port monitor ~p received data: '~p'.~n",
+					   [ self(), NewData ] ),
+			monitor_port( Port, [ NewData | Data ] );
+
+		% As mentioned in the documentation, "the eof message and the
+		% exit_status message appear in an unspecified order":
+
+		{ Port, eof } ->
+			io:format( "Port monitor ~p received eof (first).~n", [ self() ] ),
+			port_close( Port ),
+
+			receive
+
+				{ Port, { exit_status, ExitStatus } } ->
+
+					io:format( "Port monitor ~p received exit_status "
+							   "(second).~n", [ self() ] ),
+
+					% Otherwise we have an enclosing list and last character is
+					% always "\n":
+					%
+					Output = text_utils:remove_ending_carriage_return(
+							   lists:flatten( lists:reverse( Data ) ) ),
+
+					{ ExitStatus, Output }
+
+			end;
+
+		{ Port, { exit_status, ExitStatus } } ->
+
+			io:format( "Port monitor ~p received exit_status (first).~n",
+					   [ self() ] ),
+
+			receive
+
+				{ Port, eof } ->
+					io:format( "Port monitor ~p received eof (second).~n",
+							   [ self() ] ),
+
+					port_close( Port ),
+
+					Output = text_utils:remove_ending_carriage_return(
+							   lists:flatten( lists:reverse( Data ) ) ),
+
+					{ ExitStatus, Output }
+
+			end;
+
+		% Added by ourselves so that we can avoid process leakage:
+		terminate_port ->
+
+			io:format( "Port monitor ~p terminating.~n", [ self() ] ),
+
+			% Anyway no PID to send information to:
+			port_terminated
+
+	 end.
+
+
+
+% Evaluates specified shell (ex: sh, bash, etc. - not Erlang) expression, in
+% default environment.
+%
+% No return code is available with this approach, only the output of the
+% expression.
+%
+-spec evaluate_shell_expression( shell_expression() ) -> expression_outcome().
+evaluate_shell_expression( Expression ) ->
+	evaluate_shell_expression( Expression, _Environment=[] ).
+
+
+
+% Evaluates specified shell (ex: sh, bash, etc. - not Erlang) expression, in
+% specified environment.
+%
+% No return code is available with this approach, only the output of the
+% expression.
+%
+-spec evaluate_shell_expression( shell_expression(), environment() ) ->
+									   expression_outcome().
+evaluate_shell_expression( Expression, Environment ) ->
+
+	FullExpression = get_actual_expression( Expression, Environment ),
+
+	%io:format( "Evaluation shell expression '~s' in environment ~s.~n",
+	%		   [ FullExpression, environment_to_string( Environment ) ] ),
+
+	% No return code available, success supposed:
+	text_utils:remove_ending_carriage_return( os:cmd( FullExpression ) ).
+
+
+% No evaluate_shell_expression/3 defined, as one may change the current working
+% directory directly from the shell expression.
+
+
+
+% Executes asynchronously, in the background, specified executable with
+% parameters.
 %
 % As a consequence it returns no return code (exit status) nor output.
 %
-
-% We wish we could specify the command as a single, standalone one, or as a list
-% of command elements, but the lack of a string type prevents it.
+% For that, as it is a process-blocking operation in Erlang, a dedicated process
+% is spawned (and most probably lost).
 %
-%-spec execute_background_command( command() | [ command() ] ) ->
-%										basic_utils:void().
-
--spec execute_background_command( command() ) -> basic_utils:void().
-
-
-%execute_background_command( Commands ) when is_list( Commands ) ->
-
-%	ActualCommand = text_utils:join( _Sep=" ", Commands ),
-
-%	execute_background_command( ActualCommand );
+% If this function is expected to be called many times, to avoid the process
+% leak, one should consider using evaluate_background_shell_expression/1
+% instead.
+%
+-spec run_background_executable( command() ) -> basic_utils:void().
+run_background_executable( Command ) ->
+	run_background_executable( Command, _Environment=[] ).
 
 
-execute_background_command( Command ) ->
-	os:cmd( Command ++ " &" ).
+% Executes asynchronously, in the background, specified shell command, in
+% specified environment.
+%
+% As a consequence it returns no return code (exit status) nor output.
+%
+% For that, as it is a process-blocking operation in Erlang, a dedicated process
+% is spawned (and most probably lost).
+%
+% If this function is expected to be called many times, to avoid the process
+% leak, one should consider using evaluate_background_shell_expression/2
+% instead.
+%
+-spec run_background_executable( command(), environment() ) ->
+									   basic_utils:void().
+run_background_executable( Command, Environment ) ->
+	run_background_executable( Command, Environment, _WorkingDir=undefined ).
+
+
+
+% Executes asynchronously, in the background, specified shell command, in
+% specified environment.
+%
+% As a consequence it returns no return code (exit status) nor output.
+%
+% For that, as it is a process-blocking operation in Erlang, a dedicated process
+% is spawned (and most probably lost).
+%
+% If this function is expected to be called many times, to avoid the process
+% leak, one should consider using evaluate_background_shell_expression/2
+% instead.
+%
+-spec run_background_executable( command(), environment(), working_dir() ) ->
+									   basic_utils:void().
+run_background_executable( Command, Environment, WorkingDir ) ->
+
+	% Apparently using a port-based launch and a background execution will block
+	% the current process, so we sacrifice a process here - yet we monitor it:
+	%
+	spawn_link( fun() ->
+						_Port = run_executable( Command, Environment,
+												WorkingDir )
+						% Not very useful, as nothing to monitor normally:
+						%monitor_port( Port, _Data=[] )
+				end ).
+
+
+
+% Executes asynchronously, in the background, specified shell expression with
+% specified environment, in current directory.
+%
+% As a consequence it returns no return code (exit status) nor output.
+%
+-spec evaluate_background_shell_expression( shell_expression() ) ->
+												  basic_utils:void().
+evaluate_background_shell_expression( Expression ) ->
+	evaluate_background_shell_expression( Expression, _Environment=[] ).
+
+
+
+% Executes asynchronously, in the background, specified shell command with
+% specified environment, in current directory.
+%
+% As a consequence it returns no return code (exit status) nor output.
+%
+-spec evaluate_background_shell_expression( shell_expression(),
+				environment() ) -> basic_utils:void().
+evaluate_background_shell_expression( Expression, Environment ) ->
+
+	FullExpression = get_actual_expression( Expression, Environment ),
+
+	os:cmd( FullExpression ++ " &" ).
+
+
+
+% Returns a string that can be used as a shell prefix for commands, based on
+% specified environment.
+%
+-spec get_environment_prefix( environment() ) -> string().
+get_environment_prefix( Environment ) ->
+
+	% We do not specifically *unset* a variable whose value is false, we set it
+	% to an empty string:
+	%
+	VariableStrings = [
+
+						begin
+
+							ActualValue = case Value of
+
+								false ->
+									"";
+
+								_ ->
+									Value
+
+							end,
+
+							io_lib:format( "~s=~s", [ Name, ActualValue ] )
+
+						end
+
+						|| { Name, Value } <- Environment ],
+
+	text_utils:join( _Separator=" ", VariableStrings ).
+
+
+
+% Returns the full, actual shell expression corresponding to specified
+% expression and environment.
+%
+-spec get_actual_expression( shell_expression(), environment() ) ->
+								   expression_outcome().
+get_actual_expression( Expression, _Environment=[] ) ->
+	% Allows to avoid starting the command with a space:
+	Expression;
+
+get_actual_expression( Expression, Environment ) ->
+	get_environment_prefix( Environment ) ++ " " ++ Expression.
+
+
+
+% Returns the value associated to the specified environment variable (if any),
+% otherwise 'false'.
+%
+-spec get_environment_variable( env_variable_name() ) -> env_variable_value().
+get_environment_variable( VarName ) ->
+	os:getenv( VarName ).
+
+
+
+% Sets the specified environment variable to the specified value, possibly
+% overwriting a past value.
+%
+-spec set_environment_variable( env_variable_name(), env_variable_value() ) ->
+									  basic_utils:void().
+set_environment_variable( VarName, VarValue ) ->
+	os:putenv( VarName, VarValue ).
+
+
+
+% Returns the current shell environment, sorted by variable names.
+%
+-spec get_environment() -> environment().
+get_environment() ->
+
+	StringEnv = lists:sort( os:getenv() ),
+
+	[ text_utils:split_at_first( $=, VarEqValue ) || VarEqValue <-StringEnv ].
+
+
+
+% Returns a textual description of the current shell environment.
+%
+-spec environment_to_string() -> string().
+environment_to_string() ->
+	environment_to_string( get_environment() ).
+
+
+
+% Returns a textual description of the specified shell environment.
+%
+-spec environment_to_string( environment() ) -> string().
+environment_to_string( Environment ) ->
+
+	{ SetVars, UnsetVars } = lists:partition(
+							   fun( { _Name, _Value=false } ) ->
+									   false;
+
+								  ( _ ) ->
+									   true
+
+							   end,
+							   Environment ),
+
+	VariableStrings = [ io_lib:format( "~s = ~s", [ Name, Value ] )
+						|| { Name, Value } <- SetVars ],
+
+	FinalVariableStrings = case UnsetVars of
+
+		[] ->
+			VariableStrings;
+
+		_ ->
+			UnsetNames = [ Name || { Name, _False } <- UnsetVars ],
+
+			UnsetString = "unset variables: "
+								++ text_utils:join( _Sep=", ", UnsetNames ),
+
+			list_utils:append_at_end( UnsetString, VariableStrings )
+
+	end,
+
+	text_utils:strings_to_string( FinalVariableStrings ).
 
 
 
@@ -493,15 +935,19 @@ get_size_of_vm_word_string() ->
 
 
 
-% Returns the size of specified term, in bytes.
+% Returns the size of specified term, in bytes, in the heap.
+%
+% Note that off-heap data (such as binaries larger than 64 bytes) is not counted
+% here. The (flat) size is incremented to account for the top term word (which
+% is kept in a register or on the stack).
 %
 -spec get_size( term() ) -> byte_size().
 get_size( Term ) ->
 
 	% With sharing taken into account:
-	% use erts_debug:size/1 * get_size_of_vm_word()
+	% use ( erts_debug:size( Term ) + 1 ) * get_size_of_vm_word()
 	%
-	erts_debug:flat_size( Term ) * get_size_of_vm_word().
+	( erts_debug:flat_size( Term ) + 1 ) * get_size_of_vm_word().
 
 
 
@@ -723,7 +1169,7 @@ get_total_physical_memory() ->
 	% First check the expected unit is returned, by pattern-matching:
 	UnitCommand = "cat /proc/meminfo | grep 'MemTotal:' | awk '{print $3}'",
 
-	case execute_command( UnitCommand ) of
+	case run_executable( UnitCommand ) of
 
 		 { _ExitCode=0, _Output="kB" } ->
 
@@ -735,7 +1181,7 @@ get_total_physical_memory() ->
 			% The returned value of following command is like "12345\n", in
 			% bytes:
 			%
-			case execute_command( ValueCommand ) of
+			case run_executable( ValueCommand ) of
 
 				{ _ExitCode=0, MemSizeString } ->
 
@@ -861,8 +1307,8 @@ get_total_memory_used() ->
 
 	% So finally we prefered /proc/meminfo, used first to get MemTotal:
 	%
-	TotalString = case execute_command(
-		  "cat /proc/meminfo|grep '^MemTotal:'|awk '{print $2,$3}'" ) of
+	TotalString = case run_executable( "/bin/cat /proc/meminfo | "
+						"/bin/grep '^MemTotal:' | awk '{print $2,$3}'" ) of
 
 		{ _TotalExitCode=0, TotalOutput } ->
 			%io:format( "TotalOutput: '~p'~n", [ TotalOutput ] ),
@@ -880,7 +1326,7 @@ get_total_memory_used() ->
 
 	% MemAvailable does not seem always available:
 	%
-	FreeString = case execute_command(
+	FreeString = case run_executable(
 						"cat /proc/meminfo|grep '^MemAvailable:'|awk "
 						"'{print $2,$3}'" )  of
 
@@ -895,7 +1341,7 @@ get_total_memory_used() ->
 
 			%io:format( "## using MemFree~n" ),
 
-			case execute_command(
+			case run_executable(
 				   "cat /proc/meminfo|grep '^MemFree:'|awk "
 				   "'{print $2,$3}'" ) of
 
@@ -921,7 +1367,7 @@ get_total_memory_used() ->
 
 			%io:format( "## using free~n" ),
 
-			case execute_command(
+			case run_executable(
 				"free -b | grep '/cache' | awk '{print $3}'" ) of
 
 				{ _ExitCode=0, FreeOutput } ->
@@ -990,7 +1436,7 @@ get_swap_status() ->
 
 	% Same reason as for get_total_memory_used/0:
 	%SwapInfos = os:cmd( "free -b | grep 'Swap:' | awk '{print $2, $3}'" ),
-	SwapTotalString = case execute_command(
+	SwapTotalString = case run_executable(
 		  "cat /proc/meminfo|grep '^SwapTotal:'|awk '{print $2,$3}'" ) of
 
 		{ _TotalExitCode=0, TotalOutput } ->
@@ -1006,7 +1452,7 @@ get_swap_status() ->
 	TotalByte = text_utils:string_to_integer( TotalString ) * 1024,
 
 
-	SwapFreeString = case execute_command(
+	SwapFreeString = case run_executable(
 		  "cat /proc/meminfo|grep '^SwapFree:'|awk '{print $2,$3}'" ) of
 
 		{ _FreeExitCode=0, FreeOutput } ->
@@ -1068,7 +1514,7 @@ get_swap_status_string() ->
 -spec get_core_count() -> integer().
 get_core_count() ->
 
-	CoreString = case execute_command(
+	CoreString = case run_executable(
 						"cat /proc/cpuinfo | grep -c processor" ) of
 
 		{ _ExitCode=0, Output } ->
@@ -1256,7 +1702,7 @@ compute_detailed_cpu_usage( _StartCounters={ U1, N1, S1, I1, O1 },
 get_cpu_usage_counters() ->
 
 	% grep more versatile than: '| head -n 1':
-	StatString = case execute_command( "cat /proc/stat | grep 'cpu '" ) of
+	StatString = case run_executable( "cat /proc/stat | grep 'cpu '" ) of
 
 		{ _ExitCode=0, Output } ->
 						 Output;
@@ -1296,7 +1742,7 @@ get_cpu_usage_counters() ->
 -spec get_disk_usage() -> text_utils:ustring().
 get_disk_usage() ->
 
-	case execute_command( "/bin/df -h" ) of
+	case run_executable( "/bin/df -h" ) of
 
 		{ _ExitCode=0, Output } ->
 			Output;
@@ -1349,7 +1795,7 @@ get_mount_points() ->
 	FirstCmd = "/bin/df -h --local --output=target"
 		++ get_exclude_pseudo_fs_opt() ++ "|grep -v 'Mounted on'",
 
-	case execute_command( FirstCmd ) of
+	case run_executable( FirstCmd ) of
 
 		{ _FirstExitCode=0, ResAsOneString } ->
 			%io:format( "## using direct df~n" ),
@@ -1362,7 +1808,7 @@ get_mount_points() ->
 				++ get_exclude_pseudo_fs_opt()
 				++ "|grep -v 'Mounted on' | awk '{print $6}'",
 
-			case execute_command( SecondCmd ) of
+			case run_executable( SecondCmd ) of
 
 				{ _SecondExitCode=0, ResAsOneString } ->
 					%io:format( "## using legacy df~n" ),
@@ -1403,7 +1849,7 @@ get_filesystem_info( FilesystemPath ) ->
 		++ " --output=source,target,fstype,used,avail,iused,iavail '"
 		++ FilesystemPath ++ "' | grep -v 'Mounted on'",
 
-	case execute_command( Cmd ) of
+	case run_executable( Cmd ) of
 
 		{ _ExitCode=0, ResAsOneString } ->
 			% Order of the columns: 'Filesystem / Mounted on / Type / Used /
@@ -1454,7 +1900,7 @@ get_filesystem_info_alternate( FilesystemPath ) ->
 		++ get_exclude_pseudo_fs_opt() ++ " "
 		++ FilesystemPath ++ "| grep -v 'Mounted on'",
 
-	case execute_command( Cmd ) of
+	case run_executable( Cmd ) of
 
 		{ _ExitCode=0, ResAsOneString } ->
 
@@ -1562,7 +2008,7 @@ get_operating_system_description() ->
 
 		true ->
 
-			case execute_command( "cat " ++ OSfile ++
+			case run_executable( "cat " ++ OSfile ++
 					" | grep PRETTY_NAME | sed 's|^PRETTY_NAME=\"||1' "
 					" | sed 's|\"$||1' 2>/dev/null" ) of
 

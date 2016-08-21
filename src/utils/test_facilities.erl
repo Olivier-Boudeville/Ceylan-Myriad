@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2015 Olivier Boudeville
+% Copyright (C) 2003-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -39,7 +39,7 @@
 
 
 
-% Starts a test, expected to be the first test statement.
+% Starts a test; expected to be the first test statement.
 %
 % Here we disable explicitly the trapping of EXIT events, as a function run
 % through "erl -eval" (like our tests) or through "erl -run" will be executed in
@@ -49,46 +49,48 @@
 % sitting in the mailbox of the test process).
 %
 -spec start( module() | [ module() ] ) -> basic_utils:void().
-start( Module ) when is_atom(Module) ->
+start( Module ) when is_atom( Module ) ->
 	erlang:process_flag( trap_exit, false ),
-	io:format( "~n~n--> Testing module ~s.~n", [ Module ] );
+	basic_utils:display( "~n~n--> Testing module ~s.~n", [ Module ] );
 
-start( Modules ) when is_list(Modules ) ->
+start( Modules ) when is_list( Modules ) ->
 	erlang:process_flag( trap_exit, false ),
-	io:format( "~n~n--> Testing modules ~p.~n", [ Modules ] ).
+	basic_utils:display( "~n~n--> Testing modules ~p.~n", [ Modules ] ).
 
 
 
-% Stops a test, expected to be the last test statement in the normal case.
+% Stops a test; expected to be the last test statement in the normal case.
+%
 -spec stop() -> no_return().
 stop() ->
-	io:format( "~n--> Successful end of test.~n" ),
+	basic_utils:display( "\n--> Successful end of test.\n" ),
 	finished().
 
 
 
 % Displays a test message.
+%
 -spec display( string() ) -> basic_utils:void().
 display( Message ) ->
-	io:format( Message ++ "\n" ).
+	% Carriage return already added in basic_utils:display/1:
+	basic_utils:display( lists:flatten( Message ) ).
 
 
 
 % Displays a test message, once formatted.
 %
-% FormatString is a io:format-style format string, ValueList is the
+% FormatString is an io:format-style format string, ValueList is the
 % corresponding list of field values.
 %
 -spec display( string(), list() ) -> basic_utils:void().
 display( FormatString, ValueList ) ->
-	Message = io_lib:format( FormatString, ValueList ),
-	display( Message ).
+	basic_utils:display( FormatString, ValueList ).
 
 
 % Comment out to be able to use the interpreter after the test:
 -define(ExitAfterTest,).
 
--spec finished() -> none().
+-spec finished() -> no_return().
 
 
 -ifdef(ExitAfterTest).
@@ -96,12 +98,17 @@ display( FormatString, ValueList ) ->
 
 finished() ->
 
-	io:format( "(test finished, interpreter halted)~n" ),
+	basic_utils:display( "(test finished, interpreter halted)" ),
 
+	% Probably not that useful:
 	system_utils:await_output_completion(),
 
-	% init:stop/0 could maybe used instead:
-	erlang:halt( 0 ).
+	% Implies flushing as well:
+	basic_utils:stop_on_success(),
+
+	% Useless, but otherwise Dialyzer will complain that this function has no
+	% local return:
+	test_success.
 
 
 -else. % ExitAfterTest
@@ -109,9 +116,9 @@ finished() ->
 
 finished() ->
 
-	io:format( "(test finished, interpreter still running)~n" ),
+	basic_utils:display( "(test finished, interpreter still running)~n" ),
 
-	system_utils:await_output_completion(),
+	%system_utils:await_output_completion(),
 
 	test_success.
 
@@ -124,30 +131,36 @@ finished() ->
 %
 % Ex: test_facilities:fail( "server on strike" )
 %
--spec fail( string() ) -> none().
+-spec fail( string() ) -> no_return().
 fail( Reason ) ->
 
 	% For some reason erlang:error is unable to interpret strings as strings,
 	% they are always output as unreadable lists.
 
-	io:format( "~n!!!! Test failed, reason: ~s.~n~n", [ Reason ] ),
+	basic_utils:display( "~n!!!! Test failed, reason: ~s.~n~n", [ Reason ] ),
 
+	% Never returns:
 	erlang:error( "Test failed" ),
 
+	% Hence probably not that useful:
 	system_utils:await_output_completion(),
 
-	erlang:halt( 1 ).
+	basic_utils:stop_on_failure(),
+
+	% Useless, but otherwise Dialyzer will complain that this function has no
+	% local return:
+	test_failed.
 
 
 
 % To be called whenever a test is to fail (crash on error) immediately.
 %
-% FormatString is a io:format-style format string, ValueList is the
+% FormatString is an io:format-style format string, ValueList is the
 % corresponding list of field values.
 %
 % Ex: test_facilities:fail( "server ~s on strike", [ "foobar.org" ] )
 %
--spec fail( string(), list() ) -> none().
+-spec fail( string(), list() ) -> no_return().
 fail( FormatString, ValueList ) ->
 
 	% For some reason, erlang:error is unable to interpret strings as strings,
@@ -156,10 +169,17 @@ fail( FormatString, ValueList ) ->
 	ErrorMessage = io_lib:format( "~n!!!! Test failed, reason: ~s.~n~n",
 								[ io_lib:format( FormatString, ValueList ) ] ),
 
-	io:format( "~n!!!! Test failed, reason: ~s.~n~n", [ ErrorMessage ] ),
+	basic_utils:display( "~n!!!! Test failed, reason: ~s.~n~n",
+						 [ ErrorMessage ] ),
 
+	% Never returns:
 	erlang:error( "Test failed" ),
 
+	% Hence probably not that useful:
 	system_utils:await_output_completion(),
 
-	erlang:halt( 1 ).
+	basic_utils:stop_on_failure(),
+
+	% Useless, but otherwise Dialyzer will complain that this function has no
+	% local return:
+	test_failed.

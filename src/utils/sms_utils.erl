@@ -1,4 +1,4 @@
-% Copyright (C) 2013-2015 Olivier Boudeville
+% Copyright (C) 2013-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -90,15 +90,6 @@
 		'eco' | 'pro'.
 
 
-
-% Name of the user for the SMS service:
--type user_name() :: string().
-
-
-% Password for the user for the SMS service:
--type password() :: string().
-
-
 % Message to be sent as SMS (up to 160 bytes):
 -type message() :: string().
 
@@ -149,9 +140,9 @@
 
 		   provider :: provider(),
 
-		   user_name :: user_name(),
+		   user_name :: system_utils:user_name(),
 
-		   password :: password(),
+		   password :: system_utils:password(),
 
 		   default_class :: service_class(),
 
@@ -188,9 +179,9 @@
 
 
 
--export_type([ provider/0, user_name/0, password/0, credits/0, sms_account/0,
-			   message/0, recipient/0, sender_description/0, service_class/0,
-			   sms/0, sending_outcome/0 ]).
+-export_type([ provider/0, credits/0, sms_account/0, message/0, recipient/0,
+			   sender_description/0, service_class/0, sms/0,
+			   sending_outcome/0 ]).
 
 
 % Creates a SMS record instance from specified information, the service class
@@ -296,8 +287,9 @@ send( #sms{ message=Message, recipient=Recipient,
 %
 % (base, only actual sending function)
 %
--spec send( provider(), service_class(), user_name(), password(), message(),
-	recipient(), sender_description() ) -> sending_outcome().
+-spec send( provider(), service_class(), system_utils:user_name(),
+			system_utils:password(), message(), recipient(),
+			sender_description() ) -> sending_outcome().
 send( _Provider=verysms, _ServiceClass=eco, Username, Password, Message,
 	  Recipient, SenderDescription ) ->
 
