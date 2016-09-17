@@ -16,7 +16,7 @@
 
 -define( default_log_filename, "merge-tree.log" ).
 
-% Short of having the parse transform allowing 'table':
+% Short of having the parse transform allowing 'table' for escripts:
 -define( table, map_hashtable ).
 
 
@@ -24,6 +24,12 @@
 		  tree_entry_to_string/1, file_entry_to_string/1,
 		  trace/2, trace/3, trace_debug/2, trace_debug/3
 		]).
+
+
+% Table referencing file entries based on their MD5:
+%
+-type entry_table() :: ?table:?table( executable_utils:md5_sum(),
+									  [ file_entry() ] ).
 
 
 % Entry associated to a content tree.
@@ -37,8 +43,7 @@
 		   % the file entries whose content matches that sum (hence are supposed
 		   % the same).
 		   %
-		   entries = ?table:new() :: ?table:?table( executable_utils:md5_sum(),
-													[ file_entry() ] ),
+		   entries = ?table:new() :: entry_table(),
 
 		   % Count of the regular files found in tree:
 		   file_count = 0 :: basic_utils:count(),
@@ -63,8 +68,8 @@
 
 % Entry associated to a given file-like element.
 %
-% Note: entries might be stored in tables, the associate key potentially
-% duplicating them (no problem).
+% Note: entries might be stored in tables, the associated key potentially
+% duplicating them (not a problem).
 %
 -record( file_entry, {
 
@@ -77,8 +82,8 @@
 		   % Precise size, in bytes, of that file:
 		   size :: system_utils:byte_size(),
 
-		   % Timestamp of the last content modification known from the
-		   % filesystem:
+		   % Timestamp of the last content modification known of the filesystem:
+		   %
 		   timestamp :: time_utils:posix_seconds(),
 
 		   % MD5 sum of the content of that file:
@@ -98,15 +103,22 @@
 
 get_usage() ->
 	"   Usage:\n"
-	"      - either: merge-tree.escript SOURCE_TREE TARGET_TREE\n"
-	"      - or: merge-tree.escript --scan TREE\n\n"
+	"      - either: 'merge-tree.escript SOURCE_TREE TARGET_TREE'\n"
+	"      - or: 'merge-tree.escript --scan TREE'\n\n"
 	"   Ensures that all the changes in a supposedly more up-to-date tree (SOURCE_TREE) are merged back to the reference tree (TARGET_TREE), from which the source one derivated. Once executed, only a refreshed reference target tree will exist, as the input SOURCE_TREE will be removed since all its content will have been put back in the reference TARGET_TREE.\n"
-	"   In-tree duplicated content will be removed and replaced by symbolic links, to keep a single version of each actual content.\n"
+	"   If requested, in-tree duplicated content will be removed and replaced by symbolic links, to keep a single version of each actual content.\n"
 	"   All the timestamps of the files in the reference tree will be set to the current time, and, at the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to spare later computations of the file checksums.\n"
-	"   If the --scan option is used, then the specified tree will be inspected and a corresponding '" ?merge_cache_filename "' file will be created (potentially reused for a later merge)".
+	"   If the --scan option is used, then the specified tree will be inspected, possibly improved on user request, and a corresponding '" ?merge_cache_filename "' file will be created, to be potentially reused for a later merge.\n"
+	"   So a usual mode of operation may be to scan if needed both trees, then request a merge thereof.".
 
 
-% This script depends on the 'Common' layer, and only on that code.
+% Ring of analyzer processes:
+%
+-type analyzer_ring() :: list_utils:ring( pid() ).
+
+
+% This script depends on the 'Common' layer, and only on it.
+% Note: ensure it is already built first!
 
 
 % Implementation notes:
@@ -121,13 +133,16 @@ get_usage() ->
 
 
 
+
 % Entry point of the script.
+%
 main( [ "-h" ] ) ->
 	io:format( "~s", [ get_usage() ] );
 
 main( [ "--help" ] ) ->
-	io:format( "~s", [get_usage()] );
+	io:format( "~s", [ get_usage() ] );
 
+% Here we scan a tree:
 main( [ "--scan", TreePath ] ) ->
 
 	% First enable all possible helper code:
@@ -138,7 +153,7 @@ main( [ "--scan", TreePath ] ) ->
 
 	AbsTreePath = file_utils:ensure_path_is_absolute( TreePath ),
 
-	% Best, reasonable usage:
+	% Best, reasonable CPU usage:
 	Analyzers = spawn_entry_analyzers( system_utils:get_core_count() + 1,
 									   UserState ),
 
@@ -152,6 +167,10 @@ main( [ "--scan", TreePath ] ) ->
 
 	stop_user_service( UserState );
 
+
+% Here we merge the (supposedly more up-to-date) source tree into the target
+% one:
+%
 main( [ SourceTree, TargetTree ] ) ->
 
 	% First enable all possible helper code:
@@ -231,7 +250,7 @@ trace( FormatString, Values, _UserState={ UIState, LogFile } ) ->
 
 
 
-% Displays and logs specified debug text.
+% Logs specified debug text.
 %
 -spec trace_debug( string(), user_state() ) -> user_state().
 trace_debug( Message, _UserState={ UIState, LogFile } ) ->
@@ -241,7 +260,7 @@ trace_debug( Message, _UserState={ UIState, LogFile } ) ->
 
 
 
-% Displays and logs specified debug formatted text.
+% Logs specified debug formatted text.
 %
 -spec trace_debug( text_utils:format_string(), [ term() ], user_state() ) ->
 				   user_state().
@@ -298,7 +317,7 @@ check_content_trees( SourceTree, TargetTree ) ->
 % corresponding datastrucuture.
 %
 -spec update_content_tree( file_utils:directory_name(),
-		   list_utils:ring( pid() ), user_state() ) -> basic_utils:void().
+		   analyzer_ring(), user_state() ) -> basic_utils:void().
 update_content_tree( Tree, AnalyzerRing, UserState ) ->
 
 	case file_utils:is_existing_directory( Tree ) of
@@ -316,6 +335,7 @@ update_content_tree( Tree, AnalyzerRing, UserState ) ->
 	case file_utils:is_existing_file( CacheFilename ) of
 
 		true ->
+			% Load it if trusted:
 			throw( fixme );
 
 		false ->
@@ -330,7 +350,7 @@ update_content_tree( Tree, AnalyzerRing, UserState ) ->
 % existing merge cache file).
 %
 -spec create_merge_cache_file_for( file_utils:directory_name(),
-					list_utils:ring( pid() ), user_state() ) -> tree_entry().
+					analyzer_ring(), user_state() ) -> tree_entry().
 create_merge_cache_file_for( Tree, AnalyzerRing, UserState ) ->
 	CacheFilename = file_utils:join( Tree, ?merge_cache_filename ),
 	create_merge_cache_file_for( Tree, CacheFilename, AnalyzerRing, UserState ).
@@ -340,7 +360,7 @@ create_merge_cache_file_for( Tree, AnalyzerRing, UserState ) ->
 % Creates merge cache file with specified name, for specified content tree.
 %
 -spec create_merge_cache_file_for( file_utils:directory_name(),
-		  file_utils:file_name(), list_utils:ring( pid() ), user_state() ) ->
+		  file_utils:file_name(), analyzer_ring(), user_state() ) ->
 										 tree_entry().
 create_merge_cache_file_for( Tree, CacheFilename, AnalyzerRing, UserState ) ->
 
@@ -396,7 +416,7 @@ create_merge_cache_file_for( Tree, CacheFilename, AnalyzerRing, UserState ) ->
 spawn_entry_analyzers( Count, UserState ) ->
 	trace_debug( "Spawning ~B entry analyzers.", [ Count ], UserState ),
 	[ spawn_link( fun() -> analyze_loop() end )
-	  || _C <- lists:seq( 1,Count ) ].
+	  || _C <- lists:seq( 1, Count ) ].
 
 
 % Terminates specified entry analyzers.
@@ -409,7 +429,7 @@ terminate_entry_analyzers( PidList, UserState ) ->
 	[ P ! terminate || P <- PidList ].
 
 
--spec scan_tree( file_utils:path(), list_utils:ring( pid() ), user_state() ) ->
+-spec scan_tree( file_utils:path(), analyzer_ring(), user_state() ) ->
 					   tree_entry().
 scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 
@@ -431,7 +451,7 @@ scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 % returning the corresponding tree entry.
 %
 -spec scan_files( [ file_utils:file_name() ], file_utils:path(),
-				  list_utils:ring( pid() ) ) ->	tree_entry().
+				  analyzer_ring() ) -> tree_entry().
 scan_files( Files, AbsTreePath, AnalyzerRing ) ->
 
 	InitialTreeEntry = #tree_entry{ root=AbsTreePath },
@@ -445,7 +465,7 @@ scan_files( _Files=[], _AnalyzerRing, TreeEntry, _WaitedCount=0 ) ->
 	TreeEntry;
 
 scan_files( _Files=[], _AnalyzerRing, TreeEntry, WaitedCount ) ->
-	% Will return an updated tree entry once all answers received:
+	% Will return an updated tree entry once all answers are received:
 	%io:format( "Final waiting for ~B entries.~n", [ WaitedCount ] ),
 	wait_entries( TreeEntry, WaitedCount );
 
@@ -474,7 +494,7 @@ scan_files( _Files=[ Filename | T ], AnalyzerRing,
 
 	after 0 ->
 
-			scan_files( T, NewRing, TreeEntry, WaitedCount+1 )
+			scan_files( T, NewRing, TreeEntry, WaitedCount + 1 )
 
 	end.
 
@@ -528,7 +548,7 @@ manage_received_entry( FileEntry=#file_entry{ type=Type, md5_sum=Sum },
 
 
 
-% Waits for the remaining file entries.
+% Waits for the remaining file entries to be analyzed.
 %
 wait_entries( TreeEntry, _WaitedCount=0 ) ->
 	%io:format( "All file entries waited for finally obtained.~n" ),
@@ -547,11 +567,7 @@ wait_entries( TreeEntry, WaitedCount ) ->
 
 
 
-
-
-
-
-% The loop run by an analyzer process.
+% The loop run by each analyzer process.
 %
 -spec analyze_loop() -> basic_utils:void().
 analyze_loop() ->
@@ -587,9 +603,9 @@ analyze_loop() ->
 %
 -spec diagnose_tree( tree_entry(), user_state() ) -> tree_entry().
 diagnose_tree( #tree_entry{
-		   root=_RootDir,
-		   entries=ContentTable,
-		   file_count=FileCount }, UserState ) ->
+				  root=_RootDir,
+				  entries=ContentTable,
+				  file_count=FileCount }, UserState ) ->
 
 	DuplicateCount = FileCount - ?table:size( ContentTable ),
 
@@ -613,10 +629,10 @@ diagnose_tree( #tree_entry{
 
 
 
-% Manages all duplicatees found in specified table, returns an updated table and
+% Manages all duplicates found in specified table, returns an updated table and
 % the number of duplicates removed.
 %
--spec manage_duplicates( ?table:?table(), user_state() ) ->
+-spec manage_duplicates( entry_table(), user_state() ) ->
 							   { ?table:?table(), basic_utils:count() }.
 manage_duplicates( ContentTable, UserState ) ->
 
@@ -654,8 +670,9 @@ manage_duplicates( ContentTable, UserState ) ->
 			ui:display( "No duplicated content detected.", UserState ),
 			{ UniqueTable, _RemoveCount=0 };
 
+
 		TotalDupCaseCount ->
-			ui:display( "~B cases of content duplication detected, "
+			ui:display( "~B case(s) of content duplication detected, "
 						"examining them in turn.",
 						[ TotalDupCaseCount ], UserState ),
 
@@ -684,25 +701,34 @@ manage_duplicates( ContentTable, UserState ) ->
 
 
 
-% Checks a duplication set: same MD5 sum and size must be found for all file
-% entries.
+% Checks a duplication set: same MD5 sum and also size must be found for all
+% file entries (would most probably detect any MD5 collision, however unlikely
+% it maybe).
 %
 -spec check_duplicates( executable_utils:md5_sum(), [ file_entry() ] ) ->
 							  basic_utils:void().
 % Not possible: check_duplicates( _MD5Sum, _DuplicateList=[] ) ->
 %	ok;
 
+% Learns the size from first element:
 check_duplicates( MD5Sum, _DuplicateList=[
-	   #file_entry{ md5_sum=MD5Sum, size=Size } | T ] ) ->
-	check_duplicates( MD5Sum, Size, T ).
+	   #file_entry{ path=FirstPath, md5_sum=MD5Sum, size=Size } | T ] ) ->
+	check_duplicates( MD5Sum, FirstPath, Size, T ).
 
 
-check_duplicates( _MD5Sum, Size, _DuplicateList=[] ) ->
+% (helper)
+check_duplicates( _MD5Sum, _FirstPath, Size, _DuplicateList=[] ) ->
 	Size;
 
-check_duplicates( MD5Sum, Size, _DuplicateList=[
+check_duplicates( MD5Sum, FirstPath, Size, _DuplicateList=[
 	   #file_entry{ md5_sum=MD5Sum, size=Size } | T ] ) ->
-	check_duplicates( MD5Sum, Size, T ).
+	check_duplicates( MD5Sum, FirstPath, Size, T );
+
+check_duplicates( MD5Sum, FirstPath, Size, _DuplicateList=[
+	   #file_entry{ path=OtherPath, md5_sum=MD5Sum, size=OtherSize } | _T ] ) ->
+	throw( { md5_collision_detected, MD5Sum, { FirstPath, Size },
+			 { OtherPath, OtherSize } } ).
+
 
 
 
@@ -727,9 +753,9 @@ manage_duplicate( FileEntries, DuplicationCaseCount, TotalDupCaseCount, Size,
 	ui:display_numbered_list( Label, Choices, UserState ),
 
 	_Options = [ { 'l', "leave them as they are" },
-				{ 'e', "elect a reference file, replacing each other by "
+				 { 'e', "elect a reference file, replacing each other by "
 					   "a symbolic link pointing to it" },
-				{ 'a', "abort" } ],
+				 { 'a', "abort" } ],
 
 	throw( the_end ).
 	%% case ui:select_option( Options ) of
@@ -741,15 +767,18 @@ manage_duplicate( FileEntries, DuplicationCaseCount, TotalDupCaseCount, Size,
 	%% FileEntries.
 
 
+
 % Returns a textual description of specified tree entry.
 %
 -spec tree_entry_to_string( tree_entry() ) -> string().
 tree_entry_to_string( #tree_entry{
-		   root=RootDir,
-		   entries=Table,
-		   file_count=FileCount,
-		   directory_count=_DirCount,
-		   symlink_count=_SymlinkCount } ) ->
+						 root=RootDir,
+						 entries=Table,
+						 file_count=FileCount,
+						 directory_count=_DirCount,
+						 symlink_count=_SymlinkCount,
+						 device_count=_DeviceCount,
+						 other_count=_OtherCount } ) ->
 
 	% Only looking for files:
 	%text_utils:format( "tree '~s' having ~B entries (~B files, ~B directories,"
@@ -767,7 +796,7 @@ tree_entry_to_string( #tree_entry{
 		ContentCount ->
 			text_utils:format( "tree '~s' having ~B files, corresponding "
 							   "only to ~B different contents "
-							   "(hence ~B duplicates)",
+							   "(hence there are ~B duplicates)",
 							   [ RootDir, FileCount, ContentCount,
 								 FileCount -  ContentCount ] )
 
@@ -817,7 +846,7 @@ update_code_path_for_common() ->
 	CommonBeamDirs = [ filename:join( CommonSrcDir, D )
 					   || D <- CommonBeamSubDirs ],
 
-	%io:format( "'Common' beam dirs: ~s~n", [ CommonBeamDirs ] ),
+	%io:format( "'Common' beam dirs: ~p~n", [ CommonBeamDirs ] ),
 
 	ok = code:add_pathsa( CommonBeamDirs ).
 
