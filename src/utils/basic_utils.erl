@@ -131,19 +131,50 @@
 -type exit_reason() :: any().
 
 
+% This reason as well may be any term:
+%
+-type error_reason() :: any().
+
+
+% Error term:
+-type error_term() :: { 'error', error_reason() }.
+
+
+% Tells whether an operation succeeded; if not, an error reason is specified (as
+% a term).
+%
+-type base_status() :: 'ok' | error_term().
+
+
 % Quite often, variables (ex: record fields) are set to 'undefined'
 % (i.e. "Nothing") before being set later:
 %
 -type maybe( T ) :: T | 'undefined'.
 
 
-% Designates user-specified data (opaque, unspecified type):
+% To denote that a piece of data comes from the program boundaries (interfaces)
+% and thus may or may not be of the expected type (as long as it has not been
+% checked):
 %
--type user_data() :: any().
+% (opaque, unspecified type - yet not declared as 'opaque' to avoid a
+% compilation warning telling it is "underspecified and therefore meaningless").
+%
+-type external_data() :: term().
+
+
+% Designates data whose type and value has not been checked yet.
+%
+-type unchecked_data() :: term().
+
+
+% Designates user-specified data  (users shall not be trusted either):
+-type user_data() :: external_data().
 
 
 % Designates an accumulator (of any type), to document typically fold-like
 % operations:
+%
+% (useful for documentation purposes)
 %
 -type accumulator() :: any().
 
@@ -226,17 +257,19 @@
 -type status_code() :: 0..255. % i.e. byte()
 
 
+
 -export_type([
 
-			  void/0, count/0, bit_mask/0, uuid/0, exit_reason/0, maybe/1,
-			  user_data/0, accumulator/0, sortable_id/0,
+			  void/0, count/0, bit_mask/0, uuid/0, exit_reason/0,
+			  error_reason/0, error_term/0, base_status/0, maybe/1,
+			  external_data/0, unchecked_data/0, user_data/0,
+			  accumulator/0, sortable_id/0,
 			  registration_name/0, registration_scope/0, look_up_scope/0,
 			  version_number/0, version/0, two_digit_version/0, any_version/0,
 			  positive_index/0,
 			  module_name/0, function_name/0, argument/0, command_spec/0,
 			  user_name/0, atom_user_name/0,
 			  comparison_result/0, exception_class/0, status_code/0
-
 			  ]).
 
 
@@ -1649,7 +1682,7 @@ get_process_specific_value( Min, Max ) ->
 % Converts a registration scope into a look-up one.
 %
 % Note: only legit for a subset of the registration scopes, otherwise a case
-% clause is triggered..
+% clause is triggered.
 %
 % (helper)
 %

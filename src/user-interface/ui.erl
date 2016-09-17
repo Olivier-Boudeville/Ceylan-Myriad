@@ -122,8 +122,8 @@ display( FormatString, Values, UIState ) ->
 % Displays in-order the items of specified list and returns the index (starting
 % at 1) of the user-selected one.
 %
--spec display_numbered_list( text_utils:string(), [ text_utils:string() ],
-							 ui_state() ) -> choice_index().
+-spec display_numbered_list( string(), [ string() ], ui_state() ) -> 
+								   choice_index().
 display_numbered_list( Label, Choices, UIState ) ->
 	StringItems = text_utils:strings_to_enumerated_string( Choices ),
 	display( Label ++ "\n" ++ StringItems, UIState ).

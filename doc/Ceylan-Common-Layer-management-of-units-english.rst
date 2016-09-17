@@ -88,9 +88,9 @@ So one may use the following **built-in units**, whose symbol [#]_ is specified 
  - month [``month``] (correspondence to base time units unspecified, as this duration is not constant; ex: a month can be 29, 30 or 31 days)
  - year [``year``] (correspondence to base time units unspecified, as this duration is not constant; ex: a year can be 365, 366 or 365.25 days, etc.)
  - degree Celsius, for temperature relative to 273.15 K [``°C``] (see note below)
- - dimension-less quantities (ex: an index) [``unitless``] (probably clearer than ``m/m``)
- - a count, i.e. a unitless number, generally a positive integer [``count``] (ex: ``14``), considered as an alias of ``unitless``
- - a ratio, i.e. a unitless floating-point value, generally displayed as a percentage [``ratio``] (ex: ``-12.9%``); another alias of ``unitless``
+ - dimension-less quantities (ex: an index) [``dimensionless``] (most probably clearer than ``m/m``)
+ - a count, i.e. a dimensionless number, generally a positive integer [``count``] (ex: ``14``), considered as an alias of ``dimensionless``
+ - a ratio, i.e. a dimensionless floating-point value, generally displayed as a percentage [``ratio``] (ex: ``-12.9%``); another alias of ``dimensionless``
  - currencies, either [``$``] (US Dollar) or [``euros``] (Euro), whose exchange rates of course vary
  - values whose unit has not been specified [``unspecified_unit``]
 
@@ -200,4 +200,3 @@ A first level of support is to provide, like here, an API to manage units. Other
 3. to perfom *static* dimensional analysis, instead of checking units at runtime
 
 The two latter use cases can for example be at least partially covered by Haskell libraries.
-

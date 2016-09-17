@@ -41,7 +41,7 @@
 % String management functions.
 
 
-% Conversions between terms and strings.
+% Conversions between terms and strings (both ways).
 %
 -export([ term_to_string/1, term_to_string/2, term_to_string/3,
 		  integer_to_string/1, atom_to_string/1, pid_to_string/1,
@@ -61,13 +61,14 @@
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
 		  duration_to_string/1,
-		  format/2, bin_format/2 ]).
+		  format/2, bin_format/2
+		]).
 
 
 
 % Other string operations:
 %
--export([ uppercase_initial_letter/1,
+-export([ get_lexicographic_distance/2, uppercase_initial_letter/1,
 		  join/2,
 		  split/2, split_at_first/2, split_camel_case/1,
 
@@ -77,12 +78,14 @@
 
 		  is_uppercase/1, is_figure/1,
 		  remove_ending_carriage_return/1, remove_last_characters/2,
+		  remove_whitespaces/1,
 
 		  trim_whitespaces/1, trim_leading_whitespaces/1,
 		  trim_trailing_whitespaces/1,
 
+		  get_default_bullet/0, get_bullet_for_level/1,
 		  format_text_for_width/2, pad_string/2,
-		  is_string/1, is_list_of_strings/1 ]).
+		  is_string/1, is_non_empty_string/1, is_list_of_strings/1 ]).
 
 
 % Restructured-Text (RST) related functions.
@@ -161,10 +164,28 @@
 -type ustring() :: unicode_string().
 
 
+% The level of indentation (starts at zero, and the higher, the most nested).
+%
+-type indentation_level() :: basic_utils:count().
+
+
+% Lexicographic (Levenshtein) distance, i.e. minimum number of single-character
+% edits (i.e. insertions, deletions or substitutions) required to change one
+% string into the other:
+%
+-type distance() :: non_neg_integer().
+
+
 -export_type([ format_string/0, regex_string/0, title/0, label/0,
-			   bin_string/0, unicode_string/0, ustring/0, uchar/0 ]).
+			   bin_string/0, unicode_string/0, uchar/0, ustring/0,
+			   indentation_level/0, distance/0 ]).
 
 
+
+% This module being a bootstrap one, the 'table' pseudo-module is not available
+% (as this module is not processed by the 'Common' parse transform):
+%
+-define( table, map_hashtable ).
 
 
 % String management functions.
@@ -333,6 +354,32 @@ record_to_string( _Record ) -> % No 'when is_record( Record, Tag ) ->' here.
 
 
 
+% Returns the default bullet to be used for top-level lists.
+%
+-spec get_default_bullet() -> ustring().
+get_default_bullet() ->
+	get_bullet_for_level( 0 ).
+
+
+
+% Returns the bullet to be used for specified indentation level.
+%
+-spec get_bullet_for_level( indentation_level() ) ->  ustring().
+get_bullet_for_level( 0 ) ->
+	" + ";
+
+get_bullet_for_level( 1 ) ->
+	"  - ";
+
+get_bullet_for_level( 2 ) ->
+	"   * ";
+
+get_bullet_for_level( N ) when is_integer( N ) andalso N > 0 ->
+	Base = get_bullet_for_level( N rem 3 ),
+	string:copies( "   ", N div 3 ) ++ Base.
+
+
+
 % Returns a string which pretty-prints specified list of strings, with default
 % bullets.
 %
@@ -340,7 +387,7 @@ record_to_string( _Record ) -> % No 'when is_record( Record, Tag ) ->' here.
 string_list_to_string( ListOfStrings ) ->
 	% Leading '~n' had been removed for some unknown reason:
 	io_lib:format( "~n~ts", [ string_list_to_string(
-								ListOfStrings, _Acc=[], _Bullet=" + " ) ] ).
+					   ListOfStrings, _Acc=[], get_default_bullet() ) ] ).
 
 
 % Returns a string which pretty-prints specified list of strings, with
@@ -434,7 +481,8 @@ atom_list_to_string( [], Acc ) ->
 	 Acc;
 
 atom_list_to_string( [ H | T ], Acc ) when is_atom( H)  ->
-	atom_list_to_string( T, Acc ++ io_lib:format( " + ~ts~n", [ H ] ) ).
+	atom_list_to_string( T, Acc ++ get_default_bullet() ++
+							 io_lib:format(  "~ts~n", [ H ] ) ).
 
 
 
@@ -835,6 +883,85 @@ bin_format( FormatString, Values ) ->
 
 
 
+% Returns the lexicographic distance between the two specified strings, i.e. the
+% minimal number of single-character changes in order to transform one string
+% into the other one.
+%
+% The strings are equal iff returns zero.
+%
+% Directly inspired from
+% https://rosettacode.org/wiki/Levenshtein_distance#Erlang and, on
+% https://en.wikibooks.org,
+% wiki/Algorithm_Implementation/Strings/Levenshtein_distance#Erlang.
+%
+% See also: https://en.wikipedia.org/wiki/Levenshtein_distance
+%
+%-spec get_lexicographic_distance_variant( string(), string() ) -> distance().
+
+% This basic implementation is correct, yet way too inefficient:
+%get_lexicographic_distance_variant( FirstString, _SecondString=[] ) ->
+%	length( FirstString );
+
+%get_lexicographic_distance_variant( _FirstString=[], SecondString ) ->
+%	length( SecondString );
+
+%get_lexicographic_distance_variant( _FirstString=[ H | T1 ],
+%									_SecondString=[ H | T2 ] ) ->
+%	get_lexicographic_distance_variant( T1, T2 );
+
+%get_lexicographic_distance_variant( FirstString=[ _H1 | T1 ],
+%									SecondString=[ _H2 | T2 ] ) ->
+%	1 + lists:min( [ get_lexicographic_distance_variant( FirstString, T2 ),
+%					 get_lexicographic_distance_variant( T1, SecondString ),
+%					 get_lexicographic_distance_variant( T1, T2 )
+%			   ] ).
+
+
+% Significantly more efficient version, using memoization:
+%
+-spec get_lexicographic_distance( string(), string() ) -> distance().
+get_lexicographic_distance( FirstString, SecondString ) ->
+	{ Distance, _NewAccTable } = get_lexicographic_distance( FirstString,
+										 SecondString, _AccTable=?table:new() ),
+	Distance.
+
+
+% Actual helper:
+get_lexicographic_distance( _FirstString=[], SecondString, AccTable ) ->
+	Len = length( SecondString ),
+	NewTable = ?table:addEntry( _K={ [], SecondString }, _V=Len, AccTable ),
+	{ Len, NewTable };
+
+get_lexicographic_distance( FirstString, _SecondString=[], AccTable ) ->
+	Len = length( FirstString ),
+	NewTable = ?table:addEntry( _K={ FirstString, [] }, _V=Len, AccTable ),
+	{ Len, NewTable };
+
+get_lexicographic_distance( _FirstString=[ H | T1 ], _SecondString=[ H | T2 ],
+							AccTable ) ->
+	get_lexicographic_distance( T1, T2 , AccTable );
+
+get_lexicographic_distance( FirstString=[ _H1 | T1 ], SecondString=[ _H2 | T2 ],
+							AccTable ) ->
+	Key = { FirstString, SecondString },
+	case ?table:lookupEntry( Key, AccTable ) of
+
+		{ value, Distance } ->
+			{ Distance, AccTable };
+
+		key_not_found ->
+			{ Len1, Table1 } = get_lexicographic_distance( FirstString, T2,
+														   AccTable ),
+			{ Len2, Table2 } = get_lexicographic_distance( T1, SecondString,
+														   Table1 ),
+			{ Len3, Table3 } = get_lexicographic_distance( T1, T2, Table2 ),
+			Len = 1 + lists:min( [ Len1, Len2, Len3 ] ),
+			{ Len, ?table:addEntry( Key, Len, Table3 ) }
+
+	end.
+
+
+
 % Converts a plain (list-based) string into a binary.
 %
 -spec string_to_binary( ustring() ) -> binary().
@@ -1188,7 +1315,8 @@ remove_ending_carriage_return( String ) when is_list( String ) ->
 
 
 
-% Removes the last Count characters from String.
+% Removes the last Count characters from specified string, and returns the
+% result.
 %
 -spec remove_last_characters( ustring(), basic_utils:count() ) -> ustring().
 remove_last_characters( String, Count ) ->
@@ -1207,35 +1335,44 @@ remove_last_characters( String, Count ) ->
 	end.
 
 
+% Removes all whitespaces from specified string, and returns the result.
+%
+-spec remove_whitespaces( ustring() ) -> ustring().
+remove_whitespaces( String ) ->
+	re:replace( String, "\s", "", [ global, unicode, { return, list } ] ).
 
-% Removes all leading and trailing whitespaces.
+
+% Removes all leading and trailing whitespaces from specified string, and
+% returns the result.
 %
 -spec trim_whitespaces( ustring() ) -> ustring().
-trim_whitespaces( InputString ) ->
+trim_whitespaces( String ) ->
 
 	% Should be done in one pass:
-	trim_leading_whitespaces( trim_trailing_whitespaces( InputString ) ).
+	trim_leading_whitespaces( trim_trailing_whitespaces( String ) ).
 
 
 
-% Removes all leading whitespaces.
+% Removes all leading whitespaces from specified string, and returns the result.
 %
 -spec trim_leading_whitespaces( ustring() ) -> ustring().
-trim_leading_whitespaces( InputString ) ->
+trim_leading_whitespaces( String ) ->
 
 	% Largely inspired from http://www.trapexit.org/Trimming_Blanks_from_String:
-	re:replace( InputString, "^\\s*", "",
-				[ unicode, { return, list } ] ).
+	re:replace( String, "^\\s*", "", [ unicode, { return, list } ] ).
 
 
 
-% Removes all trailing whitespaces.
+% Removes all trailing whitespaces from specified string, and returns the
+% result.
 %
 -spec trim_trailing_whitespaces( ustring() ) -> ustring().
-trim_trailing_whitespaces( InputString ) ->
+trim_trailing_whitespaces( String ) ->
 
-	% The $ confuses some syntax highlighting systems (like the one of emacs):
-	re:replace( InputString, "\\s*$", "", [ unicode, { return, list } ] ).
+	% The $ confuses some syntax highlighting systems (like the one of some
+	% emacs):
+	%
+	re:replace( String, "\\s*$", "", [ unicode, { return, list } ] ).
 
 
 
@@ -1379,6 +1516,25 @@ is_string( [ _ | T ] ) ->
 	is_string( T );
 
 is_string( _Other ) ->
+	false.
+
+
+
+% Returns true iif the parameter is a (non-nested) non-empty string (actually a
+% plain list of at least one integer).
+%
+-spec is_non_empty_string( term() ) -> boolean().
+is_non_empty_string( [] ) ->
+	% Shall be not empty:
+	false;
+
+is_non_empty_string( [ H ] ) when is_integer( H ) ->
+	true;
+
+is_non_empty_string( [ H | T ] ) when is_integer( H ) ->
+	is_non_empty_string( T );
+
+is_non_empty_string( _Other ) ->
 	false.
 
 

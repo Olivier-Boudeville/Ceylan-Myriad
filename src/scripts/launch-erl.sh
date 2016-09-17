@@ -649,7 +649,7 @@ if [ $use_run_erl -eq 0 ] ; then
 
 	# while [ -z "$erl_pid" ] ; do
 
-	# erl_pid=$(ps -edF -w -w | grep beam.smp | grep "launch-erl-pid" | awk '{print $2}')
+	# erl_pid=$(ps -edf -w -w | grep beam.smp | grep "launch-erl-pid" | awk '{print $2}')
 	# ps -edf | grep beam.smp
 	# echo "erl_pid = $erl_pid"
 

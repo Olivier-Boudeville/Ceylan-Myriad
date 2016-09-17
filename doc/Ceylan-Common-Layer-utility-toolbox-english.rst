@@ -31,5 +31,6 @@ These helpers (code and typing information) are thematically aggregated in modul
 - support for operations at the **operating-system** level (``system_utils.{e,h}rl``)
 - services to handle **text** (``text_utils.erl``)
 - functions to manage **time** information (``time_utils.erl``)
+- a few helpers to ease the writing of `escripts <http://erlang.org/doc/man/escript.html>`_ relying on the Common layer (``script_utils.erl``)
 - services about all kinds of **units** (``unit_utils.erl``); refer to the `Management of Units`_ section below for more information
 - very basic facilities for **applications**, in ``app_facilities.{e,h}rl`` with an example (``most_basic_example_app.erl``)

@@ -1,4 +1,4 @@
-% Copyright (C) 2012-2016 Olivier Boudeville
+% Copyright (C) 2015-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -283,7 +283,7 @@
 
 % All kinds of units:
 -type units() :: time_units() | length_units() | volume_units() | mass_units()
-				| energy_units() | angle_units().
+			   | energy_units() | angle_units().
 
 -export_type([ units/0 ]).
 
@@ -347,27 +347,27 @@
 % - sievert, for equivalent dose of ionizing radiation [Sv]
 % - katal, for catalytic activity [kat]
 %
--type derived_unit_symbol() ::   'Hz'
-							   | 'rad'
-							   | 'sr'
-							   | 'N'
-							   | 'Pa'
-							   | 'J'
-							   | 'W'
-							   | 'C'
-							   | 'V'
-							   | 'F'
-							   | 'Ohm'
-							   | 'S'
-							   | 'T'
-							   | 'H'
-							   | '°C'
-							   | 'lm'
-							   | 'lx'
-							   | 'Bq'
-							   | 'Gy'
-							   | 'Sv'
-							   | 'kat'.
+-type derived_unit_symbol() :: 'Hz'
+							 | 'rad'
+							 | 'sr'
+							 | 'N'
+							 | 'Pa'
+							 | 'J'
+							 | 'W'
+							 | 'C'
+							 | 'V'
+							 | 'F'
+							 | 'Ohm'
+							 | 'S'
+							 | 'T'
+							 | 'H'
+							 | '°C'
+							 | 'lm'
+							 | 'lx'
+							 | 'Bq'
+							 | 'Gy'
+							 | 'Sv'
+							 | 'kat'.
 
 
 % The units widely used in conjunction with SI units:
@@ -377,33 +377,34 @@
 % - litre, for 10^-3 m^3 volumes [L]
 % - tonne, for 1,000 kilogram masses [t]
 % - electronvolt, for 1.602176565(35).10-19 joule energies  [eV]
--type widely_used_unit_symbol() ::   'min'
-								   | 'h'
-								   | 'L'
-								   | 't'
-								   | 'eV'.
+%
+-type widely_used_unit_symbol() :: 'min'
+								 | 'h'
+								 | 'L'
+								 | 't'
+								 | 'eV'.
 
 
 
 % The special units, designating:
 %
-% - dimension-less quantities (ex: a count), [unitless] (probably clearer
-% than m/m)
+% - dimension-less quantities (ex: a count), [dimensionless] (most probably
+% clearer than m/m)
 % - currencies, either [$] (US Dollar) or [euros] (Euro)
 % - values whose unit has not been specified [unspecified_unit]
 %
--type special_unit_symbol() ::   'unitless'
-							   | '$'
-							   | 'euros'
-							   | 'unspecified_unit'.
+-type special_unit_symbol() :: 'dimensionless'
+							 | '$'
+							 | 'euros'
+							 | 'unspecified_unit'.
 
 
 % All unit symbols (actually not used as such):
 %
--type unit_symbol() ::   base_unit_symbol()
-					   | derived_unit_symbol()
-					   | widely_used_unit_symbol()
-					   | special_unit_symbol().
+-type unit_symbol() :: base_unit_symbol()
+					 | derived_unit_symbol()
+					 | widely_used_unit_symbol()
+					 | special_unit_symbol().
 
 
 % The string counterparts of unit symbols (ex: "eV" instead of 'eV'), used for
@@ -470,8 +471,14 @@
 -type unit_string() :: string().
 
 
-% Canonical unit (relying on the 7 SI base units, an order of magnitude and a
-% mulpying factor), for the internal representation:
+% Binary counterpart of a unit string:
+%
+-type unit_bin_string() :: text_utils:bin_string().
+
+
+
+% Actual internal, canonical form for any unit (relying on the 7 SI base units,
+% an order of magnitude and a multiplying factor):
 %
 -record( canonical_unit, {
 
@@ -492,9 +499,10 @@
 
 	% Multiplying factor, introduced so that special units like hours can
 	% nevertheless be managed:
+	%
 	factor = 1.0 :: multiplying_factor()
 
-		  } ).
+} ).
 
 
 -type canonical_unit() :: #canonical_unit{}.
@@ -515,8 +523,8 @@
 							   | 'electronvolt'.
 
 
--type special_unit_name() ::  'unitless' | 'dollar' | 'euro'
-							| 'unspecified_unit'.
+-type special_unit_name() :: 'dimensionless' | 'dollar' | 'euro'
+						   | 'unspecified_unit'.
 
 
 -type unit_name() :: base_unit_name() | derived_unit_name()
@@ -529,13 +537,14 @@
 -type numerical_value() :: float().
 
 
--export_type([ unit_string/0, canonical_unit/0, numerical_value/0 ]).
+-export_type([ unit_string/0, unit_bin_string/0, canonical_unit/0,
+			   numerical_value/0 ]).
 
 % Unit management section.
 
 -export([ get_prefix_information/0, get_prefix_for_order/1,
 		  get_order_for_prefix/1,
-		  parse_value_with_unit/1,
+		  parse_value_with_unit/1, parse_unit/1,
 		  get_order/1, get_factor/1,
 		  unit_to_string/1, value_with_unit_to_string/2
 		]).
@@ -554,6 +563,19 @@
 
 
 -export([ human_time_to_milliseconds/5 ]).
+
+
+
+% Internal types.
+
+
+% Unit component:
+%
+-type unit_component() :: string().
+
+% The various supported kinds of component operators:
+%
+-type operator_kind() :: 'multiply' | 'divide'.
 
 
 
@@ -740,7 +762,7 @@ get_widely_used_unit_information() ->
 get_special_unit_information() ->
 	[
 
-	 { 'unitless',         "",      "none"     },
+	 { 'dimensionless',    "dimensionless",      "none"     },
 	 { 'dollar',           "$",     "currency" },
 	 { 'euro',             "euros", "currency" },
 	 { 'unspecified_unit', "",      "unknown"  }
@@ -797,9 +819,10 @@ get_order_for_prefix( PrefixSymbol ) ->
 
 
 
-% Parses specified string containing a value and its unit (ex: "-8.15
-% kW.m/h^2"), and returns them in a program-tractable form, i.e. a pair made of
-% the value (as a float) and the corresponding unit, in canonical form.
+% Parses specified string (expected to be a unit_string()) containing a value
+% and its unit (ex: "-8.15 kW.m/h^2"), and returns them in a program-tractable
+% form, i.e. a pair made of the value (as a float) and the corresponding unit,
+% in canonical form.
 %
 % The input format is the following (in order):
 %
@@ -824,7 +847,7 @@ get_order_for_prefix( PrefixSymbol ) ->
 % unit operator intercalated between two successive components (no whitespace
 % allowed).
 %
--spec parse_value_with_unit( unit_string() ) ->
+-spec parse_value_with_unit( string() ) ->
 								   { numerical_value(), canonical_unit() }.
 parse_value_with_unit( InputString ) ->
 
@@ -909,10 +932,12 @@ parse_unit( UnitString ) ->
 
 	% Transforms "km^3" into updated fields of the specified unit record:
 	MultUnit = interpret_components( MultComponents, multiply, BlankUnit ),
+	%io:format( "MultUnit = ~p~n", [ MultUnit ] ),
 
 	DivUnit = interpret_components( DivComponents, divide, MultUnit ),
+	%io:format( "DivUnit = ~p~n", [ DivUnit ] ),
 
-	%io:format( "Final unit: ~s~n", [ unit_to_string( DivUnit ) ] ),
+	%io:format( "Final unit: '~s'~n", [ unit_to_string( DivUnit ) ] ),
 
 	DivUnit.
 
@@ -922,7 +947,8 @@ parse_unit( UnitString ) ->
 % list of strings corresponding to multiplying unit components (ex: [ "kw", "m"
 % ]) and dividing ones (ex: [ "h^2" ]), and returns both lists.
 %
--spec split_unit_components( string() ) -> { [ string() ], [ string() ] }.
+-spec split_unit_components( string() ) ->
+				   { [ unit_component() ], [ unit_component() ] }.
 split_unit_components( UnitString ) ->
 	% AccString will accumulate the characters of the current component:
 	parse_components( UnitString, _MultList=[], _DivList=[], _AccString=[],
@@ -930,8 +956,11 @@ split_unit_components( UnitString ) ->
 
 
 % (helper)
+-spec parse_components( string(), [ unit_component() ], [ unit_component() ],
+						string(), operator_kind() ) ->
+							  { [ unit_component() ], [ unit_component() ] }.
 parse_components( _UnitString=[], MultList, DivList, AccString, AccKind ) ->
-	% All components parsed:
+	% All characters of (last) component parsed:
 	store_component_acc( AccString, AccKind, MultList, DivList );
 
 parse_components( _UnitString=[ $. | T ], MultList, DivList, AccString,
@@ -964,6 +993,9 @@ parse_components( _UnitString=[ H | T ], MultList, DivList,
 %
 % (helper)
 %
+-spec store_component_acc( unit_component(), operator_kind(),
+						   [ unit_component() ], [ unit_component() ] ) ->
+								 { [ unit_component() ], [ unit_component() ] }.
 store_component_acc( ComponentString, _Kind=multiply, MultList, DivList ) ->
 	Component = lists:reverse( ComponentString ),
 	{ [ Component | MultList ], DivList };
@@ -1075,7 +1107,7 @@ parse_component( ComponentString ) ->
 %
 -spec extract_prefix_and_unit( string() ) -> { magnitude_order(), unit_name() }.
 extract_prefix_and_unit( _PrefixedUnitString="" ) ->
-	{ _Order=0, _UnitName=dimension_less };
+	{ _Order=0, _UnitName=dimensionless };
 
 extract_prefix_and_unit( PrefixedUnitString ) ->
 
@@ -1105,8 +1137,8 @@ extract_prefix_and_unit( PrefixedUnitString ) ->
 -spec scan_for_unit_symbol( string(), [ string() ] ) ->
 							 { string(), unit_name() }.
 scan_for_unit_symbol( RevPrefixedUnitString, _RevUnitSymbols=[] ) ->
-	% No unit symbol found, so dimensionless, hence the whole is a prefix:
-	{ RevPrefixedUnitString, dimension_less };
+	% No unit symbol found, so dimension-less, hence the whole is a prefix:
+	{ RevPrefixedUnitString, dimensionless };
 
 scan_for_unit_symbol( RevPrefixedUnitString, [ RevUnitSymbol | T ] ) ->
 
@@ -1119,7 +1151,7 @@ scan_for_unit_symbol( RevPrefixedUnitString, [ RevUnitSymbol | T ] ) ->
 			scan_for_unit_symbol( RevPrefixedUnitString, T );
 
 		% A (reverse) unit symbol matches; by design it is the longer one,
-		% hence the unit is formally identified:
+		% hence the unit is formally identified.
 		%
 		RevPrefixString ->
 			UnitSymbol = lists:reverse( RevUnitSymbol ),
@@ -1155,6 +1187,8 @@ get_reversed_ordered_symbols_of_units() ->
 %
 % First, the 7 base SI units:
 %
+-spec integrate_to_canonical_unit( unit_name(), magnitude_order(), exponent(),
+								   canonical_unit() ) -> canonical_unit().
 integrate_to_canonical_unit( _UnitName=meter, ActualOrder, NormalisedExponent,
 				 CanonicalUnit=#canonical_unit{ meter=Exp, order=Order } ) ->
 	CanonicalUnit#canonical_unit{ meter=Exp+NormalisedExponent,
@@ -1195,214 +1229,170 @@ integrate_to_canonical_unit( _UnitName=candela, ActualOrder, NormalisedExponent,
 % Then the derived units:
 
 integrate_to_canonical_unit( _UnitName=hertz, ActualOrder, NormalisedExponent,
-				 CanonicalUnit=#canonical_unit{
-								  second=SecondExp,
-								  order=Order
-								 } ) ->
+				 CanonicalUnit=#canonical_unit{ second=SecondExp,
+												order=Order } ) ->
 
 	% A Hertz is s^-1:
-	CanonicalUnit#canonical_unit{
-								  second= SecondExp + NormalisedExponent * -1,
-								  order= Order + ActualOrder
-	 };
+	CanonicalUnit#canonical_unit{ second= SecondExp + NormalisedExponent * -1,
+								  order= Order + ActualOrder };
 
 
 % Not supported yet: degree, radian, steradian.
 
 integrate_to_canonical_unit( _UnitName=newton, ActualOrder, NormalisedExponent,
-							 CanonicalUnit=#canonical_unit{
-											  gram=GramExp,
-											  meter=MeterExp,
-											  second=SecondExp,
-											  order=Order
-											 } ) ->
+							 CanonicalUnit=#canonical_unit{ gram=GramExp,
+															meter=MeterExp,
+															second=SecondExp,
+															order=Order } ) ->
 
 	% A Newton is kg.m/s^2:
-	CanonicalUnit#canonical_unit{
-								  gram= GramExp + NormalisedExponent * 1,
+	CanonicalUnit#canonical_unit{ gram= GramExp + NormalisedExponent * 1,
 								  meter= MeterExp + NormalisedExponent * 1,
 								  second= SecondExp + NormalisedExponent * -2,
 								  % 3 is because we manage grams internally:
 								  order= Order + ActualOrder
-									 + NormalisedExponent * 3
-	 };
+									 + NormalisedExponent * 3 };
 
 
 integrate_to_canonical_unit( _UnitName=pascal, ActualOrder, NormalisedExponent,
-							 CanonicalUnit=#canonical_unit{
-											  gram=GramExp,
-											  meter=MeterExp,
-											  second=SecondExp,
-											  order=Order
-											 } ) ->
+							 CanonicalUnit=#canonical_unit{ gram=GramExp,
+															meter=MeterExp,
+															second=SecondExp,
+															order=Order } ) ->
 
 	% A Pascal is kg.m^-1.s^-2:
-	CanonicalUnit#canonical_unit{
-								  gram= GramExp + NormalisedExponent * 1,
+	CanonicalUnit#canonical_unit{ gram= GramExp + NormalisedExponent * 1,
 								  meter= MeterExp + NormalisedExponent * -1,
 								  second= SecondExp + NormalisedExponent * -2,
 								  % 3 is because we manage grams internally:
 								  order= Order + ActualOrder
-									 + NormalisedExponent * 3
-	 };
+									 + NormalisedExponent * 3 };
 
 
 integrate_to_canonical_unit( _UnitName=joule, ActualOrder, NormalisedExponent,
-							 CanonicalUnit=#canonical_unit{
-											  gram=GramExp,
-											  meter=MeterExp,
-											  second=SecondExp,
-											  order=Order
-											 } ) ->
+							 CanonicalUnit=#canonical_unit{ gram=GramExp,
+															meter=MeterExp,
+															second=SecondExp,
+															order=Order } ) ->
 
 	% A Joule is kg.m^2.s^-2:
-	CanonicalUnit#canonical_unit{
-								  gram= GramExp + NormalisedExponent * 1,
+	CanonicalUnit#canonical_unit{ gram= GramExp + NormalisedExponent * 1,
 								  meter= MeterExp + NormalisedExponent * 2,
 								  second= SecondExp + NormalisedExponent * -2,
 								  % 3 is because we manage grams internally:
 								  order= Order + ActualOrder
-									 + NormalisedExponent * 3
-	 };
+									 + NormalisedExponent * 3 };
 
 
 integrate_to_canonical_unit( _UnitName=watt, ActualOrder, NormalisedExponent,
-							 CanonicalUnit=#canonical_unit{
-											  gram=GramExp,
-											  meter=MeterExp,
-											  second=SecondExp,
-											  order=Order
-											 } ) ->
+							 CanonicalUnit=#canonical_unit{ gram=GramExp,
+															meter=MeterExp,
+															second=SecondExp,
+															order=Order } ) ->
 
 	% A Watt is kg.m^2.s^-3:
-	CanonicalUnit#canonical_unit{
-								  gram= GramExp + NormalisedExponent * 1,
+	CanonicalUnit#canonical_unit{ gram= GramExp + NormalisedExponent * 1,
 								  meter= MeterExp + NormalisedExponent * 2,
 								  second= SecondExp + NormalisedExponent * -3,
 								  % 3 is because we manage grams internally:
 								  order= Order + ActualOrder
-									 + NormalisedExponent * 3
-	 };
+									 + NormalisedExponent * 3 };
 
 
 integrate_to_canonical_unit( _UnitName=coulomb, ActualOrder, NormalisedExponent,
-							 CanonicalUnit=#canonical_unit{
-											  second=SecondExp,
-											  ampere=AmpereExp,
-											  order=Order
-											 } ) ->
+							 CanonicalUnit=#canonical_unit{ second=SecondExp,
+															ampere=AmpereExp,
+															order=Order } ) ->
 
 	% A Coulomb is s.A:
-	CanonicalUnit#canonical_unit{
-								  second= SecondExp + NormalisedExponent,
+	CanonicalUnit#canonical_unit{ second= SecondExp + NormalisedExponent,
 								  ampere = AmpereExp + NormalisedExponent,
-								  order= Order + ActualOrder
-	 };
+								  order= Order + ActualOrder };
 
 
 integrate_to_canonical_unit( _UnitName=volt, ActualOrder, NormalisedExponent,
-							 CanonicalUnit=#canonical_unit{
-											  gram=GramExp,
-											  meter=MeterExp,
-											  second=SecondExp,
-											  ampere=AmpereExp,
-											  order=Order
-											 } ) ->
+							 CanonicalUnit=#canonical_unit{ gram=GramExp,
+															meter=MeterExp,
+															second=SecondExp,
+															ampere=AmpereExp,
+															order=Order } ) ->
 
 	% A Volt is kg.m^2.s^-3.A^-1:
-	CanonicalUnit#canonical_unit{
-								  gram= GramExp + NormalisedExponent * 1,
+	CanonicalUnit#canonical_unit{ gram= GramExp + NormalisedExponent * 1,
 								  meter= MeterExp + NormalisedExponent * 2,
 								  second= SecondExp + NormalisedExponent * -3,
 								  ampere= AmpereExp + NormalisedExponent * -1,
 								  % 3 is because we manage grams internally:
 								  order= Order + ActualOrder
-									 + NormalisedExponent * 3
-	 };
+									 + NormalisedExponent * 3 };
 
 
 integrate_to_canonical_unit( _UnitName=farad, ActualOrder, NormalisedExponent,
-							 CanonicalUnit=#canonical_unit{
-											  gram=GramExp,
-											  meter=MeterExp,
-											  second=SecondExp,
-											  ampere=AmpereExp,
-											  order=Order
-											 } ) ->
+							 CanonicalUnit=#canonical_unit{ gram=GramExp,
+															meter=MeterExp,
+															second=SecondExp,
+															ampere=AmpereExp,
+															order=Order } ) ->
 
 	% A Farad is kg^-1.m^-2.s^4.A^2:
-	CanonicalUnit#canonical_unit{
-								  gram= GramExp + NormalisedExponent * -1,
+	CanonicalUnit#canonical_unit{ gram= GramExp + NormalisedExponent * -1,
 								  meter= MeterExp + NormalisedExponent * -2,
 								  second= SecondExp + NormalisedExponent * 4,
 								  ampere= AmpereExp + NormalisedExponent * 2,
 								  % -3 is because we manage grams internally:
 								  order= Order + ActualOrder
-									 + NormalisedExponent * -3
-	 };
+									 + NormalisedExponent * -3 };
 
 
 integrate_to_canonical_unit( _UnitName=ohm, ActualOrder, NormalisedExponent,
-							 CanonicalUnit=#canonical_unit{
-											  gram=GramExp,
-											  meter=MeterExp,
-											  second=SecondExp,
-											  ampere=AmpereExp,
-											  order=Order
-											 } ) ->
+							 CanonicalUnit=#canonical_unit{ gram=GramExp,
+															meter=MeterExp,
+															second=SecondExp,
+															ampere=AmpereExp,
+															order=Order } ) ->
 
 	% A Ohm is kg.m^2.s^-3.A^-2:
-	CanonicalUnit#canonical_unit{
-								  gram= GramExp + NormalisedExponent * 1,
+	CanonicalUnit#canonical_unit{ gram= GramExp + NormalisedExponent * 1,
 								  meter= MeterExp + NormalisedExponent * 2,
 								  second= SecondExp + NormalisedExponent * -3,
 								  ampere= AmpereExp + NormalisedExponent * -2,
 								  % 3 is because we manage grams internally:
 								  order= Order + ActualOrder
-									 + NormalisedExponent * 3
-	 };
+									 + NormalisedExponent * 3 };
 
 
 integrate_to_canonical_unit( _UnitName=siemens, ActualOrder, NormalisedExponent,
-							 CanonicalUnit=#canonical_unit{
-											  gram=GramExp,
-											  meter=MeterExp,
-											  second=SecondExp,
-											  ampere=AmpereExp,
-											  order=Order
-											 } ) ->
+							 CanonicalUnit=#canonical_unit{ gram=GramExp,
+															meter=MeterExp,
+															second=SecondExp,
+															ampere=AmpereExp,
+															order=Order } ) ->
 
 	% A Siemens is kg^-1.m^-2.s^3.A^2:
-	CanonicalUnit#canonical_unit{
-								  gram= GramExp + NormalisedExponent * -1,
+	CanonicalUnit#canonical_unit{ gram= GramExp + NormalisedExponent * -1,
 								  meter= MeterExp + NormalisedExponent * -2,
 								  second= SecondExp + NormalisedExponent * 3,
 								  ampere= AmpereExp + NormalisedExponent * 2,
 								  % -3 is because we manage grams internally:
 								  order= Order + ActualOrder
-									 + NormalisedExponent * -3
-	 };
+									 + NormalisedExponent * -3 };
 
 
 integrate_to_canonical_unit( _UnitName=weber, ActualOrder, NormalisedExponent,
-							 CanonicalUnit=#canonical_unit{
-											  gram=GramExp,
-											  meter=MeterExp,
-											  second=SecondExp,
-											  ampere=AmpereExp,
-											  order=Order
-											 } ) ->
+							 CanonicalUnit=#canonical_unit{ gram=GramExp,
+															meter=MeterExp,
+															second=SecondExp,
+															ampere=AmpereExp,
+															order=Order } ) ->
 
 	% A Weber is kg.m^2.s^-2.A^-1:
-	CanonicalUnit#canonical_unit{
-								  gram= GramExp + NormalisedExponent * 1,
+	CanonicalUnit#canonical_unit{ gram= GramExp + NormalisedExponent * 1,
 								  meter= MeterExp + NormalisedExponent * 2,
 								  second= SecondExp + NormalisedExponent * -2,
 								  ampere= AmpereExp + NormalisedExponent * -1,
 								  % 3 is because we manage grams internally:
 								  order= Order + ActualOrder
-									 + NormalisedExponent * 3
-	 };
+									 + NormalisedExponent * 3 };
 
 
 integrate_to_canonical_unit( _UnitName=tesla, ActualOrder, NormalisedExponent,
@@ -1414,127 +1404,107 @@ integrate_to_canonical_unit( _UnitName=tesla, ActualOrder, NormalisedExponent,
 											 } ) ->
 
 	% A Tesla is kg.s^2.A^-1:
-	CanonicalUnit#canonical_unit{
-								  gram= GramExp + NormalisedExponent * 1,
+	CanonicalUnit#canonical_unit{ gram= GramExp + NormalisedExponent * 1,
 								  second= SecondExp + NormalisedExponent * 2,
 								  ampere= AmpereExp + NormalisedExponent * -1,
 								  % 3 is because we manage grams internally:
 								  order= Order + ActualOrder
-									 + NormalisedExponent * 3
-	 };
+									 + NormalisedExponent * 3 };
 
 
 integrate_to_canonical_unit( _UnitName=henry, ActualOrder, NormalisedExponent,
-							 CanonicalUnit=#canonical_unit{
-											  gram=GramExp,
-											  meter=MeterExp,
-											  second=SecondExp,
-											  ampere=AmpereExp,
-											  order=Order
-											 } ) ->
+							 CanonicalUnit=#canonical_unit{ gram=GramExp,
+															meter=MeterExp,
+															second=SecondExp,
+															ampere=AmpereExp,
+															order=Order } ) ->
 
 	% A Henry is kg.m^2.s^-2.A^-2:
-	CanonicalUnit#canonical_unit{
-								  gram= GramExp + NormalisedExponent * 1,
+	CanonicalUnit#canonical_unit{ gram= GramExp + NormalisedExponent * 1,
 								  meter= MeterExp + NormalisedExponent * 2,
 								  second= SecondExp + NormalisedExponent * -2,
 								  ampere= AmpereExp + NormalisedExponent * -2,
 								  % 3 is because we manage grams internally:
 								  order= Order + ActualOrder
-									 + NormalisedExponent * 3
-	 };
+									 + NormalisedExponent * 3 };
 
 
-% Not supported yet: degree Celsius.
+% Not supported yet: degree Celsius; problem is that it is not a multiple of the
+% K (Kelvin) unit; so even the 'factor' field would not be sufficient to support
+% this affine, very unusual relationship between these units).
+%
+% Either the value would have to be modified (whereas we only have here the
+% unit), or additional fields would be required, such as 'offset': ActualValue =
+% Value * Factor * (exponent and all) + Offset.
+%
+% There could even be pre- and post-offsets (ex: ActualValue = ( Value +
+% PreOffset) * Factor * (exponent and all) + PostOffset.
+
 
 integrate_to_canonical_unit( _UnitName=lumen, ActualOrder, NormalisedExponent,
-							 CanonicalUnit=#canonical_unit{
-											  candela=CandelaExp,
-											  order=Order
-											 } ) ->
+							 CanonicalUnit=#canonical_unit{ candela=CandelaExp,
+															order=Order } ) ->
 
 	% A lumen is cd (exactly)
-	CanonicalUnit#canonical_unit{
-								  candela= CandelaExp + NormalisedExponent * 1,
-								  order= Order + ActualOrder
-	 };
+	CanonicalUnit#canonical_unit{ candela= CandelaExp + NormalisedExponent * 1,
+								  order= Order + ActualOrder };
 
 
 integrate_to_canonical_unit( _UnitName=lux, ActualOrder, NormalisedExponent,
-							 CanonicalUnit=#canonical_unit{
-											  meter=MeterExp,
-											  candela=CandelaExp,
-											  order=Order
-											 } ) ->
+							 CanonicalUnit=#canonical_unit{ meter=MeterExp,
+															candela=CandelaExp,
+															order=Order } ) ->
 
 	% A lux is m^-2.cd:
-	CanonicalUnit#canonical_unit{
-								  meter= MeterExp + NormalisedExponent * -2,
+	CanonicalUnit#canonical_unit{ meter= MeterExp + NormalisedExponent * -2,
 								  candela= CandelaExp + NormalisedExponent * 1,
-								  order= Order + ActualOrder
-	 };
+								  order= Order + ActualOrder };
 
 
 integrate_to_canonical_unit( _UnitName=becquerel, ActualOrder,
 							 NormalisedExponent,
-							 CanonicalUnit=#canonical_unit{
-											  second=SecondExp,
-											  order=Order
-											 } ) ->
+							 CanonicalUnit=#canonical_unit{ second=SecondExp,
+															order=Order } ) ->
 
 	% A Becquerel is s^-1:
-	CanonicalUnit#canonical_unit{
-								  second= SecondExp + NormalisedExponent * -1,
-								  order= Order + ActualOrder
-	 };
+	CanonicalUnit#canonical_unit{ second= SecondExp + NormalisedExponent * -1,
+								  order= Order + ActualOrder };
 
 
 integrate_to_canonical_unit( _UnitName=gray, ActualOrder,
 							 NormalisedExponent,
-							 CanonicalUnit=#canonical_unit{
-											  meter=MeterExp,
-											  second=SecondExp,
-											  order=Order
-											 } ) ->
+							 CanonicalUnit=#canonical_unit{ meter=MeterExp,
+															second=SecondExp,
+															order=Order } ) ->
 
 	% A Gray is m^2.s^-2:
-	CanonicalUnit#canonical_unit{
-								  meter= MeterExp + NormalisedExponent * 2,
+	CanonicalUnit#canonical_unit{ meter= MeterExp + NormalisedExponent * 2,
 								  second= SecondExp + NormalisedExponent * -2,
-								  order= Order + ActualOrder
-	 };
+								  order= Order + ActualOrder };
 
 
 integrate_to_canonical_unit( _UnitName=sievert, ActualOrder,
 							 NormalisedExponent,
-							 CanonicalUnit=#canonical_unit{
-											  meter=MeterExp,
-											  second=SecondExp,
-											  order=Order
-											 } ) ->
+							 CanonicalUnit=#canonical_unit{ meter=MeterExp,
+															second=SecondExp,
+															order=Order } ) ->
 
 	% A Sievert is m^2.s^−2 (like Gray):
-	CanonicalUnit#canonical_unit{
-								  meter= MeterExp + NormalisedExponent * 2,
+	CanonicalUnit#canonical_unit{ meter= MeterExp + NormalisedExponent * 2,
 								  second= SecondExp + NormalisedExponent * -2,
-								  order= Order + ActualOrder
-	 };
+								  order= Order + ActualOrder };
 
 
 integrate_to_canonical_unit( _UnitName=katal, ActualOrder,
 							 NormalisedExponent,
-							 CanonicalUnit=#canonical_unit{
-											  mole=MoleExp,
-											  second=SecondExp,
-											  order=Order
-											 } ) ->
+							 CanonicalUnit=#canonical_unit{ mole=MoleExp,
+															second=SecondExp,
+															order=Order	 } ) ->
 
 	% A Katal is s^-1.mol:
-	CanonicalUnit#canonical_unit{
-								  mole= MoleExp + NormalisedExponent * 1,
+	CanonicalUnit#canonical_unit{ mole= MoleExp + NormalisedExponent * 1,
 								  second= SecondExp + NormalisedExponent * -1,
-								  order= Order + ActualOrder
-	 };
+								  order= Order + ActualOrder };
 
 
 
@@ -1542,60 +1512,44 @@ integrate_to_canonical_unit( _UnitName=katal, ActualOrder,
 % Then the widely used units:
 
 integrate_to_canonical_unit( _UnitName=minute, ActualOrder, NormalisedExponent,
-							 CanonicalUnit=#canonical_unit{
-											  second=SecondExp,
-											  order=Order,
-											  factor=Factor
-											 } ) ->
+							 CanonicalUnit=#canonical_unit{ second=SecondExp,
+															order=Order,
+															factor=Factor } ) ->
 	% A minute is 60 s:
-	CanonicalUnit#canonical_unit{
-								  second= SecondExp + NormalisedExponent,
+	CanonicalUnit#canonical_unit{ second= SecondExp + NormalisedExponent,
 								  order= Order + ActualOrder,
 								  factor= Factor *
-									  math:pow( 60, NormalisedExponent )
-	 };
+									  math:pow( 60, NormalisedExponent ) };
 
 
 integrate_to_canonical_unit( _UnitName=hour, ActualOrder, NormalisedExponent,
-							 CanonicalUnit=#canonical_unit{
-											  second=SecondExp,
-											  order=Order,
-											  factor=Factor
-											 } ) ->
+							 CanonicalUnit=#canonical_unit{ second=SecondExp,
+															order=Order,
+															factor=Factor } ) ->
 	% An hour is 3600 s:
-	CanonicalUnit#canonical_unit{
-								  second= SecondExp + NormalisedExponent,
+	CanonicalUnit#canonical_unit{ second= SecondExp + NormalisedExponent,
 								  order= Order + ActualOrder
 									 + NormalisedExponent * 3,
 								  factor= Factor *
-									  math:pow( 3.6, NormalisedExponent )
-	 };
+									  math:pow( 3.6, NormalisedExponent ) };
 
 
 integrate_to_canonical_unit( _UnitName=litre, ActualOrder, NormalisedExponent,
-							 CanonicalUnit=#canonical_unit{
-											  meter=MeterExp,
-											  order=Order
-								 } ) ->
+							 CanonicalUnit=#canonical_unit{ meter=MeterExp,
+															order=Order } ) ->
 	% A litre is 10^-3 m^3:
-	CanonicalUnit#canonical_unit{
-								  meter= MeterExp + NormalisedExponent * 3,
+	CanonicalUnit#canonical_unit{ meter= MeterExp + NormalisedExponent * 3,
 								  order= Order + ActualOrder
-									 + NormalisedExponent * -3
-	 };
+									 + NormalisedExponent * -3 };
 
 
 integrate_to_canonical_unit( _UnitName=tonne, ActualOrder, NormalisedExponent,
-							 CanonicalUnit=#canonical_unit{
-								  gram=GramExp,
-								  order=Order
-								 } ) ->
+							 CanonicalUnit=#canonical_unit{ gram=GramExp,
+															order=Order } ) ->
 	% A tonne is 10^6 g:
-	CanonicalUnit#canonical_unit{
-								  gram= GramExp + NormalisedExponent * 1,
+	CanonicalUnit#canonical_unit{ gram= GramExp + NormalisedExponent * 1,
 								  order= Order + ActualOrder
-									 + NormalisedExponent * 6
-	 };
+									 + NormalisedExponent * 6 };
 
 
 integrate_to_canonical_unit( _UnitName=electronvolt, ActualOrder,
@@ -1613,16 +1567,14 @@ integrate_to_canonical_unit( _UnitName=electronvolt, ActualOrder,
 								   factor = Factor * 1.602176620898 } );
 
 
-integrate_to_canonical_unit( _UnitName=dimension_less, _ActualOrder=0,
+integrate_to_canonical_unit( _UnitName=dimensionless, _ActualOrder=0,
 							 _NormalisedExponent=1,
-							 CanonicalUnit=#canonical_unit{
-								 } ) ->
+							 CanonicalUnit=#canonical_unit{} ) ->
 	CanonicalUnit;
 
-integrate_to_canonical_unit( _UnitName=dimension_less, ActualOrder,
-							 NormalisedExponent,
-							 _CanonicalUnit ) ->
-	throw( { invalid_dimension_less, ActualOrder, NormalisedExponent } );
+integrate_to_canonical_unit( _UnitName=dimensionless, ActualOrder,
+							 NormalisedExponent, _CanonicalUnit ) ->
+	throw( { invalid_dimensionless, ActualOrder, NormalisedExponent } );
 
 
 % Then the special units:
@@ -1639,9 +1591,10 @@ integrate_to_canonical_unit( UnitName, _ActualOrder, _NormalisedExponent,
 
 
 
-% Converts a unit symbol (ex: 'Cd') into a unit name (ex: 'candela'):
+% Converts a unit symbol, as a string (ex: "Cd") into a unit name (ex:
+% 'candela'):
 %
--spec unit_symbol_to_name( unit_symbol() ) -> unit_name().
+-spec unit_symbol_to_name( unit_string_symbol() ) -> unit_name().
 unit_symbol_to_name( UnitSymbol ) ->
 
 	% Tuple example: { 'meter', "m", "length" }:
@@ -1763,7 +1716,7 @@ pure_unit_to_string( Unit ) ->
 	%SortedStrings = case [ S || { S, _Exp } <- SortedInfos ] of
 
 	%					[] ->
-	%						[ "dimension-less" ];
+	%						[ "dimensionless" ];
 
 	%					L ->
 	%						L
@@ -1772,6 +1725,7 @@ pure_unit_to_string( Unit ) ->
 
 	SortedStrings = [ S || { S, _Exp } <- SortedInfos ],
 
+	% May be an empty string:
 	text_utils:join( ".", SortedStrings ).
 
 
@@ -1824,7 +1778,16 @@ unit_to_string( Unit ) ->
 	end,
 
 	% At least to flatten:
-	text_utils:format( "~s~s~s", [ UnitString, FactorString, OrderString ] ).
+	case text_utils:format( "~s~s~s",
+							[ UnitString, FactorString, OrderString ] ) of
+
+		"" ->
+			"dimensionless";
+
+		R ->
+			R
+
+	end.
 
 
 

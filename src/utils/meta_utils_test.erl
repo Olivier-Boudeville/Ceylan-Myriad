@@ -134,6 +134,10 @@ run() ->
 
 	ModuleInfo = meta_utils:extract_module_info_from_ast( ModuleAST ),
 
+	TermString = "[ {tiger,[lion,leopard]} ]",
+
+	[ {tiger, [ lion, leopard ] } ] = meta_utils:string_to_value( TermString ),
+
 	test_facilities:display( meta_utils:module_info_to_string( ModuleInfo ) ),
 
 	test_facilities:stop().

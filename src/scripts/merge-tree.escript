@@ -211,7 +211,7 @@ start_user_service( LogFilename ) ->
 
 % Displays and logs specified text.
 %
--spec trace( text_utils:string(), user_state() ) -> user_state().
+-spec trace( string(), user_state() ) -> user_state().
 trace( Message, _UserState={ UIState, LogFile } ) ->
 	NewUIState = ui:trace( Message, UIState ),
 	file_utils:write( LogFile, Message ++ "\n" ),
@@ -233,7 +233,7 @@ trace( FormatString, Values, _UserState={ UIState, LogFile } ) ->
 
 % Displays and logs specified debug text.
 %
--spec trace_debug( text_utils:string(), user_state() ) -> user_state().
+-spec trace_debug( string(), user_state() ) -> user_state().
 trace_debug( Message, _UserState={ UIState, LogFile } ) ->
 	%NewUIState = ui:trace( Message, UIState ),
 	file_utils:write( LogFile, Message ++ "\n" ),
@@ -636,7 +636,7 @@ manage_duplicates( ContentTable, UserState ) ->
 						_Acc={ AccDupEntries, AccUniqueTable } ) ->
 						   % Single content, hence unique:
 						   { AccDupEntries,
-								 ?table:addEntry( Md5Key, V, 
+								 ?table:addEntry( Md5Key, V,
 												  AccUniqueTable ) } ;
 
 					  ( Entry={ _Md5Key, _DuplicateList },
@@ -734,7 +734,7 @@ manage_duplicate( FileEntries, DuplicationCaseCount, TotalDupCaseCount, Size,
 	throw( the_end ).
 	%% case ui:select_option( Options ) of
 
-	%% 	'l' ->
+	%%	'l' ->
 
 	%% ui:display( "Choose among: (l) leave them as they are
 	%% %case ui:
@@ -743,7 +743,7 @@ manage_duplicate( FileEntries, DuplicationCaseCount, TotalDupCaseCount, Size,
 
 % Returns a textual description of specified tree entry.
 %
--spec tree_entry_to_string( tree_entry() ) -> text_utils:string().
+-spec tree_entry_to_string( tree_entry() ) -> string().
 tree_entry_to_string( #tree_entry{
 		   root=RootDir,
 		   entries=Table,
@@ -777,7 +777,7 @@ tree_entry_to_string( #tree_entry{
 
 % Returns a textual description of specified file entry.
 %
--spec file_entry_to_string( file_entry() ) -> text_utils:string().
+-spec file_entry_to_string( file_entry() ) -> string().
 file_entry_to_string( #file_entry{
 						 path=Path,
 						 size=Size,
