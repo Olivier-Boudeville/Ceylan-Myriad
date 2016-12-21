@@ -19,8 +19,8 @@ Later discussed:
 
 - HDF5 support
 - REST support
-- language support (ex: Python, Java, Haskell)
-
+- third-party language bindings (ex: Python, Java, Haskell)
+- RDF support
 
 Even if this is not an exhaustive walk-through, each of them will be detailed in turn. Next level of detail is to peer at the source files that are mentioned below, as they include many implementation notes, comments and typing information.
 

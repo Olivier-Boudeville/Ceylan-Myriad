@@ -108,14 +108,15 @@
 -export([ is_batch/0 ]).
 
 
+
 % Looks-up specified executable program, whose name is specified as a string
 % (ex: "gcc") in the current user PATH.
 %
 % Returns the absolute filename of the executable program (ex: "/usr/bin/gcc"),
 % or the 'false' atom if it was not found.
 %
--spec lookup_executable( file_utils:file_name() )
-					   -> file_utils:path() | 'false'.
+-spec lookup_executable( file_utils:file_name() ) ->
+							   file_utils:path() | 'false'.
 lookup_executable( ExecutableName ) ->
 	% Similar to a call to 'type':
 	os:find_executable( ExecutableName ).

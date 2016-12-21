@@ -1,4 +1,4 @@
-% Copyright (C) 2007-2016 Olivier Boudeville
+% Copyright (C) 2007-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -126,14 +126,16 @@
 -type uuid() :: string().
 
 
-% The reason may be any term:
+% Term designated a reason (which may be any term):
 %
--type exit_reason() :: any().
+% Note: useful to have self-describing types.
+%
+-type reason() :: any().
 
 
-% This reason as well may be any term:
-%
--type error_reason() :: any().
+-type exit_reason() :: reason().
+
+-type error_reason() :: reason().
 
 
 % Error term:
@@ -260,7 +262,7 @@
 
 -export_type([
 
-			  void/0, count/0, bit_mask/0, uuid/0, exit_reason/0,
+			  void/0, count/0, bit_mask/0, uuid/0, reason/0, exit_reason/0,
 			  error_reason/0, error_term/0, base_status/0, maybe/1,
 			  external_data/0, unchecked_data/0, user_data/0,
 			  accumulator/0, sortable_id/0,
@@ -799,8 +801,9 @@ generate_uuid() ->
 	case executable_utils:lookup_executable( "uuidgen" ) of
 
 		false ->
-			display( "~nWarning: no 'uuidgen' found on system, "
-					 "defaulting to our failsafe implementation.~n" ),
+			display( text_utils:format(
+					   "~nWarning: no 'uuidgen' found on system, "
+					   "defaulting to our failsafe implementation.~n", [] ) ),
 			uuidgen_internal();
 
 		Exec ->
@@ -838,8 +841,8 @@ uuidgen_internal() ->
 				  io_lib:format( "~.16B", [ B rem 16 ] ) ) )  || B <- Output ],
 
 			lists:flatten( io_lib:format(
-							 "~s~s~s~s~s~s~s~s-~s~s~s~s-~s~s~s~s-~s~s~s~s-"
-							 "~s~s~s~s~s~s~s~s~s~s~s~s", V ) );
+							 "~s~s~s~s~s~s~s~s-~s~s~s~s-~s~s~s~s-~s~s~s~s-~s"
+							 "~s~s~s~s~s~s~s~s~s~s~s", V ) );
 
 		{ ErrorCode, ErrorOutput } ->
 			throw( { uuidgen_internal_failed, ErrorCode, ErrorOutput } )

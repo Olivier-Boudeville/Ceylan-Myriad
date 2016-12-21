@@ -59,7 +59,7 @@
 
 % listimpl-relation operations:
 %
--export([ safe_listimpl_delete/2, listimpl_add/2 ]).
+-export([ listimpl_delete/2, safe_listimpl_delete/2, listimpl_add/2 ]).
 
 
 
@@ -453,7 +453,8 @@ delete_all_in( Elem, _List=[ H | T ], Acc ) ->
 %
 % Ex: append_at_end( d, [a,b,c] ) returns [a,b,c,d].
 %
-% Note: usually such an addition should be avoided, as it is costly.
+% Note: usually adding elements at the end of a list should be avoided, as it is
+% costlier than adding them at head.
 %
 -spec append_at_end( any(), list() ) -> nonempty_list().
 append_at_end( Elem, L ) when is_list( L ) ->
@@ -596,11 +597,26 @@ reconstruct_tuples( List, TupleSize, Acc ) ->
 
 
 
-% Section for listimpl-relation operations.
+% Section for listimpl-related operations.
+
+
+% Removes the specified element from the specified list, and returns the
+% resulting list.
+%
+% Note: does not fail if the element was not in the list; use
+% safe_listimpl_delete/2 to ensure that the element was present.
+%
+-spec listimpl_delete( term(), ?list_impl_type ) -> ?list_impl_type.
+listimpl_delete( Element, List ) ->
+	?list_impl:del_element( Element, List ).
+
 
 
 % Ensures that the specified element was indeed in the specified list before
 % removing it and returning the resulting list.
+%
+% Note: use_listimpl_delete/2 to delete without checking whether the element is
+% present in the list.
 %
 -spec safe_listimpl_delete( term(), ?list_impl_type ) -> ?list_impl_type.
 safe_listimpl_delete( Element, List ) ->
@@ -615,9 +631,6 @@ safe_listimpl_delete( Element, List ) ->
 					?list_impl:to_list( List ) } )
 
 	end.
-
-	% Quicker, less safe (no checking) version:
-	%?list_impl:del_element( Element, List );
 
 
 
