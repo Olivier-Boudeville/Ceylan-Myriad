@@ -45,4 +45,5 @@ run() ->
 	test_facilities:display( "SSH mute option: '~s'.",
 							 [ executable_utils:get_ssh_mute_option() ] ),
 
+
 	test_facilities:stop().
