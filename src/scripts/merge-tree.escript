@@ -5,7 +5,7 @@
 % Commented out: -pa ../utils
 
 
-% Copyright (C) 2016-2016 Olivier Boudeville (olivier.boudeville@esperide.com)
+% Copyright (C) 2016-2017 Olivier Boudeville (olivier.boudeville@esperide.com)
 
 % Released as LGPL software.
 
@@ -16,7 +16,7 @@
 
 -define( default_log_filename, "merge-tree.log" ).
 
-% Short of having the parse transform allowing 'table':
+% Short of having in an escript our parse transform allowing for 'table':
 -define( table, map_hashtable ).
 
 
@@ -40,19 +40,19 @@
 		   entries = ?table:new() :: ?table:?table( executable_utils:md5_sum(),
 													[ file_entry() ] ),
 
-		   % Count of the regular files found in tree:
+		   % Total count of the regular files found in this tree:
 		   file_count = 0 :: basic_utils:count(),
 
-		   % Count of the directories found in tree:
+		   % Total count of the directories found in this tree:
 		   directory_count = 0 :: basic_utils:count(),
 
-		   % Count of the symbolic links found in tree:
+		   % Total count of the symbolic links found in this tree:
 		   symlink_count = 0 :: basic_utils:count(),
 
-		   % Count of the device found in tree:
+		   % Total count of the device found in this tree:
 		   device_count = 0 :: basic_utils:count(),
 
-		   % Count of the other elements found in tree:
+		   % Total count of the other elements found in this tree:
 		   other_count = 0 :: basic_utils:count()
 
 }).
@@ -99,14 +99,15 @@
 get_usage() ->
 	"   Usage:\n"
 	"      - either: merge-tree.escript SOURCE_TREE TARGET_TREE\n"
-	"      - or: merge-tree.escript --scan TREE\n\n"
-	"   Ensures that all the changes in a supposedly more up-to-date tree (SOURCE_TREE) are merged back to the reference tree (TARGET_TREE), from which the source one derivated. Once executed, only a refreshed reference target tree will exist, as the input SOURCE_TREE will be removed since all its content will have been put back in the reference TARGET_TREE.\n"
-	"   In-tree duplicated content will be removed and replaced by symbolic links, to keep a single version of each actual content.\n"
+	"      - or: merge-tree.escript --scan A_TREE\n\n"
+	"   Ensures that all the changes in a possibly more up-to-date tree (SOURCE_TREE) are merged back to the reference tree (TARGET_TREE), from which the source one derivated. Once executed, only a refreshed reference target tree will exist, as the input SOURCE_TREE will be removed since all the content of its own will have been put back in the reference TARGET_TREE.\n"
+	"   In the reference tree, in-tree duplicated content will be removed and replaced by symbolic links, to keep only a single version of each actual content.\n"
 	"   All the timestamps of the files in the reference tree will be set to the current time, and, at the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to spare later computations of the file checksums.\n"
-	"   If the --scan option is used, then the specified tree will be inspected and a corresponding '" ?merge_cache_filename "' file will be created (potentially reused for a later merge)".
+	"   If the --scan option is used, then the specified tree will be inspected, duplicates will be replaced with symbolic links, and a corresponding '" ?merge_cache_filename "' file will be created (to be potentially reused by a later merge)".
 
 
-% This script depends on the 'Common' layer, and only on that code.
+% This script depends on the 'Common' layer (a.k.a. Ceylan-Myriad), and only on
+% that code.
 
 
 % Implementation notes:
@@ -114,7 +115,7 @@ get_usage() ->
 % - merge cache files could/should use a compressed form ('compress' option).
 %
 % - the 'table' pseudo-module cannot be used, as escripts are (currently) not
-% parse-transformed; '?table' is used instead
+% parse-transformed; so '?table' is used instead
 %
 % - at least currently we only focus on (regular) files, hence the counts for
 % directories and all remain null
