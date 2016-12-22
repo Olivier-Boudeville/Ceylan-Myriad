@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2009-2016 Olivier Boudeville
+# Copyright (C) 2009-2017 Olivier Boudeville
 #
 # This file is part of the Ceylan-Myriad project.
 
@@ -9,12 +9,12 @@ LANG=C; export LANG
 
 
 # Current stable:
-erlang_version="19.1"
-erlang_md5="19dfbc2042e6dd40bf281e7ca2d49d43"
+erlang_version="19.2"
+erlang_md5="7cdd18a826dd7bda0ca46d1c3b2efca6"
 
 # Previous version (ex: cutting-edge or previous stable version):
-erlang_version_candidate="19.0"
-erlang_md5_candidate="f64eefc697d47193444aa224d971f367"
+erlang_version_candidate="19.1"
+erlang_md5_candidate="19dfbc2042e6dd40bf281e7ca2d49d43"
 
 
 plt_file="Erlang-$erlang_version.plt"
