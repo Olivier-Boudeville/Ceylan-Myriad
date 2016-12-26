@@ -11,9 +11,6 @@
 %
 % - merge cache files could/should use a compressed form ('compress' option).
 %
-% - the 'table' pseudo-module cannot be used, as escripts are (currently) not
-% parse-transformed; '?table' is used instead
-%
 % - at least currently we only focus on (regular) files, hence the counts for
 % directories and all remain null
 
@@ -25,9 +22,6 @@
 
 -define( default_log_filename, "merge-tree.log" ).
 
-% Short of having the parse transform allowing 'table' for escripts:
--define( table, map_hashtable ).
-
 
 -export([ create_merge_cache_file_for/3,
 		  tree_data_to_string/1, file_data_to_string/1,
@@ -36,7 +30,7 @@
 
 
 % Shorthands:
--type md5()   :: executable_utils:md5_sum().
+-type sha1()  :: executable_utils:sha1_sum().
 -type count() :: basic_utils:count().
 -type void()  :: basic_utils:void().
 
@@ -62,8 +56,8 @@
 		   %
 		   timestamp :: time_utils:posix_seconds(),
 
-		   % MD5 sum of the content of that file:
-		   md5_sum :: md5()
+		   % SHA1 sum of the content of that file:
+		   sha1_sum :: sha1()
 
 }).
 
@@ -71,13 +65,13 @@
 
 
 
-% Table referencing file entries based on their MD5:
+% Table referencing file entries based on their SHA1:
 %
--type md5_table() :: ?table:?table( md5(), [ file_data() ] ).
+-type sha1_table() :: table:table( sha1(), [ file_data() ] ).
 
 
-% Pair entries of a md5_table/0:
--type md5_entry() :: { md5(), [ file_data() ] }.
+% Pair entries of a sha1_table/0:
+-type sha1_entry() :: { sha1(), [ file_data() ] }.
 
 
 % Data associated to a content tree.
@@ -87,25 +81,25 @@
 		   % Base, absolute path of that tree:
 		   root :: file_utils:directory_name(),
 
-		   % Each key is the MD5 sum of a file content, each value is a list of
+		   % Each key is the SHA1 sum of a file content, each value is a list of
 		   % the file entries whose content matches that sum (hence are supposed
 		   % the same).
 		   %
-		   entries = ?table:new() :: md5_table(),
+		   entries = table:new() :: sha1_table(),
 
-		   % Count of the regular files found in tree:
+		   % Total count of the regular files found in this tree:
 		   file_count = 0 :: count(),
 
-		   % Count of the directories found in tree:
+		   % Total count of the directories found in this tree:
 		   directory_count = 0 :: count(),
 
-		   % Count of the symbolic links found in tree:
+		   % Total count of the symbolic links found in this tree:
 		   symlink_count = 0 :: count(),
 
-		   % Count of the device found in tree:
+		   % Total count of the device found in this tree:
 		   device_count = 0 :: count(),
 
-		   % Count of the other elements found in tree:
+		   % Total count of the other elements found in this tree:
 		   other_count = 0 :: count()
 
 }).
@@ -131,7 +125,9 @@
 -type analyzer_ring() :: list_utils:ring( pid() ).
 
 
-% This script depends on the 'Common' layer, and only on it.
+% This script depends on the 'Common' layer (a.k.a. Ceylan-Myriad), and only on
+% that code.
+%
 % Note: ensure it is already built first!
 
 
@@ -139,12 +135,12 @@
 get_usage() ->
 	"   Usage:\n"
 	"      - either: 'merge-tree.escript SOURCE_TREE TARGET_TREE'\n"
-	"      - or: 'merge-tree.escript --scan TREE'\n\n"
-	"   Ensures that all the changes in a supposedly more up-to-date tree (SOURCE_TREE) are merged back to the reference tree (TARGET_TREE), from which the source one derivated. Once executed, only a refreshed reference target tree will exist, as the input SOURCE_TREE will be removed since all its content will have been put back in the reference TARGET_TREE.\n"
-	"   If requested, in-tree duplicated content will be removed and replaced by symbolic links, to keep a single version of each actual content.\n"
+	"      - or: 'merge-tree.escript --scan A_TREE'\n\n"
+	"   Ensures that all the changes in a possibly more up-to-date, \"newer\" tree (SOURCE_TREE) are merged back to the reference tree (TARGET_TREE), from which the source one derivated. Once executed, only a refreshed reference target tree will exist, as the input SOURCE_TREE will be removed since all the content of its own will have been put back in the reference TARGET_TREE.\n"
+	"   In the reference tree, in-tree duplicated content will be removed and replaced by symbolic links, to keep only a single version of each actual content.\n"
 	"   All the timestamps of the files in the reference tree will be set to the current time, and, at the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to spare later computations of the file checksums.\n"
-	"   If the --scan option is used, then the specified tree will be inspected, possibly improved on user request, and a corresponding '" ?merge_cache_filename "' file will be created, to be potentially reused for a later merge.\n"
-	"   So a usual mode of operation may be to scan if needed both trees, then request a merge thereof.".
+	"   If the --scan option is used, then the specified tree will be inspected, duplicates will be replaced with symbolic links, and a corresponding '" ?merge_cache_filename "' file will be created (to be potentially reused by a later merge).
+".
 
 
 
@@ -174,7 +170,7 @@ main( [ "--help" ] ) ->
 % Here we scan a tree:
 main( [ "--scan", TreePath ] ) ->
 
-	% First enable all possible helper code:
+	% First, enable all possible helper code:
 	update_code_path_for_common(),
 
 	% Prepare for various outputs:
@@ -197,8 +193,8 @@ main( [ "--scan", TreePath ] ) ->
 	stop_user_service( UserState );
 
 
-% Here we merge the (supposedly more up-to-date) source tree into the target
-% one:
+% Here we merge the (supposedly more up-to-date) source tree into the target,
+% reference one:
 %
 main( [ SourceTree, TargetTree ] ) ->
 
@@ -210,7 +206,7 @@ main( [ SourceTree, TargetTree ] ) ->
 
 	check_content_trees( SourceTree, TargetTree ),
 
-	trace( "Merging tree '~s' into tree '~s'...",
+	trace( "Merging (possibly newer) tree '~s' into reference tree '~s'...",
 		   [ SourceTree, TargetTree ], UserState ),
 
 	% Best, reasonable usage:
@@ -425,7 +421,7 @@ create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
 						net_utils:localhost(), AbsTreePath,
 						time_utils:get_textual_timestamp() ] ),
 
-	_BlankDataTable = ?table:new(),
+	_BlankDataTable = table:new(),
 
 	_CurrentPosixTime = os:system_time(),
 
@@ -469,7 +465,7 @@ scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 
 	AllFiles = file_utils:find_files_from( AbsTreePath ),
 
-	% Not wanting to index our own files:
+	% Not wanting to index our own files (if any):
 	FilteredFiles = lists:delete( ?merge_cache_filename, AllFiles ),
 
 	trace_debug( "Found ~B files:~s", [ length( FilteredFiles ),
@@ -535,7 +531,7 @@ scan_files( _Files=[ Filename | T ], AnalyzerRing,
 % Manages specified received file data, and returns an updated tree data.
 %
 -spec manage_received_data( file_data(), tree_data() ) -> tree_data().
-manage_received_data( FileData=#file_data{ type=Type, md5_sum=Sum },
+manage_received_data( FileData=#file_data{ type=Type, sha1_sum=Sum },
 					  TreeData=#tree_data{ entries=Entries,
 										   file_count=FileCount,
 										   directory_count=DirCount,
@@ -546,14 +542,14 @@ manage_received_data( FileData=#file_data{ type=Type, md5_sum=Sum },
 	%io:format( "Data received: ~s~n",
 	%		   [ file_data_to_string( FileData ) ] ),
 
-	% Ensures we associate a list to each MD5 sum:
-	NewEntries = case ?table:lookupEntry( Sum, Entries ) of
+	% Ensures we associate a list to each SHA1 sum:
+	NewEntries = case table:lookupEntry( Sum, Entries ) of
 
 		key_not_found ->
-			?table:addEntry( Sum, [ FileData ], Entries );
+			table:addEntry( Sum, [ FileData ], Entries );
 
 		{ value, SumEntries } ->
-			?table:addEntry( Sum, [ FileData | SumEntries ], Entries )
+			table:addEntry( Sum, [ FileData | SumEntries ], Entries )
 
 	end,
 
@@ -617,7 +613,7 @@ analyze_loop() ->
 						   size=file_utils:get_size( FilePath ),
 						   timestamp=file_utils:get_last_modification_time(
 									   FilePath ),
-						   md5_sum=executable_utils:compute_md5_sum( FilePath )
+						   sha1_sum=executable_utils:compute_sha1_sum( FilePath )
 			},
 
 			SenderPid ! { analyzed, FileData },
@@ -639,7 +635,7 @@ diagnose_tree( #tree_data{
 				  entries=ContentTable,
 				  file_count=FileCount }, UserState ) ->
 
-	DuplicateCount = FileCount - ?table:size( ContentTable ),
+	DuplicateCount = FileCount - table:size( ContentTable ),
 
 	{ NewContentTable, RemovedDuplicateCount } = manage_duplicates(
 												   ContentTable, UserState ),
@@ -664,15 +660,15 @@ diagnose_tree( #tree_data{
 % Manages all duplicates found in specified table, returns an updated table and
 % the number of duplicates removed.
 %
--spec manage_duplicates( md5_table(), user_state() ) ->
-							   { md5_table(), count() }.
+-spec manage_duplicates( sha1_table(), user_state() ) ->
+							   { sha1_table(), count() }.
 manage_duplicates( ContentTable, UserState ) ->
 
-	ContentEntries = ?table:enumerate( ContentTable ),
+	ContentEntries = table:enumerate( ContentTable ),
 
 	% We could have forced that no duplication at all exists afterwards (and
-	% then a given MD5 sum would be associated to exactly one content), however
-	% it would be too strict, hence we kept a list associated to each MD5 sum:
+	% then a given SHA1 sum would be associated to exactly one content), however
+	% it would be too strict, hence we kept a list associated to each SHA1 sum:
 	%
 	% Two passes: one to establish and count the duplications, another to solve
 	% them; returns a list of duplications, and a content table referencing all
@@ -702,38 +698,38 @@ manage_duplicates( ContentTable, UserState ) ->
 % Filters the duplications from specified content entries: returns the actual
 % duplications in a list, put the unique files in a new table.
 %
--spec filter_duplications( [ md5_entry() ] ) ->
-								 { [ md5_entry() ], md5_table() }.
-filter_duplications( MD5Entries ) ->
+-spec filter_duplications( [ sha1_entry() ] ) ->
+								 { [ sha1_entry() ], sha1_table() }.
+filter_duplications( SHA1Entries ) ->
 	% Far better than a fold:
-	filter_duplications( MD5Entries, _Acc={ [], ?table:new() } ).
+	filter_duplications( SHA1Entries, _Acc={ [], table:new() } ).
 
 
 % Returns { AccDupEntries, AccUniqueTable }:
 %
-filter_duplications( _MD5Entry=[], Acc ) ->
+filter_duplications( _SHA1Entry=[], Acc ) ->
 	Acc;
 
 % By design V is never empty:
-filter_duplications( _MD5Entry=[ { Md5Key, V=[ _SingleContent ] } | T ],
+filter_duplications( _SHA1Entry=[ { Sha1Key, V=[ _SingleContent ] } | T ],
 				   _Acc={ AccDupEntries, AccUniqueTable } ) ->
 	% Single content, hence unique:
-	NewTable = ?table:addEntry( Md5Key, V, AccUniqueTable ),
+	NewTable = table:addEntry( Sha1Key, V, AccUniqueTable ),
 	filter_duplications( T, { AccDupEntries, NewTable } );
 
-% MD5Entry is { Md5Key, V } with at least two elements in V here:
-filter_duplications( _MD5Entries=[ MD5Entry | T ],
+% SHA1Entry is { Sha1Key, V } with at least two elements in V here:
+filter_duplications( _SHA1Entries=[ SHA1Entry | T ],
 					 _Acc={ AccDupEntries, AccUniqueTable } ) ->
 	% At least one duplicate here:
-	NewDupEntries = [ MD5Entry | AccDupEntries ],
+	NewDupEntries = [ SHA1Entry | AccDupEntries ],
 	filter_duplications( T, { NewDupEntries, AccUniqueTable } ).
 
 
 
 % Process the spotted duplications by asking the user.
 %
--spec process_duplications( [ md5_entry() ], count(), md5_table(),
-							user_state() ) -> { md5_table(), count() }.
+-spec process_duplications( [ sha1_entry() ], count(), sha1_table(),
+							user_state() ) -> { sha1_table(), count() }.
 process_duplications( DuplicationCases, TotalDupCaseCount, UniqueTable,
 					  UserState ) ->
 	Acc0 = { UniqueTable, _InitialDupCount=1, _InitialRemoved=0 },
@@ -748,15 +744,15 @@ process_duplications_helper( _DupCases=[], _TotalDupCount,
 							 _UserState ) ->
 	{ AccTable, AccRemoveCount };
 
-process_duplications_helper( _DupCases=[ { Md5Key, DuplicateList } | T ],
+process_duplications_helper( _DupCases=[ { Sha1Key, DuplicateList } | T ],
 							 TotalDupCount,
 							 _Acc={ AccTable, AccDupCount, AccRemoveCount },
 							 UserState ) ->
 
-	Size = check_duplicates( Md5Key, DuplicateList ),
+	Size = check_duplicates( Sha1Key, DuplicateList ),
 	SelectedFileEntries = manage_duplication( DuplicateList, AccDupCount,
 							  TotalDupCount, Size, UserState ),
-	NewAccTable = ?table:addEntry( Md5Key, SelectedFileEntries, AccTable ),
+	NewAccTable = table:addEntry( Sha1Key, SelectedFileEntries, AccTable ),
 	NewRemoveCount = AccRemoveCount + length( DuplicateList )
 		- length( SelectedFileEntries ),
 	NewAcc = { NewAccTable, AccDupCount+1, NewRemoveCount },
@@ -764,31 +760,32 @@ process_duplications_helper( _DupCases=[ { Md5Key, DuplicateList } | T ],
 
 
 
-% Checks a duplication set: same MD5 sum and also size must be found for all
-% file entries (would most probably detect any MD5 collision, however unlikely
+% Checks a duplication set: same SHA1 sum and also size must be found for all
+% file entries (would most probably detect any SHA1 collision, however unlikely
 % it maybe).
 %
--spec check_duplicates( md5(), [ file_data() ] ) -> void().
-% Not possible: check_duplicates( _MD5Sum, _DuplicateList=[] ) ->
+-spec check_duplicates( sha1(), [ file_data() ] ) -> void().
+% Not possible: check_duplicates( _SHA1Sum, _DuplicateList=[] ) ->
 %	ok;
 
-% Learns the size from first element:
-check_duplicates( MD5Sum, _DuplicateList=[
-	   #file_data{ path=FirstPath, md5_sum=MD5Sum, size=Size } | T ] ) ->
-	check_duplicates( MD5Sum, FirstPath, Size, T ).
+% Use the first element to determine the (common) size:
+check_duplicates( SHA1Sum, _DuplicateList=[
+	   #file_data{ path=FirstPath, sha1_sum=SHA1Sum, size=Size } | T ] ) ->
+	check_duplicates( SHA1Sum, FirstPath, Size, T ).
 
 
 % (helper)
-check_duplicates( _MD5Sum, _FirstPath, Size, _DuplicateList=[] ) ->
+check_duplicates( _SHA1Sum, _FirstPath, Size, _DuplicateList=[] ) ->
 	Size;
 
-check_duplicates( MD5Sum, FirstPath, Size, _DuplicateList=[
-	   #file_data{ md5_sum=MD5Sum, size=Size } | T ] ) ->
-	check_duplicates( MD5Sum, FirstPath, Size, T );
+check_duplicates( SHA1Sum, FirstPath, Size, _DuplicateList=[
+	   #file_data{ sha1_sum=SHA1Sum, size=Size } | T ] ) ->
+	check_duplicates( SHA1Sum, FirstPath, Size, T );
 
-check_duplicates( MD5Sum, FirstPath, Size, _DuplicateList=[
-	   #file_data{ path=OtherPath, md5_sum=MD5Sum, size=OtherSize } | _T ] ) ->
-	throw( { md5_collision_detected, MD5Sum, { FirstPath, Size },
+check_duplicates( SHA1Sum, FirstPath, Size, _DuplicateList=[
+	   #file_data{ path=OtherPath, sha1_sum=SHA1Sum, size=OtherSize }
+															| _T ] ) ->
+	throw( { sha1_collision_detected, SHA1Sum, { FirstPath, Size },
 			 { OtherPath, OtherSize } } ).
 
 
@@ -844,10 +841,10 @@ tree_data_to_string( #tree_data{
 	% Only looking for files:
 	%text_utils:format( "tree '~s' having ~B entries (~B files, ~B directories,"
 	%				   " ~B symbolic links)",
-	%				   [ RootDir, ?table:size( Table ), FileCount, DirCount,
+	%				   [ RootDir, table:size( Table ), FileCount, DirCount,
 	%					 SymlinkCount ] ).
 
-	case ?table:size( Table ) of
+	case table:size( Table ) of
 
 		FileCount ->
 			text_utils:format( "tree '~s' having ~B files, "
@@ -872,11 +869,11 @@ file_data_to_string( #file_data{
 						 path=Path,
 						 size=Size,
 						 timestamp=Timestamp,
-						 md5_sum=Sum } ) ->
+						 sha1_sum=Sum } ) ->
 
 	SizeString = system_utils:interpret_byte_size_with_unit( Size ),
 
-	text_utils:format( "file '~s' whose size is ~s, MD5 sum is ~s and "
+	text_utils:format( "file '~s' whose size is ~s, SHA1 sum is ~s and "
 					   "timestamp is ~p",
 					   [ Path, SizeString, Sum, Timestamp ] ).
 
@@ -899,6 +896,8 @@ update_code_path_for_common() ->
 
 	CommonRootDir = get_root_of_common(),
 
+	io:format( "Root of 'Common': ~s~n", [ CommonRootDir ] ),
+
 	CommonSrcDir = filename:join( CommonRootDir, "src" ),
 
 	CommonBeamSubDirs = [ "utils", "user-interface", "maths",
@@ -907,7 +906,7 @@ update_code_path_for_common() ->
 	CommonBeamDirs = [ filename:join( CommonSrcDir, D )
 					   || D <- CommonBeamSubDirs ],
 
-	%io:format( "'Common' beam dirs: ~p~n", [ CommonBeamDirs ] ),
+	io:format( "'Common' beam dirs: ~p~n", [ CommonBeamDirs ] ),
 
 	ok = code:add_pathsa( CommonBeamDirs ).
 
@@ -954,4 +953,4 @@ get_script_base_directory() ->
 %
 -spec get_root_of_common() -> file_utils:path().
 get_root_of_common() ->
-	filename:join( [ get_script_base_directory(), "..", ".." ] ).
+	filename:join( [ get_script_base_directory(), ".." ] ).
