@@ -20,4 +20,4 @@
 % Entry point of this escript.
 %
 main( ArgList ) ->
-	merge_utils:main( ArgList).
+	merge_utils:main( ArgList ).
