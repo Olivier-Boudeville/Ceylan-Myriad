@@ -1,4 +1,4 @@
-% Copyright (C) 2014-2016 Olivier Boudeville
+% Copyright (C) 2014-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -59,7 +59,9 @@
 
 % Exact same API as the one of hashtable:
 %
--export([ new/0, new/1, addEntry/3, addEntries/2,
+-export([ new/0, new/1,
+		  addEntry/3, addEntries/2, addNewEntry/3, addNewEntries/2,
+		  updateEntry/3, updateEntries/2,
 		  removeEntry/2, lookupEntry/2, hasEntry/2,
 		  getEntry/2, extractEntry/2, getValues/2, getAllValues/2,
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
@@ -130,10 +132,30 @@ new( InitialEntries ) when is_list( InitialEntries ) ->
 
 
 
+% Hints for the addition of key/value pairs to a table:
+%
+% - if one does not know or care whether the specified key is already used in
+% the table, one should use addEntry/3 and addEntries/2 (and no specific
+% checking about the key will be done)
+%
+% - if one knows that the specified key *is not* already used in the table, one
+% should use addNewEntry/3 and addNewEntries/2 (and the absence of the key will
+% be checked)
+%
+% - if one knows that the specified key *is* already used in the table, one
+% should use updateEntry/3 and updateEntries/2 (and the presence of the key will
+% be checked)
+%
+%
+% Note: in non-debug mode, these extra-checkings may be removed.
+
+
+
 % Adds specified key/value pair into the specified map hashtable.
 %
 % If there is already a pair with this key, then its previous value will be
-% replaced by the specified one.
+% replaced by the specified one (hence does not check whether or not the key
+% already exist in this table).
 %
 -spec addEntry( key(), value(), map_hashtable() ) -> map_hashtable().
 addEntry( Key, Value, MapHashtable ) ->
@@ -145,7 +167,8 @@ addEntry( Key, Value, MapHashtable ) ->
 % Adds specified list of key/value pairs into the specified map table.
 %
 % If there is already a pair with this key, then its previous value will be
-% replaced by the specified one.
+% replaced by the specified one (hence does not check whether or not keys
+% already exist in this table).
 %
 -spec addEntries( hashtable:entries(), map_hashtable() ) -> map_hashtable().
 addEntries( EntryList, MapHashtable ) ->
@@ -153,6 +176,86 @@ addEntries( EntryList, MapHashtable ) ->
 	lists:foldl( fun( { K, V }, Map ) ->
 						 %Map#{ K => V }
 						 maps:put( K, V, Map )
+				 end,
+				 _Acc0=MapHashtable,
+				 _List=EntryList ).
+
+
+
+% Adds specified key/value pair into the specified map hashtable, expecting this
+% key not to be already defined in this table.
+%
+-spec addNewEntry( key(), value(), map_hashtable() ) -> map_hashtable().
+addNewEntry( Key, Value, MapHashtable ) ->
+
+	% A tad expensive, could be replaced by an inlined addEntry/3 in non-debug
+	% mode:
+	%
+	case hasEntry( Key, MapHashtable ) of
+
+		false ->
+			addEntry( Key, Value, MapHashtable );
+
+		true ->
+			throw( { key_already_existing, Key } )
+
+	end.
+
+
+
+% Adds specified list of key/value pairs into the specified map table, expecting
+% that none of these keys is already defined in this table.
+%
+% If there is already a pair with this key, then its previous value will be
+% replaced by the specified one.
+%
+-spec addNewEntries( hashtable:entries(), map_hashtable() ) -> map_hashtable().
+addNewEntries( EntryList, MapHashtable ) ->
+
+	lists:foldl( fun( { K, V }, Map ) ->
+						 addNewEntry( K, V, Map )
+				 end,
+				 _Acc0=MapHashtable,
+				 _List=EntryList ).
+
+
+
+% Updates the specified key with the specified value in the specified map
+% hashtable.
+%
+% A pair with this key is expected to already exist in this table.
+%
+-spec updateEntry( key(), value(), map_hashtable() ) -> map_hashtable().
+updateEntry( Key, Value, MapHashtable ) ->
+
+	% A tad expensive, could be replaced by an inlined addEntry/3 in non-debug
+	% mode:
+	%
+	case hasEntry( Key, MapHashtable ) of
+
+		true ->
+			addEntry( Key, Value, MapHashtable );
+
+		false ->
+			throw( { key_not_already_existing, Key } )
+
+	end.
+
+
+
+% Updates specified list of keys with specified values in specified map
+% hashtable.
+%
+% For each of the listed keys, a corresponding pair is expected to already exist
+% in this table.
+%
+-spec updateEntries( hashtable:entries(), map_hashtable() ) -> map_hashtable().
+updateEntries( EntryList, MapHashtable ) ->
+
+	% Should be optimised:
+	%
+	lists:foldl( fun( { K, V }, Map ) ->
+					updateEntry( K, V, Map )
 				 end,
 				 _Acc0=MapHashtable,
 				 _List=EntryList ).
@@ -219,7 +322,7 @@ hasEntry( Key, MapHashtable ) ->
 % directly.
 %
 % The key/value pair is expected to exist already, otherwise an exception
-% (bad_key) is triggered.
+% ({bad_key,Key}) is triggered.
 %
 -spec getEntry( key(), map_hashtable() ) -> value().
 %getEntry( Key,  #{ Key := Value } ) ->

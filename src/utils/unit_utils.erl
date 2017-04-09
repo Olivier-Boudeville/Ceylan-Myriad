@@ -1,4 +1,4 @@
-% Copyright (C) 2015-2016 Olivier Boudeville
+% Copyright (C) 2015-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -540,13 +540,15 @@
 -export_type([ unit_string/0, unit_bin_string/0, canonical_unit/0,
 			   numerical_value/0 ]).
 
+
+
 % Unit management section.
 
 -export([ get_prefix_information/0, get_prefix_for_order/1,
 		  get_order_for_prefix/1,
-		  parse_value_with_unit/1, parse_unit/1,
-		  get_order/1, get_factor/1,
-		  unit_to_string/1, value_with_unit_to_string/2
+		  parse_value_with_unit/1, parse_unit/1, is_canonical_unit/1,
+		  get_order/1, get_factor/1, are_units_identical/2,
+		  unit_to_string/1, pure_unit_to_string/1, value_with_unit_to_string/2
 		]).
 
 
@@ -1589,6 +1591,15 @@ integrate_to_canonical_unit( UnitName, _ActualOrder, _NormalisedExponent,
 
 
 
+% Tells whether specified term is an actual, canonical unit.
+%
+-spec is_canonical_unit( canonical_unit() ) -> boolean().
+is_canonical_unit( Term ) when is_record( Term, canonical_unit ) ->
+	true;
+
+is_canonical_unit( _Term ) ->
+	false.
+
 
 
 % Converts a unit symbol, as a string (ex: "Cd") into a unit name (ex:
@@ -1613,6 +1624,8 @@ unit_symbol_to_name( UnitSymbol ) ->
 
 % Returns a textual representation of the raw unit only (factor and order
 % ignored) for the specified canonical unit.
+%
+% Note: unit_to_string/1 shall be the relevant function for most uses.
 %
 -spec pure_unit_to_string( canonical_unit() ) -> string().
 pure_unit_to_string( Unit ) ->
@@ -1744,6 +1757,17 @@ get_order( _Unit=#canonical_unit{ order=Order } ) ->
 get_factor( _Unit=#canonical_unit{ factor=Factor } ) ->
 	Factor.
 
+
+
+% Tells whether the two specified units are strictly the same.
+%
+-spec are_units_identical( canonical_unit(), canonical_unit() ) -> boolean().
+are_units_identical( Unit, Unit ) ->
+	% Relying on a canonical form simplifies much the comparisons:
+	true;
+
+are_units_identical( _FirstUnit, _SecondUnit ) ->
+	false.
 
 
 

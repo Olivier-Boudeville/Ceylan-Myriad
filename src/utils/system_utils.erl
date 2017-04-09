@@ -1,4 +1,4 @@
-% Copyright (C) 2010-2016 Olivier Boudeville
+% Copyright (C) 2010-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -318,11 +318,17 @@ get_user_home_directory_string() ->
 % Lower-level services.
 
 
-% Awaits the completion of a io:format request.
+% Awaits the completion of an output operation (ex: io:format/2).
 %
 % Especially useful when displaying an error message on the standard output and
 % then immediately halting the VM, in order to avoid a race condition between
 % the displaying and the halting.
+%
+% We use a relatively short waiting here, just out of safety. It may be in some
+% cases insufficient (ex: for error traces to be sent, received and stored
+% *before* the VM is halted after a throw/1 that may be executed just after).
+%
+% In this case, await_output_completion/1 should be used, with a larger delay.
 %
 -spec await_output_completion() -> basic_utils:void().
 
@@ -330,7 +336,7 @@ get_user_home_directory_string() ->
 
 % Default time-out duration (one second):
 await_output_completion() ->
-	await_output_completion( _TimeOut=1000 ).
+	await_output_completion( _TimeOut=10 ).
 
 -else. % debug_mode_is_enabled
 
@@ -338,8 +344,10 @@ await_output_completion() ->
 % Extended time-out (one minute), if for example being in production, on a
 % possibly heavily loaded system:
 %
+% (warning: this may impact adversely the timing if intensive logging is used)
+%
 await_output_completion() ->
-	await_output_completion( _TimeOut=60000 ).
+	await_output_completion( _TimeOut=200 ).
 
 -endif. % debug_mode_is_enabled
 
@@ -352,7 +360,7 @@ await_output_completion() ->
 % then immediately halting the VM, in order to avoid a race condition between
 % the displaying and the halting.
 %
--spec await_output_completion(_) -> basic_utils:void().
+-spec await_output_completion( unit_utils:millisecond() ) -> basic_utils:void().
 await_output_completion( TimeOut ) ->
 
 	% Not sure it is really the proper way of waiting, however should be still
@@ -362,13 +370,12 @@ await_output_completion( TimeOut ) ->
 
 	%io:format( "(awaiting output completion)~n", [] ),
 
-	% We had added finally a short waiting, just out of safety:
-	%
-	%timer:sleep( 200 ),
-	%
-	% yet it was slowing down the tests too much, hence probably just a yield:
+	% Almost just a yield:
 	timer:sleep( 10 ),
 
+	%io:format( "(output completed)~n", [] ),
+
+	% Does not seem always sufficient:
 	sys:get_status( error_logger, TimeOut ).
 
 
@@ -447,11 +454,11 @@ run_executable( Command, Environment, WorkingDir ) ->
 
 	PortOptsWithPath = case WorkingDir of
 
-						   undefined ->
-							   PortOpts;
+		undefined ->
+			PortOpts;
 
-						   _ ->
-							   [ { cd, WorkingDir } | PortOpts ]
+		_ ->
+			[ { cd, WorkingDir } | PortOpts ]
 
 	end,
 
@@ -685,10 +692,9 @@ run_background_executable( Command, Environment, WorkingDir ) ->
 	% the current process, so we sacrifice a process here - yet we monitor it:
 	%
 	spawn_link( fun() ->
-						_Port = run_executable( Command, Environment,
-												WorkingDir )
-						% Not very useful, as nothing to monitor normally:
-						%monitor_port( Port, _Data=[] )
+					_Port = run_executable( Command, Environment, WorkingDir )
+					% Not very useful, as nothing to monitor normally:
+					%monitor_port( Port, _Data=[] )
 				end ).
 
 
@@ -729,9 +735,7 @@ get_environment_prefix( Environment ) ->
 	% We do not specifically *unset* a variable whose value is false, we set it
 	% to an empty string:
 	%
-	VariableStrings = [
-
-						begin
+	VariableStrings = [	begin
 
 							ActualValue = case Value of
 
@@ -745,9 +749,7 @@ get_environment_prefix( Environment ) ->
 
 							io_lib:format( "~s=~s", [ Name, ActualValue ] )
 
-						end
-
-						|| { Name, Value } <- Environment ],
+						end || { Name, Value } <- Environment ],
 
 	text_utils:join( _Separator=" ", VariableStrings ).
 
@@ -966,58 +968,55 @@ interpret_byte_size( SizeInBytes ) ->
 
 	ListWithGiga = case SizeInBytes div Giga of
 
-					 0 ->
-						 [];
+		0 ->
+			[];
 
-					 GigaNonNull->
-						 [ io_lib:format( "~B GiB", [ GigaNonNull ] ) ]
+		GigaNonNull->
+			[ io_lib:format( "~B GiB", [ GigaNonNull ] ) ]
 
-				   end,
+	end,
 
 	SizeAfterGiga = SizeInBytes rem Giga,
 	%io:format( "SizeAfterGiga = ~B.~n", [ SizeAfterGiga ] ),
 
 	ListWithMega = case SizeAfterGiga div Mega of
 
-				 0 ->
-						 ListWithGiga;
+		0 ->
+			ListWithGiga;
 
-				 MegaNonNull->
-					 [ io_lib:format( "~B MiB",
-									  [ MegaNonNull ] ) | ListWithGiga ]
+		MegaNonNull->
+			[ io_lib:format( "~B MiB", [ MegaNonNull ] ) | ListWithGiga ]
 
-				   end,
+	end,
 
 	SizeAfterMega = SizeAfterGiga rem Mega,
 	%io:format( "SizeAfterMega = ~B.~n", [ SizeAfterMega ] ),
 
 	ListWithKilo = case SizeAfterMega div Kilo of
 
-				 0 ->
-					 ListWithMega;
+		0 ->
+			ListWithMega;
 
-				 KiloNonNull->
-					[ io_lib:format( "~B KiB", [ KiloNonNull ] )
-					  | ListWithMega ]
+		KiloNonNull->
+			[ io_lib:format( "~B KiB", [ KiloNonNull ] ) | ListWithMega ]
 
-				   end,
+	end,
 
 	SizeAfterKilo = SizeAfterMega rem Kilo,
 	%io:format( "SizeAfterKilo = ~B.~n", [ SizeAfterKilo ] ),
 
 	ListWithByte = case SizeAfterKilo rem Kilo of
 
-					 0 ->
-						ListWithKilo ;
+		0 ->
+			ListWithKilo ;
 
-					 1->
-						 [ "1 byte" | ListWithKilo ];
+		1->
+			[ "1 byte" | ListWithKilo ];
 
-					 AtLeastTwoBytes ->
-						 [ io_lib:format( "~B bytes", [ AtLeastTwoBytes ] )
-						   | ListWithKilo ]
+		AtLeastTwoBytes ->
+			 [ io_lib:format( "~B bytes", [ AtLeastTwoBytes ] ) | ListWithKilo ]
 
-				   end,
+	end,
 
 	%io:format( "Unit list is: ~w.~n", [ ListWithByte ] ),
 

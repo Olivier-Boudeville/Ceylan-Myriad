@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2016 Olivier Boudeville
+% Copyright (C) 2003-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -85,7 +85,8 @@
 
 		  get_default_bullet/0, get_bullet_for_level/1,
 		  format_text_for_width/2, pad_string/2,
-		  is_string/1, is_non_empty_string/1, is_list_of_strings/1 ]).
+		  is_string/1, is_non_empty_string/1, is_list_of_strings/1,
+		  is_bin_string/1 ]).
 
 
 % Restructured-Text (RST) related functions.
@@ -1557,6 +1558,19 @@ is_list_of_strings( [ H | T ] ) ->
 			false
 
 	end.
+
+
+% Returns true iff the specified parameter is a binary string.
+%
+-spec is_bin_string( term() ) -> boolean().
+is_bin_string( Term ) when is_binary( Term ) ->
+	%is_string( binary_to_list( Term ) );
+	true;
+
+is_bin_string( _Term ) ->
+	false.
+
+
 
 
 

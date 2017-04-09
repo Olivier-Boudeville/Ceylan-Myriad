@@ -1,4 +1,4 @@
-% Copyright (C) 2007-2016 Olivier Boudeville
+% Copyright (C) 2007-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -400,30 +400,41 @@ get_local_ip_address() ->
 -spec reverse_lookup( ip_v4_address() ) -> string_host_name() | 'unknown_dns'.
 reverse_lookup( IPAddress ) ->
 
-	Cmd = "host -W 1 " ++ ipv4_to_string( IPAddress ) ++ " 2>/dev/null",
+	% Note that the 'host' command is not available on all systems:
+	HostCmd = case executable_utils:lookup_executable( "host" ) of
+
+		false ->
+			throw( { executable_not_found, "host" } );
+
+		Path ->
+			Path
+
+	end,
+
+	Cmd = HostCmd ++ " -W 1 " ++ ipv4_to_string( IPAddress ) ++ " 2>/dev/null",
 
 	case system_utils:run_executable( Cmd ) of
 
-			  { _ExitCode=0, Output } ->
+		{ _ExitCode=0, Output } ->
 
-				  %io:format( "Host command: ~s, result: ~s.~n",
-				  %  [ Command, Res ] ),
+			%io:format( "Host command: ~s, result: ~s.~n",
+			%  [ Command, Res ] ),
 
-				  case string:tokens( Output, " " ) of
+			case string:tokens( Output, " " ) of
 
-					  [ _ArpaString, "domain", "name", "pointer", Domain ] ->
-						  % There is a trailing dot:
-						  text_utils:remove_last_characters( Domain, _Count=1 );
+				[ _ArpaString, "domain", "name", "pointer", Domain ] ->
+					% There is a trailing dot:
+					text_utils:remove_last_characters( Domain, _Count=1 );
 
-					  _Other  ->
-						  unknown_dns
+				_Other  ->
+					unknown_dns
 
-				  end;
+			end;
 
-			  { _ExitCode, _ErrorOutput } ->
-				  %throw( { reverse_lookup_failed, IPAddress, ExitCode,
-				  %		   ErrorOutput } )
-				  unknown_dns
+			{ _ExitCode, _ErrorOutput } ->
+				%throw( { reverse_lookup_failed, IPAddress, ExitCode,
+				%		   ErrorOutput } )
+				unknown_dns
 
 	end.
 
@@ -525,8 +536,8 @@ check_node_availability( Nodename ) when is_atom( Nodename ) ->
 % This is useful so that, if the node is being launched in the background, it is
 % waited for while returning as soon as possible.
 %
--spec check_node_availability( node_name(), check_node_timing() )
-		 -> { boolean(), check_duration() }.
+-spec check_node_availability( node_name(), check_node_timing() ) ->
+									 { boolean(), check_duration() }.
 check_node_availability( Nodename, Timing ) when is_list( Nodename ) ->
 	check_node_availability( list_to_atom( Nodename ), Timing ) ;
 
@@ -541,7 +552,7 @@ check_node_availability( Nodename, _Timing=with_waiting )
   when is_atom( Nodename ) ->
 
 	%io:format( "check_node_availability of node '~s' with default waiting.~n",
-	%		  [ Nodename ] ),
+	%		   [ Nodename ] ),
 
 	% 3 seconds is a good default:
 	check_node_availability( Nodename, _Duration=3000 );
@@ -550,17 +561,22 @@ check_node_availability( Nodename, _Timing=with_waiting )
 check_node_availability( Nodename, Duration )  ->
 
 	% In all cases, start with one immediate look-up:
+	%io:format( "Pinging '~s' (case A) now...", [ Nodename ] ),
 	case net_adm:ping( Nodename ) of
 
 		pong ->
 
-			%io:format( " - node ~s found directly available.~n",
-			%  [ Nodename ] ),
+			%io:format( " - node '~s' found directly available.~n",
+			%		   [ Nodename ] ),
 
 			{ true, 0 } ;
 
 		pang ->
-			% Too early, let's retry later:
+
+			%io:format( " - node '~s' not yet found available.~n",
+			%		   [ Nodename ] ),
+
+			% Hopefully too early, let's retry later:
 			check_node_availability( Nodename,
 				_CurrentDurationStep=?check_node_first_waiting_step,
 				_ElapsedDuration=0,
@@ -572,7 +588,8 @@ check_node_availability( Nodename, Duration )  ->
 
 % Helper function for the actual waiting:
 check_node_availability( Nodename, CurrentDurationStep, ElapsedDuration,
-		   SpecifiedMaxDuration ) when ElapsedDuration < SpecifiedMaxDuration ->
+						 SpecifiedMaxDuration )
+  when ElapsedDuration < SpecifiedMaxDuration ->
 
 	% Still on time here, apparently.
 
@@ -590,16 +607,19 @@ check_node_availability( Nodename, CurrentDurationStep, ElapsedDuration,
 
 	NewElapsedDuration = ElapsedDuration + ActualDurationStep,
 
+	%io:format( "Pinging '~s' (case B) now...", [ Nodename ] ),
 	case net_adm:ping( Nodename ) of
 
 		pong ->
-
-			%io:format( " - node ~s found available after ~B ms.~n",
+			%io:format( " - node '~s' found available after ~B ms.~n",
 			%			[ Nodename, NewElapsedDuration ] ),
 
 			{ true, NewElapsedDuration } ;
 
 		pang ->
+
+			%io:format( " - node '~s' NOT found available after ~B ms.~n",
+			%			[ Nodename, NewElapsedDuration ] ),
 
 			% Too early, let's retry later:
 			NewCurrentDurationStep = erlang:min( 2 * CurrentDurationStep,
@@ -613,10 +633,10 @@ check_node_availability( Nodename, CurrentDurationStep, ElapsedDuration,
 
 % Already too late here (ElapsedDuration >= SpecifiedMaxDuration):
 check_node_availability( _Nodename, _CurrentDurationStep, ElapsedDuration,
-		   _SpecifiedMaxDuration ) ->
+						 _SpecifiedMaxDuration ) ->
 
-	%io:format( " - node ~s found NOT available, after ~B ms.~n",
-	%			   [ Nodename, ElapsedDuration ] ),
+	%io:format( " - node '~s' found NOT available, after ~B ms.~n",
+	%		   [ Nodename, ElapsedDuration ] ),
 
 	{ false, ElapsedDuration }.
 
@@ -721,6 +741,7 @@ launch_epmd() ->
 %
 -spec launch_epmd( net_port() ) -> basic_utils:void().
 launch_epmd( Port ) when is_integer( Port ) ->
+
 	case executable_utils:lookup_executable( "epmd" ) of
 
 		false ->
@@ -777,14 +798,14 @@ enable_distribution_helper( NodeName, NameType, NamingMode ) ->
 		{ error, Reason } ->
 			ExtraReason = case net_kernel:stop() of
 
-							  ok ->
-								  { was_distributed, node(), Reason };
+				ok ->
+					{ was_distributed, node(), Reason };
 
-							  { error, not_allowed } ->
-								  { not_allowed, node(), Reason };
+				{ error, not_allowed } ->
+					{ not_allowed, node(), Reason };
 
-							  { error, not_found } ->
-								  { Reason, node() }
+				{ error, not_found } ->
+					{ Reason, node() }
 
 			end,
 
@@ -975,7 +996,8 @@ get_tcp_port_range_option( no_restriction ) ->
 get_tcp_port_range_option( { MinTCPPort, MaxTCPPort } )
   when is_integer( MinTCPPort ) andalso is_integer( MaxTCPPort )
 	   andalso MinTCPPort < MaxTCPPort ->
-
+	%io:format( "Enforcing following TCP range: [~B,~B].~n",
+	%		   [ MinTCPPort, MaxTCPPort ] ),
 	io_lib:format( " -kernel inet_dist_listen_min ~B inet_dist_listen_max ~B ",
 				   [ MinTCPPort, MaxTCPPort ] ).
 

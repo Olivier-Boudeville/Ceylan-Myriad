@@ -1,4 +1,4 @@
-% Copyright (C) 2014-2016 Olivier Boudeville
+% Copyright (C) 2014-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -63,9 +63,15 @@ run() ->
 	MyH3 = map_hashtable:addEntry( ?MyFirstKey, MyFirstValue, MyH2 ),
 	false = map_hashtable:isEmpty( MyH3 ),
 
+	_MyUpdatedH3 = map_hashtable:updateEntry( ?MyFirstKey, MyFirstValue, MyH3 ),
+
 	MySecondValue = [ 1, 2, 3 ],
 	MyH4 = map_hashtable:addEntry( ?MySecondKey, MySecondValue, MyH3 ),
 	false = map_hashtable:isEmpty( MyH4 ),
+
+	MyUpdatedH4 = map_hashtable:updateEntry( ?MySecondKey, MyFirstValue, MyH4 ),
+	MyFirstValue = map_hashtable:getEntry( ?MySecondKey, MyUpdatedH4 ),
+
 
 	map_hashtable:display( "The map hashtable", MyH4 ),
 

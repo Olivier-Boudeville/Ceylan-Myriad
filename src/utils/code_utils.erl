@@ -1,4 +1,4 @@
-% Copyright (C) 2007-2016 Olivier Boudeville
+% Copyright (C) 2007-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -34,7 +34,9 @@
 -module(code_utils).
 
 
--export([ get_code_for/1, deploy_modules/2, deploy_modules/3,
+-export([ get_code_for/1, get_md5_for_loaded_module/1,
+		  get_md5_for_stored_module/1, is_loaded_module_same_on_filesystem/1,
+		  deploy_modules/2, deploy_modules/3,
 		  declare_beam_directory/1, declare_beam_directory/2,
 		  declare_beam_directories/1, declare_beam_directories/2,
 		  get_code_path/0,
@@ -62,10 +64,12 @@
 % Code-related functions.
 
 
-% Returns a { ModuleBinary, ModuleFilename } pair for the module specified as an
-% atom, or throws an exception.
+% Returns, by searching the code path, the in-file object code for specified
+% module, i.e. a { ModuleBinary, ModuleFilename } pair for the module specified
+% as an atom, or throws an exception.
 %
--spec get_code_for( module() ) -> { binary(), file:filename() }.
+-spec get_code_for( basic_utils:module_name() ) ->
+						  { binary(), file:filename() }.
 get_code_for( ModuleName ) ->
 
 	case code:get_object_code( ModuleName ) of
@@ -78,6 +82,41 @@ get_code_for( ModuleName ) ->
 
 	end.
 
+
+
+% Returns the MD5 for the specified loaded (in-memory, used by the VM) module.
+%
+% Otherwise returns a undefined function exception (ModuleName:module_info/1).
+%
+-spec get_md5_for_loaded_module( basic_utils:module_name() ) ->
+									   executable_utils:md5_sum().
+get_md5_for_loaded_module( ModuleName ) ->
+	ModuleName:module_info( md5 ).
+
+
+
+% Returns the MD5 for the specified stored (on filesystem, found through the
+% code path) module.
+%
+-spec get_md5_for_stored_module( basic_utils:module_name() ) ->
+									   executable_utils:md5_sum().
+get_md5_for_stored_module( ModuleName ) ->
+	{ BinCode, _ModuleFilename } = get_code_for( ModuleName ),
+	{ ok, { ModuleName, MD5Sum } } = beam_lib:md5( BinCode ),
+	MD5Sum.
+
+
+
+% Tells whether the specified (supposedly loaded) module is the same as the one
+% found through the code path.
+%
+-spec is_loaded_module_same_on_filesystem( basic_utils:module_name() ) ->
+												 boolean().
+is_loaded_module_same_on_filesystem( ModuleName ) ->
+	LoadedMD5 = get_md5_for_loaded_module( ModuleName ),
+	StoredMD5 = get_md5_for_stored_module( ModuleName ),
+	io:format( "Loaded MD5: ~p~nStored MD5: ~p~n", [ LoadedMD5, StoredMD5 ] ),
+	LoadedMD5 == StoredMD5.
 
 
 

@@ -424,11 +424,12 @@ launch: Emakefile
 
 
 
-install: all doc install-all
+
+install-package: all doc install-all
+
 
 # We do not want to generate documentation in production:
 install-prod: all install-prod-all
-
 
 
 install-all: install-announce install-bin install-ebin install-src \
@@ -441,7 +442,7 @@ install-prod-all: install-prod-announce install-bin install-ebin \
 
 
 install-announce:
-	@echo "  Installing package $(PACKAGE_NAME) \
+	@echo " Installing package $(PACKAGE_NAME) \
 	in $(PACKAGE_INSTALLATION_PREFIX)"
 
 

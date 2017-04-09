@@ -3,8 +3,10 @@
 % Note that, without the UTF line above and with pre-R17 Erlang versions, sent
 % text is garbled due to a wrong encoding.
 
+% Note: this source file was beforehand in DOS encoding, presumably for no good
+% reason.
 
-% Copyright (C) 2013-2016 Olivier Boudeville
+% Copyright (C) 2013-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
