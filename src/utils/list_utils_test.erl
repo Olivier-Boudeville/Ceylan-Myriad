@@ -25,7 +25,8 @@
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
 
 
-% Unit tests for the list management utils.
+
+% Unit tests for the list management utilities.
 %
 % See the list_utils.erl tested module.
 %
@@ -48,7 +49,7 @@ run() ->
 
 	GetValue = list_utils:get_element_at( L, GetIndex ),
 	test_facilities:display( "Getting item #~B of list ~w: ~B.",
-							[ GetIndex, L, GetValue ] ),
+							 [ GetIndex, L, GetValue ] ),
 
 	13 = GetValue,
 
@@ -77,6 +78,7 @@ run() ->
 	1 = list_utils:get_index_of( 12, CorrectShortenList ),
 	2 = list_utils:get_index_of(  4, CorrectShortenList ),
 	5 = list_utils:get_index_of(  0, CorrectShortenList  ),
+
 	try
 
 		list_utils:get_index_of( 42, CorrectShortenList  ),
@@ -194,7 +196,7 @@ run() ->
 	ResultList = list_utils:intersect( List1, List2 ),
 
 	test_facilities:display( "Displaying the intersection of ~p and ~p: ~p.",
-			   [ List1, List2, ResultList ] ),
+							 [ List1, List2, ResultList ] ),
 
 	ExpectedList = lists:sort( ResultList ),
 

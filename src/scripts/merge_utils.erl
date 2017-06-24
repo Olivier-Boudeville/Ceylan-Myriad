@@ -47,7 +47,7 @@
 		   path :: file_utils:path(),
 
 		   % Type of the file element:
-		   type :: file_utils:data_type(),
+		   type :: file_utils:entry_type(),
 
 		   % Precise size, in bytes, of that file:
 		   size :: system_utils:byte_size(),
@@ -236,7 +236,7 @@ main( _ ) ->
 
 % Starts user-related services.
 %
--spec start_user_service( file_utils:filename() ) -> user_state().
+-spec start_user_service( file_utils:file_name() ) -> user_state().
 start_user_service( LogFilename ) ->
 
 	% We append to the log file, if it already exists:

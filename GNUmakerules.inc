@@ -92,8 +92,8 @@ TEST_TARGETS = $(patsubst %.erl,%,$(TEST_SOURCES))
 	install-include install-examples install-test install-doc				\
 	info-install generate-list-of-erlang-types generate-list-of-local-types \
 	generate-local-plt self-check-against-plt check check-hook              \
-	help-erl clean clean-erlang clean-database clean-recurse real-clean     \
-	info info-files $(MODULES_DIRS)
+	help-erl clean clean-erlang clean-database clean-recurse clean-outputs  \
+	real-clean info info-files $(MODULES_DIRS)
 
 
 
@@ -192,17 +192,17 @@ all-recurse: $(BEAM_FILES)
 # Exactly the same processing applies to each of them.
 
 
-src/utils/meta_utils.beam: src/utils/meta_utils.erl
+$(COMMON_TOP)/src/utils/meta_utils.beam: $(COMMON_TOP)/src/utils/meta_utils.erl
 	@echo "		Compiling bootstrap module $<"
 	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
 
-src/utils/text_utils.beam: src/utils/text_utils.erl
+$(COMMON_TOP)/src/utils/text_utils.beam: $(COMMON_TOP)/src/utils/text_utils.erl
 	@echo "		Compiling bootstrap module $<"
 	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
 
-src/data-management/map_hashtable.beam: src/data-management/map_hashtable.erl
+$(COMMON_TOP)/src/data-management/map_hashtable.beam: $(COMMON_TOP)/src/data-management/map_hashtable.erl
 	@echo "		Compiling bootstrap module $<"
 	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
@@ -631,6 +631,9 @@ clean-recurse:
 	exit 1; fi ; done
 
 endif
+
+
+clean-outputs:
 
 
 # To be enriched by user layers:

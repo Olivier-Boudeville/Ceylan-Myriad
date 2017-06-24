@@ -247,7 +247,12 @@ run() ->
 
 	10.0 = text_utils:string_to_float( "10" ),
 	10.0 = text_utils:string_to_float( "10.0" ),
+	-1.2e-4 = text_utils:string_to_float( "-1,2E-4" ),
+	4.0e3 = text_utils:string_to_float( "40E2"),
+	1.0e3 = text_utils:string_to_float( "1,E3"),
+
 	try
+
 		text_utils:string_to_float( "Not a float" )
 
 	catch
@@ -292,6 +297,13 @@ run() ->
 	%test_facilities:display( "Lexicographic distance between '~s' "
 	%						 "and (variant):~s",
 	%	[ RefString, text_utils:strings_to_string( VariantResultStrings ) ] ),
+
+	IndentationLevel = 3,
+	NumberedString = text_utils:strings_to_enumerated_string( CompareStrings,
+														  IndentationLevel ),
+
+	test_facilities:display( "Numbered list with indentation level ~B:~s",
+							 [ IndentationLevel, NumberedString ] ),
 
 
 	test_facilities:display( "Testing the textual conversion of distances:" ),

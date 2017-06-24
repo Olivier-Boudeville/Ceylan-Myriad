@@ -555,8 +555,8 @@
 % Description of a nesting depth reached when parsing a type description.
 %
 % It is in pratice a {P,B} pair, where P is the parenthesis depth (i.e. the
-% number of the parentheses that are open and not closed yet) and B is the
-% bracket depth (i.e. the same principle, for "[]" instead of for "()"):
+% number of the parentheses that have been opened and not closed yet) and B is
+% the bracket depth (i.e. the same principle, for "[]" instead of for "()"):
 %
 -type nesting_depth() :: { basic_utils:count(), basic_utils:count() }.
 
@@ -761,20 +761,20 @@ init_module_info() ->
 %
 -spec function_info_to_string( function_info() ) -> text_utils:ustring().
 function_info_to_string( #function_info{
-		   name=Name,
-		   arity=Arity,
-		   location=_Location,
-		   definition=Clauses,
-		   spec=LocatedSpec,
-		   exported=Exported } ) ->
+							name=Name,
+							arity=Arity,
+							location=_Location,
+							definition=Clauses,
+							spec=LocatedSpec,
+							exported=Exported } ) ->
 
 	ExportString = case Exported of
 
-					   true ->
-						   "exported";
+		true ->
+			"exported";
 
-					   false ->
-						   "local"
+		false ->
+			"local"
 
 	end,
 
@@ -782,11 +782,11 @@ function_info_to_string( #function_info{
 
 	SpecString = case LocatedSpec of
 
-					 undefined ->
-						 "no type specification";
+		undefined ->
+			"no type specification";
 
-					 _ ->
-						 "a type specification"
+		_ ->
+			"a type specification"
 
 	end,
 
@@ -875,7 +875,8 @@ traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData ) ->
 %
 traverse_list( TargetList, TypeDescription, TermTransformer, UserData ) ->
 
-	{ NewList, NewUserData } = lists:foldl( fun( Elem, { AccList, AccData } ) ->
+	{ NewList, NewUserData } = lists:foldl(
+								 fun( Elem, { AccList, AccData } ) ->
 
 			{ TransformedElem, UpdatedData } = traverse_term( Elem,
 							TypeDescription, TermTransformer, AccData ),
@@ -883,11 +884,11 @@ traverse_list( TargetList, TypeDescription, TermTransformer, UserData ) ->
 			% New accumulator, produces a reversed element list:
 			{ [ TransformedElem | AccList ], UpdatedData }
 
-											end,
+								 end,
 
-											_Acc0={ _Elems=[], UserData },
+								 _Acc0={ _Elems=[], UserData },
 
-											TargetList ),
+								 TargetList ),
 
 	{ lists:reverse( NewList ), NewUserData }.
 
@@ -1014,11 +1015,11 @@ string_to_form( FormString, Location ) ->
 
 	case erl_parse:parse_form( Tokens ) of
 
-			  { ok, ParseTree } ->
-				  ParseTree;
+		{ ok, ParseTree } ->
+			ParseTree;
 
-			  ErrorPar ->
-				  throw( { form_parsing_error, FormString, ErrorPar } )
+		ErrorPar ->
+			throw( { form_parsing_error, FormString, ErrorPar } )
 
 	end.
 
@@ -1065,12 +1066,11 @@ string_to_expressions( ExpressionString, Location ) ->
 
 	case erl_parse:parse_exprs( Tokens ) of
 
-			  { ok, ParseTree } ->
-				  ParseTree;
+		{ ok, ParseTree } ->
+			ParseTree;
 
-			  ErrorPar ->
-				  throw( { expression_parsing_error, ExpressionString,
-						   ErrorPar } )
+		ErrorPar ->
+			throw( { expression_parsing_error, ExpressionString, ErrorPar } )
 
 	end.
 
@@ -1305,11 +1305,11 @@ process_ast( _AST=[ Form={ attribute, _Line, file, { Filename, _N } } | T ],
 	%
 	NewFilenames = case lists:member( NormFilename, Inc ) of
 
-					   true ->
-						   Inc;
+		true ->
+			Inc;
 
-					   false ->
-						   [ NormFilename | Inc ]
+		false ->
+			[ NormFilename | Inc ]
 
 	end,
 
@@ -1397,8 +1397,8 @@ process_ast( _AST=[ Form={ attribute, _Line, export, FunctionIds } | T ],
 
 		end,
 
-						 _Acc0=FunctionTable,
-						 _List=FunctionIds ),
+		_Acc0=FunctionTable,
+		_List=FunctionIds ),
 
 	LocForm = { _BasicLocation=[ FormCounter ], Form },
 
@@ -1428,27 +1428,27 @@ process_ast( _AST=[ _Form={ function, Line, Name, Arity, Clauses } | T ],
 
 		key_not_found ->
 
-					  % New entry then:
-					  #function_info{
-						 name=Name,
-						 arity=Arity,
-						 location=BasicLocation,
-						 line=Line,
-						 definition=Clauses
-						 % Implicit:
-						 %spec=undefined
-						};
+			% New entry then:
+			#function_info{
+			   name=Name,
+			   arity=Arity,
+			   location=BasicLocation,
+			   line=Line,
+			   definition=Clauses
+			   % Implicit:
+			   %spec=undefined
+			  };
 
 		{ value, F=#function_info{ definition=[] } } ->
-					  % Already here because of an export; just add the missing
-					  % information then:
-					  F#function_info{ location=BasicLocation,
-									   line=Line,
-									   definition=Clauses };
+				% Already here because of an export; just add the missing
+				% information then:
+				F#function_info{ location=BasicLocation,
+								 line=Line,
+								 definition=Clauses };
 
 		% Here a definition was already set:
 		_ ->
-					  raise_error( { multiple_definition_for, FunId } )
+			raise_error( { multiple_definition_for, FunId } )
 
 	end,
 
@@ -1479,24 +1479,24 @@ process_ast( _AST=[ Form={ attribute, _Line, spec, {
 
 		key_not_found ->
 
-					  % New entry then:
-					  #function_info{
-						 name=FunctionName,
-						 arity=Arity,
-						 % Implicit:
-						 %location=undefined,
-						 %line=undefined,
-						 %definition=[]
-						 spec=LocatedSpec
-						};
+			% New entry then:
+			#function_info{
+			   name=FunctionName,
+			   arity=Arity,
+			   % Implicit:
+			   %location=undefined,
+			   %line=undefined,
+			   %definition=[]
+			   spec=LocatedSpec
+			  };
 
 		{ value, F=#function_info{ spec=undefined } } ->
-					  % Just add the form then:
-					  F#function_info{ spec=LocatedSpec };
+			% Just add the form then:
+			F#function_info{ spec=LocatedSpec };
 
 		% Here a spec was already set:
 		_ ->
-					  raise_error( { multiple_spec_for, FunId } )
+			raise_error( { multiple_spec_for, FunId } )
 
 	end,
 
@@ -1934,11 +1934,11 @@ module_info_to_string( #module_info{
 
 	LastLineString = case LastLine of
 
-						 undefined ->
-							 "unknown";
+		undefined ->
+			"unknown";
 
-						 { _Loc, { eof, Count } } ->
-							 text_utils:format( "~B", [ Count ] )
+		{ _Loc, { eof, Count } } ->
+			text_utils:format( "~B", [ Count ] )
 
 	end,
 
@@ -1947,18 +1947,17 @@ module_info_to_string( #module_info{
 
 	UnhandledString = case UnhandledForms of
 
-			  [] ->
-				  "(no unhandled form)";
+		[] ->
+			"(no unhandled form)";
 
-			  _ ->
-				  UnhandledStrings = [ text_utils:format( "~p", [ Form ] )
-								|| { _Loc, Form } <- UnhandledForms ],
+		_ ->
+			UnhandledStrings = [ text_utils:format( "~p", [ Form ] )
+								 || { _Loc, Form } <- UnhandledForms ],
 
-				  text_utils:format( "~B unhandled forms: ~s",
-						[ length( UnhandledForms ),
-						  text_utils:strings_to_string( UnhandledStrings,
-														Bullet )
-						] )
+			text_utils:format( "~B unhandled forms: ~s",
+							   [ length( UnhandledForms ),
+								 text_utils:strings_to_string( UnhandledStrings,
+															   Bullet ) ] )
 	end,
 
 	Infos = [
@@ -1996,13 +1995,13 @@ module_info_to_string( #module_info{
 								 [ [ E || { _, E } <- TypeExportDefs ] ] ),
 
 			  text_utils:format( "~B function export definitions: ~p~n",
-					 [ length( FunctionExports ),
-					   [ F || { _, F } <- FunctionExports ] ] ),
+								 [ length( FunctionExports ),
+								   [ F || { _, F } <- FunctionExports ] ] ),
 
 			  text_utils:format( "~B functions: ~s~n",
-					 [ length( FunctionStrings ),
-					   text_utils:strings_to_string( FunctionStrings,
-													 Bullet ) ] ),
+								 [ length( FunctionStrings ),
+								   text_utils:strings_to_string(
+									 FunctionStrings, Bullet ) ] ),
 
 			  text_utils:format( "line count: ~s~n", [ LastLineString ] ),
 
@@ -2214,11 +2213,11 @@ is_function_exported( ModuleName, FunctionName, Arity ) ->
 % Type-related section.
 %
 % Note: currently, only a very basic, ad hoc support ("hand-made look-up
-% tables").
+% tables") is provided.
 %
-% Later we would like to really parse any type description (ex: "[ { float(), [
-% boolean() ] } ]") and be able to manage it as type() (including the checking
-% of terms against types).
+% Later we would like to really parse any type description (ex: "[ { float, [
+% boolean ] } ]") and be able to manage it as type() (including the checking of
+% terms against types).
 
 
 
@@ -2338,7 +2337,7 @@ type_to_description( _Type={ list, T } ) ->
 
 type_to_description( _Type={ union, TypeList } ) when is_list( TypeList ) ->
 	text_utils:join( _Separator="|",
-					  [ type_to_description( T ) || T <- TypeList ] );
+					 [ type_to_description( T ) || T <- TypeList ] );
 
 type_to_description( _Type={ tuple, TypeList } ) when is_list( TypeList ) ->
 	TypeString = text_utils:join( _Separator=",",
@@ -2360,6 +2359,7 @@ type_to_description( Type ) ->
 	throw( { type_description_failed, Type } ).
 
 
+
 % Returns a textual representation of the specified type.
 %
 -spec type_to_string( type() ) -> string().
@@ -2374,6 +2374,11 @@ type_to_string( Type ) ->
 % Note: limited to primitive types, not compounded ones (like [float()]).
 %
 % is_number/1, is_record/1, etc. not usable here.
+%
+% Note: often we do not want to retrieve the actual type of a term but need
+% instead to determine whether the term can be considered as an instance of a
+% specific type (this is not strictly the same need, as a given term in general
+% may be seen of being of multiple types).
 %
 -spec get_type_of( term() ) -> primitive_type_description().
 get_type_of( Term ) when is_boolean( Term ) ->
@@ -2447,6 +2452,12 @@ is_type( _T ) ->
 % whether the term complies with this expected structure.
 %
 -spec is_of_type( term(), type() ) -> boolean().
+is_of_type( _Term, _Type='any' ) ->
+	true;
+
+is_of_type( Term, _Type='string' ) when is_list( Term ) ->
+	text_utils:is_string( Term );
+
 is_of_type( Term, Type ) ->
 
 	case get_type_of( Term ) of

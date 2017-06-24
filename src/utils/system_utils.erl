@@ -90,6 +90,21 @@
 		  get_system_description/0 ]).
 
 
+% Prerequisite-related section.
+
+% Name of a (third-party) prerequisite package (ex: "ErlPort", "jsx", etc.).
+%
+-type package_name() :: string().
+
+-export_type([ package_name/0 ]).
+
+
+-export([ get_dependency_base_directory/1, get_dependency_code_directory/1,
+		  is_json_support_available/0, get_json_unavailability_hint/0,
+		  is_hdf5_support_available/0, get_hdf5_unavailability_hint/0  ]).
+
+
+
 % Size, in number of bytes:
 -type byte_size() :: integer().
 
@@ -155,7 +170,7 @@
 		   % Number of available inodes:
 		   available_inodes :: basic_utils:count()
 
-		  } ).
+} ).
 
 
 -type fs_info() :: #fs_info{}.
@@ -168,9 +183,10 @@
 -type command() :: text_utils:ustring().
 
 
-% Return code of a run executable (a.k.a. exit status):
+% Return the (positive integer) return code of an executable being run
+% (a.k.a. exit status):
 %
-% (0 means success, strictly positive mean error)
+% (0 means success, while a strictly positive value means error)
 %
 -type return_code() :: basic_utils:count().
 
@@ -270,8 +286,9 @@ get_user_name_string() ->
 		io_lib:format( "user name: ~ts", [ get_user_name() ] )
 
 	catch _AnyClass:Exception ->
-			io_lib:format( "no user name information could be obtained (~p)",
-						   [ Exception ] )
+
+		io_lib:format( "no user name information could be obtained (~p)",
+					   [ Exception ] )
 
 	end.
 
@@ -308,8 +325,9 @@ get_user_home_directory_string() ->
 					   [ get_user_home_directory() ] )
 
 	catch _AnyClass:Exception ->
-			io_lib:format( "no home directory information could be "
-						   "obtained (~p)", [ Exception ] )
+
+		io_lib:format( "no home directory information could be "
+					   "obtained (~p)", [ Exception ] )
 
 	end.
 
@@ -735,7 +753,7 @@ get_environment_prefix( Environment ) ->
 	% We do not specifically *unset* a variable whose value is false, we set it
 	% to an empty string:
 	%
-	VariableStrings = [	begin
+	VariableStrings = [ begin
 
 							ActualValue = case Value of
 
@@ -930,8 +948,9 @@ get_size_of_vm_word_string() ->
 					   [ get_size_of_vm_word() ] )
 
 	catch _AnyClass:Exception ->
-			io_lib:format( "size of a VM word could not be obtained (~p)",
-						   [ Exception ] )
+
+		io_lib:format( "size of a VM word could not be obtained (~p)",
+					   [ Exception ] )
 
 	end.
 
@@ -1549,8 +1568,9 @@ get_core_count_string() ->
 		io_lib:format( "number of cores: ~B", [ get_core_count() ] )
 
 	catch _AnyClass:Exception ->
-			io_lib:format( "no core information could be obtained (~p)",
-						   [ Exception ] )
+
+		io_lib:format( "no core information could be obtained (~p)",
+					   [ Exception ] )
 
 	end.
 
@@ -1579,8 +1599,9 @@ get_process_count_string() ->
 					  [ get_process_count() ] )
 
 	catch _AnyClass:Exception ->
-			io_lib:format( "no information about the number of live Erlang "
-						   "processes could be obtained (~p)", [ Exception ] )
+
+		io_lib:format( "no information about the number of live Erlang "
+					   "processes could be obtained (~p)", [ Exception ] )
 
 	end.
 
@@ -1704,11 +1725,10 @@ get_cpu_usage_counters() ->
 	StatString = case run_executable( "cat /proc/stat | grep 'cpu '" ) of
 
 		{ _ExitCode=0, Output } ->
-						 Output;
+			Output;
 
 		{ ExitCode, ErrorOutput } ->
-						 throw( { cpu_counters_inquiry_failed, ExitCode,
-								  ErrorOutput } )
+			throw( { cpu_counters_inquiry_failed, ExitCode, ErrorOutput } )
 
 	end,
 
@@ -1945,13 +1965,12 @@ filesystem_info_to_string( #fs_info{ filesystem=Fs, mount_point=Mount,
 	% For example vfat does not have inodes:
 	InodeString = case Uinodes + Ainodes of
 
-					  0 ->
-						  "";
+		0 ->
+			"";
 
-					  S ->
-						  Percent = 100 * Uinodes / S,
-						  text_utils:format( ", hence used at ~.1f%",
-											 [ Percent ] )
+		S ->
+			Percent = 100 * Uinodes / S,
+			text_utils:format( ", hence used at ~.1f%", [ Percent ] )
 
 	end,
 
@@ -2074,30 +2093,137 @@ get_system_description() ->
 	% We use ~ts instead of ~s as in some cases, Unicode strings might be
 	% returned:
 	%
-	Subjects = [
-
-		get_core_count_string(),
-
-		get_size_of_vm_word_string(),
-
-		get_operating_system_description_string(),
-
-		get_process_count_string(),
-
-		get_total_physical_memory_string(),
-
-		get_ram_status_string(),
-
-		get_swap_status_string(),
-
-		get_user_name_string(),
-
-		get_user_home_directory_string(),
-
-		get_current_directory_string(),
-
-		get_disk_usage_string()
-
-				],
+	Subjects = [ get_core_count_string(),
+				 get_size_of_vm_word_string(),
+				 get_operating_system_description_string(),
+				 get_process_count_string(),
+				 get_total_physical_memory_string(),
+				 get_ram_status_string(),
+				 get_swap_status_string(),
+				 get_user_name_string(),
+				 get_user_home_directory_string(),
+				 get_current_directory_string(),
+				 get_disk_usage_string() ],
 
 	text_utils:strings_to_string( Subjects ).
+
+
+
+% Prerequisite section.
+
+% We suppose that by default all third-party dependencies (example taken here:
+% the Foobar software) are conventionally installed under a common base
+% directory, which is in turn conventionally named and located just under the
+% user directory.
+%
+% More precisely, on Unix systems, our convention requests the base directory of
+% all (third-party) dependencies to be '~/Software/'.
+%
+% We expect to have then the name of each prerequisite specified in CamelCase;
+% ex: '~/Software/Foobar/'.
+%
+% Finally, each version thereof shall be installed in that directory (ex: a
+% clone of the Foobar repository that could be named
+% '~/Software/Foobar/foobar-20170601'), and be designated by a symbolic link
+% named 'Foobar-current-install', still defined in '~/Software/Foobar'.
+%
+% As a result, one then can always access the current version of Foobar through
+% the '~/Software/Foobar/Foobar-current-install' path (possibly pointing to
+% successive versions thereof over time).
+
+
+% Returns the (expected, conventional) base installation directory of the
+% specified third-party, prerequisite package (ex: "Foobar").
+%
+-spec get_dependency_base_directory( package_name() ) ->
+										   file_utils:directory_name().
+get_dependency_base_directory( PackageName="ErlPort" ) ->
+
+	% ErlPort must be special-cased, as its actual base installation directory
+	% *must* be named "erlport" (otherwise the interpreter initialization may
+	% fail on new nodes with the {not_found,"erlport/priv"} error; so:
+
+	PathComponents = [ get_user_home_directory(), "Software", PackageName,
+					   "erlport" ],
+
+	file_utils:normalise_path( file_utils:join( PathComponents ) );
+
+
+get_dependency_base_directory( PackageName ) ->
+
+	% Expected to return a fully resolved version of the
+	% "$HOME/Software/Foobar/Foobar-current-install" path, such as
+	% "/home/stallone/Software/Foobar/Foobar-current-install":
+	%
+	PathComponents = [ get_user_home_directory(), "Software", PackageName,
+					   PackageName ++ "-current-install" ],
+
+	file_utils:normalise_path( file_utils:join( PathComponents ) ).
+
+
+
+% Returns the (expected, conventional) code installation directory of the
+% specified third-party, prerequisite, Erlang package (ex: "Foobar").
+%
+-spec get_dependency_code_directory( package_name() ) ->
+										   file_utils:directory_name().
+get_dependency_code_directory( PackageName ) ->
+
+	% We would expect here
+	% /home/stallone/Software/Foobar/Foobar-current-install/ebin:
+	%
+	file_utils:join( get_dependency_base_directory( PackageName ), "ebin" ).
+
+
+
+% Tells whether a JSON support is available.
+%
+-spec is_json_support_available() -> boolean().
+is_json_support_available() ->
+	% This module can be built in all cases:
+	rest_utils:is_json_parser_available().
+
+
+% Returns a string explaining what to do in order to have the JSON support
+% available.
+%
+-spec get_json_unavailability_hint() -> string().
+get_json_unavailability_hint() ->
+	"Hint: inspect, in common/GNUmakevars.inc, the USE_REST and "
+	"JSX_BASE variables.".
+
+
+
+% Tells whether an HDF5 support is available.
+%
+-spec is_hdf5_support_available() -> boolean().
+is_hdf5_support_available() ->
+
+	% Unlike dependencies like jsx whose compilation (in rest_utils.erl) do not
+	% need any specific *.hrl header (therefore rest_utils:start/0 is available
+	% in all cases), hdf5_support needs one (erlhdf5.hrl), hence the
+	% hdf5_support module may not be built at all, and thus will not be
+	% available even in order to provide a means of telling whether HDF can be
+	% supported.
+	%
+	% So:
+	%
+	case code_utils:is_beam_in_path( hdf5_support ) of
+
+		not_found ->
+			false;
+
+		_Paths ->
+			true
+
+	end.
+
+
+
+% Returns a string explaining what to do in order to have the HDF5 support
+% available.
+%
+-spec get_hdf5_unavailability_hint() -> string().
+get_hdf5_unavailability_hint() ->
+	"Hint: inspect, in common/GNUmakevars.inc, the USE_HDF5 and "
+	"ERLHDF5_BASE variables.".

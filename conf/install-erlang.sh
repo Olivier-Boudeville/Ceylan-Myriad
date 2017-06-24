@@ -9,12 +9,12 @@ LANG=C; export LANG
 
 
 # Current stable:
-erlang_version="19.2"
-erlang_md5="7cdd18a826dd7bda0ca46d1c3b2efca6"
+erlang_version="20.0"
+erlang_md5="2faed2c3519353e6bc2501ed4d8e6ae7"
 
 # Previous version (ex: cutting-edge or previous stable version):
-erlang_version_candidate="19.1"
-erlang_md5_candidate="19dfbc2042e6dd40bf281e7ca2d49d43"
+erlang_version_candidate="19.3"
+erlang_md5_candidate="a8c259ec47bf84e77510673e1b76b6db"
 
 
 plt_file="Erlang-$erlang_version.plt"

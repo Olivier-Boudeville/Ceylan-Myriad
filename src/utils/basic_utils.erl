@@ -33,10 +33,6 @@
 -module(basic_utils).
 
 
-% For list_impl:
--include("data_types.hrl").
-
-
 
 % Registration functions.
 %
@@ -68,7 +64,7 @@
 		  wait_for/2, wait_for/4, wait_for_acks/4, wait_for_acks/5,
 		  wait_for_summable_acks/5,
 		  wait_for_many_acks/4, wait_for_many_acks/5,
-		  send_to_pid_list_impl/2 ]).
+		  send_to_pid_set/2 ]).
 
 
 
@@ -85,7 +81,7 @@
 		  generate_uuid/0, create_uniform_tuple/2,
 		  stop/0, stop/1, stop_on_success/0, stop_on_failure/0,
 		  stop_on_failure/1,
-		  crash/0, enter_infinite_loop/0, trigger_oom/0 ]).
+		  ignore/1, freeze/0, crash/0, enter_infinite_loop/0, trigger_oom/0 ]).
 
 
 
@@ -169,7 +165,7 @@
 -type unchecked_data() :: term().
 
 
-% Designates user-specified data  (users shall not be trusted either):
+% Designates user-specified data (users shall not be trusted either):
 -type user_data() :: external_data().
 
 
@@ -877,10 +873,18 @@ stop() ->
 %
 % Also also to potentially override Erlang standard teardown procedure.
 %
+% Note: it is an asynchronous, message-based operation. As a result, the calling
+% process will most probably continue with the next instructions until the VM is
+% halted.
+%
 -spec stop( status_code() ) -> no_return().
 stop( StatusCode ) ->
+
 	% Far less brutal than erlang:halt/{0,1}:
-	init:stop( StatusCode ).
+	init:stop( StatusCode ),
+
+	% To avoid that the calling process continues with the next instructions:
+	freeze().
 
 
 
@@ -907,6 +911,36 @@ stop_on_failure( StatusCode ) ->
 
 
 
+% Ignores specified argument.
+%
+% Useful to define, for debugging purposes, terms that will be (temporarily)
+% unused without blocking the compilation.
+%
+-spec ignore( any() ) -> void().
+ignore( _Term ) ->
+	io:format( "Warning: unused term ignored thanks to "
+			   "basic_utils:ignore/1.~n" ).
+
+
+
+% Freezes the current process immediately.
+%
+% Useful to block the process while for example an ongoing termination
+% occurs.
+%
+% See also: enter_infinite_loop/0.
+%
+-spec freeze() -> no_return().
+freeze() ->
+	receive
+
+		not_expected_to_be_received ->
+			freeze()
+
+	end.
+
+
+
 % Crashes the current process immediately.
 %
 % Useful for testing reliability, for example.
@@ -928,6 +962,8 @@ crash() ->
 % Makes the current process enter in an infinite, mostly idle loop.
 %
 % Useful for testing reliability, for example.
+%
+% See also: freeze/0.
 %
 enter_infinite_loop() ->
 
@@ -1277,8 +1313,11 @@ wait_for_summable_acks_helper( WaitedSenders, CurrentValue, InitialTimestamp,
 %
 % Throws specified exception on time-out.
 %
--spec wait_for_many_acks( ?list_impl_type, unit_utils:milliseconds(), atom(),
-						  atom() ) -> void().
+% Note: each sender shall be unique (as they will be gathered in a set, that
+% does not keep duplicates)
+%
+-spec wait_for_many_acks( set_utils:set( pid() ), unit_utils:milliseconds(),
+						  atom(), atom() ) -> void().
 wait_for_many_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 					ThrowAtom ) ->
 
@@ -1292,7 +1331,7 @@ wait_for_many_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 %
 % Throws specified exception on time-out, checking at the specified period.
 %
--spec wait_for_many_acks( ?list_impl_type, unit_utils:milliseconds(),
+-spec wait_for_many_acks( set_utils:set( pid() ), unit_utils:milliseconds(),
 						  unit_utils:milliseconds(), atom(), atom() ) -> void().
 wait_for_many_acks( WaitedSenders, MaxDurationInSeconds, Period,
 					AckReceiveAtom, ThrowAtom ) ->
@@ -1312,7 +1351,7 @@ wait_for_many_acks_helper( WaitedSenders, InitialTimestamp,
 						   MaxDurationInSeconds, Period, AckReceiveAtom,
 						   ThrowAtom ) ->
 
-	case ?list_impl:is_empty( WaitedSenders ) of
+	case set_utils:is_empty( WaitedSenders ) of
 
 		true ->
 			ok;
@@ -1323,7 +1362,8 @@ wait_for_many_acks_helper( WaitedSenders, InitialTimestamp,
 
 				{ AckReceiveAtom, WaitedPid } ->
 
-					NewWaited = ?list_impl:delete( WaitedPid, WaitedSenders ),
+					NewWaited = set_utils:safe_delete( WaitedPid,
+													   WaitedSenders ),
 
 					wait_for_many_acks_helper( NewWaited, InitialTimestamp,
 					   MaxDurationInSeconds, Period, AckReceiveAtom, ThrowAtom )
@@ -1352,35 +1392,36 @@ wait_for_many_acks_helper( WaitedSenders, InitialTimestamp,
 
 
 
-% Sends the specified message to all elements (supposed to be PID) reachable
-% from the specified list_impl list, and returns the number of sent messages.
+% Sends the specified message to all elements (supposed to be PID) of the
+% specified set, and returns the number of sent messages.
 %
 % (helper)
 %
--spec send_to_pid_list_impl( term(), ?list_impl_type ) -> count().
-send_to_pid_list_impl( Message, PidListImpl ) ->
+-spec send_to_pid_set( term(), set_utils:set( pid() ) ) -> count().
+send_to_pid_set( Message, PidSet ) ->
 
 	% Conceptually (not a basic list, though):
-	 % [ Pid ! Message || Pid <- PidListImpl ]
+	 % [ Pid ! Message || Pid <- PidSet ]
 
-	% Supposedly, it is done faster with iterators than first using
-	% ?list_impl:to_list/1 then iterating on the resulting plain list:
-
-	Iterator = ?list_impl:iterator( PidListImpl ),
+	% With iterators, it is done slightly slower yet with less RAM rather than
+	% first using set_utils:to_list/1 then iterating on the resulting plain
+	% list:
+	%
+	Iterator = set_utils:iterator( PidSet ),
 
 	% Returns the count:
-	send_to_pid_list_impl( Message, ?list_impl:next( Iterator ), _Count=0 ).
+	send_to_pid_set( Message, set_utils:next( Iterator ), _Count=0 ).
 
 
 
 % (helper)
 %
-send_to_pid_list_impl( _Message, none, Count ) ->
+send_to_pid_set( _Message, none, Count ) ->
 	Count;
 
-send_to_pid_list_impl( Message, { Pid, NewIterator }, Count ) ->
+send_to_pid_set( Message, { Pid, NewIterator }, Count ) ->
 	Pid ! Message,
-	send_to_pid_list_impl( Message, ?list_impl:next( NewIterator ), Count + 1 ).
+	send_to_pid_set( Message, set_utils:next( NewIterator ), Count+1 ).
 
 
 
@@ -1732,7 +1773,9 @@ get_execution_target() ->
 % otherwise global) like 'foobar_service') was still existing at the moment of
 % this call.
 %
-% Note: generally not to be used when relying on a good design.
+% Note:
+% - the process may run on the local node or not
+% - generally not to be used when relying on a good design.
 %
 -spec is_alive( pid() | string() | registration_name() ) -> boolean().
 is_alive( TargetPid ) when is_pid( TargetPid ) ->
@@ -1764,6 +1807,7 @@ is_alive( TargetPid, Node ) when is_pid( TargetPid ) ->
 	case node() of
 
 		Node ->
+			% Would fail with 'badarg' if the process ran on another node:
 			erlang:is_process_alive( TargetPid );
 
 		_OtherNode ->

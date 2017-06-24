@@ -137,9 +137,19 @@ stop() ->
 -spec start_json_parser() -> basic_utils:void().
 start_json_parser() ->
 
-	% We use jsx, an external prerequisite.
+	% We use the 'jsx' parser, an external prerequisite.
 
-	true = is_json_parser_available(),
+	case is_json_parser_available() of
+
+		true ->
+			ok;
+
+		false ->
+			basic_utils:display( "\nError: jsx JSON parser not available.\n"
+				++ system_utils:get_json_unavailability_hint() ),
+			throw( { json_parser_not_found, jsx } )
+
+	end,
 
 	% This is a way to check its BEAMs are available and usable:
 	%
@@ -151,11 +161,9 @@ start_json_parser() ->
 	catch
 
 		error:undef ->
-			basic_utils:display(
-			  "\nError: jsx JSON parser not found.\n"
-			  "Hint: inspect, in common/GNUmakevars.inc, the USE_REST and "
-			  "JSX_BASE variables.\n" ),
-			throw( { json_parser_not_found, jsx } )
+			basic_utils:display( "\nError: jsx JSON parser not operational.\n"
+				++ system_utils:get_json_unavailability_hint() ),
+			throw( { json_parser_not_operational, jsx } )
 
 	end.
 

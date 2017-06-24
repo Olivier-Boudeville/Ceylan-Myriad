@@ -138,13 +138,13 @@ replace_table( AST ) ->
 
 	DesiredTableType = case lookup_table_select_attribute( AST ) of
 
-						   undefined ->
-							   ?default_hashtable_type;
+		undefined ->
+			?default_hashtable_type;
 
-						   TableType ->
-								%io:format( "Default hashtable type overridden "
-								%		  "to ~p.~n", [ TableType ] ),
-								TableType
+		TableType ->
+			%io:format( "Default hashtable type overridden "
+			%		  "to ~p.~n", [ TableType ] ),
+			TableType
 
 	end,
 
@@ -209,11 +209,11 @@ switch_table( { remote_type, L1, [
 	%
 	ActualTypeName = case TypeName of
 
-						 table ->
-							 DesiredTableType;
+		table ->
+			DesiredTableType;
 
-						 _ ->
-							 TypeName
+		_ ->
+			TypeName
 
 	end,
 

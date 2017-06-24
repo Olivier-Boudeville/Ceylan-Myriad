@@ -34,11 +34,6 @@
 
 
 
-% For list_impl:
--include("data_types.hrl").
-
-
-
 % Random-related functions.
 %
 -export([ start_random_source/3, start_random_source/1, can_be_seeded/0,
@@ -539,9 +534,9 @@ get_random_subset( ValueCount, InputList ) ->
 %
 -spec get_random_seed() -> seed().
 get_random_seed() ->
-	{   get_random_value( ?seed_upper_bound ),
-		get_random_value( ?seed_upper_bound ),
-		get_random_value( ?seed_upper_bound ) }.
+	{ get_random_value( ?seed_upper_bound ),
+	  get_random_value( ?seed_upper_bound ),
+	  get_random_value( ?seed_upper_bound ) }.
 
 
 

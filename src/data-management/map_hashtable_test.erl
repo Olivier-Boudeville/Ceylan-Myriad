@@ -41,6 +41,7 @@
 -define(MyFirstKey,  'MyFirstKey').
 -define(MySecondKey, 'MySecondKey').
 -define(MyThirdKey,  'MyThirdKey').
+-define(MyFourthKey, 'MyFourthKey').
 
 
 
@@ -117,9 +118,24 @@ run() ->
 	test_facilities:display( "Listing the hashtable values: ~p",
 		[ map_hashtable:values( MyH4 ) ] ),
 
+
+	test_facilities:display( "Appending values to elements" ),
+
+
+	MyH7 = map_hashtable:appendToEntry( ?MyFourthKey, first_element, MyH5 ),
+
+	MyH8 = map_hashtable:appendToExistingEntry( ?MyFourthKey, second_element,
+												 MyH7 ),
+
+	MyH9 = map_hashtable:appendListToExistingEntry( ?MyFourthKey,
+								 [ third_element, fourth_element ], MyH8 ),
+
+	map_hashtable:display( MyH9 ),
+
+
+
 	test_facilities:display( "Applying a fun to all values of "
 							 "previous hashtable" ),
-
 
 	FunValue = fun( V ) ->
 				io:format( " - hello value '~p'!~n", [ V ] ),
@@ -158,18 +174,18 @@ run() ->
 	true = list_utils:unordered_compare( [ ?MyFirstKey, ?MySecondKey ],
 										 map_hashtable:keys( MyH4 ) ),
 
-	MyH7 = map_hashtable:addEntry( ?MyThirdKey, 3, MyH6 ),
+	MyH10 = map_hashtable:addEntry( ?MyThirdKey, 3, MyH6 ),
 
 	% MyH8 should have { AnotherKey, [1,2,3] } and { ?MyThirdKey, 3 }:
-	MyH8 = map_hashtable:merge( MyH4, MyH7 ),
+	MyH11 = map_hashtable:merge( MyH4, MyH10 ),
 
 	% Any optimisation would be automatic:
 	test_facilities:display( "Merged table: ~s.",
-							 [ map_hashtable:toString( MyH8 ) ] ),
+							 [ map_hashtable:toString( MyH11 ) ] ),
 
 	Keys = [ ?MyFirstKey, ?MyThirdKey ],
 
 	test_facilities:display( "Listing the entries for keys ~p:~n ~p",
-					[ Keys, map_hashtable:selectEntries( Keys, MyH8 ) ] ),
+					[ Keys, map_hashtable:selectEntries( Keys, MyH11 ) ] ),
 
 	test_facilities:stop().

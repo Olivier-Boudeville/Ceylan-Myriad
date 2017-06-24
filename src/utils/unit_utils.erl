@@ -163,6 +163,8 @@
 
 -type meters() :: float().
 
+-type kilometers() :: float().
+
 -type millimeters() :: float().
 -type int_millimeters() :: integer().
 
@@ -172,7 +174,7 @@
 					  | 'int_millimeters'.
 
 
--export_type([ meters/0, millimeters/0, int_millimeters/0,
+-export_type([ meters/0, kilometers/0, millimeters/0, int_millimeters/0,
 			   length_reference_unit/0, length_units/0 ]).
 
 

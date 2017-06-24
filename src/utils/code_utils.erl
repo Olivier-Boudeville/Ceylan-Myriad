@@ -102,8 +102,8 @@ get_md5_for_loaded_module( ModuleName ) ->
 									   executable_utils:md5_sum().
 get_md5_for_stored_module( ModuleName ) ->
 	{ BinCode, _ModuleFilename } = get_code_for( ModuleName ),
-	{ ok, { ModuleName, MD5Sum } } = beam_lib:md5( BinCode ),
-	MD5Sum.
+	{ ok, { ModuleName, MD5SumBin } } = beam_lib:md5( BinCode ),
+	binary_to_integer( MD5SumBin, _Base=16 ).
 
 
 
@@ -115,7 +115,7 @@ get_md5_for_stored_module( ModuleName ) ->
 is_loaded_module_same_on_filesystem( ModuleName ) ->
 	LoadedMD5 = get_md5_for_loaded_module( ModuleName ),
 	StoredMD5 = get_md5_for_stored_module( ModuleName ),
-	io:format( "Loaded MD5: ~p~nStored MD5: ~p~n", [ LoadedMD5, StoredMD5 ] ),
+	%io:format( "Loaded MD5: ~p~nStored MD5: ~p~n", [ LoadedMD5, StoredMD5 ] ),
 	LoadedMD5 == StoredMD5.
 
 
@@ -328,7 +328,8 @@ check_beam_dirs( _Dirs=[] ) ->
 
 check_beam_dirs( _Dirs=[ D | T ] ) ->
 
-	case file_utils:is_existing_directory( D ) of
+	% We allow symlinks (ex: for ~/Software/X/X-current-install):
+	case file_utils:is_existing_directory_or_link( D ) of
 
 		true ->
 			check_beam_dirs( T );

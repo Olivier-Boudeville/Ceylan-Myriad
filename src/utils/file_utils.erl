@@ -44,9 +44,11 @@
 		  exists/1, get_type_of/1, is_file/1,
 		  is_existing_file/1, is_existing_file_or_link/1,
 		  is_executable/1, is_directory/1, is_existing_directory/1,
+		  is_existing_directory_or_link/1,
 		  list_dir_elements/1,
 
 		  get_size/1, get_last_modification_time/1, touch/1,
+		  create_empty_file/1,
 
 		  get_current_directory/0, set_current_directory/1,
 
@@ -109,6 +111,10 @@
 -type bin_path() :: binary().
 
 -type file_name() :: path().
+
+% Just a convenience alias:
+-type filename() :: file_name().
+
 -type bin_file_name() :: binary().
 
 -type directory_name() :: path().
@@ -149,7 +155,7 @@
 
 
 -export_type([ path/0, bin_path/0,
-			   file_name/0, bin_file_name/0,
+			   file_name/0, filename/0, bin_file_name/0,
 			   directory_name/0, bin_directory_name/0,
 			   extension/0,
 			   entry_type/0,
@@ -436,6 +442,29 @@ is_existing_directory( EntryName ) ->
 
 
 
+% Returns whether the specified entry exists and is a directory or a symbolic
+% link.
+%
+% Returns true or false, and cannot trigger an exception.
+%
+-spec is_existing_directory_or_link( directory_name() ) -> boolean().
+is_existing_directory_or_link( EntryName ) ->
+
+	case exists( EntryName ) andalso get_type_of( EntryName ) of
+
+		directory ->
+			true ;
+
+		symlink ->
+			true ;
+
+		_ ->
+			false
+
+	end.
+
+
+
 % Returns a tuple made of a four lists describing the file elements found in
 % specified directory: { Files, Directories, OtherFiles, Devices }.
 %
@@ -490,34 +519,63 @@ get_last_modification_time( Filename ) ->
 
 
 
-% Updates the modification time (the last time at which its content was
-% reported as modified according to the filesystem) of specified file.
+% Updates the modification time (the last time at which its content was reported
+% as modified according to the filesystem) of the specified file, which must
+% already exist.
 %
 % Note: leaves last access time unchanged, updates both modification and change
 % times.
+%
+% See also: create_empty_file/1
 %
 -spec touch( file_name() ) -> basic_utils:void().
 touch( Filename ) ->
 
 	case is_existing_file( Filename ) of
 
-			true ->
-				% -c: do not create any file
-				% -m: change only the modification time
-				%
-				case system_utils:run_executable( "/bin/touch -c -m '"
+		true ->
+			% -c: do not create any file
+			% -m: change only the modification time
+			%
+			case system_utils:run_executable( "/bin/touch -c -m '"
 												  ++ Filename ++ "'" ) of
 
-					{ 0, _Output } ->
-						ok;
+				{ 0, _Output } ->
+					ok;
 
-					{ ErrorCode, Output } ->
-						throw( { touch_failed, Output, ErrorCode, Filename } )
+				{ ErrorCode, Output } ->
+					throw( { touch_failed, Output, ErrorCode, Filename } )
 
-				end;
+			end;
 
-			false ->
-				throw( { non_existing_file_to_touch, Filename } )
+		false ->
+			throw( { non_existing_file_to_touch, Filename } )
+
+	end.
+
+
+
+% Creates an empty file bearing the specified filename (other use of touch).
+%
+% Potentially useful as a last-resort debugging tool (when no console output or
+% applicative trace can be relied upon, we can at least leave side-effects on
+% the filesystem).
+%
+% Note: of course a simple 'os:cmd( "/bin/touch ~/my-message.debug" ).' may be
+% of use as well.
+%
+% See also: touch/1.
+%
+-spec create_empty_file( file_name() ) -> basic_utils:void().
+create_empty_file( Filename ) ->
+
+	case system_utils:run_executable( "/bin/touch '" ++ Filename ++ "'" ) of
+
+		{ 0, _Output } ->
+			ok;
+
+		{ ErrorCode, Output } ->
+			throw( { empty_file_creation_failed, Output, ErrorCode, Filename } )
 
 	end.
 
@@ -2104,10 +2162,13 @@ decompress( _Filename, CompressionFormat ) ->
 %
 -spec file_to_zipped_term( file_name() ) -> binary().
 file_to_zipped_term( Filename ) ->
+
 	DummyFileName = "dummy",
+
 	{ ok, { _DummyFileName, Bin } } =
 		%zip:zip( DummyFileName, [ Filename ], [ verbose, memory ] ),
 		zip:zip( DummyFileName, [ Filename ], [ memory ] ),
+
 	Bin.
 
 
@@ -2182,7 +2243,6 @@ files_to_zipped_term( FilenameList ) ->
 files_to_zipped_term( FilenameList, BaseDirectory ) ->
 
 	DummyFileName = "dummy",
-
 
 	%io:format( "files_to_zipped_term operating from ~s on files: ~p.~n",
 	%		  [ BaseDirectory, FilenameList ] ),

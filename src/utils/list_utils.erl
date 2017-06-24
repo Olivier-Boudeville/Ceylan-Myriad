@@ -30,6 +30,8 @@
 %
 % See list_utils_test.erl for the corresponding test.
 %
+% See also: set_utils.erl
+%
 -module(list_utils).
 
 
@@ -47,19 +49,13 @@
 		  has_duplicates/1, get_duplicates/1, intersect/2,
 		  subtract_all_duplicates/2, delete_existing/2, delete_if_existing/2,
 		  delete_all_in/2, append_at_end/2, is_list_of_integers/1,
-		  unordered_compare/2, add_if_not_existing/2 ]).
+		  unordered_compare/2 ]).
 
 
 % For list of tuples (ex: typically used by the HDF5 binding), extended flatten
 % and al:
 %
 -export([ determine_tuple_info/1, flatten_tuples/1, reconstruct_tuples/2 ]).
-
-
-
-% listimpl-relation operations:
-%
--export([ listimpl_delete/2, safe_listimpl_delete/2, listimpl_add/2 ]).
 
 
 
@@ -116,10 +112,9 @@
 %
 -spec get_element_at( list(), basic_utils:positive_index() ) -> any().
 get_element_at( List, Index ) ->
-
 	%io:format( " - getting element #~B of ~w~n", [ Index, List ] ),
-
 	lists:nth( Index, List ).
+
 
 
 % Inserts specified element at specified position in specified list.
@@ -148,7 +143,7 @@ insert_element_at( Element, List, _Index=1, Acc ) ->
 	lists:reverse( [ Element | Acc ] ) ++ List;
 
 insert_element_at( Element, _List=[ H | T ], Index, Acc ) ->
-	insert_element_at( Element, T, Index - 1, [ H | Acc ] ).
+	insert_element_at( Element, T, Index-1, [ H | Acc ] ).
 
 
 
@@ -456,7 +451,12 @@ delete_all_in( Elem, _List=[ H | T ], Acc ) ->
 % Note: usually adding elements at the end of a list should be avoided, as it is
 % costlier than adding them at head.
 %
--spec append_at_end( any(), list() ) -> nonempty_list().
+-spec append_at_end( list() | any(), list() ) -> nonempty_list().
+append_at_end( ElemList, L ) when is_list( ElemList ) andalso is_list( L ) ->
+	% Should be more efficient than:
+	%lists:reverse( [ Elem | lists:reverse( L ) ] ):
+	L ++ ElemList;
+
 append_at_end( Elem, L ) when is_list( L ) ->
 	% Should be more efficient than:
 	%lists:reverse( [ Elem | lists:reverse( L ) ] ):
@@ -469,7 +469,7 @@ append_at_end( Elem, L ) when is_list( L ) ->
 is_list_of_integers( [] ) ->
 	true;
 
-is_list_of_integers( [ H | T ] ) when is_integer(H) ->
+is_list_of_integers( [ H | T ] ) when is_integer( H ) ->
 	is_list_of_integers( T );
 
 is_list_of_integers( _ ) ->
@@ -484,33 +484,6 @@ is_list_of_integers( _ ) ->
 -spec unordered_compare( list(), list() ) -> boolean().
 unordered_compare( L1, L2 ) ->
 	lists:sort( L1 ) =:= lists:sort( L2 ).
-
-
-
-% Adds each element of PlainList (a plain list) in ListImpl (a ?list_impl list),
-% if this element is not already there, and returns the corresponding
-% ?list_impl. So at the end all elements of PlainList will be exactly once in
-% the returned list, with all past elements still there.
-%
-% Supposedly PlainList is rather short and ListImpl can be rather long.
-%
--spec add_if_not_existing( list(), ?list_impl_type ) -> ?list_impl_type.
-add_if_not_existing( _PlainList=[], ListImpl ) ->
-		ListImpl ;
-
-add_if_not_existing( _PlainList=[ H | T ], ListImpl ) ->
-
-  case ?list_impl:is_member( H, ListImpl ) of
-
-	 true ->
-		 % Already there, not to added:
-		 add_if_not_existing( T, ListImpl );
-
-	 false ->
-		 % Not present, so let's add it:
-		 add_if_not_existing( T, ?list_impl:add_element( H, ListImpl ) )
-
-  end.
 
 
 
@@ -594,58 +567,6 @@ reconstruct_tuples( _List=[], _TupleSize, Acc ) ->
 reconstruct_tuples( List, TupleSize, Acc ) ->
 	{ TupleAsList, T } = lists:split( _Count=TupleSize, List ),
 	reconstruct_tuples( T, TupleSize, [ list_to_tuple( TupleAsList ) | Acc ] ).
-
-
-
-% Section for listimpl-related operations.
-
-
-% Removes the specified element from the specified list, and returns the
-% resulting list.
-%
-% Note: does not fail if the element was not in the list; use
-% safe_listimpl_delete/2 to ensure that the element was present.
-%
--spec listimpl_delete( term(), ?list_impl_type ) -> ?list_impl_type.
-listimpl_delete( Element, List ) ->
-	?list_impl:del_element( Element, List ).
-
-
-
-% Ensures that the specified element was indeed in the specified list before
-% removing it and returning the resulting list.
-%
-% Note: use_listimpl_delete/2 to delete without checking whether the element is
-% present in the list.
-%
--spec safe_listimpl_delete( term(), ?list_impl_type ) -> ?list_impl_type.
-safe_listimpl_delete( Element, List ) ->
-
-	case ?list_impl:is_element( Element, List ) of
-
-		true ->
-			?list_impl:del_element( Element, List );
-
-		false ->
-			throw( { non_existing_element_to_delete, Element,
-					?list_impl:to_list( List ) } )
-
-	end.
-
-
-
-% Returns a list_impl list made of the first list_impl list to which the
-% elements of the specified plain list have been added (it is basically a
-% ?list_impl ++ list() -> ?list_impl operations).
-%
--spec listimpl_add( ?list_impl_type, list() ) -> ?list_impl_type.
-listimpl_add( ListImplList, _PlainList=[] ) ->
-	ListImplList;
-
-listimpl_add( ListImplList, _PlainList=[ H | T ] ) ->
-	listimpl_add( ?list_impl:add_element( H, ListImplList ), T ).
-
-
 
 
 
@@ -750,7 +671,7 @@ random_permute( List, RemainingLen ) ->
 	% We put the drawn element at head, and recurse in the remaining list:
 	[ get_element_at( List, Index )
 		| random_permute( remove_element_at( List, Index ),
-						  RemainingLen - 1 ) ].
+						  RemainingLen-1 ) ].
 
 
 
@@ -890,9 +811,6 @@ draw_elements_from( _ElementList, _Count=0, Acc ) ->
 	Acc;
 
 draw_elements_from( ElementList, Count, Acc ) ->
-
 	Drawn = draw_element( ElementList ),
-
 	ShortenList = lists:delete( Drawn, ElementList ),
-
 	draw_elements_from( ShortenList, Count - 1, [ Drawn | Acc ] ).

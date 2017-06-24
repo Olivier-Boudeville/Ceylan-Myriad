@@ -34,7 +34,7 @@
 
 
 % General operations:
--export([ floor/1, ceiling/1, round_after/2,
+-export([ ceiling/1, round_after/2,
 		  float_to_integer/1, float_to_integer/2,
 		  modulo/2, clamp/3, squarify/1 ]).
 
@@ -62,7 +62,7 @@
 -type variance() :: float().
 
 
-% For percentages:
+% For percentages (1.0 corresponds to 100%):
 -type percent() :: float().
 
 
@@ -87,28 +87,31 @@
 % General section.
 
 
+% Note: deprecated in favor of erlang:floor/1.
+%
 % Floor returns the biggest integer smaller than the specified floating-point
 % value.
 %
 % Inspired from http://schemecookbook.org/Erlang/NumberRounding.
 %
--spec floor( number() ) -> integer().
-floor( X ) ->
-
-	T = erlang:trunc( X ),
-
-	case X - T of
-
-		Neg when Neg < 0 ->
-			T - 1;
-
-		%Pos when Pos > 0 ->
-		%	T;
-
-		_PositiveOrNull ->
-			T
-
-	end.
+% Not: not to be used anymore, rely on the now available erlang:floor/1.
+%-spec myfloor( number() ) -> integer().
+%floor( X ) ->
+%
+%	T = erlang:trunc( X ),
+%
+%	case X - T of
+%
+%		Neg when Neg < 0 ->
+%			T - 1;
+%
+%		%Pos when Pos > 0 ->
+%		%	T;
+%
+%		_PositiveOrNull ->
+%			T
+%
+%	end.
 
 
 

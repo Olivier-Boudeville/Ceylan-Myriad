@@ -400,16 +400,95 @@ get_local_ip_address() ->
 -spec reverse_lookup( ip_v4_address() ) -> string_host_name() | 'unknown_dns'.
 reverse_lookup( IPAddress ) ->
 
-	% Note that the 'host' command is not available on all systems:
-	HostCmd = case executable_utils:lookup_executable( "host" ) of
+	% Note that the 'host' command is not available on all systems ('dig',
+	% 'drill', 'nslookup') might be:
+	%
+	case executable_utils:lookup_executable( "host" ) of
 
 		false ->
-			throw( { executable_not_found, "host" } );
+			case executable_utils:lookup_executable( "drill" ) of
 
-		Path ->
-			Path
+				false ->
+					case executable_utils:lookup_executable( "dig" ) of
+						false ->
+							throw( { executables_not_found,
+									 [ "host", "drill", "dig" ] } );
 
-	end,
+						DigPath ->
+							reverse_lookup_with_dig_like( IPAddress, DigPath )
+
+					end;
+
+				DrillPath ->
+					reverse_lookup_with_dig_like( IPAddress, DrillPath )
+
+			end;
+
+		HostPath ->
+			reverse_lookup_with_host( IPAddress, HostPath )
+
+	end.
+
+
+
+% (helper using dig-like commands, i.e. the 'drill'/'dig' ones)
+%
+reverse_lookup_with_dig_like( IPAddress, DigLikeCmd ) ->
+
+	% We remove empty lines and comments (lines starting with ';;') and extract
+	% the host name:
+	%
+	Cmd = DigLikeCmd ++ " -x " ++ ipv4_to_string( IPAddress )
+		++ " | grep -v '^;;' | grep PTR | sed 's|.*PTR\t||1'"
+		++ " | sed 's|\.$||1' 2>/dev/null",
+
+	% Following could let non-PTR answers with '900 IN SOA' slip through:
+	%
+	%Cmd = DigLikeCmd ++ " -x " ++ ipv4_to_string( IPAddress )
+	%	++ " | grep . | grep -v '^;;' | sed 's|.*PTR\t||1' | "
+	%	++ "sed 's|\.$||1' 2>/dev/null",
+
+	% Alternatively, could have along the lines of:
+	%
+	% case system_utils:run_executable( Cmd ) of
+	%
+	%           CleanedResult = text_utils:remove_whitespaces( Output ),
+	%
+	%			case string:tokens( CleanedResult, "PTR" ) of
+	%
+	%			[ _Prefix, DomainPlusDot ] ->
+	%				% There is a trailing dot:
+	%				text_utils:remove_last_characters( DomainPlusDot,
+	%												   _Count=1 );
+	%
+	%			_Other  ->
+	%				unknown_dns
+	%
+	%		end;
+	%
+	% (however was not really elegant and a leading tabulation was remaining at
+	% least in some cases)
+
+	case system_utils:run_executable( Cmd ) of
+
+		{ _ExitCode=0, _Output="" } ->
+			unknown_dns;
+
+		{ _ExitCode=0, Output } ->
+			Output;
+
+		{ _ExitCode, _ErrorOutput } ->
+			%throw( { reverse_lookup_failed, IPAddress, ExitCode,
+			%		   ErrorOutput } )
+			unknown_dns
+
+	end.
+
+
+
+% (helper using the 'host' command)
+%
+reverse_lookup_with_host( IPAddress, HostCmd ) ->
 
 	Cmd = HostCmd ++ " -W 1 " ++ ipv4_to_string( IPAddress ) ++ " 2>/dev/null",
 
@@ -417,8 +496,7 @@ reverse_lookup( IPAddress ) ->
 
 		{ _ExitCode=0, Output } ->
 
-			%io:format( "Host command: ~s, result: ~s.~n",
-			%  [ Command, Res ] ),
+			%io:format( "'host' command: ~s, result: ~s.~n", [ Cmd, Output ] ),
 
 			case string:tokens( Output, " " ) of
 
@@ -437,6 +515,7 @@ reverse_lookup( IPAddress ) ->
 				unknown_dns
 
 	end.
+
 
 
 
@@ -763,12 +842,26 @@ launch_epmd( Port ) when is_integer( Port ) ->
 %
 % Note: an EPMD instance is expected to be already running; see
 % launch_epmd/{0,1} in this module for that; apparently no race condition
-% happens, hence no need for a wait-and-retry mechanism here.
+% happens, hence initially no need for a wait-and-retry mechanism was seen here.
 %
 % Otherwise following messages might be output:
 %  - 'Protocol: "inet_tcp": register/listen error: econnrefused'
 %  - '{distribution_enabling_failed,foobar,long_name,{{shutdown,
 %         {failed_to_start_child,net_kernel,{'EXIT',nodistribution}}},...
+%
+% In some cases yet (first time an Erlang program is run after boot?), a
+% distribution_enabling_failed exception is raised, like in:
+%
+% {"init terminating in do_boot",{{nocatch,{distribution_enabling_failed,
+% 'A_NODE_NAME',long_name,{{{shutdown,{failed_to_start_child,net_kernel,
+% {'EXIT',nodistribution}}},{child,undefined,net_sup_dynamic,
+% {erl_distribution,start_link,[['A_NODE_NAME',longnames],false]},permanent,
+% 1000,supervisor,[erl_distribution]}},'nonode@nohost'}}},[...]
+%
+% This does not seem to be linked to a race condition with EPMD, as killing EPMD
+% and re-running the program does not fail anymore.
+%
+% So a (tiny) second-chance mechanism has been introduced.
 %
 -spec enable_distribution( node_name(), node_naming_mode() ) ->
 								 basic_utils:void().
@@ -778,17 +871,22 @@ enable_distribution( NodeName, NamingMode ) when is_list( NodeName ) ->
 
 enable_distribution( NodeName, NamingMode=long_name )
   when is_atom( NodeName ) ->
-	enable_distribution_helper( NodeName, longnames, NamingMode );
+	enable_distribution_helper( NodeName, longnames, NamingMode,
+								_RemainingAttempts=5 );
 
 enable_distribution( NodeName, NamingMode=short_name )
   when is_atom( NodeName ) ->
-	enable_distribution_helper( NodeName, shortnames, NamingMode ).
+	enable_distribution_helper( NodeName, shortnames, NamingMode,
+								_RemainingAttempts=5 ).
+
 
 
 % NamingMode kept for error message.
 %
 % (helper)
-enable_distribution_helper( NodeName, NameType, NamingMode ) ->
+%
+enable_distribution_helper( NodeName, NameType, NamingMode,
+							RemainingAttempts ) ->
 
 	%io:format( "Starting distribution for node name ~s, as '~w'.~n",
 	%		   [ NodeName, NameType ] ),
@@ -796,21 +894,35 @@ enable_distribution_helper( NodeName, NameType, NamingMode ) ->
 	case net_kernel:start( [ NodeName, NameType ] ) of
 
 		{ error, Reason } ->
-			ExtraReason = case net_kernel:stop() of
 
-				ok ->
-					{ was_distributed, node(), Reason };
+			case RemainingAttempts of
 
-				{ error, not_allowed } ->
-					{ not_allowed, node(), Reason };
+				0 ->
+					ExtraReason = case net_kernel:stop() of
 
-				{ error, not_found } ->
-					{ Reason, node() }
+						ok ->
+							{ was_distributed, node(), Reason };
 
-			end,
+						{ error, not_allowed } ->
+							{ not_allowed, node(), Reason };
 
-			throw( { distribution_enabling_failed, NodeName, NamingMode,
-					 ExtraReason } );
+						{ error, not_found } ->
+							{ extra_reason, node(), Reason }
+
+					end,
+
+					throw( { distribution_enabling_failed, NodeName, NamingMode,
+							 ExtraReason } );
+
+				N ->
+					io:format( "(attempt of enabling ~p distribution for "
+							   "node '~s' failed, retrying...)~n",
+							   [ NamingMode, NodeName ] ),
+					timer:sleep( 300 ),
+					enable_distribution_helper( NodeName, NameType, NamingMode,
+												N - 1 )
+
+			end;
 
 		%{ ok, _NetKernelPid } ->
 		R ->

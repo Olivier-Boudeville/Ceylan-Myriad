@@ -44,6 +44,7 @@ max_process_count=400000
 #max_process_count=120000000
 
 
+# Often it is recommended that at least 12 threads per core are requested:
 asynch_thread_count=128
 
 
@@ -673,7 +674,7 @@ res=$?
 if [ ! $res -eq 0 ] ; then
 
 	reset_keyboard
-	echo "Command failed, with error result $res." 1>&2
+	echo "(command failed, with error result $res)" 1>&2
 	exit $res
 
 fi

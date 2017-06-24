@@ -42,7 +42,8 @@
 
 
 % The type of data-structure accounting for storing the already-explored
-% vertices (semantically used as a list):
+% vertices (semantically used as a list; note: it is actually a set, hence with
+% no user-defined order nor duplicates possible...):
 %
 -define( list_impl, gb_sets ).
 

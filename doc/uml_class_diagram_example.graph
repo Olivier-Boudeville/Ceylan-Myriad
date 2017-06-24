@@ -1,5 +1,6 @@
-# UML class diagram for the City-Example simulation case.
-#
+# UML class diagram for the 'Common' layer, to be used by the Graphviz (dot)
+# tool (see http://www.graphviz.org/).
+
 # Created by Olivier Boudeville on Wednesday, October 24, 2012.
 
 

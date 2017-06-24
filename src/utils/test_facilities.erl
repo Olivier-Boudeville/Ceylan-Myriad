@@ -88,12 +88,15 @@ display( FormatString, ValueList ) ->
 
 
 % Comment out to be able to use the interpreter after the test:
--define(ExitAfterTest,).
+%
+% (as a result, the default is to immediately exit once a test is over)
+%
+-define( exit_after_test, ).
 
 -spec finished() -> no_return().
 
 
--ifdef(ExitAfterTest).
+-ifdef(exit_after_test).
 
 
 finished() ->
@@ -111,7 +114,7 @@ finished() ->
 	test_success.
 
 
--else. % ExitAfterTest
+-else. % exit_after_test
 
 
 finished() ->
@@ -123,7 +126,7 @@ finished() ->
 	test_success.
 
 
--endif. % ExitAfterTest
+-endif. % exit_after_test
 
 
 
