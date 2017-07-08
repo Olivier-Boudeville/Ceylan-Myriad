@@ -12,7 +12,7 @@ LANG=C; export LANG
 erlang_version="20.0"
 erlang_md5="2faed2c3519353e6bc2501ed4d8e6ae7"
 
-# Previous version (ex: cutting-edge or previous stable version):
+# Candidate version (ex: either cutting-edge or previous stable version):
 erlang_version_candidate="19.3"
 erlang_md5_candidate="a8c259ec47bf84e77510673e1b76b6db"
 
@@ -25,9 +25,11 @@ usage="Usage: $(basename $0) [-h|--help] [-d|--doc-install] [-g|--generate-plt] 
 
 Note that, if relevant archives are found in the current directory, they will be used, even if the user did not specify a 'no download' option.
 
-If no base install directory is specified, then, if this script is run by root, Erlang will be installed into /usr/local (i.e. system-wide), otherwise it will be installed into ~/Software/Erlang/Erlang-${erlang_version}/.
+If no base install directory is specified, then:
+ - if this script is run as root thanks to a sudo (i.e. 'sudo $(basename $0)...'), Erlang will be built by the (supposedly non-privileged) original sudoer in the current directory, before being installed as root in /usr/local/ (i.e. system-wide); no Erlang-current-install symbolic link applies then
+ - otherwise it will be installed in ~/Software/Erlang/Erlang-${erlang_version}/.
 
-If a base install directory MY_DIR is specified, then Erlang will be installed into MY_DIR/Erlang/Erlang-${erlang_version}/.
+Otherwise, i.e. if a base install directory MY_DIR is specified, then Erlang will be installed into MY_DIR/Erlang/Erlang-${erlang_version}/.
 
 Options:
 	-d or --doc-install: download and install the corresponding documentation as well
@@ -38,11 +40,14 @@ Options:
 
 
 Example:
-  install-erlang.sh  --doc-install --no-download --generate-plt
+  install-erlang.sh --doc-install --no-download --generate-plt
 	will install latest available version of Erlang, with its documentation, in the ~/Software/Erlang directory, without downloading anything,
 	  - or -
   install-erlang.sh --doc-install ~/my-directory
 	will install current official stable version of Erlang ($erlang_version), with its documentation, in the ~/my-directory/Erlang/Erlang-${erlang_version} base directory, by downloading Erlang archives from the Internet
+	  - or -
+  sudo install-erlang.sh
+	will install current official stable version of Erlang ($erlang_version) in /usr/local/ (i.e. system-wide)
 
 For Debian-based distributions, you should preferably run beforehand, as root: 'apt-get update && apt-get install g++ make libncurses5-dev openssl libssl-dev libwxgtk2.8-dev libgl1-mesa-dev libglu1-mesa-dev libpng3', otherwise for example the crypto, wx or observer modules might not be available or usable.
 "
@@ -92,6 +97,9 @@ do_remove_build_tree=1
 
 erlang_download_location="http://erlang.org/download"
 
+# The user that is to perform the build (everything but installation):
+build_user=$(id -un)
+
 
 # Sets the wget variable appropriately.
 set_wget()
@@ -140,7 +148,7 @@ while [ $token_eaten -eq 0 ] ; do
 		erlang_md5="${erlang_md5_candidate}"
 		plt_file="Erlang-$erlang_version_candidate"
 
-		echo "Warning: not installing the default version of Erlang currently supported, using previous one, i.e. version ${erlang_version}." 1>&2
+		echo "Warning: not installing the default version of Erlang currently supported, using candidate one, i.e. version ${erlang_version}." 1>&2
 
 		token_eaten=0
 
@@ -198,15 +206,24 @@ if [ -z "$read_parameter" ] ; then
 
    if [ $(id -u) -eq 0 ] ; then
 
+	   if [ -z "${SUDO_USER}" ] ; then
+
+		   echo "Error, if this script is to be run as root, 'sudo' shall be used, so that build operations can be performed as a normal user (not with root privileges)." 1>&2
+		   exit 55
+
+	   fi
+
+	   build_user="${SUDO_USER}"
+
 	   # Run as root, no prefix specified, thus:
 	   use_prefix=1
 	   prefix="/usr/local"
-	   echo "Run as root, thus using default system installation directory."
+	   echo "Run as sudo root, thus using default system installation directory, falling back to user '${build_user}' for the operations that permit it."
 
    else
 
 	   prefix="$HOME/Software/Erlang/Erlang-${erlang_version}"
-	   echo "Not run as root, thus using default installation directory '$prefix'."
+	   echo "Not run as root, thus using default installation directory '$prefix' (and user '${build_user}')."
 
    fi
 
@@ -221,6 +238,9 @@ fi
 #echo "do_download = $do_download"
 #echo "do_manage_doc = $do_manage_doc"
 #echo "do_generate_plt = $do_generate_plt"
+
+#echo "build_user=$build_user"
+
 
 erlang_src_prefix="otp_src_${erlang_version}"
 erlang_src_archive="${erlang_src_prefix}.tar.gz"
@@ -273,7 +293,7 @@ if [ $do_download -eq 0 ] ; then
 
 			md5_res=$( ${md5sum} ${erlang_src_archive} )
 
-			computed_md5=$( echo ${md5_res}|awk '{printf $1}' )
+			computed_md5=$( echo ${md5_res}| awk '{printf $1}' )
 
 			if [ "${computed_md5}" = "${erlang_md5}" ] ; then
 
@@ -299,10 +319,8 @@ if [ $do_download -eq 0 ] ; then
 
 
 		echo "Downloading now ${erlang_target_src_url}"
-
 		set_wget
-
-		${wget} ${erlang_target_src_url} 1>/dev/null 2>&1
+		sudo -u ${build_user} ${wget} ${erlang_target_src_url} 1>/dev/null 2>&1
 
 		if [ ! $? -eq 0 ] ; then
 			echo "  Error while downloading ${erlang_target_src_url}, quitting." 1>&2
@@ -317,11 +335,9 @@ if [ $do_download -eq 0 ] ; then
 
 		if [ $doc_available -eq 1 ] ; then
 
-
-			set_wget
-
 			echo "Downloading now ${erlang_target_doc_url}"
-			${wget} ${erlang_target_doc_url} 1>/dev/null 2>&1
+			set_wget
+			sudo -u ${build_user} ${wget} ${erlang_target_doc_url} 1>/dev/null 2>&1
 
 			if [ ! $? -eq 0 ] ; then
 				echo "  Error while downloading ${erlang_target_doc_url}, quitting." 1>&2
@@ -391,18 +407,18 @@ if [ $use_prefix -eq 0 ] ; then
 
 	echo "Erlang version ${erlang_version} will be installed in ${prefix}."
 
-	mkdir -p ${prefix}
+	sudo -u ${build_user} mkdir -p ${prefix}
 
 	# Removes any previous extracted directory, renamed or not:
 	if [ -e "${erlang_extracted_prefix}" ] ; then
 
-		/bin/rm -rf "${erlang_extracted_prefix}"
+		sudo -u ${build_user} /bin/rm -rf "${erlang_extracted_prefix}"
 
 	fi
 
 	if [ -e "${erlang_src_prefix}" ] ; then
 
-		/bin/rm -rf "${erlang_src_prefix}"
+		sudo -u ${build_user} /bin/rm -rf "${erlang_src_prefix}"
 
 	fi
 
@@ -412,12 +428,13 @@ else
 
 	# Nevertheless some cleaning is to be performed, otherwise Dialyzer may
 	# catch multiple versions of the same BEAM:
+	#
 	/bin/rm -rf /usr/local/lib/erlang
 
 fi
 
 
-tar xvzf ${erlang_src_archive}
+sudo -u ${build_user} tar xvzf ${erlang_src_archive}
 
 if [ ! $? -eq 0 ] ; then
 	echo "  Error while extracting ${erlang_src_archive}, quitting." 1>&2
@@ -431,7 +448,7 @@ if [ ! -d "${erlang_src_prefix}" ] ; then
 
 	if [ -d "${erlang_extracted_prefix}" ] ; then
 
-		/bin/mv -f ${erlang_extracted_prefix} ${erlang_src_prefix}
+		sudo -u ${build_user} /bin/mv -f ${erlang_extracted_prefix} ${erlang_src_prefix}
 
 	else
 
@@ -478,7 +495,7 @@ End-of-script
 
 	) > ceylan-auth.patch
 
-	$patch_tool -p0 < ceylan-auth.patch
+	sudo -u ${build_user} $patch_tool -p0 < ceylan-auth.patch
 
 	if [ ! $? -eq 0 ] ; then
 
@@ -488,7 +505,7 @@ End-of-script
 
 	fi
 
-	/bin/rm -f ceylan-auth.patch
+	sudo -u ${build_user} /bin/rm -f ceylan-auth.patch
 
 	cd ../../..
 
@@ -513,19 +530,34 @@ if [ $use_prefix -eq 0 ] ; then
 	prefix_opt="--prefix=${prefix}"
 fi
 
-echo "  Building Erlang environment..." && ./configure ${configure_opt} ${prefix_opt} && make && make install
+echo "  Building Erlang environment..."
 
+if ! sudo -u ${build_user} ./configure ${configure_opt} ${prefix_opt} ; then
 
-if [ $? -eq 0 ] ; then
-
-	echo "  Erlang successfully built and installed in ${prefix}."
-
-else
-
-	echo "  Error, the Erlang build failed." 1>&2
+	echo "Configuration failed, exiting." 1>&2
 	exit 60
 
 fi
+
+
+if ! sudo -u ${build_user} make ; then
+
+	echo "Build failed, exiting." 1>&2
+	exit 61
+
+fi
+
+
+# No sudo here:
+if ! make install ; then
+
+	echo "Installation failed, exiting." 1>&2
+	exit 62
+
+fi
+
+
+echo "  Erlang successfully built and installed in ${prefix}."
 
 
 if [ $use_prefix -eq 0 ] ; then
@@ -665,7 +697,7 @@ if [ $do_generate_plt -eq 0 ] ; then
 	# generating with '--output_plt $actual_plt_file' and doing '/bin/ln -s
 	# $actual_plt_file $actual_plt_link' we proceed the other way round:
 
-	$dialyzer_exec --build_plt -r $erlang_beam_root --output_plt $actual_plt_link
+	sudo -u ${build_user} $dialyzer_exec --build_plt -r $erlang_beam_root --output_plt $actual_plt_link
 	res=$?
 
 	if [ $res -eq 0 ] ; then
