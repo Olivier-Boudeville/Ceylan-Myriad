@@ -19,7 +19,7 @@ endif
 
 
 ifndef PACKAGE_NAME
-	PACKAGE_NAME := common
+	PACKAGE_NAME := Ceylan-Myriad
 endif
 
 
@@ -71,7 +71,10 @@ PACKAGE_INSTALLATION_PREFIX := $(INSTALLATION_PREFIX)/$(PACKAGE_NAME)
 
 
 # Could rely on the permissions instead:
-EXEC_TO_INSTALL := $$(find $(PACKAGE_TOP) -name '*.sh' -a ! -name '*.exe')
+#
+# (not taking symbolic links to avoid duplicate targets)
+#
+EXEC_TO_INSTALL := $$(find $(PACKAGE_TOP) -name '*.sh' -a ! -name '*.exe' -a ! -type l)
 
 
 
@@ -95,6 +98,19 @@ TESTS_TO_INSTALL_SRC := $$(find $(PACKAGE_TOP) -name '*_test.erl' -o -name 'clas
 
 DOC_TO_INSTALL := $$(find $(PACKAGE_TOP) -name tmp-rst -prune -o \( -type f -a \( -name '*.pdf' -o -name '*.html' \) \) | grep -v tmp-rst)
 
+
+
+# Install locations:
+
+BIN_INSTALLATION_PREFIX := $(PACKAGE_INSTALLATION_PREFIX)/bin
+EBIN_INSTALLATION_PREFIX := $(PACKAGE_INSTALLATION_PREFIX)/ebin
+SRC_INSTALLATION_PREFIX := $(PACKAGE_INSTALLATION_PREFIX)/src
+INCLUDE_INSTALLATION_PREFIX := $(PACKAGE_INSTALLATION_PREFIX)/include
+EXAMPLES_INSTALLATION_PREFIX := $(PACKAGE_INSTALLATION_PREFIX)/examples
+TEST_INSTALLATION_PREFIX := $(PACKAGE_INSTALLATION_PREFIX)/test
+DOC_INSTALLATION_PREFIX := $(PACKAGE_INSTALLATION_PREFIX)/doc
+
+DEFAULT_PRODUCTION_INSTALLATION_PREFIX := /usr/local/$(PACKAGE_NAME)
 
 
 # Source section.

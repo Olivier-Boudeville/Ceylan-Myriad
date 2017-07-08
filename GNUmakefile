@@ -31,7 +31,7 @@ register-common:
 
 
 add-prerequisite-plts: prepare-base-plt \
-                       add-erlhdf5-plt add-jsx-plt add-sqlite3-plt
+					   add-erlhdf5-plt add-jsx-plt add-sqlite3-plt
 
 
 # So that in all cases we start by the same PLT name:

@@ -90,7 +90,8 @@ TEST_TARGETS = $(patsubst %.erl,%,$(TEST_SOURCES))
 	test test-recurse doc-recurse build-tests launch						\
 	install-all install-announce install-ebin install-bin install-src		\
 	install-include install-examples install-test install-doc				\
-	info-install generate-list-of-erlang-types generate-list-of-local-types \
+	info-install info-install-locations info-install-content                \
+	generate-list-of-erlang-types generate-list-of-local-types              \
 	generate-local-plt self-check-against-plt check check-hook              \
 	help-erl clean clean-erlang clean-database clean-recurse clean-outputs  \
 	real-clean info info-files $(MODULES_DIRS)
@@ -423,13 +424,24 @@ launch: Emakefile
 # Installation section.
 
 
-
-
+# For a development-ready install:
+#
 install-package: all doc install-all
 
 
-# We do not want to generate documentation in production:
+# For a production-ready install:
+#
+install-prod-standard:
+	@sudo $(MAKE) install-prod PACKAGE_INSTALLATION_PREFIX=$(DEFAULT_PRODUCTION_INSTALLATION_PREFIX)
+
+
+
+# In a production setting, We do not want to generate documentation in
+# production or to install extra elements (such as tests, examples, etc.):
+#
 install-prod: all install-prod-all
+
+
 
 
 install-all: install-announce install-bin install-ebin install-src \
@@ -437,17 +449,17 @@ install-all: install-announce install-bin install-ebin install-src \
 
 
 install-prod-all: install-prod-announce install-bin install-ebin \
-	install-src install-include install-examples install-test
+	install-src install-include
 
 
 
 install-announce:
-	@echo " Installing package $(PACKAGE_NAME) \
+	@echo " Installing this package ($(PACKAGE_NAME)) for development \
 	in $(PACKAGE_INSTALLATION_PREFIX)"
 
 
 install-prod-announce:
-	@echo "  Installing production package $(PACKAGE_NAME) \
+	@echo "  Installing this package ($(PACKAGE_NAME)) for production \
 	in $(PACKAGE_INSTALLATION_PREFIX)"
 
 
@@ -458,67 +470,83 @@ install-prod-announce:
 
 install-bin:
 	@if [ -n "$(EXEC_TO_INSTALL)" ] ; then \
-	mkdir -p $(PACKAGE_INSTALLATION_PREFIX)/bin ; \
-	/bin/cp -L $(EXEC_TO_INSTALL) $(PACKAGE_INSTALLATION_PREFIX)/bin ; fi
+	mkdir -p $(BIN_INSTALLATION_PREFIX) ; \
+	/bin/cp $(EXEC_TO_INSTALL) $(BIN_INSTALLATION_PREFIX) ; fi
 
 
 install-ebin:
 	@if [ -n "$(BEAMS_TO_INSTALL)" ] ; then \
-	mkdir -p $(PACKAGE_INSTALLATION_PREFIX)/ebin ; \
-	/bin/cp -L $(BEAMS_TO_INSTALL) $(PACKAGE_INSTALLATION_PREFIX)/ebin ; fi
+	mkdir -p $(EBIN_INSTALLATION_PREFIX) ; \
+	/bin/cp -L $(BEAMS_TO_INSTALL) $(EBIN_INSTALLATION_PREFIX) ; fi
 
 
 install-src:
 	@if [ -n "$(SOURCES_TO_INSTALL)" ] ; then \
-	mkdir -p $(PACKAGE_INSTALLATION_PREFIX)/src ; \
-	/bin/cp -L $(SOURCES_TO_INSTALL) $(PACKAGE_INSTALLATION_PREFIX)/src ; fi
+	mkdir -p $(SRC_INSTALLATION_PREFIX) ; \
+	/bin/cp -L $(SOURCES_TO_INSTALL) $(SRC_INSTALLATION_PREFIX) ; fi
 
 
 install-include:
 	@if [ -n "$(INCLUDES_TO_INSTALL)" ] ; then \
-	mkdir -p $(PACKAGE_INSTALLATION_PREFIX)/include ; \
+	mkdir -p $(INCLUDE_INSTALLATION_PREFIX) ; \
 	/bin/cp -L $(INCLUDES_TO_INSTALL) \
-	$(PACKAGE_INSTALLATION_PREFIX)/include ; fi
+	$(INCLUDE_INSTALLATION_PREFIX) ; fi
 
 
 install-examples:
 	@if [ -n "$(EXAMPLES_TO_INSTALL_BEAMS)" ] ; then \
-	mkdir -p $(PACKAGE_INSTALLATION_PREFIX)/examples/ebin ; \
+	mkdir -p $(EXAMPLES_INSTALLATION_PREFIX)/ebin ; \
 	/bin/cp -L $(EXAMPLES_TO_INSTALL_BEAMS) \
-	$(PACKAGE_INSTALLATION_PREFIX)/examples/ebin ; fi
+	$(EXAMPLES_INSTALLATION_PREFIX)/ebin ; fi
 	@if [ -n "$(EXAMPLES_TO_INSTALL_SRC)" ] ; then \
-	mkdir -p $(PACKAGE_INSTALLATION_PREFIX)/examples/src ; \
+	mkdir -p $(EXAMPLES_INSTALLATION_PREFIX)/src ; \
 	/bin/cp -L $(EXAMPLES_TO_INSTALL_SRC) \
-	$(PACKAGE_INSTALLATION_PREFIX)/examples/src ; fi
+	$(EXAMPLES_INSTALLATION_PREFIX)/src ; fi
 
 
 install-test:
 	@if [ -n "$(TESTS_TO_INSTALL_BEAMS)" ] ; then \
-	mkdir -p $(PACKAGE_INSTALLATION_PREFIX)/test/ebin ; \
+	mkdir -p $(TEST_INSTALLATION_PREFIX)/ebin ; \
 	cp -L $(TESTS_TO_INSTALL_BEAMS) \
-	$(PACKAGE_INSTALLATION_PREFIX)/test/ebin ; fi
+	$(TEST_INSTALLATION_PREFIX)/ebin ; fi
 	@if [ -n "$(TESTS_TO_INSTALL_SRC)" ] ; then \
-	mkdir -p $(PACKAGE_INSTALLATION_PREFIX)/test/src ; \
+	mkdir -p $(TEST_INSTALLATION_PREFIX)/src ; \
 	cp -L $(TESTS_TO_INSTALL_SRC) \
-	$(PACKAGE_INSTALLATION_PREFIX)/test/src ; fi
+	$(TEST_INSTALLATION_PREFIX)/src ; fi
 
 
 install-doc:
 	@if [ -n "$(DOC_TO_INSTALL)" ] ; then \
-	mkdir -p $(PACKAGE_INSTALLATION_PREFIX)/doc ; \
-	/bin/cp -r -L $(DOC_TO_INSTALL) $(PACKAGE_INSTALLATION_PREFIX)/doc ; fi
+	mkdir -p $(DOC_INSTALLATION_PREFIX) ; \
+	/bin/cp -r -L $(DOC_TO_INSTALL) $(DOC_INSTALLATION_PREFIX) ; fi
 
 
-info-install:
-	@echo "EXEC_TO_INSTALL = $(EXEC_TO_INSTALL)"
-	@echo "BEAMS_TO_INSTALL = $(BEAMS_TO_INSTALL)"
-	@echo "SOURCES_TO_INSTALL = $(SOURCES_TO_INSTALL)"
-	@echo "INCLUDES_TO_INSTALL = $(INCLUDES_TO_INSTALL)"
-	@echo "EXAMPLES_TO_INSTALL_BEAMS = $(EXAMPLES_TO_INSTALL_BEAMS)"
-	@echo "EXAMPLES_TO_INSTALL_SRC = $(EXAMPLES_TO_INSTALL_SRC)"
-	@echo "TESTS_TO_INSTALL_BEAMS = $(TESTS_TO_INSTALL_BEAMS)"
-	@echo "TESTS_TO_INSTALL_SRC = $(TESTS_TO_INSTALL_SRC)"
-	@echo "DOC_TO_INSTALL = $(DOC_TO_INSTALL)"
+
+info-install: info-install-locations info-install-content
+
+
+info-install-locations:
+	@echo   "PACKAGE_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)"
+	@echo   "BIN_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)/bin"
+	@echo   "EBIN_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)/ebin"
+	@echo   "SRC_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)/src"
+	@echo   "INCLUDE_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)/include"
+	@echo   "EXAMPLES_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)/examples"
+	@echo   "TEST_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)/test"
+	@echo   "DOC_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)/doc"
+	@echo   "DEFAULT_PRODUCTION_INSTALLATION_PREFIX = $(DEFAULT_PRODUCTION_INSTALLATION_PREFIX)"
+
+
+info-install-content:
+	@echo "  EXEC_TO_INSTALL = $(EXEC_TO_INSTALL)"
+	@echo "  BEAMS_TO_INSTALL = $(BEAMS_TO_INSTALL)"
+	@echo "  SOURCES_TO_INSTALL = $(SOURCES_TO_INSTALL)"
+	@echo "  INCLUDES_TO_INSTALL = $(INCLUDES_TO_INSTALL)"
+	@echo "  EXAMPLES_TO_INSTALL_BEAMS = $(EXAMPLES_TO_INSTALL_BEAMS)"
+	@echo "  EXAMPLES_TO_INSTALL_SRC = $(EXAMPLES_TO_INSTALL_SRC)"
+	@echo "  TESTS_TO_INSTALL_BEAMS = $(TESTS_TO_INSTALL_BEAMS)"
+	@echo "  TESTS_TO_INSTALL_SRC = $(TESTS_TO_INSTALL_SRC)"
+	@echo "  DOC_TO_INSTALL = $(DOC_TO_INSTALL)"
 
 
 
