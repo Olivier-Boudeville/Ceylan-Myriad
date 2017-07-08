@@ -190,6 +190,13 @@
 -define( table, map_hashtable ).
 
 
+% Maybe at least format/2 would be better inlined, however it does not seem
+% to be cross-module inlining (just inside this module?).
+%
+%-compile( { inline, [ format/2 ] } ).
+
+
+
 % String management functions.
 
 
@@ -850,11 +857,9 @@ duration_to_string( Milliseconds ) ->
 
 % Formats specified string as io_lib:format/2 would do, except it returns a
 % flattened version of it and cannot fail (so that for example a badly formatted
-% log cannot crash anymore its emitter process).
-%
-% Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected
-% Unicode inputs resulting on crashes afterwards.
-%
+% log cannot crash anymore its emitter process).  Note: rely preferably on '~ts'
+% rather than on '~s', to avoid unexpected Unicode inputs resulting on crashes
+% afterwards.
 -spec format( format_string(), [ term() ] ) -> ustring().
 format( FormatString, Values ) ->
 
@@ -988,16 +993,24 @@ get_lexicographic_distance( FirstString=[ _H1 | T1 ], SecondString=[ _H2 | T2 ],
 % Converts a plain (list-based) string into a binary.
 %
 -spec string_to_binary( ustring() ) -> binary().
-string_to_binary( String ) ->
-	erlang:list_to_binary( String ).
+string_to_binary( String ) when is_list( String ) ->
+	erlang:list_to_binary( String );
+
+string_to_binary( Other ) ->
+	throw( { not_a_string, Other } ).
 
 
 
 % Converts a binary into a plain (list-based) string.
 %
 -spec binary_to_string( binary() ) -> ustring().
-binary_to_string( Binary ) ->
-	erlang:binary_to_list( Binary ).
+binary_to_string( Binary ) when is_binary( Binary ) ->
+	erlang:binary_to_list( Binary );
+
+binary_to_string( Other ) ->
+	throw( { not_a_binary_string, Other } ).
+
+
 
 
 

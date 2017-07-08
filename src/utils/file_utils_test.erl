@@ -110,6 +110,20 @@ run() ->
 	"/home/lisa/tube" = file_utils:normalise_path(
 						  "/home/garfield/../lisa/./src/.././tube" ),
 
+
+	LeafName = "hello.txt",
+
+	LeafPath = "/tmp/test/" ++ LeafName,
+
+
+	false = file_utils:is_leaf_among( LeafName, [ "aa", "bb" ] ),
+
+	TestPaths = [ "test", "/test/foobar", LeafPath, "another_element" ],
+
+	LeafPath = file_utils:is_leaf_among( LeafName, TestPaths ),
+
+
+
 	FirstFilename = "media/frame/1-23-2-98.oaf",
 
 	test_facilities:display( "Path '~s', once transformed into a variable name,"

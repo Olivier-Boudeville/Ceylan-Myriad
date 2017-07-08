@@ -78,6 +78,8 @@
 		  ensure_path_is_absolute/1, ensure_path_is_absolute/2,
 		  normalise_path/1,
 
+		  is_leaf_among/2,
+
 		  path_to_variable_name/1, path_to_variable_name/2,
 
 		  get_image_extensions/0, get_image_file_png/1, get_image_file_gif/1 ]).
@@ -106,7 +108,9 @@
 
 % Type declarations:
 
-% A path may designate either a file or a directory.
+% A path may designate either a file or a directory (in both case with leading,
+% root directories possibly specified).
+%
 -type path() :: string().
 -type bin_path() :: binary().
 
@@ -121,6 +125,14 @@
 -type bin_directory_name() :: binary().
 
 -type extension() :: string().
+
+
+% A leaf name, i.e. the final part of a path (possibly a file or directory).
+%
+% Ex: in 'aaa/bbb/ccc', 'aaa' is the root, and 'ccc' is the leaf.
+%
+-type leaf_name() :: string().
+
 
 
 % All known types of file entries:
@@ -1580,6 +1592,28 @@ filter_elems( _ElemList=[ E | T ], Acc ) ->
 % filter_elems( _Elems=[ E | T ], Acc ) ->
 %	filter_elems( T, [ E | Acc ] ).
 
+
+
+% Tells whether specified basename (ex: filename) in among the specified list of
+% full paths; returns either false or the first full path found corresponding to
+% that leaf.
+%
+-spec is_leaf_among( leaf_name(), [ path() ] ) ->
+						   { 'false' | path() }.
+is_leaf_among( _LeafName, _PathList=[] ) ->
+	false;
+
+is_leaf_among( LeafName, _PathList=[ Path | T ] ) ->
+
+	case filename:basename( Path ) of
+
+		LeafName ->
+			Path;
+
+		_  ->
+			is_leaf_among( LeafName, T )
+
+	end.
 
 
 

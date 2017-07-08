@@ -696,3 +696,6 @@ COMMON_PLT_FILE := $(COMMON_TOP)/common.plt
 ifndef PREDECESSOR_PLT
   PREDECESSOR_PLT := $(ERLANG_PLT_FILE)
 endif
+
+
+MAKE_CODE_STATS := $(COMMON_TOP)/src/scripts/make-code-stats.sh
