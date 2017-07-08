@@ -431,7 +431,8 @@ install-package: all doc install-all
 
 # For a production-ready install:
 #
-install-prod-standard:
+#
+install-prod-standard: all
 	@sudo $(MAKE) install-prod PACKAGE_INSTALLATION_PREFIX=$(DEFAULT_PRODUCTION_INSTALLATION_PREFIX)
 
 
