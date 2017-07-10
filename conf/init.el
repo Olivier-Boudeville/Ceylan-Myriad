@@ -6,6 +6,23 @@
 (setq ring-bell-function 'ignore)
 
 
+;; To avoid having the Warnings buffer be opened with a message like:
+;;
+;; """
+;; Warning (server): Unable to start the Emacs server.
+;; There is an existing Emacs server, named "server".
+;; To start the server in this Emacs process, stop the existing
+;; server or call ‘M-x server-force-delete’ to forcibly disconnect it.
+;; """
+;;
+;; when opening an extraneous emacs:
+;;
+;; (does not seem to work, though, hence commented-out)
+(require 'server)
+(or (server-running-p)
+	(server-start))
+
+
 ;; Compiles .el files newer than their .elc counterpart, or not having one:
 ;; One can also use M-x byte-compile-file to precompile .el files (ex: linum).
 ;; Warning: apparently, unless the .elc file is removed, changes will be
@@ -479,6 +496,8 @@
 (setq font-lock-maximum-size nil)
 (transient-mark-mode t)
 
+
+(setq use-file-dialog nil)
 
 ;;(standard-display-european 1)
 
