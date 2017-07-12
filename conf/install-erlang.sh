@@ -559,18 +559,24 @@ fi
 
 echo "  Erlang successfully built and installed in ${prefix}."
 
+# Whether or not a prefix was specified, one is used, and we want emacs to be
+# correctly managed:
 
+# First, let's create a symbolic link so that this new version can be
+# transparently used by emacs:
+#
+cd ${prefix}/lib/erlang
+
+# Exactly one match expected for the wildcard (ex: tools-2.8.2), useful to avoid
+# having to update our ~/.emacs.d/init.el file whenever the 'tools' version
+# changes:
+#
+sudo -u ${build_user} /bin/ln -sf lib/tools-*/emacs
+
+
+# Multiple installs may coexist if no prefix has been defined:
+#
 if [ $use_prefix -eq 0 ] ; then
-
-	# First, let's create a symbolic link so that this new version can be
-	# transparently used by emacs:
-	cd ${prefix}/lib/erlang
-
-	# Exactly one match expected for the wildcard (ex: tools-2.8.2), useful to
-	# avoid having to update our ~/.emacs.d/init.el file whenever the 'tools'
-	# version changes:
-	#
-	/bin/ln -sf lib/tools-*/emacs
 
 	# Then go again in the install (not source) tree to create the base link:
 	cd ${prefix}/..
