@@ -59,7 +59,7 @@ run() ->
 	test_facilities:start( ?MODULE ),
 
 
-	test_facilities:display( "Testing prefix management.", [] ),
+	test_facilities:display( "Testing prefix management." ),
 
 	kilo = unit_utils:get_prefix_for_order( 3 ),
 
@@ -72,7 +72,7 @@ run() ->
 
 
 
-	test_facilities:display( "~n~nTesting exponent management.",  [] ),
+	test_facilities:display( "~n~nTesting exponent management." ),
 
 	test_parse( "1 s^2",                   "1.0 s^2" ),
 	test_parse( "1 A.A^-1",                "1.0" ),
@@ -82,7 +82,7 @@ run() ->
 
 
 	test_facilities:display( "~n~nTesting the remaining of the 7 SI "
-							 "base units.", [] ),
+							 "base units." ),
 
 	% Meter already done.
 	test_parse( "1038  kg^2.kg^-3.kg.kg.g", "1.038e6 g^2" ),
@@ -90,7 +90,7 @@ run() ->
 	test_parse( "1.01 kcd^-1   ",           "0.00101 cd^-1" ),
 
 
-	test_facilities:display( "~n~nTesting the supported derived units.", [] ),
+	test_facilities:display( "~n~nTesting the supported derived units." ),
 
 	test_parse( " 20  kHz",        "2.0e4 s^-1" ),
 	test_parse( "  9.81 N ",       "9810.0 g^1.m^1.s^-2" ),
@@ -138,7 +138,7 @@ run() ->
 	test_parse( "  +1.0005e-2 kkat  ", "10.005 mol^1.s^-1" ),
 
 
-	test_facilities:display( "~n~nTesting the widely used units.", [] ),
+	test_facilities:display( "~n~nTesting the widely used units." ),
 
 	test_parse( "1 min",   "60.0 s^1" ),
 	test_parse( " 2 h  ",  "7.2e3 s^1" ),
@@ -149,7 +149,7 @@ run() ->
 	test_parse( "10 keV",  "1.602176620898e-12 m^2.g^1.s^-2" ),
 
 
-	test_facilities:display( "~n~nTesting the special units.", [] ),
+	test_facilities:display( "~n~nTesting the special units." ),
 
 	test_parse( "0", "0.0" ),
 	test_parse( " -114.9e-3  ", "-0.1149" ),
