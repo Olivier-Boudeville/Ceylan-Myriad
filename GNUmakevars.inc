@@ -151,12 +151,17 @@ USE_HDF5 := false
 #USE_HDF5 := true
 
 # To gain the ability of acting as a client of a REST service:
-USE_REST := false
-#USE_REST := true
+#USE_REST := false
+USE_REST := true
 
 # For SQL database operations, based on SQLite 3 operations:
 USE_SQLITE := false
 #USE_SQLITE := true
+
+# For using an Erlang/Python binding, based on the ErlPort library:
+#USE_PYTHON_BINDING := false
+USE_PYTHON_BINDING := true
+
 
 
 # Deactivated by default, as requires specific prerequisites (the HDF5 library
@@ -230,6 +235,32 @@ ifeq ($(USE_SQLITE),true)
   # ($(SQLITE3_BASE)/ebin/*.beam found at runtime)
 
   ABS_BEAM_DIRS += $(SQLITE3_BASE)/ebin/
+
+endif
+
+
+
+# Deactivated by default, as requires specific prerequisites:
+#
+# - Python (binding tested with v3.6+ only)
+# - the ErlPort library (cf https://github.com/hdima/erlport)
+#
+#
+ifndef USE_PYTHON_BINDING
+
+  USE_PYTHON_BINDING := false
+
+endif
+
+ifeq ($(USE_PYTHON_BINDING),true)
+
+  ERLPORT_BASE := $$HOME/Software/ErlPort/ErlPort-current-install
+
+  INC += -I$(ERLPORT_BASE)/src
+
+  # ($(ERLPORT_BASE)/ebin/*.beam found at runtime)
+
+  ABS_BEAM_DIRS += $(ERLPORT_BASE)/ebin
 
 endif
 

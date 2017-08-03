@@ -29,6 +29,7 @@
 % Gathering of various facilities about sets.
 %
 % A set is a container that:
+%
 % - does not allow duplicates (adding an element more than once is like adding
 % it once)
 %
@@ -39,11 +40,9 @@
 %
 % See set_utils_test.erl for the corresponding test.
 %
-% See also: list_utils.erl
+% See also: list_utils.erl and set_utils_test.erl.
 %
 -module(set_utils).
-
-
 
 
 

@@ -21,6 +21,13 @@ plt_file="Erlang-$erlang_version.plt"
 plt_link="Erlang.plt"
 
 
+MV=/bin/mv
+TAR=/bin/tar
+RM=/bin/rm
+LN=/bin/ln
+MKDIR=/bin/mkdir
+
+
 usage="Usage: $(basename $0) [-h|--help] [-d|--doc-install] [-g|--generate-plt] [-n|--no-download] [-np|--no-patch] [-p|--previous] [<base install directory>]: downloads, patches, builds and installs a fresh $erlang_version Erlang version in specified base directory (if any), or in default directory, and in this case adds a symbolic link pointing to it from its parent directory so that Erlang-current-install always points to the latest installed version.
 
 Note that, if relevant archives are found in the current directory, they will be used, even if the user did not specify a 'no download' option.
@@ -196,6 +203,11 @@ while [ $token_eaten -eq 0 ] ; do
 done
 
 
+# We had to define that variable, as for a user U, at least on some settings,
+# sudo -u U <a command> will fail ("Sorry, user U is not allowed to execute
+# 'XXX' as U on H."), so now we execute sudo iff strictly necessary:
+#
+SUDO_CMD=""
 
 
 # Then check whether one parameter remains:
@@ -219,6 +231,8 @@ if [ -z "$read_parameter" ] ; then
 	   use_prefix=1
 	   prefix="/usr/local"
 	   echo "Run as sudo root, thus using default system installation directory, falling back to user '${build_user}' for the operations that permit it."
+
+	   SUDO_CMD="sudo -u ${build_user}"
 
    else
 
@@ -320,7 +334,7 @@ if [ $do_download -eq 0 ] ; then
 
 		echo "Downloading now ${erlang_target_src_url}"
 		set_wget
-		sudo -u ${build_user} ${wget} ${erlang_target_src_url} 1>/dev/null 2>&1
+		${SUDO_CMD} ${wget} ${erlang_target_src_url} 1>/dev/null 2>&1
 
 		if [ ! $? -eq 0 ] ; then
 			echo "  Error while downloading ${erlang_target_src_url}, quitting." 1>&2
@@ -337,7 +351,7 @@ if [ $do_download -eq 0 ] ; then
 
 			echo "Downloading now ${erlang_target_doc_url}"
 			set_wget
-			sudo -u ${build_user} ${wget} ${erlang_target_doc_url} 1>/dev/null 2>&1
+			${SUDO_CMD} ${wget} ${erlang_target_doc_url} 1>/dev/null 2>&1
 
 			if [ ! $? -eq 0 ] ; then
 				echo "  Error while downloading ${erlang_target_doc_url}, quitting." 1>&2
@@ -407,18 +421,18 @@ if [ $use_prefix -eq 0 ] ; then
 
 	echo "Erlang version ${erlang_version} will be installed in ${prefix}."
 
-	sudo -u ${build_user} mkdir -p ${prefix}
+	${SUDO_CMD} ${MKDIR} -p ${prefix}
 
 	# Removes any previous extracted directory, renamed or not:
 	if [ -e "${erlang_extracted_prefix}" ] ; then
 
-		sudo -u ${build_user} /bin/rm -rf "${erlang_extracted_prefix}"
+		${SUDO_CMD} ${RM} -rf "${erlang_extracted_prefix}"
 
 	fi
 
 	if [ -e "${erlang_src_prefix}" ] ; then
 
-		sudo -u ${build_user} /bin/rm -rf "${erlang_src_prefix}"
+		${SUDO_CMD} ${RM} -rf "${erlang_src_prefix}"
 
 	fi
 
@@ -429,12 +443,12 @@ else
 	# Nevertheless some cleaning is to be performed, otherwise Dialyzer may
 	# catch multiple versions of the same BEAM:
 	#
-	/bin/rm -rf /usr/local/lib/erlang
+	${RM} -rf /usr/local/lib/erlang
 
 fi
 
 
-sudo -u ${build_user} tar xvzf ${erlang_src_archive}
+${SUDO_CMD} ${TAR} xvzf ${erlang_src_archive}
 
 if [ ! $? -eq 0 ] ; then
 	echo "  Error while extracting ${erlang_src_archive}, quitting." 1>&2
@@ -448,7 +462,7 @@ if [ ! -d "${erlang_src_prefix}" ] ; then
 
 	if [ -d "${erlang_extracted_prefix}" ] ; then
 
-		sudo -u ${build_user} /bin/mv -f ${erlang_extracted_prefix} ${erlang_src_prefix}
+		${SUDO_CMD} ${MV} -f ${erlang_extracted_prefix} ${erlang_src_prefix}
 
 	else
 
@@ -495,7 +509,7 @@ End-of-script
 
 	) > ceylan-auth.patch
 
-	sudo -u ${build_user} $patch_tool -p0 < ceylan-auth.patch
+	${SUDO_CMD} $patch_tool -p0 < ceylan-auth.patch
 
 	if [ ! $? -eq 0 ] ; then
 
@@ -505,7 +519,7 @@ End-of-script
 
 	fi
 
-	sudo -u ${build_user} /bin/rm -f ceylan-auth.patch
+	${SUDO_CMD} ${RM} -f ceylan-auth.patch
 
 	cd ../../..
 
@@ -532,7 +546,7 @@ fi
 
 echo "  Building Erlang environment..."
 
-if ! sudo -u ${build_user} ./configure ${configure_opt} ${prefix_opt} ; then
+if ! ${SUDO_CMD} ./configure ${configure_opt} ${prefix_opt} ; then
 
 	echo "Configuration failed, exiting." 1>&2
 	exit 60
@@ -540,7 +554,7 @@ if ! sudo -u ${build_user} ./configure ${configure_opt} ${prefix_opt} ; then
 fi
 
 
-if ! sudo -u ${build_user} make ; then
+if ! ${SUDO_CMD} make ; then
 
 	echo "Build failed, exiting." 1>&2
 	exit 61
@@ -559,24 +573,18 @@ fi
 
 echo "  Erlang successfully built and installed in ${prefix}."
 
-# Whether or not a prefix was specified, one is used, and we want emacs to be
-# correctly managed:
 
-# First, let's create a symbolic link so that this new version can be
-# transparently used by emacs:
-#
-cd ${prefix}/lib/erlang
-
-# Exactly one match expected for the wildcard (ex: tools-2.8.2), useful to avoid
-# having to update our ~/.emacs.d/init.el file whenever the 'tools' version
-# changes:
-#
-sudo -u ${build_user} /bin/ln -sf lib/tools-*/emacs
-
-
-# Multiple installs may coexist if no prefix has been defined:
-#
 if [ $use_prefix -eq 0 ] ; then
+
+	# First, let's create a symbolic link so that this new version can be
+	# transparently used by emacs:
+	cd ${prefix}/lib/erlang
+
+	# Exactly one match expected for the wildcard (ex: tools-2.8.2), useful to
+	# avoid having to update our ~/.emacs.d/init.el file whenever the 'tools'
+	# version changes:
+	#
+	${LN} -sf lib/tools-*/emacs
 
 	# Then go again in the install (not source) tree to create the base link:
 	cd ${prefix}/..
@@ -586,11 +594,11 @@ if [ $use_prefix -eq 0 ] ; then
 	# Sets as current:
 	if [ -e Erlang-current-install ] ; then
 
-		/bin/rm -f Erlang-current-install
+		${RM} -f Erlang-current-install
 
 	fi
 
-	/bin/ln -sf Erlang-${erlang_version} Erlang-current-install
+	${LN} -sf Erlang-${erlang_version} Erlang-current-install
 
 fi
 
@@ -611,15 +619,15 @@ if [ $do_manage_doc -eq 0 ] ; then
 
 	if [ -e "${erlang_doc_root}" ] ; then
 
-		/bin/rm -rf "${erlang_doc_root}"
+		${RM} -rf "${erlang_doc_root}"
 
 	fi
 
-	mkdir "${erlang_doc_root}"
+	${MKDIR} "${erlang_doc_root}"
 
 	cd "${erlang_doc_root}"
 
-	tar xvzf ${initial_path}/${erlang_doc_archive}
+	${TAR} xvzf ${initial_path}/${erlang_doc_archive}
 
 
 	if [ ! $? -eq 0 ] ; then
@@ -632,11 +640,11 @@ if [ $do_manage_doc -eq 0 ] ; then
 	# Sets as current:
 	if [ -e Erlang-current-install ] ; then
 
-		/bin/rm -f Erlang-current-documentation
+		${RM} -f Erlang-current-documentation
 
 	fi
 
-	ln -sf ${erlang_doc_root} Erlang-current-documentation
+	${LN} -sf ${erlang_doc_root} Erlang-current-documentation
 
 	echo "Erlang documentation successfully installed."
 
@@ -646,7 +654,7 @@ fi
 
 if [ $do_remove_build_tree -eq 0 ] ; then
 
-	/bin/rm -rf ${initial_path}/${erlang_src_prefix}
+	${RM} -rf ${initial_path}/${erlang_src_prefix}
 
 else
 
@@ -700,10 +708,10 @@ if [ $do_generate_plt -eq 0 ] ; then
 	echo "Generating now a PLT file for that Erlang install in $actual_plt_file. Note that this operation is generally quite long (ex: about one hour and a half)."
 
 	# In R17.1, dialyzer is not able to dereference symlinks, so instead of
-	# generating with '--output_plt $actual_plt_file' and doing '/bin/ln -s
+	# generating with '--output_plt $actual_plt_file' and doing '${LN} -s
 	# $actual_plt_file $actual_plt_link' we proceed the other way round:
 
-	sudo -u ${build_user} $dialyzer_exec --build_plt -r $erlang_beam_root --output_plt $actual_plt_link
+	${SUDO_CMD} $dialyzer_exec --build_plt -r $erlang_beam_root --output_plt $actual_plt_link
 	res=$?
 
 	if [ $res -eq 0 ] ; then
@@ -717,7 +725,7 @@ if [ $do_generate_plt -eq 0 ] ; then
 
 	# To include a PLT without knowing the current Erlang version:
 	# (reversed symlink better than a copy)
-	/bin/ln -s $actual_plt_link $actual_plt_file
+	${LN} -s $actual_plt_link $actual_plt_file
 
 fi
 

@@ -61,7 +61,8 @@
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
 		  duration_to_string/1,
-		  format/2, bin_format/2
+		  format/2, bin_format/2,
+		  ensure_string/1, ensure_binary/1
 		]).
 
 
@@ -139,6 +140,12 @@
 % A binary corresponding to a string:
 %
 -type bin_string() :: binary().
+
+
+% Any kind of string:
+%
+-type any_string() :: string() | bin_string().
+
 
 
 % A Unicode string.
@@ -911,6 +918,34 @@ bin_format( FormatString, Values ) ->
 
 
 
+
+% Note: we deemed safer to consider for ensure_*/1 that atoms shall not be
+% directly seen as possible inputs.
+
+
+% Returns a string version of the specified text-like parameter.
+%
+-spec ensure_string( any_string() ) -> string().
+ensure_string( String ) when is_list( String ) ->
+	String;
+
+ensure_string( BinString ) when is_binary( BinString ) ->
+	binary_to_string( BinString ).
+
+
+
+% Returns a binary string version of the specified text-like parameter.
+%
+-spec ensure_binary( any_string() ) -> binary().
+ensure_binary( BinString ) when is_binary( BinString ) ->
+	BinString;
+
+ensure_binary( String ) when is_list( String ) ->
+	string_to_binary( String ).
+
+
+
+
 % Returns the lexicographic distance between the two specified strings, i.e. the
 % minimal number of single-character changes in order to transform one string
 % into the other one.
@@ -1274,11 +1309,12 @@ split_at_first( Marker, _ToRead=[ Other | T ], Read ) ->
 % return [ "They", "Said", "NYC", "Was", "Great" ].
 %
 -spec split_camel_case( ustring() ) -> [ ustring() ].
-split_camel_case( String )->
+split_camel_case( String ) ->
 
 	case is_uppercase( hd( String ) ) of
 
 		true ->
+
 			split_camel_case( String, [] );
 
 		false ->
@@ -1286,10 +1322,10 @@ split_camel_case( String )->
 
 	end.
 
-split_camel_case( _String = [], Acc ) ->
+split_camel_case( _String=[], Acc ) ->
 	lists:reverse( Acc );
 
-split_camel_case( [ HeadChar | MoreChars ], Acc ) ->
+split_camel_case( _String=[ HeadChar | MoreChars ], Acc ) ->
 
 	case is_uppercase( HeadChar ) of
 
@@ -1297,11 +1333,11 @@ split_camel_case( [ HeadChar | MoreChars ], Acc ) ->
 
 			% is_uppercase rertuns 'true' if a char is unchanged by 'to_upper',
 			% hence non-letter characters will be let in the second string:
-			is_lowercase = fun( C ) ->
-								   not is_uppercase( C )
-						   end,
+			IsLowercase = fun( C ) ->
+								  not is_uppercase( C )
+						  end,
 
-			{ TailOfWord, MoreWords } = lists:splitwith( is_lowercase,
+			{ TailOfWord, MoreWords } = lists:splitwith( IsLowercase,
 														 MoreChars ),
 
 			NewWord = [ HeadChar | TailOfWord ],

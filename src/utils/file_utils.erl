@@ -82,6 +82,8 @@
 
 		  path_to_variable_name/1, path_to_variable_name/2,
 
+		  remove_upper_levels_and_extension/1,
+
 		  get_image_extensions/0, get_image_file_png/1, get_image_file_gif/1 ]).
 
 
@@ -1657,6 +1659,27 @@ convert( Filename, Prefix ) ->
 
 	Prefix ++ re:replace( NoDotName, "/+", "_",
 		[ global, { return, list } ] ).
+
+
+
+% Removes all upper levels of a path (absolute or not), as well as the extension
+% of the resulting file name:
+%
+remove_upper_levels_and_extension( FilePath ) ->
+
+	PathLevels = filename:split( FilePath ),
+
+	FileName = lists:last( PathLevels ),
+
+	case string:rchr( FileName, $. ) of
+
+		0 ->
+			FileName;
+
+		Index ->
+			string:sub_string( FileName, 1, Index-1 )
+
+	end.
 
 
 

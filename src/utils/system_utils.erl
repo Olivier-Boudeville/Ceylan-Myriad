@@ -268,9 +268,23 @@
 
 % Returns the name of the current user, as a plain string.
 %
--spec get_user_name() -> 'false' | string().
+-spec get_user_name() -> string().
 get_user_name() ->
-	os:getenv( "USER" ).
+
+	case os:getenv( "USER" ) of
+
+		false ->
+
+			trace_utils:error( "The name of the user could not be "
+							   "obtained from the shell environment "
+							   "(no USER variable defined)." ),
+
+			throw( user_name_not_found_in_environment );
+
+		UserName ->
+			UserName
+
+	end.
 
 
 

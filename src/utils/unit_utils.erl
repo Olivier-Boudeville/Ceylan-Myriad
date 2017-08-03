@@ -767,9 +767,9 @@ get_special_unit_information() ->
 	[
 
 	 { 'dimensionless',    "dimensionless",      "none"     },
-	 { 'dollar',           "$",     "currency" },
-	 { 'euro',             "euros", "currency" },
-	 { 'unspecified_unit', "",      "unknown"  }
+	 { 'dollar',           "$",                  "currency" },
+	 { 'euro',             "euros",              "currency" },
+	 { 'unspecified_unit', "",                   "unknown"  }
 
 	].
 
@@ -1039,11 +1039,11 @@ integrate_component( ComponentString, Kind, CanonicalUnit ) ->
 	% Ex: for "kW^-2", the actual order is 3*(-2):
 	NormalisedUnitExponent = case Kind of
 
-						  multiply ->
-							  UnitExponent;
+		multiply ->
+			UnitExponent;
 
-						  divide ->
-							  -UnitExponent
+		divide ->
+			-UnitExponent
 
 	end,
 
@@ -1637,81 +1637,76 @@ pure_unit_to_string( Unit ) ->
 	%
 	MeterInfo = case Unit#canonical_unit.meter of
 
-					0 ->
-						undefined;
+		0 ->
+			undefined;
 
-					MeterExp ->
-						{ text_utils:format( "m^~B", [ MeterExp ] ), MeterExp }
+		MeterExp ->
+			{ text_utils:format( "m^~B", [ MeterExp ] ), MeterExp }
 
 	end,
 
 	GramInfo = case Unit#canonical_unit.gram of
 
-				   0 ->
-					   undefined;
+		0 ->
+			undefined;
 
-				   GramExp ->
-					   { text_utils:format( "g^~B", [ GramExp ] ), GramExp }
+		GramExp ->
+			{ text_utils:format( "g^~B", [ GramExp ] ), GramExp }
 
 	end,
 
    SecondInfo = case Unit#canonical_unit.second of
 
-					0 ->
-						undefined;
+		0 ->
+			undefined;
 
-					SecondExp ->
-						{ text_utils:format( "s^~B", [ SecondExp ] ),
-						  SecondExp }
+		SecondExp ->
+			{ text_utils:format( "s^~B", [ SecondExp ] ), SecondExp }
 
 	end,
 
    AmpereInfo = case Unit#canonical_unit.ampere of
 
-					0 ->
-						undefined;
+		0 ->
+			undefined;
 
-					AmpereExp ->
-						{ text_utils:format( "A^~B", [ AmpereExp ] ),
-											 AmpereExp }
+		AmpereExp ->
+			{ text_utils:format( "A^~B", [ AmpereExp ] ), AmpereExp }
 
 	end,
 
    KelvinInfo = case Unit#canonical_unit.kelvin of
 
-					  0 ->
-						  undefined;
+		0 ->
+			undefined;
 
-					  KelvinExp ->
-						  { text_utils:format( "K^~B", [ KelvinExp ] ),
-							KelvinExp }
+		KelvinExp ->
+			{ text_utils:format( "K^~B", [ KelvinExp ] ), KelvinExp }
 
 	end,
 
    MoleInfo = case Unit#canonical_unit.mole of
 
-					  0 ->
-						  undefined;
+		0 ->
+			undefined;
 
-					  MoleExp ->
-						  { text_utils:format( "mol^~B", [ MoleExp ] ),
-							MoleExp }
+		MoleExp ->
+			{ text_utils:format( "mol^~B", [ MoleExp ] ), MoleExp }
 
 	end,
 
    CandelaInfo = case Unit#canonical_unit.candela of
 
-					  0 ->
-						  undefined;
+		0 ->
+			undefined;
 
-					  CandelaExp ->
-						  { text_utils:format( "cd^~B", [  CandelaExp ] ),
-							CandelaExp }
+		CandelaExp ->
+			{ text_utils:format( "cd^~B", [  CandelaExp ] ), CandelaExp }
 
 	end,
 
-	AllBaseInfos = [ MeterInfo, GramInfo, SecondInfo, AmpereInfo,
-					 KelvinInfo, MoleInfo, CandelaInfo ],
+	AllBaseInfos = [ MeterInfo, GramInfo, SecondInfo, AmpereInfo, KelvinInfo,
+					 MoleInfo, CandelaInfo ],
 
 	% Strips unused units:
 	Infos = lists:filter( fun( undefined ) ->
@@ -1782,24 +1777,22 @@ unit_to_string( Unit ) ->
 
 	FactorString = case Unit#canonical_unit.factor of
 
-					   % Equality comparison is always problematic with
-					   % floating-point values:
-					   %
-					   1.0 ->
-						   "";
+		% Equality comparison is always problematic with floating-point values:
+		1.0 ->
+			"";
 
-					   Factor ->
-						   text_utils:format( " with factor ~f", [ Factor ] )
+		Factor ->
+			text_utils:format( " with factor ~f", [ Factor ] )
 
 	end,
 
 	OrderString = case Unit#canonical_unit.order of
 
-					  0 ->
-						  "";
+		0 ->
+			"";
 
-					  Order ->
-						  text_utils:format( ", of order ~B", [ Order ] )
+		Order ->
+			text_utils:format( ", of order ~B", [ Order ] )
 
 	end,
 

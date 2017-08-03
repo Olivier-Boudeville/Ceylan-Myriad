@@ -92,9 +92,9 @@ TEST_TARGETS = $(patsubst %.erl,%,$(TEST_SOURCES))
 	install-include install-examples install-test install-doc				\
 	info-install info-install-locations info-install-content                \
 	generate-list-of-erlang-types generate-list-of-local-types              \
-	generate-local-plt self-check-against-plt check check-hook              \
-	help-erl clean clean-erlang clean-database clean-recurse clean-outputs  \
-	real-clean info info-files $(MODULES_DIRS)
+	generate-local-plt self-check-against-plt check check-hook help-erl     \
+	clean clean-erlang clean-python clean-database clean-recurse            \
+    clean-outputs real-clean info info-files $(MODULES_DIRS)
 
 
 
@@ -613,12 +613,17 @@ help-erl:
 		"then 'hello:world().', then CTRL-C CTRL-C"
 
 
-clean: clean-erlang clean-database clean-override clean-recurse
+clean: clean-erlang clean-python clean-database clean-override clean-recurse
 
 
 clean-erlang:
 	@echo "    Cleaning all in "$(PWD) #$$(basename $(PWD))
 	-@/bin/rm -f *.beam *.jam erl_crash.dump erlang.log.*
+
+
+# We can have a Python binding:
+clean-python:
+	-@/bin/rm -rf '__pycache__'
 
 
 clean-database:

@@ -52,11 +52,14 @@
 -module(preferences).
 
 
--export([ start/0, get/1, set/2, to_string/0,
-		  get_default_preferences_path/0,
+-export([ start/0, start/1, get/1, get/2, set/2, set/3, to_string/0,
+		  to_string/1, get_default_preferences_path/0,
 		  is_preferences_default_file_available/0,
 		  check_preferences_default_file/0,
-		  stop/0 ]).
+		  stop/0, stop/1 ]).
+
+
+-type registration_name() :: atom(). % Private type
 
 
 -type key() :: atom().
@@ -88,12 +91,13 @@
 
 
 
-% Name for global registration:
--define( preferences_server_name, ceylan_preferences_server ).
+% Default name for global registration:
+%-define( default_preferences_server_name, ceylan_preferences_server ).
 
 
-% Name of the preferences file (searched at the root of the user account):
--define( preferences_filename, ".ceylan-erlang-preferences.txt" ).
+% Name of the default preferences file (searched at the root of the user
+% account):
+-define( default_preferences_filename, ".ceylan-erlang-preferences.txt" ).
 
 
 
@@ -105,8 +109,14 @@
 %
 -spec start() -> pid().
 start() ->
+	start( get_default_preferences_path() ).
 
-	case basic_utils:is_registered( ?preferences_server_name, global ) of
+-spec start( file_utils:file_name() ) -> pid().
+start( FileName ) ->
+
+	RegistrationName = get_registration_name( FileName ),
+
+	case basic_utils:is_registered( RegistrationName, global ) of
 
 		not_registered ->
 
@@ -118,7 +128,9 @@ start() ->
 			% No sensible link to be created here, so we must beware of a silent
 			% crash of this server:
 			%
-			spawn( fun() -> server_main_run( CallerPid ) end ),
+			spawn( fun() -> server_main_run( CallerPid, RegistrationName,
+											 FileName )
+				   end ),
 
 			receive
 
@@ -139,8 +151,12 @@ start() ->
 %
 -spec get( key() ) -> value().
 get( Key ) ->
+	get( Key, get_default_preferences_path() ).
 
-	ServerPid = start(),
+-spec get( key(), file_utils:file_name() ) -> value().
+get( Key, FileName ) ->
+
+	ServerPid = start( FileName ),
 
 	ServerPid ! { get_preference, Key, self() },
 
@@ -158,8 +174,12 @@ get( Key ) ->
 %
 -spec set( key(), value() ) -> basic_utils:void().
 set( Key, Value ) ->
+	set( Key, Value, get_default_preferences_path() ).
 
-	ServerPid = start(),
+-spec set( key(), value(), file_utils:file_name() ) -> basic_utils:void().
+set( Key, Value, FileName ) ->
+
+	ServerPid = start( FileName ),
 
 	ServerPid ! { set_preference, Key, Value }.
 
@@ -170,8 +190,14 @@ set( Key, Value ) ->
 %
 -spec to_string() -> string().
 to_string() ->
+	to_string( get_default_preferences_path() ).
 
-	case basic_utils:is_registered( ?preferences_server_name, global ) of
+-spec to_string( file_utils:file_name() ) -> string().
+to_string( FileName ) ->
+
+	RegistrationName = get_registration_name( FileName ),
+
+	case basic_utils:is_registered( RegistrationName, global ) of
 
 		not_registered ->
 			"no preferences server is running";
@@ -195,7 +221,18 @@ to_string() ->
 -spec get_default_preferences_path() -> file_utils:path().
 get_default_preferences_path() ->
 	file_utils:join( system_utils:get_user_home_directory(),
-					 ?preferences_filename ).
+					 ?default_preferences_filename ).
+
+
+
+% Returns the automatic naming used for registering the process (deduced from
+% the preferences filename).
+%
+-spec get_registration_name( file_utils:file_name() ) -> registration_name().
+get_registration_name( FilePath ) ->
+	CoreFileName = file_utils:remove_upper_levels_and_extension( FilePath ),
+	RegistrationName = file_utils:path_to_variable_name( CoreFileName, "" ),
+	text_utils:string_to_atom( RegistrationName ).
 
 
 
@@ -237,8 +274,14 @@ check_preferences_default_file() ->
 %
 -spec stop() -> basic_utils:void().
 stop() ->
+	stop( get_default_preferences_path() ).
 
-	case basic_utils:is_registered( ?preferences_server_name, global ) of
+-spec stop( file_utils:file_name() ) -> basic_utils:void().
+stop( FileName ) ->
+
+	RegistrationName = get_registration_name( FileName ),
+
+	case basic_utils:is_registered( RegistrationName, global ) of
 
 		not_registered ->
 			ok;
@@ -255,9 +298,9 @@ stop() ->
 
 % Launcher of the preference server.
 %
-server_main_run( SpawnerPid ) ->
+server_main_run( SpawnerPid, RegistrationName, FileName ) ->
 
-	case basic_utils:register_or_return_registered( ?preferences_server_name,
+	case basic_utils:register_or_return_registered( RegistrationName,
 													global_only ) of
 
 		registered ->
@@ -265,17 +308,14 @@ server_main_run( SpawnerPid ) ->
 			% We gain the shared name, we are the one and only server:
 			EmptyTable = table:new(),
 
-			PrefFilename = get_default_preferences_path(),
-
-			FinalTable = case file_utils:is_existing_file_or_link(
-								PrefFilename ) of
+			FinalTable = case file_utils:is_existing_file_or_link( FileName ) of
 
 				true ->
-					add_preferences_from( PrefFilename, EmptyTable );
+					add_preferences_from( FileName, EmptyTable );
 
 				false ->
 					io:format( "No preferences file found "
-							   "(searched for '~s').~n", [ PrefFilename ] ),
+							   "(searched for '~s').~n", [ FileName ] ),
 					EmptyTable
 
 			end,

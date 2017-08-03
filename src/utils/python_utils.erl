@@ -1,28 +1,35 @@
-% Copyright (C) 2016-2017 EDF R&D
-
-% This file is part of Sim-Diasca.
-
-% Sim-Diasca is free software: you can redistribute it and/or modify
-% it under the terms of the GNU Lesser General Public License as
-% published by the Free Software Foundation, either version 3 of
-% the License, or (at your option) any later version.
-
-% Sim-Diasca is distributed in the hope that it will be useful,
+% Copyright (C) 2007-2017 Olivier Boudeville
+%
+% This file is part of the Ceylan Erlang library.
+%
+% This library is free software: you can redistribute it and/or modify
+% it under the terms of the GNU Lesser General Public License or
+% the GNU General Public License, as they are published by the Free Software
+% Foundation, either version 3 of these Licenses, or (at your option)
+% any later version.
+% You can also redistribute it and/or modify it under the terms of the
+% Mozilla Public License, version 1.1 or later.
+%
+% This library is distributed in the hope that it will be useful,
 % but WITHOUT ANY WARRANTY; without even the implied warranty of
 % MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-% GNU Lesser General Public License for more details.
-
+% GNU Lesser General Public License and the GNU General Public License
+% for more details.
+%
 % You should have received a copy of the GNU Lesser General Public
-% License along with Sim-Diasca.
-% If not, see <http://www.gnu.org/licenses/>.
-
-% Author: Robin Huart (robin-externe.huart@edf.fr)
-
+% License, of the GNU General Public License and of the Mozilla Public License
+% along with this library.
+% If not, see <http://www.gnu.org/licenses/> and
+% <http://www.mozilla.org/MPL/>.
+%
+% Adapted from code contributed by EDF R&D (original author: Robin Huart).
 
 
 % Gathering of some convenient facilities for the binding to the Python language
 %
 % See python_utils_test.erl for the corresponding tests.
+%
+% See also: java_utils.erl for a similar binding.
 %
 -module(python_utils).
 
@@ -35,7 +42,7 @@
 
 
 
-% PID of a Python interpreter:
+% PID corresponding to a Python interpreter:
 -type interpreter_pid() :: pid().
 
 
@@ -101,12 +108,7 @@ get_beam_directories_for_binding() ->
 send_oneway( InterpreterPid, MessageTitle, MessageBody )
   when is_atom( MessageTitle ) ->
 
-	% Simple wrapper around ErlPort's cast method, sending the title and the
-	% body of a message separately.
-	%
-	EncodedMessageTitle = text_utils:atom_to_binary( MessageTitle ),
-
-	python:cast( InterpreterPid, { self(), EncodedMessageTitle, MessageBody } ).
+	python:cast( InterpreterPid, { self(), MessageTitle, MessageBody } ).
 
 
 
@@ -118,40 +120,42 @@ send_oneway( InterpreterPid, MessageTitle, MessageBody )
 wait_for_request_result( InterpreterPid, MessageTitle )
   when is_atom( MessageTitle ) ->
 
-	% Waits for the answer:
-	receive
+	% Waits for the response:
+	Message = receive
 
-		% Normal, successful case:
-		_SuccessMessage={ <<"request_completed">>, ReceivedData } ->
-			{ request_completed, ReceivedData };
+		_Msg={ Headers, Body } when is_tuple( Headers ) andalso
+							erlang:element( 1, Headers ) == python_message ->
 
+			erlang:append_element( erlang:delete_element( 1, Headers ), Body )
+
+	end,
+
+	case Message of
+
+		% Return of a successful request:
+		{ request_completed, _ReceivedData } ->
+			Message;
 
 		% Trace emitted from Python:
-		_TraceMessage={ <<"trace_emitted">>, TraceType,
-						  TraceFormattedMessage }
-		  when is_binary( TraceType ) andalso
-			   is_binary( TraceFormattedMessage ) ->
-
-			{ trace_emitted, text_utils:binary_to_atom( TraceType ),
-			  text_utils:binary_to_string( TraceFormattedMessage ) };
+		TraceMessage = { trace_emitted, TraceType, _TraceFormattedMessage }
+		  when is_atom( TraceType ) ->
+			TraceMessage;
 
 
 		% Exception raised from Python:
-		_ExceptionMessage={ <<"exception_raised">>, ExceptionType,
-							  ExceptionFormattedMessage } when
-			  is_binary( ExceptionType ) andalso
-			  is_binary( ExceptionFormattedMessage )  ->
-
-			{ exception_raised, text_utils:binary_to_atom( ExceptionType ),
-			  text_utils:binary_to_string( ExceptionFormattedMessage ) };
+		ExceptionMessage = { exception_raised, ExceptionType,
+							 _ExceptionFormattedMessage }
+		  when is_atom( ExceptionType ) ->
+			ExceptionMessage;
 
 
 		% Catch-all clause for message receiving:
 		OtherMessage ->
-			io:format( "A message received from the Python interpreter "
-					   "driven by ~w, in answer to '~p', does not respect "
-					   "the expected format: ~p~n",
-					   [ InterpreterPid, MessageTitle, OtherMessage ] ),
+			trace_utils:error_fmt( "A message received from the Python "
+								   "interpreter driven by ~w, in answer "
+								   "to '~p', does not respect the expected "
+								   "format: ~p~n", [ InterpreterPid,
+											 MessageTitle, OtherMessage ] ),
 			throw( { invalid_python_message_received, OtherMessage } )
 
 	end.

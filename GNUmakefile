@@ -1,7 +1,8 @@
 COMMON_TOP = .
 
 
-.PHONY: register-version-in-header register-common info-paths info-settings
+.PHONY: help help-intro help-common help-hints                                \
+		register-version-in-header register-common info-paths info-settings
 
 #MODULES_DIRS = contrib src doc
 MODULES_DIRS = src doc
@@ -11,6 +12,10 @@ MODULES_DIRS = src doc
 BASE_MAKEFILE := true
 
 
+# Default target:
+help: help-intro help-common help-hints help-batch
+
+
 include $(COMMON_TOP)/GNUmakesettings.inc
 
 
@@ -18,6 +23,38 @@ include $(COMMON_TOP)/GNUmakesettings.inc
 # may have to be taken into account, and have already started feeding PLT_FILE:
 #
 BASE_PLT := $(PLT_FILE)
+
+
+
+
+help-intro:
+	@echo " Following main make targets are available for package $(PACKAGE_NAME) (a.k.a. Common):"
+
+
+help-common:
+	@echo "  - 'all':        builds everything (recursively, from current directory)"
+	@echo "  - 'clean':      cleans compiled code (recursively, from current directory)"
+	@echo "  - 'real-clean': cleans everything (from the root of any package)"
+	@echo "  - 'X_beam':     generates module X.beam from source X.erl (and possibly header X.hrl)"
+	@echo "  - 'X_run':      runs test case X_test.beam"
+	@echo "  - 'X_exec':     runs application X_app.beam"
+	@echo "  - 'doc':        generates documentation"
+	@echo "  - 'info':       displays make-related key variables"
+	@echo "  - 'help':       displays this help"
+
+
+help-hints: help-batch
+
+
+help-batch:
+	@echo " By default, code is run in interactive mode."
+	@echo " To run in batch mode, add: CMD_LINE_OPT=\"--batch\" to the command line."
+	@echo " For example, one may run: 'make X_run CMD_LINE_OPT=\"--batch\"'"
+	@echo " Thus it may be convenient to define, in one's shell, the BATCH"
+	@echo " variable as 'CMD_LINE_OPT=\"--batch\"', so that one can then simply run:"
+	@echo " 'make X_run \$$BATCH' (of course, to save more typing, one may define "
+	@echo " additional make targets)"
+
 
 
 register-version-in-header:

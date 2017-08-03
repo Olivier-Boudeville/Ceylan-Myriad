@@ -71,18 +71,18 @@
 ;; of a change in the 'tools' version (thus requiring the current file
 ;; to be endlessly modified)
 
-;; If Erlang is installed in the user tree:
+;; Two possible conventional locations for an Erlang install:
+;;  - either in the user account (in ~/Software/Erlang/Erlang-current-install)
+;;  - or directly in the system tree (in /usr/local/lib/erlang/)
 
-;;(setq load-path (cons "~/Software/Erlang/Erlang-current-install/lib/erlang/emacs" load-path))
-;;(setq erlang-root-dir "~/Software/Erlang/Erlang-current-install/lib/erlang")
-;;(setq exec-path (cons "~/Software/Erlang/Erlang-current-install/lib/erlang/bin" exec-path))
-
-
-;; If Erlang is installed in the usersystem tree:
-
+(setq load-path (cons "~/Software/Erlang/Erlang-current-install/lib/erlang/emacs" load-path))
 (setq load-path (cons "/usr/local/lib/erlang/emacs" load-path))
-(setq erlang-root-dir "/usr/local/lib/erlang/emacs")
-(setq exec-path (cons "/usr/local/lib/erlang/emacs/bin" exec-path))
+
+;;(setq erlang-root-dir "~/Software/Erlang/Erlang-current-install/lib/erlang")
+;;(setq erlang-root-dir "/usr/local/lib/erlang")
+
+(setq exec-path (cons "~/Software/Erlang/Erlang-current-install/lib/erlang/bin" exec-path))
+(setq exec-path (cons "/usr/local/lib/erlang/bin" exec-path))
 
 (require 'erlang-start)
 

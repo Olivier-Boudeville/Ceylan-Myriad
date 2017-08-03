@@ -979,10 +979,10 @@ shutdown_node( Nodename ) when is_atom( Nodename ) ->
 
 
 
- wait_unavailable( Nodename, _AttemptCount=0, _Duration ) ->
+wait_unavailable( Nodename, _AttemptCount=0, _Duration ) ->
 	throw( { node_not_terminating, Nodename } );
 
- wait_unavailable( Nodename, AttemptCount, Duration ) ->
+wait_unavailable( Nodename, AttemptCount, Duration ) ->
 
 	% We used to rely on net_adm:ping/1 (see below), but apparently
 	% 'noconnection' can be raised and does not seem to be catchable.
@@ -1100,8 +1100,8 @@ get_node_name_option( NodeName, NodeNamingMode ) ->
 % have to respect this constraint as well (see the FIREWALL_OPT make option in
 % common/GNUmakevars.inc), otherwise inter-node communication could fail.
 %
--spec get_tcp_port_range_option( 'no_restriction' | tcp_port_range() )
-							   -> string().
+-spec get_tcp_port_range_option( 'no_restriction' | tcp_port_range() ) ->
+									   string().
 get_tcp_port_range_option( no_restriction ) ->
 	"";
 

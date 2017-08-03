@@ -17,4 +17,4 @@ These services tend to stay away from introducing any new dependency. Should a k
 
 .. comment Line count computed with: wc -l $(find . -name '*.?rl')`
 
-As a consequence, for the Ceylan project, the first level of the software stack we use relies on this ``Common`` layer, also known as the ``Ceylan Common Erlang layer``.
+As a consequence, for the Ceylan project, the first level of the software stack we use relies on this ``Common`` layer - whose official, more specific name is the ``Ceylan-Myriad`` layer.

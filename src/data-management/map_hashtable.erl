@@ -71,7 +71,9 @@
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToExistingEntry/3, appendListToExistingEntry/3,
 		  appendToEntry/3, appendListToEntry/3,
-		  concatToEntry/3, deleteFromEntry/3, popFromEntry/2,
+		  concatToEntry/3,
+		  deleteFromEntry/3, deleteExistingFromEntry/3,
+		  popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
 		  isEmpty/1, size/1, getEntryCount/1,
 		  mapOnEntries/2, mapOnValues/2,
@@ -785,6 +787,23 @@ deleteFromEntry( Key, Element, MapHashtable ) ->
 	ListValue = maps:get( Key, MapHashtable ),
 
 	maps:put( Key, lists:delete( Element, ListValue ), MapHashtable ).
+
+
+
+% Deletes the first match of the specified element in the value associated to
+% specified key, this value being assumed to be a list.
+%
+% An exception is thrown if the key does not exist, or if the element is not in
+% the targeted list.
+%
+-spec deleteExistingFromEntry( key(), term(), map_hashtable() ) ->
+									 map_hashtable().
+deleteExistingFromEntry( Key, Element, MapHashtable ) ->
+
+	ListValue = maps:get( Key, MapHashtable ),
+
+	maps:put( Key, list_utils:delete_existing( Element, ListValue ),
+			  MapHashtable ).
 
 
 

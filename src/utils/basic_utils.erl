@@ -33,7 +33,6 @@
 -module(basic_utils).
 
 
-
 % Registration functions.
 %
 -export([ register_as/2, register_as/3, register_or_return_registered/2,
