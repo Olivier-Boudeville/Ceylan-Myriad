@@ -584,7 +584,12 @@ if [ $use_prefix -eq 0 ] ; then
 	# avoid having to update our ~/.emacs.d/init.el file whenever the 'tools'
 	# version changes:
 	#
-	${LN} -sf lib/tools-*/emacs
+	${SUDO_CMD} ${LN} -sf lib/tools-*/emacs
+
+	# Same story so that the crashdump viewer can be found irrespective of the
+	# Erlang version:
+	#
+	${SUDO_CMD} ${LN} -sf lib/observer-*/priv/bin/cdv
 
 	# Then go again in the install (not source) tree to create the base link:
 	cd ${prefix}/..
@@ -594,11 +599,11 @@ if [ $use_prefix -eq 0 ] ; then
 	# Sets as current:
 	if [ -e Erlang-current-install ] ; then
 
-		${RM} -f Erlang-current-install
+		${SUDO_CMD} ${RM} -f Erlang-current-install
 
 	fi
 
-	${LN} -sf Erlang-${erlang_version} Erlang-current-install
+	${SUDO_CMD} ${LN} -sf Erlang-${erlang_version} Erlang-current-install
 
 fi
 
@@ -619,15 +624,15 @@ if [ $do_manage_doc -eq 0 ] ; then
 
 	if [ -e "${erlang_doc_root}" ] ; then
 
-		${RM} -rf "${erlang_doc_root}"
+		${SUDO_CMD} ${RM} -rf "${erlang_doc_root}"
 
 	fi
 
-	${MKDIR} "${erlang_doc_root}"
+	${SUDO_CMD} ${MKDIR} "${erlang_doc_root}"
 
 	cd "${erlang_doc_root}"
 
-	${TAR} xvzf ${initial_path}/${erlang_doc_archive}
+	${SUDO_CMD} ${TAR} xvzf ${initial_path}/${erlang_doc_archive}
 
 
 	if [ ! $? -eq 0 ] ; then
@@ -640,11 +645,11 @@ if [ $do_manage_doc -eq 0 ] ; then
 	# Sets as current:
 	if [ -e Erlang-current-install ] ; then
 
-		${RM} -f Erlang-current-documentation
+		${SUDO_CMD} ${RM} -f Erlang-current-documentation
 
 	fi
 
-	${LN} -sf ${erlang_doc_root} Erlang-current-documentation
+	${SUDO_CMD} ${LN} -sf ${erlang_doc_root} Erlang-current-documentation
 
 	echo "Erlang documentation successfully installed."
 

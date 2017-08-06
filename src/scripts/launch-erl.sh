@@ -733,7 +733,7 @@ if [ $use_run_erl -eq 0 ] && [ $autostart -eq 0 ] ; then
 	done
 
 	wait_count=0
-	wait_max=5
+	wait_max=2
 
 	# If a node with the same name already exists, the write pipe will exist for
 	# a brief time then will be removed:
@@ -762,7 +762,7 @@ if [ $use_run_erl -eq 0 ] && [ $autostart -eq 0 ] ; then
 	echo "  ** Node '${actual_name}' ready and running as a daemon."
 
 	echo "  ** Use 'to_erl $run_pipe' to connect to that node."
-	echo "  ** To exit without killing the node, type CTRL-D."
+	echo "  ** (then type CTRL-D to exit without killing the node)"
 	echo -e "  **************************************************************"
 
 
