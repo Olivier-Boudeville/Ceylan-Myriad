@@ -94,7 +94,7 @@ TEST_TARGETS = $(patsubst %.erl,%,$(TEST_SOURCES))
 	generate-list-of-erlang-types generate-list-of-local-types              \
 	generate-local-plt self-check-against-plt check check-hook help-erl     \
 	clean clean-erlang clean-python clean-database clean-recurse            \
-    clean-outputs real-clean info info-files $(MODULES_DIRS)
+	clean-outputs real-clean info info-files $(MODULES_DIRS)
 
 
 
@@ -297,10 +297,10 @@ $(COMMON_TOP)/src/data-management/map_hashtable.beam: $(COMMON_TOP)/src/data-man
 	@echo "		Executing application $^ as a debugged service (first form)"
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_exec_service_debug$$||1') --background --eval $$(echo $@|sed 's|_exec_service_debug$$|_app:exec()|1') $(INTERNAL_OPTIONS) $(CMD_LINE_OPT) &
 
-
+# --background removed here:
 %_exec_service_debug: %_app.beam
 	@echo "		Executing application $^ as a debugged service (second form)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_exec_service_debug$$||1') --background --eval $$(echo $@|sed 's|_exec_service_debug$$|_app:exec()|1') $(INTERNAL_OPTIONS) $(CMD_LINE_OPT) &
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_exec_service_debug$$||1') --eval $$(echo $@|sed 's|_exec_service_debug$$|_app:exec()|1') $(INTERNAL_OPTIONS) $(CMD_LINE_OPT) &
 
 
 

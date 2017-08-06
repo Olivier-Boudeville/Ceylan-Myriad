@@ -65,7 +65,8 @@
 -export([ new/0, new/1,
 		  addEntry/3, addEntries/2, addNewEntry/3, addNewEntries/2,
 		  updateEntry/3, updateEntries/2,
-		  removeEntry/2, lookupEntry/2, hasEntry/2, getEntry/2,
+		  removeEntry/2, removeExistingEntry/2,
+		  lookupEntry/2, hasEntry/2, getEntry/2,
 		  extractEntry/2, getEntryOrValue/3, getEntries/2,
 		  getValue/2, getValues/2, getAllValues/2,
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
@@ -282,6 +283,28 @@ updateEntries( EntryList, MapHashtable ) ->
 removeEntry( Key, MapHashtable ) ->
 	% Same semantics:
 	maps:remove( Key, MapHashtable ).
+
+
+
+% Removes specified key/value pair, as designated by the key, from the specified
+% map hashtable.
+%
+% Throws an exception if the key is not found.
+%
+% Returns an updated map table.
+%
+-spec removeExistingEntry( key(), map_hashtable() ) -> map_hashtable().
+removeExistingEntry( Key, MapHashtable ) ->
+
+	case hasEntry( Key, MapHashtable ) of
+
+		true ->
+			removeEntry( Key, MapHashtable ) ;
+
+		false ->
+			throw( { non_existing_key, Key } )
+
+	end.
 
 
 

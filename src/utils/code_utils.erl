@@ -40,7 +40,7 @@
 		  declare_beam_directory/1, declare_beam_directory/2,
 		  declare_beam_directories/1, declare_beam_directories/2,
 		  get_code_path/0,
-		  list_beams_in_path/0, is_beam_in_path/1,
+		  list_beams_in_path/0, get_beam_filename/1, is_beam_in_path/1,
 		  interpret_stacktrace/0, interpret_stacktrace/1, interpret_stacktrace/2
 		]).
 
@@ -59,6 +59,9 @@
 
 -type stack_trace() :: [ stack_item() ].
 
+
+% The file extension of a BEAM file:
+-define( beam_extension, ".beam" ).
 
 
 % Code-related functions.
@@ -363,9 +366,21 @@ list_beams_in_path() ->
 	% Directly inspired from:
 	% http://alind.io/post/5664209650/all-erlang-modules-in-the-code-path
 
-	[ list_to_atom( filename:basename( File, ".beam" ) )
+	[ list_to_atom( filename:basename( File, ?beam_extension ) )
 		|| Path <- code:get_path(),
 		   File <- filelib:wildcard( "*.beam", Path ) ].
+
+
+
+% Returns the filename of the BEAM file corresponding to specified module.
+%
+-spec get_beam_filename( basic_utils:module_name() ) -> file_utils:file_name().
+get_beam_filename( ModuleName ) when is_atom( ModuleName ) ->
+
+	ModuleNameString = text_utils:atom_to_string( ModuleName ),
+
+	ModuleNameString ++ ?beam_extension.
+
 
 
 
@@ -387,7 +402,8 @@ is_beam_in_path( ModuleName ) when is_atom( ModuleName ) ->
 		   [ file_utils:normalise_path( file_utils:join( Path, File ) )
 			 || Path <- code:get_path(),
 				File <- filelib:wildcard( "*.beam", Path ),
-				filename:basename( File, ".beam" ) =:= ModuleNameString ] ) of
+				filename:basename( File, ?beam_extension ) =:=
+					ModuleNameString ] ) of
 
 		[] ->
 			not_found;

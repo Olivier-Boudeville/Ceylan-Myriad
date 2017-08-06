@@ -147,20 +147,24 @@ endif
 # Optional services, relying on third-party prerequisites:
 
 # For the reading and writing of large, often scientific-oriented data:
-USE_HDF5 := false
+# (not forcing variable, letting upper layers decide, or the defaults apply)
+#USE_HDF5 := false
 #USE_HDF5 := true
 
 # To gain the ability of acting as a client of a REST service:
+# (not forcing variable, letting upper layers decide, or the defaults apply)
 #USE_REST := false
-USE_REST := true
+#USE_REST := true
 
 # For SQL database operations, based on SQLite 3 operations:
-USE_SQLITE := false
+# (not forcing variable, letting upper layers decide, or the defaults apply)
+#USE_SQLITE := false
 #USE_SQLITE := true
 
 # For using an Erlang/Python binding, based on the ErlPort library:
+# (not forcing variable, letting upper layers decide, or the defaults apply)
 #USE_PYTHON_BINDING := false
-USE_PYTHON_BINDING := true
+#USE_PYTHON_BINDING := true
 
 
 
@@ -734,6 +738,11 @@ endif
 
 # For later reuse in the next layer of the software stack:
 COMMON_PLT_FILE := $(COMMON_TOP)/common.plt
+
+
+# Shorthand:
+BATCH_OPT = 'CMD_LINE_OPT="--batch"'
+
 
 # This is the merged PLT of the level just below in the software stack.
 #
