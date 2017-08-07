@@ -1,13 +1,24 @@
 #!/bin/sh
 
-# Copyright (C) 2010-2012 Olivier Boudeville
+# Copyright (C) 2010-2016 Olivier Boudeville (olivier.boudeville@esperide.com)
+
 #
 # This file is part of the Ceylan Erlang library.
 
 
-USAGE="Usage: "`basename $0`" SOURCE_DIRECTORY
+USAGE="Usage: $(basename $0) SOURCE_DIRECTORY
 Evaluates various simple metrics of the Erlang code found from specified root directory.
 "
+
+BC=$(which bc 2>/dev/null)
+
+if [ ! -x "${BC}" ] ; then
+
+	echo "  Error, 'bc' command not found. Hint: on Arch Linux, use 'pacman -S bc' as root." 1>&2
+
+	exit 5
+
+fi
 
 root_dir=$1
 
@@ -40,20 +51,25 @@ fi
 
 cd $root_dir
 
+# Sometimes in /bin, sometimes in /usr/bin, etc.:
+FIND=$(which find 2>/dev/null)
+WC=$(which wc 2>/dev/null)
+
+
 # -L: follow symlinks.
 
-hrl_files=`find -L . -name '*.hrl'`
-erl_files=`find -L . -name '*.erl'`
+hrl_files=$(${FIND} -L . -name '*.hrl')
+erl_files=$(${FIND} -L . -name '*.erl')
 
 
-hrl_count=`echo ${hrl_files} | wc -w`
-erl_count=`echo ${erl_files} | wc -w`
+hrl_count=$(echo ${hrl_files} | ${WC} -w)
+erl_count=$(echo ${erl_files} | ${WC} -w)
 
 tmp_file=".tmp-code-stats.txt"
 
 if [ -f "${tmp_file}" ] ; then
 
-	/bin/rm "${tmp_file}"
+	/bin/rm -f "${tmp_file}"
 
 fi
 
@@ -76,7 +92,7 @@ for f in ${target_files} ; do
 done
 
 
-full_line_count=`cat "${tmp_file}" | wc -l`
+full_line_count=$(cat "${tmp_file}" | wc -l)
 
 if [ $full_line_count -eq 0 ] ; then
 
@@ -86,14 +102,14 @@ if [ $full_line_count -eq 0 ] ; then
 fi
 
 
-empty_line_count=`cat "${tmp_file}" | grep '^$' | wc -l`
-comment_line_count=`cat "${tmp_file}" | grep '^[[:space:]]*%' | wc -l`
+empty_line_count=$(/bin/cat "${tmp_file}" | /bin/grep '^$' | ${WC} -l)
+comment_line_count=$(/bin/cat "${tmp_file}" | /bin/grep '^[[:space:]]*%' | ${WC} -l)
 
-code_line_count=`expr $full_line_count - $empty_line_count - $comment_line_count`
+code_line_count=$(/bin/expr $full_line_count - $empty_line_count - $comment_line_count)
 
-empty_percentage=`echo "scale=1; 100 * $empty_line_count / $full_line_count" | bc`
-comment_percentage=`echo "scale=1; 100 * $comment_line_count / $full_line_count" | bc`
-code_percentage=`echo "scale=1 ; 100 * $code_line_count / $full_line_count" | bc`
+empty_percentage=$(echo "scale=1; 100 * $empty_line_count / $full_line_count" | bc)
+comment_percentage=$(echo "scale=1; 100 * $comment_line_count / $full_line_count" | bc)
+code_percentage=$(echo "scale=1 ; 100 * $code_line_count / $full_line_count" | bc)
 
 echo "In the Erlang source code found from $root_dir, we have:"
 echo "  + $erl_count source files (*.erl), $hrl_count header files (*.hrl)"
@@ -106,6 +122,6 @@ echo "    - $code_line_count of which (${code_percentage}%) are code"
 
 if [ -f "${tmp_file}" ] ; then
 
-	/bin/rm "${tmp_file}"
+	/bin/rm -f "${tmp_file}"
 
 fi

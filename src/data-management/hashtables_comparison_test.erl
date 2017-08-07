@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2015 Olivier Boudeville
+% Copyright (C) 2003-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -514,7 +514,7 @@ feed_table( Table, Module, Pairs ) ->
 
 	Count = ?run_count,
 
-	Start = basic_utils:get_precise_timestamp(),
+	Start = time_utils:get_precise_timestamp(),
 
 	NewTables = [ lists:foldl( fun( { K, V }, T ) ->
 									Module:addEntry( K, V, T )
@@ -522,9 +522,9 @@ feed_table( Table, Module, Pairs ) ->
 							   _Acc0=Table,
 							   _List=Pairs ) || _C <- lists:seq( 1, Count ) ],
 
-	Stop = basic_utils:get_precise_timestamp(),
+	Stop = time_utils:get_precise_timestamp(),
 
-	Timing = basic_utils:get_precise_duration( Start, Stop ) / Count,
+	Timing = time_utils:get_precise_duration( Start, Stop ) / Count,
 
 	[ First | Others ] = NewTables,
 
@@ -542,7 +542,7 @@ update_table( Table, Module, Pairs ) ->
 
 	Count = ?run_count,
 
-	Start = basic_utils:get_precise_timestamp(),
+	Start = time_utils:get_precise_timestamp(),
 
 	NewTables = [ lists:foldl( fun( { K, V }, T ) ->
 									Module:addEntry( K, V, T )
@@ -550,9 +550,9 @@ update_table( Table, Module, Pairs ) ->
 							   _Acc0=Table,
 							   _List=Pairs ) || _C <- lists:seq( 1, Count ) ],
 
-	Stop = basic_utils:get_precise_timestamp(),
+	Stop = time_utils:get_precise_timestamp(),
 
-	Timing = basic_utils:get_precise_duration( Start, Stop ) / Count,
+	Timing = time_utils:get_precise_duration( Start, Stop ) / Count,
 
 	[ First | Others ] = NewTables,
 
@@ -572,7 +572,7 @@ benchmark_look_ups( Table, Module, Pairs ) ->
 
 	Count = 100 * ?run_count,
 
-	Start = basic_utils:get_precise_timestamp(),
+	Start = time_utils:get_precise_timestamp(),
 
 	_Values = [ lists:foldl( fun( { K, V }, T ) ->
 									 V = Module:getEntry( K, T ),
@@ -581,9 +581,9 @@ benchmark_look_ups( Table, Module, Pairs ) ->
 							   _Acc0=Table,
 							   _List=Pairs ) || _C <- lists:seq( 1, Count ) ],
 
-	Stop = basic_utils:get_precise_timestamp(),
+	Stop = time_utils:get_precise_timestamp(),
 
-	Timing = basic_utils:get_precise_duration( Start, Stop ) / Count,
+	Timing = time_utils:get_precise_duration( Start, Stop ) / Count,
 
 	{ Module, Timing }.
 

@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2015 Olivier Boudeville
+% Copyright (C) 2003-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -112,6 +112,13 @@ run() ->
 	% Checks order, removal of first matching only:
 	[ 1, 3, 4, 2 ] = list_utils:delete_existing( 2, L1 ),
 
+	L3 = [ a, b, c, b, b, d, e ],
+
+	[ a, c, b, b, d, e ] = list_utils:delete_if_existing( b, L3 ),
+
+	not_found = list_utils:delete_if_existing( not_existing, L3 ),
+
+
 	% Checks order, removal of all matching elements:
 	[ 1, 3, 4 ] = list_utils:delete_all_in( 2, L1 ),
 
@@ -191,6 +198,14 @@ run() ->
 
 	ExpectedList = lists:sort( ResultList ),
 
+
+	TupleList = [ { 1, 2, 3 }, { 4, 5, 6 } ],
+	FlattenedList = [ 1, 2, 3, 4, 5, 6 ],
+
+	FlattenedList = list_utils:flatten_tuples( TupleList ),
+
+	TupleList = list_utils:reconstruct_tuples( FlattenedList, _TupleSize=3 ),
+
 	Ring = list_utils:list_to_ring( [ a, b, c, d, e, f, g ] ),
 
 	{ a, FirstRing } = list_utils:head( Ring ),
@@ -207,7 +222,7 @@ run() ->
 
 
 	ASeed = { 113, 798, 8914 },
-	random_utils:set_random_state( ASeed ),
+	random_utils:reset_random_source( ASeed ),
 
 	Lpermuted = list_utils:random_permute( L ),
 
@@ -219,7 +234,7 @@ run() ->
 		"List obtained after having uniformly permuted list ~w (again): ~w.",
 		[ L, list_utils:random_permute( Lpermuted ) ] ),
 
-	random_utils:set_random_state( ASeed ),
+	random_utils:reset_random_source( ASeed ),
 
 	Lreciprocal = list_utils:random_permute_reciprocal( Lpermuted ),
 

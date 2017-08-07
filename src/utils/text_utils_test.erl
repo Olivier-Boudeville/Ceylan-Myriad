@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2015 Olivier Boudeville
+% Copyright (C) 2003-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -50,7 +50,7 @@
 
 print_title( Title, Level ) ->
 	test_facilities:display( "Title level ~B:~n~s", [ Level,
-		text_utils:generate_title(Title,Level) ] ).
+		text_utils:generate_title( Title, Level ) ] ).
 
 
 
@@ -60,10 +60,10 @@ run() ->
 	test_facilities:start( ?MODULE ),
 
 	test_facilities:display( "Converting an integer to a string: ~s.",
-		[ text_utils:integer_to_string(3245) ] ),
+		[ text_utils:integer_to_string( 3245 ) ] ),
 
 	test_facilities:display( "Converting an atom to a string: ~s.",
-		[ text_utils:atom_to_string('hello world') ] ),
+		[ text_utils:atom_to_string( 'hello world' ) ] ),
 
 	test_facilities:display( "Converting a PID to a string: '~s'.",
 		[ text_utils:pid_to_string( self() ) ] ),
@@ -95,8 +95,8 @@ run() ->
 
 	ListOfStrings = [ "Hello", "World", "Vampire" ],
 
-	test_facilities:display( "Displaying list ~p as a string:~n~s",
-		[ ListOfStrings, text_utils:string_list_to_string(ListOfStrings) ] ),
+	test_facilities:display( "Displaying list ~p as a string:~s",
+		[ ListOfStrings, text_utils:string_list_to_string( ListOfStrings ) ] ),
 
 
 	LongLine = "This is a long line to test the paragraph formatting.",
@@ -105,9 +105,10 @@ run() ->
 	TargetWidth = 10,
 
 	test_facilities:display( "Displaying text '~s' once formatted "
-		"for a width of ~B:~n~p",
-		[ LongLine, TargetWidth,
-			text_utils:format_text_for_width( LongLine, TargetWidth ) ] ),
+							 "for a width of ~B:~n~p",
+							 [ LongLine, TargetWidth,
+							   text_utils:format_text_for_width( LongLine,
+														   TargetWidth ) ] ),
 
 
 	JustWideEnoughLine = "<0.33.0>",
@@ -116,57 +117,64 @@ run() ->
 	NewTargetWidth = 8,
 
 	test_facilities:display( "Displaying text '~s' once formatted "
-		"for a width of ~B:~n~p",
-		[ JustWideEnoughLine, NewTargetWidth,
-			text_utils:format_text_for_width( JustWideEnoughLine,
-				NewTargetWidth) ] ),
+							 "for a width of ~B:~n~p",
+							 [ JustWideEnoughLine, NewTargetWidth,
+							   text_utils:format_text_for_width(
+								 JustWideEnoughLine, NewTargetWidth ) ] ),
 
 
-	test_facilities:display(
-		"Displaying atom list obtained from string list ~p: ~p.",
-		[ ListOfStrings, text_utils:string_list_to_atom_list(ListOfStrings) ]),
+	test_facilities:display( "Displaying atom list, obtained from string "
+							 "list ~p: ~p.",
+							 [ ListOfStrings,
+							   text_utils:string_list_to_atom_list(
+								 ListOfStrings ) ] ),
 
 	FirstTestString = "Hello world!",
 
 	test_facilities:display( "Determining whether '~p' is a string: ~w.",
-		[ FirstTestString, text_utils:is_string(FirstTestString) ] ),
+		[ FirstTestString, text_utils:is_string( FirstTestString ) ] ),
+
 	true = text_utils:is_string( FirstTestString ),
 
 	SecondTestString = [ $o, [ $s, $d ], $l ],
 
 	test_facilities:display( "Determining whether '~p' is a string: ~w.",
-		[ SecondTestString, text_utils:is_string(SecondTestString) ] ),
+		[ SecondTestString, text_utils:is_string( SecondTestString ) ] ),
+
 	false = text_utils:is_string( SecondTestString ),
 
 	ThirdTestString = [ $e, 1, 2, $r ],
 
 	test_facilities:display( "Determining whether '~p' is a string: ~w.",
-		[ ThirdTestString, text_utils:is_string(ThirdTestString) ] ),
-	true = text_utils:is_string(ThirdTestString),
+		[ ThirdTestString, text_utils:is_string( ThirdTestString ) ] ),
+	true = text_utils:is_string( ThirdTestString ),
 
 	FirstList = [],
 	test_facilities:display(
 		"Determining whether '~p' is a list of strings: ~w.",
-		[ FirstList, text_utils:is_list_of_strings(FirstList) ] ),
-	true = text_utils:is_list_of_strings(FirstList),
+		[ FirstList, text_utils:is_list_of_strings( FirstList ) ] ),
+	true = text_utils:is_list_of_strings( FirstList ),
 
-	SecondList = [FirstTestString],
+	SecondList = [ FirstTestString ],
 	test_facilities:display( "Determining whether '~p' is "
-		"a list of strings: ~w.",
-		[ SecondList, text_utils:is_list_of_strings(SecondList) ] ),
-	true = text_utils:is_list_of_strings(SecondList),
+							 "a list of strings: ~w.",
+							 [ SecondList,
+							   text_utils:is_list_of_strings( SecondList ) ] ),
 
-	ThirdList = [FirstTestString,ThirdTestString],
+	true = text_utils:is_list_of_strings( SecondList ),
+
+	ThirdList = [ FirstTestString, ThirdTestString ],
+
 	test_facilities:display(
 		"Determining whether '~p' is a list of strings: ~w.",
-		[ ThirdList, text_utils:is_list_of_strings(ThirdList) ] ),
-	true = text_utils:is_list_of_strings(ThirdList),
+		[ ThirdList, text_utils:is_list_of_strings( ThirdList ) ] ),
+	true = text_utils:is_list_of_strings( ThirdList ),
 
-	FourthList = [FirstTestString,SecondTestString],
+	FourthList = [ FirstTestString, SecondTestString ],
 	test_facilities:display(
 		"Determining whether '~p' is a list of strings: ~w.",
-		[ FourthList, text_utils:is_list_of_strings(FourthList) ] ),
-	false = text_utils:is_list_of_strings(FourthList),
+		[ FourthList, text_utils:is_list_of_strings( FourthList ) ] ),
+	false = text_utils:is_list_of_strings( FourthList ),
 
 
 	Title = "Alien creatures invaded Ireland!",
@@ -214,21 +222,21 @@ run() ->
 	OtherStringList = [ "The", "little red", "wolf" ],
 	test_facilities:display(
 			  "When strings: ~s are converted into atoms, we have: ~w.",
-			  [ text_utils:string_list_to_string(OtherStringList),
-			   text_utils:strings_to_atoms(OtherStringList) ] ),
+			  [ text_utils:string_list_to_string( OtherStringList ),
+				text_utils:strings_to_atoms( OtherStringList ) ] ),
 
 	test_facilities:display( "Testing the textual conversion of distances:" ),
 
 	% In millimeters:
 	Distances = [ -1001.5, -1001.0, -1000.5, -1000.0, -999.5, -999.0,
-				 -1001, -1000, -999, -1.6, -1.4, -1.0, -0.9, -1, 0,
-				 1, 0.9, 2, 999, 1000, 1001, 999999, 1000000, 1000001 ],
+				  -1001, -1000, -999, -1.6, -1.4, -1.0, -0.9, -1, 0,
+				  1, 0.9, 2, 999, 1000, 1001, 999999, 1000000, 1000001 ],
 
 	[ test_facilities:display( " - an integer distance of ~w millimeters "
-		  "is ~s, and roughly ~s",
-		  [ D, text_utils:distance_to_string(D),
-		   text_utils:distance_to_short_string(D) ] )
-	 || D <- Distances ],
+							   "is ~s, and roughly ~s",
+							   [ D, text_utils:distance_to_string( D ),
+								 text_utils:distance_to_short_string( D ) ] )
+	  || D <- Distances ],
 
 
 	test_facilities:display( "Testing the textual conversion of durations:" ),
@@ -236,19 +244,19 @@ run() ->
 	% In milliseconds:
 
 	Durations = [ -100000, -1000, -1, 0 , 1, 2, 10, 3000, 3599,
-				 3600, 3601, 36000, 59000, 60000, 61000, 100000,
-				 12345678, 1234567890123 ],
+				  3600, 3601, 36000, 59000, 60000, 61000, 100000,
+				  12345678, 1234567890123 ],
 
 	[ test_facilities:display(
-				" - an integer duration of ~w milliseconds is ~s",
-				[ D, text_utils:duration_to_string(D) ] )
-	 || D <- Durations ],
+		" - an integer duration of ~w milliseconds is ~s",
+		[ D, text_utils:duration_to_string( D ) ] )
+	  || D <- Durations ],
 
 
 	test_facilities:display( "Testing the upper-casing of first letter:" ),
 
 	[ test_facilities:display( " - '~s' becomes '~s'",
-				[ T, text_utils:uppercase_initial_letter(T) ] )
+				[ T, text_utils:uppercase_initial_letter( T ) ] )
 	 || T <- [ [], "a", "A", "Hello", "hello" ] ],
 
 	WesternText = "I am a lonesome cowboy",
@@ -260,7 +268,7 @@ run() ->
 
 
 	[ "93171810", "95a0", "4382", "ad73" ] = text_utils:split( UUIDText,
-														_OtherSep="-" ),
+															   _OtherSep="-" ),
 
 	TestSplit = "  abcxdefxgh ",
 
@@ -270,13 +278,17 @@ run() ->
 
 	{ "  ", "bcxdefxgh " } = text_utils:split_at_first( $a, TestSplit ),
 
-	{ "", " abcxdefxgh " } = text_utils:split_at_first(  $ , TestSplit ),
+	{ "", " abcxdefxgh " } = text_utils:split_at_first( $ , TestSplit ),
 
 	"Helli wirld" = text_utils:substitute( $o, $i, "Hello world" ),
+
+	"bar is baz." = text_utils:split_after_prefix( "Foo", "Foobar is baz." ),
+
+	no_prefix = text_utils:split_after_prefix( "ABC", "Foobar is baz." ),
 
 	RemovalCount = 3,
 
 	"I am a lonesome cow" = text_utils:remove_last_characters(
-								WesternText, RemovalCount ),
+							  WesternText, RemovalCount ),
 
 	test_facilities:stop().

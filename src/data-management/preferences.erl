@@ -1,4 +1,4 @@
-% Copyright (C) 2013-2015 Olivier Boudeville
+% Copyright (C) 2013-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -36,19 +36,34 @@
 %
 % This is typically a way of storing durable information in one's user account
 % in a transverse way compared to programs and versions thereof, and of sharing
-% them conveniently.
+% them conveniently (ex: for passwords, settings).
+%
+% The format of preferences is a series of Erlang terms as strings, separated by
+% dots (i.e. the format understood by file:consult/1).
+%
+% Example of content of a preference file:
+% """
+% { my_first_color, red }.
+% { myheight, 1.80 }.
+% """
+%
+% (of course without the quotes and the leading ampersands)
 %
 -module(preferences).
 
 
--export([ init/0, get/1, set/2, to_string/0 ]).
+-export([ start/0, get/1, set/2, to_string/0,
+		  get_default_preferences_path/0,
+		  is_preferences_default_file_available/0,
+		  check_preferences_default_file/0,
+		  stop/0 ]).
 
 
 -type key() :: atom().
 
 
 % Can be 'undefined' (no difference between a non-registered key and a key
-% registered to 'undefined':
+% registered to 'undefined'):
 %
 -type value() :: table:value().
 
@@ -82,14 +97,14 @@
 
 
 
-% Ensures that, if not done already, the preferences service is initialised
-% immediately, if wanting an explicit start rather than one implied by the use
-% of an operation onto it.
+% Ensures that, if not done already, the preferences service is started and
+% initialised immediately, if wanting an explicit start rather than one implied
+% by the use of an operation onto it.
 %
 % Returns in any case the PID of the corresponding preferences server.
 %
--spec init() -> pid().
-init() ->
+-spec start() -> pid().
+start() ->
 
 	case basic_utils:is_registered( ?preferences_server_name, global ) of
 
@@ -125,7 +140,7 @@ init() ->
 -spec get( key() ) -> value().
 get( Key ) ->
 
-	ServerPid = init(),
+	ServerPid = start(),
 
 	ServerPid ! { get_preference, Key, self() },
 
@@ -144,7 +159,7 @@ get( Key ) ->
 -spec set( key(), value() ) -> basic_utils:void().
 set( Key, Value ) ->
 
-	ServerPid = init(),
+	ServerPid = start(),
 
 	ServerPid ! { set_preference, Key, Value }.
 
@@ -175,6 +190,66 @@ to_string() ->
 
 
 
+% Returns the full, absolute path to the default preferences filename.
+%
+-spec get_default_preferences_path() -> file_utils:path().
+get_default_preferences_path() ->
+	file_utils:join( system_utils:get_user_home_directory(),
+					 ?preferences_filename ).
+
+
+
+% Returns whether the default preferences file is available and its full path.
+%
+-spec is_preferences_default_file_available() ->
+			{ boolean(), file_utils:path() }.
+is_preferences_default_file_available() ->
+
+	PrefFile = get_default_preferences_path(),
+
+	Res = file_utils:is_existing_file_or_link( PrefFile ),
+
+	{ Res, PrefFile }.
+
+
+
+% Checks that the default preferences file exists, throws an exception
+% otherwise.
+%
+-spec check_preferences_default_file() -> basic_utils:void().
+check_preferences_default_file() ->
+
+	case is_preferences_default_file_available() of
+
+		{ true, _FilePath } ->
+			ok;
+
+		{ false, FilePath } ->
+			throw( { no_default_preferences_file_found, FilePath } )
+
+	end.
+
+
+
+% Stops (asynchronously) the preferences server, if it is running.
+%
+% Never fails.
+%
+-spec stop() -> basic_utils:void().
+stop() ->
+
+	case basic_utils:is_registered( ?preferences_server_name, global ) of
+
+		not_registered ->
+			ok;
+
+		Pid ->
+			Pid ! stop
+
+	end.
+
+
+
 % Section for the preferences server itself.
 
 
@@ -190,11 +265,10 @@ server_main_run( SpawnerPid ) ->
 			% We gain the shared name, we are the one and only server:
 			EmptyTable = table:new(),
 
-			PrefFilename = file_utils:join(
-							 system_utils:get_user_home_directory(),
-							 ?preferences_filename ),
+			PrefFilename = get_default_preferences_path(),
 
-			FinalTable = case file_utils:is_existing_file( PrefFilename ) of
+			FinalTable = case file_utils:is_existing_file_or_link(
+								PrefFilename ) of
 
 				true ->
 					add_preferences_from( PrefFilename, EmptyTable );
@@ -226,8 +300,8 @@ server_main_run( SpawnerPid ) ->
 server_main_loop( Table ) ->
 
 	%io:format( "Waiting for preferences-related request, "
-	%		    "having ~B recorded preferences.~n",
-	%		   [ table:getEntryCount( Table ) ] ),
+	%			"having ~B recorded preferences.~n",
+	%			[ table:getEntryCount( Table ) ] ),
 
 	receive
 
@@ -276,8 +350,11 @@ server_main_loop( Table ) ->
 
 			SenderPid ! { notify_preferences_status, Res },
 
-			server_main_loop( Table )
+			server_main_loop( Table );
 
+		stop ->
+			%io:format( "Stopping preferences server.~n" ),
+			stopped
 
 	end.
 
@@ -303,12 +380,14 @@ add_preferences_from( Filename, Table ) ->
 					%io:format( "Loaded from preferences file '~s' "
 					%           "following entries:~s",
 					% [ PrefFilename, table:toString( NewTable ) ] ),
-				   io:format( "Preferences file '~s' loaded.~n", [ Filename ] ),
+				   %io:format( "Preferences file '~s' loaded.~n",
+				   %	[ Filename ] ),
 				   NewTable;
 
 				ErrorString ->
 					io:format( "Error when reading preferences file '~s' (~s), "
-					   "no preferences read.~n", [ Filename, ErrorString ] ),
+							   "no preferences read.~n",
+							   [ Filename, ErrorString ] ),
 					Table
 
 			end;

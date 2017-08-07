@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2015 Olivier Boudeville
+% Copyright (C) 2003-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -60,10 +60,13 @@ run() ->
 
 	hashtable:display( MyH1 ),
 	MyH2 = hashtable:new( 4 ),
-	MyH3 = hashtable:addEntry( ?MyFirstKey, "MyFirstValue", MyH2 ),
+
+	MyFirstValue = "MyFirstValue",
+	MyH3 = hashtable:addEntry( ?MyFirstKey, MyFirstValue, MyH2 ),
 	false = hashtable:isEmpty( MyH3 ),
 
-	MyH4 = hashtable:addEntry( ?MySecondKey, [ 1, 2, 3 ], MyH3 ),
+	MySecondValue = [ 1, 2, 3 ],
+	MyH4 = hashtable:addEntry( ?MySecondKey, MySecondValue, MyH3 ),
 	false = hashtable:isEmpty( MyH4 ),
 
 	hashtable:display( MyH4 ),
@@ -74,7 +77,7 @@ run() ->
 
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
 		hashtable:lookupEntry( ?MyFirstKey, MyH4 ) ] ),
-	{ value, "MyFirstValue" } = hashtable:lookupEntry( ?MyFirstKey, MyH4 ),
+	{ value, MyFirstValue } = hashtable:lookupEntry( ?MyFirstKey, MyH4 ),
 
 	test_facilities:display( "Removing that entry." ),
 	MyH5 = hashtable:removeEntry( ?MyFirstKey, MyH4 ),
@@ -82,12 +85,15 @@ run() ->
 
 	test_facilities:display( "Extracting the same entry from "
 							 "the same initial table." ),
-	{ "MyFirstValue", MyH5 } = hashtable:extractEntry( ?MyFirstKey, MyH4 ),
+	{ MyFirstValue, MyH5 } = hashtable:extractEntry( ?MyFirstKey, MyH4 ),
 
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
 		hashtable:lookupEntry( ?MyFirstKey, MyH5 ) ] ),
 
 	key_not_found  = hashtable:lookupEntry( ?MyFirstKey, MyH5 ),
+
+	[ MySecondValue, MyFirstValue ] = hashtable:getAllValues(
+										[ ?MySecondKey, ?MyFirstKey ], MyH4 ),
 
 	% removeEntry can also be used if the specified key is not here, will return
 	% an identical table.

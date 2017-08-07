@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2015 Olivier Boudeville
+% Copyright (C) 2003-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -54,11 +54,14 @@ run() ->
 	tracked_hashtable:display( "Vanilla tracked table ", MyH1 ),
 
 	MyH2 = tracked_hashtable:new( 4 ),
-	MyH3 = tracked_hashtable:addEntry( ?MyFirstKey, "MyFirstValue", MyH2 ),
+
+	MyFirstValue = "MyFirstValue",
+	MyH3 = tracked_hashtable:addEntry( ?MyFirstKey, MyFirstValue, MyH2 ),
 	false = tracked_hashtable:isEmpty( MyH3 ),
 	tracked_hashtable:display("The tracked hashtable", MyH3 ),
 
-	MyH4 = tracked_hashtable:addEntry( ?MySecondKey, [ 1, 2, 3 ], MyH3 ),
+	MySecondValue = [ 1, 2, 3 ],
+	MyH4 = tracked_hashtable:addEntry( ?MySecondKey, MySecondValue, MyH3 ),
 	false = tracked_hashtable:isEmpty( MyH4 ),
 
 	tracked_hashtable:display( "The tracked hashtable", MyH4 ),
@@ -71,7 +74,7 @@ run() ->
 		tracked_hashtable:lookupEntry( ?MyFirstKey, MyH4 ) ] ),
 
 	{ value, "MyFirstValue" } = tracked_hashtable:lookupEntry( ?MyFirstKey,
-															  MyH4 ),
+															   MyH4 ),
 
 	test_facilities:display( "Removing that entry." ),
 
@@ -96,8 +99,10 @@ run() ->
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
 		tracked_hashtable:lookupEntry( ?MyFirstKey, MyH5 ) ] ),
 
-	key_not_found = tracked_hashtable:lookupEntry( ?MyFirstKey,
-															MyH5 ),
+	key_not_found = tracked_hashtable:lookupEntry( ?MyFirstKey,	MyH5 ),
+
+	[ MySecondValue, MyFirstValue ] = tracked_hashtable:getAllValues(
+										[ ?MySecondKey, ?MyFirstKey ], MyH4 ),
 
 	% removeEntry can also be used if the specified key is not here, will return
 	% an identical table.

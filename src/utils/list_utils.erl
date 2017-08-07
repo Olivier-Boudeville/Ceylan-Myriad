@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2015 Olivier Boudeville
+% Copyright (C) 2003-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -45,20 +45,21 @@
 		  remove_element_at/2, remove_last_element/1,
 		  get_last_element/1, get_index_of/2, split_at/2, uniquify/1,
 		  has_duplicates/1, get_duplicates/1, intersect/2,
-		  subtract_all_duplicates/2, delete_existing/2, delete_all_in/2,
-		  append_at_end/2, is_list_of_integers/1,
+		  subtract_all_duplicates/2, delete_existing/2, delete_if_existing/2,
+		  delete_all_in/2, append_at_end/2, is_list_of_integers/1,
 		  unordered_compare/2, add_if_not_existing/2 ]).
+
+
+% For list of tuples (ex: typically used by the HDF5 binding), extended flatten
+% and al:
+%
+-export([ determine_tuple_info/1, flatten_tuples/1, reconstruct_tuples/2 ]).
 
 
 
 % listimpl-relation operations:
 %
 -export([ safe_listimpl_delete/2, listimpl_add/2 ]).
-
-
-% Ring-related operations:
-%
--export([ list_to_ring/1, head/1, get_next/2, get_ring_size/1 ]).
 
 
 
@@ -70,6 +71,16 @@
 %
 -opaque ring() :: { list(), list() }.
 
+-opaque ring( T ) :: { [ T ], [ T ] }.
+
+
+% Ring-related operations:
+%
+-export([ list_to_ring/1, head/1, get_next/2, get_reference_list/1,
+		  get_ring_size/1 ]).
+
+
+
 
 
 % Random operations on lists:
@@ -79,7 +90,7 @@
 		  draw_elements_from/2 ]).
 
 
--export_type([ ring/0 ]).
+-export_type([ ring/0, ring/1 ]).
 
 
 
@@ -215,9 +226,9 @@ get_last_element( _List=[ _H | T ] ) ->
 
 
 
-% Returns the index, in [1..length(List)], of the (first occurrence of the
-% )specified element in the specified list. Throws an exception if the element
-% is not found.
+% Returns the index, in [1..length(List)], of the (first occurrence of the)
+% specified element in the specified list. Throws an exception if the element is
+% not found.
 %
 % Ex: 3 = get_index_of( bar, [ foo, ugh, bar, baz ] )
 %
@@ -389,6 +400,30 @@ delete_existing( Elem, _List=[ H | T ], Acc ) ->
 
 
 
+% Deletes the first matching of specified element from specified list, returning
+% whether an element has been removed: either the 'not_found' atom (in which
+% case the list remained the same) or the corresponding new list (same order and
+% content, except first occurrence removed).
+%
+% Note: allows to perform only one traversal of the list (compared for example
+% to a lists:member/2 then a lists:delete/2).
+%
+-spec delete_if_existing( term(), list() ) -> 'not_found' | list().
+delete_if_existing( Elem, List ) ->
+	delete_if_existing( Elem, List, _Acc=[] ).
+
+
+delete_if_existing( _Elem, _List=[], _Acc ) ->
+	not_found;
+
+delete_if_existing( Elem, _List=[ Elem | T ], Acc ) ->
+	lists:reverse( Acc) ++ T;
+
+delete_if_existing( Elem, _List=[ H | T ], Acc ) ->
+	delete_if_existing( Elem, T, [ H | Acc ] ).
+
+
+
 % Returns a copy of the specified list where all elements matching Elem are
 % deleted, whether or not there is any.
 %
@@ -421,8 +456,9 @@ delete_all_in( Elem, _List=[ H | T ], Acc ) ->
 % Note: usually such an addition should be avoided, as it is costly.
 %
 -spec append_at_end( any(), list() ) -> nonempty_list().
-append_at_end( Elem, L ) when is_list(L) ->
-	% Should be more efficient than lists:reverse( [Elem|lists:reverse(L)] ):
+append_at_end( Elem, L ) when is_list( L ) ->
+	% Should be more efficient than:
+	%lists:reverse( [ Elem | lists:reverse( L ) ] ):
 	L ++ [ Elem ].
 
 
@@ -477,6 +513,87 @@ add_if_not_existing( _PlainList=[ H | T ], ListImpl ) ->
 
 
 
+% Determines tuple-related information about specified datastructure: returns {
+% TupleCount, TupleSize }, supposing the list is made of tuples of uniform
+% sizes.
+%
+-spec determine_tuple_info( [ tuple() ] ) ->
+								  { basic_utils:count(), basic_utils:count() }.
+determine_tuple_info( TupleList ) when is_list( TupleList ) ->
+
+	case length( TupleList ) of
+
+		0 ->
+			throw( empty_list );
+
+		L ->
+			FirstTuple = hd( TupleList ),
+			TupleSize = size( FirstTuple ),
+			check_tuple_length( TupleList, TupleSize ),
+			{ L, TupleSize }
+
+	end.
+
+
+% Helper.
+check_tuple_length( _TupleList=[], _TupleSize ) ->
+	ok;
+
+check_tuple_length( _TupleList=[ Tuple | T ], TupleSize ) ->
+
+	case size( Tuple ) of
+
+		TupleSize ->
+			check_tuple_length( T, TupleSize );
+
+		OtherSize ->
+			throw( { heterogeneous_tuple_size, { Tuple, OtherSize },
+					 { expected, TupleSize } } )
+
+	end.
+
+
+
+% Flattens a list of tuples into a simple list of their elements, without
+% tuples and in the same order.
+%
+% Ex: flatten_tuples( [ { 1, 2, 3 }, { 4, 5, 6 } ] ) = [ 1, 2, 3, 4, 5, 6 ] )
+%
+-spec flatten_tuples( [ tuple() ] ) -> list().
+flatten_tuples( List ) ->
+	flatten_tuples( List, _Acc=[] ).
+
+
+flatten_tuples( _List=[], Acc ) ->
+	lists:reverse( Acc );
+
+flatten_tuples( [ H | T ], Acc ) ->
+	NewAcc = lists:reverse( tuple_to_list( H ) ) ++ Acc,
+	flatten_tuples( T, NewAcc ).
+
+
+
+% Reconstructs a list of tuples of specified size from the specified flat list.
+%
+% Ex: reconstruct_tuples( [ 1, 2, 3, 4, 5, 6 ], 3 ) =
+%                                     [ { 1, 2, 3 }, { 4, 5, 6 } ]
+%
+-spec reconstruct_tuples( list(), basic_utils:count() ) -> [ tuple() ].
+reconstruct_tuples( List, _TupleSize=1 ) ->
+	% Atomic elements do not need to be wrapped in a single-element tuple:
+	List;
+
+reconstruct_tuples( List, TupleSize ) ->
+	reconstruct_tuples( List, TupleSize, _Acc=[] ).
+
+
+reconstruct_tuples( _List=[], _TupleSize, Acc ) ->
+	lists:reverse( Acc );
+
+reconstruct_tuples( List, TupleSize, Acc ) ->
+	{ TupleAsList, T } = lists:split( _Count=TupleSize, List ),
+	reconstruct_tuples( T, TupleSize, [ list_to_tuple( TupleAsList ) | Acc ] ).
+
 
 
 % Section for listimpl-relation operations.
@@ -518,7 +635,9 @@ listimpl_add( ListImplList, _PlainList=[ H | T ] ) ->
 
 
 
-% Ring-related section.
+
+% Ring-related section (infinite, circular buffer whose end is connected to its
+% beginning).
 
 
 
@@ -533,14 +652,14 @@ list_to_ring( InputList ) ->
 % Pops the head of specified ring: return { Head, UpdatedRing }.
 %
 -spec head( ring() ) -> { term(), ring() }.
-head( { _WorkingList=[], ReferenceList } ) ->
+head( _Ring={ _WorkingList=[], ReferenceList } ) ->
 	% Replenish:
 	%
 	% Dialyzer does not want an opaque argument to be used:
 	%head( { ReferenceList, ReferenceList } );
 	head( list_to_ring( ReferenceList ) );
 
-head( { _WorkingList=[ H | T ], ReferenceList } ) ->
+head( _Ring={ _WorkingList=[ H | T ], ReferenceList } ) ->
 	{ H, { T, ReferenceList } }.
 
 
@@ -565,12 +684,19 @@ get_next_helper( Count, Ring, Acc ) ->
 	get_next_helper( Count-1, NewRing, [ H | Acc ] ).
 
 
+% Returns the list from which the ring was created (in its original order).
+%
+-spec get_reference_list( ring() ) -> [ term() ].
+get_reference_list( _Ring={ _WorkingList, ReferenceList } ) ->
+	ReferenceList.
+
 
 % Returns the number of elements in the specified ring.
 %
 -spec get_ring_size( ring() ) -> basic_utils:count().
-get_ring_size( _Ring={  _WorkingList, ReferenceList } ) ->
+get_ring_size( _Ring={ _WorkingList, ReferenceList } ) ->
 	length( ReferenceList ).
+
 
 
 
@@ -643,7 +769,7 @@ random_permute_reciprocal( _List=[], _ReciprocalIndex=[], Acc ) ->
 	Acc;
 
 random_permute_reciprocal( _List=[ H | T ], _ReciprocalIndex=[ I | Is ],
-						 Acc ) ->
+						   Acc ) ->
 
 	NewAcc = insert_element_at( _Elem=H, Acc, _Index=I ),
 

@@ -1,4 +1,4 @@
-% Copyright (C) 2014-2015 Olivier Boudeville
+% Copyright (C) 2013-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -40,6 +40,11 @@
 		  generate_mealy_table/1, compute_inverse_mealy_table/1,
 		  mealy_table_to_string/1 ]).
 
+
+% This pseudo-export allows to avoid a spurious Dialyzer warning about the final
+% catch-all clause (user-provided arguments, hence they can have any type).
+%
+-export( [ apply_cipher/3 ]).
 
 
 
@@ -232,7 +237,7 @@ generate_key( KeyFilename, Transforms ) ->
 	KeyFile = file_utils:open( KeyFilename, _Opts=[ write, raw ] ),
 
 	Header = text_utils:format( "% Key generated on ~s, by ~s, on ~s.~n",
-								[ basic_utils:get_textual_timestamp(),
+								[ time_utils:get_textual_timestamp(),
 								  system_utils:get_user_name(),
 								  net_utils:localhost() ] ),
 
@@ -502,6 +507,8 @@ get_cipher_description( OtherCipher ) ->
 % Some ciphers are better managed if special-cased, whereas others can rely on
 % base (yet generic) mechanisms.
 %
+-spec apply_cipher( any(), file_utils:file_name(), file_utils:file_name() ) ->
+						  basic_utils:void().
 apply_cipher( id, SourceFilename, CipheredFilename ) ->
 	id_cipher( SourceFilename, CipheredFilename );
 
@@ -532,7 +539,7 @@ apply_cipher( { decompress, CompressFormat }, SourceFilename,
 apply_cipher( { insert_random, Seed, Range }, SourceFilename,
 			  CipheredFilename ) ->
 
-	random_utils:set_random_state( Seed ),
+	random_utils:reset_random_source( Seed ),
 
 	insert_random_cipher( SourceFilename, CipheredFilename, Range );
 
@@ -540,7 +547,7 @@ apply_cipher( { insert_random, Seed, Range }, SourceFilename,
 apply_cipher( { extract_random, Seed, Range }, SourceFilename,
 			  CipheredFilename ) ->
 
-	random_utils:set_random_state( Seed ),
+	random_utils:reset_random_source( Seed ),
 
 	extract_random_cipher( SourceFilename, CipheredFilename, Range );
 
@@ -573,7 +580,7 @@ apply_cipher( delta_combine_reverse, SourceFilename, CipheredFilename ) ->
 
 apply_cipher( { shuffle, Seed, Length }, SourceFilename, CipheredFilename ) ->
 
-	random_utils:set_random_state( Seed ),
+	random_utils:reset_random_source( Seed ),
 
 	shuffle_cipher( SourceFilename, CipheredFilename, Length, direct );
 
@@ -581,7 +588,7 @@ apply_cipher( { shuffle, Seed, Length }, SourceFilename, CipheredFilename ) ->
 apply_cipher( { reciprocal_shuffle, Seed, Length }, SourceFilename,
 			  CipheredFilename ) ->
 
-	random_utils:set_random_state( Seed ),
+	random_utils:reset_random_source( Seed ),
 
 	shuffle_cipher( SourceFilename, CipheredFilename, Length, reciprocal );
 

@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2015 Olivier Boudeville
+% Copyright (C) 2003-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -45,7 +45,7 @@
 -export([ generate_png_from_graph_file/2,
 		  generate_png_from_graph_file/3, display_png_file/1,
 		  browse_images_in/1, display_pdf_file/1, display_text_file/1,
-		  display_wide_text_file/2, get_ssh_mute_option/0 ]).
+		  display_wide_text_file/2, get_ssh_mute_option/0, compute_md5_sum/1 ]).
 
 
 
@@ -89,10 +89,19 @@
 		 get_default_bzip2_decompress_tool/0,
 
 		 get_default_xz_compress_tool/0,
-		 get_default_xz_decompress_tool/0
+		 get_default_xz_decompress_tool/0,
+
+		 get_default_md5_tool/0
 
 		 ]).
 
+
+
+% MD5 sum, a 128-bit hash value:
+-type md5_sum() :: non_neg_integer().
+
+
+-export_type([ md5_sum/0 ]).
 
 
 % Miscellaneous section:
@@ -198,7 +207,7 @@ generate_png_from_graph_file( PNGFilename, GraphFilename,
 -spec display_png_file( file_utils:path() ) -> basic_utils:void().
 display_png_file( PNGFilename ) ->
 	% Viewer output is ignored:
-	system_utils:execute_background_command( get_default_image_viewer_path()
+	system_utils:run_background_executable( get_default_image_viewer_path()
 											 ++ " " ++ PNGFilename  ).
 
 
@@ -212,7 +221,7 @@ display_png_file( PNGFilename ) ->
 %
 -spec browse_images_in( file_utils:path() ) -> basic_utils:void().
 browse_images_in( DirectoryName ) ->
-	system_utils:execute_background_command( get_default_image_browser_path()
+	system_utils:run_background_executable( get_default_image_browser_path()
 											 ++ " " ++ DirectoryName ).
 
 
@@ -226,7 +235,7 @@ browse_images_in( DirectoryName ) ->
 %
 -spec display_pdf_file( file_utils:path() ) -> basic_utils:void().
 display_pdf_file( PDFFilename ) ->
-	system_utils:execute_background_command( get_default_pdf_viewer_path()
+	system_utils:run_background_executable( get_default_pdf_viewer_path()
 											 ++ " " ++ PDFFilename ).
 
 
@@ -240,8 +249,8 @@ display_pdf_file( PDFFilename ) ->
 -spec display_text_file( file_utils:path() ) -> string().
 display_text_file( TextFilename ) ->
 
-	case system_utils:execute_command( get_default_text_viewer_path()
-									   ++ " " ++ TextFilename ) of
+	case system_utils:run_executable( get_default_text_viewer_path()
+									  ++ " " ++ TextFilename ) of
 
 		{ _ExitCode=0, Output } ->
 			Output;
@@ -262,7 +271,7 @@ display_text_file( TextFilename ) ->
 -spec display_wide_text_file( file_utils:path(), pos_integer() ) -> string().
 display_wide_text_file( TextFilename, CharacterWidth ) ->
 
-	case system_utils:execute_command(
+	case system_utils:run_executable(
 		   get_default_wide_text_viewer_path( CharacterWidth )
 		   ++ " " ++ TextFilename ) of
 
@@ -294,6 +303,41 @@ display_wide_text_file( TextFilename, CharacterWidth ) ->
 get_ssh_mute_option() ->
   " -o \"StrictHostKeyChecking no\" ".
 
+
+
+% Returns the MD5 sum computed from the content of the specified file, as an
+% unsigned integer, actually of 128 bits (ex:
+% 96950473382892364268626543336313804804, corresponding to hexadecimal string
+% "48effb631c66e93c7054c10f798f5804").
+%
+-spec compute_md5_sum( file_utils:path() ) -> md5_sum().
+compute_md5_sum( Filename ) ->
+
+	case file_utils:is_existing_file( Filename ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { file_for_md5_not_found, Filename } )
+
+	end,
+
+	% erlang:md5/1 not used here, would be probably slower:
+
+	% Removes the filename after the MD5 code:
+	Cmd = system_utils:run_executable( get_default_md5_tool() ++ " '"
+									   ++ Filename ++ "' | sed 's|  .*$||1'" ),
+
+	case Cmd of
+
+		{ _ExitCode=0, OutputString } ->
+			list_to_integer( OutputString, _Base=16 );
+
+		{ ExitCode, ErrorOutput } ->
+			throw( { md5_computation_failed, ExitCode, ErrorOutput, Filename } )
+
+	end.
 
 
 
@@ -458,13 +502,23 @@ get_gnuplot_path() ->
 -spec get_current_gnuplot_version() -> basic_utils:two_digit_version().
 get_current_gnuplot_version() ->
 
-	Cmd = get_gnuplot_path() ++ " -V | awk '{print $2}'",
+	% gnuplot -V returns information like "gnuplot 4.4 patchlevel 0"; rather
+	% that evaluation a shell expression like:
+	%
+	% Cmd = get_gnuplot_path() ++ " -V | awk '{print $2}'",
+	%
+	% we prefer executing directly gnuplot, have then the exit status, and parse
+	% the result in Erlang:
+	%
+	Cmd = get_gnuplot_path() ++ " -V",
 
 	% The returned value of following command is like "4.2":
 	%
-	case system_utils:execute_command( Cmd ) of
+	case system_utils:run_executable( Cmd ) of
 
-			{ _ExitCode=0, GnuplotVersionInString } ->
+			{ _ExitCode=0, Output } ->
+				GnuplotVersionInString = lists:nth( _IndexVersion=2,
+										  text_utils:split( Output, " " ) ),
 				basic_utils:parse_version( GnuplotVersionInString );
 
 			{ ExitCode, ErrorOutput } ->
@@ -517,6 +571,11 @@ get_default_xz_decompress_tool() ->
 	find_executable( "unxz" ).
 
 
+% Returns the default tool to compute MD5 sums.
+%
+-spec get_default_md5_tool() -> file_utils:file_name().
+get_default_md5_tool() ->
+	find_executable( "md5sum" ).
 
 
 
@@ -548,7 +607,7 @@ execute_dot( PNGFilename, GraphFilename ) ->
 	Cmd = DotExec ++ " -o" ++ PNGFilename ++ " -Tpng " ++ GraphFilename,
 
 	% Dot might issue non-serious warnings:
-	case system_utils:execute_command( Cmd ) of
+	case system_utils:run_executable( Cmd ) of
 
 		{ _ExitCode=0, Output } ->
 			Output;

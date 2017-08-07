@@ -1,4 +1,4 @@
-% Copyright (C) 2007-2015 Olivier Boudeville
+% Copyright (C) 2007-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -45,11 +45,12 @@
 		  check_node_availability/1, check_node_availability/2,
 		  get_node_naming_mode/0, get_naming_compliant_hostname/2,
 		  generate_valid_node_name_from/1, get_fully_qualified_node_name/3,
+		  launch_epmd/0, launch_epmd/1, enable_distribution/2,
 		  shutdown_node/1 ]).
 
 
 % Net-related command line options.
--export([ get_cookie_option/0, get_epmd_option/1, get_node_name_option/2,
+-export([ get_cookie_option/0, get_epmd_environment/1, get_node_name_option/2,
 		  get_tcp_port_range_option/1, get_basic_node_launching_command/5 ]).
 
 
@@ -58,7 +59,13 @@
 
 
 % Address-related functions.
--export([ is_routable/1, ipv4_to_string/1, ipv4_to_string/2 ]).
+-export([ is_routable/1 ]).
+
+
+% Stringifications:
+-export([ ipv4_to_string/1, ipv4_to_string/2,
+		  ipv6_to_string/1, ipv6_to_string/2,
+		  host_to_string/1, url_info_to_string/1 ]).
 
 
 % Exported for convenience:
@@ -69,6 +76,8 @@
 
 -type ip_v4_address() :: { byte(), byte(), byte(), byte() }.
 -type ip_v6_address() :: { byte(), byte(), byte(), byte(), byte(), byte() }.
+
+-type ip_address() :: ip_v4_address() | ip_v6_address().
 
 
 % We tend to favor atom-based node names (usual in Erlang) to string-based ones:
@@ -82,6 +91,9 @@
 -type atom_host_name()   :: atom().
 -type string_host_name() :: nonempty_string().
 -type host_name()        :: atom_host_name() | string_host_name().
+
+-type host_identifier() :: string_host_name() | ip_address().
+
 
 -type check_duration()    :: non_neg_integer().
 -type check_node_timing() :: check_duration() | 'immediate' | 'with_waiting'.
@@ -99,15 +111,39 @@
 -type udp_port_range() :: { udp_port(), udp_port() }.
 
 
+% The possible protocols for an URL:
+%
+-type protocol_type() :: 'http' | 'https' | 'ftp'.
+
+
+
+% Path of an URL (ex: 'access/login'):
+%
+-type path() :: string().
+
+
+-include("net_utils.hrl").
+
+
+% Full information about an URL:
+-type url_info() :: #url_info{}.
+
+
+% An URL:
+-type url() :: string().
+
+
 -export_type([
 
-			  ip_v4_address/0, ip_v6_address/0,
+			  ip_v4_address/0, ip_v6_address/0, ip_address/0,
 			  atom_node_name/0, string_node_name/0, node_name/0,
 			  atom_host_name/0, string_host_name/0, host_name/0,
+			  host_identifier/0,
 			  check_duration/0, check_node_timing/0,
 			  node_naming_mode/0, cookie/0,
 			  net_port/0, tcp_port/0, udp_port/0,
-			  tcp_port_range/0, udp_port_range/0
+			  tcp_port_range/0, udp_port_range/0,
+			  protocol_type/0, path/0, url_info/0, url/0
 
 			  ]).
 
@@ -133,7 +169,7 @@ ping( Hostname ) when is_list( Hostname ) ->
 
 	%io:format( "Ping command: ~s~n.", [ Command ] ),
 
-	case system_utils:execute_command( Command ) of
+	case system_utils:run_executable( Command ) of
 
 		{ _ExitCode=0, _Output } ->
 			true;
@@ -175,7 +211,7 @@ localhost( fqdn ) ->
 	% name resolution.
 
 	% Most reliable:
-	case system_utils:execute_command( "hostname -f" ) of
+	case system_utils:run_executable( "hostname -f" ) of
 
 		{ _ExitCode=0, _Output="localhost" } ->
 			localhost_last_resort();
@@ -209,7 +245,7 @@ localhost( short ) ->
 -spec localhost_last_resort() -> string_host_name().
 localhost_last_resort() ->
 
-	case system_utils:execute_command( "hostname" ) of
+	case system_utils:run_executable( "hostname" ) of
 
 		{ _ExitCode=0, _Output="localhost" } ->
 			throw( could_not_determine_localhost );
@@ -290,12 +326,12 @@ filter_interfaces( _IfList=[ _If={ Name, Options } | T ], FirstIfs, LastIfs,
 					filter_interfaces( T, FirstIfs, LastIfs, Address );
 
 				% For example, eth1:
-				[ "eth" | _ ] ->
+				"eth" ++ _ ->
 					filter_interfaces( T, [ Address | FirstIfs ], LastIfs,
 									   Loopback );
 
 				% For example, enp0s25:
-				[ "enp" | _ ] ->
+				"enp" ++ _ ->
 					filter_interfaces( T, [ Address | FirstIfs ], LastIfs,
 									   Loopback );
 
@@ -324,7 +360,7 @@ filter_routable_first( _IfList= [ If | T ], RoutableAddrs, NonRoutableAddrs ) ->
 
 		true ->
 			filter_routable_first( T, [ If | RoutableAddrs ],
-								  NonRoutableAddrs );
+								   NonRoutableAddrs );
 
 		false ->
 			filter_routable_first( T, RoutableAddrs, [ If | NonRoutableAddrs ] )
@@ -366,7 +402,7 @@ reverse_lookup( IPAddress ) ->
 
 	Cmd = "host -W 1 " ++ ipv4_to_string( IPAddress ) ++ " 2>/dev/null",
 
-	case system_utils:execute_command( Cmd ) of
+	case system_utils:run_executable( Cmd ) of
 
 			  { _ExitCode=0, Output } ->
 
@@ -431,25 +467,26 @@ get_all_connected_nodes() ->
 %
 % Nodename can be an atom or a string.
 %
-% Allows to return as soon as possible.
-%
-% Returns a boolean.
-%
 -spec check_node_availability( node_name() ) -> boolean().
-check_node_availability( Nodename ) when is_list(Nodename) ->
+check_node_availability( Nodename ) when is_list( Nodename ) ->
 	check_node_availability( list_to_atom( Nodename ) );
 
-check_node_availability( Nodename ) when is_atom(Nodename) ->
+check_node_availability( Nodename ) when is_atom( Nodename ) ->
+
+	% Useful to troubleshoot longer ping durations:
+	% (apparently this may come from badly configured DNS)
+	%io:format( "Pinging node '~s'...~n", [ Nodename ] ),
+
 
 	case net_adm:ping( Nodename ) of
 
 		pong ->
-			%io:format( "Node '~s' found available from node '~s'.~n",
+			%io:format( "... node '~s' found available from node '~s'.~n",
 			%		  [ Nodename, node() ] ),
 			true ;
 
 		pang ->
-			%io:format( "Node '~s' found NOT available from node '~s'.~n",
+			%io:format( "... node '~s' found NOT available from node '~s'.~n",
 			%		  [ Nodename, node() ] ),
 			false
 
@@ -490,8 +527,8 @@ check_node_availability( Nodename ) when is_atom(Nodename) ->
 %
 -spec check_node_availability( node_name(), check_node_timing() )
 		 -> { boolean(), check_duration() }.
-check_node_availability( Nodename, Timing ) when is_list(Nodename) ->
-	check_node_availability( list_to_atom(Nodename), Timing ) ;
+check_node_availability( Nodename, Timing ) when is_list( Nodename ) ->
+	check_node_availability( list_to_atom( Nodename ), Timing ) ;
 
 
 check_node_availability( Nodename, _Timing=immediate ) ->
@@ -501,12 +538,12 @@ check_node_availability( Nodename, _Timing=immediate ) ->
 
 
 check_node_availability( Nodename, _Timing=with_waiting )
-  when is_atom(Nodename) ->
+  when is_atom( Nodename ) ->
 
 	%io:format( "check_node_availability of node '~s' with default waiting.~n",
 	%		  [ Nodename ] ),
 
-	% 3s is a good default:
+	% 3 seconds is a good default:
 	check_node_availability( Nodename, _Duration=3000 );
 
 
@@ -537,6 +574,8 @@ check_node_availability( Nodename, Duration )  ->
 check_node_availability( Nodename, CurrentDurationStep, ElapsedDuration,
 		   SpecifiedMaxDuration ) when ElapsedDuration < SpecifiedMaxDuration ->
 
+	% Still on time here, apparently.
+
 	% Avoid going past the deadline:
 	RemainingDuration = SpecifiedMaxDuration - ElapsedDuration,
 
@@ -564,13 +603,15 @@ check_node_availability( Nodename, CurrentDurationStep, ElapsedDuration,
 
 			% Too early, let's retry later:
 			NewCurrentDurationStep = erlang:min( 2 * CurrentDurationStep,
-										 ?check_node_max_waiting_step ),
+												 ?check_node_max_waiting_step ),
 
 			check_node_availability( Nodename, NewCurrentDurationStep,
-				NewElapsedDuration, SpecifiedMaxDuration )
+									 NewElapsedDuration, SpecifiedMaxDuration )
 
 	end;
 
+
+% Already too late here (ElapsedDuration >= SpecifiedMaxDuration):
 check_node_availability( _Nodename, _CurrentDurationStep, ElapsedDuration,
 		   _SpecifiedMaxDuration ) ->
 
@@ -622,7 +663,7 @@ get_naming_compliant_hostname( Hostname, long_name ) ->
 % from the specified name.
 %
 -spec generate_valid_node_name_from( iolist() ) -> string_node_name().
-generate_valid_node_name_from( Name ) when is_list(Name) ->
+generate_valid_node_name_from( Name ) when is_list( Name ) ->
 
 	% Replaces each series of spaces (' '), lower than ('<'), greater than
 	% ('>'), comma (','), left ('(') and right (')') parentheses, single (''')
@@ -633,25 +674,128 @@ generate_valid_node_name_from( Name ) when is_list(Name) ->
 	% by exactly one underscore:
 	%
 	% (see also: file_utils:convert_to_filename/1)
-	re:replace( lists:flatten(Name),
-			   "( |<|>|,|\\(|\\)|'|\"|/|\\\\|\&|~|"
-			   "#|@|{|}|\\[|\\]|\\||\\$|\\*|\\?|!|\\+|;|\\.|:)+", "_",
-		 [ global, { return, list } ] ).
+	re:replace( lists:flatten( Name ),
+				"( |<|>|,|\\(|\\)|'|\"|/|\\\\|\&|~|"
+				"#|@|{|}|\\[|\\]|\\||\\$|\\*|\\?|!|\\+|;|\\.|:)+", "_",
+				[ global, { return, list } ] ).
 
 
 
 % Returns the full name of a node (as a string), which has to be used to target
 % it from another node, with respect to the specified node naming conventions.
 %
-% Ex: for a node name 'foo', a hostname "bar.org", with short names, we may
+% Ex: for a node name "foo", a hostname "bar.org", with short names, we may
 % specify "foo@bar" to target the corresponding node with these conventions (not
 % a mere "foo", neither "foo@bar.org").
 %
--spec get_fully_qualified_node_name( atom_node_name(),
-		string_host_name(), node_naming_mode() ) -> string_node_name().
+-spec get_fully_qualified_node_name( string_node_name(),
+		string_host_name(), node_naming_mode() ) -> atom_node_name().
 get_fully_qualified_node_name( NodeName, Hostname, NodeNamingMode ) ->
-	text_utils:atom_to_string( NodeName ) ++ "@"
-		++ get_naming_compliant_hostname( Hostname, NodeNamingMode ).
+
+	StringNodeName = NodeName ++ "@"
+		++ get_naming_compliant_hostname( Hostname, NodeNamingMode ),
+
+	text_utils:string_to_atom( StringNodeName ).
+
+
+
+% Launches as a daemon (in the background) an EPMD instance on the Erlang
+% standard port, if needed.
+%
+% If an EPMD instance is already launched for that port, no extra instance will
+% be launched, the former one remaining the active one; there is up to one EPMD
+% instance per port.
+%
+-spec launch_epmd() -> basic_utils:void().
+launch_epmd() ->
+	launch_epmd( _StandardPort=4369 ).
+
+
+
+% Launches as a daemon (in the background) an EPMD instance on the specified
+% port, if needed.
+%
+% If an EPMD instance is already launched for that port, no extra instance will
+% be launched, the former one remaining the active one; there is up to one EPMD
+% instance per port.
+%
+-spec launch_epmd( net_port() ) -> basic_utils:void().
+launch_epmd( Port ) when is_integer( Port ) ->
+	case executable_utils:lookup_executable( "epmd" ) of
+
+		false ->
+			throw( { unable_to_launch_epmd, executable_not_found } );
+
+		EPMDPath ->
+			% Better through command line than using the environment to specify
+			% the port:
+			EpmdCmd = text_utils:format( "~s -port ~B", [ EPMDPath, Port ] ),
+			%io:format( "Launching EPMD thanks to '~s'.~n", [ EpmdCmd ] ),
+			system_utils:run_background_executable( EpmdCmd )
+
+	end.
+
+
+
+% Enables the distribution on the current node, supposedly not already
+% distributed (otherwise the operation will fail).
+%
+% Note: an EPMD instance is expected to be already running; see
+% launch_epmd/{0,1} in this module for that; apparently no race condition
+% happens, hence no need for a wait-and-retry mechanism here.
+%
+% Otherwise following messages might be output:
+%  - 'Protocol: "inet_tcp": register/listen error: econnrefused'
+%  - '{distribution_enabling_failed,foobar,long_name,{{shutdown,
+%         {failed_to_start_child,net_kernel,{'EXIT',nodistribution}}},...
+%
+-spec enable_distribution( node_name(), node_naming_mode() ) ->
+								 basic_utils:void().
+enable_distribution( NodeName, NamingMode ) when is_list( NodeName ) ->
+	AtomNodeName = text_utils:string_to_atom( lists:flatten( NodeName ) ),
+	enable_distribution( AtomNodeName, NamingMode );
+
+enable_distribution( NodeName, NamingMode=long_name )
+  when is_atom( NodeName ) ->
+	enable_distribution_helper( NodeName, longnames, NamingMode );
+
+enable_distribution( NodeName, NamingMode=short_name )
+  when is_atom( NodeName ) ->
+	enable_distribution_helper( NodeName, shortnames, NamingMode ).
+
+
+% NamingMode kept for error message.
+%
+% (helper)
+enable_distribution_helper( NodeName, NameType, NamingMode ) ->
+
+	%io:format( "Starting distribution for node name ~s, as '~w'.~n",
+	%		   [ NodeName, NameType ] ),
+
+	case net_kernel:start( [ NodeName, NameType ] ) of
+
+		{ error, Reason } ->
+			ExtraReason = case net_kernel:stop() of
+
+							  ok ->
+								  { was_distributed, node(), Reason };
+
+							  { error, not_allowed } ->
+								  { not_allowed, node(), Reason };
+
+							  { error, not_found } ->
+								  { Reason, node() }
+
+			end,
+
+			throw( { distribution_enabling_failed, NodeName, NamingMode,
+					 ExtraReason } );
+
+		%{ ok, _NetKernelPid } ->
+		R ->
+			R
+
+	end.
 
 
 
@@ -661,12 +805,12 @@ get_fully_qualified_node_name( NodeName, Hostname, NodeNamingMode ) ->
 % Throws an exception if not able to terminate it.
 %
 -spec shutdown_node( node_name() ) -> basic_utils:void().
-shutdown_node( Nodename ) when is_list(Nodename) ->
-	shutdown_node( list_to_atom(Nodename) );
+shutdown_node( Nodename ) when is_list( Nodename ) ->
+	shutdown_node( list_to_atom( Nodename ) );
 
-shutdown_node( Nodename ) when is_atom(Nodename) ->
+shutdown_node( Nodename ) when is_atom( Nodename ) ->
 
-	%io:format( "Request to halt node '~s' from node '~s'.~n",
+	%io:format( "Request to shut down node '~s' from node '~s'.~n",
 	%		  [ Nodename, node() ] ),
 
 	case lists:member( Nodename, nodes() ) of
@@ -675,18 +819,23 @@ shutdown_node( Nodename ) when is_atom(Nodename) ->
 
 			try
 
-				%io:format( "Sending halt command for '~s'.~n", [ Nodename ] )
-				rpc:cast( Nodename, erlang, halt, [] )
+				%io:format( "Sending shutdown command for '~s'.~n",
+				%           [ Nodename ] )
+
+				%rpc:cast( Nodename, erlang, halt, [] )
+
+				% Longer yet smoother:
+				rpc:cast( Nodename, init, stop, [] )
 
 			catch
 
 				_T:E ->
-					io:format( "Error while halting node '~s': ~p.~n",
-							  [ Nodename, E ] )
+					io:format( "Error while shutting down node '~s': ~p.~n",
+							   [ Nodename, E ] )
 
 			end,
 
-			wait_unavailable( Nodename, _AttemptCount=5, _Duration=100 );
+			wait_unavailable( Nodename, _AttemptCount=10, _Duration=150 );
 			%ok;
 
 		false ->
@@ -715,8 +864,8 @@ shutdown_node( Nodename ) when is_atom(Nodename) ->
 			wait_unavailable( Nodename, AttemptCount-1, 2*Duration );
 
 		false ->
-			% Safety delay to ensure the node had time to fully shut down and to
-			% unregister from everything:
+			% Additional safety delay to ensure the node had time to fully shut
+			% down and to unregister from everything:
 			%
 			timer:sleep( 200 )
 
@@ -725,13 +874,13 @@ shutdown_node( Nodename ) when is_atom(Nodename) ->
 	%try net_adm:ping( Nodename ) of
 
 	%	pong ->
-	%		timer:sleep(Duration),
+	%		timer:sleep( Duration ),
 	%		wait_unavailable( Nodename, AttemptCount-1, 2*Duration );
 
 	%	pang ->
 			% Safety delay to ensure the node had time to fully shut down and to
 			% unregister from everything:
-	%		timer:sleep(200),
+	%		timer:sleep( 200 ),
 	%		ok
 
 	%catch
@@ -761,7 +910,7 @@ get_cookie_option() ->
 			"";
 
 		Cookie ->
-			"-setcookie '" ++ atom_to_list( Cookie ) ++ "'"
+			"-setcookie \"" ++ atom_to_list( Cookie ) ++ "\""
 
 	end.
 
@@ -776,20 +925,25 @@ get_cookie_option() ->
 % convention (ex: see the FIREWALL_OPT make option in common/GNUmakevars.inc),
 % otherwise available nodes will not be found.
 %
--spec get_epmd_option('undefined' | tcp_port()) -> string().
-get_epmd_option( undefined ) ->
-	"";
+-spec get_epmd_environment( 'undefined' | tcp_port() ) ->
+								  system_utils:environment().
+get_epmd_environment( undefined ) ->
+	[];
 
-get_epmd_option( EpmdPort ) when is_integer(EpmdPort) ->
-	io_lib:format( "ERL_EPMD_PORT=~B", [ EpmdPort ] ).
+get_epmd_environment( EpmdPort ) when is_integer( EpmdPort ) ->
+
+	% Flatten needed:
+	PortString = text_utils:format( "~B", [ EpmdPort ] ),
+
+	[ { "ERL_EPMD_PORT", PortString } ].
 
 
 
 % Returns the command-line option (a plain string) to be used to run a new
 % Erlang node with the node name (specified as a string) and node naming mode
 % (short or long name, specified thanks to atoms).
--spec get_node_name_option( string_node_name(), node_naming_mode() )
-						  -> string().
+-spec get_node_name_option( string_node_name(), node_naming_mode() ) ->
+								  string().
 get_node_name_option( NodeName, NodeNamingMode ) ->
 
 	NodeNameOption = case NodeNamingMode of
@@ -819,35 +973,43 @@ get_tcp_port_range_option( no_restriction ) ->
 	"";
 
 get_tcp_port_range_option( { MinTCPPort, MaxTCPPort } )
-  when is_integer(MinTCPPort) andalso is_integer(MaxTCPPort)
+  when is_integer( MinTCPPort ) andalso is_integer( MaxTCPPort )
 	   andalso MinTCPPort < MaxTCPPort ->
 
 	io_lib:format( " -kernel inet_dist_listen_min ~B inet_dist_listen_max ~B ",
-				  [ MinTCPPort, MaxTCPPort ] ).
+				   [ MinTCPPort, MaxTCPPort ] ).
 
 
 
-% Returns a plain string corresponding to a basic command-line command that can
-% be used to launch an Erlang node (interpreter) with the specified settings.
+% Returns a basic command line (as a plain string) and its related environment
+% in order to launch an Erlang node (interpreter) with the specified settings.
 %
 -spec get_basic_node_launching_command( string_node_name(), node_naming_mode(),
 	   'undefined' | tcp_port(), 'no_restriction' | tcp_port_range(),
-	   string() ) -> string().
+	   string() ) -> { system_utils:command(), system_utils:environment() }.
 get_basic_node_launching_command( NodeName, NodeNamingMode, EpmdSettings,
-								TCPSettings, AdditionalOptions ) ->
+								  TCPSettings, AdditionalOptions ) ->
 
 	% May end up with a command-line option similar to:
-	% ERL_EPMD_PORT=754 erl -setcookie 'foobar' -sname hello
+	% 'erl -setcookie 'foobar' -sname hello
 	% -kernel inet_dist_listen_min 10000 inet_dist_listen_max 14000
-	% -noshell -smp auto +K true +A 8 +P 400000
+	% -noshell -smp auto +K true +A 8 +P 400000' with an environment with
+	% ERL_EPMD_PORT=754
 
-	text_utils:join( _Separator=" ", [
-			get_epmd_option(EpmdSettings),
+	Command = text_utils:join( _Separator=" ", [
 			executable_utils:get_default_erlang_interpreter_name(),
 			get_cookie_option(),
 			get_node_name_option( NodeName, NodeNamingMode ),
 			get_tcp_port_range_option( TCPSettings ),
-			AdditionalOptions ] ).
+			AdditionalOptions ] ),
+
+	% Note that specifying the environment that way would work locally only
+	% (i.e. of course SSH does not propagate environment) - hence the export in
+	% the previous command, that works locally and through SSH:
+	%
+	EpmdEnv = get_epmd_environment( EpmdSettings ),
+
+	{ Command, EpmdEnv }.
 
 
 
@@ -890,10 +1052,10 @@ send_file( Filename, RecipientPid ) ->
 	Permissions = case file:read_file_info( Filename ) of
 
 		{ ok, #file_info{ mode=Mode } } ->
-						  Mode;
+			  Mode;
 
 		{ error, ReadInfoReason } ->
-			throw( { read_file_info_failed, ReadInfoReason } )
+			  throw( { read_file_info_failed, ReadInfoReason } )
 
 	end,
 
@@ -911,8 +1073,8 @@ send_file( Filename, RecipientPid ) ->
 			% We used to rely on hostnames:
 			% Hostname = text_utils:binary_to_string( BinHostname ),
 
-			%io:format( "Connecting to ~s:~B to send '~s'.~n",
-			%		  [ ipv4_to_string( RemoteIP ), Port, Filename ] ),
+			%io:format( "~w connecting to ~s:~B to send '~s'.~n",
+			%		   [ self(), ipv4_to_string( RemoteIP ), Port, Filename ] ),
 
 			DataSocket = case gen_tcp:connect( RemoteIP, Port,
 						[ binary, { packet, 0 }, { active, false } ] ) of
@@ -920,7 +1082,7 @@ send_file( Filename, RecipientPid ) ->
 				{ ok, Socket } ->
 					Socket;
 
-				% Typically, 'econnrefused':
+				% Typically, 'econnrefused', 'etimedout' or 'enetunreach':
 				{ error, Error } ->
 					throw( { send_file_connection_failed,
 							 ipv4_to_string( RemoteIP, Port ), Error } )
@@ -954,12 +1116,18 @@ send_file( Filename, RecipientPid ) ->
 
 			% Second, more efficient, is using the sendfile kernel
 			% function. Moreover even very large files may be transferred this
-			% way (whereas the previous approach would fail with enomem, trying
-			% to load their full content in RAM before their sending), so it is
-			% definitively the best solution:
+			% way (whereas the previous approach would fail with 'enomem',
+			% trying to load their full content in RAM before their sending), so
+			% it is definitively the best solution:
+			%
+
+			%:format( "~w performing sendfile, using data socket ~p.~n",
+			%		   [ self(), DataSocket ] ),
+
 			case file:sendfile( Filename, DataSocket ) of
 
 				{ ok, _SentByteCount } ->
+					%io:format( "~w sent file.~n", [ self() ] ),
 					ok;
 
 				{ error, Reason } ->
@@ -1019,12 +1187,15 @@ receive_file( EmitterPid, TargetDir, Port ) ->
 	% BinHostname = text_utils:string_to_binary( localhost() ),
 	LocalIP = get_local_ip_address(),
 
+	%io:format( "~w (on ~w) determined its local IP: ~w.~n",
+	%		   [ self(), node(), LocalIP ] ),
+
 	receive
 
 		{ sendFile, [ BinFilename, Permissions, EmitterPid ] } ->
 
 			case gen_tcp:listen( Port, [ binary, { active, false },
-										{ packet,0 } ] ) of
+										 { packet,0 } ] ) of
 
 				{ ok, ListenSock } ->
 
@@ -1042,7 +1213,7 @@ receive_file( EmitterPid, TargetDir, Port ) ->
 
 					% Do not know the units for { delayed_write, Size, Delay }:
 					OutputFile = file_utils:open( Filename, [ write, raw,
-						binary, delayed_write ] ),
+													 binary, delayed_write ] ),
 
 					% Mono-client, yet using a separate socket for actual
 					% sending:
@@ -1060,7 +1231,7 @@ receive_file( EmitterPid, TargetDir, Port ) ->
 					end,
 
 					case file:write_file_info( Filename,
-								 #file_info{ mode=Permissions } ) of
+									  #file_info{ mode=Permissions } ) of
 
 						ok ->
 							Filename;
@@ -1130,12 +1301,51 @@ is_routable( _ ) ->
 %
 -spec ipv4_to_string( ip_v4_address() ) -> string().
 ipv4_to_string( { N1, N2, N3, N4 } ) ->
-	lists:flatten( io_lib:format( "~B.~B.~B.~B", [ N1, N2, N3, N4 ] ) ).
+	text_utils:format( "~B.~B.~B.~B", [ N1, N2, N3, N4 ] ).
 
 
 % Returns a string describing the specified IPv4 address and port.
 %
 -spec ipv4_to_string( ip_v4_address(), net_port() ) -> string().
 ipv4_to_string( { N1, N2, N3, N4 }, Port ) ->
-	lists:flatten( io_lib:format( "~B.~B.~B.~B:~B",
-								 [ N1, N2, N3, N4, Port ] ) ).
+	text_utils:format( "~B.~B.~B.~B:~B", [ N1, N2, N3, N4, Port ] ).
+
+
+
+% Returns a string describing the specified IPv6 address.
+%
+-spec ipv6_to_string( ip_v6_address() ) -> string().
+ipv6_to_string( { N1, N2, N3, N4, N5, N6 } ) ->
+	text_utils:format( "~B.~B.~B.~B", [ N1, N2, N3, N4, N5, N6 ] ).
+
+
+% Returns a string describing the specified IPv6 address and port.
+%
+-spec ipv6_to_string( ip_v6_address(), net_port() ) -> string().
+ipv6_to_string( Ipv6={ _N1, _N2, _N3, _N4, _N5, _N6 }, Port ) ->
+	text_utils:format( "~s:~B", [ ipv6_to_string( Ipv6 ), Port ] ).
+
+
+
+
+% Returns a string describing the specified host.
+%
+-spec host_to_string( host_identifier() ) -> string().
+host_to_string( IPv4={ _N1, _N2, _N3, _N4 } ) ->
+	ipv4_to_string( IPv4 );
+
+host_to_string( IPv6={ _N1, _N2, _N3, _N4, _N5, _N6 } ) ->
+	ipv6_to_string( IPv6 );
+
+host_to_string( Address ) ->
+	Address.
+
+
+% Returns a string describing the specified URL information.
+%
+-spec url_info_to_string( url_info() ) -> string().
+url_info_to_string( #url_info{ protocol=Protocol, host_identifier=Host,
+							   port=Port, path=Path } ) ->
+
+	text_utils:format( "~s://~s:~B/~s", [ Protocol, host_to_string( Host ),
+										  Port, Path ] ).

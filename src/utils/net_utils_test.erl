@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2015 Olivier Boudeville
+% Copyright (C) 2003-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -49,7 +49,6 @@ run() ->
 							 "(short name: '~s').",
 							 [ Localhost, net_utils:localhost( short ) ] ),
 
-
 	case net_utils:ping( Localhost ) of
 
 		true ->
@@ -60,7 +59,7 @@ run() ->
 			% own name:
 			% throw( could_not_ping_localhost )
 			test_facilities:display( "Warning: the local host is not able to "
-									"ping itself.")
+									 "ping itself.")
 
 	end,
 
@@ -79,17 +78,19 @@ run() ->
 	end,
 
 	test_facilities:display( "Detected usable network interfaces: ~p",
-				[ net_utils:get_local_ip_addresses() ] ),
+							 [ net_utils:get_local_ip_addresses() ] ),
 
 
 	test_facilities:display( "Connected nodes are: ~w.",
-			  [ net_utils:get_all_connected_nodes() ] ),
+							 [ net_utils:get_all_connected_nodes() ] ),
 
+	% Note: one can use a command like 'ERL_EPMD_PORT=4506 epmd -names' to
+	% monitor the live nodes on the current host.
 
 	NamingMode = net_utils:get_node_naming_mode(),
 
 	test_facilities:display( "Naming mode for this node: ~w.",
-							[ NamingMode ] ),
+							 [ NamingMode ] ),
 
 	test_facilities:display( "Naming-compliant hostname for '~s' is '~s'.",
 		[ Localhost,
@@ -100,7 +101,7 @@ run() ->
 		"(and also 'I have quotes')",
 
 	test_facilities:display( "Node name generated from '~s' is '~s'.",
-		[TestName,net_utils:generate_valid_node_name_from(TestName)] ),
+		[ TestName, net_utils:generate_valid_node_name_from( TestName ) ] ),
 
 
 	NodeName = "hello",
@@ -109,32 +110,38 @@ run() ->
 	TCPSettings = {10000,14000},
 	AdditionalOptions = "-noshell -smp auto +K true +A 8 +P 400000",
 
-	test_facilities:display( "Example of node launching command: '~s'.", [
-		  net_utils:get_basic_node_launching_command( NodeName, NodeNamingMode,
-		  EpmdSettings, TCPSettings, AdditionalOptions ) ] ),
+	{ Command, Environment } = net_utils:get_basic_node_launching_command(
+								 NodeName, NodeNamingMode, EpmdSettings,
+								 TCPSettings, AdditionalOptions ),
+
+	test_facilities:display( "Example of node launching command:~n'~s', "
+							 "with following environment: ~s",
+							 [ Command,
+							   system_utils:environment_to_string( Environment )
+							 ] ),
 
 
 	FirstIP = {74,125,127,100},
 	test_facilities:display( "Reverse look-up of ~p is '~s'.",
-		[ net_utils:ipv4_to_string(FirstIP),
-		  net_utils:reverse_lookup(FirstIP) ] ),
+		[ net_utils:ipv4_to_string( FirstIP ),
+		  net_utils:reverse_lookup( FirstIP ) ] ),
 
 
 	SecondIP = {82,225,152,215},
 	test_facilities:display( "Reverse look-up of ~p is '~s'.",
-		[ net_utils:ipv4_to_string(SecondIP),
-		  net_utils:reverse_lookup(SecondIP) ] ),
+		[ net_utils:ipv4_to_string( SecondIP ),
+		  net_utils:reverse_lookup( SecondIP ) ] ),
 
 
 	ThirdIP = {90,59,94,64},
 	test_facilities:display( "Reverse look-up of ~p is '~s'.",
-		[ net_utils:ipv4_to_string(ThirdIP),
-		  net_utils:reverse_lookup(ThirdIP) ] ),
+		[ net_utils:ipv4_to_string( ThirdIP ),
+		  net_utils:reverse_lookup( ThirdIP ) ] ),
 
 	FourthIP = {10,22,22,22},
 	test_facilities:display( "Reverse look-up of ~p is '~s'.",
-		[ net_utils:ipv4_to_string(FourthIP),
-		  net_utils:reverse_lookup(FourthIP) ] ),
+		[ net_utils:ipv4_to_string( FourthIP ),
+		  net_utils:reverse_lookup( FourthIP ) ] ),
 
 
 	test_facilities:display( "All connected nodes are: ~w.",
@@ -152,21 +159,21 @@ run() ->
 	ExistingNodeName = node(),
 
 	CandidateNodeNames = [ FirstNonExistingNodeName, SecondNonExistingNodeName,
-				ExistingNodeName ],
+						   ExistingNodeName ],
 
 	[ test_facilities:display( "  + direct for ~p: ~p",
 			  [ N, net_utils:check_node_availability( N ) ] )
-	 || N <- CandidateNodeNames ],
+	  || N <- CandidateNodeNames ],
 
 
 	[ test_facilities:display( "  + immediate for ~p: ~p",
 			  [ N, net_utils:check_node_availability( N, immediate ) ] )
-	 || N <- CandidateNodeNames ],
+	  || N <- CandidateNodeNames ],
 
 
 	[ test_facilities:display( "  + with waiting for ~p: ~p",
 			  [ N, net_utils:check_node_availability( N, with_waiting ) ] )
-	 || N <- CandidateNodeNames ],
+	  || N <- CandidateNodeNames ],
 
 
 	%Durations = [ 0, 1, 10, 100, 200, 510, 1000, 2050 ],

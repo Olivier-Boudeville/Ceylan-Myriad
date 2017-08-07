@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2015 Olivier Boudeville
+% Copyright (C) 2007-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -33,20 +33,8 @@
 -module(basic_utils).
 
 
-
 % For list_impl:
 -include("data_types.hrl").
-
-
-
-% Timestamp-related functions.
-%
--export([ get_timestamp/0,
-		  get_textual_timestamp/0, get_textual_timestamp/1,
-		  get_textual_timestamp_for_path/0, get_textual_timestamp_for_path/1,
-		  timestamp_to_string/1, string_to_timestamp/1,
-		  get_duration/2, get_textual_duration/2,
-		  get_precise_timestamp/0, get_precise_duration/2 ]).
 
 
 
@@ -74,17 +62,6 @@
 
 
 
-% Code-related functions.
-%
--export([ get_code_for/1, deploy_modules/2, deploy_modules/3,
-		  declare_beam_directory/1, declare_beam_directory/2,
-		  declare_beam_directories/1, declare_beam_directories/2,
-		  get_code_path/0,
-		  list_beams_in_path/0, is_beam_in_path/1
-		]).
-
-
-
 % Message-related functions.
 %
 -export([ flush_pending_messages/0, flush_pending_messages/1,
@@ -98,13 +75,17 @@
 % Miscellaneous functions.
 %
 -export([ size/1, display_process_info/1,
-		  checkpoint/1, display/1, display/2, debug/1, debug/2,
+		  checkpoint/1, display/1, display/2, display_error/1, display_error/2,
+		  debug/1, debug/2,
 		  parse_version/1, compare_versions/2,
 		  get_process_specific_value/0, get_process_specific_value/2,
 		  get_execution_target/0,
 		  is_alive/1, is_alive/2,
 		  is_debug_mode_enabled/0,
-		  generate_uuid/0, crash/0, enter_infinite_loop/0 ]).
+		  generate_uuid/0, create_uniform_tuple/2,
+		  stop/0, stop/1, stop_on_success/0, stop_on_failure/0,
+		  stop_on_failure/1,
+		  crash/0, enter_infinite_loop/0, trigger_oom/0 ]).
 
 
 
@@ -141,6 +122,10 @@
 -type bit_mask() :: integer().
 
 
+% A string UUID (ex: "ed64ffd4-74ee-43dc-adba-be37ed8735aa"):
+-type uuid() :: string().
+
+
 % The reason may be any term:
 %
 -type exit_reason() :: any().
@@ -164,19 +149,25 @@
 
 
 
-% Time-related section.
-
-
-% { date(), time() }:
--type timestamp() :: calendar:datetime().
-
-
-% Cannot find the definition of the built-in timeout() type:
--type time_out() :: 'infinity' | unit_utils:milliseconds().
-
-
--type precise_timestamp() :: { unit_utils:megaseconds(), unit_utils:seconds(),
-							   unit_utils:microseconds() }.
+% Corresponds to smart (sortable, insertion-friendly) identifiers.
+%
+% Sometimes identifiers that can be sorted and that allow introducing any number
+% of new identifiers between any two successive ones are needed.
+%
+% We use list of integers for that, whose default ordering corresponds to this
+% need.
+%
+% For example, if having defined two identifiers [7,2] and [7,3], we can
+% introduce two identifiers between them, typically [7,2,1] and [7,2,2], since
+% the Erlang term ordering tells us that [7,2] < [7,2,1] < [7,2,2] < [7,3].
+%
+% As a result, no need to define specific comparison operators, '=:=', '<' and
+% '>', hence 'lists:sort/1' are already adequate for that.
+%
+% Example: lists:sort( [ [7,3], [7,2,1], [7,2,2], [7,2] ] ) =
+%   [ [7,2], [7,2,1], [7,2,2], [7,3] ].
+%
+-type sortable_id() :: [ integer() ].
 
 
 
@@ -224,170 +215,29 @@
 -type atom_user_name() :: atom().
 
 
+% Possible outcome of a partial-order comparison of two elements:
+-type comparison_result() :: 'lower' | 'equal' | 'higher'.
+
+
+% The exception classes that can be raised:
+-type exception_class() :: 'throw' | 'exit' | 'error'.
+
+% The status code returned by a shell command:
+-type status_code() :: 0..255. % i.e. byte()
+
 
 -export_type([
 
-			  void/0, count/0, bit_mask/0, exit_reason/0, maybe/1, user_data/0,
-			  accumulator/0,
-			  timestamp/0, precise_timestamp/0, time_out/0,
+			  void/0, count/0, bit_mask/0, uuid/0, exit_reason/0, maybe/1,
+			  user_data/0, accumulator/0, sortable_id/0,
 			  registration_name/0, registration_scope/0, look_up_scope/0,
 			  version_number/0, version/0, two_digit_version/0, any_version/0,
 			  positive_index/0,
 			  module_name/0, function_name/0, argument/0, command_spec/0,
-			  user_name/0, atom_user_name/0
+			  user_name/0, atom_user_name/0,
+			  comparison_result/0, exception_class/0, status_code/0
 
 			  ]).
-
-
-
-% Timestamp-related functions.
-
-
-% Returns a tipmestamp tuple describing the current time.
-%
-% Ex: { {Year,Month,Day}, {Hour,Minute,Second} } = basic_utils:get_timestamp()
-% may return '{ {2007,9,6}, {15,9,14} }'.
-%
--spec get_timestamp() -> timestamp().
-get_timestamp() ->
-	% Was: { erlang:date(), erlang:time() }.
-	% Better:
-	erlang:localtime().
-
-
-
-% Returns a string corresponding to the current timestamp, like:
-% "2009/9/1 11:46:53".
-%
--spec get_textual_timestamp() -> string().
-get_textual_timestamp() ->
-	get_textual_timestamp( get_timestamp() ).
-
-
-% Returns a string corresponding to the specified timestamp, like:
-% "2009/9/1 11:46:53".
-%
--spec get_textual_timestamp( { unit_utils:date(), unit_utils:time() } ) ->
-								   string().
-get_textual_timestamp( { { Year, Month, Day }, { Hour, Minute, Second } } ) ->
-	io_lib:format( "~p/~p/~p ~B:~2..0B:~2..0B",
-				   [ Year, Month, Day, Hour, Minute, Second ] ).
-
-
-
-% Returns a string corresponding to the current timestamp and able to be a part
-% of a path, like: "2010-11-18-at-13h-30m-35s.".
-%
--spec get_textual_timestamp_for_path() -> string().
-get_textual_timestamp_for_path() ->
-	get_textual_timestamp_for_path( get_timestamp() ).
-
-
-% Returns a string corresponding to the specified timestamp and able to be a
-% part of a path, like: "2010-11-18-at-13h-30m-35s.".
-%
--spec get_textual_timestamp_for_path( timestamp() ) -> string().
-get_textual_timestamp_for_path( { { Year, Month, Day },
-								  { Hour, Minute, Second } } ) ->
-	io_lib:format( "~p-~p-~p-at-~Bh-~2..0Bm-~2..0Bs",
-				   [ Year, Month, Day, Hour, Minute, Second ] ).
-
-
-
-% Alias of get_textual_timestamp.
--spec timestamp_to_string( timestamp() ) -> string().
-timestamp_to_string( Timestamp ) ->
-	get_textual_timestamp( Timestamp ).
-
-
-% Parses back a timestamp in the form of "14/4/2011 18:48:51" into a
-% { _Date={Year,Month,Day}, _Time={Hour,Minute,Second} } timestamp.
-%
--spec string_to_timestamp( string() ) -> timestamp().
-string_to_timestamp( TimestampString ) ->
-
-	case string:tokens( TimestampString, _Sep=" :/" ) of
-
-		[ DayString, MonthString, YearString, HourString, MinuteString,
-		  SecondString ] ->
-
-			Day   = text_utils:string_to_integer( DayString ),
-			Month = text_utils:string_to_integer( MonthString ),
-			Year  = text_utils:string_to_integer( YearString ),
-
-			Hour   = text_utils:string_to_integer( HourString ),
-			Minute = text_utils:string_to_integer( MinuteString ),
-			Second = text_utils:string_to_integer( SecondString ),
-
-			 { { Year, Month, Day }, { Hour, Minute, Second } };
-
-		_ ->
-			throw( { timestamp_parsing_failed, TimestampString } )
-
-	end.
-
-
-
-% Returns the (signed) duration in seconds between the two specified timestamps,
-% using the first one as starting time and the second one as stopping time.
-%
--spec get_duration( timestamp(), timestamp() ) -> unit_utils:seconds().
-get_duration( FirstTimestamp, SecondTimestamp ) ->
-
-	First  = calendar:datetime_to_gregorian_seconds( FirstTimestamp ),
-
-	Second = calendar:datetime_to_gregorian_seconds( SecondTimestamp ),
-
-	Second - First.
-
-
-
-% Returns a textual description of the duration between the two specified
-% timestamps.
-%
-% See also: text_utils:duration_to_string/1, which is smarter.
-%
--spec get_textual_duration( timestamp(), timestamp() ) -> string().
-get_textual_duration( FirstTimestamp, SecondTimestamp ) ->
-	{ Days, { Hour, Minute, Second } } = calendar:seconds_to_daystime(
-		get_duration( FirstTimestamp, SecondTimestamp ) ),
-
-	lists:flatten( io_lib:format( "~B day(s), ~B hour(s), ~B minute(s) "
-								  "and ~B second(s)",
-								  [ Days, Hour, Minute, Second ] ) ).
-
-
-
-
-% Returns a timestamp that is as precise as possible: {MegaSecs,Secs,MicroSecs},
-% where:
-%
-% - MegaSecs is an integer number of millions of seconds
-%
-% - Secs is an integer number of second which is less than one million
-%
-% - MicroSecs is an integer number of microseconds
-%
--spec get_precise_timestamp() -> precise_timestamp().
-get_precise_timestamp() ->
-	%erlang:now().
-	% A bit lighter, but not monotonic:
-	os:timestamp().
-
-
-
-% Returns the (signed) duration in milliseconds between the two specified
-% precise timestamps (as obtained thanks to get_precise_duration/0), using the
-% first one as starting time and the second one as stopping time.
-%
--spec get_precise_duration( precise_timestamp(), precise_timestamp() ) ->
-					integer().
-get_precise_duration( _FirstTimestamp={ A1, A2, A3 },
-					  _SecondTimestamp={ B1, B2, B3 } ) ->
-
-	% Seconds to be converted in milliseconds:
-	1000 * ( ( B1 - A1 ) * 1000000 + B2 - A2 ) + round( ( B3 - A3 ) / 1000 ).
-
 
 
 
@@ -910,14 +760,14 @@ display_registered() ->
 % Returns a string containing a new universally unique identifier (UUID), based
 % on the system clock plus the system's ethernet hardware address, if present.
 %
--spec generate_uuid() -> string().
+-spec generate_uuid() -> uuid().
 generate_uuid() ->
 
 	case executable_utils:lookup_executable( "uuidgen" ) of
 
 		false ->
-			io:format( "~nWarning: no 'uuidgen' found on system, "
-					   "defaulting to our failsafe implementation.~n~n" ),
+			display( "~nWarning: no 'uuidgen' found on system, "
+					 "defaulting to our failsafe implementation.~n" ),
 			uuidgen_internal();
 
 		Exec ->
@@ -925,7 +775,7 @@ generate_uuid() ->
 			% Random-based, rather than time-based (otherwise we end up
 			% collecting a rather constant suffix):
 			%
-			case system_utils:execute_command( Exec ++ " -r" ) of
+			case system_utils:run_executable( Exec ++ " -r" ) of
 
 				{ _ExitCode=0, Res } ->
 					Res;
@@ -946,7 +796,7 @@ uuidgen_internal() ->
 	% Using /dev/random instead would incur waiting of a few seconds that were
 	% deemed too long for this use:
 	%
-	case system_utils:execute_command(
+	case system_utils:run_executable(
 		   "/bin/dd if=/dev/urandom bs=1 count=32 2>/dev/null" ) of
 
 		{ _ReturnCode=0, Output } ->
@@ -962,6 +812,62 @@ uuidgen_internal() ->
 			throw( { uuidgen_internal_failed, ErrorCode, ErrorOutput } )
 
 	end.
+
+
+
+% Creates a tuple of specified size, all elements having the same, specified,
+% value.
+%
+-spec create_uniform_tuple( Size::count(), Value::any() ) -> tuple().
+create_uniform_tuple( Size, Value ) ->
+
+	List = lists:duplicate( Size, Value ),
+
+	list_to_tuple( List ).
+
+
+
+% Stops smoothly the underlying VM, with a normal, success status code (0).
+%
+% Also also to potentially override Erlang standard teardown procedure.
+%
+-spec stop() -> no_return().
+stop() ->
+	stop( _Success=0 ).
+
+
+
+% Stops smoothly the underlying VM, with a normal, success error code (0).
+%
+% Also also to potentially override Erlang standard teardown procedure.
+%
+-spec stop( status_code() ) -> no_return().
+stop( StatusCode ) ->
+	% Far less brutal than erlang:halt/{0,1}:
+	init:stop( StatusCode ).
+
+
+
+% Stops smoothly the underlying VM, with a normal, success status code (0).
+%
+-spec stop_on_success() -> no_return().
+stop_on_success() ->
+	stop( _Success=0 ).
+
+
+
+% Stops smoothly the underlying VM, with a default error status code (1).
+%
+-spec stop_on_failure() -> no_return().
+stop_on_failure() ->
+	stop_on_failure( _OurDefaultErrorCode=5 ).
+
+
+% Stops smoothly the underlying VM, with a default error status code (1).
+%
+-spec stop_on_failure( status_code() ) -> no_return().
+stop_on_failure( StatusCode ) ->
+	stop( StatusCode ).
 
 
 
@@ -998,6 +904,24 @@ enter_infinite_loop() ->
 
 
 
+% Triggers a OOM crash, i.e. Out of Memory.
+%
+% Useful for testing reliability, for example.
+%
+trigger_oom() ->
+
+	io:format( "~p triggering OOM (out of memory) crash...", [ self() ] ),
+
+	% Expected: Crash dump was written to: erl_crash.dump
+	%  binary_alloc: Cannot allocate 1000000000031 bytes of memory (of type
+	% "binary").
+
+	<<1:8000000000000>>.
+
+
+
+
+
 
 % Notification-related functions.
 
@@ -1006,7 +930,7 @@ enter_infinite_loop() ->
 %
 -spec speak( string() ) -> void().
 speak( Message ) ->
-	system_utils:execute_background_command(
+	system_utils:run_background_executable(
 	  "espeak -s 140 \"" ++ Message ++ "\"" ).
 
 
@@ -1033,304 +957,6 @@ notify_user( Message, FormatList ) ->
 
 	io:format( ActualMessage ),
 	speak( ActualMessage ).
-
-
-
-
-
-% Code-related functions.
-
-
-% Returns a { ModuleBinary, ModuleFilename } pair for the module specified as an
-% atom, or throws an exception.
-%
--spec get_code_for( module() ) -> { binary(), file:filename() }.
-get_code_for( ModuleName ) ->
-
-	case code:get_object_code( ModuleName ) of
-
-		{ ModuleName, ModuleBinary, ModuleFilename } ->
-			{ ModuleBinary, ModuleFilename };
-
-		error ->
-			throw( { module_code_lookup_failed, ModuleName } )
-
-	end.
-
-
-
-
-% RPC default time-out, in milliseconds:
-% (30s, could be infinity)
--define( rpc_timeout, 30*1000 ).
-
-
-
-% Deploys the specified list of modules on the specified list of nodes (atoms):
-% sends them these modules (as a binary), and loads them so that they are ready
-% for future use.
-%
-% If an exception is thrown with 'badfile' being reported as the error, this may
-% be caused by a version mistmatch between the Erlang environments in the source
-% and at least one of the remote target hosts (ex: ERTS 5.5.2 vs 5.8.2).
-%
--spec deploy_modules( [ module() ], [ net_utils:atom_node_name() ] ) -> void().
-deploy_modules( Modules, Nodes ) ->
-	deploy_modules( Modules, Nodes, _Timeout=?rpc_timeout ).
-
-
-
-% Deploys the specified list of modules on the specified list of nodes (atoms):
-% sends them these modules (as a binary), and loads them so that they are ready
-% for future use.
-%
-% Timeout is the time-out duration, either an integer number of milliseconds, or
-% the infinity atom.
-%
-% If an exception is thrown with 'badfile' being reported as the error, this may
-% be caused by a version mistmatch between the Erlang environments in the source
-% and at least one of the remote target hosts (ex: ERTS 5.5.2 vs 5.8.2).
-%
--spec deploy_modules( [ module() ], [ net_utils:atom_node_name() ], time_out() )
-					-> void().
-deploy_modules( Modules, Nodes, Timeout ) ->
-
-	% At least until the next version to come after R14B02, there was a possible
-	% race condition here, as, on an a just-launched (local) node, the rpc
-	% server could start to serve requests (ex: load_binary ones for file_utils)
-	% whereas the code server was not registered yet (as code_server), resulting
-	% in following type of error:
-	%
-	% {badrpc,{'EXIT',{badarg,[{code_server,call,2},
-	% {rpc,'-handle_call_call/6-fun-0-',5}]}}}
-	%
-	% So here we should poll until the code_server can be found registered on
-	% each of the remote nodes:
-	wait_for_remote_local_registrations_of( code_server, Nodes ),
-
-	% Then for each module in turn, contact each and every node in parallel:
-	[ deploy_module( M, get_code_for( M ), Nodes, Timeout ) || M <- Modules ].
-
-
-
-% (helper function)
--spec deploy_module( module(), { binary(), string() },
-		  [ net_utils:atom_node_name() ], time_out() ) -> void().
-deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
-
-	%io:format( "Deploying module '~s' (filename '~s') on nodes ~p "
-	%		  "with time-out ~p.~n",
-	%		  [ ModuleName, ModuleFilename, Nodes, Timeout ] ),
-
-	{ ResList, BadNodes } = rpc:multicall( Nodes, code, load_binary,
-				[ ModuleName, ModuleFilename, ModuleBinary ], Timeout ),
-
-	%io:format( "ResList = ~p, BadNodes = ~p~n", [ ResList, BadNodes ] ),
-
-	ReportedErrors = [ E || E <- ResList, E =/= { module, ModuleName } ],
-	%io:format( "Reported errors: ~p~n", [ ReportedErrors ] ),
-
-	case BadNodes of
-
-		[] ->
-			case ReportedErrors of
-
-				[] ->
-					%io:format( "Module '~s' successfully deployed on ~p.~n",
-					%		[ ModuleName, Nodes ] ),
-					ok;
-
-				_ ->
-					% Preferring returning the full list, rather than
-					% ReportedErrors:
-					throw( { module_deployment_failed, ModuleName, ResList } )
-
-			end;
-
-		_ ->
-			throw( { module_deployment_failed, ModuleName,
-					 { ResList, BadNodes } } )
-
-	end.
-
-	% Optionally, do some checking:
-	% Check = [ { N, rpc:call( N, code, is_loaded, [ ModuleName ] ) }
-	%   || N <- Nodes ],
-
-	% % Performs two tasks, error selection and badrpc removal:
-	% RPCErrors = [ {N,Reason} || { N, {badrpc,Reason} } <- Check ],
-	% LoadFailingNodes = [ N || { N, false } <- Check ],
-	% case RPCErrors of
-
-	%	[] ->
-
-	%		case LoadFailingNodes of
-
-	%			[] ->
-	%				ok;
-
-	%			_ ->
-	%				throw( { deploy_module_checking_failed, LoadFailingNodes } )
-
-	%		end;
-
-	%	_ ->
-	%		throw( { deploy_module_checking_error, RPCErrors, LoadFailingNodes }
-	% )
-
-	% end.
-
-
-
-% Declares specified directory as an additional code path where BEAM files will
-% be looked up by the VM, adding it at first position in the code path.
-%
-% Throws an exception if the directory does not exist.
-%
--spec declare_beam_directory( file_utils:directory_name() ) ->
-									  basic_utils:void().
-declare_beam_directory( Dir ) ->
-	declare_beam_directory( Dir, first_position ).
-
-
-
-% Declares specified directory as an additional code path where BEAM files will
-% be looked up by the VM, adding it at first position in the code path.
-%
-% Throws an exception if the directory does not exist.
-%
--spec declare_beam_directory( file_utils:directory_name(),
-		 'first_position' | 'last_position' ) -> basic_utils:void().
-declare_beam_directory( Dir, first_position ) ->
-
-	case code:add_patha( Dir ) of
-
-		true ->
-			ok;
-
-		{ error, bad_directory } ->
-			throw( { non_existing_beam_directory, Dir } )
-
-	end;
-
-declare_beam_directory( Dir, last_position ) ->
-
-	case code:add_pathz( Dir ) of
-
-		true ->
-			ok;
-
-		{ error, bad_directory } ->
-			throw( { non_existing_beam_directory, Dir } )
-
-	end.
-
-
-
-% Declares specified directories as additional code paths where BEAM files will
-% be looked up by the VM, adding them at first position in the code path.
-%
-% Throws an exception if at least one of the directories does not exist.
-%
--spec declare_beam_directories( [ file_utils:directory_name() ] ) ->
-									  basic_utils:void().
-declare_beam_directories( Dirs ) ->
-	declare_beam_directories( Dirs, first_position ).
-
-
-
-% Declares specified directories as additional code paths where BEAM files will
-% be looked up by the VM, adding them either at first or last position in the
-% code path.
-%
-% Throws an exception if at least one of the directories does not exist.
-%
--spec declare_beam_directories( [ file_utils:directory_name() ],
-			'first_position' | 'last_position' ) -> basic_utils:void().
-declare_beam_directories( Dirs, first_position ) ->
-	check_beam_dirs( Dirs ),
-	code:add_pathsa( Dirs );
-
-declare_beam_directories( Dirs, last_position ) ->
-	check_beam_dirs( Dirs ),
-	code:add_pathsz( Dirs ).
-
-
-
-% Checks that specified directories exist.
-%
-% (helper)
-%
-check_beam_dirs( _Dirs=[] ) ->
-	ok;
-
-check_beam_dirs( _Dirs=[ D | T ] ) ->
-
-	case file_utils:is_existing_directory( D ) of
-
-		true ->
-			check_beam_dirs( T );
-
-		false ->
-			throw( { non_existing_beam_directory, D } )
-
-	end.
-
-
-
-% Returns a normalised, sorted list of directories in the current code path
-% (without duplicates).
-%
--spec get_code_path() -> [ file_utils:directory_name() ].
-get_code_path() ->
-
-	NormalisedPaths =
-		[ file_utils:normalise_path( P ) || P <- code:get_path() ],
-
-	lists:sort( list_utils:uniquify( NormalisedPaths ) ).
-
-
-
-% Lists all BEAM files that exist in the current code path.
-%
--spec list_beams_in_path() -> [ file_utils:file_name() ].
-list_beams_in_path() ->
-
-	% Directly inspired from:
-	% http://alind.io/post/5664209650/all-erlang-modules-in-the-code-path
-
-	[ list_to_atom( filename:basename( File, ".beam") )
-		|| Path <- code:get_path(),
-		   File <- filelib:wildcard( "*.beam", Path ) ].
-
-
-
-% Tells whether specified module has its BEAM file in the current code path.
-%
-% Returns either a list of its paths (if being available at least once), or
-% 'not_found'.
-%
-% Note that a given module can be nevertheless more than once, typically if
-% reachable from the current directory and an absolute one in the code path.
-%
--spec is_beam_in_path( module_name() ) -> 'not_found' | [ file_utils:path() ].
-is_beam_in_path( ModuleName ) ->
-
-	ModuleNameString = text_utils:atom_to_string( ModuleName ),
-
-	case list_utils:uniquify(
-		   [ file_utils:normalise_path( file_utils:join( Path, File ) )
-			 || Path <- code:get_path(),
-				File <- filelib:wildcard( "*.beam", Path ),
-				filename:basename( File, ".beam") =:= ModuleNameString ] ) of
-
-		[] ->
-			not_found;
-
-		Paths ->
-			Paths
-
-	end.
 
 
 
@@ -1439,8 +1065,8 @@ wait_for( Message, Count, TimeOutDuration, TimeOutFormatString ) ->
 %
 % See wait_for_many_acks/{4,5} if having a large number of senders waited for.
 %
--spec wait_for_acks( [ pid() ], time_out(), atom(), atom() ) ->
-						   basic_utils:void().
+-spec wait_for_acks( [ pid() ], time_utils:time_out(), atom(), atom() ) ->
+						   void().
 wait_for_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 			   ThrowAtom ) ->
 
@@ -1457,12 +1083,12 @@ wait_for_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 %
 % See wait_for_many_acks/{4,5} if having a large number of senders waited for.
 %
--spec wait_for_acks( [ pid() ], time_out(), unit_utils:milliseconds(),
-					 atom(), atom() ) -> basic_utils:void().
+-spec wait_for_acks( [ pid() ], time_utils:time_out(),
+					 unit_utils:milliseconds(), atom(), atom() ) -> void().
 wait_for_acks( WaitedSenders, MaxDurationInSeconds, Period,
 			   AckReceiveAtom, ThrowAtom ) ->
 
-	InitialTimestamp = basic_utils:get_timestamp(),
+	InitialTimestamp = time_utils:get_timestamp(),
 
 	wait_for_acks_helper( WaitedSenders, InitialTimestamp,
 		MaxDurationInSeconds, Period, AckReceiveAtom, ThrowAtom ).
@@ -1492,8 +1118,7 @@ wait_for_acks_helper( WaitedSenders, InitialTimestamp, MaxDurationInSeconds,
 
 	after Period ->
 
-			NewDuration = basic_utils:get_duration( InitialTimestamp,
-													get_timestamp() ),
+			NewDuration = time_utils:get_duration_since( InitialTimestamp ),
 
 			case ( MaxDurationInSeconds =/= infinity ) andalso
 					  ( NewDuration > MaxDurationInSeconds ) of
@@ -1527,9 +1152,8 @@ wait_for_acks_helper( WaitedSenders, InitialTimestamp, MaxDurationInSeconds,
 % Throws a { ThrowAtom, StillWaitedSenders } exception on time-out (if any, as
 % the time-out can be disabled if set to 'infinity').
 %
-%
--spec wait_for_summable_acks( [ pid() ], number(), time_out(), atom(),
-							  atom() ) -> number().
+-spec wait_for_summable_acks( [ pid() ], number(), time_utils:time_out(),
+							  atom(), atom() ) -> number().
 wait_for_summable_acks( WaitedSenders, InitialValue, MaxDurationInSeconds,
 						AckReceiveAtom, ThrowAtom ) ->
 
@@ -1548,12 +1172,12 @@ wait_for_summable_acks( WaitedSenders, InitialValue, MaxDurationInSeconds,
 % Throws a { ThrowAtom, StillWaitedSenders } exception on time-out.
 %
 %
--spec wait_for_summable_acks( [ pid() ], number(), time_out(),
+-spec wait_for_summable_acks( [ pid() ], number(), time_utils:time_out(),
 		   unit_utils:milliseconds(), atom(), atom() ) -> number().
 wait_for_summable_acks( WaitedSenders, CurrentValue, MaxDurationInSeconds,
 						Period, AckReceiveAtom, ThrowAtom ) ->
 
-	InitialTimestamp = basic_utils:get_timestamp(),
+	InitialTimestamp = time_utils:get_timestamp(),
 
 	wait_for_summable_acks_helper( WaitedSenders, CurrentValue,
 								   InitialTimestamp, MaxDurationInSeconds,
@@ -1586,8 +1210,7 @@ wait_for_summable_acks_helper( WaitedSenders, CurrentValue, InitialTimestamp,
 
 	after Period ->
 
-			NewDuration = basic_utils:get_duration( InitialTimestamp,
-													get_timestamp() ),
+			NewDuration = time_utils:get_duration_since( InitialTimestamp ),
 
 			case ( MaxDurationInSeconds =/= infinity ) andalso
 					  ( NewDuration > MaxDurationInSeconds ) of
@@ -1619,7 +1242,7 @@ wait_for_summable_acks_helper( WaitedSenders, CurrentValue, InitialTimestamp,
 % Throws specified exception on time-out.
 %
 -spec wait_for_many_acks( ?list_impl_type, unit_utils:milliseconds(), atom(),
-						  atom() ) -> basic_utils:void().
+						  atom() ) -> void().
 wait_for_many_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 					ThrowAtom ) ->
 
@@ -1634,11 +1257,11 @@ wait_for_many_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 % Throws specified exception on time-out, checking at the specified period.
 %
 -spec wait_for_many_acks( ?list_impl_type, unit_utils:milliseconds(),
-		unit_utils:milliseconds(), atom(), atom() ) -> basic_utils:void().
+						  unit_utils:milliseconds(), atom(), atom() ) -> void().
 wait_for_many_acks( WaitedSenders, MaxDurationInSeconds, Period,
 					AckReceiveAtom, ThrowAtom ) ->
 
-	InitialTimestamp = basic_utils:get_timestamp(),
+	InitialTimestamp = time_utils:get_timestamp(),
 
 	wait_for_many_acks_helper( WaitedSenders, InitialTimestamp,
 		MaxDurationInSeconds, Period, AckReceiveAtom, ThrowAtom ).
@@ -1671,8 +1294,8 @@ wait_for_many_acks_helper( WaitedSenders, InitialTimestamp,
 
 			after Period ->
 
-					NewDuration = basic_utils:get_duration( InitialTimestamp,
-															get_timestamp() ),
+					NewDuration = time_utils:get_duration_since(
+									InitialTimestamp ),
 
 					case NewDuration > MaxDurationInSeconds of
 
@@ -1698,7 +1321,7 @@ wait_for_many_acks_helper( WaitedSenders, InitialTimestamp,
 %
 % (helper)
 %
--spec send_to_pid_list_impl( term(), ?list_impl_type ) -> basic_utils:count().
+-spec send_to_pid_list_impl( term(), ?list_impl_type ) -> count().
 send_to_pid_list_impl( Message, PidListImpl ) ->
 
 	% Conceptually (not a basic list, though):
@@ -1810,25 +1433,68 @@ checkpoint( Number ) ->
 
 
 
-% Displays specified string, ensuring as much as possible this message is output
-% synchronously, so that it can be output on the console even if the virtual
-% machine is to crash just after.
+% Displays specified string on the standard output of the console, ensuring as
+% much as possible this message is output synchronously, so that it can be
+% output on the console even if the virtual machine is to crash just after.
 %
 -spec display( string() ) -> void().
 display( Message ) ->
-	io:format( "~s.~n", [ Message ] ),
+
+	% Finally io:format has been preferred to erlang:display, as the latter one
+	% displays quotes around the strings.
+
+	io:format( "~s~n", [ Message ] ),
 	system_utils:await_output_completion().
 
+	% May not go through group leader (like io:format), thus less likely to
+	% crash without displaying the message:
+	%
+	%erlang:display( lists:flatten( [ Message, ".~n" ] ) ).
+	%erlang:display( Message ).
 
 
-% Displays specified format string filled according to specified values,
-% ensuring as much as possible this message is output synchronously, so that it
-% can be output on the console even if the virtual machine is to crash just
-% after.
+
+% Displays specified format string filled according to specified values on the
+% standard output of the console, ensuring as much as possible this message is
+% output synchronously, so that it can be output on the console even if the
+% virtual machine is to crash just after.
 %
 -spec display( text_utils:format_string(), [ any() ] ) -> void().
 display( Format, Values ) ->
 	display( io_lib:format( Format, Values ) ).
+
+
+
+% Displays specified string on the standard error output of the console,
+% ensuring as much as possible this message is output synchronously, so that it
+% can be output on the console even if the virtual machine is to crash just
+% after.
+%
+-spec display_error( string() ) -> void().
+display_error( Message ) ->
+
+	% At least once, following call resulted in no output at all (standard_error
+	% not functional):
+	%
+	%io:format( standard_error, "~s~n", [ Message ] ),
+
+	% So:
+	io:format( "~s~n", [ Message ] ),
+
+	system_utils:await_output_completion().
+
+
+
+% Displays specified format string filled according to specified values on the
+% standard error output of the console, ensuring as much as possible this
+% message is output synchronously, so that it can be output on the console even
+% if the virtual machine is to crash just after.
+%
+-spec display_error( text_utils:format_string(), [ any() ] ) -> void().
+display_error( Format, Values ) ->
+	%io:format( standard_error, Format ++ "~n", Values ),
+	io:format( Format ++ "~n", Values ),
+	system_utils:await_output_completion().
 
 
 
@@ -1839,8 +1505,9 @@ display( Format, Values ) ->
 %
 -spec debug( string() ) -> void().
 debug( Message ) ->
-	io:format( "## Debug: ~s.~n", [ Message ] ),
-	system_utils:await_output_completion().
+	%io:format( "## Debug: ~s.~n", [ Message ] ),
+	%system_utils:await_output_completion().
+	erlang:display( "## Debug: " ++ Message ).
 
 
 
@@ -2024,13 +1691,24 @@ get_execution_target() ->
 
 
 
-% Tells whether the specified process (designated by its PID) was still existing
-% at the moment of this call.
+% Tells whether the specified process, designated by its PID, by a textual
+% representation of it (like "<9092.61.0>") or by a registred name (local
+% otherwise global) like 'foobar_service') was still existing at the moment of
+% this call.
 %
 % Note: generally not to be used when relying on a good design.
 %
--spec is_alive( pid() ) -> boolean().
-is_alive( TargetPid ) ->
+-spec is_alive( pid() | string() | registration_name() ) -> boolean().
+is_alive( TargetPid ) when is_pid( TargetPid ) ->
+	is_alive( TargetPid, node( TargetPid ) );
+
+is_alive( TargetPidString ) when is_list( TargetPidString ) ->
+	TargetPid = list_to_pid( TargetPidString ),
+	is_alive( TargetPid, node( TargetPid ) );
+
+is_alive( TargetPidName ) when is_atom( TargetPidName ) ->
+	TargetPid = get_registered_pid_for( TargetPidName,
+						_RegistrationType=local_otherwise_global ),
 	is_alive( TargetPid, node( TargetPid ) ).
 
 
@@ -2043,7 +1721,7 @@ is_alive( TargetPid ) ->
 % should be preferred.
 %
 -spec is_alive( pid(), net_utils:atom_node_name() ) -> boolean().
-is_alive( TargetPid, Node ) ->
+is_alive( TargetPid, Node ) when is_pid( TargetPid ) ->
 
 	% erlang:is_process_alive/1 is more intended for debugging purposes...
 

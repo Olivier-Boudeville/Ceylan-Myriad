@@ -1,4 +1,4 @@
-% Copyright (C) 2015-2015 Olivier Boudeville
+% Copyright (C) 2015-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -39,13 +39,25 @@
 
 
 
+% Suppressing warnings due to the runtime generation of functions that Dialyzer
+% cannot be aware of:
+%
+% (currently specifying a module is not permitted: 'bad attribute')
+%
+%-dialyzer( { nowarn_function,
+%			 [ foobar:foo/0, foobar:baz/0, foobar:composite/0 ] } ).
+
+% Tried also with no luck:
+%-dialyzer( { no_missing_calls, run/0 } ).
+%-dialyzer( { nowarn_function, run/0 } ).
+
 
 -spec run() -> no_return().
 run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	NestedTerm =  { "semper fidelis", true, [ 1, 1.0, ?MODULE ] },
+	NestedTerm = { "semper fidelis", true, [ 1, 1.0, ?MODULE ] },
 
 	TargetTable = table:addEntries( [
 

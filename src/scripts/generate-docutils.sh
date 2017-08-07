@@ -1,13 +1,13 @@
 #!/bin/sh
 
-# Copyright (C) 2010-2012 Olivier Boudeville
+# Copyright (C) 2010-2015 Olivier Boudeville
 #
 # This file is part of the Ceylan Erlang library.
 
 
 # Note: docutils has been finally preferred to txt2tags.
 
-USAGE="Usage: `basename $0` <target rst file> [ --pdf | --all | <path to CSS file to be used, ex: common/css/XXX.css> ]
+USAGE="Usage: $(basename $0) <target rst file> [ --pdf | --all | <path to CSS file to be used, ex: common/css/XXX.css> ]
 
 Updates specified file from more recent docutils source (*.rst).
 If '--pdf' is specified, a PDF will be created, if '--all' is specified, all output formats (i.e. HTML and PDF) will be created, otherwise HTML files only will be generated, using any specified CSS file.
@@ -33,7 +33,7 @@ do_generate_pdf=1
 
 docutils_opt="${docutils_html_opt}"
 
-docutils_html=`which rst2html 2>/dev/null`
+docutils_html=$(which rst2html 2>/dev/null)
 
 
 if [ -z "$1" ] ; then
@@ -83,7 +83,7 @@ if [ -e "${rst_file}" ] ; then
 
 else
 
-	echo "${begin_marker} Error: file $1 not found. $USAGE" 1>&2
+	echo "${begin_marker} Error: file '$1' not found. $USAGE" 1>&2
 	exit 2
 
 fi
@@ -91,7 +91,7 @@ fi
 
 if [ $do_generate_html -eq 0 ] ; then
 
-	docutils_html=`which rst2html 2>/dev/null`
+	docutils_html=$(which rst2html 2>/dev/null)
 	if [ -z "${docutils_html}" ] ; then
 
 		echo "${begin_marker} Error: unable to find an executable tool to convert docutils files to HTML (rst2html)." 1>&2
@@ -103,7 +103,7 @@ fi
 
 if [ $do_generate_pdf -eq 0 ] ; then
 
-	docutils_latex=`which rst2latex 2>/dev/null`
+	docutils_latex=$(which rst2latex 2>/dev/null)
 	if [ -z "${docutils_latex}" ] ; then
 
 		echo "${begin_marker} Error: unable to find an executable tool to convert docutils files to LateX (rst2latex)." 1>&2
@@ -111,7 +111,7 @@ if [ $do_generate_pdf -eq 0 ] ; then
 
 	fi
 
-	latex_to_pdf=`which pdflatex 2>/dev/null`
+	latex_to_pdf=$(which pdflatex 2>/dev/null)
 	if [ -z "${latex_to_pdf}" ] ; then
 
 		echo "${begin_marker} Error: unable to find an executable tool to convert LateX files to PDF (pdflatex)." 1>&2
@@ -164,7 +164,7 @@ manage_rst_to_pdf()
 
 	# Input extension is generally '.rst' (allows to remove only the final
 	# extension, even if there were dots in the base name):
-	tex_file=`echo $source|sed 's|\.[^\.]*$|.tex|1'`
+	tex_file=$(echo $source|sed 's|\.[^\.]*$|.tex|1')
 
 
 	#echo "Docutils command: ${docutils_latex} ${docutils_pdf_opt} $source $tex_file
@@ -189,12 +189,27 @@ manage_rst_to_pdf()
 
 	fi
 
-	# Run thrice on purpose, to fix links:
-	echo "LateX command: ${latex_to_pdf} ${latex_to_pdf_opt} ${tex_file}"
+	rubber=$(which rubber)
 
-	${latex_to_pdf} ${latex_to_pdf_opt} ${tex_file} && \
-	${latex_to_pdf} ${latex_to_pdf_opt} ${tex_file} && \
-	${latex_to_pdf} ${latex_to_pdf_opt} ${tex_file}
+	if [ ! -x "$rubber" ] ; then
+
+		echo "Warning: 'rubber' not found, using pdflatex directly." 1>&2
+
+		# Run thrice on purpose, to fix links:
+		echo "LateX command: ${latex_to_pdf} ${latex_to_pdf_opt} ${tex_file}"
+
+		${latex_to_pdf} ${latex_to_pdf_opt} ${tex_file} && \
+		${latex_to_pdf} ${latex_to_pdf_opt} ${tex_file} && \
+		${latex_to_pdf} ${latex_to_pdf_opt} ${tex_file}
+
+	else
+
+		# Our preferred build method:
+		echo "Using rubber for PDF generation"
+
+		$rubber --pdf -v ${tex_file}
+
+	fi
 
 	res=$?
 
@@ -216,7 +231,7 @@ manage_rst_to_pdf()
 
 if [ ${do_generate_html} -eq 0 ] ; then
 
-	target_html_file=`echo $rst_file|sed 's|.rst$|.html|1'`
+	target_html_file=$(echo $rst_file|sed 's|.rst$|.html|1')
 	#echo "target_html_file = $target_html_file"
 
 	manage_rst_to_html $rst_file ${target_html_file}
@@ -226,16 +241,16 @@ fi
 
 if [ ${do_generate_pdf} -eq 0 ] ; then
 
-	target_pdf_file=`echo $rst_file|sed 's|.rst$|.pdf|1'`
+	target_pdf_file=$(echo $rst_file|sed 's|.rst$|.pdf|1')
 	#echo "target_pdf_file = $target_pdf_file"
 
 	# PDF generator will not find includes (ex: images) if not already
 	# in target dir:
-	current_dir=`pwd`
-	target_dir=`dirname ${target_pdf_file}`
+	current_dir=$(pwd)
+	target_dir=$(dirname ${target_pdf_file})
 
-	source_file=`basename ${rst_file}`
-	target_file=`basename ${target_pdf_file}`
+	source_file=$(basename ${rst_file})
+	target_file=$(basename ${target_pdf_file})
 
 	cd ${target_dir}
 	manage_rst_to_pdf ${source_file} ${target_file}

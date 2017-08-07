@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2015 Olivier Boudeville
+% Copyright (C) 2003-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -46,6 +46,8 @@
 		  is_executable/1, is_directory/1, is_existing_directory/1,
 		  list_dir_elements/1,
 
+		  get_size/1, get_last_modification_time/1, touch/1,
+
 		  get_current_directory/0, set_current_directory/1,
 
 		  filter_by_extension/2, filter_by_extensions/2,
@@ -66,9 +68,9 @@
 
 		  remove_directory/1,
 
-		  copy_file/2, copy_file_if_existing/2,
+		  copy_file/2, copy_file_if_existing/2, copy_file_in/2,
 
-		  rename/2, move_file/2,
+		  rename/2, move_file/2, change_permissions/2,
 
 		  is_absolute_path/1,
 		  ensure_path_is_absolute/1, ensure_path_is_absolute/2,
@@ -119,8 +121,31 @@
 -type entry_type() :: 'device' | 'directory' | 'other' | 'regular' | 'symlink'.
 
 
+% Relevant flags when opening a file:
+%
+% (file:mode() not exported currently unfortunately, see
+% lib/kernel/src/file.erl)
+%
+%-type file_open_mode() :: file:mode() | 'ram'.
+-type file_open_mode() :: tuple() | atom() | 'ram'.
+
+
 % The supported compression formats:
 -type compression_format() :: 'zip' | 'bzip2' | 'xz'.
+
+
+% Corresponds to the handle to an open file (typically a file descriptor
+% counterpart):
+%
+-type file() :: file:io_device().
+
+
+% The various permissions that can be combined for file-like elements:
+%
+-type permission() :: 'owner_read' | 'owner_write' | 'owner_execute'
+					  | 'group_read' | 'group_write' | 'group_execute'
+					  | 'other_read' | 'other_write' | 'other_execute'
+					  | 'set_user_id' | 'set_group_id'.
 
 
 -export_type([ path/0, bin_path/0,
@@ -128,7 +153,9 @@
 			   directory_name/0, bin_directory_name/0,
 			   extension/0,
 			   entry_type/0,
-			   compression_format/0
+			   permission/0,
+			   compression_format/0,
+			   file/0
 			 ]).
 
 
@@ -427,6 +454,75 @@ list_dir_elements( Dirname ) ->
 
 
 
+-spec get_size( file_name() ) -> system_utils:byte_size().
+get_size( Filename ) ->
+
+	case file:read_file_info( Filename ) of
+
+		{ ok, #file_info{ size=Size } } ->
+			Size;
+
+		{ error, Reason } ->
+			throw( { file_info_failure, Reason, Filename } )
+
+	end.
+
+
+
+% Returns the last time at which the content of specified file was modified (not
+% counting attribute or permission changes), according to the filesystem.
+%
+% Said time will be expressed as an integer number of seconds since (or before)
+% Unix time epoch, which is 1970-01-01 00:00 UTC.
+%
+-spec get_last_modification_time( file_name() ) -> time_utils:posix_seconds().
+get_last_modification_time( Filename ) ->
+
+	case file:read_file_info( Filename, [ { time, posix } ] ) of
+
+		{ ok, #file_info{ mtime=Seconds } } ->
+			Seconds;
+
+		{ error, Reason } ->
+			throw( { file_info_failure, Reason, Filename } )
+
+	end.
+
+
+
+% Updates the modification time (the last time at which its content was
+% reported as modified according to the filesystem) of specified file.
+%
+% Note: leaves last access time unchanged, updates both modification and change
+% times.
+%
+-spec touch( file_name() ) -> basic_utils:void().
+touch( Filename ) ->
+
+	case is_existing_file( Filename ) of
+
+			true ->
+				% -c: do not create any file
+				% -m: change only the modification time
+				%
+				case system_utils:run_executable( "/bin/touch -c -m '"
+												  ++ Filename ++ "'" ) of
+
+					{ 0, _Output } ->
+						ok;
+
+					{ ErrorCode, Output } ->
+						throw( { touch_failed, Output, ErrorCode, Filename } )
+
+				end;
+
+			false ->
+				throw( { non_existing_file_to_touch, Filename } )
+
+	end.
+
+
+
 % Returns the current directory, as a plain string.
 %
 % Throws an exception on failure.
@@ -675,7 +771,8 @@ list_files_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir, Acc ) ->
 -spec find_files_with_extension_from( directory_name(), extension() )
 		-> [ file_name() ].
 find_files_with_extension_from( RootDir, Extension ) ->
-	find_files_with_extension_from( RootDir, "", Extension, [] ).
+	find_files_with_extension_from( RootDir, _CurrentRelativeDir="",
+									Extension, _Acc=[] ).
 
 
 
@@ -970,7 +1067,8 @@ create_directory( Dirname ) ->
 % If 'create_parents' is specified, any non-existing intermediate (parent)
 % directory will be created.
 %
-% Throws an exception if the operation fails.
+% Throws an exception if the operation fails, for example if the directory is
+% already existing ( { create_directory_failed, "foobar", eexist } ).
 %
 -spec create_directory( directory_name(),
 	   'create_no_parent' | 'create_parents' ) -> basic_utils:void().
@@ -1116,6 +1214,8 @@ remove_files_if_existing( FilenameList ) ->
 -spec remove_directory( directory_name() ) -> basic_utils:void().
 remove_directory( DirectoryName ) ->
 
+	%io:format( "## Removing directory '~s'.~n", [ DirectoryName ] ),
+
 	case file:del_dir( DirectoryName ) of
 
 		ok ->
@@ -1128,10 +1228,12 @@ remove_directory( DirectoryName ) ->
 
 
 
-% Copies a specified file to a given destination.
+% Copies a specified file to a given destination filename (not a directory name,
+% see copy_file_in/2 for that), overwriting any previous file.
 %
 % Note: content is copied and permissions are preserved (ex: the copy of an
-% executable file will be itself executable).
+% executable file will be itself executable, other permissions as well, unlike
+% /bin/cp which relies on umask).
 %
 -spec copy_file( file_name(), file_name() ) -> basic_utils:void().
 copy_file( SourceFilename, DestinationFilename ) ->
@@ -1144,13 +1246,12 @@ copy_file( SourceFilename, DestinationFilename ) ->
 			case file:copy( SourceFilename, DestinationFilename ) of
 
 				{ ok, _ByteCount } ->
-
 					% Now sets the permissions of the copy:
 					ok = file:change_mode( DestinationFilename, Mode );
 
 				Error ->
 					throw( { copy_file_failed, SourceFilename,
-							DestinationFilename, Error } )
+							 DestinationFilename, Error } )
 
 			end;
 
@@ -1161,13 +1262,33 @@ copy_file( SourceFilename, DestinationFilename ) ->
 
 
 
+% Copies a specified file in a given destination directory, overwriting any
+% previous file, and returning the full path of the copied file.
+%
+% Note: content is copied and permissions are preserved (ex: the copy of an
+% executable file will be itself executable, other permissions as well, unlike
+% /bin/cp which relies on umask).
+%
+-spec copy_file_in( file_name(), directory_name() ) -> file_name().
+copy_file_in( SourceFilename, DestinationDirectory ) ->
+
+	Filename = filename:basename( SourceFilename ),
+
+	TargetPath = join( DestinationDirectory, Filename ),
+
+	copy_file( SourceFilename, TargetPath ),
+
+	TargetPath.
+
+
+
 % Copies a specified file to a given destination iff it is already existing.
 %
 % Note: content is copied and permissions are preserved (ex: the copy of an
 % executable file will be itself executable).
 %
 -spec copy_file_if_existing( file_name(), file_name() ) -> basic_utils:void().
-	copy_file_if_existing( SourceFilename, DestinationFilename ) ->
+copy_file_if_existing( SourceFilename, DestinationFilename ) ->
 
 	case is_existing_file( SourceFilename ) of
 
@@ -1209,6 +1330,72 @@ move_file( SourceFilename, DestinationFilename ) ->
 		Error ->
 			throw( { move_file_failed, Error,  SourceFilename,
 					 DestinationFilename } )
+
+	end.
+
+
+
+% Returns the low-level permission associated to specified one.
+%
+-spec get_permission_for( permission() | [ permission() ] ) -> integer().
+get_permission_for( owner_read ) ->
+	8#00400;
+
+get_permission_for( owner_write ) ->
+	8#00200;
+
+get_permission_for( owner_execute ) ->
+	8#00100;
+
+get_permission_for( group_read ) ->
+	8#00040;
+
+get_permission_for( group_write ) ->
+	8#00020;
+
+get_permission_for( group_execute ) ->
+	8#00010;
+
+get_permission_for( other_read ) ->
+	8#00004;
+
+get_permission_for( other_write ) ->
+	8#00002;
+
+get_permission_for( other_execute ) ->
+	8#00001;
+
+get_permission_for( set_user_id ) ->
+	16#800;
+
+get_permission_for( set_group_id ) ->
+	16#400;
+
+get_permission_for( PermissionList ) when is_list( PermissionList ) ->
+	lists:foldl( fun( P, Acc ) ->
+						 get_permission_for( P ) + Acc
+				 end,
+				 _Acc0=0,
+				 PermissionList ).
+
+
+
+% Changes the permissions of specified file.
+%
+-spec change_permissions( file_name(), permission() | [ permission() ] ) ->
+								basic_utils:void().
+change_permissions( Filename, NewPermissions ) ->
+
+	ActualPerms = get_permission_for( NewPermissions ),
+
+	case file:change_mode( Filename, ActualPerms ) of
+
+		ok ->
+			ok;
+
+		{ error, Reason } ->
+			throw( { change_permission_failed, Reason, Filename,
+					 NewPermissions } )
 
 	end.
 
@@ -1281,8 +1468,8 @@ ensure_path_is_absolute( TargetPath, BasePath ) ->
 
 
 
-% Normalises path, by translating it so that no superfluous '.' or '..' is
-% present afterwards.
+% Normalises specified path (canonicalise it), by translating it so that no
+% superfluous '.' or '..' is present afterwards.
 %
 % For example, "/home/garfield/../lisa/./src/.././tube" shall be normalised in
 % "/home/lisa/tube".
@@ -1415,7 +1602,9 @@ get_image_file_gif( Image ) ->
 
 
 % Opens the file corresponding to the specified filename, with specified list of
-% options (as listed in file:open/2).
+% options (as listed for file:open/2 in
+% http://erlang.org/doc/man/file.html#open-2, i.e. read, write, append,
+% exclusive, raw, etc.).
 %
 % Returns the file reference, or throws an exception.
 %
@@ -1423,7 +1612,7 @@ get_image_file_gif( Image ) ->
 % not seem a viable solution right now (risk of exhausting the descriptors,
 % making the VM fail for example when loading a new BEAM).
 %
--spec open( file_name(), list() ) -> file:io_device().
+-spec open( file_name(), [ file_open_mode() ] ) -> file().
 open( Filename, Options ) ->
 	open( Filename, Options, _Default=try_once ).
 
@@ -1451,16 +1640,13 @@ open( Filename, Options ) ->
 % lib/erlang/lib/kernel-x.y.z/ebin/timer.beam. Function: get_file.
 % Process: code_server.
 % """
-%                                 %
+%
 % This is done in order to support situations where potentially more Erlang
 % processes than available file descriptors try to access to files. An effort is
 % made to desynchronize these processes to smooth the use of descriptors.
 %
-% (file:mode() not exported currently unfortunately)
-%
--spec open( file_name(), [ file:mode() | 'ram' ],
-		   'try_once' | 'try_endlessly' | 'try_endlessly_safer' )
-		  -> file:io_device().
+-spec open( file_name(), [ file_open_mode() ],
+		   'try_once' | 'try_endlessly' | 'try_endlessly_safer' ) -> file().
 		% For the contents in above tuple(): reference to type #file_descriptor
 		% of erlang module: file.hrl
 open( Filename, Options, _AttemptMode=try_endlessly_safer ) ->
@@ -1537,7 +1723,7 @@ open( Filename, Options, _AttemptMode=try_once ) ->
 %
 % Throws an exception on failure.
 %
--spec close( file:io_device() ) -> basic_utils:void().
+-spec close( file() ) -> basic_utils:void().
 close( File ) ->
 	close( File, throw_if_failed ).
 
@@ -1547,8 +1733,8 @@ close( File ) ->
 %
 % Throws an exception on failure or not, depending on specified failure mode.
 %
--spec close( file:io_device(), 'overcome_failure' | 'throw_if_failed' )
-		   -> basic_utils:void().
+-spec close( file(), 'overcome_failure' | 'throw_if_failed' ) ->
+				   basic_utils:void().
 close( File, _FailureMode=throw_if_failed ) ->
 
 	case file:close( File ) of
@@ -1574,7 +1760,7 @@ close( File, _FailureMode=overcome_failure ) ->
 %
 % Throws an exception on failure.
 %
--spec read( file:io_device(), basic_utils:count() ) ->
+-spec read( file(), basic_utils:count() ) ->
 				  { 'ok', string() | binary() } | 'eof'.
 read( File, Count ) ->
 
@@ -1597,7 +1783,7 @@ read( File, Count ) ->
 %
 % Throws an exception on failure.
 %
--spec write( file:io_device(), iodata() ) -> basic_utils:void().
+-spec write( file(), iodata() ) -> basic_utils:void().
 write( File, Content ) ->
 
 	case file:write( File, Content ) of
@@ -1616,7 +1802,7 @@ write( File, Content ) ->
 %
 % Throws an exception on failure.
 %
--spec write( file:io_device(), text_utils:format_string(), [ term() ] ) ->
+-spec write( file(), text_utils:format_string(), [ term() ] ) ->
 				   basic_utils:void().
 write( File, FormatString, Values ) ->
 
@@ -1753,8 +1939,8 @@ compress( Filename, _CompressionFormat=bzip2 ) ->
 	Bzip2Exec = executable_utils:get_default_bzip2_compress_tool(),
 
 	% --keep allows to avoid that bzip2 removes the original file:
-	case system_utils:execute_command( Bzip2Exec ++ " --keep --force --quiet "
-									   ++ Filename ) of
+	case system_utils:run_executable( Bzip2Exec ++ " --keep --force --quiet "
+									  ++ Filename ) of
 
 		{ _ExitCode=0, _Output=[] } ->
 			% Check:
@@ -1776,7 +1962,7 @@ compress( Filename, _CompressionFormat=xz ) ->
 	XZExec = executable_utils:get_default_xz_compress_tool(),
 
 	% --keep allows to avoid that bzip2 removes the original file:
-	case system_utils:execute_command( XZExec ++ " --keep --force --quiet "
+	case system_utils:run_executable( XZExec ++ " --keep --force --quiet "
 									   ++ Filename ) of
 
 		{ _ExitCode=0, _Output=[] } ->
@@ -1858,7 +2044,7 @@ decompress( Bzip2Filename, _CompressionFormat=bzip2 ) ->
 
 	% The result will be named Filename by bunzip2:
 
-	case system_utils:execute_command( Bzip2Exec ++ " --keep --force --quiet "
+	case system_utils:run_executable( Bzip2Exec ++ " --keep --force --quiet "
 									   ++ Bzip2Filename ) of
 
 		{ _ExitCode=0, _Output=[] } ->
@@ -1883,7 +2069,7 @@ decompress( XzFilename, _CompressionFormat=xz ) ->
 	% Checks and removes extension:
 	Filename = replace_extension( XzFilename, get_extension_for( xz ), "" ),
 
-	case system_utils:execute_command( XZExec ++ " --keep --force --quiet "
+	case system_utils:run_executable( XZExec ++ " --keep --force --quiet "
 									   ++ XzFilename ) of
 
 		{ _ExitCode=0, _Output=[] } ->

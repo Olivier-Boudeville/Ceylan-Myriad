@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2009-2014 Olivier Boudeville
+# Copyright (C) 2009-2016 Olivier Boudeville
 #
 # This file is part of the Ceylan-Myriad project.
 
@@ -9,19 +9,19 @@ LANG=C; export LANG
 
 
 # Current stable:
-erlang_version="18.1"
-erlang_md5="fa64015fdd133e155b5b19bf90ac8678"
+erlang_version="19.0"
+erlang_md5="f64eefc697d47193444aa224d971f367"
 
 # Previous version (ex: cutting-edge or previous stable version):
-erlang_version_candidate="18.0"
-erlang_md5_candidate="232acb0c278ee05c8d787cbaf6399be5"
+erlang_version_candidate="18.3"
+erlang_md5_candidate="7e4ff32f97c36fb3dab736f8d481830b"
 
 
 plt_file="Erlang-$erlang_version.plt"
 plt_link="Erlang.plt"
 
 
-usage="Usage: "$(basename $0)" [-h|--help] [-d|--doc-install] [-g|--generate-plt] [-n|--no-download] [-np|--no-patch] [-p|--previous] [<base install directory>]: downloads, patches, builds and installs a fresh $erlang_version Erlang version in specified base directory (if any), or in default directory, and in this case adds a symbolic link pointing to it from its parent directory so that Erlang-current-install always points to the latest installed version.
+usage="Usage: $(basename $0) [-h|--help] [-d|--doc-install] [-g|--generate-plt] [-n|--no-download] [-np|--no-patch] [-p|--previous] [<base install directory>]: downloads, patches, builds and installs a fresh $erlang_version Erlang version in specified base directory (if any), or in default directory, and in this case adds a symbolic link pointing to it from its parent directory so that Erlang-current-install always points to the latest installed version.
 
 Note that, if relevant archives are found in the current directory, they will be used, even if the user did not specify a 'no download' option.
 
@@ -534,7 +534,10 @@ if [ $use_prefix -eq 0 ] ; then
 	# transparently used by emacs:
 	cd ${prefix}/lib/erlang
 
-	# Exactly one match expected for the wildcard (ex: tools-2.6.11):
+	# Exactly one match expected for the wildcard (ex: tools-2.8.2), useful to
+	# avoid having to update our ~/.emacs.d/init.el file whenever the 'tools'
+	# version changes:
+	#
 	/bin/ln -sf lib/tools-*/emacs
 
 	# Then go again in the install (not source) tree to create the base link:

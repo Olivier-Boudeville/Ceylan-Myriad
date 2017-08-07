@@ -1,4 +1,4 @@
-% Copyright (C) 2013-2015 Olivier Boudeville
+% Copyright (C) 2013-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -46,7 +46,7 @@ run() ->
 							 "~s", [ preferences:to_string() ] ),
 
 	% May not be called (automatic launching of the service whenever needed):
-	preferences:init(),
+	preferences:start(),
 
 	test_facilities:display( "Preferences after the service is just started: "
 							 "~s", [ preferences:to_string() ] ),
@@ -68,5 +68,8 @@ run() ->
 	TargetValue = preferences:get( TargetKey ),
 
 	test_facilities:display( preferences:to_string() ),
+
+	% Useless in the general case (permanent service):
+	preferences:stop(),
 
 	test_facilities:stop().

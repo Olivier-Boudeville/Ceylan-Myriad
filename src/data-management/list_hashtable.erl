@@ -1,4 +1,4 @@
-% Copyright (C) 2014-2015 Olivier Boudeville
+% Copyright (C) 2014-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -57,7 +57,7 @@
 %
 -export([ new/0, new/1, addEntry/3, addEntries/2,
 		  removeEntry/2, lookupEntry/2, hasEntry/2,
-		  getEntry/2, extractEntry/2,
+		  getEntry/2, extractEntry/2, getValues/2, getAllValues/2,
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToEntry/3, deleteFromEntry/3, popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
@@ -232,6 +232,67 @@ extractEntry( Key, Hashtable ) ->
 			throw( { key_not_found, Key } )
 
 	end.
+
+
+
+% Returns the (ordered) list of values that correspond to the specified
+% (ordered) list of keys of this table.
+%
+% The key/value pairs are expected to exist already, otherwise an exception is
+% raised.
+%
+% Ex: [ Color=red, Age=23, Mass=51 ] = list_hashtable:getValues( [ color, age,
+% mass ], [ { color, red }, { mass, 51 }, { age, 23 } ] )
+%
+-spec getValues( [ key() ], list_hashtable() ) -> [ value() ].
+getValues( Keys, Hashtable ) ->
+
+	{ RevValues, _FinalTable } = lists:foldl(
+
+				fun( _Elem=Key, _Acc={ Values, Table } ) ->
+
+					   { Value, ShrunkTable } = extractEntry( Key, Table ),
+					   { [ Value | Values ], ShrunkTable }
+
+				end,
+				_Acc0={ [], Hashtable },
+				_List=Keys ),
+
+	lists:reverse( RevValues ).
+
+
+
+% Returns the (ordered) list of values that correspond to the specified
+% (ordered) list of keys of this table, ensuring all entries have been read,
+% otherwise throwing an exception.
+%
+% The key/value pairs are expected to exist already, otherwise an exception is
+% raised.
+%
+% Ex: [ Color=red, Age=23, Mass=51 ] = list_hashtable:getAllValues( [ color,
+% age, mass ], [ { color, red }, { mass, 51 }, { age, 23 } ] )
+%
+-spec getAllValues( [ key() ], list_hashtable() ) -> [ value() ].
+getAllValues( Keys, Hashtable ) ->
+
+	case lists:foldl(
+		   fun( _Elem=Key, _Acc={ Values, Table } ) ->
+
+				   { Value, ShrunkTable } = extractEntry( Key, Table ),
+				   { [ Value | Values ], ShrunkTable }
+
+		   end,
+		   _Acc0={ [], Hashtable },
+		   _List=Keys ) of
+
+		{ RevValues, _FinalTable=[] } ->
+			lists:reverse( RevValues );
+
+		{ _RevValues, FinalTable } ->
+			throw( { remaining_keys, keys( FinalTable ) } )
+
+	end.
+
 
 
 

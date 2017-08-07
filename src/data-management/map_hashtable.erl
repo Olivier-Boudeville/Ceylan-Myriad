@@ -1,4 +1,4 @@
-% Copyright (C) 2014-2015 Olivier Boudeville
+% Copyright (C) 2014-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -61,7 +61,7 @@
 %
 -export([ new/0, new/1, addEntry/3, addEntries/2,
 		  removeEntry/2, lookupEntry/2, hasEntry/2,
-		  getEntry/2, extractEntry/2,
+		  getEntry/2, extractEntry/2, getValues/2, getAllValues/2,
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToEntry/3, deleteFromEntry/3, popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
@@ -85,11 +85,12 @@
 
 -opaque map_hashtable() :: map().
 
--opaque map_hashtable( K, V ) :: map( K, V ).
+% Since 18.0, map/2 does not seem to exist anymore:
+%-opaque map_hashtable( K, V ) :: map( K, V ).
 
 
 -export_type([ key/0, value/0, entry/0, entries/0, entry_count/0,
-			   map_hashtable/0, map_hashtable/2 ]).
+			   map_hashtable/0 ]).
 
 
 
@@ -232,7 +233,7 @@ getEntry( Key, MapHashtable ) ->
 % value and removes that entry from the table.
 %
 % The key/value pair is expected to exist already, otherwise an exception is
-% raised.
+% raised (typically {badkey,KeyNotFound}).
 %
 -spec extractEntry( key(), map_hashtable() ) -> { value(), map_hashtable() }.
 %extractEntry( Key, MapHashtable=#{ Key := Value} ) ->
@@ -241,6 +242,68 @@ getEntry( Key, MapHashtable ) ->
 extractEntry( Key, MapHashtable ) ->
 	Value = maps:get( Key, MapHashtable ),
 	{ Value, maps:remove( Key, MapHashtable ) }.
+
+
+
+% Returns the (ordered) list of values that correspond to the specified
+% (ordered) list of keys of this table.
+%
+% The key/value pairs are expected to exist already, otherwise an exception is
+% raised.
+%
+% Ex: [ Color, Age, Mass ] = map_hashtable:getValues( [ color, age, mass ],
+%   MyMapTable ] )
+%
+-spec getValues( [ key() ], map_hashtable() ) -> [ value() ].
+getValues( Keys, Hashtable ) ->
+
+	{ RevValues, _FinalTable } = lists:foldl(
+
+				fun( _Elem=Key, _Acc={ Values, Table } ) ->
+
+					   { Value, ShrunkTable } = extractEntry( Key, Table ),
+					   { [ Value | Values ], ShrunkTable }
+
+				end,
+				_Acc0={ [], Hashtable },
+				_List=Keys ),
+
+	lists:reverse( RevValues ).
+
+
+
+% Returns the (ordered) list of values that correspond to the specified
+% (ordered) list of keys of this table, ensuring all entries have been read,
+% otherwise throwing an exception.
+%
+% The key/value pairs are expected to exist already, otherwise an exception is
+% raised.
+%
+% Ex: [ Color=red, Age=23, Mass=51 ] = map_hashtable:getAllValues( [ color,
+%   age, mass ], [ { color, red }, { mass, 51 }, { age, 23 } ] )
+%
+-spec getAllValues( [ key() ], map_hashtable() ) -> [ value() ].
+getAllValues( Keys, Hashtable ) ->
+
+	{ RevValues, FinalTable } = lists:foldl(
+		   fun( _Elem=Key, _Acc={ Values, Table } ) ->
+
+				   { Value, ShrunkTable } = extractEntry( Key, Table ),
+				   { [ Value | Values ], ShrunkTable }
+
+		   end,
+		   _Acc0={ [], Hashtable },
+		   _List=Keys ),
+
+	case isEmpty( FinalTable ) of
+
+		true ->
+			lists:reverse( RevValues );
+
+		false ->
+			throw( { remaining_keys, keys( FinalTable ) } )
+
+	end.
 
 
 
@@ -572,6 +635,19 @@ getEntryCount( MapHashtable ) ->
 %
 -spec toString( map_hashtable() ) -> string().
 toString( MapHashtable ) ->
+	toString( MapHashtable, _DefaultBullet=" + " ).
+
+
+% Returns a textual description of the specified hashtable.
+%
+% Either a bullet is specified, or the returned string is either quite raw (if
+% using 'internal') or a bit more elaborate (if using 'user_friendly').
+%
+% For this implementation, the requested description type does not matter.
+%
+-spec toString( map_hashtable(), string() | 'internal' | 'user_friendly' ) ->
+					  string().
+toString( MapHashtable, Bullet ) when is_list( Bullet ) ->
 
 	case maps:to_list( MapHashtable ) of
 
@@ -585,21 +661,12 @@ toString( MapHashtable ) ->
 						|| { K, V } <- lists:sort( L ) ],
 
 			% Flatten is needed, in order to use the result with ~s:
-			lists:flatten( io_lib:format( "Hashtable with ~B entry(ies):~s~n",
+			lists:flatten( io_lib:format( "Hashtable with ~B entry(ies):~s",
 				[ map_size( MapHashtable ),
-				  text_utils:string_list_to_string( Strings ) ] ) )
+				  text_utils:string_list_to_string( Strings, Bullet ) ] ) )
 
-	end.
+	end;
 
-
-
-
-% Returned string is either quite raw (if using 'internal') or a bit more
-% elaborate (if using 'user_friendly').
-%
-% For this implementation, the requested description type does not matter.
-%
--spec toString( map_hashtable(), 'internal' | 'user_friendly' ) -> string().
 toString( MapHashtable, _DescriptionType ) ->
 	toString( MapHashtable ).
 

@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2015 Olivier Boudeville
+% Copyright (C) 2003-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -68,27 +68,18 @@ run() ->
 	test_facilities:display( "Testing the display of a ~s test message.",
 							[ dynamic ] ),
 
-	InitialTimestamp = basic_utils:get_timestamp(),
-	InitialPreciseTimestamp = basic_utils:get_precise_timestamp(),
-
-	test_facilities:display( "Timestamp is ~s.", [
-		basic_utils:get_textual_timestamp( InitialTimestamp ) ] ),
-
-	test_facilities:display( "Timestamp for path is ~s.", [
-		basic_utils:get_textual_timestamp_for_path( InitialTimestamp ) ] ),
-
-	TextualTimeStamp = "14/4/2011 18:48:51",
-	test_facilities:display( "Parsed timestamp for '~s' is ~p.", [
-		TextualTimeStamp,
-		basic_utils:string_to_timestamp( TextualTimeStamp ) ] ),
-
 	basic_utils:checkpoint( 1 ),
 
 	basic_utils:checkpoint( 2 ),
 
-	basic_utils:display( "standalone display" ),
+	basic_utils:display( "standalone normal display" ),
 
-	basic_utils:display( "display ~s", [ "with a format string" ] ),
+	basic_utils:display( "normal display ~s", [ "with a format string" ] ),
+
+	basic_utils:display_error( "standalone error display" ),
+
+	basic_utils:display_error( "error display ~s", [ "with a format string" ] ),
+
 
 	UnregisteredName = test_non_registered,
 	try basic_utils:get_registered_pid_for( UnregisteredName ) of
@@ -210,16 +201,5 @@ run() ->
 							 "set to '~s', and debug mode is ~s.",
 							[ basic_utils:get_execution_target(),
 							  basic_utils:is_debug_mode_enabled() ] ),
-
-	FinalPreciseTimestamp = basic_utils:get_precise_timestamp(),
-
-	test_facilities:display( "Precise duration in test is ~p ms.", [
-		basic_utils:get_precise_duration( InitialPreciseTimestamp,
-										 FinalPreciseTimestamp ) ] ),
-
-	ModuleName = hashtable,
-
-	test_facilities:display( "Determining whether '~s' is in code path: ~p.",
-				 [ ModuleName, basic_utils:is_beam_in_path( ModuleName ) ] ),
 
 	test_facilities:stop().

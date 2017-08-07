@@ -1,4 +1,4 @@
-% Copyright (C) 2011-2015 Olivier Boudeville
+% Copyright (C) 2011-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -79,7 +79,7 @@
 % Same as hashtable:
 -export([ new/0, new/1, new_with_buckets/1, addEntry/3, addEntries/2,
 		  removeEntry/2, lookupEntry/2, hasEntry/2,
-		  getEntry/2, extractEntry/2,
+		  getEntry/2, extractEntry/2, getValues/2, getAllValues/2,
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToEntry/3, deleteFromEntry/3, popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
@@ -100,16 +100,18 @@
 -type entry_count() :: basic_utils:count().
 
 
--opaque tracked_hashtable() :: { hashtable:hashtable(), hashtable:entry_count(),
-	hashtable:bucket_count() }.
+% Not supported since Erlang 18.0:
+%
+%-opaque tracked_hashtable( K, V ) ::
+%		  { hashtable:hashtable( K, V ), hashtable:entry_count(),
+%			hashtable:bucket_count() }.
 
--opaque tracked_hashtable( K, V ) ::
-		  { hashtable:hashtable( K, V ), hashtable:entry_count(),
-			hashtable:bucket_count() }.
+-opaque tracked_hashtable() :: { hashtable:hashtable(), hashtable:entry_count(),
+								 hashtable:bucket_count() }.
 
 
 -export_type([ key/0, value/0, entry/0, entries/0, entry_count/0,
-			   tracked_hashtable/0,  tracked_hashtable/2 ]).
+			   tracked_hashtable/0 ]).
 
 
 % We want to be able to use our size/1 from here as well:
@@ -337,6 +339,69 @@ extractEntry( Key, _TrackedHashtable={ Hashtable, NEnt, NBuck } ) ->
 	NewTrackedTable = { NewHashtable, NEnt - 1, NBuck },
 
 	{ Value, NewTrackedTable }.
+
+
+
+
+% Returns the (ordered) list of values that correspond to the specified
+% (ordered) list of keys of this table.
+%
+% The key/value pairs are expected to exist already, otherwise an exception is
+% raised.
+%
+% Ex: [ Color, Age, Mass ] = tracked_hashtable:getValues( [ color, age, mass ],
+%   MyTable ] )
+%
+-spec getValues( [ key() ], tracked_hashtable() ) -> [ value() ].
+getValues( Keys, Hashtable ) ->
+
+	{ RevValues, _FinalTable } = lists:foldl(
+
+				fun( _Elem=Key, _Acc={ Values, Table } ) ->
+
+					   { Value, ShrunkTable } = extractEntry( Key, Table ),
+					   { [ Value | Values ], ShrunkTable }
+
+				end,
+				_Acc0={ [], Hashtable },
+				_List=Keys ),
+
+	lists:reverse( RevValues ).
+
+
+
+% Returns the (ordered) list of values that correspond to the specified
+% (ordered) list of keys of this table, ensuring all entries have been read,
+% otherwise throwing an exception.
+%
+% The key/value pairs are expected to exist already, otherwise an exception is
+% raised.
+%
+% Ex: [ Color=red, Age=23, Mass=51 ] = tracked_hashtable:getAllValues( [ color,
+%   age, mass ], [ { color, red }, { mass, 51 }, { age, 23 } ] )
+%
+-spec getAllValues( [ key() ], tracked_hashtable() ) -> [ value() ].
+getAllValues( Keys, Hashtable ) ->
+
+	{ RevValues, FinalTable } = lists:foldl(
+		   fun( _Elem=Key, _Acc={ Values, Table } ) ->
+
+				   { Value, ShrunkTable } = extractEntry( Key, Table ),
+				   { [ Value | Values ], ShrunkTable }
+
+		   end,
+		   _Acc0={ [], Hashtable },
+		   _List=Keys ),
+
+	case isEmpty( FinalTable ) of
+
+		true ->
+			lists:reverse( RevValues );
+
+		false ->
+			throw( { remaining_keys, keys( FinalTable ) } )
+
+	end.
 
 
 

@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2015 Olivier Boudeville
+% Copyright (C) 2003-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -199,5 +199,12 @@ run() ->
 
 	test_facilities:display( "Full system information: ~ts",
 							 [ system_utils:get_system_description() ] ),
+
+	VariableName = "hello",
+	VariableValue = "42",
+
+	system_utils:set_environment_variable( VariableName, VariableValue ),
+
+	VariableValue = system_utils:get_environment_variable( VariableName ),
 
 	test_facilities:stop().

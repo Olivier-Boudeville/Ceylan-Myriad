@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2015 Olivier Boudeville
+% Copyright (C) 2010-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -34,10 +34,12 @@
 
 
 % General operations:
--export([ floor/1, ceiling/1, round_after/2, modulo/2, clamp/3, squarify/1 ]).
+-export([ floor/1, ceiling/1, round_after/2,
+		  float_to_integer/1, float_to_integer/2,
+		  modulo/2, clamp/3, squarify/1 ]).
 
 
-% Operations on floating-point values:
+% Operations on floating-point values (in Erlang, a float is a C double):
 -export([ are_close/2, are_close/3,
 		  are_relatively_close/2, are_relatively_close/3,
 		  get_relative_difference/2, is_null/1 ]).
@@ -68,6 +70,14 @@
 -type probability() :: float().
 
 
+% Describes a desired conversion, which is either exact or approximate, based on
+% an absolute or relative comparison, with a default epsilon threshold or a
+% user-defined one.
+%
+-type conversion_type() :: 'exact' | 'absolute' | { 'absolute', float() }
+						 | 'relative' | { 'relative', float() }.
+
+
 -export_type([ non_zero_integer/0, variance/0, percent/0, probability/0 ]).
 
 
@@ -77,7 +87,7 @@
 % General section.
 
 
-% Floors returns the biggest integer smaller than the specified floating-point
+% Floor returns the biggest integer smaller than the specified floating-point
 % value.
 %
 % Inspired from http://schemecookbook.org/Erlang/NumberRounding.
@@ -139,6 +149,75 @@ round_after( F, DigitCount ) ->
 
 	% Certainly clumsy, but works:
 	erlang:round( Multiplier * F ) / Multiplier.
+
+
+
+
+
+% Converts specified float to integer.
+%
+% The float must exactly match the integer value.
+%
+% Ex: float_to_integer( 5.0 ) = 5, while float_to_integer( 5.0000001 ) will
+% crash.
+%
+-spec float_to_integer( float() ) -> integer().
+float_to_integer( F ) ->
+	float_to_integer( F, exact ).
+
+
+
+% Converts specified float to integer, using specified conversion tolerance.
+%
+-spec float_to_integer( float(), conversion_type() ) -> integer().
+float_to_integer( F, _ConversionType=exact ) ->
+
+	Int = round( F ),
+
+	case Int - F of
+
+		0.0 ->
+			Int;
+
+		Diff ->
+			throw( { non_exact_integer_conversion, { F, Int }, Diff } )
+
+	end;
+
+float_to_integer( F, _ConversionType=absolute ) ->
+	float_to_integer( F, { absolute, ?epsilon } );
+
+float_to_integer( F, _ConversionType={ absolute, Epsilon } ) ->
+
+	Int = round( F ),
+
+	case are_close( F, Int, Epsilon ) of
+
+		true ->
+			Int;
+
+		false ->
+			throw( { too_inexact_integer_conversion, { F, Int },
+				   { absolute, Epsilon } } )
+
+	end;
+
+float_to_integer( F, _ConversionType=relative ) ->
+	float_to_integer( F, { relative, ?epsilon } );
+
+float_to_integer( F, _ConversionType={ relative, Epsilon } ) ->
+	Int = round( F ),
+
+	case are_relatively_close( F, Int, Epsilon ) of
+
+		true ->
+			Int;
+
+		false ->
+			throw( { too_inexact_integer_conversion, { F, Int },
+				   { relative, Epsilon } } )
+
+	end.
 
 
 
@@ -239,16 +318,17 @@ are_relatively_close( X, Y ) ->
 are_relatively_close( X, Y, Epsilon ) ->
 
 	% We will divide by X+Y ... provided this is not null:
-	case -X of
+	case X+Y of
 
-		Y ->
+		0.0 ->
 			% X+Y=0, okay; they will be relatively close iff absolutely close
 			% (between them, and to zero) here (think for example to X=3 and
 			% Y=-3):
 			are_close( X, Y, Epsilon );
 
 		_ ->
-			2 * erlang:abs( X - Y ) / ( X + Y ) < Epsilon
+			%io:format( "X= ~p, Y= ~p~n", [ X, Y ] ),
+			2 * erlang:abs( ( X - Y ) / ( X + Y ) ) < Epsilon
 
 	end.
 
@@ -256,17 +336,44 @@ are_relatively_close( X, Y, Epsilon ) ->
 
 % Returns the relative difference between the two specified numbers.
 %
+% We consider that if both number are null, then their relative difference is
+% also null.
+%
 -spec get_relative_difference( number(), number() ) ->
-								 'difference_not_computable' | float().
+									 float() | 'difference_not_computable'.
 get_relative_difference( X, Y ) ->
 
-	case -X of
+	% Previously was:
+	%case -X of
+	%
+	%	Y ->
+	%		difference_not_computable;
+	%
+	%	_ ->
+	%		2 * erlang:abs( X - Y ) / ( X + Y )
+	%
+	%end.
+	% Yet this did not catch cases like: X= 0.0, Y= 0, so:
 
-		Y ->
-			difference_not_computable;
+	% Preventing any future division by zero:
+	case X+Y of
 
-		_ ->
-			2 * erlang:abs( X - Y ) / ( X + Y )
+		0.0 ->
+
+			% Not =:=, we want X to be converted to a float if needed:
+			case X == 0.0 of
+
+				true ->
+					0.0;
+
+				false ->
+					% Should not happen often:
+					throw( { difference_not_computable, X, Y } )
+
+			end;
+
+		Sum ->
+			2 * erlang:abs( ( X - Y ) / Sum )
 
 	end.
 

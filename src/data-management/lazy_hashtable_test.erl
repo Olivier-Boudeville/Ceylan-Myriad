@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2015 Olivier Boudeville
+% Copyright (C) 2003-2016 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -57,10 +57,12 @@ run() ->
 	%lazy_hashtable:display( MyH1 ),
 	test_facilities:display( "Adding entries in lazy hashtable." ),
 	MyH2 = lazy_hashtable:new( 4 ),
-	MyH3 = lazy_hashtable:addEntry( ?MyFirstKey, "MyFirstValue", MyH2 ),
+	MyFirstValue = "MyFirstValue",
+	MyH3 = lazy_hashtable:addEntry( ?MyFirstKey, MyFirstValue, MyH2 ),
 	false = lazy_hashtable:isEmpty( MyH3 ),
 
-	MyH4 = lazy_hashtable:addEntry( ?MySecondKey, [ 1, 2, 3 ], MyH3 ),
+	MySecondValue = [ 1, 2, 3 ],
+	MyH4 = lazy_hashtable:addEntry( ?MySecondKey, MySecondValue, MyH3 ),
 	false = lazy_hashtable:isEmpty( MyH4 ),
 
 	lazy_hashtable:display( "The lazy hashtable", MyH4 ),
@@ -72,8 +74,7 @@ run() ->
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
 			lazy_hashtable:lookupEntry( ?MyFirstKey, MyH4 ) ] ),
 
-	{ value, "MyFirstValue" } = lazy_hashtable:lookupEntry( ?MyFirstKey,
-															MyH4 ),
+	{ value, MyFirstValue } = lazy_hashtable:lookupEntry( ?MyFirstKey, MyH4 ),
 
 	test_facilities:display( "Removing that entry." ),
 	MyH5 = lazy_hashtable:removeEntry( ?MyFirstKey, MyH4 ),
@@ -81,12 +82,15 @@ run() ->
 
 	test_facilities:display( "Extracting the same entry from "
 							 "the same initial table." ),
-	{ "MyFirstValue", MyH5 } = lazy_hashtable:extractEntry( ?MyFirstKey, MyH4 ),
+	{ MyFirstValue, MyH5 } = lazy_hashtable:extractEntry( ?MyFirstKey, MyH4 ),
 
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
 		lazy_hashtable:lookupEntry( ?MyFirstKey, MyH5 ) ] ),
 
 	key_not_found = lazy_hashtable:lookupEntry( ?MyFirstKey, MyH5 ),
+
+	[ MySecondValue, MyFirstValue ] = lazy_hashtable:getAllValues(
+										[ ?MySecondKey, ?MyFirstKey ], MyH4 ),
 
 	% removeEntry can also be used if the specified key is not here, will return
 	% an identical table.
