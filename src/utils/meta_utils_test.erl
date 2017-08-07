@@ -1,4 +1,4 @@
-% Copyright (C) 2014-2016 Olivier Boudeville
+% Copyright (C) 2014-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -133,6 +133,10 @@ run() ->
 	io:format( "AST= ~p~n", [ ModuleAST ] ),
 
 	ModuleInfo = meta_utils:extract_module_info_from_ast( ModuleAST ),
+
+	TermString = "[ {tiger,[lion,leopard]} ]",
+
+	[ {tiger, [ lion, leopard ] } ] = meta_utils:string_to_value( TermString ),
 
 	test_facilities:display( meta_utils:module_info_to_string( ModuleInfo ) ),
 

@@ -1,4 +1,4 @@
-% Copyright (C) 2014-2016 Olivier Boudeville
+% Copyright (C) 2014-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -56,10 +56,12 @@
 % The standard hashtable API:
 %
 -export([ new/0, new/1, addEntry/3, addEntries/2,
-		  removeEntry/2, lookupEntry/2, hasEntry/2,
-		  getEntry/2, extractEntry/2, getValues/2, getAllValues/2,
+		  removeEntry/2, lookupEntry/2, hasEntry/2, getEntry/2,
+		  extractEntry/2, getEntryOrValue/3, getValues/2, getAllValues/2,
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
-		  appendToEntry/3, deleteFromEntry/3, popFromEntry/2,
+		  appendToExistingEntry/3, appendListToExistingEntry/3,
+		  appendToEntry/3, appendListToEntry/3,
+		  deleteFromEntry/3, popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
 		  isEmpty/1, size/1, getEntryCount/1,
 		  mapOnEntries/2, mapOnValues/2,
@@ -230,6 +232,28 @@ extractEntry( Key, Hashtable ) ->
 		false ->
 			% Badmatches are not informative enough:
 			throw( { key_not_found, Key } )
+
+	end.
+
+
+
+% Looks for a given entry in a table and returns the default value specified in
+% arguments if it is not found.
+%
+% Note: one should be aware that the value found in the table is allowed to be
+% identical to the one returned by default, and should use this function only
+% when it is the expected behaviour.
+%
+-spec getEntryOrValue( key(), list_hashtable(), value() ) -> value().
+getEntryOrValue( Key, Hashtable, DefaultValue ) ->
+
+	case lists:keyfind( Key, _N=1, Hashtable ) of
+
+		{ Key, Value } ->
+			Value;
+
+		false ->
+			DefaultValue
 
 	end.
 
@@ -426,6 +450,8 @@ toggleEntry( Key, Hashtable ) ->
 % with the HashtableAdd entries whose keys where not already in HashtableBase
 % (if a key is in both tables, the one from HashtableBase will be kept).
 %
+% Note: not the standard merge that one would expect, should values be lists.
+%
 -spec merge( list_hashtable(), list_hashtable() ) -> list_hashtable().
 merge( HashtableBase, HashtableAdd ) ->
 
@@ -445,6 +471,52 @@ merge( HashtableBase, HashtableAdd ) ->
 % Note: no check is performed to ensure the value is a list indeed, and the
 % '[|]' operation will not complain if not.
 %
+-spec appendToExistingEntry( key(), term(), list_hashtable() ) ->
+								   list_hashtable().
+appendToExistingEntry( Key, Element, Hashtable ) ->
+
+	case lists:keytake( Key, _N=1, Hashtable ) of
+
+		{ value, { _Key, ListValue }, ShrunkHashtable } ->
+			[ { Key, [ Element | ListValue ] } | ShrunkHashtable ];
+
+		false ->
+			throw( { key_not_found, Key } )
+
+	end.
+
+
+
+% Appends specified elements to the value, supposed to be a list, associated to
+% specified key.
+%
+% An exception is thrown if the key does not exist.
+%
+-spec appendListToExistingEntry( key(), [ term() ], list_hashtable() ) ->
+								   list_hashtable().
+appendListToExistingEntry( Key, Elements, Hashtable ) ->
+
+	case lists:keytake( Key, _N=1, Hashtable ) of
+
+		{ value, { _Key, ListValue }, ShrunkHashtable } ->
+			[ { Key, Elements ++ ListValue } | ShrunkHashtable ];
+
+		false ->
+			throw( { key_not_found, Key } )
+
+	end.
+
+
+
+% Appends specified element to the value, supposed to be a list, associated to
+% specified key.
+%
+% If that key does not already exist, it will be created and associated to a
+% list containing only the specified element.
+%
+% Note: no check is performed to ensure the value is a list indeed, and the
+% '[|]' operation will not complain if not.
+%
 -spec appendToEntry( key(), term(), list_hashtable() ) -> list_hashtable().
 appendToEntry( Key, Element, Hashtable ) ->
 
@@ -454,7 +526,29 @@ appendToEntry( Key, Element, Hashtable ) ->
 			[ { Key, [ Element | ListValue ] } | ShrunkHashtable ];
 
 		false ->
-			throw( { key_not_found, Key } )
+			[ { Key, [ Element ] } | Hashtable ]
+
+	end.
+
+
+
+% Appends specified elements to the value, supposed to be a list, associated to
+% specified key.
+%
+% If that key does not already exist, it will be created and associated to a
+% list containing only the specified elements.
+%
+-spec appendListToEntry( key(), [ term() ], list_hashtable() ) ->
+							   list_hashtable().
+appendListToEntry( Key, Elements, Hashtable ) ->
+
+	case lists:keytake( Key, _N=1, Hashtable ) of
+
+		{ value, { _Key, ListValue }, ShrunkHashtable } ->
+			[ { Key, Elements ++ ListValue } | ShrunkHashtable ];
+
+		false ->
+			[ { Key, Elements } | Hashtable ]
 
 	end.
 

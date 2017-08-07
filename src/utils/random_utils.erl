@@ -1,4 +1,4 @@
-% Copyright (C) 2007-2016 Olivier Boudeville
+% Copyright (C) 2007-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -31,11 +31,6 @@
 % See random_utils_test.erl for the corresponding test.
 %
 -module(random_utils).
-
-
-
-% For list_impl:
--include("data_types.hrl").
 
 
 
@@ -539,9 +534,9 @@ get_random_subset( ValueCount, InputList ) ->
 %
 -spec get_random_seed() -> seed().
 get_random_seed() ->
-	{   get_random_value( ?seed_upper_bound ),
-		get_random_value( ?seed_upper_bound ),
-		get_random_value( ?seed_upper_bound ) }.
+	{ get_random_value( ?seed_upper_bound ),
+	  get_random_value( ?seed_upper_bound ),
+	  get_random_value( ?seed_upper_bound ) }.
 
 
 

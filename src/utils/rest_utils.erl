@@ -1,4 +1,4 @@
-% Copyright (C) 2015-2016 Olivier Boudeville
+% Copyright (C) 2015-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -51,8 +51,11 @@
 
 
 
--export([ start/0, start/1, is_json_parser_available/0,
-		  to_json/1, from_json/1, stop/0 ]).
+-export([ start/0, start/1, stop/0,
+		  http_get/1, http_get/3, http_post/1, http_post/3,
+		  http_put/1, http_put/3, http_delete/1, http_delete/3,
+		  http_request/1, http_request/2, http_request/4,
+		  is_json_parser_available/0, to_json/1, from_json/1 ]).
 
 
 % Tells whether the SSL support is needed (typically for https):
@@ -64,9 +67,12 @@
 -type json() :: binary() | string().
 
 
+% HTTP/1.1 method:
+-type method() :: 'get' | 'head' | 'post' | 'options' | 'connect' | 'trace' |
+				  'put' | 'patch' | 'delete'.
+
 % Content type (ex: "text/html;charset=utf-8", "application/json"):
 -type content_type() :: string().
-
 
 -type field() :: string().
 
@@ -76,14 +82,42 @@
 
 -type headers() :: [ header() ].
 
+-type body() :: binary() | string().
+
+-type status_code() :: pos_integer().
+
+-type status_line() :: { string(), status_code(), string() }.
+
+% Type of a request for httpc:request, see http://erlang.org/doc/man/httpc.html:
+-type request() :: { net_utils:url(), headers(), content_type(), body() } |
+				   { net_utils:url(), headers() }.
+
+-type http_option() :: { atom(), term() }.
+-type http_options() :: [ http_option() ].
+
+-type option() :: { atom(), term() }.
+-type options() :: [ option() ].
+
+% Type of a result from httpc:request, see http://erlang.org/doc/man/httpc.html:
+-type result() :: { status_line(), headers(), body() } |
+				  { status_code(), body() } |
+				  reference().
 
 
 % Context of a REST exchange:
 -type context() :: { net_utils:url_info(), headers() }.
 
 
--export_type([ ssl_opt/0, json/0, content_type/0, field/0, value/0,
-			   header/0, headers/0, context/0 ]).
+-export_type([ ssl_opt/0, json/0, method/0, content_type/0, field/0, value/0,
+			   header/0, headers/0, body/0, status_code/0, status_line/0,
+			   request/0, http_option/0, http_options/0, option/0, options/0,
+			   result/0, context/0 ]).
+
+
+
+%%
+%% Inets section.
+%%
 
 
 
@@ -132,14 +166,306 @@ stop() ->
 
 
 
+%%
+%% REST requests section.
+%%
+
+
+
+% Lists all the possible request methods defined by the HTTP/1.1 standard,
+% except the 'CONNECT' method which seems not to be part of the function clauses
+% appearing in httpc:request:
+%
+-spec get_supported_http_methods() -> [ method() ].
+get_supported_http_methods() ->
+	[ get, head, post, options, trace, put, patch, delete ].
+
+
+
+% Lists all the supported HTTP/1.1 standard methods which implementation in
+% httpc:request does not allow the Body and (thus) ContentType arguments: they
+% must be associated with requests of the form {URL,Headers}.
+%
+-spec get_no_body_http_methods() -> [ method() ].
+get_no_body_http_methods() ->
+	[ get, head, options, trace, delete ].
+
+
+
+% Lists all the supported HTTP/1.1 standard methods which implementation in
+% httpc:request expects the Body and (thus) ContentType arguments: they must be
+% associated with requests of the form {URL,Headers,ContentType,Body}.
+%
+-spec get_body_allowing_http_methods() -> [ method() ].
+get_body_allowing_http_methods() ->
+	[ post, put, patch, delete ].
+
+
+
+% Shorthands for sending GET HTTP requests:
+%
+-spec http_get( request() ) -> { status_code(), term() }.
+http_get( Request ) ->
+	http_get( Request, [], [] ).
+
+-spec http_get( request(), http_options(), options() ) -> term().
+http_get( Request, HTTPOptions, Options ) ->
+	http_request( get, Request, HTTPOptions, Options ).
+
+
+% Shorthands for sending POST HTTP requests:
+%
+-spec http_post( request() ) -> { status_code(), term() }.
+http_post( Request ) ->
+	http_post( Request, [], [] ).
+
+-spec http_post( request(), http_options(), options() ) -> term().
+http_post( Request, HTTPOptions, Options ) ->
+	http_request( post, Request, HTTPOptions, Options ).
+
+
+
+% Shorthands for sending PUT HTTP requests:
+%
+-spec http_put( request() ) -> { status_code(), term() }.
+http_put( Request ) ->
+	http_put( Request, [], [] ).
+
+-spec http_put( request(), http_options(), options() ) -> term().
+http_put( Request, HTTPOptions, Options ) ->
+	http_request( put, Request, HTTPOptions, Options ).
+
+
+
+% Shorthands for sending DELETE HTTP requests:
+%
+-spec http_delete( request() ) -> { status_code(), term() }.
+http_delete( Request ) ->
+	http_delete( Request, [], [] ).
+
+-spec http_delete( request(), http_options(), options() ) -> term().
+http_delete( Request, HTTPOptions, Options ) ->
+	http_request( delete, Request, HTTPOptions, Options ).
+
+
+
+% Another shorthand for sending GET HTTP requests, as suggested by the standard
+% 'httpc' module of Erlang:
+%
+-spec http_request( net_utils:url() ) -> { status_code(), term() }.
+http_request( URL ) ->
+	http_request( get, { URL, [] }, [], [] ).
+
+
+
+% Sends a generic HTTP request:
+%
+% (Basically just a call to httpc:request/4 surrounded by checking steps.)
+%
+-spec http_request( method(), request() ) -> { status_code(), term() }.
+http_request( Method, Request ) ->
+	http_request( Method, Request, [], [] ).
+
+-spec http_request( method(), request(), http_options(), options() ) ->
+						  term().
+http_request( Method, Request, HTTPOptions, Options ) ->
+
+	% Checks the HTTP method is a valid one:
+	case lists:member( Method, get_supported_http_methods() ) of
+
+		true ->
+			ok;
+
+		false when Method =:= connect ->
+			throw( connect_method_not_supported_by_httpc );
+
+		false when is_atom( Method ) ->
+			throw( { not_a_standard_http_method, Method } );
+
+		_False ->
+			throw( { bad_http_method_specification, Method } )
+
+	end,
+
+	% Checks the request seems valid:
+	check_http_request( Method, Request ),
+
+	% Checks the HTTP options look valid:
+	% TODO ?
+
+	% Checks the request options look valid:
+	% TODO ?
+
+	case httpc:request( Method, Request, HTTPOptions, Options ) of
+
+		{ ok, Result } ->
+			return_checked_result( Result );
+
+		{ error, Reason } ->
+			throw( { httpc_error, Reason } )
+
+	end.
+
+
+
+% Checks and returns the result of an HTTP request (or throws an exception):
+%
+-spec return_checked_result( result() ) -> { status_code(), term() }.
+return_checked_result( _Result={ StatusLine, _Headers, Body } ) ->
+
+	{ "HTTP/1.1", StatusCode, ReasonPhrase } = StatusLine,
+
+	return_checked_result( { StatusCode,
+							 { reason_phrased_body, ReasonPhrase, Body } } );
+
+return_checked_result( _Result={ StatusCode, Body } ) ->
+
+	{ ReasonPhrase, RealBody } = case Body of
+
+		{ reason_phrased_body, Reason, OriginalBody } ->
+			{ Reason, OriginalBody };
+
+		_AnyBody ->
+			{ "", Body }
+
+	end,
+
+	case StatusCode of
+
+		200 ->
+			{ 200, RealBody };
+
+		SuccessCode when SuccessCode > 200 andalso SuccessCode < 300 ->
+			{ SuccessCode, RealBody };
+
+		RedirectionErrorCode when RedirectionErrorCode >= 300 andalso
+								  RedirectionErrorCode < 400 ->
+			throw( { http_redirection_error, RedirectionErrorCode,
+					 ReasonPhrase, RealBody } );
+
+		ClientErrorCode when ClientErrorCode >= 400 andalso
+							 ClientErrorCode < 500 ->
+			throw( { http_client_error, ClientErrorCode, ReasonPhrase,
+					 RealBody } );
+
+		ServerErrorCode when ServerErrorCode >= 500 ->
+			throw( { http_server_error, ServerErrorCode, ReasonPhrase,
+					 RealBody } )
+
+	end;
+
+return_checked_result( _Result=Reference ) when is_reference( Reference ) ->
+	Reference;
+
+return_checked_result( Result ) ->
+	throw( { invalid_http_response, Result } ).
+
+
+
+% Checks the basic structure of an HTTP request, as needed by httpc:
+%
+-spec check_http_request( method(), request() ) -> 'ok'.
+check_http_request( Method, _Request={ URL, Headers } )
+  when is_list( Headers ) ->
+
+	case lists:member( Method, get_no_body_http_methods() ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { http_method_requires_body_in_request, Method } )
+
+	end,
+
+	case text_utils:is_string( URL ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { bad_URL_for_http_request, URL } )
+
+	end;
+
+check_http_request( _Method, Request={ _URL, _Headers } ) ->
+	throw( { bad_headers_for_http_request, Request } );
+
+check_http_request( Method, _Request={ URL, Headers, ContentType, Body } )
+  when is_list( Headers ) ->
+
+	case lists:member( Method, get_body_allowing_http_methods() ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { http_method_forbids_body_in_request, Method } )
+
+	end,
+
+	case text_utils:is_string( URL ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { bad_URL_for_http_request, URL } )
+
+	end,
+
+	case text_utils:is_string( ContentType ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { bad_content_type_for_http_request, ContentType } )
+
+	end,
+
+	case text_utils:is_string( Body ) orelse is_binary( Body ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { bad_body_for_http_request, Body } )
+
+	end;
+
+check_http_request( _Method, Request={ _URL, _Headers, _CType, _Body } ) ->
+	throw( { bad_headers_for_http_request, Request } );
+
+check_http_request( _Method, Request ) ->
+	throw( { not_a_valid_http_request, Request } ).
+
+
+
+%%
+%% JSON section.
+%%
+
+
+
 % Starts the JSON parser.
 %
 -spec start_json_parser() -> basic_utils:void().
 start_json_parser() ->
 
-	% We use jsx, an external prerequisite.
+	% We use the 'jsx' parser, an external prerequisite.
+	%
+	case is_json_parser_available() of
 
-	true = is_json_parser_available(),
+		true ->
+			ok;
+
+		false ->
+			basic_utils:display( "\nError: jsx JSON parser not available.\n"
+				++ system_utils:get_json_unavailability_hint() ),
+			throw( { json_parser_not_found, jsx } )
+
+	end,
 
 	% This is a way to check its BEAMs are available and usable:
 	%
@@ -151,11 +477,9 @@ start_json_parser() ->
 	catch
 
 		error:undef ->
-			basic_utils:display(
-			  "\nError: jsx JSON parser not found.\n"
-			  "Hint: inspect, in common/GNUmakevars.inc, the USE_REST and "
-			  "JSX_BASE variables.\n" ),
-			throw( { json_parser_not_found, jsx } )
+			basic_utils:display( "\nError: jsx JSON parser not operational.\n"
+				++ system_utils:get_json_unavailability_hint() ),
+			throw( { json_parser_not_operational, jsx } )
 
 	end.
 
@@ -202,6 +526,7 @@ from_json( StringJson ) when is_list( StringJson ) ->
 
 	BinJson = text_utils:string_to_binary( StringJson ),
 	from_json( BinJson ).
+
 
 
 % Stops the JSON parser.

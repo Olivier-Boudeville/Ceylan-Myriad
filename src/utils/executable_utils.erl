@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2016 Olivier Boudeville
+% Copyright (C) 2008-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -45,7 +45,8 @@
 -export([ generate_png_from_graph_file/2,
 		  generate_png_from_graph_file/3, display_png_file/1,
 		  browse_images_in/1, display_pdf_file/1, display_text_file/1,
-		  display_wide_text_file/2, get_ssh_mute_option/0, compute_md5_sum/1 ]).
+		  display_wide_text_file/2, get_ssh_mute_option/0,
+		  compute_md5_sum/1, compute_sha1_sum/1, compute_sha_sum/2 ]).
 
 
 
@@ -91,21 +92,34 @@
 		 get_default_xz_compress_tool/0,
 		 get_default_xz_decompress_tool/0,
 
-		 get_default_md5_tool/0
+		 get_default_md5_tool/0,
+		 get_default_sha_tool/0
 
 		 ]).
 
 
 
 % MD5 sum, a 128-bit hash value:
+%
 -type md5_sum() :: non_neg_integer().
 
 
--export_type([ md5_sum/0 ]).
+% SHA1 sum, a 160-bit hash value:
+%
+-type sha1_sum() :: non_neg_integer().
+
+
+% SHA sum, a hash value of unspecified size:
+%
+-type sha_sum() :: non_neg_integer().
+
+
+-export_type([ md5_sum/0, sha1_sum/0, sha_sum/0 ]).
 
 
 % Miscellaneous section:
 -export([ is_batch/0 ]).
+
 
 
 % Looks-up specified executable program, whose name is specified as a string
@@ -114,8 +128,8 @@
 % Returns the absolute filename of the executable program (ex: "/usr/bin/gcc"),
 % or the 'false' atom if it was not found.
 %
--spec lookup_executable( file_utils:file_name() )
-					   -> file_utils:path() | 'false'.
+-spec lookup_executable( file_utils:file_name() ) ->
+							   file_utils:path() | 'false'.
 lookup_executable( ExecutableName ) ->
 	% Similar to a call to 'type':
 	os:find_executable( ExecutableName ).
@@ -341,6 +355,53 @@ compute_md5_sum( Filename ) ->
 
 
 
+% Returns the SHA1 sum computed from the content of the specified file, as an
+% unsigned integer, actually of 160 bits (ex:
+% 189271338729529876450691804503218393830331783574, corresponding to hexadecimal
+% string "212738699f721d8d8c3e58dac2b113bb8d0c1996").
+%
+-spec compute_sha1_sum( file_utils:path() ) -> sha1_sum().
+compute_sha1_sum( Filename ) ->
+	compute_sha_sum( Filename, _SizeOfSHAAlgorithm=1 ).
+
+
+
+% Returns the SHA sum computed from the content of the specified file, as an
+% unsigned integer, whose size depends on the specified algorithm: 1, 224, 256,
+% 384, 512, 512224, 512256 (see 'man shasum' for more details).
+%
+-spec compute_sha_sum( file_utils:path(), basic_utils:count() ) -> sha_sum().
+compute_sha_sum( Filename, SizeOfSHAAlgorithm )
+  when is_integer( SizeOfSHAAlgorithm ) ->
+
+	case file_utils:is_existing_file( Filename ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { file_for_sha_not_found, Filename } )
+
+	end,
+
+	% Removes the filename after the MD5 code:
+	Cmd = system_utils:run_executable( get_default_sha_tool()
+					 ++ " --algorithm "
+					 ++ text_utils:format( "~B '", [ SizeOfSHAAlgorithm ] )
+					 ++ Filename ++ "' | sed 's|  .*$||1'" ),
+
+	case Cmd of
+
+		{ _ExitCode=0, OutputString } ->
+			list_to_integer( OutputString, _Base=16 );
+
+		{ ExitCode, ErrorOutput } ->
+			throw( { sha_computation_failed, ExitCode, ErrorOutput, Filename } )
+
+	end.
+
+
+
 % Section about default tools.
 
 
@@ -350,7 +411,7 @@ compute_md5_sum( Filename ) ->
 %  - get_default_X_name() -> string() that returns the name of the tool (useful
 %  for error messages)
 %
-%  - get_default_X_path() -> file_utils:file_name() that returns tne full path
+%  - get_default_X_path() -> file_utils:file_name() that returns the full path
 %  to the corresponding executable
 
 
@@ -576,6 +637,13 @@ get_default_xz_decompress_tool() ->
 -spec get_default_md5_tool() -> file_utils:file_name().
 get_default_md5_tool() ->
 	find_executable( "md5sum" ).
+
+
+% Returns the default tool to compute SHA sums.
+%
+-spec get_default_sha_tool() -> file_utils:file_name().
+get_default_sha_tool() ->
+	find_executable( "shasum" ).
 
 
 

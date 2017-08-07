@@ -1,4 +1,4 @@
-% Copyright (C) 2014-2016 Olivier Boudeville
+% Copyright (C) 2014-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -42,6 +42,7 @@
 -define(MyFirstKey,  'MyFirstKey').
 -define(MySecondKey, 'MySecondKey').
 -define(MyThirdKey,  'MyThirdKey').
+-define(MyFourthKey, 'MyFourthKey').
 
 
 
@@ -113,9 +114,24 @@ run() ->
 	test_facilities:display( "Listing the hashtable values: ~p",
 		[ list_hashtable:values( MyH4 ) ] ),
 
+
+	test_facilities:display( "Appending values to elements" ),
+
+
+	MyH7 = list_hashtable:appendToEntry( ?MyFourthKey, first_element, MyH5 ),
+
+	MyH8 = list_hashtable:appendToExistingEntry( ?MyFourthKey, second_element,
+												 MyH7 ),
+
+	MyH9 = list_hashtable:appendListToExistingEntry( ?MyFourthKey,
+								 [ third_element, fourth_element ], MyH8 ),
+
+	list_hashtable:display( MyH9 ),
+
+
+
 	test_facilities:display( "Applying a fun to all values of "
 							 "previous hashtable" ),
-
 
 	FunValue = fun( V ) ->
 				io:format( " - hello value '~p'!~n", [ V ] ),
@@ -154,18 +170,18 @@ run() ->
 	true = list_utils:unordered_compare( [ ?MyFirstKey, ?MySecondKey ],
 										 list_hashtable:keys( MyH4 ) ),
 
-	MyH7 = list_hashtable:addEntry( ?MyThirdKey, 3, MyH6 ),
+	MyH10 = list_hashtable:addEntry( ?MyThirdKey, 3, MyH6 ),
 
 	% MyH8 should have { AnotherKey, [1,2,3] } and { ?MyThirdKey, 3 }:
-	MyH8 = list_hashtable:merge( MyH4, MyH7 ),
+	MyH11 = list_hashtable:merge( MyH4, MyH10 ),
 
 	% Any optimisation would be automatic:
 	test_facilities:display( "Merged table: ~s.",
-							 [ list_hashtable:toString( MyH8 ) ] ),
+							 [ list_hashtable:toString( MyH11 ) ] ),
 
 	Keys = [ ?MyFirstKey, ?MyThirdKey ],
 
 	test_facilities:display( "Listing the entries for keys ~p:~n ~p",
-					[ Keys, list_hashtable:selectEntries( Keys, MyH8 ) ] ),
+					[ Keys, list_hashtable:selectEntries( Keys, MyH11 ) ] ),
 
 	test_facilities:stop().

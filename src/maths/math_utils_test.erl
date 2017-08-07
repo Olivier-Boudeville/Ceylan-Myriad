@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2016 Olivier Boudeville
+% Copyright (C) 2003-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -43,8 +43,9 @@ run() ->
 
 	Roundings = [ -1.1, -1.0, -0.9, 0.0, 0.9, 1.0, 1.1 ],
 
-	[ test_facilities:display( "Floor for ~p is ~p.", [ V,
-			math_utils:floor(V) ] ) || V <- Roundings ],
+	% Not used anymore, as erlang:floor/1 has been introduced since then:
+	%[ test_facilities:display( "Floor for ~p is ~p.", [ V,
+	%		math_utils:floor(V) ] ) || V <- Roundings ],
 
 	[ test_facilities:display( "Ceiling for ~p is ~p.", [ V,
 			math_utils:ceiling(V) ] ) || V <- Roundings ],

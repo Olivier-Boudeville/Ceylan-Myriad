@@ -13,10 +13,11 @@ Technical Manual of the ``Common`` Layer
 :Author: Olivier Boudeville
 :Contact: olivier.boudeville@esperide.com
 :Creation Date: Wednesday, August 11, 2010
-:Lastly Updated on: Friday, June 24, 2016
+:Lastly Updated on: Wednesday, August 2, 2017
+
 
 :Status: Work in progress
-:Version: 0.2.2
+:Version: 0.2.6
 :Dedication: Users and maintainers of the ``Common`` layer.
 :Abstract:
 

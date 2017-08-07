@@ -6,6 +6,23 @@
 (setq ring-bell-function 'ignore)
 
 
+;; To avoid having the Warnings buffer be opened with a message like:
+;;
+;; """
+;; Warning (server): Unable to start the Emacs server.
+;; There is an existing Emacs server, named "server".
+;; To start the server in this Emacs process, stop the existing
+;; server or call ‘M-x server-force-delete’ to forcibly disconnect it.
+;; """
+;;
+;; when opening an extraneous emacs:
+;;
+;; (does not seem to work, though, hence commented-out)
+(require 'server)
+(or (server-running-p)
+	(server-start))
+
+
 ;; Compiles .el files newer than their .elc counterpart, or not having one:
 ;; One can also use M-x byte-compile-file to precompile .el files (ex: linum).
 ;; Warning: apparently, unless the .elc file is removed, changes will be
@@ -54,10 +71,18 @@
 ;; of a change in the 'tools' version (thus requiring the current file
 ;; to be endlessly modified)
 
-(setq load-path (cons
-"~/Software/Erlang/Erlang-current-install/lib/erlang/emacs" load-path))
-(setq erlang-root-dir "~/Software/Erlang/Erlang-current-install/lib/erlang")
+;; Two possible conventional locations for an Erlang install:
+;;  - either in the user account (in ~/Software/Erlang/Erlang-current-install)
+;;  - or directly in the system tree (in /usr/local/lib/erlang/)
+
+(setq load-path (cons "~/Software/Erlang/Erlang-current-install/lib/erlang/emacs" load-path))
+(setq load-path (cons "/usr/local/lib/erlang/emacs" load-path))
+
+;;(setq erlang-root-dir "~/Software/Erlang/Erlang-current-install/lib/erlang")
+;;(setq erlang-root-dir "/usr/local/lib/erlang")
+
 (setq exec-path (cons "~/Software/Erlang/Erlang-current-install/lib/erlang/bin" exec-path))
+(setq exec-path (cons "/usr/local/lib/erlang/bin" exec-path))
 
 (require 'erlang-start)
 
@@ -65,6 +90,25 @@
 ;;(require 'erlang-flymake)
 
 
+;; Taken from
+;; https://stackoverflow.com/questions/11043004/emacs-compile-buffer-auto-close:
+
+(defun bury-compile-buffer-if-successful (buffer string)
+ "Bury a compilation buffer if succeeded without warnings "
+ (when (and
+		 (buffer-live-p buffer)
+		 (string-match "compilation" (buffer-name buffer))
+		 (string-match "finished" string)
+		 (not
+		  (with-current-buffer buffer
+			(goto-char (point-min))
+			(search-forward "warning" nil t))))
+	(run-with-timer 1 nil
+					(lambda (buf)
+					  (bury-buffer buf)
+					  (switch-to-prev-buffer (get-buffer-window buf) 'kill))
+					buffer)))
+(add-hook 'compilation-finish-functions 'bury-compile-buffer-if-successful)
 
 
 (setq auto-mode-alist
@@ -479,6 +523,8 @@
 (setq font-lock-maximum-size nil)
 (transient-mark-mode t)
 
+
+(setq use-file-dialog nil)
 
 ;;(standard-display-european 1)
 

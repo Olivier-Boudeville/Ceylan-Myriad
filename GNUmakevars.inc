@@ -19,7 +19,7 @@ endif
 
 
 ifndef PACKAGE_NAME
-	PACKAGE_NAME := common
+	PACKAGE_NAME := Ceylan-Myriad
 endif
 
 
@@ -71,7 +71,10 @@ PACKAGE_INSTALLATION_PREFIX := $(INSTALLATION_PREFIX)/$(PACKAGE_NAME)
 
 
 # Could rely on the permissions instead:
-EXEC_TO_INSTALL := $$(find $(PACKAGE_TOP) -name '*.sh' -a ! -name '*.exe')
+#
+# (not taking symbolic links to avoid duplicate targets)
+#
+EXEC_TO_INSTALL := $$(find $(PACKAGE_TOP) -name '*.sh' -a ! -name '*.exe' -a ! -type l)
 
 
 
@@ -95,6 +98,19 @@ TESTS_TO_INSTALL_SRC := $$(find $(PACKAGE_TOP) -name '*_test.erl' -o -name 'clas
 
 DOC_TO_INSTALL := $$(find $(PACKAGE_TOP) -name tmp-rst -prune -o \( -type f -a \( -name '*.pdf' -o -name '*.html' \) \) | grep -v tmp-rst)
 
+
+
+# Install locations:
+
+BIN_INSTALLATION_PREFIX := $(PACKAGE_INSTALLATION_PREFIX)/bin
+EBIN_INSTALLATION_PREFIX := $(PACKAGE_INSTALLATION_PREFIX)/ebin
+SRC_INSTALLATION_PREFIX := $(PACKAGE_INSTALLATION_PREFIX)/src
+INCLUDE_INSTALLATION_PREFIX := $(PACKAGE_INSTALLATION_PREFIX)/include
+EXAMPLES_INSTALLATION_PREFIX := $(PACKAGE_INSTALLATION_PREFIX)/examples
+TEST_INSTALLATION_PREFIX := $(PACKAGE_INSTALLATION_PREFIX)/test
+DOC_INSTALLATION_PREFIX := $(PACKAGE_INSTALLATION_PREFIX)/doc
+
+DEFAULT_PRODUCTION_INSTALLATION_PREFIX := /usr/local/$(PACKAGE_NAME)
 
 
 # Source section.
@@ -131,16 +147,25 @@ endif
 # Optional services, relying on third-party prerequisites:
 
 # For the reading and writing of large, often scientific-oriented data:
-USE_HDF5 := false
+# (not forcing variable, letting upper layers decide, or the defaults apply)
+#USE_HDF5 := false
 #USE_HDF5 := true
 
 # To gain the ability of acting as a client of a REST service:
-USE_REST := false
+# (not forcing variable, letting upper layers decide, or the defaults apply)
+#USE_REST := false
 #USE_REST := true
 
 # For SQL database operations, based on SQLite 3 operations:
-USE_SQLITE := false
+# (not forcing variable, letting upper layers decide, or the defaults apply)
+#USE_SQLITE := false
 #USE_SQLITE := true
+
+# For using an Erlang/Python binding, based on the ErlPort library:
+# (not forcing variable, letting upper layers decide, or the defaults apply)
+#USE_PYTHON_BINDING := false
+#USE_PYTHON_BINDING := true
+
 
 
 # Deactivated by default, as requires specific prerequisites (the HDF5 library
@@ -214,6 +239,32 @@ ifeq ($(USE_SQLITE),true)
   # ($(SQLITE3_BASE)/ebin/*.beam found at runtime)
 
   ABS_BEAM_DIRS += $(SQLITE3_BASE)/ebin/
+
+endif
+
+
+
+# Deactivated by default, as requires specific prerequisites:
+#
+# - Python (binding tested with v3.6+ only)
+# - the ErlPort library (cf https://github.com/hdima/erlport)
+#
+#
+ifndef USE_PYTHON_BINDING
+
+  USE_PYTHON_BINDING := false
+
+endif
+
+ifeq ($(USE_PYTHON_BINDING),true)
+
+  ERLPORT_BASE := $$HOME/Software/ErlPort/ErlPort-current-install
+
+  INC += -I$(ERLPORT_BASE)/src
+
+  # ($(ERLPORT_BASE)/ebin/*.beam found at runtime)
+
+  ABS_BEAM_DIRS += $(ERLPORT_BASE)/ebin
 
 endif
 
@@ -688,6 +739,11 @@ endif
 # For later reuse in the next layer of the software stack:
 COMMON_PLT_FILE := $(COMMON_TOP)/common.plt
 
+
+# Shorthand:
+BATCH_OPT = 'CMD_LINE_OPT="--batch"'
+
+
 # This is the merged PLT of the level just below in the software stack.
 #
 # For 'Common', it is the PLT of Erlang/OTP (possibly enriched by
@@ -696,3 +752,6 @@ COMMON_PLT_FILE := $(COMMON_TOP)/common.plt
 ifndef PREDECESSOR_PLT
   PREDECESSOR_PLT := $(ERLANG_PLT_FILE)
 endif
+
+
+MAKE_CODE_STATS := $(COMMON_TOP)/src/scripts/make-code-stats.sh

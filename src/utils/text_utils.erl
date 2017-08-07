@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2016 Olivier Boudeville
+% Copyright (C) 2003-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -41,14 +41,14 @@
 % String management functions.
 
 
-% Conversions between terms and strings.
+% Conversions between terms and strings (both ways).
 %
 -export([ term_to_string/1, term_to_string/2, term_to_string/3,
 		  integer_to_string/1, atom_to_string/1, pid_to_string/1,
 		  record_to_string/1,
 		  string_list_to_string/1, string_list_to_string/2,
 		  strings_to_string/1, strings_to_string/2,
-		  strings_to_enumerated_string/1,
+		  strings_to_enumerated_string/1, strings_to_enumerated_string/2,
 		  binary_list_to_string/1, binaries_to_string/1,
 		  atom_list_to_string/1, atoms_to_string/1,
 		  string_list_to_atom_list/1, proplist_to_string/1,
@@ -61,15 +61,18 @@
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
 		  duration_to_string/1,
-		  format/2, bin_format/2 ]).
+		  format/2, bin_format/2,
+		  ensure_string/1, ensure_binary/1
+		]).
 
 
 
 % Other string operations:
 %
--export([ uppercase_initial_letter/1,
+-export([ get_lexicographic_distance/2, uppercase_initial_letter/1,
 		  join/2,
 		  split/2, split_at_first/2, split_camel_case/1,
+		  tokenizable_to_camel_case/2,
 
 		  substitute/3, filter/2, split_after_prefix/2,
 
@@ -77,12 +80,15 @@
 
 		  is_uppercase/1, is_figure/1,
 		  remove_ending_carriage_return/1, remove_last_characters/2,
+		  remove_whitespaces/1,
 
 		  trim_whitespaces/1, trim_leading_whitespaces/1,
 		  trim_trailing_whitespaces/1,
 
+		  get_default_bullet/0, get_bullet_for_level/1,
 		  format_text_for_width/2, pad_string/2,
-		  is_string/1, is_list_of_strings/1 ]).
+		  is_string/1, is_non_empty_string/1, is_list_of_strings/1,
+		  is_bin_string/1 ]).
 
 
 % Restructured-Text (RST) related functions.
@@ -136,6 +142,12 @@
 -type bin_string() :: binary().
 
 
+% Any kind of string:
+%
+-type any_string() :: string() | bin_string().
+
+
+
 % A Unicode string.
 %
 % This is our new default.
@@ -161,9 +173,34 @@
 -type ustring() :: unicode_string().
 
 
--export_type([ format_string/0, regex_string/0, title/0, label/0,
-			   bin_string/0, unicode_string/0, ustring/0, uchar/0 ]).
+% The level of indentation (starts at zero, and the higher, the most nested).
+%
+-type indentation_level() :: basic_utils:count().
 
+
+% Lexicographic (Levenshtein) distance, i.e. minimum number of single-character
+% edits (i.e. insertions, deletions or substitutions) required to change one
+% string into the other:
+%
+-type distance() :: non_neg_integer().
+
+
+-export_type([ format_string/0, regex_string/0, title/0, label/0,
+			   bin_string/0, unicode_string/0, uchar/0, ustring/0,
+			   indentation_level/0, distance/0 ]).
+
+
+
+% This module being a bootstrap one, the 'table' pseudo-module is not available
+% (as this module is not processed by the 'Common' parse transform):
+%
+-define( table, map_hashtable ).
+
+
+% Maybe at least format/2 would be better inlined, however it does not seem
+% to be cross-module inlining (just inside this module?).
+%
+%-compile( { inline, [ format/2 ] } ).
 
 
 
@@ -333,6 +370,40 @@ record_to_string( _Record ) -> % No 'when is_record( Record, Tag ) ->' here.
 
 
 
+% Returns the default bullet to be used for top-level lists.
+%
+-spec get_default_bullet() -> ustring().
+get_default_bullet() ->
+	get_bullet_for_level( 0 ).
+
+
+
+% Returns the bullet to be used for specified indentation level.
+%
+-spec get_bullet_for_level( indentation_level() ) ->  ustring().
+get_bullet_for_level( 0 ) ->
+	" + ";
+
+get_bullet_for_level( 1 ) ->
+	"   - ";
+
+get_bullet_for_level( 2 ) ->
+	"     * ";
+
+get_bullet_for_level( N ) when is_integer( N ) andalso N > 0 ->
+	Base = get_bullet_for_level( N rem 3 ),
+	string:copies( "   ", N div 3 ) ++ Base.
+
+
+
+% Returns the indentation offset to be used for specified indentation level of
+% enumerated lists.
+%
+-spec get_indentation_offset_for_level( indentation_level() ) ->  ustring().
+get_indentation_offset_for_level( N ) ->
+	string:copies( _BaseString=" ", _Count=N+1 ).
+
+
 % Returns a string which pretty-prints specified list of strings, with default
 % bullets.
 %
@@ -340,20 +411,28 @@ record_to_string( _Record ) -> % No 'when is_record( Record, Tag ) ->' here.
 string_list_to_string( ListOfStrings ) ->
 	% Leading '~n' had been removed for some unknown reason:
 	io_lib:format( "~n~ts", [ string_list_to_string(
-								ListOfStrings, _Acc=[], _Bullet=" + " ) ] ).
+					   ListOfStrings, _Acc=[], get_default_bullet() ) ] ).
 
 
 % Returns a string which pretty-prints specified list of strings, with
 % user-specified bullets; this can be a solution to nest bullet lists, by
 % specifying a bullet with an offset, such as "  * ".
 %
--spec string_list_to_string( [ ustring() ], ustring() ) -> ustring().
-string_list_to_string( ListOfStrings, Bullet ) ->
+-spec string_list_to_string( [ ustring() ], indentation_level() | ustring() ) ->
+								   ustring().
+string_list_to_string( ListOfStrings, IndentationLevel )
+  when is_integer( IndentationLevel ) ->
+	Bullet = get_bullet_for_level( IndentationLevel ),
+	string_list_to_string( ListOfStrings, Bullet );
+
+string_list_to_string( ListOfStrings, Bullet ) when is_list( Bullet ) ->
 	% Leading '~n' had been removed for some unknown reason:
-	io_lib:format( "~n~ts", [ string_list_to_string(
-								ListOfStrings, _Acc=[], Bullet ) ] ).
+	io_lib:format( "~n~ts", [ string_list_to_string( ListOfStrings, _Acc=[],
+													 Bullet ) ] ).
 
 
+% (helper)
+%
 string_list_to_string( _ListOfStrings=[], Acc, _Bullet ) ->
 	 Acc;
 
@@ -364,24 +443,35 @@ string_list_to_string( _ListOfStrings=[ H | T ], Acc, Bullet )
 						   Bullet ).
 
 
+
 % Returns a string which pretty-prints specified list of strings, with
 % enumerated (i.e. 1, 2, 3) bullets.
 %
 -spec strings_to_enumerated_string( [ ustring() ] ) -> ustring().
 strings_to_enumerated_string( ListOfStrings ) ->
+	strings_to_enumerated_string( ListOfStrings, _DefaultIndentationLevel=0 ).
+
+
+-spec strings_to_enumerated_string( [ ustring() ], indentation_level() ) ->
+										  ustring().
+strings_to_enumerated_string( ListOfStrings, IndentationLevel ) ->
+
+	Prefix = get_indentation_offset_for_level( IndentationLevel ),
 
 	{ _FinalCount, ReversedStrings } = lists:foldl(
 				 fun( String, _Acc={ Count, Strings } ) ->
 
-						 NewStrings = [ text_utils:format( "  ~B. ~ts~n",
-										   [ Count, String ] ) | Strings ],
-						 { Count + 1, NewStrings }
+					 NewStrings = [ text_utils:format( "~s~B. ~ts~n",
+									   [ Prefix, Count, String ] ) | Strings ],
+					 { Count + 1, NewStrings }
 
 				 end,
 				 _Acc0={ 1, "" },
 				 _List=ListOfStrings ),
 
-	lists:reverse( ReversedStrings ).
+	OrderedStrings = lists:reverse( ReversedStrings ),
+
+	format( "~n~s", [ lists:flatten( OrderedStrings ) ] ).
 
 
 
@@ -433,8 +523,9 @@ atom_list_to_string( ListOfAtoms ) ->
 atom_list_to_string( [], Acc ) ->
 	 Acc;
 
-atom_list_to_string( [ H | T ], Acc ) when is_atom( H)  ->
-	atom_list_to_string( T, Acc ++ io_lib:format( " + ~ts~n", [ H ] ) ).
+atom_list_to_string( [ H | T ], Acc ) when is_atom( H )  ->
+	atom_list_to_string( T, Acc ++ get_default_bullet() ++
+							 io_lib:format(  "~ts~n", [ H ] ) ).
 
 
 
@@ -535,11 +626,11 @@ distance_to_string( Millimeters ) ->
 
 	ListWithKm = case Millimeters div Km of
 
-				 0 ->
-					 [];
+		0 ->
+			[];
 
-				 KmNonNull->
-					 [ io_lib:format( "~Bkm", [ KmNonNull ] ) ]
+		KmNonNull->
+			[ io_lib:format( "~Bkm", [ KmNonNull ] ) ]
 
    end,
 
@@ -548,25 +639,24 @@ distance_to_string( Millimeters ) ->
 
 	ListWithMeters = case DistAfterKm div Meters of
 
-				 0 ->
-					 ListWithKm;
+		0 ->
+			ListWithKm;
 
-				 MetersNonNull->
-					 [ io_lib:format( "~Bm", [ MetersNonNull ] ) | ListWithKm ]
+		MetersNonNull->
+			[ io_lib:format( "~Bm", [ MetersNonNull ] ) | ListWithKm ]
 
-   end,
+	end,
 
 	DistAfterMeters = DistAfterKm rem Meters,
 	%io:format( "DistAfterMeters = ~B.~n", [ DistAfterMeters ] ),
 
 	ListWithCentimeters = case DistAfterMeters div Centimeters of
 
-				 0 ->
-					 ListWithMeters;
+		0 ->
+			ListWithMeters;
 
-				 CentNonNull->
-					 [ io_lib:format( "~Bcm", [ CentNonNull ] )
-					   | ListWithMeters ]
+		CentNonNull->
+			[ io_lib:format( "~Bcm", [ CentNonNull ] ) | ListWithMeters ]
 
    end,
 
@@ -575,12 +665,12 @@ distance_to_string( Millimeters ) ->
 
 	ListWithMillimeters = case DistAfterCentimeters of
 
-				 0 ->
-					 ListWithCentimeters;
+		0 ->
+			ListWithCentimeters;
 
-				 AtLeastOneMillimeter ->
-					 [ io_lib:format( "~Bmm", [ AtLeastOneMillimeter ] )
-					   | ListWithCentimeters ]
+		AtLeastOneMillimeter ->
+			 [ io_lib:format( "~Bmm", [ AtLeastOneMillimeter ] )
+			   | ListWithCentimeters ]
 
 	end,
 
@@ -689,56 +779,54 @@ duration_to_string( Milliseconds ) ->
 
 	ListWithDays = case Days of
 
-				   0 ->
-					   [];
+		0 ->
+			[];
 
-				   1 ->
-					   [ "1 day" ];
+		1 ->
+			[ "1 day" ];
 
-				   _ ->
-					   [ io_lib:format( "~B days", [ Days ] ) ]
+		_ ->
+			[ io_lib:format( "~B days", [ Days ] ) ]
 
 	end,
 
 	ListWithHours = case Hours of
 
-					0 ->
-						ListWithDays;
+		0 ->
+			ListWithDays;
 
-					1 ->
-						[ "1 hour" | ListWithDays ];
+		1 ->
+			[ "1 hour" | ListWithDays ];
 
-					_ ->
-						[ io_lib:format( "~B hours", [ Hours ] )
-						  | ListWithDays ]
+		_ ->
+			[ io_lib:format( "~B hours", [ Hours ] )
+			  | ListWithDays ]
 
 	end,
 
 	ListWithMinutes = case Minutes of
 
-					  0 ->
-						  ListWithHours;
+		0 ->
+		  ListWithHours;
 
-					  1 ->
-						  [ "1 minute" | ListWithHours ];
+		1 ->
+		  [ "1 minute" | ListWithHours ];
 
-					  _ ->
-						  [ io_lib:format( "~B minutes", [ Minutes ] )
-							   | ListWithHours ]
+		_ ->
+		  [ io_lib:format( "~B minutes", [ Minutes ] ) | ListWithHours ]
 
 	end,
 
 	ListWithSeconds = case Seconds of
 
-					  0 ->
-						  ListWithMinutes;
+		0 ->
+			ListWithMinutes;
 
-					  1 ->
-						  [ "1 second" | ListWithMinutes ];
+		1 ->
+			[ "1 second" | ListWithMinutes ];
 
-					  _ ->
-						  [ io_lib:format( "~B seconds", [ Seconds ] ) |
-							ListWithMinutes ]
+		_ ->
+			[ io_lib:format( "~B seconds", [ Seconds ] ) | ListWithMinutes ]
 
 	end,
 
@@ -746,16 +834,15 @@ duration_to_string( Milliseconds ) ->
 
 	ListWithMilliseconds = case ActualMilliseconds of
 
-					   0 ->
-						   ListWithSeconds;
+		0 ->
+			ListWithSeconds;
 
-					   1 ->
-						   [ "1 millisecond" | ListWithSeconds ];
+		1 ->
+			[ "1 millisecond" | ListWithSeconds ];
 
-					   _ ->
-						   [ io_lib:format( "~B milliseconds",
-											[ ActualMilliseconds ] )
-							 | ListWithSeconds ]
+		_ ->
+			[ io_lib:format( "~B milliseconds", [ ActualMilliseconds ] )
+			  | ListWithSeconds ]
 
 	end,
 
@@ -777,11 +864,9 @@ duration_to_string( Milliseconds ) ->
 
 % Formats specified string as io_lib:format/2 would do, except it returns a
 % flattened version of it and cannot fail (so that for example a badly formatted
-% log cannot crash anymore its emitter process).
-%
-% Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected
-% Unicode inputs resulting on crashes afterwards.
-%
+% log cannot crash anymore its emitter process).  Note: rely preferably on '~ts'
+% rather than on '~s', to avoid unexpected Unicode inputs resulting on crashes
+% afterwards.
 -spec format( format_string(), [ term() ] ) -> ustring().
 format( FormatString, Values ) ->
 
@@ -789,13 +874,12 @@ format( FormatString, Values ) ->
 
 				 io_lib:format( FormatString, Values )
 
-			 catch
+	catch
 
-				 _:_ ->
+		_:_ ->
 
-					 io_lib:format( "[error: badly formatted output] "
-									"Format: '~p', values: '~p'",
-									[ FormatString, Values ] )
+			io_lib:format( "[error: badly formatted output] Format: '~p', "
+						   "values: '~p'", [ FormatString, Values ] )
 
 	end,
 
@@ -820,13 +904,12 @@ bin_format( FormatString, Values ) ->
 
 				 io_lib:format( FormatString, Values )
 
-			 catch
+	catch
 
-				 _:_ ->
+		_:_ ->
 
-					 io_lib:format( "[error: badly formatted output] "
-									"Format: '~p', values: '~p'",
-									[ FormatString, Values ] )
+			io_lib:format( "[error: badly formatted output] Format: '~p', "
+						   "values: '~p'", [ FormatString, Values ] )
 
 	end,
 
@@ -835,19 +918,134 @@ bin_format( FormatString, Values ) ->
 
 
 
+
+% Note: we deemed safer to consider for ensure_*/1 that atoms shall not be
+% directly seen as possible inputs.
+
+
+% Returns a string version of the specified text-like parameter.
+%
+-spec ensure_string( any_string() ) -> string().
+ensure_string( String ) when is_list( String ) ->
+	String;
+
+ensure_string( BinString ) when is_binary( BinString ) ->
+	binary_to_string( BinString ).
+
+
+
+% Returns a binary string version of the specified text-like parameter.
+%
+-spec ensure_binary( any_string() ) -> binary().
+ensure_binary( BinString ) when is_binary( BinString ) ->
+	BinString;
+
+ensure_binary( String ) when is_list( String ) ->
+	string_to_binary( String ).
+
+
+
+
+% Returns the lexicographic distance between the two specified strings, i.e. the
+% minimal number of single-character changes in order to transform one string
+% into the other one.
+%
+% The strings are equal iff returns zero.
+%
+% Directly inspired from
+% https://rosettacode.org/wiki/Levenshtein_distance#Erlang and, on
+% https://en.wikibooks.org,
+% wiki/Algorithm_Implementation/Strings/Levenshtein_distance#Erlang.
+%
+% See also: https://en.wikipedia.org/wiki/Levenshtein_distance
+%
+%-spec get_lexicographic_distance_variant( string(), string() ) -> distance().
+
+% This basic implementation is correct, yet way too inefficient:
+%get_lexicographic_distance_variant( FirstString, _SecondString=[] ) ->
+%	length( FirstString );
+
+%get_lexicographic_distance_variant( _FirstString=[], SecondString ) ->
+%	length( SecondString );
+
+%get_lexicographic_distance_variant( _FirstString=[ H | T1 ],
+%									_SecondString=[ H | T2 ] ) ->
+%	get_lexicographic_distance_variant( T1, T2 );
+
+%get_lexicographic_distance_variant( FirstString=[ _H1 | T1 ],
+%									SecondString=[ _H2 | T2 ] ) ->
+%	1 + lists:min( [ get_lexicographic_distance_variant( FirstString, T2 ),
+%					 get_lexicographic_distance_variant( T1, SecondString ),
+%					 get_lexicographic_distance_variant( T1, T2 )
+%			   ] ).
+
+
+% Significantly more efficient version, using memoization:
+%
+-spec get_lexicographic_distance( string(), string() ) -> distance().
+get_lexicographic_distance( FirstString, SecondString ) ->
+	{ Distance, _NewAccTable } = get_lexicographic_distance( FirstString,
+										 SecondString, _AccTable=?table:new() ),
+	Distance.
+
+
+% Actual helper:
+get_lexicographic_distance( _FirstString=[], SecondString, AccTable ) ->
+	Len = length( SecondString ),
+	NewTable = ?table:addEntry( _K={ [], SecondString }, _V=Len, AccTable ),
+	{ Len, NewTable };
+
+get_lexicographic_distance( FirstString, _SecondString=[], AccTable ) ->
+	Len = length( FirstString ),
+	NewTable = ?table:addEntry( _K={ FirstString, [] }, _V=Len, AccTable ),
+	{ Len, NewTable };
+
+get_lexicographic_distance( _FirstString=[ H | T1 ], _SecondString=[ H | T2 ],
+							AccTable ) ->
+	get_lexicographic_distance( T1, T2 , AccTable );
+
+get_lexicographic_distance( FirstString=[ _H1 | T1 ], SecondString=[ _H2 | T2 ],
+							AccTable ) ->
+	Key = { FirstString, SecondString },
+	case ?table:lookupEntry( Key, AccTable ) of
+
+		{ value, Distance } ->
+			{ Distance, AccTable };
+
+		key_not_found ->
+			{ Len1, Table1 } = get_lexicographic_distance( FirstString, T2,
+														   AccTable ),
+			{ Len2, Table2 } = get_lexicographic_distance( T1, SecondString,
+														   Table1 ),
+			{ Len3, Table3 } = get_lexicographic_distance( T1, T2, Table2 ),
+			Len = 1 + lists:min( [ Len1, Len2, Len3 ] ),
+			{ Len, ?table:addEntry( Key, Len, Table3 ) }
+
+	end.
+
+
+
 % Converts a plain (list-based) string into a binary.
 %
 -spec string_to_binary( ustring() ) -> binary().
-string_to_binary( String ) ->
-	erlang:list_to_binary( String ).
+string_to_binary( String ) when is_list( String ) ->
+	erlang:list_to_binary( String );
+
+string_to_binary( Other ) ->
+	throw( { not_a_string, Other } ).
 
 
 
 % Converts a binary into a plain (list-based) string.
 %
 -spec binary_to_string( binary() ) -> ustring().
-binary_to_string( Binary ) ->
-	erlang:binary_to_list( Binary ).
+binary_to_string( Binary ) when is_binary( Binary ) ->
+	erlang:binary_to_list( Binary );
+
+binary_to_string( Other ) ->
+	throw( { not_a_binary_string, Other } ).
+
+
 
 
 
@@ -902,7 +1100,57 @@ string_to_integer( String ) ->
 -spec string_to_float( ustring() ) -> float().
 string_to_float( String ) ->
 
-	try list_to_float( String ) of
+	% Erlang is very picky (too much?) when interpreting floats-as-a-string: if
+	% there is an exponent, it shall be 'e' (preferably that 'E' which is
+	% nevertheless tolerated), and the mantissa must be a floating-point number
+	% (hence with a point, such as 3.0e2, not 3e2) and at least one figure must
+	% exist after the point (ex: 1.0e2 is accepted, 1.e2 not). Moreover the
+	% decimal mark must be '.' (ex: not ',').
+
+	% We overcome all these limitations here, so that for example -1,2E-4, 40E2
+	% and 1,E3 are accepted and interpreted correctly.
+
+	% Indeed, 'list_to_float("1e-4")' will raise badarg, whereas
+	% 'list_to_float("1.0e-4")' will be accepted.
+	%
+	% So: if there is no dot on the left of a 'e' or a 'E', add ".0".
+	% Moreover, "1.E-4" is also rejected, it must be fixed as well.
+
+	% First, normalise the string, by transforming any 'E' into 'e', and by
+	% converting any comma-based decimal mark into a dot:
+	%
+	LowerString = substitute( _SourceChar=$E, _TargetChar=$e, String ),
+
+	DotString = substitute( $,, $., LowerString ),
+
+	CandidateString = case split_at_first( $e, DotString ) of
+
+		none_found ->
+			% There was no exponent here:
+			String;
+
+		{ Left, Right } ->
+			NewLeft = case split_at_first( $., Left ) of
+
+				none_found ->
+					Left ++ ".0";
+
+				% Here there is a dot, yet there is no number afterward (ex:
+				% 1.E2), we fix it (to have 1.0E2):
+				%
+				{ DotLeft, _DotRight="" } ->
+					DotLeft ++ ".0";
+
+				{ _DotLeft, _DotRight } ->
+					% Already a dot, continue as is:
+					Left
+
+			end,
+			NewLeft ++ "e" ++ Right
+
+	end,
+
+	try list_to_float( CandidateString ) of
 
 		F ->
 			F
@@ -1061,17 +1309,75 @@ split_at_first( Marker, _ToRead=[ Other | T ], Read ) ->
 % return [ "They", "Said", "NYC", "Was", "Great" ].
 %
 -spec split_camel_case( ustring() ) -> [ ustring() ].
-split_camel_case( _String )->
-	% TO-DO:
-	%lists:reverse( split_camel_case( String, _CurrentWord=[], _AccWords=[] ) ).
-	%String.
+split_camel_case( String ) ->
 
-%% split_camel_case( _String=[ C | T ], CurrentWord, AccWords )->
+	case is_uppercase( hd( String ) ) of
 
-%%	case is_uppercase( C ) of
+		true ->
 
-%%		true ->
-	throw( not_implemented_yet ).
+			split_camel_case( String, [] );
+
+		false ->
+			throw( { not_camel_case_string, String } )
+
+	end.
+
+split_camel_case( _String=[], Acc ) ->
+	lists:reverse( Acc );
+
+split_camel_case( _String=[ HeadChar | MoreChars ], Acc ) ->
+
+	case is_uppercase( HeadChar ) of
+
+		true ->
+
+			% is_uppercase rertuns 'true' if a char is unchanged by 'to_upper',
+			% hence non-letter characters will be let in the second string:
+			IsLowercase = fun( C ) ->
+								  not is_uppercase( C )
+						  end,
+
+			{ TailOfWord, MoreWords } = lists:splitwith( IsLowercase,
+														 MoreChars ),
+
+			NewWord = [ HeadChar | TailOfWord ],
+
+			split_camel_case( MoreWords, [ NewWord | Acc ] );
+
+		false ->
+
+			% Discards the non-letter characters:
+			split_camel_case( MoreChars, Acc )
+
+	end.
+
+
+
+% Splits the specified string into a list of strings, based on the list of
+% separating characters provided in SeparatorsList, then turns these resulting
+% strings in th Capitalized Case (all lower-case except for the first letter)
+% and finally joins them to get a long CamelCased string.
+%
+% Ex: tokenizable_to_camel_case( "industrial_WASTE_sOuRCe", "_" ) shall return
+% "IndustrialWasteSource", while tokenizable_to_camel_case( "ME HAZ READ J.R.R",
+% ". " ) shall return "MeHazReadJRR".
+%
+-spec tokenizable_to_camel_case( ustring(), ustring() ) -> ustring().
+tokenizable_to_camel_case( String, SeparatorsList ) ->
+
+	% Separates the tokens:
+	Tokens = string:tokens( String, SeparatorsList ),
+
+	% Makes all the tokens lower-case if needed:
+	LowerCaseTokens = [ string:to_lower( Str ) || Str <- Tokens ],
+
+	% Capitalizes all lower-cased tokens:
+	CamelCaseTokens = [ uppercase_initial_letter( Str )
+						|| Str <- LowerCaseTokens ],
+
+	% Concatenates the capitalized tokens:
+	lists:concat( CamelCaseTokens ).
+
 
 
 
@@ -1188,7 +1494,8 @@ remove_ending_carriage_return( String ) when is_list( String ) ->
 
 
 
-% Removes the last Count characters from String.
+% Removes the last Count characters from specified string, and returns the
+% result.
 %
 -spec remove_last_characters( ustring(), basic_utils:count() ) -> ustring().
 remove_last_characters( String, Count ) ->
@@ -1207,35 +1514,44 @@ remove_last_characters( String, Count ) ->
 	end.
 
 
+% Removes all whitespaces from specified string, and returns the result.
+%
+-spec remove_whitespaces( ustring() ) -> ustring().
+remove_whitespaces( String ) ->
+	re:replace( String, "\s", "", [ global, unicode, { return, list } ] ).
 
-% Removes all leading and trailing whitespaces.
+
+% Removes all leading and trailing whitespaces from specified string, and
+% returns the result.
 %
 -spec trim_whitespaces( ustring() ) -> ustring().
-trim_whitespaces( InputString ) ->
+trim_whitespaces( String ) ->
 
 	% Should be done in one pass:
-	trim_leading_whitespaces( trim_trailing_whitespaces( InputString ) ).
+	trim_leading_whitespaces( trim_trailing_whitespaces( String ) ).
 
 
 
-% Removes all leading whitespaces.
+% Removes all leading whitespaces from specified string, and returns the result.
 %
 -spec trim_leading_whitespaces( ustring() ) -> ustring().
-trim_leading_whitespaces( InputString ) ->
+trim_leading_whitespaces( String ) ->
 
 	% Largely inspired from http://www.trapexit.org/Trimming_Blanks_from_String:
-	re:replace( InputString, "^\\s*", "",
-				[ unicode, { return, list } ] ).
+	re:replace( String, "^\\s*", "", [ unicode, { return, list } ] ).
 
 
 
-% Removes all trailing whitespaces.
+% Removes all trailing whitespaces from specified string, and returns the
+% result.
 %
 -spec trim_trailing_whitespaces( ustring() ) -> ustring().
-trim_trailing_whitespaces( InputString ) ->
+trim_trailing_whitespaces( String ) ->
 
-	% The $ confuses some syntax highlighting systems (like the one of emacs):
-	re:replace( InputString, "\\s*$", "", [ unicode, { return, list } ] ).
+	% The $ confuses some syntax highlighting systems (like the one of some
+	% emacs):
+	%
+	re:replace( String, "\\s*$", "", [ unicode, { return, list } ] ).
 
 
 
@@ -1383,6 +1699,25 @@ is_string( _Other ) ->
 
 
 
+% Returns true iif the parameter is a (non-nested) non-empty string (actually a
+% plain list of at least one integer).
+%
+-spec is_non_empty_string( term() ) -> boolean().
+is_non_empty_string( [] ) ->
+	% Shall be not empty:
+	false;
+
+is_non_empty_string( [ H ] ) when is_integer( H ) ->
+	true;
+
+is_non_empty_string( [ H | T ] ) when is_integer( H ) ->
+	is_non_empty_string( T );
+
+is_non_empty_string( _Other ) ->
+	false.
+
+
+
 % Returns true iff the specified parameter is a list whose all elements are
 % strings.
 %
@@ -1401,6 +1736,19 @@ is_list_of_strings( [ H | T ] ) ->
 			false
 
 	end.
+
+
+% Returns true iff the specified parameter is a binary string.
+%
+-spec is_bin_string( term() ) -> boolean().
+is_bin_string( Term ) when is_binary( Term ) ->
+	%is_string( binary_to_list( Term ) );
+	true;
+
+is_bin_string( _Term ) ->
+	false.
+
+
 
 
 

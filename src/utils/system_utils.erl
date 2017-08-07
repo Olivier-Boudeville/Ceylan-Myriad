@@ -1,4 +1,4 @@
-% Copyright (C) 2010-2016 Olivier Boudeville
+% Copyright (C) 2010-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -90,6 +90,21 @@
 		  get_system_description/0 ]).
 
 
+% Prerequisite-related section.
+
+% Name of a (third-party) prerequisite package (ex: "ErlPort", "jsx", etc.).
+%
+-type package_name() :: string().
+
+-export_type([ package_name/0 ]).
+
+
+-export([ get_dependency_base_directory/1, get_dependency_code_directory/1,
+		  is_json_support_available/0, get_json_unavailability_hint/0,
+		  is_hdf5_support_available/0, get_hdf5_unavailability_hint/0  ]).
+
+
+
 % Size, in number of bytes:
 -type byte_size() :: integer().
 
@@ -155,7 +170,7 @@
 		   % Number of available inodes:
 		   available_inodes :: basic_utils:count()
 
-		  } ).
+} ).
 
 
 -type fs_info() :: #fs_info{}.
@@ -168,9 +183,10 @@
 -type command() :: text_utils:ustring().
 
 
-% Return code of a run executable (a.k.a. exit status):
+% Return the (positive integer) return code of an executable being run
+% (a.k.a. exit status):
 %
-% (0 means success, strictly positive mean error)
+% (0 means success, while a strictly positive value means error)
 %
 -type return_code() :: basic_utils:count().
 
@@ -252,9 +268,23 @@
 
 % Returns the name of the current user, as a plain string.
 %
--spec get_user_name() -> 'false' | string().
+-spec get_user_name() -> string().
 get_user_name() ->
-	os:getenv( "USER" ).
+
+	case os:getenv( "USER" ) of
+
+		false ->
+
+			trace_utils:error( "The name of the user could not be "
+							   "obtained from the shell environment "
+							   "(no USER variable defined)." ),
+
+			throw( user_name_not_found_in_environment );
+
+		UserName ->
+			UserName
+
+	end.
 
 
 
@@ -270,8 +300,9 @@ get_user_name_string() ->
 		io_lib:format( "user name: ~ts", [ get_user_name() ] )
 
 	catch _AnyClass:Exception ->
-			io_lib:format( "no user name information could be obtained (~p)",
-						   [ Exception ] )
+
+		io_lib:format( "no user name information could be obtained (~p)",
+					   [ Exception ] )
 
 	end.
 
@@ -308,8 +339,9 @@ get_user_home_directory_string() ->
 					   [ get_user_home_directory() ] )
 
 	catch _AnyClass:Exception ->
-			io_lib:format( "no home directory information could be "
-						   "obtained (~p)", [ Exception ] )
+
+		io_lib:format( "no home directory information could be "
+					   "obtained (~p)", [ Exception ] )
 
 	end.
 
@@ -318,11 +350,17 @@ get_user_home_directory_string() ->
 % Lower-level services.
 
 
-% Awaits the completion of a io:format request.
+% Awaits the completion of an output operation (ex: io:format/2).
 %
 % Especially useful when displaying an error message on the standard output and
 % then immediately halting the VM, in order to avoid a race condition between
 % the displaying and the halting.
+%
+% We use a relatively short waiting here, just out of safety. It may be in some
+% cases insufficient (ex: for error traces to be sent, received and stored
+% *before* the VM is halted after a throw/1 that may be executed just after).
+%
+% In this case, await_output_completion/1 should be used, with a larger delay.
 %
 -spec await_output_completion() -> basic_utils:void().
 
@@ -330,7 +368,7 @@ get_user_home_directory_string() ->
 
 % Default time-out duration (one second):
 await_output_completion() ->
-	await_output_completion( _TimeOut=1000 ).
+	await_output_completion( _TimeOut=10 ).
 
 -else. % debug_mode_is_enabled
 
@@ -338,8 +376,10 @@ await_output_completion() ->
 % Extended time-out (one minute), if for example being in production, on a
 % possibly heavily loaded system:
 %
+% (warning: this may impact adversely the timing if intensive logging is used)
+%
 await_output_completion() ->
-	await_output_completion( _TimeOut=60000 ).
+	await_output_completion( _TimeOut=200 ).
 
 -endif. % debug_mode_is_enabled
 
@@ -352,7 +392,7 @@ await_output_completion() ->
 % then immediately halting the VM, in order to avoid a race condition between
 % the displaying and the halting.
 %
--spec await_output_completion(_) -> basic_utils:void().
+-spec await_output_completion( unit_utils:millisecond() ) -> basic_utils:void().
 await_output_completion( TimeOut ) ->
 
 	% Not sure it is really the proper way of waiting, however should be still
@@ -362,13 +402,12 @@ await_output_completion( TimeOut ) ->
 
 	%io:format( "(awaiting output completion)~n", [] ),
 
-	% We had added finally a short waiting, just out of safety:
-	%
-	%timer:sleep( 200 ),
-	%
-	% yet it was slowing down the tests too much, hence probably just a yield:
+	% Almost just a yield:
 	timer:sleep( 10 ),
 
+	%io:format( "(output completed)~n", [] ),
+
+	% Does not seem always sufficient:
 	sys:get_status( error_logger, TimeOut ).
 
 
@@ -447,11 +486,11 @@ run_executable( Command, Environment, WorkingDir ) ->
 
 	PortOptsWithPath = case WorkingDir of
 
-						   undefined ->
-							   PortOpts;
+		undefined ->
+			PortOpts;
 
-						   _ ->
-							   [ { cd, WorkingDir } | PortOpts ]
+		_ ->
+			[ { cd, WorkingDir } | PortOpts ]
 
 	end,
 
@@ -685,10 +724,9 @@ run_background_executable( Command, Environment, WorkingDir ) ->
 	% the current process, so we sacrifice a process here - yet we monitor it:
 	%
 	spawn_link( fun() ->
-						_Port = run_executable( Command, Environment,
-												WorkingDir )
-						% Not very useful, as nothing to monitor normally:
-						%monitor_port( Port, _Data=[] )
+					_Port = run_executable( Command, Environment, WorkingDir )
+					% Not very useful, as nothing to monitor normally:
+					%monitor_port( Port, _Data=[] )
 				end ).
 
 
@@ -729,9 +767,7 @@ get_environment_prefix( Environment ) ->
 	% We do not specifically *unset* a variable whose value is false, we set it
 	% to an empty string:
 	%
-	VariableStrings = [
-
-						begin
+	VariableStrings = [ begin
 
 							ActualValue = case Value of
 
@@ -745,9 +781,7 @@ get_environment_prefix( Environment ) ->
 
 							io_lib:format( "~s=~s", [ Name, ActualValue ] )
 
-						end
-
-						|| { Name, Value } <- Environment ],
+						end || { Name, Value } <- Environment ],
 
 	text_utils:join( _Separator=" ", VariableStrings ).
 
@@ -928,8 +962,9 @@ get_size_of_vm_word_string() ->
 					   [ get_size_of_vm_word() ] )
 
 	catch _AnyClass:Exception ->
-			io_lib:format( "size of a VM word could not be obtained (~p)",
-						   [ Exception ] )
+
+		io_lib:format( "size of a VM word could not be obtained (~p)",
+					   [ Exception ] )
 
 	end.
 
@@ -966,58 +1001,55 @@ interpret_byte_size( SizeInBytes ) ->
 
 	ListWithGiga = case SizeInBytes div Giga of
 
-					 0 ->
-						 [];
+		0 ->
+			[];
 
-					 GigaNonNull->
-						 [ io_lib:format( "~B GiB", [ GigaNonNull ] ) ]
+		GigaNonNull->
+			[ io_lib:format( "~B GiB", [ GigaNonNull ] ) ]
 
-				   end,
+	end,
 
 	SizeAfterGiga = SizeInBytes rem Giga,
 	%io:format( "SizeAfterGiga = ~B.~n", [ SizeAfterGiga ] ),
 
 	ListWithMega = case SizeAfterGiga div Mega of
 
-				 0 ->
-						 ListWithGiga;
+		0 ->
+			ListWithGiga;
 
-				 MegaNonNull->
-					 [ io_lib:format( "~B MiB",
-									  [ MegaNonNull ] ) | ListWithGiga ]
+		MegaNonNull->
+			[ io_lib:format( "~B MiB", [ MegaNonNull ] ) | ListWithGiga ]
 
-				   end,
+	end,
 
 	SizeAfterMega = SizeAfterGiga rem Mega,
 	%io:format( "SizeAfterMega = ~B.~n", [ SizeAfterMega ] ),
 
 	ListWithKilo = case SizeAfterMega div Kilo of
 
-				 0 ->
-					 ListWithMega;
+		0 ->
+			ListWithMega;
 
-				 KiloNonNull->
-					[ io_lib:format( "~B KiB", [ KiloNonNull ] )
-					  | ListWithMega ]
+		KiloNonNull->
+			[ io_lib:format( "~B KiB", [ KiloNonNull ] ) | ListWithMega ]
 
-				   end,
+	end,
 
 	SizeAfterKilo = SizeAfterMega rem Kilo,
 	%io:format( "SizeAfterKilo = ~B.~n", [ SizeAfterKilo ] ),
 
 	ListWithByte = case SizeAfterKilo rem Kilo of
 
-					 0 ->
-						ListWithKilo ;
+		0 ->
+			ListWithKilo ;
 
-					 1->
-						 [ "1 byte" | ListWithKilo ];
+		1->
+			[ "1 byte" | ListWithKilo ];
 
-					 AtLeastTwoBytes ->
-						 [ io_lib:format( "~B bytes", [ AtLeastTwoBytes ] )
-						   | ListWithKilo ]
+		AtLeastTwoBytes ->
+			 [ io_lib:format( "~B bytes", [ AtLeastTwoBytes ] ) | ListWithKilo ]
 
-				   end,
+	end,
 
 	%io:format( "Unit list is: ~w.~n", [ ListWithByte ] ),
 
@@ -1550,8 +1582,9 @@ get_core_count_string() ->
 		io_lib:format( "number of cores: ~B", [ get_core_count() ] )
 
 	catch _AnyClass:Exception ->
-			io_lib:format( "no core information could be obtained (~p)",
-						   [ Exception ] )
+
+		io_lib:format( "no core information could be obtained (~p)",
+					   [ Exception ] )
 
 	end.
 
@@ -1580,8 +1613,9 @@ get_process_count_string() ->
 					  [ get_process_count() ] )
 
 	catch _AnyClass:Exception ->
-			io_lib:format( "no information about the number of live Erlang "
-						   "processes could be obtained (~p)", [ Exception ] )
+
+		io_lib:format( "no information about the number of live Erlang "
+					   "processes could be obtained (~p)", [ Exception ] )
 
 	end.
 
@@ -1705,11 +1739,10 @@ get_cpu_usage_counters() ->
 	StatString = case run_executable( "cat /proc/stat | grep 'cpu '" ) of
 
 		{ _ExitCode=0, Output } ->
-						 Output;
+			Output;
 
 		{ ExitCode, ErrorOutput } ->
-						 throw( { cpu_counters_inquiry_failed, ExitCode,
-								  ErrorOutput } )
+			throw( { cpu_counters_inquiry_failed, ExitCode, ErrorOutput } )
 
 	end,
 
@@ -1946,13 +1979,12 @@ filesystem_info_to_string( #fs_info{ filesystem=Fs, mount_point=Mount,
 	% For example vfat does not have inodes:
 	InodeString = case Uinodes + Ainodes of
 
-					  0 ->
-						  "";
+		0 ->
+			"";
 
-					  S ->
-						  Percent = 100 * Uinodes / S,
-						  text_utils:format( ", hence used at ~.1f%",
-											 [ Percent ] )
+		S ->
+			Percent = 100 * Uinodes / S,
+			text_utils:format( ", hence used at ~.1f%", [ Percent ] )
 
 	end,
 
@@ -2075,30 +2107,137 @@ get_system_description() ->
 	% We use ~ts instead of ~s as in some cases, Unicode strings might be
 	% returned:
 	%
-	Subjects = [
-
-		get_core_count_string(),
-
-		get_size_of_vm_word_string(),
-
-		get_operating_system_description_string(),
-
-		get_process_count_string(),
-
-		get_total_physical_memory_string(),
-
-		get_ram_status_string(),
-
-		get_swap_status_string(),
-
-		get_user_name_string(),
-
-		get_user_home_directory_string(),
-
-		get_current_directory_string(),
-
-		get_disk_usage_string()
-
-				],
+	Subjects = [ get_core_count_string(),
+				 get_size_of_vm_word_string(),
+				 get_operating_system_description_string(),
+				 get_process_count_string(),
+				 get_total_physical_memory_string(),
+				 get_ram_status_string(),
+				 get_swap_status_string(),
+				 get_user_name_string(),
+				 get_user_home_directory_string(),
+				 get_current_directory_string(),
+				 get_disk_usage_string() ],
 
 	text_utils:strings_to_string( Subjects ).
+
+
+
+% Prerequisite section.
+
+% We suppose that by default all third-party dependencies (example taken here:
+% the Foobar software) are conventionally installed under a common base
+% directory, which is in turn conventionally named and located just under the
+% user directory.
+%
+% More precisely, on Unix systems, our convention requests the base directory of
+% all (third-party) dependencies to be '~/Software/'.
+%
+% We expect to have then the name of each prerequisite specified in CamelCase;
+% ex: '~/Software/Foobar/'.
+%
+% Finally, each version thereof shall be installed in that directory (ex: a
+% clone of the Foobar repository that could be named
+% '~/Software/Foobar/foobar-20170601'), and be designated by a symbolic link
+% named 'Foobar-current-install', still defined in '~/Software/Foobar'.
+%
+% As a result, one then can always access the current version of Foobar through
+% the '~/Software/Foobar/Foobar-current-install' path (possibly pointing to
+% successive versions thereof over time).
+
+
+% Returns the (expected, conventional) base installation directory of the
+% specified third-party, prerequisite package (ex: "Foobar").
+%
+-spec get_dependency_base_directory( package_name() ) ->
+										   file_utils:directory_name().
+get_dependency_base_directory( PackageName="ErlPort" ) ->
+
+	% ErlPort must be special-cased, as its actual base installation directory
+	% *must* be named "erlport" (otherwise the interpreter initialization may
+	% fail on new nodes with the {not_found,"erlport/priv"} error; so:
+
+	PathComponents = [ get_user_home_directory(), "Software", PackageName,
+					   "erlport" ],
+
+	file_utils:normalise_path( file_utils:join( PathComponents ) );
+
+
+get_dependency_base_directory( PackageName ) ->
+
+	% Expected to return a fully resolved version of the
+	% "$HOME/Software/Foobar/Foobar-current-install" path, such as
+	% "/home/stallone/Software/Foobar/Foobar-current-install":
+	%
+	PathComponents = [ get_user_home_directory(), "Software", PackageName,
+					   PackageName ++ "-current-install" ],
+
+	file_utils:normalise_path( file_utils:join( PathComponents ) ).
+
+
+
+% Returns the (expected, conventional) code installation directory of the
+% specified third-party, prerequisite, Erlang package (ex: "Foobar").
+%
+-spec get_dependency_code_directory( package_name() ) ->
+										   file_utils:directory_name().
+get_dependency_code_directory( PackageName ) ->
+
+	% We would expect here
+	% /home/stallone/Software/Foobar/Foobar-current-install/ebin:
+	%
+	file_utils:join( get_dependency_base_directory( PackageName ), "ebin" ).
+
+
+
+% Tells whether a JSON support is available.
+%
+-spec is_json_support_available() -> boolean().
+is_json_support_available() ->
+	% This module can be built in all cases:
+	rest_utils:is_json_parser_available().
+
+
+% Returns a string explaining what to do in order to have the JSON support
+% available.
+%
+-spec get_json_unavailability_hint() -> string().
+get_json_unavailability_hint() ->
+	"Hint: inspect, in common/GNUmakevars.inc, the USE_REST and "
+	"JSX_BASE variables.".
+
+
+
+% Tells whether an HDF5 support is available.
+%
+-spec is_hdf5_support_available() -> boolean().
+is_hdf5_support_available() ->
+
+	% Unlike dependencies like jsx whose compilation (in rest_utils.erl) do not
+	% need any specific *.hrl header (therefore rest_utils:start/0 is available
+	% in all cases), hdf5_support needs one (erlhdf5.hrl), hence the
+	% hdf5_support module may not be built at all, and thus will not be
+	% available even in order to provide a means of telling whether HDF can be
+	% supported.
+	%
+	% So:
+	%
+	case code_utils:is_beam_in_path( hdf5_support ) of
+
+		not_found ->
+			false;
+
+		_Paths ->
+			true
+
+	end.
+
+
+
+% Returns a string explaining what to do in order to have the HDF5 support
+% available.
+%
+-spec get_hdf5_unavailability_hint() -> string().
+get_hdf5_unavailability_hint() ->
+	"Hint: inspect, in common/GNUmakevars.inc, the USE_HDF5 and "
+	"ERLHDF5_BASE variables.".

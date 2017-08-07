@@ -1,4 +1,4 @@
-% Copyright (C) 2013-2016 Olivier Boudeville
+% Copyright (C) 2013-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -42,7 +42,8 @@
 
 
 % The type of data-structure accounting for storing the already-explored
-% vertices (semantically used as a list):
+% vertices (semantically used as a list; note: it is actually a set, hence with
+% no user-defined order nor duplicates possible...):
 %
 -define( list_impl, gb_sets ).
 

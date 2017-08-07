@@ -10,7 +10,7 @@ This includes:
 
 - a set of pre-defined Make **variables**, describing various settings that will be reused by generic rules (ex: to compile modules with relevant flags, to create source archives, to install an application, to manage the various paths, to perform test checking, to generate archives, installs and releases, etc.); these variables are defined in ``common/src/GNUmakevars.inc``
 
-- a set of generic **rules**, to compile and run various modules and tests, to generate various elements of documentation, etc.; these rules are defined in ``common/src/GNUmakerules.inc``
+- a set of generic **rules**, to compile and run various modules and tests, to generate various elements of documentation, etc.; these rules are defined in ``common/GNUmakerules.inc``
 
 - **examples** of minimal Make files, that mostly specify the relative base path and only refer to the generic variables and rules; see ``common/src/GNUmakefile`` as an example
 

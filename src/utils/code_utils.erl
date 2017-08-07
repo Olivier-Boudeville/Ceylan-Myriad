@@ -1,4 +1,4 @@
-% Copyright (C) 2007-2016 Olivier Boudeville
+% Copyright (C) 2007-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -34,11 +34,13 @@
 -module(code_utils).
 
 
--export([ get_code_for/1, deploy_modules/2, deploy_modules/3,
+-export([ get_code_for/1, get_md5_for_loaded_module/1,
+		  get_md5_for_stored_module/1, is_loaded_module_same_on_filesystem/1,
+		  deploy_modules/2, deploy_modules/3,
 		  declare_beam_directory/1, declare_beam_directory/2,
 		  declare_beam_directories/1, declare_beam_directories/2,
 		  get_code_path/0,
-		  list_beams_in_path/0, is_beam_in_path/1,
+		  list_beams_in_path/0, get_beam_filename/1, is_beam_in_path/1,
 		  interpret_stacktrace/0, interpret_stacktrace/1, interpret_stacktrace/2
 		]).
 
@@ -58,14 +60,19 @@
 -type stack_trace() :: [ stack_item() ].
 
 
+% The file extension of a BEAM file:
+-define( beam_extension, ".beam" ).
+
 
 % Code-related functions.
 
 
-% Returns a { ModuleBinary, ModuleFilename } pair for the module specified as an
-% atom, or throws an exception.
+% Returns, by searching the code path, the in-file object code for specified
+% module, i.e. a { ModuleBinary, ModuleFilename } pair for the module specified
+% as an atom, or throws an exception.
 %
--spec get_code_for( module() ) -> { binary(), file:filename() }.
+-spec get_code_for( basic_utils:module_name() ) ->
+						  { binary(), file:filename() }.
 get_code_for( ModuleName ) ->
 
 	case code:get_object_code( ModuleName ) of
@@ -78,6 +85,41 @@ get_code_for( ModuleName ) ->
 
 	end.
 
+
+
+% Returns the MD5 for the specified loaded (in-memory, used by the VM) module.
+%
+% Otherwise returns a undefined function exception (ModuleName:module_info/1).
+%
+-spec get_md5_for_loaded_module( basic_utils:module_name() ) ->
+									   executable_utils:md5_sum().
+get_md5_for_loaded_module( ModuleName ) ->
+	ModuleName:module_info( md5 ).
+
+
+
+% Returns the MD5 for the specified stored (on filesystem, found through the
+% code path) module.
+%
+-spec get_md5_for_stored_module( basic_utils:module_name() ) ->
+									   executable_utils:md5_sum().
+get_md5_for_stored_module( ModuleName ) ->
+	{ BinCode, _ModuleFilename } = get_code_for( ModuleName ),
+	{ ok, { ModuleName, MD5SumBin } } = beam_lib:md5( BinCode ),
+	binary_to_integer( MD5SumBin, _Base=16 ).
+
+
+
+% Tells whether the specified (supposedly loaded) module is the same as the one
+% found through the code path.
+%
+-spec is_loaded_module_same_on_filesystem( basic_utils:module_name() ) ->
+												 boolean().
+is_loaded_module_same_on_filesystem( ModuleName ) ->
+	LoadedMD5 = get_md5_for_loaded_module( ModuleName ),
+	StoredMD5 = get_md5_for_stored_module( ModuleName ),
+	%io:format( "Loaded MD5: ~p~nStored MD5: ~p~n", [ LoadedMD5, StoredMD5 ] ),
+	LoadedMD5 == StoredMD5.
 
 
 
@@ -289,7 +331,8 @@ check_beam_dirs( _Dirs=[] ) ->
 
 check_beam_dirs( _Dirs=[ D | T ] ) ->
 
-	case file_utils:is_existing_directory( D ) of
+	% We allow symlinks (ex: for ~/Software/X/X-current-install):
+	case file_utils:is_existing_directory_or_link( D ) of
 
 		true ->
 			check_beam_dirs( T );
@@ -323,9 +366,21 @@ list_beams_in_path() ->
 	% Directly inspired from:
 	% http://alind.io/post/5664209650/all-erlang-modules-in-the-code-path
 
-	[ list_to_atom( filename:basename( File, ".beam" ) )
+	[ list_to_atom( filename:basename( File, ?beam_extension ) )
 		|| Path <- code:get_path(),
 		   File <- filelib:wildcard( "*.beam", Path ) ].
+
+
+
+% Returns the filename of the BEAM file corresponding to specified module.
+%
+-spec get_beam_filename( basic_utils:module_name() ) -> file_utils:file_name().
+get_beam_filename( ModuleName ) when is_atom( ModuleName ) ->
+
+	ModuleNameString = text_utils:atom_to_string( ModuleName ),
+
+	ModuleNameString ++ ?beam_extension.
+
 
 
 
@@ -347,7 +402,8 @@ is_beam_in_path( ModuleName ) when is_atom( ModuleName ) ->
 		   [ file_utils:normalise_path( file_utils:join( Path, File ) )
 			 || Path <- code:get_path(),
 				File <- filelib:wildcard( "*.beam", Path ),
-				filename:basename( File, ".beam" ) =:= ModuleNameString ] ) of
+				filename:basename( File, ?beam_extension ) =:=
+					ModuleNameString ] ) of
 
 		[] ->
 			not_found;

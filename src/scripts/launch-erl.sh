@@ -44,6 +44,7 @@ max_process_count=400000
 #max_process_count=120000000
 
 
+# Often it is recommended that at least 12 threads per core are requested:
 asynch_thread_count=128
 
 
@@ -236,6 +237,7 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ] ; do
 	fi
 
 	if [ "$1" = "--daemon" ] ; then
+		#echo "(running in daemon mode)"
 		use_run_erl=0
 		#in_background=0
 		token_eaten=0
@@ -649,7 +651,7 @@ if [ $use_run_erl -eq 0 ] ; then
 
 	# while [ -z "$erl_pid" ] ; do
 
-	# erl_pid=$(ps -edF -w -w | grep beam.smp | grep "launch-erl-pid" | awk '{print $2}')
+	# erl_pid=$(ps -edf -w -w | grep beam.smp | grep "launch-erl-pid" | awk '{print $2}')
 	# ps -edf | grep beam.smp
 	# echo "erl_pid = $erl_pid"
 
@@ -673,7 +675,7 @@ res=$?
 if [ ! $res -eq 0 ] ; then
 
 	reset_keyboard
-	echo "Command failed, with error result $res." 1>&2
+	echo "(command failed, with error result $res)" 1>&2
 	exit $res
 
 fi
@@ -731,7 +733,7 @@ if [ $use_run_erl -eq 0 ] && [ $autostart -eq 0 ] ; then
 	done
 
 	wait_count=0
-	wait_max=5
+	wait_max=2
 
 	# If a node with the same name already exists, the write pipe will exist for
 	# a brief time then will be removed:
@@ -744,7 +746,7 @@ if [ $use_run_erl -eq 0 ] && [ $autostart -eq 0 ] ; then
 
 		if [ ! -e "${write_pipe}" ] ; then
 
-			echo -e "\n  Error, launch failed, write pipe disappeared. Check that a node with the same name is not already existing.\n" 1>&2
+			echo -e "\n  Error, launch failed, write pipe disappeared. Check that a node with the same name is not already existing, or that the launched code does not crash at start-up.\n" 1>&2
 
 			exit 55
 
@@ -760,7 +762,7 @@ if [ $use_run_erl -eq 0 ] && [ $autostart -eq 0 ] ; then
 	echo "  ** Node '${actual_name}' ready and running as a daemon."
 
 	echo "  ** Use 'to_erl $run_pipe' to connect to that node."
-	echo "  ** To exit without killing the node, use CTRL-D."
+	echo "  ** (then type CTRL-D to exit without killing the node)"
 	echo -e "  **************************************************************"
 
 

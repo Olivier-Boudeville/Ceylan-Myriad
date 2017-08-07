@@ -1,4 +1,4 @@
-% Copyright (C) 2011-2016 Olivier Boudeville
+% Copyright (C) 2011-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -78,8 +78,8 @@
 
 % Same as hashtable:
 -export([ new/0, new/1, new_with_buckets/1, addEntry/3, addEntries/2,
-		  removeEntry/2, lookupEntry/2, hasEntry/2,
-		  getEntry/2, extractEntry/2, getValues/2, getAllValues/2,
+		  removeEntry/2, lookupEntry/2, hasEntry/2, getEntry/2,
+		  extractEntry/2, getEntryOrValue/3, getValues/2, getAllValues/2,
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToEntry/3, deleteFromEntry/3, popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
@@ -340,6 +340,19 @@ extractEntry( Key, _TrackedHashtable={ Hashtable, NEnt, NBuck } ) ->
 
 	{ Value, NewTrackedTable }.
 
+
+
+% Looks for a given entry in a table and returns the default value specified in
+% arguments if it is not found.
+%
+% Note: one should be aware that the value found in the table is allowed to be
+% identical to the one returned by default, and should use this function only
+% when it is the expected behaviour.
+%
+-spec getEntryOrValue( key(), tracked_hashtable(), value() ) -> value().
+getEntryOrValue( Key, _TrackedHashtable={ Hashtable, _NEnt, _NBuck },
+				 DefaultValue ) ->
+	hashtable:getEntryOrValue( Key, Hashtable, DefaultValue ).
 
 
 

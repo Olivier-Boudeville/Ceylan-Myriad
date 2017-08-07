@@ -1,4 +1,4 @@
-% Copyright (C) 2015-2016 Olivier Boudeville
+% Copyright (C) 2015-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -106,14 +106,14 @@ generate( ModuleName, Table ) ->
 
 			% Matches the module name:
 			{ ok, ModuleName, BinaryOrCode } ->
-							   BinaryOrCode;
+				BinaryOrCode;
 
 			Error ->
-							   throw( { generation_failed, ModuleName, Error } )
+				throw( { generation_failed, ModuleName, Error } )
 
 	end,
 
-	code:load_binary( ModuleName, PseudoModuleFilename, BinaryObjectCode ),
+	code:load_binary( ModuleName, PseudoModuleFilename, BinaryObjectCode ).
 
 	% Contains for example '{foobar,"const_table_generated_foobar.beam"}':
 	%
@@ -121,8 +121,6 @@ generate( ModuleName, Table ) ->
 
 	% We loaded this new module also as otherwise any previous various version
 	% of it would still be used instead.
-
-	ok.
 
 
 

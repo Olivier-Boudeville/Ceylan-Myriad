@@ -1,4 +1,4 @@
-% Copyright (C) 2011-2016 Olivier Boudeville
+% Copyright (C) 2011-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -30,28 +30,61 @@
 -define(data_types_hrl_guard,).
 
 
+% The *_impl macros (ex: list_impl, set_impl) allow to select once for all the
+% datatypes whose use is promoted internally, possibly with additional
+% operations offered (see {list,set}_utils.erl).
+
+
+%
+% List section.
+%
+
 % When needing random access to a potentially long list (ex: removing a specific
 % element), using a plain list is less efficient than using more advanced
 % containers.
 
 
+% Expected supported API-related conventions from any list_impl variant:
+%
+% list_impl_type()
+%
+% new/0
+% is_empty/1
+% from_list/1
+% to_list/1
+% is_member/2
+% is_element/2
+% iterator/1
+% next/1
+% add/2
+% add_element/2
+% delete/2
+% del_element/2
 
-% The list_impl macro allows to select once for all the list datatype that
-% should be used internally:
+
+% Note: this list_impl type should respect the implicit contracts of a list,
+% such as being ordered, allowing duplicates, etc.
 %
-% (gb_sets seems indeed the most suitable choice, but some measurements should
-% be made to be sure of it)
+% As a consequence, ordsets and gb_sets cannot be used (they neither respect
+% user-defined order nor support duplicates); for example:
+
+% 1> A=gb_sets:new().
+% 2> gb_sets:to_list(A).
+% []
+% 3> B=gb_sets:add_element(1,A).
+% 4> gb_sets:to_list(B).
+% [1]
+% 5> C=gb_sets:add_element(1,B).
+% 6> gb_sets:to_list(C).
+% [1]
+
+
+% So we ultimately switched back to plain list, until finding better-scaling
+% replacements:
 %
-% Note: this list_impl type should respect the gb_sets API and implicit
-% contracts (ex: adding an element more than once must not change the data
-% structure).
+% (specifying a module here)
 %
-% Note: there are semantic differences between plain lists and list_impl
-% ones. For example, a plain list can contain the same element more than once,
-% while a list_impl cannot (i.e. union/2 will not result in duplicates).
-%
-%-define(list_impl,ordsets).
--define(list_impl,gb_sets).
+-define( list_impl, lists ).
 
 
 % For homogeneous lists (at least to declare them as such):
@@ -60,15 +93,48 @@
 
 % The type of list_impl, for specifications:
 %
--define(list_impl_type,gb_sets:set()).
+-define( list_impl_type, list() ).
 
-% No compliant with success typings:
-%-define(list_impl_type,set()).
+-define( list_impl_type( T ), [ T ] ).
 
 
-% All kind of lists:
+% Any kind of lists:
 %
 -type any_list() :: list() | ?list_impl_type.
+
+
+
+
+%
+% Set section.
+%
+
+
+% Note: the default support for set is provided by the set_utils module, which
+% provides a more complete, base implementation.
+
+% Here the user-defined order may not be respected, and any element can be
+% included only once (next additions will not change the container).
+
+% Note: this set_impl type should respect the gb_sets API and implicit
+% contracts.
+
+
+% The actual module used for our sets:
+%
+% (we prefer 'ordsets' to provide a different choice than the one set_utils is
+% based on)
+%
+%-define( set_impl, gb_sets ).
+-define( set_impl, ordsets ).
+
+
+% The type of set_impl, for specifications:
+%
+-define( set_impl_type, ordsets:ordset( any() ) ).
+
+-define( set_impl_type(T), ordsets:ordset( T ) ).
+
 
 
 -endif. % data_types_hrl_guard

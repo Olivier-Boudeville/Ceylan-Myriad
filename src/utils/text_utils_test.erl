@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2016 Olivier Boudeville
+% Copyright (C) 2003-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -129,25 +129,71 @@ run() ->
 							   text_utils:string_list_to_atom_list(
 								 ListOfStrings ) ] ),
 
+
 	FirstTestString = "Hello world!",
 
-	test_facilities:display( "Determining whether '~p' is a string: ~w.",
-		[ FirstTestString, text_utils:is_string( FirstTestString ) ] ),
+	test_facilities:display( "Determining whether '~p' is a string: ~w; "
+							 "a non-empty string: ~w",
+							 [ FirstTestString,
+							   text_utils:is_string( FirstTestString ),
+							   text_utils:is_non_empty_string( FirstTestString )
+							 ] ),
 
 	true = text_utils:is_string( FirstTestString ),
+	true = text_utils:is_non_empty_string( FirstTestString ),
+
 
 	SecondTestString = [ $o, [ $s, $d ], $l ],
 
-	test_facilities:display( "Determining whether '~p' is a string: ~w.",
-		[ SecondTestString, text_utils:is_string( SecondTestString ) ] ),
+	test_facilities:display( "Determining whether '~p' is a string: ~w; "
+							 "a non-empty string: ~w",
+							 [ SecondTestString,
+							   text_utils:is_string( SecondTestString ),
+							   text_utils:is_non_empty_string( SecondTestString )
+							 ] ),
 
 	false = text_utils:is_string( SecondTestString ),
+	false = text_utils:is_non_empty_string( SecondTestString ),
+
 
 	ThirdTestString = [ $e, 1, 2, $r ],
 
-	test_facilities:display( "Determining whether '~p' is a string: ~w.",
-		[ ThirdTestString, text_utils:is_string( ThirdTestString ) ] ),
+	test_facilities:display( "Determining whether '~p' is a string: ~w; "
+							 "a non-empty string: ~w",
+							 [ ThirdTestString,
+							   text_utils:is_string( ThirdTestString ),
+							   text_utils:is_non_empty_string( ThirdTestString )
+							 ] ),
+
 	true = text_utils:is_string( ThirdTestString ),
+	true = text_utils:is_non_empty_string( ThirdTestString ),
+
+
+	FourthTestString = an_atom,
+
+	test_facilities:display( "Determining whether '~p' is a string: ~w; "
+							 "a non-empty string: ~w",
+							 [ FourthTestString,
+							   text_utils:is_string( FourthTestString ),
+							   text_utils:is_non_empty_string( FourthTestString )
+							 ] ),
+
+	false = text_utils:is_string( FourthTestString ),
+	false = text_utils:is_non_empty_string( FourthTestString ),
+
+
+	FifthTestString = "",
+
+	test_facilities:display( "Determining whether '~p' is a string: ~w; "
+							 "a non-empty string: ~w",
+							 [ FifthTestString,
+							   text_utils:is_string( FifthTestString ),
+							   text_utils:is_non_empty_string( FifthTestString )
+							 ] ),
+
+	true = text_utils:is_string( FifthTestString ),
+	false = text_utils:is_non_empty_string( FifthTestString ),
+
 
 	FirstList = [],
 	test_facilities:display(
@@ -201,7 +247,12 @@ run() ->
 
 	10.0 = text_utils:string_to_float( "10" ),
 	10.0 = text_utils:string_to_float( "10.0" ),
+	-1.2e-4 = text_utils:string_to_float( "-1,2E-4" ),
+	4.0e3 = text_utils:string_to_float( "40E2"),
+	1.0e3 = text_utils:string_to_float( "1,E3"),
+
 	try
+
 		text_utils:string_to_float( "Not a float" )
 
 	catch
@@ -224,6 +275,36 @@ run() ->
 			  "When strings: ~s are converted into atoms, we have: ~w.",
 			  [ text_utils:string_list_to_string( OtherStringList ),
 				text_utils:strings_to_atoms( OtherStringList ) ] ),
+
+
+	RefString = "Hello world",
+
+	CompareStrings = [ RefString, "Hello", "HELLO WORLD", "Hello Walter",
+					   "Little red rooster", RefString ++ " foobar" ],
+
+	ResultStrings = [ text_utils:format( "'~s': ~B", [ S,
+			text_utils:get_lexicographic_distance( RefString, S )
+						] ) || S <- CompareStrings ],
+
+	test_facilities:display( "Lexicographic distance between '~s' and:~s",
+		[ RefString, text_utils:strings_to_string( ResultStrings ) ] ),
+
+	% Variant tested yet way too slow, hence fully disabled:
+	%VariantResultStrings = [ text_utils:format( "'~s': ~B", [ S,
+	%		text_utils:get_lexicographic_distance_variant( RefString, S )
+	%					] ) || S <- CompareStrings ],
+
+	%test_facilities:display( "Lexicographic distance between '~s' "
+	%						 "and (variant):~s",
+	%	[ RefString, text_utils:strings_to_string( VariantResultStrings ) ] ),
+
+	IndentationLevel = 3,
+	NumberedString = text_utils:strings_to_enumerated_string( CompareStrings,
+														  IndentationLevel ),
+
+	test_facilities:display( "Numbered list with indentation level ~B:~s",
+							 [ IndentationLevel, NumberedString ] ),
+
 
 	test_facilities:display( "Testing the textual conversion of distances:" ),
 

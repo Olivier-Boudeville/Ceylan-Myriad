@@ -1,4 +1,4 @@
-% Copyright (C) 2015-2016 Olivier Boudeville
+% Copyright (C) 2015-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -25,6 +25,8 @@
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
 
 
+% A simple target module in order to test how parse transforms can operate.
+%
 -module(simple_parse_transform_target).
 
 
