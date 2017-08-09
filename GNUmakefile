@@ -2,7 +2,8 @@ COMMON_TOP = .
 
 
 .PHONY: help help-intro help-common help-hints                                \
-		register-version-in-header register-common info-paths info-settings
+		register-version-in-header register-common list-beam-dirs             \
+		info-paths info-settings
 
 #MODULES_DIRS = contrib src doc
 MODULES_DIRS = src doc
@@ -65,6 +66,13 @@ register-version-in-header:
 
 register-common:
 	@echo "-define( common_version, \"$(COMMON_VERSION)\" )." >> $(VERSION_FILE)
+
+
+
+# Useful to extract internal layout for re-use in upper layers:
+list-beam-dirs:
+	@for d in $(COMMON_BEAM_DIRS) ; do echo $$(readlink -f $$d) ; done
+
 
 
 add-prerequisite-plts: prepare-base-plt \
