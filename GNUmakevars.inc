@@ -446,9 +446,17 @@ ifndef VM_TEST_NAME
 endif
 
 
+ifndef COOKIE
 
-#DISTRIBUTED_NODE_OPT := -sname $(VM_NAME) -setcookie $(PROJECT_NAME)
-DISTRIBUTED_NODE_OPT := -name $(VM_NAME)@$(FQDN) -setcookie $(PROJECT_NAME)
+  COOKIE := "ceylan_myriad_cookie"
+
+endif
+
+
+COOKIE_OPT = -c $(COOKIE)
+
+#DISTRIBUTED_NODE_OPT := -sname $(VM_NAME) -setcookie $(COOKIE)
+DISTRIBUTED_NODE_OPT := -name $(VM_NAME)@$(FQDN) -setcookie $(COOKIE)
 
 
 STARTUP_FUNCTION := run
@@ -689,9 +697,9 @@ SCALE_OPT := $(BUSY_LIMIT_OPT)
 # now that user-defined code paths are absolute, thus significantly longer
 #
 # OVERRIDDEN_OPT left for the user.
-ERL_PARAMETERIZED_LAUNCHER = $(ERL_LAUNCHER) $(FQDN_OPT) $(FIREWALL_OPT) \
-							 $(MAX_PROCESS_OPT) $(ASYNC_THREAD_OPT)      \
-							 $(BEAM_PATH_OPT) $(SCALE_OPT)               \
+ERL_PARAMETERIZED_LAUNCHER = $(ERL_LAUNCHER) $(FQDN_OPT) $(FIREWALL_OPT)  \
+							 $(MAX_PROCESS_OPT) $(ASYNC_THREAD_OPT)       \
+							 $(BEAM_PATH_OPT) $(SCALE_OPT) $(COOKIE_OPT)  \
 							 $(OVERRIDDEN_OPT)
 
 
