@@ -67,8 +67,8 @@
 		  updateEntry/3, updateEntries/2,
 		  removeEntry/2, removeExistingEntry/2,
 		  lookupEntry/2, hasEntry/2, getEntry/2,
-		  extractEntry/2, getEntryOrValue/3, getEntries/2,
-		  getValue/2, getValues/2, getAllValues/2,
+		  extractEntry/2, getEntries/2,
+		  getValue/2, getValues/2, getValueWithDefaults/3, getAllValues/2,
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToExistingEntry/3, appendListToExistingEntry/3,
 		  appendToEntry/3, appendListToEntry/3,
@@ -380,27 +380,6 @@ getValue( Key, MapHashtable ) ->
 
 
 
-% Looks for a given entry in a table and returns the default value specified in
-% arguments if it is not found.
-%
-% Note: one should be aware that the value found in the table is allowed to be
-% identical to the one returned by default, and should use this function only
-% when it is the expected behaviour.
-%
--spec getEntryOrValue( key(), map_hashtable(), value() ) -> value().
-getEntryOrValue( Key, MapHashtable, DefaultValue ) ->
-
-	case maps:find( Key, MapHashtable ) of
-
-		{ ok, Value } ->
-			Value;
-
-		error ->
-			DefaultValue
-
-	end.
-
-
 
 % Returns the (ordered) list of values that correspond to the specified
 % (ordered) list of keys of this table.
@@ -428,6 +407,24 @@ getEntries( Keys, Hashtable ) ->
 				_List=Keys ),
 
 	lists:reverse( RevValues ).
+
+
+
+% Looks for specified entry in specified table and, if found, returns the
+% associated value; otherwise returns the specified default value.
+%
+-spec getValueWithDefaults( key(), value(), map_hashtable() ) -> value().
+getValueWithDefaults( Key, DefaultValue, MapHashtable ) ->
+
+	case maps:find( Key, MapHashtable ) of
+
+		{ ok, Value } ->
+			Value;
+
+		error ->
+			DefaultValue
+
+	end.
 
 
 
