@@ -306,8 +306,8 @@ register_as( Name, RegistrationType ) ->
 -spec register_as( pid(), registration_name(), registration_scope() ) -> void().
 register_as( Pid, Name, local_only ) when is_atom( Name ) ->
 
-	%io:format( "register_as: local_only, with PID=~w and Name='~p'.~n",
-	%		  [ Pid, Name ] ),
+	%trace_utils:debug_fmt( "register_as: local_only, with PID=~w and Name='~p'.",
+	%					   [ Pid, Name ] ),
 
 	try erlang:register( Name, Pid ) of
 
@@ -316,13 +316,37 @@ register_as( Pid, Name, local_only ) when is_atom( Name ) ->
 
 	catch
 
+		error:badarg ->
+
+			case is_registered( Name, local ) of
+
+				% No more information obtained:
+				not_registered ->
+					throw( { local_registration_failed, Name,
+							 { error, badarg } } );
+
+				Pid ->
+					throw( { local_registration_failed, Name,
+							 already_registered, Pid } );
+
+				RegPid ->
+					throw( { local_registration_failed, Name,
+							 already_registered, { Pid, RegPid } } )
+
+			end;
+
 		ExceptionType:Exception ->
 			throw( { local_registration_failed, Name,
 					 { ExceptionType, Exception } } )
 
 	end;
 
+
 register_as( Pid, Name, global_only ) when is_atom( Name ) ->
+
+	%trace_utils:debug_fmt( "register_as: global_only, with PID=~w and Name='~p'.",
+	%					   [ Pid, Name ] ),
+
 	case global:register_name( Name, Pid ) of
 
 		yes ->
