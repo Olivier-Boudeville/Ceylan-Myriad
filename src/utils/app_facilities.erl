@@ -68,7 +68,11 @@ stop() ->
 -spec display( string() ) -> basic_utils:void().
 display( Message ) ->
 	% Carriage return already added in basic_utils:display/1:
-	basic_utils:display( lists:flatten( Message ) ).
+	%
+	% (empty format string added to force elements in message such as '~n' to be
+	% transformed)
+	%
+	basic_utils:display( lists:flatten( Message ), _ValueList=[] ).
 
 
 % Displays an application message, once formatted.
