@@ -46,7 +46,7 @@
 		  get_node_naming_mode/0, get_naming_compliant_hostname/2,
 		  generate_valid_node_name_from/1, get_fully_qualified_node_name/3,
 		  launch_epmd/0, launch_epmd/1, enable_distribution/2,
-		  shutdown_node/1 ]).
+		  shutdown_node/0, shutdown_node/1 ]).
 
 
 % Net-related command line options.
@@ -565,19 +565,20 @@ check_node_availability( Nodename ) when is_atom( Nodename ) ->
 
 	% Useful to troubleshoot longer ping durations:
 	% (apparently this may come from badly configured DNS)
-	%io:format( "Pinging node '~s'...~n", [ Nodename ] ),
-
+	%trace_utils:debug_fmt( "Pinging node '~s'...~n", [ Nodename ] ),
 
 	case net_adm:ping( Nodename ) of
 
 		pong ->
-			%io:format( "... node '~s' found available from node '~s'.~n",
-			%		  [ Nodename, node() ] ),
+			%trace_utils:debug_fmt(
+			%   "... node '~s' found available from node '~s'.",
+			%	[ Nodename, node() ] ),
 			true ;
 
 		pang ->
-			%io:format( "... node '~s' found NOT available from node '~s'.~n",
-			%		  [ Nodename, node() ] ),
+			%trace_utils:debug_fmt(
+			%   "... node '~s' found NOT available from node '~s'.",
+			%	[ Nodename, node() ] ),
 			false
 
 	end.
@@ -932,6 +933,22 @@ enable_distribution_helper( NodeName, NameType, NamingMode,
 
 
 
+% Shutdowns current node, and never returns (unlike init:stop/0): it is a
+% reliable and synchronous operation.
+%
+% Throws an exception if not able to terminate it.
+%
+-spec shutdown_node() -> no_return().
+shutdown_node() ->
+
+	init:stop(),
+
+	timer:sleep( 5000 ),
+
+	shutdown_node().
+
+
+
 % Shutdowns specified node (specified as a string or an atom), and returns only
 % when it cannot be ping'ed anymore: it is a reliable and synchronous operation.
 %
@@ -1081,13 +1098,14 @@ get_node_name_option( NodeName, NodeNamingMode ) ->
 
 	NodeNameOption = case NodeNamingMode of
 
-		  short_name ->
-			 "-sname";
+		short_name ->
+			"-sname";
 
-		  long_name ->
-			 "-name"
+		long_name ->
+			"-name"
 
 	end,
+
 	NodeNameOption ++ " " ++ NodeName.
 
 
