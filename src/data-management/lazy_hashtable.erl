@@ -285,10 +285,10 @@ extractEntry( Key, _LazyHashtable={ Hashtable, OpCount } ) ->
 % Looks for specified entry in specified table and, if found, returns the
 % associated value; otherwise returns the specified default value.
 %
--spec getValueWithDefaults( key(), lazy_hashtable(), value() ) -> value().
-getValueWithDefaults( Key, _LazyHashtable={ Hashtable, _OpCount },
-					  DefaultValue ) ->
-	hashtable:getValueWithDefaults( Key, Hashtable, DefaultValue ).
+-spec getValueWithDefaults( key(), value(), lazy_hashtable() ) -> value().
+getValueWithDefaults( Key, DefaultValue, 
+					  _LazyHashtable={ Hashtable, _OpCount } ) ->
+	hashtable:getValueWithDefaults( Key, DefaultValue, Hashtable ).
 
 
 

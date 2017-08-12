@@ -345,10 +345,10 @@ extractEntry( Key, _TrackedHashtable={ Hashtable, NEnt, NBuck } ) ->
 % Looks for specified entry in specified table and, if found, returns the
 % associated value; otherwise returns the specified default value.
 %
--spec getValueWithDefaults( key(), tracked_hashtable(), value() ) -> value().
-getValueWithDefaults( Key, _TrackedHashtable={ Hashtable, _NEnt, _NBuck },
-				 DefaultValue ) ->
-	hashtable:getValueWithDefaults( Key, Hashtable, DefaultValue ).
+-spec getValueWithDefaults( key(), value(), tracked_hashtable() ) -> value().
+getValueWithDefaults( Key, DefaultValue,
+					  _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
+	hashtable:getValueWithDefaults( Key, DefaultValue, Hashtable ).
 
 
 

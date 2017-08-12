@@ -240,8 +240,8 @@ extractEntry( Key, Hashtable ) ->
 % Looks for specified entry in specified table and, if found, returns the
 % associated value; otherwise returns the specified default value.
 %
--spec getValueWithDefaults( key(), list_hashtable(), value() ) -> value().
-getValueWithDefaults( Key, Hashtable, DefaultValue ) ->
+-spec getValueWithDefaults( key(), value(), list_hashtable() ) -> value().
+getValueWithDefaults( Key, DefaultValue, Hashtable ) ->
 
 	case lists:keyfind( Key, _N=1, Hashtable ) of
 

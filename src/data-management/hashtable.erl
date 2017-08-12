@@ -421,8 +421,8 @@ extractEntry( Key, Hashtable ) ->
 % Looks for specified entry in specified table and, if found, returns the
 % associated value; otherwise returns the specified default value.
 %
--spec getValueWithDefaults( key(), hashtable(), value() ) -> value().
-getValueWithDefaults( Key, Hashtable, DefaultValue ) ->
+-spec getValueWithDefaults( key(), value(), hashtable() ) -> value().
+getValueWithDefaults( Key, DefaultValue, Hashtable ) ->
 
 	case lookupInList( Key, element( get_bucket_index( Key, Hashtable ),
 									 Hashtable ) ) of
