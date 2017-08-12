@@ -289,20 +289,27 @@ $(COMMON_TOP)/src/data-management/map_hashtable.beam: $(COMMON_TOP)/src/data-man
 
 
 
-# Interactive variants, for service debugging (note that %_exec_service are at
-# least as convenient for debugging):
+# Interactive variants, for service debugging.
 #
-# (these rules uses a standard 'erl -eval' put in the background, i.e the VM
-# runs in detached mode, yet run_erl is not used)
+# These rules used to rely on a standard 'erl -eval' put in the background, with
+# the --background option, i.e so that the VM was run in detached mode (yet
+# without run_erl).
+#
+# There was also a final '&', leading to a crash ("*** Terminating erlang...")
+# most probably because the VM was twice set in background.
+#
+# One may get rid in all cases of that '&', and the --background option may or
+# may not be added. Its main drawback is that no output or activity is then
+#  shown on the console.
 #
 %_exec_service_debug: %_app.beam %.beam
 	@echo "		Executing application $^ as a debugged service (first form)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_exec_service_debug$$||1') --background --eval $$(echo $@|sed 's|_exec_service_debug$$|_app:exec()|1') $(INTERNAL_OPTIONS) $(CMD_LINE_OPT) &
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_exec_service_debug$$||1') --eval $$(echo $@|sed 's|_exec_service_debug$$|_app:exec()|1') $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
 
 
 %_exec_service_debug: %_app.beam
 	@echo "		Executing application $^ as a debugged service (second form)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_exec_service_debug$$||1') --background --eval $$(echo $@|sed 's|_exec_service_debug$$|_app:exec()|1') $(INTERNAL_OPTIONS) $(CMD_LINE_OPT) &
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_exec_service_debug$$||1') --eval $$(echo $@|sed 's|_exec_service_debug$$|_app:exec()|1') $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
 
 
 
