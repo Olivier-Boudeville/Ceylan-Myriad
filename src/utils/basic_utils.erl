@@ -44,6 +44,7 @@
 		  get_registered_names/1,
 
 		  is_registered/1, is_registered/2,
+		  wait_for_registration_of/2,
 		  wait_for_global_registration_of/1, wait_for_global_registration_of/2,
 		  wait_for_local_registration_of/1,
 		  wait_for_remote_local_registrations_of/2,
@@ -636,6 +637,20 @@ is_registered( Name, _LookUpScope=global_only ) ->
 
 
 
+% Waits (up to a few seconds) until specified name is registered, within
+% specified scope.
+%
+% Returns the resolved PID, or throws an exception.
+%
+-spec wait_for_registration_of( registration_name(), look_up_scope() ) -> pid().
+wait_for_registration_of( Name, _LookUpScope=global_only ) ->
+	wait_for_global_registration_of( Name );
+
+wait_for_registration_of( Name, _LookUpScope=local_only ) ->
+	wait_for_local_registration_of( Name ).
+
+% (other scopes not managed)
+
 
 
 % Waits (up to 10 seconds) until specified name is globally registered.
@@ -737,11 +752,12 @@ wait_for_remote_local_registrations_of( RegisteredName, Nodes,
 		true ->
 
 			% Happens regularly on some settings:
-			%io:format( "~nwait_for_remote_local_registrations_of: for ~p, "
-			%		  "retry needed ~n~n", [ Nodes ] ),
+			%trace_utils:debug_fmt( "wait_for_remote_local_registrations_of: "
+			%   "for ~p, retry needed.", [ Nodes ] ),
 
-			% At least one node not ready (we do not know which), waiting a bit
-			% for it:
+			% At least one node not ready (we do not know which one), waiting a
+			% bit for it:
+			%
 			timer:sleep( 500 ),
 			wait_for_remote_local_registrations_of( RegisteredName, Nodes,
 													RemainingAttempts - 1 );
