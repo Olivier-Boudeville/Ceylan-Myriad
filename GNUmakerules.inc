@@ -86,7 +86,7 @@ TEST_TARGETS = $(patsubst %.erl,%,$(TEST_SOURCES))
 # not taken into account at run-time, as not recompiled).
 
 
-.PHONY: all all-pre-hook all-parallel-recurse all-recurse					\
+.PHONY: all all-pre-hook all-parallel-recurse all-recurse rebuild			\
 	test test-recurse doc-recurse build-tests launch						\
 	install-all install-announce install-ebin install-bin install-src		\
 	install-include install-examples install-test install-doc				\
@@ -180,6 +180,9 @@ all-recurse: $(BEAM_FILES)
 %_parse_transform.beam: %_parse_transform.erl
 	@echo "		Compiling parse transform $<"
 	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $@ $<
+
+
+rebuild: clean all
 
 
 
