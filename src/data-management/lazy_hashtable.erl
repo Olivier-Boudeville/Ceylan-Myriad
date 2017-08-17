@@ -286,7 +286,7 @@ extractEntry( Key, _LazyHashtable={ Hashtable, OpCount } ) ->
 % associated value; otherwise returns the specified default value.
 %
 -spec getValueWithDefaults( key(), value(), lazy_hashtable() ) -> value().
-getValueWithDefaults( Key, DefaultValue, 
+getValueWithDefaults( Key, DefaultValue,
 					  _LazyHashtable={ Hashtable, _OpCount } ) ->
 	hashtable:getValueWithDefaults( Key, DefaultValue, Hashtable ).
 

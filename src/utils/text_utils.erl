@@ -864,9 +864,13 @@ duration_to_string( Milliseconds ) ->
 
 % Formats specified string as io_lib:format/2 would do, except it returns a
 % flattened version of it and cannot fail (so that for example a badly formatted
-% log cannot crash anymore its emitter process).  Note: rely preferably on '~ts'
-% rather than on '~s', to avoid unexpected Unicode inputs resulting on crashes
-% afterwards.
+% log cannot crash anymore its emitter process).
+%
+% Tries to never crash.
+%
+% Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected
+% Unicode inputs resulting on crashes afterwards.
+%
 -spec format( format_string(), [ term() ] ) -> ustring().
 format( FormatString, Values ) ->
 
@@ -878,8 +882,9 @@ format( FormatString, Values ) ->
 
 		_:_ ->
 
-			io_lib:format( "[error: badly formatted output] Format: '~p', "
-						   "values: '~p'", [ FormatString, Values ] )
+			io_lib:format( "[error: badly formatted output] "
+						   "Format string was '~p', values were '~p'.",
+						   [ FormatString, Values ] )
 
 	end,
 
@@ -1029,7 +1034,18 @@ get_lexicographic_distance( FirstString=[ _H1 | T1 ], SecondString=[ _H2 | T2 ],
 %
 -spec string_to_binary( ustring() ) -> binary().
 string_to_binary( String ) when is_list( String ) ->
-	erlang:list_to_binary( String );
+	try
+
+		erlang:list_to_binary( String )
+
+	catch Class:Exception ->
+
+		% Ex: might be triggered if String=[8364] ('euro' character), possibly
+		% if being fed with Unicode string.
+		%
+		throw( { invalid_string, String, Class, Exception } )
+
+	end;
 
 string_to_binary( Other ) ->
 	throw( { not_a_string, Other } ).

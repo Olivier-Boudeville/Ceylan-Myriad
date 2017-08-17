@@ -75,6 +75,8 @@ run() ->
 
 	[ 12, 4, 2, 56 ] = list_utils:remove_last_element( CorrectShortenList ),
 
+	{ 0, [ 12, 4, 13, 2, 56 ] } = list_utils:extract_last_element( L ),
+
 	1 = list_utils:get_index_of( 12, CorrectShortenList ),
 	2 = list_utils:get_index_of(  4, CorrectShortenList ),
 	5 = list_utils:get_index_of(  0, CorrectShortenList  ),

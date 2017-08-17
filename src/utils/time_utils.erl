@@ -88,8 +88,7 @@
 		  get_duration/2, get_duration_since/1, get_textual_duration/2,
 		  get_precise_timestamp/0, get_precise_duration/2,
 		  get_precise_duration_since/1,
-		  get_date_after/2
-		]).
+		  get_date_after/2 ]).
 
 
 

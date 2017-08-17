@@ -256,19 +256,57 @@
 
 
 
--export_type([
+% Monitoring section.
 
-			  void/0, count/0, bit_mask/0, uuid/0, reason/0, exit_reason/0,
-			  error_reason/0, error_term/0, base_status/0, maybe/1,
-			  external_data/0, unchecked_data/0, user_data/0,
-			  accumulator/0, sortable_id/0,
-			  registration_name/0, registration_scope/0, look_up_scope/0,
-			  version_number/0, version/0, two_digit_version/0, any_version/0,
-			  positive_index/0,
-			  module_name/0, function_name/0, argument/0, command_spec/0,
-			  user_name/0, atom_user_name/0,
-			  comparison_result/0, exception_class/0, status_code/0
-			  ]).
+-type monitor_reference() :: reference().
+
+
+% The types of elements that can be monitored:
+-type monitored_element_type() :: 'process' | 'port' | 'clock'.
+
+
+% Monitoring an Erlang process:
+-type monitored_process() :: erlang:monitor_process_identifier().
+
+
+% Monitoring an Erlang port:
+-type monitored_port() :: erlang:monitor_port_identifier().
+
+
+% Monitoring time offsets:
+-type monitored_clock() :: 'clock_service'.
+
+
+% An actual element being monitored:
+-type monitored_element() :: monitored_process() | monitored_port()
+						   | monitored_clock().
+
+
+% This information may be:
+%
+% - the exit reason of the process
+%
+% - or 'noproc' (process or port did not exist at the time of monitor creation)
+%
+% - or 'noconnection' (no connection to the node where the monitored process
+% resides)
+%
+-type monitor_info() :: exit_reason() | 'noproc' | 'noconnection'.
+
+
+-export_type([ void/0, count/0, bit_mask/0, uuid/0, reason/0, exit_reason/0,
+			   error_reason/0, error_term/0, base_status/0, maybe/1,
+			   external_data/0, unchecked_data/0, user_data/0,
+			   accumulator/0, sortable_id/0,
+			   registration_name/0, registration_scope/0, look_up_scope/0,
+			   version_number/0, version/0, two_digit_version/0, any_version/0,
+			   positive_index/0,
+			   module_name/0, function_name/0, argument/0, command_spec/0,
+			   user_name/0, atom_user_name/0,
+			   comparison_result/0, exception_class/0, status_code/0,
+			   monitor_reference/0, monitored_element_type/0,
+			   monitored_process/0, monitored_port/0, monitored_clock/0,
+			   monitored_element/0, monitor_info/0 ]).
 
 
 
@@ -306,8 +344,8 @@ register_as( Name, RegistrationType ) ->
 -spec register_as( pid(), registration_name(), registration_scope() ) -> void().
 register_as( Pid, Name, local_only ) when is_atom( Name ) ->
 
-	%trace_utils:debug_fmt( "register_as: local_only, with PID=~w and Name='~p'.",
-	%					   [ Pid, Name ] ),
+	%trace_utils:debug_fmt( "register_as: local_only, "
+	%                       "with PID=~w and Name='~p'.", [ Pid, Name ] ),
 
 	try erlang:register( Name, Pid ) of
 
@@ -1577,7 +1615,13 @@ display( Message ) ->
 %
 -spec display( text_utils:format_string(), [ any() ] ) -> void().
 display( Format, Values ) ->
-	display( io_lib:format( Format, Values ) ).
+
+	%io:format( "Displaying format '~p' and values '~p'.~n",
+	%		   [ Format, Values ] ),
+
+	Message = text_utils:format( Format, Values ),
+
+	display( Message ).
 
 
 

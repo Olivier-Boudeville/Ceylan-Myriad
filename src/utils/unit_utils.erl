@@ -401,12 +401,19 @@
 							 | 'unspecified_unit'.
 
 
+% For non-SI units that cannot be anticipated (ex: teqCO2, singaporean dollar of
+% 2012, number of people, etc.)
+%
+-type non_standard_unit_symbol() :: atom().
+
+
 % All unit symbols (actually not used as such):
 %
 -type unit_symbol() :: base_unit_symbol()
 					 | derived_unit_symbol()
 					 | widely_used_unit_symbol()
-					 | special_unit_symbol().
+					 | special_unit_symbol()
+					 | non_standard_unit_symbol().
 
 
 % The string counterparts of unit symbols (ex: "eV" instead of 'eV'), used for
@@ -417,7 +424,7 @@
 
 -export_type([ base_unit_symbol/0, derived_unit_symbol/0,
 			   widely_used_unit_symbol/0, special_unit_symbol/0,
-			   unit_symbol/0 ]).
+			   non_standard_unit_symbol/0, unit_symbol/0 ]).
 
 
 % Metric prefix (like 'kilo', to specify kilograms from grams):
@@ -492,7 +499,7 @@
 	mole    = 0 :: exponent(),
 	candela = 0 :: exponent(),
 
-	% other_units = [] :: [ { non_standard_unit(), exponent() } ]
+	other_units = [] :: [ { non_standard_unit_symbol(), exponent() } ],
 
 	% Exponent of 10:
 	%
@@ -515,10 +522,10 @@
 
 
 -type derived_unit_name() :: 'hertz' | 'radian' | 'steradian' | 'newton'
-							 | 'pascal' | 'joule' | 'watt' | 'coulomb' | 'volt'
-							 | 'farad' | 'ohm' | 'siemens' | 'weber' | 'tesla'
-							 | 'henry' | 'degree Celsius' | 'lumen' | 'lux'
-							 | 'becquerel' | 'gray' | 'sievert' | 'katal'.
+						   | 'pascal' | 'joule' | 'watt' | 'coulomb' | 'volt'
+						   | 'farad' | 'ohm' | 'siemens' | 'weber' | 'tesla'
+						   | 'henry' | 'degree Celsius' | 'lumen' | 'lux'
+						   | 'becquerel' | 'gray' | 'sievert' | 'katal'.
 
 
 -type widely_used_unit_name() :: 'minute' | 'hour' | 'litre' | 'tonne'
@@ -817,7 +824,7 @@ get_order_for_prefix( PrefixSymbol ) ->
 
 		% Includes false:
 		_ ->
-			throw( { unsupported_prefix, PrefixSymbol } )
+			unknown_prefix
 
 	end.
 
@@ -855,6 +862,8 @@ get_order_for_prefix( PrefixSymbol ) ->
 								   { numerical_value(), canonical_unit() }.
 parse_value_with_unit( InputString ) ->
 
+	%trace_utils:debug_fmt( "Parsing value with unit '~s'.", [ InputString ] ),
+
 	TrimString = text_utils:trim_whitespaces( InputString ),
 
 	InternalDelimiters = text_utils:list_whitespaces(),
@@ -879,6 +888,9 @@ parse_value_with_unit( InputString ) ->
 			throw( { too_many_value_components, Other } )
 
 	end,
+
+	%trace_utils:debug_fmt( "As strings, value is '~s', unit is '~s'.",
+	%					   [ ValueString, UnitString ] ),
 
 	Value = parse_as_float( ValueString ),
 
@@ -924,24 +936,24 @@ parse_as_float( StringValue ) ->
 -spec parse_unit( string() ) -> canonical_unit().
 parse_unit( UnitString ) ->
 
-	%io:format( "Parsing unit '~s'.~n", [ UnitString ] ),
+	%trace_utils:debug_fmt( "Parsing unit '~s'.", [ UnitString ] ),
 
 	% We have two lists of components like "km^3":
 	{ MultComponents, DivComponents } = split_unit_components( UnitString ),
 
-	%io:format( "Components: multiply=~p, divide=~p.~n",
-	%		   [ MultComponents, DivComponents ] ),
+	%trace_utils:debug_fmt( "Components: multiply=~p, divide=~p.",
+	%					   [ MultComponents, DivComponents ] ),
 
 	BlankUnit = #canonical_unit{},
 
 	% Transforms "km^3" into updated fields of the specified unit record:
 	MultUnit = interpret_components( MultComponents, multiply, BlankUnit ),
-	%io:format( "MultUnit = ~p~n", [ MultUnit ] ),
+	%trace_utils:debug_fmt( "MultUnit = ~p", [ MultUnit ] ),
 
 	DivUnit = interpret_components( DivComponents, divide, MultUnit ),
-	%io:format( "DivUnit = ~p~n", [ DivUnit ] ),
+	%trace_utils:debug_fmt( "DivUnit = ~p", [ DivUnit ] ),
 
-	%io:format( "Final unit: '~s'~n", [ unit_to_string( DivUnit ) ] ),
+	%trace_utils:debug_fmt( "Final unit: '~s'", [ unit_to_string( DivUnit ) ] ),
 
 	DivUnit.
 
@@ -1029,8 +1041,8 @@ interpret_components( _Components=[ C | T ], Kind, CanonicalUnit ) ->
 %
 integrate_component( ComponentString, Kind, CanonicalUnit ) ->
 
-	%io:format( "Integrating ~s component '~s' in unit '~s':~n",
-	%		   [ Kind, ComponentString, unit_to_string( CanonicalUnit ) ] ),
+	%trace_utils:debug_fmt( "Integrating ~s component '~s' in unit '~s'.",
+	%			   [ Kind, ComponentString, unit_to_string( CanonicalUnit ) ] ),
 
 	% Respectively, for 'km^2': 3, 'meter', 2:
 	{ BaseOrder, UnitAtomName, UnitExponent } =
@@ -1049,10 +1061,10 @@ integrate_component( ComponentString, Kind, CanonicalUnit ) ->
 
 	ActualOrder = BaseOrder * NormalisedUnitExponent,
 
-	%io:format( "~n- for component '~s': unit_symbol '~s', actual_order=~B, "
-	%		   "normalised_unit_exponent=~B.~n",
-	%		   [ ComponentString, UnitAtomName, ActualOrder,
-	%			 NormalisedUnitExponent ] ),
+	%trace_utils:debug_fmt( "~n- for component '~s': unit_symbol '~s', "
+	%					   "actual_order=~B, normalised_unit_exponent=~B.",
+	%					   [ ComponentString, UnitAtomName, ActualOrder,
+	%						 NormalisedUnitExponent ] ),
 
 	integrate_to_canonical_unit( UnitAtomName, ActualOrder,
 								 NormalisedUnitExponent, CanonicalUnit ).
@@ -1090,8 +1102,8 @@ parse_component( ComponentString ) ->
 
 	end,
 
-	%io:format( "PrefixedUnit='~s', unit exponent=~B.~n",
-	%		   [ PrefixedUnitString, UnitExponent ] ),
+	%trace_utils:debug_fmt( "PrefixedUnit='~s', unit exponent=~B.",
+	%					   [ PrefixedUnitString, UnitExponent ] ),
 
 	% The "k" of "km" to be transformed into 'kilo' then into 3:
 	{ BaseOrder, UnitName } = extract_prefix_and_unit( PrefixedUnitString ),
@@ -1130,11 +1142,21 @@ extract_prefix_and_unit( PrefixedUnitString ) ->
 
 	PrefixString = lists:reverse( RevPrefixString ),
 
-	%io:format( "Unit name: ~p, prefix: ~p.~n", [ UnitName, PrefixString ] ),
+	%trace_utils:debug_fmt( "Unit name: '~p', prefix: '~p'.",
+	%					   [ UnitName, PrefixString ] ),
 
-	Order = get_order_for_prefix( PrefixString ),
+	case get_order_for_prefix( PrefixString ) of
 
-	{ Order, UnitName }.
+		unknown_prefix ->
+			% Here, what we thought to be a prefix shall actually be an unknown
+			% unit (ex: "teqCO2"), so we accept it as it is:
+			%
+			{ _Order=0, _UnitName=PrefixString };
+
+		Order ->
+			{ Order, UnitName }
+
+	end.
 
 
 
@@ -1584,12 +1606,23 @@ integrate_to_canonical_unit( _UnitName=dimensionless, ActualOrder,
 % Then the special units:
 
 
-% To catch units that are not supported yet:
+% To catch units that are not explicitly known (at least yet):
 
-integrate_to_canonical_unit( UnitName, _ActualOrder, _NormalisedExponent,
-							 _CanonicalUnit ) ->
-	throw( { unit_not_integrated_yet, UnitName } ).
+integrate_to_canonical_unit( UnitName, _ActualOrder, NormalisedExponent,
+							 CanonicalUnit=#canonical_unit{
+											  other_units=Others} ) ->
 
+	%trace_utils:warning_fmt( "Integrating unknown unit '~s' of order ~p, "
+	%						 "normalised exponent ~p to ~s.",
+	%						 [  UnitName, ActualOrder, NormalisedExponent,
+	%							unit_to_string( CanonicalUnit ) ] ),
+
+	% Not merging (yet) other units, actual order ignored:
+	UnitAsAtom = text_utils:string_to_atom( UnitName ),
+
+	NewOthers = [ { UnitAsAtom, NormalisedExponent } | Others ],
+
+	CanonicalUnit#canonical_unit{ other_units=NewOthers }.
 
 
 
@@ -1701,19 +1734,31 @@ pure_unit_to_string( Unit ) ->
 			undefined;
 
 		CandelaExp ->
-			{ text_utils:format( "cd^~B", [  CandelaExp ] ), CandelaExp }
+			{ text_utils:format( "cd^~B", [ CandelaExp ] ), CandelaExp }
+
+	end,
+
+
+	OtherInfos = case Unit#canonical_unit.other_units of
+
+		[] ->
+			[];
+
+		UnitExponentList ->
+			[ { text_utils:format( "~s^~B", [ OtherUnit, Exp ] ), Exp }
+			  || { OtherUnit, Exp } <- UnitExponentList ]
 
 	end,
 
 	AllBaseInfos = [ MeterInfo, GramInfo, SecondInfo, AmpereInfo, KelvinInfo,
-					 MoleInfo, CandelaInfo ],
+					 MoleInfo, CandelaInfo ] ++ OtherInfos,
 
 	% Strips unused units:
 	Infos = lists:filter( fun( undefined ) ->
-									false;
+							  false;
 
-							   ( _ )  ->
-									true
+							 ( _ )  ->
+							  true
 
 						  end,
 						  AllBaseInfos ),

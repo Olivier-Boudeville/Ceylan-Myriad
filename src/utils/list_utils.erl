@@ -45,7 +45,8 @@
 %
 -export([ get_element_at/2, insert_element_at/3,
 		  remove_element_at/2, remove_last_element/1,
-		  get_last_element/1, get_index_of/2, split_at/2, uniquify/1,
+		  get_last_element/1, extract_last_element/1,
+		  get_index_of/2, split_at/2, uniquify/1,
 		  has_duplicates/1, get_duplicates/1, intersect/2,
 		  subtract_all_duplicates/2, delete_existing/2, delete_if_existing/2,
 		  delete_all_in/2, append_at_end/2, is_list_of_integers/1,
@@ -218,6 +219,36 @@ get_last_element( _List=[ SingleElement ] ) ->
 
 get_last_element( _List=[ _H | T ] ) ->
 	get_last_element( T ).
+
+
+% Extracts the last element of the specified list, returning a pair made of that
+% element and of the remainder of the list (in its original order).
+%
+% Note: not computationnally efficient, usually having to retrieve the last
+% element suggests a bad code design.
+%
+% Crashes (with 'no function clause') if the input list is empty.
+%
+-spec extract_last_element( list() ) -> { term(), list() }.
+extract_last_element( List ) ->
+
+	% Probably the most efficient variant:
+	[ LastElement | RevRest ] = lists:reverse( List ),
+
+	{ LastElement, lists:reverse( RevRest ) }.
+
+
+% Variant:
+%extract_last_element( List ) ->
+%	extract_last_element( List, _Acc=[] ).
+
+
+% (helper)
+%extract_last_element( _List=[ LastElement ], Acc ) ->
+%	{ LastElement, lists:reverse( Acc ) };
+%
+%extract_last_element( _List=[ H | T ], Acc ) ->
+%	extract_last_element( T, [ H | Acc ] ).
 
 
 
