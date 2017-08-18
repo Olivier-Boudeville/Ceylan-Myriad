@@ -71,7 +71,9 @@
 % Miscellaneous functions.
 %
 -export([ size/1, display_process_info/1,
-		  checkpoint/1, display/1, display/2, display_error/1, display_error/2,
+		  checkpoint/1,
+		  display/1, display/2, display_timed/2, display_timed/3,
+		  display_error/1, display_error/2,
 		  debug/1, debug/2,
 		  parse_version/1, compare_versions/2,
 		  get_process_specific_value/0, get_process_specific_value/2,
@@ -1622,6 +1624,48 @@ display( Format, Values ) ->
 	Message = text_utils:format( Format, Values ),
 
 	display( Message ).
+
+
+
+
+% Displays specified string on the standard output of the console, ensuring as
+% much as possible this message is output synchronously, so that it can be
+% output on the console even if the virtual machine is to crash just after.
+%
+-spec display_timed( string(), time_utils:time_out() ) -> void().
+display_timed( Message, TimeOut ) ->
+
+	% Finally io:format has been preferred to erlang:display, as the latter one
+	% displays quotes around the strings.
+
+	io:format( "~s~n", [ Message ] ),
+	system_utils:await_output_completion( TimeOut ).
+
+	% May not go through group leader (like io:format), thus less likely to
+	% crash without displaying the message:
+	%
+	%erlang:display( lists:flatten( [ Message, ".~n" ] ) ).
+	%erlang:display( Message ).
+
+
+
+% Displays specified format string filled according to specified values on the
+% standard output of the console, ensuring as much as possible this message is
+% output synchronously, so that it can be output on the console even if the
+% virtual machine is to crash just after.
+%
+-spec display_timed( text_utils:format_string(), [ any() ],
+					 time_utils:time_out() ) -> void().
+display_timed( Format, Values, TimeOut ) ->
+
+	%io:format( "Displaying format '~p' and values '~p'.~n",
+	%		   [ Format, Values ] ),
+
+	Message = text_utils:format( Format, Values ),
+
+	display_timed( Message, TimeOut ).
+
+
 
 
 

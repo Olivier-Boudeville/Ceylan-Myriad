@@ -86,7 +86,8 @@
 		  trim_trailing_whitespaces/1,
 
 		  get_default_bullet/0, get_bullet_for_level/1,
-		  format_text_for_width/2, pad_string/2,
+		  format_text_for_width/2,
+		  pad_string/2, pad_string_left/2, pad_string_right/2,
 		  is_string/1, is_non_empty_string/1, is_list_of_strings/1,
 		  is_bin_string/1 ]).
 
@@ -1684,12 +1685,28 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 
 
 % Returns the specified string, padded with spaces to specified width,
-% left-justified.
+% left-justified (i.e. with spaces added to the right).
 %
 -spec pad_string( ustring(), integer() ) -> ustring().
 pad_string( String, Width ) when length( String ) =< Width ->
+	pad_string_left( String, Width ).
+
+
+
+% Returns the specified string, padded with spaces to specified width,
+% left-justified (i.e. with spaces added to the right).
+%
+-spec pad_string_left( ustring(), integer() ) -> ustring().
+pad_string_left( String, Width ) when length( String ) =< Width ->
 	lists:flatten( io_lib:format( "~*.s", [ -Width, String ] ) ).
 
+
+% Returns the specified string, padded with spaces to specified width,
+% right-justified (i.e. with spaces added to the left).
+%
+-spec pad_string_right( ustring(), integer() ) -> ustring().
+pad_string_right( String, Width ) when length( String ) =< Width ->
+	lists:flatten( io_lib:format( "~*.s", [ Width, String ] ) ).
 
 
 % Returns true iff the parameter is a (non-nested) string (actually a plain list

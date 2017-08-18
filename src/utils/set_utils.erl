@@ -49,7 +49,7 @@
 % Set-related operations are:
 %
 -export([ new/0, singleton/1, add/2, addAsNew/2, add_element_list/2,
-		  union/2, union/1,
+		  union/2, union/1, difference/2,
 		  from_list/1, to_list/1,
 		  member/2, is_empty/1, size/1,
 		  iterator/1, next/1,
@@ -175,6 +175,15 @@ union( FirstSet, SecondSet ) ->
 -spec union( [ set() ] ) -> set().
 union( ListOfSets ) ->
 	?set_impl:union( ListOfSets ).
+
+
+
+% Returns the difference between the first specified set and the second,
+% i.e. the elements of the first set that are not in the second one.
+%
+-spec difference( set(), set() ) -> set().
+difference( FirstSet, SecondSet ) ->
+	?set_impl:difference( FirstSet, SecondSet ).
 
 
 
