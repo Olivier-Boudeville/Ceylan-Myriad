@@ -66,10 +66,16 @@ run() ->
 	test_facilities:display( "(will ping a non-existing host, "
 		"depending on the DNS settings the operation might be quite long)" ),
 
-	case net_utils:ping( "non.existing.hostname" ) of
+	NonExistingHostname = "non.existing.hostname",
+
+	case net_utils:ping( NonExistingHostname ) of
 
 		true ->
-			throw( could_ping_non_existing_host );
+			% May happen in badly configured systems:
+			%throw( could_ping_non_existing_host );
+			trace_utils:warning_fmt(
+			  "Could ping a non-existing hostname (~s), abnormal.",
+			  [ NonExistingHostname ] );
 
 		false ->
 			test_facilities:display(
