@@ -60,34 +60,11 @@
 
 
 
-% A ring behaves as an (infinite) list whose next element after its last is its
-% first again.
-%
-% Internally, the first list is the working one (from which elements may be
-% extracted), while the second is a copy of the full reference one.
-%
--opaque ring() :: { list(), list() }.
-
--opaque ring( T ) :: { [ T ], [ T ] }.
-
-
-% Ring-related operations:
-%
--export([ list_to_ring/1, head/1, get_next/2, get_reference_list/1,
-		  get_ring_size/1 ]).
-
-
-
-
-
 % Random operations on lists:
 %
 -export([ random_permute/1, random_permute_reciprocal/1,
 		  draw_element/1, draw_element/2, draw_element_weighted/1,
 		  draw_elements_from/2 ]).
-
-
--export_type([ ring/0, ring/1 ]).
 
 
 
@@ -598,70 +575,6 @@ reconstruct_tuples( _List=[], _TupleSize, Acc ) ->
 reconstruct_tuples( List, TupleSize, Acc ) ->
 	{ TupleAsList, T } = lists:split( _Count=TupleSize, List ),
 	reconstruct_tuples( T, TupleSize, [ list_to_tuple( TupleAsList ) | Acc ] ).
-
-
-
-% Ring-related section (infinite, circular buffer whose end is connected to its
-% beginning).
-
-
-
-% Returns a ring corresponding to the specified list.
-%
--spec list_to_ring( list() ) -> ring().
-list_to_ring( InputList ) ->
-	{ InputList, InputList }.
-
-
-
-% Pops the head of specified ring: return { Head, UpdatedRing }.
-%
--spec head( ring() ) -> { term(), ring() }.
-head( _Ring={ _WorkingList=[], ReferenceList } ) ->
-	% Replenish:
-	%
-	% Dialyzer does not want an opaque argument to be used:
-	%head( { ReferenceList, ReferenceList } );
-	head( list_to_ring( ReferenceList ) );
-
-head( _Ring={ _WorkingList=[ H | T ], ReferenceList } ) ->
-	{ H, { T, ReferenceList } }.
-
-
-
-% Returns a list of the Count popped elements (in their order in the ring), and
-% the updated ring.
-%
-% Ex: for a new ring based on [ a, b, c, d ], if Count=6 then [ a, b, c, d, a,
-% b] will be returned.
-%
--spec get_next( basic_utils:count(), ring() ) -> { [ term() ], ring() }.
-get_next( Count, Ring ) ->
-	% Quite similar to a map:foldl/3:
-	get_next_helper( Count, Ring, _Acc=[] ).
-
-
-get_next_helper( _Count=0, Ring, Acc ) ->
-	{ lists:reverse( Acc ), Ring };
-
-get_next_helper( Count, Ring, Acc ) ->
-	{ H, NewRing } = head( Ring ),
-	get_next_helper( Count-1, NewRing, [ H | Acc ] ).
-
-
-% Returns the list from which the ring was created (in its original order).
-%
--spec get_reference_list( ring() ) -> [ term() ].
-get_reference_list( _Ring={ _WorkingList, ReferenceList } ) ->
-	ReferenceList.
-
-
-% Returns the number of elements in the specified ring.
-%
--spec get_ring_size( ring() ) -> basic_utils:count().
-get_ring_size( _Ring={ _WorkingList, ReferenceList } ) ->
-	length( ReferenceList ).
-
 
 
 

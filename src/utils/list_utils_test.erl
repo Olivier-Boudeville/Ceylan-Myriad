@@ -210,15 +210,6 @@ run() ->
 
 	TupleList = list_utils:reconstruct_tuples( FlattenedList, _TupleSize=3 ),
 
-	Ring = list_utils:list_to_ring( [ a, b, c, d, e, f, g ] ),
-
-	{ a, FirstRing } = list_utils:head( Ring ),
-
-	{ b, SecondRing } = list_utils:head( FirstRing ),
-
-	{ [ c, d, e, f, g, a, b, c ], _ThirdRing } = list_utils:get_next(
-													_RingCount=8, SecondRing ),
-
 	DrawCount = 3,
 
 	test_facilities:display( "Drawing ~B elements from ~w: ~w.",
