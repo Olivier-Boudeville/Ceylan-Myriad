@@ -116,7 +116,7 @@ start( FileName ) ->
 
 	RegistrationName = get_registration_name( FileName ),
 
-	case basic_utils:is_registered( RegistrationName, global ) of
+	case naming_utils:is_registered( RegistrationName, global ) of
 
 		not_registered ->
 
@@ -197,7 +197,7 @@ to_string( FileName ) ->
 
 	RegistrationName = get_registration_name( FileName ),
 
-	case basic_utils:is_registered( RegistrationName, global ) of
+	case naming_utils:is_registered( RegistrationName, global ) of
 
 		not_registered ->
 			"no preferences server is running";
@@ -276,12 +276,13 @@ check_preferences_default_file() ->
 stop() ->
 	stop( get_default_preferences_path() ).
 
+
 -spec stop( file_utils:file_name() ) -> basic_utils:void().
 stop( FileName ) ->
 
 	RegistrationName = get_registration_name( FileName ),
 
-	case basic_utils:is_registered( RegistrationName, global ) of
+	case naming_utils:is_registered( RegistrationName, global ) of
 
 		not_registered ->
 			ok;
@@ -300,7 +301,7 @@ stop( FileName ) ->
 %
 server_main_run( SpawnerPid, RegistrationName, FileName ) ->
 
-	case basic_utils:register_or_return_registered( RegistrationName,
+	case naming_utils:register_or_return_registered( RegistrationName,
 													global_only ) of
 
 		registered ->
@@ -350,10 +351,10 @@ server_main_loop( Table ) ->
 			Answer = case table:lookupEntry( Key, Table ) of
 
 				key_not_found ->
-							 undefined;
+					undefined;
 
 				{ value, V } ->
-							 V
+					V
 
 			end,
 
@@ -383,7 +384,7 @@ server_main_loop( Table ) ->
 								|| { K, V } <- lists:sort( L ) ],
 
 					io_lib:format( "~B preferences recorded:~s~n",
-								 [ length( L ),
+								   [ length( L ),
 								 text_utils:string_list_to_string( Strings ) ] )
 
 			end,

@@ -186,8 +186,8 @@ run() ->
 	Durations = [ 0, 1, 10, 100, 200 ],
 
 	[ [ test_facilities:display( "  + with duration ~B for ~p: ~p",
-			  [ D, N, net_utils:check_node_availability( N, D )
-			   ] ) || N <- CandidateNodeNames ] || D <- Durations ],
+			  [ D, N, net_utils:check_node_availability( N, D ) ] ) 
+		|| N <- CandidateNodeNames ] || D <- Durations ],
 
 	test_facilities:display( "To test send_file/2, receive_file/1, "
 							 "receive_file/2 and receive_file/3, two "
@@ -195,7 +195,7 @@ run() ->
 
 	test_facilities:display( "On A, launched by: "
 							 "'erl -name node_a -setcookie abc', enter: "
-							 "'basic_utils:register_as( self(), shell_a, "
+							 "'naming_utils:register_as( self(), shell_a, "
 							 "global_only ).'" ),
 
 	% Sleep needed for the synchronization of the atom table:
@@ -203,14 +203,14 @@ run() ->
 							 "'erl -name node_b -setcookie abc', enter: "
 							 "pong = net_adm:ping( 'node_a@foobar.org' ), "
 							 "timer:sleep(500), "
-							 "basic_utils:register_as( self(), shell_b, "
+							 "naming_utils:register_as( self(), shell_b, "
 							 "global_only ), "
-							 "ShellA = basic_utils:get_registered_pid_for( "
+							 "ShellA = naming_utils:get_registered_pid_for( "
 							 "shell_a, global ), "
 							 "net_utils:receive_file( ShellA, \"/tmp\" ).'" ),
 
 	test_facilities:display( "Back on A: "
-							 "'ShellB = basic_utils:get_registered_pid_for( "
+							 "'ShellB = naming_utils:get_registered_pid_for( "
 							 "shell_b, global ), "
 							 "net_utils:send_file( \"/home/joe/test-file.txt\","
 							 " ShellB ).'" ),

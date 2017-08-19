@@ -170,7 +170,7 @@ deploy_modules( Modules, Nodes, Timeout ) ->
 	%
 	% So here we should poll until the code_server can be found registered on
 	% each of the remote nodes:
-	basic_utils:wait_for_remote_local_registrations_of( code_server, Nodes ),
+	naming_utils:wait_for_remote_local_registrations_of( code_server, Nodes ),
 
 	% Then for each module in turn, contact each and every node in parallel:
 	[ deploy_module( M, get_code_for( M ), Nodes, Timeout ) || M <- Modules ].
