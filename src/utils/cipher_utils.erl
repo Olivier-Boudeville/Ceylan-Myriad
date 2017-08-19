@@ -918,7 +918,7 @@ xor_cipher( SourceFilename, CipheredFilename, XORList ) ->
 	TargetFile = file_utils:open( CipheredFilename,
 								  _WriteOpts=[ write, raw, delayed_write ] ),
 
-	XORRing = list_utils:list_to_ring( XORList ),
+	XORRing = ring_utils:from_list( XORList ),
 
 	xor_helper( SourceFile, TargetFile, XORRing ).
 
@@ -934,7 +934,7 @@ xor_helper( SourceFile, TargetFile, XORRing ) ->
 
 		{ ok, [ Byte ] } ->
 
-			{ H, NewXORRing } = list_utils:head( XORRing ),
+			{ H, NewXORRing } = ring_utils:head( XORRing ),
 
 			NewByte = Byte bxor H,
 
