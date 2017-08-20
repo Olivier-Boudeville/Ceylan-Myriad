@@ -26,7 +26,8 @@
 % Creation date: July 1, 2007.
 
 
-% Gathering of various facilities for monitors.
+% Gathering of various facilities related to the monitoring of processes, ports,
+% time changes or nodes.
 %
 % See monitor_utils_test.erl for the corresponding test.
 %
@@ -73,6 +74,50 @@
 %
 -type monitor_info() :: basic_utils:exit_reason() | 'noproc' | 'noconnection'.
 
+
+% See net_kernel:monitor_nodes/2 for more information:
+-type monitor_node_info() :: list_hashtable:list_hashtable().
+
+
+-type monitor_node_option() :: { 'node_type', net_utils:node_type() }
+							 | 'nodedown_reason'.
+
+
 -export_type([ monitor_reference/0, monitored_element_type/0,
 			   monitored_process/0, monitored_port/0, monitored_clock/0,
-			   monitored_element/0, monitor_info/0 ]).
+			   monitored_element/0, monitor_info/0, monitor_node_info/0,
+			   monitor_node_option/0 ]).
+
+
+-export([ monitor_nodes/1, monitor_nodes/2 ]).
+
+
+
+% Subscribes or unsubscribes the calling process to node status change messages.
+%
+% See net_kernel:monitor_nodes/2 for more information.
+%
+-spec monitor_nodes( boolean() ) -> basic_utils:void().
+monitor_nodes( DoStartNewSubscription ) ->
+	monitor_nodes( DoStartNewSubscription, _Options=[] ).
+
+
+
+% Subscribes or unsubscribes the calling process to node status change messages.
+%
+% See net_kernel:monitor_nodes/2 for more information.
+%
+-spec monitor_nodes( boolean(), [ monitor_node_option() ] ) ->
+						   basic_utils:void().
+monitor_nodes( DoStartNewSubscription, Options ) ->
+
+	case net_kernel:monitor_nodes( DoStartNewSubscription, Options ) of
+
+		ok ->
+			ok;
+
+		Error ->
+			throw( { node_monitoring_failed, Error, DoStartNewSubscription,
+					 Options } )
+
+	end.
