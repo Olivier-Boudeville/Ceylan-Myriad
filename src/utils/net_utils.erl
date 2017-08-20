@@ -46,6 +46,7 @@
 		  get_node_naming_mode/0, get_naming_compliant_hostname/2,
 		  generate_valid_node_name_from/1, get_fully_qualified_node_name/3,
 		  launch_epmd/0, launch_epmd/1, enable_distribution/2,
+		  get_cookie/0, set_cookie/1, set_cookie/2,
 		  shutdown_node/0, shutdown_node/1 ]).
 
 
@@ -88,6 +89,10 @@
 
 -type node_name()        :: atom_node_name() | string_node_name().
 
+% See net_kernel:monitor_nodes/2 for more information:
+-type node_type() :: 'visible' | 'hidden' | 'all'.
+
+
 -type atom_host_name()   :: atom().
 -type string_host_name() :: nonempty_string().
 -type host_name()        :: atom_host_name() | string_host_name().
@@ -100,7 +105,7 @@
 
 -type node_naming_mode() :: 'long_name' | 'short_name'.
 
--type cookie() :: string().
+-type cookie() :: atom().
 
 
 -type net_port() :: non_neg_integer().
@@ -133,19 +138,15 @@
 -type url() :: string().
 
 
--export_type([
-
-			  ip_v4_address/0, ip_v6_address/0, ip_address/0,
-			  atom_node_name/0, string_node_name/0, node_name/0,
-			  atom_host_name/0, string_host_name/0, host_name/0,
-			  host_identifier/0,
-			  check_duration/0, check_node_timing/0,
-			  node_naming_mode/0, cookie/0,
-			  net_port/0, tcp_port/0, udp_port/0,
-			  tcp_port_range/0, udp_port_range/0,
-			  protocol_type/0, path/0, url_info/0, url/0
-
-			  ]).
+-export_type([ ip_v4_address/0, ip_v6_address/0, ip_address/0,
+			   atom_node_name/0, string_node_name/0, node_name/0, node_type/0,
+			   atom_host_name/0, string_host_name/0, host_name/0,
+			   host_identifier/0,
+			   check_duration/0, check_node_timing/0,
+			   node_naming_mode/0, cookie/0,
+			   net_port/0, tcp_port/0, udp_port/0,
+			   tcp_port_range/0, udp_port_range/0,
+			   protocol_type/0, path/0, url_info/0, url/0 ]).
 
 
 % For the file_info record:
@@ -930,6 +931,41 @@ enable_distribution_helper( NodeName, NameType, NamingMode,
 			R
 
 	end.
+
+
+
+% Returns the Erlang cookie of the current node if that node is alive, otherwise
+% the 'nocookie' atom.
+%
+-spec get_cookie() -> cookie() | 'nocookie'.
+get_cookie() ->
+	erlang:get_cookie().
+
+
+
+% Sets the Erlang cookie for the current node, as well as for the one of all
+% unknown nodes.
+%
+-spec set_cookie( cookie() ) -> basic_utils:void().
+set_cookie( Cookie ) ->
+
+	case erlang:is_alive() of
+
+		true ->
+			set_cookie( Cookie, node() );
+
+		false ->
+			throw( local_node_not_alive )
+
+	end.
+
+
+
+% Sets the Erlang cookie for the specified node.
+%
+-spec set_cookie( cookie(), atom_node_name() ) -> basic_utils:void().
+set_cookie( Cookie, Node ) ->
+	erlang:set_cookie( Node, Cookie ).
 
 
 
