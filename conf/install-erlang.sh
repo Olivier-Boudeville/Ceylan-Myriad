@@ -620,19 +620,22 @@ if [ $do_manage_doc -eq 0 ] ; then
 
 	fi
 
+	# No sudo from there, as we have to use any right needed (for example to
+	# write in the system tree)
+
 	erlang_doc_root="Erlang-${erlang_version}-documentation"
 
 	if [ -e "${erlang_doc_root}" ] ; then
 
-		${SUDO_CMD} ${RM} -rf "${erlang_doc_root}"
+		${RM} -rf "${erlang_doc_root}"
 
 	fi
 
-	${SUDO_CMD} ${MKDIR} "${erlang_doc_root}"
+	${MKDIR} "${erlang_doc_root}"
 
 	cd "${erlang_doc_root}"
 
-	${SUDO_CMD} ${TAR} xvzf ${initial_path}/${erlang_doc_archive}
+	${TAR} xvzf ${initial_path}/${erlang_doc_archive}
 
 
 	if [ ! $? -eq 0 ] ; then
@@ -645,11 +648,11 @@ if [ $do_manage_doc -eq 0 ] ; then
 	# Sets as current:
 	if [ -e Erlang-current-install ] ; then
 
-		${SUDO_CMD} ${RM} -f Erlang-current-documentation
+		${RM} -f Erlang-current-documentation
 
 	fi
 
-	${SUDO_CMD} ${LN} -sf ${erlang_doc_root} Erlang-current-documentation
+	${LN} -sf ${erlang_doc_root} Erlang-current-documentation
 
 	echo "Erlang documentation successfully installed."
 
@@ -716,7 +719,8 @@ if [ $do_generate_plt -eq 0 ] ; then
 	# generating with '--output_plt $actual_plt_file' and doing '${LN} -s
 	# $actual_plt_file $actual_plt_link' we proceed the other way round:
 
-	${SUDO_CMD} $dialyzer_exec --build_plt -r $erlang_beam_root --output_plt $actual_plt_link
+	# No sudo, as PLT file might be in system tree:
+	$dialyzer_exec --build_plt -r $erlang_beam_root --output_plt $actual_plt_link
 	res=$?
 
 	if [ $res -eq 0 ] ; then
