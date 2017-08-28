@@ -1,4 +1,4 @@
-#!/bin/sh
+!/bin/sh
 
 # Copyright (C) 2009-2017 Olivier Boudeville
 #
@@ -203,9 +203,10 @@ while [ $token_eaten -eq 0 ] ; do
 done
 
 
-# We had to define that variable, as for a user U, at least on some settings,
-# sudo -u U <a command> will fail ("Sorry, user U is not allowed to execute
-# 'XXX' as U on H."), so now we execute sudo iff strictly necessary:
+# We had to define that variable, as for a (non-privileged) user U, at
+# least on some settings, sudo -u U <a command> will fail ("Sorry,
+# user U is not allowed to execute 'XXX' as U on H."), so now we
+# execute sudo iff strictly necessary:
 #
 SUDO_CMD=""
 
@@ -232,6 +233,7 @@ if [ -z "$read_parameter" ] ; then
 	   prefix="/usr/local"
 	   echo "Run as sudo root, thus using default system installation directory, falling back to user '${build_user}' for the operations that permit it."
 
+	   # So here sudo is a way to decrease, not increase privileges:
 	   SUDO_CMD="sudo -u ${build_user}"
 
    else
@@ -584,12 +586,12 @@ if [ $use_prefix -eq 0 ] ; then
 	# avoid having to update our ~/.emacs.d/init.el file whenever the 'tools'
 	# version changes:
 	#
-	${SUDO_CMD} ${LN} -sf lib/tools-*/emacs
+	${LN} -sf lib/tools-*/emacs
 
 	# Same story so that the crashdump viewer can be found irrespective of the
 	# Erlang version:
 	#
-	${SUDO_CMD} ${LN} -sf lib/observer-*/priv/bin/cdv
+	${LN} -sf lib/observer-*/priv/bin/cdv
 
 	# Then go again in the install (not source) tree to create the base link:
 	cd ${prefix}/..
@@ -599,11 +601,11 @@ if [ $use_prefix -eq 0 ] ; then
 	# Sets as current:
 	if [ -e Erlang-current-install ] ; then
 
-		${SUDO_CMD} ${RM} -f Erlang-current-install
+		${RM} -f Erlang-current-install
 
 	fi
 
-	${SUDO_CMD} ${LN} -sf Erlang-${erlang_version} Erlang-current-install
+	${LN} -sf Erlang-${erlang_version} Erlang-current-install
 
 fi
 
