@@ -103,6 +103,16 @@ run() ->
 
 	% removeEntry can also be used if the specified key is not here, will return
 	% an identical table.
+
+	MyHRemoved = map_hashtable:removeExistingEntries(
+				   [ ?MyFirstKey, ?MySecondKey ], MyH4 ),
+
+	true = map_hashtable:isEmpty( MyHRemoved ),
+
+	% Should not fail:
+	_ = map_hashtable:removeEntries(
+				   [ ?MyFirstKey, ?MyThirdKey ], MyH4 ),
+
 	map_hashtable:display( MyH5 ),
 	test_facilities:display( "Testing double key registering." ),
 

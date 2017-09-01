@@ -97,7 +97,7 @@ register_as( Name, RegistrationType ) ->
 %
 % Throws an exception on failure.
 %
--spec register_as( pid(), registration_name(), registration_scope() ) -> 
+-spec register_as( pid(), registration_name(), registration_scope() ) ->
 						 basic_utils:void().
 register_as( Pid, Name, local_only ) when is_atom( Name ) ->
 

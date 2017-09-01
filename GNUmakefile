@@ -1,9 +1,12 @@
 COMMON_TOP = .
 
 
-.PHONY: help help-intro help-common help-hints                                \
+.PHONY: help help-intro help-common help-hints help-batch                     \
 		register-version-in-header register-common list-beam-dirs             \
-		info-paths info-settings
+		add-prerequisite-plts prepare-base-plt add-erlhdf5-plt add-jsx-plt   \
+		add-sqlite3-plt link-plt info-paths info-settings
+
+
 
 #MODULES_DIRS = contrib src doc
 MODULES_DIRS = src doc
@@ -76,7 +79,7 @@ list-beam-dirs:
 
 
 add-prerequisite-plts: prepare-base-plt \
-					   add-erlhdf5-plt add-jsx-plt add-sqlite3-plt
+					   add-erlhdf5-plt add-jsx-plt add-sqlite3-plt link-plt
 
 
 # So that in all cases we start by the same PLT name:
@@ -97,6 +100,11 @@ add-jsx-plt:
 
 add-sqlite3-plt:
 	@if [ "$(USE_REST)" == "true" ] ; then echo "   Generating PLT for prerequisite sqlite3" ; $(DIALYZER) --add_to_plt --output_plt $(PLT_FILE) -r $(SQLITE3_BASE)/ebin --plt $(PLT_FILE); if [ $$? -eq 1 ] ; then exit 1 ; fi ; else echo "(no PLT determined for non-available sqlite3 prerequisite; unknown functions in the sqlite3 module will be found)" ; fi
+
+
+# As upper layers may rely on the 'Common' naming:
+link-plt:
+	@/bin/ln -s $(PLT_FILE) $(COMMON_PLT_FILE)
 
 
 info-paths:

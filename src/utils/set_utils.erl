@@ -49,7 +49,7 @@
 % Set-related operations are:
 %
 -export([ new/0, singleton/1, add/2, addAsNew/2, add_element_list/2,
-		  union/2, union/1, difference/2,
+		  union/2, union/1, difference/2, is_subset/2,
 		  from_list/1, to_list/1,
 		  member/2, is_empty/1, size/1,
 		  iterator/1, next/1,
@@ -71,7 +71,8 @@
 
 % For homogeneous sets:
 %
-% (strangely reported as unused by the compiler)
+% (strangely reported as unused by the compiler: 'type set(_) is unused',
+% although exported)
 %
 %-type set( T ) :: gb_sets:set( T ).
 
@@ -184,6 +185,15 @@ union( ListOfSets ) ->
 -spec difference( set(), set() ) -> set().
 difference( FirstSet, SecondSet ) ->
 	?set_impl:difference( FirstSet, SecondSet ).
+
+
+
+% Tells whether the first set is a subset of the second, i.e. if each element of
+% the first is also in the second.
+%
+-spec is_subset( set(), set() ) -> boolean().
+is_subset( FirstSet, SecondSet ) ->
+	?set_impl:is_subset( FirstSet, SecondSet ).
 
 
 

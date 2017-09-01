@@ -66,6 +66,7 @@
 		  addEntry/3, addEntries/2, addNewEntry/3, addNewEntries/2,
 		  updateEntry/3, updateEntries/2,
 		  removeEntry/2, removeExistingEntry/2,
+		  removeEntries/2, removeExistingEntries/2,
 		  lookupEntry/2, hasEntry/2, getEntry/2,
 		  extractEntry/2, getEntries/2,
 		  getValue/2, getValues/2, getValueWithDefaults/3, getAllValues/2,
@@ -273,11 +274,11 @@ updateEntries( EntryList, MapHashtable ) ->
 
 
 % Removes specified key/value pair, as designated by the key, from the specified
-% map hashtable.
+% table.
 %
 % Does nothing if the key is not found.
 %
-% Returns an updated map table.
+% Returns an updated table.
 %
 -spec removeEntry( key(), map_hashtable() ) -> map_hashtable().
 removeEntry( Key, MapHashtable ) ->
@@ -287,11 +288,11 @@ removeEntry( Key, MapHashtable ) ->
 
 
 % Removes specified key/value pair, as designated by the key, from the specified
-% map hashtable.
+% table.
 %
 % Throws an exception if the key is not found.
 %
-% Returns an updated map table.
+% Returns an updated table.
 %
 -spec removeExistingEntry( key(), map_hashtable() ) -> map_hashtable().
 removeExistingEntry( Key, MapHashtable ) ->
@@ -305,6 +306,40 @@ removeExistingEntry( Key, MapHashtable ) ->
 			throw( { non_existing_key, Key } )
 
 	end.
+
+
+
+% Removes specified key/value pairs, as designated by the keys, from the
+% specified table.
+%
+% Specifying a non-existing key is accepted.
+%
+% Returns an updated table.
+%
+-spec removeEntries( [ key() ], map_hashtable() ) -> map_hashtable().
+removeEntries( Keys, MapHashtable ) ->
+	lists:foldl( fun( K, AccTable ) ->
+						 maps:remove( K, AccTable )
+				 end,
+				 _InitAcc=MapHashtable,
+				 _List=Keys ).
+
+
+
+% Removes specified key/value pairs, as designated by the keys, from the
+% specified table.
+%
+% Throws an exception if a key is not found.
+%
+% Returns an updated table.
+%
+-spec removeExistingEntries( [ key() ], map_hashtable() ) -> map_hashtable().
+removeExistingEntries( Keys, MapHashtable ) ->
+	lists:foldl( fun( K, AccTable ) ->
+						 removeExistingEntry( K, AccTable )
+				 end,
+				 _InitAcc=MapHashtable,
+				 _List=Keys ).
 
 
 
@@ -735,7 +770,7 @@ appendToEntry( Key, Element, MapHashtable ) ->
 
 	case lookupEntry( Key, MapHashtable ) of
 
-		'key_not_found' ->
+		key_not_found ->
 			addEntry( Key, [ Element ], MapHashtable );
 
 		{ value, CurrentList } ->

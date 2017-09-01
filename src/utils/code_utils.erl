@@ -41,8 +41,8 @@
 		  declare_beam_directories/1, declare_beam_directories/2,
 		  get_code_path/0,
 		  list_beams_in_path/0, get_beam_filename/1, is_beam_in_path/1,
-		  interpret_stacktrace/0, interpret_stacktrace/1, interpret_stacktrace/2
-		]).
+		  interpret_stacktrace/0, interpret_stacktrace/1, interpret_stacktrace/2,
+		  interpret_stack_item/2 ]).
 
 
 %-type stack_location() :: [ { file, file_utils:path() },
@@ -451,7 +451,7 @@ interpret_stacktrace( StackTrace, FullPathsWanted ) ->
 % Helper:
 interpret_stack_item( { Module, Function, Arity, [ { file, FilePath },
 												   { line, Line } ] },
-					  _FullPathsWanted=true ) ->
+					  _FullPathsWanted=true ) when is_integer( Arity ) ->
 	text_utils:format( "~s:~s/~B   [defined in ~s (line ~B)]",
 					   [ Module, Function, Arity,
 						 file_utils:normalise_path( FilePath ),
@@ -466,7 +466,7 @@ interpret_stack_item( { Module, Function, Arity, [ { file, FilePath },
 						 Line ] );
 
 interpret_stack_item( { Module, Function, Args, [ { file, FilePath },
-												   { line, Line } ] },
+												  { line, Line } ] },
 					  _FullPathsWanted=false ) when is_list( Args ) ->
 	text_utils:format( "~s:~s/~B   [defined in ~s (line ~B)]",
 					   [ Module, Function, length( Args ),

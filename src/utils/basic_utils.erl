@@ -324,13 +324,9 @@ stop() ->
 
 
 
-% Stops smoothly the underlying VM, with a normal, success error code (0).
+% Stops smoothly, synchronously the underlying VM, with specified error code.
 %
-% Also also to potentially override Erlang standard teardown procedure.
-%
-% Note: it is an asynchronous, message-based operation. As a result, the calling
-% process will most probably continue with the next instructions until the VM is
-% halted.
+% Also allows to potentially override Erlang standard teardown procedure.
 %
 -spec stop( status_code() ) -> no_return().
 stop( StatusCode ) ->
@@ -343,7 +339,8 @@ stop( StatusCode ) ->
 
 
 
-% Stops smoothly the underlying VM, with a normal, success status code (0).
+% Stops smoothly, synchronously the underlying VM, with a normal, success status
+% code (0).
 %
 -spec stop_on_success() -> no_return().
 stop_on_success() ->

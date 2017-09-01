@@ -186,7 +186,7 @@ run() ->
 	Durations = [ 0, 1, 10, 100, 200 ],
 
 	[ [ test_facilities:display( "  + with duration ~B for ~p: ~p",
-			  [ D, N, net_utils:check_node_availability( N, D ) ] ) 
+			  [ D, N, net_utils:check_node_availability( N, D ) ] )
 		|| N <- CandidateNodeNames ] || D <- Durations ],
 
 	test_facilities:display( "To test send_file/2, receive_file/1, "

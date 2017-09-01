@@ -1073,7 +1073,7 @@ binary_to_string( Other ) ->
 -spec strings_to_binaries( [ ustring() ] ) -> [ binary() ].
 strings_to_binaries( StringList ) ->
 	% Order must be preserved:
-	[ erlang:list_to_binary( S ) || S <- StringList ].
+	[ string_to_binary( S ) || S <- StringList ].
 
 
 

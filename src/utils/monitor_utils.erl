@@ -47,10 +47,16 @@
 
 
 % Monitoring an Erlang process:
+
+% (not exported yet by the 'erlang' module)
+%-type monitored_process() :: pid() | registered_process_identifier().
 -type monitored_process() :: erlang:monitor_process_identifier().
 
 
 % Monitoring an Erlang port:
+%
+% (not exported yet by the 'erlang' module)
+%-type monitored_port() :: port() | registered_name().
 -type monitored_port() :: erlang:monitor_port_identifier().
 
 

@@ -309,7 +309,20 @@ set_random_state( _NewState ) ->
 % Xorshift116+, 58 bits precision and period of 2^116-1, 320 bytes per state, on
 % 64-bit:
 %
--define( rand_algorithm, exsplus ).
+% (corrected version of exsplus, yet now superseded by exrop)
+%
+%-define( rand_algorithm, exsp ).
+
+
+
+% Xoroshiro116+, 58 bits precision and period of 2^116-1
+%
+% Jump function: equivalent to 2^64 calls.
+%
+% Default in OTP 20, to be used in most cases:
+%
+-define( rand_algorithm, exrop ).
+
 
 
 % Xorshift64*, 64 bits precision and a period of 2^64-1, 336 bytes per state on
@@ -321,7 +334,9 @@ set_random_state( _NewState ) ->
 % Xorshift1024*, 64 bits precision and a period of 2^1024-1 (most expensive of
 % the built-in random algorithms, 856 bytes per state on 64-bit):
 %
-%-define( rand_algorithm, exs1024 ).
+% (corrected version, to be used instead of exsplus)
+%
+%-define( rand_algorithm, exs1024s ).
 
 
 
