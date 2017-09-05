@@ -1754,6 +1754,11 @@ is_non_empty_string( _Other ) ->
 % Returns true iff the specified parameter is a list whose all elements are
 % strings.
 %
+% Note: especially useful knowing that a string is itself a list, hence a string
+% can easily be mistaken for a list of strings, in which case each of these
+% strings would actually be found being an integer instead (corresponding to
+% each of the characters of the overall string).
+%
 -spec is_list_of_strings( list() ) -> boolean().
 is_list_of_strings( [] ) ->
 	true;
@@ -1769,6 +1774,7 @@ is_list_of_strings( [ H | T ] ) ->
 			false
 
 	end.
+
 
 
 % Returns true iff the specified parameter is a binary string.

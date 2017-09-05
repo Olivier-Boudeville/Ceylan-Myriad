@@ -22,7 +22,9 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Adapted from code contributed by EDF R&D (original author: Robin Huart).
+% Adapted from code contributed by EDF R&D 
+% authors: 	Robin Huart (robin-externe.huart@edf.fr)
+%			Samuel Thiriot (samuel.thiriot@edf.fr)
 
 
 % Gathering of some convenient facilities for the binding to the Python language
@@ -165,7 +167,7 @@ wait_for_request_result( InterpreterPid, MessageTitle )
 % Deduces the name of a Python file (module) from the name of the Python class
 % that it implements, according the naming conventions adopted in PEP 8.
 %
-% Ex: 'MyFoobarExample' resulting in 'my_foobar_example'.
+% Ex: 'TransportModel__MyFoobarExample' resulting in 'transport_model.my_foobar_example'.
 %
 -spec pep8_class_to_pep8_module( pep8_class_name() | string() ) ->
 									   pep8_class_module().
@@ -174,8 +176,25 @@ pep8_class_to_pep8_module( ClassName ) when is_atom( ClassName ) ->
 
 pep8_class_to_pep8_module( ClassNameString ) ->
 
-	CapitalizedWords = text_utils:split_camel_case( ClassNameString ),
+	% split the chain on "__"
+	% so "Partner__TransportModel__MyFoobarExample" becomes ["Partner", "TransportModel" "MyFoobarExample"]
+	TokensCamel = string:split( ClassNameString, "__", all ),
 
-	LowercaseWords = [ string:to_lower( Word ) || Word <- CapitalizedWords ],
+	% all of them will be changed from CamelCase to snake_case
+	% so ["Partner", "TransportModel" "MyFoobarExample"] becomes ["partner", "transport_model" "my_foobar_example"]
+	TokensSnake = 	 
+					[ 
+						string:join( [ 
+							string:to_lower(CamelWord)
+							|| CamelWord <- text_utils:split_camel_case( CamelCaseToken )
+						], "_" )
+						|| CamelCaseToken <- TokensCamel 
+									
+					],
 
-	text_utils:string_to_atom( string:join( LowercaseWords, "_" ) ).
+	% the concatenation of those should lead to a valid package name 
+	% so ["partner", "transport_model" "my_foobar_example"] becomes partner.transport_model.my_foobar_example
+	ModuleRef = string:join( TokensSnake, "." ),
+
+	text_utils:string_to_atom( ModuleRef ).
+

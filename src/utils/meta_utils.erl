@@ -730,7 +730,8 @@
 
 % General functions:
 %
--export([ list_exported_functions/1, is_function_exported/3 ]).
+-export([ list_exported_functions/1, is_function_exported/3,
+		  check_potential_call/3 ]).
 
 
 % Type-related functions:
@@ -2207,6 +2208,62 @@ list_exported_functions( ModuleName ) ->
 is_function_exported( ModuleName, FunctionName, Arity ) ->
 	lists:member( { FunctionName, Arity },
 				  list_exported_functions( ModuleName ) ).
+
+
+
+% Checks whether a potential upcoming call to the specified MFA
+% (Module,Function,Arguments) has a chance of succeeding.
+%
+-spec check_potential_call( basic_utils:module_name(), function_name(),
+		[ basic_utils:argument() ] ) ->
+				'ok' | 'module_not_found' | 'function_not_exported'.
+check_potential_call( ModuleName, FunctionName, Arguments )
+  when is_atom( ModuleName ) andalso is_atom( FunctionName )
+	   andalso is_list( Arguments ) ->
+
+	case code_utils:is_beam_in_path( ModuleName ) of
+
+		not_found ->
+			module_not_found;
+
+		_ ->
+			Arity = length( Arguments ),
+			case is_function_exported( ModuleName, FunctionName, Arity ) of
+
+				true ->
+					ok;
+
+				false ->
+					function_not_exported
+
+			end
+
+	end;
+
+check_potential_call( ModuleName, FunctionName, Arguments ) ->
+
+	case is_atom( ModuleName ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { non_atom_module_name, ModuleName } )
+
+	end,
+
+	case is_atom( FunctionName ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { non_atom_function_name, FunctionName } )
+
+	end,
+
+	% Only remaining possibility:
+	throw( { non_list_arguments, Arguments } ).
 
 
 

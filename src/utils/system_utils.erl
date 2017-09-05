@@ -2178,7 +2178,7 @@ get_dependency_base_directory( PackageName="ErlPort" ) ->
 
 	% ErlPort must be special-cased, as its actual base installation directory
 	% *must* be named "erlport" (otherwise the interpreter initialization may
-	% fail on new nodes with the {not_found,"erlport/priv"} error; so:
+	% fail on new nodes with the {not_found,"erlport/priv"} error); so:
 
 	PathComponents = [ get_user_home_directory(), "Software", PackageName,
 					   "erlport" ],
