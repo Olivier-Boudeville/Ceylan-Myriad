@@ -45,11 +45,15 @@
 % For the mat3 record:
 -include("linear_3D.hrl").
 
-% Shorthand:
+
+% Shorthands:
 -type coordinate() :: linear:coordinate().
+-type factor() :: linear:factor().
 
 
-% A 4D vector, with floating-point coordinates:
+% A 4D vector, with floating-point coordinates.
+%
+% They are typically referenced as [ X, Y, Z, W ].
 %
 -type vector() :: { coordinate(), coordinate(), coordinate(), coordinate() }.
 
@@ -73,18 +77,75 @@
 			   matrix/0 ]).
 
 
--export([ null/0, identity/0, from_columns/4, from_rows/4,
+% Vector-related operations:
+-export([ null_vector/0, scale/2, add/2, add/1 ]).
+
+
+% Matrix-related operations:
+-export([ null_matrix/0, identity/0, from_columns/4, from_rows/4,
 		  from_coordinates/16, from_3D/2,
 		  to_canonical/1, to_compact/1,
 		  to_string/1 ]).
 
 
 -import( math_utils, [ is_null/1, are_close/2 ] ).
+-import( linear, [ coord_to_string/1 ]).
+
+
+
+% Implementation of vector-related operations.
+
+
+% Returns the null (4D) vector.
+%
+-spec null_vector() -> vector().
+null_vector() ->
+	{ 0.0, 0.0, 0.0, 0.0 }.
+
+
+
+% Scales specified (4D) vector of specified factor.
+%
+-spec scale( vector(), factor() ) -> vector().
+scale( _V={X,Y,Z,W}, Factor ) ->
+	{ Factor*X, Factor*Y, Factor*Z, Factor*W }.
+
+
+% Adds the two specified (4D) vectors.
+%
+-spec add( vector(), vector() ) -> vector().
+add( _Va={Xa,Ya,Za,Wa}, _Vb={Xb,Yb,Zb,Wb} ) ->
+	{ Xa+Xb, Ya+Yb, Za+Zb, Wa+Wb }.
+
+
+
+% Adds the specified (non-empty) list of (4D) vectors.
+%
+-spec add( [ vector() ] ) -> vector().
+add( _Vectors=[ V | T ] ) ->
+	add_vec_list( T, _Acc=V );
+
+add( _Vectors=[] ) ->
+	throw( cannot_add_empty_list ).
+
+
+% (helper)
+add_vec_list( _Vec=[], AccV ) ->
+	AccV;
+
+add_vec_list( _Vec=[ V | T ], AccV ) ->
+	NewAccV = add( V, AccV ),
+	add_vec_list( T, NewAccV ).
+
+
+
+% Implementation of matrix-related operations.
 
 
 % Returns the null (4x4) matrix.
 %
-null() ->
+-spec null_matrix() -> canonical_matrix().
+null_matrix() ->
 	#mat4{ m11=0.0, m12=0.0, m13=0.0, m14=0.0,
 		   m21=0.0, m22=0.0, m23=0.0, m24=0.0,
 		   m31=0.0, m32=0.0, m33=0.0, m34=0.0,
@@ -105,15 +166,16 @@ identity() ->
 %  [ |  |  |  |  ]
 %  [ |  |  |  |  ]
 %  [ |  |  |  |  ]
-
+%
 -spec from_columns( vector(), vector(), vector(), vector() ) ->
 						  canonical_matrix().
-from_columns( _Va={Va1,Va2,Va3,Va4}, _Vb={Vb1,Vb2,Vb3,Vb4},
-			  _Vc={Vc1,Vc2,Vc3,Vc4}, _Vd={Vd1,Vd2,Vd3,Vd4} ) ->
-	#mat4{ m11=Va1, m12=Vb1, m13=Vc1, m14=Vd1,
-		   m21=Va2, m22=Vb2, m23=Vc2, m24=Vd2,
-		   m31=Va3, m32=Vb3, m33=Vc3, m34=Vd3,
-		   m41=Va4, m42=Vb4, m43=Vc4, m44=Vd4 }.
+from_columns( _Va={Xa,Ya,Za,Wa}, _Vb={Xb,Yb,Zb,Wb},
+			  _Vc={Xc,Yc,Zc,Wc}, _Vd={Xd,Yd,Zd,Wd} ) ->
+	#mat4{ m11=Xa, m12=Xb, m13=Xc, m14=Xd,
+		   m21=Ya, m22=Yb, m23=Yc, m24=Yd,
+		   m31=Za, m32=Zb, m33=Zc, m34=Zd,
+		   m41=Wa, m42=Wb, m43=Wc, m44=Wd }.
+
 
 
 % Returns the (4x4) matrix whose columns correspond to the specified 4 vectors:
@@ -123,12 +185,12 @@ from_columns( _Va={Va1,Va2,Va3,Va4}, _Vb={Vb1,Vb2,Vb3,Vb4},
 % [ Vd - - - ]
 %
 -spec from_rows( vector(), vector(), vector(), vector() ) -> canonical_matrix().
-from_rows( _Va={Va1,Va2,Va3,Va4}, _Vb={Vb1,Vb2,Vb3,Vb4},
-		   _Vc={Vc1,Vc2,Vc3,Vc4}, _Vd={Vd1,Vd2,Vd3,Vd4} ) ->
-	#mat4{ m11=Va1, m12=Va2, m13=Va3, m14=Va4,
-		   m21=Vb1, m22=Vb2, m23=Vb3, m24=Vb4,
-		   m31=Vc1, m32=Vc2, m33=Vc3, m34=Vc4,
-		   m41=Vd1, m42=Vd2, m43=Vd3, m44=Vd4 }.
+from_rows( _Va={Xa,Ya,Za,Wa}, _Vb={Xb,Yb,Zb,Wb},
+		   _Vc={Xc,Yc,Zc,Wc}, _Vd={Xd,Yd,Zd,Wd} ) ->
+	#mat4{ m11=Xa, m12=Ya, m13=Za, m14=Wa,
+		   m21=Xb, m22=Yb, m23=Zb, m24=Wb,
+		   m31=Xc, m32=Yc, m33=Zc, m34=Wc,
+		   m41=Xd, m42=Yd, m43=Zd, m44=Wd }.
 
 
 % Returns the (4x4) matrix whose coordinates are the specified ones, specified
@@ -154,10 +216,10 @@ from_coordinates( A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14,
 from_3D( #mat3{ m11=M11, m12=M12, m13=M13,
 				m21=M21, m22=M22, m23=M23,
 				m31=M31, m32=M32, m33=M33 },
-		 _Vec3={ Va, Vb, Vc } ) ->
-	#cpt_mat4{ m11=M11, m12=M12, m13=M13, tx=Va,
-			   m21=M21, m22=M22, m23=M23, ty=Vb,
-			   m31=M31, m32=M32, m33=M33, tz=Vc }.
+		 _Vec3={ X, Y, Z } ) ->
+	#cpt_mat4{ m11=M11, m12=M12, m13=M13, tx=X,
+			   m21=M21, m22=M22, m23=M23, ty=Y,
+			   m31=M31, m32=M32, m33=M33, tz=Z }.
 
 
 % Returns the canonical form of specified (4x4) matrix.
@@ -223,31 +285,44 @@ to_compact( M ) when is_record( M, cpt_mat4 ) ->
 
 
 
-% Returns a textual representation of specified matrix.
+% Returns a textual representation of specified (4x4) vector or matrix.
 %
--spec to_string( matrix() ) -> string().
+-spec to_string( vector() | matrix() ) -> string().
+to_string( _Vector={X,Y,Z,W} ) ->
+	text_utils:format( "[ ~s, ~s, ~s, ~s ]",
+					   [ coord_to_string( X ), coord_to_string( Y ),
+						 coord_to_string( Z ), coord_to_string( W ) ] );
+
 to_string( _Matrix=identity_4 ) ->
 	"4x4 identity";
 
 to_string( _Matrix=#mat4{ m11=M11, m12=M12, m13=M13, m14=M14,
 						  m21=M21, m22=M22, m23=M23, m24=M24,
 						  m31=M31, m32=M32, m33=M33, m34=M34,
-						  m41=M41, m42=M42, m43=M43, m44=M44 }) ->
-	text_utils:format( "[ ~f, ~f, ~f, ~f ]~n"
-					   "[ ~f, ~f, ~f, ~f ]~n"
-					   "[ ~f, ~f, ~f, ~f ]~n",
-					   "[ ~f, ~f, ~f, ~f ]~n",
-					   [ M11, M12, M13, M14,
-						 M21, M22, M23, M24,
-						 M31, M32, M33, M34,
-						 M41, M42, M43, M44 ] );
+						  m41=M41, m42=M42, m43=M43, m44=M44 } ) ->
+	Elements = [ M11, M12, M13, M14,
+				 M21, M22, M23, M24,
+				 M31, M32, M33, M34,
+				 M41, M42, M43, M44 ],
+
+	ElemStrings = [ coord_to_string( E ) || E <- Elements ],
+
+	text_utils:format( "[ ~s, ~s, ~s, ~s ]~n"
+					   "[ ~s, ~s, ~s, ~s ]~n"
+					   "[ ~s, ~s, ~s, ~s ]~n"
+					   "[ ~s, ~s, ~s, ~s ]~n",
+					   ElemStrings );
 
 to_string( _Matrix=#cpt_mat4{ m11=M11, m12=M12, m13=M13, tx=Tx,
 							  m21=M21, m22=M22, m23=M23, ty=Ty,
 							  m31=M31, m32=M32, m33=M33, tz=Tz } ) ->
-	text_utils:format( "[ ~f, ~f, ~f, ~f ]~n"
-					   "[ ~f, ~f, ~f, ~f ]~n"
-					   "[ ~f, ~f, ~f, ~f ]~n",
-					   [ M11, M12, M13, Tx,
-						 M21, M22, M23, Ty,
-						 M31, M32, M33, Tz ] ).
+	Elements = [ M11, M12, M13, Tx,
+				 M21, M22, M23, Ty,
+				 M31, M32, M33, Tz ],
+
+	ElemStrings = [ coord_to_string( E ) || E <- Elements ],
+
+	text_utils:format( "[ ~s, ~s, ~s, ~s ]~n"
+					   "[ ~s, ~s, ~s, ~s ]~n"
+					   "[ ~s, ~s, ~s, ~s ]~n",
+					   ElemStrings ).

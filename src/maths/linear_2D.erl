@@ -111,7 +111,10 @@
 						linear:integer_coordinate() }.
 
 
-% Vectors could/should be aliased to points:
+% A 2D vector, with floating-point coordinates.
+%
+% They are typically referenced as [ X, Y ].
+%
 -type vector() :: { coordinate(), coordinate() }.
 
 
@@ -545,6 +548,7 @@ magnitude( V ) ->
 
 
 % Scales specified vector of specified factor.
+%
 -spec scale( vector(), number() ) -> vector().
 scale( _V={X,Y}, Factor ) ->
 	{ Factor*X, Factor*Y }.

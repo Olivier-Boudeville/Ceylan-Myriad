@@ -82,13 +82,14 @@
 % Section about points and vectors.
 
 
-% 3D point, with floating-point coordinates:
+% A 3D vector, with floating-point coordinates.
 %
--type point() :: { coordinate(), coordinate(),
-				   coordinate() }.
+% They are typically referenced as [ X, Y, Z ].
+%
+-type point() :: { coordinate(), coordinate(), coordinate() }.
 
 
-% 3D point, with integer coordinates:
+% A 3D point, with integer coordinates.
 %
 -type integer_point() :: { linear:integer_coordinate(),
 						   linear:integer_coordinate(),

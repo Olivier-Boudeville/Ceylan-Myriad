@@ -32,8 +32,13 @@
 
 
 % Relatively aggressive inlining for basic operations:
--compile(inline).
--compile({inline_size,48}).
+-compile( inline ).
+-compile( { inline_size, 48 } ).
+
+
+% For printout_*:
+-include("linear.hrl").
+
 
 
 % These type names are too general to be defined in the hrl file (i.e. in the
@@ -146,3 +151,21 @@
 			   square_distance/0, integer_square_distance/0,
 			   any_square_distance/0,
 			   area/0 ]).
+
+
+-export([ coord_to_string/1 ] ).
+
+
+% Returns a textual representation of a coordinate.
+%
+-spec coord_to_string( coordinate() ) -> string().
+coord_to_string( Coord ) ->
+
+	% For testing:
+	%text_utils:format( "XX~*.*.*fXX~n", [ 14, 12, $a, 1/3 ] ).
+
+	% Hopefully the format string is resolved at compile-time:
+	%text_utils:format( "~" ++ ?printout_width ++ "." ++ ?printout_precision
+	%				   ++ ". p", [ Coord ] ).
+	text_utils:format( "~" ++ ?printout_width ++ "." ++ ?printout_precision
+					   ++ ". f", [ Coord ] ).
