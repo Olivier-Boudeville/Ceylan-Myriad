@@ -77,14 +77,21 @@
 			   matrix/0 ]).
 
 
+% Operations common to vectors and matrices:
+%
+-export([ scale/2 ]).
+
+
 % Vector-related operations:
--export([ null_vector/0, scale/2, add/2, add/1 ]).
+%
+-export([ null_vector/0, add/2, add/1 ]).
 
 
 % Matrix-related operations:
+%
 -export([ null_matrix/0, identity/0, from_columns/4, from_rows/4,
-		  from_coordinates/16, from_3D/2,
-		  to_canonical/1, to_compact/1,
+		  from_coordinates/16, from_coordinates/12, from_3D/2,
+		  to_canonical/1, to_compact/1, mult/2, are_equal/2,
 		  to_string/1 ]).
 
 
@@ -102,13 +109,6 @@
 null_vector() ->
 	{ 0.0, 0.0, 0.0, 0.0 }.
 
-
-
-% Scales specified (4D) vector of specified factor.
-%
--spec scale( vector(), factor() ) -> vector().
-scale( _V={X,Y,Z,W}, Factor ) ->
-	{ Factor*X, Factor*Y, Factor*Z, Factor*W }.
 
 
 % Adds the two specified (4D) vectors.
@@ -161,6 +161,37 @@ identity() ->
 	identity_4.
 
 
+
+% Scales specified (4D) vector or matrix of specified factor.
+%
+-spec scale( vector(), factor() ) -> vector();
+		   ( matrix(), factor() ) -> matrix().
+scale( _V={X,Y,Z,W}, Factor ) ->
+	{ Factor*X, Factor*Y, Factor*Z, Factor*W };
+
+scale( #cpt_mat4{ m11=M11, m12=M12, m13=M13, tx=Tx,
+				  m21=M21, m22=M22, m23=M23, ty=Ty,
+				  m31=M31, m32=M32, m33=M33, tz=Tz }, Factor ) ->
+	#cpt_mat4{ m11=Factor*M11, m12=Factor*M12, m13=Factor*M13, tx=Factor*Tx,
+			   m21=Factor*M21, m22=Factor*M22, m23=Factor*M23, ty=Factor*Ty,
+			   m31=Factor*M31, m32=Factor*M32, m33=Factor*M33, tz=Factor*Tz };
+
+scale( #mat4{ m11=M11, m12=M12, m13=M13, m14=Tx,
+			  m21=M21, m22=M22, m23=M23, m24=Ty,
+			  m31=M31, m32=M32, m33=M33, m34=Tz,
+			  m41=M41, m42=M42, m43=M43, m44=Tw }, Factor ) ->
+	#mat4{ m11=Factor*M11, m12=Factor*M12, m13=Factor*M13, m14=Factor*Tx,
+		   m21=Factor*M21, m22=Factor*M22, m23=Factor*M23, m24=Factor*Ty,
+		   m31=Factor*M31, m32=Factor*M32, m33=Factor*M33, m34=Factor*Tz,
+		   m41=Factor*M41, m42=Factor*M42, m43=Factor*M43, m44=Factor*Tw };
+
+scale( identity_4, Factor ) ->
+	scale( to_canonical( identity_4 ), Factor ).
+
+
+
+
+
 % Returns the (4x4) matrix whose columns correspond to the specified 4 vectors:
 %  [ Va Vb Vc Vd ]
 %  [ |  |  |  |  ]
@@ -193,8 +224,8 @@ from_rows( _Va={Xa,Ya,Za,Wa}, _Vb={Xb,Yb,Zb,Wb},
 		   m41=Xd, m42=Yd, m43=Zd, m44=Wd }.
 
 
-% Returns the (4x4) matrix whose coordinates are the specified ones, specified
-% rows after rows.
+% Returns the (4x4, canonical) matrix whose (16) coordinates are the specified
+% ones, specified rows after rows.
 %
 -spec from_coordinates( coordinate(), coordinate(), coordinate(), coordinate(),
 						coordinate(), coordinate(), coordinate(), coordinate(),
@@ -207,6 +238,20 @@ from_coordinates( A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14,
 		   m21=A5,  m22=A6,  m23=A7,  m24=A8,
 		   m31=A9,  m32=A10, m33=A11, m34=A12,
 		   m41=A13, m42=A14, m43=A15, m44=A16 }.
+
+
+
+% Returns the (4x4, compact) matrix whose (12) coordinates are the specified
+% ones, specified rows after rows.
+%
+-spec from_coordinates( coordinate(), coordinate(), coordinate(), coordinate(),
+						coordinate(), coordinate(), coordinate(), coordinate(),
+						coordinate(), coordinate(), coordinate(), coordinate() )
+					  -> compact_matrix().
+from_coordinates( A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12 ) ->
+	#cpt_mat4{ m11=A1,  m12=A2,  m13=A3,  tx=A4,
+			   m21=A5,  m22=A6,  m23=A7,  ty=A8,
+			   m31=A9,  m32=A10, m33=A11, tz=A12 }.
 
 
 
@@ -281,6 +326,209 @@ to_compact( identity_4 ) ->
 
 to_compact( M ) when is_record( M, cpt_mat4 ) ->
 	M.
+
+
+
+% Multiplies the first matrix by the second one: returns Mc = Ma.Mb.
+%
+-spec mult( matrix(), matrix() ) -> matrix().
+mult( identity_4, M ) ->
+	M;
+
+mult( M, identity_4 ) ->
+	M;
+
+mult( _Ma=#mat4{ m11=A11, m12=A12, m13=A13, m14=A14,
+				 m21=A21, m22=A22, m23=A23, m24=A24,
+				 m31=A31, m32=A32, m33=A33, m34=A34,
+				 m41=A41, m42=A42, m43=A43, m44=A44 },
+	  _Mb=#mat4{ m11=B11, m12=B12, m13=B13, m14=B14,
+				 m21=B21, m22=B22, m23=B23, m24=B24,
+				 m31=B31, m32=B32, m33=B33, m34=B34,
+				 m41=B41, m42=B42, m43=B43, m44=B44 } ) ->
+
+	C11 = A11*B11 + A12*B21 + A13*B31 + A14*B41,
+	C12 = A11*B12 + A12*B22 + A13*B32 + A14*B42,
+	C13 = A11*B13 + A12*B23 + A13*B33 + A14*B43,
+	C14 = A11*B14 + A12*B24 + A13*B34 + A14*B44,
+
+	C21 = A21*B11 + A22*B21 + A23*B31 + A24*B41,
+	C22 = A21*B12 + A22*B22 + A23*B32 + A24*B42,
+	C23 = A21*B13 + A22*B23 + A23*B33 + A24*B43,
+	C24 = A21*B14 + A22*B24 + A23*B34 + A24*B44,
+
+	C31 = A31*B11 + A32*B21 + A33*B31 + A34*B41,
+	C32 = A31*B12 + A32*B22 + A33*B32 + A34*B42,
+	C33 = A31*B13 + A32*B23 + A33*B33 + A34*B43,
+	C34 = A31*B14 + A32*B24 + A33*B34 + A34*B44,
+
+	C41 = A41*B11 + A42*B21 + A43*B31 + A44*B41,
+	C42 = A41*B12 + A42*B22 + A43*B32 + A44*B42,
+	C43 = A41*B13 + A42*B23 + A43*B33 + A44*B43,
+	C44 = A41*B14 + A42*B24 + A43*B34 + A44*B44,
+
+	#mat4{ m11=C11, m12=C12, m13=C13, m14=C14,
+		   m21=C21, m22=C22, m23=C23, m24=C24,
+		   m31=C31, m32=C32, m33=C33, m34=C34,
+		   m41=C41, m42=C42, m43=C43, m44=C44 };
+
+mult( _Ma=#cpt_mat4{ m11=A11, m12=A12, m13=A13, tx=Tx,
+					 m21=A21, m22=A22, m23=A23, ty=Ty,
+					 m31=A31, m32=A32, m33=A33, tz=Tz },
+	  _Mb=#mat4{ m11=B11, m12=B12, m13=B13, m14=B14,
+				 m21=B21, m22=B22, m23=B23, m24=B24,
+				 m31=B31, m32=B32, m33=B33, m34=B34,
+				 m41=B41, m42=B42, m43=B43, m44=B44 } ) ->
+
+
+	C11 = A11*B11 + A12*B21 + A13*B31 + Tx*B41,
+	C12 = A11*B12 + A12*B22 + A13*B32 + Tx*B42,
+	C13 = A11*B13 + A12*B23 + A13*B33 + Tx*B43,
+	C14 = A11*B14 + A12*B24 + A13*B34 + Tx*B44,
+
+	C21 = A21*B11 + A22*B21 + A23*B31 + Ty*B41,
+	C22 = A21*B12 + A22*B22 + A23*B32 + Ty*B42,
+	C23 = A21*B13 + A22*B23 + A23*B33 + Ty*B43,
+	C24 = A21*B14 + A22*B24 + A23*B34 + Ty*B44,
+
+	C31 = A31*B11 + A32*B21 + A33*B31 + Tz*B41,
+	C32 = A31*B12 + A32*B22 + A33*B32 + Tz*B42,
+	C33 = A31*B13 + A32*B23 + A33*B33 + Tz*B43,
+	C34 = A31*B14 + A32*B24 + A33*B34 + Tz*B44,
+
+	C41 = B41,
+	C42 = B42,
+	C43 = B43,
+	C44 = B44,
+
+	#mat4{ m11=C11, m12=C12, m13=C13, m14=C14,
+		   m21=C21, m22=C22, m23=C23, m24=C24,
+		   m31=C31, m32=C32, m33=C33, m34=C34,
+		   m41=C41, m42=C42, m43=C43, m44=C44 };
+
+mult( _Ma=#mat4{ m11=A11, m12=A12, m13=A13, m14=A14,
+				 m21=A21, m22=A22, m23=A23, m24=A24,
+				 m31=A31, m32=A32, m33=A33, m34=A34,
+				 m41=A41, m42=A42, m43=A43, m44=A44 },
+	  _Mb=#cpt_mat4{ m11=B11, m12=B12, m13=B13, tx=Tx,
+					 m21=B21, m22=B22, m23=B23, ty=Ty,
+					 m31=B31, m32=B32, m33=B33, tz=Tz } ) ->
+
+	C11 = A11*B11 + A12*B21 + A13*B31,
+	C12 = A11*B12 + A12*B22 + A13*B32,
+	C13 = A11*B13 + A12*B23 + A13*B33,
+	C14 = A11*Tx  + A12*Ty  + A13*Tz + A14,
+
+	C21 = A21*B11 + A22*B21 + A23*B31,
+	C22 = A21*B12 + A22*B22 + A23*B32,
+	C23 = A21*B13 + A22*B23 + A23*B33,
+	C24 = A21*Tx  + A22*Ty  + A23*Tz + A24,
+
+	C31 = A31*B11 + A32*B21 + A33*B31,
+	C32 = A31*B12 + A32*B22 + A33*B32,
+	C33 = A31*B13 + A32*B23 + A33*B33,
+	C34 = A31*Tx  + A32*Ty  + A33*Tz + A34,
+
+	C41 = A41*B11 + A42*B21 + A43*B31,
+	C42 = A41*B12 + A42*B22 + A43*B32,
+	C43 = A41*B13 + A42*B23 + A43*B33,
+	C44 = A41*Tx  + A42*Ty  + A43*Tz + A44,
+
+	#mat4{ m11=C11, m12=C12, m13=C13, m14=C14,
+		   m21=C21, m22=C22, m23=C23, m24=C24,
+		   m31=C31, m32=C32, m33=C33, m34=C34,
+		   m41=C41, m42=C42, m43=C43, m44=C44 };
+
+mult( _Ma=#cpt_mat4{ m11=A11, m12=A12, m13=A13, tx=Ax,
+					 m21=A21, m22=A22, m23=A23, ty=Ay,
+					 m31=A31, m32=A32, m33=A33, tz=Az },
+	  _Mb=#cpt_mat4{ m11=B11, m12=B12, m13=B13, tx=Bx,
+					 m21=B21, m22=B22, m23=B23, ty=By,
+					 m31=B31, m32=B32, m33=B33, tz=Bz } ) ->
+
+	C11 = A11*B11 + A12*B21 + A13*B31,
+	C12 = A11*B12 + A12*B22 + A13*B32,
+	C13 = A11*B13 + A12*B23 + A13*B33,
+	Cx  = A11*Bx  + A12*By  + A13*Bz + Ax,
+
+	C21 = A21*B11 + A22*B21 + A23*B31,
+	C22 = A21*B12 + A22*B22 + A23*B32,
+	C23 = A21*B13 + A22*B23 + A23*B33,
+	Cy  = A21*Bx  + A22*By  + A23*Bz + Ay,
+
+	C31 = A31*B11 + A32*B21 + A33*B31,
+	C32 = A31*B12 + A32*B22 + A33*B32,
+	C33 = A31*B13 + A32*B23 + A33*B33,
+	Cz  = A31*Bx  + A32*By  + A33*Bz + Az,
+
+	% C4{1,2,3} are 0.0, C44 is 1.0.
+
+	#cpt_mat4{ m11=C11, m12=C12, m13=C13, tx=Cx,
+			   m21=C21, m22=C22, m23=C23, ty=Cy,
+			   m31=C31, m32=C32, m33=C33, tz=Cz }.
+
+
+
+% Tells whether the two specified (4x4) matrices are equal.
+%
+-spec are_equal( matrix(), matrix() ) -> boolean().
+are_equal( _Ma=identity_4, _Mb=identity_4 ) ->
+	true;
+
+are_equal( _Ma=#mat4{ m11=A11, m12=A12, m13=A13, m14=A14,
+					  m21=A21, m22=A22, m23=A23, m24=A24,
+					  m31=A31, m32=A32, m33=A33, m34=A34,
+					  m41=A41, m42=A42, m43=A43, m44=A44 },
+		   _Mb=#mat4{ m11=B11, m12=B12, m13=B13, m14=B14,
+					  m21=B21, m22=B22, m23=B23, m24=B24,
+					  m31=B31, m32=B32, m33=B33, m34=B34,
+					  m41=B41, m42=B42, m43=B43, m44=B44 } ) ->
+				are_close( A11, B11 ) andalso are_close( A12, B12 )
+		andalso are_close( A13, B13 ) andalso are_close( A14, B14 )
+		andalso are_close( A21, B21 ) andalso are_close( A22, B22 )
+		andalso are_close( A23, B23 ) andalso are_close( A24, B24 )
+		andalso are_close( A31, B31 ) andalso are_close( A32, B32 )
+		andalso are_close( A33, B33 ) andalso are_close( A34, B34 )
+		andalso are_close( A41, B41 ) andalso are_close( A42, B42 )
+		andalso are_close( A43, B43 ) andalso are_close( A44, B44 );
+
+are_equal( _Ma=#cpt_mat4{ m11=A11, m12=A12, m13=A13, tx=Ax,
+						  m21=A21, m22=A22, m23=A23, ty=Ay,
+						  m31=A31, m32=A32, m33=A33, tz=Az },
+		   _Mb=#cpt_mat4{ m11=B11, m12=B12, m13=B13, tx=Bx,
+						  m21=B21, m22=B22, m23=B23, ty=By,
+						  m31=B31, m32=B32, m33=B33, tz=Bz } ) ->
+				are_close( A11, B11 ) andalso are_close( A12, B12 )
+		andalso are_close( A13, B13 ) andalso are_close( Ax,  Bx )
+		andalso are_close( A21, B21 ) andalso are_close( A22, B22 )
+		andalso are_close( A23, B23 ) andalso are_close( Ay,  By )
+		andalso are_close( A31, B31 ) andalso are_close( A32, B32 )
+		andalso are_close( A33, B33 ) andalso are_close( Az,  Bz );
+
+are_equal( _Ma=#mat4{ m11=A11, m12=A12, m13=A13, m14=A14,
+					  m21=A21, m22=A22, m23=A23, m24=A24,
+					  m31=A31, m32=A32, m33=A33, m34=A34,
+					  m41=A41, m42=A42, m43=A43, m44=A44 },
+		   _Mb=#cpt_mat4{ m11=B11, m12=B12, m13=B13, tx=Bx,
+						  m21=B21, m22=B22, m23=B23, ty=By,
+						  m31=B31, m32=B32, m33=B33, tz=Bz } ) ->
+				are_close( A11, B11 ) andalso are_close( A12, B12 )
+		andalso are_close( A13, B13 ) andalso are_close( A14, Bx  )
+		andalso are_close( A21, B21 ) andalso are_close( A22, B22 )
+		andalso are_close( A23, B23 ) andalso are_close( A24, By  )
+		andalso are_close( A31, B31 ) andalso are_close( A32, B32 )
+		andalso are_close( A33, B33 ) andalso are_close( A34, Bz  )
+		andalso is_null( A41 ) andalso is_null( A42 )
+		andalso is_null( A43 ) andalso are_close( A44, 1.0 );
+
+are_equal( Ma=#cpt_mat4{}, Mb=#mat4{} ) ->
+	are_equal( Mb, Ma );
+
+are_equal( Ma, _Mb=identity_4 ) ->
+	are_equal( Ma, to_compact( identity_4 ) );
+
+are_equal( _Ma=identity_4, Mb ) ->
+	are_equal( Mb, identity_4 ).
 
 
 

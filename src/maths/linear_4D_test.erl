@@ -108,5 +108,62 @@ run() ->
 							 "is:~n~s", [ linear_4D:to_string( RowMatrix ) ] ),
 
 
+	CoordMatrix = linear_4D:from_coordinates( 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+											  11, 12, 13, 14, 15, 16 ),
+
+	test_facilities:display( " Matrix explicitly set from coordinates is:~n~s",
+							 [ linear_4D:to_string( CoordMatrix ) ] ),
+
+	ScaledMatrix = linear_4D:scale( CoordMatrix, ScaleFactor ),
+
+	test_facilities:display( " The previous matrix scaled by ~p is:~n~s",
+					 [ ScaleFactor, linear_4D:to_string( ScaledMatrix  ) ] ),
+
+	ScaledMatrix = linear_4D:to_canonical( ScaledMatrix ),
+
+	CompactIdMatrix = linear_4D:to_compact( Id ),
+
+	test_facilities:display( " Compact version of identity is:~n~s",
+							 [ linear_4D:to_string( CompactIdMatrix ) ] ),
+
+	% Checked with octave:
+	%
+	% CoordMatrix = [ 1, 2, 3, 4 ; 5, 6, 7, 8 ; 9, 10, 11, 12 ; 13, 14, 15, 16 ]
+	% ScaledMatrix = 2.0 * CoordMatrix
+	% RowMatrix = [ 9, 1, 0, 1 ; 10, 10, 5, 2 ; 0, 0, 0, 3 ; 1, 2, 3, 4 ]
+	% ScaledMatrix*RowMatrix
+	% - [66,58,44,60;226,162,108,140;386,266,172,220;546,370,236,300]
+
+	MultCanCanMatrix = linear_4D:mult( ScaledMatrix, RowMatrix ),
+
+	test_facilities:display( " The multiplication of matrix~n~s "
+							 "by matrix~n~s yields:~n~s",
+							 [ linear_4D:to_string( ScaledMatrix ),
+							   linear_4D:to_string( RowMatrix ),
+							   linear_4D:to_string( MultCanCanMatrix ) ] ),
+
+	FirstCompactMatrix = linear_4D:from_coordinates( 30, 12, 15, 55,
+								 62, 42, 50, 11, 11, 39, 21, 19 ),
+
+	SecondCompactMatrix = linear_4D:from_coordinates( 59, 44, 24, 12,
+								  97, 4, 56, 1, 110, -4, 23, 9 ),
+
+	MultCptCptMatrix = linear_4D:from_coordinates( 4584, 1308, 1737, 562,
+							   13232, 2696, 4990, 1247, 6742, 556, 2931, 379 ),
+
+	true = linear_4D:are_equal( MultCptCptMatrix,
+					linear_4D:mult( FirstCompactMatrix, SecondCompactMatrix ) ),
+
+	MultCptCanMatrix = linear_4D:from_coordinates( 1880, 2104, 2328, 2552,
+		1730, 2060, 2390, 2720, 1284, 1464, 1644, 1824, 26, 28, 30, 32 ),
+
+	true = linear_4D:are_equal( MultCptCanMatrix,
+					linear_4D:mult( FirstCompactMatrix, ScaledMatrix ) ),
+
+	MultCanCptMatrix = linear_4D:from_coordinates( 374, 426, 356, 276,
+		1198, 1170, 1044, 964, 2022, 1914, 1732, 1652, 2846, 2658, 2420, 2340 ),
+
+	true = linear_4D:are_equal( MultCanCptMatrix,
+					linear_4D:mult( ScaledMatrix, FirstCompactMatrix ) ),
 
 	test_facilities:stop().

@@ -158,8 +158,8 @@
 
 % Returns a textual representation of a coordinate.
 %
--spec coord_to_string( coordinate() ) -> string().
-coord_to_string( Coord ) ->
+-spec coord_to_string( any_coordinate() ) -> string().
+coord_to_string( Coord ) when is_float( Coord ) ->
 
 	% For testing:
 	%text_utils:format( "XX~*.*.*fXX~n", [ 14, 12, $a, 1/3 ] ).
@@ -168,4 +168,8 @@ coord_to_string( Coord ) ->
 	%text_utils:format( "~" ++ ?printout_width ++ "." ++ ?printout_precision
 	%				   ++ ". p", [ Coord ] ).
 	text_utils:format( "~" ++ ?printout_width ++ "." ++ ?printout_precision
-					   ++ ". f", [ Coord ] ).
+					   ++ ". f", [ Coord ] );
+
+coord_to_string( Coord ) when is_integer( Coord ) ->
+	text_utils:format( "~" ++ ?printout_width ++ "." ++ ?printout_precision
+					   ++ ". B", [ Coord ] ).
