@@ -33,6 +33,10 @@
 -module(linear_2D).
 
 
+% Relatively aggressive inlining for basic operations:
+-compile( inline ).
+-compile( { inline_size, 48 } ).
+
 
 % Operations on points:
 %
@@ -79,26 +83,48 @@
 -include("math_utils.hrl").
 
 
+% Shorthands:
 
--type point() :: { linear:coordinate(), linear:coordinate() }.
+-type coordinate() :: linear:coordinate().
+-type factor() :: linear:factor().
+
+
+% Implementation notes:
+%
+% A typical use for integer operations is GUI-related processing.
+
+
+
+% 2D point, with floating-point coordinates:
+%
+-type point() :: { coordinate(), coordinate() }.
+
+
+% 2D point, with integer coordinates:
+%
 -type integer_point() :: { linear:integer_coordinate(),
-						  linear:integer_coordinate() }.
-
-% { Width, Height }:
--type dimensions() :: { linear:integer_coordinate(),
-						  linear:integer_coordinate() }.
-
-% Vectors could/should be aliased to points:
--type vector() :: { linear:coordinate(), linear:coordinate() }.
--type integer_vector() :: { linear:integer_coordinate(),
 						   linear:integer_coordinate() }.
 
 
+% { Width, Height }:
+-type dimensions() :: { linear:integer_coordinate(),
+						linear:integer_coordinate() }.
 
-% A line, whose equation A.x+B.y+C=0, can be defined by its three coefficients
+
+% Vectors could/should be aliased to points:
+-type vector() :: { coordinate(), coordinate() }.
+
+
+-type integer_vector() :: { linear:integer_coordinate(),
+							linear:integer_coordinate() }.
+
+
+
+% A line, whose equation A.x+B.y+C=0, can be defined by its three factors
 % {A,B,C}.
 %
--type line() :: { number(), number(), number() }.
+-type line() :: { factor(), factor(), factor() }.
+
 
 -type shape() :: 'circle' | 'rectangle' | 'square' | 'triangle' | 'polygon'.
 
@@ -239,18 +265,18 @@ compute_smallest_enclosing_rectangle( _Points=[], TopLeft, BottomRight ) ->
 	{ TopLeft, BottomRight };
 
 compute_smallest_enclosing_rectangle( [ _Points=P | Others ], undefined,
-									 undefined ) ->
+									  undefined ) ->
 	% First found initializes best, knowing at least two points are expected:
 	compute_smallest_enclosing_rectangle( Others, _TopLeft=P, _BottomRight=P );
 
 compute_smallest_enclosing_rectangle( [ _Points={ X, Y } | Others ], { Xt, Yt },
-									 { Xb, Yb } ) ->
+									  { Xb, Yb } ) ->
 	Xmin = erlang:min( X, Xt ),
 	Ymin = erlang:min( Y, Yt ),
 	Xmax = erlang:max( X, Xb ),
 	Ymax = erlang:max( Y, Yb ),
 	compute_smallest_enclosing_rectangle( Others, { Xmin, Ymin },
-										 { Xmax, Ymax } ).
+										  { Xmax, Ymax } ).
 
 
 
@@ -264,8 +290,8 @@ compute_smallest_enclosing_rectangle( [ _Points={ X, Y } | Others ], { Xt, Yt },
 %
 % Here there is only one vertex left:
 %
--spec compute_max_overall_distance( [ point() ] )
-		-> { point(), point(), linear:square_distance() }.
+-spec compute_max_overall_distance( [ point() ] ) ->
+							  { point(), point(), linear:square_distance() }.
 compute_max_overall_distance( Points ) when length( Points ) < 2 ->
 	throw( { no_computable_overall_distance, Points } );
 
@@ -309,8 +335,8 @@ compute_max_overall_distance( _Points=[ H | Others ],
 %
 % As there must have been at least one point in the list, Pmax exists here
 % (never undefined):
--spec compute_max_distance_between( point(), [ point() ] )
-	-> { point(), point(), linear:square_distance() }.
+-spec compute_max_distance_between( point(), [ point() ] )-> 
+						{ point(), point(), linear:square_distance() }.
 compute_max_distance_between( _P, [] ) ->
 	throw( no_computable_max_distance );
 
@@ -319,7 +345,7 @@ compute_max_distance_between( P, Points ) ->
 
 
 compute_max_distance_between( P, _Points=[], {Pmax,LongestSquareDistance} ) ->
-	{P,Pmax,LongestSquareDistance};
+	{ P, Pmax, LongestSquareDistance };
 
 compute_max_distance_between( P, _Points=[ Pnew | OtherPoints ], undefined ) ->
 	% First point examined is at first by construction the first best:
@@ -362,7 +388,7 @@ find_pivot( _PointList = [ FirstPivot | Others ] ) ->
 
 
 % Helper:
-find_pivot( [], Pivot, NewList ) ->
+find_pivot( _Points=[], Pivot, NewList ) ->
 	{ Pivot, NewList };
 
 % Higher than the pivot, thus not wanted as pivot:
@@ -414,7 +440,7 @@ sort_by_angle( Pivot, Points ) ->
 					  [ { number(), point() } ] ) ->  [ point() ].
 sort_by_angle( _Pivot, _Points=[], LeftPoints, undefined, RightPoints ) ->
 
-	%io:format( "sort_by_angle: no middle point found.~n" ),
+	%trace_utils:debug_fmt( "sort_by_angle: no middle point found." ),
 	% Not having a middle point to integrate here:
 
 	L = lists:keysort( _Index=1, LeftPoints )
@@ -471,8 +497,8 @@ sort_by_angle( Pivot={Xp,Yp}, [ Point={X,Y} | T ], LeftPoints, MiddlePoint,
 		NegativeDeltaX ->
 			% This is a point on the left of the pivot:
 			sort_by_angle( Pivot, T,
-						[ { (Y-Yp) / NegativeDeltaX, Point } | LeftPoints ],
-						MiddlePoint, RightPoints )
+						   [ { (Y-Yp) / NegativeDeltaX, Point } | LeftPoints ],
+						   MiddlePoint, RightPoints )
 
 	end.
 
@@ -536,7 +562,7 @@ make_unit( {0,0} ) ->
 	throw( cannot_make_null_vector_unit );
 
 make_unit( V ) ->
-	scale( V, 1 / magnitude(V) ).
+	scale( V, 1 / magnitude( V ) ).
 
 
 
@@ -668,8 +694,7 @@ intersect( _D1={A,B,C}, _D2={U,V,W} ) ->
 % Line L must not have for equation Y=constant (i.e. its A parameter must not be
 % null).
 %
--spec get_abscissa_for_ordinate( line(), linear:coordinate() ) ->
-									   linear:coordinate().
+-spec get_abscissa_for_ordinate( line(), coordinate() ) -> coordinate().
 get_abscissa_for_ordinate( _L={A,B,C}, Y ) ->
 	% For y=K, x=-(C+BK)/A
 	-(C+B*Y) / A.
@@ -717,9 +742,9 @@ abs_angle_rad( A, B, C ) ->
 
 	AB = vectorize( A, B ),
 
-	M1 = magnitude(AB),
+	M1 = magnitude( AB ),
 
-	case math_utils:is_null(M1) of
+	case math_utils:is_null( M1 ) of
 
 		true ->
 			throw( { degenerate_angle, { A, B } } );
@@ -804,7 +829,7 @@ compute_convex_hull( Points ) ->
 
 	{ Pivot, RemainingPoints } = find_pivot( Points ),
 
-	case length(RemainingPoints) of
+	case length( RemainingPoints ) of
 
 		Len when Len < 2 ->
 			throw( not_enough_points_for_convex_hull );
@@ -822,7 +847,7 @@ compute_convex_hull( Points ) ->
 			% We also add the pivot to the end of the NextPoints list, so that
 			% the hull can be closed.
 			compute_graham_scan_hull( _ToValidate=[ P1, Pivot ],
-							  _NewPoint=P2, _NextPoints=( T++ [Pivot] ) )
+							  _NewPoint=P2, _NextPoints=( T++ [ Pivot ] ) )
 
 	end.
 
@@ -874,7 +899,7 @@ compute_graham_scan_hull( ToValidate=[ P2, P1 | T ], NewPoint,
 			% the Next point, thus P2 can be kept and we can continue with the
 			% next points:
 			compute_graham_scan_hull( [ NewPoint | ToValidate ], Next,
-									 OtherNext );
+									  OtherNext );
 
 		true ->
 
@@ -920,7 +945,7 @@ compute_graham_scan_hull( L, NewPoint, [ Next | OtherNext ] ) ->
 %
 -spec to_string( point() ) -> string().
 to_string( { X, Y } ) ->
-	io_lib:format( "{ ~w, ~w }", [ X, Y ] ).
+	text_utils:format( "[ ~w, ~w ]", [ X, Y ] ).
 
 
 
@@ -942,24 +967,24 @@ to_string( { X, Y }, DigitCountAfterComma ) ->
 
 	XString = case is_float( X ) of
 
-				  true ->
-					  text_utils:format( "~.*f", [ DigitCountAfterComma, X ] );
+		true ->
+			text_utils:format( "~.*f", [ DigitCountAfterComma, X ] );
 
-				  false ->
-					  % Integer:
-					  text_utils:format( "~B", [ X ] )
+		false ->
+			% Integer:
+			text_utils:format( "~B", [ X ] )
 
 	end,
 
 	YString = case is_float( Y ) of
 
-				  true ->
-					  text_utils:format( "~.*f", [ DigitCountAfterComma, Y ] );
+		true ->
+			text_utils:format( "~.*f", [ DigitCountAfterComma, Y ] );
 
-				  false ->
-					  % Integer:
-					  text_utils:format( "~B", [ Y ] )
+		false ->
+			% Integer:
+			text_utils:format( "~B", [ Y ] )
 
 	end,
 
-	text_utils:format( "{ ~s, ~s }", [ XString, YString ] ).
+	text_utils:format( "[ ~s, ~s ]", [ XString, YString ] ).

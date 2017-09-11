@@ -38,19 +38,30 @@
 		  float_to_integer/1, float_to_integer/2,
 		  modulo/2, clamp/3, squarify/1 ]).
 
+-compile({ inline, [ ceiling/1, round_after/2,
+					 float_to_integer/1, float_to_integer/2,
+					 modulo/2, clamp/3, squarify/1 ] }).
+
 
 % Operations on floating-point values (in Erlang, a float is a C double):
 -export([ are_close/2, are_close/3,
 		  are_relatively_close/2, are_relatively_close/3,
 		  get_relative_difference/2, is_null/1 ]).
 
+-compile({ inline, [ are_close/2, are_close/3,
+					 are_relatively_close/2, are_relatively_close/3,
+					 get_relative_difference/2, is_null/1 ] }).
+
 
 % Operations with angles:
 -export([ radian_to_degree/1, canonify/1 ]).
 
+-compile({ inline, [ radian_to_degree/1, canonify/1 ] }).
+
 
 % For epsilon define:
 -include("math_utils.hrl").
+
 
 
 % Type declarations:
