@@ -126,7 +126,7 @@ run() ->
 	test_facilities:display( " Compact version of identity is:~n~s",
 							 [ linear_4D:to_string( CompactIdMatrix ) ] ),
 
-	% Checked with octave:
+	% Checked with octave, for example:
 	%
 	% CoordMatrix = [ 1, 2, 3, 4 ; 5, 6, 7, 8 ; 9, 10, 11, 12 ; 13, 14, 15, 16 ]
 	% ScaledMatrix = 2.0 * CoordMatrix

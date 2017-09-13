@@ -28,7 +28,7 @@
 
 % Header to export canvas-related defines.
 %
-% See canvas.erl for the corresponding implementation.
+% See gui_canvas.erl for the corresponding implementation.
 
 
 
@@ -38,11 +38,9 @@
 % the blit/1 function is called on it.
 %
 -record( canvas, {
-
 		   panel       :: gui:panel(),
 		   bitmap      :: gui:bitmap(),
 		   back_buffer :: gui:back_buffer()
-
 }).
 
 

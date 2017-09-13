@@ -26,11 +26,15 @@
 % Creation date: Monday, February 15, 2010.
 
 
-% Gathering of various facilities for User Interfaces (UI or not).
+% Gathering of various facilities for User Interfaces (graphical or not).
 %
 % The base interface proposed here is purely textual.
 %
 % See ui_test.erl for the corresponding test.
+%
+% See gui.erl for a graphical counterpart.
+%
+% See also: trace_utils.erl for another kind of output.
 %
 -module(ui).
 
@@ -52,11 +56,10 @@
 -export([ start/0, start/1, display/2, display/3, display_numbered_list/3,
 		  trace/2, stop/1 ]).
 
--record( ui_state, {
 
+-record( ui_state, {
 		   log_console = false :: boolean(),
 		   log_file = undefined :: 'undefined' | file_utils:file()
-
 }).
 
 -type ui_state() :: #ui_state{}.
@@ -101,6 +104,7 @@ start( _Options=[ { log_file, Filename } | T ], State ) ->
 	start( T, NewState ).
 
 
+
 % Displays specified string.
 %
 -spec display( string(), ui_state() ) -> ui_state().
@@ -122,7 +126,7 @@ display( FormatString, Values, UIState ) ->
 % Displays in-order the items of specified list and returns the index (starting
 % at 1) of the user-selected one.
 %
--spec display_numbered_list( string(), [ string() ], ui_state() ) -> 
+-spec display_numbered_list( string(), [ string() ], ui_state() ) ->
 								   choice_index().
 display_numbered_list( Label, Choices, UIState ) ->
 	StringItems = text_utils:strings_to_enumerated_string( Choices ),

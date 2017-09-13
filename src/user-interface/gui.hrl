@@ -31,21 +31,6 @@
 % See gui.erl for the corresponding implementation.
 
 
-
-% For WxWindows defines:
--include_lib("wx/include/wx.hrl").
-
-
--define( any_id, ?wxID_ANY ).
-
--define( no_parent, wx:null() ).
-
-
-% The special color that means "transparent" (i.e. no filling):
--define( transparent_color, ?wxTRANSPARENT_BRUSH ).
-
-
-
 % Rewriting of '-record(wx,' could have been, with maybe a better naming:
 %
 %-record( gui_event, {

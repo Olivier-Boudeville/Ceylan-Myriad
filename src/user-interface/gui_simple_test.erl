@@ -25,7 +25,7 @@
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
 
 
-% Simple unit tests for the GUI toolbox.
+% Simple unit tests for the GUI toolbox: draws a few frames and exits.
 %
 % See the gui.erl tested module.
 %
@@ -36,8 +36,6 @@
 -include("test_facilities.hrl").
 
 
--include_lib("wx/include/wx.hrl").
-
 
 run_test_gui() ->
 
@@ -45,7 +43,7 @@ run_test_gui() ->
 
 	%gui:set_debug_level( [ calls, life_cycle ] ),
 
-	FirstFrame = gui:create_frame(),
+	_FirstFrame = gui:create_frame(),
 
 	SecondFrame = gui:create_frame( "This is the second frame" ),
 
@@ -55,11 +53,16 @@ run_test_gui() ->
 
 	ThirdFrame = gui:create_frame( "This is the third frame" ),
 
-	Frames = [ FirstFrame, SecondFrame, ThirdFrame ],
+	% Should the first frame be shown, we would have:
+	% wxWidgets Assert failure: ./src/gtk/toplevel.cpp(988): \"m_widget\" in Show() :
+	% invalid frame"
 
-	[ wxFrame:show( Frame) || Frame <- Frames ],
+	%Frames = [ FirstFrame, SecondFrame, ThirdFrame ],
+	Frames = [ SecondFrame, ThirdFrame ],
 
-	timer:sleep( 2000 ),
+	[ gui:show( Frame ) || Frame <- Frames ],
+
+	timer:sleep( 4000 ),
 
 	gui:stop().
 

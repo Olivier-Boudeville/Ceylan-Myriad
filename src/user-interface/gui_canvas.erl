@@ -29,7 +29,7 @@
 
 % Gathering of various facilities for canvas management.
 %
-% See canvas_test.erl for the corresponding test.
+% See gui_canvas_test.erl for the corresponding test.
 %
 % See gui.erl for more general rendering topics.
 %
@@ -131,7 +131,7 @@ create( Window ) ->
 %
 -spec resize( canvas(), linear_2D:dimensions() ) -> canvas().
 resize( Canvas=#canvas{ bitmap=Bitmap, back_buffer=BackBuffer },
-			   _NewDimensions={ W, H } ) ->
+		_NewDimensions={ W, H } ) ->
 
 	wxBitmap:destroy( Bitmap ),
 	wxMemoryDC:destroy( BackBuffer ),
@@ -334,10 +334,10 @@ draw_segment( Canvas, L, Y1, Y2 ) ->
 % Section for other elements.
 
 
-% Draws specified label at specified position, on specified canvas, using the
-% current draw color.
+% Draws specified label (a plain string) at specified position, on specified
+% canvas, using the current draw color.
 %
--spec draw_label( canvas(), linear_2D:point(), string() ) -> basic_utils:void().
+-spec draw_label( canvas(), linear_2D:point(), gui:label() ) -> basic_utils:void().
 draw_label( #canvas{ back_buffer=BackBuffer }, Point, LabelText ) ->
 	wxDC:drawText( BackBuffer, LabelText, Point ).
 
@@ -381,8 +381,7 @@ draw_cross( Canvas, _Location={X,Y}, EdgeLength, Color ) ->
 % companion label.
 %
 -spec draw_labelled_cross( canvas(), linear_2D:point(),
-						   linear:integer_distance(), string()  ) ->
-								 basic_utils:void().
+	   linear:integer_distance(), string()  ) -> basic_utils:void().
 draw_labelled_cross( Canvas, Location={X,Y}, EdgeLength, LabelText ) ->
 
 	draw_cross( Canvas, Location, EdgeLength ),
@@ -396,8 +395,8 @@ draw_labelled_cross( Canvas, Location={X,Y}, EdgeLength, LabelText ) ->
 % companion label, and with specified color.
 %
 -spec draw_labelled_cross( canvas(), linear_2D:point(),
-						   linear:integer_distance(), gui_color:color(),
-						   string() ) -> basic_utils:void().
+			   linear:integer_distance(), gui_color:color(), string() ) -> 
+								 basic_utils:void().
 draw_labelled_cross( Canvas, Location, EdgeLength, Color, LabelText ) ->
 	set_draw_color( Canvas, Color ),
 	draw_labelled_cross( Canvas, Location, EdgeLength, LabelText ).
@@ -484,5 +483,5 @@ label_points( _Points=[], Acc, _Count ) ->
 	lists:reverse( Acc );
 
 label_points( _Points=[ P | T ], Acc, Count ) ->
-	Label = lists:flatten( io_lib:format("P~B", [ Count ] ) ),
-	label_points( T,[ { Label, P } | Acc ], Count + 1 ).
+	Label = text_utils:format( "P~B", [ Count ] ),
+	label_points( T, [ { Label, P } | Acc ], Count + 1 ).
