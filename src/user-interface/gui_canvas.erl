@@ -101,11 +101,11 @@
 % For all basic declarations (including distance() and al):
 -include("gui.hrl").
 
+% For related, internal, wx-related defines:
+-include("gui_internal_defines.hrl").
 
 
-
-
-% Canvas section.
+% Implementation notes
 %
 % There is actually no such thing as a plain canvas in wx: they are actually
 % here panels with bitmaps.
@@ -153,10 +153,12 @@ clear( #canvas{ back_buffer=BackBuffer } ) ->
 
 % Blits the back-buffer of this canvas onto its visible area.
 %
-% After this call, the back-buffer stays as was.
+% Returns the (same) canvas object, for convenience.
 %
--spec blit( canvas() ) -> basic_utils:void().
-blit( #canvas{ panel=Panel, bitmap=Bitmap, back_buffer=BackBuffer } ) ->
+% After this call, the back-buffer stays as it was.
+%
+-spec blit( canvas() ) -> basic_utils:canvas().
+blit( Canvas=#canvas{ panel=Panel, bitmap=Bitmap, back_buffer=BackBuffer } ) ->
 
 	VisibleBuffer = wxWindowDC:new( Panel ),
 
@@ -164,7 +166,9 @@ blit( #canvas{ panel=Panel, bitmap=Bitmap, back_buffer=BackBuffer } ) ->
 		  { wxBitmap:getWidth( Bitmap ), wxBitmap:getHeight( Bitmap ) },
 		  BackBuffer, {0,0} ),
 
-	wxWindowDC:destroy( VisibleBuffer ).
+	wxWindowDC:destroy( VisibleBuffer ),
+
+	Canvas.
 
 
 
@@ -395,7 +399,7 @@ draw_labelled_cross( Canvas, Location={X,Y}, EdgeLength, LabelText ) ->
 % companion label, and with specified color.
 %
 -spec draw_labelled_cross( canvas(), linear_2D:point(),
-			   linear:integer_distance(), gui_color:color(), string() ) -> 
+			   linear:integer_distance(), gui_color:color(), string() ) ->
 								 basic_utils:void().
 draw_labelled_cross( Canvas, Location, EdgeLength, Color, LabelText ) ->
 	set_draw_color( Canvas, Color ),

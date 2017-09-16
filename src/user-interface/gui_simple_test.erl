@@ -25,7 +25,8 @@
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
 
 
-% Simple unit tests for the GUI toolbox: draws a few frames and exits.
+% Simple unit tests for the GUI toolbox: creates a few frames, enter a main
+% loops, and exits when the fourth frame is closed by the user.
 %
 % See the gui.erl tested module.
 %
@@ -36,35 +37,79 @@
 -include("test_facilities.hrl").
 
 
+% Here the main loop just has to remember the frame whose closing is awaited
+% for:
+%
+-type my_test_state() :: gui:frame().
+
 
 run_test_gui() ->
 
-	gui:start(),
+	test_facilities:display( "~nStarting the actual simple test, from ~w.",
+							 [ self() ] ),
+
+
+	InitialGUIState = gui:start(),
 
 	%gui:set_debug_level( [ calls, life_cycle ] ),
 
-	_FirstFrame = gui:create_frame(),
+	FirstFrame = gui:create_frame( "This is the first frame" ),
 
 	SecondFrame = gui:create_frame( "This is the second frame" ),
 
-	%ThirdFrame = gui:create_frame( "This is the third frame",
-	%				   _Position={ 50, 10 }, _Size={ 150, 200 },
-	%				   _Style=[ default ] ),
+	ThirdFrame = gui:create_frame( "This is the third frame",
+					   _Position={ 50, 10 }, _Size={ 150, 200 },
+					   _Style=[ default ] ),
 
-	ThirdFrame = gui:create_frame( "This is the third frame" ),
+	FourthFrame = gui:create_frame( "This is the fourth frame" ),
 
-	% Should the first frame be shown, we would have:
-	% wxWidgets Assert failure: ./src/gtk/toplevel.cpp(988): \"m_widget\" in Show() :
-	% invalid frame"
+	trace_utils:info( "Please close the fourth frame to end this test." ),
 
-	%Frames = [ FirstFrame, SecondFrame, ThirdFrame ],
-	Frames = [ SecondFrame, ThirdFrame ],
+	Frames = [ FirstFrame, SecondFrame, ThirdFrame, FourthFrame ],
 
-	[ gui:show( Frame ) || Frame <- Frames ],
+	gui:show( Frames ),
 
-	timer:sleep( 4000 ),
+	% As a result, closing the third frame will not be known from here:
+	SubscribedFrames = [ FirstFrame, SecondFrame, FourthFrame ],
 
-	gui:stop().
+	SubscribedEvents = [ { onWindowClosed, SubscribedFrames } ],
+
+	ReadyGUIState = gui:handle_events( InitialGUIState, SubscribedEvents ),
+
+	test_main_loop( FourthFrame, ReadyGUIState ).
+
+
+
+
+% A very simple main loop, whose actual state is simply the GUI object
+% corresponding to the frame that shall be closed to stop the test
+% (i.e. CloseFrame).
+%
+-spec test_main_loop( my_test_state(), gui:gui_state() ) -> no_return().
+test_main_loop( CloseFrame, GUIState ) ->
+
+	trace_utils:trace( "Test main loop running..." ),
+
+	receive
+
+		{ onWindowClosed, [ CloseFrame, Context ] } ->
+
+			trace_utils:trace_fmt( "Closing frame ~w has been, well, closed "
+								   "(context: ~p), test success.",
+								   [ CloseFrame, Context ] ),
+
+			gui:destruct_window( CloseFrame ),
+
+			gui:stop( GUIState );
+
+
+		{ onWindowClosed, [ AnyFrame, Context ] } ->
+			trace_utils:trace_fmt( "Frame ~w closed (context: ~p).",
+								   [ AnyFrame, Context ] ),
+			gui:destruct_window( AnyFrame ),
+			test_main_loop( CloseFrame, GUIState )
+
+	end.
 
 
 

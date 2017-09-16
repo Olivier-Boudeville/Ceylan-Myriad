@@ -23,39 +23,23 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
-% Creation date: Tuesday, January 29, 2013
+% Creation date: Saturday, September 16, 2017.
 
 
-% Header to export gui-related defines.
-%
-% See gui.erl for the corresponding implementation.
+% Internal gui defines, hence to be included solely by the gui subsystem, not by
+% user code (as depends on wx).
 
 
-% Context sent together with an event, which can be most of the time ignored.
-%
--record( gui_event_context, {
+% For wx records and all:
+-include_lib("wx/include/wx.hrl").
 
 
-		   % The identifier of the event source (generally not useful as the
-		   % gui_object is enough):
-		   %
-		   id :: gui:id(),
+% Some defines:
+
+-define( any_id, ?wxID_ANY ).
+
+-define( no_parent, wx:null() ).
 
 
-		   % Usually of no use, as the user has been means of preserving a state
-		   % (ex: in the main loop)
-		   %
-		   user_data = undefined :: gui:user_data(),
-
-
-		   % The lower-level event (if any) resulting in our event:
-		   %
-		   % (useful for example when deciding to propagate it upward in the
-		   % widget hierarchy)
-		   %
-		   backend_event = undefined :: gui:backend_event()
-
-
-}).
-
--type gui_event_context() :: #gui_event_context{}.
+% The special color that means "transparent" (i.e. no filling):
+-define( transparent_color, ?wxTRANSPARENT_BRUSH ).
