@@ -49,7 +49,8 @@
 % Set-related operations are:
 %
 -export([ new/0, singleton/1, add/2, addAsNew/2, add_element_list/2,
-		  union/2, union/1, difference/2, is_subset/2,
+		  union/2, union/1, intersection/2, intersection/1,
+		  difference/2, is_subset/2,
 		  from_list/1, to_list/1,
 		  member/2, is_empty/1, size/1,
 		  iterator/1, next/1,
@@ -163,6 +164,7 @@ add_element_list( List, Set ) ->
 
 
 
+
 % Returns the union of the two specified sets.
 %
 -spec union( set(), set() ) -> set().
@@ -170,12 +172,26 @@ union( FirstSet, SecondSet ) ->
 	?set_impl:union( FirstSet, SecondSet ).
 
 
-
 % Returns the union of the specified sets.
 %
 -spec union( [ set() ] ) -> set().
 union( ListOfSets ) ->
 	?set_impl:union( ListOfSets ).
+
+
+
+% Returns the intersection of the two specified sets.
+%
+-spec intersection( set(), set() ) -> set().
+intersection( FirstSet, SecondSet ) ->
+	?set_impl:intersection( FirstSet, SecondSet ).
+
+
+% Returns the intersection of the specified sets.
+%
+-spec intersection( [ set() ] ) -> set().
+intersection( ListOfSets ) ->
+	?set_impl:intersection( ListOfSets ).
 
 
 
