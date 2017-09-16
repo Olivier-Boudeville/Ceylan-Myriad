@@ -43,14 +43,20 @@
 
 % Basic list operations:
 %
--export([ get_element_at/2, insert_element_at/3,
+-export([ ensure_list/1, ensure_list_of_atoms/1, ensure_list_of_tuples/1,
+		  ensure_list_of_pids/1,
+		  get_element_at/2, insert_element_at/3,
 		  remove_element_at/2, remove_last_element/1,
 		  get_last_element/1, extract_last_element/1,
 		  get_index_of/2, split_at/2, uniquify/1,
-		  has_duplicates/1, get_duplicates/1, intersect/2,
+		  has_duplicates/1, get_duplicates/1, union/2, intersection/2,
 		  subtract_all_duplicates/2, delete_existing/2, delete_if_existing/2,
 		  delete_all_in/2, append_at_end/2, is_list_of_integers/1,
 		  unordered_compare/2 ]).
+
+
+% Deprecated, for backward compatibility only:
+-export([ intersect/2 ] ).
 
 
 % For list of tuples (ex: typically used by the HDF5 binding), extended flatten
@@ -69,6 +75,100 @@
 
 
 % Section for basic list operations.
+
+
+% Either a list of terms, or a term by itself.
+%
+% Note: different from basic_utils:maybe( list() ).
+%
+-type maybe_list( T ) :: [ T ] | T.
+
+
+-export_type([ maybe_list/1 ]).
+
+
+% Ensures that the specified argument is a list: encloses it in a list of its
+% own if not already a list.
+%
+% Note: not to be applied on strings for example.
+%
+-spec ensure_list( maybe_list( T ) ) -> [ T ].
+ensure_list( List ) when is_list( List ) ->
+	List;
+
+ensure_list( Term ) ->
+	[ Term ].
+
+
+% Ensures that the specified argument is a list of atoms: encloses any atom in
+% a list of its own if not already a list, or check that this list is only
+% populated of atoms.
+%
+ensure_list_of_atoms( Atom ) when is_atom( Atom ) ->
+	[ Atom ];
+
+ensure_list_of_atoms( List ) when is_list( List ) ->
+	case meta_utils:is_homogeneous( List, _CommonType=atom ) of
+
+		true ->
+			List;
+
+		false ->
+			throw( { not_list_of_atoms, List } )
+
+	end;
+
+ensure_list_of_atoms( Other ) ->
+	throw( { not_atom, Other } ).
+
+
+
+% Ensures that the specified argument is a list of tuples: encloses any tuple in
+% a list of its own if not already a list, or check that this list is only
+% populated of tuples.
+%
+ensure_list_of_tuples( Tuple ) when is_tuple( Tuple ) ->
+	[ Tuple ];
+
+ensure_list_of_tuples( List ) when is_list( List ) ->
+	case meta_utils:is_homogeneous( List, _CommonType=tuple ) of
+
+		true ->
+			List;
+
+		false ->
+			throw( { not_list_of_tuples, List } )
+
+	end;
+
+ensure_list_of_tuples( Other ) ->
+	throw( { not_tuple, Other } ).
+
+
+
+% Ensures that the specified argument is a list of PIDs: encloses any PID in a
+% list of its own if not already a list, or check that this list is only
+% populated of PIDs.
+%
+
+ensure_list_of_pids( Pid ) when is_pid( Pid ) ->
+	[ Pid ];
+
+ensure_list_of_pids( List ) when is_list( List ) ->
+	case meta_utils:is_homogeneous( List, _CommonType=pid ) of
+
+		true ->
+			List;
+
+		false ->
+			throw( { not_list_of_pids, List } )
+
+	end;
+
+ensure_list_of_pids( Other ) ->
+	throw( { not_pid, Other } ).
+
+
 
 
 % Index start at position #1, not #0.
@@ -354,14 +454,33 @@ count_and_filter_term( Term, _List=[ OtherTerm | H ], FilteredList,
 
 
 
+
+% Returns the union of the two specified lists, i.e. the list of all elements
+% that are in either list.
+%
+-spec union( list(), list() ) -> list().
+union( L1, L2 ) ->
+	%uniquify( L1 ++ L2 ).
+	set_utils:to_list( set_utils:union( set_utils:from_list( L1 ),
+										set_utils:from_list( L2 ) ) ).
+
+
+
 % Returns the intersection of the two specified lists, i.e. the list of all
 % elements that are in both lists.
 %
 % See also: subtract_all_duplicates/2.
 %
--spec intersect( list(), list() ) -> list().
-intersect( L1, L2 ) ->
+-spec intersection( list(), list() ) -> list().
+intersection( L1, L2 ) ->
+	%set_utils:to_list( set_utils:intersection( set_utils:from_list( L1 ),
+	%										   set_utils:from_list( L2 ) ) ).
 	lists:filter( fun( E ) -> lists:member( E, L2 ) end, L1 ).
+
+
+% (naming is deprecated, backward compatibility only)
+intersect( L1, L2 ) ->
+	intersection( L1, L2 ).
 
 
 
