@@ -706,8 +706,7 @@
 			   type_name/0, type_arity/0, primitive_type_description/0,
 			   type_description/0, nesting_depth/0, type/0, explicit_type/0,
 			   term_transformer/0, module_info/0,
-			   issue_description/0, issue_info/0, issue_report/0
-			 ]).
+			   issue_description/0, issue_info/0, issue_report/0 ]).
 
 
 
@@ -738,7 +737,8 @@
 %
 -export([ description_to_type/1, type_to_description/1, type_to_string/1,
 		  get_type_of/1, get_elementary_types/0, is_type/1, is_of_type/2,
-		  is_of_described_type/2, is_homogeneous/1, are_types_identical/2 ]).
+		  is_of_described_type/2, is_homogeneous/1, is_homogeneous/2,
+		  are_types_identical/2 ]).
 
 
 
@@ -2562,7 +2562,7 @@ is_homogeneous( _List=[ H | T ] ) ->
 
 	Type = get_type_of( H ),
 
-	is_homogeneous_helper( T, Type );
+	is_homogeneous_full_helper( T, Type );
 
 is_homogeneous( Tuple ) when is_tuple( Tuple ) ->
 
@@ -2572,21 +2572,48 @@ is_homogeneous( Tuple ) when is_tuple( Tuple ) ->
 
 
 
+% Tells whether specified non-empty container (list or tuple) is homogeneous in
+% terms of type, i.e. whether all its elements are of the same, specified,
+% primitive type.
+%
+-spec is_homogeneous( list() | tuple(), primitive_type_description() ) ->
+							boolean().
+is_homogeneous( _List=[], _Type ) ->
+	% Considered homogeneous:
+	true;
+
+is_homogeneous( List, Type ) when is_list( List ) ->
+	is_homogeneous_helper( List, Type );
+
+is_homogeneous( Tuple, Type ) when is_tuple( Tuple ) ->
+
+	ElemList = tuple_to_list( Tuple ),
+
+	is_homogeneous_helper( ElemList, Type ).
+
+
+
 % Helper:
-is_homogeneous_helper( _Elems=[], Type ) ->
+is_homogeneous_full_helper( _Elems=[], Type ) ->
 	{ true, Type };
 
-is_homogeneous_helper( _Elems=[ H | T ], Type ) ->
+is_homogeneous_full_helper( _Elems=[ H | T ], Type ) ->
 
 	case get_type_of( H ) of
 
 		Type ->
-			is_homogeneous_helper( T, Type );
+			is_homogeneous_full_helper( T, Type );
 
 		OtherType ->
 			{ false, { Type, OtherType } }
 
 	end.
+
+
+% Other helper:
+is_homogeneous_helper( Elems, Type ) ->
+	{ Bool, _TypeInfo } = is_homogeneous_full_helper( Elems, Type ),
+	Bool.
 
 
 
