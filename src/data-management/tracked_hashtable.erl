@@ -46,8 +46,8 @@
 % - 'map_hashtable', which is probably the most efficient implementation
 % (speed/size compromise)
 %
-% - 'list_hashtable', a list-based implementation, efficient for smaller table
-% (and only them)
+% - 'list_table', a list-based implementation, efficient for smaller tables (and
+% only them)
 %
 % They are to provide the same API (signatures and contracts).
 

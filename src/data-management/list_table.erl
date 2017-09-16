@@ -27,33 +27,31 @@
 
 
 
-% Hash table implementation relying on a simple list of key/value pairs.
+% Table implementation relying on a simple list of key/value pairs.
 %
-% See list_hashtable_test.erl for the corresponding test.
+% See list_table_test.erl for the corresponding test.
 %
-% We provide different multiple types of hashtables, including:
+% We provide different multiple types of tables, including:
 %
-% - 'hashtable', the most basic, safest, reference implementation
-% - and quite efficient as well
+% - 'hashtable', the most basic, safest, reference implementation - and quite
+% efficient as well
 %
-% - 'tracked_hashtable', an attempt of optimisation of it (not necessarily the
-% best)
+% - 'tracked_table', an attempt of optimisation of it (not necessarily the best)
 %
-% - 'lazy_hashtable', deciding to optimise in a less costly way
-% than 'tracked_hashtable'
+% - 'lazy_table', deciding to optimise in a less costly way than 'tracked_table'
 %
-% - 'map_hashtable', which is probably the most efficient implementation
-% (speed/size compromise)
+% - 'map_table', which is probably the most efficient implementation (speed/size
+% compromise)
 %
-% - 'list_hashtable' (this module), a list-based implementation, efficient for
+% - 'list_table' (this module), a list-based implementation, efficient for
 % smaller table (and only them)
 %
 % They are to provide the same API (signatures and contracts).
 
--module(list_hashtable).
+-module(list_table).
 
 
-% The standard hashtable API:
+% The standard table API:
 %
 -export([ new/0, new/1, addEntry/3, addEntries/2,
 		  removeEntry/2, lookupEntry/2, hasEntry/2, getEntry/2,
@@ -81,13 +79,16 @@
 -type entry_count() :: basic_utils:count().
 
 
--opaque list_hashtable() :: [ { key(), value() } ].
+-opaque list_table() :: [ { key(), value() } ].
 
--opaque list_hashtable( K, V ) :: [ { K, V } ].
+-opaque list_table( K, V ) :: [ { K, V } ].
 
+% Preferred naming:
+-opaque table() :: list_table().
+-opaque table( K, V ) :: list_table( K, V ).
 
 -export_type([ key/0, value/0, entry/0, entries/0, entry_count/0,
-			   list_hashtable/0, list_hashtable/2 ]).
+			   list_table/0, list_table/2, table/0, table/2 ]).
 
 
 
@@ -100,79 +101,79 @@
 
 
 
-% Returns a new empty hashtable dimensioned for the default number of entries.
+% Returns a new empty table dimensioned for the default number of entries.
 %
--spec new() -> list_hashtable().
+-spec new() -> list_table().
 new() ->
 	[].
 
 
-% Returns a new empty hashtable dimensioned for the specified expected number of
+% Returns a new empty table dimensioned for the specified expected number of
 % entries.
 %
--spec new( entry_count() | entries() ) -> list_hashtable().
+-spec new( entry_count() | entries() ) -> list_table().
 new( ExpectedNumberOfEntries ) when is_integer( ExpectedNumberOfEntries ) ->
 	[];
 
 
 new( InitialEntries ) when is_list( InitialEntries ) ->
-	% We do not keep the specified as it is, as we want to check that it only
-	% contains pairs and, more importantly, that there is no key duplication in
-	% our then inner list:
+
+	% We do not keep the specified list as it is, as we want to check that it
+	% only contains pairs and, more importantly, that there is no key
+	% duplication in our (then) inner list:
 	%
 	addEntries( InitialEntries, [] ).
 
 
 
-% Adds specified key/value pair into the specified hashtable.
+% Adds specified key/value pair into the specified table.
 %
 % If there is already a pair with this key, then its previous value will be
 % replaced by the specified one.
 %
--spec addEntry( key(), value(), list_hashtable() ) -> list_hashtable().
-addEntry( Key, Value, Hashtable ) ->
-	lists:keystore( Key, _N=1, Hashtable, _NewTuple={ Key, Value } ).
+-spec addEntry( key(), value(), list_table() ) -> list_table().
+addEntry( Key, Value, Table ) ->
+	lists:keystore( Key, _N=1, Table, _NewTuple={ Key, Value } ).
 
 
 
-% Adds specified list of key/value pairs into the specified hashtable.
+% Adds specified list of key/value pairs into the specified table.
 %
 % If there is already a pair with this key, then its previous value will be
 % replaced by the specified one.
 %
--spec addEntries( entries(), list_hashtable() ) -> list_hashtable().
-addEntries( _EntryList=[], Hashtable ) ->
-	Hashtable;
+-spec addEntries( entries(), list_table() ) -> list_table().
+addEntries( _EntryList=[], Table ) ->
+	Table;
 
-addEntries( [ { EntryName, EntryValue } | Rest ], Hashtable ) ->
-	addEntries( Rest, addEntry( EntryName, EntryValue, Hashtable ) ).
+addEntries( [ { EntryName, EntryValue } | Rest ], Table ) ->
+	addEntries( Rest, addEntry( EntryName, EntryValue, Table ) ).
 
 
 
 % Removes specified key/value pair, as designated by the key, from the specified
-% hashtable.
+% table.
 %
 % Does nothing if the key is not found.
 %
 % Returns an updated table.
 %
--spec removeEntry( key(), list_hashtable() ) -> list_hashtable().
-removeEntry( Key, Hashtable ) ->
-	lists:keydelete( Key, _N=1, Hashtable ).
+-spec removeEntry( key(), list_table() ) -> list_table().
+removeEntry( Key, Table ) ->
+	lists:keydelete( Key, _N=1, Table ).
 
 
 
-% Looks-up specified entry (designated by its key) in specified hashtable.
+% Looks-up specified entry (designated by its key) in specified table.
 %
-% Returns either 'key_not_found' if no such key is registered in the
-% table, or { value, Value }, with Value being the value associated to the
-% specified key.
+% Returns either 'key_not_found' if no such key is registered in the table, or {
+% value, Value }, with Value being the value associated to the specified key.
 %
--spec lookupEntry( key(), list_hashtable() ) ->
+-spec lookupEntry( key(), list_table() ) ->
 				 'key_not_found' | { 'value', value() }.
-lookupEntry( Key, Hashtable ) ->
+lookupEntry( Key, Table ) ->
 
-	case lists:keyfind( Key, _N=1, Hashtable ) of
+	case lists:keyfind( Key, _N=1, Table ) of
 
 		false ->
 			key_not_found;
@@ -186,9 +187,9 @@ lookupEntry( Key, Hashtable ) ->
 
 % Tells whether the specified key exists in the table: returns true or false.
 %
--spec hasEntry( key(), list_hashtable() ) -> boolean().
-hasEntry( Key, Hashtable ) ->
-	lists:keymember( Key, _N=1, Hashtable ).
+-spec hasEntry( key(), list_table() ) -> boolean().
+hasEntry( Key, Table ) ->
+	lists:keymember( Key, _N=1, Table ).
 
 
 
@@ -198,10 +199,10 @@ hasEntry( Key, Hashtable ) ->
 % The key/value pair is expected to exist already, otherwise an exception is
 % raised.
 %
--spec getEntry( key(), list_hashtable() ) -> value().
-getEntry( Key, Hashtable ) ->
+-spec getEntry( key(), list_table() ) -> value().
+getEntry( Key, Table ) ->
 
-	case lists:keyfind( Key, _N=1, Hashtable ) of
+	case lists:keyfind( Key, _N=1, Table ) of
 
 		% Most likely case first:
 		{ Key, Value } ->
@@ -215,19 +216,19 @@ getEntry( Key, Hashtable ) ->
 
 
 
-% Extracts specified entry from specified hashtable, i.e. returns the associated
+% Extracts specified entry from specified table, i.e. returns the associated
 % value and removes that entry from the table.
 %
 % The key/value pair is expected to exist already, otherwise an exception is
 % raised.
 %
--spec extractEntry( key(), list_hashtable() ) -> { value(), list_hashtable() }.
-extractEntry( Key, Hashtable ) ->
+-spec extractEntry( key(), list_table() ) -> { value(), list_table() }.
+extractEntry( Key, Table ) ->
 
-	case lists:keytake( Key, _N=1, Hashtable ) of
+	case lists:keytake( Key, _N=1, Table ) of
 
-		{ value, { _Key, Value }, ShrunkHashtable } ->
-			{ Value, ShrunkHashtable };
+		{ value, { _Key, Value }, ShrunkTable } ->
+			{ Value, ShrunkTable };
 
 		false ->
 			% Badmatches are not informative enough:
@@ -240,10 +241,10 @@ extractEntry( Key, Hashtable ) ->
 % Looks for specified entry in specified table and, if found, returns the
 % associated value; otherwise returns the specified default value.
 %
--spec getValueWithDefaults( key(), value(), list_hashtable() ) -> value().
-getValueWithDefaults( Key, DefaultValue, Hashtable ) ->
+-spec getValueWithDefaults( key(), value(), list_table() ) -> value().
+getValueWithDefaults( Key, DefaultValue, Table ) ->
 
-	case lists:keyfind( Key, _N=1, Hashtable ) of
+	case lists:keyfind( Key, _N=1, Table ) of
 
 		{ Key, Value } ->
 			Value;
@@ -261,21 +262,21 @@ getValueWithDefaults( Key, DefaultValue, Hashtable ) ->
 % The key/value pairs are expected to exist already, otherwise an exception is
 % raised.
 %
-% Ex: [ Color=red, Age=23, Mass=51 ] = list_hashtable:getValues( [ color, age,
-% mass ], [ { color, red }, { mass, 51 }, { age, 23 } ] )
+% Ex: [ Color=red, Age=23, Mass=51 ] = list_table:getValues( [ color, age, mass
+% ], [ { color, red }, { mass, 51 }, { age, 23 } ] )
 %
--spec getValues( [ key() ], list_hashtable() ) -> [ value() ].
-getValues( Keys, Hashtable ) ->
+-spec getValues( [ key() ], list_table() ) -> [ value() ].
+getValues( Keys, Table ) ->
 
 	{ RevValues, _FinalTable } = lists:foldl(
 
-				fun( _Elem=Key, _Acc={ Values, Table } ) ->
+				fun( _Elem=Key, _Acc={ Values, AccTable } ) ->
 
-					   { Value, ShrunkTable } = extractEntry( Key, Table ),
+					   { Value, ShrunkTable } = extractEntry( Key, AccTable ),
 					   { [ Value | Values ], ShrunkTable }
 
 				end,
-				_Acc0={ [], Hashtable },
+				_Acc0={ [], Table },
 				_List=Keys ),
 
 	lists:reverse( RevValues ).
@@ -289,20 +290,20 @@ getValues( Keys, Hashtable ) ->
 % The key/value pairs are expected to exist already, otherwise an exception is
 % raised.
 %
-% Ex: [ Color=red, Age=23, Mass=51 ] = list_hashtable:getAllValues( [ color,
-% age, mass ], [ { color, red }, { mass, 51 }, { age, 23 } ] )
+% Ex: [ Color=red, Age=23, Mass=51 ] = list_table:getAllValues( [ color, age,
+% mass ], [ { color, red }, { mass, 51 }, { age, 23 } ] )
 %
--spec getAllValues( [ key() ], list_hashtable() ) -> [ value() ].
-getAllValues( Keys, Hashtable ) ->
+-spec getAllValues( [ key() ], list_table() ) -> [ value() ].
+getAllValues( Keys, Table ) ->
 
 	case lists:foldl(
-		   fun( _Elem=Key, _Acc={ Values, Table } ) ->
+		   fun( _Elem=Key, _Acc={ Values, AccTable } ) ->
 
-				   { Value, ShrunkTable } = extractEntry( Key, Table ),
+				   { Value, ShrunkTable } = extractEntry( Key, AccTable ),
 				   { [ Value | Values ], ShrunkTable }
 
 		   end,
-		   _Acc0={ [], Hashtable },
+		   _Acc0={ [], Table },
 		   _List=Keys ) of
 
 		{ RevValues, _FinalTable=[] } ->
@@ -317,44 +318,44 @@ getAllValues( Keys, Hashtable ) ->
 
 
 % Applies (maps) the specified anonymous function to each of the key-value
-% entries contained in this hashtable.
+% entries contained in this table.
 %
 % Allows to apply "in-place" an operation on all entries without having to
-% enumerate the content of the hashtable and iterate on it (hence without having
-% to duplicate the whole content in memory).
+% enumerate the content of the table and iterate on it (hence without having to
+% duplicate the whole content in memory).
 %
-% Note: as the fun may return modified keys, the whole structure of the
-% hashtable may change (ex: different buckets used for replaced entries,
-% colliding keys resulting in having less entries afterwards, etc.).
+% Note: as the fun may return modified keys, the whole structure of the table
+% may change (ex: different buckets used for replaced entries, colliding keys
+% resulting in having less entries afterwards, etc.).
 %
-% One may request the returned hashtable to be optimised after this call.
+% One may request the returned table to be optimised after this call.
 %
--spec mapOnEntries( fun( ( entry() ) -> entry() ), list_hashtable() ) ->
-						  list_hashtable().
-mapOnEntries( Fun, Hashtable ) ->
-	[ Fun( E ) || E <- Hashtable ].
+-spec mapOnEntries( fun( ( entry() ) -> entry() ), list_table() ) ->
+						  list_table().
+mapOnEntries( Fun, Table ) ->
+	[ Fun( E ) || E <- Table ].
 
 
 
 
 % Applies (maps) the specified anonymous function to each of the values
-% contained in this hashtable.
+% contained in this table.
 %
 % Allows to apply "in-place" an operation on all values without having to
-% enumerate the content of the hashtable and iterate on it (hence without having
-% to duplicate the whole content in memory).
+% enumerate the content of the table and iterate on it (hence without having to
+% duplicate the whole content in memory).
 %
-% Note: the keys are left as are, hence the structure of the hashtable does not
+% Note: the keys are left as are, hence the structure of the table does not
 % change.
 %
--spec mapOnValues( fun( ( value() ) -> value() ), list_hashtable() ) ->
-						 list_hashtable().
-mapOnValues( Fun, Hashtable ) ->
-	lists:keymap( Fun, _N=2, Hashtable ).
+-spec mapOnValues( fun( ( value() ) -> value() ), list_table() ) ->
+						 list_table().
+mapOnValues( Fun, Table ) ->
+	lists:keymap( Fun, _N=2, Table ).
 
 
 
-% Folds specified anonymous function on all entries of the specified hashtable.
+% Folds specified anonymous function on all entries of the specified table.
 %
 % The order of transformation for entries is not specified.
 %
@@ -362,11 +363,10 @@ mapOnValues( Fun, Hashtable ) ->
 %
 -spec foldOnEntries( fun( ( entry(), basic_utils:accumulator() )
 						  -> basic_utils:accumulator() ),
-					 basic_utils:accumulator(),
-					 list_hashtable() ) ->
+					 basic_utils:accumulator(), list_table() ) ->
 						   basic_utils:accumulator().
-foldOnEntries( Fun, InitialAcc, Hashtable ) ->
-	lists:foldl( Fun, InitialAcc, Hashtable ).
+foldOnEntries( Fun, InitialAcc, Table ) ->
+	lists:foldl( Fun, InitialAcc, Table ).
 
 
 
@@ -376,13 +376,13 @@ foldOnEntries( Fun, InitialAcc, Hashtable ) ->
 % An exception is thrown if the key does not exist, a bad arithm is triggered if
 % no addition can be performed on the associated value.
 %
--spec addToEntry( key(), number(), list_hashtable() ) -> list_hashtable().
-addToEntry( Key, Number, Hashtable ) ->
+-spec addToEntry( key(), number(), list_table() ) -> list_table().
+addToEntry( Key, Number, Table ) ->
 
-	case lists:keytake( Key, _N=1, Hashtable ) of
+	case lists:keytake( Key, _N=1, Table ) of
 
-		{ value, { _Key, Value }, ShrunkHashtable } ->
-			[ { Key, Value + Number } | ShrunkHashtable ];
+		{ value, { _Key, Value }, ShrunkTable } ->
+			[ { Key, Value + Number } | ShrunkTable ];
 
 
 		false ->
@@ -398,14 +398,14 @@ addToEntry( Key, Number, Hashtable ) ->
 % An exception is thrown if the key does not exist, a bad arithm is triggered if
 % no subtraction can be performed on the associated value.
 %
--spec subtractFromEntry( key(), number(), list_hashtable() ) ->
-							   list_hashtable().
-subtractFromEntry( Key, Number, Hashtable ) ->
+-spec subtractFromEntry( key(), number(), list_table() ) ->
+							   list_table().
+subtractFromEntry( Key, Number, Table ) ->
 
-	case lists:keytake( Key, _N=1, Hashtable ) of
+	case lists:keytake( Key, _N=1, Table ) of
 
-		{ value, { _Key, Value }, ShrunkHashtable } ->
-			[ { Key, Value - Number } | ShrunkHashtable ];
+		{ value, { _Key, Value }, ShrunkTable } ->
+			[ { Key, Value - Number } | ShrunkTable ];
 
 
 		false ->
@@ -421,18 +421,18 @@ subtractFromEntry( Key, Number, Hashtable ) ->
 % An exception is thrown if the key does not exist or if its associated value is
 % not a boolean.
 %
--spec toggleEntry( key(), list_hashtable() ) -> list_hashtable().
-toggleEntry( Key, Hashtable ) ->
+-spec toggleEntry( key(), list_table() ) -> list_table().
+toggleEntry( Key, Table ) ->
 
-	case lists:keytake( Key, _N=1, Hashtable ) of
+	case lists:keytake( Key, _N=1, Table ) of
 
-		{ value, { _Key, true }, ShrunkHashtable } ->
-			[ { Key, false } | ShrunkHashtable ];
+		{ value, { _Key, true }, ShrunkTable } ->
+			[ { Key, false } | ShrunkTable ];
 
-		{ value, { _Key, false }, ShrunkHashtable } ->
-			[ { Key, true } | ShrunkHashtable ];
+		{ value, { _Key, false }, ShrunkTable } ->
+			[ { Key, true } | ShrunkTable ];
 
-		{ value, { _Key, Other }, _ShrunkHashtable } ->
+		{ value, { _Key, Other }, _ShrunkTable } ->
 			throw( { non_boolean_value, Other } );
 
 		false ->
@@ -442,18 +442,18 @@ toggleEntry( Key, Hashtable ) ->
 
 
 
-% Returns a new hashtable, which started from HashtableBase and was enriched
-% with the HashtableAdd entries whose keys where not already in HashtableBase
-% (if a key is in both tables, the one from HashtableBase will be kept).
+% Returns a new table, which started from TableBase and was enriched with the
+% TableAdd entries whose keys where not already in TableBase (if a key is in
+% both tables, the one from TableBase will be kept).
 %
 % Note: not the standard merge that one would expect, should values be lists.
 %
--spec merge( list_hashtable(), list_hashtable() ) -> list_hashtable().
-merge( HashtableBase, HashtableAdd ) ->
+-spec merge( list_table(), list_table() ) -> list_table().
+merge( TableBase, TableAdd ) ->
 
-	Base = lists:ukeysort( _N=1, HashtableBase ),
+	Base = lists:ukeysort( _N=1, TableBase ),
 
-	Add = lists:ukeysort( _N=1, HashtableAdd ),
+	Add = lists:ukeysort( _N=1, TableAdd ),
 
 	lists:umerge( Base, Add ).
 
@@ -467,14 +467,14 @@ merge( HashtableBase, HashtableAdd ) ->
 % Note: no check is performed to ensure the value is a list indeed, and the
 % '[|]' operation will not complain if not.
 %
--spec appendToExistingEntry( key(), term(), list_hashtable() ) ->
-								   list_hashtable().
-appendToExistingEntry( Key, Element, Hashtable ) ->
+-spec appendToExistingEntry( key(), term(), list_table() ) ->
+								   list_table().
+appendToExistingEntry( Key, Element, Table ) ->
 
-	case lists:keytake( Key, _N=1, Hashtable ) of
+	case lists:keytake( Key, _N=1, Table ) of
 
-		{ value, { _Key, ListValue }, ShrunkHashtable } ->
-			[ { Key, [ Element | ListValue ] } | ShrunkHashtable ];
+		{ value, { _Key, ListValue }, ShrunkTable } ->
+			[ { Key, [ Element | ListValue ] } | ShrunkTable ];
 
 		false ->
 			throw( { key_not_found, Key } )
@@ -488,14 +488,14 @@ appendToExistingEntry( Key, Element, Hashtable ) ->
 %
 % An exception is thrown if the key does not exist.
 %
--spec appendListToExistingEntry( key(), [ term() ], list_hashtable() ) ->
-								   list_hashtable().
-appendListToExistingEntry( Key, Elements, Hashtable ) ->
+-spec appendListToExistingEntry( key(), [ term() ], list_table() ) ->
+								   list_table().
+appendListToExistingEntry( Key, Elements, Table ) ->
 
-	case lists:keytake( Key, _N=1, Hashtable ) of
+	case lists:keytake( Key, _N=1, Table ) of
 
-		{ value, { _Key, ListValue }, ShrunkHashtable } ->
-			[ { Key, Elements ++ ListValue } | ShrunkHashtable ];
+		{ value, { _Key, ListValue }, ShrunkTable } ->
+			[ { Key, Elements ++ ListValue } | ShrunkTable ];
 
 		false ->
 			throw( { key_not_found, Key } )
@@ -513,16 +513,16 @@ appendListToExistingEntry( Key, Elements, Hashtable ) ->
 % Note: no check is performed to ensure the value is a list indeed, and the
 % '[|]' operation will not complain if not.
 %
--spec appendToEntry( key(), term(), list_hashtable() ) -> list_hashtable().
-appendToEntry( Key, Element, Hashtable ) ->
+-spec appendToEntry( key(), term(), list_table() ) -> list_table().
+appendToEntry( Key, Element, Table ) ->
 
-	case lists:keytake( Key, _N=1, Hashtable ) of
+	case lists:keytake( Key, _N=1, Table ) of
 
-		{ value, { _Key, ListValue }, ShrunkHashtable } ->
-			[ { Key, [ Element | ListValue ] } | ShrunkHashtable ];
+		{ value, { _Key, ListValue }, ShrunkTable } ->
+			[ { Key, [ Element | ListValue ] } | ShrunkTable ];
 
 		false ->
-			[ { Key, [ Element ] } | Hashtable ]
+			[ { Key, [ Element ] } | Table ]
 
 	end.
 
@@ -534,17 +534,17 @@ appendToEntry( Key, Element, Hashtable ) ->
 % If that key does not already exist, it will be created and associated to a
 % list containing only the specified elements.
 %
--spec appendListToEntry( key(), [ term() ], list_hashtable() ) ->
-							   list_hashtable().
-appendListToEntry( Key, Elements, Hashtable ) ->
+-spec appendListToEntry( key(), [ term() ], list_table() ) ->
+							   list_table().
+appendListToEntry( Key, Elements, Table ) ->
 
-	case lists:keytake( Key, _N=1, Hashtable ) of
+	case lists:keytake( Key, _N=1, Table ) of
 
-		{ value, { _Key, ListValue }, ShrunkHashtable } ->
-			[ { Key, Elements ++ ListValue } | ShrunkHashtable ];
+		{ value, { _Key, ListValue }, ShrunkTable } ->
+			[ { Key, Elements ++ ListValue } | ShrunkTable ];
 
 		false ->
-			[ { Key, Elements } | Hashtable ]
+			[ { Key, Elements } | Table ]
 
 	end.
 
@@ -557,13 +557,13 @@ appendListToEntry( Key, Elements, Hashtable ) ->
 %
 % If the element is not in the specified list, the list will not be modified.
 %
--spec deleteFromEntry( key(), term(), list_hashtable() ) -> list_hashtable().
-deleteFromEntry( Key, Element, Hashtable ) ->
+-spec deleteFromEntry( key(), term(), list_table() ) -> list_table().
+deleteFromEntry( Key, Element, Table ) ->
 
-	case lists:keytake( Key, _N=1, Hashtable ) of
+	case lists:keytake( Key, _N=1, Table ) of
 
-		{ value, { _Key, ListValue }, ShrunkHashtable } ->
-			[ { Key, lists:delete( Element, ListValue ) } | ShrunkHashtable ];
+		{ value, { _Key, ListValue }, ShrunkTable } ->
+			[ { Key, lists:delete( Element, ListValue ) } | ShrunkTable ];
 
 		false ->
 			throw( { key_not_found, Key } )
@@ -573,15 +573,15 @@ deleteFromEntry( Key, Element, Hashtable ) ->
 
 
 % Pops the head of the value (supposed to be a list) associated to specified
-% key, and returns a pair made of the popped head and of the new hashtable.
+% key, and returns a pair made of the popped head and of the new table.
 %
--spec popFromEntry( key(), list_hashtable() ) -> { term(), list_hashtable() }.
-popFromEntry( Key, Hashtable ) ->
+-spec popFromEntry( key(), list_table() ) -> { term(), list_table() }.
+popFromEntry( Key, Table ) ->
 
-	case lists:keytake( Key, _N=1, Hashtable ) of
+	case lists:keytake( Key, _N=1, Table ) of
 
-		{ value, { _Key, [ H | T ] }, ShrunkHashtable } ->
-			NewTable = [ { Key, T } | ShrunkHashtable ],
+		{ value, { _Key, [ H | T ] }, ShrunkTable } ->
+			NewTable = [ { Key, T } | ShrunkTable ],
 			{ H, NewTable };
 
 		false ->
@@ -591,30 +591,30 @@ popFromEntry( Key, Hashtable ) ->
 
 
 
-% Returns a flat list whose elements are all the key/value pairs of the
-% hashtable, in no particular order.
+% Returns a flat list whose elements are all the key/value pairs of the table,
+% in no particular order.
 %
 % Ex: [ {K1,V1}, {K2,V2}, ... ].
 %
--spec enumerate( list_hashtable() ) -> entries().
-enumerate( Hashtable ) ->
-	Hashtable.
+-spec enumerate( list_table() ) -> entries().
+enumerate( Table ) ->
+	Table.
 
 
 
 % Returns a list of key/value pairs corresponding to the list of specified keys,
 % or throws a badmatch is at least one key is not found.
 %
--spec selectEntries( [ key() ], list_hashtable() ) -> entries().
-selectEntries( Keys, Hashtable ) ->
-	selectEntries( Keys, Hashtable, _Acc=[] ).
+-spec selectEntries( [ key() ], list_table() ) -> entries().
+selectEntries( Keys, Table ) ->
+	selectEntries( Keys, Table, _Acc=[] ).
 
-selectEntries( _Keys=[], _Hashtable, Acc ) ->
+selectEntries( _Keys=[], _Table, Acc ) ->
 	Acc;
 
-selectEntries( _Keys=[ K | T ], Hashtable, Acc ) ->
+selectEntries( _Keys=[ K | T ], Table, Acc ) ->
 
-	case lists:keyfind( K, _N=1, Hashtable ) of
+	case lists:keyfind( K, _N=1, Table ) of
 
 		false ->
 			% Badmatches are not informative enough:
@@ -622,87 +622,85 @@ selectEntries( _Keys=[ K | T ], Hashtable, Acc ) ->
 
 		%{ K, V } ->
 		Entry ->
-			selectEntries( T, Hashtable, [ Entry | Acc ] )
+			selectEntries( T, Table, [ Entry | Acc ] )
 
 	end.
 
 
 
-% Returns a list containing all the keys of this hashtable.
+% Returns a list containing all the keys of this table.
 %
--spec keys( list_hashtable() ) -> [ key() ].
-keys( Hashtable ) ->
-	[ K || { K, _V } <- Hashtable ].
+-spec keys( list_table() ) -> [ key() ].
+keys( Table ) ->
+	[ K || { K, _V } <- Table ].
 
 
 
-% Returns a list containing all the values of this hashtable.
+% Returns a list containing all the values of this table.
 %
 % Ex: useful if the key was used as an index to generate this table first.
 %
--spec values( list_hashtable() ) -> [ value() ].
-values( Hashtable ) ->
-	[ V || { _K, V } <- Hashtable ].
+-spec values( list_table() ) -> [ value() ].
+values( Table ) ->
+	[ V || { _K, V } <- Table ].
 
 
 
-% Returns whether the specified hashtable is empty (not storing any key/value
-% pair).
+% Returns whether the specified table is empty (not storing any key/value pair).
 %
--spec isEmpty( list_hashtable() ) -> boolean().
-isEmpty( _Hashtable=[] ) ->
+-spec isEmpty( list_table() ) -> boolean().
+isEmpty( _Table=[] ) ->
 	true;
 
-isEmpty( _Hashtable ) ->
+isEmpty( _Table ) ->
 	false.
 
 
 
-% Returns the size (number of entries) of this hashtable.
+% Returns the size (number of entries) of this table.
 %
--spec size( list_hashtable() ) -> entry_count().
-size( Hashtable ) ->
-	length( Hashtable ).
+-spec size( list_table() ) -> entry_count().
+size( Table ) ->
+	length( Table ).
 
 
 
-% Returns the number of entries (key/value pairs) stored in the specified
-% hashtable.
+% Returns the number of entries (key/value pairs) stored in the specified table.
 %
--spec getEntryCount( list_hashtable() ) -> entry_count().
-getEntryCount( Hashtable ) ->
-	length( Hashtable ).
+-spec getEntryCount( list_table() ) -> entry_count().
+getEntryCount( Table ) ->
+	length( Table ).
 
 
 
-% Optimises this hashtable.
+% Optimises this table.
 %
 % Nothing to be done with this implementation.
 %
--spec optimise( list_hashtable() ) -> list_hashtable().
-optimise( Hashtable ) ->
-	Hashtable.
+-spec optimise( list_table() ) -> list_table().
+optimise( Table ) ->
+	Table.
 
 
 
-% Returns a textual description of the specified hashtable.
+% Returns a textual description of the specified table.
 %
--spec toString( list_hashtable() ) -> string().
-toString( Hashtable ) ->
-	toString( Hashtable, user_friendly ).
+-spec toString( list_table() ) -> string().
+toString( Table ) ->
+	toString( Table, user_friendly ).
 
 
 
 % Returned string is either quite raw (if using 'internal') or a bit more
 % elaborate (if using 'user_friendly').
 %
--spec toString( list_hashtable(), 'internal' | 'user_friendly' ) -> string().
-toString( Hashtable, _Displaytype ) ->
+-spec toString( list_table(), 'internal' | 'user_friendly' ) -> string().
+toString( Table, _Displaytype ) ->
 
-	case enumerate( Hashtable ) of
+	case enumerate( Table ) of
 
 		[] ->
-			"Empty hashtable";
+			"Empty table";
 
 		L ->
 
@@ -711,7 +709,7 @@ toString( Hashtable, _Displaytype ) ->
 					   || { K, V } <- lists:sort( L ) ],
 
 			% Flatten is needed, in order to use the result with ~s:
-			lists:flatten( io_lib:format( "Hashtable with ~B entry(ies):~s~n",
+			lists:flatten( io_lib:format( "Table with ~B entry(ies):~s~n",
 				[ length( L ),
 				  text_utils:string_list_to_string( Strings ) ] ) )
 
@@ -719,17 +717,17 @@ toString( Hashtable, _Displaytype ) ->
 
 
 
-% Displays the specified hashtable on the standard output.
+% Displays the specified table on the standard output.
 %
--spec display( list_hashtable() ) -> basic_utils:void().
-display( Hashtable ) ->
-	io:format( "~s~n", [ toString( Hashtable ) ] ).
+-spec display( list_table() ) -> basic_utils:void().
+display( Table ) ->
+	io:format( "~s~n", [ toString( Table ) ] ).
 
 
 
-% Displays the specified hashtable on the standard output, with the specified
-% title on top.
+% Displays the specified table on the standard output, with the specified title
+% on top.
 %
--spec display( string(), list_hashtable() ) -> basic_utils:void().
-display( Title, Hashtable ) ->
-	io:format( "~s:~n~s~n", [ Title, toString( Hashtable ) ] ).
+-spec display( string(), list_table() ) -> basic_utils:void().
+display( Title, Table ) ->
+	io:format( "~s:~n~s~n", [ Title, toString( Table ) ] ).

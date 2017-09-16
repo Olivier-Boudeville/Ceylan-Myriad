@@ -558,7 +558,7 @@ string_list_to_atom_list( StringList ) when is_list( StringList ) ->
 %  + beta: 1.0
 %  + ccc: 42
 %
--spec proplist_to_string( list_hashtable:list_hashtable() ) -> ustring().
+-spec proplist_to_string( list_table:list_table() ) -> ustring().
 proplist_to_string( Proplist ) ->
 
 	% In this context, key and value known to be strings or atoms:

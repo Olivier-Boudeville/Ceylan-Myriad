@@ -48,7 +48,7 @@
 
 
 % The default actual implementation that 'table' will be wired to:
--define( default_hashtable_type, map_hashtable ).
+-define( default_table_type, map_hashtable ).
 
 
 -export([ run_standalone/1, parse_transform/2 ]).
@@ -87,7 +87,7 @@ parse_transform( AST, _Options ) ->
 	%io:format( "Options: ~p~n", [ Options ] ),
 
 	% We will be replacing here all calls to the 'table' pseudo-module by calls
-	% to the actual module designated by the default_hashtable_type local macro.
+	% to the actual module designated by the default_table_type local macro.
 
 	% This is just a matter of replacing 'table' by its counterpart in elements
 	% like:
@@ -126,8 +126,8 @@ parse_transform( AST, _Options ) ->
 
 
 
-% Replaces calls to the table pseudo-module by actual calls to the
-% default_hashtable_type one.
+% Replaces calls to the 'table' pseudo-module by actual calls to the
+% default_table_type one.
 %
 % We preserve element order.
 %
@@ -139,11 +139,11 @@ replace_table( AST ) ->
 	DesiredTableType = case lookup_table_select_attribute( AST ) of
 
 		undefined ->
-			?default_hashtable_type;
+			?default_table_type;
 
 		TableType ->
-			%io:format( "Default hashtable type overridden "
-			%		  "to ~p.~n", [ TableType ] ),
+			%io:format( "Default table type overridden "to ~p.~n",
+			%			[ TableType ] ),
 			TableType
 
 	end,
@@ -248,7 +248,7 @@ switch_table( Term, DesiredTableType ) ->
 
 % Returns any module-level explicit replacement for the table pseudo-type,
 % specified thanks to a '-table_type( my_type ).' attribute, with, for example:
-% '-table_type( list_hashtable ).'.
+% '-table_type( list_table ).'.
 %
 % Only searches through top-level attributes as intended, and checks that the
 % table type is defined up to once only.

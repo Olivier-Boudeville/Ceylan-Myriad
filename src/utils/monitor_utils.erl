@@ -82,7 +82,7 @@
 
 
 % See net_kernel:monitor_nodes/2 for more information:
--type monitor_node_info() :: list_hashtable:list_hashtable().
+-type monitor_node_info() :: list_table:list_table().
 
 
 -type monitor_node_option() :: { 'node_type', net_utils:node_type() }

@@ -49,8 +49,8 @@
 % - 'map_hashtable' (this module), which is probably the most efficient
 % implementation (speed/size compromise)
 %
-% - 'list_hashtable', a list-based implementation, efficient for smaller table
-% (and only them)
+% - 'list_table', a list-based implementation, efficient for smaller tables (and
+% only them)
 %
 % All these types of tables are to provide the same API (signatures and
 % contracts), yet one should note that this module is the one that tends to
