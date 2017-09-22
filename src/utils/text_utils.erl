@@ -437,9 +437,13 @@ string_list_to_string( ListOfStrings, Bullet ) when is_list( Bullet ) ->
 string_list_to_string( _ListOfStrings=[], Acc, _Bullet ) ->
 	 Acc;
 
+% We do not want an extra newline at the end:
+string_list_to_string( _ListOfStrings=[ LastString ], Acc, Bullet )
+  when is_list( LastString ) ->
+	Acc ++ Bullet ++ io_lib:format( "~ts", [ LastString ] );
+
 string_list_to_string( _ListOfStrings=[ H | T ], Acc, Bullet )
   when is_list( H ) ->
-	% Byproduct of the trailing newline: an empty line at the end if nested.
 	string_list_to_string( T, Acc ++ Bullet ++ io_lib:format( "~ts~n", [ H ] ),
 						   Bullet ).
 
