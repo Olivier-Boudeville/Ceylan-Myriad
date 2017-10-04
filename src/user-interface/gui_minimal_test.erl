@@ -25,7 +25,7 @@
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
 
 
-% Minimal test for the GUI toolbox: draws a few frames and exits.
+% Minimal test for the MyriadGUI toolbox: draws a few frames and exits.
 %
 % See the gui.erl tested module.
 %
@@ -39,30 +39,40 @@
 
 run_test_gui() ->
 
-	test_facilities:display( "~nStarting the actual minimal test, from ~w.",
-							 [ self() ] ),
+	test_facilities:display( "~nStarting the actual minimal test of MyriadGUI, "
+							 "from ~w.", [ self() ] ),
 
-	InitialState = gui:start(),
+	gui:start(),
+
 
 	TestFrame = gui:create_frame( "This is the single and only frame" ),
 
-	gui:show( TestFrame ),
+
+	EventOfInterest = { onWindowClosed, TestFrame },
+
+	gui:subscribe_to_events( EventOfInterest ),
+
 
 	trace_utils:info( "Please close the frame to end this test." ),
 
-	SubscribedEvents = [ { onWindowClosed, TestFrame } ],
+	gui:show( TestFrame ),
 
-	LoopState = gui:handle_events( InitialState, SubscribedEvents ),
 
 	% Not even a real main loop here, just a one-shot event waited:
 	receive
 
 		{ onWindowClosed, [ TestFrame, Context ] } ->
-			trace_utils:trace_fmt( "Frame ~w closed (context: ~p).",
-								   [ TestFrame, Context ] ),
+
+			trace_utils:trace_fmt( "Frame ~s closed (~s).",
+				[ gui:object_to_string( TestFrame ),
+				  gui:context_to_string( Context ) ] ),
+
+			% A frame is a window:
 			gui:destruct_window( TestFrame ),
+
 			trace_utils:trace( "Test frame closed, test success." ),
-			gui:stop( LoopState )
+
+			gui:stop()
 
 	end.
 
@@ -78,7 +88,7 @@ run() ->
 	case executable_utils:is_batch() of
 
 		true ->
-			test_facilities:display( "(not running the GUI test, "
+			test_facilities:display( "(not running the MyriadGUI test, "
 									 "being in batch mode)" );
 
 		false ->

@@ -43,3 +43,22 @@
 
 % The special color that means "transparent" (i.e. no filling):
 -define( transparent_color, ?wxTRANSPARENT_BRUSH ).
+
+
+
+% A reference onto a GUI object, for the widgets that MyriadGUI added to the
+% backend at hand.
+%
+% Results in terms such as: { myriad_object_ref, canvas, 12 }.
+%
+-record( myriad_object_ref, {
+
+		% The type of GUI object referred to (ex: 'canvas'):
+		object_type :: gui:myriad_object_type(),
+
+		% The identifier of this referenced instance (ex: 117):
+		myriad_instance_id :: gui:myriad_instance_id()
+
+}).
+
+-type myriad_object_ref() :: #myriad_object_ref{}.

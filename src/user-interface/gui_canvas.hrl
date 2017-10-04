@@ -26,7 +26,7 @@
 % Creation date: Tuesday, January 29, 2013
 
 
-% Header to export canvas-related defines.
+% Header to export (internally to MyriadGUI) canvas-related defines.
 %
 % See gui_canvas.erl for the corresponding implementation.
 
@@ -34,18 +34,29 @@
 
 % wxCanvas does not exist, we emulate it.
 %
-% Canvas are back-buffered: drawing operations on it will not be visible until
-% the blit/1 function is called on it.
+% Canvas are back-buffered: drawing operations on them will not be visible until
+% their blit/1 function is called.
 %
--record( canvas, {
-		   panel       :: gui:panel(),
-		   bitmap      :: gui:bitmap(),
-		   back_buffer :: gui:back_buffer()
+-record( canvas_state, {
+
+	% Receives repaint, resize, etc. events:
+	panel :: gui:panel(),
+
+	% Displayed area:
+	bitmap :: gui:bitmap(),
+
+	% Actual place for rendering:
+	back_buffer :: gui:back_buffer(),
+
+	% As apparently we cannot retrieve the size of the underlying bitmap and
+	% back buffer (typically useful when the panel may have been resized):
+	%
+	size :: gui:size()
+
 }).
 
-
 % The actual canvas type we are to use:
--type canvas() :: #canvas{}.
+-type canvas_state() :: #canvas_state{}.
 
 
 % An OpenGL-based canvas:

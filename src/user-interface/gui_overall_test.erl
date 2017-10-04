@@ -26,11 +26,11 @@
 
 
 
-% Unit tests for the GUI toolbox.
+% More global test for the MyriadGUI toolbox.
 %
 % See the gui.erl tested module.
 %
--module(gui_test).
+-module(gui_overall_test).
 
 
 % For run/0 export and al:
@@ -38,35 +38,34 @@
 
 
 % For gui-related defines:
--include("gui.hrl").
+%-include("gui.hrl").
 
 
-% Utility functions:
--export([ get_name/1 ]).
+% FIXME:
+-export([ render_mec/2 ]).
 
-
-% To remove:
--export([ gui_main_loop/1, get_canvas_width/0, get_canvas_height/0,
-		  render_test/1 ]).
-
-
-% State of the program, passed between event handlers.
+% State of the application, kept and updated by its main loop.
 %
--record( test_state,
-		{
+-record( my_test_state, {
 
-		  main_frame,
-		  render_shape_button,
-		  render_mec_button,
-		  clear_canvas_button,
-		  add_point_button,
-		  load_image_button,
-		  quit_button,
-		  canvas,
-		  point_count = 0,
-		  render_mode = test :: 'test' | 'mec'
+		   main_frame = undefined :: gui:frame(),
 
-		  }).
+		   render_shape_button = undefined :: gui:button(),
+		   render_mec_button   = undefined :: gui:button(),
+		   clear_canvas_button = undefined :: gui:button(),
+		   add_point_button    = undefined :: gui:button(),
+		   load_image_button   = undefined :: gui:button(),
+		   quit_button         = undefined :: gui:button(),
+
+		   canvas = undefined :: gui:canvas(),
+		   point_count = 0 :: basic_utils:count(),
+		   render_mode = test_shape_rendering :: 'test_shape_rendering'
+											   | 'test_dynamic_mec'
+
+}).
+
+-type my_test_state() :: #my_test_state{}.
+
 
 
 -spec get_main_window_width() -> linear:coordinate().
@@ -80,71 +79,25 @@ get_main_window_height() ->
 
 
 
--spec get_canvas_width() -> linear:coordinate().
-get_canvas_width() ->
-	640.
+% Canvas dimensions automatically determined based on parent panel.
 
 
--spec get_canvas_height() -> linear:coordinate().
-get_canvas_height() ->
-	480.
+-spec run_test_gui() -> basic_utils:void().
+run_test_gui() ->
 
-
-
-
-
-% Lists all the declared names of identifiers.
-%
-get_all_id_names() ->
-	[ 'MainFrame', 'RenderShapeButton', 'RenderMECButton',
-	  'AddPointButton', 'LoadImageButton', 'ClearCanvasButton', 'QuitButton' ].
-
-
-
-% Returns the numerical ID corresponding to the specified name.
-%
-% (a good target for a parse transform)
-%
--spec get_id( atom() ) -> gui:id().
-get_id( Name ) ->
-	list_utils:get_index_of( Name, get_all_id_names() ).
-
-
-
-% Returns the name (as an atom) of the specified widget (expected to be named).
-%
--spec get_name( gui:id() ) -> atom().
-get_name( Id ) ->
-
-	Names = get_all_id_names(),
-
-	Len = length(Names),
-
-	case Id of
-
-		Id when Id < 1 orelse Id > Len ->
-			unknown;
-
-		_ ->
-			lists:nth( Id, Names )
-
-	end.
-
-
-
--spec init_test_gui() -> no_return().
-init_test_gui() ->
+	test_facilities:display( "~nStarting the actual overall MyriadGUI test, "
+							 "from ~w.", [ self() ] ),
 
 	gui:start(),
 
-	FrameSize = { get_main_window_width(), get_main_window_height() },
+	MainFrameSize = { get_main_window_width(), get_main_window_height() },
 
-	MainFrame = gui:create_frame( _Title="GUI Test", _FramePos=auto,
-			FrameSize, _FrameStyle=default, _Id=get_id('MainFrame'),
-			_Parent=undefined ),
+	MainFrame = gui:create_frame( _Title="GUI Test", MainFrameSize ),
 
-	gui:connect( MainFrame, close_window ),
+	% This process will subscribe to following event:
+	MainFrameEvents = { onWindowClosed, MainFrame },
 
+	% To check surfaces:
 	%gui:set_background_color( MainFrame, red ),
 	%gui:set_background_color( LeftPanel, blue ),
 	%gui:set_background_color( RightPanel, green ),
@@ -153,104 +106,62 @@ init_test_gui() ->
 
 	gui:push_status_text( "Waiting for points to be added.", StatusBar ),
 
+
 	LeftPanel = gui:create_panel( MainFrame ),
 
 	RightPanel = gui:create_panel( MainFrame ),
 
-	MainSizer = gui:create_sizer( horizontal ),
+	MainSizer = gui:create_sizer( _Orientation=horizontal ),
 
 	% Constant width:
 	gui:add_to_sizer( MainSizer, LeftPanel,
-					  [ {proportion,0}, {flag,[ expand_fully ]} ] ),
+					  [ { proportion, 0 }, { flag, [ expand_fully ] } ] ),
 
 	% Grows with the window:
 	gui:add_to_sizer( MainSizer, RightPanel,
-					  [ {proportion,2}, {flag,[ expand_fully ]} ] ),
+					  [ { proportion, 2 }, { flag, [ expand_fully ] } ] ),
+
 
 	ControlBoxSizer = gui:create_sizer_with_labelled_box( vertical, LeftPanel,
-											"Controls" ),
+														  "Controls" ),
 
 	% Adding the buttons to the control panel:
 
-	% Common settings:
+	ButtonLabels = [ "Render a few random shapes", "Render MEC", "Add point",
+					 "Load image", "Clear canvas", "Quit" ],
 
-	Position = auto,
-	ButtonSize = auto,
-	ButtonStyle = default,
-	ParentButton = LeftPanel,
+	ControlButtons = [ RenderShapeButton, RenderMECButton, AddPointButton,
+					   LoadImageButton, ClearCanvasButton, QuitButton ] =
+		gui:create_buttons( ButtonLabels, _Parent=LeftPanel ),
 
-	RenderShapeButton = gui:create_button( "Render a few random shapes",
-		Position, ButtonSize, ButtonStyle, get_id('RenderShapeButton'),
-		ParentButton ),
-
-	gui:connect( RenderShapeButton , command_button_clicked ),
-
-
-	RenderMECButton = gui:create_button( "Render MEC",
-		Position, ButtonSize, ButtonStyle, get_id('RenderMECButton'),
-		ParentButton ),
-
-	gui:connect( RenderMECButton , command_button_clicked ),
-
-
-	AddPointButton = gui:create_button( "Add point", Position, ButtonSize,
-		ButtonStyle, get_id('AddPointButton'), ParentButton ),
-
-	gui:connect( AddPointButton, command_button_clicked ),
-
-
-	LoadImageButton = gui:create_button( "Load image", Position, ButtonSize,
-		ButtonStyle, get_id('LoadImageButton'), ParentButton ),
-
-	gui:connect( LoadImageButton, command_button_clicked ),
-
-
-	ClearCanvasButton = gui:create_button( "Clear canvas", Position, ButtonSize,
-		ButtonStyle, get_id('ClearCanvasButton'), ParentButton ),
-
-	gui:connect( ClearCanvasButton, command_button_clicked ),
-
-
-	QuitButton = gui:create_button( "Quit", Position, ButtonSize,
-		ButtonStyle, get_id('QuitButton'), ParentButton ),
-
-	gui:connect( QuitButton, command_button_clicked ),
-
-
+	ButtonEvents = { onButtonClicked, ControlButtons },
 
 	gui:set_tooltip( LeftPanel, "Controls for the GUI test" ),
 
-	% Not working apparently:
+	gui:set_tooltip( RenderShapeButton, "Render shape" ),
+	gui:set_tooltip( RenderMECButton, "Render Minimal Enclosing Circle" ),
 	gui:set_tooltip( AddPointButton, "Add a point to the\ncurrent polygon" ),
+	gui:set_tooltip( LoadImageButton, "Load image" ),
+	gui:set_tooltip( ClearCanvasButton, "Clear canvas" ),
+	gui:set_tooltip( QuitButton, "Quit" ),
 
 	ButtonOpt = [ { flag, [ expand_fully ] } ],
 
-	gui:add_to_sizer( ControlBoxSizer, RenderShapeButton, ButtonOpt ),
-
-	gui:add_to_sizer( ControlBoxSizer, RenderMECButton, ButtonOpt ),
-
-	gui:add_to_sizer( ControlBoxSizer, AddPointButton, ButtonOpt ),
-
-	gui:add_to_sizer( ControlBoxSizer, LoadImageButton, ButtonOpt ),
-
-	gui:add_to_sizer( ControlBoxSizer, ClearCanvasButton, ButtonOpt ),
-
-	gui:add_to_sizer( ControlBoxSizer, QuitButton, ButtonOpt ),
+	gui:add_to_sizer( ControlBoxSizer, ControlButtons, ButtonOpt ),
 
 	gui:set_sizer( LeftPanel, ControlBoxSizer ),
 
 	PolyBoxSizer = gui:create_sizer_with_labelled_box( vertical, RightPanel,
-											"Polygon View" ),
+													   "Polygon View" ),
 
 	Canvas = gui_canvas:create( RightPanel ),
 
 	gui_canvas:set_background_color( Canvas, pink ),
 
-	gui:connect( Canvas, paint ),
-	gui:connect( Canvas, size ),
+	CanvasEvents = { [ onRepaintNeeded, onResized ], Canvas },
 
 	gui:add_to_sizer( PolyBoxSizer, Canvas,
-					  [ {proportion,1}, {flag,[ expand_fully ]} ] ),
+					  [ { proportion, 1 }, { flag, [ expand_fully ] } ] ),
 
 	gui:set_tooltip( Canvas, "Random polygons and their MEC\n"
 							 "(Minimum Enclosing Circle Box) are drawn here." ),
@@ -259,36 +170,185 @@ init_test_gui() ->
 
 	gui:set_sizer( MainFrame, MainSizer ),
 
-
-
-	% Sets the GUI to visible:
+	% Renders the GUI:
 	gui:show( MainFrame ),
 
 	InitialPointCount = 3,
 
-	InitialState = #test_state{  main_frame=MainFrame,
-								 render_shape_button=RenderShapeButton,
-								 render_mec_button=RenderMECButton,
-								 clear_canvas_button=ClearCanvasButton,
-								 add_point_button=AddPointButton,
-								 load_image_button=LoadImageButton,
-								 quit_button=QuitButton,
-								 canvas=Canvas,
-								 point_count=InitialPointCount,
-								 render_mode = test },
+	EventsOfInterest = [ MainFrameEvents, ButtonEvents, CanvasEvents ],
 
-	gui_main_loop( InitialState ),
-
-	gui:stop().
+	InitialTestState = #my_test_state{ main_frame=MainFrame,
+									   render_shape_button=RenderShapeButton,
+									   render_mec_button=RenderMECButton,
+									   clear_canvas_button=ClearCanvasButton,
+									   add_point_button=AddPointButton,
+									   load_image_button=LoadImageButton,
+									   quit_button=QuitButton,
+									   canvas=Canvas,
+									   point_count=InitialPointCount,
+									   render_mode=test_shape_rendering },
 
 
+	gui:receive_events( EventsOfInterest ),
+
+	test_main_loop( InitialTestState ).
 
 
 
--spec render_test( gui_canvas:canvas() ) -> basic_utils:void().
-render_test( Canvas ) ->
+% The main loop of this test.
+%
+-spec test_main_loop( my_test_state() ) -> no_return().
+test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
+										  render_shape_button=RenderShapeButton,
+										  render_mec_button=RenderMECButton,
+										  add_point_button=AddButton,
+										  load_image_button=LoadImageButton,
+										  clear_canvas_button=ClearCanvasButton,
+										  quit_button=QuitButton,
+										  canvas=Canvas,
+										  point_count=PointCount,
+										  render_mode=RenderMode } ) ->
 
-	test_facilities:display( "Rendering shape test." ),
+	trace_utils:trace_fmt( "Test main loop running, render mode is ~p, "
+						   "point count is ~B.", [ RenderMode, PointCount ] ),
+
+	receive
+
+		{ onWindowClosed, [ MainFrame, Context ] } ->
+
+			trace_utils:trace_fmt( "Main frame ~s has been closed "
+								   "(~s), test success.",
+								   [ gui:object_to_string( MainFrame ),
+									 gui:context_to_string( Context ) ] ),
+
+			gui:destruct_window( MainFrame ),
+
+			gui:stop();
+
+
+		{ onButtonClicked, [ RenderShapeButton, Context ] } ->
+
+			trace_utils:trace_fmt( "Render shape button ~s has been clicked "
+								   "(~s).",
+								   [ gui:object_to_string( QuitButton ),
+									 gui:context_to_string( Context ) ] ),
+
+			test_main_loop( TestState );
+
+
+		{ onButtonClicked, [ RenderMECButton, Context ] } ->
+
+			trace_utils:trace_fmt( "Render MEC button ~s has been clicked "
+								   "(~s).",
+								   [ gui:object_to_string( QuitButton ),
+									 gui:context_to_string( Context ) ] ),
+
+			test_main_loop( TestState );
+
+
+		{ onButtonClicked, [ AddButton, Context ] } ->
+
+			trace_utils:trace_fmt( "Add point button ~s has been clicked "
+								   "(~s).",
+								   [ gui:object_to_string( QuitButton ),
+									 gui:context_to_string( Context ) ] ),
+
+			test_main_loop( TestState );
+
+
+		{ onButtonClicked, [ LoadImageButton, Context ] } ->
+
+			trace_utils:trace_fmt( "Load image button ~s has been clicked "
+								   "(~s).",
+								   [ gui:object_to_string( QuitButton ),
+									 gui:context_to_string( Context ) ] ),
+
+			test_main_loop( TestState );
+
+
+		{ onButtonClicked, [ ClearCanvasButton, Context ] } ->
+
+			trace_utils:trace_fmt( "Clear canvas button ~s has been clicked "
+								   "(~s).",
+								   [ gui:object_to_string( QuitButton ),
+									 gui:context_to_string( Context ) ] ),
+
+			test_main_loop( TestState );
+
+
+		{ onButtonClicked, [ QuitButton, Context ] } ->
+
+			trace_utils:trace_fmt( "Quit button ~s has been clicked "
+								   "(~s), test success.",
+								   [ gui:object_to_string( QuitButton ),
+									 gui:context_to_string( Context ) ] ),
+
+			gui:destruct_window( MainFrame ),
+
+			gui:stop();
+
+
+		{ onRepaintNeeded, [ Canvas, Context ] } ->
+
+			trace_utils:trace_fmt( "Canvas ~s needing repaint (~s).",
+								   [ gui:object_to_string( Canvas ),
+									 gui:context_to_string( Context ) ] ),
+
+			case RenderMode of
+
+				test_shape_rendering ->
+					render_shapes( Canvas );
+
+				test_dynamic_mec ->
+					render_mec( Canvas, PointCount )
+
+			end,
+
+			test_main_loop( TestState );
+
+
+		{ onResized, [ Canvas, NewSize, Context ] } ->
+
+			trace_utils:trace_fmt( "Canvas ~s resized to ~w (~s).",
+								   [ gui:object_to_string( Canvas ), NewSize,
+									 gui:context_to_string( Context ) ] ),
+
+			case RenderMode of
+
+				test_shape_rendering ->
+
+					% Needed, as the canvas must adapt to its resized panel:
+					%
+					gui_canvas:update( Canvas ),
+
+					render_shapes( Canvas );
+
+				test_dynamic_mec ->
+					render_mec( Canvas, PointCount )
+
+			end,
+
+			test_main_loop( TestState );
+
+
+		Other ->
+			trace_utils:warning_fmt( "Test main loop ignored following "
+									 "message: ~p.", [ Other ] )
+
+	end.
+
+
+
+
+
+% Renders the shape examples onto the specified canvas.
+%
+-spec render_shapes( gui_canvas:canvas() ) -> gui_canvas:canvas().
+render_shapes( Canvas ) ->
+
+	trace_utils:trace_fmt( "Rendering shapes, redrawing canvas ~w, "
+						   "of size ~w.",
+						   [ Canvas, gui_canvas:get_size( Canvas ) ] ),
 
 	gui_canvas:set_background_color( Canvas, yellow ),
 
@@ -313,12 +373,14 @@ render_test( Canvas ) ->
 	gui_canvas:draw_cross( Canvas, {36,26}, _FirstEdgeLength=6 ),
 
 	LabelPosition = {72,300},
-	gui_canvas:draw_label( Canvas, LabelPosition, "A simple label, the cross "
-					"indicating its specified location" ),
+
+	LabelText = "A simple label, the cross indicating its specified location",
+
+	gui_canvas:draw_label( Canvas, LabelPosition, LabelText ),
 	gui_canvas:draw_cross( Canvas, LabelPosition ),
 
 	gui_canvas:draw_labelled_cross( Canvas, {36,86}, _SecondEdgeLength=4,
-							 "Cross label" ),
+									"Cross label" ),
 
 	gui_canvas:set_draw_color( Canvas, firebrick ),
 	gui_canvas:set_fill_color( Canvas, chartreuse ),
@@ -341,17 +403,18 @@ render_test( Canvas ) ->
 	polygon:render( MyTriangle, Canvas ),
 	polygon:render( MyUprightSquare, Canvas ),
 
-	gui_canvas:blit( Canvas ),
-
-	Canvas.
+	gui_canvas:blit( Canvas ).
 
 
 
-% Renders the MEC view.
--spec render_mec( gui_canvas:canvas(), integer() ) -> gui_canvas:canvas().
+% Renders the MEC (Minimal Enclosing Circle) view, for a polygon of specified
+% number of vertices, whose coordinates are randomly determined.
+%
+-spec render_mec( gui_canvas:canvas(), basic_utils:count() ) ->
+						gui_canvas:canvas().
 render_mec( Canvas, PointCount ) ->
 
-	%test_facilities:display( "Rendering MEC with ~B points.", [ PointCount ] ),
+	trace_utils:trace_fmt( "Rendering MEC with ~B points.", [ PointCount ] ),
 
 	gui_canvas:set_background_color( Canvas, blue ),
 
@@ -359,31 +422,29 @@ render_mec( Canvas, PointCount ) ->
 
 	gui_canvas:set_draw_color( Canvas, white ),
 
-	RandomPoints = [ { random_utils:get_random_value(200) + 300,
-					   random_utils:get_random_value(300) + 100 }
+	RandomPoints = [ { random_utils:get_random_value( 200 ) + 300,
+					   random_utils:get_random_value( 300 ) + 100 }
 					|| _Count <- lists:seq( 1, PointCount ) ],
 
-	%test_facilities:display( "Random points: ~w.", [ RandomPoints ] ),
+	%trace_utils:debug_fmt( "Random points: ~w.", [ RandomPoints ] ),
 
 	{ Pivot, RemainingPoints } = linear_2D:find_pivot( RandomPoints ),
 
-	%test_facilities:display( "Pivot: ~w, remaining: ~w.",
+	%trace_utils:debug_fmt( "Pivot: ~w, remaining: ~w.",
 	% [ Pivot, RemainingPoints ] ),
-
-
 
 	SortedPoints = linear_2D:sort_by_angle( Pivot, RemainingPoints ),
 
-	%test_facilities:display( "Sorted points: ~w.", [ SortedPoints ] ),
+	%trace_utils:debug_fmt( "Sorted points: ~w.", [ SortedPoints ] ),
 
 	gui_canvas:draw_lines( Canvas, [ Pivot | SortedPoints ] ++ [ Pivot ],
 						   green ),
 
 	HullPoints = linear_2D:compute_convex_hull( RandomPoints ),
 
-	%test_facilities:display( "Hull points: ~w.", [ HullPoints ] ),
+	%trace_utils:debug_fmt( "Hull points: ~w.", [ HullPoints ] ),
 
-	%test_facilities:display( "Number of hull/set points: ~B/~B.",
+	%trace_utils:debug_fmt( "Number of hull/set points: ~B/~B.",
 	%		   [ length( HullPoints ), PointCount ] ),
 
 	{ ExactCenter, SquareRadius } =
@@ -393,7 +454,7 @@ render_mec( Canvas, PointCount ) ->
 
 	Radius = math:sqrt( SquareRadius ),
 
-	%test_facilities:display( "Bounding Minimal Enclosing Circle: "
+	%trace_utils:debug_fmt( "Bounding Minimal Enclosing Circle: "
 	%		   "center = ~p, radius = ~f.~n", [ Center, Radius ] ),
 
 	gui_canvas:draw_labelled_cross( Canvas, Center, 5, purple, "MEC center" ),
@@ -402,144 +463,15 @@ render_mec( Canvas, PointCount ) ->
 
 	gui_canvas:draw_lines( Canvas, [ Pivot | HullPoints ], red ),
 
-	% Draws the crosses last to have them on top:
+	% Draws the crosses last, to have them on top:
 	gui_canvas:draw_labelled_cross( Canvas, Pivot, _OtherEdgeLength=10, black,
-							 "Pivot" ),
+									"Pivot" ),
 
 	gui_canvas:set_draw_color( Canvas, white ),
 
 	gui_canvas:draw_numbered_points( Canvas, SortedPoints ),
 
-	gui_canvas:blit( Canvas ),
-
-	Canvas.
-
-
-
-
-%-spec gui_main_loop( gs_object(), integer(), gui_canvas:canvas() | undefined )
-%				   -> no_return().
-gui_main_loop( State=#test_state{ main_frame=MainFrame,
-								  render_shape_button=RenderShapeButton,
-								  render_mec_button=RenderMECButton,
-								  add_point_button=AddButton,
-								  load_image_button=LoadImageButton,
-								  clear_canvas_button=ClearCanvasButton,
-								  quit_button=QuitButton,
-								  canvas=Canvas,
-								  point_count=PointCount,
-								  render_mode=Mode
-								} ) ->
-
-	test_facilities:display( "~nEntering main loop, mode is ~p, "
-							 "point count is ~B.", [ Mode, PointCount ] ),
-
-	Update = receive
-
-		#wx{ obj=MainFrame, event={wxClose,close_window} } ->
-			test_facilities:display( "Quitting GUI test." ),
-			quit;
-
-		#wx{ obj=RenderShapeButton,
-			 event=#wxCommand{ type=command_button_clicked } } ->
-			test_facilities:display( "Render shape button clicked." ),
-			NewCanvas = render_test( Canvas ),
-			State#test_state{ canvas=NewCanvas, render_mode=test  };
-
-		#wx{ obj=RenderMECButton,
-			 event=#wxCommand{ type=command_button_clicked } } ->
-			test_facilities:display( "Render MEC button clicked." ),
-			NewCanvas = render_mec( Canvas, PointCount ),
-			State#test_state{ canvas=NewCanvas, render_mode=mec };
-
-		#wx{ obj=AddButton, event=#wxCommand{ type=command_button_clicked } } ->
-			test_facilities:display( "Add button clicked." ),
-			NewPointCount = PointCount + 1,
-			NewCanvas = render_mec( Canvas, NewPointCount ),
-			State#test_state{
-			  canvas=NewCanvas,
-			  point_count=NewPointCount,
-			  render_mode=mec
-			 };
-
-		#wx{ obj=LoadImageButton,
-			 event=#wxCommand{ type=command_button_clicked } } ->
-			test_facilities:display( "Load image clicked." ),
-			gui_canvas:load_image( Canvas, { 40, 20 },
-								   "../../doc/example.bmp" ),
-			gui_canvas:blit( Canvas ),
-			State;
-
-		#wx{ obj=ClearCanvasButton,
-			 event=#wxCommand{ type=command_button_clicked } } ->
-			test_facilities:display( "Clear canvas button clicked." ),
-			gui_canvas:clear( Canvas ),
-			gui_canvas:blit( Canvas ),
-			State;
-
-		#wx{ obj=QuitButton,
-			 event=#wxCommand{ type=command_button_clicked } } ->
-			test_facilities:display( "Quit button clicked." ),
-			quit;
-
-		#wx{ obj=Any, event=#wxCommand{ type=command_button_clicked } } ->
-			test_facilities:display( "Following button clicked: ~w.", [ Any ] ),
-			quit;
-
-
-		% Received for example when another window overlapped:
-		#wx{ event=#wxPaint{} } ->
-
-			case Mode of
-
-				test ->
-					render_test( Canvas );
-
-				mec ->
-					% Triggers a redraw:
-					render_mec( Canvas, PointCount )
-
-			end,
-			State ;
-
-
-		#wx{ event=#wxSize{ size=NewSize } } ->
-
-			test_facilities:display( "Resizing to ~w.", [ NewSize ] ),
-
-			NewCanvas = gui_canvas:resize( Canvas, NewSize ),
-
-			case Mode of
-
-				test ->
-					render_test( NewCanvas );
-
-				mec ->
-					% Triggers a redraw:
-					render_mec( NewCanvas, PointCount )
-
-			end,
-
-			State#test_state{ canvas=NewCanvas };
-
-
-		Any ->
-			test_facilities:display( "GUI test got event '~w' (ignored).",
-									[ Any ] ),
-			State
-
-	end,
-
-	case Update of
-
-		quit ->
-			% Simply stop recursing:
-			ok;
-
-		NewState ->
-			gui_main_loop( NewState )
-
-	end.
+	gui_canvas:blit( Canvas ).
 
 
 
@@ -554,11 +486,11 @@ run() ->
 	case executable_utils:is_batch() of
 
 		true ->
-			test_facilities:display( "(not running the GUI test, "
-									"being in batch mode)" );
+			test_facilities:display( "(not running the MyriadGUI test, "
+									 "being in batch mode)" );
 
 		false ->
-			init_test_gui()
+			run_test_gui()
 
 	end,
 

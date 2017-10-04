@@ -36,10 +36,23 @@
 -include("test_facilities.hrl").
 
 
-% For the #wx record:
--include_lib("wx/include/wx.hrl").
+-record( my_test_state, {
+
+	% Internal state of the gui subsystem:
+	gui_state :: gui:state(),
+
+	% Test-specific state:
+	test_main_frame :: gui:frame()
+
+}).
+
+-type my_test_state() :: #my_test_state{}.
+
+% FIXME:
+-export_type([ my_test_state/0 ]).
 
 
+-spec run_test_gui() -> basic_utils:void().
 run_test_gui() ->
 
 	test_facilities:display( "~nStarting the test of OpenGL support." ),
@@ -57,7 +70,7 @@ run_test_gui() ->
 	SubscribedEvents = [
 		  { MainFrame, onWindowClosed } ],
 
-	LoopState = gui:enter_main_loop( InitialState,
+	LoopState = gui:handle_events( InitialState,
 									 SubscribedEvents ),
 
 	receive
@@ -83,7 +96,7 @@ run() ->
 	case executable_utils:is_batch() of
 
 		true ->
-			test_facilities:display( "(not running the GUI test, "
+			test_facilities:display( "(not running the OpenGL test, "
 									 "being in batch mode)" );
 
 		false ->

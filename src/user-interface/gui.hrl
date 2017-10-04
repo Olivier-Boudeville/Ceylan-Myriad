@@ -26,29 +26,33 @@
 % Creation date: Tuesday, January 29, 2013
 
 
-% Header to export gui-related defines.
+
+% Header to export MyriadGUI-related defines, both for user code and for
+% internal one.
 %
 % See gui.erl for the corresponding implementation.
 
 
-% Context sent together with an event, which can be most of the time ignored.
+% Context sent to corresponding subscribers together with an event.
+%
+% This context can be ignored in most cases.
 %
 -record( gui_event_context, {
 
 
-		   % The identifier of the event source (generally not useful as the
-		   % gui_object is enough):
+		   % The identifier of the event source (generally not useful, as the
+		   % gui_object shall be enough):
 		   %
 		   id :: gui:id(),
 
 
-		   % Usually of no use, as the user has been means of preserving a state
-		   % (ex: in the main loop)
+		   % Usually of no use, as such user data is a means of preserving a
+		   % state, whereas the user event loop is better to do so:
 		   %
-		   user_data = undefined :: gui:user_data(),
+		   user_data = [] :: gui:user_data(),
 
 
-		   % The lower-level event (if any) resulting in our event:
+		   % The full, lower-level event (if any) resulting in our event:
 		   %
 		   % (useful for example when deciding to propagate it upward in the
 		   % widget hierarchy)

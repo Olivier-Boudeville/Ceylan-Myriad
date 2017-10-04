@@ -26,14 +26,22 @@
 % Creation date: Monday, February 15, 2010.
 
 
+
 % Gathering of various facilities for Graphical User Interfaces.
+%
+% We name this library MyriadGUI (shortened here, whenever it is not ambiguous,
+% in 'gui').
+%
+% The purpose of MyriadGUI is to wrap, complement and improve what we consider
+% the best set of gui backends available (previously: gs alone; now: wx+esdl,
+% with OpenGL), for classical applications and multimedia ones (ex: games).
 %
 % See gui_test.erl for the corresponding test.
 %
 -module(gui).
 
 
-% For canvas record:
+% For the canvas_state record:
 -include("gui_canvas.hrl").
 
 
@@ -45,6 +53,14 @@
 % Rendering of GUI elements.
 %
 % Formerly based on the gs backend, now on the wx one.
+%
+% Providing improved and enriched APIs for all kinds of GUI.
+%
+% Relying optionally on:
+%
+% - OpenGL, for efficient 3D rendering
+%
+% - esdl, for adequate lower-level primitives (ex: management of input devices)
 
 
 
@@ -53,136 +69,80 @@
 % This module used to rely on the gs module, whose API was quite simple and
 % elegant.
 %
-% As 'gs' was replaced (quite quickly, unfortunately) by 'wx' (an Erlang binding
-% to wxWidgets), now we rely on the latter.
+% As 'gs' was replaced (quite quickly, with short notice unfortunately) by 'wx'
+% (an Erlang binding to wxWidgets), now we rely on the latter and wrap it
+% accordingly, to be future-proof.
 %
 % The general convention is still to put as first argument the object on which
 % the operation is to be applied (ex: the window).
 %
-% See also: gui_canvas.erl for all canvas-related operations.
-
-
-% Usually a class of wxWidgets is represented as a module in Erlang.
-%
-% GUI objects (e.g. widgets) correspond to (Erlang) processes.
-%
-% GUI objects are created with new/*, and deleted with destroy/1.
-%
-% Events can be managed as messages or callbacks. We generally prefer the former
-% (messages can be selectively received, any context can be kept, no temporary
-% process created, no wx include needed, etc., yet then changing dynamically
-% whether an event shall be dispatched to subsequent handlers may be more a bit
-% more difficult, see propagate_event/1).
-%
-% Event messages are internally converted, in order to hide the wx backend and
-% make them compliant with our conventions (hint: these are the WOOPER ones).
-%
-% Regarding events, see also:
-% https://wiki.wxwidgets.org/Events#Event.Skip_and_Event.Veto
-
-% Please refer to wx.pdf for more architecture/implementation details of wx.
-
-
-% Understanding wx base widgets hierarchy (offsets meaning "inheriting from",
-% corresponding local types specified between brackets):
-%
-% wxObject
-% ├── wxEvtHandler
-% │   └── wxWindow
-% │       ├── wxControl
-% │       │   └── wxButton
-% │       ├── wxPanel
-% │       ├── wxStatusBar
-% │       └── wxTopLevelWindow
-% │           ├── wxDialog
-% │           └── wxFrame
-% └── wxSizer
-%
-%
-% In a more detailed view, the corresponding local types specified between
-% brackets:
-%
-% - wxObject [gui_object]: root class of all wxWidgets classes
-%
-%   - wxEvtHandler [event_handler]: a class that can handle events from the
-%   windowing system
-%
-%      - wxWindow [window]: the base class for all windows and represents any
-%      visible object on screen For colors, refer to the color module
-%
-%        - wxControl: base class for a control or "widget"; generally a small
-%        window which processes user input and/or displays one or more item of
-%        data
-%
-%          - wxButton: a control that contains a text string, and is one of the
-%          most common elements of a GUI; may be placed on any window, notably
-%          dialog boxes or panels
-%
-%        - wxPanel [panel]: a window on which controls are placed; usually
-%        placed within a frame
-%
-%        - wxTopLevelWindow: abstract base class for wxDialog and wxFrame
-%
-%           - wxDialog: a window with a title bar and sometimes a system menu,
-%           which can be moved around the screen; often used to allow the user
-%           to make some choice or to answer a question
-%
-%           - wxFrame [frame]: a window whose size and position can (usually) be
-%           changed by the user. It usually has thick borders and a title bar,
-%           and can optionally contain a menu bar, toolbar and status bar. A
-%           frame can contain any window that is not a frame or dialog
-%
-%        - wxStatusBar: narrow window that can be placed along the bottom of a
-%        frame
-%
-%   - wxSizer (also derives from wxClientDataContainer): abstract base class
-%   used for laying out subwindows in a window
+% See also:
+% - the gui_wx_backend module for our use of wx as a backend
+% - the gui_canvas module for all canvas-related operations.
 
 
 
 % Event loops.
 %
-% There is generally two loops involved here:
+% There is generally two event loops involved here:
+%
+% - a mandatory, generic, MyriadGUI-internal one (defined in the gui_event
+% module), looping over process_event_messages/1 that relies on an (opaque)
+% gui_event:loop_state(), running on a dedicated process spawned by the
+% gui:start/n functions
+%
+% - a user-defined, application-specific one, fed by the former internal loop
+% (ex: with onWindowClosed messages), possibly using any client-side state of
+% interest (whose definition is fully free)
 
-% - a mandatory, generic, internal one, looping over main_loop/4 with an
-% (opaque) gui:loop_state(), running on a dedicated process spawned by
-% gui:handle_events/2
-%
-% - an application-specific one, fed by the former loop (ex: with onWindowClosed
-% messages), possibly using any client-side state of interest (whose definition
-% is fully free)
 
 
-% Event messages.
-%
-% Lower-level, backend-specific events are translated in event messages, to be
-% received by their respective event subscribers.
-%
-% An event message is a pair whose first element is the event type, as an atom
-% (ex: onWindowClosed), and whose second element is a list, whose first element
-% is the GUI object that generated that event (the closed window, here), and
-% whose last element is the event context:
-%
-% { event_type(), [ gui_object(), ..., event_context() ] }
-%
-% Ex: { onWindowClosed, [ Window, CloseContext ] }.
-%
-% Note: these messages respects the WOOPER conventions, and this is done on
-% purpose, to facilitate any integration with upper layers.
-%
--type event_message() :: { event_type(), [ any() ] }.
 
+% Environments.
+
+
+% Environment kept for MyriadGUI, usually in the process dictionary (like wx
+% does):
+%
+-record( gui_env, {
+
+	% Reference to the current top-level wx server:
+	wx_server :: wx:wx_object(),
+
+	% PID of the main loop:
+	loop_pid :: pid()
+
+}).
+
+
+% Stores the current, user-side (client) state (merely references) of the GUI.
+%
+% Like wx:wx_env(); kept in the process dictionary for easier sharing that if
+% using a naming service or having to keep around a bound variable.
+%
+-type gui_env() :: #gui_env{}.
+
+
+% Current backend is wx (WxWidgets).
+%
+% (useful to avoid including the header of wx in our own public ones)
+%
+-type backend_event() :: gui_event:wx_event().
+
+
+% To be used directly from the user code:
+-type canvas() :: gui_canvas:canvas().
 
 
 % Basic GUI operations.
 %
--export([ start/0, start/1, set_debug_level/1, stop/1 ]).
+-export([ start/0, start/1, set_debug_level/1, stop/0 ]).
 
 
 
 % Event-related operations.
 %
--export([ handle_events/2, propagate_event/1 ]).
+-export([ subscribe_to_events/1, propagate_event/1 ]).
 
 
 
@@ -190,24 +150,16 @@
 %
 % (mostly internal purpose)
 %
--export([ object_to_string/1, event_table_to_string/1 ]).
+-export([ object_to_string/1, context_to_string/1 ]).
 
-
-% Temporary exports:
-%
-% (to avoid warnings about unused functions)
-%
--export([ to_wx_object_type/1 ]).
 
 
 % Widget-related section.
-%
-
 
 
 % General-purpose:
 %
--export([ id_to_window/1, connect/2, connect/3, disconnect/1, set_tooltip/2 ]).
+-export([ set_tooltip/2 ]).
 
 
 
@@ -230,8 +182,8 @@
 
 % Panels:
 %
--export([ create_panel/0, create_panel/1, create_panel/2, create_panel/5,
-		  create_panel/6 ]).
+-export([ create_panel/0, create_panel/1, create_panel/2, create_panel/4,
+		  create_panel/5, create_panel/6 ]).
 
 
 % Buttons:
@@ -251,9 +203,10 @@
 -export([ create_status_bar/1, push_status_text/2 ]).
 
 
+% Canvas support (forwarded to gui_canvas).
+%
+-export([ create_canvas/1 ]).
 
-
-% Canvas support: defined in gui_canvas.erl.
 
 
 % For related, public defines:
@@ -263,8 +216,6 @@
 -include("gui_internal_defines.hrl").
 
 
-% Apparently not defined or exported:
--type wx_env() :: any().
 
 
 % Type declarations:
@@ -275,37 +226,12 @@
 
 % linear_2D:point() would allow for floating-point coordinates:
 -type point() :: linear_2D:integer_point().
+
 -type position() :: point() | 'auto'.
 
--type size() :: { linear:integer_distance(), linear:integer_distance() }
-			  | 'auto'.
 
-
-% Identifier of a GUI elements are integers (positive or not).
-
-
-
-% Allows to specify a 'void' (null) ID of a GUI element.
-%
-% Sometimes the ID may be directly provided by the user or have a predefined
-% value, such as wxID_OPEN.
-%
-% Often, however, the value of the ID is unimportant and in this case it is
-% enough to use wxID_ANY as the ID of an object which tells wxWidgets to assign
-% an ID automatically.
-%
-% All such automatically-assigned IDs are negative, so the IDs predefined in the
-% user code should always be positive to avoid clashes with them.
-%
-% More generally, using ID (rather than storing their object reference) should
-% be discouraged unless strictly needing it.
-%
-% (note: this type is defined and exported, yet reported unknown by Dialyzer)
-%
--type id() :: 'undefined' | integer().
-
-
-% See any_id, no_parent, etc. as defined in gui.hrl.
+% Size, typically of a widget:
+-type size() :: linear_2D:dimensions() | 'auto'.
 
 
 % A vertical orientation means piling elements top to bottom for example, while
@@ -318,32 +244,73 @@
 % Widget types.
 
 
-% Internal types of GUI objects:
+% Internal, overall types for all GUI objects:
 %
--type object_type() :: 'object'
-					 | 'event_handler'
-					 | 'window'
-					 | 'control'
-					 | 'button'
-					 | 'panel'
-					 | 'status_bar'
-					 | 'top_level_window'
-					 | 'dialog'
-					 | 'frame'
-					 | 'sizer'.
+-type object_type() :: wx_object_type() | myriad_object_type().
 
 
-% No enumeration like 'wxWindow' | 'wxFrame' | ... found in wx:
--type wx_object_type() :: atom().
 
+% MyriadGUI-translated version of a native wx type, i.e. of the
+% wx_native_object_type().
+%
+% (ex: 'window', instead of 'wxWindow'):
+%
+-type wx_object_type() :: 'object'
+						| 'event_handler'
+						| 'window'
+						| 'control'
+						| 'button'
+						| 'panel'
+						| 'status_bar'
+						| 'top_level_window'
+						| 'dialog'
+						| 'frame'
+						| 'sizer'
+						| 'server'.
+
+
+% The additional widget types introduced by MyriadGUI:
+%
+-type myriad_object_type() :: 'canvas'.
+
+
+% Records the actual state of a MyriadGUI object:
+%
+-type myriad_object_state() :: gui_canvas:canvas_state().
+						   % | all other *_state() that may be introduced
+
+
+
+% The construction parameters of a MyriadGUI object:
+%
+-type construction_parameters() :: any().
+
+
+% Myriad-specific instance identifier (strictly positive):
+-type myriad_instance_id() :: basic_utils:non_null_count().
+
+
+% wx-specific instance identifier:
+%
+% (defined so that the gui_event_context (public) record has no trace of the
+% backend)
+%
+-type id() :: wx_id().
 
 
 % Reference to a GUI object (often designated as "widget" here), somewhat akin
 % to a PID.
 %
-% (ex: {wx_ref,35,wxFrame,[]})
+% (ex: {wx_ref,35,wxFrame,[]} or {myriad_object_ref,canvas,12})
 %
--type gui_object() :: wx:wx_object().
+-type gui_object() :: wx:wx_object() | myriad_object_ref().
+
+
+% Alias to designate more clearly the wx server:
+-type wx_server() :: gui_object().
+
+
+% Defining the actual widget types corresponding to wx_object_type():
 
 
 -type window() :: 'undefined' | wxWindow:wxWindow() | gui_canvas:canvas().
@@ -369,10 +336,11 @@
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type void() :: basic_utils:void().
 -type text() :: text_utils:unicode_string().
+-type wx_id() :: gui_wx_backend:wx_id().
 
 
 % Aliases:
@@ -385,159 +353,6 @@
 -type user_data() :: any().
 
 
-
-
-% Event management.
-%
-% In general we promote managing events thanks to messages rather than thanks to
-% callbacks, as the former can access easily to the full context of the program
-% whereas the latter is only executed into a transient process.
-
-
--type event_handler() :: wxEvtHandler:wxEvtHandler().
-
--type event_source() :: event_handler() | gui_canvas:canvas().
-
-
-% Using the wx-event type, leaked by wx.hrl:
-%
-% (add them whenever needed)
-%
--type wx_event_type() :: wx_close_event_type().
-
-
-% Associated to wxCloseEvent:
--type wx_close_event_type() :: 'close_window' | 'end_session'
-							 | 'query_end_session'.
-
-
-% Our own event types, independent from any backend:
-%
--type event_type() :: 'onWindowClosed'
-					  .
-
-
-
-
-% The PID of an event subscriber:
--type event_subscriber_pid() :: pid().
-
-
-
-% Specifies, for any combination of type of events and GUI objects, the event
-% listener (by default: the calling process) that subscribes to the
-% corresponding actual events.
-%
-% Note: no use case for more than one subscriber found.
-%
--type event_subscription_spec() ::
-		[ { list_utils:maybe_list( event_type() ),
-			list_utils:maybe_list( gui_object() ),
-			list_utils:maybe_list( event_subscriber_pid() ) } ].
-
-
-
-% An indirection table dispatching events according to subscription
-% specifications.
-%
-% For an incoming event, we see it (virtually) as a table(
-% { gui_object(), event_type() }, set_utils:set( event_subscriber_pid() ) ):
-%
-% - the first key is the GUI object (e.g. widget) from which it emanates (ex: a
-% frame)
-%
-% - the second key is its corresponding (internal) event type (ex:
-% 'onWindowClosed')
-%
-% - the associated value is a list/set of the PID of the subscribers regarding
-% this (object,event) combination
-%
-% Note: two nested tables (one table(), one list_table()) are used also in
-% order to ensure that there is up to one entry per GUI object and per event
-% type stored.
-%
--type event_table() :: table:table( gui_object(), event_dispatch_table() ).
-
-
-% Tells, for a given event type (e.g. in the context of a specific GUI object),
-% to which event subscribers the corresponding GUI messages shall be sent.
-%
--type event_dispatch_table() :: list_table:table( event_type(),
-												  [ event_subscriber_pid() ] ).
-
-
-
-% Stores the current, user-side (client) state of the GUI.
-%
-% Note:
-%
-% - it is typically included (ex: thanks to a dedicated record) among the state
-% information the user main loop (if any) iterates on.
-%
-% - keeping this state information is probably not strictly necessary
-%
--record( gui_state, {
-
-		   % Identifier of the current top-level wx server:
-		   server_id :: gui_object(),
-
-		   % PID of the main loop (if any):
-		   loop_pid = undefined :: basic_utils:maybe ( pid() )
-
-}).
-
--type gui_state() :: #gui_state{}.
-
-
-
-% Stores the current, internal side state of the GUI, as managed by the main
-% loop.
-%
--record( loop_state, {
-
-		   % Identifier of the current top-level wx server:
-		   server_id :: gui_object(),
-
-		   % To dispatch backend events:
-		   event_table :: event_table()
-
-}).
-
--type loop_state() :: #loop_state{}.
-
-
-
-% A #wx event record comprises:
-%
-% - (the 'wx' record tag, if seen as a tuple)
-%
-% - id :: id() the (integer) identifier of the object (e.g. widget) that
-% received the event (event source)
-%
-% - obj :: gui_object() is the reference of the object that was specified in the
-% connect/n call, i.e. on which connect/n was called (ex:
-% {wx_ref,35,wxFrame,[]})
-%
-% - userData :: any() is the user-specified data that was specified in the
-% connect/n call (typically [])
-%
-% - event :: event() is the information about the event itself, i.e. the
-% corresponding record (ex: {wxClose,close_window}), whose first element is the
-% type of the event (ex: close_window)
-
-
-% Current backend is wx (WxWidgets).
-%
-% The actual event source can be found either directly (through its reference)
-% or from its ID (see id_to_window/1). Best option seems to be the first one, in
-% the general case.
-%
-% As always, same as: -record( wx,...
-%
-% id: the (integer) identifier of the widget
-%
--type backend_event() :: { 'wx', id(), gui_object(), user_data(),
-						   wx_event_type() }.
 
 
 % Options for windows, see:
@@ -676,37 +491,74 @@
 
 
 
--export_type ([ length/0, coordinate/0, point/0, id/0,
-				orientation/0,
-				window/0, frame/0, panel/0, button/0, sizer/0, status_bar/0,
-				bitmap/0, back_buffer/0,
-				event_message/0, backend_event/0,
-				window_style/0, frame_style/0, button_style/0,
-				sizer_flag/0,
-				error_message/0 ]).
+-export_type([ length/0, coordinate/0, point/0, orientation/0,
+			   object_type/0, myriad_instance_id/0, id/0, wx_server/0,
+			   window/0, frame/0, panel/0, button/0, sizer/0, status_bar/0,
+			   bitmap/0, back_buffer/0, canvas/0,
+			   construction_parameters/0, backend_event/0, connect_options/0,
+			   window_style/0, frame_style/0, button_style/0,
+			   sizer_flag/0, error_message/0 ]).
 
+
+% To avoid unused warnings:
+-export_type([ myriad_object_state/0 ]).
+
+
+% Function shorthands:
+-import( gui_wx_backend, [ to_wx_parent/1, to_wx_id/1, to_wx_position/1,
+						   to_wx_size/1, to_wx_orientation/1,
+						   frame_style_to_bitmask/1, get_panel_options/1 ]).
+
+
+% GUI-specific defines:
+
+
+% Key of the MyriadGUI environment, in the process dictionary:
+-define( gui_env_process_key, myriad_gui_env ).
 
 
 
 % Section for basic GUI overall operations.
 
 
-% Starts the GUI subsystem.
+
+% Starts the MyriadGUI subsystem.
 %
--spec start() -> gui_state().
+-spec start() -> void().
 start() ->
-	% No option relevant.
-	#gui_state{ server_id=wx:new() }.
+
+	% Initialises the wx backend (no option relevant here):
+	WxServer = wx:new(),
+
+	% The wx environment will be exported to the internal main loop process, so
+	% that both the user code (i.e. the current process) and that loop can make
+	% use of wx:
+	%
+	WxEnv = wx:get_env(),
+
+	% The event table must be initialised in the spawned process, so that
+	% connect/n can use the right actual, first-level subscriber PID, which is
+	% the internal main loop in charge of the message routing and conversion.
+
+	LoopPid = spawn_link( gui_event, start_main_event_loop,
+						  [ WxServer, WxEnv ] ),
+
+	trace_utils:trace_fmt( "Main loop running on ~w (created from ~w).",
+						   [ LoopPid, self() ] ),
+
+	GUIEnv = #gui_env{ wx_server=WxServer, loop_pid=LoopPid },
+
+	% Stored in the process dictionary of the user process, like for wx:
+	put( ?gui_env_process_key, GUIEnv ).
 
 
 
 % Starts the GUI subsystem, with specified debug level.
 %
--spec start( debug_level() ) -> gui_state().
+-spec start( debug_level() ) -> void().
 start( DebugLevel ) ->
-	ServerId = wx:new(),
-	set_debug_level( DebugLevel ),
-	#gui_state{ server_id=ServerId }.
+	start(),
+	set_debug_level( DebugLevel ).
 
 
 
@@ -714,151 +566,40 @@ start( DebugLevel ) ->
 %
 -spec set_debug_level( debug_level() ) -> void().
 set_debug_level( DebugLevels ) when is_list( DebugLevels ) ->
-	wx:debug( [ convert_debug_level( L ) || L <- DebugLevels ] );
+	wx:debug( [ gui_wx_backend:to_wx_debug_level( L ) || L <- DebugLevels ] );
 
 set_debug_level( DebugLevel ) ->
 	set_debug_level( [ DebugLevel ] ).
 
 
 
-% Creates a new process in charge of managing the internal event loop of the
-% GUI, and of dispatching upcoming events according to the user-defined
-% subscriptions.
+% Subscribes the current, calling process to the specified kind of events, like
+% { onWindowClosed, MyFrame }.
 %
-% Events received will result in the callback messages defined here (ex:
-% onWindowClosed) to be sent to their respective subscribers.
+% This process will then receive MyriadGUI callback messages whenever events
+% that match happen, such as: { onWindowClosed, [ MyFrame, Context ] }.
 %
 % By default the corresponding event will not be transmitted upward in the
 % widget hierarchy (as this event will be expected to be processed for good by
 % the subscriber(s) it has been dispatched to), unless the propagate_event/1
 % function is called from one of them.
 %
--spec handle_events( gui_state(), event_subscription_spec() ) -> gui_state().
-handle_events( GUIState=#gui_state{ server_id=ServerId }, SubscribedEvents ) ->
+-spec subscribe_to_events( gui_event:event_subscription_spec() ) -> void().
+subscribe_to_events( SubscribedEvents ) when is_list( SubscribedEvents ) ->
 
-	trace_utils:trace_fmt( "Entering main loop, with following event "
-						   "subscription:~n~p", [ SubscribedEvents ] ),
+	trace_utils:trace_fmt( "Subscribing to following events: ~p.",
+						   [ SubscribedEvents ] ),
 
-	% Event table must be initialised in the spawned process, so that connect/n
-	% can use the right actual, first-level subscriber PID:
-	%
-	LoopState = #loop_state{ server_id=ServerId },
+	GUIEnv = get_gui_env(),
 
-	% Exports wx environment to the internal main loop process:
-	WxEnv = wx:get_env(),
+	LoopPid = GUIEnv#gui_env.loop_pid,
 
-	% To identify the default subscriber:
-	Self = self(),
-
-	LoopPid = spawn_link( fun() -> main_loop( LoopState, SubscribedEvents,
-											  WxEnv, Self ) end ),
-
-	trace_utils:trace_fmt( "Main loop running on ~w (created from ~w).",
-						   [ LoopPid, self() ] ),
-
-	GUIState#gui_state{ loop_pid=LoopPid }.
+	% Oneway:
+	LoopPid ! { subscribeToEvents, [ SubscribedEvents, self() ] };
 
 
-
-
-% Creates a new process in charge of managing the main event loop of the GUI.
-%
-% Events received will result in callbacks to be triggered.
-%
-% The goal is to devise a generic event loop, while still being able to be
-% notified of all relevant information (and only them).
-%
--spec main_loop( loop_state(), event_subscription_spec(), wx_env(), pid() ) ->
-					   no_return().
-main_loop( State, SubscribedEvents, WxEnv, CallerPid ) ->
-
-	% To be done first, so that we are able to use wx from that process:
-	wx:set_env( WxEnv ),
-
-	InitialEventTable = get_event_table( SubscribedEvents, CallerPid ),
-
-	trace_utils:debug_fmt( "Starting main loop, with initial event table:~n~p",
-						   [ InitialEventTable ] ),
-
-	handle_wx_messages(
-	  State#loop_state{ event_table=InitialEventTable } ).
-
-
-
-% Receives and process all wx-originating messages, on behalf of the main event
-% loop.
-%
-handle_wx_messages( State=#loop_state{ event_table=EventTable } ) ->
-
-	trace_utils:trace( "Handling wx messages..." ),
-
-	% Event types roughly sorted by decreasing frequency of appearance:
-	%
-	% (defined in lib/wx/include/wx.hrl)
-	%
-	NewState = receive
-
-		% Structure: { wx, Id, Obj, UserData, Event } with event:
-		% { WxEventName, Type, ...}
-		%
-		% Ex: { wx, -2006, {wx_ref,35,wxFrame,[]}, [], {wxClose,close_window} }.
-		%
-		Event=#wx{ id=Id, obj=GUIObject, userData=UserData, event=WxEvent } ->
-
-			trace_utils:trace_fmt( "Event received about ~p:~n~p.",
-								   [ GUIObject, Event ] ),
-
-			case table:lookupEntry( GUIObject, EventTable ) of
-
-				key_not_found ->
-					trace_utils:debug_fmt( "GUI object '~p' not registered.",
-										   [ GUIObject ] ),
-					State;
-
-				{ value, DispatchTable } ->
-
-					% Example: close_window
-					WxEventType = element( 2, WxEvent ),
-
-					EventType = from_wx_event_type( WxEventType ),
-
-					case list_table:lookupEntry( EventType, DispatchTable ) of
-
-
-						{ value, Subscribers } ->
-							trace_utils:debug_fmt( "Sending ~p event to "
-							  "subscriber ~w.", [ EventType, Subscribers ] ),
-
-							Context = #gui_event_context{ id=Id,
-									user_data=UserData, backend_event=WxEvent },
-
-							Message = { EventType, [ GUIObject, Context ] },
-
-							[ SubscriberPid ! Message
-							  || SubscriberPid <- Subscribers ];
-
-
-						key_not_found ->
-							trace_utils:error_fmt( "For GUI object ~w, event "
-								"type '~s' not registered whereas notified "
-								"(abnormal).",
-								[ GUIObject, EventType ] )
-
-					end,
-
-					State
-
-			end;
-
-
-		UnmatchedEvent ->
-			trace_utils:warning_fmt( "Ignored following unmatched event:~n~p",
-									 [ UnmatchedEvent ] ),
-			State
-
-	end,
-
-	handle_wx_messages( NewState ).
+subscribe_to_events( SubscribedEvent ) when is_tuple( SubscribedEvent ) ->
+	subscribe_to_events( [ SubscribedEvent ] ).
 
 
 
@@ -881,152 +622,22 @@ handle_wx_messages( State=#loop_state{ event_table=EventTable } ) ->
 % Note: to be called from an event handler, i.e. at least from a process which
 % set the wx environment.
 %
--spec propagate_event( gui_event_context() ) -> basic_utils:void().
-propagate_event( #gui_event_context{ backend_event=WxEvent } ) ->
-
-	% Honestly the skip semantics looks a bit unclear.
-	% 'skip' is here a synonymous of 'propagate'.
-
-	% Default is having skip=true, so same as:
-	% wxEvent:skip( WxEvent, _Opts=[ { skip, true } ] ):
-	wxEvent:skip( WxEvent ).
+-spec propagate_event( gui_event_context() ) -> void().
+propagate_event( EventContext ) ->
+	gui_event:propagate_event( EventContext ).
 
 
 
 % Stops the GUI subsystem.
 %
--spec stop( gui_state() ) -> void().
-stop( _State ) ->
-	% No server_id needed:
-	ok = wx:destroy().
+-spec stop() -> void().
+stop() ->
 
+	% No wx_server needed:
+	ok = wx:destroy(),
 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% Event section.
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
-% Returns the initial event table.
-%
-% (helper)
-%
--spec get_event_table( event_subscription_spec(), pid() ) -> event_table().
-get_event_table( SubscribedEvents, CallerPid ) ->
-
-	EventTable = table:new(),
-
-	% The caller is the default susbscriber process:
-	DeclaredTable = declare_in_event_table( SubscribedEvents, CallerPid,
-											EventTable ),
-
-	trace_utils:debug_fmt( "Initial ~s",
-						   [ event_table_to_string( DeclaredTable ) ] ),
-
-	DeclaredTable.
-
-
-
-
-% Enriches the specified event table with specified subscription information.
-%
-% (helper)
-%
--spec declare_in_event_table( event_subscription_spec(),
-		event_subscriber_pid(), event_table() ) -> event_table().
-declare_in_event_table( _SubscribedEvents=[], _DefaultSubscriberPid, Table ) ->
-	Table;
-
-declare_in_event_table( _SubscribedEvents=[
-	   { EventTypeMaybeList, GUIObjectMaybeList, SubscriberMaybeList } | T ],
-	   DefaultSubscriberPid, Table ) ->
-
-	EventTypeList = list_utils:ensure_list_of_atoms( EventTypeMaybeList ),
-	GUIObjectList = list_utils:ensure_list_of_tuples( GUIObjectMaybeList ),
-	SubscriberList= list_utils:ensure_list_of_pids( SubscriberMaybeList ),
-
-	NewTable = lists:foldl( fun( Obj, TableAcc ) ->
-								   register_event_types_for( Obj, EventTypeList,
-											SubscriberList, TableAcc )
-							end,
-							_Acc0=Table,
-							_List=GUIObjectList ),
-
-	declare_in_event_table( T, DefaultSubscriberPid, NewTable );
-
-declare_in_event_table( _SubscribedEvents=[
-	   { EventTypeMaybeList, GUIObjectMaybeList } | T ],
-	   DefaultSubscriberPid, Table ) ->
-	declare_in_event_table( [ { EventTypeMaybeList, GUIObjectMaybeList,
-							  [ DefaultSubscriberPid ] } | T ],
-							DefaultSubscriberPid, Table ).
-
-
-% (helper)
-%
--spec register_event_types_for( gui_object(), [ event_type() ],
-				[ event_subscriber_pid() ], event_table() ) -> event_table().
-register_event_types_for( GUIObject, EventTypes, Subscribers, EventTable ) ->
-
-	trace_utils:debug_fmt( "Registering subscribers ~w for event types ~p "
-						   "regarding object '~s'.", [ Subscribers, EventTypes,
-							 object_to_string( GUIObject ) ] ),
-
-	% Auto-connection to the current PID (i.e. the one of the internal, main
-	% event loop), so that it receives these events for their upcoming
-	% dispatching to the actual subscribers:
-	%
-	[ connect( GUIObject, EvType ) || EvType <- EventTypes ],
-
-	% Now prepare the upcoming routing to the right subscriber:
-	%
-	NewDispatchTable= case table:lookupEntry( GUIObject, EventTable ) of
-
-		key_not_found ->
-			UniqueSubscribers = list_utils:uniquify( Subscribers ),
-			Entries = [ { EvType, UniqueSubscribers } || EvType <- EventTypes ],
-			list_table:new( Entries );
-
-		{ value, DispatchTable } ->
-			update_event_table( EventTypes, Subscribers, DispatchTable )
-
-	end,
-
-	table:addEntry( GUIObject, NewDispatchTable, EventTable ).
-
-
-
-% Returns an event dispatch table recording specified event type / subscriber
-% associations.
-%
--spec update_event_table( [ event_type() ], [ event_subscriber_pid() ],
-						  event_dispatch_table() ) -> event_dispatch_table().
-update_event_table( _EventTypes=[], _Subscribers, DispatchTable ) ->
-	DispatchTable;
-
-update_event_table( _EventTypes=[ EventType | T ], Subscribers,
-					DispatchTable ) ->
-
-	NewSubscribers = case list_table:lookupEntry( EventType,
-												  DispatchTable ) of
-
-		key_not_found ->
-			list_utils:uniquify( Subscribers );
-
-		{ value, CurrentSubscribers } ->
-			list_utils:union( CurrentSubscribers, Subscribers )
-
-	end,
-
-	NewDispatchTable = list_table:addEntry( EventType, NewSubscribers,
-											DispatchTable ),
-
-	update_event_table( T, Subscribers, NewDispatchTable ).
-
+	% Remove from process dictionary:
+	put( ?gui_env_process_key, _Value=undefined ).
 
 
 
@@ -1041,75 +652,19 @@ update_event_table( _EventTypes=[ EventType | T ], Subscribers,
 % Common section.
 
 
-% Returns the widget corresponding to the specified identifier.
-%
--spec id_to_window( id() ) -> window().
-id_to_window( Id ) ->
-	wxWindow:findWindowById( Id ).
-
-
-
-% Subscribes the current process to the specified type of event of the specified
-% object (receiving for that a message).
-%
-% Said otherwise: requests the specified widget to send a message-based event
-% when the specified kind of event happens, overriding its default behaviour.
-%
-% Note: only useful internally or when bypasssing the default main loop.
-%
--spec connect( event_source(), event_type() ) -> void().
-connect( #canvas{ panel=Panel }, EventType ) ->
-	connect( Panel, EventType );
-
-connect( EventSource, EventType ) ->
-	connect( EventSource, EventType, _Options=[] ).
-
-
-
-% Subscribes the current process to the specified type of event of the specified
-% object (receiving for that a message).
-%
-% Said otherwise: requests the specified widget to send a message-based event
-% when the specified kind of event happens, overriding its default behaviour
-% based on specified options.
-%
-% Note: only useful internally or when bypasssing the default main loop.
-%
--spec connect( event_source(), event_type(), connect_options() ) -> void().
-connect( #canvas{ panel=Panel }, EventType, Options ) ->
-	connect( Panel, EventType, Options );
-
-connect( SourceObject, EventType, Options ) ->
-
-	% Events to be processed through messages, not callbacks:
-	WxEventType = to_wx_event_type( EventType ),
-
-	trace_utils:debug_fmt( "Connecting event source '~s' to ~w for ~p.",
-						   [ object_to_string( SourceObject ), self(),
-							 EventType ] ),
-
-	wxEvtHandler:connect( SourceObject, WxEventType, Options ).
-
-
-
-% Unsubscribes the event source, for all event types.
-%
--spec disconnect( event_source() ) -> boolean().
-disconnect( #canvas{ panel=Panel } ) ->
-	disconnect( Panel );
-
-disconnect( EventSource ) ->
-		wxEvtHandler:disconnect( EventSource ).
-
-
 
 % Attaches a tooltip to specified widget.
 %
 -spec set_tooltip( window(), label() ) -> void().
-set_tooltip( #canvas{ panel=Panel }, Label ) ->
+set_tooltip( #canvas_state{ panel=Panel }, Label ) ->
 	set_tooltip( Panel, Label );
 
 set_tooltip( Window, Label ) ->
+
+	%trace_utils:debug_fmt( "Setting tooltip '~s' to ~s.",
+	%					   [ Label, object_to_string( Window ) ] ),
+
+	% For an unknown reason, works on panels but never on buttons:
 	wxWindow:setToolTip( Window, Label ).
 
 
@@ -1128,11 +683,13 @@ create_window() ->
 	wxWindow:new().
 
 
--spec create_window( id(), window() ) -> window().
+% (internal use only)
+%
+-spec create_window( wx_id(), window() ) -> window().
 create_window( Id, Parent ) ->
 
-	ActualId = get_id( Id ),
-	ActualParent = get_parent( Parent ),
+	ActualId = to_wx_id( Id ),
+	ActualParent = to_wx_parent( Parent ),
 
 	wxWindow:new( ActualParent, ActualId ).
 
@@ -1140,23 +697,26 @@ create_window( Id, Parent ) ->
 -spec create_window( size() ) -> window().
 create_window( Size ) ->
 
-	ActualId = get_id( undefined ),
-	ActualParent = get_parent( undefined ),
+	ActualId = to_wx_id( undefined ),
+	ActualParent = to_wx_parent( undefined ),
 
-	Options =  [ convert_size( Size ) ],
+	Options =  [ to_wx_size( Size ) ],
 
 	wxWindow:new( ActualParent, ActualId, Options ).
 
 
--spec create_window( position(), size(), window_style(), id(), window() )
-				   -> window().
+
+% (internal use only)
+%
+-spec create_window( position(), size(), window_style(), wx_id(), window() ) ->
+						   window().
 create_window( Position, Size, Style, Id, Parent ) ->
 
-	Options = [ get_position( Position ), convert_size( Size ),
-				 { style, window_style_to_bitmask( Style ) } ],
+	Options = [ to_wx_position( Position ), to_wx_size( Size ),
+				 { style, gui_wx_backend:window_style_to_bitmask( Style ) } ],
 
-	ActualId = get_id( Id ),
-	ActualParent = get_parent( Parent ),
+	ActualId = to_wx_id( Id ),
+	ActualParent = to_wx_parent( Parent ),
 
 	wxWindow:new( ActualParent, ActualId, Options ).
 
@@ -1165,7 +725,7 @@ create_window( Position, Size, Style, Id, Parent ) ->
 % Sets the background color of the specified window.
 %
 -spec set_background_color( window(), gui_color:color() ) -> void().
-set_background_color( #canvas{ back_buffer=BackBuffer }, Color ) ->
+set_background_color( #canvas_state{ back_buffer=BackBuffer }, Color ) ->
 
 	% Must not be used, other double-deallocation core dump:
 	%_PreviousBrush = wxMemoryDC:getBrush( BackBuffer ),
@@ -1189,7 +749,7 @@ set_background_color( Window, Color ) ->
 % Associates specified sizer to specified window.
 %
 -spec set_sizer( window(), sizer() ) -> void().
-set_sizer( #canvas{ panel=Panel }, Sizer ) ->
+set_sizer( #canvas_state{ panel=Panel }, Sizer ) ->
 	set_sizer( Panel, Sizer );
 
 set_sizer( Window, Sizer ) ->
@@ -1200,6 +760,9 @@ set_sizer( Window, Sizer ) ->
 % Shows (renders) specified window (or subclass thereof).
 %
 % Returns whether anything had to be done.
+%
+% This is the place where all widgets resolve their positions, sizes and
+% contents.
 %
 -spec show( window() | [ window() ] ) -> boolean().
 show( Windows ) when is_list( Windows )->
@@ -1237,7 +800,7 @@ get_size( Window ) ->
 
 % Destructs specified window.
 %
--spec destruct_window( window() ) -> basic_utils:void().
+-spec destruct_window( window() ) -> void().
 destruct_window( Window ) ->
 	wxWindow:destroy( Window ).
 
@@ -1269,7 +832,8 @@ create_frame() ->
 %
 -spec create_frame( title() ) -> frame().
 create_frame( Title ) ->
-	wxFrame:new( get_parent( undefined ), get_id( undefined ), Title ).
+	wxFrame:new( to_wx_parent( undefined ),
+				 to_wx_id( undefined ), Title ).
 
 
 
@@ -1278,47 +842,55 @@ create_frame( Title ) ->
 -spec create_frame( title(), size() ) -> frame().
 create_frame( Title, Size ) ->
 
-	Options =  [ convert_size( Size ) ],
+	Options =  [ to_wx_size( Size ) ],
 
 	%trace_utils:debug_fmt( "create_frame options: ~p.", [ Options ] ),
 
-	wxFrame:new( get_parent( undefined ), get_id( undefined ), Title, Options ).
+	wxFrame:new( to_wx_parent( undefined ),
+				 to_wx_id( undefined ), Title, Options ).
 
 
 
 % Creates a new frame, with default position, size and style.
 %
--spec create_frame( title(), id(), window() ) -> frame().
+% (internal use only)
+%
+-spec create_frame( title(), wx_id(), window() ) -> frame().
 create_frame( Title, Id, Parent ) ->
-	wxFrame:new( get_parent( Parent ), get_id( Id ), Title ).
+	wxFrame:new( to_wx_parent( Parent ),
+				 to_wx_id( Id ), Title ).
 
 
-% Creates a new frame, with default ID and parent.
+% Creates a new frame, with default parent.
 %
 -spec create_frame( title(), position(), size(), frame_style() ) -> frame().
 create_frame( Title, Position, Size, Style ) ->
 
-	Options =  [ get_position( Position ), convert_size( Size ),
+	Options =  [ to_wx_position( Position ),
+				 to_wx_size( Size ),
 				 { style, frame_style_to_bitmask( Style ) } ],
 
 	%trace_utils:debug_fmt( "create_frame options: ~p.", [ Options ] ),
 
-	wxFrame:new( get_parent( undefined ), get_id( undefined ), Title, Options ).
+	wxFrame:new( to_wx_parent( undefined ), to_wx_id( undefined ), Title,
+				 Options ).
 
 
 
 % Creates a new frame.
 %
--spec create_frame( title(), position(), size(), frame_style(), id(),
+% (internal use only)
+%
+-spec create_frame( title(), position(), size(), frame_style(), wx_id(),
 					window() ) -> frame().
 create_frame( Title, Position, Size, Style, Id, Parent ) ->
 
-	Options =  [ get_position( Position ), convert_size( Size ),
+	Options =  [ to_wx_position( Position ), to_wx_size( Size ),
 				 { style, frame_style_to_bitmask( Style ) } ],
 
-	ActualId = get_id( Id ),
+	ActualId = to_wx_id( Id ),
 
-	ActualParent = get_parent( Parent ),
+	ActualParent = to_wx_parent( Parent ),
 
 	wxFrame:new( ActualParent, ActualId, Title, Options ).
 
@@ -1361,7 +933,33 @@ create_panel( Parent, Options ) ->
 -spec create_panel( window(), coordinate(), coordinate(),
 					length(), length() ) -> panel().
 create_panel( Parent, X, Y, Width, Height ) ->
-	wxPanel:new( Parent, X, Y, Width, Height ).
+	create_panel( Parent, _Pos={ X, Y }, _Size={ Width, Height } ).
+
+
+
+% Creates a new panel, associated to specified parent and with specified
+% position and dimensions.
+%
+-spec create_panel( window(), position(), size() ) -> panel().
+create_panel( Parent, Position, Size ) ->
+	wxPanel:new( Parent, _Opts=[ { pos, to_wx_position( Position ) },
+								 { size, to_wx_size( Size ) } ] ).
+
+
+% Creates a new panel, associated to specified parent and with specified
+% position and dimensions.
+%
+-spec create_panel( window(), position(), size(), panel_options() ) -> panel().
+create_panel( Parent, Position, Size, Options ) ->
+
+	FullOptions = get_panel_options( Options )
+		++ [ to_wx_position( Position ), to_wx_size( Size ) ],
+
+	%trace_utils:debug_fmt( "Creating panel: parent: ~w, position: ~w, "
+	%					   "size: ~w, options: ~w, full options: ~w.",
+	%					   [ Parent, Position, Size, Options, FullOptions ] ),
+
+	wxPanel:new( Parent, FullOptions ).
 
 
 
@@ -1392,7 +990,8 @@ create_button( Label, Parent ) ->
 
 	Options = [ { label, Label } ],
 
-	%trace_utils:trace_fmt( "Button options (for any ID): ~p.", [ Id, Options ] ),
+	%trace_utils:trace_fmt( "Button options (for any ID): ~p.",
+	%                       [ Id, Options ] ),
 
 	wxButton:new( Parent, Id, Options ).
 
@@ -1417,13 +1016,15 @@ create_buttons_helper( [ Label | T ], Parent, Acc ) ->
 
 % Creates a new button, with parent and most settings specified.
 %
--spec create_button( label(), position(), size(), button_style(), id(),
+% (internal use only)
+%
+-spec create_button( label(), position(), size(), button_style(), wx_id(),
 					 window() ) -> button().
 create_button( Label, Position, Size, Style, Id, Parent ) ->
 
-	Options = [ { label, Label }, get_position( Position ),
-				convert_size( Size ),
-				{ style, button_style_to_bitmask( Style ) } ],
+	Options = [ { label, Label }, to_wx_position( Position ),
+				to_wx_size( Size ),
+				{ style, gui_wx_backend:button_style_to_bitmask( Style ) } ],
 
 	%trace_utils:trace_fmt( "Button options for ID #~B: ~p.", [ Id, Options ] ),
 
@@ -1441,7 +1042,7 @@ create_button( Label, Position, Size, Style, Id, Parent ) ->
 %
 -spec create_sizer( orientation() ) -> sizer().
 create_sizer( Orientation ) ->
-	ActualOrientation = get_orientation( Orientation ),
+	ActualOrientation = to_wx_orientation( Orientation ),
 	wxBoxSizer:new( ActualOrientation ).
 
 
@@ -1452,7 +1053,7 @@ create_sizer( Orientation ) ->
 -spec create_sizer_with_box( orientation(), window() ) -> sizer().
 create_sizer_with_box( Orientation, Parent ) ->
 
-	ActualOrientation = get_orientation( Orientation ),
+	ActualOrientation = to_wx_orientation( Orientation ),
 
 	wxStaticBoxSizer:new( ActualOrientation, Parent ).
 
@@ -1465,7 +1066,7 @@ create_sizer_with_box( Orientation, Parent ) ->
 											sizer().
 create_sizer_with_labelled_box( Orientation, Parent, Label ) ->
 
-	ActualOrientation = get_orientation( Orientation ),
+	ActualOrientation = to_wx_orientation( Orientation ),
 
 	wxStaticBoxSizer:new( ActualOrientation, Parent, [ { label, Label } ] ).
 
@@ -1475,8 +1076,8 @@ create_sizer_with_labelled_box( Orientation, Parent, Label ) ->
 %
 -spec add_to_sizer( sizer(), sizer_child() ) -> sizer_item();
 				  (  sizer(), [ { sizer_child(), sizer_options() } ] ) ->
-						  basic_utils:void().
-add_to_sizer( Sizer, _Element=#canvas{ panel=Panel } ) ->
+						  void().
+add_to_sizer( Sizer, _Element=#canvas_state{ panel=Panel } ) ->
 	add_to_sizer( Sizer, Panel );
 
 % List version:
@@ -1498,8 +1099,8 @@ add_to_sizer( Sizer, Element ) ->
 -spec add_to_sizer( sizer(), sizer_child(), sizer_options() ) ->
 						  sizer_item();
 				  ( sizer(), [ sizer_child() ], sizer_options() ) ->
-						  basic_utils:void().
-add_to_sizer( Sizer, _Element=#canvas{ panel=Panel }, Options ) ->
+						  void().
+add_to_sizer( Sizer, _Element=#canvas_state{ panel=Panel }, Options ) ->
 	add_to_sizer( Sizer, Panel, Options );
 
 add_to_sizer( _Sizer, _Elements=[], _Options ) ->
@@ -1511,14 +1112,16 @@ add_to_sizer( Sizer, _Elements=[ Elem | T ], Options ) ->
 
 add_to_sizer( Sizer, Element, Options ) ->
 
-	ActualOptions = get_sizer_options( Options ),
+	ActualOptions = gui_wx_backend:to_wx_sizer_options( Options ),
 
 	wxSizer:add( Sizer, Element, ActualOptions ).
 
 
+
+
 % Clears specified sizer, detaching and deleting all its child windows.
 %
--spec clear_sizer( sizer() ) -> basic_utils:void().
+-spec clear_sizer( sizer() ) -> void().
 clear_sizer( Sizer ) ->
 	clear_sizer( Sizer, _DeleteWindows=true ).
 
@@ -1527,7 +1130,7 @@ clear_sizer( Sizer ) ->
 % Clears specified sizer, detaching all its child windows, and deleting them iff
 % requested.
 %
--spec clear_sizer( sizer(), boolean() ) -> basic_utils:void().
+-spec clear_sizer( sizer(), boolean() ) -> void().
 clear_sizer( Sizer, DeleteWindows ) ->
 	wxSizer:clear( Sizer, [ { delete_windows, DeleteWindows } ] ).
 
@@ -1555,409 +1158,71 @@ push_status_text( Text, StatusBar ) ->
 
 
 
-% Section for back-end specific helpers.
-
-
-
-% Object type section.
-
-
-% Converts a wx type of object into an internal one.
+% Creates a canvas, attached to specified parent window.
 %
--spec from_wx_object_type( wx_object_type() ) -> object_type().
-from_wx_object_type( wxObject ) ->
-	object;
+-spec create_canvas( window() ) -> canvas().
+create_canvas( Parent ) ->
 
-from_wx_object_type( wxEvtHandler ) ->
-	event_handler;
-
-from_wx_object_type( wxWindow ) ->
-	window;
-
-from_wx_object_type( wxControl ) ->
-	control;
-
-from_wx_object_type( wxButton ) ->
-	button;
-
-from_wx_object_type( wxPanel ) ->
-	panel;
-
-from_wx_object_type( wxStatusBar ) ->
-	status_bar;
-
-from_wx_object_type( wxTopLevelWindow ) ->
-	top_level_window;
-
-from_wx_object_type( wxDialog ) ->
-	dialog;
-
-from_wx_object_type( wxFrame ) ->
-	frame;
-
-from_wx_object_type( wxSizer ) ->
-	sizer;
-
-from_wx_object_type( Other ) ->
-	throw( { unsupported_wx_object_type, Other } ).
+	% Returns the corresponding myriad_object_ref:
+	execute_instance_creation( canvas, [ Parent ] ).
 
 
 
 
-% Converts an internal type of object into a wx one.
+
+% General MyriadGUI helpers.
+
+
+% Requests the creation of the specified instance (to be done from the MyriadGUI
+% main loop), and returns the corresponding GUI object reference.
 %
--spec to_wx_object_type( object_type() ) -> wx_object_type().
-to_wx_object_type( object ) ->
-	wxObject;
+-spec execute_instance_creation( myriad_object_type(), any() ) ->
+									   myriad_object_ref().
+execute_instance_creation( ObjectType, ConstructionParams ) ->
 
-to_wx_object_type( event_handler ) ->
-	wxEvtHandler;
+	LoopPid = get_main_loop_pid(),
 
-to_wx_object_type( window ) ->
-	wxWindow;
+	LoopPid ! { createInstance, [ ObjectType, ConstructionParams ], self() },
 
-to_wx_object_type( control ) ->
-	wxControl;
+	receive
 
-to_wx_object_type( button ) ->
-	wxButton;
+		% Match on the object type:
+		{ instance_created, ObjectType, ObjectRef } ->
+			ObjectRef
 
-to_wx_object_type( panel ) ->
-	wxPanel;
-
-to_wx_object_type( status_bar ) ->
-	wxStatusBar;
-
-to_wx_object_type( top_level_window ) ->
-	wxTopLevelWindow;
-
-to_wx_object_type( dialog ) ->
-	wxDialog;
-
-to_wx_object_type( frame ) ->
-	wxFrame;
-
-to_wx_object_type( sizer ) ->
-	wxSizer;
-
-to_wx_object_type( Other ) ->
-	throw( { unsupported_object_type, Other } ).
+	end.
 
 
 
-% Event type section.
-
-
-% Converts a wx type of event into an internal one.
+% Fetches (from the MyriadGUI environment) the PID of the process in charge of
+% running the main GUI loop.
 %
--spec from_wx_event_type( wx_event_type() ) -> event_type().
-from_wx_event_type( close_window ) ->
-	onWindowClosed.
+-spec get_main_loop_pid() -> pid().
+get_main_loop_pid() ->
+
+	GUIEnv = get_gui_env(),
+
+	GUIEnv#gui_env.loop_pid.
 
 
 
-% Converts an internal type of event into a wx one.
+% Fetches (from the process dictionary) the MyriadGUI environment.
 %
--spec to_wx_event_type( event_type() ) -> wx_event_type().
-to_wx_event_type( onWindowClosed ) ->
-	close_window.
+-spec get_gui_env() -> gui_env().
+get_gui_env() ->
 
+	case get( ?gui_env_process_key ) of
 
+		undefined ->
+			trace_utils:error_fmt( "No MyriadGUI environment available for "
+								   "process ~w.", [ self() ] ),
+			throw( { no_myriad_gui_env, self() } );
 
-% Debug section.
+		Env ->
+			Env
 
+	end.
 
-% Converts from our API to the one of the current GUI back-end.
-%
-% (helper)
-%
-convert_debug_level( _DebugLevel=none ) ->
-	none;
-
-convert_debug_level( _DebugLevel=calls ) ->
-	trace;
-
-convert_debug_level( _DebugLevel=life_cycle ) ->
-	driver.
-
-
-
-% Windows section.
-
-
-% Converts specified window style into the appropriate back-end specific bit
-% mask.
-%
-% (helper)
-%
--spec window_style_to_bitmask( window_style() ) -> basic_utils:bit_mask().
-window_style_to_bitmask( StyleList ) when is_list( StyleList ) ->
-
-	lists:foldl( fun( S, Acc ) -> window_style_to_bitmask( S ) bor Acc end,
-				 _InitialAcc=0,
-				 _List=StyleList );
-
-window_style_to_bitmask( _Style=default ) ->
-	?wxBORDER_SIMPLE;
-
-window_style_to_bitmask( _Style=simple_border ) ->
-	?wxBORDER_SIMPLE;
-
-window_style_to_bitmask( _Style=double_border ) ->
-	?wxBORDER_DOUBLE;
-
-window_style_to_bitmask( _Style=sunken_border ) ->
-	?wxBORDER_SUNKEN;
-
-window_style_to_bitmask( _Style=raised_border ) ->
-	?wxBORDER_RAISED;
-
-window_style_to_bitmask( _Style=static_border ) ->
-	?wxSTATIC_BORDER;
-
-window_style_to_bitmask( _Style=theme_border ) ->
-	?wxBORDER_THEME;
-
-window_style_to_bitmask( _Style=no_border ) ->
-	?wxBORDER_NONE;
-
-window_style_to_bitmask( _Style=transparent ) ->
-	?wxTRANSPARENT_WINDOW;
-
-window_style_to_bitmask( _Style=tab_traversable ) ->
-	?wxTAB_TRAVERSAL;
-
-window_style_to_bitmask( _Style=grab_all_keys ) ->
-	?wxWANTS_CHARS;
-
-window_style_to_bitmask( _Style=with_vertical_scrollbar ) ->
-	?wxVSCROLL;
-
-window_style_to_bitmask( _Style=with_horizontal_scrollbar ) ->
-	?wxHSCROLL;
-
-window_style_to_bitmask( _Style=never_hide_scrollbars ) ->
-	?wxALWAYS_SHOW_SB;
-
-window_style_to_bitmask( _Style=clip_children ) ->
-	?wxCLIP_CHILDREN;
-
-window_style_to_bitmask( _Style=full_repaint_on_resize ) ->
-	?wxFULL_REPAINT_ON_RESIZE.
-
-
-
-% Converts specified window options into the appropriate back-end specific
-% options.
-%
-% (helper)
-%
-get_window_options( Options ) ->
-	get_window_options( Options, _Acc=[] ).
-
-
-get_window_options( _Options=[], Acc ) ->
-	Acc;
-
-get_window_options( _Options=[ { style, Style } | T ], Acc ) ->
-	get_window_options( T,
-					[ { style, window_style_to_bitmask( Style ) } | Acc ] );
-
-get_window_options( _Options=[ H | T ], Acc ) ->
-	get_window_options( T, [ H | Acc ] ).
-
-
-
-
-% Frames section.
-
-
-% Converts specified frame style into the appropriate back-end specific bit
-% mask.
-%
-% (helper)
-%
--spec frame_style_to_bitmask( frame_style() ) -> basic_utils:bit_mask().
-frame_style_to_bitmask( StyleList ) when is_list( StyleList ) ->
-
-	lists:foldl( fun( S, Acc ) -> frame_style_to_bitmask( S ) bor Acc end,
-				 _InitialAcc=0,
-				 _List=StyleList );
-
-frame_style_to_bitmask( _Style=default ) ->
-	?wxDEFAULT_FRAME_STYLE;
-
-frame_style_to_bitmask( _Style=caption ) ->
-	?wxCAPTION;
-
-frame_style_to_bitmask( _Style=minimize ) ->
-	?wxMINIMIZE;
-
-frame_style_to_bitmask( _Style=minimize_box ) ->
-	?wxMINIMIZE_BOX;
-
-frame_style_to_bitmask( _Style=maximize ) ->
-	?wxMAXIMIZE;
-
-frame_style_to_bitmask( _Style=maximize_box ) ->
-	?wxMAXIMIZE_BOX;
-
-frame_style_to_bitmask( _Style=close_box ) ->
-	?wxCLOSE_BOX;
-
-frame_style_to_bitmask( _Style=stay_on_top ) ->
-	?wxSTAY_ON_TOP;
-
-frame_style_to_bitmask( _Style=system_menu ) ->
-	?wxSYSTEM_MENU;
-
-frame_style_to_bitmask( _Style=resize_border ) ->
-	?wxRESIZE_BORDER;
-
-frame_style_to_bitmask( _Style=tool_window ) ->
-	?wxFRAME_TOOL_WINDOW;
-
-frame_style_to_bitmask( _Style=no_taskbar ) ->
-	?wxFRAME_NO_TASKBAR.
-
-
-
-% Panels section.
-
-
-% Converts specified panel options into the appropriate back-end specific
-% options.
-%
-% (helper)
-%
-get_panel_options( Options ) ->
-	get_window_options( Options ).
-
-
-
-
-% Buttons section.
-
-
-% Converts specified button style into the appropriate back-end specific bit
-% mask.
-%
-% (helper)
-%
--spec button_style_to_bitmask( button_style() ) -> basic_utils:bit_mask().
-button_style_to_bitmask( StyleList ) when is_list( StyleList ) ->
-
-	lists:foldl( fun( S, Acc ) -> button_style_to_bitmask( S ) bor Acc end,
-				 _InitialAcc=0,
-				 _List=StyleList );
-
-button_style_to_bitmask( _Style=default ) ->
-	0;
-
-button_style_to_bitmask( _Style=left_justified ) ->
-	?wxBU_LEFT;
-
-button_style_to_bitmask( _Style=right_justified ) ->
-	?wxBU_RIGHT;
-
-button_style_to_bitmask( _Style=top_justified ) ->
-	?wxBU_TOP;
-
-button_style_to_bitmask( _Style=bottom_justified ) ->
-	?wxBU_BOTTOM;
-
-button_style_to_bitmask( _Style=exact_fit ) ->
-	?wxBU_EXACTFIT;
-
-button_style_to_bitmask( _Style=flat ) ->
-	throw( not_implemented ).
-
-
-
-
-% Sizers section.
-
-
-% Converts specified sizer flag into the appropriate back-end specific bit
-% mask.
-%
-% (helper)
-%
--spec sizer_flag_to_bitmask( sizer_flag() ) -> basic_utils:bit_mask().
-sizer_flag_to_bitmask( FlagList ) when is_list( FlagList ) ->
-
-	lists:foldl( fun( F, Acc ) -> sizer_flag_to_bitmask( F ) bor Acc end,
-				 _InitialAcc=0,
-				 _List=FlagList );
-
-sizer_flag_to_bitmask( _Flag=default ) ->
-	0;
-
-sizer_flag_to_bitmask( _Flag=top_border ) ->
-	?wxTOP;
-
-sizer_flag_to_bitmask( _Flag=bottom_border ) ->
-	?wxBOTTOM;
-
-sizer_flag_to_bitmask( _Flag=left_border ) ->
-	?wxLEFT;
-
-sizer_flag_to_bitmask( _Flag=right_border ) ->
-	?wxRIGHT;
-
-sizer_flag_to_bitmask( _Flag=all_borders ) ->
-	?wxALL;
-
-sizer_flag_to_bitmask( _Flag=expand_fully ) ->
-	?wxEXPAND;
-
-sizer_flag_to_bitmask( _Flag=expand_shaped ) ->
-	?wxSHAPED;
-
-sizer_flag_to_bitmask( _Flag=fixed_size ) ->
-	?wxFIXED_MINSIZE;
-
-sizer_flag_to_bitmask( _Flag=counted_even_if_hidden ) ->
-	?wxRESERVE_SPACE_EVEN_IF_HIDDEN;
-
-sizer_flag_to_bitmask( _Flag=align_center ) ->
-	?wxALIGN_CENTER;
-
-sizer_flag_to_bitmask( _Flag=align_left ) ->
-	?wxALIGN_LEFT;
-
-sizer_flag_to_bitmask( _Flag=align_right ) ->
-	?wxALIGN_RIGHT;
-
-sizer_flag_to_bitmask( _Flag=align_top ) ->
-	?wxALIGN_TOP;
-
-sizer_flag_to_bitmask( _Flag=align_bottom ) ->
-	?wxALIGN_BOTTOM;
-
-sizer_flag_to_bitmask( _Flag=align_center_vertical ) ->
-	?wxALIGN_CENTER_VERTICAL;
-
-sizer_flag_to_bitmask( _Flag=align_center_horizontal ) ->
-	?wxALIGN_CENTER_HORIZONTAL.
-
-
-
-% Converts to back-end sizer options.
-%
-% (helper)
-%
-get_sizer_options( Options ) ->
-	get_sizer_options( Options, _Acc=[] ).
-
-get_sizer_options( _Options=[], Acc ) ->
-	Acc;
-
-get_sizer_options( _Options=[ { flag, Flag } | T ], Acc ) ->
-	get_sizer_options( T, [ { flag, sizer_flag_to_bitmask( Flag ) } | Acc ] );
-
-get_sizer_options(_Options=[ H | T ], Acc ) ->
-	get_sizer_options( T, [ H | Acc ] ).
 
 
 
@@ -1966,115 +1231,44 @@ get_sizer_options(_Options=[ H | T ], Acc ) ->
 %
 
 
-% Returns a textual representation of specified event table.
-%
--spec event_table_to_string( event_table() ) -> string().
-event_table_to_string( EventTable ) ->
 
-	case table:enumerate( EventTable ) of
-
-		[] ->
-			"empty event table";
-
-		DispatchPairs ->
-
-			DispatchStrings = [ dispatch_table_to_string( Object, Table )
-								|| { Object, Table } <- DispatchPairs ],
-
-			DispatchString = text_utils:strings_to_string( DispatchStrings ),
-
-			text_utils:format( "event table with ~B GUI objects registered:~s",
-							   [ length( DispatchPairs ), DispatchString ] )
-
-	end.
-
-
-% (helper)
--spec dispatch_table_to_string( gui_object(), event_dispatch_table() ) ->
-									  string().
-dispatch_table_to_string( GUIObject, DispatchTable ) ->
-
-	EventPairs = list_table:enumerate( DispatchTable ),
-
-	EventStrings = [ text_utils:format( "subscribers for event '~s': ~w",
-										[ EvType, EvSubscribers ] )
-					 || { EvType, EvSubscribers } <- EventPairs ],
-
-	EventString = text_utils:strings_to_string( EventStrings,
-												_IndentationLevel=1  ),
-
-	text_utils:format( "for GUI object '~s':~s",
-					   [ object_to_string( GUIObject ), EventString ] ).
-
-
-
-% Returns a textual representation of specified GUI object.
+% Returns a textual representation of the specified GUI object.
 %
 -spec object_to_string( gui_object() ) -> string().
+object_to_string( #myriad_object_ref{ object_type=ObjectType,
+									  myriad_instance_id=InstanceRef } ) ->
+	text_utils:format( "~s-~B", [ ObjectType, InstanceRef ] );
+
 object_to_string( { wx_ref, InstanceRef, WxObjectType, _State=[] } ) ->
 	% Ex: {wx_ref,35,wxFrame,[]}
-	ObjectType = from_wx_object_type( WxObjectType ),
-	text_utils:format( "~s-~B", [ ObjectType, InstanceRef ] ).
+	ObjectType = gui_wx_backend:from_wx_object_type( WxObjectType ),
+	text_utils:format( "~s-~B", [ ObjectType, InstanceRef ] );
+
+object_to_string( { wx_ref, InstanceRef, WxObjectType, State } ) ->
+	ObjectType = gui_wx_backend:from_wx_object_type( WxObjectType ),
+	text_utils:format( "~s-~B whose state is ~p",
+					   [ ObjectType, InstanceRef, State ] ).
 
 
-
-% Section for back-end conversions.
-
-
-% Converts to back-end widget identifier.
+% Returns a textual representation of the specified GUI event context.
 %
-% (helper)
-%
-get_id( undefined ) ->
-	?any_id;
+-spec context_to_string( gui_event_context() ) -> string().
+context_to_string( #gui_event_context{ id=Id, user_data=UserData,
+									   backend_event=WxEvent } ) ->
 
-get_id( Other ) ->
-	Other.
+	IdString = gui_wx_backend:wx_id_to_string( Id ),
 
+	UserDataString = case UserData of
 
+		[] ->
+			"no user data";
 
-% Converts to back-end parent window.
-%
-% (helper)
-%
-get_parent( undefined ) ->
-	?no_parent;
+		_ ->
+			text_utils:format( "following user data: ~p", [ UserData ] )
 
-get_parent( Other ) ->
-	Other.
+	end,
 
+	EventString = text_utils:format( "~p", [ WxEvent ] ),
 
-
-% Converts to back-end position (with defaults).
-%
-% (helper)
-%
-get_position( _Position=auto ) ->
-	{ pos, {-1,-1} };
-
-get_position( Position ) ->
-	{ pos, Position }.
-
-
-
-% Converts to back-end size (with defaults).
-%
-% (helper)
-%
-convert_size( _Size=auto ) ->
-	{ size, {-1,-1} };
-
-convert_size( Size ) ->
-	{ size, Size }.
-
-
-
-% Converts to back-end orientation.
-%
-% (helper)
-%
-get_orientation( vertical ) ->
-	?wxVERTICAL;
-
-get_orientation( horizontal ) ->
-	?wxHORIZONTAL.
+	text_utils:format( "context for event ~s: ~s and ~s",
+					   [ EventString, IdString, UserDataString ] ).
