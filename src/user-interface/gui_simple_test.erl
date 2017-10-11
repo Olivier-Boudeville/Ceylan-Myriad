@@ -77,10 +77,9 @@ run_test_gui() ->
 	% As a result, closing the third frame will not be known from here:
 	TrackedFrames = [ FirstFrame, SecondFrame, FourthFrame ],
 
-	ReadyGUIState = gui:subscribe_to_events( { onWindowClosed, 
-											   TrackedFrames } ),
+	gui:subscribe_to_events( { onWindowClosed, TrackedFrames } ),
 
-	test_main_loop( FourthFrame, ReadyGUIState ).
+	test_main_loop( FourthFrame ).
 
 
 
@@ -89,8 +88,8 @@ run_test_gui() ->
 % corresponding to the frame that shall be closed to stop the test
 % (i.e. CloseFrame).
 %
--spec test_main_loop( my_test_state(), gui:gui_state() ) -> no_return().
-test_main_loop( CloseFrame, GUIState ) ->
+-spec test_main_loop( my_test_state() ) -> no_return().
+test_main_loop( CloseFrame ) ->
 
 	trace_utils:trace( "Test main loop running..." ),
 
@@ -114,12 +113,13 @@ test_main_loop( CloseFrame, GUIState ) ->
 				  gui:context_to_string( Context ) ] ),
 
 			gui:destruct_window( AnyFrame ),
-			test_main_loop( CloseFrame, GUIState );
+			test_main_loop( CloseFrame );
 
 
 		Other ->
 			trace_utils:warning_fmt( "Test main loop ignored following "
-									 "message: ~p.", [ Other ] )
+									 "message: ~p.", [ Other ] ),
+			test_main_loop( CloseFrame )
 
 	end.
 

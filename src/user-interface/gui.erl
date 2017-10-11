@@ -656,8 +656,8 @@ stop() ->
 % Attaches a tooltip to specified widget.
 %
 -spec set_tooltip( window(), label() ) -> void().
-set_tooltip( #canvas_state{ panel=Panel }, Label ) ->
-	set_tooltip( Panel, Label );
+set_tooltip( Canvas={ myriad_object_ref, canvas, _MyriadId }, Label ) ->
+	get_main_loop_pid() ! { setTooltip, [ Canvas, Label ] };
 
 set_tooltip( Window, Label ) ->
 
@@ -1072,8 +1072,14 @@ create_sizer_with_labelled_box( Orientation, Parent, Label ) ->
 -spec add_to_sizer( sizer(), sizer_child() ) -> sizer_item();
 				  (  sizer(), [ { sizer_child(), sizer_options() } ] ) ->
 						  void().
-add_to_sizer( Sizer, _Element=#canvas_state{ panel=Panel } ) ->
-	add_to_sizer( Sizer, Panel );
+add_to_sizer( Sizer, _Element={ myriad_object_ref, canvas, CanvasId } ) ->
+	get_main_loop_pid() ! { getPanelForCanvas, CanvasId, self() },
+	receive
+
+		{ notifyPanel, AssociatedPanel } ->
+			add_to_sizer( Sizer, AssociatedPanel )
+
+	end;
 
 % List version:
 add_to_sizer( _Sizer, _Elements=[] ) ->
@@ -1084,6 +1090,8 @@ add_to_sizer( Sizer, _Elements=[ { Elem, Opts } | T ] ) ->
 	add_to_sizer( Sizer, T );
 
 add_to_sizer( Sizer, Element ) ->
+	trace_utils:debug_fmt( "Adding ~w to sizer ~w.",
+						   [ Element, Sizer ] ),
 	wxSizer:add( Sizer, Element ).
 
 
@@ -1095,8 +1103,15 @@ add_to_sizer( Sizer, Element ) ->
 						  sizer_item();
 				  ( sizer(), [ sizer_child() ], sizer_options() ) ->
 						  void().
-add_to_sizer( Sizer, _Element=#canvas_state{ panel=Panel }, Options ) ->
-	add_to_sizer( Sizer, Panel, Options );
+add_to_sizer( Sizer, _Element={ myriad_object_ref, canvas, CanvasId },
+			  Options ) ->
+	get_main_loop_pid() ! { getPanelForCanvas, CanvasId, self() },
+	receive
+
+		{ notifyPanel, AssociatedPanel } ->
+			add_to_sizer( Sizer, AssociatedPanel, Options )
+
+	end;
 
 add_to_sizer( _Sizer, _Elements=[], _Options ) ->
 	ok;

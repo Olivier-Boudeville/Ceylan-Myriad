@@ -177,6 +177,8 @@ run_test_gui() ->
 
 	EventsOfInterest = [ MainFrameEvents, ButtonEvents, CanvasEvents ],
 
+	gui:subscribe_to_events( EventsOfInterest ),
+
 	InitialTestState = #my_test_state{ main_frame=MainFrame,
 									   render_shape_button=RenderShapeButton,
 									   render_mec_button=RenderMECButton,
@@ -187,9 +189,6 @@ run_test_gui() ->
 									   canvas=Canvas,
 									   point_count=InitialPointCount,
 									   render_mode=test_shape_rendering },
-
-
-	gui:receive_events( EventsOfInterest ),
 
 	test_main_loop( InitialTestState ).
 
@@ -333,7 +332,8 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 		Other ->
 			trace_utils:warning_fmt( "Test main loop ignored following "
-									 "message: ~p.", [ Other ] )
+									 "message: ~p.", [ Other ] ),
+			test_main_loop( TestState )
 
 	end.
 

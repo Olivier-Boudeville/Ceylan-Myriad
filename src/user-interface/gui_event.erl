@@ -374,7 +374,7 @@ start_main_event_loop( WxServer, WxEnv ) ->
 % events
 %
 -spec process_event_messages( loop_state() ) -> no_return().
-process_event_messages( LoopState=#loop_state{ type_table=TypeTable	} ) ->
+process_event_messages( LoopState=#loop_state{ type_table=TypeTable } ) ->
 
 	%trace_utils:trace( "Waiting for event messages..." ),
 
@@ -397,10 +397,21 @@ process_event_messages( LoopState=#loop_state{ type_table=TypeTable	} ) ->
 							  LoopState );
 
 		{ setCanvasBackgroundColor, [ Canvas, Color ] } ->
-			trace_utils:debug_fmt( "Canvas: ~p", [ Canvas ] ),
+			%trace_utils:debug_fmt( "Canvas: ~p", [ Canvas ] ),
 			CanvasState = get_instance_state( Canvas, TypeTable ),
-			trace_utils:debug_fmt( "CanvasState: ~p", [ CanvasState ] ),
+			%trace_utils:debug_fmt( "CanvasState: ~p", [ CanvasState ] ),
 			gui_canvas:set_background_color( CanvasState, Color ),
+			LoopState;
+
+		{ setTooltip, [ Canvas, Label ] } ->
+			CanvasState = get_instance_state( Canvas, TypeTable ),
+			gui:set_tooltip( CanvasState#canvas_state.panel, Label ),
+			LoopState;
+
+
+		{ getPanelForCanvas, CanvasId, CallerPid } ->
+			CanvasState = get_instance_state( canvas, CanvasId, TypeTable ),
+			CallerPid ! { notifyPanel, CanvasState#canvas_state.panel },
 			LoopState;
 
 		% MyriadGUI user request (ex: emanating from gui:create_canvas/1):
@@ -410,6 +421,10 @@ process_event_messages( LoopState=#loop_state{ type_table=TypeTable	} ) ->
 
 
 		{ subscribeToEvents, [ SubscribedEvents, SubscriberPid ] } ->
+
+			trace_utils:debug_fmt( "Subscribing process ~w to events ~p.",
+								   [ SubscriberPid, SubscribedEvents ] ),
+
 			update_event_loop_tables( SubscribedEvents, SubscriberPid,
 									  LoopState );
 
@@ -663,29 +678,31 @@ update_event_loop_tables( _SubscribedEvents=[
 %
 -spec register_event_types_for( gui_object(), [ event_type() ],
 				[ event_subscriber_pid() ], loop_state() ) -> loop_state().
-register_event_types_for( Canvas=#canvas_state{ panel=Panel }, EventTypes,
-						  Subscribers, LoopState=#loop_state{
+register_event_types_for( Canvas={ myriad_object_ref, canvas, CanvasId },
+						  EventTypes, Subscribers, LoopState=#loop_state{
 											event_table=EventTable,
-											reassign_table=ReassignTable } ) ->
+											type_table=TypeTable } ) ->
 
 	trace_utils:debug_fmt( "Registering subscribers ~w for event types ~p "
 						   "regarding canvas '~s'.", [ Subscribers, EventTypes,
 							   gui:object_to_string( Canvas ) ] ),
 
+	NewEventTable = record_subscriptions( Canvas, EventTypes, Subscribers,
+										  EventTable ),
+
+
 	% A canvas is registered in wx as a panel (as wx will send events about it)
 	% that will be reassigned as a canvas:
 
-	NewEventTable = record_subscriptions( Canvas, EventTypes, Subscribers,
-										  EventTable ),
+	CanvasState = get_instance_state( canvas, CanvasId, TypeTable ),
+
+	Panel = CanvasState#canvas_state.panel,
 
 	% Will defer all events (paint, size) of the underlying panel to the canvas:
 
 	[ gui_wx_backend:connect( Panel, EvType ) || EvType <- EventTypes ],
 
-	NewReassignTable = table:addNewEntry( Panel, Canvas, ReassignTable ),
-
-	LoopState#loop_state{ event_table=NewEventTable,
-						  reassign_table=NewReassignTable };
+	LoopState#loop_state{ event_table=NewEventTable };
 
 
 register_event_types_for( GUIObject, EventTypes, Subscribers,
@@ -710,6 +727,9 @@ register_event_types_for( GUIObject, EventTypes, Subscribers,
 
 
 
+% Records the specified subscribers for each of the specified event types for
+% the specified GUI object.
+%
 % (helper)
 %
 -spec record_subscriptions( gui_object(), [ event_type() ],
@@ -767,6 +787,15 @@ update_event_table( _EventTypes=[ EventType | T ], Subscribers,
 								gui:myriad_object_state().
 get_instance_state( { myriad_object_ref, MyriadObjectType, InstanceId },
 					TypeTable ) ->
+	get_instance_state( MyriadObjectType, InstanceId, TypeTable ).
+
+
+
+% Returns the internal state of the specified MyriadGUI instance.
+%
+-spec get_instance_state( myriad_object_ref(), myriad_type_table(),
+						  myriad_type_table() ) -> gui:myriad_object_state().
+get_instance_state( MyriadObjectType, InstanceId, TypeTable ) ->
 
 	trace_utils:debug_fmt( "~s", [ type_table_to_string( TypeTable ) ] ),
 
@@ -912,7 +941,9 @@ type_table_to_string( Table ) ->
 			Strings = [ text_utils:format( "for type '~s', ~s", [ Type,
 				  instance_referential_to_string( Referential ) ] )
 						|| { Type, Referential } <- Pairs ],
-			text_utils:strings_to_string( Strings )
+			text_utils:format( "Type table with ~B object types registered:~s",
+							   [ length( Strings ),
+								 text_utils:strings_to_string( Strings ) ] )
 
 	end.
 
