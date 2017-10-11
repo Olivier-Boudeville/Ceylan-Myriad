@@ -131,13 +131,16 @@
 
 % Creates a canvas, whose parent is the specified window.
 %
-% Called from gui:process_myriad_creation/4.
+% Typically called from gui:process_myriad_creation/4.
 %
 -spec create_instance( [ gui:window() ] ) -> { canvas_state(), gui:panel() }.
 create_instance( [ Parent ] ) ->
 
 	% Could have been: Size = auto,
 	Size = { W, H } = gui:get_size( Parent ),
+
+	% Internally, a canvas is mostly an association between a dedicated panel,
+	% bitmap and back-buffer:
 
 	Panel = gui:create_panel( Parent, _Pos=auto, Size,
 						  _Opt=[ { style, [ full_repaint_on_resize ] } ] ),
@@ -277,6 +280,9 @@ set_fill_color( #canvas_state{ back_buffer=BackBuffer }, Color ) ->
 %
 -spec set_background_color( canvas_state(), gui_color:color() ) -> basic_utils:void().
 set_background_color( #canvas_state{ back_buffer=BackBuffer }, Color ) ->
+
+	trace_utils:debug_fmt( "Setting background color of canvas to ~p.",
+						   [ Color ] ),
 
 	% Must not be used, other double-deallocation core dump:
 	%_PreviousBrush = wxMemoryDC:getBrush( BackBuffer ),

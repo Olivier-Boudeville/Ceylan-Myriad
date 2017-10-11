@@ -63,7 +63,7 @@ run_test_gui() ->
 
 		{ onWindowClosed, [ TestFrame, Context ] } ->
 
-			trace_utils:trace_fmt( "Frame ~s closed (~s).",
+			trace_utils:trace_fmt( "Frame '~s' closed (~s).",
 				[ gui:object_to_string( TestFrame ),
 				  gui:context_to_string( Context ) ] ),
 

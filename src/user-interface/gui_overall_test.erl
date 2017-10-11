@@ -154,9 +154,9 @@ run_test_gui() ->
 	PolyBoxSizer = gui:create_sizer_with_labelled_box( vertical, RightPanel,
 													   "Polygon View" ),
 
-	Canvas = gui_canvas:create( RightPanel ),
+	Canvas = gui:create_canvas( RightPanel ),
 
-	gui_canvas:set_background_color( Canvas, pink ),
+	gui:set_background_color( Canvas, pink ),
 
 	CanvasEvents = { [ onRepaintNeeded, onResized ], Canvas },
 

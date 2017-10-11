@@ -283,7 +283,7 @@
 
 % The construction parameters of a MyriadGUI object:
 %
--type construction_parameters() :: any().
+-type construction_parameters() :: [ term() ].
 
 
 % Myriad-specific instance identifier (strictly positive):
@@ -725,18 +725,13 @@ create_window( Position, Size, Style, Id, Parent ) ->
 % Sets the background color of the specified window.
 %
 -spec set_background_color( window(), gui_color:color() ) -> void().
-set_background_color( #canvas_state{ back_buffer=BackBuffer }, Color ) ->
+set_background_color( Canvas={ myriad_object_ref, canvas, _MyriadId },
+					  Color ) ->
 
-	% Must not be used, other double-deallocation core dump:
-	%_PreviousBrush = wxMemoryDC:getBrush( BackBuffer ),
-	%wxBrush:destroy( PreviousBrush ),
+	%trace_utils:debug_fmt( "Setting background color of canvas ~w to ~p.",
+	%					   [ Canvas, Color ] ),
 
-	ActualColor = gui_color:get_color( Color ),
-
-	NewBrush = wxBrush:new( ActualColor ),
-
-	wxMemoryDC:setBackground( BackBuffer, NewBrush );
-
+	get_main_loop_pid() ! { setCanvasBackgroundColor, [ Canvas, Color ] };
 
 set_background_color( Window, Color ) ->
 
@@ -1176,9 +1171,13 @@ create_canvas( Parent ) ->
 % Requests the creation of the specified instance (to be done from the MyriadGUI
 % main loop), and returns the corresponding GUI object reference.
 %
--spec execute_instance_creation( myriad_object_type(), any() ) ->
-									   myriad_object_ref().
+-spec execute_instance_creation( myriad_object_type(),
+						 construction_parameters() ) -> myriad_object_ref().
 execute_instance_creation( ObjectType, ConstructionParams ) ->
+
+	trace_utils:debug_fmt( "Requesting the creation of a '~s' instance, "
+						   "based on following construction parameters:~n~w.",
+						   [ ObjectType, ConstructionParams ] ),
 
 	LoopPid = get_main_loop_pid(),
 
@@ -1188,6 +1187,10 @@ execute_instance_creation( ObjectType, ConstructionParams ) ->
 
 		% Match on the object type:
 		{ instance_created, ObjectType, ObjectRef } ->
+
+			trace_utils:debug_fmt( "'~s' instance created, now referenced "
+								   "as ~w.", [ ObjectType, ObjectRef ] ),
+
 			ObjectRef
 
 	end.

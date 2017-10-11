@@ -48,8 +48,8 @@
 
 run_test_gui() ->
 
-	test_facilities:display( "~nStarting the actual simple MyriadGUI test, from ~w.",
-							 [ self() ] ),
+	test_facilities:display( "~nStarting the actual simple MyriadGUI test, "
+							 "from ~w.", [ self() ] ),
 
 	% We chose here to carry around the GUI state, whereas in general it is not
 	% necessary at all:
@@ -77,7 +77,8 @@ run_test_gui() ->
 	% As a result, closing the third frame will not be known from here:
 	TrackedFrames = [ FirstFrame, SecondFrame, FourthFrame ],
 
-	ReadyGUIState = gui:receive_events( { onWindowClosed, TrackedFrames } ),
+	ReadyGUIState = gui:subscribe_to_events( { onWindowClosed, 
+											   TrackedFrames } ),
 
 	test_main_loop( FourthFrame, ReadyGUIState ).
 
@@ -104,7 +105,7 @@ test_main_loop( CloseFrame, GUIState ) ->
 
 			gui:destruct_window( CloseFrame ),
 
-			gui:stop( GUIState );
+			gui:stop();
 
 
 		{ onWindowClosed, [ AnyFrame, Context ] } ->

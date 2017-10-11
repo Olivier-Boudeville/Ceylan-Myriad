@@ -374,7 +374,7 @@ start_main_event_loop( WxServer, WxEnv ) ->
 % events
 %
 -spec process_event_messages( loop_state() ) -> no_return().
-process_event_messages( LoopState ) ->
+process_event_messages( LoopState=#loop_state{ type_table=TypeTable	} ) ->
 
 	%trace_utils:trace( "Waiting for event messages..." ),
 
@@ -396,15 +396,21 @@ process_event_messages( LoopState ) ->
 			process_wx_event( Id, GUIObject, UserData, WxEventInfo, WxEvent,
 							  LoopState );
 
+		{ setCanvasBackgroundColor, [ Canvas, Color ] } ->
+			trace_utils:debug_fmt( "Canvas: ~p", [ Canvas ] ),
+			CanvasState = get_instance_state( Canvas, TypeTable ),
+			trace_utils:debug_fmt( "CanvasState: ~p", [ CanvasState ] ),
+			gui_canvas:set_background_color( CanvasState, Color ),
+			LoopState;
 
-		% MyriadGUI user request (ex: emaning from gui:create_canvas/1):
+		% MyriadGUI user request (ex: emanating from gui:create_canvas/1):
 		{ createInstance, [ ObjectType, ConstructionParams ], CallerPid } ->
 			process_myriad_creation( ObjectType, ConstructionParams,
 									 CallerPid, LoopState );
 
 
 		{ subscribeToEvents, [ SubscribedEvents, SubscriberPid ] } ->
-			update_event_loop_tables( SubscribedEvents, SubscriberPid, 
+			update_event_loop_tables( SubscribedEvents, SubscriberPid,
 									  LoopState );
 
 
@@ -428,9 +434,6 @@ process_event_messages( LoopState ) ->
 process_wx_event( Id, GUIObject, UserData, WxEventInfo, WxEvent,
 				  LoopState=#loop_state{ event_table=EventTable,
 										 reassign_table=ReassignTable } ) ->
-
-	trace_utils:trace_fmt( "Wx event received about '~s':~n~p.",
-						   [ gui:object_to_string( GUIObject ), WxEventInfo ] ),
 
 	ActualGUIObject = case table:lookupEntry( GUIObject, ReassignTable ) of
 
@@ -507,7 +510,7 @@ process_myriad_creation( ObjectType, ConstructionParams, CallerPid,
 												type_table=TypeTable } ) ->
 
 	trace_utils:debug_fmt( "Myriad instance creation request received from ~w, "
-						   "for type ~s, with construction parameters ~p.",
+						   "for type '~s', with construction parameters ~w.",
 						   [ CallerPid, ObjectType, ConstructionParams ] ),
 
 	case ObjectType of
@@ -522,6 +525,9 @@ process_myriad_creation( ObjectType, ConstructionParams, CallerPid,
 
 			CallerPid ! { instance_created, ObjectType, CanvasRef },
 
+			% An event about its internal panel will be reassigned to its canvas
+			% owner:
+			%
 			NewReassignTable = table:addNewEntry( PanelRef, CanvasRef,
 												  ReassignTable ),
 
@@ -539,6 +545,7 @@ process_myriad_creation( ObjectType, ConstructionParams, CallerPid,
 	end.
 
 
+
 % Registers the creation of a MyriadGUI instance of specified type and initial
 % state, in specified instance table.
 %
@@ -546,8 +553,8 @@ process_myriad_creation( ObjectType, ConstructionParams, CallerPid,
 		 myriad_type_table() ) -> { myriad_object_ref(), myriad_type_table() }.
 register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 
-	trace_utils:trace_fmt( "Registering a MyriadGUI instance of type '~s' and "
-						   "of initial state ~p.",
+	trace_utils:trace_fmt( "Registering a MyriadGUI instance of type '~s', "
+						   "of following state:~n~p.",
 						   [ ObjectType, ObjectInitialState ] ),
 
 	{ NewInstanceId, NewInstanceReferential } = case table:lookupEntry(
@@ -561,8 +568,9 @@ register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 			FirstInstanceTable = table:new(
 								  [ { FirstInstanceId, ObjectInitialState } ] ),
 
-			FirstInstanceReferential = #instance_referential{ instance_count=1,
-											instance_table=FirstInstanceTable },
+			FirstInstanceReferential = #instance_referential{
+										  instance_count=1,
+										  instance_table=FirstInstanceTable },
 
 			{ FirstInstanceId, FirstInstanceReferential };
 
@@ -585,6 +593,8 @@ register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 
 	end,
 
+	% Prepares the reference onto this new instance:
+	%
 	MyriadRef = #myriad_object_ref{ object_type=ObjectType,
 									myriad_instance_id=NewInstanceId },
 
@@ -751,6 +761,34 @@ update_event_table( _EventTypes=[ EventType | T ], Subscribers,
 
 
 
+% Returns the internal state of the specified MyriadGUI instance.
+%
+-spec get_instance_state( myriad_object_ref(), myriad_type_table() ) ->
+								gui:myriad_object_state().
+get_instance_state( { myriad_object_ref, MyriadObjectType, InstanceId },
+					TypeTable ) ->
+
+	trace_utils:debug_fmt( "~s", [ type_table_to_string( TypeTable ) ] ),
+
+	case table:lookupEntry( MyriadObjectType, TypeTable ) of
+
+		{ value, #instance_referential{ instance_table=InstanceTable } } ->
+
+			case table:lookupEntry( InstanceId, InstanceTable ) of
+
+				{ value, InstanceState } ->
+					InstanceState;
+
+				key_not_found ->
+					throw( { non_existance_instance, InstanceId,
+							 MyriadObjectType } )
+
+			end;
+
+		key_not_found ->
+			throw( { invalid_myriad_object_type, MyriadObjectType } )
+
+	end.
 
 
 
@@ -836,7 +874,7 @@ dispatch_table_to_string( GUIObject, DispatchTable ) ->
 
 
 
-% Returns a textual representation of specified reassign table.
+% Returns a textual representation of the specified reassign table.
 %
 -spec reassign_table_to_string( reassign_table() ) -> string().
 reassign_table_to_string( ReassignTable ) ->
@@ -855,5 +893,49 @@ reassign_table_to_string( ReassignTable ) ->
 			text_utils:format( "~B GUI object reassignments defined:~s",
 							   [ length( Strings),
 								 text_utils:strings_to_string( Strings ) ] )
+
+	end.
+
+
+
+% Returns a textual representation of the specified type table.
+%
+-spec type_table_to_string( myriad_type_table() ) -> string().
+type_table_to_string( Table ) ->
+
+	case table:enumerate( Table ) of
+
+		[] ->
+			"empty type table";
+
+		Pairs ->
+			Strings = [ text_utils:format( "for type '~s', ~s", [ Type,
+				  instance_referential_to_string( Referential ) ] )
+						|| { Type, Referential } <- Pairs ],
+			text_utils:strings_to_string( Strings )
+
+	end.
+
+
+
+% Returns a textual representation of the specified type table.
+%
+-spec instance_referential_to_string( instance_referential() ) -> string().
+instance_referential_to_string( #instance_referential{
+		instance_count=Count,
+		instance_table=InstanceTable } ) ->
+
+	case table:enumerate( InstanceTable ) of
+
+		[] ->
+			Count = 0,
+			"no instance recorded";
+
+		Pairs ->
+			Count = length( Pairs),
+			Strings = [ text_utils:format(
+						  "ID #~B for instance whose state is: ~w",
+						  [ Id, State ] ) || { Id, State } <- Pairs ],
+			text_utils:strings_to_string( Strings, _IndentLevel=1 )
 
 	end.
