@@ -69,7 +69,7 @@
 
 
 % To silence unused warnings:
--export([ reassign_table_to_string/1 ]).
+-export([ reassign_table_to_string/1, get_instance_state/2 ]).
 
 
 
@@ -396,22 +396,142 @@ process_event_messages( LoopState=#loop_state{ type_table=TypeTable } ) ->
 			process_wx_event( Id, GUIObject, UserData, WxEventInfo, WxEvent,
 							  LoopState );
 
-		{ setCanvasBackgroundColor, [ Canvas, Color ] } ->
+		{ setCanvasDrawColor, [ CanvasId, Color ] } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			gui_canvas:set_draw_color( CanvasState, Color ),
+			LoopState;
+
+		{ setCanvasFillColor, [ CanvasId, Color ] } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			gui_canvas:set_fill_color( CanvasState, Color ),
+			LoopState;
+
+		{ setCanvasBackgroundColor, [ CanvasId, Color ] } ->
 			%trace_utils:debug_fmt( "Canvas: ~p", [ Canvas ] ),
-			CanvasState = get_instance_state( Canvas, TypeTable ),
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
 			%trace_utils:debug_fmt( "CanvasState: ~p", [ CanvasState ] ),
 			gui_canvas:set_background_color( CanvasState, Color ),
 			LoopState;
 
-		{ setTooltip, [ Canvas, Label ] } ->
-			CanvasState = get_instance_state( Canvas, TypeTable ),
+		{ getCanvasRGB, [ CanvasId, Point ], CallerPid } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			Color = gui_canvas:get_rgb( CanvasState, Point ),
+			CallerPid ! { notifyCanvasRGB, Color },
+			LoopState;
+
+		{ setCanvasRGB, [ CanvasId, Point ] } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			gui_canvas:set_rgb( CanvasState, Point ),
+			LoopState;
+
+		{ drawCanvasLine, [ CanvasId, P1, P2 ] } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			gui_canvas:draw_line( CanvasState, P1, P2 ),
+			LoopState;
+
+		{ drawCanvasLine, [ CanvasId, P1, P2, Color ] } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			gui_canvas:draw_line( CanvasState, P1, P2, Color ),
+			LoopState;
+
+		{ drawCanvasLines, [ CanvasId, Points ] } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			gui_canvas:draw_lines( CanvasState, Points ),
+			LoopState;
+
+		{ drawCanvasLines, [ CanvasId, Points, Color ] } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			gui_canvas:draw_lines( CanvasState, Points, Color ),
+			LoopState;
+
+		{ drawCanvasSegment, [ CanvasId, Points ] } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			gui_canvas:draw_segment( CanvasState, Points ),
+			LoopState;
+
+		{ drawCanvasPolygon, [ CanvasId, Points ] } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			gui_canvas:draw_polygon( CanvasState, Points ),
+			LoopState;
+
+		{ drawCanvasLabel, [ CanvasId, Point, Label ] } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			gui_canvas:draw_label( CanvasState, Point, Label ),
+			LoopState;
+
+		{ drawCanvasCross, [ CanvasId, Location ] } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			gui_canvas:draw_cross( CanvasState, Location ),
+			LoopState;
+
+		{ drawCanvasCross, [ CanvasId, Location, EdgeLength ] } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			gui_canvas:draw_cross( CanvasState, Location, EdgeLength ),
+			LoopState;
+
+		{ drawCanvasCross, [ CanvasId, Location, EdgeLength, Color ] } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			gui_canvas:draw_cross( CanvasState, Location, EdgeLength, Color ),
+			LoopState;
+
+		{ drawCanvasLabelledCross, [ CanvasId, Location, EdgeLength,
+									 LabelText ] } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			gui_canvas:draw_labelled_cross( CanvasState, Location, EdgeLength, 
+											LabelText ),
+			LoopState;
+
+		{ drawCanvasLabelledCross, [ CanvasId, Location, EdgeLength, Color,
+									 LabelText ] } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			gui_canvas:draw_labelled_cross( CanvasState, Location, EdgeLength, Color,
+											LabelText ),
+			LoopState;
+
+		{ drawCanvasCircle, [ CanvasId, Center, Radius ] } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			gui_canvas:draw_circle( CanvasState, Center, Radius ),
+			LoopState;
+
+		{ drawCanvasCircle, [ CanvasId, Center, Radius, Color ] } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			gui_canvas:draw_circle( CanvasState, Center, Radius, Color ),
+			LoopState;
+
+		{ drawCanvasNumberedPoints, [ CanvasId, Points ] } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			gui_canvas:draw_numbered_points( CanvasState, Points ),
+			LoopState;
+
+		{ loadCanvasImage, [ CanvasId, Filename ] } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			gui_canvas:load_image( CanvasState, Filename ),
+			LoopState;
+
+		{ loadCanvasImage, [ CanvasId, Position, Filename ] } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			gui_canvas:load_image( CanvasState, Position, Filename ),
+			LoopState;
+
+		{ clearCanvas, CanvasId } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			gui_canvas:clear( CanvasState ),
+			LoopState;
+
+		{ setTooltip, [ CanvasId, Label ] } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
 			gui:set_tooltip( CanvasState#canvas_state.panel, Label ),
 			LoopState;
 
-
 		{ getPanelForCanvas, CanvasId, CallerPid } ->
-			CanvasState = get_instance_state( canvas, CanvasId, TypeTable ),
-			CallerPid ! { notifyPanel, CanvasState#canvas_state.panel },
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			CallerPid ! { notifyCanvasPanel, CanvasState#canvas_state.panel },
+			LoopState;
+
+		{ getCanvasSize, CanvasId, CallerPid } ->
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+			Size = gui_canvas:get_size( CanvasState ),
+			CallerPid ! { notifyCanvasSize, Size },
 			LoopState;
 
 		% MyriadGUI user request (ex: emanating from gui:create_canvas/1):
@@ -778,6 +898,16 @@ update_event_table( _EventTypes=[ EventType | T ], Subscribers,
 											DispatchTable ),
 
 	update_event_table( T, Subscribers, NewDispatchTable ).
+
+
+
+
+% Returns the internal state of the specified canvas instance.
+%
+-spec get_canvas_instance_state( myriad_object_ref(), myriad_type_table() ) ->
+								gui:myriad_object_state().
+get_canvas_instance_state( CanvasId, TypeTable ) ->
+	get_instance_state( _MyriadObjectType=canvas, CanvasId, TypeTable ).
 
 
 

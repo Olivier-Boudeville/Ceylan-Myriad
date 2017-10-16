@@ -275,12 +275,12 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			test_main_loop( TestState );
 
 
-		{ onButtonClicked, [ QuitButton, Context ] } ->
+		{ onButtonClicked, [ QuitButton, _Context ] } ->
 
-			trace_utils:trace_fmt( "Quit button ~s has been clicked "
-								   "(~s), test success.",
-								   [ gui:object_to_string( QuitButton ),
-									 gui:context_to_string( Context ) ] ),
+			%trace_utils:trace_fmt( "Quit button ~s has been clicked "
+			%					   "(~s), test success.",
+			%					   [ gui:object_to_string( QuitButton ),
+			%						 gui:context_to_string( Context ) ] ),
 
 			gui:destruct_window( MainFrame ),
 
@@ -348,41 +348,41 @@ render_shapes( Canvas ) ->
 
 	trace_utils:trace_fmt( "Rendering shapes, redrawing canvas ~w, "
 						   "of size ~w.",
-						   [ Canvas, gui_canvas:get_size( Canvas ) ] ),
+						   [ Canvas, gui:get_size( Canvas ) ] ),
 
-	gui_canvas:set_background_color( Canvas, yellow ),
+	gui:set_background_color( Canvas, yellow ),
 
-	gui_canvas:clear( Canvas ),
+	gui:clear( Canvas ),
 
 	P1 = { 20,10 },
 	P2 = { 100, 200 },
 
-	gui_canvas:draw_line( Canvas, P1, P2 ),
+	gui:draw_line( Canvas, P1, P2 ),
 
 	P3 = {300,50},
 	Purple = gui_color:get_color( blue ),
 
-	gui_canvas:draw_line( Canvas, P2, P3, Purple ),
+	gui:draw_line( Canvas, P2, P3, Purple ),
 	P4 = {400,250},
 
-	gui_canvas:set_draw_color( Canvas, red ),
-	gui_canvas:draw_lines( Canvas, [ P1, P3, P4 ] ),
+	gui:set_draw_color( Canvas, red ),
+	gui:draw_lines( Canvas, [ P1, P3, P4 ] ),
 
 
-	gui_canvas:set_draw_color( Canvas, black ),
-	gui_canvas:draw_cross( Canvas, {36,26}, _FirstEdgeLength=6 ),
+	gui:set_draw_color( Canvas, black ),
+	gui:draw_cross( Canvas, {36,26}, _FirstEdgeLength=6 ),
 
 	LabelPosition = {72,300},
 
 	LabelText = "A simple label, the cross indicating its specified location",
 
-	gui_canvas:draw_label( Canvas, LabelPosition, LabelText ),
-	gui_canvas:draw_cross( Canvas, LabelPosition ),
+	gui:draw_label( Canvas, LabelPosition, LabelText ),
+	gui:draw_cross( Canvas, LabelPosition ),
 
-	gui_canvas:draw_labelled_cross( Canvas, {36,86}, _SecondEdgeLength=4,
+	gui:draw_labelled_cross( Canvas, {36,86}, _SecondEdgeLength=4,
 									"Cross label" ),
 
-	gui_canvas:set_draw_color( Canvas, firebrick ),
+	gui:set_draw_color( Canvas, firebrick ),
 	gui_canvas:set_fill_color( Canvas, chartreuse ),
 	gui_canvas:draw_circle( Canvas, _CircleCenter={80,80}, _Radius=80 ),
 
@@ -420,7 +420,7 @@ render_mec( Canvas, PointCount ) ->
 
 	gui_canvas:clear( Canvas ),
 
-	gui_canvas:set_draw_color( Canvas, white ),
+	gui:set_draw_color( Canvas, white ),
 
 	RandomPoints = [ { random_utils:get_random_value( 200 ) + 300,
 					   random_utils:get_random_value( 300 ) + 100 }
@@ -437,7 +437,7 @@ render_mec( Canvas, PointCount ) ->
 
 	%trace_utils:debug_fmt( "Sorted points: ~w.", [ SortedPoints ] ),
 
-	gui_canvas:draw_lines( Canvas, [ Pivot | SortedPoints ] ++ [ Pivot ],
+	gui:draw_lines( Canvas, [ Pivot | SortedPoints ] ++ [ Pivot ],
 						   green ),
 
 	HullPoints = linear_2D:compute_convex_hull( RandomPoints ),
@@ -457,17 +457,17 @@ render_mec( Canvas, PointCount ) ->
 	%trace_utils:debug_fmt( "Bounding Minimal Enclosing Circle: "
 	%		   "center = ~p, radius = ~f.~n", [ Center, Radius ] ),
 
-	gui_canvas:draw_labelled_cross( Canvas, Center, 5, purple, "MEC center" ),
+	gui:draw_labelled_cross( Canvas, Center, 5, purple, "MEC center" ),
 
 	gui_canvas:draw_circle( Canvas, Center, round( Radius ) ),
 
-	gui_canvas:draw_lines( Canvas, [ Pivot | HullPoints ], red ),
+	gui:draw_lines( Canvas, [ Pivot | HullPoints ], red ),
 
 	% Draws the crosses last, to have them on top:
-	gui_canvas:draw_labelled_cross( Canvas, Pivot, _OtherEdgeLength=10, black,
+	gui:draw_labelled_cross( Canvas, Pivot, _OtherEdgeLength=10, black,
 									"Pivot" ),
 
-	gui_canvas:set_draw_color( Canvas, white ),
+	gui:set_draw_color( Canvas, white ),
 
 	gui_canvas:draw_numbered_points( Canvas, SortedPoints ),
 
