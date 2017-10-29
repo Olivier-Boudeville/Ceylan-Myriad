@@ -41,9 +41,6 @@
 %-include("gui.hrl").
 
 
-% FIXME:
--export([ render_mec/2 ]).
-
 % State of the application, kept and updated by its main loop.
 %
 -record( my_test_state, {
@@ -170,14 +167,19 @@ run_test_gui() ->
 
 	gui:set_sizer( MainFrame, MainSizer ),
 
+	EventsOfInterest = [ MainFrameEvents, ButtonEvents, CanvasEvents ],
+
+	% To be done before rendering the GUI (with gui:show/1), as it may result in
+	% events to be emitted (e.g. onRepaintNeeded) that would not be received, if
+	% not already subscribed to:
+	%
+	gui:subscribe_to_events( EventsOfInterest ),
+
 	% Renders the GUI:
 	gui:show( MainFrame ),
 
 	InitialPointCount = 3,
 
-	EventsOfInterest = [ MainFrameEvents, ButtonEvents, CanvasEvents ],
-
-	gui:subscribe_to_events( EventsOfInterest ),
 
 	InitialTestState = #my_test_state{ main_frame=MainFrame,
 									   render_shape_button=RenderShapeButton,
@@ -289,7 +291,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 		{ onRepaintNeeded, [ Canvas, Context ] } ->
 
-			trace_utils:trace_fmt( "Canvas ~s needing repaint (~s).",
+			trace_utils:trace_fmt( "Canvas '~s' needing repaint (~s).",
 								   [ gui:object_to_string( Canvas ),
 									 gui:context_to_string( Context ) ] ),
 
@@ -315,11 +317,6 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			case RenderMode of
 
 				test_shape_rendering ->
-
-					% Needed, as the canvas must adapt to its resized panel:
-					%
-					gui_canvas:update( Canvas ),
-
 					render_shapes( Canvas );
 
 				test_dynamic_mec ->
@@ -343,7 +340,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 % Renders the shape examples onto the specified canvas.
 %
--spec render_shapes( gui_canvas:canvas() ) -> gui_canvas:canvas().
+-spec render_shapes( gui:canvas() ) -> gui:canvas().
 render_shapes( Canvas ) ->
 
 	trace_utils:trace_fmt( "Rendering shapes, redrawing canvas ~w, "
@@ -383,11 +380,11 @@ render_shapes( Canvas ) ->
 									"Cross label" ),
 
 	gui:set_draw_color( Canvas, firebrick ),
-	gui_canvas:set_fill_color( Canvas, chartreuse ),
-	gui_canvas:draw_circle( Canvas, _CircleCenter={80,80}, _Radius=80 ),
+	gui:set_fill_color( Canvas, chartreuse ),
+	gui:draw_circle( Canvas, _CircleCenter={80,80}, _Radius=80 ),
 
-	gui_canvas:set_fill_color( Canvas, none ),
-	gui_canvas:draw_circle( Canvas, _OtherCircleCenter={180,180},
+	gui:set_fill_color( Canvas, none ),
+	gui:draw_circle( Canvas, _OtherCircleCenter={180,180},
 							_OtherRadius=180 ),
 
 	% Taken from polygon_test.erl:
@@ -403,22 +400,22 @@ render_shapes( Canvas ) ->
 	polygon:render( MyTriangle, Canvas ),
 	polygon:render( MyUprightSquare, Canvas ),
 
-	gui_canvas:blit( Canvas ).
+	gui:blit( Canvas ).
 
 
 
 % Renders the MEC (Minimal Enclosing Circle) view, for a polygon of specified
 % number of vertices, whose coordinates are randomly determined.
 %
--spec render_mec( gui_canvas:canvas(), basic_utils:count() ) ->
-						gui_canvas:canvas().
+-spec render_mec( gui:canvas(), basic_utils:count() ) ->
+						gui:canvas().
 render_mec( Canvas, PointCount ) ->
 
 	trace_utils:trace_fmt( "Rendering MEC with ~B points.", [ PointCount ] ),
 
-	gui_canvas:set_background_color( Canvas, blue ),
+	gui:set_background_color( Canvas, blue ),
 
-	gui_canvas:clear( Canvas ),
+	gui:clear( Canvas ),
 
 	gui:set_draw_color( Canvas, white ),
 
@@ -459,7 +456,7 @@ render_mec( Canvas, PointCount ) ->
 
 	gui:draw_labelled_cross( Canvas, Center, 5, purple, "MEC center" ),
 
-	gui_canvas:draw_circle( Canvas, Center, round( Radius ) ),
+	gui:draw_circle( Canvas, Center, round( Radius ) ),
 
 	gui:draw_lines( Canvas, [ Pivot | HullPoints ], red ),
 
@@ -469,9 +466,9 @@ render_mec( Canvas, PointCount ) ->
 
 	gui:set_draw_color( Canvas, white ),
 
-	gui_canvas:draw_numbered_points( Canvas, SortedPoints ),
+	gui:draw_numbered_points( Canvas, SortedPoints ),
 
-	gui_canvas:blit( Canvas ).
+	gui:blit( Canvas ).
 
 
 

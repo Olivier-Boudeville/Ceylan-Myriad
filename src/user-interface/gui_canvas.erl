@@ -46,7 +46,8 @@
 
 % Canvas general operations:
 %
--export([ create_instance/1, resize/2, clear/1, blit/1, get_size/1, destroy/1 ]).
+-export([ create_instance/1, adjust_size/1, resize/2, clear/1, blit/1,
+		  get_size/1, destroy/1 ]).
 
 
 
@@ -86,10 +87,6 @@
 % Image loading.
 %
 -export([ load_image/2, load_image/3 ]).
-
-
-% Temporary exports:
--export([ update/1 ]).
 
 
 
@@ -160,20 +157,24 @@ create_instance( [ Parent ] ) ->
 
 
 
-% Updates the specified canvas so that it matches any change in size of its
-% panel.
+% Updates the specified canvas state so that it matches any change in size of
+% its panel, and tells whether that canvas shall be repainted.
 %
--spec update( canvas_state() ) -> canvas_state().
-update( Canvas=#canvas_state{ panel=Panel, size=Size } ) ->
+-spec adjust_size( canvas_state() ) -> { boolean(), canvas_state() }.
+adjust_size( Canvas=#canvas_state{ panel=Panel, size=Size } ) ->
+
+	trace_utils:debug_fmt( "Adjusting size of canvas '~p': currently ~w, "
+						   "while panel: ~w.",
+						   [ Canvas, Size, gui:get_size( Panel ) ] ),
 
 	case gui:get_size( Panel ) of
 
 		Size ->
-			Canvas;
+			{ _NeedsRepaint=false, Canvas };
 
 		% Panel was then resized, so canvas should be as well:
-		_ ->
-			resize( Canvas, Size )
+		NewSize ->
+			{ _NeedsRepaint=true, resize( Canvas, NewSize ) }
 
 	end.
 
@@ -186,18 +187,17 @@ update( Canvas=#canvas_state{ panel=Panel, size=Size } ) ->
 resize( Canvas=#canvas_state{ bitmap=Bitmap, back_buffer=BackBuffer },
 		NewSize={ W, H } ) ->
 
+	trace_utils:debug_fmt( "Resizing canvas to ~w.", [ NewSize ] ),
+
 	wxBitmap:destroy( Bitmap ),
 	wxMemoryDC:destroy( BackBuffer ),
 
 	NewBitmap = wxBitmap:new( W, H ),
 	NewBackBuffer = wxMemoryDC:new( NewBitmap ),
 
-	NewCanvas = Canvas#canvas_state{ bitmap=NewBitmap, back_buffer=NewBackBuffer,
-									 size=NewSize },
-
-	% FIXME to be called from process_wx_event, which sends the right message then.
-
-	NewCanvas.
+	Canvas#canvas_state{ bitmap=NewBitmap,
+						 back_buffer=NewBackBuffer,
+						 size=NewSize }.
 
 
 
@@ -214,10 +214,12 @@ clear( #canvas_state{ back_buffer=BackBuffer } ) ->
 %
 % Returns the (same) canvas object, for convenience.
 %
-% After this call, the back-buffer stays as it was.
+% The back-buffer remains as it was before this call.
 %
 -spec blit( canvas_state() ) -> canvas_state().
-blit( Canvas=#canvas_state{ panel=Panel, bitmap=Bitmap, back_buffer=BackBuffer } ) ->
+blit( Canvas=#canvas_state{ panel=Panel,
+							bitmap=Bitmap,
+							back_buffer=BackBuffer } ) ->
 
 	VisibleBuffer = wxWindowDC:new( Panel ),
 

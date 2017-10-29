@@ -212,7 +212,7 @@
 		  draw_cross/2, draw_cross/3, draw_cross/4, draw_labelled_cross/4,
 		  draw_labelled_cross/5, draw_circle/3, draw_circle/4,
 		  draw_numbered_points/2,
-		  load_image/2, load_image/3, clear/1 ]).
+		  load_image/2, load_image/3, blit/1, clear/1 ]).
 
 
 
@@ -297,12 +297,15 @@
 -type myriad_instance_id() :: basic_utils:non_null_count().
 
 
-% wx-specific instance identifier:
+% wx-specific object identifier:
 %
 % (defined so that the gui_event_context (public) record has no trace of the
 % backend)
 %
--type id() :: wx_id().
+% May not be defined if the actual event comes from MyriadGUI itself (and thus
+% not wx).
+%
+-type id() :: basic_utils:maybe( wx_id() ).
 
 
 % Reference to a GUI object (often designated as "widget" here), somewhat akin
@@ -663,8 +666,8 @@ stop() ->
 % Attaches a tooltip to specified widget.
 %
 -spec set_tooltip( window(), label() ) -> void().
-set_tooltip( Canvas={ myriad_object_ref, canvas, _MyriadId }, Label ) ->
-	get_main_loop_pid() ! { setTooltip, [ Canvas, Label ] };
+set_tooltip( _Canvas={ myriad_object_ref, canvas, CanvasId }, Label ) ->
+	get_main_loop_pid() ! { setTooltip, [ CanvasId, Label ] };
 
 set_tooltip( Window, Label ) ->
 
@@ -981,6 +984,16 @@ load_image( _Canvas={ myriad_object_ref, canvas, CanvasId }, Position,
 
 
 
+% Blits the back-buffer of this canvas onto its visible area.
+%
+% The back-buffer remains as it was before this call.
+%
+-spec blit( canvas() ) -> void().
+blit( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
+	get_main_loop_pid() ! { blitCanvas, CanvasId }.
+
+
+
 % Clears specified canvas.
 %
 -spec clear( canvas() ) -> void().
@@ -1018,17 +1031,21 @@ set_sizer( Window, Sizer ) ->
 %
 -spec show( window() | [ window() ] ) -> boolean().
 show( Windows ) when is_list( Windows )->
-	show_helper( Windows, _Acc=false );
+	Res = show_helper( Windows, _Acc=false ),
+	get_main_loop_pid() ! { onShow, [ Windows ] },
+	Res;
 
 show( Window ) ->
-	wxWindow:show( Window ).
+	Res = wxWindow:show( Window ),
+	get_main_loop_pid() ! { onShow, [ [ Window ] ] },
+	Res.
 
 
 show_helper( _Windows=[], Acc ) ->
 	Acc;
 
 show_helper( _Windows=[ W | T ], Acc ) ->
-	NewAcc = show( W ) orelse Acc,
+	NewAcc = wxWindow:show( W ) orelse Acc,
 	show_helper( T, NewAcc ).
 
 
