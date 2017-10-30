@@ -55,7 +55,12 @@
 		   quit_button         = undefined :: gui:button(),
 
 		   canvas = undefined :: gui:canvas(),
+
+		   % Allows to keep track of how many renderings were done:
+		   render_count = 0 :: basic_utils:count(),
+
 		   point_count = 0 :: basic_utils:count(),
+
 		   render_mode = test_shape_rendering :: 'test_shape_rendering'
 											   | 'test_dynamic_mec'
 
@@ -207,11 +212,13 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 										  clear_canvas_button=ClearCanvasButton,
 										  quit_button=QuitButton,
 										  canvas=Canvas,
+										  render_count=RenderCount,
 										  point_count=PointCount,
 										  render_mode=RenderMode } ) ->
 
 	trace_utils:trace_fmt( "Test main loop running, render mode is ~p, "
-						   "point count is ~B.", [ RenderMode, PointCount ] ),
+						   "render count is ~B, point count is ~B.",
+						   [ RenderMode, RenderCount, PointCount ] ),
 
 	receive
 
@@ -305,7 +312,8 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 			end,
 
-			test_main_loop( TestState );
+			test_main_loop( TestState#my_test_state{
+							  render_count=RenderCount+1 } );
 
 
 		{ onResized, [ Canvas, NewSize, Context ] } ->
