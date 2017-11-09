@@ -338,7 +338,7 @@ compute_max_overall_distance( _Points=[ H | Others ],
 %
 % As there must have been at least one point in the list, Pmax exists here
 % (never undefined):
--spec compute_max_distance_between( point(), [ point() ] )-> 
+-spec compute_max_distance_between( point(), [ point() ] )->
 						{ point(), point(), linear:square_distance() }.
 compute_max_distance_between( _P, [] ) ->
 	throw( no_computable_max_distance );

@@ -47,7 +47,8 @@
 		  integer_to_string/1, atom_to_string/1, pid_to_string/1,
 		  record_to_string/1,
 		  string_list_to_string/1, string_list_to_string/2,
-		  strings_to_string/1, strings_to_sorted_string/1, strings_to_string/2,
+		  strings_to_string/1, strings_to_sorted_string/1,
+		  strings_to_string/2, strings_to_sorted_string/2,
 		  strings_to_enumerated_string/1, strings_to_enumerated_string/2,
 		  binary_list_to_string/1, binaries_to_string/1,
 		  binaries_to_sorted_string/1,
@@ -183,6 +184,15 @@
 % The level of indentation (starts at zero, and the higher, the most nested).
 %
 -type indentation_level() :: basic_utils:count().
+
+
+% A bullet, to denote the elements of a list.
+%
+-type bullet() :: ustring().
+
+
+% Either an indentation level, or directly a bullet:
+-type indentation_level_or_bullet() :: indentation_level() | bullet().
 
 
 % Lexicographic (Levenshtein) distance, i.e. minimum number of single-character
@@ -389,7 +399,7 @@ get_default_bullet() ->
 
 % Returns the bullet to be used for specified indentation level.
 %
--spec get_bullet_for_level( indentation_level() ) ->  ustring().
+-spec get_bullet_for_level( indentation_level() ) -> bullet().
 get_bullet_for_level( 0 ) ->
 	" + ";
 
@@ -435,7 +445,7 @@ string_list_to_string( ErrorTerm ) ->
 % user-specified bullets; this can be a solution to nest bullet lists, by
 % specifying a bullet with an offset, such as "  * ".
 %
--spec string_list_to_string( [ ustring() ], indentation_level() | ustring() ) ->
+-spec string_list_to_string( [ ustring() ], indentation_level_or_bullet() ) ->
 								   ustring().
 string_list_to_string( ListOfStrings, IndentationLevel )
   when is_integer( IndentationLevel ) ->
@@ -538,9 +548,26 @@ strings_to_sorted_string( ErrorTerm ) ->
 % Returns a string that pretty-prints specified list of strings, with
 % user-specified bullets.
 %
--spec strings_to_string( [ ustring() ], ustring() ) -> ustring().
-strings_to_string( ListOfStrings, Bullet ) ->
-	string_list_to_string( ListOfStrings, Bullet ).
+-spec strings_to_string( [ ustring() ], indentation_level_or_bullet() ) ->
+							   ustring().
+strings_to_string( ListOfStrings, IndentationOrBullet ) ->
+	string_list_to_string( ListOfStrings, IndentationOrBullet ).
+
+
+
+% Returns a string that pretty-prints specified list of strings once reordered,
+% with user-specified indentation level or bullet.
+%
+-spec strings_to_sorted_string( [ ustring() ],
+								indentation_level_or_bullet() ) -> ustring().
+strings_to_sorted_string( ListOfStrings, IndentationOrBullet )
+  when is_list( ListOfStrings ) ->
+	string_list_to_string( lists:sort( ListOfStrings ), IndentationOrBullet );
+
+strings_to_sorted_string( ErrorTerm, _IndentationOrBullet ) ->
+	throw( { not_a_list, ErrorTerm } ).
+
+
 
 
 

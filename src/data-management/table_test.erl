@@ -95,7 +95,7 @@ run() ->
 
 	key_not_found  = table:lookupEntry( ?MyFirstKey, MyH5 ),
 
-	[ MySecondValue, MyFirstValue ] = table:getAllValues( 
+	[ MySecondValue, MyFirstValue ] = table:getAllValues(
 										[ ?MySecondKey, ?MyFirstKey ], MyH4 ),
 
 	% removeEntry can also be used if the specified key is not here, will return

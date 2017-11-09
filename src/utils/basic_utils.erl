@@ -1263,9 +1263,10 @@ get_execution_target() ->
 %
 % Note:
 % - the process may run on the local node or not
-% - generally not to be used when relying on a good design.
+% - generally not to be used when relying on a good design
 %
--spec is_alive( pid() | string() | naming_utils:registration_name() ) -> boolean().
+-spec is_alive( pid() | string() | naming_utils:registration_name() )
+			  -> boolean().
 is_alive( TargetPid ) when is_pid( TargetPid ) ->
 	is_alive( TargetPid, node( TargetPid ) );
 
@@ -1299,8 +1300,8 @@ is_alive( TargetPid, Node ) when is_pid( TargetPid ) ->
 			erlang:is_process_alive( TargetPid );
 
 		_OtherNode ->
-			%io:format( "Testing liveliness of process ~p on node ~p.~n",
-			%		  [ TargetPid, Node ] ),
+			%trace_utils:debug_fmt( "Testing liveliness of process ~p "
+			%  "on node ~p.", [ TargetPid, Node ] ),
 			rpc:call( Node, _Mod=erlang, _Fun=is_process_alive,
 					  _Args=[ TargetPid ] )
 
