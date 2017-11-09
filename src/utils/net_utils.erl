@@ -22,7 +22,9 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Authors:	Olivier Boudeville (olivier.boudeville@esperide.com)
+%			Samuel Thiriot (samuel.thiriot@edf.fr)
+%
 % Creation date: July 1, 2007.
 
 
@@ -67,6 +69,10 @@
 -export([ ipv4_to_string/1, ipv4_to_string/2,
 		  ipv6_to_string/1, ipv6_to_string/2,
 		  host_to_string/1, url_info_to_string/1 ]).
+
+
+% Destringifications:
+-export([ string_to_url_info/1 ]).
 
 
 % Exported for convenience:
@@ -132,7 +138,6 @@
 
 % Full information about an URL:
 -type url_info() :: #url_info{}.
-
 
 % An URL:
 -type url() :: string().
@@ -1537,3 +1542,31 @@ url_info_to_string( #url_info{ protocol=Protocol, host_identifier=Host,
 
 	text_utils:format( "~s://~s:~B/~s", [ Protocol, host_to_string( Host ),
 										  Port, Path ] ).
+
+
+
+% Decodes specified string in an url_info, by extracting protocol, host, port
+% and path information.
+%
+% Note that other information (query, user) will be ignored and lost.
+%
+-spec string_to_url_info( string() ) -> url_info().
+string_to_url_info( String ) ->
+	case http_uri:parse( String ) of
+
+		{ ok, { Scheme, _UserInfo, Host, Port, Path, _Query } } ->
+			#url_info{ protocol=Scheme,
+					   host_identifier=Host,
+					   port=Port,
+					   path=Path };
+
+		{ ok, { Scheme, _UserInfo, Host, Port, Path, _Query, _Fragment } } ->
+			#url_info{ protocol=Scheme,
+					   host_identifier=Host,
+					   port=Port,
+					   path=Path };
+
+		{ error, Reason } ->
+			throw( { url_info_parsing_failed, String, Reason } )
+
+	end.
