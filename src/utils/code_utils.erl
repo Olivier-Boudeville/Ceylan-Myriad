@@ -39,9 +39,10 @@
 		  deploy_modules/2, deploy_modules/3,
 		  declare_beam_directory/1, declare_beam_directory/2,
 		  declare_beam_directories/1, declare_beam_directories/2,
-		  get_code_path/0,
+		  get_code_path/0, get_code_path_as_string/0,
 		  list_beams_in_path/0, get_beam_filename/1, is_beam_in_path/1,
-		  interpret_stacktrace/0, interpret_stacktrace/1, interpret_stacktrace/2,
+		  interpret_stacktrace/0, interpret_stacktrace/1,
+		  interpret_stacktrace/2,
 		  interpret_stack_item/2 ]).
 
 
@@ -354,6 +355,18 @@ get_code_path() ->
 		[ file_utils:normalise_path( P ) || P <- code:get_path() ],
 
 	lists:sort( list_utils:uniquify( NormalisedPaths ) ).
+
+
+
+% Returns a textual representation of the current code path.
+%
+-spec get_code_path_as_string() -> string().
+get_code_path_as_string() ->
+
+	CodePath = get_code_path(),
+
+	text_utils:format( "current code path is:~s",
+					   [ text_utils:strings_to_string( CodePath ) ] ).
 
 
 
