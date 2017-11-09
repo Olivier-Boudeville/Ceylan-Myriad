@@ -397,7 +397,18 @@ hasEntry( Key, MapHashtable ) ->
 %getEntry( Key,  #{ Key := Value } ) ->
 %	Value.
 getEntry( Key, MapHashtable ) ->
-	maps:get( Key, MapHashtable ).
+	try
+
+		maps:get( Key, MapHashtable )
+
+	catch
+
+		error:{ badkey, _K } ->
+			trace_utils:error_fmt( "No key '~p' found in following table: ~s",
+								   [ Key, toString( MapHashtable ) ] ),
+			throw( { key_not_found, Key } )
+
+	end.
 
 
 

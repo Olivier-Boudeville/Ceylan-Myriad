@@ -233,6 +233,9 @@
 -type status_code() :: 0..255. % i.e. byte()
 
 
+% Useful as a temporary type placeholder, during development:
+-type fixme() :: any().
+
 
 -export_type([ void/0, count/0, non_null_count/0, bit_mask/0, uuid/0,
 			   reason/0, exit_reason/0, error_reason/0, error_term/0,
@@ -243,9 +246,8 @@
 			   positive_index/0,
 			   module_name/0, function_name/0, argument/0, command_spec/0,
 			   user_name/0, atom_user_name/0,
-			   comparison_result/0, exception_class/0, status_code/0 ]).
-
-
+			   comparison_result/0, exception_class/0, status_code/0,
+			   fixme/0 ]).
 
 
 

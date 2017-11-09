@@ -493,7 +493,7 @@
 
 
 
-% Describes the name of a type (without the number of the types it depends on,
+% Describes the name of a type (without the names of the types it depends on,
 % for polymorphic ones).
 %
 -type type_name() :: atom().
@@ -729,8 +729,8 @@
 
 % General functions:
 %
--export([ list_exported_functions/1, is_function_exported/3,
-		  check_potential_call/3 ]).
+-export([ list_exported_functions/1, get_arities_for/2,
+		  is_function_exported/3, check_potential_call/3 ]).
 
 
 % Type-related functions:
@@ -2200,6 +2200,20 @@ list_exported_functions( ModuleName ) ->
 
 
 
+% Returns a list of the arities for which the specified function of the
+% specified module is exported.
+%
+-spec get_arities_for( basic_utils:module_name(), function_name() ) ->
+							 [ arity() ].
+get_arities_for( ModuleName, FunctionName ) ->
+
+	ExportedFuns = list_exported_functions( ModuleName ),
+
+	% Match on FunctionName:
+	[ Arity || { Name, Arity } <- ExportedFuns, Name =:= FunctionName ].
+
+
+
 % Tells whether the specified function (name with arity) is exported by the
 % specified module.
 %
@@ -2460,7 +2474,23 @@ get_type_of( Term ) when is_pid( Term ) ->
 	'pid';
 
 get_type_of( Term ) when is_list( Term ) ->
-	'list';
+	case text_utils:is_string( Term ) of
+
+		true ->
+			'string';
+
+		false ->
+			case text_utils:is_list_of_strings( Term ) of
+
+				true ->
+					'[string]';
+
+				false ->
+					'list'
+
+			end
+
+	end;
 
 get_type_of( Term ) when is_port( Term ) ->
 	'port';
@@ -2590,7 +2620,6 @@ is_homogeneous( Tuple, Type ) when is_tuple( Tuple ) ->
 	ElemList = tuple_to_list( Tuple ),
 
 	is_homogeneous_helper( ElemList, Type ).
-
 
 
 % Helper:
