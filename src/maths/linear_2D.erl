@@ -107,8 +107,12 @@
 
 
 % { Width, Height }:
--type dimensions() :: { linear:integer_coordinate(),
-						linear:integer_coordinate() }.
+-type dimensions() :: { linear:coordinate(),
+						linear:coordinate() }.
+
+
+-type integer_dimensions() :: { linear:integer_coordinate(),
+								linear:integer_coordinate() }.
 
 
 % A 2D vector, with floating-point coordinates.
@@ -132,9 +136,8 @@
 -type shape() :: 'circle' | 'rectangle' | 'square' | 'triangle' | 'polygon'.
 
 
--export_type([ point/0, integer_point/0, dimensions/0,
-			   vector/0, integer_vector/0, line/0,
-			   shape/0 ]).
+-export_type([ point/0, integer_point/0, dimensions/0, integer_dimensions/0,
+			   vector/0, integer_vector/0, line/0, shape/0 ]).
 
 
 
