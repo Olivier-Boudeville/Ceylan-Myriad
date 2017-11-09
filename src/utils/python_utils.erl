@@ -22,12 +22,14 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Adapted from code contributed by EDF R&D 
-% authors: 	Robin Huart (robin-externe.huart@edf.fr)
-%			Samuel Thiriot (samuel.thiriot@edf.fr)
+% Adapted from code kindly contributed by EDF R&D .
+%
+% Authors: Robin Huart (robin-externe.huart@edf.fr)
+%		   Samuel Thiriot (samuel.thiriot@edf.fr)
 
 
-% Gathering of some convenient facilities for the binding to the Python language
+% Gathering of some convenient facilities for the binding to the Python
+% language.
 %
 % See python_utils_test.erl for the corresponding tests.
 %
@@ -164,10 +166,12 @@ wait_for_request_result( InterpreterPid, MessageTitle )
 
 
 
-% Deduces the name of a Python file (module) from the name of the Python class
-% that it implements, according the naming conventions adopted in PEP 8.
+% Deduces the name of the Python module from the name of the Python class
+% (possibly prefixed with package names) that it implements, according notably
+% to the naming conventions adopted in PEP 8.
 %
-% Ex: 'TransportModel__MyFoobarExample' resulting in 'transport_model.my_foobar_example'.
+% Ex: 'Partner__TransportModel__MyFoobarExample' resulting in
+% 'partner.transport_model.my_foobar_example'.
 %
 -spec pep8_class_to_pep8_module( pep8_class_name() | string() ) ->
 									   pep8_class_module().
@@ -176,25 +180,26 @@ pep8_class_to_pep8_module( ClassName ) when is_atom( ClassName ) ->
 
 pep8_class_to_pep8_module( ClassNameString ) ->
 
-	% split the chain on "__"
-	% so "Partner__TransportModel__MyFoobarExample" becomes ["Partner", "TransportModel" "MyFoobarExample"]
-	TokensCamel = string:split( ClassNameString, "__", all ),
+	% Splits the classname on "__", so that for example
+	% "Partner__TransportModel__MyFoobarExample" becomes
+	% [ "Partner", "TransportModel", "MyFoobarExample" ]:
+	%
+	TokensCamel = string:split( ClassNameString, _Pattern="__",
+								_Where=all ),
 
-	% all of them will be changed from CamelCase to snake_case
-	% so ["Partner", "TransportModel" "MyFoobarExample"] becomes ["partner", "transport_model" "my_foobar_example"]
-	TokensSnake = 	 
-					[ 
-						string:join( [ 
-							string:to_lower(CamelWord)
-							|| CamelWord <- text_utils:split_camel_case( CamelCaseToken )
-						], "_" )
-						|| CamelCaseToken <- TokensCamel 
-									
-					],
+	% All of them will be switched from CamelCase to snake_case, so:
+	% [ "Partner", "TransportModel", "MyFoobarExample" ] becomes:
+	% [ "partner", "transport_model", "my_foobar_example" ].
+	%
+	TokensSnake = [ string:join( [ string:to_lower( CamelWord )
+				|| CamelWord <- text_utils:split_camel_case( CamelCaseToken )
+								 ], _Separator="_" )
+					|| CamelCaseToken <- TokensCamel ],
 
-	% the concatenation of those should lead to a valid package name 
-	% so ["partner", "transport_model" "my_foobar_example"] becomes partner.transport_model.my_foobar_example
+	% The concatenation of those should lead to a valid package name, so that
+	% [ "partner", "transport_model", "my_foobar_example" ] becomes
+	% ultimately the 'partner.transport_model.my_foobar_example' atom:
+	%
 	ModuleRef = string:join( TokensSnake, "." ),
 
 	text_utils:string_to_atom( ModuleRef ).
-

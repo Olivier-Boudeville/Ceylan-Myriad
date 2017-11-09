@@ -64,7 +64,9 @@ run() ->
 
 	pid = meta_utils:get_type_of( self() ),
 
-	list = meta_utils:get_type_of( [ 1, 2 ] ),
+	list = meta_utils:get_type_of( [ hello, self() ] ),
+
+	string = meta_utils:get_type_of( "Hello world!" ),
 
 	%port = meta_utils:get_type_of( APort ),
 

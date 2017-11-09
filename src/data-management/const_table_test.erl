@@ -59,19 +59,16 @@ run() ->
 
 	NestedTerm = { "semper fidelis", true, [ 1, 1.0, ?MODULE ] },
 
-	TargetTable = table:addEntries( [
-
-									  { 'foo', 42.0 },
+	TargetTable = table:addEntries( [ { 'foo', 42.0 },
 									  { 'baz', "hello" },
-									  { 'composite', NestedTerm }
-
-									],
+									  { 'composite', NestedTerm } ],
 									table:new() ),
 
 	ModuleName = 'foobar',
 
-	io:format( "Generating pseudo-module '~s' from following table:~n~s",
-			   [ ModuleName, table:toString( TargetTable ) ] ),
+	test_facilities:display(
+	  "Generating pseudo-module '~s' from following table:~n~s",
+	  [ ModuleName, table:toString( TargetTable ) ] ),
 
 	const_table:generate( ModuleName, TargetTable ),
 
@@ -79,7 +76,7 @@ run() ->
 	"hello" = foobar:baz(),
 	NestedTerm = foobar:composite(),
 
-	io:format( "Nested term: ~p~n", [ foobar:composite() ] ),
+	test_facilities:display( "Nested term: ~p~n", [ foobar:composite() ] ),
 
 	%will_crash = foobar:non_existing(),
 

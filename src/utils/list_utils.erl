@@ -40,23 +40,24 @@
 -include("data_types.hrl").
 
 
+% Checks regarding lists:
+%
+-export([ ensure_list/1, ensure_list_of_atoms/1, ensure_list_of_tuples/1,
+		  ensure_list_of_pids/1 ]).
+
+
 
 % Basic list operations:
 %
--export([ ensure_list/1, ensure_list_of_atoms/1, ensure_list_of_tuples/1,
-		  ensure_list_of_pids/1,
-		  get_element_at/2, insert_element_at/3,
+-export([ get_element_at/2, insert_element_at/3,
 		  remove_element_at/2, remove_last_element/1,
 		  get_last_element/1, extract_last_element/1,
 		  get_index_of/2, split_at/2, uniquify/1,
 		  has_duplicates/1, get_duplicates/1, union/2, intersection/2,
+		  cartesian_product/1,
 		  subtract_all_duplicates/2, delete_existing/2, delete_if_existing/2,
 		  delete_all_in/2, append_at_end/2, is_list_of_integers/1,
 		  unordered_compare/2 ]).
-
-
-% Deprecated, for backward compatibility only:
--export([ intersect/2 ] ).
 
 
 % For list of tuples (ex: typically used by the HDF5 binding), extended flatten
@@ -73,10 +74,6 @@
 		  draw_elements_from/2 ]).
 
 
-
-% Section for basic list operations.
-
-
 % Either a list of terms, or a term by itself.
 %
 % Note: different from basic_utils:maybe( list() ).
@@ -85,6 +82,10 @@
 
 
 -export_type([ maybe_list/1 ]).
+
+
+
+% Section for the checking of lists.
 
 
 % Ensures that the specified argument is a list: encloses it in a list of its
@@ -119,7 +120,7 @@ ensure_list_of_atoms( List ) when is_list( List ) ->
 	end;
 
 ensure_list_of_atoms( Other ) ->
-	throw( { not_atom, Other } ).
+	throw( { neither_list_nor_atom, Other } ).
 
 
 
@@ -142,7 +143,7 @@ ensure_list_of_tuples( List ) when is_list( List ) ->
 	end;
 
 ensure_list_of_tuples( Other ) ->
-	throw( { not_tuple, Other } ).
+	throw( { neither_list_nor_tuple, Other } ).
 
 
 
@@ -166,9 +167,11 @@ ensure_list_of_pids( List ) when is_list( List ) ->
 	end;
 
 ensure_list_of_pids( Other ) ->
-	throw( { not_pid, Other } ).
+	throw( { neither_list_nor_pid, Other } ).
 
 
+
+% Section for basic list operations.
 
 
 % Index start at position #1, not #0.
@@ -401,16 +404,14 @@ has_duplicates( List ) ->
 
 
 
-% Returns the duplicates in the specified list: returns a list of {
-% DuplicatedTerm, DuplicationCount } pairs, where each duplicated term is
-% specified, alongside the total number of occurrences of that terms in the
-% specified list.
+% Returns the duplicates in the specified list: returns an (unordered) list of {
+% DuplicatedTerm, DuplicationCount } pairs, where each duplicated term (i.e. a
+% term present more than once) is specified, alongside the total number of
+% occurrences of that terms in the specified list.
 %
-% Duplicates are returned in the reverse order of their appearance in the
-% specified list; for example, for input list [a,a,b,b,b,c,c,c], returned
-% duplicates are [{b,3},{c,3},{a,2}].
+% Ex: list_utils:get_duplicates([a,a,b,b,b,c,d,d]) = [{b,3},{d,2},{a,2}]
 %
--spec get_duplicates( list() ) -> list( { term(), basic_utils:count() } ).
+-spec get_duplicates( [ term() ] ) -> [ { term(), basic_utils:count() } ].
 get_duplicates( List ) ->
 	get_duplicates( List, _Acc=[] ).
 
@@ -419,7 +420,8 @@ get_duplicates( _List=[], Acc ) ->
 
 get_duplicates( _List=[ Term | T ], Acc ) ->
 
-	% io:format( "Inquiring about term '~p' into ~p.~n", [ Term, T ] ),
+	% trace_utils:debug_fmt( "Inquiring about term '~p' into ~p.",
+	% [ Term, T ] ),
 
 	case count_and_filter_term( Term, _InitialList=T, _FilteredList=[],
 								_InitialCount=0 ) of
@@ -454,7 +456,6 @@ count_and_filter_term( Term, _List=[ OtherTerm | H ], FilteredList,
 
 
 
-
 % Returns the union of the two specified lists, i.e. the list (with no
 % duplicates) of all elements that are in either list.
 %
@@ -474,13 +475,24 @@ union( L1, L2 ) ->
 -spec intersection( list(), list() ) -> list().
 intersection( L1, L2 ) ->
 	%set_utils:to_list( set_utils:intersection( set_utils:from_list( L1 ),
-	%										   set_utils:from_list( L2 ) ) ).
+	%											set_utils:from_list( L2 ) ) ).
 	lists:filter( fun( E ) -> lists:member( E, L2 ) end, L1 ).
 
 
-% (naming is deprecated, backward compatibility only)
-intersect( L1, L2 ) ->
-	intersection( L1, L2 ).
+
+% Returns the cartesian product of the specified lists (collected in a top-level
+% list).
+%
+% Ex: cartesian_product( [ [a,b,c], [d,e], [f] ] ) =
+% [ [a,d,f], [a,e,f], [b,d,f], [b,e,f], [c,d,f], [c,e,f] ]
+%
+-spec cartesian_product( [ [ T ] ] ) -> [ [ T ] ].
+cartesian_product( [ SingleList ] ) ->
+	[ [ E ] || E <- SingleList ];
+
+cartesian_product( [ List | OtherLists ] ) ->
+	[ [ E | SubList ] || E <- List,
+						 SubList <- cartesian_product( OtherLists ) ].
 
 
 
@@ -507,18 +519,22 @@ subtract_all_duplicates( L1, L2 ) ->
 %
 -spec delete_existing( term(), list() ) -> list().
 delete_existing( Elem, List ) ->
-	delete_existing( Elem, List, _Acc=[] ).
+
+	% We keep a copy of the original list to be able to generate better error
+	% messages:
+	%
+	delete_existing( Elem, List, _OriginalList=List, _Acc=[] ).
 
 
-delete_existing( Elem, _List=[], _Acc ) ->
-	throw( { element_to_delete_not_found, Elem } );
+delete_existing( Elem, _List=[], OriginalList, _Acc ) ->
+	throw( { element_to_delete_not_found, Elem, OriginalList } );
 
-delete_existing( Elem, _List=[ Elem | T ], Acc ) ->
+delete_existing( Elem, _List=[ Elem | T ], _OriginalList, Acc ) ->
 	% The first element found stops the iteration:
 	lists:reverse( Acc ) ++ T;
 
-delete_existing( Elem, _List=[ H | T ], Acc ) ->
-	delete_existing( Elem, T, [ H | Acc ] ).
+delete_existing( Elem, _List=[ H | T ], OriginalList, Acc ) ->
+	delete_existing( Elem, T, OriginalList, [ H | Acc ] ).
 
 
 

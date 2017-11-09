@@ -195,7 +195,7 @@ run() ->
 	List2 = [ 14, d, b ],
 
 	ExpectedList = lists:sort( [ 14, b ] ),
-	ResultList = list_utils:intersect( List1, List2 ),
+	ResultList = list_utils:intersection( List1, List2 ),
 
 	test_facilities:display( "Displaying the intersection of ~p and ~p: ~p.",
 							 [ List1, List2, ResultList ] ),

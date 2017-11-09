@@ -233,6 +233,9 @@
 -type status_code() :: 0..255. % i.e. byte()
 
 
+% Useful as a temporary type placeholder, during development:
+-type fixme() :: any().
+
 
 -export_type([ void/0, count/0, non_null_count/0, bit_mask/0, uuid/0,
 			   reason/0, exit_reason/0, error_reason/0, error_term/0,
@@ -243,9 +246,8 @@
 			   positive_index/0,
 			   module_name/0, function_name/0, argument/0, command_spec/0,
 			   user_name/0, atom_user_name/0,
-			   comparison_result/0, exception_class/0, status_code/0 ]).
-
-
+			   comparison_result/0, exception_class/0, status_code/0,
+			   fixme/0 ]).
 
 
 
@@ -1261,9 +1263,10 @@ get_execution_target() ->
 %
 % Note:
 % - the process may run on the local node or not
-% - generally not to be used when relying on a good design.
+% - generally not to be used when relying on a good design
 %
--spec is_alive( pid() | string() | naming_utils:registration_name() ) -> boolean().
+-spec is_alive( pid() | string() | naming_utils:registration_name() )
+			  -> boolean().
 is_alive( TargetPid ) when is_pid( TargetPid ) ->
 	is_alive( TargetPid, node( TargetPid ) );
 
@@ -1297,8 +1300,8 @@ is_alive( TargetPid, Node ) when is_pid( TargetPid ) ->
 			erlang:is_process_alive( TargetPid );
 
 		_OtherNode ->
-			%io:format( "Testing liveliness of process ~p on node ~p.~n",
-			%		  [ TargetPid, Node ] ),
+			%trace_utils:debug_fmt( "Testing liveliness of process ~p "
+			%  "on node ~p.", [ TargetPid, Node ] ),
 			rpc:call( Node, _Mod=erlang, _Fun=is_process_alive,
 					  _Args=[ TargetPid ] )
 

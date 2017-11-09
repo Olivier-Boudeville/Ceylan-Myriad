@@ -266,10 +266,10 @@
 ;; Depends on the screen height:
 
 ;; For a netbook:
-(add-to-list 'default-frame-alist (cons 'height 35))
+;;(add-to-list 'default-frame-alist (cons 'height 35))
 
 ;; For a normal screen:
-;;(add-to-list 'default-frame-alist (cons 'height 49))
+(add-to-list 'default-frame-alist (cons 'height 49))
 
 ;;(add-to-list 'default-frame-alist (cons 'height 58))
 

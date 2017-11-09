@@ -6,7 +6,7 @@
 
 # PROJECT_NAME should be defined on a per-project basis.
 ifndef PROJECT_NAME
-	PROJECT_NAME := Ceylan-common
+	PROJECT_NAME := Ceylan-Myriad
 endif
 
 
@@ -189,7 +189,6 @@ ifeq ($(USE_HDF5),true)
   # (ebin/erlhdf5.beam and priv/erlhdf5.so found at runtime)
 
 endif
-
 
 
 # Deactivated by default, as requires specific prerequisites (the jsx JSON
@@ -525,7 +524,7 @@ endif
 # able to find the BEAMs of parse-transforms)
 #
 ERLANG_COMPILER_BASE_OPT += -b beam                                   \
-						  +\"{debug_info_key,\\\"Ceylan-common\\\"}\" \
+						  +\"{debug_info_key,\\\"Ceylan-Myriad\\\"}\" \
 						  -pz $(COMMON_TOP)/src/utils
 
 
