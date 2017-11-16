@@ -39,10 +39,11 @@
 		  deploy_modules/2, deploy_modules/3,
 		  declare_beam_directory/1, declare_beam_directory/2,
 		  declare_beam_directories/1, declare_beam_directories/2,
-		  get_code_path/0,
+		  get_code_path/0, get_code_path_as_string/0,
 		  list_beams_in_path/0, get_beam_filename/1, is_beam_in_path/1,
-		  interpret_stacktrace/0, interpret_stacktrace/1, interpret_stacktrace/2
-		]).
+		  interpret_stacktrace/0, interpret_stacktrace/1,
+		  interpret_stacktrace/2,
+		  interpret_stack_item/2 ]).
 
 
 %-type stack_location() :: [ { file, file_utils:path() },
@@ -170,7 +171,7 @@ deploy_modules( Modules, Nodes, Timeout ) ->
 	%
 	% So here we should poll until the code_server can be found registered on
 	% each of the remote nodes:
-	basic_utils:wait_for_remote_local_registrations_of( code_server, Nodes ),
+	naming_utils:wait_for_remote_local_registrations_of( code_server, Nodes ),
 
 	% Then for each module in turn, contact each and every node in parallel:
 	[ deploy_module( M, get_code_for( M ), Nodes, Timeout ) || M <- Modules ].
@@ -357,6 +358,18 @@ get_code_path() ->
 
 
 
+% Returns a textual representation of the current code path.
+%
+-spec get_code_path_as_string() -> string().
+get_code_path_as_string() ->
+
+	CodePath = get_code_path(),
+
+	text_utils:format( "current code path is:~s",
+					   [ text_utils:strings_to_string( CodePath ) ] ).
+
+
+
 % Lists all modules that exist in the current code path, based on the BEAM files
 % found.
 %
@@ -451,7 +464,7 @@ interpret_stacktrace( StackTrace, FullPathsWanted ) ->
 % Helper:
 interpret_stack_item( { Module, Function, Arity, [ { file, FilePath },
 												   { line, Line } ] },
-					  _FullPathsWanted=true ) ->
+					  _FullPathsWanted=true ) when is_integer( Arity ) ->
 	text_utils:format( "~s:~s/~B   [defined in ~s (line ~B)]",
 					   [ Module, Function, Arity,
 						 file_utils:normalise_path( FilePath ),
@@ -466,7 +479,7 @@ interpret_stack_item( { Module, Function, Arity, [ { file, FilePath },
 						 Line ] );
 
 interpret_stack_item( { Module, Function, Args, [ { file, FilePath },
-												   { line, Line } ] },
+												  { line, Line } ] },
 					  _FullPathsWanted=false ) when is_list( Args ) ->
 	text_utils:format( "~s:~s/~B   [defined in ~s (line ~B)]",
 					   [ Module, Function, length( Args ),

@@ -493,7 +493,7 @@
 
 
 
-% Describes the name of a type (without the number of the types it depends on,
+% Describes the name of a type (without the names of the types it depends on,
 % for polymorphic ones).
 %
 -type type_name() :: atom().
@@ -706,8 +706,7 @@
 			   type_name/0, type_arity/0, primitive_type_description/0,
 			   type_description/0, nesting_depth/0, type/0, explicit_type/0,
 			   term_transformer/0, module_info/0,
-			   issue_description/0, issue_info/0, issue_report/0
-			 ]).
+			   issue_description/0, issue_info/0, issue_report/0 ]).
 
 
 
@@ -730,14 +729,16 @@
 
 % General functions:
 %
--export([ list_exported_functions/1, is_function_exported/3 ]).
+-export([ list_exported_functions/1, get_arities_for/2,
+		  is_function_exported/3, check_potential_call/3 ]).
 
 
 % Type-related functions:
 %
 -export([ description_to_type/1, type_to_description/1, type_to_string/1,
 		  get_type_of/1, get_elementary_types/0, is_type/1, is_of_type/2,
-		  is_of_described_type/2, is_homogeneous/1, are_types_identical/2 ]).
+		  is_of_described_type/2, is_homogeneous/1, is_homogeneous/2,
+		  are_types_identical/2 ]).
 
 
 
@@ -2199,6 +2200,20 @@ list_exported_functions( ModuleName ) ->
 
 
 
+% Returns a list of the arities for which the specified function of the
+% specified module is exported.
+%
+-spec get_arities_for( basic_utils:module_name(), function_name() ) ->
+							 [ arity() ].
+get_arities_for( ModuleName, FunctionName ) ->
+
+	ExportedFuns = list_exported_functions( ModuleName ),
+
+	% Match on FunctionName:
+	[ Arity || { Name, Arity } <- ExportedFuns, Name =:= FunctionName ].
+
+
+
 % Tells whether the specified function (name with arity) is exported by the
 % specified module.
 %
@@ -2207,6 +2222,62 @@ list_exported_functions( ModuleName ) ->
 is_function_exported( ModuleName, FunctionName, Arity ) ->
 	lists:member( { FunctionName, Arity },
 				  list_exported_functions( ModuleName ) ).
+
+
+
+% Checks whether a potential upcoming call to the specified MFA
+% (Module,Function,Arguments) has a chance of succeeding.
+%
+-spec check_potential_call( basic_utils:module_name(), function_name(),
+		[ basic_utils:argument() ] ) ->
+				'ok' | 'module_not_found' | 'function_not_exported'.
+check_potential_call( ModuleName, FunctionName, Arguments )
+  when is_atom( ModuleName ) andalso is_atom( FunctionName )
+	   andalso is_list( Arguments ) ->
+
+	case code_utils:is_beam_in_path( ModuleName ) of
+
+		not_found ->
+			module_not_found;
+
+		_ ->
+			Arity = length( Arguments ),
+			case is_function_exported( ModuleName, FunctionName, Arity ) of
+
+				true ->
+					ok;
+
+				false ->
+					function_not_exported
+
+			end
+
+	end;
+
+check_potential_call( ModuleName, FunctionName, Arguments ) ->
+
+	case is_atom( ModuleName ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { non_atom_module_name, ModuleName } )
+
+	end,
+
+	case is_atom( FunctionName ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { non_atom_function_name, FunctionName } )
+
+	end,
+
+	% Only remaining possibility:
+	throw( { non_list_arguments, Arguments } ).
 
 
 
@@ -2403,7 +2474,23 @@ get_type_of( Term ) when is_pid( Term ) ->
 	'pid';
 
 get_type_of( Term ) when is_list( Term ) ->
-	'list';
+	case text_utils:is_string( Term ) of
+
+		true ->
+			'string';
+
+		false ->
+			case text_utils:is_list_of_strings( Term ) of
+
+				true ->
+					'[string]';
+
+				false ->
+					'list'
+
+			end
+
+	end;
 
 get_type_of( Term ) when is_port( Term ) ->
 	'port';
@@ -2505,7 +2592,7 @@ is_homogeneous( _List=[ H | T ] ) ->
 
 	Type = get_type_of( H ),
 
-	is_homogeneous_helper( T, Type );
+	is_homogeneous_full_helper( T, Type );
 
 is_homogeneous( Tuple ) when is_tuple( Tuple ) ->
 
@@ -2515,21 +2602,47 @@ is_homogeneous( Tuple ) when is_tuple( Tuple ) ->
 
 
 
+% Tells whether specified non-empty container (list or tuple) is homogeneous in
+% terms of type, i.e. whether all its elements are of the same, specified,
+% primitive type.
+%
+-spec is_homogeneous( list() | tuple(), primitive_type_description() ) ->
+							boolean().
+is_homogeneous( _List=[], _Type ) ->
+	% Considered homogeneous:
+	true;
+
+is_homogeneous( List, Type ) when is_list( List ) ->
+	is_homogeneous_helper( List, Type );
+
+is_homogeneous( Tuple, Type ) when is_tuple( Tuple ) ->
+
+	ElemList = tuple_to_list( Tuple ),
+
+	is_homogeneous_helper( ElemList, Type ).
+
+
 % Helper:
-is_homogeneous_helper( _Elems=[], Type ) ->
+is_homogeneous_full_helper( _Elems=[], Type ) ->
 	{ true, Type };
 
-is_homogeneous_helper( _Elems=[ H | T ], Type ) ->
+is_homogeneous_full_helper( _Elems=[ H | T ], Type ) ->
 
 	case get_type_of( H ) of
 
 		Type ->
-			is_homogeneous_helper( T, Type );
+			is_homogeneous_full_helper( T, Type );
 
 		OtherType ->
 			{ false, { Type, OtherType } }
 
 	end.
+
+
+% Other helper:
+is_homogeneous_helper( Elems, Type ) ->
+	{ Bool, _TypeInfo } = is_homogeneous_full_helper( Elems, Type ),
+	Bool.
 
 
 

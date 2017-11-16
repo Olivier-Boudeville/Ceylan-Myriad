@@ -46,8 +46,8 @@
 % - 'map_hashtable', which is probably the most efficient implementation
 % (speed/size compromise)
 %
-% - 'list_hashtable', a list-based implementation, efficient for smaller table
-% (and only them)
+% - 'list_table', a list-based implementation, efficient for smaller tables (and
+% only them)
 %
 % They are to provide the same API (signatures and contracts).
 
@@ -79,7 +79,7 @@
 % Same as hashtable:
 -export([ new/0, new/1, new_with_buckets/1, addEntry/3, addEntries/2,
 		  removeEntry/2, lookupEntry/2, hasEntry/2, getEntry/2,
-		  extractEntry/2, getEntryOrValue/3, getValues/2, getAllValues/2,
+		  extractEntry/2, getValueWithDefaults/3, getValues/2, getAllValues/2,
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToEntry/3, deleteFromEntry/3, popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
@@ -342,17 +342,13 @@ extractEntry( Key, _TrackedHashtable={ Hashtable, NEnt, NBuck } ) ->
 
 
 
-% Looks for a given entry in a table and returns the default value specified in
-% arguments if it is not found.
+% Looks for specified entry in specified table and, if found, returns the
+% associated value; otherwise returns the specified default value.
 %
-% Note: one should be aware that the value found in the table is allowed to be
-% identical to the one returned by default, and should use this function only
-% when it is the expected behaviour.
-%
--spec getEntryOrValue( key(), tracked_hashtable(), value() ) -> value().
-getEntryOrValue( Key, _TrackedHashtable={ Hashtable, _NEnt, _NBuck },
-				 DefaultValue ) ->
-	hashtable:getEntryOrValue( Key, Hashtable, DefaultValue ).
+-spec getValueWithDefaults( key(), value(), tracked_hashtable() ) -> value().
+getValueWithDefaults( Key, DefaultValue,
+					  _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
+	hashtable:getValueWithDefaults( Key, DefaultValue, Hashtable ).
 
 
 

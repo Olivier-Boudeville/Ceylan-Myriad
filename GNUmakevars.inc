@@ -6,7 +6,7 @@
 
 # PROJECT_NAME should be defined on a per-project basis.
 ifndef PROJECT_NAME
-	PROJECT_NAME := Ceylan-common
+	PROJECT_NAME := Ceylan-Myriad
 endif
 
 
@@ -189,7 +189,6 @@ ifeq ($(USE_HDF5),true)
   # (ebin/erlhdf5.beam and priv/erlhdf5.so found at runtime)
 
 endif
-
 
 
 # Deactivated by default, as requires specific prerequisites (the jsx JSON
@@ -446,18 +445,31 @@ ifndef VM_TEST_NAME
 endif
 
 
+ifndef COOKIE
 
-#DISTRIBUTED_NODE_OPT := -sname $(VM_NAME) -setcookie $(PROJECT_NAME)
-DISTRIBUTED_NODE_OPT := -name $(VM_NAME)@$(FQDN) -setcookie $(PROJECT_NAME)
+  COOKIE := "ceylan_myriad_cookie"
+
+endif
+
+
+COOKIE_OPT = -c $(COOKIE)
+
+#DISTRIBUTED_NODE_OPT := -sname $(VM_NAME) -setcookie $(COOKIE)
+DISTRIBUTED_NODE_OPT := -name $(VM_NAME)@$(FQDN) -setcookie $(COOKIE)
 
 
 STARTUP_FUNCTION := run
 
-BEAM_DIRS += .                              \
-			 $(COMMON_BEAM)/data-management \
-			 $(COMMON_BEAM)/maths           \
-			 $(COMMON_BEAM)/user-interface  \
-			 $(COMMON_BEAM)/utils
+BEAM_DIRS += $(COMMON_BEAM_DIRS)
+
+
+# So that they can be fetched from outside
+# (see the 'list-beam-dirs' target)
+#
+COMMON_BEAM_DIRS = $(COMMON_BEAM)/data-management \
+				   $(COMMON_BEAM)/maths           \
+				   $(COMMON_BEAM)/user-interface  \
+				   $(COMMON_BEAM)/utils
 
 
 
@@ -512,7 +524,7 @@ endif
 # able to find the BEAMs of parse-transforms)
 #
 ERLANG_COMPILER_BASE_OPT += -b beam                                   \
-						  +\"{debug_info_key,\\\"Ceylan-common\\\"}\" \
+						  +\"{debug_info_key,\\\"Ceylan-Myriad\\\"}\" \
 						  -pz $(COMMON_TOP)/src/utils
 
 
@@ -684,9 +696,9 @@ SCALE_OPT := $(BUSY_LIMIT_OPT)
 # now that user-defined code paths are absolute, thus significantly longer
 #
 # OVERRIDDEN_OPT left for the user.
-ERL_PARAMETERIZED_LAUNCHER = $(ERL_LAUNCHER) $(FQDN_OPT) $(FIREWALL_OPT) \
-							 $(MAX_PROCESS_OPT) $(ASYNC_THREAD_OPT)      \
-							 $(BEAM_PATH_OPT) $(SCALE_OPT)               \
+ERL_PARAMETERIZED_LAUNCHER = $(ERL_LAUNCHER) $(FQDN_OPT) $(FIREWALL_OPT)  \
+							 $(MAX_PROCESS_OPT) $(ASYNC_THREAD_OPT)       \
+							 $(BEAM_PATH_OPT) $(SCALE_OPT) $(COOKIE_OPT)  \
 							 $(OVERRIDDEN_OPT)
 
 

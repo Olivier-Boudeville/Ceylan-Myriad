@@ -23,64 +23,43 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Creation date: Tuesday, January 29, 2013
 
 
-% Simple unit tests for the GUI toolbox.
+
+% Header to export MyriadGUI-related defines, both for user code and for
+% internal one.
 %
-% See the gui.erl tested module.
+% See gui.erl for the corresponding implementation.
+
+
+% Context sent to corresponding subscribers together with an event.
 %
--module(gui_simple_test).
-
-
-% For run/0 export and al:
--include("test_facilities.hrl").
-
-
--include_lib("wx/include/wx.hrl").
-
-
-run_test_gui() ->
-
-	gui:start(),
-
-	%gui:set_debug_level( [ calls, life_cycle ] ),
-
-	FirstFrame = gui:create_frame(),
-
-	SecondFrame = gui:create_frame( "This is the second frame" ),
-
-	%ThirdFrame = gui:create_frame( "This is the third frame",
-	%				   _Position={ 50, 10 }, _Size={ 150, 200 },
-	%				   _Style=[ default ] ),
-
-	ThirdFrame = gui:create_frame( "This is the third frame" ),
-
-	Frames = [ FirstFrame, SecondFrame, ThirdFrame ],
-
-	[ wxFrame:show( Frame) || Frame <- Frames ],
-
-	timer:sleep( 2000 ),
-
-	gui:stop().
-
-
-
-% Runs the test.
+% This context can be ignored in most cases.
 %
--spec run() -> no_return().
-run() ->
+-record( gui_event_context, {
 
-	test_facilities:start( ?MODULE ),
 
-	case executable_utils:is_batch() of
+		   % The identifier of the event source (generally not useful, as the
+		   % gui_object shall be enough):
+		   %
+		   id :: gui:id(),
 
-		true ->
-			test_facilities:display( "(not running the GUI test, "
-									 "being in batch mode)" );
 
-		false ->
-			run_test_gui()
+		   % Usually of no use, as such user data is a means of preserving a
+		   % state, whereas the user event loop is better to do so:
+		   %
+		   user_data = [] :: gui:user_data(),
 
-	end,
 
-	test_facilities:stop().
+		   % The full, lower-level event (if any) resulting in our event:
+		   %
+		   % (useful for example when deciding to propagate it upward in the
+		   % widget hierarchy)
+		   %
+		   backend_event = undefined :: basic_utils:maybe( gui:backend_event() )
+
+
+}).
+
+-type gui_event_context() :: #gui_event_context{}.

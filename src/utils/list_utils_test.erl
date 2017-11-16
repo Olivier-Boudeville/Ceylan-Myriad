@@ -75,6 +75,8 @@ run() ->
 
 	[ 12, 4, 2, 56 ] = list_utils:remove_last_element( CorrectShortenList ),
 
+	{ 0, [ 12, 4, 13, 2, 56 ] } = list_utils:extract_last_element( L ),
+
 	1 = list_utils:get_index_of( 12, CorrectShortenList ),
 	2 = list_utils:get_index_of(  4, CorrectShortenList ),
 	5 = list_utils:get_index_of(  0, CorrectShortenList  ),
@@ -193,7 +195,7 @@ run() ->
 	List2 = [ 14, d, b ],
 
 	ExpectedList = lists:sort( [ 14, b ] ),
-	ResultList = list_utils:intersect( List1, List2 ),
+	ResultList = list_utils:intersection( List1, List2 ),
 
 	test_facilities:display( "Displaying the intersection of ~p and ~p: ~p.",
 							 [ List1, List2, ResultList ] ),
@@ -207,15 +209,6 @@ run() ->
 	FlattenedList = list_utils:flatten_tuples( TupleList ),
 
 	TupleList = list_utils:reconstruct_tuples( FlattenedList, _TupleSize=3 ),
-
-	Ring = list_utils:list_to_ring( [ a, b, c, d, e, f, g ] ),
-
-	{ a, FirstRing } = list_utils:head( Ring ),
-
-	{ b, SecondRing } = list_utils:head( FirstRing ),
-
-	{ [ c, d, e, f, g, a, b, c ], _ThirdRing } = list_utils:get_next(
-													_RingCount=8, SecondRing ),
 
 	DrawCount = 3,
 

@@ -48,6 +48,7 @@
 -export([
 
 		  run_executable/1, run_executable/2, run_executable/3,
+		  get_standard_environment/0,
 		  monitor_port/2,
 		  evaluate_shell_expression/1, evaluate_shell_expression/2,
 
@@ -368,7 +369,7 @@ get_user_home_directory_string() ->
 
 % Default time-out duration (one second):
 await_output_completion() ->
-	await_output_completion( _TimeOut=10 ).
+	await_output_completion( _TimeOut=100 ).
 
 -else. % debug_mode_is_enabled
 
@@ -379,7 +380,7 @@ await_output_completion() ->
 % (warning: this may impact adversely the timing if intensive logging is used)
 %
 await_output_completion() ->
-	await_output_completion( _TimeOut=200 ).
+	await_output_completion( _TimeOut=2000 ).
 
 -endif. % debug_mode_is_enabled
 
@@ -430,7 +431,7 @@ await_output_completion( TimeOut ) ->
 
 
 % Runs (synchronously) specified executable with arguments, specified as a
-% single, standalone string, with no specific environment, from the current
+% single, standalone string, with a standard environment, from the current
 % working directory, and returns its return code (exit status) and its outputs
 % (both the standard and the error ones).
 %
@@ -450,10 +451,8 @@ await_output_completion( TimeOut ) ->
 
 %	run_executable( ActualCommand );
 
-
-
 run_executable( Command ) ->
-	run_executable( Command, _Environment=[] ).
+	run_executable( Command, get_standard_environment() ).
 
 
 
@@ -562,6 +561,18 @@ read_port( Port, Data ) ->
 
 
 
+% Returns a default, standard environment for "porcelain"-like executions,
+% i.e. executions that are, as much as possible, reproducible in various runtime
+% contexts (typically: with locale-independent outputs).
+%
+% To be used with run_executable/{2,3}.
+%
+-spec get_standard_environment() -> environment().
+get_standard_environment() ->
+	[ { "LANG", "C" } ].
+
+
+
 % Monitors a port: reads command data and signals from a port, and report it.
 %
 monitor_port( Port, Data ) ->
@@ -633,14 +644,14 @@ monitor_port( Port, Data ) ->
 
 
 % Evaluates specified shell (ex: sh, bash, etc. - not Erlang) expression, in
-% default environment.
+% a standard environment.
 %
 % No return code is available with this approach, only the output of the
 % expression.
 %
 -spec evaluate_shell_expression( shell_expression() ) -> expression_outcome().
 evaluate_shell_expression( Expression ) ->
-	evaluate_shell_expression( Expression, _Environment=[] ).
+	evaluate_shell_expression( Expression, get_standard_environment() ).
 
 
 
@@ -669,7 +680,7 @@ evaluate_shell_expression( Expression, Environment ) ->
 
 
 % Executes asynchronously, in the background, specified executable with
-% parameters.
+% parameters, in a standard environment.
 %
 % As a consequence it returns no return code (exit status) nor output.
 %
@@ -682,7 +693,8 @@ evaluate_shell_expression( Expression, Environment ) ->
 %
 -spec run_background_executable( command() ) -> basic_utils:void().
 run_background_executable( Command ) ->
-	run_background_executable( Command, _Environment=[] ).
+	run_background_executable( Command, get_standard_environment() ).
+
 
 
 % Executes asynchronously, in the background, specified shell command, in
@@ -739,7 +751,8 @@ run_background_executable( Command, Environment, WorkingDir ) ->
 -spec evaluate_background_shell_expression( shell_expression() ) ->
 												  basic_utils:void().
 evaluate_background_shell_expression( Expression ) ->
-	evaluate_background_shell_expression( Expression, _Environment=[] ).
+	evaluate_background_shell_expression( Expression,
+										  get_standard_environment() ).
 
 
 
@@ -1198,8 +1211,12 @@ display_memory_summary() ->
 -spec get_total_physical_memory() -> byte_size().
 get_total_physical_memory() ->
 
+	% Note: '\\awk' is '\awk' once escaped; a backslash allows to unalias the
+	% corresponding command, to avoid not-so-compliant alternatives to be used.
+
 	% First check the expected unit is returned, by pattern-matching:
-	UnitCommand = "cat /proc/meminfo | grep 'MemTotal:' | awk '{print $3}'",
+	UnitCommand = "/bin/cat /proc/meminfo | /bin/grep 'MemTotal:' "
+				  "| \\awk '{print $3}'",
 
 	case run_executable( UnitCommand ) of
 
@@ -1208,7 +1225,8 @@ get_total_physical_memory() ->
 			% Ok, using kB indeed.
 
 			ValueCommand =
-				"cat /proc/meminfo | grep 'MemTotal:' | awk '{print $2}'",
+				"/bin/cat /proc/meminfo | /bin/grep 'MemTotal:' "
+				"| \\awk '{print $2}'",
 
 			% The returned value of following command is like "12345\n", in
 			% bytes:
@@ -1261,11 +1279,15 @@ get_total_physical_memory_string() ->
 -spec get_total_physical_memory_on( net_utils:atom_node_name() ) -> byte_size().
 get_total_physical_memory_on( Node ) ->
 
+	% No standard environment enforced here.
+
 	% First check the expected unit is returned, by pattern-matching:
-	UnitCommand = "cat /proc/meminfo | grep 'MemTotal:' | awk '{print $3}'",
+	UnitCommand = "/bin/cat /proc/meminfo | /bin/grep 'MemTotal:' "
+				  "| \\awk '{print $3}'",
 	"kB\n" = rpc:call( Node, os, cmd, [ UnitCommand ] ),
 
-	ValueCommand = "cat /proc/meminfo | grep 'MemTotal:' | awk '{print $2}'",
+	ValueCommand = "/bin/cat /proc/meminfo | /bin/grep 'MemTotal:' "
+				   "| \\awk '{print $2}'",
 	ValueCommandOutput = rpc:call( Node, os, cmd, [ ValueCommand ] ),
 
 	% The returned value of following command is like "12345\n", in bytes:
@@ -1340,7 +1362,7 @@ get_total_memory_used() ->
 	% So finally we prefered /proc/meminfo, used first to get MemTotal:
 	%
 	TotalString = case run_executable( "/bin/cat /proc/meminfo | "
-						"/bin/grep '^MemTotal:' | awk '{print $2,$3}'" ) of
+				"/bin/grep '^MemTotal:' | \\awk '{print $2,$3}'" ) of
 
 		{ _TotalExitCode=0, TotalOutput } ->
 			%io:format( "TotalOutput: '~p'~n", [ TotalOutput ] ),
@@ -1359,8 +1381,8 @@ get_total_memory_used() ->
 	% MemAvailable does not seem always available:
 	%
 	FreeString = case run_executable(
-						"cat /proc/meminfo|grep '^MemAvailable:'|awk "
-						"'{print $2,$3}'" )  of
+			"/bin/cat /proc/meminfo | /bin/grep '^MemAvailable:' "
+			"| \\awk '{print $2,$3}'" )  of
 
 		{ _AvailExitCode=0, MemAvailOutput } ->
 			%io:format( "## using MemAvailable~n" ),
@@ -1374,8 +1396,8 @@ get_total_memory_used() ->
 			%io:format( "## using MemFree~n" ),
 
 			case run_executable(
-				   "cat /proc/meminfo|grep '^MemFree:'|awk "
-				   "'{print $2,$3}'" ) of
+				   "/bin/cat /proc/meminfo | /bin/grep '^MemFree:' | "
+				   "\\awk '{print $2,$3}'" ) of
 
 				{ _FreeExitCode=0, MemFreeOutput } ->
 					MemFreeOutput;
@@ -1400,7 +1422,7 @@ get_total_memory_used() ->
 			%io:format( "## using free~n" ),
 
 			case run_executable(
-				"free -b | grep '/cache' | awk '{print $3}'" ) of
+				"/bin/free -b | /bin/grep '/cache' | \\awk '{print $3}'" ) of
 
 				{ _ExitCode=0, FreeOutput } ->
 					% Already in bytes:
@@ -1469,7 +1491,8 @@ get_swap_status() ->
 	% Same reason as for get_total_memory_used/0:
 	%SwapInfos = os:cmd( "free -b | grep 'Swap:' | awk '{print $2, $3}'" ),
 	SwapTotalString = case run_executable(
-		  "cat /proc/meminfo|grep '^SwapTotal:'|awk '{print $2,$3}'" ) of
+		  "/bin/cat /proc/meminfo | /bin/grep '^SwapTotal:' | "
+		  "\\awk '{print $2,$3}'" ) of
 
 		{ _TotalExitCode=0, TotalOutput } ->
 			TotalOutput;
@@ -1485,7 +1508,8 @@ get_swap_status() ->
 
 
 	SwapFreeString = case run_executable(
-		  "cat /proc/meminfo|grep '^SwapFree:'|awk '{print $2,$3}'" ) of
+		"cat /proc/meminfo | /bin/grep '^SwapFree:' | "
+		"\\awk '{print $2,$3}'" ) of
 
 		{ _FreeExitCode=0, FreeOutput } ->
 			FreeOutput;
@@ -1547,7 +1571,7 @@ get_swap_status_string() ->
 get_core_count() ->
 
 	CoreString = case run_executable(
-						"cat /proc/cpuinfo | grep -c processor" ) of
+						"/bin/cat /proc/cpuinfo | /bin/grep -c processor" ) of
 
 		{ _ExitCode=0, Output } ->
 			Output;
@@ -1637,7 +1661,7 @@ get_process_count_string() ->
 %   SecondMeasure )
 %
 -spec compute_cpu_usage_between( cpu_usage_info(), cpu_usage_info() ) ->
-							   math_utils:percent().
+									   math_utils:percent().
 compute_cpu_usage_between( StartCounters, EndCounters ) ->
 
 	Percentages = compute_detailed_cpu_usage( StartCounters, EndCounters ),
@@ -1654,7 +1678,7 @@ compute_cpu_usage_between( StartCounters, EndCounters ) ->
 % Returns 'undefined' iff the specified usage is itself undefined.
 %
 -spec compute_cpu_usage_for( basic_utils:maybe( cpu_usage_percentages() ) ) ->
-							   basic_utils:maybe( math_utils:percent() ).
+								   basic_utils:maybe( math_utils:percent() ).
 compute_cpu_usage_for( undefined ) ->
 	undefined;
 
@@ -1736,7 +1760,8 @@ compute_detailed_cpu_usage( _StartCounters={ U1, N1, S1, I1, O1 },
 get_cpu_usage_counters() ->
 
 	% grep more versatile than: '| head -n 1':
-	StatString = case run_executable( "cat /proc/stat | grep 'cpu '" ) of
+	StatString = case run_executable(
+						"/bin/cat /proc/stat | /bin/grep 'cpu '" ) of
 
 		{ _ExitCode=0, Output } ->
 			Output;
@@ -1826,7 +1851,7 @@ get_known_pseudo_filesystems() ->
 get_mount_points() ->
 
 	FirstCmd = "/bin/df -h --local --output=target"
-		++ get_exclude_pseudo_fs_opt() ++ "|grep -v 'Mounted on'",
+		++ get_exclude_pseudo_fs_opt() ++ " | /bin/grep -v 'Mounted on'",
 
 	case run_executable( FirstCmd ) of
 
@@ -1839,7 +1864,7 @@ get_mount_points() ->
 			% Older versions of df may not know the --output option:
 			SecondCmd = "/bin/df -h --local "
 				++ get_exclude_pseudo_fs_opt()
-				++ "|grep -v 'Mounted on' | awk '{print $6}'",
+				++ "| /bin/grep -v 'Mounted on' | \\awk '{print $6}'",
 
 			case run_executable( SecondCmd ) of
 
@@ -1880,7 +1905,7 @@ get_filesystem_info( FilesystemPath ) ->
 	Cmd = "/bin/df --block-size=1K --local "
 		++ get_exclude_pseudo_fs_opt()
 		++ " --output=source,target,fstype,used,avail,iused,iavail '"
-		++ FilesystemPath ++ "' | grep -v 'Mounted on'",
+		++ FilesystemPath ++ "' | /bin/grep -v 'Mounted on'",
 
 	case run_executable( Cmd ) of
 
@@ -1931,7 +1956,7 @@ get_filesystem_info_alternate( FilesystemPath ) ->
 
 	Cmd = "/bin/df --block-size=1K --local "
 		++ get_exclude_pseudo_fs_opt() ++ " "
-		++ FilesystemPath ++ "| grep -v 'Mounted on'",
+		++ FilesystemPath ++ "| /bin/grep -v 'Mounted on'",
 
 	case run_executable( Cmd ) of
 
@@ -2040,9 +2065,10 @@ get_operating_system_description() ->
 
 		true ->
 
-			case run_executable( "cat " ++ OSfile ++
-					" | grep PRETTY_NAME | sed 's|^PRETTY_NAME=\"||1' "
-					" | sed 's|\"$||1' 2>/dev/null" ) of
+			case run_executable( "/bin/cat " ++ OSfile ++
+					" | /bin/grep PRETTY_NAME | "
+					"/bin/sed 's|^PRETTY_NAME=\"||1' | "
+					"/bin/sed 's|\"$||1' 2>/dev/null" ) of
 
 				{ _ExitCode=0, Output } ->
 					Output;
@@ -2155,12 +2181,79 @@ get_dependency_base_directory( PackageName="ErlPort" ) ->
 
 	% ErlPort must be special-cased, as its actual base installation directory
 	% *must* be named "erlport" (otherwise the interpreter initialization may
-	% fail on new nodes with the {not_found,"erlport/priv"} error; so:
+	% fail on new nodes with the {not_found,"erlport/priv"} error).
+	%
+	% So:
+	%
+	% - if the 'ERLPORT_BASE_DIR' environment variable is defined, and set to an
+	% existing directory, then this directory will be retained
+	%
+	% - otherwise a default will be used, corresponding to the
+	% '~/Software/ErlPort/erlport' directory
 
-	PathComponents = [ get_user_home_directory(), "Software", PackageName,
-					   "erlport" ],
+	case get_environment_variable( "ERLPORT_BASE_DIR" ) of
 
-	file_utils:normalise_path( file_utils:join( PathComponents ) );
+
+		false ->
+
+			% Then trying default path:
+
+			PathComponents = [ get_user_home_directory(), "Software", PackageName,
+							   "erlport" ],
+
+			DefaultDir = file_utils:normalise_path(
+						   file_utils:join( PathComponents ) ),
+
+			case file_utils:is_existing_directory( DefaultDir ) of
+
+				true ->
+					trace_utils:debug_fmt( "Using default Erlport directory '~s'.",
+										   [ DefaultDir ] ),
+					DefaultDir;
+
+				false ->
+					trace_utils:error_fmt( "No Erlport installation found: the "
+						"ERLPORT_BASE_DIR environment variable is not defined, "
+						"and the default directory ('~s') does not exist.",
+						[ DefaultDir ] ),
+
+					throw( { erlport_default_directory_not_found, DefaultDir } )
+
+			end;
+
+
+		EnvDir ->
+			case filename:basename( EnvDir ) of
+
+				"erlport" ->
+					case file_utils:is_existing_directory( EnvDir ) of
+
+						true ->
+							trace_utils:debug_fmt( "Using the Erlport directory "
+								"specified in the ERLPORT_BASE_DIR environment "
+								"variable: '~s'.", [ EnvDir ] ),
+							EnvDir;
+
+						false ->
+							trace_utils:error_fmt( "The Erlport directory "
+								"specified in the ERLPORT_BASE_DIR environment "
+								"variable ('~s') does not exist.", [ EnvDir ] ),
+
+							throw( { erlport_specified_directory_not_found,
+									 EnvDir } )
+
+					end;
+
+				_ ->
+					trace_utils:error_fmt( "The Erlport directory "
+								"specified in the ERLPORT_BASE_DIR environment "
+								"variable ('~s') does not end with 'erlport'.",
+								[ EnvDir ] ),
+					throw( { invalid_erlport_specified_directory, EnvDir } )
+
+			end
+
+	end;
 
 
 get_dependency_base_directory( PackageName ) ->
@@ -2204,8 +2297,8 @@ is_json_support_available() ->
 -spec get_json_unavailability_hint() -> string().
 get_json_unavailability_hint() ->
 	"Hint: inspect, in common/GNUmakevars.inc, the USE_REST and "
-	"JSX_BASE variables.".
-
+	"JSX_BASE variables, knowing that the current code path is: "
+		++ code_utils:get_code_path_as_string().
 
 
 % Tells whether an HDF5 support is available.

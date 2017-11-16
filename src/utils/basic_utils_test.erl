@@ -47,9 +47,9 @@ check_process_specific_values( Min, Max ) ->
 	[ spawn( F ) || _X <- lists:seq( 1, 10 ) ],
 
 	G = fun() ->
-				receive V ->
-						V
-				end
+			receive V ->
+					V
+			end
 		end,
 
 	[ test_facilities:display(
@@ -66,7 +66,7 @@ run() ->
 	test_facilities:display( "Testing the display of a static test message." ),
 
 	test_facilities:display( "Testing the display of a ~s test message.",
-							[ dynamic ] ),
+							 [ dynamic ] ),
 
 	basic_utils:checkpoint( 1 ),
 
@@ -79,50 +79,6 @@ run() ->
 	basic_utils:display_error( "standalone error display" ),
 
 	basic_utils:display_error( "error display ~s", [ "with a format string" ] ),
-
-
-	UnregisteredName = test_non_registered,
-	try basic_utils:get_registered_pid_for( UnregisteredName ) of
-
-		_Anything ->
-			throw( test_should_have_failed )
-
-	catch
-
-		{ neither_registered_locally_nor_globally, UnregisteredName } ->
-			ok
-
-	end,
-
-	not_registered = basic_utils:is_registered( UnregisteredName ),
-
-	RegisteredName = test_registered,
-	PidToRegister = self(),
-	basic_utils:register_as( PidToRegister, RegisteredName, global_only ),
-
-	try basic_utils:get_registered_pid_for( RegisteredName ) of
-
-		PidToRegister ->
-			ok
-
-	catch
-
-		Exception ->
-			throw( { test_should_have_succeeded, Exception } )
-
-	end,
-
-
-	case basic_utils:is_registered( RegisteredName ) of
-
-		not_registered ->
-			throw( { neither_registered_locally_nor_globally,
-					RegisteredName } );
-
-		Pid when is_pid(Pid) ->
-			ok
-
-	end,
 
 	FirstVersion  = { 0, 0, 0 },
 	SecondVersion = { 0, 0, 1 },
@@ -151,46 +107,46 @@ run() ->
 	ThirdShortVersion  = { 1, 0 },
 
 	first_bigger = basic_utils:compare_versions( SecondShortVersion,
-												FirstShortVersion ),
+												 FirstShortVersion ),
 
 	first_bigger = basic_utils:compare_versions( ThirdShortVersion,
-												SecondShortVersion ),
-
-	first_bigger = basic_utils:compare_versions( ThirdShortVersion,
-												FirstShortVersion ),
-
-
-	second_bigger = basic_utils:compare_versions( FirstShortVersion,
 												 SecondShortVersion ),
 
-	second_bigger = basic_utils:compare_versions( SecondShortVersion,
-												 ThirdShortVersion ),
+	first_bigger = basic_utils:compare_versions( ThirdShortVersion,
+												 FirstShortVersion ),
+
 
 	second_bigger = basic_utils:compare_versions( FirstShortVersion,
-												 ThirdShortVersion ),
+												  SecondShortVersion ),
+
+	second_bigger = basic_utils:compare_versions( SecondShortVersion,
+												  ThirdShortVersion ),
+
+	second_bigger = basic_utils:compare_versions( FirstShortVersion,
+												  ThirdShortVersion ),
 
 
 	equal = basic_utils:compare_versions( FirstShortVersion,
-										 FirstShortVersion ),
+										  FirstShortVersion ),
 
 	equal = basic_utils:compare_versions( SecondShortVersion,
-										 SecondShortVersion ),
+										  SecondShortVersion ),
 
 	equal = basic_utils:compare_versions( ThirdShortVersion,
-										 ThirdShortVersion ),
+										  ThirdShortVersion ),
 
 
 	test_facilities:display( "Comparisons of versions like ~s succeeded.",
-		[ text_utils:version_to_string(ThirdVersion) ] ),
+		[ text_utils:version_to_string( ThirdVersion ) ] ),
 
 
 	{ 4, 22, 11 } = basic_utils:parse_version( "4.22.11" ),
 
-	test_facilities:display( "Generating a new UUID:"
-		" '~s'.", [ basic_utils:generate_uuid() ] ),
+	test_facilities:display( "Generating a new UUID: '~s'.",
+							 [ basic_utils:generate_uuid() ] ),
 
 	test_facilities:display( "Generating a process-specific value: ~w.",
-			  [ basic_utils:get_process_specific_value() ] ),
+							 [ basic_utils:get_process_specific_value() ] ),
 
 	{ Min, Max } = { 3, 16 },
 	check_process_specific_values( Min, Max ),

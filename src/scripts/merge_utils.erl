@@ -25,8 +25,7 @@
 
 -export([ create_merge_cache_file_for/3,
 		  tree_data_to_string/1, file_data_to_string/1,
-		  trace/2, trace/3, trace_debug/2, trace_debug/3
-		]).
+		  trace/2, trace/3, trace_debug/2, trace_debug/3 ]).
 
 
 % Shorthands:
@@ -122,7 +121,7 @@
 
 % Ring of analyzer processes:
 %
--type analyzer_ring() :: list_utils:ring( pid() ).
+-type analyzer_ring() :: ring_utils:ring( pid() ).
 
 
 % This script depends on the 'Common' layer (a.k.a. Ceylan-Myriad), and only on
@@ -182,7 +181,7 @@ main( [ "--scan", TreePath ] ) ->
 	Analyzers = spawn_data_analyzers( system_utils:get_core_count() + 1,
 									   UserState ),
 
-	AnalyzerRing = list_utils:list_to_ring( Analyzers ),
+	AnalyzerRing = ring_utils:from_list( Analyzers ),
 
 	TreeData = update_content_tree( AbsTreePath, AnalyzerRing, UserState ),
 
@@ -213,7 +212,7 @@ main( [ SourceTree, TargetTree ] ) ->
 	Analyzers = spawn_data_analyzers( system_utils:get_core_count() + 1,
 									   UserState ),
 
-	AnalyzerRing = list_utils:list_to_ring( Analyzers ),
+	AnalyzerRing = ring_utils:from_list( Analyzers ),
 
 	update_content_tree( SourceTree, AnalyzerRing, UserState ),
 
@@ -502,7 +501,7 @@ scan_files( _Files=[ Filename | T ], AnalyzerRing,
 
 	FullPath = filename:join( AbsTreePath, Filename ),
 
-	{ Analyzer, NewRing } = list_utils:head( AnalyzerRing ),
+	{ Analyzer, NewRing } = ring_utils:head( AnalyzerRing ),
 
 	%io:format( "Requesting analysis of '~s' by ~w.~n",
 	%   [ FullPath, Analyzer ] ),

@@ -23,18 +23,18 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
-% Creation date: Tuesday, January 29, 2013
+% Creation date: Saturday, September 16, 2017.
 
 
-% Header to export gui-related defines.
-%
-% See gui.erl for the corresponding implementation.
+% Internal gui defines, hence to be included solely by the gui subsystem, not by
+% user code (as depends on wx).
 
 
-
-% For WxWindows defines:
+% For wx records and all:
 -include_lib("wx/include/wx.hrl").
 
+
+% Some defines:
 
 -define( any_id, ?wxID_ANY ).
 
@@ -46,17 +46,19 @@
 
 
 
-% Rewriting of '-record(wx,' could have been, with maybe a better naming:
+% A reference onto a GUI object, for the widgets that MyriadGUI added to the
+% backend at hand.
 %
-%-record( gui_event, {
+% Results in terms such as: { myriad_object_ref, canvas, CanvasPid }.
 %
-%		   id :: id(),
-%		   event_source :: gui_object(),
-%		   user_data :: user_data(),
-%		   event_type :: event_type()
-%
-%}).
-%
-%-type gui_event() :: #gui_event{}.
-%
-% Anyway we receive messages as wx records, and cannot change that easily.
+-record( myriad_object_ref, {
+
+		% The type of GUI object referred to (ex: 'canvas'):
+		object_type :: gui:myriad_object_type(),
+
+		% The identifier of this referenced instance:
+		myriad_instance_pid :: gui:myriad_instance_pid()
+
+}).
+
+-type myriad_object_ref() :: #myriad_object_ref{}.

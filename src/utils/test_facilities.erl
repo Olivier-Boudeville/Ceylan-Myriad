@@ -73,7 +73,8 @@ stop() ->
 -spec display( string() ) -> basic_utils:void().
 display( Message ) ->
 	% Carriage return already added in basic_utils:display/1:
-	basic_utils:display( lists:flatten( Message ) ).
+	% (empty list added so that ~n are automatically converted)
+	basic_utils:display( lists:flatten( Message ), [] ).
 
 
 

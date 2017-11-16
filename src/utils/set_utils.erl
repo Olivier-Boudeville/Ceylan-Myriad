@@ -49,7 +49,8 @@
 % Set-related operations are:
 %
 -export([ new/0, singleton/1, add/2, addAsNew/2, add_element_list/2,
-		  union/2, union/1,
+		  union/2, union/1, intersection/2, intersection/1,
+		  difference/2, is_set/1, check_set/1, is_subset/2,
 		  from_list/1, to_list/1,
 		  member/2, is_empty/1, size/1,
 		  iterator/1, next/1,
@@ -71,7 +72,8 @@
 
 % For homogeneous sets:
 %
-% (strangely reported as unused by the compiler)
+% (strangely reported as unused by the compiler: 'type set(_) is unused',
+% although exported)
 %
 %-type set( T ) :: gb_sets:set( T ).
 
@@ -169,12 +171,68 @@ union( FirstSet, SecondSet ) ->
 	?set_impl:union( FirstSet, SecondSet ).
 
 
-
 % Returns the union of the specified sets.
 %
 -spec union( [ set() ] ) -> set().
 union( ListOfSets ) ->
 	?set_impl:union( ListOfSets ).
+
+
+
+% Returns the intersection of the two specified sets.
+%
+-spec intersection( set(), set() ) -> set().
+intersection( FirstSet, SecondSet ) ->
+	?set_impl:intersection( FirstSet, SecondSet ).
+
+
+% Returns the intersection of the specified sets.
+%
+-spec intersection( [ set() ] ) -> set().
+intersection( ListOfSets ) ->
+	?set_impl:intersection( ListOfSets ).
+
+
+
+% Returns the difference between the first specified set and the second,
+% i.e. the elements of the first set that are not in the second one.
+%
+-spec difference( set(), set() ) -> set().
+difference( FirstSet, SecondSet ) ->
+	?set_impl:difference( FirstSet, SecondSet ).
+
+
+
+% Returns whether the specified term appears to be a legit set.
+%
+-spec is_set( term() ) -> boolean().
+is_set( Term ) ->
+	?set_impl:is_set( Term ).
+
+
+
+% Ensures that the specified term is a set, throws an exception if not.
+%
+-spec check_set( term() ) -> basic_utils:void().
+check_set( Term ) ->
+	case is_set( Term ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { not_a_set, Term } )
+
+	end.
+
+
+
+% Tells whether the first set is a subset of the second, i.e. if each element of
+% the first is also in the second.
+%
+-spec is_subset( set(), set() ) -> boolean().
+is_subset( FirstSet, SecondSet ) ->
+	?set_impl:is_subset( FirstSet, SecondSet ).
 
 
 

@@ -35,10 +35,10 @@
 % - list hashtable
 %
 % See also hashtable.erl, tracked_hashtable.erl, lazy_hashtable.erl,
-% map_hashtable.erl, list_hashtable.erl and their respective test modules.
+% map_hashtable.erl, list_table.erl and their respective test modules.
 %
 % Directly depends on the following modules: hashtable, tracked_hashtable,
-% lazy_hashtable, map_hashtable, list_hashtable.
+% lazy_hashtable, map_hashtable, list_table.
 %
 % Note that the 'table' pseudo-module is not tested here: not only it is
 % actually one of the previous implementations, but also modules are applied
@@ -109,9 +109,9 @@ run_basic_tests() ->
 	map_hashtable:display( "Vanilla map hashtable", MyM1 ),
 
 	display_separator(),
-	MyL1 = list_hashtable:new( 10 ),
-	true = list_hashtable:isEmpty( MyL1 ),
-	list_hashtable:display( "Vanilla list hashtable", MyL1 ),
+	MyL1 = list_table:new( 10 ),
+	true = list_table:isEmpty( MyL1 ),
+	list_table:display( "Vanilla list hashtable", MyL1 ),
 
 
 	test_facilities:display( "End of the comparison of tables creation." ),
@@ -185,16 +185,16 @@ run_basic_tests() ->
 
 
 	test_facilities:display( "Adding entries in list hashtable:" ),
-	MyL2 = list_hashtable:new( 4 ),
-	MyL3 = list_hashtable:addEntry( ?MyFirstKey, "MyFirstValue", MyL2 ),
-	false = list_hashtable:isEmpty( MyL3 ),
+	MyL2 = list_table:new( 4 ),
+	MyL3 = list_table:addEntry( ?MyFirstKey, "MyFirstValue", MyL2 ),
+	false = list_table:isEmpty( MyL3 ),
 
-	MyL4 = list_hashtable:addEntry( ?MySecondKey, "MySecondValue", MyL3 ),
-	false = list_hashtable:isEmpty( MyL4 ),
+	MyL4 = list_table:addEntry( ?MySecondKey, "MySecondValue", MyL3 ),
+	false = list_table:isEmpty( MyL4 ),
 
-	MyL5 = list_hashtable:addEntry( ?MyThirdKey, [1,2,3], MyL4 ),
-	false = list_hashtable:isEmpty( MyL5 ),
-	list_hashtable:display( "List hashtable: ", MyL5 ),
+	MyL5 = list_table:addEntry( ?MyThirdKey, [1,2,3], MyL4 ),
+	false = list_table:isEmpty( MyL5 ),
+	list_table:display( "List hashtable: ", MyL5 ),
 
 
 	display_separator(),
@@ -279,23 +279,23 @@ run_basic_tests() ->
 
 
 	test_facilities:display( "Looking up for ~s in list hashtable: ~p",
-		[ ?MyFirstKey, list_hashtable:lookupEntry( ?MyFirstKey, MyL5 ) ] ),
+		[ ?MyFirstKey, list_table:lookupEntry( ?MyFirstKey, MyL5 ) ] ),
 
-	{ value, "MyFirstValue" } = list_hashtable:lookupEntry( ?MyFirstKey,
+	{ value, "MyFirstValue" } = list_table:lookupEntry( ?MyFirstKey,
 															MyL5 ),
 
 	test_facilities:display( "Removing that entry." ),
-	MyL6 = list_hashtable:removeEntry( ?MyFirstKey, MyL5 ),
-	false = list_hashtable:isEmpty( MyL6 )
+	MyL6 = list_table:removeEntry( ?MyFirstKey, MyL5 ),
+	false = list_table:isEmpty( MyL6 )
 		,
 	test_facilities:display( "Looking up for ~s in list hashtable: ~p",
-		[ ?MyFirstKey, list_hashtable:lookupEntry( ?MyFirstKey, MyL6 ) ] ),
+		[ ?MyFirstKey, list_table:lookupEntry( ?MyFirstKey, MyL6 ) ] ),
 
-	key_not_found = list_hashtable:lookupEntry( ?MyFirstKey, MyL6 ),
+	key_not_found = list_table:lookupEntry( ?MyFirstKey, MyL6 ),
 
 	% removeEntry can also be used if the specified key is not here, will return
 	% an identical table.
-	list_hashtable:display( "List hashtable", MyL6 ),
+	list_table:display( "List hashtable", MyL6 ),
 
 
 	display_separator(),
@@ -417,31 +417,31 @@ run_basic_tests() ->
 
 
 
-	MyL7 = list_hashtable:addEntry( ?MyThirdKey, anything, MyL6 ),
-	list_hashtable:display( MyL7 ),
+	MyL7 = list_table:addEntry( ?MyThirdKey, anything, MyL6 ),
+	list_table:display( MyL7 ),
 
 	test_facilities:display( "Enumerating the list table: ~p.",
-		[ list_hashtable:enumerate( MyL6 ) ] ),
+		[ list_table:enumerate( MyL6 ) ] ),
 
 	test_facilities:display( "Listing the list table keys: ~p.",
-		[ list_hashtable:keys( MyL6 ) ] ),
+		[ list_table:keys( MyL6 ) ] ),
 
 	true = list_utils:unordered_compare( [ ?MySecondKey, ?MyThirdKey ],
-										 list_hashtable:keys( MyL6 ) ),
+										 list_table:keys( MyL6 ) ),
 
-	MyL8 = list_hashtable:addEntries(
+	MyL8 = list_table:addEntries(
 			[ {?MyThirdKey,3}, {?MyFourthKey,4} ], MyL7 ),
 
-	MyL9 = list_hashtable:merge( MyL4, MyL8 ),
+	MyL9 = list_table:merge( MyL4, MyL8 ),
 
 
 	test_facilities:display( "Merged list table: ~s",
-			[ list_hashtable:toString( MyL9 ) ] ),
+			[ list_table:toString( MyL9 ) ] ),
 
 	Keys = [ ?MyFirstKey, ?MyThirdKey ],
 
 	test_facilities:display( "Listing the entries for keys in list table ~p:"
-		"~n ~p", [ Keys, list_hashtable:selectEntries( Keys, MyL9 ) ] ).
+		"~n ~p", [ Keys, list_table:selectEntries( Keys, MyL9 ) ] ).
 
 
 
@@ -594,7 +594,7 @@ benchmark_look_ups( Table, Module, Pairs ) ->
 run_performance_tests() ->
 
 	Implementations = [ hashtable, tracked_hashtable, lazy_hashtable,
-						map_hashtable, list_hashtable ],
+						map_hashtable, list_table ],
 
 	% Change the order to see whether result variy:
 	ActualImplementations = lists:reverse( Implementations ),

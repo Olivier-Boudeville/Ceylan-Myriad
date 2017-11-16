@@ -40,6 +40,7 @@
 		  reset_random_source/1, stop_random_source/0,
 		  get_random_value/0, get_random_value/1, get_random_value/2,
 		  get_random_values/2, get_random_values/3,
+		  get_uniform_floating_point_value/1,
 		  get_random_subset/2,
 		  get_random_module_name/0,
 		  get_random_state/0, set_random_state/1,
@@ -120,6 +121,7 @@
 
 -spec get_random_value( integer(), integer() ) -> integer().
 
+-spec get_uniform_floating_point_value( number() ) -> float().
 
 -spec get_random_state() -> random_state() | 'undefined'.
 -spec set_random_state( random_state() ) -> basic_utils:void().
@@ -271,7 +273,11 @@ set_random_state( _NewState ) ->
 
 
 
+
+
 -else. % use_crypto_module not defined below:
+
+
 
 
 % Here we do not use the 'crypto' module; we use the 'rand' one (replacing the
@@ -303,7 +309,20 @@ set_random_state( _NewState ) ->
 % Xorshift116+, 58 bits precision and period of 2^116-1, 320 bytes per state, on
 % 64-bit:
 %
--define( rand_algorithm, exsplus ).
+% (corrected version of exsplus, yet now superseded by exrop)
+%
+%-define( rand_algorithm, exsp ).
+
+
+
+% Xoroshiro116+, 58 bits precision and period of 2^116-1
+%
+% Jump function: equivalent to 2^64 calls.
+%
+% Default in OTP 20, to be used in most cases:
+%
+-define( rand_algorithm, exrop ).
+
 
 
 % Xorshift64*, 64 bits precision and a period of 2^64-1, 336 bytes per state on
@@ -315,7 +334,9 @@ set_random_state( _NewState ) ->
 % Xorshift1024*, 64 bits precision and a period of 2^1024-1 (most expensive of
 % the built-in random algorithms, 856 bytes per state on 64-bit):
 %
-%-define( rand_algorithm, exs1024 ).
+% (corrected version, to be used instead of exsplus)
+%
+%-define( rand_algorithm, exs1024s ).
 
 
 
@@ -447,6 +468,20 @@ get_random_value( Nmin, Nmax ) when Nmin =< Nmax ->
 	% Drawn in [1;N]:
 	get_random_value( N ) + Nmin - 1.
 
+
+
+% Returns a floating-point random value in [0.0;1.0[ generated from an uniform
+% distribution.
+%
+% Given a number (integer or float) N (positive or not), returns a random
+% floating-point value uniformly distributed between 0.0 (included) and N
+% (excluded), updating the random state in the process dictionary.
+%
+% Spec already specified, for all random settings.
+%
+get_uniform_floating_point_value( N ) ->
+	% Generated float in [0.0,1.0[:
+	N * rand:uniform().
 
 
 % Returns the name of the module managing the random generation.

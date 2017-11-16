@@ -38,7 +38,7 @@
 -bar( hello ).
 
 
--table_type( list_hashtable ).
+-table_type( list_table ).
 
 % Uncomment to test the trigger of 'table type defined more than once':
 %-table_type( foo_hashtable ).

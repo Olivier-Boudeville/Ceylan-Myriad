@@ -40,13 +40,21 @@
 -include("data_types.hrl").
 
 
+% Checks regarding lists:
+%
+-export([ ensure_list/1, ensure_list_of_atoms/1, ensure_list_of_tuples/1,
+		  ensure_list_of_pids/1 ]).
+
+
 
 % Basic list operations:
 %
 -export([ get_element_at/2, insert_element_at/3,
 		  remove_element_at/2, remove_last_element/1,
-		  get_last_element/1, get_index_of/2, split_at/2, uniquify/1,
-		  has_duplicates/1, get_duplicates/1, intersect/2,
+		  get_last_element/1, extract_last_element/1,
+		  get_index_of/2, split_at/2, uniquify/1,
+		  has_duplicates/1, get_duplicates/1, union/2, intersection/2,
+		  cartesian_product/1,
 		  subtract_all_duplicates/2, delete_existing/2, delete_if_existing/2,
 		  delete_all_in/2, append_at_end/2, is_list_of_integers/1,
 		  unordered_compare/2 ]).
@@ -59,26 +67,6 @@
 
 
 
-% A ring behaves as an (infinite) list whose next element after its last is its
-% first again.
-%
-% Internally, the first list is the working one (from which elements may be
-% extracted), while the second is a copy of the full reference one.
-%
--opaque ring() :: { list(), list() }.
-
--opaque ring( T ) :: { [ T ], [ T ] }.
-
-
-% Ring-related operations:
-%
--export([ list_to_ring/1, head/1, get_next/2, get_reference_list/1,
-		  get_ring_size/1 ]).
-
-
-
-
-
 % Random operations on lists:
 %
 -export([ random_permute/1, random_permute_reciprocal/1,
@@ -86,7 +74,100 @@
 		  draw_elements_from/2 ]).
 
 
--export_type([ ring/0, ring/1 ]).
+% Either a list of terms, or a term by itself.
+%
+% Note: different from basic_utils:maybe( list() ).
+%
+-type maybe_list( T ) :: [ T ] | T.
+
+
+-export_type([ maybe_list/1 ]).
+
+
+
+% Section for the checking of lists.
+
+
+% Ensures that the specified argument is a list: encloses it in a list of its
+% own if not already a list.
+%
+% Note: not to be applied on strings for example.
+%
+-spec ensure_list( maybe_list( T ) ) -> [ T ].
+ensure_list( List ) when is_list( List ) ->
+	List;
+
+ensure_list( Term ) ->
+	[ Term ].
+
+
+% Ensures that the specified argument is a list of atoms: encloses any atom in
+% a list of its own if not already a list, or check that this list is only
+% populated of atoms.
+%
+ensure_list_of_atoms( Atom ) when is_atom( Atom ) ->
+	[ Atom ];
+
+ensure_list_of_atoms( List ) when is_list( List ) ->
+	case meta_utils:is_homogeneous( List, _CommonType=atom ) of
+
+		true ->
+			List;
+
+		false ->
+			throw( { not_list_of_atoms, List } )
+
+	end;
+
+ensure_list_of_atoms( Other ) ->
+	throw( { neither_list_nor_atom, Other } ).
+
+
+
+% Ensures that the specified argument is a list of tuples: encloses any tuple in
+% a list of its own if not already a list, or check that this list is only
+% populated of tuples.
+%
+ensure_list_of_tuples( Tuple ) when is_tuple( Tuple ) ->
+	[ Tuple ];
+
+ensure_list_of_tuples( List ) when is_list( List ) ->
+	case meta_utils:is_homogeneous( List, _CommonType=tuple ) of
+
+		true ->
+			List;
+
+		false ->
+			throw( { not_list_of_tuples, List } )
+
+	end;
+
+ensure_list_of_tuples( Other ) ->
+	throw( { neither_list_nor_tuple, Other } ).
+
+
+
+% Ensures that the specified argument is a list of PIDs: encloses any PID in a
+% list of its own if not already a list, or check that this list is only
+% populated of PIDs.
+%
+
+ensure_list_of_pids( Pid ) when is_pid( Pid ) ->
+	[ Pid ];
+
+ensure_list_of_pids( List ) when is_list( List ) ->
+	case meta_utils:is_homogeneous( List, _CommonType=pid ) of
+
+		true ->
+			List;
+
+		false ->
+			throw( { not_list_of_pids, List } )
+
+	end;
+
+ensure_list_of_pids( Other ) ->
+	throw( { neither_list_nor_pid, Other } ).
 
 
 
@@ -220,6 +301,36 @@ get_last_element( _List=[ _H | T ] ) ->
 	get_last_element( T ).
 
 
+% Extracts the last element of the specified list, returning a pair made of that
+% element and of the remainder of the list (in its original order).
+%
+% Note: not computationnally efficient, usually having to retrieve the last
+% element suggests a bad code design.
+%
+% Crashes (with 'no function clause') if the input list is empty.
+%
+-spec extract_last_element( list() ) -> { term(), list() }.
+extract_last_element( List ) ->
+
+	% Probably the most efficient variant:
+	[ LastElement | RevRest ] = lists:reverse( List ),
+
+	{ LastElement, lists:reverse( RevRest ) }.
+
+
+% Variant:
+%extract_last_element( List ) ->
+%	extract_last_element( List, _Acc=[] ).
+
+
+% (helper)
+%extract_last_element( _List=[ LastElement ], Acc ) ->
+%	{ LastElement, lists:reverse( Acc ) };
+%
+%extract_last_element( _List=[ H | T ], Acc ) ->
+%	extract_last_element( T, [ H | Acc ] ).
+
+
 
 % Returns the index, in [1..length(List)], of the (first occurrence of the)
 % specified element in the specified list. Throws an exception if the element is
@@ -293,16 +404,14 @@ has_duplicates( List ) ->
 
 
 
-% Returns the duplicates in the specified list: returns a list of {
-% DuplicatedTerm, DuplicationCount } pairs, where each duplicated term is
-% specified, alongside the total number of occurrences of that terms in the
-% specified list.
+% Returns the duplicates in the specified list: returns an (unordered) list of {
+% DuplicatedTerm, DuplicationCount } pairs, where each duplicated term (i.e. a
+% term present more than once) is specified, alongside the total number of
+% occurrences of that terms in the specified list.
 %
-% Duplicates are returned in the reverse order of their appearance in the
-% specified list; for example, for input list [a,a,b,b,b,c,c,c], returned
-% duplicates are [{b,3},{c,3},{a,2}].
+% Ex: list_utils:get_duplicates([a,a,b,b,b,c,d,d]) = [{b,3},{d,2},{a,2}]
 %
--spec get_duplicates( list() ) -> list( { term(), basic_utils:count() } ).
+-spec get_duplicates( [ term() ] ) -> [ { term(), basic_utils:count() } ].
 get_duplicates( List ) ->
 	get_duplicates( List, _Acc=[] ).
 
@@ -311,7 +420,8 @@ get_duplicates( _List=[], Acc ) ->
 
 get_duplicates( _List=[ Term | T ], Acc ) ->
 
-	% io:format( "Inquiring about term '~p' into ~p.~n", [ Term, T ] ),
+	% trace_utils:debug_fmt( "Inquiring about term '~p' into ~p.",
+	% [ Term, T ] ),
 
 	case count_and_filter_term( Term, _InitialList=T, _FilteredList=[],
 								_InitialCount=0 ) of
@@ -346,14 +456,43 @@ count_and_filter_term( Term, _List=[ OtherTerm | H ], FilteredList,
 
 
 
+% Returns the union of the two specified lists, i.e. the list (with no
+% duplicates) of all elements that are in either list.
+%
+-spec union( list(), list() ) -> list().
+union( L1, L2 ) ->
+	%uniquify( L1 ++ L2 ).
+	set_utils:to_list( set_utils:union( set_utils:from_list( L1 ),
+										set_utils:from_list( L2 ) ) ).
+
+
+
 % Returns the intersection of the two specified lists, i.e. the list of all
 % elements that are in both lists.
 %
 % See also: subtract_all_duplicates/2.
 %
--spec intersect( list(), list() ) -> list().
-intersect( L1, L2 ) ->
+-spec intersection( list(), list() ) -> list().
+intersection( L1, L2 ) ->
+	%set_utils:to_list( set_utils:intersection( set_utils:from_list( L1 ),
+	%											set_utils:from_list( L2 ) ) ).
 	lists:filter( fun( E ) -> lists:member( E, L2 ) end, L1 ).
+
+
+
+% Returns the cartesian product of the specified lists (collected in a top-level
+% list).
+%
+% Ex: cartesian_product( [ [a,b,c], [d,e], [f] ] ) =
+% [ [a,d,f], [a,e,f], [b,d,f], [b,e,f], [c,d,f], [c,e,f] ]
+%
+-spec cartesian_product( [ [ T ] ] ) -> [ [ T ] ].
+cartesian_product( [ SingleList ] ) ->
+	[ [ E ] || E <- SingleList ];
+
+cartesian_product( [ List | OtherLists ] ) ->
+	[ [ E | SubList ] || E <- List,
+						 SubList <- cartesian_product( OtherLists ) ].
 
 
 
@@ -380,18 +519,22 @@ subtract_all_duplicates( L1, L2 ) ->
 %
 -spec delete_existing( term(), list() ) -> list().
 delete_existing( Elem, List ) ->
-	delete_existing( Elem, List, _Acc=[] ).
+
+	% We keep a copy of the original list to be able to generate better error
+	% messages:
+	%
+	delete_existing( Elem, List, _OriginalList=List, _Acc=[] ).
 
 
-delete_existing( Elem, _List=[], _Acc ) ->
-	throw( { element_to_delete_not_found, Elem } );
+delete_existing( Elem, _List=[], OriginalList, _Acc ) ->
+	throw( { element_to_delete_not_found, Elem, OriginalList } );
 
-delete_existing( Elem, _List=[ Elem | T ], Acc ) ->
+delete_existing( Elem, _List=[ Elem | T ], _OriginalList, Acc ) ->
 	% The first element found stops the iteration:
 	lists:reverse( Acc ) ++ T;
 
-delete_existing( Elem, _List=[ H | T ], Acc ) ->
-	delete_existing( Elem, T, [ H | Acc ] ).
+delete_existing( Elem, _List=[ H | T ], OriginalList, Acc ) ->
+	delete_existing( Elem, T, OriginalList, [ H | Acc ] ).
 
 
 
@@ -567,70 +710,6 @@ reconstruct_tuples( _List=[], _TupleSize, Acc ) ->
 reconstruct_tuples( List, TupleSize, Acc ) ->
 	{ TupleAsList, T } = lists:split( _Count=TupleSize, List ),
 	reconstruct_tuples( T, TupleSize, [ list_to_tuple( TupleAsList ) | Acc ] ).
-
-
-
-% Ring-related section (infinite, circular buffer whose end is connected to its
-% beginning).
-
-
-
-% Returns a ring corresponding to the specified list.
-%
--spec list_to_ring( list() ) -> ring().
-list_to_ring( InputList ) ->
-	{ InputList, InputList }.
-
-
-
-% Pops the head of specified ring: return { Head, UpdatedRing }.
-%
--spec head( ring() ) -> { term(), ring() }.
-head( _Ring={ _WorkingList=[], ReferenceList } ) ->
-	% Replenish:
-	%
-	% Dialyzer does not want an opaque argument to be used:
-	%head( { ReferenceList, ReferenceList } );
-	head( list_to_ring( ReferenceList ) );
-
-head( _Ring={ _WorkingList=[ H | T ], ReferenceList } ) ->
-	{ H, { T, ReferenceList } }.
-
-
-
-% Returns a list of the Count popped elements (in their order in the ring), and
-% the updated ring.
-%
-% Ex: for a new ring based on [ a, b, c, d ], if Count=6 then [ a, b, c, d, a,
-% b] will be returned.
-%
--spec get_next( basic_utils:count(), ring() ) -> { [ term() ], ring() }.
-get_next( Count, Ring ) ->
-	% Quite similar to a map:foldl/3:
-	get_next_helper( Count, Ring, _Acc=[] ).
-
-
-get_next_helper( _Count=0, Ring, Acc ) ->
-	{ lists:reverse( Acc ), Ring };
-
-get_next_helper( Count, Ring, Acc ) ->
-	{ H, NewRing } = head( Ring ),
-	get_next_helper( Count-1, NewRing, [ H | Acc ] ).
-
-
-% Returns the list from which the ring was created (in its original order).
-%
--spec get_reference_list( ring() ) -> [ term() ].
-get_reference_list( _Ring={ _WorkingList, ReferenceList } ) ->
-	ReferenceList.
-
-
-% Returns the number of elements in the specified ring.
-%
--spec get_ring_size( ring() ) -> basic_utils:count().
-get_ring_size( _Ring={ _WorkingList, ReferenceList } ) ->
-	length( ReferenceList ).
-
 
 
 

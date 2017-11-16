@@ -88,8 +88,7 @@
 		  get_duration/2, get_duration_since/1, get_textual_duration/2,
 		  get_precise_timestamp/0, get_precise_duration/2,
 		  get_precise_duration_since/1,
-		  get_date_after/2
-		]).
+		  get_date_after/2 ]).
 
 
 
@@ -327,8 +326,8 @@ compare_helper( _FirstDate, _SecondDate ) ->
 
 % Ensures that the starting canonical date is strictly before the stopping one.
 %
-% Note: both dates are expected to be in canonical form (ex: not more 12 months
-% or 31 days in the specified date).
+% Note: both dates are expected to be in canonical form (ex: not more than 12
+% months or 31 days in the specified date).
 %
 -spec check_date_order( date(), date() ) -> basic_utils:void().
 check_date_order( StartDate, StopDate ) ->
@@ -459,7 +458,8 @@ get_textual_timestamp_for_path( { { Year, Month, Day },
 
 
 
-% Alias of get_textual_timestamp.
+% Alias of get_textual_timestamp/1, defined for clarity.
+%
 -spec timestamp_to_string( timestamp() ) -> string().
 timestamp_to_string( Timestamp ) ->
 	get_textual_timestamp( Timestamp ).
@@ -467,7 +467,7 @@ timestamp_to_string( Timestamp ) ->
 
 
 % Parses back a timestamp in the form of "14/4/2011 18:48:51" into a
-% { _Date={Year,Month,Day}, _Time={Hour,Minute,Second} } timestamp.
+% timestamp(), i.e. { _Date={Year,Month,Day}, _Time={Hour,Minute,Second} }.
 %
 -spec string_to_timestamp( string() ) -> timestamp().
 string_to_timestamp( TimestampString ) ->
@@ -548,7 +548,7 @@ get_textual_duration( FirstTimestamp, SecondTimestamp ) ->
 get_precise_timestamp() ->
 	% Was initially: erlang:now().
 	% os:timestamp() was then a bit lighter (not monotonic)
-	%.
+	%
 	% Finally preferred (still not monotonic), since release 18.0:
 	%
 	erlang:timestamp().
@@ -579,7 +579,7 @@ get_precise_duration_since( StartTimestamp ) ->
 
 
 
-% Returns the date corresponding to the specified one augmented of specified
+% Returns the date corresponding to the specified one augmented of the specified
 % number of days (possibly a negative number).
 %
 -spec get_date_after( date(), unit_utils:days() ) -> date().

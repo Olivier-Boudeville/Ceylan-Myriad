@@ -1596,9 +1596,13 @@ filter_elems( _ElemList=[ E | T ], Acc ) ->
 
 
 
-% Tells whether specified basename (ex: filename) in among the specified list of
-% full paths; returns either false or the first full path found corresponding to
-% that leaf.
+% Tells whether specified basename (ex: a pathless filename) is among the
+% specified list of full paths; returns either false or the first full path
+% found corresponding to that leaf element.
+%
+% Ex:
+%  false = file_utils:is_leaf_among( "xx", [ "a/b/c/yy", "d/e/zz" ] )
+%  "a/b/c/xx"  = file_utils:is_leaf_among( "xx", [ "a/b/c/xx", "d/e/zz" ] )
 %
 -spec is_leaf_among( leaf_name(), [ path() ] ) ->
 						   { 'false' | path() }.

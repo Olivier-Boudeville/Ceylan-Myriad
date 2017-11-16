@@ -203,9 +203,10 @@ while [ $token_eaten -eq 0 ] ; do
 done
 
 
-# We had to define that variable, as for a user U, at least on some settings,
-# sudo -u U <a command> will fail ("Sorry, user U is not allowed to execute
-# 'XXX' as U on H."), so now we execute sudo iff strictly necessary:
+# We had to define that variable, as for a (non-privileged) user U, at
+# least on some settings, sudo -u U <a command> will fail ("Sorry,
+# user U is not allowed to execute 'XXX' as U on H."), so now we
+# execute sudo iff strictly necessary:
 #
 SUDO_CMD=""
 
@@ -232,6 +233,7 @@ if [ -z "$read_parameter" ] ; then
 	   prefix="/usr/local"
 	   echo "Run as sudo root, thus using default system installation directory, falling back to user '${build_user}' for the operations that permit it."
 
+	   # So here sudo is a way to decrease, not increase privileges:
 	   SUDO_CMD="sudo -u ${build_user}"
 
    else
@@ -584,12 +586,12 @@ if [ $use_prefix -eq 0 ] ; then
 	# avoid having to update our ~/.emacs.d/init.el file whenever the 'tools'
 	# version changes:
 	#
-	${SUDO_CMD} ${LN} -sf lib/tools-*/emacs
+	${LN} -sf lib/tools-*/emacs
 
 	# Same story so that the crashdump viewer can be found irrespective of the
 	# Erlang version:
 	#
-	${SUDO_CMD} ${LN} -sf lib/observer-*/priv/bin/cdv
+	${LN} -sf lib/observer-*/priv/bin/cdv
 
 	# Then go again in the install (not source) tree to create the base link:
 	cd ${prefix}/..
@@ -599,11 +601,11 @@ if [ $use_prefix -eq 0 ] ; then
 	# Sets as current:
 	if [ -e Erlang-current-install ] ; then
 
-		${SUDO_CMD} ${RM} -f Erlang-current-install
+		${RM} -f Erlang-current-install
 
 	fi
 
-	${SUDO_CMD} ${LN} -sf Erlang-${erlang_version} Erlang-current-install
+	${LN} -sf Erlang-${erlang_version} Erlang-current-install
 
 fi
 
@@ -620,19 +622,22 @@ if [ $do_manage_doc -eq 0 ] ; then
 
 	fi
 
+	# No sudo from there, as we have to use any right needed (for example to
+	# write in the system tree)
+
 	erlang_doc_root="Erlang-${erlang_version}-documentation"
 
 	if [ -e "${erlang_doc_root}" ] ; then
 
-		${SUDO_CMD} ${RM} -rf "${erlang_doc_root}"
+		${RM} -rf "${erlang_doc_root}"
 
 	fi
 
-	${SUDO_CMD} ${MKDIR} "${erlang_doc_root}"
+	${MKDIR} "${erlang_doc_root}"
 
 	cd "${erlang_doc_root}"
 
-	${SUDO_CMD} ${TAR} xvzf ${initial_path}/${erlang_doc_archive}
+	${TAR} xvzf ${initial_path}/${erlang_doc_archive}
 
 
 	if [ ! $? -eq 0 ] ; then
@@ -645,11 +650,11 @@ if [ $do_manage_doc -eq 0 ] ; then
 	# Sets as current:
 	if [ -e Erlang-current-install ] ; then
 
-		${SUDO_CMD} ${RM} -f Erlang-current-documentation
+		${RM} -f Erlang-current-documentation
 
 	fi
 
-	${SUDO_CMD} ${LN} -sf ${erlang_doc_root} Erlang-current-documentation
+	${LN} -sf ${erlang_doc_root} Erlang-current-documentation
 
 	echo "Erlang documentation successfully installed."
 
@@ -716,7 +721,8 @@ if [ $do_generate_plt -eq 0 ] ; then
 	# generating with '--output_plt $actual_plt_file' and doing '${LN} -s
 	# $actual_plt_file $actual_plt_link' we proceed the other way round:
 
-	${SUDO_CMD} $dialyzer_exec --build_plt -r $erlang_beam_root --output_plt $actual_plt_link
+	# No sudo, as PLT file might be in system tree:
+	$dialyzer_exec --build_plt -r $erlang_beam_root --output_plt $actual_plt_link
 	res=$?
 
 	if [ $res -eq 0 ] ; then

@@ -501,7 +501,8 @@ severe_display( Format, Values ) ->
 %
 -spec actual_display( trace_message() ) -> basic_utils:void().
 actual_display( Message ) ->
-	basic_utils:display( Message ).
+	% Default-timeout may not be sufficient (30 seconds, in milliseconds)
+	basic_utils:display_timed( Message, _TimeOut=30000 ).
 
 
 

@@ -49,8 +49,8 @@
 % - 'map_hashtable' (this module), which is probably the most efficient
 % implementation (speed/size compromise)
 %
-% - 'list_hashtable', a list-based implementation, efficient for smaller table
-% (and only them)
+% - 'list_table', a list-based implementation, efficient for smaller tables (and
+% only them)
 %
 % All these types of tables are to provide the same API (signatures and
 % contracts), yet one should note that this module is the one that tends to
@@ -66,9 +66,10 @@
 		  addEntry/3, addEntries/2, addNewEntry/3, addNewEntries/2,
 		  updateEntry/3, updateEntries/2,
 		  removeEntry/2, removeExistingEntry/2,
+		  removeEntries/2, removeExistingEntries/2,
 		  lookupEntry/2, hasEntry/2, getEntry/2,
-		  extractEntry/2, getEntryOrValue/3, getEntries/2,
-		  getValue/2, getValues/2, getAllValues/2,
+		  extractEntry/2, getEntries/2,
+		  getValue/2, getValues/2, getValueWithDefaults/3, getAllValues/2,
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToExistingEntry/3, appendListToExistingEntry/3,
 		  appendToEntry/3, appendListToEntry/3,
@@ -273,11 +274,11 @@ updateEntries( EntryList, MapHashtable ) ->
 
 
 % Removes specified key/value pair, as designated by the key, from the specified
-% map hashtable.
+% table.
 %
 % Does nothing if the key is not found.
 %
-% Returns an updated map table.
+% Returns an updated table.
 %
 -spec removeEntry( key(), map_hashtable() ) -> map_hashtable().
 removeEntry( Key, MapHashtable ) ->
@@ -287,11 +288,11 @@ removeEntry( Key, MapHashtable ) ->
 
 
 % Removes specified key/value pair, as designated by the key, from the specified
-% map hashtable.
+% table.
 %
 % Throws an exception if the key is not found.
 %
-% Returns an updated map table.
+% Returns an updated table.
 %
 -spec removeExistingEntry( key(), map_hashtable() ) -> map_hashtable().
 removeExistingEntry( Key, MapHashtable ) ->
@@ -305,6 +306,40 @@ removeExistingEntry( Key, MapHashtable ) ->
 			throw( { non_existing_key, Key } )
 
 	end.
+
+
+
+% Removes specified key/value pairs, as designated by the keys, from the
+% specified table.
+%
+% Specifying a non-existing key is accepted.
+%
+% Returns an updated table.
+%
+-spec removeEntries( [ key() ], map_hashtable() ) -> map_hashtable().
+removeEntries( Keys, MapHashtable ) ->
+	lists:foldl( fun( K, AccTable ) ->
+						 maps:remove( K, AccTable )
+				 end,
+				 _InitAcc=MapHashtable,
+				 _List=Keys ).
+
+
+
+% Removes specified key/value pairs, as designated by the keys, from the
+% specified table.
+%
+% Throws an exception if a key is not found.
+%
+% Returns an updated table.
+%
+-spec removeExistingEntries( [ key() ], map_hashtable() ) -> map_hashtable().
+removeExistingEntries( Keys, MapHashtable ) ->
+	lists:foldl( fun( K, AccTable ) ->
+						 removeExistingEntry( K, AccTable )
+				 end,
+				 _InitAcc=MapHashtable,
+				 _List=Keys ).
 
 
 
@@ -362,7 +397,18 @@ hasEntry( Key, MapHashtable ) ->
 %getEntry( Key,  #{ Key := Value } ) ->
 %	Value.
 getEntry( Key, MapHashtable ) ->
-	maps:get( Key, MapHashtable ).
+	try
+
+		maps:get( Key, MapHashtable )
+
+	catch
+
+		error:{ badkey, _K } ->
+			trace_utils:error_fmt( "No key '~p' found in following table: ~s",
+								   [ Key, toString( MapHashtable ) ] ),
+			throw( { key_not_found, Key } )
+
+	end.
 
 
 
@@ -378,27 +424,6 @@ getEntry( Key, MapHashtable ) ->
 getValue( Key, MapHashtable ) ->
 	getEntry( Key, MapHashtable ).
 
-
-
-% Looks for a given entry in a table and returns the default value specified in
-% arguments if it is not found.
-%
-% Note: one should be aware that the value found in the table is allowed to be
-% identical to the one returned by default, and should use this function only
-% when it is the expected behaviour.
-%
--spec getEntryOrValue( key(), map_hashtable(), value() ) -> value().
-getEntryOrValue( Key, MapHashtable, DefaultValue ) ->
-
-	case maps:find( Key, MapHashtable ) of
-
-		{ ok, Value } ->
-			Value;
-
-		error ->
-			DefaultValue
-
-	end.
 
 
 
@@ -428,6 +453,24 @@ getEntries( Keys, Hashtable ) ->
 				_List=Keys ),
 
 	lists:reverse( RevValues ).
+
+
+
+% Looks for specified entry in specified table and, if found, returns the
+% associated value; otherwise returns the specified default value.
+%
+-spec getValueWithDefaults( key(), value(), map_hashtable() ) -> value().
+getValueWithDefaults( Key, DefaultValue, MapHashtable ) ->
+
+	case maps:find( Key, MapHashtable ) of
+
+		{ ok, Value } ->
+			Value;
+
+		error ->
+			DefaultValue
+
+	end.
 
 
 
@@ -738,7 +781,7 @@ appendToEntry( Key, Element, MapHashtable ) ->
 
 	case lookupEntry( Key, MapHashtable ) of
 
-		'key_not_found' ->
+		key_not_found ->
 			addEntry( Key, [ Element ], MapHashtable );
 
 		{ value, CurrentList } ->

@@ -59,7 +59,19 @@
 % non-ASCII characters to be used; specified in RFC 3987 (see
 % http://www.ietf.org/rfc/rfc3987.txt).
 %
+% (note: type to be used internally, for efficiency)
+%
 -type iri() :: text_utils:bin_string().
+
+
+% Version of an IRI specified (typically by the user) as a plain (Unicode)
+% string.
+%
+-type string_iri() :: text_utils:ustring().
+
+
+% Any type of IRI:
+-type any_iri () :: iri() | string_iri().
 
 
 % Designates all basic values that are not IRIs, often in a textual version.
@@ -97,12 +109,23 @@
 -type content() :: [ triple() ].
 
 
--export_type([ iri/0, literal/0, subject/0, predicate/0, object/0, triple/0,
-			   content/0  ]).
+% Vocabulary, typically to be used for internal purposes.
+%
+-type vocabulary() :: set_utils:set( iri() ).
+
+
+% Vocabulary, typically to be specified by the user (simpler form).
+%
+-type user_vocabulary() :: [ string_iri() ].
+
+
+-export_type([ iri/0, string_iri/0, any_iri/0,
+			   literal/0, subject/0, predicate/0, object/0, triple/0,
+			   content/0, vocabulary/0, user_vocabulary/0 ]).
 
 
 -export([ is_iri/1, is_literal/1, is_subject/1, is_predicate/1, is_object/1,
-		  evaluate_statement/3 ]).
+		  evaluate_statement/3, implies/2, vocabulary_to_string/1 ]).
 
 
 
@@ -157,3 +180,32 @@ evaluate_statement( _Subject, _Predicate= <<"is_a">>, _Object ) ->
 
 evaluate_statement( _Subject, Predicate, _Object ) ->
 	throw( { cannot_evaluate_rdf_statement, Predicate } ).
+
+
+
+% Tells whether the first vocabulary is a subset of the second, i.e. whether the
+% first properties imply that the second ones are met.
+%
+-spec implies( vocabulary(), vocabulary() ) -> boolean().
+implies( FirstVocabulary, SecondVocabulary ) ->
+	set_utils:is_subset( SecondVocabulary, FirstVocabulary ).
+
+
+
+% Returns a textual representation of specified vocabulary.
+%
+-spec vocabulary_to_string( vocabulary() ) -> string().
+vocabulary_to_string( Vocabulary ) ->
+
+	case set_utils:to_list( Vocabulary ) of
+
+		[] ->
+			"an empty vocabulary";
+
+		SemList ->
+
+			SemString = text_utils:binaries_to_string( SemList ),
+			text_utils:format( "a vocabulary comprising ~B terms:~s",
+							   [ length( SemList ), SemString ] )
+
+	end.

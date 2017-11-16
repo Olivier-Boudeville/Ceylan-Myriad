@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2017 Olivier Boudeville
+% Copyright (C) 2010-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -23,32 +23,24 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
-% Creation date: Tuesday, January 29, 2013
+% Creation date: Monday, September 11, 2017.
 
 
-% Header to export canvas-related defines.
+
+
+% Gathering of various facilities for OpenGL rendering, done through WxWidgets.
 %
-% See canvas.erl for the corresponding implementation.
-
-
-
-% wxCanvas does not exist, we emulate it.
+% See gui_opengl_test.erl for the corresponding test.
 %
-% Canvas are back-buffered: drawing operations on it will not be visible until
-% the blit/1 function is called on it.
+% See gui.erl for more general rendering topics.
 %
--record( canvas, {
-
-		   panel       :: gui:panel(),
-		   bitmap      :: gui:bitmap(),
-		   back_buffer :: gui:back_buffer()
-
-}).
+-module(gui_opengl).
 
 
-% The actual canvas type we are to use:
--type canvas() :: #canvas{}.
+%-export_type([]).
 
+%-export([]).
 
-% An OpenGL-based canvas:
--type gl_canvas():: wxGLCanvas:wxGLCanvas().
+%-include_lib("wx/include/wx.hrl").
+%-include_lib("wx/include/gl.hrl").
+%-include_lib("wx/include/glu.hrl").

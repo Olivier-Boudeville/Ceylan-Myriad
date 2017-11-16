@@ -60,6 +60,9 @@
 % For related defines:
 -include("gui.hrl").
 
+% For related, internal, wx-related defines:
+-include("gui_internal_defines.hrl").
+
 
 
 % Creates a static text, based on specified identifier and plain string.

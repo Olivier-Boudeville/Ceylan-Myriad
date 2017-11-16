@@ -33,22 +33,6 @@
 -module(basic_utils).
 
 
-% Registration functions.
-%
--export([ register_as/2, register_as/3, register_or_return_registered/2,
-		  unregister/2,
-
-		  get_registered_pid_for/1, get_registered_pid_for/2,
-		  get_locally_registered_pid_for/2,
-
-		  get_registered_names/1,
-
-		  is_registered/1, is_registered/2,
-		  wait_for_global_registration_of/1, wait_for_global_registration_of/2,
-		  wait_for_local_registration_of/1,
-		  wait_for_remote_local_registrations_of/2,
-		  display_registered/0 ]).
-
 
 
 % Notification-related functions.
@@ -70,7 +54,9 @@
 % Miscellaneous functions.
 %
 -export([ size/1, display_process_info/1,
-		  checkpoint/1, display/1, display/2, display_error/1, display_error/2,
+		  checkpoint/1,
+		  display/1, display/2, display_timed/2, display_timed/3,
+		  display_error/1, display_error/2,
 		  debug/1, debug/2,
 		  parse_version/1, compare_versions/2,
 		  get_process_specific_value/0, get_process_specific_value/2,
@@ -110,6 +96,11 @@
 % Allows to count elements (positive integer, possibly zero):
 %
 -type count() :: non_neg_integer().
+
+
+% Allows to count elements (strictly positive integer):
+%
+-type non_null_count() :: pos_integer().
 
 
 % Describes a mask of bits:
@@ -198,18 +189,6 @@
 -type sortable_id() :: [ integer() ].
 
 
-
--type registration_name() :: atom().
-
-
--type registration_scope() :: 'global_only' | 'local_only'
-							| 'local_and_global' | 'none'.
-
-
--type look_up_scope() :: 'global' | 'local'
-					   | 'local_and_global' | 'local_otherwise_global'.
-
-
 -type version_number() :: integer().
 
 % By default we consider a version is a triplet of numbers:
@@ -254,536 +233,21 @@
 -type status_code() :: 0..255. % i.e. byte()
 
 
-
--export_type([
-
-			  void/0, count/0, bit_mask/0, uuid/0, reason/0, exit_reason/0,
-			  error_reason/0, error_term/0, base_status/0, maybe/1,
-			  external_data/0, unchecked_data/0, user_data/0,
-			  accumulator/0, sortable_id/0,
-			  registration_name/0, registration_scope/0, look_up_scope/0,
-			  version_number/0, version/0, two_digit_version/0, any_version/0,
-			  positive_index/0,
-			  module_name/0, function_name/0, argument/0, command_spec/0,
-			  user_name/0, atom_user_name/0,
-			  comparison_result/0, exception_class/0, status_code/0
-			  ]).
-
-
-
-% Registration functions.
-%
-% Note that:
-% - only local processes can be registered locally
-% - a given PID cannot be registered globally under more than one name
-
-
-
-
-% Registers the current process under specified name, which must be an atom.
-%
-% Declaration is register_as( Name, RegistrationType ) with
-% RegistrationType in 'local_only', 'global_only', 'local_and_global', 'none'
-% depending on what kind of registration is requested.
-%
-% Throws an exception on failure (ex: if that name is already registered).
-%
--spec register_as( registration_name(), registration_scope() ) -> void().
-register_as( Name, RegistrationType ) ->
-	register_as( self(), Name, RegistrationType ).
-
-
-
-% Registers specified (local) PID under specified name, which must be an atom.
-%
-% Declaration is: register_as( Pid, Name, RegistrationType ) with
-% RegistrationType in 'local_only', 'global_only', 'local_and_global',
-% 'none', depending on what kind of registration is requested.
-%
-% Throws an exception on failure.
-%
--spec register_as( pid(), registration_name(), registration_scope() ) -> void().
-register_as( Pid, Name, local_only ) when is_atom( Name ) ->
-
-	%io:format( "register_as: local_only, with PID=~w and Name='~p'.~n",
-	%		  [ Pid, Name ] ),
-
-	try erlang:register( Name, Pid ) of
-
-		true ->
-			ok
-
-	catch
-
-		ExceptionType:Exception ->
-			throw( { local_registration_failed, Name,
-					 { ExceptionType, Exception } } )
-
-	end;
-
-register_as( Pid, Name, global_only ) when is_atom( Name ) ->
-	case global:register_name( Name, Pid ) of
-
-		yes ->
-			ok;
-
-		no ->
-			throw( { global_registration_failed, Name } )
-
-	end;
-
-register_as( Pid, Name, local_and_global ) when is_atom( Name ) ->
-	register_as( Pid, Name, local_only ),
-	register_as( Pid, Name, global_only );
-
-register_as( _Pid, _Name, none ) ->
-	ok.
-
-
-
-
-% Registers specified PID under specified name (which must be an atom) and scope
-% (only local_only and global_only registration scopes permitted), and returns
-% 'registered', or returns the PID of any process already registered.
-%
-% This is an atomic operation, which is not meant to fail.
-%
-% Allows for example a series of non-synchronised processes to all attempt to
-% register: the first will succeed, all the others will get its PID, none will
-% fail.
-%
--spec register_or_return_registered( registration_name(),
-	'global_only' | 'local_only' ) -> 'registered' | pid().
-register_or_return_registered( Name, Scope ) when is_atom( Name ) ->
-
-	% Minor annoyance: we ensured that looking up a process relied generally on
-	% a different atom than registering it (ex: 'global' vs 'global_only').
-	%
-	% Here, we expect the user to specify a registration atom; we need to
-	% convert it for look-up purposes:
-	%
-	LookUpScope = registration_to_look_up_scope( Scope ),
-
-	case is_registered( Name, LookUpScope ) of
-
-		not_registered ->
-
-			try
-
-				register_as( Name, Scope ),
-				registered
-
-			catch
-
-				throw:_ ->
-					% Another process must have registered in-between, let's
-					% restart:
-					%
-					% (a small random waiting could be added here)
-					%
-					register_or_return_registered( Name, Scope )
-
-			end;
-
-
-		Pid ->
-			Pid
-
-	end.
-
-
-
-% Unregisters specified name from specified registry.
-%
-% Throws an exception in case of failure.
-%
--spec unregister( registration_name(), registration_scope() ) -> void().
-unregister( Name, local_only ) ->
-
-	try erlang:unregister( Name ) of
-
-		true ->
-			ok
-
-	catch
-
-		ExceptionType:Exception ->
-			throw( { local_unregistration_failed, Name,
-					 { ExceptionType, Exception } } )
-
-	end;
-
-unregister( Name, global_only ) ->
-	% Documentation says it returns "void" (actually 'ok'):
-	try
-
-		global:unregister_name( Name )
-
-	catch
-
-		ExceptionType:Exception ->
-			throw( { global_unregistration_failed, Name,
-					 { ExceptionType, Exception } } )
-
-	end;
-
-unregister( Name, local_and_global ) ->
-	unregister( Name, local_only ),
-	unregister( Name, global_only );
-
-unregister( _Name, none ) ->
-	ok.
-
-
-
-% Returns the PID that should be already registered, as specified name.
-%
-% Local registering will be requested first, if not found global one will be
-% tried.
-%
-% No specific waiting for registration will be performed, see
-% wait_for_*_registration_of instead.
-%
--spec get_registered_pid_for( registration_name() ) -> pid().
-get_registered_pid_for( Name ) ->
-	get_registered_pid_for( Name, _RegistrationType=local_otherwise_global ).
-
-
-
--spec get_registered_pid_for( registration_name(), look_up_scope() ) ->  pid().
-get_registered_pid_for( Name, _RegistrationType=local_otherwise_global ) ->
-
-	try
-
-		get_registered_pid_for( Name, local )
-
-	catch
-
-		{ not_registered_locally, _Name } ->
-
-			try
-
-				get_registered_pid_for( Name, global )
-
-			catch
-
-				{ not_registered_globally, Name } ->
-					throw( { neither_registered_locally_nor_globally, Name } )
-
-			end
-
-	end;
-
-get_registered_pid_for( Name, _RegistrationType=local ) ->
-	case erlang:whereis( Name ) of
-
-		undefined ->
-			throw( { not_registered_locally, Name } );
-
-		Pid ->
-			Pid
-
-	end;
-
-get_registered_pid_for( Name, _RegistrationType=global ) ->
-	case global:whereis_name( Name ) of
-
-		undefined ->
-			throw( { not_registered_globally, Name } );
-
-		Pid ->
-			Pid
-
-	end;
-
-% So that the atom used for registration can be used for look-up as well,
-% notably in static methods (see the registration_type defines).
-get_registered_pid_for( Name, _RegistrationType=local_and_global ) ->
-	get_registered_pid_for( Name, local_otherwise_global ).
-
-
-
-% Returns the PID of the process corresponding to the specified local name on
-% specified node: that process is expected to be locally registered on that
-% specified node.
-%
-% Throws an exception on failure.
-%
--spec get_locally_registered_pid_for( registration_name(),
-									 net_utils:atom_node_name() ) -> pid().
-get_locally_registered_pid_for( Name, TargetNode ) ->
-
-	case rpc:call( TargetNode, _Mod=erlang, _Fun=whereis, _Args=[ Name ] ) of
-
-		{ badrpc, Reason } ->
-			throw( { not_registered_locally, Name, TargetNode, Reason } );
-
-		Res ->
-			Res
-
-	end.
-
-
-
-% Returns a list of the names of the registered processes, for specified look-up
-% scope.
-%
--spec get_registered_names( look_up_scope() ) -> [ registration_name() ].
-get_registered_names( _LookUpScope=global ) ->
-	global:registered_names();
-
-get_registered_names( _LookUpScope=local ) ->
-	erlang:registered().
-
-
-
-% Tells whether specified name is registered in the specified local/global
-% context: if no, returns the 'not_registered' atom, otherwise returns the
-% corresponding PID.
-%
-% Local registering will be requested first, if not found global one will be
-% tried.
-%
-% No specific waiting for registration will be performed, see
-% wait_for_*_registration_of instead.
-%
--spec is_registered( registration_name() ) -> pid() | 'not_registered'.
-is_registered( Name ) ->
-	is_registered( Name, _RegistrationType=local_otherwise_global ).
-
-
-
--spec is_registered( registration_name(), look_up_scope() ) ->
-						   pid() | 'not_registered'.
-is_registered( Name, _LookUpScope=global ) ->
-
-	case global:whereis_name( Name ) of
-
-		undefined ->
-			not_registered ;
-
-		Pid ->
-			Pid
-
-	end;
-
-
-is_registered( Name, _LookUpScope=local ) ->
-
-	case erlang:whereis( Name ) of
-
-		undefined ->
-			not_registered;
-
-		Pid ->
-			Pid
-
-	end;
-
-
-
-% Returns a PID iff both local and global look-ups returns a PID, and the same
-% one.
-%
-is_registered( Name, _LookUpScope=local_and_global ) ->
-
-	case is_registered( Name, local ) of
-
-		not_registered ->
-			not_registered;
-
-		Pid ->
-
-			case is_registered( Name, global ) of
-
-				% Already bound!
-				Pid ->
-					Pid;
-
-				not_registered ->
-					not_registered
-
-			end
-
-	end;
-
-
-is_registered( Name, _LookUpScope=local_otherwise_global ) ->
-
-	case is_registered( Name, local ) of
-
-		not_registered ->
-			is_registered( Name, global );
-
-		Pid ->
-			Pid
-
-	end;
-
-% Normally, 'local_only', 'global_only' and 'none' should only be specified for
-% registration (not for looking-up); nevertheless the following clauses allow to
-% use the same parameter for reading as for registration, even if we do not know
-% which.
-%
-% So that the atom used for registration can be used for look-up as well,
-% notably in static methods (see the registration_type defines).
-%
-is_registered( Name, _LookUpScope=local_only ) ->
-	is_registered( Name, local );
-
-is_registered( Name, _LookUpScope=global_only ) ->
-	is_registered( Name, global ).
-
-
-
-
-
-% Waits (up to 10 seconds) until specified name is globally registered.
-%
-% Returns the resolved PID, or throws
-% { global_registration_waiting_timeout, Name }.
-%
--spec wait_for_global_registration_of( registration_name() ) -> pid().
-wait_for_global_registration_of( Name ) ->
-	wait_for_global_registration_of( Name, _Seconds=10 ).
-
-
-wait_for_global_registration_of( Name, _Seconds=0 ) ->
-	throw( { global_registration_waiting_timeout, Name } );
-
-wait_for_global_registration_of( Name, SecondsToWait ) ->
-	case global:whereis_name( Name ) of
-
-		undefined ->
-			timer:sleep( 1000 ),
-			wait_for_global_registration_of( Name, SecondsToWait-1 );
-
-		Pid ->
-			Pid
-
-	end.
-
-
-
-
-% Waits (up to 5 seconds) until specified name is locally registered.
-%
-% Returns the resolved PID, or throws {local_registration_waiting_timeout,Name}.
-%
--spec wait_for_local_registration_of( registration_name() ) -> pid() | port().
-wait_for_local_registration_of( Name ) ->
-	wait_for_local_registration_of( Name , 5 ).
-
-
-wait_for_local_registration_of( Name, _Seconds=0 ) ->
-	throw( { local_registration_waiting_timeout, Name } );
-
-wait_for_local_registration_of( Name, SecondsToWait ) ->
-
-	case erlang:whereis( Name ) of
-
-		undefined ->
-			timer:sleep( 1000 ),
-			wait_for_local_registration_of( Name, SecondsToWait-1 );
-
-		Pid ->
-			Pid
-
-	end.
-
-
-
-% Waits for specified name RegisteredName (an atom) to be locally registered on
-% all specified nodes before returning.
-%
-% A time-out is triggered if the waited duration exceeds 10 seconds.
-%
--spec wait_for_remote_local_registrations_of( registration_name(),
-				 [ net_utils:atom_node_name() ] ) -> void().
-wait_for_remote_local_registrations_of( RegisteredName, Nodes ) ->
-
-	% Up to 10 seconds, 0.5 seconds of waiting between two, thus 20 attempts:
-	RemainingAttempts = round( 10 / 0.5 ),
-
-	wait_for_remote_local_registrations_of( RegisteredName, Nodes,
-											RemainingAttempts ).
-
-
-% Helper function.
-wait_for_remote_local_registrations_of( RegisteredName, Nodes,
-										_RemainingAttempts=0 ) ->
-	throw( { time_out_while_waiting_remote_local_registration, RegisteredName,
-			 Nodes } );
-
-wait_for_remote_local_registrations_of( RegisteredName, Nodes,
-										RemainingAttempts ) ->
-
-	{ ResList, BadNodes } = rpc:multicall( Nodes, erlang, whereis,
-										   [ RegisteredName  ], _Timeout=2000 ),
-
-	case BadNodes of
-
-		[] ->
-			ok;
-
-		_ ->
-			throw( { bad_nodes_while_waiting_remote_local_registration,
-					 RegisteredName, BadNodes } )
-
-	end,
-
-	case lists:member( undefined, ResList ) of
-
-		true ->
-
-			% Happens regularly on some settings:
-			%io:format( "~nwait_for_remote_local_registrations_of: for ~p, "
-			%		  "retry needed ~n~n", [ Nodes ] ),
-
-			% At least one node not ready (we do not know which), waiting a bit
-			% for it:
-			timer:sleep( 500 ),
-			wait_for_remote_local_registrations_of( RegisteredName, Nodes,
-													RemainingAttempts - 1 );
-
-		false ->
-			ok
-
-	end.
-
-
-
-% Displays registered processes.
-%
--spec display_registered() -> void().
-display_registered() ->
-
-	io:format( "On a total of ~B existing processes on node '~s':~n",
-			   [ length( processes() ), node() ] ),
-
-	case global:registered_names() of
-
-		[] ->
-			io:format( " - no process is globally-registered~n" );
-
-		Globals ->
-			io:format( " - ~B processes are globally-registered:~n~p~n",
-					   [ length( Globals ), Globals ] )
-
-	end,
-
-	case registered() of
-
-		[] ->
-			io:format( " - no process is locally-registered~n" );
-
-		Locals ->
-			io:format( " - ~B processes are locally-registered:~n~p~n",
-					   [ length( Locals ), Locals ] )
-
-	end.
-
-
+% Useful as a temporary type placeholder, during development:
+-type fixme() :: any().
+
+
+-export_type([ void/0, count/0, non_null_count/0, bit_mask/0, uuid/0,
+			   reason/0, exit_reason/0, error_reason/0, error_term/0,
+			   base_status/0, maybe/1,
+			   external_data/0, unchecked_data/0, user_data/0,
+			   accumulator/0, sortable_id/0,
+			   version_number/0, version/0, two_digit_version/0, any_version/0,
+			   positive_index/0,
+			   module_name/0, function_name/0, argument/0, command_spec/0,
+			   user_name/0, atom_user_name/0,
+			   comparison_result/0, exception_class/0, status_code/0,
+			   fixme/0 ]).
 
 
 
@@ -868,13 +332,9 @@ stop() ->
 
 
 
-% Stops smoothly the underlying VM, with a normal, success error code (0).
+% Stops smoothly, synchronously the underlying VM, with specified error code.
 %
-% Also also to potentially override Erlang standard teardown procedure.
-%
-% Note: it is an asynchronous, message-based operation. As a result, the calling
-% process will most probably continue with the next instructions until the VM is
-% halted.
+% Also allows to potentially override Erlang standard teardown procedure.
 %
 -spec stop( status_code() ) -> no_return().
 stop( StatusCode ) ->
@@ -887,7 +347,8 @@ stop( StatusCode ) ->
 
 
 
-% Stops smoothly the underlying VM, with a normal, success status code (0).
+% Stops smoothly, synchronously the underlying VM, with a normal, success status
+% code (0).
 %
 -spec stop_on_success() -> no_return().
 stop_on_success() ->
@@ -1537,7 +998,55 @@ display( Message ) ->
 %
 -spec display( text_utils:format_string(), [ any() ] ) -> void().
 display( Format, Values ) ->
-	display( io_lib:format( Format, Values ) ).
+
+	%io:format( "Displaying format '~p' and values '~p'.~n",
+	%		   [ Format, Values ] ),
+
+	Message = text_utils:format( Format, Values ),
+
+	display( Message ).
+
+
+
+
+% Displays specified string on the standard output of the console, ensuring as
+% much as possible this message is output synchronously, so that it can be
+% output on the console even if the virtual machine is to crash just after.
+%
+-spec display_timed( string(), time_utils:time_out() ) -> void().
+display_timed( Message, TimeOut ) ->
+
+	% Finally io:format has been preferred to erlang:display, as the latter one
+	% displays quotes around the strings.
+
+	io:format( "~s~n", [ Message ] ),
+	system_utils:await_output_completion( TimeOut ).
+
+	% May not go through group leader (like io:format), thus less likely to
+	% crash without displaying the message:
+	%
+	%erlang:display( lists:flatten( [ Message, ".~n" ] ) ).
+	%erlang:display( Message ).
+
+
+
+% Displays specified format string filled according to specified values on the
+% standard output of the console, ensuring as much as possible this message is
+% output synchronously, so that it can be output on the console even if the
+% virtual machine is to crash just after.
+%
+-spec display_timed( text_utils:format_string(), [ any() ],
+					 time_utils:time_out() ) -> void().
+display_timed( Format, Values, TimeOut ) ->
+
+	%io:format( "Displaying format '~p' and values '~p'.~n",
+	%		   [ Format, Values ] ),
+
+	Message = text_utils:format( Format, Values ),
+
+	display_timed( Message, TimeOut ).
+
+
 
 
 
@@ -1722,26 +1231,6 @@ get_process_specific_value( Min, Max ) ->
 
 
 
-% Converts a registration scope into a look-up one.
-%
-% Note: only legit for a subset of the registration scopes, otherwise a case
-% clause is triggered.
-%
-% (helper)
-%
--spec registration_to_look_up_scope( registration_scope() ) ->
-										   look_up_scope().
-registration_to_look_up_scope( _Scope=global_only ) ->
-	global;
-
-registration_to_look_up_scope( _Scope=local_only ) ->
-	local;
-
-registration_to_look_up_scope( _Scope=local_and_global ) ->
-	local_and_global.
-
-
-
 % Returns the execution target this module was compiled with, i.e. either the
 % atom 'development' or 'production'.
 
@@ -1774,9 +1263,10 @@ get_execution_target() ->
 %
 % Note:
 % - the process may run on the local node or not
-% - generally not to be used when relying on a good design.
+% - generally not to be used when relying on a good design
 %
--spec is_alive( pid() | string() | registration_name() ) -> boolean().
+-spec is_alive( pid() | string() | naming_utils:registration_name() )
+			  -> boolean().
 is_alive( TargetPid ) when is_pid( TargetPid ) ->
 	is_alive( TargetPid, node( TargetPid ) );
 
@@ -1785,7 +1275,7 @@ is_alive( TargetPidString ) when is_list( TargetPidString ) ->
 	is_alive( TargetPid, node( TargetPid ) );
 
 is_alive( TargetPidName ) when is_atom( TargetPidName ) ->
-	TargetPid = get_registered_pid_for( TargetPidName,
+	TargetPid = naming_utils:get_registered_pid_for( TargetPidName,
 						_RegistrationType=local_otherwise_global ),
 	is_alive( TargetPid, node( TargetPid ) ).
 
@@ -1810,8 +1300,8 @@ is_alive( TargetPid, Node ) when is_pid( TargetPid ) ->
 			erlang:is_process_alive( TargetPid );
 
 		_OtherNode ->
-			%io:format( "Testing liveliness of process ~p on node ~p.~n",
-			%		  [ TargetPid, Node ] ),
+			%trace_utils:debug_fmt( "Testing liveliness of process ~p "
+			%  "on node ~p.", [ TargetPid, Node ] ),
 			rpc:call( Node, _Mod=erlang, _Fun=is_process_alive,
 					  _Args=[ TargetPid ] )
 
