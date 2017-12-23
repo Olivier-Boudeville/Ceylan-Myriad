@@ -86,8 +86,8 @@
 		%
 		% (few information gathered)
 		%
-		type_definitions = [] :: [ { meta_utils:type_name(),
-									 meta_utils:type_arity() } ],
+		type_definitions = [] :: [ { type_utils:type_name(),
+									 type_utils:type_arity() } ],
 
 
 		% The abstract forms corresponding to type definitions:
@@ -96,8 +96,8 @@
 
 
 		% All type exports:
-		type_exports = [] :: [ { meta_utils:type_name(),
-								 meta_utils:type_arity() } ],
+		type_exports = [] :: [ { type_utils:type_name(),
+								 type_utils:type_arity() } ],
 
 
 		% The type export definitions:
