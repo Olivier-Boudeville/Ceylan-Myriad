@@ -142,7 +142,7 @@ run() ->
 
 	{ 4, 22, 11 } = basic_utils:parse_version( "4.22.11" ),
 
-	test_facilities:display( "Generating a new UUID: '~s'.", 
+	test_facilities:display( "Generating a new UUID: '~s'.",
 							 [ basic_utils:generate_uuid() ] ),
 
 	test_facilities:display( "Generating a process-specific value: ~w.",

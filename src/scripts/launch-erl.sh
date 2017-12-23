@@ -1,8 +1,8 @@
 #!/bin/sh
 
-# Copyright (C) 2008-2016 Olivier Boudeville
+# Copyright (C) 2008-2018 Olivier Boudeville
 #
-# This file is part of the Ceylan Erlang library.
+# This file is part of the Ceylan-Myriad project.
 
 
 
@@ -31,7 +31,7 @@ use_run_erl=1
 
 
 # Not used anymore as the user may prefer file-based cookies:
-#default_cookie="ceylan"
+#default_cookie="ceylan_myriad"
 
 
 # Some defaults:
@@ -115,12 +115,12 @@ RUN_ERL=$(which run_erl)
 TO_ERL=$(which to_erl)
 
 
-CEYLAN_ERLANG=$(dirname $0)/../..
-#echo "CEYLAN_ERLANG = ${CEYLAN_ERLANG}"
+#CEYLAN_MYRIAD_ROOT=$(dirname $0)/../..
+#echo "CEYLAN_MYRIAD_ROOT = ${CEYLAN_MYRIAD_ROOT}"
 
 
 # If logs are redirected to file:
-DEFAULT_LOG_FILE="Ceylan-run.log"
+DEFAULT_LOG_FILE="Ceylan-Myriad-run.log"
 
 # Defaults:
 be_verbose=1
@@ -354,13 +354,11 @@ if [ $use_run_erl -eq 0 ] ; then
 	if [ -e "${write_pipe}" ] ; then
 		#echo "(removing write pipe)"
 		/bin/rm -f "${write_pipe}"
-
 	fi
 
 	if [ -e "${read_pipe}" ] ; then
 		#echo "(removing read pipe)"
 		/bin/rm -f "${read_pipe}"
-
 	fi
 
 
@@ -421,7 +419,6 @@ if [ -x "${realpath_exec}" ] ; then
 		new_dir=$(realpath $d 2>/dev/null)
 
 		if [ -d "$new_dir" ] ; then
-
 			#echo "  + $new_dir"
 			shortened_code_dirs="$shortened_code_dirs $new_dir"
 		else
@@ -608,6 +605,13 @@ if [ $use_run_erl -eq 0 ] ; then
 
 	log_dir=$(pwd)
 
+	if [ ! -x "${RUN_ERL}" ] ; then
+
+		echo "  Error, no 'run_erl' tool available." 1>&2
+		exit 80
+
+	fi
+
 	#echo "Launching a VM, using run_erl and log_dir=$log_dir."
 
 	# The -daemon must be there (see
@@ -619,6 +623,13 @@ if [ $use_run_erl -eq 0 ] ; then
 	final_command="${RUN_ERL} -daemon ${run_pipe} ${log_dir} \"exec ${ERL} ${to_eval_run_erl} ${command}\""
 
 else
+
+	if [ ! -x "${ERL}" ] ; then
+
+		echo "  Error, no Erlang interpreter ('erl') available." 1>&2
+		exit 81
+
+	fi
 
 	#echo "Launching a VM, using direct command-line execution."
 	final_command="${ERL} ${to_eval} ${command}"
@@ -774,6 +785,14 @@ if [ $use_run_erl -eq 0 ] && [ $autostart -eq 0 ] ; then
 
 	# Then send the actual command:
 	#echo "${eval_content}." >> ${write_pipe}
+
+	#if [ ! -x "${TO_ERL}" ]; then
+	#
+	#	echo "  Error, the 'to_erl' tool is not available." 1>&2
+	#
+	#	exit 56
+	#
+	#fi
 
 	#echo "Running '${TO_ERL} $run_pipe' now."
 	#${TO_ERL} $run_pipe

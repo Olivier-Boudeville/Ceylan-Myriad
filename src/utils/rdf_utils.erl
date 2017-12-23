@@ -203,7 +203,8 @@ vocabulary_to_string( Vocabulary ) ->
 			"an empty vocabulary";
 
 		SemList ->
-			SemString = text_utils:strings_to_string( SemList ),
+
+			SemString = text_utils:binaries_to_string( SemList ),
 			text_utils:format( "a vocabulary comprising ~B terms:~s",
 							   [ length( SemList ), SemString ] )
 

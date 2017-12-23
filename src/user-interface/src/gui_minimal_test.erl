@@ -44,25 +44,30 @@ run_test_gui() ->
 
 	gui:start(),
 
+
 	TestFrame = gui:create_frame( "This is the single and only frame" ),
 
-	gui:show( TestFrame ),
-
-	trace_utils:info( "Please close the frame to end this test." ),
 
 	EventOfInterest = { onWindowClosed, TestFrame },
 
-	gui:receive_events( EventOfInterest ),
+	gui:subscribe_to_events( EventOfInterest ),
+
+
+	trace_utils:info( "Please close the frame to end this test." ),
+
+	gui:show( TestFrame ),
+
 
 	% Not even a real main loop here, just a one-shot event waited:
 	receive
 
 		{ onWindowClosed, [ TestFrame, Context ] } ->
 
-			trace_utils:trace_fmt( "Frame ~s closed (~s).",
+			trace_utils:trace_fmt( "Frame '~s' closed (~s).",
 				[ gui:object_to_string( TestFrame ),
 				  gui:context_to_string( Context ) ] ),
 
+			% A frame is a window:
 			gui:destruct_window( TestFrame ),
 
 			trace_utils:trace( "Test frame closed, test success." ),

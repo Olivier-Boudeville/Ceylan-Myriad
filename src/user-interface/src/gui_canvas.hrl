@@ -53,13 +53,7 @@
 	%
 	size :: gui:size()
 
-	% As a canvas may have to post higher-level events to the internal main
-	% loop:
-	%
-	%loop_pid :: pid()
-
 }).
-
 
 % The actual canvas type we are to use:
 -type canvas_state() :: #canvas_state{}.

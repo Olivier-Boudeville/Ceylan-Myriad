@@ -23,23 +23,43 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
-% Creation date: Saturday, September 16, 2017.
+% Creation date: Tuesday, January 29, 2013
 
 
-% Internal gui defines, hence to be included solely by the gui subsystem, not by
-% user code (as depends on wx).
+
+% Header to export MyriadGUI-related defines, both for user code and for
+% internal one.
+%
+% See gui.erl for the corresponding implementation.
 
 
-% For wx records and all:
--include_lib("wx/include/wx.hrl").
+% Context sent to corresponding subscribers together with an event.
+%
+% This context can be ignored in most cases.
+%
+-record( gui_event_context, {
 
 
-% Some defines:
+		   % The identifier of the event source (generally not useful, as the
+		   % gui_object shall be enough):
+		   %
+		   id :: gui:id(),
 
--define( any_id, ?wxID_ANY ).
 
--define( no_parent, wx:null() ).
+		   % Usually of no use, as such user data is a means of preserving a
+		   % state, whereas the user event loop is better to do so:
+		   %
+		   user_data = [] :: gui:user_data(),
 
 
-% The special color that means "transparent" (i.e. no filling):
--define( transparent_color, ?wxTRANSPARENT_BRUSH ).
+		   % The full, lower-level event (if any) resulting in our event:
+		   %
+		   % (useful for example when deciding to propagate it upward in the
+		   % widget hierarchy)
+		   %
+		   backend_event = undefined :: basic_utils:maybe( gui:backend_event() )
+
+
+}).
+
+-type gui_event_context() :: #gui_event_context{}.

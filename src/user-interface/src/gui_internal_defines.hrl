@@ -23,39 +23,42 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
-% Creation date: Tuesday, January 29, 2013
+% Creation date: Saturday, September 16, 2017.
 
 
-% Header to export gui-related defines.
+% Internal gui defines, hence to be included solely by the gui subsystem, not by
+% user code (as depends on wx).
+
+
+% For wx records and all:
+-include_lib("wx/include/wx.hrl").
+
+
+% Some defines:
+
+-define( any_id, ?wxID_ANY ).
+
+-define( no_parent, wx:null() ).
+
+
+% The special color that means "transparent" (i.e. no filling):
+-define( transparent_color, ?wxTRANSPARENT_BRUSH ).
+
+
+
+% A reference onto a GUI object, for the widgets that MyriadGUI added to the
+% backend at hand.
 %
-% See gui.erl for the corresponding implementation.
-
-
-% Context sent together with an event, which can be most of the time ignored.
+% Results in terms such as: { myriad_object_ref, canvas, CanvasPid }.
 %
--record( gui_event_context, {
+-record( myriad_object_ref, {
 
+		% The type of GUI object referred to (ex: 'canvas'):
+		object_type :: gui:myriad_object_type(),
 
-		   % The identifier of the event source (generally not useful as the
-		   % gui_object is enough):
-		   %
-		   id :: gui:id(),
-
-
-		   % Usually of no use, as the user has been means of preserving a state
-		   % (ex: in the main loop)
-		   %
-		   user_data = [] :: gui:user_data(),
-
-
-		   % The lower-level event (if any) resulting in our event:
-		   %
-		   % (useful for example when deciding to propagate it upward in the
-		   % widget hierarchy)
-		   %
-		   backend_event = undefined :: gui:backend_event()
-
+		% The identifier of this referenced instance:
+		myriad_instance_pid :: gui:myriad_instance_pid()
 
 }).
 
--type gui_event_context() :: #gui_event_context{}.
+-type myriad_object_ref() :: #myriad_object_ref{}.
