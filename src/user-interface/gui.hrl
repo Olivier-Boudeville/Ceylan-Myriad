@@ -45,7 +45,7 @@
 		   % Usually of no use, as the user has been means of preserving a state
 		   % (ex: in the main loop)
 		   %
-		   user_data = undefined :: gui:user_data(),
+		   user_data = [] :: gui:user_data(),
 
 
 		   % The lower-level event (if any) resulting in our event:

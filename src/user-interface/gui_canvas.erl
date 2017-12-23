@@ -43,9 +43,6 @@
 
 % Implementation notes:
 
-% Due to their number, canvas operations have been defined separately from the
-% gui module.
-
 
 % Canvas general operations:
 %
@@ -91,6 +88,20 @@
 -export([ load_image/2, load_image/3 ]).
 
 
+% Implementation notes:
+%
+% There is actually no such thing as a plain canvas in wx: here, they are
+% actually panels with bitmaps.
+%
+% So we emulate a canvas here, resulting notably in the fact that a canvas
+% object is not a reference onto a wx object, but a stateful instance that shall
+% as a result be kept from a call to another: as its state may change, the
+% result of functions returning a canvas must not be ignored.
+
+% Due to their number, canvas operations have been defined separately from the
+% gui module.
+
+
 
 % For related defines:
 -include("gui_canvas.hrl").
@@ -105,33 +116,76 @@
 -include("gui_internal_defines.hrl").
 
 
-% Implementation notes
+
+% Creates a canvas, whose parent is the specified window.
 %
-% There is actually no such thing as a plain canvas in wx: they are actually
-% here panels with bitmaps.
+% Note: once the event subscriptions have been declared (see
+% gui:handle_events/1), the set_up/2 canvas function must be called byt the user
+% code.
 %
 -spec create( gui:window() ) -> canvas().
-create( Window ) ->
+create( Parent ) ->
 
-	Panel = gui:create_panel( Window,
+	% Could have been: Size = auto,
+	Size = { W, H } = gui:get_size( Parent ),
+
+	Panel = gui:create_panel( Parent, _Pos=auto, Size,
 						  _Opt=[ { style, [ full_repaint_on_resize ] } ] ),
-
-	{ W, H } = gui:get_size( Panel ),
 
 	Bitmap = wxBitmap:new( W, H ),
 
 	BackBuffer = wxMemoryDC:new( Bitmap ),
 
-	#canvas{ panel=Panel, bitmap=Bitmap, back_buffer=BackBuffer }.
+	#canvas{ panel=Panel, bitmap=Bitmap, back_buffer=BackBuffer, size=Size }.
+
+
+
+% Sets up the canvas so that it can be used as any other widget afterwards
+% (post-initialisation).
+%
+% Necessary so that the canvas can be appropriately resized (now that the size
+% of its parent panel has been determined), drawn a first time, and so that it
+% becomes able to send messages to the internal loop.
+%
+-spec set_up( canvas(), gui:gui_state() ) -> canvas().
+set_up( Canvas, #gui_state{ loop_pid=LoopPid } ) ->
+
+	UpdatedCanvas = update( Canvas#canvas{ loop_pid=LoopPid } ),
+
+	gui:post_event( UpdatedCanvas, onRepaintNeeded, [ UpdatedCanvas, NewSize ], LoopPid ),
+
+	UpdatedCanvas.
+
+
+
+
+
+% Updates the specified canvas so that it matches any change in size of its
+% panel.
+%
+-spec update( canvas() ) -> canvas().
+update( Canvas=#canvas{ panel=Panel, size=Size } ) ->
+
+	case gui:get_size( Panel ) of
+
+		Size ->
+			Canvas;
+
+		% Panel was then resized, so canvas should be as well:
+		_ ->
+			resize( Canvas, Size )
+
+	end.
 
 
 
 % Resizes specified canvas (which in most cases should be cleared and repainted
 % then).
 %
--spec resize( canvas(), linear_2D:dimensions() ) -> canvas().
-resize( Canvas=#canvas{ bitmap=Bitmap, back_buffer=BackBuffer },
-		_NewDimensions={ W, H } ) ->
+-spec resize( canvas(), size() ) -> canvas().
+resize( Canvas=#canvas{ bitmap=Bitmap, back_buffer=BackBuffer,
+						loop_pid=LoopPid },
+		NewSize={ W, H } ) ->
 
 	wxBitmap:destroy( Bitmap ),
 	wxMemoryDC:destroy( BackBuffer ),
@@ -139,7 +193,13 @@ resize( Canvas=#canvas{ bitmap=Bitmap, back_buffer=BackBuffer },
 	NewBitmap = wxBitmap:new( W, H ),
 	NewBackBuffer = wxMemoryDC:new( NewBitmap ),
 
-	Canvas#canvas{ bitmap=NewBitmap, back_buffer=NewBackBuffer }.
+	NewCanvas = Canvas#canvas{ bitmap=NewBitmap, back_buffer=NewBackBuffer,
+							   size=NewSize },
+
+	gui:post_event( NewCanvas, onResized, [ NewSize ], LoopPid ),
+
+	NewCanvas.
+
 
 
 
@@ -157,7 +217,7 @@ clear( #canvas{ back_buffer=BackBuffer } ) ->
 %
 % After this call, the back-buffer stays as it was.
 %
--spec blit( canvas() ) -> basic_utils:canvas().
+-spec blit( canvas() ) -> canvas().
 blit( Canvas=#canvas{ panel=Panel, bitmap=Bitmap, back_buffer=BackBuffer } ) ->
 
 	VisibleBuffer = wxWindowDC:new( Panel ),
