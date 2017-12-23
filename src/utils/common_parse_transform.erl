@@ -27,7 +27,7 @@
 
 
 
-% Overall parse transform for the common layer.
+% Overall parse transform for the Common (a.k.a. Ceylan-Myriad) layer.
 %
 % See meta_utils.erl and meta_utils_test.erl.
 %
@@ -47,6 +47,9 @@
 %    * src/data-management/simple_parse_transform_target.erl for the test module
 %    the previous test is to apply to
 %
+% So the typical recommended workflow is to run repeatedly 'make
+% common_parse_transform_run' and perform modifications onto
+% simple_parse_transform_target.erl.
 %
 % - this particular parse transform applies at the level of the Common Layer
 % (a.k.a. Ceylan-Myriad), and as such *cannot use any module of that layer
@@ -166,7 +169,7 @@ parse_transform( AST, _Options ) ->
 	%             {remote,Line2,
 	%                               {atom,Line3,table},
 	%                               {atom,Line4,FunctionName}},
-	%              ListArgs }
+	%              ListArgs}
 
 	% The same kind of conversion for the type specifications (ex: function
 	% specs, type definitions, etc.) is done.
@@ -197,7 +200,7 @@ parse_transform( AST, _Options ) ->
 	%  {remote_type,Line, [{atom,Line,basic_utils}, {atom,Line,void}, [] ] }
 
 
-	%io:format( "~n##  INPUT  ################################################~n" ),
+	%io:format( "~n## INPUT ############################################~n" ),
 	%io:format( "Input AST:~n~p~n~n", [ AST ] ),
 
 	% Will fail (a bit silently) if the AST cannot be successfully linted:
@@ -214,7 +217,7 @@ parse_transform( AST, _Options ) ->
 
 	OutputModuleInfo = VoidModuleInfo,
 
-	%io:format( "~n##  OUTPUT  ################################################~n" ),
+	%io:format( "~n## OUTPUT ############################################ ~n" ),
 	%io:format( "Output module info: ~s~n",
 	%		   [ meta_utils:module_info_to_string( OutputModuleInfo ) ] ),
 
