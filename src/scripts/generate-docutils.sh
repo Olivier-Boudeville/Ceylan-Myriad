@@ -1,26 +1,36 @@
 #!/bin/sh
 
-# Copyright (C) 2010-2015 Olivier Boudeville
+# Copyright (C) 2010-2018 Olivier Boudeville
 #
-# This file is part of the Ceylan Erlang library.
+# This file is part of the Ceylan-Myriad library.
 
 
 # Note: docutils has been finally preferred to txt2tags.
 
-USAGE="Usage: $(basename $0) <target rst file> [ --pdf | --all | <path to CSS file to be used, ex: common/css/XXX.css> ]
+USAGE="Usage: $(basename $0) <target rst file> [ --pdf | --all | <comma-separated path(s) to CSS file to be used, ex: common/css/XXX.css,other.css> ]
 
 Updates specified file from more recent docutils source (*.rst).
 If '--pdf' is specified, a PDF will be created, if '--all' is specified, all output formats (i.e. HTML and PDF) will be created, otherwise HTML files only will be generated, using any specified CSS file.
 "
 
 
-# Left out: --warnings=rst-warnings.txt --traceback --verbose  --debug
+# Left out: --warnings=rst-warnings.txt --traceback --verbose --debug
 # Can be removed for debugging: --quiet
-docutils_common_opt="--report=error --no-generator --date --no-source-link --tab-width=4 --strip-comments"
+docutils_common_opt="--report=error --no-generator --no-datestamp --no-source-link --tab-width=2 --strip-comments --syntax-highlight=short"
 
+
+# Obtained from 'rst2html -h':
+#
 docutils_html_opt="${docutils_common_opt} --cloak-email-addresses --link-stylesheet --no-section-numbering"
 
-docutils_pdf_opt="${docutils_common_opt}"
+
+# Obtained from 'rst2latex -h':
+#
+
+doc_class=article
+#doc_class=report
+
+docutils_pdf_opt="${docutils_common_opt} --documentclass=${doc_class} --compound-enumerators"
 
 latex_to_pdf_opt="-interaction nonstopmode"
 
