@@ -78,6 +78,7 @@
 
 -type ast() :: meta_utils:ast().
 -type module_info() :: meta_utils:module_info().
+-type located_form() :: meta_utils:located_form().
 
 
 % Implementation notes:
