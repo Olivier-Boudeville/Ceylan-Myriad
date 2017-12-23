@@ -66,7 +66,7 @@
 
 		% Include files (typically *.hrl files).
 		%
-		% Unlike the raw definitions (in 'include_defs'), this file does not
+		% Unlike the raw definitions (in 'include_defs'), this field does not
 		% include the filename of the module being compiled (ex: "foobar.erl").
 		%
 		% (there is no duplicate either in that include list)
@@ -76,8 +76,8 @@
 
 		% Include definitions:
 		%
-		% (possibly a given file might be included more than once; the module
-		% being currently compiled is generally listed here more than once)
+		% (possibly a given file might be included more than once; it is
+		% generally the case for the module being currently compiled)
 		%
 		include_defs = [] :: meta_utils:located_ast(),
 

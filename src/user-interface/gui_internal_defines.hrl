@@ -1,4 +1,4 @@
-% Copyright (C) 2015-2017 Olivier Boudeville
+% Copyright (C) 2003-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -23,49 +23,42 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Creation date: Saturday, September 16, 2017.
 
 
-% A simple target module in order to test how parse transforms can operate.
+% Internal gui defines, hence to be included solely by the gui subsystem, not by
+% user code (as depends on wx).
+
+
+% For wx records and all:
+-include_lib("wx/include/wx.hrl").
+
+
+% Some defines:
+
+-define( any_id, ?wxID_ANY ).
+
+-define( no_parent, wx:null() ).
+
+
+% The special color that means "transparent" (i.e. no filling):
+-define( transparent_color, ?wxTRANSPARENT_BRUSH ).
+
+
+
+% A reference onto a GUI object, for the widgets that MyriadGUI added to the
+% backend at hand.
 %
--module(simple_parse_transform_target).
-
-
--export([ f/1, g/0 ]).
-
-
--type foo() :: { integer(), table:table() }.
-
--bar( hello ).
-
-
--table_type( list_table ).
-
-% Uncomment to test the trigger of 'table type defined more than once':
-%-table_type( foo_hashtable ).
-
-
--export_type([ foo/0 ]).
-
-
-%-spec f( integer() ) -> table:table().
-%f( _Int ) ->
-%	table:new().
-
-
-f( _ ) ->
-	aa,
-	bb,
-	cc.
-
-
-% To check that 'function h/0 is unused' is indeed reported as a warning (and
-% then trated as an error):
+% Results in terms such as: { myriad_object_ref, canvas, 12 }.
 %
-%h() ->
-%	ok.
+-record( myriad_object_ref, {
 
--spec g() -> basic_utils:void().
-%-spec g() -> void().
-g() ->
-	A = foobar,
-	{ A, A }.
+		% The type of GUI object referred to (ex: 'canvas'):
+		object_type :: gui:myriad_object_type(),
+
+		% The identifier of this referenced instance (ex: 117):
+		myriad_instance_id :: gui:myriad_instance_id()
+
+}).
+
+-type myriad_object_ref() :: #myriad_object_ref{}.

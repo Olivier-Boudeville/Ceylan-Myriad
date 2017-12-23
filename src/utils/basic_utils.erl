@@ -181,7 +181,7 @@
 % the Erlang term ordering tells us that [7,2] < [7,2,1] < [7,2,2] < [7,3].
 %
 % As a result, no need to define specific comparison operators, '=:=', '<' and
-% '>', hence 'lists:sort/1' are already adequate for that.
+% '>', and thus 'lists:sort/1' are already adequate for that.
 %
 % Example: lists:sort( [ [7,3], [7,2,1], [7,2,2], [7,2] ] ) =
 %   [ [7,2], [7,2,1], [7,2,2], [7,3] ].

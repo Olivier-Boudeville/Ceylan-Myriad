@@ -46,15 +46,13 @@
 -export([ term_to_string/1, term_to_string/2, term_to_string/3,
 		  integer_to_string/1, atom_to_string/1, pid_to_string/1,
 		  record_to_string/1,
-		  string_list_to_string/1, string_list_to_string/2,
 		  strings_to_string/1, strings_to_sorted_string/1,
 		  strings_to_string/2, strings_to_sorted_string/2,
 		  strings_to_enumerated_string/1, strings_to_enumerated_string/2,
 		  binary_list_to_string/1, binaries_to_string/1,
 		  binaries_to_sorted_string/1,
 		  atom_list_to_string/1, atoms_to_string/1, atoms_to_sorted_string/1,
-		  string_list_to_atom_list/1, proplist_to_string/1,
-		  version_to_string/1,
+		  proplist_to_string/1, version_to_string/1,
 		  atom_to_binary/1,
 		  string_to_binary/1, binary_to_string/1,
 		  strings_to_binaries/1, binaries_to_strings/1,
@@ -71,6 +69,7 @@
 % Other string operations:
 %
 -export([ get_lexicographic_distance/2, uppercase_initial_letter/1,
+		  to_lowercase/1, to_uppercase/1,
 		  join/2,
 		  split/2, split_at_first/2, split_camel_case/1,
 		  tokenizable_to_camel_case/2,
@@ -423,68 +422,28 @@ get_indentation_offset_for_level( N ) ->
 	string:copies( _BaseString=" ", _Count=N+1 ).
 
 
-% Returns a string that pretty-prints specified list of strings, with default
-% bullets.
-%
--spec string_list_to_string( [ ustring() ] ) -> ustring().
-string_list_to_string( ListOfStrings ) when is_list( ListOfStrings ) ->
-
-	%trace_utils:debug_fmt( "Stringifying ~p.", [ ListOfStrings ] ),
-
-	% Leading '~n' had been removed for some unknown reason:
-	io_lib:format( "~n~ts", [ string_list_to_string(
-					   ListOfStrings, _Acc=[], get_default_bullet() ) ] );
-
-
-string_list_to_string( ErrorTerm ) ->
-	throw( { not_a_list, ErrorTerm } ).
-
-
-
-% Returns a string that pretty-prints specified list of strings, with
-% user-specified bullets; this can be a solution to nest bullet lists, by
-% specifying a bullet with an offset, such as "  * ".
-%
--spec string_list_to_string( [ ustring() ], indentation_level_or_bullet() ) ->
-								   ustring().
-string_list_to_string( ListOfStrings, IndentationLevel )
-  when is_integer( IndentationLevel ) ->
-	Bullet = get_bullet_for_level( IndentationLevel ),
-	string_list_to_string( ListOfStrings, Bullet );
-
-string_list_to_string( ListOfStrings, Bullet ) when is_list( ListOfStrings )
-													andalso is_list( Bullet ) ->
-	% Leading '~n' had been removed for some unknown reason:
-	io_lib:format( "~n~ts", [ string_list_to_string( ListOfStrings, _Acc=[],
-													 Bullet ) ] );
-
-string_list_to_string( ListOfStrings, ErrorTerm ) when is_list( ErrorTerm ) ->
-	throw( { not_a_list, ListOfStrings } );
-
-string_list_to_string( _ListOfStrings, ErrorTerm ) ->
-	throw( { bullet_not_a_string, ErrorTerm } ).
-
-
 
 % (helper)
 %
 % Note: the caller should have already vetted the specified arguments.
 %
-string_list_to_string( _ListOfStrings=[], Acc, _Bullet ) ->
+strings_to_string( _ListOfStrings=[], Acc, _Bullet ) ->
 	 Acc;
 
 % We do not want an extra newline at the end:
-string_list_to_string( _ListOfStrings=[ LastString ], Acc, Bullet )
+strings_to_string( _ListOfStrings=[ LastString ], Acc, Bullet )
   when is_list( LastString ) ->
-	Acc ++ Bullet ++ io_lib:format( "~ts", [ LastString ] );
+	% Added back, as makes sense?
+	Acc ++ Bullet ++ io_lib:format( "~ts~n", [ LastString ] );
+	%Acc ++ Bullet ++ io_lib:format( "~ts", [ LastString ] );
 
-string_list_to_string( _ListOfStrings=[ H | T ], Acc, Bullet )
+strings_to_string( _ListOfStrings=[ H | T ], Acc, Bullet )
   when is_list( H ) ->
 	% Byproduct of the trailing newline: an empty line at the end if nested.
-	string_list_to_string( T, Acc ++ Bullet ++ io_lib:format( "~ts~n", [ H ] ),
-						   Bullet );
+	strings_to_string( T, Acc ++ Bullet ++ io_lib:format( "~ts~n", [ H ] ),
+					   Bullet );
 
-string_list_to_string( _ListOfStrings=[ H | _T ], _Acc, _Bullet ) ->
+strings_to_string( _ListOfStrings=[ H | _T ], _Acc, _Bullet ) ->
 	throw( { not_a_string, H } ).
 
 
@@ -526,7 +485,12 @@ strings_to_enumerated_string( ListOfStrings, IndentationLevel ) ->
 %
 -spec strings_to_string( [ ustring() ] ) -> ustring().
 strings_to_string( ListOfStrings ) when is_list( ListOfStrings ) ->
-	string_list_to_string( ListOfStrings );
+
+	%trace_utils:debug_fmt( "Stringifying ~p.", [ ListOfStrings ] ),
+
+	% Leading '~n' had been removed for some unknown reason:
+	io_lib:format( "~n~ts", [ strings_to_string(
+					   ListOfStrings, _Acc=[], get_default_bullet() ) ] );
 
 strings_to_string( ErrorTerm ) ->
 	throw( { not_a_list, ErrorTerm } ).
@@ -538,7 +502,7 @@ strings_to_string( ErrorTerm ) ->
 %
 -spec strings_to_sorted_string( [ ustring() ] ) -> ustring().
 strings_to_sorted_string( ListOfStrings ) when is_list( ListOfStrings ) ->
-	string_list_to_string( lists:sort( ListOfStrings ) );
+	strings_to_string( lists:sort( ListOfStrings ) );
 
 strings_to_sorted_string( ErrorTerm ) ->
 	throw( { not_a_list, ErrorTerm } ).
@@ -548,10 +512,33 @@ strings_to_sorted_string( ErrorTerm ) ->
 % Returns a string that pretty-prints specified list of strings, with
 % user-specified bullets.
 %
+% This can be a solution to nest bullet lists, by specifying a bullet with an
+% offset, such as " * ".
+%
 -spec strings_to_string( [ ustring() ], indentation_level_or_bullet() ) ->
 							   ustring().
-strings_to_string( ListOfStrings, IndentationOrBullet ) ->
-	string_list_to_string( ListOfStrings, IndentationOrBullet ).
+strings_to_string( _ListOfStrings=[ SingleString ], _LevelOrBullet )
+  when is_list( SingleString ) ->
+	% For a single string, no need for leading and trailing newlines, but it
+	% should be separated (with single quotes) from the surrounding text:
+	io_lib:format( "'~ts'", [ SingleString ]);
+
+strings_to_string( ListOfStrings, IndentationLevel )
+  when is_integer( IndentationLevel ) ->
+	Bullet = get_bullet_for_level( IndentationLevel ),
+	strings_to_string( ListOfStrings, Bullet );
+
+strings_to_string( ListOfStrings, Bullet ) when is_list( ListOfStrings )
+												andalso is_list( Bullet ) ->
+	% Leading '~n' had been removed for some unknown reason:
+	io_lib:format( "~n~ts~n", [ strings_to_string( ListOfStrings, _Acc=[],
+													 Bullet ) ] );
+
+strings_to_string( ListOfStrings, Bullet ) when is_list( Bullet ) ->
+	throw( { not_a_list, ListOfStrings } );
+
+strings_to_string( _ListOfStrings, ErrorTerm ) ->
+	throw( { bullet_not_a_string, ErrorTerm } ).
 
 
 
@@ -562,7 +549,7 @@ strings_to_string( ListOfStrings, IndentationOrBullet ) ->
 								indentation_level_or_bullet() ) -> ustring().
 strings_to_sorted_string( ListOfStrings, IndentationOrBullet )
   when is_list( ListOfStrings ) ->
-	string_list_to_string( lists:sort( ListOfStrings ), IndentationOrBullet );
+	strings_to_string( lists:sort( ListOfStrings ), IndentationOrBullet );
 
 strings_to_sorted_string( ErrorTerm, _IndentationOrBullet ) ->
 	throw( { not_a_list, ErrorTerm } ).
@@ -587,7 +574,7 @@ binary_list_to_string( ListOfBinaries ) ->
 -spec binaries_to_string( [ binary() ] ) -> ustring().
 binaries_to_string( ListOfBinaries ) ->
 	Strings = binaries_to_strings( ListOfBinaries ),
-	string_list_to_string( Strings ).
+	strings_to_string( Strings ).
 
 
 % Returns a string that pretty-prints specified list of sorted binary strings,
@@ -596,7 +583,7 @@ binaries_to_string( ListOfBinaries ) ->
 -spec binaries_to_sorted_string( [ binary() ] ) -> ustring().
 binaries_to_sorted_string( ListOfBinaries ) ->
 	Strings = binaries_to_strings( ListOfBinaries ),
-	string_list_to_string( lists:sort( Strings ) ).
+	strings_to_string( lists:sort( Strings ) ).
 
 
 % Returns a string that pretty-prints specified list of atoms, with default
@@ -634,13 +621,16 @@ atoms_to_sorted_string( ListOfAtoms ) ->
 
 
 
-% Returns a list whose elements are atoms corresponding to the strings
+% Returns a list whose elements are atoms corresponding to the plain strings
 % supposedly composing the specified list.
 %
-% Ex: string_list_to_atom_list( ["abc","def"] ) should return [abc,def].
+% Ex: strings_to_atoms( ["abc","def"] ) should return [ abc, def ].
 %
--spec string_list_to_atom_list( [ ustring() ] ) -> [ atom() ].
-string_list_to_atom_list( StringList ) when is_list( StringList ) ->
+% Note that only a bounded number of atoms should be created that way, lest the
+% atom table gets saturated.
+%
+-spec strings_to_atoms( [ ustring() ] ) -> [ atom() ].
+strings_to_atoms( StringList ) when is_list( StringList ) ->
 	[ list_to_atom( X ) || X <- StringList ].
 
 
@@ -661,7 +651,7 @@ proplist_to_string( Proplist ) ->
 	Strings = [ io_lib:format( "~s: ~s", [ K, V ] )
 				|| { K, V } <- lists:sort( Proplist ) ],
 
-	string_list_to_string( Strings ).
+	strings_to_string( Strings ).
 
 
 
@@ -1331,17 +1321,6 @@ string_to_atom( String ) ->
 % Note that a bounded number of atoms should be created that way, lest the atom
 % table gets saturated.
 %
--spec strings_to_atoms( [ ustring() ] ) -> [ atom() ].
-strings_to_atoms( StringList ) ->
-	[ string_to_atom( S ) || S <- StringList ].
-
-
-
-% Converts specified list of plain strings into a corresponding list of atoms.
-%
-% Note that a bounded number of atoms should be created that way, lest the atom
-% table gets saturated.
-%
 -spec binary_to_atom( binary() ) -> atom().
 binary_to_atom( Binary ) ->
 	String = binary_to_string( Binary ),
@@ -1358,6 +1337,21 @@ uppercase_initial_letter( _Letters=[] ) ->
 
 uppercase_initial_letter( _Letters=[ First | Others ] ) ->
 	[ string:to_upper( First ) | Others ].
+
+
+
+% Sets the specified string to lowercase.
+%
+-spec to_lowercase( string() ) -> string().
+to_lowercase( String ) ->
+	string:to_lower( String ).
+
+
+% Sets the specified string to uppercase.
+%
+-spec to_uppercase( string() ) -> string().
+to_uppercase( String ) ->
+	string:to_upper( String ).
 
 
 
@@ -1381,6 +1375,7 @@ join( _Separator, _ListToJoin=[] ) ->
 	"";
 
 join( Separator, ListToJoin ) ->
+	%io:format( "ListToJoin = ~p~n", [ ListToJoin ] ),
 	lists:flatten( lists:reverse( join( Separator, ListToJoin, _Acc=[] ) ) ).
 
 

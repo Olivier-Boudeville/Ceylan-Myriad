@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Adapted from code kindly contributed by EDF R&D .
+% Adapted from code kindly contributed by EDF R&D.
 %
 % Authors: Robin Huart (robin-externe.huart@edf.fr)
 %		   Samuel Thiriot (samuel.thiriot@edf.fr)
@@ -51,7 +51,7 @@
 
 
 % The title of a request sent to Python.
--type title() ::  atom().
+-type title() :: atom().
 
 
 % The parameters of a request sent to Python.
@@ -86,7 +86,7 @@
 
 
 
-% Finds the BEAM locations of all the dependencies required for binding with
+% Finds the BEAM locations of all the dependencies required for binding to
 % Python.
 %
 -spec get_beam_directories_for_binding() -> [ file_utils:directory_name() ].
@@ -127,8 +127,8 @@ wait_for_request_result( InterpreterPid, MessageTitle )
 	% Waits for the response:
 	Message = receive
 
-		_Msg={ Headers, Body } when is_tuple( Headers ) andalso
-							erlang:element( 1, Headers ) == python_message ->
+		_Msg={ Headers, Body } when is_tuple( Headers )
+				andalso erlang:element( 1, Headers ) == python_message ->
 
 			erlang:append_element( erlang:delete_element( 1, Headers ), Body )
 

@@ -706,12 +706,12 @@ toString( Table, _Displaytype ) ->
 
 			% Enforces a consistent order:
 			Strings = [ io_lib:format( "~p: ~p", [ K, V ] )
-					   || { K, V } <- lists:sort( L ) ],
+						|| { K, V } <- lists:sort( L ) ],
 
 			% Flatten is needed, in order to use the result with ~s:
 			lists:flatten( io_lib:format( "Table with ~B entry(ies):~s~n",
 				[ length( L ),
-				  text_utils:string_list_to_string( Strings ) ] ) )
+				  text_utils:strings_to_string( Strings ) ] ) )
 
 	end.
 

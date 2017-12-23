@@ -9,12 +9,12 @@ LANG=C; export LANG
 
 
 # Current stable:
-erlang_version="20.0"
-erlang_md5="2faed2c3519353e6bc2501ed4d8e6ae7"
+erlang_version="20.2"
+erlang_md5="429f126fd3e1e29a1eb1be2f8a15dc90"
 
 # Candidate version (ex: either cutting-edge or previous stable version):
-erlang_version_candidate="19.3"
-erlang_md5_candidate="a8c259ec47bf84e77510673e1b76b6db"
+erlang_version_candidate="20.1"
+erlang_md5_candidate="7840521e80dbb394852f265ef3e04744"
 
 
 plt_file="Erlang-$erlang_version.plt"
@@ -233,7 +233,7 @@ if [ -z "$read_parameter" ] ; then
 	   prefix="/usr/local"
 	   echo "Run as sudo root, thus using default system installation directory, falling back to user '${build_user}' for the operations that permit it."
 
-	   # So here sudo is a way to decrease, not increase privileges:
+	   # So here sudo is a way to decrease, not increase, privileges:
 	   SUDO_CMD="sudo -u ${build_user}"
 
    else
@@ -576,10 +576,14 @@ fi
 echo "  Erlang successfully built and installed in ${prefix}."
 
 
-if [ $use_prefix -eq 0 ] ; then
+# More global than 'if [ $use_prefix -eq 0 ] ; then' so that most installs
+# include these links:
+#
+if [ -n $prefix ] ; then
 
 	# First, let's create a symbolic link so that this new version can be
 	# transparently used by emacs:
+	#
 	cd ${prefix}/lib/erlang
 
 	# Exactly one match expected for the wildcard (ex: tools-2.8.2), useful to
@@ -592,6 +596,10 @@ if [ $use_prefix -eq 0 ] ; then
 	# Erlang version:
 	#
 	${LN} -sf lib/observer-*/priv/bin/cdv
+
+	# The same for JInterface:
+	#
+	${LN} -sf lib/jinterface-* jinterface
 
 	# Then go again in the install (not source) tree to create the base link:
 	cd ${prefix}/..

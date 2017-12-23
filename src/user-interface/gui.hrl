@@ -1,4 +1,4 @@
-% Copyright (C) 2015-2017 Olivier Boudeville
+% Copyright (C) 2003-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -23,49 +23,43 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Creation date: Tuesday, January 29, 2013
 
 
-% A simple target module in order to test how parse transforms can operate.
+
+% Header to export MyriadGUI-related defines, both for user code and for
+% internal one.
 %
--module(simple_parse_transform_target).
+% See gui.erl for the corresponding implementation.
 
 
--export([ f/1, g/0 ]).
-
-
--type foo() :: { integer(), table:table() }.
-
--bar( hello ).
-
-
--table_type( list_table ).
-
-% Uncomment to test the trigger of 'table type defined more than once':
-%-table_type( foo_hashtable ).
-
-
--export_type([ foo/0 ]).
-
-
-%-spec f( integer() ) -> table:table().
-%f( _Int ) ->
-%	table:new().
-
-
-f( _ ) ->
-	aa,
-	bb,
-	cc.
-
-
-% To check that 'function h/0 is unused' is indeed reported as a warning (and
-% then trated as an error):
+% Context sent to corresponding subscribers together with an event.
 %
-%h() ->
-%	ok.
+% This context can be ignored in most cases.
+%
+-record( gui_event_context, {
 
--spec g() -> basic_utils:void().
-%-spec g() -> void().
-g() ->
-	A = foobar,
-	{ A, A }.
+
+		   % The identifier of the event source (generally not useful, as the
+		   % gui_object shall be enough):
+		   %
+		   id :: gui:id(),
+
+
+		   % Usually of no use, as such user data is a means of preserving a
+		   % state, whereas the user event loop is better to do so:
+		   %
+		   user_data = [] :: gui:user_data(),
+
+
+		   % The full, lower-level event (if any) resulting in our event:
+		   %
+		   % (useful for example when deciding to propagate it upward in the
+		   % widget hierarchy)
+		   %
+		   backend_event = undefined :: basic_utils:maybe( gui:backend_event() )
+
+
+}).
+
+-type gui_event_context() :: #gui_event_context{}.

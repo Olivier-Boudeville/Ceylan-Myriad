@@ -45,6 +45,16 @@
 
 
 
+% Key implementation notes:
+%
+% - again: any exported function meant to be used by parse transforms shall rely
+% exclusively (through all its code paths) on bootstrapped modules (like
+% {meta,text}_utils and map_hashtable), like defined in the BOOTSTRAP_MODULES
+% variable of GNUmakevars.inc
+
+
+
+
 % Design notes about types.
 
 
@@ -411,7 +421,7 @@
 % Location of a form in an AST, so that the order of forms can be recreated.
 %
 % We use sortable identifiers so that any number of new forms can be introduced
-% between two of them, if needed.
+% between any two of them, if needed.
 %
 % Location is relative to the position of a form in a given AST, while the line
 % information embedded in forms is relative to the file in which they are
@@ -750,6 +760,7 @@
 % Work in progress:
 -export([ tokenise_per_union/1 ]).
 
+
 % Returns a new, blank instance of the module_info record.
 %
 -spec init_module_info() -> module_info().
@@ -761,13 +772,12 @@ init_module_info() ->
 % Returns a textual description of the specified function information.
 %
 -spec function_info_to_string( function_info() ) -> text_utils:ustring().
-function_info_to_string( #function_info{
-							name=Name,
-							arity=Arity,
-							location=_Location,
-							definition=Clauses,
-							spec=LocatedSpec,
-							exported=Exported } ) ->
+function_info_to_string( #function_info{ name=Name,
+										 arity=Arity,
+										 location=_Location,
+										 definition=Clauses,
+										 spec=LocatedSpec,
+										 exported=Exported } ) ->
 
 	ExportString = case Exported of
 
@@ -1160,6 +1170,10 @@ beam_to_ast( BeamFilename ) ->
 % Processes the specified AST relative to a whole module, and returns the
 % corresponding information gathered.
 %
+% Note: the extraction will probably fail (and stop any underlying parse
+% transform) should the corresponding code not be able to compile (as a rather
+% precise linting is done).
+%
 -spec extract_module_info_from_ast( ast() ) -> module_info().
 extract_module_info_from_ast( AST ) ->
 
@@ -1221,6 +1235,14 @@ pre_check_ast( AST ) ->
 
 	%io:format( "~p~n", [ AST ] ),
 
+	% Directly outputing the warnings or errors is generally useless; for
+	% example, in addtion to:
+	%
+	%  simple_parse_transform_target.erl:68: type void() undefined
+	%
+	% We would get: [{"simple_parse_transform_target.erl",
+	%               [{68,erl_lint,{undefined_type,{void,0}}}]}]
+
 	% Finally interpret_issue_reports/1 directly outputs the issues:
 	case erl_lint:module( AST ) of
 
@@ -1229,24 +1251,22 @@ pre_check_ast( AST ) ->
 			ok;
 
 		{ ok, Warnings } ->
-			%io:format( "Warnings, reported as errors: ~s~n",
-			%		   [ interpret_issue_reports( Warnings ) ] ),
+			%io:format( "Warnings, reported as errors: ~p~n",
+			%		   [ Warnings ] ),
 			interpret_issue_reports( Warnings ),
 			exit( warning_reported );
 
 		{ error, Errors, _Warnings=[] } ->
-			%io:format( "Errors reported: ~s~n",
-			%		   [ interpret_issue_reports( Errors ) ] ),
+			%io:format( "Errors reported: ~p~n", [ Errors ] ),
 			interpret_issue_reports( Errors ),
 			exit( error_reported );
 
 		{ error, Errors, Warnings } ->
-			%io:format( "Errors reported: ~s~n",
-			%		   [ interpret_issue_reports( Errors ) ] ),
+			%io:format( "Errors reported: ~p~n", [ Errors ] ),
 			interpret_issue_reports( Errors ),
 
-			%io:format( "Warnings, reported as errors: ~s~n",
-			%		   [ interpret_issue_reports( Warnings ) ] ),
+			%io:format( "Warnings, reported as errors: ~p~n",
+			%		   [ Warnings ] ),
 			interpret_issue_reports( Warnings ),
 
 			exit( error_reported )
@@ -1655,7 +1675,7 @@ process_ast( _AST=[], Infos, _FormCounter ) ->
 -spec recompose_ast_from_module_info( module_info() ) -> ast().
 recompose_ast_from_module_info( #module_info{
 
-			% Between parentheses: fields unused here
+			% Between parentheses: fields unused here, hence not bound.
 
 			% (module)
 			module_def=ModuleDef,
@@ -1691,6 +1711,7 @@ recompose_ast_from_module_info( #module_info{
 	% As the order of forms matters, we sort them according to their location:
 	OrderedLocatedAST = lists:keysort( _LocIndex=1, UnorderedLocatedAST ),
 
+	% And then we remove that information once sorted: 
 	OrderedAST = [ Form || { _Location, Form } <- OrderedLocatedAST ],
 
 	%io:format( "Recomposed AST:~n~p~n", [ OrderedAST ] ),
@@ -1913,21 +1934,20 @@ check_function( FunId, _FunInfo=#function_info{
 -spec module_info_to_string( module_info() ) -> text_utils:ustring().
 module_info_to_string( #module_info{
 						 module=Module,
-						 module_def={ _, ModuleDef },
+						 module_def={ _, _ModuleDef },
 						 compilation_option_defs=CompileOptDefs,
 						 parse_attributes=ParseAttributes,
-						 parse_attribute_defs=ParseAttributeDefs,
+						 parse_attribute_defs=_ParseAttributeDefs,
 						 includes=Includes,
-						 include_defs=IncludeDefs,
+						 include_defs=_IncludeDefs,
 						 type_definitions=TypeDefs,
-						 type_definition_defs=TypeDefsDefs,
+						 type_definition_defs=_TypeDefsDefs,
 						 type_exports=TypeExports,
-						 type_export_defs=TypeExportDefs,
-						 function_exports=FunctionExports,
+						 type_export_defs=_TypeExportDefs,
+						 function_exports=_FunctionExports,
 						 functions=Functions,
 						 last_line=LastLine,
-						 unhandled_forms=UnhandledForms
-						} ) ->
+						 unhandled_forms=UnhandledForms } ) ->
 
 	FunctionStrings = [ io_lib:format( "~s",
 									   [ function_info_to_string( Info ) ] )
@@ -1944,73 +1964,139 @@ module_info_to_string( #module_info{
 	end,
 
 	% To mark an additional offset for the sublists:
-	Bullet = "   * ",
+	NextIndentationLevel = 1,
 
 	UnhandledString = case UnhandledForms of
 
 		[] ->
-			"(no unhandled form)";
+			"all forms handled";
 
 		_ ->
 			UnhandledStrings = [ text_utils:format( "~p", [ Form ] )
 								 || { _Loc, Form } <- UnhandledForms ],
 
-			text_utils:format( "~B unhandled forms: ~s",
+			text_utils:format( "~B unhandled forms:~s",
 							   [ length( UnhandledForms ),
 								 text_utils:strings_to_string( UnhandledStrings,
-															   Bullet ) ] )
+											NextIndentationLevel ) ] )
 	end,
+
+	% Commented-out: the raw terms that correspond to the higher-level form
+	% output just above.
+
 
 	Infos = [
 
-			  text_utils:format( "module: ~p~n", [ Module ] ),
-			  text_utils:format( "module definition: ~p~n", [ ModuleDef ] ),
+			%text_utils:format( "module name: '~s'", [ Module ] ),
+			%text_utils:format( "module definition: ~p~n", [ ModuleDef ] ),
 
-			  text_utils:format( "~B compile option definitions: ~p~n",
-								 [ length( CompileOptDefs ),
-								   [ C || { _, C } <- CompileOptDefs ] ] ),
+			case CompileOptDefs of
 
-			  text_utils:format( "~B parse attributes: ~p~n",
-								 [ length( ParseAttributes ),
-								   ParseAttributes ] ),
+				[] ->
+					"no compile option defined";
 
-			  text_utils:format( "parse attribute definitions: ~p~n",
-								 [ [ P || { _, P } <- ParseAttributeDefs ] ] ),
+				_ ->
+					text_utils:format( "~B compile option definitions: ~p~n",
+								   [ length( CompileOptDefs ),
+									 [ C || { _, C } <- CompileOptDefs ] ] )
 
-			  text_utils:format( "~B actual includes: ~p~n",
-								 [ length( Includes ), Includes ] ),
+			end,
 
-			  text_utils:format( "include definitions: ~p~n",
-								 [ [ I || { _, I } <- IncludeDefs ] ] ),
+			 % Like: -foo( bar ).
+			case ParseAttributes of
 
-			  text_utils:format( "~B type definitions: ~p~n",
-								 [ length( TypeDefs ), TypeDefs ] ),
+				[] ->
+					"no parse attribute defined";
 
-			  text_utils:format( "type definitions: ~p~n",
-								 [ [ T || { _, T } <- TypeDefsDefs ] ] ),
+				_ ->
+					ParseAttrString = text_utils:strings_to_sorted_string( [
+							text_utils:format( "attribute '~s' set to: '~p'",
+											   [ AttrName, AttrValue ] )
+							 || { AttrName, AttrValue } <- ParseAttributes ],
+							 NextIndentationLevel ),
 
-			  text_utils:format( "~B type exports: ~p~n",
-								 [ length( TypeExports ), TypeExports ] ),
+					text_utils:format( "~B parse attributes defined:~s",
+									   [ length( ParseAttributes ),
+										 ParseAttrString ] )
 
-			  text_utils:format( "type export definitions: ~p~n",
-								 [ [ E || { _, E } <- TypeExportDefs ] ] ),
+			end,
 
-			  text_utils:format( "~B function export definitions: ~p~n",
-								 [ length( FunctionExports ),
-								   [ F || { _, F } <- FunctionExports ] ] ),
+			%text_utils:format( "parse attribute definitions: ~p~n",
+			%				   [ [ P || { _, P } <- ParseAttributeDefs ] ] ),
 
-			  text_utils:format( "~B functions: ~s~n",
-								 [ length( FunctionStrings ),
-								   text_utils:strings_to_string(
-									 FunctionStrings, Bullet ) ] ),
+			case Includes of
 
-			  text_utils:format( "line count: ~s~n", [ LastLineString ] ),
+				[] ->
+					"no file included";
 
-			  UnhandledString
+				_ ->
+					IncludeString = text_utils:strings_to_sorted_string( [
+							text_utils:format( "'~s' included", [ Inc ] )
+									   || Inc <- Includes ],
+									   NextIndentationLevel ),
+					text_utils:format( "~B includes specified:~s",
+									   [ length( Includes ), IncludeString ] )
 
-			  ],
+			end,
 
-	text_utils:format( "Information about module '~s':~n~s",
+			%text_utils:format( "include definitions: ~p~n",
+			%					 [ [ I || { _, I } <- IncludeDefs ] ] ),
+
+			case TypeDefs of
+
+				[] ->
+					"no type defined";
+
+				_ ->
+					TypeDefString = text_utils:strings_to_sorted_string( [
+							text_utils:format( "type '~s' defined as: ~p",
+											   [ Type, Def ] )
+									   || { Type, Def } <- TypeDefs ],
+									   NextIndentationLevel ),
+
+					text_utils:format( "~B types defined:~s",
+									   [ length( TypeDefs ), TypeDefString ] )
+
+			end,
+
+			%text_utils:format( "type definitions: ~p~n",
+			%				   [ [ T || { _, T } <- TypeDefsDefs ] ] ),
+
+
+			case TypeExports of
+
+				[] ->
+					"no type exported";
+
+				_ ->
+					TypeExpString = text_utils:strings_to_sorted_string( [
+							text_utils:format( "~s/~B", [ Type, TypeArity ] )
+									   || { Type, TypeArity } <- TypeExports ],
+									   NextIndentationLevel ),
+					text_utils:format( "~B type exports:~s",
+								   [ length( TypeExports ), TypeExpString ] )
+
+			end,
+
+			%text_utils:format( "type export definitions: ~p~n",
+			%				   [ [ E || { _, E } <- TypeExportDefs ] ] ),
+
+			%text_utils:format( "~B function export definitions: ~p~n",
+			%					[ length( FunctionExports ),
+			%					  [ F || { _, F } <- FunctionExports ] ] ),
+
+			text_utils:format( "~B functions defined:~s",
+							   [ length( FunctionStrings ),
+								 text_utils:strings_to_string(
+								   FunctionStrings, NextIndentationLevel ) ] ),
+
+			 text_utils:format( "line count: ~s", [ LastLineString ] ),
+
+			 UnhandledString
+
+			],
+
+	text_utils:format( "Information about module '~s':~s",
 					   [ Module, text_utils:strings_to_string( Infos ) ] ).
 
 
@@ -2100,7 +2186,7 @@ get_error_form( ErrorTerm, FormatErrorModule, Line ) ->
 % This function (whose name is standard, conventional) is to be defined on a
 % per-module basis (typically in the module defining the parse transform being
 % applied) and allows to convert error terms (that are, here, related to
-% parse-transforms) into textual messages that can output by the build chain.
+% parse-transforms) into textual messages that can be output by the build chain.
 %
 -spec format_error( basic_utils:error_reason() ) -> string().
 format_error( ErrorTerm ) ->

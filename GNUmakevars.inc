@@ -145,26 +145,30 @@ endif
 # Extra prerequisite includes:
 
 # Optional services, relying on third-party prerequisites:
+#
+# (for them, we do not force the corresponding variable here, in order to let
+# the upper layers be able to decide; if not, the defaults apply)
+
 
 # For the reading and writing of large, often scientific-oriented data:
-# (not forcing variable, letting upper layers decide, or the defaults apply)
 #USE_HDF5 := false
 #USE_HDF5 := true
 
 # To gain the ability of acting as a client of a REST service:
-# (not forcing variable, letting upper layers decide, or the defaults apply)
 #USE_REST := false
 #USE_REST := true
 
 # For SQL database operations, based on SQLite 3 operations:
-# (not forcing variable, letting upper layers decide, or the defaults apply)
 #USE_SQLITE := false
 #USE_SQLITE := true
 
 # For using an Erlang/Python binding, based on the ErlPort library:
-# (not forcing variable, letting upper layers decide, or the defaults apply)
 #USE_PYTHON_BINDING := false
 #USE_PYTHON_BINDING := true
+
+# For using an Erlang/Java binding, based on the JInterface library:
+#USE_JAVA_BINDING := false
+#USE_JAVA_BINDING := true
 
 
 
@@ -269,6 +273,36 @@ endif
 
 
 
+# Deactivated by default, as requires specific prerequisites:
+#
+# - Java (binding tested with 8.0+ only)
+# - the JInterface library, bundled with the Erlang runtime (cf
+#   http://erlang.org/doc/man/jinterface.html)
+#
+ifndef USE_JAVA_BINDING
+
+  USE_JAVA_BINDING := false
+
+endif
+
+ifeq ($(USE_JAVA_BINDING),true)
+
+  # The path pointing to the target JInterface JAR (OtpErlang.jar), only needed
+  # at compilation-time:
+  #
+  # Ex: cd [...]/Erlang-current-install/lib/erlang &&
+  #     ln -s lib/jinterface-1.8.1 jinterface-current-install
+  #
+  JINTERFACE_ROOT = $(ERLANG_ROOT)/lib/erlang/jinterface
+
+  CLASSPATH_OPT = -classpath $(JINTERFACE_ROOT)/priv/OtpErlang.jar
+
+  JAVAC_OPT = $(CLASSPATH_OPT)
+
+  # Only useful for manual testing:
+  JAVA_OPT = $(CLASSPATH_OPT):.
+
+endif
 
 
 # Unless specified otherwise, the including makefile is not the one used as the
@@ -607,6 +641,20 @@ ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_OPT_BASE)
 ERLANG_COMPILER_OPT_NO_PT := $(ERLANG_COMPILER_OPT)
 
 ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT)
+
+
+# For the Java binding; expecting Java 8 or higher:
+JAVAC := $$(which javac)
+
+# Optional variable, used for testing only (never directly executed from the
+# shell):
+#
+JAVA := $$(which java)
+
+
+
+# Runtime settings.
+
 
 
 # +v (verbose) option removed, as only active if the interpreter has been

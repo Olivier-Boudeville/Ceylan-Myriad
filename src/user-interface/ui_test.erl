@@ -1,4 +1,4 @@
-% Copyright (C) 2015-2017 Olivier Boudeville
+% Copyright (C) 2016-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -25,47 +25,22 @@
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
 
 
-% A simple target module in order to test how parse transforms can operate.
+% Unit tests for the ui toolbox.
 %
--module(simple_parse_transform_target).
-
-
--export([ f/1, g/0 ]).
-
-
--type foo() :: { integer(), table:table() }.
-
--bar( hello ).
-
-
--table_type( list_table ).
-
-% Uncomment to test the trigger of 'table type defined more than once':
-%-table_type( foo_hashtable ).
-
-
--export_type([ foo/0 ]).
-
-
-%-spec f( integer() ) -> table:table().
-%f( _Int ) ->
-%	table:new().
-
-
-f( _ ) ->
-	aa,
-	bb,
-	cc.
-
-
-% To check that 'function h/0 is unused' is indeed reported as a warning (and
-% then trated as an error):
+% See the ui.erl tested module.
 %
-%h() ->
-%	ok.
+-module(ui_test).
 
--spec g() -> basic_utils:void().
-%-spec g() -> void().
-g() ->
-	A = foobar,
-	{ A, A }.
+
+% For run/0 export and al:
+-include("test_facilities.hrl").
+
+
+-spec run() -> no_return().
+run() ->
+
+	test_facilities:start( ?MODULE ),
+
+	ui:start(),
+
+	test_facilities:stop().

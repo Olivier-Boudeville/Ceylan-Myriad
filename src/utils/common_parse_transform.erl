@@ -34,24 +34,90 @@
 -module(common_parse_transform).
 
 
--type ast() :: meta_utils:ast().
 
+% PRELIMINARY IMPORTANT NOTES REGARDING THE ART OF WRITING PARSE TRANSFORMS
+%
+%
+% - they are by nature difficult to debug; instead of running them "as are"
+% (then with little information returned in case of error), run them explicitly,
+% typically from a test case; for that, one may refer to:
+%
+%    * src/utils/common_parse_transform_test.erl for that test
+%
+%    * src/data-management/simple_parse_transform_target.erl for the test module
+%    the previous test is to apply to
+%
+%
+% - this particular parse transform applies at the level of the Common Layer
+% (a.k.a. Ceylan-Myriad), and as such *cannot use any module of that layer
+% except the very few bootstrapped modules* - which are typically
+% {meta,text}_utils and map_hashtable (see BOOTSTRAP_MODULES in GNUmakevars.inc
+% for their actual list)
+%
+%     Indeed, the other modules (of Ceylan-Myriad) are not bootstrapped, so they
+%     can enjoy the services offered by this parse transform, but of course they
+%     thus require this transform to be compiled in order to be themselves
+%     compiled; as a consequence, that parse transform may not use them at
+%     execution-time (by design they cannot be compiled yet), so many facilities
+%     are out of reach for this very particular, base parse transform
+%
+%
+% - when a parse transform fails, one will not get much more than: '{"init
+% terminating in do_boot",error_reported}' (even when using
+% crashdump_viewer:start/0 on the resulting erl_crash.dump file); your best
+% friend will thus be io:format/2 (as more advanced solutions usually cannot be
+% used, as explained in the previous point)
+
+
+% For the module_info record:
+-include("meta_utils.hrl").
+
+
+
+% Shorthands:
+
+-type ast() :: meta_utils:ast().
+-type module_info() :: meta_utils:module_info().
 
 
 % Implementation notes:
 %
-% Currently, the 'common' parse transform is in charge of replacing any call to
-% the pseudo-module 'table' (a module that does not exist) into a call to the
-% default hashtable type we currently use (ex: we have hashtable,
-% lazy_hashtable, tracked_hashtable, map_hashtable, etc.) - unless it is
-% specifically overridden in the transformed module.
+% Currently, the 'common' parse transform is in charge of:
+%
+% - replacing all calls and type specifications referring to the pseudo-module
+% 'table' (a module that does not exist) into counterparts referring to the
+% default, actual type of associative table that we currently use instead (ex:
+% we have hashtable, lazy_hashtable, tracked_hashtable, map_hashtable, etc.) -
+% unless the table type to be used is explicitly specified in the target,
+% transformed module
+%
+%     As a result, one's code source may include 'MyTable = table:new(), ...' or
+%     '-type my_type() :: [ { float(), table() } ].' and have them correctly
+%     translated
+%
+%
+% - replacing, in type specifications, any mention to a pseudo-builtin,
+% pseudo-type void() by its actual definition, which is basic_utils:void()
+% (ultimately: any(), simply)
+%
+%     As a result, one's code source may include '-spec f( boolean() ) ->
+%     void().' and have it accepted by the compiler (and void() is now a
+%     reserved, "builtin" type)
 
 
-% The default actual implementation that 'table' will be wired to:
+
+
+% The default actual implementation to which 'table' will be wired (versatile,
+% quite efficient, etc. - i.e. a good defaults):
+%
 -define( default_table_type, map_hashtable ).
 
 
 -export([ run_standalone/1, parse_transform/2 ]).
+
+
+% Obsolete counterpart functions that operate directly on ASTs:
+-export([ replace_table_ast/1 ]).
 
 
 
@@ -70,7 +136,10 @@ run_standalone( FileToTransform ) ->
 
 	% Options like : [ report_warnings, {d,debug_mode_is_enabled}, beam,
 	% report_errors, {cwd,"X"}, {outdir,Y"}, {i,"A"},{i,"B"}, debug_info, etc.
-	% are probably not all set, but it is unlikely to be a problem.
+	% are probably not all set, but it is unlikely to be a problem here.
+	%
+	% (anyway, for example defining a non-exported function in the target module
+	% leads to a "unused function" warning)
 	%
 	parse_transform( AST, _Options=[] ).
 
@@ -101,25 +170,55 @@ parse_transform( AST, _Options ) ->
 	% The same kind of conversion for the type specifications (ex: function
 	% specs, type definitions, etc.) is done.
 
-	%io:format( "######################################################~n" ),
+
+	% We also translate void() into basic_utils:void(), for example:
+	%
+	% {attribute,Line1,spec,
+	%       { {FunctionName,Arity},
+	%         [ {type,Line2,'fun',
+	%                [{type,Line3,product,[]},
+	%                 {user_type,Line4,void,[]}]}]}},
+	%
+	% into:
+	%
+	% {attribute,Line1,spec,
+	%       { {FunctionName,Arity},
+	%         [ {type,Line2,'fun',
+	%                [{type,Line3,product,[]},
+	%                 {remote_type,Line4,
+	%                              [{atom,Line4,basic_utils},
+	%                               {atom,Line4,void},
+	%                               []]}]}]}},
+	%
+	% which means that, in a spec, any term in the form of
+	% '{user_type,Line,void,[]}' shall be replaced with:
+	%
+	%  {remote_type,Line, [{atom,Line,basic_utils}, {atom,Line,void}, [] ] }
+
+
+	%io:format( "~n##  INPUT  ################################################~n" ),
 	%io:format( "Input AST:~n~p~n~n", [ AST ] ),
 
-	TableAST = replace_table( AST ),
+	% Will fail (a bit silently) if the AST cannot be successfully linted:
+	BaseModuleInfo = meta_utils:extract_module_info_from_ast( AST ),
 
-	ModuleInfo = meta_utils:extract_module_info_from_ast( TableAST ),
+	%io:format( "Input module info: ~s~n",
+	%		   [ meta_utils:module_info_to_string( ModuleInfo ) ] ),
+
+	% TO-DO: operate on ModuleInfo rather than directly on AST:
+	TableModuleInfo = replace_table( BaseModuleInfo ),
+	VoidModuleInfo = expand_void_type( TableModuleInfo ),
 
 	% Other transformations may take place here.
 
-	% Uncomment with care: must ultimately depend only on non-bootstrapped
-	% modules (like {meta,text}_utils):
-	%
-	%io:format( meta_utils:module_info_to_string( ModuleInfo ) ),
+	OutputModuleInfo = VoidModuleInfo,
 
-	%io:format( "Module info: ~p~n", [ ModuleInfo ] ),
+	%io:format( "~n##  OUTPUT  ################################################~n" ),
+	%io:format( "Output module info: ~s~n",
+	%		   [ meta_utils:module_info_to_string( OutputModuleInfo ) ] ),
 
-	OutputAST = meta_utils:recompose_ast_from_module_info( ModuleInfo ),
+	OutputAST = meta_utils:recompose_ast_from_module_info( OutputModuleInfo ),
 
-	%io:format( "~n######################################################~n" ),
 	%io:format( "~n~nOutput AST:~n~p~n", [ OutputAST ] ),
 
 	OutputAST.
@@ -127,12 +226,14 @@ parse_transform( AST, _Options ) ->
 
 
 % Replaces calls to the 'table' pseudo-module by actual calls to the
-% default_table_type one.
+% default_table_type one, and do so also for the type specifications.
 %
 % We preserve element order.
 %
--spec replace_table( ast() ) -> ast().
-replace_table( AST ) ->
+% (direct AST version)
+%
+-spec replace_table_ast( ast() ) -> ast().
+replace_table_ast( AST ) ->
 
 	% The Ln variables designate line numbers.
 
@@ -270,5 +371,69 @@ lookup_table_select_attribute(
 	meta_utils:raise_error( { table_type_defined_more_than_once, { line, L },
 							  Found, AType } );
 
+% AST element not of interest here:
 lookup_table_select_attribute( _AST=[ _H | T ], Found ) ->
 	lookup_table_select_attribute( T, Found ).
+
+
+
+% Replaces calls to the 'table' pseudo-module by actual calls to the
+% default_table_type one, and do so also for the type specifications.
+%
+% We preserve element order.
+%
+% (module-info version)
+%
+-spec replace_table( module_info() ) -> module_info().
+replace_table( ModuleInfo=#module_info{
+							 type_definition_defs=TypeActualDefs,
+							 functions=FunctionTable } ) ->
+
+	% We have here to possibly update all type specifications and all function
+	% declarations.
+
+	% Let's first update the actual type definitions, which are available here
+	% as a list of located forms:
+	%
+	NewTypeActualDefs = process_type_defs_for_table( TypeActualDefs ),
+
+	% Now updating in turn the functions (specs and definitions):
+	NewFunctionTable = FunctionTable,
+
+	ModuleInfo#module_info{ type_definition_defs=NewTypeActualDefs,
+							functions=NewFunctionTable }.
+
+
+
+% Processes the type definitions regarding the 'table' pseudotype.
+%
+-spec process_type_defs_for_table( [ located_form() ] ) -> [ located_form() ].
+process_type_defs_for_table( LocatedForms ) ->
+	process_type_defs_for_table( LocatedForms, _Acc=[] ).
+
+
+process_type_defs_for_table( _LocatedForms=[], Acc ) ->
+	% Located forms, hence their order does not matter:
+	Acc;
+
+process_type_defs_for_table( _LocatedForms=[ { Loc, Form } | T ], Acc ) ->
+	NewForm = Form,
+	process_type_defs_for_table( T, [ { Loc, NewForm } | Acc ] ).
+
+
+
+
+
+
+
+% Translates void() into basic_utils:void(), in function specifications.
+%
+-spec expand_void_type( ast() ) -> ast().
+expand_void_type( AST ) ->
+	%io:format( "Expanding the void() pseudo-datatype.~n" ),
+
+	% '{user_type,Line,void,[]}' shall be replaced with:
+	%
+	%  {remote_type,Line, [{atom,Line,basic_utils}, {atom,Line,void}, [] ] }
+
+	AST.

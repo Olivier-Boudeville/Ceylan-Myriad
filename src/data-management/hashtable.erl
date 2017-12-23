@@ -985,7 +985,7 @@ toString( Hashtable, user_friendly ) ->
 			% Flatten is needed, in order to use the result with ~s:
 			lists:flatten( io_lib:format( "Hashtable with ~B entry(ies):~s~n",
 				[ length( L ),
-				  text_utils:string_list_to_string( Strings ) ] ) )
+				  text_utils:strings_to_string( Strings ) ] ) )
 
 	end;
 

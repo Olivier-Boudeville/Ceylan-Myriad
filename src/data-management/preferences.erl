@@ -385,7 +385,7 @@ server_main_loop( Table ) ->
 
 					io_lib:format( "~B preferences recorded:~s~n",
 								   [ length( L ),
-								 text_utils:string_list_to_string( Strings ) ] )
+									 text_utils:strings_to_string( Strings ) ] )
 
 			end,
 

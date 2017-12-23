@@ -1,4 +1,4 @@
-% Copyright (C) 2015-2017 Olivier Boudeville
+% Copyright (C) 2010-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -23,49 +23,24 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Creation date: Monday, September 11, 2017.
 
 
-% A simple target module in order to test how parse transforms can operate.
+
+
+% Gathering of various facilities for OpenGL rendering, done through WxWidgets.
 %
--module(simple_parse_transform_target).
-
-
--export([ f/1, g/0 ]).
-
-
--type foo() :: { integer(), table:table() }.
-
--bar( hello ).
-
-
--table_type( list_table ).
-
-% Uncomment to test the trigger of 'table type defined more than once':
-%-table_type( foo_hashtable ).
-
-
--export_type([ foo/0 ]).
-
-
-%-spec f( integer() ) -> table:table().
-%f( _Int ) ->
-%	table:new().
-
-
-f( _ ) ->
-	aa,
-	bb,
-	cc.
-
-
-% To check that 'function h/0 is unused' is indeed reported as a warning (and
-% then trated as an error):
+% See gui_opengl_test.erl for the corresponding test.
 %
-%h() ->
-%	ok.
+% See gui.erl for more general rendering topics.
+%
+-module(gui_opengl).
 
--spec g() -> basic_utils:void().
-%-spec g() -> void().
-g() ->
-	A = foobar,
-	{ A, A }.
+
+%-export_type([]).
+
+%-export([]).
+
+%-include_lib("wx/include/wx.hrl").
+%-include_lib("wx/include/gl.hrl").
+%-include_lib("wx/include/glu.hrl").

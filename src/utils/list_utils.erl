@@ -456,8 +456,8 @@ count_and_filter_term( Term, _List=[ OtherTerm | H ], FilteredList,
 
 
 
-% Returns the union of the two specified lists, i.e. the list (with no
-% duplicates) of all elements that are in either list.
+% Returns the union of the two specified lists, i.e. the list of all elements
+% that are in either list.
 %
 -spec union( list(), list() ) -> list().
 union( L1, L2 ) ->

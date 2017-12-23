@@ -1,4 +1,4 @@
-% Copyright (C) 2015-2017 Olivier Boudeville
+% Copyright (C) 2003-2017 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -23,49 +23,41 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Creation date: Tuesday, January 29, 2013
 
 
-% A simple target module in order to test how parse transforms can operate.
+% Header to export (internally to MyriadGUI) canvas-related defines.
 %
--module(simple_parse_transform_target).
+% See gui_canvas.erl for the corresponding implementation.
 
 
--export([ f/1, g/0 ]).
 
-
--type foo() :: { integer(), table:table() }.
-
--bar( hello ).
-
-
--table_type( list_table ).
-
-% Uncomment to test the trigger of 'table type defined more than once':
-%-table_type( foo_hashtable ).
-
-
--export_type([ foo/0 ]).
-
-
-%-spec f( integer() ) -> table:table().
-%f( _Int ) ->
-%	table:new().
-
-
-f( _ ) ->
-	aa,
-	bb,
-	cc.
-
-
-% To check that 'function h/0 is unused' is indeed reported as a warning (and
-% then trated as an error):
+% wxCanvas does not exist, we emulate it.
 %
-%h() ->
-%	ok.
+% Canvas are back-buffered: drawing operations on them will not be visible until
+% their blit/1 function is called.
+%
+-record( canvas_state, {
 
--spec g() -> basic_utils:void().
-%-spec g() -> void().
-g() ->
-	A = foobar,
-	{ A, A }.
+	% Receives repaint, resize, etc. events:
+	panel :: gui:panel(),
+
+	% Displayed area:
+	bitmap :: gui:bitmap(),
+
+	% Actual place for rendering:
+	back_buffer :: gui:back_buffer(),
+
+	% As apparently we cannot retrieve the size of the underlying bitmap and
+	% back buffer (typically useful when the panel may have been resized):
+	%
+	size :: gui:size()
+
+}).
+
+% The actual canvas type we are to use:
+-type canvas_state() :: #canvas_state{}.
+
+
+% An OpenGL-based canvas:
+-type gl_canvas():: wxGLCanvas:wxGLCanvas().
