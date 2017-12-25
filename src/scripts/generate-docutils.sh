@@ -16,7 +16,7 @@ If '--pdf' is specified, a PDF will be created, if '--all' is specified, all out
 
 # Left out: --warnings=rst-warnings.txt --traceback --verbose --debug
 # Can be removed for debugging: --quiet
-docutils_common_opt="--report=error --no-generator --no-datestamp --no-source-link --tab-width=2 --strip-comments --syntax-highlight=short"
+docutils_common_opt="--report=error --tab-width=4 --no-generator --no-datestamp --no-source-link --strip-comments --syntax-highlight=short"
 
 
 # Obtained from 'rst2html -h':
@@ -31,6 +31,7 @@ doc_class=article
 #doc_class=report
 
 docutils_pdf_opt="${docutils_common_opt} --documentclass=${doc_class} --compound-enumerators"
+
 
 latex_to_pdf_opt="-interaction nonstopmode"
 
@@ -73,7 +74,7 @@ if [ -e "${rst_file}" ] ; then
 
 		if [ -n "${css_file}" ] ; then
 			#echo "Using CSS file ${css_file}."
-			css_opt="--stylesheet-path=${css_file}"
+			css_opt="--stylesheet-path=${css_file} --link-stylesheet"
 		fi
 
 		docutils_html_opt="${docutils_html_opt} ${css_opt}"
@@ -143,15 +144,10 @@ manage_rst_to_html()
 
 	echo "${begin_marker} building HTML target $target from source"
 
-	if [ -f "$css_file" ] ; then
 
-		${docutils_html} ${docutils_html_opt} --stylesheet-path=$css_file $source $target
+	#echo ${docutils_html} ${docutils_html_opt} $source $target
+	${docutils_html} ${docutils_html_opt} $source $target
 
-	else
-
-		${docutils_html} $source $target
-
-	fi
 
 	if [ ! $? -eq 0 ] ; then
 		echo "${begin_marker} Error: HTML generation with ${docutils_html} failed for $source." 1>&2
@@ -177,7 +173,7 @@ manage_rst_to_pdf()
 	tex_file=$(echo $source|sed 's|\.[^\.]*$|.tex|1')
 
 
-	#echo "Docutils command: ${docutils_latex} ${docutils_pdf_opt} $source $tex_file
+	#echo "Docutils command: ${docutils_latex} ${docutils_pdf_opt} $source $tex_file"
 
 	${docutils_latex} ${docutils_pdf_opt} $source $tex_file
 	res=$?
