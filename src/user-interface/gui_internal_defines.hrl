@@ -49,15 +49,15 @@
 % A reference onto a GUI object, for the widgets that MyriadGUI added to the
 % backend at hand.
 %
-% Results in terms such as: { myriad_object_ref, canvas, 12 }.
+% Results in terms such as: { myriad_object_ref, canvas, CanvasPid }.
 %
 -record( myriad_object_ref, {
 
 		% The type of GUI object referred to (ex: 'canvas'):
 		object_type :: gui:myriad_object_type(),
 
-		% The identifier of this referenced instance (ex: 117):
-		myriad_instance_id :: gui:myriad_instance_id()
+		% The identifier of this referenced instance:
+		myriad_instance_pid :: gui:myriad_instance_pid()
 
 }).
 

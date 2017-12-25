@@ -1,4 +1,4 @@
-COMMON_TOP = ../..
+COMMON_TOP = ../../..
 
 .PHONY: all run test-all
 

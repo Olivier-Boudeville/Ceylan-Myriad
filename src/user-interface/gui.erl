@@ -293,8 +293,8 @@
 -type construction_parameters() :: [ term() ].
 
 
-% Myriad-specific instance identifier (strictly positive):
--type myriad_instance_id() :: basic_utils:non_null_count().
+% Myriad-specific instance identifier, a PID:
+-type myriad_instance_pid() :: pid().
 
 
 % wx-specific object identifier:
@@ -369,23 +369,23 @@
 % http://docs.wxwidgets.org/stable/wx_wxwindow.html and
 % http://docs.wxwidgets.org/stable/wx_windowstyles.html#windowstyles
 
--type window_style_opt() ::  'default'
-						   | 'simple_border'
-						   | 'double_border'
-						   | 'sunken_border'
-						   | 'raised_border'
-						   | 'static_border'
-						   | 'theme_border'
-						   | 'no_border'
-						   | 'transparent'
-						   | 'tab_traversable'
-						   | 'grab_all_keys'
-						   | 'with_vertical_scrollbar'
-						   | 'with_horizontal_scrollbar'
-						   | 'never_hide_scrollbars'
-						   | 'clip_children'
-						   | 'grab_all_keys'
-						   | 'full_repaint_on_resize'.
+-type window_style_opt() :: 'default'
+						  | 'simple_border'
+						  | 'double_border'
+						  | 'sunken_border'
+						  | 'raised_border'
+						  | 'static_border'
+						  | 'theme_border'
+						  | 'no_border'
+						  | 'transparent'
+						  | 'tab_traversable'
+						  | 'grab_all_keys'
+						  | 'with_vertical_scrollbar'
+						  | 'with_horizontal_scrollbar'
+						  | 'never_hide_scrollbars'
+						  | 'clip_children'
+						  | 'grab_all_keys'
+						  | 'full_repaint_on_resize'.
 
 
 -type window_style() :: window_style_opt() | [ window_style_opt() ].
@@ -401,18 +401,18 @@
 % Options for frames, see:
 % http://docs.wxwidgets.org/stable/wx_wxframe.html#wxframewxframe
 %
--type frame_style_opt() ::   'default'
-						   | 'caption'
-						   | 'minimize'
-						   | 'minimize_box'
-						   | 'maximize'
-						   | 'maximize_box'
-						   | 'close_box'
-						   | 'stay_on_top'
-						   | 'system_menu'
-						   | 'resize_border'
-						   | 'tool_window'
-						   | 'no_taskbar'.
+-type frame_style_opt() :: 'default'
+						 | 'caption'
+						 | 'minimize'
+						 | 'minimize_box'
+						 | 'maximize'
+						 | 'maximize_box'
+						 | 'close_box'
+						 | 'stay_on_top'
+						 | 'system_menu'
+						 | 'resize_border'
+						 | 'tool_window'
+						 | 'no_taskbar'.
 
 
 -type frame_style() :: frame_style_opt() | [ frame_style_opt() ].
@@ -430,13 +430,13 @@
 % Options for button style, see:
 % http://docs.wxwidgets.org/stable/wx_wxbutton.html#wxbuttonwxbutton
 %
--type button_style_opt() ::  'default'
-						   | 'left_justified'
-						   | 'right_justified'
-						   | 'top_justified'
-						   | 'bottom_justified'
-						   | 'exact_fit'
-						   | 'flat'.
+-type button_style_opt() :: 'default'
+						  | 'left_justified'
+						  | 'right_justified'
+						  | 'top_justified'
+						  | 'bottom_justified'
+						  | 'exact_fit'
+						  | 'flat'.
 
 
 -type button_style() :: button_style_opt() | [ button_style_opt() ].
@@ -502,7 +502,7 @@
 
 
 -export_type([ length/0, coordinate/0, point/0, orientation/0,
-			   object_type/0, myriad_instance_id/0, id/0, wx_server/0,
+			   object_type/0, myriad_instance_pid/0, id/0, wx_server/0,
 			   window/0, frame/0, panel/0, button/0, sizer/0, status_bar/0,
 			   bitmap/0, back_buffer/0, canvas/0,
 			   construction_parameters/0, backend_event/0, connect_options/0,
@@ -1530,8 +1530,8 @@ get_gui_env() ->
 %
 -spec object_to_string( gui_object() ) -> string().
 object_to_string( #myriad_object_ref{ object_type=ObjectType,
-									  myriad_instance_id=InstanceRef } ) ->
-	text_utils:format( "~s-~B", [ ObjectType, InstanceRef ] );
+									  myriad_instance_pid=InstancePid } ) ->
+	text_utils:format( "~s-~B", [ ObjectType, InstancePid ] );
 
 object_to_string( { wx_ref, InstanceRef, WxObjectType, _State=[] } ) ->
 	% Ex: {wx_ref,35,wxFrame,[]}

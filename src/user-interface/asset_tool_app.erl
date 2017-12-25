@@ -147,7 +147,7 @@ init_app_gui() ->
 
 	ButtonOpt = [ { flag, [ expand_fully ] } ],
 
-	gui:add_to_sizer( ControlBoxSizer, [ LoadImageButton, QuitButton ],
+	gui:add_to_sizer( ControlBoxSizer, [ LoadImageButton, QuitButton ], 
 					  ButtonOpt ),
 
 

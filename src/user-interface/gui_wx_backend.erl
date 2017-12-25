@@ -134,7 +134,7 @@
 
 % Conversions from MyriadGUI to wx:
 %
--export([ to_wx_object_type/1,
+-export([ to_wx_object_type/1, 
 		  to_wx_event_type/1, from_wx_event_type/1,
 		  to_wx_debug_level/1,
 		  window_style_to_bitmask/1,

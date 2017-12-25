@@ -89,6 +89,20 @@
 -export([ load_image/2, load_image/3 ]).
 
 
+% Implementation notes:
+%
+% There is actually no such thing as a plain canvas in wx: here, they are
+% actually panels with bitmaps.
+%
+% So we emulate a canvas here, resulting notably in the fact that a canvas
+% object is not a reference onto a wx object, but a stateful instance that shall
+% as a result be kept from a call to another: as its state may change, the
+% result of functions returning a canvas must not be ignored.
+
+% Due to their number, canvas operations have been defined separately from the
+% gui module.
+
+
 
 % Implementation notes:
 %

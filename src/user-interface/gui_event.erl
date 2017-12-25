@@ -228,7 +228,7 @@
 		% Total count of the instances already created for that type:
 		instance_count :: instance_count(),
 
-		instance_table :: table:table( gui:myriad_instance_id(),
+		instance_table :: table:table( gui:myriad_instance_pid(),
 									   gui:myriad_object_state() )
 
 }).
@@ -698,7 +698,7 @@ process_only_latest_repaint_event( CurrentWxRepaintEvent, SourceObject,
 			 event=WxEventInfo } = CurrentWxRepaintEvent,
 
 		% By design this is a wx (repaint) event:
-		process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo,
+		process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, 
 						  CurrentWxRepaintEvent, LoopState )
 
 	end.
@@ -911,7 +911,7 @@ register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 	% Prepares the reference onto this new instance:
 	%
 	MyriadRef = #myriad_object_ref{ object_type=ObjectType,
-									myriad_instance_id=NewInstanceId },
+									myriad_instance_pid=NewInstanceId },
 
 	NewTypeTable = table:addEntry( ObjectType, NewInstanceReferential,
 								   TypeTable ),
@@ -1118,7 +1118,7 @@ adjust_objects( _ObjectsToAdjust=[], _EventTable, TypeTable ) ->
 
 adjust_objects( _ObjectsToAdjust=[ CanvasRef=#myriad_object_ref{
 									  object_type=canvas,
-									  myriad_instance_id=CanvasId } | T ],
+									  myriad_instance_pid=CanvasId } | T ],
 				EventTable, TypeTable ) ->
 
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
@@ -1151,7 +1151,7 @@ adjust_objects( _ObjectsToAdjust=[ CanvasRef=#myriad_object_ref{
 
 % Returns the internal state of the specified canvas instance.
 %
--spec get_canvas_instance_state( gui:myriad_instance_id(),
+-spec get_canvas_instance_state( gui:myriad_instance_pid(),
 						 myriad_type_table() ) -> gui:myriad_object_state().
 get_canvas_instance_state( CanvasId, TypeTable ) ->
 	get_instance_state( _MyriadObjectType=canvas, CanvasId, TypeTable ).
@@ -1205,7 +1205,7 @@ get_instance_state( MyriadObjectType, InstanceId, TypeTable ) ->
 
 % Sets the internal state of the specified canvas instance.
 %
--spec set_canvas_instance_state( gui:myriad_instance_id(),
+-spec set_canvas_instance_state( gui:myriad_instance_pid(),
 	gui:myriad_object_state(), myriad_type_table() ) -> myriad_type_table().
 set_canvas_instance_state( CanvasId, CanvasState, TypeTable ) ->
 	set_instance_state( _MyriadObjectType=canvas, CanvasId, CanvasState,
@@ -1227,7 +1227,7 @@ set_instance_state( { myriad_object_ref, MyriadObjectType, InstanceId },
 % Returns the internal state of the specified, already-existing MyriadGUI
 % instance.
 %
--spec set_instance_state( gui:myriad_object_type(), gui:myriad_instance_id(),
+-spec set_instance_state( gui:myriad_object_type(), gui:myriad_instance_pid(),
 						  gui:myriad_object_state(), myriad_type_table() ) ->
 								myriad_type_table().
 set_instance_state( MyriadObjectType, InstanceId, InstanceState, TypeTable ) ->
