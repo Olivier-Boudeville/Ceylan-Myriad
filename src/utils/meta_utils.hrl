@@ -110,6 +110,8 @@
 		% methods) are recorded here (better that way, as an export attribute
 		% may define any number of exports and we want to record its line):
 		%
+		% (this field is synchronised based on the next one, the function table)
+		%
 		function_exports = [] :: meta_utils:located_ast(),
 
 
