@@ -128,12 +128,12 @@
 -type regex_string() :: string().
 
 
-% a string that describes a title:
+% A string that describes a title:
 %
 -type title() :: string().
 
 
-% a string that describes a label:
+% A string that describes a label:
 %
 -type label() :: string().
 
@@ -520,8 +520,9 @@ strings_to_sorted_string( ErrorTerm ) ->
 strings_to_string( _ListOfStrings=[ SingleString ], _LevelOrBullet )
   when is_list( SingleString ) ->
 	% For a single string, no need for leading and trailing newlines, but it
-	% should be separated (with single quotes) from the surrounding text:
-	io_lib:format( "'~ts'", [ SingleString ]);
+	% should be separated (with single quotes, themselves surrounded by spaces)
+	% from the surrounding text:
+	io_lib:format( " '~ts' ", [ SingleString ]);
 
 strings_to_string( ListOfStrings, IndentationLevel )
   when is_integer( IndentationLevel ) ->
