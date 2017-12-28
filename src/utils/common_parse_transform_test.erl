@@ -52,6 +52,26 @@ run() ->
 
 	TransformedAST = common_parse_transform:run_standalone( TargetSourceFile ),
 
-	test_facilities:display( "Transformed AST:~n~p", [ TransformedAST ] ),
+	test_facilities:display( "Transformed AST:~n~p~n", [ TransformedAST ] ),
+
+	test_facilities:display( "Now performing directly AST-level operations." ),
+
+	BaseAST = meta_utils:erl_to_ast( TargetSourceFile ),
+
+	test_facilities:display( "Base AST:~n~p", [ BaseAST ] ),
+
+	BaseModuleInfo = meta_utils:extract_module_info_from_ast( BaseAST ),
+
+	test_facilities:display( "Base module info: ~s~n",
+							 [ meta_utils:module_info_to_string( BaseModuleInfo ) ] ),
+
+	FinalModuleInfo = BaseModuleInfo,
+
+	test_facilities:display( "Final module info: ~s~n",
+							 [ meta_utils:module_info_to_string( FinalModuleInfo ) ] ),
+
+	FinalAST = meta_utils:recompose_ast_from_module_info( FinalModuleInfo ),
+	
+	test_facilities:display( "Final AST:~n~p", [ FinalAST ] ),
 
 	test_facilities:stop().
