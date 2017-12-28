@@ -34,7 +34,6 @@
 
 
 
-
 % Notification-related functions.
 %
 -export([ speak/1, notify_user/1, notify_user/2 ]).
@@ -63,7 +62,7 @@
 		  get_execution_target/0,
 		  is_alive/1, is_alive/2,
 		  is_debug_mode_enabled/0,
-		  generate_uuid/0, create_uniform_tuple/2,
+		  create_uniform_tuple/2,
 		  stop/0, stop/1, stop_on_success/0, stop_on_failure/0,
 		  stop_on_failure/1,
 		  ignore/1, freeze/0, crash/0, enter_infinite_loop/0, trigger_oom/0 ]).
@@ -106,10 +105,6 @@
 % Describes a mask of bits:
 %
 -type bit_mask() :: integer().
-
-
-% A string UUID (ex: "ed64ffd4-74ee-43dc-adba-be37ed8735aa"):
--type uuid() :: string().
 
 
 % Term designated a reason (which may be any term):
@@ -166,29 +161,6 @@
 %
 -type accumulator() :: any().
 
-
-
-% Corresponds to smart (sortable, insertion-friendly) identifiers.
-%
-% Sometimes identifiers that can be sorted and that allow introducing any number
-% of new identifiers between any two successive ones are needed.
-%
-% We use list of integers for that, whose default ordering corresponds to this
-% need.
-%
-% For example, if having defined two identifiers [7,2] and [7,3], we can
-% introduce two identifiers between them, typically [7,2,1] and [7,2,2], since
-% the Erlang term ordering tells us that [7,2] < [7,2,1] < [7,2,2] < [7,3].
-%
-% As a result, no need to define specific comparison operators, '=:=', '<' and
-% '>', and thus 'lists:sort/1' are already adequate for that.
-%
-% Example: lists:sort( [ [7,3], [7,2,1], [7,2,2], [7,2] ] ) =
-%   [ [7,2], [7,2,1], [7,2,2], [7,3] ].
-%
--type sortable_id() :: [ integer() ].
-
-
 -type version_number() :: integer().
 
 % By default we consider a version is a triplet of numbers:
@@ -237,77 +209,17 @@
 -type fixme() :: any().
 
 
--export_type([ void/0, count/0, non_null_count/0, bit_mask/0, uuid/0,
+-export_type([ void/0, count/0, non_null_count/0, bit_mask/0,
 			   reason/0, exit_reason/0, error_reason/0, error_term/0,
 			   base_status/0, maybe/1,
 			   external_data/0, unchecked_data/0, user_data/0,
-			   accumulator/0, sortable_id/0,
+			   accumulator/0,
 			   version_number/0, version/0, two_digit_version/0, any_version/0,
 			   positive_index/0,
 			   module_name/0, function_name/0, argument/0, command_spec/0,
 			   user_name/0, atom_user_name/0,
 			   comparison_result/0, exception_class/0, status_code/0,
 			   fixme/0 ]).
-
-
-
-% Returns a string containing a new universally unique identifier (UUID), based
-% on the system clock plus the system's ethernet hardware address, if present.
-%
--spec generate_uuid() -> uuid().
-generate_uuid() ->
-
-	case executable_utils:lookup_executable( "uuidgen" ) of
-
-		false ->
-			display( text_utils:format(
-					   "~nWarning: no 'uuidgen' found on system, "
-					   "defaulting to our failsafe implementation.~n", [] ) ),
-			uuidgen_internal();
-
-		Exec ->
-
-			% Random-based, rather than time-based (otherwise we end up
-			% collecting a rather constant suffix):
-			%
-			case system_utils:run_executable( Exec ++ " -r" ) of
-
-				{ _ExitCode=0, Res } ->
-					Res;
-
-				{ ExitCode, ErrorOutput } ->
-					throw( { uuid_generation_failed, ExitCode, ErrorOutput } )
-
-			end
-
-	end.
-
-
-
-% Quick and dirty replacement:
-%
-uuidgen_internal() ->
-
-	% Using /dev/random instead would incur waiting of a few seconds that were
-	% deemed too long for this use:
-	%
-	case system_utils:run_executable(
-		   "/bin/dd if=/dev/urandom bs=1 count=32 2>/dev/null" ) of
-
-		{ _ReturnCode=0, Output } ->
-			% We translate these bytes into hexadecimal values:
-			V = [ string:to_lower( hd(
-				  io_lib:format( "~.16B", [ B rem 16 ] ) ) )  || B <- Output ],
-
-			lists:flatten( io_lib:format(
-							 "~s~s~s~s~s~s~s~s-~s~s~s~s-~s~s~s~s-~s~s~s~s-~s"
-							 "~s~s~s~s~s~s~s~s~s~s~s", V ) );
-
-		{ ErrorCode, ErrorOutput } ->
-			throw( { uuidgen_internal_failed, ErrorCode, ErrorOutput } )
-
-	end.
-
 
 
 % Creates a tuple of specified size, all elements having the same, specified,
@@ -489,6 +401,7 @@ notify_user( Message, FormatList ) ->
 
 	io:format( ActualMessage ),
 	speak( ActualMessage ).
+
 
 
 
