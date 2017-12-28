@@ -103,16 +103,17 @@ endif
 # not taken into account at run-time, as not recompiled).
 
 
-.PHONY: all all-pre-hook all-parallel-recurse all-recurse rebuild			\
-	test test-recurse doc-recurse build-tests launch						\
-	install-all install-announce install-ebin install-bin install-src		\
-	install-include install-examples install-test install-doc				\
-	info-install info-install-locations info-install-content                \
-	generate-list-of-erlang-types generate-list-of-local-types              \
-	generate-local-plt self-check-against-plt check check-hook help-erl     \
-	clean clean-erlang clean-python clean-database clean-recurse            \
-	clean-outputs real-clean                                                \
-	info info-files info-erlang info-python info-java $(MODULES_DIRS)
+.PHONY: all all-pre-hook all-parallel-recurse all-recurse
+		all-parse-transforms bootstrap-modules make-all-parse-transforms    \
+		rebuild test test-recurse doc-recurse build-tests launch			\
+		install-all install-announce install-ebin install-bin install-src	\
+		install-include install-examples install-test install-doc			\
+		info-install info-install-locations info-install-content            \
+		generate-list-of-erlang-types generate-list-of-local-types          \
+		generate-local-plt self-check-against-plt check check-hook help-erl \
+		clean clean-erlang clean-python clean-database clean-recurse        \
+		clean-outputs real-clean                                            \
+		info info-files info-erlang info-python info-java $(MODULES_DIRS)
 
 
 
@@ -141,7 +142,9 @@ endif
 
 
 
-all-parse-transforms: $(BOOTSTRAP_MODULES) make-all-parse-transforms
+all-parse-transforms: bootstrap-modules make-all-parse-transforms
+
+bootstrap-modules: $(BOOTSTRAP_MODULES)
 
 
 make-all-parse-transforms:
@@ -212,6 +215,16 @@ rebuild: clean all
 # produced in the right directory (not at the root).
 #
 # Exactly the same processing applies to each of them.
+
+
+$(COMMON_TOP)/src/utils/basic_utils.beam: $(COMMON_TOP)/src/utils/basic_utils.erl
+	@echo "		Compiling bootstrap module $<"
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
+
+$(COMMON_TOP)/src/utils/id_utils.beam: $(COMMON_TOP)/src/utils/id_utils.erl
+	@echo "		Compiling bootstrap module $<"
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
 
 $(COMMON_TOP)/src/utils/meta_utils.beam: $(COMMON_TOP)/src/utils/meta_utils.erl
