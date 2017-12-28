@@ -196,18 +196,17 @@ parse_transform( AST, _Options ) ->
 	%
 	% which means that, in a spec, any term in the form of
 	% '{user_type,Line,void,[]}' shall be replaced with:
-	%
-	%  {remote_type,Line, [{atom,Line,basic_utils}, {atom,Line,void}, [] ] }
+	% '{remote_type,Line, [{atom,Line,basic_utils}, {atom,Line,void}, [] ] }'
 
 
-	%io:format( "~n## INPUT ############################################~n" ),
-	%io:format( "Input AST:~n~p~n~n", [ AST ] ),
+	io:format( "~n## INPUT ############################################~n" ),
+	io:format( "Input AST:~n~p~n~n", [ AST ] ),
 
 	% Will fail (a bit silently) if the AST cannot be successfully linted:
 	BaseModuleInfo = meta_utils:extract_module_info_from_ast( AST ),
 
-	%io:format( "Input module info: ~s~n",
-	%		   [ meta_utils:module_info_to_string( ModuleInfo ) ] ),
+	io:format( "Input module info: ~s~n",
+			   [ meta_utils:module_info_to_string( BaseModuleInfo ) ] ),
 
 	% TO-DO: operate on ModuleInfo rather than directly on AST:
 	TableModuleInfo = replace_table( BaseModuleInfo ),
@@ -217,13 +216,13 @@ parse_transform( AST, _Options ) ->
 
 	OutputModuleInfo = VoidModuleInfo,
 
-	%io:format( "~n## OUTPUT ############################################ ~n" ),
+	io:format( "~n## OUTPUT ############################################ ~n" ),
 	%io:format( "Output module info: ~s~n",
 	%		   [ meta_utils:module_info_to_string( OutputModuleInfo ) ] ),
 
 	OutputAST = meta_utils:recompose_ast_from_module_info( OutputModuleInfo ),
 
-	%io:format( "~n~nOutput AST:~n~p~n", [ OutputAST ] ),
+	io:format( "~n~nOutput AST:~n~p~n", [ OutputAST ] ),
 
 	OutputAST.
 
