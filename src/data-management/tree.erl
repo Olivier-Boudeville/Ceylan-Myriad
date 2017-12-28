@@ -215,7 +215,7 @@ size( _Tree={ _Content, Subtrees }, Acc ) ->
 %
 -spec to_string( tree() ) -> text_utils:ustring().
 to_string( Tree ) ->
-	% Is an io:list:
+	% Is an io_list():
 	lists:flatten( to_string( Tree, _Prefix="" ) ).
 
 
