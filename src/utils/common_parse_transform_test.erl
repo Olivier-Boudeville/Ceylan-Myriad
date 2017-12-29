@@ -63,15 +63,15 @@ run() ->
 	BaseModuleInfo = meta_utils:extract_module_info_from_ast( BaseAST ),
 
 	test_facilities:display( "Base module info: ~s~n",
-							 [ meta_utils:module_info_to_string( BaseModuleInfo ) ] ),
+					 [ meta_utils:module_info_to_string( BaseModuleInfo ) ] ),
 
 	FinalModuleInfo = BaseModuleInfo,
 
 	test_facilities:display( "Final module info: ~s~n",
-							 [ meta_utils:module_info_to_string( FinalModuleInfo ) ] ),
+					 [ meta_utils:module_info_to_string( FinalModuleInfo ) ] ),
 
 	FinalAST = meta_utils:recompose_ast_from_module_info( FinalModuleInfo ),
-	
+
 	test_facilities:display( "Final AST:~n~p", [ FinalAST ] ),
 
 	test_facilities:stop().

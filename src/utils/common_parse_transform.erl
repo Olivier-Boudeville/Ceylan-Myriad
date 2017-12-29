@@ -48,8 +48,9 @@
 %    the previous test is to apply to
 %
 % So the typical recommended workflow is to run repeatedly 'make
-% common_parse_transform_run' and perform modifications onto
-% simple_parse_transform_target.erl.
+% common_parse_transform_run' (provided the compilation of the bootstrap modules
+% and of common_parse_transform_test.beam still succeeds!) and perform
+% modifications onto simple_parse_transform_target.erl.
 %
 % - this particular parse transform applies at the level of the Common Layer
 % (a.k.a. Ceylan-Myriad), and as such *cannot use any module of that layer
@@ -199,14 +200,18 @@ parse_transform( AST, _Options ) ->
 	% '{remote_type,Line, [{atom,Line,basic_utils}, {atom,Line,void}, [] ] }'
 
 
-	io:format( "~n## INPUT ############################################~n" ),
-	io:format( "Input AST:~n~p~n~n", [ AST ] ),
+	%io:format( "~n## INPUT ############################################~n" ),
+	%io:format( "Input AST:~n~p~n~n", [ AST ] ),
+	%meta_utils:write_ast_to_file( AST, "Input-AST.txt" ),
 
 	% Will fail (a bit silently) if the AST cannot be successfully linted:
 	BaseModuleInfo = meta_utils:extract_module_info_from_ast( AST ),
 
-	io:format( "Input module info: ~s~n",
-			   [ meta_utils:module_info_to_string( BaseModuleInfo ) ] ),
+	%meta_utils:write_module_info_to_file( BaseModuleInfo,
+	%									  "Input-module_info.txt" ),
+
+	%io:format( "Input module info: ~s~n",
+	%		   [ meta_utils:module_info_to_string( BaseModuleInfo ) ] ),
 
 	% TO-DO: operate on ModuleInfo rather than directly on AST:
 	TableModuleInfo = replace_table( BaseModuleInfo ),
@@ -216,13 +221,17 @@ parse_transform( AST, _Options ) ->
 
 	OutputModuleInfo = VoidModuleInfo,
 
-	io:format( "~n## OUTPUT ############################################ ~n" ),
+	%meta_utils:write_module_info_to_file( OutputModuleInfo,
+	%									  "Output-module_info.txt" ),
+
+	%io:format( "~n## OUTPUT ############################################ ~n" ),
 	%io:format( "Output module info: ~s~n",
 	%		   [ meta_utils:module_info_to_string( OutputModuleInfo ) ] ),
 
 	OutputAST = meta_utils:recompose_ast_from_module_info( OutputModuleInfo ),
 
-	io:format( "~n~nOutput AST:~n~p~n", [ OutputAST ] ),
+	%io:format( "~n~nOutput AST:~n~p~n", [ OutputAST ] ),
+	%meta_utils:write_ast_to_file( OutputAST, "Output-AST.txt" ),
 
 	OutputAST.
 
@@ -388,9 +397,8 @@ lookup_table_select_attribute( _AST=[ _H | T ], Found ) ->
 % (module-info version)
 %
 -spec replace_table( module_info() ) -> module_info().
-replace_table( ModuleInfo=#module_info{
-							 type_definition_defs=TypeActualDefs,
-							 functions=FunctionTable } ) ->
+replace_table( ModuleInfo=#module_info{ type_definition_defs=TypeActualDefs,
+										functions=FunctionTable } ) ->
 
 	% We have here to possibly update all type specifications and all function
 	% declarations.

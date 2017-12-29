@@ -70,4 +70,5 @@ f( _ ) ->
 %-spec g() -> void().
 g() ->
 	A = foobar,
-	{ A, A }.
+	U = { A, A },
+	io:format( "Hello U: ~p", [ U ] ).

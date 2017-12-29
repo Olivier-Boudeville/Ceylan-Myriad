@@ -48,7 +48,7 @@
 		module_def = undefined :: 'undefined' | meta_utils:located_form(),
 
 
-		% Ex: '{compile, { inline, [ { FunName, Arity } ] } }'):
+		% Ex: '{compile, { inline, [ { FunName, Arity } ] } }':
 		%
 		compilation_option_defs = [] :: meta_utils:located_ast(),
 
@@ -104,26 +104,22 @@
 		type_export_defs = [] :: meta_utils:located_ast(),
 
 
-		% Whether a function (possibly any kind of method) is exported is
-		% recorded primarily in its respective function_info record through a
-		% boolean, while the forms for the exports of all functions (including
-		% methods) are recorded here (better that way, as an export attribute
-		% may define any number of exports and we want to record its line):
+		% Whether a function (possibly any kind of it) is exported is recorded
+		% primarily in its respective function_info record through a list of
+		% locations, while the actual forms for the exports of all functions are
+		% recorded here (better that way, as an export attribute may define any
+		% number of exports, and we want to record its definition line):
 		%
-		% (this field is synchronised based on the next one, the function table)
+		% (this field must be kept synchronised with the next one, the
+		% 'functions' table)
 		%
-		function_exports = [] :: meta_utils:located_ast(),
+		function_exports :: meta_utils:export_table(),
 
 
-		% All information about the functions defined in that module:
+		% All information, indexed by function identifiers, about all the
+		% functions defined in that module:
 		%
-		% (we cannot use the 'table' module here: this meta module is not
-		% parse-transformed; we thus use only map_hashtable here, knowing that
-		% this module is bootstrapped as well)
-		%
-		%functions :: map_hashtable:map_hashtable( meta_utils:function_id(),
-		%										   meta_utils:function_info() ),
-		functions :: map_hashtable:map_hashtable(),
+		functions :: meta_utils:function_table(),
 
 
 		% The definition of the last line in the original source file:
@@ -150,16 +146,20 @@
 %
 -record( function_info, {
 
+
 		   % The name of that function:
 		   name = undefined :: meta_utils:function_name(),
+
 
 		   % The arity of that function:
 		   arity = undefined :: arity(),
 
-		   % Corresponds to the location of the full form for the definition of
-		   % this function (not of the spec):
+
+		   % Corresponds to the location of the full form for the definition
+		   % (first clause) of this function (not of the spec):
 		   %
 		   location = undefined :: 'undefined' | meta_utils:location(),
+
 
 		   % Corresponds to the line of the first defined clause (in its source
 		   % file):
@@ -169,16 +169,23 @@
 		   %
 		   line = undefined :: 'undefined' | meta_utils:line(),
 
-		   % Function actual definition, a list of the abstract forms of its
-		   % definition:
+
+		   % Function actual definition, a (non-located) list of the abstract
+		   % forms of its definition:
 		   %
 		   definition = [] :: [ meta_utils:clause_def() ],
+
 
 		   % The type specification (if any) of that function, as an abstract
 		   % form:
 		   spec = undefined :: meta_utils:located_function_spec() | 'undefined',
 
-		   % Tells whether this function has been exported:
-		   exported = false :: boolean()
+
+		   % Tells whether this function has been exported, as a (possibly
+		   % empty) list of the location(s) of its actual export(s), knowing
+		   % that a function can be exported more than once or never:
+		   %
+		   exported = [] :: [ meta_utils:location() ]
+
 
 } ).
