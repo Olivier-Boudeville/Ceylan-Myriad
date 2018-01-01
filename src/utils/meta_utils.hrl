@@ -53,10 +53,12 @@
 		compilation_option_defs = [] :: meta_utils:located_ast(),
 
 
-		% Parse-level attributes (ex: '-my_attribute( my_value ).'), as
-		% attribute name/value pairs (ex: { my_attribute, my_value } ).
+		% Parse-level attributes (ex: '-my_attribute( my_value ).'), as a table
+		% associating values to attribute names (its keys).
 		%
-		parse_attributes = [] :: [ meta_utils:attribute() ],
+		% Note: must be kept on sync with the 'parse_attribute_defs' field.
+		%
+		parse_attributes :: meta_utils:attribute_table(),
 
 
 		% Parse attribute definitions (as located, abstract forms):
@@ -167,7 +169,7 @@
 		   % (this information is a priori redundant with the one in the first
 		   % clause, yet present in the forms, thus kept here)
 		   %
-		   line = undefined :: 'undefined' | meta_utils:line(),
+		   line = undefined :: 'undefined' | ast_utils:line(),
 
 
 		   % Function actual definition, a (non-located) list of the abstract

@@ -48,6 +48,83 @@
 -module(meta_utils).
 
 
+% This module being a bootstrap one, the 'table' pseudo-module is not available
+% (as this module is not processed by the 'Common' parse transform):
+%
+% Indeed, no table pseudo-module available from meta_utils, as it cannot be
+% parse-transformed; only ?table is available here, not the other *_hashtable
+% counterparts (once that meta_utils module is compiled, if it relied on
+% foo_hashtable, then the parse transform could not operate on any module
+% compiled before foo_hashtable):
+%
+-define( table, map_hashtable ).
+
+
+
+% Shorthands:
+-type module_name() :: basic_utils:module_name().
+
+-type type_name() :: type_utils:type_name().
+-type type_arity() :: type_utils:type_arity().
+
+
+% Not expected to be legit symbols:
+%
+-define( any_module_name, '_' ).
+-define( any_type_name,   '_' ).
+-define( any_type_arity,  '_' ).
+
+
+-type module_name_match() :: module_name() | ?any_module_name.
+-type type_name_match()   :: type_name()   | ?any_type_name.
+-type type_arity_match()  :: type_arity()  | ?any_type_arity.
+
+
+% The same arity is kept, and just specifying the module name means that the
+% type name is not to change.
+%
+% Note that this implies that a (local or remote) type can only be replaced by a
+% remote type (a priori not a problematic limitation).
+%
+-type type_replacement() :: { module_name(), type_name() } | module_name().
+
+
+
+% Local subsection:
+
+-type local_type_id_match() :: { type_name_match(), type_arity_match() }.
+
+% Either we directly set the target module and type names (using same arity), or
+% we apply an anonymous function to determine the corresponding information,
+% based on context:
+-type local_type_replacement() :: type_replacement()
+			| fun( ( type_name(), type_arity() ) -> type_replacement() ).
+
+
+% Table defining replacements of local types:
+-type local_type_replacement_table() :: ?table:?table( local_type_id_match(),
+													   local_type_replacement() ).
+
+
+
+% Remote subsection:
+
+-type remote_type_id_match() :: { module_name_match(), type_name_match(),
+								  type_arity_match() }.
+
+% Either we directly set the target module and type names (using same arity), or
+% we apply an anonymous function to determine the corresponding information,
+% based on context:
+-type remote_type_replacement() :: type_replacement()
+			 | fun( ( module_name(), type_name(), type_arity() ) ->
+								type_replacement() ) .
+
+
+% Table defining replacements of remote types:
+-type remote_type_replacement_table() :: ?table:?table( remote_type_id_match(),
+														remote_type_replacement() ).
+
+
 
 
 % Key implementation notes:
@@ -135,18 +212,6 @@
 
 
 
-% This module being a bootstrap one, the 'table' pseudo-module is not available
-% (as this module is not processed by the 'Common' parse transform):
-%
-% Indeed, no table pseudo-module available from meta_utils, as it cannot be
-% parse-transformed; only ?table is available here, not the other *_hashtable
-% counterparts (once that meta_utils module is compiled, if it relied on
-% foo_hashtable, then the parse transform could not operate on any module
-% compiled before foo_hashtable):
-%
--define( table, map_hashtable ).
-
-
 % For function_info:
 -include("meta_utils.hrl").
 
@@ -161,15 +226,6 @@
 % debug_info,warnings_as_errors, etc.
 %
 -type parse_transform_options() :: proplists:proplist().
-
-
-% Line location (i.e. line number) of a form in a source file:
--type line() :: erl_anno:line().
-
-
-% Line-related location in a source file (either line() or {line(), column()}):
-%
--type file_loc() :: erl_anno:location().
 
 
 % Abstract form, part of an AST (ex: {attribute,40,file,{"foo.erl",40}}):
@@ -240,6 +296,10 @@
 -type attribute() :: { attribute_name(), attribute_value() }.
 
 
+% For easy access to parse attributes:
+%
+-type attribute_table() :: ?table:?table( attribute_name(), attribute_value() ).
+
 
 % The name of a function:
 %
@@ -283,14 +343,13 @@
 %
 % Note:
 %
-%  - this table must be explicitly updated whenever adding or removing a
-%  function in a module_info'functions' field; see: add_function/2 and
-%  remove_function/2
+% - this table must be explicitly updated whenever adding or removing a function
+% in a module_info'functions' field; see: add_function/2 and remove_function/2
 %
-%  - [ function_id() ] used, not a set, to better preserve order
+% - [ function_id() ] used, not a set, to better preserve order
 %
 -type export_table() :: ?table:?table( location(),
-									   { line(), [ function_id() ] } ).
+									   { ast_utils:line(), [ function_id() ] } ).
 
 
 % A table associating to each function identifier a full function information.
@@ -326,7 +385,7 @@
 %
 % The module is the one emitting that issue (ex: erl_lint)
 %
--type issue_info() :: { line(), module(), issue_description() }.
+-type issue_info() :: { ast_utils:line(), module(), issue_description() }.
 
 
 % A warning regarding a source file, corresponding to a list of error
@@ -335,10 +394,22 @@
 -type issue_report() :: { file_utils:file_name(), [ issue_info() ] }.
 
 
+% For type replacements:
+-export_type([ module_name_match/0, type_name_match/0, type_arity_match/0,
+			   type_replacement/0,
+			   local_type_id_match/0, local_type_replacement/0,
+			   local_type_replacement_table/0,
+			   remote_type_id_match/0, remote_type_replacement/0,
+			   remote_type_replacement_table/0 ]).
 
--export_type([ parse_transform_options/0, line/0, file_loc/0, form/0, ast/0,
+
+
+
+-export_type([ parse_transform_options/0, form/0, ast/0,
 			   location/0, located_form/0, located_ast/0,
 			   attribute_name/0, attribute_value/0, attribute/0,
+			   attribute_table/0,
+
 			   function_name/0, function_id/0,
 			   clause_def/0, function_spec/0, located_function_spec/0,
 			   function_info/0,
@@ -351,7 +422,10 @@
 %
 -export([ init_module_info/0, add_function/2, remove_function/2,
 		  function_info_to_string/1,
-		  traverse_term/4,
+		  get_local_type_replacement_table/1,
+		  get_remote_type_replacement_table/1,
+		  located_ast_to_string/1,
+		  replace_types_in/3, traverse_term/4,
 		  term_to_form/1, variable_names_to_ast/2,
 		  string_to_form/1, string_to_form/2,
 		  string_to_expressions/1, string_to_expressions/2,
@@ -391,8 +465,12 @@
 %
 -spec init_module_info() -> module_info().
 init_module_info() ->
-	#module_info{ function_exports=?table:new(),
-				  functions=?table:new() }.
+
+	EmptyTable = ?table:new(),
+
+	#module_info{ parse_attributes=EmptyTable,
+				  function_exports=EmptyTable,
+				  functions=EmptyTable }.
 
 
 
@@ -609,6 +687,363 @@ function_info_to_string( #function_info{ name=Name,
 
 
 
+% Returns a table describing local type replacements.
+%
+% Ex: [ { { void, 0 }, basic_utils },
+%       { { my_maybe, 1 }, { basic_utils, maybe } },
+%       % First clause will never match due to arity:
+%       { { '_', 3 }, fun( other_void, 0 ) ->
+%                                    other_utils;
+%                        ( _, '_' ) ->
+%                                   {foo_utils,some_type}
+%                     end }
+% ]
+%
+% will return a description of the transformation of:
+%
+%  - void() into basic_utils:void(), as the same type name is implied there; it
+%  is just the addition (prefix) of a module, as a remote type
+%
+%  - my_maybe(T) into basic_utils:maybe(T)
+%
+%  - other_void() into other_utils()
+%
+%  - any type depending on three others by foo_utils:some_type/3
+%
+-spec get_local_type_replacement_table(
+		[ { local_type_id_match(), type_replacement() } ] ) ->
+				local_type_replacement_table().
+get_local_type_replacement_table( Replacements ) ->
+	EmptyTable = ?table:new(),
+	get_local_type_repl_helper( Replacements, EmptyTable ).
+
+
+
+% (helper)
+get_local_type_repl_helper( _Replacements=[], Table ) ->
+	Table;
+
+% Replacement can be either { TargetModule, TargetType } or TargetModule:
+get_local_type_repl_helper( _Replacements=[
+		{ Src={ _SourceTypeMatch, _ArityMatch },
+		  Replacement={ _TargetModule, _TargetType } } | T ], Table ) ->
+
+	% Up to one transformation per source type:
+	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	get_local_type_repl_helper( T, NewTable );
+
+% Same target type here:
+get_local_type_repl_helper( _Replacements=[
+		{ Src={ SourceTypeMatch, _ArityMatch }, TargetModule } | T ], Table )
+  when is_atom( TargetModule ) ->
+
+	Replacement = { TargetModule, SourceTypeMatch },
+
+	% Up to one transformation per source type:
+	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	get_local_type_repl_helper( T, NewTable );
+
+
+get_local_type_repl_helper(_Replacements=[
+		{ Src={ _SourceTypeMatch, _ArityMatch }, ReplaceFun } | T ], Table )
+  when is_function( ReplaceFun ) ->
+
+	% Up to one transformation per source type:
+	NewTable = ?table:addNewEntry( Src, ReplaceFun, Table ),
+	get_local_type_repl_helper( T, NewTable ).
+
+
+
+% Returns a table describing remote type replacements.
+%
+% Ex: [ { { a_module, void, 0 }, basic_utils },
+%       { { a_module, my_maybe, 1 }, { basic_utils, maybe } },
+%       % First clause will never match due to arity:
+%       { { '_', '_', 3 }, fun( other_void, 0 ) ->
+%                                    other_utils;
+%                             ( _, '_' ) ->
+%                                   {foo_utils,some_type}
+%                     end }
+% ]
+%
+% will return a description of the transformation of:
+%
+%  - a_module:void() into basic_utils:void(), as the same type name is implied
+%  there; it is just the modification of the module used by a remote type
+%  - a_module:my_maybe(T) into basic_utils:maybe(T)
+%  - M:other_void() into M:other_utils()
+%  - any type of any module depending on three other types by
+%  foo_utils:some_type/3
+%
+-spec get_remote_type_replacement_table(
+		[ { remote_type_id_match(), type_replacement() } ] ) ->
+				remote_type_replacement_table().
+get_remote_type_replacement_table( Replacements ) ->
+	EmptyTable = ?table:new(),
+	get_remote_type_repl_helper( Replacements, EmptyTable ).
+
+
+
+% (helper)
+get_remote_type_repl_helper( _Replacements=[], Table ) ->
+	Table;
+
+% Replacement can be either { TargetModule, TargetType } or TargetModule:
+get_remote_type_repl_helper( _Replacements=[
+	{ Src={ _ModuleMatch, _SourceTypeMatch, _ArityMatch },
+			Replacement={ _TargetModule, _TargetType } } | T ], Table ) ->
+
+	% Up to one transformation per source type:
+	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	get_remote_type_repl_helper( T, NewTable );
+
+% Same target type here:
+get_remote_type_repl_helper( _Replacements=[
+	{ Src={ _ModuleMatch, SourceTypeMatch, _ArityMatch }, TargetModule } | T ],
+							 Table )
+  when is_atom( TargetModule ) ->
+
+	Replacement = { TargetModule, SourceTypeMatch },
+
+	% Up to one transformation per source type:
+	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	get_remote_type_repl_helper( T, NewTable );
+
+
+get_remote_type_repl_helper(_Replacements=[
+	{ Src={ _ModuleMatch, _SourceTypeMatch, _ArityMatch }, ReplaceFun } | T ],
+							Table )
+  when is_function( ReplaceFun ) ->
+
+	% Up to one transformation per source type:
+	NewTable = ?table:addNewEntry( Src, ReplaceFun, Table ),
+	get_remote_type_repl_helper( T, NewTable ).
+
+
+
+% Replaces local and remote types in specified located AST according to the two
+% specified tables.
+%
+-spec replace_types_in( located_ast(), local_type_replacement_table(),
+						remote_type_replacement_table() ) -> located_ast().
+replace_types_in( InputLocatedAST, LocalReplaceTable, RemoteReplaceTable ) ->
+
+	display_debug( "LocalReplaceTable: ~s",
+				   [ ?table:toString( LocalReplaceTable ) ] ),
+
+	display_debug( "RemoteReplaceTable: ~s",
+				   [ ?table:toString( RemoteReplaceTable ) ] ),
+
+	OutputLocatedAST = replace_types_helper( InputLocatedAST, LocalReplaceTable,
+											 RemoteReplaceTable, _Acc=[] ),
+
+	display_debug( "AST after type replacement:~n~s",
+				   [ located_ast_to_string( OutputLocatedAST ) ] ),
+
+	OutputLocatedAST.
+
+
+replace_types_helper( _InputLocatedAST=[], _LocalReplaceTable,
+					  _RemoteReplaceTable, Acc ) ->
+	Acc;
+
+replace_types_helper( _InputLocatedAST=[ { Loc, Form } | T ],
+					   LocalReplaceTable, RemoteReplaceTable, Acc ) ->
+	NewForm = replace_types_in_type_def( Form, LocalReplaceTable,
+										 RemoteReplaceTable ),
+	replace_types_helper( T, LocalReplaceTable, RemoteReplaceTable,
+						  [ { Loc, NewForm } | Acc ] ).
+
+
+
+replace_types_in_type_def( _Form={ attribute, Line, type,
+								   { TypeName, TypeDef, TypeVars } },
+						   LocalReplaceTable, RemoteReplaceTable ) ->
+	NewTypeDef = traverse_type( TypeDef, LocalReplaceTable, RemoteReplaceTable ),
+	display_debug( "Translation of type definition:~n~p~nis:~n~p~n",
+				   [ TypeDef, NewTypeDef ] ),
+	{ attribute, Line, type, { TypeName, NewTypeDef, TypeVars } };
+
+replace_types_in_type_def( UnexpectedForm, _LocalReplaceTable,
+						   _RemoteReplaceTable ) ->
+	raise_error( { unexpected_typedef_form, UnexpectedForm } ).
+
+
+
+% Traversing types.
+%
+% (records could be used instead)
+%
+% (helper)
+%
+% Tuple type found:
+traverse_type( _TypeDef={ type, Line, tuple, ElementTypes }, LocalReplaceTable,
+			   RemoteReplaceTable ) ->
+	{ type, Line, tuple,
+	  [ traverse_type( Elem, LocalReplaceTable,
+					   RemoteReplaceTable ) || Elem <- ElementTypes ] };
+
+% List type found, ex:
+% {attribute,43,type,{foo6,{type,43,list,[{type,43,boolean,[]}]},[]}},
+traverse_type( _TypeDef={ type, Line, list, [ ElementType ] },
+			   LocalReplaceTable, RemoteReplaceTable ) ->
+	{ type, Line, list, traverse_type( ElementType, LocalReplaceTable,
+					   RemoteReplaceTable ) };
+
+% Other built-in type:
+traverse_type( _TypeDef={ type, Line, BuiltinType, TypeVars },
+			   LocalReplaceTable, RemoteReplaceTable ) ->
+	NewTypeVars = [ traverse_type( Elem, LocalReplaceTable,
+								   RemoteReplaceTable ) || Elem <- TypeVars ],
+	{ type, Line, BuiltinType, NewTypeVars };
+
+% Local user type found:
+traverse_type( _TypeDef={ user_type, Line, TypeName, TypeVars }, LocalReplaceTable,
+			   RemoteReplaceTable ) ->
+
+	TypeArity = length( TypeVars ),
+
+	NewTypeVars = [ traverse_type( Elem, LocalReplaceTable,
+					   RemoteReplaceTable ) || Elem <- TypeVars ],
+
+	% Returning the new type information:
+	Outcome = case ?table:lookupEntry( { TypeName, TypeArity },
+									   LocalReplaceTable ) of
+
+		% Module and type overridden:
+		{ value, E={ _NewModuleName, _NewTypeName } } ->
+			E;
+
+		% Same type, only module overridden:
+		{ value, NewModuleName } when is_atom( NewModuleName ) ->
+			{ NewModuleName, TypeName };
+
+		{ value, TransformFun } when is_function( TransformFun ) ->
+			TransformFun( TypeName, TypeArity );
+
+		key_not_found ->
+
+			% Maybe a wildcard arity was defined then?
+			case ?table:lookupEntry( { TypeName, _AnyArity='_' },
+									 LocalReplaceTable ) of
+
+				{ value, E={ _NewModuleName, _NewTypeName } } ->
+					E;
+
+				% Same type, only module overridden:
+				{ value, NewModuleName } when is_atom( NewModuleName ) ->
+					{ NewModuleName, TypeName };
+
+				{ value, TransformFun } when is_function( TransformFun ) ->
+					TransformFun( TypeName, TypeArity );
+
+				key_not_found ->
+					% Nope, let it as it is:
+					unchanged
+
+			end
+
+	end,
+
+	case Outcome of
+
+		unchanged ->
+			% TypeDef with updated TypeVars:
+			{ user_type, Line, TypeName, NewTypeVars };
+
+		{ SetModuleName, SetTypeName } ->
+			ast_utils:forge_remote_type( SetModuleName, SetTypeName, NewTypeVars,
+										 Line )
+
+	end;
+
+
+% Remote user type found:
+traverse_type( _TypeDef={ remote_type, Line1,
+						 [ M={ atom, Line2, ModuleName },
+						   T={ atom, Line3, TypeName }, TypeVars ] },
+			   LocalReplaceTable, RemoteReplaceTable ) ->
+
+	TypeArity = length( TypeVars ),
+
+	NewTypeVars = [ traverse_type( Elem, LocalReplaceTable,
+					   RemoteReplaceTable ) || Elem <- TypeVars ],
+
+	% Returning the new type information:
+	Outcome = case ?table:lookupEntry( { ModuleName, TypeName, TypeArity },
+									   RemoteReplaceTable ) of
+
+		% Module and type overridden:
+		{ value, E={ _NewModuleName, _NewTypeName } } ->
+			E;
+
+		% Same type, only module overridden:
+		{ value, NewModuleName } when is_atom( NewModuleName ) ->
+			{ NewModuleName, TypeName };
+
+		{ value, TransformFun } when is_function( TransformFun ) ->
+			TransformFun( ModuleName, TypeName, TypeArity );
+
+		key_not_found ->
+
+			AnyArity = '_',
+
+			% Maybe a wildcard arity was defined for that type then?
+			case ?table:lookupEntry( { ModuleName, TypeName, AnyArity },
+									 RemoteReplaceTable ) of
+
+				{ value, E={ _NewModuleName, _NewTypeName } } ->
+					E;
+
+				% Same type, only module overridden:
+				{ value, NewModuleName } when is_atom( NewModuleName ) ->
+					{ NewModuleName, TypeName };
+
+				{ value, TransformFun } when is_function( TransformFun ) ->
+					TransformFun( ModuleName, TypeName, TypeArity );
+
+				key_not_found ->
+					% Nope, then maybe a wildcard type (and arity) then?
+					case ?table:lookupEntry( { ModuleName, _AnyType='_',
+										   AnyArity }, RemoteReplaceTable ) of
+
+						{ value, E={ _NewModuleName, _NewTypeName } } ->
+							E;
+
+						% Same type, only module overridden:
+						{ value, NewModuleName } when is_atom( NewModuleName ) ->
+						   { NewModuleName, TypeName };
+
+						{ value, TransformFun } when is_function( TransformFun ) ->
+						   TransformFun( ModuleName, TypeName, TypeArity );
+
+						key_not_found ->
+							% Nope, let it as it is:
+							unchanged
+
+					end
+
+			end
+
+	end,
+
+	case Outcome of
+
+		unchanged ->
+			% TypeDef with updated TypeVars:
+			{ remote_type, Line1, [ M, T, NewTypeVars ] };
+
+		{ SetModuleName, SetTypeName } ->
+			ast_utils:forge_remote_type( SetModuleName, SetTypeName, NewTypeVars,
+										 Line1, Line2, Line3 )
+
+	end;
+
+traverse_type( TypeDef, _LocalReplaceTable, _RemoteReplaceTable ) ->
+	raise_error( { unhandled_typedef, TypeDef } ).
+
+
+
 % Traverses specified term (possibly with nested subterms - the function will
 % recurse in lists and tuples), calling specified transformer function on each
 % instance of specified type, in order to replace that instance by the result of
@@ -781,7 +1216,7 @@ term_to_form( Term ) ->
 % "V1", "Alpha", "A" ], _Line=0 ) = [ {cons,0, {var,0,'V1'},
 % {cons,0,{var,0,'Alpha'}, {cons,0,{var,0,'A'}, {nil,0} } } } ]
 %
--spec variable_names_to_ast( [ string() ], line() ) -> ast().
+-spec variable_names_to_ast( [ string() ], ast_utils:line() ) -> ast().
 variable_names_to_ast( VariableNames, Line ) ->
 
 	% Could be done directly recursively by incrementally 'consing' reversed
@@ -811,7 +1246,7 @@ string_to_form( FormString ) ->
 % Ex: string_to_form( "f() -> hello_world.", 42 ) returns
 %   { function, 1, f, 0, [ { clause, 42, [], [], [ {atom,1,hello_world} ] } ] }
 %
--spec string_to_form( string(), file_loc() ) -> form().
+-spec string_to_form( string(), ast_utils:file_loc() ) -> form().
 string_to_form( FormString, Location ) ->
 
 	% First get Erlang tokens from that string:
@@ -861,7 +1296,7 @@ string_to_expressions( ExpressionString ) ->
 %   [ { cons, 42, { tuple, 42, [ {atom,42,a}, {integer,42,1} ] },
 %     { cons, 42, {atom,42,foobar}, {nil,42} } } ]
 %
--spec string_to_expressions( string(), file_loc() ) -> ast().
+-spec string_to_expressions( string(), ast_utils:file_loc() ) -> ast().
 string_to_expressions( ExpressionString, Location ) ->
 
 	% First get Erlang tokens from that string:
@@ -1048,7 +1483,10 @@ pre_check_ast( AST ) ->
 	% We would get: [{"simple_parse_transform_target.erl",
 	%               [{68,erl_lint,{undefined_type,{void,0}}}]}]
 
-	% Finally interpret_issue_reports/1 directly outputs the issues:
+	% Finally interpret_issue_reports/1 directly used to output the issues;
+	% however some are legit (ex: 'type void() undefined'), so we must let them
+	% go through:
+	%
 	case erl_lint:module( AST ) of
 
 		{ ok, _Warnings=[] } ->
@@ -1059,12 +1497,14 @@ pre_check_ast( AST ) ->
 			%display_error( "Warnings, reported as errors: ~p~n",
 			%		   [ Warnings ] ),
 			interpret_issue_reports( Warnings ),
-			exit( warning_reported );
+			%exit( warning_reported );
+			warning_reported;
 
 		{ error, Errors, _Warnings=[] } ->
 			%display_error( "Errors reported: ~p~n", [ Errors ] ),
 			interpret_issue_reports( Errors ),
-			exit( error_reported );
+			%exit( error_reported );
+			error_reported;
 
 		{ error, Errors, Warnings } ->
 			%display_error( "Errors reported: ~p~n", [ Errors ] ),
@@ -1073,8 +1513,8 @@ pre_check_ast( AST ) ->
 			%display_error( "Warnings, reported as errors: ~p~n",
 			%		   [ Warnings ] ),
 			interpret_issue_reports( Warnings ),
-
-			exit( error_reported )
+			%exit( error_reported )
+			error_reported
 
 	end.
 
@@ -1338,7 +1778,7 @@ process_ast( _AST=[ Form={ attribute, _Line, spec, {
 % Other attribute handling:
 process_ast( _AST=[ Form={ attribute, _Line, AttributeName, AttributeValue }
 					| T ],
-			 W=#module_info{ parse_attributes=Attributes,
+			 W=#module_info{ parse_attributes=ParseAttributeTable,
 							 parse_attribute_defs=AttributeDefs },
 			 NextLocation ) ->
 
@@ -1347,8 +1787,8 @@ process_ast( _AST=[ Form={ attribute, _Line, AttributeName, AttributeValue }
 	LocForm = { NextLocation, Form },
 
 	process_ast( T, W#module_info{
-				   parse_attributes=[ { AttributeName, AttributeValue }
-									  | Attributes ],
+				   parse_attributes=?table:addEntry( AttributeName,
+										  AttributeValue, ParseAttributeTable ),
 				   parse_attribute_defs=[ LocForm | AttributeDefs ] },
 				 id_utils:get_next_sortable_id( NextLocation ) );
 
@@ -1468,7 +1908,19 @@ process_ast( _AST=[], Infos, _NextLocation ) ->
 
 
 
+% Returns a textual description of the specified located AST.
+%
+% Note: relies on text_utils.
+%
+-spec located_ast_to_string( located_ast() ) -> text_utils:string().
+located_ast_to_string( AST ) ->
 
+	% Raw, not sorted on purpose:
+	Strings = [ text_utils:format( "at ~s: ~p",
+					[ id_utils:sortable_id_to_string( Loc ), Form ] )
+				|| { Loc, Form } <- AST ],
+
+	text_utils:strings_to_string( Strings ).
 
 
 
@@ -1513,7 +1965,7 @@ recompose_ast_from_module_info( #module_info{
 	%
 	% (order does not really matter thanks to explicit locations)
 	%
-	UnorderedLocatedAST = [ ModuleDef, LastLineDef |
+	UnorderedLocatedAST = [ ModuleDef |
 							   ParseAttributeDefs
 							++ ExportLocDefs
 							++ IncludeDefs
@@ -1521,7 +1973,7 @@ recompose_ast_from_module_info( #module_info{
 							++ TypeDefsDefs
 							++ TypeExportsDefs
 							++ FunctionDefs
-							++ UnhandledForms ],
+							++ [ LastLineDef | UnhandledForms ] ],
 
 	%display_debug( "Unordered located AST:~n~p~n", [ UnorderedLocatedAST ] ),
 
@@ -1591,7 +2043,9 @@ get_ordered_ast_from( UnorderedLocatedAST ) ->
 	% We then sort form according to their recorded location:
 	OrderedLocatedAST = lists:keysort( _LocIndex=1, FullyLocatedAST ),
 
-	%display_debug( "Ordered located AST:~n~p~n", [ OrderedLocatedAST ] ),
+	% One of the most useful view of output:
+	display_debug( "Ordered located AST:~n~s~n",
+				   [ located_ast_to_string( OrderedLocatedAST ) ] ),
 
 	% And then we remove that information once sorted, returning an ordered,
 	% unlocated AST:
@@ -1673,10 +2127,10 @@ check_module_info( #module_info{ unhandled_forms=UnhandledForms } ) ->
 % Helper to check module parsed attributes.
 %
 check_module_parse( #module_info{
-						 parse_attributes=ParseAttributes,
+						 parse_attributes=ParseAttributeTable,
 						 parse_attribute_defs=ParseAttributeDefs } ) ->
 
-	Len = length( ParseAttributes ),
+	Len = ?table:size( ParseAttributeTable ),
 
 	case length( ParseAttributeDefs ) of
 
@@ -1684,7 +2138,8 @@ check_module_parse( #module_info{
 			ok;
 
 		_ ->
-			raise_error( { parse_attribute_mismatch, ParseAttributes,
+			raise_error( { parse_attribute_mismatch,
+						   ?table:enumerate( ParseAttributeTable ),
 						   ParseAttributeDefs } )
 
 	end.
@@ -1791,7 +2246,7 @@ module_info_to_string( #module_info{
 						 module=Module,
 						 module_def={ _, _ModuleDef },
 						 compilation_option_defs=CompileOptDefs,
-						 parse_attributes=ParseAttributes,
+						 parse_attributes=ParseAttributeTable,
 						 parse_attribute_defs=_ParseAttributeDefs,
 						 includes=Includes,
 						 include_defs=_IncludeDefs,
@@ -1839,6 +2294,7 @@ module_info_to_string( #module_info{
 	% Commented-out: the raw terms that correspond to the higher-level form
 	% output just above.
 
+	ParseAttributes = ?table:enumerate( ParseAttributeTable ),
 
 	Infos = [
 
@@ -2047,7 +2503,7 @@ raise_error( ErrorTerm ) ->
 % compiled.
 %
 -spec get_error_form( basic_utils:error_reason(), basic_utils:module_name(),
-					  line() ) -> form().
+					  ast_utils:line() ) -> form().
 get_error_form( ErrorTerm, FormatErrorModule, Line ) ->
 
 	% Actually the most standard way of reporting an error seems to insert a

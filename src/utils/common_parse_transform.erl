@@ -85,6 +85,7 @@
 -type located_form() :: meta_utils:located_form().
 
 
+
 % Implementation notes:
 %
 % Currently, the 'common' parse transform is in charge of:
@@ -111,6 +112,13 @@
 
 
 
+% This module, being the parse transformer, is not parse-transformed, as a
+% consequence it cannot use the 'table' pseudo-module.
+%
+% Module name for the tables used in this module:
+%
+-define( table, map_hashtable ).
+
 
 % The default actual implementation to which 'table' will be wired (versatile,
 % quite efficient, etc. - i.e. a good defaults):
@@ -122,8 +130,11 @@
 
 
 % Obsolete counterpart functions that operate directly on ASTs:
--export([ replace_table_ast/1 ]).
+%-export([ replace_table_ast/1 ]).
 
+% Silencing:
+-export([ switch_table/2, lookup_table_select_attribute/1, replace_table/1,
+		  expand_void_type/1 ]).
 
 
 % Runs the parse transform defined here in a standalone way (i.e. without being
@@ -213,13 +224,58 @@ parse_transform( AST, _Options ) ->
 	%io:format( "Input module info: ~s~n",
 	%		   [ meta_utils:module_info_to_string( BaseModuleInfo ) ] ),
 
-	% TO-DO: operate on ModuleInfo rather than directly on AST:
-	TableModuleInfo = replace_table( BaseModuleInfo ),
-	VoidModuleInfo = expand_void_type( TableModuleInfo ),
 
+	DesiredTableType = get_actual_table_type(
+						 BaseModuleInfo#module_info.parse_attributes ),
+
+
+	% Regarding local types, we want to replace:
+	%  - void() with basic_utils:void() (i.e. prefix with basic_utils)
+	%  - maybe(T) with basic_utils:maybe(T)
+	%  - table/N (ex: table() or table(K,V)) with DesiredTableType/N (ex:
+	%  DesiredTableType:DesiredTableType() or
+	%  DesiredTableType:DesiredTableType(K,V))
+	%
+	% Just for specified arities:
+	%
+	LocalTypeReplacements = meta_utils:get_local_type_replacement_table( [
+				{ { void,  0 }, basic_utils },
+				{ { maybe, 1 }, basic_utils },
+				% First clause as we do not want DesiredTableType:table/N, but
+				% DesiredTableType:DesiredTableType/N:
+				{ { table, '_' }, fun( _TypeName=table, _TypeArity ) ->
+										  { DesiredTableType, DesiredTableType  };
+									 ( TypeName, _TypeArity ) ->
+										  { DesiredTableType, TypeName }
+								  end } ] ),
+
+
+	% Regarding remote types, we want to replace:
+	%      * table:table/N with DesiredTableType:DesiredTableType/N (N=0 or N=2)
+	%      * table:T with DesiredTableType:T (ex: table:value() )
+	% (as these substitutions overlap, a lambda function is provided)
+	RemoteTypeReplacements = meta_utils:get_remote_type_replacement_table( [
+				{ { table, '_', '_' }, fun( _ModuleName, _TypeName=table, _TypeArity ) ->
+											   { DesiredTableType, DesiredTableType  };
+
+										  ( _ModuleName, TypeName, _TypeArity ) ->
+											   { DesiredTableType, TypeName }
+
+									   end } ] ),
+
+	% First update the type definitions accordingly:
+	NewTypeDefs = meta_utils:replace_types_in(
+					BaseModuleInfo#module_info.type_definition_defs,
+					LocalTypeReplacements, RemoteTypeReplacements ),
+
+	%TableModuleInfo = replace_table( BaseModuleInfo ),
+	%VoidModuleInfo = expand_void_type( TableModuleInfo ),
 	% Other transformations may take place here.
 
-	OutputModuleInfo = VoidModuleInfo,
+	% Apply transformations:
+	OutputModuleInfo = BaseModuleInfo#module_info{
+						 type_definition_defs=NewTypeDefs
+												 },
 
 	%meta_utils:write_module_info_to_file( OutputModuleInfo,
 	%									  "Output-module_info.txt" ),
@@ -230,49 +286,39 @@ parse_transform( AST, _Options ) ->
 
 	OutputAST = meta_utils:recompose_ast_from_module_info( OutputModuleInfo ),
 
-	%io:format( "~n~nOutput AST:~n~p~n", [ OutputAST ] ),
+	io:format( "~n~nOutput AST:~n~p~n", [ OutputAST ] ),
 	%meta_utils:write_ast_to_file( OutputAST, "Output-AST.txt" ),
 
 	OutputAST.
 
 
 
-% Replaces calls to the 'table' pseudo-module by actual calls to the
-% default_table_type one, and do so also for the type specifications.
+% Returns the name of the actual module to use for tables.
 %
-% We preserve element order.
-%
-% (direct AST version)
-%
--spec replace_table_ast( ast() ) -> ast().
-replace_table_ast( AST ) ->
+-spec get_actual_table_type( meta_utils:attribute_table() ) ->
+								   basic_utils:module_name().
+get_actual_table_type( ParseAttributeTable ) ->
 
-	% The Ln variables designate line numbers.
+	% Let's see whether a specific table_type has been specified:
+	DesiredTableType = case ?table:lookupEntry( table_type,
+												ParseAttributeTable ) of
 
-	DesiredTableType = case lookup_table_select_attribute( AST ) of
+		{ value, TableType } ->
+			meta_utils:display_info( "Default table type overridden to ~p.~n",
+									 [ TableType ] ),
+			TableType;
 
-		undefined ->
-			?default_table_type;
-
-		TableType ->
-			%io:format( "Default table type overridden "to ~p.~n",
-			%			[ TableType ] ),
+		key_not_found ->
+			TableType = ?default_table_type,
+			%meta_utils:display_trace( "Using default table ~p.~n", [ TableType ] ),
 			TableType
 
 	end,
 
-	%io:format( "Replacing calls to 'table' by calls to '~s':~n",
-	%		   [ DesiredTableType ] ),
+	meta_utils:display_debug( "Replacing calls to 'table' by calls to '~s':~n",
+							  [ DesiredTableType ] ),
 
-	% This is why the meta_utils module must be bootstrapped:
-	%
-	{ NewAST, _DesiredTableType } = meta_utils:traverse_term(
-									  _TargetTerm=AST,
-									  _TypeDescription=tuple,
-									  _TermTransformer=fun switch_table/2,
-									  _UserData=DesiredTableType ),
-
-	NewAST.
+	DesiredTableType.
 
 
 
@@ -397,11 +443,31 @@ lookup_table_select_attribute( _AST=[ _H | T ], Found ) ->
 % (module-info version)
 %
 -spec replace_table( module_info() ) -> module_info().
-replace_table( ModuleInfo=#module_info{ type_definition_defs=TypeActualDefs,
+replace_table( ModuleInfo=#module_info{ parse_attributes=ParseAttributeTable,
+										type_definition_defs=TypeActualDefs,
 										functions=FunctionTable } ) ->
 
 	% We have here to possibly update all type specifications and all function
 	% declarations.
+
+	% Let's see whether a specific table_type has been specified:
+	DesiredTableType = case ?table:lookupEntry( table_type,
+												ParseAttributeTable ) of
+
+		{ value, TableType } ->
+			io:format( "Default table type overridden to ~p.~n",
+						[ TableType ] ),
+			TableType;
+
+		key_not_found ->
+			TableType = ?default_table_type,
+			io:format( "Using default table ~p.~n", [ TableType ] ),
+			TableType
+
+	end,
+
+	io:format( "Replacing calls to 'table' by calls to '~s':~n",
+			   [ DesiredTableType ] ),
 
 	% Let's first update the actual type definitions, which are available here
 	% as a list of located forms:
@@ -428,6 +494,7 @@ process_type_defs_for_table( _LocatedForms=[], Acc ) ->
 	Acc;
 
 process_type_defs_for_table( _LocatedForms=[ { Loc, Form } | T ], Acc ) ->
+	io:format( "Processing form in ~p:~n~p~n", [ Loc, Form ] ),
 	NewForm = Form,
 	process_type_defs_for_table( T, [ { Loc, NewForm } | Acc ] ).
 

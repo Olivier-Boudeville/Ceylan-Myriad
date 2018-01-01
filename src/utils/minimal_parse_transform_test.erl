@@ -35,7 +35,31 @@
 -module(minimal_parse_transform_test).
 
 
--export([ run/0 ]).
+-export([ run/0, perform_direct_ast_operations/1 ]).
+
+
+perform_direct_ast_operations( TargetSourceFile ) ->
+
+	io:format( "~nNow performing directly AST-level operations:~n~n" ),
+
+	BaseAST = meta_utils:erl_to_ast( TargetSourceFile ),
+
+	io:format( "Base AST:~n~p~n", [ BaseAST ] ),
+
+	BaseModuleInfo = meta_utils:extract_module_info_from_ast( BaseAST ),
+
+	io:format( "Base module info: ~s~n~n",
+			   [ meta_utils:module_info_to_string( BaseModuleInfo ) ] ),
+
+	FinalModuleInfo = BaseModuleInfo,
+
+	io:format( "Final module info: ~s~n~n",
+			   [ meta_utils:module_info_to_string( FinalModuleInfo ) ] ),
+
+	FinalAST = meta_utils:recompose_ast_from_module_info( FinalModuleInfo ),
+
+	io:format( "Final AST:~n~p~n", [ FinalAST ] ).
+
 
 
 -spec run() -> no_return().
@@ -45,30 +69,12 @@ run() ->
 	TargetSourceFile = "../data-management/simple_parse_transform_target.erl",
 
 	io:format( "Applying the common parse transform to the "
-			   "'~s' source file.~n", [ TargetSourceFile ] ),
+			   "'~s' source file.~n~n", [ TargetSourceFile ] ),
 
 	TransformedAST = common_parse_transform:run_standalone( TargetSourceFile ),
 
-	io:format( "Transformed AST:~n~p~n", [ TransformedAST ] ),
+	io:format( "Transformed AST:~n~p~n~n", [ TransformedAST ] ),
 
-	io:format( "Now performing directly AST-level operations." ),
-
-	BaseAST = meta_utils:erl_to_ast( TargetSourceFile ),
-
-	io:format( "Base AST:~n~p", [ BaseAST ] ),
-
-	BaseModuleInfo = meta_utils:extract_module_info_from_ast( BaseAST ),
-
-	io:format( "Base module info: ~s~n",
-			   [ meta_utils:module_info_to_string( BaseModuleInfo ) ] ),
-
-	FinalModuleInfo = BaseModuleInfo,
-
-	io:format( "Final module info: ~s~n",
-			   [ meta_utils:module_info_to_string( FinalModuleInfo ) ] ),
-
-	FinalAST = meta_utils:recompose_ast_from_module_info( FinalModuleInfo ),
-
-	io:format( "Final AST:~n~p", [ FinalAST ] ),
+	%perform_direct_ast_operations( TargetSourceFile ),
 
 	init:stop( _StatusCode=0 ).

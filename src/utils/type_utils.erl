@@ -292,6 +292,28 @@
 -type type_arity() :: basic_utils:count().
 
 
+% Analoguous to function_id/0:
+%
+-type type_id() :: { type_name(), type_arity() }.
+
+
+% A type is either a remote one based on a module name, or a local one (then
+% designated by '_'):
+%
+-type type_scope() :: module_name() | '_'.
+
+
+% Full, explicit type identifier:
+%
+-type remote_type_id() :: { type_scope(), type_name(), type_arity() }.
+
+
+-type local_type_definition() :: 
+
+-type type_definition() :: local_type_definition() | remote_type_definition().
+
+
+
 % The "most precise" description of a primitive, simple type (ex: 'boolean' and
 % 'atom') coexist, 'number' are not used, etc.
 %
@@ -448,7 +470,8 @@
 -type explicit_type() :: type().
 
 
--export_type([ type_name/0, type_arity/0, primitive_type_description/0,
+-export_type([ type_name/0, type_arity/0, type_id(),
+			   primitive_type_description/0,
 			   type_description/0, nesting_depth/0, type/0, explicit_type/0 ]).
 
 

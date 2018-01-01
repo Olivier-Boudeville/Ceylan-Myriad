@@ -525,13 +525,15 @@ ifndef BOOTSTRAP_MODULES
 # We list here all prerequisites of the 'Common' parse-transform:
 #  - basic_utils: to provide the basic services
 #  - id_utils: to sort the forms
-#  - meta_utils: to process the AST
+#  - meta_utils: to support the metaprogramming needs
+#  - ast_utils: to handle the AST
 #  - text_utils: to display debugging information regarding the transform
 #  - map_hashtable: to manage the module information
 #
 BOOTSTRAP_MODULES = $(COMMON_TOP)/src/utils/basic_utils.beam             \
 					$(COMMON_TOP)/src/utils/id_utils.beam                \
 					$(COMMON_TOP)/src/utils/meta_utils.beam              \
+					$(COMMON_TOP)/src/utils/ast_utils.beam               \
 					$(COMMON_TOP)/src/utils/text_utils.beam              \
 					$(COMMON_TOP)/src/data-management/map_hashtable.beam \
 
