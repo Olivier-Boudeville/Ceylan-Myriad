@@ -67,6 +67,7 @@
 -export_type([ foo_tuple/0, foo_user/0,
 			   foo_table_remote/0, foo_table_remote_complex/0,
 			   foo_table_local/0, foo_table_local_complex/0,
+			   foo_table_other_type/0,
 			   foo_void/0, foo_maybe/0, foo_list/0, foo_union/0 ]).
 
 

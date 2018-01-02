@@ -228,7 +228,6 @@ parse_transform( AST, _Options ) ->
 	DesiredTableType = get_actual_table_type(
 						 BaseModuleInfo#module_info.parse_attributes ),
 
-
 	% Regarding local types, we want to replace:
 	%  - void() with basic_utils:void() (i.e. prefix with basic_utils)
 	%  - maybe(T) with basic_utils:maybe(T)
@@ -315,7 +314,8 @@ get_actual_table_type( ParseAttributeTable ) ->
 
 	end,
 
-	meta_utils:display_debug( "Replacing calls to 'table' by calls to '~s':~n",
+	meta_utils:display_debug( "Will replace references to the 'table' module "
+							  "and datatypes by references to '~s'.",
 							  [ DesiredTableType ] ),
 
 	DesiredTableType.

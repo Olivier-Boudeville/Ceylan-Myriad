@@ -188,6 +188,12 @@
 -type command_spec() :: { module_name(), function_name(), [ argument() ] }.
 
 
+% The name of a record:
+-type record_name() :: atom().
+
+% The name of a field of a record:
+-type field_name() :: atom().
+
 
 % To store (UNIX-like) user names:
 -type user_name() :: nonempty_string().
@@ -217,6 +223,7 @@
 			   version_number/0, version/0, two_digit_version/0, any_version/0,
 			   positive_index/0,
 			   module_name/0, function_name/0, argument/0, command_spec/0,
+			   record_name/0, field_name/0,
 			   user_name/0, atom_user_name/0,
 			   comparison_result/0, exception_class/0, status_code/0,
 			   fixme/0 ]).

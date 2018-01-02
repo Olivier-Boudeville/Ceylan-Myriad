@@ -534,6 +534,7 @@ BOOTSTRAP_MODULES = $(COMMON_TOP)/src/utils/basic_utils.beam             \
 					$(COMMON_TOP)/src/utils/id_utils.beam                \
 					$(COMMON_TOP)/src/utils/meta_utils.beam              \
 					$(COMMON_TOP)/src/utils/ast_utils.beam               \
+					$(COMMON_TOP)/src/utils/type_utils.beam              \
 					$(COMMON_TOP)/src/utils/text_utils.beam              \
 					$(COMMON_TOP)/src/data-management/map_hashtable.beam \
 

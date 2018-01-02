@@ -301,6 +301,18 @@
 -type attribute_table() :: ?table:?table( attribute_name(), attribute_value() ).
 
 
+
+-type compile_option_name() :: atom().
+
+-type compile_option_value() :: term().
+
+% For easy access to compilation information:
+%
+-type compile_option_table() :: ?table:?table( compile_option_name(),
+											   [ compile_option_value() ] ).
+
+
+
 % The name of a function:
 %
 -type function_name() :: basic_utils:function_name().
@@ -349,13 +361,36 @@
 % - [ function_id() ] used, not a set, to better preserve order
 %
 -type export_table() :: ?table:?table( location(),
-									   { ast_utils:line(), [ function_id() ] } ).
+						   { ast_utils:line(), [ meta_utils:function_id() ] } ).
+
+
+% A table referencing, for each module listed, a list of the functions that are
+% imported from it by the current module:
+%
+-type import_table() :: ?table:?table( basic_utils:module_name(),
+									   [ meta_utils:function_id() ] ).
+
 
 
 % A table associating to each function identifier a full function information.
 %
 -type function_table() :: ?table:?table( meta_utils:function_id(),
 										 meta_utils:function_info() ).
+
+
+% A table associating to each record name the list of the descriptions of its
+% fields.
+%
+-type record_table() :: ?table:?table( basic_utils:record_name(),
+									   field_table() ).
+
+
+% A table associating to a given field of a record its description (type and
+% default value, if specified).
+%
+-type field_table() :: ?table:?table( basic_utils:field_name(),
+		  { basic_utils:maybe( ast_utils:ast_type() ),
+			basic_utils:maybe( ast_utils:ast_immediate_value() ) } ).
 
 
 % Type of functions to transform terms during a recursive traversal (see
@@ -420,7 +455,8 @@
 
 % Parse-transform related functions:
 %
--export([ init_module_info/0, add_function/2, remove_function/2,
+-export([ init_module_info/0, pre_check_ast/1,
+		  add_function/2, remove_function/2,
 		  function_info_to_string/1,
 		  get_local_type_replacement_table/1,
 		  get_remote_type_replacement_table/1,
@@ -468,7 +504,10 @@ init_module_info() ->
 
 	EmptyTable = ?table:new(),
 
-	#module_info{ parse_attributes=EmptyTable,
+	#module_info{ compilation_options=EmptyTable,
+				  parse_attributes=EmptyTable,
+				  records=EmptyTable,
+				  function_imports=EmptyTable,
 				  function_exports=EmptyTable,
 				  functions=EmptyTable }.
 
@@ -860,9 +899,21 @@ replace_types_in_type_def( _Form={ attribute, Line, type,
 								   { TypeName, TypeDef, TypeVars } },
 						   LocalReplaceTable, RemoteReplaceTable ) ->
 	NewTypeDef = traverse_type( TypeDef, LocalReplaceTable, RemoteReplaceTable ),
-	display_debug( "Translation of type definition:~n~p~nis:~n~p~n",
-				   [ TypeDef, NewTypeDef ] ),
-	{ attribute, Line, type, { TypeName, NewTypeDef, TypeVars } };
+	NewTypeVars = [ traverse_type( Elem, LocalReplaceTable, RemoteReplaceTable )
+					|| Elem <- TypeVars ],
+	%display_debug( "Translation of type definition:~n~p~nis:~n~p~nwith ~p.",
+	%			   [ TypeDef, NewTypeDef, NewTypeVars ] ),
+	{ attribute, Line, type, { TypeName, NewTypeDef, NewTypeVars } };
+
+replace_types_in_type_def( _Form={ attribute, Line, opaque,
+								   { TypeName, TypeDef, TypeVars } },
+						   LocalReplaceTable, RemoteReplaceTable ) ->
+	NewTypeDef = traverse_type( TypeDef, LocalReplaceTable, RemoteReplaceTable ),
+	NewTypeVars = [ traverse_type( Elem, LocalReplaceTable, RemoteReplaceTable )
+					|| Elem <- TypeVars ],
+	%display_debug( "Translation of opaque type definition:~n~p~nis:~n~p~n"
+	%               "with ~p.", [ TypeDef, NewTypeDef, NewTypeVars ] ),
+	{ attribute, Line, opaque, { TypeName, NewTypeDef, NewTypeVars } };
 
 replace_types_in_type_def( UnexpectedForm, _LocalReplaceTable,
 						   _RemoteReplaceTable ) ->
@@ -877,29 +928,34 @@ replace_types_in_type_def( UnexpectedForm, _LocalReplaceTable,
 % (helper)
 %
 % Tuple type found:
+%
 traverse_type( _TypeDef={ type, Line, tuple, ElementTypes }, LocalReplaceTable,
-			   RemoteReplaceTable ) ->
+			   RemoteReplaceTable ) when is_list( ElementTypes ) ->
 	{ type, Line, tuple,
 	  [ traverse_type( Elem, LocalReplaceTable,
 					   RemoteReplaceTable ) || Elem <- ElementTypes ] };
+
+traverse_type( TypeDef={ type, _Line, tuple, any }, _LocalReplaceTable,
+			   _RemoteReplaceTable ) ->
+	TypeDef;
 
 % List type found, ex:
 % {attribute,43,type,{foo6,{type,43,list,[{type,43,boolean,[]}]},[]}},
 traverse_type( _TypeDef={ type, Line, list, [ ElementType ] },
 			   LocalReplaceTable, RemoteReplaceTable ) ->
-	{ type, Line, list, traverse_type( ElementType, LocalReplaceTable,
-					   RemoteReplaceTable ) };
+	{ type, Line, list, [ traverse_type( ElementType, LocalReplaceTable,
+										 RemoteReplaceTable ) ] };
 
 % Other built-in type:
 traverse_type( _TypeDef={ type, Line, BuiltinType, TypeVars },
-			   LocalReplaceTable, RemoteReplaceTable ) ->
+			   LocalReplaceTable, RemoteReplaceTable ) when is_list( TypeVars ) ->
 	NewTypeVars = [ traverse_type( Elem, LocalReplaceTable,
 								   RemoteReplaceTable ) || Elem <- TypeVars ],
 	{ type, Line, BuiltinType, NewTypeVars };
 
 % Local user type found:
-traverse_type( _TypeDef={ user_type, Line, TypeName, TypeVars }, LocalReplaceTable,
-			   RemoteReplaceTable ) ->
+traverse_type( _TypeDef={ user_type, Line, TypeName, TypeVars },
+			   LocalReplaceTable, RemoteReplaceTable ) ->
 
 	TypeArity = length( TypeVars ),
 
@@ -952,8 +1008,8 @@ traverse_type( _TypeDef={ user_type, Line, TypeName, TypeVars }, LocalReplaceTab
 			{ user_type, Line, TypeName, NewTypeVars };
 
 		{ SetModuleName, SetTypeName } ->
-			ast_utils:forge_remote_type( SetModuleName, SetTypeName, NewTypeVars,
-										 Line )
+			ast_utils:forge_remote_type( SetModuleName, SetTypeName,
+										 NewTypeVars, Line )
 
 	end;
 
@@ -1034,10 +1090,36 @@ traverse_type( _TypeDef={ remote_type, Line1,
 			{ remote_type, Line1, [ M, T, NewTypeVars ] };
 
 		{ SetModuleName, SetTypeName } ->
-			ast_utils:forge_remote_type( SetModuleName, SetTypeName, NewTypeVars,
-										 Line1, Line2, Line3 )
+			ast_utils:forge_remote_type( SetModuleName, SetTypeName,
+										 NewTypeVars, Line1, Line2, Line3 )
 
 	end;
+
+
+% Variable declaration, possibly obtained through declarations like:
+% -type my_type( T ) :: other_type( T ).
+% or:
+% -opaque tree( T ) :: { T, [ tree(T) ] }.
+traverse_type( TypeDef={ var, _Line, _TypeName }, _LocalReplaceTable,
+			   _RemoteReplaceTable ) ->
+	TypeDef;
+
+
+% Immediate values like {atom,42,undefined}, possibly obtained through
+% declarations like: -type my_type() :: integer() | 'undefined'.
+%
+traverse_type( TypeDef={ TypeName, _Line, _Value }, _LocalReplaceTable,
+			   _RemoteReplaceTable ) ->
+	case lists:member( TypeName, type_utils:get_immediate_types() ) of
+
+		true ->
+			TypeDef;
+
+		false ->
+			throw( { unexpected_immediate_value, TypeDef } )
+
+	end;
+
 
 traverse_type( TypeDef, _LocalReplaceTable, _RemoteReplaceTable ) ->
 	raise_error( { unhandled_typedef, TypeDef } ).
@@ -1379,16 +1461,16 @@ beam_to_ast( BeamFilename ) ->
 
 	% Everything:
 	%Chunks = [ abstract_code, attributes, compile_info, exports,
-	%		   labeled_exports, imports, indexed_imports, locals,
-	%		   labeled_locals, atoms ],
+	%			labeled_exports, imports, indexed_imports, locals,
+	%			labeled_locals, atoms ],
 
 	% Just the code AST:
 	Chunks = [ abstract_code ],
 
 	% Everything but the code AST:
 	% OtherChunks = [ attributes, compile_info, exports,
-	%		   labeled_exports, imports, indexed_imports, locals,
-	%		   labeled_locals, atoms ],
+	%				  labeled_exports, imports, indexed_imports, locals,
+	%				  labeled_locals, atoms ],
 
 	%Options = [ allow_missing_chunks ],
 	Options=[],
@@ -1437,7 +1519,9 @@ extract_module_info_from_ast( AST ) ->
 	% respect the native display format of the error messages so that tools (ex:
 	% emacs, possible erlide and all) are still able to manage them.
 
-	pre_check_ast( AST ),
+	% Useless: would report pre-transform errors that would be solved after
+	% transformation (ex: void() not existing)
+	%pre_check_ast( AST ),
 
 	InitModuleInfo = init_module_info(),
 
@@ -1602,12 +1686,31 @@ process_ast( _AST=[ Form={ attribute, _Line, type,
 							 type_definition_defs=TypeDefsDefs },
 			 NextLocation ) ->
 
-	%display_debug( "type declaration for ~p: ~p", [ TypeName, Form ] ),
+	%display_debug( "(non-opaque) type declaration for ~p: ~p", [
+	%                                             TypeName, Form ] ),
 
 	LocForm = { NextLocation, Form },
 
 	process_ast( T, W#module_info{
-				   type_definitions=[ { TypeName, TypeDef } | TypeDefs ],
+				   type_definitions=[ { TypeName, TypeDef, _IsOpaque=false }
+									  | TypeDefs ],
+				   type_definition_defs=[ LocForm | TypeDefsDefs ] },
+				 id_utils:get_next_sortable_id( NextLocation ) );
+
+
+process_ast( _AST=[ Form={ attribute, _Line, opaque,
+						   { TypeName, TypeDef, _SubTypeList } } | T ],
+			 W=#module_info{ type_definitions=TypeDefs,
+							 type_definition_defs=TypeDefsDefs },
+			 NextLocation ) ->
+
+	%display_debug( "opaque type declaration for ~p: ~p", [ TypeName, Form ] ),
+
+	LocForm = { NextLocation, Form },
+
+	process_ast( T, W#module_info{
+				   type_definitions=[ { TypeName, TypeDef, _IsOpaque=true }
+									  | TypeDefs ],
 				   type_definition_defs=[ LocForm | TypeDefsDefs ] },
 				 id_utils:get_next_sortable_id( NextLocation ) );
 
@@ -1678,6 +1781,103 @@ process_ast( _AST=[ _Form={ attribute, Line, export, FunctionIds } | T ],
 					  functions=NewFunctionTable },
 				 id_utils:get_next_sortable_id( NextLocation ) );
 
+
+% Record definition handling:
+process_ast( _AST=[ Form={ attribute, _Line, import,
+							{ ModuleName, FunIds } } | T ],
+			 W=#module_info{ function_imports=ImportTable,
+							 function_imports_defs=ImportDefs },
+					NextLocation ) ->
+
+	NewImportTable = ?table:appendListToEntry( ModuleName, FunIds, ImportTable ),
+
+	NewImportDefs = [ { NextLocation, Form } | ImportDefs ],
+
+	process_ast( T, W#module_info{ function_imports=NewImportTable,
+								   function_imports_defs=NewImportDefs },
+				 id_utils:get_next_sortable_id( NextLocation ) );
+
+
+
+% Compilation option handling:
+
+% Full inlining:
+process_ast( _AST=[ Form={ attribute, _Line, compile, inline } | T ],
+			 W=#module_info{ compilation_options=CompileTable,
+							 compilation_option_defs=CompileDefs },
+					NextLocation ) ->
+
+	NewCompileTable = ?table:appendListToEntry( inline, all, CompileTable ),
+
+	NewCompileDefs = [ { NextLocation, Form } | CompileDefs ],
+
+	process_ast( T, W#module_info{ compilation_options=NewCompileTable,
+								   compilation_option_defs=NewCompileDefs },
+				 id_utils:get_next_sortable_id( NextLocation ) );
+
+
+% Regular inlining:
+process_ast( _AST=[ Form={ attribute, _Line, compile,
+						   { inline, InlineOpts } } | T ],
+			 W=#module_info{ compilation_options=CompileTable,
+							 compilation_option_defs=CompileDefs },
+					NextLocation ) when is_list( InlineOpts ) ->
+
+	InlineOpt = case ?table:lookupEntry( inline, CompileTable ) of
+
+		{ value, all } ->
+			all;
+
+		{ value, InlineList } ->
+			InlineOpts ++ InlineList;
+
+		key_not_found ->
+			InlineOpts
+
+	end,
+
+	NewCompileTable = ?table:addEntry( inline, InlineOpt, CompileTable ),
+
+	NewCompileDefs = [ { NextLocation, Form } | CompileDefs ],
+
+	process_ast( T, W#module_info{ compilation_options=NewCompileTable,
+								   compilation_option_defs=NewCompileDefs },
+				 id_utils:get_next_sortable_id( NextLocation ) );
+
+
+process_ast( _AST=[ Form={ attribute, _Line, compile,
+							{ CompilationOption, Options } } | T ],
+			 W=#module_info{ compilation_options=CompileTable,
+							 compilation_option_defs=CompileDefs },
+					NextLocation ) ->
+
+	NewCompileTable = ?table:appendListToEntry( CompilationOption, Options,
+												CompileTable ),
+
+	NewCompileDefs = [ { NextLocation, Form } | CompileDefs ],
+
+	process_ast( T, W#module_info{ compilation_options=NewCompileTable,
+								   compilation_option_defs=NewCompileDefs },
+				 id_utils:get_next_sortable_id( NextLocation ) );
+
+
+% Record handling:
+
+process_ast( _AST=[ Form={ attribute, _Line, record,
+							{ RecordName, DescFields } } | T ],
+			 W=#module_info{ records=RecordTable,
+							 record_defs=RecordDefs },
+					NextLocation ) ->
+
+	FieldTable = process_field_descriptions( DescFields ),
+
+	NewRecordTable = ?table:addNewEntry( RecordName, FieldTable, RecordTable ),
+
+	NewRecordDefs = [ { NextLocation, Form } | RecordDefs ],
+
+	process_ast( T, W#module_info{ records=NewRecordTable,
+								   record_defs=NewRecordDefs },
+				 id_utils:get_next_sortable_id( NextLocation ) );
 
 
 % Function definition handling:
@@ -1752,8 +1952,7 @@ process_ast( _AST=[ Form={ attribute, _Line, spec, {
 							%location=undefined,
 							%line=undefined,
 							%definition=[]
-							spec=LocatedSpec
-						  };
+							spec=LocatedSpec };
 
 		{ value, F=#function_info{ spec=undefined } } ->
 			% Just add the form then:
@@ -1907,6 +2106,61 @@ process_ast( _AST=[], Infos, _NextLocation ) ->
 
 
 
+% Processes the fields of a given record.
+%
+-spec process_field_descriptions( [ ast_utils:ast_element() ] ) -> field_table().
+process_field_descriptions( FieldDescriptions ) ->
+
+	FieldTable = ?table:new(),
+
+	process_field_descriptions( FieldDescriptions, FieldTable ).
+
+
+process_field_descriptions( _FieldDescriptions=[], FieldTable ) ->
+	FieldTable;
+
+
+% Here no type or default value are specified for that field:
+process_field_descriptions( _FieldDescriptions=[
+	   { record_field, _Line1, { atom, _Line2, FieldName } } | T ],
+							FieldTable ) ->
+	NewFieldTable = ?table:addNewEntry( FieldName,
+		  { _FieldType=undefined, _DefaultValue=undefined }, FieldTable ),
+	process_field_descriptions( T, NewFieldTable );
+
+% Here only a type is specified for that field:
+process_field_descriptions( _FieldDescriptions=[
+	   { typed_record_field,
+		  {record_field, _Line1, { atom, _Line2, FieldName } }, FieldType }
+												| T ], FieldTable ) ->
+	NewFieldTable = ?table:addNewEntry( FieldName,
+					  { FieldType, _DefaultValue=undefined }, FieldTable ),
+	process_field_descriptions( T, NewFieldTable );
+
+% Here only a default value is specified for that field:
+process_field_descriptions( _FieldDescriptions=[
+	   { record_field, _Line1, { atom, _Line2, FieldName }, DefaultValue }
+												| T ], FieldTable ) ->
+	NewFieldTable = ?table:addNewEntry( FieldName,
+		  { _FieldType=undefined, DefaultValue }, FieldTable ),
+	process_field_descriptions( T, NewFieldTable );
+
+% Here a type and a default, immediate value are specified for that field:
+process_field_descriptions( _FieldDescriptions=[
+	   { typed_record_field,
+		  { record_field, _Line1,
+		   { atom, _Line2, FieldName }, DefaultValue }, FieldType }
+												| T ], FieldTable ) ->
+	NewFieldTable = ?table:addNewEntry( FieldName, { FieldType, DefaultValue },
+										FieldTable ),
+	process_field_descriptions( T, NewFieldTable );
+
+
+process_field_descriptions( _FieldDescriptions=[ UnexpectedDesc | _T ],
+							_FieldTable ) ->
+	throw( { unexpected_field_description, UnexpectedDesc } ).
+
+
 
 % Returns a textual description of the specified located AST.
 %
@@ -1932,21 +2186,41 @@ recompose_ast_from_module_info( #module_info{
 
 			% Between parentheses: fields unused here, hence not bound.
 
+			% Note: one should regularly check that all relevant fields of
+			% module_info() are indeed read here, so that they are reinjected
+			% indeed in the output AST.
+
 			% (module)
 			module_def=ModuleDef,
+
+			% (compilation_options)
 			compilation_option_defs=CompileOptDefs,
+
 			% (parse_attributes)
 			parse_attribute_defs=ParseAttributeDefs,
+
 			% (includes)
 			include_defs=IncludeDefs,
+
 			% (type_definitions)
 			type_definition_defs=TypeDefsDefs,
+
 			% (type_exports)
 			type_export_defs=TypeExportsDefs,
+
+			% (records)
+			record_defs=RecordDefs,
+
+			% (function_imports)
+			function_imports_defs=ImportDefs,
+
 			function_exports=ExportTable,
+
 			% The main part of the AST:
 			functions=Functions,
+
 			last_line=LastLineDef,
+
 			unhandled_forms=UnhandledForms
 
 								  } ) ->
@@ -1969,7 +2243,9 @@ recompose_ast_from_module_info( #module_info{
 							   ParseAttributeDefs
 							++ ExportLocDefs
 							++ IncludeDefs
+							++ ImportDefs
 							++ CompileOptDefs
+							++ RecordDefs
 							++ TypeDefsDefs
 							++ TypeExportsDefs
 							++ FunctionDefs
@@ -2137,7 +2413,11 @@ check_module_parse( #module_info{
 		Len ->
 			ok;
 
-		_ ->
+		FormCount ->
+			display_error( "Inconsistent parse attribute state: table "
+						   "of ~B entries: ~s~nvs ~B forms:~n~p~n.",
+						   [ Len, ?table:toString( ParseAttributeTable ),
+							 FormCount, ParseAttributeDefs ] ),
 			raise_error( { parse_attribute_mismatch,
 						   ?table:enumerate( ParseAttributeTable ),
 						   ParseAttributeDefs } )
@@ -2245,7 +2525,8 @@ check_function( FunId, _FunInfo=#function_info{
 module_info_to_string( #module_info{
 						 module=Module,
 						 module_def={ _, _ModuleDef },
-						 compilation_option_defs=CompileOptDefs,
+						 compilation_options=CompileTable,
+						 compilation_option_defs=_CompileOptDefs,
 						 parse_attributes=ParseAttributeTable,
 						 parse_attribute_defs=_ParseAttributeDefs,
 						 includes=Includes,
@@ -2254,6 +2535,10 @@ module_info_to_string( #module_info{
 						 type_definition_defs=_TypeDefsDefs,
 						 type_exports=TypeExports,
 						 type_export_defs=_TypeExportDefs,
+						 records=RecordTable,
+						 record_defs=_RecordDefs,
+						 function_imports=FunImportTable,
+						 function_imports_defs=_FunImportDefs,
 						 function_exports=_FunctionExports,
 						 functions=Functions,
 						 last_line=LastLine,
@@ -2301,15 +2586,18 @@ module_info_to_string( #module_info{
 			%text_utils:format( "module name: '~s'", [ Module ] ),
 			%text_utils:format( "module definition: ~p~n", [ ModuleDef ] ),
 
-			case CompileOptDefs of
+			case ?table:enumerate( CompileTable ) of
 
 				[] ->
 					"no compile option defined";
 
-				_ ->
-					text_utils:format( "~B compile option definitions: ~p~n",
-								   [ length( CompileOptDefs ),
-									 [ C || { _, C } <- CompileOptDefs ] ] )
+				CompileOpts ->
+					CompStrings = [ text_utils:format( "for option '~s': ~p",
+													   [ OptName, OptValue ] )
+									|| { OptName, OptValue } <- CompileOpts ],
+					text_utils:format( "~B compile options defined: ~s~n",
+						   [ length( CompileOpts ),
+							 text_utils:strings_to_string( CompStrings ) ] )
 
 			end,
 
@@ -2360,10 +2648,22 @@ module_info_to_string( #module_info{
 
 				_ ->
 					TypeDefString = text_utils:strings_to_sorted_string( [
-							text_utils:format( "type '~s' defined as: ~p",
-											   [ Type, Def ] )
-									   || { Type, Def } <- TypeDefs ],
-									   NextIndentationLevel ),
+							begin
+								VisibleString = case IsOpaque of
+
+									true ->
+										"opaque";
+
+									false ->
+										""
+
+								end,
+								text_utils:format( "~s type '~s' defined as: ~p",
+											   [ VisibleString, Type, Def ] )
+
+							end || { Type, Def, IsOpaque } <- TypeDefs ],
+							NextIndentationLevel ),
+
 
 					text_utils:format( "~B types defined:~s",
 									   [ length( TypeDefs ), TypeDefString ] )
@@ -2392,6 +2692,44 @@ module_info_to_string( #module_info{
 			 %text_utils:format( "type export definitions: ~p~n",
 			 %				   [ [ E || { _, E } <- TypeExportDefs ] ] ),
 
+			 case ?table:enumerate( RecordTable ) of
+
+				[] ->
+					 "no record declared";
+
+				RecordEntries ->
+					 RecordString = text_utils:strings_to_sorted_string( [
+							begin
+
+								FieldStrings = fields_to_strings( FieldTable ),
+								text_utils:format( "record '~s' having ~B fields:~s",
+												   [ RecordName, length( FieldStrings ),
+													 text_utils:strings_to_string(
+													   FieldStrings,
+													   NextIndentationLevel+1 ) ] )
+							end || { RecordName, FieldTable } <- RecordEntries ],
+									   NextIndentationLevel ),
+					 text_utils:format( "~B records defined:~s",
+								   [ length( RecordEntries ), RecordString ] )
+
+			 end,
+
+			 case ?table:enumerate( FunImportTable ) of
+
+				 [] ->
+					 "no function imported";
+
+				 ImportEntries ->
+					 ImpString = text_utils:strings_to_sorted_string(
+					   [ text_utils:format( "from module '~s': ~p",
+							[ ModName, FunIds ] )
+						 || { ModName, FunIds } <- ImportEntries ] ),
+					 text_utils:format(
+					   "Function imports declared from ~B modules: ~s",
+					   [ length( ImportEntries ), ImpString ] )
+
+			 end,
+
 			 %text_utils:format( "~B function export definitions: ~p~n",
 			 %					[ length( FunctionExports ),
 			 %					  [ F || { _, F } <- FunctionExports ] ] ),
@@ -2418,6 +2756,21 @@ module_info_to_string( #module_info{
 
 	text_utils:format( "Information about module '~s':~s",
 					   [ Module, text_utils:strings_to_string( Infos ) ] ).
+
+
+
+% Returns a list of textual representation for each of the record fields in
+% specified table.
+%
+-spec fields_to_strings( field_table() ) -> [ text_utils:string() ].
+fields_to_strings( FieldTable ) ->
+
+	FieldEntries = ?table:enumerate( FieldTable ),
+
+	[ text_utils:format( "field '~s' described as ~p, "
+						 "and having for default value ~p",
+						 [ FieldName, FieldType, DefaultValue ] )
+	  || { FieldName, { FieldType, DefaultValue } } <- FieldEntries ].
 
 
 

@@ -297,21 +297,6 @@
 -type type_id() :: { type_name(), type_arity() }.
 
 
-% A type is either a remote one based on a module name, or a local one (then
-% designated by '_'):
-%
--type type_scope() :: module_name() | '_'.
-
-
-% Full, explicit type identifier:
-%
--type remote_type_id() :: { type_scope(), type_name(), type_arity() }.
-
-
--type local_type_definition() :: 
-
--type type_definition() :: local_type_definition() | remote_type_definition().
-
 
 
 % The "most precise" description of a primitive, simple type (ex: 'boolean' and
@@ -470,7 +455,7 @@
 -type explicit_type() :: type().
 
 
--export_type([ type_name/0, type_arity/0, type_id(),
+-export_type([ type_name/0, type_arity/0, type_id/0,
 			   primitive_type_description/0,
 			   type_description/0, nesting_depth/0, type/0, explicit_type/0 ]).
 
@@ -487,7 +472,8 @@
 % Type-related functions:
 %
 -export([ description_to_type/1, type_to_description/1, type_to_string/1,
-		  get_type_of/1, get_elementary_types/0, is_type/1, is_of_type/2,
+		  get_type_of/1, get_immediate_types/0, get_elementary_types/0,
+		  is_type/1, is_of_type/2,
 		  is_of_described_type/2, is_homogeneous/1, is_homogeneous/2,
 		  are_types_identical/2 ]).
 
@@ -710,12 +696,20 @@ get_type_of( Term ) when is_reference( Term ) ->
 
 
 
+% Returns a list of the possible types for immediate values (typically found in
+% an AST like, like 'undefined' in: {atom,42,undefined}).
+%
+-spec get_immediate_types() -> [ type_name() ].
+get_immediate_types() ->
+	[ 'atom', 'binary', 'boolean', 'float', 'integer' ].
+
+
 % Returns a list of the elementary, "atomic" types.
 %
 -spec get_elementary_types() -> [ type_name() ].
 get_elementary_types() ->
-	[ 'atom', 'binary', 'boolean', 'float', 'function', 'integer', 'list',
-	  'pid', 'port', 'record', 'reference', 'tuple' ].
+	get_immediate_types() ++
+		[ 'function', 'list', 'pid', 'port', 'record', 'reference', 'tuple' ].
 
 
 

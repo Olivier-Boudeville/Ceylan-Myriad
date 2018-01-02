@@ -803,7 +803,7 @@ appendListToEntry( Key, Elements, MapHashtable ) ->
 
 	case lookupEntry( Key, MapHashtable ) of
 
-		'key_not_found' ->
+		key_not_found ->
 			addEntry( Key, Elements, MapHashtable );
 
 		{ value, CurrentList } ->

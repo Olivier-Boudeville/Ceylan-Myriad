@@ -45,6 +45,16 @@
 % already forged.
 
 
+% Shorthands:
+
+-type type_name()  :: type_utils:type_name().
+%-type type_arity() :: type_utils:type_arity().
+%-type type_id()    :: type_utils:type_id().
+
+-type module_name() :: basic_utils:module_name().
+
+
+
 % General element of an AST.
 %
 -type ast_element() :: tuple().
@@ -57,20 +67,6 @@
 % Line-related location in a source file (either line() or {line(), column()}):
 %
 -type file_loc() :: erl_anno:location().
-
-
-
--export_type([ ast_element/0, line/0, file_loc/0 ]).
-
-
-% Shorthands:
-
--type type_name()  :: type_utils:type_name().
-%-type type_arity() :: type_utils:type_arity().
-%-type type_id()    :: type_utils:type_id().
-
--type module_name() :: basic_utils:module_name().
-
 
 
 
@@ -152,6 +148,22 @@
 %
 -type ast_type() :: ast_builtin_type() | ast_user_type() | ast_remote_type().
 
+
+% The description of an immediate value in an AST, with line information.
+%
+% Ex: nil, in {nil,33} for [] at line #33.
+%
+% Note: to complete.
+%
+-type ast_immediate_value() :: { 'nil', line() }
+							 | { 'atom', line(), atom() }
+							 | { 'integer', line(), integer() }
+							 | { 'float', line(), float() }.
+
+
+-export_type([ ast_element/0, line/0, file_loc/0,
+			   ast_builtin_type/0, ast_user_type/0, ast_remote_type/0,
+			   ast_type/0, ast_immediate_value/0 ]).
 
 
 % Designating values:

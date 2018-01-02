@@ -37,6 +37,14 @@
 % We store the located forms verbatim whenever possible (in *_def* counterpart
 % fields), notably to preserve line numbers.
 %
+% As a consequence there are generally two fields per theme:
+%
+% - the high-level, developer-friendly one (ex: 'module')
+% - the raw one in AST form (ex: 'module_def')
+%
+% It is up to the user to ensure that, if either field is modified, its
+% counterpart one is updated accordingly.
+%
 -record( module_info, {
 
 
@@ -48,9 +56,24 @@
 		module_def = undefined :: 'undefined' | meta_utils:located_form(),
 
 
-		% Ex: '{compile, { inline, [ { FunName, Arity } ] } }':
+		% A table, whose keys are compilation options (ex: no_auto_import,
+		% inline, etc.) and whose values are aggregated lists of their
+		% associated values (ex: [{size,1}] and [{get_bucket_index,2},{f/1}]).
+		%
+		% Note: for the 'inline' key, if full inlining is enabled ( '-compile(
+		% inline ).'), then its associated key is not a list of function
+		% identifiers, but 'all'.
+		%
+		compilation_options :: meta_utils:compile_option_table(),
+
+
+		% A table, as multiple compile attributes can be declared, like:
+		%
+		% Ex: {attribute,67,compile,{no_auto_import,[{size,1}]}},
+		%     {attribute,63,compile,{inline,[{get_bucket_index,2}]}}
 		%
 		compilation_option_defs = [] :: meta_utils:located_ast(),
+
 
 
 		% Parse-level attributes (ex: '-my_attribute( my_value ).'), as a table
@@ -63,7 +86,11 @@
 
 		% Parse attribute definitions (as located, abstract forms):
 		%
+		% Note: mostly for user-defined attributes, knowing most if not all
+		% others are to be collected in specific other fields of this record.
+		%
 		parse_attribute_defs = [] :: meta_utils:located_ast(),
+
 
 
 		% Include files (typically *.hrl files).
@@ -84,12 +111,14 @@
 		include_defs = [] :: meta_utils:located_ast(),
 
 
+
 		% Type definitions:
 		%
-		% (few information gathered)
+		% (few information gathered: name, arity, and whether is opaque)
 		%
 		type_definitions = [] :: [ { type_utils:type_name(),
-									 type_utils:type_arity() } ],
+									 type_utils:type_arity(),
+									 boolean() } ],
 
 
 		% The abstract forms corresponding to type definitions:
@@ -97,7 +126,8 @@
 		type_definition_defs = [] :: meta_utils:located_ast(),
 
 
-		% All type exports:
+
+		% All type exports (including opaque ones):
 		type_exports = [] :: [ { type_utils:type_name(),
 								 type_utils:type_arity() } ],
 
@@ -106,14 +136,35 @@
 		type_export_defs = [] :: meta_utils:located_ast(),
 
 
+		% All information (notably: field descriptions), indexed by record
+		% names, about all the records known of that module:
+		%
+		records :: meta_utils:record_table(),
+
+
+		% The record export definitions:
+		record_defs = [] :: meta_utils:located_ast(),
+
+
+		% Lists the functions imported by that module, per-module.
+		%
+		function_imports :: meta_utils:import_table(),
+
+
+		% The definitions of the function imports:
+		%
+		function_imports_defs = [] :: meta_utils:located_ast(),
+
+
+
 		% Whether a function (possibly any kind of it) is exported is recorded
 		% primarily in its respective function_info record through a list of
 		% locations, while the actual forms for the exports of all functions are
 		% recorded here (better that way, as an export attribute may define any
 		% number of exports, and we want to record its definition line):
 		%
-		% (this field must be kept synchronised with the next one, the
-		% 'functions' table)
+		% (this field must be kept synchronised with the table in the
+		% 'functions' field)
 		%
 		function_exports :: meta_utils:export_table(),
 
@@ -122,6 +173,7 @@
 		% functions defined in that module:
 		%
 		functions :: meta_utils:function_table(),
+
 
 
 		% The definition of the last line in the original source file:
