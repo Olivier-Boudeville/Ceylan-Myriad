@@ -67,6 +67,8 @@
 -type type_name() :: type_utils:type_name().
 -type type_arity() :: type_utils:type_arity().
 
+-type ast_field_description() :: ast_utils:ast_field_description().
+
 
 % Not expected to be legit symbols:
 %
@@ -461,7 +463,8 @@
 		  get_local_type_replacement_table/1,
 		  get_remote_type_replacement_table/1,
 		  located_ast_to_string/1,
-		  replace_types_in/3, traverse_term/4,
+		  replace_types_in/3, update_types_in_functions/3,
+		  traverse_term/4,
 		  term_to_form/1, variable_names_to_ast/2,
 		  string_to_form/1, string_to_form/2,
 		  string_to_expressions/1, string_to_expressions/2,
@@ -887,7 +890,7 @@ replace_types_helper( _InputLocatedAST=[], _LocalReplaceTable,
 	Acc;
 
 replace_types_helper( _InputLocatedAST=[ { Loc, Form } | T ],
-					   LocalReplaceTable, RemoteReplaceTable, Acc ) ->
+					  LocalReplaceTable, RemoteReplaceTable, Acc ) ->
 	NewForm = replace_types_in_type_def( Form, LocalReplaceTable,
 										 RemoteReplaceTable ),
 	replace_types_helper( T, LocalReplaceTable, RemoteReplaceTable,
@@ -898,9 +901,13 @@ replace_types_helper( _InputLocatedAST=[ { Loc, Form } | T ],
 replace_types_in_type_def( _Form={ attribute, Line, type,
 								   { TypeName, TypeDef, TypeVars } },
 						   LocalReplaceTable, RemoteReplaceTable ) ->
-	NewTypeDef = traverse_type( TypeDef, LocalReplaceTable, RemoteReplaceTable ),
+
+	NewTypeDef = traverse_type( TypeDef, LocalReplaceTable,
+								RemoteReplaceTable ),
+
 	NewTypeVars = [ traverse_type( Elem, LocalReplaceTable, RemoteReplaceTable )
 					|| Elem <- TypeVars ],
+
 	%display_debug( "Translation of type definition:~n~p~nis:~n~p~nwith ~p.",
 	%			   [ TypeDef, NewTypeDef, NewTypeVars ] ),
 	{ attribute, Line, type, { TypeName, NewTypeDef, NewTypeVars } };
@@ -908,12 +915,29 @@ replace_types_in_type_def( _Form={ attribute, Line, type,
 replace_types_in_type_def( _Form={ attribute, Line, opaque,
 								   { TypeName, TypeDef, TypeVars } },
 						   LocalReplaceTable, RemoteReplaceTable ) ->
-	NewTypeDef = traverse_type( TypeDef, LocalReplaceTable, RemoteReplaceTable ),
+
+	NewTypeDef = traverse_type( TypeDef, LocalReplaceTable,
+								RemoteReplaceTable ),
+
 	NewTypeVars = [ traverse_type( Elem, LocalReplaceTable, RemoteReplaceTable )
 					|| Elem <- TypeVars ],
+
 	%display_debug( "Translation of opaque type definition:~n~p~nis:~n~p~n"
 	%               "with ~p.", [ TypeDef, NewTypeDef, NewTypeVars ] ),
 	{ attribute, Line, opaque, { TypeName, NewTypeDef, NewTypeVars } };
+
+
+replace_types_in_type_def( _Form={ attribute, Line, record,
+								   { TypeName, Fields } },
+						   LocalReplaceTable, RemoteReplaceTable ) ->
+
+	NewFields = update_types_in_fields( Fields, LocalReplaceTable,
+										RemoteReplaceTable ),
+
+	%display_debug( "Translation of record field definitions:~n~p~nis:~n~p~n.",
+	%               [ Fields, NewFields ] ),
+	{ attribute, Line, record, { TypeName, NewFields } };
+
 
 replace_types_in_type_def( UnexpectedForm, _LocalReplaceTable,
 						   _RemoteReplaceTable ) ->
@@ -921,9 +945,35 @@ replace_types_in_type_def( UnexpectedForm, _LocalReplaceTable,
 
 
 
+% Updates the types in specified function table, based on specified
+% replacements.
+%
+-spec update_types_in_functions( function_table(),
+								 local_type_replacement_table(),
+								 remote_type_replacement_table() ) ->
+									   function_table().
+update_types_in_functions( FunctionTable, _LocalReplaceTable,
+						   _RemoteReplaceTable ) ->
+	FunctionTable.
+
+
+
+% Updates the types in specified fields, based on specified replacements.
+%
+-spec update_types_in_fields( [ ast_field_description() ],
+		  local_type_replacement_table(), remote_type_replacement_table() ) ->
+									[ ast_field_description() ].
+update_types_in_fields( Fields, _LocalReplaceTable,
+						_RemoteReplaceTable ) ->
+	NewFields = Fields,
+BOOOO
+	NewFields.
+
+
+
 % Traversing types.
 %
-% (records could be used instead)
+% (records like #type, #user_type, could be used instead)
 %
 % (helper)
 %
@@ -948,7 +998,8 @@ traverse_type( _TypeDef={ type, Line, list, [ ElementType ] },
 
 % Other built-in type:
 traverse_type( _TypeDef={ type, Line, BuiltinType, TypeVars },
-			   LocalReplaceTable, RemoteReplaceTable ) when is_list( TypeVars ) ->
+			   LocalReplaceTable, RemoteReplaceTable )
+  when is_list( TypeVars ) ->
 	NewTypeVars = [ traverse_type( Elem, LocalReplaceTable,
 								   RemoteReplaceTable ) || Elem <- TypeVars ],
 	{ type, Line, BuiltinType, NewTypeVars };
@@ -2108,7 +2159,8 @@ process_ast( _AST=[], Infos, _NextLocation ) ->
 
 % Processes the fields of a given record.
 %
--spec process_field_descriptions( [ ast_utils:ast_element() ] ) -> field_table().
+-spec process_field_descriptions( [ ast_utils:ast_element() ] ) ->
+										field_table().
 process_field_descriptions( FieldDescriptions ) ->
 
 	FieldTable = ?table:new(),
