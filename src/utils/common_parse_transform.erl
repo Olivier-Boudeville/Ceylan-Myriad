@@ -242,11 +242,12 @@ parse_transform( AST, _Options ) ->
 				{ { maybe, 1 }, basic_utils },
 				% First clause as we do not want DesiredTableType:table/N, but
 				% DesiredTableType:DesiredTableType/N:
-				{ { table, '_' }, fun( _TypeName=table, _TypeArity ) ->
-										  { DesiredTableType, DesiredTableType  };
-									 ( TypeName, _TypeArity ) ->
-										  { DesiredTableType, TypeName }
-								  end } ] ),
+				{ { table, '_' },
+				  fun( _TypeName=table, _TypeArity ) ->
+						  { DesiredTableType, DesiredTableType };
+					 ( TypeName, _TypeArity ) ->
+						  { DesiredTableType, TypeName }
+				  end } ] ),
 
 
 	% Regarding remote types, we want to replace:
@@ -254,18 +255,25 @@ parse_transform( AST, _Options ) ->
 	%      * table:T with DesiredTableType:T (ex: table:value() )
 	% (as these substitutions overlap, a lambda function is provided)
 	RemoteTypeReplacements = meta_utils:get_remote_type_replacement_table( [
-				{ { table, '_', '_' }, fun( _ModuleName, _TypeName=table, _TypeArity ) ->
-											   { DesiredTableType, DesiredTableType  };
+				{ { table, '_', '_' },
+				  fun( _ModuleName, _TypeName=table, _TypeArity ) ->
+						  { DesiredTableType, DesiredTableType  };
 
-										  ( _ModuleName, TypeName, _TypeArity ) ->
-											   { DesiredTableType, TypeName }
+					 ( _ModuleName, TypeName, _TypeArity ) ->
+						  { DesiredTableType, TypeName }
 
-									   end } ] ),
+				  end } ] ),
 
 	% First update the type definitions accordingly:
-	NewTypeDefs = meta_utils:replace_types_in(
-					BaseModuleInfo#module_info.type_definition_defs,
-					LocalTypeReplacements, RemoteTypeReplacements ),
+	[ NewTypeDefs, NewRecordDefs ]  =
+		[ meta_utils:replace_types_in( Defs, LocalTypeReplacements,
+									   RemoteTypeReplacements )
+		  || Defs <- [ BaseModuleInfo#module_info.type_definition_defs,
+					   BaseModuleInfo#module_info.record_defs ] ],
+
+	NewFunctionTable = meta_utils:update_types_in_functions(
+						 BaseModuleInfo#module_info.functions,
+						 LocalTypeReplacements, RemoteTypeReplacements ),
 
 	%TableModuleInfo = replace_table( BaseModuleInfo ),
 	%VoidModuleInfo = expand_void_type( TableModuleInfo ),
@@ -273,8 +281,10 @@ parse_transform( AST, _Options ) ->
 
 	% Apply transformations:
 	OutputModuleInfo = BaseModuleInfo#module_info{
-						 type_definition_defs=NewTypeDefs
-												 },
+						 type_definition_defs=NewTypeDefs,
+						 record_defs=NewRecordDefs,
+						 functions=NewFunctionTable },
+
 
 	%meta_utils:write_module_info_to_file( OutputModuleInfo,
 	%									  "Output-module_info.txt" ),
@@ -309,14 +319,15 @@ get_actual_table_type( ParseAttributeTable ) ->
 
 		key_not_found ->
 			TableType = ?default_table_type,
-			%meta_utils:display_trace( "Using default table ~p.~n", [ TableType ] ),
+			%meta_utils:display_trace( "Using default table ~p.~n",
+			%				   [ TableType ] ),
 			TableType
 
 	end,
 
-	meta_utils:display_debug( "Will replace references to the 'table' module "
-							  "and datatypes by references to '~s'.",
-							  [ DesiredTableType ] ),
+	%meta_utils:display_debug( "Will replace references to the 'table' module "
+	%						  "and datatypes by references to '~s'.",
+	%						  [ DesiredTableType ] ),
 
 	DesiredTableType.
 
