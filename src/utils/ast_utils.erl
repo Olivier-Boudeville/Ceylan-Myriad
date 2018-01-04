@@ -27,13 +27,15 @@
 
 
 
-% Gathering of various convenient facilities to manage ASTs (Abstract Syntax Trees).
+% Gathering of various convenient facilities to manage ASTs (Abstract Syntax
+% Trees).
 %
 % Convenient to isolate processings from the current Erlang AST syntax, which
 % could change over time (a bit like the erl_syntax standard module, albeit with
 % a different set of conventions).
 %
-% See also: the meta_utils module, for meta primitives less directly linked with syntax.
+% See also: the meta_utils module, for meta primitives less directly linked with
+% syntax.
 %
 -module(ast_utils).
 
@@ -123,8 +125,8 @@
 
 % Reference to a remote type, in an AST.
 %
-% Ex: {remote_type,43,[{atom,43,basic_utils},{atom,43,maybe},[{type,43,float,[]}]]}
-%            -- for basic_utils:maybe( float() )
+% Ex for basic_utils:maybe( float() ):
+% {remote_type,43,[{atom,43,basic_utils},{atom,43,maybe},[{type,43,float,[]}]]}
 %
 % Note: the order of fields matters (not arbitrary, to correspond to the actual
 % AST terms)
@@ -149,6 +151,14 @@
 -type ast_type() :: ast_builtin_type() | ast_user_type() | ast_remote_type().
 
 
+% The description of a field of a record.
+%
+% Ex : {typed_record_field, {record_field,76, {atom,76,my_index}},
+%               {remote_type,76, [{atom,76,linear}, {atom,76,coordinate}, []]}},
+%
+-type ast_field_description() :: tuple().
+
+
 % The description of an immediate value in an AST, with line information.
 %
 % Ex: nil, in {nil,33} for [] at line #33.
@@ -163,7 +173,7 @@
 
 -export_type([ ast_element/0, line/0, file_loc/0,
 			   ast_builtin_type/0, ast_user_type/0, ast_remote_type/0,
-			   ast_type/0, ast_immediate_value/0 ]).
+			   ast_type/0, ast_field_description/0, ast_immediate_value/0 ]).
 
 
 % Designating values:
