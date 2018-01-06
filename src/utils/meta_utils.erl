@@ -963,11 +963,59 @@ update_types_in_functions( FunctionTable, _LocalReplaceTable,
 -spec update_types_in_fields( [ ast_field_description() ],
 		  local_type_replacement_table(), remote_type_replacement_table() ) ->
 									[ ast_field_description() ].
-update_types_in_fields( Fields, _LocalReplaceTable,
-						_RemoteReplaceTable ) ->
-	NewFields = Fields,
-BOOOO
+update_types_in_fields( Fields, LocalReplaceTable,
+						RemoteReplaceTable ) ->
+	
+	%display_debug( "Input fields: ~p.", [ Fields ] ),
+
+	NewFields = [ update_types_in_field( F, LocalReplaceTable,
+										 RemoteReplaceTable ) || F <- Fields ],
+
+	%display_debug( "New fields: ~p.", [ NewFields ] ),
+
 	NewFields.
+
+
+
+-spec update_types_in_field( ast_field_description(),
+		 local_type_replacement_table(), remote_type_replacement_table() ) ->
+								   ast_field_description().
+% Type specified, without or with a default value:
+update_types_in_field( _F={ typed_record_field,
+		   % { record_field, _Line1, { atom, _Line2, _FieldName } },
+		   %  - or -
+		   % { record_field, _Line1, { atom, _Line2, _FieldName },
+		   %		{ _ImmediateType, Line2, DefaultValue } }:
+		   RecordField,
+		   %{ type, Line3, TypeName, TypeVars } }:
+		   TypeDef },
+		   LocalReplaceTable, RemoteReplaceTable ) ->
+
+	NewTypeDef = traverse_type( TypeDef, LocalReplaceTable,
+								RemoteReplaceTable ),
+
+	{ typed_record_field, RecordField, NewTypeDef };
+
+
+% No type and no default value specified:
+update_types_in_field( F={ record_field, _Line1,
+						   % { atom, Line2, FieldName }:
+						   _FieldNameDef },
+					   _LocalReplaceTable, _RemoteReplaceTable ) ->
+	F;
+
+% No type specified, yet with a default value:
+update_types_in_field( F={ record_field, _Line1,
+						   % { atom, Line2, FieldName }:
+						   _FieldNameDef,
+						   % { _ImmediateType, Line2, DefaultValue }:
+						   _DefaultValueDef },
+					   _LocalReplaceTable, _RemoteReplaceTable ) ->
+	F;
+
+
+update_types_in_field( F, _LocalReplaceTable, _RemoteReplaceTable ) ->
+	throw( { unexpected_field, F } ).
 
 
 
@@ -1145,6 +1193,25 @@ traverse_type( _TypeDef={ remote_type, Line1,
 										 NewTypeVars, Line1, Line2, Line3 )
 
 	end;
+
+
+% Annotated type, for example found in a record field like:
+%  pointDrag :: {X::integer(), Y::integer()}}
+%
+% Resulting then in:
+% {typed_record_field,
+%		   {record_field,342,{atom,342,pointDrag}},
+%		   {type,342,tuple,
+%			   [{ann_type,342,[{var,342,'X'},{type,342,integer,[]}]},
+%				{ann_type,342,
+%					[{var,342,'Y'},{type,342,integer,[]}]} ] }}
+traverse_type( _TypeDef={ ann_type, Line, [ Var, InternalTypeDef ] },
+			   LocalReplaceTable, RemoteReplaceTable ) ->
+
+	NewInternalTypeDef = traverse_type( InternalTypeDef, LocalReplaceTable,
+										RemoteReplaceTable ),
+
+	{ ann_type, Line, [ Var, NewInternalTypeDef ] };
 
 
 % Variable declaration, possibly obtained through declarations like:
