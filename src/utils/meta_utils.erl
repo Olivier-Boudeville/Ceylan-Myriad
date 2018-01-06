@@ -952,9 +952,85 @@ replace_types_in_type_def( UnexpectedForm, _LocalReplaceTable,
 								 local_type_replacement_table(),
 								 remote_type_replacement_table() ) ->
 									   function_table().
-update_types_in_functions( FunctionTable, _LocalReplaceTable,
-						   _RemoteReplaceTable ) ->
-	FunctionTable.
+update_types_in_functions( FunctionTable, LocalReplaceTable,
+						   RemoteReplaceTable ) ->
+
+	FunIdInfoPairs = ?table:enumerate( FunctionTable ),
+
+	NewFunIdInfoPairs = [ { FunId, update_fun_info( FunInfo, LocalReplaceTable,
+													RemoteReplaceTable ) }
+						  || { FunId, FunInfo } <- FunIdInfoPairs ],
+
+	?table:new( NewFunIdInfoPairs ).
+
+
+
+% Updates the types in specified fields, based on specified replacements.
+%
+update_fun_info( FunInfo=#function_info{ spec=undefined },
+				 _LocalReplaceTable, _RemoteReplaceTable ) ->
+	FunInfo;
+
+update_fun_info( FunInfo=#function_info{ spec={ Loc, FunSpec } },
+								 LocalReplaceTable, RemoteReplaceTable ) ->
+
+	NewFunSpec = case FunSpec of
+
+		% Ex for '-spec f( type_a() ) -> type_b().':
+		% SpecList = [ {type,652,'fun',
+		%     [{type,652,product,[{user_type,652,type_a,[]}]},
+		%       {user_type,652,type_b,[]}]
+		%   } ]
+		{ attribute, Line, spec, { FunId, SpecList } } ->
+			%display_trace( "SpecList = ~p", [ SpecList ] ),
+			NewSpecList = [ update_spec( Spec, LocalReplaceTable,
+								 RemoteReplaceTable ) || Spec <- SpecList ],
+			{ attribute, Line, spec, { FunId, NewSpecList } };
+
+		_ ->
+			throw( { unexpected_fun_spec, FunSpec } )
+
+	end,
+
+	FunInfo#function_info{ spec={ Loc, NewFunSpec } };
+
+
+update_fun_info( _FunInfo=#function_info{ spec=UnexpectedLocSpec },
+				  _LocalReplaceTable, _RemoteReplaceTable ) ->
+	throw( { unexpected_located_fun_spec, UnexpectedLocSpec } ).
+
+
+
+% Updates the specified function specification.
+%
+update_spec( { type, Line, 'fun', ClausesSpecs },
+			 LocalReplaceTable, RemoteReplaceTable ) ->
+
+	NewClausesSpecs = update_clause_spec( ClausesSpecs, LocalReplaceTable,
+										  RemoteReplaceTable ),
+
+	{ type, Line, 'fun', NewClausesSpecs };
+
+update_spec( UnexpectedFunSpec, _LocalReplaceTable, _RemoteReplaceTable ) ->
+	throw( { unexpected_fun_spec, UnexpectedFunSpec } ).
+
+
+
+update_clause_spec( [ { type, Line, product, ParamTypes }, ResultType ],
+					LocalReplaceTable, RemoteReplaceTable ) ->
+
+	NewParamTypes = [ traverse_type( ParamType, LocalReplaceTable, 
+						 RemoteReplaceTable ) || ParamType <- ParamTypes ],
+
+	NewResultType = traverse_type( ResultType, LocalReplaceTable,
+								   RemoteReplaceTable ),
+
+	[ { type, Line, product, NewParamTypes }, NewResultType ];
+
+update_clause_spec( UnexpectedClauseSpec, _LocalReplaceTable,
+					_RemoteReplaceTable ) ->
+	throw( { unexpected_clause_spec, UnexpectedClauseSpec } ).
+
 
 
 
@@ -965,7 +1041,7 @@ update_types_in_functions( FunctionTable, _LocalReplaceTable,
 									[ ast_field_description() ].
 update_types_in_fields( Fields, LocalReplaceTable,
 						RemoteReplaceTable ) ->
-	
+
 	%display_debug( "Input fields: ~p.", [ Fields ] ),
 
 	NewFields = [ update_types_in_field( F, LocalReplaceTable,
