@@ -31,8 +31,6 @@
 % Shorthands:
 -type sha1()  :: executable_utils:sha1_sum().
 -type count() :: basic_utils:count().
--type void()  :: basic_utils:void().
-
 
 
 % Data associated to a given file-like element.

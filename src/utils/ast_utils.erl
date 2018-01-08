@@ -171,6 +171,14 @@
 							 | { 'float', line(), float() }.
 
 
+
+% The description of an expression in an AST, with line information.
+%
+% Ex: {integer,97,2} or {match,117, {var,117,'A'}, {atom,117,foobar}}, etc.
+%
+-type ast_expression() :: ast_element().
+
+
 -export_type([ ast_element/0, line/0, file_loc/0,
 			   ast_builtin_type/0, ast_user_type/0, ast_remote_type/0,
 			   ast_type/0, ast_field_description/0, ast_immediate_value/0 ]).
@@ -201,6 +209,13 @@
 		  forge_builtin_type/3, forge_local_type/3,
 		  forge_remote_type/4, forge_remote_type/6
 		]).
+
+
+% Designating calls:
+%
+-export([ forge_remote_call/4 ]).
+
+
 
 
 % Value section.
@@ -466,9 +481,9 @@ forge_remote_type( ModuleName, TypeName, TypeVars, Line ) ->
 % Returns an AST-compliant representation of specified remote type.
 %
 % Ex: to designate basic_utils:some_type( float() ) at lines 43, 44 and 45, use:
-% forge_remote_type( basic_utils, some_type, [], { 43, 44, 45 } ); returns:
+% forge_remote_type( basic_utils, some_type, [], { 43, 44, 45 } ) - which returns:
 % {remote_type,43,[{atom,44,basic_utils},{atom,45,some_type},
-% [{type,43,float,[]}]]}
+% [{type,43,float,[]}]]}.
 %
 -spec forge_remote_type( module_name(), type_name(), [ ast_type() ],
 						 line(), line(), line() ) -> ast_remote_type().
@@ -478,3 +493,60 @@ forge_remote_type( ModuleName, TypeName, TypeVars, Line1, Line2, Line3 ) ->
 			 forge_atom_value( TypeName, Line3 ), TypeVars ],
 
 	#remote_type{ line=Line1, spec=Spec }.
+
+
+
+
+% Returns an AST-compliant representation of specified local call.
+%
+% Ex: to designate 'some_fun( a, b )' at line 102, use;
+% forge_local_call( some_fun, ParamDefs, 102 ) - which returns:
+% {call,102,{atom,102,some_fun},[{atom,102,a},{atom,102,b}]}.
+%
+-spec forge_local_call( module_name(), function_name(), [ ast_expression() ],
+						line() ) -> ast_expression().
+forge_local_call( ModuleName, FunctionName, Params, Line ) ->
+	forge_local_call( ModuleName, FunctionName, Params, Line, Line ).
+
+
+% Returns an AST-compliant representation of specified local call.
+%
+% Ex: to designate 'some_fun( a, b )' at line 102, use;
+% forge_local_call( some_fun, ParamDefs, 102 ) - which returns:
+% {call,102,{atom,102,some_fun},[{atom,102,a},{atom,102,b}]}.
+%
+-spec forge_local_call( module_name(), function_name(), [ ast_expression() ],
+						line(), line() ) -> ast_expression().
+forge_local_call( ModuleName, FunctionName, Params, Line1, Line2 ) ->
+	{ call, Line1, forge_atom_value( FunctionName, Line2 ), Params }.
+
+
+
+
+% Returns an AST-compliant representation of specified remote call.
+%
+% Ex: to designate 'some_module:some_fun( a, b )' at line 102, use;
+% forge_remote_call( some_module, some_fun, ParamDefs, 102 ) - which returns:
+% {{remote,102, {atom,102,some_module}, {atom,102,some_fun},
+%              [{atom,102,a},{atom,102,b}]}.
+%
+-spec forge_remote_call( module_name(), function_name(), [ ast_expression() ],
+						 line(), line() ) -> ast_expression().
+forge_remote_call( ModuleName, FunctionName, Params, Line ) ->
+	forge_remote_call( ModuleName, FunctionName, Params, Line, Line ).
+
+
+
+% Returns an AST-compliant representation of specified remote call.
+%
+% Ex: to designate 'some_module:some_fun( a, b )' at lines 101 and 102, use;
+% forge_remote_call( some_module, some_fun, ParamDefs, 102 ) - which returns:
+% {{remote,102, {atom,102,some_module}, {atom,102,some_fun},
+%              [{atom,102,a},{atom,102,b}]}.
+%
+-spec forge_remote_call( module_name(), function_name(), [ ast_expression() ],
+						 line(), line() ) -> ast_expression().
+forge_remote_call( ModuleName, FunctionName, Params, Line1, Line2 ) ->
+	{ call, Line1, { remote, Line2, forge_atom_value( ModuleName, Line2 ),
+					 forge_atom_value( FunctionName, Line2 ),
+					 Params } }.

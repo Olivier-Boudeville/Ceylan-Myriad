@@ -70,6 +70,23 @@
 			   foo_table_other_type/0,
 			   foo_void/0, foo_maybe/0, foo_list/0, foo_union/0 ]).
 
+-record( my_record, {
+
+		   my_field_1,
+
+		   my_field_2 = 4,
+
+		   my_field_3 :: [ my_type() ],
+
+		   my_field_4 = 5 :: integer()
+
+}).
+
+
+-type my_record() :: #my_record{}.
+
+-export_type([ my_record/0 ]).
+
 
 
 %-spec f( integer() ) -> table:table().
@@ -81,6 +98,9 @@ f( 1 ) ->
 
 f( _ ) ->
 	aa,
+	g(),
+	U = some_module:some_fun( a, b ),
+	io:format( U ),
 	bb,
 	cc.
 

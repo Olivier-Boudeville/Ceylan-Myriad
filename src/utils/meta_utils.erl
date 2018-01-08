@@ -73,13 +73,20 @@
 % Not expected to be legit symbols:
 %
 -define( any_module_name, '_' ).
--define( any_type_name,   '_' ).
--define( any_type_arity,  '_' ).
-
 
 -type module_name_match() :: module_name() | ?any_module_name.
--type type_name_match()   :: type_name()   | ?any_type_name.
--type type_arity_match()  :: type_arity()  | ?any_type_arity.
+
+
+
+
+%% Type replacement section.
+
+-define( any_type_name,  '_' ).
+-define( any_type_arity, '_' ).
+
+
+-type type_name_match()  :: type_name()  | ?any_type_name.
+-type type_arity_match() :: type_arity() | ?any_type_arity.
 
 
 % The same arity is kept, and just specifying the module name means that the
@@ -89,7 +96,6 @@
 % remote type (a priori not a problematic limitation).
 %
 -type type_replacement() :: { module_name(), type_name() } | module_name().
-
 
 
 % Local subsection:
@@ -108,7 +114,6 @@
 													   local_type_replacement() ).
 
 
-
 % Remote subsection:
 
 -type remote_type_id_match() :: { module_name_match(), type_name_match(),
@@ -125,6 +130,65 @@
 % Table defining replacements of remote types:
 -type remote_type_replacement_table() :: ?table:?table( remote_type_id_match(),
 														remote_type_replacement() ).
+
+
+
+
+%% Call replacement section.
+
+-define( any_function_name,  '_' ).
+-define( any_function_arity, '_' ).
+
+
+-type function_name_match()  :: function_name() | ?any_function_name.
+-type function_arity_match() :: arity()         | ?any_function_arity.
+
+
+% The same arity is kept, and just specifying the module name means that the
+% function name of the call is not to change.
+%
+% Note that this implies that a (local or remote) call can only be replaced by a
+% remote call (a priori not a problematic limitation).
+%
+-type call_replacement() :: { module_name(), function_name() } | module_name().
+
+
+
+
+% Local subsection:
+
+-type local_call_match() :: { function_name_match(), function_arity_match() }.
+
+% Either we directly set the target module and function names (using same
+% arity), or we apply an anonymous function to determine the corresponding
+% information, based on context:
+%
+-type local_call_replacement() :: call_replacement()
+			 | fun( ( function_name(), arity() ) -> call_replacement() ) .
+
+
+% Table defining replacements of local call:
+-type local_call_replacement_table() :: ?table:?table( local_call_match(),
+												local_call_replacement() ).
+
+
+% Remote subsection:
+
+-type remote_call_match() :: { module_name_match(), function_name_match(),
+							   function_arity_match() }.
+
+% Either we directly set the target module and function names (using same
+% arity), or we apply an anonymous function to determine the corresponding
+% information, based on context:
+%
+-type remote_call_replacement() :: call_replacement()
+			 | fun( ( module_name(), function_name(), arity() ) ->
+								call_replacement() ) .
+
+
+% Table defining replacements of remote call:
+-type remote_call_replacement_table() :: ?table:?table( remote_call_match(),
+												remote_call_replacement() ).
 
 
 
@@ -236,8 +300,7 @@
 
 
 % Abstract Syntax Tree, standard representation of parse trees for Erlang
-% programs as Erlang terms. This representation is known as the abstract
-% format.
+% programs as Erlang terms. This representation is known as the abstract format.
 %
 % For more information: http://www.erlang.org/doc/apps/erts/absform.html
 %
@@ -460,10 +523,16 @@
 -export([ init_module_info/0, pre_check_ast/1,
 		  add_function/2, remove_function/2,
 		  function_info_to_string/1,
+		  located_ast_to_string/1,
+
 		  get_local_type_replacement_table/1,
 		  get_remote_type_replacement_table/1,
-		  located_ast_to_string/1,
 		  replace_types_in/3, update_types_in_functions/3,
+
+		  get_local_call_replacement_table/1,
+		  get_remote_call_replacement_table/1,
+		  update_calls_in_functions/3,
+
 		  traverse_term/4,
 		  term_to_form/1, variable_names_to_ast/2,
 		  string_to_form/1, string_to_form/2,
@@ -729,6 +798,11 @@ function_info_to_string( #function_info{ name=Name,
 
 
 
+
+%% Type replacement section.
+
+
+
 % Returns a table describing local type replacements.
 %
 % Ex: [ { { void, 0 }, basic_utils },
@@ -748,7 +822,7 @@ function_info_to_string( #function_info{ name=Name,
 %
 %  - my_maybe(T) into basic_utils:maybe(T)
 %
-%  - other_void() into other_utils()
+%  - other_void() into other_utils:other_void()
 %
 %  - any type depending on three others by foo_utils:some_type/3
 %
@@ -852,7 +926,7 @@ get_remote_type_repl_helper( _Replacements=[
 	get_remote_type_repl_helper( T, NewTable );
 
 
-get_remote_type_repl_helper(_Replacements=[
+get_remote_type_repl_helper( _Replacements=[
 	{ Src={ _ModuleMatch, _SourceTypeMatch, _ArityMatch }, ReplaceFun } | T ],
 							Table )
   when is_function( ReplaceFun ) ->
@@ -870,17 +944,17 @@ get_remote_type_repl_helper(_Replacements=[
 						remote_type_replacement_table() ) -> located_ast().
 replace_types_in( InputLocatedAST, LocalReplaceTable, RemoteReplaceTable ) ->
 
-	display_debug( "LocalReplaceTable: ~s",
-				   [ ?table:toString( LocalReplaceTable ) ] ),
+	%display_debug( "LocalReplaceTable: ~s",
+	%			   [ ?table:toString( LocalReplaceTable ) ] ),
 
-	display_debug( "RemoteReplaceTable: ~s",
-				   [ ?table:toString( RemoteReplaceTable ) ] ),
+	%display_debug( "RemoteReplaceTable: ~s",
+	%			   [ ?table:toString( RemoteReplaceTable ) ] ),
 
 	OutputLocatedAST = replace_types_helper( InputLocatedAST, LocalReplaceTable,
 											 RemoteReplaceTable, _Acc=[] ),
 
-	display_debug( "AST after type replacement:~n~s",
-				   [ located_ast_to_string( OutputLocatedAST ) ] ),
+	%display_debug( "AST after type replacement:~n~s",
+	%			   [ located_ast_to_string( OutputLocatedAST ) ] ),
 
 	OutputLocatedAST.
 
@@ -945,8 +1019,8 @@ replace_types_in_type_def( UnexpectedForm, _LocalReplaceTable,
 
 
 
-% Updates the types in specified function table, based on specified
-% replacements.
+% Updates the types in known functions from specified function table, based on
+% specified replacements.
 %
 -spec update_types_in_functions( function_table(),
 								 local_type_replacement_table(),
@@ -957,21 +1031,21 @@ update_types_in_functions( FunctionTable, LocalReplaceTable,
 
 	FunIdInfoPairs = ?table:enumerate( FunctionTable ),
 
-	NewFunIdInfoPairs = [ { FunId, update_fun_info( FunInfo, LocalReplaceTable,
-													RemoteReplaceTable ) }
+	NewFunIdInfoPairs = [ { FunId, update_fun_info_for_types( FunInfo,
+								   LocalReplaceTable, RemoteReplaceTable ) }
 						  || { FunId, FunInfo } <- FunIdInfoPairs ],
 
 	?table:new( NewFunIdInfoPairs ).
 
 
 
-% Updates the types in specified fields, based on specified replacements.
+% Updates the types in the -spec fields, based on specified replacements.
 %
-update_fun_info( FunInfo=#function_info{ spec=undefined },
+update_fun_info_for_types( FunInfo=#function_info{ spec=undefined },
 				 _LocalReplaceTable, _RemoteReplaceTable ) ->
 	FunInfo;
 
-update_fun_info( FunInfo=#function_info{ spec={ Loc, FunSpec } },
+update_fun_info_for_types( FunInfo=#function_info{ spec={ Loc, FunSpec } },
 								 LocalReplaceTable, RemoteReplaceTable ) ->
 
 	NewFunSpec = case FunSpec of
@@ -995,7 +1069,7 @@ update_fun_info( FunInfo=#function_info{ spec={ Loc, FunSpec } },
 	FunInfo#function_info{ spec={ Loc, NewFunSpec } };
 
 
-update_fun_info( _FunInfo=#function_info{ spec=UnexpectedLocSpec },
+update_fun_info_for_types( _FunInfo=#function_info{ spec=UnexpectedLocSpec },
 				  _LocalReplaceTable, _RemoteReplaceTable ) ->
 	throw( { unexpected_located_fun_spec, UnexpectedLocSpec } ).
 
@@ -1019,7 +1093,7 @@ update_spec( UnexpectedFunSpec, _LocalReplaceTable, _RemoteReplaceTable ) ->
 update_clause_spec( [ { type, Line, product, ParamTypes }, ResultType ],
 					LocalReplaceTable, RemoteReplaceTable ) ->
 
-	NewParamTypes = [ traverse_type( ParamType, LocalReplaceTable, 
+	NewParamTypes = [ traverse_type( ParamType, LocalReplaceTable,
 						 RemoteReplaceTable ) || ParamType <- ParamTypes ],
 
 	NewResultType = traverse_type( ResultType, LocalReplaceTable,
@@ -1034,7 +1108,7 @@ update_clause_spec( UnexpectedClauseSpec, _LocalReplaceTable,
 
 
 
-% Updates the types in specified fields, based on specified replacements.
+% Updates the types in specified record fields, based on specified replacements.
 %
 -spec update_types_in_fields( [ ast_field_description() ],
 		  local_type_replacement_table(), remote_type_replacement_table() ) ->
@@ -1095,6 +1169,321 @@ update_types_in_field( F, _LocalReplaceTable, _RemoteReplaceTable ) ->
 
 
 
+
+
+%% Call replacement section.
+
+
+% Returns a table describing local call replacements.
+%
+% Ex: [ { { halt, 0 }, basic_utils },
+%       { { setAttributes, 1 }, { some_utils, set_attr } },
+%       % First clause will never match due to arity:
+%       { { '_', 3 }, fun( my_fun, 0 ) ->
+%                                   other_utils;
+%                        ( _, '_' ) ->
+%                                   {foo_utils,some_fun}
+%                     end }
+% ]
+%
+% will return a description of the transformation of:
+%
+%  - halt/0 into basic_utils:halt/0, as the same function name is implied there;
+%  it is just the addition (prefix) of a module, as a remote call
+%
+%  - setAttributes/1 into some_utils:set_attr/1
+%
+%  - my_fun/0 into other_utils:my_fun/0
+%
+%  - any call to a function of arity 3 by foo_utils:some_fun/3
+%
+-spec get_local_call_replacement_table(
+		[ { local_call_match(), call_replacement() } ] ) ->
+				local_call_replacement_table().
+get_local_call_replacement_table( Replacements ) ->
+	EmptyTable = ?table:new(),
+	get_local_call_repl_helper( Replacements, EmptyTable ).
+
+
+
+% (helper)
+get_local_call_repl_helper( _Replacements=[], Table ) ->
+	Table;
+
+% Replacement can be either { TargetModule, TargetFunctionName } or TargetModule:
+get_local_call_repl_helper( _Replacements=[
+		{ Src={ _SourceFunctionNameMatch, _ArityMatch },
+		  Replacement={ _TargetModule, _TargetFunctionName } } | T ], Table ) ->
+
+	% Up to one transformation per source function:
+	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	get_local_call_repl_helper( T, NewTable );
+
+% Same target function name here:
+get_local_call_repl_helper( _Replacements=[
+		{ Src={ SourceFunctionNameMatch, _ArityMatch }, TargetModule } | T ], Table )
+  when is_atom( TargetModule ) ->
+
+	Replacement = { TargetModule, SourceFunctionNameMatch },
+
+	% Up to one transformation per source function:
+	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	get_local_call_repl_helper( T, NewTable );
+
+
+get_local_call_repl_helper(_Replacements=[
+		{ Src={ _SourceFunctionNameMatch, _ArityMatch }, ReplaceFun } | T ], Table )
+  when is_function( ReplaceFun ) ->
+
+	% Up to one transformation per source function:
+	NewTable = ?table:addNewEntry( Src, ReplaceFun, Table ),
+	get_local_call_repl_helper( T, NewTable ).
+
+
+
+% Returns a table describing remote call replacements.
+%
+% Ex: [ { { a_module, void, 0 }, basic_utils },
+%       { { a_module, my_maybe, 1 }, { basic_utils, maybe } },
+%       % First clause will never match due to arity:
+%       { { '_', '_', 3 }, fun( other_void, 0 ) ->
+%                                    other_utils;
+%                             ( _, '_' ) ->
+%                                   {foo_utils,some_type}
+%                     end }
+% ]
+%
+% will return a description of the transformation of:
+%
+%  - a_module:void() into basic_utils:void(), as the same type name is implied
+%  there; it is just the modification of the module used by a remote type
+%  - a_module:my_maybe(T) into basic_utils:maybe(T)
+%  - M:other_void() into M:other_utils()
+%  - any type of any module depending on three other types by
+%  foo_utils:some_type/3
+%
+-spec get_remote_call_replacement_table(
+		[ { remote_call_match(), call_replacement() } ] ) ->
+				remote_call_replacement_table().
+get_remote_call_replacement_table( Replacements ) ->
+	EmptyTable = ?table:new(),
+	get_remote_call_repl_helper( Replacements, EmptyTable ).
+
+
+% (helper)
+get_remote_call_repl_helper( _Replacements=[], Table ) ->
+	Table;
+
+% Replacement can be either { TargetModule, TargetFunctionName } or TargetModule:
+get_remote_call_repl_helper( _Replacements=[
+	{ Src={ _ModuleMatch, _SourceFunctionNameMatch, _ArityMatch },
+			Replacement={ _TargetModule, _TargetFunctionName } } | T ], Table ) ->
+
+	% Up to one transformation per source function:
+	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	get_remote_call_repl_helper( T, NewTable );
+
+% Same target function name here:
+get_remote_call_repl_helper( _Replacements=[
+	{ Src={ _ModuleMatch, SourceFunctionNameMatch, _ArityMatch },
+	  TargetModule } | T ], Table ) when is_atom( TargetModule ) ->
+
+	Replacement = { TargetModule, SourceFunctionNameMatch },
+
+	% Up to one transformation per source function:
+	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	get_remote_call_repl_helper( T, NewTable );
+
+
+get_remote_call_repl_helper( _Replacements=[
+	{ Src={ _ModuleMatch, _SourceFunctionNameMatch, _ArityMatch },
+	  ReplaceFun } | T ], Table ) when is_function( ReplaceFun ) ->
+
+	% Up to one transformation per source function:
+	NewTable = ?table:addNewEntry( Src, ReplaceFun, Table ),
+	get_remote_call_repl_helper( T, NewTable ).
+
+
+
+% Updates the calls in known functions from specified function table, based on
+% specified replacements.
+%
+-spec update_calls_in_functions( function_table(),
+		  local_call_replacement_table(), remote_call_replacement_table() ) ->
+									   function_table().
+update_calls_in_functions( FunctionTable, LocalReplaceTable,
+						   RemoteReplaceTable ) ->
+
+	FunIdInfoPairs = ?table:enumerate( FunctionTable ),
+
+	NewFunIdInfoPairs = [ { FunId, update_fun_info_for_calls( FunInfo,
+								   LocalReplaceTable, RemoteReplaceTable ) }
+						  || { FunId, FunInfo } <- FunIdInfoPairs ],
+
+	?table:new( NewFunIdInfoPairs ).
+
+
+
+% Updates the calls in the function definitions, based on specified
+% replacements.
+%
+update_fun_info_for_calls( FunInfo=#function_info{ definition=ClauseDefs },
+						   LocalReplaceTable, RemoteReplaceTable ) ->
+
+	NewClauseDefs = [ update_fun_clause_for_calls( ClauseDef, LocalReplaceTable,
+												   RemoteReplaceTable )
+					  || ClauseDef <- ClauseDefs ],
+
+	FunInfo#function_info{ definition=NewClauseDefs }.
+
+
+update_fun_clause_for_calls( _ClauseDef={ clause, Line, ParamValues,
+										  Unknown=[], Instructions },
+							 LocalReplaceTable, RemoteReplaceTable ) ->
+
+	NewInstructions = [ traverse_instruction( I, LocalReplaceTable,
+								 RemoteReplaceTable ) || I <- Instructions ],
+
+	{ clause, Line, ParamValues, Unknown, NewInstructions };
+
+
+update_fun_clause_for_calls( UnexpectedClauseDef, _LocalReplaceTable,
+							 _RemoteReplaceTable ) ->
+	throw( { unexpected_clause_definition, UnexpectedClauseDef } ).
+
+
+
+% Traverses specified instruction, replacing relevant calls.
+%
+% Remote call:
+traverse_instruction( _I={ call, Line1, { remote, Line2, 
+				M={ atom, Line3, ModuleName }, F={ atom, Line4, FunctionName },
+				Params } }, LocalReplaceTable, RemoteReplaceTable ) ->
+
+	Arity = length( Params ),
+
+	% First recurses:
+	NewParams = [ traverse_instruction( Param, LocalReplaceTable,
+								   RemoteReplaceTable ) || Param <- Params ],
+
+	Outcome = case ?table:lookupEntry( FunName, Arity, RemoteReplaceTable ) of
+
+		{ value, E={ _NewModuleName, _NewFunName } } ->
+			E;
+
+		{ value, TransformFun } when is_function( TransformFun ) ->
+			TransformFun( FunName, Arity );
+
+		key_not_found ->
+
+			% Maybe a wildcard arity was defined then?
+			case ?table:lookupEntry( { FunName, _AnyArity='_' },
+									 RemoteReplaceTable ) of
+
+				{ value, E={ _NewModuleName, _NewFunName } } ->
+					E;
+
+				% Same function name, only module overridden:
+				% (never happens)
+				%{ value, NewModuleName } when is_atom( NewModuleName ) ->
+				%	{ NewModuleName, FunName };
+
+				{ value, TransformFun } when is_function( TransformFun ) ->
+					TransformFun( FunName, Arity );
+
+				key_not_found ->
+					% Nope, let it as it is:
+					unchanged
+
+			end
+
+	end,
+
+	case Outcome of
+
+		unchanged ->
+			% Original instruction, yet with updated parameters:
+			{ call, Line1, { remote, Line2, M, F, NewParams } };
+
+		{ SetModuleName, SetFunctionName } ->
+			ast_utils:forge_remote_call( SetModuleName, SetFunctionName,
+										 NewParams, Line1, Line2 )
+
+	end;
+
+
+% Local call:
+traverse_instruction( _I={ call, Line1, F={ atom, Line2, FunName }, Params },
+					  LocalReplaceTable, RemoteReplaceTable ) ->
+
+	Arity = length( Params ),
+
+	% First recurses:
+	NewParams = [ traverse_instruction( Param, LocalReplaceTable,
+								   RemoteReplaceTable ) || Param <- Params ],
+
+	Outcome = case ?table:lookupEntry( FunName, Arity, LocalReplaceTable ) of
+
+		{ value, E={ _NewModuleName, _NewFunName } } ->
+			E;
+
+		{ value, TransformFun } when is_function( TransformFun ) ->
+			TransformFun( FunName, Arity );
+
+		key_not_found ->
+
+			% Maybe a wildcard arity was defined then?
+			case ?table:lookupEntry( { FunName, _AnyArity='_' },
+									 LocalReplaceTable ) of
+
+				{ value, E={ _NewModuleName, _NewFunName } } ->
+					E;
+
+				% Same function name, only module overridden:
+				% (never happens)
+				%{ value, NewModuleName } when is_atom( NewModuleName ) ->
+				%	{ NewModuleName, FunName };
+
+				{ value, TransformFun } when is_function( TransformFun ) ->
+					TransformFun( FunName, Arity );
+
+				key_not_found ->
+					% Nope, let it as it is:
+					unchanged
+
+			end
+
+	end,
+
+	case Outcome of
+
+		unchanged ->
+			% Original instruction yet with updated parameters:
+			{ call, Line1, F, NewParams };
+
+		{ SetModuleName, SetFunctionName } ->
+			ast_utils:forge_remote_call( SetModuleName, SetFunctionName,
+										 NewParams, Line1, Line2 )
+
+	end;
+
+traverse_instruction( I, _LocalReplaceTable, _RemoteReplaceTable ) ->
+	display_debug( "Letting instruction ~p as is.", [ I ] ),
+	I.
+
+
+
+
+% Id, for testing:
+%update_fun_clause_for_calls( ClauseDef, _LocalReplaceTable,
+%							 _RemoteReplaceTable ) ->
+%
+%	display_debug( "Updating calls in clause definition ~p.", [ ClauseDef ] ),
+%
+%	ClauseDef.
+
+
+
 % Traversing types.
 %
 % (records like #type, #user_type, could be used instead)
@@ -1146,8 +1535,9 @@ traverse_type( _TypeDef={ user_type, Line, TypeName, TypeVars },
 			E;
 
 		% Same type, only module overridden:
-		{ value, NewModuleName } when is_atom( NewModuleName ) ->
-			{ NewModuleName, TypeName };
+		% (never happens, as module always specified in table)
+		%{ value, NewModuleName } when is_atom( NewModuleName ) ->
+		%	{ NewModuleName, TypeName };
 
 		{ value, TransformFun } when is_function( TransformFun ) ->
 			TransformFun( TypeName, TypeArity );
@@ -1162,8 +1552,9 @@ traverse_type( _TypeDef={ user_type, Line, TypeName, TypeVars },
 					E;
 
 				% Same type, only module overridden:
-				{ value, NewModuleName } when is_atom( NewModuleName ) ->
-					{ NewModuleName, TypeName };
+				% (never happens)
+				%{ value, NewModuleName } when is_atom( NewModuleName ) ->
+				%	{ NewModuleName, TypeName };
 
 				{ value, TransformFun } when is_function( TransformFun ) ->
 					TransformFun( TypeName, TypeArity );
@@ -1226,9 +1617,9 @@ traverse_type( _TypeDef={ remote_type, Line1,
 				{ value, E={ _NewModuleName, _NewTypeName } } ->
 					E;
 
-				% Same type, only module overridden:
-				{ value, NewModuleName } when is_atom( NewModuleName ) ->
-					{ NewModuleName, TypeName };
+				% Same type, only module overridden (never happens by desi:
+				%{ value, NewModuleName } when is_atom( NewModuleName ) ->
+				%	{ NewModuleName, TypeName };
 
 				{ value, TransformFun } when is_function( TransformFun ) ->
 					TransformFun( ModuleName, TypeName, TypeArity );

@@ -271,9 +271,22 @@ parse_transform( AST, _Options ) ->
 		  || Defs <- [ BaseModuleInfo#module_info.type_definition_defs,
 					   BaseModuleInfo#module_info.record_defs ] ],
 
-	NewFunctionTable = meta_utils:update_types_in_functions(
+	TypedFunctionTable = meta_utils:update_types_in_functions(
 						 BaseModuleInfo#module_info.functions,
 						 LocalTypeReplacements, RemoteTypeReplacements ),
+
+	% None currently used here:
+	LocalCallReplacements = meta_utils:get_local_call_replacement_table( [] ),
+
+	RemoteCallReplacements = meta_utils:get_remote_call_replacement_table( [
+				% For all function name and arities, the 'table' module shall be
+				% replaced in remote calls by the desired table type:
+				%
+				{ { table, '_', '_' }, DesiredTableType } ] ),
+
+	CallFunctionTable = meta_utils:update_calls_in_functions(
+						  TypedFunctionTable, LocalCallReplacements,
+						  RemoteCallReplacements ),
 
 	%TableModuleInfo = replace_table( BaseModuleInfo ),
 	%VoidModuleInfo = expand_void_type( TableModuleInfo ),
@@ -283,7 +296,7 @@ parse_transform( AST, _Options ) ->
 	OutputModuleInfo = BaseModuleInfo#module_info{
 						 type_definition_defs=NewTypeDefs,
 						 record_defs=NewRecordDefs,
-						 functions=NewFunctionTable },
+						 functions=CallFunctionTable },
 
 
 	%meta_utils:write_module_info_to_file( OutputModuleInfo,

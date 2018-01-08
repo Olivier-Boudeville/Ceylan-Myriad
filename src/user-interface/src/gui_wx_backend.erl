@@ -216,7 +216,6 @@
 
 
 % Shorthands:
--type void() :: basic_utils:void().
 -type event_type() :: gui_event:event_type().
 -type event_source() :: gui_event:event_source().
 

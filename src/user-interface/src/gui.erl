@@ -348,7 +348,6 @@
 
 % Type shorthands:
 
--type void() :: basic_utils:void().
 -type text() :: text_utils:unicode_string().
 -type wx_id() :: gui_wx_backend:wx_id().
 

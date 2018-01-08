@@ -138,11 +138,6 @@
 -include("gui_internal_defines.hrl").
 
 
-% Type shorthands:
-
--type void() :: basic_utils:void().
-
-
 
 % Creates a canvas, whose parent is the specified window.
 %
