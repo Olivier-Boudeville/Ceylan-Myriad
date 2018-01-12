@@ -55,6 +55,8 @@
 
 -type module_name() :: basic_utils:module_name().
 
+-type function_name() :: basic_utils:function_name().
+
 
 
 % General element of an AST.
@@ -213,7 +215,8 @@
 
 % Designating calls:
 %
--export([ forge_remote_call/4 ]).
+-export([ forge_local_call/3, forge_local_call/4,
+		  forge_remote_call/4, forge_remote_call/5 ]).
 
 
 
@@ -503,10 +506,10 @@ forge_remote_type( ModuleName, TypeName, TypeVars, Line1, Line2, Line3 ) ->
 % forge_local_call( some_fun, ParamDefs, 102 ) - which returns:
 % {call,102,{atom,102,some_fun},[{atom,102,a},{atom,102,b}]}.
 %
--spec forge_local_call( module_name(), function_name(), [ ast_expression() ],
-						line() ) -> ast_expression().
-forge_local_call( ModuleName, FunctionName, Params, Line ) ->
-	forge_local_call( ModuleName, FunctionName, Params, Line, Line ).
+-spec forge_local_call( function_name(), [ ast_expression() ], line() ) ->
+							  ast_expression().
+forge_local_call( FunctionName, Params, Line ) ->
+	forge_local_call( FunctionName, Params, Line, Line ).
 
 
 % Returns an AST-compliant representation of specified local call.
@@ -515,9 +518,9 @@ forge_local_call( ModuleName, FunctionName, Params, Line ) ->
 % forge_local_call( some_fun, ParamDefs, 102 ) - which returns:
 % {call,102,{atom,102,some_fun},[{atom,102,a},{atom,102,b}]}.
 %
--spec forge_local_call( module_name(), function_name(), [ ast_expression() ],
-						line(), line() ) -> ast_expression().
-forge_local_call( ModuleName, FunctionName, Params, Line1, Line2 ) ->
+-spec forge_local_call( function_name(), [ ast_expression() ], line(),
+						line() ) -> ast_expression().
+forge_local_call( FunctionName, Params, Line1, Line2 ) ->
 	{ call, Line1, forge_atom_value( FunctionName, Line2 ), Params }.
 
 
@@ -531,7 +534,7 @@ forge_local_call( ModuleName, FunctionName, Params, Line1, Line2 ) ->
 %              [{atom,102,a},{atom,102,b}]}.
 %
 -spec forge_remote_call( module_name(), function_name(), [ ast_expression() ],
-						 line(), line() ) -> ast_expression().
+						 line() ) -> ast_expression().
 forge_remote_call( ModuleName, FunctionName, Params, Line ) ->
 	forge_remote_call( ModuleName, FunctionName, Params, Line, Line ).
 
