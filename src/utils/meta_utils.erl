@@ -1353,12 +1353,15 @@ update_fun_clause_for_calls( UnexpectedClauseDef, _LocalReplaceTable,
 
 
 
+
 % Traverses specified instruction, replacing relevant calls.
 %
 % Remote call:
-traverse_instruction( _I={ call, Line1, { remote, Line2,
-				M={ atom, _Line3, _ModuleName }, F={ atom, Line4, FunctionName },
-				Params } }, LocalReplaceTable, RemoteReplaceTable ) ->
+traverse_instruction( I={ call, Line1, { remote, Line2,
+			M={ atom, _Line3, ModuleName }, F={ atom, Line4, FunctionName } },
+			Params }, LocalReplaceTable, RemoteReplaceTable ) ->
+
+	display_debug( "Intercepting remote call ~p...", [ I ] ),
 
 	Arity = length( Params ),
 
@@ -1366,7 +1369,7 @@ traverse_instruction( _I={ call, Line1, { remote, Line2,
 	NewParams = [ traverse_instruction( Param, LocalReplaceTable,
 								   RemoteReplaceTable ) || Param <- Params ],
 
-	Outcome = case ?table:lookupEntry( FunctionName, Arity,
+	Outcome = case ?table:lookupEntry( { ModuleName, FunctionName, Arity },
 									   RemoteReplaceTable ) of
 
 		{ value, E={ _NewModuleName, _NewFunctionName } } ->
@@ -1378,8 +1381,9 @@ traverse_instruction( _I={ call, Line1, { remote, Line2,
 		key_not_found ->
 
 			% Maybe a wildcard arity was defined then?
-			case ?table:lookupEntry( { FunctionName, _AnyArity='_' },
-									 RemoteReplaceTable ) of
+			case ?table:lookupEntry( 
+					{ ModuleName, FunctionName, _AnyArity='_' },
+					RemoteReplaceTable ) of
 
 				{ value, E={ _NewModuleName, _NewFunctionName } } ->
 					E;
@@ -1393,8 +1397,34 @@ traverse_instruction( _I={ call, Line1, { remote, Line2,
 					TransformFun( FunctionName, Arity );
 
 				key_not_found ->
-					% Nope, let it as it is:
-					unchanged
+					% Maybe a wildcard function name was defined then?
+
+					% (note: the case of a wildcard function name and a set,
+					% actual arity is not deemed relevant)
+
+					case ?table:lookupEntry( 
+							{ ModuleName, _AnyFunctionName='_', _AnyArity='_' },
+							RemoteReplaceTable ) of
+
+						{ value, { NewModuleName, _NewFunctionName='_' } } ->
+							{ NewModuleName, FunctionName } ;
+
+						{ value, E={ _NewModuleName, _NewFunctionName } } ->
+							E;
+
+						% Same function name, only module overridden: (never
+						% happens)
+						%{ value, NewModuleName } when is_atom( NewModuleName ) ->
+						%	{ NewModuleName, FunName };
+
+						{ value, TransformFun }
+						  when is_function( TransformFun ) ->
+							TransformFun( FunctionName, Arity );
+
+						key_not_found ->
+							unchanged
+
+					end
 
 			end
 
@@ -1404,18 +1434,24 @@ traverse_instruction( _I={ call, Line1, { remote, Line2,
 
 		unchanged ->
 			% Original instruction, yet with updated parameters:
-			{ call, Line1, { remote, Line2, M, F, NewParams } };
+			Res = { call, Line1, { remote, Line2, M, F, NewParams } },
+			display_debug( "... returning (case R1) ~p", [ Res ] ),
+			Res;
 
 		{ SetModuleName, SetFunctionName } ->
-			ast_utils:forge_remote_call( SetModuleName, SetFunctionName,
-										 NewParams, Line1, Line4 )
+			Res = ast_utils:forge_remote_call( SetModuleName, SetFunctionName,
+											   NewParams, Line1, Line4 ),
+			display_debug( "... returning (case R2) ~p", [ Res ] ),
+			Res
 
 	end;
 
 
 % Local call:
-traverse_instruction( _I={ call, Line1, F={ atom, Line2, FunName }, Params },
+traverse_instruction( I={ call, Line1, F={ atom, Line2, FunName }, Params },
 					  LocalReplaceTable, RemoteReplaceTable ) ->
+
+	display_debug( "Intercepting local call ~p...", [ I ] ),
 
 	Arity = length( Params ),
 
@@ -1461,11 +1497,15 @@ traverse_instruction( _I={ call, Line1, F={ atom, Line2, FunName }, Params },
 
 		unchanged ->
 			% Original instruction yet with updated parameters:
-			{ call, Line1, F, NewParams };
+			Res={ call, Line1, F, NewParams },
+			display_debug( "... returning (case L1) ~p", [ Res ] ),
+			Res;
 
 		{ SetModuleName, SetFunctionName } ->
-			ast_utils:forge_remote_call( SetModuleName, SetFunctionName,
-										 NewParams, Line1, Line2 )
+			Res = ast_utils:forge_remote_call( SetModuleName, SetFunctionName,
+											   NewParams, Line1, Line2 ),
+			display_debug( "... returning (case L2) ~p", [ Res ] ),
+			Res
 
 	end;
 

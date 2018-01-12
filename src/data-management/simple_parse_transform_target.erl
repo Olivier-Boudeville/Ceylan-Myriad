@@ -30,7 +30,10 @@
 -module(simple_parse_transform_target).
 
 
--export([ f/1, g/0 ]).
+-export([ f/1 ]).
+-export([ g/0 ]).
+-export([ h/2 ]).
+
 
 -type my_type() :: pid().
 %-type my_type() :: boolean().
@@ -117,3 +120,11 @@ g() ->
 	A = foobar,
 	U = { A, A },
 	io:format( "Hello U: ~p", [ U ] ).
+
+
+
+-spec h( table:table( table:keys(), [ table:values() ] ), integer() ) ->
+			   table:table().
+h( _T, _I ) ->
+	A=1,
+	table:new( [ { A, 4 } ] ).
