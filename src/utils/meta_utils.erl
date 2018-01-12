@@ -1337,14 +1337,14 @@ update_fun_info_for_calls( FunInfo=#function_info{ definition=ClauseDefs },
 	FunInfo#function_info{ definition=NewClauseDefs }.
 
 
-update_fun_clause_for_calls( _ClauseDef={ clause, Line, ParamValues,
-										  Unknown=[], Instructions },
+update_fun_clause_for_calls( _ClauseDef={ clause, Line, ParamValues, Gards,
+										  Instructions },
 							 LocalReplaceTable, RemoteReplaceTable ) ->
 
 	NewInstructions = [ traverse_instruction( I, LocalReplaceTable,
 								 RemoteReplaceTable ) || I <- Instructions ],
 
-	{ clause, Line, ParamValues, Unknown, NewInstructions };
+	{ clause, Line, ParamValues, Gards, NewInstructions };
 
 
 update_fun_clause_for_calls( UnexpectedClauseDef, _LocalReplaceTable,
@@ -1356,8 +1356,8 @@ update_fun_clause_for_calls( UnexpectedClauseDef, _LocalReplaceTable,
 % Traverses specified instruction, replacing relevant calls.
 %
 % Remote call:
-traverse_instruction( _I={ call, Line1, { remote, Line2, 
-				M={ atom, Line3, ModuleName }, F={ atom, Line4, FunctionName },
+traverse_instruction( _I={ call, Line1, { remote, Line2,
+				M={ atom, _Line3, _ModuleName }, F={ atom, Line4, FunctionName },
 				Params } }, LocalReplaceTable, RemoteReplaceTable ) ->
 
 	Arity = length( Params ),
@@ -1366,21 +1366,22 @@ traverse_instruction( _I={ call, Line1, { remote, Line2,
 	NewParams = [ traverse_instruction( Param, LocalReplaceTable,
 								   RemoteReplaceTable ) || Param <- Params ],
 
-	Outcome = case ?table:lookupEntry( FunName, Arity, RemoteReplaceTable ) of
+	Outcome = case ?table:lookupEntry( FunctionName, Arity,
+									   RemoteReplaceTable ) of
 
-		{ value, E={ _NewModuleName, _NewFunName } } ->
+		{ value, E={ _NewModuleName, _NewFunctionName } } ->
 			E;
 
 		{ value, TransformFun } when is_function( TransformFun ) ->
-			TransformFun( FunName, Arity );
+			TransformFun( FunctionName, Arity );
 
 		key_not_found ->
 
 			% Maybe a wildcard arity was defined then?
-			case ?table:lookupEntry( { FunName, _AnyArity='_' },
+			case ?table:lookupEntry( { FunctionName, _AnyArity='_' },
 									 RemoteReplaceTable ) of
 
-				{ value, E={ _NewModuleName, _NewFunName } } ->
+				{ value, E={ _NewModuleName, _NewFunctionName } } ->
 					E;
 
 				% Same function name, only module overridden:
@@ -1389,7 +1390,7 @@ traverse_instruction( _I={ call, Line1, { remote, Line2,
 				%	{ NewModuleName, FunName };
 
 				{ value, TransformFun } when is_function( TransformFun ) ->
-					TransformFun( FunName, Arity );
+					TransformFun( FunctionName, Arity );
 
 				key_not_found ->
 					% Nope, let it as it is:
@@ -1407,7 +1408,7 @@ traverse_instruction( _I={ call, Line1, { remote, Line2,
 
 		{ SetModuleName, SetFunctionName } ->
 			ast_utils:forge_remote_call( SetModuleName, SetFunctionName,
-										 NewParams, Line1, Line2 )
+										 NewParams, Line1, Line4 )
 
 	end;
 
@@ -1422,7 +1423,8 @@ traverse_instruction( _I={ call, Line1, F={ atom, Line2, FunName }, Params },
 	NewParams = [ traverse_instruction( Param, LocalReplaceTable,
 								   RemoteReplaceTable ) || Param <- Params ],
 
-	Outcome = case ?table:lookupEntry( FunName, Arity, LocalReplaceTable ) of
+	Outcome = case ?table:lookupEntry( { FunName, Arity },
+									   LocalReplaceTable ) of
 
 		{ value, E={ _NewModuleName, _NewFunName } } ->
 			E;
