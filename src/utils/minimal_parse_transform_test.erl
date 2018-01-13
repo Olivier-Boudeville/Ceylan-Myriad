@@ -65,7 +65,7 @@ perform_direct_ast_operations( TargetSourceFile ) ->
 -spec run() -> no_return().
 run() ->
 
-	%TargetSourceFile = "graph_utils.erl",
+	%TargetSourceFile = "code_utils.erl",
 	TargetSourceFile = "../data-management/simple_parse_transform_target.erl",
 
 	io:format( "Applying the common parse transform to the "
@@ -74,6 +74,8 @@ run() ->
 	TransformedAST = common_parse_transform:run_standalone( TargetSourceFile ),
 
 	io:format( "Transformed AST:~n~p~n~n", [ TransformedAST ] ),
+
+	meta_utils:write_ast_to_file( TransformedAST, TargetSourceFile ++ ".ast" ),
 
 	%perform_direct_ast_operations( TargetSourceFile ),
 

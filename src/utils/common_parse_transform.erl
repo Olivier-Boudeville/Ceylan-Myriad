@@ -150,6 +150,8 @@ run_standalone( FileToTransform ) ->
 
 	AST = meta_utils:erl_to_ast( FileToTransform ),
 
+	io:format( "Input AST:~n~p~n~n", [ AST ] ),
+
 	% Options like : [ report_warnings, {d,debug_mode_is_enabled}, beam,
 	% report_errors, {cwd,"X"}, {outdir,Y"}, {i,"A"},{i,"B"}, debug_info, etc.
 	% are probably not all set, but it is unlikely to be a problem here.
@@ -264,19 +266,8 @@ parse_transform( AST, _Options ) ->
 
 				  end } ] ),
 
-	% First update the type definitions accordingly:
-	[ NewTypeDefs, NewRecordDefs ]  =
-		[ meta_utils:replace_types_in( Defs, LocalTypeReplacements,
-									   RemoteTypeReplacements )
-		  || Defs <- [ BaseModuleInfo#module_info.type_definition_defs,
-					   BaseModuleInfo#module_info.record_defs ] ],
-
-	TypedFunctionTable = meta_utils:update_types_in_functions(
-						 BaseModuleInfo#module_info.functions,
-						 LocalTypeReplacements, RemoteTypeReplacements ),
-
 	% None currently used here:
-	LocalCallReplacements = meta_utils:get_local_call_replacement_table( [] ),
+	%LocalCallReplacements = meta_utils:get_local_call_replacement_table( [] ),
 
 	RemoteCallReplacements = meta_utils:get_remote_call_replacement_table( [
 				% For all function name and arities, the 'table' module shall be
@@ -284,9 +275,24 @@ parse_transform( AST, _Options ) ->
 				%
 				{ { table, '_', '_' }, DesiredTableType } ] ),
 
+	Replacements = #ast_replacements{
+					  local_types=LocalTypeReplacements,
+					  remote_types=RemoteTypeReplacements,
+					  %local_calls=LocalCallReplacements,
+					  remote_calls=RemoteCallReplacements },
+
+	% First update the type definitions accordingly:
+	[ NewTypeDefs, NewRecordDefs ]  =
+		[ meta_utils:replace_types_in( Defs, Replacements )
+		  || Defs <- [ BaseModuleInfo#module_info.type_definition_defs,
+					   BaseModuleInfo#module_info.record_defs ] ],
+
+	TypedFunctionTable = meta_utils:update_types_in_functions(
+						 BaseModuleInfo#module_info.functions, Replacements ),
+
+
 	CallFunctionTable = meta_utils:update_calls_in_functions(
-						  TypedFunctionTable, LocalCallReplacements,
-						  RemoteCallReplacements ),
+						  TypedFunctionTable, Replacements ),
 
 	%TableModuleInfo = replace_table( BaseModuleInfo ),
 	%VoidModuleInfo = expand_void_type( TableModuleInfo ),

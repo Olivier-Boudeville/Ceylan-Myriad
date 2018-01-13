@@ -33,7 +33,7 @@
 -export([ f/1 ]).
 -export([ g/0 ]).
 -export([ h/2 ]).
-
+-export([ get_md5_for_loaded_module/1 ]).
 
 -type my_type() :: pid().
 %-type my_type() :: boolean().
@@ -91,13 +91,24 @@
 -export_type([ my_record/0 ]).
 
 
+get_md5_for_loaded_module( ModuleName ) ->
+	ModuleName:module_info( md5 ).
+
 
 %-spec f( integer() ) -> table:table().
 %f( _Int ) ->
 %	table:new().
 
-f( 1 ) ->
-	2;
+f( X ) when not is_list( X ) ->
+	case X of
+
+		11 when is_integer( X ) ->
+			100;
+
+		_ ->
+			200
+
+	end;
 
 f( _ ) ->
 	aa,
@@ -125,6 +136,14 @@ g() ->
 
 -spec h( table:table( table:keys(), [ table:values() ] ), integer() ) ->
 			   table:table().
-h( _T, _I ) ->
+h( _T, I ) ->
 	A=1,
-	table:new( [ { A, 4 } ] ).
+
+	case I of
+
+		0 ->
+			ok;
+		7 ->
+			table:new( [ { A, 4 } ] )
+
+	end.

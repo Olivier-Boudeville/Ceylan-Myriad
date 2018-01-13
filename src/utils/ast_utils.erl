@@ -540,7 +540,8 @@ forge_remote_call( ModuleName, FunctionName, Params, Line ) ->
 
 
 
-% Returns an AST-compliant representation of specified remote call.
+% Returns an AST-compliant representation of specified (immediate, in terms of
+% name of module and function) remote call.
 %
 % Ex: to designate 'some_module:some_fun( a, b )' at lines 101 and 102, use;
 % forge_remote_call( some_module, some_fun, ParamDefs, 102 ) - which returns:
@@ -551,5 +552,5 @@ forge_remote_call( ModuleName, FunctionName, Params, Line ) ->
 						 line(), line() ) -> ast_expression().
 forge_remote_call( ModuleName, FunctionName, Params, Line1, Line2 ) ->
 	{ call, Line1, { remote, Line2, forge_atom_value( ModuleName, Line2 ),
-					 forge_atom_value( FunctionName, Line2 ),
-					 Params } }.
+					 forge_atom_value( FunctionName, Line2 ) },
+					 Params }.

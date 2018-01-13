@@ -243,3 +243,31 @@
 
 
 } ).
+
+
+
+% Centralises automatic replacements of all known kinds that may be done in
+% ASTs.
+%
+-record( ast_replacements, {
+
+
+		   % Replacement table for local types:
+		   local_types = undefined :: basic_utils:maybe(
+								meta_utils:local_type_replacement_table() ),
+
+		   % Replacement table for remote types:
+		   remote_types = undefined :: basic_utils:maybe(
+								meta_utils:remote_type_replacement_table() ),
+
+
+		   % Replacement table for local calls:
+		   local_calls = undefined :: basic_utils:maybe(
+								meta_utils:local_call_replacement_table() ),
+
+		   % Replacement table for remote calls:
+		   remote_calls = undefined :: basic_utils:maybe(
+								meta_utils:remote_call_replacement_table() )
+
+
+} ).
