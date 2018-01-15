@@ -380,10 +380,10 @@ server_main_loop( Table ) ->
 				L ->
 
 					% Enforces a consistent order:
-					Strings = [ io_lib:format( "~p: ~p", [ K, V ] )
+					Strings = [ text_utils:format( "~p: ~p", [ K, V ] )
 								|| { K, V } <- lists:sort( L ) ],
 
-					io_lib:format( "~B preferences recorded:~s~n",
+					text_utils:format( "~B preferences recorded:~s~n",
 								   [ length( L ),
 									 text_utils:strings_to_string( Strings ) ] )
 
@@ -435,7 +435,7 @@ add_preferences_from( Filename, Table ) ->
 
 
 		{ error, { Line, _Mod, Term } } ->
-			FlattenError = io_lib:format( "~p", [ Term ] ),
+			FlattenError = text_utils:format( "~p", [ Term ] ),
 			io:format( "Error in preferences file '~s' at line ~B (~s), "
 					   "no preferences read.~n",
 					   [ Filename, Line, FlattenError ] ),
@@ -460,7 +460,7 @@ check_entries( _Entries=[ { K, _V } | T ] ) when is_atom( K ) ->
 	check_entries( T );
 
 check_entries( _Entries=[ { K, _V } | _T ] ) ->
-	io_lib:format( "key '~p' is not an atom", [ K ] );
+	text_utils:format( "key '~p' is not an atom", [ K ] );
 
 check_entries( _Entries=[ E | _T ] ) ->
-	io_lib:format( "entry '~p' is not a key/value pair", [ E ] ).
+	text_utils:format( "entry '~p' is not a key/value pair", [ E ] ).

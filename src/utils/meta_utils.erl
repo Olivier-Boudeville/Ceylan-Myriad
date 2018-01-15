@@ -1574,30 +1574,28 @@ update_calls_in_functions( FunctionTable, Replacements ) ->
 update_fun_info_for_calls( FunInfo=#function_info{ definition=ClauseDefs },
 						   Replacements ) ->
 
-	NewClauseDefs = [ update_fun_clause_for_calls( ClauseDef, Replacements )
+	% Top-level function clauses are apparently the same as 'case', 'receive',
+	% etc. clauses:
+	%
+	NewClauseDefs = [ traverse_expression( ClauseDef, Replacements )
 					  || ClauseDef <- ClauseDefs ],
 
 	FunInfo#function_info{ definition=NewClauseDefs }.
 
 
 
-update_fun_clause_for_calls( _ClauseDef={ clause, Line, ParamValues, Guards,
-										  Expressions },
-							 Replacements ) ->
-
-	NewExpressions = [ traverse_expression( E, Replacements )
-					   || E <- Expressions ],
-
-	{ clause, Line, ParamValues, Guards, NewExpressions };
-
-
-update_fun_clause_for_calls( UnexpectedClauseDef, _Replacements ) ->
-	raise_error( { unexpected_clause_definition, UnexpectedClauseDef } ).
 
 
 
-
-% Traverses specified expression, replacing relevant calls.
+% Traverses specified expression, operating relevant replacements (e.g. call
+% ones).
+%
+% Note: we used to traverse the AST recursively, "blindly", i.e. without
+% expecting the intended structure of AST elements (ex: the structure of a tuple
+% corresponding to a 'receive' statement).
+%
+% Now, for a more complete control, we match the AST against its intended
+% structure, as defined in http://erlang.org/doc/apps/erts/absform.html.
 %
 % Case expression found:
 traverse_expression( E={ 'case', Line, TestExpression, Clauses },
@@ -1607,12 +1605,13 @@ traverse_expression( E={ 'case', Line, TestExpression, Clauses },
 
 	NewTestExpression = traverse_expression( TestExpression, Replacements ),
 
-	NewClauses = [ traverse_case_clause( C, Replacements ) || C <- Clauses ],
+	NewClauses = [ traverse_expression( C, Replacements ) || C <- Clauses ],
 
 	Res = { 'case', Line, NewTestExpression, NewClauses },
 
 	display_debug( "... returning case expression ~p", [ Res ] ),
 	Res;
+
 
 
 % Remote call found, with an immediate name for both the module and the
@@ -1726,6 +1725,7 @@ traverse_expression( E={ call, Line1, { remote, _Line2,
 	end;
 
 
+
 % Here, at least one name (module and/or function) is not immediate:
 %
 % (note: we do not manage yet the case where for example the function name
@@ -1750,6 +1750,7 @@ traverse_expression( _E={ call, Line1,
 	display_debug( "... returning remote call (case R3) ~p", [ Res ] ),
 
 	Res;
+
 
 
 % Local call found:
@@ -1824,9 +1825,12 @@ traverse_expression( E={ call, Line1, F={ atom, Line2, FunName }, Params },
 
 	end;
 
+
+
 % Match expression found:
-traverse_expression( _E={ match, Line, LeftExpr, RightExpr },
-					 Replacements ) ->
+traverse_expression( E={ match, Line, LeftExpr, RightExpr }, Replacements ) ->
+
+	display_debug( "Intercepting match expression ~p...", [ E ] ),
 
 	NewLeftExpr = traverse_expression( LeftExpr, Replacements ),
 
@@ -1839,23 +1843,31 @@ traverse_expression( _E={ match, Line, LeftExpr, RightExpr },
 	Res;
 
 
-% Other expression found:
-traverse_expression( E, _Replacements ) ->
-	display_debug( "Letting expression ~p as is.", [ E ] ),
-	E.
+% Receive expression found:
+traverse_expression( E={ 'receive', Line, Clauses }, Replacements ) ->
+
+	display_debug( "Intercepting receive expression ~p...", [ E ] ),
+
+	NewClauses = [ traverse_expression( C, Replacements ) || C <- Clauses ],
+
+	Res = { 'receive', Line, NewClauses },
+
+	display_debug( "... returning receive expression ~p", [ Res ] ),
+
+	Res;
 
 
-
-
-% Traverses a clause belonging to a case expression.
+% Clause (belonging to an expression such as top-level function clause, or
+% 'case', 'receive' clauses, etc.) found:
 %
-traverse_case_clause( Clause={ clause, Line, ValueExpr, Guards, ResultExpr },
+traverse_expression( Clause={ clause, Line, ValueExpr, Guards, ResultExpr },
 					  Replacements ) ->
 
-	display_debug( "Intercepting case clause ~p...", [ Clause ] ),
+	display_debug( "Intercepting clause ~p...", [ Clause ] ),
 
-	% Out of safety:
-	NewValueExpr = traverse_expression( ValueExpr, Replacements ),
+	% Rather complete, out of safety:
+
+	NewValueExpr = [ traverse_expression( E, Replacements ) || E <- ValueExpr ],
 
 	% Guard example: {call,102, {atom,102,is_integer}, [{var,102,'X'}]}
 	NewGuards = traverse_expression( Guards, Replacements ),
@@ -1864,22 +1876,36 @@ traverse_case_clause( Clause={ clause, Line, ValueExpr, Guards, ResultExpr },
 
 	Res = { clause, Line, NewValueExpr, NewGuards, NewResultExpr },
 
-	display_debug( "... returning ~p", [ Res ] ),
+	display_debug( "... returning clause ~p", [ Res ] ),
 
 	Res;
 
 
-traverse_case_clause( Clause, _Replacements ) ->
-	raise_error( { unexpected_case_clause, Clause } ).
-
-
-
-% Id, for testing:
-%update_fun_clause_for_calls( ClauseDef, _Replacements ) ->
+% List of expressions found:
 %
-%	display_debug( "Updating calls in clause definition ~p.", [ ClauseDef ] ),
+% (note: this clause may be removed in the future, once all AST elements will
+% have been specifically intercepted by a dedicated clause, and when the nature
+% of their elements will be established and thus traversed specifically, rather
+% than opening the possibility that each element may be a list)
 %
-%	ClauseDef.
+traverse_expression( ExprList, Replacements ) when is_list( ExprList ) ->
+
+	display_debug( "Intercepting expression list ~p...", [ ExprList ] ),
+
+	NewExprList = [ traverse_expression( E, Replacements ) || E <- ExprList ],
+
+	display_debug( "... returning expression list ~p", [ NewExprList ] ),
+
+	NewExprList;
+
+
+
+% Other expression found:
+traverse_expression( E, _Replacements ) ->
+	display_debug( "Letting expression ~p as is.", [ E ] ),
+	E.
+
+
 
 
 
