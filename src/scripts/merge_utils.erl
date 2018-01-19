@@ -1,4 +1,4 @@
-% Copyright (C) 2016-2017 Olivier Boudeville (olivier.boudeville@esperide.com)
+% Copyright (C) 2016-2018 Olivier Boudeville (olivier.boudeville@esperide.com)
 
 % Copied from merge-tree.escript to have a more user-friendly debugging.
 
@@ -31,8 +31,6 @@
 % Shorthands:
 -type sha1()  :: executable_utils:sha1_sum().
 -type count() :: basic_utils:count().
--type void()  :: basic_utils:void().
-
 
 
 % Data associated to a given file-like element.

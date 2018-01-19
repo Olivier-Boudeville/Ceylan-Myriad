@@ -1,6 +1,6 @@
-% Copyright (C) 2003-2017 Olivier Boudeville
+% Copyright (C) 2003-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -96,7 +96,7 @@ run() ->
 	ListOfStrings = [ "Hello", "World", "Vampire" ],
 
 	test_facilities:display( "Displaying list ~p as a string:~s",
-		[ ListOfStrings, text_utils:string_list_to_string( ListOfStrings ) ] ),
+		[ ListOfStrings, text_utils:strings_to_string( ListOfStrings ) ] ),
 
 
 	LongLine = "This is a long line to test the paragraph formatting.",
@@ -126,7 +126,7 @@ run() ->
 	test_facilities:display( "Displaying atom list, obtained from string "
 							 "list ~p: ~p.",
 							 [ ListOfStrings,
-							   text_utils:string_list_to_atom_list(
+							   text_utils:strings_to_atom_list(
 								 ListOfStrings ) ] ),
 
 
@@ -273,7 +273,7 @@ run() ->
 	OtherStringList = [ "The", "little red", "wolf" ],
 	test_facilities:display(
 			  "When strings: ~s are converted into atoms, we have: ~w.",
-			  [ text_utils:string_list_to_string( OtherStringList ),
+			  [ text_utils:strings_to_string( OtherStringList ),
 				text_utils:strings_to_atoms( OtherStringList ) ] ),
 
 

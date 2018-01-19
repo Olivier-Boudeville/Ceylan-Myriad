@@ -1,6 +1,6 @@
-% Copyright (C) 2016-2017 Olivier Boudeville
+% Copyright (C) 2016-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -50,7 +50,7 @@
 %
 -export([ new/0, singleton/1, add/2, addAsNew/2, add_element_list/2,
 		  union/2, union/1, intersection/2, intersection/1,
-		  difference/2, is_subset/2,
+		  difference/2, is_set/1, check_set/1, is_subset/2,
 		  from_list/1, to_list/1,
 		  member/2, is_empty/1, size/1,
 		  iterator/1, next/1,
@@ -164,7 +164,6 @@ add_element_list( List, Set ) ->
 
 
 
-
 % Returns the union of the two specified sets.
 %
 -spec union( set(), set() ) -> set().
@@ -201,6 +200,30 @@ intersection( ListOfSets ) ->
 -spec difference( set(), set() ) -> set().
 difference( FirstSet, SecondSet ) ->
 	?set_impl:difference( FirstSet, SecondSet ).
+
+
+
+% Returns whether the specified term appears to be a legit set.
+%
+-spec is_set( term() ) -> boolean().
+is_set( Term ) ->
+	?set_impl:is_set( Term ).
+
+
+
+% Ensures that the specified term is a set, throws an exception if not.
+%
+-spec check_set( term() ) -> basic_utils:void().
+check_set( Term ) ->
+	case is_set( Term ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { not_a_set, Term } )
+
+	end.
 
 
 

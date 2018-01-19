@@ -1,6 +1,6 @@
-% Copyright (C) 2003-2017 Olivier Boudeville
+% Copyright (C) 2010-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -23,23 +23,24 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
-% Creation date: Saturday, September 16, 2017.
+% Creation date: Monday, September 11, 2017.
 
 
-% Internal gui defines, hence to be included solely by the gui subsystem, not by
-% user code (as depends on wx).
 
 
-% For wx records and all:
--include_lib("wx/include/wx.hrl").
+% Gathering of various facilities for OpenGL rendering, done through WxWidgets.
+%
+% See gui_opengl_test.erl for the corresponding test.
+%
+% See gui.erl for more general rendering topics.
+%
+-module(gui_opengl).
 
 
-% Some defines:
+%-export_type([]).
 
--define( any_id, ?wxID_ANY ).
+%-export([]).
 
--define( no_parent, wx:null() ).
-
-
-% The special color that means "transparent" (i.e. no filling):
--define( transparent_color, ?wxTRANSPARENT_BRUSH ).
+%-include_lib("wx/include/wx.hrl").
+%-include_lib("wx/include/gl.hrl").
+%-include_lib("wx/include/glu.hrl").

@@ -1,6 +1,6 @@
-% Copyright (C) 2014-2017 Olivier Boudeville
+% Copyright (C) 2014-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
-% Creation date: Friday, December 19, 2014
+% Creation date: Friday, December 19, 2014.
 
 
 
@@ -40,246 +40,167 @@
 % So, to compile it, just go to the root of this layer and execute for example
 % 'make all'.
 %
+% To known the other bootstrapped modules (i.e. the subset of our modules that
+% this module can use), see the BOOTSTRAP_MODULES variable in GNUmakevars.inc.
+%
+% See also: the type_utils module, about the management of datatypes themselves.
+%
 -module(meta_utils).
 
 
-
-
-% Design notes about types.
-
-
-% Types may be defined according to three forms, from the most human-focused to
-% the most computer-native one:
+% This module being a bootstrap one, the 'table' pseudo-module is not available
+% (as this module is not processed by the 'Common' parse transform):
 %
-% F1. type-as-a-string, i.e. a textual specification possibly entered from a
-% user interface; for example, a type "my_type" may be specified as:
-% "foo|bar|[integer]"
+% Indeed, no table pseudo-module available from meta_utils, as it cannot be
+% parse-transformed; only ?table is available here, not the other *_hashtable
+% counterparts (once that meta_utils module is compiled, if it relied on
+% foo_hashtable, then the parse transform could not operate on any module
+% compiled before foo_hashtable):
 %
-% F2. type-as-a-contextual-term, i.e. an Erlang term that defines a type, yet
-% may still be contextual (i.e. it may depend on other non-builtin types); the
-% same example may then be defined as: { union, [ foo, bar, {list,[integer]} ]
-% }, where foo and bar are expected to be defined in the context
+-define( table, map_hashtable ).
+
+
+
+% Shorthands:
+-type module_name() :: basic_utils:module_name().
+
+-type type_name() :: type_utils:type_name().
+-type type_arity() :: type_utils:type_arity().
+
+-type ast_field_description() :: ast_utils:ast_field_description().
+
+
+% Not expected to be legit symbols:
 %
-% F3. explicit-type, i.e. a fully explicit, self-standing term defining a type
-% (therefore relying only on built-in types and constructs); for example,
-% supposing that the type foo is an alias for float, and that the type bar is
-% specified as "'hello'|'goodbye'", the same example translates to the following
-% explicit type: { union, [ float, {union,[ {atom,hello}, {atom,goodbye} ]},
-% {list,[integer]} ] }
+-define( any_module_name, '_' ).
 
-% Going from:
-%  - form F1 to form F2 is named type parsing
-%  - form F2 to form F3 is named type resolution
+-type module_name_match() :: module_name() | ?any_module_name.
 
 
-% On type names and signatures.
-
-% A type T (whether built-in or user-defined) is designated directly by its name
-% T, as an atom. Ex: written as "count", refered to as: count.
-
-% There are reserved type-related names (atoms), which correspond to:
-%  - built-in types: atom, integer, float, boolean, string, any, none
-%  - type constructs: list, union, tuple, table
 
 
-% A type signature is made from the type name and from a list of the type names
-% (if any) it depends upon.
+%% Type replacement section.
 
-% For monomorphic types (i.e. types that are not parametrised by other types),
-% their signature is their sole name. Ex: "foo" ("foo()" is also accepted).
+-define( any_type_name,  '_' ).
+-define( any_type_arity, '_' ).
 
-% The signature of polymorphic types (i.e. types that are parametrised by other
-% types) is made of their name immediately followed by a list of the names of
-% the types they depend upon, enclosed in parentheses.
+
+-type type_name_match()  :: type_name()  | ?any_type_name.
+-type type_arity_match() :: type_arity() | ?any_type_arity.
+
+
+% The same arity is kept, and just specifying the module name means that the
+% type name is not to change.
 %
-% For example, a polymorphic type T that depends on types T1, T2, ..., Tk may
-% have for signature "T( T1, T2, ..., Tk )".
-
-
-% Let D( type_signature() ) -> type() be a pseudo-function returning the
-% explicit type definition (as a term) of a type (designated by its signature).
-
-
-
-
-% On built-in types.
-
-
-% The type 'atom' designates the set of (possibly user-defined) symbols (ex:
-% 'true' or 'foo'). In a type definition, such a symbol consists on the atom
-% itself, and is always written enclosed in single quotes ("'foo'"), in order to
-% distinguish it from the user-defined types (as one may define a type named
-% foo). So 'foo' can be considered here both as a type name and a value.
-
-% The type 'integer' designates an integer value. A value of that type is for
-% example 4.
-
-% The type 'float' designates a floating-point value. A value of that type is
-% for example 3.14.
-
-% The type 'boolean' designates a truth value, either 'true' or 'false'.
-
-% The type 'string' designates a string of characters (a text). A value of that
-% type is for example "Yellow submarine".
-
-% The type 'any' designates a value of any type (hence all values may be seen as
-% being of the 'any' type). Of course the actual, most precise type shall be
-% preferred wherever possible; this type is defined mostly for formal reasons
-% (completeness of the language of types)
-
-% The type 'none' designates a value not having a type, which cannot happen
-% operationally (defined also on formal grounds, for completeness).
-
-% Finally, for a built-in type T (designated as a whole - as opposed to defining
-% immediate values of it, as discussed in next section), D(T) = T. For example,
-% D(atom) = atom, or D(my_type) = my_type.
-
-
-
-% On immediate values of a given type.
-
-% We need to be able to specify immediate values even at a type level, as we
-% might want to define a type as a set of possible values (such as: [2,3,5,7,11]
-% or [ 'orange', 'blue', 'red' ]).
-
-% Let T1 be a type defined from an immediate value V of a type that is named T2
-% (hence T1 is a type comprising a single value); T1 is specified as "V"
-% (knowing that T2 can be inferred from V), and D(T1) = { T2, V }.
+% Note that this implies that a (local or remote) type can only be replaced by a
+% remote type (a priori not a problematic limitation).
 %
-% So, for example:
-%
-% - let A be a type corresponding to an immediate value of type atom; D(A) = {
-% atom, A }; for example, D(foo) = { atom, 'foo' }
-%
-% - let I be a type corresponding to an immediate value of type integer; D(I) =
-% { integer, I }; for example, D(4) = { integer, 4 }
-%
-% - let F be a type corresponding to an immediate value of type float; D(F) = {
-% float, F }; for example, D(3.14) = { float, 3.14 }
-%
-% - let S be a type corresponding to an immediate value of type string; D(S) = {
-% string, S }; for example, D("Yellow submarine") = { string, "Yellow submarine"
-% }
+-type type_replacement() :: { module_name(), type_name() } | module_name().
+
+
+% Local subsection:
+
+-type local_type_id_match() :: { type_name_match(), type_arity_match() }.
+
+% Either we directly set the target module and type names (using same arity), or
+% we apply an anonymous function to determine the corresponding information,
+% based on context:
+-type local_type_replacement() :: type_replacement()
+			| fun( ( type_name(), type_arity() ) -> type_replacement() ).
+
+
+% Table defining replacements of local types:
+-type local_type_replacement_table() :: ?table:?table( local_type_id_match(),
+												   local_type_replacement() ).
+
+
+% Remote subsection:
+
+-type remote_type_id_match() :: { module_name_match(), type_name_match(),
+								  type_arity_match() }.
+
+% Either we directly set the target module and type names (using same arity), or
+% we apply an anonymous function to determine the corresponding information,
+% based on context:
+-type remote_type_replacement() :: type_replacement()
+			 | fun( ( module_name(), type_name(), type_arity() ) ->
+								type_replacement() ) .
+
+
+% Table defining replacements of remote types:
+-type remote_type_replacement_table() :: ?table:?table( remote_type_id_match(),
+													remote_type_replacement() ).
 
 
 
 
-% On type constructs.
-%
-% The supported type constructs are:
-%  - list
-%  - union
-%  - tuple
-%  - table
-%
-% Note: they can also be seen as built-in polymorphic types.
+%% Call replacement section.
+
+-define( any_function_name,  '_' ).
+-define( any_function_arity, '_' ).
 
 
-% On lists:
-%
-% Let L be a type corresponding to an (homogeneous, ordered) list (variable-size
-% container) whose all elements are of type T.
-%
-% L is written "[T]" and defined as D([T]) = { list, D(T) }.
-%
-% For example, if my_integer_list_type is defined as "[integer]", then
-% D(my_integer_list_type) = D([integer]) = { list, integer }
-%
-% A value of that type may be [] or [ 4, 9, 147, 5, 9 ].
+-type function_name_match()  :: function_name() | ?any_function_name.
+-type function_arity_match() :: arity()         | ?any_function_arity.
 
 
-% On unions:
+% The same arity is kept, and just specifying the module name means that the
+% function name of the call is not to change.
 %
-% Let U be a type corresponding to the union of a set of types T1, T2, Tk; a
-% value of type U is thus of at least one of the types of that union.
+% Note that this implies that a (local or remote) call can only be replaced by a
+% remote call (a priori not a problematic limitation).
 %
-% U is written as "T1|T2|...|Tk" and defined as D(U) = { union,
-% [D(T1),D(T2),...,D(Tk)] }.
-%
-% For example, if my_type is defined as "foo|'kazoo'|[integer]", then D(my_type)
-% = { union, [ foo, {atom,'kazoo'}, {list,integer} ] }.
-%
-% Values of that types may be 'kazoo', [3,3] of any value of type foo (whatever
-% it may be).
-%
-% One can note that the foo type can also be replaced by its actual definition
-% in order to fully resolve my_type (i.e. to go from form F2 to form F3)
-%
-% We can see here that the boolean type is nothing but the 'true'|'false' union
-% and is not in an irreducible form (yet it is still considered as being fully
-% explicit).
-
-
-% On tuples:
-%
-% Let T be a type corresponding to a fixed-size, ordered container whose
-% elements are respectively of type T1, T2, Tk.
-%
-% D(T) = { tuple, [D(T1),D(T2),...,D(Tk)] }.
-%
-% For example, if my_tuple_type is defined as "{integer,boolean|float,[atom]}"
-% then D(my_tuple_type)= {list,[integer,{union,[boolean,float]},{list,atom}]}.
-%
-% Values of that type may be {1,true,[]} or {42,8.9,[joe,dalton]}.
-
-
-% On (associative) tables:
-%
-% Let T be an associative table whose keys are of type Tk and values are of type
-% Tv.
-%
-% D(T) = { table, [D(Tk),D(Tv)] }.
-%
-% For example, if my_table_type is defined as "table(integer,string)" then
-% D(my_table_type)= {table,[integer,string]}.
-%
-% Values of that type are opaque (their translation as terms should remain
-% unbeknownst to the user, as if they were black boxes); such terms are to be
-% solely created and handled as a whole by the 'table' pseudo-module.
-%
-% For example, MyEmptyTable = table:table(), MyTable =
-% table:addNewEntry(42,"This is the answer"), MyOtherTable = table:new([ {1,
-% "One"}, {2, "Two"}, {5, "Five"} ]).
-%
-% Note: tables are not yet supported.
+-type call_replacement() :: { module_name(), function_name() } | module_name().
 
 
 
-% To contrast, here are a few Erlang examples, obtained thanks to
-% meta_utils:string_to_form/1 (see http://erlang.org/doc/apps/erts/absform.html
-% for more details); a forward slash ("/") separates these Erlang forms from the
-% type constructs defined here.
-%
-% For instance meta_utils:string_to_form("-type my_type() :: 'a'|'b'."). yields:
-% {attribute,1,type,{my_type,{type,1,union,[{atom,1,a},{atom,1,b}]},[]}); this
-% may be read as the my_type type being defined as
-% {type,1,union,[{atom,1,a},{atom,1,b}]}.
-%
-% We have thus following respective translations of monomorphic types:
-% (format of the bullets below: "ERLANG_TYPE_SPEC" / "OUR_SPEC" -> ERLANG_FORM /
-% OUR_TERM)
-%
-% - single-value types:
-%   - "4" / "4" -> {integer,1,4} / {integer,4}
-%   - "foo" or "'foo'" / "'foo'" -> {atom,1,foo} / {atom,foo}
-%
-% - alias types:
-%    - "float()" / "float" -> {type,1,float,[]} / float
 
-%    - "my_other_type() / "my_other_type" or "my_other_type()" ->
-%    {user_type,1,my_other_type,[]} / my_other_type
-%
-% - union types: "'a'|'b'" / "'a'|'b'" -> {type,1,union,[{atom,1,a},{atom,1,b}]}
-% / {union,[{atom,a},{atom,b}]}
-%
-% - list types : "list(integer())" or "[integer()]" / "[integer]" ->
-% {type,1,list,[{type,1,integer,[]}]} / { list, integer }
+% Local subsection:
 
-% - random examples:
+-type local_call_match() :: { function_name_match(), function_arity_match() }.
+
+% Either we directly set the target module and function names (using same
+% arity), or we apply an anonymous function to determine the corresponding
+% information, based on context:
 %
-% - "{integer(),float()}" / "{integer,float}" ->
-%        {type,1,tuple, [{type,1,integer,[]},{type,1,float,[]}]} /
-%        {tuple,[integer,float]}
+-type local_call_replacement() :: call_replacement()
+			 | fun( ( function_name(), arity() ) -> call_replacement() ) .
+
+
+% Table defining replacements of local call:
+-type local_call_replacement_table() :: ?table:?table( local_call_match(),
+												local_call_replacement() ).
+
+
+% Remote subsection:
+
+-type remote_call_match() :: { module_name_match(), function_name_match(),
+							   function_arity_match() }.
+
+% Either we directly set the target module and function names (using same
+% arity), or we apply an anonymous function to determine the corresponding
+% information, based on context:
+%
+-type remote_call_replacement() :: call_replacement()
+			 | fun( ( module_name(), function_name(), arity() ) ->
+								call_replacement() ) .
+
+
+% Table defining replacements of remote call:
+-type remote_call_replacement_table() :: ?table:?table( remote_call_match(),
+												remote_call_replacement() ).
+
+
+
+
+% Key implementation notes:
+%
+% - again: any exported function meant to be used by parse transforms shall rely
+% exclusively (through all its code paths) on bootstrapped modules (including
+% {basic_utils, id, meta, text}_utils and map_hashtable), like defined in the
+% BOOTSTRAP_MODULES variable of GNUmakevars.inc
+%
+% - see type_utils about how to handle datatypes
 
 
 
@@ -307,7 +228,11 @@
 %
 % We often use located counterparts of the standard elements (ex: forms, ASTs)
 % so that we can recreate and modify the order of (possibly transformed, added
-% or removed) forms in an AST.
+% or removed) forms in an AST (that order matters, notably for its compilation),
+% knowing that the embedded source-level line numbers are considerably less
+% tractable and refer to another view onto the program at hand (and that the
+% original forms are aggregated internally on a per-category basis rather than
+% on a source-level one).
 %
 % See the definition of the location/0 type for further information.
 
@@ -353,18 +278,6 @@
 
 
 
-% This module being a bootstrap one, the 'table' pseudo-module is not available
-% (as this module is not processed by the 'Common' parse transform):
-%
-% Indeed, no table pseudo-module available from meta_utils, as it cannot be
-% parse-transformed; only ?table is available here, not the other *_hashtable
-% counterparts (once that meta_utils module is compiled, if it relied on
-% foo_hashtable, then the parse transform could not operate on any module
-% compiled before foo_hashtable):
-%
--define( table, map_hashtable ).
-
-
 % For function_info:
 -include("meta_utils.hrl").
 
@@ -374,23 +287,11 @@
 
 
 
-% Type-related section.
-
-
 % Options specified to a parse transform at runtime, like report_warnings,
 % beam,report_errors, {cwd,"X"}, {outdir,"Y"}, {i,"Z"}, {parse_transform,P},
 % debug_info,warnings_as_errors, etc.
 %
 -type parse_transform_options() :: proplists:proplist().
-
-
-% Line location (i.e. line number) of a form in a source file:
--type line() :: erl_anno:line().
-
-
-% Line-related location in a source file (either line() or {line(), column()}):
-%
--type file_loc() :: erl_anno:location().
 
 
 % Abstract form, part of an AST (ex: {attribute,40,file,{"foo.erl",40}}):
@@ -399,8 +300,7 @@
 
 
 % Abstract Syntax Tree, standard representation of parse trees for Erlang
-% programs as Erlang terms. This representation is known as the abstract
-% format.
+% programs as Erlang terms. This representation is known as the abstract format.
 %
 % For more information: http://www.erlang.org/doc/apps/erts/absform.html
 %
@@ -411,13 +311,17 @@
 % Location of a form in an AST, so that the order of forms can be recreated.
 %
 % We use sortable identifiers so that any number of new forms can be introduced
-% between two of them, if needed.
+% between any two of them, if needed.
 %
 % Location is relative to the position of a form in a given AST, while the line
 % information embedded in forms is relative to the file in which they are
 % defined.
 %
--type location() :: basic_utils:sortable_id().
+% 'auto_located' means that the corresponding form is yet to be located at this
+% position (thus a tranformation pass is still to be applied to needed in the
+% overall list before it is sortable).
+%
+-type location() :: id_utils:sortable_id() | 'auto_located'.
 
 
 
@@ -457,11 +361,26 @@
 -type attribute() :: { attribute_name(), attribute_value() }.
 
 
+% For easy access to parse attributes:
+%
+-type attribute_table() :: ?table:?table( attribute_name(), attribute_value() ).
+
+
+
+-type compile_option_name() :: atom().
+
+-type compile_option_value() :: term().
+
+% For easy access to compilation information:
+%
+-type compile_option_table() :: ?table:?table( compile_option_name(),
+											   [ compile_option_value() ] ).
+
+
 
 % The name of a function:
 %
 -type function_name() :: basic_utils:function_name().
-
 
 
 % The arity of a function:
@@ -495,175 +414,57 @@
 -type located_function_spec() :: { location(), function_spec() }.
 
 
+% All information regarding a function:
 -type function_info() :: #function_info{}.
 
 
-
-% Describes the name of a type (without the number of the types it depends on,
-% for polymorphic ones).
-%
--type type_name() :: atom().
-
-
-% Number of types a (possibly polymorphic) type depends on (possibly zero for
-% plain types).
-%
--type type_arity() :: basic_utils:count().
-
-
-% The "most precise" description of a primitive, simple type (ex: 'boolean' and
-% 'atom') coexist, 'number' are not used, etc.
-%
-% A note about Erlang floats: they are actually IEEE 754 double-precision
-% floating-point numbers, a format that occupies 8 bytes (64 bits) per float in
-% memory.
-%
-% More precisely, as one can see in erts/emulator/beam/erl_term.h, a float_def
-% is an union able to contain a ieee754_8 datatype, aliased to the 'double' C
-% datatype.
-%
-% Polymorphic types (ex: lists) are described with no mention of the types they
-% may depend on (ex: 'list' can be specified, not 'list(float())' or anything
-% like that).
-%
--type primitive_type_description() :: 'atom'
-									| 'binary'
-									| 'boolean'
-									| 'float'
-									| 'function'
-									| 'integer'
-									| 'list'
-									| 'pid'
-									| 'port'
-									| 'record'
-									| 'reference'
-									| 'tuple'.
-
-
-% The description of any given type is based on primitive_type_description/0)
-% and can be done in two complementary forms: the textual one, and the internal
-% one, which are relatively different.
+% All information regarding AST replacements:
+-type ast_replacements() :: #ast_replacements{}.
 
 
 
-% Textual type description: type-as-a-string, inspired from the syntax used for
-% type specifications (http://erlang.org/doc/reference_manual/typespec.html),
-% yet different. Notably, monomorphic types do not end with empty parentheses
-% (ex: "integer", not "integer()") and atoms are always surrounded by simple
-% quotes (ex: "'an_atom'|'another_one'").
+% A table associating, to a given location, the corresponding line in the source
+% file (to recreate the corresponding export form) and a list of the identifiers
+% of the functions to declare exported there.
 %
-% For example: "[{float,boolean}]".
+% Note:
 %
--type type_description() :: string().
+% - this table must be explicitly updated whenever adding or removing a function
+% in a module_info'functions' field; see: add_function/2 and remove_function/2
+%
+% - [ function_id() ] used, not a set, to better preserve order
+%
+-type export_table() :: ?table:?table( location(),
+						   { ast_utils:line(), [ meta_utils:function_id() ] } ).
+
+
+% A table referencing, for each module listed, a list of the functions that are
+% imported from it by the current module:
+%
+-type import_table() :: ?table:?table( basic_utils:module_name(),
+									   [ meta_utils:function_id() ] ).
 
 
 
-% Description of a nesting depth reached when parsing a type description.
+% A table associating to each function identifier a full function information.
 %
-% It is in pratice a {P,B} pair, where P is the parenthesis depth (i.e. the
-% number of the parentheses that have been opened and not closed yet) and B is
-% the bracket depth (i.e. the same principle, for "[]" instead of for "()"):
-%
--type nesting_depth() :: { basic_utils:count(), basic_utils:count() }.
+-type function_table() :: ?table:?table( meta_utils:function_id(),
+										 meta_utils:function_info() ).
 
 
-% Internal, "formal", actual programmatic description of a type according to our
-% conventions: type-as-a-term (either contextual or explicit, F2 or F3), relying
-% on a translated version of the textual type (which is for example:
-% "[{float,boolean}]").
+% A table associating to each record name the list of the descriptions of its
+% fields.
 %
-% This "internal type language of the Common layer" is largely inspired from the
-% forms that can be found in actual ASTs.
-%
-% Requirements for this term-based description were:
-%
-% - be able to represent at least any actual (that can be readily instantiated,
-% hence non-polymorphic) type (like "-type a() :: ...", not "-type a(T) ::
-% ..."); should, in the future, polymorphic types have to be *defined* (not
-% merely used), then (non-empty) parentheses could be introduced
-%
-% - be able to nevertheless *use* polymorphic types, as they are certainly
-% useful (ex: associative tables, lists, etc.); a problem is that, in terms (as
-% opposed to in the textual counterpart), parentheses cannot be used to express
-% these polymorphic types (not only they denote function calls, but also are
-% not legit components of a term); therefore the convention chosen here is to
-% specify types as pairs, the first element being the name of the type, the
-% second one being the (ordered) list of the types it depends on; then the
-% textual type "a( T1, T2 )" is translated to the {a,[T1,T2]} type term; most
-% types being "monomorphic", they are represented as {my_simple_type,[]} (which
-% cannot be abbreviated by only the 'my_simple_type' atom, as it would lead to
-% ambiguous forms)
-%
-% So, as an example, the type-as-a-term corresponding to "[{float,boolean}]"
-% is: { list, [ { tuple, [ {float,[]}, {boolean,[]} ] } ] }
-%
-% Note that an alternate type language (sticking more closely to its textual
-% counterpart) could have been a more direct [{float,boolean}] term (hence
-% getting rid of the parentheses and the pair with an empty list in second
-% position); reason for not doing so: then no possible support of the
-% polymorphic types that happen to be often needed.
-%
-% The origin of this term-as-a-type notation is clearly the standard (Erlang)
-% type specifications; for example 'meta_utils:string_to_form( "-type a() ::
-% [{float(),boolean()}]." ).' returns following AST form:
-%
-%  '{attribute,1,type, {a,{type,1,list, [{type,1,tuple,[{type,1,float,[]},
-%  {type,1,boolean,[]}]}]}'
-%
-% As a result the counterpart to the aforementioned "[{float(),boolean()}]" type
-% string is translated in ASTs as:
-%
-% { type, 1, list, [{type,1,tuple,[{type,1,float,[]}, {type,1,boolean,[]}]} ] }
-%
-% Then one can remove:
-%
-% - the 'type' (and 'user_type') atoms (not making then a specific distinction
-% between the origin of a type); a list of built-in types - names and arities -
-% is maintained, other types being then user ones)
-%
-% - the line numbers (the '1's here), not useful in that context, hence stripped
-%
-% Then we obtain our aforementioned term-as-a-type:
-%    { list, [ { tuple, [ {float,[]}, {boolean,[]} ] } ] }
-%
-% We can therefore describe this way arbitrary types as valid terms.
-%
-% Next steps:
-%
-% - define and document the full type language (elementary datatypes - like
-% boolean, integer, float, symbols - and constructs - like list, tuple, union,
-% atom)
-%
-% - support it, notably define functions to tell whether a given term is an
-% instance of a specified type
-%
-% Experiment with meta_utils:string_to_form/1 and have fun!
-%
-% Ex: "-type a() :: [foobar()]." yields: '{attribute,1,type, {a,{type,1,
-%    list,[{user_type,1,foobar,[]}]},[]}}'.
-%
-% See also: http://erlang.org/doc/apps/erts/absform.html
-%
-% Finally, a direct string representation can be converted into a type(); maybe
-% writing a parser may not mandatory, as "{ float(), atom() }" may be a string
-% expression evaluated with functions that we can bind to obtain a closer term,
-% such as: float() -> { float, [] }.
-%
-% Of course, on a related note, if TextualType = "{ list, [
-% {tuple,[float,boolean]} ] }", then meta_utils:string_to_value( TextualType )
-% will return the expected: {list,[{tuple,[{float,[]},{boolean,[]}]}]}
-%
-% Note that such a type may not be fully explicit, as it may contain unresolved
-% references to other types; for example: { list, [ {count,[] } ] } does not
-% specify what the count() type is.
-%
--type type() :: term().
+-type record_table() :: ?table:?table( basic_utils:record_name(),
+									   field_table() ).
 
 
-% An explicit type is a type that has been fully resolved in terms of built-in
-% constructs; it is thus self-standing.
+% A table associating to a given field of a record its description (type and
+% default value, if specified).
 %
--type explicit_type() :: type().
+-type field_table() :: ?table:?table( basic_utils:field_name(),
+		  { basic_utils:maybe( ast_utils:ast_type() ),
+			basic_utils:maybe( ast_utils:ast_immediate_value() ) } ).
 
 
 % Type of functions to transform terms during a recursive traversal (see
@@ -693,7 +494,7 @@
 %
 % The module is the one emitting that issue (ex: erl_lint)
 %
--type issue_info() :: { line(), module(), issue_description() }.
+-type issue_info() :: { ast_utils:line(), module(), issue_description() }.
 
 
 % A warning regarding a source file, corresponding to a list of error
@@ -702,15 +503,31 @@
 -type issue_report() :: { file_utils:file_name(), [ issue_info() ] }.
 
 
+% For type replacements:
+-export_type([ module_name_match/0, type_name_match/0, type_arity_match/0,
+			   type_replacement/0,
+			   local_type_id_match/0, local_type_replacement/0,
+			   local_type_replacement_table/0,
+			   remote_type_id_match/0, remote_type_replacement/0,
+			   remote_type_replacement_table/0 ]).
 
--export_type([ parse_transform_options/0, line/0, file_loc/0, form/0, ast/0,
+
+% For call replacements:
+-export_type([ function_name_match/0, function_arity_match/0,
+			   local_call_match/0, remote_call_match/0,
+			   call_replacement/0, local_call_replacement_table/0,
+			   remote_call_replacement_table/0 ]).
+
+
+-export_type([ parse_transform_options/0, form/0, ast/0,
 			   location/0, located_form/0, located_ast/0,
 			   attribute_name/0, attribute_value/0, attribute/0,
-			   function_name/0, function_arity/0, function_id/0,
+			   attribute_table/0,
+
+			   function_name/0, function_id/0,
 			   clause_def/0, function_spec/0, located_function_spec/0,
 			   function_info/0,
-			   type_name/0, type_arity/0, primitive_type_description/0,
-			   type_description/0, nesting_depth/0, type/0, explicit_type/0,
+			   ast_replacements/0,
 			   term_transformer/0, module_info/0,
 			   issue_description/0, issue_info/0, issue_report/0 ]).
 
@@ -718,8 +535,19 @@
 
 % Parse-transform related functions:
 %
--export([ init_module_info/0,
+-export([ init_module_info/0, pre_check_ast/1,
+		  add_function/2, remove_function/2,
 		  function_info_to_string/1,
+		  located_ast_to_string/1,
+
+		  get_local_type_replacement_table/1,
+		  get_remote_type_replacement_table/1,
+		  replace_types_in/2, update_types_in_functions/2,
+
+		  get_local_call_replacement_table/1,
+		  get_remote_call_replacement_table/1,
+		  update_calls_in_functions/2,
+
 		  traverse_term/4,
 		  term_to_form/1, variable_names_to_ast/2,
 		  string_to_form/1, string_to_form/2,
@@ -729,22 +557,14 @@
 		  extract_module_info_from_ast/1, recompose_ast_from_module_info/1,
 		  erl_to_ast/1,
 		  check_module_info/1, module_info_to_string/1,
-		  write_ast_to_file/2,
+		  write_ast_to_file/2, write_module_info_to_file/2,
 		  raise_error/1, get_error_form/3, format_error/1 ]).
 
 
 % General functions:
 %
--export([ list_exported_functions/1, is_function_exported/3,
-		  check_potential_call/3 ]).
-
-
-% Type-related functions:
-%
--export([ description_to_type/1, type_to_description/1, type_to_string/1,
-		  get_type_of/1, get_elementary_types/0, is_type/1, is_of_type/2,
-		  is_of_described_type/2, is_homogeneous/1, is_homogeneous/2,
-		  are_types_identical/2 ]).
+-export([ list_exported_functions/1, get_arities_for/2,
+		  is_function_exported/3, check_potential_call/3 ]).
 
 
 
@@ -753,35 +573,226 @@
 		  interpret_issue_info/2, interpret_issue_description/2 ] ).
 
 
-% Work in progress:
--export([ tokenise_per_union/1 ]).
+% To silence unused warnings:
+-export([ display_debug/1, display_debug/2,
+		  display_trace/1, display_trace/2,
+		  display_info/1, display_info/2,
+		  display_warning/1, display_warning/2,
+		  display_error/1, display_error/2,
+		  display_fatal/1, display_fatal/2 ]).
 
-% Returns a new, blank instance of the module_info record.
+
+
+% Returns a new, blank instance of the module_info record, typically to be fed
+% with an input AST afterwards.
 %
 -spec init_module_info() -> module_info().
 init_module_info() ->
-	#module_info{ functions=?table:new() }.
+
+	EmptyTable = ?table:new(),
+
+	#module_info{ compilation_options=EmptyTable,
+				  parse_attributes=EmptyTable,
+				  records=EmptyTable,
+				  function_imports=EmptyTable,
+				  function_exports=EmptyTable,
+				  functions=EmptyTable }.
+
+
+
+% Registers specified function in specified module.
+%
+-spec add_function( function_info(), module_info() ) -> module_info().
+add_function( FunInfo=#function_info{ exported=ExportLocs },
+			  ModuleInfo=#module_info{ function_exports=ExportTable,
+									   functions=FunTable } ) ->
+
+	% Let's check first that the function is not already defined:
+	FunId = { FunInfo#function_info.name, FunInfo#function_info.arity },
+
+	case ?table:hasEntry( FunId, FunTable ) of
+
+		true ->
+			CurrentFunInfo = ?table:getEntry( FunId, FunTable ),
+			CurrentFunString = function_info_to_string( CurrentFunInfo ),
+
+			AddedFunString = function_info_to_string( FunInfo ),
+
+			display_error( "Function ~p already defined, as ~s, "
+						   "whereas to be added as ~s.",
+						   [ FunId, CurrentFunString, AddedFunString ] ),
+
+			throw( { function_already_defined, FunId } );
+
+		false ->
+			ok
+
+	end,
+
+	NewFunTable = ?table:addEntry( FunId, FunInfo, FunTable ),
+
+	% Now updating the exports:
+	NewExportTable = ensure_exported( FunId, ExportLocs, ExportTable,
+									  ModuleInfo ),
+
+	ModuleInfo#module_info{ function_exports=NewExportTable,
+							functions=NewFunTable }.
+
+
+
+% Ensures that specified function is exported at the specified location(s).
+%
+-spec ensure_exported( function_id(), [ location() ], module_info(),
+					   export_table() ) -> export_table().
+ensure_exported( _FunId, _ExportLocs=[], _ModuleInfo, ExportTable ) ->
+	ExportTable;
+
+ensure_exported( FunId, _ExportLocs=[ _Loc=auto_located | T ], ModuleInfo,
+				 ExportTable ) ->
+
+	% When a function export is to be auto-located, we attach it just after the
+	% module definition, to avoid possibly placing an export after a function
+	% definition:
+
+	ModuleLoc = case ModuleInfo#module_info.module_def of
+
+		undefined ->
+			throw( { auto_locate_whereas_no_module_def, FunId } );
+
+		{ MLoc, _Form } ->
+			MLoc
+
+	end,
+
+	FunLoc = id_utils:get_higher_next_depth_sortable_id( ModuleLoc ),
+
+	% This location may have already been used, thus:
+	case ?table:lookupEntry( FunLoc, ExportTable ) of
+
+		{ value, { Line, FunIds } } ->
+
+			case lists:member( FunId, FunIds ) of
+
+				true ->
+					% Already registered, perfect as is:
+					ensure_exported( FunId, T, ModuleInfo, ExportTable );
+
+				false ->
+					% Adding it then:
+					NewEntry = { Line, [ FunId | FunIds ] },
+					NewExportTable = ?table:addEntry( ModuleLoc, NewEntry),
+					ensure_exported( FunId, T, ModuleInfo, NewExportTable )
+
+			end;
+
+		key_not_found ->
+			% We create a new location entry then:
+			NewEntry = { _DefaultLine=0, [ FunId ] },
+			NewExportTable = ?table:addEntry( ModuleLoc, NewEntry),
+			ensure_exported( FunId, T, ModuleInfo, NewExportTable )
+
+	end;
+
+
+ensure_exported( FunId, _ExportLocs=[ Loc | T ], ModuleInfo, ExportTable ) ->
+
+	case ?table:lookupEntry( Loc, ExportTable ) of
+
+		{ value, { Line, FunIds } } ->
+
+			case lists:member( FunId, FunIds ) of
+
+				true ->
+					% Already registered, perfect as is:
+					ensure_exported( FunId, T, ModuleInfo, ExportTable );
+
+				false ->
+					% Adding it then:
+					NewEntry = { Line, [ FunId | FunIds ] },
+					NewExportTable = ?table:addEntry( Loc, NewEntry),
+					ensure_exported( FunId, T, ModuleInfo, NewExportTable )
+
+			end;
+
+		key_not_found ->
+			% Not even a registered location:
+			throw( { invalid_export_location, Loc, FunId } )
+
+	end.
+
+
+
+% Unregisters specified function from specified module.
+%
+-spec remove_function( function_info(), module_info() ) -> module_info().
+remove_function( FunInfo=#function_info{ exported=ExportLocs },
+				 ModuleInfo=#module_info{ function_exports=ExportTable,
+										  functions=FunTable } ) ->
+
+	FunId = { FunInfo#function_info.name, FunInfo#function_info.arity },
+
+	% First forget its description:
+	NewFunTable = case ?table:hasEntry( FunId, FunTable ) of
+
+		true ->
+			?table:removeEntry( FunId, FunTable );
+
+		false ->
+			throw( { non_existing_function_to_remove, FunId } )
+
+	end,
+
+	% Then its exports:
+	NewExportTable = ensure_not_exported( FunId, ExportLocs, ExportTable ),
+
+	ModuleInfo#module_info{ function_exports=NewExportTable,
+							functions=NewFunTable }.
+
+
+
+% Ensures that specified function is exported at the specified location(s).
+%
+-spec ensure_not_exported( function_id(), [ location() ], export_table() ) ->
+								 export_table().
+ensure_not_exported( _FunId, _ExportLocs=[], ExportTable ) ->
+	ExportTable;
+
+ensure_not_exported( FunId, _ExportLocs=[ Loc | T ], ExportTable ) ->
+
+	case ?table:lookupEntry( Loc, ExportTable ) of
+
+		{ value, { Line, FunIds } } ->
+
+			% 0 or 1 reference expected, which is handled the same by:
+			NewFunIds = lists:delete( FunId, FunIds ),
+			NewExportTable = ?table:addEntry( Loc, { Line, NewFunIds } ),
+			ensure_not_exported( FunId, T, NewExportTable );
+
+		key_not_found ->
+			throw( { inconsistent_export_location, Loc, FunId } )
+
+	end.
 
 
 
 % Returns a textual description of the specified function information.
 %
 -spec function_info_to_string( function_info() ) -> text_utils:ustring().
-function_info_to_string( #function_info{
-							name=Name,
-							arity=Arity,
-							location=_Location,
-							definition=Clauses,
-							spec=LocatedSpec,
-							exported=Exported } ) ->
+function_info_to_string( #function_info{ name=Name,
+										 arity=Arity,
+										 location=_Location,
+										 definition=Clauses,
+										 spec=LocatedSpec,
+										 exported=Exported } ) ->
 
 	ExportString = case Exported of
 
-		true ->
-			"exported";
+		undefined ->
+			"local";
 
-		false ->
-			"local"
+		ExportLoc ->
+			text_utils:format( "exported in ~s",
+							   [ id_utils:sortable_id_to_string( ExportLoc ) ] )
 
 	end,
 
@@ -799,6 +810,1112 @@ function_info_to_string( #function_info{
 
 	io_lib:format( "~s/~B, ~s, with ~s and ~s",
 				   [ Name, Arity, ExportString, DefString, SpecString ] ).
+
+
+
+
+%% Type replacement section.
+
+
+
+% Returns a table describing local type replacements.
+%
+% Ex: [ { { void, 0 }, basic_utils },
+%       { { my_maybe, 1 }, { basic_utils, maybe } },
+%       % First clause will never match due to arity:
+%       { { '_', 3 }, fun( other_void, 0 ) ->
+%                                    other_utils;
+%                        ( _, '_' ) ->
+%                                   {foo_utils,some_type}
+%                     end }
+% ]
+%
+% will return a description of the transformation of:
+%
+%  - void() into basic_utils:void(), as the same type name is implied there; it
+%  is just the addition (prefix) of a module, as a remote type
+%
+%  - my_maybe(T) into basic_utils:maybe(T)
+%
+%  - other_void() into other_utils:other_void()
+%
+%  - any type depending on three others by foo_utils:some_type/3
+%
+-spec get_local_type_replacement_table(
+		[ { local_type_id_match(), type_replacement() } ] ) ->
+				local_type_replacement_table().
+get_local_type_replacement_table( Replacements ) ->
+	EmptyTable = ?table:new(),
+	get_local_type_repl_helper( Replacements, EmptyTable ).
+
+
+
+% (helper)
+get_local_type_repl_helper( _Replacements=[], Table ) ->
+	Table;
+
+% Replacement can be either { TargetModule, TargetType } or TargetModule:
+get_local_type_repl_helper( _Replacements=[
+		{ Src={ _SourceTypeMatch, _ArityMatch },
+		  Replacement={ _TargetModule, _TargetType } } | T ], Table ) ->
+
+	% Up to one transformation per source type:
+	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	get_local_type_repl_helper( T, NewTable );
+
+% Same target type here:
+get_local_type_repl_helper( _Replacements=[
+		{ Src={ SourceTypeMatch, _ArityMatch }, TargetModule } | T ], Table )
+  when is_atom( TargetModule ) ->
+
+	Replacement = { TargetModule, SourceTypeMatch },
+
+	% Up to one transformation per source type:
+	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	get_local_type_repl_helper( T, NewTable );
+
+
+get_local_type_repl_helper(_Replacements=[
+		{ Src={ _SourceTypeMatch, _ArityMatch }, ReplaceFun } | T ], Table )
+  when is_function( ReplaceFun ) ->
+
+	% Up to one transformation per source type:
+	NewTable = ?table:addNewEntry( Src, ReplaceFun, Table ),
+	get_local_type_repl_helper( T, NewTable ).
+
+
+
+% Returns a table describing remote type replacements.
+%
+% Ex: [ { { a_module, void, 0 }, basic_utils },
+%       { { a_module, my_maybe, 1 }, { basic_utils, maybe } },
+%       % First clause will never match due to arity:
+%       { { '_', '_', 3 }, fun( other_void, 0 ) ->
+%                                    other_utils;
+%                             ( _, '_' ) ->
+%                                   {foo_utils,some_type}
+%                     end }
+% ]
+%
+% will return a description of the transformation of:
+%
+%  - a_module:void() into basic_utils:void(), as the same type name is implied
+%  there; it is just the modification of the module used by a remote type
+%  - a_module:my_maybe(T) into basic_utils:maybe(T)
+%  - M:other_void() into M:other_utils()
+%  - any type of any module depending on three other types by
+%  foo_utils:some_type/3
+%
+-spec get_remote_type_replacement_table(
+		[ { remote_type_id_match(), type_replacement() } ] ) ->
+				remote_type_replacement_table().
+get_remote_type_replacement_table( Replacements ) ->
+	EmptyTable = ?table:new(),
+	get_remote_type_repl_helper( Replacements, EmptyTable ).
+
+
+
+% (helper)
+get_remote_type_repl_helper( _Replacements=[], Table ) ->
+	Table;
+
+% Replacement can be either { TargetModule, TargetType } or TargetModule:
+get_remote_type_repl_helper( _Replacements=[
+	{ Src={ _ModuleMatch, _SourceTypeMatch, _ArityMatch },
+			Replacement={ _TargetModule, _TargetType } } | T ], Table ) ->
+
+	% Up to one transformation per source type:
+	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	get_remote_type_repl_helper( T, NewTable );
+
+% Same target type here:
+get_remote_type_repl_helper( _Replacements=[
+	{ Src={ _ModuleMatch, SourceTypeMatch, _ArityMatch }, TargetModule } | T ],
+							 Table )
+  when is_atom( TargetModule ) ->
+
+	Replacement = { TargetModule, SourceTypeMatch },
+
+	% Up to one transformation per source type:
+	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	get_remote_type_repl_helper( T, NewTable );
+
+
+get_remote_type_repl_helper( _Replacements=[
+	{ Src={ _ModuleMatch, _SourceTypeMatch, _ArityMatch }, ReplaceFun } | T ],
+							Table )
+  when is_function( ReplaceFun ) ->
+
+	% Up to one transformation per source type:
+	NewTable = ?table:addNewEntry( Src, ReplaceFun, Table ),
+	get_remote_type_repl_helper( T, NewTable ).
+
+
+
+% Replaces local and remote types in specified located AST according to the two
+% specified tables.
+%
+-spec replace_types_in( located_ast(), ast_replacements() ) -> located_ast().
+replace_types_in( InputLocatedAST, Replacements ) ->
+
+	%display_debug( "Local type replacement table: ~s",
+	%	   [ ?table:toString( Replacements#ast_replacements.local_types ) ] ),
+
+	%display_debug( "Remote type replacement table: ~s",
+	%	   [ ?table:toString( Replacements#ast_replacements.remote_types ) ] ),
+
+	OutputLocatedAST = replace_types_helper( InputLocatedAST, Replacements,
+											 _Acc=[] ),
+
+	%display_debug( "AST after type replacement:~n~s",
+	%			   [ located_ast_to_string( OutputLocatedAST ) ] ),
+
+	OutputLocatedAST.
+
+
+replace_types_helper( _InputLocatedAST=[], _Replacements, Acc ) ->
+	Acc;
+
+replace_types_helper( _InputLocatedAST=[ { Loc, Form } | T ], Replacements,
+					  Acc ) ->
+	NewForm = replace_types_in_type_def( Form, Replacements ),
+	replace_types_helper( T, Replacements, [ { Loc, NewForm } | Acc ] ).
+
+
+
+
+replace_types_in_type_def( _Form={ attribute, Line, type,
+								   { TypeName, TypeDef, TypeVars } },
+						   Replacements ) ->
+
+	NewTypeDef = traverse_type( TypeDef, Replacements ),
+
+	NewTypeVars = [ traverse_type( Elem, Replacements ) || Elem <- TypeVars ],
+
+	%display_debug( "Translation of type definition:~n~p~nis:~n~p~nwith ~p.",
+	%			   [ TypeDef, NewTypeDef, NewTypeVars ] ),
+
+	{ attribute, Line, type, { TypeName, NewTypeDef, NewTypeVars } };
+
+
+
+replace_types_in_type_def( _Form={ attribute, Line, opaque,
+								   { TypeName, TypeDef, TypeVars } },
+						   Replacements ) ->
+
+	NewTypeDef = traverse_type( TypeDef, Replacements ),
+
+	NewTypeVars = [ traverse_type( Elem, Replacements ) || Elem <- TypeVars ],
+
+	%display_debug( "Translation of opaque type definition:~n~p~nis:~n~p~n"
+	%               "with ~p.", [ TypeDef, NewTypeDef, NewTypeVars ] ),
+
+	{ attribute, Line, opaque, { TypeName, NewTypeDef, NewTypeVars } };
+
+
+
+replace_types_in_type_def( _Form={ attribute, Line, record,
+								   { TypeName, Fields } },
+						   Replacements ) ->
+
+	NewFields = update_types_in_fields( Fields, Replacements ),
+
+	%display_debug( "Translation of record field definitions:~n~p~nis:~n~p~n.",
+	%               [ Fields, NewFields ] ),
+
+	{ attribute, Line, record, { TypeName, NewFields } };
+
+
+replace_types_in_type_def( UnexpectedForm, _Replacements ) ->
+	raise_error( { unexpected_typedef_form, UnexpectedForm } ).
+
+
+
+% Updates the types in known functions from specified function table, based on
+% specified replacements.
+%
+-spec update_types_in_functions( function_table(), ast_replacements() ) ->
+									   function_table().
+update_types_in_functions( FunctionTable, Replacements ) ->
+
+	FunIdInfoPairs = ?table:enumerate( FunctionTable ),
+
+	NewFunIdInfoPairs = [ { FunId, update_fun_info_for_types( FunInfo,
+															  Replacements ) }
+						  || { FunId, FunInfo } <- FunIdInfoPairs ],
+
+	?table:new( NewFunIdInfoPairs ).
+
+
+
+% Updates the types in the -spec fields, based on specified replacements.
+%
+update_fun_info_for_types( FunInfo=#function_info{ spec=undefined },
+						   _Replacements ) ->
+	FunInfo;
+
+update_fun_info_for_types( FunInfo=#function_info{ spec={ Loc, FunSpec } },
+						   Replacements ) ->
+
+	NewFunSpec = case FunSpec of
+
+		% Ex for '-spec f( type_a() ) -> type_b().':
+		% SpecList = [ {type,652,'fun',
+		%     [{type,652,product,[{user_type,652,type_a,[]}]},
+		%       {user_type,652,type_b,[]}]
+		%   } ]
+		{ attribute, Line, spec, { FunId, SpecList } } ->
+			%display_trace( "SpecList = ~p", [ SpecList ] ),
+			NewSpecList = [ update_spec( Spec, Replacements )
+							|| Spec <- SpecList ],
+			{ attribute, Line, spec, { FunId, NewSpecList } };
+
+		_ ->
+			raise_error( { unexpected_fun_spec, FunSpec } )
+
+	end,
+
+	FunInfo#function_info{ spec={ Loc, NewFunSpec } };
+
+
+update_fun_info_for_types( _FunInfo=#function_info{ spec=UnexpectedLocSpec },
+				  _Replacements ) ->
+	raise_error( { unexpected_located_fun_spec, UnexpectedLocSpec } ).
+
+
+
+% Updates the specified function specification.
+%
+update_spec( { type, Line, 'fun', ClausesSpecs },
+			 Replacements ) ->
+
+	NewClausesSpecs = update_clause_spec( ClausesSpecs, Replacements ),
+	{ type, Line, 'fun', NewClausesSpecs };
+
+update_spec( UnexpectedFunSpec, _Replacements ) ->
+	raise_error( { unexpected_fun_spec, UnexpectedFunSpec } ).
+
+
+
+update_clause_spec( [ { type, Line, product, ParamTypes }, ResultType ],
+					Replacements ) ->
+
+	NewParamTypes = [ traverse_type( ParamType, Replacements )
+					  || ParamType <- ParamTypes ],
+
+	NewResultType = traverse_type( ResultType, Replacements ),
+
+	[ { type, Line, product, NewParamTypes }, NewResultType ];
+
+update_clause_spec( UnexpectedClauseSpec, _Replacements ) ->
+	raise_error( { unexpected_clause_spec, UnexpectedClauseSpec } ).
+
+
+
+
+% Updates the types in specified record fields, based on specified replacements.
+%
+-spec update_types_in_fields( [ ast_field_description() ],
+					  ast_replacements() ) -> [ ast_field_description() ].
+update_types_in_fields( Fields, Replacements ) ->
+
+	%display_debug( "Input fields: ~p.", [ Fields ] ),
+
+	NewFields = [ update_types_in_field( F, Replacements ) || F <- Fields ],
+
+	%display_debug( "New fields: ~p.", [ NewFields ] ),
+
+	NewFields.
+
+
+
+-spec update_types_in_field( ast_field_description(), ast_replacements() ) ->
+								   ast_field_description().
+% Type specified, without or with a default value:
+update_types_in_field( _F={ typed_record_field,
+		   % { record_field, _Line1, { atom, _Line2, _FieldName } },
+		   %  - or -
+		   % { record_field, _Line1, { atom, _Line2, _FieldName },
+		   %		{ _ImmediateType, Line2, DefaultValue } }:
+		   RecordField,
+		   %{ type, Line3, TypeName, TypeVars } }:
+		   TypeDef },
+		   Replacements ) ->
+
+	NewTypeDef = traverse_type( TypeDef, Replacements ),
+
+	{ typed_record_field, RecordField, NewTypeDef };
+
+
+% No type and no default value specified:
+update_types_in_field( F={ record_field, _Line1,
+						   % { atom, Line2, FieldName }:
+						   _FieldNameDef },
+					   _Replacements) ->
+	F;
+
+% No type specified, yet with a default value:
+update_types_in_field( F={ record_field, _Line1,
+						   % { atom, Line2, FieldName }:
+						   _FieldNameDef,
+						   % { _ImmediateType, Line2, DefaultValue }:
+						   _DefaultValueDef },
+					   _Replacements ) ->
+	F;
+
+
+update_types_in_field( F, _Replacements ) ->
+	raise_error( { unexpected_record_field, F } ).
+
+
+
+
+% Traversing types.
+%
+% (records like #type, #user_type, could be used instead)
+%
+% (helper)
+%
+% Tuple type found:
+%
+traverse_type( _TypeDef={ type, Line, tuple, ElementTypes }, Replacements )
+  when is_list( ElementTypes ) ->
+	{ type, Line, tuple,
+	  [ traverse_type( Elem, Replacements ) || Elem <- ElementTypes ] };
+
+traverse_type( TypeDef={ type, _Line, tuple, any }, _Replacements ) ->
+	TypeDef;
+
+% List type found, ex:
+% {attribute,43,type,{foo6,{type,43,list,[{type,43,boolean,[]}]},[]}},
+traverse_type( _TypeDef={ type, Line, list, [ ElementType ] },
+			   Replacements ) ->
+	{ type, Line, list, [ traverse_type( ElementType, Replacements ) ] };
+
+% Other built-in type:
+traverse_type( _TypeDef={ type, Line, BuiltinType, TypeVars }, Replacements )
+  when is_list( TypeVars ) ->
+	NewTypeVars = [ traverse_type( Elem, Replacements ) || Elem <- TypeVars ],
+	{ type, Line, BuiltinType, NewTypeVars };
+
+% Local user type found:
+traverse_type( _TypeDef={ user_type, Line, TypeName, TypeVars },
+			   Replacements ) ->
+
+	TypeArity = length( TypeVars ),
+
+	NewTypeVars = [ traverse_type( Elem, Replacements ) || Elem <- TypeVars ],
+
+	Outcome = case Replacements#ast_replacements.local_types of
+
+		undefined ->
+			unchanged;
+
+		LocalReplaceTable ->
+
+			% Returning the new type information:
+			case ?table:lookupEntry( { TypeName, TypeArity },
+									 LocalReplaceTable ) of
+
+				% Module and type overridden:
+				{ value, E={ _NewModuleName, _NewTypeName } } ->
+					E;
+
+				% Same type, only module overridden:
+				% (never happens, as module always specified in table)
+				%{ value, NewModuleName } when is_atom( NewModuleName ) ->
+				%	{ NewModuleName, TypeName };
+
+				{ value, TransformFun } when is_function( TransformFun ) ->
+					TransformFun( TypeName, TypeArity );
+
+				key_not_found ->
+
+					% Maybe a wildcard arity was defined then?
+					case ?table:lookupEntry( { TypeName, _AnyArity='_' },
+											 LocalReplaceTable ) of
+
+						{ value, E={ _NewModuleName, _NewTypeName } } ->
+							E;
+
+						% Same type, only module overridden:
+						% (never happens)
+						%{ value, NewModuleName }
+						%    when is_atom( NewModuleName ) ->
+						%	{ NewModuleName, TypeName };
+
+						{ value, TransformFun }
+						  when is_function( TransformFun ) ->
+							TransformFun( TypeName, TypeArity );
+
+						key_not_found ->
+							% Nope, let it as it is:
+							unchanged
+
+					end
+
+			end
+
+	end,
+
+	case Outcome of
+
+		unchanged ->
+			% TypeDef with updated TypeVars:
+			{ user_type, Line, TypeName, NewTypeVars };
+
+		{ SetModuleName, SetTypeName } ->
+			ast_utils:forge_remote_type( SetModuleName, SetTypeName,
+										 NewTypeVars, Line )
+
+	end;
+
+
+% Remote user type found:
+traverse_type( _TypeDef={ remote_type, Line1,
+						 [ M={ atom, Line2, ModuleName },
+						   T={ atom, Line3, TypeName }, TypeVars ] },
+			   Replacements ) ->
+
+	TypeArity = length( TypeVars ),
+
+	NewTypeVars = [ traverse_type( Elem, Replacements ) || Elem <- TypeVars ],
+
+	% Returning the new type information:
+	Outcome = case Replacements#ast_replacements.remote_types of
+
+		undefined ->
+			unchanged;
+
+		RemoteReplaceTable ->
+			case ?table:lookupEntry( { ModuleName, TypeName, TypeArity },
+									   RemoteReplaceTable ) of
+
+				 % Module and type overridden:
+				{ value, E={ _NewModuleName, _NewTypeName } } ->
+					E;
+
+				 % Same type, only module overridden:
+				{ value, NewModuleName } when is_atom( NewModuleName ) ->
+					{ NewModuleName, TypeName };
+
+				{ value, TransformFun } when is_function( TransformFun ) ->
+					TransformFun( ModuleName, TypeName, TypeArity );
+
+				key_not_found ->
+
+					AnyArity = '_',
+
+					% Maybe a wildcard arity was defined for that type then?
+					case ?table:lookupEntry( { ModuleName, TypeName, AnyArity },
+											 RemoteReplaceTable ) of
+
+						{ value, E={ _NewModuleName, _NewTypeName } } ->
+							E;
+
+						 % Same type, only module overridden (never happens by
+						 % design):
+						 %{ value, NewModuleName }
+						 %        when is_atom( NewModuleName ) ->
+						 %    { NewModuleName, TypeName };
+
+						{ value, TransformFun }
+						  when is_function( TransformFun ) ->
+							TransformFun( ModuleName, TypeName, TypeArity );
+
+						key_not_found ->
+
+							% Nope, then maybe a wildcard type (and arity) then?
+							case ?table:lookupEntry( { ModuleName, _AnyType='_',
+											 AnyArity }, RemoteReplaceTable ) of
+
+								{ value, E={ _NewModuleName, _NewTypeName } } ->
+									E;
+
+								% Same type, only module overridden:
+								{ value, NewModuleName }
+								  when is_atom( NewModuleName ) ->
+									{ NewModuleName, TypeName };
+
+								{ value, TransformFun }
+								  when is_function( TransformFun ) ->
+									TransformFun( ModuleName, TypeName,
+												  TypeArity );
+
+								key_not_found ->
+									% Nope, let it as it is:
+									unchanged
+
+							end
+
+					end
+
+			end
+
+	end,
+
+	case Outcome of
+
+		unchanged ->
+			% TypeDef with updated TypeVars:
+			{ remote_type, Line1, [ M, T, NewTypeVars ] };
+
+		{ SetModuleName, SetTypeName } ->
+			ast_utils:forge_remote_type( SetModuleName, SetTypeName,
+										 NewTypeVars, Line1, Line2, Line3 )
+
+	end;
+
+
+% Annotated type, for example found in a record field like:
+%  pointDrag :: {X::integer(), Y::integer()}}
+%
+% Resulting then in:
+% {typed_record_field,
+%		   {record_field,342,{atom,342,pointDrag}},
+%		   {type,342,tuple,
+%			   [{ann_type,342,[{var,342,'X'},{type,342,integer,[]}]},
+%				{ann_type,342,
+%					[{var,342,'Y'},{type,342,integer,[]}]} ] }}
+traverse_type( _TypeDef={ ann_type, Line, [ Var, InternalTypeDef ] },
+			   Replacements ) ->
+
+	NewInternalTypeDef = traverse_type( InternalTypeDef, Replacements ),
+
+	{ ann_type, Line, [ Var, NewInternalTypeDef ] };
+
+
+% Variable declaration, possibly obtained through declarations like:
+% -type my_type( T ) :: other_type( T ).
+% or:
+% -opaque tree( T ) :: { T, [ tree(T) ] }.
+traverse_type( TypeDef={ var, _Line, _TypeName }, _Replacements ) ->
+	TypeDef;
+
+
+% Immediate values like {atom,42,undefined}, possibly obtained through
+% declarations like: -type my_type() :: integer() | 'undefined'.
+%
+traverse_type( TypeDef={ TypeName, _Line, _Value }, _Replacements ) ->
+	case lists:member( TypeName, type_utils:get_immediate_types() ) of
+
+		true ->
+			TypeDef;
+
+		false ->
+			raise_error( { unexpected_immediate_value, TypeDef } )
+
+	end;
+
+
+traverse_type( TypeDef, _Replacements ) ->
+	raise_error( { unhandled_typedef, TypeDef } ).
+
+
+
+
+
+
+
+%% Call replacement section.
+
+
+% Returns a table describing local call replacements.
+%
+% Ex: [ { { halt, 0 }, basic_utils },
+%       { { setAttributes, 1 }, { some_utils, set_attr } },
+%       % First clause will never match due to arity:
+%       { { '_', 3 }, fun( my_fun, 0 ) ->
+%                                   other_utils;
+%                        ( _, '_' ) ->
+%                                   {foo_utils,some_fun}
+%                     end }
+% ]
+%
+% will return a description of the transformation of:
+%
+%  - halt/0 into basic_utils:halt/0, as the same function name is implied there;
+%  it is just the addition (prefix) of a module, as a remote call
+%
+%  - setAttributes/1 into some_utils:set_attr/1
+%
+%  - my_fun/0 into other_utils:my_fun/0
+%
+%  - any call to a function of arity 3 by foo_utils:some_fun/3
+%
+-spec get_local_call_replacement_table(
+		[ { local_call_match(), call_replacement() } ] ) ->
+				local_call_replacement_table().
+get_local_call_replacement_table( Replacements ) ->
+	EmptyTable = ?table:new(),
+	get_local_call_repl_helper( Replacements, EmptyTable ).
+
+
+
+% (helper)
+get_local_call_repl_helper( _Replacements=[], Table ) ->
+	Table;
+
+% Replacement can be either { TargetModule, TargetFunctionName } or
+% TargetModule:
+%
+get_local_call_repl_helper( _Replacements=[
+		{ Src={ _SourceFunctionNameMatch, _ArityMatch },
+		  Replacement={ _TargetModule, _TargetFunctionName } } | T ], Table ) ->
+
+	% Up to one transformation per source function:
+	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	get_local_call_repl_helper( T, NewTable );
+
+% Same target function name here:
+get_local_call_repl_helper( _Replacements=[
+		{ Src={ SourceFunctionNameMatch, _ArityMatch }, TargetModule } | T ],
+							Table ) when is_atom( TargetModule ) ->
+
+	Replacement = { TargetModule, SourceFunctionNameMatch },
+
+	% Up to one transformation per source function:
+	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	get_local_call_repl_helper( T, NewTable );
+
+
+get_local_call_repl_helper(_Replacements=[
+		{ Src={ _SourceFunctionNameMatch, _ArityMatch }, ReplaceFun } | T ],
+						   Table ) when is_function( ReplaceFun ) ->
+
+	% Up to one transformation per source function:
+	NewTable = ?table:addNewEntry( Src, ReplaceFun, Table ),
+	get_local_call_repl_helper( T, NewTable ).
+
+
+
+% Returns a table describing remote call replacements.
+%
+% Ex: [ { { a_module, void, 0 }, basic_utils },
+%       { { a_module, my_maybe, 1 }, { basic_utils, maybe } },
+%       % First clause will never match due to arity:
+%       { { '_', '_', 3 }, fun( other_void, 0 ) ->
+%                                    other_utils;
+%                             ( _, '_' ) ->
+%                                   {foo_utils,some_type}
+%                     end }
+% ]
+%
+% will return a description of the transformation of:
+%
+%  - a_module:void() into basic_utils:void(), as the same type name is implied
+%  there; it is just the modification of the module used by a remote type
+%  - a_module:my_maybe(T) into basic_utils:maybe(T)
+%  - M:other_void() into M:other_utils()
+%  - any type of any module depending on three other types by
+%  foo_utils:some_type/3
+%
+-spec get_remote_call_replacement_table(
+		[ { remote_call_match(), call_replacement() } ] ) ->
+				remote_call_replacement_table().
+get_remote_call_replacement_table( Replacements ) ->
+	EmptyTable = ?table:new(),
+	get_remote_call_repl_helper( Replacements, EmptyTable ).
+
+
+% (helper)
+get_remote_call_repl_helper( _Replacements=[], Table ) ->
+	Table;
+
+% Replacement can be either { TargetModule, TargetFunctionName } or
+% TargetModule:
+%
+get_remote_call_repl_helper( _Replacements=[
+	{ Src={ _ModuleMatch, _SourceFunctionNameMatch, _ArityMatch },
+			Replacement={ _TargetModule, _TargetFunctionName } } | T ],
+							 Table ) ->
+
+	% Up to one transformation per source function:
+	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	get_remote_call_repl_helper( T, NewTable );
+
+% Same target function name here:
+get_remote_call_repl_helper( _Replacements=[
+	{ Src={ _ModuleMatch, SourceFunctionNameMatch, _ArityMatch },
+	  TargetModule } | T ], Table ) when is_atom( TargetModule ) ->
+
+	Replacement = { TargetModule, SourceFunctionNameMatch },
+
+	% Up to one transformation per source function:
+	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	get_remote_call_repl_helper( T, NewTable );
+
+
+get_remote_call_repl_helper( _Replacements=[
+	{ Src={ _ModuleMatch, _SourceFunctionNameMatch, _ArityMatch },
+	  ReplaceFun } | T ], Table ) when is_function( ReplaceFun ) ->
+
+	% Up to one transformation per source function:
+	NewTable = ?table:addNewEntry( Src, ReplaceFun, Table ),
+	get_remote_call_repl_helper( T, NewTable ).
+
+
+
+% Updates the calls in known functions from specified function table, based on
+% specified replacements.
+%
+-spec update_calls_in_functions( function_table(), ast_replacements() ) ->
+									   function_table().
+update_calls_in_functions( FunctionTable, Replacements ) ->
+
+	FunIdInfoPairs = ?table:enumerate( FunctionTable ),
+
+	NewFunIdInfoPairs = [ { FunId,
+							update_fun_info_for_calls( FunInfo, Replacements ) }
+						  || { FunId, FunInfo } <- FunIdInfoPairs ],
+
+	?table:new( NewFunIdInfoPairs ).
+
+
+
+% Updates the calls in the function definitions, based on specified
+% replacements.
+%
+update_fun_info_for_calls( FunInfo=#function_info{ definition=ClauseDefs },
+						   Replacements ) ->
+
+	% Top-level function clauses are apparently the same as 'case', 'receive',
+	% etc. clauses:
+	%
+	NewClauseDefs = [ traverse_expression( ClauseDef, Replacements )
+					  || ClauseDef <- ClauseDefs ],
+
+	FunInfo#function_info{ definition=NewClauseDefs }.
+
+
+
+
+
+
+% Traverses specified expression, operating relevant replacements (e.g. call
+% ones).
+%
+% Note: we used to traverse the AST recursively, "blindly", i.e. without
+% expecting the intended structure of AST elements (ex: the structure of a tuple
+% corresponding to a 'receive' statement).
+%
+% Now, for a more complete control, we match the AST against its intended
+% structure, as defined in http://erlang.org/doc/apps/erts/absform.html.
+%
+% Case expression found:
+traverse_expression( E={ 'case', Line, TestExpression, Clauses },
+					 Replacements ) ->
+
+	display_debug( "Intercepting case expression ~p...", [ E ] ),
+
+	NewTestExpression = traverse_expression( TestExpression, Replacements ),
+
+	NewClauses = [ traverse_expression( C, Replacements ) || C <- Clauses ],
+
+	Res = { 'case', Line, NewTestExpression, NewClauses },
+
+	display_debug( "... returning case expression ~p", [ Res ] ),
+	Res;
+
+
+
+% Remote call found, with an immediate name for both the module and the
+% function:
+%
+traverse_expression( E={ call, Line1, { remote, _Line2,
+			_M={ atom, _Line3, ModuleName }, _F={ atom, Line4, FunctionName } },
+			Params }, Replacements ) ->
+
+	display_debug( "Intercepting remote call ~p...", [ E ] ),
+
+	Arity = length( Params ),
+
+	% First recurses:
+	NewParams = [ traverse_expression( Param, Replacements )
+				  || Param <- Params ],
+
+	Outcome = case Replacements#ast_replacements.remote_calls of
+
+		undefined ->
+			unchanged;
+
+		RemoteReplaceTable ->
+
+			case ?table:lookupEntry( { ModuleName, FunctionName, Arity },
+									 RemoteReplaceTable ) of
+
+				{ value, E={ _NewModuleName, _NewFunctionName } } ->
+					E;
+
+				{ value, TransformFun } when is_function( TransformFun ) ->
+					TransformFun( FunctionName, Arity );
+
+				key_not_found ->
+
+					% Maybe a wildcard arity was defined then?
+					case ?table:lookupEntry(
+							{ ModuleName, FunctionName, _AnyArity='_' },
+							RemoteReplaceTable ) of
+
+						{ value, E={ _NewModuleName, _NewFunctionName } } ->
+							E;
+
+						% Same function name, only module overridden:
+						% (never happens)
+						%{ value, NewModuleName }
+						%       when is_atom( NewModuleName ) ->
+						%	{ NewModuleName, FunName };
+
+						{ value, TransformFun }
+						  when is_function( TransformFun ) ->
+							TransformFun( FunctionName, Arity );
+
+						key_not_found ->
+							% Maybe a wildcard function name was defined then?
+
+							% (note: the case of a wildcard function name and a
+							% set, actual arity is not deemed relevant)
+
+							case ?table:lookupEntry( { ModuleName,
+									   _AnyFunctionName='_', _AnyArity='_' },
+													 RemoteReplaceTable ) of
+
+								{ value,
+								  { NewModuleName, _NewFunctionName='_' } } ->
+									{ NewModuleName, FunctionName } ;
+
+								{ value,
+								  E={ _NewModuleName, _NewFunctionName } } ->
+									E;
+
+									% Same function name, only module
+									% overridden: (never happens)
+									%
+									%{ value, NewModuleName }
+									%       when is_atom( NewModuleName ) ->
+									%    { NewModuleName, FunName };
+
+								{ value, TransformFun }
+								  when is_function( TransformFun ) ->
+									TransformFun( FunctionName, Arity );
+
+								key_not_found ->
+									unchanged
+
+							end
+
+					end
+
+			end
+
+	end,
+
+	case Outcome of
+
+		unchanged ->
+			% Original expression, yet with updated parameters:
+			%Res = { call, Line1, { remote, Line2, M, F }, NewParams },
+			% Used for uniformity:
+			Res = ast_utils:forge_remote_call( ModuleName, FunctionName,
+											   NewParams, Line1, Line4 ),
+			display_debug( "... returning remote call (case R1) ~p", [ Res ] ),
+			Res;
+
+		{ SetModuleName, SetFunctionName } ->
+			Res = ast_utils:forge_remote_call( SetModuleName, SetFunctionName,
+											   NewParams, Line1, Line4 ),
+			display_debug( "... returning remote call (case R2) ~p", [ Res ] ),
+			Res
+
+	end;
+
+
+
+% Here, at least one name (module and/or function) is not immediate:
+%
+% (note: we do not manage yet the case where for example the function name
+% results from an expression yet a wildcard has been defined for it)
+%
+traverse_expression( _E={ call, Line1,
+						  { remote, Line2, ModuleExpr, FunctionExpr }, Params },
+					 Replacements ) ->
+
+	NewModuleExpr = traverse_expression( ModuleExpr, Replacements ),
+
+	NewFunctionExpr = traverse_expression( FunctionExpr, Replacements ),
+
+	NewParams = [ traverse_expression( Param, Replacements )
+				  || Param <- Params ],
+
+	% Cannot use ast_utils:forge_remote_call, we have not atoms:
+	%
+	Res = { call, Line1, { remote, Line2, NewModuleExpr, NewFunctionExpr },
+			NewParams },
+
+	display_debug( "... returning remote call (case R3) ~p", [ Res ] ),
+
+	Res;
+
+
+
+% Local call found:
+traverse_expression( E={ call, Line1, F={ atom, Line2, FunName }, Params },
+					 Replacements ) ->
+
+	display_debug( "Intercepting local call ~p...", [ E ] ),
+
+	Arity = length( Params ),
+
+	% First recurses:
+	NewParams = [ traverse_expression( Param, Replacements )
+				  || Param <- Params ],
+
+	Outcome = case Replacements#ast_replacements.local_calls of
+
+		undefined ->
+			unchanged;
+
+		LocalReplaceTable ->
+
+			case ?table:lookupEntry( { FunName, Arity }, LocalReplaceTable ) of
+
+				{ value, E={ _NewModuleName, _NewFunName } } ->
+					E;
+
+				{ value, TransformFun } when is_function( TransformFun ) ->
+					TransformFun( FunName, Arity );
+
+				key_not_found ->
+
+					% Maybe a wildcard arity was defined then?
+					case ?table:lookupEntry( { FunName, _AnyArity='_' },
+											 LocalReplaceTable ) of
+
+						{ value, E={ _NewModuleName, _NewFunName } } ->
+							E;
+
+						% Same function name, only module overridden: (never
+						% happens)
+						%{ value, NewModuleName }
+						%       when is_atom( NewModuleName ) ->
+						%	{ NewModuleName, FunName };
+
+						{ value, TransformFun }
+						  when is_function( TransformFun ) ->
+							TransformFun( FunName, Arity );
+
+						key_not_found ->
+							% Nope, let it as it is:
+							unchanged
+
+					end
+
+			end
+
+	end,
+
+	case Outcome of
+
+		unchanged ->
+			% Original expression yet with updated parameters:
+			Res={ call, Line1, F, NewParams },
+			display_debug( "... returning local call ~p", [ Res ] ),
+			Res;
+
+		{ SetModuleName, SetFunctionName } ->
+			Res = ast_utils:forge_remote_call( SetModuleName, SetFunctionName,
+											   NewParams, Line1, Line2 ),
+			display_debug( "... returning remote call ~p", [ Res ] ),
+			Res
+
+	end;
+
+
+
+% Match expression found:
+traverse_expression( E={ match, Line, LeftExpr, RightExpr }, Replacements ) ->
+
+	display_debug( "Intercepting match expression ~p...", [ E ] ),
+
+	NewLeftExpr = traverse_expression( LeftExpr, Replacements ),
+
+	NewRightExpr = traverse_expression( RightExpr, Replacements ),
+
+	Res = { match, Line, NewLeftExpr, NewRightExpr },
+
+	display_debug( "... returning match expression ~p", [ Res ] ),
+
+
+% Receive expression found:
+traverse_expression( E={ 'receive', Line, Clauses }, Replacements ) ->
+
+	display_debug( "Intercepting receive expression ~p...", [ E ] ),
+
+	NewClauses = [ traverse_expression( C, Replacements ) || C <- Clauses ],
+
+	Res = { 'receive', Line, NewClauses },
+
+	display_debug( "... returning receive expression ~p", [ Res ] ),
+
+	Res;
+
+
+% Clause (belonging to an expression such as top-level function clause, or
+% 'case', 'receive' clauses, etc.) found:
+%
+traverse_expression( Clause={ clause, Line, ValueExpr, Guards, ResultExpr },
+					  Replacements ) ->
+
+	display_debug( "Intercepting clause ~p...", [ Clause ] ),
+
+	% Rather complete, out of safety:
+
+	NewValueExpr = [ traverse_expression( E, Replacements ) || E <- ValueExpr ],
+
+	% Guard example: {call,102, {atom,102,is_integer}, [{var,102,'X'}]}
+	NewGuards = traverse_expression( Guards, Replacements ),
+
+	NewResultExpr = traverse_expression( ResultExpr, Replacements ),
+
+	Res = { clause, Line, NewValueExpr, NewGuards, NewResultExpr },
+
+	display_debug( "... returning clause ~p", [ Res ] ),
+
+	Res;
+
+
+% List of expressions found:
+%
+% (note: this clause may be removed in the future, once all AST elements will
+% have been specifically intercepted by a dedicated clause, and when the nature
+% of their elements will be established and thus traversed specifically, rather
+% than opening the possibility that each element may be a list)
+%
+traverse_expression( ExprList, Replacements ) when is_list( ExprList ) ->
+
+	display_debug( "Intercepting expression list ~p...", [ ExprList ] ),
+
+	NewExprList = [ traverse_expression( E, Replacements ) || E <- ExprList ],
+
+	display_debug( "... returning expression list ~p", [ NewExprList ] ),
+
+	NewExprList;
+
+
+
+% Other expression found:
+traverse_expression( E, _Replacements ) ->
+	display_debug( "Letting expression ~p as is.", [ E ] ),
+	E.
+
+
+
+
+
+
+
+
+
 
 
 
@@ -822,8 +1939,9 @@ function_info_to_string( #function_info{
 % is transformed in turn. If the transformed term is the same as the original
 % one, then that content will be shown as analysed twice.
 %
--spec traverse_term( term(), primitive_type_description(), term_transformer(),
-			 basic_utils:user_data() ) -> { term(), basic_utils:user_data() }.
+-spec traverse_term( term(), type_utils:primitive_type_description(),
+					 term_transformer(), basic_utils:user_data() ) ->
+						   { term(), basic_utils:user_data() }.
 
 % Here the term is a list and this is the type we want to intercept:
 traverse_term( TargetTerm, _TypeDescription=list, TermTransformer, UserData )
@@ -865,7 +1983,7 @@ traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData )
 %
 traverse_term( TargetTerm, TypeDescription, TermTransformer, UserData ) ->
 
-	case get_type_of( TargetTerm ) of
+	case type_utils:get_type_of( TargetTerm ) of
 
 		TypeDescription ->
 			TermTransformer( TargetTerm, UserData );
@@ -969,10 +2087,11 @@ term_to_form( Term ) ->
 
 % Converts a list of names of variables into the corresponding AST.
 %
-% Ex: variable_names_to_ast( [ "V1", "Alpha", "A" ], _Line=0 ) = [ {cons,0,
-% {var,0,'V1'}, {cons,0,{var,0,'Alpha'}, {cons,0,{var,0,'A'}, {nil,0} } } } ]
+% Ex: wanting to specify '[ V1, Alpha, A ]', we have: variable_names_to_ast( [
+% "V1", "Alpha", "A" ], _Line=0 ) = [ {cons,0, {var,0,'V1'},
+% {cons,0,{var,0,'Alpha'}, {cons,0,{var,0,'A'}, {nil,0} } } } ]
 %
--spec variable_names_to_ast( [ string() ], line() ) -> ast().
+-spec variable_names_to_ast( [ string() ], ast_utils:line() ) -> ast().
 variable_names_to_ast( VariableNames, Line ) ->
 
 	% Could be done directly recursively by incrementally 'consing' reversed
@@ -1002,7 +2121,7 @@ string_to_form( FormString ) ->
 % Ex: string_to_form( "f() -> hello_world.", 42 ) returns
 %   { function, 1, f, 0, [ { clause, 42, [], [], [ {atom,1,hello_world} ] } ] }
 %
--spec string_to_form( string(), file_loc() ) -> form().
+-spec string_to_form( string(), ast_utils:file_loc() ) -> form().
 string_to_form( FormString, Location ) ->
 
 	% First get Erlang tokens from that string:
@@ -1010,7 +2129,7 @@ string_to_form( FormString, Location ) ->
 
 		% Ex: [{atom,1,f},{'(',1},{')',1},{'->',1},{atom,1,hello_world},{dot,1}]
 		{ ok, Toks, _EndLocation } ->
-			%io:format( "Tokens: ~p~n", [ Toks ] ),
+			%display_debug( "Tokens: ~p", [ Toks ] ),
 			Toks;
 
 		ErrorTok ->
@@ -1052,7 +2171,7 @@ string_to_expressions( ExpressionString ) ->
 %   [ { cons, 42, { tuple, 42, [ {atom,42,a}, {integer,42,1} ] },
 %     { cons, 42, {atom,42,foobar}, {nil,42} } } ]
 %
--spec string_to_expressions( string(), file_loc() ) -> ast().
+-spec string_to_expressions( string(), ast_utils:file_loc() ) -> ast().
 string_to_expressions( ExpressionString, Location ) ->
 
 	% First get Erlang tokens from that string:
@@ -1061,7 +2180,7 @@ string_to_expressions( ExpressionString, Location ) ->
 		% Ex: [ {'[',42}, {'{',42}, {atom,42,a}, {',',42}, {integer,42,1},
 		% {'}',42}, {',',42}, {atom,42,foobar}, {']',42} ]
 		{ ok, Toks, _EndLocation } ->
-			%io:format( "Tokens: ~p~n", [ Toks ] ),
+			%display_debug( "Tokens: ~p", [ Toks ] ),
 			Toks;
 
 		ErrorTok ->
@@ -1135,16 +2254,16 @@ beam_to_ast( BeamFilename ) ->
 
 	% Everything:
 	%Chunks = [ abstract_code, attributes, compile_info, exports,
-	%		   labeled_exports, imports, indexed_imports, locals,
-	%		   labeled_locals, atoms ],
+	%			labeled_exports, imports, indexed_imports, locals,
+	%			labeled_locals, atoms ],
 
 	% Just the code AST:
 	Chunks = [ abstract_code ],
 
 	% Everything but the code AST:
 	% OtherChunks = [ attributes, compile_info, exports,
-	%		   labeled_exports, imports, indexed_imports, locals,
-	%		   labeled_locals, atoms ],
+	%				  labeled_exports, imports, indexed_imports, locals,
+	%				  labeled_locals, atoms ],
 
 	%Options = [ allow_missing_chunks ],
 	Options=[],
@@ -1153,7 +2272,7 @@ beam_to_ast( BeamFilename ) ->
 
 		{ ok, { _Module, [ { abstract_code, { _RawAbstractV1,
 											  AbstractCode } } ] } } ->
-			%io:format( "Module = ~p.~n", [ Module ] ),
+			%display_debug( "Module = ~p.", [ Module ] ),
 			AbstractCode;
 
 		{ error, beam_lib, Reason } ->
@@ -1166,11 +2285,15 @@ beam_to_ast( BeamFilename ) ->
 % Processes the specified AST relative to a whole module, and returns the
 % corresponding information gathered.
 %
+% Note: the extraction will probably fail (and stop any underlying parse
+% transform) should the corresponding, specified code not be able to compile (as
+% a rather precise linting is done).
+%
 -spec extract_module_info_from_ast( ast() ) -> module_info().
 extract_module_info_from_ast( AST ) ->
 
-	%io:format( "Processing following AST:~n~p~n", [ AST ] ),
-	%io:format( "Processing AST:~n" ),
+	%display_debug( "Processing following AST:~n~p", [ AST ] ),
+	%display_debug( "Processing AST:" ),
 
 	%write_ast_to_file( AST, "original-extracted-ast.txt" ),
 
@@ -1189,16 +2312,18 @@ extract_module_info_from_ast( AST ) ->
 	% respect the native display format of the error messages so that tools (ex:
 	% emacs, possible erlide and all) are still able to manage them.
 
-	pre_check_ast( AST ),
+	% Useless: would report pre-transform errors that would be solved after
+	% transformation (ex: void() not existing)
+	%pre_check_ast( AST ),
 
 	InitModuleInfo = init_module_info(),
 
-	ModuleInfo = process_ast( AST, InitModuleInfo, _InitialFormCounter=1 ),
+	ModuleInfo = process_ast( AST, InitModuleInfo ),
 
 	% Uncomment with care, as must ultimately depend *only* on non-bootstrapped
 	% modules (like {meta,text}_utils) - this should be the case here:
 	%
-	%io:format( "Resulting module information:~n~s~n",
+	%display_debug( "Resulting module information:~n~s",
 	%		   [ module_info_to_string( ModuleInfo ) ] ),
 
 	case ModuleInfo#module_info.unhandled_forms of
@@ -1211,8 +2336,8 @@ extract_module_info_from_ast( AST ) ->
 			UnHandledStrings = [ text_utils:format( "~p", [ Form ] )
 								 || { _Loc, Form } <- UnhandledForms ],
 
-			io:format( "Warning, ~B forms have not be handled: ~s",
-					   [ length( UnhandledForms ),
+			display_warning( "~B forms have not be handled: ~s",
+							 [ length( UnhandledForms ),
 						 text_utils:strings_to_string( UnHandledStrings ) ] )
 
 	end,
@@ -1225,37 +2350,48 @@ extract_module_info_from_ast( AST ) ->
 
 pre_check_ast( AST ) ->
 
-	%io:format( "~p~n", [ AST ] ),
+	%display_debug( "~p", [ AST ] ),
 
-	% Finally interpret_issue_reports/1 directly outputs the issues:
+	% Directly outputing the warnings or errors is generally useless; for
+	% example, in addition to:
+	%
+	%  simple_parse_transform_target.erl:68: type void() undefined
+	%
+	% We would get: [{"simple_parse_transform_target.erl",
+	%               [{68,erl_lint,{undefined_type,{void,0}}}]}]
+
+	% Finally interpret_issue_reports/1 directly used to output the issues;
+	% however some are legit (ex: 'type void() undefined'), so we must let them
+	% go through:
+	%
 	case erl_lint:module( AST ) of
 
 		{ ok, _Warnings=[] } ->
-			%io:format( "(no warning or error emitted)~n" ),
+			%display_trace( "(no warning or error emitted)~n" ),
 			ok;
 
 		{ ok, Warnings } ->
-			%io:format( "Warnings, reported as errors: ~s~n",
-			%		   [ interpret_issue_reports( Warnings ) ] ),
+			%display_error( "Warnings, reported as errors: ~p~n",
+			%		   [ Warnings ] ),
 			interpret_issue_reports( Warnings ),
-			exit( warning_reported );
+			%exit( warning_reported );
+			warning_reported;
 
 		{ error, Errors, _Warnings=[] } ->
-			%io:format( "Errors reported: ~s~n",
-			%		   [ interpret_issue_reports( Errors ) ] ),
+			%display_error( "Errors reported: ~p~n", [ Errors ] ),
 			interpret_issue_reports( Errors ),
-			exit( error_reported );
+			%exit( error_reported );
+			error_reported;
 
 		{ error, Errors, Warnings } ->
-			%io:format( "Errors reported: ~s~n",
-			%		   [ interpret_issue_reports( Errors ) ] ),
+			%display_error( "Errors reported: ~p~n", [ Errors ] ),
 			interpret_issue_reports( Errors ),
 
-			%io:format( "Warnings, reported as errors: ~s~n",
-			%		   [ interpret_issue_reports( Warnings ) ] ),
+			%display_error( "Warnings, reported as errors: ~p~n",
+			%		   [ Warnings ] ),
 			interpret_issue_reports( Warnings ),
-
-			exit( error_reported )
+			%exit( error_reported )
+			error_reported
 
 	end.
 
@@ -1263,44 +2399,52 @@ pre_check_ast( AST ) ->
 
 % Here all relevant parts of the specified AST (located forms) are matched in
 % turn, and stored in the specified module_info once located using
-% basic_utils:sortable_id/0 identifiers.
-%
-% Each of these initial sortable identifiers is here just a list of one integer,
-% a counter incremented at each form (see basic_utils:sortable_id/0 for the
-% description of these expandable identifiers).
+% id_utils:sortable_id/0 identifiers, which allows easy insertions and
+% reordering.
 
 
-% Module section:
+
+% Module handling:
 
 % Any lacking, invalid or duplicated module declaration will be caught by the
 % compiler anyway:
 %
--spec process_ast( located_ast(), module_info(), basic_utils:count() ) ->
+-spec process_ast( ast(), module_info() ) -> module_info().
+process_ast( AST, ModuleInfo ) ->
+	%display_debug( "Starting the AST processing..." ),
+	process_ast( AST, ModuleInfo, id_utils:get_initial_sortable_id() ).
+
+
+
+% (longer helper)
+%
+-spec process_ast( located_ast(), module_info(), id_utils:sortable_id() ) ->
 						 module_info().
+
+% Module handling:
 process_ast( _AST=[ Form={ attribute, _Line, module, ModuleName } | T ],
 			 W=#module_info{ module=undefined, module_def=undefined },
-			 FormCounter ) ->
+			 NextLocation ) ->
 
-	%io:format( " - module declaration for ~s~n", [ ModuleName ] ),
+	%display_debug( "module declaration for ~s", [ ModuleName ] ),
 
 	% When processing X.beam, we should not remove the lines like:
 	% {attribute,37,file,{"X.erl",37} as they allow to report errors
 	% appropriately.
 
-	LocForm = { _BasicLocation=[ FormCounter ], Form },
+	LocForm = { NextLocation, Form },
 
 	process_ast( T, W#module_info{ module=ModuleName, module_def=LocForm },
-				 FormCounter+1 );
+				 id_utils:get_next_sortable_id( NextLocation ) );
 
 
 
-% Include section:
-%
+% Include handling:
 process_ast( _AST=[ Form={ attribute, _Line, file, { Filename, _N } } | T ],
 			 W=#module_info{ includes=Inc, include_defs=IncDefs },
-			 FormCounter ) ->
+			 NextLocation ) ->
 
-	%io:format( " - file declaration with ~s~n", [ Filename ] ),
+	%display_debug( "file declaration with ~s", [ Filename ] ),
 
 	% We used to normalise paths, however then 'file_utils' would have to be
 	% bootstrapped as well, which does not seem desirable.
@@ -1320,107 +2464,221 @@ process_ast( _AST=[ Form={ attribute, _Line, file, { Filename, _N } } | T ],
 
 	end,
 
-	LocForm = { _BasicLocation=[ FormCounter ], Form },
+	LocForm = { NextLocation, Form },
 
 	process_ast( T, W#module_info{ includes=NewFilenames,
 								   include_defs=[ LocForm | IncDefs ] },
-				 FormCounter+1 );
+				 id_utils:get_next_sortable_id( NextLocation ) );
 
 
 
-% Type definition section:
-%
+% Type definition handling:
 process_ast( _AST=[ Form={ attribute, _Line, type,
 						   { TypeName, TypeDef, _SubTypeList } } | T ],
 			 W=#module_info{ type_definitions=TypeDefs,
 							 type_definition_defs=TypeDefsDefs },
-			 FormCounter ) ->
+			 NextLocation ) ->
 
-	%io:format( " - type declaration for ~p: ~p~n", [ TypeName, F ] ),
+	%display_debug( "(non-opaque) type declaration for ~p: ~p", [
+	%                                             TypeName, Form ] ),
 
-	LocForm = { _BasicLocation=[ FormCounter ], Form },
+	LocForm = { NextLocation, Form },
 
 	process_ast( T, W#module_info{
-				   type_definitions=[ { TypeName, TypeDef } | TypeDefs ],
+				   type_definitions=[ { TypeName, TypeDef, _IsOpaque=false }
+									  | TypeDefs ],
 				   type_definition_defs=[ LocForm | TypeDefsDefs ] },
-				 FormCounter+1 );
+				 id_utils:get_next_sortable_id( NextLocation ) );
+
+
+process_ast( _AST=[ Form={ attribute, _Line, opaque,
+						   { TypeName, TypeDef, _SubTypeList } } | T ],
+			 W=#module_info{ type_definitions=TypeDefs,
+							 type_definition_defs=TypeDefsDefs },
+			 NextLocation ) ->
+
+	%display_debug( "opaque type declaration for ~p: ~p", [ TypeName, Form ] ),
+
+	LocForm = { NextLocation, Form },
+
+	process_ast( T, W#module_info{
+				   type_definitions=[ { TypeName, TypeDef, _IsOpaque=true }
+									  | TypeDefs ],
+				   type_definition_defs=[ LocForm | TypeDefsDefs ] },
+				 id_utils:get_next_sortable_id( NextLocation ) );
 
 
 
-% Type export section:
-%
+% Type export handling:
 process_ast( _AST=[ Form={ attribute, _Line, export_type, DeclaredTypes } | T ],
 			 W=#module_info{ type_exports=TypeExports,
 							 type_export_defs=TypeExportDefs },
-			 FormCounter ) when is_list( DeclaredTypes ) ->
+			 NextLocation ) when is_list( DeclaredTypes ) ->
 
-	%io:format( " - export type declaration for ~p~n", [ DeclaredTypes ] ),
+	%display_debug( "export type declaration for ~p", [ DeclaredTypes ] ),
 
-	LocForm = { _BasicLocation=[ FormCounter ], Form },
+	LocForm = { NextLocation, Form },
 
 	process_ast( T, W#module_info{ type_exports= DeclaredTypes ++ TypeExports,
 								   type_export_defs=
 									   [ LocForm | TypeExportDefs ] },
-				 FormCounter+1 );
+				 id_utils:get_next_sortable_id( NextLocation ) );
 
 
 
-% Function export section:
-%
-process_ast( _AST=[ Form={ attribute, _Line, export, FunctionIds } | T ],
-			 W=#module_info{ function_exports=FunExports,
-							 functions=FunctionTable }, FormCounter ) ->
+% Function export handling:
+process_ast( _AST=[ _Form={ attribute, Line, export, FunctionIds } | T ],
+			 W=#module_info{ function_exports=ExportTable,
+							 functions=FunctionTable }, NextLocation ) ->
 
-	%io:format( " - export declaration for ~p~n", [ FunctionIds ] ),
+	%display_debug( "export declaration for ~p", [ FunctionIds ] ),
 
 	NewFunctionTable = lists:foldl(
 
 		fun( FunId={ Name, Arity }, FunTableAcc ) ->
 
-			 NewFunInfo = case ?table:lookupEntry( FunId, FunTableAcc ) of
+			NewFunInfo = case ?table:lookupEntry( FunId, FunTableAcc ) of
 
 				 key_not_found ->
 
-					  % New entry then:
-					  #function_info{
-						 name=Name,
-						 arity=Arity,
-						 % Implicit:
-						 %location=undefined
-						 %line=undefined
-						 %definition=[],
-						 %spec=undefined
-						 exported=true
-						};
+					% New entry then:
+					#function_info{ name=Name,
+									arity=Arity,
+									% Implicit:
+									%location=undefined
+									%line=undefined
+									%definition=[],
+									%spec=undefined
+									exported=[ NextLocation ] };
 
 				 % A function *might* be exported more than once:
 				 { value, FunInfo } -> % F=#function_info{ exported=false } } ->
-					  % Just add the fact that the function is exported then:
-					  FunInfo#function_info{ exported=true }
+					% Just add the fact that the function is exported then:
+					NewExp = [ NextLocation | FunInfo#function_info.exported ],
+					FunInfo#function_info{ exported=NewExp }
 
 			end,
 
 			?table:addEntry( FunId, NewFunInfo, FunTableAcc )
 
 		end,
-
 		_Acc0=FunctionTable,
 		_List=FunctionIds ),
 
-	LocForm = { _BasicLocation=[ FormCounter ], Form },
+	% Initially, exactly one export entry per location:
+	NewExportTable = ?table:addNewEntry( NextLocation, { Line, FunctionIds },
+										 ExportTable ),
 
 	process_ast( T, W#module_info{
-					  function_exports=[ LocForm | FunExports ],
-					  functions=NewFunctionTable }, FormCounter+1 );
+					  function_exports=NewExportTable,
+					  functions=NewFunctionTable },
+				 id_utils:get_next_sortable_id( NextLocation ) );
+
+
+% Record definition handling:
+process_ast( _AST=[ Form={ attribute, _Line, import,
+							{ ModuleName, FunIds } } | T ],
+			 W=#module_info{ function_imports=ImportTable,
+							 function_imports_defs=ImportDefs },
+					NextLocation ) ->
+
+	NewImportTable = ?table:appendListToEntry( ModuleName, FunIds,
+											   ImportTable ),
+
+	NewImportDefs = [ { NextLocation, Form } | ImportDefs ],
+
+	process_ast( T, W#module_info{ function_imports=NewImportTable,
+								   function_imports_defs=NewImportDefs },
+				 id_utils:get_next_sortable_id( NextLocation ) );
 
 
 
-% Function definition section:
-%
+% Compilation option handling:
+
+% Full inlining:
+process_ast( _AST=[ Form={ attribute, _Line, compile, inline } | T ],
+			 W=#module_info{ compilation_options=CompileTable,
+							 compilation_option_defs=CompileDefs },
+					NextLocation ) ->
+
+	NewCompileTable = ?table:appendListToEntry( inline, all, CompileTable ),
+
+	NewCompileDefs = [ { NextLocation, Form } | CompileDefs ],
+
+	process_ast( T, W#module_info{ compilation_options=NewCompileTable,
+								   compilation_option_defs=NewCompileDefs },
+				 id_utils:get_next_sortable_id( NextLocation ) );
+
+
+% Regular inlining:
+process_ast( _AST=[ Form={ attribute, _Line, compile,
+						   { inline, InlineOpts } } | T ],
+			 W=#module_info{ compilation_options=CompileTable,
+							 compilation_option_defs=CompileDefs },
+					NextLocation ) when is_list( InlineOpts ) ->
+
+	InlineOpt = case ?table:lookupEntry( inline, CompileTable ) of
+
+		{ value, all } ->
+			all;
+
+		{ value, InlineList } ->
+			InlineOpts ++ InlineList;
+
+		key_not_found ->
+			InlineOpts
+
+	end,
+
+	NewCompileTable = ?table:addEntry( inline, InlineOpt, CompileTable ),
+
+	NewCompileDefs = [ { NextLocation, Form } | CompileDefs ],
+
+	process_ast( T, W#module_info{ compilation_options=NewCompileTable,
+								   compilation_option_defs=NewCompileDefs },
+				 id_utils:get_next_sortable_id( NextLocation ) );
+
+
+process_ast( _AST=[ Form={ attribute, _Line, compile,
+							{ CompilationOption, Options } } | T ],
+			 W=#module_info{ compilation_options=CompileTable,
+							 compilation_option_defs=CompileDefs },
+					NextLocation ) ->
+
+	NewCompileTable = ?table:appendListToEntry( CompilationOption, Options,
+												CompileTable ),
+
+	NewCompileDefs = [ { NextLocation, Form } | CompileDefs ],
+
+	process_ast( T, W#module_info{ compilation_options=NewCompileTable,
+								   compilation_option_defs=NewCompileDefs },
+				 id_utils:get_next_sortable_id( NextLocation ) );
+
+
+% Record handling:
+
+process_ast( _AST=[ Form={ attribute, _Line, record,
+							{ RecordName, DescFields } } | T ],
+			 W=#module_info{ records=RecordTable,
+							 record_defs=RecordDefs },
+					NextLocation ) ->
+
+	FieldTable = process_field_descriptions( DescFields ),
+
+	NewRecordTable = ?table:addNewEntry( RecordName, FieldTable, RecordTable ),
+
+	NewRecordDefs = [ { NextLocation, Form } | RecordDefs ],
+
+	process_ast( T, W#module_info{ records=NewRecordTable,
+								   record_defs=NewRecordDefs },
+				 id_utils:get_next_sortable_id( NextLocation ) );
+
+
+% Function definition handling:
 process_ast( _AST=[ _Form={ function, Line, Name, Arity, Clauses } | T ],
-			 W=#module_info{ functions=FunctionTable }, FormCounter ) ->
+			 W=#module_info{ functions=FunctionTable }, NextLocation ) ->
 
-	%io:format( " - function definition for ~p:~p~n", [ Name, Arity ] ),
+	%display_debug( "function definition for ~p/~p", [ Name, Arity ] ),
 
 	% The non-first clauses could be checked as well:
 	%
@@ -1429,27 +2687,24 @@ process_ast( _AST=[ _Form={ function, Line, Name, Arity, Clauses } | T ],
 
 	FunId = { Name, Arity },
 
-	BasicLocation = [ FormCounter ],
-
 	FunInfo = case ?table:lookupEntry( FunId, FunctionTable ) of
 
 		key_not_found ->
-
 			% New entry then:
-			#function_info{
-			   name=Name,
-			   arity=Arity,
-			   location=BasicLocation,
-			   line=Line,
-			   definition=Clauses
-			   % Implicit:
-			   %spec=undefined
-			  };
+			#function_info{ name=Name,
+							arity=Arity,
+							location=NextLocation,
+							line=Line,
+							definition=Clauses
+							% Implicit:
+							%spec=undefined
+							%exported=[]
+						  };
 
 		{ value, F=#function_info{ definition=[] } } ->
 				% Already here because of an export; just add the missing
 				% information then:
-				F#function_info{ location=BasicLocation,
+				F#function_info{ location=NextLocation,
 								 line=Line,
 								 definition=Clauses };
 
@@ -1461,11 +2716,11 @@ process_ast( _AST=[ _Form={ function, Line, Name, Arity, Clauses } | T ],
 
 	NewFunctionTable = ?table:addEntry( _K=FunId, _V=FunInfo, FunctionTable ),
 
-	%io:format( "function ~s/~B with ~B clauses registered.~n",
-	%		   [ Name, Arity, length( Clauses ) ] ),
+	%display_debug( "function ~s/~B with ~B clauses registered.",
+	%			   [ Name, Arity, length( Clauses ) ] ),
 
 	process_ast( T, W#module_info{ functions=NewFunctionTable },
-				 FormCounter+1 );
+				 id_utils:get_next_sortable_id( NextLocation ) );
 
 
 
@@ -1474,28 +2729,24 @@ process_ast( _AST=[ Form={ attribute, _Line, spec, {
 											   FunId={ FunctionName, Arity },
 											   _SpecList } } | T ],
 			 W=#module_info{ functions=FunctionTable },
-			 FormCounter ) ->
+			 NextLocation ) ->
 
-	%io:format( " - spec definition for ~p:~p~n", [ FunctionName, Arity ] ),
+	%display_debug( "spec definition for ~p/~p", [ FunctionName, Arity ] ),
 
-	BasicLocation = [ FormCounter ],
-
-	LocatedSpec = { BasicLocation, Form },
+	LocatedSpec = { NextLocation, Form },
 
 	FunInfo = case ?table:lookupEntry( FunId, FunctionTable ) of
 
 		key_not_found ->
 
 			% New entry then:
-			#function_info{
-			   name=FunctionName,
-			   arity=Arity,
-			   % Implicit:
-			   %location=undefined,
-			   %line=undefined,
-			   %definition=[]
-			   spec=LocatedSpec
-			  };
+			#function_info{ name=FunctionName,
+							arity=Arity,
+							% Implicit:
+							%location=undefined,
+							%line=undefined,
+							%definition=[]
+							spec=LocatedSpec };
 
 		{ value, F=#function_info{ spec=undefined } } ->
 			% Just add the form then:
@@ -1509,50 +2760,48 @@ process_ast( _AST=[ Form={ attribute, _Line, spec, {
 
 	NewFunctionTable = ?table:addEntry( _K=FunId, _V=FunInfo, FunctionTable ),
 
-	%io:format( "spec for function ~s/~B registered.~n",
+	%display_debug( "spec for function ~s/~B registered.",
 	%		   [ FunctionName, Arity ] ),
 
 	process_ast( T, W#module_info{ functions=NewFunctionTable },
-				 FormCounter+1 );
+				 id_utils:get_next_sortable_id( NextLocation ) );
 
 
 
-% Other attribute section:
-%
+% Other attribute handling:
 process_ast( _AST=[ Form={ attribute, _Line, AttributeName, AttributeValue }
 					| T ],
-			 W=#module_info{ parse_attributes=Attributes,
+			 W=#module_info{ parse_attributes=ParseAttributeTable,
 							 parse_attribute_defs=AttributeDefs },
-			 FormCounter ) ->
+			 NextLocation ) ->
 
-	%io:format( " - attribute definition for ~p~n", [ AttributeName ] ),
+	%display_debug( "attribute definition for ~p", [ AttributeName ] ),
 
-	LocForm = { _BasicLocation=[ FormCounter ], Form },
+	LocForm = { NextLocation, Form },
 
 	process_ast( T, W#module_info{
-				   parse_attributes=[ { AttributeName, AttributeValue }
-									  | Attributes ],
+				   parse_attributes=?table:addEntry( AttributeName,
+										  AttributeValue, ParseAttributeTable ),
 				   parse_attribute_defs=[ LocForm | AttributeDefs ] },
-				 FormCounter+1 );
+				 id_utils:get_next_sortable_id( NextLocation ) );
 
 
 
 % We expect the module name to be known when ending the processing:
-%
 process_ast( _AST=[ _Form={ eof, _Line } ],
-			 Infos=#module_info{ module=undefined }, _FormCounter ) ->
+			 Infos=#module_info{ module=undefined }, _NextLocation ) ->
 	raise_error( { eof_while_no_module, Infos } );
 
 
 
 % Form expected to be defined once, and to be the last one:
-%
 process_ast( _AST=[ Form={ eof, _Line } ], W=#module_info{ last_line=undefined,
-							   module=Module, includes=Inc }, FormCounter ) ->
+							   module=Module, includes=Inc }, _NextLocation ) ->
 
-	%io:format( " - eof declaration at ~p~n", [ Line ] ),
+	%display_debug( "eof declaration at ~p", [ Line ] ),
 
-	LocForm = { _BasicLocation=[ FormCounter ], Form },
+	% Surely not wanting anything past it:
+	LocForm = { id_utils:get_sortable_id_upper_bound(), Form },
 
 	% End of file found, doing some housekeeping.
 
@@ -1599,25 +2848,23 @@ process_ast( _AST=[ Form={ eof, _Line } ], W=#module_info{ last_line=undefined,
 % (for some reason, the reported lines are incremented, we have to decrement
 % them)
 
-
 % Preprocessor (eep) errors:
-
 process_ast( _AST=[ _Form={ error,
 	   { Line, epp, { include, file, FileName } } } | _T ], _Infos,
-			 _FormCounter ) ->
+			 _NextLocation ) ->
 
 	raise_error( { include_file_not_found, FileName, { line, Line-1 } } );
 
 
 process_ast( _AST=[ _Form={ error,
 	   { Line, epp, { undefined, VariableName, none } } } | _T ], _Infos,
-			 _FormCounter ) ->
+			 _NextLocation ) ->
 
 	raise_error( { undefined_macro_variable, VariableName, { line, Line-1 } } );
 
 
 process_ast( _AST=[ _Form={ error, { Line, epp, Reason } } | _T ], _Infos,
-			 _FormCounter ) ->
+			 _NextLocation ) ->
 
 	raise_error( { preprocessing_failed, Reason, { line, Line-1 } } );
 
@@ -1626,8 +2873,7 @@ process_ast( _AST=[ _Form={ error, { Line, epp, Reason } } | _T ], _Infos,
 % Parser (erl_parse) errors:
 
 process_ast( _AST=[ _Form={ error, { Line, erl_parse, Reason } } | _T ],
-			 _Infos, _FormCounter ) ->
-
+			 _Infos, _NextLocation ) ->
 	raise_error( { parsing_failed, text_utils:format( Reason, [] ),
 			   { line, Line-1 } } );
 
@@ -1636,22 +2882,94 @@ process_ast( _AST=[ _Form={ error, { Line, erl_parse, Reason } } | _T ],
 %
 process_ast( _AST=[ Form | T ], W=#module_info{
 									 unhandled_forms=UnhandledForms },
-			 FormCounter ) ->
+			 NextLocation ) ->
 
-	% io:format( "WARNING: unhandled form '~p' not managed.~n", [ Form ] ),
+	% display_warning( "unhandled form '~p' not managed.~n", [ Form ] ),
 	% raise_error( { unhandled_form, Form } );
 
-	LocForm = { _BasicLocation=[ FormCounter ], Form },
+	LocForm = { NextLocation, Form },
 
 	NewUnhandledForms = [ LocForm | UnhandledForms ],
 
 	process_ast( T, W#module_info{ unhandled_forms=NewUnhandledForms },
-				 FormCounter+1 );
+				 id_utils:get_next_sortable_id( NextLocation ) );
 
 
-process_ast( _AST=[], Infos, _FormCounter ) ->
+process_ast( _AST=[], Infos, _NextLocation ) ->
 	raise_error( { no_eof_found, Infos } ).
 
+
+
+% Processes the fields of a given record.
+%
+-spec process_field_descriptions( [ ast_utils:ast_element() ] ) ->
+										field_table().
+process_field_descriptions( FieldDescriptions ) ->
+
+	FieldTable = ?table:new(),
+
+	process_field_descriptions( FieldDescriptions, FieldTable ).
+
+
+process_field_descriptions( _FieldDescriptions=[], FieldTable ) ->
+	FieldTable;
+
+
+% Here no type or default value are specified for that field:
+process_field_descriptions( _FieldDescriptions=[
+	   { record_field, _Line1, { atom, _Line2, FieldName } } | T ],
+							FieldTable ) ->
+	NewFieldTable = ?table:addNewEntry( FieldName,
+		  { _FieldType=undefined, _DefaultValue=undefined }, FieldTable ),
+	process_field_descriptions( T, NewFieldTable );
+
+% Here only a type is specified for that field:
+process_field_descriptions( _FieldDescriptions=[
+	   { typed_record_field,
+		  {record_field, _Line1, { atom, _Line2, FieldName } }, FieldType }
+												| T ], FieldTable ) ->
+	NewFieldTable = ?table:addNewEntry( FieldName,
+					  { FieldType, _DefaultValue=undefined }, FieldTable ),
+	process_field_descriptions( T, NewFieldTable );
+
+% Here only a default value is specified for that field:
+process_field_descriptions( _FieldDescriptions=[
+	   { record_field, _Line1, { atom, _Line2, FieldName }, DefaultValue }
+												| T ], FieldTable ) ->
+	NewFieldTable = ?table:addNewEntry( FieldName,
+		  { _FieldType=undefined, DefaultValue }, FieldTable ),
+	process_field_descriptions( T, NewFieldTable );
+
+% Here a type and a default, immediate value are specified for that field:
+process_field_descriptions( _FieldDescriptions=[
+	   { typed_record_field,
+		  { record_field, _Line1,
+		   { atom, _Line2, FieldName }, DefaultValue }, FieldType }
+												| T ], FieldTable ) ->
+	NewFieldTable = ?table:addNewEntry( FieldName, { FieldType, DefaultValue },
+										FieldTable ),
+	process_field_descriptions( T, NewFieldTable );
+
+
+process_field_descriptions( _FieldDescriptions=[ UnexpectedDesc | _T ],
+							_FieldTable ) ->
+	throw( { unexpected_field_description, UnexpectedDesc } ).
+
+
+
+% Returns a textual description of the specified located AST.
+%
+% Note: relies on text_utils.
+%
+-spec located_ast_to_string( located_ast() ) -> text_utils:string().
+located_ast_to_string( AST ) ->
+
+	% Raw, not sorted on purpose:
+	Strings = [ text_utils:format( "at ~s: ~p",
+					[ id_utils:sortable_id_to_string( Loc ), Form ] )
+				|| { Loc, Form } <- AST ],
+
+	text_utils:strings_to_string( Strings ).
 
 
 
@@ -1661,90 +2979,168 @@ process_ast( _AST=[], Infos, _FormCounter ) ->
 -spec recompose_ast_from_module_info( module_info() ) -> ast().
 recompose_ast_from_module_info( #module_info{
 
-			% Between parentheses: fields unused here
+			% Between parentheses: fields unused here, hence not bound.
+
+			% Note: one should regularly check that all relevant fields of
+			% module_info() are indeed read here, so that they are reinjected
+			% indeed in the output AST.
 
 			% (module)
 			module_def=ModuleDef,
+
+			% (compilation_options)
 			compilation_option_defs=CompileOptDefs,
+
 			% (parse_attributes)
 			parse_attribute_defs=ParseAttributeDefs,
+
 			% (includes)
 			include_defs=IncludeDefs,
+
 			% (type_definitions)
 			type_definition_defs=TypeDefsDefs,
+
 			% (type_exports)
 			type_export_defs=TypeExportsDefs,
-			function_exports=FunctionExports,
+
+			% (records)
+			record_defs=RecordDefs,
+
+			% (function_imports)
+			function_imports_defs=ImportDefs,
+
+			function_exports=ExportTable,
+
 			% The main part of the AST:
 			functions=Functions,
+
 			last_line=LastLineDef,
+
 			unhandled_forms=UnhandledForms
 
 								  } ) ->
 
-	FunctionDefs = get_located_forms_of_functions( Functions ),
+	ExportInfos = ?table:enumerate( ExportTable ),
 
-	% All these definitions are located:
-	UnorderedLocatedAST = [ ModuleDef, LastLineDef | TypeExportsDefs
-							++ TypeDefsDefs
-							++ FunctionExports
-							++ ParseAttributeDefs
+	%display_debug( "ExportInfos = ~p", [ ExportInfos ] ),
+
+	ExportLocDefs = [ { Loc, { attribute, Line, export, FunIds } }
+				   || { Loc, { Line, FunIds } } <- ExportInfos ],
+
+	FunctionDefs = get_located_forms_for_functions( Functions ),
+
+	% All these definitions are located, yet we start from a sensible order so
+	% that inserted forms do not end up in corner cases:
+	%
+	% (order does not really matter thanks to explicit locations)
+	%
+	UnorderedLocatedAST = [ ModuleDef |
+							   ParseAttributeDefs
+							++ ExportLocDefs
 							++ IncludeDefs
+							++ ImportDefs
 							++ CompileOptDefs
+							++ RecordDefs
+							++ TypeDefsDefs
+							++ TypeExportsDefs
 							++ FunctionDefs
-							++ UnhandledForms ],
+							++ [ LastLineDef | UnhandledForms ] ],
 
-	% As the order of forms matters, we sort them according to their location:
-	OrderedLocatedAST = lists:keysort( _LocIndex=1, UnorderedLocatedAST ),
+	%display_debug( "Unordered located AST:~n~p~n", [ UnorderedLocatedAST ] ),
 
-	OrderedAST = [ Form || { _Location, Form } <- OrderedLocatedAST ],
+	OrderedAST = get_ordered_ast_from( UnorderedLocatedAST ),
 
-	%io:format( "Recomposed AST:~n~p~n", [ OrderedAST ] ),
+	%display_debug( "Recomposed AST:~n~p~n", [ OrderedAST ] ),
 
 	OrderedAST.
 
 
 
-
-% Returns a list of the located forms corresponding to all the functions
-% (definition and spec) described in the specified table.
+% Returns a pair made of:
 %
--spec get_located_forms_of_functions ( ?table:?table() ) -> ast().
-get_located_forms_of_functions( FunctionTable ) ->
+% - an export-related table whose keys are locations of export attributes and
+% whose values are lists of function identifiers that shall be declared there
+% for export)
+%
+% - a list of the located forms corresponding to all the functions definition
+% and spec that are described in the specified function table.
+%
+-spec get_located_forms_for_functions( ?table:?table() ) -> [ located_form() ].
+get_located_forms_for_functions( FunctionTable ) ->
 
 	% Dropping the keys (function_id(), i.e. function identifiers), focusing on
 	% function_info():
 	%
 	FunInfos = ?table:values( FunctionTable ),
 
-	lists:foldl( fun( FunInfo, ASTAcc ) ->
-						 get_forms_for_fun( FunInfo ) ++ ASTAcc
+	lists:foldl( fun( #function_info{ name=Name,
+									  arity=Arity,
+									  location=Location,
+									  line=Line,
+									  definition=Clauses,
+									  spec=MaybeSpec }, Acc ) ->
+
+						 FunForm = { Location,
+									 { function, Line, Name, Arity, Clauses } },
+
+						 case MaybeSpec of
+
+							 undefined ->
+								 [ FunForm | Acc ];
+
+							 LocSpecForm ->
+								 [ LocSpecForm, FunForm | Acc ]
+
+						 end
+
 				 end,
 				 _Acc0=[],
 				 _List=FunInfos ).
 
 
 
-% Returns an AST corresponding to specified function information.
+% Returns an (ordered, with no location information) AST from the specified
+% unordered, located AST.
 %
--spec get_forms_for_fun( function_info() ) -> ast().
-get_forms_for_fun( #function_info{
-					name=Name,
-					arity=Arity,
-					location=Location,
-					line=Line,
-					definition=Clauses,
-					spec=undefined } ) ->
-	[ { Location, { function, Line, Name, Arity, Clauses } } ];
+-spec get_ordered_ast_from( located_ast() ) -> ast().
+get_ordered_ast_from( UnorderedLocatedAST ) ->
 
-get_forms_for_fun( #function_info{
-					name=Name,
-					arity=Arity,
-					location=Location,
-					line=Line,
-					definition=Clauses,
-					spec=LocSpec } ) ->
-	[ LocSpec, { Location, { function, Line, Name, Arity, Clauses } } ].
+	% First pass: we replace any 'auto_located' location by an actual position
+	% just after the current one (collisions are allowed):
+	%
+	FullyLocatedAST = locate_all_in( UnorderedLocatedAST,
+						id_utils:get_initial_sortable_id(), _Acc=[] ),
+
+	% We then sort form according to their recorded location:
+	OrderedLocatedAST = lists:keysort( _LocIndex=1, FullyLocatedAST ),
+
+	% One of the most useful view of output:
+	display_debug( "Ordered located AST:~n~s~n",
+				   [ located_ast_to_string( OrderedLocatedAST ) ] ),
+
+	% And then we remove that information once sorted, returning an ordered,
+	% unlocated AST:
+	%
+	[ Form || { _Location, Form } <- OrderedLocatedAST ].
+
+
+
+locate_all_in( _LocatedForms=[], _CurrentSortId, Acc ) ->
+	% Order does not matter anymore:
+	Acc;
+
+locate_all_in( _LocatedForms=[ { _Loc=auto_located, Form } | T ], CurrentSortId,
+			   Acc ) ->
+	% Better than get_next_sortable_id/1 to ensure grouped with previous:
+	NewSortId = id_utils:get_higher_next_depth_sortable_id( CurrentSortId ),
+	locate_all_in( T, NewSortId, [ { NewSortId, Form } | Acc ] );
+
+locate_all_in( _LocatedForms=[ LocForm={ ActualLoc, _Form } | T ],
+			   _CurrentSortId, Acc ) ->
+	locate_all_in( T, ActualLoc, [ LocForm | Acc ] ).
+
+
+
 
 
 
@@ -1784,7 +3180,7 @@ check_module_info( #module_info{ last_line=undefined } ) ->
 
 
 check_module_info( ModuleInfo=#module_info{ unhandled_forms=[] } ) ->
-	%io:format( "Checking AST.~n" ),
+	%display_debug( "Checking AST." ),
 	check_module_parse( ModuleInfo ),
 	check_module_include( ModuleInfo ),
 	check_module_type_definition( ModuleInfo ),
@@ -1802,18 +3198,23 @@ check_module_info( #module_info{ unhandled_forms=UnhandledForms } ) ->
 % Helper to check module parsed attributes.
 %
 check_module_parse( #module_info{
-						 parse_attributes=ParseAttributes,
+						 parse_attributes=ParseAttributeTable,
 						 parse_attribute_defs=ParseAttributeDefs } ) ->
 
-	Len = length( ParseAttributes ),
+	Len = ?table:size( ParseAttributeTable ),
 
 	case length( ParseAttributeDefs ) of
 
 		Len ->
 			ok;
 
-		_ ->
-			raise_error( { parse_attribute_mismatch, ParseAttributes,
+		FormCount ->
+			display_error( "Inconsistent parse attribute state: table "
+						   "of ~B entries: ~s~nvs ~B forms:~n~p~n.",
+						   [ Len, ?table:toString( ParseAttributeTable ),
+							 FormCount, ParseAttributeDefs ] ),
+			raise_error( { parse_attribute_mismatch,
+						   ?table:enumerate( ParseAttributeTable ),
 						   ParseAttributeDefs } )
 
 	end.
@@ -1862,9 +3263,8 @@ check_module_type_definition( #module_info{
 
 % Helper to check module type exports.
 %
-check_module_export( #module_info{
-						 type_exports=TypeExports,
-						 type_export_defs=TypeExportDefs } ) ->
+check_module_export( #module_info{ type_exports=TypeExports,
+								   type_export_defs=TypeExportDefs } ) ->
 
 	Len = length( TypeExports ),
 
@@ -1919,21 +3319,25 @@ check_function( FunId, _FunInfo=#function_info{
 -spec module_info_to_string( module_info() ) -> text_utils:ustring().
 module_info_to_string( #module_info{
 						 module=Module,
-						 module_def={ _, ModuleDef },
-						 compilation_option_defs=CompileOptDefs,
-						 parse_attributes=ParseAttributes,
-						 parse_attribute_defs=ParseAttributeDefs,
+						 module_def={ _, _ModuleDef },
+						 compilation_options=CompileTable,
+						 compilation_option_defs=_CompileOptDefs,
+						 parse_attributes=ParseAttributeTable,
+						 parse_attribute_defs=_ParseAttributeDefs,
 						 includes=Includes,
-						 include_defs=IncludeDefs,
+						 include_defs=_IncludeDefs,
 						 type_definitions=TypeDefs,
-						 type_definition_defs=TypeDefsDefs,
+						 type_definition_defs=_TypeDefsDefs,
 						 type_exports=TypeExports,
-						 type_export_defs=TypeExportDefs,
-						 function_exports=FunctionExports,
+						 type_export_defs=_TypeExportDefs,
+						 records=RecordTable,
+						 record_defs=_RecordDefs,
+						 function_imports=FunImportTable,
+						 function_imports_defs=_FunImportDefs,
+						 function_exports=_FunctionExports,
 						 functions=Functions,
 						 last_line=LastLine,
-						 unhandled_forms=UnhandledForms
-						} ) ->
+						 unhandled_forms=UnhandledForms } ) ->
 
 	FunctionStrings = [ io_lib:format( "~s",
 									   [ function_info_to_string( Info ) ] )
@@ -1950,75 +3354,224 @@ module_info_to_string( #module_info{
 	end,
 
 	% To mark an additional offset for the sublists:
-	Bullet = "   * ",
+	NextIndentationLevel = 1,
 
 	UnhandledString = case UnhandledForms of
 
 		[] ->
-			"(no unhandled form)";
+			"all forms handled";
 
 		_ ->
 			UnhandledStrings = [ text_utils:format( "~p", [ Form ] )
 								 || { _Loc, Form } <- UnhandledForms ],
 
-			text_utils:format( "~B unhandled forms: ~s",
+			text_utils:format( "~B unhandled forms:~s",
 							   [ length( UnhandledForms ),
 								 text_utils:strings_to_string( UnhandledStrings,
-															   Bullet ) ] )
+											NextIndentationLevel ) ] )
 	end,
+
+	% Commented-out: the raw terms that correspond to the higher-level form
+	% output just above.
+
+	ParseAttributes = ?table:enumerate( ParseAttributeTable ),
 
 	Infos = [
 
-			  text_utils:format( "module: ~p~n", [ Module ] ),
-			  text_utils:format( "module definition: ~p~n", [ ModuleDef ] ),
+			%text_utils:format( "module name: '~s'", [ Module ] ),
+			%text_utils:format( "module definition: ~p~n", [ ModuleDef ] ),
 
-			  text_utils:format( "~B compile option definitions: ~p~n",
-								 [ length( CompileOptDefs ),
-								   [ C || { _, C } <- CompileOptDefs ] ] ),
+			case ?table:enumerate( CompileTable ) of
 
-			  text_utils:format( "~B parse attributes: ~p~n",
-								 [ length( ParseAttributes ),
-								   ParseAttributes ] ),
+				[] ->
+					"no compile option defined";
 
-			  text_utils:format( "parse attribute definitions: ~p~n",
-								 [ [ P || { _, P } <- ParseAttributeDefs ] ] ),
+				CompileOpts ->
+					CompStrings = [ text_utils:format( "for option '~s': ~p",
+													   [ OptName, OptValue ] )
+									|| { OptName, OptValue } <- CompileOpts ],
+					text_utils:format( "~B compile options defined: ~s~n",
+						   [ length( CompileOpts ),
+							 text_utils:strings_to_string( CompStrings ) ] )
 
-			  text_utils:format( "~B actual includes: ~p~n",
-								 [ length( Includes ), Includes ] ),
+			end,
 
-			  text_utils:format( "include definitions: ~p~n",
-								 [ [ I || { _, I } <- IncludeDefs ] ] ),
+			 % Like: -foo( bar ).
+			case ParseAttributes of
 
-			  text_utils:format( "~B type definitions: ~p~n",
-								 [ length( TypeDefs ), TypeDefs ] ),
+				[] ->
+					"no parse attribute defined";
 
-			  text_utils:format( "type definitions: ~p~n",
-								 [ [ T || { _, T } <- TypeDefsDefs ] ] ),
+				_ ->
+					ParseAttrString = text_utils:strings_to_sorted_string( [
+							text_utils:format( "attribute '~s' set to: '~p'",
+											   [ AttrName, AttrValue ] )
+							 || { AttrName, AttrValue } <- ParseAttributes ],
+							 NextIndentationLevel ),
 
-			  text_utils:format( "~B type exports: ~p~n",
-								 [ length( TypeExports ), TypeExports ] ),
+					text_utils:format( "~B parse attributes defined:~s",
+									   [ length( ParseAttributes ),
+										 ParseAttrString ] )
 
-			  text_utils:format( "type export definitions: ~p~n",
-								 [ [ E || { _, E } <- TypeExportDefs ] ] ),
+			end,
 
-			  text_utils:format( "~B function export definitions: ~p~n",
-								 [ length( FunctionExports ),
-								   [ F || { _, F } <- FunctionExports ] ] ),
+			%text_utils:format( "parse attribute definitions: ~p~n",
+			%				   [ [ P || { _, P } <- ParseAttributeDefs ] ] ),
 
-			  text_utils:format( "~B functions: ~s~n",
-								 [ length( FunctionStrings ),
-								   text_utils:strings_to_string(
-									 FunctionStrings, Bullet ) ] ),
+			case Includes of
 
-			  text_utils:format( "line count: ~s~n", [ LastLineString ] ),
+				[] ->
+					"no file included";
 
-			  UnhandledString
+				_ ->
+					IncludeString = text_utils:strings_to_sorted_string( [
+							text_utils:format( "'~s' included", [ Inc ] )
+									   || Inc <- Includes ],
+									   NextIndentationLevel ),
+					text_utils:format( "~B includes specified:~s",
+									   [ length( Includes ), IncludeString ] )
 
-			  ],
+			end,
 
-	text_utils:format( "Information about module '~s':~n~s",
+			%text_utils:format( "include definitions: ~p~n",
+			%					 [ [ I || { _, I } <- IncludeDefs ] ] ),
+
+			case TypeDefs of
+
+				[] ->
+					"no type defined";
+
+				_ ->
+					TypeDefString = text_utils:strings_to_sorted_string( [
+							begin
+								VisibleString = case IsOpaque of
+
+									true ->
+										"opaque";
+
+									false ->
+										""
+
+								end,
+								text_utils:format(
+								  "~s type '~s' defined as: ~p",
+								  [ VisibleString, Type, Def ] )
+
+							end || { Type, Def, IsOpaque } <- TypeDefs ],
+							NextIndentationLevel ),
+
+
+					text_utils:format( "~B types defined:~s",
+									   [ length( TypeDefs ), TypeDefString ] )
+
+			end,
+
+			%text_utils:format( "type definitions: ~p~n",
+			%				   [ [ T || { _, T } <- TypeDefsDefs ] ] ),
+
+
+			case TypeExports of
+
+				[] ->
+					"no type exported";
+
+				_ ->
+					TypeExpString = text_utils:strings_to_sorted_string( [
+							text_utils:format( "~s/~B", [ Type, TypeArity ] )
+									   || { Type, TypeArity } <- TypeExports ],
+									   NextIndentationLevel ),
+					text_utils:format( "~B type exports:~s",
+								   [ length( TypeExports ), TypeExpString ] )
+
+			end,
+
+			 %text_utils:format( "type export definitions: ~p~n",
+			 %				   [ [ E || { _, E } <- TypeExportDefs ] ] ),
+
+			 case ?table:enumerate( RecordTable ) of
+
+				[] ->
+					 "no record declared";
+
+				RecordEntries ->
+					 RecordString = text_utils:strings_to_sorted_string( [
+
+						begin
+
+							FieldStrings = fields_to_strings( FieldTable ),
+
+							FieldString = text_utils:strings_to_string(
+										FieldStrings, NextIndentationLevel+1 ),
+
+							text_utils:format(
+							  "record '~s' having ~B fields:~s",
+							  [ RecordName, length( FieldStrings ),
+								FieldString ] )
+
+						end || { RecordName, FieldTable } <- RecordEntries ],
+						NextIndentationLevel ),
+					 text_utils:format( "~B records defined:~s",
+								   [ length( RecordEntries ), RecordString ] )
+
+			 end,
+
+			 case ?table:enumerate( FunImportTable ) of
+
+				 [] ->
+					 "no function imported";
+
+				 ImportEntries ->
+					 ImpString = text_utils:strings_to_sorted_string(
+					   [ text_utils:format( "from module '~s': ~p",
+							[ ModName, FunIds ] )
+						 || { ModName, FunIds } <- ImportEntries ] ),
+					 text_utils:format(
+					   "Function imports declared from ~B modules: ~s",
+					   [ length( ImportEntries ), ImpString ] )
+
+			 end,
+
+			 %text_utils:format( "~B function export definitions: ~p~n",
+			 %					[ length( FunctionExports ),
+			 %					  [ F || { _, F } <- FunctionExports ] ] ),
+
+			 case FunctionStrings of
+
+				 [] ->
+					 "no function defined";
+
+				 _ ->
+					 text_utils:format( "~B functions defined:~s",
+										[ length( FunctionStrings ),
+										  text_utils:strings_to_string(
+											FunctionStrings,
+											NextIndentationLevel ) ] )
+
+			 end,
+
+			 text_utils:format( "line count: ~s", [ LastLineString ] ),
+
+			 UnhandledString
+
+			],
+
+	text_utils:format( "Information about module '~s':~s",
 					   [ Module, text_utils:strings_to_string( Infos ) ] ).
 
+
+
+% Returns a list of textual representation for each of the record fields in
+% specified table.
+%
+-spec fields_to_strings( field_table() ) -> [ text_utils:string() ].
+fields_to_strings( FieldTable ) ->
+
+	FieldEntries = ?table:enumerate( FieldTable ),
+
+	[ text_utils:format( "field '~s' described as ~p, "
+						 "and having for default value ~p",
+						 [ FieldName, FieldType, DefaultValue ] )
+	  || { FieldName, { FieldType, DefaultValue } } <- FieldEntries ].
 
 
 
@@ -2038,6 +3591,27 @@ write_ast_to_file( AST, Filename ) ->
 	[ ok = file:write( File, io_lib:format( "~p~n", [ F ] )  ) || F <- AST ],
 
 	ok = file:close( File ).
+
+
+
+% Writes specified module_info record into specified (text) file.
+%
+% Useful for example to determine faulty transformations.
+%
+-spec write_module_info_to_file( module_info(), file_utils:file_name() ) ->
+							   basic_utils:void().
+write_module_info_to_file( ModuleInfo, Filename ) ->
+
+	% Note: we cannot actually use file_utils, which is not a prerequisite of
+	% the 'Common' parse transform:
+
+	% We overwrite any pre-existing file:
+	{ ok, File } = file:open( Filename, [ write, raw ] ),
+
+	ok = file:write( File, module_info_to_string( ModuleInfo ) ),
+
+	ok = file:close( File ).
+
 
 
 
@@ -2062,7 +3636,7 @@ write_ast_to_file( AST, Filename ) ->
 raise_error( ErrorTerm ) ->
 
 	%throw( ErrorTerm )
-	%io:format( "~n~n*** Error:~n~p.~n", [ ErrorTerm ] ),
+	%display_error( "~p", [ ErrorTerm ] ),
 
 	% Does not add any information (just non-relevant erl_parse, epp
 	% etc. state):
@@ -2083,7 +3657,7 @@ raise_error( ErrorTerm ) ->
 % compiled.
 %
 -spec get_error_form( basic_utils:error_reason(), basic_utils:module_name(),
-					  line() ) -> form().
+					  ast_utils:line() ) -> form().
 get_error_form( ErrorTerm, FormatErrorModule, Line ) ->
 
 	% Actually the most standard way of reporting an error seems to insert a
@@ -2106,7 +3680,7 @@ get_error_form( ErrorTerm, FormatErrorModule, Line ) ->
 % This function (whose name is standard, conventional) is to be defined on a
 % per-module basis (typically in the module defining the parse transform being
 % applied) and allows to convert error terms (that are, here, related to
-% parse-transforms) into textual messages that can output by the build chain.
+% parse-transforms) into textual messages that can be output by the build chain.
 %
 -spec format_error( basic_utils:error_reason() ) -> string().
 format_error( ErrorTerm ) ->
@@ -2122,7 +3696,7 @@ format_error( ErrorTerm ) ->
 -spec interpret_issue_reports( [ issue_report() ] ) -> basic_utils:void().
 interpret_issue_reports( _IssueReports=[] ) ->
 	% Should never happen:
-	io:format( "(no remark emitted)" );
+	display_trace( "(no remark emitted)" );
 
 % No need to further special-case the number of issue reports, as it is not
 % meaningful (one may include an arbitrary long list):
@@ -2206,6 +3780,20 @@ list_exported_functions( ModuleName ) ->
 
 
 
+% Returns a list of the arities for which the specified function of the
+% specified module is exported.
+%
+-spec get_arities_for( basic_utils:module_name(), function_name() ) ->
+							 [ arity() ].
+get_arities_for( ModuleName, FunctionName ) ->
+
+	ExportedFuns = list_exported_functions( ModuleName ),
+
+	% Match on FunctionName:
+	[ Arity || { Name, Arity } <- ExportedFuns, Name =:= FunctionName ].
+
+
+
 % Tells whether the specified function (name with arity) is exported by the
 % specified module.
 %
@@ -2273,362 +3861,99 @@ check_potential_call( ModuleName, FunctionName, Arguments ) ->
 
 
 
-% Type-related section.
+
+% Subsection for trace outputs that are specific to parse-transforms.
+
+
+% Displays specified text as debug.
 %
-% Note: currently, only a very basic, ad hoc support ("hand-made look-up
-% tables") is provided.
+-spec display_debug( text_utils:string() ) -> basic_utils:void().
+display_debug( String ) ->
+	io:format( "[debug] ~s~n", [ String ] ).
+
+
+% Displays specified text as debug.
 %
-% Later we would like to really parse any type description (ex: "[ { float, [
-% boolean ] } ]") and be able to manage it as type() (including the checking of
-% terms against types).
+-spec display_debug( text_utils:format_string(), [ term() ] ) ->
+						  basic_utils:void().
+display_debug( FormatString, Values ) ->
+	display_debug( io_lib:format( FormatString, Values ) ).
 
 
 
-% Returns the actual type corresponding to specified type description: parses
-% the specified string to determine the type described therein.
+% Displays specified text as trace.
 %
-% Note: returns a correct type, but currently rarely the expected, most precise
-% one.
+-spec display_trace( text_utils:string() ) -> basic_utils:void().
+display_trace( String ) ->
+	io:format( "[trace] ~s~n", [ String ] ).
+
+
+% Displays specified text as trace.
 %
--spec description_to_type( type_description() ) -> type().
-description_to_type( TypeDescription ) ->
-
-	CanonicalDesc = text_utils:remove_whitespaces( TypeDescription ),
-
-	%io:format( "CanonicalDesc = '~s'~n", [ CanonicalDesc ] ),
-
-	scan_type( CanonicalDesc ).
+-spec display_trace( text_utils:format_string(), [ term() ] ) ->
+						  basic_utils:void().
+display_trace( FormatString, Values ) ->
+	display_trace( io_lib:format( FormatString, Values ) ).
 
 
 
-% To perfom its parsing, we must split the full description recursively.
+% Displays specified text as info.
 %
-% The worst (and thus first) top-level construct to detect is the union. We
-% consider that we are always in an union (possibly including only one term, in
-% which case it can be simplified out.
+-spec display_info( text_utils:string() ) -> basic_utils:void().
+display_info( String ) ->
+	io:format( "[info] ~s~n", [ String ] ).
+
+
+% Displays specified text as info.
 %
-% We do that by scanning for terms from left-to-right, keeping track of the
-% nesting.
+-spec display_info( text_utils:format_string(), [ term() ] ) ->
+						  basic_utils:void().
+display_info( FormatString, Values ) ->
+	display_info( io_lib:format( FormatString, Values ) ).
+
+
+% Displays specified text as warning.
 %
-%-spec scan_type( type_description() ) -> type().
-%scan_type( TypeDescription ) ->
-	%case tokenise_per_union( TypeDescription ) of
+-spec display_warning( text_utils:string() ) -> basic_utils:void().
+display_warning( String ) ->
+	io:format( "[warning] ~s~n", [ String ] ).
 
-	%	[ T ] ->
-	%		T;
 
-	%	UnionisedTypes ->
-	%		{ union, [ scan_type( T ) || T <- UnionisedTypes ] }
-
-	%end.
-
-% Last: all other types.
+% Displays specified text as warning.
 %
-scan_type( _TypeDescription ) ->
-	% Most imprecise (yet correct) type (commented-out as may hide issues):
-	any.
-
-	% Either not yet implemented or plain wrong:
-	%throw( { type_interpretation_failed, TypeDescription } ).
+-spec display_warning( text_utils:format_string(), [ term() ] ) ->
+						  basic_utils:void().
+display_warning( FormatString, Values ) ->
+	display_warning( io_lib:format( FormatString, Values ) ).
 
 
-% Splits the specified type description according to union delimiters
+
+% Displays specified text as error.
 %
--spec tokenise_per_union( type_description() ) -> [ type_description() ].
-tokenise_per_union( TypeDescription ) ->
-
-	% We track the nesting depth and only fetch the top-level union members;
-	%
-	InitialNestingDepth = { _P=0, _B=0 },
-	parse_nesting( TypeDescription, InitialNestingDepth ).
+-spec display_error( text_utils:string() ) -> basic_utils:void().
+display_error( String ) ->
+	io:format( "[error] ~s~n", [ String ] ).
 
 
-
-% Parses the specified type description in order to split it according in nested
-% sub-expressions that may be recursively parsed.
+% Displays specified text as error.
 %
--spec parse_nesting( type_description(), nesting_depth() ) ->
-						   [ type_description() ].
-parse_nesting( _TypeDescription, _NestingDepth ) ->
-
-	% A goal is to detect atoms delimited with single quotes (which are
-	% immediate atom values) from the unquoted ones (which designate types)
-	%
-	throw( not_implemented_yet ).
+-spec display_error( text_utils:format_string(), [ term() ] ) ->
+						  basic_utils:void().
+display_error( FormatString, Values ) ->
+	display_error( io_lib:format( FormatString, Values ) ).
 
 
 
-
-
-% Returns the type description (in canonical form, notably without whitespaces)
-% corresponding to specified type.
+% Displays specified text as fatal.
 %
-% Note: currently does not return a really relevant type description; basically
-% meant to be the function reciprocal to scan_type/1.
+-spec display_fatal( text_utils:string() ) -> basic_utils:void().
+display_fatal( String ) ->
+	io:format( "[fatal] ~s~n", [ String ] ).
+
+
+% Displays specified text as fatal.
 %
--spec type_to_description( type() ) -> type_description().
-% First, simple types, in alphabetical order:
-type_to_description( _Type=atom ) ->
-	"atom";
-
-type_to_description( _Type=integer ) ->
-	"integer";
-
-type_to_description( _Type=float ) ->
-	"float";
-
-type_to_description( _Type=boolean ) ->
-	"boolean";
-
-type_to_description( _Type=string ) ->
-	"string";
-
-type_to_description( _Type=any ) ->
-	"any";
-
-type_to_description( _Type=none ) ->
-	"none";
-
-
-% Then polymorphic constructs:
-
-
-% No "list()"-like (with no specific type) supported.
-
-type_to_description( _Type={ list, T } ) ->
-	"[" ++ type_to_description( T ) ++ "]";
-
-type_to_description( _Type={ union, TypeList } ) when is_list( TypeList ) ->
-	text_utils:join( _Separator="|",
-					 [ type_to_description( T ) || T <- TypeList ] );
-
-type_to_description( _Type={ tuple, TypeList } ) when is_list( TypeList ) ->
-	TypeString = text_utils:join( _Separator=",",
-					  [ type_to_description( T ) || T <- TypeList ] ),
-	"{" ++ TypeString ++ "}";
-
-type_to_description( _Type={ table, [ Tk, Tv ] } ) ->
-	"table(" ++ type_to_description( Tk ) ++ "," ++ type_to_description( Tv )
-		++ ")";
-
-
-type_to_description( Type ) ->
-
-	% Could be misleading (ex: any() not matching any()):
-	%"any".
-
-	%text_utils:format( "~p", [ Type ] ).
-
-	throw( { type_description_failed, Type } ).
-
-
-
-% Returns a textual representation of the specified type.
-%
--spec type_to_string( type() ) -> string().
-type_to_string( Type ) ->
-	type_to_description( Type ).
-
-
-
-% Returns an atom describing, as precisely as possible, the overall type of the
-% specified primitive term.
-%
-% Note: limited to primitive types, not compounded ones (like [float()]).
-%
-% is_number/1, is_record/1, etc. not usable here.
-%
-% Note: often we do not want to retrieve the actual type of a term but need
-% instead to determine whether the term can be considered as an instance of a
-% specific type (this is not strictly the same need, as a given term in general
-% may be seen of being of multiple types).
-%
--spec get_type_of( term() ) -> primitive_type_description().
-get_type_of( Term ) when is_boolean( Term ) ->
-	'boolean';
-
-get_type_of( Term ) when is_atom( Term ) ->
-	'atom';
-
-get_type_of( Term ) when is_binary( Term ) ->
-	'binary';
-
-get_type_of( Term ) when is_float( Term ) ->
-	'float';
-
-get_type_of( Term ) when is_function( Term ) ->
-	'function';
-
-get_type_of( Term ) when is_integer( Term ) ->
-	'integer';
-
-get_type_of( Term ) when is_pid( Term ) ->
-	'pid';
-
-get_type_of( Term ) when is_list( Term ) ->
-	'list';
-
-get_type_of( Term ) when is_port( Term ) ->
-	'port';
-
-%get_type_of( Term ) when is_record( Term ) ->
-%	'record';
-
-get_type_of( Term ) when is_tuple( Term ) ->
-	'tuple';
-
-get_type_of( Term ) when is_reference( Term ) ->
-	'reference'.
-
-
-
-% Returns a list of the elementary, "atomic" types.
-%
--spec get_elementary_types() -> [ type_name() ].
-get_elementary_types() ->
-	[ 'atom', 'binary', 'boolean', 'float', 'function', 'integer', 'list',
-	  'pid', 'port', 'record', 'reference', 'tuple' ].
-
-
-
-% Tells whether specified term designates a type (i.e. a type() instance).
-%
-% (only the elementary types are currently recognised)
-%
--spec is_type( term() ) -> boolean().
-%is_type( { Tag, SubTypes } ) when is_list( SubTypes ) ->
-%	lists:member( Tag, get_elementary_types() );
-%
-%is_type( _T ) ->
-%	false.
-
-% To be implemented:
-is_type( _T ) ->
-	true.
-
-
-
-% Tells whether specified term is of specified type (predicate).
-%
-% Note: currently only a very partial checking is made, based on top-level
-% primitive types; later the type will be recursed into, in order to check
-% whether the term complies with this expected structure.
-%
--spec is_of_type( term(), type() ) -> boolean().
-is_of_type( _Term, _Type='any' ) ->
-	true;
-
-is_of_type( Term, _Type='string' ) when is_list( Term ) ->
-	text_utils:is_string( Term );
-
-is_of_type( Term, Type ) ->
-
-	case get_type_of( Term ) of
-
-		Type ->
-			true;
-
-		_ ->
-			false
-
-	end.
-
-
-
-% Tells whether the specified term is of specified textually-described type.
-%
-% Note: currently no checking is made and the test always succeeds.
-%
--spec is_of_described_type( term(), type_description() ) -> boolean().
-is_of_described_type( _Term, _TypeDescription ) ->
-
-	%throw( { not_implemented_yet, {is_of_described_type,2} } ).
-
-	% ActualType = description_to_type( TypeDescription ),
-	% is_of_type( ActualType ).
-
-	true.
-
-
-
-% Tells whether specified non-empty container (list or tuple) is homogeneous in
-% terms of type, i.e. whether all its elements are of the same type.
-%
-% If true, returns the common type.
-% If false, returns two of the different types found in the container.
-%
--spec is_homogeneous( list() | tuple() ) ->
-		{ 'true', primitive_type_description() } | { 'false',
-			 { primitive_type_description(), primitive_type_description() } }.
-is_homogeneous( _List=[] ) ->
-	% We want to return types:
-	throw( empty_container );
-
-is_homogeneous( _List=[ H | T ] ) ->
-
-	Type = get_type_of( H ),
-
-	is_homogeneous_full_helper( T, Type );
-
-is_homogeneous( Tuple ) when is_tuple( Tuple ) ->
-
-	ElemList = tuple_to_list( Tuple ),
-
-	is_homogeneous( ElemList ).
-
-
-
-% Tells whether specified non-empty container (list or tuple) is homogeneous in
-% terms of type, i.e. whether all its elements are of the same, specified,
-% primitive type.
-%
--spec is_homogeneous( list() | tuple(), primitive_type_description() ) ->
-							boolean().
-is_homogeneous( _List=[], _Type ) ->
-	% Considered homogeneous:
-	true;
-
-is_homogeneous( List, Type ) when is_list( List ) ->
-	is_homogeneous_helper( List, Type );
-
-is_homogeneous( Tuple, Type ) when is_tuple( Tuple ) ->
-
-	ElemList = tuple_to_list( Tuple ),
-
-	is_homogeneous_helper( ElemList, Type ).
-
-
-
-% Helper:
-is_homogeneous_full_helper( _Elems=[], Type ) ->
-	{ true, Type };
-
-is_homogeneous_full_helper( _Elems=[ H | T ], Type ) ->
-
-	case get_type_of( H ) of
-
-		Type ->
-			is_homogeneous_full_helper( T, Type );
-
-		OtherType ->
-			{ false, { Type, OtherType } }
-
-	end.
-
-
-% Other helper:
-is_homogeneous_helper( Elems, Type ) ->
-	{ Bool, _TypeInfo } = is_homogeneous_full_helper( Elems, Type ),
-	Bool.
-
-
-
-% Tells whether the two specified types are the same (i.e. designate the same
-% actual type, are aliases).
-%
--spec are_types_identical( type(), type() ) -> boolean().
-are_types_identical( Type, Type ) ->
-	true;
-
-are_types_identical( _FirstType, _SecondType ) ->
-	false.
+-spec display_fatal( text_utils:format_string(), [ term() ] ) ->
+						  basic_utils:void().
+display_fatal( FormatString, Values ) ->
+	display_fatal( io_lib:format( FormatString, Values ) ).

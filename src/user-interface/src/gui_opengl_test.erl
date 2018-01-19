@@ -1,6 +1,6 @@
-% Copyright (C) 2003-2017 Olivier Boudeville
+% Copyright (C) 2003-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -25,46 +25,64 @@
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
 
 
-% Minimal test for the GUI toolbox: draws a few frames and exits.
+% Testing the OpenGL support.
 %
-% See the gui.erl tested module.
+% See the gui_opengl.erl tested module.
 %
--module(gui_minimal_test).
+-module(gui_opengl_test).
 
 
 % For run/0 export and al:
 -include("test_facilities.hrl").
 
 
+-record( my_test_state, {
 
+	% Internal state of the gui subsystem:
+	gui_state :: gui:state(),
+
+	% Test-specific state:
+	test_main_frame :: gui:frame()
+
+}).
+
+-type my_test_state() :: #my_test_state{}.
+
+% FIXME:
+-export_type([ my_test_state/0 ]).
+
+
+-spec run_test_gui() -> basic_utils:void().
 run_test_gui() ->
 
-	test_facilities:display( "~nStarting the actual minimal test, from ~w.",
-							 [ self() ] ),
+	test_facilities:display( "~nStarting the test of OpenGL support." ),
 
 	InitialState = gui:start(),
 
-	TestFrame = gui:create_frame( "This is the single and only frame" ),
+	%gui:set_debug_level( [ calls, life_cycle ] ),
 
-	gui:show( TestFrame ),
+	MainFrame = gui:create_frame( "GUI OpenGL Test" ),
 
-	trace_utils:info( "Please close the frame to end this test." ),
+	_StatusBar = gui:create_status_bar( MainFrame ),
 
-	SubscribedEvents = [ { onWindowClosed, TestFrame } ],
+	gui:show( MainFrame ),
 
-	LoopState = gui:handle_events( InitialState, SubscribedEvents ),
+	SubscribedEvents = [
+		  { MainFrame, onWindowClosed } ],
 
-	% Not even a real main loop here, just a one-shot event waited:
+	LoopState = gui:handle_events( InitialState,
+									 SubscribedEvents ),
+
 	receive
 
-		{ onWindowClosed, [ TestFrame, Context ] } ->
-			trace_utils:trace_fmt( "Frame ~w closed (context: ~p).",
-								   [ TestFrame, Context ] ),
-			gui:destruct_window( TestFrame ),
-			trace_utils:trace( "Test frame closed, test success." ),
+		{ onWindowClosed, [ MainFrame, _Id, _UserData, _WxEvent ] } ->
+			gui:destruct_window( MainFrame ),
+			trace_utils:trace( "Main frame closed, test success." ),
 			gui:stop( LoopState )
 
 	end.
+
+
 
 
 
@@ -78,7 +96,7 @@ run() ->
 	case executable_utils:is_batch() of
 
 		true ->
-			test_facilities:display( "(not running the GUI test, "
+			test_facilities:display( "(not running the OpenGL test, "
 									 "being in batch mode)" );
 
 		false ->

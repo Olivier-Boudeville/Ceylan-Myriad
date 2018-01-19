@@ -1,6 +1,6 @@
-% Copyright (C) 2003-2017 Olivier Boudeville
+% Copyright (C) 2003-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -985,7 +985,7 @@ toString( Hashtable, user_friendly ) ->
 			% Flatten is needed, in order to use the result with ~s:
 			lists:flatten( io_lib:format( "Hashtable with ~B entry(ies):~s~n",
 				[ length( L ),
-				  text_utils:string_list_to_string( Strings ) ] ) )
+				  text_utils:strings_to_string( Strings ) ] ) )
 
 	end;
 

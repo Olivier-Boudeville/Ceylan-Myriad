@@ -1,6 +1,6 @@
-% Copyright (C) 2014-2017 Olivier Boudeville
+% Copyright (C) 2014-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -706,12 +706,12 @@ toString( Table, _Displaytype ) ->
 
 			% Enforces a consistent order:
 			Strings = [ io_lib:format( "~p: ~p", [ K, V ] )
-					   || { K, V } <- lists:sort( L ) ],
+						|| { K, V } <- lists:sort( L ) ],
 
 			% Flatten is needed, in order to use the result with ~s:
 			lists:flatten( io_lib:format( "Table with ~B entry(ies):~s~n",
 				[ length( L ),
-				  text_utils:string_list_to_string( Strings ) ] ) )
+				  text_utils:strings_to_string( Strings ) ] ) )
 
 	end.
 

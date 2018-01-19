@@ -1,6 +1,6 @@
-% Copyright (C) 2016-2017 Olivier Boudeville
+% Copyright (C) 2003-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -23,24 +23,41 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Creation date: Tuesday, January 29, 2013
 
 
-% Unit tests for the ui toolbox.
+% Header to export (internally to MyriadGUI) canvas-related defines.
 %
-% See the ui.erl tested module.
+% See gui_canvas.erl for the corresponding implementation.
+
+
+
+% wxCanvas does not exist, we emulate it.
 %
--module(ui_test).
+% Canvas are back-buffered: drawing operations on them will not be visible until
+% their blit/1 function is called.
+%
+-record( canvas_state, {
+
+	% Receives repaint, resize, etc. events:
+	panel :: gui:panel(),
+
+	% Displayed area:
+	bitmap :: gui:bitmap(),
+
+	% Actual place for rendering:
+	back_buffer :: gui:back_buffer(),
+
+	% As apparently we cannot retrieve the size of the underlying bitmap and
+	% back buffer (typically useful when the panel may have been resized):
+	%
+	size :: gui:size()
+
+}).
+
+% The actual canvas type we are to use:
+-type canvas_state() :: #canvas_state{}.
 
 
-% For run/0 export and al:
--include("test_facilities.hrl").
-
-
--spec run() -> no_return().
-run() ->
-
-	test_facilities:start( ?MODULE ),
-
-	ui:start(),
-
-	test_facilities:stop().
+% An OpenGL-based canvas:
+-type gl_canvas():: wxGLCanvas:wxGLCanvas().

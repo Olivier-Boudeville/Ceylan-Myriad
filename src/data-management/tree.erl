@@ -1,6 +1,6 @@
-% Copyright (C) 2015-2017 Olivier Boudeville
+% Copyright (C) 2015-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -215,7 +215,7 @@ size( _Tree={ _Content, Subtrees }, Acc ) ->
 %
 -spec to_string( tree() ) -> text_utils:ustring().
 to_string( Tree ) ->
-	% Is an io:list:
+	% Is an io_list():
 	lists:flatten( to_string( Tree, _Prefix="" ) ).
 
 

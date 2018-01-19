@@ -50,6 +50,23 @@ TEST_SOURCES = $(filter-out $(EXCLUDED_SOURCES), $(wildcard *_test.erl))
 TEST_TARGETS = $(patsubst %.erl,%,$(TEST_SOURCES))
 
 
+
+# Java subsection.
+
+# Java (local) source files:
+JAVA_FILES = $(wildcard *.java)
+
+
+# Java class (bytecode) files:
+ifeq ($(USE_JAVA_BINDING),true)
+
+	 #JAVA_CLASS_FILES = $(patsubst %.java,%.class,$(JAVA_FILES))
+	 JAVA_CLASS_FILES =
+
+endif
+
+
+
 # Regarding dependency management.
 
 # One can just ignore dependencies and rebuild "blindly" every module in current
@@ -86,15 +103,17 @@ TEST_TARGETS = $(patsubst %.erl,%,$(TEST_SOURCES))
 # not taken into account at run-time, as not recompiled).
 
 
-.PHONY: all all-pre-hook all-parallel-recurse all-recurse rebuild			\
-	test test-recurse doc-recurse build-tests launch						\
-	install-all install-announce install-ebin install-bin install-src		\
-	install-include install-examples install-test install-doc				\
-	info-install info-install-locations info-install-content                \
-	generate-list-of-erlang-types generate-list-of-local-types              \
-	generate-local-plt self-check-against-plt check check-hook help-erl     \
-	clean clean-erlang clean-python clean-database clean-recurse            \
-	clean-outputs real-clean info info-files $(MODULES_DIRS)
+.PHONY: all all-pre-hook all-parallel-recurse all-recurse
+		all-parse-transforms bootstrap-modules make-all-parse-transforms    \
+		rebuild test test-recurse doc-recurse build-tests launch			\
+		install-all install-announce install-ebin install-bin install-src	\
+		install-include install-examples install-test install-doc			\
+		info-install info-install-locations info-install-content            \
+		generate-list-of-erlang-types generate-list-of-local-types          \
+		generate-local-plt self-check-against-plt check check-hook help-erl \
+		clean clean-erlang clean-python clean-database clean-recurse        \
+		clean-outputs real-clean                                            \
+		info info-files info-erlang info-python info-java $(MODULES_DIRS)
 
 
 
@@ -117,13 +136,15 @@ all: all-pre-hook all-parse-transforms
 
 else
 
-all: all-recurse-pre-hook all-recurse $(BEAM_FILES)
+all: all-recurse-pre-hook all-recurse $(BEAM_FILES) $(JAVA_CLASS_FILES)
 
 endif
 
 
 
-all-parse-transforms: $(BOOTSTRAP_MODULES) make-all-parse-transforms
+all-parse-transforms: bootstrap-modules make-all-parse-transforms
+
+bootstrap-modules: $(BOOTSTRAP_MODULES)
 
 
 make-all-parse-transforms:
@@ -196,7 +217,27 @@ rebuild: clean all
 # Exactly the same processing applies to each of them.
 
 
+$(COMMON_TOP)/src/utils/basic_utils.beam: $(COMMON_TOP)/src/utils/basic_utils.erl
+	@echo "		Compiling bootstrap module $<"
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
+
+$(COMMON_TOP)/src/utils/id_utils.beam: $(COMMON_TOP)/src/utils/id_utils.erl
+	@echo "		Compiling bootstrap module $<"
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
+
 $(COMMON_TOP)/src/utils/meta_utils.beam: $(COMMON_TOP)/src/utils/meta_utils.erl
+	@echo "		Compiling bootstrap module $<"
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
+
+$(COMMON_TOP)/src/utils/ast_utils.beam: $(COMMON_TOP)/src/utils/ast_utils.erl
+	@echo "		Compiling bootstrap module $<"
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
+
+$(COMMON_TOP)/src/utils/type_utils.beam: $(COMMON_TOP)/src/utils/type_utils.erl
 	@echo "		Compiling bootstrap module $<"
 	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
@@ -230,6 +271,11 @@ $(COMMON_TOP)/src/data-management/map_hashtable.beam: $(COMMON_TOP)/src/data-man
 # have different suffixes (_app vs _test) and ways of being launched (make
 # X_exec / make X_run) otherwise, for example, my_server_app.erl would shadow
 # my_server_test.erl if an ambiguous 'make my_server_run' was issued.
+
+
+%.class: %.java
+	@echo "		Compiling the $< Java class"
+	@$(JAVAC) $(JAVAC_OPT) $<
 
 
 
@@ -625,7 +671,8 @@ help-erl:
 		"then 'hello:world().', then CTRL-C CTRL-C"
 
 
-clean: clean-erlang clean-python clean-database clean-override clean-recurse
+clean: clean-erlang clean-python clean-java clean-database clean-override \
+	   clean-recurse
 
 
 clean-erlang:
@@ -636,6 +683,11 @@ clean-erlang:
 # We can have a Python binding:
 clean-python:
 	-@/bin/rm -rf '__pycache__'
+
+
+# We can have a Java binding:
+clean-java:
+	-@/bin/rm -f *.class
 
 
 clean-database:
@@ -698,10 +750,6 @@ info: info-files
 	@echo "BEAM_DIRS              = $(BEAM_DIRS)"
 	@echo "BEAM_PATH_OPT          = $(BEAM_PATH_OPT)"
 	@echo "ARCHIVE_FILE           = $(ARCHIVE_FILE)"
-	@echo "ERLANG_INTERPRETER     = $(ERLANG_INTERPRETER)"
-	@echo "ERLANG_INTERPRETER_OPT = $(ERLANG_INTERPRETER_OPT)"
-	@echo "ERLANG_SRC             = $(ERLANG_SRC)"
-	@echo "VM_TEST_NAME           = $(VM_TEST_NAME)"
 	@echo "PROJECT_NAME           = $(PROJECT_NAME)"
 	@echo "PROJECT_VERSION        = $(PROJECT_VERSION)"
 	@echo "PACKAGE_NAME           = $(PACKAGE_NAME)"
@@ -717,6 +765,28 @@ info-files:
 	@echo "ERLANG_PLT_FILE = $(ERLANG_PLT_FILE)"
 	@echo "PLT_FILE        = $(PLT_FILE)"
 
+
+info-erlang:
+	@echo "ERLANG_INTERPRETER     = $(ERLANG_INTERPRETER)"
+	@echo "ERLANG_INTERPRETER_OPT = $(ERLANG_INTERPRETER_OPT)"
+	@echo "ERLANG_ROOT            = $(ERLANG_ROOT)"
+	@echo "ERLANG_SRC             = $(ERLANG_SRC)"
+	@echo "VM_TEST_NAME           = $(VM_TEST_NAME)"
+
+
+# No Python source or binary files to be specifically managed by the build
+# infrastructure itself.
+#
+info-python:
+	@echo "USE_PYTHON_BINDING = $(USE_PYTHON_BINDING)"
+
+
+info-java:
+	@echo "USE_JAVA_BINDING = $(USE_JAVA_BINDING)"
+	@echo "JAVA_FILES = $(JAVA_FILES)"
+	@echo "JAVA_CLASS_FILES = $(JAVA_CLASS_FILES)"
+	@echo "JINTERFACE_ROOT = $(JINTERFACE_ROOT)"
+	@echo "JAVAC_OPT = $(JAVAC_OPT)"
 
 
 include $(COMMON_TOP)/doc/GNUmakerules-docutils.inc

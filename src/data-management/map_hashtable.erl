@@ -1,6 +1,6 @@
-% Copyright (C) 2014-2017 Olivier Boudeville
+% Copyright (C) 2014-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -397,7 +397,18 @@ hasEntry( Key, MapHashtable ) ->
 %getEntry( Key,  #{ Key := Value } ) ->
 %	Value.
 getEntry( Key, MapHashtable ) ->
-	maps:get( Key, MapHashtable ).
+	try
+
+		maps:get( Key, MapHashtable )
+
+	catch
+
+		error:{ badkey, _K } ->
+			trace_utils:error_fmt( "No key '~p' found in following table: ~s",
+								   [ Key, toString( MapHashtable ) ] ),
+			throw( { key_not_found, Key } )
+
+	end.
 
 
 
@@ -792,7 +803,7 @@ appendListToEntry( Key, Elements, MapHashtable ) ->
 
 	case lookupEntry( Key, MapHashtable ) of
 
-		'key_not_found' ->
+		key_not_found ->
 			addEntry( Key, Elements, MapHashtable );
 
 		{ value, CurrentList } ->
@@ -987,7 +998,7 @@ toString( MapHashtable, Bullet ) when is_list( Bullet ) ->
 			% Flatten is needed, in order to use the result with ~s:
 			lists:flatten( io_lib:format( "Hashtable with ~B entry(ies):~s",
 				[ map_size( MapHashtable ),
-				  text_utils:string_list_to_string( Strings, Bullet ) ] ) )
+				  text_utils:strings_to_string( Strings, Bullet ) ] ) )
 
 	end;
 

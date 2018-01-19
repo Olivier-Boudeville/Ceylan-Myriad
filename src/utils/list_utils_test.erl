@@ -1,6 +1,6 @@
-% Copyright (C) 2003-2017 Olivier Boudeville
+% Copyright (C) 2003-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -195,7 +195,7 @@ run() ->
 	List2 = [ 14, d, b ],
 
 	ExpectedList = lists:sort( [ 14, b ] ),
-	ResultList = list_utils:intersect( List1, List2 ),
+	ResultList = list_utils:intersection( List1, List2 ),
 
 	test_facilities:display( "Displaying the intersection of ~p and ~p: ~p.",
 							 [ List1, List2, ResultList ] ),

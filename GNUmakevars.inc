@@ -6,7 +6,7 @@
 
 # PROJECT_NAME should be defined on a per-project basis.
 ifndef PROJECT_NAME
-	PROJECT_NAME := Ceylan-common
+	PROJECT_NAME := Ceylan-Myriad
 endif
 
 
@@ -145,26 +145,30 @@ endif
 # Extra prerequisite includes:
 
 # Optional services, relying on third-party prerequisites:
+#
+# (for them, we do not force the corresponding variable here, in order to let
+# the upper layers be able to decide; if not, the defaults apply)
+
 
 # For the reading and writing of large, often scientific-oriented data:
-# (not forcing variable, letting upper layers decide, or the defaults apply)
 #USE_HDF5 := false
 #USE_HDF5 := true
 
 # To gain the ability of acting as a client of a REST service:
-# (not forcing variable, letting upper layers decide, or the defaults apply)
 #USE_REST := false
 #USE_REST := true
 
 # For SQL database operations, based on SQLite 3 operations:
-# (not forcing variable, letting upper layers decide, or the defaults apply)
 #USE_SQLITE := false
 #USE_SQLITE := true
 
 # For using an Erlang/Python binding, based on the ErlPort library:
-# (not forcing variable, letting upper layers decide, or the defaults apply)
 #USE_PYTHON_BINDING := false
 #USE_PYTHON_BINDING := true
+
+# For using an Erlang/Java binding, based on the JInterface library:
+#USE_JAVA_BINDING := false
+#USE_JAVA_BINDING := true
 
 
 
@@ -189,7 +193,6 @@ ifeq ($(USE_HDF5),true)
   # (ebin/erlhdf5.beam and priv/erlhdf5.so found at runtime)
 
 endif
-
 
 
 # Deactivated by default, as requires specific prerequisites (the jsx JSON
@@ -270,6 +273,36 @@ endif
 
 
 
+# Deactivated by default, as requires specific prerequisites:
+#
+# - Java (binding tested with 8.0+ only)
+# - the JInterface library, bundled with the Erlang runtime (cf
+#   http://erlang.org/doc/man/jinterface.html)
+#
+ifndef USE_JAVA_BINDING
+
+  USE_JAVA_BINDING := false
+
+endif
+
+ifeq ($(USE_JAVA_BINDING),true)
+
+  # The path pointing to the target JInterface JAR (OtpErlang.jar), only needed
+  # at compilation-time:
+  #
+  # Ex: cd [...]/Erlang-current-install/lib/erlang &&
+  #     ln -s lib/jinterface-1.8.1 jinterface-current-install
+  #
+  JINTERFACE_ROOT = $(ERLANG_ROOT)/lib/erlang/jinterface
+
+  CLASSPATH_OPT = -classpath $(JINTERFACE_ROOT)/priv/OtpErlang.jar
+
+  JAVAC_OPT = $(CLASSPATH_OPT)
+
+  # Only useful for manual testing:
+  JAVA_OPT = $(CLASSPATH_OPT):.
+
+endif
 
 
 # Unless specified otherwise, the including makefile is not the one used as the
@@ -490,13 +523,20 @@ ERL_LAUNCHER = $(COMMON_SRC)/scripts/launch-erl.sh
 ifndef BOOTSTRAP_MODULES
 
 # We list here all prerequisites of the 'Common' parse-transform:
-#  - meta_utils: to process the AST
+#  - basic_utils: to provide the basic services
+#  - id_utils: to sort the forms
+#  - meta_utils: to support the metaprogramming needs
+#  - ast_utils: to handle the AST
 #  - text_utils: to display debugging information regarding the transform
 #  - map_hashtable: to manage the module information
 #
-BOOTSTRAP_MODULES = $(COMMON_TOP)/src/utils/meta_utils.beam               \
-					$(COMMON_TOP)/src/utils/text_utils.beam               \
-					$(COMMON_TOP)/src/data-management/map_hashtable.beam  \
+BOOTSTRAP_MODULES = $(COMMON_TOP)/src/utils/basic_utils.beam             \
+					$(COMMON_TOP)/src/utils/id_utils.beam                \
+					$(COMMON_TOP)/src/utils/meta_utils.beam              \
+					$(COMMON_TOP)/src/utils/ast_utils.beam               \
+					$(COMMON_TOP)/src/utils/type_utils.beam              \
+					$(COMMON_TOP)/src/utils/text_utils.beam              \
+					$(COMMON_TOP)/src/data-management/map_hashtable.beam \
 
 endif
 
@@ -525,7 +565,7 @@ endif
 # able to find the BEAMs of parse-transforms)
 #
 ERLANG_COMPILER_BASE_OPT += -b beam                                   \
-						  +\"{debug_info_key,\\\"Ceylan-common\\\"}\" \
+						  +\"{debug_info_key,\\\"Ceylan-Myriad\\\"}\" \
 						  -pz $(COMMON_TOP)/src/utils
 
 
@@ -608,6 +648,20 @@ ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_OPT_BASE)
 ERLANG_COMPILER_OPT_NO_PT := $(ERLANG_COMPILER_OPT)
 
 ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT)
+
+
+# For the Java binding; expecting Java 8 or higher:
+JAVAC := $$(which javac)
+
+# Optional variable, used for testing only (never directly executed from the
+# shell):
+#
+JAVA := $$(which java)
+
+
+
+# Runtime settings.
+
 
 
 # +v (verbose) option removed, as only active if the interpreter has been

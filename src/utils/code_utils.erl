@@ -1,6 +1,6 @@
-% Copyright (C) 2007-2017 Olivier Boudeville
+% Copyright (C) 2007-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -39,10 +39,19 @@
 		  deploy_modules/2, deploy_modules/3,
 		  declare_beam_directory/1, declare_beam_directory/2,
 		  declare_beam_directories/1, declare_beam_directories/2,
-		  get_code_path/0,
+		  get_code_path/0, get_code_path_as_string/0, code_path_to_string/1,
 		  list_beams_in_path/0, get_beam_filename/1, is_beam_in_path/1,
-		  interpret_stacktrace/0, interpret_stacktrace/1, interpret_stacktrace/2,
+		  interpret_stacktrace/0, interpret_stacktrace/1,
+		  interpret_stacktrace/2,
 		  interpret_stack_item/2 ]).
+
+
+
+% The code path used by a language, i.e. a list of directories to scan for
+% runtime elements (Erlang -pa/-pz, Python sys.path with PYTHONPATH, Java
+% classpath, etc.)
+%
+-type code_path() :: [ file_utils:directory_name() ].
 
 
 %-type stack_location() :: [ { file, file_utils:path() },
@@ -297,8 +306,7 @@ declare_beam_directory( Dir, last_position ) ->
 %
 % Throws an exception if at least one of the directories does not exist.
 %
--spec declare_beam_directories( [ file_utils:directory_name() ] ) ->
-									  basic_utils:void().
+-spec declare_beam_directories( code_path() ) -> basic_utils:void().
 declare_beam_directories( Dirs ) ->
 	declare_beam_directories( Dirs, first_position ).
 
@@ -310,8 +318,8 @@ declare_beam_directories( Dirs ) ->
 %
 % Throws an exception if at least one of the directories does not exist.
 %
--spec declare_beam_directories( [ file_utils:directory_name() ],
-			'first_position' | 'last_position' ) -> basic_utils:void().
+-spec declare_beam_directories( code_path(),
+					'first_position' | 'last_position' ) -> basic_utils:void().
 declare_beam_directories( Dirs, first_position ) ->
 	check_beam_dirs( Dirs ),
 	code:add_pathsa( Dirs );
@@ -347,7 +355,7 @@ check_beam_dirs( _Dirs=[ D | T ] ) ->
 % Returns a normalised, sorted list of directories in the current code path
 % (without duplicates).
 %
--spec get_code_path() -> [ file_utils:directory_name() ].
+-spec get_code_path() -> code_path().
 get_code_path() ->
 
 	NormalisedPaths =
@@ -355,6 +363,29 @@ get_code_path() ->
 
 	lists:sort( list_utils:uniquify( NormalisedPaths ) ).
 
+
+
+% Returns a textual representation of the current code path.
+%
+-spec get_code_path_as_string() -> string().
+get_code_path_as_string() ->
+
+	CodePath = get_code_path(),
+
+	text_utils:format( "current code path is:~s",
+					   [ text_utils:strings_to_string( CodePath ) ] ).
+
+
+
+% Returns a textual description of the specified code path.
+%
+-spec code_path_to_string( code_path() ) -> string().
+code_path_to_string( _CodePath=[] ) ->
+	% Initial space intended for caller-side consistency:
+	" empty code path";
+
+code_path_to_string( CodePath ) ->
+	text_utils:strings_to_enumerated_string( CodePath ).
 
 
 % Lists all modules that exist in the current code path, based on the BEAM files

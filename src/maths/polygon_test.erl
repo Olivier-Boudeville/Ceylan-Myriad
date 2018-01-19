@@ -1,6 +1,6 @@
-% Copyright (C) 2003-2017 Olivier Boudeville
+% Copyright (C) 2003-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -48,7 +48,7 @@ run() ->
 			  polygon:get_triangle( {110,110}, {250,155}, {120,335} ) ) ),
 
 	test_facilities:display( "Triangle description:~n~s",
-			   [ polygon:to_string( MyTriangle ) ] ),
+							 [ polygon:to_string( MyTriangle ) ] ),
 
 
 	MyUprightSquare = polygon:update_bounding_box( lazy_circle,
@@ -61,54 +61,51 @@ run() ->
 
 
 	% Simplest concave polygone has 4 vertices (clockwise defined):
-	MyConcavePolygon = polygon:get_polygon( [
-			  {0,0}, {20,0}, {10,20}, {14,14} ] ),
+	MyConcavePolygon = polygon:get_polygon(
+						 [ {0,0}, {20,0}, {10,20}, {14,14} ] ),
 
 	test_facilities:display( "Concave polygon description:~n~s",
-			   [ polygon:to_string( MyConcavePolygon ) ] ),
+							 [ polygon:to_string( MyConcavePolygon ) ] ),
 
 
-	test_facilities:display( "Diameter information ({P1,P2,SquareDistance}):"
-			   "  - for the triangle, we have: ~w"
-			   "  - for the upright square, we have: ~w"
-			   "  - for the concave polygon, we have: ~w",
+	test_facilities:display( "Diameter information ({P1,P2,SquareDistance}):~n"
+			   "  - for the triangle, we have: ~w~n"
+			   "  - for the upright square, we have: ~w~n"
+			   "  - for the concave polygon, we have: ~w~n",
 			   [ polygon:get_diameter( MyTriangle ),
 				 polygon:get_diameter( MyUprightSquare ),
-				 polygon:get_diameter( MyConcavePolygon )
-			   ] ),
+				 polygon:get_diameter( MyConcavePolygon ) ] ),
 
 	test_facilities:display( "Smallest enclosing rectangle "
-			   "({TopLeftCorner,BottomRightCorner}):"
-			   "  - for the triangle, we have: ~w"
-			   "  - for the upright square, we have: ~w"
-			   "  - for the concave polygon, we have: ~w",
+			   "({TopLeftCorner,BottomRightCorner}):~n"
+			   "  - for the triangle, we have: ~w~n"
+			   "  - for the upright square, we have: ~w~n"
+			   "  - for the concave polygon, we have: ~w~n",
 			   [ polygon:get_smallest_enclosing_rectangle( MyTriangle ),
 				 polygon:get_smallest_enclosing_rectangle( MyUprightSquare ),
 				 polygon:get_smallest_enclosing_rectangle( MyConcavePolygon )
 			   ] ),
 
 
-	test_facilities:display( "Areas:"
-			   "  - for the triangle, we have: ~w"
-			   "  - for the upright square, we have: ~w"
-			   "  - for the concave polygon, we have: ~w",
+	test_facilities:display( "Areas:~n"
+			   "  - for the triangle, we have: ~w~n"
+			   "  - for the upright square, we have: ~w~n"
+			   "  - for the concave polygon, we have: ~w~n",
 			   [ polygon:get_area( MyTriangle ),
 				 polygon:get_area( MyUprightSquare ),
-				 polygon:get_area( MyConcavePolygon )
-			   ] ),
+				 polygon:get_area( MyConcavePolygon ) ] ),
 
 
 	% Clockwise order:
 	MySimpleTriangle = polygon:get_triangle( {0,0}, {0,5}, {10,0} ),
 
-	test_facilities:display( "Clockwise test:"
-			   "  - is the triangle defined in clockwise order: ~w"
-			   "  - is the upright square defined in clockwise order: ~w"
-			   "  - is the concave polygon defined in clockwise order: ~w",
+	test_facilities:display( "Clockwise test:~n"
+			   "  - is the triangle defined in clockwise order: ~w~n"
+			   "  - is the upright square defined in clockwise order: ~w~n"
+			   "  - is the concave polygon defined in clockwise order: ~w~n",
 			   [ polygon:is_in_clockwise_order( MyTriangle ),
 				 polygon:is_in_clockwise_order( MyUprightSquare ),
-				 polygon:is_in_clockwise_order( MyConcavePolygon )
-			   ] ),
+				 polygon:is_in_clockwise_order( MyConcavePolygon ) ] ),
 
 
 	% Area would be negative if its absolute value was not selected:
@@ -118,15 +115,14 @@ run() ->
 			   [ polygon:to_string( MySimpleTriangle ), AreaSimple ] ),
 
 
-	test_facilities:display( "Convexity test:"
-			   "  - is the triangle convex: ~w"
-			   "  - is the upright square convex: ~w"
-			   "  - is the concave polygon convex: ~w",
+	test_facilities:display( "Convexity test:~n"
+			   "  - is the triangle convex: ~w~n"
+			   "  - is the upright square convex: ~w~n"
+			   "  - is the concave polygon convex: ~w~n",
 			   [ polygon:is_convex( MyTriangle ),
 				 polygon:is_convex( MyUprightSquare ),
-				 polygon:is_convex( MyConcavePolygon )
-			   ] ),
+				 polygon:is_convex( MyConcavePolygon ) ] ),
 
-	% Rendering tests: see gui_test.erl.
+	% Rendering tests: see gui_*test.erl.
 
 	test_facilities:stop().

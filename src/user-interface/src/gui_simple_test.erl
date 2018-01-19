@@ -1,6 +1,6 @@
-% Copyright (C) 2003-2017 Olivier Boudeville
+% Copyright (C) 2003-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -25,8 +25,11 @@
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
 
 
-% Simple unit tests for the GUI toolbox: creates a few frames, enter a main
-% loops, and exits when the fourth frame is closed by the user.
+% Simple unit tests for the MyriadGUI toolbox: creates a few frames, enter a
+% main loops, and exits when the fourth frame is closed by the user.
+%
+% Note: this test showcases also how an (explicit) GUI state can be kept and
+% used, if ever needed.
 %
 % See the gui.erl tested module.
 %
@@ -45,11 +48,13 @@
 
 run_test_gui() ->
 
-	test_facilities:display( "~nStarting the actual simple test, from ~w.",
-							 [ self() ] ),
+	test_facilities:display( "~nStarting the actual simple MyriadGUI test, "
+							 "from ~w.", [ self() ] ),
 
-
-	InitialGUIState = gui:start(),
+	% We chose here to carry around the GUI state, whereas in general it is not
+	% necessary at all:
+	%
+	gui:start(),
 
 	%gui:set_debug_level( [ calls, life_cycle ] ),
 
@@ -70,13 +75,11 @@ run_test_gui() ->
 	gui:show( Frames ),
 
 	% As a result, closing the third frame will not be known from here:
-	SubscribedFrames = [ FirstFrame, SecondFrame, FourthFrame ],
+	TrackedFrames = [ FirstFrame, SecondFrame, FourthFrame ],
 
-	SubscribedEvents = [ { onWindowClosed, SubscribedFrames } ],
+	gui:subscribe_to_events( { onWindowClosed, TrackedFrames } ),
 
-	ReadyGUIState = gui:handle_events( InitialGUIState, SubscribedEvents ),
-
-	test_main_loop( FourthFrame, ReadyGUIState ).
+	test_main_loop( FourthFrame ).
 
 
 
@@ -85,8 +88,8 @@ run_test_gui() ->
 % corresponding to the frame that shall be closed to stop the test
 % (i.e. CloseFrame).
 %
--spec test_main_loop( my_test_state(), gui:gui_state() ) -> no_return().
-test_main_loop( CloseFrame, GUIState ) ->
+-spec test_main_loop( my_test_state() ) -> no_return().
+test_main_loop( CloseFrame ) ->
 
 	trace_utils:trace( "Test main loop running..." ),
 
@@ -94,20 +97,29 @@ test_main_loop( CloseFrame, GUIState ) ->
 
 		{ onWindowClosed, [ CloseFrame, Context ] } ->
 
-			trace_utils:trace_fmt( "Closing frame ~w has been, well, closed "
-								   "(context: ~p), test success.",
-								   [ CloseFrame, Context ] ),
+			trace_utils:trace_fmt( "Closing frame ~s has been, well, closed "
+								   "(~s), test success.",
+								   [ gui:object_to_string( CloseFrame ),
+									 gui:context_to_string( Context ) ] ),
 
 			gui:destruct_window( CloseFrame ),
 
-			gui:stop( GUIState );
+			gui:stop();
 
 
 		{ onWindowClosed, [ AnyFrame, Context ] } ->
-			trace_utils:trace_fmt( "Frame ~w closed (context: ~p).",
-								   [ AnyFrame, Context ] ),
+			trace_utils:trace_fmt( "Frame ~s closed (~s).",
+				[ gui:object_to_string( AnyFrame ),
+				  gui:context_to_string( Context ) ] ),
+
 			gui:destruct_window( AnyFrame ),
-			test_main_loop( CloseFrame, GUIState )
+			test_main_loop( CloseFrame );
+
+
+		Other ->
+			trace_utils:warning_fmt( "Test main loop ignored following "
+									 "message: ~p.", [ Other ] ),
+			test_main_loop( CloseFrame )
 
 	end.
 
@@ -123,7 +135,7 @@ run() ->
 	case executable_utils:is_batch() of
 
 		true ->
-			test_facilities:display( "(not running the GUI test, "
+			test_facilities:display( "(not running the MyriadGUI test, "
 									 "being in batch mode)" );
 
 		false ->

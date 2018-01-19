@@ -1,6 +1,6 @@
-% Copyright (C) 2003-2017 Olivier Boudeville
+% Copyright (C) 2003-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -141,9 +141,6 @@ run() ->
 
 
 	{ 4, 22, 11 } = basic_utils:parse_version( "4.22.11" ),
-
-	test_facilities:display( "Generating a new UUID: '~s'.", 
-							 [ basic_utils:generate_uuid() ] ),
 
 	test_facilities:display( "Generating a process-specific value: ~w.",
 							 [ basic_utils:get_process_specific_value() ] ),

@@ -1,6 +1,6 @@
-% Copyright (C) 2015-2017 Olivier Boudeville
+% Copyright (C) 2015-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -38,6 +38,57 @@
 -include("test_facilities.hrl").
 
 
+% To be able to silence at will:
+-export([ run_parse_transform/1, run_ast_level_operations/1 ]).
+
+
+run_parse_transform( TargetSourceFile ) ->
+
+	test_facilities:display( "Applying the common parse transform to the "
+							 "'~s' source file.~n", [ TargetSourceFile ] ),
+
+	TransformedAST = common_parse_transform:run_standalone( TargetSourceFile ),
+
+	test_facilities:display( "Transformed AST:~n~p~n", [ TransformedAST ] ),
+
+	WriteFile = true,
+
+	case WriteFile of
+
+		true ->
+			meta_utils:write_ast_to_file( TransformedAST,
+										  TargetSourceFile ++ ".ast" );
+
+		false ->
+			ok
+
+	end.
+
+
+
+run_ast_level_operations( TargetSourceFile ) ->
+
+	test_facilities:display( "Now performing directly AST-level operations." ),
+
+	BaseAST = meta_utils:erl_to_ast( TargetSourceFile ),
+
+	%test_facilities:display( "Base AST:~n~p", [ BaseAST ] ),
+
+	BaseModuleInfo = meta_utils:extract_module_info_from_ast( BaseAST ),
+
+	test_facilities:display( "Base module info: ~s~n",
+					 [ meta_utils:module_info_to_string( BaseModuleInfo ) ] ),
+
+	FinalModuleInfo = BaseModuleInfo,
+
+	test_facilities:display( "Final module info: ~s~n",
+					 [ meta_utils:module_info_to_string( FinalModuleInfo ) ] ),
+
+	FinalAST = meta_utils:recompose_ast_from_module_info( FinalModuleInfo ),
+
+	test_facilities:display( "Final AST:~n~p", [ FinalAST ] ).
+
+
 
 -spec run() -> no_return().
 run() ->
@@ -47,11 +98,8 @@ run() ->
 	%TargetSourceFile = "graph_utils.erl",
 	TargetSourceFile = "../data-management/simple_parse_transform_target.erl",
 
-	test_facilities:display( "Applying the common parse transform to the "
-							 "'~s' source file.~n", [ TargetSourceFile ] ),
+	run_parse_transform( TargetSourceFile ),
 
-	TransformedAST = common_parse_transform:run_standalone( TargetSourceFile ),
-
-	test_facilities:display( "Transformed AST:~n~p", [ TransformedAST ] ),
+	%run_ast_level_operations( TargetSourceFile ),
 
 	test_facilities:stop().

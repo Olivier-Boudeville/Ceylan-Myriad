@@ -1,6 +1,6 @@
-% Copyright (C) 2014-2017 Olivier Boudeville
+% Copyright (C) 2014-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -37,6 +37,14 @@
 % We store the located forms verbatim whenever possible (in *_def* counterpart
 % fields), notably to preserve line numbers.
 %
+% As a consequence there are generally two fields per theme:
+%
+% - the high-level, developer-friendly one (ex: 'module')
+% - the raw one in AST form (ex: 'module_def')
+%
+% It is up to the user to ensure that, if either field is modified, its
+% counterpart one is updated accordingly.
+%
 -record( module_info, {
 
 
@@ -48,25 +56,46 @@
 		module_def = undefined :: 'undefined' | meta_utils:located_form(),
 
 
-		% Ex: '{compile, { inline, [ { FunName, Arity } ] } }'):
+		% A table, whose keys are compilation options (ex: no_auto_import,
+		% inline, etc.) and whose values are aggregated lists of their
+		% associated values (ex: [{size,1}] and [{get_bucket_index,2},{f/1}]).
+		%
+		% Note: for the 'inline' key, if full inlining is enabled ( '-compile(
+		% inline ).'), then its associated key is not a list of function
+		% identifiers, but 'all'.
+		%
+		compilation_options :: meta_utils:compile_option_table(),
+
+
+		% A table, as multiple compile attributes can be declared, like:
+		%
+		% Ex: {attribute,67,compile,{no_auto_import,[{size,1}]}},
+		%     {attribute,63,compile,{inline,[{get_bucket_index,2}]}}
 		%
 		compilation_option_defs = [] :: meta_utils:located_ast(),
 
 
-		% Parse-level attributes (ex: '-my_attribute( my_value ).'), as
-		% attribute name/value pairs (ex: { my_attribute, my_value } ).
+
+		% Parse-level attributes (ex: '-my_attribute( my_value ).'), as a table
+		% associating values to attribute names (its keys).
 		%
-		parse_attributes = [] :: [ meta_utils:attribute() ],
+		% Note: must be kept on sync with the 'parse_attribute_defs' field.
+		%
+		parse_attributes :: meta_utils:attribute_table(),
 
 
 		% Parse attribute definitions (as located, abstract forms):
 		%
+		% Note: mostly for user-defined attributes, knowing most if not all
+		% others are to be collected in specific other fields of this record.
+		%
 		parse_attribute_defs = [] :: meta_utils:located_ast(),
+
 
 
 		% Include files (typically *.hrl files).
 		%
-		% Unlike the raw definitions (in 'include_defs'), this file does not
+		% Unlike the raw definitions (in 'include_defs'), this field does not
 		% include the filename of the module being compiled (ex: "foobar.erl").
 		%
 		% (there is no duplicate either in that include list)
@@ -76,18 +105,20 @@
 
 		% Include definitions:
 		%
-		% (possibly a given file might be included more than once; the module
-		% being currently compiled is generally listed here more than once)
+		% (possibly a given file might be included more than once; it is
+		% generally the case for the module being currently compiled)
 		%
 		include_defs = [] :: meta_utils:located_ast(),
 
 
+
 		% Type definitions:
 		%
-		% (few information gathered)
+		% (few information gathered: name, arity, and whether is opaque)
 		%
-		type_definitions = [] :: [ { meta_utils:type_name(),
-									 meta_utils:type_arity() } ],
+		type_definitions = [] :: [ { type_utils:type_name(),
+									 type_utils:type_arity(),
+									 boolean() } ],
 
 
 		% The abstract forms corresponding to type definitions:
@@ -95,33 +126,54 @@
 		type_definition_defs = [] :: meta_utils:located_ast(),
 
 
-		% All type exports:
-		type_exports = [] :: [ { meta_utils:type_name(),
-								 meta_utils:type_arity() } ],
+
+		% All type exports (including opaque ones):
+		type_exports = [] :: [ { type_utils:type_name(),
+								 type_utils:type_arity() } ],
 
 
 		% The type export definitions:
 		type_export_defs = [] :: meta_utils:located_ast(),
 
 
-		% Whether a function (possibly any kind of method) is exported is
-		% recorded primarily in its respective function_info record through a
-		% boolean, while the forms for the exports of all functions (including
-		% methods) are recorded here (better that way, as an export attribute
-		% may define any number of exports and we want to record its line):
+		% All information (notably: field descriptions), indexed by record
+		% names, about all the records known of that module:
 		%
-		function_exports = [] :: meta_utils:located_ast(),
+		records :: meta_utils:record_table(),
 
 
-		% All information about the functions defined in that module:
+		% The record export definitions:
+		record_defs = [] :: meta_utils:located_ast(),
+
+
+		% Lists the functions imported by that module, per-module.
 		%
-		% (we cannot use the 'table' module here: this meta module is not
-		% parse-transformed; we thus use only map_hashtable here, knowing that
-		% this module is bootstrapped as well)
+		function_imports :: meta_utils:import_table(),
+
+
+		% The definitions of the function imports:
 		%
-		%functions :: map_hashtable:map_hashtable( meta_utils:function_id(),
-		%										   meta_utils:function_info() ),
-		functions :: map_hashtable:map_hashtable(),
+		function_imports_defs = [] :: meta_utils:located_ast(),
+
+
+
+		% Whether a function (possibly any kind of it) is exported is recorded
+		% primarily in its respective function_info record through a list of
+		% locations, while the actual forms for the exports of all functions are
+		% recorded here (better that way, as an export attribute may define any
+		% number of exports, and we want to record its definition line):
+		%
+		% (this field must be kept synchronised with the table in the
+		% 'functions' field)
+		%
+		function_exports :: meta_utils:export_table(),
+
+
+		% All information, indexed by function identifiers, about all the
+		% functions defined in that module:
+		%
+		functions :: meta_utils:function_table(),
+
 
 
 		% The definition of the last line in the original source file:
@@ -148,16 +200,20 @@
 %
 -record( function_info, {
 
+
 		   % The name of that function:
 		   name = undefined :: meta_utils:function_name(),
+
 
 		   % The arity of that function:
 		   arity = undefined :: arity(),
 
-		   % Corresponds to the location of the full form for the definition of
-		   % this function (not of the spec):
+
+		   % Corresponds to the location of the full form for the definition
+		   % (first clause) of this function (not of the spec):
 		   %
 		   location = undefined :: 'undefined' | meta_utils:location(),
+
 
 		   % Corresponds to the line of the first defined clause (in its source
 		   % file):
@@ -165,18 +221,53 @@
 		   % (this information is a priori redundant with the one in the first
 		   % clause, yet present in the forms, thus kept here)
 		   %
-		   line = undefined :: 'undefined' | meta_utils:line(),
+		   line = undefined :: 'undefined' | ast_utils:line(),
 
-		   % Function actual definition, a list of the abstract forms of its
-		   % definition:
+
+		   % Function actual definition, a (non-located) list of the abstract
+		   % forms of its definition:
 		   %
 		   definition = [] :: [ meta_utils:clause_def() ],
+
 
 		   % The type specification (if any) of that function, as an abstract
 		   % form:
 		   spec = undefined :: meta_utils:located_function_spec() | 'undefined',
 
-		   % Tells whether this function has been exported:
-		   exported = false :: boolean()
+
+		   % Tells whether this function has been exported, as a (possibly
+		   % empty) list of the location(s) of its actual export(s), knowing
+		   % that a function can be exported more than once or never:
+		   %
+		   exported = [] :: [ meta_utils:location() ]
+
+
+} ).
+
+
+
+% Centralises automatic replacements of all known kinds that may be done in
+% ASTs.
+%
+-record( ast_replacements, {
+
+
+		   % Replacement table for local types:
+		   local_types = undefined :: basic_utils:maybe(
+								meta_utils:local_type_replacement_table() ),
+
+		   % Replacement table for remote types:
+		   remote_types = undefined :: basic_utils:maybe(
+								meta_utils:remote_type_replacement_table() ),
+
+
+		   % Replacement table for local calls:
+		   local_calls = undefined :: basic_utils:maybe(
+								meta_utils:local_call_replacement_table() ),
+
+		   % Replacement table for remote calls:
+		   remote_calls = undefined :: basic_utils:maybe(
+								meta_utils:remote_call_replacement_table() )
+
 
 } ).

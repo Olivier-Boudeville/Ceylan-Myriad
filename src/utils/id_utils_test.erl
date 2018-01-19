@@ -1,6 +1,6 @@
-% Copyright (C) 2003-2017 Olivier Boudeville
+% Copyright (C) 2003-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -25,70 +25,25 @@
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
 
 
-% Testing the OpenGL support.
+% Unit tests for the management of identifiers.
 %
-% See the gui_opengl.erl tested module.
+% See the id_utils.erl tested module.
 %
--module(gui_opengl_test).
+-module(id_utils_test).
 
 
 % For run/0 export and al:
 -include("test_facilities.hrl").
 
 
-% For the #wx record:
--include_lib("wx/include/wx.hrl").
-
-
-run_test_gui() ->
-
-	test_facilities:display( "~nStarting the test of OpenGL support." ),
-
-	InitialState = gui:start(),
-
-	%gui:set_debug_level( [ calls, life_cycle ] ),
-
-	MainFrame = gui:create_frame( "GUI OpenGL Test" ),
-
-	_StatusBar = gui:create_status_bar( MainFrame ),
-
-	gui:show( MainFrame ),
-
-	SubscribedEvents = [
-		  { MainFrame, onWindowClosed } ],
-
-	LoopState = gui:enter_main_loop( InitialState,
-									 SubscribedEvents ),
-
-	receive
-
-		{ onWindowClosed, [ MainFrame, _Id, _UserData, _WxEvent ] } ->
-			gui:destruct_window( MainFrame ),
-			trace_utils:trace( "Main frame closed, test success." ),
-			gui:stop( LoopState )
-
-	end.
-
-
-
-
-
-% Runs the test.
-%
 -spec run() -> no_return().
 run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	case executable_utils:is_batch() of
+	test_facilities:display( "Generating a new UUID: '~s'.",
+							 [ basic_utils:generate_uuid() ] ),
 
-		true ->
-			test_facilities:display( "(not running the GUI test, "
-									 "being in batch mode)" );
 
-		false ->
-			run_test_gui()
-
-	end,
 
 	test_facilities:stop().

@@ -1,6 +1,6 @@
-% Copyright (C) 2010-2017 Olivier Boudeville
+% Copyright (C) 2010-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -114,8 +114,8 @@ get_polygon( Vertices ) ->
 % Returns {V1,V2,D} when V1 and V2 are the endpoints of a diameter and D is its
 % square length: D = square_distance( V1, V2 ).
 %
--spec get_diameter( polygon() )
-	  -> { linear_2D:point(), linear_2D:point(), linear:square_distance() }.
+-spec get_diameter( polygon() ) ->
+			 { linear_2D:point(), linear_2D:point(), linear:square_distance() }.
 get_diameter( Polygon ) ->
 
 	case Polygon#polygon.vertices of
@@ -216,20 +216,21 @@ is_convex( [], _Previous, _Sign ) ->
 is_convex( [ P={X,Y} | T ], _Previous={Xp,Yp}, _Sign=undefined ) ->
 
 	% Setting the first sign:
-	%io:format( "initial: previous= ~w, next= ~w, sum=~w.~n",
-	%		   [ {Xp,Yp}, P,  Xp*Y-X*Y ] ),
+	%trace_utils:debug_fmt( "initial: previous= ~w, next= ~w, sum=~w.~n",
+	%		   [ {Xp,Yp}, P, Xp*Y-X*Y ] ),
 
 	FirstSign = case Xp*Y-X*Yp of
 
-				  PositiveSum when PositiveSum > 0 ->
-					  positive;
+		PositiveSum when PositiveSum > 0 ->
+			positive;
 
-				  _NegativeSum ->
-					  negative
+		_NegativeSum ->
+			negative
 
-			  end,
+	end,
 
 	is_convex( T, _NewPrevious=P, FirstSign );
+
 
 is_convex( [ P={X,Y} | T ], _Previous={Xp,Yp}, Sign ) ->
 
@@ -247,7 +248,7 @@ is_convex( [ P={X,Y} | T ], _Previous={Xp,Yp}, Sign ) ->
 
 			  end,
 
-	%io:format( "Current sign: ~s, new one: ~s.~n", [ Sign, NewSign ] ),
+	%trace_utils:debug_fmt( "Current sign: ~s, new one: ~s.~n", [ Sign, NewSign ] ),
 
 	case NewSign of
 
@@ -280,7 +281,7 @@ set_edge_color( Color, Polygon ) ->
 % Returns the current edge color of the specified polygon, if specified,
 % otherwise 'undefined'.
 %
--spec get_edge_color( polygon() ) -> 'undefined' | gui_color:color().
+-spec get_edge_color( polygon() ) -> basic_utils:maybe( gui_color:color() ).
 get_edge_color( Polygon ) ->
 	option_list:lookup( edge_color, Polygon#polygon.rendering ).
 
@@ -301,7 +302,7 @@ set_fill_color( Color, Polygon ) ->
 % Returns the current fill color of the specified polygon, if specified,
 % otherwise 'undefined'.
 %
--spec get_fill_color( polygon() ) -> 'undefined' | gui_color:color().
+-spec get_fill_color( polygon() ) -> basic_utils:maybe( gui_color:color() ).
 get_fill_color( Polygon ) ->
 	option_list:lookup( fill, Polygon#polygon.rendering ).
 
@@ -320,10 +321,11 @@ get_rendering_options( Polygon ) ->
 %
 % Throws an exception if the polygon is not valid.
 %
--spec render( polygon(), gui_canvas:canvas() ) -> basic_utils:void().
+-spec render( polygon(), gui:canvas() ) -> basic_utils:void().
 render( Polygon, Canvas ) ->
 
-	%io:format( "Rendering polygon:~n~s.~n", [ to_string( Polygon ) ] ),
+	%trace_utils:debug_fmt( "Rendering polygon:~n~s.",
+	% [ to_string( Polygon ) ] ),
 
 	case Polygon#polygon.vertices of
 
@@ -343,8 +345,8 @@ render( Polygon, Canvas ) ->
 					ok;
 
 				DrawColor ->
-					%io:format( "DrawColor = ~p", [ DrawColor ] ),
-					gui_canvas:set_draw_color( Canvas, DrawColor )
+					%trace_utils:debug_fmt( "DrawColor = ~p.", [ DrawColor ] ),
+					gui:set_draw_color( Canvas, DrawColor )
 
 			end,
 
@@ -354,19 +356,19 @@ render( Polygon, Canvas ) ->
 					ok;
 
 				FillColor ->
-					gui_canvas:set_fill_color( Canvas, FillColor )
+					gui:set_fill_color( Canvas, FillColor )
 
 			end,
 
-			gui_canvas:draw_polygon( Canvas, Vertices ),
+			gui:draw_polygon( Canvas, Vertices ),
 
 
 			case Polygon#polygon.bounding_box of
 
 				{ circle, Center, SquareRadius } ->
-					gui_canvas:draw_circle( Canvas, Center,
+					gui:draw_circle( Canvas, Center,
 									 round( math:sqrt( SquareRadius ) ) ),
-					gui_canvas:draw_cross( Canvas, Center, _EdgeLength=4 );
+					gui:draw_cross( Canvas, Center, _EdgeLength=4 );
 
 				undefined ->
 					ok
@@ -384,11 +386,11 @@ to_string( Polygon ) ->
 
 	BBText = case Polygon#polygon.bounding_box of
 
-				 undefined ->
-					"none available";
+		undefined ->
+			"none available";
 
-				 BB ->
-					bounding_box:to_string( BB )
+		BB ->
+			bounding_box:to_string( BB )
 
 	end,
 
@@ -413,8 +415,10 @@ to_string( Polygon ) ->
 % The lazy circle bounding box is fast to determine, but not optimal:
 -spec update_bounding_box( 'lazy_circle', polygon() ) -> polygon().
 update_bounding_box( lazy_circle, Polygon ) ->
+
 	{ Center, SquareRadius } = bounding_box:get_lazy_circle_box(
 							  Polygon#polygon.vertices ),
+
 	Polygon#polygon{ bounding_box=#circle{ center=Center,
 										  square_radius=SquareRadius } }.
 
@@ -431,21 +435,28 @@ update_bounding_box( lazy_circle, Polygon ) ->
 %
 -spec get_signed_area( [ linear_2D:point() ] ) -> linear:area().
 get_signed_area( _Vertices=[ First | T ] ) ->
+
 	% We will start from the second point, as we always deal with the current
 	% one and its predecessor (avoid to add an element at end of list):
+
 	get_signed_area( T, _FirstOfAll=First, _Previous=First, _Area=0 ).
 
 
 
 get_signed_area( _Vertices=[ _Last={X,Y} ], _FirstOfAll={Xf,Yf},
 				 _Previous={Xp,Yp}, Area ) ->
+
 	% Here we reached the last point of the polygon, so, first, we compute its
 	% product with the previous point, then we do the same with the FirstOfAll
 	% point, as if it was following this Last point:
+
 	LastTwoSumTerms = Xp*Y-X*Yp + X*Yf-Xf*Y,
+
 	( Area + LastTwoSumTerms ) / 2 ;
 
 
 get_signed_area( [ P={X,Y} | T ], FirstOfAll, _Previous={Xp,Yp}, Area ) ->
+
 	% Here we are not managing the last point:
+
 	get_signed_area( T, FirstOfAll, _NewPrevious=P, Area + Xp*Y-X*Yp ).

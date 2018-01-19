@@ -1,6 +1,6 @@
-% Copyright (C) 2010-2017 Olivier Boudeville
+% Copyright (C) 2016-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -23,24 +23,24 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
-% Creation date: Monday, September 11, 2017.
 
 
-
-
-% Gathering of various facilities for OpenGL rendering, done through WxWidgets.
+% Unit tests for the ui toolbox.
 %
-% See gui_opengl_test.erl for the corresponding test.
+% See the ui.erl tested module.
 %
-% See gui.erl for more general rendering topics.
-%
--module(gui_opengl).
+-module(ui_test).
 
 
-%-export_type([]).
+% For run/0 export and al:
+-include("test_facilities.hrl").
 
-%-export([]).
 
-%-include_lib("wx/include/wx.hrl").
-%-include_lib("wx/include/gl.hrl").
-%-include_lib("wx/include/glu.hrl").
+-spec run() -> no_return().
+run() ->
+
+	test_facilities:start( ?MODULE ),
+
+	ui:start(),
+
+	test_facilities:stop().

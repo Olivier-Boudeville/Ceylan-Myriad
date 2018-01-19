@@ -1,6 +1,6 @@
-% Copyright (C) 2003-2017 Olivier Boudeville
+% Copyright (C) 2003-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -23,30 +23,42 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
-% Creation date: Tuesday, January 29, 2013
+% Creation date: Saturday, September 16, 2017.
 
 
-% Header to export canvas-related defines.
+% Internal gui defines, hence to be included solely by the gui subsystem, not by
+% user code (as depends on wx).
+
+
+% For wx records and all:
+-include_lib("wx/include/wx.hrl").
+
+
+% Some defines:
+
+-define( any_id, ?wxID_ANY ).
+
+-define( no_parent, wx:null() ).
+
+
+% The special color that means "transparent" (i.e. no filling):
+-define( transparent_color, ?wxTRANSPARENT_BRUSH ).
+
+
+
+% A reference onto a GUI object, for the widgets that MyriadGUI added to the
+% backend at hand.
 %
-% See gui_canvas.erl for the corresponding implementation.
-
-
-
-% wxCanvas does not exist, we emulate it.
+% Results in terms such as: { myriad_object_ref, canvas, CanvasPid }.
 %
-% Canvas are back-buffered: drawing operations on it will not be visible until
-% the blit/1 function is called on it.
-%
--record( canvas, {
-		   panel       :: gui:panel(),
-		   bitmap      :: gui:bitmap(),
-		   back_buffer :: gui:back_buffer()
+-record( myriad_object_ref, {
+
+		% The type of GUI object referred to (ex: 'canvas'):
+		object_type :: gui:myriad_object_type(),
+
+		% The identifier of this referenced instance:
+		myriad_instance_pid :: gui:myriad_instance_pid()
+
 }).
 
-
-% The actual canvas type we are to use:
--type canvas() :: #canvas{}.
-
-
-% An OpenGL-based canvas:
--type gl_canvas():: wxGLCanvas:wxGLCanvas().
+-type myriad_object_ref() :: #myriad_object_ref{}.

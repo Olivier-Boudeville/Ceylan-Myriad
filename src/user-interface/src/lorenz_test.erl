@@ -1,6 +1,6 @@
-% Copyright (C) 2014-2017 Olivier Boudeville
+% Copyright (C) 2014-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -40,8 +40,8 @@
 -include("gui.hrl").
 
 
-% Utility functions:
--export([ get_name/1 ]).
+% FIXME
+-export([ get_name/1, draw_lines/3 ]).
 
 
 
@@ -452,122 +452,123 @@ create_solver_table( Derivative, _Colors=[ C | T ],
 
 %-spec gui_main_loop( gs_object(), integer(), gui_canvas:canvas() | undefined )
 %				   -> no_return().
-gui_main_loop( State=#gui_state{ main_frame=MainFrame,
-								 start_button=StartButton,
-								 stop_button=StopButton,
-								 quit_button=QuitButton,
-								 canvas=Canvas,
-								 screen=Screen,
-								 solver_table=SolverTable
-								} ) ->
+gui_main_loop( _State=#gui_state{ main_frame=_MainFrame,
+								 start_button=_StartButton,
+								 stop_button=_StopButton,
+								 quit_button=_QuitButton,
+								 canvas=_Canvas,
+								 screen=_Screen,
+								 solver_table=_SolverTable } ) ->
 
 	%gui_canvas:draw_line( Canvas, { 1, 1 }, { 40, 30 }, red ),
 
 	%test_facilities:display( "~nEntering main loop." ),
 
-	Update = receive
+	%% Update = receive
 
-		% Routine messages sent by solvers shall be listed last, otherwise they
-		% will eclipse other messages (ex: GUI ones):
+	%% 	% Routine messages sent by solvers shall be listed last, otherwise they
+	%% 	% will eclipse other messages (ex: GUI ones):
 
-		#wx{ obj=MainFrame, event={ wxClose, close_window } } ->
-			test_facilities:display( "Quitting Lorenz test." ),
-			quit;
-
-
-		#wx{ obj=StartButton,
-			 event=#wxCommand{ type=command_button_clicked } } ->
-			test_facilities:display( "Start button clicked." ),
-			%NewCanvas = render_test( Canvas ),
-			gui_canvas:clear( Canvas ),
-			gui_canvas:draw_line( Canvas, { 1, 40 }, { 40, 1 }, blue ),
-			State#gui_state{ canvas=Canvas };
+	%% 	#wx{ obj=MainFrame, event={ wxClose, close_window } } ->
+	%% 		test_facilities:display( "Quitting Lorenz test." ),
+	%% 		quit;
 
 
-		#wx{ obj=StopButton,
-			 event=#wxCommand{ type=command_button_clicked } } ->
-			test_facilities:display( "Stop button clicked." ),
-			State#gui_state{ canvas=Canvas };
+	%% 	#wx{ obj=StartButton,
+	%% 		 event=#wxCommand{ type=command_button_clicked } } ->
+	%% 		test_facilities:display( "Start button clicked." ),
+	%% 		%NewCanvas = render_test( Canvas ),
+	%% 		gui_canvas:clear( Canvas ),
+	%% 		gui_canvas:draw_line( Canvas, { 1, 40 }, { 40, 1 }, blue ),
+	%% 		State#gui_state{ canvas=Canvas };
 
 
-		#wx{ obj=QuitButton,
-			 event=#wxCommand{ type=command_button_clicked } } ->
-			test_facilities:display( "Quit button clicked." ),
-
-			[ SolverPid ! stop || SolverPid <- table:keys(
-											State#gui_state.solver_table ) ],
-
-			quit;
+	%% 	#wx{ obj=StopButton,
+	%% 		 event=#wxCommand{ type=command_button_clicked } } ->
+	%% 		test_facilities:display( "Stop button clicked." ),
+	%% 		State#gui_state{ canvas=Canvas };
 
 
-		#wx{ obj=Any, event=#wxCommand{ type=command_button_clicked } } ->
-			test_facilities:display( "Following button clicked: ~w.", [ Any ] ),
-			quit;
+	%% 	#wx{ obj=QuitButton,
+	%% 		 event=#wxCommand{ type=command_button_clicked } } ->
+	%% 		test_facilities:display( "Quit button clicked." ),
+
+	%% 		[ SolverPid ! stop || SolverPid <- table:keys(
+	%% 										State#gui_state.solver_table ) ],
+
+	%% 		quit;
 
 
-		% Received for example when another window overlapped:
-		#wx{ event=#wxPaint{} } ->
-			test_facilities:display( "Repainting." ),
-			gui_canvas:clear( Canvas ),
-			gui_canvas:blit( Canvas ),
-			State ;
+	%% 	#wx{ obj=Any, event=#wxCommand{ type=command_button_clicked } } ->
+	%% 		test_facilities:display( "Following button clicked: ~w.", [ Any ] ),
+	%% 		quit;
 
 
-		#wx{ event=#wxSize{ size=NewSize } } ->
-			test_facilities:display( "Resizing to ~w.", [ NewSize ] ),
-			NewCanvas = gui_canvas:resize( Canvas, NewSize ),
-			%gui_canvas:clear( NewCanvas ),
-			State#gui_state{ canvas=NewCanvas };
-
-		{ draw_points, NewPoints, SendingSolverPid } ->
-
-			%io:format( "Drawing ~B points from ~w.~n", [ length( NewPoints ),
-			%											 SendingSolverPid ] ),
-
-			{ Color, LastPoint } = table:getEntry( SendingSolverPid,
-												   SolverTable ),
-
-			NewLastPoint = draw_lines( Canvas, [ LastPoint | NewPoints ],
-									   Color ),
-
-			gui_canvas:blit( Canvas ),
-
-			NewSolverTable = table:addEntry( _K=SendingSolverPid,
-								_V={ Color, NewLastPoint }, SolverTable ),
-
-			State#gui_state{ solver_table=NewSolverTable };
+	%% 	% Received for example when another window overlapped:
+	%% 	#wx{ event=#wxPaint{} } ->
+	%% 		test_facilities:display( "Repainting." ),
+	%% 		gui_canvas:clear( Canvas ),
+	%% 		gui_canvas:blit( Canvas ),
+	%% 		State ;
 
 
-		{ draw_point, NewPoint, SendingSolverPid } ->
+	%% 	#wx{ event=#wxSize{ size=NewSize } } ->
+	%% 		test_facilities:display( "Resizing to ~w.", [ NewSize ] ),
+	%% 		NewCanvas = gui_canvas:resize( Canvas, NewSize ),
+	%% 		%gui_canvas:clear( NewCanvas ),
+	%% 		State#gui_state{ canvas=NewCanvas };
 
-			io:format( " - drawing ~p (from ~p)~n",
-					   [ NewPoint, SendingSolverPid ] ),
+	%% 	{ draw_points, NewPoints, SendingSolverPid } ->
 
-			{ Color, LastPoint } = table:getEntry( SendingSolverPid,
-												   SolverTable ),
+	%% 		%io:format( "Drawing ~B points from ~w.~n", [ length( NewPoints ),
+	%% 		%											 SendingSolverPid ] ),
 
-			SourceDrawPoint = project_2D( LastPoint, Screen ),
+	%% 		{ Color, LastPoint } = table:getEntry( SendingSolverPid,
+	%% 											   SolverTable ),
 
-			DestinationDrawPoint = project_2D( NewPoint, Screen ),
+	%% 		NewLastPoint = draw_lines( Canvas, [ LastPoint | NewPoints ],
+	%% 								   Color ),
 
-			gui_canvas:draw_line( Canvas, SourceDrawPoint, DestinationDrawPoint,
-								  Color ),
+	%% 		gui_canvas:blit( Canvas ),
 
-			gui_canvas:blit( Canvas ),
+	%% 		NewSolverTable = table:addEntry( _K=SendingSolverPid,
+	%% 							_V={ Color, NewLastPoint }, SolverTable ),
 
-			NewSolverTable = table:addEntry( _K=SendingSolverPid,
-								_V={ Color, NewPoint }, SolverTable ),
-
-			State#gui_state{ solver_table=NewSolverTable };
+	%% 		State#gui_state{ solver_table=NewSolverTable };
 
 
+	%% 	{ draw_point, NewPoint, SendingSolverPid } ->
 
-		Any ->
-			test_facilities:display( "GUI test got event '~w' (ignored).",
-									[ Any ] ),
-			State
+	%% 		io:format( " - drawing ~p (from ~p)~n",
+	%% 				   [ NewPoint, SendingSolverPid ] ),
 
-	end,
+	%% 		{ Color, LastPoint } = table:getEntry( SendingSolverPid,
+	%% 											   SolverTable ),
+
+	%% 		SourceDrawPoint = project_2D( LastPoint, Screen ),
+
+	%% 		DestinationDrawPoint = project_2D( NewPoint, Screen ),
+
+	%% 		gui_canvas:draw_line( Canvas, SourceDrawPoint, DestinationDrawPoint,
+	%% 							  Color ),
+
+	%% 		gui_canvas:blit( Canvas ),
+
+	%% 		NewSolverTable = table:addEntry( _K=SendingSolverPid,
+	%% 							_V={ Color, NewPoint }, SolverTable ),
+
+	%% 		State#gui_state{ solver_table=NewSolverTable };
+
+
+
+	%% 	Any ->
+	%% 		test_facilities:display( "GUI test got event '~w' (ignored).",
+	%% 								[ Any ] ),
+	%% 		State
+
+	%% end,
+
+	Update = fixme,
 
 	case Update of
 

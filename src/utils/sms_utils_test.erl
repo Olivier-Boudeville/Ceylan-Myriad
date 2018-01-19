@@ -6,9 +6,9 @@
 % Note: this source file was beforehand in DOS encoding, presumably for no good
 % reason.
 
-% Copyright (C) 2013-2017 Olivier Boudeville
+% Copyright (C) 2013-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or

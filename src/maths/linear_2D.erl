@@ -1,6 +1,6 @@
-% Copyright (C) 2003-2017 Olivier Boudeville
+% Copyright (C) 2003-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -107,8 +107,12 @@
 
 
 % { Width, Height }:
--type dimensions() :: { linear:integer_coordinate(),
-						linear:integer_coordinate() }.
+-type dimensions() :: { linear:coordinate(),
+						linear:coordinate() }.
+
+
+-type integer_dimensions() :: { linear:integer_coordinate(),
+								linear:integer_coordinate() }.
 
 
 % A 2D vector, with floating-point coordinates.
@@ -132,9 +136,8 @@
 -type shape() :: 'circle' | 'rectangle' | 'square' | 'triangle' | 'polygon'.
 
 
--export_type([ point/0, integer_point/0, dimensions/0,
-			   vector/0, integer_vector/0, line/0,
-			   shape/0 ]).
+-export_type([ point/0, integer_point/0, dimensions/0, integer_dimensions/0,
+			   vector/0, integer_vector/0, line/0, shape/0 ]).
 
 
 
@@ -338,7 +341,7 @@ compute_max_overall_distance( _Points=[ H | Others ],
 %
 % As there must have been at least one point in the list, Pmax exists here
 % (never undefined):
--spec compute_max_distance_between( point(), [ point() ] )-> 
+-spec compute_max_distance_between( point(), [ point() ] )->
 						{ point(), point(), linear:square_distance() }.
 compute_max_distance_between( _P, [] ) ->
 	throw( no_computable_max_distance );
