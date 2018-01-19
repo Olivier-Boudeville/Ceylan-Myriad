@@ -463,10 +463,16 @@
 -type function_name() :: basic_utils:function_name().
 
 
+
+% The arity of a function:
+%
+-type function_arity() :: arity().
+
+
 % Declaration of a function based on a name with an arity (unique function
 % signature within a module):
 %
--type function_id() :: { function_name(), arity() }.
+-type function_id() :: { function_name(), function_arity() }.
 
 
 % The form corresponding to the definition of a clause of a function, typically
@@ -700,7 +706,7 @@
 -export_type([ parse_transform_options/0, line/0, file_loc/0, form/0, ast/0,
 			   location/0, located_form/0, located_ast/0,
 			   attribute_name/0, attribute_value/0, attribute/0,
-			   function_name/0, function_id/0,
+			   function_name/0, function_arity/0, function_id/0,
 			   clause_def/0, function_spec/0, located_function_spec/0,
 			   function_info/0,
 			   type_name/0, type_arity/0, primitive_type_description/0,
