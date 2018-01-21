@@ -23,19 +23,22 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
-% Creation date: Monday, January 1, 2018
+% Creation date: Monday, January 1, 2018.
 
 
 
 % Gathering of various convenient facilities to manage ASTs (Abstract Syntax
-% Trees).
+% Trees): direct bridge towards plain Erlang AST.
 %
 % Convenient to isolate processings from the current Erlang AST syntax, which
 % could change over time (a bit like the erl_syntax standard module, albeit with
 % a different set of conventions).
 %
-% See also: the meta_utils module, for meta primitives less directly linked with
-% syntax.
+% See also:
+%
+% - the meta_utils module, for meta primitives less directly linked with syntax
+%
+% - the ast_scan module, to perform a full, strict traversal of an AST
 %
 -module(ast_utils).
 
@@ -58,10 +61,22 @@
 -type function_name() :: basic_utils:function_name().
 
 
+% Includes '_':
+-type variable_name() :: atom().
+
+
+
 
 % General element of an AST.
 %
 -type ast_element() :: tuple().
+
+
+% Name of any parse attribute:
+%
+% (typically in Form={ attribute, Line, AttributeName, AttributeValue })
+%
+-type parse_attribute_name() :: atom().
 
 
 % Line location (i.e. line number) of a form in a source file:
@@ -72,6 +87,34 @@
 %
 -type file_loc() :: erl_anno:location().
 
+
+% Context of a form:
+-type form_context() :: basic_utils:maybe( line() | file_loc() ).
+
+
+% Abstract form, part of an AST (ex: {attribute,40,file,{"foo.erl",40}}):
+%
+-type form() :: erl_parse:abstract_form() | erl_parse:form_info().
+
+
+-type ast_variable() :: { 'var', line(), variable_name() }.
+
+
+
+
+% Abstract Syntax Tree, standard representation of parse trees for Erlang
+% programs as Erlang terms. This representation is known as the abstract format.
+%
+% Defined as erl_parse_tree().
+%
+% See also:
+%
+% - for the type: http://erlang.org/doc/man/erl_parse.html#type-erl_parse_tree
+%
+% - for the overall logic and structure:
+% http://erlang.org/doc/apps/erts/absform.html
+%
+-type ast() :: [ form() ].
 
 
 
@@ -127,7 +170,7 @@
 
 % Reference to a remote type, in an AST.
 %
-% Ex for basic_utils:maybe( float() ):
+% Example for basic_utils:maybe( float() ):
 % {remote_type,43,[{atom,43,basic_utils},{atom,43,maybe},[{type,43,float,[]}]]}
 %
 % Note: the order of fields matters (not arbitrary, to correspond to the actual
@@ -148,9 +191,16 @@
 -type ast_remote_type() :: #remote_type{}.
 
 
+
+
 % Any kind of reference onto a type:
 %
 -type ast_type() :: ast_builtin_type() | ast_user_type() | ast_remote_type().
+
+
+% May be constrained or not (see http://erlang.org/doc/apps/erts/absform.html):
+%
+-type function_type().
 
 
 % The description of a field of a record.
@@ -181,9 +231,45 @@
 -type ast_expression() :: ast_element().
 
 
--export_type([ ast_element/0, line/0, file_loc/0,
+-export_type([ ast_element/0, line/0, file_loc/0, form_context/0,
 			   ast_builtin_type/0, ast_user_type/0, ast_remote_type/0,
 			   ast_type/0, ast_field_description/0, ast_immediate_value/0 ]).
+
+
+% Checking:
+%
+-export([ check_line/2,
+
+		  check_parse_attribute_name/1, check_parse_attribute_name/2,
+
+		  check_module_name/1, check_module_name/2,
+
+		  check_inline_options/1, check_inline_options/2,
+
+		  check_function_name/1, check_function_name/2,
+
+		  check_type_name/1, check_type_name/2,
+
+		  check_record_name/1, check_record_name/2,
+
+		  check_arity/1, check_arity/2,
+
+		  check_type_id/1, check_type_id/2,
+		  check_type_ids/1, check_type_ids/2,
+
+		  check_function_id/1, check_function_id/2,
+		  check_function_ids/1, check_function_ids/2,
+
+		  check_function_type/2, check_function_type/3,
+		  check_function_types/2, check_function_types/3,
+
+		  check_function_clauses/2, check_function_clauses/3,
+
+		  check_variable/1, check_variable/2,
+		  check_variables/1, check_variables/2,
+
+		]).
+
 
 
 % Designating values:
@@ -217,6 +303,353 @@
 %
 -export([ forge_local_call/3, forge_local_call/4,
 		  forge_remote_call/4, forge_remote_call/5 ]).
+
+
+
+% Displaying:
+%
+-export([ display_debug/1, display_debug/2,
+		  display_trace/1, display_trace/2,
+		  display_info/1, display_info/2,
+		  display_warning/1, display_warning/2,
+		  display_error/1, display_error/2,
+		  display_fatal/1, display_fatal/2 ]).
+
+
+% Other:
+%
+-export([ raise_error/2, notify_warning/2 ]).
+
+
+% Checking section.
+
+
+
+% Checks that specified line reference is legit.
+%
+check_line( term(), form_context() ) ->
+check_line( Line, _Context ) when is_integer( Line ) andalso Line >= 0 ->
+	Line;
+
+check_line( Other, Context ) ->
+	% Not raise_error/3:
+	throw( { invalid_line, Other, Context } ).
+
+
+
+% Checks that specified module name is legit.
+%
+-spec check_module_name( term() ) -> basic_utils:module_name().
+check_module_name( Name ) ->
+	check_module_name( Name, _Context=undefined ).
+
+
+
+% Checks that specified parse attribute name is legit.
+%
+-spec check_parse_attribute_name( term(), form_context() ) ->
+										parse_attribute_name().
+check_parse_attribute_name( Name, _Context ) when is_atom( Name ) ->
+	Name;
+
+check_parse_attribute_name( Other, Context ) ->
+	raise_error( [ invalid_parse_attribute_name, Other ], Context ).
+
+
+% Checks that specified parse attribute name is legit.
+%
+-spec check_parse_attribute_name( term() ) -> basic_utils:parse_attribute_name().
+check_parse_attribute_name( Name ) ->
+	check_parse_attribute_name( Name, _Context=undefined ).
+
+
+
+% Checks that specified module name is legit.
+%
+-spec check_module_name( term(), form_context() ) -> basic_utils:module_name().
+check_module_name( Name, _Context ) when is_atom( Name ) ->
+	Name;
+
+check_module_name( Other, Context ) ->
+	raise_error( [ invalid_module_name, Other ], Context ).
+
+
+
+% Checks that specified inline options are legit.
+%
+-spec check_inline_options( term() ) -> [ meta_utils:function_id() ].
+check_inline_options( FunIds ) ->
+	check_inline_options( FunIds, _Context=undefined ).
+
+
+% Checks that specified inline options are legit.
+%
+-spec check_inline_options( term(), form_context() ) ->
+								  [ meta_utils:function_id() ].
+check_inline_options( FunIds, Context ) when is_list( FunIds ) ->
+	check_function_ids( FunIds, Context );
+
+check_inline_options( Other, Context ) ->
+	raise_error( [ invalid_inline_options, Other ], Context ).
+
+
+
+
+% Checks that specified function name is legit.
+%
+-spec check_function_name( term() ) -> basic_utils:function_name().
+check_function_name( Name ) ->
+	check_function_name( Name, _Context=undefined ).
+
+
+
+% Checks that specified function name is legit.
+%
+-spec check_function_name( term(), form_context() ) -> basic_utils:function_name().
+check_function_name( Name, _Context ) when is_atom( Name ) ->
+	Name;
+
+check_function_name( Other, Context ) ->
+	raise_error( [ invalid_function_name, Other ], Context ).
+
+
+
+% Checks that specified type name is legit.
+%
+-spec check_type_name( term() ) -> basic_utils:type_name().
+check_type_name( Name ) ->
+	check_type_name( Name, _Context=undefined ).
+
+
+
+% Checks that specified type name is legit.
+%
+-spec check_type_name( term(), form_context() ) -> basic_utils:type_name().
+check_type_name( Name, _Context ) when is_atom( Name ) ->
+	Name;
+
+check_type_name( Other, Context ) ->
+	raise_error( [ invalid_type_name, Other ], Context ).
+
+
+
+
+% Checks that specified record name is legit.
+%
+-spec check_record_name( term() ) -> basic_utils:record_name().
+check_record_name( Name ) ->
+	check_record_name( Name, _Context=undefined ).
+
+
+
+% Checks that specified record name is legit.
+%
+-spec check_record_name( term(), form_context() ) -> basic_utils:record_name().
+check_record_name( Name, _Context ) when is_atom( Name ) ->
+	Name;
+
+check_record_name( Other, Context ) ->
+	raise_error( [ invalid_record_name, Other ], Context ).
+
+
+
+
+% Checks that specified (function or type) arity is legit.
+%
+-spec check_arity( term() ) -> arity().
+check_arity( Arity ) ->
+	check_arity( Arity, _Context=undefined ).
+
+
+% Checks that specified (function or type) arity is legit.
+%
+-spec check_arity( term(), form_context() ) -> arity().
+check_arity( Arity, _Context ) when is_integer( Arity ) andalso Arity >= 0 ->
+	Arity;
+
+check_arity( Other, Context ) ->
+	raise_error( [ invalid_arity, Other ], Context ).
+
+
+
+% Checks that specified type identifier is legit.
+%
+-spec check_type_id( term() ) -> type_utils:type_id().
+check_type_id( Id ) ->
+	check_type_id( Id, _Context=undefined ).
+
+
+% Checks that specified type identifier is legit.
+%
+-spec check_type_id( term(), form_context() ) -> type_utils:type_id().
+check_type_id( TypeId={ TypeName, TypeArity }, Context ) ->
+	check_type_name( TypeName, Context ),
+	check_arity( TypeArity, Context );
+
+check_type_id( Other, Context ) ->
+	raise_error( [ invalid_type_identifier, Other ], Context ).
+
+
+
+% Checks that specified type identifiers are legit.
+%
+-spec check_type_ids( term() ) -> [ type_utils:type_id() ].
+check_type_ids( Ids ) ->
+	check_type_ids( Ids, _Context=undefined ).
+
+
+% Checks that specified type identifiers are legit.
+%
+-spec check_type_ids( term(), form_context() ) -> [ type_utils:type_id() ].
+check_type_ids( List, Context ) when is_list( List ) ->
+	[ check_type_id( Id, Context ) || Id <- List ];
+
+check_type_ids( Other, Context ) ->
+	raise_error( [ invalid_type_identifier_list, Other ], Context ).
+
+
+
+% Checks that specified function identifier is legit.
+%
+-spec check_function_id( term() ) -> meta_utils:function_id().
+check_function_id( Id ) ->
+	check_function_id( Id, _Context=undefined ).
+
+
+% Checks that specified function identifier is legit.
+%
+-spec check_function_id( term(), form_context() ) -> meta_utils:function_id().
+check_function_id( FunctionId={ FunctionName, FunctionArity }, Context ) ->
+	check_function_name( FunctionName, Context ),
+	check_arity( FunctionArity, Context ),
+	FunctionId;
+
+check_function_id( Other, Context ) ->
+	raise_error( [ invalid_function_identifier, Other ], Context ).
+
+
+
+% Checks that specified function identifiers are legit.
+%
+-spec check_function_ids( term() ) -> [ meta_utils:function_id() ].
+check_function_ids( Ids ) ->
+	check_function_ids( Ids, _Context=undefined ).
+
+
+% Checks that specified function identifiers are legit.
+%
+-spec check_function_ids( term(), form_context() ) ->
+								[ meta_utils:function_id() ].
+check_function_ids( List, Context ) when is_list( List ) ->
+	[ check_function_id( Id, Context ) || Id <- List ];
+
+check_function_ids( Other, Context ) ->
+	raise_error( [ invalid_function_identifier_list, Other ], Context ).
+
+
+
+% Checks that specified function type is legit.
+%
+-spec check_function_type( term(), function_arity() ) ->
+								 meta_utils:function_type().
+check_function_type( Type, FunctionArity ) ->
+	check_function_type( Type, FunctionArity, _Context=undefined ).
+
+
+% Checks that specified function type is legit.
+%
+-spec check_function_type( term(), function_arity(), form_context() ) ->
+								 meta_utils:function_type().
+check_function_type( _FunctionType, _FunctionArity, Context ) ->
+	raise_error( [ fixme_function_type ], Context ).
+
+check_function_type( Other, _FunctionArity, Context ) ->
+	raise_error( [ invalid_function_type, Other ], Context ).
+
+
+
+% Checks that specified function types are legit.
+%
+-spec check_function_types( term(), function_arity() ) ->
+								  [ meta_utils:function_type() ].
+check_function_types( Types, FunctionArity ) ->
+	check_function_types( Types, FunctionArity, _Context=undefined ).
+
+
+% Checks that specified function types are legit.
+%
+-spec check_function_types( term(), function_arity(), form_context() ) ->
+								[ meta_utils:function_type() ].
+check_function_types( List, FunctionArity, Context ) when is_list( List ) ->
+	[ check_function_type( Type, FunctionArity, Context ) || Type <- List ];
+
+check_function_types( Other, _FunctionArity, Context ) ->
+	raise_error( [ invalid_function_type_list, Other ], Context ).
+
+
+
+
+
+% Checks that specified function clauses are legit.
+%
+-spec check_function_clauses( term(), function_arity() ) ->
+									[ meta_utils:function_clause() ].
+check_function_clauses( Clauses, FunctionArity ) ->
+	check_function_clauses( Clauses, _Context=undefined ).
+
+
+% Checks that specified function clauses are legit.
+%
+-spec check_function_clauses( term(), function_arity(), form_context() ) ->
+									[ meta_utils:function_clause() ].
+check_function_clauses( Clauses, FunctionArity, Context )
+  when is_list( List ) ->
+	check_arity( FunctionArity, Context ),
+	Clauses;
+
+check_function_clauses( Other, _FunctionArity, Context ) ->
+	raise_error( [ invalid_function_clauses, Other ], Context ).
+
+
+
+% Checks that specified variable is legit.
+%
+-spec check_variable( term() ) -> ast_variable().
+check_variable( ASTVariable ) ->
+	check_variable( ASTVariable, _Context=undefined ).
+
+
+% Checks that specified variable is legit.
+%
+-spec check_variable( term(), form_context() ) ->
+								 ast_variable().
+check_variable( ASTVariable={ var, Line, VariableName }, Context )
+  when is_atom( VariableName ) ->
+	check_line( Line, Context ),
+	ASTVariable;
+
+check_variable( Other, Context ) ->
+	raise_error( [ invalid_variable, Other ], Context ).
+
+
+
+% Checks that specified variables are legit.
+%
+-spec check_variables( term() ) -> [ ast_variable() ].
+check_variables( ASTVariables ) ->
+	check_variables( ASTVariables, _Context=undefined ).
+
+
+% Checks that specified variables are legit.
+%
+-spec check_variables( term(), form_context() ) ->
+								[ ast_variable() ].
+check_variables( List, Context ) when is_list( List ) ->
+	[ check_variable( ASTVariable, Context ) || ASTVariable <- List ];
+
+check_variables( Other, Context ) ->
+	raise_error( [ invalid_variable_list, Other ], Context ).
+
 
 
 
@@ -554,3 +987,155 @@ forge_remote_call( ModuleName, FunctionName, Params, Line1, Line2 ) ->
 	{ call, Line1, { remote, Line2, forge_atom_value( ModuleName, Line2 ),
 					 forge_atom_value( FunctionName, Line2 ) },
 					 Params }.
+
+
+
+
+% Subsection for trace outputs that are specific to parse-transforms.
+
+
+% Displays specified text as debug.
+%
+-spec display_debug( text_utils:string() ) -> basic_utils:void().
+display_debug( String ) ->
+	io:format( "[debug] ~s~n", [ String ] ).
+
+
+% Displays specified text as debug.
+%
+-spec display_debug( text_utils:format_string(), [ term() ] ) ->
+						  basic_utils:void().
+display_debug( FormatString, Values ) ->
+	display_debug( io_lib:format( FormatString, Values ) ).
+
+
+
+% Displays specified text as trace.
+%
+-spec display_trace( text_utils:string() ) -> basic_utils:void().
+display_trace( String ) ->
+	io:format( "[trace] ~s~n", [ String ] ).
+
+
+% Displays specified text as trace.
+%
+-spec display_trace( text_utils:format_string(), [ term() ] ) ->
+						  basic_utils:void().
+display_trace( FormatString, Values ) ->
+	display_trace( io_lib:format( FormatString, Values ) ).
+
+
+
+% Displays specified text as info.
+%
+-spec display_info( text_utils:string() ) -> basic_utils:void().
+display_info( String ) ->
+	io:format( "[info] ~s~n", [ String ] ).
+
+
+% Displays specified text as info.
+%
+-spec display_info( text_utils:format_string(), [ term() ] ) ->
+						  basic_utils:void().
+display_info( FormatString, Values ) ->
+	display_info( io_lib:format( FormatString, Values ) ).
+
+
+% Displays specified text as warning.
+%
+-spec display_warning( text_utils:string() ) -> basic_utils:void().
+display_warning( String ) ->
+	io:format( "[warning] ~s~n", [ String ] ).
+
+
+% Displays specified text as warning.
+%
+-spec display_warning( text_utils:format_string(), [ term() ] ) ->
+						  basic_utils:void().
+display_warning( FormatString, Values ) ->
+	display_warning( io_lib:format( FormatString, Values ) ).
+
+
+
+% Displays specified text as error.
+%
+-spec display_error( text_utils:string() ) -> basic_utils:void().
+display_error( String ) ->
+	io:format( "[error] ~s~n", [ String ] ).
+
+
+% Displays specified text as error.
+%
+-spec display_error( text_utils:format_string(), [ term() ] ) ->
+						  basic_utils:void().
+display_error( FormatString, Values ) ->
+	display_error( io_lib:format( FormatString, Values ) ).
+
+
+
+% Displays specified text as fatal.
+%
+-spec display_fatal( text_utils:string() ) -> basic_utils:void().
+display_fatal( String ) ->
+	io:format( "[fatal] ~s~n", [ String ] ).
+
+
+% Displays specified text as fatal.
+%
+-spec display_fatal( text_utils:format_string(), [ term() ] ) ->
+						  basic_utils:void().
+display_fatal( FormatString, Values ) ->
+	display_fatal( io_lib:format( FormatString, Values ) ).
+
+
+
+
+
+
+% Raises an error, with specified context.
+%
+% Ex: raise_error( [ invalid_module_name, Other ], _Context=112 ) shall
+% result in throwing { invalid_module_name, Other, { line, 112 } }.
+%
+-spec raise_error( [ term() ], form_context() ) -> basic_utils:void().
+raise_error( Elements, Context ) ->
+
+	AllElements = get_elements_with_context( Elements, Context ),
+
+	throw( list_to_tuple( AllElements ) ).
+
+
+
+% Notifies a warning, with specified context.
+%
+-spec notify_warning( [ term() ], form_context() ) -> basic_utils:void().
+notify_warning( Elements, Context ) ->
+
+	AllElements = get_elements_with_context( Elements, Context ),
+
+	display_warning( "~p", [ AllElements ] ).
+
+
+
+% Returns error/warning elements including specified context.
+%
+% (helper)
+%
+-spec get_elements_with_context( [ term() ], form_context() ) -> [ term() ].
+get_elements_with_context( Elements, _Context=undefined ) ->
+	Elements;
+
+get_elements_with_context( Elements, _Context={ FilePath, Line } )
+  when is_list( FilePath ) andalso is_integer( Line ) ->
+	Elements ++ [ { file, FilePath }, { line, Line } ];
+
+get_elements_with_context( Elements, _Context=Line ) when is_integer( Line ) ->
+	Elements ++ [ { line, Line } ];
+
+get_elements_with_context( Elements, _Context=FilePath )
+  when is_list( FilePath ) ->
+			Elements ++ [ { file, FilePath } ];
+
+get_elements_with_context( Elements, Context ) ->
+	% No list_utils module used from this module:
+	Elements ++ [ Context ].

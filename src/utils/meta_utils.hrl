@@ -79,6 +79,9 @@
 		% Parse-level attributes (ex: '-my_attribute( my_value ).'), as a table
 		% associating values to attribute names (its keys).
 		%
+		% Such attributes, also named "wild attributes", mostly correspond to
+		% user-defined ones.
+		%
 		% Note: must be kept on sync with the 'parse_attribute_defs' field.
 		%
 		parse_attributes :: meta_utils:attribute_table(),
@@ -92,6 +95,11 @@
 		parse_attribute_defs = [] :: meta_utils:located_ast(),
 
 
+		% As remote function specifications can be defined, like:
+		% -spec Mod:Name(...) -> ...
+		%
+		remote_spec_defs = [] :: meta_utils:located_ast(),
+
 
 		% Include files (typically *.hrl files).
 		%
@@ -100,7 +108,7 @@
 		%
 		% (there is no duplicate either in that include list)
 		%
-		includes = [] :: [ file_utils:file_name() ],
+		includes = [] :: [ file_utils:bin_file_path() ],
 
 
 		% Include definitions:
@@ -111,29 +119,25 @@
 		include_defs = [] :: meta_utils:located_ast(),
 
 
-
-		% Type definitions:
+		% Whether a type (possibly any kind of it; ex: opaque or not) is
+		% exported is recorded primarily in its own type_info record through a
+		% list of locations, while the information sufficient to reconstruct the
+		% actual forms for the exports of all types are recorded here.
 		%
-		% (few information gathered: name, arity, and whether is opaque)
+		% Note: it is better that way, as a type export attribute may define any
+		% number of exports, and we need to record its definition line.
 		%
-		type_definitions = [] :: [ { type_utils:type_name(),
-									 type_utils:type_arity(),
-									 boolean() } ],
-
-
-		% The abstract forms corresponding to type definitions:
+		% (this field must be kept synchronised with the table in the
+		% 'types' field)
 		%
-		type_definition_defs = [] :: meta_utils:located_ast(),
+		type_exports :: meta_utils:type_export_table(),
 
 
+		% All information, indexed by type identifiers, about all the types
+		% defined in that module:
+		%
+		types :: meta_utils:type_table(),
 
-		% All type exports (including opaque ones):
-		type_exports = [] :: [ { type_utils:type_name(),
-								 type_utils:type_arity() } ],
-
-
-		% The type export definitions:
-		type_export_defs = [] :: meta_utils:located_ast(),
 
 
 		% All information (notably: field descriptions), indexed by record
@@ -148,7 +152,7 @@
 
 		% Lists the functions imported by that module, per-module.
 		%
-		function_imports :: meta_utils:import_table(),
+		function_imports :: meta_utils:function_import_table(),
 
 
 		% The definitions of the function imports:
@@ -158,15 +162,17 @@
 
 
 		% Whether a function (possibly any kind of it) is exported is recorded
-		% primarily in its respective function_info record through a list of
-		% locations, while the actual forms for the exports of all functions are
-		% recorded here (better that way, as an export attribute may define any
-		% number of exports, and we want to record its definition line):
+		% primarily in its own function_info record through a list of locations,
+		% while the information sufficient to reconstruct the actual forms for
+		% the exports of all functions are recorded here.
+		%
+		% Note: it is better that way, as a function export attribute may define
+		% any number of exports, and we need to record its definition line.
 		%
 		% (this field must be kept synchronised with the table in the
 		% 'functions' field)
 		%
-		function_exports :: meta_utils:export_table(),
+		function_exports :: meta_utils:function_export_table(),
 
 
 		% All information, indexed by function identifiers, about all the
@@ -241,6 +247,50 @@
 		   %
 		   exported = [] :: [ meta_utils:location() ]
 
+
+} ).
+
+
+
+% Describes a type (generally extracted from a module).
+%
+-record( type_info, {
+
+
+		   % The name of that type:
+		   name = undefined :: meta_utils:type_name(),
+
+
+		   % The arity of that type:
+		   arity = undefined :: arity(),
+
+
+		   % Tells whether this type is defined as opaque:
+		   opaque = undefined :: boolean(),
+
+
+		   % Corresponds to the location of the full form for the definition of this type:
+		   %
+		   location = undefined :: 'undefined' | meta_utils:location(),
+
+
+		   % Corresponds to the line where this type is defined (in its source
+		   % file):
+		   %
+		   line = undefined :: 'undefined' | ast_utils:line(),
+
+
+		   % Type actual definition, a (non-located) list of the abstract
+		   % forms of its definition:
+		   %
+		   definition = [] :: [ meta_utils:clause_def() ],
+
+
+		   % Tells whether this type has been exported, as a (possibly
+		   % empty) list of the location(s) of its actual export(s), knowing
+		   % that a type can be exported more than once or never:
+		   %
+		   exported = [] :: [ meta_utils:location() ]
 
 } ).
 

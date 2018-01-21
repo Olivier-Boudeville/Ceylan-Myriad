@@ -116,12 +116,22 @@
 -type path() :: string().
 -type bin_path() :: binary().
 
+
+% Designates a filename, generally without a path (ex: "foobar.txt"):
 -type file_name() :: path().
 
 % Just a convenience alias:
 -type filename() :: file_name().
 
+
+% Designates a path to a file (including its filename); ex:
+% "../my_dir/other/foobar.txt").
+%
+-type file_path() :: path().
+
+
 -type bin_file_name() :: binary().
+-type bin_file_path() :: binary().
 
 -type directory_name() :: path().
 -type bin_directory_name() :: binary().
@@ -169,14 +179,14 @@
 
 
 -export_type([ path/0, bin_path/0,
-			   file_name/0, filename/0, bin_file_name/0,
+			   file_name/0, filename/0, file_path/0,
+			   bin_file_name/0, bin_file_path/0,
 			   directory_name/0, bin_directory_name/0,
 			   extension/0,
 			   entry_type/0,
 			   permission/0,
 			   compression_format/0,
-			   file/0
-			 ]).
+			   file/0 ]).
 
 
 
