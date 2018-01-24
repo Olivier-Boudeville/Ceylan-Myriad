@@ -59,6 +59,7 @@
 -type module_name() :: basic_utils:module_name().
 
 -type function_name() :: basic_utils:function_name().
+-type function_arity() :: basic_utils:function_arity().
 
 
 % Includes '_':
@@ -70,6 +71,7 @@
 % General element of an AST.
 %
 -type ast_element() :: tuple().
+
 
 
 % Name of any parse attribute:
@@ -97,6 +99,8 @@
 -type form() :: erl_parse:abstract_form() | erl_parse:form_info().
 
 
+% Variable definition:
+%
 -type ast_variable() :: { 'var', line(), variable_name() }.
 
 
@@ -136,7 +140,7 @@
 		   name :: type_name(),
 
 		   % Type variables, i.e. types on which this type depends:
-		   type_vars = [] :: [ ast_type() ]
+		   variables = [] :: [ ast_type() ]
 
 }).
 
@@ -160,7 +164,7 @@
 		   name :: type_name(),
 
 		   % Type variables, i.e. types on which this type depends:
-		   type_vars = [] :: [ ast_type() ]
+		   variables = [] :: [ ast_type() ]
 
 }).
 
@@ -200,7 +204,7 @@
 
 % May be constrained or not (see http://erlang.org/doc/apps/erts/absform.html):
 %
--type function_type().
+%-type function_type().
 
 
 % The description of a field of a record.
@@ -231,9 +235,10 @@
 -type ast_expression() :: ast_element().
 
 
--export_type([ ast_element/0, line/0, file_loc/0, form_context/0,
+-export_type([ ast/0, ast_element/0, line/0, file_loc/0, form_context/0,
 			   ast_builtin_type/0, ast_user_type/0, ast_remote_type/0,
-			   ast_type/0, ast_field_description/0, ast_immediate_value/0 ]).
+			   ast_type/0, ast_variable/0, 
+			   ast_field_description/0, ast_immediate_value/0 ]).
 
 
 % Checking:
@@ -266,7 +271,7 @@
 		  check_function_clauses/2, check_function_clauses/3,
 
 		  check_variable/1, check_variable/2,
-		  check_variables/1, check_variables/2,
+		  check_variables/1, check_variables/2
 
 		]).
 
@@ -327,7 +332,7 @@
 
 % Checks that specified line reference is legit.
 %
-check_line( term(), form_context() ) ->
+-spec check_line( term(), form_context() ) -> line().
 check_line( Line, _Context ) when is_integer( Line ) andalso Line >= 0 ->
 	Line;
 
@@ -482,7 +487,7 @@ check_type_id( Id ) ->
 % Checks that specified type identifier is legit.
 %
 -spec check_type_id( term(), form_context() ) -> type_utils:type_id().
-check_type_id( TypeId={ TypeName, TypeArity }, Context ) ->
+check_type_id( _TypeId={ TypeName, TypeArity }, Context ) ->
 	check_type_name( TypeName, Context ),
 	check_arity( TypeArity, Context );
 
@@ -563,8 +568,8 @@ check_function_type( Type, FunctionArity ) ->
 check_function_type( _FunctionType, _FunctionArity, Context ) ->
 	raise_error( [ fixme_function_type ], Context ).
 
-check_function_type( Other, _FunctionArity, Context ) ->
-	raise_error( [ invalid_function_type, Other ], Context ).
+%check_function_type( Other, _FunctionArity, Context ) ->
+%	raise_error( [ invalid_function_type, Other ], Context ).
 
 
 
@@ -595,7 +600,7 @@ check_function_types( Other, _FunctionArity, Context ) ->
 -spec check_function_clauses( term(), function_arity() ) ->
 									[ meta_utils:function_clause() ].
 check_function_clauses( Clauses, FunctionArity ) ->
-	check_function_clauses( Clauses, _Context=undefined ).
+	check_function_clauses( Clauses, FunctionArity, _Context=undefined ).
 
 
 % Checks that specified function clauses are legit.
@@ -603,7 +608,7 @@ check_function_clauses( Clauses, FunctionArity ) ->
 -spec check_function_clauses( term(), function_arity(), form_context() ) ->
 									[ meta_utils:function_clause() ].
 check_function_clauses( Clauses, FunctionArity, Context )
-  when is_list( List ) ->
+  when is_list( Clauses ) ->
 	check_arity( FunctionArity, Context ),
 	Clauses;
 
@@ -642,8 +647,7 @@ check_variables( ASTVariables ) ->
 
 % Checks that specified variables are legit.
 %
--spec check_variables( term(), form_context() ) ->
-								[ ast_variable() ].
+-spec check_variables( term(), form_context() ) -> [ ast_variable() ].
 check_variables( List, Context ) when is_list( List ) ->
 	[ check_variable( ASTVariable, Context ) || ASTVariable <- List ];
 
@@ -881,7 +885,7 @@ forge_union_type( UnitedTypes, Line ) ->
 -spec forge_builtin_type( type_name(), [ ast_type() ], line() ) ->
 									ast_builtin_type().
 forge_builtin_type( TypeName, TypeVars, Line ) ->
-	#type{ line=Line, name=TypeName, type_vars=TypeVars }.
+	#type{ line=Line, name=TypeName, variables=TypeVars }.
 
 
 
@@ -898,7 +902,7 @@ forge_builtin_type( TypeName, TypeVars, Line ) ->
 -spec forge_local_type( type_name(), [ ast_type() ], line() ) ->
 							  ast_user_type().
 forge_local_type( TypeName, TypeVars, Line ) ->
-	#user_type{ line=Line, name=TypeName, type_vars=TypeVars }.
+	#user_type{ line=Line, name=TypeName, variables=TypeVars }.
 
 
 % Returns an AST-compliant representation of specified remote type.
@@ -985,8 +989,7 @@ forge_remote_call( ModuleName, FunctionName, Params, Line ) ->
 						 line(), line() ) -> ast_expression().
 forge_remote_call( ModuleName, FunctionName, Params, Line1, Line2 ) ->
 	{ call, Line1, { remote, Line2, forge_atom_value( ModuleName, Line2 ),
-					 forge_atom_value( FunctionName, Line2 ) },
-					 Params }.
+					 forge_atom_value( FunctionName, Line2 ) }, Params }.
 
 
 

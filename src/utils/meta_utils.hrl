@@ -28,6 +28,18 @@
 
 
 
+% For all modules being bootstrap ones, the 'table' pseudo-module is not
+% available (as these modules are not processed by the 'Common' parse
+% transform).
+%
+% So no table pseudo-module can be available for them, only ?table is available
+% - not the other *_table counterparts (once these bootstrapped modules are
+% compiled, if they relied on foo_hashtable, then the parse transform could not
+% operate on any module compiled before foo_hashtable):
+%
+-define( table, map_hashtable ).
+
+
 % A record to store and centralise information gathered about an Erlang
 % (compiled) module.
 %
@@ -261,8 +273,10 @@
 		   name = undefined :: meta_utils:type_name(),
 
 
-		   % The arity of that type:
-		   arity = undefined :: arity(),
+		   % The (ordered) list of variable definitions (ex: [ { var, Line, 'X'
+		   % } ]) of this type:
+		   %
+		   variables = [] :: [ ast_utils:ast_variable() ],
 
 
 		   % Tells whether this type is defined as opaque:
@@ -296,28 +310,29 @@
 
 
 
-% Centralises automatic replacements of all known kinds that may be done in
-% ASTs.
+% Describes transformations to apply to an AST.
 %
--record( ast_replacements, {
+% Typically centralises automatic replacements of all known kinds to be done.
+%
+-record( ast_transforms, {
 
 
-		   % Replacement table for local types:
-		   local_types = undefined :: basic_utils:maybe(
-								meta_utils:local_type_replacement_table() ),
+	% Transformations (if any) defined for module-local types:
+	local_types = undefined :: basic_utils:maybe(
+									meta_utils:local_type_transform_table() ),
 
-		   % Replacement table for remote types:
-		   remote_types = undefined :: basic_utils:maybe(
-								meta_utils:remote_type_replacement_table() ),
+	% Transformations (if any) defined for remote types:
+	remote_types = undefined :: basic_utils:maybe(
+									meta_utils:remote_type_transform_table() ),
 
 
-		   % Replacement table for local calls:
-		   local_calls = undefined :: basic_utils:maybe(
-								meta_utils:local_call_replacement_table() ),
+	% Transformations (if any) defined for module-local calls:
+	local_calls = undefined :: basic_utils:maybe(
+									meta_utils:local_call_transform_table() ),
 
-		   % Replacement table for remote calls:
-		   remote_calls = undefined :: basic_utils:maybe(
-								meta_utils:remote_call_replacement_table() )
+	% Transformations (if any) defined for remote calls:
+	remote_calls = undefined :: basic_utils:maybe(
+									meta_utils:remote_call_transform_table() )
 
 
 } ).

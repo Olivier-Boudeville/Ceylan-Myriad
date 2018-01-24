@@ -33,6 +33,11 @@
 -module(ast_scan).
 
 
+% For the table macro for example:
+-include("meta_utils.hrl").
+
+
+
 % In-file reference, typically like:
 % {"../data-management/simple_parse_transform_target.erl",1}.
 %
@@ -50,17 +55,21 @@
 -type action_table() :: table:table( action_trigger(),
 									 basic_utils:maybe( transformer() ) ).
 
--export_type([ ast/0 ]).
+-export_type([ ast/0, action_table/0 ]).
 
--export([ scan/1, scan_forms/2 ]).
+-export([ scan/1 ]).
 
 
 % Shorthands:
 
--type function_name() :: meta_utils:function_name().
--type function_arity() :: meta_utils:function_arity().
--type function_id() :: meta_utils:function_id().
--type function_clause() :: form().
+-type ast() :: ast_utils:ast().
+
+-type module_info() :: meta_utils:module_info().
+
+%-type function_name() :: meta_utils:function_name().
+%-type function_arity() :: meta_utils:function_arity().
+%-type function_id() :: meta_utils:function_id().
+%-type function_clause() :: ast_utils:form().
 
 
 
@@ -259,9 +268,9 @@ scan_forms( _AST=[ Form={ attribute, Line, module, ModuleName } | T ],
 % Any lacking, invalid or duplicated module declaration will be caught by
 % the compiler anyway.
 %
-scan_forms( _AST=[ Form={ attribute, Line, module, ModuleName } | T ],
-			 M=#module_info{ module=PreviousModuleName },
-			 NextLocation, _CurrentFileReference ) ->
+scan_forms( _AST=[ _Form={ attribute, Line, module, ModuleName } | _T ],
+			 #module_info{ module=PreviousModuleName },
+			 _NextLocation, CurrentFileReference ) ->
 	throw( { multiple_module_definitions, PreviousModuleName, ModuleName,
 			 { CurrentFileReference, Line } } );
 
@@ -274,7 +283,8 @@ scan_forms( _AST=[ Form={ attribute, Line, module, ModuleName } | T ],
 %
 % Allows to keep track of when an included file begins and also ends.
 %
-scan_forms( _AST=[ Form={ attribute, Line, { FilePath, FileLine } } | T ],
+scan_forms( _AST=[ Form={ attribute, _Line, file,
+						  { FilePath, _FileLine } } | T ],
 			 M=#module_info{ includes=Inc, include_defs=IncDefs }, NextLocation,
 			_CurrentFileReference ) ->
 
@@ -286,23 +296,23 @@ scan_forms( _AST=[ Form={ attribute, Line, { FilePath, FileLine } } | T ],
 
 	%NormFilepath = text_utils:string_to_binary(
 	%     file_utils:normalise_path( Filepath ) ),
-	NormFilepath = text_utils:string_to_binary( Filepath ),
+	NormFilePath = text_utils:string_to_binary( FilePath ),
 
 	% Avoids duplicates (in 'includes' only, not in definitions):
 	%
-	NewFilepaths = case lists:member( NormFilepath, Inc ) of
+	NewFilePaths = case lists:member( NormFilePath, Inc ) of
 
 		true ->
 			Inc;
 
 		false ->
-			[ NormFilepath | Inc ]
+			[ NormFilePath | Inc ]
 
 	end,
 
 	LocForm = { NextLocation, Form },
 
-	scan_forms( T, M#module_info{ includes=NewFilepaths,
+	scan_forms( T, M#module_info{ includes=NewFilePaths,
 								  include_defs=[ LocForm | IncDefs ] },
 				id_utils:get_next_sortable_id( NextLocation ), FilePath );
 
@@ -358,7 +368,8 @@ scan_forms( [ { function, Line, FunctionName, FunctionArity, Clauses } | T ],
 
 		% Here a definition was already set:
 		_ ->
-			raise_error( { multiple_definition_for, FunId, Context } )
+			ast_utils:raise_error( [ multiple_definition_for, FunId ],
+								   Context )
 
 	end,
 
@@ -418,7 +429,7 @@ scan_forms( [ Form={ attribute, Line, SpecAtom,
 
 		% Here a spec was already set:
 		_ ->
-			raise_error( { multiple_spec_for, FunId } )
+			ast_utils:raise_error( [ multiple_spec_for, FunId ], Context )
 
 	end,
 
@@ -447,6 +458,8 @@ scan_forms( [ Form={ attribute, Line, spec,
 			NextLocation, CurrentFileReference ) ->
 
 	Context = { CurrentFileReference, Line },
+
+	FunId = { FunctionName, FunctionArity },
 
 	ast_utils:check_module_name( ModuleName, Context ),
 	ast_utils:check_function_id( FunId, Context ),
@@ -491,7 +504,7 @@ scan_forms( _AST=[ Form={ attribute, Line, record, { RecordName, DescFields } }
 
 	NewRecordDefs = [ { NextLocation, Form } | RecordDefs ],
 
-	scan_forms( T, W#module_info{ records=NewRecordTable,
+	scan_forms( T, M#module_info{ records=NewRecordTable,
 								  record_defs=NewRecordDefs },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
@@ -505,22 +518,22 @@ scan_forms( _AST=[ Form={ attribute, Line, record, { RecordName, DescFields } }
 % type, then Rep(F) = {attribute,LINE,Type,{Name,Rep(T),[Rep(V_1), ...,
 % Rep(V_k)]}}."
 %
-scan_forms( _AST=[ Form={ attribute, Line, Type,
-						   { TypeName, TypeDef, Variables } } | T ],
+scan_forms( _AST=[ _Form={ attribute, Line, TypeDesignator,
+						   { TypeName, TypeDef, TypeVariables } } | T ],
 			 M=#module_info{ types=TypeTable },
 			 NextLocation, CurrentFileReference )
-  when Type == type orelse Type == opaque ->
+  when TypeDesignator == type orelse TypeDesignator == opaque ->
 
 	%ast_utils:display_debug( "type declaration for ~p: ~p", [
 	%                        TypeName, Form ] ),
 
 	Context = { CurrentFileReference, Line },
 
-	ast_utils:check_type_name( Type, Context ),
+	ast_utils:check_type_name( TypeName, Context ),
 	ast_utils:check_type_definition( TypeDef, Context ),
-	ast_utils:check_variables( Variables, Context ),
+	ast_utils:check_variables( TypeVariables, Context ),
 
-	IsOpaque = case Type of
+	IsOpaque = case TypeDesignator of
 
 		type ->
 			false;
@@ -530,31 +543,43 @@ scan_forms( _AST=[ Form={ attribute, Line, Type,
 
 	end,
 
-	TypeArity = length( Variables ),
+	TypeArity = length( TypeVariables ),
 
 	TypeId = { TypeName, TypeArity },
 
-	LocForm = { NextLocation, Form },
+	NewTypeInfo = case ?table:lookupEntry( TypeId, TypeTable ) of
 
-	NewTypeTable = case ?table:lookupEntry( TypeId, TypeTable ) of
+		% If a TypeInfo is found for that type name, it must be only because it
+		% has already been exported:
 
-		{ value, TypeInfo } ->
+		{ value, #type_info{ exported=[] } } ->
 			ast_utils:raise_error( [ multiple_definitions_for_type, TypeId ],
 								   Context );
 
-		key_not_found ->
-			TypeInfo = #type_info{ name=TypeName,
-								   arity=TypeArity,
-								   opaque=IsOpaque,
-								   location=NextLocation,
-								   line=Line,
-								   definition=TypeDef,
-								   %exported
-								 },
+		{ value, ExportTypeInfo } ->
+			ExportTypeInfo#type_info{ name=TypeName,
+									  variables=TypeVariables,
+									  opaque=IsOpaque,
+									  location=NextLocation,
+									  line=Line,
+									  definition=TypeDef
+									  %exported: already set
+											   };
 
-			?table:addEntry( TypeId, TypeInfo, TypeTable )
+		% Usual case:
+		key_not_found ->
+			#type_info{ name=TypeName,
+						variables=TypeVariables,
+						opaque=IsOpaque,
+						location=NextLocation,
+						line=Line,
+						definition=TypeDef
+						%exported
+					  }
 
 	end,
+
+	NewTypeTable = ?table:addEntry( TypeId, NewTypeInfo, TypeTable ),
 
 	scan_forms( T, M#module_info{ types=NewTypeTable },
 				id_utils:get_next_sortable_id( NextLocation ),
@@ -608,16 +633,17 @@ scan_forms( _AST=[ _Form={ attribute, Line, export_type, TypeIds } | T ],
 
 		fun( TypeId, TypeTableAcc ) ->
 
-			{ Name, Arity } = ast_utils:check_type_id( TypeId, Context ),
+			{ Name, _Arity } = ast_utils:check_type_id( TypeId, Context ),
 
 			NewTypeInfo = case ?table:lookupEntry( TypeId, TypeTableAcc ) of
 
 				 key_not_found ->
 
-					% New entry then:
+					% New entry then (arity known, but not yet the detailed
+					% variables):
 					#type_info{ name=Name,
-								arity=Arity,
 								% Implicit:
+								%variables=undefined,
 								%opaque=undefined
 								%location=undefined
 								%line=undefined
@@ -655,7 +681,7 @@ scan_forms( _AST=[ _Form={ attribute, Line, export_type, TypeIds } | T ],
 %
 
 % Full inlining:
-scan_forms( _AST=[ Form={ attribute, Line, compile, inline } | T ],
+scan_forms( _AST=[ Form={ attribute, _Line, compile, inline } | T ],
 			 M=#module_info{ compilation_options=CompileTable,
 							 compilation_option_defs=CompileDefs },
 			NextLocation, CurrentFileReference ) ->
@@ -672,7 +698,7 @@ scan_forms( _AST=[ Form={ attribute, Line, compile, inline } | T ],
 
 
 % Regular inlining:
-scan_forms( _AST=[ Form={ attribute, _Line, compile,
+scan_forms( _AST=[ Form={ attribute, Line, compile,
 						  { inline, InlineOpts } } | T ],
 			 M=#module_info{ compilation_options=CompileTable,
 							 compilation_option_defs=CompileDefs },
@@ -828,7 +854,7 @@ scan_forms( _AST=[ _Form={ eof, Line } ],
 % Form expected to be defined once, and to be the last one:
 scan_forms( _AST=[ Form={ eof, _Line } ],
 			M=#module_info{ last_line=undefined, module=Module, includes=Inc },
-			_NextLocation, CurrentFileReference ) ->
+			_NextLocation, _CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "eof declaration at ~p", [ Line ] ),
 
@@ -862,7 +888,7 @@ scan_forms( _AST=[ UnhandledForm | T ],
 	%throw( { unhandled_form, UnhandledForm, { location, NextLocation },
 	%		 { file, CurrentFileReference } } ).
 
-	LocForm = { NextLocation, Form },
+	LocForm = { NextLocation, UnhandledForm },
 
 	NewUnhandledForms = [ LocForm | UnhandledForms ],
 
@@ -889,17 +915,17 @@ scan_forms( _AST=[], _ModuleInfo, _NextLocation, CurrentFileReference ) ->
 % Processes the fields of a given record.
 %
 -spec scan_field_descriptions( [ ast_utils:ast_element() ],
-							   file_reference() ) -> field_table().
+							   file_reference() ) -> meta_utils:field_table().
 scan_field_descriptions( FieldDescriptions, CurrentFileReference ) ->
 
 	FieldTable = ?table:new(),
 
 	scan_field_descriptions( FieldDescriptions, CurrentFileReference,
-							 CurrentFileReference, FieldTable ).
+							 FieldTable ).
 
 
 scan_field_descriptions( _FieldDescriptions=[], _CurrentFileReference,
-						 CurrentFileReference, FieldTable ) ->
+						 FieldTable ) ->
 	FieldTable;
 
 
@@ -946,259 +972,3 @@ scan_field_descriptions( _FieldDescriptions=[
 scan_field_descriptions( _FieldDescriptions=[ UnexpectedDesc | _T ],
 						 _CurrentFileReference, _FieldTable ) ->
 	throw( { unexpected_field_description, UnexpectedDesc } ).
-
-
-
-
-xxxxxxxxxxx previous
-
-
-% Scans the specified forms.
-%
--spec scan_forms( [ form() ], module_info() ) -> module_info().
-scan_forms( Forms, ModuleInfo ) ->
-	[ scan_form( F,  ) || F <- Forms ].
-
-
-
-% Scans the specified form.
-%
--spec scan_form( form(), action_table() ) -> form().
-scan_form( F={ attribute, Line, module, Module }, _ActionTable ) ->
-	F;
-
-scan_form( F={ attribute, Line, file, { File, Line } }, _ActionTable ) ->
-	F;
-
-scan_form( _F={ attribute, Line, export, FunIds }, ActionTable ) ->
-	ScannedFunIds = scan_function_ids( FunIds, ActionTable ),
-	{ attribute, Line, export, ScannedFunIds };
-
-scan_form( _F={ attribute, Line, import, { Module, FunIds }, ActionTable } ) ->
-	ScannedFunIds = scan_function_ids( FunIds, ActionTable ),
-	{ attribute, Line, import, { Module, ScannedFunIds } };
-
-scan_form( _F={ attribute, Line, export_type, TypeIds }, ActionTable ) ->
-	ScannedTypeIds = scan_type_ids( TypeIds, ActionTable ),
-	{ attribute, Line, export_type, ScannedTypeIds };
-
-scan_form( _F={ attribute, Line, optional_callbacks, FunIds }, ActionTable ) ->
-	% Apparently not always scannable as is (try/catch could be added):
-	ScannedFunIds = scan_function_ids( FunIds, ActionTable ),
-	{ attribute, Line, optional_callbacks, ScannedFunIds };
-
-scan_form( F={ attribute, Line, compile, C }, ActionTable ) ->
-	F;
-
-scan_form( _F={ attribute, Line, record, { RecordName, RecordDefs } },
-		   ActionTable ) ->
-	NewRecordDefs = scan_record_defs( RecordDefs, ActionTable ),
-	{ attribute, Line, record, { RecordName, NewRecordDefs } };
-
-scan_form( F={ attribute, Line, asm, { function, N, A, Code } },
-		   _ActionTable ) ->
-	F;
-
-scan_form( _F={ attribute, Line, type, { TypeName, TypeDef, TypeVars } },
-		   ActionTable ) ->
-	ScannedTypeDef = scan_type_def( TypeDef, ActionTable ),
-	ScannedTypeVars = scan_variables( TypeVars, ActionTable ),
-	{ attribute, Line, type, { TypeName, ScannedTypeDef, ScannedTypeVars } };
-
-scan_form( _F={ attribute, Line, opaque, { TypeName, TypeDef, TypeVars } },
-		   ActionTable ) ->
-	ScannedTypeDef = scan_type_def( TypeDef, ActionTable ),
-	ScannedTypeVars = scan_variables( TypeVars, ActionTable ),
-	{ attribute, Line, opaque, { TypeName, ScannedTypeDef, ScannedTypeVars } };
-
-
-scan_form( _F={ attribute, Line, spec, { Fun={ FunctionName, Params },
-										 FunctionTypes } }, ActionTable ) ->
-	NewFunctionTypes = scan_function_types( FunctionTypes, ActionTable ),
-	{ attribute, Line, spec, { Fun, NewFunctionTypes } };
-
-scan_form( _F={ attribute, Line, spec,
-				{ Fun={ ModuleName, FunctionName, Params }, FunctionTypes } },
-		   ActionTable ) ->
-	NewFunctionTypes = scan_function_types( FunctionTypes, ActionTable ),
-	{ attribute, Line, spec, { Fun, NewFunctionTypes } };
-
-scan_form( _F={ attribute, Line, callback, { Fun={ FunctionName, Params },
-											 FunctionTypes } }, ActionTable ) ->
-	NewFunctionTypes = scan_function_types( FunctionTypes, ActionTable ),
-	{ attribute, Line, callback, { Fun, NewFunctionTypes } };
-
-
-% Any other, general attribute:
-scan_form( F={ attribute, Line, AttributeName, AttributeValue },
-		   _ActionTable ) ->
-	F;
-
-% Functions:
-scan_form( { function, Line, Name, Arity, Clauses }, ActionTable ) ->
-	{ ScannedName, ScannedArity, ScannedClauses } = scan_function( Name, Arity,
-													   Clauses, ActionTable ),
-	{ function, Line, ScannedName, ScannedArity, ScannedClauses };
-
-
-% Extra forms from the parser:
-scan_form( F={ error, E }, _ActionTable ) ->
-	F;
-
-scan_form( F={ warning, W }, _ActionTable ) ->
-	F;
-
-scan_form( F={ eof, Line }, _ActionTable ) ->
-	F.
-
-
-
-
-% Function section.
-
-
--spec scan_function_ids( [ function_id() ], action_table() ) ->
-							   [ function_id() ].
-scan_function_ids( FunIds, ActionTable ) when is_list( FunIds ) ->
-	[ scan_function_id( FunId, ActionTable ) || FunId <- FunIds ];
-
-scan_function_ids( InvalidFunIds, _ActionTable ) ->
-	throw( { invalid_function_identifiers, InvalidFunIds } ).
-
-
-scan_function_id( FunId={ FunctionName, FunctionArity }, ActionTable ) ->
-	check_function_name( FunctionName ),
-	check_function_arity( FunctionArity ),
-	FunId;
-
-scan_function_id( InvalidFunId, _ActionTable ) ->
-	throw( { invalid_function_id, InvalidFunId } ).
-
-
-
-check_function_name( FunctionName ) when is_atom( FunctionName ) ->
-	ok;
-
-check_function_name( InvalidFunctionName ) ->
-	throw( { invalid_function_name, InvalidFunctionName } ).
-
-
-
-check_function_arity( FunctionArity ) when is_integer( FunctionArity )
-										   andalso FunctionArity >= 0 ->
-	FunctionArity;
-
-check_function_arity( InvalidFunctionArity ) ->
-	throw( { invalid_function_arity, InvalidFunctionArity } ).
-
-
-check_function_name( FunctionName ) when is_atom( FunctionName ) ->
-	ok;
-
-check_function_name( InvalidFunctionName ) ->
-	throw( { invalid_function_name, InvalidFunctionName } ).
-
-
-
-
-% Type section.
-
-
--spec scan_type_ids( [ type_id() ], action_table() ) -> [ type_id() ].
-scan_type_ids( FunIds, ActionTable ) when is_list( FunIds ) ->
-	[ scan_type_id( FunId, ActionTable ) || FunId <- FunIds ];
-
-scan_type_ids( InvalidFunIds, _ActionTable ) ->
-	throw( { invalid_type_identifiers, InvalidFunIds } ).
-
-
-scan_type_id( FunId={ TypeName, TypeArity }, ActionTable ) ->
-	check_type_name( TypeName ),
-	check_type_arity( TypeArity ),
-	FunId;
-
-scan_type_id( InvalidFunId, _ActionTable ) ->
-	throw( { invalid_type_id, InvalidFunId } ).
-
-
-
-check_type_name( TypeName ) when is_atom( TypeName ) ->
-	ok;
-
-check_type_name( InvalidTypeName ) ->
-	throw( { invalid_type_name, InvalidTypeName } ).
-
-
-check_type_arity( TypeArity ) when is_integer( TypeArity )
-								   andalso TypeArity >= 0 ->
-	TypeArity;
-
-check_type_arity( InvalidTypeArity ) ->
-	throw( { invalid_type_arity, InvalidTypeArity } ).
-
-
-
-% Variable section.
-
--spec scan_variables( [ variable_ref() ], action_table() ) ->
-							[ variable_ref() ].
-scan_variables( VariableRefs, ActionTable ) ->
-	[ scan_variable( VarRef, ActionTable ) || VarRef <- VariableRefs ];
-
-
--spec scan_variables( variable_ref(), action_table() ) -> variable_ref().
-scan_variable( VarRef={ var, Line, VarName }, ActionTable )
-  when is_atom( VarName ) ->
-	F;
-
-scan_variable( InvalidVarRef, _ActionTable ) ->
-	throw( { invalid_variable_reference, InvalidVarRef } ).
-
-
-
-% Record section.
-
--spec scan_record_defs( [ record_def() ], action_table() ) -> [ record_def() ].
-scan_record_defs( RecordDefs, ActionTable ) ->
-	[ scan_record_def( RecordDef, ActionTable ) || RecordDef <- RecordDefs ].
-
-
-
--spec scan_record_def( record_def(), action_table() ) -> record_def().
-% With value and no type:
-scan_record_def( { record_field, Line, Attr={ atom, AttrLine, AttrName },
-				   AttrValue }, ActionTable ) ->
-	ScannedAttrValue = scan_expression( AttrValue, ActionTable ),
-	{ record_field, Line, Line, ScannedAttrValue };
-
-% No value, no type:
-scan_record_def( Def={ record_field, Line,
-						_Attr={ atom, AttrLine, AttrName } }, ActionTable ) ->
-	Def;
-
-% With or without value and with type:
-scan_record_def( { typed_record_field, RecordField, TypeDef }, ActionTable ) ->
-	NewRecordField = scan_record_def( RecordField, ActionTable ),
-	NewTypeDef = scan_type_def( TypeDef, ActionTable ),
-	{ typed_record_field, NewRecordField, NewTypeDef }.
-
-
-
-% Function section.
-
-
--spec scan_function( function_name(), function_arity(), [ function_clause() ],
-					 action_table() ) ->
-			  { function_name(), function_arity(), [ function_clause() ] }.
-scan_function( Name, Arity, Clauses, ActionTable ) ->
-	check_function_name( Name ),
-	check_function_arity( Arity ),
-	NewClauses = [ scan_function_clause( C, ActionTable ) || C <- Clauses ],
-	{ Name, Arity, NewClauses }.
-
-
-% Returns the function clause resulting from the processing of the input one.
-%
--spec scan_function_clause( function_clause(), action_table() ) ->
-								  function_clause().
-scan_function_clause( { clause, Line, H0,G0,B0}, ActionTable ) ->

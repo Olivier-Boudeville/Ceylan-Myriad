@@ -527,6 +527,7 @@ ifndef BOOTSTRAP_MODULES
 #  - id_utils: to sort the forms
 #  - meta_utils: to support the metaprogramming needs
 #  - ast_utils: to handle the AST
+#  - ast_scan: to scan the AST
 #  - text_utils: to display debugging information regarding the transform
 #  - map_hashtable: to manage the module information
 #
@@ -534,6 +535,7 @@ BOOTSTRAP_MODULES = $(COMMON_TOP)/src/utils/basic_utils.beam             \
 					$(COMMON_TOP)/src/utils/id_utils.beam                \
 					$(COMMON_TOP)/src/utils/meta_utils.beam              \
 					$(COMMON_TOP)/src/utils/ast_utils.beam               \
+					$(COMMON_TOP)/src/utils/ast_scan.beam                \
 					$(COMMON_TOP)/src/utils/type_utils.beam              \
 					$(COMMON_TOP)/src/utils/text_utils.beam              \
 					$(COMMON_TOP)/src/data-management/map_hashtable.beam \

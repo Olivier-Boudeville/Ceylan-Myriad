@@ -82,7 +82,7 @@
 
 -type ast() :: ast_utils:ast().
 -type module_info() :: meta_utils:module_info().
--type located_form() :: meta_utils:located_form().
+%-type located_form() :: meta_utils:located_form().
 
 
 
@@ -110,14 +110,6 @@
 %     void().' and have it accepted by the compiler (and void() is now a
 %     reserved, "builtin" type)
 
-
-
-% This module, being the parse transformer, is not parse-transformed; as a
-% consequence it cannot use the 'table' pseudo-module.
-%
-% Module name for the tables used in this module:
-%
--define( table, map_hashtable ).
 
 
 % The default actual implementation to which 'table' will be wired:
@@ -171,7 +163,7 @@ parse_transform( InputAST, _Options ) ->
 	%io:format( "Input AST:~n~p~n~n", [ InputAST ] ),
 	%meta_utils:write_ast_to_file( InputAST, "Input-AST.txt" ),
 
-	BaseModuleInfo = meta_utils:extract_module_info_from_ast( AST ),
+	BaseModuleInfo = meta_utils:extract_module_info_from_ast( InputAST ),
 
 	%meta_utils:write_module_info_to_file( BaseModuleInfo,
 	%									  "Input-module_info.txt" ),
@@ -207,9 +199,10 @@ parse_transform( InputAST, _Options ) ->
 %
 % (helper)
 %
--spec get_myriad_ast_transforms_for( module_info() ) -> ast_transforms().
-get_myriad_ast_transforms_for( ModuleInfo#module_info{
-								 parse_attributes=ParseAttributes } ) ->
+-spec get_myriad_ast_transforms_for( module_info() ) ->
+										   meta_utils:ast_transforms().
+get_myriad_ast_transforms_for( #module_info{
+								  parse_attributes=ParseAttributes } ) ->
 
 	% We will be replacing here all calls to the 'table' pseudo-module by calls
 	% to the actual module designated by the default_table_type local macro.
@@ -313,20 +306,55 @@ get_myriad_ast_transforms_for( ModuleInfo#module_info{
 
 
 
+% Returns the name of the actual module to use for tables.
+%
+-spec get_actual_table_type( meta_utils:attribute_table() ) ->
+								   basic_utils:module_name().
+get_actual_table_type( ParseAttributeTable ) ->
+
+	% Let's see whether a specific table_type has been specified:
+	DesiredTableType = case ?table:lookupEntry( table_type,
+												ParseAttributeTable ) of
+
+		{ value, TableType } ->
+			ast_utils:display_info( "Default table type overridden to ~p.~n",
+									 [ TableType ] ),
+			TableType;
+
+		key_not_found ->
+			TableType = ?default_table_type,
+			%ast_utils:display_trace( "Using default table ~p.~n",
+			%				   [ TableType ] ),
+			TableType
+
+	end,
+
+	%ast_utils:display_debug( "Will replace references to the 'table' module "
+	%						  "and datatypes by references to '~s'.",
+	%						  [ DesiredTableType ] ),
+
+	DesiredTableType.
+
+
+
 % Applies specified AST transformations to specified module information.
 %
 % (helper)
 %
--spec apply_ast_transforms( ast_transforms(), module_info() ) -> module_info().
+-spec apply_ast_transforms( meta_utils:ast_transforms(), module_info() ) ->
+								  module_info().
 apply_ast_transforms( Transforms, ModuleInfo ) ->
 
-	% First update the type definitions accordingly (including in records):
-	[ NewTypeDefs, NewRecordDefs ]  =
-		[ meta_utils:replace_types_in( Defs, Transforms )
-		  || Defs <- [ ModuleInfo#module_info.type_definition_defs,
-					   ModuleInfo#module_info.record_defs ] ],
+	% First, update the type definitions accordingly (including in records):
 
-	% Does the same for types in function (type) specifications:
+	NewTypes = meta_utils:update_types( ModuleInfo#module_info.types,
+										Transforms ),
+
+	NewRecordDefs = meta_utils:replace_types_in(
+					  ModuleInfo#module_info.record_defs,
+					  Transforms ),
+
+	% Do the same for types in function (type) specifications:
 	TypedFunctionTable = meta_utils:update_types_in_functions(
 							 ModuleInfo#module_info.functions, Transforms ),
 
@@ -335,6 +363,6 @@ apply_ast_transforms( Transforms, ModuleInfo ) ->
 						  TypedFunctionTable, Transforms ),
 
 	% Updated module_info returned:
-	ModuleInfo#module_info{ type_definition_defs=NewTypeDefs,
+	ModuleInfo#module_info{ types=NewTypes,
 							record_defs=NewRecordDefs,
 							functions=CallFunctionTable }.

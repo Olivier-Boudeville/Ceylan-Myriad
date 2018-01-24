@@ -237,6 +237,11 @@ $(COMMON_TOP)/src/utils/ast_utils.beam: $(COMMON_TOP)/src/utils/ast_utils.erl
 	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
 
+$(COMMON_TOP)/src/utils/ast_scan.beam: $(COMMON_TOP)/src/utils/ast_scan.erl
+	@echo "		Compiling bootstrap module $<"
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
+
 $(COMMON_TOP)/src/utils/type_utils.beam: $(COMMON_TOP)/src/utils/type_utils.erl
 	@echo "		Compiling bootstrap module $<"
 	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )

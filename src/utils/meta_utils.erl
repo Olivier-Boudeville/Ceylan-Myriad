@@ -48,17 +48,6 @@
 -module(meta_utils).
 
 
-% This module being a bootstrap one, the 'table' pseudo-module is not available
-% (as this module is not processed by the 'Common' parse transform):
-%
-% Indeed, no table pseudo-module available from meta_utils, as it cannot be
-% parse-transformed; only ?table is available here, not the other *_table
-% counterparts (once that meta_utils module is compiled, if it relied on
-% foo_hashtable, then the parse transform could not operate on any module
-% compiled before foo_hashtable):
-%
--define( table, map_hashtable ).
-
 
 
 % Shorthands:
@@ -66,10 +55,18 @@
 
 -type type_name() :: type_utils:type_name().
 -type type_arity() :: type_utils:type_arity().
+-type type_id() :: type_utils:type_id().
+
 
 -type ast() :: ast_utils:ast().
 -type form() :: ast_utils:form().
 -type ast_field_description() :: ast_utils:ast_field_description().
+
+
+
+
+% For function_info, type_info, table macro, etc.:
+-include("meta_utils.hrl").
 
 
 % Not expected to be legit symbols:
@@ -280,9 +277,6 @@
 
 
 
-% For function_info:
--include("meta_utils.hrl").
-
 
 % For the file_info record:
 -include_lib("kernel/include/file.hrl").
@@ -368,6 +362,53 @@
 
 
 
+
+%% Type subsection.
+
+
+% All information regarding a type:
+-type type_info() :: #type_info{}.
+
+
+
+% A table associating, to a given location, the corresponding line in the source
+% file (to recreate the corresponding export form) and a list of the identifiers
+% of the types to declare exported there.
+%
+% Note:
+%
+% - this table must be explicitly updated whenever adding or removing a type
+% in a module_info'types' field; see: add_type/2 and remove_type/2
+%
+% - [ type_id() ] used, not a set, to better preserve order
+%
+-type type_export_table() :: ?table:?table( location(),
+										{ ast_utils:line(), [ type_id() ] } ).
+
+
+% A table associating to each type identifier a full type information.
+%
+-type type_table() :: ?table:?table( type_id(), type_info() ).
+
+
+
+% A table associating to each record name the list of the descriptions of its
+% fields.
+%
+-type record_table() :: ?table:?table( basic_utils:record_name(),
+									   field_table() ).
+
+
+% A table associating to a given field of a record its description (type and
+% default value, if specified).
+%
+-type field_table() :: ?table:?table( basic_utils:field_name(),
+		  { basic_utils:maybe( ast_utils:ast_type() ),
+			basic_utils:maybe( ast_utils:ast_immediate_value() ) } ).
+
+
+
+
 %% Function subsection.
 
 
@@ -432,63 +473,22 @@
 % - [ function_id() ] used, not a set, to better preserve order
 %
 -type function_export_table() :: ?table:?table( location(),
-						   { ast_utils:line(), [ meta_utils:function_id() ] } ).
+						   { ast_utils:line(), [ function_id() ] } ).
 
 
 % A table referencing, for each module listed, a list of the functions that are
 % imported from it by the current module:
 %
 -type function_import_table() :: ?table:?table( basic_utils:module_name(),
-									   [ meta_utils:function_id() ] ).
+												[ function_id() ] ).
 
 
 
 % A table associating to each function identifier a full function information.
 %
--type function_table() :: ?table:?table( meta_utils:function_id(),
-										 meta_utils:function_info() ).
+-type function_table() :: ?table:?table( function_id(), function_info() ).
 
 
-
-%% Type subsection.
-
-
-
-% A table associating, to a given location, the corresponding line in the source
-% file (to recreate the corresponding export form) and a list of the identifiers
-% of the types to declare exported there.
-%
-% Note:
-%
-% - this table must be explicitly updated whenever adding or removing a type
-% in a module_info'types' field; see: add_type/2 and remove_type/2
-%
-% - [ type_id() ] used, not a set, to better preserve order
-%
--type type_export_table() :: ?table:?table( location(),
-			   { ast_utils:line(), [ meta_utils:type_id() ] } ).
-
-
-% A table associating to each type identifier a full type information.
-%
--type type_table() :: ?table:?table( meta_utils:type_id(),
-									 meta_utils:type_info() ).
-
-
-
-% A table associating to each record name the list of the descriptions of its
-% fields.
-%
--type record_table() :: ?table:?table( basic_utils:record_name(),
-									   field_table() ).
-
-
-% A table associating to a given field of a record its description (type and
-% default value, if specified).
-%
--type field_table() :: ?table:?table( basic_utils:field_name(),
-		  { basic_utils:maybe( ast_utils:ast_type() ),
-			basic_utils:maybe( ast_utils:ast_immediate_value() ) } ).
 
 
 % Type of functions to transform terms during a recursive traversal (see
@@ -642,7 +642,7 @@ add_function( FunInfo=#function_info{ exported=ExportLocs },
 
 			AddedFunString = function_info_to_string( FunInfo ),
 
-			display_error( "Function ~p already defined, as ~s, "
+			ast_utils:display_error( "Function ~p already defined, as ~s, "
 						   "whereas to be added, as ~s.",
 						   [ FunId, CurrentFunString, AddedFunString ] ),
 
@@ -667,7 +667,7 @@ add_function( FunInfo=#function_info{ exported=ExportLocs },
 % Ensures that specified function is exported at the specified location(s).
 %
 -spec ensure_function_exported( function_id(), [ location() ], module_info(),
-					   export_table() ) -> export_table().
+					   function_export_table() ) -> function_export_table().
 ensure_function_exported( _FunId, _ExportLocs=[], _ModuleInfo, ExportTable ) ->
 	ExportTable;
 
@@ -786,7 +786,7 @@ remove_function( FunInfo=#function_info{ exported=ExportLocs },
 % Ensures that specified function is not exported at the specified location(s).
 %
 -spec ensure_function_not_exported( function_id(), [ location() ],
-									export_table() ) -> export_table().
+						function_export_table() ) -> function_export_table().
 ensure_function_not_exported( _FunId, _ExportLocs=[], ExportTable ) ->
 	ExportTable;
 
@@ -797,7 +797,6 @@ ensure_function_not_exported( FunId, _ExportLocs=[ Loc | T ], ExportTable ) ->
 		{ value, { Line, FunIds } } ->
 
 			% 0 or 1 reference expected, which is handled the same by:
-			NewFunIds = lists:delete( FunId, FunIds ),
 			NewExportTable = case lists:delete( FunId, FunIds ) of
 
 				[] ->
@@ -862,15 +861,19 @@ function_info_to_string( #function_info{ name=Name,
 
 
 
-% Registers specified type in specified module.
+% Registers the specified, fully-described type in specified module.
 %
 -spec add_type( type_info(), module_info() ) -> module_info().
-add_type( TypeInfo=#type_info{ exported=ExportLocs },
+add_type( TypeInfo=#type_info{
+					  variables=TypeVariables,
+					  exported=ExportLocs },
 		  ModuleInfo=#module_info{ type_exports=ExportTable,
 								   types=TypeTable } ) ->
 
+	Arity = length( TypeVariables ),
+
 	% Let's check first that the type is not already defined:
-	TypeId = { TypeInfo#type_info.name, TypeInfo#type_info.arity },
+	TypeId = { TypeInfo#type_info.name, Arity },
 
 	case ?table:hasEntry( TypeId, TypeTable ) of
 
@@ -880,7 +883,7 @@ add_type( TypeInfo=#type_info{ exported=ExportLocs },
 
 			AddedTypeString = type_info_to_string( TypeInfo ),
 
-			display_error( "Type ~p already defined, as ~s, "
+			ast_utils:display_error( "Type ~p already defined, as ~s, "
 						   "whereas to be added, as ~s.",
 						   [ TypeId, CurrentTypeString, AddedTypeString ] ),
 
@@ -905,7 +908,7 @@ add_type( TypeInfo=#type_info{ exported=ExportLocs },
 % Ensures that specified type is exported at the specified location(s).
 %
 -spec ensure_type_exported( type_id(), [ location() ], module_info(),
-							export_table() ) -> export_table().
+							type_export_table() ) -> type_export_table().
 ensure_type_exported( _TypeId, _ExportLocs=[], _ModuleInfo, ExportTable ) ->
 	ExportTable;
 
@@ -999,11 +1002,15 @@ ensure_type_exported( TypeId, _ExportLocs=[ Loc | T ], ModuleInfo,
 % Unregisters specified type from specified module.
 %
 -spec remove_type( type_info(), module_info() ) -> module_info().
-remove_type( TypeInfo=#type_info{ exported=ExportLocs },
+remove_type( TypeInfo=#type_info{
+						 variables=TypeVariables,
+						 exported=ExportLocs },
 			 ModuleInfo=#module_info{ type_exports=ExportTable,
 									  types=TypeTable } ) ->
 
-	TypeId = { TypeInfo#type_info.name, TypeInfo#type_info.arity },
+	Arity = length( TypeVariables ),
+
+	TypeId = { TypeInfo#type_info.name, Arity },
 
 	% First forget its description:
 	NewTypeTable = case ?table:hasEntry( TypeId, TypeTable ) of
@@ -1027,8 +1034,8 @@ remove_type( TypeInfo=#type_info{ exported=ExportLocs },
 
 % Ensures that specified type is not exported at the specified location(s).
 %
--spec ensure_type_not_exported( type_id(), [ location() ], export_table() ) ->
-									  export_table().
+-spec ensure_type_not_exported( type_id(), [ location() ],
+								type_export_table() ) -> type_export_table().
 ensure_type_not_exported( _TypeId, _ExportLocs=[], ExportTable ) ->
 	ExportTable;
 
@@ -1039,7 +1046,6 @@ ensure_type_not_exported( TypeId, _ExportLocs=[ Loc | T ], ExportTable ) ->
 		{ value, { Line, TypeIds } } ->
 
 			% 0 or 1 reference expected, which is handled the same by:
-			NewTypeIds = lists:delete( TypeId, TypeIds ),
 			NewExportTable = case lists:delete( TypeId, TypeIds ) of
 
 				[] ->
@@ -1065,12 +1071,11 @@ ensure_type_not_exported( TypeId, _ExportLocs=[ Loc | T ], ExportTable ) ->
 %
 -spec type_info_to_string( type_info() ) -> text_utils:ustring().
 type_info_to_string( #type_info{ name=Name,
-								 arity=Arity,
+								 variables=TypeVariables,
 								 opaque=IsOpaque,
 								 location=_Location,
 								 line=_Line,
 								 definition=Clauses,
-								 spec=LocatedSpec,
 								 exported=Exported } ) ->
 
 	ExportString = case Exported of
@@ -1099,19 +1104,10 @@ type_info_to_string( #type_info{ name=Name,
 
 	DefString = io_lib:format( "~B clause(s) defined", [ length( Clauses ) ] ),
 
-	SpecString = case LocatedSpec of
+	Arity = length( TypeVariables ),
 
-		undefined ->
-			"no type specification";
-
-		_ ->
-			"a type specification"
-
-	end,
-
-	io_lib:format( "~s/~B, ~s, ~s, with ~s and ~s",
-				   [ Name, Arity, OpaqueString, ExportString, DefString,
-					 SpecString ] ).
+	io_lib:format( "~s/~B, ~s, with ~s and ~s",
+				   [ Name, Arity, OpaqueString, ExportString, DefString ] ).
 
 
 
@@ -1259,16 +1255,16 @@ get_remote_type_repl_helper( _Replacements=[
 -spec replace_types_in( located_ast(), ast_transforms() ) -> located_ast().
 replace_types_in( InputLocatedAST, Replacements ) ->
 
-	%ast_utils:display_debug( "Local type replacement table: ~s",
+	%ast_utils:ast_utils:display_debug( "Local type replacement table: ~s",
 	%	   [ ?table:toString( Replacements#ast_transforms.local_types ) ] ),
 
-	%ast_utils:display_debug( "Remote type replacement table: ~s",
+	%ast_utils:ast_utils:display_debug( "Remote type replacement table: ~s",
 	%	   [ ?table:toString( Replacements#ast_transforms.remote_types ) ] ),
 
 	OutputLocatedAST = replace_types_helper( InputLocatedAST, Replacements,
 											 _Acc=[] ),
 
-	%ast_utils:display_debug( "AST after type replacement:~n~s",
+	%ast_utils:ast_utils:display_debug( "AST after type replacement:~n~s",
 	%			   [ located_ast_to_string( OutputLocatedAST ) ] ),
 
 	OutputLocatedAST.
@@ -1293,7 +1289,7 @@ replace_types_in_type_def( _Form={ attribute, Line, type,
 
 	NewTypeVars = [ traverse_type( Elem, Replacements ) || Elem <- TypeVars ],
 
-	%ast_utils:display_debug( "Translation of type definition:~n~p~nis:~n~p~nwith ~p.",
+	%ast_utils:ast_utils:display_debug( "Translation of type definition:~n~p~nis:~n~p~nwith ~p.",
 	%			   [ TypeDef, NewTypeDef, NewTypeVars ] ),
 
 	{ attribute, Line, type, { TypeName, NewTypeDef, NewTypeVars } };
@@ -1308,7 +1304,7 @@ replace_types_in_type_def( _Form={ attribute, Line, opaque,
 
 	NewTypeVars = [ traverse_type( Elem, Replacements ) || Elem <- TypeVars ],
 
-	%ast_utils:display_debug( "Translation of opaque type definition:~n~p~nis:~n~p~n"
+	%ast_utils:ast_utils:display_debug( "Translation of opaque type definition:~n~p~nis:~n~p~n"
 	%               "with ~p.", [ TypeDef, NewTypeDef, NewTypeVars ] ),
 
 	{ attribute, Line, opaque, { TypeName, NewTypeDef, NewTypeVars } };
@@ -1321,7 +1317,7 @@ replace_types_in_type_def( _Form={ attribute, Line, record,
 
 	NewFields = update_types_in_fields( Fields, Replacements ),
 
-	%ast_utils:display_debug( "Translation of record field definitions:~n~p~nis:~n~p~n.",
+	%ast_utils:ast_utils:display_debug( "Translation of record field definitions:~n~p~nis:~n~p~n.",
 	%               [ Fields, NewFields ] ),
 
 	{ attribute, Line, record, { TypeName, NewFields } };
@@ -1366,7 +1362,7 @@ update_fun_info_for_types( FunInfo=#function_info{ spec={ Loc, FunSpec } },
 		%       {user_type,652,type_b,[]}]
 		%   } ]
 		{ attribute, Line, spec, { FunId, SpecList } } ->
-			%ast_utils:display_trace( "SpecList = ~p", [ SpecList ] ),
+			%ast_utils:ast_utils:display_trace( "SpecList = ~p", [ SpecList ] ),
 			NewSpecList = [ update_spec( Spec, Replacements )
 							|| Spec <- SpecList ],
 			{ attribute, Line, spec, { FunId, NewSpecList } };
@@ -1420,11 +1416,11 @@ update_clause_spec( UnexpectedClauseSpec, _Replacements ) ->
 					  ast_transforms() ) -> [ ast_field_description() ].
 update_types_in_fields( Fields, Replacements ) ->
 
-	%ast_utils:display_debug( "Input fields: ~p.", [ Fields ] ),
+	%ast_utils:ast_utils:display_debug( "Input fields: ~p.", [ Fields ] ),
 
 	NewFields = [ update_types_in_field( F, Replacements ) || F <- Fields ],
 
-	%ast_utils:display_debug( "New fields: ~p.", [ NewFields ] ),
+	%ast_utils:ast_utils:display_debug( "New fields: ~p.", [ NewFields ] ),
 
 	NewFields.
 
@@ -1907,7 +1903,7 @@ update_fun_info_for_calls( FunInfo=#function_info{ definition=ClauseDefs },
 traverse_expression( E={ 'case', Line, TestExpression, Clauses },
 					 Replacements ) ->
 
-	display_debug( "Intercepting case expression ~p...", [ E ] ),
+	ast_utils:display_debug( "Intercepting case expression ~p...", [ E ] ),
 
 	NewTestExpression = traverse_expression( TestExpression, Replacements ),
 
@@ -1915,7 +1911,7 @@ traverse_expression( E={ 'case', Line, TestExpression, Clauses },
 
 	Res = { 'case', Line, NewTestExpression, NewClauses },
 
-	display_debug( "... returning case expression ~p", [ Res ] ),
+	ast_utils:display_debug( "... returning case expression ~p", [ Res ] ),
 	Res;
 
 
@@ -1927,7 +1923,7 @@ traverse_expression( E={ call, Line1, { remote, _Line2,
 			_M={ atom, _Line3, ModuleName }, _F={ atom, Line4, FunctionName } },
 			Params }, Replacements ) ->
 
-	display_debug( "Intercepting remote call ~p...", [ E ] ),
+	ast_utils:display_debug( "Intercepting remote call ~p...", [ E ] ),
 
 	Arity = length( Params ),
 
@@ -2019,13 +2015,13 @@ traverse_expression( E={ call, Line1, { remote, _Line2,
 			% Used for uniformity:
 			Res = ast_utils:forge_remote_call( ModuleName, FunctionName,
 											   NewParams, Line1, Line4 ),
-			display_debug( "... returning remote call (case R1) ~p", [ Res ] ),
+			ast_utils:display_debug( "... returning remote call (case R1) ~p", [ Res ] ),
 			Res;
 
 		{ SetModuleName, SetFunctionName } ->
 			Res = ast_utils:forge_remote_call( SetModuleName, SetFunctionName,
 											   NewParams, Line1, Line4 ),
-			display_debug( "... returning remote call (case R2) ~p", [ Res ] ),
+			ast_utils:display_debug( "... returning remote call (case R2) ~p", [ Res ] ),
 			Res
 
 	end;
@@ -2053,7 +2049,7 @@ traverse_expression( _E={ call, Line1,
 	Res = { call, Line1, { remote, Line2, NewModuleExpr, NewFunctionExpr },
 			NewParams },
 
-	display_debug( "... returning remote call (case R3) ~p", [ Res ] ),
+	ast_utils:display_debug( "... returning remote call (case R3) ~p", [ Res ] ),
 
 	Res;
 
@@ -2063,7 +2059,7 @@ traverse_expression( _E={ call, Line1,
 traverse_expression( E={ call, Line1, F={ atom, Line2, FunName }, Params },
 					 Replacements ) ->
 
-	display_debug( "Intercepting local call ~p...", [ E ] ),
+	ast_utils:display_debug( "Intercepting local call ~p...", [ E ] ),
 
 	Arity = length( Params ),
 
@@ -2120,13 +2116,13 @@ traverse_expression( E={ call, Line1, F={ atom, Line2, FunName }, Params },
 		unchanged ->
 			% Original expression yet with updated parameters:
 			Res={ call, Line1, F, NewParams },
-			display_debug( "... returning local call ~p", [ Res ] ),
+			ast_utils:display_debug( "... returning local call ~p", [ Res ] ),
 			Res;
 
 		{ SetModuleName, SetFunctionName } ->
 			Res = ast_utils:forge_remote_call( SetModuleName, SetFunctionName,
 											   NewParams, Line1, Line2 ),
-			display_debug( "... returning remote call ~p", [ Res ] ),
+			ast_utils:display_debug( "... returning remote call ~p", [ Res ] ),
 			Res
 
 	end;
@@ -2136,7 +2132,7 @@ traverse_expression( E={ call, Line1, F={ atom, Line2, FunName }, Params },
 % Match expression found:
 traverse_expression( E={ match, Line, LeftExpr, RightExpr }, Replacements ) ->
 
-	display_debug( "Intercepting match expression ~p...", [ E ] ),
+	ast_utils:display_debug( "Intercepting match expression ~p...", [ E ] ),
 
 	NewLeftExpr = traverse_expression( LeftExpr, Replacements ),
 
@@ -2144,19 +2140,20 @@ traverse_expression( E={ match, Line, LeftExpr, RightExpr }, Replacements ) ->
 
 	Res = { match, Line, NewLeftExpr, NewRightExpr },
 
-	display_debug( "... returning match expression ~p", [ Res ] ),
+	ast_utils:display_debug( "... returning match expression ~p", [ Res ] ),
 
+	Res;
 
 % Receive expression found:
 traverse_expression( E={ 'receive', Line, Clauses }, Replacements ) ->
 
-	display_debug( "Intercepting receive expression ~p...", [ E ] ),
+	ast_utils:display_debug( "Intercepting receive expression ~p...", [ E ] ),
 
 	NewClauses = [ traverse_expression( C, Replacements ) || C <- Clauses ],
 
 	Res = { 'receive', Line, NewClauses },
 
-	display_debug( "... returning receive expression ~p", [ Res ] ),
+	ast_utils:display_debug( "... returning receive expression ~p", [ Res ] ),
 
 	Res;
 
@@ -2167,7 +2164,7 @@ traverse_expression( E={ 'receive', Line, Clauses }, Replacements ) ->
 traverse_expression( Clause={ clause, Line, ValueExpr, Guards, ResultExpr },
 					  Replacements ) ->
 
-	display_debug( "Intercepting clause ~p...", [ Clause ] ),
+	ast_utils:display_debug( "Intercepting clause ~p...", [ Clause ] ),
 
 	% Rather complete, out of safety:
 
@@ -2180,7 +2177,7 @@ traverse_expression( Clause={ clause, Line, ValueExpr, Guards, ResultExpr },
 
 	Res = { clause, Line, NewValueExpr, NewGuards, NewResultExpr },
 
-	display_debug( "... returning clause ~p", [ Res ] ),
+	ast_utils:display_debug( "... returning clause ~p", [ Res ] ),
 
 	Res;
 
@@ -2194,11 +2191,11 @@ traverse_expression( Clause={ clause, Line, ValueExpr, Guards, ResultExpr },
 %
 traverse_expression( ExprList, Replacements ) when is_list( ExprList ) ->
 
-	display_debug( "Intercepting expression list ~p...", [ ExprList ] ),
+	ast_utils:display_debug( "Intercepting expression list ~p...", [ ExprList ] ),
 
 	NewExprList = [ traverse_expression( E, Replacements ) || E <- ExprList ],
 
-	display_debug( "... returning expression list ~p", [ NewExprList ] ),
+	ast_utils:display_debug( "... returning expression list ~p", [ NewExprList ] ),
 
 	NewExprList;
 
@@ -2206,7 +2203,7 @@ traverse_expression( ExprList, Replacements ) when is_list( ExprList ) ->
 
 % Other expression found:
 traverse_expression( E, _Replacements ) ->
-	display_debug( "Letting expression ~p as is.", [ E ] ),
+	ast_utils:display_debug( "Letting expression ~p as is.", [ E ] ),
 	E.
 
 
@@ -2388,8 +2385,8 @@ term_to_form( Term ) ->
 
 % Converts a list of names of variables into the corresponding AST.
 %
-% Ex: wanting to specify '[ V1, Alpha, A ]', we have: variable_names_to_ast( [
-% "V1", "Alpha", "A" ], _Line=0 ) = [ {cons,0, {var,0,'V1'},
+% Ex: if wanting to specify '[ V1, Alpha, A ]', we have: variable_names_to_ast(
+% [ "V1", "Alpha", "A" ], _Line=0 ) = [ {cons,0, {var,0,'V1'},
 % {cons,0,{var,0,'Alpha'}, {cons,0,{var,0,'A'}, {nil,0} } } } ]
 %
 -spec variable_names_to_ast( [ string() ], ast_utils:line() ) -> ast().
@@ -2430,7 +2427,7 @@ string_to_form( FormString, Location ) ->
 
 		% Ex: [{atom,1,f},{'(',1},{')',1},{'->',1},{atom,1,hello_world},{dot,1}]
 		{ ok, Toks, _EndLocation } ->
-			%ast_utils:display_debug( "Tokens: ~p", [ Toks ] ),
+			%ast_utils:ast_utils:display_debug( "Tokens: ~p", [ Toks ] ),
 			Toks;
 
 		ErrorTok ->
@@ -2481,7 +2478,7 @@ string_to_expressions( ExpressionString, Location ) ->
 		% Ex: [ {'[',42}, {'{',42}, {atom,42,a}, {',',42}, {integer,42,1},
 		% {'}',42}, {',',42}, {atom,42,foobar}, {']',42} ]
 		{ ok, Toks, _EndLocation } ->
-			%ast_utils:display_debug( "Tokens: ~p", [ Toks ] ),
+			%ast_utils:ast_utils:display_debug( "Tokens: ~p", [ Toks ] ),
 			Toks;
 
 		ErrorTok ->
@@ -2573,7 +2570,7 @@ beam_to_ast( BeamFilename ) ->
 
 		{ ok, { _Module, [ { abstract_code, { _RawAbstractV1,
 											  AbstractCode } } ] } } ->
-			%ast_utils:display_debug( "Module = ~p.", [ Module ] ),
+			%ast_utils:ast_utils:display_debug( "Module = ~p.", [ Module ] ),
 			AbstractCode;
 
 		{ error, beam_lib, Reason } ->
@@ -2593,8 +2590,8 @@ beam_to_ast( BeamFilename ) ->
 -spec extract_module_info_from_ast( ast() ) -> module_info().
 extract_module_info_from_ast( AST ) ->
 
-	%ast_utils:display_debug( "Processing following AST:~n~p", [ AST ] ),
-	%ast_utils:display_debug( "Processing AST:" ),
+	%ast_utils:ast_utils:display_debug( "Processing following AST:~n~p", [ AST ] ),
+	%ast_utils:ast_utils:display_debug( "Processing AST:" ),
 
 	%write_ast_to_file( AST, "original-extracted-ast.txt" ),
 
@@ -2622,7 +2619,7 @@ extract_module_info_from_ast( AST ) ->
 	% Uncomment with care, as must ultimately depend *only* on non-bootstrapped
 	% modules (like {meta,text}_utils) - this should be the case here:
 	%
-	%ast_utils:display_debug( "Resulting module information:~n~s",
+	%ast_utils:ast_utils:display_debug( "Resulting module information:~n~s",
 	%		   [ module_info_to_string( ModuleInfo ) ] ),
 
 	case ModuleInfo#module_info.unhandled_forms of
@@ -2635,7 +2632,7 @@ extract_module_info_from_ast( AST ) ->
 			UnHandledStrings = [ text_utils:format( "~p", [ Form ] )
 								 || { _Loc, Form } <- UnhandledForms ],
 
-			display_warning( "~B forms have not be handled: ~s",
+			ast_utils:display_warning( "~B forms have not be handled: ~s",
 							 [ length( UnhandledForms ),
 						 text_utils:strings_to_string( UnHandledStrings ) ] )
 
@@ -2649,7 +2646,7 @@ extract_module_info_from_ast( AST ) ->
 
 pre_check_ast( AST ) ->
 
-	%ast_utils:display_debug( "~p", [ AST ] ),
+	%ast_utils:ast_utils:display_debug( "~p", [ AST ] ),
 
 	% Directly outputing the warnings or errors is generally useless; for
 	% example, in addition to:
@@ -2666,27 +2663,27 @@ pre_check_ast( AST ) ->
 	case erl_lint:module( AST ) of
 
 		{ ok, _Warnings=[] } ->
-			%ast_utils:display_trace( "(no warning or error emitted)~n" ),
+			%ast_utils:ast_utils:display_trace( "(no warning or error emitted)~n" ),
 			ok;
 
 		{ ok, Warnings } ->
-			%ast_utils:display_error( "Warnings, reported as errors: ~p~n",
+			%ast_utils:ast_utils:display_error( "Warnings, reported as errors: ~p~n",
 			%		   [ Warnings ] ),
 			interpret_issue_reports( Warnings ),
 			%exit( warning_reported );
 			warning_reported;
 
 		{ error, Errors, _Warnings=[] } ->
-			%ast_utils:display_error( "Errors reported: ~p~n", [ Errors ] ),
+			%ast_utils:ast_utils:display_error( "Errors reported: ~p~n", [ Errors ] ),
 			interpret_issue_reports( Errors ),
 			%exit( error_reported );
 			error_reported;
 
 		{ error, Errors, Warnings } ->
-			%ast_utils:display_error( "Errors reported: ~p~n", [ Errors ] ),
+			%ast_utils:ast_utils:display_error( "Errors reported: ~p~n", [ Errors ] ),
 			interpret_issue_reports( Errors ),
 
-			%ast_utils:display_error( "Warnings, reported as errors: ~p~n",
+			%ast_utils:ast_utils:display_error( "Warnings, reported as errors: ~p~n",
 			%		   [ Warnings ] ),
 			interpret_issue_reports( Warnings ),
 			%exit( error_reported )
@@ -2764,7 +2761,7 @@ recompose_ast_from_module_info( #module_info{
 
 	TypeExportInfos = ?table:enumerate( TypeExportTable ),
 
-	%ast_utils:display_debug( "TypeExportInfos = ~p", [ TypeExportInfos ] ),
+	%ast_utils:ast_utils:display_debug( "TypeExportInfos = ~p", [ TypeExportInfos ] ),
 
 	TypeExportLocDefs = [ { Loc, { attribute, Line, export_type, TypeIds } }
 				   || { Loc, { Line, TypeIds } } <- TypeExportInfos ],
@@ -2773,7 +2770,7 @@ recompose_ast_from_module_info( #module_info{
 
 	FunExportInfos = ?table:enumerate( FunctionExportTable ),
 
-	%ast_utils:display_debug( "FunExportInfos = ~p", [ FunExportInfos ] ),
+	%ast_utils:ast_utils:display_debug( "FunExportInfos = ~p", [ FunExportInfos ] ),
 
 	FunExportLocDefs = [ { Loc, { attribute, Line, export, FunIds } }
 				   || { Loc, { Line, FunIds } } <- FunExportInfos ],
@@ -2798,11 +2795,11 @@ recompose_ast_from_module_info( #module_info{
 							++ FunctionLocDefs
 							++ [ LastLineDef | UnhandledForms ] ],
 
-	%ast_utils:display_debug( "Unordered located AST:~n~p~n", [ UnorderedLocatedAST ] ),
+	%ast_utils:ast_utils:display_debug( "Unordered located AST:~n~p~n", [ UnorderedLocatedAST ] ),
 
 	OrderedAST = get_ordered_ast_from( UnorderedLocatedAST ),
 
-	%ast_utils:display_debug( "Recomposed AST:~n~p~n", [ OrderedAST ] ),
+	%ast_utils:ast_utils:display_debug( "Recomposed AST:~n~p~n", [ OrderedAST ] ),
 
 	OrderedAST.
 
@@ -2811,7 +2808,7 @@ recompose_ast_from_module_info( #module_info{
 % Returns a list of the located forms corresponding to all the functions
 % definitions and specs that are described in the specified function table.
 %
--spec get_located_forms_for_functions( funciton_table() ) -> [ located_form() ].
+-spec get_located_forms_for_functions( function_table() ) -> [ located_form() ].
 get_located_forms_for_functions( FunctionTable ) ->
 
 	% Dropping the keys (the function_id(), i.e. function identifiers), focusing
@@ -2852,16 +2849,16 @@ get_located_forms_for_functions( FunctionTable ) ->
 get_located_forms_for_types( TypeTable ) ->
 
 	% Dropping the keys (the type_id(), i.e. type identifiers), focusing on
-	% their associated type_info():
+	% their associated type_info()
 	%
 	TypeInfos = ?table:values( TypeTable ),
 
-	lists:foldl( fun( #type_info{ name=Name,
-								  arity=Arity,
+	lists:foldl( fun( #type_info{ name=TypeName,
+								  variables=TypeVariables,
 								  opaque=IsOpaque,
 								  location=Location,
 								  line=Line,
-								  definition=Clauses,
+								  definition=TypeDef
 								  %exported
 								}, Acc ) ->
 
@@ -2875,8 +2872,10 @@ get_located_forms_for_types( TypeTable ) ->
 
 						 end,
 
-						 LocTypeForm = { Location,
-							  { TypeDesignator, Line, Name, Arity, Clauses } },
+						 Form = { attribute, Line, TypeDesignator,
+						   { TypeName, TypeDef, TypeVariables } },
+
+						 LocTypeForm = { Location, Form },
 
 						 [ LocTypeForm | Acc ]
 
@@ -2903,7 +2902,7 @@ get_ordered_ast_from( UnorderedLocatedAST ) ->
 	OrderedLocatedAST = lists:keysort( _LocIndex=1, FullyLocatedAST ),
 
 	% One of the most useful view of output:
-	display_debug( "Ordered located AST:~n~s~n",
+	ast_utils:display_debug( "Ordered located AST:~n~s~n",
 				   [ located_ast_to_string( OrderedLocatedAST ) ] ),
 
 	% And then we remove that information once sorted, returning an ordered,
@@ -2968,11 +2967,10 @@ check_module_info( #module_info{ last_line=undefined } ) ->
 
 
 check_module_info( ModuleInfo=#module_info{ unhandled_forms=[] } ) ->
-	%ast_utils:display_debug( "Checking AST." ),
+	%ast_utils:ast_utils:display_debug( "Checking AST." ),
 	check_module_parse( ModuleInfo ),
 	check_module_include( ModuleInfo ),
-	check_module_type_definition( ModuleInfo ),
-	check_module_export( ModuleInfo ),
+	check_module_types( ModuleInfo ),
 	check_module_functions( ModuleInfo );
 
 check_module_info( #module_info{ unhandled_forms=UnhandledForms } ) ->
@@ -2997,7 +2995,7 @@ check_module_parse( #module_info{
 			ok;
 
 		FormCount ->
-			display_error( "Inconsistent parse attribute state: table "
+			ast_utils:display_error( "Inconsistent parse attribute state: table "
 						   "of ~B entries: ~s~nvs ~B forms:~n~p~n.",
 						   [ Len, ?table:toString( ParseAttributeTable ),
 							 FormCount, ParseAttributeDefs ] ),
@@ -3029,45 +3027,43 @@ check_module_include( #module_info{
 	end.
 
 
-% Helper to check module type definitions.
+
+
+% Helper to check module types.
 %
-check_module_type_definition( #module_info{
-								 type_definitions=TypeDefs,
-								 type_definition_defs=TypeDefsDefs } ) ->
+check_module_types( #module_info{ types=Types } ) ->
 
-	Len = length( TypeDefs ),
+	TypeInfos = ?table:enumerate( Types ),
 
-	case length( TypeDefsDefs ) of
+	[ check_type( TypeId, TypeInfo ) || { TypeId, TypeInfo } <- TypeInfos ].
 
-		Len ->
+
+
+% Nothing to check for 'spec' or 'exported':
+%
+check_type( TypeId, _TypeInfo=#type_info{ definition=[] } ) ->
+	raise_error( { no_definition_found_for, TypeId } );
+
+check_type( _TypeId={ Name, Arity }, _TypeInfo=#type_info{
+										 name=Name, variables=TypeVars } ) ->
+
+	case length( TypeVars ) of
+
+		Arity ->
 			ok;
 
-		_ ->
-			raise_error( { type_definition_mismatch, TypeDefs,
-						   TypeDefsDefs } )
+		OtherArity ->
+			raise_error( { type_arity_mismatch, Name, { Arity, OtherArity } } )
 
-	end.
+	end;
 
+check_type( TypeId, _TypeInfo=#type_info{ name=SecondName,
+										  variables=TypeVars } ) ->
 
-% Helper to check module type exports.
-%
-check_module_export( #module_info{ type_exports=TypeExports,
-								   type_export_defs=TypeExportDefs } ) ->
+	SecondArity = length( TypeVars ),
 
-	Len = length( TypeExports ),
-
-	case length( TypeExportDefs ) of
-
-		% A single export attribute can export monre than one type:
-		%
-		L when L > Len ->
-			raise_error( { type_export_mismatch, TypeExports,
-						   TypeExportDefs } );
-
-		_ ->
-			ok
-
-	end.
+	raise_error( { type_definition_mismatch, TypeId,
+				   { SecondName, SecondArity } } ).
 
 
 
@@ -3095,7 +3091,7 @@ check_function( _FunId={ Name, Arity }, _FunInfo=#function_info{
 check_function( FunId, _FunInfo=#function_info{
 								   name=SecondName,
 								   arity=SecondArity } ) ->
-	raise_error( { definition_mismatch, FunId,
+	raise_error( { function_definition_mismatch, FunId,
 				   { SecondName, SecondArity } } ).
 
 
@@ -3114,10 +3110,8 @@ module_info_to_string( #module_info{
 						 parse_attribute_defs=_ParseAttributeDefs,
 						 includes=Includes,
 						 include_defs=_IncludeDefs,
-						 type_definitions=TypeDefs,
-						 type_definition_defs=_TypeDefsDefs,
 						 type_exports=TypeExports,
-						 type_export_defs=_TypeExportDefs,
+						 types=Types,
 						 records=RecordTable,
 						 record_defs=_RecordDefs,
 						 function_imports=FunImportTable,
@@ -3128,8 +3122,11 @@ module_info_to_string( #module_info{
 						 unhandled_forms=UnhandledForms } ) ->
 
 	FunctionStrings = [ io_lib:format( "~s",
-									   [ function_info_to_string( Info ) ] )
-						|| { _FunId, Info } <- ?table:enumerate( Functions ) ],
+									   [ function_info_to_string( FunInfo ) ] )
+						|| { _FunId, FunInfo } <- ?table:enumerate( Functions ) ],
+
+	TypeStrings = [ io_lib:format( "~s", [ type_info_to_string( TypeInfo ) ] )
+						|| { _TypeId, TypeInfo } <- ?table:enumerate( Types ) ],
 
 	LastLineString = case LastLine of
 
@@ -3137,7 +3134,7 @@ module_info_to_string( #module_info{
 			"unknown";
 
 		{ _Loc, { eof, Count } } ->
-			text_utils:format( "~B", [ Count ] )
+			io_lib:format( "~B", [ Count ] )
 
 	end,
 
@@ -3224,39 +3221,6 @@ module_info_to_string( #module_info{
 			%text_utils:format( "include definitions: ~p~n",
 			%					 [ [ I || { _, I } <- IncludeDefs ] ] ),
 
-			case TypeDefs of
-
-				[] ->
-					"no type defined";
-
-				_ ->
-					TypeDefString = text_utils:strings_to_sorted_string( [
-							begin
-								VisibleString = case IsOpaque of
-
-									true ->
-										"opaque";
-
-									false ->
-										""
-
-								end,
-								text_utils:format(
-								  "~s type '~s' defined as: ~p",
-								  [ VisibleString, Type, Def ] )
-
-							end || { Type, Def, IsOpaque } <- TypeDefs ],
-							NextIndentationLevel ),
-
-
-					text_utils:format( "~B types defined:~s",
-									   [ length( TypeDefs ), TypeDefString ] )
-
-			end,
-
-			%text_utils:format( "type definitions: ~p~n",
-			%				   [ [ T || { _, T } <- TypeDefsDefs ] ] ),
-
 
 			case TypeExports of
 
@@ -3333,6 +3297,20 @@ module_info_to_string( #module_info{
 										[ length( FunctionStrings ),
 										  text_utils:strings_to_string(
 											FunctionStrings,
+											NextIndentationLevel ) ] )
+
+			 end,
+
+			 case TypeStrings of
+
+				 [] ->
+					 "no type defined";
+
+				 _ ->
+					 text_utils:format( "~B types defined:~s",
+										[ length( TypeStrings ),
+										  text_utils:strings_to_string(
+											TypeStrings,
 											NextIndentationLevel ) ] )
 
 			 end,
@@ -3424,7 +3402,7 @@ write_module_info_to_file( ModuleInfo, Filename ) ->
 raise_error( ErrorTerm ) ->
 
 	%throw( ErrorTerm )
-	%ast_utils:display_error( "~p", [ ErrorTerm ] ),
+	%ast_utils:ast_utils:display_error( "~p", [ ErrorTerm ] ),
 
 	% Does not add any information (just non-relevant erl_parse, epp
 	% etc. state):
@@ -3484,7 +3462,7 @@ format_error( ErrorTerm ) ->
 -spec interpret_issue_reports( [ issue_report() ] ) -> basic_utils:void().
 interpret_issue_reports( _IssueReports=[] ) ->
 	% Should never happen:
-	display_trace( "(no remark emitted)" );
+	ast_utils:display_trace( "(no remark emitted)" );
 
 % No need to further special-case the number of issue reports, as it is not
 % meaningful (one may include an arbitrary long list):
@@ -3646,5 +3624,3 @@ check_potential_call( ModuleName, FunctionName, Arguments ) ->
 
 	% Only remaining possibility:
 	throw( { non_list_arguments, Arguments } ).
-
-
