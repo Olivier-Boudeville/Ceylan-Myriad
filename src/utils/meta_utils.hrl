@@ -151,7 +151,6 @@
 		types :: meta_utils:type_table(),
 
 
-
 		% All information (notably: field descriptions), indexed by record
 		% names, about all the records known of that module:
 		%

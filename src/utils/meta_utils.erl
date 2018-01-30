@@ -613,6 +613,8 @@ init_module_info() ->
 
 	#module_info{ compilation_options=EmptyTable,
 				  parse_attributes=EmptyTable,
+				  type_exports=EmptyTable,
+				  types=EmptyTable,
 				  records=EmptyTable,
 				  function_imports=EmptyTable,
 				  function_exports=EmptyTable,
@@ -822,7 +824,7 @@ ensure_function_not_exported( FunId, _ExportLocs=[ Loc | T ], ExportTable ) ->
 function_info_to_string( #function_info{ name=Name,
 										 arity=Arity,
 										 location=_Location,
-										 line=_Line,
+										 line=Line,
 										 definition=Clauses,
 										 spec=LocatedSpec,
 										 exported=Exported } ) ->
@@ -834,11 +836,12 @@ function_info_to_string( #function_info{ name=Name,
 
 		ExportLoc ->
 			text_utils:format( "exported in ~s",
-							   [ id_utils:sortable_id_to_string( ExportLoc ) ] )
+				  [ id_utils:sortable_id_to_string( ExportLoc ) ] )
 
 	end,
 
-	DefString = io_lib:format( "~B clause(s) defined", [ length( Clauses ) ] ),
+	DefString = text_utils:format( "defined from line #~B, "
+			   "with ~B clause(s) defined", [ Line, length( Clauses ) ] ),
 
 	SpecString = case LocatedSpec of
 
@@ -850,7 +853,7 @@ function_info_to_string( #function_info{ name=Name,
 
 	end,
 
-	io_lib:format( "~s/~B, ~s, with ~s and ~s",
+	text_utils:format( "~s/~B, ~s, ~s and ~s",
 				   [ Name, Arity, ExportString, DefString, SpecString ] ).
 
 
@@ -1075,7 +1078,7 @@ type_info_to_string( #type_info{ name=Name,
 								 opaque=IsOpaque,
 								 location=_Location,
 								 line=_Line,
-								 definition=Clauses,
+								 definition=Definition,
 								 exported=Exported } ) ->
 
 	ExportString = case Exported of
@@ -1102,11 +1105,11 @@ type_info_to_string( #type_info{ name=Name,
 
 	end,
 
-	DefString = io_lib:format( "~B clause(s) defined", [ length( Clauses ) ] ),
+	DefString = io_lib:format( "defined by: ~p", [ Definition ] ),
 
 	Arity = length( TypeVariables ),
 
-	io_lib:format( "~s/~B, ~s, with ~s and ~s",
+	io_lib:format( "~s/~B, ~s, ~s and ~s",
 				   [ Name, Arity, OpaqueString, ExportString, DefString ] ).
 
 
@@ -1289,7 +1292,8 @@ replace_types_in_type_def( _Form={ attribute, Line, type,
 
 	NewTypeVars = [ traverse_type( Elem, Replacements ) || Elem <- TypeVars ],
 
-	%ast_utils:ast_utils:display_debug( "Translation of type definition:~n~p~nis:~n~p~nwith ~p.",
+	%ast_utils:ast_utils:display_debug(
+	%  "Translation of type definition:~n~p~nis:~n~p~nwith ~p.",
 	%			   [ TypeDef, NewTypeDef, NewTypeVars ] ),
 
 	{ attribute, Line, type, { TypeName, NewTypeDef, NewTypeVars } };
@@ -1304,7 +1308,8 @@ replace_types_in_type_def( _Form={ attribute, Line, opaque,
 
 	NewTypeVars = [ traverse_type( Elem, Replacements ) || Elem <- TypeVars ],
 
-	%ast_utils:ast_utils:display_debug( "Translation of opaque type definition:~n~p~nis:~n~p~n"
+	%ast_utils:ast_utils:display_debug(
+	%  "Translation of opaque type definition:~n~p~nis:~n~p~n"
 	%               "with ~p.", [ TypeDef, NewTypeDef, NewTypeVars ] ),
 
 	{ attribute, Line, opaque, { TypeName, NewTypeDef, NewTypeVars } };
@@ -1317,7 +1322,8 @@ replace_types_in_type_def( _Form={ attribute, Line, record,
 
 	NewFields = update_types_in_fields( Fields, Replacements ),
 
-	%ast_utils:ast_utils:display_debug( "Translation of record field definitions:~n~p~nis:~n~p~n.",
+	%ast_utils:ast_utils:display_debug(
+	%  "Translation of record field definitions:~n~p~nis:~n~p~n.",
 	%               [ Fields, NewFields ] ),
 
 	{ attribute, Line, record, { TypeName, NewFields } };
@@ -2761,7 +2767,8 @@ recompose_ast_from_module_info( #module_info{
 
 	TypeExportInfos = ?table:enumerate( TypeExportTable ),
 
-	%ast_utils:ast_utils:display_debug( "TypeExportInfos = ~p", [ TypeExportInfos ] ),
+	%ast_utils:ast_utils:display_debug( "TypeExportInfos = ~p",
+	%  [ TypeExportInfos ] ),
 
 	TypeExportLocDefs = [ { Loc, { attribute, Line, export_type, TypeIds } }
 				   || { Loc, { Line, TypeIds } } <- TypeExportInfos ],
@@ -2770,7 +2777,8 @@ recompose_ast_from_module_info( #module_info{
 
 	FunExportInfos = ?table:enumerate( FunctionExportTable ),
 
-	%ast_utils:ast_utils:display_debug( "FunExportInfos = ~p", [ FunExportInfos ] ),
+	%ast_utils:ast_utils:display_debug( "FunExportInfos = ~p",
+	%  [ FunExportInfos ] ),
 
 	FunExportLocDefs = [ { Loc, { attribute, Line, export, FunIds } }
 				   || { Loc, { Line, FunIds } } <- FunExportInfos ],
@@ -2795,11 +2803,13 @@ recompose_ast_from_module_info( #module_info{
 							++ FunctionLocDefs
 							++ [ LastLineDef | UnhandledForms ] ],
 
-	%ast_utils:ast_utils:display_debug( "Unordered located AST:~n~p~n", [ UnorderedLocatedAST ] ),
+	%ast_utils:ast_utils:display_debug( "Unordered located AST:~n~p~n",
+	%  [ UnorderedLocatedAST ] ),
 
 	OrderedAST = get_ordered_ast_from( UnorderedLocatedAST ),
 
-	%ast_utils:ast_utils:display_debug( "Recomposed AST:~n~p~n", [ OrderedAST ] ),
+	%ast_utils:ast_utils:display_debug( "Recomposed AST:~n~p~n",
+	%  [ OrderedAST ] ),
 
 	OrderedAST.
 
@@ -2995,9 +3005,9 @@ check_module_parse( #module_info{
 			ok;
 
 		FormCount ->
-			ast_utils:display_error( "Inconsistent parse attribute state: table "
-						   "of ~B entries: ~s~nvs ~B forms:~n~p~n.",
-						   [ Len, ?table:toString( ParseAttributeTable ),
+			ast_utils:display_error( "Inconsistent parse attribute state: ~s "
+									 "vs ~B forms:~n~p",
+						   [ ?table:toString( ParseAttributeTable ),
 							 FormCount, ParseAttributeDefs ] ),
 			raise_error( { parse_attribute_mismatch,
 						   ?table:enumerate( ParseAttributeTable ),
@@ -3006,11 +3016,11 @@ check_module_parse( #module_info{
 	end.
 
 
+
 % Helper to check module includes.
 %
-check_module_include( #module_info{
-						 includes=Includes,
-						 include_defs=IncludeDefs } ) ->
+check_module_include( #module_info{ includes=Includes,
+									include_defs=IncludeDefs } ) ->
 
 	Len = length( Includes ),
 
@@ -3122,8 +3132,8 @@ module_info_to_string( #module_info{
 						 unhandled_forms=UnhandledForms } ) ->
 
 	FunctionStrings = [ io_lib:format( "~s",
-									   [ function_info_to_string( FunInfo ) ] )
-						|| { _FunId, FunInfo } <- ?table:enumerate( Functions ) ],
+								   [ function_info_to_string( FunInfo ) ] )
+					|| { _FunId, FunInfo } <- ?table:enumerate( Functions ) ],
 
 	TypeStrings = [ io_lib:format( "~s", [ type_info_to_string( TypeInfo ) ] )
 						|| { _TypeId, TypeInfo } <- ?table:enumerate( Types ) ],
@@ -3144,13 +3154,13 @@ module_info_to_string( #module_info{
 	UnhandledString = case UnhandledForms of
 
 		[] ->
-			"all forms handled";
+			"all forms have been handled";
 
 		_ ->
 			UnhandledStrings = [ text_utils:format( "~p", [ Form ] )
 								 || { _Loc, Form } <- UnhandledForms ],
 
-			text_utils:format( "~B unhandled forms:~s",
+			text_utils:format( "~B unhandled form(s):~s",
 							   [ length( UnhandledForms ),
 								 text_utils:strings_to_string( UnhandledStrings,
 											NextIndentationLevel ) ] )
@@ -3175,7 +3185,7 @@ module_info_to_string( #module_info{
 					CompStrings = [ text_utils:format( "for option '~s': ~p",
 													   [ OptName, OptValue ] )
 									|| { OptName, OptValue } <- CompileOpts ],
-					text_utils:format( "~B compile options defined: ~s~n",
+					text_utils:format( "~B compile option(s) defined: ~s~n",
 						   [ length( CompileOpts ),
 							 text_utils:strings_to_string( CompStrings ) ] )
 
@@ -3194,7 +3204,7 @@ module_info_to_string( #module_info{
 							 || { AttrName, AttrValue } <- ParseAttributes ],
 							 NextIndentationLevel ),
 
-					text_utils:format( "~B parse attributes defined:~s",
+					text_utils:format( "~B parse attribute(s) defined:~s",
 									   [ length( ParseAttributes ),
 										 ParseAttrString ] )
 
@@ -3210,10 +3220,10 @@ module_info_to_string( #module_info{
 
 				_ ->
 					IncludeString = text_utils:strings_to_sorted_string( [
-							text_utils:format( "'~s' included", [ Inc ] )
+							text_utils:format( "~s", [ Inc ] )
 									   || Inc <- Includes ],
 									   NextIndentationLevel ),
-					text_utils:format( "~B includes specified:~s",
+					text_utils:format( "~B include(s) specified:~s",
 									   [ length( Includes ), IncludeString ] )
 
 			end,
@@ -3221,19 +3231,25 @@ module_info_to_string( #module_info{
 			%text_utils:format( "include definitions: ~p~n",
 			%					 [ [ I || { _, I } <- IncludeDefs ] ] ),
 
-
-			case TypeExports of
+			case ?table:enumerate( TypeExports ) of
 
 				[] ->
 					"no type exported";
 
-				_ ->
-					TypeExpString = text_utils:strings_to_sorted_string( [
-							text_utils:format( "~s/~B", [ Type, TypeArity ] )
-									   || { Type, TypeArity } <- TypeExports ],
-									   NextIndentationLevel ),
-					text_utils:format( "~B type exports:~s",
-								   [ length( TypeExports ), TypeExpString ] )
+				TypeExportEntries ->
+
+					TypeExpString = text_utils:strings_to_sorted_string(
+						[ text_utils:format( "at line #~B:~s", [ Line,
+							  text_utils:strings_to_string(
+								[ text_utils:format( "~s/~B",
+													 [ TypeName, TypeArity ] )
+								  || { TypeName, TypeArity } <- TypeIds ],
+								NextIndentationLevel + 1 ) ] )
+						  || { _Loc, { Line, TypeIds } } <- TypeExportEntries ],
+						NextIndentationLevel ),
+
+					text_utils:format( "~B type export declaration(s):~s",
+							   [ length( TypeExportEntries ), TypeExpString ] )
 
 			end,
 
@@ -3326,7 +3342,7 @@ module_info_to_string( #module_info{
 
 
 
-% Returns a list of textual representation for each of the record fields in
+% Returns a list of textual representations for each of the record fields in
 % specified table.
 %
 -spec fields_to_strings( field_table() ) -> [ text_utils:string() ].
@@ -3334,10 +3350,40 @@ fields_to_strings( FieldTable ) ->
 
 	FieldEntries = ?table:enumerate( FieldTable ),
 
-	[ text_utils:format( "field '~s' described as ~p, "
-						 "and having for default value ~p",
-						 [ FieldName, FieldType, DefaultValue ] )
+	[ field_to_string( FieldName, FieldType, DefaultValue )
 	  || { FieldName, { FieldType, DefaultValue } } <- FieldEntries ].
+
+
+
+% Returns a textual representation of specified record field.
+%
+% (helper)
+%
+field_to_string( FieldName, FieldType, DefaultValue ) ->
+
+	TypeString = case FieldType of
+
+		undefined ->
+			"no type";
+
+		_ ->
+			text_utils:format( "following type '~p'", [ FieldType ] )
+
+	end,
+
+	DefaultValueString = case DefaultValue of
+
+		undefined ->
+			"no default value";
+
+		_ ->
+			text_utils:format( "following default value '~p'",
+							   [ DefaultValue ] )
+
+	end,
+
+	text_utils:format( "field '~s' with ~s and ~s defined",
+					   [ FieldName, TypeString, DefaultValueString ] ).
 
 
 

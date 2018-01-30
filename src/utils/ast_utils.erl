@@ -99,6 +99,10 @@
 -type form() :: erl_parse:abstract_form() | erl_parse:form_info().
 
 
+% An in-AST definition of a type:
+-type ast_type_definition() :: form().
+
+
 % Variable definition:
 %
 -type ast_variable() :: { 'var', line(), variable_name() }.
@@ -131,7 +135,7 @@
 % Note: the order of fields matters (not arbitrary, to correspond to the actual
 % AST terms)
 %
--record( type, {
+-record( builtin_type, {
 
 		   % Line of this form in the current source file:
 		   line = 0 :: line(),
@@ -144,7 +148,7 @@
 
 }).
 
--type ast_builtin_type() :: #type{}.
+-type ast_builtin_type() :: #builtin_type{}.
 
 
 
@@ -237,7 +241,7 @@
 
 -export_type([ ast/0, ast_element/0, line/0, file_loc/0, form_context/0,
 			   ast_builtin_type/0, ast_user_type/0, ast_remote_type/0,
-			   ast_type/0, ast_variable/0, 
+			   ast_type/0, ast_variable/0,
 			   ast_field_description/0, ast_immediate_value/0 ]).
 
 
@@ -254,6 +258,8 @@
 		  check_function_name/1, check_function_name/2,
 
 		  check_type_name/1, check_type_name/2,
+
+		  check_type_definition/1, check_type_definition/2,
 
 		  check_record_name/1, check_record_name/2,
 
@@ -426,7 +432,6 @@ check_type_name( Name ) ->
 	check_type_name( Name, _Context=undefined ).
 
 
-
 % Checks that specified type name is legit.
 %
 -spec check_type_name( term(), form_context() ) -> basic_utils:type_name().
@@ -438,13 +443,30 @@ check_type_name( Other, Context ) ->
 
 
 
+% Checks that specified type definition is legit.
+%
+-spec check_type_definition( term() ) -> ast_utils:ast_type_definition().
+check_type_definition( TypeDef ) ->
+	check_type_definition( TypeDef, _Context=undefined ).
+
+
+% Checks that specified type definition is legit.
+%
+-spec check_type_definition( term(), form_context() ) ->
+								   ast_utils:ast_type_definition().
+check_type_definition( TypeDef, _Context ) when is_tuple( TypeDef ) ->
+	TypeDef;
+
+check_type_definition( Other, Context ) ->
+	raise_error( [ invalid_type_definition, Other ], Context ).
+
+
 
 % Checks that specified record name is legit.
 %
 -spec check_record_name( term() ) -> basic_utils:record_name().
 check_record_name( Name ) ->
 	check_record_name( Name, _Context=undefined ).
-
 
 
 % Checks that specified record name is legit.
@@ -487,9 +509,10 @@ check_type_id( Id ) ->
 % Checks that specified type identifier is legit.
 %
 -spec check_type_id( term(), form_context() ) -> type_utils:type_id().
-check_type_id( _TypeId={ TypeName, TypeArity }, Context ) ->
+check_type_id( TypeId={ TypeName, TypeArity }, Context ) ->
 	check_type_name( TypeName, Context ),
-	check_arity( TypeArity, Context );
+	check_arity( TypeArity, Context ),
+	TypeId;
 
 check_type_id( Other, Context ) ->
 	raise_error( [ invalid_type_identifier, Other ], Context ).
@@ -565,8 +588,10 @@ check_function_type( Type, FunctionArity ) ->
 %
 -spec check_function_type( term(), function_arity(), form_context() ) ->
 								 meta_utils:function_type().
-check_function_type( _FunctionType, _FunctionArity, Context ) ->
-	raise_error( [ fixme_function_type ], Context ).
+check_function_type( FunctionType, _FunctionArity, Context ) ->
+	display_warning( "Function type ~p not checked (context: ~p).",
+					 [ FunctionType, Context ] ).
+	%raise_error( [ fixme_function_type ], Context ).
 
 %check_function_type( Other, _FunctionArity, Context ) ->
 %	raise_error( [ invalid_function_type, Other ], Context ).
@@ -885,7 +910,7 @@ forge_union_type( UnitedTypes, Line ) ->
 -spec forge_builtin_type( type_name(), [ ast_type() ], line() ) ->
 									ast_builtin_type().
 forge_builtin_type( TypeName, TypeVars, Line ) ->
-	#type{ line=Line, name=TypeName, variables=TypeVars }.
+	#builtin_type{ line=Line, name=TypeName, variables=TypeVars }.
 
 
 
@@ -1105,7 +1130,11 @@ raise_error( Elements, Context ) ->
 
 	AllElements = get_elements_with_context( Elements, Context ),
 
-	throw( list_to_tuple( AllElements ) ).
+	display_error( "~p", [ AllElements ] ),
+
+	% Would not interrupt the processing of the AST anyway:
+	%throw( list_to_tuple( AllElements ) ).
+	{ error, AllElements }.
 
 
 

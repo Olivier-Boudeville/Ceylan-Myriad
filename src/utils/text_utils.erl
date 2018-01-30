@@ -433,9 +433,11 @@ strings_to_string( _ListOfStrings=[], Acc, _Bullet ) ->
 % We do not want an extra newline at the end:
 strings_to_string( _ListOfStrings=[ LastString ], Acc, Bullet )
   when is_list( LastString ) ->
+	%Pattern="~ts~n",
 	% Added back, as makes sense?
-	Acc ++ Bullet ++ io_lib:format( "~ts~n", [ LastString ] );
-	%Acc ++ Bullet ++ io_lib:format( "~ts", [ LastString ] );
+	% Nope:
+	Pattern="~ts",
+	Acc ++ Bullet ++ io_lib:format( Pattern, [ LastString ] );
 
 strings_to_string( _ListOfStrings=[ H | T ], Acc, Bullet )
   when is_list( H ) ->
@@ -519,10 +521,16 @@ strings_to_sorted_string( ErrorTerm ) ->
 							   ustring().
 strings_to_string( _ListOfStrings=[ SingleString ], _LevelOrBullet )
   when is_list( SingleString ) ->
-	% For a single string, no need for leading and trailing newlines, but it
-	% should be separated (with single quotes, themselves surrounded by spaces)
-	% from the surrounding text:
-	io_lib:format( " '~ts' ", [ SingleString ]);
+	% For a single string, no need for leading and trailing newlines, but it is
+	% better to have it separated (with single quotes, themselves surrounded by
+	% spaces) from the surrounding text:
+	%Pattern = " '~ts' "
+	%Pattern = "'~ts'",
+
+	% Leading space, as usually the result is used in "foobar:~s", not in
+	% "foobar: ~s":
+	Pattern = " ~ts",
+	io_lib:format( Pattern, [ SingleString ] );
 
 strings_to_string( ListOfStrings, IndentationLevel )
   when is_integer( IndentationLevel ) ->
@@ -532,8 +540,12 @@ strings_to_string( ListOfStrings, IndentationLevel )
 strings_to_string( ListOfStrings, Bullet ) when is_list( ListOfStrings )
 												andalso is_list( Bullet ) ->
 	% Leading '~n' had been removed for some unknown reason:
-	io_lib:format( "~n~ts~n", [ strings_to_string( ListOfStrings, _Acc=[],
-													 Bullet ) ] );
+	% Removing trailing '~n', inducing a too large final blank space:
+	%Pattern = "~n~ts~n",
+	Pattern = "~n~ts",
+
+	io_lib:format( Pattern, [ strings_to_string( ListOfStrings, _Acc=[],
+												 Bullet ) ] );
 
 strings_to_string( ListOfStrings, Bullet ) when is_list( Bullet ) ->
 	throw( { not_a_list, ListOfStrings } );

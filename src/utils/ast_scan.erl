@@ -586,31 +586,9 @@ scan_forms( _AST=[ _Form={ attribute, Line, TypeDesignator,
 				CurrentFileReference );
 
 
-
-% 7.1.11: Other, "wild" parse attributes.
-%
-scan_forms( [ Form={ attribute, Line, AttributeName, AttributeValue } | T ],
-			M=#module_info{ parse_attributes=ParseAttributeTable,
-							parse_attribute_defs=AttributeDefs },
-			NextLocation, CurrentFileReference ) ->
-
-	%ast_utils:display_debug( "attribute definition for ~p",
-	% [ AttributeName ] ),
-
-	Context = { CurrentFileReference, Line },
-
-	ast_utils:check_parse_attribute_name( AttributeName, Context ),
-	% No constraint on AttributeValue applies.
-
-	LocForm = { NextLocation, Form },
-
-	scan_forms( T, M#module_info{
-				   parse_attributes=?table:addEntry( AttributeName,
-										  AttributeValue, ParseAttributeTable ),
-				   parse_attribute_defs=[ LocForm | AttributeDefs ] },
-				id_utils:get_next_sortable_id( NextLocation ),
-				CurrentFileReference );
-
+% 7.1.11: Other, "wild" parse attributes: this section comes later, so that it
+% matches only if none other attribute-related one (such as for 'export_type')
+% matched.
 
 
 % 7.1.12: Type export handling [lacking in reference page].
@@ -624,7 +602,7 @@ scan_forms( _AST=[ _Form={ attribute, Line, export_type, TypeIds } | T ],
 			M=#module_info{ type_exports=ExportTable, types=TypeTable },
 			NextLocation, CurrentFileReference ) ->
 
-	%ast_utils:display_debug( "type export declaration for ~p", [ TypeIds ] ),
+	%ast_utils:display_debug( "Type export declaration for ~p", [ TypeIds ] ),
 
 	Context = { CurrentFileReference, Line },
 
@@ -744,6 +722,34 @@ scan_forms( _AST=[ Form={ attribute, _Line, compile,
 
 	scan_forms( T, M#module_info{ compilation_options=NewCompileTable,
 								  compilation_option_defs=NewCompileDefs },
+				id_utils:get_next_sortable_id( NextLocation ),
+				CurrentFileReference );
+
+
+% 7.1.11: Other, "wild" parse attributes.
+%
+% (section body is here, to match iff none of the other attribute-related
+% sections matched)
+%
+scan_forms( [ Form={ attribute, Line, AttributeName, AttributeValue } | T ],
+			M=#module_info{ parse_attributes=ParseAttributeTable,
+							parse_attribute_defs=AttributeDefs },
+			NextLocation, CurrentFileReference ) ->
+
+	%ast_utils:display_debug( "Parse attribute definition for '~p'.",
+	%						 [ AttributeName ] ),
+
+	Context = { CurrentFileReference, Line },
+
+	ast_utils:check_parse_attribute_name( AttributeName, Context ),
+	% No constraint on AttributeValue applies.
+
+	LocForm = { NextLocation, Form },
+
+	scan_forms( T, M#module_info{
+				   parse_attributes=?table:addEntry( AttributeName,
+										  AttributeValue, ParseAttributeTable ),
+				   parse_attribute_defs=[ LocForm | AttributeDefs ] },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
@@ -884,7 +890,9 @@ scan_forms( _AST=[ UnhandledForm | T ],
 			M=#module_info{ unhandled_forms=UnhandledForms }, NextLocation,
 			CurrentFileReference ) ->
 
-	% display_error( "unhandled form '~p' not managed.~n", [ Form ] ),
+	ast_utils:display_error( "Unhandled form '~p' not managed.~n", 
+							 [ UnhandledForm ] ),
+
 	%throw( { unhandled_form, UnhandledForm, { location, NextLocation },
 	%		 { file, CurrentFileReference } } ).
 

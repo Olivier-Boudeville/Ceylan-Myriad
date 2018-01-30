@@ -168,8 +168,8 @@ parse_transform( InputAST, _Options ) ->
 	%meta_utils:write_module_info_to_file( BaseModuleInfo,
 	%									  "Input-module_info.txt" ),
 
-	%io:format( "Input module info: ~s~n",
-	%		   [ meta_utils:module_info_to_string( BaseModuleInfo ) ] ),
+	io:format( "Input module info: ~s~n",
+			   [ meta_utils:module_info_to_string( BaseModuleInfo ) ] ),
 
 	Transforms = get_myriad_ast_transforms_for( BaseModuleInfo ),
 
@@ -201,14 +201,15 @@ parse_transform( InputAST, _Options ) ->
 %
 -spec get_myriad_ast_transforms_for( module_info() ) ->
 										   meta_utils:ast_transforms().
-get_myriad_ast_transforms_for( #module_info{
-								  parse_attributes=ParseAttributes } ) ->
+get_myriad_ast_transforms_for(
+  #module_info{ parse_attributes=ParseAttributes } ) ->
 
 	% We will be replacing here all calls to the 'table' pseudo-module by calls
-	% to the actual module designated by the default_table_type local macro.
+	% to the actual module that may be designated by a specific parse attribute,
+	% otherwise by the default_table_type local macro.
 
-	% This is just a matter of replacing 'table' by its counterpart in elements
-	% like:
+	% This is just a matter of replacing 'table' (which does not exist as a
+	% module) by its counterpart in elements like:
 	%
 	% {call,Line1,
 	%             {remote,Line2,
@@ -220,7 +221,8 @@ get_myriad_ast_transforms_for( #module_info{
 	% specs, type definitions, etc.) is done.
 
 
-	% We also translate void() into basic_utils:void(), for example:
+	% We also translate void() (which is not a builtin type) into
+	% basic_utils:void(), for example:
 	%
 	% {attribute,Line1,spec,
 	%       { {FunctionName,Arity},
@@ -241,41 +243,43 @@ get_myriad_ast_transforms_for( #module_info{
 	%
 	% which means that, in a spec, any term in the form of
 	% '{user_type,Line,void,[]}' shall be replaced with:
-	% '{remote_type,Line, [{atom,Line,basic_utils}, {atom,Line,void}, [] ] }'
+	% '{remote_type,Line, [ {atom,Line,basic_utils}, {atom,Line,void}, [] ] }'
 
-	% We also manage maybe/1 here.
+	% We also manage maybe/1 here: if used as 'maybe(T)', translated as
+	% 'basic_utils:maybe(T)'.
 
 	% Determines the target table type that we want to rely on ultimately:
 	DesiredTableType = get_actual_table_type( ParseAttributes ),
 
-	% Regarding local types, we want to replace:
-	%  - void() with basic_utils:void() (i.e. prefix with basic_utils)
+	% So, regarding local types, we want to replace:
+	%  - void() with basic_utils:void() (i.e. prefixed with basic_utils)
 	%  - maybe(T) with basic_utils:maybe(T)
 	%  - table/N (ex: table() or table(K,V)) with DesiredTableType/N (ex:
 	%  DesiredTableType:DesiredTableType() or
 	%  DesiredTableType:DesiredTableType(K,V))
-	%  (as if table() was a local, hence built-in, type)
+	%  (as if table() was a local, hence builtin, type)
 	%
-	% Replacements to be done just for specified arities:
+	% Replacements to be done only for specified arities:
+	% (as these substitutions overlap, a lambda function is provided)
 	%
 	LocalTypeTransforms = meta_utils:get_local_type_transform_table( [
 				{ { void,  0 }, basic_utils },
 				{ { maybe, 1 }, basic_utils },
-				% First clause as we do not want to obtain
+				% First clause defined as we do not want to obtain
 				% DesiredTableType:table/N, but
-				% DesiredTableType:DesiredTableType/N:
+				% DesiredTableType:DesiredTableType/N instead:
 				%
-				{ { table, '_' },
+				{ { _ModuleName=table, '_' },
 				  fun( _TypeName=table, _TypeArity ) ->
 						  { _Module=DesiredTableType, DesiredTableType };
-					 ( TypeName, _TypeArity ) ->
-						  { DesiredTableType, TypeName }
+					 ( OtherTypeName, _TypeArity ) ->
+						  { DesiredTableType, OtherTypeName }
 				  end } ] ),
 
 
 	% Regarding remote types, we want to replace:
-	%      * table:table/N with DesiredTableType:DesiredTableType/N (N=0 or N=2)
-	%      * table:T with DesiredTableType:T (ex: table:value() )
+	%  - table:table/N with DesiredTableType:DesiredTableType/N (N=0 or N=2)
+	%  - table:T with DesiredTableType:T (ex: table:value() )
 	% (as these substitutions overlap, a lambda function is provided)
 	%
 	RemoteTypeTransforms = meta_utils:get_remote_type_transform_table( [
@@ -316,10 +320,15 @@ get_actual_table_type( ParseAttributeTable ) ->
 	DesiredTableType = case ?table:lookupEntry( table_type,
 												ParseAttributeTable ) of
 
-		{ value, TableType } ->
-			ast_utils:display_info( "Default table type overridden to ~p.~n",
-									 [ TableType ] ),
+		{ value, TableType } when is_atom( TableType ) ->
+			ast_utils:display_info( "Default table type ('~s') overridden "
+									"for this module to '~s'.~n",
+									[ ?default_table_type, TableType ] ),
 			TableType;
+
+		{ value, InvalidTableType } ->
+			meta_utils:raise_error( { invalid_table_type_override,
+									  InvalidTableType } );
 
 		key_not_found ->
 			TableType = ?default_table_type,
