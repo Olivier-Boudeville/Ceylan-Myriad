@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
-% Creation date: Friday, December 19, 2014
+% Creation date: Friday, December 19, 2014.
 
 
 
@@ -473,6 +473,7 @@
 %
 -export([ description_to_type/1, type_to_description/1, type_to_string/1,
 		  get_type_of/1, get_immediate_types/0, get_elementary_types/0,
+		  get_simple_builtin_types/0,
 		  is_type/1, is_of_type/2,
 		  is_of_described_type/2, is_homogeneous/1, is_homogeneous/2,
 		  are_types_identical/2 ]).
@@ -704,12 +705,23 @@ get_immediate_types() ->
 	[ 'atom', 'binary', 'boolean', 'float', 'integer' ].
 
 
-% Returns a list of the elementary, "atomic" types.
+% Returns a list of the elementary, "atomic" types
 %
 -spec get_elementary_types() -> [ type_name() ].
 get_elementary_types() ->
 	get_immediate_types() ++
-		[ 'function', 'list', 'pid', 'port', 'record', 'reference', 'tuple' ].
+		[ 'function', 'list', 'pid', 'port', 'record', 'reference', 'tuple',
+		  'any' ].
+
+
+% Returns a list of the built-in, non-polymorphic types that can be typically
+% found in AST forms.
+%
+-spec get_simple_builtin_types() -> [ type_name() ].
+get_simple_builtin_types() -> 
+	get_immediate_types() ++ [ 'pid', 'port', 'reference', 'any' ].
+
+
 
 
 

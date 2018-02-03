@@ -26,80 +26,58 @@
 
 
 
-% This module allows to test the 'common_parse_transform' parse transform as a
-% standalone unit, hence with proper error and warning messages.
+% This module allows to test with as few dependencies as possible the
+% 'common_parse_transform' parse transform as a standalone unit, hence with
+% proper error and warning messages.
 %
 % See the common_parse_transform.erl tested module.
 %
--module(common_parse_transform_test).
+-module(minimal_parse_transform_test).
 
 
-% For run/0 export and al:
--include("test_facilities.hrl").
+-export([ run/0, perform_direct_ast_operations/1 ]).
 
 
-% To be able to silence at will:
--export([ run_parse_transform/1, run_ast_level_operations/1 ]).
+perform_direct_ast_operations( TargetSourceFile ) ->
 
-
-run_parse_transform( TargetSourceFile ) ->
-
-	test_facilities:display( "Applying the common parse transform to the "
-							 "'~s' source file.~n", [ TargetSourceFile ] ),
-
-	TransformedAST = common_parse_transform:run_standalone( TargetSourceFile ),
-
-	test_facilities:display( "Transformed AST:~n~p~n", [ TransformedAST ] ),
-
-	WriteFile = true,
-
-	case WriteFile of
-
-		true ->
-			meta_utils:write_ast_to_file( TransformedAST,
-										  TargetSourceFile ++ ".ast" );
-
-		false ->
-			ok
-
-	end.
-
-
-
-run_ast_level_operations( TargetSourceFile ) ->
-
-	test_facilities:display( "Now performing directly AST-level operations." ),
+	io:format( "~nNow performing directly AST-level operations:~n~n" ),
 
 	BaseAST = meta_utils:erl_to_ast( TargetSourceFile ),
 
-	%test_facilities:display( "Base AST:~n~p", [ BaseAST ] ),
+	io:format( "Base AST:~n~p~n", [ BaseAST ] ),
 
 	BaseModuleInfo = meta_utils:extract_module_info_from_ast( BaseAST ),
 
-	test_facilities:display( "Base module info: ~s~n",
-					 [ meta_utils:module_info_to_string( BaseModuleInfo ) ] ),
+	io:format( "Base module info: ~s~n~n",
+			   [ meta_utils:module_info_to_string( BaseModuleInfo ) ] ),
 
 	FinalModuleInfo = BaseModuleInfo,
 
-	test_facilities:display( "Final module info: ~s~n",
-					 [ meta_utils:module_info_to_string( FinalModuleInfo ) ] ),
+	io:format( "Final module info: ~s~n~n",
+			   [ meta_utils:module_info_to_string( FinalModuleInfo ) ] ),
 
 	FinalAST = meta_utils:recompose_ast_from_module_info( FinalModuleInfo ),
 
-	test_facilities:display( "Final AST:~n~p", [ FinalAST ] ).
+	io:format( "Final AST:~n~p~n", [ FinalAST ] ).
 
 
 
 -spec run() -> no_return().
 run() ->
 
-	test_facilities:start( ?MODULE ),
-
-	%TargetSourceFile = "graph_utils.erl",
+	%TargetSourceFile = "code_utils.erl",
 	TargetSourceFile = "../data-management/simple_parse_transform_target.erl",
+	%TargetSourceFile = "../data-management/preferences.erl",
 
-	run_parse_transform( TargetSourceFile ),
+	io:format( "Applying the common parse transform to the "
+			   "'~s' source file.~n~n", [ TargetSourceFile ] ),
 
-	%run_ast_level_operations( TargetSourceFile ),
+	TransformedAST = common_parse_transform:run_standalone( TargetSourceFile ),
 
-	test_facilities:stop().
+	io:format( "Transformed AST:~n~p~n~n", [ TransformedAST ] ),
+
+	ast_utils:write_ast_to_file( TransformedAST, TargetSourceFile ++ ".ast" ),
+
+	%perform_direct_ast_operations( TargetSourceFile ),
+
+	init:stop( _StatusCode=0 ).

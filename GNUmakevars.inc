@@ -502,6 +502,7 @@ BEAM_DIRS += $(COMMON_BEAM_DIRS)
 #
 COMMON_BEAM_DIRS = $(COMMON_BEAM)/data-management \
 				   $(COMMON_BEAM)/maths           \
+				   $(COMMON_BEAM)/meta            \
 				   $(COMMON_BEAM)/user-interface  \
 				   $(COMMON_BEAM)/utils
 
@@ -524,20 +525,23 @@ ifndef BOOTSTRAP_MODULES
 
 # We list here all prerequisites of the 'Common' parse-transform:
 #  - basic_utils: to provide the basic services
-#  - id_utils: to sort the forms
+#  - text_utils: to display debugging information regarding the transforms
+#  - id_utils: used here to sort the forms
 #  - meta_utils: to support the metaprogramming needs
+#  - ast_info: to centralise information regarding ASTs
 #  - ast_utils: to handle the AST
 #  - ast_scan: to scan the AST
-#  - text_utils: to display debugging information regarding the transform
+#  - type_utils: to handle types
 #  - map_hashtable: to manage the module information
 #
 BOOTSTRAP_MODULES = $(COMMON_TOP)/src/utils/basic_utils.beam             \
-					$(COMMON_TOP)/src/utils/id_utils.beam                \
-					$(COMMON_TOP)/src/utils/meta_utils.beam              \
-					$(COMMON_TOP)/src/utils/ast_utils.beam               \
-					$(COMMON_TOP)/src/utils/ast_scan.beam                \
-					$(COMMON_TOP)/src/utils/type_utils.beam              \
 					$(COMMON_TOP)/src/utils/text_utils.beam              \
+					$(COMMON_TOP)/src/utils/id_utils.beam                \
+					$(COMMON_TOP)/src/meta/meta_utils.beam               \
+					$(COMMON_TOP)/src/meta/ast_info.beam                 \
+					$(COMMON_TOP)/src/meta/ast_utils.beam                \
+					$(COMMON_TOP)/src/meta/ast_scan.beam                 \
+					$(COMMON_TOP)/src/meta/type_utils.beam               \
 					$(COMMON_TOP)/src/data-management/map_hashtable.beam \
 
 endif
@@ -552,7 +556,7 @@ endif
 #
 ifndef PARSE_TRANSFORM_DIRS
 
-PARSE_TRANSFORM_DIRS = $(COMMON_TOP)/src/utils
+	   PARSE_TRANSFORM_DIRS = $(COMMON_TOP)/src/meta
 
 endif
 
@@ -568,7 +572,9 @@ endif
 #
 ERLANG_COMPILER_BASE_OPT += -b beam                                   \
 						  +\"{debug_info_key,\\\"Ceylan-Myriad\\\"}\" \
-						  -pz $(COMMON_TOP)/src/utils
+						  -pz $(COMMON_TOP)/src/utils                 \
+						  -pz $(COMMON_TOP)/src/meta                  \
+						  -pz $(COMMON_TOP)/src/data-management
 
 
 # To apply a parse transform, not only it must be already compiled, but also,
@@ -584,7 +590,7 @@ ERLANG_COMPILER_BASE_OPT += -b beam                                   \
 #
 ifndef ERLANG_COMPILER_PARSE_TRANSFORM_OPT
 
-# We need src/utils and src/data-management in the path, as the 'Common' parse
+# We need src/{utils,meta,data-management} in the path, as the 'Common' parse
 # transform uses meta_utils that uses map_hashtable (which is thus bootstrapped
 # as well).
 
@@ -595,6 +601,7 @@ ifndef ERLANG_COMPILER_PARSE_TRANSFORM_OPT
 #
 ERLANG_COMPILER_PARSE_TRANSFORM_OPT = \
 					-pz $(COMMON_TOP)/src/utils                 \
+					-pz $(COMMON_TOP)/src/meta                  \
 					-pz $(COMMON_TOP)/src/data-management       \
 					"+{parse_transform,common_parse_transform}"
 

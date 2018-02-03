@@ -126,6 +126,12 @@
 
 
 
+
+% For the file_info record:
+-include_lib("kernel/include/file.hrl").
+
+
+
 % Reference to a built-in type, in an AST.
 %
 % Ex:
@@ -135,7 +141,8 @@
 % Note: the order of fields matters (not arbitrary, to correspond to the actual
 % AST terms)
 %
--record( builtin_type, {
+% Not possible: -record( builtin_type, {
+-record( type, {
 
 		   % Line of this form in the current source file:
 		   line = 0 :: line(),
@@ -148,7 +155,7 @@
 
 }).
 
--type ast_builtin_type() :: #builtin_type{}.
+-type ast_builtin_type() :: #type{}.
 
 
 
@@ -239,15 +246,40 @@
 -type ast_expression() :: ast_element().
 
 
--export_type([ ast/0, ast_element/0, line/0, file_loc/0, form_context/0,
+% Directly inspired from erl_lint:
+
+
+% Description of a compilation-related issue (error or warning).
+%
+-type issue_description() :: term().
+
+
+% Full information about a compilation-related issue.
+%
+% The module is the one emitting that issue (ex: erl_lint)
+%
+-type issue_info() :: { ast_utils:line(), module(), issue_description() }.
+
+
+% A warning regarding a source file, corresponding to a list of error
+% informations.
+%
+-type issue_report() :: { file_utils:file_name(), [ issue_info() ] }.
+
+
+
+-export_type([ form/0, ast/0, ast_element/0, line/0, file_loc/0, form_context/0,
 			   ast_builtin_type/0, ast_user_type/0, ast_remote_type/0,
 			   ast_type/0, ast_variable/0,
-			   ast_field_description/0, ast_immediate_value/0 ]).
+			   ast_field_description/0, ast_immediate_value/0,
+			   issue_description/0, issue_info/0, issue_report/0 ]).
 
 
 % Checking:
 %
--export([ check_line/2,
+-export([ check_ast/1,
+
+		  check_line/2,
 
 		  check_parse_attribute_name/1, check_parse_attribute_name/2,
 
@@ -280,6 +312,14 @@
 		  check_variables/1, check_variables/2
 
 		]).
+
+
+% Converting:
+%
+-export([ erl_to_ast/1, beam_to_ast/1, term_to_form/1, variable_names_to_ast/2,
+		  string_to_form/1, string_to_form/2,
+		  string_to_expressions/1, string_to_expressions/2,
+		  string_to_value/1 ]).
 
 
 
@@ -326,13 +366,145 @@
 		  display_error/1, display_error/2,
 		  display_fatal/1, display_fatal/2 ]).
 
+% Signaling:
+%
+-export([ raise_error/1, get_error_form/3, format_error/1 ]).
+
 
 % Other:
 %
--export([ raise_error/2, notify_warning/2 ]).
+-export([ write_ast_to_file/2, raise_error/2, notify_warning/2 ]).
+
+
+
 
 
 % Checking section.
+
+
+
+
+% Checks whether specified AST is legit: lints it.
+%
+-spec check_ast( ast() ) -> basic_utils:void().
+check_ast( AST ) ->
+
+	%display_debug( "~p", [ AST ] ),
+
+	% Directly outputing the warnings or errors is generally useless; for
+	% example, in addition to:
+	%
+	%  simple_parse_transform_target.erl:68: type void() undefined
+	%
+	% We would get: [{"simple_parse_transform_target.erl",
+	%               [{68,erl_lint,{undefined_type,{void,0}}}]}]
+
+	% Finally interpret_issue_reports/1 directly used to output the issues;
+	% however some are legit (ex: 'type void() undefined'), so we must let them
+	% go through:
+	%
+	case erl_lint:module( AST ) of
+
+		{ ok, _Warnings=[] } ->
+			%display_trace(
+			% "(no warning or error emitted)~n" ),
+			ok;
+
+		{ ok, Warnings } ->
+			%display_error(
+			%  "Warnings, reported as errors: ~p~n",
+			%		   [ Warnings ] ),
+			interpret_issue_reports( Warnings ),
+			%exit( warning_reported );
+			warning_reported;
+
+		{ error, Errors, _Warnings=[] } ->
+			%display_error( "Errors reported: ~p~n",
+			%  [ Errors ] ),
+			interpret_issue_reports( Errors ),
+			%exit( error_reported );
+			error_reported;
+
+		{ error, Errors, Warnings } ->
+			%display_error( "Errors reported: ~p~n",
+			%  [ Errors ] ),
+			interpret_issue_reports( Errors ),
+
+			%display_error(
+			%  "Warnings, reported as errors: ~p~n", [ Warnings ] ),
+			interpret_issue_reports( Warnings ),
+			%exit( error_reported )
+			error_reported
+
+	end.
+
+
+
+% Interprets specified list of issue reports.
+%
+-spec interpret_issue_reports( [ issue_report() ] ) -> basic_utils:void().
+interpret_issue_reports( _IssueReports=[] ) ->
+	% Should never happen:
+	display_trace( "(no remark emitted)" );
+
+% No need to further special-case the number of issue reports, as it is not
+% meaningful (one may include an arbitrary long list):
+
+%interpret_issue_reports( _IssueReports=[ OneIssueReport ] ) ->
+%	interpret_issue_report( OneIssueReport );
+
+interpret_issue_reports( IssueReports ) ->
+
+	[ interpret_issue_report( R ) || R <- IssueReports ].
+
+	%text_utils:format( "~B remarks: ~s", [ length( IssueReports ),
+	%					text_utils:strings_to_string( ReportStrings ) ] ).
+
+
+% Interprets specific issue report.
+%
+-spec interpret_issue_report( issue_report() ) -> basic_utils:void().
+interpret_issue_report( _IssueReport={ Filename, IssueInfos } ) ->
+
+	% We could normalise it instead, yet file_utils would become a dependency:
+	CanonicFilename = filename:basename( Filename ),
+
+	[ interpret_issue_info( CanonicFilename, E ) || E <- IssueInfos ].
+
+	%text_utils:format( "in file '~s': ~s", [ CanonicFilename,
+	%		   text_utils:strings_to_string( IssueStrings ) ] ).
+
+
+
+% Interprets specific error description.
+%
+-spec interpret_issue_info( file_utils:file_name(), issue_info() ) ->
+								  basic_utils:void().
+interpret_issue_info( Filename,
+					  _IssueInfo={ Line, DetectorModule, IssueDesc } ) ->
+
+	% Module is the detecting one, typically erl_lint:
+	%text_utils:format( "line #~B, module '~p', ~s", [ Line, Module,
+	%						interpret_issue_description( IssueDesc ) ] ).
+
+	%text_utils:format( "line #~B: ~s", [ Line,
+	%		interpret_issue_description( IssueDesc, DetectorModule ) ] ).
+
+	io:format( "~s:~B: ~s~n", [ Filename, Line,
+			interpret_issue_description( IssueDesc, DetectorModule ) ] ).
+
+
+
+% Interprets specific issue description, detected by specified module.
+%
+% Note: full control is offered here to enrich this function at will, if wanted.
+%
+-spec interpret_issue_description( issue_description(),
+								   basic_utils:module_name() ) -> string().
+interpret_issue_description( IssueDescription, DectectorModule ) ->
+	%For example, the detector module may be erl_lint:
+	DectectorModule:format_error( IssueDescription ).
+
 
 
 
@@ -369,7 +541,8 @@ check_parse_attribute_name( Other, Context ) ->
 
 % Checks that specified parse attribute name is legit.
 %
--spec check_parse_attribute_name( term() ) -> basic_utils:parse_attribute_name().
+-spec check_parse_attribute_name( term() ) -> 
+										basic_utils:parse_attribute_name().
 check_parse_attribute_name( Name ) ->
 	check_parse_attribute_name( Name, _Context=undefined ).
 
@@ -682,9 +855,258 @@ check_variables( Other, Context ) ->
 
 
 
+% Conversion section.
+
+
+% Reads specified Erlang source file (*.erl) and returns the corresponding AST.
+%
+% For example useful to debug a parse transform first separately from the
+% compile pipe-line, relying here on the usual, convenient error management
+% instead of having little informative messages like: 'undefined parse transform
+% 'foobar'' as soon as a call to a non-existing module:function/arity is made.
+%
+-spec erl_to_ast( file_utils:file_name() ) -> ast().
+erl_to_ast( ErlSourceFilename ) ->
+
+	case epp:parse_file( ErlSourceFilename, _Opts=[] ) of
+
+		{ error, Error } ->
+			throw( { parse_file_failed, ErlSourceFilename, Error } );
+
+		{ ok, AST } ->
+			AST
+
+	end.
+
+
+
+% Reads the specified BEAM file (expected to be compiled with debug information)
+% and returns the corresponding AST.
+%
+% Note that the filename must be a relative or absolute path pointing directly
+% to the BEAM file (it is not searched through the code path).
+%
+-spec beam_to_ast( file:filename() ) -> ast().
+beam_to_ast( BeamFilename ) ->
+
+	% We do not use functions from other Common modules here (ex: file_utils) as
+	% they are not expected to be built yet (they will be built with the common
+	% parse transform afterwards).
+	%
+	case file:read_link_info( BeamFilename ) of
+
+		{ ok, FileInfo } ->
+			#file_info{ type=regular } = FileInfo,
+			ok;
+
+		{ error, eloop } ->
+			% Probably a recursive symlink:
+			throw( { too_many_symlink_levels, BeamFilename } );
+
+		{ error, enoent } ->
+			throw( { non_existing_beam_file, BeamFilename } )
+
+	end,
+
+	% We could basically list all chunks, but we are only interested here in the
+	% abstract code:
+	%
+
+	% Everything:
+	%Chunks = [ abstract_code, attributes, compile_info, exports,
+	%			labeled_exports, imports, indexed_imports, locals,
+	%			labeled_locals, atoms ],
+
+	% Just the code AST:
+	Chunks = [ abstract_code ],
+
+	% Everything but the code AST:
+	% OtherChunks = [ attributes, compile_info, exports,
+	%				  labeled_exports, imports, indexed_imports, locals,
+	%				  labeled_locals, atoms ],
+
+	%Options = [ allow_missing_chunks ],
+	Options=[],
+
+	case beam_lib:chunks( BeamFilename, Chunks, Options ) of
+
+		{ ok, { _Module, [ { abstract_code, { _RawAbstractV1,
+											  AbstractCode } } ] } } ->
+			%ast_utils:ast_utils:display_debug( "Module = ~p.", [ Module ] ),
+			AbstractCode;
+
+		{ error, beam_lib, Reason } ->
+			throw( { beam_reading_failed, Reason } )
+
+	end.
+
+
+
+
+% Section to manage ASTs and forms.
+
+
+% Converts the specified Erlang term (ex: the float '42.0') into a corresponding
+% form (ex: '{ float, _Line=0, 42.0 }').
+%
+-spec term_to_form( term() ) -> form().
+term_to_form( Term ) ->
+
+	case erl_syntax:abstract( Term ) of
+
+		% Either the doc or the type information for erl_syntax:abstract/1 is
+		% incorrect:
+
+		%badarg ->
+		%	throw( { term_abstraction_failed, Term } );
+
+		SyntaxTree ->
+
+			% Could be used with erl_syntax:is_tree/1:
+			% case erl_syntax:revert( SyntaxTree ) of...
+			erl_syntax:revert( SyntaxTree )
+
+	end.
+
+
+
+% Converts a list of names of variables into the corresponding AST.
+%
+% Ex: if wanting to specify '[ V1, Alpha, A ]', we have: variable_names_to_ast(
+% [ "V1", "Alpha", "A" ], _Line=0 ) = [ {cons,0, {var,0,'V1'},
+% {cons,0,{var,0,'Alpha'}, {cons,0,{var,0,'A'}, {nil,0} } } } ]
+%
+-spec variable_names_to_ast( [ string() ], ast_utils:line() ) -> ast().
+variable_names_to_ast( VariableNames, Line ) ->
+
+	% Could be done directly recursively by incrementally 'consing' reversed
+	% list.
+
+	NameListString = "[ " ++ text_utils:join( ", ",  VariableNames ) ++ " ].",
+
+	string_to_expressions( NameListString, Line ).
+
+
+
+% Converts the specified source code of a form (as a string) into its
+% corresponding abstract form (assuming being in line #1).
+%
+% Ex: string_to_form( "f() -> hello_world." ) returns
+%   { function, 1, f, 0, [ { clause, 1, [], [], [ {atom,1,hello_world} ] } ] }
+%
+-spec string_to_form( string() ) -> form().
+string_to_form( FormString ) ->
+	string_to_form( FormString, _Loc=1 ).
+
+
+
+% Converts the specified source code of a form (i.e., a string) into its
+% corresponding abstract form.
+%
+% Ex: string_to_form( "f() -> hello_world.", 42 ) returns
+%   { function, 1, f, 0, [ { clause, 42, [], [], [ {atom,1,hello_world} ] } ] }
+%
+-spec string_to_form( string(), ast_utils:file_loc() ) -> form().
+string_to_form( FormString, Location ) ->
+
+	% First get Erlang tokens from that string:
+	Tokens = case erl_scan:string( FormString, Location ) of
+
+		% Ex: [{atom,1,f},{'(',1},{')',1},{'->',1},{atom,1,hello_world},{dot,1}]
+		{ ok, Toks, _EndLocation } ->
+			%ast_utils:display_debug( "Tokens: ~p", [ Toks ] ),
+			Toks;
+
+		ErrorTok ->
+			throw( { form_tokenizing_error, FormString, ErrorTok } )
+
+	end,
+
+	% Tokens to erl_parse trees:
+
+	case erl_parse:parse_form( Tokens ) of
+
+		{ ok, ParseTree } ->
+			ParseTree;
+
+		ErrorPar ->
+			throw( { form_parsing_error, FormString, ErrorPar } )
+
+	end.
+
+
+
+% Converts the specified source code of a list of expressions (i.e., a string)
+% into its corresponding AST (assuming being in line #1).
+%
+% Ex: string_to_expressions( "[ { a, 1 }, foobar ]" ) returns
+%   [ { cons, 1, { tuple, 1, [ {atom,1,a}, {integer,1,1} ] },
+%     { cons, 1, {atom,1,foobar}, {nil,1} } } ]
+%
+-spec string_to_expressions( string() ) -> ast().
+string_to_expressions( ExpressionString ) ->
+	string_to_expressions( ExpressionString, _Loc=1 ).
+
+
+
+% Converts the specified source code of a term (i.e., a string) and a location
+% into the corresponding abstract form.
+%
+% Ex: string_to_expressions( "[ { a, 1 }, foobar ]", _Loc=42 ) returns
+%   [ { cons, 42, { tuple, 42, [ {atom,42,a}, {integer,42,1} ] },
+%     { cons, 42, {atom,42,foobar}, {nil,42} } } ]
+%
+-spec string_to_expressions( string(), ast_utils:file_loc() ) -> ast().
+string_to_expressions( ExpressionString, Location ) ->
+
+	% First get Erlang tokens from that string:
+	Tokens = case erl_scan:string( ExpressionString, Location ) of
+
+		% Ex: [ {'[',42}, {'{',42}, {atom,42,a}, {',',42}, {integer,42,1},
+		% {'}',42}, {',',42}, {atom,42,foobar}, {']',42} ]
+		{ ok, Toks, _EndLocation } ->
+			%ast_utils:display_debug( "Tokens: ~p", [ Toks ] ),
+			Toks;
+
+		ErrorTok ->
+			throw( { expression_tokenizing_error, ExpressionString, ErrorTok } )
+
+	end,
+
+	% Tokens to erl_parse trees:
+
+	case erl_parse:parse_exprs( Tokens ) of
+
+		{ ok, ParseTree } ->
+			ParseTree;
+
+		ErrorPar ->
+			throw( { expression_parsing_error, ExpressionString, ErrorPar } )
+
+	end.
+
+
+
+% Converts the specified source code of a term (i.e., a string) into its
+% corresponding value.
+%
+% Ex: string_to_value( "[ {tiger,[lion,leopard]} ]" ) returns the
+% [{tiger,[lion,leopard]}] term.
+%
+-spec string_to_value( string() ) -> term().
+string_to_value( ExpressionString ) ->
+
+	% We automatically add the necessary final dot:
+	[ Expr ] = string_to_expressions( ExpressionString ++ "." ),
+
+	{ value, Result, _NewBindings } = erl_eval:expr( Expr, _Bindings=[] ),
+
+	Result.
+
+
+
 
 % Value section.
-
 
 
 % Returns an AST-compliant value designating specified boolean, defined at line
@@ -894,8 +1316,8 @@ forge_union_type( UnitedTypes ) ->
 % line of the current source file.
 %
 % Ex: to represent the following type defined at line 39: integer() | float(),
-% forge_union_type( [ forge_integer_type(39), forge_float_type(39) ], 39 ) returns:
-% {type,39,union,[{type,39,integer,[]},{type,39,float,[]}]}.
+% forge_union_type( [ forge_integer_type(39), forge_float_type(39) ], 39 )
+% returns: {type,39,union,[{type,39,integer,[]},{type,39,float,[]}]}.
 %
 -spec forge_union_type( [ ast_type() ], line() ) -> ast_builtin_type().
 forge_union_type( UnitedTypes, Line ) ->
@@ -910,7 +1332,7 @@ forge_union_type( UnitedTypes, Line ) ->
 -spec forge_builtin_type( type_name(), [ ast_type() ], line() ) ->
 									ast_builtin_type().
 forge_builtin_type( TypeName, TypeVars, Line ) ->
-	#builtin_type{ line=Line, name=TypeName, variables=TypeVars }.
+	#type{ line=Line, name=TypeName, variables=TypeVars }.
 
 
 
@@ -1118,6 +1540,49 @@ display_fatal( FormatString, Values ) ->
 
 
 
+% Notifies a warning, with specified context.
+%
+-spec notify_warning( [ term() ], form_context() ) -> basic_utils:void().
+notify_warning( Elements, Context ) ->
+
+	AllElements = get_elements_with_context( Elements, Context ),
+
+	display_warning( "~p", [ AllElements ] ).
+
+
+
+
+% Raises a (compile-time, rather ad hoc) error when applying a parse transform,
+% to stop the build on failure and report the actual error.
+%
+% Used to be a simple throw, but then for parse transforms the error message was
+% garbled in messages like:
+%
+% """
+% internal error in lint_module;
+% crash reason: function_clause
+%
+%  in function  erl_lint:'-compiler_options/1-lc$^0/1-0-'/1
+%     called as erl_lint:'-compiler_options/1-lc$^0/1-0-'({
+% table_type_defined_more_than_once,{line,12},foo_hashtable,bar_hashtable})
+%
+% See also: raise_parse_error/ for a better, more standard system for error
+% management.
+%
+-spec raise_error( term() ) -> no_return().
+raise_error( ErrorTerm ) ->
+
+	%throw( ErrorTerm )
+	%ast_utils:ast_utils:display_error( "~p", [ ErrorTerm ] ),
+
+	% Does not add any information (just non-relevant erl_parse, epp
+	% etc. state):
+	%
+	%erlang:exit( { ErrorTerm, erlang:get_stacktrace() } ).
+
+	erlang:exit( ErrorTerm ).
+
+
 
 
 % Raises an error, with specified context.
@@ -1138,14 +1603,50 @@ raise_error( Elements, Context ) ->
 
 
 
-% Notifies a warning, with specified context.
+
+% Returns an AST form in order to raise a (compile-time, standard) error when
+% applying a parse transform, to stop the build on failure and report the actual
+% error.
 %
--spec notify_warning( [ term() ], form_context() ) -> basic_utils:void().
-notify_warning( Elements, Context ) ->
+% The specified error term will be transformed by the specified module into a
+% (textual) error message (see format_error/1), and then will be reported as
+% originating from the specified line in the source file of the module being
+% compiled.
+%
+-spec get_error_form( basic_utils:error_reason(), basic_utils:module_name(),
+					  ast_utils:line() ) -> form().
+get_error_form( ErrorTerm, FormatErrorModule, Line ) ->
 
-	AllElements = get_elements_with_context( Elements, Context ),
+	% Actually the most standard way of reporting an error seems to insert a
+	% dedicated form in the AST.
 
-	display_warning( "~p", [ AllElements ] ).
+	% May ultimately report (thanks to ?MODULE:format_error/1), when compiling a
+	% foobar module and if:
+	%
+	% - Line is 15
+	%
+	% - 'apply( FormatErrorModule, format_error, [ ErrorTerm ] )' is "my error
+	% message":
+	%
+	% the following error message: "foobar:15: my error message".
+	%
+	{ error, { Line, FormatErrorModule, ErrorTerm } }.
+
+
+
+% This function (whose name is standard, conventional) is to be defined on a
+% per-module basis (typically in the module defining the parse transform being
+% applied) and allows to convert error terms (that are, here, related to
+% parse-transforms) into textual messages that can be output by the build chain.
+%
+-spec format_error( basic_utils:error_reason() ) -> string().
+format_error( ErrorTerm ) ->
+
+	% Of course this is just an example:
+	%
+	text_utils:format( "my ast_utils error reported: ~s", [ ErrorTerm ] ).
+
+
 
 
 
@@ -1171,3 +1672,23 @@ get_elements_with_context( Elements, _Context=FilePath )
 get_elements_with_context( Elements, Context ) ->
 	% No list_utils module used from this module:
 	Elements ++ [ Context ].
+
+
+
+% Writes specified AST into specified (text) file.
+%
+% Useful for example to determine differences between ASTs.
+%
+-spec write_ast_to_file( ast(), file_utils:file_name() ) -> basic_utils:void().
+write_ast_to_file( AST, Filename ) ->
+
+	% Note: we cannot actually use file_utils, which is not a prerequisite of
+	% the 'Common' parse transform:
+
+	% We overwrite any pre-existing file:
+	{ ok, File } = file:open( Filename, [ write, raw ] ),
+
+	[ ok = file:write( File, io_lib:format( "~p~n", [ F ] )  ) || F <- AST ],
+
+	ok = file:close( File ).
+

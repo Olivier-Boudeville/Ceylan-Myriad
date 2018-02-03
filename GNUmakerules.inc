@@ -207,6 +207,7 @@ rebuild: clean all
 
 
 
+
 # Bootstrap section.
 
 
@@ -215,34 +216,13 @@ rebuild: clean all
 # produced in the right directory (not at the root).
 #
 # Exactly the same processing applies to each of them.
+#
+# See also: in GNUmakevars.inc, the BOOTSTRAP_MODULES variable.
 
+
+# In 'utils':
 
 $(COMMON_TOP)/src/utils/basic_utils.beam: $(COMMON_TOP)/src/utils/basic_utils.erl
-	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
-
-
-$(COMMON_TOP)/src/utils/id_utils.beam: $(COMMON_TOP)/src/utils/id_utils.erl
-	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
-
-
-$(COMMON_TOP)/src/utils/meta_utils.beam: $(COMMON_TOP)/src/utils/meta_utils.erl
-	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
-
-
-$(COMMON_TOP)/src/utils/ast_utils.beam: $(COMMON_TOP)/src/utils/ast_utils.erl
-	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
-
-
-$(COMMON_TOP)/src/utils/ast_scan.beam: $(COMMON_TOP)/src/utils/ast_scan.erl
-	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
-
-
-$(COMMON_TOP)/src/utils/type_utils.beam: $(COMMON_TOP)/src/utils/type_utils.erl
 	@echo "		Compiling bootstrap module $<"
 	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
@@ -252,9 +232,46 @@ $(COMMON_TOP)/src/utils/text_utils.beam: $(COMMON_TOP)/src/utils/text_utils.erl
 	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
 
+$(COMMON_TOP)/src/utils/id_utils.beam: $(COMMON_TOP)/src/utils/id_utils.erl
+	@echo "		Compiling bootstrap module $<"
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
+
+
+# In 'meta':
+
+$(COMMON_TOP)/src/meta/meta_utils.beam: $(COMMON_TOP)/src/meta/meta_utils.erl
+	@echo "		Compiling bootstrap module $<"
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
+
+$(COMMON_TOP)/src/meta/ast_info.beam: $(COMMON_TOP)/src/meta/ast_info.erl
+	@echo "		Compiling bootstrap module $<"
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
+
+$(COMMON_TOP)/src/meta/ast_utils.beam: $(COMMON_TOP)/src/meta/ast_utils.erl
+	@echo "		Compiling bootstrap module $<"
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
+
+$(COMMON_TOP)/src/meta/ast_scan.beam: $(COMMON_TOP)/src/meta/ast_scan.erl
+	@echo "		Compiling bootstrap module $<"
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
+
+$(COMMON_TOP)/src/meta/type_utils.beam: $(COMMON_TOP)/src/meta/type_utils.erl
+	@echo "		Compiling bootstrap module $<"
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
+
+
+# In 'data-management':
+
 $(COMMON_TOP)/src/data-management/map_hashtable.beam: $(COMMON_TOP)/src/data-management/map_hashtable.erl
 	@echo "		Compiling bootstrap module $<"
 	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
 
 
 

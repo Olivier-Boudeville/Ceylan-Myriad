@@ -23,21 +23,15 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
-% Creation date: Tuesday, December 30, 2014
+% Creation date: Saturday, February 3, 2018.
 
 
-
-
-% For all modules being bootstrap ones, the 'table' pseudo-module is not
-% available (as these modules are not processed by the 'Common' parse
-% transform).
+% This header file gathers mostly following info records:
 %
-% So no table pseudo-module can be available for them, only ?table is available
-% - not the other *_table counterparts (once these bootstrapped modules are
-% compiled, if they relied on foo_hashtable, then the parse transform could not
-% operate on any module compiled before foo_hashtable):
-%
--define( table, map_hashtable ).
+% - module_info
+% - type_info
+% - function_info
+
 
 
 % A record to store and centralise information gathered about an Erlang
@@ -65,7 +59,7 @@
 
 
 		% Module definition:
-		module_def = undefined :: 'undefined' | meta_utils:located_form(),
+		module_def = undefined :: 'undefined' | ast_info:located_form(),
 
 
 		% A table, whose keys are compilation options (ex: no_auto_import,
@@ -76,7 +70,7 @@
 		% inline ).'), then its associated key is not a list of function
 		% identifiers, but 'all'.
 		%
-		compilation_options :: meta_utils:compile_option_table(),
+		compilation_options :: ast_info:compile_option_table(),
 
 
 		% A table, as multiple compile attributes can be declared, like:
@@ -84,8 +78,7 @@
 		% Ex: {attribute,67,compile,{no_auto_import,[{size,1}]}},
 		%     {attribute,63,compile,{inline,[{get_bucket_index,2}]}}
 		%
-		compilation_option_defs = [] :: meta_utils:located_ast(),
-
+		compilation_option_defs = [] :: ast_info:located_ast(),
 
 
 		% Parse-level attributes (ex: '-my_attribute( my_value ).'), as a table
@@ -96,7 +89,7 @@
 		%
 		% Note: must be kept on sync with the 'parse_attribute_defs' field.
 		%
-		parse_attributes :: meta_utils:attribute_table(),
+		parse_attributes :: ast_info:attribute_table(),
 
 
 		% Parse attribute definitions (as located, abstract forms):
@@ -104,13 +97,13 @@
 		% Note: mostly for user-defined attributes, knowing most if not all
 		% others are to be collected in specific other fields of this record.
 		%
-		parse_attribute_defs = [] :: meta_utils:located_ast(),
+		parse_attribute_defs = [] :: ast_info:located_ast(),
 
 
 		% As remote function specifications can be defined, like:
 		% -spec Mod:Name(...) -> ...
 		%
-		remote_spec_defs = [] :: meta_utils:located_ast(),
+		remote_spec_defs = [] :: ast_info:located_ast(),
 
 
 		% Include files (typically *.hrl files).
@@ -128,7 +121,7 @@
 		% (possibly a given file might be included more than once; it is
 		% generally the case for the module being currently compiled)
 		%
-		include_defs = [] :: meta_utils:located_ast(),
+		include_defs = [] :: ast_info:located_ast(),
 
 
 		% Whether a type (possibly any kind of it; ex: opaque or not) is
@@ -142,33 +135,33 @@
 		% (this field must be kept synchronised with the table in the
 		% 'types' field)
 		%
-		type_exports :: meta_utils:type_export_table(),
+		type_exports :: ast_info:type_export_table(),
 
 
 		% All information, indexed by type identifiers, about all the types
 		% defined in that module:
 		%
-		types :: meta_utils:type_table(),
+		types :: ast_info:type_table(),
 
 
 		% All information (notably: field descriptions), indexed by record
 		% names, about all the records known of that module:
 		%
-		records :: meta_utils:record_table(),
+		records :: ast_info:record_table(),
 
 
 		% The record export definitions:
-		record_defs = [] :: meta_utils:located_ast(),
+		record_defs = [] :: ast_info:located_ast(),
 
 
 		% Lists the functions imported by that module, per-module.
 		%
-		function_imports :: meta_utils:function_import_table(),
+		function_imports :: ast_info:function_import_table(),
 
 
 		% The definitions of the function imports:
 		%
-		function_imports_defs = [] :: meta_utils:located_ast(),
+		function_imports_defs = [] :: ast_info:located_ast(),
 
 
 
@@ -183,13 +176,13 @@
 		% (this field must be kept synchronised with the table in the
 		% 'functions' field)
 		%
-		function_exports :: meta_utils:function_export_table(),
+		function_exports :: ast_info:function_export_table(),
 
 
 		% All information, indexed by function identifiers, about all the
 		% functions defined in that module:
 		%
-		functions :: meta_utils:function_table(),
+		functions :: ast_info:function_table(),
 
 
 
@@ -198,7 +191,7 @@
 		% (we keep it as a located form rather than a simple meta_utils:line()
 		% to avoid a costly addition in last position)
 		%
-		last_line :: meta_utils:located_form(),
+		last_line :: ast_info:located_form(),
 
 
 		% List of all the located forms that are unhandled, which are typically
@@ -206,60 +199,11 @@
 		%
 		% '{error,{LineNumber,erl_parse, ["syntax error before: ","')'"]}}''.
 		%
-		unhandled_forms = [] :: meta_utils:located_ast()
+		unhandled_forms = [] :: ast_info:located_ast()
 
 
 } ).
 
-
-
-% Describes a function (generally extracted from a module).
-%
--record( function_info, {
-
-
-		   % The name of that function:
-		   name = undefined :: meta_utils:function_name(),
-
-
-		   % The arity of that function:
-		   arity = undefined :: arity(),
-
-
-		   % Corresponds to the location of the full form for the definition
-		   % (first clause) of this function (not of the spec):
-		   %
-		   location = undefined :: 'undefined' | meta_utils:location(),
-
-
-		   % Corresponds to the line of the first defined clause (in its source
-		   % file):
-		   %
-		   % (this information is a priori redundant with the one in the first
-		   % clause, yet present in the forms, thus kept here)
-		   %
-		   line = undefined :: 'undefined' | ast_utils:line(),
-
-
-		   % Function actual definition, a (non-located) list of the abstract
-		   % forms of its definition:
-		   %
-		   definition = [] :: [ meta_utils:clause_def() ],
-
-
-		   % The type specification (if any) of that function, as an abstract
-		   % form:
-		   spec = undefined :: meta_utils:located_function_spec() | 'undefined',
-
-
-		   % Tells whether this function has been exported, as a (possibly
-		   % empty) list of the location(s) of its actual export(s), knowing
-		   % that a function can be exported more than once or never:
-		   %
-		   exported = [] :: [ meta_utils:location() ]
-
-
-} ).
 
 
 
@@ -282,9 +226,10 @@
 		   opaque = undefined :: boolean(),
 
 
-		   % Corresponds to the location of the full form for the definition of this type:
+		   % Corresponds to the location of the full form for the definition of
+		   % this type:
 		   %
-		   location = undefined :: 'undefined' | meta_utils:location(),
+		   location = undefined :: 'undefined' | ast_info:location(),
 
 
 		   % Corresponds to the line where this type is defined (in its source
@@ -293,45 +238,66 @@
 		   line = undefined :: 'undefined' | ast_utils:line(),
 
 
-		   % Type actual definition, a (non-located) list of the abstract
-		   % forms of its definition:
+		   % Type actual definition, a (non-located) abstract form:
 		   %
-		   definition = [] :: [ meta_utils:clause_def() ],
+		   definition = undefined :: ast_utils:ast_type(),
 
 
 		   % Tells whether this type has been exported, as a (possibly
 		   % empty) list of the location(s) of its actual export(s), knowing
 		   % that a type can be exported more than once or never:
 		   %
-		   exported = [] :: [ meta_utils:location() ]
+		   exported = [] :: [ ast_info:location() ]
 
 } ).
 
 
 
-% Describes transformations to apply to an AST.
+
+% Describes a function (generally extracted from a module).
 %
-% Typically centralises automatic replacements of all known kinds to be done.
-%
--record( ast_transforms, {
+-record( function_info, {
 
 
-	% Transformations (if any) defined for module-local types:
-	local_types = undefined :: basic_utils:maybe(
-									meta_utils:local_type_transform_table() ),
-
-	% Transformations (if any) defined for remote types:
-	remote_types = undefined :: basic_utils:maybe(
-									meta_utils:remote_type_transform_table() ),
+		   % The name of that function:
+		   name = undefined :: meta_utils:function_name(),
 
 
-	% Transformations (if any) defined for module-local calls:
-	local_calls = undefined :: basic_utils:maybe(
-									meta_utils:local_call_transform_table() ),
+		   % The arity of that function:
+		   arity = undefined :: arity(),
 
-	% Transformations (if any) defined for remote calls:
-	remote_calls = undefined :: basic_utils:maybe(
-									meta_utils:remote_call_transform_table() )
+
+		   % Corresponds to the location of the full form for the definition
+		   % (first clause) of this function (not of the spec):
+		   %
+		   location = undefined :: 'undefined' | ast_info:location(),
+
+
+		   % Corresponds to the line of the first defined clause (in its source
+		   % file):
+		   %
+		   % (this information is a priori redundant with the one in the first
+		   % clause, yet present in the forms, thus kept here)
+		   %
+		   line = undefined :: 'undefined' | ast_utils:line(),
+
+
+		   % Function actual definition, a (non-located) list of the abstract
+		   % forms of its definition:
+		   %
+		   definition = [] :: [ meta_utils:clause_def() ],
+
+
+		   % The type specification (if any) of that function, as an abstract
+		   % form:
+		   spec = undefined :: 'undefined' | ast_info:located_function_spec(),
+
+
+		   % Tells whether this function has been exported, as a (possibly
+		   % empty) list of the location(s) of its actual export(s), knowing
+		   % that a function can be exported more than once or never:
+		   %
+		   exported = [] :: [ ast_info:location() ]
 
 
 } ).

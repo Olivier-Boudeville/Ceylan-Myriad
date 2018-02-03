@@ -78,8 +78,8 @@
 		  popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
 		  isEmpty/1, size/1, getEntryCount/1,
-		  mapOnEntries/2, mapOnValues/2,
-		  foldOnEntries/3,
+		  map/2, mapOnEntries/2, mapOnValues/2,
+		  fold/3, foldOnEntries/3,
 		  merge/2, optimise/1, toString/1, toString/2, display/1, display/2 ]).
 
 
@@ -542,6 +542,25 @@ extractEntry( Key, MapHashtable ) ->
 
 
 
+% Applies (maps) the specified anonymous function to each of the values
+% contained in this hashtable: to each key will be associated the value returned
+% by this function when applied to that key and its current value, as two
+% arguments.
+%
+% Allows to apply "in-place" an operation on all values without having to
+% enumerate the content of the hashtable and iterate on it (hence without having
+% to duplicate the whole content in memory).
+%
+% See also: mapOnValues/2.
+%
+-spec map( fun( ( key(), value() ) -> value() ), map_hashtable() ) ->
+						 map_hashtable().
+map( Fun, MapHashtable ) ->
+	maps:map( Fun, MapHashtable ).
+
+
+
+
 % Applies (maps) the specified anonymous function to each of the key-value
 % entries contained in this hashtable.
 %
@@ -549,11 +568,10 @@ extractEntry( Key, MapHashtable ) ->
 % enumerate the content of the hashtable and iterate on it (hence without having
 % to duplicate the whole content in memory).
 %
-% Note: as the fun may return modified keys, the whole structure of the
-% hashtable may change (ex: different buckets used for replaced entries,
-% colliding keys resulting in having less entries afterwards, etc.).
-%
-% One may request the returned hashtable to be optimised after this call.
+% Note: same as map/2 above, except that the lambda takes one argument (the
+% entry, as a pair) instead of two (the key and then the value), and returns an
+% entry, not a mere value to associate the same key (and thus may change the
+% structure, number of entries because of collisions, etc. of the table).
 %
 -spec mapOnEntries( fun( ( entry() ) -> entry() ), map_hashtable() ) ->
 						  map_hashtable().
@@ -579,6 +597,9 @@ mapOnEntries( Fun, MapHashtable ) ->
 % Note: the keys are left as are, hence the structure of the hashtable does not
 % change.
 %
+% Note: same as map/2 above, except that the lambda does not know about the
+% keys.
+%
 -spec mapOnValues( fun( ( value() ) -> value() ), map_hashtable() ) ->
 						 map_hashtable().
 mapOnValues( Fun, MapHashtable ) ->
@@ -592,6 +613,22 @@ mapOnValues( Fun, MapHashtable ) ->
 
 
 
+% Folds specified anonymous function on all key/value pairs of the specified
+% map hashtable, based on specified initial accumulator..
+%
+% The order of transformation for entries is not specified.
+%
+% Returns the final accumulator.
+%
+-spec fold( fun( ( key(), value(), basic_utils:accumulator() ) ->
+					   basic_utils:accumulator() ),
+			basic_utils:accumulator(), map_hashtable() ) ->
+				  basic_utils:accumulator().
+fold( Fun, InitialAcc, Table ) ->
+	maps:fold( Fun, InitialAcc, Table ).
+
+
+
 % Folds specified anonymous function on all entries of the specified map
 % hashtable.
 %
@@ -599,14 +636,16 @@ mapOnValues( Fun, MapHashtable ) ->
 %
 % Returns the final accumulator.
 %
--spec foldOnEntries( fun( ( entry(), basic_utils:accumulator() )
-						  -> basic_utils:accumulator() ),
+% fold/3 may be preferred (being more efficient) to this version.
+%
+-spec foldOnEntries( fun( ( entry(), basic_utils:accumulator() ) ->
+								basic_utils:accumulator() ),
 					 basic_utils:accumulator(),
 					 map_hashtable() ) -> basic_utils:accumulator().
 foldOnEntries( Fun, InitialAcc, MapHashtable ) ->
 
-	% Not exactly as maps:fold/3: we want f( { X, Y }, Acc ), not
-	% f( X, Y, Acc ).
+	% Not exactly as maps:fold/3: we want f( { K, V }, Acc ), not
+	% f( K, V, Acc ).
 
 	ConversionFun = fun( K, V, Acc ) ->
 							Fun( { K, V }, Acc )
@@ -617,9 +656,6 @@ foldOnEntries( Fun, InitialAcc, MapHashtable ) ->
 	% Another solution is to implement it by ourselves:
 	%Entries = maps:to_list( MapHashtable ),
 	%lists:foldl( Fun, InitialAcc, Entries ).
-
-
-
 
 
 

@@ -37,6 +37,14 @@
 -include("meta_utils.hrl").
 
 
+% For the module_info record:
+-include("ast_info.hrl").
+
+
+% For the ast_transforms record:
+-include("ast_scan.hrl").
+
+
 
 % In-file reference, typically like:
 % {"../data-management/simple_parse_transform_target.erl",1}.
@@ -57,7 +65,8 @@
 
 -export_type([ ast/0, action_table/0 ]).
 
--export([ scan/1 ]).
+
+-export([ scan/1, scan_type/3, scan_expression/2, scan_term/4 ]).
 
 
 % Shorthands:
@@ -91,7 +100,7 @@
 -spec scan( ast() ) -> module_info().
 scan( AST ) ->
 
-	InitModuleInfo = meta_utils:init_module_info(),
+	InitModuleInfo = ast_info:init_module_info(),
 
 	% Application of 7.1.1:
 	%
@@ -568,6 +577,8 @@ scan_forms( _AST=[ _Form={ attribute, Line, TypeDesignator,
 
 		% Usual case:
 		key_not_found ->
+			ast_utils:display_debug( "New type '~s' defined as:~n~p",
+								   [ TypeName, TypeDef ] ),
 			#type_info{ name=TypeName,
 						variables=TypeVariables,
 						opaque=IsOpaque,
@@ -890,7 +901,7 @@ scan_forms( _AST=[ UnhandledForm | T ],
 			M=#module_info{ unhandled_forms=UnhandledForms }, NextLocation,
 			CurrentFileReference ) ->
 
-	ast_utils:display_error( "Unhandled form '~p' not managed.~n", 
+	ast_utils:display_error( "Unhandled form '~p' not managed.~n",
 							 [ UnhandledForm ] ),
 
 	%throw( { unhandled_form, UnhandledForm, { location, NextLocation },
@@ -916,6 +927,548 @@ scan_forms( _AST=[], _ModuleInfo, _NextLocation, CurrentFileReference ) ->
 %%
 %% Second part: sub-forms.
 %%
+
+
+
+
+
+% Scanning types: traversing them recursively according to their specified
+% structure.
+%
+% Currently not going for a fully specialised, strict and 'just sufficient'
+% traversal as permitted by http://erlang.org/doc/apps/erts/absform.html; yet
+% still getting inspiration from its section 7.7.
+%
+% We currently consider that all type definitions correspond to an
+% ast_utils:ast_type(), i.e. one of:
+%
+% - ast_utils:ast_builtin_type(): { type, Line, TypeName, TypeVars },
+% where TypeVars are often (not always) a list; ex: {type,LINE,union,[Rep(T_1),
+% ..., Rep(T_k)]} or {type,LINE,map,any}; we manage specifically the most common
+% type designators, and traverse generically the others
+%
+% - ast_utils:ast_remote_type(): { remote_type, Line, [ ModuleType, TypeName,
+% TypeVars ] }
+%
+% - ast_utils:ast_user_type(): { user_type, Line, TypeName, TypeVars }
+%
+%
+% Notes:
+%
+% - clauses ordered according to the first atom (all plain types, then all
+% remote types, then all user types)
+%
+% - records like #type, #user_type, could be used instead
+%
+% (helper)
+%
+-spec scan_type( ast_utils:ast_type(),
+		basic_utils:maybe( meta_utils:local_type_transform_table() ),
+		basic_utils:maybe( meta_utils:remote_type_transform_table() ) ) ->
+						   ast_utils:ast_type().
+
+% Handling tuples:
+
+% Fully-qualified tuple type found, ex:
+% {type,42,tuple,[{type,42,integer,[]},{type,42,float,[]}]}
+%
+% "If T is a tuple type {T_1, ..., T_k}, then
+% Rep(T) = {type,LINE,tuple,[Rep(T_1), ..., Rep(T_k)]}."
+%
+scan_type( _TypeDef={ type, Line, tuple, ElementTypes }, LocalTransformTable,
+		   RemoteTransformTable ) when is_list( ElementTypes ) ->
+	{ type, Line, tuple,
+	  [ scan_type( Elem, LocalTransformTable, RemoteTransformTable )
+		|| Elem <- ElementTypes ] };
+
+
+% General tuple type found (i.e. tuple()):
+%
+% "If T is a tuple type tuple(), then Rep(T) = {type,LINE,tuple,any}."
+%
+scan_type( TypeDef={ type, _Line, tuple, any }, _LocalTransformTable,
+		   _RemoteTransformTable ) ->
+	TypeDef;
+
+scan_type( TypeDef={ type, _Line, tuple, _Any }, _LocalTransformTable,
+		   _RemoteTransformTable ) ->
+	ast_utils:raise_error( { unexpected_typedef_tuple_form, TypeDef } );
+
+
+
+% Handling lists:
+
+
+% Fully-qualified list type found, ex:
+% {type,43,list,[{type,43,boolean,[]}]}
+%
+% Lacking specification in the doc, extrapolated to:
+%
+% "If T is a list of elements of type A, then Rep(T) = {type,LINE,list,Rep(A)}."
+%
+scan_type( _TypeDef={ type, Line, list, [ ElementType ] },
+		   LocalTransformTable, RemoteTransformTable ) ->
+
+	NewElementType = scan_type( ElementType, LocalTransformTable,
+								RemoteTransformTable ),
+
+	{ type, Line, list, [ NewElementType ] };
+
+
+% General list type found (i.e. list()):
+%
+% Lacking specification in the doc, extrapolated to:
+%
+% "If T is a list type list(), then Rep(T) = {type,LINE,list,any}."
+%
+scan_type( TypeDef={ type, _Line, list, any }, _LocalTransformTable,
+		   _RemoteTransformTable ) ->
+	TypeDef;
+
+
+% Yes, at least in some cases list() may be translated as {type,LINE,list,[]}:
+scan_type( TypeDef={ type, _Line, list, [] }, _LocalTransformTable,
+		   _RemoteTransformTable ) ->
+	TypeDef;
+
+
+scan_type( TypeDef={ type, _Line, list, _Any }, _LocalTransformTable,
+		   _RemoteTransformTable ) ->
+	ast_utils:raise_error( { unexpected_typedef_list_form, TypeDef } );
+
+
+% Empty list type found (i.e. []):
+%
+% "If T is the empty list type [], then Rep(T) = {type,Line,nil,[]}"
+%
+scan_type( TypeDef={ type, _Line, nil, [] }, _LocalTransformTable,
+			   _RemoteTransformTable ) ->
+	TypeDef;
+
+
+
+% Handling binaries:
+
+% "If T is a bitstring type <<_:M,_:_*N>>, where M and N are singleton integer
+% types, then Rep(T) = {type,LINE,binary,[Rep(M),Rep(N)]}."
+%
+scan_type( TypeDef={ type, _Line, binary, [ M, N ] }, _LocalTransformTable,
+			   _RemoteTransformTable ) ->
+
+	% To be removed once ever seen displayed:
+	ast_utils:display_warning( "Not transforming binary elements ~p and ~p.",
+							   [ M, N ] ),
+	TypeDef;
+
+
+% "If T is an integer range type L .. H, where L and H are singleton integer
+% types, then Rep(T) = {type,LINE,range,[Rep(L),Rep(H)]}."
+%
+scan_type( TypeDef={ type, _Line, range, [ L, H ] }, _LocalTransformTable,
+			   _RemoteTransformTable ) ->
+
+	% To be removed once ever seen displayed:
+	ast_utils:display_warning( "Not transforming range bound ~p and ~p.",
+							   [ L, H ] ),
+	TypeDef;
+
+
+% Handling maps:
+
+% "If T is a map type map(), then Rep(T) = {type,LINE,map,any}."
+%
+scan_type( TypeDef={ type, _Line, map, any }, _LocalTransformTable,
+			   _RemoteTransformTable ) ->
+	TypeDef;
+
+
+% "If T is a map type #{A_1, ..., A_k}, where each A_i is an association type,
+% then Rep(T) = {type,LINE,map,[Rep(A_1), ..., Rep(A_k)]}."
+%
+scan_type( _TypeDef={ type, Line, map, AssocTypes }, LocalTransformTable,
+			   RemoteTransformTable ) ->
+
+	NewAssocTypes = [ scan_association_type( T, LocalTransformTable,
+						RemoteTransformTable ) || T <- AssocTypes ],
+
+	{ type, Line, map, NewAssocTypes };
+
+
+
+% Handling lambda functions:
+
+
+% "If T is a fun type fun(), then Rep(T) = {type,LINE,'fun',[]}."
+scan_type( TypeDef={ type, _Line, 'fun', [] }, _LocalTransformTable,
+			   _RemoteTransformTable ) ->
+	TypeDef;
+
+
+% "If T is a fun type fun((...) -> T_0), then Rep(T) =
+% {type,LINE,'fun',[{type,LINE,any},Rep(T_0)]}."
+%
+scan_type( _TypeDef={ type, Line1, 'fun', [ Any={ type, _Line2, any },
+											 ResultType ] },
+						 LocalTransformTable, RemoteTransformTable ) ->
+
+	NewResultType = scan_type( ResultType, LocalTransformTable,
+								   RemoteTransformTable ),
+
+	{ type, Line1, 'fun', [ Any, NewResultType ] };
+
+
+
+% Handling union types:
+%
+% "If T is a type union T_1 | ... | T_k, then Rep(T) =
+% {type,LINE,union,[Rep(T_1), ..., Rep(T_k)]}."
+%
+scan_type( _TypeDef={ type, Line, union, UnifiedTypes },
+			   LocalTransformTable, RemoteTransformTable ) ->
+
+	NewUnifiedTypes = [ scan_type( T, LocalTransformTable,
+									   RemoteTransformTable )
+						|| T <- UnifiedTypes ],
+
+	{ type, Line, union, NewUnifiedTypes };
+
+
+% Simple built-in type, like 'boolean()', translating in '{ type, 57, boolean,
+% [] }':
+%
+scan_type( TypeDef={ type, _Line, BuiltinType, _TypeVars=[] },
+			   _LocalTransformTable, _RemoteTransformTable ) ->
+
+	case lists:member( BuiltinType, type_utils:get_simple_builtin_types() ) of
+
+		true ->
+			TypeDef;
+
+		false ->
+			ast_utils:display_warning( "Not expecting type '~s', assuming "
+									   "simple builtin type (in ~p).",
+									   [ BuiltinType, TypeDef ] ),
+			TypeDef
+
+	end;
+
+
+% Like '-type my_record() :: #my_record{}.', translating in { type, 89, record,
+% [ {atom, 89, my_record } ] }:
+%
+scan_type( _TypeDef={ type, Line, record, _TypeVars=[ ElementType ] },
+		   LocalTransformTable, RemoteTransformTable ) ->
+
+	NewElementType = scan_type( ElementType, LocalTransformTable,
+								RemoteTransformTable ),
+
+	{ type, Line, record, [ NewElementType ] };
+
+
+% Known other built-in types (catch-all for all remaining 'type'):
+%
+%
+scan_type( TypeDef={ type, Line, BuiltinType, TypeVars },
+		   LocalTransformTable, RemoteTransformTable )
+  when is_list( TypeVars ) ->
+
+	ast_utils:display_warning( "Not expecting type '~s', assuming unknown "
+							   "parametrized builtin type (in ~p).",
+							   [ BuiltinType, TypeDef ] ),
+
+	NewTypeVars = [ scan_type( T, LocalTransformTable,
+								   RemoteTransformTable ) || T <- TypeVars ],
+
+	{ type, Line, BuiltinType, NewTypeVars };
+
+
+
+
+% Handling user type (necessary a local one):
+
+
+scan_type( _TypeDef={ user_type, Line, TypeName, TypeVars },
+			   LocalTransformTable, RemoteTransformTable ) ->
+
+	TypeArity = length( TypeVars ),
+
+	NewTypeVars = [ scan_type( T, LocalTransformTable,
+								   RemoteTransformTable ) || T <- TypeVars ],
+
+	% Note: no user-to-local type rewriting deemed useful.
+
+	Outcome = case LocalTransformTable of
+
+		undefined ->
+			unchanged;
+
+		_ ->
+
+			% Returning the new type information:
+			case ?table:lookupEntry( { TypeName, TypeArity },
+									  LocalTransformTable ) of
+
+				% Module *and* type overridden:
+				{ value, E={ _NewModuleName, _NewTypeName } } ->
+					E;
+
+				% Same type, only module overridden:
+				% (never happens, as module always specified in table)
+				%{ value, NewModuleName } when is_atom( NewModuleName ) ->
+				%	{ NewModuleName, TypeName };
+
+				{ value, TransformFun } when is_function( TransformFun ) ->
+					TransformFun( TypeName, TypeArity );
+
+				key_not_found ->
+
+					% Maybe a wildcard arity was defined then?
+					case ?table:lookupEntry( { TypeName, _AnyArity='_' },
+											 LocalTransformTable ) of
+
+						{ value, E={ _NewModuleName, _NewTypeName } } ->
+							E;
+
+						% Same type, only module overridden:
+						% (was commented-out out, but may happen?)
+						%
+						{ value, NewModuleName }
+						  when is_atom( NewModuleName ) ->
+							{ NewModuleName, TypeName };
+
+						{ value, TransformFun }
+						  when is_function( TransformFun ) ->
+							TransformFun( TypeName, TypeArity );
+
+						key_not_found ->
+							% Nope, let it as it is:
+							unchanged
+
+					end
+
+			end
+
+	end,
+
+	case Outcome of
+
+		unchanged ->
+			% TypeDef with only updated TypeVars:
+			{ user_type, Line, TypeName, NewTypeVars };
+
+		{ SetModuleName, SetTypeName } ->
+			ast_utils:forge_remote_type( SetModuleName, SetTypeName,
+										 NewTypeVars, Line )
+
+	end;
+
+
+
+% Handling remote user type:
+
+
+% "If T is a remote type M:N(T_1, ..., T_k), then Rep(T) =
+% {remote_type,LINE,[Rep(M),Rep(N),[Rep(T_1), ..., Rep(T_k)]]}."
+%
+% First, the special (yet most common) case of immediate values specified for
+% module and type:
+%
+scan_type( _TypeDef={ remote_type, Line1,
+						 [ M={ atom, Line2, ModuleName },
+						   T={ atom, Line3, TypeName }, TypeVars ] },
+			   LocalTransformTable, RemoteTransformTable ) ->
+
+	NewTypeVars = [ scan_type( TypeVar, LocalTransformTable,
+							   RemoteTransformTable ) || TypeVar <- TypeVars ],
+
+	TypeArity = length( TypeVars ),
+
+	% Returning the new type information:
+	Outcome = case RemoteTransformTable of
+
+		undefined ->
+			unchanged;
+
+		_ ->
+
+			case ?table:lookupEntry( { ModuleName, TypeName, TypeArity },
+									 RemoteTransformTable ) of
+
+				 % Module *and* type overridden:
+				{ value, E={ _NewModuleName, _NewTypeName } } ->
+					E;
+
+				 % Same type; only the module is overridden:
+				{ value, NewModuleName } when is_atom( NewModuleName ) ->
+					{ NewModuleName, TypeName };
+
+				{ value, TransformFun } when is_function( TransformFun ) ->
+					TransformFun( ModuleName, TypeName, TypeArity );
+
+				key_not_found ->
+
+					% Maybe a wildcard arity was defined for that type then?
+
+					AnyArity = '_',
+
+					case ?table:lookupEntry( { ModuleName, TypeName, AnyArity },
+											 RemoteTransformTable ) of
+
+						{ value, E={ _NewModuleName, _NewTypeName } } ->
+							E;
+
+						 % Same type, only module overridden (never happens by
+						 % design):
+						 %{ value, NewModuleName }
+						 %        when is_atom( NewModuleName ) ->
+						 %    { NewModuleName, TypeName };
+
+						{ value, TransformFun }
+						  when is_function( TransformFun ) ->
+							TransformFun( ModuleName, TypeName, TypeArity );
+
+						key_not_found ->
+
+							% Nope; maybe a wildcard type (and arity) then?
+							case ?table:lookupEntry( { ModuleName, _AnyType='_',
+										 AnyArity }, RemoteTransformTable ) of
+
+								{ value, E={ _NewModuleName, _NewTypeName } } ->
+									E;
+
+								% Same type, only module overridden:
+								{ value, NewModuleName }
+								  when is_atom( NewModuleName ) ->
+									{ NewModuleName, TypeName };
+
+								{ value, TransformFun }
+								  when is_function( TransformFun ) ->
+									TransformFun( ModuleName, TypeName,
+												  TypeArity );
+
+								key_not_found ->
+									% Nope, let it as it is:
+									unchanged
+
+							end
+
+					end
+
+			end
+
+	end,
+
+	case Outcome of
+
+		unchanged ->
+			% TypeDef with updated TypeVars:
+			{ remote_type, Line1, [ M, T, NewTypeVars ] };
+
+		{ SetModuleName, SetTypeName } ->
+			ast_utils:forge_remote_type( SetModuleName, SetTypeName,
+										 NewTypeVars, Line1, Line2, Line3 )
+
+	end;
+
+
+% Second, the case where at least either the module or the type name is not
+% immediate:
+%
+scan_type( _TypeDef={ remote_type, Line1, [ Mod, Typ, TypeVars ] },
+			   LocalTransformTable, RemoteTransformTable ) ->
+
+	% Wondering what these could be:
+	ast_utils:display_debug( "Scanning a remote type whose module and type "
+							 "information are ~p and ~p.", [ Mod, Typ ] ),
+
+	[ NewMod, NewTyp ] = [ scan_type( T, LocalTransformTable,
+							   RemoteTransformTable ) || T <- [ Mod, Typ ] ],
+
+	NewTypeVars = [ scan_type( T, LocalTransformTable,
+								   RemoteTransformTable ) || T <- TypeVars ],
+
+	{ remote_type, Line1, [ NewMod, NewTyp, NewTypeVars ] };
+
+
+% Variable declaration, possibly obtained through declarations like:
+% -type my_type( T ) :: other_type( T ).
+% or:
+% -opaque tree( T ) :: { T, [ tree(T) ] }.
+scan_type( TypeDef={ var, _Line, _TypeName }, _LocalTransformTable,
+		   _RemoteTransformTable ) ->
+	TypeDef;
+
+
+% Annotated type, most probably obtained from the field of a record like:
+%  pointDrag :: {X::integer(), Y::integer()}}
+%
+% Resulting then in:
+% {typed_record_field,
+%		   {record_field,342,{atom,342,pointDrag}},
+%		   {type,342,tuple,
+%			   [{ann_type,342,[{var,342,'X'},{type,342,integer,[]}]},
+%				{ann_type,342,
+%					[{var,342,'Y'},{type,342,integer,[]}]} ] }}
+%
+scan_type( _TypeDef={ ann_type, Line, [ Var, InternalTypeDef ] },
+		   LocalTransformTable, RemoteTransformTable ) ->
+
+	[ NewVar, NewInternalTypeDef ] = [ scan_type( T, LocalTransformTable,
+			  RemoteTransformTable ) || T <- [ Var, InternalTypeDef ] ],
+
+	{ ann_type, Line, [ NewVar, NewInternalTypeDef ] };
+
+
+% Immediate values like {atom,42,foobar}, possibly obtained through
+% declarations like: -type my_type() :: integer() | 'foobar'.
+%
+scan_type( TypeDef={ TypeName, _Line, _Value }, _LocalTransformTable,
+		   _RemoteTransformTable ) ->
+	case lists:member( TypeName, type_utils:get_immediate_types() ) of
+
+		true ->
+			TypeDef;
+
+		false ->
+			ast_utils:raise_error( { unexpected_immediate_value, TypeDef } )
+
+	end;
+
+
+scan_type( TypeDef, _LocalTransformTable, _RemoteTransformTable ) ->
+	ast_utils:raise_error( { unhandled_typedef, TypeDef } ).
+
+
+
+
+
+
+
+% Scanning association types (from maps).
+
+
+% "If A is an association type K => V, where K and V are types, then Rep(A) =
+% {type,LINE,map_field_assoc,[Rep(K),Rep(V)]}."
+%
+-spec scan_association_type( ast_utils:ast_type(),
+		basic_utils:maybe( meta_utils:local_type_transform_table() ),
+		basic_utils:maybe( meta_utils:remote_type_transform_table() ) ) ->
+						   ast_utils:ast_type().
+scan_association_type( { type, Line, map_field_assoc, Types=[ _K, _V ] },
+						   LocalTransformTable, RemoteTransformTable ) ->
+	NewTypes = [ scan_type( T, LocalTransformTable, RemoteTransformTable )
+				 || T <- Types ],
+	{ type, Line, map_field_assoc, NewTypes };
+
+
+% "If A is an association type K := V, where K and V are types, then Rep(A) =
+% {type,LINE,map_field_exact,[Rep(K),Rep(V)]}.
+%
+scan_association_type( { type, Line, map_field_exact, Types=[ _K, _V ] },
+						   LocalTransformTable, RemoteTransformTable ) ->
+	NewTypes = [ scan_type( T, LocalTransformTable, RemoteTransformTable )
+				 || T <- Types ],
+	{ type, Line, map_field_exact, NewTypes }.
 
 
 
@@ -980,3 +1533,478 @@ scan_field_descriptions( _FieldDescriptions=[
 scan_field_descriptions( _FieldDescriptions=[ UnexpectedDesc | _T ],
 						 _CurrentFileReference, _FieldTable ) ->
 	throw( { unexpected_field_description, UnexpectedDesc } ).
+
+
+
+
+
+
+
+% Traverses specified expression, operating relevant replacements (e.g. call
+% ones).
+%
+% Note: we used to traverse the AST recursively, "blindly", i.e. without
+% expecting the intended structure of AST elements (ex: the structure of a tuple
+% corresponding to a 'receive' statement).
+%
+% Now, for a more complete control, we match the AST against its intended
+% structure, as defined in http://erlang.org/doc/apps/erts/absform.html.
+%
+% Case expression found:
+scan_expression( E={ 'case', Line, TestExpression, Clauses },
+					 Replacements ) ->
+
+	ast_utils:display_debug( "Intercepting case expression ~p...", [ E ] ),
+
+	NewTestExpression = scan_expression( TestExpression, Replacements ),
+
+	NewClauses = [ scan_expression( C, Replacements ) || C <- Clauses ],
+
+	Res = { 'case', Line, NewTestExpression, NewClauses },
+
+	ast_utils:display_debug( "... returning case expression ~p", [ Res ] ),
+	Res;
+
+
+
+% Remote call found, with an immediate name for both the module and the
+% function:
+%
+scan_expression( E={ call, Line1, { remote, _Line2,
+			_M={ atom, _Line3, ModuleName }, _F={ atom, Line4, FunctionName } },
+			Params }, Replacements ) ->
+
+	ast_utils:display_debug( "Intercepting remote call ~p...", [ E ] ),
+
+	Arity = length( Params ),
+
+	% First recurses:
+	NewParams = [ scan_expression( Param, Replacements )
+				  || Param <- Params ],
+
+	Outcome = case Replacements#ast_transforms.remote_calls of
+
+		undefined ->
+			unchanged;
+
+		RemoteReplaceTable ->
+
+			case ?table:lookupEntry( { ModuleName, FunctionName, Arity },
+									 RemoteReplaceTable ) of
+
+				{ value, E={ _NewModuleName, _NewFunctionName } } ->
+					E;
+
+				{ value, TransformFun } when is_function( TransformFun ) ->
+					TransformFun( FunctionName, Arity );
+
+				key_not_found ->
+
+					% Maybe a wildcard arity was defined then?
+					case ?table:lookupEntry(
+							{ ModuleName, FunctionName, _AnyArity='_' },
+							RemoteReplaceTable ) of
+
+						{ value, E={ _NewModuleName, _NewFunctionName } } ->
+							E;
+
+						% Same function name, only module overridden:
+						% (never happens)
+						%{ value, NewModuleName }
+						%       when is_atom( NewModuleName ) ->
+						%	{ NewModuleName, FunName };
+
+						{ value, TransformFun }
+						  when is_function( TransformFun ) ->
+							TransformFun( FunctionName, Arity );
+
+						key_not_found ->
+							% Maybe a wildcard function name was defined then?
+
+							% (note: the case of a wildcard function name and a
+							% set, actual arity is not deemed relevant)
+
+							case ?table:lookupEntry( { ModuleName,
+									   _AnyFunctionName='_', _AnyArity='_' },
+													 RemoteReplaceTable ) of
+
+								{ value,
+								  { NewModuleName, _NewFunctionName='_' } } ->
+									{ NewModuleName, FunctionName } ;
+
+								{ value,
+								  E={ _NewModuleName, _NewFunctionName } } ->
+									E;
+
+									% Same function name, only module
+									% overridden: (never happens)
+									%
+									%{ value, NewModuleName }
+									%       when is_atom( NewModuleName ) ->
+									%    { NewModuleName, FunName };
+
+								{ value, TransformFun }
+								  when is_function( TransformFun ) ->
+									TransformFun( FunctionName, Arity );
+
+								key_not_found ->
+									unchanged
+
+							end
+
+					end
+
+			end
+
+	end,
+
+	case Outcome of
+
+		unchanged ->
+			% Original expression, yet with updated parameters:
+			%Res = { call, Line1, { remote, Line2, M, F }, NewParams },
+			% Used for uniformity:
+			Res = ast_utils:forge_remote_call( ModuleName, FunctionName,
+											   NewParams, Line1, Line4 ),
+			ast_utils:display_debug( "... returning remote call (case R1) ~p",
+									 [ Res ] ),
+			Res;
+
+		{ SetModuleName, SetFunctionName } ->
+			Res = ast_utils:forge_remote_call( SetModuleName, SetFunctionName,
+											   NewParams, Line1, Line4 ),
+			ast_utils:display_debug( "... returning remote call (case R2) ~p",
+									 [ Res ] ),
+			Res
+
+	end;
+
+
+
+% Here, at least one name (module and/or function) is not immediate:
+%
+% (note: we do not manage yet the case where for example the function name
+% results from an expression yet a wildcard has been defined for it)
+%
+scan_expression( _E={ call, Line1,
+						  { remote, Line2, ModuleExpr, FunctionExpr }, Params },
+					 Replacements ) ->
+
+	NewModuleExpr = scan_expression( ModuleExpr, Replacements ),
+
+	NewFunctionExpr = scan_expression( FunctionExpr, Replacements ),
+
+	NewParams = [ scan_expression( Param, Replacements )
+				  || Param <- Params ],
+
+	% Cannot use ast_utils:forge_remote_call, we have not atoms:
+	%
+	Res = { call, Line1, { remote, Line2, NewModuleExpr, NewFunctionExpr },
+			NewParams },
+
+	ast_utils:display_debug( "... returning remote call (case R3) ~p",
+							 [ Res ] ),
+
+	Res;
+
+
+
+% Local call found:
+scan_expression( E={ call, Line1, F={ atom, Line2, FunName }, Params },
+					 Replacements ) ->
+
+	ast_utils:display_debug( "Intercepting local call ~p...", [ E ] ),
+
+	Arity = length( Params ),
+
+	% First recurses:
+	NewParams = [ scan_expression( Param, Replacements )
+				  || Param <- Params ],
+
+	Outcome = case Replacements#ast_transforms.local_calls of
+
+		undefined ->
+			unchanged;
+
+		LocalReplaceTable ->
+
+			case ?table:lookupEntry( { FunName, Arity }, LocalReplaceTable ) of
+
+				{ value, E={ _NewModuleName, _NewFunName } } ->
+					E;
+
+				{ value, TransformFun } when is_function( TransformFun ) ->
+					TransformFun( FunName, Arity );
+
+				key_not_found ->
+
+					% Maybe a wildcard arity was defined then?
+					case ?table:lookupEntry( { FunName, _AnyArity='_' },
+											 LocalReplaceTable ) of
+
+						{ value, E={ _NewModuleName, _NewFunName } } ->
+							E;
+
+						% Same function name, only module overridden: (never
+						% happens)
+						%{ value, NewModuleName }
+						%       when is_atom( NewModuleName ) ->
+						%	{ NewModuleName, FunName };
+
+						{ value, TransformFun }
+						  when is_function( TransformFun ) ->
+							TransformFun( FunName, Arity );
+
+						key_not_found ->
+							% Nope, let it as it is:
+							unchanged
+
+					end
+
+			end
+
+	end,
+
+	case Outcome of
+
+		unchanged ->
+			% Original expression yet with updated parameters:
+			Res={ call, Line1, F, NewParams },
+			ast_utils:display_debug( "... returning local call ~p", [ Res ] ),
+			Res;
+
+		{ SetModuleName, SetFunctionName } ->
+			Res = ast_utils:forge_remote_call( SetModuleName, SetFunctionName,
+											   NewParams, Line1, Line2 ),
+			ast_utils:display_debug( "... returning remote call ~p", [ Res ] ),
+			Res
+
+	end;
+
+
+
+% Match expression found:
+scan_expression( E={ match, Line, LeftExpr, RightExpr }, Replacements ) ->
+
+	ast_utils:display_debug( "Intercepting match expression ~p...", [ E ] ),
+
+	NewLeftExpr = scan_expression( LeftExpr, Replacements ),
+
+	NewRightExpr = scan_expression( RightExpr, Replacements ),
+
+	Res = { match, Line, NewLeftExpr, NewRightExpr },
+
+	ast_utils:display_debug( "... returning match expression ~p", [ Res ] ),
+
+	Res;
+
+% Receive expression found:
+scan_expression( E={ 'receive', Line, Clauses }, Replacements ) ->
+
+	ast_utils:display_debug( "Intercepting receive expression ~p...", [ E ] ),
+
+	NewClauses = [ scan_expression( C, Replacements ) || C <- Clauses ],
+
+	Res = { 'receive', Line, NewClauses },
+
+	ast_utils:display_debug( "... returning receive expression ~p", [ Res ] ),
+
+	Res;
+
+
+% Clause (belonging to an expression such as top-level function clause, or
+% 'case', 'receive' clauses, etc.) found:
+%
+scan_expression( Clause={ clause, Line, ValueExpr, Guards, ResultExpr },
+					  Replacements ) ->
+
+	ast_utils:display_debug( "Intercepting clause ~p...", [ Clause ] ),
+
+	% Rather complete, out of safety:
+
+	NewValueExpr = [ scan_expression( E, Replacements ) || E <- ValueExpr ],
+
+	% Guard example: {call,102, {atom,102,is_integer}, [{var,102,'X'}]}
+	NewGuards = scan_expression( Guards, Replacements ),
+
+	NewResultExpr = scan_expression( ResultExpr, Replacements ),
+
+	Res = { clause, Line, NewValueExpr, NewGuards, NewResultExpr },
+
+	ast_utils:display_debug( "... returning clause ~p", [ Res ] ),
+
+	Res;
+
+
+% List of expressions found:
+%
+% (note: this clause may be removed in the future, once all AST elements will
+% have been specifically intercepted by a dedicated clause, and when the nature
+% of their elements will be established and thus traversed specifically, rather
+% than opening the possibility that each element may be a list)
+%
+scan_expression( ExprList, Replacements ) when is_list( ExprList ) ->
+
+	ast_utils:display_debug( "Intercepting expression list ~p...",
+							 [ ExprList ] ),
+
+	NewExprList = [ scan_expression( E, Replacements ) || E <- ExprList ],
+
+	ast_utils:display_debug( "... returning expression list ~p",
+							 [ NewExprList ] ),
+
+	NewExprList;
+
+
+
+% Other expression found:
+scan_expression( E, _Replacements ) ->
+	ast_utils:display_debug( "Letting expression ~p as is.", [ E ] ),
+	E.
+
+
+
+
+
+
+% In this section, a term is traversed generically: as opposed to the scans
+% above, no assumption is made about the underlying structure of the term to
+% scan.
+
+
+% Scans "blindly" (i.e. with no a-priori knowledge about its strucuture) the
+% specified arbitrary term (possibly with nested subterms, as the function
+% recurses in lists and tuples), calling specified transformer function on each
+% instance of the specified type, in order to replace that instance by the
+% result of that function.
+%
+% Returns an updated term, with these replacements made.
+%
+% Ex: the input term could be T={ a, [ "foo", { c, [ 2.0, 45 ] } ] } and the
+% function might replace, for example, floats by <<bar>>; then T'={ a, [ "foo",
+% { c, [ <<bar>>, 45 ] } ] } would be returned.
+%
+% Note: the transformed terms are themselves recursively transformed, to ensure
+% nesting is managed. Of course this implies that the term transform should not
+% result in iterating the transformation infinitely.
+%
+% As a result it may appear that a term of the targeted type is transformed
+% almost systematically twice: it is first transformed as such, and the result
+% is transformed in turn. If the transformed term is the same as the original
+% one, then that content will be shown as analysed twice.
+%
+-spec scan_term( term(), type_utils:primitive_type_description(),
+				 meta_utils:term_transformer(), basic_utils:user_data() ) ->
+						   { term(), basic_utils:user_data() }.
+
+% Here the term is a list and this is the type we want to intercept:
+scan_term( TargetTerm, _TypeDescription=list, TermTransformer, UserData )
+  when is_list( TargetTerm ) ->
+
+	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
+
+	scan_transformed_term( TransformedTerm, _TypeDescription=list,
+						   TermTransformer, NewUserData );
+
+
+% Here the term is a list and we are not interested in them:
+scan_term( TargetTerm, TypeDescription, TermTransformer, UserData )
+  when is_list( TargetTerm ) ->
+
+	scan_list( TargetTerm, TypeDescription, TermTransformer, UserData );
+
+
+% Here the term is a tuple (or a record...), and we want to intercept them:
+scan_term( TargetTerm, TypeDescription, TermTransformer, UserData )
+  when is_tuple( TargetTerm )
+	andalso ( TypeDescription =:= tuple orelse TypeDescription =:= record ) ->
+
+	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
+
+	scan_transformed_term( TransformedTerm, TypeDescription,
+						   TermTransformer, NewUserData );
+
+
+% Here the term is a tuple (or a record...), and we are not interested in them:
+scan_term( TargetTerm, TypeDescription, TermTransformer, UserData )
+  when is_tuple( TargetTerm ) ->
+
+	scan_tuple( TargetTerm, TypeDescription, TermTransformer, UserData );
+
+
+% Base case (current term is not a binding structure, it is a leaf of the
+% underlying syntax tree):
+%
+scan_term( TargetTerm, TypeDescription, TermTransformer, UserData ) ->
+
+	case type_utils:get_type_of( TargetTerm ) of
+
+		TypeDescription ->
+			TermTransformer( TargetTerm, UserData );
+
+		_ ->
+			% Unchanged:
+			{ TargetTerm, UserData }
+
+	end.
+
+
+
+% Helper to traverse a list.
+%
+scan_list( TargetList, TypeDescription, TermTransformer, UserData ) ->
+
+	{ NewList, NewUserData } = lists:foldl(
+								 fun( Elem, { AccList, AccData } ) ->
+
+			{ TransformedElem, UpdatedData } = scan_term( Elem,
+							TypeDescription, TermTransformer, AccData ),
+
+			% New accumulator, produces a reversed element list:
+			{ [ TransformedElem | AccList ], UpdatedData }
+
+								 end,
+
+								 _Acc0={ _Elems=[], UserData },
+
+								 TargetList ),
+
+	{ lists:reverse( NewList ), NewUserData }.
+
+
+
+% Helper to traverse a tuple.
+%
+scan_tuple( TargetTuple, TypeDescription, TermTransformer, UserData ) ->
+
+	% We do exactly as with lists:
+	TermAsList = tuple_to_list( TargetTuple ),
+
+	{ NewList, NewUserData } = scan_list( TermAsList, TypeDescription,
+										  TermTransformer, UserData ),
+
+	{ list_to_tuple( NewList ), NewUserData }.
+
+
+
+% Helper to traverse a transformed term (ex: if looking for a { user_id, String
+% } pair, we must recurse in nested tuples like: { 3, { user_id, "Hello" }, 1 }.
+%
+scan_transformed_term( TargetTerm, TypeDescription, TermTransformer,
+					   UserData ) ->
+
+	case TermTransformer( TargetTerm, UserData ) of
+
+		{ TransformedTerm, NewUserData } when is_list( TransformedTerm ) ->
+			scan_list( TransformedTerm, TypeDescription, TermTransformer,
+					   NewUserData );
+
+		{ TransformedTerm, NewUserData } when is_tuple( TransformedTerm ) ->
+			scan_tuple( TransformedTerm, TypeDescription, TermTransformer,
+						NewUserData );
+
+		% { ImmediateTerm, NewUserData } ->
+		Other ->
+			Other
+
+	end.

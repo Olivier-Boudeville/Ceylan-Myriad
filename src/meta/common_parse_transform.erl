@@ -54,9 +54,8 @@
 %
 % - this particular parse transform applies at the level of the Common Layer
 % (a.k.a. Ceylan-Myriad), and as such *cannot use any module of that layer
-% except the very few bootstrapped modules* - which are typically
-% {meta,text}_utils and map_hashtable (see BOOTSTRAP_MODULES in GNUmakevars.inc
-% for their actual list)
+% except the very few bootstrapped modules* (see BOOTSTRAP_MODULES in
+% GNUmakevars.inc for their actual list)
 %
 %     Indeed, the other modules (of Ceylan-Myriad) are not bootstrapped, so they
 %     can enjoy the services offered by this parse transform, but of course they
@@ -70,19 +69,25 @@
 % terminating in do_boot",error_reported}' (even when using
 % crashdump_viewer:start/0 on the resulting erl_crash.dump file); your best
 % friend will thus be io:format/2 (as more advanced solutions usually cannot be
-% used, as explained in the previous point)
+% used, as explained in the previous point); this is why testing a parse
+% transform as a mere function called from a test case is strongly recommended
 
 
 % For the module_info record:
+-include("ast_info.hrl").
+
+
+% For the table type:
 -include("meta_utils.hrl").
 
+% For the ast_transforms record:
+-include("ast_scan.hrl").
 
 
-% Shorthands:
+% Local shorthands:
 
 -type ast() :: ast_utils:ast().
--type module_info() :: meta_utils:module_info().
-%-type located_form() :: meta_utils:located_form().
+-type module_info() :: ast_info:module_info().
 
 
 
@@ -161,33 +166,34 @@ parse_transform( InputAST, _Options ) ->
 
 	%io:format( "~n## INPUT ############################################~n" ),
 	%io:format( "Input AST:~n~p~n~n", [ InputAST ] ),
-	%meta_utils:write_ast_to_file( InputAST, "Input-AST.txt" ),
+	%ast_utils:write_ast_to_file( InputAST, "Input-AST.txt" ),
 
-	BaseModuleInfo = meta_utils:extract_module_info_from_ast( InputAST ),
+	BaseModuleInfo = ast_info:extract_module_info_from_ast( InputAST ),
 
-	%meta_utils:write_module_info_to_file( BaseModuleInfo,
+	%ast_info:write_module_info_to_file( BaseModuleInfo,
 	%									  "Input-module_info.txt" ),
 
 	io:format( "Input module info: ~s~n",
-			   [ meta_utils:module_info_to_string( BaseModuleInfo ) ] ),
+			   [ ast_info:module_info_to_string( BaseModuleInfo ) ] ),
 
 	Transforms = get_myriad_ast_transforms_for( BaseModuleInfo ),
 
-	TransformedModuleInfo = apply_ast_transforms( Transforms, BaseModuleInfo ),
+	TransformedModuleInfo = meta_utils:apply_ast_transforms( Transforms,
+															 BaseModuleInfo ),
 
 	OutputModuleInfo = TransformedModuleInfo,
 
-	%meta_utils:write_module_info_to_file( OutputModuleInfo,
+	%ast_info:write_module_info_to_file( OutputModuleInfo,
 	%									  "Output-module_info.txt" ),
 
 	%io:format( "~n## OUTPUT ############################################ ~n" ),
 	%io:format( "Output module info: ~s~n",
-	%		   [ meta_utils:module_info_to_string( OutputModuleInfo ) ] ),
+	%		   [ ast_info:module_info_to_string( OutputModuleInfo ) ] ),
 
-	OutputAST = meta_utils:recompose_ast_from_module_info( OutputModuleInfo ),
+	OutputAST = ast_info:recompose_ast_from_module_info( OutputModuleInfo ),
 
 	io:format( "~n~nOutput AST:~n~p~n", [ OutputAST ] ),
-	%meta_utils:write_ast_to_file( OutputAST, "Output-AST.txt" ),
+	%ast_utils:write_ast_to_file( OutputAST, "Output-AST.txt" ),
 
 	OutputAST.
 
@@ -284,10 +290,10 @@ get_myriad_ast_transforms_for(
 	%
 	RemoteTypeTransforms = meta_utils:get_remote_type_transform_table( [
 				{ { table, '_', '_' },
-				  fun( _ModuleName, _TypeName=table, _TypeArity ) ->
+				  fun( _ModName, _TypeName=table, _TypeArity ) ->
 						  { DesiredTableType, DesiredTableType  };
 
-					 ( _ModuleName, TypeName, _TypeArity ) ->
+					 ( _ModName, TypeName, _TypeArity ) ->
 						  { DesiredTableType, TypeName }
 
 				  end } ] ),
@@ -327,7 +333,7 @@ get_actual_table_type( ParseAttributeTable ) ->
 			TableType;
 
 		{ value, InvalidTableType } ->
-			meta_utils:raise_error( { invalid_table_type_override,
+			ast_utils:raise_error( { invalid_table_type_override,
 									  InvalidTableType } );
 
 		key_not_found ->
@@ -343,35 +349,3 @@ get_actual_table_type( ParseAttributeTable ) ->
 	%						  [ DesiredTableType ] ),
 
 	DesiredTableType.
-
-
-
-% Applies specified AST transformations to specified module information.
-%
-% (helper)
-%
--spec apply_ast_transforms( meta_utils:ast_transforms(), module_info() ) ->
-								  module_info().
-apply_ast_transforms( Transforms, ModuleInfo ) ->
-
-	% First, update the type definitions accordingly (including in records):
-
-	NewTypes = meta_utils:update_types( ModuleInfo#module_info.types,
-										Transforms ),
-
-	NewRecordDefs = meta_utils:replace_types_in(
-					  ModuleInfo#module_info.record_defs,
-					  Transforms ),
-
-	% Do the same for types in function (type) specifications:
-	TypedFunctionTable = meta_utils:update_types_in_functions(
-							 ModuleInfo#module_info.functions, Transforms ),
-
-	% And then in related function definitions:
-	CallFunctionTable = meta_utils:update_calls_in_functions(
-						  TypedFunctionTable, Transforms ),
-
-	% Updated module_info returned:
-	ModuleInfo#module_info{ types=NewTypes,
-							record_defs=NewRecordDefs,
-							functions=CallFunctionTable }.
