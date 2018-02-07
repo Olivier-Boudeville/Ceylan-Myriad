@@ -194,7 +194,7 @@ scan_forms( _AST=[ _Form={ attribute, Line, export, FunctionIds } | T ],
 
 		fun( FunId, FunTableAcc ) ->
 
-			{ Name, Arity } = ast_utils:check_function_id( FunId, Context ),
+			{ Name, Arity } = ast_function:check_function_id( FunId, Context ),
 
 			NewFunInfo = case ?table:lookupEntry( FunId, FunTableAcc ) of
 
@@ -251,7 +251,7 @@ scan_forms( _AST=[ Form={ attribute, Line, import,
 	Context = { CurrentFileReference, Line },
 
 	ast_utils:check_module_name( ModuleName, Context ),
-	ast_utils:check_function_ids( FunIds, Context ),
+	ast_function:check_function_ids( FunIds, Context ),
 
 	NewImportTable = ?table:appendListToEntry( ModuleName, FunIds,
 											   ImportTable ),
@@ -367,9 +367,9 @@ scan_forms( [ { function, Line, FunctionName, FunctionArity, Clauses } | T ],
 
 	Context = { CurrentFileReference, Line },
 
-	ast_utils:check_function_name( FunctionName, Context ),
+	ast_function:check_function_name( FunctionName, Context ),
 	ast_utils:check_arity( FunctionArity, Context ),
-	ast_utils:check_function_clauses( Clauses, FunctionArity, Context ),
+	ast_clause:check_function_clauses( Clauses, FunctionArity, Context ),
 
 	FunId = { FunctionName, FunctionArity },
 
@@ -428,10 +428,10 @@ scan_forms( [ Form={ attribute, Line, SpecAtom,
 
 	Context = { CurrentFileReference, Line },
 
-	{ FunctionName, FunctionArity } = ast_utils:check_function_id( FunId,
+	{ FunctionName, FunctionArity } = ast_function:check_function_id( FunId,
 																   Context ),
 
-	ast_utils:check_function_types( FunctionTypes, FunctionArity, Context ),
+	ast_function:check_function_types( FunctionTypes, FunctionArity, Context ),
 
 	%ast_utils:display_debug( "~s definition for ~p/~p",
 	% [ SpecAtom, FunctionName, FunctionArity ] ),
@@ -503,8 +503,8 @@ scan_forms( [ Form={ attribute, Line, spec,
 	FunId = { FunctionName, FunctionArity },
 
 	ast_utils:check_module_name( ModuleName, Context ),
-	ast_utils:check_function_id( FunId, Context ),
-	ast_utils:check_function_types( FunctionTypes, FunctionArity, Context ),
+	ast_function:check_function_id( FunId, Context ),
+	ast_function:check_function_types( FunctionTypes, FunctionArity, Context ),
 
 	%ast_utils:display_debug( "remote spec definition for ~p/~p",
 	% [ FunctionName, FunctionArity ] ),

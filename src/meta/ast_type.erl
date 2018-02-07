@@ -150,44 +150,21 @@
 -type ast_variable() :: { 'var', line(), ast_variable_name() }.
 
 
-% The description of an immediate value in an AST, with line information.
-%
-% Ex: nil, in {nil,33} for [] at line #33.
-%
-% Note: to complete.
-%
--type ast_immediate_value() :: { 'nil', line() }
-							 | { 'atom', line(), atom() }
-							 | { 'integer', line(), integer() }
-							 | { 'float', line(), float() }.
-
-
 
 
 -export_type([ ast_type_definition/0,
 			   ast_builtin_type/0, ast_user_type/0, ast_remote_type/0,
 			   ast_type/0, ast_field_description/0,
-			   ast_variable_name/0, ast_variable/0,
-			   ast_immediate_value/0 ]).
+			   ast_variable_name/0, ast_variable/0 ]).
 
 
 % Transformations:
--export([ transform_association_type/3 ]).
+-export([ transform_type/3, transform_association_type/3 ]).
 
 
 
 % Forging:
 
-
-% Forging AST values:
--export([ forge_boolean_value/1, forge_boolean_value/2,
-		  forge_atom_value/1, forge_atom_value/2
-		  %forge_pid_value/1, forge_pid_value/2,
-		  %forge_integer_value/1, forge_integer_value/2,
-		  %forge_float_value/1, forge_float_value/2,
-		  %forge_tuple_value/1, forge_tuple_value/2,
-		  %forge_list_value/1, forge_list_value/2
-		]).
 
 
 % Forging AST types:
@@ -223,7 +200,6 @@
 
 % Shorthands:
 
--type ast_element() :: ast_base:ast_element().
 -type line() :: ast_base:line().
 
 -type module_name() :: meta_utils:module_name().
@@ -785,53 +761,11 @@ transform_association_type( { type, Line, map_field_exact, Types=[ _K, _V ] },
 % Forging section.
 
 
-% Subsection for value forging.
-
-
-% Returns an AST-compliant value designating specified boolean, defined at line
-% #0 of the current source file.
-%
-% Ex: forge_boolean_value( true ) returns: {boolean,0,true}.
-%
--spec forge_boolean_value( boolean() ) -> ast_element().
-forge_boolean_value( BooleanValue ) ->
-	forge_boolean_value( BooleanValue, _Line=0 ).
-
-
-% Returns an AST-compliant value designating specified boolean, defined at
-% specified line of the current source file.
-%
-% Ex: forge_boolean_value( false, 43 ) returns: {boolean,43,false}.
-%
--spec forge_boolean_value( boolean(), line() ) -> ast_element().
-forge_boolean_value( BooleanValue, Line ) ->
-	{ boolean, Line, BooleanValue }.
-
-
-
-% Returns an AST-compliant value designating specified atom, defined at line #0
-% of the current source file.
-%
-% Ex: forge_atom_value( basic_utils ) returns: {atom,0,basic_utils}.
-%
--spec forge_atom_value( atom() ) -> ast_element().
-forge_atom_value( AtomValue ) ->
-	forge_atom_value( AtomValue, _Line=0 ).
-
-
-% Returns an AST-compliant value designating specified atom, defined at
-% specified line of the current source file.
-%
-% Ex: forge_atom_value( basic_utils, 43 ) returns: {atom,43,basic_utils}.
-%
--spec forge_atom_value( atom(), line() ) -> ast_element().
-forge_atom_value( AtomValue, Line ) ->
-	{ atom, Line, AtomValue }.
 
 
 
 
-% Subsection for type forging.
+% Section for type forging.
 
 
 
@@ -1054,8 +988,8 @@ forge_remote_type( ModuleName, TypeName, TypeVars, Line ) ->
 						 line(), line(), line() ) -> ast_remote_type().
 forge_remote_type( ModuleName, TypeName, TypeVars, Line1, Line2, Line3 ) ->
 
-	Spec = [ forge_atom_value( ModuleName, Line2 ),
-			 forge_atom_value( TypeName, Line3 ), TypeVars ],
+	Spec = [ ast_value:forge_atom_value( ModuleName, Line2 ),
+			 ast_value:forge_atom_value( TypeName, Line3 ), TypeVars ],
 
 	#remote_type{ line=Line1, spec=Spec }.
 

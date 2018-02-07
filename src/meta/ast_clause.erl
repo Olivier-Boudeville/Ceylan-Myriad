@@ -27,10 +27,10 @@
 
 
 
-% Module in charge of handling clauses defined with an AST.
+% Module in charge of handling clauses defined within an AST.
 %
-% See the "7.5 Clauses" section of http://erlang.org/doc/apps/erts/absform.html
-% for more information.
+% Refer to the "7.5 Clauses" section of
+% http://erlang.org/doc/apps/erts/absform.html for more information.
 %
 -module(ast_clause).
 

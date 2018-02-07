@@ -173,15 +173,15 @@ transform_expression( E={ call, Line1, { remote, _Line2,
 			% Original expression, yet with updated parameters:
 			%Res = { call, Line1, { remote, Line2, M, F }, NewParams },
 			% Used for uniformity:
-			Res = ast_utils:forge_remote_call( ModuleName, FunctionName,
-											   NewParams, Line1, Line4 ),
+			Res = ast_clause:forge_remote_call( ModuleName, FunctionName,
+												NewParams, Line1, Line4 ),
 			ast_utils:display_debug( "... returning remote call expression "
 									 "(case R1) ~p", [ Res ] ),
 			Res;
 
 		{ SetModuleName, SetFunctionName } ->
-			Res = ast_utils:forge_remote_call( SetModuleName, SetFunctionName,
-											   NewParams, Line1, Line4 ),
+			Res = ast_clause:forge_remote_call( SetModuleName, SetFunctionName,
+												NewParams, Line1, Line4 ),
 			ast_utils:display_debug( "... returning remote call expression "
 									 "(case R2) ~p", [ Res ] ),
 			Res
@@ -210,7 +210,7 @@ transform_expression( E={ call, Line1,
 	NewParams = [ transform_expression( Param, Transforms )
 				  || Param <- Params ],
 
-	% Cannot use ast_utils:forge_remote_call, we have not atoms:
+	% Cannot use ast_clause:forge_remote_call, we have not atoms:
 	%
 	Res = { call, Line1, { remote, Line2, NewModuleExpr, NewFunctionExpr },
 			NewParams },
@@ -289,7 +289,7 @@ transform_expression( E={ call, Line1, F={ atom, Line2, FunName }, Params },
 			Res;
 
 		{ SetModuleName, SetFunctionName } ->
-			Res = ast_utils:forge_remote_call( SetModuleName, SetFunctionName,
+			Res = ast_clause:forge_remote_call( SetModuleName, SetFunctionName,
 											   NewParams, Line1, Line2 ),
 			ast_utils:display_debug( "... returning remote call expression ~p",
 									 [ Res ] ),

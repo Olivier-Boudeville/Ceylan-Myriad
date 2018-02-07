@@ -179,7 +179,7 @@ parse_transform( InputAST, _Options ) ->
 	Transforms = get_myriad_ast_transforms_for( BaseModuleInfo ),
 
 	io:format( "Applying following ~s~n",
-			   [ ast_transforms:ast_transforms_to_string( Transforms ) ] ),
+			   [ ast_transform:ast_transforms_to_string( Transforms ) ] ),
 
 	TransformedModuleInfo = meta_utils:apply_ast_transforms( Transforms,
 															 BaseModuleInfo ),

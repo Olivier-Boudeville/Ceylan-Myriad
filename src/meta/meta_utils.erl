@@ -444,7 +444,7 @@ update_types_in( TypeInfo, _MaybeLocalTypeTable=undefined,
 update_types_in( TypeInfo=#type_info{ definition=TypeDef }, MaybeLocalTypeTable,
 				 MaybeRemoteTypeTable ) ->
 	% Ex: Def = {type,42,tuple,[{type,42,integer,[]},{type,42,float,[]}]}
-	NewDef = ast_scan:scan_type( TypeDef, MaybeLocalTypeTable,
+	NewDef = ast_type:transform_type( TypeDef, MaybeLocalTypeTable,
 								 MaybeRemoteTypeTable ),
 	TypeInfo#type_info{ definition=NewDef }.
 
@@ -497,10 +497,10 @@ replace_types_in_type_def( _Form={ attribute, Line, type,
 								   { TypeName, TypeDef, TypeVars } },
 						   MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
 
-	NewTypeDef = ast_scan:scan_type( TypeDef, MaybeLocalTypeTable,
+	NewTypeDef = ast_type:transform_type( TypeDef, MaybeLocalTypeTable,
 									 MaybeRemoteTypeTable ),
 
-	NewTypeVars = [ ast_scan:scan_type( Elem, MaybeLocalTypeTable,
+	NewTypeVars = [ ast_type:transform_type( Elem, MaybeLocalTypeTable,
 								MaybeRemoteTypeTable ) || Elem <- TypeVars ],
 
 	%ast_utils:display_debug(
@@ -514,10 +514,10 @@ replace_types_in_type_def( _Form={ attribute, Line, opaque,
 								   { TypeName, TypeDef, TypeVars } },
 						   MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
 
-	NewTypeDef = ast_scan:scan_type( TypeDef, MaybeLocalTypeTable,
+	NewTypeDef = ast_type:transform_type( TypeDef, MaybeLocalTypeTable,
 									 MaybeRemoteTypeTable ),
 
-	NewTypeVars = [ ast_scan:scan_type( Elem, MaybeLocalTypeTable,
+	NewTypeVars = [ ast_type:transform_type( Elem, MaybeLocalTypeTable,
 								MaybeRemoteTypeTable ) || Elem <- TypeVars ],
 
 	%ast_utils:display_debug(
@@ -627,11 +627,11 @@ update_spec( UnexpectedFunSpec, _MaybeLocalTypeTable, _MaybeRemoteTypeTable ) ->
 update_clause_spec( [ { type, Line, product, ParamTypes }, ResultType ],
 					MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
 
-	NewParamTypes = [ ast_scan:scan_type( ParamType, MaybeLocalTypeTable,
+	NewParamTypes = [ ast_type:transform_type( ParamType, MaybeLocalTypeTable,
 						  MaybeRemoteTypeTable ) || ParamType <- ParamTypes ],
 
-	NewResultType = ast_scan:scan_type( ResultType, MaybeLocalTypeTable,
-										MaybeRemoteTypeTable ),
+	NewResultType = ast_type:transform_type( ResultType, MaybeLocalTypeTable,
+											 MaybeRemoteTypeTable ),
 
 	[ { type, Line, product, NewParamTypes }, NewResultType ];
 
@@ -678,8 +678,8 @@ update_types_in_field( _F={ typed_record_field,
 		   %{ type, Line3, TypeName, TypeVars } }:
 		   TypeDef }, MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
 
-	NewTypeDef = ast_scan:scan_type( TypeDef, MaybeLocalTypeTable,
-									 MaybeRemoteTypeTable ),
+	NewTypeDef = ast_type:transform_type( TypeDef, MaybeLocalTypeTable,
+										  MaybeRemoteTypeTable ),
 
 	{ typed_record_field, RecordField, NewTypeDef };
 
@@ -722,10 +722,10 @@ update_types_in_field( F, _MaybeLocalTypeTable, _MaybeRemoteTypeTable ) ->
 %				{ann_type,342,
 %					[{var,342,'Y'},{type,342,integer,[]}]} ] }}
 %
-%% scan_type( _TypeDef={ ann_type, Line, [ Var, InternalTypeDef ] },
+%% transform_type( _TypeDef={ ann_type, Line, [ Var, InternalTypeDef ] },
 %%			   LocalTransformTable, RemoteTransformTable ) ->
 
-%%	NewInternalTypeDef = scan_type( InternalTypeDef, LocalTransformTable,
+%%	NewInternalTypeDef = transform_type( InternalTypeDef, LocalTransformTable,
 %%										RemoteTransformTable ),
 
 %%	{ ann_type, Line, [ Var, NewInternalTypeDef ] };
@@ -755,10 +755,8 @@ update_calls_in_functions( FunctionTable, Transforms ) ->
 update_fun_info_for_calls( FunInfo=#function_info{ definition=ClauseDefs },
 						   Transforms ) ->
 
-	% Top-level function clauses are apparently the same as 'case', 'receive',
-	% etc. clauses:
-	%
-	NewClauseDefs = [ ast_scan:scan_expression( ClauseDef, Transforms )
+	NewClauseDefs = [ ast_clause:transform_function_clause( ClauseDef, 
+															Transforms )
 					  || ClauseDef <- ClauseDefs ],
 
 	FunInfo#function_info{ definition=NewClauseDefs }.

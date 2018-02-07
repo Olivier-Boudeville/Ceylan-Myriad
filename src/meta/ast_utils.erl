@@ -640,7 +640,7 @@ display_warning( FormatString, Values ) ->
 %
 -spec display_error( text_utils:string() ) -> basic_utils:void().
 display_error( String ) ->
-	io:format( "[error] ~s~n", [ String ] ).
+	io:format( "~n[error] ~s~n", [ String ] ).
 
 
 % Displays specified text as error.
@@ -721,16 +721,56 @@ raise_error( Elements, Context ) when is_list( Elements ) ->
 
 	AllElements = get_elements_with_context( Elements, Context ),
 
-	display_error( "~p", [ AllElements ] ),
+	%StackTrace = erlang:get_stacktrace(),
+
+	try
+		display_error( "Error raised while performing Myriad transformations:"
+					   "~n  ~p~n", [ list_to_tuple( AllElements ) ] ),
+		throw( myriad_transformation_failed )
+
+	catch
+
+		% Class is 'throw', R is what we just threw:
+		_C:_R ->
+
+			% Removing useless {ast_utils,raise_error,2,...:
+			ActualStackTrace = tl( erlang:get_stacktrace() ),
+
+			StackElements = interpret_stack_trace( ActualStackTrace, _Acc=[],
+												   _Count=1 ),
+
+			display_debug( "Transformation error happened in "
+						   "(latest calls first):~n~s", [ StackElements ] )
+
+	end,
 
 	% Would not interrupt the processing of the AST anyway:
-	%throw( list_to_tuple( AllElements ) ).
-	{ error, AllElements };
+	%throw( list_to_tuple( AllElements ) );
+	%{ error, AllElements };
+	%exit( AllElements );
+	halt( 5 );
 
 raise_error( Element, Context ) ->
 	raise_error( [ Element ], Context ).
 
 
+
+% (helper)
+interpret_stack_trace( _StackTrace=[], Acc, _Count ) ->
+	lists:reverse( Acc );
+
+interpret_stack_trace( _StackTrace=[ { Module, FunName, Arity,
+						 _FileLoc=[ { file, Path }, { line, Line } ] } | T ],
+					   Acc, Count ) ->
+
+	Text = io_lib:format( " [~B] ~s:~s/~B    [~s, line ~B]~n",
+						  [ Count, Module, FunName, Arity, Path, Line ] ),
+
+	interpret_stack_trace( T, [ Text | Acc ], Count+1 );
+
+interpret_stack_trace( _StackTrace=[ H | T ], Acc, Count ) ->
+	Text = io_lib:format( "~p~n", [ H ] ),
+	interpret_stack_trace( T, [ Text | Acc ], Count+1 ).
 
 
 
