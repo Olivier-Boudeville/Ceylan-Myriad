@@ -113,7 +113,8 @@ endif
 		generate-local-plt self-check-against-plt check check-hook help-erl \
 		clean clean-erlang clean-python clean-database clean-recurse        \
 		clean-outputs real-clean                                            \
-		info info-files info-erlang info-python info-java $(MODULES_DIRS)
+		info info-files info-meta info-erlang info-python info-java         \
+		$(MODULES_DIRS)
 
 
 
@@ -219,6 +220,9 @@ rebuild: clean all
 #
 # See also: in GNUmakevars.inc, the BOOTSTRAP_MODULES variable.
 
+# We cherry-pick modules in various source directories, and select all modules
+# in 'src/meta', built generically:
+
 
 # In 'utils':
 
@@ -240,30 +244,9 @@ $(COMMON_TOP)/src/utils/id_utils.beam: $(COMMON_TOP)/src/utils/id_utils.erl
 
 # In 'meta':
 
-$(COMMON_TOP)/src/meta/meta_utils.beam: $(COMMON_TOP)/src/meta/meta_utils.erl
+$(COMMON_TOP)/src/meta/%.beam: $(COMMON_TOP)/src/meta/%.erl
 	@echo "		Compiling bootstrap module $<"
 	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
-
-
-$(COMMON_TOP)/src/meta/ast_info.beam: $(COMMON_TOP)/src/meta/ast_info.erl
-	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
-
-
-$(COMMON_TOP)/src/meta/ast_utils.beam: $(COMMON_TOP)/src/meta/ast_utils.erl
-	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
-
-
-$(COMMON_TOP)/src/meta/ast_scan.beam: $(COMMON_TOP)/src/meta/ast_scan.erl
-	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
-
-
-$(COMMON_TOP)/src/meta/type_utils.beam: $(COMMON_TOP)/src/meta/type_utils.erl
-	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
-
 
 
 # In 'data-management':
@@ -786,6 +769,11 @@ info-files:
 	@echo "TEST_TARGETS    = $(TEST_TARGETS)"
 	@echo "ERLANG_PLT_FILE = $(ERLANG_PLT_FILE)"
 	@echo "PLT_FILE        = $(PLT_FILE)"
+
+
+info-meta:
+	@echo "META_SRC_FILES = $(META_SRC_FILES)"
+	@echo "META_BEAM_FILES = $(META_BEAM_FILES)"
 
 
 info-erlang:

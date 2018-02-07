@@ -38,20 +38,20 @@
 
 	% Transformations (if any) defined for module-local types:
 	local_types = undefined :: basic_utils:maybe(
-									meta_utils:local_type_transform_table() ),
+								  ast_transform:local_type_transform_table() ),
 
 	% Transformations (if any) defined for remote types:
 	remote_types = undefined :: basic_utils:maybe(
-									meta_utils:remote_type_transform_table() ),
+								  ast_transform:remote_type_transform_table() ),
 
 
 	% Transformations (if any) defined for module-local calls:
 	local_calls = undefined :: basic_utils:maybe(
-									meta_utils:local_call_transform_table() ),
+								  ast_transform:local_call_transform_table() ),
 
 	% Transformations (if any) defined for remote calls:
 	remote_calls = undefined :: basic_utils:maybe(
-									meta_utils:remote_call_transform_table() )
+								  ast_transform:remote_call_transform_table() )
 
 
 } ).

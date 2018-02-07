@@ -479,6 +479,11 @@
 		  are_types_identical/2 ]).
 
 
+% Checking:
+%
+-export([ check_atom/1 ]).
+
+
 % Work in progress:
 -export([ tokenise_per_union/1 ]).
 
@@ -719,7 +724,7 @@ get_elementary_types() ->
 %
 -spec get_simple_builtin_types() -> [ type_name() ].
 get_simple_builtin_types() -> 
-	get_immediate_types() ++ [ 'pid', 'port', 'reference', 'any' ].
+	get_immediate_types() ++ [ 'pid', 'port', 'reference', 'any', 'no_return' ].
 
 
 
@@ -865,3 +870,14 @@ are_types_identical( Type, Type ) ->
 
 are_types_identical( _FirstType, _SecondType ) ->
 	false.
+
+
+
+% Checks that specified term is an atom indeed.
+%
+-spec check_atom( term() ) -> atom().
+check_atom( Atom ) when is_atom( Atom ) ->
+	Atom;
+
+check_atom( Other ) ->
+	throw( { not_atom, Other } ).

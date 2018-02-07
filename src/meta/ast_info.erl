@@ -62,7 +62,7 @@
 % position (thus a tranformation pass is still to be applied to needed in the
 % overall list before it is sortable).
 %
--type location() :: id_utils:sortable_id() | 'auto_located'.
+-type location() :: ast_base:form_location() | 'auto_located'.
 
 
 % When processing an AST (ex: read from a BEAM file), the order of the forms
@@ -140,7 +140,7 @@
 % - [ type_id() ] used, not a set, to better preserve order
 %
 -type type_export_table() :: ?table:?table( location(),
-										{ ast_utils:line(), [ type_id() ] } ).
+										{ ast_base:line(), [ type_id() ] } ).
 
 
 
@@ -187,7 +187,7 @@
 % - [ function_id() ] used, not a set, to better preserve order
 %
 -type function_export_table() :: ?table:?table( location(),
-						   { ast_utils:line(), [ function_id() ] } ).
+						   { ast_base:line(), [ function_id() ] } ).
 
 
 
@@ -233,8 +233,8 @@
 
 % Local shorthands:
 
--type ast() :: ast_utils:ast().
--type form() :: ast_utils:form().
+-type ast() :: ast_base:ast().
+-type form() :: ast_base:form().
 -type type_id() :: type_utils:type_id().
 -type function_id() :: meta_utils:function_id().
 
@@ -499,7 +499,7 @@ check_module_info( #module_info{ unhandled_forms=UnhandledForms } ) ->
 
 	Forms = [ F || { _Loc, F } <- UnhandledForms ],
 
-	ast_utils:raise_error( { unhandled_forms, Forms } ).
+	ast_utils:raise_error( [ unhandled_forms, Forms ] ).
 
 
 
@@ -521,9 +521,9 @@ check_module_parse( #module_info{
 									 "vs ~B forms:~n~p",
 						   [ ?table:toString( ParseAttributeTable ),
 							 FormCount, ParseAttributeDefs ] ),
-			ast_utils:raise_error( { parse_attribute_mismatch,
-						   ?table:enumerate( ParseAttributeTable ),
-						   ParseAttributeDefs } )
+			ast_utils:raise_error( [ parse_attribute_mismatch,
+									 ?table:enumerate( ParseAttributeTable ),
+									 ParseAttributeDefs ] )
 
 	end.
 
@@ -540,8 +540,8 @@ check_module_include( #module_info{ includes=Includes,
 
 		% Includes are filtered (ex: for duplicates):
 		L when L < Len ->
-			ast_utils:raise_error( { include_mismatch, Includes,
-						   IncludeDefs } );
+			ast_utils:raise_error( [ include_mismatch, Includes,
+									 IncludeDefs ] );
 
 		_ ->
 			ok
@@ -564,7 +564,7 @@ check_module_types( #module_info{ types=Types } ) ->
 % Nothing to check for 'spec' or 'exported':
 %
 check_type( TypeId, _TypeInfo=#type_info{ definition=[] } ) ->
-	ast_utils:raise_error( { no_definition_found_for, TypeId } );
+	ast_utils:raise_error( [ no_definition_found_for, TypeId ] );
 
 check_type( _TypeId={ Name, Arity }, _TypeInfo=#type_info{
 										 name=Name, variables=TypeVars } ) ->
@@ -575,7 +575,8 @@ check_type( _TypeId={ Name, Arity }, _TypeInfo=#type_info{
 			ok;
 
 		OtherArity ->
-			ast_utils:raise_error( { type_arity_mismatch, Name, { Arity, OtherArity } } )
+			ast_utils:raise_error(
+			  [ type_arity_mismatch, Name, { Arity, OtherArity } ] )
 
 	end;
 
@@ -584,8 +585,8 @@ check_type( TypeId, _TypeInfo=#type_info{ name=SecondName,
 
 	SecondArity = length( TypeVars ),
 
-	ast_utils:raise_error( { type_definition_mismatch, TypeId,
-				   { SecondName, SecondArity } } ).
+	ast_utils:raise_error( [ type_definition_mismatch, TypeId,
+							 { SecondName, SecondArity } ] ).
 
 
 
@@ -602,18 +603,17 @@ check_module_functions( #module_info{ functions=Functions } ) ->
 % Nothing to check for 'spec' or 'exported':
 %
 check_function( FunId, _FunInfo=#function_info{ definition=[] } ) ->
-	ast_utils:raise_error( { no_definition_found_for, FunId } );
+	ast_utils:raise_error( [ no_definition_found_for, FunId ] );
 
-check_function( _FunId={ Name, Arity }, _FunInfo=#function_info{
-													name=Name,
-													arity=Arity } ) ->
+check_function( _FunId={ Name, Arity },
+				_FunInfo=#function_info{ name=Name, arity=Arity } ) ->
 	% Match:
 	ok;
 
 check_function( FunId, _FunInfo=#function_info{ name=SecondName,
 												arity=SecondArity } ) ->
-	ast_utils:raise_error( { function_definition_mismatch, FunId,
-				   { SecondName, SecondArity } } ).
+	ast_utils:raise_error( [ function_definition_mismatch, FunId,
+							 { SecondName, SecondArity } ] ).
 
 
 
@@ -1156,6 +1156,7 @@ function_info_to_string( #function_info{ name=Name,
 										 line=Line,
 										 definition=Clauses,
 										 spec=LocatedSpec,
+										 callback=IsCallback,
 										 exported=Exported } ) ->
 
 	ExportString = case Exported of
@@ -1178,7 +1179,15 @@ function_info_to_string( #function_info{ name=Name,
 			"no type specification";
 
 		_ ->
-			"a type specification"
+			case IsCallback of
+
+				true ->
+					"a callback type specification";
+
+				false ->
+					"a (standard) type specification"
+
+			end
 
 	end,
 

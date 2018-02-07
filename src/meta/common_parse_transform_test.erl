@@ -70,21 +70,21 @@ run_ast_level_operations( TargetSourceFile ) ->
 
 	test_facilities:display( "Now performing directly AST-level operations." ),
 
-	BaseAST = meta_utils:erl_to_ast( TargetSourceFile ),
+	BaseAST = ast_utils:erl_to_ast( TargetSourceFile ),
 
 	%test_facilities:display( "Base AST:~n~p", [ BaseAST ] ),
 
-	BaseModuleInfo = meta_utils:extract_module_info_from_ast( BaseAST ),
+	BaseModuleInfo = ast_info:extract_module_info_from_ast( BaseAST ),
 
 	test_facilities:display( "Base module info: ~s~n",
-					 [ meta_utils:module_info_to_string( BaseModuleInfo ) ] ),
+					 [ ast_info:module_info_to_string( BaseModuleInfo ) ] ),
 
 	FinalModuleInfo = BaseModuleInfo,
 
 	test_facilities:display( "Final module info: ~s~n",
-					 [ meta_utils:module_info_to_string( FinalModuleInfo ) ] ),
+					 [ ast_info:module_info_to_string( FinalModuleInfo ) ] ),
 
-	FinalAST = meta_utils:recompose_ast_from_module_info( FinalModuleInfo ),
+	FinalAST = ast_info:recompose_ast_from_module_info( FinalModuleInfo ),
 
 	test_facilities:display( "Final AST:~n~p", [ FinalAST ] ).
 
@@ -96,7 +96,7 @@ run() ->
 	test_facilities:start( ?MODULE ),
 
 	%TargetSourceFile = "graph_utils.erl",
-	TargetSourceFile = "../data-management/simple_parse_transform_target.erl",
+	TargetSourceFile = "simple_parse_transform_target.erl",
 
 	run_parse_transform( TargetSourceFile ),
 

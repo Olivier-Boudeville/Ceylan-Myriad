@@ -235,7 +235,7 @@
 		   % Corresponds to the line where this type is defined (in its source
 		   % file):
 		   %
-		   line = undefined :: 'undefined' | ast_utils:line(),
+		   line = undefined :: 'undefined' | ast_base:line(),
 
 
 		   % Type actual definition, a (non-located) abstract form:
@@ -279,7 +279,7 @@
 		   % (this information is a priori redundant with the one in the first
 		   % clause, yet present in the forms, thus kept here)
 		   %
-		   line = undefined :: 'undefined' | ast_utils:line(),
+		   line = undefined :: 'undefined' | ast_base:line(),
 
 
 		   % Function actual definition, a (non-located) list of the abstract
@@ -291,6 +291,12 @@
 		   % The type specification (if any) of that function, as an abstract
 		   % form:
 		   spec = undefined :: 'undefined' | ast_info:located_function_spec(),
+
+
+		   % Tells whether the function has a mere specification, or if it is a
+		   % callback:
+		   %
+		   callback = undefined :: 'undefined' | boolean(),
 
 
 		   % Tells whether this function has been exported, as a (possibly

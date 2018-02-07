@@ -81,7 +81,7 @@
 -include("meta_utils.hrl").
 
 % For the ast_transforms record:
--include("ast_scan.hrl").
+-include("ast_transform.hrl").
 
 
 % Local shorthands:
@@ -139,9 +139,9 @@
 -spec run_standalone( file_utils:file_name() ) -> ast().
 run_standalone( FileToTransform ) ->
 
-	AST = meta_utils:erl_to_ast( FileToTransform ),
+	AST = ast_utils:erl_to_ast( FileToTransform ),
 
-	io:format( "Input AST:~n~p~n~n", [ AST ] ),
+	%io:format( "Input AST:~n~p~n~n", [ AST ] ),
 
 	% Options like : [ report_warnings, {d,debug_mode_is_enabled}, beam,
 	% report_errors, {cwd,"X"}, {outdir,Y"}, {i,"A"},{i,"B"}, debug_info, etc.
@@ -178,6 +178,9 @@ parse_transform( InputAST, _Options ) ->
 
 	Transforms = get_myriad_ast_transforms_for( BaseModuleInfo ),
 
+	io:format( "Applying following ~s~n",
+			   [ ast_transforms:ast_transforms_to_string( Transforms ) ] ),
+
 	TransformedModuleInfo = meta_utils:apply_ast_transforms( Transforms,
 															 BaseModuleInfo ),
 
@@ -193,7 +196,11 @@ parse_transform( InputAST, _Options ) ->
 	OutputAST = ast_info:recompose_ast_from_module_info( OutputModuleInfo ),
 
 	io:format( "~n~nOutput AST:~n~p~n", [ OutputAST ] ),
-	%ast_utils:write_ast_to_file( OutputAST, "Output-AST.txt" ),
+
+	OutputASTFilename = text_utils:format( "Output-AST-for-module-~s.txt",
+								   [ OutputModuleInfo#module_info.module ] ),
+
+	ast_utils:write_ast_to_file( OutputAST, OutputASTFilename ),
 
 	OutputAST.
 
@@ -268,7 +275,7 @@ get_myriad_ast_transforms_for(
 	% Replacements to be done only for specified arities:
 	% (as these substitutions overlap, a lambda function is provided)
 	%
-	LocalTypeTransforms = meta_utils:get_local_type_transform_table( [
+	LocalTypeTransforms = ast_transform:get_local_type_transform_table( [
 				{ { void,  0 }, basic_utils },
 				{ { maybe, 1 }, basic_utils },
 				% First clause defined as we do not want to obtain
@@ -288,7 +295,7 @@ get_myriad_ast_transforms_for(
 	%  - table:T with DesiredTableType:T (ex: table:value() )
 	% (as these substitutions overlap, a lambda function is provided)
 	%
-	RemoteTypeTransforms = meta_utils:get_remote_type_transform_table( [
+	RemoteTypeTransforms = ast_transform:get_remote_type_transform_table( [
 				{ { table, '_', '_' },
 				  fun( _ModName, _TypeName=table, _TypeArity ) ->
 						  { DesiredTableType, DesiredTableType  };
@@ -302,7 +309,7 @@ get_myriad_ast_transforms_for(
 	%LocalCallTransforms = meta_utils:get_local_call_transform_table( [] ),
 	LocalCallTransforms = undefined,
 
-	RemoteCallTransforms = meta_utils:get_remote_call_transform_table( [
+	RemoteCallTransforms = ast_transform:get_remote_call_transform_table( [
 				% For all function names and arities, the 'table' module shall
 				% be replaced in remote calls by the desired table type:
 				%

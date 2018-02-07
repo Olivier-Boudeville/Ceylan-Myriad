@@ -1023,7 +1023,7 @@ toString( MapHashtable, Bullet ) when is_list( Bullet ) ->
 	case maps:to_list( MapHashtable ) of
 
 		[] ->
-			"Empty hashtable";
+			"empty table";
 
 		L ->
 
@@ -1032,7 +1032,7 @@ toString( MapHashtable, Bullet ) when is_list( Bullet ) ->
 						|| { K, V } <- lists:sort( L ) ],
 
 			% Flatten is needed, in order to use the result with ~s:
-			lists:flatten( io_lib:format( "Hashtable with ~B entry(ies):~s",
+			lists:flatten( io_lib:format( "table with ~B entry(ies):~s",
 				[ map_size( MapHashtable ),
 				  text_utils:strings_to_string( Strings, Bullet ) ] ) )
 

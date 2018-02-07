@@ -523,25 +523,39 @@ ERL_LAUNCHER = $(COMMON_SRC)/scripts/launch-erl.sh
 #
 ifndef BOOTSTRAP_MODULES
 
+# We want to bootstrap all module from 'meta':
+
+META_SRC_FILES = $(wildcard $(COMMON_TOP)/src/meta/*.erl)
+
+EXCLUDED_FROM_BOOTSTRAPPED_META = \
+				$(COMMON_TOP)/src/meta/common_parse_transform_test.erl   \
+				$(COMMON_TOP)/src/meta/example_parse_transform.erl       \
+				$(COMMON_TOP)/src/meta/minimal_parse_transform_test.erl  \
+				$(COMMON_TOP)/src/meta/simple_parse_transform_target.erl \
+				$(COMMON_TOP)/src/meta/meta_utils_test.erl
+
+
+META_FILTERED_SRC_FILES = $(filter-out $(EXCLUDED_FROM_BOOTSTRAPPED_META),$(META_SRC_FILES))
+
+META_BEAM_FILES = $(patsubst %.erl,%.beam,$(META_FILTERED_SRC_FILES))
+
+
 # We list here all prerequisites of the 'Common' parse-transform:
-#  - basic_utils: to provide the basic services
-#  - text_utils: to display debugging information regarding the transforms
-#  - id_utils: used here to sort the forms
-#  - meta_utils: to support the metaprogramming needs
-#  - ast_info: to centralise information regarding ASTs
-#  - ast_utils: to handle the AST
-#  - ast_scan: to scan the AST
-#  - type_utils: to handle types
-#  - map_hashtable: to manage the module information
+# - basic_utils: to provide the basic services
+# - text_utils: to display debugging information regarding the transforms
+# - id_utils: used here to sort the forms
+# - most of 'meta', including:
+#    * meta_utils: to support the metaprogramming needs
+#    * ast_info: to centralise information regarding ASTs
+#    * ast_utils: to handle the AST
+#    * ast_scan: to scan the AST
+#    * type_utils: to handle types
+# - map_hashtable: to manage the module information
 #
 BOOTSTRAP_MODULES = $(COMMON_TOP)/src/utils/basic_utils.beam             \
 					$(COMMON_TOP)/src/utils/text_utils.beam              \
 					$(COMMON_TOP)/src/utils/id_utils.beam                \
-					$(COMMON_TOP)/src/meta/meta_utils.beam               \
-					$(COMMON_TOP)/src/meta/ast_info.beam                 \
-					$(COMMON_TOP)/src/meta/ast_utils.beam                \
-					$(COMMON_TOP)/src/meta/ast_scan.beam                 \
-					$(COMMON_TOP)/src/meta/type_utils.beam               \
+					$(META_BEAM_FILES)                                   \
 					$(COMMON_TOP)/src/data-management/map_hashtable.beam \
 
 endif
