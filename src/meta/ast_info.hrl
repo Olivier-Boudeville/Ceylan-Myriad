@@ -41,7 +41,7 @@
 % of it (for that, located ASTs and forms are used).
 %
 % We store the located forms verbatim whenever possible (in *_def* counterpart
-% fields), notably to preserve line numbers.
+% fields), notably to preserve the line numbers within.
 %
 % As a consequence there are generally two fields per theme:
 %
@@ -78,7 +78,7 @@
 		% Ex: {attribute,67,compile,{no_auto_import,[{size,1}]}},
 		%     {attribute,63,compile,{inline,[{get_bucket_index,2}]}}
 		%
-		compilation_option_defs = [] :: ast_info:located_ast(),
+		compilation_option_defs = [] :: [ ast_info:located_form() ],
 
 
 		% Parse-level attributes (ex: '-my_attribute( my_value ).'), as a table
@@ -97,13 +97,13 @@
 		% Note: mostly for user-defined attributes, knowing most if not all
 		% others are to be collected in specific other fields of this record.
 		%
-		parse_attribute_defs = [] :: ast_info:located_ast(),
+		parse_attribute_defs = [] :: [ ast_info:located_form() ],
 
 
 		% As remote function specifications can be defined, like:
 		% -spec Mod:Name(...) -> ...
 		%
-		remote_spec_defs = [] :: ast_info:located_ast(),
+		remote_spec_defs = [] :: [ ast_info:located_form() ],
 
 
 		% Include files (typically *.hrl files).
@@ -121,7 +121,7 @@
 		% (possibly a given file might be included more than once; it is
 		% generally the case for the module being currently compiled)
 		%
-		include_defs = [] :: ast_info:located_ast(),
+		include_defs = [] :: [ ast_info:located_form() ],
 
 
 		% Whether a type (possibly any kind of it; ex: opaque or not) is
@@ -150,10 +150,6 @@
 		records :: ast_info:record_table(),
 
 
-		% The record export definitions:
-		record_defs = [] :: ast_info:located_ast(),
-
-
 		% Lists the functions imported by that module, per-module.
 		%
 		function_imports :: ast_info:function_import_table(),
@@ -161,7 +157,7 @@
 
 		% The definitions of the function imports:
 		%
-		function_imports_defs = [] :: ast_info:located_ast(),
+		function_imports_defs = [] :: [ ast_info:located_form() ],
 
 
 
@@ -185,6 +181,10 @@
 		functions :: ast_info:function_table(),
 
 
+		% The definitions of the list of optional callbacks:
+		%
+		optional_callbacks_defs = [] :: [ ast_info:located_form() ],
+
 
 		% The definition of the last line in the original source file:
 		%
@@ -199,7 +199,7 @@
 		%
 		% '{error,{LineNumber,erl_parse, ["syntax error before: ","')'"]}}''.
 		%
-		unhandled_forms = [] :: ast_info:located_ast()
+		unhandled_forms = [] :: [ ast_info:located_form() ]
 
 
 } ).

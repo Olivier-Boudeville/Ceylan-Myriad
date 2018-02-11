@@ -146,7 +146,7 @@ scan( AST ) ->
 % Overall structure (based on http://erlang.org/doc/apps/erts/absform.html):
 %
 % Section 7.1: Module Declarations and Forms:
-%  - (7.1.1 already done)
+%  - (7.1.1: Module declaration, already done)
 %  - 7.1.2:  Function export
 %  - 7.1.3:  Function import
 %  - 7.1.4:  Module
@@ -171,15 +171,15 @@ scan( AST ) ->
 %%
 
 
-% (7.1.1 already done)
 
+% (7.1.1: Module declaration, already done)
 
 % 7.1.2: Function export handling.
 %
 % "If F is an attribute -export([Fun_1/A_1, ..., Fun_k/A_k]), then Rep(F) =
 % {attribute,LINE,export,[{Fun_1,A_1}, ..., {Fun_k,A_k}]}."
 %
-scan_forms( _AST=[ _Form={ attribute, Line, export, FunctionIds } | T ],
+scan_forms( _AST=[ _Form={ 'attribute', Line, 'export', FunctionIds } | T ],
 			M=#module_info{ function_exports=ExportTable,
 							functions=FunctionTable },
 			NextLocation, CurrentFileReference ) ->
@@ -242,7 +242,7 @@ scan_forms( _AST=[ _Form={ attribute, Line, export, FunctionIds } | T ],
 % "If F is an attribute -import(Mod,[Fun_1/A_1, ..., Fun_k/A_k]), then Rep(F) =
 % {attribute,LINE,import,{Mod,[{Fun_1,A_1}, ..., {Fun_k,A_k}]}}."
 %
-scan_forms( _AST=[ Form={ attribute, Line, import,
+scan_forms( _AST=[ Form={ 'attribute', Line, 'import',
 							{ ModuleName, FunIds } } | T ],
 			 M=#module_info{ function_imports=ImportTable,
 							 function_imports_defs=ImportDefs },
@@ -270,7 +270,7 @@ scan_forms( _AST=[ Form={ attribute, Line, import,
 % "If F is an attribute -module(Mod), then Rep(F) =
 % {attribute,LINE,module,Mod}."
 %
-scan_forms( _AST=[ Form={ attribute, Line, module, ModuleName } | T ],
+scan_forms( _AST=[ Form={ 'attribute', Line, 'module', ModuleName } | T ],
 			 M=#module_info{ module=undefined, module_def=undefined },
 			 NextLocation, CurrentFileReference ) ->
 
@@ -294,7 +294,7 @@ scan_forms( _AST=[ Form={ attribute, Line, module, ModuleName } | T ],
 % Any lacking, invalid or duplicated module declaration will be caught by
 % the compiler anyway.
 %
-scan_forms( _AST=[ _Form={ attribute, Line, module, ModuleName } | _T ],
+scan_forms( _AST=[ _Form={ 'attribute', Line, 'module', ModuleName } | _T ],
 			 #module_info{ module=PreviousModuleName },
 			 _NextLocation, CurrentFileReference ) ->
 	throw( { multiple_module_definitions, PreviousModuleName, ModuleName,
@@ -310,7 +310,7 @@ scan_forms( _AST=[ _Form={ attribute, Line, module, ModuleName } | _T ],
 % Allows to keep track of when an included file begins and also ends, i.e. to
 % determine the current file to which any new line number corresponds.
 %
-scan_forms( _AST=[ Form={ attribute, _Line, file,
+scan_forms( _AST=[ Form={ 'attribute', _Line, 'file',
 						  { FilePath, _FileLine } } | T ],
 			 M=#module_info{ includes=Inc, include_defs=IncDefs }, NextLocation,
 			_CurrentFileReference ) ->
@@ -353,7 +353,7 @@ scan_forms( _AST=[ Form={ attribute, _Line, file,
 % is a function clause with a pattern sequence of the same length Arity, then
 % Rep(F) = {function,LINE,Name,Arity,[Rep(Fc_1), ...,Rep(Fc_k)]}."
 %
-scan_forms( [ { function, Line, FunctionName, FunctionArity, Clauses } | T ],
+scan_forms( [ { 'function', Line, FunctionName, FunctionArity, Clauses } | T ],
 			M=#module_info{ functions=FunctionTable }, NextLocation,
 			CurrentFileReference ) ->
 
@@ -412,7 +412,7 @@ scan_forms( [ { function, Line, FunctionName, FunctionArity, Clauses } | T ],
 
 
 
-% 7.1.7: Local function type specification handling.
+% 7.1.7: Local function type specification handling (including callbacks).
 %
 % "If F is a function specification -Spec Name Ft_1; ...; Ft_k, where Spec is
 % either the atom spec or the atom callback, and each Ft_i is a possibly
@@ -420,16 +420,16 @@ scan_forms( [ { function, Line, FunctionName, FunctionArity, Clauses } | T ],
 % then Rep(F) = {attribute,Line,Spec,{{Name,Arity},[Rep(Ft_1), ...,
 % Rep(Ft_k)]}}."
 %
-scan_forms( [ Form={ attribute, Line, SpecAtom,
+scan_forms( [ Form={ 'attribute', Line, SpecAtom,
 					 { FunId, FunctionTypes } } | T ],
-			W=#module_info{ functions=FunctionTable },
+			M=#module_info{ functions=FunctionTable },
 			NextLocation, CurrentFileReference )
-  when SpecAtom == spec orelse SpecAtom == callback ->
+  when SpecAtom == 'spec' orelse SpecAtom == 'callback' ->
 
 	Context = { CurrentFileReference, Line },
 
-	{ FunctionName, FunctionArity } = ast_function:check_function_id( FunId,
-																   Context ),
+	{ FunctionName, FunctionArity } = ast_function:check_function_id( 
+										FunId, Context ),
 
 	ast_function:check_function_types( FunctionTypes, FunctionArity, Context ),
 
@@ -479,10 +479,55 @@ scan_forms( [ Form={ attribute, Line, SpecAtom,
 	%ast_utils:display_debug( "spec for function ~s/~B registered.",
 	%		   [ FunctionName, FunctionArity ] ),
 
-	scan_forms( T, W#module_info{ functions=NewFunctionTable },
+	scan_forms( T, M#module_info{ functions=NewFunctionTable },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
+
+% (optional callbacks, not specified in the spec yet known of the id parse
+% transform)
+%
+scan_forms( [ Form={ 'attribute', Line, AttributeName='optional_callbacks',
+					 AttributeValue=FunIds } | T ],
+			M=#module_info{ optional_callbacks_defs=LocatedDefs },
+			NextLocation, CurrentFileReference ) ->
+
+	Context = { CurrentFileReference, Line },
+
+	% Surprisingly, in erl_id_trans.erl, the corresponding check may fail (as is
+	% in a try/catch clause), and in this case is replaced by its original value.
+	%
+	ast_function:check_function_ids( FunIds, Context ),
+
+	LocForm = { NextLocation, Form },
+
+	scan_forms( T, M#module_info{
+					 optional_callbacks_defs=[ LocForm | LocatedDefs ] },
+				id_utils:get_next_sortable_id( NextLocation ),
+				CurrentFileReference );
+
+
+% (asm attribute, not specified in the spec yet known of the id parse
+% transform; checked and then treated as any wild parse attribute)
+%
+scan_forms( [ Form={ 'attribute', Line, AttributeName='asm',
+					 Def={ 'function', _N, _A, _Code } | T ],
+			  M=#module_info{ optional_callbacks_defs=LocatedDefs },
+			NextLocation, CurrentFileReference ) ->
+
+	%ast_utils:display_debug( "Asm attribute definition: '~p'.",
+	%						 [ Def ] ),
+
+	Context = { CurrentFileReference, Line },
+
+	LocForm = { NextLocation, Form },
+
+	scan_forms( T, M#module_info{
+				   parse_attributes=?table:addEntry( AttributeName,
+							_AttributeValue=Def, ParseAttributeTable ),
+				   parse_attribute_defs=[ LocForm | AttributeDefs ] },
+				id_utils:get_next_sortable_id( NextLocation ),
+				CurrentFileReference );
 
 
 % 7.1.8: Remote function type specification handling.
@@ -492,10 +537,10 @@ scan_forms( [ Form={ attribute, Line, SpecAtom,
 % same length Arity, then Rep(F) =
 % {attribute,Line,spec,{{Mod,Name,Arity},[Rep(Ft_1), ..., Rep(Ft_k)]}}."
 %
-scan_forms( [ Form={ attribute, Line, spec,
+scan_forms( [ Form={ 'attribute', Line, 'spec',
 					 _MFA={ ModuleName, FunctionName, FunctionArity },
 					 FunctionTypes } | T ],
-			W=#module_info{ remote_spec_defs=RemoteSpecDefs },
+			M=#module_info{ remote_spec_defs=RemoteSpecDefs },
 			NextLocation, CurrentFileReference ) ->
 
 	Context = { CurrentFileReference, Line },
@@ -518,7 +563,7 @@ scan_forms( [ Form={ attribute, Line, spec,
 	%ast_utils:display_debug( "remote spec for function ~s/~B registered.",
 	%		   [ FunctionName, FunctionArity ] ),
 
-	scan_forms( T, W#module_info{ remote_spec_defs=NewRemoteSpecDefs },
+	scan_forms( T, M#module_info{ remote_spec_defs=NewRemoteSpecDefs },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
@@ -530,7 +575,7 @@ scan_forms( [ Form={ attribute, Line, spec,
 % a record field, then Rep(F) = {attribute,LINE,record,{Name,[Rep(V_1), ...,
 % Rep(V_k)]}}. For Rep(V), see below.
 %
-scan_forms( _AST=[ Form={ attribute, Line, record, { RecordName, DescFields } }
+scan_forms( _AST=[ Form={ 'attribute', Line, 'record', { RecordName, DescFields } }
 				   | T ],
 			M=#module_info{ records=RecordTable, record_defs=RecordDefs },
 			NextLocation, CurrentFileReference ) ->
@@ -559,20 +604,20 @@ scan_forms( _AST=[ Form={ attribute, Line, record, { RecordName, DescFields } }
 % type, then Rep(F) = {attribute,LINE,Type,{Name,Rep(T),[Rep(V_1), ...,
 % Rep(V_k)]}}."
 %
-scan_forms( _AST=[ _Form={ attribute, Line, TypeDesignator,
+scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 						   { TypeName, TypeDef, TypeVariables } } | T ],
 			 M=#module_info{ types=TypeTable },
 			 NextLocation, CurrentFileReference )
-  when TypeDesignator == type orelse TypeDesignator == opaque ->
+  when TypeDesignator == 'type' orelse TypeDesignator == 'opaque' ->
 
 	%ast_utils:display_debug( "type declaration for ~p: ~p", [
 	%                        TypeName, Form ] ),
 
 	Context = { CurrentFileReference, Line },
 
-	ast_utils:check_type_name( TypeName, Context ),
-	ast_utils:check_type_definition( TypeDef, Context ),
-	ast_utils:check_variables( TypeVariables, Context ),
+	ast_type:check_type_name( TypeName, Context ),
+	ast_type:check_type_definition( TypeDef, Context ),
+	ast_type:check_type_variables( TypeVariables, Context ),
 
 	IsOpaque = case TypeDesignator of
 
@@ -617,7 +662,7 @@ scan_forms( _AST=[ _Form={ attribute, Line, TypeDesignator,
 						location=NextLocation,
 						line=Line,
 						definition=TypeDef
-						%exported
+						%exported=[]
 					  }
 
 	end,
@@ -641,7 +686,7 @@ scan_forms( _AST=[ _Form={ attribute, Line, TypeDesignator,
 % "If F is an attribute -export_type([Type_1/A_1, ..., Type_k/A_k]), then Rep(F)
 % = {attribute,LINE,export_type,[{Type_1,A_1}, ..., {Type_k,A_k}]}."
 %
-scan_forms( _AST=[ _Form={ attribute, Line, export_type, TypeIds } | T ],
+scan_forms( _AST=[ _Form={ 'attribute', Line, 'export_type', TypeIds } | T ],
 			M=#module_info{ type_exports=ExportTable, types=TypeTable },
 			NextLocation, CurrentFileReference ) ->
 
@@ -703,7 +748,7 @@ scan_forms( _AST=[ _Form={ attribute, Line, export_type, TypeIds } | T ],
 %
 
 % Full inlining:
-scan_forms( _AST=[ Form={ attribute, _Line, compile, inline } | T ],
+scan_forms( _AST=[ Form={ 'attribute', _Line, 'compile', 'inline' } | T ],
 			 M=#module_info{ compilation_options=CompileTable,
 							 compilation_option_defs=CompileDefs },
 			NextLocation, CurrentFileReference ) ->
@@ -720,7 +765,7 @@ scan_forms( _AST=[ Form={ attribute, _Line, compile, inline } | T ],
 
 
 % Regular inlining:
-scan_forms( _AST=[ Form={ attribute, Line, compile,
+scan_forms( _AST=[ Form={ 'attribute', Line, 'compile',
 						  { inline, InlineOpts } } | T ],
 			 M=#module_info{ compilation_options=CompileTable,
 							 compilation_option_defs=CompileDefs },
@@ -754,7 +799,7 @@ scan_forms( _AST=[ Form={ attribute, Line, compile,
 
 
 % Non-inlining compile options:
-scan_forms( _AST=[ Form={ attribute, _Line, compile,
+scan_forms( _AST=[ Form={ 'attribute', _Line, 'compile',
 							{ CompilationOption, Options } } | T ],
 			 M=#module_info{ compilation_options=CompileTable,
 							 compilation_option_defs=CompileDefs },
@@ -776,7 +821,7 @@ scan_forms( _AST=[ Form={ attribute, _Line, compile,
 % (section body is here, to match iff none of the other attribute-related
 % sections matched)
 %
-scan_forms( [ Form={ attribute, Line, AttributeName, AttributeValue } | T ],
+scan_forms( [ Form={ 'attribute', Line, AttributeName, AttributeValue } | T ],
 			M=#module_info{ parse_attributes=ParseAttributeTable,
 							parse_attribute_defs=AttributeDefs },
 			NextLocation, CurrentFileReference ) ->
@@ -835,8 +880,8 @@ scan_forms( [ Form={ attribute, Line, AttributeName, AttributeValue } | T ],
 
 
 % eep include error:
-scan_forms( _AST=[ _Form={ error,
-	   { Line, epp, { include, file, FileName } } } | _T ], _ModuleInfo,
+scan_forms( _AST=[ _Form={ 'error',
+	   { Line, 'epp', { 'include', 'file', FileName } } } | _T ], _ModuleInfo,
 			 _NextLocation, CurrentFileReference ) ->
 
 	Context = { CurrentFileReference, Line-1 },
@@ -845,8 +890,8 @@ scan_forms( _AST=[ _Form={ error,
 
 
 % eep undefined macro variable error:
-scan_forms( _AST=[ _Form={ error,
-	   { Line, epp, { undefined, VariableName, none } } } | _T ], _ModuleInfo,
+scan_forms( _AST=[ _Form={ 'error',
+	   { Line, 'epp', { 'undefined', VariableName, 'none' } } } | _T ], _ModuleInfo,
 			 _NextLocation, CurrentFileReference ) ->
 
 	Context = { CurrentFileReference, Line-1 },
@@ -856,7 +901,7 @@ scan_forms( _AST=[ _Form={ error,
 
 
 % eep general errors:
-scan_forms( _AST=[ _Form={ error, { Line, epp, Reason } } | _T ], _ModuleInfo,
+scan_forms( _AST=[ _Form={ 'error', { Line, 'epp', Reason } } | _T ], _ModuleInfo,
 			 _NextLocation, CurrentFileReference ) ->
 
 	Context = { CurrentFileReference, Line-1 },
@@ -865,7 +910,7 @@ scan_forms( _AST=[ _Form={ error, { Line, epp, Reason } } | _T ], _ModuleInfo,
 
 
 % Parser (erl_parse) errors:
-scan_forms( _AST=[ _Form={ error, { Line, erl_parse, Reason } } | _T ],
+scan_forms( _AST=[ _Form={ 'error', { Line, 'erl_parse', Reason } } | _T ],
 			 _ModuleInfo, _NextLocation, CurrentFileReference ) ->
 
 	Context = { CurrentFileReference, Line-1 },
@@ -875,7 +920,7 @@ scan_forms( _AST=[ _Form={ error, { Line, erl_parse, Reason } } | _T ],
 
 
 % Any kind of other error:
-scan_forms( _AST=[ _Form={ error, ErrorTerm } | _T ],
+scan_forms( _AST=[ _Form={ 'error', ErrorTerm } | _T ],
 			 _ModuleInfo, _NextLocation, CurrentFileReference ) ->
 
 	ast_utils:raise_error( [ scan_error, ErrorTerm],
@@ -883,7 +928,7 @@ scan_forms( _AST=[ _Form={ error, ErrorTerm } | _T ],
 
 
 % Any kind of warning:
-scan_forms( _AST=[ _Form={ warning, WarningTerm } | T ],
+scan_forms( _AST=[ _Form={ 'warning', WarningTerm } | T ],
 			ModuleInfo, NextLocation, CurrentFileReference ) ->
 
 	ast_utils:notify_warning( [ scan_warning, WarningTerm ],
@@ -899,7 +944,7 @@ scan_forms( _AST=[ _Form={ warning, WarningTerm } | T ],
 % We expect the module name to be known when ending the processing (so that we
 % can remove its corresponding file from the includes):
 %
-scan_forms( _AST=[ _Form={ eof, Line } ],
+scan_forms( _AST=[ _Form={ 'eof', Line } ],
 			Infos=#module_info{ module=undefined }, _NextLocation,
 			CurrentFileReference ) ->
 	Context = { CurrentFileReference, Line },
@@ -907,7 +952,7 @@ scan_forms( _AST=[ _Form={ eof, Line } ],
 
 
 % Form expected to be defined once, and to be the last one:
-scan_forms( _AST=[ Form={ eof, Line } ],
+scan_forms( _AST=[ Form={ 'eof', Line } ],
 			M=#module_info{ last_line=undefined, module=Module, includes=Inc },
 			_NextLocation, _CurrentFileReference ) ->
 
@@ -963,7 +1008,10 @@ scan_forms( _AST=[], _ModuleInfo, _NextLocation, CurrentFileReference ) ->
 
 
 
-% Processes the fields of a given record.
+% Processes the fields of a given record definition.
+%
+% Note: field names could be full expressions here, but only atoms are allowed
+% by the parser (dixit the id parse transform).
 %
 -spec scan_field_descriptions( [ ast_base:ast_element() ],
 					   ast_base:file_reference() ) -> meta_utils:field_table().
@@ -975,14 +1023,16 @@ scan_field_descriptions( FieldDescriptions, CurrentFileReference ) ->
 							 FieldTable ).
 
 
+% (helper)
+%
 scan_field_descriptions( _FieldDescriptions=[], _CurrentFileReference,
 						 FieldTable ) ->
 	FieldTable;
 
-
 % Here no type or default value are specified for that field:
+%
 scan_field_descriptions( _FieldDescriptions=[
-		{ record_field, _Line1, { atom, _Line2, FieldName } } | T ],
+		{ 'record_field', _Line1, { atom, _Line2, FieldName } } | T ],
 		CurrentFileReference, FieldTable ) ->
 
 	NewFieldTable = ?table:addNewEntry( FieldName,
@@ -991,8 +1041,8 @@ scan_field_descriptions( _FieldDescriptions=[
 
 % Here only a type is specified for that field:
 scan_field_descriptions( _FieldDescriptions=[
-	   { typed_record_field,
-		  {record_field, _Line1, { atom, _Line2, FieldName } }, FieldType }
+	   { 'typed_record_field',
+		  { 'record_field', _Line1, { atom, _Line2, FieldName } }, FieldType }
 												| T ],
 						 CurrentFileReference, FieldTable ) ->
 	NewFieldTable = ?table:addNewEntry( FieldName,
@@ -1001,7 +1051,7 @@ scan_field_descriptions( _FieldDescriptions=[
 
 % Here only a default value is specified for that field:
 scan_field_descriptions( _FieldDescriptions=[
-	   { record_field, _Line1, { atom, _Line2, FieldName }, DefaultValue }
+	   { 'record_field', _Line1, { atom, _Line2, FieldName }, DefaultValue }
 												| T ],
 						 CurrentFileReference, FieldTable ) ->
 	NewFieldTable = ?table:addNewEntry( FieldName,
@@ -1010,8 +1060,8 @@ scan_field_descriptions( _FieldDescriptions=[
 
 % Here a type and a default, immediate value are specified for that field:
 scan_field_descriptions( _FieldDescriptions=[
-	   { typed_record_field,
-		  { record_field, _Line1,
+	   { 'typed_record_field',
+		  { 'record_field', _Line1,
 		   { atom, _Line2, FieldName }, DefaultValue }, FieldType }
 												| T ],
 						 CurrentFileReference, FieldTable ) ->
@@ -1045,4 +1095,3 @@ check_parse_attribute_name( Other, Context ) ->
 										basic_utils:parse_attribute_name().
 check_parse_attribute_name( Name ) ->
 	check_parse_attribute_name( Name, _Context=undefined ).
-

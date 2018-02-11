@@ -119,10 +119,10 @@ run() ->
 							 "previous table:" ),
 
 	FunValue = fun( V ) ->
-				io:format( " - hello value '~p'!~n", [ V ] ),
-				% Unchanged here:
-				V
-	end,
+					test_facilities:display( " - hello value '~p'!~n", [ V ] ),
+					% Unchanged here:
+					 V
+			   end,
 
 	table:mapOnValues( FunValue, MyH4 ),
 
@@ -131,11 +131,12 @@ run() ->
 							 "previous table:" ),
 
 	FunEntry = fun( E={ K, V } ) ->
-				io:format( " - hello, key '~p' associated to value '~p'!~n",
-						   [ K, V ] ),
-				% Unchanged here:
-				E
-	end,
+					test_facilities:display(
+						 " - hello, key '~p' associated to value '~p'!~n",
+						 [ K, V ] ),
+					% Unchanged here:
+					E
+			   end,
 
 	table:mapOnEntries( FunEntry, MyH4 ),
 

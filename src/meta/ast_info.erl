@@ -58,6 +58,10 @@
 % information embedded in forms is relative to the file in which they are
 % defined.
 %
+% Thanks to locations (which order forms appropriately, including the ones
+% regarding file references), once forms have been recomposed by design a stored
+% line always is always relative to the current file.
+%
 % 'auto_located' means that the corresponding form is yet to be located at this
 % position (thus a tranformation pass is still to be applied to needed in the
 % overall list before it is sortable).
@@ -150,19 +154,23 @@
 
 
 
-% A table associating to each record name the list of the descriptions of its
-% fields.
+
+% A table associating to each record name the description of the corresponding
+% record.
 %
 -type record_table() :: ?table:?table( basic_utils:record_name(),
-									   field_table() ).
+									   record_definition() ).
 
 
-% A table associating to a given field of a record its description (type and
-% default value, if specified).
+% The full definition of a record.
+%
+-type record_definition() :: { field_table(), location(), line() }.
+
+
+% A table associating to a given field of a record its description.
 %
 -type field_table() :: ?table:?table( basic_utils:field_name(),
-		  { basic_utils:maybe( ast_utils:ast_type() ),
-			basic_utils:maybe( ast_utils:ast_immediate_value() ) } ).
+									  ast_record:field_definition() ).
 
 
 
@@ -629,79 +637,69 @@ recompose_ast_from_module_info( #module_info{
 			% indeed in the output AST.
 
 			% (module)
-			module_def=ModuleDef,
+			module_def=ModuleLocDef,
 
 			% (compilation_options)
-			compilation_option_defs=CompileOptDefs,
+			compilation_option_defs=CompileOptLocDefs,
 
 			% (parse_attributes)
-			parse_attribute_defs=ParseAttributeDefs,
+			parse_attribute_defs=ParseAttributeLocDefs,
 
-			remote_spec_defs=RemoteSpecDefs,
+			remote_spec_defs=RemoteSpecLocDefs,
 
 			% (includes)
-			include_defs=IncludeDefs,
-
+			include_defs=IncludeLocDefs,
 
 			type_exports=TypeExportTable,
 
-			types=Types,
+			types=TypeTable,
 
-
-			% (records)
-			record_defs=RecordDefs,
+			records=RecordTable,
 
 			% (function_imports)
-			function_imports_defs=ImportDefs,
+			function_imports_defs=ImportLocDefs,
 
 			function_exports=FunctionExportTable,
 
 			% The main part of the AST:
-			functions=Functions,
+			functions=FunctionTable,
 
-			last_line=LastLineDef,
+			optional_callbacks_defs=OptCallbacksLocDefs,
 
-			unhandled_forms=UnhandledForms
+			last_line=LastLineLocDef,
+
+			unhandled_forms=UnhandledLocForms
 
 								  } ) ->
 
-	TypeExportInfos = ?table:enumerate( TypeExportTable ),
 
-	%ast_utils:display_debug( "TypeExportInfos = ~p",
-	%  [ TypeExportInfos ] ),
+	{ TypeExportLocDefs, TypeLocDefs } = ast_type:get_located_forms_for( 
+										   TypeExportTable, TypeTable ),
 
-	TypeExportLocDefs = [ { Loc, { attribute, Line, export_type, TypeIds } }
-				   || { Loc, { Line, TypeIds } } <- TypeExportInfos ],
+	RecordLocDefs = ast_record:get_located_forms_for( RecordTable ),
 
-	TypeLocDefs = get_located_forms_for_types( Types ),
+	{ FunExportLocDefs, FunctionLocDefs } = ast_function:get_located_forms_for(
+												FunctionExportTable, FunctionTable ),
 
-	FunExportInfos = ?table:enumerate( FunctionExportTable ),
-
-	%ast_utils:display_debug( "FunExportInfos = ~p",
-	%  [ FunExportInfos ] ),
-
-	FunExportLocDefs = [ { Loc, { attribute, Line, export, FunIds } }
-				   || { Loc, { Line, FunIds } } <- FunExportInfos ],
-
-	FunctionLocDefs = get_located_forms_for_functions( Functions ),
 
 	% All these definitions are located, yet we start from a sensible order so
 	% that inserted forms do not end up in corner cases:
 	%
 	% (order does not really matter thanks to explicit locations)
 	%
-	UnorderedLocatedAST = [ ModuleDef |
-							   ParseAttributeDefs
-							++ RemoteSpecDefs
+	UnorderedLocatedAST = [ ModuleLocDef |
+							   ParseAttributeLocDefs
+							++ RemoteSpecLocDefs
 							++ FunExportLocDefs
-							++ IncludeDefs
+							++ IncludeLocDefs
 							++ ImportDefs
-							++ CompileOptDefs
-							++ RecordDefs
+							++ OptCallbacksLocDefs
+							++ CompileOptLocDefs
+							++ RecordLocDefs
 							++ TypeExportLocDefs
 							++ TypeLocDefs
 							++ FunctionLocDefs
-							++ [ LastLineDef | UnhandledForms ] ],
+							++ [ LastLineLocDef | UnhandledLocForms ] ],
 
 	%ast_utils:display_debug( "Unordered located AST:~n~p~n",
 	%  [ UnorderedLocatedAST ] ),
@@ -717,85 +715,6 @@ recompose_ast_from_module_info( #module_info{
 
 
 
-
-% Returns a list of the located forms corresponding to all the functions
-% definitions and specs that are described in the specified function table.
-%
--spec get_located_forms_for_functions( function_table() ) -> [ located_form() ].
-get_located_forms_for_functions( FunctionTable ) ->
-
-	% Dropping the keys (the function_id(), i.e. function identifiers), focusing
-	% on their associated function_info():
-	%
-	FunInfos = ?table:values( FunctionTable ),
-
-	lists:foldl( fun( #function_info{ name=Name,
-									  arity=Arity,
-									  location=Location,
-									  line=Line,
-									  definition=Clauses,
-									  spec=MaybeSpec }, Acc ) ->
-
-						 LocFunForm = { Location,
-								  { function, Line, Name, Arity, Clauses } },
-
-						 case MaybeSpec of
-
-							 undefined ->
-								 [ LocFunForm | Acc ];
-
-							 LocSpecForm ->
-								 [ LocSpecForm, LocFunForm | Acc ]
-
-						 end
-
-				 end,
-				 _Acc0=[],
-				 _List=FunInfos ).
-
-
-
-
-% Returns a list of the located forms corresponding to all the types definitions
-% that are described in the specified type table.
-%
--spec get_located_forms_for_types( type_table() ) -> [ located_form() ].
-get_located_forms_for_types( TypeTable ) ->
-
-	% Dropping the keys (the type_id(), i.e. type identifiers), focusing on
-	% their associated type_info()
-	%
-	TypeInfos = ?table:values( TypeTable ),
-
-	lists:foldl( fun( #type_info{ name=TypeName,
-								  variables=TypeVariables,
-								  opaque=IsOpaque,
-								  location=Location,
-								  line=Line,
-								  definition=TypeDef
-								  %exported
-								}, Acc ) ->
-
-						 TypeDesignator = case IsOpaque of
-
-							 true ->
-								 opaque;
-
-							 false ->
-								 type
-
-						 end,
-
-						 Form = { attribute, Line, TypeDesignator,
-						   { TypeName, TypeDef, TypeVariables } },
-
-						 LocTypeForm = { Location, Form },
-
-						 [ LocTypeForm | Acc ]
-
-				 end,
-				 _Acc0=[],
-				 _List=TypeInfos ).
 
 
 
@@ -885,6 +804,7 @@ module_info_to_string( #module_info{
 						 function_imports_defs=_FunImportDefs,
 						 function_exports=_FunctionExports,
 						 functions=Functions,
+						 optional_callbacks_defs=OptCallbacksDefs,
 						 last_line=LastLine,
 						 unhandled_forms=UnhandledForms } ) ->
 
@@ -945,6 +865,17 @@ module_info_to_string( #module_info{
 					text_utils:format( "~B compile option(s) defined: ~s~n",
 						   [ length( CompileOpts ),
 							 text_utils:strings_to_string( CompStrings ) ] )
+
+			end,
+
+			case OptCallbacksDefs of
+
+				[] ->
+					"no optional callback defined";
+
+				_ ->
+					text_utils:format( "~B lists of optional callback defined",
+									   [ length( OptCallbacksDefs ) ] )
 
 			end,
 

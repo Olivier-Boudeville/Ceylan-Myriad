@@ -36,9 +36,12 @@
 
 % The description of an expression in an AST, with line information.
 %
-% Note: an expression may be a pattern.
-%
 % Ex: '{integer,97,2}' or '{match,117, {var,117,'A'}, {atom,117,foobar}}' , etc.
+%
+% Note: an expression is different from a pattern: even if they share at least
+% some types of forms, they are to be interpreted differently (ex: their
+% sub-elements are of the same kind as they are, and at least some rules
+% differ).
 %
 -type ast_expression() :: ast_base:ast_element().
 
@@ -76,10 +79,17 @@
 -spec transform_expression( ast_expression(), ast_transforms() ) ->
 								  ast_expression().
 
+
+
+% Remote call expression found:
+%
+% "If E is a function call E_m:E_0(E_1, ..., E_k), then Rep(E) =
+% {call,LINE,{remote,LINE,Rep(E_m),Rep(E_0)},[Rep(E_1), ..., Rep(E_k)]}.
+
 % Remote call expression found, with an immediate name for both the module and
 % the function:
 %
-transform_expression( E={ call, Line1, { remote, _Line2,
+transform_expression( E={ 'call', Line1, { remote, _Line2,
 			_M={ atom, _Line3, ModuleName }, _F={ atom, Line4, FunctionName } },
 			Params }, Transforms ) ->
 
@@ -89,7 +99,7 @@ transform_expression( E={ call, Line1, { remote, _Line2,
 	Arity = length( Params ),
 
 	% First recurses, knowing that function parameters are expressions:
-	NewParams = [ transform_expression( Param, Transforms ) || Param <- Params ],
+	NewParams = transform_expressions( Params, Transforms ),
 
 	Outcome = case Transforms#ast_transforms.remote_calls of
 
@@ -196,7 +206,7 @@ transform_expression( E={ call, Line1, { remote, _Line2,
 % (note: we do not manage yet the case where for example the function name
 % results from an expression yet a wildcard has been defined for it)
 %
-transform_expression( E={ call, Line1,
+transform_expression( E={ 'call', Line1,
 						  { remote, Line2, ModuleExpr, FunctionExpr }, Params },
 					 Transforms ) ->
 
@@ -207,8 +217,7 @@ transform_expression( E={ call, Line1,
 
 	NewFunctionExpr = transform_expression( FunctionExpr, Transforms ),
 
-	NewParams = [ transform_expression( Param, Transforms )
-				  || Param <- Params ],
+	NewParams = transform_expressions( Params, Transforms ),
 
 	% Cannot use ast_clause:forge_remote_call, we have not atoms:
 	%
@@ -223,8 +232,12 @@ transform_expression( E={ call, Line1,
 
 
 % Local call expression found:
-transform_expression( E={ call, Line1, F={ atom, Line2, FunName }, Params },
-					 Transforms ) ->
+%
+% "If E is a function call E_0(E_1, ..., E_k), then Rep(E) =
+% {call,LINE,Rep(E_0),[Rep(E_1), ..., Rep(E_k)]}."
+%
+transform_expression( E={ 'call', Line1, F={ atom, Line2, FunName }, Params },
+					  Transforms ) ->
 
 	ast_utils:display_debug( "Intercepting local call expression ~p...",
 							 [ E ] ),
@@ -232,8 +245,7 @@ transform_expression( E={ call, Line1, F={ atom, Line2, FunName }, Params },
 	Arity = length( Params ),
 
 	% First recurses:
-	NewParams = [ transform_expression( Param, Transforms )
-				  || Param <- Params ],
+	NewParams = transform_expressions( Params, Transforms ),
 
 	Outcome = case Transforms#ast_transforms.local_calls of
 
@@ -299,15 +311,20 @@ transform_expression( E={ call, Line1, F={ atom, Line2, FunName }, Params },
 
 
 % Case expression found:
+%
+% "If E is a case expression case E_0 of Cc_1 ; ... ; Cc_k end, where E_0 is an
+% expression and each Cc_i is a case clause, then Rep(E) =
+% {'case',LINE,Rep(E_0),[Rep(Cc_1), ..., Rep(Cc_k)]}."
+%
 transform_expression( E={ 'case', Line, TestExpression, CaseClauses },
-				 Transforms ) ->
+					  Transforms ) ->
 
 	ast_utils:display_debug( "Intercepting case expression ~p...", [ E ] ),
 
 	NewTestExpression = transform_expression( TestExpression, Transforms ),
 
-	% Case clauses assumed to be expressions:
-	NewCaseClauses = [ transform_expression( C, Transforms ) || C <- CaseClauses ],
+	NewCaseClauses = ast_clause:transform_case_clauses( CaseClauses, 
+														Transforms ),
 
 	Res = { 'case', Line, NewTestExpression, NewCaseClauses },
 
@@ -315,10 +332,151 @@ transform_expression( E={ 'case', Line, TestExpression, CaseClauses },
 	Res;
 
 
+
+% Catch expression found:
+%
+% "If E is a catch expression catch E_0, then Rep(E) = {'catch',LINE,Rep(E_0)}."
+%
+transform_expression( E={ 'catch', Line, Expression }, Transforms ) ->
+
+	ast_utils:display_debug( "Intercepting catch expression ~p...", [ E ] ),
+
+	NewExpression = transform_expression( Expression, Transforms ),
+
+	Res = { 'case', Line, NewExpression  },
+
+	ast_utils:display_debug( "... returning catch expression ~p", [ Res ] ),
+	Res;
+
+
+% Cons expression found:
+%
+% "If E is a cons skeleton [E_h | E_t], then Rep(E) =
+% {cons,LINE,Rep(E_h),Rep(E_t)}."
+%
+% Head and Tail members are expressions (not just patterns), as a member can
+% for example be : {call,56, {remote, ...
+%
+transform_expression( E={ 'cons', Line, HeadExpression, TailExpression },
+					  Transforms ) ->
+
+	ast_utils:display_debug( "Intercepting cons expression ~p...", [ E ] ),
+
+	NewHeadExpression = transform_expression( HeadExpression, Transforms ),
+
+	NewTailExpression = transform_expression( TailExpression, Transforms ),
+
+	Res = { cons, Line, NewHeadExpression, NewTailExpression },
+
+	ast_utils:display_debug( "... returning cons expression ~p", [ Res ] ),
+
+	Res;
+
+
+% Fun expression found:
+%
+% "If E is a fun expression fun Name/Arity, then Rep(E) =
+% {'fun',LINE,{function,Name,Arity}}."
+%
+transform_expression( E={ 'fun', Line, { function, Name, Arity } },
+					  Transforms ) ->
+
+	ast_utils:display_debug( "Intercepting local fun expression ~p...", [ E ] ),
+
+	NewName = transform_expression( Name, Transforms ),
+
+	NewArity = transform_expression( Arity, Transforms ),
+
+	%Res = E,
+	Res = { fun, Line, { function, NewName, NewArity } },
+
+	ast_utils:display_debug( "... returning local fun expression ~p", [ Res ] ),
+
+	Res;
+
+
+% "If E is a fun expression fun Module:Name/Arity, then Rep(E) =
+% {'fun',LINE,{function,Rep(Module),Rep(Name),Rep(Arity)}}."
+%
+transform_expression( E={ 'fun', Line, _F={ function, Module, Name, Arity } },
+					  Transforms ) ->
+
+	ast_utils:display_debug( "Intercepting remote fun expression ~p...",
+							 [ E ] ),
+
+	NewModule = transform_expression( Module, Transforms ),
+
+	NewName = transform_expression( Name, Transforms ),
+
+	NewArity = transform_expression( Arity, Transforms ),
+
+	Res = { fun, Line, { function, NewModule, NewName, NewArity } },
+
+	ast_utils:display_debug( "... returning remote fun expression ~p",
+							 [ Res ] ),
+
+	Res;
+
+
+% "If E is a fun expression fun Fc_1 ; ... ; Fc_k end, where each Fc_i is a
+% function clause, then Rep(E) = {'fun',LINE,{clauses,[Rep(Fc_1), ...,
+% Rep(Fc_k)]}}."
+%
+transform_expression( E={ 'fun', Line, { clauses, FunctionClauses } },
+					  Transforms ) ->
+
+	ast_utils:display_debug( "Intercepting fun expression with clauses ~p...",
+							 [ E ] ),
+
+	NewFunctionClauses = ast_clause:transform_function_clauses(
+						   FunctionClauses, Transforms ),
+
+	Res = { fun, Line, { clauses, NewFunctionClauses } },
+
+	ast_utils:display_debug( "... returning fun expression with clauses ~p",
+							 [ Res ] ),
+
+	Res;
+
+
+% "If E is a fun expression fun Name Fc_1 ; ... ; Name Fc_k end, where Name is a
+% variable and each Fc_i is a function clause, then Rep(E) =
+% {named_fun,LINE,Name,[Rep(Fc_1), ..., Rep(Fc_k)]}.
+%
+transform_expression( E={ 'named_fun', Line, Name, FunctionClauses  },
+					  Transforms ) ->
+
+	ast_utils:display_debug( "Intercepting named fun expression ~p...",
+							 [ E ] ),
+
+	NewFunctionClauses = ast_clause:transform_function_clauses(
+						   FunctionClauses, Transforms ),
+
+	Res = { named_fun, Line, Name, NewFunctionClauses },
+
+	ast_utils:display_debug( "... returning named fun expression ~p",
+							 [ Res ] ),
+
+	Res;
+
+
 % Default catch-all:
 transform_expression( Expression, Transforms ) ->
+
+	% Was incorrect, as patterns are not a special case of expressions:
 
 	% None of the expressions above matched, this expression must be a pattern
 	% then:
 	%
-	ast_pattern:transform_pattern( Expression, Transforms ).
+	%ast_pattern:transform_pattern( Expression, Transforms ).
+
+	ast_utils:raise_error( [ unexpected_expression, Expression ] ).
+
+
+
+% For convenience:
+%
+-spec transform_expressions( [ ast_expression() ], ast_transforms() ) ->
+								  [ ast_expression() ].
+transform_expressions( Expressions, Transforms ) ->
+	[ transform_expression( E, Transforms ) || E <- Expressions ],

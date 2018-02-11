@@ -27,12 +27,14 @@
 
 
 
-% Module in charge of handling values defined within an AST, including atomic literals.
+% Module in charge of handling values defined within an AST, including atomic
+% literals.
 %
 % Refer to the "7.2 Atomic Literals" section of
 % http://erlang.org/doc/apps/erts/absform.html for more information.
 %
 -module(ast_value).
+
 
 
 % "There are five kinds of atomic literals, which are represented in the same
@@ -66,10 +68,16 @@
 
 -type ast_immediate_value() :: ast_atomic_literal() | ast_compound_literal().
 
+-type maybe_ast_immediate_value() :: basic_utils:maybe( ast_immediate_value() ).
 
 
--export_type([ ast_atomic_literal/0, ast_compound_literal/0, 
-			   ast_immediate_value/0 ]).
+
+-export_type([ ast_atomic_literal/0, ast_compound_literal/0,
+			   ast_immediate_value/0, maybe_ast_immediate_value/0 ]).
+
+
+% Transformations:
+-export([ transform_value/2 ]).
 
 
 
@@ -88,6 +96,31 @@
 
 -type ast_element() :: ast_base:ast_element().
 -type line() :: ast_base:line().
+-type ast_transforms() :: ast_transform:ast_transforms().
+
+
+
+% Section for value transformation.
+
+
+% Transforms specified value, operating relevant AST transformations onto it.
+%
+-spec transform_value( ast_atomic_literal(), ast_transforms() ) ->
+							 ast_atomic_literal().
+transform_value( Litteral={ atom, _Line, _Atom }, _Transforms ) ->
+	Litteral;
+
+transform_value( Litteral={ char, _Line, _Char }, _Transforms ) ->
+	Litteral;
+
+transform_value( Litteral={ float, _Line, _Float }, _Transforms ) ->
+	Litteral;
+
+transform_value( Litteral={ integer, _Line, _Integer }, _Transforms ) ->
+	Litteral;
+
+transform_value( Litteral={ string, _Line, _String }, _Transforms ) ->
+	Litteral.
 
 
 

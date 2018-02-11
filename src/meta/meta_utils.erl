@@ -204,11 +204,13 @@
 -type function_spec() :: form().
 
 
+% The name of a variable (ex: 'X', or '_' in some cases):
+-type variable_name() :: atom().
+
 
 -export_type([ parse_transform_options/0,
 			   module_name/0, function_name/0, function_id/0,
-			   clause_def/0, function_spec/0,
-			   function_info/0 ]).
+			   clause_def/0, function_spec/0, variable_name/0 ]).
 
 
 
@@ -640,75 +642,6 @@ update_clause_spec( UnexpectedClauseSpec, _MaybeLocalTypeTable,
 					_MaybeRemoteTypeTable ) ->
 	ast_utils:raise_error( [ unexpected_clause_spec, UnexpectedClauseSpec ] ).
 
-
-
-
-% Updates the types in specified record fields, based on specified replacements.
-%
--spec update_types_in_fields( [ ast_field_description() ],
-			ast_transform:local_type_transform_table(),
-			ast_transform:remote_type_transform_table()  ) ->
-									[ ast_field_description() ].
-update_types_in_fields( Fields, MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
-
-	%ast_utils:display_debug( "Input fields: ~p.", [ Fields ] ),
-
-	NewFields = [ update_types_in_field( F, MaybeLocalTypeTable,
-							   MaybeRemoteTypeTable ) || F <- Fields ],
-
-	%ast_utils:display_debug( "New fields: ~p.", [ NewFields ] ),
-
-	NewFields.
-
-
-
-% (helper)
-%
--spec update_types_in_field( ast_field_description(),
-		ast_transform:local_type_transform_table(),
-		ast_transform:remote_type_transform_table() ) ->
-								   ast_field_description().
-% Type specified, without or with a default value:
-update_types_in_field( _F={ typed_record_field,
-		   % { record_field, _Line1, { atom, _Line2, _FieldName } },
-		   %  - or -
-		   % { record_field, _Line1, { atom, _Line2, _FieldName },
-		   %		{ _ImmediateType, Line2, DefaultValue } }:
-		   RecordField,
-		   %{ type, Line3, TypeName, TypeVars } }:
-		   TypeDef }, MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
-
-	NewTypeDef = ast_type:transform_type( TypeDef, MaybeLocalTypeTable,
-										  MaybeRemoteTypeTable ),
-
-	{ typed_record_field, RecordField, NewTypeDef };
-
-
-% No type and no default value specified:
-update_types_in_field( F={ record_field, _Line1,
-						   % { atom, Line2, FieldName }:
-						   _FieldNameDef },
-					   _MaybeLocalTypeTable, _MaybeRemoteTypeTable ) ->
-	F;
-
-% No type specified, yet with a default value:
-update_types_in_field( F={ record_field, _Line1,
-						   % { atom, Line2, FieldName }:
-						   _FieldNameDef,
-						   % { _ImmediateType, Line2, DefaultValue }:
-						   _DefaultValueDef },
-					   _MaybeLocalTypeTable, _MaybeRemoteTypeTable ) ->
-	F;
-
-
-update_types_in_field( F, _MaybeLocalTypeTable, _MaybeRemoteTypeTable ) ->
-	ast_utils:raise_error( [ unexpected_record_field, F ] ).
-
-
-
-
-
-% Handling record-related types.
 
 
 % Annotated type, for example found in a record field like:

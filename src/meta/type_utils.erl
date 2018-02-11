@@ -723,7 +723,7 @@ get_elementary_types() ->
 % found in AST forms.
 %
 -spec get_simple_builtin_types() -> [ type_name() ].
-get_simple_builtin_types() -> 
+get_simple_builtin_types() ->
 	get_immediate_types() ++ [ 'pid', 'port', 'reference', 'any', 'no_return' ].
 
 

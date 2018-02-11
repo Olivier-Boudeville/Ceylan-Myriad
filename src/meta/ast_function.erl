@@ -30,6 +30,8 @@
 
 % Module in charge of providing constructs to manage functions in an AST.
 %
+% Note: function clauses managed in the ast_clause module.
+%
 -module(ast_function).
 
 
@@ -46,6 +48,10 @@
 
 		  check_function_type/2, check_function_type/3,
 		  check_function_types/2, check_function_types/3 ]).
+
+
+% Recomposition:
+-export([ get_located_forms_for/2 ]).
 
 
 % Shorthands:
@@ -162,3 +168,56 @@ check_function_types( Other, _FunctionArity, Context ) ->
 	ast_utils:raise_error( [ invalid_function_type_list, Other ], Context ).
 
 
+
+
+% Returns a pair made of (two) lists of located forms corresponding to:
+%
+% - all the function export declarations that are described in the specified
+% function export table
+%
+% - all the function definitions and specs that are described in the specified
+% function table
+%
+-spec get_located_forms_for( ast_info:function_export_table(),
+			 function_table() ) -> { [ located_form() ], [ located_form() ] }.
+get_located_forms_for( FunctionExportTable, FunctionTable ) ->
+
+	FunExportInfos = ?table:enumerate( FunctionExportTable ),
+
+	%ast_utils:display_debug( "FunExportInfos = ~p",
+	%  [ FunExportInfos ] ),
+
+	FunExportLocDefs = [ { Loc, { attribute, Line, export, FunIds } }
+				   || { Loc, { Line, FunIds } } <- FunExportInfos ],
+
+
+	% Dropping the keys (the function_id(), i.e. function identifiers), focusing
+	% on their associated function_info():
+	%
+	FunInfos = ?table:values( FunctionTable ),
+
+	FunctionLocDefs = lists:foldl( fun( #function_info{ name=Name,
+									  arity=Arity,
+									  location=Location,
+									  line=Line,
+									  definition=Clauses,
+									  spec=MaybeSpec }, Acc ) ->
+
+						 LocFunForm = { Location,
+								  { function, Line, Name, Arity, Clauses } },
+
+						 case MaybeSpec of
+
+							 undefined ->
+								 [ LocFunForm | Acc ];
+
+							 LocSpecForm ->
+								 [ LocSpecForm, LocFunForm | Acc ]
+
+						 end
+
+				 end,
+				 _Acc0=[],
+				 _List=FunInfos ),
+
+	{ FunExportLocDefs, FunctionLocDefs }.

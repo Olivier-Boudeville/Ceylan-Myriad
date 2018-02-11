@@ -332,8 +332,8 @@ transform_guard_test( GuardTest={ record, Line, RecordName, RecordFields },
 
 	ast_type:check_ast_atom( RecordName, Line ),
 
-	NewRecordFields = ast_record:transform_creation_record_fields( RecordFields,
-																   Transforms ),
+	NewRecordFields = ast_record:transform_record_field_definitions( 
+						RecordFields, Transforms ),
 
 	NewGuardTest = { record, Line, RecordName, NewRecordFields },
 

@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville (olivier.boudeville@esperide.com)
-% Creation date: Friday, December 19, 2014
+% Creation date: Friday, December 19, 2014.
 
 
 % Unit tests for the meta utils toolbox.

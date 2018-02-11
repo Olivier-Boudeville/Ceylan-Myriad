@@ -30,6 +30,11 @@
 % Module in charge of transforming AST elements, typically by operating on a
 % module_info record obtained after the transformning of an AST.
 %
+% Note that the transform relies on a rather complex and complete traversal of
+% the abstract syntax of the AST, inspired from the spec (in
+% http://erlang.org/doc/apps/erts/absform.html) and also checked againd the
+% Erlang 'id' parse transformation (see lib/stdlib/examples/erl_id_trans.erl).
+%
 -module(ast_transform).
 
 

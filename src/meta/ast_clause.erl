@@ -54,21 +54,41 @@
 					| ast_case_clause() | ast_catch_clause().
 
 
+
 % Describes a function clause in an AST:
+%
+% "If C is a function clause ( Ps ) -> B, where Ps is a pattern sequence and B
+% is a body, then Rep(C) = {clause,LINE,Rep(Ps),[],Rep(B)}.
+%
+% If C is a function clause ( Ps ) when Gs -> B, where Ps is a pattern sequence,
+% Gs is a guard sequence and B is a body, then Rep(C) =
+% {clause,LINE,Rep(Ps),Rep(Gs),Rep(B)}."
 %
 -type ast_function_clause() :: { 'clause', line(),
 								 ast_pattern:ast_pattern_sequence(),
 								 ast_guard:ast_guard_sequence(), ast_body() }.
 
 
+
 % Describes an if clause in an AST:
 %
--type ast_if_clause() :: basic_utils:fixme().
+% "If C is an if clause Gs -> B, where Gs is a guard sequence and B is a body,
+% then Rep(C) = {clause,LINE,[],Rep(Gs),Rep(B)}."
+%
+% (special case of ast_function_clause/0)
+%
+-type ast_if_clause() :: { 'clause', line(), [], ast_guard:ast_guard_sequence(),
+						   ast_body() }.
+
 
 
 % Describes a case clause in an AST:
 %
--type ast_case_clause() :: basic_utils:fixme().
+% (same as ast_function_clause/0)
+%
+-type ast_case_clause() :: { 'clause', line(),
+								 ast_pattern:ast_pattern_sequence(),
+								 ast_guard:ast_guard_sequence(), ast_body() }.
 
 
 % Describes a catch clause in an AST:
@@ -100,8 +120,10 @@
 
 
 
--export([ transform_function_clause/2, transform_if_clause/2,
-		  transform_case_clause/2, transform_catch_clause/2,
+-export([ transform_function_clause/2, transform_function_clauses/2,
+		  transform_if_clause/2, transform_if_clauses/2,
+		  transform_case_clause/2, transform_case_clauses/2,
+		  transform_catch_clause/2, transform_catch_clauses/2,
 		  transform_body/2 ]).
 
 
@@ -126,7 +148,7 @@
 
 % Transforms specified function clause.
 %
-% Handled the same, with or without guard(s):
+% Handled the same, with or without guard(s), as a guard sequence may be empty:
 %
 %  - without: "If C is a function clause ( Ps ) -> B, where Ps is a pattern
 %  sequence and B is a body, then Rep(C) = {clause,LINE,Rep(Ps),[],Rep(B)}."
@@ -138,17 +160,14 @@
 -spec transform_function_clause( ast_function_clause(),
 		 ast_transform:ast_transforms() ) -> ast_function_clause().
 transform_function_clause(
-  Clause={ clause, Line, PatternSequence, GuardSequence, Body },
+  Clause={ 'clause', Line, PatternSequence, GuardSequence, Body },
   Transforms ) ->
 
 	ast_utils:display_debug( "Intercepting function clause ~p...", [ Clause ] ),
 
-	% Rather complete, out of safety:
-
 	NewPatternSequence = ast_pattern:transform_pattern_sequence(
 						   PatternSequence, Transforms ),
 
-	% Guard example: {call,102, {atom,102,is_integer}, [{var,102,'X'}]}
 	NewGuardSequence = ast_guard:transform_guard_sequence( GuardSequence,
 														   Transforms ),
 
@@ -162,37 +181,178 @@ transform_function_clause(
 
 
 
+% Transforms specified list of function clauses.
+%
+-spec transform_function_clauses( [ ast_function_clause() ],
+		 ast_transform:ast_transforms() ) -> [ ast_function_clause() ].
+transform_function_clauses( FunctionClauses, Transforms ) ->
+	[ transform_function_clause( C, Transforms ) || C <- FunctionClauses ].
+
+
+
+
 % If clause section.
 
 
+% Transforms specified if clause.
+%
+% "If C is an if clause Gs -> B, where Gs is a guard sequence and B is a body,
+% then Rep(C) = {clause,LINE,[],Rep(Gs),Rep(B)}."
+%
+% (no pattern sequence allowed)
+%
 -spec transform_if_clause( ast_if_clause(), ast_transform:ast_transforms() ) ->
 								 ast_if_clause().
 transform_if_clause(
-  _Clause,
-  _Transforms ) ->
-	throw( fixme ).
+  Clause={ 'clause', Line, PatternSequence=[], GuardSequence, Body },
+  Transforms ) ->
+
+	ast_utils:display_debug( "Intercepting if clause ~p...", [ Clause ] ),
+
+	NewGuardSequence = ast_guard:transform_guard_sequence( GuardSequence,
+														   Transforms ),
+
+	NewBody = transform_body( Body, Transforms ),
+
+	Res = { clause, Line, PatternSequence, NewGuardSequence, NewBody },
+
+	ast_utils:display_debug( "... returning if clause ~p", [ Res ] ),
+
+	Res.
+
+
+
+% Transforms specified list of if clauses.
+%
+-spec transform_if_clauses( [ ast_if_clause() ],
+		 ast_transform:ast_transforms() ) -> [ ast_if_clause() ].
+transform_if_clauses( IfClauses, Transforms ) ->
+	[ transform_if_clause( C, Transforms ) || C <- IfClauses ].
+
+
 
 
 
 % Case clause section.
 
+
+% Transforms specified case clause.
+%
+% "If C is a case clause P -> B, where P is a pattern and B is a body, then
+% Rep(C) = {clause,LINE,[Rep(P)],[],Rep(B)}.
+%
+% If C is a case clause P when Gs -> B, where P is a pattern, Gs is a guard
+% sequence, and B is a body, then Rep(C) =
+% {clause,LINE,[Rep(P)],Rep(Gs),Rep(B)}."
+%
+% (a single pattern allowed)
+%
 -spec transform_case_clause( ast_case_clause(),
 				ast_transform:ast_transforms() ) -> ast_case_clause().
 transform_case_clause(
-  _Clause,
-  _Transforms ) ->
-	throw( fixme ).
+  Clause={ 'clause', Line, [ Pattern ], GuardSequence, Body },
+  Transforms ) ->
+
+	ast_utils:display_debug( "Intercepting case clause ~p...", [ Clause ] ),
+
+	NewPattern = ast_pattern:transform_pattern( Pattern, Transforms ),
+
+	NewGuardSequence = ast_guard:transform_guard_sequence( GuardSequence,
+														   Transforms ),
+
+	NewBody = transform_body( Body, Transforms ),
+
+	Res = { clause, Line, NewPattern, NewGuardSequence, NewBody },
+
+	ast_utils:display_debug( "... returning case clause ~p", [ Res ] ),
+
+	Res.
+
+
+% Transforms specified list of case clauses.
+%
+-spec transform_case_clauses( [ ast_case_clause() ],
+		 ast_transform:ast_transforms() ) -> [ ast_case_clause() ].
+transform_case_clauses( CaseClauses, Transforms ) ->
+	[ transform_case_clause( C, Transforms ) || C <- CaseClauses ].
+
+
 
 
 % Catch clause section.
 
 
+% If clause with no variable, with or without a guard sequence:
+%
+% - "If C is a catch clause P -> B, where P is a pattern and B is a body, then
+% Rep(C) = {clause,LINE,[Rep({throw,P,_})],[],Rep(B)}."
+%
+% - "If C is a catch clause P when Gs -> B, where P is a pattern, Gs is a guard
+% sequence, and B is a body, then Rep(C) =
+% {clause,LINE,[Rep({throw,P,_})],Rep(Gs),Rep(B)}."
 -spec transform_catch_clause( ast_catch_clause(),
 				  ast_transform:ast_transforms() ) -> ast_catch_clause().
-transform_catch_clause(
-  _Clause,
-  _Transforms ) ->
-	throw( fixme ).
+transform_catch_clause( 
+  Clause={ 'clause', Line, [ { throw, Pattern, Any } ], GuardSequence, Body },
+  Transforms ) ->
+
+	ast_utils:display_debug( "Intercepting catch clause ~p...", [ Clause ] ),
+
+	NewPattern = ast_pattern:transform_pattern( Pattern, Transforms ),
+
+	NewGuardSequence = ast_guard:transform_guard_sequence( GuardSequence,
+														   Transforms ),
+
+	NewBody = transform_body( Body, Transforms ),
+
+	Res = { clause, Line, [ { throw, NewPattern, Any } ], 
+			NewGuardSequence, NewBody },
+
+	ast_utils:display_debug( "... returning catch clause ~p", [ Res ] ),
+
+	Res;
+
+
+% If clause with X variable, with or without a guard sequence:
+%
+% - "If C is a catch clause X : P -> B, where X is an atomic literal or a
+% variable pattern, P is a pattern, and B is a body, then Rep(C) =
+% {clause,LINE,[Rep({X,P,_})],[],Rep(B)}."
+%
+% - "If C is a catch clause X : P when Gs -> B, where X is an atomic literal or
+% a variable pattern, P is a pattern, Gs is a guard sequence, and B is a body,
+% then Rep(C) = {clause,LINE,[Rep({X,P,_})],Rep(Gs),Rep(B)}."
+%
+transform_catch_clause( 
+  Clause={ 'clause', Line, [ { throw, Pattern, Any } ], GuardSequence, Body },
+  Transforms ) ->
+
+	ast_utils:display_debug( "Intercepting catch clause with variable ~p...",
+							 [ Clause ] ),
+
+	NewPattern = ast_pattern:transform_pattern( Pattern, Transforms ),
+
+	NewGuardSequence = ast_guard:transform_guard_sequence( GuardSequence,
+														   Transforms ),
+
+	NewBody = transform_body( Body, Transforms ),
+
+	Res = { clause, Line, [ { throw, NewPattern, Any } ], 
+			NewGuardSequence, NewBody },
+
+	ast_utils:display_debug( "... returning catch clause with variable ~p",
+							 [ Res ] ),
+
+	Res;
+
+
+% Transforms specified list of catch clauses.
+%
+-spec transform_catch_clauses( [ ast_catch_clause() ],
+		 ast_transform:ast_transforms() ) -> [ ast_catch_clause() ].
+transform_catch_clauses( CatchClauses, Transforms ) ->
+	[ transform_catch_clause( C, Transforms ) || C <- CatchClauses ].
+
 
 
 
@@ -240,7 +400,7 @@ forge_local_call( FunctionName, Params, Line ) ->
 -spec forge_local_call( function_name(), [ ast_expression() ], line(),
 						line() ) -> ast_expression().
 forge_local_call( FunctionName, Params, Line1, Line2 ) ->
-	{ call, Line1, ast_type:forge_atom_value( FunctionName, Line2 ), Params }.
+	{ call, Line1, ast_value:forge_atom_value( FunctionName, Line2 ), Params }.
 
 
 
@@ -252,7 +412,7 @@ forge_local_call( FunctionName, Params, Line1, Line2 ) ->
 % {{remote,102, {atom,102,some_module}, {atom,102,some_fun},
 %              [{atom,102,a},{atom,102,b}]}.
 %
--spec forge_remote_call( module_name(), function_name(), [ ast_expression() ], 
+-spec forge_remote_call( module_name(), function_name(), [ ast_expression() ],
 						 line() ) -> ast_expression().
 forge_remote_call( ModuleName, FunctionName, Params, Line ) ->
 	forge_remote_call( ModuleName, FunctionName, Params, Line, Line ).
@@ -271,8 +431,8 @@ forge_remote_call( ModuleName, FunctionName, Params, Line ) ->
 						 line(), line() ) -> ast_expression().
 forge_remote_call( ModuleName, FunctionName, Params, Line1, Line2 ) ->
 	{ call, Line1, { remote, Line2,
-					 ast_type:forge_atom_value( ModuleName, Line2 ),
-					 ast_type:forge_atom_value( FunctionName, Line2 ) },
+					 ast_value:forge_atom_value( ModuleName, Line2 ),
+					 ast_value:forge_atom_value( FunctionName, Line2 ) },
 	  Params }.
 
 
