@@ -59,14 +59,23 @@
 % Shorthands:
 
 -type line() :: ast_base:line().
+-type form() :: ast_base:form().
+-type located_form() :: ast_info:located_form().
 
+-type ast_element() :: ast_base:ast_element().
 -type ast_transforms() :: ast_transform:ast_transforms().
 
 -type record_name() :: basic_utils:record_name().
 -type field_name() :: basic_utils:field_name().
 
+-type ast_type() :: ast_type:ast_type().
 -type maybe_ast_type() :: ast_type:maybe_ast_type().
+
 -type maybe_ast_immediate_value() :: ast_value:maybe_ast_immediate_value().
+
+-type record_table() :: ast_info:record_table().
+-type record_definition() :: ast_info:record_definition().
+-type field_table() :: ast_info:field_table().
 
 
 
@@ -93,21 +102,34 @@
 %
 % {record_field,LINE,Rep(Field_1),Rep(ValueType)}
 %
--type ast_record_field_definition( ValueType ) ::
+-type ast_untyped_record_field_definition( ValueType ) ::
 		{ 'record_field', line(), ast_field_id(), ValueType }.
+
+-type ast_typed_record_field_definition( ValueType ) ::
+		{ 'typed_record_field', line(),
+		  ast_untyped_record_field_definition( ValueType ),
+		  ast_type() }.
+
+
+-type ast_record_field_definition( ValueType ) ::
+		ast_untyped_record_field_definition( ValueType )
+	  | ast_typed_record_field_definition( ValueType ).
+
 
 
 -export_type([ field_definition/0, field_id/0, ast_field_id/0,
+			   ast_untyped_record_field_definition/1,
+			   ast_typed_record_field_definition/1,
 			   ast_record_field_definition/0, ast_record_field_definition/1 ]).
 
 -export([ transform_record_definitions/2,
 		  transform_record_field_definitions/2,
-		  transform_record_field_definitions/3,
-		  transform_record_field_definition/3,
-		  get_located_forms_for/2 ]).
+		  transform_record_field_definition/2,
+		  get_located_forms_for/1 ]).
 
 
-
+% For the table macro:
+-include("meta_utils.hrl").
 
 
 % Often names (ex: of a record, or a field) are transmitted as parameters
@@ -130,7 +152,7 @@ transform_record_definitions( RecordTable, Transforms ) ->
 									RecordDefinition, Transforms )
 					   || { RecordName, RecordDefinition } <- RecordPairs ],
 
-	?table:new( RecordPairs ).
+	?table:new( NewRecordPairs ).
 
 
 
@@ -144,7 +166,7 @@ transform_record_definition( RecordName,
 	% { FieldName, FieldDefinition } pairs:
 	FieldPairs = ?table:enumerate( FieldTable ),
 
-	NewFieldPairs = [ transform_field_definition( FieldName, FieldDescription,
+	NewFieldPairs = [ transform_field_definition( FieldName, FieldDefinition,
 												  Transforms )
 					  || { FieldName, FieldDefinition } <- FieldPairs ],
 
@@ -200,27 +222,14 @@ transform_field_definition_default_value( FieldDefaultValue, Transforms ) ->
 
 
 
-% Transforms specified record fields, at creation.
-%
-% Note: context-agnostic function, considering that any kind of expression can
-% be found for the field value.
-%
--spec transform_record_field_definitions( [ ast_record_field_definition() ],
-						ast_transforms() ) -> [ ast_record_field_definition() ].
-transform_record_field_definitions( RecordFields, Transforms ) ->
-	transform_record_field_definitions( RecordFields, Transforms,
-							 fun ast_expression:transform_expression/2 ).
-
-
 % Transforms specified record fields, at creation, applying to each record field
 % the specified function to perform the relevant transformations (that depends
 % on the context; ex: if being in a guard, in an expression, etc.).
 %
 -spec transform_record_field_definitions( [ ast_record_field_definition() ],
-			ast_transforms(), ast_transform:transform_fun() ) ->
-											  [ ast_record_field_definition() ].
-transform_record_field_definitions( RecordFields, Transforms, TransformFun ) ->
-	[ transform_record_field_definition( RF, Transforms, TransformFun )
+			ast_transforms() ) -> [ ast_record_field_definition() ].
+transform_record_field_definitions( RecordFields, Transforms ) ->
+	[ transform_record_field_definition( RF, Transforms )
 	  || RF <- RecordFields ].
 
 
@@ -230,21 +239,20 @@ transform_record_field_definitions( RecordFields, Transforms, TransformFun ) ->
 % Ex: {record_field,LINE,Rep(Field_k),Rep(Gt_k)}.
 %
 -spec transform_record_field_definition( ast_record_field_definition(),
-			   ast_transforms(), ast_transform:transform_fun() ) ->
-											 ast_record_field_definition().
+			   ast_transforms() ) -> ast_record_field_definition().
 transform_record_field_definition(
-  _RF={ 'record_field', Line, ASTFieldName, ASTValue },
-  Transforms, TransformFun ) ->
+  _RF={ 'record_field', Line, ASTFieldName, ASTValue }, Transforms ) ->
 
 	NewASTFieldName = transform_record_field_name( ASTFieldName, Transforms ),
 
-	NewASTValue = TransformFun( ASTValue, Transforms ),
+	% Currently never transformed:
+	NewASTValue = ASTValue,
 
 	{ record_field, Line, NewASTFieldName, NewASTValue };
 
 
 transform_record_field_definition( _RF={ 'record_field', Line, ASTFieldName },
-								   Transforms, TransformFun ) ->
+								   Transforms ) ->
 
 	NewASTFieldName = transform_record_field_name( ASTFieldName, Transforms ),
 
@@ -253,12 +261,12 @@ transform_record_field_definition( _RF={ 'record_field', Line, ASTFieldName },
 
 transform_record_field_definition(
   _RF={ 'typed_record_field', { 'record_field', Line, ASTFieldName, ASTValue },
-		ASTType },
-  Transforms, TransformFun ) ->
+		ASTType }, Transforms ) ->
 
 	NewASTFieldName = transform_record_field_name( ASTFieldName, Transforms ),
 
-	NewASTValue = TransformFun( ASTValue, Transforms ),
+	% Currently never transformed:
+	NewASTValue = ASTValue,
 
 	NewASTType = ast_type:transform_type( ASTType, Transforms ),
 
@@ -268,7 +276,7 @@ transform_record_field_definition(
 
 transform_record_field_definition(
   _RF={ 'typed_record_field', { 'record_field', Line, ASTFieldName }, ASTType },
-  Transforms, TransformFun ) ->
+  Transforms ) ->
 
 	NewASTFieldName = transform_record_field_name( ASTFieldName, Transforms ),
 
@@ -291,76 +299,8 @@ transform_record_field_name( ASTFieldName, Transforms ) ->
 
 	%ast_type:check_ast_atom( ASTFieldName, Line ),
 	%NewASTFieldName = TransformFun( ASTFieldName, Transforms ),
-	NewASTFieldName = ast_expression:transform_expression( ASTFieldName,
-														   Transforms ),
 
-
-
-
-% Transforms the types in specified record fields, based on specified
-% replacements.
-%
--spec transform_types_in_fields( [ ast_field_definition() ],
-			ast_transform:local_type_transform_table(),
-			ast_transform:remote_type_transform_table()  ) ->
-									[ ast_field_definition() ].
-transform_types_in_fields( Fields, MaybeLocalTypeTable, 
-						   MaybeRemoteTypeTable ) ->
-
-	%ast_utils:display_debug( "Input fields: ~p.", [ Fields ] ),
-
-	NewFields = [ transform_types_in_field( F, MaybeLocalTypeTable,
-							   MaybeRemoteTypeTable ) || F <- Fields ],
-
-	%ast_utils:display_debug( "New fields: ~p.", [ NewFields ] ),
-
-	NewFields.
-
-
-
-% (helper)
-%
--spec transform_types_in_field( ast_field_definition(),
-		ast_transform:local_type_transform_table(),
-		ast_transform:remote_type_transform_table() ) ->
-								   ast_field_definition().
-% Type specified, without or with a default value:
-transform_types_in_field( _F={ 'typed_record_field',
-		   % { record_field, _Line1, { atom, _Line2, _FieldName } },
-		   %  - or -
-		   % { record_field, _Line1, { atom, _Line2, _FieldName },
-		   %		{ _ImmediateType, Line2, DefaultValue } }:
-		   RecordField,
-		   %{ type, Line3, TypeName, TypeVars } }:
-		   TypeDef }, MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
-
-	NewTypeDef = ast_type:transform_type( TypeDef, MaybeLocalTypeTable,
-										  MaybeRemoteTypeTable ),
-
-	{ typed_record_field, RecordField, NewTypeDef };
-
-
-% No type and no default value specified:
-transform_types_in_field( F={ 'record_field', _Line1,
-						   % { atom, Line2, FieldName }:
-						   _FieldNameDef },
-					   _MaybeLocalTypeTable, _MaybeRemoteTypeTable ) ->
-	F;
-
-% No type specified, yet with a default value:
-transform_types_in_field( F={ 'record_field', _Line1,
-						   % { atom, Line2, FieldName }:
-						   _FieldNameDef,
-						   % { _ImmediateType, Line2, DefaultValue }:
-						   _DefaultValueDef },
-					   _MaybeLocalTypeTable, _MaybeRemoteTypeTable ) ->
-	F;
-
-
-transform_types_in_field( F, _MaybeLocalTypeTable, _MaybeRemoteTypeTable ) ->
-	ast_utils:raise_error( [ unexpected_record_field, F ] ).
-
-
+	ast_expression:transform_expression( ASTFieldName, Transforms ).
 
 
 
@@ -412,17 +352,17 @@ recompose_field_definitions( FieldTable, Line ) ->
 -spec recompose_field_definition( field_name(), field_definition(), line() ) ->
 										form().
 recompose_field_definition( FieldName,
-		_FieldDef={ MaybeASTType=undefined, MaybeASTDefaultValue=undefined },
+		_FieldDef={ _MaybeASTType=undefined, _MaybeASTDefaultValue=undefined },
 		Line ) ->
 	{ record_field, Line, { atom, Line, FieldName } };
 
 recompose_field_definition( FieldName,
-		_FieldDef={ MaybeASTType=undefined, ASTDefaultValue },
+		_FieldDef={ _MaybeASTType=undefined, ASTDefaultValue },
 		Line ) ->
 	{ record_field, Line, { atom, Line, FieldName }, ASTDefaultValue };
 
 recompose_field_definition( FieldName,
-		_FieldDef={ ASTType, MaybeASTDefaultValue=undefined },
+		_FieldDef={ ASTType, _MaybeASTDefaultValue=undefined },
 		Line ) ->
 	{ typed_record_field, { record_field, Line, { atom, Line, FieldName } },
 	  ASTType };

@@ -36,10 +36,6 @@
 
 
 
--export_type([]).
-
-
-
 % Checking:
 -export([ check_function_name/1, check_function_name/2,
 
@@ -50,6 +46,10 @@
 		  check_function_types/2, check_function_types/3 ]).
 
 
+% Transformation:
+-export([ transform_functions/2, transform_function/2 ]).
+
+
 % Recomposition:
 -export([ get_located_forms_for/2 ]).
 
@@ -57,9 +57,27 @@
 % Shorthands:
 
 -type function_arity() :: meta_utils:function_arity().
+-type function_spec() :: meta_utils:function_spec().
+
 %-type line() :: ast_base:line().
 -type form_context() :: ast_base:form_context().
 
+-type located_form() :: ast_info:located_form().
+-type function_info() :: ast_info:function_info().
+-type function_table() :: ast_info:function_table().
+
+-type ast_transforms() :: ast_transform:ast_transforms().
+
+
+% For the table macro:
+-include("meta_utils.hrl").
+
+
+% For the function_info record:
+-include("ast_info.hrl").
+
+% For the ast_transform record:
+-include("ast_transform.hrl").
 
 
 
@@ -169,6 +187,117 @@ check_function_types( Other, _FunctionArity, Context ) ->
 
 
 
+% Transforms the functions in specified table, based on specified transforms.
+%
+-spec transform_functions( function_table(), ast_transforms() ) -> function_table().
+transform_functions( FunctionTable, Transforms ) ->
+
+	ast_utils:display_debug( "Transforming functions..." ),
+
+	%ast_utils:display_debug( "Transforming known types in function specs..." ),
+
+	FunIdInfoPairs = ?table:enumerate( FunctionTable ),
+
+	NewFunIdInfoPairs = [ { FunId, transform_function( FunInfo, Transforms ) }
+						  || { FunId, FunInfo } <- FunIdInfoPairs ],
+
+	?table:new( NewFunIdInfoPairs ).
+
+
+
+% Transforms specified function.
+%
+-spec transform_function( function_info(), ast_transforms() ) ->
+								function_info().
+transform_function( FunctionInfo=#function_info{ clauses=ClauseDefs,
+												 spec=MaybeLocFunSpec },
+					Transforms ) ->
+
+	% We have to transform the clauses and the spec:
+
+	NewClauseDefs = [ ast_clause:transform_function_clause( ClauseDef,
+															Transforms )
+					  || ClauseDef <- ClauseDefs ],
+
+	NewLocFunSpec = case MaybeLocFunSpec of
+
+		undefined ->
+			undefined;
+
+		{ Loc, FunSpec } ->
+			{ Loc, transform_function_spec( FunSpec, Transforms ) }
+
+	end,
+
+	FunctionInfo#function_info{ clauses=NewClauseDefs,
+								spec=NewLocFunSpec }.
+
+
+
+% Transforms the specified function specification.
+%
+% "If F is a function specification -Spec Name Ft_1; ...; Ft_k, where Spec is
+% either the atom spec or the atom callback, and each Ft_i is a possibly
+% constrained function type with an argument sequence of the same length Arity,
+% then Rep(F) = {attribute,Line,Spec,{{Name,Arity},[Rep(Ft_1), ...,
+% Rep(Ft_k)]}}.
+%
+-spec transform_function_spec( function_spec(), ast_transforms() ) ->
+									 function_spec().
+transform_function_spec( { 'attribute', Line, SpecType, { FunId, SpecList } },
+						 #ast_transforms{ local_types=MaybeLocalTypeTable,
+										  remote_types=MaybeRemoteTypeTable } ) ->
+
+	% Ex for '-spec f( type_a() ) -> type_b().':
+
+	% SpecList = [ {type,652,'fun',
+	% [{type,652,product,[{user_type,652,type_a,[]}]},
+	% {user_type,652,type_b,[]}] } ]
+	%
+
+	%ast_utils:display_trace( "SpecList = ~p", [ SpecList ] ),
+	NewSpecList = [ update_spec( Spec, MaybeLocalTypeTable,
+								 MaybeRemoteTypeTable ) || Spec <- SpecList ],
+
+	{ attribute, Line, SpecType, { FunId, NewSpecList } }.
+
+
+
+
+% Updates the specified function specification.
+%
+update_spec( { type, Line, 'fun', ClausesSpecs }, MaybeLocalTypeTable,
+			 MaybeRemoteTypeTable ) ->
+
+	NewClausesSpecs = update_clause_spec( ClausesSpecs, MaybeLocalTypeTable,
+										  MaybeRemoteTypeTable ),
+
+	{ type, Line, 'fun', NewClausesSpecs };
+
+update_spec( UnexpectedFunSpec, _MaybeLocalTypeTable, _MaybeRemoteTypeTable ) ->
+	ast_utils:raise_error( [ unexpected_fun_spec, UnexpectedFunSpec ] ).
+
+
+
+% (helper)
+update_clause_spec( [ { type, Line, product, ParamTypes }, ResultType ],
+					MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
+
+	NewParamTypes = [ ast_type:transform_type( ParamType, MaybeLocalTypeTable,
+						  MaybeRemoteTypeTable ) || ParamType <- ParamTypes ],
+
+	NewResultType = ast_type:transform_type( ResultType, MaybeLocalTypeTable,
+											 MaybeRemoteTypeTable ),
+
+	[ { type, Line, product, NewParamTypes }, NewResultType ];
+
+
+update_clause_spec( UnexpectedClauseSpec, _MaybeLocalTypeTable,
+				_MaybeRemoteTypeTable ) ->
+	ast_utils:raise_error( [ unexpected_clause_spec, UnexpectedClauseSpec ] ).
+
+
+
 
 % Returns a pair made of (two) lists of located forms corresponding to:
 %
@@ -179,7 +308,8 @@ check_function_types( Other, _FunctionArity, Context ) ->
 % function table
 %
 -spec get_located_forms_for( ast_info:function_export_table(),
-			 function_table() ) -> { [ located_form() ], [ located_form() ] }.
+							 ast_info:function_table() ) -> 
+								   { [ located_form() ], [ located_form() ] }.
 get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 
 	FunExportInfos = ?table:enumerate( FunctionExportTable ),
@@ -196,12 +326,13 @@ get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 	%
 	FunInfos = ?table:values( FunctionTable ),
 
-	FunctionLocDefs = lists:foldl( fun( #function_info{ name=Name,
-									  arity=Arity,
-									  location=Location,
-									  line=Line,
-									  definition=Clauses,
-									  spec=MaybeSpec }, Acc ) ->
+	FunctionLocDefs = lists:foldl( fun( #function_info{
+										   name=Name,
+										   arity=Arity,
+										   location=Location,
+										   line=Line,
+										   clauses=Clauses,
+										   spec=MaybeSpec }, Acc ) ->
 
 						 LocFunForm = { Location,
 								  { function, Line, Name, Arity, Clauses } },

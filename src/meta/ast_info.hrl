@@ -283,9 +283,9 @@
 
 
 		   % Function actual definition, a (non-located) list of the abstract
-		   % forms of its definition:
+		   % forms of its clauses:
 		   %
-		   definition = [] :: [ meta_utils:clause_def() ],
+		   clauses = [] :: [ meta_utils:clause_def() ],
 
 
 		   % The type specification (if any) of that function, as an abstract

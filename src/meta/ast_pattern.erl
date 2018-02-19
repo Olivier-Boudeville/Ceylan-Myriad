@@ -67,8 +67,10 @@
 
 % Shorthands:
 
+-type line() :: ast_base:line().
+
 -type ast_transforms() :: ast_transform:ast_transforms().
--type ast_variable() :: ast_type:ast_variable().
+-type ast_element() :: ast_type:ast_element().
 
 
 % Regarding patterns vs expressions:

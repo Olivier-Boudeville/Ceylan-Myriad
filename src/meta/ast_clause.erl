@@ -142,6 +142,17 @@
 % Transformations section.
 
 
+% Apparently, for all (4) kinds of clauses, according to erl_id_trans the same
+% structure applies: {clause,Line,H,G,B}, where:
+%
+% - H is Head, a list of patterns (a pattern sequence)
+% - G is Guard, a list of guard tests (a guard sequence)
+% - B is Body, a list of expressions
+%
+% However, depending of the actual kind, more specific rules apply (ex: a list
+% having a single element), which are enforced here.
+
+
 
 % Function clause section.
 
@@ -280,9 +291,12 @@ transform_case_clauses( CaseClauses, Transforms ) ->
 
 
 % Catch clause section.
+%
+% (with both possibilities, having an empty guard sequence is just a special
+% case of a more general rule)
 
 
-% If clause with no variable, with or without a guard sequence:
+% Catch clause with no variable, with or without a guard sequence (1/4 and 3/4):
 %
 % - "If C is a catch clause P -> B, where P is a pattern and B is a body, then
 % Rep(C) = {clause,LINE,[Rep({throw,P,_})],[],Rep(B)}."
@@ -290,11 +304,14 @@ transform_case_clauses( CaseClauses, Transforms ) ->
 % - "If C is a catch clause P when Gs -> B, where P is a pattern, Gs is a guard
 % sequence, and B is a body, then Rep(C) =
 % {clause,LINE,[Rep({throw,P,_})],Rep(Gs),Rep(B)}."
+%
 -spec transform_catch_clause( ast_catch_clause(),
 				  ast_transform:ast_transforms() ) -> ast_catch_clause().
-transform_catch_clause( 
+transform_catch_clause(
   Clause={ 'clause', Line, [ { throw, Pattern, Any } ], GuardSequence, Body },
   Transforms ) ->
+
+	ast_utils:display_warning( "transform_catch_clause: Any= ~p", [ Any ] ),
 
 	ast_utils:display_debug( "Intercepting catch clause ~p...", [ Clause ] ),
 
@@ -305,15 +322,15 @@ transform_catch_clause(
 
 	NewBody = transform_body( Body, Transforms ),
 
-	Res = { clause, Line, [ { throw, NewPattern, Any } ], 
-			NewGuardSequence, NewBody },
+	Res = { clause, Line, [ { throw, NewPattern, Any } ], NewGuardSequence,
+			NewBody },
 
 	ast_utils:display_debug( "... returning catch clause ~p", [ Res ] ),
 
 	Res;
 
 
-% If clause with X variable, with or without a guard sequence:
+% Catch clause with X variable, with or without a guard sequence (2/4 and 4/4):
 %
 % - "If C is a catch clause X : P -> B, where X is an atomic literal or a
 % variable pattern, P is a pattern, and B is a body, then Rep(C) =
@@ -323,27 +340,32 @@ transform_catch_clause(
 % a variable pattern, P is a pattern, Gs is a guard sequence, and B is a body,
 % then Rep(C) = {clause,LINE,[Rep({X,P,_})],Rep(Gs),Rep(B)}."
 %
-transform_catch_clause( 
-  Clause={ 'clause', Line, [ { throw, Pattern, Any } ], GuardSequence, Body },
+transform_catch_clause(
+  Clause={ 'clause', Line, [ { X, P, Any } ], GuardSequence, Body },
   Transforms ) ->
+
+	ast_utils:display_warning( "transform_catch_clause: X=~p, P=~p, Any= ~p",
+							   [ X, P, Any ] ),
 
 	ast_utils:display_debug( "Intercepting catch clause with variable ~p...",
 							 [ Clause ] ),
 
-	NewPattern = ast_pattern:transform_pattern( Pattern, Transforms ),
+	% Includes atomic literals:
+	NewX = ast_pattern:transform_pattern( X, Transforms ),
+
+	NewP = ast_pattern:transform_pattern( P, Transforms ),
 
 	NewGuardSequence = ast_guard:transform_guard_sequence( GuardSequence,
 														   Transforms ),
 
 	NewBody = transform_body( Body, Transforms ),
 
-	Res = { clause, Line, [ { throw, NewPattern, Any } ], 
-			NewGuardSequence, NewBody },
+	Res = { clause, Line, [ { NewX, NewP, Any } ], NewGuardSequence, NewBody },
 
 	ast_utils:display_debug( "... returning catch clause with variable ~p",
 							 [ Res ] ),
 
-	Res;
+	Res.
 
 
 % Transforms specified list of catch clauses.

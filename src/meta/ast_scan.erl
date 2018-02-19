@@ -206,7 +206,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export', FunctionIds } | T ],
 									% Implicit:
 									%location=undefined
 									%line=undefined
-									%definition=[],
+									%clauses=[],
 									%spec=undefined,
 									%callback=undefined,
 									exported=[ NextLocation ] };
@@ -381,19 +381,19 @@ scan_forms( [ { 'function', Line, FunctionName, FunctionArity, Clauses } | T ],
 							arity=FunctionArity,
 							location=NextLocation,
 							line=Line,
-							definition=Clauses
+							clauses=Clauses
 							% Implicit:
 							%spec=undefined,
 							%callback=undefined,
 							%exported=[]
 						  };
 
-		{ value, F=#function_info{ definition=[] } } ->
+		{ value, F=#function_info{ clauses=[] } } ->
 				% Already here because of an export; just add the missing
 				% information then:
 				F#function_info{ location=NextLocation,
 								 line=Line,
-								 definition=Clauses };
+								 clauses=Clauses };
 
 		% Here a definition was already set:
 		_ ->
@@ -420,25 +420,25 @@ scan_forms( [ { 'function', Line, FunctionName, FunctionArity, Clauses } | T ],
 % then Rep(F) = {attribute,Line,Spec,{{Name,Arity},[Rep(Ft_1), ...,
 % Rep(Ft_k)]}}."
 %
-scan_forms( [ Form={ 'attribute', Line, SpecAtom,
+scan_forms( [ Form={ 'attribute', Line, SpecType,
 					 { FunId, FunctionTypes } } | T ],
 			M=#module_info{ functions=FunctionTable },
 			NextLocation, CurrentFileReference )
-  when SpecAtom == 'spec' orelse SpecAtom == 'callback' ->
+  when SpecType == 'spec' orelse SpecType == 'callback' ->
 
 	Context = { CurrentFileReference, Line },
 
-	{ FunctionName, FunctionArity } = ast_function:check_function_id( 
+	{ FunctionName, FunctionArity } = ast_function:check_function_id(
 										FunId, Context ),
 
 	ast_function:check_function_types( FunctionTypes, FunctionArity, Context ),
 
 	%ast_utils:display_debug( "~s definition for ~p/~p",
-	% [ SpecAtom, FunctionName, FunctionArity ] ),
+	% [ SpecType, FunctionName, FunctionArity ] ),
 
 	LocatedSpec = { NextLocation, Form },
 
-	IsCallback = case SpecAtom of
+	IsCallback = case SpecType of
 
 		callback ->
 			true;
@@ -458,7 +458,7 @@ scan_forms( [ Form={ 'attribute', Line, SpecAtom,
 							% Implicit:
 							%location=undefined,
 							%line=undefined,
-							%definition=[]
+							%clauses=[]
 							spec=LocatedSpec,
 							callback=IsCallback };
 
@@ -487,8 +487,8 @@ scan_forms( [ Form={ 'attribute', Line, SpecAtom,
 % (optional callbacks, not specified in the spec yet known of the id parse
 % transform)
 %
-scan_forms( [ Form={ 'attribute', Line, AttributeName='optional_callbacks',
-					 AttributeValue=FunIds } | T ],
+scan_forms( [ Form={ 'attribute', Line, _AttributeName='optional_callbacks',
+					 _AttributeValue=FunIds } | T ],
 			M=#module_info{ optional_callbacks_defs=LocatedDefs },
 			NextLocation, CurrentFileReference ) ->
 
@@ -510,15 +510,14 @@ scan_forms( [ Form={ 'attribute', Line, AttributeName='optional_callbacks',
 % (asm attribute, not specified in the spec yet known of the id parse
 % transform; checked and then treated as any wild parse attribute)
 %
-scan_forms( [ Form={ 'attribute', Line, AttributeName='asm',
-					 Def={ 'function', _N, _A, _Code } | T ],
-			  M=#module_info{ optional_callbacks_defs=LocatedDefs },
+scan_forms( [ Form={ 'attribute', _Line, AttributeName='asm',
+					 Def={ 'function', _N, _A, _Code } } | T ],
+			  M=#module_info{ parse_attributes=ParseAttributeTable,
+							  parse_attribute_defs=AttributeDefs },
 			NextLocation, CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "Asm attribute definition: '~p'.",
 	%						 [ Def ] ),
-
-	Context = { CurrentFileReference, Line },
 
 	LocForm = { NextLocation, Form },
 
@@ -575,9 +574,9 @@ scan_forms( [ Form={ 'attribute', Line, 'spec',
 % a record field, then Rep(F) = {attribute,LINE,record,{Name,[Rep(V_1), ...,
 % Rep(V_k)]}}. For Rep(V), see below.
 %
-scan_forms( _AST=[ Form={ 'attribute', Line, 'record', { RecordName, DescFields } }
-				   | T ],
-			M=#module_info{ records=RecordTable, record_defs=RecordDefs },
+scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
+						   { RecordName, DescFields } } | T ],
+			M=#module_info{ records=RecordTable },
 			NextLocation, CurrentFileReference ) ->
 
 	Context = { CurrentFileReference, Line },
@@ -586,12 +585,11 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'record', { RecordName, DescFields 
 
 	FieldTable = scan_field_descriptions( DescFields, CurrentFileReference ),
 
-	NewRecordTable = ?table:addNewEntry( RecordName, FieldTable, RecordTable ),
+	NewRecordDef = { FieldTable, NextLocation, Line },
 
-	NewRecordDefs = [ { NextLocation, Form } | RecordDefs ],
+	NewRecordTable = ?table:addNewEntry( RecordName, NewRecordDef, RecordTable ),
 
-	scan_forms( T, M#module_info{ records=NewRecordTable,
-								  record_defs=NewRecordDefs },
+	scan_forms( T, M#module_info{ records=NewRecordTable },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 

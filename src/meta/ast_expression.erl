@@ -388,7 +388,7 @@ transform_expression( E={ 'fun', Line, { function, Name, Arity } },
 	NewArity = transform_expression( Arity, Transforms ),
 
 	%Res = E,
-	Res = { fun, Line, { function, NewName, NewArity } },
+	Res = { 'fun', Line, { function, NewName, NewArity } },
 
 	ast_utils:display_debug( "... returning local fun expression ~p", [ Res ] ),
 
@@ -410,7 +410,7 @@ transform_expression( E={ 'fun', Line, _F={ function, Module, Name, Arity } },
 
 	NewArity = transform_expression( Arity, Transforms ),
 
-	Res = { fun, Line, { function, NewModule, NewName, NewArity } },
+	Res = { 'fun', Line, { function, NewModule, NewName, NewArity } },
 
 	ast_utils:display_debug( "... returning remote fun expression ~p",
 							 [ Res ] ),
@@ -431,7 +431,7 @@ transform_expression( E={ 'fun', Line, { clauses, FunctionClauses } },
 	NewFunctionClauses = ast_clause:transform_function_clauses(
 						   FunctionClauses, Transforms ),
 
-	Res = { fun, Line, { clauses, NewFunctionClauses } },
+	Res = { 'fun', Line, { clauses, NewFunctionClauses } },
 
 	ast_utils:display_debug( "... returning fun expression with clauses ~p",
 							 [ Res ] ),
@@ -452,7 +452,7 @@ transform_expression( E={ 'named_fun', Line, Name, FunctionClauses  },
 	NewFunctionClauses = ast_clause:transform_function_clauses(
 						   FunctionClauses, Transforms ),
 
-	Res = { named_fun, Line, Name, NewFunctionClauses },
+	Res = { 'named_fun', Line, Name, NewFunctionClauses },
 
 	ast_utils:display_debug( "... returning named fun expression ~p",
 							 [ Res ] ),
@@ -461,7 +461,7 @@ transform_expression( E={ 'named_fun', Line, Name, FunctionClauses  },
 
 
 % Default catch-all:
-transform_expression( Expression, Transforms ) ->
+transform_expression( Expression, _Transforms ) ->
 
 	% Was incorrect, as patterns are not a special case of expressions:
 
@@ -479,4 +479,4 @@ transform_expression( Expression, Transforms ) ->
 -spec transform_expressions( [ ast_expression() ], ast_transforms() ) ->
 								  [ ast_expression() ].
 transform_expressions( Expressions, Transforms ) ->
-	[ transform_expression( E, Transforms ) || E <- Expressions ],
+	[ transform_expression( E, Transforms ) || E <- Expressions ].

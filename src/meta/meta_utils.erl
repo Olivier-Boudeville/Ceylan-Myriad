@@ -217,11 +217,8 @@
 % Local shorthands:
 
 -type type_name() :: type_utils:type_name().
-%-type type_arity() :: type_utils:type_arity().
 
 -type form() :: ast_base:form().
--type ast_field_description() :: ast_utils:ast_field_description().
-
 
 -type module_info() :: ast_info:module_info().
 -type type_info() :: ast_info:type_info().
@@ -233,10 +230,7 @@
 %
 -export([ apply_ast_transforms/2,
 		  add_function/2, remove_function/2,
-		  add_type/2, remove_type/2,
-		  update_types/2,
-		  replace_types_in/2, update_types_in_functions/2,
-		  update_calls_in_functions/2 ]).
+		  add_type/2, remove_type/2 ]).
 
 
 
@@ -405,330 +399,33 @@ remove_type( TypeInfo=#type_info{
 
 
 
-
-
-
-% Section about type updating.
-
-
-
-% Updates the type in specified type table, according to the specified
-% transformation.
-%
--spec update_types( ast_info:type_table(), ast_transform:ast_transforms() ) ->
-						  ast_info:type_table().
-update_types( TypeTable,
-			  #ast_transforms{ local_types=MaybeLocalTypeTable,
-							   remote_types=MaybeRemoteTypeTable } ) ->
-
-	% Closure:
-	UpdaterFun = fun( TypeInfo ) ->
-
-						 update_types_in( TypeInfo, MaybeLocalTypeTable,
-										  MaybeRemoteTypeTable )
-
-				 end,
-
-	% Returns NewTypeTable:
-	?table:mapOnValues( UpdaterFun, TypeTable ).
-
-
-
-% Updates the specified type information based on the two specified type
-% transformation tables (if any).
-%
-% (helper)
-%
-update_types_in( TypeInfo, _MaybeLocalTypeTable=undefined,
-				 _MaybeRemoteTypeTable=undefined ) ->
-	TypeInfo;
-
-update_types_in( TypeInfo=#type_info{ definition=TypeDef }, MaybeLocalTypeTable,
-				 MaybeRemoteTypeTable ) ->
-	% Ex: Def = {type,42,tuple,[{type,42,integer,[]},{type,42,float,[]}]}
-	NewDef = ast_type:transform_type( TypeDef, MaybeLocalTypeTable,
-								 MaybeRemoteTypeTable ),
-	TypeInfo#type_info{ definition=NewDef }.
-
-
-
-% Replaces local and remote types in specified located AST according to the
-% specified transformation information.
-%
--spec replace_types_in( ast_info:located_ast(),
-					ast_transform:ast_transforms() ) -> ast_info:located_ast().
-replace_types_in( InputLocatedAST, #ast_transforms{
-									  local_types=MaybeLocalTypeTable,
-									  remote_types=MaybeRemoteTypeTable } ) ->
-
-	%ast_utils:display_debug( "Local type replacement table: ~s",
-	%	   [ ?table:toString( Replacements#ast_transforms.local_types ) ] ),
-
-	%ast_utils:display_debug( "Remote type replacement table: ~s",
-	%	   [ ?table:toString( Replacements#ast_transforms.remote_types ) ] ),
-
-	OutputLocatedAST = replace_types_helper( InputLocatedAST,
-		  MaybeLocalTypeTable, MaybeRemoteTypeTable, _Acc=[] ),
-
-	%ast_utils:display_debug( "AST after type replacement:~n~s",
-	%			   [ located_ast_to_string( OutputLocatedAST ) ] ),
-
-	OutputLocatedAST.
-
-
-
-% (helper)
-replace_types_helper( _InputLocatedAST=[], _MaybeLocalTypeTable,
-					  _MaybeRemoteTypeTable, Acc ) ->
-	Acc;
-
-replace_types_helper( _InputLocatedAST=[ { Loc, Form } | T ],
-					  MaybeLocalTypeTable, MaybeRemoteTypeTable, Acc ) ->
-
-	NewForm = replace_types_in_type_def( Form, MaybeLocalTypeTable,
-										 MaybeRemoteTypeTable ),
-
-	replace_types_helper( T, MaybeLocalTypeTable, MaybeRemoteTypeTable,
-						  [ { Loc, NewForm } | Acc ] ).
-
-
-
-
-% (helper)
-replace_types_in_type_def( _Form={ attribute, Line, type,
-								   { TypeName, TypeDef, TypeVars } },
-						   MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
-
-	NewTypeDef = ast_type:transform_type( TypeDef, MaybeLocalTypeTable,
-									 MaybeRemoteTypeTable ),
-
-	NewTypeVars = [ ast_type:transform_type( Elem, MaybeLocalTypeTable,
-								MaybeRemoteTypeTable ) || Elem <- TypeVars ],
-
-	%ast_utils:display_debug(
-	%  "Translation of type definition:~n~p~nis:~n~p~nwith ~p.",
-	%			   [ TypeDef, NewTypeDef, NewTypeVars ] ),
-
-	{ attribute, Line, type, { TypeName, NewTypeDef, NewTypeVars } };
-
-
-replace_types_in_type_def( _Form={ attribute, Line, opaque,
-								   { TypeName, TypeDef, TypeVars } },
-						   MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
-
-	NewTypeDef = ast_type:transform_type( TypeDef, MaybeLocalTypeTable,
-									 MaybeRemoteTypeTable ),
-
-	NewTypeVars = [ ast_type:transform_type( Elem, MaybeLocalTypeTable,
-								MaybeRemoteTypeTable ) || Elem <- TypeVars ],
-
-	%ast_utils:display_debug(
-	%  "Translation of opaque type definition:~n~p~nis:~n~p~n"
-	%               "with ~p.", [ TypeDef, NewTypeDef, NewTypeVars ] ),
-
-	{ attribute, Line, opaque, { TypeName, NewTypeDef, NewTypeVars } };
-
-
-replace_types_in_type_def( _Form={ attribute, Line, record,
-								   { TypeName, Fields } },
-						   MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
-
-	NewFields = update_types_in_fields( Fields, MaybeLocalTypeTable,
-										MaybeRemoteTypeTable ),
-
-	%ast_utils:display_debug(
-	%  "Translation of record field definitions:~n~p~nis:~n~p~n.",
-	%               [ Fields, NewFields ] ),
-
-	{ attribute, Line, record, { TypeName, NewFields } };
-
-
-replace_types_in_type_def( UnexpectedForm, _MaybeLocalTypeTable,
-						   _MaybeRemoteTypeTable ) ->
-	ast_utils:raise_error( [ unexpected_typedef_form, UnexpectedForm ] ).
-
-
-
-
-
-% Section about function updating.
-
-
-
-% Updates the types in known functions from specified function table, based on
-% specified replacements.
-%
--spec update_types_in_functions( ast_info:function_table(),
-				ast_transforms:ast_transforms() ) -> ast_info:function_table().
-update_types_in_functions( FunctionTable, #ast_transforms{
-							  local_types=MaybeLocalTypeTable,
-							  remote_types=MaybeRemoteTypeTable } ) ->
-
-	FunIdInfoPairs = ?table:enumerate( FunctionTable ),
-
-	NewFunIdInfoPairs = [ { FunId, update_fun_info_for_types( FunInfo,
-								MaybeLocalTypeTable, MaybeRemoteTypeTable ) }
-						  || { FunId, FunInfo } <- FunIdInfoPairs ],
-
-	?table:new( NewFunIdInfoPairs ).
-
-
-
-% Updates the types in the -spec fields, based on specified replacements.
-%
-update_fun_info_for_types( FunInfo=#function_info{ spec=undefined },
-						   _MaybeLocalTypeTable, _MaybeRemoteTypeTable ) ->
-	FunInfo;
-
-update_fun_info_for_types( FunInfo=#function_info{ spec={ Loc, FunSpec } },
-						   MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
-
-	NewFunSpec = case FunSpec of
-
-		% Ex for '-spec f( type_a() ) -> type_b().':
-		% SpecList = [ {type,652,'fun',
-		%     [{type,652,product,[{user_type,652,type_a,[]}]},
-		%       {user_type,652,type_b,[]}]
-		%   } ]
-		{ attribute, Line, spec, { FunId, SpecList } } ->
-			%ast_utils:display_trace( "SpecList = ~p", [ SpecList ] ),
-			NewSpecList = [ update_spec( Spec, MaybeLocalTypeTable,
-								 MaybeRemoteTypeTable ) || Spec <- SpecList ],
-			{ attribute, Line, spec, { FunId, NewSpecList } };
-
-		_ ->
-			ast_utils:raise_error( [ unexpected_fun_spec, FunSpec ] )
-
-	end,
-
-	FunInfo#function_info{ spec={ Loc, NewFunSpec } };
-
-
-update_fun_info_for_types( _FunInfo=#function_info{ spec=UnexpectedLocSpec },
-				  _MaybeLocalTypeTable, _MaybeRemoteTypeTable ) ->
-	ast_utils:raise_error( [ unexpected_located_fun_spec, UnexpectedLocSpec ] ).
-
-
-
-
-% Updates the specified function specification.
-%
-update_spec( { type, Line, 'fun', ClausesSpecs }, MaybeLocalTypeTable,
-			 MaybeRemoteTypeTable ) ->
-
-	NewClausesSpecs = update_clause_spec( ClausesSpecs, MaybeLocalTypeTable,
-										  MaybeRemoteTypeTable ),
-	{ type, Line, 'fun', NewClausesSpecs };
-
-update_spec( UnexpectedFunSpec, _MaybeLocalTypeTable, _MaybeRemoteTypeTable ) ->
-	ast_utils:raise_error( [ unexpected_fun_spec, UnexpectedFunSpec ] ).
-
-
-
-% (helper)
-update_clause_spec( [ { type, Line, product, ParamTypes }, ResultType ],
-					MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
-
-	NewParamTypes = [ ast_type:transform_type( ParamType, MaybeLocalTypeTable,
-						  MaybeRemoteTypeTable ) || ParamType <- ParamTypes ],
-
-	NewResultType = ast_type:transform_type( ResultType, MaybeLocalTypeTable,
-											 MaybeRemoteTypeTable ),
-
-	[ { type, Line, product, NewParamTypes }, NewResultType ];
-
-
-update_clause_spec( UnexpectedClauseSpec, _MaybeLocalTypeTable,
-					_MaybeRemoteTypeTable ) ->
-	ast_utils:raise_error( [ unexpected_clause_spec, UnexpectedClauseSpec ] ).
-
-
-
-% Annotated type, for example found in a record field like:
-%  pointDrag :: {X::integer(), Y::integer()}}
-%
-% Resulting then in:
-% {typed_record_field,
-%		   {record_field,342,{atom,342,pointDrag}},
-%		   {type,342,tuple,
-%			   [{ann_type,342,[{var,342,'X'},{type,342,integer,[]}]},
-%				{ann_type,342,
-%					[{var,342,'Y'},{type,342,integer,[]}]} ] }}
-%
-%% transform_type( _TypeDef={ ann_type, Line, [ Var, InternalTypeDef ] },
-%%			   LocalTransformTable, RemoteTransformTable ) ->
-
-%%	NewInternalTypeDef = transform_type( InternalTypeDef, LocalTransformTable,
-%%										RemoteTransformTable ),
-
-%%	{ ann_type, Line, [ Var, NewInternalTypeDef ] };
-
-
-
-% Updates the calls in known functions from specified function table, based on
-% specified replacements.
-%
--spec update_calls_in_functions( ast_info:function_table(),
-				ast_transform:ast_transforms() ) -> ast_info:function_table().
-update_calls_in_functions( FunctionTable, Transforms ) ->
-
-	FunIdInfoPairs = ?table:enumerate( FunctionTable ),
-
-	NewFunIdInfoPairs = [ { FunId,
-							update_fun_info_for_calls( FunInfo, Transforms ) }
-						  || { FunId, FunInfo } <- FunIdInfoPairs ],
-
-	?table:new( NewFunIdInfoPairs ).
-
-
-
-% Updates the calls in the function definitions, based on specified
-% replacements.
-%
-update_fun_info_for_calls( FunInfo=#function_info{ definition=ClauseDefs },
-						   Transforms ) ->
-
-	NewClauseDefs = [ ast_clause:transform_function_clause( ClauseDef, 
-															Transforms )
-					  || ClauseDef <- ClauseDefs ],
-
-	FunInfo#function_info{ definition=NewClauseDefs }.
-
-
-
-
-
 % Applies specified AST transformations to specified module information.
 %
 % (helper)
 %
 -spec apply_ast_transforms( ast_transform:ast_transforms(), module_info() ) ->
 								  module_info().
-apply_ast_transforms( Transforms, ModuleInfo ) ->
+apply_ast_transforms( Transforms, ModuleInfo=#module_info{
+												types=TypeTable,
+												records=RecordTable,
+												functions=FunctionTable } ) ->
 
 	% First, update the type definitions accordingly (including in records):
 
 	ast_utils:display_debug( "Transforming known types..." ),
-	NewTypes = update_types( ModuleInfo#module_info.types, Transforms ),
+	NewTypeTable = ast_type:transform_types( TypeTable, Transforms ),
 
 	ast_utils:display_debug( "Transforming known types in records..." ),
-	NewRecordDefs = replace_types_in( ModuleInfo#module_info.record_defs,
-									  Transforms ),
+	NewRecordTable = ast_type:transform_types_in_records( RecordTable,
+														  Transforms ),
 
-	% Do the same for types in function (type) specifications:
-	ast_utils:display_debug( "Transforming known types in function specs..." ),
-	TypedFunctionTable = update_types_in_functions(
-						   ModuleInfo#module_info.functions, Transforms ),
-
-	% And then in related function definitions:
-	ast_utils:display_debug( "Transforming function calls..." ),
-	CallFunctionTable = update_calls_in_functions( TypedFunctionTable,
-												   Transforms ),
+	NewFunctionTable = ast_function:transform_functions( FunctionTable, 
+														 Transforms ),
 
 	% Updated module_info returned:
-	ModuleInfo#module_info{ types=NewTypes,
-							record_defs=NewRecordDefs,
-							functions=CallFunctionTable }.
+	ModuleInfo#module_info{ types=NewTypeTable,
+							records=NewRecordTable,
+							functions=NewFunctionTable }.
 
 
 

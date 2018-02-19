@@ -242,6 +242,7 @@
 % Local shorthands:
 
 -type ast() :: ast_base:ast().
+-type line() :: ast_base:line().
 -type form() :: ast_base:form().
 -type type_id() :: type_utils:type_id().
 -type function_id() :: meta_utils:function_id().
@@ -610,8 +611,8 @@ check_module_functions( #module_info{ functions=Functions } ) ->
 
 % Nothing to check for 'spec' or 'exported':
 %
-check_function( FunId, _FunInfo=#function_info{ definition=[] } ) ->
-	ast_utils:raise_error( [ no_definition_found_for, FunId ] );
+check_function( FunId, _FunInfo=#function_info{ clauses=[] } ) ->
+	ast_utils:raise_error( [ no_clause_found_for, FunId ] );
 
 check_function( _FunId={ Name, Arity },
 				_FunInfo=#function_info{ name=Name, arity=Arity } ) ->
@@ -673,7 +674,7 @@ recompose_ast_from_module_info( #module_info{
 								  } ) ->
 
 
-	{ TypeExportLocDefs, TypeLocDefs } = ast_type:get_located_forms_for( 
+	{ TypeExportLocDefs, TypeLocDefs } = ast_type:get_located_forms_for(
 										   TypeExportTable, TypeTable ),
 
 	RecordLocDefs = ast_record:get_located_forms_for( RecordTable ),
@@ -692,7 +693,7 @@ recompose_ast_from_module_info( #module_info{
 							++ RemoteSpecLocDefs
 							++ FunExportLocDefs
 							++ IncludeLocDefs
-							++ ImportDefs
+							++ ImportLocDefs
 							++ OptCallbacksLocDefs
 							++ CompileOptLocDefs
 							++ RecordLocDefs
@@ -799,7 +800,6 @@ module_info_to_string( #module_info{
 						 type_exports=TypeExports,
 						 types=Types,
 						 records=RecordTable,
-						 record_defs=_RecordDefs,
 						 function_imports=FunImportTable,
 						 function_imports_defs=_FunImportDefs,
 						 function_exports=_FunctionExports,
@@ -1085,7 +1085,7 @@ function_info_to_string( #function_info{ name=Name,
 										 arity=Arity,
 										 location=_Location,
 										 line=Line,
-										 definition=Clauses,
+										 clauses=Clauses,
 										 spec=LocatedSpec,
 										 callback=IsCallback,
 										 exported=Exported } ) ->
