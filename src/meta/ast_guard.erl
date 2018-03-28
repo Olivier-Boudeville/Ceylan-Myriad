@@ -424,8 +424,6 @@ transform_guard_test( Other, _Transforms ) ->
 
 
 
-
-
 % Transforms specified guard, operating relevant AST transformations.
 %
 % "A guard G is a non-empty sequence of guard tests Gt_1, ..., Gt_k, and Rep(G)

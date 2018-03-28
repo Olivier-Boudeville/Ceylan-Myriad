@@ -103,17 +103,18 @@
 %
 -spec transform_pattern( ast_utils:pattern(), ast_transforms() ) ->
 							   ast_utils:pattern().
-transform_pattern( PatternList, Transforms ) when is_list( PatternList ) ->
+% A list of patterns should have already been iterated over upstream:
+%transform_pattern( PatternList, Transforms ) when is_list( PatternList ) ->
 
 	%ast_utils:display_debug( "Intercepting pattern list ~p...",
 	%						 [ PatternList ] ),
 
-	NewPatternList = [ transform_pattern( P, Transforms ) || P <- PatternList ],
+%	NewPatternList = [ transform_pattern( P, Transforms ) || P <- PatternList ],
 
 	%ast_utils:display_debug( "... returning pattern list ~p",
 	%						   [ NewPatternList ] ),
 
-	NewPatternList;
+%	NewPatternList;
 
 
 % Match pattern found:
@@ -175,49 +176,54 @@ transform_pattern( E={ 'nil', _Line }, _Transforms ) ->
 	Res;
 
 
+
 % Receive pattern found:
+
+% Note: commented-out as is an expression, not a pattern apparently, according
+% to http://erlang.org/doc/apps/erts/absform.html and erl_id_trans.
+
 
 % "If E is a receive expression receive Cc_1 ; ... ; Cc_k end, where each Cc_i
 % is a case clause, then Rep(E) = {'receive',LINE,[Rep(Cc_1), ..., Rep(Cc_k)]}."
 %
-transform_pattern( E={ 'receive', Line, Clauses }, Transforms ) ->
+%transform_pattern( E={ 'receive', Line, Clauses }, Transforms ) ->
 
-	ast_utils:display_debug( "Intercepting receive pattern ~p...", [ E ] ),
+%	ast_utils:display_debug( "Intercepting receive pattern ~p...", [ E ] ),
 
-	NewClauses = [ ast_clause:transform_case_clause( C, Transforms )
-				   || C <- Clauses ],
+%	NewClauses = [ ast_clause:transform_case_clause( C, Transforms )
+%				   || C <- Clauses ],
 
-	Res = { 'receive', Line, NewClauses },
+%	Res = { 'receive', Line, NewClauses },
 
-	ast_utils:display_debug( "... returning receive pattern ~p", [ Res ] ),
+%	ast_utils:display_debug( "... returning receive pattern ~p", [ Res ] ),
 
-	Res;
+%	Res;
 
 
 % "If E is a receive expression receive Cc_1 ; ... ; Cc_k after E_0 -> B_t end,
 % where each Cc_i is a case clause, E_0 is an expression, and B_t is a body,
 % then Rep(E) = {'receive',LINE,[Rep(Cc_1), ..., Rep(Cc_k)],Rep(E_0),Rep(B_t)}."
 %
-transform_pattern( E={ 'receive', Line, Clauses, Expression, Body },
-				   Transforms ) ->
+%transform_pattern( E={ 'receive', Line, Clauses, Expression, Body },
+%				   Transforms ) ->
 
-	ast_utils:display_debug( "Intercepting receive pattern with after ~p...",
-							 [ E ] ),
+%	ast_utils:display_debug( "Intercepting receive pattern with after ~p...",
+%							 [ E ] ),
 
-	NewClauses = [ ast_clause:transform_case_clause( C, Transforms )
-				   || C <- Clauses ],
+%	NewClauses = [ ast_clause:transform_case_clause( C, Transforms )
+%				   || C <- Clauses ],
 
-	NewExpression = ast_expression:transform_expression( Expression,
-														 Transforms ),
+%	NewExpression = ast_expression:transform_expression( Expression,
+%														 Transforms ),
 
-	NewBody = ast_clause:transform_body( Body, Transforms ),
+%	NewBody = ast_clause:transform_body( Body, Transforms ),
 
-	Res = { 'receive', Line, NewClauses, NewExpression, NewBody },
+%	Res = { 'receive', Line, NewClauses, NewExpression, NewBody },
 
-	ast_utils:display_debug( "... returning receive pattern with after ~p",
-							 [ Res ] ),
+%	ast_utils:display_debug( "... returning receive pattern with after ~p",
+%							 [ Res ] ),
 
-	Res;
+%	Res;
 
 
 
@@ -240,6 +246,35 @@ transform_pattern( E={ 'map', Line, Associations }, Transforms ) ->
 	Res;
 
 
+% "If A is an association K := V, then Rep(A) =
+% {map_field_exact,LINE,Rep(K),Rep(V)}."
+%
+% Detected thanks to erl_id_trans (and not so clear in
+% http://erlang.org/doc/apps/erts/absform.html); apparently, no map_field_assoc
+% to expect here, according to the same source.
+%
+transform_pattern( E={ 'map_field_exact', Line, Key, Value }, Transforms ) ->
+
+	ast_utils:display_debug( "Intercepting map exact association ~p...",
+							 [ E ] ),
+
+	NewKey = ast_expression:transform_expression( Key, Transforms ),
+
+	NewValue = transform_pattern( Value, Transforms ),
+
+	Res = { map_field_exact, Line, NewKey, NewValue },
+
+	ast_utils:display_debug( "... returning map exact association ~p",
+							 [ Res ] ),
+
+	Res;
+
+
+% ('struct' tuple commented-out in erl_id_trans, and not found in
+% http://erlang.org/doc/apps/erts/absform.html)
+
+
+
 % Bitstring pattern found:
 %
 % "If P is a bitstring pattern <<P_1:Size_1/TSL_1, ..., P_k:Size_k/TSL_k>>,
@@ -255,8 +290,15 @@ transform_pattern( Clause={ 'bin', Line, BinElements }, Transforms ) ->
 	ast_utils:display_debug( "Intercepting bitstring pattern ~p...",
 							 [ Clause ] ),
 
+	% Actually no need to introduce a pattern-specific way of transforming a
+	% bitstring:
+	%
+	%NewBinElements = ast_bitstring:transform_bin_elements( BinElements,
+	%					   Transforms, fun transform_pattern/2 ),
+
 	NewBinElements = ast_bitstring:transform_bin_elements( BinElements,
-						   Transforms, fun transform_pattern/2 ),
+														   Transforms ),
+
 
 	Res = { bin, Line, NewBinElements },
 
@@ -270,15 +312,16 @@ transform_pattern( Clause={ 'bin', Line, BinElements }, Transforms ) ->
 % "If P is a tuple pattern {P_1, ..., P_k}, then Rep(P) = {tuple,LINE,[Rep(P_1),
 % ..., Rep(P_k)]}."
 %
-transform_pattern( Clause={ 'tuple', Line, Expressions }, Transforms ) ->
+% Note: patterns, not expressions here, as shown by erl_id_trans.
+%
+transform_pattern( Clause={ 'tuple', Line, Patterns }, Transforms ) ->
 
 	ast_utils:display_debug( "Intercepting tuple pattern ~p...",
 							 [ Clause ] ),
 
-	NewExpressions = [ ast_expression:transform_expression( E, Transforms )
-					   || E <- Expressions ],
+	NewPatterns = [ transform_pattern( P, Transforms )|| P <- Patterns ],
 
-	Res = { tuple, Line, NewExpressions },
+	Res = { tuple, Line, NewPatterns },
 
 	ast_utils:display_debug( "... returning tuple pattern ~p", [ Res ] ),
 
@@ -288,7 +331,7 @@ transform_pattern( Clause={ 'tuple', Line, Expressions }, Transforms ) ->
 % Variable pattern found:
 %
 % "If P is a universal pattern _, then Rep(P) = {var,LINE,'_'}."
-% and
+%  - and also -
 % "If P is a variable pattern V, then Rep(P) = {var,LINE,A}, where A is an atom
 % with a printname consisting of the same characters as V."
 %
@@ -297,24 +340,110 @@ transform_pattern( Clause={ 'var', Line, VariableName }, Transforms ) ->
 	ast_utils:display_debug( "Intercepting variable pattern ~p...",
 							 [ Clause ] ),
 
-	NewVariable = transform_variable( VariableName, Line, Transforms ),
+	NewVariableName = transform_variable( VariableName, Line, Transforms ),
 
-	Res = { var, Line, NewVariable },
+	Res = { var, Line, NewVariableName },
 
 	ast_utils:display_debug( "... returning variable pattern ~p", [ Res ] ),
 
 	Res;
 
 
-% Atomic value literal found:
+% Atomic literal value found:
 %
-% (difficult to discriminate more)
+% (difficult to discriminate more at this level)
 %
 transform_pattern( Clause={ LiteralType, _Line, _Value }, Transforms )
   when is_atom( LiteralType ) ->
 
 	% Maybe Value could just be sent (or no transformation be considered):
 	ast_value:transform_value( Clause, Transforms );
+
+
+
+% Record found:
+%
+% "If P is a record pattern #Name{Field_1=P_1, ..., Field_k=P_k}, where each
+% Field_i is an atom or _, then Rep(P) =
+% {record,LINE,Name,[{record_field,LINE,Rep(Field_1),Rep(P_1)}, ...,
+% {record_field,LINE,Rep(Field_k),Rep(P_k)}]}."
+%
+transform_pattern( _Clause={ 'record', Line, RecordName, PatternFields },
+				   Transforms ) ->
+
+	NewPatternFields = transform_pattern_fields( PatternFields, Transforms ),
+
+	{ record, Line, RecordName, NewPatternFields };
+
+
+% Access to a record field found (see previous clause):
+%
+transform_pattern( _Clause={ 'record_field', Line, RecordName, FieldName,
+							FieldValue }, Transforms ) ->
+
+	NewRecordName = ast_expression:transform_expression( RecordName,
+														 Transforms ),
+
+	% (FieldName not specifically inspected by erl_trans_id for some reason)
+
+	NewFieldValue = ast_expression:transform_expression( FieldValue,
+														 Transforms ),
+
+	{ record_field, Line, NewRecordName, FieldName, NewFieldValue };
+
+
+% Update of a record field found (see 'record' clause):
+%
+transform_pattern( _Clause={ 'record_field', Line, FieldName, FieldValue },
+				   Transforms ) ->
+
+	NewFieldName = ast_expression:transform_expression( FieldName,
+														Transforms ),
+
+	NewFieldValue = ast_expression:transform_expression( FieldValue,
+														 Transforms ),
+
+	{ record_field, Line, NewFieldName, NewFieldValue };
+
+
+% Record index found:
+%
+% "If P is a record field index pattern #Name.Field, where Field is an atom,
+% then Rep(P) = {record_index,LINE,Name,Rep(Field)}."
+%
+transform_pattern( _Clause={ 'record_index', Line, RecordName, PatternField },
+				   Transforms ) ->
+
+	NewPatternField = transform_pattern( PatternField, Transforms ),
+
+	{ record_index, Line, RecordName, NewPatternField };
+
+
+% "If P is an operator pattern P_1 Op P_2, where Op is a binary operator (this
+% is either an occurrence of ++ applied to a literal string or character list,
+% or an occurrence of an expression that can be evaluated to a number at compile
+% time), then Rep(P) = {op,LINE,Op,Rep(P_1),Rep(P_2)}."
+%
+% (as shown in erl_id_trans, no transformation applies, as evaluated otherwise
+% by the compiler)
+%
+transform_pattern( Clause={ 'op', _Line, _BinaryOperator, _LeftOperand,
+							_RightOperand }, _Transforms ) ->
+	Clause;
+
+transform_pattern( Clause={ 'op', _Line, _UnaryOperator, _Operand }, _Transforms ) ->
+	Clause;
+
+
+
+
+% "If P is an operator pattern Op P_0, where Op is a unary operator (this is an
+% occurrence of an expression that can be evaluated to a number at compile
+% time), then Rep(P) = {op,LINE,Op,Rep(P_0)}."
+%
+
+
+% "If P is a parenthesized pattern ( P_0 ), then Rep(P) = Rep(P_0), that is, parenthesized patterns cannot be distinguished from their bodies." (nothing to do then)
 
 
 % Other pattern found:
@@ -328,12 +457,12 @@ transform_pattern( E, _Transforms ) ->
 
 % Transforms specified pattern sequence, operating relevant AST transformations.
 %
-% Note: the cases where the sequence is empty is managed here as well.
+% Note: the case where the sequence is empty is managed here as well.
 %
 -spec transform_pattern_sequence( ast_pattern_sequence(), ast_transforms() ) ->
 									  ast_pattern_sequence().
 transform_pattern_sequence( Patterns, Transforms ) ->
-	[ transform_pattern( G, Transforms ) || G <- Patterns ].
+	[ transform_pattern( P, Transforms ) || P <- Patterns ].
 
 
 
@@ -344,3 +473,39 @@ transform_pattern_sequence( Patterns, Transforms ) ->
 						  ast_transforms() ) -> ast_element().
 transform_variable( VariableName, Line, Transforms )  ->
 	ast_type:transform_variable( VariableName, Line, Transforms ).
+
+
+
+
+% Transforms specified pattern fields.
+%
+% (note: better here than in ast_record)
+%
+-spec transform_pattern_fields( ast_record:pattern_fields(),
+								ast_transforms() ) -> [ ast_element() ].
+transform_pattern_fields( PatternFields, Transforms ) ->
+	[ transform_pattern_field( PF, Transforms ) || PF <- PatternFields ].
+
+
+
+% Transforms specified pattern field.
+%
+% Note: according to erl_id_trans, field names are full expressions here, but
+% only atoms are allowed by the linter.
+%
+-spec transform_pattern_field( ast_record:pattern_field(), ast_transforms() ) ->
+									  ast_element().
+transform_pattern_field( { 'record_field', Line1,
+			   N={ atom, _Line2, _FieldName }, Pattern }, Transforms ) ->
+
+	NewPattern = transform_pattern( Pattern, Transforms ),
+
+	{ record_field, Line1, N, NewPattern };
+
+
+transform_pattern_field( { 'record_field', Line1,
+		   N={ var, _Line2, _FieldName='_' }, Pattern }, Transforms ) ->
+
+	NewPattern = transform_pattern( Pattern, Transforms ),
+
+	{ record_field, Line1, N, NewPattern }.

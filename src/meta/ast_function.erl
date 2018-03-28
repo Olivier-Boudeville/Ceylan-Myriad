@@ -30,7 +30,7 @@
 
 % Module in charge of providing constructs to manage functions in an AST.
 %
-% Note: function clauses managed in the ast_clause module.
+% Note: function clauses are managed in the ast_clause module.
 %
 -module(ast_function).
 
@@ -308,7 +308,7 @@ update_clause_spec( UnexpectedClauseSpec, _MaybeLocalTypeTable,
 % function table
 %
 -spec get_located_forms_for( ast_info:function_export_table(),
-							 ast_info:function_table() ) -> 
+							 ast_info:function_table() ) ->
 								   { [ located_form() ], [ located_form() ] }.
 get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 

@@ -103,24 +103,28 @@
 % Section for value transformation.
 
 
-% Transforms specified value, operating relevant AST transformations onto it.
+% Transforms specified literal value, operating relevant AST transformations
+% onto it.
 %
 -spec transform_value( ast_atomic_literal(), ast_transforms() ) ->
 							 ast_atomic_literal().
-transform_value( Litteral={ atom, _Line, _Atom }, _Transforms ) ->
-	Litteral;
+transform_value( Literal={ atom, _Line, _Atom }, _Transforms ) ->
+	Literal;
 
-transform_value( Litteral={ char, _Line, _Char }, _Transforms ) ->
-	Litteral;
+transform_value( Literal={ char, _Line, _Char }, _Transforms ) ->
+	Literal;
 
-transform_value( Litteral={ float, _Line, _Float }, _Transforms ) ->
-	Litteral;
+transform_value( Literal={ float, _Line, _Float }, _Transforms ) ->
+	Literal;
 
-transform_value( Litteral={ integer, _Line, _Integer }, _Transforms ) ->
-	Litteral;
+transform_value( Literal={ integer, _Line, _Integer }, _Transforms ) ->
+	Literal;
 
-transform_value( Litteral={ string, _Line, _String }, _Transforms ) ->
-	Litteral.
+transform_value( Literal={ string, _Line, _String }, _Transforms ) ->
+	Literal;
+
+transform_value( UnexpectedLiteral, _Transforms ) ->
+	throw( { unexpected_literal, UnexpectedLiteral } ).
 
 
 

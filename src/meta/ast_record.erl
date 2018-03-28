@@ -85,8 +85,9 @@
 -type field_definition() :: { maybe_ast_type(), maybe_ast_immediate_value() }.
 
 
-% Field name, possibly '_':
--type field_id() :: atom().
+% Field identifier, possibly '_':
+-type field_id() :: field_name() | '_'.
+
 
 -type ast_field_id() :: ast_base:ast_atom().
 
@@ -116,11 +117,19 @@
 	  | ast_typed_record_field_definition( ValueType ).
 
 
+% Typically used in ast_pattern:
+-type ast_pattern_field() :: { 'record_field', line(),
+							   ast_field_id() | { 'var', line(), '_' },
+							   ast_pattern:ast_pattern() }.
+
+
 
 -export_type([ field_definition/0, field_id/0, ast_field_id/0,
 			   ast_untyped_record_field_definition/1,
 			   ast_typed_record_field_definition/1,
-			   ast_record_field_definition/0, ast_record_field_definition/1 ]).
+			   ast_record_field_definition/0, ast_record_field_definition/1,
+			   ast_pattern_field/0 ]).
+
 
 -export([ transform_record_definitions/2,
 		  transform_record_field_definitions/2,
@@ -240,17 +249,18 @@ transform_record_field_definitions( RecordFields, Transforms ) ->
 %
 -spec transform_record_field_definition( ast_record_field_definition(),
 			   ast_transforms() ) -> ast_record_field_definition().
+% With a value and no type specified here:
 transform_record_field_definition(
   _RF={ 'record_field', Line, ASTFieldName, ASTValue }, Transforms ) ->
 
 	NewASTFieldName = transform_record_field_name( ASTFieldName, Transforms ),
 
-	% Currently never transformed:
-	NewASTValue = ASTValue,
+	NewASTValue = ast_value:transform_value( ASTValue, Transforms ),
 
 	{ record_field, Line, NewASTFieldName, NewASTValue };
 
 
+% With no value and no type specified here:
 transform_record_field_definition( _RF={ 'record_field', Line, ASTFieldName },
 								   Transforms ) ->
 
@@ -259,14 +269,14 @@ transform_record_field_definition( _RF={ 'record_field', Line, ASTFieldName },
 	{ record_field, Line, NewASTFieldName };
 
 
+% With a value and a type specified here:
 transform_record_field_definition(
   _RF={ 'typed_record_field', { 'record_field', Line, ASTFieldName, ASTValue },
 		ASTType }, Transforms ) ->
 
 	NewASTFieldName = transform_record_field_name( ASTFieldName, Transforms ),
 
-	% Currently never transformed:
-	NewASTValue = ASTValue,
+	NewASTValue = ast_value:transform_value( ASTValue, Transforms ),
 
 	NewASTType = ast_type:transform_type( ASTType, Transforms ),
 
@@ -274,6 +284,7 @@ transform_record_field_definition(
 	  NewASTType };
 
 
+% With no value and a type specified here:
 transform_record_field_definition(
   _RF={ 'typed_record_field', { 'record_field', Line, ASTFieldName }, ASTType },
   Transforms ) ->
@@ -296,11 +307,13 @@ transform_record_field_name( ASTFieldName, Transforms ) ->
 
 	% Note: field names are full expressions here, but only atoms are allowed
 	% by the parser (dixit the id parse transform).
+	% So we could expect to have ASTFieldName={atom,Line,Value} here.
 
 	%ast_type:check_ast_atom( ASTFieldName, Line ),
 	%NewASTFieldName = TransformFun( ASTFieldName, Transforms ),
 
 	ast_expression:transform_expression( ASTFieldName, Transforms ).
+
 
 
 

@@ -54,7 +54,7 @@
 -export_type([ ast_expression/0, ast_integer_expression/0 ]).
 
 
--export([ transform_expression/2 ]).
+-export([ transform_expression/2, transform_expressions/2 ]).
 
 
 
@@ -323,7 +323,7 @@ transform_expression( E={ 'case', Line, TestExpression, CaseClauses },
 
 	NewTestExpression = transform_expression( TestExpression, Transforms ),
 
-	NewCaseClauses = ast_clause:transform_case_clauses( CaseClauses, 
+	NewCaseClauses = ast_clause:transform_case_clauses( CaseClauses,
 														Transforms ),
 
 	Res = { 'case', Line, NewTestExpression, NewCaseClauses },
@@ -441,7 +441,7 @@ transform_expression( E={ 'fun', Line, { clauses, FunctionClauses } },
 
 % "If E is a fun expression fun Name Fc_1 ; ... ; Name Fc_k end, where Name is a
 % variable and each Fc_i is a function clause, then Rep(E) =
-% {named_fun,LINE,Name,[Rep(Fc_1), ..., Rep(Fc_k)]}.
+% {named_fun,LINE,Name,[Rep(Fc_1), ..., Rep(Fc_k)]}."
 %
 transform_expression( E={ 'named_fun', Line, Name, FunctionClauses  },
 					  Transforms ) ->
@@ -458,6 +458,18 @@ transform_expression( E={ 'named_fun', Line, Name, FunctionClauses  },
 							 [ Res ] ),
 
 	Res;
+
+
+% "If E is an atomic literal L, then Rep(E) = Rep(L)."
+%
+transform_expression( E={ AtomicLiteralType, _Line, _Value },
+					  Transforms ) when AtomicLiteralType =:= 'atom' orelse
+										AtomicLiteralType =:= 'char' orelse
+										AtomicLiteralType =:= 'float' orelse
+										AtomicLiteralType =:= 'integer' orelse
+										AtomicLiteralType =:= 'string' ->
+
+	ast_value:transform_value( E, Transforms );
 
 
 % Default catch-all:

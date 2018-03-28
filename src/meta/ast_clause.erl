@@ -121,9 +121,12 @@
 
 
 -export([ transform_function_clause/2, transform_function_clauses/2,
+
+		  % Currently not used anymore:
 		  transform_if_clause/2, transform_if_clauses/2,
 		  transform_case_clause/2, transform_case_clauses/2,
 		  transform_catch_clause/2, transform_catch_clauses/2,
+
 		  transform_body/2 ]).
 
 
@@ -171,20 +174,21 @@
 -spec transform_function_clause( ast_function_clause(),
 		 ast_transform:ast_transforms() ) -> ast_function_clause().
 transform_function_clause(
-  Clause={ 'clause', Line, PatternSequence, GuardSequence, Body },
+  Clause={ 'clause', Line, HeadPatternSequence, GuardSequence, BodyExprs },
   Transforms ) ->
 
 	ast_utils:display_debug( "Intercepting function clause ~p...", [ Clause ] ),
 
-	NewPatternSequence = ast_pattern:transform_pattern_sequence(
-						   PatternSequence, Transforms ),
+	NewHeadPatternSequence = ast_pattern:transform_pattern_sequence(
+										 HeadPatternSequence, Transforms ),
 
+	% Possibly empty guard list:
 	NewGuardSequence = ast_guard:transform_guard_sequence( GuardSequence,
 														   Transforms ),
 
-	NewBody = transform_body( Body, Transforms ),
+	NewBodyExprs = transform_body( BodyExprs, Transforms ),
 
-	Res = { clause, Line, NewPatternSequence, NewGuardSequence, NewBody },
+	Res = { clause, Line, NewHeadPatternSequence, NewGuardSequence, NewBodyExprs },
 
 	ast_utils:display_debug( "... returning function clause ~p", [ Res ] ),
 
@@ -215,7 +219,7 @@ transform_function_clauses( FunctionClauses, Transforms ) ->
 -spec transform_if_clause( ast_if_clause(), ast_transform:ast_transforms() ) ->
 								 ast_if_clause().
 transform_if_clause(
-  Clause={ 'clause', Line, PatternSequence=[], GuardSequence, Body },
+  Clause={ 'clause', Line, HeadPatternSequence=[], GuardSequence, BodyExprs },
   Transforms ) ->
 
 	ast_utils:display_debug( "Intercepting if clause ~p...", [ Clause ] ),
@@ -223,9 +227,9 @@ transform_if_clause(
 	NewGuardSequence = ast_guard:transform_guard_sequence( GuardSequence,
 														   Transforms ),
 
-	NewBody = transform_body( Body, Transforms ),
+	NewBodyExprs = transform_body( BodyExprs, Transforms ),
 
-	Res = { clause, Line, PatternSequence, NewGuardSequence, NewBody },
+	Res = { clause, Line, HeadPatternSequence, NewGuardSequence, NewBodyExprs },
 
 	ast_utils:display_debug( "... returning if clause ~p", [ Res ] ),
 
@@ -261,7 +265,7 @@ transform_if_clauses( IfClauses, Transforms ) ->
 -spec transform_case_clause( ast_case_clause(),
 				ast_transform:ast_transforms() ) -> ast_case_clause().
 transform_case_clause(
-  Clause={ 'clause', Line, [ Pattern ], GuardSequence, Body },
+  Clause={ 'clause', Line, [ Pattern ], GuardSequence, BodyExprs },
   Transforms ) ->
 
 	ast_utils:display_debug( "Intercepting case clause ~p...", [ Clause ] ),
@@ -271,9 +275,9 @@ transform_case_clause(
 	NewGuardSequence = ast_guard:transform_guard_sequence( GuardSequence,
 														   Transforms ),
 
-	NewBody = transform_body( Body, Transforms ),
+	NewBodyExprs = transform_body( BodyExprs, Transforms ),
 
-	Res = { clause, Line, NewPattern, NewGuardSequence, NewBody },
+	Res = { clause, Line, NewPattern, NewGuardSequence, NewBodyExprs },
 
 	ast_utils:display_debug( "... returning case clause ~p", [ Res ] ),
 
@@ -308,7 +312,7 @@ transform_case_clauses( CaseClauses, Transforms ) ->
 -spec transform_catch_clause( ast_catch_clause(),
 				  ast_transform:ast_transforms() ) -> ast_catch_clause().
 transform_catch_clause(
-  Clause={ 'clause', Line, [ { throw, Pattern, Any } ], GuardSequence, Body },
+  Clause={ 'clause', Line, [ { throw, Pattern, Any } ], GuardSequence, BodyExprs },
   Transforms ) ->
 
 	ast_utils:display_warning( "transform_catch_clause: Any= ~p", [ Any ] ),
@@ -320,10 +324,10 @@ transform_catch_clause(
 	NewGuardSequence = ast_guard:transform_guard_sequence( GuardSequence,
 														   Transforms ),
 
-	NewBody = transform_body( Body, Transforms ),
+	NewBodyExprs = transform_body( BodyExprs, Transforms ),
 
 	Res = { clause, Line, [ { throw, NewPattern, Any } ], NewGuardSequence,
-			NewBody },
+			NewBodyExprs },
 
 	ast_utils:display_debug( "... returning catch clause ~p", [ Res ] ),
 
@@ -341,7 +345,7 @@ transform_catch_clause(
 % then Rep(C) = {clause,LINE,[Rep({X,P,_})],Rep(Gs),Rep(B)}."
 %
 transform_catch_clause(
-  Clause={ 'clause', Line, [ { X, P, Any } ], GuardSequence, Body },
+  Clause={ 'clause', Line, [ { X, P, Any } ], GuardSequence, BodyExprs },
   Transforms ) ->
 
 	ast_utils:display_warning( "transform_catch_clause: X=~p, P=~p, Any= ~p",
@@ -358,9 +362,9 @@ transform_catch_clause(
 	NewGuardSequence = ast_guard:transform_guard_sequence( GuardSequence,
 														   Transforms ),
 
-	NewBody = transform_body( Body, Transforms ),
+	NewBodyExprs = transform_body( BodyExprs, Transforms ),
 
-	Res = { clause, Line, [ { NewX, NewP, Any } ], NewGuardSequence, NewBody },
+	Res = { clause, Line, [ { NewX, NewP, Any } ], NewGuardSequence, NewBodyExprs },
 
 	ast_utils:display_debug( "... returning catch clause with variable ~p",
 							 [ Res ] ),
@@ -385,11 +389,11 @@ transform_catch_clauses( CatchClauses, Transforms ) ->
 %
 -spec transform_body( ast_body(), ast_transform:ast_transforms() ) ->
 							ast_body().
-transform_body( _Body=[], _Transforms ) ->
+transform_body( _BodyExprs=[], _Transforms ) ->
 	ast_utils:raise_error( invalid_empty_body );
 
-transform_body( Body, Transforms ) when is_list( Body ) ->
-	[ ast_expression:transform_expression( E, Transforms ) || E <- Body ];
+transform_body( BodyExprs, Transforms ) when is_list( BodyExprs ) ->
+	ast_expression:transform_expressions( BodyExprs, Transforms );
 
 transform_body( Other, _Transforms ) ->
 	ast_utils:raise_error( [ invalid_body, Other ] ).

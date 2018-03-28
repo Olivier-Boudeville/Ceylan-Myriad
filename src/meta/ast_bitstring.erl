@@ -117,12 +117,56 @@
 
 % Transforms specified list of binary elements involved in a bitstring expression.
 %
-% Note: context-insensitive function, considering that any kind of expression
-% can be found here.
+% Note: finally common to patterns, expressions and guard expressions.
 %
 transform_bin_elements( BinElements, Transforms ) ->
-	transform_bin_elements( BinElements, Transforms,
-					   fun ast_expression:transform_expression/2 ) .
+
+    % Note: context-insensitive function, considering that any kind of
+    % expression can be found here.
+	%
+	%transform_bin_elements( BinElements, Transforms,
+	%				   fun ast_expression:transform_expression/2 ) .
+
+	[ transform_bin_element( BE, Transforms ) || BE <- BinElements ].
+
+	
+% Transforms specified binary element involved in a bitstring expression.
+%
+% Note: finally common to patterns, expressions and guard expressions.
+%
+-spec transform_bin_element( bin_element(), ast_transforms() ) -> bin_element().
+transform_bin_element( _BinElem={ bin_element, Line, Element, Size,
+								  TypeSpecifierList }, Transforms ) ->
+
+	NewElement = ast_expression:transform_expression( Element, Transforms ),
+
+	NewSize = case Size of
+
+		default ->
+			default;
+
+		_ ->
+			ast_expression:transform_expression( Size, Transforms )
+
+	end,
+
+	NewTypeSpecifierList = case TypeSpecifierList of
+
+		default ->
+			default;
+
+		_ ->
+			[ transform_type_specifier( TypeSpecifier, Transforms )
+						|| TypeSpecifier <- TypeSpecifierList ]
+
+	end,
+
+	{ bin_element, Line, NewElement, NewSize, NewTypeSpecifierList };
+
+transform_bin_element( Unexpected, _Transforms ) ->
+	throw( { unexpected_bitstring_bin_element, Unexpected } ).
+
+
 
 
 % Transforms specified list of binary elements involved in a bitstring expression,
@@ -134,6 +178,8 @@ transform_bin_elements( BinElements, Transforms ) ->
 							  element_transform_fun() ) -> [ bin_element() ].
 transform_bin_elements( BinElements, Transforms, TransformFun ) ->
 	[ transform_bin_element( E, Transforms, TransformFun ) || E <- BinElements ].
+
+
 
 
 
@@ -186,6 +232,8 @@ transform_bin_element( Unexpected, _Transforms, _TransformFun ) ->
 %
 % If TS is a type specifier A:Value, where A is an atom and Value is an integer,
 % then Rep(TS) = {A,Value}."
+%
+% Note: maybe the types there shall be transformed as well.
 %
 transform_type_specifier( TypeSpecifier, _Transforms )
   when is_atom( TypeSpecifier ) ->
