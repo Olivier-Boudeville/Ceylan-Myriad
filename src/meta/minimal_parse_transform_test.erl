@@ -67,7 +67,7 @@ perform_direct_ast_operations( TargetSourceFile ) ->
 run() ->
 
 	%TargetSourceFile = "code_utils.erl",
-	TargetSourceFile = "../data-management/simple_parse_transform_target.erl",
+	TargetSourceFile = "simple_parse_transform_target.erl",
 	%TargetSourceFile = "../data-management/preferences.erl",
 
 	io:format( "Applying the common parse transform to the "
