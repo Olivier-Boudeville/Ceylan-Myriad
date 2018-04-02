@@ -581,11 +581,14 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
 
 	Context = { CurrentFileReference, Line },
 
-	ast_utils:check_record_name( RecordName, Context ),
+	ast_type:check_record_name( RecordName, Context ),
 
 	FieldTable = scan_field_descriptions( DescFields, CurrentFileReference ),
 
 	NewRecordDef = { FieldTable, NextLocation, Line },
+
+	%ast_utils:display_debug( "Adding for record '~p' following "
+	%						 "definition:~n~p", [ RecordName, NewRecordDef ] ),
 
 	NewRecordTable = ?table:addNewEntry( RecordName, NewRecordDef,
 										 RecordTable ),
@@ -698,7 +701,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export_type', TypeIds } | T ],
 
 		fun( TypeId, TypeTableAcc ) ->
 
-			{ Name, _Arity } = ast_utils:check_type_id( TypeId, Context ),
+			{ Name, _Arity } = ast_type:check_type_id( TypeId, Context ),
 
 			NewTypeInfo = case ?table:lookupEntry( TypeId, TypeTableAcc ) of
 
@@ -830,7 +833,7 @@ scan_forms( [ Form={ 'attribute', Line, AttributeName, AttributeValue } | T ],
 
 	Context = { CurrentFileReference, Line },
 
-	ast_utils:check_parse_attribute_name( AttributeName, Context ),
+	check_parse_attribute_name( AttributeName, Context ),
 
 	% No constraint on AttributeValue applies.
 

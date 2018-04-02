@@ -472,8 +472,8 @@
 % Type-related functions:
 %
 -export([ description_to_type/1, type_to_description/1, type_to_string/1,
-		  get_type_of/1, get_immediate_types/0, get_elementary_types/0,
-		  get_simple_builtin_types/0,
+		  get_type_of/1, get_immediate_types/0, get_ast_simple_builtin_types/0,
+		  get_elementary_types/0, get_simple_builtin_types/0,
 		  is_type/1, is_of_type/2,
 		  is_of_described_type/2, is_homogeneous/1, is_homogeneous/2,
 		  are_types_identical/2 ]).
@@ -702,12 +702,43 @@ get_type_of( Term ) when is_reference( Term ) ->
 
 
 
-% Returns a list of the possible types for immediate values (typically found in
-% an AST like, like 'undefined' in: {atom,42,undefined}).
+% Returns a list of the possible types for immediate values.
 %
 -spec get_immediate_types() -> [ type_name() ].
 get_immediate_types() ->
-	[ 'atom', 'binary', 'boolean', 'float', 'integer' ].
+	% Not sure this list is very accurate or relevant:
+	[ 'atom', 'float', 'integer', 'binary', 'boolean' ].
+
+
+
+% Returns a list of the possible types for immediate values (typically found in
+% an AST like, like 'undefined' in: {atom,42,undefined}).
+%
+% From http://erlang.org/doc/apps/erts/absform.html:
+%
+% "There are five kinds of atomic literals, which are represented in the same
+% way in patterns, expressions, and guards:
+%
+% - If L is an atom literal, then Rep(L) = {atom,LINE,L}.
+%
+% - If L is a character literal, then Rep(L) = {char,LINE,L}.
+%
+% - If L is a float literal, then Rep(L) = {float,LINE,L}.
+%
+% - If L is an integer literal, then Rep(L) = {integer,LINE,L}.
+%
+% - If L is a string literal consisting of the characters C_1, ..., C_k, then
+% Rep(L) = {string,LINE,[C_1, ..., C_k]}."
+%
+% Actually additional types can be found in ASTs.
+%
+-spec get_ast_simple_builtin_types() -> [ type_name() ].
+get_ast_simple_builtin_types() ->
+
+	% No 'binary' here, but:
+	%
+	[ 'atom', 'char', 'float', 'integer', 'string', 'boolean', 'number',
+	  'non_neg_integer', 'term' ].
 
 
 % Returns a list of the elementary, "atomic" types

@@ -198,7 +198,7 @@
 		  check_type_variable/1, check_type_variable/2,
 		  check_type_variables/1, check_type_variables/2,
 
-		  check_ast_atom/1 ]).
+		  check_ast_atom/1, check_ast_atom/2 ]).
 
 
 % Transformations:
@@ -382,7 +382,7 @@ transform_field_definition( _FieldDef={ AstType, MaybeAstValue },
 		basic_utils:maybe( meta_utils:remote_type_transform_table() ) ) ->
 						   [ ast_type() ].
 transform_types( Types, LocalTransformTable, RemoteTransformTable ) ->
-	[ transform_types( T, LocalTransformTable, RemoteTransformTable )
+	[ transform_type( T, LocalTransformTable, RemoteTransformTable )
 	  || T <- Types ].
 
 
@@ -580,7 +580,7 @@ transform_type( TypeDef={ 'type', _Line, 'fun', [] }, _LocalTransformTable,
 % {type,LINE,'fun',[{type,LINE,any},Rep(T_0)]}."
 %
 transform_type( _TypeDef={ 'type', Line1, 'fun',
-						   [ Any={ 'type', _Line2, 'any' }, ResultType ] },
+						   [ Any={ 'type', _Line2, 'any' } ], ResultType },
 				LocalTransformTable, RemoteTransformTable ) ->
 
 	NewResultType = transform_type( ResultType, LocalTransformTable,
@@ -588,6 +588,17 @@ transform_type( _TypeDef={ 'type', Line1, 'fun',
 
 	{ 'type', Line1, 'fun', [ Any, NewResultType ] };
 
+
+% "If T is a fun type fun(Ft), where Ft is a function type, then Rep(T) =
+% Rep(Ft)."
+%
+% ParamsResult corresponds to any [ Params, ResultType ]:
+%
+transform_type( TypeDef={ 'type', _Line, 'fun', _ParamsResult },
+				LocalTransformTable, RemoteTransformTable ) ->
+
+	ast_function:transform_function_type( TypeDef, LocalTransformTable,
+										  RemoteTransformTable );
 
 
 % Handling union types:
@@ -611,15 +622,16 @@ transform_type( _TypeDef={ 'type', Line, 'union', UnifiedTypes },
 transform_type( TypeDef={ 'type', _Line, BuiltinType, _TypeVars=[] },
 				_LocalTransformTable, _RemoteTransformTable ) ->
 
-	case lists:member( BuiltinType, type_utils:get_immediate_types() ) of
+	case lists:member( BuiltinType,
+					   type_utils:get_ast_simple_builtin_types() ) of
 
 		true ->
 			TypeDef;
 
 		false ->
-			ast_utils:display_warning( "Not expecting type '~s', assuming "
-									   "simple builtin type (in ~p).",
-									   [ BuiltinType, TypeDef ] ),
+			ast_utils:display_warning( "Not expecting type '~s' "
+				"(in ast_type:transform_type/3), assuming simple builtin type, "
+				"in:~n  ~p", [ BuiltinType, TypeDef ] ),
 			TypeDef
 
 	end;
@@ -649,7 +661,7 @@ transform_type( TypeDef={ 'type', Line, BuiltinType, TypeVars },
   when is_list( TypeVars ) ->
 
 	ast_utils:display_warning( "Not expecting type '~s', assuming unknown "
-							   "parametrized builtin type (in ~p).",
+							   "parametrized builtin type, in:~n  ~p",
 							   [ BuiltinType, TypeDef ] ),
 
 	NewTypeVars = [ transform_type( T, LocalTransformTable,

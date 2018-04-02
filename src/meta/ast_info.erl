@@ -862,9 +862,10 @@ module_info_to_string( #module_info{
 					CompStrings = [ text_utils:format( "for option '~s': ~p",
 													   [ OptName, OptValue ] )
 									|| { OptName, OptValue } <- CompileOpts ],
-					text_utils:format( "~B compile option(s) defined: ~s~n",
+					text_utils:format( "~B compile option(s) defined:~s",
 						   [ length( CompileOpts ),
-							 text_utils:strings_to_string( CompStrings ) ] )
+							 text_utils:strings_to_string( CompStrings,
+												   NextIndentationLevel ) ] )
 
 			end,
 
@@ -964,8 +965,10 @@ module_info_to_string( #module_info{
 							  [ RecordName, length( FieldStrings ),
 								FieldString ] )
 
-						end || { RecordName, FieldTable } <- RecordEntries ],
-						NextIndentationLevel ),
+								% Mute variables below: NextLocation, Line:
+						end || { RecordName, { FieldTable, _, _ } }
+								   <- RecordEntries ],
+							   NextIndentationLevel ),
 					 text_utils:format( "~B records defined:~s",
 								   [ length( RecordEntries ), RecordString ] )
 
@@ -1037,6 +1040,8 @@ module_info_to_string( #module_info{
 %
 -spec fields_to_strings( field_table() ) -> [ text_utils:string() ].
 fields_to_strings( FieldTable ) ->
+
+	io:format( "~nFieldTable = ~p~n", [ FieldTable ] ),
 
 	FieldEntries = ?table:enumerate( FieldTable ),
 

@@ -124,18 +124,18 @@
 %
 % Left and Right members are patterns here (not general expressions).
 %
-transform_pattern( E={ 'match', Line, LeftPattern, RightPattern },
+transform_pattern( _E={ 'match', Line, LeftPattern, RightPattern },
 				   Transforms ) ->
 
-	ast_utils:display_debug( "Intercepting match pattern ~p...", [ E ] ),
+	%ast_utils:display_debug( "Intercepting match pattern ~p...", [ E ] ),
 
 	NewLeftPattern = transform_pattern( LeftPattern, Transforms ),
 
 	NewRightPattern = transform_pattern( RightPattern, Transforms ),
 
-	Res = { match, Line, NewLeftPattern, NewRightPattern },
+	Res = { 'match', Line, NewLeftPattern, NewRightPattern },
 
-	ast_utils:display_debug( "... returning match pattern ~p", [ Res ] ),
+	%ast_utils:display_debug( "... returning match pattern ~p", [ Res ] ),
 
 	Res;
 
@@ -145,10 +145,10 @@ transform_pattern( E={ 'match', Line, LeftPattern, RightPattern },
 % "If P is a cons pattern [P_h | P_t], then Rep(P) =
 % {cons,LINE,Rep(P_h),Rep(P_t)}."
 %
-transform_pattern( E={ 'cons', Line, HeadPattern, TailPattern },
+transform_pattern( _E={ 'cons', Line, HeadPattern, TailPattern },
 				   Transforms ) ->
 
-	ast_utils:display_debug( "Intercepting cons pattern ~p...", [ E ] ),
+	%ast_utils:display_debug( "Intercepting cons pattern ~p...", [ E ] ),
 
 	[ NewHeadPattern, NewTailPattern ] =
 		[ ast_pattern:transform_pattern( P, Transforms )
@@ -156,7 +156,7 @@ transform_pattern( E={ 'cons', Line, HeadPattern, TailPattern },
 
 	Res = { cons, Line, NewHeadPattern, NewTailPattern },
 
-	ast_utils:display_debug( "... returning cons pattern ~p", [ Res ] ),
+	%ast_utils:display_debug( "... returning cons pattern ~p", [ Res ] ),
 
 	Res;
 
@@ -167,11 +167,11 @@ transform_pattern( E={ 'cons', Line, HeadPattern, TailPattern },
 %
 transform_pattern( E={ 'nil', _Line }, _Transforms ) ->
 
-	ast_utils:display_debug( "Intercepting nil pattern ~p...", [ E ] ),
+	%ast_utils:display_debug( "Intercepting nil pattern ~p...", [ E ] ),
 
 	Res = E,
 
-	ast_utils:display_debug( "... returning nil pattern ~p", [ Res ] ),
+	%ast_utils:display_debug( "... returning nil pattern ~p", [ Res ] ),
 
 	Res;
 
@@ -232,16 +232,16 @@ transform_pattern( E={ 'nil', _Line }, _Transforms ) ->
 % "If P is a map pattern #{A_1, ..., A_k}, where each A_i is an association
 % P_i_1 := P_i_2, then Rep(P) = {map,LINE,[Rep(A_1), ..., Rep(A_k)]}."
 %
-transform_pattern( E={ 'map', Line, Associations }, Transforms ) ->
+transform_pattern( _E={ 'map', Line, Associations }, Transforms ) ->
 
-	ast_utils:display_debug( "Intercepting map pattern ~p...", [ E ] ),
+	%ast_utils:display_debug( "Intercepting map pattern ~p...", [ E ] ),
 
 	NewAssociations = [ transform_pattern( A, Transforms )
 						|| A <- Associations ],
 
 	Res = { 'map', Line, NewAssociations },
 
-	ast_utils:display_debug( "... returning map pattern ~p", [ Res ] ),
+	%ast_utils:display_debug( "... returning map pattern ~p", [ Res ] ),
 
 	Res;
 
@@ -253,10 +253,10 @@ transform_pattern( E={ 'map', Line, Associations }, Transforms ) ->
 % http://erlang.org/doc/apps/erts/absform.html); apparently, no map_field_assoc
 % to expect here, according to the same source.
 %
-transform_pattern( E={ 'map_field_exact', Line, Key, Value }, Transforms ) ->
+transform_pattern( _E={ 'map_field_exact', Line, Key, Value }, Transforms ) ->
 
-	ast_utils:display_debug( "Intercepting map exact association ~p...",
-							 [ E ] ),
+	%ast_utils:display_debug( "Intercepting map exact association ~p...",
+	%						 [ E ] ),
 
 	NewKey = ast_expression:transform_expression( Key, Transforms ),
 
@@ -264,8 +264,8 @@ transform_pattern( E={ 'map_field_exact', Line, Key, Value }, Transforms ) ->
 
 	Res = { 'map_field_exact', Line, NewKey, NewValue },
 
-	ast_utils:display_debug( "... returning map exact association ~p",
-							 [ Res ] ),
+	%ast_utils:display_debug( "... returning map exact association ~p",
+	%						 [ Res ] ),
 
 	Res;
 
@@ -285,10 +285,10 @@ transform_pattern( E={ 'map_field_exact', Line, Key, Value }, Transforms ) ->
 % below. An omitted Size_i is represented by default. An omitted TSL_i is
 % represented by default."
 %
-transform_pattern( Clause={ 'bin', Line, BinElements }, Transforms ) ->
+transform_pattern( _Clause={ 'bin', Line, BinElements }, Transforms ) ->
 
-	ast_utils:display_debug( "Intercepting bitstring pattern ~p...",
-							 [ Clause ] ),
+	%ast_utils:display_debug( "Intercepting bitstring pattern ~p...",
+	%						 [ Clause ] ),
 
 	% Actually no need to introduce a pattern-specific way of transforming a
 	% bitstring:
@@ -301,7 +301,7 @@ transform_pattern( Clause={ 'bin', Line, BinElements }, Transforms ) ->
 
 	Res = { 'bin', Line, NewBinElements },
 
-	ast_utils:display_debug( "... returning bitstring pattern ~p", [ Res ] ),
+	%ast_utils:display_debug( "... returning bitstring pattern ~p", [ Res ] ),
 
 	Res;
 
@@ -313,16 +313,16 @@ transform_pattern( Clause={ 'bin', Line, BinElements }, Transforms ) ->
 %
 % Note: patterns, not expressions here, as shown by erl_id_trans.
 %
-transform_pattern( Clause={ 'tuple', Line, Patterns }, Transforms ) ->
+transform_pattern( _Clause={ 'tuple', Line, Patterns }, Transforms ) ->
 
-	ast_utils:display_debug( "Intercepting tuple pattern ~p...",
-							 [ Clause ] ),
+	%ast_utils:display_debug( "Intercepting tuple pattern ~p...",
+	%						 [ Clause ] ),
 
 	NewPatterns = [ transform_pattern( P, Transforms )|| P <- Patterns ],
 
 	Res = { 'tuple', Line, NewPatterns },
 
-	ast_utils:display_debug( "... returning tuple pattern ~p", [ Res ] ),
+	%ast_utils:display_debug( "... returning tuple pattern ~p", [ Res ] ),
 
 	Res;
 
@@ -334,16 +334,16 @@ transform_pattern( Clause={ 'tuple', Line, Patterns }, Transforms ) ->
 % "If P is a variable pattern V, then Rep(P) = {var,LINE,A}, where A is an atom
 % with a printname consisting of the same characters as V."
 %
-transform_pattern( Clause={ 'var', Line, VariableName }, Transforms ) ->
+transform_pattern( _Clause={ 'var', Line, VariableName }, Transforms ) ->
 
-	ast_utils:display_debug( "Intercepting variable pattern ~p...",
-							 [ Clause ] ),
+	%ast_utils:display_debug( "Intercepting variable pattern ~p...",
+	%						 [ Clause ] ),
 
 	NewVariableName = transform_variable( VariableName, Line, Transforms ),
 
 	Res = { 'var', Line, NewVariableName },
 
-	ast_utils:display_debug( "... returning variable pattern ~p", [ Res ] ),
+	%ast_utils:display_debug( "... returning variable pattern ~p", [ Res ] ),
 
 	Res;
 
@@ -473,10 +473,9 @@ transform_pattern_sequence( Patterns, Transforms ) ->
 %
 -spec transform_variable( meta_utils:variable_name(), line(),
 						  ast_transforms() ) -> ast_element().
-transform_variable( VariableName, Line, Transforms )  ->
-	ast_type:transform_variable( VariableName, Line, Transforms ).
-
-
+transform_variable( VariableName, _Line, _Transforms )  ->
+	% Currently no transformation done:
+	VariableName.
 
 
 % Transforms specified pattern fields.

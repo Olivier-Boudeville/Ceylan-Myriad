@@ -191,13 +191,14 @@ transform_record_field_init( { 'record_field', LineField,
 % Note: the subject of a special case in erl_id_trans (guard_test/1), delegated
 % appropriately to the direct counterpart.
 %
-transform_guard_test( GuardTest={ 'call', Line, FunctionName, GuardTests },
+transform_guard_test( GuardTest={ 'call', Line, FunctionASTName, GuardTests },
 					  Transforms ) ->
 
 	ast_utils:display_debug( "Intercepting guard test local call ~p...",
 							 [ GuardTest ] ),
 
-	ast_utils:check_ast_atom( FunctionName, Line ),
+	{ atom, _Line, FunctionName } = ast_type:check_ast_atom( FunctionASTName,
+															 Line ),
 
 	% Here we check whether FunctionName designates an Erlang BIF that is
 	% allowed in guards:
@@ -211,7 +212,7 @@ transform_guard_test( GuardTest={ 'call', Line, FunctionName, GuardTests },
 		true ->
 			NewGuardTests = direct_transform_guard_tests( GuardTests,
 														  Transforms ),
-			{ 'call', Line, FunctionName, NewGuardTests };
+			{ 'call', Line, FunctionASTName, NewGuardTests };
 
 		false ->
 			direct_transform_guard_test( GuardTest, Transforms )

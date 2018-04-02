@@ -146,7 +146,7 @@ fold_breadth_first( ContentFun, InitialAcc, _Tree={ Content, Subtrees } ) ->
 	NodeAcc = ContentFun( Content, InitialAcc ),
 
 	lists:foldl( fun( ChildTree, Acc ) ->
-						 fold_breadth_first( ContentFun, Acc, ChildTree )
+					 fold_breadth_first( ContentFun, Acc, ChildTree )
 				 end,
 				 NodeAcc, Subtrees ).
 

@@ -47,7 +47,10 @@
 
 
 % Transformation:
--export([ transform_functions/2, transform_function/2 ]).
+-export([ transform_functions/2, transform_function/2,
+		  transform_function_spec/2,
+		  transform_spec/3, transform_function_type/3,
+		  transform_function_constraints/3, transform_function_constraint/3 ]).
 
 
 % Recomposition:
@@ -284,8 +287,10 @@ transform_spec( { 'type', Line, 'bounded_fun',
 
 	{ 'type', Line, 'bounded_fun', [ NewFunctionType, NewFunctionConstraint ] };
 
-transform_spec( UnexpectedSpec, _MaybeLocalTypeTable, _MaybeRemoteTypeTable ) ->
-	ast_utils:raise_error( [ unexpected_function_spec, UnexpectedSpec ] ).
+
+transform_spec( OtherSpec, MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
+	transform_function_type( OtherSpec, MaybeLocalTypeTable,
+							 MaybeRemoteTypeTable ).
 
 
 
