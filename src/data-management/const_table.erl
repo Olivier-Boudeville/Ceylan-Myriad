@@ -151,7 +151,7 @@ generate_fun_forms( _Entries=[ { K, V } | T ], Line, AccForms )
 
 	% Ex: returns '{float,0,42.0}' (as a term):
 	%
-	ASTForV = meta_utils:term_to_form( V ),
+	ASTForV = ast_utils:term_to_form( V ),
 
 	FunForm = { function, Line, K, 0, [ { clause, Line, [], [],
 								  [ ASTForV ] } ] },
