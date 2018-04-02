@@ -707,8 +707,8 @@ recompose_ast_from_module_info( #module_info{
 
 	OrderedAST = get_ordered_ast_from( UnorderedLocatedAST ),
 
-	%ast_utils:display_debug( "Recomposed AST:~n~p~n",
-	%  [ OrderedAST ] ),
+	ast_utils:display_debug( "Recomposed AST:~n~p~n",
+							 [ OrderedAST ] ),
 
 	OrderedAST.
 
@@ -983,7 +983,8 @@ module_info_to_string( #module_info{
 					 ImpString = text_utils:strings_to_sorted_string(
 					   [ text_utils:format( "from module '~s': ~p",
 							[ ModName, FunIds ] )
-						 || { ModName, FunIds } <- ImportEntries ] ),
+						 || { ModName, FunIds } <- ImportEntries ],
+								   NextIndentationLevel ),
 					 text_utils:format(
 					   "Function imports declared from ~B modules: ~s",
 					   [ length( ImportEntries ), ImpString ] )
@@ -1040,8 +1041,6 @@ module_info_to_string( #module_info{
 %
 -spec fields_to_strings( field_table() ) -> [ text_utils:string() ].
 fields_to_strings( FieldTable ) ->
-
-	io:format( "~nFieldTable = ~p~n", [ FieldTable ] ),
 
 	FieldEntries = ?table:enumerate( FieldTable ),
 

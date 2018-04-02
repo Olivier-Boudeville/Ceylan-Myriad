@@ -450,7 +450,7 @@ transform_pattern( Clause={ 'op', _Line, _UnaryOperator, _Operand },
 
 % Other pattern found:
 transform_pattern( E, _Transforms ) ->
-	%ast_utils:display_warning( "Letting undhandled pattern ~p as is.",
+	%ast_utils:display_warning( "Letting unhandled pattern ~p as is.",
 	%  [ E ] ),
 	%E.
 	ast_utils:raise_error( [ unexpected_pattern, E ] ).

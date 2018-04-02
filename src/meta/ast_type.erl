@@ -650,7 +650,7 @@ transform_type( _TypeDef={ 'type', Line, 'record',
 	NewFieldTypes = [ transform_field_type( FT, LocalTransformTable,
 							RemoteTransformTable ) || FT <- FieldTypes ],
 
-	{ 'type', Line, 'record', [ N, NewFieldTypes ] };
+	{ 'type', Line, 'record', [ N | NewFieldTypes ] };
 
 
 % Known other built-in types (catch-all for all remaining 'type'):

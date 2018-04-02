@@ -735,10 +735,15 @@ get_immediate_types() ->
 -spec get_ast_simple_builtin_types() -> [ type_name() ].
 get_ast_simple_builtin_types() ->
 
-	% No 'binary' here, but:
-	%
-	[ 'atom', 'char', 'float', 'integer', 'string', 'boolean', 'number',
-	  'non_neg_integer', 'term' ].
+	% See http://erlang.org/doc/reference_manual/typespec.html for a complete
+	% list:
+
+	[ 'term', 'binary', 'bitstring', 'boolean', 'byte', 'char', 'nil', 'number',
+	  'list', 'maybe_improper_list', 'nonempty_list', 'string',
+	  'nonempty_string', 'iodata', 'iolist', 'function', 'module', 'mfa',
+	  'arity', 'identifier', 'node', 'timeout', 'no_return',
+	  'any', 'integer', 'float', 'atom', 'pos_integer', 'neg_integer',
+	  'non_neg_integer', 'pid', 'reference' ].
 
 
 % Returns a list of the elementary, "atomic" types

@@ -314,7 +314,8 @@ transform_catch_clause(
 % then Rep(C) = {clause,LINE,[Rep({X,P,_})],Rep(Gs),Rep(B)}."
 %
 transform_catch_clause(
-  _Clause={ 'clause', Line, [ { X, P, Any } ], GuardSequence, BodyExprs },
+  _Clause={ 'clause', Line, [ HeadPattern={ _X, _P, _Any } ], GuardSequence,
+			BodyExprs },
   Transforms ) ->
 
 	%ast_utils:display_debug( "transform_catch_clause: X=~p, P=~p, Any= ~p",
@@ -324,16 +325,14 @@ transform_catch_clause(
 	%						 [ Clause ] ),
 
 	% Includes atomic literals:
-	NewX = ast_pattern:transform_pattern( X, Transforms ),
-
-	NewP = ast_pattern:transform_pattern( P, Transforms ),
+	NewHeadPattern = ast_pattern:transform_pattern( HeadPattern, Transforms ),
 
 	NewGuardSequence = ast_guard:transform_guard_sequence( GuardSequence,
 														   Transforms ),
 
 	NewBodyExprs = transform_body( BodyExprs, Transforms ),
 
-	Res = { 'clause', Line, [ { NewX, NewP, Any } ], NewGuardSequence,
+	Res = { 'clause', Line, [ NewHeadPattern ], NewGuardSequence,
 			NewBodyExprs },
 
 	%ast_utils:display_debug( "... returning catch clause with variable ~p",
@@ -443,8 +442,12 @@ transform_case_clause(
 %
 -spec transform_body( ast_body(), ast_transform:ast_transforms() ) ->
 							ast_body().
-transform_body( _BodyExprs=[], _Transforms ) ->
-	ast_utils:raise_error( invalid_empty_body );
+
+% Actually bodies can be empty lists (ex: if a try/catch does not have an
+% 'after' clause, its associated body will be empty).
+% 
+%transform_body( _BodyExprs=[], _Transforms ) ->
+%	ast_utils:raise_error( invalid_empty_body );
 
 transform_body( BodyExprs, Transforms ) when is_list( BodyExprs ) ->
 	ast_expression:transform_expressions( BodyExprs, Transforms );
