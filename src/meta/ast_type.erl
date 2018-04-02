@@ -203,7 +203,7 @@
 
 % Transformations:
 -export([ transform_type_table/2, transform_types_in_record_table/2,
-		  transform_types/3, transform_type/3, 
+		  transform_types/3, transform_type/3,
 		  transform_association_type/3,
 		  transform_type_variable/3 ]).
 
@@ -227,8 +227,6 @@
 -type ast_variable() :: ast_type:ast_variable().
 -type type_table() :: ast_info:type_table().
 -type type_name() :: type_utils:type_name().
-
--type ast_type() :: ast_utils:ast_type().
 
 
 -type record_table() :: ast_info:record_table().
@@ -435,7 +433,7 @@ transform_types( Types, LocalTransformTable, RemoteTransformTable ) ->
 transform_type( _TypeDef={ 'type', Line, 'tuple', ElementTypes },
 				LocalTransformTable, RemoteTransformTable )
   when is_list( ElementTypes ) ->
-	{ type, Line, tuple,
+	{ 'type', Line, 'tuple',
 	  [ transform_type( Elem, LocalTransformTable, RemoteTransformTable )
 		|| Elem <- ElementTypes ] };
 
@@ -471,7 +469,7 @@ transform_type( _TypeDef={ 'type', Line, 'list', [ ElementType ] },
 	NewElementType = transform_type( ElementType, LocalTransformTable,
 								RemoteTransformTable ),
 
-	{ type, Line, list, [ NewElementType ] };
+	{ 'type', Line, 'list', [ NewElementType ] };
 
 
 % General list type found (i.e. list()):
@@ -524,7 +522,7 @@ transform_type( _TypeDef={ 'type', Line, 'binary', [ M, N ] },
 
 	NewN = transform_type( N, LocalTransformTable, RemoteTransformTable ),
 
-	{ type, Line, binary, [ NewM, NewN ] };
+	{ 'type', Line, 'binary', [ NewM, NewN ] };
 
 
 
@@ -544,7 +542,7 @@ transform_type( _TypeDef={ 'type', Line, 'range', [ L, H ] },
 
 	NewH = transform_type( H, LocalTransformTable, RemoteTransformTable ),
 
-	{ type, Line, range, [ NewL, NewH ] };
+	{ 'type', Line, 'range', [ NewL, NewH ] };
 
 
 % Handling maps:
@@ -565,7 +563,7 @@ transform_type( _TypeDef={ 'type', Line, 'map', AssocTypes },
 	NewAssocTypes = [ transform_association_type( T, LocalTransformTable,
 						RemoteTransformTable ) || T <- AssocTypes ],
 
-	{ type, Line, map, NewAssocTypes };
+	{ 'type', Line, 'map', NewAssocTypes };
 
 
 
@@ -588,7 +586,7 @@ transform_type( _TypeDef={ 'type', Line1, 'fun',
 	NewResultType = transform_type( ResultType, LocalTransformTable,
 									RemoteTransformTable ),
 
-	{ type, Line1, 'fun', [ Any, NewResultType ] };
+	{ 'type', Line1, 'fun', [ Any, NewResultType ] };
 
 
 
@@ -604,7 +602,7 @@ transform_type( _TypeDef={ 'type', Line, 'union', UnifiedTypes },
 									   RemoteTransformTable )
 						|| T <- UnifiedTypes ],
 
-	{ type, Line, union, NewUnifiedTypes };
+	{ 'type', Line, 'union', NewUnifiedTypes };
 
 
 % Simple built-in type, like 'boolean()', translating in '{ type, 57, boolean,
@@ -640,7 +638,7 @@ transform_type( _TypeDef={ 'type', Line, 'record',
 	NewFieldTypes = [ transform_field_type( FT, LocalTransformTable,
 							RemoteTransformTable ) || FT <- FieldTypes ],
 
-	{ type, Line, record, [ N, NewFieldTypes ] };
+	{ 'type', Line, 'record', [ N, NewFieldTypes ] };
 
 
 % Known other built-in types (catch-all for all remaining 'type'):
@@ -657,7 +655,7 @@ transform_type( TypeDef={ 'type', Line, BuiltinType, TypeVars },
 	NewTypeVars = [ transform_type( T, LocalTransformTable,
 							   RemoteTransformTable ) || T <- TypeVars ],
 
-	{ type, Line, BuiltinType, NewTypeVars };
+	{ 'type', Line, BuiltinType, NewTypeVars };
 
 
 
@@ -732,7 +730,7 @@ transform_type( _TypeDef={ 'user_type', Line, TypeName, TypeVars },
 
 		unchanged ->
 			% TypeDef with only updated TypeVars:
-			{ user_type, Line, TypeName, NewTypeVars };
+			{ 'user_type', Line, TypeName, NewTypeVars };
 
 		{ SetModuleName, SetTypeName } ->
 			forge_remote_type( SetModuleName, SetTypeName, NewTypeVars, Line )
@@ -839,7 +837,7 @@ transform_type( _TypeDef={ 'remote_type', Line,
 
 		unchanged ->
 			% TypeDef with updated TypeVars:
-			{ remote_type, Line, [ M, T, NewTypeVars ] };
+			{ 'remote_type', Line, [ M, T, NewTypeVars ] };
 
 		{ SetModuleName, SetTypeName } ->
 			forge_remote_type( SetModuleName, SetTypeName, NewTypeVars, Line,
@@ -864,7 +862,7 @@ transform_type( _TypeDef={ 'remote_type', Line1, [ Mod, Typ, TypeVars ] },
 	NewTypeVars = [ transform_type( T, LocalTransformTable,
 								   RemoteTransformTable ) || T <- TypeVars ],
 
-	{ remote_type, Line1, [ NewMod, NewTyp, NewTypeVars ] };
+	{ 'remote_type', Line1, [ NewMod, NewTyp, NewTypeVars ] };
 
 
 % Variable declaration, possibly obtained through declarations like:
@@ -900,7 +898,7 @@ transform_type( _TypeDef={ 'ann_type', Line,
 	NewInternalTypeDef = transform_type( InternalTypeDef, LocalTransformTable,
 										 RemoteTransformTable ),
 
-	{ ann_type, Line, [ NewVar, NewInternalTypeDef ] };
+	{ 'ann_type', Line, [ NewVar, NewInternalTypeDef ] };
 
 
 
@@ -919,7 +917,7 @@ transform_type( _TypeDef={ 'op', Line, Operator, LeftType, RightType },
 	NewRightType = transform_type( RightType, LocalTransformTable,
 								   RemoteTransformTable ),
 
-	{ op, Line, Operator, NewLeftType, NewRightType };
+	{ 'op', Line, Operator, NewLeftType, NewRightType };
 
 
 
@@ -935,7 +933,7 @@ transform_type( _TypeDef={ 'op', Line, Operator, OperandType },
 	NewOperandType = transform_type( OperandType, LocalTransformTable,
 									 RemoteTransformTable ),
 
-	{ op, Line, Operator, NewOperandType };
+	{ 'op', Line, Operator, NewOperandType };
 
 
 
@@ -989,7 +987,7 @@ transform_association_type( { 'type', Line, 'map_field_assoc',
 	NewTypes = [ transform_type( T, LocalTransformTable, RemoteTransformTable )
 				 || T <- Types ],
 
-	{ type, Line, map_field_assoc, NewTypes };
+	{ 'type', Line, 'map_field_assoc', NewTypes };
 
 
 % "If A is an association type K := V, where K and V are types, then Rep(A) =
@@ -1002,7 +1000,7 @@ transform_association_type( { 'type', Line, 'map_field_exact',
 	NewTypes = [ transform_type( T, LocalTransformTable, RemoteTransformTable )
 				 || T <- Types ],
 
-	{ type, Line, map_field_exact, NewTypes }.
+	{ 'type', Line, 'map_field_exact', NewTypes }.
 
 
 
@@ -1018,7 +1016,7 @@ transform_field_type( { 'type', Line, 'field_type',
 	NewFieldType = transform_type( FieldType, LocalTransformTable,
 								   RemoteTransformTable ),
 
-	{ type, Line, field_type, [ N, NewFieldType ] }.
+	{ 'type', Line, 'field_type', [ N, NewFieldType ] }.
 
 
 
@@ -1296,15 +1294,14 @@ check_type_name( Other, Context ) ->
 
 % Checks that specified type definition is legit.
 %
--spec check_type_definition( term() ) -> ast_utils:ast_type_definition().
+-spec check_type_definition( term() ) -> ast_type_definition().
 check_type_definition( TypeDef ) ->
 	check_type_definition( TypeDef, _Context=undefined ).
 
 
 % Checks that specified type definition is legit.
 %
--spec check_type_definition( term(), form_context() ) ->
-								   ast_utils:ast_type_definition().
+-spec check_type_definition( term(), form_context() ) -> ast_type_definition().
 check_type_definition( TypeDef, _Context ) when is_tuple( TypeDef ) ->
 	TypeDef;
 

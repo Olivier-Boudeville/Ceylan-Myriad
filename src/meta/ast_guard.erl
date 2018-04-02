@@ -87,7 +87,8 @@
 
 
 % Defined in the context of a guard:
--type ast_bitstring_bin_element() :: ast_bitstring:bin_element( ast_guard_test() ).
+-type ast_bitstring_bin_element() :: ast_bitstring:bin_element(
+									   ast_guard_test() ).
 
 
 
@@ -95,7 +96,8 @@
 			   ast_bitstring_constructor/0, ast_bitstring_bin_element/0 ]).
 
 
--export([ transform_guard_test/2, transform_guard/2, transform_guard_sequence/2 ]).
+-export([ transform_guard_test/2, transform_guard/2,
+		  transform_guard_sequence/2 ]).
 
 
 % Shorthands:
@@ -151,7 +153,7 @@ transform_guard( Other, _Transforms ) ->
 -spec direct_transform_guard_tests( [ ast_guard_test() ], ast_transforms() ) ->
 								  [ ast_guard_test() ].
 direct_transform_guard_tests( GuardTests, Transforms ) ->
-	[ direct_transform_guard_test( GT, Transforms ) || GT <- GuardTests ];
+	[ direct_transform_guard_test( GT, Transforms ) || GT <- GuardTests ].
 
 
 
@@ -167,22 +169,15 @@ transform_record_field_inits( RecordFieldInits, Transforms ) ->
 % Field names are full expressions here, but only atoms are allowed by the
 % linter.
 %
+% Note: includes the case where FieldName is '_'.
+%
 transform_record_field_init( { 'record_field', LineField,
-		   FieldNameASTAtom={ atom, LineAtom, FieldName }, FieldValue },
+		   FieldNameASTAtom={ atom, _LineAtom, _FieldName }, FieldValue },
 							 Transforms ) ->
 
 	NewFieldValue = direct_transform_guard_test( FieldValue, Transforms ),
 
-	{ record_field, LineField, FieldNameASTAtom, NewFieldValue };
-
-
-transform_record_field_init( { 'record_field', LineField,
-		   FieldNameASTAtom={ atom, LineAtom, '_' }, FieldValue },
-							 Transforms ) ->
-
-	NewFieldValue = direct_transform_guard_test( FieldValue, Transforms ).
-
-	{ record_field, LineField, FieldNameASTAtom, NewFieldValue }.
+	{ 'record_field', LineField, FieldNameASTAtom, NewFieldValue }.
 
 
 
@@ -216,7 +211,7 @@ transform_guard_test( GuardTest={ 'call', Line, FunctionName, GuardTests },
 		true ->
 			NewGuardTests = direct_transform_guard_tests( GuardTests,
 														  Transforms ),
-			{ call, Line, FunctionName, NewGuardTests };
+			{ 'call', Line, FunctionName, NewGuardTests };
 
 		false ->
 			direct_transform_guard_test( GuardTest, Transforms )
@@ -266,7 +261,7 @@ direct_transform_guard_test( GuardTest={ 'bin', Line, BinElements },
 	NewBinElements = ast_bitstring:transform_bin_elements( BinElements,
 														   Transforms ),
 
-	Res = { bin, Line, NewBinElements },
+	Res = { 'bin', Line, NewBinElements },
 
 	ast_utils:display_debug( "... returning guard test bitstring "
 							 "constructor ~p", [ Res ] ),
@@ -294,7 +289,7 @@ direct_transform_guard_test( GuardTest={ 'cons', Line, HeadGuardTest,
 	% Expecting a list for tail?
 	NewTailGuardTest = direct_transform_guard_test( TailGuardTest, Transforms ),
 
-	Res = { cons, Line, NewHeadGuardTest, NewTailGuardTest },
+	Res = { 'cons', Line, NewHeadGuardTest, NewTailGuardTest },
 
 	ast_utils:display_debug( "... returning guard test cons skeleton ~p",
 							 [ Res ] ),
@@ -306,8 +301,8 @@ direct_transform_guard_test( GuardTest={ 'cons', Line, HeadGuardTest,
 %
 % (already listed in transform_guard_test/2)
 %
-direct_transform_guard_test( GuardTest={ 'call', LineCall,
-			FunASTAtom={ atom, LineFun, FunctionName }, SubGuardTests },
+direct_transform_guard_test( _GuardTest={ 'call', LineCall,
+			FunASTAtom={ atom, _LineFun, FunctionName }, SubGuardTests },
 							 Transforms ) ->
 
 	FunctionArity = length( SubGuardTests ),
@@ -317,7 +312,7 @@ direct_transform_guard_test( GuardTest={ 'call', LineCall,
 		true ->
 			NewSubGuardTests = direct_transform_guard_tests( SubGuardTests,
 															 Transforms ),
-			{ call, LineCall, FunASTAtom, NewSubGuardTests };
+			{ 'call', LineCall, FunASTAtom, NewSubGuardTests };
 
 		false ->
 			ast_utils:raise_error( [ invalid_local_guard_call,
@@ -333,8 +328,8 @@ direct_transform_guard_test( GuardTest={ 'call', LineCall,
 % {call,LINE,{remote,LINE,Rep(A_m),Rep(A)},[Rep(Gt_1), ..., Rep(Gt_k)]}.
 %
 direct_transform_guard_test( GuardTest={ 'call', LineCall,
-			R={ remote, Line2, { atom, _Line3, _Module=erlang }, FunctionName },
-			SubGuardTests },
+			R={ remote, _LineRemote, { atom, _LineMod, _Module=erlang },
+				FunctionName }, SubGuardTests },
 							 Transforms ) ->
 
 	% Here, Module can only be 'erlang', and FunctionName could be checked, yet
@@ -357,14 +352,16 @@ direct_transform_guard_test( GuardTest={ 'call', LineCall,
 			NewSubGuardTests = direct_transform_guard_tests( SubGuardTests,
 															 Transforms ),
 
+			NewGuardTest = { 'call', LineCall, R, NewSubGuardTests },
+
 			ast_utils:display_debug( "... returning guard test remote call ~p",
 									 [ NewGuardTest ] ),
 
-			{ call, LineCall, R, NewSubGuardTests };
+			NewGuardTest;
 
 		false ->
 			ast_utils:raise_error( [ invalid_remote_guard_call,
-						 { erlan, FunctionName, FunctionArity } ] )
+						 { erlang, FunctionName, FunctionArity } ] )
 
 	end;
 
@@ -375,9 +372,9 @@ direct_transform_guard_test( GuardTest={ 'call', LineCall,
 % and A is an atom or an operator, then Rep(Gt) =
 % {call,LINE,{remote,LINE,Rep(A_m),Rep(A)},[Rep(Gt_1), ..., Rep(Gt_k)]}.
 %
-direct_transform_guard_test( GuardTest={ 'call', Line1,
-			R={ remote, Line2, { atom, _Line3, _Module }, FunctionDesignator },
-			SubGuardTests },
+direct_transform_guard_test( GuardTest={ 'call', LineCall,
+			RemoteAST={ remote, LineRemote, { atom, _LineMod, _Module },
+				FunctionDesignator }, SubGuardTests },
 							 Transforms ) ->
 
 	% Here, Module can only be 'erlang', and FunctionDesignator could be
@@ -387,12 +384,12 @@ direct_transform_guard_test( GuardTest={ 'call', Line1,
 							 " ~p...", [ GuardTest ] ),
 
 	% Waiting for an operator to be met:
-	ast_type:check_ast_atom( FunctionDesignator, Line2 ),
+	ast_type:check_ast_atom( FunctionDesignator, LineRemote ),
 
 	NewSubGuardTests = [ direct_transform_guard_test( GT, Transforms )
 						 || GT <- SubGuardTests ],
 
-	NewGuardTest = { call, Line1, R, NewSubGuardTests },
+	NewGuardTest = { 'call', LineCall, RemoteAST, NewSubGuardTests },
 
 	ast_utils:display_debug( "... returning guard test remote call ~p",
 							 [ NewGuardTest ] ),
@@ -416,7 +413,7 @@ direct_transform_guard_test( GuardTest={ 'map', Line, MapAssociations },
 
 	NewMapAssociations = direct_transform_guard_tests( MapAssociations,
 													   Transforms ),
-	NewGuardTest = { map, Line, NewMapAssociations },
+	NewGuardTest = { 'map', Line, NewMapAssociations },
 
 	ast_utils:display_debug( "... returning guard test map creation ~p",
 							 [ NewGuardTest ] ),
@@ -428,7 +425,8 @@ direct_transform_guard_test( GuardTest={ 'map', Line, MapAssociations },
 % Gt_i_1 => Gt_i_2 or Gt_i_1 := Gt_i_2, then Rep(Gt) =
 % {map,LINE,Rep(Gt_0),[Rep(A_1), ..., Rep(A_k)]}."
 %
-direct_transform_guard_test( GuardTest={ 'map', Line, BaseMap, MapAssociations },
+direct_transform_guard_test( GuardTest={ 'map', Line, BaseMap,
+										 MapAssociations },
 							 Transforms ) ->
 
 	ast_utils:display_debug( "Intercepting guard test map update ~p...",
@@ -442,7 +440,7 @@ direct_transform_guard_test( GuardTest={ 'map', Line, BaseMap, MapAssociations }
 	NewMapAssociations = direct_transform_guard_tests( MapAssociations,
 													   Transforms ),
 
-	NewGuardTest = { map, Line, NewBaseMap, NewMapAssociations },
+	NewGuardTest = { 'map', Line, NewBaseMap, NewMapAssociations },
 
 	ast_utils:display_debug( "... returning guard test map update ~p",
 							 [ NewGuardTest ] ),
@@ -454,26 +452,27 @@ direct_transform_guard_test( GuardTest={ 'map', Line, BaseMap, MapAssociations }
 % "If A is an association type K => V, where K and V are types, then Rep(A) =
 % {type,LINE,map_field_assoc,[Rep(K),Rep(V)]}."
 %
-direct_transform_guard_test( GuardTest={ 'map_field_assoc', Line, Key, Value },
+direct_transform_guard_test( _GuardTest={ 'map_field_assoc', Line, Key, Value },
 							 Transforms ) ->
 
 	NewKey = direct_transform_guard_test( Key, Transforms ),
+
 	NewValue = direct_transform_guard_test( Value, Transforms ),
 
-	{ map_field_assoc, Line, NewKey, NewValue };
+	{ 'map_field_assoc', Line, NewKey, NewValue };
 
 
 
 % "If A is an association type K := V, where K and V are types, then Rep(A) =
 % {type,LINE,map_field_exact,[Rep(K),Rep(V)]}."
 %
-direct_transform_guard_test( GuardTest={ 'map_field_exact', Line, Key, Value },
+direct_transform_guard_test( _GuardTest={ 'map_field_exact', Line, Key, Value },
 							 Transforms ) ->
 
 	NewKey = direct_transform_guard_test( Key, Transforms ),
 	NewValue = direct_transform_guard_test( Value, Transforms ),
 
-	{ map_field_exact, Line, NewKey, NewValue };
+	{ 'map_field_exact', Line, NewKey, NewValue };
 
 
 
@@ -506,12 +505,13 @@ direct_transform_guard_test( GuardTest={ 'op', Line, Operator, LeftOperand,
 
 	NewRightOperand = direct_transform_guard_test( RightOperand, Transforms ),
 
-	NewGuardTest = { op, Line, Operator, NewLeftOperand, NewRightOperand },
+	NewGuardTest = { 'op', Line, Operator, NewLeftOperand, NewRightOperand },
 
 	ast_utils:display_debug( "... returning guard test non-equal binary "
 							 "operator ~p", [ NewGuardTest ] ),
 
 	NewGuardTest;
+
 
 direct_transform_guard_test( GuardTest={ 'op', Line, Operator, LeftOperand,
 										 RightOperand },
@@ -532,7 +532,7 @@ direct_transform_guard_test( GuardTest={ 'op', Line, Operator, LeftOperand,
 			NewRightOperand = direct_transform_guard_test( RightOperand,
 														   Transforms ),
 
-			NewGuardTest = { op, Line, Operator, NewLeftOperand,
+			NewGuardTest = { 'op', Line, Operator, NewLeftOperand,
 							 NewRightOperand },
 
 			ast_utils:display_debug( "... returning guard test binary "
@@ -543,9 +543,7 @@ direct_transform_guard_test( GuardTest={ 'op', Line, Operator, LeftOperand,
 		false ->
 			ast_utils:raise_error( [ invalid_binary_operator, Operator ] )
 
-	end
-
-
+	end;
 
 
 % "If Gt is an operator guard test Op Gt_0, where Op is a unary operator, then
@@ -563,7 +561,7 @@ direct_transform_guard_test( GuardTest={ 'op', Line, Operator, Operand },
 		true ->
 			NewOperand = direct_transform_guard_test( Operand, Transforms ),
 
-			NewGuardTest = { op, Line, Operator, NewOperand },
+			NewGuardTest = { 'op', Line, Operator, NewOperand },
 
 			ast_utils:display_debug( "... returning guard test unary operator "
 									 "~p", [ NewGuardTest ] );
@@ -596,9 +594,9 @@ direct_transform_guard_test( GuardTest={ 'record', Line, RecordName,
 	%										  RecordFieldInits, Transforms ),
 
 	NewRecordFieldInits = transform_record_field_inits( RecordFieldInits,
-														Transforms )
+														Transforms ),
 
-	NewGuardTest = { record, Line, RecordName, NewRecordFieldInits },
+	NewGuardTest = { 'record', Line, RecordName, NewRecordFieldInits },
 
 	ast_utils:display_debug( "... returning guard test record creation ~p",
 							 [ NewGuardTest ] ),
@@ -626,7 +624,7 @@ direct_transform_guard_test( GuardTest={ 'record_field', Line, RecordGuardTest,
 	NewFieldGuardTest = direct_transform_guard_test( FieldGuardTest,
 													 Transforms ),
 
-	NewGuardTest = { record_field, Line, NewRecordGuardTest, RecordName,
+	NewGuardTest = { 'record_field', Line, NewRecordGuardTest, RecordName,
 					 NewFieldGuardTest },
 
 	ast_utils:display_debug( "... returning guard test record field "
@@ -638,24 +636,25 @@ direct_transform_guard_test( GuardTest={ 'record_field', Line, RecordGuardTest,
 % "If Gt is a record field index #Name.Field, where Field is an atom, then
 % Rep(Gt) = {record_index,LINE,Name,Rep(Field)}."
 %
-direct_transform_guard_test( GuardTest={ 'record_index', Line, RecordName,
-										 FieldName },
-							 _Transforms ) ->
+direct_transform_guard_test( RecordGuardTest={ 'record_index', Line, RecordName,
+											   FieldName },
+							 Transforms ) ->
 
 	ast_utils:display_debug( "Intercepting guard test record field index "
-							 "~p...", [ GuardTest ] ),
+							 "~p...", [ RecordGuardTest ] ),
 
 	ast_type:check_ast_atom( RecordName, Line ),
 
 	ast_type:check_ast_atom( FieldName, Line ),
 
-	NewRecordGuardTest = direct_transform_guard_test( RecordGuardTest,
-													  Transforms ),
+	NewFieldName = direct_transform_guard_test( FieldName, Transforms ),
+
+	NewRecordGuardTest = { 'record_index', Line, RecordName, NewFieldName },
 
 	ast_utils:display_debug( "... returning guard test record field "
-							 "index ~p", [ NewGuardTest ] ),
+							 "index ~p", [ NewRecordGuardTest ] ),
 
-	NewGuardTest;
+	NewRecordGuardTest;
 
 
 % "If Gt is a tuple skeleton {Gt_1, ..., Gt_k}, then Rep(Gt) =
@@ -669,7 +668,7 @@ direct_transform_guard_test( GuardTest={ 'tuple', Line, GuardTests },
 
 	NewGuardTests = direct_transform_guard_tests( GuardTests, Transforms ),
 
-	NewGuardTest = { tuple, Line, NewGuardTests },
+	NewGuardTest = { 'tuple', Line, NewGuardTests },
 
 	ast_utils:display_debug( "... returning guard test tuple skeleton ~p",
 							 [ NewGuardTest ] ),
@@ -680,7 +679,8 @@ direct_transform_guard_test( GuardTest={ 'tuple', Line, GuardTests },
 % "If Gt is a variable pattern V, then Rep(Gt) = {var,LINE,A}, where A is an
 % atom with a printname consisting of the same characters as V."
 %
-direct_transform_guard_test( GuardTest={ 'var', _Line, VarName }, _Transforms ) ->
+direct_transform_guard_test( GuardTest={ 'var', _Line, VarName },
+							 _Transforms ) ->
 
 	type_utils:check_atom( VarName ),
 

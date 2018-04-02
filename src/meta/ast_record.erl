@@ -259,7 +259,7 @@ transform_record_field_definition(
 
 	NewASTValue = ast_value:transform_value( ASTValue, Transforms ),
 
-	{ record_field, Line, NewASTFieldName, NewASTValue };
+	{ 'record_field', Line, NewASTFieldName, NewASTValue };
 
 
 % With no value and no type specified here:
@@ -268,7 +268,7 @@ transform_record_field_definition( _RF={ 'record_field', Line, ASTFieldName },
 
 	NewASTFieldName = transform_record_field_name( ASTFieldName, Transforms ),
 
-	{ record_field, Line, NewASTFieldName };
+	{ 'record_field', Line, NewASTFieldName };
 
 
 % With a value and a type specified here:
@@ -282,8 +282,8 @@ transform_record_field_definition(
 
 	NewASTType = ast_type:transform_type( ASTType, Transforms ),
 
-	{ typed_record_field, { record_field, Line, NewASTFieldName, NewASTValue },
-	  NewASTType };
+	{ 'typed_record_field',
+	  { 'record_field', Line, NewASTFieldName, NewASTValue }, NewASTType };
 
 
 % With no value and a type specified here:
@@ -295,7 +295,8 @@ transform_record_field_definition(
 
 	NewASTType = ast_type:transform_type( ASTType, Transforms ),
 
-	{ typed_record_field, { record_field, Line, NewASTFieldName }, NewASTType }.
+	{ 'typed_record_field', { 'record_field', Line, NewASTFieldName },
+	  NewASTType }.
 
 
 
@@ -369,21 +370,21 @@ recompose_field_definitions( FieldTable, Line ) ->
 recompose_field_definition( FieldName,
 		_FieldDef={ _MaybeASTType=undefined, _MaybeASTDefaultValue=undefined },
 		Line ) ->
-	{ record_field, Line, { atom, Line, FieldName } };
+	{ 'record_field', Line, { atom, Line, FieldName } };
 
 recompose_field_definition( FieldName,
 		_FieldDef={ _MaybeASTType=undefined, ASTDefaultValue },
 		Line ) ->
-	{ record_field, Line, { atom, Line, FieldName }, ASTDefaultValue };
+	{ 'record_field', Line, { atom, Line, FieldName }, ASTDefaultValue };
 
 recompose_field_definition( FieldName,
 		_FieldDef={ ASTType, _MaybeASTDefaultValue=undefined },
 		Line ) ->
-	{ typed_record_field, { record_field, Line, { atom, Line, FieldName } },
+	{ 'typed_record_field', { 'record_field', Line, { atom, Line, FieldName } },
 	  ASTType };
 
 recompose_field_definition( FieldName, _FieldDef={ ASTType, ASTDefaultValue },
 							Line ) ->
-	{ typed_record_field,
-	  { record_field, Line, { atom, Line, FieldName }, ASTDefaultValue },
+	{ 'typed_record_field',
+	  { 'record_field', Line, { atom, Line, FieldName }, ASTDefaultValue },
 	  ASTType }.

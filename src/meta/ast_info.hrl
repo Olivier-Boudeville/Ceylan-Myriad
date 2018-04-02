@@ -59,7 +59,7 @@
 
 
 		% Module definition:
-		module_def = undefined :: 'undefined' | ast_info:located_form(),
+		module_def = undefined :: basic_utils:maybe( ast_info:located_form() ),
 
 
 		% A table, whose keys are compilation options (ex: no_auto_import,
@@ -229,18 +229,18 @@
 		   % Corresponds to the location of the full form for the definition of
 		   % this type:
 		   %
-		   location = undefined :: 'undefined' | ast_info:location(),
+		   location = undefined :: basic_utils:maybe( ast_info:location() ),
 
 
 		   % Corresponds to the line where this type is defined (in its source
 		   % file):
 		   %
-		   line = undefined :: 'undefined' | ast_base:line(),
+		   line = undefined :: basic_utils:maybe( ast_base:line() ),
 
 
 		   % Type actual definition, a (non-located) abstract form:
 		   %
-		   definition = undefined :: ast_utils:ast_type(),
+		   definition = undefined :: ast_type:ast_type(),
 
 
 		   % Tells whether this type has been exported, as a (possibly
@@ -270,7 +270,7 @@
 		   % Corresponds to the location of the full form for the definition
 		   % (first clause) of this function (not of the spec):
 		   %
-		   location = undefined :: 'undefined' | ast_info:location(),
+		   location = undefined :: basic_utils:maybe( ast_info:location() ),
 
 
 		   % Corresponds to the line of the first defined clause (in its source
@@ -279,7 +279,7 @@
 		   % (this information is a priori redundant with the one in the first
 		   % clause, yet present in the forms, thus kept here)
 		   %
-		   line = undefined :: 'undefined' | ast_base:line(),
+		   line = undefined :: basic_utils:maybe( ast_base:line() ),
 
 
 		   % Function actual definition, a (non-located) list of the abstract
@@ -290,13 +290,14 @@
 
 		   % The type specification (if any) of that function, as an abstract
 		   % form:
-		   spec = undefined :: 'undefined' | ast_info:located_function_spec(),
+		   spec = undefined ::
+			 basic_utils:maybe( ast_info:located_function_spec() ),
 
 
 		   % Tells whether the function has a mere specification, or if it is a
 		   % callback:
 		   %
-		   callback = undefined :: 'undefined' | boolean(),
+		   callback = undefined :: basic_utils:maybe( boolean() ),
 
 
 		   % Tells whether this function has been exported, as a (possibly

@@ -192,7 +192,8 @@ transform_clause_generic(
 
 	NewBodyExprs = transform_body( BodyExprs, Transforms ),
 
-	Res = { clause, Line, NewHeadPatternSequence, NewGuardSequence, NewBodyExprs },
+	Res = { 'clause', Line, NewHeadPatternSequence, NewGuardSequence,
+			NewBodyExprs },
 
 	ast_utils:display_debug( "... returning generic clause ~p", [ Res ] ),
 
@@ -201,24 +202,6 @@ transform_clause_generic(
 
 
 % Function clause section.
-
-
-% Transforms specified function clause.
-%
-% Handled the same, with or without guard(s), as a guard sequence may be empty:
-%
-%  - without: "If C is a function clause ( Ps ) -> B, where Ps is a pattern
-%  sequence and B is a body, then Rep(C) = {clause,LINE,Rep(Ps),[],Rep(B)}."
-%
-%  - with: "If C is a function clause ( Ps ) when Gs -> B, where Ps is a pattern
-%  sequence, Gs is a guard sequence and B is a body, then Rep(C) =
-%  {clause,LINE,Rep(Ps),Rep(Gs),Rep(B)}."
-%
--spec transform_function_clause( ast_function_clause(),
-		 ast_transform:ast_transforms() ) -> ast_function_clause().
-transform_function_clause( Clause, Transforms ) ->
-	transform_clause_generic( Clause, Transforms ).
-
 
 
 % Transforms specified list of function clauses.
@@ -297,7 +280,8 @@ transform_catch_clauses( CatchClauses, Transforms ) ->
 -spec transform_catch_clause( ast_catch_clause(),
 				  ast_transform:ast_transforms() ) -> ast_catch_clause().
 transform_catch_clause(
-  Clause={ 'clause', Line, [ { throw, Pattern, Any } ], GuardSequence, BodyExprs },
+  Clause={ 'clause', Line, [ { throw, Pattern, Any } ], GuardSequence,
+		   BodyExprs },
   Transforms ) ->
 
 	ast_utils:display_warning( "transform_catch_clause: Any= ~p", [ Any ] ),
@@ -311,7 +295,7 @@ transform_catch_clause(
 
 	NewBodyExprs = transform_body( BodyExprs, Transforms ),
 
-	Res = { clause, Line, [ { throw, NewPattern, Any } ], NewGuardSequence,
+	Res = { 'clause', Line, [ { 'throw', NewPattern, Any } ], NewGuardSequence,
 			NewBodyExprs },
 
 	ast_utils:display_debug( "... returning catch clause ~p", [ Res ] ),
@@ -349,7 +333,8 @@ transform_catch_clause(
 
 	NewBodyExprs = transform_body( BodyExprs, Transforms ),
 
-	Res = { clause, Line, [ { NewX, NewP, Any } ], NewGuardSequence, NewBodyExprs },
+	Res = { 'clause', Line, [ { NewX, NewP, Any } ], NewGuardSequence,
+			NewBodyExprs },
 
 	ast_utils:display_debug( "... returning catch clause with variable ~p",
 							 [ Res ] ),
@@ -392,7 +377,8 @@ transform_if_clause(
 
 	NewBodyExprs = transform_body( BodyExprs, Transforms ),
 
-	Res = { clause, Line, HeadPatternSequence, NewGuardSequence, NewBodyExprs },
+	Res = { 'clause', Line, HeadPatternSequence, NewGuardSequence,
+			NewBodyExprs },
 
 	ast_utils:display_debug( "... returning if clause ~p", [ Res ] ),
 
@@ -442,7 +428,7 @@ transform_case_clause(
 
 	NewBodyExprs = transform_body( BodyExprs, Transforms ),
 
-	Res = { clause, Line, NewPattern, NewGuardSequence, NewBodyExprs },
+	Res = { 'clause', Line, NewPattern, NewGuardSequence, NewBodyExprs },
 
 	ast_utils:display_debug( "... returning case clause ~p", [ Res ] ),
 
@@ -494,7 +480,8 @@ forge_local_call( FunctionName, Params, Line ) ->
 -spec forge_local_call( function_name(), [ ast_expression() ], line(),
 						line() ) -> ast_expression().
 forge_local_call( FunctionName, Params, Line1, Line2 ) ->
-	{ call, Line1, ast_value:forge_atom_value( FunctionName, Line2 ), Params }.
+	{ 'call', Line1, ast_value:forge_atom_value( FunctionName, Line2 ),
+	  Params }.
 
 
 
@@ -524,7 +511,7 @@ forge_remote_call( ModuleName, FunctionName, Params, Line ) ->
 -spec forge_remote_call( module_name(), function_name(), [ ast_expression() ],
 						 line(), line() ) -> ast_expression().
 forge_remote_call( ModuleName, FunctionName, Params, Line1, Line2 ) ->
-	{ call, Line1, { remote, Line2,
+	{ 'call', Line1, { remote, Line2,
 					 ast_value:forge_atom_value( ModuleName, Line2 ),
 					 ast_value:forge_atom_value( FunctionName, Line2 ) },
 	  Params }.

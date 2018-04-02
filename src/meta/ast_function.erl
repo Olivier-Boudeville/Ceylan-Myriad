@@ -189,7 +189,8 @@ check_function_types( Other, _FunctionArity, Context ) ->
 
 % Transforms the functions in specified table, based on specified transforms.
 %
--spec transform_functions( function_table(), ast_transforms() ) -> function_table().
+-spec transform_functions( function_table(), ast_transforms() ) ->
+								 function_table().
 transform_functions( FunctionTable, Transforms ) ->
 
 	ast_utils:display_debug( "Transforming functions..." ),
@@ -222,15 +223,14 @@ transform_function( FunctionInfo=#function_info{ clauses=ClauseDefs,
 	NewLocFunSpec = case MaybeLocFunSpec of
 
 		undefined ->
-			undefined;
+		undefined;
 
 		{ Loc, FunSpec } ->
 			{ Loc, transform_function_spec( FunSpec, Transforms ) }
 
 	end,
 
-	FunctionInfo#function_info{ clauses=NewClauseDefs,
-								spec=NewLocFunSpec }.
+	FunctionInfo#function_info{ clauses=NewClauseDefs, spec=NewLocFunSpec }.
 
 
 

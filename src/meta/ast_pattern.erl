@@ -239,7 +239,7 @@ transform_pattern( E={ 'map', Line, Associations }, Transforms ) ->
 	NewAssociations = [ transform_pattern( A, Transforms )
 						|| A <- Associations ],
 
-	Res = { map, Line, NewAssociations },
+	Res = { 'map', Line, NewAssociations },
 
 	ast_utils:display_debug( "... returning map pattern ~p", [ Res ] ),
 
@@ -262,7 +262,7 @@ transform_pattern( E={ 'map_field_exact', Line, Key, Value }, Transforms ) ->
 
 	NewValue = transform_pattern( Value, Transforms ),
 
-	Res = { map_field_exact, Line, NewKey, NewValue },
+	Res = { 'map_field_exact', Line, NewKey, NewValue },
 
 	ast_utils:display_debug( "... returning map exact association ~p",
 							 [ Res ] ),
@@ -299,7 +299,7 @@ transform_pattern( Clause={ 'bin', Line, BinElements }, Transforms ) ->
 	NewBinElements = ast_bitstring:transform_bin_elements( BinElements,
 														   Transforms ),
 
-	Res = { bin, Line, NewBinElements },
+	Res = { 'bin', Line, NewBinElements },
 
 	ast_utils:display_debug( "... returning bitstring pattern ~p", [ Res ] ),
 
@@ -320,7 +320,7 @@ transform_pattern( Clause={ 'tuple', Line, Patterns }, Transforms ) ->
 
 	NewPatterns = [ transform_pattern( P, Transforms )|| P <- Patterns ],
 
-	Res = { tuple, Line, NewPatterns },
+	Res = { 'tuple', Line, NewPatterns },
 
 	ast_utils:display_debug( "... returning tuple pattern ~p", [ Res ] ),
 
@@ -341,7 +341,7 @@ transform_pattern( Clause={ 'var', Line, VariableName }, Transforms ) ->
 
 	NewVariableName = transform_variable( VariableName, Line, Transforms ),
 
-	Res = { var, Line, NewVariableName },
+	Res = { 'var', Line, NewVariableName },
 
 	ast_utils:display_debug( "... returning variable pattern ~p", [ Res ] ),
 
@@ -372,7 +372,7 @@ transform_pattern( _Clause={ 'record', Line, RecordName, PatternFields },
 
 	NewPatternFields = transform_pattern_fields( PatternFields, Transforms ),
 
-	{ record, Line, RecordName, NewPatternFields };
+	{ 'record', Line, RecordName, NewPatternFields };
 
 
 % Access to a record field found (see previous clause):
@@ -388,7 +388,7 @@ transform_pattern( _Clause={ 'record_field', Line, RecordName, FieldName,
 	NewFieldValue = ast_expression:transform_expression( FieldValue,
 														 Transforms ),
 
-	{ record_field, Line, NewRecordName, FieldName, NewFieldValue };
+	{ 'record_field', Line, NewRecordName, FieldName, NewFieldValue };
 
 
 % Update of a record field found (see 'record' clause):
@@ -402,7 +402,7 @@ transform_pattern( _Clause={ 'record_field', Line, FieldName, FieldValue },
 	NewFieldValue = ast_expression:transform_expression( FieldValue,
 														 Transforms ),
 
-	{ record_field, Line, NewFieldName, NewFieldValue };
+	{ 'record_field', Line, NewFieldName, NewFieldValue };
 
 
 % Record index found:
@@ -415,7 +415,7 @@ transform_pattern( _Clause={ 'record_index', Line, RecordName, PatternField },
 
 	NewPatternField = transform_pattern( PatternField, Transforms ),
 
-	{ record_index, Line, RecordName, NewPatternField };
+	{ 'record_index', Line, RecordName, NewPatternField };
 
 
 % "If P is an operator pattern P_1 Op P_2, where Op is a binary operator (this
@@ -430,7 +430,8 @@ transform_pattern( Clause={ 'op', _Line, _BinaryOperator, _LeftOperand,
 							_RightOperand }, _Transforms ) ->
 	Clause;
 
-transform_pattern( Clause={ 'op', _Line, _UnaryOperator, _Operand }, _Transforms ) ->
+transform_pattern( Clause={ 'op', _Line, _UnaryOperator, _Operand },
+				   _Transforms ) ->
 	Clause;
 
 
@@ -442,7 +443,9 @@ transform_pattern( Clause={ 'op', _Line, _UnaryOperator, _Operand }, _Transforms
 %
 
 
-% "If P is a parenthesized pattern ( P_0 ), then Rep(P) = Rep(P_0), that is, parenthesized patterns cannot be distinguished from their bodies." (nothing to do then)
+% "If P is a parenthesized pattern ( P_0 ), then Rep(P) = Rep(P_0), that is,
+% parenthesized patterns cannot be distinguished from their bodies." (nothing to
+% do then)
 
 
 % Other pattern found:
@@ -499,12 +502,12 @@ transform_pattern_field( { 'record_field', Line1,
 
 	NewPattern = transform_pattern( Pattern, Transforms ),
 
-	{ record_field, Line1, N, NewPattern };
+	{ 'record_field', Line1, N, NewPattern };
 
 
 transform_pattern_field( { 'record_field', Line1,
-		   N={ var, _Line2, _FieldName='_' }, Pattern }, Transforms ) ->
+		   N={ 'var', _Line2, _FieldName='_' }, Pattern }, Transforms ) ->
 
 	NewPattern = transform_pattern( Pattern, Transforms ),
 
-	{ record_field, Line1, N, NewPattern }.
+	{ 'record_field', Line1, N, NewPattern }.

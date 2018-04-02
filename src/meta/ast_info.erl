@@ -680,7 +680,7 @@ recompose_ast_from_module_info( #module_info{
 	RecordLocDefs = ast_record:get_located_forms_for( RecordTable ),
 
 	{ FunExportLocDefs, FunctionLocDefs } = ast_function:get_located_forms_for(
-												FunctionExportTable, FunctionTable ),
+									FunctionExportTable, FunctionTable ),
 
 
 	% All these definitions are located, yet we start from a sensible order so

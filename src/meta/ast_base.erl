@@ -102,5 +102,4 @@
 -type ast_atom() :: { 'atom', line(), atom() }.
 
 
-
 -export_type([ ast_element/0, ast_form/0, ast/0, ast_atom/0 ]).

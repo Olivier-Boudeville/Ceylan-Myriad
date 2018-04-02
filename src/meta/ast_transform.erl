@@ -662,11 +662,11 @@ transform_transformed_term( TargetTerm, TypeDescription, TermTransformer,
 
 		{ TransformedTerm, NewUserData } when is_list( TransformedTerm ) ->
 			transform_list( TransformedTerm, TypeDescription, TermTransformer,
-					   NewUserData );
+							NewUserData );
 
 		{ TransformedTerm, NewUserData } when is_tuple( TransformedTerm ) ->
 			transform_tuple( TransformedTerm, TypeDescription, TermTransformer,
-						NewUserData );
+							 NewUserData );
 
 		% { ImmediateTerm, NewUserData } ->
 		Other ->

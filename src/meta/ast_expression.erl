@@ -67,7 +67,7 @@
 
 % Shorthands:
 
-%-type line() :: ast_base:line().
+-type line() :: ast_base:line().
 -type ast_transforms() :: ast_transform:ast_transforms().
 
 
@@ -76,13 +76,13 @@
 % List-comprehension generator.
 %
 -type lc_generator_qualifier() :: { 'generate', line(),
-									ast_pattern:ast_pattern(), expression() }.
+						ast_pattern:ast_pattern(), ast_expression() }.
 
 
 % Bitstring generator.
 %
 -type bitstring_generator_qualifier() :: { 'b_generate', line(),
-									ast_pattern:ast_pattern(), expression() }.
+						ast_pattern:ast_pattern(), ast_expression() }.
 
 
 
@@ -117,8 +117,7 @@
 transform_expression( E={ 'call', LineCall, FunctionRef, Params },
 					  Transforms ) ->
 
-	ast_utils:display_debug( "Intercepting call expression ~p...",
-							 [ E ] ),
+	ast_utils:display_debug( "Intercepting call expression ~p...", [ E ] ),
 
 	TransformedFunctionRef = transform_expression( FunctionRef, Transforms ),
 
@@ -134,7 +133,7 @@ transform_expression( E={ 'call', LineCall, FunctionRef, Params },
 
 	ast_utils:display_debug( "... returning call expression ~p", [ Res ] ),
 
-
+	Res;
 
 
 % If expression found:
@@ -148,7 +147,7 @@ transform_expression( E={ 'if', Line, Clauses }, Transforms ) ->
 
 	NewClauses = ast_clause:transform_if_clauses( Clauses, Transforms ),
 
-	Res = {'if', Line, NewClauses },
+	Res = { 'if', Line, NewClauses },
 
 	ast_utils:display_debug( "... returning if expression ~p", [ Res ] ),
 
@@ -371,7 +370,7 @@ transform_expression( E={ 'try', Line, TryBody, TryClauses, CatchClauses,
 	Res;
 
 
-transform_expression( E={ 'remote', Line, ModuleExpr, FunctionExpr },
+transform_expression( _E={ 'remote', Line, ModuleExpr, FunctionExpr },
 					  Transforms ) ->
 
 	ast_utils:display__warning( "Remote transform expression actually useful, "
@@ -567,7 +566,8 @@ transform_expression( E={ 'map_field_exact', Line, KeyExpression,
 
 	Res = { 'map_field_exact', Line, NewKeyExpression, NewValueExpression },
 
-	ast_utils:display_debug( "... returning map exact association ~p", [ Res ] ),
+	ast_utils:display_debug( "... returning map exact association ~p",
+							 [ Res ] ),
 
 	Res;
 
@@ -638,8 +638,8 @@ transform_expression( E={ 'record_field', Line, RecordRef, RecordName,
 
 	Res = { 'record_field', Line, NewRecordRef, RecordName, NewFieldName },
 
-	ast_utils:display_debug( "... returning record field access expression "
-							 "~p", [ Res ] ),
+	ast_utils:display_debug( "... returning record field access expression ~p",
+							 [ Res ] ),
 
 	Res;
 
@@ -664,8 +664,8 @@ transform_expression( E={ 'record_field', Line, RecordRef, Field },
 
 	Res = { 'record_field', Line, NewRecordRef, NewField },
 
-	ast_utils:display_debug( "... returning record field expression "
-							 "~p", [ Res ] ),
+	ast_utils:display_debug( "... returning record field expression ~p",
+							 [ Res ] ),
 
 	Res;
 
@@ -685,7 +685,8 @@ transform_expression( E={ 'record', Line, RecordRef, RecordName,
 
 	NewRecordRef = transform_expression( RecordRef, Transforms ),
 
-	NewFieldUpdates = transform_record_field_updates( FieldUpdates, Transforms ),
+	NewFieldUpdates = transform_record_field_updates( FieldUpdates,
+													  Transforms ),
 
 	Res = { 'record', Line, NewRecordRef, RecordName, NewFieldUpdates },
 
@@ -695,18 +696,18 @@ transform_expression( E={ 'record', Line, RecordRef, RecordName,
 	Res;
 
 
+
 % Block expression found:
 %
 % "If E is a block expression begin B end, where B is a body, then Rep(E) =
 % {block,LINE,Rep(B)}."
 %
-transform_expression( E={ 'block', Line, Expressions }, Transforms ) ->
+transform_expression( _E={ 'block', Line, Expressions }, Transforms ) ->
 
 	% Unfolds this block into a sequence of expressions:
 	NewExpressions = transform_expressions( Expressions, Transforms ),
 
-	{ block, Line, NewExpressions };
-
+	{ 'block', Line, NewExpressions };
 
 
 
@@ -717,15 +718,16 @@ transform_expression( E={ 'block', Line, Expressions }, Transforms ) ->
 % function clause, then Rep(E) = {'fun',LINE,{clauses,[Rep(Fc_1), ...,
 % Rep(Fc_k)]}}."
 %
-transform_expression( E={ 'fun', Line, { clauses, Clauses } },
+transform_expression( E={ 'fun', Line, { 'clauses', FunctionClauses } },
 					  Transforms ) ->
 
 	ast_utils:display_debug( "Intercepting clause-based fun expression ~p...",
 							 [ E ] ),
 
-	NewClauses = ast_clause:transform_function_clauses( Clauses, Transforms ),
+	NewFunctionClauses = ast_clause:transform_function_clauses( FunctionClauses,
+																Transforms ),
 
-	Res = { 'fun', Line, { clauses, NewClauses } },
+	Res = { 'fun', Line, { 'clauses', NewFunctionClauses } },
 
 	ast_utils:display_debug( "... returning clause-based fun expression ~p",
 							 [ Res ] ),
@@ -736,10 +738,11 @@ transform_expression( E={ 'fun', Line, { clauses, Clauses } },
 % "If E is a fun expression fun Name/Arity, then Rep(E) =
 % {'fun',LINE,{function,Name,Arity}}."
 %
-transform_expression( E={ 'fun', Line, { function, Name, Arity } },
-					  Transforms ) ->
+transform_expression( E={ 'fun', _Line, { 'function', _Name, _Arity } },
+					  _Transforms ) ->
 
-	%ast_utils:display_debug( "Intercepting local fun expression ~p...", [ E ] ),
+	%ast_utils:display_debug( "Intercepting local fun expression ~p...",
+	%						 [ E ] ),
 
 	%NewName = transform_expression( Name, Transforms ),
 
@@ -751,7 +754,8 @@ transform_expression( E={ 'fun', Line, { function, Name, Arity } },
 	%Res = { 'fun', Line, { function, NewName, NewArity } },
 	Res = E,
 
-	%ast_utils:display_debug( "... returning local fun expression ~p", [ Res ] ),
+	%ast_utils:display_debug( "... returning local fun expression ~p",
+	%						 [ Res ] ),
 
 	Res;
 
@@ -759,14 +763,14 @@ transform_expression( E={ 'fun', Line, { function, Name, Arity } },
 % Managing specifically the fact that, before Erlang/OTP R15, Rep(E) =
 % {'fun',LINE,{function,Module,Name,Arity}}.
 %
-transform_expression( E={ 'fun', Line, _F={ function, Module, Name, Arity } },
-					  Transforms ) when is_atom( Module )
+transform_expression( E={ 'fun', _Line,
+						  _F={ 'function', Module, Name, Arity } },
+					  _Transforms ) when is_atom( Module )
 										andalso is_atom( Name )
 										andalso is_integer( Arity ) ->
 
 	ast_utils:display_warning( "Pre-R15 fun expression '~p' detected, "
-							   "this warning should be silenced.",
-							   [ E ] ),
+							   "this warning should be silenced.", [ E ] ),
 
 	%ast_utils:display_debug( "Intercepting pre-R15 fun expression ~p...",
 	%						 [ E ] ),
@@ -784,7 +788,7 @@ transform_expression( E={ 'fun', Line, _F={ function, Module, Name, Arity } },
 %
 % Since R15, fun M:F/A can be obtained through variables.
 %
-transform_expression( E={ 'fun', Line, _F={ function, ModuleName,
+transform_expression( E={ 'fun', Line, _F={ 'function', ModuleName,
 											FunctionName, FunctionArity } },
 					  Transforms ) ->
 
@@ -798,7 +802,7 @@ transform_expression( E={ 'fun', Line, _F={ function, ModuleName,
 	NewFunctionArity = transform_expression( FunctionArity, Transforms ),
 
 	Res = { 'fun', Line,
-			{ function, NewModule, NewFunctionName, NewFunctionArity } },
+			{ 'function', NewModuleName, NewFunctionName, NewFunctionArity } },
 
 	ast_utils:display_debug( "... returning remote fun expression ~p",
 							 [ Res ] ),
@@ -827,7 +831,7 @@ transform_expression( E={ 'var', Line, VarAtomName }, _Transforms ) ->
 
 % "If E is nil, [], then Rep(E) = {nil,LINE}."
 %
-transform_expression( E={ 'nil', Line }, _Transforms ) ->
+transform_expression( E={ 'nil', _Line }, _Transforms ) ->
 
 	%ast_utils:display_debug( "Intercepting nil expression with clauses ~p...",
 	%						 [ E ] ),
@@ -840,27 +844,6 @@ transform_expression( E={ 'nil', Line }, _Transforms ) ->
 
 	Res;
 
-
-
-% "If E is a fun expression fun Fc_1 ; ... ; Fc_k end, where each Fc_i is a
-% function clause, then Rep(E) = {'fun',LINE,{clauses,[Rep(Fc_1), ...,
-% Rep(Fc_k)]}}."
-%
-transform_expression( E={ 'fun', Line, { clauses, FunctionClauses } },
-					  Transforms ) ->
-
-	ast_utils:display_debug( "Intercepting fun expression with clauses ~p...",
-							 [ E ] ),
-
-	NewFunctionClauses = ast_clause:transform_function_clauses(
-						   FunctionClauses, Transforms ),
-
-	Res = { 'fun', Line, { clauses, NewFunctionClauses } },
-
-	ast_utils:display_debug( "... returning fun expression with clauses ~p",
-							 [ Res ] ),
-
-	Res;
 
 
 % "If E is a fun expression fun Name Fc_1 ; ... ; Name Fc_k end, where Name is a
@@ -925,16 +908,15 @@ transform_expressions( Expressions, Transforms ) ->
 %
 % See also: lc_bc_quals/1 in erl_id_trans
 %
--spec transform_qualifiers( [ ast_qualifiers() ], ast_transforms() ) ->
-								  [ ast_qualifiers() ].
+-spec transform_qualifiers( [ ast_qualifier() ], ast_transforms() ) ->
+								  [ ast_qualifier() ].
 transform_qualifiers( Qualifiers, Transforms ) ->
 	[ transform_qualifier( Q, Transforms ) || Q <- Qualifiers ].
 
 
-
-
+% Transforms specificied qualifier.
 -spec transform_qualifier( ast_qualifier(), ast_transforms() ) ->
-								 ast_qualifiers().
+								 ast_qualifier().
 
 % "If Q is a (lc) generator P <- E, where P is a pattern and E is an expression,
 % then Rep(Q) = {generate,LINE,Rep(P),Rep(E)}."
@@ -982,22 +964,14 @@ transform_record_field_inits( RecordFieldInits, Transforms ) ->
 	  || RFI <- RecordFieldInits ].
 
 
+% Includes the case where FieldName is '_':
 transform_record_field_init( { 'record_field', LineField,
-		   FieldNameASTAtom={ atom, LineAtom, FieldName }, FieldValue },
+		   FieldNameASTAtom={ atom, _LineAtom, _FieldName }, FieldValue },
 							 Transforms ) ->
 
 	NewFieldValue = transform_expression( FieldValue, Transforms ),
 
-	{ record_field, LineField, FieldNameASTAtom, NewFieldValue };
-
-
-transform_record_field_init( { 'record_field', LineField,
-		   FieldNameASTAtom={ atom, LineAtom, '_' }, FieldValue },
-							 Transforms ) ->
-
-	NewFieldValue = transform_expression( FieldValue, Transforms ),
-
-	{ record_field, LineField, FieldNameASTAtom, NewFieldValue }.
+	{ 'record_field', LineField, FieldNameASTAtom, NewFieldValue }.
 
 
 
@@ -1014,8 +988,8 @@ transform_record_field_updates( RecordFieldUpdates, Transforms ) ->
 
 
 transform_record_field_update( { 'record_field', LineField,
-		   FieldNameASTAtom={ atom, LineAtom, FieldName }, FieldValue },
-							 Transforms ) ->
+		   FieldNameASTAtom={ atom, _LineAtom, _FieldName }, FieldValue },
+							   Transforms ) ->
 
 	NewFieldValue = transform_expression( FieldValue, Transforms ),
 
@@ -1035,9 +1009,9 @@ transform_record_field_update( { 'record_field', LineField,
 %
 % (parameters already transformed)
 %
-transform_call_expression( { remote, LineRemote,
-		_M={ atom, LineMod, ModuleName },
-		_F={ atom, LineFun, FunctionName } },
+transform_call_expression( { 'remote', LineRemote,
+		M={ atom, LineMod, ModuleName },
+		F={ atom, LineFun, FunctionName } },
 						   Arity, Transforms ) ->
 
 	ast_utils:display_debug( "Intercepting remote call expression "
@@ -1123,14 +1097,14 @@ transform_call_expression( { remote, LineRemote,
 	case Outcome of
 
 		unchanged ->
-			Res = { remote, LineRemote, M, F },
+			Res = { 'remote', LineRemote, M, F },
 			ast_utils:display_debug( "... returning remote call expression "
 									 "(case R1) ~p", [ Res ] ),
 			Res;
 
 		{ SetModuleName, SetFunctionName } ->
 
-			Res = { remote, LineRemote, { atom, LineMod, SetModuleName },
+			Res = { 'remote', LineRemote, { atom, LineMod, SetModuleName },
 					{ atom, LineFun, SetFunctionName } },
 
 			ast_utils:display_debug( "... returning remote call expression "
@@ -1146,7 +1120,7 @@ transform_call_expression( { remote, LineRemote,
 % (note: we do not manage yet the case where for example the function name
 % results from an expression yet a wildcard has been defined for it)
 %
-transform_call_expression( FuntionRef={ remote, LineRemote, ModuleExpr,
+transform_call_expression( FuntionRef={ 'remote', LineRemote, ModuleExpr,
 										FunctionExpr },
 						   _Arity, Transforms ) ->
 
@@ -1157,7 +1131,7 @@ transform_call_expression( FuntionRef={ remote, LineRemote, ModuleExpr,
 
 	NewFunctionExpr = transform_expression( FunctionExpr, Transforms ),
 
-	Res = { remote, LineRemote, NewModuleExpr, NewFunctionExpr },
+	Res = { 'remote', LineRemote, NewModuleExpr, NewFunctionExpr },
 
 	ast_utils:display_debug( "... returning non-immediate remote call "
 							 "expression (case R3) ~p", [ Res ] ),
@@ -1170,12 +1144,11 @@ transform_call_expression( FuntionRef={ remote, LineRemote, ModuleExpr,
 % "If E is a function call E_0(E_1, ..., E_k), then Rep(E) =
 % {call,LINE,Rep(E_0),[Rep(E_1), ..., Rep(E_k)]}."
 %
-transform_call_expression( F={ atom, LineFun, FunName }, Arity,
+transform_call_expression( F={ 'atom', LineFun, FunName }, Arity,
 						   Transforms ) ->
 
 	ast_utils:display_debug( "Intercepting local call expression ~p...",
-							 [ E ] ),
-
+							 [ F ] ),
 
 	Outcome = case Transforms#ast_transforms.local_calls of
 
@@ -1205,7 +1178,7 @@ transform_call_expression( F={ atom, LineFun, FunName }, Arity,
 						% happens)
 						%{ value, NewModuleName }
 						%       when is_atom( NewModuleName ) ->
-						%	{ NewModuleName, FunName };
+						%   { NewModuleName, FunName };
 
 						{ value, TransformFun }
 						  when is_function( TransformFun ) ->
@@ -1230,7 +1203,7 @@ transform_call_expression( F={ atom, LineFun, FunName }, Arity,
 			Res;
 
 		{ SetModuleName, SetFunctionName } ->
-			Res = { remote, LineFun, SetModuleName, SetFunctionName },
+			Res = { 'remote', LineFun, SetModuleName, SetFunctionName },
 			ast_utils:display_debug( "... returning remote call expression ~p",
 									 [ Res ] ),
 			Res

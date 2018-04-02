@@ -587,7 +587,8 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
 
 	NewRecordDef = { FieldTable, NextLocation, Line },
 
-	NewRecordTable = ?table:addNewEntry( RecordName, NewRecordDef, RecordTable ),
+	NewRecordTable = ?table:addNewEntry( RecordName, NewRecordDef,
+										 RecordTable ),
 
 	scan_forms( T, M#module_info{ records=NewRecordTable },
 				id_utils:get_next_sortable_id( NextLocation ),
@@ -889,8 +890,8 @@ scan_forms( _AST=[ _Form={ 'error',
 
 % eep undefined macro variable error:
 scan_forms( _AST=[ _Form={ 'error',
-	   { Line, 'epp', { 'undefined', VariableName, 'none' } } } | _T ], _ModuleInfo,
-			 _NextLocation, CurrentFileReference ) ->
+	   { Line, 'epp', { 'undefined', VariableName, 'none' } } } | _T ],
+			_ModuleInfo, _NextLocation, CurrentFileReference ) ->
 
 	Context = { CurrentFileReference, Line-1 },
 
@@ -899,8 +900,8 @@ scan_forms( _AST=[ _Form={ 'error',
 
 
 % eep general errors:
-scan_forms( _AST=[ _Form={ 'error', { Line, 'epp', Reason } } | _T ], _ModuleInfo,
-			 _NextLocation, CurrentFileReference ) ->
+scan_forms( _AST=[ _Form={ 'error', { Line, 'epp', Reason } } | _T ],
+			_ModuleInfo, _NextLocation, CurrentFileReference ) ->
 
 	Context = { CurrentFileReference, Line-1 },
 
