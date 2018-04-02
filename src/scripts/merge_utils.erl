@@ -157,7 +157,7 @@ scan( TreePath ) ->
 
 % Entry point of the script.
 %
--spec main( [ string() ] ) -> void().
+-spec main( [ string() ] ) -> basic_utils:void().
 main( [ "-h" ] ) ->
 	io:format( "~s", [ get_usage() ] );
 
@@ -298,7 +298,7 @@ trace_debug( FormatString, Values, _UserState={ UIState, LogFile } ) ->
 
 % Stops user-related services.
 %
--spec stop_user_service( user_state() ) -> void().
+-spec stop_user_service( user_state() ) -> basic_utils:void().
 stop_user_service( _UserState={ UIState, LogFile } ) ->
 
 	ui:stop( UIState ),
@@ -311,7 +311,7 @@ stop_user_service( _UserState={ UIState, LogFile } ) ->
 
 % Checks that the source and target trees exist.
 %
--spec check_content_trees( tree_data(), tree_data() ) -> void().
+-spec check_content_trees( tree_data(), tree_data() ) -> basic_utils:void().
 check_content_trees( SourceTree, TargetTree ) ->
 
 	case file_utils:is_existing_directory( SourceTree ) of
@@ -341,7 +341,7 @@ check_content_trees( SourceTree, TargetTree ) ->
 % corresponding datastrucuture.
 %
 -spec update_content_tree( file_utils:directory_name(), analyzer_ring(),
-						   user_state() ) -> void().
+						   user_state() ) -> basic_utils:void().
 update_content_tree( Tree, AnalyzerRing, UserState ) ->
 
 	case file_utils:is_existing_directory( Tree ) of
@@ -447,7 +447,7 @@ spawn_data_analyzers( Count, UserState ) ->
 
 % Terminates specified data analyzers.
 %
--spec terminate_data_analyzers( [ pid() ], user_state() ) -> void().
+-spec terminate_data_analyzers( [ pid() ], user_state() ) -> basic_utils:void().
 terminate_data_analyzers( PidList, UserState ) ->
 	trace_debug( "Terminating ~B data analyzers (~p).",
 				 [ length( PidList ), PidList ], UserState ),
@@ -594,7 +594,7 @@ wait_entries( TreeData, WaitedCount ) ->
 
 % The loop run by each analyzer process.
 %
--spec analyze_loop() -> void().
+-spec analyze_loop() -> basic_utils:void().
 analyze_loop() ->
 
 	%io:format( "Analyzer ~w waiting...~n", [ self() ] ),
@@ -761,7 +761,7 @@ process_duplications_helper( _DupCases=[ { Sha1Key, DuplicateList } | T ],
 % file entries (would most probably detect any SHA1 collision, however unlikely
 % it maybe).
 %
--spec check_duplicates( sha1(), [ file_data() ] ) -> void().
+-spec check_duplicates( sha1(), [ file_data() ] ) -> basic_utils:void().
 % Not possible: check_duplicates( _SHA1Sum, _DuplicateList=[] ) ->
 %	ok;
 
@@ -888,7 +888,7 @@ file_data_to_string( #file_data{
 % escript so that it can really be used from anywhere (not only from the
 % directory it is stored).
 %
--spec update_code_path_for_common() -> void().
+-spec update_code_path_for_common() -> basic_utils:void().
 update_code_path_for_common() ->
 
 	CommonRootDir = get_root_of_common(),
