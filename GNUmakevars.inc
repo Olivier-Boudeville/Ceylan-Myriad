@@ -500,10 +500,10 @@ BEAM_DIRS += $(COMMON_BEAM_DIRS)
 # So that they can be fetched from outside
 # (see the 'list-beam-dirs' target)
 #
-COMMON_BEAM_DIRS = $(COMMON_BEAM)/data-management \
-				   $(COMMON_BEAM)/maths           \
-				   $(COMMON_BEAM)/meta            \
-				   $(COMMON_BEAM)/user-interface  \
+COMMON_BEAM_DIRS = $(COMMON_BEAM)/data-management    \
+				   $(COMMON_BEAM)/maths              \
+				   $(COMMON_BEAM)/meta               \
+				   $(COMMON_BEAM)/user-interface/src \
 				   $(COMMON_BEAM)/utils
 
 
