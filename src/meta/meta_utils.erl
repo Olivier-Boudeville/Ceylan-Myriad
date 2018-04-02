@@ -413,13 +413,13 @@ apply_ast_transforms( Transforms, ModuleInfo=#module_info{
 	% First, update the type definitions accordingly (including in records):
 
 	ast_utils:display_debug( "Transforming known types..." ),
-	NewTypeTable = ast_type:transform_types( TypeTable, Transforms ),
+	NewTypeTable = ast_type:transform_type_table( TypeTable, Transforms ),
 
 	ast_utils:display_debug( "Transforming known types in records..." ),
-	NewRecordTable = ast_type:transform_types_in_records( RecordTable,
-														  Transforms ),
+	NewRecordTable = ast_type:transform_types_in_record_table( RecordTable,
+															   Transforms ),
 
-	NewFunctionTable = ast_function:transform_functions( FunctionTable, 
+	NewFunctionTable = ast_function:transform_functions( FunctionTable,
 														 Transforms ),
 
 	% Updated module_info returned:

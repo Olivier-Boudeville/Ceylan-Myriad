@@ -299,7 +299,6 @@ transform_pattern( Clause={ 'bin', Line, BinElements }, Transforms ) ->
 	NewBinElements = ast_bitstring:transform_bin_elements( BinElements,
 														   Transforms ),
 
-
 	Res = { bin, Line, NewBinElements },
 
 	ast_utils:display_debug( "... returning bitstring pattern ~p", [ Res ] ),

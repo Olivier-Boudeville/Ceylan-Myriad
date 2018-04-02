@@ -121,18 +121,20 @@
 %
 transform_bin_elements( BinElements, Transforms ) ->
 
-    % Note: context-insensitive function, considering that any kind of
-    % expression can be found here.
+	% Note: context-insensitive function, considering that any kind of
+	% expression can be found here.
 	%
 	%transform_bin_elements( BinElements, Transforms,
 	%				   fun ast_expression:transform_expression/2 ) .
 
 	[ transform_bin_element( BE, Transforms ) || BE <- BinElements ].
 
-	
+
 % Transforms specified binary element involved in a bitstring expression.
 %
 % Note: finally common to patterns, expressions and guard expressions.
+%
+% (corresponds to pattern_grp/1 in erl_id_trans)
 %
 -spec transform_bin_element( bin_element(), ast_transforms() ) -> bin_element().
 transform_bin_element( _BinElem={ bin_element, Line, Element, Size,

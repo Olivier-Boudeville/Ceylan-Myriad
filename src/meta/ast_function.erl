@@ -245,8 +245,8 @@ transform_function( FunctionInfo=#function_info{ clauses=ClauseDefs,
 -spec transform_function_spec( function_spec(), ast_transforms() ) ->
 									 function_spec().
 transform_function_spec( { 'attribute', Line, SpecType, { FunId, SpecList } },
-						 #ast_transforms{ local_types=MaybeLocalTypeTable,
-										  remote_types=MaybeRemoteTypeTable } ) ->
+				 #ast_transforms{ local_types=MaybeLocalTypeTable,
+								  remote_types=MaybeRemoteTypeTable } ) ->
 
 	% Ex for '-spec f( type_a() ) -> type_b().':
 
@@ -256,46 +256,90 @@ transform_function_spec( { 'attribute', Line, SpecType, { FunId, SpecList } },
 	%
 
 	%ast_utils:display_trace( "SpecList = ~p", [ SpecList ] ),
-	NewSpecList = [ update_spec( Spec, MaybeLocalTypeTable,
-								 MaybeRemoteTypeTable ) || Spec <- SpecList ],
+	NewSpecList = [ transform_spec( Spec, MaybeLocalTypeTable,
+								MaybeRemoteTypeTable ) || Spec <- SpecList ],
 
-	{ attribute, Line, SpecType, { FunId, NewSpecList } }.
-
-
+	{ 'attribute', Line, SpecType, { FunId, NewSpecList } }.
 
 
-% Updates the specified function specification.
+
+
+% Transforms the specified function specification.
 %
-update_spec( { type, Line, 'fun', ClausesSpecs }, MaybeLocalTypeTable,
-			 MaybeRemoteTypeTable ) ->
+% (corresponds to function_type_list/1 in erl_id_trans)
+%
+% "If Ft is a constrained function type Ft_1 when Fc, where Ft_1 is a function
+% type and Fc is a function constraint, then Rep(T) =
+% {type,LINE,bounded_fun,[Rep(Ft_1),Rep(Fc)]}."
+%
+transform_spec( { 'type', Line, 'bounded_fun',
+				  [ FunctionType, FunctionConstraint ] },
+				MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
 
-	NewClausesSpecs = update_clause_spec( ClausesSpecs, MaybeLocalTypeTable,
+	NewFunctionType = transform_function_type( FunctionType,
+							 MaybeLocalTypeTable, MaybeRemoteTypeTable ),
+
+	NewFunctionConstraint = transform_function_constraints( FunctionConstraint,
+							   MaybeLocalTypeTable, MaybeRemoteTypeTable ),
+
+	{ 'type', Line, 'bounded_fun', [ NewFunctionType, NewFunctionConstraint ] };
+
+transform_spec( UnexpectedSpec, _MaybeLocalTypeTable, _MaybeRemoteTypeTable ) ->
+	ast_utils:raise_error( [ unexpected_function_spec, UnexpectedSpec ] ).
+
+
+
+% (helper, corresponding to function_type/1 in erl_id_trans)
+%
+% "If Ft is a function type (T_1, ..., T_n) -> T_0, where each T_i is a type,
+% then Rep(Ft) = {type,LINE,'fun',[{type,LINE,product,[Rep(T_1), ...,
+% Rep(T_n)]},Rep(T_0)]}."
+%
+transform_function_type( { 'type', LineFirst, 'fun',
+	   [ { 'type', LineSecond, 'product', ParamTypes }, ResultType ] },
+						 MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
+
+	[ NewResultType | NewParamTypes ] = ast_type:transform_types(
+			[ ResultType | ParamTypes ], MaybeLocalTypeTable,
+			MaybeRemoteTypeTable ),
+
+	{ 'type', LineFirst, 'fun',
+	  [ { 'type', LineSecond, 'product', NewParamTypes }, NewResultType ] };
+
+transform_function_type( UnexpectedFunType, _MaybeLocalTypeTable,
+						 _MaybeRemoteTypeTable ) ->
+	ast_utils:raise_error( [ unexpected_function_type, UnexpectedFunType ] ).
+
+
+
+
+% (helper, corresponding to function_constraint/1 in erl_id_trans)
+%
+% "A function constraint Fc is a non-empty sequence of constraints C_1, ...,
+% C_k, and Rep(Fc) = [Rep(C_1), ..., Rep(C_k)]."
+%
+transform_function_constraints( FunctionConstraints, MaybeLocalTypeTable,
+								MaybeRemoteTypeTable ) ->
+
+	[ transform_function_constraint( FC, MaybeLocalTypeTable,
+				 MaybeRemoteTypeTable ) || FC <- FunctionConstraints ].
+
+
+
+% "If C is a constraint V :: T, where V is a type variable and T is a type, then
+% Rep(C) = {type,LINE,constraint,[{atom,LINE,is_subtype},[Rep(V),Rep(T)]]}. "
+%
+transform_function_constraint( { 'type', Line, 'constraint',
+		[ AtomConstraint={ atom, _LineAtom, _SomeAtom }, [ TypeVar, Type ] ] },
+		MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
+
+	NewTypeVar = ast_type:transform_type( TypeVar, MaybeLocalTypeTable,
 										  MaybeRemoteTypeTable ),
 
-	{ type, Line, 'fun', NewClausesSpecs };
+	NewType = ast_type:transform_type( Type, MaybeLocalTypeTable,
+									   MaybeRemoteTypeTable ),
 
-update_spec( UnexpectedFunSpec, _MaybeLocalTypeTable, _MaybeRemoteTypeTable ) ->
-	ast_utils:raise_error( [ unexpected_fun_spec, UnexpectedFunSpec ] ).
-
-
-
-% (helper)
-update_clause_spec( [ { type, Line, product, ParamTypes }, ResultType ],
-					MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
-
-	NewParamTypes = [ ast_type:transform_type( ParamType, MaybeLocalTypeTable,
-						  MaybeRemoteTypeTable ) || ParamType <- ParamTypes ],
-
-	NewResultType = ast_type:transform_type( ResultType, MaybeLocalTypeTable,
-											 MaybeRemoteTypeTable ),
-
-	[ { type, Line, product, NewParamTypes }, NewResultType ];
-
-
-update_clause_spec( UnexpectedClauseSpec, _MaybeLocalTypeTable,
-				_MaybeRemoteTypeTable ) ->
-	ast_utils:raise_error( [ unexpected_clause_spec, UnexpectedClauseSpec ] ).
-
+	{ 'type', Line, 'constraint', [ AtomConstraint, [ NewTypeVar, NewType ] ] }.
 
 
 

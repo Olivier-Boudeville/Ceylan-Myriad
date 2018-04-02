@@ -235,6 +235,8 @@ transform_field_definition_default_value( FieldDefaultValue, Transforms ) ->
 % the specified function to perform the relevant transformations (that depends
 % on the context; ex: if being in a guard, in an expression, etc.).
 %
+% (counterpart of record_inits/1 in erl_id_trans)
+%
 -spec transform_record_field_definitions( [ ast_record_field_definition() ],
 			ast_transforms() ) -> [ ast_record_field_definition() ].
 transform_record_field_definitions( RecordFields, Transforms ) ->

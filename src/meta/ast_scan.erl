@@ -160,7 +160,7 @@ scan( AST ) ->
 %  - 7.1.12: Type export [lacking in reference page]
 %  - 7.1.13: Compile export [lacking in reference page]
 %  - 7.1.14 : Parse errors
-%  - 7.1.15 : Enf of file
+%  - 7.1.15 : End of file
 
 % Extra Section 7.9: Catch-all for unexpected forms
 
@@ -428,8 +428,8 @@ scan_forms( [ Form={ 'attribute', Line, SpecType,
 
 	Context = { CurrentFileReference, Line },
 
-	{ FunctionName, FunctionArity } = ast_function:check_function_id(
-										FunId, Context ),
+	{ FunctionName, FunctionArity } = ast_function:check_function_id( FunId,
+																	  Context ),
 
 	ast_function:check_function_types( FunctionTypes, FunctionArity, Context ),
 

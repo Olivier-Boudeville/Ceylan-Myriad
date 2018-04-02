@@ -202,8 +202,9 @@
 
 
 % Transformations:
--export([ transform_types/2, transform_types_in_records/2,
-		  transform_type/3, transform_association_type/3,
+-export([ transform_type_table/2, transform_types_in_record_table/2,
+		  transform_types/3, transform_type/3, 
+		  transform_association_type/3,
 		  transform_type_variable/3 ]).
 
 
@@ -226,6 +227,9 @@
 -type ast_variable() :: ast_type:ast_variable().
 -type type_table() :: ast_info:type_table().
 -type type_name() :: type_utils:type_name().
+
+-type ast_type() :: ast_utils:ast_type().
+
 
 -type record_table() :: ast_info:record_table().
 -type field_table() :: ast_info:field_table().
@@ -255,13 +259,13 @@
 % Transforms the types in specified type table, according to specified
 % transforms.
 %
--spec transform_types( type_table(), ast_transforms() ) -> type_table().
-transform_types( TypeTable, _Transforms=#ast_transforms{
+-spec transform_type_table( type_table(), ast_transforms() ) -> type_table().
+transform_type_table( TypeTable, _Transforms=#ast_transforms{
 										   local_types=undefined,
 										   remote_types=undefined } ) ->
 	TypeTable;
 
-transform_types( TypeTable, _Transforms=#ast_transforms{
+transform_type_table( TypeTable, _Transforms=#ast_transforms{
 										   local_types=MaybeLocalTypes,
 										   remote_types=MaybeRemoteTypes } ) ->
 
@@ -299,15 +303,15 @@ transform_type_info( TypeInfo=#type_info{ definition=TypeDef },
 % Transforms the types in specified record table, according to specified
 % transforms.
 %
--spec transform_types_in_records( record_table(), ast_transforms() ) ->
+-spec transform_types_in_record_table( record_table(), ast_transforms() ) ->
 										record_table().
-transform_types_in_records( RecordTable, _Transforms=#ast_transforms{
+transform_types_in_record_table( RecordTable, _Transforms=#ast_transforms{
 											 local_types=undefined,
 											 remote_types=undefined } ) ->
 	RecordTable;
 
 
-transform_types_in_records( RecordTable, _Transforms=#ast_transforms{
+transform_types_in_record_table( RecordTable, _Transforms=#ast_transforms{
 										   local_types=MaybeLocalTypes,
 										   remote_types=MaybeRemoteTypes } ) ->
 
@@ -373,6 +377,18 @@ transform_field_definition( _FieldDef={ AstType, MaybeAstValue },
 
 
 
+% Transforms specified list of types.
+%
+-spec transform_types( [ ast_type() ],
+		basic_utils:maybe( meta_utils:local_type_transform_table() ),
+		basic_utils:maybe( meta_utils:remote_type_transform_table() ) ) ->
+						   [ ast_type() ].
+transform_types( Types, LocalTransformTable, RemoteTransformTable ) ->
+	[ transform_types( T, LocalTransformTable, RemoteTransformTable )
+	  || T <- Types ].
+
+
+
 % Transforming types: traversing them recursively according to their specified
 % structure, applying on them the specified transformations.
 %
@@ -381,7 +397,7 @@ transform_field_definition( _FieldDef={ AstType, MaybeAstValue },
 % still getting inspiration from its section 7.7.
 %
 % We currently consider that all type definitions correspond to an
-% ast_utils:ast_type(), i.e. one of:
+% ast_type(), i.e. one of:
 %
 % - ast_utils:ast_builtin_type(): { type, Line, TypeName, TypeVars },
 % where TypeVars are often (not always) a list; ex: {type,LINE,union,[Rep(T_1),
@@ -403,10 +419,10 @@ transform_field_definition( _FieldDef={ AstType, MaybeAstValue },
 %
 % (helper)
 %
--spec transform_type( ast_utils:ast_type(),
+-spec transform_type( ast_type(),
 		basic_utils:maybe( meta_utils:local_type_transform_table() ),
 		basic_utils:maybe( meta_utils:remote_type_transform_table() ) ) ->
-						   ast_utils:ast_type().
+						   ast_type().
 
 % Handling tuples:
 
@@ -570,7 +586,7 @@ transform_type( _TypeDef={ 'type', Line1, 'fun',
 				LocalTransformTable, RemoteTransformTable ) ->
 
 	NewResultType = transform_type( ResultType, LocalTransformTable,
-								   RemoteTransformTable ),
+									RemoteTransformTable ),
 
 	{ type, Line1, 'fun', [ Any, NewResultType ] };
 
@@ -962,10 +978,10 @@ transform_type( TypeDef, _LocalTransformTable, _RemoteTransformTable ) ->
 % "If A is an association type K => V, where K and V are types, then Rep(A) =
 % {type,LINE,map_field_assoc,[Rep(K),Rep(V)]}."
 %
--spec transform_association_type( ast_utils:ast_type(),
+-spec transform_association_type( ast_type(),
 		basic_utils:maybe( meta_utils:local_type_transform_table() ),
 		basic_utils:maybe( meta_utils:remote_type_transform_table() ) ) ->
-						   ast_utils:ast_type().
+						   ast_type().
 transform_association_type( { 'type', Line, 'map_field_assoc',
 							  Types=[ _K, _V ] },
 							LocalTransformTable, RemoteTransformTable ) ->
