@@ -206,7 +206,7 @@
 
 
 % Type of functions to transform terms during a recursive traversal (see
-% traverse_term/4).
+% transform_term/4).
 %
 % Note: apparently we cannot use the 'when' notation here (InputTerm ... when
 % InputTerm :: term()).
