@@ -79,10 +79,12 @@
 
 
 
-% Defines the field of a type of record (type and default value, if
-% specified).
+% Defines the field of a type of record (type and default value, if specified;
+% lines are also stored so that the full, actual form can be recreated - far
+% clearer to interpret afterwards).
 %
--type field_definition() :: { maybe_ast_type(), maybe_ast_immediate_value() }.
+-type field_definition() :: { maybe_ast_type(), maybe_ast_immediate_value(),
+							  line(), line() }.
 
 
 % Field identifier, possibly '_':
@@ -341,11 +343,11 @@ get_located_forms_for( RecordTable ) ->
 -spec get_located_form_for_record( record_name(), record_definition() ) ->
 										 located_form().
 get_located_form_for_record( RecordName,
-							 _RecordDef={ FieldTable, Loc, Line } ) ->
+							 _RecordDef={ FieldTable, Loc, RecordLine } ) ->
 
-	FieldDefs = recompose_field_definitions( FieldTable, Line ),
+	FieldDefs = recompose_field_definitions( FieldTable ),
 
-	Form = { attribute, Line, record, { RecordName, FieldDefs } },
+	Form = { attribute, RecordLine, record, { RecordName, FieldDefs } },
 
 	{ Loc, Form }.
 
@@ -353,38 +355,36 @@ get_located_form_for_record( RecordName,
 
 % Recomposes the forms corresponding to the specified record fields.
 %
--spec recompose_field_definitions( field_table(), line() ) -> [ form() ].
-recompose_field_definitions( FieldTable, Line ) ->
+-spec recompose_field_definitions( field_table() ) -> [ form() ].
+recompose_field_definitions( FieldTable ) ->
 
-	FieldPairs = ?table:enumerate( FieldTable ),
-
-	[ recompose_field_definition( FieldName, FieldDef, Line )
-	  || { FieldName, FieldDef } <- FieldPairs ].
+	[ recompose_field_definition( FieldName, FieldDef )
+	  || { FieldName, FieldDef } <- FieldTable ].
 
 
 
 % Recomposes the form corresponding to the specified record field.
 %
--spec recompose_field_definition( field_name(), field_definition(), line() ) ->
-										form().
+-spec recompose_field_definition( field_name(), field_definition() ) -> form().
 recompose_field_definition( FieldName,
-		_FieldDef={ _MaybeASTType=undefined, _MaybeASTDefaultValue=undefined },
-		Line ) ->
-	{ 'record_field', Line, { atom, Line, FieldName } };
+		_FieldDef={ _MaybeASTType=undefined, _MaybeASTDefaultValue=undefined,
+					FirstLine, SecondLine } ) ->
+	{ 'record_field', FirstLine, { atom, SecondLine, FieldName } };
 
 recompose_field_definition( FieldName,
-		_FieldDef={ _MaybeASTType=undefined, ASTDefaultValue },
-		Line ) ->
-	{ 'record_field', Line, { atom, Line, FieldName }, ASTDefaultValue };
+		_FieldDef={ _MaybeASTType=undefined, ASTDefaultValue, FirstLine,
+					SecondLine } ) ->
+	{ 'record_field', FirstLine, { atom, SecondLine, FieldName },
+	  ASTDefaultValue };
 
 recompose_field_definition( FieldName,
-		_FieldDef={ ASTType, _MaybeASTDefaultValue=undefined },
-		Line ) ->
-	{ 'typed_record_field', { 'record_field', Line, { atom, Line, FieldName } },
-	  ASTType };
+		_FieldDef={ ASTType, _MaybeASTDefaultValue=undefined, FirstLine,
+					SecondLine } ) ->
+	{ 'typed_record_field', { 'record_field', FirstLine,
+							  { atom, SecondLine, FieldName } }, ASTType };
 
-recompose_field_definition( FieldName, _FieldDef={ ASTType, ASTDefaultValue },
-							Line ) ->
+recompose_field_definition( FieldName, _FieldDef={ ASTType, ASTDefaultValue,
+												   FirstLine, SecondLine } ) ->
 	{ 'typed_record_field',
-	  { 'record_field', Line, { atom, Line, FieldName }, ASTDefaultValue },
-	  ASTType }.
+	  { 'record_field', FirstLine, { atom, SecondLine, FieldName },
+		ASTDefaultValue }, ASTType }.

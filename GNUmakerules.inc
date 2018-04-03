@@ -223,6 +223,9 @@ rebuild: clean all
 # We cherry-pick modules in various source directories, and select all modules
 # in 'src/meta', built generically:
 
+# Note: maybe these (identical) rules can be factored with just different
+# sources and targets.
+
 
 # In 'utils':
 
@@ -249,7 +252,13 @@ $(COMMON_TOP)/src/meta/%.beam: $(COMMON_TOP)/src/meta/%.erl
 	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
 
+
 # In 'data-management':
+
+#$(COMMON_TOP)/src/data-management/list_table.beam: $(COMMON_TOP)/src/data-management/list_table.erl
+#	@echo "		Compiling bootstrap module $<"
+#	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
 
 $(COMMON_TOP)/src/data-management/map_hashtable.beam: $(COMMON_TOP)/src/data-management/map_hashtable.erl
 	@echo "		Compiling bootstrap module $<"

@@ -350,27 +350,25 @@ transform_field_table( FieldTable, _MaybeLocalTypes=undefined,
 
 transform_field_table( FieldTable, MaybeLocalTypes, MaybeRemoteTypes ) ->
 
-	FieldPairs = ?table:enumerate( FieldTable ),
-
-	NewFieldPairs = [ { FieldName, transform_field_definition( FieldDef,
+	[ { FieldName, transform_field_definition( FieldDef,
 									MaybeLocalTypes, MaybeRemoteTypes ) }
-					   || { FieldName, FieldDef } <- FieldPairs ],
-
-	?table:new( NewFieldPairs ).
+					   || { FieldName, FieldDef } <- FieldTable ].
 
 
 
 % (helper)
-transform_field_definition( FieldDef={ _AstType=undefined, _MaybeAstValue },
+transform_field_definition( FieldDef={ _AstType=undefined, _MaybeAstValue,
+									   _FirstLine, _SecondLine },
 							_MaybeLocalTypes, _MaybeRemoteTypes ) ->
 	FieldDef;
 
-transform_field_definition( _FieldDef={ AstType, MaybeAstValue },
+transform_field_definition( _FieldDef={ AstType, MaybeAstValue, FirstLine,
+										SecondLine },
 							MaybeLocalTypes, MaybeRemoteTypes ) ->
 
 	NewAstType = transform_type( AstType, MaybeLocalTypes, MaybeRemoteTypes ),
 
-	{ NewAstType, MaybeAstValue }.
+	{ NewAstType, MaybeAstValue, FirstLine, SecondLine }.
 
 
 

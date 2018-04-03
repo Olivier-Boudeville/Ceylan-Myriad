@@ -1013,62 +1013,72 @@ scan_forms( _AST=[], _ModuleInfo, _NextLocation, CurrentFileReference ) ->
 % Processes the fields of a given record definition.
 %
 % Note: field names could be full expressions here, but only atoms are allowed
-% by the parser (dixit the id parse transform).
+% by the parser (dixit the erl_id_trans parse transform).
 %
 -spec scan_field_descriptions( [ ast_base:ast_element() ],
-					   ast_base:file_reference() ) -> meta_utils:field_table().
+					   ast_base:file_reference() ) -> ast_info:field_table().
 scan_field_descriptions( FieldDescriptions, CurrentFileReference ) ->
-
-	FieldTable = ?table:new(),
-
 	scan_field_descriptions( FieldDescriptions, CurrentFileReference,
-							 FieldTable ).
+							 _FieldTable=[] ).
 
 
 % (helper)
 %
 scan_field_descriptions( _FieldDescriptions=[], _CurrentFileReference,
 						 FieldTable ) ->
-	FieldTable;
+	% Preserve original field order:
+	lists:reverse( FieldTable );
 
 % Here no type or default value are specified for that field:
 %
 scan_field_descriptions( _FieldDescriptions=[
-		{ 'record_field', _Line1, { atom, _Line2, FieldName } } | T ],
+		{ 'record_field', FirstLine, { atom, SecondLine, FieldName } } | T ],
 		CurrentFileReference, FieldTable ) ->
 
-	NewFieldTable = ?table:addNewEntry( FieldName,
-		  { _FieldType=undefined, _DefaultValue=undefined }, FieldTable ),
+	FieldDesc = { _FieldType=undefined, _DefaultValue=undefined, FirstLine,
+				  SecondLine },
+
+	NewFieldTable = [ { FieldName, FieldDesc } | FieldTable ],
+
 	scan_field_descriptions( T, CurrentFileReference, NewFieldTable );
+
 
 % Here only a type is specified for that field:
 scan_field_descriptions( _FieldDescriptions=[
 	   { 'typed_record_field',
-		  { 'record_field', _Line1, { atom, _Line2, FieldName } }, FieldType }
-												| T ],
-						 CurrentFileReference, FieldTable ) ->
-	NewFieldTable = ?table:addNewEntry( FieldName,
-					  { FieldType, _DefaultValue=undefined }, FieldTable ),
+		  { 'record_field', FirstLine, { atom, SecondLine, FieldName } },
+		 FieldType } | T ], CurrentFileReference, FieldTable ) ->
+
+	FieldDesc = { FieldType, _DefaultValue=undefined, FirstLine, SecondLine },
+
+	NewFieldTable = [ { FieldName, FieldDesc } | FieldTable ],
+
 	scan_field_descriptions( T, CurrentFileReference, NewFieldTable );
 
+
 % Here only a default value is specified for that field:
-scan_field_descriptions( _FieldDescriptions=[
-	   { 'record_field', _Line1, { atom, _Line2, FieldName }, DefaultValue }
-												| T ],
+scan_field_descriptions( _FieldDescriptions=[ { 'record_field', FirstLine,
+			   { atom, SecondLine, FieldName }, DefaultValue } | T ],
 						 CurrentFileReference, FieldTable ) ->
-	NewFieldTable = ?table:addNewEntry( FieldName,
-		  { _FieldType=undefined, DefaultValue }, FieldTable ),
+
+	FieldDesc = { _FieldType=undefined, DefaultValue, FirstLine, SecondLine },
+
+	NewFieldTable = [ { FieldName, FieldDesc } | FieldTable ],
+
 	scan_field_descriptions( T, CurrentFileReference, NewFieldTable );
+
 
 % Here a type and a default, immediate value are specified for that field:
 scan_field_descriptions( _FieldDescriptions=[
 	   { 'typed_record_field',
-		  { 'record_field', _Line1,
-		   { atom, _Line2, FieldName }, DefaultValue }, FieldType }
-												| T ],
+		  { 'record_field', FirstLine, { atom, SecondLine, FieldName },
+			DefaultValue }, FieldType } | T ],
 						 CurrentFileReference, FieldTable ) ->
-	NewFieldTable = ?table:addNewEntry( FieldName, { FieldType, DefaultValue },
-										FieldTable ),
+
+	FieldDesc = { FieldType, DefaultValue, FirstLine, SecondLine },
+
+	NewFieldTable = [ { FieldName, FieldDesc } | FieldTable ],
+
 	scan_field_descriptions( T, CurrentFileReference, NewFieldTable );
 
 

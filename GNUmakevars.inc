@@ -550,6 +550,8 @@ META_BEAM_FILES = $(patsubst %.erl,%.beam,$(META_FILTERED_SRC_FILES))
 #    * ast_utils: to handle the AST
 #    * ast_scan: to scan the AST
 #    * type_utils: to handle types
+# - [not bootstrapped anymore] list_table: useful for tables that shall preserve
+#	the order of entries
 # - map_hashtable: to manage the module information
 #
 BOOTSTRAP_MODULES = $(COMMON_TOP)/src/utils/basic_utils.beam             \
@@ -557,6 +559,8 @@ BOOTSTRAP_MODULES = $(COMMON_TOP)/src/utils/basic_utils.beam             \
 					$(COMMON_TOP)/src/utils/id_utils.beam                \
 					$(META_BEAM_FILES)                                   \
 					$(COMMON_TOP)/src/data-management/map_hashtable.beam \
+
+# Delisted: $(COMMON_TOP)/src/data-management/list_table.beam    \
 
 endif
 

@@ -167,10 +167,18 @@
 -type record_definition() :: { field_table(), location(), line() }.
 
 
+
 % A table associating to a given field of a record its description.
 %
--type field_table() :: ?table:?table( basic_utils:field_name(),
-									  ast_record:field_definition() ).
+% The ?table type (usually map_hashtable) cannot be used, as it does not
+% preserve the order of its entries, whereas the fields are indexed in
+% tuple-records according to their rank in the corresponding list.
+
+% Best solution here is not a list_table (which does not strictly preserve
+% element order either), but a plain (ordered) list (of pairs).
+%
+-type field_table() :: [ { basic_utils:field_name(), 
+						   ast_record:field_definition() } ].
 
 
 
@@ -1042,10 +1050,9 @@ module_info_to_string( #module_info{
 -spec fields_to_strings( field_table() ) -> [ text_utils:string() ].
 fields_to_strings( FieldTable ) ->
 
-	FieldEntries = ?table:enumerate( FieldTable ),
-
 	[ field_to_string( FieldName, FieldType, DefaultValue )
-	  || { FieldName, { FieldType, DefaultValue } } <- FieldEntries ].
+	  || { FieldName, { FieldType, DefaultValue, _FirstLine, _SecondLine } }
+			 <- FieldTable ].
 
 
 
