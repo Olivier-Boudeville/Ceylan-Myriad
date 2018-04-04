@@ -124,10 +124,8 @@ run() ->
 
 
 	test_facilities:display( "Displaying atom list, obtained from string "
-							 "list ~p: ~p.",
-							 [ ListOfStrings,
-							   text_utils:strings_to_atom_list(
-								 ListOfStrings ) ] ),
+							 "list ~p: ~p.", [ ListOfStrings,
+							   text_utils:strings_to_atoms( ListOfStrings ) ] ),
 
 
 	FirstTestString = "Hello world!",
