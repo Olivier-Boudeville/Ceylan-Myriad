@@ -998,7 +998,7 @@ apply_mealy( InputByte, CurrentMealyState, MealyTable ) ->
 
 generate_filename() ->
 
-	Filename = ".cipher-" ++ basic_utils:generate_uuid(),
+	Filename = ".cipher-" ++ id_utils:generate_uuid(),
 
 	case file_utils:is_existing_file( Filename ) of
 
