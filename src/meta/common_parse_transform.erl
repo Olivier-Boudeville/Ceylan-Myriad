@@ -195,12 +195,12 @@ parse_transform( InputAST, _Options ) ->
 
 	OutputAST = ast_info:recompose_ast_from_module_info( OutputModuleInfo ),
 
-	io:format( "~n~nOutput AST:~n~p~n", [ OutputAST ] ),
+	%io:format( "~n~nOutput AST:~n~p~n", [ OutputAST ] ),
 
-	OutputASTFilename = text_utils:format( "Output-AST-for-module-~s.txt",
-								   [ OutputModuleInfo#module_info.module ] ),
+	%OutputASTFilename = text_utils:format( "Output-AST-for-module-~s.txt",
+	%							   [ OutputModuleInfo#module_info.module ] ),
 
-	ast_utils:write_ast_to_file( OutputAST, OutputASTFilename ),
+	%ast_utils:write_ast_to_file( OutputAST, OutputASTFilename ),
 
 	OutputAST.
 
