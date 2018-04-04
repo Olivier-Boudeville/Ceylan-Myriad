@@ -42,8 +42,6 @@ run() ->
 	test_facilities:start( ?MODULE ),
 
 	test_facilities:display( "Generating a new UUID: '~s'.",
-							 [ basic_utils:generate_uuid() ] ),
-
-
+							 [ id_utils:generate_uuid() ] ),
 
 	test_facilities:stop().
