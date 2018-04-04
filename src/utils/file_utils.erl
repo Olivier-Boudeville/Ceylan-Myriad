@@ -306,8 +306,7 @@ get_type_of( EntryName ) ->
 
 	case file:read_link_info( EntryName ) of
 
-		{ ok, FileInfo } ->
-			#file_info{ type=FileType } = FileInfo,
+		{ ok, #file_info{ type=FileType } } ->
 			FileType;
 
 		{ error, eloop } ->
@@ -654,31 +653,34 @@ set_current_directory( DirName ) ->
 % Note that Files include symbolic links (dead or not).
 %
 classify_dir_elements( _Dirname, _Elements=[], Devices, Directories, Files,
-					  OtherFiles ) ->
+					   OtherFiles ) ->
 	% Note the reordering:
 	{ Files, Directories, OtherFiles, Devices };
 
-classify_dir_elements( Dirname, _Elements=[ H | T ],
-		Devices, Directories, Files, OtherFiles ) ->
+classify_dir_elements( Dirname, _Elements=[ H | T ], Devices, Directories,
+					   Files, OtherFiles ) ->
+
+	io:format( "EEE = ~s / ~p", [ filename:join( Dirname, H ),
+								  get_type_of( filename:join( Dirname, H ) ) ] ),
 
 	 case get_type_of( filename:join( Dirname, H ) ) of
 
 		device ->
 			classify_dir_elements( Dirname, T, [ H | Devices ], Directories,
-								   Files, OtherFiles ) ;
+								   Files, OtherFiles );
 
 		directory ->
 			classify_dir_elements( Dirname, T, Devices, [ H | Directories ],
-								   Files, OtherFiles ) ;
+								   Files, OtherFiles );
 
 		regular ->
 			classify_dir_elements( Dirname, T, Devices, Directories,
-								  [ H | Files ], OtherFiles ) ;
+								  [ H | Files ], OtherFiles );
 
 		% Managed as regular files:
 		symlink ->
 			classify_dir_elements( Dirname, T, Devices, Directories,
-								   [ H | Files ], OtherFiles ) ;
+								   [ H | Files ], OtherFiles );
 
 		other ->
 			classify_dir_elements( Dirname, T, Devices, Directories,
@@ -1219,7 +1221,7 @@ create_dir_elem( _Elems=[ H | T ], Prefix ) ->
 create_temporary_directory() ->
 
 	TmpDir = join( [ "/tmp", system_utils:get_user_name(),
-					 basic_utils:generate_uuid() ] ),
+					 id_utils:generate_uuid() ] ),
 
 	case exists( TmpDir ) of
 
