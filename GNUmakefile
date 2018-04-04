@@ -3,8 +3,9 @@ COMMON_TOP = .
 
 .PHONY: help help-intro help-common help-hints help-batch                     \
 		register-version-in-header register-common list-beam-dirs             \
-		add-prerequisite-plts prepare-base-plt add-erlhdf5-plt add-jsx-plt   \
-		add-sqlite3-plt link-plt info-paths info-settings
+		add-prerequisite-plts prepare-base-plt add-erlhdf5-plt add-jsx-plt    \
+		add-sqlite3-plt link-plt clean-ast-outputs                            \
+		info-paths info-settings
 
 
 
@@ -105,6 +106,14 @@ add-sqlite3-plt:
 # As upper layers may rely on the 'Common' naming:
 link-plt:
 	@/bin/ln -s $(PLT_FILE) $(COMMON_PLT_FILE)
+
+
+# Removes the text files that may be spit by the common parse transform for
+# debugging purposes:
+#
+clean-ast-outputs:
+	@echo "  Removing AST output text files"
+	-@find . -name 'Output-AST-for-module-*.txt' -exec /bin/rm -f '{}' ';'
 
 
 info-paths:
