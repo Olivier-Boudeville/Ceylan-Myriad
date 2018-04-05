@@ -77,7 +77,7 @@ run() ->
 
 	io:format( "Transformed AST:~n~p~n~n", [ TransformedAST ] ),
 
-	ast_utils:write_ast_to_file( TransformedAST, TargetSourceFile ++ ".ast" ),
+	%ast_utils:write_ast_to_file( TransformedAST, TargetSourceFile ++ ".ast" ),
 
 	%perform_direct_ast_operations( TargetSourceFile ),
 
