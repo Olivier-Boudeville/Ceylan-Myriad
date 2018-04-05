@@ -55,18 +55,16 @@
 -export([ scan/1, check_parse_attribute_name/1, check_parse_attribute_name/2 ]).
 
 
+-type scan_context() :: { ast_base:file_reference(), ast_base:line() }.
+
 
 % Shorthands:
 
 -type ast() :: ast_base:ast().
 -type form_context() :: ast_base:form_context().
 -type module_info() :: ast_info:module_info().
-
-
-%-type function_name() :: meta_utils:function_name().
-%-type function_arity() :: meta_utils:function_arity().
-%-type function_id() :: meta_utils:function_id().
-%-type function_clause() :: ast_base:form().
+-type compile_option_table() :: ast_info:compile_option_table().
+-type located_form() :: ast_info:located_form().
 
 
 
@@ -746,69 +744,18 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export_type', TypeIds } | T ],
 
 % 7.1.13: Compilation option handling [lacking in reference page].
 %
-% We may have here full or regular inlining, and possibly other options.
+% We may have here full or regular inlining (single function or list thereof),
+% and possibly other options.
 %
-
-% Full inlining:
-scan_forms( _AST=[ Form={ 'attribute', _Line, 'compile', 'inline' } | T ],
-			 M=#module_info{ compilation_options=CompileTable,
-							 compilation_option_defs=CompileDefs },
-			NextLocation, CurrentFileReference ) ->
-
-	% Overrides any previously existing entry:
-	NewCompileTable = ?table:addEntry( inline, all, CompileTable ),
-
-	NewCompileDefs = [ { NextLocation, Form } | CompileDefs ],
-
-	scan_forms( T, M#module_info{ compilation_options=NewCompileTable,
-								  compilation_option_defs=NewCompileDefs },
-				id_utils:get_next_sortable_id( NextLocation ),
-				CurrentFileReference );
-
-
-% Regular inlining:
-scan_forms( _AST=[ Form={ 'attribute', Line, 'compile',
-						  { inline, InlineOpts } } | T ],
+scan_forms( _AST=[ Form={ 'attribute', Line, 'compile', CompileInfo } | T ],
 			 M=#module_info{ compilation_options=CompileTable,
 							 compilation_option_defs=CompileDefs },
 			NextLocation, CurrentFileReference ) ->
 
 	Context = { CurrentFileReference, Line },
 
-	ast_utils:check_inline_options( InlineOpts, Context ),
-
-	InlineOpt = case ?table:lookupEntry( inline, CompileTable ) of
-
-		{ value, all } ->
-			all;
-
-		{ value, InlineList } ->
-			InlineOpts ++ InlineList;
-
-		key_not_found ->
-			InlineOpts
-
-	end,
-
-	NewCompileTable = ?table:addEntry( inline, InlineOpt, CompileTable ),
-
-	NewCompileDefs = [ { NextLocation, Form } | CompileDefs ],
-
-	scan_forms( T, M#module_info{ compilation_options=NewCompileTable,
-								  compilation_option_defs=NewCompileDefs },
-				id_utils:get_next_sortable_id( NextLocation ),
-				CurrentFileReference );
-
-
-% Non-inlining compile options:
-scan_forms( _AST=[ Form={ 'attribute', _Line, 'compile',
-							{ CompilationOption, Options } } | T ],
-			 M=#module_info{ compilation_options=CompileTable,
-							 compilation_option_defs=CompileDefs },
-			NextLocation, CurrentFileReference ) ->
-
-	NewCompileTable = ?table:appendListToEntry( CompilationOption, Options,
-												CompileTable ),
+	NewCompileTable = register_compile_attribute( CompileInfo, CompileTable,
+												  Context ),
 
 	NewCompileDefs = [ { NextLocation, Form } | CompileDefs ],
 
@@ -828,20 +775,20 @@ scan_forms( [ Form={ 'attribute', Line, AttributeName, AttributeValue } | T ],
 							parse_attribute_defs=AttributeDefs },
 			NextLocation, CurrentFileReference ) ->
 
-	%ast_utils:display_debug( "Parse attribute definition for '~p'.",
-	%						 [ AttributeName ] ),
+	%ast_utils:display_debug( "Parse attribute definition for '~p': ~p",
+	%						 [ AttributeName, AttributeValue ] ),
 
 	Context = { CurrentFileReference, Line },
 
 	check_parse_attribute_name( AttributeName, Context ),
 
-	% No constraint on AttributeValue applies.
+	NewParseAttributeTable = ?table:addEntry( AttributeName, AttributeValue,
+											  ParseAttributeTable ),
 
 	LocForm = { NextLocation, Form },
 
 	scan_forms( T, M#module_info{
-				   parse_attributes=?table:addEntry( AttributeName,
-										  AttributeValue, ParseAttributeTable ),
+				   parse_attributes=NewParseAttributeTable,
 				   parse_attribute_defs=[ LocForm | AttributeDefs ] },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
@@ -1007,6 +954,55 @@ scan_forms( _AST=[], _ModuleInfo, _NextLocation, CurrentFileReference ) ->
 	ast_utils:raise_error( [ no_eof_found ], CurrentFileReference ).
 
 
+
+
+% Registers specified parse attribute regarding compilation.
+%
+-spec register_compile_attribute( term(), compile_option_table(),
+								  scan_context() ) ->
+			   { compile_option_table(), [ located_form() ] }.
+% Full inlining requested:
+register_compile_attribute( _CompileInfo='inline', CompileTable, _Context ) ->
+
+	% Overrides any previously existing entry:
+	?table:addEntry( inline, all, CompileTable );
+
+
+% Regular inlining:
+register_compile_attribute( _CompileInfo={ 'inline', InlineValues },
+		CompileTable, Context ) when is_list( InlineValues ) ->
+
+	ast_utils:check_inline_options( InlineValues, Context ),
+
+	NewInlineValues = case ?table:lookupEntry( inline, CompileTable ) of
+
+		{ value, all } ->
+			all;
+
+		{ value, InlineList } ->
+			InlineValues ++ InlineList;
+
+		key_not_found ->
+			InlineValues
+
+	end,
+
+	?table:addEntry( inline, NewInlineValues, CompileTable );
+
+
+% Non-inlining, compile option with multiple values specified:
+register_compile_attribute( _CompileInfo={ CompileOpt, OptValues },
+							CompileTable, _Context )
+  when is_atom( CompileOpt ) andalso is_list( OptValues ) ->
+
+	?table:appendListToEntry( CompileOpt, OptValues, CompileTable );
+
+
+% Non-inlining, single compile option (hence not a list):
+register_compile_attribute( _CompileInfo={ CompileOpt, OptValue }, CompileTable,
+		_Context ) when is_atom( CompileOpt ) ->
+
+	?table:appendToEntry( CompileOpt, OptValue, CompileTable ).
 
 
 
