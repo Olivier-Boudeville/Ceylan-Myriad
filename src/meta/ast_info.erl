@@ -177,7 +177,7 @@
 % Best solution here is not a list_table (which does not strictly preserve
 % element order either), but a plain (ordered) list (of pairs).
 %
--type field_table() :: [ { basic_utils:field_name(), 
+-type field_table() :: [ { basic_utils:field_name(),
 						   ast_record:field_definition() } ].
 
 
