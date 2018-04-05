@@ -48,7 +48,7 @@
 % most probably remain unnoticed (just leading to an EXIT message happily
 % sitting in the mailbox of the test process).
 %
--spec start( module() | [ module() ] ) -> basic_utils:void().
+-spec start( module() | [ module() ] ) -> void().
 start( Module ) when is_atom( Module ) ->
 	erlang:process_flag( trap_exit, false ),
 	basic_utils:display( "~n~n--> Testing module ~s.~n", [ Module ] );
@@ -70,7 +70,7 @@ stop() ->
 
 % Displays a test message.
 %
--spec display( string() ) -> basic_utils:void().
+-spec display( string() ) -> void().
 display( Message ) ->
 	% Carriage return already added in basic_utils:display/1:
 	% (empty list added so that ~n are automatically converted)
@@ -83,7 +83,7 @@ display( Message ) ->
 % FormatString is an io:format-style format string, ValueList is the
 % corresponding list of field values.
 %
--spec display( string(), list() ) -> basic_utils:void().
+-spec display( string(), list() ) -> void().
 display( FormatString, ValueList ) ->
 	basic_utils:display( FormatString, ValueList ).
 

@@ -103,7 +103,7 @@
 %
 % See net_kernel:monitor_nodes/2 for more information.
 %
--spec monitor_nodes( boolean() ) -> basic_utils:void().
+-spec monitor_nodes( boolean() ) -> void().
 monitor_nodes( DoStartNewSubscription ) ->
 	monitor_nodes( DoStartNewSubscription, _Options=[] ).
 
@@ -113,8 +113,7 @@ monitor_nodes( DoStartNewSubscription ) ->
 %
 % See net_kernel:monitor_nodes/2 for more information.
 %
--spec monitor_nodes( boolean(), [ monitor_node_option() ] ) ->
-						   basic_utils:void().
+-spec monitor_nodes( boolean(), [ monitor_node_option() ] ) -> void().
 monitor_nodes( DoStartNewSubscription, Options ) ->
 
 	case net_kernel:monitor_nodes( DoStartNewSubscription, Options ) of

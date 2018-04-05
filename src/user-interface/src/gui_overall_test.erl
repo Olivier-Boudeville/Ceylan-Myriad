@@ -84,7 +84,7 @@ get_main_window_height() ->
 % Canvas dimensions automatically determined based on parent panel.
 
 
--spec run_test_gui() -> basic_utils:void().
+-spec run_test_gui() -> void().
 run_test_gui() ->
 
 	test_facilities:display( "~nStarting the actual overall MyriadGUI test, "

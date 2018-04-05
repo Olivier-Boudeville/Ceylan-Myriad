@@ -220,8 +220,7 @@
 
 
 
--spec generate_key( file_utils:file_name(), [ cipher_transform() ] ) ->
-						  basic_utils:void().
+-spec generate_key( file_utils:file_name(), [ cipher_transform() ] ) -> void().
 generate_key( KeyFilename, Transforms ) ->
 
 	case file_utils:exists( KeyFilename ) of
@@ -302,7 +301,7 @@ key_to_string( [ Cipher | T ], Acc ) ->
 % The original file is kept as is.
 %
 -spec encrypt( file_utils:file_name(), file_utils:file_name(),
-			   file_utils:file_name() ) -> basic_utils:void().
+			   file_utils:file_name() ) -> void().
 encrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 
 	_SourceFile = case file_utils:is_existing_file_or_link( SourceFilename ) of
@@ -350,7 +349,7 @@ encrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 % The ciphered file is kept as is.
 %
 -spec decrypt( file_utils:file_name(), file_utils:file_name(),
-			   file_utils:file_name() ) -> basic_utils:void().
+			   file_utils:file_name() ) -> void().
 decrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 
 	_SourceFile = case file_utils:is_existing_file_or_link( SourceFilename ) of
@@ -508,7 +507,7 @@ get_cipher_description( OtherCipher ) ->
 % base (yet generic) mechanisms.
 %
 -spec apply_cipher( any(), file_utils:file_name(), file_utils:file_name() ) ->
-						  basic_utils:void().
+						  void().
 apply_cipher( id, SourceFilename, CipheredFilename ) ->
 	id_cipher( SourceFilename, CipheredFilename );
 

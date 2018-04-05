@@ -321,7 +321,7 @@ get_rendering_options( Polygon ) ->
 %
 % Throws an exception if the polygon is not valid.
 %
--spec render( polygon(), gui:canvas() ) -> basic_utils:void().
+-spec render( polygon(), gui:canvas() ) -> void().
 render( Polygon, Canvas ) ->
 
 	%trace_utils:debug_fmt( "Rendering polygon:~n~s.",

@@ -926,8 +926,7 @@ register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 % (helper)
 %
 -spec send_event( [ event_subscriber_pid() ], event_type(), gui:id(),
-				  gui_object(), gui:user_data(), gui:backend_event() ) ->
-						basic_utils:void().
+		  gui_object(), gui:user_data(), gui:backend_event() ) -> void().
 send_event( _Subscribers=[], _EventType, _EventSourceId, _GUIObject, _UserData,
 			_Event ) ->
 	ok;
@@ -1279,7 +1278,7 @@ set_instance_state( MyriadObjectType, InstanceId, InstanceState, TypeTable ) ->
 % Note: to be called from an event handler, i.e. at least from a process which
 % set the wx environment.
 %
--spec propagate_event( gui_event_context() ) -> basic_utils:void().
+-spec propagate_event( gui_event_context() ) -> void().
 propagate_event( #gui_event_context{ backend_event=WxEvent } ) ->
 
 	% Honestly the skip semantics looks a bit unclear.

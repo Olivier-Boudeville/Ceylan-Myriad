@@ -363,7 +363,7 @@ get_user_home_directory_string() ->
 %
 % In this case, await_output_completion/1 should be used, with a larger delay.
 %
--spec await_output_completion() -> basic_utils:void().
+-spec await_output_completion() -> void().
 
 -ifdef(debug_mode_is_enabled).
 
@@ -393,7 +393,7 @@ await_output_completion() ->
 % then immediately halting the VM, in order to avoid a race condition between
 % the displaying and the halting.
 %
--spec await_output_completion( unit_utils:millisecond() ) -> basic_utils:void().
+-spec await_output_completion( unit_utils:millisecond() ) -> void().
 await_output_completion( TimeOut ) ->
 
 	% Not sure it is really the proper way of waiting, however should be still
@@ -691,7 +691,7 @@ evaluate_shell_expression( Expression, Environment ) ->
 % leak, one should consider using evaluate_background_shell_expression/1
 % instead.
 %
--spec run_background_executable( command() ) -> basic_utils:void().
+-spec run_background_executable( command() ) -> void().
 run_background_executable( Command ) ->
 	run_background_executable( Command, get_standard_environment() ).
 
@@ -709,8 +709,7 @@ run_background_executable( Command ) ->
 % leak, one should consider using evaluate_background_shell_expression/2
 % instead.
 %
--spec run_background_executable( command(), environment() ) ->
-									   basic_utils:void().
+-spec run_background_executable( command(), environment() ) -> void().
 run_background_executable( Command, Environment ) ->
 	run_background_executable( Command, Environment, _WorkingDir=undefined ).
 
@@ -729,7 +728,7 @@ run_background_executable( Command, Environment ) ->
 % instead.
 %
 -spec run_background_executable( command(), environment(), working_dir() ) ->
-									   basic_utils:void().
+									   void().
 run_background_executable( Command, Environment, WorkingDir ) ->
 
 	% Apparently using a port-based launch and a background execution will block
@@ -748,8 +747,7 @@ run_background_executable( Command, Environment, WorkingDir ) ->
 %
 % As a consequence it returns no return code (exit status) nor output.
 %
--spec evaluate_background_shell_expression( shell_expression() ) ->
-												  basic_utils:void().
+-spec evaluate_background_shell_expression( shell_expression() ) -> void().
 evaluate_background_shell_expression( Expression ) ->
 	evaluate_background_shell_expression( Expression,
 										  get_standard_environment() ).
@@ -762,7 +760,7 @@ evaluate_background_shell_expression( Expression ) ->
 % As a consequence it returns no return code (exit status) nor output.
 %
 -spec evaluate_background_shell_expression( shell_expression(),
-				environment() ) -> basic_utils:void().
+											environment() ) -> void().
 evaluate_background_shell_expression( Expression, Environment ) ->
 
 	FullExpression = get_actual_expression( Expression, Environment ),
@@ -827,7 +825,7 @@ get_environment_variable( VarName ) ->
 % overwriting a past value.
 %
 -spec set_environment_variable( env_variable_name(), env_variable_value() ) ->
-									  basic_utils:void().
+									  void().
 set_environment_variable( VarName, VarValue ) ->
 	os:putenv( VarName, VarValue ).
 
@@ -1187,7 +1185,7 @@ convert_byte_size_with_unit( SizeInBytes ) ->
 % Returns a summary of the dynamically allocated memory currently being used by
 % the Erlang emulator.
 %
--spec display_memory_summary() -> basic_utils:void().
+-spec display_memory_summary() -> void().
 display_memory_summary() ->
 
 	SysSize  = erlang:memory( system ),

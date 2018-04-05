@@ -143,7 +143,7 @@ trace( Text, UIState ) ->
 
 % Stops the UI.
 %
--spec stop( ui_state() ) -> basic_utils:void().
+-spec stop( ui_state() ) -> void().
 stop( _UIState=#ui_state{ log_file=undefined } ) ->
 	ok;
 

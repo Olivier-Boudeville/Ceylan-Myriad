@@ -36,13 +36,14 @@
 -include("test_facilities.hrl").
 
 
--spec check_process_specific_values( integer(), integer() ) ->
-										   basic_utils:void().
+-spec check_process_specific_values( integer(), integer() ) -> void().
 check_process_specific_values( Min, Max ) ->
 
 	Self = self(),
 
-	F = fun() -> Self ! basic_utils:get_process_specific_value( Min, Max ) end,
+	F = fun() ->
+			Self ! basic_utils:get_process_specific_value( Min, Max )
+		end,
 
 	[ spawn( F ) || _X <- lists:seq( 1, 10 ) ],
 

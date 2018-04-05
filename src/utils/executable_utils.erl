@@ -222,7 +222,7 @@ generate_png_from_graph_file( PNGFilename, GraphFilename,
 %
 % Throws an exception if an error occurs.
 %
--spec display_png_file( file_utils:path() ) -> basic_utils:void().
+-spec display_png_file( file_utils:path() ) -> void().
 display_png_file( PNGFilename ) ->
 	% Viewer output is ignored:
 	system_utils:run_background_executable( get_default_image_viewer_path()
@@ -237,10 +237,10 @@ display_png_file( PNGFilename ) ->
 %
 % Throws an exception if an error occurs.
 %
--spec browse_images_in( file_utils:path() ) -> basic_utils:void().
+-spec browse_images_in( file_utils:path() ) -> void().
 browse_images_in( DirectoryName ) ->
 	system_utils:run_background_executable( get_default_image_browser_path()
-											 ++ " " ++ DirectoryName ).
+											++ " " ++ DirectoryName ).
 
 
 
@@ -251,10 +251,10 @@ browse_images_in( DirectoryName ) ->
 %
 % Throws an exception if an error occurs.
 %
--spec display_pdf_file( file_utils:path() ) -> basic_utils:void().
+-spec display_pdf_file( file_utils:path() ) -> void().
 display_pdf_file( PDFFilename ) ->
 	system_utils:run_background_executable( get_default_pdf_viewer_path()
-											 ++ " " ++ PDFFilename ).
+											++ " " ++ PDFFilename ).
 
 
 

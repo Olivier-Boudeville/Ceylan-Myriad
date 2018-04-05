@@ -108,7 +108,7 @@ get_beam_directories_for_binding() ->
 
 % Requests specified interpreter to execute specified oneway.
 %
--spec send_oneway( interpreter_pid(), title(), body() ) -> basic_utils:void().
+-spec send_oneway( interpreter_pid(), title(), body() ) -> void().
 send_oneway( InterpreterPid, MessageTitle, MessageBody )
   when is_atom( MessageTitle ) ->
 

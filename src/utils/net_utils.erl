@@ -22,8 +22,8 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Authors:	Olivier Boudeville (olivier.boudeville@esperide.com)
-%			Samuel Thiriot (samuel.thiriot@edf.fr)
+% Authors: Olivier Boudeville (olivier.boudeville@esperide.com)
+%		   Samuel Thiriot (samuel.thiriot@edf.fr)
 %
 % Creation date: July 1, 2007.
 
@@ -812,7 +812,7 @@ get_fully_qualified_node_name( NodeName, Hostname, NodeNamingMode ) ->
 % be launched, the former one remaining the active one; there is up to one EPMD
 % instance per port.
 %
--spec launch_epmd() -> basic_utils:void().
+-spec launch_epmd() -> void().
 launch_epmd() ->
 	launch_epmd( _StandardPort=4369 ).
 
@@ -825,7 +825,7 @@ launch_epmd() ->
 % be launched, the former one remaining the active one; there is up to one EPMD
 % instance per port.
 %
--spec launch_epmd( net_port() ) -> basic_utils:void().
+-spec launch_epmd( net_port() ) -> void().
 launch_epmd( Port ) when is_integer( Port ) ->
 
 	case executable_utils:lookup_executable( "epmd" ) of
@@ -870,8 +870,7 @@ launch_epmd( Port ) when is_integer( Port ) ->
 %
 % So a (tiny) second-chance mechanism has been introduced.
 %
--spec enable_distribution( node_name(), node_naming_mode() ) ->
-								 basic_utils:void().
+-spec enable_distribution( node_name(), node_naming_mode() ) -> void().
 enable_distribution( NodeName, NamingMode ) when is_list( NodeName ) ->
 	AtomNodeName = text_utils:string_to_atom( lists:flatten( NodeName ) ),
 	enable_distribution( AtomNodeName, NamingMode );
@@ -951,7 +950,7 @@ get_cookie() ->
 % Sets the Erlang cookie for the current node, as well as for the one of all
 % unknown nodes.
 %
--spec set_cookie( cookie() ) -> basic_utils:void().
+-spec set_cookie( cookie() ) -> void().
 set_cookie( Cookie ) ->
 
 	case erlang:is_alive() of
@@ -968,7 +967,7 @@ set_cookie( Cookie ) ->
 
 % Sets the Erlang cookie for the specified node.
 %
--spec set_cookie( cookie(), atom_node_name() ) -> basic_utils:void().
+-spec set_cookie( cookie(), atom_node_name() ) -> void().
 set_cookie( Cookie, Node ) ->
 	erlang:set_cookie( Node, Cookie ).
 
@@ -995,7 +994,7 @@ shutdown_node() ->
 %
 % Throws an exception if not able to terminate it.
 %
--spec shutdown_node( node_name() ) -> basic_utils:void().
+-spec shutdown_node( node_name() ) -> void().
 shutdown_node( Nodename ) when is_list( Nodename ) ->
 	shutdown_node( list_to_atom( Nodename ) );
 
@@ -1229,7 +1228,7 @@ get_basic_node_launching_command( NodeName, NodeNamingMode, EpmdSettings,
 % Sends specified file (probably over the network) to specified recipient PID,
 % supposed to have already called on of the receive_file/{1,2,3}.
 %
--spec send_file( file_utils:file_name(), pid() ) -> basic_utils:void().
+-spec send_file( file_utils:file_name(), pid() ) -> void().
 send_file( Filename, RecipientPid ) ->
 
 	case file_utils:is_existing_file( Filename ) of
@@ -1358,7 +1357,7 @@ receive_file( EmitterPid ) ->
 %
 % Returns the full path to the received file.
 %
--spec receive_file( pid(), file_utils:directory_name() ) -> basic_utils:void().
+-spec receive_file( pid(), file_utils:directory_name() ) -> void().
 receive_file( EmitterPid, TargetDir ) ->
 	receive_file( EmitterPid, TargetDir, ?default_send_file_port ).
 

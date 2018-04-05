@@ -142,7 +142,7 @@ get_beam_directories_for_binding() ->
 % Sends the specified oneway to the specified Java pseudo-process.
 %
 -spec send_oneway( java_mbox_pid(), oneway_name(), oneway_parameters() ) ->
-						 basic_utils:void().
+						 void().
 send_oneway( MailboxPid, OnewayName, OnewayParameters )
   when is_atom( OnewayName ) andalso is_list( OnewayParameters ) ->
 	% No PID sent, no answer to expect:
@@ -153,7 +153,7 @@ send_oneway( MailboxPid, OnewayName, OnewayParameters )
 % Sends the specified request to the specified Java pseudo-process.
 %
 -spec send_request( java_mbox_pid(), request_name(), request_parameters() ) ->
-						 basic_utils:void().
+						 void().
 send_request( MailboxPid, RequestName, RequestParameters )
   when is_atom( RequestName ) andalso is_list( RequestParameters ) ->
 	% PID sent, as a reply is wanted:

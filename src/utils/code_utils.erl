@@ -146,8 +146,7 @@ is_loaded_module_same_on_filesystem( ModuleName ) ->
 % be caused by a version mistmatch between the Erlang environments in the source
 % and at least one of the remote target hosts (ex: ERTS 5.5.2 vs 5.8.2).
 %
--spec deploy_modules( [ module() ], [ net_utils:atom_node_name() ] ) ->
-							basic_utils:void().
+-spec deploy_modules( [ module() ], [ net_utils:atom_node_name() ] ) -> void().
 deploy_modules( Modules, Nodes ) ->
 	deploy_modules( Modules, Nodes, _Timeout=?rpc_timeout ).
 
@@ -165,7 +164,7 @@ deploy_modules( Modules, Nodes ) ->
 % and at least one of the remote target hosts (ex: ERTS 5.5.2 vs 5.8.2).
 %
 -spec deploy_modules( [ module() ], [ net_utils:atom_node_name() ],
-					  time_utils:time_out() ) -> basic_utils:void().
+					  time_utils:time_out() ) -> void().
 deploy_modules( Modules, Nodes, Timeout ) ->
 
 	% At least until the next version to come after R14B02, there was a possible
@@ -188,8 +187,7 @@ deploy_modules( Modules, Nodes, Timeout ) ->
 
 % (helper function)
 -spec deploy_module( module(), { binary(), file_utils:file_name() },
-		  [ net_utils:atom_node_name() ], time_utils:time_out() ) ->
-						   basic_utils:void().
+		  [ net_utils:atom_node_name() ], time_utils:time_out() ) -> void().
 deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
 
 	%io:format( "Deploying module '~s' (filename '~s') on nodes ~p "
@@ -261,8 +259,7 @@ deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
 %
 % Throws an exception if the directory does not exist.
 %
--spec declare_beam_directory( file_utils:directory_name() ) ->
-									basic_utils:void().
+-spec declare_beam_directory( file_utils:directory_name() ) -> void().
 declare_beam_directory( Dir ) ->
 	declare_beam_directory( Dir, first_position ).
 
@@ -274,7 +271,7 @@ declare_beam_directory( Dir ) ->
 % Throws an exception if the directory does not exist.
 %
 -spec declare_beam_directory( file_utils:directory_name(),
-		 'first_position' | 'last_position' ) -> basic_utils:void().
+							  'first_position' | 'last_position' ) -> void().
 declare_beam_directory( Dir, first_position ) ->
 
 	case code:add_patha( Dir ) of
@@ -306,7 +303,7 @@ declare_beam_directory( Dir, last_position ) ->
 %
 % Throws an exception if at least one of the directories does not exist.
 %
--spec declare_beam_directories( code_path() ) -> basic_utils:void().
+-spec declare_beam_directories( code_path() ) -> void().
 declare_beam_directories( Dirs ) ->
 	declare_beam_directories( Dirs, first_position ).
 
@@ -319,7 +316,7 @@ declare_beam_directories( Dirs ) ->
 % Throws an exception if at least one of the directories does not exist.
 %
 -spec declare_beam_directories( code_path(),
-					'first_position' | 'last_position' ) -> basic_utils:void().
+					'first_position' | 'last_position' ) -> void().
 declare_beam_directories( Dirs, first_position ) ->
 	check_beam_dirs( Dirs ),
 	code:add_pathsa( Dirs );

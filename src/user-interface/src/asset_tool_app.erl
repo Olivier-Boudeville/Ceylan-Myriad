@@ -190,7 +190,7 @@ app_main_loop( _, _ ) ->
 	fixme.
 
 
--spec render_main_view( gui_canvas:canvas() ) -> basic_utils:void().
+-spec render_main_view( gui_canvas:canvas() ) -> void().
 render_main_view( Canvas ) ->
 
 	app_facilities:display( "Rendering main view." ),
@@ -204,11 +204,11 @@ render_main_view( Canvas ) ->
 
 
 gui_main_loop( _GUIState=#app_state{ main_frame=_MainFrame,
-									load_image_button=_LoadImageButton,
-									quit_button=_QuitButton,
-									info_sizer=_InfoSizer,
-									left_panel=_LeftPanel,
-									canvas=_Canvas } ) ->
+									 load_image_button=_LoadImageButton,
+									 quit_button=_QuitButton,
+									 info_sizer=_InfoSizer,
+									 left_panel=_LeftPanel,
+									 canvas=_Canvas } ) ->
 
 	app_facilities:display( "~nEntering main loop.", [] ).
 

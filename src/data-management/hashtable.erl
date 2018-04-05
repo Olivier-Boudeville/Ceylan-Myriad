@@ -1010,7 +1010,7 @@ toString( _Hashtable, internal ) ->
 
 % Displays the specified hashtable on the standard output.
 %
--spec display( hashtable() ) -> basic_utils:void().
+-spec display( hashtable() ) -> void().
 display( Hashtable ) ->
 	io:format( "~s~n", [ toString( Hashtable ) ] ).
 
@@ -1019,7 +1019,7 @@ display( Hashtable ) ->
 % Displays the specified hashtable on the standard output, with the specified
 % title on top.
 %
--spec display( string(), hashtable() ) -> basic_utils:void().
+-spec display( string(), hashtable() ) -> void().
 display( Title, Hashtable ) ->
 	io:format( "~s:~n~s~n", [ Title, toString( Hashtable ) ] ).
 

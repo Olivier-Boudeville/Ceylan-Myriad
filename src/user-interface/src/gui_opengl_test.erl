@@ -52,7 +52,7 @@
 -export_type([ my_test_state/0 ]).
 
 
--spec run_test_gui() -> basic_utils:void().
+-spec run_test_gui() -> void().
 run_test_gui() ->
 
 	test_facilities:display( "~nStarting the test of OpenGL support." ),

@@ -57,7 +57,7 @@
 
 % Starts (checks and inits) the SQL (in practice: SQLite3) service support.
 %
--spec start() -> basic_utils:void().
+-spec start() -> void().
 start() ->
 
 	% We have to secure the erlang-sqlite3 binding, nevertheless nothing special
@@ -70,7 +70,7 @@ start() ->
 
 % Stops the SQL support.
 %
--spec stop() -> basic_utils:void().
+-spec stop() -> void().
 stop() ->
 	%io:format( "Stopping SQL support.").
 	ok.

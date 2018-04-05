@@ -551,7 +551,7 @@ get_last_modification_time( Filename ) ->
 %
 % See also: create_empty_file/1
 %
--spec touch( file_name() ) -> basic_utils:void().
+-spec touch( file_name() ) -> void().
 touch( Filename ) ->
 
 	case is_existing_file( Filename ) of
@@ -589,7 +589,7 @@ touch( Filename ) ->
 %
 % See also: touch/1.
 %
--spec create_empty_file( file_name() ) -> basic_utils:void().
+-spec create_empty_file( file_name() ) -> void().
 create_empty_file( Filename ) ->
 
 	case system_utils:run_executable( "/bin/touch '" ++ Filename ++ "'" ) of
@@ -627,7 +627,7 @@ get_current_directory() ->
 %
 % Throws an exception on failure.
 %
--spec set_current_directory( directory_name() ) -> basic_utils:void().
+-spec set_current_directory( directory_name() ) -> void().
 set_current_directory( DirName ) ->
 
 	 % For more detail of { 'error', atom() }, refer to type specifications of
@@ -1137,7 +1137,7 @@ list_directories_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir,
 %
 % Throws an exception if the operation failed.
 %
--spec create_directory( directory_name() ) -> basic_utils:void().
+-spec create_directory( directory_name() ) -> void().
 create_directory( Dirname ) ->
 	create_directory( Dirname, create_no_parent ).
 
@@ -1155,7 +1155,7 @@ create_directory( Dirname ) ->
 % already existing ( { create_directory_failed, "foobar", eexist } ).
 %
 -spec create_directory( directory_name(),
-	   'create_no_parent' | 'create_parents' ) -> basic_utils:void().
+	   'create_no_parent' | 'create_parents' ) -> void().
 create_directory( Dirname, create_no_parent ) ->
 
 	case file:make_dir( Dirname ) of
@@ -1177,8 +1177,7 @@ create_directory( Dirname, create_parents ) ->
 %
 % Throws an exception if the operation fails.
 %
--spec create_directory_if_not_existing( directory_name() ) ->
-											  basic_utils:void().
+-spec create_directory_if_not_existing( directory_name() ) -> void().
 create_directory_if_not_existing( Dirname ) ->
 
 	case is_existing_directory( Dirname ) of
@@ -1241,7 +1240,7 @@ create_temporary_directory() ->
 %
 % Throws an exception if any problem occurs.
 %
--spec remove_file( file_name() ) -> basic_utils:void().
+-spec remove_file( file_name() ) -> void().
 remove_file( Filename ) ->
 
 	%io:format( "## Removing file '~s'.~n", [ Filename ] ),
@@ -1260,7 +1259,7 @@ remove_file( Filename ) ->
 
 % Removes specified files, specified as a list of plain strings.
 %
--spec remove_files( [ file_name() ] ) -> basic_utils:void().
+-spec remove_files( [ file_name() ] ) -> void().
 remove_files( FilenameList ) ->
 	[ remove_file( Filename ) || Filename <- FilenameList ].
 
@@ -1269,7 +1268,7 @@ remove_files( FilenameList ) ->
 % Removes specified file, specified as a plain string, iff it is already
 % existing, otherwise does nothing.
 %
--spec remove_file_if_existing( file_name() ) -> basic_utils:void().
+-spec remove_file_if_existing( file_name() ) -> void().
 remove_file_if_existing( Filename ) ->
 
 	case is_existing_file( Filename ) of
@@ -1287,7 +1286,7 @@ remove_file_if_existing( Filename ) ->
 % Removes each specified file, in specified list of plain strings, iff it is
 % already existing.
 %
--spec remove_files_if_existing( [ file_name() ] ) -> basic_utils:void().
+-spec remove_files_if_existing( [ file_name() ] ) -> void().
 remove_files_if_existing( FilenameList ) ->
 	[ remove_file_if_existing( Filename ) || Filename <- FilenameList ].
 
@@ -1295,7 +1294,7 @@ remove_files_if_existing( FilenameList ) ->
 
 % Removes specified directory, which must be empty.
 %
--spec remove_directory( directory_name() ) -> basic_utils:void().
+-spec remove_directory( directory_name() ) -> void().
 remove_directory( DirectoryName ) ->
 
 	%io:format( "## Removing directory '~s'.~n", [ DirectoryName ] ),
@@ -1319,7 +1318,7 @@ remove_directory( DirectoryName ) ->
 % executable file will be itself executable, other permissions as well, unlike
 % /bin/cp which relies on umask).
 %
--spec copy_file( file_name(), file_name() ) -> basic_utils:void().
+-spec copy_file( file_name(), file_name() ) -> void().
 copy_file( SourceFilename, DestinationFilename ) ->
 
 	% First, checks the source file exists and retrieves its meta-information:
@@ -1371,7 +1370,7 @@ copy_file_in( SourceFilename, DestinationDirectory ) ->
 % Note: content is copied and permissions are preserved (ex: the copy of an
 % executable file will be itself executable).
 %
--spec copy_file_if_existing( file_name(), file_name() ) -> basic_utils:void().
+-spec copy_file_if_existing( file_name(), file_name() ) -> void().
 copy_file_if_existing( SourceFilename, DestinationFilename ) ->
 
 	case is_existing_file( SourceFilename ) of
@@ -1388,7 +1387,7 @@ copy_file_if_existing( SourceFilename, DestinationFilename ) ->
 
 % Renames specified file.
 %
--spec rename( file_name(), file_name() ) -> basic_utils:void().
+-spec rename( file_name(), file_name() ) -> void().
 rename( SourceFilename, DestinationFilename ) ->
 	move_file( SourceFilename, DestinationFilename ).
 
@@ -1396,7 +1395,7 @@ rename( SourceFilename, DestinationFilename ) ->
 
 % Moves specified file so that it is now designated by specified filename.
 %
--spec move_file( file_name(), file_name() ) -> basic_utils:void().
+-spec move_file( file_name(), file_name() ) -> void().
 move_file( SourceFilename, DestinationFilename ) ->
 
 	%io:format( "## Moving file '~s' to '~s'.~n",
@@ -1467,7 +1466,7 @@ get_permission_for( PermissionList ) when is_list( PermissionList ) ->
 % Changes the permissions of specified file.
 %
 -spec change_permissions( file_name(), permission() | [ permission() ] ) ->
-								basic_utils:void().
+								void().
 change_permissions( Filename, NewPermissions ) ->
 
 	ActualPerms = get_permission_for( NewPermissions ),
@@ -1854,7 +1853,7 @@ open( Filename, Options, _AttemptMode=try_once ) ->
 %
 % Throws an exception on failure.
 %
--spec close( file() ) -> basic_utils:void().
+-spec close( file() ) -> void().
 close( File ) ->
 	close( File, throw_if_failed ).
 
@@ -1865,7 +1864,7 @@ close( File ) ->
 % Throws an exception on failure or not, depending on specified failure mode.
 %
 -spec close( file(), 'overcome_failure' | 'throw_if_failed' ) ->
-				   basic_utils:void().
+				   void().
 close( File, _FailureMode=throw_if_failed ) ->
 
 	case file:close( File ) of
@@ -1914,7 +1913,7 @@ read( File, Count ) ->
 %
 % Throws an exception on failure.
 %
--spec write( file(), iodata() ) -> basic_utils:void().
+-spec write( file(), iodata() ) -> void().
 write( File, Content ) ->
 
 	case file:write( File, Content ) of
@@ -1934,7 +1933,7 @@ write( File, Content ) ->
 % Throws an exception on failure.
 %
 -spec write( file(), text_utils:format_string(), [ term() ] ) ->
-				   basic_utils:void().
+				   void().
 write( File, FormatString, Values ) ->
 
 	Text = io_lib:format( FormatString, Values ),
@@ -1975,7 +1974,7 @@ read_whole( Filename ) ->
 % Writes the specified binary in specified file, whose filename is specified as
 % a plain string. Throws an exception on failure.
 %
--spec write_whole( file_name(), binary() ) -> basic_utils:void().
+-spec write_whole( file_name(), binary() ) -> void().
 write_whole( Filename, Binary ) ->
 
 	case file:write_file( Filename, Binary ) of
@@ -2268,7 +2267,7 @@ zipped_term_to_unzipped_file( ZippedTerm ) ->
 % Note: only one file is expected to be stored in the specified archive.
 %
 -spec zipped_term_to_unzipped_file( binary(), file_name() )
-								  -> basic_utils:void().
+								  -> void().
 zipped_term_to_unzipped_file( ZippedTerm, TargetFilename ) ->
 
 	{ ok, [ { _AFilename, Binary } ] } = zip:unzip( ZippedTerm, [ memory ] ),

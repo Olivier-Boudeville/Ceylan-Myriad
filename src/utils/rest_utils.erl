@@ -138,7 +138,7 @@
 
 % Starts the REST service, with default settings.
 %
--spec start() -> basic_utils:void().
+-spec start() -> void().
 start() ->
 	start( no_ssl ).
 
@@ -146,7 +146,7 @@ start() ->
 
 % Starts the REST service.
 %
--spec start( ssl_opt() ) -> basic_utils:void().
+-spec start( ssl_opt() ) -> void().
 start( Option ) ->
 
 	% Starts the (built-in) HTTP client:
@@ -169,7 +169,7 @@ start( Option ) ->
 
 % Stops the REST service.
 %
--spec stop() -> basic_utils:void().
+-spec stop() -> void().
 stop() ->
 
 	stop_json_parser(),
@@ -459,7 +459,7 @@ return_checked_result( Result ) ->
 
 % Checks the basic structure of an HTTP request, as needed by httpc.
 %
--spec check_http_request( method(), request() ) -> basic_utils:void().
+-spec check_http_request( method(), request() ) -> void().
 check_http_request( Method, _Request={ URL, Headers } )
   when is_list( Headers ) ->
 
@@ -545,7 +545,7 @@ check_http_request( _Method, Request ) ->
 
 % Starts the JSON parser.
 %
--spec start_json_parser() -> basic_utils:void().
+-spec start_json_parser() -> void().
 start_json_parser() ->
 
 	% We use the 'jsx' parser, an external prerequisite.
@@ -626,6 +626,6 @@ from_json( StringJson ) when is_list( StringJson ) ->
 
 % Stops the JSON parser.
 %
--spec stop_json_parser() -> basic_utils:void().
+-spec stop_json_parser() -> void().
 stop_json_parser() ->
 	ok.

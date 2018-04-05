@@ -53,7 +53,7 @@
 % escript so that it can really be used from anywhere (not only from the
 % directory it is stored).
 %
--spec update_code_path_for_common() -> basic_utils:void().
+-spec update_code_path_for_common() -> void().
 update_code_path_for_common() ->
 
 	CommonRootDir = get_root_of_common(),

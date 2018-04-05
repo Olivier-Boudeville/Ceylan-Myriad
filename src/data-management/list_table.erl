@@ -719,7 +719,7 @@ toString( Table, _Displaytype ) ->
 
 % Displays the specified table on the standard output.
 %
--spec display( list_table() ) -> basic_utils:void().
+-spec display( list_table() ) -> void().
 display( Table ) ->
 	io:format( "~s~n", [ toString( Table ) ] ).
 
@@ -728,6 +728,6 @@ display( Table ) ->
 % Displays the specified table on the standard output, with the specified title
 % on top.
 %
--spec display( string(), list_table() ) -> basic_utils:void().
+-spec display( string(), list_table() ) -> void().
 display( Title, Table ) ->
 	io:format( "~s:~n~s~n", [ Title, toString( Table ) ] ).

@@ -83,8 +83,7 @@
 % Note that no actual module file is generated (ex: no 'foobar.beam'), the
 % operation remains fully in-memory.
 %
--spec generate( basic_utils:module_name(), table:table() ) ->
-					  basic_utils:void().
+-spec generate( basic_utils:module_name(), table:table() ) -> void().
 generate( ModuleName, Table ) ->
 
 	%io:format( "Generating pseudo-module '~s' from following table:~n~s~n",
