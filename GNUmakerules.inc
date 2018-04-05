@@ -191,13 +191,16 @@ all-parallel-recurse:
 
 all-recurse: $(BEAM_FILES)
 	@echo "   Building all in "$(PWD) #$$(basename $(PWD))
-	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s all CMD_LINE_OPT="${CMD_LINE_OPT}" USE_HDF5=$(USE_HDF5) USE_REST=$(USE_REST) USE_SQLITE=$(USE_SQLITE) && cd .. ; else echo "	 (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
+	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s all CMD_LINE_OPT="${CMD_LINE_OPT}" USE_HDF5=$(USE_HDF5) USE_REST=$(USE_REST) USE_SQLITE=$(USE_SQLITE) && cd .. ; else echo "  (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
 
 
 
 # We must first go into the directory in which the source of the parse transform
 # lies, otherwise the BEAM file will be created on the current (ex: root)
 # directory:
+#
+# (note that, as a result, parse transforms are not themselves parse-transformed
+# by the ones of the lower layers)
 #
 %_parse_transform.beam: %_parse_transform.erl
 	@echo "		Compiling parse transform $<"
