@@ -964,7 +964,7 @@ scan_forms( _AST=[], _ModuleInfo, _NextLocation, CurrentFileReference ) ->
 % Full inlining requested:
 register_compile_attribute( _CompileInfo='inline', CompileTable, _Context ) ->
 
-	% Overrides any previously existing entry:
+	% Overrides any previously existing inline entry:
 	?table:addEntry( inline, all, CompileTable );
 
 
@@ -1002,7 +1002,20 @@ register_compile_attribute( _CompileInfo={ CompileOpt, OptValues },
 register_compile_attribute( _CompileInfo={ CompileOpt, OptValue }, CompileTable,
 		_Context ) when is_atom( CompileOpt ) ->
 
-	?table:appendToEntry( CompileOpt, OptValue, CompileTable ).
+	?table:appendToEntry( CompileOpt, OptValue, CompileTable );
+
+
+register_compile_attribute( _CompileInfo=[], CompileTable, _Context ) ->
+	CompileTable;
+
+
+register_compile_attribute( _CompileInfo=[ CpInfo | T ], CompileTable, Context ) ->
+
+	NewCompileTable = register_compile_attribute( CpInfo, CompileTable,
+												  Context ),
+
+	register_compile_attribute( T, NewCompileTable, Context ).
+
 
 
 
