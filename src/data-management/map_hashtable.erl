@@ -185,8 +185,8 @@ addEntry( Key, Value, MapHashtable ) ->
 addEntries( EntryList, MapHashtable ) ->
 
 	lists:foldl( fun( { K, V }, Map ) ->
-						 %Map#{ K => V }
-						 maps:put( K, V, Map )
+					%Map#{ K => V }
+					maps:put( K, V, Map )
 				 end,
 				 _Acc0=MapHashtable,
 				 _List=EntryList ).
@@ -224,7 +224,7 @@ addNewEntry( Key, Value, MapHashtable ) ->
 addNewEntries( EntryList, MapHashtable ) ->
 
 	lists:foldl( fun( { K, V }, Map ) ->
-						 addNewEntry( K, V, Map )
+					addNewEntry( K, V, Map )
 				 end,
 				 _Acc0=MapHashtable,
 				 _List=EntryList ).
@@ -319,7 +319,7 @@ removeExistingEntry( Key, MapHashtable ) ->
 -spec removeEntries( [ key() ], map_hashtable() ) -> map_hashtable().
 removeEntries( Keys, MapHashtable ) ->
 	lists:foldl( fun( K, AccTable ) ->
-						 maps:remove( K, AccTable )
+					 maps:remove( K, AccTable )
 				 end,
 				 _InitAcc=MapHashtable,
 				 _List=Keys ).
@@ -336,7 +336,7 @@ removeEntries( Keys, MapHashtable ) ->
 -spec removeExistingEntries( [ key() ], map_hashtable() ) -> map_hashtable().
 removeExistingEntries( Keys, MapHashtable ) ->
 	lists:foldl( fun( K, AccTable ) ->
-						 removeExistingEntry( K, AccTable )
+					 removeExistingEntry( K, AccTable )
 				 end,
 				 _InitAcc=MapHashtable,
 				 _List=Keys ).
