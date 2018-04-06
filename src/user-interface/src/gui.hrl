@@ -57,7 +57,7 @@
 		   % (useful for example when deciding to propagate it upward in the
 		   % widget hierarchy)
 		   %
-		   backend_event = undefined :: basic_utils:maybe( gui:backend_event() )
+		   backend_event = undefined :: maybe( gui:backend_event() )
 
 
 }).

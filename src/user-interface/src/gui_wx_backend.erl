@@ -694,7 +694,7 @@ sizer_flag_to_bitmask( _Flag=align_center_horizontal ) ->
 %
 % (helper)
 %
--spec to_wx_id( basic_utils:maybe( gui:myriad_instance_id() ) ) -> wx_id().
+-spec to_wx_id( maybe( gui:myriad_instance_id() ) ) -> wx_id().
 to_wx_id( undefined ) ->
 	?any_id;
 
@@ -707,7 +707,7 @@ to_wx_id( Other ) ->
 %
 % (helper)
 %
--spec to_wx_parent( basic_utils:maybe( gui:myriad_instance_id() ) ) -> wx_id().
+-spec to_wx_parent( maybe( gui:myriad_instance_id() ) ) -> wx_id().
 to_wx_parent( undefined ) ->
 	?no_parent;
 

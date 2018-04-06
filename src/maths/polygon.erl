@@ -281,7 +281,7 @@ set_edge_color( Color, Polygon ) ->
 % Returns the current edge color of the specified polygon, if specified,
 % otherwise 'undefined'.
 %
--spec get_edge_color( polygon() ) -> basic_utils:maybe( gui_color:color() ).
+-spec get_edge_color( polygon() ) -> maybe( gui_color:color() ).
 get_edge_color( Polygon ) ->
 	option_list:lookup( edge_color, Polygon#polygon.rendering ).
 
@@ -302,7 +302,7 @@ set_fill_color( Color, Polygon ) ->
 % Returns the current fill color of the specified polygon, if specified,
 % otherwise 'undefined'.
 %
--spec get_fill_color( polygon() ) -> basic_utils:maybe( gui_color:color() ).
+-spec get_fill_color( polygon() ) -> maybe( gui_color:color() ).
 get_fill_color( Polygon ) ->
 	option_list:lookup( fill, Polygon#polygon.rendering ).
 

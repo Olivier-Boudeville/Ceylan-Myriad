@@ -76,7 +76,7 @@
 
 % Either a list of terms, or a term by itself.
 %
-% Note: different from basic_utils:maybe( list() ).
+% Note: different from maybe( list() ).
 %
 -type maybe_list( T ) :: [ T ] | T.
 

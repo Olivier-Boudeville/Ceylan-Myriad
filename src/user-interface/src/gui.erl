@@ -305,7 +305,7 @@
 % May not be defined if the actual event comes from MyriadGUI itself (and thus
 % not wx).
 %
--type id() :: basic_utils:maybe( wx_id() ).
+-type id() :: maybe( wx_id() ).
 
 
 % Reference to a GUI object (often designated as "widget" here), somewhat akin
