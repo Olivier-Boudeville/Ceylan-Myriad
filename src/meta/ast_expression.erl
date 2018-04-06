@@ -346,10 +346,10 @@ transform_expression( _E={ 'receive', Line, ReceiveClauses, AfterTest,
 % Tc_j is a catch clause, then Rep(E) = {'try',LINE,Rep(B),[Rep(Cc_1), ...,
 % Rep(Cc_k)],[Rep(Tc_1), ..., Rep(Tc_n)],Rep(A)}."
 %
-transform_expression( E={ 'try', Line, TryBody, TryClauses, CatchClauses,
-						  AfterBody }, Transforms ) ->
+transform_expression( _E={ 'try', Line, TryBody, TryClauses, CatchClauses,
+						   AfterBody }, Transforms ) ->
 
-	ast_utils:display_debug( "Intercepting try expression ~p...", [ E ] ),
+	%ast_utils:display_debug( "Intercepting try expression ~p...", [ E ] ),
 
 	NewTryBody = ast_clause:transform_body( TryBody, Transforms ),
 
