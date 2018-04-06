@@ -1675,13 +1675,13 @@ compute_cpu_usage_between( StartCounters, EndCounters ) ->
 %
 % Returns 'undefined' iff the specified usage is itself undefined.
 %
--spec compute_cpu_usage_for( basic_utils:maybe( cpu_usage_percentages() ) ) ->
-								   basic_utils:maybe( math_utils:percent() ).
+-spec compute_cpu_usage_for( maybe( cpu_usage_percentages() ) ) ->
+								   maybe( math_utils:percent() ).
 compute_cpu_usage_for( undefined ) ->
 	undefined;
 
 compute_cpu_usage_for( { UserPercent, NicePercent, SystemPercent, _IdlePercent,
-						OtherPercent } ) ->
+						 OtherPercent } ) ->
 
 	% Every usage matters here, except idle:
 	UserPercent + NicePercent + SystemPercent + OtherPercent.
@@ -1699,7 +1699,7 @@ compute_cpu_usage_for( { UserPercent, NicePercent, SystemPercent, _IdlePercent,
 % usage can be quantified then.
 %
 -spec compute_detailed_cpu_usage( cpu_usage_info(), cpu_usage_info() ) ->
-	basic_utils:maybe( cpu_usage_percentages() ).
+										maybe( cpu_usage_percentages() ).
 compute_detailed_cpu_usage( _StartCounters={ U1, N1, S1, I1, O1 },
 							_EndCounters = { U2, N2, S2, I2, O2 } ) ->
 
