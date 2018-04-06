@@ -715,8 +715,8 @@ recompose_ast_from_module_info( #module_info{
 
 	OrderedAST = get_ordered_ast_from( UnorderedLocatedAST ),
 
-	ast_utils:display_debug( "Recomposed AST:~n~p~n",
-							 [ OrderedAST ] ),
+	%ast_utils:display_debug( "Recomposed AST:~n~p~n",
+	%						 [ OrderedAST ] ),
 
 	OrderedAST.
 
@@ -743,8 +743,8 @@ get_ordered_ast_from( UnorderedLocatedAST ) ->
 	OrderedLocatedAST = lists:keysort( _LocIndex=1, FullyLocatedAST ),
 
 	% One of the most useful view of output:
-	ast_utils:display_debug( "Ordered located AST:~n~s~n",
-				   [ located_ast_to_string( OrderedLocatedAST ) ] ),
+	%ast_utils:display_debug( "Ordered located AST:~n~s~n",
+	%			   [ located_ast_to_string( OrderedLocatedAST ) ] ),
 
 	% And then we remove that information once sorted, returning an ordered,
 	% unlocated AST:
