@@ -59,7 +59,7 @@
 
 -record( ui_state, {
 		   log_console = false :: boolean(),
-		   log_file = undefined :: 'undefined' | file_utils:file()
+		   log_file = undefined :: maybe( file_utils:file() )
 }).
 
 -type ui_state() :: #ui_state{}.

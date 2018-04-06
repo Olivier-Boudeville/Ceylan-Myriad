@@ -230,9 +230,8 @@
 
 
 % Working directory of an executed command:
--type working_dir() :: file_utils:directory_name()
-					 | file_utils:bin_directory_name()
-					 | 'undefined'.
+-type working_dir() :: maybe( file_utils:directory_name()
+							  | file_utils:bin_directory_name() ).
 
 
 % Basic authentication information:

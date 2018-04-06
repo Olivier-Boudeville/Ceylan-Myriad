@@ -137,7 +137,7 @@ get( Key, OptionList ) ->
 % Returns the value associated to the specified key in specified option list, if
 % found, otherwise (key not found), returns 'undefined'.
 %
--spec lookup( key(), option_list() ) -> 'undefined' | value().
+-spec lookup( key(), option_list() ) -> maybe( value() ).
 lookup( Key, OptionList ) ->
 	proplists:get_value( Key, OptionList ).
 

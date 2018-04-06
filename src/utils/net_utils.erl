@@ -1115,7 +1115,7 @@ get_cookie_option() ->
 % convention (ex: see the FIREWALL_OPT make option in common/GNUmakevars.inc),
 % otherwise available nodes will not be found.
 %
--spec get_epmd_environment( 'undefined' | tcp_port() ) ->
+-spec get_epmd_environment( maybe( tcp_port() ) ) ->
 								  system_utils:environment().
 get_epmd_environment( undefined ) ->
 	[];
@@ -1177,8 +1177,8 @@ get_tcp_port_range_option( { MinTCPPort, MaxTCPPort } )
 % in order to launch an Erlang node (interpreter) with the specified settings.
 %
 -spec get_basic_node_launching_command( string_node_name(), node_naming_mode(),
-	   'undefined' | tcp_port(), 'no_restriction' | tcp_port_range(),
-	   string() ) -> { system_utils:command(), system_utils:environment() }.
+	   maybe( tcp_port() ), 'no_restriction' | tcp_port_range(), string() ) ->
+					  { system_utils:command(), system_utils:environment() }.
 get_basic_node_launching_command( NodeName, NodeNamingMode, EpmdSettings,
 								  TCPSettings, AdditionalOptions ) ->
 

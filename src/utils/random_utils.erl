@@ -123,7 +123,7 @@
 
 -spec get_uniform_floating_point_value( number() ) -> float().
 
--spec get_random_state() -> random_state() | 'undefined'.
+-spec get_random_state() -> maybe( random_state() ).
 -spec set_random_state( random_state() ) -> void().
 
 

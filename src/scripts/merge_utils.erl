@@ -107,7 +107,7 @@
 
 
 % User-related state:
--type user_state() :: { ui:ui_state(), 'undefined' | file_utils:file() }.
+-type user_state() :: { ui:ui_state(), maybe( file_utils:file() ) }.
 
 
 -export_type([ file_data/0, tree_data/0 ]).

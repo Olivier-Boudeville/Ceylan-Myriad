@@ -323,7 +323,7 @@
 % Defining the actual widget types corresponding to wx_object_type():
 
 
--type window() :: 'undefined' | wxWindow:wxWindow() | gui_canvas:canvas().
+-type window() :: maybe( wxWindow:wxWindow() | gui_canvas:canvas() ).
 
 -type frame() :: wxFrame:wxFrame().
 

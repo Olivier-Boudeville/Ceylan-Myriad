@@ -201,7 +201,7 @@
 %
 % (note: this type is defined and exported, yet reported unknown by Dialyzer)
 %
--type wx_id() :: 'undefined' | integer().
+-type wx_id() :: maybe( integer() ).
 
 
 % See any_id, no_parent, etc. as defined in gui.hrl.

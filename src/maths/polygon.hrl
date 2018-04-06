@@ -42,9 +42,6 @@
 
 		   % Bounding-box information:
 		   % (can be for example a circle or a right_cuboid)
-		   bounding_box = undefined :: 'undefined' |
-									  bounding_box:bounding_box()
+		   bounding_box = undefined :: maybe( bounding_box:bounding_box() )
 
-		  }
-
-	   ).
+}).
