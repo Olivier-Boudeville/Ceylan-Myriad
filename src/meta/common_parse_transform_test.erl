@@ -52,7 +52,8 @@ run_parse_transform( TargetSourceFile ) ->
 
 	test_facilities:display( "Transformed AST:~n~p~n", [ TransformedAST ] ),
 
-	WriteFile = true,
+	%WriteFile = true,
+	WriteFile = false,
 
 	case WriteFile of
 
