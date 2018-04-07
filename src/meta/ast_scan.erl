@@ -901,11 +901,11 @@ scan_forms( _AST=[ _Form={ 'eof', Line } ],
 
 
 % Form expected to be defined once, and to be the last one:
-scan_forms( _AST=[ Form={ 'eof', Line } ],
+scan_forms( _AST=[ Form={ 'eof', _Line } ],
 			M=#module_info{ last_line=undefined, module=Module, includes=Inc },
 			_NextLocation, _CurrentFileReference ) ->
 
-	ast_utils:display_debug( "eof declaration at ~p.", [ Line ] ),
+	%ast_utils:display_debug( "eof declaration at ~p.", [ Line ] ),
 
 	% Surely not wanting anything to be able to go past it:
 	LocForm = { id_utils:get_sortable_id_upper_bound(), Form },
@@ -917,7 +917,7 @@ scan_forms( _AST=[ Form={ 'eof', Line } ],
 
 	% Reconstructs the supposedly deduced module filename:
 	BinModFilename = text_utils:string_to_binary(
-					atom_to_list( Module ) ++ ".erl" ),
+					   atom_to_list( Module ) ++ ".erl" ),
 
 	% Due to the removal of include duplicates, can be listed only up to once:
 	NoModInc = lists:delete( BinModFilename, Inc ),
