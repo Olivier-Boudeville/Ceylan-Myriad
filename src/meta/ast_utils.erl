@@ -390,7 +390,22 @@ beam_to_ast( BeamFilename ) ->
 	%				  labeled_locals, atoms ],
 
 	%Options = [ allow_missing_chunks ],
+
 	Options=[],
+
+	MyriadCryptoKeyFun = fun( init ) ->
+								 ok;
+
+							( { debug_info, _Mode, _Module, _Filename } ) ->
+								 % Refer to GNUmakevars.inc:
+								 _Key="Ceylan-Myriad";
+
+							( clear ) ->
+								 ok
+
+						 end,
+
+	ok = beam_lib:crypto_key_fun( MyriadCryptoKeyFun ),
 
 	case beam_lib:chunks( BeamFilename, Chunks, Options ) of
 
