@@ -297,7 +297,13 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ] ; do
 		# We stop the parsing and add all remaining options remaining:
 		do_stop=0
 		shift
+
+		# No difference:
 		verbatim_opt="${verbatim_opt} $*"
+		#verbatim_opt="${verbatim_opt} $@"
+
+		#echo "verbatim_opt = ${verbatim_opt}"
+
 		token_eaten=0
 	fi
 
