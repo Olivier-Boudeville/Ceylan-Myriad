@@ -278,6 +278,7 @@ $(COMMON_TOP)/src/data-management/map_hashtable.beam: $(COMMON_TOP)/src/data-man
 	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT) -o $@ $<
 
 
+# The most common rule:
 %.beam: %.erl
 	@echo "		Compiling module $<"
 	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT) -o $@ $<
