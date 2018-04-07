@@ -449,7 +449,7 @@ ERLANG_INTERPRETER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which erl 2>/dev/n
 # Not using '-smp auto' anymore, as the SMP mode is needed even with a single
 # core if GUI (WxWindows) is to be used:
 #
-ERLANG_INTERPRETER_OPT_DEBUG := -init_debug -smp
+ERLANG_INTERPRETER_OPT_DEBUG = -init_debug -smp
 
 
 # Finally not useful:
@@ -494,8 +494,6 @@ DISTRIBUTED_NODE_OPT := -name $(VM_NAME)@$(FQDN) -setcookie $(COOKIE)
 
 STARTUP_FUNCTION := run
 
-BEAM_DIRS += $(COMMON_BEAM_DIRS)
-
 
 # So that they can be fetched from outside
 # (see the 'list-beam-dirs' target)
@@ -506,6 +504,8 @@ COMMON_BEAM_DIRS = $(COMMON_BEAM)/data-management    \
 				   $(COMMON_BEAM)/user-interface/src \
 				   $(COMMON_BEAM)/utils
 
+
+BEAM_DIRS += $(COMMON_BEAM_DIRS)
 
 
 ERL_LAUNCHER = $(COMMON_SRC)/scripts/launch-erl.sh
@@ -579,6 +579,9 @@ ifndef PARSE_TRANSFORM_DIRS
 endif
 
 
+DEBUG_INFO_KEY_OPT = +'{debug_info_key,"Ceylan-Myriad"}'
+
+
 # Base compilation options that should be used for all modules (third-party
 # included):
 #
@@ -588,11 +591,24 @@ endif
 # (src/utils is specified as all modules - parse-transformed or not - need to be
 # able to find the BEAMs of parse-transforms)
 #
-ERLANG_COMPILER_BASE_OPT += -b beam                                   \
-						  +\"{debug_info_key,\\\"Ceylan-Myriad\\\"}\" \
-						  -pz $(COMMON_TOP)/src/utils                 \
-						  -pz $(COMMON_TOP)/src/meta                  \
-						  -pz $(COMMON_TOP)/src/data-management
+# Previously we listed also:
+#						  -pz $(COMMON_TOP)/src/utils                 \
+#						  -pz $(COMMON_TOP)/src/meta                  \
+#						  -pz $(COMMON_TOP)/src/data-management
+# (yet they were already included in
+#  ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_COMMON anyway)
+#
+ERLANG_COMPILER_BASE_OPT += -b beam $(DEBUG_INFO_KEY_OPT)
+
+
+# Variable defined to be re-usable by upper layers, so that compiling their own
+# parse transforms can take advantage of the Common one:
+#
+ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_COMMON = \
+					-pz $(COMMON_TOP)/src/utils                 \
+					-pz $(COMMON_TOP)/src/meta                  \
+					-pz $(COMMON_TOP)/src/data-management       \
+					'+{parse_transform,common_parse_transform}'
 
 
 # To apply a parse transform, not only it must be already compiled, but also,
@@ -608,20 +624,17 @@ ERLANG_COMPILER_BASE_OPT += -b beam                                   \
 #
 ifndef ERLANG_COMPILER_PARSE_TRANSFORM_OPT
 
-# We need src/{utils,meta,data-management} in the path, as the 'Common' parse
-# transform uses meta_utils that uses map_hashtable (which is thus bootstrapped
-# as well).
+	   # We need src/{utils,meta,data-management} in the path, as the 'Common'
+	   # parse transform uses meta modules that use map_hashtable (which is thus
+	   # bootstrapped as well).
 
-# Note: if, when compiling a module, the following error message is issued:
-# "undefined parse transform 'common_parse_transform'", then it is most probably
-# that the code of the parse transform actually calls, directly or not, a
-# non-existing code (typically a function of a module to be built later)
-#
-ERLANG_COMPILER_PARSE_TRANSFORM_OPT = \
-					-pz $(COMMON_TOP)/src/utils                 \
-					-pz $(COMMON_TOP)/src/meta                  \
-					-pz $(COMMON_TOP)/src/data-management       \
-					"+{parse_transform,common_parse_transform}"
+	   # Note: if, when compiling a module, the following error message is
+	   # issued: "undefined parse transform 'common_parse_transform'", then it
+	   # is most probably that the code of the parse transform actually calls,
+	   # directly or not, a non-existing code (typically a function of a module
+	   # to be built later)
+
+	   ERLANG_COMPILER_PARSE_TRANSFORM_OPT = $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_COMMON)
 
 endif
 
@@ -629,8 +642,8 @@ endif
 # Warning-related options (may or may not be included):
 # "+{warn_format,2}" would trigger unwanted useless warnings about format
 # strings
-ERLANG_COMPILER_WARNING_OPT += -W$(WARNING_LEVEL) +warn_export_all  \
-	+warn_export_vars +warn_shadow_vars +warn_obsolete_guards       \
+ERLANG_COMPILER_WARNING_OPT += -W$(WARNING_LEVEL) +warn_export_all \
+	+warn_export_vars +warn_shadow_vars +warn_obsolete_guards      \
 	+warn_unused_import +warnings_as_errors
 
 # Once type specs will have been added: +warn_untyped_record +warn_missing_spec
@@ -672,7 +685,7 @@ ERLANG_COMPILER_OPT_FOR_PT += $(ERLANG_COMPILER_OPT_BASE)
 ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_OPT_BASE)
 
 # To centralise all options but the parse transform trigger:
-ERLANG_COMPILER_OPT_NO_PT := $(ERLANG_COMPILER_OPT)
+ERLANG_COMPILER_OPT_NO_PT = $(ERLANG_COMPILER_OPT)
 
 ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT)
 
@@ -696,7 +709,7 @@ JAVA := $$(which java)
 #
 # (note: variable generally not used, as using the ERL_LAUNCHER script instead)
 #
-ERLANG_INTERPRETER_OPT := -pz $(BEAM_DIRS) $(DISTRIBUTED_NODE_OPT)
+ERLANG_INTERPRETER_OPT = -pz $(BEAM_DIRS) $(DISTRIBUTED_NODE_OPT)
 
 
 
@@ -753,9 +766,11 @@ endif
 # as, otherwise, as soon as a process changes the current working directory, any
 # further loading of a user-defined module, for example if used then for the
 # first time, would fail).
-BEAM_PATH_OPT = $(foreach dir,$(BEAM_DIRS),--beam-dir $$(pwd)/$(dir)) \
+BEAM_PATH_OPT := $(foreach dir,$(BEAM_DIRS),--beam-dir $$(pwd)/$(dir)) \
 				$(foreach dir,$(ABS_BEAM_DIRS),--beam-dir $(dir))
 
+
+OVERALL_PZ_OPT := $(foreach dir,$(BEAM_DIRS),-pz $(dir))
 
 
 # Increases the distribution buffer busy limit (default is 1024):
