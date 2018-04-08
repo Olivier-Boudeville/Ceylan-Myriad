@@ -1,9 +1,9 @@
 #!/bin/sh
 
-# Copyright (C) 2010-2016 Olivier Boudeville (olivier.boudeville@esperide.com)
+# Copyright (C) 2010-2018 Olivier Boudeville (olivier.boudeville@esperide.com)
 
-#
-# This file is part of the Ceylan Erlang library.
+
+# This file is part of the Ceylan-Myriad library.
 
 
 USAGE="Usage: $(basename $0) SOURCE_DIRECTORY
