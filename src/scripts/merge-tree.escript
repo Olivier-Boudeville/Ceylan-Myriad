@@ -5,8 +5,10 @@
 % Commented out: -pa ../utils
 
 
-% Copyright (C) 2016-2017 Olivier Boudeville (olivier.boudeville@esperide.com)
+% Copyright (C) 2016-2018 Olivier Boudeville (olivier.boudeville@esperide.com)
 
+% A tool to make merging of filesystem trees easier.
+%
 % Released as LGPL software.
 
 % Directly using the module-based version now, in merge_utils.erl, for an easier
