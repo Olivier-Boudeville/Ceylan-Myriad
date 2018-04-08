@@ -1,6 +1,6 @@
-% Copyright (C) 2003-201 Olivier Boudeville
+% Copyright (C) 2003-2018 Olivier Boudeville (olivier.boudeville@esperide.com)
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -22,8 +22,8 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Jingxuan Ma (jingxuan.ma@edf.fr)
-
+% Authors: Jingxuan Ma (jingxuan.ma@edf.fr)
+%          Olivier Boudeville (olivier.boudeville@esperide.com)
 
 % Tests for comparing and illustrating the differences of following types of
 % hashtables:

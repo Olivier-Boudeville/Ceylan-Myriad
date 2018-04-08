@@ -1,8 +1,8 @@
 #!/bin/sh
 
-# Copyright (C) 2009-2015 Olivier Boudeville
+# Copyright (C) 2009-2018 Olivier Boudeville (olivier.boudeville@esperide.com)
 #
-# This file is part of the Ceylan Erlang library.
+# This file is part of the Ceylan-Myriad library.
 
 
 USAGE="  Usage: $(basename $0) <RST FILE>

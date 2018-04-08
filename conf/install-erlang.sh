@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2009-2017 Olivier Boudeville
+# Copyright (C) 2009-2018 Olivier Boudeville (olivier.boudeville@esperide.com)
 #
 # This file is part of the Ceylan-Myriad project.
 
