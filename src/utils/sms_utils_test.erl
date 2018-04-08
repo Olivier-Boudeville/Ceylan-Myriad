@@ -6,7 +6,7 @@
 % Note: this source file was beforehand in DOS encoding, presumably for no good
 % reason.
 
-% Copyright (C) 2013-2018 Olivier Boudeville
+% Copyright (C) 2013-2018 Olivier Boudeville (olivier.boudeville@esperide.com)
 %
 % This file is part of the Ceylan-Myriad library.
 %
