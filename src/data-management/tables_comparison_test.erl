@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2017 Olivier Boudeville
+% Copyright (C) 2003-201 Olivier Boudeville
 %
 % This file is part of the Ceylan Erlang library.
 %
@@ -44,7 +44,7 @@
 % actually one of the previous implementations, but also modules are applied
 % dynamically here, hence the parse transform will not replace anything.
 %
--module(hashtables_comparison_test).
+-module(tables_comparison_test).
 
 
 % For run/0 export and al:
