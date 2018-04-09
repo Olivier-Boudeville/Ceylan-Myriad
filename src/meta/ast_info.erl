@@ -616,11 +616,24 @@ check_module_functions( #module_info{ functions=Functions } ) ->
 	[ check_function( FunId, FunInfo ) || { FunId, FunInfo } <- FunInfos ].
 
 
+% No definition, and neither with a spec nor exported, yet registered (strange):
+check_function( FunId, _FunInfo=#function_info{ clauses=[],
+												spec=undefined,
+												exported=[] } ) ->
+	ast_utils:raise_error( [ no_clause_found_for_function, FunId ] );
 
-% Nothing to check for 'spec' or 'exported':
-%
-check_function( FunId, _FunInfo=#function_info{ clauses=[] } ) ->
-	ast_utils:raise_error( [ no_clause_found_for, FunId ] );
+
+% No definition, no spec, hence exported:
+check_function( FunId, _FunInfo=#function_info{ clauses=[],
+												spec=undefined } ) ->
+	ast_utils:raise_error( [ function_exported_yet_not_defined, FunId ] );
+
+
+% No definition, not exported, hence just a spec:
+check_function( FunId, _FunInfo=#function_info{ clauses=[],
+												exported=[] } ) ->
+	ast_utils:raise_error( [ function_spec_without_definition, FunId ] );
+
 
 check_function( _FunId={ Name, Arity },
 				_FunInfo=#function_info{ name=Name, arity=Arity } ) ->
