@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2018 Olivier Boudeville (olivier.boudeville@esperide.com)
+% Copyright (C) 2003-2018 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 % Unit tests for the linear 4D facilities.

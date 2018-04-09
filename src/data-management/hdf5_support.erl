@@ -1,4 +1,4 @@
-% Copyright (C) 2015-2018 Olivier Boudeville (olivier.boudeville@esperide.com)
+% Copyright (C) 2015-2018 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 
 % Creation date: Friday, July 31, 2015
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 

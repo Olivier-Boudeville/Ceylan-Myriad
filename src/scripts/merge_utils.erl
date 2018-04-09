@@ -1,4 +1,4 @@
-% Copyright (C) 2016-2018 Olivier Boudeville (olivier.boudeville@esperide.com)
+% Copyright (C) 2016-2018 Olivier Boudeville
 
 % Copied from merge-tree.escript to have a more user-friendly debugging.
 
