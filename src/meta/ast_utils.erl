@@ -104,12 +104,13 @@
 
 % Signaling:
 %
--export([ raise_error/1, get_error_form/3, format_error/1 ]).
+-export([ notify_warning/2,
+		  raise_error/1, raise_error/2, get_error_form/3, format_error/1 ]).
 
 
 % Other:
 %
--export([ write_ast_to_file/2, raise_error/2, notify_warning/2 ]).
+-export([ write_ast_to_file/2 ]).
 
 
 
@@ -256,7 +257,7 @@ check_line( Line, _Context ) when is_integer( Line ) andalso Line >= 0 ->
 	Line;
 
 check_line( Other, Context ) ->
-	% Not raise_error/3:
+	% Not raise_error/2:
 	throw( { invalid_line, Other, Context } ).
 
 
@@ -843,15 +844,16 @@ get_elements_with_context( Elements, _Context=undefined ) ->
 	Elements;
 
 get_elements_with_context( Elements, _Context={ FilePath, Line } )
-  when is_list( FilePath ) andalso is_integer( Line ) ->
-	Elements ++ [ { file, FilePath }, { line, Line } ];
+  when is_binary( FilePath ) andalso is_integer( Line ) ->
+	Elements ++ [ { file, text_utils:binary_to_string( FilePath ) },
+				  { line, Line } ];
 
 get_elements_with_context( Elements, _Context=Line ) when is_integer( Line ) ->
 	Elements ++ [ { line, Line } ];
 
 get_elements_with_context( Elements, _Context=FilePath )
-  when is_list( FilePath ) ->
-			Elements ++ [ { file, FilePath } ];
+  when is_binary( FilePath ) ->
+	Elements ++ [ { file, text_utils:binary_to_string( FilePath ) } ];
 
 get_elements_with_context( Elements, Context ) ->
 	% No list_utils module used from this module:
