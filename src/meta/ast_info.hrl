@@ -33,6 +33,10 @@
 % - function_info
 
 
+-type module_entry() :: basic_utils:maybe( { basic_utils:module_name(),
+											 ast_info:located_form() } ).
+
+
 
 % A record to store and centralise information gathered about an Erlang
 % (compiled) module.
@@ -54,12 +58,8 @@
 -record( module_info, {
 
 
-		% Name of that module:
-		module = undefined :: basic_utils:module_name(),
-
-
-		% Module definition:
-		module_def = undefined :: basic_utils:maybe( ast_info:located_form() ),
+		% Name of that module, together with its definition (located form):
+		module = undefined :: module_entry(),
 
 
 		% A table, whose keys are compilation options (ex: no_auto_import,
@@ -82,22 +82,13 @@
 
 
 		% Parse-level attributes (ex: '-my_attribute( my_value ).'), as a table
-		% associating values to attribute names (its keys).
+		% associating, to attribute names (its keys), values and AST forms (its
+		% pair values).
 		%
 		% Such attributes, also named "wild attributes", mostly correspond to
 		% user-defined ones.
 		%
-		% Note: must be kept on sync with the 'parse_attribute_defs' field.
-		%
 		parse_attributes :: ast_info:attribute_table(),
-
-
-		% Parse attribute definitions (as located, abstract forms):
-		%
-		% Note: mostly for user-defined attributes, knowing most if not all
-		% others are to be collected in specific other fields of this record.
-		%
-		parse_attribute_defs = [] :: [ ast_info:located_form() ],
 
 
 		% As remote function specifications can be defined, like:
