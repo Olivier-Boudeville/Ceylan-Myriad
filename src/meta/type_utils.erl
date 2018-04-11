@@ -743,7 +743,7 @@ get_ast_simple_builtin_types() ->
 	  'nonempty_string', 'iodata', 'iolist', 'function', 'module', 'mfa',
 	  'arity', 'identifier', 'node', 'timeout', 'no_return',
 	  'any', 'integer', 'float', 'atom', 'pos_integer', 'neg_integer',
-	  'non_neg_integer', 'pid', 'reference' ].
+	  'non_neg_integer', 'pid', 'reference', 'port' ].
 
 
 % Returns a list of the elementary, "atomic" types
