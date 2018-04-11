@@ -196,7 +196,7 @@ check_function_types( Other, _FunctionArity, Context ) ->
 								 function_table().
 transform_functions( FunctionTable, Transforms ) ->
 
-	ast_utils:display_debug( "Transforming functions..." ),
+	%ast_utils:display_debug( "Transforming functions..." ),
 
 	%ast_utils:display_debug( "Transforming known types in function specs..." ),
 
