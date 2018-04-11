@@ -863,14 +863,14 @@ transform_type( _TypeDef={ 'remote_type', Line1, [ Mod, Typ, TypeVars ] },
 				LocalTransformTable, RemoteTransformTable ) ->
 
 	% Wondering what these could be:
-	ast_utils:display_debug( "Transforming a remote type whose module and type "
-							 "information are ~p and ~p.", [ Mod, Typ ] ),
+	%ast_utils:display_debug( "Transforming a remote type whose module and "
+	%						 "type information are ~p and ~p.", [ Mod, Typ ] ),
 
 	[ NewMod, NewTyp ] = [ transform_type( T, LocalTransformTable,
 							   RemoteTransformTable ) || T <- [ Mod, Typ ] ],
 
 	NewTypeVars = [ transform_type( T, LocalTransformTable,
-								   RemoteTransformTable ) || T <- TypeVars ],
+									RemoteTransformTable ) || T <- TypeVars ],
 
 	{ 'remote_type', Line1, [ NewMod, NewTyp, NewTypeVars ] };
 
