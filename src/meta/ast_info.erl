@@ -125,9 +125,11 @@
 -type attribute() :: { attribute_name(), attribute_value() }.
 
 
-% For easy access to parse attributes:
+% For easy access to the value and AST form of parse attributes, from their
+% name:
 %
--type attribute_table() :: ?table:?table( attribute_name(), attribute_value() ).
+-type attribute_table() :: ?table:?table( attribute_name(),
+							  { attribute_value(), ast_info:located_form() } ).
 
 
 
@@ -275,12 +277,12 @@ ensure_function_exported( FunId, _ExportLocs=[ _Loc=auto_located | T ],
 	% module definition, to avoid possibly placing an export after a function
 	% definition:
 
-	ModuleLoc = case ModuleInfo#module_info.module_def of
+	ModuleLoc = case ModuleInfo#module_info.module of
 
-		undefined ->
+		{ _ModuleName, _ModuleLocForm=undefined } ->
 			throw( { auto_locate_whereas_no_module_def, FunId } );
 
-		{ MLoc, _Form } ->
+		{ _ModuleName, _ModuleLocForm={ MLoc, _Form } } ->
 			MLoc
 
 	end,
@@ -496,9 +498,6 @@ init_module_info() ->
 %
 -spec check_module_info( module_info() ) -> basic_utils:void().
 check_module_info( #module_info{ module=undefined } ) ->
-	ast_utils:raise_error( no_module_known );
-
-check_module_info( #module_info{ module_def=undefined } ) ->
 	ast_utils:raise_error( no_module_defined );
 
 check_module_info( #module_info{ last_line=undefined } ) ->
@@ -507,7 +506,6 @@ check_module_info( #module_info{ last_line=undefined } ) ->
 
 check_module_info( ModuleInfo=#module_info{ unhandled_forms=[] } ) ->
 	%ast_utils:display_debug( "Checking AST." ),
-	check_module_parse( ModuleInfo ),
 	check_module_include( ModuleInfo ),
 	check_module_types( ModuleInfo ),
 	check_module_functions( ModuleInfo );
@@ -518,31 +516,6 @@ check_module_info( #module_info{ unhandled_forms=UnhandledForms } ) ->
 
 	ast_utils:raise_error( [ unhandled_forms, Forms ] ).
 
-
-
-% Helper to check module parsed attributes.
-%
-check_module_parse( #module_info{
-						 parse_attributes=ParseAttributeTable,
-						 parse_attribute_defs=ParseAttributeDefs } ) ->
-
-	Len = ?table:size( ParseAttributeTable ),
-
-	case length( ParseAttributeDefs ) of
-
-		Len ->
-			ok;
-
-		FormCount ->
-			ast_utils:display_error( "Inconsistent parse attribute state: ~s "
-									 "vs ~B forms:~n~p",
-						   [ ?table:toString( ParseAttributeTable ),
-							 FormCount, ParseAttributeDefs ] ),
-			ast_utils:raise_error( [ parse_attribute_mismatch,
-									 ?table:enumerate( ParseAttributeTable ),
-									 ParseAttributeDefs ] )
-
-	end.
 
 
 
@@ -659,13 +632,12 @@ recompose_ast_from_module_info( #module_info{
 			% indeed in the output AST.
 
 			% (module)
-			module_def=ModuleLocDef,
+			module={ _ModuleName, ModuleLocDef },
 
 			% (compilation_options)
 			compilation_option_defs=CompileOptLocDefs,
 
-			% (parse_attributes)
-			parse_attribute_defs=ParseAttributeLocDefs,
+			parse_attributes=ParseAttributeTable,
 
 			remote_spec_defs=RemoteSpecLocDefs,
 
@@ -694,6 +666,8 @@ recompose_ast_from_module_info( #module_info{
 
 								  } ) ->
 
+	ParseAttributeLocDefs = [ Form
+			   || { _Value, Form } <- ?table:values( ParseAttributeTable ) ],
 
 	{ TypeExportLocDefs, TypeLocDefs } = ast_type:get_located_forms_for(
 										   TypeExportTable, TypeTable ),
@@ -810,12 +784,10 @@ write_module_info_to_file( ModuleInfo, Filename ) ->
 %
 -spec module_info_to_string( module_info() ) -> text_utils:ustring().
 module_info_to_string( #module_info{
-						 module=Module,
-						 module_def={ _, _ModuleDef },
+						 module=ModuleEntry,
 						 compilation_options=CompileTable,
 						 compilation_option_defs=_CompileOptDefs,
 						 parse_attributes=ParseAttributeTable,
-						 parse_attribute_defs=_ParseAttributeDefs,
 						 includes=Includes,
 						 include_defs=_IncludeDefs,
 						 type_exports=TypeExports,
@@ -828,6 +800,16 @@ module_info_to_string( #module_info{
 						 optional_callbacks_defs=OptCallbacksDefs,
 						 last_line=LastLine,
 						 unhandled_forms=UnhandledForms } ) ->
+
+	ModuleName = case ModuleEntry of
+
+		{ ThisModName, _ModuleLocDef } ->
+			ThisModName;
+
+		undefined ->
+			"unamed module"
+
+	end,
 
 	FunctionStrings = [ io_lib:format( "~s",
 								   [ function_info_to_string( FunInfo ) ] )
@@ -911,7 +893,8 @@ module_info_to_string( #module_info{
 					ParseAttrString = text_utils:strings_to_sorted_string( [
 							text_utils:format( "attribute '~s' set to: '~p'",
 											   [ AttrName, AttrValue ] )
-							 || { AttrName, AttrValue } <- ParseAttributes ],
+							 || { AttrName, { AttrValue, _AttrForm } }
+									<- ParseAttributes ],
 							 NextIndentationLevel ),
 
 					text_utils:format( "~B parse attribute(s) defined:~s",
@@ -919,9 +902,6 @@ module_info_to_string( #module_info{
 										 ParseAttrString ] )
 
 			end,
-
-			%text_utils:format( "parse attribute definitions: ~p~n",
-			%				   [ [ P || { _, P } <- ParseAttributeDefs ] ] ),
 
 			case Includes of
 
@@ -1051,7 +1031,7 @@ module_info_to_string( #module_info{
 			],
 
 	text_utils:format( "Information about module '~s':~s",
-					   [ Module, text_utils:strings_to_string( Infos ) ] ).
+					   [ ModuleName, text_utils:strings_to_string( Infos ) ] ).
 
 
 
@@ -1165,12 +1145,12 @@ ensure_type_exported( TypeId, _ExportLocs=[ _Loc=auto_located | T ],
 	% module definition, to avoid possibly placing an export after a type
 	% definition:
 
-	ModuleLoc = case ModuleInfo#module_info.module_def of
+	ModuleLoc = case ModuleInfo#module_info.module of
 
-		undefined ->
-			throw( { auto_locate_whereas_no_module_def, TypeId } );
+		{ _ModuleName, _ModuleLocForm=undefined } ->
+			throw( { auto_locate_whereas_no_module_defined, TypeId } );
 
-		{ MLoc, _Form } ->
+		{ _ModuleName, { MLoc, _Form } } ->
 			MLoc
 
 	end,
