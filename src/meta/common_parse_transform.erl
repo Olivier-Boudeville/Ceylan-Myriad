@@ -173,13 +173,13 @@ parse_transform( InputAST, _Options ) ->
 	%ast_info:write_module_info_to_file( BaseModuleInfo,
 	%									  "Input-module_info.txt" ),
 
-	io:format( "Input module info: ~s~n",
-			   [ ast_info:module_info_to_string( BaseModuleInfo ) ] ),
+	%io:format( "Input module info: ~s~n",
+	%		   [ ast_info:module_info_to_string( BaseModuleInfo ) ] ),
 
 	Transforms = get_myriad_ast_transforms_for( BaseModuleInfo ),
 
-	io:format( "~nApplying following ~s~n",
-			   [ ast_transform:ast_transforms_to_string( Transforms ) ] ),
+	%io:format( "~nApplying following ~s~n",
+	%		   [ ast_transform:ast_transforms_to_string( Transforms ) ] ),
 
 	TransformedModuleInfo = meta_utils:apply_ast_transforms( Transforms,
 															 BaseModuleInfo ),
