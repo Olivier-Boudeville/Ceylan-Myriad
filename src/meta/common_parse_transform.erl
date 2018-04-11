@@ -86,7 +86,7 @@
 
 % Local shorthands:
 
--type ast() :: ast_utils:ast().
+-type ast() :: ast_base:ast().
 -type module_info() :: ast_info:module_info().
 
 
@@ -124,19 +124,19 @@
 -define( default_table_type, map_hashtable ).
 
 
--export([ run_standalone/1, parse_transform/2 ]).
+-export([ run_standalone/1, parse_transform/2, apply_myriad_transform/1 ]).
 
 
 
-% Runs the parse transform defined here in a standalone way (i.e. without being
-% triggered by the usual, integrated compile process).
+% Runs the Common (Myriad) parse transform defined here in a standalone way
+% (i.e. without being triggered by the usual, integrated compile process).
 %
 % This allows to benefit from all compilation error and warning messages,
-% whereas they are seldom available from a code run as a parse transform (ex:
-% 'undefined parse transform 'foobar'' as soon as a function or a module is not
-% found).
+% whereas they are seldom available from a code directly run as a parse
+% transform (ex: 'undefined parse transform 'foobar'' as soon as a function or a
+% module is not found).
 %
--spec run_standalone( file_utils:file_name() ) -> ast().
+-spec run_standalone( file_utils:file_name() ) -> { ast(), module_info() }.
 run_standalone( FileToTransform ) ->
 
 	AST = ast_utils:erl_to_ast( FileToTransform ),
@@ -150,12 +150,12 @@ run_standalone( FileToTransform ) ->
 	% (anyway, for example defining a non-exported function in the target module
 	% leads to a "unused function" warning)
 	%
-	parse_transform( AST, _Options=[] ).
+	apply_myriad_transform( AST ).
 
 
 
-% The parse transform itself, transforming the specified Abstract Format code
-% into another one.
+% The parse transform itself, transforming the specified (Myriad-based) Abstract
+% Format code into another (Erlang-compliant) one.
 %
 -spec parse_transform( ast(), meta_utils:parse_transform_options() ) -> ast().
 parse_transform( InputAST, _Options ) ->
@@ -164,8 +164,22 @@ parse_transform( InputAST, _Options ) ->
 
 	%io:format( "Options: ~p~n", [ Options ] ),
 
+	% In the context of this direct parse transform, the module_info is of no
+	% use afterwards and thus can be dropped:
+	%
+	{ MyriadAST, _MyriadModuleInfo } = apply_myriad_transform( InputAST ),
+
+	MyriadAST.
+
+
+
+% Defined to be reused in multiple contexts.
+%
+-spec apply_myriad_transform( ast() ) -> { ast(), module_info() }.
+apply_myriad_transform( InputAST ) ->
+
 	%io:format( "~n## INPUT ############################################~n" ),
-	%io:format( "Input AST:~n~p~n~n", [ InputAST ] ),
+	%io:format( "Myriad input AST:~n~p~n~n", [ InputAST ] ),
 	%ast_utils:write_ast_to_file( InputAST, "Input-AST.txt" ),
 
 	BaseModuleInfo = ast_info:extract_module_info_from_ast( InputAST ),
@@ -195,14 +209,14 @@ parse_transform( InputAST, _Options ) ->
 
 	OutputAST = ast_info:recompose_ast_from_module_info( OutputModuleInfo ),
 
-	%io:format( "~n~nOutput AST:~n~p~n", [ OutputAST ] ),
+	%io:format( "~n~nMyriad output AST:~n~p~n", [ OutputAST ] ),
 
 	%OutputASTFilename = text_utils:format( "Output-AST-for-module-~s.txt",
 	%							   [ OutputModuleInfo#module_info.module ] ),
 
 	%ast_utils:write_ast_to_file( OutputAST, OutputASTFilename ),
 
-	OutputAST.
+	{ OutputAST, OutputModuleInfo }.
 
 
 
