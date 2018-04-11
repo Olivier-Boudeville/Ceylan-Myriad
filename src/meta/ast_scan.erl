@@ -269,7 +269,7 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'import',
 % {attribute,LINE,module,Mod}."
 %
 scan_forms( _AST=[ Form={ 'attribute', Line, 'module', ModuleName } | T ],
-			 M=#module_info{ module=undefined, module_def=undefined },
+			 M=#module_info{ module=undefined },
 			 NextLocation, CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "module declaration for ~s", [ ModuleName ] ),
@@ -284,7 +284,7 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'module', ModuleName } | T ],
 
 	LocForm = { NextLocation, Form },
 
-	scan_forms( T, M#module_info{ module=ModuleName, module_def=LocForm },
+	scan_forms( T, M#module_info{ module={ ModuleName, LocForm } },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
@@ -293,7 +293,7 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'module', ModuleName } | T ],
 % the compiler anyway.
 %
 scan_forms( _AST=[ _Form={ 'attribute', Line, 'module', ModuleName } | _T ],
-			 #module_info{ module=PreviousModuleName },
+			 #module_info{ module={ PreviousModuleName, _PreviousLocDef } },
 			 _NextLocation, CurrentFileReference ) ->
 	throw( { multiple_module_definitions, PreviousModuleName, ModuleName,
 			 { CurrentFileReference, Line } } );
@@ -394,8 +394,11 @@ scan_forms( [ { 'function', Line, FunctionName, FunctionArity, Clauses } | T ],
 								 clauses=Clauses };
 
 		% Here a definition was already set:
-		_ ->
-			ast_utils:raise_error( [ multiple_definition_for, FunId ], Context )
+		% (previous line not necessarily in the same file)
+		{ value, #function_info{ line=PreviousLine } } ->
+			ast_utils:raise_error( [ multiple_definition_for, FunId,
+									 { previous_line, PreviousLine } ],
+								   Context )
 
 	end,
 
@@ -493,7 +496,8 @@ scan_forms( [ Form={ 'attribute', Line, _AttributeName='optional_callbacks',
 	Context = { CurrentFileReference, Line },
 
 	% Surprisingly, in erl_id_trans.erl, the corresponding check may fail (as is
-	% in a try/catch clause), and in this case is replaced by its original value.
+	% in a try/catch clause), and in this case is replaced by its original
+	% value.
 	%
 	ast_function:check_function_ids( FunIds, Context ),
 
@@ -510,19 +514,17 @@ scan_forms( [ Form={ 'attribute', Line, _AttributeName='optional_callbacks',
 %
 scan_forms( [ Form={ 'attribute', _Line, AttributeName='asm',
 					 Def={ 'function', _N, _A, _Code } } | T ],
-			  M=#module_info{ parse_attributes=ParseAttributeTable,
-							  parse_attribute_defs=AttributeDefs },
+			  M=#module_info{ parse_attributes=ParseAttributeTable },
 			NextLocation, CurrentFileReference ) ->
 
-	%ast_utils:display_debug( "Asm attribute definition: '~p'.",
-	%						 [ Def ] ),
+	%ast_utils:display_debug( "Asm attribute definition: '~p'.", [ Def ] ),
 
 	LocForm = { NextLocation, Form },
 
-	scan_forms( T, M#module_info{
-				   parse_attributes=?table:addEntry( AttributeName,
-							_AttributeValue=Def, ParseAttributeTable ),
-				   parse_attribute_defs=[ LocForm | AttributeDefs ] },
+	% Expected once:
+	scan_forms( T, M#module_info{ parse_attributes=?table:addNewEntry(
+					   AttributeName, { _AttributeValue=Def, LocForm },
+					   ParseAttributeTable ) },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
@@ -636,10 +638,20 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 	NewTypeInfo = case ?table:lookupEntry( TypeId, TypeTable ) of
 
 		% If a TypeInfo is found for that type name, it must be only because it
-		% has already been exported:
+		% has already been exported (not expected to be already defined):
 
-		{ value, #type_info{ exported=[] } } ->
-			ast_utils:raise_error( [ multiple_definitions_for_type, TypeId ],
+		{ value, #type_info{ line=LineDef,
+							 exported=[] } } ->
+
+			% We did not keep the line (or file) of the initial definition:
+			trace_utils:error_fmt( "Type ~s/~B defined at line #~B of "
+								   "file '~s', whereas it had already been "
+								   "defined at line #~B.",
+								   [ TypeName, TypeArity, Line,
+									 CurrentFileReference, LineDef ] ),
+
+			ast_utils:raise_error( [ multiple_definitions_for_type, TypeId,
+									 { previously_defined_at_line, LineDef } ],
 								   Context );
 
 		{ value, ExportTypeInfo } ->
@@ -771,8 +783,7 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'compile', CompileInfo } | T ],
 % sections matched)
 %
 scan_forms( [ Form={ 'attribute', Line, AttributeName, AttributeValue } | T ],
-			M=#module_info{ parse_attributes=ParseAttributeTable,
-							parse_attribute_defs=AttributeDefs },
+			M=#module_info{ parse_attributes=ParseAttributeTable },
 			NextLocation, CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "Parse attribute definition for '~p': ~p",
@@ -782,14 +793,13 @@ scan_forms( [ Form={ 'attribute', Line, AttributeName, AttributeValue } | T ],
 
 	check_parse_attribute_name( AttributeName, Context ),
 
-	NewParseAttributeTable = ?table:addEntry( AttributeName, AttributeValue,
-											  ParseAttributeTable ),
-
 	LocForm = { NextLocation, Form },
 
-	scan_forms( T, M#module_info{
-				   parse_attributes=NewParseAttributeTable,
-				   parse_attribute_defs=[ LocForm | AttributeDefs ] },
+	% We want to detect if a wild attribute is defined more than once:
+	NewParseAttributeTable = ?table:addNewEntry( AttributeName,
+					   { AttributeValue, LocForm }, ParseAttributeTable ),
+
+	scan_forms( T, M#module_info{ parse_attributes=NewParseAttributeTable },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
@@ -902,7 +912,9 @@ scan_forms( _AST=[ _Form={ 'eof', Line } ],
 
 % Form expected to be defined once, and to be the last one:
 scan_forms( _AST=[ Form={ 'eof', _Line } ],
-			M=#module_info{ last_line=undefined, module=Module, includes=Inc },
+			M=#module_info{ last_line=undefined,
+							module={ ModuleName, _ModuleLocDef },
+							includes=Inc },
 			_NextLocation, _CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "eof declaration at ~p.", [ Line ] ),
@@ -917,7 +929,7 @@ scan_forms( _AST=[ Form={ 'eof', _Line } ],
 
 	% Reconstructs the supposedly deduced module filename:
 	BinModFilename = text_utils:string_to_binary(
-					   atom_to_list( Module ) ++ ".erl" ),
+					   atom_to_list( ModuleName ) ++ ".erl" ),
 
 	% Due to the removal of include duplicates, can be listed only up to once:
 	NoModInc = lists:delete( BinModFilename, Inc ),
@@ -951,7 +963,11 @@ scan_forms( _AST=[ UnhandledForm | T ],
 
 % The scan termination is expected to happen *only* when eof is found:
 scan_forms( _AST=[], _ModuleInfo, _NextLocation, CurrentFileReference ) ->
-	ast_utils:raise_error( [ no_eof_found ], CurrentFileReference ).
+	ast_utils:raise_error( [ no_eof_found ], CurrentFileReference );
+
+scan_forms( Unexpected, _ModuleInfo, _NextLocation, CurrentFileReference ) ->
+	ast_utils:raise_error( { not_an_ast, Unexpected }, CurrentFileReference ).
+
 
 
 
