@@ -7,7 +7,7 @@ SQL support
 About SQL
 ---------
 
-Some amount of `SQL <https://en.wikipedia.org/wiki/SQL>`_ (*Structured Query Language*) support for relational database operations is provided by the ``Common`` layer.
+Some amount of `SQL <https://en.wikipedia.org/wiki/SQL>`_ (*Structured Query Language*) support for relational database operations is provided by the ``Myriad`` layer.
 
 As this support relies on an optional prerequisite, this service is disabled by default.
 
@@ -35,10 +35,10 @@ Testing the back-end::
  Enter ".help" for usage hints.
  sqlite> create table tblone(one varchar(10), two smallint);
  sqlite> insert into tblone values('helloworld',20);
- sqlite> insert into tblone values('my_common', 30);
+ sqlite> insert into tblone values('my_myriad', 30);
  sqlite> select * from tblone;
  helloworld|20
- my_common|30
+ my_myriad|30
  sqlite> .quit
 
 A file ``my_test``, identified as ``SQLite 3.x database``, must have been created, and can be safely removed.
@@ -59,7 +59,7 @@ Both are free software.
 
 We finally preferred ``erlang-sqlite3``.
 
-By default we consider that this back-end has been installed in ``~/Software/erlang-sqlite3``. The ``SQLITE3_BASE`` variable in ``common/GNUmakevars.inc`` can be set to match any other install path.
+By default we consider that this back-end has been installed in ``~/Software/erlang-sqlite3``. The ``SQLITE3_BASE`` variable in ``myriad/GNUmakevars.inc`` can be set to match any other install path.
 
 Recommended installation process::
 
@@ -113,16 +113,16 @@ Pretty reassuring.
 
 
 
-SQL Support Provided By the *Common* Layer
+SQL Support Provided By the *Myriad* Layer
 ------------------------------------------
 
-To enable this support, once the corresponding back-end (see `Database Back-end`_) and binding (see `Erlang Binding`_) have been installed, the ``USE_SQLITE`` variable should be set to ``true`` in ``common/GNUmakevars.inc`` and ``Common`` shall be rebuilt.
+To enable this support, once the corresponding back-end (see `Database Back-end`_) and binding (see `Erlang Binding`_) have been installed, the ``USE_SQLITE`` variable should be set to ``true`` in ``myriad/GNUmakevars.inc`` and ``Myriad`` shall be rebuilt.
 
-Then the corresponding implementation (``sql_support.erl``) and test (``sql_support_test.erl``), both in ``common/src/data-management``, will be built (use ``make clean all`` from the root of ``Common``) and able to be run (execute ``make sql_support_run`` for that).
+Then the corresponding implementation (``sql_support.erl``) and test (``sql_support_test.erl``), both in ``myriad/src/data-management``, will be built (use ``make clean all`` from the root of ``Myriad``) and able to be run (execute ``make sql_support_run`` for that).
 
 Testing it::
 
- $ cd common/src/data-management
+ $ cd myriad/src/data-management
  $ make sql_support_run
 		Compiling module sql_support.erl
 		Compiling module sql_support_test.erl
@@ -147,5 +147,5 @@ Troubleshooting
 Compiling module sql_support.erl : can't find include file "sqlite3.hrl"
 ........................................................................
 
-- ``USE_SQLITE`` not set to ``true`` in ``common/GNUmakevars.inc``
-- ``erlang-sqlite3`` back-end not correctly installed (ex: ``SQLITE3_BASE`` not pointing to a right path in ``common/GNUmakevars.inc``)
+- ``USE_SQLITE`` not set to ``true`` in ``myriad/GNUmakevars.inc``
+- ``erlang-sqlite3`` back-end not correctly installed (ex: ``SQLITE3_BASE`` not pointing to a right path in ``myriad/GNUmakevars.inc``)

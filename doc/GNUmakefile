@@ -1,14 +1,14 @@
-COMMON_TOP = ..
+MYRIAD_TOP = ..
 
 .PHONY: all test uml-diagram-test
 
 
-OVERALL_DOCUMENT_SOURCE = Ceylan-Common-Layer-technical-manual-english.rst
+OVERALL_DOCUMENT_SOURCE = Ceylan-Myriad-Layer-technical-manual-english.rst
 
 
 # Default do-nothing target:
 all:
-	@echo "  Run 'make full-doc' to generate the manual of the 'Common' layer."
+	@echo "  Run 'make full-doc' to generate the manual of the 'Myriad' layer."
 
 
 # As a side-effect, early checking that the 'dot' tool will be available:
@@ -20,4 +20,4 @@ uml-diagram-test:
 
 DOCUTILS_TOP = .
 
-include $(COMMON_TOP)/GNUmakesettings.inc
+include $(MYRIAD_TOP)/GNUmakesettings.inc

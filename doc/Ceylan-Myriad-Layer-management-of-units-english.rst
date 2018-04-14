@@ -18,7 +18,7 @@ Therefore **units shall preferably be specified alongside with values being proc
 Available Support
 -----------------
 
-The ``Common`` layer provides such a service, in a very basic, ad hoc form (which is useful to introduce "special" non-physical, non-standard units, such as ``euro/year``), meant to be enriched over time.
+The ``Myriad`` layer provides such a service, in a very basic, ad hoc form (which is useful to introduce "special" non-physical, non-standard units, such as ``euro/year``), meant to be enriched over time.
 
 
 
@@ -167,7 +167,7 @@ If deemed both safe and useful, we may consider in the future performing:
 - automatic value conversions (ex: converting ``km/hour`` into ``m/s``), provided that the overall computational precision is not significantly deteriorated
 
 
-The corresponding mechanisms (type information, conversion functions, unit checking and transformation, etc.) are defined in ``unit_utils.erl`` and tested in ``unit_utils_test.erl``,  in the ``common/src/utils`` directory.
+The corresponding mechanisms (type information, conversion functions, unit checking and transformation, etc.) are defined in ``unit_utils.erl`` and tested in ``unit_utils_test.erl``,  in the ``myriad/src/utils`` directory.
 
 
 

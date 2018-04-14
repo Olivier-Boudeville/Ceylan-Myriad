@@ -4,7 +4,7 @@
 Utility Toolbox
 ===============
 
-This is the **core** of the ``Commmon`` library: a toolbox comprising many helper functions (with their tests), defined in the ``common/src/utils`` directory, often providing enhanced, more specialised services compared to the ones offered by the Erlang standard library.
+This is the **core** of the ``Myriad`` library: a toolbox comprising many helper functions (with their tests), defined in the ``myriad/src/utils`` directory, often providing enhanced, more specialised services compared to the ones offered by the Erlang standard library.
 
 These helpers (code and typing information) are thematically aggregated in modules that are generally suffixed by ``_utils``, and include:
 
@@ -23,7 +23,7 @@ These helpers (code and typing information) are thematically aggregated in modul
 - a very basic support of **Finite State Machines** (``fsm_utils.{e,h}rl``)
 - a few operations defined on **graphs** (``graph_utils.erl``, with ``find_breadth_first/{3,4}``)
 - extra operations defined on **lists** (``list_utils.erl``), including rings
-- elements to manage a sort of **metaprogrammation** in Erlang, based on *parse transforms*: ``meta_utils.{e,}rl``, ``common_parse_transform.erl``, ``example_parse_transform.erl``
+- elements to manage a sort of **metaprogrammation** in Erlang, based on *parse transforms*: ``meta_utils.{e,}rl``, ``myriad_parse_transform.erl``, ``example_parse_transform.erl``
 - support for **network**-related concerns (``net_utils.erl.{e,h}rl``)
 - services to offer **randomness** (``random.erl``), with regard to various sources (the Erlang built-in algorithm, ``crypto``, newer ones like ``exsplus`` - our current default, ``exs64`` and ``exs1024``), for seeding, drawing, etc.
 - very little support of **RDF** operations, standing for `Resource Description Framework <https://en.wikipedia.org/wiki/Resource_Description_Framework>`_ (``rdf_utils.erl``)
@@ -32,6 +32,6 @@ These helpers (code and typing information) are thematically aggregated in modul
 - support for operations at the **operating-system** level (``system_utils.{e,h}rl``)
 - services to handle **text** (``text_utils.erl``)
 - functions to manage **time** information (``time_utils.erl``)
-- a few helpers to ease the writing of `escripts <http://erlang.org/doc/man/escript.html>`_ relying on the Common layer (``script_utils.erl``)
+- a few helpers to ease the writing of `escripts <http://erlang.org/doc/man/escript.html>`_ relying on the Myriad layer (``script_utils.erl``)
 - services about all kinds of **units** (``unit_utils.erl``); refer to the `Management of Units`_ section below for more information
 - very basic facilities for **applications**, in ``app_facilities.{e,h}rl`` with an example (``most_basic_example_app.erl``)
