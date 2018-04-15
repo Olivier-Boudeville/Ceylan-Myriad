@@ -1,4 +1,4 @@
-# Prerequisite: COMMON_TOP must be set.
+# Prerequisite: MYRIAD_TOP must be set.
 
 
 # Project section.
@@ -10,11 +10,13 @@ ifndef PROJECT_NAME
 endif
 
 
-COMMON_VERSION := 0.1
+MYRIAD_VERSION := 0.1
+COMMON_VERSION := $(MYRIAD_VERSION)
+
 
 # PROJECT_VERSION should be defined on a per-project basis.
 ifndef PROJECT_VERSION
-	PROJECT_VERSION := $(COMMON_VERSION)
+	PROJECT_VERSION := $(MYRIAD_VERSION)
 endif
 
 
@@ -24,7 +26,7 @@ endif
 
 
 ifndef PACKAGE_TOP
-	PACKAGE_TOP := $(COMMON_TOP)
+	PACKAGE_TOP := $(MYRIAD_TOP)
 endif
 
 
@@ -114,16 +116,16 @@ DEFAULT_PRODUCTION_INSTALLATION_PREFIX := /usr/local/$(PACKAGE_NAME)
 
 
 # Source section.
-COMMON_SRC := $(COMMON_TOP)/src
+MYRIAD_SRC := $(MYRIAD_TOP)/src
 
 # BEAM path section.
-COMMON_BEAM := $(COMMON_TOP)/src
+MYRIAD_BEAM := $(MYRIAD_TOP)/src
 
 # Include path section.
-COMMON_INC := -I$(COMMON_SRC)
+MYRIAD_INC := -I$(MYRIAD_SRC)
 
 # Contributions path section:
-#COMMON_CONTRIB := $(COMMON_TOP)/contrib
+#MYRIAD_CONTRIB := $(MYRIAD_TOP)/contrib
 
 
 # BEAM_DIRS are relative paths of BEAM files, ABS_BEAM_DIRS are the
@@ -331,12 +333,12 @@ endif
 
 # We have to define a symbol specific to the 'production' execution target
 # (exec_target_is_production) instead of relying only on a execution_target
-# variable which could be set either to 'development' or 'production', as the
+# variable that could be set either to 'development' or 'production', as the
 # Erlang preprocessor allows only to test whether a symbol is defined (with
 # -ifdef), we cannot test its value.
 #
-# So code is to use '-ifdef(target_production_exec)' instead of something like
-# '-ifdef(execution_target,production)'.
+# So the code is to use '-ifdef(target_production_exec)' instead of something
+# like '-ifdef(execution_target,production)'.
 
 ifeq ($(EXECUTION_TARGET),development)
 
@@ -346,7 +348,7 @@ ifeq ($(EXECUTION_TARGET),development)
   ENABLE_DEBUG := true
   ENABLE_NATIVE_COMPILATION := false
 
-  # No exec_target_is_production defined here:
+  # No exec_target_is_production shall be defined here:
   ERLANG_COMPILER_EXEC_TARGET_OPT :=
 
   ERLANG_COMPILER_DEBUG_OPT := -Ddebug_mode_is_enabled
@@ -359,14 +361,16 @@ else ifeq ($(EXECUTION_TARGET),production)
 
   ENABLE_DEBUG := false
 
-  # Native compilation may be enabled - with care:
-  ENABLE_NATIVE_COMPILATION := true
-
-  # Problem with orddict:erase/2; lists:fold/3, etc., thus switched off:
-  #ENABLE_NATIVE_COMPILATION := false
+  # Native compilation may be enabled - with care; yet problems with
+  # orddict:erase/2, lists:fold/3, etc. made us switch it off for the moment:
+  #
+  #ENABLE_NATIVE_COMPILATION := true
+  ENABLE_NATIVE_COMPILATION := false
 
   ERLANG_COMPILER_EXEC_TARGET_OPT := -Dexec_target_is_production
+
   ERLANG_COMPILER_DEBUG_OPT :=
+
 
 else
 
@@ -375,6 +379,7 @@ else
 
 
 endif
+
 
 
 # Enforce default values:
@@ -397,12 +402,18 @@ endif
 # Apply settings:
 
 # Tells which set of settings should be applied (allows for conditional code):
-ERLANG_COMPILER_EXECUTION_TARGET_OPT += -Dexecution_target=$(EXECUTION_TARGET)
+# (not relevant anymore, see above)
+#
+#ERLANG_COMPILER_EXECUTION_TARGET_OPT += -Dexecution_target=$(EXECUTION_TARGET)
 
 ifeq ($(ENABLE_NATIVE_COMPILATION),true)
+
 	ERLANG_COMPILER_NATIVE_COMPILATION_OPT = +native
+
 else
+
 	ERLANG_COMPILER_NATIVE_COMPILATION_OPT =
+
 endif
 
 
@@ -432,13 +443,13 @@ ERLANG_PLT_FILE := $(ERLANG_ROOT)/Erlang.plt
 
 WARNING_LEVEL := 2
 
-# Used even if not in debug mode:
+# Used in all cases (even if not in debug mode), as useful:
 ERLANG_COMPILER_OPT_DEBUG := +debug_info
 
 
 # The number of available cores on this computer:
 #
-# (set to 1 in order to restore a sequential build)
+# (set it to 1 in order to restore a sequential build)
 #
 CORE_COUNT := $$(grep -c processor /proc/cpuinfo)
 #CORE_COUNT := 1
@@ -453,28 +464,27 @@ ERLANG_INTERPRETER_OPT_DEBUG = -init_debug -smp
 
 
 # Finally not useful:
-#ifndef FQDN
+ifndef FQDN
 
-  #FQDN    := $$(host `hostname` | awk '{ print $$1 }' | head -n 1)
+  #FQDN    := $$(host $(hostname) | awk '{ print $$1 }' | head -n 1)
   FQDN    := $$(hostname -f)
 
-		#FQDN_OPT= "--fqdn $(FQDN)"
+  #FQDN_OPT= "--fqdn $(FQDN)"
 
-#endif
-
+endif
 
 
 
 ifndef VM_NAME
 
-  VM_NAME := ceylan_debug
+  VM_NAME := ceylan_myriad_debug
 
 endif
 
 
 ifndef VM_TEST_NAME
 
-  VM_TEST_NAME := ceylan_test
+  VM_TEST_NAME := ceylan_myriad_test
 
 endif
 
@@ -495,20 +505,20 @@ DISTRIBUTED_NODE_OPT := -name $(VM_NAME)@$(FQDN) -setcookie $(COOKIE)
 STARTUP_FUNCTION := run
 
 
-# So that they can be fetched from outside
+# So that they can be fetched from outside the make system:
 # (see the 'list-beam-dirs' target)
 #
-COMMON_BEAM_DIRS = $(COMMON_BEAM)/data-management    \
-				   $(COMMON_BEAM)/maths              \
-				   $(COMMON_BEAM)/meta               \
-				   $(COMMON_BEAM)/user-interface/src \
-				   $(COMMON_BEAM)/utils
+MYRIAD_BEAM_DIRS = $(MYRIAD_BEAM)/data-management    \
+				   $(MYRIAD_BEAM)/maths              \
+				   $(MYRIAD_BEAM)/meta               \
+				   $(MYRIAD_BEAM)/user-interface/src \
+				   $(MYRIAD_BEAM)/utils
 
 
-BEAM_DIRS += $(COMMON_BEAM_DIRS)
+BEAM_DIRS += $(MYRIAD_BEAM_DIRS)
 
 
-ERL_LAUNCHER = $(COMMON_SRC)/scripts/launch-erl.sh
+ERL_LAUNCHER = $(MYRIAD_SRC)/scripts/launch-erl.sh
 
 
 
@@ -516,51 +526,51 @@ ERL_LAUNCHER = $(COMMON_SRC)/scripts/launch-erl.sh
 
 
 # Modules needed for the bootstrapping for others (hence to be built first, and
-# not parse-transformed; typically used by parse-transforms)
+# not parse-transformed; typically *used* by parse-transforms)
 #
 # (see the 'Bootstrap section' in GNUmakerules.inc for their special-cased
 # build)
 #
 ifndef BOOTSTRAP_MODULES
 
-# We want to bootstrap all module from 'meta':
+	# We want to bootstrap all module from 'meta':
 
-META_SRC_FILES = $(wildcard $(COMMON_TOP)/src/meta/*.erl)
+	META_SRC_FILES = $(wildcard $(MYRIAD_TOP)/src/meta/*.erl)
 
-EXCLUDED_FROM_BOOTSTRAPPED_META = \
-				$(COMMON_TOP)/src/meta/common_parse_transform_test.erl   \
-				$(COMMON_TOP)/src/meta/example_parse_transform.erl       \
-				$(COMMON_TOP)/src/meta/minimal_parse_transform_test.erl  \
-				$(COMMON_TOP)/src/meta/simple_parse_transform_target.erl \
-				$(COMMON_TOP)/src/meta/meta_utils_test.erl
-
-
-META_FILTERED_SRC_FILES = $(filter-out $(EXCLUDED_FROM_BOOTSTRAPPED_META),$(META_SRC_FILES))
-
-META_BEAM_FILES = $(patsubst %.erl,%.beam,$(META_FILTERED_SRC_FILES))
+	EXCLUDED_FROM_BOOTSTRAPPED_META = \
+				$(MYRIAD_TOP)/src/meta/common_parse_transform_test.erl   \
+				$(MYRIAD_TOP)/src/meta/example_parse_transform.erl       \
+				$(MYRIAD_TOP)/src/meta/minimal_parse_transform_test.erl  \
+				$(MYRIAD_TOP)/src/meta/simple_parse_transform_target.erl \
+				$(MYRIAD_TOP)/src/meta/meta_utils_test.erl
 
 
-# We list here all prerequisites of the 'Common' parse-transform:
-# - basic_utils: to provide the basic services
-# - text_utils: to display debugging information regarding the transforms
-# - id_utils: used here to sort the forms
-# - most of 'meta', including:
-#    * meta_utils: to support the metaprogramming needs
-#    * ast_info: to centralise information regarding ASTs
-#    * ast_utils: to handle the AST
-#    * ast_scan: to scan the AST
-#    * type_utils: to handle types
-# - [not bootstrapped anymore] list_table: useful for tables that shall preserve
-#	the order of entries
-# - map_hashtable: to manage the module information
-#
-BOOTSTRAP_MODULES = $(COMMON_TOP)/src/utils/basic_utils.beam             \
-					$(COMMON_TOP)/src/utils/text_utils.beam              \
-					$(COMMON_TOP)/src/utils/id_utils.beam                \
-					$(META_BEAM_FILES)                                   \
-					$(COMMON_TOP)/src/data-management/map_hashtable.beam \
+	META_FILTERED_SRC_FILES = $(filter-out $(EXCLUDED_FROM_BOOTSTRAPPED_META),$(META_SRC_FILES))
 
-# Delisted: $(COMMON_TOP)/src/data-management/list_table.beam    \
+	META_BEAM_FILES = $(patsubst %.erl,%.beam,$(META_FILTERED_SRC_FILES))
+
+
+	# We list here all prerequisites of the 'Myriad' parse-transform:
+	## - basic_utils: to provide the basic services
+	## - text_utils: to display debugging information regarding the transforms
+	## - id_utils: used here to sort the forms
+	## - most of 'meta', including:
+	##    * meta_utils: to support the metaprogramming needs
+	##    * ast_info: to centralise information regarding ASTs
+	##    * ast_utils: to handle the AST
+	##    * ast_scan: to scan the AST
+	##    * type_utils: to handle types
+	## - [not bootstrapped anymore] list_table: useful for tables that shall preserve
+	##	the order of entries
+	## - map_hashtable: to manage the module information
+	##
+	BOOTSTRAP_MODULES = $(MYRIAD_TOP)/src/utils/basic_utils.beam             \
+						$(MYRIAD_TOP)/src/utils/text_utils.beam              \
+						$(MYRIAD_TOP)/src/utils/id_utils.beam                \
+						$(META_BEAM_FILES)                                   \
+						$(MYRIAD_TOP)/src/data-management/map_hashtable.beam \
+
+	# Delisted: $(MYRIAD_TOP)/src/data-management/list_table.beam    \
 
 endif
 
@@ -570,11 +580,14 @@ endif
 
 # List here all the directories expected to contain parse transforms:
 #
-# (to be overridden by each upper layer)
+# Note: such variables were meant to be overridden by each upper layer, yet
+# generally these layers require the *addition* (not replacement) of new rules
+# (ex: to manage classes) to the base ones (to be still able to compile standard
+# modules).
 #
 ifndef PARSE_TRANSFORM_DIRS
 
-	   PARSE_TRANSFORM_DIRS = $(COMMON_TOP)/src/meta
+	PARSE_TRANSFORM_DIRS = $(MYRIAD_TOP)/src/meta
 
 endif
 
@@ -582,32 +595,22 @@ endif
 DEBUG_INFO_KEY_OPT = +'{debug_info_key,"Ceylan-Myriad"}'
 
 
-# Base compilation options that should be used for all modules (third-party
-# included):
+# General (base, transverse) compilation options that should be used for all
+# modules (third-party included):
 #
-# -v/+verbose causes inlining to be too verbose, ex:
+# -v/+verbose caused inlining to be too verbose, ex:
 # "Old inliner: threshold=0 functions=[{setAttribute,3},.."
 #
-# (src/utils is specified as all modules - parse-transformed or not - need to be
-# able to find the BEAMs of parse-transforms)
-#
-# Previously we listed also:
-#						  -pz $(COMMON_TOP)/src/utils                 \
-#						  -pz $(COMMON_TOP)/src/meta                  \
-#						  -pz $(COMMON_TOP)/src/data-management
-# (yet they were already included in
-#  ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_COMMON anyway)
-#
-ERLANG_COMPILER_BASE_OPT += -b beam $(DEBUG_INFO_KEY_OPT)
+ERLANG_COMPILER_GENERAL_OPT += -b beam $(DEBUG_INFO_KEY_OPT)
 
 
 # Variable defined to be re-usable by upper layers, so that compiling their own
 # parse transforms can take advantage of the Common one:
 #
 ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_COMMON = \
-					-pz $(COMMON_TOP)/src/utils                 \
-					-pz $(COMMON_TOP)/src/meta                  \
-					-pz $(COMMON_TOP)/src/data-management       \
+					-pz $(MYRIAD_TOP)/src/utils                 \
+					-pz $(MYRIAD_TOP)/src/meta                  \
+					-pz $(MYRIAD_TOP)/src/data-management       \
 					'+{parse_transform,common_parse_transform}'
 
 
@@ -667,14 +670,15 @@ ERLANG_COMPILER_WARNING_OPT += -W$(WARNING_LEVEL) +warn_export_all \
 #
 # Instead 'export ERL_COMPILER_OPTIONS=bin_opt_info' shall be punctually used.
 #
-ERLANG_COMPILER_OPT_BASE += $(ERLANG_COMPILER_BASE_OPT) $(INC)           \
+ERLANG_COMPILER_OPT_BASE += $(ERLANG_COMPILER_GENERAL_OPT) $(INC)           \
 	$(ERLANG_COMPILER_EXEC_TARGET_OPT) $(ERLANG_COMPILER_DEBUG_OPT)      \
 	$(ERLANG_COMPILER_NATIVE_COMPILATION_OPT)                            \
 	$(ERLANG_COMPILER_WARNING_OPT)                                       \
 	$(ERLANG_COMPILER_OPT_DEBUG)
 
 
-# To compile parse transforms themselves:
+# Base options to compile parse transforms themselves (and their helper
+# modules):
 #
 ERLANG_COMPILER_OPT_FOR_PT += $(ERLANG_COMPILER_OPT_BASE)
 
@@ -846,7 +850,7 @@ endif
 
 
 # For later reuse in the next layer of the software stack:
-COMMON_PLT_FILE := $(COMMON_TOP)/common.plt
+COMMON_PLT_FILE := $(MYRIAD_TOP)/common.plt
 
 
 # Shorthand:
@@ -863,4 +867,4 @@ ifndef PREDECESSOR_PLT
 endif
 
 
-MAKE_CODE_STATS := $(COMMON_TOP)/src/scripts/make-code-stats.sh
+MAKE_CODE_STATS := $(MYRIAD_TOP)/src/scripts/make-code-stats.sh

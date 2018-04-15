@@ -1,4 +1,4 @@
-COMMON_TOP = ../../..
+MYRIAD_TOP = ../../..
 
 .PHONY: all doc
 
@@ -7,4 +7,4 @@ all:
 
 doc: MyriadGUI.pdf
 
-include $(COMMON_TOP)/GNUmakesettings.inc
+include $(MYRIAD_TOP)/GNUmakesettings.inc

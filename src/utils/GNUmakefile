@@ -1,4 +1,4 @@
-COMMON_TOP = ../..
+MYRIAD_TOP = ../..
 
 .PHONY: clean-local test-local
 
@@ -20,4 +20,4 @@ test-local:
 	@$(MAKE) most_basic_example_exec
 
 
-include $(COMMON_TOP)/GNUmakesettings.inc
+include $(MYRIAD_TOP)/GNUmakesettings.inc

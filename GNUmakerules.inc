@@ -128,7 +128,7 @@ endif
 # accordingly:
 ifeq ($(BASE_MAKEFILE),true)
 
-# CORE_COUNT defined in common/GNUmakevars.inc:
+# CORE_COUNT defined in myriad/GNUmakevars.inc:
 all: all-pre-hook all-parse-transforms
 	@echo "   Building all, in parallel over $(CORE_COUNT) core(s), from "$(PWD) #$$(basename $(PWD))
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m &&  \
@@ -232,17 +232,17 @@ rebuild: clean all
 
 # In 'utils':
 
-$(COMMON_TOP)/src/utils/basic_utils.beam: $(COMMON_TOP)/src/utils/basic_utils.erl
+$(MYRIAD_TOP)/src/utils/basic_utils.beam: $(MYRIAD_TOP)/src/utils/basic_utils.erl
 	@echo "		Compiling bootstrap module $<"
 	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
 
-$(COMMON_TOP)/src/utils/text_utils.beam: $(COMMON_TOP)/src/utils/text_utils.erl
+$(MYRIAD_TOP)/src/utils/text_utils.beam: $(MYRIAD_TOP)/src/utils/text_utils.erl
 	@echo "		Compiling bootstrap module $<"
 	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
 
-$(COMMON_TOP)/src/utils/id_utils.beam: $(COMMON_TOP)/src/utils/id_utils.erl
+$(MYRIAD_TOP)/src/utils/id_utils.beam: $(MYRIAD_TOP)/src/utils/id_utils.erl
 	@echo "		Compiling bootstrap module $<"
 	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
@@ -250,7 +250,7 @@ $(COMMON_TOP)/src/utils/id_utils.beam: $(COMMON_TOP)/src/utils/id_utils.erl
 
 # In 'meta':
 
-$(COMMON_TOP)/src/meta/%.beam: $(COMMON_TOP)/src/meta/%.erl
+$(MYRIAD_TOP)/src/meta/%.beam: $(MYRIAD_TOP)/src/meta/%.erl
 	@echo "		Compiling bootstrap module $<"
 	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
@@ -258,12 +258,12 @@ $(COMMON_TOP)/src/meta/%.beam: $(COMMON_TOP)/src/meta/%.erl
 
 # In 'data-management':
 
-#$(COMMON_TOP)/src/data-management/list_table.beam: $(COMMON_TOP)/src/data-management/list_table.erl
+#$(MYRIAD_TOP)/src/data-management/list_table.beam: $(MYRIAD_TOP)/src/data-management/list_table.erl
 #	@echo "		Compiling bootstrap module $<"
 #	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
 
-$(COMMON_TOP)/src/data-management/map_hashtable.beam: $(COMMON_TOP)/src/data-management/map_hashtable.erl
+$(MYRIAD_TOP)/src/data-management/map_hashtable.beam: $(MYRIAD_TOP)/src/data-management/map_hashtable.erl
 	@echo "		Compiling bootstrap module $<"
 	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
@@ -633,13 +633,13 @@ info-install-content:
 # Ex: 'make generate-list-of-erlang-types ERLANG_SOURCE_ROOT=~/otp_src_R15B/'
 #
 generate-list-of-erlang-types:
-	@if [ -z "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, no ERLANG_SOURCE_ROOT variable specified." ; exit 15 ; fi ; if [ ! -d "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, specified directory (ERLANG_SOURCE_ROOT=$$ERLANG_SOURCE_ROOT) does not exist." ; exit 16 ; fi ; target_file="declared-types-in-Erlang.txt" ; erl="$(ERLANG_INTERPRETER)" ; target_path=$$(echo $$erl|sed "s|/bin/erl$$|/$$target_file|1") ; echo "  Generating the list of types declared in the Erlang runtime..." &&  $(COMMON_TOP)/src/scripts/list-available-types.sh "$$ERLANG_SOURCE_ROOT" > $$target_path && echo "  Types have been collected in '$$target_path'."
+	@if [ -z "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, no ERLANG_SOURCE_ROOT variable specified." ; exit 15 ; fi ; if [ ! -d "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, specified directory (ERLANG_SOURCE_ROOT=$$ERLANG_SOURCE_ROOT) does not exist." ; exit 16 ; fi ; target_file="declared-types-in-Erlang.txt" ; erl="$(ERLANG_INTERPRETER)" ; target_path=$$(echo $$erl|sed "s|/bin/erl$$|/$$target_file|1") ; echo "  Generating the list of types declared in the Erlang runtime..." &&  $(MYRIAD_TOP)/src/scripts/list-available-types.sh "$$ERLANG_SOURCE_ROOT" > $$target_path && echo "  Types have been collected in '$$target_path'."
 
 
 
 generate-list-of-local-types:
 	@echo "    Listing all types defined in package '$(PACKAGE_NAME)', in the $$(basename $(TYPE_LIST_FILE)) file"
-	@$(COMMON_TOP)/src/scripts/list-available-types.sh > $(TYPE_LIST_FILE)
+	@$(MYRIAD_TOP)/src/scripts/list-available-types.sh > $(TYPE_LIST_FILE)
 
 
 
@@ -713,14 +713,14 @@ clean-database:
 
 
 # This target has been added in order to allow the packages making use of
-# 'Common' to define their specific cleaning rules.
+# 'Myriad' to define their specific cleaning rules.
 #
 # They could have defined in their own GNUmakerules.inc something like:
 #	clean: clean-mypackage
 #	clean-mypackage:
 #	  -@/bin/rm foo.mypackage
 # but then this 'clean' target would become the default one, whereas we expect
-# the 'all' default target of 'Common' to be triggered.
+# the 'all' default target of 'Myriad' to be triggered.
 # Thus we finally allowed upper packages to make their cleaning thanks to:
 # FILES_TO_CLEAN += foo.mypackage in their GNUmakevars.inc
 clean-override:
@@ -812,4 +812,4 @@ info-java:
 	@echo "JAVAC_OPT = $(JAVAC_OPT)"
 
 
-include $(COMMON_TOP)/doc/GNUmakerules-docutils.inc
+include $(MYRIAD_TOP)/doc/GNUmakerules-docutils.inc

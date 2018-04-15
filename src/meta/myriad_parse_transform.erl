@@ -27,11 +27,11 @@
 
 
 
-% Overall parse transform for the Common (a.k.a. Ceylan-Myriad) layer.
+% Overall parse transform for the 'Ceylan-Myriad' (formerly 'Common') layer.
 %
 % See meta_utils.erl and meta_utils_test.erl.
 %
--module(common_parse_transform).
+-module(myriad_parse_transform).
 
 
 
@@ -42,20 +42,20 @@
 % (then with little information returned in case of error), run them explicitly,
 % typically from a test case; for that, one may refer to:
 %
-%    * src/utils/common_parse_transform_test.erl for that test
+%    * src/utils/myriad_parse_transform_test.erl for that test
 %
 %    * src/data-management/simple_parse_transform_target.erl for the test module
 %    the previous test is to apply to
 %
 % So the typical recommended workflow is to run repeatedly 'make
-% common_parse_transform_run' (provided the compilation of the bootstrap modules
-% and of common_parse_transform_test.beam still succeeds!) and perform
+% myriad_parse_transform_run' (provided the compilation of the bootstrap modules
+% and of myriad_parse_transform_test.beam still succeeds!) and perform
 % modifications onto simple_parse_transform_target.erl.
 %
-% - this particular parse transform applies at the level of the Common Layer
-% (a.k.a. Ceylan-Myriad), and as such *cannot use any module of that layer
-% except the very few bootstrapped modules* (see BOOTSTRAP_MODULES in
-% GNUmakevars.inc for their actual list)
+% - this particular parse transform applies at the level of the Myriad Layer,
+% and as such *cannot use any module of that layer except the very few
+% bootstrapped modules* (see BOOTSTRAP_MODULES in GNUmakevars.inc for their
+% actual list)
 %
 %     Indeed, the other modules (of Ceylan-Myriad) are not bootstrapped, so they
 %     can enjoy the services offered by this parse transform, but of course they
@@ -93,7 +93,7 @@
 
 % Implementation notes:
 %
-% Currently, the 'common' parse transform is in charge of:
+% Currently, the 'myriad' parse transform is in charge of:
 %
 % - replacing all calls and type specifications referring to the pseudo-module
 % 'table' (a module that does not exist) into counterparts referring to the
@@ -128,8 +128,8 @@
 
 
 
-% Runs the Common (Myriad) parse transform defined here in a standalone way
-% (i.e. without being triggered by the usual, integrated compile process).
+% Runs the Myriad parse transform defined here in a standalone way (i.e. without
+% being triggered by the usual, integrated compile process).
 %
 % This allows to benefit from all compilation error and warning messages,
 % whereas they are seldom available from a code directly run as a parse

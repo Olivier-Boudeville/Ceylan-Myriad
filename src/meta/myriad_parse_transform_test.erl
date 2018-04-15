@@ -27,12 +27,12 @@
 
 
 
-% This module allows to test the 'common_parse_transform' parse transform as a
+% This module allows to test the 'myriad_parse_transform' parse transform as a
 % standalone unit, hence with proper error and warning messages.
 %
-% See the common_parse_transform.erl tested module.
+% See the myriad_parse_transform.erl tested module.
 %
--module(common_parse_transform_test).
+-module(myriad_parse_transform_test).
 
 
 % For run/0 export and al:
@@ -45,10 +45,10 @@
 
 run_parse_transform( TargetSourceFile ) ->
 
-	test_facilities:display( "Applying the common parse transform to the "
+	test_facilities:display( "Applying the Myriad parse transform to the "
 							 "'~s' source file.~n", [ TargetSourceFile ] ),
 
-	TransformedAST = common_parse_transform:run_standalone( TargetSourceFile ),
+	TransformedAST = myriad_parse_transform:run_standalone( TargetSourceFile ),
 
 	test_facilities:display( "Transformed AST:~n~p~n", [ TransformedAST ] ),
 

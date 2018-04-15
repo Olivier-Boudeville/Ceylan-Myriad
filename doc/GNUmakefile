@@ -22,7 +22,9 @@ CURRENT_MYRIAD_DOC := $(DOC_PDF_NAME)
 PROJECT_CSS := pygments-default.css,myriad.css
 
 
-WEB_CONTENT = *.html *.css *.png $(DOC_PDF_NAME)
+WEB_CONTENT = *.html *.css *.png *.pdf
+
+GITHUB_PAGES_BASE := $(shell basename $(MYRIAD_WEB_MIRROR_BRANCH))
 
 
 .PHONY: all test uml-diagram-test
@@ -40,11 +42,13 @@ doc:
 
 
 # Already generates by default the PDF:
-full-doc: $(DOC_BASE_NAME).html
+full-doc: $(DOC_BASE_NAME).pdf $(DOC_BASE_NAME).html
+
 
 # Create a separate repository for the GitHub pages branch:
+# (please then remove all initial content)
 clone-mirror:
-	@cd ../../ && git clone https://github.com/Olivier-Boudeville/Ceylan-Myriad.git $(shell basename $(MYRIAD_WEB_MIRROR_BRANCH)) && git checkout gh-pages
+	@cd ../../ && git clone https://github.com/Olivier-Boudeville/Ceylan-Myriad.git $(GITHUB_PAGES_BASE) && cd $(GITHUB_PAGES_BASE) && git checkout -b gh-pages
 
 
 export-doc: clean-doc full-doc export-to-official export-to-mirror
@@ -60,10 +64,14 @@ export-to-mirror:
 	@/bin/cp -f $(WEB_CONTENT) $(MYRIAD_WEB_MIRROR_BRANCH) && cd $(MYRIAD_WEB_MIRROR_BRANCH) && git add . && git merge -s ours && git commit -m "Myriad doc updated." && git push
 
 
+clean-doc:
+	-@/bin/rm -f $(DOC_BASE_NAME).html $(DOC_BASE_NAME).pdf
+
+
 info-web:
 	@echo "WEB_CONTENT = $(WEB_CONTENT)"
 	@echo "MYRIAD_WEB_MIRROR_BRANCH = $(MYRIAD_WEB_MIRROR_BRANCH)"
-
+	@echo "GITHUB_PAGES_BASE = $(GITHUB_PAGES_BASE)"
 
 
 # As a side-effect, early checking that the 'dot' tool will be available:
