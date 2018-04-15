@@ -54,7 +54,7 @@
 % }, where foo and bar are expected to be defined in the context
 %
 % F3. explicit-type, i.e. a fully explicit, self-standing term defining a type
-% (therefore relying only on built-in types and constructs); for example,
+% (therefore relying only on built-in types and type constructs); for example,
 % supposing that the type foo is an alias for float, and that the type bar is
 % specified as "'hello'|'goodbye'", the same example translates to the following
 % explicit type: { union, [ float, {union,[ {atom,hello}, {atom,goodbye} ]},
