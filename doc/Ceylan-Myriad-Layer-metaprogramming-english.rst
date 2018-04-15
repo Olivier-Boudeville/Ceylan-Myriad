@@ -1,0 +1,35 @@
+
+:raw-latex:`\pagebreak`
+
+Support for Metaprogramming
+===========================
+
+Over time, quite a lot of developments grew to form primitives that manage ASTs (*Astract Syntax Trees*), based on Erlang's parse transforms.
+
+These developments are gathered in the ``src/meta`` directory, providing notably:
+
+- ``meta_utils.{e,h}rl``: basic primitives to **transform ASTs**, with a bit of testing (``meta_utils_test``)
+- ``type_utils``: a still rather basic toolbox to **manage data types** - whether built-in, compound or parametrised (expressed as strings, as terms, etc.)
+- ``ast_*`` modules to handle the various **elements that can be found in an AST** (ex: ``ast_expression``, ``ast_type``, ``ast_pattern``, etc.)
+
+
+Finally, a few usage examples of these facilities are:
+
+- ``minimal_parse_transform_test``: the simplest parse transform test that we use, typically operating on ``simple_parse_transform_target``
+- ``example_parse_transform``: a rather minimal parse transform
+- ``myriad_parse_transform``: the parse transform used within ``Myriad``, transforming each and every module of that layer (and of at least some modules of upper layers)
+
+So the purpose of this parse transform is to **convert ASTs that are Myriad-compliant into ASTs that are directly Erlang compliant**.
+
+.. _`table transformations`:
+
+For that, following changes are operated:
+
+- in type specifications, the Myriad-specific ``void/0``, ``maybe/1`` types are adequately translated:
+
+ - ``void()`` becomes ``basic_utils:void()``, a type alias of ``any()``, made to denote returned terms that are not expected to be used by the caller (as if that function's only purpose was its side-effects)
+ - ``maybe(T)`` becomes the type union ``'undefined' | T``
+
+- both in type specifications and actual code, ``table/2``, the Myriad-specific associative table pseudo-type, is translated into an actual `table type`_:
+ - by default, ``map_hashtable`` (the generally most efficient one)
+ - unless it is overridden on a per-module basis with the ``table_type`` define, like in: ``-table_type(list_table).``

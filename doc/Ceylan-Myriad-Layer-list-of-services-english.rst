@@ -5,16 +5,16 @@ Services Offered by the ``Myriad`` Layer
 
 The ``Myriad`` services are gathered into following themes:
 
-- general build structure
-- general settings
-- maths services
-- data-management services
-- helpers for graphical user interface (GUI) programming
-- all-purpose helper scripts
-- utility toolbox
-- management of units
-- metaprogramming, based on heavy use of parse transforms
-- SQL support
+#. General **build** structure
+#. General **settings**
+#. **Maths** services
+#. **Data-management** services
+#. Helpers for **graphical user interface** (GUI) programming
+#. All-purpose **helper scripts**
+#. Utility **toolbox**
+#. Management of **units**
+#. **Metaprogramming**, based on heavy use of parse transforms
+#. **SQL** support
 
 In future versions of this document, following topics will be discussed:
 

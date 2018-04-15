@@ -37,7 +37,7 @@ Technical Manual of the ``Ceylan-Myriad`` Layer
 :Organisation: Copyright (C) 2008-2018 Olivier Boudeville
 :Contact: about (dash) myriad (at) esperide (dot) com
 :Creation Date: Wednesday, August 11, 2010
-:Lastly Updated: Saturday, April 14, 2018
+:Lastly Updated: Sunday, April 15, 2018
 
 :Status: Work in progress
 :Version: 0.2.7
@@ -89,6 +89,8 @@ Technical Manual of the ``Ceylan-Myriad`` Layer
 
 .. include:: Ceylan-Myriad-Layer-utility-toolbox-english.rst
 
+.. include:: Ceylan-Myriad-Layer-metaprogramming-english.rst
+
 .. include:: Ceylan-Myriad-Layer-management-of-units-english.rst
 
 .. include:: Ceylan-Myriad-Layer-sql-support-english.rst
@@ -113,13 +115,20 @@ Each time that you need a basic service that:
 please either enrich our ``*_utils.erl`` helpers, or add new general services!
 
 
-Have fun with Myriad!
+
+In such a case, we would prefer that, in contributed code:
+
+- Myriad code style is, as much as possible, respected (regarding naming, spacing, code/comments/blank line ratios, etc.)
+- lines stop no later than their 80th character
+- whitespaces be removed (ex: one may use the ``whitespace.el`` Emacs mode)
+
+Thanks in advance, and have fun with Myriad!
 
 .. comment Mostly added to ensure there is at least one figure directive,
 .. otherwise the LateX graphic support will not be included:
 
 .. figure:: myriad-title.png
    :alt: Myriad logo
-   :scale: 40
+   :scale: 25
 
 :raw-html:`<a name="myriad_bottom"></a>`

@@ -144,7 +144,7 @@ So one may use the following **built-in units**, whose symbol [#]_ is specified 
 Composing One's Units
 .....................
 
-So an actual unit can be composed from the aforementioned built-in units (be them base, derived, widely used, special units; prefixed or not) [#]_, using two built-in operators, which are ``"."`` (multiply, represented by the dot character - not ``"*"``) and ``"/"`` (divide, represented by the forward slash character).
+So an actual unit can be composed from the aforementioned built-in units (be they base, derived, widely used, special units; prefixed or not) [#]_, using two built-in operators, which are ``"."`` (multiply, represented by the dot character - not ``"*"``) and ``"/"`` (divide, represented by the forward slash character).
 
 .. [#] In the future, defining an actual unit from other actual units might be contemplated.
 
@@ -195,7 +195,7 @@ Some programming languages provide systems to manage dimensional information (ex
 
 A first level of support is to provide, like here, an API to manage units. Other levels can be:
 
-1. to integrate unit management directly, seamlessly in language expressions, as if it was built-in (as opposed to having to use explicitly a third-party API for that); for example half a dozen different libraries provide that in Python
+1. to integrate unit management directly, seamlessly in language expressions, as if it was built-in (as opposed to having to use explicitly a third-party API for that); for example at least half a dozen different libraries provide that in Python
 2. to be able to define "polymorphic units and functions", for example to declare in general that a speed is a distance divided by a duration, regardless of the possible units used for that
 3. to perfom *static* dimensional analysis, instead of checking units at runtime
 

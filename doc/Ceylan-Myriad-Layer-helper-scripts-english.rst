@@ -5,6 +5,7 @@ All-Purpose Helper Scripts
 
 A small set of scripts has been defined, in ``myriad/src/scripts``, in order to help:
 
+- finding in (Erlang) source code **type definitions** (``find-type-definition.sh``) and **function specifications** (``find-function-specification.sh``)
 - **benchmarking** Erlang code: ``benchmark-command.escript``, ``benchmark-command.sh``, ``etop.sh``
 - generating **documentation**: ``generate-docutils.sh``, ``generate-pdf-from-rst.sh``
 - supporting **explicit typing**: ``list-available-types.sh``, ``add-deduced-type-specs.escript``
