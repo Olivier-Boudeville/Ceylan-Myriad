@@ -1,1 +1,0 @@
-../src/scripts/generate-pdf-from-rst.sh
