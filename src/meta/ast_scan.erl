@@ -583,6 +583,17 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
 
 	ast_type:check_record_name( RecordName, Context ),
 
+	case ?table:hasEntry( RecordName, RecordTable ) of
+
+		true ->
+			ast_utils:raise_error(
+			  [ multiple_definitions_for_record, RecordName ], Context );
+
+		false ->
+			ok
+
+	end,
+
 	FieldTable = scan_field_descriptions( DescFields, CurrentFileReference ),
 
 	NewRecordDef = { FieldTable, NextLocation, Line },
@@ -590,8 +601,8 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
 	%ast_utils:display_debug( "Adding for record '~p' following "
 	%						 "definition:~n~p", [ RecordName, NewRecordDef ] ),
 
-	NewRecordTable = ?table:addNewEntry( RecordName, NewRecordDef,
-										 RecordTable ),
+	% New entry by design:
+	NewRecordTable = ?table:addEntry( RecordName, NewRecordDef, RecordTable ),
 
 	scan_forms( T, M#module_info{ records=NewRecordTable },
 				id_utils:get_next_sortable_id( NextLocation ),
