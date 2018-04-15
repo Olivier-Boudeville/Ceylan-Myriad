@@ -20,7 +20,7 @@
 
 :raw-html:`<a name="myriad_top"></a>`
 
-:raw-html:`<div class="banner"><p><em>Myriad documentation</em> <a href="http://myriad.esperide.org">browse latest</a> <a href="https://olivier-boudeville.github.io/Ceylan-Myriad/myriad.html">browse mirror</a> <a href="myriad.pdf">get PDF</a> <a href="#myriad_top">go to top</a> <a href="#myriad_bottom">go to bottom</a> <a href="mailto:about(dash)myriad(at)esperide(dot)com?subject=[Myriad]%20Remark">mail us</a></p></div>`
+:raw-html:`<div class="banner"><p><em>Myriad documentation</em> <a href="http://myriad.esperide.org">browse latest</a> <a href="https://olivier-boudeville.github.io/Ceylan-Myriad/myriad.html">browse mirror</a> <a href="myriad.pdf">get PDF</a> <a href="#myriad_top">go to top</a> <a href="#myriad_bottom">go to bottom</a> <a href="mailto:about(dash)myriad(at)esperide(dot)com?subject=[Ceylan-Myriad]%20Remark">mail us</a></p></div>`
 
 
 
