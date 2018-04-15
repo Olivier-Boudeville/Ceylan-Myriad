@@ -58,7 +58,7 @@ Technical Manual of the ``Ceylan-Myriad`` Layer
 :raw-latex:`\pagebreak`
 
 .. contents:: Table of Contents
-	:depth: 2
+	:depth: 32
 
 .. comment To avoid, otherwise title with a '1.':.. section-numbering::
 

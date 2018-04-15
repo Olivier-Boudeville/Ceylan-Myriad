@@ -1,5 +1,7 @@
 :raw-latex:`\pagebreak`
 
+.. _`helper scripts`:
+
 All-Purpose Helper Scripts
 ==========================
 
