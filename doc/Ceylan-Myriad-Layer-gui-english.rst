@@ -14,6 +14,6 @@ They relied initially on `gs <http://erlang.org/doc/man/gs.html>`_, now on `wx <
 
 Related information of interest:
 
-- `wxErlang: Getting Started <https://arifishaq.files.wordpress.com/2017/12/wxerlang-getting-started.pdf>`_
+- wxErlang: `Getting started <https://arifishaq.files.wordpress.com/2017/12/wxerlang-getting-started.pdf>`_ and `Speeding up <https://arifishaq.files.wordpress.com/2018/04/wxerlang-speeding-up.pdf>`_, by Arif Ishaq
 - http://www.idiom.com/~turner/wxtut/wxwidgets.html
 - http://wxerlang.dougedmunds.com/
