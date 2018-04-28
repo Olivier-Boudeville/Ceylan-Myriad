@@ -1,6 +1,6 @@
-% Copyright (C) 2003-2017 Olivier Boudeville
+% Copyright (C) 2003-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Creation date: July 2, 2007.
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 
@@ -985,7 +985,7 @@ toString( Hashtable, user_friendly ) ->
 			% Flatten is needed, in order to use the result with ~s:
 			lists:flatten( io_lib:format( "Hashtable with ~B entry(ies):~s~n",
 				[ length( L ),
-				  text_utils:string_list_to_string( Strings ) ] ) )
+				  text_utils:strings_to_string( Strings ) ] ) )
 
 	end;
 
@@ -1010,7 +1010,7 @@ toString( _Hashtable, internal ) ->
 
 % Displays the specified hashtable on the standard output.
 %
--spec display( hashtable() ) -> basic_utils:void().
+-spec display( hashtable() ) -> void().
 display( Hashtable ) ->
 	io:format( "~s~n", [ toString( Hashtable ) ] ).
 
@@ -1019,7 +1019,7 @@ display( Hashtable ) ->
 % Displays the specified hashtable on the standard output, with the specified
 % title on top.
 %
--spec display( string(), hashtable() ) -> basic_utils:void().
+-spec display( string(), hashtable() ) -> void().
 display( Title, Hashtable ) ->
 	io:format( "~s:~n~s~n", [ Title, toString( Hashtable ) ] ).
 

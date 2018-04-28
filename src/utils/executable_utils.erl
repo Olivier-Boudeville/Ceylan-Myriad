@@ -1,6 +1,6 @@
-% Copyright (C) 2008-2017 Olivier Boudeville
+% Copyright (C) 2008-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, July 12, 2008.
 
 
@@ -71,6 +71,7 @@
 		 get_default_trace_viewer_name/0,
 		 get_default_trace_viewer_path/0,
 
+		 get_default_erlang_root/0,
 		 get_default_erlang_interpreter_name/0,
 		 get_default_erlang_interpreter_path/0,
 
@@ -93,7 +94,10 @@
 		 get_default_xz_decompress_tool/0,
 
 		 get_default_md5_tool/0,
-		 get_default_sha_tool/0
+		 get_default_sha_tool/0,
+
+		 get_default_java_runtime/0,
+		 get_default_jinterface_path/0
 
 		 ]).
 
@@ -125,7 +129,7 @@
 % Looks-up specified executable program, whose name is specified as a string
 % (ex: "gcc") in the current user PATH.
 %
-% Returns the absolute filename of the executable program (ex: "/usr/bin/gcc"),
+% Returns an absolute filename of the executable program (ex: "/usr/bin/gcc"),
 % or the 'false' atom if it was not found.
 %
 -spec lookup_executable( file_utils:file_name() ) ->
@@ -139,7 +143,7 @@ lookup_executable( ExecutableName ) ->
 % Finds specified executable program, whose name is specified as a string (ex:
 % "gcc") in the current user PATH.
 %
-% Returns the absolute filename of the executable program (ex: "/usr/bin/gcc")
+% Returns an absolute filename of the executable program (ex: "/usr/bin/gcc")
 % or throws an exception {executable_not_found,ExecutableName} if ir was not
 % found.
 %
@@ -218,7 +222,7 @@ generate_png_from_graph_file( PNGFilename, GraphFilename,
 %
 % Throws an exception if an error occurs.
 %
--spec display_png_file( file_utils:path() ) -> basic_utils:void().
+-spec display_png_file( file_utils:path() ) -> void().
 display_png_file( PNGFilename ) ->
 	% Viewer output is ignored:
 	system_utils:run_background_executable( get_default_image_viewer_path()
@@ -233,10 +237,10 @@ display_png_file( PNGFilename ) ->
 %
 % Throws an exception if an error occurs.
 %
--spec browse_images_in( file_utils:path() ) -> basic_utils:void().
+-spec browse_images_in( file_utils:path() ) -> void().
 browse_images_in( DirectoryName ) ->
 	system_utils:run_background_executable( get_default_image_browser_path()
-											 ++ " " ++ DirectoryName ).
+											++ " " ++ DirectoryName ).
 
 
 
@@ -247,10 +251,10 @@ browse_images_in( DirectoryName ) ->
 %
 % Throws an exception if an error occurs.
 %
--spec display_pdf_file( file_utils:path() ) -> basic_utils:void().
+-spec display_pdf_file( file_utils:path() ) -> void().
 display_pdf_file( PDFFilename ) ->
 	system_utils:run_background_executable( get_default_pdf_viewer_path()
-											 ++ " " ++ PDFFilename ).
+											++ " " ++ PDFFilename ).
 
 
 
@@ -426,7 +430,7 @@ get_default_image_viewer_name() ->
 	"eog".
 
 
-% Returns the absolute path to the default image viewer tool.
+% Returns an absolute path to the default image viewer tool.
 -spec get_default_image_viewer_path() -> file_utils:path().
 get_default_image_viewer_path() ->
 	find_executable( get_default_image_viewer_name() ).
@@ -441,7 +445,7 @@ get_default_image_browser_name() ->
 	"geeqie".
 
 
-% Returns the absolute path to the default image browser tool.
+% Returns an absolute path to the default image browser tool.
 -spec get_default_image_browser_path() -> file_utils:file_name().
 get_default_image_browser_path() ->
 	find_executable( get_default_image_browser_name() ).
@@ -455,7 +459,7 @@ get_default_pdf_viewer_name() ->
 	"evince".
 
 
-% Returns the absolute path to the default PDF viewer tool.
+% Returns an absolute path to the default PDF viewer tool.
 -spec get_default_pdf_viewer_path() -> file_utils:file_name().
 get_default_pdf_viewer_path() ->
 	find_executable( get_default_pdf_viewer_name() ).
@@ -469,7 +473,7 @@ get_default_text_viewer_name() ->
 	"gedit".
 
 
-% Returns the absolute path to the default text viewer tool.
+% Returns an absolute path to the default text viewer tool.
 -spec get_default_text_viewer_path() -> file_utils:file_name().
 get_default_text_viewer_path() ->
 	find_executable( get_default_text_viewer_name() ).
@@ -483,7 +487,7 @@ get_default_wide_text_viewer_name( _CharacterWidth ) ->
 	"gedit".
 
 
-% Returns the absolute path to the default viewer tool for wider texts.
+% Returns an absolute path to the default viewer tool for wider texts.
 -spec get_default_wide_text_viewer_path( non_neg_integer() )
 								  -> file_utils:file_name().
 get_default_wide_text_viewer_path( CharacterWidth ) ->
@@ -499,12 +503,27 @@ get_default_trace_viewer_name() ->
 	"logmx.sh".
 
 
-% Returns the absolute path to the default trace viewer tool.
+% Returns an absolute path to the default trace viewer tool.
 % Could be also: nedit, gedit, etc.
 -spec get_default_trace_viewer_path() -> file_utils:file_name().
 get_default_trace_viewer_path() ->
 	% Note: expected to be on the PATH:
 	find_executable( get_default_trace_viewer_name() ).
+
+
+
+% Returns an absolute path to the root directory of the current Erlang
+% installation.
+%
+% Ex: if 'erl' is to be found in
+% ~/Software/Erlang/Erlang-current-install/bin/erl, will return:
+% ~/Software/Erlang/Erlang-current-install.
+%
+-spec get_default_erlang_root() -> file_utils:directory_name().
+get_default_erlang_root() ->
+	file_utils:normalise_path( file_utils:join( [
+		get_default_erlang_interpreter_path(), "..", "..", "..", "..", ".." ]
+											  ) ).
 
 
 
@@ -514,7 +533,7 @@ get_default_erlang_interpreter_name() ->
 	"erl".
 
 
-% Returns the absolute path to the default Erlang interpreter.
+% Returns an absolute path to the default Erlang interpreter.
 -spec get_default_erlang_interpreter_path() -> file_utils:file_name().
 get_default_erlang_interpreter_path() ->
 	% Note: expected to be on the PATH:
@@ -528,7 +547,7 @@ get_default_ssh_client_name() ->
 	"ssh".
 
 
-% Returns the absolute path to the default SSH client.
+% Returns an absolute path to the default SSH client.
 -spec get_default_ssh_client_path() -> file_utils:file_name().
 get_default_ssh_client_path() ->
 	% Note: expected to be on the PATH:
@@ -542,7 +561,7 @@ get_default_scp_executable_name() ->
 	"scp".
 
 
-% Returns the absolute path to the default SSH-based scp executable.
+% Returns an absolute path to the default SSH-based scp executable.
 -spec get_default_scp_executable_path() -> file_utils:file_name().
 get_default_scp_executable_path() ->
 	% Note: expected to be on the PATH:
@@ -644,6 +663,63 @@ get_default_md5_tool() ->
 -spec get_default_sha_tool() -> file_utils:file_name().
 get_default_sha_tool() ->
 	find_executable( "shasum" ).
+
+
+
+% Returns the default tool to execute Java programs.
+%
+-spec get_default_java_runtime() -> file_utils:file_name().
+get_default_java_runtime() ->
+	find_executable( "java" ).
+
+
+% Returns the default path to the .jar file implementing JInterface,
+% i.e. 'OtpErlang.jar'.
+%
+% Indeed, to make use of JInterface, OtpErlang.jar must be found by the
+% counterpart Java program.
+%
+% We chose conventionally its location to be
+% $(ERLANG_ROOT)/lib/erlang/jinterface/priv/OtpErlang.jar,
+% with ERLANG_ROOT being typically ~/Software/Erlang/Erlang-current-install.
+%
+% Indeed, we expect that in $(ERLANG_ROOT)/lib/erlang/ a symbolic link named
+% 'jinterface' has been specifically created in order to point to the directory
+% of the corresponding version of JInterface (ex: lib/jinterface-1.8/); our
+% install-erlang.sh script automatically enforces that convention.
+%
+-spec get_default_jinterface_path() -> file_utils:file_name().
+get_default_jinterface_path() ->
+
+	JInterfaceBase = file_utils:join(
+			[ get_default_erlang_root(), "lib", "erlang", "jinterface" ] ),
+
+	% Can be directory or, more probably, symlink:
+	case file_utils:is_existing_directory_or_link( JInterfaceBase ) of
+
+		true ->
+			JInterfaceJar = file_utils:join( [ JInterfaceBase, "priv",
+											   "OtpErlang.jar" ] ),
+
+			case file_utils:is_existing_file( JInterfaceJar ) of
+
+				true ->
+					JInterfaceJar;
+
+				false ->
+					throw( { jinterface_jar_not_found, JInterfaceJar } )
+
+			end;
+
+		false ->
+			trace_utils:error_fmt( "The JInterface base path (~s) does not "
+								   "exist; conventionally this is a symbolic "
+								   "link pointing to, typically, "
+								   "'lib/jinterface-x.y/'.",
+								   [ JInterfaceBase ] ),
+			throw( { jinterface_base_path_not_found, JInterfaceBase } )
+
+	end.
 
 
 

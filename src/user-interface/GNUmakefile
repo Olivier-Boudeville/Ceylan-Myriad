@@ -1,15 +1,5 @@
-COMMON_TOP = ../..
+MYRIAD_TOP = ../..
 
-.PHONY: all run test-all
+MODULES_DIRS = src doc
 
-
-all:
-
-
-run: gui_overall_run
-
-
-test-all: all gui_minimal_run gui_simple_run gui_overall_run
-
-
-include $(COMMON_TOP)/GNUmakesettings.inc
+include $(MYRIAD_TOP)/GNUmakesettings.inc

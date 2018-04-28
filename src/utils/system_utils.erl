@@ -1,6 +1,6 @@
-% Copyright (C) 2010-2017 Olivier Boudeville
+% Copyright (C) 2010-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Thursday, February 11, 2010.
 
 
@@ -230,9 +230,8 @@
 
 
 % Working directory of an executed command:
--type working_dir() :: file_utils:directory_name()
-					 | file_utils:bin_directory_name()
-					 | 'undefined'.
+-type working_dir() :: maybe( file_utils:directory_name()
+							  | file_utils:bin_directory_name() ).
 
 
 % Basic authentication information:
@@ -363,7 +362,7 @@ get_user_home_directory_string() ->
 %
 % In this case, await_output_completion/1 should be used, with a larger delay.
 %
--spec await_output_completion() -> basic_utils:void().
+-spec await_output_completion() -> void().
 
 -ifdef(debug_mode_is_enabled).
 
@@ -393,7 +392,7 @@ await_output_completion() ->
 % then immediately halting the VM, in order to avoid a race condition between
 % the displaying and the halting.
 %
--spec await_output_completion( unit_utils:millisecond() ) -> basic_utils:void().
+-spec await_output_completion( unit_utils:millisecond() ) -> void().
 await_output_completion( TimeOut ) ->
 
 	% Not sure it is really the proper way of waiting, however should be still
@@ -691,7 +690,7 @@ evaluate_shell_expression( Expression, Environment ) ->
 % leak, one should consider using evaluate_background_shell_expression/1
 % instead.
 %
--spec run_background_executable( command() ) -> basic_utils:void().
+-spec run_background_executable( command() ) -> void().
 run_background_executable( Command ) ->
 	run_background_executable( Command, get_standard_environment() ).
 
@@ -709,8 +708,7 @@ run_background_executable( Command ) ->
 % leak, one should consider using evaluate_background_shell_expression/2
 % instead.
 %
--spec run_background_executable( command(), environment() ) ->
-									   basic_utils:void().
+-spec run_background_executable( command(), environment() ) -> void().
 run_background_executable( Command, Environment ) ->
 	run_background_executable( Command, Environment, _WorkingDir=undefined ).
 
@@ -729,7 +727,7 @@ run_background_executable( Command, Environment ) ->
 % instead.
 %
 -spec run_background_executable( command(), environment(), working_dir() ) ->
-									   basic_utils:void().
+									   void().
 run_background_executable( Command, Environment, WorkingDir ) ->
 
 	% Apparently using a port-based launch and a background execution will block
@@ -748,8 +746,7 @@ run_background_executable( Command, Environment, WorkingDir ) ->
 %
 % As a consequence it returns no return code (exit status) nor output.
 %
--spec evaluate_background_shell_expression( shell_expression() ) ->
-												  basic_utils:void().
+-spec evaluate_background_shell_expression( shell_expression() ) -> void().
 evaluate_background_shell_expression( Expression ) ->
 	evaluate_background_shell_expression( Expression,
 										  get_standard_environment() ).
@@ -762,7 +759,7 @@ evaluate_background_shell_expression( Expression ) ->
 % As a consequence it returns no return code (exit status) nor output.
 %
 -spec evaluate_background_shell_expression( shell_expression(),
-				environment() ) -> basic_utils:void().
+											environment() ) -> void().
 evaluate_background_shell_expression( Expression, Environment ) ->
 
 	FullExpression = get_actual_expression( Expression, Environment ),
@@ -827,7 +824,7 @@ get_environment_variable( VarName ) ->
 % overwriting a past value.
 %
 -spec set_environment_variable( env_variable_name(), env_variable_value() ) ->
-									  basic_utils:void().
+									  void().
 set_environment_variable( VarName, VarValue ) ->
 	os:putenv( VarName, VarValue ).
 
@@ -1187,7 +1184,7 @@ convert_byte_size_with_unit( SizeInBytes ) ->
 % Returns a summary of the dynamically allocated memory currently being used by
 % the Erlang emulator.
 %
--spec display_memory_summary() -> basic_utils:void().
+-spec display_memory_summary() -> void().
 display_memory_summary() ->
 
 	SysSize  = erlang:memory( system ),
@@ -1211,9 +1208,12 @@ display_memory_summary() ->
 -spec get_total_physical_memory() -> byte_size().
 get_total_physical_memory() ->
 
+	% Note: '\\awk' is '\awk' once escaped; a backslash allows to unalias the
+	% corresponding command, to avoid not-so-compliant alternatives to be used.
+
 	% First check the expected unit is returned, by pattern-matching:
 	UnitCommand = "/bin/cat /proc/meminfo | /bin/grep 'MemTotal:' "
-				  "| /bin/awk '{print $3}'",
+				  "| \\awk '{print $3}'",
 
 	case run_executable( UnitCommand ) of
 
@@ -1223,7 +1223,7 @@ get_total_physical_memory() ->
 
 			ValueCommand =
 				"/bin/cat /proc/meminfo | /bin/grep 'MemTotal:' "
-				"| /bin/awk '{print $2}'",
+				"| \\awk '{print $2}'",
 
 			% The returned value of following command is like "12345\n", in
 			% bytes:
@@ -1280,11 +1280,11 @@ get_total_physical_memory_on( Node ) ->
 
 	% First check the expected unit is returned, by pattern-matching:
 	UnitCommand = "/bin/cat /proc/meminfo | /bin/grep 'MemTotal:' "
-				  "| /bin/awk '{print $3}'",
+				  "| \\awk '{print $3}'",
 	"kB\n" = rpc:call( Node, os, cmd, [ UnitCommand ] ),
 
 	ValueCommand = "/bin/cat /proc/meminfo | /bin/grep 'MemTotal:' "
-				   "| /bin/awk '{print $2}'",
+				   "| \\awk '{print $2}'",
 	ValueCommandOutput = rpc:call( Node, os, cmd, [ ValueCommand ] ),
 
 	% The returned value of following command is like "12345\n", in bytes:
@@ -1359,7 +1359,7 @@ get_total_memory_used() ->
 	% So finally we prefered /proc/meminfo, used first to get MemTotal:
 	%
 	TotalString = case run_executable( "/bin/cat /proc/meminfo | "
-				"/bin/grep '^MemTotal:' | /bin/awk '{print $2,$3}'" ) of
+				"/bin/grep '^MemTotal:' | \\awk '{print $2,$3}'" ) of
 
 		{ _TotalExitCode=0, TotalOutput } ->
 			%io:format( "TotalOutput: '~p'~n", [ TotalOutput ] ),
@@ -1379,7 +1379,7 @@ get_total_memory_used() ->
 	%
 	FreeString = case run_executable(
 			"/bin/cat /proc/meminfo | /bin/grep '^MemAvailable:' "
-			"| /bin/awk '{print $2,$3}'" )  of
+			"| \\awk '{print $2,$3}'" )  of
 
 		{ _AvailExitCode=0, MemAvailOutput } ->
 			%io:format( "## using MemAvailable~n" ),
@@ -1394,7 +1394,7 @@ get_total_memory_used() ->
 
 			case run_executable(
 				   "/bin/cat /proc/meminfo | /bin/grep '^MemFree:' | "
-				   "/bin/awk '{print $2,$3}'" ) of
+				   "\\awk '{print $2,$3}'" ) of
 
 				{ _FreeExitCode=0, MemFreeOutput } ->
 					MemFreeOutput;
@@ -1419,7 +1419,7 @@ get_total_memory_used() ->
 			%io:format( "## using free~n" ),
 
 			case run_executable(
-				"/bin/free -b | /bin/grep '/cache' | /bin/awk '{print $3}'" ) of
+				"/bin/free -b | /bin/grep '/cache' | \\awk '{print $3}'" ) of
 
 				{ _ExitCode=0, FreeOutput } ->
 					% Already in bytes:
@@ -1489,7 +1489,7 @@ get_swap_status() ->
 	%SwapInfos = os:cmd( "free -b | grep 'Swap:' | awk '{print $2, $3}'" ),
 	SwapTotalString = case run_executable(
 		  "/bin/cat /proc/meminfo | /bin/grep '^SwapTotal:' | "
-		  "/bin/awk '{print $2,$3}'" ) of
+		  "\\awk '{print $2,$3}'" ) of
 
 		{ _TotalExitCode=0, TotalOutput } ->
 			TotalOutput;
@@ -1506,7 +1506,7 @@ get_swap_status() ->
 
 	SwapFreeString = case run_executable(
 		"cat /proc/meminfo | /bin/grep '^SwapFree:' | "
-		"/bin/awk '{print $2,$3}'" ) of
+		"\\awk '{print $2,$3}'" ) of
 
 		{ _FreeExitCode=0, FreeOutput } ->
 			FreeOutput;
@@ -1674,13 +1674,13 @@ compute_cpu_usage_between( StartCounters, EndCounters ) ->
 %
 % Returns 'undefined' iff the specified usage is itself undefined.
 %
--spec compute_cpu_usage_for( basic_utils:maybe( cpu_usage_percentages() ) ) ->
-								   basic_utils:maybe( math_utils:percent() ).
+-spec compute_cpu_usage_for( maybe( cpu_usage_percentages() ) ) ->
+								   maybe( math_utils:percent() ).
 compute_cpu_usage_for( undefined ) ->
 	undefined;
 
 compute_cpu_usage_for( { UserPercent, NicePercent, SystemPercent, _IdlePercent,
-						OtherPercent } ) ->
+						 OtherPercent } ) ->
 
 	% Every usage matters here, except idle:
 	UserPercent + NicePercent + SystemPercent + OtherPercent.
@@ -1698,7 +1698,7 @@ compute_cpu_usage_for( { UserPercent, NicePercent, SystemPercent, _IdlePercent,
 % usage can be quantified then.
 %
 -spec compute_detailed_cpu_usage( cpu_usage_info(), cpu_usage_info() ) ->
-	basic_utils:maybe( cpu_usage_percentages() ).
+										maybe( cpu_usage_percentages() ).
 compute_detailed_cpu_usage( _StartCounters={ U1, N1, S1, I1, O1 },
 							_EndCounters = { U2, N2, S2, I2, O2 } ) ->
 
@@ -1861,7 +1861,7 @@ get_mount_points() ->
 			% Older versions of df may not know the --output option:
 			SecondCmd = "/bin/df -h --local "
 				++ get_exclude_pseudo_fs_opt()
-				++ "| /bin/grep -v 'Mounted on' | /bin/awk '{print $6}'",
+				++ "| /bin/grep -v 'Mounted on' | \\awk '{print $6}'",
 
 			case run_executable( SecondCmd ) of
 
@@ -2178,12 +2178,79 @@ get_dependency_base_directory( PackageName="ErlPort" ) ->
 
 	% ErlPort must be special-cased, as its actual base installation directory
 	% *must* be named "erlport" (otherwise the interpreter initialization may
-	% fail on new nodes with the {not_found,"erlport/priv"} error); so:
+	% fail on new nodes with the {not_found,"erlport/priv"} error).
+	%
+	% So:
+	%
+	% - if the 'ERLPORT_BASE_DIR' environment variable is defined, and set to an
+	% existing directory, then this directory will be retained
+	%
+	% - otherwise a default will be used, corresponding to the
+	% '~/Software/ErlPort/erlport' directory
 
-	PathComponents = [ get_user_home_directory(), "Software", PackageName,
-					   "erlport" ],
+	case get_environment_variable( "ERLPORT_BASE_DIR" ) of
 
-	file_utils:normalise_path( file_utils:join( PathComponents ) );
+
+		false ->
+
+			% Then trying default path:
+
+			PathComponents = [ get_user_home_directory(), "Software", PackageName,
+							   "erlport" ],
+
+			DefaultDir = file_utils:normalise_path(
+						   file_utils:join( PathComponents ) ),
+
+			case file_utils:is_existing_directory( DefaultDir ) of
+
+				true ->
+					trace_utils:debug_fmt( "Using default Erlport directory '~s'.",
+										   [ DefaultDir ] ),
+					DefaultDir;
+
+				false ->
+					trace_utils:error_fmt( "No Erlport installation found: the "
+						"ERLPORT_BASE_DIR environment variable is not defined, "
+						"and the default directory ('~s') does not exist.",
+						[ DefaultDir ] ),
+
+					throw( { erlport_default_directory_not_found, DefaultDir } )
+
+			end;
+
+
+		EnvDir ->
+			case filename:basename( EnvDir ) of
+
+				"erlport" ->
+					case file_utils:is_existing_directory( EnvDir ) of
+
+						true ->
+							trace_utils:debug_fmt( "Using the Erlport directory "
+								"specified in the ERLPORT_BASE_DIR environment "
+								"variable: '~s'.", [ EnvDir ] ),
+							EnvDir;
+
+						false ->
+							trace_utils:error_fmt( "The Erlport directory "
+								"specified in the ERLPORT_BASE_DIR environment "
+								"variable ('~s') does not exist.", [ EnvDir ] ),
+
+							throw( { erlport_specified_directory_not_found,
+									 EnvDir } )
+
+					end;
+
+				_ ->
+					trace_utils:error_fmt( "The Erlport directory "
+								"specified in the ERLPORT_BASE_DIR environment "
+								"variable ('~s') does not end with 'erlport'.",
+								[ EnvDir ] ),
+					throw( { invalid_erlport_specified_directory, EnvDir } )
+
+			end
+
+	end;
 
 
 get_dependency_base_directory( PackageName ) ->
@@ -2226,9 +2293,9 @@ is_json_support_available() ->
 %
 -spec get_json_unavailability_hint() -> string().
 get_json_unavailability_hint() ->
-	"Hint: inspect, in common/GNUmakevars.inc, the USE_REST and "
-	"JSX_BASE variables.".
-
+	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_REST and "
+	"JSX_BASE variables, knowing that the current code path is: "
+		++ code_utils:get_code_path_as_string().
 
 
 % Tells whether an HDF5 support is available.
@@ -2262,5 +2329,5 @@ is_hdf5_support_available() ->
 %
 -spec get_hdf5_unavailability_hint() -> string().
 get_hdf5_unavailability_hint() ->
-	"Hint: inspect, in common/GNUmakevars.inc, the USE_HDF5 and "
+	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_HDF5 and "
 	"ERLHDF5_BASE variables.".

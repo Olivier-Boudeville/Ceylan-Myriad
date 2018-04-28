@@ -1,6 +1,6 @@
-% Copyright (C) 2003-2017 Olivier Boudeville
+% Copyright (C) 2003-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
 
@@ -46,13 +46,13 @@
 -export([ term_to_string/1, term_to_string/2, term_to_string/3,
 		  integer_to_string/1, atom_to_string/1, pid_to_string/1,
 		  record_to_string/1,
-		  string_list_to_string/1, string_list_to_string/2,
-		  strings_to_string/1, strings_to_string/2,
+		  strings_to_string/1, strings_to_sorted_string/1,
+		  strings_to_string/2, strings_to_sorted_string/2,
 		  strings_to_enumerated_string/1, strings_to_enumerated_string/2,
 		  binary_list_to_string/1, binaries_to_string/1,
-		  atom_list_to_string/1, atoms_to_string/1,
-		  string_list_to_atom_list/1, proplist_to_string/1,
-		  version_to_string/1,
+		  binaries_to_sorted_string/1,
+		  atom_list_to_string/1, atoms_to_string/1, atoms_to_sorted_string/1,
+		  proplist_to_string/1, version_to_string/1,
 		  atom_to_binary/1,
 		  string_to_binary/1, binary_to_string/1,
 		  strings_to_binaries/1, binaries_to_strings/1,
@@ -62,14 +62,14 @@
 		  distance_to_string/1, distance_to_short_string/1,
 		  duration_to_string/1,
 		  format/2, bin_format/2,
-		  ensure_string/1, ensure_binary/1
-		]).
+		  ensure_string/1, ensure_binary/1 ]).
 
 
 
 % Other string operations:
 %
 -export([ get_lexicographic_distance/2, uppercase_initial_letter/1,
+		  to_lowercase/1, to_uppercase/1,
 		  join/2,
 		  split/2, split_at_first/2, split_camel_case/1,
 		  tokenizable_to_camel_case/2,
@@ -128,12 +128,12 @@
 -type regex_string() :: string().
 
 
-% A string which describes a title:
+% A string that describes a title:
 %
 -type title() :: string().
 
 
-% A string which describes a label:
+% A string that describes a label:
 %
 -type label() :: string().
 
@@ -156,9 +156,7 @@
 -type unicode_string() :: unicode:chardata().
 
 
-% A Unicode character.
-%
- % Unicode codepoint for the character.
+% A Unicode codepoint for a character.
 %
 % (unfortunately we cannot define a text_utils:char/0 type, as "type char()
 % is a builtin type; it cannot be redefined").
@@ -174,9 +172,26 @@
 -type ustring() :: unicode_string().
 
 
+% Any kind of terms that can be directly mapped to a string (typically accepted
+% by ~s in format strings):
+%
+-type string_like() :: string() | unicode_string() | bin_string() | atom().
+
+
+
+
 % The level of indentation (starts at zero, and the higher, the most nested).
 %
 -type indentation_level() :: basic_utils:count().
+
+
+% A bullet, to denote the elements of a list.
+%
+-type bullet() :: ustring().
+
+
+% Either an indentation level, or directly a bullet:
+-type indentation_level_or_bullet() :: indentation_level() | bullet().
 
 
 % Lexicographic (Levenshtein) distance, i.e. minimum number of single-character
@@ -188,12 +203,12 @@
 
 -export_type([ format_string/0, regex_string/0, title/0, label/0,
 			   bin_string/0, unicode_string/0, uchar/0, ustring/0,
-			   indentation_level/0, distance/0 ]).
+			   string_like/0, indentation_level/0, distance/0 ]).
 
 
 
 % This module being a bootstrap one, the 'table' pseudo-module is not available
-% (as this module is not processed by the 'Common' parse transform):
+% (as this module is not processed by the 'Myriad' parse transform):
 %
 -define( table, map_hashtable ).
 
@@ -324,7 +339,7 @@ pid_to_string( Pid ) ->
 	% Returns "X.Y.Z":
 	list_utils:remove_last_element( Rest ).
 
-
+	% Automatic truncating if defaults currently deactivated:
 	% ActualFirst = case First of
 
 	%		"0" ->
@@ -350,8 +365,10 @@ pid_to_string( Pid ) ->
 
 
 % Returns a string describing the specified record.
+%
 % Hugely inspired from a Ulf Wiger's snippet. described in
 % http://erlang.org/pipermail/erlang-questions/2006-September/023181.html
+%
 % Apparently, as records are compile-time structures only, there is no simple
 % way of determining the name of their fields at runtime.
 %
@@ -381,7 +398,7 @@ get_default_bullet() ->
 
 % Returns the bullet to be used for specified indentation level.
 %
--spec get_bullet_for_level( indentation_level() ) ->  ustring().
+-spec get_bullet_for_level( indentation_level() ) -> bullet().
 get_bullet_for_level( 0 ) ->
 	" + ";
 
@@ -405,51 +422,36 @@ get_indentation_offset_for_level( N ) ->
 	string:copies( _BaseString=" ", _Count=N+1 ).
 
 
-% Returns a string which pretty-prints specified list of strings, with default
-% bullets.
-%
--spec string_list_to_string( [ ustring() ] ) -> ustring().
-string_list_to_string( ListOfStrings ) ->
-	% Leading '~n' had been removed for some unknown reason:
-	io_lib:format( "~n~ts", [ string_list_to_string(
-					   ListOfStrings, _Acc=[], get_default_bullet() ) ] ).
-
-
-% Returns a string which pretty-prints specified list of strings, with
-% user-specified bullets; this can be a solution to nest bullet lists, by
-% specifying a bullet with an offset, such as "  * ".
-%
--spec string_list_to_string( [ ustring() ], indentation_level() | ustring() ) ->
-								   ustring().
-string_list_to_string( ListOfStrings, IndentationLevel )
-  when is_integer( IndentationLevel ) ->
-	Bullet = get_bullet_for_level( IndentationLevel ),
-	string_list_to_string( ListOfStrings, Bullet );
-
-string_list_to_string( ListOfStrings, Bullet ) when is_list( Bullet ) ->
-	% Leading '~n' had been removed for some unknown reason:
-	io_lib:format( "~n~ts", [ string_list_to_string( ListOfStrings, _Acc=[],
-													 Bullet ) ] ).
-
 
 % (helper)
 %
-string_list_to_string( _ListOfStrings=[], Acc, _Bullet ) ->
+% Note: the caller should have already vetted the specified arguments.
+%
+strings_to_string( _ListOfStrings=[], Acc, _Bullet ) ->
 	 Acc;
 
 % We do not want an extra newline at the end:
-string_list_to_string( _ListOfStrings=[ LastString ], Acc, Bullet )
+strings_to_string( _ListOfStrings=[ LastString ], Acc, Bullet )
   when is_list( LastString ) ->
-	Acc ++ Bullet ++ io_lib:format( "~ts", [ LastString ] );
+	%Pattern="~ts~n",
+	% Added back, as makes sense?
+	% Nope:
+	Pattern="~ts",
+	Acc ++ Bullet ++ io_lib:format( Pattern, [ LastString ] );
 
-string_list_to_string( _ListOfStrings=[ H | T ], Acc, Bullet )
+strings_to_string( _ListOfStrings=[ H | T ], Acc, Bullet )
   when is_list( H ) ->
-	string_list_to_string( T, Acc ++ Bullet ++ io_lib:format( "~ts~n", [ H ] ),
-						   Bullet ).
+	% Byproduct of the trailing newline: an empty line at the end if nested.
+	strings_to_string( T, Acc ++ Bullet ++ io_lib:format( "~ts~n", [ H ] ),
+					   Bullet );
+
+strings_to_string( _ListOfStrings=[ H | _T ], _Acc, _Bullet ) ->
+	throw( { not_a_string, H } ).
 
 
 
-% Returns a string which pretty-prints specified list of strings, with
+
+% Returns a string that pretty-prints specified list of strings, with
 % enumerated (i.e. 1, 2, 3) bullets.
 %
 -spec strings_to_enumerated_string( [ ustring() ] ) -> ustring().
@@ -480,26 +482,97 @@ strings_to_enumerated_string( ListOfStrings, IndentationLevel ) ->
 
 
 
-% Returns a string which pretty-prints specified list of strings, with default
+% Returns a string that pretty-prints specified list of strings, with default
 % bullets.
 %
 -spec strings_to_string( [ ustring() ] ) -> ustring().
-strings_to_string( ListOfStrings ) ->
-	string_list_to_string( ListOfStrings ).
+strings_to_string( ListOfStrings ) when is_list( ListOfStrings ) ->
+
+	%trace_utils:debug_fmt( "Stringifying ~p.", [ ListOfStrings ] ),
+
+	% Leading '~n' had been removed for some unknown reason:
+	io_lib:format( "~n~ts", [ strings_to_string(
+					   ListOfStrings, _Acc=[], get_default_bullet() ) ] );
+
+strings_to_string( ErrorTerm ) ->
+	throw( { not_a_list, ErrorTerm } ).
 
 
 
-% Returns a string which pretty-prints specified list of strings, with
+% Returns a string that pretty-prints specified list of strings once reordered
+% (and with default bullets).
+%
+-spec strings_to_sorted_string( [ ustring() ] ) -> ustring().
+strings_to_sorted_string( ListOfStrings ) when is_list( ListOfStrings ) ->
+	strings_to_string( lists:sort( ListOfStrings ) );
+
+strings_to_sorted_string( ErrorTerm ) ->
+	throw( { not_a_list, ErrorTerm } ).
+
+
+
+% Returns a string that pretty-prints specified list of strings, with
 % user-specified bullets.
 %
--spec strings_to_string( [ ustring() ], ustring() ) -> ustring().
-strings_to_string( ListOfStrings, Bullet ) ->
-	string_list_to_string( ListOfStrings, Bullet ).
+% This can be a solution to nest bullet lists, by specifying a bullet with an
+% offset, such as " * ".
+%
+-spec strings_to_string( [ ustring() ], indentation_level_or_bullet() ) ->
+							   ustring().
+strings_to_string( _ListOfStrings=[ SingleString ], _LevelOrBullet )
+  when is_list( SingleString ) ->
+	% For a single string, no need for leading and trailing newlines, but it is
+	% better to have it separated (with single quotes, themselves surrounded by
+	% spaces) from the surrounding text:
+	%Pattern = " '~ts' "
+	%Pattern = "'~ts'",
+
+	% Leading space, as usually the result is used in "foobar:~s", not in
+	% "foobar: ~s":
+	Pattern = " ~ts",
+	io_lib:format( Pattern, [ SingleString ] );
+
+strings_to_string( ListOfStrings, IndentationLevel )
+  when is_integer( IndentationLevel ) ->
+	Bullet = get_bullet_for_level( IndentationLevel ),
+	strings_to_string( ListOfStrings, Bullet );
+
+strings_to_string( ListOfStrings, Bullet ) when is_list( ListOfStrings )
+												andalso is_list( Bullet ) ->
+	% Leading '~n' had been removed for some unknown reason:
+	% Removing trailing '~n', inducing a too large final blank space:
+	%Pattern = "~n~ts~n",
+	Pattern = "~n~ts",
+
+	io_lib:format( Pattern, [ strings_to_string( ListOfStrings, _Acc=[],
+												 Bullet ) ] );
+
+strings_to_string( ListOfStrings, Bullet ) when is_list( Bullet ) ->
+	throw( { not_a_list, ListOfStrings } );
+
+strings_to_string( _ListOfStrings, ErrorTerm ) ->
+	throw( { bullet_not_a_string, ErrorTerm } ).
+
+
+
+% Returns a string that pretty-prints specified list of strings once reordered,
+% with user-specified indentation level or bullet.
+%
+-spec strings_to_sorted_string( [ ustring() ],
+								indentation_level_or_bullet() ) -> ustring().
+strings_to_sorted_string( ListOfStrings, IndentationOrBullet )
+  when is_list( ListOfStrings ) ->
+	strings_to_string( lists:sort( ListOfStrings ), IndentationOrBullet );
+
+strings_to_sorted_string( ErrorTerm, _IndentationOrBullet ) ->
+	throw( { not_a_list, ErrorTerm } ).
 
 
 
 
-% Returns a string which pretty-prints specified list of binary strings, with
+
+
+% Returns a string that pretty-prints specified list of binary strings, with
 % default bullets.
 %
 -spec binary_list_to_string( [ binary() ] ) -> ustring().
@@ -508,17 +581,26 @@ binary_list_to_string( ListOfBinaries ) ->
 
 
 
-% Returns a string which pretty-prints specified list of binary strings, with
-% user-specified bullets.
+% Returns a string that pretty-prints specified list of binary strings, with
+% default bullets.
 %
 -spec binaries_to_string( [ binary() ] ) -> ustring().
 binaries_to_string( ListOfBinaries ) ->
 	Strings = binaries_to_strings( ListOfBinaries ),
-	string_list_to_string( Strings ).
+	strings_to_string( Strings ).
 
 
+% Returns a string that pretty-prints specified list of sorted binary strings,
+% with default bullets.
+%
+-spec binaries_to_sorted_string( [ binary() ] ) -> ustring().
+binaries_to_sorted_string( ListOfBinaries ) ->
+	Strings = binaries_to_strings( ListOfBinaries ),
+	strings_to_string( lists:sort( Strings ) ).
 
-% Returns a string which pretty-prints specified list of atoms, with bullets.
+
+% Returns a string that pretty-prints specified list of atoms, with default
+% bullets.
 %
 -spec atom_list_to_string( [ atom() ] ) -> ustring().
 atom_list_to_string( ListOfAtoms ) ->
@@ -529,12 +611,13 @@ atom_list_to_string( [], Acc ) ->
 	 Acc;
 
 atom_list_to_string( [ H | T ], Acc ) when is_atom( H )  ->
-	atom_list_to_string( T, Acc ++ get_default_bullet() ++
-							 io_lib:format(  "~ts~n", [ H ] ) ).
+	atom_list_to_string( T, Acc ++ get_default_bullet()
+						 ++ io_lib:format(  "~ts~n", [ H ] ) ).
 
 
 
-% Returns a string which pretty-prints specified list of atoms, with bullets.
+% Returns a string that pretty-prints the specified list of atoms, with default
+% bullets.
 %
 -spec atoms_to_string( [ atom() ] ) -> ustring().
 atoms_to_string( ListOfAtoms ) ->
@@ -542,18 +625,30 @@ atoms_to_string( ListOfAtoms ) ->
 
 
 
-% Returns a list whose elements are atoms corresponding to the strings
+% Returns a string that pretty-prints the specified list of atoms once ordered,
+% with default bullets.
+%
+-spec atoms_to_sorted_string( [ atom() ] ) -> ustring().
+atoms_to_sorted_string( ListOfAtoms ) ->
+	atom_list_to_string( lists:sort( ListOfAtoms ) ).
+
+
+
+% Returns a list whose elements are atoms corresponding to the plain strings
 % supposedly composing the specified list.
 %
-% Ex: string_list_to_atom_list( ["abc","def"] ) should return [abc,def].
+% Ex: strings_to_atoms( ["abc","def"] ) should return [ abc, def ].
 %
--spec string_list_to_atom_list( [ ustring() ] ) -> [ atom() ].
-string_list_to_atom_list( StringList ) when is_list( StringList ) ->
+% Note that only a bounded number of atoms should be created that way, lest the
+% atom table gets saturated.
+%
+-spec strings_to_atoms( [ ustring() ] ) -> [ atom() ].
+strings_to_atoms( StringList ) when is_list( StringList ) ->
 	[ list_to_atom( X ) || X <- StringList ].
 
 
 
-% Returns a string which pretty-prints specified list of key (as binary, string
+% Returns a string that pretty-prints specified list of key (as binary, string
 % or atom) / value pairs, with bullets, after having been sorted.
 %
 % Ex: proplist_to_string( [ { ccc, 42 }, { "beta", 1.0 } ] ) returns a bullet
@@ -569,7 +664,7 @@ proplist_to_string( Proplist ) ->
 	Strings = [ io_lib:format( "~s: ~s", [ K, V ] )
 				|| { K, V } <- lists:sort( Proplist ) ],
 
-	string_list_to_string( Strings ).
+	strings_to_string( Strings ).
 
 
 
@@ -887,7 +982,7 @@ format( FormatString, Values ) ->
 
 		_:_ ->
 
-			io_lib:format( "[error: badly formatted output] "
+			io_lib:format( "[error: badly formatted string output] "
 						   "Format string was '~p', values were '~p'.",
 						   [ FormatString, Values ] )
 
@@ -918,8 +1013,9 @@ bin_format( FormatString, Values ) ->
 
 		_:_ ->
 
-			io_lib:format( "[error: badly formatted output] Format: '~p', "
-						   "values: '~p'", [ FormatString, Values ] )
+			io_lib:format( "[error: badly formatted string output] "
+						   "Format: '~p', values: '~p'",
+						   [ FormatString, Values ] )
 
 	end,
 
@@ -933,14 +1029,29 @@ bin_format( FormatString, Values ) ->
 % directly seen as possible inputs.
 
 
+
 % Returns a string version of the specified text-like parameter.
+%
+% Note: using such functions may be a bad practice, as it may lead to loosing
+% the awareness of the types of the variables that are handled. We may even
+% decide in the future to output warning traces whenever the specified element
+% happens not to be a string.
 %
 -spec ensure_string( any_string() ) -> string().
 ensure_string( String ) when is_list( String ) ->
 	String;
 
 ensure_string( BinString ) when is_binary( BinString ) ->
-	binary_to_string( BinString ).
+	binary_to_string( BinString );
+
+ensure_string( Int ) when is_integer( Int ) ->
+	integer_to_list( Int );
+
+ensure_string( F ) when is_float( F ) ->
+	float_to_list( F );
+
+ensure_string( U ) ->
+	throw( { wrong_value, U } ).
 
 
 
@@ -951,9 +1062,10 @@ ensure_binary( BinString ) when is_binary( BinString ) ->
 	BinString;
 
 ensure_binary( String ) when is_list( String ) ->
-	string_to_binary( String ).
+	string_to_binary( String );
 
-
+ensure_binary( String ) ->
+	throw({ invalid_value, String }).
 
 
 % Returns the lexicographic distance between the two specified strings, i.e. the
@@ -1085,7 +1197,7 @@ strings_to_binaries( StringList ) ->
 %
 % Order of items remains unaffected.
 %
--spec binaries_to_strings( [ binary() ] ) -> [ ustring() ].
+-spec binaries_to_strings( [ bin_string() ] ) -> [ ustring() ].
 binaries_to_strings( BinaryList ) ->
 	% Order must be preserved:
 	[ erlang:binary_to_list( B ) || B <- BinaryList ].
@@ -1199,23 +1311,21 @@ string_to_float( String ) ->
 
 % Converts specified plain string into an atom.
 %
-% Note that a bounded number of atoms should be created that way, lest the atom
-% table gets saturated.
+% Note that only a bounded number of atoms should be created that way, lest the
+% atom table gets saturated.
 %
 -spec string_to_atom( ustring() ) -> atom().
 string_to_atom( String ) ->
-	erlang:list_to_atom( String ).
+	try
 
+		erlang:list_to_atom( String )
 
+	catch
 
-% Converts specified list of plain strings into a corresponding list of atoms.
-%
-% Note that a bounded number of atoms should be created that way, lest the atom
-% table gets saturated.
-%
--spec strings_to_atoms( [ ustring() ] ) -> [ atom() ].
-strings_to_atoms( StringList ) ->
-	[ string_to_atom( S ) || S <- StringList ].
+		error:badarg ->
+			throw( { not_string, String } )
+
+	end.
 
 
 
@@ -1243,6 +1353,21 @@ uppercase_initial_letter( _Letters=[ First | Others ] ) ->
 
 
 
+% Sets the specified string to lowercase.
+%
+-spec to_lowercase( string() ) -> string().
+to_lowercase( String ) ->
+	string:to_lower( String ).
+
+
+% Sets the specified string to uppercase.
+%
+-spec to_uppercase( string() ) -> string().
+to_uppercase( String ) ->
+	string:to_upper( String ).
+
+
+
 % join( Separator, ListToJoin ), to be used like in:
 %   join( $-, [ "Barbara", "Ann" ] ) = "Barbara-Ann".
 %
@@ -1263,6 +1388,7 @@ join( _Separator, _ListToJoin=[] ) ->
 	"";
 
 join( Separator, ListToJoin ) ->
+	%io:format( "ListToJoin = ~p~n", [ ListToJoin ] ),
 	lists:flatten( lists:reverse( join( Separator, ListToJoin, _Acc=[] ) ) ).
 
 
@@ -1734,6 +1860,11 @@ is_string( [ _ | T ] ) ->
 is_string( _Other ) ->
 	false.
 
+% Alternate, less efficient version:
+%is_string( Term ) when is_list( Term ) ->
+%			lists:all( fun erlang:is_integer/1, Term );
+%
+%is_string( _Term ) -> false.
 
 
 % Returns true iif the parameter is a (non-nested) non-empty string (actually a
@@ -1777,7 +1908,11 @@ is_list_of_strings( [ H | T ] ) ->
 		false ->
 			false
 
-	end.
+	end;
+
+is_list_of_strings( _Other ) ->
+	false.
+
 
 
 

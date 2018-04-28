@@ -1,6 +1,6 @@
-% Copyright (C) 2011-2017 Olivier Boudeville
+% Copyright (C) 2011-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -684,7 +684,7 @@ toString( _TrackedHashtable={ Hashtable, _NEnt, _NBuck }, DescriptionType ) ->
 
 % Displays the specified hashtable on the standard output.
 %
--spec display( tracked_hashtable() ) -> basic_utils:void().
+-spec display( tracked_hashtable() ) -> void().
 display( _TrackedHashtable={ Hashtable, _ElementCount, NumberOfBuckets } ) ->
 
 	hashtable:display( Hashtable ),
@@ -695,9 +695,9 @@ display( _TrackedHashtable={ Hashtable, _ElementCount, NumberOfBuckets } ) ->
 % Displays the specified hashtable on the standard output, with the specified
 % title on top.
 %
--spec display( string(), tracked_hashtable() ) -> basic_utils:void().
+-spec display( string(), tracked_hashtable() ) -> void().
 display( Title,
-		 _TrackedHashtable={ Hashtable, _ElementCount, NumberOfBuckets} ) ->
+		 _TrackedHashtable={ Hashtable, _ElementCount, NumberOfBuckets } ) ->
 
 	hashtable:display( Title, Hashtable ),
 	io:format( " and its bucket size is ~B.~n", [ NumberOfBuckets ] ).

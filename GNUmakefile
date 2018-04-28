@@ -1,10 +1,11 @@
-COMMON_TOP = .
+MYRIAD_TOP = .
 
 
-.PHONY: help help-intro help-common help-hints help-batch                     \
-		register-version-in-header register-common list-beam-dirs             \
-		add-prerequisite-plts prepare-base-plt add-erlhdf5-plt add-jsx-plt   \
-		add-sqlite3-plt link-plt info-paths info-settings
+.PHONY: help help-intro help-myriad help-hints help-batch                     \
+		register-version-in-header register-myriad list-beam-dirs             \
+		add-prerequisite-plts prepare-base-plt add-erlhdf5-plt add-jsx-plt    \
+		add-sqlite3-plt link-plt clean-ast-outputs stats                      \
+		info-paths info-settings info-compile
 
 
 
@@ -17,10 +18,10 @@ BASE_MAKEFILE := true
 
 
 # Default target:
-help: help-intro help-common help-hints help-batch
+help: help-intro help-myriad help-hints help-batch
 
 
-include $(COMMON_TOP)/GNUmakesettings.inc
+include $(MYRIAD_TOP)/GNUmakesettings.inc
 
 
 # The base PLT is not the predecessor one (i.e. the Erlang PLT) as prerequisites
@@ -32,10 +33,10 @@ BASE_PLT := $(PLT_FILE)
 
 
 help-intro:
-	@echo " Following main make targets are available for package $(PACKAGE_NAME) (a.k.a. Common):"
+	@echo " Following main make targets are available for package $(PACKAGE_NAME):"
 
 
-help-common:
+help-myriad:
 	@echo "  - 'all':        builds everything (recursively, from current directory)"
 	@echo "  - 'clean':      cleans compiled code (recursively, from current directory)"
 	@echo "  - 'real-clean': cleans everything (from the root of any package)"
@@ -64,17 +65,17 @@ help-batch:
 register-version-in-header:
 	@if [ -z "$(VERSION_FILE)" ] ; then \
 	echo "Error, no version file defined." 1>&2 ; exit 50 ; else \
-	$(MAKE) register-common ; fi
+	$(MAKE) register-myriad ; fi
 
 
-register-common:
-	@echo "-define( common_version, \"$(COMMON_VERSION)\" )." >> $(VERSION_FILE)
+register-myriad:
+	@echo "-define( myriad_version, \"$(MYRIAD_VERSION)\" )." >> $(VERSION_FILE)
 
 
 
 # Useful to extract internal layout for re-use in upper layers:
 list-beam-dirs:
-	@for d in $(COMMON_BEAM_DIRS) ; do echo $$(readlink -f $$d) ; done
+	@for d in $(MYRIAD_BEAM_DIRS) ; do echo $$(readlink -f $$d) ; done
 
 
 
@@ -102,9 +103,21 @@ add-sqlite3-plt:
 	@if [ "$(USE_REST)" == "true" ] ; then echo "   Generating PLT for prerequisite sqlite3" ; $(DIALYZER) --add_to_plt --output_plt $(PLT_FILE) -r $(SQLITE3_BASE)/ebin --plt $(PLT_FILE); if [ $$? -eq 1 ] ; then exit 1 ; fi ; else echo "(no PLT determined for non-available sqlite3 prerequisite; unknown functions in the sqlite3 module will be found)" ; fi
 
 
-# As upper layers may rely on the 'Common' naming:
+# As upper layers may rely on the 'Myriad' naming:
 link-plt:
-	@/bin/ln -s $(PLT_FILE) $(COMMON_PLT_FILE)
+	@/bin/ln -s $(PLT_FILE) $(MYRIAD_PLT_FILE)
+
+
+# Removes the text files that may be spit by the myriad parse transform for
+# debugging purposes:
+#
+clean-ast-outputs:
+	@echo "  Removing AST output text files"
+	-@find . -name 'Output-AST-for-module-*.txt' -exec /bin/rm -f '{}' ';'
+
+
+stats:
+	@$(MAKE_CODE_STATS) $(MYRIAD_TOP)
 
 
 info-paths:
@@ -116,3 +129,16 @@ info-settings:
 	@echo "USE_HDF5   = $(USE_HDF5)"
 	@echo "USE_REST   = $(USE_REST)"
 	@echo "USE_SQLITE = $(USE_SQLITE)"
+
+
+info-compile:
+	@echo "ERLANG_COMPILER_BASE_OPT = $(ERLANG_COMPILER_BASE_OPT)"
+	@echo "INC = $(INC)"
+	@echo "BOOTSTRAP_MODULES = $(BOOTSTRAP_MODULES)"
+	@echo "ERLANG_COMPILER_EXEC_TARGET_OPT = $(ERLANG_COMPILER_EXEC_TARGET_OPT)"
+	@echo "ERLANG_COMPILER_DEBUG_OPT = $(ERLANG_COMPILER_DEBUG_OPT)"
+	@echo "ERLANG_COMPILER_NATIVE_COMPILATION_OPT = $(ERLANG_COMPILER_NATIVE_COMPILATION_OPT)"
+	@echo "ERLANG_COMPILER_WARNING_OPT = $(ERLANG_COMPILER_WARNING_OPT)"
+	@echo "ERLANG_COMPILER_OPT_BASE = $(ERLANG_COMPILER_OPT_BASE)"
+	@echo "OVERALL_PZ_OPT = $(OVERALL_PZ_OPT)"
+	@echo "ERLANG_COMPILER_PARSE_TRANSFORM_OPT = $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT)"

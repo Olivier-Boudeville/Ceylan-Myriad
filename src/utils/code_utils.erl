@@ -1,6 +1,6 @@
-% Copyright (C) 2007-2017 Olivier Boudeville
+% Copyright (C) 2007-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
 
@@ -39,10 +39,19 @@
 		  deploy_modules/2, deploy_modules/3,
 		  declare_beam_directory/1, declare_beam_directory/2,
 		  declare_beam_directories/1, declare_beam_directories/2,
-		  get_code_path/0,
+		  get_code_path/0, get_code_path_as_string/0, code_path_to_string/1,
 		  list_beams_in_path/0, get_beam_filename/1, is_beam_in_path/1,
-		  interpret_stacktrace/0, interpret_stacktrace/1, interpret_stacktrace/2,
+		  interpret_stacktrace/0, interpret_stacktrace/1,
+		  interpret_stacktrace/2,
 		  interpret_stack_item/2 ]).
+
+
+
+% The code path used by a language, i.e. a list of directories to scan for
+% runtime elements (Erlang -pa/-pz, Python sys.path with PYTHONPATH, Java
+% classpath, etc.)
+%
+-type code_path() :: [ file_utils:directory_name() ].
 
 
 %-type stack_location() :: [ { file, file_utils:path() },
@@ -137,8 +146,7 @@ is_loaded_module_same_on_filesystem( ModuleName ) ->
 % be caused by a version mistmatch between the Erlang environments in the source
 % and at least one of the remote target hosts (ex: ERTS 5.5.2 vs 5.8.2).
 %
--spec deploy_modules( [ module() ], [ net_utils:atom_node_name() ] ) ->
-							basic_utils:void().
+-spec deploy_modules( [ module() ], [ net_utils:atom_node_name() ] ) -> void().
 deploy_modules( Modules, Nodes ) ->
 	deploy_modules( Modules, Nodes, _Timeout=?rpc_timeout ).
 
@@ -156,7 +164,7 @@ deploy_modules( Modules, Nodes ) ->
 % and at least one of the remote target hosts (ex: ERTS 5.5.2 vs 5.8.2).
 %
 -spec deploy_modules( [ module() ], [ net_utils:atom_node_name() ],
-					  time_utils:time_out() ) -> basic_utils:void().
+					  time_utils:time_out() ) -> void().
 deploy_modules( Modules, Nodes, Timeout ) ->
 
 	% At least until the next version to come after R14B02, there was a possible
@@ -179,8 +187,7 @@ deploy_modules( Modules, Nodes, Timeout ) ->
 
 % (helper function)
 -spec deploy_module( module(), { binary(), file_utils:file_name() },
-		  [ net_utils:atom_node_name() ], time_utils:time_out() ) ->
-						   basic_utils:void().
+		  [ net_utils:atom_node_name() ], time_utils:time_out() ) -> void().
 deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
 
 	%io:format( "Deploying module '~s' (filename '~s') on nodes ~p "
@@ -252,8 +259,7 @@ deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
 %
 % Throws an exception if the directory does not exist.
 %
--spec declare_beam_directory( file_utils:directory_name() ) ->
-									basic_utils:void().
+-spec declare_beam_directory( file_utils:directory_name() ) -> void().
 declare_beam_directory( Dir ) ->
 	declare_beam_directory( Dir, first_position ).
 
@@ -265,7 +271,7 @@ declare_beam_directory( Dir ) ->
 % Throws an exception if the directory does not exist.
 %
 -spec declare_beam_directory( file_utils:directory_name(),
-		 'first_position' | 'last_position' ) -> basic_utils:void().
+							  'first_position' | 'last_position' ) -> void().
 declare_beam_directory( Dir, first_position ) ->
 
 	case code:add_patha( Dir ) of
@@ -297,8 +303,7 @@ declare_beam_directory( Dir, last_position ) ->
 %
 % Throws an exception if at least one of the directories does not exist.
 %
--spec declare_beam_directories( [ file_utils:directory_name() ] ) ->
-									  basic_utils:void().
+-spec declare_beam_directories( code_path() ) -> void().
 declare_beam_directories( Dirs ) ->
 	declare_beam_directories( Dirs, first_position ).
 
@@ -310,8 +315,8 @@ declare_beam_directories( Dirs ) ->
 %
 % Throws an exception if at least one of the directories does not exist.
 %
--spec declare_beam_directories( [ file_utils:directory_name() ],
-			'first_position' | 'last_position' ) -> basic_utils:void().
+-spec declare_beam_directories( code_path(),
+					'first_position' | 'last_position' ) -> void().
 declare_beam_directories( Dirs, first_position ) ->
 	check_beam_dirs( Dirs ),
 	code:add_pathsa( Dirs );
@@ -347,7 +352,7 @@ check_beam_dirs( _Dirs=[ D | T ] ) ->
 % Returns a normalised, sorted list of directories in the current code path
 % (without duplicates).
 %
--spec get_code_path() -> [ file_utils:directory_name() ].
+-spec get_code_path() -> code_path().
 get_code_path() ->
 
 	NormalisedPaths =
@@ -355,6 +360,29 @@ get_code_path() ->
 
 	lists:sort( list_utils:uniquify( NormalisedPaths ) ).
 
+
+
+% Returns a textual representation of the current code path.
+%
+-spec get_code_path_as_string() -> string().
+get_code_path_as_string() ->
+
+	CodePath = get_code_path(),
+
+	text_utils:format( "current code path is:~s",
+					   [ text_utils:strings_to_string( CodePath ) ] ).
+
+
+
+% Returns a textual description of the specified code path.
+%
+-spec code_path_to_string( code_path() ) -> string().
+code_path_to_string( _CodePath=[] ) ->
+	% Initial space intended for caller-side consistency:
+	" empty code path";
+
+code_path_to_string( CodePath ) ->
+	text_utils:strings_to_enumerated_string( CodePath ).
 
 
 % Lists all modules that exist in the current code path, based on the BEAM files

@@ -1,6 +1,6 @@
-% Copyright (C) 2016-2017 Olivier Boudeville
+% Copyright (C) 2016-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, October 24, 2012.
 
 
@@ -39,36 +39,36 @@
 
 % Implementation notes:
 %
-% The code path is not supposed to be updated with the one for 'Common', so
-% extra care must be tken not to call Common helper modules for implementations
+% The code path is not supposed to be updated with the one for 'Myriad', so
+% extra care must be tken not to call Myriad helper modules for implementations
 % here meant to be run before the update of the code path.
 
--export([ update_code_path_for_common/0 ]).
+-export([ update_code_path_for_myriad/0 ]).
 
 
-% Updates the VM code path so that all modules of the 'Common' layer can be
+% Updates the VM code path so that all modules of the 'Myriad' layer can be
 % readily used.
 %
 % Note: this function and its helpers might be copied verbatim to the target
 % escript so that it can really be used from anywhere (not only from the
 % directory it is stored).
 %
--spec update_code_path_for_common() -> basic_utils:void().
-update_code_path_for_common() ->
+-spec update_code_path_for_myriad() -> void().
+update_code_path_for_myriad() ->
 
-	CommonRootDir = get_root_of_common(),
+	MyriadRootDir = get_root_of_myriad(),
 
-	CommonSrcDir = filename:join( CommonRootDir, "src" ),
+	MyriadSrcDir = filename:join( MyriadRootDir, "src" ),
 
-	CommonBeamSubDirs = [ "utils", "user-interface", "maths",
+	MyriadBeamSubDirs = [ "utils", "user-interface", "maths",
 						  "data-management" ],
 
-	CommonBeamDirs = [ filename:join( CommonSrcDir, D )
-					   || D <- CommonBeamSubDirs ],
+	MyriadBeamDirs = [ filename:join( MyriadSrcDir, D )
+					   || D <- MyriadBeamSubDirs ],
 
-	%io:format( "'Common' beam dirs: ~s~n", [ CommonBeamDirs ] ),
+	%io:format( "'Myriad' beam dirs: ~s~n", [ MyriadBeamDirs ] ),
 
-	ok = code:add_pathsa( CommonBeamDirs ).
+	ok = code:add_pathsa( MyriadBeamDirs ).
 
 
 
@@ -99,8 +99,8 @@ get_script_base_directory() ->
 
 
 
-% Returns the root directory of the Common layer.
+% Returns the root directory of the Myriad layer.
 %
--spec get_root_of_common() -> file_utils:path().
-get_root_of_common() ->
+-spec get_root_of_myriad() -> file_utils:path().
+get_root_of_myriad() ->
 	filename:join( [ get_script_base_directory(), "..", ".." ] ).

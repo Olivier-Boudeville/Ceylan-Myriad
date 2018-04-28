@@ -1,6 +1,6 @@
-% Copyright (C) 2007-2017 Olivier Boudeville
+% Copyright (C) 2007-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -22,10 +22,13 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Adapted from code contributed by EDF R&D (original author: Robin Huart).
+% Adapted from code kindly contributed by EDF R&D.
+%
+% Authors: Robin Huart (robin-externe.huart@edf.fr)
+%		   Olivier Boudeville (olivier.boudeville@edf.fr)
 
 
-% Gathering of some convenient facilities for the binding to the Java language
+% Gathering of some convenient facilities for the binding to the Java language.
 %
 % See java_utils_test.erl for the corresponding tests.
 %
@@ -36,82 +39,162 @@
 
 
 % Helper exports:
--export([ send_oneway/3, wait_for_request_result/2,
-		  java_class_to_file_name/1 ]).
+-export([ get_beam_directories_for_binding/0,
+		  send_oneway/3, execute_request/3, wait_for_request_result/2,
+		  classname_to_bytecode_filename/1 ]).
 
 
 
-% PID associated to a Java mailbox:
+% Design notes:
+%
+% Even if this module belongs to the Ceylan-Myriad layer, it tries to follow the
+% conventions enforced in the upper Ceylan-WOOPER layer regarding method
+% management.
+
+
+% PID associated to a Java mailbox (a Java-based pseudo-process):
 -type java_mbox_pid() :: pid().
 
 
-% The title of a request sent to Java.
--type title() ::  atom().
+
+% Designates a method to trigger on the Java side:
+-type method_name() :: atom().
+
+% Designates a oneway to trigger on the Java side:
+-type oneway_name() :: method_name().
+
+% Designates a request to trigger on the Java side:
+-type request_name() :: method_name().
 
 
-% The parameters of a request sent to Java.
--type body() :: [ any() ].
+
+% The parameters of a method triggered on the Java side:
+-type method_parameters() :: [ any() ].
+
+% The parameters of a oneway triggered on the Java side:
+-type oneway_parameters() :: [ any() ].
+
+% The parameters of a request triggered on the Java side:
+-type request_parameters() :: [ any() ].
 
 
-% The result from a request that was sent to Java.
--type result() :: any().
+% The result from a request that was sent to Java:
+-type request_result() :: any().
 
 
-% The name of a Java class:
+% The name of a Java package (ex: 'org.foobar.research.someteam'):
+-type java_package_name() :: atom().
+
+% The name of a Java class (ex: 'Foobar'):
 -type java_class_name() :: atom().
 
+% The name of a Java class, as a string (ex: "Foobar"):
+-type java_string_class_name() :: atom().
 
-% The name of a Java file (*.java):
--type java_file() :: atom().
+
+% The name of a Java source file (ex: "Foobar.java"):
+-type java_source_filename() :: file_utils:file_name().
 
 
--export_type([ java_mbox_pid/0, title/0, body/0, result/0,
-			   java_class_name/0, java_file/0 ]).
+% The name of a Java compiled file (ex: "Foobar.class"):
+-type java_bytecode_filename() :: file_utils:file_name().
+
+
+-export_type([ java_mbox_pid/0,
+			   method_name/0, oneway_name/0, request_name/0,
+			   method_parameters/0, oneway_parameters/0, request_parameters/0,
+			   request_result/0,
+			   java_package_name/0, java_class_name/0, java_string_class_name/0,
+			   java_source_filename/0, java_bytecode_filename/0 ]).
 
 
 
 % Implementation notes:
 
 % The actual Erlang-Java binding is obtained thanks to the native Jinterface
-% package.
+% package, typically expected to be found in the
+% lib/erlang/lib/jinterface-current-install directory (generally a symbolic link
+% specifically created from the base directory of the Erlang installation,
+% usually ~/Software/Erlang/Erlang-current-install).
 %
 % See http://erlang.org/doc/apps/jinterface/jinterface_users_guide.html
 % for more information.
 %
 % On the Java side, the equivalent instance of an Erlang node is an OtpNode
 % (approximately a JVM) and messages can be sent and/or received through
-% instances of mailboxes (OtpMbox) that are associated to a PID.
+% instances of mailboxes (OtpMbox) that are associated to a PID (referred to as
+% java_mbox_pid/0).
 %
 % From the point of view of an Erlang process, such a PID can be treated as if
 % it was also an Erlang process.
 
 
 
-% Requests specified interpreter to execute specified oneway.
+% Finds the BEAM locations of all the dependencies required for binding to
+% Java.
 %
--spec send_oneway( java_mbox_pid(), title(), body() ) -> basic_utils:void().
-send_oneway( MailboxPid, MessageTitle, MessageBody )
-  when is_atom( MessageTitle ) ->
+-spec get_beam_directories_for_binding() -> [ file_utils:directory_name() ].
+get_beam_directories_for_binding() ->
+	[].
 
-	MailboxPid ! { self(), MessageTitle, MessageBody }.
+
+
+% Sends the specified oneway to the specified Java pseudo-process.
+%
+-spec send_oneway( java_mbox_pid(), oneway_name(), oneway_parameters() ) ->
+						 void().
+send_oneway( MailboxPid, OnewayName, OnewayParameters )
+  when is_atom( OnewayName ) andalso is_list( OnewayParameters ) ->
+	% No PID sent, no answer to expect:
+	MailboxPid ! { OnewayName, OnewayParameters }.
+
+
+
+% Sends the specified request to the specified Java pseudo-process.
+%
+-spec send_request( java_mbox_pid(), request_name(), request_parameters() ) ->
+						 void().
+send_request( MailboxPid, RequestName, RequestParameters )
+  when is_atom( RequestName ) andalso is_list( RequestParameters ) ->
+	% PID sent, as a reply is wanted:
+	MailboxPid ! { RequestName, RequestParameters, self() }.
+
+
+
+% Sends for execution the specified request to the specified Java
+% pseudo-process, and collects (synchronously) the corresponding result.
+%
+-spec execute_request( java_mbox_pid(), request_name(),
+					   request_parameters() ) -> request_result().
+execute_request( MailboxPid, RequestName, RequestParameters ) ->
+
+	send_request( MailboxPid, RequestName, RequestParameters ),
+
+	receive
+
+		{ java_request_result, Result } ->
+			Result
+
+	end.
 
 
 
 % Receives a message from the Java world, usually in answer to a send_oneway/3
-% call having used the same MessageTitle argument, and tries to match it with
-% the different accepted types of messages.
+% call having used the same MethodName argument, and tries to match it
+% with the different accepted types of messages.
 %
--spec wait_for_request_result( java_mbox_pid(), title() ) -> result().
-wait_for_request_result( MailboxPid, MessageTitle )
-  when is_atom( MessageTitle ) ->
+-spec wait_for_request_result( java_mbox_pid(), method_name() ) -> any().
+wait_for_request_result( MailboxPid, MethodName )
+  when is_atom( MethodName ) ->
 
 	% Waits for the response:
 	Message = receive
 
-		_Msg={ Headers, Body } when is_tuple( Headers ) andalso
+		_Msg={ Headers, MethodParameters } when is_tuple( Headers ) andalso
 							erlang:element( 1, Headers ) == java_message ->
 
-			erlang:append_element( erlang:delete_element( 1, Headers ), Body )
+			erlang:append_element( erlang:delete_element( 1, Headers ),
+								   MethodParameters )
 
 	end,
 
@@ -142,30 +225,32 @@ wait_for_request_result( MailboxPid, MessageTitle )
 			trace_utils:error_fmt( "A message received from a Java (Jinterface)"
 								   " OtpMbox driven by ~w, in answer to '~p', "
 								   "does not respect the expected format: ~p~n",
-								   [ MailboxPid, MessageTitle, OtherMessage ] ),
+								   [ MailboxPid, MethodName, OtherMessage ] ),
 			throw( { invalid_java_message_received, OtherMessage } )
 
 	end.
 
 
 
-% Deduces the (root) name of a Java file (source code for a class) from the name
-% of the class it implements, according to the naming conventions used by the
-% language.
+% Deduces the (root) name of a Java bytecode file from the name of the class it
+% implements, according to the naming conventions used by the language.
 %
-% With Java, both names are identical (hence we just check if the name looks
-% CamelCased, i.e. if at least its first letter is in upper case).
+% With Java, both names are identical except the extension, hence we just check
+% if the name looks CamelCased, i.e. if at least its first letter is in upper
+% case.
 %
--spec java_class_to_file_name( java_class_name() | string() ) -> java_file().
-java_class_to_file_name( ClassName ) when is_atom( ClassName ) ->
-	java_class_to_file_name( text_utils:atom_to_string( ClassName ) );
+-spec classname_to_bytecode_filename( java_class_name() | string() ) ->
+											java_bytecode_filename().
+classname_to_bytecode_filename( ClassName ) when is_atom( ClassName ) ->
+	classname_to_bytecode_filename( text_utils:atom_to_string( ClassName ) );
 
-java_class_to_file_name( ClassNameString ) ->
+classname_to_bytecode_filename( ClassNameString )
+  when is_list( ClassNameString ) ->
 
 	case text_utils:is_uppercase( ClassNameString ) of
 
 		true ->
-			text_utils:string_to_atom( ClassNameString );
+			ClassNameString ++ ".class";
 
 		false ->
 			throw( { java_classname_not_camelcased, ClassNameString } )

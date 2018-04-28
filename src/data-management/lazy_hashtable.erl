@@ -1,6 +1,6 @@
-% Copyright (C) 2011-2017 Olivier Boudeville
+% Copyright (C) 2011-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -703,7 +703,7 @@ toString( _LazyHashtable={ Hashtable, _OpCount }, DescriptionType ) ->
 
 % Displays the specified hashtable on the standard output.
 %
--spec display( lazy_hashtable() ) -> basic_utils:void().
+-spec display( lazy_hashtable() ) -> void().
 display( _LazyHashtable={ Hashtable, OpCount } ) ->
 
 	hashtable:display( Hashtable ),
@@ -715,7 +715,7 @@ display( _LazyHashtable={ Hashtable, OpCount } ) ->
 % Displays the specified hashtable on the standard output, with the specified
 % title on top.
 %
--spec display( string(), lazy_hashtable() ) -> basic_utils:void().
+-spec display( string(), lazy_hashtable() ) -> void().
 display( Title, _LazyHashtable={ Hashtable, OpCount } ) ->
 
 	hashtable:display( Title, Hashtable ),

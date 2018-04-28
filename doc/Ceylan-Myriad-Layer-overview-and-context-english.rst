@@ -1,0 +1,19 @@
+:raw-latex:`\pagebreak`
+
+------------------
+Overview & Context
+------------------
+
+When using any programming language, there are always **recurring patterns** that prove useful.
+
+Instead of writing them again and again, we prefer to gather them all in a **low-level layer** (mostly a modest **code library**), in their most convenient, reliable, efficient version, together with their specification, documentation and testing.
+
+This layer provides its (generally lightweight, simple) services just on top of the `Erlang <http://erlang.org>`_ language, as a relatively small (comprising currently about 60k lines), thin layer.
+
+These services tend to stay away from introducing any new dependency. Should a key, generic service need a third-party prerequisite (ex: library to manage a complex data format, or to process specific data), that dependency should be made fully optional [#]_ (then, should that depency be found not available, the corresponding service would be transparently disabled).
+
+.. [#] One may refer for example to what we did respectively for HDF5 and for JSON parsers in the context of REST support, with the ``USE_HDF5`` and ``USE_REST`` Make variables.
+
+.. comment Line count computed with: wc -l $(find . -name '*.?rl')`
+
+As a consequence, for the `Ceylan <https://github.com/Olivier-Boudeville/Ceylan>`_ project, the first level of the software stack we use relies on this ``Myriad`` layer - whose official, more specific name is the ``Ceylan-Myriad`` layer (and formerly known as the ``Common`` layer).

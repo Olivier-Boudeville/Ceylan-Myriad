@@ -50,6 +50,23 @@ TEST_SOURCES = $(filter-out $(EXCLUDED_SOURCES), $(wildcard *_test.erl))
 TEST_TARGETS = $(patsubst %.erl,%,$(TEST_SOURCES))
 
 
+
+# Java subsection.
+
+# Java (local) source files:
+JAVA_FILES = $(wildcard *.java)
+
+
+# Java class (bytecode) files:
+ifeq ($(USE_JAVA_BINDING),true)
+
+	 #JAVA_CLASS_FILES = $(patsubst %.java,%.class,$(JAVA_FILES))
+	 JAVA_CLASS_FILES =
+
+endif
+
+
+
 # Regarding dependency management.
 
 # One can just ignore dependencies and rebuild "blindly" every module in current
@@ -86,15 +103,18 @@ TEST_TARGETS = $(patsubst %.erl,%,$(TEST_SOURCES))
 # not taken into account at run-time, as not recompiled).
 
 
-.PHONY: all all-pre-hook all-parallel-recurse all-recurse rebuild			\
-	test test-recurse doc-recurse build-tests launch						\
-	install-all install-announce install-ebin install-bin install-src		\
-	install-include install-examples install-test install-doc				\
-	info-install info-install-locations info-install-content                \
-	generate-list-of-erlang-types generate-list-of-local-types              \
-	generate-local-plt self-check-against-plt check check-hook help-erl     \
-	clean clean-erlang clean-python clean-database clean-recurse            \
-	clean-outputs real-clean info info-files $(MODULES_DIRS)
+.PHONY: all all-pre-hook all-parallel-recurse all-recurse
+		all-parse-transforms bootstrap-modules make-all-parse-transforms    \
+		rebuild test test-recurse doc-recurse build-tests launch			\
+		install-all install-announce install-ebin install-bin install-src	\
+		install-include install-examples install-test install-doc			\
+		info-install info-install-locations info-install-content            \
+		generate-list-of-erlang-types generate-list-of-local-types          \
+		generate-local-plt self-check-against-plt check check-hook help-erl \
+		clean clean-erlang clean-python clean-database clean-recurse        \
+		clean-outputs real-clean                                            \
+		info info-files info-meta info-erlang info-python info-java         \
+		$(MODULES_DIRS)
 
 
 
@@ -108,7 +128,7 @@ TEST_TARGETS = $(patsubst %.erl,%,$(TEST_SOURCES))
 # accordingly:
 ifeq ($(BASE_MAKEFILE),true)
 
-# CORE_COUNT defined in common/GNUmakevars.inc:
+# CORE_COUNT defined in myriad/GNUmakevars.inc:
 all: all-pre-hook all-parse-transforms
 	@echo "   Building all, in parallel over $(CORE_COUNT) core(s), from "$(PWD) #$$(basename $(PWD))
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m &&  \
@@ -117,13 +137,15 @@ all: all-pre-hook all-parse-transforms
 
 else
 
-all: all-recurse-pre-hook all-recurse $(BEAM_FILES)
+all: all-recurse-pre-hook all-recurse $(BEAM_FILES) $(JAVA_CLASS_FILES)
 
 endif
 
 
 
-all-parse-transforms: $(BOOTSTRAP_MODULES) make-all-parse-transforms
+all-parse-transforms: bootstrap-modules make-all-parse-transforms
+
+bootstrap-modules: $(BOOTSTRAP_MODULES)
 
 
 make-all-parse-transforms:
@@ -169,7 +191,7 @@ all-parallel-recurse:
 
 all-recurse: $(BEAM_FILES)
 	@echo "   Building all in "$(PWD) #$$(basename $(PWD))
-	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s all CMD_LINE_OPT="${CMD_LINE_OPT}" USE_HDF5=$(USE_HDF5) USE_REST=$(USE_REST) USE_SQLITE=$(USE_SQLITE) && cd .. ; else echo "	 (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
+	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s all CMD_LINE_OPT="${CMD_LINE_OPT}" USE_HDF5=$(USE_HDF5) USE_REST=$(USE_REST) USE_SQLITE=$(USE_SQLITE) && cd .. ; else echo "  (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
 
 
 
@@ -177,12 +199,16 @@ all-recurse: $(BEAM_FILES)
 # lies, otherwise the BEAM file will be created on the current (ex: root)
 # directory:
 #
+# (note that, as a result, parse transforms are not themselves parse-transformed
+# by the ones of the lower layers)
+#
 %_parse_transform.beam: %_parse_transform.erl
 	@echo "		Compiling parse transform $<"
 	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $@ $<
 
 
 rebuild: clean all
+
 
 
 
@@ -194,21 +220,55 @@ rebuild: clean all
 # produced in the right directory (not at the root).
 #
 # Exactly the same processing applies to each of them.
+#
+# See also: in GNUmakevars.inc, the BOOTSTRAP_MODULES variable.
+
+# We cherry-pick modules in various source directories, and select all modules
+# in 'src/meta', built generically:
+
+# Note: maybe these (identical) rules can be factored with just different
+# sources and targets.
 
 
-$(COMMON_TOP)/src/utils/meta_utils.beam: $(COMMON_TOP)/src/utils/meta_utils.erl
+# In 'utils':
+
+$(MYRIAD_TOP)/src/utils/basic_utils.beam: $(MYRIAD_TOP)/src/utils/basic_utils.erl
 	@echo "		Compiling bootstrap module $<"
 	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
 
-$(COMMON_TOP)/src/utils/text_utils.beam: $(COMMON_TOP)/src/utils/text_utils.erl
+$(MYRIAD_TOP)/src/utils/text_utils.beam: $(MYRIAD_TOP)/src/utils/text_utils.erl
 	@echo "		Compiling bootstrap module $<"
 	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
 
-$(COMMON_TOP)/src/data-management/map_hashtable.beam: $(COMMON_TOP)/src/data-management/map_hashtable.erl
+$(MYRIAD_TOP)/src/utils/id_utils.beam: $(MYRIAD_TOP)/src/utils/id_utils.erl
 	@echo "		Compiling bootstrap module $<"
 	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
+
+
+# In 'meta':
+
+# Real parse-transform-specific rules:
+
+$(MYRIAD_TOP)/src/meta/%.beam: $(MYRIAD_TOP)/src/meta/%.erl
+	@echo "		Compiling bootstrap meta module $<"
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
+
+
+# In 'data-management':
+
+#$(MYRIAD_TOP)/src/data-management/list_table.beam: $(MYRIAD_TOP)/src/data-management/list_table.erl
+#	@echo "		Compiling bootstrap module $<"
+#	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
+
+$(MYRIAD_TOP)/src/data-management/map_hashtable.beam: $(MYRIAD_TOP)/src/data-management/map_hashtable.erl
+	@echo "		Compiling bootstrap module $<"
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+
 
 
 
@@ -220,6 +280,7 @@ $(COMMON_TOP)/src/data-management/map_hashtable.beam: $(COMMON_TOP)/src/data-man
 	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT) -o $@ $<
 
 
+# The most common rule:
 %.beam: %.erl
 	@echo "		Compiling module $<"
 	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT) -o $@ $<
@@ -230,6 +291,11 @@ $(COMMON_TOP)/src/data-management/map_hashtable.beam: $(COMMON_TOP)/src/data-man
 # have different suffixes (_app vs _test) and ways of being launched (make
 # X_exec / make X_run) otherwise, for example, my_server_app.erl would shadow
 # my_server_test.erl if an ambiguous 'make my_server_run' was issued.
+
+
+%.class: %.java
+	@echo "		Compiling the $< Java class"
+	@$(JAVAC) $(JAVAC_OPT) $<
 
 
 
@@ -569,13 +635,13 @@ info-install-content:
 # Ex: 'make generate-list-of-erlang-types ERLANG_SOURCE_ROOT=~/otp_src_R15B/'
 #
 generate-list-of-erlang-types:
-	@if [ -z "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, no ERLANG_SOURCE_ROOT variable specified." ; exit 15 ; fi ; if [ ! -d "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, specified directory (ERLANG_SOURCE_ROOT=$$ERLANG_SOURCE_ROOT) does not exist." ; exit 16 ; fi ; target_file="declared-types-in-Erlang.txt" ; erl="$(ERLANG_INTERPRETER)" ; target_path=$$(echo $$erl|sed "s|/bin/erl$$|/$$target_file|1") ; echo "  Generating the list of types declared in the Erlang runtime..." &&  $(COMMON_TOP)/src/scripts/list-available-types.sh "$$ERLANG_SOURCE_ROOT" > $$target_path && echo "  Types have been collected in '$$target_path'."
+	@if [ -z "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, no ERLANG_SOURCE_ROOT variable specified." ; exit 15 ; fi ; if [ ! -d "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, specified directory (ERLANG_SOURCE_ROOT=$$ERLANG_SOURCE_ROOT) does not exist." ; exit 16 ; fi ; target_file="declared-types-in-Erlang.txt" ; erl="$(ERLANG_INTERPRETER)" ; target_path=$$(echo $$erl|sed "s|/bin/erl$$|/$$target_file|1") ; echo "  Generating the list of types declared in the Erlang runtime..." &&  $(MYRIAD_TOP)/src/scripts/list-available-types.sh "$$ERLANG_SOURCE_ROOT" > $$target_path && echo "  Types have been collected in '$$target_path'."
 
 
 
 generate-list-of-local-types:
 	@echo "    Listing all types defined in package '$(PACKAGE_NAME)', in the $$(basename $(TYPE_LIST_FILE)) file"
-	@$(COMMON_TOP)/src/scripts/list-available-types.sh > $(TYPE_LIST_FILE)
+	@$(MYRIAD_TOP)/src/scripts/list-available-types.sh > $(TYPE_LIST_FILE)
 
 
 
@@ -625,7 +691,8 @@ help-erl:
 		"then 'hello:world().', then CTRL-C CTRL-C"
 
 
-clean: clean-erlang clean-python clean-database clean-override clean-recurse
+clean: clean-erlang clean-python clean-java clean-database clean-override \
+	   clean-recurse
 
 
 clean-erlang:
@@ -638,19 +705,24 @@ clean-python:
 	-@/bin/rm -rf '__pycache__'
 
 
+# We can have a Java binding:
+clean-java:
+	-@/bin/rm -f *.class
+
+
 clean-database:
 	-@/bin/rm -rf Mnesia.*@*
 
 
 # This target has been added in order to allow the packages making use of
-# 'Common' to define their specific cleaning rules.
+# 'Myriad' to define their specific cleaning rules.
 #
 # They could have defined in their own GNUmakerules.inc something like:
 #	clean: clean-mypackage
 #	clean-mypackage:
 #	  -@/bin/rm foo.mypackage
 # but then this 'clean' target would become the default one, whereas we expect
-# the 'all' default target of 'Common' to be triggered.
+# the 'all' default target of 'Myriad' to be triggered.
 # Thus we finally allowed upper packages to make their cleaning thanks to:
 # FILES_TO_CLEAN += foo.mypackage in their GNUmakevars.inc
 clean-override:
@@ -698,10 +770,6 @@ info: info-files
 	@echo "BEAM_DIRS              = $(BEAM_DIRS)"
 	@echo "BEAM_PATH_OPT          = $(BEAM_PATH_OPT)"
 	@echo "ARCHIVE_FILE           = $(ARCHIVE_FILE)"
-	@echo "ERLANG_INTERPRETER     = $(ERLANG_INTERPRETER)"
-	@echo "ERLANG_INTERPRETER_OPT = $(ERLANG_INTERPRETER_OPT)"
-	@echo "ERLANG_SRC             = $(ERLANG_SRC)"
-	@echo "VM_TEST_NAME           = $(VM_TEST_NAME)"
 	@echo "PROJECT_NAME           = $(PROJECT_NAME)"
 	@echo "PROJECT_VERSION        = $(PROJECT_VERSION)"
 	@echo "PACKAGE_NAME           = $(PACKAGE_NAME)"
@@ -718,5 +786,32 @@ info-files:
 	@echo "PLT_FILE        = $(PLT_FILE)"
 
 
+info-meta:
+	@echo "META_SRC_FILES = $(META_SRC_FILES)"
+	@echo "META_BEAM_FILES = $(META_BEAM_FILES)"
 
-include $(COMMON_TOP)/doc/GNUmakerules-docutils.inc
+
+info-erlang:
+	@echo "ERLANG_INTERPRETER     = $(ERLANG_INTERPRETER)"
+	@echo "ERLANG_INTERPRETER_OPT = $(ERLANG_INTERPRETER_OPT)"
+	@echo "ERLANG_ROOT            = $(ERLANG_ROOT)"
+	@echo "ERLANG_SRC             = $(ERLANG_SRC)"
+	@echo "VM_TEST_NAME           = $(VM_TEST_NAME)"
+
+
+# No Python source or binary files to be specifically managed by the build
+# infrastructure itself.
+#
+info-python:
+	@echo "USE_PYTHON_BINDING = $(USE_PYTHON_BINDING)"
+
+
+info-java:
+	@echo "USE_JAVA_BINDING = $(USE_JAVA_BINDING)"
+	@echo "JAVA_FILES = $(JAVA_FILES)"
+	@echo "JAVA_CLASS_FILES = $(JAVA_CLASS_FILES)"
+	@echo "JINTERFACE_ROOT = $(JINTERFACE_ROOT)"
+	@echo "JAVAC_OPT = $(JAVAC_OPT)"
+
+
+include $(MYRIAD_TOP)/doc/GNUmakerules-docutils.inc
