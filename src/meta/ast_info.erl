@@ -767,7 +767,7 @@ locate_all_in( _LocatedForms=[ LocForm={ ActualLoc, _Form } | T ],
 write_module_info_to_file( ModuleInfo, Filename ) ->
 
 	% Note: we cannot actually use file_utils, which is not a prerequisite of
-	% the 'Common' parse transform:
+	% the 'Myriad' parse transform:
 
 	% We overwrite any pre-existing file:
 	{ ok, File } = file:open( Filename, [ write, raw ] ),

@@ -26,7 +26,7 @@
 
 
 % This module defines a few basic facilities for applications, at the level of
-% the 'Common' layer.
+% the 'Myriad' layer.
 %
 -module(app_facilities).
 

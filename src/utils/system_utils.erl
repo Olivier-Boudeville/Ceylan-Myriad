@@ -2293,7 +2293,7 @@ is_json_support_available() ->
 %
 -spec get_json_unavailability_hint() -> string().
 get_json_unavailability_hint() ->
-	"Hint: inspect, in common/GNUmakevars.inc, the USE_REST and "
+	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_REST and "
 	"JSX_BASE variables, knowing that the current code path is: "
 		++ code_utils:get_code_path_as_string().
 
@@ -2329,5 +2329,5 @@ is_hdf5_support_available() ->
 %
 -spec get_hdf5_unavailability_hint() -> string().
 get_hdf5_unavailability_hint() ->
-	"Hint: inspect, in common/GNUmakevars.inc, the USE_HDF5 and "
+	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_HDF5 and "
 	"ERLHDF5_BASE variables.".

@@ -1112,7 +1112,7 @@ get_cookie_option() ->
 %
 % Note that if a non-default EPMD port is specified for a new node, this implies
 % that the current node usually has to itself respect the same non-standard
-% convention (ex: see the FIREWALL_OPT make option in common/GNUmakevars.inc),
+% convention (ex: see the FIREWALL_OPT make option in myriad/GNUmakevars.inc),
 % otherwise available nodes will not be found.
 %
 -spec get_epmd_environment( maybe( tcp_port() ) ) ->
@@ -1156,7 +1156,7 @@ get_node_name_option( NodeName, NodeNamingMode ) ->
 %
 % If using a specific TCP/IP port range for a new node, the current node may
 % have to respect this constraint as well (see the FIREWALL_OPT make option in
-% common/GNUmakevars.inc), otherwise inter-node communication could fail.
+% myriad/GNUmakevars.inc), otherwise inter-node communication could fail.
 %
 -spec get_tcp_port_range_option( 'no_restriction' | tcp_port_range() ) ->
 									   string().

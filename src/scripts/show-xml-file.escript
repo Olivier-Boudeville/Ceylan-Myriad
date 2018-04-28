@@ -144,7 +144,7 @@ show_indent( Level ) ->
 
 %% Verbatim duplication sections.
 %%
-%% Maybe using common/src/utils/script_utils.erl would be better than
+%% Maybe using myriad/src/utils/script_utils.erl would be better than
 %% duplicating code here.
 %%
 
@@ -153,7 +153,7 @@ show_indent( Level ) ->
 % references fixed) the functions of interest, so that there is no prerequisite.
 
 
-% Taken from common/src/utils/file_utils.erl:
+% Taken from myriad/src/utils/file_utils.erl:
 
 
 % For the file_info record:
@@ -173,4 +173,4 @@ exists( EntryName ) ->
 	end.
 
 
-% End of the common/src/utils/file_utils.erl section.
+% End of the myriad/src/utils/file_utils.erl section.

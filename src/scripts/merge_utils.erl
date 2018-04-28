@@ -122,7 +122,7 @@
 -type analyzer_ring() :: ring_utils:ring( pid() ).
 
 
-% This script depends on the 'Common' layer (a.k.a. Ceylan-Myriad), and only on
+% This script depends on the 'Myriad' layer (a.k.a. Ceylan-Myriad), and only on
 % that code.
 %
 % Note: ensure it is already built first!
@@ -168,7 +168,7 @@ main( [ "--help" ] ) ->
 main( [ "--scan", TreePath ] ) ->
 
 	% First, enable all possible helper code:
-	update_code_path_for_common(),
+	update_code_path_for_myriad(),
 
 	% Prepare for various outputs:
 	UserState = start_user_service( ?default_log_filename ),
@@ -196,7 +196,7 @@ main( [ "--scan", TreePath ] ) ->
 main( [ SourceTree, TargetTree ] ) ->
 
 	% First enable all possible helper code:
-	update_code_path_for_common(),
+	update_code_path_for_myriad(),
 
 	% Prepare for various outputs:
 	UserState = start_user_service( ?default_log_filename ),
@@ -879,33 +879,33 @@ file_data_to_string( #file_data{
 % Verbatime section.
 
 
-% Copied verbatim from common/src/utils/script_utils.erl:
+% Copied verbatim from myriad/src/utils/script_utils.erl:
 
-% Updates the VM code path so that all modules of the 'Common' layer can be
+% Updates the VM code path so that all modules of the 'Myriad' layer can be
 % readily used.
 %
 % Note: this function and its helpers might be copied verbatim to the target
 % escript so that it can really be used from anywhere (not only from the
 % directory it is stored).
 %
--spec update_code_path_for_common() -> void().
-update_code_path_for_common() ->
+-spec update_code_path_for_myriad() -> void().
+update_code_path_for_myriad() ->
 
-	CommonRootDir = get_root_of_common(),
+	MyriadRootDir = get_root_of_myriad(),
 
-	io:format( "Root of 'Common': ~s~n", [ CommonRootDir ] ),
+	io:format( "Root of 'Myriad': ~s~n", [ MyriadRootDir ] ),
 
-	CommonSrcDir = filename:join( CommonRootDir, "src" ),
+	MyriadSrcDir = filename:join( MyriadRootDir, "src" ),
 
-	CommonBeamSubDirs = [ "utils", "user-interface", "maths",
+	MyriadBeamSubDirs = [ "utils", "user-interface", "maths",
 						  "data-management" ],
 
-	CommonBeamDirs = [ filename:join( CommonSrcDir, D )
-					   || D <- CommonBeamSubDirs ],
+	MyriadBeamDirs = [ filename:join( MyriadSrcDir, D )
+					   || D <- MyriadBeamSubDirs ],
 
-	io:format( "'Common' beam dirs: ~p~n", [ CommonBeamDirs ] ),
+	io:format( "'Myriad' beam dirs: ~p~n", [ MyriadBeamDirs ] ),
 
-	ok = code:add_pathsa( CommonBeamDirs ).
+	ok = code:add_pathsa( MyriadBeamDirs ).
 
 
 
@@ -946,8 +946,8 @@ get_script_base_directory() ->
 
 
 
-% Returns the root directory of the Common layer.
+% Returns the root directory of the Myriad layer.
 %
--spec get_root_of_common() -> file_utils:path().
-get_root_of_common() ->
+-spec get_root_of_myriad() -> file_utils:path().
+get_root_of_myriad() ->
 	filename:join( [ get_script_base_directory(), ".." ] ).

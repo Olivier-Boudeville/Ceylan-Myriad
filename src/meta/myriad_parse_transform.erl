@@ -27,7 +27,7 @@
 
 
 
-% Overall parse transform for the 'Ceylan-Myriad' (formerly 'Common') layer.
+% Overall parse transform for the 'Ceylan-Myriad' layer.
 %
 % See meta_utils.erl and meta_utils_test.erl.
 %

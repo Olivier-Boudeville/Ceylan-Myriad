@@ -533,12 +533,12 @@ ERL_LAUNCHER = $(MYRIAD_SRC)/scripts/launch-erl.sh
 #
 ifndef BOOTSTRAP_MODULES
 
-	# We want to bootstrap all module from 'meta':
+	# We want to bootstrap all relevant modules from 'meta':
 
 	META_SRC_FILES = $(wildcard $(MYRIAD_TOP)/src/meta/*.erl)
 
 	EXCLUDED_FROM_BOOTSTRAPPED_META = \
-				$(MYRIAD_TOP)/src/meta/common_parse_transform_test.erl   \
+				$(MYRIAD_TOP)/src/meta/myriad_parse_transform_test.erl   \
 				$(MYRIAD_TOP)/src/meta/example_parse_transform.erl       \
 				$(MYRIAD_TOP)/src/meta/minimal_parse_transform_test.erl  \
 				$(MYRIAD_TOP)/src/meta/simple_parse_transform_target.erl \
@@ -605,13 +605,13 @@ ERLANG_COMPILER_GENERAL_OPT += -b beam $(DEBUG_INFO_KEY_OPT)
 
 
 # Variable defined to be re-usable by upper layers, so that compiling their own
-# parse transforms can take advantage of the Common one:
+# parse transforms can take advantage of the Myriad one:
 #
-ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_COMMON = \
+ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD = \
 					-pz $(MYRIAD_TOP)/src/utils                 \
 					-pz $(MYRIAD_TOP)/src/meta                  \
 					-pz $(MYRIAD_TOP)/src/data-management       \
-					'+{parse_transform,common_parse_transform}'
+					'+{parse_transform,myriad_parse_transform}'
 
 
 # To apply a parse transform, not only it must be already compiled, but also,
@@ -623,21 +623,21 @@ ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_COMMON = \
 #
 # We conditionally defined this option, as upper layers may want to trigger
 # their own parse transforms *instead* (probably that will call directly, by
-# themselves, at the Erlang level, this 'Common' parse transform):
+# themselves, at the Erlang level, this 'Myriad' parse transform):
 #
 ifndef ERLANG_COMPILER_PARSE_TRANSFORM_OPT
 
-	   # We need src/{utils,meta,data-management} in the path, as the 'Common'
+	   # We need src/{utils,meta,data-management} in the path, as the 'Myriad'
 	   # parse transform uses meta modules that use map_hashtable (which is thus
 	   # bootstrapped as well).
 
 	   # Note: if, when compiling a module, the following error message is
-	   # issued: "undefined parse transform 'common_parse_transform'", then it
+	   # issued: "undefined parse transform 'myriad_parse_transform'", then it
 	   # is most probably that the code of the parse transform actually calls,
 	   # directly or not, a non-existing code (typically a function of a module
 	   # to be built later)
 
-	   ERLANG_COMPILER_PARSE_TRANSFORM_OPT = $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_COMMON)
+	   ERLANG_COMPILER_PARSE_TRANSFORM_OPT = $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD)
 
 endif
 
@@ -721,7 +721,7 @@ ERLANG_INTERPRETER_OPT = -pz $(BEAM_DIRS) $(DISTRIBUTED_NODE_OPT)
 # Erlang Default (only used in a node that is distributed):
 #EPMD_PORT := 4369
 
-# 'Common' default, to force correct port management:
+# 'Myriad' default, to force correct port management:
 #
 # Note: if modifying this port definition, upper layers may have to modify that
 # accordingly.
@@ -850,7 +850,7 @@ endif
 
 
 # For later reuse in the next layer of the software stack:
-COMMON_PLT_FILE := $(MYRIAD_TOP)/common.plt
+MYRIAD_PLT_FILE := $(MYRIAD_TOP)/myriad.plt
 
 
 # Shorthand:
@@ -859,7 +859,7 @@ BATCH_OPT = 'CMD_LINE_OPT="--batch"'
 
 # This is the merged PLT of the level just below in the software stack.
 #
-# For 'Common', it is the PLT of Erlang/OTP (possibly enriched by
+# For 'Myriad', it is the PLT of Erlang/OTP (possibly enriched by
 # prerequisites):
 #
 ifndef PREDECESSOR_PLT

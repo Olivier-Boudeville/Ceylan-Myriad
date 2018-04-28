@@ -28,10 +28,10 @@
 
 
 % This module allows to test with as few dependencies as possible the
-% 'common_parse_transform' parse transform as a standalone unit, hence with
+% 'myriad_parse_transform' parse transform as a standalone unit, hence with
 % proper error and warning messages.
 %
-% See the common_parse_transform.erl tested module.
+% See the myriad_parse_transform.erl tested module.
 %
 -module(minimal_parse_transform_test).
 
@@ -70,10 +70,10 @@ run() ->
 	TargetSourceFile = "simple_parse_transform_target.erl",
 	%TargetSourceFile = "../data-management/preferences.erl",
 
-	io:format( "Applying the common parse transform to the "
+	io:format( "Applying the myriad parse transform to the "
 			   "'~s' source file.~n~n", [ TargetSourceFile ] ),
 
-	TransformedAST = common_parse_transform:run_standalone( TargetSourceFile ),
+	TransformedAST = myriad_parse_transform:run_standalone( TargetSourceFile ),
 
 	io:format( "Transformed AST:~n~p~n~n", [ TransformedAST ] ),
 

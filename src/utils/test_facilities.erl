@@ -26,7 +26,7 @@
 
 
 % This module defines a few basic facilities for tests, at the level of the
-% 'Common' layer.
+% 'Myriad' layer.
 %
 -module(test_facilities).
 

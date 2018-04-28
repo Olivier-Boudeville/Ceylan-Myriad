@@ -38,7 +38,7 @@
 %
 % See unit_utils_test.erl for the corresponding test.
 %
-% Read the 'Management of Units' section of the technical manual of the Common
+% Read the 'Management of Units' section of the technical manual of the Myriad
 % Layer for more information.
 %
 -module(unit_utils).
@@ -474,7 +474,7 @@
 
 % String containing a unit, in standard form (ex: "km/h", "mW.m^-3").
 %
-% Read the 'Management of Units' section of the technical manual of the Common
+% Read the 'Management of Units' section of the technical manual of the Myriad
 % Layer for more information.
 %
 -type unit_string() :: string().

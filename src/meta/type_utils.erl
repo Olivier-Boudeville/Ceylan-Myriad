@@ -360,7 +360,7 @@
 % on a translated version of the textual type (which is for example:
 % "[{float,boolean}]").
 %
-% This "internal type language of the Common layer" is largely inspired from the
+% This "internal type language of the Myriad layer" is largely inspired from the
 % forms that can be found in actual ASTs.
 %
 % Requirements for this term-based description were:

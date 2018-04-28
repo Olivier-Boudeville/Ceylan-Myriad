@@ -749,4 +749,4 @@ if [ $do_generate_plt -eq 0 ] ; then
 fi
 
 echo "
-If wanting to generate a list of all the declared types in this Erlang distribution, and if having the 'Common' package, you can run: 'cd common ; make generate-list-of-erlang-types ERLANG_SOURCE_ROOT=${prefix}'."
+If wanting to generate a list of all the declared types in this Erlang distribution, and if having the 'Myriad' package, you can run: 'cd myriad ; make generate-list-of-erlang-types ERLANG_SOURCE_ROOT=${prefix}'."

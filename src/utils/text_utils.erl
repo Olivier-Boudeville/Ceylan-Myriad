@@ -208,7 +208,7 @@
 
 
 % This module being a bootstrap one, the 'table' pseudo-module is not available
-% (as this module is not processed by the 'Common' parse transform):
+% (as this module is not processed by the 'Myriad' parse transform):
 %
 -define( table, map_hashtable ).
 

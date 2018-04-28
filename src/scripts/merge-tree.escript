@@ -14,8 +14,7 @@
 % Directly using the module-based version now, in merge_utils.erl, for an easier
 % debugging (ex: with proper stack traces with lines).
 
-% This script depends on the 'Common' layer (a.k.a. Ceylan-Myriad), and only on
-% that code.
+% This script depends on the 'Myriad' layer, and only on that code.
 
 
 

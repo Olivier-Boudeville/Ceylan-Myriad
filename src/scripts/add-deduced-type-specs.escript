@@ -911,7 +911,7 @@ notify( Message ) ->
 
 %% Verbatim duplication sections.
 %%
-%% Maybe using common/src/utils/script_utils.erl would be better than
+%% Maybe using myriad/src/utils/script_utils.erl would be better than
 %% duplicating code here.
 %%
 
@@ -920,7 +920,7 @@ notify( Message ) ->
 % references fixed) the functions of interest, so that there is no prerequisite.
 
 
-% Taken from common/src/utils/text_utils.erl:
+% Taken from myriad/src/utils/text_utils.erl:
 
 % join(Separator,ListToJoin), ex: join( '-', [ "Barbara", "Ann" ] ).
 %
@@ -950,13 +950,13 @@ join( Separator, [ H | T ], Acc ) ->
 	join( Separator, T, [ Separator, H | Acc ] ).
 
 
-% End of the common/src/utils/text_utils.erl section.
+% End of the myriad/src/utils/text_utils.erl section.
 
 
 
 
 
-% Taken from common/src/utils/file_utils.erl:
+% Taken from myriad/src/utils/file_utils.erl:
 
 
 % For the file_info record:
@@ -1015,4 +1015,4 @@ is_existing_directory( EntryName ) ->
 	end.
 
 
-% End of the common/src/utils/file_utils.erl section.
+% End of the myriad/src/utils/file_utils.erl section.

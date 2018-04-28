@@ -354,8 +354,8 @@ erl_to_ast( ErlSourceFilename ) ->
 -spec beam_to_ast( file:filename() ) -> ast().
 beam_to_ast( BeamFilename ) ->
 
-	% We do not use functions from other Common modules here (ex: file_utils) as
-	% they are not expected to be built yet (they will be built with the common
+	% We do not use functions from other Myriad modules here (ex: file_utils) as
+	% they are not expected to be built yet (they will be built with the myriad
 	% parse transform afterwards).
 	%
 	case file:read_link_info( BeamFilename ) of
@@ -869,7 +869,7 @@ get_elements_with_context( Elements, Context ) ->
 write_ast_to_file( AST, Filename ) ->
 
 	% Note: we cannot actually use file_utils, which is not a prerequisite of
-	% the 'Common' parse transform:
+	% the 'Myriad' parse transform:
 
 	% We overwrite any pre-existing file:
 	{ ok, File } = file:open( Filename, [ write, raw ] ),
