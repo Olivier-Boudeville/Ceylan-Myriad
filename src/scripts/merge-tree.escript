@@ -5,15 +5,17 @@
 % Commented out: -pa ../utils
 
 
-% Copyright (C) 2016-2017 Olivier Boudeville (olivier.boudeville@esperide.com)
+% Copyright (C) 2016-2018 Olivier Boudeville
+% [ olivier (dot) boudeville (at) esperide (dot) com]
+
 
 % Released as LGPL software.
 
 % Directly using the module-based version now, in merge_utils.erl, for an easier
 % debugging (ex: with proper stack traces with lines).
 
-% This script depends on the 'Common' layer (a.k.a. Ceylan-Myriad), and only on
-% that code.
+% This script depends on the 'Myiad' layer, and only on that code (that shall be
+% recompiled beforehand).
 
 
 
