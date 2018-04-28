@@ -1,6 +1,7 @@
 % Copyright (C) 2016-2018 Olivier Boudeville (olivier.boudeville@esperide.com)
 
-% Copied from merge-tree.escript to have a more user-friendly debugging.
+% Transfered from merge-tree.escript to benefit from a more user-friendly
+% debugging.
 
 % Released as LGPL software.
 
@@ -17,8 +18,10 @@
 
 -define( merge_cache_filename, ".merge-tree.cache" ).
 
+
 % Version of this tool:
--define( merge_script_version, "0.1" ).
+-define( merge_script_version, "0.0.1" ).
+
 
 -define( default_log_filename, "merge-tree.log" ).
 
@@ -29,7 +32,7 @@
 
 
 % Shorthands:
--type sha1()  :: executable_utils:sha1_sum().
+-type sha1() :: executable_utils:sha1_sum().
 -type count() :: basic_utils:count().
 
 
@@ -41,7 +44,7 @@
 -record( file_data, {
 
 		   % Path of this file, relative to the tree root:
-		   path :: file_utils:path(),
+		   path :: file_utils:bin_path(),
 
 		   % Type of the file element:
 		   type :: file_utils:entry_type(),
@@ -64,7 +67,9 @@
 
 % Table referencing file entries based on their SHA1:
 %
--type sha1_table() :: table:table( sha1(), [ file_data() ] ).
+% (generally exactly one file_data record per SHA1 key)
+%
+-type sha1_table() :: table( sha1(), [ file_data() ] ).
 
 
 % Pair entries of a sha1_table/0:
@@ -75,8 +80,8 @@
 %
 -record( tree_data, {
 
-		   % Base, absolute path of that tree:
-		   root :: file_utils:directory_name(),
+		   % Base, absolute (binary) path of that tree:
+		   root :: file_utils:bin_directory_name(),
 
 		   % Each key is the SHA1 sum of a file content, each value is a list of
 		   % the file entries whose content matches that sum (hence are supposed
@@ -93,7 +98,7 @@
 		   % Total count of the symbolic links found in this tree:
 		   symlink_count = 0 :: count(),
 
-		   % Total count of the device found in this tree:
+		   % Total count of the devices found in this tree:
 		   device_count = 0 :: count(),
 
 		   % Total count of the other elements found in this tree:
@@ -104,26 +109,28 @@
 -type tree_data() :: #tree_data{}.
 
 
+-export_type([ file_data/0, tree_data/0 ]).
+
 
 
 % User-related state:
--type user_state() :: { ui:ui_state(), 'undefined' | file_utils:file() }.
-
-
--export_type([ file_data/0, tree_data/0 ]).
+-type user_state() :: { ui:ui_state(), maybe( file_utils:file() ) }.
 
 
 % To run from the interpreter rather than as an escript:
 -export([ run/0, scan/1, main/1 ]).
 
 
+% The PID of an analyzer process:
+-type analyzer_pid() :: pid().
+
+
 % Ring of analyzer processes:
 %
--type analyzer_ring() :: ring_utils:ring( pid() ).
+-type analyzer_ring() :: ring_utils:ring( analyzer_pid() ).
 
 
-% This script depends on the 'Common' layer (a.k.a. Ceylan-Myriad), and only on
-% that code.
+% This script depends on the 'Myriad' layer, and only on that code.
 %
 % Note: ensure it is already built first!
 
@@ -131,17 +138,18 @@
 
 get_usage() ->
 	"   Usage:\n"
-	"      - either: 'merge-tree.escript SOURCE_TREE TARGET_TREE'\n"
+	"      - either: 'merge-tree.escript TREE_TO_SCAN REFERENCE_TREE'\n"
 	"      - or: 'merge-tree.escript --scan A_TREE'\n\n"
-	"   Ensures that all the changes in a possibly more up-to-date, \"newer\" tree (SOURCE_TREE) are merged back to the reference tree (TARGET_TREE), from which the source one derivated. Once executed, only a refreshed reference target tree will exist, as the input SOURCE_TREE will be removed since all the content of its own will have been put back in the reference TARGET_TREE.\n"
+	"   Ensures that all the changes in a possibly more up-to-date, \"newer\" tree (TREE_TO_SCAN) are merged back to the reference tree (REFERENCE_TREE), from which the tree to scan may have derived. Once executed, only a refreshed reference tree will exist, as the input TREE_TO_SCAN tree will be removed: all its original content (i.e. its content that was not already in the reference tree) will have been transfered in the reference REFERENCE_TREE.\n"
 	"   In the reference tree, in-tree duplicated content will be removed and replaced by symbolic links, to keep only a single version of each actual content.\n"
-	"   All the timestamps of the files in the reference tree will be set to the current time, and, at the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to spare later computations of the file checksums.\n"
-	"   If the --scan option is used, then the specified tree will be inspected, duplicates will be replaced with symbolic links, and a corresponding '" ?merge_cache_filename "' file will be created (to be potentially reused by a later merge).
+	"   All the timestamps of the files in the reference tree will be set to the current time, and, at the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains. As a result, once that merge is done, the reference tree will contain an uniquified version of the union of the two specified trees, and the tree to scan will not exist anymore.\n"
+	"   If the --scan option is used, then the specified tree will be inspected, duplicates will be replaced with symbolic links (the tree will be uniquified), and a corresponding '" ?merge_cache_filename "' file will be created (to be potentially reused by a later merge).
 ".
 
 
 
-
+% Typically for testing:
+%
 run() ->
 	io:format( "Running...~n" ),
 	Args = init:get_plain_arguments(),
@@ -149,15 +157,17 @@ run() ->
 	throw( fixme ).
 
 
+% Typically for testing:
+%
 scan( TreePath ) ->
 	io:format( "Scanning '~s'...~n", [ TreePath ] ),
 	main( [ "--scan", TreePath ] ).
 
 
 
-% Entry point of the script.
+% Entry point of the script (typically called directly from merge-tree.escript).
 %
--spec main( [ string() ] ) -> basic_utils:void().
+-spec main( [ string() ] ) -> void().
 main( [ "-h" ] ) ->
 	io:format( "~s", [ get_usage() ] );
 
@@ -168,7 +178,7 @@ main( [ "--help" ] ) ->
 main( [ "--scan", TreePath ] ) ->
 
 	% First, enable all possible helper code:
-	update_code_path_for_common(),
+	update_code_path_for_myriad(),
 
 	% Prepare for various outputs:
 	UserState = start_user_service( ?default_log_filename ),
@@ -177,7 +187,7 @@ main( [ "--scan", TreePath ] ) ->
 
 	% Best, reasonable CPU usage:
 	Analyzers = spawn_data_analyzers( system_utils:get_core_count() + 1,
-									   UserState ),
+									  UserState ),
 
 	AnalyzerRing = ring_utils:from_list( Analyzers ),
 
@@ -196,7 +206,7 @@ main( [ "--scan", TreePath ] ) ->
 main( [ SourceTree, TargetTree ] ) ->
 
 	% First enable all possible helper code:
-	update_code_path_for_common(),
+	update_code_path_for_myriad(),
 
 	% Prepare for various outputs:
 	UserState = start_user_service( ?default_log_filename ),
@@ -311,7 +321,7 @@ stop_user_service( _UserState={ UIState, LogFile } ) ->
 
 % Checks that the source and target trees exist.
 %
--spec check_content_trees( tree_data(), tree_data() ) -> basic_utils:void().
+-spec check_content_trees( tree_data(), tree_data() ) -> void().
 check_content_trees( SourceTree, TargetTree ) ->
 
 	case file_utils:is_existing_directory( SourceTree ) of
@@ -335,35 +345,52 @@ check_content_trees( SourceTree, TargetTree ) ->
 	end.
 
 
-
-% Updates specified content tree: verifies that it exists, that a merge cache
-% file exists and is up to date (otherwise rebuilds it) and returns the
-% corresponding datastrucuture.
+% Returns the path of the cache file corresponding to the specified tree path.
 %
--spec update_content_tree( file_utils:directory_name(), analyzer_ring(),
-						   user_state() ) -> basic_utils:void().
-update_content_tree( Tree, AnalyzerRing, UserState ) ->
+-spec get_cache_path_for( file_utils:directory_name() ) ->
+								file_utils:file_name().
+get_cache_path_for( TreePath ) ->
+	file_utils:join( TreePath, ?merge_cache_filename ).
 
-	case file_utils:is_existing_directory( Tree ) of
+
+
+% Ensures that specified tree path exists.
+%
+-spec check_tree_path_exists( file_utils:directory_name() ) -> void().
+check_tree_path_exists( TreePath ) ->
+
+	case file_utils:is_existing_directory( TreePath ) of
 
 		true ->
 			ok;
 
 		false ->
-			throw( { non_existing_content_tree, Tree } )
+			throw( { non_existing_content_tree, TreePath } )
 
 	end,
 
-	CacheFilename = file_utils:join( Tree, ?merge_cache_filename ),
+
+% Updates specified content tree: verifies that it exists, that a merge cache
+% file exists and is up to date (otherwise rebuilds it), and returns the
+% corresponding datastructure.
+%
+-spec update_content_tree( file_utils:directory_name(), analyzer_ring(),
+						   user_state() ) -> void().
+update_content_tree( TreePath, AnalyzerRing, UserState ) ->
+
+
+	CacheFilename = get_cache_path_for( TreePath ),
 
 	case file_utils:is_existing_file( CacheFilename ) of
 
 		true ->
-			% Load it if trusted:
+			% Load it, if trusted (typically if not older from the newest
+			% element in tree):
+			%
 			throw( fixme );
 
 		false ->
-			create_merge_cache_file_for( Tree, CacheFilename, AnalyzerRing,
+			create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
 										 UserState )
 
 	end.
@@ -374,10 +401,13 @@ update_content_tree( Tree, AnalyzerRing, UserState ) ->
 % existing merge cache file), and returns that tree.
 %
 -spec create_merge_cache_file_for( file_utils:directory_name(),
-					analyzer_ring(), user_state() ) -> tree_data().
-create_merge_cache_file_for( Tree, AnalyzerRing, UserState ) ->
-	CacheFilename = file_utils:join( Tree, ?merge_cache_filename ),
-	create_merge_cache_file_for( Tree, CacheFilename, AnalyzerRing, UserState ).
+					   analyzer_ring(), user_state() ) -> tree_data().
+create_merge_cache_file_for( TreePath, AnalyzerRing, UserState ) ->
+
+	CacheFilename = get_cache_path_for( Tree ),
+
+	create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
+								 UserState ).
 
 
 
@@ -391,15 +421,7 @@ create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
 
 	AbsTreePath = file_utils:ensure_path_is_absolute( TreePath ),
 
-	case file_utils:is_existing_directory( AbsTreePath ) of
-
-		true ->
-			ok;
-
-		false ->
-			throw( { non_existing_content_tree, AbsTreePath } )
-
-	end,
+	check_tree_path_exists( AbsTreePath ),
 
 	trace( "Creating merge cache file '~s'.", [ CacheFilename ], UserState ),
 
@@ -407,7 +429,7 @@ create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
 								 _Opts=[ write, raw, delayed_write ] ),
 
 	%ScriptName = filename:basename( escript:script_name() ),
-	ScriptName = "direct merge_code",
+	ScriptName = "merge_utils",
 
 	file_utils:write( MergeFile, "% Merge cache file written by '~s' "
 								 "(version ~s):~n"
@@ -436,9 +458,9 @@ create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
 
 
 
-% Spawns the specified number of data analyzers and returns their PID.
+% Spawns the specified number of data analyzers, and returns their PID.
 %
--spec spawn_data_analyzers( count(), user_state() ) -> [ pid() ].
+-spec spawn_data_analyzers( count(), user_state() ) -> [ analyzer_pid() ].
 spawn_data_analyzers( Count, UserState ) ->
 	trace_debug( "Spawning ~B data analyzers.", [ Count ], UserState ),
 	[ spawn_link( fun() -> analyze_loop() end )
@@ -447,13 +469,17 @@ spawn_data_analyzers( Count, UserState ) ->
 
 % Terminates specified data analyzers.
 %
--spec terminate_data_analyzers( [ pid() ], user_state() ) -> basic_utils:void().
+-spec terminate_data_analyzers( [ analyzer_pid() ], user_state() ) ->
+									  void().
 terminate_data_analyzers( PidList, UserState ) ->
 	trace_debug( "Terminating ~B data analyzers (~p).",
 				 [ length( PidList ), PidList ], UserState ),
 	[ P ! terminate || P <- PidList ].
 
 
+
+% Scans for good the specified tree.
+%
 -spec scan_tree( file_utils:path(), analyzer_ring(), user_state() ) ->
 					   tree_data().
 scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
@@ -462,20 +488,23 @@ scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 
 	AllFiles = file_utils:find_files_from( AbsTreePath ),
 
-	% Not wanting to index our own files (if any):
+	% Not wanting to index our own files (if any already exists):
 	FilteredFiles = lists:delete( ?merge_cache_filename, AllFiles ),
 
 	trace_debug( "Found ~B files:~s", [ length( FilteredFiles ),
 			text_utils:strings_to_string( FilteredFiles ) ], UserState ),
 
-	scan_files( FilteredFiles, AbsTreePath, AnalyzerRing ).
+	% For lighter sendings and storage:
+	FilteredBinFiles = text_utils:strings_to_binaries( FilteredFiless ),
+
+	scan_files( FilteredBinFiles, AbsTreePath, AnalyzerRing ).
 
 
 
 % Scans specified content files, using for that the specified analyzers,
 % returning the corresponding tree data.
 %
--spec scan_files( [ file_utils:file_name() ], file_utils:path(),
+-spec scan_files( [ file_utils:bin_file_name() ], file_utils:path(),
 				  analyzer_ring() ) -> tree_data().
 scan_files( Files, AbsTreePath, AnalyzerRing ) ->
 
@@ -486,40 +515,41 @@ scan_files( Files, AbsTreePath, AnalyzerRing ) ->
 
 scan_files( _Files=[], _AnalyzerRing, TreeData, _WaitedCount=0 ) ->
 	% In final state (none waited), hence directly returned:
-	%io:format( "All file entries retrieved.~n" ),
+	%trace_info( "All file entries retrieved." ),
 	TreeData;
 
 scan_files( _Files=[], _AnalyzerRing, TreeData, WaitedCount ) ->
 	% Will return an updated tree data once all answers are received:
-	%io:format( "Final waiting for ~B entries.~n", [ WaitedCount ] ),
+	%trace_info( "Final waiting for ~B entries.", [ WaitedCount ] ),
 	wait_entries( TreeData, WaitedCount );
 
 scan_files( _Files=[ Filename | T ], AnalyzerRing,
 			TreeData=#tree_data{ root=AbsTreePath }, WaitedCount ) ->
 
-	FullPath = filename:join( AbsTreePath, Filename ),
+	{ AnalyzerPid, NewRing } = ring_utils:head( AnalyzerRing ),
 
-	{ Analyzer, NewRing } = ring_utils:head( AnalyzerRing ),
+	%trace_debug( "Requesting analysis of '~s' by ~w.",
+	%   [ FullPath, AnalyzerPid ] ),
 
-	%io:format( "Requesting analysis of '~s' by ~w.~n",
-	%   [ FullPath, Analyzer ] ),
-
-	Analyzer ! { analyze_file, FullPath, self() },
+	% WOOPER-style request:
+	AnalyzerPid ! { analyzeFile, [ AbsTreePath, Filename ], self() },
 
 	% Helps controlling flow and avoiding too large mailboxes on either side
-	% (this main script, being slowed down, or the analyzers):
+	% (this main script, being slowed down, or the analyzers), by attempting to
+	% receive once after each sending:
 	%
 	receive
 
-		{ analyzed, FileData } ->
+		{ file_analyzed, FileData } ->
 
 			NewTreeData = manage_received_data( FileData, TreeData ),
-			% Plus one minus one:
+			% Plus one (sending) minus one (receiving):
 			scan_files( T, NewRing, NewTreeData, WaitedCount )
 
 	after 0 ->
 
-			scan_files( T, NewRing, TreeData, WaitedCount + 1 )
+		% One sending, no receiving here:
+		scan_files( T, NewRing, TreeData, WaitedCount+1 )
 
 	end.
 
@@ -536,7 +566,7 @@ manage_received_data( FileData=#file_data{ type=Type, sha1_sum=Sum },
 										   device_count=DeviceCount,
 										   other_count=OtherCount } ) ->
 
-	%io:format( "Data received: ~s~n",
+	%trace_debug( "Data received: ~s",
 	%		   [ file_data_to_string( FileData ) ] ),
 
 	% Ensures we associate a list to each SHA1 sum:
@@ -594,30 +624,39 @@ wait_entries( TreeData, WaitedCount ) ->
 
 % The loop run by each analyzer process.
 %
--spec analyze_loop() -> basic_utils:void().
+-spec analyze_loop() -> void().
 analyze_loop() ->
 
-	%io:format( "Analyzer ~w waiting...~n", [ self() ] ),
+	%trace_debug( "Analyzer ~w waiting...", [ self() ] ),
 
 	receive
 
-		{ analyze_file, FilePath, SenderPid } ->
-			%io:format( "Analyzer ~w taking in charge '~s'...~n",
-			%		   [ self(), FilePath ] ),
-			FileData = #file_data{
-						   path=FilePath,
-						   type=file_utils:get_type_of( FilePath ),
-						   size=file_utils:get_size( FilePath ),
-						   timestamp=file_utils:get_last_modification_time(
-									   FilePath ),
-						   sha1_sum=executable_utils:compute_sha1_sum( FilePath )
-			},
+		{ analyzeFile, [ AbsTreeBinPath, RelativeBinFilename ], SenderPid } ->
 
-			SenderPid ! { analyzed, FileData },
+			AbsTreePath = text_utils:binary_to_string( AbsTreeBinPath ),
+
+			RelativeFilename = text_utils:binary_to_string(
+								 RelativeBinFilename ),
+
+			FilePath = file_utils:join( AbsTreePath, RelativeFilename ),
+
+			FileBinPath = text_utils:string_to_binary( FilePath ),
+
+			%trace_debug( "Analyzer ~w taking in charge '~s'...",
+			%			  [ self(), FullPath ] ),
+
+			FileData = #file_data{
+				path=FileBinPath,
+				type=file_utils:get_type_of( FilePath ),
+				size=file_utils:get_size( FilePath ),
+				timestamp=file_utils:get_last_modification_time( FilePath ),
+				sha1_sum=executable_utils:compute_sha1_sum( FilePath ) },
+
+			SenderPid ! { file_analyzed, FileData },
 			analyze_loop();
 
 		terminate ->
-			%io:format( "Analyzer ~w terminated.~n", [ self() ] ),
+			%trace_debug( "Analyzer ~w terminated.", [ self() ] ),
 			ok
 
 	end.
@@ -627,17 +666,18 @@ analyze_loop() ->
 % Returns a textual diagnosis of specified tree.
 %
 -spec diagnose_tree( tree_data(), user_state() ) -> tree_data().
-diagnose_tree( #tree_data{
-				  root=_RootDir,
-				  entries=ContentTable,
-				  file_count=FileCount }, UserState ) ->
+diagnose_tree( TreeData#tree_data{ root=_RootDir,
+								   entries=EntryTable,
+								   file_count=FileCount }, UserState ) ->
 
-	DuplicateCount = FileCount - table:size( ContentTable ),
+	DuplicateCount = FileCount - table:size( EntryTable ),
 
-	{ NewContentTable, RemovedDuplicateCount } = manage_duplicates(
-												   ContentTable, UserState ),
+	{ NewEntryTable, RemovedDuplicateCount } = manage_duplicates(
+												   EntryTable, UserState ),
 
-	case DuplicateCount - RemovedDuplicateCount of
+	RemainingDuplicateCount = DuplicateCount - RemovedDuplicateCount,
+
+	case RemainingDuplicateCount of
 
 		0 ->
 			trace( "All ~B duplicates removed.", [ DuplicateCount ],
@@ -645,12 +685,17 @@ diagnose_tree( #tree_data{
 
 		Count when Count > 0 ->
 			trace( "Out of the ~B duplicates detected, ~B remain (~B removed).",
-				   [ DuplicateCount, DuplicateCount, RemovedDuplicateCount ],
+				   [ DuplicateCount, Count, RemovedDuplicateCount ],
 				   UserState )
 
 	end,
 
-	NewContentTable.
+	NewFileCount = table:size( NewEntryTable ),
+
+	trace( "~B unique entries remain.", [ NewFileCount ] ),
+
+	TreeData#tree_data{ entries=NewEntryTable,
+						file_count=NewFileCount }.
 
 
 
@@ -659,9 +704,9 @@ diagnose_tree( #tree_data{
 %
 -spec manage_duplicates( sha1_table(), user_state() ) ->
 							   { sha1_table(), count() }.
-manage_duplicates( ContentTable, UserState ) ->
+manage_duplicates( EntryTable, UserState ) ->
 
-	ContentEntries = table:enumerate( ContentTable ),
+	ContentEntries = table:enumerate( EntryTable ),
 
 	% We could have forced that no duplication at all exists afterwards (and
 	% then a given SHA1 sum would be associated to exactly one content), however
@@ -879,41 +924,41 @@ file_data_to_string( #file_data{
 % Verbatime section.
 
 
-% Copied verbatim from common/src/utils/script_utils.erl:
+% Copied verbatim from common/src/utils/script_utils.erl, for bootstrap:
 
-% Updates the VM code path so that all modules of the 'Common' layer can be
+% Updates the VM code path so that all modules of the 'Myriad' layer can be
 % readily used.
 %
 % Note: this function and its helpers might be copied verbatim to the target
 % escript so that it can really be used from anywhere (not only from the
 % directory it is stored).
 %
--spec update_code_path_for_common() -> basic_utils:void().
-update_code_path_for_common() ->
+-spec update_code_path_for_myriad() -> void().
+update_code_path_for_myriad() ->
 
-	CommonRootDir = get_root_of_common(),
+	MyriadRootDir = get_root_of_myriad(),
 
-	io:format( "Root of 'Common': ~s~n", [ CommonRootDir ] ),
+	io:format( "Root of 'Myriad': ~s~n", [ MyriadRootDir ] ),
 
-	CommonSrcDir = filename:join( CommonRootDir, "src" ),
+	MyriadSrcDir = filename:join( MyriadRootDir, "src" ),
 
-	CommonBeamSubDirs = [ "utils", "user-interface", "maths",
+	MyriadBeamSubDirs = [ "utils", "user-interface", "maths", "meta",
 						  "data-management" ],
 
-	CommonBeamDirs = [ filename:join( CommonSrcDir, D )
-					   || D <- CommonBeamSubDirs ],
+	MyriadBeamDirs = [ filename:join( MyriadSrcDir, D )
+					   || D <- MyriadBeamSubDirs ],
 
-	io:format( "'Common' beam dirs: ~p~n", [ CommonBeamDirs ] ),
+	io:format( "'Myriad' beam dirs: ~p~n", [ MyriadBeamDirs ] ),
 
-	ok = code:add_pathsa( CommonBeamDirs ).
+	ok = code:add_pathsa( MyriadBeamDirs ).
 
 
 
 % Returns the base directory of that script, i.e. where it is stored (regardless
 % of the possibly relative path whence it was launched).
 %
-% Note: useful to locate resources (ex: other modules) defined with that script
-% and needed by it.
+% Note: useful to locate resources (ex: other modules) defined along that
+% script, and needed by it.
 %
 -spec get_script_base_directory() -> file_utils:path().
 get_script_base_directory() ->
@@ -946,8 +991,8 @@ get_script_base_directory() ->
 
 
 
-% Returns the root directory of the Common layer.
+% Returns the root directory of the Myriad layer.
 %
--spec get_root_of_common() -> file_utils:path().
-get_root_of_common() ->
+-spec get_root_of_myriad() -> file_utils:path().
+get_root_of_myriad() ->
 	filename:join( [ get_script_base_directory(), ".." ] ).
