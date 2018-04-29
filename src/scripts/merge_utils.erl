@@ -367,7 +367,8 @@ check_tree_path_exists( TreePath ) ->
 		false ->
 			throw( { non_existing_content_tree, TreePath } )
 
-	end,
+	end.
+
 
 
 % Updates specified content tree: verifies that it exists, that a merge cache
@@ -404,7 +405,7 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 					   analyzer_ring(), user_state() ) -> tree_data().
 create_merge_cache_file_for( TreePath, AnalyzerRing, UserState ) ->
 
-	CacheFilename = get_cache_path_for( Tree ),
+	CacheFilename = get_cache_path_for( TreePath ),
 
 	create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
 								 UserState ).
@@ -495,7 +496,7 @@ scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 			text_utils:strings_to_string( FilteredFiles ) ], UserState ),
 
 	% For lighter sendings and storage:
-	FilteredBinFiles = text_utils:strings_to_binaries( FilteredFiless ),
+	FilteredBinFiles = text_utils:strings_to_binaries( FilteredFiles ),
 
 	scan_files( FilteredBinFiles, AbsTreePath, AnalyzerRing ).
 
@@ -666,7 +667,7 @@ analyze_loop() ->
 % Returns a textual diagnosis of specified tree.
 %
 -spec diagnose_tree( tree_data(), user_state() ) -> tree_data().
-diagnose_tree( TreeData#tree_data{ root=_RootDir,
+diagnose_tree( TreeData=#tree_data{ root=_RootDir,
 								   entries=EntryTable,
 								   file_count=FileCount }, UserState ) ->
 
