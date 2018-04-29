@@ -36,11 +36,59 @@
 -include("test_facilities.hrl").
 
 
+
+% The actual test:
+run_test_ui() ->
+
+	UIState = ui:start(),
+
+	ui:display( "My text to display!", UIState ),
+
+	ui:display_error( "My error to display!", UIState ),
+
+	ui:display_numbered_list( "My label for following items:",
+							  [ "Foo", "Bar", "Baz" ], UIState ),
+
+	FirstChoice = ui:choose_designated_item(
+					[ { choice_1, "Choice 1" },
+					  { choice_2, "Choice 2" },
+					  { choice_3, "Choice 3" },
+					  { choice_4, "Choice 4" } ], UIState ),
+
+	ui:display( "First choice has been ~p", [ FirstChoice ], UIState ),
+
+	ui:add_separation( UIState ),
+
+	SecondChoice = ui:choose_numbered_item_with_default(
+					 "This is my label; just choose below:",
+					 [ "Choice 1", "Choice 2", "Choice 3", "Choice 4" ],
+					 2, UIState ),
+
+
+	ui:display( "Second choice has been ~p", [ SecondChoice ], UIState ),
+
+
+	ui:trace( "My UI trace", UIState ),
+
+	ui:stop( UIState ).
+
+
+
 -spec run() -> no_return().
 run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	ui:start(),
+	case executable_utils:is_batch() of
+
+		true ->
+			test_facilities:display( "(not running the MyriadGUI test, "
+									 "being in batch mode)" );
+
+		false ->
+			run_test_ui()
+
+	end,
+
 
 	test_facilities:stop().
