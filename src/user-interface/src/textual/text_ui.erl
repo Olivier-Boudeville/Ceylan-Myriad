@@ -23,87 +23,83 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Monday, February 15, 2010.
+% Creation date: Wednesday, May 2, 2018
 
 
-% Gathering of various facilities for User Interfaces (graphical or not).
+
+% This is the most basic, line-based monochrome textual interface, directly in
+% raw text with no cursor control.
 %
-% The base interface proposed here is purely textual.
-%
-% See ui_test.erl for the corresponding test.
+% See text_ui_test.erl for the corresponding test.
 %
 % See gui.erl for a graphical counterpart.
 %
 % See also: trace_utils.erl for another kind of output.
 %
--module(ui).
+-module(text_ui).
 
-
-% We tried to use 'dialog' or 'whiptail' to provide a nice text interface, but
-% neither seems to work with Erlang (regardless of how we run them and the
-% options given to the interpreter).
-
-% Zenity could be used as well, not to mention a plain use of the wxWidgets
-% module, 'wx', however we do not want here to depend on a graphical interface
-% (such as X), as servers often do not have such a feature.
 
 
 % Implementation notes:
+%
+% In this very spceific case, we use the process dictionary to avoid having to
+% keep around a UI-state variable in all calls.
+%
+% So most of the time the UI state is implicit; counterpart functions with an
+% explicit state are also provided (ex: if having a large number of UI
+% operations to perform in a row), in which case they are to return an updated
+% state.
 
 
 % Basic UI operations.
 %
 -export([ start/0, start/1,
-		  display/2, display/3, display_numbered_list/3,
-		  display_error/2, display_error/3, display_error_numbered_list/3,
 
-		  add_separation/1,
+		  display/1, display/2, display/3,
+
+		  display_numbered_list/2, display_numbered_list/3,
+
+		  display_error/1, display_error/2, display_error/3,
+
+		  display_error_numbered_list/2, display_error_numbered_list/3,
+
+		  add_separation/0, add_separation/1,
 
 		  get_text/2, get_text_as_integer/2, get_text_as_maybe_integer/2,
 
-		  choose_designated_item/2, choose_designated_item/3,
-		  choose_numbered_item/2, choose_numbered_item/3,
-		  choose_numbered_item_with_default/3, choose_numbered_item_with_default/4,
+		  choose_designated_item/1, choose_designated_item/2, 
+		  choose_designated_item/3,
 
-		  trace/2,
-		  stop/1 ]).
+		  choose_numbered_item/1, choose_numbered_item/2, 
+		  choose_numbered_item/3,
 
+		  choose_numbered_item_with_default/2, 
+		  choose_numbered_item_with_default/3,
+		  choose_numbered_item_with_default/4,
 
--type text() :: text_utils:string().
+		  trace/1, trace/2,
 
--type label() :: text().
--type prompt() :: text().
-
-
-% The text of a choice:
--type choice_text() :: text().
+		  stop/0, stop/1 ]).
 
 
-% Designator of a choice (ex: regardless of the choice labels, locales, etc.):
--type choice_designator() :: atom().
 
-
-% The index of a choice (starting at 1):
--type choice_index() :: basic_utils:count().
-
-
--type choice_element() :: { choice_designator(), choice_text() }.
-
-
--record( ui_state, {
+-record( text_ui_state, {
 		   log_console = false :: boolean(),
 		   log_file = undefined :: maybe( file_utils:file() )
 }).
 
 
--type ui_state() :: #ui_state{}.
+-type ui_state() :: #text_ui_state{}.
 
 -type ui_options() :: [ any() ].
 
 
+% For common, transverse defines:
+-include("ui.hrl").
 
--export_type([ text/0, label/0, ui_state/0, ui_options/0,
-			   choice_designator/0, choice_index/0, choice_element/0 ]).
+
+-export_type([ ui_state/0, ui_options/0 ]).
+
 
 
 % An I/O device, either standard_io, standard_error, a registered name, or a pid
@@ -115,8 +111,15 @@
 -define( error_suffix, "~n" ).
 
 
+% The key used by this module to store its state in the process dictionaty:
+-define( state_key, text_ui_state ).
+
+
 
 % Starts the UI with default settings.
+%
+% Stores the corresponding state in the process dictionary, yet returns as well
+% that state, for any explicit later operation.
 %
 -spec start() -> ui_state().
 start() ->
@@ -126,65 +129,60 @@ start() ->
 
 % Starts the UI with specified settings.
 %
+% Stores the corresponding state in the process dictionary, yet returns as well
+% that state, for any explicit later operation.
+%
 -spec start( ui_options() ) -> ui_state().
 start( Options ) ->
-	BlankState = #ui_state{},
-	start( Options, BlankState ).
+	BlankUIState = #text_ui_state{},
+	start( Options, BlankUIState ).
 
 
 % (helper)
-start( _Options=[], State ) ->
-	State;
+start( _Options=[], UIState ) ->
+	% No prior state expected:
+	undefined = process_dictionary:put( ?state_key, UIState ),
+	UIState;
 
-start( _Options=[ log_file | T ], State ) ->
-	start( [ { log_file, "ui.log" } | T ], State );
+start( _Options=[ log_file | T ], UIState ) ->
+	start( [ { log_file, "ui.log" } | T ], UIState );
 
-start( _Options=[ { log_file, Filename } | T ], State ) ->
+start( _Options=[ { log_file, Filename } | T ], UIState ) ->
 	LogFile = file_utils:open( Filename, [ write, exclusive ] ),
 	file_utils:write( LogFile, "Starting UI.\n" ),
-	NewState = State#ui_state{ log_file=LogFile },
-	start( T, NewState );
+	NewUIState = UIState#text_ui_state{ log_file=LogFile },
+	start( T, NewUIState );
 
-start( SingleElem, State ) ->
-	start( [ SingleElem ], State ).
-
-
+start( SingleElem, UIState ) ->
+	start( [ SingleElem ], UIState ).
 
 
-% Displays specified text, on specified channel.
+
+
+% Displays specified text, as a normal message, based on an implicit state.
 %
-% (helper)
+-spec display( text() ) -> void().
+display( Text ) ->
+	display( Text, get_state() ).
+
+
+% Displays specified text, as a normal message, based on an explicit state.
 %
--spec display_helper( channel(), text(), ui_state() ) -> ui_state().
-display_helper( Channel, Text, UIState ) ->
-	display_helper( Channel, Text, _Values=[], UIState ).
-
-
-
-% Displays specified formatted text, on specified channel.
+% Displays specified formatted text, as a normal message, based on an implicit
+% state.
 %
--spec display_helper( channel(), text_utils:format_string(), [ term() ],
-					  ui_state() ) -> ui_state().
-display_helper( Channel, FormatString, Values, UIState ) ->
+-spec display( text(), ui_state() ) -> ui_state();
+			 ( text_utils:format_string(), [ term() ] ) -> void().
+display( Text, UIState ) when is_record( UIState, text_ui_state ) ->
+	display_helper( _Channel=standard_io, Text, UIState );
 
-	%trace_utils:debug_fmt( "Displaying, on channel '~p', '~p', with '~p'.",
-	%				   [ Channel, FormatString, Values ] ),
-
-	io:format( Channel, FormatString ++ "~n", Values ),
-	UIState.
+display( FormatString, Values ) ->
+	display( FormatString, Values, get_state() ).
 
 
 
-
-% Displays specified text, as a normal message.
-%
--spec display( text(), ui_state() ) -> ui_state().
-display( Text, UIState ) ->
-	display_helper( _Channel=standard_io, Text, UIState ).
-
-
-
-% Displays specified formatted text, as a normal message.
+% Displays specified formatted text, as a normal message, based on an explicit
+% state.
 %
 -spec display( text_utils:format_string(), [ term() ], ui_state() ) ->
 					 ui_state().
@@ -192,7 +190,17 @@ display( FormatString, Values, UIState ) ->
 	display_helper( _Channel=standard_io, FormatString, Values, UIState ).
 
 
-% Displays in-order the items of specified list, as a normal message.
+
+% Displays in-order the items of specified list, as a normal message, based on
+% an implicit state.
+%
+-spec display_numbered_list( label(), [ text() ] ) -> void().
+display_numbered_list( Label, Lines ) ->
+	display_numbered_list( Label, Lines, get_state() ).
+
+
+% Displays in-order the items of specified list, as a normal message, based on
+% an explicit state.
 %
 -spec display_numbered_list( label(), [ text() ], ui_state() ) -> ui_state().
 display_numbered_list( Label, Lines, UIState ) ->
@@ -201,16 +209,33 @@ display_numbered_list( Label, Lines, UIState ) ->
 					UIState ).
 
 
-% Displays specified text, as an error message.
+
+% Displays specified text, as an error message, based on an implicit state.
 %
--spec display_error( text(), ui_state() ) -> ui_state().
-display_error( Text, UIState ) ->
+-spec display_error( text() ) -> void().
+display_error( Text ) ->
+	display_error( Text, get_state() ).
+
+
+
+% Displays specified text, as an error message, based on an explicit state.
+%
+% Displays specified formatted text, as an error message, based on an implicit
+% state.
+%
+-spec display_error( text(), ui_state() ) -> ui_state();
+				   ( text_utils:format_string(), [ term() ] ) -> void().
+display_error( Text, UIState ) when is_record( UIState, text_ui_state ) ->
 	display_helper( standard_error, ?error_prefix ++ Text ++ ?error_suffix,
-					UIState ).
+					UIState );
+
+display_error( FormatString, Values ) ->
+	display_error( FormatString, Values, get_state() ).
 
 
 
-% Displays specified formatted text, as an error message.
+% Displays specified formatted text, as an error message, based on an explicit
+% state.
 %
 -spec display_error( text_utils:format_string(), [ term() ], ui_state() ) ->
 					 ui_state().
@@ -220,16 +245,39 @@ display_error( FormatString, Values, UIState ) ->
 					UIState ).
 
 
-% Displays in-order the items of specified list, as an error message.
+
+% Displays in-order the items of specified list, as an error message, based on
+% an implicit state.
 %
--spec display_error_numbered_list( label(), [ text() ], ui_state() ) -> ui_state().
+-spec display_error_numbered_list( label(), [ text() ] ) -> void().
+display_error_numbered_list( Label, Lines ) ->
+	display_error_numbered_list( Label, Lines, get_state() ).
+
+
+
+% Displays in-order the items of specified list, as an error message, based on
+% an explicit state.
+%
+-spec display_error_numbered_list( label(), [ text() ], ui_state() ) ->
+										 ui_state().
 display_error_numbered_list( Label, Lines, UIState ) ->
 	LineStrings = text_utils:strings_to_enumerated_string( Lines ),
-	display_helper( _Channel=standard_error, ?error_prefix ++ "~s~s" ++ ?error_suffix,
+	display_helper( _Channel=standard_error,
+					?error_prefix ++ "~s~s" ++ ?error_suffix,
 					[ Label, LineStrings ], UIState ).
 
 
-% Adds a default separation between previous and next content.
+
+% Adds a default separation between previous and next content, based on an
+% implicit state.
+%
+-spec add_separation() -> void().
+add_separation() ->
+	add_separation( get_state() ).
+
+
+% Adds a default separation between previous and next content, based on an
+% explicit state.
 %
 -spec add_separation( ui_state() ) -> ui_state().
 add_separation( UIState ) ->
@@ -238,31 +286,58 @@ add_separation( UIState ) ->
 
 
 
-% Returns the user-entered text.
+% Returns the user-entered text, based on an implicit state.
 %
--spec get_text( prompt(), ui_state() ) -> text().
-get_text( Prompt, _UIState ) ->
+% (const)
+%
+-spec get_text( prompt() ) -> text().
+get_text( Prompt ) ->
 	text_utils:remove_ending_carriage_return( io:get_line( Prompt ) ).
 
 
-
-% Returns the user-entered text, once translated to an integer.
+% Returns the user-entered text, based on an explicit state.
 %
--spec get_text_as_integer( prompt(), ui_state() ) -> text().
-get_text_as_integer( Prompt, UIState ) ->
+% (const)
+%
+-spec get_text( prompt(), ui_state() ) -> text().
+get_text( Prompt, _UIState ) ->
+	get_text( Prompt ).
 
-	Text = get_text( Prompt, UIState ),
+
+
+% Returns the user-entered text, once translated to an integer, based on an
+% implicit state.
+%
+% (const)
+%
+-spec get_text_as_integer( prompt() ) -> text().
+get_text_as_integer( Prompt ) ->
+
+	Text = get_text( Prompt ),
 
 	text_utils:string_to_integer( Text ).
 
 
-
-% Returns the user-entered text (if any), once translated to an integer.
+% Returns the user-entered text, once translated to an integer, based on an
+% explicit state.
 %
--spec get_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( text() ).
-get_text_as_maybe_integer( Prompt, UIState ) ->
+% (const)
+%
+-spec get_text_as_integer( prompt(), ui_state() ) -> text().
+get_text_as_integer( Prompt, _UIState ) ->
+	get_text_as_integer( Prompt ).
 
-	case get_text( Prompt, UIState ) of
+
+
+% Returns the user-entered text (if any), once translated to an integer, based
+% on an implicit state.
+%
+% (const)
+%
+-spec get_text_as_maybe_integer( prompt() ) -> maybe( text() ).
+get_text_as_maybe_integer( Prompt ) ->
+
+	case get_text( Prompt ) of
 
 		"" ->
 			undefined;
@@ -270,25 +345,60 @@ get_text_as_maybe_integer( Prompt, UIState ) ->
 		Text ->
 			text_utils:string_to_integer( Text )
 
-end.
+	end.
+
+
+% Returns the user-entered text (if any), once translated to an integer, based
+% on an explicit state.
+%
+% (const)
+%
+-spec get_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( text() ).
+get_text_as_maybe_integer( Prompt, _UIState ) ->
+	get_text_as_maybe_integer( Prompt ).
+
 
 
 
 % Selects, using a default prompt, an item among the specified ones, and returns
-% its designator.
+% its designator, based on an implicit state.
 %
--spec choose_designated_item( [ choice_element() ], ui_state() ) -> choice_designator().
-choose_designated_item( Choices, UIState ) ->
+% (const)
+%
+-spec choose_designated_item( [ choice_element() ] ) -> choice_designator().
+choose_designated_item( Choices ) ->
+	choose_designated_item( Choices, get_state() ).
+
+
+% Selects, using a default prompt, an item among the specified ones, and returns
+% its designator, based on an explicit state.
+%
+% Selects, based on an implicit state, using the specified label, an item among
+% the specified ones, and returns its designator.
+%
+% (const)
+%
+-spec choose_designated_item( [ choice_element() ], ui_state() ) ->
+									choice_designator();
+							( label(), [ choice_element() ] ) ->
+									choice_designator().
+choose_designated_item( Choices, UIState )
+  when is_record( UIState, text_ui_state ) ->
 
 	Prompt = text_utils:format( "Select among these ~B choices:",
 								[ length( Choices ) ] ),
 
-	choose_designated_item( Prompt, Choices, UIState ).
+	choose_designated_item( Prompt, Choices, UIState );
+
+choose_designated_item( Label, Choices ) ->
+	choose_designated_item( Label, Choices, get_state() ).
 
 
 
-% Selects, using the specified label, an item among the specified ones, and returns
-% its designator.
+% Selects, based on an explicit state, using the specified label, an item among
+% the specified ones, and returns its designator.
+%
+% (const)
 %
 -spec choose_designated_item( label(), [ choice_element() ], ui_state() ) ->
 									choice_designator().
@@ -324,13 +434,14 @@ choose_designated_item( Label, Choices, UIState ) ->
 	case SelectedNumber of
 
 		N when N < 1 ->
-			display_error( "Specified choice shall be at least 1 (not ~B).", [ N ],
-						   UIState ),
+			display_error( "Specified choice shall be at least 1 (not ~B).",
+						   [ N ], UIState ),
 			throw( { invalid_choice, too_low, N } );
 
 		N when N > ChoiceCount ->
-			display_error( "Specified choice shall not be greater than ~B (not ~B).",
-						   [ ChoiceCount, N ], UIState ),
+			display_error(
+			  "Specified choice shall not be greater than ~B (not ~B).",
+			  [ ChoiceCount, N ], UIState ),
 			throw( { invalid_choice, too_high, N } );
 
 		N ->
@@ -340,23 +451,38 @@ choose_designated_item( Label, Choices, UIState ) ->
 
 
 
+% Selects, based on an implicit state, using a default label, an item among the
+% specified ones, and returns its index.
+%
+-spec choose_numbered_item( [ choice_element() ] ) ->  choice_index().
+choose_numbered_item( Choices ) ->
+	choose_numbered_item( Choices, get_state() ).
 
-% Selects, using a default label, an item among the specified ones, and returns
-% its index.
+
+% Selects, based on an explicit state, using a default label, an item among the
+% specified ones, and returns its index.
+%
+% Selects, based on an implicit state, using the specified label, an item among
+% the specified ones, and returns its index.
 %
 -spec choose_numbered_item( [ choice_element() ], ui_state() ) ->
-								  choice_index().
-choose_numbered_item( Choices, UIState ) ->
+								  choice_index();
+						  ( label(), [ choice_element() ] ) -> choice_index().
+choose_numbered_item( Choices, UIState )
+  when is_record( UIState, text_ui_state ) ->
 
 	Label = text_utils:format( "Select among these ~B choices:",
 								[ length( Choices ) ] ),
 
-	choose_numbered_item( Label, Choices, UIState ).
+	choose_numbered_item( Label, Choices, UIState );
+
+choose_numbered_item( Label, Choices ) ->
+	choose_numbered_item( Label, Choices, get_state() ).
 
 
 
-% Selects, using the specified label, an item among the specified ones, and returns
-% its index.
+% Selects, based on an explicit state, using the specified label, an item among
+% the specified ones, and returns its index.
 %
 -spec choose_numbered_item( label(), [ choice_element() ], ui_state() ) ->
 								  choice_index().
@@ -390,13 +516,14 @@ choose_numbered_item( Label, Choices, UIState ) ->
 	case SelectedNumber of
 
 		N when N < 1 ->
-			display_error( "Specified choice shall be at least 1 (not ~B).", [ N ],
-						   UIState ),
+			display_error( "Specified choice shall be at least 1 (not ~B).",
+						   [ N ], UIState ),
 			throw( { invalid_choice, too_low, N } );
 
 		N when N > ChoiceCount ->
-			display_error( "Specified choice shall not be greater than ~B (not ~B).",
-						   [ ChoiceCount, N ], UIState ),
+			display_error(
+			  "Specified choice shall not be greater than ~B (not ~B).",
+			  [ ChoiceCount, N ], UIState ),
 			throw( { invalid_choice, too_high, N } );
 
 		N ->
@@ -406,29 +533,50 @@ choose_numbered_item( Label, Choices, UIState ) ->
 
 
 
+% Selects, based on an implicit state, using a default label, an item among the
+% specified ones, and returns its index.
+%
+-spec choose_numbered_item_with_default( [ choice_element() ],
+										 choice_index() ) -> choice_index().
+choose_numbered_item_with_default( Choices, DefaultChoiceIndex ) ->
+	choose_numbered_item_with_default( Choices, DefaultChoiceIndex,
+									   get_state() ).
 
-% Selects, using a default label, an item among the specified ones, and returns
-% its index.
+
+
+% Selects, based on an explicit state, using a default label, an item among the
+% specified ones, and returns its index.
+%
+% Selects, based on an implicit state, using the specified label and default
+% item, an item among the specified ones, and returns its index.
 %
 -spec choose_numbered_item_with_default( [ choice_element() ], choice_index(),
-										 ui_state() ) -> choice_index().
-choose_numbered_item_with_default( Choices, DefaultChoiceIndex, UIState ) ->
+										 ui_state() ) -> choice_index();
+									   ( label(), [ choice_element() ],
+										 maybe( choice_index() ) ) ->
+											   choice_index().
+choose_numbered_item_with_default( Choices, DefaultChoiceIndex, UIState )
+  when is_record( UIState, text_ui_state ) ->
 
 	Label = text_utils:format( "Select among these ~B choices:",
 								[ length( Choices ) ] ),
 
 	choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
-									   UIState ).
+									   UIState );
+
+choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex ) ->
+	choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
+									   get_state() ).
 
 
 
-
-% Selects, using the specified label and default item, an item among the
-% specified ones, and returns its index.
+% Selects, based on an explicit state, using the specified label and default
+% item, an item among the specified ones, and returns its index.
 %
 -spec choose_numbered_item_with_default( label(), [ choice_element() ],
 			maybe( choice_index() ), ui_state() ) -> choice_index().
-choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex, UIState ) ->
+choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
+								   UIState ) ->
 
 	ChoiceCount = length( Choices ),
 
@@ -473,13 +621,14 @@ choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex, UIState )
 			DefaultChoiceIndex;
 
 		N when N < 1 ->
-			display_error( "Specified choice shall be at least 1 (not ~B).", [ N ],
+			display_error( "Specified choice shall be at least 1 (not ~B).",
+						   [ N ],
 						   UIState ),
 			throw( { invalid_choice, too_low, N } );
 
 		N when N > ChoiceCount ->
-			display_error( "Specified choice shall not be greater than ~B (not ~B).",
-						   [ ChoiceCount, N ], UIState ),
+			display_error( "Specified choice shall not be greater than ~B "
+						   "(not ~B).", [ ChoiceCount, N ], UIState ),
 			throw( { invalid_choice, too_high, N } );
 
 		N ->
@@ -489,21 +638,84 @@ choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex, UIState )
 
 
 
-% Traces specified status string.
+% Traces specified status string, based on an explicit state.
 %
--spec trace( string(), ui_state() ) -> ui_state().
+-spec trace( string(), ui_state() ) -> void().
 trace( Text, UIState ) ->
 	display( "[trace] " ++ Text ++ "\n", UIState ).
 
+
+% Traces specified status string, based on an implicit state.
+%
+-spec trace( string() ) -> void().
+trace( Text ) ->
+	trace( Text, get_state() ).
+
+
+
+% Stops the UI.
+%
+-spec stop() -> void().
+stop() ->
+	stop( get_state() ).
 
 
 
 % Stops the UI.
 %
 -spec stop( ui_state() ) -> void().
-stop( _UIState=#ui_state{ log_file=undefined } ) ->
-	ok;
+stop( #text_ui_state{ log_file=undefined } ) ->
+	process_dictionary:remove( ?state_key );
 
-stop( _UIState=#ui_state{ log_file=LogFile } ) ->
+
+stop( #text_ui_state{ log_file=LogFile } ) ->
 	file_utils:write( LogFile, "Stopping UI.\n" ),
-	file_utils:close( LogFile ).
+	file_utils:close( LogFile ),
+	process_dictionary:remove( ?state_key ).
+
+
+
+% Helper section.
+
+
+% Returns the current UI state.
+%
+% (helper)
+%
+-spec get_state() -> ui_state().
+get_state() ->
+
+	case process_dictionary:get( ?state_key ) of
+
+		undefined ->
+			throw( text_ui_not_started );
+
+		UIState ->
+			UIState
+
+	end.
+
+
+
+
+% Displays specified text, on specified channel.
+%
+% (helper)
+%
+-spec display_helper( channel(), text(), ui_state() ) -> ui_state().
+display_helper( Channel, Text, UIState ) ->
+	display_helper( Channel, Text, _Values=[], UIState ).
+
+
+
+% Displays specified formatted text, on specified channel.
+%
+-spec display_helper( channel(), text_utils:format_string(), [ term() ],
+					  ui_state() ) -> ui_state().
+display_helper( Channel, FormatString, Values, UIState ) ->
+
+	%trace_utils:debug_fmt( "Displaying, on channel '~p', '~p', with '~p'.",
+	%				   [ Channel, FormatString, Values ] ),
+
+	io:format( Channel, FormatString ++ "~n", Values ),
+	UIState.
