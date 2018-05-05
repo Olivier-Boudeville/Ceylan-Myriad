@@ -30,9 +30,11 @@
 % This is the most basic, line-based monochrome textual interface, directly in
 % raw text with no cursor control.
 %
-% See text_ui_test.erl for the corresponding test.
+% See:
 %
-% See gui.erl for a graphical counterpart.
+% - text_ui_test.erl for the corresponding test
+% - term_ui.erl for a more advanced text interface
+% - gui.erl for a graphical counterpart
 %
 % See also: trace_utils.erl for another kind of output.
 %
@@ -42,7 +44,7 @@
 
 % Implementation notes:
 %
-% In this very spceific case, we use the process dictionary to avoid having to
+% In this very specific case, we use the process dictionary to avoid having to
 % keep around a UI-state variable in all calls.
 %
 % So most of the time the UI state is implicit; counterpart functions with an
@@ -66,39 +68,41 @@
 		  add_separation/0, add_separation/1,
 
 		  get_text/2, get_text_as_integer/2, get_text_as_maybe_integer/2,
+		  read_text_as_integer/2,
 
-		  choose_designated_item/1, choose_designated_item/2, 
+		  choose_designated_item/1, choose_designated_item/2,
 		  choose_designated_item/3,
 
-		  choose_numbered_item/1, choose_numbered_item/2, 
+		  choose_numbered_item/1, choose_numbered_item/2,
 		  choose_numbered_item/3,
 
-		  choose_numbered_item_with_default/2, 
+		  choose_numbered_item_with_default/2,
 		  choose_numbered_item_with_default/3,
 		  choose_numbered_item_with_default/4,
 
 		  trace/1, trace/2,
 
-		  stop/0, stop/1 ]).
+		  stop/0, stop/1,
+
+		  to_string/0, to_string/1 ]).
 
 
 
 -record( text_ui_state, {
 		   log_console = false :: boolean(),
-		   log_file = undefined :: maybe( file_utils:file() )
+		   log_file = undefined :: maybe( file_utils:file() ),
+		   settings :: setting_table()
 }).
-
 
 -type ui_state() :: #text_ui_state{}.
 
--type ui_options() :: [ any() ].
 
 
 % For common, transverse defines:
 -include("ui.hrl").
 
 
--export_type([ ui_state/0, ui_options/0 ]).
+-export_type([ ui_state/0 ]).
 
 
 
@@ -110,9 +114,6 @@
 -define( error_prefix, "~n [error] " ).
 -define( error_suffix, "~n" ).
 
-
-% The key used by this module to store its state in the process dictionaty:
--define( state_key, text_ui_state ).
 
 
 
@@ -138,10 +139,22 @@ start( Options ) ->
 	start( Options, BlankUIState ).
 
 
-% (helper)
+% (non-exported helper)
 start( _Options=[], UIState ) ->
+
+	% Check:
+	undefined = process_dictionary:put( ?ui_name_key, ?MODULE ),
+
 	% No prior state expected:
-	undefined = process_dictionary:put( ?state_key, UIState ),
+	case process_dictionary:put( ?ui_state_key, UIState ) of
+
+		undefined ->
+			ok;
+
+		_ ->
+			throw( text_ui_already_started )
+
+	end,
 	UIState;
 
 start( _Options=[ log_file | T ], UIState ) ->
@@ -149,7 +162,7 @@ start( _Options=[ log_file | T ], UIState ) ->
 
 start( _Options=[ { log_file, Filename } | T ], UIState ) ->
 	LogFile = file_utils:open( Filename, [ write, exclusive ] ),
-	file_utils:write( LogFile, "Starting UI.\n" ),
+	file_utils:write( LogFile, "Starting text UI.\n" ),
 	NewUIState = UIState#text_ui_state{ log_file=LogFile },
 	start( T, NewUIState );
 
@@ -329,6 +342,39 @@ get_text_as_integer( Prompt, _UIState ) ->
 
 
 
+% Returns the user-entered text, once translated to an integer, based on an
+% implicit state, prompting the user until a valid input is obtained.
+%
+% (const)
+%
+-spec read_text_as_integer( prompt() ) -> text().
+read_text_as_integer( Prompt ) ->
+
+	Text = get_text( Prompt ),
+
+	case text_utils:try_string_to_integer( Text ) of
+
+		undefined ->
+			read_text_as_integer( Prompt );
+
+		I ->
+			I
+
+	end.
+
+
+
+% Returns the user-entered text, once translated to an integer, based on an
+% explicit state.
+%
+% (const)
+%
+-spec read_text_as_integer( prompt(), ui_state() ) -> text().
+read_text_as_integer( Prompt, _UIState ) ->
+	read_text_as_integer( Prompt ).
+
+
+
 % Returns the user-entered text (if any), once translated to an integer, based
 % on an implicit state.
 %
@@ -357,6 +403,46 @@ get_text_as_maybe_integer( Prompt ) ->
 get_text_as_maybe_integer( Prompt, _UIState ) ->
 	get_text_as_maybe_integer( Prompt ).
 
+
+
+% Returns the user-entered text, once translated to an integer, based on an
+% implicit state, prompting the user until a valid input is obtained: either a
+% string that resolves to an (then returned) integer, or an empty string (then
+% returning 'undefined').
+%
+% (const)
+%
+-spec read_text_as_maybe_integer( prompt() ) -> maybe( text() ).
+read_text_as_maybe_integer( Prompt ) ->
+
+	case get_text( Prompt ) of
+
+		"" ->
+			undefined;
+
+		Text ->
+			case text_utils:try_string_to_integer( Text ) of
+
+				undefined ->
+					read_text_as_integer( Prompt );
+
+				I ->
+					I
+
+			end
+
+	end.
+
+
+
+% Returns the user-entered text, once translated to an integer, based on an
+% explicit state.
+%
+% (const)
+%
+-spec read_text_as_maybe_integer( prompt(), ui_state() ) -> text().
+read_text_as_maybe_integer( Prompt, _UIState ) ->
+	read_text_as_maybe_integer( Prompt ).
 
 
 
@@ -427,22 +513,26 @@ choose_designated_item( Label, Choices, UIState ) ->
 
 	FullLabel = text_utils:format( "~s~s~nChoice> ", [ Label, Text ] ),
 
-	SelectedNumber = get_text_as_integer( FullLabel, UIState ),
+	case read_text_as_integer( FullLabel, UIState ) of
 
-	%trace_utils:format( "Selected: ~B", [ SelectedNumber ] ),
+		{ parsing_failed, Input } ->
+			display_error( "Input shall be an integer (not ~s).",
+						   [ Input ], UIState ),
+			choose_designated_item( Label, Choices, UIState );
 
-	case SelectedNumber of
 
 		N when N < 1 ->
 			display_error( "Specified choice shall be at least 1 (not ~B).",
 						   [ N ], UIState ),
-			throw( { invalid_choice, too_low, N } );
+			%throw( { invalid_choice, too_low, N } );
+			choose_designated_item( Label, Choices, UIState );
 
 		N when N > ChoiceCount ->
 			display_error(
 			  "Specified choice shall not be greater than ~B (not ~B).",
 			  [ ChoiceCount, N ], UIState ),
-			throw( { invalid_choice, too_high, N } );
+			%throw( { invalid_choice, too_high, N } );
+			choose_designated_item( Label, Choices, UIState );
 
 		N ->
 			lists:nth( N, Designators )
@@ -518,13 +608,15 @@ choose_numbered_item( Label, Choices, UIState ) ->
 		N when N < 1 ->
 			display_error( "Specified choice shall be at least 1 (not ~B).",
 						   [ N ], UIState ),
-			throw( { invalid_choice, too_low, N } );
+			%throw( { invalid_choice, too_low, N } );
+			choose_numbered_item( Label, Choices, UIState );
 
 		N when N > ChoiceCount ->
 			display_error(
 			  "Specified choice shall not be greater than ~B (not ~B).",
 			  [ ChoiceCount, N ], UIState ),
-			throw( { invalid_choice, too_high, N } );
+			%throw( { invalid_choice, too_high, N } );
+			choose_numbered_item( Label, Choices, UIState );
 
 		N ->
 			N
@@ -611,12 +703,9 @@ choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
 	FullLabel = text_utils:format( "~s~s~nChoice [default: ~B]> ",
 								   [ Label, Text, DefaultChoiceIndex ] ),
 
-	SelectedNumber = get_text_as_maybe_integer( FullLabel, UIState ),
+	case read_text_as_maybe_integer( FullLabel, UIState ) of
 
-	%trace_utils:format( "Selected: ~p", [ SelectedNumber ] ),
-
-	case SelectedNumber of
-
+		% Default:
 		undefined ->
 			DefaultChoiceIndex;
 
@@ -624,12 +713,16 @@ choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
 			display_error( "Specified choice shall be at least 1 (not ~B).",
 						   [ N ],
 						   UIState ),
-			throw( { invalid_choice, too_low, N } );
+			%throw( { invalid_choice, too_low, N } );
+			choose_numbered_item_with_default( Label, Choices,
+											   DefaultChoiceIndex, UIState );
 
 		N when N > ChoiceCount ->
 			display_error( "Specified choice shall not be greater than ~B "
 						   "(not ~B).", [ ChoiceCount, N ], UIState ),
-			throw( { invalid_choice, too_high, N } );
+			%throw( { invalid_choice, too_high, N } );
+			choose_numbered_item_with_default( Label, Choices,
+											   DefaultChoiceIndex, UIState );
 
 		N ->
 			N
@@ -657,6 +750,7 @@ trace( Text ) ->
 %
 -spec stop() -> void().
 stop() ->
+
 	stop( get_state() ).
 
 
@@ -665,13 +759,18 @@ stop() ->
 %
 -spec stop( ui_state() ) -> void().
 stop( #text_ui_state{ log_file=undefined } ) ->
-	process_dictionary:remove( ?state_key );
+	stop_helper();
 
 
 stop( #text_ui_state{ log_file=LogFile } ) ->
 	file_utils:write( LogFile, "Stopping UI.\n" ),
 	file_utils:close( LogFile ),
-	process_dictionary:remove( ?state_key ).
+	stop_helper().
+
+
+stop_helper() ->
+	[ process_dictionary:remove( Key )
+	  || Key <- [ ?ui_name_key, ?ui_state_key ] ].
 
 
 
@@ -685,7 +784,7 @@ stop( #text_ui_state{ log_file=LogFile } ) ->
 -spec get_state() -> ui_state().
 get_state() ->
 
-	case process_dictionary:get( ?state_key ) of
+	case process_dictionary:get( ?ui_state_key ) of
 
 		undefined ->
 			throw( text_ui_not_started );
@@ -719,3 +818,41 @@ display_helper( Channel, FormatString, Values, UIState ) ->
 
 	io:format( Channel, FormatString ++ "~n", Values ),
 	UIState.
+
+
+
+% Returns a textual description of the (implicit) UI state.
+%
+-spec to_string() -> string().
+to_string() ->
+	to_string( get_state() ).
+
+
+% Returns a textual description of the specified UI state.
+%
+-spec to_string( ui_state() ) -> string().
+to_string( #text_ui_state{ log_console=LogConsole,
+						   log_file=LogFile }) ->
+
+	ConsoleString = case LogConsole of
+
+		true ->
+			"";
+
+		false ->
+			"not"
+
+	end,
+
+	FileString = case LogFile of
+
+		undefined ->
+			"not using a log file";
+
+		_ ->
+			text_utils:format( "using log file '~s'", [ LogFile ] )
+
+	end,
+
+	text_utils:format( "text_ui interface, ~s writing logs on console, "
+					   "and ~s", [ ConsoleString, FileString ] ).
