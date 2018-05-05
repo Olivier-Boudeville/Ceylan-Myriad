@@ -136,7 +136,7 @@
 
 % Basic GUI operations.
 %
--export([ start/0, start/1, set_debug_level/1, stop/0 ]).
+-export([ is_available/0, start/0, start/1, set_debug_level/1, stop/0 ]).
 
 
 
@@ -528,6 +528,16 @@
 
 
 % Section for basic GUI overall operations.
+
+
+% Tells whether this user-interface backend is available.
+%
+-spec is_available() -> boolean().
+is_available() ->
+	% As simple as:
+	system_utils:has_graphical_output().
+
+
 
 
 
