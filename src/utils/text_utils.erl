@@ -56,7 +56,8 @@
 		  atom_to_binary/1,
 		  string_to_binary/1, binary_to_string/1,
 		  strings_to_binaries/1, binaries_to_strings/1,
-		  string_to_integer/1, string_to_float/1,
+		  string_to_integer/1, try_string_to_integer/1,
+		  string_to_float/1, try_string_to_float/1,
 		  string_to_atom/1, strings_to_atoms/1, binary_to_atom/1,
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
@@ -1225,6 +1226,27 @@ string_to_integer( String ) ->
 
 
 
+% Returns an integer which corresponds to the specified text.
+%
+% Throws an exception if the conversion failed.
+%
+-spec try_string_to_integer( ustring() ) -> basic_utils:maybe( integer() ).
+try_string_to_integer( String ) ->
+
+	try list_to_integer( String ) of
+
+		I ->
+			I
+
+	catch
+
+		error:badarg ->
+			undefined
+
+	end.
+
+
+
 % Returns a float which corresponds to the specified text, not depending on its
 % being defined as an integer or as a float.
 %
@@ -1232,6 +1254,26 @@ string_to_integer( String ) ->
 %
 -spec string_to_float( ustring() ) -> float().
 string_to_float( String ) ->
+
+	case try_string_to_float( String ) of
+
+		undefined ->
+			throw( { float_conversion_failed, String } );
+
+		F ->
+			F
+
+	end.
+
+
+
+% Returns a float which corresponds to the specified text, not depending on its
+% being defined as an integer or as a float.
+%
+% Throws an exception if the conversion failed.
+%
+-spec try_string_to_float( ustring() ) -> basic_utils:maybe( float() ).
+try_string_to_float( String ) ->
 
 	% Erlang is very picky (too much?) when interpreting floats-as-a-string: if
 	% there is an exponent, it shall be 'e' (preferably that 'E' which is
@@ -1300,7 +1342,7 @@ string_to_float( String ) ->
 			catch
 
 				error:badarg ->
-					throw( { float_conversion_failed, String } )
+					undefined
 
 			end
 
