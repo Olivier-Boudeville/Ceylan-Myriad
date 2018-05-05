@@ -49,7 +49,6 @@
 		  send_to_pid_set/2 ]).
 
 
-
 % Miscellaneous functions.
 %
 -export([ size/1, display_process_info/1,
@@ -802,9 +801,6 @@ send_to_pid_set( _Message, none, Count ) ->
 send_to_pid_set( Message, { Pid, NewIterator }, Count ) ->
 	Pid ! Message,
 	send_to_pid_set( Message, set_utils:next( NewIterator ), Count+1 ).
-
-
-
 
 
 % Miscellaneous functions.
