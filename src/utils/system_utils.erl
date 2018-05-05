@@ -80,7 +80,7 @@
 		  compute_detailed_cpu_usage/2, get_cpu_usage_counters/0,
 
 		  get_disk_usage/0, get_disk_usage_string/0,
-		  get_mount_points/0,
+		  get_mount_points/0, has_graphical_output/0,
 		  get_known_pseudo_filesystems/0, get_filesystem_info/1,
 		  filesystem_info_to_string/1,
 
@@ -420,13 +420,15 @@ await_output_completion( TimeOut ) ->
 % Section to run executables and evaluation shell expressions.
 %
 % The former will return both the exit code and the command output, while the
-% latter will be able only to return the command output (command being either an
-% executable with arguments or a shell expression).
+% latter will be able only to return the command output (command being then a
+% full shell expression either, thus possibly reduced to just an executable with
+% arguments).
 
 
 % We wish we could specify a command as a single, standalone one, or as a list
 % of command elements, but the lack of a string type prevents it (as the
 % parameter of the called functions would be a list in both cases).
+
 
 
 % Runs (synchronously) specified executable with arguments, specified as a
@@ -455,7 +457,7 @@ run_executable( Command ) ->
 
 
 
-% Executes (synchronously) specified shell command (specified as a single,
+% Executes (synchronously) specified executable (specified as a single,
 % standalone string) in specified shell environment and current directory, and
 % returns its return code (exit status) and its outputs (both the standard and
 % the error ones).
@@ -466,7 +468,7 @@ run_executable( Command, Environment ) ->
 
 
 
-% Executes (synchronously) specified shell command (specified as a single,
+% Executes (synchronously) specified executable (specified as a single,
 % standalone string) in specified shell environment and directory, and returns
 % its return code (exit status) and its outputs (both the standard and the error
 % ones).
@@ -475,12 +477,16 @@ run_executable( Command, Environment ) ->
 							command_outcome().
 run_executable( Command, Environment, WorkingDir ) ->
 
-	%io:format( "Running executable: '~s' with environment '~s' "
-	%		   "from working directory '~p'.~n",
-	%		   [ Command, environment_to_string( Environment ), WorkingDir ] ),
+	trace_utils:debug_fmt( "Running executable: '~s' with environment '~s' "
+						   "from working directory '~p'.",
+			   [ Command, environment_to_string( Environment ), WorkingDir ] ),
 
-	PortOpts = [ stream, exit_status, use_stdio, stderr_to_stdout, in, eof,
+	%PortOpts = [ stream, exit_status, use_stdio, stderr_to_stdout, in, eof,
+	%			 { env, Environment } ],
+
+	PortOpts = [ stream, exit_status, use_stdio, in, eof,
 				 { env, Environment } ],
+
 
 	PortOptsWithPath = case WorkingDir of
 
@@ -502,26 +508,27 @@ run_executable( Command, Environment, WorkingDir ) ->
 %
 read_port( Port, Data ) ->
 
-	%io:format( "Reading port ~p (data: '~p').~n", [ Port, Data ] ),
+	trace_utils:debug_fmt( "Reading port ~p (data: '~p').", [ Port, Data ] ),
 
 	receive
 
 		{ Port, { data, NewData } } ->
-			%io:format( "Received data: '~p'.~n", [ NewData ] ),
+			%trace_utils:debug_fmt( "Received data: '~p'.", [ NewData ] ),
 			read_port( Port, [ NewData | Data ] );
 
 		% As mentioned in the documentation, "the eof message and the
 		% exit_status message appear in an unspecified order":
 
 		{ Port, eof } ->
-			%io:format( "Received eof (first).~n" ),
+			%trace_utils:debug( "Received eof (first)." ),
 			port_close( Port ),
 
 			receive
 
 				{ Port, { exit_status, ExitStatus } } ->
 
-					%io:format( "Received exit_status (second).~n" ),
+					trace_utils:debug_fmt(
+					  "Received exit_status (second): ~p.", [ ExitStatus ] ),
 
 					% Otherwise we have an enclosing list and last character is
 					% always "\n":
@@ -535,12 +542,13 @@ read_port( Port, Data ) ->
 
 		{ Port, { exit_status, ExitStatus } } ->
 
-			%io:format( "Received exit_status (first).~n" ),
+			trace_utils:debug_fmt( "Received exit_status (first): ~p.",
+								   [ ExitStatus ] ),
 
 			receive
 
 				{ Port, eof } ->
-					%io:format( "Received eof (second).~n" ),
+					%trace_utils:debug( "Received eof (second)." ),
 
 					port_close( Port ),
 
@@ -572,33 +580,36 @@ get_standard_environment() ->
 
 
 
-% Monitors a port: reads command data and signals from a port, and report it.
+% Monitors a port: reads command data and signals from a port, and reports it.
 %
 monitor_port( Port, Data ) ->
 
-	io:format( "Process ~p starting the monitoring of port ~p (data: '~p').~n",
-			   [ self(), Port, Data ] ),
+	%trace_utils:debug_fmt( "Process ~p starting the monitoring of "
+	%					   "port ~p (data: '~p').", [ self(), Port, Data ] ),
 
 	receive
 
 		{ Port, { data, NewData } } ->
-			io:format( "Port monitor ~p received data: '~p'.~n",
-					   [ self(), NewData ] ),
+			%trace_utils:debug_fmt( "Port monitor ~p received data: '~p'.",
+			%					   [ self(), NewData ] ),
+
 			monitor_port( Port, [ NewData | Data ] );
 
 		% As mentioned in the documentation, "the eof message and the
 		% exit_status message appear in an unspecified order":
 
 		{ Port, eof } ->
-			io:format( "Port monitor ~p received eof (first).~n", [ self() ] ),
+			%trace_utils:debug_fmt( "Port monitor ~p received eof (first).",
+			%					   [ self() ] ),
+
 			port_close( Port ),
 
 			receive
 
 				{ Port, { exit_status, ExitStatus } } ->
 
-					io:format( "Port monitor ~p received exit_status "
-							   "(second).~n", [ self() ] ),
+					%trace_utils:debug_fmt( "Port monitor ~p received exit_status "
+					%					   "(second).", [ self() ] ),
 
 					% Otherwise we have an enclosing list and last character is
 					% always "\n":
@@ -612,14 +623,14 @@ monitor_port( Port, Data ) ->
 
 		{ Port, { exit_status, ExitStatus } } ->
 
-			io:format( "Port monitor ~p received exit_status (first).~n",
-					   [ self() ] ),
+			%trace_utils:debug_fmt( "Port monitor ~p received exit_status (first).",
+			%					   [ self() ] ),
 
 			receive
 
 				{ Port, eof } ->
-					io:format( "Port monitor ~p received eof (second).~n",
-							   [ self() ] ),
+					%trace_utils:debug( "Port monitor ~p received eof (second).",
+					%				   [ self() ] ),
 
 					port_close( Port ),
 
@@ -633,7 +644,7 @@ monitor_port( Port, Data ) ->
 		% Added by ourselves so that we can avoid process leakage:
 		terminate_port ->
 
-			io:format( "Port monitor ~p terminating.~n", [ self() ] ),
+			%trace_utils:debug_fmt( "Port monitor ~p terminating.", [ self() ] ),
 
 			% Anyway no PID to send information to:
 			port_terminated
@@ -666,8 +677,9 @@ evaluate_shell_expression( Expression, Environment ) ->
 
 	FullExpression = get_actual_expression( Expression, Environment ),
 
-	%io:format( "Evaluation shell expression '~s' in environment ~s.~n",
-	%		   [ FullExpression, environment_to_string( Environment ) ] ),
+	%trace_utils:debug_fmt( "Evaluation shell expression '~s' "
+	%					   "in environment ~s.", [ FullExpression,
+	%						   environment_to_string( Environment ) ] ),
 
 	% No return code available, success supposed:
 	text_utils:remove_ending_carriage_return( os:cmd( FullExpression ) ).
@@ -1876,6 +1888,12 @@ get_mount_points() ->
 			end
 
 	end.
+
+
+
+% To integrate:
+has_graphical_output() ->
+	false.
 
 
 
