@@ -864,7 +864,8 @@ scan_forms( _AST=[ _Form={ 'error',
 	   { Line, 'epp', { 'undefined', VariableName, 'none' } } } | _T ],
 			_ModuleInfo, _NextLocation, CurrentFileReference ) ->
 
-	Context = { CurrentFileReference, Line-1 },
+	%Context = { CurrentFileReference, Line-1 },
+	Context = { CurrentFileReference, Line },
 
 	ast_utils:raise_error( [ undefined_macro_variable, VariableName ],
 						   Context );
