@@ -99,6 +99,12 @@ run_test_ui() ->
 	text_ui:trace( "My UI trace" ),
 	text_ui:trace( "My UI trace", UIState ),
 
+	text_ui:display( "Text UI (implicit) state: ~s", [ text_ui:to_string() ] ),
+
+	text_ui:display( text_utils:format( "Text UI (explicit) state: ~s",
+										[ text_ui:to_string( UIState ) ] ),
+										UIState ),
+
 	text_ui:stop().
 	%text_ui:stop( UIState ).
 
@@ -119,6 +125,5 @@ run() ->
 			run_test_ui()
 
 	end,
-
 
 	test_facilities:stop().
