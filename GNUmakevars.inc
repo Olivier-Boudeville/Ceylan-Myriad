@@ -508,10 +508,12 @@ STARTUP_FUNCTION := run
 # So that they can be fetched from outside the make system:
 # (see the 'list-beam-dirs' target)
 #
-MYRIAD_BEAM_DIRS = $(MYRIAD_BEAM)/data-management    \
-				   $(MYRIAD_BEAM)/maths              \
-				   $(MYRIAD_BEAM)/meta               \
-				   $(MYRIAD_BEAM)/user-interface/src \
+MYRIAD_BEAM_DIRS = $(MYRIAD_BEAM)/data-management              \
+				   $(MYRIAD_BEAM)/maths                        \
+				   $(MYRIAD_BEAM)/meta                         \
+				   $(MYRIAD_BEAM)/user-interface/src           \
+				   $(MYRIAD_BEAM)/user-interface/src/textual   \
+				   $(MYRIAD_BEAM)/user-interface/src/graphical \
 				   $(MYRIAD_BEAM)/utils
 
 
@@ -828,6 +830,12 @@ endif
 
 # Options used internally, added automatically and transparently:
 INTERNAL_OPTIONS := -start-verbatim-options $(INTERNAL_OPTIONS)
+
+
+# No shell wanted by default for executions, as executables are supposed to
+# interact by themselves with the user:
+#
+EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -noshell
 
 
 DIALYZER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which dialyzer 2>/dev/null)
