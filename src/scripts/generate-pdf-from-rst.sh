@@ -10,6 +10,9 @@ USAGE="  Usage: $(basename $0) <RST FILE>
   Ex: '$(basename $0) my_file.rst' will attempt to generate a new 'my_file.pdf' file."
 
 
+# Arch packages: do not forget 'pacman -S rubber python-pygments'.
+
+
 if [ "$1" = "-h" ] || [ -z "$1" ] ; then
 
 	echo "$USAGE"
