@@ -214,6 +214,13 @@
 -type function_table() :: ?table:?table( function_id(), function_info() ).
 
 
+% All relevant information about an error found in an AST:
+%
+% (note: includes warnings)
+%
+-type error() :: { file_utils:file_name(), ast_base:line(),
+				   basic_utils:error_reason() }.
+
 
 % Top-level elements:
 %
