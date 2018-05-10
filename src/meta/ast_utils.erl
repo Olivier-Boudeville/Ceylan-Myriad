@@ -755,8 +755,12 @@ raise_error( Elements, Context ) when is_list( Elements ) ->
 			StackElements = interpret_stack_trace( ActualStackTrace, _Acc=[],
 												   _Count=1 ),
 
+			% These are Myriad-internal information, generally of no use to
+			% understand the problem regarding the code being compiled:
+			%
 			display_debug( "Transformation error happened in "
 						   "(latest calls first):~n~s", [ StackElements ] )
+
 
 	end,
 
