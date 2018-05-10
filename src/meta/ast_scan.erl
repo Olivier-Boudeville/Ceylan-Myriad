@@ -48,14 +48,15 @@
 %
 -type parse_attribute_name() :: atom().
 
+-type scan_context() :: { ast_base:file_reference(), ast_base:line() }.
 
--export_type([ parse_attribute_name/0 ]).
+
+-export_type([ parse_attribute_name/0, scan_context/0 ]).
 
 
 -export([ scan/1, check_parse_attribute_name/1, check_parse_attribute_name/2 ]).
 
 
--type scan_context() :: { ast_base:file_reference(), ast_base:line() }.
 
 
 % Shorthands:
@@ -119,9 +120,58 @@ scan( AST ) ->
 	%
 	% So iterating in the list of forms that make for the AST:
 	%
-	scan_forms( AST, InitModuleInfo,
-				_NextLocation=id_utils:get_initial_sortable_id(),
-				_CurrentFileRef=undefined ).
+	case scan_forms( AST, InitModuleInfo,
+					 _NextLocation=id_utils:get_initial_sortable_id(),
+					 _CurrentFileRef=undefined ) of
+
+		M=#module_info{ errors=[] } ->
+			% No error, let's continue:
+			M;
+
+		#module_info{ errors=Errors } ->
+			[ report_error( E ) || E <- Errors ],
+			% No need to be that violent:
+			%erlang:halt( 1 )
+			%exit( Errors )
+			%exit( errors_reported )
+			exit( "fix your code :)" )
+
+	end.
+
+
+
+% Reports specified error, using the same format as erlc, so that tools can
+% parse these errors as well.
+%
+ % Ex: foo.erl:102: can't find include file "bar.hrl"
+%
+-spec report_error( { ast_scan:scan_context(), basic_utils:error_reason() } ) ->
+	basic_utils:void().
+report_error( { Context, Error } ) ->
+
+	ErrorString = case Error of
+
+		% Ex: Msg="head mismatch"
+		{ parse_error, Msg } when is_list( Msg ) ->
+			%text_utils:format( "parse error: ~s", [ Msg ] );
+			text_utils:format( "~s", [ Msg ] );
+
+		Other ->
+			text_utils:format( "~p", [ Other ] )
+
+	end,
+
+	io:format( "~s: ~s~n", [ context_to_string( Context ), ErrorString ] ).
+
+
+
+% Returns a textual representation of specified compilation context.
+%
+-spec context_to_string( ast_scan:scan_context() ) -> string().
+context_to_string( { Filename, Line } ) ->
+	% Respects the standard formatting:
+	text_utils:format( "~s:~B", [ Filename, Line ] ).
+
 
 
 %%
@@ -841,8 +891,10 @@ scan_forms( [ Form={ 'attribute', Line, AttributeName, AttributeValue } | T ],
 % in call from compile:'-internal_comp/4-anonymous-1-'/2 (compile.erl, line 295)
 % in call from compile:fold_comp/3 (compile.erl, line 321)
 %
-% So we manage the errors by ourselves (losing the emacs error mode support).
-
+% So we manage the errors by ourselves, aggregating them first, then reporting
+% them (along with warnings) in a standard format so that tools can accommodate
+% them.
+%
 % (for some reason, the reported lines are incremented, we have to decrement
 % them)
 
@@ -851,50 +903,77 @@ scan_forms( [ Form={ 'attribute', Line, AttributeName, AttributeValue } | T ],
 
 % eep include error:
 scan_forms( _AST=[ _Form={ 'error',
-	   { Line, 'epp', { 'include', 'file', FileName } } } | _T ], _ModuleInfo,
-			 _NextLocation, CurrentFileReference ) ->
+	   { Line, 'epp', { 'include', 'file', FileName } } } | T ],
+			M=#module_info{ errors=Errors },
+			NextLocation, CurrentFileReference ) ->
 
 	Context = { CurrentFileReference, Line-1 },
+	%ast_utils:raise_error( [ include_file_not_found, FileName ], Context );
 
-	ast_utils:raise_error( [ include_file_not_found, FileName ], Context );
+	NewError = { Context, { include_file_not_found, FileName } },
+
+	scan_forms( T, M#module_info{ errors=[ NewError | Errors ] },
+				id_utils:get_next_sortable_id( NextLocation ),
+				CurrentFileReference );
 
 
 % eep undefined macro variable error:
 scan_forms( _AST=[ _Form={ 'error',
-	   { Line, 'epp', { 'undefined', VariableName, 'none' } } } | _T ],
-			_ModuleInfo, _NextLocation, CurrentFileReference ) ->
+	   { Line, 'epp', { 'undefined', VariableName, 'none' } } } | T ],
+			M=#module_info{ errors=Errors }, NextLocation,
+			CurrentFileReference ) ->
+
+	% Wrong: Context = { CurrentFileReference, Line-1 },
+	Context = { CurrentFileReference, Line },
+
+	%ast_utils:raise_error( [ undefined_macro_variable, VariableName ],
+	%					   Context );
+
+	NewError = { Context, { undefined_macro_variable, VariableName } },
+
+	scan_forms( T, M#module_info{ errors=[ NewError | Errors ] },
+				id_utils:get_next_sortable_id( NextLocation ),
+				CurrentFileReference );
+
+
+% eep general errors:
+scan_forms( _AST=[ _Form={ 'error', { Line, 'epp', Reason } } | T ],
+			M=#module_info{ errors=Errors }, NextLocation,
+			CurrentFileReference ) ->
+
+	Context = { CurrentFileReference, Line-1 },
+	%ast_utils:raise_error( [ preprocessing_failed, Reason ], Context );
+
+	NewError = { Context, { epp_error, Reason } },
+
+	scan_forms( T, M#module_info{ errors=[ NewError | Errors ] },
+				id_utils:get_next_sortable_id( NextLocation ),
+				CurrentFileReference );
+
+
+% Parser (erl_parse) errors:
+scan_forms( _AST=[ _Form={ 'error', { Line, 'erl_parse', Reason } } | T ],
+			M=#module_info{ errors=Errors }, NextLocation,
+			CurrentFileReference ) ->
 
 	%Context = { CurrentFileReference, Line-1 },
 	Context = { CurrentFileReference, Line },
 
-	ast_utils:raise_error( [ undefined_macro_variable, VariableName ],
-						   Context );
+	%ast_utils:raise_error( [ parsing_failed, io_lib:format( Reason, [] ) ],
+	%					   Context );
 
+	NewError = { Context, { parse_error, Reason } },
 
-% eep general errors:
-scan_forms( _AST=[ _Form={ 'error', { Line, 'epp', Reason } } | _T ],
-			_ModuleInfo, _NextLocation, CurrentFileReference ) ->
-
-	Context = { CurrentFileReference, Line-1 },
-
-	ast_utils:raise_error( [ preprocessing_failed, Reason ], Context );
-
-
-% Parser (erl_parse) errors:
-scan_forms( _AST=[ _Form={ 'error', { Line, 'erl_parse', Reason } } | _T ],
-			 _ModuleInfo, _NextLocation, CurrentFileReference ) ->
-
-	Context = { CurrentFileReference, Line-1 },
-
-	ast_utils:raise_error( [ parsing_failed, io_lib:format( Reason, [] ) ],
-						   Context );
-
+	scan_forms( T, M#module_info{ errors=[ NewError | Errors ] },
+				id_utils:get_next_sortable_id( NextLocation ),
+				CurrentFileReference );
 
 % Any kind of other error:
 scan_forms( _AST=[ _Form={ 'error', ErrorTerm } | _T ],
-			 _ModuleInfo, _NextLocation, CurrentFileReference ) ->
+			_ModuleInfo, _NextLocation, CurrentFileReference ) ->
 
-	ast_utils:raise_error( [ scan_error, ErrorTerm],
+	% No line information available, so:
+	ast_utils:raise_error( [ scan_error, ErrorTerm ],
 						   _Context=CurrentFileReference );
 
 
@@ -902,6 +981,7 @@ scan_forms( _AST=[ _Form={ 'error', ErrorTerm } | _T ],
 scan_forms( _AST=[ _Form={ 'warning', WarningTerm } | T ],
 			ModuleInfo, NextLocation, CurrentFileReference ) ->
 
+	% No line information available, so:
 	ast_utils:notify_warning( [ scan_warning, WarningTerm ],
 							  _Context=CurrentFileReference ),
 
@@ -916,10 +996,17 @@ scan_forms( _AST=[ _Form={ 'warning', WarningTerm } | T ],
 % can remove its corresponding file from the includes):
 %
 scan_forms( _AST=[ _Form={ 'eof', Line } ],
-			Infos=#module_info{ module=undefined }, _NextLocation,
+			M=#module_info{ module=undefined,
+							errors=Errors }, _NextLocation,
 			CurrentFileReference ) ->
 	Context = { CurrentFileReference, Line },
-	ast_utils:raise_error( [ eof_while_no_module, Infos ], Context );
+	%ast_utils:raise_error( [ eof_while_no_module, Infos ], Context );
+
+	NewError = { Context, eof_while_no_module },
+
+	% Directly returned:
+	M#module_info{ errors=[ NewError | Errors ] };
+
 
 
 % Form expected to be defined once, and to be the last one:
