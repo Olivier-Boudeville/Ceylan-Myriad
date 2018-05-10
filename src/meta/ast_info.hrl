@@ -185,6 +185,11 @@
 		last_line :: ast_info:located_form(),
 
 
+		% Error information collected when traversing the AST
+		%
+		errors = [] :: [ ast_info:error() ],
+
+
 		% List of all the located forms that are unhandled, which are typically
 		% errors, like:
 		%
