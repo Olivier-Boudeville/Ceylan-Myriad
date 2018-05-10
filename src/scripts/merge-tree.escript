@@ -14,8 +14,8 @@
 % Directly using the module-based version now, in merge_utils.erl, for an easier
 % debugging (ex: with proper stack traces with lines).
 
-% This script depends on the 'Myiad' layer, and only on that code (that shall be
-% recompiled beforehand).
+% This script depends on the 'Myriad' layer, and only on that code (that shall
+% be recompiled beforehand).
 
 
 
