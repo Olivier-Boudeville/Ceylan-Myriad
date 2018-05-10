@@ -58,15 +58,18 @@ update_code_path_for_myriad() ->
 
 	MyriadRootDir = get_root_of_myriad(),
 
+	%trace_utils:debug_fmt( "Root of 'Myriad': ~s.", [ MyriadRootDir ] ),
+
 	MyriadSrcDir = filename:join( MyriadRootDir, "src" ),
 
-	MyriadBeamSubDirs = [ "utils", "user-interface", "maths",
-						  "data-management" ],
+	MyriadBeamSubDirs = [ "data-management", "maths", "meta",
+						  "user-interface/src", "user-interface/src/textual",
+						  "user-interface/src/graphical", "utils" ],
 
 	MyriadBeamDirs = [ filename:join( MyriadSrcDir, D )
 					   || D <- MyriadBeamSubDirs ],
 
-	%io:format( "'Myriad' beam dirs: ~s~n", [ MyriadBeamDirs ] ),
+	%trace_utils:debug_fmt( "'Myriad' beam dirs: ~p.", [ MyriadBeamDirs ] ),
 
 	ok = code:add_pathsa( MyriadBeamDirs ).
 
