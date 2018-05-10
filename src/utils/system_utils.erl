@@ -477,9 +477,9 @@ run_executable( Command, Environment ) ->
 							command_outcome().
 run_executable( Command, Environment, WorkingDir ) ->
 
-	trace_utils:debug_fmt( "Running executable: '~s' with environment '~s' "
-						   "from working directory '~p'.",
-			   [ Command, environment_to_string( Environment ), WorkingDir ] ),
+	%trace_utils:debug_fmt( "Running executable: '~s' with environment '~s' "
+	%					   "from working directory '~p'.",
+	%		   [ Command, environment_to_string( Environment ), WorkingDir ] ),
 
 	%PortOpts = [ stream, exit_status, use_stdio, stderr_to_stdout, in, eof,
 	%			 { env, Environment } ],
@@ -508,7 +508,7 @@ run_executable( Command, Environment, WorkingDir ) ->
 %
 read_port( Port, Data ) ->
 
-	trace_utils:debug_fmt( "Reading port ~p (data: '~p').", [ Port, Data ] ),
+	%trace_utils:debug_fmt( "Reading port ~p (data: '~p').", [ Port, Data ] ),
 
 	receive
 
@@ -542,8 +542,8 @@ read_port( Port, Data ) ->
 
 		{ Port, { exit_status, ExitStatus } } ->
 
-			trace_utils:debug_fmt( "Received exit_status (first): ~p.",
-								   [ ExitStatus ] ),
+			%trace_utils:debug_fmt( "Received exit_status (first): ~p.",
+			%					   [ ExitStatus ] ),
 
 			receive
 
