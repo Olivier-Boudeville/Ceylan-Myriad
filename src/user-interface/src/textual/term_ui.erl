@@ -212,6 +212,7 @@
 %
 -export([ is_available/0,
 		  start/0, start/1,
+		  trace/1, trace/2,
 		  stop/0,
 		  to_string/0 ]).
 
@@ -265,13 +266,13 @@
 -spec is_available() -> boolean().
 is_available() ->
 
-	case executable_utils:lookup_executable( "dialog" ) of
+	case lookup_dialog_tool() of
 
-		false ->
-			% Not testing whiptail yet, so:
+		undefined ->
 			false;
 
-		_DialogPath ->
+		% { T, TPath }:
+		_ ->
 			true
 
 	end.
@@ -314,8 +315,18 @@ start( _Options=[], UIState ) ->
 
 	end,
 
+	case process_dictionary:put( ?ui_name_key, ?MODULE ) of
+
+		undefined ->
+			ok;
+
+		UIName ->
+			throw( { ui_already_started, UIName } )
+
+	end,
+
 	% No prior state expected:
-	case process_dictionary:put( ?state_key, DialogUIState ) of
+	case process_dictionary:put( ?ui_state_key, DialogUIState ) of
 
 		undefined ->
 			ok;
@@ -340,6 +351,18 @@ start( SingleElem, UIState ) ->
 	start( [ SingleElem ], UIState ).
 
 
+
+% Traces specified status string.
+%
+-spec trace( string() ) -> void().
+trace( Text ) ->
+	% Reused here:
+	text_ui:trace( Text, get_state() ).
+
+
+% Traces specified status string, by displaying it, and possibly logging it.
+%
+-spec trace( string(), ui_state() ) -> void().
 
 
 % Stops the UI.
@@ -368,7 +391,7 @@ stop_helper( #term_ui_state{ state_filename=StateFilename } ) ->
 
 	file_utils:remove_file_if_existing( StateFilename ),
 
-	process_dictionary:remove( ?state_key ).
+	process_dictionary:remove( ?ui_state_key ).
 
 
 
@@ -385,7 +408,12 @@ lookup_dialog_tool() ->
 	case executable_utils:lookup_executable( "dialog" ) of
 
 		false ->
-			case executable_utils:lookup_executable( "whiptail" ) of
+			% Maybe in the future:
+			%AcceptWhiptail = true,
+			AcceptWhiptail = false,
+
+			case AcceptWhiptail andalso
+				executable_utils:lookup_executable( "whiptail" ) of
 
 				false ->
 					undefined;
@@ -409,7 +437,7 @@ lookup_dialog_tool() ->
 -spec get_state() -> ui_state().
 get_state() ->
 
-	case process_dictionary:get( ?state_key ) of
+	case process_dictionary:get( ?ui_state_key ) of
 
 		undefined ->
 			throw( term_ui_not_started );
