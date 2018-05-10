@@ -39,6 +39,10 @@
 -type title() :: text().
 
 
+% For traces:
+-type message() :: text().
+
+
 % The text of a choice:
 -type choice_text() :: text().
 
@@ -54,7 +58,7 @@
 -type choice_element() :: { choice_designator(), choice_text() }.
 
 
--export_type([ text/0, label/0, prompt/0,
+-export_type([ text/0, label/0, prompt/0, title/0, message/0,
 			   choice_text/0, choice_designator/0, choice_index/0,
 			   choice_element/0 ]).
 
