@@ -140,10 +140,10 @@ get_usage() ->
 	"   Usage:\n"
 	"      - either: 'merge-tree.escript TREE_TO_SCAN REFERENCE_TREE'\n"
 	"      - or: 'merge-tree.escript --scan A_TREE'\n\n"
-	"   Ensures that all the changes in a possibly more up-to-date, \"newer\" tree (TREE_TO_SCAN) are merged back to the reference tree (REFERENCE_TREE), from which the tree to scan may have derived. Once executed, only a refreshed reference tree will exist, as the input TREE_TO_SCAN tree will be removed: all its original content (i.e. its content that was not already in the reference tree) will have been transfered in the reference REFERENCE_TREE.\n"
-	"   In the reference tree, in-tree duplicated content will be removed and replaced by symbolic links, to keep only a single version of each actual content.\n"
-	"   All the timestamps of the files in the reference tree will be set to the current time, and, at the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains. As a result, once that merge is done, the reference tree will contain an uniquified version of the union of the two specified trees, and the tree to scan will not exist anymore.\n"
-	"   If the --scan option is used, then the specified tree will be inspected, duplicates will be replaced with symbolic links (the tree will be uniquified), and a corresponding '" ?merge_cache_filename "' file will be created (to be potentially reused by a later merge).
+	"   Ensures that all the changes in a possibly more up-to-date, \"newer\" tree (TREE_TO_SCAN) are merged back to the reference tree (REFERENCE_TREE), from which the tree to scan may have derived. Once executed, only a refreshed reference tree will exist, as the input TREE_TO_SCAN tree will be removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
+	"   In the reference tree, in-tree duplicated content will be either removed as a whole or replaced by symbolic links, to keep only a single version of each actual content.\n"
+	"   All the timestamps of the files in the reference tree will be set to the current time, and, at the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they not have changed. As a result, once that merge is done, the reference tree will contain an uniquified version of the union of the two specified trees, and the tree to scan will not exist anymore.\n"
+	"   If the --scan option is used, then the specified tree will be inspected and will be uniquified (duplicates being removed or replaced with symbolic links), and a corresponding '" ?merge_cache_filename "' file will be created (to be potentially reused by a later merge).
 ".
 
 
@@ -927,6 +927,7 @@ file_data_to_string( #file_data{
 
 % Copied verbatim from common/src/utils/script_utils.erl, for bootstrap:
 
+
 % Updates the VM code path so that all modules of the 'Myriad' layer can be
 % readily used.
 %
@@ -939,17 +940,16 @@ update_code_path_for_myriad() ->
 
 	MyriadRootDir = get_root_of_myriad(),
 
-	io:format( "Root of 'Myriad': ~s~n", [ MyriadRootDir ] ),
-
 	MyriadSrcDir = filename:join( MyriadRootDir, "src" ),
 
-	MyriadBeamSubDirs = [ "utils", "user-interface", "maths", "meta",
-						  "data-management" ],
+	MyriadBeamSubDirs = [ "data-management", "maths", "meta",
+						  "user-interface/src", "user-interface/src/textual",
+						  "user-interface/src/graphical", "utils" ],
 
 	MyriadBeamDirs = [ filename:join( MyriadSrcDir, D )
 					   || D <- MyriadBeamSubDirs ],
 
-	io:format( "'Myriad' beam dirs: ~p~n", [ MyriadBeamDirs ] ),
+	%trace_utils:debug_fmt( "'Myriad' beam dirs: ~p.", [ MyriadBeamDirs ] ),
 
 	ok = code:add_pathsa( MyriadBeamDirs ).
 
