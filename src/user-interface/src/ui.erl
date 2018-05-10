@@ -58,6 +58,7 @@
 
 
 -export([ start/0, start/1,
+		  trace/1, trace/2,
 		  stop/0 ]).
 
 
@@ -135,6 +136,29 @@ start( Options ) ->
 	% dictionary:
 	%
 	BackendModuleName:start( Options ).
+
+
+
+
+
+% Traces specified status string, by displaying it, and possibly logging it.
+%
+-spec trace( string() ) -> void().
+trace( Message ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:trace( Message ).
+
+
+% Displays and logs specified formatted text.
+%
+-spec trace( text_utils:format_string(), [ term() ] ) -> void().
+trace( FormatString, Values ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:trace( FormatString, Values ).
 
 
 
