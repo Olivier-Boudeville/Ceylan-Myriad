@@ -1,5 +1,6 @@
 :raw-latex:`\pagebreak`
 
+.. _`user interface`:
 .. _`graphical user interface`:
 
 
@@ -27,7 +28,7 @@ User interfaces tend to have a **state**, which can be:
 - either ``explicit``, in a functional way; thus having to be carried in all calls
 - or ``implicit``, using, for that very specific need only, the process dictionary (even if otherwise we never use it)
 
-We tested the two approaches and preferred the latter (implicit) one, which thus has more coverage than the (former) explicit one.
+We tested the two approaches and preferred the latter (implicit) one, which thus finally fully superseded the (former) explicit one.
 
 We made our best so that a lower-level API interface (relying on a more basic backend) is **strictly included** in the higher-level ones (ex: ``term_ui`` adds concepts - like the one of window or box - to the line-based ``text_ui``), in order that any program using a given user interface may use any of the next, upper ones as well (provided implicit states are used), in the following order: the ``text_ui`` API is included in the one of ``term_ui``, which is itself included in the one of ``gui``.
 
@@ -84,7 +85,13 @@ This interface relied initially on `gs <http://erlang.org/doc/man/gs.html>`_, no
 .. Note:: GUI services are currently being reworked, to provide a ``gs`` like concurrent API while relying underneath on ``wx``, with some additions (such as canvases).
 
 
+The goal is to provide a small, lightweight API (including message types) that are higher-level than ``wx``, and do not depend on any particular GUI backend (such as ``wx``, ``gs``, etc.) to avoid that user programs become obsolete too quickly, as backends for GUI rise and fall relatively often.
+
+So for example the messages received by the user programs shall not mention ``wx``, and they should take the form of `WOOPER <https://github.com/Olivier-Boudeville/Ceylan-WOOPER>`_ messages to allow for user code that would rely on WOOPER.
+
+
 Located in ``myriad/src/user-interface/graphical``, see ``gui.erl``, ``gui_color.erl``, ``gui_text.erl``, ``gui_canvas.erl``, etc., with a few tests (``gui_test.erl``, ``lorenz_test.erl``).
+
 
 
 Related information of interest:
