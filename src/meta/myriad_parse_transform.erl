@@ -178,8 +178,8 @@ parse_transform( InputAST, _Options ) ->
 -spec apply_myriad_transform( ast() ) -> { ast(), module_info() }.
 apply_myriad_transform( InputAST ) ->
 
-	%io:format( "~n## INPUT ############################################~n" ),
-	%io:format( "Myriad input AST:~n~p~n~n", [ InputAST ] ),
+	%trace_utils:debug_fmt( "~n## INPUT ####################################" ),
+	%trace_utils:debug_fmt( "Myriad input AST:~n~p~n~n", [ InputAST ] ),
 	%ast_utils:write_ast_to_file( InputAST, "Input-AST.txt" ),
 
 	BaseModuleInfo = ast_info:extract_module_info_from_ast( InputAST ),
@@ -187,12 +187,12 @@ apply_myriad_transform( InputAST ) ->
 	%ast_info:write_module_info_to_file( BaseModuleInfo,
 	%									  "Input-module_info.txt" ),
 
-	%io:format( "Input module info: ~s~n",
+	%trace_utils:debug_fmt( "Input module info: ~s",
 	%		   [ ast_info:module_info_to_string( BaseModuleInfo ) ] ),
 
 	Transforms = get_myriad_ast_transforms_for( BaseModuleInfo ),
 
-	%io:format( "~nApplying following ~s~n",
+	%trace_utils:debug_fmt( "~nApplying following ~s",
 	%		   [ ast_transform:ast_transforms_to_string( Transforms ) ] ),
 
 	TransformedModuleInfo = meta_utils:apply_ast_transforms( Transforms,
@@ -201,18 +201,20 @@ apply_myriad_transform( InputAST ) ->
 	OutputModuleInfo = TransformedModuleInfo,
 
 	%ast_info:write_module_info_to_file( OutputModuleInfo,
-	%									  "Output-module_info.txt" ),
+	%									"Output-module_info.txt" ),
 
-	%io:format( "~n## OUTPUT ############################################ ~n" ),
-	%io:format( "Output module info: ~s~n",
+	%trace_utils:debug( "~n## OUTPUT ###################################" ),
+	%trace_utils:debug_fmt( "Output module info: ~s",
+	%		   [ ast_info:module_info_to_string( OutputModuleInfo ) ] ),
+	%io:format( "Output module info: ~s",
 	%		   [ ast_info:module_info_to_string( OutputModuleInfo ) ] ),
 
 	OutputAST = ast_info:recompose_ast_from_module_info( OutputModuleInfo ),
 
-	%io:format( "~n~nMyriad output AST:~n~p~n", [ OutputAST ] ),
+	%trace_utils:debug_fmt( "~n~nMyriad output AST:~n~p~n", [ OutputAST ] ),
 
 	%OutputASTFilename = text_utils:format( "Output-AST-for-module-~s.txt",
-	%							   [ OutputModuleInfo#module_info.module ] ),
+	%				   [ element( 1, OutputModuleInfo#module_info.module ) ] ),
 
 	%ast_utils:write_ast_to_file( OutputAST, OutputASTFilename ),
 

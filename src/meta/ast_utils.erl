@@ -711,6 +711,9 @@ notify_warning( Elements, Context ) ->
 %     called as erl_lint:'-compiler_options/1-lc$^0/1-0-'({
 % table_type_defined_more_than_once,{line,12},foo_hashtable,bar_hashtable})
 %
+% Note: this function is used to report errors detected by Myriad itself (not by
+% the Erlang toolchain).
+%
 -spec raise_error( term() ) -> no_return().
 raise_error( ErrorTerm ) ->
 
@@ -731,6 +734,9 @@ raise_error( ErrorTerm ) ->
 %
 % Ex: raise_error( [ invalid_module_name, Other ], _Context=112 ) shall
 % result in throwing { invalid_module_name, Other, { line, 112 } }.
+%
+% Note: this function is used to report errors detected by Myriad itself (not by
+% the Erlang toolchain).
 %
 -spec raise_error( [ term() ], form_context() ) -> basic_utils:void().
 raise_error( Elements, Context ) when is_list( Elements ) ->

@@ -604,16 +604,22 @@ check_function( FunId, _FunInfo=#function_info{ clauses=[],
 
 
 % No definition, no spec, hence exported:
-check_function( FunId, _FunInfo=#function_info{ clauses=[],
+check_function( _FunId, _FunInfo=#function_info{ clauses=[],
 												spec=undefined } ) ->
-	ast_utils:raise_error( [ function_exported_yet_not_defined, FunId ] );
-
+	% Silenced, as we prefer this error to be reported through the toolchain
+	% itself, to better integration in error handling:
+	%
+	%ast_utils:raise_error( [ function_exported_yet_not_defined, FunId ] );
+	ok;
 
 % No definition, not exported, hence just a spec:
-check_function( FunId, _FunInfo=#function_info{ clauses=[],
-												exported=[] } ) ->
-	ast_utils:raise_error( [ function_spec_without_definition, FunId ] );
-
+check_function( _FunId, _FunInfo=#function_info{ clauses=[],
+												 exported=[] } ) ->
+	% Silenced, as we prefer this error to be reported through the toolchain
+	% itself, to better integration in error handling:
+	%
+	%ast_utils:raise_error( [ function_spec_without_definition, FunId ] );
+	ok;
 
 check_function( _FunId={ Name, Arity },
 				_FunInfo=#function_info{ name=Name, arity=Arity } ) ->
@@ -669,9 +675,9 @@ recompose_ast_from_module_info( #module_info{
 
 			last_line=LastLineLocDef,
 
-			unhandled_forms=UnhandledLocForms
+			errors=[],
 
-								  } ) ->
+			unhandled_forms=UnhandledLocForms } ) ->
 
 	ParseAttributeLocDefs = [ Form
 			   || { _Value, Form } <- ?table:values( ParseAttributeTable ) ],
@@ -705,16 +711,25 @@ recompose_ast_from_module_info( #module_info{
 							++ [ LastLineLocDef | UnhandledLocForms ] ],
 
 	%ast_utils:display_debug( "Unordered located AST:~n~p~n",
-	%  [ UnorderedLocatedAST ] ),
+	%						 [ UnorderedLocatedAST ] ),
 
 	OrderedAST = get_ordered_ast_from( UnorderedLocatedAST ),
 
 	%ast_utils:display_debug( "Recomposed AST:~n~p~n",
 	%						 [ OrderedAST ] ),
 
-	OrderedAST.
+	OrderedAST;
 
 
+% If there was at least one error reported:
+recompose_ast_from_module_info( #module_info{ errors=Errors } ) ->
+
+	ErrorStrings = [ text_utils:to_string( E ) || E <- Errors ],
+
+	trace_utils:error_fmt( "~B errors spotted in AST:~s", [ length( Errors ), 
+						text_utils:strings_to_string( ErrorStrings ) ] ),
+
+	throw( { errors_in_ast, Errors } ).
 
 
 
@@ -1112,8 +1127,17 @@ function_info_to_string( #function_info{ name=Name,
 
 	end,
 
-	DefString = text_utils:format( "defined from line #~B, "
-			   "with ~B clause(s) defined", [ Line, length( Clauses ) ] ),
+	DefString = case Line of
+
+		undefined ->
+			text_utils:format( "with ~B clause(s) defined",
+							   [ length( Clauses ) ] );
+
+		_ ->
+			text_utils:format( "defined from line #~B, with "
+			   "~B clause(s) defined", [ Line, length( Clauses ) ] )
+
+	end,
 
 	SpecString = case LocatedSpec of
 

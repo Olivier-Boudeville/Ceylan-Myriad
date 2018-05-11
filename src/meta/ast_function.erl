@@ -375,29 +375,38 @@ get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 	%
 	FunInfos = ?table:values( FunctionTable ),
 
-	FunctionLocDefs = lists:foldl( fun( #function_info{
-										   name=Name,
-										   arity=Arity,
-										   location=Location,
-										   line=Line,
-										   clauses=Clauses,
-										   spec=MaybeSpec }, Acc ) ->
+	FunctionLocDefs = lists:foldl(
 
-						 LocFunForm = { Location,
+						% We filter out these entries, as they are only exported
+						% (not defined); the compiler will take care of that
+						% with better, more standard messages:
+						%
+						fun( #function_info{ line=undefined,
+											 clauses=[] }, Acc ) ->
+								Acc;
+
+						   ( #function_info{ name=Name,
+											 arity=Arity,
+											 location=Location,
+											 line=Line,
+											 clauses=Clauses,
+											 spec=MaybeSpec }, Acc ) ->
+
+								LocFunForm = { Location,
 								  { function, Line, Name, Arity, Clauses } },
 
-						 case MaybeSpec of
+								case MaybeSpec of
 
-							 undefined ->
-								 [ LocFunForm | Acc ];
+									undefined ->
+										[ LocFunForm | Acc ];
 
-							 LocSpecForm ->
-								 [ LocSpecForm, LocFunForm | Acc ]
+									LocSpecForm ->
+										[ LocSpecForm, LocFunForm | Acc ]
 
-						 end
+								end
 
-				 end,
-				 _Acc0=[],
-				 _List=FunInfos ),
+						end,
+						_Acc0=[],
+						_List=FunInfos ),
 
 	{ FunExportLocDefs, FunctionLocDefs }.
