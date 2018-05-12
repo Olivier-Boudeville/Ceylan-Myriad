@@ -31,7 +31,6 @@
 % dialog boxes, etc., based on the 'dialog' or 'whiptail' tools.
 %
 % See:
-%
 % - term_ui_test.erl for the corresponding test
 % - text_ui.erl for a more basic text interface
 % - gui.erl for a graphical counterpart
@@ -211,15 +210,24 @@
 % Basic UI operations.
 %
 -export([ is_available/0,
+
 		  start/0, start/1,
+
+		  set/1, set/2, unset/1,
+
+		  display/1,
+
 		  trace/1, trace/2,
+
 		  stop/0,
+
 		  to_string/0 ]).
 
 
 
 % The default place where file-based communications are to occur:
--define( default_state_path, "/tmp/.myriad-term_ui.state" ).
+% (finally not needed)
+%-define( default_state_path, "/tmp/.myriad-term_ui.state" ).
 
 
 -type dialog_tool() :: 'dialog' | 'whiptail'.
@@ -235,13 +243,13 @@
 
 
 -record( term_ui_state, {
-		   state_filename = ?default_state_path :: file_utils:file_path(),
+		   %state_filename = ?default_state_path :: file_utils:file_path(),
 		   dialog_tool :: dialog_tool(),
 		   dialog_tool_path :: file_utils:file_name(),
 		   locale = default :: dialog_locale(),
 		   log_console = false :: boolean(),
-		   log_file = undefined :: maybe( file_utils:file() )
-}).
+		   log_file = undefined :: maybe( file_utils:file() ),
+		   settings :: setting_table() }).
 
 
 -type ui_state() :: #term_ui_state{}.
@@ -297,23 +305,24 @@ start() ->
 %
 -spec start( ui_options() ) -> ui_state().
 start( Options ) ->
-	BlankUIState = #term_ui_state{},
-	start( Options, BlankUIState ).
-
-
-% (non-exported helper)
-start( _Options=[], UIState ) ->
 
 	DialogUIState = case lookup_dialog_tool() of
 
 		undefined ->
 			throw( no_dialog_tool_available );
 
-		{ T, TPath } ->
-			UIState#term_ui_state{ dialog_tool=T,
-								   dialog_tool_path=TPath }
+		{ Tool, ToolPath } ->
+			init_state_with_dimensions( Tool, ToolPath )
 
 	end,
+
+	start_helper( Options, DialogUIState ).
+
+
+
+% (helper)
+%
+start_helper( _Options=[], UIState ) ->
 
 	case process_dictionary:put( ?ui_name_key, ?MODULE ) of
 
@@ -326,7 +335,7 @@ start( _Options=[], UIState ) ->
 	end,
 
 	% No prior state expected:
-	case process_dictionary:put( ?ui_state_key, DialogUIState ) of
+	case process_dictionary:put( ?ui_state_key, UIState ) of
 
 		undefined ->
 			ok;
@@ -336,33 +345,190 @@ start( _Options=[], UIState ) ->
 
 	end,
 
-	DialogUIState;
+	UIState;
 
-start( _Options=[ log_file | T ], UIState ) ->
-	start( [ { log_file, "ui.log" } | T ], UIState );
+start_helper( _Options=[ log_file | T ], UIState ) ->
+	start_helper( [ { log_file, "ui.log" } | T ], UIState );
 
-start( _Options=[ { log_file, Filename } | T ], UIState ) ->
+start_helper( _Options=[ { log_file, Filename } | T ], UIState ) ->
 	LogFile = file_utils:open( Filename, [ write, exclusive ] ),
 	file_utils:write( LogFile, "Starting term UI.\n" ),
 	NewUIState = UIState#term_ui_state{ log_file=LogFile },
-	start( T, NewUIState );
+	start_helper( T, NewUIState );
 
-start( SingleElem, UIState ) ->
-	start( [ SingleElem ], UIState ).
+start_helper( UnexpectedList, _UIState ) when is_list( UnexpectedList ) ->
+	throw( { unexpected_options, UnexpectedList } );
+
+start_helper( SingleElem, UIState ) ->
+	start_helper( [ SingleElem ], UIState ).
 
 
 
-% Traces specified status string.
+% (helper)
 %
--spec trace( string() ) -> void().
-trace( Text ) ->
-	% Reused here:
-	text_ui:trace( Text, get_state() ).
+-spec init_state_with_dimensions( dialog_tool(), file_utils:file_path() ) ->
+										ui_state().
+init_state_with_dimensions( Tool=dialog, DialogPath ) ->
+
+	Cmd = text_utils:join( _Sep=" ", [ DialogPath, "--print-maxsize",
+									   get_redirect_string() ] ),
+
+	%trace_utils:debug_fmt( "Command: '~s'.", [ Cmd ] ),
+
+	{ Env, PortOpts } = get_execution_settings(),
+
+	% By default we will be using the full terminal space:
+	case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
+									  PortOpts ) of
+
+		% Ex: Result="MaxSize: 28, 107"
+		{ _ExitStatus=0, _Result="MaxSize: " ++ SizeString } ->
+
+			% Here, SizeString="28, 107".
+			[ HeightString, " " ++ WidthString ] =
+				text_utils:split( SizeString, [ $, ] ),
+
+			Height = text_utils:string_to_integer( HeightString ),
+
+			Width = text_utils:string_to_integer( WidthString ),
+
+			DimSettings = ?ui_table:new(
+							 [ { max_height, Height }, { max_width, Width } ] ),
+
+			#term_ui_state{ dialog_tool=Tool,
+							dialog_tool_path=DialogPath,
+							settings=DimSettings };
+
+		{ ExitStatus, Result } ->
+			throw( { max_size_lookup_failure, ExitStatus, Result } )
+
+	end.
 
 
-% Traces specified status string, by displaying it, and possibly logging it.
+
+% Sets specified UI setting.
 %
--spec trace( string(), ui_state() ) -> void().
+-spec set( ui_setting_key(), ui_setting_value() ) -> void().
+set( SettingKey, SettingValue ) ->
+	set( [ { SettingKey, SettingValue } ] ).
+
+
+% Sets specified UI settings.
+%
+-spec set( [ ui_setting_entry() ] ) -> void().
+set( SettingEntries ) ->
+
+	UIState = #term_ui_state{ settings=SettingTable } = get_state(),
+
+	NewSettingTable = ?ui_table:addEntries( SettingEntries, SettingTable ),
+
+	set_state( UIState#term_ui_state{ settings=NewSettingTable } ).
+
+
+
+% Unsets specified UI setting.
+%
+-spec unset( [ ui_setting_key() ] | ui_setting_key() ) -> void().
+unset( SettingKeys ) when is_list( SettingKeys ) ->
+
+	UIState = #term_ui_state{ settings=SettingTable } = get_state(),
+
+	NewSettingTable = ?ui_table:removeEntries( SettingKeys, SettingTable ),
+
+	set_state( UIState#term_ui_state{ settings=NewSettingTable } );
+
+unset( SettingKey ) ->
+
+	UIState = #term_ui_state{ settings=SettingTable } = get_state(),
+
+	NewSettingTable = ?ui_table:removeEntry( SettingKey, SettingTable ),
+
+	set_state( UIState#term_ui_state{ settings=NewSettingTable } ).
+
+
+
+
+% Displays specified text, as a normal message.
+%
+-spec display( text() ) -> void().
+display( Text ) ->
+
+	#term_ui_state{ dialog_tool_path=ToolPath,
+					settings=SettingTable } = get_state(),
+
+	% Simplified example:
+	%Cmd = "dialog --msgbox 'Hello!' 8 40 2>&4",
+
+	{ SettingString, SuffixString } = get_dialog_settings( SettingTable ),
+
+	DialogString = text_utils:format( "--msgbox '~s' ~s",
+									  [ Text, SuffixString ] ),
+
+	Cmd = text_utils:join( _Sep=" ", [ ToolPath, SettingString, DialogString ] ),
+
+	%trace_utils:debug_fmt( "Command: '~s'.", [ Cmd ] ),
+
+	{ Env, PortOpts } = get_execution_settings(),
+
+	%% case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
+	%%								  PortOpts ) of
+
+	%%	{ _ExitStatus=0, Output } ->
+
+	%%	{ ExitStatus, Output } ->
+
+	{ ExitStatus, Output } = system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
+									  PortOpts ),
+
+	trace_utils:debug_fmt( "ExitStatus = ~p, Output=~p",
+						   [ ExitStatus, Output ] ).
+
+
+
+% For traces, we attempt to do the same as text_ui, yet with a different
+% ui_state() (hence with no code reuse).
+
+
+% Traces specified message, by displaying it, and possibly logging it, based on
+% an implicit state.
+%
+-spec trace( message() ) -> void().
+trace( Message ) ->
+	trace( Message, get_state() ).
+
+
+
+% Traces specified message, by displaying it, and possibly logging it.
+%
+-spec trace( message(), ui_state() ) -> void();
+		   ( text_utils:format_string(), [ term() ] ) -> void().
+trace( Message, UIState ) when is_record( UIState, term_ui_state ) ->
+
+	TraceMessage = "[trace] " ++ Message ++ "\n",
+
+	case UIState#term_ui_state.log_console of
+
+		true ->
+			text_ui:display( TraceMessage, UIState );
+
+		false ->
+			ok
+
+	end,
+
+	case UIState#term_ui_state.log_file of
+
+		undefined ->
+			ok;
+
+		LogFile ->
+			text_ui:display( LogFile, TraceMessage, UIState )
+
+end;
+
+trace( FormatString, Values ) ->
+	trace( text_utils:format( FormatString, Values ) ).
+
 
 
 % Stops the UI.
@@ -387,9 +553,10 @@ stop( UIState=#term_ui_state{ log_file=LogFile } ) ->
 
 % (helper)
 %
-stop_helper( #term_ui_state{ state_filename=StateFilename } ) ->
+%stop_helper( #term_ui_state{ state_filename=StateFilename } ) ->
+stop_helper( _UIState ) ->
 
-	file_utils:remove_file_if_existing( StateFilename ),
+	%file_utils:remove_file_if_existing( StateFilename ),
 
 	process_dictionary:remove( ?ui_state_key ).
 
@@ -430,6 +597,16 @@ lookup_dialog_tool() ->
 
 
 
+% Sets the current UI state.
+%
+% (helper)
+%
+-spec set_state( ui_state() ) -> void().
+set_state( UIState ) ->
+	process_dictionary:put( ?ui_state_key, UIState ).
+
+
+
 % Returns the current UI state.
 %
 % (helper)
@@ -448,6 +625,83 @@ get_state() ->
 	end.
 
 
+% Returns the command-line options corresponding to specified table: a settings
+% string, a suffix string (dealing with size and redirection).
+%
+-spec get_dialog_settings( setting_table() ) ->
+				  { text_utils:string(), text_utils:string() }.
+get_dialog_settings( SettingTable ) ->
+
+	TitleOpt = case ?ui_table:getValueWithDefaults( 'title',
+								   _Default=undefined, SettingTable ) of
+
+		undefined ->
+			"";
+
+		Title ->
+			text_utils:format( "--title '~s'", [ Title ] )
+
+	end,
+
+	BacktitleOpt = case ?ui_table:getValueWithDefaults( 'backtitle',
+								   _Default=undefined, SettingTable ) of
+
+		undefined ->
+			"";
+
+		Backtitle ->
+			text_utils:format( "--backtitle '~s'", [ Backtitle ] )
+
+	end,
+
+	SettingsOpts = [ TitleOpt, BacktitleOpt ],
+
+	SettingsString = text_utils:join( _Separator=" ", SettingsOpts ),
+
+
+	% Dialogs look a lot better if not using the maximum dimensions but
+	% requesting auto sizing:
+
+	%Height = ?ui_table:getEntry( 'max_height', SettingTable ),
+	%Width = ?ui_table:getEntry( 'max_width', SettingTable ),
+
+	% Auto:
+	Height = 0,
+	Width = 0,
+
+
+	SuffixString = text_utils:format( "~B ~B ~s",
+								  [ Height, Width, get_redirect_string() ] ),
+
+	{ SettingsString, SuffixString }.
+
+
+
+% Returns a string to be used fir I/O redirection in an execution command.
+%
+-spec get_redirect_string() -> text_utils:string().
+get_redirect_string() ->
+	% As 'nouse_stdio' will be needed:
+	"2>&4".
+
+
+
+% Returns the settings suitable for an execution of the backend.
+%
+-spec get_execution_settings() -> { system_utils:environment(),
+									[ system_utils:port_option() ] }.
+get_execution_settings() ->
+
+	Env = system_utils:get_standard_environment(),
+
+	% Finding this combination was really not obvious:
+	% (and the VM must be run with -noinput only)
+	%
+	PortOpts = [ stream, nouse_stdio, exit_status, eof ],
+
+	{ Env, PortOpts }.
+
+
 
 % Returns a textual description of the (implicit) UI state.
 %
@@ -459,12 +713,13 @@ to_string() ->
 % Returns a textual description of the specified UI state.
 %
 -spec to_string( ui_state() ) -> string().
-to_string( #term_ui_state{ state_filename=StateFilename,
+to_string( #term_ui_state{ %state_filename=StateFilename,
 						   dialog_tool=DialogTool,
 						   dialog_tool_path=DialogToolPath,
 						   locale=Locale,
 						   log_console=LogConsole,
-						   log_file=LogFile }) ->
+						   log_file=LogFile,
+						   settings=SettingTable }) ->
 
 	DialogString = text_utils:format( "~s (found in '~s')",
 									  [ DialogTool, DialogToolPath ] ),
@@ -491,7 +746,11 @@ to_string( #term_ui_state{ state_filename=StateFilename,
 
 	end,
 
-	text_utils:format( "term_ui interface, using state file '~s' for tool ~s, "
-					   "~s, ~s writing logs on console, and ~s",
-					   [ StateFilename, DialogString, LocaleString,
-						 ConsoleString, FileString ] ).
+	SettingString = ui:settings_to_string( SettingTable ),
+
+	%text_utils:format( "term_ui interface, using state file '~s' for tool ~s, "
+	%				   "~s, ~s writing logs on console, ~s and ~s",
+	text_utils:format( "term_ui interface, using tool ~s, "
+					   "~s, ~s writing logs on console, ~s and ~s",
+					   [ DialogString, LocaleString,
+						 ConsoleString, FileString, SettingString ] ).
