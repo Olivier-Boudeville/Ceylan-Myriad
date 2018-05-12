@@ -41,7 +41,7 @@
 
 % Usage notes:
 %
-% By default, this module will do its best to selec the most suitable backend,
+% By default, this module will do its best to select the most suitable backend,
 % i.e. the most advanced among the available ones.
 %
 % One may select, from the command-line, a given backend thanks to the following
@@ -52,6 +52,14 @@
 
 % Implementation notes:
 %
+% Each backend is to store its current state into a specific state record (ex:
+% term_ui_state()), kept under a backend-specific key (see ui_name_key) in the
+% process dictionary.
+%
+% Among the fields of these backend records, one is the settings table (see the
+% setting_table()). It allows the developer to specify all kinds of settings
+% (ex: default window size), which may or may not be accommodated by a given
+% backend.
 
 
 -include("ui.hrl").
@@ -59,7 +67,7 @@
 
 -export([ start/0, start/1,
 		  trace/1, trace/2,
-		  stop/0 ]).
+		  stop/0, settings_to_string/1 ]).
 
 
 
@@ -210,5 +218,22 @@ get_best_ui_backend() ->
 					text_ui
 
 			end
+
+	end.
+
+
+
+% Returns a textual description of specified setting table.
+%
+-spec settings_to_string( setting_table() ) -> text_utils:string().
+settings_to_string( SettingTable ) ->
+	case ?ui_table:size( SettingTable ) of
+
+		0 ->
+			"having no setting recorded";
+
+		Count ->
+			text_utils:format( "with ~B settings recorded: ~p",
+							   [ Count, ?ui_table:enumerate( SettingTable ) ] )
 
 	end.
