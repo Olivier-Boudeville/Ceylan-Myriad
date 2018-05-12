@@ -187,7 +187,7 @@ test_timebox()
 test_gauge()
 {
 
-	${dialog} --backtitle "Testing gauge" --gauge "My gauge:" 10 20 12
+	for i in $(seq 0 25 100) ; do sleep 1; echo $i | ${dialog} --backtitle "Testing gauge" --gauge "Please wait for this test gauge" 10 70 0; done
 	echo "(allows to display percentage values)"
 
 }
@@ -226,14 +226,14 @@ test_all()
 #test_radiolist
 #test_treeview
 #test_checklist
-test_buildlist
+#test_buildlist
 #test_fselect
 #test_dselect
 #test_calendar
-# test_timebox
+#test_timebox
 #test_gauge
 
+test_all
 
-#test_all
 
 echo "  End of 'dialog' test."
