@@ -837,9 +837,24 @@ INTERNAL_OPTIONS := -start-verbatim-options $(INTERNAL_OPTIONS)
 # by themselves with the user.
 #
 # However, at least for some uses (ex: term_ui, relying on /bin/dialog), we
-# *need* to have -noinput and no to have -noshell.
-#
+# *need* to have -noinput and not to have -noshell, while others (ex: text_ui,
+# relying on io:get_line/1) require the opposite.
+
+# So we finally designed a work-around (see system_utils:get_line/1) to stick
+# with the option needed by term_ui:
+
+# term_ui displays and terminates (text_ui is ok):
+#EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -noinput -noshell
+
+# The same:
+#EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS)
+
+# term_ui is ok, text_ui by default (with no work-around) has no input:
 EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -noinput
+
+# term_ui is ok, text_ui has no input:
+#EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -noshell
+
 
 
 DIALYZER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which dialyzer 2>/dev/null)
