@@ -54,7 +54,8 @@
 % The standard table API:
 %
 -export([ new/0, new/1, addEntry/3, addEntries/2,
-		  removeEntry/2, lookupEntry/2, hasEntry/2, getEntry/2,
+		  removeEntry/2, removeEntries/2,
+		  lookupEntry/2, hasEntry/2, getEntry/2,
 		  extractEntry/2, getValueWithDefaults/3, getValues/2, getAllValues/2,
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToExistingEntry/3, appendListToExistingEntry/3,
@@ -151,7 +152,7 @@ addEntries( [ { EntryName, EntryValue } | Rest ], Table ) ->
 
 
 
-% Removes specified key/value pair, as designated by the key, from the specified
+% Removes the key/value pair designated by the specified key, from the specified
 % table.
 %
 % Does nothing if the key is not found.
@@ -161,6 +162,23 @@ addEntries( [ { EntryName, EntryValue } | Rest ], Table ) ->
 -spec removeEntry( key(), list_table() ) -> list_table().
 removeEntry( Key, Table ) ->
 	lists:keydelete( Key, _N=1, Table ).
+
+
+
+% Removes the key/value pairs designated by the specified keys, from the
+% specified table.
+%
+% Does nothing if a key is not found.
+%
+% Returns an updated table.
+%
+-spec removeEntries( [ key() ], list_table() ) -> list_table().
+removeEntries( Keys, Table ) ->
+	lists:foldl( fun( K, AccTable ) ->
+					lists:keydelete( K, _N=1, AccTable )
+				 end,
+				 _Acc0=Table,
+				 Keys ).
 
 
 
