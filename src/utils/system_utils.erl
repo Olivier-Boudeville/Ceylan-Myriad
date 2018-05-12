@@ -45,9 +45,9 @@
 
 
 % System-related functions.
--export([
+-export([ run_executable/1, run_executable/2, run_executable/3,
+		  run_executable/4,
 
-		  run_executable/1, run_executable/2, run_executable/3,
 		  get_standard_environment/0,
 		  monitor_port/2,
 		  evaluate_shell_expression/1, evaluate_shell_expression/2,
@@ -182,6 +182,13 @@
 % parameters):
 %
 -type command() :: text_utils:ustring().
+
+
+% An option used to spawn a port (others managed through specific parameters):
+%
+-type port_option() :: { 'packet', 1 | 2 | 4 }
+					 | 'stream'
+					 | { 'line', basic_utils:count() }.
 
 
 % Return the (positive integer) return code of an executable being run
@@ -477,24 +484,37 @@ run_executable( Command, Environment ) ->
 							command_outcome().
 run_executable( Command, Environment, WorkingDir ) ->
 
-	%trace_utils:debug_fmt( "Running executable: '~s' with environment '~s' "
-	%					   "from working directory '~p'.",
-	%		   [ Command, environment_to_string( Environment ), WorkingDir ] ),
+	% Removed: 'in'
+	DefaultBasePortOpts = [ stream, exit_status, use_stdio, stderr_to_stdout,
+							eof ],
 
-	%PortOpts = [ stream, exit_status, use_stdio, stderr_to_stdout, in, eof,
-	%			 { env, Environment } ],
+	run_executable( Command, Environment, WorkingDir, DefaultBasePortOpts ).
 
-	PortOpts = [ stream, exit_status, use_stdio, in, eof,
-				 { env, Environment } ],
 
+
+% Executes (synchronously) specified executable (specified as a single,
+% standalone string) in specified shell environment and directory, with
+% specified port options, and returns its return code (exit status) and its
+% outputs (both the standard and the error ones).
+%
+-spec run_executable( command(), environment(), working_dir(),
+					  [ port_option() ] ) -> command_outcome().
+run_executable( Command, Environment, WorkingDir, PortOptions ) ->
+
+	trace_utils:debug_fmt( "Running executable: '~s' with environment '~s' "
+						   "from working directory '~p', with options ~p.",
+						   [ Command, environment_to_string( Environment ),
+							 WorkingDir, PortOptions ] ),
+
+	PortOptsWithEnv = [ { env, Environment } | PortOptions  ],
 
 	PortOptsWithPath = case WorkingDir of
 
 		undefined ->
-			PortOpts;
+			PortOptsWithEnv;
 
 		_ ->
-			[ { cd, WorkingDir } | PortOpts ]
+			[ { cd, WorkingDir } | PortOptsWithEnv ]
 
 	end,
 
