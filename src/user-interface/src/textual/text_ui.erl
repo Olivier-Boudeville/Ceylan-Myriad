@@ -67,8 +67,8 @@
 
 		  add_separation/0,
 
-		  get_text/1, get_text_as_integer/1, get_text_as_maybe_integer/1,
-		  read_text_as_integer/1,
+		  get_text/2, get_text_as_integer/2, get_text_as_maybe_integer/2,
+		  read_text_as_integer/2,
 
 		  choose_designated_item/1, choose_designated_item/2,
 		  choose_designated_item/3,
@@ -91,8 +91,13 @@
 
 
 -record( text_ui_state, {
+
+		   % Path to our work-around script:
+		   get_line_script = file_utils:executable_path(),
+
 		   log_console = false :: boolean(),
 		   log_file = undefined :: maybe( file_utils:file() ),
+
 		   settings :: setting_table() }).
 
 -type ui_state() :: #text_ui_state{}.
@@ -134,7 +139,12 @@ start() ->
 %
 -spec start( ui_options() ) -> void().
 start( Options ) ->
-	BlankUIState = #text_ui_state{ settings=?ui_table:new() },
+
+	% Cached, as the look-up is a bit demanding:
+	GetLineScript = system_utils:get_line_helper_script(),
+
+	BlankUIState = #text_ui_state{ get_line_script=GetLineScript,
+								   settings=?ui_table:new() },
 	start( Options, BlankUIState ).
 
 
@@ -276,9 +286,11 @@ add_separation() ->
 %
 % (const)
 %
--spec get_text( prompt() ) -> text().
-get_text( Prompt ) ->
-	text_utils:remove_ending_carriage_return( io:get_line( Prompt ) ).
+-spec get_text( prompt(), ui_state() ) -> text().
+get_text( Prompt, #text_ui_state{ get_line_script=GetLineScript } ) ->
+	%text_utils:remove_ending_carriage_return( io:get_line( Prompt ) ).
+	text_utils:remove_ending_carriage_return(
+	  system_utils:get_line( Prompt, GetLineScript ) ).
 
 
 
@@ -287,10 +299,10 @@ get_text( Prompt ) ->
 %
 % (const)
 %
--spec get_text_as_integer( prompt() ) -> text().
-get_text_as_integer( Prompt ) ->
+-spec get_text_as_integer( prompt(), ui_state() ) -> text().
+get_text_as_integer( Prompt, UIState ) ->
 
-	Text = get_text( Prompt ),
+	Text = get_text( Prompt, UIState ),
 
 	text_utils:string_to_integer( Text ).
 
@@ -301,15 +313,15 @@ get_text_as_integer( Prompt ) ->
 %
 % (const)
 %
--spec read_text_as_integer( prompt() ) -> text().
-read_text_as_integer( Prompt ) ->
+-spec read_text_as_integer( prompt(), ui_state() ) -> text().
+read_text_as_integer( Prompt, UIState ) ->
 
-	Text = get_text( Prompt ),
+	Text = get_text( Prompt, UIState ),
 
 	case text_utils:try_string_to_integer( Text ) of
 
 		undefined ->
-			read_text_as_integer( Prompt );
+			read_text_as_integer( Prompt, UIState );
 
 		I ->
 			I
@@ -322,10 +334,10 @@ read_text_as_integer( Prompt ) ->
 %
 % (const)
 %
--spec get_text_as_maybe_integer( prompt() ) -> maybe( text() ).
-get_text_as_maybe_integer( Prompt ) ->
+-spec get_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( text() ).
+get_text_as_maybe_integer( Prompt, UIState ) ->
 
-	case get_text( Prompt ) of
+	case get_text( Prompt, UIState ) of
 
 		"" ->
 			undefined;
@@ -343,10 +355,10 @@ get_text_as_maybe_integer( Prompt ) ->
 %
 % (const)
 %
--spec read_text_as_maybe_integer( prompt() ) -> maybe( text() ).
-read_text_as_maybe_integer( Prompt ) ->
+-spec read_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( text() ).
+read_text_as_maybe_integer( Prompt, UIState ) ->
 
-	case get_text( Prompt ) of
+	case get_text( Prompt, UIState ) of
 
 		"" ->
 			undefined;
@@ -355,7 +367,7 @@ read_text_as_maybe_integer( Prompt ) ->
 			case text_utils:try_string_to_integer( Text ) of
 
 				undefined ->
-					read_text_as_integer( Prompt );
+					read_text_as_integer( Prompt, UIState );
 
 				I ->
 					I
@@ -423,7 +435,7 @@ choose_designated_item( Label, Choices, UIState ) ->
 
 	FullLabel = text_utils:format( "~s~s~nChoice> ", [ Label, Text ] ),
 
-	case read_text_as_integer( FullLabel ) of
+	case read_text_as_integer( FullLabel, UIState ) of
 
 		{ parsing_failed, Input } ->
 			display_error( "Input shall be an integer (not ~s).",
@@ -509,7 +521,7 @@ choose_numbered_item( Label, Choices, UIState ) ->
 
 	FullLabel = text_utils:format( "~s~s~nChoice> ", [ Label, Text ] ),
 
-	SelectedNumber = get_text_as_integer( FullLabel ),
+	SelectedNumber = get_text_as_integer( FullLabel, UIState ),
 
 	%trace_utils:format( "Selected: ~B", [ SelectedNumber ] ),
 
@@ -613,7 +625,7 @@ choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
 	FullLabel = text_utils:format( "~s~s~nChoice [default: ~B]> ",
 								   [ Label, Text, DefaultChoiceIndex ] ),
 
-	case read_text_as_maybe_integer( FullLabel ) of
+	case read_text_as_maybe_integer( FullLabel, UIState ) of
 
 		% Default:
 		undefined ->
@@ -819,9 +831,13 @@ to_string() ->
 % Returns a textual description of the specified UI state.
 %
 -spec to_string( ui_state() ) -> string().
-to_string( #text_ui_state{ log_console=LogConsole,
+to_string( #text_ui_state{ get_line_script=GetLineScript,
+						   log_console=LogConsole,
 						   log_file=LogFile,
 						   settings=SettingTable }) ->
+
+	ScriptString = text_utils:format( "relying on helper script '~s'",
+									  [ GetLineScript ] ),
 
 	ConsoleString = case LogConsole of
 
@@ -845,6 +861,7 @@ to_string( #text_ui_state{ log_console=LogConsole,
 
 	SettingString = ui:settings_to_string( SettingTable ),
 
-	text_utils:format( "text_ui interface, ~s writing logs on console, "
+	text_utils:format( "text_ui interface, ~s, ~s writing logs on console, "
 					   "~s and ~s",
-					   [ ConsoleString, FileString, SettingString ] ).
+					   [ ScriptString, ConsoleString, FileString,
+						 SettingString ] ).
