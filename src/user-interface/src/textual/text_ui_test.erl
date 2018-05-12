@@ -40,73 +40,43 @@
 % The actual test:
 run_test_ui() ->
 
-	test_facilities:display( "Testing the text_ui services twice, first with "
-							 "an implicit, then with an explicit UI state.~n" ),
+	test_facilities:display( "Testing the text_ui services.~n" ),
 
-	UIState = text_ui:start(),
+	text_ui:start(),
+
+	text_ui:set( [ { backtitle, "Test of text_ui" }, { title, "A title" } ] ),
 
 	text_ui:display( "My text to display!" ),
-	text_ui:display( "My text to display!", UIState ),
 
 	text_ui:display_error( "My error to display!" ),
-	text_ui:display_error( "My error to display!", UIState ),
-
-	text_ui:display_numbered_list( "My label for following items:",
-							  [ "Foo", "Bar", "Baz" ] ),
-	text_ui:display_numbered_list( "My label for following items:",
-							  [ "Foo", "Bar", "Baz" ], UIState ),
 
 
-	IFirstChoice = text_ui:choose_designated_item(
+	text_ui:unset( [ backtitle, title ] ),
+
+	text_ui:display_numbered_list( "My numbered list is:",
+								   [ "Foo", "Bar", "Baz" ] ),
+
+	FirstChoice = text_ui:choose_designated_item(
 					[ { choice_1, "Choice 1" },
 					  { choice_2, "Choice 2" },
 					  { choice_3, "Choice 3" },
 					  { choice_4, "Choice 4" } ] ),
 
-	text_ui:display( "First choice (implicit) has been ~p",
-					 [ IFirstChoice ], UIState ),
-
-	EFirstChoice = text_ui:choose_designated_item(
-					[ { choice_1, "Choice 1" },
-					  { choice_2, "Choice 2" },
-					  { choice_3, "Choice 3" },
-					  { choice_4, "Choice 4" } ], UIState ),
-
-	text_ui:display( "First choice (explicit) has been ~p",
-					 [ EFirstChoice ], UIState ),
-
+	text_ui:display( "Choice has been ~p", [ FirstChoice ] ),
 
 	text_ui:add_separation(),
-	text_ui:add_separation( UIState ),
 
-	ISecondChoice = text_ui:choose_numbered_item_with_default(
+	SecondChoice = text_ui:choose_numbered_item_with_default(
 					 "This is my label; just choose below:",
-					 [ "Choice 1", "Choice 2", "Choice 3", "Choice 4" ],
-					 2 ),
+					 [ "Choice 1", "Choice 2", "Choice 3", "Choice 4" ], 2 ),
 
-	text_ui:display( "Second choice (implicit) has been ~p",
-					 [ ISecondChoice ] ),
-
-	ESecondChoice = text_ui:choose_numbered_item_with_default(
-					 "This is my label; just choose below:",
-					 [ "Choice 1", "Choice 2", "Choice 3", "Choice 4" ],
-					 2, UIState ),
-
-	text_ui:display( "Second choice (explicit) has been ~p",
-					 [ ESecondChoice ] ),
-
+	text_ui:display( "Second choice has been ~p", [ SecondChoice ] ),
 
 	text_ui:trace( "My UI trace" ),
-	text_ui:trace( "My UI trace", UIState ),
 
-	text_ui:display( "Text UI (implicit) state: ~s", [ text_ui:to_string() ] ),
-
-	text_ui:display( text_utils:format( "Text UI (explicit) state: ~s",
-										[ text_ui:to_string( UIState ) ] ),
-										UIState ),
+	text_ui:display( "Text UI state: ~s", [ text_ui:to_string() ] ),
 
 	text_ui:stop().
-	%text_ui:stop( UIState ).
 
 
 
