@@ -48,6 +48,8 @@
 -export([ run_executable/1, run_executable/2, run_executable/3,
 		  run_executable/4,
 
+		  get_line/1, get_line/2, get_line_helper_script/0,
+
 		  get_standard_environment/0,
 		  monitor_port/2,
 		  evaluate_shell_expression/1, evaluate_shell_expression/2,
@@ -501,10 +503,10 @@ run_executable( Command, Environment, WorkingDir ) ->
 					  [ port_option() ] ) -> command_outcome().
 run_executable( Command, Environment, WorkingDir, PortOptions ) ->
 
-	trace_utils:debug_fmt( "Running executable: '~s' with environment '~s' "
-						   "from working directory '~p', with options ~p.",
-						   [ Command, environment_to_string( Environment ),
-							 WorkingDir, PortOptions ] ),
+	%trace_utils:debug_fmt( "Running executable: '~s' with environment '~s' "
+	%					   "from working directory '~p', with options ~p.",
+	%					   [ Command, environment_to_string( Environment ),
+	%						 WorkingDir, PortOptions ] ),
 
 	PortOptsWithEnv = [ { env, Environment } | PortOptions  ],
 
@@ -585,6 +587,83 @@ read_port( Port, Data ) ->
 			port_terminated
 
 	 end.
+
+
+
+% Our version of io:get_line/1, as an external program so that the VM can be run
+% with -noinput (and thus so that {text,term}_ui can be used with the same VM
+% settings).
+%
+-spec get_line( text_utils:string() ) -> text_utils:string().
+get_line( Prompt ) ->
+	get_line( Prompt, get_line_helper_script() ).
+
+
+
+% Our version of io:get_line/1, as an external program so that the VM can be run
+% with -noinput (and thus so that {text,term}_ui can be used with the same VM
+% settings).
+%
+-spec get_line( text_utils:string(), file_utils:executable_path() ) ->
+					  text_utils:string().
+get_line( Prompt, GetLineScriptPath ) ->
+
+
+	% Having the script display the prompt would not work, as that script would
+	% not be able to write to the standard input (1):
+	%
+	%Cmd = text_utils:format( "get-line-as-external-program.sh \"~s\" 1>&4",
+	%						 [ Prompt ] ),
+
+	io:format( Prompt ),
+
+	% We have to execute a real executable (ex: not a shell builtin):
+	Cmd = GetLineScriptPath ++ " 1>&4",
+
+	Env = system_utils:get_standard_environment(),
+
+	PortOpts = [ stream, nouse_stdio, exit_status, eof ],
+
+	case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
+									  PortOpts ) of
+
+		{ _ExitStatus=0, UserText } ->
+			UserText;
+
+		{ ExitStatus, Any } ->
+			throw( { myriad_get_line_failed, ExitStatus, Any } )
+
+	end.
+
+
+
+
+% Returns the path to the Myriad helper script for get_line/1 operations.
+%
+-spec get_line_helper_script() -> file_utils:executable_path().
+get_line_helper_script() ->
+
+	GetLineScript = file_utils:join( script_utils:get_script_base_directory(),
+									 "get-line-as-external-program.sh" ),
+
+	case file_utils:is_existing_file( GetLineScript ) of
+
+		true ->
+
+			case file_utils:is_executable( GetLineScript ) of
+
+				true ->
+					GetLineScript;
+
+				false ->
+					throw( { script_not_executable, GetLineScript } )
+
+			end;
+
+		false ->
+			throw( { script_not_found, GetLineScript } )
+
+	end.
 
 
 
