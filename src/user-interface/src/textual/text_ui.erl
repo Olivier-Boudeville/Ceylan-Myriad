@@ -31,9 +31,7 @@
 % raw text with no cursor control.
 %
 % See:
-%
 % - text_ui_test.erl for the corresponding test
-% - term_ui.erl for a more advanced text interface
 % - gui.erl for a graphical counterpart
 %
 % See also: trace_utils.erl for another kind of output.
@@ -57,18 +55,20 @@
 %
 -export([ start/0, start/1,
 
-		  display/1, display/2, display/3,
+		  set/1, set/2, unset/1,
 
-		  display_numbered_list/2, display_numbered_list/3,
+		  display/1, display/2,
 
-		  display_error/1, display_error/2, display_error/3,
+		  display_numbered_list/2,
 
-		  display_error_numbered_list/2, display_error_numbered_list/3,
+		  display_error/1, display_error/2,
 
-		  add_separation/0, add_separation/1,
+		  display_error_numbered_list/2,
 
-		  get_text/2, get_text_as_integer/2, get_text_as_maybe_integer/2,
-		  read_text_as_integer/2,
+		  add_separation/0,
+
+		  get_text/1, get_text_as_integer/1, get_text_as_maybe_integer/1,
+		  read_text_as_integer/1,
 
 		  choose_designated_item/1, choose_designated_item/2,
 		  choose_designated_item/3,
@@ -79,6 +79,8 @@
 		  choose_numbered_item_with_default/2,
 		  choose_numbered_item_with_default/3,
 		  choose_numbered_item_with_default/4,
+
+		  get_setting/1,
 
 		  trace/1, trace/2,
 
@@ -91,8 +93,7 @@
 -record( text_ui_state, {
 		   log_console = false :: boolean(),
 		   log_file = undefined :: maybe( file_utils:file() ),
-		   settings :: setting_table()
-}).
+		   settings :: setting_table() }).
 
 -type ui_state() :: #text_ui_state{}.
 
@@ -133,7 +134,7 @@ start() ->
 %
 -spec start( ui_options() ) -> void().
 start( Options ) ->
-	BlankUIState = #text_ui_state{},
+	BlankUIState = #text_ui_state{ settings=?ui_table:new() },
 	start( Options, BlankUIState ).
 
 
@@ -166,6 +167,46 @@ start( _Options=[ { log_file, Filename } | T ], UIState ) ->
 start( SingleElem, UIState ) ->
 	start( [ SingleElem ], UIState ).
 
+
+
+% Sets specified UI setting.
+%
+-spec set( ui_setting_key(), ui_setting_value() ) -> void().
+set( SettingKey, SettingValue ) ->
+	set( [ { SettingKey, SettingValue } ] ).
+
+
+% Sets specified UI settings.
+%
+-spec set( [ ui_setting_entry() ] ) -> void().
+set( SettingEntries ) ->
+
+	UIState = #text_ui_state{ settings=SettingTable } = get_state(),
+
+	NewSettingTable = ?ui_table:addEntries( SettingEntries, SettingTable ),
+
+	set_state( UIState#text_ui_state{ settings=NewSettingTable } ).
+
+
+
+% Unsets specified UI setting.
+%
+-spec unset( [ ui_setting_key() ] | ui_setting_key() ) -> void().
+unset( SettingKeys ) when is_list( SettingKeys ) ->
+
+	UIState = #text_ui_state{ settings=SettingTable } = get_state(),
+
+	NewSettingTable = ?ui_table:removeEntries( SettingKeys, SettingTable ),
+
+	set_state( UIState#text_ui_state{ settings=NewSettingTable } );
+
+unset( SettingKey ) ->
+
+	UIState = #text_ui_state{ settings=SettingTable } = get_state(),
+
+	NewSettingTable = ?ui_table:removeEntry( SettingKey, SettingTable ),
+
+	set_state( UIState#text_ui_state{ settings=NewSettingTable } ).
 
 
 
@@ -332,11 +373,19 @@ read_text_as_maybe_integer( Prompt ) ->
 %
 -spec choose_designated_item( [ choice_element() ] ) -> choice_designator().
 choose_designated_item( Choices ) ->
+
 	Prompt = text_utils:format( "Select among these ~B choices:",
 								[ length( Choices ) ] ),
 
-	choose_designated_item( Prompt, Choices, UIState );
+	choose_designated_item( Prompt, Choices ).
 
+
+
+% Selects, using specified prompt, an item among the specified ones, and returns
+% its designator.
+%
+% (const)
+%
 choose_designated_item( Label, Choices ) ->
 	choose_designated_item( Label, Choices, get_state() ).
 
@@ -374,24 +423,24 @@ choose_designated_item( Label, Choices, UIState ) ->
 
 	FullLabel = text_utils:format( "~s~s~nChoice> ", [ Label, Text ] ),
 
-	case read_text_as_integer( FullLabel, UIState ) of
+	case read_text_as_integer( FullLabel ) of
 
 		{ parsing_failed, Input } ->
 			display_error( "Input shall be an integer (not ~s).",
-						   [ Input ], UIState ),
+						   [ Input ] ),
 			choose_designated_item( Label, Choices, UIState );
 
 
 		N when N < 1 ->
 			display_error( "Specified choice shall be at least 1 (not ~B).",
-						   [ N ], UIState ),
+						   [ N ] ),
 			%throw( { invalid_choice, too_low, N } );
 			choose_designated_item( Label, Choices, UIState );
 
 		N when N > ChoiceCount ->
 			display_error(
 			  "Specified choice shall not be greater than ~B (not ~B).",
-			  [ ChoiceCount, N ], UIState ),
+			  [ ChoiceCount, N ] ),
 			%throw( { invalid_choice, too_high, N } );
 			choose_designated_item( Label, Choices, UIState );
 
@@ -460,7 +509,7 @@ choose_numbered_item( Label, Choices, UIState ) ->
 
 	FullLabel = text_utils:format( "~s~s~nChoice> ", [ Label, Text ] ),
 
-	SelectedNumber = get_text_as_integer( FullLabel, UIState ),
+	SelectedNumber = get_text_as_integer( FullLabel ),
 
 	%trace_utils:format( "Selected: ~B", [ SelectedNumber ] ),
 
@@ -468,14 +517,14 @@ choose_numbered_item( Label, Choices, UIState ) ->
 
 		N when N < 1 ->
 			display_error( "Specified choice shall be at least 1 (not ~B).",
-						   [ N ], UIState ),
+						   [ N ] ),
 			%throw( { invalid_choice, too_low, N } );
 			choose_numbered_item( Label, Choices, UIState );
 
 		N when N > ChoiceCount ->
 			display_error(
 			  "Specified choice shall not be greater than ~B (not ~B).",
-			  [ ChoiceCount, N ], UIState ),
+			  [ ChoiceCount, N ] ),
 			%throw( { invalid_choice, too_high, N } );
 			choose_numbered_item( Label, Choices, UIState );
 
@@ -564,7 +613,7 @@ choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
 	FullLabel = text_utils:format( "~s~s~nChoice [default: ~B]> ",
 								   [ Label, Text, DefaultChoiceIndex ] ),
 
-	case read_text_as_maybe_integer( FullLabel, UIState ) of
+	case read_text_as_maybe_integer( FullLabel ) of
 
 		% Default:
 		undefined ->
@@ -572,15 +621,14 @@ choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
 
 		N when N < 1 ->
 			display_error( "Specified choice shall be at least 1 (not ~B).",
-						   [ N ],
-						   UIState ),
+						   [ N ] ),
 			%throw( { invalid_choice, too_low, N } );
 			choose_numbered_item_with_default( Label, Choices,
 											   DefaultChoiceIndex, UIState );
 
 		N when N > ChoiceCount ->
 			display_error( "Specified choice shall not be greater than ~B "
-						   "(not ~B).", [ ChoiceCount, N ], UIState ),
+						   "(not ~B).", [ ChoiceCount, N ] ),
 			%throw( { invalid_choice, too_high, N } );
 			choose_numbered_item_with_default( Label, Choices,
 											   DefaultChoiceIndex, UIState );
@@ -591,17 +639,21 @@ choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
 	end.
 
 
-% Traces specified message, based on an implicit state.
+
+% Traces specified message, by displaying it, and possibly logging it, based on
+% an implicit state.
 %
 -spec trace( message() ) -> void().
 trace( Message ) ->
 	trace( Message, get_state() ).
 
 
+
 % Traces specified message, by displaying it, and possibly logging it.
 %
--spec trace( message(), ui_state() ) -> void().
-trace( Message, UIState ) ->
+-spec trace( message(), ui_state() ) -> void();
+		   ( text_utils:format_string(), [ term() ] ) -> void().
+trace( Message, UIState ) when is_record( UIState, text_ui_state ) ->
 
 	TraceMessage = "[trace] " ++ Message ++ "\n",
 
@@ -621,11 +673,12 @@ trace( Message, UIState ) ->
 			ok;
 
 		LogFile ->
-			display( LogFile, TraceMessage, UIState )
+			display( LogFile, TraceMessage )
 
-end.
+end;
 
-
+trace( FormatString, Values ) ->
+	trace( text_utils:format( FormatString, Values ) ).
 
 
 
@@ -659,6 +712,17 @@ stop_helper() ->
 
 
 % Helper section.
+
+
+
+% Sets the current UI state.
+%
+% (helper)
+%
+-spec set_state( ui_state() ) -> void().
+set_state( UIState ) ->
+	process_dictionary:put( ?ui_state_key, UIState ).
+
 
 
 % Returns the current UI state.
@@ -698,11 +762,50 @@ display_helper( Channel, Text ) ->
 display_helper( Channel, FormatString, Values ) ->
 
 	%trace_utils:debug_fmt( "Displaying, on channel '~p', '~p', with '~p'.",
-	%				   [ Channel, FormatString, Values ] ),
+	%					   [ Channel, FormatString, Values ] ),
+
+	UIState = get_state(),
+
+	case get_setting( backtitle, UIState ) of
+
+		undefined ->
+			ok;
+
+		Backtitle ->
+			io:format( Channel, "~n [~s]~n", [ Backtitle ] )
+
+	end,
+
+	case get_setting( title, UIState ) of
+
+		undefined ->
+			ok;
+
+		Title ->
+			io:format( Channel, "     ~s~n", [ Title ] )
+
+	end,
 
 	io:format( Channel, FormatString ++ "~n", Values ).
 
 
+
+% Returns the value (if any) associated, in the (implicit) UI state, to the
+% specified setting.
+%
+-spec get_setting( ui_setting_key() ) -> maybe( ui_setting_value() ).
+get_setting( SettingKey ) ->
+	get_setting( SettingKey, get_state() ).
+
+
+% Returns the value (if any) associated, in the specified UI state, to the
+% specified setting.
+%
+-spec get_setting( ui_setting_key(), ui_state() ) ->
+						 maybe( ui_setting_value() ).
+get_setting( SettingKey, #text_ui_state{ settings=SettingTable } ) ->
+	?ui_table:getValueWithDefaults( SettingKey, _Default=undefined,
+									SettingTable ).
 
 
 
@@ -717,7 +820,8 @@ to_string() ->
 %
 -spec to_string( ui_state() ) -> string().
 to_string( #text_ui_state{ log_console=LogConsole,
-						   log_file=LogFile }) ->
+						   log_file=LogFile,
+						   settings=SettingTable }) ->
 
 	ConsoleString = case LogConsole of
 
@@ -739,5 +843,8 @@ to_string( #text_ui_state{ log_console=LogConsole,
 
 	end,
 
+	SettingString = ui:settings_to_string( SettingTable ),
+
 	text_utils:format( "text_ui interface, ~s writing logs on console, "
-					   "and ~s", [ ConsoleString, FileString ] ).
+					   "~s and ~s",
+					   [ ConsoleString, FileString, SettingString ] ).
