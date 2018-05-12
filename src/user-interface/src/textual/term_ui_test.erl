@@ -46,6 +46,10 @@ run_test_ui() ->
 
 	term_ui:start(),
 
+	term_ui:set( [ { backtitle, "Test of term_ui" }, { title, "A title" } ] ),
+
+	term_ui:display( "My text to display!" ),
+
 	trace_utils:debug_fmt( "UI state: ~s", [ term_ui:to_string() ] ),
 
 	term_ui:stop().
