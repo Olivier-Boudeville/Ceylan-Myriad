@@ -832,10 +832,14 @@ endif
 INTERNAL_OPTIONS := -start-verbatim-options $(INTERNAL_OPTIONS)
 
 
-# No shell wanted by default for executions, as executables are supposed to
-# interact by themselves with the user:
+# We used to rely on '-noshell' rather than on '-noinput', as no shell was
+# wanted by default for executions, since executables are supposed to interact
+# by themselves with the user.
 #
-EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -noshell
+# However, at least for some uses (ex: term_ui, relying on /bin/dialog), we
+# *need* to have -noinput and no to have -noshell.
+#
+EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -noinput
 
 
 DIALYZER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which dialyzer 2>/dev/null)
