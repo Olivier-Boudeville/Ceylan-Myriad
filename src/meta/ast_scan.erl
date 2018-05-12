@@ -156,6 +156,10 @@ report_error( { Context, Error } ) ->
 			%text_utils:format( "parse error: ~s", [ Msg ] );
 			text_utils:format( "~s", [ Msg ] );
 
+		{ undefined_macro_variable, VariableName } ->
+			text_utils:format( "undefined macro variable '~s'",
+							   [ VariableName ] );
+
 		Other ->
 			text_utils:format( "~p", [ Other ] )
 
@@ -445,10 +449,23 @@ scan_forms( [ { 'function', Line, FunctionName, FunctionArity, Clauses } | T ],
 
 		% Here a definition was already set:
 		% (previous line not necessarily in the same file)
+		%
+		% We tried to silence that error to rely on the compiler, yet
+		% commenting-out this led to having a double definition not properly
+		% handled:
+		%
+		% (a better approach would be to store a list of such list of clauses,
+		% and to reinject them as they are, so that the compiler sees them and
+		% complains in a standard manner afterwards)
+		%
 		{ value, #function_info{ line=PreviousLine } } ->
 			ast_utils:raise_error( [ multiple_definition_for, FunId,
 									 { previous_line, PreviousLine } ],
 								   Context )
+
+		% Would result in ignoring this definition:
+		%{ value, F } ->
+		%	F
 
 	end,
 
@@ -520,8 +537,14 @@ scan_forms( [ Form={ 'attribute', Line, SpecType,
 							 callback=IsCallback };
 
 		% Here a spec was already set:
-		_ ->
-			ast_utils:raise_error( [ multiple_spec_for, FunId ], Context )
+		%_ ->
+		%	ast_utils:raise_error( [ multiple_spec_for, FunId ], Context )
+
+		% Finally we prefer letting the compiler complain by itself about these
+		% multiple specs:
+		%
+		{ value, F } ->
+			F
 
 	end,
 
@@ -633,16 +656,17 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
 
 	ast_type:check_record_name( RecordName, Context ),
 
-	case ?table:hasEntry( RecordName, RecordTable ) of
-
-		true ->
-			ast_utils:raise_error(
-			  [ multiple_definitions_for_record, RecordName ], Context );
-
-		false ->
-			ok
-
-	end,
+	% Finally we let the compiler complain:
+	%case ?table:hasEntry( RecordName, RecordTable ) of
+	%
+	%	true ->
+	%		ast_utils:raise_error(
+	%		  [ multiple_definitions_for_record, RecordName ], Context );
+	%
+	%	false ->
+	%		ok
+	%
+	%end,
 
 	FieldTable = scan_field_descriptions( DescFields, CurrentFileReference ),
 
