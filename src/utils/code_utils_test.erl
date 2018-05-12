@@ -42,6 +42,9 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
+	test_facilities:display( "The ~s.",
+							 [ code_utils:get_code_path_as_string() ] ),
+
 	ModuleName = hashtable,
 
 	test_facilities:display( "Determining whether '~s' is in code path: ~p.",
