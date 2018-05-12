@@ -25,6 +25,8 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
+% Options to initialise a user interface:
+%
 -type ui_options() :: [ any() ].
 
 -export_type([ ui_options/0 ]).
@@ -64,30 +66,54 @@
 
 
 
-% As soon as an interface gets rich enough, many optional settings may be
-% specified. Rather than having them all specified as separate function
-% parameters or than using records (knowing that different kinds of dialogs call
-% for different settings), we chose to rely on a more flexible parameter table,
-% in which parameters will be looked-up (their values will apply, otherwise
-% default behaviour will be retained).
+% As soon as an interface (thanks to a given backend) gets rich enough, many
+% optional settings may be specified.
+%
+% Rather than having them all listed as separate function parameters or than
+% using records (knowing that different kinds of dialogs call for different
+% settings), we chose to rely on a more flexible parameter table, in which
+% parameters will be looked-up (their values will apply, otherwise default
+% behaviour will be retained).
+
+
+% The known per-setting keys:
+-type ui_setting_key() :: 'backtitle' | 'title'.
+
+
+% The setting-specific values:
+-type ui_setting_value() :: term().
+
+
+% For setting-specific entries:
+-type ui_setting_entry() :: { ui_setting_key(), ui_setting_value() }.
+
 
 
 % Parameter keys that are common to all dialogs:
--type common_entry() :: title_entry() | backtitle_entry().
+-type common_entry() :: backtitle_entry() | title_entry().
 
-
-% For (front) titles:
--type title_entry() :: { 'title', title() }.
 
 % For back-titles:
 -type backtitle_entry() :: { 'backtitle', title() }.
 
 
+% For (front) titles:
+-type title_entry() :: { 'title', title() }.
+
+
+
+% The type of associated table used for the settings of user interfaces:
+-define( ui_table, list_table ).
+
+
 % A table storing UI settings (either top-level or backend-specific):
 %
--type setting_table() :: list_table:list_table().
+-type setting_table() :: ?ui_table:?ui_table( ui_setting_key(),
+											  ui_setting_value() ).
 
--export_type([ common_entry/0, title_entry/0, backtitle_entry/0,
+
+-export_type([ ui_setting_key/0, ui_setting_value/0, ui_setting_entry/0,
+			   common_entry/0, backtitle_entry/0, title_entry/0,
 			   setting_table/0 ]).
 
 
