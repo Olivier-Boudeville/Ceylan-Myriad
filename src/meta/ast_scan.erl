@@ -1223,6 +1223,9 @@ scan_field_descriptions( _FieldDescriptions=[
 			DefaultValue }, FieldType } | T ],
 						 CurrentFileReference, FieldTable ) ->
 
+	%ast_utils:display_debug( "Field default value: ~p.", [ DefaultValue ] ),
+	%ast_utils:display_debug( "Field type: ~p.", [ FieldType ] ),
+
 	FieldDesc = { FieldType, DefaultValue, FirstLine, SecondLine },
 
 	NewFieldTable = [ { FieldName, FieldDesc } | FieldTable ],

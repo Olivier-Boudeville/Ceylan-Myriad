@@ -49,8 +49,8 @@
 % Transformation:
 -export([ transform_functions/2, transform_function/2,
 		  transform_function_spec/2,
-		  transform_spec/3, transform_function_type/3,
-		  transform_function_constraints/3, transform_function_constraint/3 ]).
+		  transform_spec/2, transform_function_type/2,
+		  transform_function_constraints/2, transform_function_constraint/2 ]).
 
 
 % Recomposition:
@@ -248,8 +248,7 @@ transform_function( FunctionInfo=#function_info{ clauses=ClauseDefs,
 -spec transform_function_spec( function_spec(), ast_transforms() ) ->
 									 function_spec().
 transform_function_spec( { 'attribute', Line, SpecType, { FunId, SpecList } },
-				 #ast_transforms{ local_types=MaybeLocalTypeTable,
-								  remote_types=MaybeRemoteTypeTable } ) ->
+						 Transforms ) ->
 
 	% Ex for '-spec f( type_a() ) -> type_b().':
 
@@ -259,8 +258,7 @@ transform_function_spec( { 'attribute', Line, SpecType, { FunId, SpecList } },
 	%
 
 	%ast_utils:display_trace( "SpecList = ~p", [ SpecList ] ),
-	NewSpecList = [ transform_spec( Spec, MaybeLocalTypeTable,
-								MaybeRemoteTypeTable ) || Spec <- SpecList ],
+	NewSpecList = [ transform_spec( Spec, Transforms ) || Spec <- SpecList ],
 
 	{ 'attribute', Line, SpecType, { FunId, NewSpecList } }.
 
@@ -276,21 +274,18 @@ transform_function_spec( { 'attribute', Line, SpecType, { FunId, SpecList } },
 % {type,LINE,bounded_fun,[Rep(Ft_1),Rep(Fc)]}."
 %
 transform_spec( { 'type', Line, 'bounded_fun',
-				  [ FunctionType, FunctionConstraint ] },
-				MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
+				  [ FunctionType, FunctionConstraint ] }, Transforms ) ->
 
-	NewFunctionType = transform_function_type( FunctionType,
-							 MaybeLocalTypeTable, MaybeRemoteTypeTable ),
+	NewFunctionType = transform_function_type( FunctionType, Transforms ),
 
 	NewFunctionConstraint = transform_function_constraints( FunctionConstraint,
-							   MaybeLocalTypeTable, MaybeRemoteTypeTable ),
+															Transforms ),
 
 	{ 'type', Line, 'bounded_fun', [ NewFunctionType, NewFunctionConstraint ] };
 
 
-transform_spec( OtherSpec, MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
-	transform_function_type( OtherSpec, MaybeLocalTypeTable,
-							 MaybeRemoteTypeTable ).
+transform_spec( OtherSpec, Transforms ) ->
+	transform_function_type( OtherSpec, Transforms ).
 
 
 
@@ -302,17 +297,15 @@ transform_spec( OtherSpec, MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
 %
 transform_function_type( { 'type', LineFirst, 'fun',
 	   [ { 'type', LineSecond, 'product', ParamTypes }, ResultType ] },
-						 MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
+						 Transforms ) ->
 
 	[ NewResultType | NewParamTypes ] = ast_type:transform_types(
-			[ ResultType | ParamTypes ], MaybeLocalTypeTable,
-			MaybeRemoteTypeTable ),
+			[ ResultType | ParamTypes ], Transforms ),
 
 	{ 'type', LineFirst, 'fun',
 	  [ { 'type', LineSecond, 'product', NewParamTypes }, NewResultType ] };
 
-transform_function_type( UnexpectedFunType, _MaybeLocalTypeTable,
-						 _MaybeRemoteTypeTable ) ->
+transform_function_type( UnexpectedFunType, _Transforms ) ->
 	ast_utils:raise_error( [ unexpected_function_type, UnexpectedFunType ] ).
 
 
@@ -323,11 +316,10 @@ transform_function_type( UnexpectedFunType, _MaybeLocalTypeTable,
 % "A function constraint Fc is a non-empty sequence of constraints C_1, ...,
 % C_k, and Rep(Fc) = [Rep(C_1), ..., Rep(C_k)]."
 %
-transform_function_constraints( FunctionConstraints, MaybeLocalTypeTable,
-								MaybeRemoteTypeTable ) ->
+transform_function_constraints( FunctionConstraints, Transforms ) ->
 
-	[ transform_function_constraint( FC, MaybeLocalTypeTable,
-				 MaybeRemoteTypeTable ) || FC <- FunctionConstraints ].
+	[ transform_function_constraint( FC, Transforms )
+	  || FC <- FunctionConstraints ].
 
 
 
@@ -336,13 +328,11 @@ transform_function_constraints( FunctionConstraints, MaybeLocalTypeTable,
 %
 transform_function_constraint( { 'type', Line, 'constraint',
 		[ AtomConstraint={ atom, _LineAtom, _SomeAtom }, [ TypeVar, Type ] ] },
-		MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
+		Transforms ) ->
 
-	NewTypeVar = ast_type:transform_type( TypeVar, MaybeLocalTypeTable,
-										  MaybeRemoteTypeTable ),
+	NewTypeVar = ast_type:transform_type( TypeVar, Transforms ),
 
-	NewType = ast_type:transform_type( Type, MaybeLocalTypeTable,
-									   MaybeRemoteTypeTable ),
+	NewType = ast_type:transform_type( Type, Transforms ),
 
 	{ 'type', Line, 'constraint', [ AtomConstraint, [ NewTypeVar, NewType ] ] }.
 
