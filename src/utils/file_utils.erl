@@ -667,9 +667,6 @@ classify_dir_elements( _Dirname, _Elements=[], Devices, Directories, Files,
 classify_dir_elements( Dirname, _Elements=[ H | T ], Devices, Directories,
 					   Files, OtherFiles ) ->
 
-	io:format( "EEE = ~s / ~p", [ filename:join( Dirname, H ),
-								  get_type_of( filename:join( Dirname, H ) ) ] ),
-
 	 case get_type_of( filename:join( Dirname, H ) ) of
 
 		device ->
