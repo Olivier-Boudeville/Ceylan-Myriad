@@ -44,7 +44,7 @@
 % here meant to be run before the update of the code path.
 
 -export([ is_running_as_escript/0, update_code_path_for_myriad/0,
-		  get_script_base_directory/0, get_root_of_myriad/0 ]).
+		  get_script_base_directory/0, get_myriad_base_directory/0 ]).
 
 
 % Tells whether the currently running Erlang code is executed as an escript or
@@ -82,7 +82,7 @@ is_running_as_escript() ->
 -spec update_code_path_for_myriad() -> void().
 update_code_path_for_myriad() ->
 
-	MyriadRootDir = get_root_of_myriad(),
+	MyriadRootDir = get_myriad_base_directory(),
 
 	%trace_utils:debug_fmt( "Root of 'Myriad': ~s.", [ MyriadRootDir ] ),
 
@@ -136,8 +136,10 @@ get_script_base_directory() ->
 
 			MyriadPath = get_myriad_path_from( CodePath ),
 
-			file_utils:normalise_path(
-			  file_utils:join( [ MyriadPath, "src", "scripts" ] ) )
+			% We cannot use file_utils:normalise_path/1 here: Myriad not usable
+			% from that point yet!
+			%
+			file_utils:join( [ MyriadPath, "src", "scripts" ] )
 
 	end.
 
@@ -170,7 +172,10 @@ get_myriad_path_from( [ Path | T ] ) ->
 % (note that a double path conversion between root and script directories can
 % hardly be avoided)
 %
--spec get_root_of_myriad() -> file_utils:path().
-get_root_of_myriad() ->
-	file_utils:normalise_path(
-	  filename:join( [ get_script_base_directory(), "..", ".." ] ) ).
+-spec get_myriad_base_directory() -> file_utils:path().
+get_myriad_base_directory() ->
+
+	% We cannot use file_utils:normalise_path/1 here: Myriad not usable from
+	% that point yet!
+	%
+	filename:join( [ get_script_base_directory(), "..", ".." ] ).

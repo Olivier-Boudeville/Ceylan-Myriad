@@ -46,7 +46,7 @@ run() ->
 	false = script_utils:is_running_as_escript(),
 
 	test_facilities:display( "Root of Myriad is: ~s",
-							 [ script_utils:get_root_of_myriad() ] ),
+							 [ script_utils:get_myriad_base_directory() ] ),
 
 	test_facilities:display( "Script directory is: ~s",
 							 [ script_utils:get_script_base_directory() ] ),
