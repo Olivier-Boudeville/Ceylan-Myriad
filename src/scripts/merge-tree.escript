@@ -6,7 +6,7 @@
 
 
 % Copyright (C) 2016-2018 Olivier Boudeville
-% [ olivier (dot) boudeville (at) esperide (dot) com]
+% [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 % Released as LGPL software.

@@ -1,10 +1,12 @@
-% Copyright (C) 2016-2018 Olivier Boudeville (olivier.boudeville@esperide.com)
-
-% Transfered from merge-tree.escript to benefit from a more user-friendly
+% Copyright (C) 2016-2018 Olivier Boudeville
+%
+% Transferred from merge-tree.escript to benefit from a more user-friendly
 % debugging.
-
+%
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+%
 % Released as LGPL software.
-
+%
 -module(merge_utils).
 
 
@@ -38,12 +40,12 @@
 
 % Data associated to a given file-like element.
 %
-% Note: these records might be stored in tables, the associated key potentially
-% duplicating them (not a problem).
+% Note: these records are typically stored in tables, the associated key potentially
+% duplicating their path (not a problem).
 %
 -record( file_data, {
 
-		   % Path of this file, relative to the tree root:
+		   % Path of this file (an identifier), relative to the tree root:
 		   path :: file_utils:bin_path(),
 
 		   % Type of the file element:
@@ -52,7 +54,8 @@
 		   % Precise size, in bytes, of that file:
 		   size :: system_utils:byte_size(),
 
-		   % Timestamp of the last content modification known of the filesystem:
+		   % Timestamp of the last content modification of this file, as known
+		   % of the filesystem:
 		   %
 		   timestamp :: time_utils:posix_seconds(),
 
@@ -67,7 +70,7 @@
 
 % Table referencing file entries based on their SHA1:
 %
-% (generally exactly one file_data record per SHA1 key)
+% (exactly one file_data record per SHA1 key, once the tree is uniquified)
 %
 -type sha1_table() :: table( sha1(), [ file_data() ] ).
 
@@ -80,7 +83,7 @@
 %
 -record( tree_data, {
 
-		   % Base, absolute (binary) path of that tree:
+		   % Base, absolute (binary) path of the root of that tree:
 		   root :: file_utils:bin_directory_name(),
 
 		   % Each key is the SHA1 sum of a file content, each value is a list of
@@ -135,32 +138,38 @@
 % Note: ensure it is already built first!
 
 
-
+-spec get_usage() -> void().
 get_usage() ->
 	"   Usage:\n"
 	"      - either: 'merge-tree.escript TREE_TO_SCAN REFERENCE_TREE'\n"
 	"      - or: 'merge-tree.escript --scan A_TREE'\n\n"
-	"   Ensures that all the changes in a possibly more up-to-date, \"newer\" tree (TREE_TO_SCAN) are merged back to the reference tree (REFERENCE_TREE), from which the tree to scan may have derived. Once executed, only a refreshed reference tree will exist, as the input TREE_TO_SCAN tree will be removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
+	"   Ensures, for the first form, that all the changes in a possibly more up-to-date, \"newer\" tree (TREE_TO_SCAN) are merged back to the reference tree (REFERENCE_TREE), from which the first tree may have derived. Once executed, only a refreshed reference tree will exist, as the input TREE_TO_SCAN tree will be removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
 	"   In the reference tree, in-tree duplicated content will be either removed as a whole or replaced by symbolic links, to keep only a single version of each actual content.\n"
-	"   All the timestamps of the files in the reference tree will be set to the current time, and, at the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they not have changed. As a result, once that merge is done, the reference tree will contain an uniquified version of the union of the two specified trees, and the tree to scan will not exist anymore.\n"
-	"   If the --scan option is used, then the specified tree will be inspected and will be uniquified (duplicates being removed or replaced with symbolic links), and a corresponding '" ?merge_cache_filename "' file will be created (to be potentially reused by a later merge).
+	"   At the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they not have changed. As a result, once that merge is done, the reference tree will contain an uniquified version of the union of the two specified trees, and the tree to scan will not exist anymore.\n"
+	"   If the --scan option is used, then the specified tree will be inspected and will be uniquified (duplicates being removed or replaced with symbolic links), and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later merge).
 ".
+
+
+% Not useful: "All the timestamps of the files in the reference tree will be set
+% to the current time".
 
 
 
 % Typically for testing:
 %
+-spec run() -> void().
 run() ->
-	io:format( "Running...~n" ),
+	trace_utils:info( "Running..." ),
 	Args = init:get_plain_arguments(),
-	io:format( "Arguments: '~p'~n.", [ Args ] ),
+	trace_utils:debug_fmt( "Arguments: '~p'.", [ Args ] ),
 	throw( fixme ).
 
 
 % Typically for testing:
 %
+-spec scan( file_utils:directory_name() ) -> void().
 scan( TreePath ) ->
-	io:format( "Scanning '~s'...~n", [ TreePath ] ),
+	trace_utils:info( "Scanning '~s'...", [ TreePath ] ),
 	main( [ "--scan", TreePath ] ).
 
 
