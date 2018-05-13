@@ -66,8 +66,16 @@
 
 
 -export([ start/0, start/1,
+
+		  set/1, set/2, unset/1,
+
+		  display/1,
+
 		  trace/1, trace/2,
-		  stop/0, settings_to_string/1 ]).
+
+		  stop/0,
+
+		  settings_to_string/1 ]).
 
 
 
@@ -146,6 +154,47 @@ start( Options ) ->
 	BackendModuleName:start( Options ).
 
 
+
+% Sets specified UI setting.
+%
+-spec set( ui_setting_key(), ui_setting_value() ) -> void().
+set( SettingKey, SettingValue ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:set( SettingKey, SettingValue ).
+
+
+% Sets specified UI settings.
+%
+-spec set( [ ui_setting_entry() ] ) -> void().
+set( SettingEntries ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:set( SettingEntries ).
+
+
+
+% Unsets specified UI setting.
+%
+-spec unset( [ ui_setting_key() ] | ui_setting_key() ) -> void().
+unset( SettingElement ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:unset( SettingElement ).
+
+
+
+% Displays specified text, as a normal message.
+%
+-spec display( text() ) -> void().
+display( Text ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:display( Text ).
 
 
 

@@ -249,7 +249,7 @@
 		   locale = default :: dialog_locale(),
 		   log_console = false :: boolean(),
 		   log_file = undefined :: maybe( file_utils:file() ),
-		   settings :: setting_table() }).
+		   settings :: setting_table() } ).
 
 
 -type ui_state() :: #term_ui_state{}.
@@ -470,18 +470,19 @@ display( Text ) ->
 
 	{ Env, PortOpts } = get_execution_settings(),
 
-	%% case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
-	%%								  PortOpts ) of
+	case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
+									  PortOpts ) of
 
-	%%	{ _ExitStatus=0, Output } ->
+		{ _ExitStatus=0, _Output="" } ->
+			ok;
 
-	%%	{ ExitStatus, Output } ->
+		{ _ExitStatus=0, Output } ->
+			trace_utils:debug_fmt( "Output: '~s'.", [ Output ] );
 
-	{ ExitStatus, Output } = system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
-									  PortOpts ),
+		{ ExitStatus, Output } ->
+			throw( { display_error_reported, ExitStatus, Output } )
 
-	trace_utils:debug_fmt( "ExitStatus = ~p, Output=~p",
-						   [ ExitStatus, Output ] ).
+	end.
 
 
 

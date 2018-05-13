@@ -145,6 +145,7 @@ start( Options ) ->
 
 	BlankUIState = #text_ui_state{ get_line_script=GetLineScript,
 								   settings=?ui_table:new() },
+
 	start( Options, BlankUIState ).
 
 

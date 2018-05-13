@@ -44,6 +44,8 @@ run_test_ui() ->
 
 	ui:start(),
 
+	ui:display( "The UI service greets you." ),
+
 	ui:stop().
 
 
