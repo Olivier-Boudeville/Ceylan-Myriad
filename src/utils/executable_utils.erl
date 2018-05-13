@@ -97,9 +97,7 @@
 		 get_default_sha_tool/0,
 
 		 get_default_java_runtime/0,
-		 get_default_jinterface_path/0
-
-		 ]).
+		 get_default_jinterface_path/0 ]).
 
 
 
@@ -118,11 +116,40 @@
 -type sha_sum() :: non_neg_integer().
 
 
--export_type([ md5_sum/0, sha1_sum/0, sha_sum/0 ]).
+
+% Command-line managed like init:get_argument/1:
+
+
+% The name of a command-line option (ex: '-color', for an actual option
+% "--color"):
+%
+% (a flag, for the init standard module)
+%
+-type command_line_option() :: atom().
+
+
+% The name of a command-line value (ex: "blue"):
+-type command_line_value() :: text_utils:string().
+
+
+% The association between an option and the various values associated to its
+% instances.
+%
+% Ex: if arguments were "--color blue red [...] --color yellow", then the
+% corresponding argument is { '-color', [ [ "blue", "red" ]; [ "yellow" ] ] }.
+%
+-type command_line_argument() ::
+		{ command_line_option(), [ command_line_value() ] }.
+
+
+
+-export_type([ md5_sum/0, sha1_sum/0, sha_sum/0,
+			   command_line_option/0, command_line_value/0,
+			   command_line_argument/0 ]).
 
 
 % Miscellaneous section:
--export([ is_batch/0 ]).
+-export([ extract_command_argument/1, is_batch/0 ]).
 
 
 
@@ -725,6 +752,47 @@ get_default_jinterface_path() ->
 
 % Miscellaneous section:
 
+
+% Allows to extract a specific command-line argument and return the rest of the
+% arguments for a further processing; useful to intercept settings and pass
+% along.
+%
+% Reads the user command-line arguments (not the full plain arguments: those to
+% be interpreted by the VM are not taken into account here) that were provided
+% for the current program execution, and returns a pair made of:
+%
+% - the (possibly empty) list of the (ordered) values associated to the
+% specified command-line option
+%
+% - a list of the remaining supplied arguments
+%
+% Note: the order of the various arguments is not preserved, but the order in
+% their respective values is.
+%
+-spec extract_command_argument( command_line_option() ) ->
+						 { command_line_value(), [ command_line_argument() ] }.
+extract_command_argument( Option ) ->
+
+	Args = init:get_arguments(),
+
+	ArgTable = table:new( Args ),
+
+	case table:hasEntry( Option, ArgTable ) of
+
+		true ->
+			{ Values, ShrunkArgTable } = table:extractEntry( Option, ArgTable ),
+			{ Values, table:enumerate( ShrunkArgTable ) };
+
+		false ->
+			{ [], Args }
+
+	end.
+
+
+
+% Tells whether the program is run in batch mode (i.e. with the "--batch"
+% command line argument).
+%
 -spec is_batch() -> boolean().
 is_batch() ->
 

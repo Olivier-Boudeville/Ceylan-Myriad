@@ -45,4 +45,17 @@ run() ->
 	test_facilities:display( "SSH mute option: '~s'.",
 							 [ executable_utils:get_ssh_mute_option() ] ),
 
+
+	TargetOption = 'pz',
+
+	{ Values, RemainingArguments } = executable_utils:extract_command_argument(
+									   TargetOption ),
+
+	test_facilities:display( "Knowing the actual command-line arguments were:~n"
+							 "~p~nbased on option '~s', we extracted "
+							 "following value(s):~n~p~nand got the rest of "
+							 "the arguments:~n~p",
+							 [ init:get_arguments(), TargetOption, Values,
+							   RemainingArguments ] ),
+
 	test_facilities:stop().
