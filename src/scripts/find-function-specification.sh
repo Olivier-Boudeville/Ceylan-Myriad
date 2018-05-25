@@ -40,4 +40,4 @@ echo
 # '{actual_function_name}', not '{actual_function_name}(', so that partial
 # function names can still be found.
 #
-cd ${base_dir} && find . -name '*.?rl' -exec /bin/grep -e "[[:space:]]\?-spec[[:space:]]\+${actual_function_name}" DUMMY '{}' ';' 2>/dev/null
+cd ${base_dir} && find . -name '*.?rl' -exec /bin/grep --color -e "[[:space:]]\?-spec[[:space:]]\+${actual_function_name}" DUMMY '{}' ';' 2>/dev/null
