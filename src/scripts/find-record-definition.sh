@@ -34,6 +34,10 @@ echo "Looking for the definition of the '${record_name}' Erlang record from ${ba
 echo
 
 
+# Finally better with no context (file will probably have to be opened anyway):
+#context_opt="--after-context=15"
+context_opt=""
+
 # DUMMY to force the display of the corresponding file.
 #
-cd ${base_dir} && find . -name '*.?rl' -exec /bin/grep --color --after-context=15 -e "[[:space:]]\?-record([[:space:]]\+${record_name}" DUMMY '{}' ';' 2>/dev/null
+cd ${base_dir} && find . -name '*.?rl' -exec /bin/grep --color ${context_opt} -e "[[:space:]]\?-record([[:space:]]\+${record_name}" DUMMY '{}' ';' 2>/dev/null
