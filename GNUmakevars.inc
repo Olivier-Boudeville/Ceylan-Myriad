@@ -528,7 +528,8 @@ ERL_LAUNCHER = $(MYRIAD_SRC)/scripts/launch-erl.sh
 
 
 # Modules needed for the bootstrapping for others (hence to be built first, and
-# not parse-transformed; typically *used* by parse-transforms)
+# not parse-transformed; typically *used* by parse-transforms, or being a
+# parse-transform themselves)
 #
 # (see the 'Bootstrap section' in GNUmakerules.inc for their special-cased
 # build)
