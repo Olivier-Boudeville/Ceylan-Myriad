@@ -199,8 +199,8 @@ all-recurse: $(BEAM_FILES)
 # lies, otherwise the BEAM file will be created on the current (ex: root)
 # directory:
 #
-# (note that, as a result, parse transforms are not themselves parse-transformed
-# by the ones of the lower layers)
+# (note that we want that parse transforms are themselves parse-transformed by
+# the ones of the lower layers)
 #
 %_parse_transform.beam: %_parse_transform.erl
 	@echo "		Compiling parse transform $<"
