@@ -33,6 +33,8 @@
 % - function_info
 
 
+
+% Description of the module name:
 -type module_entry() :: basic_utils:maybe( { basic_utils:module_name(),
 											 ast_info:located_form() } ).
 
