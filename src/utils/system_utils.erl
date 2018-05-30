@@ -375,20 +375,22 @@ get_user_home_directory_string() ->
 
 -ifdef(debug_mode_is_enabled).
 
-% Default time-out duration (one second):
+% Default time-out duration (0.3 second, for loaded computers):
 await_output_completion() ->
-	await_output_completion( _TimeOut=100 ).
+	% Milliseconds:
+	await_output_completion( _TimeOut=300 ).
 
 -else. % debug_mode_is_enabled
 
 
-% Extended time-out (one minute), if for example being in production, on a
+% Extended time-out (2.5 seconds), if for example being in production, on a
 % possibly heavily loaded system:
 %
 % (warning: this may impact adversely the timing if intensive logging is used)
 %
 await_output_completion() ->
-	await_output_completion( _TimeOut=2000 ).
+	% Milliseconds:
+	await_output_completion( _TimeOut=2500 ).
 
 -endif. % debug_mode_is_enabled
 
@@ -409,14 +411,15 @@ await_output_completion( TimeOut ) ->
 	%
 	% (we suppose that the time-out here is in milliseconds)
 
-	%io:format( "(awaiting output completion)~n", [] ),
+	%trace_utils:debug( "(awaiting output completion)" ),
 
 	% Almost just a yield:
 	timer:sleep( 10 ),
 
-	%io:format( "(output completed)~n", [] ),
+	%trace_utils:debug( "(output completed)" ),
 
 	% Does not seem always sufficient:
+	% (supposing timeout() is in milliseconds)
 	sys:get_status( error_logger, TimeOut ).
 
 
