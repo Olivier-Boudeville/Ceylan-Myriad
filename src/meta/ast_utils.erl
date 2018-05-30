@@ -105,7 +105,8 @@
 % Signaling:
 %
 -export([ notify_warning/2,
-		  raise_error/1, raise_error/2, get_error_form/3, format_error/1 ]).
+		  raise_error/1, raise_error/2, raise_error/3,
+		  get_error_form/3, format_error/1 ]).
 
 
 % Other:
@@ -698,7 +699,7 @@ notify_warning( Elements, Context ) ->
 
 
 % Raises a (compile-time, rather ad hoc) error when applying a parse transform,
-% to stop the build on failure and report the actual error.
+% to stop the build on failure and report the actual error, thanks to the specified term (often, a list of error elements).
 %
 % Used to be a simple throw, but then for parse transforms the error message was
 % garbled in messages like:
@@ -726,11 +727,14 @@ raise_error( ErrorTerm ) ->
 	%erlang:exit( { ErrorTerm, erlang:get_stacktrace() } ).
 
 	%erlang:exit( ErrorTerm ).
+
+	% Possibly a list of elements:
 	raise_error( ErrorTerm, _Context=undefined ).
 
 
 
-% Raises an error, with specified context.
+% Raises an error, with specified context, thanks to the specified term (often,
+% a list of error elements), from the Myriad layer.
 %
 % Ex: raise_error( [ invalid_module_name, Other ], _Context=112 ) shall
 % result in throwing { invalid_module_name, Other, { line, 112 } }.
@@ -738,16 +742,39 @@ raise_error( ErrorTerm ) ->
 % Note: this function is used to report errors detected by Myriad itself (not by
 % the Erlang toolchain).
 %
--spec raise_error( [ term() ], form_context() ) -> basic_utils:void().
-raise_error( Elements, Context ) when is_list( Elements ) ->
+-spec raise_error( term(), form_context() ) -> no_return().
+raise_error( ErrorTerm, Context ) ->
+	raise_error( ErrorTerm, Context, _OriginLayer="Myriad" ).
+
+
+% Raises an error, with specified context, from the specified layer (expected to
+% be above Myriad).
+%
+% Ex: raise_error( [ invalid_module_name, Other ], _Context=112,
+% _OriginLayer="FooLayer" ) shall result in throwing { invalid_module_name,
+% Other, { line, 112 } }.
+%
+raise_error( Elements, Context, OriginLayer ) when is_list( Elements ) ->
 
 	AllElements = get_elements_with_context( Elements, Context ),
 
 	%StackTrace = erlang:get_stacktrace(),
 
 	try
-		display_error( "Error raised while performing Myriad transformations:"
-					   "~n  ~p~n", [ list_to_tuple( AllElements ) ] ),
+
+		% To avoid a single-element tuple:
+		ReportedElems = case AllElements of
+
+			[ Elem ] ->
+				Elem;
+
+			_ ->
+				list_to_tuple( AllElements )
+
+		end,
+
+		display_error( "Error raised while performing ~s-level transformations:"
+					   "~n  ~p~n", [ OriginLayer, ReportedElems ] ),
 		throw( myriad_transformation_failed )
 
 	catch
@@ -776,8 +803,8 @@ raise_error( Elements, Context ) when is_list( Elements ) ->
 	%exit( AllElements );
 	halt( 5 );
 
-raise_error( Element, Context ) ->
-	raise_error( [ Element ], Context ).
+raise_error( SingleElement, Context, OriginLayer ) ->
+	raise_error( [ SingleElement ], Context, OriginLayer ).
 
 
 
