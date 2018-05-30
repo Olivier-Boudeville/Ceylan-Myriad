@@ -280,7 +280,7 @@ $(MYRIAD_TOP)/src/data-management/map_hashtable.beam: $(MYRIAD_TOP)/src/data-man
 	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT) -o $@ $<
 
 
-# The most common rule:
+# The main, most usual rule:
 %.beam: %.erl
 	@echo "		Compiling module $<"
 	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT) -o $@ $<
