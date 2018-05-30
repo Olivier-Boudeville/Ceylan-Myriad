@@ -818,7 +818,7 @@ module_info_to_string( #module_info{
 						 function_imports=FunImportTable,
 						 function_imports_defs=_FunImportDefs,
 						 function_exports=_FunctionExports,
-						 functions=Functions,
+						 functions=FunctionTable,
 						 optional_callbacks_defs=OptCallbacksDefs,
 						 last_line=LastLine,
 						 unhandled_forms=UnhandledForms } ) ->
@@ -835,7 +835,7 @@ module_info_to_string( #module_info{
 
 	FunctionStrings = [ io_lib:format( "~s",
 								   [ function_info_to_string( FunInfo ) ] )
-					|| { _FunId, FunInfo } <- ?table:enumerate( Functions ) ],
+			|| { _FunId, FunInfo } <- ?table:enumerate( FunctionTable ) ],
 
 	TypeStrings = [ io_lib:format( "~s", [ type_info_to_string( TypeInfo ) ] )
 						|| { _TypeId, TypeInfo } <- ?table:enumerate( Types ) ],
