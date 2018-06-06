@@ -266,12 +266,10 @@
 ;; Depends on the screen height:
 
 ;; For a netbook:
-(add-to-list 'default-frame-alist (cons 'height 35))
+;;(add-to-list 'default-frame-alist (cons 'height 35))
 
 ;; For a normal screen:
-;;(add-to-list 'default-frame-alist (cons 'height 49))
-
-;;(add-to-list 'default-frame-alist (cons 'height 58))
+(add-to-list 'default-frame-alist (cons 'height 52))
 
 
 ;; Key section:
@@ -627,7 +625,6 @@
 (setq vc-follow-symlinks nil)
 (setq line-move-visual nil)
 
-(setq default-tab-width 4)
 
 (setq scroll-step 1)
 (show-paren-mode 1)
@@ -636,6 +633,13 @@
 (savehist-mode 1)
 
 (setq frame-title-format '("%b" (buffer-file-name ": %f")))
+
+
+;; Wrong: (setq default-tab-width 4)
+(setq-default tab-width 4)
+
+(setq tab-width 4)
+
 
 (setq tool-bar-mode nil)
 
