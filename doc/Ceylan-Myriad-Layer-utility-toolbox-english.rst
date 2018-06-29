@@ -21,7 +21,12 @@ These helpers (code and typing information) are thematically aggregated in modul
 
 - **cipher**-related facilities (basic, a bit exotic chained symmetric encryptions, notably with Mealy machines), in ``cipher_utils.erl``
 - functions to manage Erlang **compiled BEAM code** (``code_utils.erl``)
-- services to manage the **execution of other programs** (``executable_utils.erl``)
+- services to manage the **execution of other programs** (``executable_utils.erl``), to:
+
+  - locate said executables
+  - to execute functional services (ex: display a PDF) regardless of the actual executable involved
+  - to handle more easily command-line arguments (a bit like ``getopt``), regardless of the interpreter or escript context
+
 - helpers for **file-based** I/O operations (``file_utils.erl``)
 - a very basic support of **Finite State Machines** (``fsm_utils.{e,h}rl``)
 - a few operations defined on **graphs** (``graph_utils.erl``, with ``find_breadth_first/{3,4}``)
