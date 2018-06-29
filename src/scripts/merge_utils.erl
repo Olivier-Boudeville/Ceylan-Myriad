@@ -22,7 +22,7 @@
 
 
 % Version of this tool:
--define( merge_script_version, "0.0.1" ).
+-define( merge_script_version, "0.0.2" ).
 
 
 -define( default_log_filename, "merge-tree.log" ).
@@ -150,19 +150,15 @@ get_usage() ->
 ".
 
 
-% Not useful: "All the timestamps of the files in the reference tree will be set
-% to the current time".
-
-
 
 % Typically for testing:
 %
 -spec run() -> void().
 run() ->
 	trace_utils:info( "Running..." ),
-	Args = init:get_plain_arguments(),
-	trace_utils:debug_fmt( "Arguments: '~p'.", [ Args ] ),
-	throw( fixme ).
+	NonUIArgs = ui:start( _Opts=[] ),
+	trace_utils:debug_fmt( "Script-specific arguments: '~p'.", [ NonUIArgs ] ),
+	main( NonUIArgs ).
 
 
 % Typically for testing:
@@ -186,8 +182,10 @@ main( [ "--help" ] ) ->
 % Here we scan a tree:
 main( [ "--scan", TreePath ] ) ->
 
-	% First, enable all possible helper code:
+	% First, enable all possible helper code (hence to be done first of all):
 	update_code_path_for_myriad(),
+
+	trace_utils:debug_fmt( "Request to scan '~s'.", [ TreePath ] ),
 
 	% Prepare for various outputs:
 	UserState = start_user_service( ?default_log_filename ),
@@ -238,11 +236,13 @@ main( [ SourceTree, TargetTree ] ) ->
 	stop_user_service( UserState );
 
 
-main( _ ) ->
-	io:format( "~n   Error, exactly two parameters should be specified.~n~n~s",
-			   [ get_usage() ] ).
+main( Args ) ->
 
+	% We could check here whether one argument is akin to
+	% "CMD_LINE_OPT=--use-ui-backend text_ui".
 
+	io:format( "~n   Error, exactly two parameters should be specified "
+			   "~n(got: ~p).~n~n~s", [ Args, get_usage() ] ).
 
 
 
@@ -255,7 +255,7 @@ main( _ ) ->
 -spec start_user_service( file_utils:file_name() ) -> user_state().
 start_user_service( LogFilename ) ->
 
-	% We append to the log file, if it already exists:
+	% We append to the log file (not resetting it), if it already exists:
 	LogFile = file_utils:open( LogFilename,
 							   _Opts=[ append, raw, delayed_write ] ),
 
@@ -388,16 +388,19 @@ check_tree_path_exists( TreePath ) ->
 						   user_state() ) -> void().
 update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 
-
 	CacheFilename = get_cache_path_for( TreePath ),
 
 	case file_utils:is_existing_file( CacheFilename ) of
 
 		true ->
+
+			trace_utils:debug_fmt( "Using existing cache file '~s'.",
+								   [ CacheFilename ] ),
+
 			% Load it, if trusted (typically if not older from the newest
 			% element in tree):
 			%
-			throw( fixme );
+			throw( fixme_2 );
 
 		false ->
 			create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
@@ -407,8 +410,8 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 
 
 
-% Creates merge cache file for specified content tree (overwriting any priorly
-% existing merge cache file), and returns that tree.
+% Creates an automatically named merge cache file for specified content tree
+% (overwriting any priorly existing merge cache file), and returns that tree.
 %
 -spec create_merge_cache_file_for( file_utils:directory_name(),
 					   analyzer_ring(), user_state() ) -> tree_data().
@@ -488,7 +491,7 @@ terminate_data_analyzers( PidList, UserState ) ->
 
 
 
-% Scans for good the specified tree.
+% Scans for good the specified tree, whose path is expected to exist.
 %
 -spec scan_tree( file_utils:path(), analyzer_ring(), user_state() ) ->
 					   tree_data().
@@ -504,7 +507,7 @@ scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 	trace_debug( "Found ~B files:~s", [ length( FilteredFiles ),
 			text_utils:strings_to_string( FilteredFiles ) ], UserState ),
 
-	% For lighter sendings and storage:
+	% For lighter message sendings and storage:
 	FilteredBinFiles = text_utils:strings_to_binaries( FilteredFiles ),
 
 	scan_files( FilteredBinFiles, AbsTreePath, AnalyzerRing ).
@@ -529,7 +532,7 @@ scan_files( _Files=[], _AnalyzerRing, TreeData, _WaitedCount=0 ) ->
 	TreeData;
 
 scan_files( _Files=[], _AnalyzerRing, TreeData, WaitedCount ) ->
-	% Will return an updated tree data once all answers are received:
+	% Will return an updated tree data, once all answers are received:
 	%trace_info( "Final waiting for ~B entries.", [ WaitedCount ] ),
 	wait_entries( TreeData, WaitedCount );
 
@@ -539,7 +542,7 @@ scan_files( _Files=[ Filename | T ], AnalyzerRing,
 	{ AnalyzerPid, NewRing } = ring_utils:head( AnalyzerRing ),
 
 	%trace_debug( "Requesting analysis of '~s' by ~w.",
-	%   [ FullPath, AnalyzerPid ] ),
+	%			 [ FullPath, AnalyzerPid ] ),
 
 	% WOOPER-style request:
 	AnalyzerPid ! { analyzeFile, [ AbsTreePath, Filename ], self() },
@@ -558,7 +561,7 @@ scan_files( _Files=[ Filename | T ], AnalyzerRing,
 
 	after 0 ->
 
-		% One sending, no receiving here:
+		% One sending, and no receiving here:
 		scan_files( T, NewRing, TreeData, WaitedCount+1 )
 
 	end.
@@ -577,9 +580,9 @@ manage_received_data( FileData=#file_data{ type=Type, sha1_sum=Sum },
 										   other_count=OtherCount } ) ->
 
 	%trace_debug( "Data received: ~s",
-	%		   [ file_data_to_string( FileData ) ] ),
+	%			 [ file_data_to_string( FileData ) ] ),
 
-	% Ensures we associate a list to each SHA1 sum:
+	% Ensures that we associate a list to each SHA1 sum:
 	NewEntries = case table:lookupEntry( Sum, Entries ) of
 
 		key_not_found ->
@@ -616,15 +619,16 @@ manage_received_data( FileData=#file_data{ type=Type, sha1_sum=Sum },
 % Waits for the remaining file entries to be analyzed.
 %
 wait_entries( TreeData, _WaitedCount=0 ) ->
-	%io:format( "All file entries waited for finally obtained.~n" ),
+	%trace_debug( "All file entries waited for finally obtained." ),
 	TreeData;
 
 wait_entries( TreeData, WaitedCount ) ->
-	%io:format( "Still waiting for ~B file entries.~n", [ WaitedCount ] ),
+
+	%trace_debug( "Still waiting for ~B file entries.", [ WaitedCount ] ),
 
 	receive
 
-		{ analyzed, FileData } ->
+		{ file_analyzed, FileData } ->
 			NewTreeData = manage_received_data( FileData, TreeData ),
 			wait_entries( NewTreeData, WaitedCount-1 )
 
@@ -858,7 +862,7 @@ manage_duplication( FileEntries, DuplicationCaseCount, TotalDupCaseCount, Size,
 							   [ DuplicationCaseCount, TotalDupCaseCount,
 								 length( FileEntries ), SizeString ] ),
 
-	Choices = [ E#file_data.path  || E <- FileEntries ],
+	Choices = [ E#file_data.path || E <- FileEntries ],
 
 	ui:display_numbered_list( Label, Choices, UserState ),
 
@@ -881,14 +885,13 @@ manage_duplication( FileEntries, DuplicationCaseCount, TotalDupCaseCount, Size,
 % Returns a textual description of specified tree data.
 %
 -spec tree_data_to_string( tree_data() ) -> string().
-tree_data_to_string( #tree_data{
-						root=RootDir,
-						entries=Table,
-						file_count=FileCount,
-						directory_count=_DirCount,
-						symlink_count=_SymlinkCount,
-						device_count=_DeviceCount,
-						other_count=_OtherCount } ) ->
+tree_data_to_string( #tree_data{ root=RootDir,
+								 entries=Table,
+								 file_count=FileCount,
+								 directory_count=_DirCount,
+								 symlink_count=_SymlinkCount,
+								 device_count=_DeviceCount,
+								 other_count=_OtherCount } ) ->
 
 	% Only looking for files:
 	%text_utils:format( "tree '~s' having ~B entries (~B files, ~B directories,"
@@ -931,10 +934,34 @@ file_data_to_string( #file_data{
 
 
 
-% Verbatime section.
+% Verbatim section.
 
 
-% Copied verbatim from common/src/utils/script_utils.erl, for bootstrap:
+% Copied verbatim from Ceylan-Myriad/src/utils/script_utils.erl, for bootstrap:
+
+% Tells whether the currently running Erlang code is executed as an escript or
+% as a regular Erlang program.
+%
+-spec is_running_as_escript() -> boolean().
+is_running_as_escript() ->
+
+	% escript:script_name/0 only meant to succeed from an escript:
+
+	try
+
+		case escript:script_name() of
+
+			_Any ->
+				true
+
+		end
+
+			% typically {badmatch,[]} from escript.erl:
+			catch error:_Error ->
+					false
+
+	end.
+
 
 
 % Updates the VM code path so that all modules of the 'Myriad' layer can be
@@ -947,7 +974,9 @@ file_data_to_string( #file_data{
 -spec update_code_path_for_myriad() -> void().
 update_code_path_for_myriad() ->
 
-	MyriadRootDir = get_root_of_myriad(),
+	MyriadRootDir = get_myriad_base_directory(),
+
+	%trace_utils:debug_fmt( "Root of 'Myriad': ~s.", [ MyriadRootDir ] ),
 
 	MyriadSrcDir = filename:join( MyriadRootDir, "src" ),
 
@@ -967,42 +996,78 @@ update_code_path_for_myriad() ->
 % Returns the base directory of that script, i.e. where it is stored (regardless
 % of the possibly relative path whence it was launched).
 %
-% Note: useful to locate resources (ex: other modules) defined along that
-% script, and needed by it.
+% Note: useful to locate resources (ex: other modules) defined with that script
+% and needed by it.
 %
 -spec get_script_base_directory() -> file_utils:path().
 get_script_base_directory() ->
 
-	% No try/catch seems to solve that:
+	case is_running_as_escript() of
 
-	% filename:absname/1 could be used instead:
-	%% FullPath = try escript:script_name() of
+		true ->
 
-	%%	ScriptPath=( "/" ++ _ ) ->
-	%%		% Is already absolute here:
-	%%		ScriptPath;
+			% filename:absname/1 could be used instead:
+			FullPath = case escript:script_name() of
 
-	%%	RelativePath ->
-	%%		% Let's make it absolute then:
-	%%		{ ok, CurrentDir } = file:get_cwd(),
-	%%		filename:join( CurrentDir, RelativePath )
+				ScriptPath=( "/" ++ _ ) ->
+					% Is already absolute here:
+					ScriptPath;
 
-	%% catch
+				RelativePath ->
+					% Let's make it absolute then:
+					{ ok, CurrentDir } = file:get_cwd(),
+					filename:join( CurrentDir, RelativePath )
 
-	%%	E ->
-	%%		throw( { escript_error, E } )
+			end,
 
-	%% end,
+			filename:dirname( FullPath );
 
-	% For execution directly done from module:
-	{ ok, FullPath } = file:get_cwd(),
 
-	filename:dirname( FullPath ).
+		false ->
+			CodePath = code_utils:get_code_path(),
+
+			MyriadPath = get_myriad_path_from( CodePath ),
+
+			% We cannot use file_utils:normalise_path/1 here: Myriad not usable
+			% from that point yet!
+			%
+			file_utils:join( [ MyriadPath, "src", "scripts" ] )
+
+	end.
+
+
+
+% (helper)
+%
+get_myriad_path_from( _Paths=[] ) ->
+	throw( unable_to_determine_myriad_root );
+
+get_myriad_path_from( [ Path | T ] ) ->
+
+	LayerName = "Ceylan-Myriad",
+
+	case string:split( Path, LayerName ) of
+
+		[ Prefix, _Suffix ] ->
+			file_utils:join( Prefix, LayerName );
+
+		% Layer name not found:
+		_ ->
+			get_myriad_path_from( T )
+
+	end.
 
 
 
 % Returns the root directory of the Myriad layer.
 %
--spec get_root_of_myriad() -> file_utils:path().
-get_root_of_myriad() ->
-	filename:join( [ get_script_base_directory(), ".." ] ).
+% (note that a double path conversion between root and script directories can
+% hardly be avoided)
+%
+-spec get_myriad_base_directory() -> file_utils:path().
+get_myriad_base_directory() ->
+
+	% We cannot use file_utils:normalise_path/1 here: Myriad not usable from
+	% that point yet!
+	%
+	filename:join( [ get_script_base_directory(), "..", ".." ] ).
