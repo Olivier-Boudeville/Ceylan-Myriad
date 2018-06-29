@@ -39,6 +39,8 @@
 -module(ui).
 
 
+
+
 % Usage notes:
 %
 % By default, this module will do its best to select the most suitable backend,
@@ -47,7 +49,12 @@
 % One may select, from the command-line, a given backend thanks to the following
 % option: --use-ui-backend BACKEND_NAME, where BACKEND_NAME is the name of the
 % associated backend (ex: text_ui, term_ui or gui).
+%
+% See examples like merge-tree.escript (merge_utils.erl) allowing the user to
+% override the actual backend.
 
+% Note that the actual option starts with one extra dash (thus two):
+-define( ui_backend_opt, '-use-ui-backend' ).
 
 
 % Implementation notes:
@@ -87,12 +94,12 @@ start() ->
 
 
 
-% Starts the UI with specified settings.
+% Starts the UI with specified settings, and returns the command-line arguments
+% expurged from any UI-related option.
 %
-% Stores the corresponding state in the process dictionary, yet returns as well
-% that state, for any explicit later operation.
+% Stores the corresponding state in the process dictionary.
 %
--spec start( ui_options() ) -> void().
+-spec start( ui_options() ) -> [ executable_utils:command_line_argument() ].
 start( Options ) ->
 
 	% Just a check:
@@ -107,11 +114,17 @@ start( Options ) ->
 	end,
 
 	% With the leading dash removed:
-	OptName ='-use-ui-backend',
+	OptName = ?ui_backend_opt,
 
-	BackendModuleName = case init:get_argument( OptName ) of
+	{ BackendModuleName, RemainingArgs } =
+		case executable_utils:extract_command_argument( OptName ) of
 
-		{ ok, [ [ BackendName ] ] } when is_list( BackendName ) ->
+		{ [], Args } ->
+			% No backend specified, determining it:
+			{ get_best_ui_backend(), Args };
+
+		{ [ BackendName ], OtherArgs } ->
+
 			trace_utils:debug_fmt( "Following backend was specified: '~s'.",
 								   [ BackendName ] ),
 
@@ -121,37 +134,36 @@ start( Options ) ->
 
 				not_found ->
 					trace_utils:error_fmt( "No BEAM file found in code path "
-										   "for user-specified UI module "
+										   "for user-specified UI backend module "
 										   "'~s'.", [ BackendModName ] ),
-					throw( { ui_module_not_found, BackendModName } );
+					throw( { ui_backend_module_not_found, BackendModName } );
 
 				[ SinglePath ] ->
-					trace_utils:debug_fmt( "UI module found as '~s'.",
+					trace_utils:debug_fmt( "UI backend module found as '~s'.",
 										   [ SinglePath ] ),
-					BackendModName;
+					{ BackendModName, OtherArgs };
 
 				MultiplePaths ->
-					throw( { multiple_ui_module_found, MultiplePaths } )
+					throw( { multiple_ui_backend_modules_found, MultiplePaths } )
 
 			end;
 
-		{ ok, InvalidOpts } ->
-			throw( { invalid_ui_options, InvalidOpts } );
+		{ OtherValues, _OtherArgs } ->
+			throw( { invalid_ui_options, OtherValues } )
 
-
-		error ->
-			% No backend specified, determining it:
-			get_best_ui_backend()
 
 	end,
 
-	trace_utils:debug_fmt( "The '~s' backend has been selected.",
+	trace_utils:debug_fmt( "The '~s' backend module has been selected.",
 								   [ BackendModuleName ] ),
 
 	% Expects this backend to register its name and state in the process
 	% dictionary:
 	%
-	BackendModuleName:start( Options ).
+	BackendModuleName:start( Options ),
+
+	% Pass along the unexploited command-line arguments:
+	RemainingArgs.
 
 
 
