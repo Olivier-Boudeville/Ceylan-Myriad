@@ -243,11 +243,15 @@
 
 
 -record( term_ui_state, {
+
 		   %state_filename = ?default_state_path :: file_utils:file_path(),
 		   dialog_tool :: dialog_tool(),
 		   dialog_tool_path :: file_utils:file_name(),
 		   locale = default :: dialog_locale(),
+
+		   % Generally little use of console outputs for this backend:
 		   log_console = false :: boolean(),
+
 		   log_file = undefined :: maybe( file_utils:file() ),
 		   settings :: setting_table() } ).
 
