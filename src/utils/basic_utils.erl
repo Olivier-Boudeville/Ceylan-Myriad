@@ -955,8 +955,8 @@ display_timed( Message, TimeOut ) ->
 					 time_utils:time_out() ) -> void().
 display_timed( Format, Values, TimeOut ) ->
 
-	%io:format( "Displaying format '~p' and values '~p'.~n",
-	%		   [ Format, Values ] ),
+	%trace_utils:debug_fmt( "Displaying format '~p' and values '~p'.",
+	%						[ Format, Values ] ),
 
 	Message = text_utils:format( Format, Values ),
 
@@ -977,10 +977,12 @@ display_error( Message ) ->
 	% At least once, following call resulted in no output at all (standard_error
 	% not functional):
 	%
-	%io:format( standard_error, "~s~n", [ Message ] ),
+	% Reintroduced for testing after 21.0:
+	%
+	io:format( standard_error, "~s~n", [ Message ] ),
 
 	% So:
-	io:format( "~s~n", [ Message ] ),
+	%io:format( "~s~n", [ Message ] ),
 
 	system_utils:await_output_completion().
 
@@ -993,9 +995,8 @@ display_error( Message ) ->
 %
 -spec display_error( text_utils:format_string(), [ any() ] ) -> void().
 display_error( Format, Values ) ->
-	%io:format( standard_error, Format ++ "~n", Values ),
-	io:format( Format ++ "~n", Values ),
-	system_utils:await_output_completion().
+	Message = text_utils:format( Format ++ "~n", Values ),
+	display_error( Message ).
 
 
 
@@ -1006,9 +1007,9 @@ display_error( Format, Values ) ->
 %
 -spec debug( string() ) -> void().
 debug( Message ) ->
-	%io:format( "## Debug: ~s.~n", [ Message ] ),
+	trace_utils:debug( Message ).
 	%system_utils:await_output_completion().
-	erlang:display( "## Debug: " ++ Message ).
+	%erlang:display( "## Debug: " ++ Message ).
 
 
 
@@ -1019,7 +1020,7 @@ debug( Message ) ->
 %
 -spec debug( text_utils:format_string(), [ any() ] ) -> void().
 debug( Format, Values ) ->
-	debug( io_lib:format( Format, Values ) ).
+	debug( text_utils:format( Format, Values ) ).
 
 
 
