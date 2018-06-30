@@ -120,7 +120,7 @@
 % Command-line managed like init:get_argument/1:
 
 
-% The name of a command-line option (ex: '-color', for an actual option
+% The name of a command-line option (ex: '-color', for an actual option that is
 % "--color"):
 %
 % (a flag, for the init standard module)
@@ -143,13 +143,31 @@
 
 
 
+% A table storing command-line user arguments conveniently (a bit like getopt),
+% in a format in the spirit of init:get_arguments/0.
+%
+% Useful to manage arguments more easily, and also to handle uniformly the
+% arguments specified for erl-based executions and escript ones alike.
+%
+-type argument_table() :: list_table:list_table( command_line_option(),
+												 [ command_line_value() ] ).
+
+
 -export_type([ md5_sum/0, sha1_sum/0, sha_sum/0,
 			   command_line_option/0, command_line_value/0,
-			   command_line_argument/0 ]).
+			   command_line_argument/0, argument_table/0 ]).
+
+
+% Command-line argument section:
+%
+-export([ extract_command_argument/1,
+	  get_argument_table/0, get_argument_table/1,
+	  argument_table_to_string/1 ]).
 
 
 % Miscellaneous section:
--export([ extract_command_argument/1, is_batch/0 ]).
+%
+-export([ is_batch/0 ]).
 
 
 
@@ -750,44 +768,93 @@ get_default_jinterface_path() ->
 
 
 
-% Miscellaneous section:
+
+% Command-line argument section:
 
 
-% Allows to extract a specific command-line argument and return the rest of the
-% arguments for a further processing; useful to intercept settings and pass
-% along.
+% Extracts specified option, i.e. its various associated values (if any), from
+% the arguments specified to this executable.
 %
-% Reads the user command-line arguments (not the full plain arguments: those to
-% be interpreted by the VM are not taken into account here) that were provided
-% for the current program execution, and returns a pair made of:
-%
-% - the (possibly empty) list of the (ordered) values associated to the
-% specified command-line option
-%
-% - a list of the remaining supplied arguments
-%
-% Note: the order of the various arguments is not preserved, but the order in
-% their respective values is.
+% Returns a pair made of these values and of the shrunk argument table.
 %
 -spec extract_command_argument( command_line_option() ) ->
-						 { command_line_value(), [ command_line_argument() ] }.
+			  { [ command_line_value() ], argument_table() }.
 extract_command_argument( Option ) ->
+
+	ArgumentTable = get_argument_table(),
+
+	extract_command_argument( Option, ArgumentTable ).
+
+
+
+% Extracts specified option, i.e. its various associated values (if any), from
+% the specified argument table.
+%
+% Returns a pair made of these values and of the shrunk argument table.
+%
+-spec extract_command_argument( command_line_option(), argument_table() ) ->
+			  { [ command_line_value() ], argument_table() }.
+extract_command_argument( Option, ArgumentTable ) ->
+	list_table:extractEntryWithDefaults( _K=Option, _DefaultValue=[],
+										 ArgumentTable ).
+
+
+
+% Returns a canonical argument table, obtained from the user command-line
+% arguments supplied to the interpreter.
+%
+% Note: to be called in the context of a standard erl execution (as opposed to
+% an escript one).
+%
+-spec get_argument_table() -> argument_table().
+get_argument_table() ->
 
 	Args = init:get_arguments(),
 
-	ArgTable = table:new( Args ),
+	% Mostly a no-op, no duplicate in the option-keys expected:
+	list_table:new( Args ).
 
-	case table:hasEntry( Option, ArgTable ) of
 
-		true ->
-			{ Values, ShrunkArgTable } = table:extractEntry( Option, ArgTable ),
-			{ Values, table:enumerate( ShrunkArgTable ) };
 
-		false ->
-			{ [], Args }
+% Returns a canonical argument table, obtained from the user command-line
+% arguments supplied to this escript.
+%
+% Note: to be called in the context of an escript (as opposed to a standard erl
+% execution), specifying the argument list that its main/1 function received.
+%
+-spec get_argument_table( [ string() ] ) -> argument_table().
+get_argument_table( ArgStrings ) ->
+	script_utils:get_arguments( ArgStrings ).
 
-	end.
 
+
+% Returns a textual representation of specified argument table.
+%
+-spec argument_table_to_string( argument_table() ) -> string().
+argument_table_to_string( ArgTable ) ->
+
+	% No-op:
+	ArgPairs = list_table:enumerate( ArgTable ),
+
+	ArgStrings = [ case ArgumentLists of
+
+		[] ->
+			text_utils:format( "option '-~s'", [ Option ] );
+
+		_ ->
+			text_utils:format( "option '-~s', with argument lists: ~p",
+							   [ Option, ArgumentLists ] )
+
+				   end || { Option, ArgumentLists } <- ArgPairs ],
+
+	text_utils:format( "~B command-line options specified "
+					   "(listed alphabetically):~s",
+					   [ length( ArgPairs ),
+						 text_utils:strings_to_sorted_string( ArgStrings ) ] ).
+
+
+
+% Miscellaneous section:
 
 
 % Tells whether the program is run in batch mode (i.e. with the "--batch"
