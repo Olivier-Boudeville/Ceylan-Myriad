@@ -780,10 +780,18 @@ raise_error( Elements, Context, OriginLayer ) when is_list( Elements ) ->
 	catch
 
 		% Class is 'throw', R is what we just threw:
-		_C:_R ->
+
+		% Pre-21.0 code:
+		%_C:_R ->
+		%
+		%	% Removing useless {ast_utils,raise_error,2,...:
+		%	ActualStackTrace = tl( erlang:get_stacktrace() ),
+
+		% Post-21.0 code:
+		_C:_R:StackTrace ->
 
 			% Removing useless {ast_utils,raise_error,2,...:
-			ActualStackTrace = tl( erlang:get_stacktrace() ),
+			ActualStackTrace = tl( StackTrace ),
 
 			StackElements = interpret_stack_trace( ActualStackTrace, _Acc=[],
 												   _Count=1 ),
