@@ -763,8 +763,8 @@ insert_random_cipher( SourceFilename, CipheredFilename, Range )
 
 	_InsertedCount = insert_helper( SourceFile, TargetFile, Range, _Count=0 ).
 
-	%io:format( "insert_random_cipher: inserted ~B bytes.~n",
-	%		   [ InsertedCount ] ).
+	%trace_utils:debug_fmt( "insert_random_cipher: inserted ~B bytes.",
+	%						[ InsertedCount ] ).
 
 
 % We insert at random places random values in the content:
@@ -969,10 +969,10 @@ mealy_helper( SourceFile, TargetFile, CurrentMealyState, MealyTable ) ->
 
 		{ ok, [ InputByte ] } ->
 
-			{ NextMealyState, OutputByte } = apply_mealy( InputByte,
-											 CurrentMealyState, MealyTable ),
+			{ NextMealyState, OutputByte } =
+				apply_mealy( InputByte, CurrentMealyState, MealyTable ),
 
-			file_utils:write( TargetFile, OutputByte ),
+			file_utils:write( TargetFile, [ OutputByte ] ),
 
 			mealy_helper( SourceFile, TargetFile, NextMealyState, MealyTable )
 
