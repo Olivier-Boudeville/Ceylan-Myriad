@@ -74,11 +74,13 @@ is_running_as_escript() ->
 
 
 % Updates the VM code path so that all modules of the 'Myriad' layer can be
-% readily used.
+% readily used from an escript.
 %
 % Note: this function and its helpers might be copied verbatim to the target
 % escript so that it can really be used from anywhere (not only from the
 % directory it is stored).
+%
+% (original version located in script_utils.erl)
 %
 -spec update_code_path_for_myriad() -> void().
 update_code_path_for_myriad() ->
