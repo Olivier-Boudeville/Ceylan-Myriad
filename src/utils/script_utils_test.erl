@@ -51,4 +51,17 @@ run() ->
 	test_facilities:display( "Script directory is: ~s",
 							 [ script_utils:get_script_base_directory() ] ),
 
+	ArgString = "foo -color red white -bar baz -boom -color blue",
+
+	% Emulated as if they were obtained in the context of an escript:
+	CommandLineArgs = text_utils:split( ArgString, _Delimiters=[ $ ] ),
+
+	CanonicalArgTables = executable_utils:get_argument_table( CommandLineArgs ),
+
+	test_facilities:display( "Command-line interpretation follows, for "
+							 "command-line arguments '~s': ~s",
+		 [ ArgString,
+		   executable_utils:argument_table_to_string( CanonicalArgTables ) ] ),
+
+
 	test_facilities:stop().
