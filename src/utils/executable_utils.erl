@@ -160,9 +160,9 @@
 
 % Command-line argument section:
 %
--export([ extract_command_argument/1,
-	  get_argument_table/0, get_argument_table/1,
-	  argument_table_to_string/1 ]).
+-export([ get_argument_table/0, get_argument_table/1, generate_argument_table/1,
+		  extract_command_argument/1, extract_command_argument/2,
+		  argument_table_to_string/1 ]).
 
 
 % Miscellaneous section:
@@ -772,34 +772,6 @@ get_default_jinterface_path() ->
 % Command-line argument section:
 
 
-% Extracts specified option, i.e. its various associated values (if any), from
-% the arguments specified to this executable.
-%
-% Returns a pair made of these values and of the shrunk argument table.
-%
--spec extract_command_argument( command_line_option() ) ->
-			  { [ command_line_value() ], argument_table() }.
-extract_command_argument( Option ) ->
-
-	ArgumentTable = get_argument_table(),
-
-	extract_command_argument( Option, ArgumentTable ).
-
-
-
-% Extracts specified option, i.e. its various associated values (if any), from
-% the specified argument table.
-%
-% Returns a pair made of these values and of the shrunk argument table.
-%
--spec extract_command_argument( command_line_option(), argument_table() ) ->
-			  { [ command_line_value() ], argument_table() }.
-extract_command_argument( Option, ArgumentTable ) ->
-	list_table:extractEntryWithDefaults( _K=Option, _DefaultValue=[],
-										 ArgumentTable ).
-
-
-
 % Returns a canonical argument table, obtained from the user command-line
 % arguments supplied to the interpreter.
 %
@@ -825,6 +797,49 @@ get_argument_table() ->
 -spec get_argument_table( [ string() ] ) -> argument_table().
 get_argument_table( ArgStrings ) ->
 	script_utils:get_arguments( ArgStrings ).
+
+
+
+% Returns a canonical argument table, obtained from the specified single string
+% containing all options, verbatim ; ex: "--color red --set-foo".
+%
+% Note: useful for testing, to introduce specific command lines.
+%
+-spec generate_argument_table( string() ) -> argument_table().
+generate_argument_table( ArgString ) ->
+
+	CommandLineArgs = text_utils:split( ArgString, _Delimiters=[ $ ] ),
+
+	get_argument_table( CommandLineArgs ).
+
+
+
+
+% Extracts specified option, i.e. its various associated values (if any), from
+% the arguments specified to this executable.
+%
+% Returns a pair made of these values and of the shrunk argument table.
+%
+-spec extract_command_argument( command_line_option() ) ->
+			  { [ command_line_value() ], argument_table() }.
+extract_command_argument( Option ) ->
+
+	ArgumentTable = get_argument_table(),
+
+	extract_command_argument( Option, ArgumentTable ).
+
+
+
+% Extracts specified option, i.e. its various associated values (if any), from
+% the specified argument table.
+%
+% Returns a pair made of these values and of the shrunk argument table.
+%
+-spec extract_command_argument( command_line_option(), argument_table() ) ->
+			  { [ command_line_value() ], argument_table() }.
+extract_command_argument( Option, ArgumentTable ) ->
+	list_table:extractEntryWithDefaults( _K=Option, _DefaultValue=[],
+										 ArgumentTable ).
 
 
 
