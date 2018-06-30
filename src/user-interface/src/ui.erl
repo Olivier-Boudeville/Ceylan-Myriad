@@ -95,11 +95,11 @@ start() ->
 
 
 % Starts the UI with specified settings, and returns the command-line arguments
-% expurged from any UI-related option.
+% expurged from any UI-related option (as an argument table).
 %
 % Stores the corresponding state in the process dictionary.
 %
--spec start( ui_options() ) -> [ executable_utils:command_line_argument() ].
+-spec start( ui_options() ) -> [ executable_utils:argument_table() ].
 start( Options ) ->
 
 	% Just a check:
@@ -116,14 +116,14 @@ start( Options ) ->
 	% With the leading dash removed:
 	OptName = ?ui_backend_opt,
 
-	{ BackendModuleName, RemainingArgs } =
+	{ BackendModuleName, RemainingArgTable } =
 		case executable_utils:extract_command_argument( OptName ) of
 
-		{ [], Args } ->
+		{ [], ArgTable } ->
 			% No backend specified, determining it:
-			{ get_best_ui_backend(), Args };
+			{ get_best_ui_backend(), ArgTable };
 
-		{ [ BackendName ], OtherArgs } ->
+		{ [ BackendName ], OtherArgTable } ->
 
 			trace_utils:debug_fmt( "Following backend was specified: '~s'.",
 								   [ BackendName ] ),
@@ -141,14 +141,14 @@ start( Options ) ->
 				[ SinglePath ] ->
 					trace_utils:debug_fmt( "UI backend module found as '~s'.",
 										   [ SinglePath ] ),
-					{ BackendModName, OtherArgs };
+					{ BackendModName, OtherArgTable };
 
 				MultiplePaths ->
 					throw( { multiple_ui_backend_modules_found, MultiplePaths } )
 
 			end;
 
-		{ OtherValues, _OtherArgs } ->
+		{ OtherValues, _OtherArgTable } ->
 			throw( { invalid_ui_options, OtherValues } )
 
 
@@ -163,7 +163,7 @@ start( Options ) ->
 	BackendModuleName:start( Options ),
 
 	% Pass along the unexploited command-line arguments:
-	RemainingArgs.
+	RemainingArgTable.
 
 
 
