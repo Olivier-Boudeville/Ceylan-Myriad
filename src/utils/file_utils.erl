@@ -172,9 +172,12 @@
 
 
 % Corresponds to the handle to an open file (typically a file descriptor
-% counterpart):
+% counterpart), but also, possibly, 'standard_io' (for standard output,
+% descriptor 1), 'standard_error' (for standard error, descriptor 2), a
+% registered name (as an atom), or any PID handling the I/O protocols:
 %
 -type file() :: file:io_device().
+
 
 
 % The various permissions that can be combined for file-like elements:
