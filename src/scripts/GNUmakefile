@@ -10,13 +10,12 @@ all:
 make-test-tree: clean-test-tree
 	@echo " Creating test tree..."
 	@mkdir -p $(TEST_TREE)/foo/bar
-	@mkdir $(TEST_TREE)/foo/baz
-	@mkdir $(TEST_TREE)/buz
+	@mkdir $(TEST_TREE)/foo/baz $(TEST_TREE)/buz
 	@echo "Content #1" > $(TEST_TREE)/foo/bar/a.txt
 	@echo "Content #1" > $(TEST_TREE)/buz/b.txt
 	@echo "Content #2" > $(TEST_TREE)/buz/a.txt
 	@echo "Content #3" > $(TEST_TREE)/foo/bar/c.txt
-	@echo "Content #1" > $(TEST_TREE)/foo/buz/a.txt
+	@echo "Content #1" > $(TEST_TREE)/foo/baz/a.txt
 	@tree $(TEST_TREE)
 
 
