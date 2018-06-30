@@ -41,7 +41,8 @@
 		  declare_beam_directories/1, declare_beam_directories/2,
 		  get_code_path/0, get_code_path_as_string/0, code_path_to_string/1,
 		  list_beams_in_path/0, get_beam_filename/1, is_beam_in_path/1,
-		  interpret_stacktrace/0, interpret_stacktrace/1,
+		  %interpret_stacktrace/0,
+		  interpret_stacktrace/1,
 		  interpret_stacktrace/2,
 		  interpret_stack_item/2 ]).
 
@@ -446,10 +447,12 @@ is_beam_in_path( ModuleName ) when is_atom( ModuleName ) ->
 
 % Returns a "smart" textual representation of the current stacktrace.
 %
--spec interpret_stacktrace() -> string().
-interpret_stacktrace() ->
-	StackTrace = erlang:get_stacktrace(),
-	interpret_stacktrace( StackTrace ).
+% Note: disabled since Erlang 21.0 API change.
+%
+%-spec interpret_stacktrace() -> string().
+%interpret_stacktrace() ->
+%	StackTrace = erlang:get_stacktrace(),
+%	interpret_stacktrace( StackTrace ).
 
 
 % Returns a "smart" textual representation of specified stacktrace.
