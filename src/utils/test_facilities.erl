@@ -50,12 +50,26 @@
 %
 -spec start( module() | [ module() ] ) -> void().
 start( Module ) when is_atom( Module ) ->
-	erlang:process_flag( trap_exit, false ),
+	start_common(),
 	basic_utils:display( "~n~n--> Testing module ~s.~n", [ Module ] );
 
 start( Modules ) when is_list( Modules ) ->
-	erlang:process_flag( trap_exit, false ),
+	start_common(),
 	basic_utils:display( "~n~n--> Testing modules ~p.~n", [ Modules ] ).
+
+
+% (helper)
+start_common() ->
+
+	erlang:process_flag( trap_exit, false ),
+
+	% We want to be ensure that the standard logger behaves synchronously (ex:
+	% not wanting an error trace to be lost because we crashed on purpose the VM
+	% just after an error was reported, yet happened not to be notified yet as a
+	% corresponding was not sent yet, or was received but not yet processed).
+
+	ok = logger:set_handler_config( _HandlerId=default, _Key=sync_mode_qlen,
+									_Value=0 ).
 
 
 
