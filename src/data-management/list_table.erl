@@ -56,7 +56,8 @@
 -export([ new/0, new/1, addEntry/3, addEntries/2,
 		  removeEntry/2, removeEntries/2,
 		  lookupEntry/2, hasEntry/2, getEntry/2,
-		  extractEntry/2, getValueWithDefaults/3, getValues/2, getAllValues/2,
+		  extractEntry/2, extractEntryWithDefaults/3,
+		  getValueWithDefaults/3, getValues/2, getAllValues/2,
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToExistingEntry/3, appendListToExistingEntry/3,
 		  appendToEntry/3, appendListToEntry/3,
@@ -251,6 +252,27 @@ extractEntry( Key, Table ) ->
 		false ->
 			% Badmatches are not informative enough:
 			throw( { key_not_found, Key } )
+
+	end.
+
+
+% Extracts specified entry from specified table, i.e. returns the associated
+% value and removes that entry from the table.
+%
+% If no such key is available, returns the specified default value and the
+% original table.
+%
+-spec extractEntryWithDefaults( key(), value(), list_table() ) ->
+									  { value(), list_table() }.
+extractEntryWithDefaults( Key, DefaultValue, Table ) ->
+
+	case hasEntry( Key, Table ) of
+
+		true ->
+			extractEntry( Key, Table );
+
+		false ->
+			{ DefaultValue, Table }
 
 	end.
 
