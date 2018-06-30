@@ -58,7 +58,7 @@ run() ->
 	case executable_utils:is_batch() of
 
 		true ->
-			test_facilities:display( "(not running the text_ui test, "
+			test_facilities:display( "(not running the ui test, "
 									 "being in batch mode)" );
 
 		false ->
