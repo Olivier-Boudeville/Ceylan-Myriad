@@ -288,10 +288,12 @@ add_separation() ->
 % (const)
 %
 -spec get_text( prompt(), ui_state() ) -> text().
-get_text( Prompt, #text_ui_state{ get_line_script=GetLineScript } ) ->
-	%text_utils:remove_ending_carriage_return( io:get_line( Prompt ) ).
-	text_utils:remove_ending_carriage_return(
-	  system_utils:get_line( Prompt, GetLineScript ) ).
+get_text( Prompt,
+		  _UIState ) ->
+		  %#text_ui_state{ get_line_script=GetLineScript } ) ->
+	text_utils:remove_ending_carriage_return( io:get_line( Prompt ) ).
+	%text_utils:remove_ending_carriage_return(
+	%  system_utils:get_line( Prompt, GetLineScript ) ).
 
 
 
@@ -322,6 +324,7 @@ read_text_as_integer( Prompt, UIState ) ->
 	case text_utils:try_string_to_integer( Text ) of
 
 		undefined ->
+			trace_utils:debug_fmt( "(rejected: '~s')", [ Text ] ),
 			read_text_as_integer( Prompt, UIState );
 
 		I ->
