@@ -404,7 +404,7 @@ await_output_completion() ->
 % the displaying and the halting.
 %
 -spec await_output_completion( unit_utils:millisecond() ) -> void().
-await_output_completion( TimeOut ) ->
+await_output_completion( _TimeOut ) ->
 
 	% Not sure it is really the proper way of waiting, however should be still
 	% better than timer:sleep( 500 ):
@@ -413,14 +413,36 @@ await_output_completion( TimeOut ) ->
 
 	%trace_utils:debug( "(awaiting output completion)" ),
 
-	% Almost just a yield:
+	% Almost just a yield (re-enabled, see below):
 	timer:sleep( 10 ),
 
 	%trace_utils:debug( "(output completed)" ),
 
 	% Does not seem always sufficient:
 	% (supposing timeout() is in milliseconds)
-	sys:get_status( error_logger, TimeOut ).
+
+	% Does not exist anymore since Erlang 21.0
+	%
+	% (we get at runtime: {noproc,{sys,get_status,[error_logger,300]}})
+	%
+	% sys:get_status( error_logger, TimeOut ).
+
+	% We considered adding to test_facilities:start/1 a configuration of the
+	% default logger_std_h handler so that async_mode_qlen was set to 0 (to
+	% ensure synchronicity in all cases), yet we are not using
+	% error_logger/logger for our usual outputs (we use io:format/{1,2} rather
+	% than erlang:display/1, see basic_utils:display/1).
+
+	% And apparently io:format/{1,2} are actually synchronous
+	% (cf. http://erlang.org/pipermail/erlang-questions/2011-July/059908.html),
+	% so nothing seems to be done to ensure that no output can be lost.
+	% (time will tell, as we at least used to notice that outputs could be lost)
+
+	% As for logger, a doubt remains about its synchronicity, see
+	% test_facilities:start/1 about that.
+	%
+
+	ok.
 
 
 
