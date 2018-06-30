@@ -12,7 +12,7 @@
 
 % Implementation notes:
 %
-% - merge cache files could/should use a compressed form ('compress' option).
+% - merge cache files could/should use a compressed form ('compress' option)
 %
 % - at least currently we only focus on (regular) files, hence the counts for
 % directories and all remain null
@@ -115,9 +115,16 @@
 -export_type([ file_data/0, tree_data/0 ]).
 
 
+-record( user_state, {
+
+	log_file = undefined :: maybe( file_utils:file() )
+
+}).
+
 
 % User-related state:
--type user_state() :: { ui:ui_state(), maybe( file_utils:file() ) }.
+-type user_state() :: #user_state{}.
+
 
 
 % To run from the interpreter rather than as an escript:
@@ -141,12 +148,12 @@
 -spec get_usage() -> void().
 get_usage() ->
 	"   Usage:\n"
-	"      - either: 'merge-tree.escript TREE_TO_SCAN REFERENCE_TREE'\n"
+	"      - either: 'merge-tree.escript --input INPUT_TREE --reference REFERENCE_TREE'\n"
 	"      - or: 'merge-tree.escript --scan A_TREE'\n\n"
-	"   Ensures, for the first form, that all the changes in a possibly more up-to-date, \"newer\" tree (TREE_TO_SCAN) are merged back to the reference tree (REFERENCE_TREE), from which the first tree may have derived. Once executed, only a refreshed reference tree will exist, as the input TREE_TO_SCAN tree will be removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
+	"   Ensures, for the first form, that all the changes in a possibly more up-to-date, \"newer\" tree (INPUT_TREE) are merged back to the reference tree (REFERENCE_TREE), from which the first tree may have derived. Once executed, only a refreshed reference tree will exist, as the input tree will be removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
 	"   In the reference tree, in-tree duplicated content will be either removed as a whole or replaced by symbolic links, to keep only a single version of each actual content.\n"
 	"   At the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they not have changed. As a result, once that merge is done, the reference tree will contain an uniquified version of the union of the two specified trees, and the tree to scan will not exist anymore.\n"
-	"   If the --scan option is used, then the specified tree will be inspected and will be uniquified (duplicates being removed or replaced with symbolic links), and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later merge).
+	"   For the second form (--scan option), the specified tree will be inspected and will be uniquified (duplicates being removed or replaced with symbolic links), and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later merge).
 ".
 
 
@@ -155,35 +162,112 @@ get_usage() ->
 %
 -spec run() -> void().
 run() ->
+	ArgTable = executable_utils:get_argument_table(),
+	main( ArgTable ).
+
+
+
+% Sole entry point for this merge service, either triggered by run/0 or by the
+% associated escript.
+%
+-spec main( executable_utils:argument_table() ) -> void().
+main( ArgTable ) ->
+
 	trace_utils:info( "Running..." ),
-	NonUIArgs = ui:start( _Opts=[] ),
-	trace_utils:debug_fmt( "Script-specific arguments: '~p'.", [ NonUIArgs ] ),
-	main( NonUIArgs ).
+
+	FilteredArgTable = ui:start( _Opts=[], ArgTable ),
+
+	trace_utils:debug_fmt( "Script-specific arguments: ~s",
+		   [ executable_utils:argument_table_to_string( FilteredArgTable ) ] ),
+
+	case list_table:hasEntry( 'h', FilteredArgTable )
+		orelse list_table:hasEntry( '-help', FilteredArgTable ) of
+
+		true ->
+			display_usage();
+
+		false ->
+
+			% If there is a --reference option, it is a merge, and there must be
+			% a --scan option as well:
+			%
+			case list_table:lookupEntry( '-reference', FilteredArgTable ) of
+
+				{ value, [ RefTreePath ] } when is_list( RefTreePath ) ->
+
+					case list_table:lookupEntry( '-input', FilteredArgTable ) of
+
+						{ value, [ InputTreePath ] } when is_list( InputTreePath ) ->
+							merge( InputTreePath, RefTreePath );
+
+						{ value, UnexpectedInputTreeOpts } ->
+							ScanString = text_utils:format(
+										   "unexpected scan tree options: ~p",
+										   [  UnexpectedInputTreeOpts] ),
+
+							stop_on_option_error( ScanString, 10 );
+
+						key_not_found ->
+							stop_on_option_error( "no scan tree specified", 11 )
+
+					end;
+
+				{ value, UnexpectedRefTreeOpts } ->
+					RefString = text_utils:format(
+									   "unexpected reference tree options: ~p",
+									   [ UnexpectedRefTreeOpts ] ),
+
+					stop_on_option_error( RefString, 12 );
+
+				% Then it must be a pure scan here:
+				key_not_found ->
+
+					case list_table:lookupEntry( '-scan', FilteredArgTable ) of
+
+						{ value, [ ScanTreePath ] } when is_list( ScanTreePath ) ->
+							scan( ScanTreePath );
+
+						{ value, UnexpectedScanTreeOpts } ->
+							ScanString = text_utils:format(
+										   "unexpected scan tree options: ~p",
+										   [ UnexpectedScanTreeOpts ] ),
+
+							stop_on_option_error( ScanString, 13 );
+
+						key_not_found ->
+							stop_on_option_error( "no operation specified", 14 )
+
+					end
+
+			end
 
 
-% Typically for testing:
+	end.
+
+
+
+% Displays the usage of this service, and stops (with no error).
+%
+display_usage() ->
+	basic_utils:display( "~s", [ get_usage() ] ),
+	basic_utils:stop( _ErrorCode=0 ).
+
+
+
+% Reports an error related to command-line option, reminds the usage, and stops
+% (on error).
+%
+stop_on_option_error( Message, ErrorCode ) ->
+	basic_utils:display_error( "Error, ~s.~n~s", [ Message, get_usage() ] ),
+	basic_utils:stop( ErrorCode ).
+
+
+
+
+% Scans specified tree.
 %
 -spec scan( file_utils:directory_name() ) -> void().
 scan( TreePath ) ->
-	trace_utils:info( "Scanning '~s'...", [ TreePath ] ),
-	main( [ "--scan", TreePath ] ).
-
-
-
-% Entry point of the script (typically called directly from merge-tree.escript).
-%
--spec main( [ string() ] ) -> void().
-main( [ "-h" ] ) ->
-	io:format( "~s", [ get_usage() ] );
-
-main( [ "--help" ] ) ->
-	io:format( "~s", [ get_usage() ] );
-
-% Here we scan a tree:
-main( [ "--scan", TreePath ] ) ->
-
-	% First, enable all possible helper code (hence to be done first of all):
-	update_code_path_for_myriad(),
 
 	trace_utils:debug_fmt( "Request to scan '~s'.", [ TreePath ] ),
 
@@ -204,45 +288,37 @@ main( [ "--scan", TreePath ] ) ->
 
 	terminate_data_analyzers( Analyzers, UserState ),
 
-	stop_user_service( UserState );
+	stop_user_service( UserState ).
 
 
-% Here we merge the (supposedly more up-to-date) source tree into the target,
-% reference one:
+
+% Merges the (supposedly more up-to-date) input tree into the target, reference
+% one.
 %
-main( [ SourceTree, TargetTree ] ) ->
-
-	% First enable all possible helper code:
-	update_code_path_for_myriad(),
+-spec merge( file_utils:directory_name(), file_utils:directory_name() ) ->
+				   void().
+merge( InputTreePath, ReferenceTreePath ) ->
 
 	% Prepare for various outputs:
 	UserState = start_user_service( ?default_log_filename ),
 
-	check_content_trees( SourceTree, TargetTree ),
+	check_content_trees( InputTreePath, ReferenceTreePath ),
 
 	trace( "Merging (possibly newer) tree '~s' into reference tree '~s'...",
-		   [ SourceTree, TargetTree ], UserState ),
+		   [ InputTreePath, ReferenceTreePath ], UserState ),
 
 	% Best, reasonable usage:
 	Analyzers = spawn_data_analyzers( system_utils:get_core_count() + 1,
-									   UserState ),
+									  UserState ),
 
 	AnalyzerRing = ring_utils:from_list( Analyzers ),
 
-	update_content_tree( SourceTree, AnalyzerRing, UserState ),
+	update_content_tree( InputTreePath, AnalyzerRing, UserState ),
 
 	terminate_data_analyzers( Analyzers, UserState ),
 
-	stop_user_service( UserState );
+	stop_user_service( UserState ).
 
-
-main( Args ) ->
-
-	% We could check here whether one argument is akin to
-	% "CMD_LINE_OPT=--use-ui-backend text_ui".
-
-	io:format( "~n   Error, exactly two parameters should be specified "
-			   "~n(got: ~p).~n~n~s", [ Args, get_usage() ] ).
 
 
 
@@ -255,6 +331,8 @@ main( Args ) ->
 -spec start_user_service( file_utils:file_name() ) -> user_state().
 start_user_service( LogFilename ) ->
 
+	trace_utils:debug_fmt( "Logs will be written to '~s'.", [ LogFilename ] ),
+
 	% We append to the log file (not resetting it), if it already exists:
 	LogFile = file_utils:open( LogFilename,
 							   _Opts=[ append, raw, delayed_write ] ),
@@ -264,9 +342,7 @@ start_user_service( LogFilename ) ->
 					  [ net_utils:localhost(), ?merge_script_version,
 						time_utils:get_textual_timestamp() ] ),
 
-	UIState = ui:start(),
-
-	{ UIState, LogFile }.
+	#user_state{ log_file=LogFile }.
 
 
 
@@ -318,9 +394,9 @@ trace_debug( FormatString, Values, _UserState={ UIState, LogFile } ) ->
 % Stops user-related services.
 %
 -spec stop_user_service( user_state() ) -> basic_utils:void().
-stop_user_service( _UserState={ UIState, LogFile } ) ->
+stop_user_service( _UserState=#user_state{ log_file=LogFile } ) ->
 
-	ui:stop( UIState ),
+	ui:stop(),
 
 	file_utils:write( LogFile, "Stopping merge session.~n", [] ),
 
@@ -331,25 +407,25 @@ stop_user_service( _UserState={ UIState, LogFile } ) ->
 % Checks that the source and target trees exist.
 %
 -spec check_content_trees( tree_data(), tree_data() ) -> void().
-check_content_trees( SourceTree, TargetTree ) ->
+check_content_trees( InputTree, ReferenceTreePath ) ->
 
-	case file_utils:is_existing_directory( SourceTree ) of
+	case file_utils:is_existing_directory( InputTree ) of
 
 		true ->
 			ok;
 
 		false ->
-			throw( { non_existing_source_content_tree, SourceTree } )
+			throw( { non_existing_input_tree, InputTree } )
 
 	end,
 
-	case file_utils:is_existing_directory( TargetTree ) of
+	case file_utils:is_existing_directory( ReferenceTreePath ) of
 
 		true ->
 			ok;
 
 		false ->
-			throw( { non_existing_target_content_tree, TargetTree } )
+			throw( { non_existing_reference_tree, ReferenceTreePath } )
 
 	end.
 
@@ -442,7 +518,7 @@ create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
 								 _Opts=[ write, raw, delayed_write ] ),
 
 	%ScriptName = filename:basename( escript:script_name() ),
-	ScriptName = "merge_utils",
+	ScriptName = ?MODULE,
 
 	file_utils:write( MergeFile, "% Merge cache file written by '~s' "
 								 "(version ~s):~n"
@@ -521,7 +597,8 @@ scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 				  analyzer_ring() ) -> tree_data().
 scan_files( Files, AbsTreePath, AnalyzerRing ) ->
 
-	InitialTreeData = #tree_data{ root=AbsTreePath },
+	InitialTreeData = #tree_data{
+						 root=text_utils:string_to_binary( AbsTreePath ) },
 
 	scan_files( Files, AnalyzerRing, InitialTreeData, _WaitedCount=0 ).
 
@@ -706,7 +783,7 @@ diagnose_tree( TreeData=#tree_data{ root=_RootDir,
 
 	NewFileCount = table:size( NewEntryTable ),
 
-	trace( "~B unique entries remain.", [ NewFileCount ] ),
+	trace( "~B unique entries remain.", [ NewFileCount ], UserState ),
 
 	TreeData#tree_data{ entries=NewEntryTable,
 						file_count=NewFileCount }.
@@ -735,14 +812,14 @@ manage_duplicates( EntryTable, UserState ) ->
 	case length( DuplicationCases ) of
 
 		0 ->
-			ui:display( "No duplicated content detected.~n", UserState ),
+			ui:display( "No duplicated content detected.~n" ),
 			{ UniqueTable, _RemoveCount=0 };
 
 
 		TotalDupCaseCount ->
 			ui:display( "~B case(s) of content duplication detected, "
 						"examining them in turn.~n",
-						[ TotalDupCaseCount ], UserState ),
+						[ TotalDupCaseCount ] ),
 
 			process_duplications( DuplicationCases, TotalDupCaseCount,
 								  UniqueTable, UserState )
@@ -782,7 +859,7 @@ filter_duplications( _SHA1Entries=[ SHA1Entry | T ],
 
 
 
-% Process the spotted duplications by asking the user.
+% Processes the spotted duplications by asking the user.
 %
 -spec process_duplications( [ sha1_entry() ], count(), sha1_table(),
 							user_state() ) -> { sha1_table(), count() }.
@@ -856,29 +933,46 @@ manage_duplication( FileEntries, DuplicationCaseCount, TotalDupCaseCount, Size,
 
 	SizeString = system_utils:interpret_byte_size_with_unit( Size ),
 
+	DuplicateString = text_utils:binaries_to_string(
+						[ E#file_data.path || E <- FileEntries ] ),
+
+	ui:add_separation(),
+
 	Label = text_utils:format( "Examining duplication case ~B/~B: "
 							   "following ~B files have the exact same "
-							   "content (and thus size, of ~s):",
+							   "content (and thus size, of ~s): ~s~n~n"
+							   "Choices are:",
 							   [ DuplicationCaseCount, TotalDupCaseCount,
-								 length( FileEntries ), SizeString ] ),
+								 length( FileEntries ), SizeString,
+								 DuplicateString ] ),
 
-	Choices = [ E#file_data.path || E <- FileEntries ],
 
-	ui:display_numbered_list( Label, Choices, UserState ),
+	Choices = [ { 'l', "leave them as they are" },
+				{ 'e', "elect a reference file, replacing each other by "
+				  "a symbolic link pointing to it" },
+				{ 'a', "abort" } ],
 
-	_Options = [ { 'l', "leave them as they are" },
-				 { 'e', "elect a reference file, replacing each other by "
-					   "a symbolic link pointing to it" },
-				 { 'a', "abort" } ],
+	SelectedChoice = ui:choose_designated_item( Label, Choices ),
 
-	throw( the_end ).
-	%% case ui:select_option( Options ) of
+	trace( "Selected choice: ~p", [ SelectedChoice ], UserState ),
 
-	%%	'l' ->
+	case SelectedChoice of
 
-	%% ui:display( "Choose among: (l) leave them as they are
-	%% %case ui:
-	%% FileEntries.
+		'l' ->
+			trace( "[~B/~B] Leaving as they are:~s",
+				   [ DuplicationCaseCount, TotalDupCaseCount,
+					 DuplicateString ], UserState ),
+			FileEntries;
+
+		'e' ->
+			trace( "TODO", UserState ),
+			FileEntries;
+
+		'a' ->
+			trace( "(request to abort the merge)", UserState ),
+			basic_utils:stop( 5 )
+
+	end.
 
 
 
@@ -931,143 +1025,3 @@ file_data_to_string( #file_data{
 	text_utils:format( "file '~s' whose size is ~s, SHA1 sum is ~s and "
 					   "timestamp is ~p",
 					   [ Path, SizeString, Sum, Timestamp ] ).
-
-
-
-% Verbatim section.
-
-
-% Copied verbatim from Ceylan-Myriad/src/utils/script_utils.erl, for bootstrap:
-
-% Tells whether the currently running Erlang code is executed as an escript or
-% as a regular Erlang program.
-%
--spec is_running_as_escript() -> boolean().
-is_running_as_escript() ->
-
-	% escript:script_name/0 only meant to succeed from an escript:
-
-	try
-
-		case escript:script_name() of
-
-			_Any ->
-				true
-
-		end
-
-			% typically {badmatch,[]} from escript.erl:
-			catch error:_Error ->
-					false
-
-	end.
-
-
-
-% Updates the VM code path so that all modules of the 'Myriad' layer can be
-% readily used.
-%
-% Note: this function and its helpers might be copied verbatim to the target
-% escript so that it can really be used from anywhere (not only from the
-% directory it is stored).
-%
--spec update_code_path_for_myriad() -> void().
-update_code_path_for_myriad() ->
-
-	MyriadRootDir = get_myriad_base_directory(),
-
-	%trace_utils:debug_fmt( "Root of 'Myriad': ~s.", [ MyriadRootDir ] ),
-
-	MyriadSrcDir = filename:join( MyriadRootDir, "src" ),
-
-	MyriadBeamSubDirs = [ "data-management", "maths", "meta",
-						  "user-interface/src", "user-interface/src/textual",
-						  "user-interface/src/graphical", "utils" ],
-
-	MyriadBeamDirs = [ filename:join( MyriadSrcDir, D )
-					   || D <- MyriadBeamSubDirs ],
-
-	%trace_utils:debug_fmt( "'Myriad' beam dirs: ~p.", [ MyriadBeamDirs ] ),
-
-	ok = code:add_pathsa( MyriadBeamDirs ).
-
-
-
-% Returns the base directory of that script, i.e. where it is stored (regardless
-% of the possibly relative path whence it was launched).
-%
-% Note: useful to locate resources (ex: other modules) defined with that script
-% and needed by it.
-%
--spec get_script_base_directory() -> file_utils:path().
-get_script_base_directory() ->
-
-	case is_running_as_escript() of
-
-		true ->
-
-			% filename:absname/1 could be used instead:
-			FullPath = case escript:script_name() of
-
-				ScriptPath=( "/" ++ _ ) ->
-					% Is already absolute here:
-					ScriptPath;
-
-				RelativePath ->
-					% Let's make it absolute then:
-					{ ok, CurrentDir } = file:get_cwd(),
-					filename:join( CurrentDir, RelativePath )
-
-			end,
-
-			filename:dirname( FullPath );
-
-
-		false ->
-			CodePath = code_utils:get_code_path(),
-
-			MyriadPath = get_myriad_path_from( CodePath ),
-
-			% We cannot use file_utils:normalise_path/1 here: Myriad not usable
-			% from that point yet!
-			%
-			file_utils:join( [ MyriadPath, "src", "scripts" ] )
-
-	end.
-
-
-
-% (helper)
-%
-get_myriad_path_from( _Paths=[] ) ->
-	throw( unable_to_determine_myriad_root );
-
-get_myriad_path_from( [ Path | T ] ) ->
-
-	LayerName = "Ceylan-Myriad",
-
-	case string:split( Path, LayerName ) of
-
-		[ Prefix, _Suffix ] ->
-			file_utils:join( Prefix, LayerName );
-
-		% Layer name not found:
-		_ ->
-			get_myriad_path_from( T )
-
-	end.
-
-
-
-% Returns the root directory of the Myriad layer.
-%
-% (note that a double path conversion between root and script directories can
-% hardly be avoided)
-%
--spec get_myriad_base_directory() -> file_utils:path().
-get_myriad_base_directory() ->
-
-	% We cannot use file_utils:normalise_path/1 here: Myriad not usable from
-	% that point yet!
-	%
-	filename:join( [ get_script_base_directory(), "..", ".." ] ).
