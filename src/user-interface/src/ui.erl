@@ -72,18 +72,51 @@
 -include("ui.hrl").
 
 
--export([ start/0, start/1,
+-export([ start/0, start/1, start/2 ]).
 
-		  set/1, set/2, unset/1,
 
-		  display/1,
+% Directly forwarded section:
+%
+-export([ set/1, set/2, unset/1,
 
-		  trace/1, trace/2,
+		  display/1, display/2,
+
+		  display_numbered_list/2,
+
+		  display_error/1, display_error/2,
+
+		  display_error_numbered_list/2,
+
+		  add_separation/0,
+
+		  get_text/2, get_text_as_integer/2, get_text_as_maybe_integer/2,
+		  read_text_as_integer/2, read_text_as_maybe_integer/2,
+
+		  choose_designated_item/1, choose_designated_item/2,
+		  choose_designated_item/3,
+
+		  choose_numbered_item/1, choose_numbered_item/2,
+		  choose_numbered_item/3,
+
+		  choose_numbered_item_with_default/2,
+		  choose_numbered_item_with_default/3,
+		  choose_numbered_item_with_default/4,
+
+		  get_setting/1
+
+]).
+
+
+-export([ trace/1, trace/2,
 
 		  stop/0,
 
 		  settings_to_string/1 ]).
 
+
+% Typically text_ui_state() | term_ui_state() | ...
+%
+-type ui_state() :: any().
 
 
 % Starts the UI with default settings.
@@ -99,8 +132,25 @@ start() ->
 %
 % Stores the corresponding state in the process dictionary.
 %
--spec start( ui_options() ) -> [ executable_utils:argument_table() ].
+-spec start( ui_options() ) -> executable_utils:argument_table().
 start( Options ) ->
+
+	% Here, no argument table is specified, fetching it (thus supposedly not
+	% running as an escript):
+	%
+	start( Options, executable_utils:get_argument_table() ).
+
+
+
+% Starts the UI with specified settings, and returns the command-line arguments
+% expurged from any UI-related option (as an argument table).
+%
+% Stores the corresponding state in the process dictionary.
+%
+-spec start( ui_options(), executable_utils:argument_table() ) ->
+				   executable_utils:argument_table().
+start( Options, ArgumentTable ) ->
+
 
 	% Just a check:
 	case process_dictionary:get( ?ui_name_key ) of
@@ -117,7 +167,8 @@ start( Options ) ->
 	OptName = ?ui_backend_opt,
 
 	{ BackendModuleName, RemainingArgTable } =
-		case executable_utils:extract_command_argument( OptName ) of
+		case executable_utils:extract_command_argument( OptName,
+														ArgumentTable ) of
 
 		{ [], ArgTable } ->
 			% No backend specified, determining it:
@@ -167,6 +218,11 @@ start( Options ) ->
 
 
 
+
+% Directly forwarded to the backend section:
+% (a parse transform could help)
+
+
 % Sets specified UI setting.
 %
 -spec set( ui_setting_key(), ui_setting_value() ) -> void().
@@ -207,6 +263,286 @@ display( Text ) ->
 	UIModule = get_backend_name(),
 
 	UIModule:display( Text ).
+
+
+
+% Displays specified formatted text, as a normal message.
+%
+-spec display( text_utils:format_string(), [ term() ] ) -> void().
+display( FormatString, Values ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:display( FormatString, Values ).
+
+
+% Displays in-order the items of specified list, as a normal message.
+%
+-spec display_numbered_list( label(), [ text() ] ) -> void().
+display_numbered_list( Label, Lines ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:display_numbered_list( Label, Lines ).
+
+
+
+
+% Displays specified text, as an error message.
+%
+-spec display_error( text() ) -> void().
+display_error( Text ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:display_error( Text ).
+
+
+
+% Displays specified formatted text, as an error message.
+%
+-spec display_error( text_utils:format_string(), [ term() ] ) -> void().
+display_error( FormatString, Values ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:display_error( FormatString, Values ).
+
+
+
+% Displays in-order the items of specified list, as an error message.
+%
+-spec display_error_numbered_list( label(), [ text() ] ) -> void().
+display_error_numbered_list( Label, Lines ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:display_error_numbered_list( Label, Lines ).
+
+
+
+% Adds a default separation between previous and next content.
+%
+-spec add_separation() -> void().
+add_separation() ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:add_separation().
+
+
+
+
+% Returns the user-entered text.
+%
+% (const)
+%
+-spec get_text( prompt(), ui_state() ) -> text().
+get_text( Prompt, UIState ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:get_text( Prompt, UIState ).
+
+
+
+% Returns the user-entered text, once translated to an integer, based on an
+% implicit state.
+%
+% (const)
+%
+-spec get_text_as_integer( prompt(), ui_state() ) -> text().
+get_text_as_integer( Prompt, UIState ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:get_text_as_integer( Prompt, UIState ).
+
+
+
+% Returns the user-entered text, once translated to an integer, based on an
+% implicit state, prompting the user until a valid input is obtained.
+%
+% (const)
+%
+-spec read_text_as_integer( prompt(), ui_state() ) -> text().
+read_text_as_integer( Prompt, UIState ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:read_text_as_integer( Prompt, UIState ).
+
+
+
+% Returns the user-entered text (if any), once translated to an integer.
+%
+% (const)
+%
+-spec get_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( text() ).
+get_text_as_maybe_integer( Prompt, UIState ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:get_text_as_maybe_integer( Prompt, UIState ).
+
+
+
+% Returns the user-entered text, once translated to an integer, prompting the
+% user until a valid input is obtained: either a string that resolves to an
+% (then returned) integer, or an empty string (then returning 'undefined').
+%
+% (const)
+%
+-spec read_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( text() ).
+read_text_as_maybe_integer( Prompt, UIState ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:read_text_as_maybe_integer( Prompt, UIState ).
+
+
+
+% Selects, using a default prompt, an item among the specified ones, and returns
+% its designator.
+%
+% (const)
+%
+-spec choose_designated_item( [ choice_element() ] ) -> choice_designator().
+choose_designated_item( Choices ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:choose_designated_item( Choices ).
+
+
+
+% Selects, using specified prompt, an item among the specified ones, and returns
+% its designator.
+%
+% (const)
+%
+choose_designated_item( Label, Choices ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:choose_designated_item( Label, Choices ).
+
+
+
+% Selects, based on an explicit state, using the specified label, an item among
+% the specified ones, and returns its designator.
+%
+% (const)
+%
+-spec choose_designated_item( label(), [ choice_element() ], ui_state() ) ->
+									choice_designator().
+choose_designated_item( Label, Choices, UIState ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:choose_designated_item( Label, Choices, UIState ).
+
+
+
+% Selects, based on an implicit state, using a default label, an item among the
+% specified ones, and returns its index.
+%
+-spec choose_numbered_item( [ choice_element() ] ) ->  choice_index().
+choose_numbered_item( Choices ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:choose_numbered_item( Choices ).
+
+
+
+% Selects, based on an explicit state, using a default label, an item among the
+% specified ones, and returns its index.
+%
+% Selects, based on an implicit state, using the specified label, an item among
+% the specified ones, and returns its index.
+%
+-spec choose_numbered_item( [ choice_element() ], ui_state() ) ->
+								  choice_index();
+						  ( label(), [ choice_element() ] ) -> choice_index().
+choose_numbered_item( Choices, UIState ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:choose_numbered_item( Choices, UIState ).
+
+
+% Selects, based on an explicit state, using the specified label, an item among
+% the specified ones, and returns its index.
+%
+-spec choose_numbered_item( label(), [ choice_element() ], ui_state() ) ->
+								  choice_index().
+choose_numbered_item( Label, Choices, UIState ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:choose_numbered_item( Label, Choices, UIState ).
+
+
+% Selects, based on an implicit state, using a default label, an item among the
+% specified ones, and returns its index.
+%
+-spec choose_numbered_item_with_default( [ choice_element() ],
+										 choice_index() ) -> choice_index().
+choose_numbered_item_with_default( Choices, DefaultChoiceIndex ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:choose_numbered_item_with_default( Choices, DefaultChoiceIndex ).
+
+
+% Selects, based on an explicit state, using a default label, an item among the
+% specified ones, and returns its index.
+%
+% Selects, based on an implicit state, using the specified label and default
+% item, an item among the specified ones, and returns its index.
+%
+-spec choose_numbered_item_with_default( [ choice_element() ], choice_index(),
+										 ui_state() ) -> choice_index();
+									   ( label(), [ choice_element() ],
+										 maybe( choice_index() ) ) ->
+											   choice_index().
+choose_numbered_item_with_default( Choices, DefaultChoiceIndex, UIState ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:choose_numbered_item_with_default( Choices, DefaultChoiceIndex,
+												UIState ).
+
+
+
+% Selects, based on an explicit state, using the specified label and default
+% item, an item among the specified ones, and returns its index.
+%
+-spec choose_numbered_item_with_default( label(), [ choice_element() ],
+			maybe( choice_index() ), ui_state() ) -> choice_index().
+choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
+								   UIState ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:choose_numbered_item_with_default( Label, Choices,
+												DefaultChoiceIndex, UIState ).
+
+
+% Returns the value (if any) associated, in the (implicit) UI state, to the
+% specified setting.
+%
+-spec get_setting( ui_setting_key() ) -> maybe( ui_setting_value() ).
+get_setting( SettingKey ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:get_setting( SettingKey ).
+
+
+
+% End of forward section.
 
 
 
