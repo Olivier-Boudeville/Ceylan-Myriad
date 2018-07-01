@@ -52,6 +52,7 @@ test_infobox()
 
 	${target_tool} --backtitle "Testing infobox" --infobox "Please wait" 10 30 ; sleep 1
 	echo "(disappears after sleep)"
+
 }
 
 
@@ -60,6 +61,7 @@ test_pause()
 
 	${target_tool} --backtitle "Testing pause" --pause "Pausing" 10 30 4
 	echo "(disappears once pause is over)"
+
 }
 
 
