@@ -69,7 +69,8 @@
 
 % Other string operations:
 %
--export([ get_lexicographic_distance/2, uppercase_initial_letter/1,
+-export([ get_lexicographic_distance/2, find_longer_common_prefix/1,
+		  uppercase_initial_letter/1,
 		  to_lowercase/1, to_uppercase/1,
 		  join/2,
 		  split/2, split_at_first/2, split_camel_case/1,
@@ -1148,6 +1149,57 @@ get_lexicographic_distance( FirstString=[ _H1 | T1 ], SecondString=[ _H2 | T2 ],
 			{ Len, ?table:addEntry( Key, Len, Table3 ) }
 
 	end.
+
+
+% Returns the longer prefix that is common to all of the specified strings.
+%
+-spec find_longer_common_prefix( [ string() ] ) -> string().
+find_longer_common_prefix( _Strings=[] ) ->
+	throw( empty_string_list );
+
+find_longer_common_prefix( _Strings=[ S ] ) ->
+	S;
+
+find_longer_common_prefix( _Strings=[ S | T ] ) ->
+	% If having more than one string, take the first as the reference:
+	find_prefix_helper( T, S, _Acc=[] ).
+
+
+% (helper)
+find_prefix_helper( _Strings, _RefString=[], Acc ) ->
+	% Characters of the reference exhausted, it is the prefix as a whole:
+	lists:reverse( Acc );
+
+
+find_prefix_helper( Strings, _RefString=[ C | T ], Acc ) ->
+
+	case are_all_starting_with( C, Strings ) of
+
+		{ true, NewStrings } ->
+			find_prefix_helper( NewStrings, T, [ C | Acc ] );
+
+		false ->
+			lists:reverse( Acc )
+
+	end.
+
+
+
+% (helper)
+are_all_starting_with( C, Strings ) ->
+	are_all_starting_with( C, Strings, _Acc=[] ).
+
+
+are_all_starting_with( _C, _Strings=[], Acc ) ->
+	% String order does not matter:
+	{ true, Acc };
+
+are_all_starting_with( C, _Strings=[ [ C | Rest ] | T ], Acc ) ->
+	are_all_starting_with( C, T, [ Rest | Acc ] );
+
+% Either _Strings=[ [] | T ] or _Strings=[ [ NonC | Rest ] | T ]:
+are_all_starting_with( _C, _Strings, _Acc ) ->
+	false.
 
 
 
