@@ -1,5 +1,5 @@
 MYRIAD_TOP = ../..
 
-all:
+MODULES_DIRS = merge-tool
 
 include $(MYRIAD_TOP)/GNUmakesettings.inc

@@ -153,8 +153,7 @@ get_usage() ->
 	"   Ensures, for the first form, that all the changes in a possibly more up-to-date, \"newer\" tree (INPUT_TREE) are merged back to the reference tree (REFERENCE_TREE), from which the first tree may have derived. Once executed, only a refreshed reference tree will exist, as the input tree will be removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
 	"   In the reference tree, in-tree duplicated content will be either removed as a whole or replaced by symbolic links, to keep only a single version of each actual content.\n"
 	"   At the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they not have changed. As a result, once that merge is done, the reference tree will contain an uniquified version of the union of the two specified trees, and the tree to scan will not exist anymore.\n"
-	"   For the second form (--scan option), the specified tree will be inspected and will be uniquified (duplicates being removed or replaced with symbolic links), and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later merge).
-".
+	"   For the second form (--scan option), the specified tree will be inspected and will be uniquified (duplicates being removed or replaced with symbolic links), and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later merge).".
 
 
 
@@ -177,6 +176,9 @@ main( ArgTable ) ->
 
 	FilteredArgTable = ui:start( _Opts=[], ArgTable ),
 
+	ui:set_settings( [ { title, "Merging" },
+					   { backtitle, "Merging now..." } ] ),
+
 	trace_utils:debug_fmt( "Script-specific arguments: ~s",
 		   [ executable_utils:argument_table_to_string( FilteredArgTable ) ] ),
 
@@ -189,55 +191,107 @@ main( ArgTable ) ->
 		false ->
 
 			% If there is a --reference option, it is a merge, and there must be
-			% a --scan option as well:
+			% a --input option as well:
 			%
-			case list_table:lookupEntry( '-reference', FilteredArgTable ) of
+			case list_table:extractEntryWithDefaults( '-reference', undefined,
+													  FilteredArgTable ) of
 
-				{ value, [ RefTreePath ] } when is_list( RefTreePath ) ->
+				{ undefined, NoRefArgTable } ->
 
-					case list_table:lookupEntry( '-input', FilteredArgTable ) of
+					% No reference, it must then be a pure scan here:
 
-						{ value, [ InputTreePath ] } when is_list( InputTreePath ) ->
-							merge( InputTreePath, RefTreePath );
+					case list_table:extractEntryWithDefaults( '-scan',
+											   undefined, NoRefArgTable ) of
 
-						{ value, UnexpectedInputTreeOpts } ->
-							ScanString = text_utils:format(
-										   "unexpected scan tree options: ~p",
-										   [  UnexpectedInputTreeOpts] ),
+						{ undefined, NoScanArgTable } ->
+							Msg = text_utils:format( "no operation specified "
+								"(no scan nor merge).~n~n~nInstead ~s",
+								[ executable_utils:argument_table_to_string(
+									NoScanArgTable ) ] ),
+							stop_on_option_error( Msg, 20 );
 
-							stop_on_option_error( ScanString, 10 );
+						{ [ ScanTreePath ], NoScanArgTable }
+								when is_list( ScanTreePath ) ->
 
-						key_not_found ->
-							stop_on_option_error( "no scan tree specified", 11 )
+							% Check no unknown option remains:
+							case list_table:isEmpty( NoScanArgTable ) of
 
-					end;
+								true ->
+									scan( ScanTreePath );
 
-				{ value, UnexpectedRefTreeOpts } ->
-					RefString = text_utils:format(
-									   "unexpected reference tree options: ~p",
-									   [ UnexpectedRefTreeOpts ] ),
+								false ->
+									Msg = text_utils:format( "unexpected "
+											"extra options specified: ~s",
+									[ executable_utils:argument_table_to_string(
+										NoScanArgTable ) ] ),
+									stop_on_option_error( Msg, 21 )
 
-					stop_on_option_error( RefString, 12 );
+							end;
 
-				% Then it must be a pure scan here:
-				key_not_found ->
-
-					case list_table:lookupEntry( '-scan', FilteredArgTable ) of
-
-						{ value, [ ScanTreePath ] } when is_list( ScanTreePath ) ->
-							scan( ScanTreePath );
-
-						{ value, UnexpectedScanTreeOpts } ->
+						{ UnexpectedScanTreeOpts, _NoScanArgTable } ->
 							ScanString = text_utils:format(
 										   "unexpected scan tree options: ~p",
 										   [ UnexpectedScanTreeOpts ] ),
 
-							stop_on_option_error( ScanString, 13 );
+							stop_on_option_error( ScanString, 22 )
 
-						key_not_found ->
-							stop_on_option_error( "no operation specified", 14 )
 
-					end
+					end;
+
+
+				% Here there is a --reference, hence we expect a --input as
+				% well:
+				%
+				{ [ RefTreePath ], NoRefArgTable }
+				  when is_list( RefTreePath ) ->
+
+					case list_table:extractEntryWithDefaults( '-input',
+											 undefined, NoRefArgTable ) of
+
+						{ undefined, NoInputArgTable } ->
+
+							InputString = text_utils:format( "no input tree "
+								"specified; options were: ~s",
+								[ executable_utils:argument_table_to_string(
+									NoInputArgTable ) ] ),
+
+							stop_on_option_error( InputString, 23 );
+
+						% Here, an input tree specified as well:
+						{ [ InputTreePath ], NoInputArgTable }
+						  when is_list( InputTreePath ) ->
+
+							% Check no unknown option remains:
+							case list_table:isEmpty( NoInputArgTable ) of
+
+								true ->
+									merge( InputTreePath, RefTreePath );
+
+								false ->
+									Msg = text_utils:format( "unexpected "
+											"extra options specified: ~s",
+									[ executable_utils:argument_table_to_string(
+										 NoInputArgTable) ] ),
+									stop_on_option_error( Msg, 24 )
+
+							end;
+
+						{ UnexpectedInputTreeOpts, _NoInputArgTable } ->
+							ScanString = text_utils:format(
+										   "unexpected --input options: ~p",
+										   [ UnexpectedInputTreeOpts ] ),
+
+							stop_on_option_error( ScanString, 25 )
+
+					end;
+
+
+				{ UnexpectedRefTreeOpts, _ } ->
+					RefString = text_utils:format(
+								  "unexpected reference tree options: ~p",
+								  [ UnexpectedRefTreeOpts ] ),
+
+					stop_on_option_error( RefString, 26 )
 
 			end
 
@@ -249,7 +303,7 @@ main( ArgTable ) ->
 % Displays the usage of this service, and stops (with no error).
 %
 display_usage() ->
-	basic_utils:display( "~s", [ get_usage() ] ),
+	ui:display( "~s", [ get_usage() ] ),
 	basic_utils:stop( _ErrorCode=0 ).
 
 
@@ -258,7 +312,7 @@ display_usage() ->
 % (on error).
 %
 stop_on_option_error( Message, ErrorCode ) ->
-	basic_utils:display_error( "Error, ~s.~n~s", [ Message, get_usage() ] ),
+	ui:display_error( "Error, ~s~n~n~n~s", [ Message, get_usage() ] ),
 	basic_utils:stop( ErrorCode ).
 
 
@@ -805,7 +859,7 @@ manage_duplicates( EntryTable, UserState ) ->
 	%
 	% Two passes: one to establish and count the duplications, another to solve
 	% them; returns a list of duplications, and a content table referencing all
-	% non-duplicate entries.
+	% non-duplicated entries.
 	%
 	{ DuplicationCases, UniqueTable } = filter_duplications( ContentEntries ),
 
