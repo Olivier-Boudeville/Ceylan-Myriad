@@ -145,11 +145,16 @@
 % Note: ensure it is already built first!
 
 
+% Not run anymore as an escript, as raised issues with term_ui (i.e. dialog):
+%-define( exec_name, "merge-tree.escript" ).
+-define( exec_name, "merge.sh" ).
+
+
 -spec get_usage() -> void().
 get_usage() ->
 	"   Usage:\n"
-	"      - either: 'merge-tree.escript --input INPUT_TREE --reference REFERENCE_TREE'\n"
-	"      - or: 'merge-tree.escript --scan A_TREE'\n\n"
+	"      - either: '"?exec_name" --input INPUT_TREE --reference REFERENCE_TREE'\n"
+	"      - or: '"?exec_name"  --scan A_TREE'\n\n"
 	"   Ensures, for the first form, that all the changes in a possibly more up-to-date, \"newer\" tree (INPUT_TREE) are merged back to the reference tree (REFERENCE_TREE), from which the first tree may have derived. Once executed, only a refreshed reference tree will exist, as the input tree will be removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
 	"   In the reference tree, in-tree duplicated content will be either removed as a whole or replaced by symbolic links, to keep only a single version of each actual content.\n"
 	"   At the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they not have changed. As a result, once that merge is done, the reference tree will contain an uniquified version of the union of the two specified trees, and the tree to scan will not exist anymore.\n"
@@ -325,10 +330,15 @@ scan( TreePath ) ->
 
 	trace_utils:debug_fmt( "Request to scan '~s'.", [ TreePath ] ),
 
+
 	% Prepare for various outputs:
 	UserState = start_user_service( ?default_log_filename ),
 
 	AbsTreePath = file_utils:ensure_path_is_absolute( TreePath ),
+
+	ui:set_settings( [ { 'backtitle',
+					 text_utils:format( "Scan of ~s", [ AbsTreePath ] ) },
+					   { 'title', "Scan report" } ] ),
 
 	% Best, reasonable CPU usage:
 	Analyzers = spawn_data_analyzers( system_utils:get_core_count() + 1,
@@ -342,7 +352,9 @@ scan( TreePath ) ->
 
 	terminate_data_analyzers( Analyzers, UserState ),
 
-	stop_user_service( UserState ).
+	stop_user_service( UserState ),
+
+	basic_utils:stop( 0 ).
 
 
 
@@ -504,6 +516,7 @@ check_tree_path_exists( TreePath ) ->
 			ok;
 
 		false ->
+			ui:display_error( "The path '~s' does not exist.", [ TreePath ] ),
 			throw( { non_existing_content_tree, TreePath } )
 
 	end.
@@ -866,7 +879,7 @@ manage_duplicates( EntryTable, UserState ) ->
 	case length( DuplicationCases ) of
 
 		0 ->
-			ui:display( "No duplicated content detected.~n" ),
+			ui:display( "No duplicated content detected." ),
 			{ UniqueTable, _RemoveCount=0 };
 
 
@@ -987,34 +1000,67 @@ manage_duplication( FileEntries, DuplicationCaseCount, TotalDupCaseCount, Size,
 
 	SizeString = system_utils:interpret_byte_size_with_unit( Size ),
 
-	DuplicateString = text_utils:binaries_to_string(
-						[ E#file_data.path || E <- FileEntries ] ),
+	PathStrings = [ text_utils:binary_to_string( E#file_data.path )
+					|| E <- FileEntries ],
+
 
 	ui:add_separation(),
 
-	Label = text_utils:format( "Examining duplication case ~B/~B: "
-							   "following ~B files have the exact same "
-							   "content (and thus size, of ~s): ~s~n~n"
-							   "Choices are:",
-							   [ DuplicationCaseCount, TotalDupCaseCount,
-								 length( FileEntries ), SizeString,
-								 DuplicateString ] ),
+	Title = text_utils:format( "Examining duplication case ~B/~B",
+							   [ DuplicationCaseCount, TotalDupCaseCount ] ),
 
+	ui:set_setting( 'title', Title ),
 
-	Choices = [ { 'l', "leave them as they are" },
-				{ 'e', "elect a reference file, replacing each other by "
+	Count = length( FileEntries ),
+
+	% By design more than one path:
+	{ Label, Prefix, ShortenPaths } =
+		case text_utils:find_longer_common_prefix( PathStrings ) of
+
+		% No common prefix here:
+		{ "", _AllPathStrings } ->
+
+			Lbl = text_utils:format( "Following ~B files have the exact same "
+									   "content (and thus size, of ~s)",
+									   [ Count, SizeString ] ),
+
+			{ Lbl, "", PathStrings };
+
+		{ Prfx, ShortenStrings } ->
+
+			Lbl = text_utils:format( "Following ~B files have the exact same "
+									   "content (and thus size, of ~s) and "
+									   "all start with the same prefix, '~s' "
+									   "(omitted below)",
+									   [ Count, SizeString, Prfx ] ),
+			{ Lbl, Prfx, ShortenStrings }
+
+	end,
+
+	DuplicateString = text_utils:format( ": ~s",
+					[ text_utils:strings_to_sorted_string( ShortenPaths ) ] ),
+
+	FullLabel = Label ++ DuplicateString,
+
+	Choices = [ { 'l', "Leave them as they are" },
+				{ 'e', "Elect a reference file, replacing each other by "
 				  "a symbolic link pointing to it" },
-				{ 'a', "abort" } ],
+				{ 'k', "Keep only one of these files" },
+				{ 'a', "Abort" } ],
 
-	SelectedChoice = ui:choose_designated_item( Label, Choices ),
+	SelectedChoice = ui:choose_designated_item(
+					   text_utils:format( "~s~n~nChoices are:", [ FullLabel ] ),
+					   Choices ),
+
+	ui:unset_setting( 'title' ),
 
 	trace( "Selected choice: ~p", [ SelectedChoice ], UserState ),
 
 	case SelectedChoice of
 
 		'l' ->
-			trace( "[~B/~B] Leaving as they are:~s",
-				   [ DuplicationCaseCount, TotalDupCaseCount,
+			trace( "[~B/~B] Leaving as they are (prefix: '~s'):~s",
+				   [ DuplicationCaseCount, TotalDupCaseCount, Prefix,
 					 DuplicateString ], UserState ),
 			FileEntries;
 
