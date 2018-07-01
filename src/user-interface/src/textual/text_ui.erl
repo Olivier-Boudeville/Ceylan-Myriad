@@ -53,7 +53,9 @@
 
 % Basic UI operations.
 %
--export([ start/0, start/1,
+-export([ % No is_available/0, as deemed always available.
+
+		  start/0, start/1,
 
 		  set/1, set/2, unset/1,
 
@@ -79,6 +81,9 @@
 		  choose_numbered_item_with_default/2,
 		  choose_numbered_item_with_default/3,
 		  choose_numbered_item_with_default/4,
+
+		  set_setting/2, set_setting/3,
+		  set_settings/1, set_settings/2,
 
 		  get_setting/1,
 
@@ -324,7 +329,7 @@ read_text_as_integer( Prompt, UIState ) ->
 	case text_utils:try_string_to_integer( Text ) of
 
 		undefined ->
-			trace_utils:debug_fmt( "(rejected: '~s')", [ Text ] ),
+			%trace_utils:debug_fmt( "(rejected: '~s')", [ Text ] ),
 			read_text_as_integer( Prompt, UIState );
 
 		I ->
@@ -803,6 +808,50 @@ display_helper( Channel, FormatString, Values ) ->
 	end,
 
 	io:format( Channel, FormatString ++ "~n", Values ).
+
+
+
+% Sets the specified setting to specified value, in the (implicit) UI state.
+%
+-spec set_setting( ui_setting_key(), ui_setting_value() ) -> void().
+set_setting( SettingKey, SettingValue ) ->
+	NewUIState = set_setting( SettingKey, SettingValue, get_state() ),
+	set_state( NewUIState ).
+
+
+
+% Sets the specified setting to specified value, in the specified UI state.
+%
+-spec set_setting( ui_setting_key(), ui_setting_value(), ui_state() ) ->
+						 ui_state().
+set_setting( SettingKey, SettingValue,
+			 UIState=#text_ui_state{ settings=SettingTable } ) ->
+
+	NewSettingTable = ?ui_table:addEntry( SettingKey, SettingValue,
+										  SettingTable ),
+
+	UIState#text_ui_state{ settings=NewSettingTable }.
+
+
+
+% Sets the specified settings to specified values, in the (implicit) UI state.
+%
+-spec set_settings( [ ui_setting_entry() ] ) -> void().
+set_settings( SettingEntries ) ->
+	NewUIState = set_settings( SettingEntries, get_state() ),
+	set_state( NewUIState ).
+
+
+
+% Sets the specified settings to specified values, in the specified UI state.
+%
+-spec set_settings( [ ui_setting_entry() ], ui_state() ) -> ui_state().
+set_settings( SettingEntries,
+			  UIState=#text_ui_state{ settings=SettingTable } ) ->
+
+	NewSettingTable = ?ui_table:addEntries( SettingEntries, SettingTable ),
+
+	UIState#text_ui_state{ settings=NewSettingTable }.
 
 
 
