@@ -79,6 +79,9 @@
 
 		  list_whitespaces/0,
 
+		  escape_single_quotes/1, escape_double_quotes/1,
+		  escape_all_quotes/1,
+
 		  is_uppercase/1, is_figure/1,
 		  remove_ending_carriage_return/1, remove_last_characters/2,
 		  remove_whitespaces/1,
@@ -1635,6 +1638,70 @@ split_after_prefix( _Prefix, _String ) ->
 -spec list_whitespaces() -> [ char() ].
 list_whitespaces() ->
 	" \t\n".
+
+
+
+% Returns specified text, in which single quotes have been escaped (i.e. "'" has
+% been replaced with "\'" - ignore the double quotes in this example).
+%
+-spec escape_single_quotes( string() ) -> string().
+escape_single_quotes( Text ) ->
+	escape_single_quotes_helper( Text, _Acc=[] ).
+
+
+escape_single_quotes_helper( _Text=[], Acc ) ->
+	lists:reverse( Acc );
+
+escape_single_quotes_helper( _Text=[ $' | T ], Acc ) ->
+	% As will be reversed:
+	escape_single_quotes_helper( T, "'\\" ++ Acc );
+
+escape_single_quotes_helper( _Text=[ C | T ], Acc ) ->
+	escape_single_quotes_helper( T, [ C | Acc ] ).
+
+
+
+% Returns specified text, in which double quotes have been escaped (i.e. '"' has
+% been replaced with '\"' - ignore the single quotes in this example).
+%
+-spec escape_double_quotes( string() ) -> string().
+escape_double_quotes( Text ) ->
+	escape_double_quotes_helper( Text, _Acc=[] ).
+
+
+escape_double_quotes_helper( _Text=[], Acc ) ->
+	lists:reverse( Acc );
+
+escape_double_quotes_helper( _Text=[ $" | T ], Acc ) ->
+	% As will be reversed:
+	escape_double_quotes_helper( T, "\"\\" ++ Acc );
+
+escape_double_quotes_helper( _Text=[ C | T ], Acc ) ->
+	escape_double_quotes_helper( T, [ C | Acc ] ).
+
+
+
+% Returns specified text, in which all quotes have been escaped (i.e. ' and "
+% have been replaced respectively with \' and \").
+%
+-spec escape_all_quotes( string() ) -> string().
+escape_all_quotes( Text ) ->
+	escape_all_quotes_helper( Text, _Acc=[] ).
+
+
+escape_all_quotes_helper( _Text=[], Acc ) ->
+	lists:reverse( Acc );
+
+escape_all_quotes_helper( _Text=[ $' | T ], Acc ) ->
+	% As will be reversed:
+	escape_all_quotes_helper( T, "'\\" ++ Acc );
+
+escape_all_quotes_helper( _Text=[ $" | T ], Acc ) ->
+	% As will be reversed:
+	escape_all_quotes_helper( T, "\"\\" ++ Acc );
+
+escape_all_quotes_helper( _Text=[ C | T ], Acc ) ->
+	escape_all_quotes_helper( T, [ C | Acc ] ).
 
 
 
