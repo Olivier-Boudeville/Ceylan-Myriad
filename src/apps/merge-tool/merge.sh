@@ -7,4 +7,4 @@
 # Any argument(s) specified to this script shall be interpreted as a plain,
 # extra one:
 #
-make merge_exec CMD_LINE_OPT="-extra $*"
+make -s merge_exec CMD_LINE_OPT="-extra $*"
