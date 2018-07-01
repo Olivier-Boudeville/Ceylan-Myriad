@@ -1,7 +1,9 @@
 #!/bin/sh
 
 
-# We can see whiptail is not a drop-in replacement, and that dialog is much nicer:
+# We can see whiptail is not a drop-in replacement, and that dialog is much
+# nicer:
+#
 target_tool_name="dialog"
 #target_tool_name="whiptail"
 
