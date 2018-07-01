@@ -1151,35 +1151,37 @@ get_lexicographic_distance( FirstString=[ _H1 | T1 ], SecondString=[ _H2 | T2 ],
 	end.
 
 
-% Returns the longer prefix that is common to all of the specified strings.
+% Returns the longer prefix that is common to all of the specified strings, and
+% a list of the specified strings with this prefix removed.
 %
--spec find_longer_common_prefix( [ string() ] ) -> string().
+-spec find_longer_common_prefix( [ string() ] ) -> { string(), [ string() ] }.
 find_longer_common_prefix( _Strings=[] ) ->
 	throw( empty_string_list );
 
 find_longer_common_prefix( _Strings=[ S ] ) ->
-	S;
+	{ S, [ "" ] };
 
 find_longer_common_prefix( _Strings=[ S | T ] ) ->
 	% If having more than one string, take the first as the reference:
-	find_prefix_helper( T, S, _Acc=[] ).
+	find_prefix_helper( T, _RefString=S, _AccPrefix=[] ).
 
 
 % (helper)
-find_prefix_helper( _Strings, _RefString=[], Acc ) ->
+find_prefix_helper( Strings, _RefString=[], AccPrefix ) ->
 	% Characters of the reference exhausted, it is the prefix as a whole:
-	lists:reverse( Acc );
+	{ lists:reverse( AccPrefix ), [ "" | Strings ] };
 
 
-find_prefix_helper( Strings, _RefString=[ C | T ], Acc ) ->
+find_prefix_helper( Strings, RefString=[ C | T ], AccPrefix ) ->
 
 	case are_all_starting_with( C, Strings ) of
 
 		{ true, NewStrings } ->
-			find_prefix_helper( NewStrings, T, [ C | Acc ] );
+			find_prefix_helper( NewStrings, T, [ C | AccPrefix ] );
 
 		false ->
-			lists:reverse( Acc )
+			% Do not forget the reference one:
+			{ lists:reverse( AccPrefix ), [ RefString | Strings ] }
 
 	end.
 
@@ -1194,6 +1196,7 @@ are_all_starting_with( _C, _Strings=[], Acc ) ->
 	% String order does not matter:
 	{ true, Acc };
 
+% This string matches:
 are_all_starting_with( C, _Strings=[ [ C | Rest ] | T ], Acc ) ->
 	are_all_starting_with( C, T, [ Rest | Acc ] );
 

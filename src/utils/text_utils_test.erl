@@ -297,15 +297,19 @@ run() ->
 	%	[ RefString, text_utils:strings_to_string( VariantResultStrings ) ] ),
 
 
-	"" = text_utils:find_longer_common_prefix( [ "abca", "xyz" ] ),
+	FirstInput = [ "abca", "xyz" ],
+	{ "", FirstInput } = text_utils:find_longer_common_prefix( FirstInput ),
 
-	"" = text_utils:find_longer_common_prefix( [ "abca", "xyz", "abca" ] ),
+	SecondInput = [ "abca", "xyz", "abca" ],
+	{ "", SecondInput } = text_utils:find_longer_common_prefix( SecondInput ),
 
-	"ab" = text_utils:find_longer_common_prefix( [ "ab" ] ),
+	{ "ab", [ "" ] } = text_utils:find_longer_common_prefix( [ "ab" ] ),
 
-	"abc" = text_utils:find_longer_common_prefix( [ "abca", "abcb" ] ),
+	{ "abc", [ "a", "b" ] } = text_utils:find_longer_common_prefix(
+								[ "abca", "abcb" ] ),
 
-	"abc" = text_utils:find_longer_common_prefix( [ "abc", "abcb" ] ),
+	{ "abc", [ "", "b" ] } = text_utils:find_longer_common_prefix(
+							   [ "abc", "abcb" ] ),
 
 
 	IndentationLevel = 3,
