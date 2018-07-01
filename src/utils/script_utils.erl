@@ -73,6 +73,11 @@ is_running_as_escript() ->
 
 
 
+% Note: see also src/scripts/myriad_script_include.hrl for an include directly
+% comprising the services below (hence with no need for a verbatim copy of
+% them).
+
+
 % Updates the VM code path so that all modules of the 'Myriad' layer can be
 % readily used from an escript.
 %
