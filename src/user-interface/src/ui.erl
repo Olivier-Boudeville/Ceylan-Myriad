@@ -102,6 +102,9 @@
 		  choose_numbered_item_with_default/3,
 		  choose_numbered_item_with_default/4,
 
+		  set_setting/2, set_setting/3,
+		  set_settings/1, set_settings/2,
+
 		  get_setting/1
 
 ]).
@@ -150,7 +153,6 @@ start( Options ) ->
 -spec start( ui_options(), executable_utils:argument_table() ) ->
 				   executable_utils:argument_table().
 start( Options, ArgumentTable ) ->
-
 
 	% Just a check:
 	case process_dictionary:get( ?ui_name_key ) of
@@ -256,6 +258,8 @@ unset( SettingElement ) ->
 
 
 % Displays specified text, as a normal message.
+%
+% Note: all types of quotes are allowed in specified text.
 %
 -spec display( text() ) -> void().
 display( Text ) ->
@@ -530,6 +534,52 @@ choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
 												DefaultChoiceIndex, UIState ).
 
 
+
+% Sets the specified setting to specified value, in the (implicit) UI state.
+%
+-spec set_setting( ui_setting_key(), ui_setting_value() ) -> void().
+set_setting( SettingKey, SettingValue ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:set_setting( SettingKey, SettingValue ).
+
+
+
+% Sets the specified setting to specified value, in the specified UI state.
+%
+-spec set_setting( ui_setting_key(), ui_setting_value(), ui_state() ) ->
+						 ui_state().
+set_setting( SettingKey, SettingValue, UIState ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:set_setting( SettingKey, SettingValue, UIState ).
+
+
+
+% Sets the specified settings to specified values, in the (implicit) UI state.
+%
+-spec set_settings( [ ui_setting_entry() ] ) -> void().
+set_settings( SettingEntries ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:set_settings( SettingEntries ).
+
+
+
+% Sets the specified settings to specified values, in the specified UI state.
+%
+-spec set_settings( [ ui_setting_entry() ], ui_state() ) -> ui_state().
+set_settings( SettingEntries, UIState ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:set_settings( SettingEntries, UIState ).
+
+
+
 % Returns the value (if any) associated, in the (implicit) UI state, to the
 % specified setting.
 %
@@ -630,7 +680,13 @@ settings_to_string( SettingTable ) ->
 			"having no setting recorded";
 
 		Count ->
-			text_utils:format( "with ~B settings recorded: ~p",
-							   [ Count, ?ui_table:enumerate( SettingTable ) ] )
+
+			SetPairs = lists:sort( ?ui_table:enumerate( SettingTable ) ),
+
+			SetStrings = [ text_utils:format( "'~s' set to ~p",
+									  [ K, V ] ) || { K, V } <- SetPairs ],
+
+			text_utils:format( "with ~B settings recorded: ~s",
+					   [ Count, text_utils:strings_to_string( SetStrings ) ] )
 
 	end.
