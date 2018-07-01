@@ -514,7 +514,9 @@ MYRIAD_BEAM_DIRS = $(MYRIAD_BEAM)/data-management              \
 				   $(MYRIAD_BEAM)/user-interface/src           \
 				   $(MYRIAD_BEAM)/user-interface/src/textual   \
 				   $(MYRIAD_BEAM)/user-interface/src/graphical \
-				   $(MYRIAD_BEAM)/utils
+				   $(MYRIAD_BEAM)/utils                        \
+				   $(MYRIAD_BEAM)/scripts                      \
+				   $(MYRIAD_BEAM)/apps/merge-tool
 
 
 BEAM_DIRS += $(MYRIAD_BEAM_DIRS)
