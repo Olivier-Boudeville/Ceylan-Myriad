@@ -365,6 +365,19 @@ run() ->
 
 	no_prefix = text_utils:split_after_prefix( "ABC", "Foobar is baz." ),
 
+
+	EscapeString = "I *am* to be \"escaped\", as 'I shall be escaped'",
+
+	test_facilities:display( "Single-quote escaping '~s' results in: '~s'.",
+			 [ EscapeString, text_utils:escape_single_quotes( EscapeString ) ] ),
+
+	test_facilities:display( "Double-quote escaping '~s' results in: '~s'.",
+			 [ EscapeString, text_utils:escape_double_quotes( EscapeString ) ] ),
+
+	test_facilities:display( "All-quote escaping '~s' results in: '~s'.",
+			 [ EscapeString, text_utils:escape_all_quotes( EscapeString ) ] ),
+
+
 	RemovalCount = 3,
 
 	"I am a lonesome cow" = text_utils:remove_last_characters(
