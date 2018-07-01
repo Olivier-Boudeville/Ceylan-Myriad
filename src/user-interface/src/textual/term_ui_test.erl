@@ -48,7 +48,10 @@ run_test_ui() ->
 
 	term_ui:set( [ { backtitle, "Test of term_ui" }, { title, "A title" } ] ),
 
-	term_ui:display( "My text to display!" ),
+	term_ui:display( "My text to display! (featuring 'single quotes' and "
+					 "also \"double quotes\"!)" ),
+
+	term_ui:display( "My second text to display!" ),
 
 	trace_utils:debug_fmt( "UI state: ~s", [ term_ui:to_string() ] ),
 
