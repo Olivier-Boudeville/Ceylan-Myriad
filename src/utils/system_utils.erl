@@ -528,10 +528,10 @@ run_executable( Command, Environment, WorkingDir ) ->
 					  [ port_option() ] ) -> command_outcome().
 run_executable( Command, Environment, WorkingDir, PortOptions ) ->
 
-	%trace_utils:debug_fmt( "Running executable: '~s' with environment '~s' "
-	%					   "from working directory '~p', with options ~p.",
-	%					   [ Command, environment_to_string( Environment ),
-	%						 WorkingDir, PortOptions ] ),
+	trace_utils:debug_fmt( "Running executable: '~s' with environment '~s' "
+						   "from working directory '~p', with options ~p.",
+						   [ Command, environment_to_string( Environment ),
+							 WorkingDir, PortOptions ] ),
 
 	PortOptsWithEnv = [ { env, Environment } | PortOptions  ],
 
@@ -1000,7 +1000,7 @@ environment_to_string( Environment ) ->
 							   end,
 							   Environment ),
 
-	VariableStrings = [ io_lib:format( "~s = ~s", [ Name, Value ] )
+	VariableStrings = [ text_utils:format( "~s = ~s", [ Name, Value ] )
 						|| { Name, Value } <- SetVars ],
 
 	FinalVariableStrings = case UnsetVars of
