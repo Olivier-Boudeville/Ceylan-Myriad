@@ -781,10 +781,17 @@ get_default_jinterface_path() ->
 -spec get_argument_table() -> argument_table().
 get_argument_table() ->
 
-	Args = init:get_arguments(),
+	% We do not want to include the VM-specific arguments (such as -noshell,
+	% -pz, etc.); use, in the command-line, '-extra', before arguments to
+	% consider as plain ones:
+	%Args = init:get_arguments(),
 
-	% Mostly a no-op, no duplicate in the option-keys expected:
-	list_table:new( Args ).
+	Args = init:get_plain_arguments(),
+
+	%trace_utils:debug_fmt( "Arguments obtained: ~p.", [ Args ] ),
+
+	% To convert a list of strings into per-option list of values:
+	get_argument_table( Args ).
 
 
 
