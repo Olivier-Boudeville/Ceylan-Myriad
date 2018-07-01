@@ -4,7 +4,11 @@ MYRIAD_TOP = ../../..
 		debug run-direct clean-test-tree
 
 
-MERGE_SCRIPT := ./merge-tree.escript
+# Previously run as an escript, but due to an issue with term_ui (i.e. dialog),
+# now run as a shell script:
+#
+#MERGE_SCRIPT := ./merge-tree.escript
+MERGE_SCRIPT := ./merge.sh
 
 
 TEST_TREE := "myriad-example-tree"
@@ -37,7 +41,7 @@ test: test-local
 test-local: test-local-scan
 
 
-test-local-scan: make-test-tree run-test-tree
+test-local-scan: make-test-tree run-test-tree process-test-log
 
 
 run-test-tree:
@@ -45,7 +49,11 @@ run-test-tree:
 
 
 debug:
-	@/bin/rm -f "$(TEST_LOG_FILE)" ; $(MAKE) -s test ; if [ -e "$(TEST_LOG_FILE)" ]; then echo ; echo "#### Content of $(TEST_LOG_FILE) follows:" ; more "$(TEST_LOG_FILE)" ; fi
+	@/bin/rm -f "$(TEST_LOG_FILE)" ; $(MAKE) -s test process-test-log
+
+
+process-test-log:
+	@if [ -f "$(TEST_LOG_FILE)" ] ; then echo ; echo "#### Content of $(TEST_LOG_FILE) follows:" ; more "$(TEST_LOG_FILE)" ; /bin/rm -f "$(TEST_LOG_FILE)" ; fi
 
 
 run-direct: merge_exec
