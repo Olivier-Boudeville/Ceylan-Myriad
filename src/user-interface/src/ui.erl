@@ -105,12 +105,15 @@
 		  set_setting/2, set_setting/3,
 		  set_settings/1, set_settings/2,
 
+		  unset_setting/1, unset_setting/2,
 		  get_setting/1
 
 ]).
 
 
 -export([ trace/1, trace/2,
+
+		  clear/0,
 
 		  stop/0,
 
@@ -580,6 +583,28 @@ set_settings( SettingEntries, UIState ) ->
 
 
 
+% Unsets specified setting, in the (implicit) UI state.
+%
+-spec unset_setting( ui_setting_key() ) -> void().
+unset_setting( SettingKey ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:unset_setting( SettingKey ).
+
+
+
+% Unsets specified setting, in the specified UI state.
+%
+-spec unset_setting( ui_setting_key() , ui_state()) -> void().
+unset_setting( SettingKey, UIState ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:unset_setting( SettingKey, UIState ).
+
+
+
 % Returns the value (if any) associated, in the (implicit) UI state, to the
 % specified setting.
 %
@@ -614,6 +639,17 @@ trace( FormatString, Values ) ->
 	UIModule = get_backend_name(),
 
 	UIModule:trace( FormatString, Values ).
+
+
+
+% Clears the interface.
+%
+-spec clear() -> void().
+clear() ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:clear().
 
 
 
