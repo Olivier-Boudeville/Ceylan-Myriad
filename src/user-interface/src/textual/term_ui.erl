@@ -230,9 +230,6 @@
 
 		  add_separation/0,
 
-		  get_text/2, get_text_as_integer/2, get_text_as_maybe_integer/2,
-		  read_text_as_integer/2,
-
 		  choose_designated_item/1, choose_designated_item/2,
 		  choose_designated_item/3,
 
@@ -246,9 +243,13 @@
 		  set_setting/2, set_setting/3,
 		  set_settings/1, set_settings/2,
 
+		  unset_setting/1, unset_setting/2,
+
 		  get_setting/1,
 
 		  trace/1, trace/2,
+
+		  clear/0, clear/1,
 
 		  stop/0, stop/1,
 
@@ -589,9 +590,9 @@ display_error( Text ) ->
 	%OKLabel = "--ok-label '"?red" Abort "?normal"'",
 	OKLabel = "--ok-label 'Abort'",
 
-	DialogString = text_utils:format(
-			"--colors " ++ OKLabel ++ " --msgbox \"~s\" ~s",
-			[ EscapedText, SuffixString ] ),
+	DialogString = "--colors " ++ OKLabel ++ text_utils:format(
+											   " --msgbox \"~s\" ~s",
+											   [ EscapedText, SuffixString ] ),
 
 	Cmd = text_utils:join( _Sep=" ",
 						   [ ToolPath, SettingString, DialogString ] ),
@@ -635,107 +636,8 @@ display_error_numbered_list( Label, Lines ) ->
 %
 -spec add_separation() -> void().
 add_separation() ->
-	throw( todo ).
-
-
-
-% Returns the user-entered text.
-%
-% (const)
-%
--spec get_text( prompt(), ui_state() ) -> text().
-get_text( _Prompt, _UIState ) ->
-		  %#text_ui_state{ get_line_script=GetLineScript } ) ->
-	throw( todo ).
-
-	%text_utils:remove_ending_carriage_return( io:get_line( Prompt ) ).
-	%text_utils:remove_ending_carriage_return(
-	%  system_utils:get_line( Prompt, GetLineScript ) ).
-
-
-
-% Returns the user-entered text, once translated to an integer, based on an
-% implicit state.
-%
-% (const)
-%
--spec get_text_as_integer( prompt(), ui_state() ) -> text().
-get_text_as_integer( Prompt, UIState ) ->
-
-	Text = get_text( Prompt, UIState ),
-
-	text_utils:string_to_integer( Text ).
-
-
-
-% Returns the user-entered text, once translated to an integer, based on an
-% implicit state, prompting the user until a valid input is obtained.
-%
-% (const)
-%
--spec read_text_as_integer( prompt(), ui_state() ) -> text().
-read_text_as_integer( Prompt, UIState ) ->
-
-	Text = get_text( Prompt, UIState ),
-
-	case text_utils:try_string_to_integer( Text ) of
-
-		undefined ->
-			trace_utils:debug_fmt( "(rejected: '~s')", [ Text ] ),
-			read_text_as_integer( Prompt, UIState );
-
-		I ->
-			I
-
-	end.
-
-
-
-% Returns the user-entered text (if any), once translated to an integer.
-%
-% (const)
-%
--spec get_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( text() ).
-get_text_as_maybe_integer( Prompt, UIState ) ->
-
-	case get_text( Prompt, UIState ) of
-
-		"" ->
-			undefined;
-
-		Text ->
-			text_utils:string_to_integer( Text )
-
-	end.
-
-
-
-% Returns the user-entered text, once translated to an integer, prompting the
-% user until a valid input is obtained: either a string that resolves to an
-% (then returned) integer, or an empty string (then returning 'undefined').
-%
-% (const)
-%
--spec read_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( text() ).
-read_text_as_maybe_integer( Prompt, UIState ) ->
-
-	case get_text( Prompt, UIState ) of
-
-		"" ->
-			undefined;
-
-		Text ->
-			case text_utils:try_string_to_integer( Text ) of
-
-				undefined ->
-					read_text_as_integer( Prompt, UIState );
-
-				I ->
-					I
-
-			end
-
-	end.
+	% Could be a clear.
+	ok.
 
 
 
@@ -747,10 +649,10 @@ read_text_as_maybe_integer( Prompt, UIState ) ->
 -spec choose_designated_item( [ choice_element() ] ) -> choice_designator().
 choose_designated_item( Choices ) ->
 
-	Prompt = text_utils:format( "Select among these ~B choices:",
+	Label = text_utils:format( "Select among these ~B choices:",
 								[ length( Choices ) ] ),
 
-	choose_designated_item( Prompt, Choices ).
+	choose_designated_item( Label, Choices ).
 
 
 
@@ -759,6 +661,8 @@ choose_designated_item( Choices ) ->
 %
 % (const)
 %
+-spec choose_designated_item( label(), [ choice_element() ] ) ->
+									choice_designator().
 choose_designated_item( Label, Choices ) ->
 	choose_designated_item( Label, Choices, get_state() ).
 
@@ -771,54 +675,52 @@ choose_designated_item( Label, Choices ) ->
 %
 -spec choose_designated_item( label(), [ choice_element() ], ui_state() ) ->
 									choice_designator().
-choose_designated_item( Label, Choices, UIState ) ->
+choose_designated_item( Label, Choices,
+						#term_ui_state{ dialog_tool_path=ToolPath,
+										settings=SettingTable } ) ->
 
-	{ Designators, Texts } = lists:unzip( Choices ),
+	% Ex: dialog --menu "Hello" 0 0 0 1 One 2 Two 3 Three
+
+	{ _Designators, Texts } = lists:unzip( Choices ),
 
 	ChoiceCount = length( Choices ),
 
-	{ _FinalCount, NumberedText } = lists:foldl(
-					 fun( Text, { Count, AccText } ) ->
+	% We simply tag the choices with a counter (rather than using the designator
+	% atoms):
+	%
+	NumChoices = lists:zip( lists:seq( 1, ChoiceCount ), Texts ),
 
-						NewText = text_utils:format( "[~B] ~s",
-													 [ Count, Text ] ),
+	NumStrings = lists:foldl( fun( { Num, Text }, AccStrings ) ->
+									 [ text_utils:format( " ~B \"~s\"",
+												[ Num, Text ] ) | AccStrings ]
+							 end,
+							 _Acc0=[],
+							 _List=NumChoices ),
 
-						NewAccText = [ NewText | AccText ],
+	{ SettingString, _SuffixString } = get_dialog_settings( SettingTable ),
 
-						{ Count+1, NewAccText }
+	AutoSizeString = "0 0",
 
-					 end,
-					 _Acc0= { 1, [] },
-					 _List=Texts ),
+	DialogStrings = [ "--menu", "\"" ++ Label ++ "\"", AutoSizeString,
+			  _MenuHeight=text_utils:integer_to_string( ChoiceCount )
+			  | lists:reverse( [ get_redirect_string() | NumStrings ] ) ],
 
-	Text = text_utils:strings_to_string(
-			 lists:reverse( NumberedText ), _Bullet=" " ),
+	CmdStrings = [ ToolPath, SettingString | DialogStrings ],
 
-	FullLabel = text_utils:format( "~s~s~nChoice> ", [ Label, Text ] ),
+	%trace_utils:debug_fmt( "CmdStrings = ~p", [ CmdStrings ] ),
 
-	case read_text_as_integer( FullLabel, UIState ) of
+	Cmd = text_utils:join( _Sep=" ", CmdStrings ),
 
-		{ parsing_failed, Input } ->
-			display_error( "Input shall be an integer (not ~s).",
-						   [ Input ] ),
-			choose_designated_item( Label, Choices, UIState );
+	{ Env, PortOpts } = get_execution_settings(),
 
+	case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
+									  PortOpts ) of
 
-		N when N < 1 ->
-			display_error( "Specified choice shall be at least 1 (not ~B).",
-						   [ N ] ),
-			%throw( { invalid_choice, too_low, N } );
-			choose_designated_item( Label, Choices, UIState );
+		{ _ExitStatus=0, Result } ->
+			throw( { got, Result } );
 
-		N when N > ChoiceCount ->
-			display_error(
-			  "Specified choice shall not be greater than ~B (not ~B).",
-			  [ ChoiceCount, N ] ),
-			%throw( { invalid_choice, too_high, N } );
-			choose_designated_item( Label, Choices, UIState );
-
-		N ->
-			lists:nth( N, Designators )
+		{ ExitStatus, Output } ->
+			throw( { choice_failed, ExitStatus, Output } )
 
 	end.
 
@@ -859,52 +761,9 @@ choose_numbered_item( Label, Choices ) ->
 %
 -spec choose_numbered_item( label(), [ choice_element() ], ui_state() ) ->
 								  choice_index().
-choose_numbered_item( Label, Choices, UIState ) ->
+choose_numbered_item( _Label, _Choices, _UIState ) ->
+	throw( todo ).
 
-	ChoiceCount = length( Choices ),
-
-	{ _FinalCount, NumberedText } = lists:foldl(
-					 fun( Text, { Count, AccText } ) ->
-
-						NewText = text_utils:format( "[~B] ~s",
-													 [ Count, Text ] ),
-
-						NewAccText = [ NewText | AccText ],
-
-						{ Count+1, NewAccText }
-
-					 end,
-					 _Acc0= { 1, [] },
-					 _List=Choices ),
-
-	Text = text_utils:strings_to_string(
-			 lists:reverse( NumberedText ), _Bullet=" " ),
-
-	FullLabel = text_utils:format( "~s~s~nChoice> ", [ Label, Text ] ),
-
-	SelectedNumber = get_text_as_integer( FullLabel, UIState ),
-
-	%trace_utils:format( "Selected: ~B", [ SelectedNumber ] ),
-
-	case SelectedNumber of
-
-		N when N < 1 ->
-			display_error( "Specified choice shall be at least 1 (not ~B).",
-						   [ N ] ),
-			%throw( { invalid_choice, too_low, N } );
-			choose_numbered_item( Label, Choices, UIState );
-
-		N when N > ChoiceCount ->
-			display_error(
-			  "Specified choice shall not be greater than ~B (not ~B).",
-			  [ ChoiceCount, N ] ),
-			%throw( { invalid_choice, too_high, N } );
-			choose_numbered_item( Label, Choices, UIState );
-
-		N ->
-			N
-
-	end.
 
 
 
@@ -950,66 +809,10 @@ choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex ) ->
 %
 -spec choose_numbered_item_with_default( label(), [ choice_element() ],
 			maybe( choice_index() ), ui_state() ) -> choice_index().
-choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
-								   UIState ) ->
+choose_numbered_item_with_default( _Label, _Choices, _DefaultChoiceIndex,
+								   _UIState ) ->
+	throw( todo ).
 
-	ChoiceCount = length( Choices ),
-
-	case DefaultChoiceIndex =/= undefined andalso DefaultChoiceIndex > 0
-		andalso DefaultChoiceIndex =< ChoiceCount of
-
-		true ->
-			ok;
-
-		false ->
-			throw( { invalid_default_index, DefaultChoiceIndex } )
-
-	end,
-
-	{ _FinalCount, NumberedText } = lists:foldl(
-					 fun( Text, { Count, AccText } ) ->
-
-						NewText = text_utils:format( "[~B] ~s",
-													 [ Count, Text ] ),
-
-						NewAccText = [ NewText | AccText ],
-
-						{ Count+1, NewAccText }
-
-					 end,
-					 _Acc0= { 1, [] },
-					 _List=Choices ),
-
-	Text = text_utils:strings_to_string(
-			 lists:reverse( NumberedText ), _Bullet=" " ),
-
-	FullLabel = text_utils:format( "~s~s~nChoice [default: ~B]> ",
-								   [ Label, Text, DefaultChoiceIndex ] ),
-
-	case read_text_as_maybe_integer( FullLabel, UIState ) of
-
-		% Default:
-		undefined ->
-			DefaultChoiceIndex;
-
-		N when N < 1 ->
-			display_error( "Specified choice shall be at least 1 (not ~B).",
-						   [ N ] ),
-			%throw( { invalid_choice, too_low, N } );
-			choose_numbered_item_with_default( Label, Choices,
-											   DefaultChoiceIndex, UIState );
-
-		N when N > ChoiceCount ->
-			display_error( "Specified choice shall not be greater than ~B "
-						   "(not ~B).", [ ChoiceCount, N ] ),
-			%throw( { invalid_choice, too_high, N } );
-			choose_numbered_item_with_default( Label, Choices,
-											   DefaultChoiceIndex, UIState );
-
-		N ->
-			N
-
-	end.
 
 
 
@@ -1059,6 +862,44 @@ trace( FormatString, Values ) ->
 
 
 
+% Clears the interface.
+%
+-spec clear() -> void().
+clear() ->
+	clear( get_state() ).
+
+
+% Clears the interface.
+%
+-spec clear( ui_state() ) -> void().
+clear( #term_ui_state{ dialog_tool_path=ToolPath } ) ->
+
+	% Simplified example:
+	%Cmd = "dialog --clear",
+
+	DialogString = "--clear",
+
+	Cmd = text_utils:join( _Sep=" ", [ ToolPath, DialogString ] ),
+
+	{ Env, PortOpts } = get_execution_settings(),
+
+	case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
+									  PortOpts ) of
+
+		{ _ExitStatus=0, _Output="" } ->
+			%trace_utils:debug( "Cleared." ),
+			ok;
+
+		{ _ExitStatus=0, Output } ->
+			trace_utils:debug_fmt( "Display output: '~s'.", [ Output ] );
+
+		{ ExitStatus, Output } ->
+			throw( { display_error_reported, ExitStatus, Output } )
+
+	end.
+
+
+
 % Stops the UI.
 %
 -spec stop() -> void().
@@ -1083,6 +924,8 @@ stop( UIState=#term_ui_state{ log_file=LogFile } ) ->
 %
 %stop_helper( #term_ui_state{ state_filename=StateFilename } ) ->
 stop_helper( _UIState ) ->
+
+	clear(),
 
 	%file_utils:remove_file_if_existing( StateFilename ),
 
@@ -1276,6 +1119,28 @@ set_settings( SettingEntries,
 			  UIState=#term_ui_state{ settings=SettingTable } ) ->
 
 	NewSettingTable = ?ui_table:addEntries( SettingEntries, SettingTable ),
+
+	UIState#term_ui_state{ settings=NewSettingTable }.
+
+
+
+% Unsets specified setting, in the (implicit) UI state.
+%
+-spec unset_setting( ui_setting_key() ) -> void().
+unset_setting( SettingKey ) ->
+	NewUIState = unset_setting( SettingKey, get_state() ),
+	set_state( NewUIState ).
+
+
+
+% Unsets specified setting, in the specified UI state.
+%
+-spec unset_setting( ui_setting_key(), ui_state()) -> void().
+unset_setting( SettingKey,
+			   UIState=#term_ui_state{ settings=SettingTable } ) ->
+
+	NewSettingTable = ?ui_table:addEntry( SettingKey, _SettingValue=undefined,
+										  SettingTable ),
 
 	UIState#term_ui_state{ settings=NewSettingTable }.
 
