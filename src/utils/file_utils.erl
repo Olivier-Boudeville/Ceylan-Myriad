@@ -39,6 +39,8 @@
 
 % Filename-related operations.
 %
+% See also: filename:dirname/1 and basename:dirname/1.
+%
 -export([ join/1, join/2, convert_to_filename/1, replace_extension/3,
 
 		  exists/1, get_type_of/1, is_file/1,
