@@ -681,7 +681,7 @@ choose_designated_item( Label, Choices,
 
 	% Ex: dialog --menu "Hello" 0 0 0 1 One 2 Two 3 Three
 
-	{ _Designators, Texts } = lists:unzip( Choices ),
+	{ Designators, Texts } = lists:unzip( Choices ),
 
 	ChoiceCount = length( Choices ),
 
@@ -717,7 +717,8 @@ choose_designated_item( Label, Choices,
 									  PortOpts ) of
 
 		{ _ExitStatus=0, Result } ->
-			throw( { got, Result } );
+			ChosenNum = text_utils:string_to_integer( Result ),
+			list_utils:get_element_at( Designators, ChosenNum );
 
 		{ ExitStatus, Output } ->
 			throw( { choice_failed, ExitStatus, Output } )
