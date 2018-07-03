@@ -1003,6 +1003,8 @@ manage_duplication( FileEntries, DuplicationCaseCount, TotalDupCaseCount, Size,
 	PathStrings = [ text_utils:binary_to_string( E#file_data.path )
 					|| E <- FileEntries ],
 
+	% As we do not want a common prefix to include any basename:
+	Dirnames = [ filename:dirname( P ) || P <- PathStrings ],
 
 	ui:add_separation(),
 
@@ -1015,7 +1017,7 @@ manage_duplication( FileEntries, DuplicationCaseCount, TotalDupCaseCount, Size,
 
 	% By design more than one path:
 	{ Label, Prefix, ShortenPaths } =
-		case text_utils:find_longer_common_prefix( PathStrings ) of
+		case text_utils:find_longer_common_prefix( Dirnames ) of
 
 		% No common prefix here:
 		{ "", _AllPathStrings } ->
@@ -1026,14 +1028,22 @@ manage_duplication( FileEntries, DuplicationCaseCount, TotalDupCaseCount, Size,
 
 			{ Lbl, "", PathStrings };
 
-		{ Prfx, ShortenStrings } ->
+		% We do not re-reuse the remaining, prefixless strings as they do not
+		% comprise the basename (only the dirname):
+		%
+		{ Prfx, _ShortenStrings } ->
+
+			PrefixLen = length( Prfx ),
+
+			TrimmedPaths = [ string:substr( P, PrefixLen + 1 )
+							 || P <- PathStrings ],
 
 			Lbl = text_utils:format( "Following ~B files have the exact same "
 									   "content (and thus size, of ~s) and "
 									   "all start with the same prefix, '~s' "
 									   "(omitted below)",
 									   [ Count, SizeString, Prfx ] ),
-			{ Lbl, Prfx, ShortenStrings }
+			{ Lbl, Prfx, TrimmedPaths }
 
 	end,
 
@@ -1042,11 +1052,11 @@ manage_duplication( FileEntries, DuplicationCaseCount, TotalDupCaseCount, Size,
 
 	FullLabel = Label ++ DuplicateString,
 
-	Choices = [ { 'l', "Leave them as they are" },
-				{ 'e', "Elect a reference file, replacing each other by "
+	Choices = [ { 'leave', "Leave them as they are" },
+				{ 'elect', "Elect a reference file, replacing each other by "
 				  "a symbolic link pointing to it" },
-				{ 'k', "Keep only one of these files" },
-				{ 'a', "Abort" } ],
+				{ 'keep', "Keep only one of these files" },
+				{ 'abort', "Abort" } ],
 
 	SelectedChoice = ui:choose_designated_item(
 					   text_utils:format( "~s~n~nChoices are:", [ FullLabel ] ),
@@ -1058,17 +1068,22 @@ manage_duplication( FileEntries, DuplicationCaseCount, TotalDupCaseCount, Size,
 
 	case SelectedChoice of
 
-		'l' ->
+		leave ->
 			trace( "[~B/~B] Leaving as they are (prefix: '~s'):~s",
 				   [ DuplicationCaseCount, TotalDupCaseCount, Prefix,
 					 DuplicateString ], UserState ),
 			FileEntries;
 
-		'e' ->
+		elect ->
+			%elect_and_link(
 			trace( "TODO", UserState ),
 			FileEntries;
 
-		'a' ->
+		keep ->
+			trace( "TODO", UserState ),
+			FileEntries;
+
+		abort ->
 			trace( "(request to abort the merge)", UserState ),
 			basic_utils:stop( 5 )
 
