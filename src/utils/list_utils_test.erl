@@ -60,6 +60,11 @@ run() ->
 	% [ OutOfBoundsIndex, L,
 	%	list_utils:get_element_at( L, OutOfBoundsIndex ) ] ),
 
+
+	{ a, [] } = list_utils:extract_element_at( [ a ], 1 ),
+
+	{ b, [ a, c ] } = list_utils:extract_element_at( [ a, b, c ], 2 ),
+
 	RemoveIndex = 3,
 
 	ShortenList = list_utils:remove_element_at( L, RemoveIndex ),
@@ -141,6 +146,13 @@ run() ->
 
 	false = list_utils:unordered_compare( [a,b], [a,c] ),
 	false = list_utils:unordered_compare( [a,b], [a] ),
+
+	{ 3, 2 } = list_utils:determine_tuple_info(
+				 [ { a, 1 }, { b, 1 }, { c, 2 } ] ),
+
+	{ 2, 3 } = list_utils:determine_tuple_info(
+				 [ { a, 1, 3 }, { b, 1, 0 } ] ),
+
 
 	{ [], [  a, b, c, d, e ] } = list_utils:split_at( [ a, b, c, d, e ], 0 ),
 
