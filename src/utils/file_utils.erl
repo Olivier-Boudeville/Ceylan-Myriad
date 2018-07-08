@@ -92,8 +92,10 @@
 
 % I/O section.
 %
--export([ open/2, open/3, close/1, close/2, read/2, write/2, write/3,
-		  read_whole/1, write_whole/2, read_terms/1 ]).
+-export([ open/2, open/3, close/1, close/2,
+		  read/2, write/2, write/3,
+		  read_whole/1, write_whole/2,
+		  read_terms/1, write_terms/2, write_terms/4, write_direct_terms/2 ]).
 
 
 % Compression-related operations.
@@ -1245,7 +1247,7 @@ create_temporary_directory() ->
 
 
 
-% Removes specified file, specified as a plain string.
+% Removes (deletes) specified file, specified as a plain string.
 %
 % Throws an exception if any problem occurs.
 %
@@ -1266,7 +1268,7 @@ remove_file( Filename ) ->
 
 
 
-% Removes specified files, specified as a list of plain strings.
+% Removes (deletes) specified files, specified as a list of plain strings.
 %
 -spec remove_files( [ file_name() ] ) -> void().
 remove_files( FilenameList ) ->
@@ -1945,7 +1947,7 @@ write( File, Content ) ->
 				   void().
 write( File, FormatString, Values ) ->
 
-	Text = io_lib:format( FormatString, Values ),
+	Text = text_utils:format( FormatString, Values ),
 
 	case file:write( File, Text ) of
 
@@ -2002,6 +2004,7 @@ write_whole( Filename, Binary ) ->
 %
 % Throws an exception on error.
 %
+-spec read_terms( file_path() ) -> [ term() ].
 read_terms( Filename ) ->
 
 	case file:consult( Filename ) of
@@ -2017,6 +2020,62 @@ read_terms( Filename ) ->
 			throw( { interpretation_failed, Filename, Reason } )
 
 	end.
+
+
+
+% Writes specified terms into specified file, with no specific header or footer.
+%
+% Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
+%
+-spec write_terms( [ term() ], file_path() ) -> void().
+write_terms( Terms, Filename ) ->
+	write_terms( Terms, _Header=undefined, _Footer=undefined, Filename ).
+
+
+
+% Writes specified terms into specified file, with specified header and footer.
+%
+% Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
+%
+-spec write_terms( [ term() ], maybe( string() ), maybe( string() ),
+				   file_path() ) -> void().
+write_terms( Terms, Header, Footer, Filename ) ->
+
+	F = open( Filename, [ write, raw, delayed_write ] ),
+
+	case Header of
+
+		undefined ->
+			ok;
+
+		_ ->
+			write( F, text_utils:format( "% ~n~n~n", [ Header ] ) )
+
+	end,
+
+	write_direct_terms( Terms, F ),
+
+	case Footer of
+
+		undefined ->
+			ok;
+
+		_ ->
+			write( F, text_utils:format( "~n~n% ~s~n", [ Footer ] ) )
+
+	end,
+
+	close( F ).
+
+
+
+% Writes directly specified terms into specified already opened file.
+
+% Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
+%
+-spec write_direct_terms( file(), [ term() ] ) -> void().
+write_direct_terms( File, Terms ) ->
+	[ write( File, text_utils:format( "~p.~n", [ T ] ) ) || T <- Terms ].
 
 
 
