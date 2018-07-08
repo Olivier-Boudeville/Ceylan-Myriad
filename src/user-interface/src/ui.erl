@@ -92,6 +92,8 @@
 		  get_text/2, get_text_as_integer/2, get_text_as_maybe_integer/2,
 		  read_text_as_integer/2, read_text_as_maybe_integer/2,
 
+		  ask_yes_no/2,
+
 		  choose_designated_item/1, choose_designated_item/2,
 		  choose_designated_item/3,
 
@@ -123,6 +125,7 @@
 % Typically text_ui_state() | term_ui_state() | ...
 %
 -type ui_state() :: any().
+
 
 
 % Starts the UI with default settings.
@@ -409,8 +412,20 @@ read_text_as_maybe_integer( Prompt, UIState ) ->
 
 
 
-% Selects, using a default prompt, an item among the specified ones, and returns
-% its designator.
+% Displays specified prompt, let the user choose between two options, "yes" and
+% "no" (with specified default option), and returns that choice.
+%
+-spec ask_yes_no( prompt(), binary_choice() ) -> binary_choice().
+ask_yes_no( Prompt, BinaryDefault ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:ask_yes_no( Prompt, BinaryDefault ).
+
+
+
+% Selects, using a default prompt, an item among the specified ones (comprising,
+% for each, an internal designator and a text), and returns its designator.
 %
 % (const)
 %
@@ -423,8 +438,8 @@ choose_designated_item( Choices ) ->
 
 
 
-% Selects, using specified prompt, an item among the specified ones, and returns
-% its designator.
+% Selects, using specified prompt, an item among the specified ones (comprising,
+% for each, an internal designator and a text), and returns its designator.
 %
 % (const)
 %
@@ -437,7 +452,8 @@ choose_designated_item( Label, Choices ) ->
 
 
 % Selects, based on an explicit state, using the specified label, an item among
-% the specified ones, and returns its designator.
+% the specified ones (comprising, for each, an internal designator and a text),
+% and returns its designator.
 %
 % (const)
 %
@@ -452,7 +468,8 @@ choose_designated_item( Label, Choices, UIState ) ->
 
 
 % Selects, based on an implicit state, using a default label, an item among the
-% specified ones, and returns its index.
+% specified ones (specified as direct text, with no specific designator
+% provided), and returns its index.
 %
 -spec choose_numbered_item( [ choice_element() ] ) ->  choice_index().
 choose_numbered_item( Choices ) ->
@@ -464,7 +481,8 @@ choose_numbered_item( Choices ) ->
 
 
 % Selects, based on an explicit state, using a default label, an item among the
-% specified ones, and returns its index.
+% specified ones (specified as direct text, with no specific designator
+% provided), and returns its index.
 %
 % Selects, based on an implicit state, using the specified label, an item among
 % the specified ones, and returns its index.
@@ -480,7 +498,8 @@ choose_numbered_item( Choices, UIState ) ->
 
 
 % Selects, based on an explicit state, using the specified label, an item among
-% the specified ones, and returns its index.
+% the specified ones (specified as direct text, with no specific designator
+% provided), and returns its index.
 %
 -spec choose_numbered_item( label(), [ choice_element() ], ui_state() ) ->
 								  choice_index().
@@ -492,7 +511,8 @@ choose_numbered_item( Label, Choices, UIState ) ->
 
 
 % Selects, based on an implicit state, using a default label, an item among the
-% specified ones, and returns its index.
+% specified ones (specified as direct text, with no specific designator
+% provided), and returns its index.
 %
 -spec choose_numbered_item_with_default( [ choice_element() ],
 										 choice_index() ) -> choice_index().
@@ -503,8 +523,10 @@ choose_numbered_item_with_default( Choices, DefaultChoiceIndex ) ->
 	UIModule:choose_numbered_item_with_default( Choices, DefaultChoiceIndex ).
 
 
+
 % Selects, based on an explicit state, using a default label, an item among the
-% specified ones, and returns its index.
+% specified ones (specified as direct text, with no specific designator
+% provided), and returns its index.
 %
 % Selects, based on an implicit state, using the specified label and default
 % item, an item among the specified ones, and returns its index.
@@ -524,7 +546,8 @@ choose_numbered_item_with_default( Choices, DefaultChoiceIndex, UIState ) ->
 
 
 % Selects, based on an explicit state, using the specified label and default
-% item, an item among the specified ones, and returns its index.
+% item, an item among the specified ones (specified as direct text, with no
+% specific designator provided), and returns its index.
 %
 -spec choose_numbered_item_with_default( label(), [ choice_element() ],
 			maybe( choice_index() ), ui_state() ) -> choice_index().

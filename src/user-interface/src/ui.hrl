@@ -41,6 +41,9 @@
 -type title() :: text().
 
 
+-type binary_choice() :: 'yes' | 'no'.
+
+
 % For traces:
 -type message() :: text().
 
@@ -50,7 +53,10 @@
 
 
 % Designator of a choice (ex: regardless of the choice labels, locales, etc.):
--type choice_designator() :: atom().
+%
+% (usually an atom, but possibly an integer or anything else)
+%
+-type choice_designator() :: term().
 
 
 % The index of a choice (starting at 1):

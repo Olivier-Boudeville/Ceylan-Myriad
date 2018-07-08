@@ -230,6 +230,8 @@
 
 		  add_separation/0,
 
+		  ask_yes_no/2, ask_yes_no/3,
+
 		  choose_designated_item/1, choose_designated_item/2,
 		  choose_designated_item/3,
 
@@ -641,8 +643,69 @@ add_separation() ->
 
 
 
-% Selects, using a default prompt, an item among the specified ones, and returns
-% its designator.
+% Displays specified prompt, let the user choose between two options, "yes" and
+% "no" (with specified default option), and returns that choice.
+%
+-spec ask_yes_no( prompt(), binary_choice() ) -> binary_choice().
+ask_yes_no( Prompt, BinaryDefault ) ->
+	ask_yes_no( Prompt, BinaryDefault, get_state() ).
+
+
+
+% Displays specified prompt, let the user choose between two options, "yes" and
+% "no" (with specified default option), and returns that choice.
+%
+-spec ask_yes_no( prompt(), binary_choice(), ui_state() ) -> binary_choice().
+ask_yes_no( Prompt, BinaryDefault, #term_ui_state{ dialog_tool_path=ToolPath,
+												   settings=SettingTable } ) ->
+
+	% Ex: dialog --backtitle "AA" --title "BB" --defaultno --yesno "Having\n
+	% fun?" 6 25
+
+	% Single quotes induce no specific issues (as are enclosed in double ones)
+	EscapedPrompt = text_utils:escape_double_quotes( Prompt ),
+
+	DefaultChoiceOpt = case BinaryDefault of
+
+		yes ->
+			"";
+
+		no ->
+			"--defaultno"
+
+	end,
+
+	{ SettingString, SuffixString } = get_dialog_settings( SettingTable ),
+
+	DialogString = text_utils:format( "~s --yesno \"~s\" ~s",
+						  [ DefaultChoiceOpt, EscapedPrompt, SuffixString ] ),
+
+	CmdStrings = [ ToolPath, SettingString, DialogString ],
+
+	%trace_utils:debug_fmt( "CmdStrings = ~p", [ CmdStrings ] ),
+
+	Cmd = text_utils:join( _Sep=" ", CmdStrings ),
+
+	{ Env, PortOpts } = get_execution_settings(),
+
+	case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
+									  PortOpts ) of
+
+		{ _ExitStatus=0, _Result=[] } ->
+			yes;
+
+		{ _ExitStatus=1, _Result=[] } ->
+			no;
+
+		{ ExitStatus, Output } ->
+			throw( { yes_no_choice_failed, ExitStatus, Output } )
+
+	end.
+
+
+
+% Selects, using a default prompt, an item among the specified ones (comprising,
+% for each, an internal designator and a text), and returns its designator.
 %
 % (const)
 %
@@ -656,8 +719,8 @@ choose_designated_item( Choices ) ->
 
 
 
-% Selects, using specified prompt, an item among the specified ones, and returns
-% its designator.
+% Selects, using specified prompt, an item among the specified ones (comprising,
+% for each, an internal designator and a text), and returns its designator.
 %
 % (const)
 %
@@ -669,7 +732,8 @@ choose_designated_item( Label, Choices ) ->
 
 
 % Selects, based on an explicit state, using the specified label, an item among
-% the specified ones, and returns its designator.
+% the specified ones (comprising, for each, an internal designator and a text),
+% and returns its designator.
 %
 % (const)
 %
@@ -693,9 +757,9 @@ choose_designated_item( Label, Choices,
 	NumStrings = lists:foldl( fun( { Num, Text }, AccStrings ) ->
 									 [ text_utils:format( " ~B \"~s\"",
 												[ Num, Text ] ) | AccStrings ]
-							 end,
-							 _Acc0=[],
-							 _List=NumChoices ),
+							  end,
+							  _Acc0=[],
+							  _List=NumChoices ),
 
 	{ SettingString, _SuffixString } = get_dialog_settings( SettingTable ),
 
@@ -728,20 +792,22 @@ choose_designated_item( Label, Choices,
 
 
 % Selects, based on an implicit state, using a default label, an item among the
-% specified ones, and returns its index.
+% specified ones (specified as direct text, with no specific designator
+% provided), and returns its index.
 %
--spec choose_numbered_item( [ choice_element() ] ) ->  choice_index().
+-spec choose_numbered_item( [ choice_text() ] ) ->  choice_index().
 choose_numbered_item( Choices ) ->
 	choose_numbered_item( Choices, get_state() ).
 
 
 % Selects, based on an explicit state, using a default label, an item among the
-% specified ones, and returns its index.
+% specified ones (specified as direct text, with no specific designator
+% provided), and returns its index.
 %
 % Selects, based on an implicit state, using the specified label, an item among
 % the specified ones, and returns its index.
 %
--spec choose_numbered_item( [ choice_element() ], ui_state() ) ->
+-spec choose_numbered_item( [ choice_text() ], ui_state() ) ->
 								  choice_index();
 						  ( label(), [ choice_element() ] ) -> choice_index().
 choose_numbered_item( Choices, UIState )
@@ -758,12 +824,23 @@ choose_numbered_item( Label, Choices ) ->
 
 
 % Selects, based on an explicit state, using the specified label, an item among
-% the specified ones, and returns its index.
+% the specified ones (specified as direct text, with no specific designator
+% provided), and returns its index.
 %
--spec choose_numbered_item( label(), [ choice_element() ], ui_state() ) ->
+-spec choose_numbered_item( label(), [ choice_text() ], ui_state() ) ->
 								  choice_index().
-choose_numbered_item( _Label, _Choices, _UIState ) ->
-	throw( todo ).
+choose_numbered_item( Label, Choices, UIState ) ->
+
+	% We could as well have used a radio list, yet a menu is probably a tad
+	% clearer (and selecting the default, initial entry would have no real use
+	% here).
+	%
+	% We reuse choose_designated_item/3 in a hackhish yet very simple way, based
+	% on integer indexes:
+	%
+	ChoiceElements = lists:zip( lists:seq( 1, length( Choices ) ), Choices ),
+
+	choose_designated_item( Label, ChoiceElements, UIState ).
 
 
 
@@ -780,7 +857,8 @@ choose_numbered_item_with_default( Choices, DefaultChoiceIndex ) ->
 
 
 % Selects, based on an explicit state, using a default label, an item among the
-% specified ones, and returns its index.
+% specified ones (specified as direct text, with no specific designator
+% provided) and returns its index.
 %
 % Selects, based on an implicit state, using the specified label and default
 % item, an item among the specified ones, and returns its index.
@@ -806,12 +884,17 @@ choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex ) ->
 
 
 % Selects, based on an explicit state, using the specified label and default
-% item, an item among the specified ones, and returns its index.
+% item, an item among the specified ones (specified as direct text, with no
+% specific designator provided), and returns its index.
 %
 -spec choose_numbered_item_with_default( label(), [ choice_element() ],
 			maybe( choice_index() ), ui_state() ) -> choice_index().
 choose_numbered_item_with_default( _Label, _Choices, _DefaultChoiceIndex,
 								   _UIState ) ->
+
+	% Using radio list rather than menu, for the selectable initial, default
+	% choice:
+
 	throw( todo ).
 
 
