@@ -528,10 +528,10 @@ run_executable( Command, Environment, WorkingDir ) ->
 					  [ port_option() ] ) -> command_outcome().
 run_executable( Command, Environment, WorkingDir, PortOptions ) ->
 
-	trace_utils:debug_fmt( "Running executable: '~s' with environment '~s' "
-						   "from working directory '~p', with options ~p.",
-						   [ Command, environment_to_string( Environment ),
-							 WorkingDir, PortOptions ] ),
+	%trace_utils:debug_fmt( "Running executable: '~s' with environment '~s' "
+	%					   "from working directory '~p', with options ~p.",
+	%					   [ Command, environment_to_string( Environment ),
+	%						 WorkingDir, PortOptions ] ),
 
 	PortOptsWithEnv = [ { env, Environment } | PortOptions  ],
 
