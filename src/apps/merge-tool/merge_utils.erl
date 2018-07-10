@@ -157,10 +157,11 @@ get_usage() ->
 	"  - or: '"?exec_name" --scan A_TREE'\n"
 	"  - or: '"?exec_name" --uniquify A_TREE'\n\n"
 	"  Ensures, for the first form, that all the changes in a possibly more up-to-date, \"newer\" tree (INPUT_TREE) are merged back to the reference tree (REFERENCE_TREE), from which the first tree may have derived. Once executed, only a refreshed reference tree will exist, as the input tree will be removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
-	"   In the reference tree, in-tree duplicated content will be either removed as a whole or replaced by symbolic links, to keep only a single version of each actual content.\n"
-	"   At the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they not have changed. As a result, once that merge is done, the reference tree will contain an uniquified version of the union of the two specified trees, and the tree to scan will not exist anymore.\n\n"
+	"   In the reference tree, in-tree duplicated content will be either kept as it is, or removed as a whole, or replaced by symbolic links in order to keep only a single version of each actual content.\n"
+	"   At the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they not have changed. As a result, once a merge is done, the reference tree may contain an uniquified version of the union of the two specified trees, and the tree to scan will not exist anymore.\n\n"
 	"   For the second form (--scan option), the specified tree will simply be inspected for duplicates, and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation)\n\n"
-	"   For the third form (--uniquify option), the specified tree will be scanned first (see previous operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links), and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation)".
+	"   For the third form (--uniquify option), the specified tree will be scanned first (see previous operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links), and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation))\n\n"
+	"   When an cache file is found, it can be either ignored or re-used, either as it is or after an inspection, which itself can be weak (only sizes and timestamps are checked) or strong (then actual contents are compared)".
 
 
 
@@ -400,22 +401,46 @@ scan( TreePath ) ->
 	case file_utils:is_existing_file( CacheFilename ) of
 
 		true ->
-			Prompt = text_utils:format( "A cache file already exists for '~s', "
-								"shall we nevertheless scan that tree?",
-								[ TreePath ] ),
 
-			case ui:ask_yes_no( Prompt, _Default=yes ) of
+			Label = text_utils:format( "A cache file already exists for '~s'. "
+										" We can:", [ TreePath ] ),
 
-				yes ->
+			%			{ 'reuse', "Re-use that file as it is" },
+
+
+			Choices = [
+				{ 'ignore', "Ignore this version, and recreate this file" },
+				{ 'weak_update', "Update it thanks to a weak check "
+								 "(based on sizes and timestamps)" },
+				{ 'strong_update', "Update it thanks to a strong check "
+								 "(based on actual file contents)" },
+				{ 'abort', "Abort scan" } ],
+
+			case ui:choose_designated_item( Label, Choices ) of
+
+				ignore ->
+					ui:display( "Ignoring existing cache file (~s), "
+								"performing now a full scan to recreate it.",
+								[ CacheFilename ] ),
 					perform_scan( TreePath, CacheFilename, UserState );
 
-				no ->
-					ui:display( "(not regenerating '~s' cache file)",
-								[ CacheFilename ] )
+				weak_update ->
+					throw(weak_update);
+
+				strong_update ->
+					throw(strong_update);
+
+				abort ->
+					ui:display( "Scan aborted, cache file (~s) left as it was.",
+								[ CacheFilename ] ),
+					basic_utils:stop( 5 )
 
 			end;
 
 		false ->
+			ui:display( "No cache file (~s) found, performing full scan "
+						"to recreate it.",
+						[ CacheFilename ] ),
 			perform_scan( TreePath, CacheFilename, UserState )
 
 	end.
