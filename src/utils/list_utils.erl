@@ -54,10 +54,10 @@
 		  get_last_element/1, extract_last_element/1,
 		  get_index_of/2, split_at/2, uniquify/1,
 		  has_duplicates/1, get_duplicates/1, union/2, intersection/2,
-		  cartesian_product/1,
+		  difference/2, cartesian_product/1,
 		  subtract_all_duplicates/2, delete_existing/2, delete_if_existing/2,
 		  delete_all_in/2, append_at_end/2, is_list_of_integers/1,
-		  unordered_compare/2 ]).
+		  unordered_compare/2, flatten_once/1 ]).
 
 
 % For list of tuples (ex: typically used by the HDF5 binding), extended flatten
@@ -509,6 +509,16 @@ intersection( L1, L2 ) ->
 
 
 
+% Returns the difference between the first specified list and the second,
+% i.e. the elements of the first list that are not in the second one.
+%
+-spec difference( list(), list() ) -> list().
+difference( L1, L2 ) ->
+	set_utils:to_list( set_utils:difference( set_utils:from_list( L1 ),
+											 set_utils:from_list( L2 ) ) ).
+
+
+
 % Returns the cartesian product of the specified lists (collected in a top-level
 % list).
 %
@@ -660,9 +670,39 @@ unordered_compare( L1, L2 ) ->
 
 
 
-% Determines tuple-related information about the specified list of tuples:
-% returns { TupleCount, TupleSize }, supposing the list is made of tuples of
-% uniform sizes.
+% Flattens specified list of lists only once (i.e. on a single level), as
+% opposed to indefinitively (as done recursively by lists:flatten/1); provides
+% more control than a recursive counterpart.
+%
+% Element order is preserved.
+%
+% Ex: if L=[ [1], [2,[3,4]] ], lists:flatten(L) yields [1,2,3,4] whereas
+% list_utils:flatten_once(L) should yield [1,2,[3,4]].
+%
+-spec flatten_once( [ list() ] ) -> list().
+flatten_once( List ) ->
+	flatten_once( List, _Acc=[] ).
+
+
+% (helper)
+%
+% Note: not using simply 'lists:reverse( Acc );' and a (more efficient) 'L ++
+% Acc', as we would end up with [1,[3,4],2] - whereas we want to preserve order.
+%
+flatten_once( [], Acc ) ->
+	Acc;
+
+flatten_once( [ L | T ], Acc ) when is_list( L ) ->
+	flatten_once( T, Acc ++ L );
+
+flatten_once( [ Unexpected | _T ], _Acc ) ->
+	throw( { not_a_list, Unexpected } ).
+
+
+
+% Determines tuple-related information about specified datastructure: returns {
+% TupleCount, TupleSize }, supposing the list is made of tuples of uniform
+% sizes.
 %
 -spec determine_tuple_info( [ tuple() ] ) ->
 								  { basic_utils:count(), basic_utils:count() }.
@@ -814,8 +854,8 @@ random_permute_reciprocal( _List=[ H | T ], _ReciprocalIndex=[ I | Is ],
 
 
 
-% Draws one element at random of the specified list, knowing they all have the
-% same probability of being drawn (uniform probability).
+% Draws one element at random of the specified list, knowing that they all have
+% the same probability of being drawn (uniform probability).
 %
 -spec draw_element( list() ) -> element().
 draw_element( _ElementList=[] ) ->

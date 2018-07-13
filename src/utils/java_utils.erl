@@ -40,8 +40,9 @@
 
 % Helper exports:
 -export([ get_beam_directories_for_binding/0,
-		  send_oneway/3, execute_request/3, wait_for_request_result/2,
-		  classname_to_bytecode_filename/1 ]).
+		  send_oneway/3, send_request/3, execute_request/3,
+		  wait_for_request_result/2, classname_to_bytecode_filename/1,
+		  fully_qualified_classname_to_string/1 ]).
 
 
 
@@ -85,11 +86,20 @@
 % The name of a Java package (ex: 'org.foobar.research.someteam'):
 -type java_package_name() :: atom().
 
+% The name of a Java package, as a string (ex: "org.foobar.research.someteam"):
+-type java_string_package_name() :: atom().
+
+
 % The name of a Java class (ex: 'Foobar'):
--type java_class_name() :: atom().
+-type java_classname() :: atom().
 
 % The name of a Java class, as a string (ex: "Foobar"):
--type java_string_class_name() :: atom().
+-type java_string_classname() :: atom().
+
+
+% Designates as precisely as possible a Java class:
+-type java_fully_qualified_classname() :: java_classname() |
+								  { java_package_name(), java_classname() }.
 
 
 % The name of a Java source file (ex: "Foobar.java"):
@@ -104,7 +114,9 @@
 			   method_name/0, oneway_name/0, request_name/0,
 			   method_parameters/0, oneway_parameters/0, request_parameters/0,
 			   request_result/0,
-			   java_package_name/0, java_class_name/0, java_string_class_name/0,
+			   java_package_name/0, java_string_package_name/0,
+			   java_classname/0, java_string_classname/0,
+			   java_fully_qualified_classname/0,
 			   java_source_filename/0, java_bytecode_filename/0 ]).
 
 
@@ -145,8 +157,13 @@ get_beam_directories_for_binding() ->
 						 void().
 send_oneway( MailboxPid, OnewayName, OnewayParameters )
   when is_atom( OnewayName ) andalso is_list( OnewayParameters ) ->
+
+	Message = { OnewayName, OnewayParameters },
+
+	%trace_utils:debug_fmt( "Sending to ~w: ~p.", [ MailboxPid, Message ] ),
+
 	% No PID sent, no answer to expect:
-	MailboxPid ! { OnewayName, OnewayParameters }.
+	MailboxPid ! Message.
 
 
 
@@ -239,20 +256,32 @@ wait_for_request_result( MailboxPid, MethodName )
 % if the name looks CamelCased, i.e. if at least its first letter is in upper
 % case.
 %
--spec classname_to_bytecode_filename( java_class_name() | string() ) ->
+-spec classname_to_bytecode_filename( java_classname() | string() ) ->
 											java_bytecode_filename().
-classname_to_bytecode_filename( ClassName ) when is_atom( ClassName ) ->
-	classname_to_bytecode_filename( text_utils:atom_to_string( ClassName ) );
+classname_to_bytecode_filename( Classname ) when is_atom( Classname ) ->
+	classname_to_bytecode_filename( text_utils:atom_to_string( Classname ) );
 
-classname_to_bytecode_filename( ClassNameString )
-  when is_list( ClassNameString ) ->
+classname_to_bytecode_filename( ClassnameString )
+  when is_list( ClassnameString ) ->
 
-	case text_utils:is_uppercase( ClassNameString ) of
+	case text_utils:is_uppercase( ClassnameString ) of
 
 		true ->
-			ClassNameString ++ ".class";
+			ClassnameString ++ ".class";
 
 		false ->
-			throw( { java_classname_not_camelcased, ClassNameString } )
+			throw( { java_classname_not_camelcased, ClassnameString } )
 
 	end.
+
+
+% Returns a textual description of specified fully qualified classname.
+%
+-spec fully_qualified_classname_to_string( java_fully_qualified_classname() ) ->
+												 string().
+fully_qualified_classname_to_string( { PackageName, Classname } ) ->
+	text_utils:format( "class '~s' of package '~s'",
+					   [ Classname, PackageName ] );
+
+fully_qualified_classname_to_string( Classname ) ->
+	text_utils:format( "class '~s'", [ Classname ] ).

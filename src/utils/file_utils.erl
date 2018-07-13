@@ -41,7 +41,8 @@
 %
 % See also: filename:dirname/1 and basename:dirname/1.
 %
--export([ join/1, join/2, convert_to_filename/1, replace_extension/3,
+-export([ join/1, join/2, convert_to_filename/1,
+		  get_extensions/1, get_extension/1, replace_extension/3,
 
 		  exists/1, get_type_of/1, is_file/1,
 		  is_existing_file/1, is_existing_file_or_link/1,
@@ -147,6 +148,8 @@
 -type directory_name() :: path().
 -type bin_directory_name() :: binary().
 
+
+% An extension in a filename (ex: "baz", in "foobar.baz.json"):
 -type extension() :: string().
 
 
@@ -262,10 +265,54 @@ convert_to_filename( Name ) ->
 	%
 	% (see also: net_utils:generate_valid_node_name_from/1)
 	%
-	re:replace( lists:flatten(Name),
-			   "( |<|>|,|\\(|\\)|'|\"|/|\\\\|\&|~|"
-			   "#|@|{|}|\\[|\\]|\\||\\$|\\*|\\?|!|\\+|;|:)+", "_",
-		 [ global, { return, list } ] ).
+	re:replace( lists:flatten( Name ),
+				"( |<|>|,|\\(|\\)|'|\"|/|\\\\|\&|~|"
+				"#|@|{|}|\\[|\\]|\\||\\$|\\*|\\?|!|\\+|;|:)+", "_",
+				[ global, { return, list } ] ).
+
+
+
+% Returns the (ordered) extension(s) of the specified filename.
+%
+% Ex: [ "baz", "json" ] = get_extensions( "foobar.baz.json" )
+%
+-spec get_extensions( file_name() ) -> [ extension() ] | 'no_extension'.
+get_extensions( Filename ) ->
+
+	case text_utils:split( Filename, _Delimiters=[ $. ] ) of
+
+		[] ->
+			no_extension;
+
+		[ _Basename ] ->
+			no_extension;
+
+		[ _Basename | Extensions ] ->
+			Extensions;
+
+		_ ->
+			no_extension
+
+	end.
+
+
+
+% Returns the (last) extension of the specified filename.
+%
+% Ex: "json" = get_extension( "foobar.baz.json" )
+%
+-spec get_extension( file_name() ) -> extension() | 'no_extension'.
+get_extension( Filename ) ->
+
+	case get_extensions( Filename ) of
+
+		no_extension ->
+			no_extension;
+
+		Extensions ->
+			list_utils:get_last_element( Extensions )
+
+	end.
 
 
 
@@ -1626,8 +1673,7 @@ filter_elems( _ElemList=[ E | T ], Acc ) ->
 %  false = file_utils:is_leaf_among( "xx", [ "a/b/c/yy", "d/e/zz" ] )
 %  "a/b/c/xx"  = file_utils:is_leaf_among( "xx", [ "a/b/c/xx", "d/e/zz" ] )
 %
--spec is_leaf_among( leaf_name(), [ path() ] ) ->
-						   { 'false' | path() }.
+-spec is_leaf_among( leaf_name(), [ path() ] ) -> { 'false' | path() }.
 is_leaf_among( _LeafName, _PathList=[] ) ->
 	false;
 
@@ -2334,8 +2380,7 @@ zipped_term_to_unzipped_file( ZippedTerm ) ->
 %
 % Note: only one file is expected to be stored in the specified archive.
 %
--spec zipped_term_to_unzipped_file( binary(), file_name() )
-								  -> void().
+-spec zipped_term_to_unzipped_file( binary(), file_name() ) -> void().
 zipped_term_to_unzipped_file( ZippedTerm, TargetFilename ) ->
 
 	{ ok, [ { _AFilename, Binary } ] } = zip:unzip( ZippedTerm, [ memory ] ),

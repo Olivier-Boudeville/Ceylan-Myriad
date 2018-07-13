@@ -408,7 +408,7 @@ hours_to_seconds( HourDuration ) ->
 % Timestamp-related functions.
 
 
-% Returns a tipmestamp tuple describing the current time.
+% Returns a timestamp tuple describing the current time.
 %
 % Ex: { {Year,Month,Day}, {Hour,Minute,Second} } = time_utils:get_timestamp()
 % may return '{ {2007,9,6}, {15,9,14} }'.
@@ -423,6 +423,9 @@ get_timestamp() ->
 
 % Returns a string corresponding to the current timestamp, like:
 % "2009/9/1 11:46:53".
+%
+% Note that the display order here is YY-MM-DD (same as when specifying the
+% timestamp), as opposed to DD-MM-YY, which is maybe more usual.
 %
 -spec get_textual_timestamp() -> string().
 get_textual_timestamp() ->
