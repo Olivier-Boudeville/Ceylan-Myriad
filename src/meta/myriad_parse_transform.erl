@@ -349,13 +349,13 @@ get_actual_table_type( ParseAttributeTable ) ->
 	DesiredTableType = case ?table:lookupEntry( table_type,
 												ParseAttributeTable ) of
 
-		{ value, TableType } when is_atom( TableType ) ->
+		{ value, { TableType, _LocForm } } when is_atom( TableType ) ->
 			ast_utils:display_info( "Default table type ('~s') overridden "
 									"for this module to '~s'.~n",
 									[ ?default_table_type, TableType ] ),
 			TableType;
 
-		{ value, InvalidTableType } ->
+		{ value, { InvalidTableType, _LocForm } } ->
 			ast_utils:raise_error( { invalid_table_type_override,
 									  InvalidTableType } );
 

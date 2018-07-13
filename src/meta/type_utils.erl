@@ -479,6 +479,13 @@
 		  are_types_identical/2 ]).
 
 
+
+% Conversion:
+%
+-export([ ensure_integer/1, ensure_float/1, ensure_number/1, ensure_boolean/1,
+		  ensure_string/1, ensure_binary/1 ]).
+
+
 % Checking:
 %
 -export([ check_atom/1 ]).
@@ -906,6 +913,87 @@ are_types_identical( Type, Type ) ->
 
 are_types_identical( _FirstType, _SecondType ) ->
 	false.
+
+
+
+
+
+% ensure_* section.
+%
+% Note: using such functions may be a bad practice, as it may lead to losing the
+% awareness of the types of the variables that are handled. We may even decide
+% in the future to output warning traces whenever the specified element happens
+% not to be of the target type.
+
+
+
+% Ensures that specified term is an integer, and returns it.
+%
+% If it is a float, will return a truncated (integer) version of it.
+%
+-spec ensure_integer( number() ) -> integer().
+ensure_integer( N ) when is_integer( N ) ->
+	N;
+
+ensure_integer( N ) when is_float( N ) ->
+	trunc( N );
+
+ensure_integer( N ) ->
+	throw( { cannot_be_cast_to_integer, N } ).
+
+
+
+% Ensures that specified term is a float, and returns it.
+%
+% If it is an integer, will return a floating-point version of it.
+%
+-spec ensure_float( number() ) -> float().
+ensure_float( N ) when is_float( N ) ->
+	N;
+
+ensure_float( N ) when is_integer( N ) ->
+	float( N );
+
+ensure_float( N ) ->
+	throw( { cannot_be_cast_to_float, N } ).
+
+
+
+% Ensures that specified term is a number, and returns it.
+%
+-spec ensure_number( number() ) -> number().
+ensure_number( N ) when is_number( N ) ->
+	N;
+
+ensure_number( N ) ->
+	throw( { not_a_number, N } ).
+
+
+
+% Ensures that specified term is a boolean, and returns it.
+%
+-spec ensure_boolean( term() ) -> boolean().
+ensure_boolean( B ) when is_boolean( B ) ->
+	B;
+
+ensure_boolean( B ) ->
+	throw( { not_a_boolean, B } ).
+
+
+
+% Ensures that specified term is a string, and returns it.
+%
+-spec ensure_string( term() ) -> string().
+ensure_string( S ) ->
+	text_utils:ensure_string( S ).
+
+
+
+% Ensures that specified term is a binary string, and returns it.
+%
+-spec ensure_binary( term() ) -> string().
+ensure_binary( S ) ->
+	text_utils:ensure_binary( S ).
 
 
 

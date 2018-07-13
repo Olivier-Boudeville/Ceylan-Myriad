@@ -125,11 +125,14 @@
 -type attribute() :: { attribute_name(), attribute_value() }.
 
 
-% For easy access to the value and AST form of parse attributes, from their
-% name:
+% For easy access to the values and AST forms associated to a parse attribute,
+% from its name.
+%
+% For example, to the 'dialyzer' key will be associated the values and located
+% forms of the various '-dialyzer( XXX ).' found in a source file.
 %
 -type attribute_table() :: ?table:?table( attribute_name(),
-							  { attribute_value(), ast_info:located_form() } ).
+					   [ { attribute_value(), ast_info:located_form() } ] ).
 
 
 
@@ -726,7 +729,7 @@ recompose_ast_from_module_info( #module_info{ errors=Errors } ) ->
 
 	ErrorStrings = [ text_utils:to_string( E ) || E <- Errors ],
 
-	trace_utils:error_fmt( "~B errors spotted in AST:~s", [ length( Errors ), 
+	trace_utils:error_fmt( "~B errors spotted in AST:~s", [ length( Errors ),
 						text_utils:strings_to_string( ErrorStrings ) ] ),
 
 	throw( { errors_in_ast, Errors } ).

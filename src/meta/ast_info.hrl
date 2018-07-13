@@ -84,8 +84,8 @@
 
 
 		% Parse-level attributes (ex: '-my_attribute( my_value ).'), as a table
-		% associating, to attribute names (its keys), values and AST forms (its
-		% pair values).
+		% associating, to an attribute name (an atom key), a list of pairs
+		% comprising each a value and an AST form.
 		%
 		% Such attributes, also named "wild attributes", mostly correspond to
 		% user-defined ones.
