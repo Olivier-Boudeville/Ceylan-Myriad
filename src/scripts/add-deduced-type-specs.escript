@@ -2,7 +2,9 @@
 %% -*- erlang -*-
 %%! -smp enable
 
-% Copyright (C) 2010-2018 Olivier Boudeville (olivier.boudeville@esperide.com)
+% Copyright (C) 2010-2018 Olivier Boudeville
+%
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 %
 % This file is part of the Ceylan-Myriad library.
 
@@ -96,8 +98,8 @@ get_wooper_spec_suppressions() ->
 	  {"executeOneway",2}, {"executeOneway",3}, {"executeOnewayWith",3},
 	  {"executeOnewayWith",4}, {"executeRequest",2}, {"executeRequest",3},
 	  {"executeRequestWith",3}, {"executeRequestWith",4}, {"getAttribute",2},
-	  {"get_class_name",0}, {"get_class_name",1}, {"get_superclasses",0},
-	  {"get_superclasses",1}, {"hasAttribute",2} ].
+	  {"getClassname",0}, {"getClassname",1}, {"getSuperclasses",0},
+	  {"getSuperclasses",1}, {"hasAttribute",2} ].
 
 
 
