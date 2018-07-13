@@ -1,6 +1,6 @@
-% Copyright (C) 2014-2017 Olivier Boudeville
+% Copyright (C) 2014-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 
 % Creation date: Tuesday, December 2, 2014
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 
@@ -73,13 +73,13 @@
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToExistingEntry/3, appendListToExistingEntry/3,
 		  appendToEntry/3, appendListToEntry/3,
-		  concatToEntry/3,
+		  concatToEntry/3, concatListToEntries/2,
 		  deleteFromEntry/3, deleteExistingFromEntry/3,
 		  popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
-		  isEmpty/1, size/1, getEntryCount/1,
-		  mapOnEntries/2, mapOnValues/2,
-		  foldOnEntries/3,
+		  isEmpty/1, size/1,
+		  map/2, mapOnEntries/2, mapOnValues/2,
+		  fold/3, foldOnEntries/3,
 		  merge/2, optimise/1, toString/1, toString/2, display/1, display/2 ]).
 
 
@@ -185,8 +185,8 @@ addEntry( Key, Value, MapHashtable ) ->
 addEntries( EntryList, MapHashtable ) ->
 
 	lists:foldl( fun( { K, V }, Map ) ->
-						 %Map#{ K => V }
-						 maps:put( K, V, Map )
+					%Map#{ K => V }
+					maps:put( K, V, Map )
 				 end,
 				 _Acc0=MapHashtable,
 				 _List=EntryList ).
@@ -224,7 +224,7 @@ addNewEntry( Key, Value, MapHashtable ) ->
 addNewEntries( EntryList, MapHashtable ) ->
 
 	lists:foldl( fun( { K, V }, Map ) ->
-						 addNewEntry( K, V, Map )
+					addNewEntry( K, V, Map )
 				 end,
 				 _Acc0=MapHashtable,
 				 _List=EntryList ).
@@ -319,7 +319,7 @@ removeExistingEntry( Key, MapHashtable ) ->
 -spec removeEntries( [ key() ], map_hashtable() ) -> map_hashtable().
 removeEntries( Keys, MapHashtable ) ->
 	lists:foldl( fun( K, AccTable ) ->
-						 maps:remove( K, AccTable )
+					 maps:remove( K, AccTable )
 				 end,
 				 _InitAcc=MapHashtable,
 				 _List=Keys ).
@@ -336,7 +336,7 @@ removeEntries( Keys, MapHashtable ) ->
 -spec removeExistingEntries( [ key() ], map_hashtable() ) -> map_hashtable().
 removeExistingEntries( Keys, MapHashtable ) ->
 	lists:foldl( fun( K, AccTable ) ->
-						 removeExistingEntry( K, AccTable )
+					 removeExistingEntry( K, AccTable )
 				 end,
 				 _InitAcc=MapHashtable,
 				 _List=Keys ).
@@ -391,13 +391,24 @@ hasEntry( Key, MapHashtable ) ->
 % The key/value pair is expected to exist already, otherwise an exception
 % ({bad_key,Key}) is triggered.
 %
-% Note: could have been named as well getValue/2.
+% Note: could have been named as well getValue/2, which shall be preferred.
 %
 -spec getEntry( key(), map_hashtable() ) -> value().
 %getEntry( Key,  #{ Key := Value } ) ->
 %	Value.
 getEntry( Key, MapHashtable ) ->
-	maps:get( Key, MapHashtable ).
+	try
+
+		maps:get( Key, MapHashtable )
+
+	catch
+
+		error:{ badkey, _K } ->
+			trace_utils:error_fmt( "No key '~p' found in following table: ~s",
+								   [ Key, toString( MapHashtable ) ] ),
+			throw( { key_not_found, Key } )
+
+	end.
 
 
 
@@ -531,6 +542,25 @@ extractEntry( Key, MapHashtable ) ->
 
 
 
+% Applies (maps) the specified anonymous function to each of the values
+% contained in this hashtable: to each key will be associated the value returned
+% by this function when applied to that key and its current value, as two
+% arguments.
+%
+% Allows to apply "in-place" an operation on all values without having to
+% enumerate the content of the hashtable and iterate on it (hence without having
+% to duplicate the whole content in memory).
+%
+% See also: mapOnValues/2.
+%
+-spec map( fun( ( key(), value() ) -> value() ), map_hashtable() ) ->
+						 map_hashtable().
+map( Fun, MapHashtable ) ->
+	maps:map( Fun, MapHashtable ).
+
+
+
+
 % Applies (maps) the specified anonymous function to each of the key-value
 % entries contained in this hashtable.
 %
@@ -538,11 +568,10 @@ extractEntry( Key, MapHashtable ) ->
 % enumerate the content of the hashtable and iterate on it (hence without having
 % to duplicate the whole content in memory).
 %
-% Note: as the fun may return modified keys, the whole structure of the
-% hashtable may change (ex: different buckets used for replaced entries,
-% colliding keys resulting in having less entries afterwards, etc.).
-%
-% One may request the returned hashtable to be optimised after this call.
+% Note: same as map/2 above, except that the lambda takes one argument (the
+% entry, as a pair) instead of two (the key and then the value), and returns an
+% entry, not a mere value to associate the same key (and thus may change the
+% structure, number of entries because of collisions, etc. of the table).
 %
 -spec mapOnEntries( fun( ( entry() ) -> entry() ), map_hashtable() ) ->
 						  map_hashtable().
@@ -568,6 +597,9 @@ mapOnEntries( Fun, MapHashtable ) ->
 % Note: the keys are left as are, hence the structure of the hashtable does not
 % change.
 %
+% Note: same as map/2 above, except that the lambda does not know about the
+% keys.
+%
 -spec mapOnValues( fun( ( value() ) -> value() ), map_hashtable() ) ->
 						 map_hashtable().
 mapOnValues( Fun, MapHashtable ) ->
@@ -581,6 +613,22 @@ mapOnValues( Fun, MapHashtable ) ->
 
 
 
+% Folds specified anonymous function on all key/value pairs of the specified
+% map hashtable, based on specified initial accumulator..
+%
+% The order of transformation for entries is not specified.
+%
+% Returns the final accumulator.
+%
+-spec fold( fun( ( key(), value(), basic_utils:accumulator() ) ->
+					   basic_utils:accumulator() ),
+			basic_utils:accumulator(), map_hashtable() ) ->
+				  basic_utils:accumulator().
+fold( Fun, InitialAcc, Table ) ->
+	maps:fold( Fun, InitialAcc, Table ).
+
+
+
 % Folds specified anonymous function on all entries of the specified map
 % hashtable.
 %
@@ -588,14 +636,16 @@ mapOnValues( Fun, MapHashtable ) ->
 %
 % Returns the final accumulator.
 %
--spec foldOnEntries( fun( ( entry(), basic_utils:accumulator() )
-						  -> basic_utils:accumulator() ),
+% fold/3 may be preferred (being more efficient) to this version.
+%
+-spec foldOnEntries( fun( ( entry(), basic_utils:accumulator() ) ->
+								basic_utils:accumulator() ),
 					 basic_utils:accumulator(),
 					 map_hashtable() ) -> basic_utils:accumulator().
 foldOnEntries( Fun, InitialAcc, MapHashtable ) ->
 
-	% Not exactly as maps:fold/3: we want f( { X, Y }, Acc ), not
-	% f( X, Y, Acc ).
+	% Not exactly as maps:fold/3: we want f( { K, V }, Acc ), not
+	% f( K, V, Acc ).
 
 	ConversionFun = fun( K, V, Acc ) ->
 							Fun( { K, V }, Acc )
@@ -606,9 +656,6 @@ foldOnEntries( Fun, InitialAcc, MapHashtable ) ->
 	% Another solution is to implement it by ourselves:
 	%Entries = maps:to_list( MapHashtable ),
 	%lists:foldl( Fun, InitialAcc, Entries ).
-
-
-
 
 
 
@@ -792,7 +839,7 @@ appendListToEntry( Key, Elements, MapHashtable ) ->
 
 	case lookupEntry( Key, MapHashtable ) of
 
-		'key_not_found' ->
+		key_not_found ->
 			addEntry( Key, Elements, MapHashtable );
 
 		{ value, CurrentList } ->
@@ -820,6 +867,28 @@ concatToEntry( Key, ListToConcat, MapHashtable ) when is_list( ListToConcat ) ->
 			addEntry( Key, ListToConcat ++ CurrentList, MapHashtable )
 
 	end.
+
+
+
+% Concatenes (on the left) specified lists to the values, supposed to be lists
+% as well, associated to specified keys, the input being thus a list of
+% key/list-value pairs.
+%
+% If a key does not already exist, it will be created and associated to the
+% specified list (as if beforehand the key was associated to an empty list)
+%
+% Ex: concatListToEntries( [ { hello, [ 1, 2 ] }, { world, [ 4 ] } ], MyTable ).
+%
+-spec concatListToEntries( list_hashtable:list_hashtable(), map_hashtable() ) ->
+								 map_hashtable().
+concatListToEntries( KeyListValuePairs, MapHashtable )
+  when is_list( KeyListValuePairs ) ->
+
+	lists:foldl( fun( { Key, ListToConcat }, AccTable ) ->
+					concatToEntry( Key, ListToConcat, AccTable )
+				 end,
+				 _Acc0=MapHashtable,
+				 _List=KeyListValuePairs ).
 
 
 
@@ -938,19 +1007,11 @@ isEmpty( _MapHashtable ) ->
 
 
 
-% Returns the size (number of entries) of this hashtable.
+% Returns the size (number of entries, i.e. of key/value pairs) of the specified
+% table.
 %
 -spec size( map_hashtable() ) -> hashtable:entry_count().
 size( MapHashtable ) ->
-	map_size( MapHashtable ).
-
-
-
-% Returns the number of entries (key/value pairs) stored in the specified map
-% hashtable.
-%
--spec getEntryCount( map_hashtable() ) -> hashtable:entry_count().
-getEntryCount( MapHashtable ) ->
 	map_size( MapHashtable ).
 
 
@@ -976,7 +1037,7 @@ toString( MapHashtable, Bullet ) when is_list( Bullet ) ->
 	case maps:to_list( MapHashtable ) of
 
 		[] ->
-			"Empty hashtable";
+			"empty table";
 
 		L ->
 
@@ -985,9 +1046,9 @@ toString( MapHashtable, Bullet ) when is_list( Bullet ) ->
 						|| { K, V } <- lists:sort( L ) ],
 
 			% Flatten is needed, in order to use the result with ~s:
-			lists:flatten( io_lib:format( "Hashtable with ~B entry(ies):~s",
+			lists:flatten( io_lib:format( "table with ~B entry(ies): ~s",
 				[ map_size( MapHashtable ),
-				  text_utils:string_list_to_string( Strings, Bullet ) ] ) )
+				  text_utils:strings_to_string( Strings, Bullet ) ] ) )
 
 	end;
 

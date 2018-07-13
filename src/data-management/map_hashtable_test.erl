@@ -1,6 +1,6 @@
-% Copyright (C) 2014-2017 Olivier Boudeville
+% Copyright (C) 2014-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 
 % Creation date: Tuesday, December 2, 2014
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 
@@ -42,6 +42,7 @@
 -define(MySecondKey, 'MySecondKey').
 -define(MyThirdKey,  'MyThirdKey').
 -define(MyFourthKey, 'MyFourthKey').
+-define(MyFifthKey,  'MyFifthKey').
 
 
 
@@ -143,6 +144,12 @@ run() ->
 	map_hashtable:display( MyH9 ),
 
 
+	MyH10 = map_hashtable:concatListToEntries(
+				[ { ?MyFourthKey, [ last_element ] },
+				  { ?MyFifthKey, [ some_element ] } ], MyH9 ),
+
+	test_facilities:display( "Listing a concatenated table: ~s",
+		[ map_hashtable:toString( MyH10 ) ] ),
 
 	test_facilities:display( "Applying a fun to all values of "
 							 "previous hashtable" ),
@@ -184,18 +191,18 @@ run() ->
 	true = list_utils:unordered_compare( [ ?MyFirstKey, ?MySecondKey ],
 										 map_hashtable:keys( MyH4 ) ),
 
-	MyH10 = map_hashtable:addEntry( ?MyThirdKey, 3, MyH6 ),
+	MyH11 = map_hashtable:addEntry( ?MyThirdKey, 3, MyH6 ),
 
 	% MyH8 should have { AnotherKey, [1,2,3] } and { ?MyThirdKey, 3 }:
-	MyH11 = map_hashtable:merge( MyH4, MyH10 ),
+	MyH12 = map_hashtable:merge( MyH4, MyH11 ),
 
 	% Any optimisation would be automatic:
 	test_facilities:display( "Merged table: ~s.",
-							 [ map_hashtable:toString( MyH11 ) ] ),
+							 [ map_hashtable:toString( MyH12 ) ] ),
 
 	Keys = [ ?MyFirstKey, ?MyThirdKey ],
 
 	test_facilities:display( "Listing the entries for keys ~p:~n ~p",
-					[ Keys, map_hashtable:selectEntries( Keys, MyH11 ) ] ),
+					[ Keys, map_hashtable:selectEntries( Keys, MyH12 ) ] ),
 
 	test_facilities:stop().

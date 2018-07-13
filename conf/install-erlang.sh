@@ -1,6 +1,8 @@
 #!/bin/sh
 
-# Copyright (C) 2009-2017 Olivier Boudeville
+# Copyright (C) 2009-2018 Olivier Boudeville
+#
+# Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 #
 # This file is part of the Ceylan-Myriad project.
 
@@ -9,12 +11,12 @@ LANG=C; export LANG
 
 
 # Current stable:
-erlang_version="20.0"
-erlang_md5="2faed2c3519353e6bc2501ed4d8e6ae7"
+erlang_version="21.0"
+erlang_md5="350988f024f88e9839c3715b35e7e27a"
 
 # Candidate version (ex: either cutting-edge or previous stable version):
-erlang_version_candidate="19.3"
-erlang_md5_candidate="a8c259ec47bf84e77510673e1b76b6db"
+erlang_version_candidate="20.3"
+erlang_md5_candidate="a683c8c0aacfe0305c4bf47b3abfde6a"
 
 
 plt_file="Erlang-$erlang_version.plt"
@@ -94,8 +96,10 @@ do_generate_plt=1
 # By default, use an installation prefix:
 use_prefix=0
 
-# By default, the Erlang sources will be patched to better suit our use:
-do_patch=0
+# By default, the Erlang sources will NOT be patched to better suit our use (as
+# useless since Erlang 21.0):
+#
+do_patch=1
 
 
 # By default, the Erlang build tree will not be removed (more convenient):
@@ -233,7 +237,7 @@ if [ -z "$read_parameter" ] ; then
 	   prefix="/usr/local"
 	   echo "Run as sudo root, thus using default system installation directory, falling back to user '${build_user}' for the operations that permit it."
 
-	   # So here sudo is a way to decrease, not increase privileges:
+	   # So here sudo is a way to decrease, not increase, privileges:
 	   SUDO_CMD="sudo -u ${build_user}"
 
    else
@@ -480,6 +484,9 @@ fi
 cd ${erlang_src_prefix}
 
 
+# Apparently not needed since Erlang 21.0, where 'infinity' is specified in
+# terms of time-out:
+#
 if [ $do_patch -eq 0 ] ; then
 
 	echo "Patching first the Erlang sources."
@@ -576,10 +583,14 @@ fi
 echo "  Erlang successfully built and installed in ${prefix}."
 
 
-if [ $use_prefix -eq 0 ] ; then
+# More global than 'if [ $use_prefix -eq 0 ] ; then' so that most installs
+# include these links:
+#
+if [ -n $prefix ] ; then
 
 	# First, let's create a symbolic link so that this new version can be
 	# transparently used by emacs:
+	#
 	cd ${prefix}/lib/erlang
 
 	# Exactly one match expected for the wildcard (ex: tools-2.8.2), useful to
@@ -592,6 +603,10 @@ if [ $use_prefix -eq 0 ] ; then
 	# Erlang version:
 	#
 	${LN} -sf lib/observer-*/priv/bin/cdv
+
+	# The same for JInterface:
+	#
+	${LN} -sf lib/jinterface-* jinterface
 
 	# Then go again in the install (not source) tree to create the base link:
 	cd ${prefix}/..
@@ -741,4 +756,4 @@ if [ $do_generate_plt -eq 0 ] ; then
 fi
 
 echo "
-If wanting to generate a list of all the declared types in this Erlang distribution, and if having the 'Common' package, you can run: 'cd common ; make generate-list-of-erlang-types ERLANG_SOURCE_ROOT=${prefix}'."
+If wanting to generate a list of all the declared types in this Erlang distribution, and if having the 'Myriad' package, you can run: 'cd Ceylan-Myriad && make generate-list-of-erlang-types ERLANG_SOURCE_ROOT=${prefix}'."

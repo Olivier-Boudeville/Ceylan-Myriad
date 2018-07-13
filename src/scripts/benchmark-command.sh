@@ -1,12 +1,14 @@
 #!/bin/sh
 
-# Copyright (C) 2010-2012 Olivier Boudeville
+# Copyright (C) 2010-2018 Olivier Boudeville
 #
-# This file is part of the Ceylan Erlang library.
+# Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+#
+# This file is part of the Ceylan-Myriad library.
 
 
 USAGE="
-Usage: "`basename $0`" <COMMAND>: returns a mean resource consumption for the specified command."
+Usage: $(basename $0) <COMMAND>: returns a mean resource consumption for the specified command."
 
 command="$*"
 

@@ -1,6 +1,6 @@
-% Copyright (C) 2003-2017 Olivier Boudeville
+% Copyright (C) 2003-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Creation date: Saturday, February 20, 2010.
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 
@@ -137,7 +137,7 @@ get( Key, OptionList ) ->
 % Returns the value associated to the specified key in specified option list, if
 % found, otherwise (key not found), returns 'undefined'.
 %
--spec lookup( key(), option_list() ) -> 'undefined' | value().
+-spec lookup( key(), option_list() ) -> maybe( value() ).
 lookup( Key, OptionList ) ->
 	proplists:get_value( Key, OptionList ).
 

@@ -293,11 +293,11 @@ nedit.highlightPatterns: Ada:Default\n\
 	Erlang:1:0{\n\
 		Comment:"%":"$"::Comment::\n\
 		WooperMacro:"\\?<(getAttr|getAttribute|setAttribute|setAttributes|removeAttribute|hasAttribute|addToAttribute|substractFromAttribute|toggleAttribute|appendToAttribute|deleteFromAttribute|addKeyValueToAttribute|popFromAttribute|checkUndefined|getSender)>":::WooperPlain::\n\
-		WooperHelper:"<(get_class_name|get_class_name|get_superclasses|get_superclasses|executeRequest|executeRequestWith|executeOneway|executeOnewayWith|delete_any_instance_referenced_in|is_wooper_debug|new|new_link|synchronous_new|synchronous_new_link|synchronous_timed_new|synchronous_timed_new_link|remote_new|remote_new_link|remote_synchronous_new|remote_synchronous_new_link|remote_synchronous_timed_new|remote_synchronous_timed_new_link|construct|delete|synchronous_delete)>":::WooperPlain::\n\
+		WooperHelper:"<(getClassname|getSuperclasses|executeRequest|executeRequestWith|executeOneway|executeOnewayWith|delete_any_instance_referenced_in|is_wooper_debug|new|new_link|synchronous_new|synchronous_new_link|synchronous_timed_new|synchronous_timed_new_link|remote_new|remote_new_link|remote_synchronous_new|remote_synchronous_new_link|remote_synchronous_timed_new|remote_synchronous_timed_new_link|construct|delete|synchronous_delete)>":::WooperPlain::\n\
 		WooperPrefixed:"<wooper_[_A-Za-z]*|\\?wooper_[_A-Za-z]*>":::Wooper::\n\
 		Macro:"\\?[0-9A-Za-z_]*":::Preprocessor::\n\
 		ExportedFunc:"[A-Za-z_]*:[A-Za-z_]*":::ExportedFunc::\n\
-		Module attribute:"^[ 	]*-[_A-Za-z]*":::Preprocessor::\n\
+		Module attribute:"^[	]*-[_A-Za-z]*":::Preprocessor::\n\
 		Keyword:"<(after|case|end|if|of|receive|when)>":::Keyword::\n\
 		Operator:"<(and|andalso|orelse|band|bsl|bsr|bor|bxor|div|or|rem|is_alive|is_atom|is_binary|is_boolean|is_builtin|is_constant|is_float|is_function|is_integer|is_list|is_member|is_number|is_pid|is_port|is_record|is_reference|is_tuple)>":::Keyword::\n\
 		Builtin function:"<(abs|apply|atom|atom_to_list|binary|binary_to_list|binary_to_term|try|catch|date|element|erase|exit|float|float_to_list|get|halt|hash|hd|info|integer|integer_to_list|length|link|list|list_to_atom|list_to_float|list_to_integer|list_to_tuple|node|nodes|now|pid|port|ports|processes|put|reference|register|registered|round|self|setelement|size|spawn|spawn_link|throw|time|tl|trace|trunc|tuple|tuple_to_list|unlink|unregister|whereis)>":::Storage Type::\n\

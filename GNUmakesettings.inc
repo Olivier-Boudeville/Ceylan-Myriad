@@ -1,7 +1,7 @@
-# This is the file that all 'Common' GNUmakefiles, and only them, should
+# This is the file that all 'Myriad' GNUmakefiles, and only them, should
 # include.
 
-# Prerequisite: COMMON_TOP must be set.
+# Prerequisite: MYRIAD_TOP must be set.
 
 
 # Each project should define its own GNUmakesettings.inc, as explained below,
@@ -10,7 +10,7 @@
 
 # Note regarding dependencies and settings:
 
-# let c be 'common', b be a library using 'common' (ex: 'wooper') and a an
+# let c be 'myriad', b be a library using 'myriad' (ex: 'wooper') and a an
 # application using the b library: a depends on b that depends on c.
 
 # For any makefile of a, the correct include order would be:
@@ -38,6 +38,6 @@
 # be named 'GNUmakesettings.inc' (this file).
 
 
-include $(COMMON_TOP)/GNUmakevars.inc
+include $(MYRIAD_TOP)/GNUmakevars.inc
 
-include $(COMMON_TOP)/GNUmakerules.inc
+include $(MYRIAD_TOP)/GNUmakerules.inc

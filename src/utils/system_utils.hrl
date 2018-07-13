@@ -1,6 +1,6 @@
-% Copyright (C) 2003-2017 Olivier Boudeville
+% Copyright (C) 2003-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 
@@ -81,7 +81,7 @@
 		% per-usage CPU percentages (floats in [0,100]), since last update, or
 		% 'undefined' (if not usage could be computed).
 		%
-		cpu_usage :: basic_utils:maybe( system_utils:cpu_usage_percentages() ),
+		cpu_usage :: maybe( system_utils:cpu_usage_percentages() ),
 
 
 		% The number of Erlang processes running on this node:

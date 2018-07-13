@@ -1,4 +1,5 @@
-COMMON_TOP = ../..
+MYRIAD_TOP = ../..
 
+all:
 
-include $(COMMON_TOP)/GNUmakesettings.inc
+include $(MYRIAD_TOP)/GNUmakesettings.inc

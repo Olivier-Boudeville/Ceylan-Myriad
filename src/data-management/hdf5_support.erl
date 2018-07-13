@@ -1,6 +1,6 @@
-% Copyright (C) 2015-2017 Olivier Boudeville
+% Copyright (C) 2015-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 
 % Creation date: Friday, July 31, 2015
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 
@@ -529,7 +529,7 @@ get_element_count( Dimension ) when is_integer( Dimension ) ->
 
 % Starts (checks and inits) the HDF5 service support.
 %
--spec start() -> basic_utils:void().
+-spec start() -> void().
 start() ->
 
 	% We have to secure the erlhdf5 binding:
@@ -591,7 +591,7 @@ start() ->
 
 % Stops the HDF5 support.
 %
--spec stop() -> basic_utils:void().
+-spec stop() -> void().
 stop() ->
 	% No specific action needed:
 	ok.
@@ -683,7 +683,7 @@ open_file( Filename, OpenFlags ) ->
 
 % Closes specified opened HDF5 file.
 %
--spec close_file( hdf5_file() ) -> basic_utils:void().
+-spec close_file( hdf5_file() ) -> void().
 close_file( HDF5File ) ->
 
 	case erlhdf5:h5fclose( HDF5File ) of
@@ -742,7 +742,7 @@ create_dataspace( Dimensions ) when is_tuple( Dimensions ) ->
 
 % Closes specified dataspace.
 %
--spec close_dataspace( dataspace() ) -> basic_utils:void().
+-spec close_dataspace( dataspace() ) -> void().
 close_dataspace( Dataspace ) ->
 
 	case erlhdf5:h5sclose( Dataspace ) of
@@ -821,7 +821,7 @@ create_property_list_for( Class ) ->
 
 % Closes specified property list.
 %
--spec close_property_list( property_list() ) -> basic_utils:void().
+-spec close_property_list( property_list() ) -> void().
 close_property_list( PropertyList ) ->
 	ok = erlhdf5:h5pclose( PropertyList ).
 
@@ -860,7 +860,7 @@ create_datatype( DatatypeSpecifier ) ->
 
 % Closes specified datatype.
 %
--spec close_datatype( datatype() ) -> basic_utils:void().
+-spec close_datatype( datatype() ) -> void().
 close_datatype( Datatype ) ->
 	ok = erlhdf5:h5tclose( Datatype ).
 
@@ -953,7 +953,7 @@ open_dataset( DatasetName, File ) ->
 
 % Closes specified dataset.
 %
--spec close_dataset( dataset() ) -> basic_utils:void().
+-spec close_dataset( dataset() ) -> void().
 close_dataset( Dataset ) ->
 	ok = erlhdf5:h5dclose( Dataset ).
 
@@ -994,7 +994,7 @@ get_storage_size( Dataset ) ->
 
 % Writes specified data (without checking it specifically) in specified dataset.
 %
--spec write( data(), dataset() ) -> basic_utils:void().
+-spec write( data(), dataset() ) -> void().
 write( Data, Dataset ) ->
 	% By default, no checking performed:
 	write( Data, Dataset, _CheckData=false ).
@@ -1004,7 +1004,7 @@ write( Data, Dataset ) ->
 % Writes specified data (after having checked it, if requested) in specified
 % dataset.
 %
--spec write( data(), dataset(), boolean() ) -> basic_utils:void().
+-spec write( data(), dataset(), boolean() ) -> void().
 write( Data, Dataset, CheckData ) ->
 
 	case CheckData of
@@ -1025,7 +1025,7 @@ write( Data, Dataset, CheckData ) ->
 % Updates the specified dataset at specified index (starting at #0) with
 % specified data.
 %
--spec update( data(), basic_utils:count(), dataset() ) -> basic_utils:void().
+-spec update( data(), basic_utils:count(), dataset() ) -> void().
 update( Data, Index, Dataset ) ->
 
 	% Gets a copy of the dataspace of this dataset:

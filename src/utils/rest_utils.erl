@@ -1,6 +1,6 @@
-% Copyright (C) 2015-2017 Olivier Boudeville
+% Copyright (C) 2015-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -22,8 +22,10 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
-% Creation date: Tuesday, December 1, 2015
+% Authors: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+%		   Samuel Thiriot [samuel (dot) thiriot (at) edf (dot) fr]
+%
+% Creation date: Tuesday, December 1, 2015.
 
 
 
@@ -52,10 +54,22 @@
 
 
 -export([ start/0, start/1, stop/0,
-		  http_get/1, http_get/3, http_post/1, http_post/3,
-		  http_put/1, http_put/3, http_delete/1, http_delete/3,
-		  http_request/1, http_request/2, http_request/4,
-		  is_json_parser_available/0, to_json/1, from_json/1 ]).
+		  http_get/1, http_get/2, http_get/4,
+		  http_post/1, http_post/2, http_post/4,
+		  http_put/1, http_put/2, http_put/4,
+		  http_delete/1, http_delete/2, http_delete/4,
+		  http_request/1, http_request/2, http_request/3, http_request/5,
+		  is_json_parser_available/0, to_json/1,
+		  from_json/1, from_json_as_maps/1 ]).
+
+
+% Defines the duration (in milliseconds) to wait before retrying, after a
+% connection failed.
+%
+% A random value between these minimum and maximum values will be used.
+%
+-define( retry_delay_min, 500 ).
+-define( retry_delay_max, 5000 ).
 
 
 % Tells whether the SSL support is needed (typically for https):
@@ -67,9 +81,19 @@
 -type json() :: binary() | string().
 
 
+
+% Options for the JSON parsing:
+%
+% (see https://github.com/talentdeficit/jsx#decode12 for more information; no
+% type is defined there yet)
+%
+-type json_parsing_option() :: any().
+
+
+
 % HTTP/1.1 method:
--type method() :: 'get' | 'head' | 'post' | 'options' | 'connect' | 'trace' |
-				  'put' | 'patch' | 'delete'.
+-type method() :: 'get' | 'head' | 'post' | 'options' | 'connect' | 'trace'
+				| 'put' | 'patch' | 'delete'.
 
 % Content type (ex: "text/html;charset=utf-8", "application/json"):
 -type content_type() :: string().
@@ -89,8 +113,8 @@
 -type status_line() :: { string(), status_code(), string() }.
 
 % Type of a request for httpc:request, see http://erlang.org/doc/man/httpc.html:
--type request() :: { net_utils:url(), headers(), content_type(), body() } |
-				   { net_utils:url(), headers() }.
+-type request() :: { net_utils:url(), headers(), content_type(), body() }
+				 | { net_utils:url(), headers() }.
 
 -type http_option() :: { atom(), term() }.
 -type http_options() :: [ http_option() ].
@@ -98,20 +122,23 @@
 -type option() :: { atom(), term() }.
 -type options() :: [ option() ].
 
+
 % Type of a result from httpc:request, see http://erlang.org/doc/man/httpc.html:
--type result() :: { status_line(), headers(), body() } |
-				  { status_code(), body() } |
-				  reference().
+-type result() :: { status_line(), headers(), body() }
+				| { status_code(), body() }
+				| reference().
 
 
 % Context of a REST exchange:
 -type context() :: { net_utils:url_info(), headers() }.
 
+-type retries_count() :: basic_utils:count().
 
--export_type([ ssl_opt/0, json/0, method/0, content_type/0, field/0, value/0,
+-export_type([ ssl_opt/0, json/0, json_parsing_option/0,
+			   method/0, content_type/0, field/0, value/0,
 			   header/0, headers/0, body/0, status_code/0, status_line/0,
 			   request/0, http_option/0, http_options/0, option/0, options/0,
-			   result/0, context/0 ]).
+			   result/0, context/0, retries_count/0 ]).
 
 
 
@@ -123,7 +150,7 @@
 
 % Starts the REST service, with default settings.
 %
--spec start() -> basic_utils:void().
+-spec start() -> void().
 start() ->
 	start( no_ssl ).
 
@@ -131,7 +158,7 @@ start() ->
 
 % Starts the REST service.
 %
--spec start( ssl_opt() ) -> basic_utils:void().
+-spec start( ssl_opt() ) -> void().
 start( Option ) ->
 
 	% Starts the (built-in) HTTP client:
@@ -144,7 +171,7 @@ start( Option ) ->
 			ok;
 
 		ssl ->
-			ok = ssl:start( _DefaultSSLType=temporary)
+			ok = ssl:start( _DefaultSSLType=temporary )
 
 	end,
 
@@ -154,7 +181,7 @@ start( Option ) ->
 
 % Stops the REST service.
 %
--spec stop() -> basic_utils:void().
+-spec stop() -> void().
 stop() ->
 
 	stop_json_parser(),
@@ -173,7 +200,7 @@ stop() ->
 
 
 % Lists all the possible request methods defined by the HTTP/1.1 standard,
-% except the 'CONNECT' method which seems not to be part of the function clauses
+% except the 'CONNECT' method that seems not to be part of the function clauses
 % appearing in httpc:request:
 %
 -spec get_supported_http_methods() -> [ method() ].
@@ -206,22 +233,36 @@ get_body_allowing_http_methods() ->
 %
 -spec http_get( request() ) -> { status_code(), term() }.
 http_get( Request ) ->
-	http_get( Request, [], [] ).
+	http_get( Request, _HTTPOpts=[], _Opts=[], _Retries=0 ).
 
--spec http_get( request(), http_options(), options() ) -> term().
-http_get( Request, HTTPOptions, Options ) ->
-	http_request( get, Request, HTTPOptions, Options ).
+
+-spec http_get( request(), retries_count() ) -> { status_code(), term() }.
+http_get( Request, Retries ) ->
+	http_get( Request, _HTTPOpts=[], _Opts=[], Retries ).
+
+
+-spec http_get( request(), http_options(), options(), retries_count() ) ->
+					  term().
+http_get( Request, HTTPOptions, Options, Retries ) ->
+	http_request( get, Request, HTTPOptions, Options, Retries ).
 
 
 % Shorthands for sending POST HTTP requests:
 %
 -spec http_post( request() ) -> { status_code(), term() }.
 http_post( Request ) ->
-	http_post( Request, [], [] ).
+	http_post( Request, _HTTPOpts=[], _Opts=[], _Retries=0 ).
 
--spec http_post( request(), http_options(), options() ) -> term().
-http_post( Request, HTTPOptions, Options ) ->
-	http_request( post, Request, HTTPOptions, Options ).
+
+-spec http_post( request(), retries_count() ) -> { status_code(), term() }.
+http_post( Request, Retries ) ->
+	http_post( Request, _HTTPOpts=[], _Opts=[], Retries ).
+
+
+-spec http_post( request(), http_options(), options(), retries_count() ) ->
+					   term().
+http_post( Request, HTTPOptions, Options, Retries ) ->
+	http_request( post, Request, HTTPOptions, Options, Retries ).
 
 
 
@@ -229,11 +270,18 @@ http_post( Request, HTTPOptions, Options ) ->
 %
 -spec http_put( request() ) -> { status_code(), term() }.
 http_put( Request ) ->
-	http_put( Request, [], [] ).
+	http_put( Request, _HTTPOpts=[], _Opts=[], _Retries=0 ).
 
--spec http_put( request(), http_options(), options() ) -> term().
-http_put( Request, HTTPOptions, Options ) ->
-	http_request( put, Request, HTTPOptions, Options ).
+
+-spec http_put( request(), retries_count() ) -> { status_code(), term() }.
+http_put( Request, Retries ) ->
+	http_put( Request, _HTTPOpts=[], _Opts=[], Retries ).
+
+
+-spec http_put( request(), http_options(), options(), retries_count() ) ->
+					  term().
+http_put( Request, HTTPOptions, Options, Retries ) ->
+	http_request( put, Request, HTTPOptions, Options, Retries ).
 
 
 
@@ -241,11 +289,18 @@ http_put( Request, HTTPOptions, Options ) ->
 %
 -spec http_delete( request() ) -> { status_code(), term() }.
 http_delete( Request ) ->
-	http_delete( Request, [], [] ).
+	http_delete( Request, _HTTPOpts=[], _Opts=[], _Retries=0 ).
 
--spec http_delete( request(), http_options(), options() ) -> term().
-http_delete( Request, HTTPOptions, Options ) ->
-	http_request( delete, Request, HTTPOptions, Options ).
+
+-spec http_delete( request(), retries_count() ) -> { status_code(), term() }.
+http_delete( Request, Retries ) ->
+	http_delete( Request, _HTTPOpts=[], _Opts=[], Retries ).
+
+
+-spec http_delete( request(), http_options(), options(), retries_count() ) ->
+						 term().
+http_delete( Request, HTTPOptions, Options, Retries ) ->
+	http_request( delete, Request, HTTPOptions, Options, Retries ).
 
 
 
@@ -254,21 +309,32 @@ http_delete( Request, HTTPOptions, Options ) ->
 %
 -spec http_request( net_utils:url() ) -> { status_code(), term() }.
 http_request( URL ) ->
-	http_request( get, { URL, [] }, [], [] ).
+	http_request( get, { URL, [] }, _HTTPOpts=[], _Opts=[], _Retries=0 ).
 
 
 
-% Sends a generic HTTP request:
+% Sends a generic HTTP request.
 %
-% (Basically just a call to httpc:request/4 surrounded by checking steps.)
+% (Basically just a call to httpc:request/4 surrounded by checking steps)
 %
 -spec http_request( method(), request() ) -> { status_code(), term() }.
 http_request( Method, Request ) ->
-	http_request( Method, Request, [], [] ).
+	http_request( Method, Request, _HTTPOpts=[], _Opts=[], _Retries=0 ).
 
--spec http_request( method(), request(), http_options(), options() ) ->
-						  term().
-http_request( Method, Request, HTTPOptions, Options ) ->
+
+-spec http_request( method(), request(), retries_count() ) ->
+						  { status_code(), term() }.
+http_request( Method, Request, Retries ) ->
+	http_request( Method, Request, _HTTPOpts=[], _Opts=[], Retries ).
+
+
+
+
+-spec http_request( method(), request(), http_options(), options(),
+					retries_count() ) -> term().
+http_request( Method, Request, HTTPOptions, Options, Retries ) ->
+
+	% Note: a null number of retries is managed inside this clause.
 
 	% Checks the HTTP method is a valid one:
 	case lists:member( Method, get_supported_http_methods() ) of
@@ -283,32 +349,73 @@ http_request( Method, Request, HTTPOptions, Options ) ->
 			throw( { not_a_standard_http_method, Method } );
 
 		_False ->
-			throw( { bad_http_method_specification, Method } )
+			throw( { invalid_http_method_specification, Method } )
 
 	end,
 
-	% Checks the request seems valid:
+	% Checks that the request seems valid:
 	check_http_request( Method, Request ),
 
-	% Checks the HTTP options look valid:
-	% TODO ?
+	% TODO:
+	%  - checks the HTTP options look valid
+	%  - checks the request options look valid
 
-	% Checks the request options look valid:
-	% TODO ?
+	MaybeHttpResult = httpc:request( Method, Request, HTTPOptions, Options ),
 
-	case httpc:request( Method, Request, HTTPOptions, Options ) of
+	case { MaybeHttpResult, Retries } of
 
-		{ ok, Result } ->
+		{ { ok, Result }, _ } ->
 			return_checked_result( Result );
 
-		{ error, Reason } ->
-			throw( { httpc_error, Reason } )
+		{ { error, Reason }, _NoMoreRetries=0 } ->
+			trace_utils:error_fmt( "Retries exhausted, HTTP ~p request ~p "
+								   "(HTTP options: ~p, options: ~p) failed, "
+								   "reason being: ~p.",
+								   [ Method, Request, HTTPOptions, Options,
+									 Reason ] ),
+			throw( { http_request_failed, Method, Request, Reason } );
+
+		{ { error, Reason }, _StillRetries } ->
+
+			% We will retry the same query one more time, after a random delay
+			% in specified bounds:
+
+			Delay = random_utils:get_random_value( ?retry_delay_min,
+												   ?retry_delay_max ),
+
+			trace_utils:warning_fmt( "HTTP ~p request ~p failed (cause: ~p), "
+							 "retrying after a delay of ~w milliseconds.",
+							 [ Method, Request, Reason, Delay ] ),
+
+			timer:sleep( Delay ),
+
+			http_request( Method, Request, HTTPOptions, Options, Retries-1 )
 
 	end.
 
 
 
-% Checks and returns the result of an HTTP request (or throws an exception):
+% Converts the Body string of an error message, possibly with a stack trace, to
+% a text that is easier to understand, with actual carriage returns.
+%
+-spec format_body_error( string() ) -> string().
+format_body_error( ContentBody ) ->
+
+	%re:replace( ContentBody, "\\\\n", "\\n", [ global, {return, list} ] ).
+
+	Tokens = string:replace( ContentBody, "\\n \\n ", "", all ),
+
+	NotEmpty = lists:filter( fun( Tok ) -> length( Tok ) > 0 end, Tokens ),
+
+	Formatted = string:join( NotEmpty, "~n" ),
+
+	%trace_utils:debug_fmt( "Formatted: ~p", [ Formatted ] ).
+
+	Formatted.
+
+
+
+% Checks and returns the result of an HTTP request (or throws an exception).
 %
 -spec return_checked_result( result() ) -> { status_code(), term() }.
 return_checked_result( _Result={ StatusLine, _Headers, Body } ) ->
@@ -350,7 +457,7 @@ return_checked_result( _Result={ StatusCode, Body } ) ->
 
 		ServerErrorCode when ServerErrorCode >= 500 ->
 			throw( { http_server_error, ServerErrorCode, ReasonPhrase,
-					 RealBody } )
+					 format_body_error( RealBody ) } )
 
 	end;
 
@@ -362,9 +469,9 @@ return_checked_result( Result ) ->
 
 
 
-% Checks the basic structure of an HTTP request, as needed by httpc:
+% Checks the basic structure of an HTTP request, as needed by httpc.
 %
--spec check_http_request( method(), request() ) -> 'ok'.
+-spec check_http_request( method(), request() ) -> void().
 check_http_request( Method, _Request={ URL, Headers } )
   when is_list( Headers ) ->
 
@@ -384,12 +491,12 @@ check_http_request( Method, _Request={ URL, Headers } )
 			ok;
 
 		false ->
-			throw( { bad_URL_for_http_request, URL } )
+			throw( { invalid_url_for_http_request, URL } )
 
 	end;
 
 check_http_request( _Method, Request={ _URL, _Headers } ) ->
-	throw( { bad_headers_for_http_request, Request } );
+	throw( { invalid_headers_for_http_request, Request } );
 
 check_http_request( Method, _Request={ URL, Headers, ContentType, Body } )
   when is_list( Headers ) ->
@@ -410,7 +517,7 @@ check_http_request( Method, _Request={ URL, Headers, ContentType, Body } )
 			ok;
 
 		false ->
-			throw( { bad_URL_for_http_request, URL } )
+			throw( { invalid_url_for_http_request, URL } )
 
 	end,
 
@@ -420,7 +527,7 @@ check_http_request( Method, _Request={ URL, Headers, ContentType, Body } )
 			ok;
 
 		false ->
-			throw( { bad_content_type_for_http_request, ContentType } )
+			throw( { invalid_content_type_for_http_request, ContentType } )
 
 	end,
 
@@ -430,15 +537,15 @@ check_http_request( Method, _Request={ URL, Headers, ContentType, Body } )
 			ok;
 
 		false ->
-			throw( { bad_body_for_http_request, Body } )
+			throw( { invalid_body_for_http_request, Body } )
 
 	end;
 
 check_http_request( _Method, Request={ _URL, _Headers, _CType, _Body } ) ->
-	throw( { bad_headers_for_http_request, Request } );
+	throw( { invalid_headers_for_http_request, Request } );
 
 check_http_request( _Method, Request ) ->
-	throw( { not_a_valid_http_request, Request } ).
+	throw( { invalid_http_request, Request } ).
 
 
 
@@ -450,7 +557,7 @@ check_http_request( _Method, Request ) ->
 
 % Starts the JSON parser.
 %
--spec start_json_parser() -> basic_utils:void().
+-spec start_json_parser() -> void().
 start_json_parser() ->
 
 	% We use the 'jsx' parser, an external prerequisite.
@@ -461,8 +568,8 @@ start_json_parser() ->
 			ok;
 
 		false ->
-			basic_utils:display( "\nError: jsx JSON parser not available.\n"
-				++ system_utils:get_json_unavailability_hint() ),
+			trace_utils:error_fmt( "The jsx JSON parser is not available.~n~s",
+						   [ system_utils:get_json_unavailability_hint() ] ),
 			throw( { json_parser_not_found, jsx } )
 
 	end,
@@ -477,8 +584,9 @@ start_json_parser() ->
 	catch
 
 		error:undef ->
-			basic_utils:display( "\nError: jsx JSON parser not operational.\n"
-				++ system_utils:get_json_unavailability_hint() ),
+			trace_utils:error_fmt(
+			  "The jsx JSON parser is not operational.~n~s",
+			  [ system_utils:get_json_unavailability_hint() ] ),
 			throw( { json_parser_not_operational, jsx } )
 
 	end.
@@ -505,7 +613,7 @@ is_json_parser_available() ->
 
 
 
-% Converts specified Erlang term into a JSON counterpart element.
+% Converts (encodes) specified Erlang term into a JSON counterpart element.
 %
 -spec to_json( term() ) -> json().
 to_json( Term ) ->
@@ -513,24 +621,65 @@ to_json( Term ) ->
 
 
 
-% Converts specified JSON element into an Erlang term counterpart.
+% Returns the default options for the JSON decoding.
+%
+-spec get_default_json_decoding_options() -> [ json_parsing_option() ].
+get_default_json_decoding_options() ->
+	% We prefer {state,<<"PUBLISHED">>} to {<<"state">>,<<"PUBLISHED">>}:
+	[ { labels, atom } ].
+
+
+
+% Converts (decodes) specified JSON element into an Erlang term counterpart.
 %
 -spec from_json( json() ) -> term().
-from_json( BinJson ) when is_binary( BinJson ) ->
-	%io:format( "Decoding '~p':~n", [ BinJson ] ),
+from_json( Json ) ->
+	from_json( Json, get_default_json_decoding_options() ).
 
-	% We prefer {state,<<"PUBLISHED">>} to {<<"state">>,<<"PUBLISHED">>}:
-	jsx:decode( BinJson, _Opts=[ { labels, atom } ] );
 
-from_json( StringJson ) when is_list( StringJson ) ->
 
+% Converts (decodes) specified JSON element into an Erlang term counterpart,
+% with specified parsing options.
+%
+-spec from_json( json(), [ json_parsing_option() ] ) -> term().
+from_json( BinJson, Opts ) when is_binary( BinJson ) ->
+
+	%trace_utils:debug_fmt( "Decoding '~p'.", [ BinJson ] ),
+
+	% Note that at least some errors in the JSON file (ex: missing comma) will
+	% lead only to an exception such as:
+	%
+	% ** exception error: bad argument
+	%  in function  jsx_decoder:maybe_done/4
+	%
+	% (not even returning a line number for the faulty part...)
+
+	jsx:decode( BinJson, Opts );
+
+from_json( StringJson, Opts ) when is_list( StringJson ) ->
 	BinJson = text_utils:string_to_binary( StringJson ),
-	from_json( BinJson ).
+	from_json( BinJson, Opts ).
+
+
+
+% Converts (decodes) specified JSON element recursively so that it returns a
+% table containing tables, themselves containing potentially tables, etc.
+%
+% Note that if in a given scope a key is present more than once, only one of its
+% values will be retained (actually the lastly defined one).
+%
+-spec from_json_as_maps( json() ) -> table:table().
+from_json_as_maps( BinJson ) when is_binary( BinJson ) ->
+
+	Opts = [ return_maps | get_default_json_decoding_options() ],
+
+	from_json( BinJson, Opts ).
+
 
 
 
 % Stops the JSON parser.
 %
--spec stop_json_parser() -> basic_utils:void().
+-spec stop_json_parser() -> void().
 stop_json_parser() ->
 	ok.

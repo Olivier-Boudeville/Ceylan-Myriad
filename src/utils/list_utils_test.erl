@@ -1,6 +1,6 @@
-% Copyright (C) 2003-2017 Olivier Boudeville
+% Copyright (C) 2003-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 
@@ -59,6 +59,11 @@ run() ->
 	%test_facilities:display( "   Getting item #~B of list ~w: ~B.",
 	% [ OutOfBoundsIndex, L,
 	%	list_utils:get_element_at( L, OutOfBoundsIndex ) ] ),
+
+
+	{ a, [] } = list_utils:extract_element_at( [ a ], 1 ),
+
+	{ b, [ a, c ] } = list_utils:extract_element_at( [ a, b, c ], 2 ),
 
 	RemoveIndex = 3,
 
@@ -142,6 +147,13 @@ run() ->
 	false = list_utils:unordered_compare( [a,b], [a,c] ),
 	false = list_utils:unordered_compare( [a,b], [a] ),
 
+	{ 3, 2 } = list_utils:determine_tuple_info(
+				 [ { a, 1 }, { b, 1 }, { c, 2 } ] ),
+
+	{ 2, 3 } = list_utils:determine_tuple_info(
+				 [ { a, 1, 3 }, { b, 1, 0 } ] ),
+
+
 	{ [], [  a, b, c, d, e ] } = list_utils:split_at( [ a, b, c, d, e ], 0 ),
 
 	{ [ c, b, a ], [ d, e] } = list_utils:split_at( [ a, b, c, d, e ], 3 ),
@@ -195,7 +207,7 @@ run() ->
 	List2 = [ 14, d, b ],
 
 	ExpectedList = lists:sort( [ 14, b ] ),
-	ResultList = list_utils:intersect( List1, List2 ),
+	ResultList = list_utils:intersection( List1, List2 ),
 
 	test_facilities:display( "Displaying the intersection of ~p and ~p: ~p.",
 							 [ List1, List2, ResultList ] ),

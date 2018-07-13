@@ -1,6 +1,6 @@
-% Copyright (C) 2013-2017 Olivier Boudeville
+% Copyright (C) 2013-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Creation date: Thursday, October 31, 2013
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 
@@ -172,11 +172,11 @@ get( Key, FileName ) ->
 % Associates, in current preferences, specified value to specified key (possibly
 % overwriting any previous value).
 %
--spec set( key(), value() ) -> basic_utils:void().
+-spec set( key(), value() ) -> void().
 set( Key, Value ) ->
 	set( Key, Value, get_default_preferences_path() ).
 
--spec set( key(), value(), file_utils:file_name() ) -> basic_utils:void().
+-spec set( key(), value(), file_utils:file_name() ) -> void().
 set( Key, Value, FileName ) ->
 
 	ServerPid = start( FileName ),
@@ -253,7 +253,7 @@ is_preferences_default_file_available() ->
 % Checks that the default preferences file exists, throws an exception
 % otherwise.
 %
--spec check_preferences_default_file() -> basic_utils:void().
+-spec check_preferences_default_file() -> void().
 check_preferences_default_file() ->
 
 	case is_preferences_default_file_available() of
@@ -272,12 +272,12 @@ check_preferences_default_file() ->
 %
 % Never fails.
 %
--spec stop() -> basic_utils:void().
+-spec stop() -> void().
 stop() ->
 	stop( get_default_preferences_path() ).
 
 
--spec stop( file_utils:file_name() ) -> basic_utils:void().
+-spec stop( file_utils:file_name() ) -> void().
 stop( FileName ) ->
 
 	RegistrationName = get_registration_name( FileName ),
@@ -340,9 +340,9 @@ server_main_run( SpawnerPid, RegistrationName, FileName ) ->
 %
 server_main_loop( Table ) ->
 
-	%io:format( "Waiting for preferences-related request, "
+	%trace_utils:debug_fmt( "Waiting for preferences-related request, "
 	%			"having ~B recorded preferences.~n",
-	%			[ table:getEntryCount( Table ) ] ),
+	%			[ table:size( Table ) ] ),
 
 	receive
 
@@ -380,12 +380,12 @@ server_main_loop( Table ) ->
 				L ->
 
 					% Enforces a consistent order:
-					Strings = [ io_lib:format( "~p: ~p", [ K, V ] )
+					Strings = [ text_utils:format( "~p: ~p", [ K, V ] )
 								|| { K, V } <- lists:sort( L ) ],
 
-					io_lib:format( "~B preferences recorded:~s~n",
+					text_utils:format( "~B preferences recorded:~s~n",
 								   [ length( L ),
-								 text_utils:string_list_to_string( Strings ) ] )
+									 text_utils:strings_to_string( Strings ) ] )
 
 			end,
 
@@ -435,7 +435,7 @@ add_preferences_from( Filename, Table ) ->
 
 
 		{ error, { Line, _Mod, Term } } ->
-			FlattenError = io_lib:format( "~p", [ Term ] ),
+			FlattenError = text_utils:format( "~p", [ Term ] ),
 			io:format( "Error in preferences file '~s' at line ~B (~s), "
 					   "no preferences read.~n",
 					   [ Filename, Line, FlattenError ] ),
@@ -460,7 +460,7 @@ check_entries( _Entries=[ { K, _V } | T ] ) when is_atom( K ) ->
 	check_entries( T );
 
 check_entries( _Entries=[ { K, _V } | _T ] ) ->
-	io_lib:format( "key '~p' is not an atom", [ K ] );
+	text_utils:format( "key '~p' is not an atom", [ K ] );
 
 check_entries( _Entries=[ E | _T ] ) ->
-	io_lib:format( "entry '~p' is not a key/value pair", [ E ] ).
+	text_utils:format( "entry '~p' is not a key/value pair", [ E ] ).

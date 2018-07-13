@@ -1,6 +1,6 @@
-% Copyright (C) 2003-2017 Olivier Boudeville
+% Copyright (C) 2003-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 % Unit tests for the executable_utils toolbox.
@@ -44,5 +44,18 @@ run() ->
 
 	test_facilities:display( "SSH mute option: '~s'.",
 							 [ executable_utils:get_ssh_mute_option() ] ),
+
+
+	TargetOption = 'pz',
+
+	{ Values, RemainingArguments } = executable_utils:extract_command_argument(
+									   TargetOption ),
+
+	test_facilities:display( "Knowing the actual command-line arguments were:~n"
+							 "~p~nbased on option '~s', we extracted "
+							 "following value(s):~n~p~nand got the rest of "
+							 "the arguments:~n~p",
+							 [ init:get_arguments(), TargetOption, Values,
+							   RemainingArguments ] ),
 
 	test_facilities:stop().

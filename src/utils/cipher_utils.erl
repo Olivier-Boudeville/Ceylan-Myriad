@@ -1,6 +1,6 @@
-% Copyright (C) 2013-2017 Olivier Boudeville
+% Copyright (C) 2013-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, November 1, 2013.
 
 
@@ -220,8 +220,7 @@
 
 
 
--spec generate_key( file_utils:file_name(), [ cipher_transform() ] ) ->
-						  basic_utils:void().
+-spec generate_key( file_utils:file_name(), [ cipher_transform() ] ) -> void().
 generate_key( KeyFilename, Transforms ) ->
 
 	case file_utils:exists( KeyFilename ) of
@@ -302,7 +301,7 @@ key_to_string( [ Cipher | T ], Acc ) ->
 % The original file is kept as is.
 %
 -spec encrypt( file_utils:file_name(), file_utils:file_name(),
-			   file_utils:file_name() ) -> basic_utils:void().
+			   file_utils:file_name() ) -> void().
 encrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 
 	_SourceFile = case file_utils:is_existing_file_or_link( SourceFilename ) of
@@ -350,7 +349,7 @@ encrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 % The ciphered file is kept as is.
 %
 -spec decrypt( file_utils:file_name(), file_utils:file_name(),
-			   file_utils:file_name() ) -> basic_utils:void().
+			   file_utils:file_name() ) -> void().
 decrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 
 	_SourceFile = case file_utils:is_existing_file_or_link( SourceFilename ) of
@@ -508,7 +507,7 @@ get_cipher_description( OtherCipher ) ->
 % base (yet generic) mechanisms.
 %
 -spec apply_cipher( any(), file_utils:file_name(), file_utils:file_name() ) ->
-						  basic_utils:void().
+						  void().
 apply_cipher( id, SourceFilename, CipheredFilename ) ->
 	id_cipher( SourceFilename, CipheredFilename );
 
@@ -764,8 +763,8 @@ insert_random_cipher( SourceFilename, CipheredFilename, Range )
 
 	_InsertedCount = insert_helper( SourceFile, TargetFile, Range, _Count=0 ).
 
-	%io:format( "insert_random_cipher: inserted ~B bytes.~n",
-	%		   [ InsertedCount ] ).
+	%trace_utils:debug_fmt( "insert_random_cipher: inserted ~B bytes.",
+	%						[ InsertedCount ] ).
 
 
 % We insert at random places random values in the content:
@@ -970,10 +969,10 @@ mealy_helper( SourceFile, TargetFile, CurrentMealyState, MealyTable ) ->
 
 		{ ok, [ InputByte ] } ->
 
-			{ NextMealyState, OutputByte } = apply_mealy( InputByte,
-											 CurrentMealyState, MealyTable ),
+			{ NextMealyState, OutputByte } =
+				apply_mealy( InputByte, CurrentMealyState, MealyTable ),
 
-			file_utils:write( TargetFile, OutputByte ),
+			file_utils:write( TargetFile, [ OutputByte ] ),
 
 			mealy_helper( SourceFile, TargetFile, NextMealyState, MealyTable )
 
@@ -998,7 +997,7 @@ apply_mealy( InputByte, CurrentMealyState, MealyTable ) ->
 
 generate_filename() ->
 
-	Filename = ".cipher-" ++ basic_utils:generate_uuid(),
+	Filename = ".cipher-" ++ id_utils:generate_uuid(),
 
 	case file_utils:is_existing_file( Filename ) of
 

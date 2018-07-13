@@ -1,6 +1,6 @@
-% Copyright (C) 2014-2017 Olivier Boudeville
+% Copyright (C) 2014-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -22,15 +22,15 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 % Test for the 'table' pseudo-module.
 %
-% The 'Common' parse transform is expected to replace at compilation time calls
+% The 'Myriad' parse transform is expected to replace at compilation time calls
 % to this table by calls to the current reference implementation.
 %
-% See the common_parse_transform.erl module.
+% See the myriad_parse_transform.erl module.
 %
 -module(table_test).
 
@@ -95,7 +95,7 @@ run() ->
 
 	key_not_found  = table:lookupEntry( ?MyFirstKey, MyH5 ),
 
-	[ MySecondValue, MyFirstValue ] = table:getAllValues( 
+	[ MySecondValue, MyFirstValue ] = table:getAllValues(
 										[ ?MySecondKey, ?MyFirstKey ], MyH4 ),
 
 	% removeEntry can also be used if the specified key is not here, will return
@@ -119,10 +119,10 @@ run() ->
 							 "previous table:" ),
 
 	FunValue = fun( V ) ->
-				io:format( " - hello value '~p'!~n", [ V ] ),
-				% Unchanged here:
-				V
-	end,
+					test_facilities:display( " - hello value '~p'!~n", [ V ] ),
+					% Unchanged here:
+					 V
+			   end,
 
 	table:mapOnValues( FunValue, MyH4 ),
 
@@ -131,11 +131,12 @@ run() ->
 							 "previous table:" ),
 
 	FunEntry = fun( E={ K, V } ) ->
-				io:format( " - hello, key '~p' associated to value '~p'!~n",
-						   [ K, V ] ),
-				% Unchanged here:
-				E
-	end,
+					test_facilities:display(
+						 " - hello, key '~p' associated to value '~p'!~n",
+						 [ K, V ] ),
+					% Unchanged here:
+					E
+			   end,
 
 	table:mapOnEntries( FunEntry, MyH4 ),
 

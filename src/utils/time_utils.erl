@@ -1,6 +1,6 @@
-% Copyright (C) 2015-2017 Olivier Boudeville
+% Copyright (C) 2015-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, July 24, 2015
 
 
@@ -141,7 +141,7 @@ canonicalise_month( M ) when is_integer( M ) andalso M >= 0 ->
 
 % Checks that specified month is a canonical one.
 %
--spec check_month_canonical( unit_utils:month() ) -> basic_utils:void().
+-spec check_month_canonical( unit_utils:month() ) -> void().
 check_month_canonical( Month ) when is_integer( Month ) andalso Month >= 1
 									andalso Month =< 12 ->
 	ok;
@@ -154,7 +154,7 @@ check_month_canonical( Month ) ->
 % Ensures that the starting canonical month is strictly before the stopping one.
 %
 -spec check_month_order( unit_utils:absolute_month(),
-						  unit_utils:absolute_month() ) -> basic_utils:void().
+						 unit_utils:absolute_month() ) -> void().
 check_month_order( Start={ StartYear, StartMonth },
 				   Stop= { StopYear, StopMonth } ) ->
 
@@ -261,7 +261,7 @@ week_day_to_string( DayIndex ) ->
 
 % Checks that specified date is a canonical one.
 %
--spec check_date_canonical( date() ) -> basic_utils:void().
+-spec check_date_canonical( date() ) -> void().
 check_date_canonical( _Date={ Year, Month, Day } ) when
 	  is_integer( Year ) andalso is_integer( Month ) andalso
 	  is_integer( Day ) andalso Month >= 1 andalso Month =< 12
@@ -329,7 +329,7 @@ compare_helper( _FirstDate, _SecondDate ) ->
 % Note: both dates are expected to be in canonical form (ex: not more than 12
 % months or 31 days in the specified date).
 %
--spec check_date_order( date(), date() ) -> basic_utils:void().
+-spec check_date_order( date(), date() ) -> void().
 check_date_order( StartDate, StopDate ) ->
 
 	case compare_dates( StartDate, StopDate ) of
@@ -408,7 +408,7 @@ hours_to_seconds( HourDuration ) ->
 % Timestamp-related functions.
 
 
-% Returns a tipmestamp tuple describing the current time.
+% Returns a timestamp tuple describing the current time.
 %
 % Ex: { {Year,Month,Day}, {Hour,Minute,Second} } = time_utils:get_timestamp()
 % may return '{ {2007,9,6}, {15,9,14} }'.
@@ -423,6 +423,9 @@ get_timestamp() ->
 
 % Returns a string corresponding to the current timestamp, like:
 % "2009/9/1 11:46:53".
+%
+% Note that the display order here is YY-MM-DD (same as when specifying the
+% timestamp), as opposed to DD-MM-YY, which is maybe more usual.
 %
 -spec get_textual_timestamp() -> string().
 get_textual_timestamp() ->

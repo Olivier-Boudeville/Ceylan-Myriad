@@ -265,7 +265,7 @@
 
 ;; Depends on the screen height:
 
-;; For a netbook:
+;; For a netbook or possibly a laptop:
 ;;(add-to-list 'default-frame-alist (cons 'height 35))
 
 ;; For a normal screen:
@@ -625,6 +625,10 @@
 (setq vc-follow-symlinks nil)
 (setq line-move-visual nil)
 
+;; Only for older Emacs apparently:(setq default-tab-width 4)
+(setq-default tab-width 4)
+
+(setq tab-width 4)
 
 (setq scroll-step 1)
 (show-paren-mode 1)

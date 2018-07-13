@@ -1,6 +1,6 @@
-% Copyright (C) 2003-2017 Olivier Boudeville
+% Copyright (C) 2003-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -22,11 +22,11 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 % This module defines a few basic facilities for tests, at the level of the
-% 'Common' layer.
+% 'Myriad' layer.
 %
 -module(test_facilities).
 
@@ -48,14 +48,28 @@
 % most probably remain unnoticed (just leading to an EXIT message happily
 % sitting in the mailbox of the test process).
 %
--spec start( module() | [ module() ] ) -> basic_utils:void().
+-spec start( module() | [ module() ] ) -> void().
 start( Module ) when is_atom( Module ) ->
-	erlang:process_flag( trap_exit, false ),
+	start_common(),
 	basic_utils:display( "~n~n--> Testing module ~s.~n", [ Module ] );
 
 start( Modules ) when is_list( Modules ) ->
-	erlang:process_flag( trap_exit, false ),
+	start_common(),
 	basic_utils:display( "~n~n--> Testing modules ~p.~n", [ Modules ] ).
+
+
+% (helper)
+start_common() ->
+
+	erlang:process_flag( trap_exit, false ),
+
+	% We want to be ensure that the standard logger behaves synchronously (ex:
+	% not wanting an error trace to be lost because we crashed on purpose the VM
+	% just after an error was reported, yet happened not to be notified yet as a
+	% corresponding was not sent yet, or was received but not yet processed).
+
+	ok = logger:set_handler_config( _HandlerId=default, _Key=sync_mode_qlen,
+									_Value=0 ).
 
 
 
@@ -70,7 +84,7 @@ stop() ->
 
 % Displays a test message.
 %
--spec display( string() ) -> basic_utils:void().
+-spec display( string() ) -> void().
 display( Message ) ->
 	% Carriage return already added in basic_utils:display/1:
 	% (empty list added so that ~n are automatically converted)
@@ -83,7 +97,7 @@ display( Message ) ->
 % FormatString is an io:format-style format string, ValueList is the
 % corresponding list of field values.
 %
--spec display( string(), list() ) -> basic_utils:void().
+-spec display( string(), list() ) -> void().
 display( FormatString, ValueList ) ->
 	basic_utils:display( FormatString, ValueList ).
 

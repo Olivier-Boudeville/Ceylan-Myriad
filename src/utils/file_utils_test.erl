@@ -1,6 +1,6 @@
-% Copyright (C) 2003-2017 Olivier Boudeville
+% Copyright (C) 2003-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 % Unit tests for the file_utils toolbox.
@@ -151,6 +151,18 @@ run() ->
 		[ SecondString, file_utils:convert_to_filename( SecondString ) ] ),
 
 
+	NoExtensionFilename = "my_foobar",
+
+	no_extension = file_utils:get_extensions( NoExtensionFilename ),
+	no_extension = file_utils:get_extension( NoExtensionFilename ),
+
+
+	ExtensionFilename = "foobar.baz.json",
+
+	[ "baz", "json" ] = file_utils:get_extensions( ExtensionFilename ),
+	"json" = file_utils:get_extension( ExtensionFilename ),
+
+
 	SourceFilename  = "/home/jack/rosie.ttf",
 	SourceExtension = ".ttf",
 	TargetExtension = ".wav",
@@ -172,7 +184,11 @@ run() ->
 	test_facilities:display( "Read file: ~p.", [ Bin ] ),
 	%file_utils:write_whole( "test.dat", Bin ),
 
-	LsPath = "/bin/ls" = executable_utils:find_executable( "ls" ),
+	% On some systems, ls, cat, etc. are found in /usr/bin/ before being found
+	% in /bin:
+	%
+	%LsPath = "/bin/ls" = executable_utils:find_executable( "ls" ),
+	LsPath = executable_utils:find_executable( "ls" ),
 	true = file_utils:is_executable( LsPath ),
 
 	NonExistingPath = "ls-non-existing-exec",

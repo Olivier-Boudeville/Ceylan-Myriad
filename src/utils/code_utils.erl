@@ -1,6 +1,6 @@
-% Copyright (C) 2007-2017 Olivier Boudeville
+% Copyright (C) 2007-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
 
@@ -39,10 +39,20 @@
 		  deploy_modules/2, deploy_modules/3,
 		  declare_beam_directory/1, declare_beam_directory/2,
 		  declare_beam_directories/1, declare_beam_directories/2,
-		  get_code_path/0,
+		  get_code_path/0, get_code_path_as_string/0, code_path_to_string/1,
 		  list_beams_in_path/0, get_beam_filename/1, is_beam_in_path/1,
-		  interpret_stacktrace/0, interpret_stacktrace/1, interpret_stacktrace/2,
+		  %interpret_stacktrace/0,
+		  interpret_stacktrace/1,
+		  interpret_stacktrace/2,
 		  interpret_stack_item/2 ]).
+
+
+
+% The code path used by a language, i.e. a list of directories to scan for
+% runtime elements (Erlang -pa/-pz, Python sys.path with PYTHONPATH, Java
+% classpath, etc.)
+%
+-type code_path() :: [ file_utils:directory_name() ].
 
 
 %-type stack_location() :: [ { file, file_utils:path() },
@@ -75,12 +85,29 @@
 						  { binary(), file:filename() }.
 get_code_for( ModuleName ) ->
 
+	%trace_utils:debug_fmt( "Getting code for module '~s', "
+	%					   "from current working directory '~s'.",
+	%					   [ ModuleName, file_utils:get_current_directory() ] ),
+
 	case code:get_object_code( ModuleName ) of
 
 		{ ModuleName, ModuleBinary, ModuleFilename } ->
 			{ ModuleBinary, ModuleFilename };
 
 		error ->
+
+			FoundBeams = list_beams_in_path(),
+
+			ModString= text_utils:strings_to_string( FoundBeams ),
+
+			trace_utils:error_fmt( "Unable to find object code for '~s' "
+								   "on '~s', knowing that the current "
+								   "directory is ~s and the ~s~n "
+								   "The corresponding found BEAM files are: ~s",
+								   [ ModuleName, node(),
+									 file_utils:get_current_directory(),
+									 get_code_path_as_string(), ModString ] ),
+
 			throw( { module_code_lookup_failed, ModuleName } )
 
 	end.
@@ -124,39 +151,38 @@ is_loaded_module_same_on_filesystem( ModuleName ) ->
 
 
 % RPC default time-out, in milliseconds:
-% (30s, could be infinity)
--define( rpc_timeout, 30*1000 ).
+% (45s, could be infinity as well)
+-define( rpc_timeout, 45*1000 ).
 
 
 
-% Deploys the specified list of modules on the specified list of nodes (atoms):
-% sends them these modules (as a binary), and loads them so that they are ready
-% for future use.
+% Deploys the specified list of modules on the specified list of nodes
+% (specified as atoms): sends them these modules (as a binary), and loads them
+% so that they are ready for future use, using a default time-out.
 %
 % If an exception is thrown with 'badfile' being reported as the error, this may
 % be caused by a version mistmatch between the Erlang environments in the source
 % and at least one of the remote target hosts (ex: ERTS 5.5.2 vs 5.8.2).
 %
--spec deploy_modules( [ module() ], [ net_utils:atom_node_name() ] ) ->
-							basic_utils:void().
+-spec deploy_modules( [ module() ], [ net_utils:atom_node_name() ] ) -> void().
 deploy_modules( Modules, Nodes ) ->
 	deploy_modules( Modules, Nodes, _Timeout=?rpc_timeout ).
 
 
 
-% Deploys the specified list of modules on the specified list of nodes (atoms):
-% sends them these modules (as a binary), and loads them so that they are ready
-% for future use.
+% Deploys the specified list of modules on the specified list of nodes
+% (specified as atoms): sends them these modules (as a binary), and loads them
+% so that they are ready for future use.
 %
 % Timeout is the time-out duration, either an integer number of milliseconds, or
-% the infinity atom.
+% the 'infinity' atom.
 %
 % If an exception is thrown with 'badfile' being reported as the error, this may
 % be caused by a version mistmatch between the Erlang environments in the source
 % and at least one of the remote target hosts (ex: ERTS 5.5.2 vs 5.8.2).
 %
 -spec deploy_modules( [ module() ], [ net_utils:atom_node_name() ],
-					  time_utils:time_out() ) -> basic_utils:void().
+					  time_utils:time_out() ) -> void().
 deploy_modules( Modules, Nodes, Timeout ) ->
 
 	% At least until the next version to come after R14B02, there was a possible
@@ -170,30 +196,38 @@ deploy_modules( Modules, Nodes, Timeout ) ->
 	%
 	% So here we should poll until the code_server can be found registered on
 	% each of the remote nodes:
+	%
 	naming_utils:wait_for_remote_local_registrations_of( code_server, Nodes ),
 
-	% Then for each module in turn, contact each and every node in parallel:
+	%trace_utils:debug_fmt( "Getting code for modules ~p, on ~s, "
+	%					   "whereas code path (evaluated from ~s) "
+	%					   "is:~n  ~p",
+	%					   [ Modules, node(),
+	%						 file_utils:get_current_directory(),
+	%						 code:get_path() ] ),
+
+	% Then for each module in turn, contact each and every node, in parallel:
 	[ deploy_module( M, get_code_for( M ), Nodes, Timeout ) || M <- Modules ].
 
 
 
 % (helper function)
 -spec deploy_module( module(), { binary(), file_utils:file_name() },
-		  [ net_utils:atom_node_name() ], time_utils:time_out() ) ->
-						   basic_utils:void().
+		  [ net_utils:atom_node_name() ], time_utils:time_out() ) -> void().
 deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
 
-	%io:format( "Deploying module '~s' (filename '~s') on nodes ~p "
-	%		  "with time-out ~p.~n",
-	%		  [ ModuleName, ModuleFilename, Nodes, Timeout ] ),
+	%trace_utils:debug_fmt( "Deploying module '~s' (filename '~s') on nodes ~p "
+	%						"with time-out ~p.",
+	%						[ ModuleName, ModuleFilename, Nodes, Timeout ] ),
 
 	{ ResList, BadNodes } = rpc:multicall( Nodes, code, load_binary,
 				[ ModuleName, ModuleFilename, ModuleBinary ], Timeout ),
 
-	%io:format( "ResList = ~p, BadNodes = ~p~n", [ ResList, BadNodes ] ),
+	%trace_utils:debug_fmt( "ResList = ~p, BadNodes = ~p~n",
+	%                       [ ResList, BadNodes ] ),
 
 	ReportedErrors = [ E || E <- ResList, E =/= { module, ModuleName } ],
-	%io:format( "Reported errors: ~p~n", [ ReportedErrors ] ),
+	%trace_utils:debug_fmt( "Reported errors: ~p~n", [ ReportedErrors ] ),
 
 	case BadNodes of
 
@@ -201,8 +235,9 @@ deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
 			case ReportedErrors of
 
 				[] ->
-					%io:format( "Module '~s' successfully deployed on ~p.~n",
-					%		[ ModuleName, Nodes ] ),
+					%trace_utils:debug_fmt( "Module '~s' successfully "
+					%                       "deployed on ~p.~n",
+					%						[ ModuleName, Nodes ] ),
 					ok;
 
 				_ ->
@@ -252,8 +287,7 @@ deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
 %
 % Throws an exception if the directory does not exist.
 %
--spec declare_beam_directory( file_utils:directory_name() ) ->
-									basic_utils:void().
+-spec declare_beam_directory( file_utils:directory_name() ) -> void().
 declare_beam_directory( Dir ) ->
 	declare_beam_directory( Dir, first_position ).
 
@@ -265,7 +299,7 @@ declare_beam_directory( Dir ) ->
 % Throws an exception if the directory does not exist.
 %
 -spec declare_beam_directory( file_utils:directory_name(),
-		 'first_position' | 'last_position' ) -> basic_utils:void().
+							  'first_position' | 'last_position' ) -> void().
 declare_beam_directory( Dir, first_position ) ->
 
 	case code:add_patha( Dir ) of
@@ -297,8 +331,7 @@ declare_beam_directory( Dir, last_position ) ->
 %
 % Throws an exception if at least one of the directories does not exist.
 %
--spec declare_beam_directories( [ file_utils:directory_name() ] ) ->
-									  basic_utils:void().
+-spec declare_beam_directories( code_path() ) -> void().
 declare_beam_directories( Dirs ) ->
 	declare_beam_directories( Dirs, first_position ).
 
@@ -310,8 +343,8 @@ declare_beam_directories( Dirs ) ->
 %
 % Throws an exception if at least one of the directories does not exist.
 %
--spec declare_beam_directories( [ file_utils:directory_name() ],
-			'first_position' | 'last_position' ) -> basic_utils:void().
+-spec declare_beam_directories( code_path(),
+					'first_position' | 'last_position' ) -> void().
 declare_beam_directories( Dirs, first_position ) ->
 	check_beam_dirs( Dirs ),
 	code:add_pathsa( Dirs );
@@ -347,7 +380,7 @@ check_beam_dirs( _Dirs=[ D | T ] ) ->
 % Returns a normalised, sorted list of directories in the current code path
 % (without duplicates).
 %
--spec get_code_path() -> [ file_utils:directory_name() ].
+-spec get_code_path() -> code_path().
 get_code_path() ->
 
 	NormalisedPaths =
@@ -357,8 +390,32 @@ get_code_path() ->
 
 
 
-% Lists all modules that exist in the current code path, based on the BEAM files
-% found.
+% Returns a textual representation of the current code path.
+%
+-spec get_code_path_as_string() -> string().
+get_code_path_as_string() ->
+
+	CodePath = get_code_path(),
+
+	text_utils:format( "current code path is:~s",
+					   [ text_utils:strings_to_string( CodePath ) ] ).
+
+
+
+% Returns a textual description of the specified code path.
+%
+-spec code_path_to_string( code_path() ) -> string().
+code_path_to_string( _CodePath=[] ) ->
+	% Initial space intended for caller-side consistency:
+	" empty code path";
+
+code_path_to_string( CodePath ) ->
+	text_utils:strings_to_enumerated_string( CodePath ).
+
+
+
+% Lists (in alphabetical order) all modules that exist in the current
+% code path, based on the BEAM files found.
 %
 -spec list_beams_in_path() -> [ basic_utils:module_name() ].
 list_beams_in_path() ->
@@ -366,9 +423,11 @@ list_beams_in_path() ->
 	% Directly inspired from:
 	% http://alind.io/post/5664209650/all-erlang-modules-in-the-code-path
 
-	[ list_to_atom( filename:basename( File, ?beam_extension ) )
-		|| Path <- code:get_path(),
-		   File <- filelib:wildcard( "*.beam", Path ) ].
+	Files = [ list_to_atom( filename:basename( File, ?beam_extension ) )
+			  || Path <- code:get_path(),
+				 File <- filelib:wildcard( "*.beam", Path ) ],
+
+	lists:sort( Files ).
 
 
 
@@ -418,10 +477,12 @@ is_beam_in_path( ModuleName ) when is_atom( ModuleName ) ->
 
 % Returns a "smart" textual representation of the current stacktrace.
 %
--spec interpret_stacktrace() -> string().
-interpret_stacktrace() ->
-	StackTrace = erlang:get_stacktrace(),
-	interpret_stacktrace( StackTrace ).
+% Note: disabled since Erlang 21.0 API change.
+%
+%-spec interpret_stacktrace() -> string().
+%interpret_stacktrace() ->
+%	StackTrace = erlang:get_stacktrace(),
+%	interpret_stacktrace( StackTrace ).
 
 
 % Returns a "smart" textual representation of specified stacktrace.

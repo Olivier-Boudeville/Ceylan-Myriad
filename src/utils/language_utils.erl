@@ -1,6 +1,6 @@
-% Copyright (C) 2017-2017 Olivier Boudeville
+% Copyright (C) 2017-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, July 12, 2008.
 
 
@@ -54,6 +54,7 @@
 
 
 % The PID of a Java virtual machine runtime container:
+% (ex: it can be a binding agent, otherwise directly a controller mbox)
 %
 -type java_vm_container_pid() :: runtime_container_pid().
 
@@ -66,7 +67,8 @@
 
 
 -export([ get_supported_foreign_languages/0, get_supported_languages/0,
-		  language_to_string/1, get_additional_beam_directories_for/1 ]).
+		  language_to_string/1, language_to_string/2,
+		  get_additional_beam_directories_for/1 ]).
 
 
 
@@ -90,19 +92,34 @@ get_supported_languages() ->
 % Returns a string describing the specified language.
 %
 -spec language_to_string( language() ) -> string().
-language_to_string( erlang ) ->
+language_to_string( Language ) ->
+	language_to_string( Language, _IndentationLevel=0 ).
+
+
+% Returns a string describing the specified language.
+%
+
+-spec language_to_string( language(), text_utils:indentation_level() ) ->
+								string().
+language_to_string( erlang, _IndentationLevel ) ->
 	"Erlang";
 
-language_to_string( python ) ->
+language_to_string( python, _IndentationLevel ) ->
 	"Python";
 
-language_to_string( java ) ->
+language_to_string( java, _IndentationLevel ) ->
 	"Java";
 
-language_to_string( Language ) when is_atom( Language ) ->
+language_to_string( Language, _IndentationLevel ) when is_atom( Language ) ->
 	throw( { unknown_language, Language } );
 
-language_to_string( LanguageInvalidArg ) ->
+language_to_string( { Language, CodePath }, IndentationLevel )
+  when is_atom( Language ) andalso is_list( CodePath ) ->
+	text_utils:format( "~s, with following code path:~s",
+		   [ language_to_string( Language ),
+			 text_utils:strings_to_string( CodePath, IndentationLevel+1 ) ] );
+
+language_to_string( LanguageInvalidArg, _IndentationLevel ) ->
 	throw( { invalid_language_specification, LanguageInvalidArg } ).
 
 

@@ -1,6 +1,6 @@
-COMMON_TOP = ..
+MYRIAD_TOP = ..
 
-MODULES_DIRS = data-management maths user-interface scripts utils
+MODULES_DIRS = data-management maths meta scripts user-interface utils apps
 
 
-include $(COMMON_TOP)/GNUmakesettings.inc
+include $(MYRIAD_TOP)/GNUmakesettings.inc
