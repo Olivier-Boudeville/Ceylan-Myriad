@@ -705,13 +705,6 @@ ERLANG_COMPILER_OPT_BASE += $(ERLANG_COMPILER_GENERAL_OPT) $(INC)        \
 #ERLANG_COMPILER_OPT_FOR_PT += $(ERLANG_COMPILER_OPT_BASE)
 
 
-# For all modules that are not parse transforms (hence that may be
-# parse-transformed):
-#
-#ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_OPT_BASE)
-
-
-
 # Conditionally defined so that upper layer may update these settings (ex:
 # adding pz directories):
 #
@@ -722,12 +715,6 @@ ifndef ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES
 			$(ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_STANDARD_MODULES)
 
 endif
-
-
-# To centralise all options but the parse transform trigger:
-#ERLANG_COMPILER_OPT_NO_PT = $(ERLANG_COMPILER_OPT)
-
-#ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT)
 
 
 # For the Java binding; expecting Java 8 or higher:

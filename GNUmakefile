@@ -125,7 +125,6 @@ info-paths:
 
 
 info-settings:
-	@echo "ERLANG_COMPILER_OPT = $(ERLANG_COMPILER_OPT)"
 	@echo "USE_HDF5   = $(USE_HDF5)"
 	@echo "USE_REST   = $(USE_REST)"
 	@echo "USE_SQLITE = $(USE_SQLITE)"
