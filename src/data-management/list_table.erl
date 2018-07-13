@@ -55,15 +55,16 @@
 %
 -export([ new/0, new/1, addEntry/3, addEntries/2,
 		  removeEntry/2, removeEntries/2,
-		  lookupEntry/2, hasEntry/2, getEntry/2,
+		  lookupEntry/2, hasEntry/2,
 		  extractEntry/2, extractEntryWithDefaults/3,
+		  getEntry/2, getValue/2,
 		  getValueWithDefaults/3, getValues/2, getAllValues/2,
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToExistingEntry/3, appendListToExistingEntry/3,
 		  appendToEntry/3, appendListToEntry/3,
 		  deleteFromEntry/3, popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
-		  isEmpty/1, size/1, getEntryCount/1,
+		  isEmpty/1, size/1,
 		  mapOnEntries/2, mapOnValues/2,
 		  foldOnEntries/3,
 		  merge/2, optimise/1, toString/1, toString/2, display/1, display/2 ]).
@@ -218,6 +219,8 @@ hasEntry( Key, Table ) ->
 % The key/value pair is expected to exist already, otherwise an exception is
 % raised.
 %
+% Note: could have been named as well getValue/2, which shall be preferred.
+%
 -spec getEntry( key(), list_table() ) -> value().
 getEntry( Key, Table ) ->
 
@@ -232,6 +235,20 @@ getEntry( Key, Table ) ->
 			throw( { key_not_found, Key } )
 
 	end.
+
+
+
+% Retrieves the value corresponding to specified (existing) key and returns it
+% directly.
+%
+% The key/value pair is expected to exist already, otherwise an exception is
+% raised.
+%
+% Note: defined for naming consistency of the API.
+%
+-spec getValue( key(), list_table() ) -> value().
+getValue( Key, Table ) ->
+	getEntry( Key, Table ).
 
 
 
@@ -668,11 +685,11 @@ selectEntries( _Keys=[ K | T ], Table, Acc ) ->
 
 
 
-% Returns a list containing all the keys of this table.
+% Returns a list containing all the keys of this table (with no duplicate).
 %
 -spec keys( list_table() ) -> [ key() ].
 keys( Table ) ->
-	[ K || { K, _V } <- Table ].
+	list_utils:uniquify( [ K || { K, _V } <- Table ] ).
 
 
 
@@ -697,7 +714,8 @@ isEmpty( _Table ) ->
 
 
 
-% Returns the size (number of entries) of this table.
+% Returns the size (number of entries, i.e. of key/value pairs) of the specified
+% table.
 %
 -spec size( list_table() ) -> entry_count().
 size( Table ) ->
@@ -705,21 +723,24 @@ size( Table ) ->
 
 
 
-% Returns the number of entries (key/value pairs) stored in the specified table.
-%
--spec getEntryCount( list_table() ) -> entry_count().
-getEntryCount( Table ) ->
-	length( Table ).
-
-
-
-% Optimises this table.
+% Optimises the specified table.
 %
 % Nothing to be done with this implementation.
 %
 -spec optimise( list_table() ) -> list_table().
 optimise( Table ) ->
 	Table.
+
+
+
+% Checks the specified table for correctness: returns whether all its top-level
+% keys are different, as expected.
+%
+%-spec check( list_table() ) -> list_table().
+%check( Table ) ->
+%
+% TO-DO: use a map_hashtable, associating to each key found a *list* of values.
+% Any key with more than one value is a duplicated one.
 
 
 

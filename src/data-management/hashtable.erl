@@ -101,7 +101,7 @@
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToEntry/3, deleteFromEntry/3, popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
-		  isEmpty/1, size/1, getEntryCount/1,
+		  isEmpty/1, size/1,
 		  mapOnEntries/2, mapOnValues/2,
 		  foldOnEntries/3,
 		  merge/2, optimise/1, toString/1, toString/2, display/1, display/2 ]).
@@ -864,8 +864,8 @@ is_empty( _Any ) ->
 	false.
 
 
-
-% Returns the size (number of entries) of this hashtable.
+% Returns the size (number of entries, i.e. of key/value pairs) of the specified
+% table.
 %
 -spec size( hashtable() ) -> entry_count().
 size( Hashtable ) ->
@@ -876,15 +876,6 @@ size( Hashtable ) ->
 				 _InitialAcc=0,
 				 _List=tuple_to_list( Hashtable )
 			   ).
-
-
-
-% Returns the number of entries (key/value pairs) stored in the specified
-% hashtable.
-%
--spec getEntryCount( hashtable() ) -> entry_count().
-getEntryCount( Hashtable ) ->
-	size( Hashtable ).
 
 
 
@@ -900,7 +891,7 @@ getEntryCount( Hashtable ) ->
 -spec optimise( hashtable() ) -> hashtable().
 optimise( Hashtable ) ->
 
-	% Like getEntryCount, but allows to re-use Entries:
+	% Like size/1, but allows to re-use Entries:
 	Entries = enumerate( Hashtable ),
 	EntryCount = length( Entries ),
 
@@ -998,7 +989,7 @@ toString( Hashtable, internal ) when tuple_size( Hashtable ) > 0 ->
 		end,
 
 		io_lib:format( "Hashtable with ~B bucket(s) and ~B entry(ies): ~n",
-			[ tuple_size( Hashtable ), hashtable:getEntryCount( Hashtable ) ] ),
+			[ tuple_size( Hashtable ), size( Hashtable ) ] ),
 
 		tuple_to_list( Hashtable ) );
 
