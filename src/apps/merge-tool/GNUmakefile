@@ -35,9 +35,6 @@ make-test-tree: clean-test-tree
 	@tree $(TEST_TREE)
 
 
-test: test-local
-
-
 test-local: test-local-scan
 
 
