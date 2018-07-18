@@ -116,7 +116,6 @@
 -type sha_sum() :: non_neg_integer().
 
 
-
 % Command-line managed like init:get_argument/1:
 
 
@@ -188,9 +187,8 @@ lookup_executable( ExecutableName ) ->
 % Finds specified executable program, whose name is specified as a string (ex:
 % "gcc") in the current user PATH.
 %
-% Returns an absolute filename of the executable program (ex: "/usr/bin/gcc")
-% or throws an exception {executable_not_found,ExecutableName} if ir was not
-% found.
+% Returns an absolute filename of the executable program (ex: "/usr/bin/gcc") or
+% throws an exception {executable_not_found,ExecutableName} if it was not found.
 %
 -spec find_executable( file_utils:file_name() ) -> file_utils:path().
 find_executable( ExecutableName ) ->
@@ -299,7 +297,7 @@ browse_images_in( DirectoryName ) ->
 -spec display_pdf_file( file_utils:path() ) -> void().
 display_pdf_file( PDFFilename ) ->
 	system_utils:run_background_executable( get_default_pdf_viewer_path()
-											++ " " ++ PDFFilename ).
+											 ++ " " ++ PDFFilename ).
 
 
 
@@ -545,7 +543,18 @@ get_default_wide_text_viewer_path( CharacterWidth ) ->
 % Could be also: nedit, gedit, etc.
 -spec get_default_trace_viewer_name() -> string().
 get_default_trace_viewer_name() ->
-	"logmx.sh".
+
+	case system_utils:has_graphical_output() of
+
+		true ->
+			find_executable( "logmx.sh" );
+
+		false ->
+			% Poor's man solution:
+			"/bin/cat"
+
+	end.
+
 
 
 % Returns an absolute path to the default trace viewer tool.

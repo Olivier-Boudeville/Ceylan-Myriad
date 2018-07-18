@@ -25,7 +25,7 @@ PROJECT_CSS := pygments-default.css,myriad.css
 WEB_CONTENT = *.html *.css *.png *.pdf
 
 # Read from the user's environment:
-GITHUB_PAGES_BASE := $(shell basename $(MYRIAD_WEB_MIRROR_BRANCH))
+GITHUB_PAGES_BASE := $(shell basename "$(MYRIAD_WEB_MIRROR_BRANCH)")
 
 
 OVERALL_DOCUMENT_SOURCE = $(DOC_BASE_NAME).rst

@@ -155,21 +155,47 @@ get_script_base_directory() ->
 
 % (helper)
 %
-get_myriad_path_from( _Paths=[] ) ->
-	throw( unable_to_determine_myriad_root );
+get_myriad_path_from( CodePath ) ->
 
-get_myriad_path_from( [ Path | T ] ) ->
+	% Two base directories are licit for Myriad, a reference one and a
+	% shorthand:
+	%
+	case get_myriad_path_from( CodePath, "Ceylan-Myriad" ) of
 
-	LayerName = "Ceylan-Myriad",
+		undefined ->
 
-	case string:split( Path, LayerName ) of
+			case get_myriad_path_from( CodePath, "myriad" ) of
+
+				undefined ->
+					throw( unable_to_determine_myriad_root );
+
+				Path ->
+					Path
+
+			end;
+
+		Path ->
+			Path
+
+	end.
+
+
+
+get_myriad_path_from( _Paths=[], _BaseDirName ) ->
+	undefined;
+
+get_myriad_path_from( [ Path | T ], BaseDirName ) ->
+
+
+	case string:split( Path, BaseDirName ) of
 
 		[ Prefix, _Suffix ] ->
-			file_utils:join( Prefix, LayerName );
+			% Just the full path to the root wanted:
+			file_utils:join( Prefix, BaseDirName );
 
 		% Layer name not found:
 		_ ->
-			get_myriad_path_from( T )
+			get_myriad_path_from( T, BaseDirName )
 
 	end.
 

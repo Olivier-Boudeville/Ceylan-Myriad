@@ -118,6 +118,11 @@
 -type error_reason() :: reason().
 
 
+% When we know it is an atom:
+-type error_type() :: atom().
+
+
+
 % Error term:
 -type error_term() :: { 'error', error_reason() }.
 
@@ -215,7 +220,8 @@
 
 
 -export_type([ void/0, count/0, non_null_count/0, bit_mask/0,
-			   reason/0, exit_reason/0, error_reason/0, error_term/0,
+			   reason/0, exit_reason/0,
+			   error_reason/0, error_term/0, error_type/0,
 			   base_status/0, maybe/1,
 			   external_data/0, unchecked_data/0, user_data/0,
 			   accumulator/0,

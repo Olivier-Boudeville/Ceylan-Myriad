@@ -22,8 +22,9 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Authors: Jingxuan Ma (jingxuan.ma@edf.fr)
-%          Olivier Boudeville (olivier.boudeville@esperide.com)
+% Authors: Jingxuan Ma [jingxuan (dot) ma (at) edf (dot) fr]
+%          Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+
 
 % Tests for comparing and illustrating the differences of following types of
 % hashtables:
@@ -32,7 +33,7 @@
 % - tracked hashtable
 % - lazy hashtable
 % - map hashtable
-% - list hashtable
+% - list table
 %
 % See also hashtable.erl, tracked_hashtable.erl, lazy_hashtable.erl,
 % map_hashtable.erl, list_table.erl and their respective test modules.

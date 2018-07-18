@@ -125,7 +125,8 @@
 
 
 -export([ is_iri/1, is_literal/1, is_subject/1, is_predicate/1, is_object/1,
-		  evaluate_statement/3, implies/2, vocabulary_to_string/1 ]).
+		  evaluate_statement/3, implies/2,
+		  vocabulary_to_string/1, vocabulary_to_string/2 ]).
 
 
 
@@ -196,15 +197,29 @@ implies( FirstVocabulary, SecondVocabulary ) ->
 %
 -spec vocabulary_to_string( vocabulary() ) -> string().
 vocabulary_to_string( Vocabulary ) ->
+	vocabulary_to_string( Vocabulary, _IndentationLevel=0 ).
+
+
+
+% Returns a textual representation of specified vocabulary, with specified
+% indentation level.
+%
+-spec vocabulary_to_string( vocabulary(), text_utils:indentation_level() ) ->
+								  string().
+vocabulary_to_string( Vocabulary, IndentationLevel ) ->
 
 	case set_utils:to_list( Vocabulary ) of
 
 		[] ->
 			"an empty vocabulary";
 
+		[ Elem ] ->
+			text_utils:format( "a vocabulary comprising a single term, '~s'",
+							   [ Elem ] );
+
 		SemList ->
 
-			SemString = text_utils:binaries_to_string( SemList ),
+			SemString = text_utils:binaries_to_string( SemList, IndentationLevel ),
 			text_utils:format( "a vocabulary comprising ~B terms:~s",
 							   [ length( SemList ), SemString ] )
 

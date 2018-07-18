@@ -340,9 +340,9 @@ server_main_run( SpawnerPid, RegistrationName, FileName ) ->
 %
 server_main_loop( Table ) ->
 
-	%io:format( "Waiting for preferences-related request, "
+	%trace_utils:debug_fmt( "Waiting for preferences-related request, "
 	%			"having ~B recorded preferences.~n",
-	%			[ table:getEntryCount( Table ) ] ),
+	%			[ table:size( Table ) ] ),
 
 	receive
 

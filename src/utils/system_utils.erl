@@ -82,7 +82,7 @@
 		  compute_detailed_cpu_usage/2, get_cpu_usage_counters/0,
 
 		  get_disk_usage/0, get_disk_usage_string/0,
-		  get_mount_points/0, has_graphical_output/0,
+		  get_mount_points/0,
 		  get_known_pseudo_filesystems/0, get_filesystem_info/1,
 		  filesystem_info_to_string/1,
 
@@ -90,7 +90,9 @@
 
 		  get_operating_system_description/0,
 		  get_operating_system_description_string/0,
-		  get_system_description/0 ]).
+		  get_system_description/0,
+
+		  has_graphical_output/0 ]).
 
 
 % Prerequisite-related section.
@@ -2015,12 +2017,6 @@ get_mount_points() ->
 
 
 
-% To integrate:
-has_graphical_output() ->
-	false.
-
-
-
 % (helper for df)
 %
 get_exclude_pseudo_fs_opt() ->
@@ -2288,6 +2284,24 @@ get_system_description() ->
 
 
 
+% Tells whether this host has graphical output (typically a running X server).
+%
+-spec has_graphical_output() -> boolean().
+has_graphical_output() ->
+
+	% Currently relying on this X-related variable:
+	case get_environment_variable( "DISPLAY" ) of
+
+		false ->
+			false;
+
+		_ ->
+			true
+
+	end.
+
+
+
 % Prerequisite section.
 
 % We suppose that by default all third-party dependencies (example taken here:
@@ -2343,7 +2357,7 @@ get_dependency_base_directory( PackageName="ErlPort" ) ->
 			DefaultDir = file_utils:normalise_path(
 						   file_utils:join( PathComponents ) ),
 
-			case file_utils:is_existing_directory( DefaultDir ) of
+			case file_utils:is_existing_directory_or_link( DefaultDir ) of
 
 				true ->
 					trace_utils:debug_fmt( "Using default Erlport directory '~s'.",
@@ -2365,7 +2379,7 @@ get_dependency_base_directory( PackageName="ErlPort" ) ->
 			case filename:basename( EnvDir ) of
 
 				"erlport" ->
-					case file_utils:is_existing_directory( EnvDir ) of
+					case file_utils:is_existing_directory_or_link( EnvDir ) of
 
 						true ->
 							trace_utils:debug_fmt( "Using the Erlport directory "

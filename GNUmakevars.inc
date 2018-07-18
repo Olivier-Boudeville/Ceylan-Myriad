@@ -11,7 +11,6 @@ endif
 
 
 MYRIAD_VERSION := 0.1
-COMMON_VERSION := $(MYRIAD_VERSION)
 
 
 # PROJECT_VERSION should be defined on a per-project basis.
@@ -28,6 +27,11 @@ endif
 ifndef PACKAGE_TOP
 	PACKAGE_TOP := $(MYRIAD_TOP)
 endif
+
+
+# Needed, exactly as is (make trick to specify space as a parameter):
+space :=
+space +=
 
 
 ARCHIVE_ROOT := $$HOME/Archives/$(PROJECT_NAME)
@@ -297,7 +301,10 @@ ifeq ($(USE_JAVA_BINDING),true)
   #
   JINTERFACE_ROOT = $(ERLANG_ROOT)/lib/erlang/jinterface
 
-  CLASSPATH_OPT = -classpath $(JINTERFACE_ROOT)/priv/OtpErlang.jar
+  CLASSPATH_DIRS += $(JINTERFACE_ROOT)/priv/OtpErlang.jar .
+
+  # We need to have all specified paths separated with ':':
+  CLASSPATH_OPT = -classpath $(subst $(space),:,$(strip $(CLASSPATH_DIRS)))
 
   JAVAC_OPT = $(CLASSPATH_OPT)
 
@@ -543,6 +550,7 @@ ifndef BOOTSTRAP_MODULES
 	META_SRC_FILES = $(wildcard $(MYRIAD_TOP)/src/meta/*.erl)
 
 	EXCLUDED_FROM_BOOTSTRAPPED_META = \
+				$(MYRIAD_TOP)/src/meta/myriad_parse_transform.erl        \
 				$(MYRIAD_TOP)/src/meta/myriad_parse_transform_test.erl   \
 				$(MYRIAD_TOP)/src/meta/example_parse_transform.erl       \
 				$(MYRIAD_TOP)/src/meta/minimal_parse_transform_test.erl  \
@@ -612,7 +620,7 @@ ERLANG_COMPILER_GENERAL_OPT += -b beam $(DEBUG_INFO_KEY_OPT)
 # Variable defined to be re-usable by upper layers, so that compiling their own
 # parse transforms can take advantage of the Myriad one:
 #
-ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD = \
+ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD =                \
 					-pz $(MYRIAD_TOP)/src/utils                 \
 					-pz $(MYRIAD_TOP)/src/meta                  \
 					-pz $(MYRIAD_TOP)/src/data-management       \
@@ -630,7 +638,7 @@ ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD = \
 # their own parse transforms *instead* (probably that will call directly, by
 # themselves, at the Erlang level, this 'Myriad' parse transform):
 #
-ifndef ERLANG_COMPILER_PARSE_TRANSFORM_OPT
+#ifndef ERLANG_COMPILER_PARSE_TRANSFORM_OPT
 
 	   # We need src/{utils,meta,data-management} in the path, as the 'Myriad'
 	   # parse transform uses meta modules that use map_hashtable (which is thus
@@ -642,7 +650,16 @@ ifndef ERLANG_COMPILER_PARSE_TRANSFORM_OPT
 	   # directly or not, a non-existing code (typically a function of a module
 	   # to be built later)
 
-	   ERLANG_COMPILER_PARSE_TRANSFORM_OPT = $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD)
+	   #ERLANG_COMPILER_PARSE_TRANSFORM_OPT = \
+		#	$(ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD)
+
+#endif
+
+
+ifndef ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_STANDARD_MODULES
+
+	   ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_STANDARD_MODULES = \
+			$(ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD)
 
 endif
 
@@ -675,7 +692,7 @@ ERLANG_COMPILER_WARNING_OPT += -W$(WARNING_LEVEL) +warn_export_all \
 #
 # Instead 'export ERL_COMPILER_OPTIONS=bin_opt_info' shall be punctually used.
 #
-ERLANG_COMPILER_OPT_BASE += $(ERLANG_COMPILER_GENERAL_OPT) $(INC)           \
+ERLANG_COMPILER_OPT_BASE += $(ERLANG_COMPILER_GENERAL_OPT) $(INC)        \
 	$(ERLANG_COMPILER_EXEC_TARGET_OPT) $(ERLANG_COMPILER_DEBUG_OPT)      \
 	$(ERLANG_COMPILER_NATIVE_COMPILATION_OPT)                            \
 	$(ERLANG_COMPILER_WARNING_OPT)                                       \
@@ -685,18 +702,32 @@ ERLANG_COMPILER_OPT_BASE += $(ERLANG_COMPILER_GENERAL_OPT) $(INC)           \
 # Base options to compile parse transforms themselves (and their helper
 # modules):
 #
-ERLANG_COMPILER_OPT_FOR_PT += $(ERLANG_COMPILER_OPT_BASE)
+#ERLANG_COMPILER_OPT_FOR_PT += $(ERLANG_COMPILER_OPT_BASE)
 
 
 # For all modules that are not parse transforms (hence that may be
 # parse-transformed):
 #
-ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_OPT_BASE)
+#ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_OPT_BASE)
+
+
+
+# Conditionally defined so that upper layer may update these settings (ex:
+# adding pz directories):
+#
+ifndef ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES
+
+	ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES =                          \
+			$(ERLANG_COMPILER_OPT_BASE)                                 \
+			$(ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_STANDARD_MODULES)
+
+endif
+
 
 # To centralise all options but the parse transform trigger:
-ERLANG_COMPILER_OPT_NO_PT = $(ERLANG_COMPILER_OPT)
+#ERLANG_COMPILER_OPT_NO_PT = $(ERLANG_COMPILER_OPT)
 
-ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT)
+#ERLANG_COMPILER_OPT += $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT)
 
 
 # For the Java binding; expecting Java 8 or higher:
@@ -718,7 +749,7 @@ JAVA := $$(which java)
 #
 # (note: variable generally not used, as using the ERL_LAUNCHER script instead)
 #
-ERLANG_INTERPRETER_OPT = -pz $(BEAM_DIRS) $(DISTRIBUTED_NODE_OPT)
+#ERLANG_INTERPRETER_OPT = -pz $(BEAM_DIRS) $(DISTRIBUTED_NODE_OPT)
 
 
 
@@ -776,7 +807,7 @@ endif
 # further loading of a user-defined module, for example if used then for the
 # first time, would fail).
 BEAM_PATH_OPT := $(foreach dir,$(BEAM_DIRS),--beam-dir $$(pwd)/$(dir)) \
-				$(foreach dir,$(ABS_BEAM_DIRS),--beam-dir $(dir))
+				 $(foreach dir,$(ABS_BEAM_DIRS),--beam-dir $(dir))
 
 
 OVERALL_PZ_OPT := $(foreach dir,$(BEAM_DIRS),-pz $(dir))

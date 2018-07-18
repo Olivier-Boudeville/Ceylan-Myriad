@@ -96,7 +96,7 @@ update_code_path_for_myriad_from_module() ->
 %
 % (original version located in script_utils.erl, copied verbatim here)
 %
--spec update_code_path_for_myriad( file_utils:directory_name() ) -> 
+-spec update_code_path_for_myriad( file_utils:directory_name() ) ->
 										 basic_utils:void().
 update_code_path_for_myriad( MyriadRootDir ) ->
 

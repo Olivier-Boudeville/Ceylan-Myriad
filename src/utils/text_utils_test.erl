@@ -99,6 +99,18 @@ run() ->
 		[ ListOfStrings, text_utils:strings_to_string( ListOfStrings ) ] ),
 
 
+	NestedStrings = [ [ "A1" ] ],
+	%NestedStrings = [ [ "A1", "A2", "A3" ], [ "B1" ], [ "C1", "C2" ], [ "D1" ] ],
+
+	Strings = [ text_utils:format( "blah: ~s",
+				 [ text_utils:strings_to_string( N, _IndentationLevel=1 ) ] )
+				|| N <- NestedStrings ],
+
+	% Emulating the way it is used in practice:
+	test_facilities:display( "Displaying nested strings:~s and continuing.",
+		[ text_utils:strings_to_string( Strings ) ] ),
+
+
 	LongLine = "This is a long line to test the paragraph formatting.",
 
 	% So that "formatting." has a chance to fit:
@@ -274,6 +286,12 @@ run() ->
 			  [ text_utils:strings_to_string( OtherStringList ),
 				text_utils:strings_to_atoms( OtherStringList ) ] ),
 
+	Colors = [ red, blue, green ],
+
+	ListedColors = "red, blue and green" =
+		text_utils:atoms_to_listed_string( Colors ),
+
+	test_facilities:display( "Listing ~p: '~s'.", [ Colors, ListedColors ] ),
 
 	RefString = "Hello world",
 
@@ -398,5 +416,9 @@ run() ->
 
 	"I am a lonesome cow" = text_utils:remove_last_characters(
 							  WesternText, RemovalCount ),
+
+	false = text_utils:is_list_of_binaries( [ "Foo", "Bar" ] ),
+
+	true = text_utils:is_list_of_binaries( [ <<"Foo">>, <<"Bar">> ] ),
 
 	test_facilities:stop().

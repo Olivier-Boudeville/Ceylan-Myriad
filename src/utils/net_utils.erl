@@ -22,8 +22,8 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Authors: Olivier Boudeville (olivier.boudeville@esperide.com)
-%		   Samuel Thiriot (samuel.thiriot@edf.fr)
+% Authors: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+%		   Samuel Thiriot [samuel (dot) thiriot (at) edf (dot) fr]
 %
 % Creation date: July 1, 2007.
 
@@ -894,7 +894,7 @@ enable_distribution( NodeName, NamingMode=short_name )
 enable_distribution_helper( NodeName, NameType, NamingMode,
 							RemainingAttempts ) ->
 
-	%io:format( "Starting distribution for node name ~s, as '~w'.~n",
+	%trace_utils:debug_fmt( "Starting distribution for node name ~s, as '~w'.",
 	%		   [ NodeName, NameType ] ),
 
 	case net_kernel:start( [ NodeName, NameType ] ) of
@@ -921,9 +921,9 @@ enable_distribution_helper( NodeName, NameType, NamingMode,
 							 ExtraReason } );
 
 				N ->
-					io:format( "(attempt of enabling ~p distribution for "
-							   "node '~s' failed, retrying...)~n",
-							   [ NamingMode, NodeName ] ),
+					trace_utils:trace_fmt( "(attempt of enabling ~p distribution "
+										   "for node '~s' failed, retrying...)",
+										   [ NamingMode, NodeName ] ),
 					timer:sleep( 300 ),
 					enable_distribution_helper( NodeName, NameType, NamingMode,
 												N - 1 )

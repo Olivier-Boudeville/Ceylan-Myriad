@@ -173,7 +173,12 @@ report_error( { Context, Error } ) ->
 %
 -spec context_to_string( ast_scan:scan_context() ) -> string().
 context_to_string( { Filename, Line } ) ->
+
 	% Respects the standard formatting:
+	%
+	% (note: using file_utils:normalise_path/1 would suppose file_utils is
+	% already built...)
+	%
 	text_utils:format( "~s:~B", [ Filename, Line ] ).
 
 
@@ -595,7 +600,7 @@ scan_forms( [ Form={ 'attribute', _Line, AttributeName='asm',
 	LocForm = { NextLocation, Form },
 
 	% Expected once:
-	scan_forms( T, M#module_info{ parse_attributes=?table:addNewEntry(
+	scan_forms( T, M#module_info{ parse_attributes=?table:appendToEntry(
 					   AttributeName, { _AttributeValue=Def, LocForm },
 					   ParseAttributeTable ) },
 				id_utils:get_next_sortable_id( NextLocation ),
@@ -771,8 +776,8 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 				CurrentFileReference );
 
 
-% 7.1.11: Other, "wild" parse attributes: this section comes later, so that it
-% matches only if none of the other attribute-related ones (such as for
+% 7.1.11: Other, "wild" parse attributes: this section will come later, so that
+% it matches only if none of the other attribute-related ones (such as for
 % 'export_type') matched.
 
 
@@ -880,8 +885,8 @@ scan_forms( [ Form={ 'attribute', Line, AttributeName, AttributeValue } | T ],
 
 	LocForm = { NextLocation, Form },
 
-	% We want to detect if a wild attribute is defined more than once:
-	NewParseAttributeTable = ?table:addNewEntry( AttributeName,
+	% As a wild attribute may be defined more than once:
+	NewParseAttributeTable = ?table:appendToEntry( AttributeName,
 					   { AttributeValue, LocForm }, ParseAttributeTable ),
 
 	scan_forms( T, M#module_info{ parse_attributes=NewParseAttributeTable },

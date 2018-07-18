@@ -60,8 +60,7 @@ JAVA_FILES = $(wildcard *.java)
 # Java class (bytecode) files:
 ifeq ($(USE_JAVA_BINDING),true)
 
-	 #JAVA_CLASS_FILES = $(patsubst %.java,%.class,$(JAVA_FILES))
-	 JAVA_CLASS_FILES =
+	 JAVA_CLASS_FILES = $(patsubst %.java,%.class,$(JAVA_FILES))
 
 endif
 
@@ -126,11 +125,12 @@ endif
 # Defining the BASE_MAKEFILE variable in top makefiles allows to define a
 # specific (parallel) 'all' rule for them, while other makefiles just recurse
 # accordingly:
+#
 ifeq ($(BASE_MAKEFILE),true)
 
 # CORE_COUNT defined in myriad/GNUmakevars.inc:
 all: all-pre-hook all-parse-transforms
-	@echo "   Building all, in parallel over $(CORE_COUNT) core(s), from "$(PWD) #$$(basename $(PWD))
+	@echo "   Building all, in parallel over $(CORE_COUNT) core(s), from $(PWD)"
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m &&  \
 		$(MAKE) -s all-recurse -j $(CORE_COUNT) && cd .. ; else echo "     (directory $$m skipped)" ; \
 	fi ) ; then exit 1; fi ; done
@@ -204,6 +204,7 @@ all-recurse: $(BEAM_FILES)
 #
 %_parse_transform.beam: %_parse_transform.erl
 	@echo "		Compiling parse transform $<"
+	@#echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $@ $<
 	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $@ $<
 
 
@@ -277,13 +278,15 @@ $(MYRIAD_TOP)/src/data-management/map_hashtable.beam: $(MYRIAD_TOP)/src/data-man
 
 %.beam: %.erl %.hrl
 	@echo "		Compiling module with header $<"
-	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT) -o $@ $<
+	@#echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
+	$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
 
 
 # The main, most usual rule:
 %.beam: %.erl
 	@echo "		Compiling module $<"
-	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT) -o $@ $<
+	@#echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
+	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
 
 
 

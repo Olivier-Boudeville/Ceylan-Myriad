@@ -63,7 +63,7 @@
 
 
 % The name of a Python class, according to the PEP8:
--type pep8_class_name() :: atom().
+-type pep8_classname() :: atom().
 
 
 % The name of a Python module, according to the PEP8:
@@ -71,7 +71,7 @@
 
 
 -export_type([ interpreter_pid/0, title/0, body/0, result/0,
-			   pep8_class_name/0, pep8_class_module/0 ]).
+			   pep8_classname/0, pep8_class_module/0 ]).
 
 
 
@@ -173,18 +173,18 @@ wait_for_request_result( InterpreterPid, MessageTitle )
 % Ex: 'Partner__TransportModel__MyFoobarExample' resulting in
 % 'partner.transport_model.my_foobar_example'.
 %
--spec pep8_class_to_pep8_module( pep8_class_name() | string() ) ->
+-spec pep8_class_to_pep8_module( pep8_classname() | string() ) ->
 									   pep8_class_module().
-pep8_class_to_pep8_module( ClassName ) when is_atom( ClassName ) ->
-	pep8_class_to_pep8_module( text_utils:atom_to_string( ClassName ) );
+pep8_class_to_pep8_module( Classname ) when is_atom( Classname ) ->
+	pep8_class_to_pep8_module( text_utils:atom_to_string( Classname ) );
 
-pep8_class_to_pep8_module( ClassNameString ) ->
+pep8_class_to_pep8_module( ClassnameString ) ->
 
 	% Splits the classname on "__", so that for example
 	% "Partner__TransportModel__MyFoobarExample" becomes
 	% [ "Partner", "TransportModel", "MyFoobarExample" ]:
 	%
-	TokensCamel = string:split( ClassNameString, _Pattern="__",
+	TokensCamel = string:split( ClassnameString, _Pattern="__",
 								_Where=all ),
 
 	% All of them will be switched from CamelCase to snake_case, so:

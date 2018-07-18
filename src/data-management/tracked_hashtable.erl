@@ -83,7 +83,7 @@
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToEntry/3, deleteFromEntry/3, popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
-		  isEmpty/1, size/1, getEntryCount/1,
+		  isEmpty/1, size/1,
 		  mapOnEntries/2, mapOnValues/2,
 		  foldOnEntries/3,
 		  merge/2, optimise/1, toString/1, toString/2, display/1, display/2 ]).
@@ -651,19 +651,12 @@ isEmpty( _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 
 
 
-% Returns the size (number of entries) of this hashtable.
+% Returns the size (number of entries, i.e. of key/value pairs) of the specified
+% table.
 %
 -spec size( tracked_hashtable() ) -> hashtable:entry_count().
 size( _TrackedHashTable={ _Hashtable, NEntries, _NBuckets } ) ->
 	NEntries.
-
-
-
-% Returns the number of entries (key/value pairs) stored in the specified
-% tracked hashtable.
--spec getEntryCount( tracked_hashtable() ) -> hashtable:entry_count().
-getEntryCount( TrackedHashtable  ) ->
-	size( TrackedHashtable ).
 
 
 
