@@ -37,4 +37,4 @@ echo
 # DUMMY to force the display of the corresponding file.
 # '{type}', not '{type}()', so that partial type names can still be found.
 #
-cd ${base_dir} && find . -name '*.?rl' -exec /bin/grep --color -e "[[:space:]]\?-type[[:space:]]\+${type}" DUMMY '{}' ';' 2>/dev/null
+cd ${base_dir} && find . -name '*.?rl' -exec /bin/grep --after-context=4 --color -e "[[:space:]]\?-type[[:space:]]\+${type}" DUMMY '{}' ';' 2>/dev/null

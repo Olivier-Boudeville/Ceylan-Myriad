@@ -40,4 +40,4 @@ context_opt=""
 
 # DUMMY to force the display of the corresponding file.
 #
-cd ${base_dir} && find . -name '*.?rl' -exec /bin/grep --color ${context_opt} -e "[[:space:]]\?-record([[:space:]]\+${record_name}" DUMMY '{}' ';' 2>/dev/null
+cd ${base_dir} && find . -name '*.?rl' -exec /bin/grep --after-context=50 --color ${context_opt} -e "[[:space:]]\?-record([[:space:]]\+${record_name}" DUMMY '{}' ';' 2>/dev/null
