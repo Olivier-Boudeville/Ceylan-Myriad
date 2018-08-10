@@ -24,7 +24,7 @@
 
 % Creation date: Tuesday, December 23, 2014
 
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 

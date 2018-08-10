@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
 
@@ -213,7 +213,7 @@ is_set( Term ) ->
 
 % Ensures that the specified term is a set, throws an exception if not.
 %
--spec check_set( term() ) -> basic_utils:void().
+-spec check_set( term() ) -> void().
 check_set( Term ) ->
 	case is_set( Term ) of
 

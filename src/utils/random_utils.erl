@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
 
@@ -104,15 +104,15 @@
 						 -> random_state().
 
 -spec start_random_source( 'default_seed' | 'time_based_seed' | seed() ) ->
-								 basic_utils:void().
+								 void().
 
 
 -spec can_be_seeded() -> boolean().
 
 -spec reset_random_source( 'default_seed' | 'time_based_seed' | seed() ) ->
-								 basic_utils:void().
+								 void().
 
--spec stop_random_source() -> basic_utils:void().
+-spec stop_random_source() -> void().
 
 
 -spec get_random_value() -> float().
@@ -123,8 +123,8 @@
 
 -spec get_uniform_floating_point_value( number() ) -> float().
 
--spec get_random_state() -> random_state() | 'undefined'.
--spec set_random_state( random_state() ) -> basic_utils:void().
+-spec get_random_state() -> maybe( random_state() ).
+-spec set_random_state( random_state() ) -> void().
 
 
 % Generates a list of Count elements uniformly drawn in [ 1, N ].
@@ -579,8 +579,8 @@ get_random_seed() ->
 %
 % Ex: { 0, 0, 0 } does not yield a correct random series.
 %
--spec check_random_seed( seed() ) -> basic_utils:void().
-check_random_seed( { A, B, C } )  when is_integer( A ) andalso is_integer( B )
+-spec check_random_seed( seed() ) -> void().
+check_random_seed( { A, B, C } ) when is_integer( A ) andalso is_integer( B )
 			andalso is_integer( C ) andalso A > 0 andalso B > 0 andalso C > 0 ->
 	ok;
 

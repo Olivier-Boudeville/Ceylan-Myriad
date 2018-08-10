@@ -22,15 +22,15 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 % Test for the 'table' pseudo-module.
 %
-% The 'Common' parse transform is expected to replace at compilation time calls
+% The 'Myriad' parse transform is expected to replace at compilation time calls
 % to this table by calls to the current reference implementation.
 %
-% See the common_parse_transform.erl module.
+% See the myriad_parse_transform.erl module.
 %
 -module(table_test).
 

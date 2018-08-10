@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, December 24, 2017.
 
 
@@ -61,7 +61,8 @@
 -define( upper_bound_id, <<"Max">> ).
 
 
-% Corresponds to smart (sortable, insertion-friendly) identifiers.
+% Corresponds to smart (sortable, insertion-friendly) identifiers, typically
+% represented as {1}, {2}, {2,1}, {4}, etc.
 %
 % Sometimes identifiers that can be sorted and that allow introducing any number
 % of new identifiers between any two successive ones are needed.
@@ -92,6 +93,7 @@
 %
 % Not accepted: -type sortable_id() :: [ non_neg_integer() ]
 %                                    | ?lower_bound_id | ?upper_bound_id.
+%
 % To include bounds:
 -type sortable_id() :: [ integer() ] | bitstring().
 
@@ -105,7 +107,7 @@
 		  check_sortable_id/1, get_successor_sortable_id/1,
 		  get_higher_same_depth_sortable_id/1,
 		  get_higher_next_depth_sortable_id/1,
-		  sortable_id_to_string/1 ]).
+		  sortable_id_to_string/1, sortable_ids_to_string/1 ]).
 
 
 
@@ -396,7 +398,7 @@ get_higher_next_depth_sortable_id( SortId ) ->
 
 % Returns a textual representation of specified sortable identifier.
 %
--spec sortable_id_to_string( sortable_id() ) -> text_utils:string().
+-spec sortable_id_to_string( sortable_id() ) -> text_utils:ustring().
 sortable_id_to_string( _Id=?lower_bound_id ) ->
 	"sortable identifier lower bound";
 
@@ -406,3 +408,15 @@ sortable_id_to_string( _Id=?upper_bound_id ) ->
 sortable_id_to_string( Id ) ->
 	% Better represented as tuple:
 	text_utils:format( "~w", [ list_to_tuple( Id ) ] ).
+
+
+
+% Returns a textual representation of specified sortable identifiers.
+%
+-spec sortable_ids_to_string( [ sortable_id() ] ) -> text_utils:ustring().
+sortable_ids_to_string( _Ids=[] ) ->
+	"(no sortable id)";
+
+sortable_ids_to_string( Ids ) ->
+	text_utils:strings_to_listed_string(
+	  [ sortable_id_to_string( Id ) || Id <- Ids ] ).

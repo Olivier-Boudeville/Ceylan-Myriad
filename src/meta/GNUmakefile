@@ -1,6 +1,6 @@
-COMMON_TOP = ../..
+MYRIAD_TOP = ../..
 
 # So that it remains the default target:
 all:
 
-include $(COMMON_TOP)/GNUmakesettings.inc
+include $(MYRIAD_TOP)/GNUmakesettings.inc

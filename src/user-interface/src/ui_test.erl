@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 % Unit tests for the ui toolbox.
@@ -36,11 +36,34 @@
 -include("test_facilities.hrl").
 
 
+
+% The actual test:
+run_test_ui() ->
+
+	test_facilities:display( "Testing the ui services." ),
+
+	ui:start(),
+
+	ui:display( "The UI service greets you." ),
+
+	ui:stop().
+
+
+
 -spec run() -> no_return().
 run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	ui:start(),
+	case executable_utils:is_batch() of
+
+		true ->
+			test_facilities:display( "(not running the ui test, "
+									 "being in batch mode)" );
+
+		false ->
+			run_test_ui()
+
+	end,
 
 	test_facilities:stop().

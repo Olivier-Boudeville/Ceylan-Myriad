@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
 
@@ -83,7 +83,7 @@
 %
 % Throws an exception on failure (ex: if that name is already registered).
 %
--spec register_as( registration_name(), registration_scope() ) -> basic_utils:void().
+-spec register_as( registration_name(), registration_scope() ) -> void().
 register_as( Name, RegistrationType ) ->
 	register_as( self(), Name, RegistrationType ).
 
@@ -97,8 +97,7 @@ register_as( Name, RegistrationType ) ->
 %
 % Throws an exception on failure.
 %
--spec register_as( pid(), registration_name(), registration_scope() ) ->
-						 basic_utils:void().
+-spec register_as( pid(), registration_name(), registration_scope() ) -> void().
 register_as( Pid, Name, local_only ) when is_atom( Name ) ->
 
 	%trace_utils:debug_fmt( "register_as: local_only, "
@@ -217,7 +216,7 @@ register_or_return_registered( Name, Scope ) when is_atom( Name ) ->
 %
 % Throws an exception in case of failure.
 %
--spec unregister( registration_name(), registration_scope() ) -> basic_utils:void().
+-spec unregister( registration_name(), registration_scope() ) -> void().
 unregister( Name, local_only ) ->
 
 	try erlang:unregister( Name ) of
@@ -533,7 +532,7 @@ wait_for_local_registration_of( Name, SecondsToWait ) ->
 % A time-out is triggered if the waited duration exceeds 10 seconds.
 %
 -spec wait_for_remote_local_registrations_of( registration_name(),
-				 [ net_utils:atom_node_name() ] ) -> basic_utils:void().
+				 [ net_utils:atom_node_name() ] ) -> void().
 wait_for_remote_local_registrations_of( RegisteredName, Nodes ) ->
 
 	% Up to 10 seconds, 0.5 seconds of waiting between two, thus 20 attempts:
@@ -590,7 +589,7 @@ wait_for_remote_local_registrations_of( RegisteredName, Nodes,
 
 % Displays registered processes.
 %
--spec display_registered() -> basic_utils:void().
+-spec display_registered() -> void().
 display_registered() ->
 
 	io:format( "On a total of ~B existing processes on node '~s':~n",

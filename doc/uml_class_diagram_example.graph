@@ -1,5 +1,6 @@
-# UML class diagram for the 'Common' layer, to be used by the Graphviz (dot)
-# tool (see http://www.graphviz.org/).
+# UML class diagram for the 'Myriad' layer, to be used by the Graphviz (dot)
+# tool (see http://www.graphviz.org/). Note that PlantUML could (maybe should)
+# be used instead.
 
 # Created by Olivier Boudeville on Wednesday, October 24, 2012.
 

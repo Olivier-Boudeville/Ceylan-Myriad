@@ -1,6 +1,8 @@
 #!/bin/sh
 
-# Copyright (C) 2009-2017 Olivier Boudeville
+# Copyright (C) 2009-2018 Olivier Boudeville
+#
+# Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 #
 # This file is part of the Ceylan-Myriad project.
 
@@ -9,12 +11,12 @@ LANG=C; export LANG
 
 
 # Current stable:
-erlang_version="20.2"
-erlang_md5="429f126fd3e1e29a1eb1be2f8a15dc90"
+erlang_version="21.0"
+erlang_md5="350988f024f88e9839c3715b35e7e27a"
 
 # Candidate version (ex: either cutting-edge or previous stable version):
-erlang_version_candidate="20.1"
-erlang_md5_candidate="7840521e80dbb394852f265ef3e04744"
+erlang_version_candidate="20.3"
+erlang_md5_candidate="a683c8c0aacfe0305c4bf47b3abfde6a"
 
 
 plt_file="Erlang-$erlang_version.plt"
@@ -94,8 +96,10 @@ do_generate_plt=1
 # By default, use an installation prefix:
 use_prefix=0
 
-# By default, the Erlang sources will be patched to better suit our use:
-do_patch=0
+# By default, the Erlang sources will NOT be patched to better suit our use (as
+# useless since Erlang 21.0):
+#
+do_patch=1
 
 
 # By default, the Erlang build tree will not be removed (more convenient):
@@ -480,6 +484,9 @@ fi
 cd ${erlang_src_prefix}
 
 
+# Apparently not needed since Erlang 21.0, where 'infinity' is specified in
+# terms of time-out:
+#
 if [ $do_patch -eq 0 ] ; then
 
 	echo "Patching first the Erlang sources."
@@ -749,4 +756,4 @@ if [ $do_generate_plt -eq 0 ] ; then
 fi
 
 echo "
-If wanting to generate a list of all the declared types in this Erlang distribution, and if having the 'Common' package, you can run: 'cd common ; make generate-list-of-erlang-types ERLANG_SOURCE_ROOT=${prefix}'."
+If wanting to generate a list of all the declared types in this Erlang distribution, and if having the 'Myriad' package, you can run: 'cd Ceylan-Myriad && make generate-list-of-erlang-types ERLANG_SOURCE_ROOT=${prefix}'."

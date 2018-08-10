@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
 
@@ -49,15 +49,15 @@
 
 % Basic list operations:
 %
--export([ get_element_at/2, insert_element_at/3,
+-export([ get_element_at/2, insert_element_at/3, extract_element_at/2,
 		  remove_element_at/2, remove_last_element/1,
 		  get_last_element/1, extract_last_element/1,
 		  get_index_of/2, split_at/2, uniquify/1,
 		  has_duplicates/1, get_duplicates/1, union/2, intersection/2,
-		  cartesian_product/1,
+		  difference/2, cartesian_product/1,
 		  subtract_all_duplicates/2, delete_existing/2, delete_if_existing/2,
 		  delete_all_in/2, append_at_end/2, is_list_of_integers/1,
-		  unordered_compare/2 ]).
+		  unordered_compare/2, flatten_once/1 ]).
 
 
 % For list of tuples (ex: typically used by the HDF5 binding), extended flatten
@@ -74,9 +74,13 @@
 		  draw_elements_from/2 ]).
 
 
+% An element of a list:
+-type element() :: term().
+
+
 % Either a list of terms, or a term by itself.
 %
-% Note: different from basic_utils:maybe( list() ).
+% Note: different from maybe( list() ).
 %
 -type maybe_list( T ) :: [ T ] | T.
 
@@ -191,7 +195,7 @@ ensure_list_of_pids( Other ) ->
 %% get_element_at( [ _H | T ], Index ) ->
 %%	get_element_at( T, Index-1 ).
 %
--spec get_element_at( list(), basic_utils:positive_index() ) -> any().
+-spec get_element_at( list(), basic_utils:positive_index() ) -> element().
 get_element_at( List, Index ) ->
 	%io:format( " - getting element #~B of ~w~n", [ Index, List ] ),
 	lists:nth( Index, List ).
@@ -203,7 +207,7 @@ get_element_at( List, Index ) ->
 % For example, insert_element_at( foo, [ a, b, c, d ], 3 ) will return
 % [ a, b, foo, c, d ].
 %
--spec insert_element_at( any(), list(), basic_utils:positive_index() ) ->
+-spec insert_element_at( element(), list(), basic_utils:positive_index() ) ->
 							   list().
 insert_element_at( Element, List, Index ) ->
 
@@ -226,6 +230,31 @@ insert_element_at( Element, List, _Index=1, Acc ) ->
 insert_element_at( Element, _List=[ H | T ], Index, Acc ) ->
 	insert_element_at( Element, T, Index-1, [ H | Acc ] ).
 
+
+
+% Extracts element from the specified list, at the specified index.
+%
+% Returns that element and the resulting, shrunk list.
+%
+% Ex: { b, [ a, c ] } = extract_element_at( [ a, b, c ], 2 ).
+%
+-spec extract_element_at( list(), basic_utils:positive_index() ) ->
+								{ element(), list() }.
+extract_element_at( List, Index ) ->
+	% Nothing relevant found in the lists module, so:
+	extract_element_at( List, Index, _Acc=[] ).
+
+
+% (helper)
+extract_element_at( _List=[ H | T ], _Index=1, Acc ) ->
+	{ H, lists:reverse( Acc ) ++ T };
+
+extract_element_at( _List=[], Index, Acc ) ->
+	throw( { index_out_of_range, Index + length( Acc ),
+			 lists:reverse( Acc ) } );
+
+extract_element_at( _List=[ H | T ], Index, Acc ) ->
+	extract_element_at( T, Index - 1, [ H | Acc ] ).
 
 
 
@@ -293,7 +322,7 @@ remove_last_element( List ) ->
 %
 % Crashes (with 'no function clause') if the input list is empty.
 %
--spec get_last_element( list() ) -> term().
+-spec get_last_element( list() ) -> element().
 get_last_element( _List=[ SingleElement ] ) ->
 	SingleElement;
 
@@ -307,9 +336,11 @@ get_last_element( _List=[ _H | T ] ) ->
 % Note: not computationnally efficient, usually having to retrieve the last
 % element suggests a bad code design.
 %
-% Crashes (with 'no function clause') if the input list is empty.
-%
--spec extract_last_element( list() ) -> { term(), list() }.
+-spec extract_last_element( list() ) -> { element(), list() }.
+extract_last_element( _List=[] ) ->
+	throw( cannot_extract_from_empty_list );
+
+
 extract_last_element( List ) ->
 
 	% Probably the most efficient variant:
@@ -338,7 +369,7 @@ extract_last_element( List ) ->
 %
 % Ex: 3 = get_index_of( bar, [ foo, ugh, bar, baz ] )
 %
--spec get_index_of( term(), list() ) -> basic_utils:count().
+-spec get_index_of( element(), list() ) -> basic_utils:count().
 get_index_of( Element, List ) ->
 	get_index_of( Element, List, _Count=1 ).
 
@@ -411,7 +442,7 @@ has_duplicates( List ) ->
 %
 % Ex: list_utils:get_duplicates([a,a,b,b,b,c,d,d]) = [{b,3},{d,2},{a,2}]
 %
--spec get_duplicates( [ term() ] ) -> [ { term(), basic_utils:count() } ].
+-spec get_duplicates( list() ) -> [ { element(), basic_utils:count() } ].
 get_duplicates( List ) ->
 	get_duplicates( List, _Acc=[] ).
 
@@ -480,6 +511,16 @@ intersection( L1, L2 ) ->
 
 
 
+% Returns the difference between the first specified list and the second,
+% i.e. the elements of the first list that are not in the second one.
+%
+-spec difference( list(), list() ) -> list().
+difference( L1, L2 ) ->
+	set_utils:to_list( set_utils:difference( set_utils:from_list( L1 ),
+											 set_utils:from_list( L2 ) ) ).
+
+
+
 % Returns the cartesian product of the specified lists (collected in a top-level
 % list).
 %
@@ -517,7 +558,7 @@ subtract_all_duplicates( L1, L2 ) ->
 % deleted, ensuring at least one of these elements exists (as opposed to
 % lists:delete/2). The order of the specified list is preserved.
 %
--spec delete_existing( term(), list() ) -> list().
+-spec delete_existing( element(), list() ) -> list().
 delete_existing( Elem, List ) ->
 
 	% We keep a copy of the original list to be able to generate better error
@@ -546,7 +587,7 @@ delete_existing( Elem, _List=[ H | T ], OriginalList, Acc ) ->
 % Note: allows to perform only one traversal of the list (compared for example
 % to a lists:member/2 then a lists:delete/2).
 %
--spec delete_if_existing( term(), list() ) -> 'not_found' | list().
+-spec delete_if_existing( element(), list() ) -> 'not_found' | list().
 delete_if_existing( Elem, List ) ->
 	delete_if_existing( Elem, List, _Acc=[] ).
 
@@ -567,7 +608,7 @@ delete_if_existing( Elem, _List=[ H | T ], Acc ) ->
 %
 % The element order of the specified list is preserved.
 %
--spec delete_all_in( term(), list() ) -> list().
+-spec delete_all_in( element(), list() ) -> list().
 delete_all_in( Elem, List ) ->
 	delete_all_in( Elem, List, _Acc=[] ).
 
@@ -594,12 +635,14 @@ delete_all_in( Elem, _List=[ H | T ], Acc ) ->
 % Note: usually adding elements at the end of a list should be avoided, as it is
 % costlier than adding them at head.
 %
--spec append_at_end( list() | any(), list() ) -> nonempty_list().
-append_at_end( ElemList, L ) when is_list( ElemList ) andalso is_list( L ) ->
-	% Should be more efficient than:
-	%lists:reverse( [ Elem | lists:reverse( L ) ] ):
-	L ++ ElemList;
-
+-spec append_at_end( element(), list() ) -> nonempty_list().
+% This clause was not a bright idea:
+% - beware of not using a string (hence a list) as first parameter, if not
+% expecting it to be managed as a list
+%
+%append_at_end( ElemList, L ) when is_list( ElemList ) andalso is_list( L ) ->
+%	L ++ ElemList;
+%
 append_at_end( Elem, L ) when is_list( L ) ->
 	% Should be more efficient than:
 	%lists:reverse( [ Elem | lists:reverse( L ) ] ):
@@ -608,7 +651,8 @@ append_at_end( Elem, L ) when is_list( L ) ->
 
 
 % Returns whether the specified list contains only integers.
--spec is_list_of_integers( any() ) -> boolean().
+%
+-spec is_list_of_integers( term() ) -> boolean().
 is_list_of_integers( [] ) ->
 	true;
 
@@ -630,38 +674,62 @@ unordered_compare( L1, L2 ) ->
 
 
 
+% Flattens specified list of lists only once (i.e. on a single level), as
+% opposed to indefinitively (as done recursively by lists:flatten/1); provides
+% more control than a recursive counterpart.
+%
+% Element order is preserved.
+%
+% Ex: if L=[ [1], [2,[3,4]] ], lists:flatten(L) yields [1,2,3,4] whereas
+% list_utils:flatten_once(L) should yield [1,2,[3,4]].
+%
+-spec flatten_once( [ list() ] ) -> list().
+flatten_once( List ) ->
+	flatten_once( List, _Acc=[] ).
+
+
+% (helper)
+%
+% Note: not using simply 'lists:reverse( Acc );' and a (more efficient) 'L ++
+% Acc', as we would end up with [1,[3,4],2] - whereas we want to preserve order.
+%
+flatten_once( [], Acc ) ->
+	Acc;
+
+flatten_once( [ L | T ], Acc ) when is_list( L ) ->
+	flatten_once( T, Acc ++ L );
+
+flatten_once( [ Unexpected | _T ], _Acc ) ->
+	throw( { not_a_list, Unexpected } ).
+
+
+
 % Determines tuple-related information about specified datastructure: returns {
 % TupleCount, TupleSize }, supposing the list is made of tuples of uniform
 % sizes.
 %
 -spec determine_tuple_info( [ tuple() ] ) ->
 								  { basic_utils:count(), basic_utils:count() }.
-determine_tuple_info( TupleList ) when is_list( TupleList ) ->
+determine_tuple_info( _TupleList=[] ) ->
+	throw( empty_list );
 
-	case length( TupleList ) of
-
-		0 ->
-			throw( empty_list );
-
-		L ->
-			FirstTuple = hd( TupleList ),
-			TupleSize = size( FirstTuple ),
-			check_tuple_length( TupleList, TupleSize ),
-			{ L, TupleSize }
-
-	end.
+determine_tuple_info( _TupleList=[ FirstTuple | T ] )
+  when is_tuple( FirstTuple ) ->
+	TupleSize = size( FirstTuple ),
+	Count = check_tuple_length( T, TupleSize, _AccCount=1 ),
+	{ Count, TupleSize }.
 
 
 % Helper.
-check_tuple_length( _TupleList=[], _TupleSize ) ->
-	ok;
+check_tuple_length( _TupleList=[], _TupleSize, AccCount ) ->
+	AccCount;
 
-check_tuple_length( _TupleList=[ Tuple | T ], TupleSize ) ->
+check_tuple_length( _TupleList=[ Tuple | T ], TupleSize, AccCount ) ->
 
 	case size( Tuple ) of
 
 		TupleSize ->
-			check_tuple_length( T, TupleSize );
+			check_tuple_length( T, TupleSize, AccCount + 1 );
 
 		OtherSize ->
 			throw( { heterogeneous_tuple_size, { Tuple, OtherSize },
@@ -790,10 +858,10 @@ random_permute_reciprocal( _List=[ H | T ], _ReciprocalIndex=[ I | Is ],
 
 
 
-% Draws one element at random of the specified list, knowing they all have the
-% same probability of being drawn (uniform probability).
+% Draws one element at random of the specified list, knowing that they all have
+% the same probability of being drawn (uniform probability).
 %
--spec draw_element( [ any() ] ) -> any().
+-spec draw_element( list() ) -> element().
 draw_element( _ElementList=[] ) ->
 	throw( cannot_draw_from_empty_list );
 
@@ -807,7 +875,7 @@ draw_element( ElementList ) ->
 % specified one (allows to precompute it once for multiple drawings), knowing
 % all elements have the same probability of being drawn (uniform probability).
 %
--spec draw_element( [ any() ], basic_utils:count() ) -> any().
+-spec draw_element( list(), basic_utils:count() ) -> element().
 draw_element( ElementList, Length ) ->
 
 	DrawnIndex = random_utils:get_random_value( Length ),
@@ -826,9 +894,9 @@ draw_element( ElementList, Length ) ->
 % Element, Probability } pairs: returns the drawn element, knowing that it will
 % be chosen according to the probability associated to each element.
 %
-% Probabilities are managed as integer values defined relatively to each other
-% (and they do not have to sum up to 1.0); they must be positive or null
-% integers, and their sum must not be null.
+% Probabilities are managed as positive (possibly null) numbers (integer or
+% floating-point values) defined relatively to each other (they do not have to
+% sum up to 1.0).
 %
 % Ex: ElementList = [ {first,1}, {second,2}, {third,1} ] is excepted to return
 % on average 'second' twice as frequently as 'first' or 'third'.
@@ -836,12 +904,12 @@ draw_element( ElementList, Length ) ->
 % Using [ {first,1}, {second,0}, {third,1} ] instead would mean that 'second'
 % would never be drawn.
 %
--spec draw_element_weighted( [ { any(), integer() } ] ) -> any().
+-spec draw_element_weighted( [ { element(), number() } ] ) -> element().
 draw_element_weighted( ElementList ) ->
 	draw_element_weighted( ElementList, sum_probabilities( ElementList ) ).
 
 
--spec sum_probabilities( [ { _Element, number() } ] ) -> number().
+-spec sum_probabilities( [ { element(), number() } ] ) -> number().
 sum_probabilities( ElementList ) ->
 	sum_probabilities( ElementList, _Acc=0 ).
 
@@ -881,7 +949,7 @@ select_element( [ { _Element, Probability } | T ], DrawnValue, CurrentSum ) ->
 % an element is drawn, it is removed from the candidate list so that the next
 % drawing operates on the resulting shorten list.
 %
--spec draw_elements_from( [ any() ], basic_utils:count() ) -> [ any() ].
+-spec draw_elements_from( list(), basic_utils:count() ) -> [ element() ].
 draw_elements_from( ElementList, Count ) ->
 	draw_elements_from( ElementList, Count, _Acc=[] ).
 

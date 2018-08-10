@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 % Unit tests for the management of identifiers.
@@ -42,8 +42,32 @@ run() ->
 	test_facilities:start( ?MODULE ),
 
 	test_facilities:display( "Generating a new UUID: '~s'.",
-							 [ basic_utils:generate_uuid() ] ),
+							 [ id_utils:generate_uuid() ] ),
 
 
+	FirstId = id_utils:get_initial_sortable_id(),
+
+	SecondId = id_utils:get_next_sortable_id( FirstId ),
+
+	ThirdId = id_utils:get_next_sortable_id( SecondId ),
+
+	BetweenTwoAndThirdId = id_utils:get_sortable_id_between( SecondId,
+															 ThirdId ),
+
+	Ids = [ FirstId, SecondId, BetweenTwoAndThirdId, ThirdId ],
+
+	FirstSortStrings = [ id_utils:sortable_id_to_string( Id )
+						 || Id <- Ids ],
+
+	test_facilities:display( "Test first sortable identifiers are: ~s",
+			 [ text_utils:strings_to_enumerated_string( FirstSortStrings ) ] ),
+
+	LowerBound = id_utils:get_sortable_id_lower_bound(),
+	UpperBound = id_utils:get_sortable_id_upper_bound(),
+
+	BoundString = id_utils:sortable_ids_to_string( [ LowerBound, UpperBound ] ),
+
+	test_facilities:display( "Lower and upper bounds in terms of sortable "
+							 "identifiers are: ~s.", [ BoundString ] ),
 
 	test_facilities:stop().

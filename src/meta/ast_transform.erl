@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, February 4, 2018.
 
 
@@ -206,7 +206,7 @@
 
 
 % Type of functions to transform terms during a recursive traversal (see
-% traverse_term/4).
+% transform_term/4).
 %
 % Note: apparently we cannot use the 'when' notation here (InputTerm ... when
 % InputTerm :: term()).
@@ -662,11 +662,11 @@ transform_transformed_term( TargetTerm, TypeDescription, TermTransformer,
 
 		{ TransformedTerm, NewUserData } when is_list( TransformedTerm ) ->
 			transform_list( TransformedTerm, TypeDescription, TermTransformer,
-					   NewUserData );
+							NewUserData );
 
 		{ TransformedTerm, NewUserData } when is_tuple( TransformedTerm ) ->
 			transform_tuple( TransformedTerm, TypeDescription, TermTransformer,
-						NewUserData );
+							 NewUserData );
 
 		% { ImmediateTerm, NewUserData } ->
 		Other ->
@@ -679,7 +679,7 @@ transform_transformed_term( TargetTerm, TypeDescription, TermTransformer,
 % Returns a textual description of specified AST transforms.
 %
 -spec ast_transforms_to_string( meta_utils:ast_transforms() ) ->
-									  text_utils:string().
+									  text_utils:ustring().
 ast_transforms_to_string( #ast_transforms{
 							 local_types=MaybeLocalTypeTable,
 							 remote_types=MaybeRemoteTypeTable,

@@ -77,7 +77,7 @@
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToEntry/3, deleteFromEntry/3, popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
-		  isEmpty/1, size/1, getEntryCount/1,
+		  isEmpty/1, size/1,
 		  mapOnEntries/2, mapOnValues/2,
 		  foldOnEntries/3,
 		  merge/2, optimise/1, toString/1, toString/2, display/1, display/2 ]).
@@ -490,7 +490,7 @@ merge( _LazyHashtableBase={ HashtableBase, BaseOptCount },
 	% The entry count in the added hashtable corresponds to the number of
 	% operations performed during the merge:
 	%
-	EntryCountInAddedTable = hashtable:getEntryCount( HashtableAdd ),
+	EntryCountInAddedTable = hashtable:size( HashtableAdd ),
 
 	UpdatedOpCount = BaseOptCount + EntryCountInAddedTable,
 
@@ -522,7 +522,7 @@ optimise_table_if_necessary( LazyTable={ Hashtable, CurrentOpCount } ) ->
 
 		true ->
 
-			% Like getEntryCount but allows to re-use Entries:
+			% Like size/1, but allows to re-use Entries:
 			Entries = hashtable:enumerate( Hashtable ),
 			EntryCount = length( Entries ),
 
@@ -667,20 +667,12 @@ isEmpty( _LazyHashtable={ Hashtable, _OpCount } ) ->
 
 
 
-% Returns the size (number of entries) of this hashtable.
+% Returns the size (number of entries, i.e. of key/value pairs) of the specified
+% table.
 %
 -spec size( lazy_hashtable() ) -> hashtable:entry_count().
 size( _LazyTable={ Hashtable, _CurrentOpCount } ) ->
 	hashtable:size( Hashtable ).
-
-
-
-% Returns the number of entries (key/value pairs) stored in the specified lazy
-% hashtable.
-%
--spec getEntryCount( lazy_hashtable() ) -> hashtable:entry_count().
-getEntryCount( LazyHashtable ) ->
-	size( LazyHashtable ).
 
 
 
@@ -703,7 +695,7 @@ toString( _LazyHashtable={ Hashtable, _OpCount }, DescriptionType ) ->
 
 % Displays the specified hashtable on the standard output.
 %
--spec display( lazy_hashtable() ) -> basic_utils:void().
+-spec display( lazy_hashtable() ) -> void().
 display( _LazyHashtable={ Hashtable, OpCount } ) ->
 
 	hashtable:display( Hashtable ),
@@ -715,7 +707,7 @@ display( _LazyHashtable={ Hashtable, OpCount } ) ->
 % Displays the specified hashtable on the standard output, with the specified
 % title on top.
 %
--spec display( string(), lazy_hashtable() ) -> basic_utils:void().
+-spec display( string(), lazy_hashtable() ) -> void().
 display( Title, _LazyHashtable={ Hashtable, OpCount } ) ->
 
 	hashtable:display( Title, Hashtable ),

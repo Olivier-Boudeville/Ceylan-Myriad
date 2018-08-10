@@ -1,4 +1,4 @@
-# OVERALL_DOCUMENT_SOURCE, COMMON_TOP and DOCUTILS_TOP should have been defined
+# OVERALL_DOCUMENT_SOURCE, MYRIAD_TOP and DOCUTILS_TOP should have been defined
 # beforehand.
 
 
@@ -154,7 +154,7 @@ RST_GENERATED_FILES =  $(AUX_GENERATED_FILES) $(TEX_GENERATED_FILES)      \
 
 
 #RST_GENERATOR = update-docutils.sh
-RST_GENERATOR := $$(PATH=$(COMMON_TOP)/src/scripts:$$PATH which generate-docutils.sh)
+RST_GENERATOR := $$(PATH=$(MYRIAD_TOP)/src/scripts:$$PATH which generate-docutils.sh)
 
 
 PDF_VIEWER := $$(which evince)

@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, February 4, 2018.
 
 
@@ -79,7 +79,7 @@
 
 % Abstract form, part of an AST (ex: {attribute,40,file,{"foo.erl",40}}):
 %
--type ast_form() :: erl_parse:abstract_form() | erl_parse:form_info().
+-type form() :: erl_parse:abstract_form() | erl_parse:form_info().
 
 
 % Abstract Syntax Tree, standard representation of parse trees for Erlang
@@ -94,7 +94,7 @@
 % - for the overall logic and structure:
 % http://erlang.org/doc/apps/erts/absform.html
 %
--type ast() :: [ ast_form() ].
+-type ast() :: [ form() ].
 
 
 % In-AST description of a value of type atom:
@@ -102,5 +102,4 @@
 -type ast_atom() :: { 'atom', line(), atom() }.
 
 
-
--export_type([ ast_element/0, ast_form/0, ast/0, ast_atom/0 ]).
+-export_type([ ast_element/0, form/0, ast/0, ast_atom/0 ]).

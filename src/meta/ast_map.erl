@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, February 4, 2018.
 
 
@@ -97,7 +97,7 @@
 % can be found for the association keys and values.
 %
 -spec transform_map_associations( [ ast_map_association() ],
-								  ast_transforms() ) -> [ ast_map_association() ].
+						  ast_transforms() ) -> [ ast_map_association() ].
 transform_map_associations( Associations, Transforms ) ->
 	transform_map_associations( Associations, Transforms,
 					   fun ast_expression:transform_expression/2 ).
@@ -109,9 +109,10 @@ transform_map_associations( Associations, Transforms ) ->
 % expression, etc.).
 %
 -spec transform_map_associations( [ ast_map_association() ], ast_transforms(),
-					  ast_transform:transform_fun() ) -> [ ast_map_association() ].
+				  ast_transform:transform_fun() ) -> [ ast_map_association() ].
 transform_map_associations( Associations, Transforms, TransformFun ) ->
-	[ transform_map_association( E, Transforms, TransformFun ) || E <- Associations ].
+	[ transform_map_association( E, Transforms, TransformFun )
+	  || E <- Associations ].
 
 
 
@@ -123,8 +124,8 @@ transform_map_associations( Associations, Transforms, TransformFun ) ->
 %    If A is an association K := V, then
 %       Rep(A) = {map_field_exact,LINE,Rep(K),Rep(V)}."
 %
--spec transform_map_association( ast_map_association(), ast_transforms(), 
-						 ast_transform:transform_fun() ) -> ast_map_association().
+-spec transform_map_association( ast_map_association(), ast_transforms(),
+				 ast_transform:transform_fun() ) -> ast_map_association().
 transform_map_association( { MapAssocType, Line, ASTKey, ASTValue }, Transforms,
 						   TransformFun )
   when MapAssocType =:= 'map_field_assoc'

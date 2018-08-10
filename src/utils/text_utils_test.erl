@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 % Unit tests for the text utils toolbox.
@@ -99,6 +99,18 @@ run() ->
 		[ ListOfStrings, text_utils:strings_to_string( ListOfStrings ) ] ),
 
 
+	NestedStrings = [ [ "A1" ] ],
+	%NestedStrings = [ [ "A1", "A2", "A3" ], [ "B1" ], [ "C1", "C2" ], [ "D1" ] ],
+
+	Strings = [ text_utils:format( "blah: ~s",
+				 [ text_utils:strings_to_string( N, _IndentationLevel=1 ) ] )
+				|| N <- NestedStrings ],
+
+	% Emulating the way it is used in practice:
+	test_facilities:display( "Displaying nested strings:~s and continuing.",
+		[ text_utils:strings_to_string( Strings ) ] ),
+
+
 	LongLine = "This is a long line to test the paragraph formatting.",
 
 	% So that "formatting." has a chance to fit:
@@ -124,10 +136,8 @@ run() ->
 
 
 	test_facilities:display( "Displaying atom list, obtained from string "
-							 "list ~p: ~p.",
-							 [ ListOfStrings,
-							   text_utils:strings_to_atom_list(
-								 ListOfStrings ) ] ),
+							 "list ~p: ~p.", [ ListOfStrings,
+							   text_utils:strings_to_atoms( ListOfStrings ) ] ),
 
 
 	FirstTestString = "Hello world!",
@@ -276,6 +286,12 @@ run() ->
 			  [ text_utils:strings_to_string( OtherStringList ),
 				text_utils:strings_to_atoms( OtherStringList ) ] ),
 
+	Colors = [ red, blue, green ],
+
+	ListedColors = "red, blue and green" =
+		text_utils:atoms_to_listed_string( Colors ),
+
+	test_facilities:display( "Listing ~p: '~s'.", [ Colors, ListedColors ] ),
 
 	RefString = "Hello world",
 
@@ -297,6 +313,22 @@ run() ->
 	%test_facilities:display( "Lexicographic distance between '~s' "
 	%						 "and (variant):~s",
 	%	[ RefString, text_utils:strings_to_string( VariantResultStrings ) ] ),
+
+
+	FirstInput = [ "abca", "xyz" ],
+	{ "", FirstInput } = text_utils:find_longer_common_prefix( FirstInput ),
+
+	SecondInput = [ "abca", "xyz", "abca" ],
+	{ "", SecondInput } = text_utils:find_longer_common_prefix( SecondInput ),
+
+	{ "ab", [ "" ] } = text_utils:find_longer_common_prefix( [ "ab" ] ),
+
+	{ "abc", [ "a", "b" ] } = text_utils:find_longer_common_prefix(
+								[ "abca", "abcb" ] ),
+
+	{ "abc", [ "", "b" ] } = text_utils:find_longer_common_prefix(
+							   [ "abc", "abcb" ] ),
+
 
 	IndentationLevel = 3,
 	NumberedString = text_utils:strings_to_enumerated_string( CompareStrings,
@@ -367,9 +399,26 @@ run() ->
 
 	no_prefix = text_utils:split_after_prefix( "ABC", "Foobar is baz." ),
 
+
+	EscapeString = "I *am* to be \"escaped\", as 'I shall be escaped'",
+
+	test_facilities:display( "Single-quote escaping '~s' results in: '~s'.",
+			 [ EscapeString, text_utils:escape_single_quotes( EscapeString ) ] ),
+
+	test_facilities:display( "Double-quote escaping '~s' results in: '~s'.",
+			 [ EscapeString, text_utils:escape_double_quotes( EscapeString ) ] ),
+
+	test_facilities:display( "All-quote escaping '~s' results in: '~s'.",
+			 [ EscapeString, text_utils:escape_all_quotes( EscapeString ) ] ),
+
+
 	RemovalCount = 3,
 
 	"I am a lonesome cow" = text_utils:remove_last_characters(
 							  WesternText, RemovalCount ),
+
+	false = text_utils:is_list_of_binaries( [ "Foo", "Bar" ] ),
+
+	true = text_utils:is_list_of_binaries( [ <<"Foo">>, <<"Bar">> ] ),
 
 	test_facilities:stop().

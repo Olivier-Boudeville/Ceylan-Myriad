@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, June 8, 2016
 
 
@@ -57,7 +57,7 @@
 
 % Starts (checks and inits) the SQL (in practice: SQLite3) service support.
 %
--spec start() -> basic_utils:void().
+-spec start() -> void().
 start() ->
 
 	% We have to secure the erlang-sqlite3 binding, nevertheless nothing special
@@ -70,7 +70,7 @@ start() ->
 
 % Stops the SQL support.
 %
--spec stop() -> basic_utils:void().
+-spec stop() -> void().
 stop() ->
 	%io:format( "Stopping SQL support.").
 	ok.

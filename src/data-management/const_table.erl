@@ -24,7 +24,7 @@
 
 % Creation date: Tuesday, May 12, 2015
 
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 
@@ -83,8 +83,7 @@
 % Note that no actual module file is generated (ex: no 'foobar.beam'), the
 % operation remains fully in-memory.
 %
--spec generate( basic_utils:module_name(), table:table() ) ->
-					  basic_utils:void().
+-spec generate( basic_utils:module_name(), table:table() ) -> void().
 generate( ModuleName, Table ) ->
 
 	%io:format( "Generating pseudo-module '~s' from following table:~n~s~n",
@@ -151,7 +150,7 @@ generate_fun_forms( _Entries=[ { K, V } | T ], Line, AccForms )
 
 	% Ex: returns '{float,0,42.0}' (as a term):
 	%
-	ASTForV = meta_utils:term_to_form( V ),
+	ASTForV = ast_utils:term_to_form( V ),
 
 	FunForm = { function, Line, K, 0, [ { clause, Line, [], [],
 								  [ ASTForV ] } ] },

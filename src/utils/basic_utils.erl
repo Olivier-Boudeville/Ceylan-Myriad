@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
 
@@ -47,7 +47,6 @@
 		  wait_for_summable_acks/5,
 		  wait_for_many_acks/4, wait_for_many_acks/5,
 		  send_to_pid_set/2 ]).
-
 
 
 % Miscellaneous functions.
@@ -117,6 +116,11 @@
 -type exit_reason() :: reason().
 
 -type error_reason() :: reason().
+
+
+% When we know it is an atom:
+-type error_type() :: atom().
+
 
 
 % Error term:
@@ -216,7 +220,8 @@
 
 
 -export_type([ void/0, count/0, non_null_count/0, bit_mask/0,
-			   reason/0, exit_reason/0, error_reason/0, error_term/0,
+			   reason/0, exit_reason/0,
+			   error_reason/0, error_term/0, error_type/0,
 			   base_status/0, maybe/1,
 			   external_data/0, unchecked_data/0, user_data/0,
 			   accumulator/0,
@@ -804,9 +809,6 @@ send_to_pid_set( Message, { Pid, NewIterator }, Count ) ->
 	send_to_pid_set( Message, set_utils:next( NewIterator ), Count+1 ).
 
 
-
-
-
 % Miscellaneous functions.
 
 
@@ -959,8 +961,8 @@ display_timed( Message, TimeOut ) ->
 					 time_utils:time_out() ) -> void().
 display_timed( Format, Values, TimeOut ) ->
 
-	%io:format( "Displaying format '~p' and values '~p'.~n",
-	%		   [ Format, Values ] ),
+	%trace_utils:debug_fmt( "Displaying format '~p' and values '~p'.",
+	%						[ Format, Values ] ),
 
 	Message = text_utils:format( Format, Values ),
 
@@ -981,10 +983,12 @@ display_error( Message ) ->
 	% At least once, following call resulted in no output at all (standard_error
 	% not functional):
 	%
-	%io:format( standard_error, "~s~n", [ Message ] ),
+	% Reintroduced for testing after 21.0:
+	%
+	io:format( standard_error, "~s~n", [ Message ] ),
 
 	% So:
-	io:format( "~s~n", [ Message ] ),
+	%io:format( "~s~n", [ Message ] ),
 
 	system_utils:await_output_completion().
 
@@ -997,9 +1001,8 @@ display_error( Message ) ->
 %
 -spec display_error( text_utils:format_string(), [ any() ] ) -> void().
 display_error( Format, Values ) ->
-	%io:format( standard_error, Format ++ "~n", Values ),
-	io:format( Format ++ "~n", Values ),
-	system_utils:await_output_completion().
+	Message = text_utils:format( Format ++ "~n", Values ),
+	display_error( Message ).
 
 
 
@@ -1010,9 +1013,9 @@ display_error( Format, Values ) ->
 %
 -spec debug( string() ) -> void().
 debug( Message ) ->
-	%io:format( "## Debug: ~s.~n", [ Message ] ),
+	trace_utils:debug( Message ).
 	%system_utils:await_output_completion().
-	erlang:display( "## Debug: " ++ Message ).
+	%erlang:display( "## Debug: " ++ Message ).
 
 
 
@@ -1023,7 +1026,7 @@ debug( Message ) ->
 %
 -spec debug( text_utils:format_string(), [ any() ] ) -> void().
 debug( Format, Values ) ->
-	debug( io_lib:format( Format, Values ) ).
+	debug( text_utils:format( Format, Values ) ).
 
 
 

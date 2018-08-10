@@ -1,5 +1,5 @@
-COMMON_TOP = ../..
+MYRIAD_TOP = ../..
 
 MODULES_DIRS = src doc
 
-include $(COMMON_TOP)/GNUmakesettings.inc
+include $(MYRIAD_TOP)/GNUmakesettings.inc

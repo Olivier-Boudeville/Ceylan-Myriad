@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, July 12, 2008.
 
 
@@ -97,9 +97,7 @@
 		 get_default_sha_tool/0,
 
 		 get_default_java_runtime/0,
-		 get_default_jinterface_path/0
-
-		 ]).
+		 get_default_jinterface_path/0 ]).
 
 
 
@@ -118,10 +116,56 @@
 -type sha_sum() :: non_neg_integer().
 
 
--export_type([ md5_sum/0, sha1_sum/0, sha_sum/0 ]).
+% Command-line managed like init:get_argument/1:
+
+
+% The name of a command-line option (ex: '-color', for an actual option that is
+% "--color"):
+%
+% (a flag, for the init standard module)
+%
+-type command_line_option() :: atom().
+
+
+% The name of a command-line value (ex: "blue"):
+-type command_line_value() :: text_utils:ustring().
+
+
+% The association between an option and the various values associated to its
+% instances.
+%
+% Ex: if arguments were "--color blue red [...] --color yellow", then the
+% corresponding argument is { '-color', [ [ "blue", "red" ]; [ "yellow" ] ] }.
+%
+-type command_line_argument() ::
+		{ command_line_option(), [ command_line_value() ] }.
+
+
+
+% A table storing command-line user arguments conveniently (a bit like getopt),
+% in a format in the spirit of init:get_arguments/0.
+%
+% Useful to manage arguments more easily, and also to handle uniformly the
+% arguments specified for erl-based executions and escript ones alike.
+%
+-type argument_table() :: list_table:list_table( command_line_option(),
+												 [ command_line_value() ] ).
+
+
+-export_type([ md5_sum/0, sha1_sum/0, sha_sum/0,
+			   command_line_option/0, command_line_value/0,
+			   command_line_argument/0, argument_table/0 ]).
+
+
+% Command-line argument section:
+%
+-export([ get_argument_table/0, get_argument_table/1, generate_argument_table/1,
+		  extract_command_argument/1, extract_command_argument/2,
+		  argument_table_to_string/1 ]).
 
 
 % Miscellaneous section:
+%
 -export([ is_batch/0 ]).
 
 
@@ -143,9 +187,8 @@ lookup_executable( ExecutableName ) ->
 % Finds specified executable program, whose name is specified as a string (ex:
 % "gcc") in the current user PATH.
 %
-% Returns an absolute filename of the executable program (ex: "/usr/bin/gcc")
-% or throws an exception {executable_not_found,ExecutableName} if ir was not
-% found.
+% Returns an absolute filename of the executable program (ex: "/usr/bin/gcc") or
+% throws an exception {executable_not_found,ExecutableName} if it was not found.
 %
 -spec find_executable( file_utils:file_name() ) -> file_utils:path().
 find_executable( ExecutableName ) ->
@@ -222,7 +265,7 @@ generate_png_from_graph_file( PNGFilename, GraphFilename,
 %
 % Throws an exception if an error occurs.
 %
--spec display_png_file( file_utils:path() ) -> basic_utils:void().
+-spec display_png_file( file_utils:path() ) -> void().
 display_png_file( PNGFilename ) ->
 	% Viewer output is ignored:
 	system_utils:run_background_executable( get_default_image_viewer_path()
@@ -237,10 +280,10 @@ display_png_file( PNGFilename ) ->
 %
 % Throws an exception if an error occurs.
 %
--spec browse_images_in( file_utils:path() ) -> basic_utils:void().
+-spec browse_images_in( file_utils:path() ) -> void().
 browse_images_in( DirectoryName ) ->
 	system_utils:run_background_executable( get_default_image_browser_path()
-											 ++ " " ++ DirectoryName ).
+											++ " " ++ DirectoryName ).
 
 
 
@@ -251,7 +294,7 @@ browse_images_in( DirectoryName ) ->
 %
 % Throws an exception if an error occurs.
 %
--spec display_pdf_file( file_utils:path() ) -> basic_utils:void().
+-spec display_pdf_file( file_utils:path() ) -> void().
 display_pdf_file( PDFFilename ) ->
 	system_utils:run_background_executable( get_default_pdf_viewer_path()
 											 ++ " " ++ PDFFilename ).
@@ -500,7 +543,18 @@ get_default_wide_text_viewer_path( CharacterWidth ) ->
 % Could be also: nedit, gedit, etc.
 -spec get_default_trace_viewer_name() -> string().
 get_default_trace_viewer_name() ->
-	"logmx.sh".
+
+	case system_utils:has_graphical_output() of
+
+		true ->
+			find_executable( "logmx.sh" );
+
+		false ->
+			% Poor's man solution:
+			"/bin/cat"
+
+	end.
+
 
 
 % Returns an absolute path to the default trace viewer tool.
@@ -723,8 +777,120 @@ get_default_jinterface_path() ->
 
 
 
+
+% Command-line argument section:
+
+
+% Returns a canonical argument table, obtained from the user command-line
+% arguments supplied to the interpreter.
+%
+% Note: to be called in the context of a standard erl execution (as opposed to
+% an escript one).
+%
+-spec get_argument_table() -> argument_table().
+get_argument_table() ->
+
+	% We do not want to include the VM-specific arguments (such as -noshell,
+	% -pz, etc.); use, in the command-line, '-extra', before arguments to
+	% consider as plain ones:
+	%Args = init:get_arguments(),
+
+	Args = init:get_plain_arguments(),
+
+	%trace_utils:debug_fmt( "Arguments obtained: ~p.", [ Args ] ),
+
+	% To convert a list of strings into per-option list of values:
+	get_argument_table( Args ).
+
+
+
+% Returns a canonical argument table, obtained from the user command-line
+% arguments supplied to this escript.
+%
+% Note: to be called in the context of an escript (as opposed to a standard erl
+% execution), specifying the argument list that its main/1 function received.
+%
+-spec get_argument_table( [ string() ] ) -> argument_table().
+get_argument_table( ArgStrings ) ->
+	script_utils:get_arguments( ArgStrings ).
+
+
+
+% Returns a canonical argument table, obtained from the specified single string
+% containing all options, verbatim ; ex: "--color red --set-foo".
+%
+% Note: useful for testing, to introduce specific command lines.
+%
+-spec generate_argument_table( string() ) -> argument_table().
+generate_argument_table( ArgString ) ->
+
+	CommandLineArgs = text_utils:split( ArgString, _Delimiters=[ $ ] ),
+
+	get_argument_table( CommandLineArgs ).
+
+
+
+
+% Extracts specified option, i.e. its various associated values (if any), from
+% the arguments specified to this executable.
+%
+% Returns a pair made of these values and of the shrunk argument table.
+%
+-spec extract_command_argument( command_line_option() ) ->
+			  { [ command_line_value() ], argument_table() }.
+extract_command_argument( Option ) ->
+
+	ArgumentTable = get_argument_table(),
+
+	extract_command_argument( Option, ArgumentTable ).
+
+
+
+% Extracts specified option, i.e. its various associated values (if any), from
+% the specified argument table.
+%
+% Returns a pair made of these values and of the shrunk argument table.
+%
+-spec extract_command_argument( command_line_option(), argument_table() ) ->
+			  { [ command_line_value() ], argument_table() }.
+extract_command_argument( Option, ArgumentTable ) ->
+	list_table:extractEntryWithDefaults( _K=Option, _DefaultValue=[],
+										 ArgumentTable ).
+
+
+
+% Returns a textual representation of specified argument table.
+%
+-spec argument_table_to_string( argument_table() ) -> string().
+argument_table_to_string( ArgTable ) ->
+
+	% No-op:
+	ArgPairs = list_table:enumerate( ArgTable ),
+
+	ArgStrings = [ case ArgumentLists of
+
+		[] ->
+			text_utils:format( "option '-~s'", [ Option ] );
+
+		_ ->
+			text_utils:format( "option '-~s', with argument lists: ~p",
+							   [ Option, ArgumentLists ] )
+
+				   end || { Option, ArgumentLists } <- ArgPairs ],
+
+	text_utils:format( "~B command-line options specified "
+					   "(listed alphabetically):~s",
+					   [ length( ArgPairs ),
+						 text_utils:strings_to_sorted_string( ArgStrings ) ] ).
+
+
+
 % Miscellaneous section:
 
+
+% Tells whether the program is run in batch mode (i.e. with the "--batch"
+% command line argument).
+%
 -spec is_batch() -> boolean().
 is_batch() ->
 

@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, July 12, 2008.
 
 
@@ -39,7 +39,10 @@
 
 % Filename-related operations.
 %
--export([ join/1, join/2, convert_to_filename/1, replace_extension/3,
+% See also: filename:dirname/1 and basename:dirname/1.
+%
+-export([ join/1, join/2, convert_to_filename/1,
+		  get_extensions/1, get_extension/1, replace_extension/3,
 
 		  exists/1, get_type_of/1, is_file/1,
 		  is_existing_file/1, is_existing_file_or_link/1,
@@ -90,8 +93,10 @@
 
 % I/O section.
 %
--export([ open/2, open/3, close/1, close/2, read/2, write/2, write/3,
-		  read_whole/1, write_whole/2, read_terms/1 ]).
+-export([ open/2, open/3, close/1, close/2,
+		  read/2, write/2, write/3,
+		  read_whole/1, write_whole/2,
+		  read_terms/1, write_terms/2, write_terms/4, write_direct_terms/2 ]).
 
 
 % Compression-related operations.
@@ -133,9 +138,18 @@
 -type bin_file_name() :: binary().
 -type bin_file_path() :: binary().
 
+
+% Designates a path to an executable; ex:
+% "../my_dir/other/run.sh").
+%
+-type executable_path() :: file_path().
+
+
 -type directory_name() :: path().
 -type bin_directory_name() :: binary().
 
+
+% An extension in a filename (ex: "baz", in "foobar.baz.json"):
 -type extension() :: string().
 
 
@@ -165,9 +179,12 @@
 
 
 % Corresponds to the handle to an open file (typically a file descriptor
-% counterpart):
+% counterpart), but also, possibly, 'standard_io' (for standard output,
+% descriptor 1), 'standard_error' (for standard error, descriptor 2), a
+% registered name (as an atom), or any PID handling the I/O protocols:
 %
 -type file() :: file:io_device().
+
 
 
 % The various permissions that can be combined for file-like elements:
@@ -180,7 +197,7 @@
 
 -export_type([ path/0, bin_path/0,
 			   file_name/0, filename/0, file_path/0,
-			   bin_file_name/0, bin_file_path/0,
+			   bin_file_name/0, bin_file_path/0, executable_path/0,
 			   directory_name/0, bin_directory_name/0,
 			   extension/0,
 			   entry_type/0,
@@ -248,10 +265,54 @@ convert_to_filename( Name ) ->
 	%
 	% (see also: net_utils:generate_valid_node_name_from/1)
 	%
-	re:replace( lists:flatten(Name),
-			   "( |<|>|,|\\(|\\)|'|\"|/|\\\\|\&|~|"
-			   "#|@|{|}|\\[|\\]|\\||\\$|\\*|\\?|!|\\+|;|:)+", "_",
-		 [ global, { return, list } ] ).
+	re:replace( lists:flatten( Name ),
+				"( |<|>|,|\\(|\\)|'|\"|/|\\\\|\&|~|"
+				"#|@|{|}|\\[|\\]|\\||\\$|\\*|\\?|!|\\+|;|:)+", "_",
+				[ global, { return, list } ] ).
+
+
+
+% Returns the (ordered) extension(s) of the specified filename.
+%
+% Ex: [ "baz", "json" ] = get_extensions( "foobar.baz.json" )
+%
+-spec get_extensions( file_name() ) -> [ extension() ] | 'no_extension'.
+get_extensions( Filename ) ->
+
+	case text_utils:split( Filename, _Delimiters=[ $. ] ) of
+
+		[] ->
+			no_extension;
+
+		[ _Basename ] ->
+			no_extension;
+
+		[ _Basename | Extensions ] ->
+			Extensions;
+
+		_ ->
+			no_extension
+
+	end.
+
+
+
+% Returns the (last) extension of the specified filename.
+%
+% Ex: "json" = get_extension( "foobar.baz.json" )
+%
+-spec get_extension( file_name() ) -> extension() | 'no_extension'.
+get_extension( Filename ) ->
+
+	case get_extensions( Filename ) of
+
+		no_extension ->
+			no_extension;
+
+		Extensions ->
+			list_utils:get_last_element( Extensions )
+
+	end.
 
 
 
@@ -306,8 +367,7 @@ get_type_of( EntryName ) ->
 
 	case file:read_link_info( EntryName ) of
 
-		{ ok, FileInfo } ->
-			#file_info{ type=FileType } = FileInfo,
+		{ ok, #file_info{ type=FileType } } ->
 			FileType;
 
 		{ error, eloop } ->
@@ -552,7 +612,7 @@ get_last_modification_time( Filename ) ->
 %
 % See also: create_empty_file/1
 %
--spec touch( file_name() ) -> basic_utils:void().
+-spec touch( file_name() ) -> void().
 touch( Filename ) ->
 
 	case is_existing_file( Filename ) of
@@ -590,7 +650,7 @@ touch( Filename ) ->
 %
 % See also: touch/1.
 %
--spec create_empty_file( file_name() ) -> basic_utils:void().
+-spec create_empty_file( file_name() ) -> void().
 create_empty_file( Filename ) ->
 
 	case system_utils:run_executable( "/bin/touch '" ++ Filename ++ "'" ) of
@@ -628,7 +688,7 @@ get_current_directory() ->
 %
 % Throws an exception on failure.
 %
--spec set_current_directory( directory_name() ) -> basic_utils:void().
+-spec set_current_directory( directory_name() ) -> void().
 set_current_directory( DirName ) ->
 
 	 % For more detail of { 'error', atom() }, refer to type specifications of
@@ -654,31 +714,31 @@ set_current_directory( DirName ) ->
 % Note that Files include symbolic links (dead or not).
 %
 classify_dir_elements( _Dirname, _Elements=[], Devices, Directories, Files,
-					  OtherFiles ) ->
+					   OtherFiles ) ->
 	% Note the reordering:
 	{ Files, Directories, OtherFiles, Devices };
 
-classify_dir_elements( Dirname, _Elements=[ H | T ],
-		Devices, Directories, Files, OtherFiles ) ->
+classify_dir_elements( Dirname, _Elements=[ H | T ], Devices, Directories,
+					   Files, OtherFiles ) ->
 
 	 case get_type_of( filename:join( Dirname, H ) ) of
 
 		device ->
 			classify_dir_elements( Dirname, T, [ H | Devices ], Directories,
-								   Files, OtherFiles ) ;
+								   Files, OtherFiles );
 
 		directory ->
 			classify_dir_elements( Dirname, T, Devices, [ H | Directories ],
-								   Files, OtherFiles ) ;
+								   Files, OtherFiles );
 
 		regular ->
 			classify_dir_elements( Dirname, T, Devices, Directories,
-								  [ H | Files ], OtherFiles ) ;
+								  [ H | Files ], OtherFiles );
 
 		% Managed as regular files:
 		symlink ->
 			classify_dir_elements( Dirname, T, Devices, Directories,
-								   [ H | Files ], OtherFiles ) ;
+								   [ H | Files ], OtherFiles );
 
 		other ->
 			classify_dir_elements( Dirname, T, Devices, Directories,
@@ -1135,7 +1195,7 @@ list_directories_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir,
 %
 % Throws an exception if the operation failed.
 %
--spec create_directory( directory_name() ) -> basic_utils:void().
+-spec create_directory( directory_name() ) -> void().
 create_directory( Dirname ) ->
 	create_directory( Dirname, create_no_parent ).
 
@@ -1153,7 +1213,7 @@ create_directory( Dirname ) ->
 % already existing ( { create_directory_failed, "foobar", eexist } ).
 %
 -spec create_directory( directory_name(),
-	   'create_no_parent' | 'create_parents' ) -> basic_utils:void().
+	   'create_no_parent' | 'create_parents' ) -> void().
 create_directory( Dirname, create_no_parent ) ->
 
 	case file:make_dir( Dirname ) of
@@ -1175,8 +1235,7 @@ create_directory( Dirname, create_parents ) ->
 %
 % Throws an exception if the operation fails.
 %
--spec create_directory_if_not_existing( directory_name() ) ->
-											  basic_utils:void().
+-spec create_directory_if_not_existing( directory_name() ) -> void().
 create_directory_if_not_existing( Dirname ) ->
 
 	case is_existing_directory( Dirname ) of
@@ -1219,7 +1278,7 @@ create_dir_elem( _Elems=[ H | T ], Prefix ) ->
 create_temporary_directory() ->
 
 	TmpDir = join( [ "/tmp", system_utils:get_user_name(),
-					 basic_utils:generate_uuid() ] ),
+					 id_utils:generate_uuid() ] ),
 
 	case exists( TmpDir ) of
 
@@ -1235,11 +1294,11 @@ create_temporary_directory() ->
 
 
 
-% Removes specified file, specified as a plain string.
+% Removes (deletes) specified file, specified as a plain string.
 %
 % Throws an exception if any problem occurs.
 %
--spec remove_file( file_name() ) -> basic_utils:void().
+-spec remove_file( file_name() ) -> void().
 remove_file( Filename ) ->
 
 	%io:format( "## Removing file '~s'.~n", [ Filename ] ),
@@ -1256,9 +1315,9 @@ remove_file( Filename ) ->
 
 
 
-% Removes specified files, specified as a list of plain strings.
+% Removes (deletes) specified files, specified as a list of plain strings.
 %
--spec remove_files( [ file_name() ] ) -> basic_utils:void().
+-spec remove_files( [ file_name() ] ) -> void().
 remove_files( FilenameList ) ->
 	[ remove_file( Filename ) || Filename <- FilenameList ].
 
@@ -1267,7 +1326,7 @@ remove_files( FilenameList ) ->
 % Removes specified file, specified as a plain string, iff it is already
 % existing, otherwise does nothing.
 %
--spec remove_file_if_existing( file_name() ) -> basic_utils:void().
+-spec remove_file_if_existing( file_name() ) -> void().
 remove_file_if_existing( Filename ) ->
 
 	case is_existing_file( Filename ) of
@@ -1285,7 +1344,7 @@ remove_file_if_existing( Filename ) ->
 % Removes each specified file, in specified list of plain strings, iff it is
 % already existing.
 %
--spec remove_files_if_existing( [ file_name() ] ) -> basic_utils:void().
+-spec remove_files_if_existing( [ file_name() ] ) -> void().
 remove_files_if_existing( FilenameList ) ->
 	[ remove_file_if_existing( Filename ) || Filename <- FilenameList ].
 
@@ -1293,7 +1352,7 @@ remove_files_if_existing( FilenameList ) ->
 
 % Removes specified directory, which must be empty.
 %
--spec remove_directory( directory_name() ) -> basic_utils:void().
+-spec remove_directory( directory_name() ) -> void().
 remove_directory( DirectoryName ) ->
 
 	%io:format( "## Removing directory '~s'.~n", [ DirectoryName ] ),
@@ -1317,7 +1376,7 @@ remove_directory( DirectoryName ) ->
 % executable file will be itself executable, other permissions as well, unlike
 % /bin/cp which relies on umask).
 %
--spec copy_file( file_name(), file_name() ) -> basic_utils:void().
+-spec copy_file( file_name(), file_name() ) -> void().
 copy_file( SourceFilename, DestinationFilename ) ->
 
 	% First, checks the source file exists and retrieves its meta-information:
@@ -1369,7 +1428,7 @@ copy_file_in( SourceFilename, DestinationDirectory ) ->
 % Note: content is copied and permissions are preserved (ex: the copy of an
 % executable file will be itself executable).
 %
--spec copy_file_if_existing( file_name(), file_name() ) -> basic_utils:void().
+-spec copy_file_if_existing( file_name(), file_name() ) -> void().
 copy_file_if_existing( SourceFilename, DestinationFilename ) ->
 
 	case is_existing_file( SourceFilename ) of
@@ -1386,7 +1445,7 @@ copy_file_if_existing( SourceFilename, DestinationFilename ) ->
 
 % Renames specified file.
 %
--spec rename( file_name(), file_name() ) -> basic_utils:void().
+-spec rename( file_name(), file_name() ) -> void().
 rename( SourceFilename, DestinationFilename ) ->
 	move_file( SourceFilename, DestinationFilename ).
 
@@ -1394,7 +1453,7 @@ rename( SourceFilename, DestinationFilename ) ->
 
 % Moves specified file so that it is now designated by specified filename.
 %
--spec move_file( file_name(), file_name() ) -> basic_utils:void().
+-spec move_file( file_name(), file_name() ) -> void().
 move_file( SourceFilename, DestinationFilename ) ->
 
 	%io:format( "## Moving file '~s' to '~s'.~n",
@@ -1465,7 +1524,7 @@ get_permission_for( PermissionList ) when is_list( PermissionList ) ->
 % Changes the permissions of specified file.
 %
 -spec change_permissions( file_name(), permission() | [ permission() ] ) ->
-								basic_utils:void().
+								void().
 change_permissions( Filename, NewPermissions ) ->
 
 	ActualPerms = get_permission_for( NewPermissions ),
@@ -1614,8 +1673,7 @@ filter_elems( _ElemList=[ E | T ], Acc ) ->
 %  false = file_utils:is_leaf_among( "xx", [ "a/b/c/yy", "d/e/zz" ] )
 %  "a/b/c/xx"  = file_utils:is_leaf_among( "xx", [ "a/b/c/xx", "d/e/zz" ] )
 %
--spec is_leaf_among( leaf_name(), [ path() ] ) ->
-						   { 'false' | path() }.
+-spec is_leaf_among( leaf_name(), [ path() ] ) -> { 'false' | path() }.
 is_leaf_among( _LeafName, _PathList=[] ) ->
 	false;
 
@@ -1852,7 +1910,7 @@ open( Filename, Options, _AttemptMode=try_once ) ->
 %
 % Throws an exception on failure.
 %
--spec close( file() ) -> basic_utils:void().
+-spec close( file() ) -> void().
 close( File ) ->
 	close( File, throw_if_failed ).
 
@@ -1863,7 +1921,7 @@ close( File ) ->
 % Throws an exception on failure or not, depending on specified failure mode.
 %
 -spec close( file(), 'overcome_failure' | 'throw_if_failed' ) ->
-				   basic_utils:void().
+				   void().
 close( File, _FailureMode=throw_if_failed ) ->
 
 	case file:close( File ) of
@@ -1912,7 +1970,7 @@ read( File, Count ) ->
 %
 % Throws an exception on failure.
 %
--spec write( file(), iodata() ) -> basic_utils:void().
+-spec write( file(), iodata() ) -> void().
 write( File, Content ) ->
 
 	case file:write( File, Content ) of
@@ -1932,10 +1990,10 @@ write( File, Content ) ->
 % Throws an exception on failure.
 %
 -spec write( file(), text_utils:format_string(), [ term() ] ) ->
-				   basic_utils:void().
+				   void().
 write( File, FormatString, Values ) ->
 
-	Text = io_lib:format( FormatString, Values ),
+	Text = text_utils:format( FormatString, Values ),
 
 	case file:write( File, Text ) of
 
@@ -1973,7 +2031,7 @@ read_whole( Filename ) ->
 % Writes the specified binary in specified file, whose filename is specified as
 % a plain string. Throws an exception on failure.
 %
--spec write_whole( file_name(), binary() ) -> basic_utils:void().
+-spec write_whole( file_name(), binary() ) -> void().
 write_whole( Filename, Binary ) ->
 
 	case file:write_file( Filename, Binary ) of
@@ -1992,6 +2050,7 @@ write_whole( Filename, Binary ) ->
 %
 % Throws an exception on error.
 %
+-spec read_terms( file_path() ) -> [ term() ].
 read_terms( Filename ) ->
 
 	case file:consult( Filename ) of
@@ -2007,6 +2066,62 @@ read_terms( Filename ) ->
 			throw( { interpretation_failed, Filename, Reason } )
 
 	end.
+
+
+
+% Writes specified terms into specified file, with no specific header or footer.
+%
+% Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
+%
+-spec write_terms( [ term() ], file_path() ) -> void().
+write_terms( Terms, Filename ) ->
+	write_terms( Terms, _Header=undefined, _Footer=undefined, Filename ).
+
+
+
+% Writes specified terms into specified file, with specified header and footer.
+%
+% Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
+%
+-spec write_terms( [ term() ], maybe( string() ), maybe( string() ),
+				   file_path() ) -> void().
+write_terms( Terms, Header, Footer, Filename ) ->
+
+	F = open( Filename, [ write, raw, delayed_write ] ),
+
+	case Header of
+
+		undefined ->
+			ok;
+
+		_ ->
+			write( F, text_utils:format( "% ~n~n~n", [ Header ] ) )
+
+	end,
+
+	write_direct_terms( Terms, F ),
+
+	case Footer of
+
+		undefined ->
+			ok;
+
+		_ ->
+			write( F, text_utils:format( "~n~n% ~s~n", [ Footer ] ) )
+
+	end,
+
+	close( F ).
+
+
+
+% Writes directly specified terms into specified already opened file.
+
+% Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
+%
+-spec write_direct_terms( file(), [ term() ] ) -> void().
+write_direct_terms( File, Terms ) ->
+	[ write( File, text_utils:format( "~p.~n", [ T ] ) ) || T <- Terms ].
 
 
 
@@ -2265,8 +2380,7 @@ zipped_term_to_unzipped_file( ZippedTerm ) ->
 %
 % Note: only one file is expected to be stored in the specified archive.
 %
--spec zipped_term_to_unzipped_file( binary(), file_name() )
-								  -> basic_utils:void().
+-spec zipped_term_to_unzipped_file( binary(), file_name() ) -> void().
 zipped_term_to_unzipped_file( ZippedTerm, TargetFilename ) ->
 
 	{ ok, [ { _AFilename, Binary } ] } = zip:unzip( ZippedTerm, [ memory ] ),

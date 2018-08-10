@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, February 7, 2018.
 
 
@@ -30,7 +30,7 @@
 
 % Module in charge of providing constructs to manage functions in an AST.
 %
-% Note: function clauses managed in the ast_clause module.
+% Note: function clauses are managed in the ast_clause module.
 %
 -module(ast_function).
 
@@ -47,11 +47,19 @@
 
 
 % Transformation:
--export([ transform_functions/2, transform_function/2 ]).
+-export([ transform_functions/2, transform_function/2,
+		  transform_function_spec/2,
+		  transform_spec/2, transform_function_type/2,
+		  transform_function_constraints/2, transform_function_constraint/2 ]).
 
 
 % Recomposition:
 -export([ get_located_forms_for/2 ]).
+
+
+% Helpers:
+-export([ clauses_to_string/2 ]).
+
 
 
 % Shorthands:
@@ -189,10 +197,11 @@ check_function_types( Other, _FunctionArity, Context ) ->
 
 % Transforms the functions in specified table, based on specified transforms.
 %
--spec transform_functions( function_table(), ast_transforms() ) -> function_table().
+-spec transform_functions( function_table(), ast_transforms() ) ->
+								 function_table().
 transform_functions( FunctionTable, Transforms ) ->
 
-	ast_utils:display_debug( "Transforming functions..." ),
+	%ast_utils:display_debug( "Transforming functions..." ),
 
 	%ast_utils:display_debug( "Transforming known types in function specs..." ),
 
@@ -222,15 +231,14 @@ transform_function( FunctionInfo=#function_info{ clauses=ClauseDefs,
 	NewLocFunSpec = case MaybeLocFunSpec of
 
 		undefined ->
-			undefined;
+		undefined;
 
 		{ Loc, FunSpec } ->
 			{ Loc, transform_function_spec( FunSpec, Transforms ) }
 
 	end,
 
-	FunctionInfo#function_info{ clauses=NewClauseDefs,
-								spec=NewLocFunSpec }.
+	FunctionInfo#function_info{ clauses=NewClauseDefs, spec=NewLocFunSpec }.
 
 
 
@@ -245,8 +253,7 @@ transform_function( FunctionInfo=#function_info{ clauses=ClauseDefs,
 -spec transform_function_spec( function_spec(), ast_transforms() ) ->
 									 function_spec().
 transform_function_spec( { 'attribute', Line, SpecType, { FunId, SpecList } },
-						 #ast_transforms{ local_types=MaybeLocalTypeTable,
-										  remote_types=MaybeRemoteTypeTable } ) ->
+						 Transforms ) ->
 
 	% Ex for '-spec f( type_a() ) -> type_b().':
 
@@ -256,46 +263,83 @@ transform_function_spec( { 'attribute', Line, SpecType, { FunId, SpecList } },
 	%
 
 	%ast_utils:display_trace( "SpecList = ~p", [ SpecList ] ),
-	NewSpecList = [ update_spec( Spec, MaybeLocalTypeTable,
-								 MaybeRemoteTypeTable ) || Spec <- SpecList ],
+	NewSpecList = [ transform_spec( Spec, Transforms ) || Spec <- SpecList ],
 
-	{ attribute, Line, SpecType, { FunId, NewSpecList } }.
-
+	{ 'attribute', Line, SpecType, { FunId, NewSpecList } }.
 
 
 
-% Updates the specified function specification.
+
+% Transforms the specified function specification.
 %
-update_spec( { type, Line, 'fun', ClausesSpecs }, MaybeLocalTypeTable,
-			 MaybeRemoteTypeTable ) ->
+% (corresponds to function_type_list/1 in erl_id_trans)
+%
+% "If Ft is a constrained function type Ft_1 when Fc, where Ft_1 is a function
+% type and Fc is a function constraint, then Rep(T) =
+% {type,LINE,bounded_fun,[Rep(Ft_1),Rep(Fc)]}."
+%
+transform_spec( { 'type', Line, 'bounded_fun',
+				  [ FunctionType, FunctionConstraint ] }, Transforms ) ->
 
-	NewClausesSpecs = update_clause_spec( ClausesSpecs, MaybeLocalTypeTable,
-										  MaybeRemoteTypeTable ),
+	NewFunctionType = transform_function_type( FunctionType, Transforms ),
 
-	{ type, Line, 'fun', NewClausesSpecs };
+	NewFunctionConstraint = transform_function_constraints( FunctionConstraint,
+															Transforms ),
 
-update_spec( UnexpectedFunSpec, _MaybeLocalTypeTable, _MaybeRemoteTypeTable ) ->
-	ast_utils:raise_error( [ unexpected_fun_spec, UnexpectedFunSpec ] ).
-
-
-
-% (helper)
-update_clause_spec( [ { type, Line, product, ParamTypes }, ResultType ],
-					MaybeLocalTypeTable, MaybeRemoteTypeTable ) ->
-
-	NewParamTypes = [ ast_type:transform_type( ParamType, MaybeLocalTypeTable,
-						  MaybeRemoteTypeTable ) || ParamType <- ParamTypes ],
-
-	NewResultType = ast_type:transform_type( ResultType, MaybeLocalTypeTable,
-											 MaybeRemoteTypeTable ),
-
-	[ { type, Line, product, NewParamTypes }, NewResultType ];
+	{ 'type', Line, 'bounded_fun', [ NewFunctionType, NewFunctionConstraint ] };
 
 
-update_clause_spec( UnexpectedClauseSpec, _MaybeLocalTypeTable,
-				_MaybeRemoteTypeTable ) ->
-	ast_utils:raise_error( [ unexpected_clause_spec, UnexpectedClauseSpec ] ).
+transform_spec( OtherSpec, Transforms ) ->
+	transform_function_type( OtherSpec, Transforms ).
 
+
+
+% (helper, corresponding to function_type/1 in erl_id_trans)
+%
+% "If Ft is a function type (T_1, ..., T_n) -> T_0, where each T_i is a type,
+% then Rep(Ft) = {type,LINE,'fun',[{type,LINE,product,[Rep(T_1), ...,
+% Rep(T_n)]},Rep(T_0)]}."
+%
+transform_function_type( { 'type', LineFirst, 'fun',
+	   [ { 'type', LineSecond, 'product', ParamTypes }, ResultType ] },
+						 Transforms ) ->
+
+	[ NewResultType | NewParamTypes ] = ast_type:transform_types(
+			[ ResultType | ParamTypes ], Transforms ),
+
+	{ 'type', LineFirst, 'fun',
+	  [ { 'type', LineSecond, 'product', NewParamTypes }, NewResultType ] };
+
+transform_function_type( UnexpectedFunType, _Transforms ) ->
+	ast_utils:raise_error( [ unexpected_function_type, UnexpectedFunType ] ).
+
+
+
+
+% (helper, corresponding to function_constraint/1 in erl_id_trans)
+%
+% "A function constraint Fc is a non-empty sequence of constraints C_1, ...,
+% C_k, and Rep(Fc) = [Rep(C_1), ..., Rep(C_k)]."
+%
+transform_function_constraints( FunctionConstraints, Transforms ) ->
+
+	[ transform_function_constraint( FC, Transforms )
+	  || FC <- FunctionConstraints ].
+
+
+
+% "If C is a constraint V :: T, where V is a type variable and T is a type, then
+% Rep(C) = {type,LINE,constraint,[{atom,LINE,is_subtype},[Rep(V),Rep(T)]]}. "
+%
+transform_function_constraint( { 'type', Line, 'constraint',
+		[ AtomConstraint={ atom, _LineAtom, _SomeAtom }, [ TypeVar, Type ] ] },
+		Transforms ) ->
+
+	NewTypeVar = ast_type:transform_type( TypeVar, Transforms ),
+
+	NewType = ast_type:transform_type( Type, Transforms ),
+
+	{ 'type', Line, 'constraint', [ AtomConstraint, [ NewTypeVar, NewType ] ] }.
 
 
 
@@ -308,47 +352,82 @@ update_clause_spec( UnexpectedClauseSpec, _MaybeLocalTypeTable,
 % function table
 %
 -spec get_located_forms_for( ast_info:function_export_table(),
-							 ast_info:function_table() ) -> 
+							 ast_info:function_table() ) ->
 								   { [ located_form() ], [ located_form() ] }.
 get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 
-	FunExportInfos = ?table:enumerate( FunctionExportTable ),
-
-	%ast_utils:display_debug( "FunExportInfos = ~p",
-	%  [ FunExportInfos ] ),
-
-	FunExportLocDefs = [ { Loc, { attribute, Line, export, FunIds } }
-				   || { Loc, { Line, FunIds } } <- FunExportInfos ],
-
+	FunExportLocDefs = get_function_export_forms( FunctionExportTable ),
 
 	% Dropping the keys (the function_id(), i.e. function identifiers), focusing
 	% on their associated function_info():
 	%
 	FunInfos = ?table:values( FunctionTable ),
 
-	FunctionLocDefs = lists:foldl( fun( #function_info{
-										   name=Name,
-										   arity=Arity,
-										   location=Location,
-										   line=Line,
-										   clauses=Clauses,
-										   spec=MaybeSpec }, Acc ) ->
+	FunctionLocDefs = lists:foldl(
 
-						 LocFunForm = { Location,
+						% We filter out these entries, as they are only exported
+						% (not defined); the compiler will take care of that
+						% with better, more standard messages:
+						%
+						fun( #function_info{ line=undefined,
+											 clauses=[] }, Acc ) ->
+								Acc;
+
+						   ( #function_info{ name=Name,
+											 arity=Arity,
+											 location=Location,
+											 line=Line,
+											 clauses=Clauses,
+											 spec=MaybeSpec }, Acc ) ->
+
+								LocFunForm = { Location,
 								  { function, Line, Name, Arity, Clauses } },
 
-						 case MaybeSpec of
+								case MaybeSpec of
 
-							 undefined ->
-								 [ LocFunForm | Acc ];
+									undefined ->
+										[ LocFunForm | Acc ];
 
-							 LocSpecForm ->
-								 [ LocSpecForm, LocFunForm | Acc ]
+									LocSpecForm ->
+										[ LocSpecForm, LocFunForm | Acc ]
 
-						 end
+								end
 
-				 end,
-				 _Acc0=[],
-				 _List=FunInfos ),
+						end,
+						_Acc0=[],
+						_List=FunInfos ),
 
 	{ FunExportLocDefs, FunctionLocDefs }.
+
+
+
+% Returns located forms corresponding to known function exports, generated from
+% specified table.
+%
+-spec get_function_export_forms( ast_info:function_export_table() ) ->
+									   [ ast_info:located_form() ].
+get_function_export_forms( FunctionExportTable ) ->
+
+	FunExportInfos = ?table:enumerate( FunctionExportTable ),
+
+	%ast_utils:display_debug( "FunExportInfos = ~p",
+	%  [ FunExportInfos ] ),
+
+	[ { Loc, { attribute, Line, export, FunIds } }
+	  || { Loc, { Line, FunIds } } <- FunExportInfos ].
+
+
+
+% Returns a textual description of the specified function clauses, using
+% specified indentation level.
+%
+-spec clauses_to_string( meta_utils:clause_def(),
+					 text_utils:indentation_level() ) -> text_utils:ustring().
+clauses_to_string( _Clauses=[], _IndentationLevel ) ->
+	"no function clause defined";
+
+clauses_to_string( Clauses, IndentationLevel ) ->
+	text_utils:format( "~B function clauses defined: ~s", [ length( Clauses ),
+		text_utils:strings_to_string(
+				 [ text_utils:format( "~p", [ C ] ) || C <- Clauses ],
+				 IndentationLevel ) ] ).

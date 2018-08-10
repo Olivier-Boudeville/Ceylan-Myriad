@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, January 1, 2018.
 
 
@@ -102,21 +102,24 @@
 		  display_error/1, display_error/2,
 		  display_fatal/1, display_fatal/2 ]).
 
+
 % Signaling:
 %
--export([ raise_error/1, get_error_form/3, format_error/1 ]).
+-export([ notify_warning/2,
+		  raise_error/1, raise_error/2, raise_error/3,
+		  get_error_form/3, format_error/1 ]).
 
 
 % Other:
 %
--export([ write_ast_to_file/2, raise_error/2, notify_warning/2 ]).
+-export([ write_ast_to_file/2 ]).
 
 
 
 % Shorthands:
 
 -type ast() :: ast_base:ast().
--type ast_form() :: ast_base:ast_form().
+-type form() :: ast_base:form().
 -type line() :: ast_base:line().
 -type form_context() :: ast_base:form_context().
 
@@ -256,7 +259,7 @@ check_line( Line, _Context ) when is_integer( Line ) andalso Line >= 0 ->
 	Line;
 
 check_line( Other, Context ) ->
-	% Not raise_error/3:
+	% Not raise_error/2:
 	throw( { invalid_line, Other, Context } ).
 
 
@@ -353,8 +356,8 @@ erl_to_ast( ErlSourceFilename ) ->
 -spec beam_to_ast( file:filename() ) -> ast().
 beam_to_ast( BeamFilename ) ->
 
-	% We do not use functions from other Common modules here (ex: file_utils) as
-	% they are not expected to be built yet (they will be built with the common
+	% We do not use functions from other Myriad modules here (ex: file_utils) as
+	% they are not expected to be built yet (they will be built with the myriad
 	% parse transform afterwards).
 	%
 	case file:read_link_info( BeamFilename ) of
@@ -374,7 +377,6 @@ beam_to_ast( BeamFilename ) ->
 
 	% We could basically list all chunks, but we are only interested here in the
 	% abstract code:
-	%
 
 	% Everything:
 	%Chunks = [ abstract_code, attributes, compile_info, exports,
@@ -390,7 +392,22 @@ beam_to_ast( BeamFilename ) ->
 	%				  labeled_locals, atoms ],
 
 	%Options = [ allow_missing_chunks ],
+
 	Options=[],
+
+	MyriadCryptoKeyFun = fun( init ) ->
+								 ok;
+
+							( { debug_info, _Mode, _Module, _Filename } ) ->
+								 % Refer to GNUmakevars.inc:
+								 _Key="Ceylan-Myriad";
+
+							( clear ) ->
+								 ok
+
+						 end,
+
+	ok = beam_lib:crypto_key_fun( MyriadCryptoKeyFun ),
 
 	case beam_lib:chunks( BeamFilename, Chunks, Options ) of
 
@@ -413,7 +430,7 @@ beam_to_ast( BeamFilename ) ->
 % Converts the specified Erlang term (ex: the float '42.0') into a corresponding
 % form (ex: '{ float, _Line=0, 42.0 }').
 %
--spec term_to_form( term() ) -> ast_form().
+-spec term_to_form( term() ) -> form().
 term_to_form( Term ) ->
 
 	case erl_syntax:abstract( Term ) of
@@ -458,7 +475,7 @@ variable_names_to_ast( VariableNames, Line ) ->
 % Ex: string_to_form( "f() -> hello_world." ) returns
 %   { function, 1, f, 0, [ { clause, 1, [], [], [ {atom,1,hello_world} ] } ] }
 %
--spec string_to_form( string() ) -> ast_form().
+-spec string_to_form( string() ) -> form().
 string_to_form( FormString ) ->
 	string_to_form( FormString, _Loc=1 ).
 
@@ -470,7 +487,7 @@ string_to_form( FormString ) ->
 % Ex: string_to_form( "f() -> hello_world.", 42 ) returns
 %   { function, 1, f, 0, [ { clause, 42, [], [], [ {atom,1,hello_world} ] } ] }
 %
--spec string_to_form( string(), ast_base:file_loc() ) -> ast_form().
+-spec string_to_form( string(), ast_base:file_loc() ) -> form().
 string_to_form( FormString, Location ) ->
 
 	% First get Erlang tokens from that string:
@@ -575,7 +592,7 @@ string_to_value( ExpressionString ) ->
 
 % Displays specified text as debug.
 %
--spec display_debug( text_utils:string() ) -> basic_utils:void().
+-spec display_debug( text_utils:ustring() ) -> basic_utils:void().
 display_debug( String ) ->
 	io:format( "[debug] ~s~n", [ String ] ).
 
@@ -591,7 +608,7 @@ display_debug( FormatString, Values ) ->
 
 % Displays specified text as trace.
 %
--spec display_trace( text_utils:string() ) -> basic_utils:void().
+-spec display_trace( text_utils:ustring() ) -> basic_utils:void().
 display_trace( String ) ->
 	io:format( "[trace] ~s~n", [ String ] ).
 
@@ -607,7 +624,7 @@ display_trace( FormatString, Values ) ->
 
 % Displays specified text as info.
 %
--spec display_info( text_utils:string() ) -> basic_utils:void().
+-spec display_info( text_utils:ustring() ) -> basic_utils:void().
 display_info( String ) ->
 	io:format( "[info] ~s~n", [ String ] ).
 
@@ -622,7 +639,7 @@ display_info( FormatString, Values ) ->
 
 % Displays specified text as warning.
 %
--spec display_warning( text_utils:string() ) -> basic_utils:void().
+-spec display_warning( text_utils:ustring() ) -> basic_utils:void().
 display_warning( String ) ->
 	io:format( "[warning] ~s~n", [ String ] ).
 
@@ -638,7 +655,7 @@ display_warning( FormatString, Values ) ->
 
 % Displays specified text as error.
 %
--spec display_error( text_utils:string() ) -> basic_utils:void().
+-spec display_error( text_utils:ustring() ) -> basic_utils:void().
 display_error( String ) ->
 	io:format( "~n[error] ~s~n", [ String ] ).
 
@@ -654,7 +671,7 @@ display_error( FormatString, Values ) ->
 
 % Displays specified text as fatal.
 %
--spec display_fatal( text_utils:string() ) -> basic_utils:void().
+-spec display_fatal( text_utils:ustring() ) -> basic_utils:void().
 display_fatal( String ) ->
 	io:format( "[fatal] ~s~n", [ String ] ).
 
@@ -682,7 +699,8 @@ notify_warning( Elements, Context ) ->
 
 
 % Raises a (compile-time, rather ad hoc) error when applying a parse transform,
-% to stop the build on failure and report the actual error.
+% to stop the build on failure and report the actual error, thanks to the
+% specified term (often, a list of error elements).
 %
 % Used to be a simple throw, but then for parse transforms the error message was
 % garbled in messages like:
@@ -694,6 +712,9 @@ notify_warning( Elements, Context ) ->
 %  in function  erl_lint:'-compiler_options/1-lc$^0/1-0-'/1
 %     called as erl_lint:'-compiler_options/1-lc$^0/1-0-'({
 % table_type_defined_more_than_once,{line,12},foo_hashtable,bar_hashtable})
+%
+% Note: this function is used to report errors detected by Myriad itself (not by
+% the Erlang toolchain).
 %
 -spec raise_error( term() ) -> no_return().
 raise_error( ErrorTerm ) ->
@@ -707,40 +728,81 @@ raise_error( ErrorTerm ) ->
 	%erlang:exit( { ErrorTerm, erlang:get_stacktrace() } ).
 
 	%erlang:exit( ErrorTerm ).
+
+	% Possibly a list of elements:
 	raise_error( ErrorTerm, _Context=undefined ).
 
 
 
-% Raises an error, with specified context.
+% Raises an error, with specified context, thanks to the specified term (often,
+% a list of error elements), from the Myriad layer.
 %
 % Ex: raise_error( [ invalid_module_name, Other ], _Context=112 ) shall
 % result in throwing { invalid_module_name, Other, { line, 112 } }.
 %
--spec raise_error( [ term() ], form_context() ) -> basic_utils:void().
-raise_error( Elements, Context ) when is_list( Elements ) ->
+% Note: this function is used to report errors detected by Myriad itself (not by
+% the Erlang toolchain).
+%
+-spec raise_error( term(), form_context() ) -> no_return().
+raise_error( ErrorTerm, Context ) ->
+	raise_error( ErrorTerm, Context, _OriginLayer="Myriad" ).
+
+
+% Raises an error, with specified context, from the specified layer (expected to
+% be above Myriad).
+%
+% Ex: raise_error( [ invalid_module_name, Other ], _Context=112,
+% _OriginLayer="FooLayer" ) shall result in throwing { invalid_module_name,
+% Other, { line, 112 } }.
+%
+raise_error( Elements, Context, OriginLayer ) when is_list( Elements ) ->
 
 	AllElements = get_elements_with_context( Elements, Context ),
 
 	%StackTrace = erlang:get_stacktrace(),
 
 	try
-		display_error( "Error raised while performing Myriad transformations:"
-					   "~n  ~p~n", [ list_to_tuple( AllElements ) ] ),
+
+		% To avoid a single-element tuple:
+		ReportedElems = case AllElements of
+
+			[ Elem ] ->
+				Elem;
+
+			_ ->
+				list_to_tuple( AllElements )
+
+		end,
+
+		display_error( "Error raised while performing ~s-level transformations:"
+					   "~n  ~p~n", [ OriginLayer, ReportedElems ] ),
 		throw( myriad_transformation_failed )
 
 	catch
 
 		% Class is 'throw', R is what we just threw:
-		_C:_R ->
+
+		% Pre-21.0 code:
+		%_C:_R ->
+		%
+		%	% Removing useless {ast_utils,raise_error,2,...:
+		%	ActualStackTrace = tl( erlang:get_stacktrace() ),
+
+		% Post-21.0 code:
+		_C:_R:StackTrace ->
 
 			% Removing useless {ast_utils,raise_error,2,...:
-			ActualStackTrace = tl( erlang:get_stacktrace() ),
+			ActualStackTrace = tl( StackTrace ),
 
 			StackElements = interpret_stack_trace( ActualStackTrace, _Acc=[],
 												   _Count=1 ),
 
+			% These are Myriad-internal information, generally of no use to
+			% understand the problem regarding the code being compiled:
+			%
 			display_debug( "Transformation error happened in "
 						   "(latest calls first):~n~s", [ StackElements ] )
+
 
 	end,
 
@@ -750,8 +812,8 @@ raise_error( Elements, Context ) when is_list( Elements ) ->
 	%exit( AllElements );
 	halt( 5 );
 
-raise_error( Element, Context ) ->
-	raise_error( [ Element ], Context ).
+raise_error( SingleElement, Context, OriginLayer ) ->
+	raise_error( [ SingleElement ], Context, OriginLayer ).
 
 
 
@@ -784,7 +846,7 @@ interpret_stack_trace( _StackTrace=[ H | T ], Acc, Count ) ->
 % compiled.
 %
 -spec get_error_form( basic_utils:error_reason(), basic_utils:module_name(),
-					  line() ) -> ast_form().
+					  line() ) -> form().
 get_error_form( ErrorTerm, FormatErrorModule, Line ) ->
 
 	% Actually the most standard way of reporting an error seems to insert a
@@ -828,15 +890,16 @@ get_elements_with_context( Elements, _Context=undefined ) ->
 	Elements;
 
 get_elements_with_context( Elements, _Context={ FilePath, Line } )
-  when is_list( FilePath ) andalso is_integer( Line ) ->
-	Elements ++ [ { file, FilePath }, { line, Line } ];
+  when is_binary( FilePath ) andalso is_integer( Line ) ->
+	Elements ++ [ { file, text_utils:binary_to_string( FilePath ) },
+				  { line, Line } ];
 
 get_elements_with_context( Elements, _Context=Line ) when is_integer( Line ) ->
 	Elements ++ [ { line, Line } ];
 
 get_elements_with_context( Elements, _Context=FilePath )
-  when is_list( FilePath ) ->
-			Elements ++ [ { file, FilePath } ];
+  when is_binary( FilePath ) ->
+	Elements ++ [ { file, text_utils:binary_to_string( FilePath ) } ];
 
 get_elements_with_context( Elements, Context ) ->
 	% No list_utils module used from this module:
@@ -852,7 +915,7 @@ get_elements_with_context( Elements, Context ) ->
 write_ast_to_file( AST, Filename ) ->
 
 	% Note: we cannot actually use file_utils, which is not a prerequisite of
-	% the 'Common' parse transform:
+	% the 'Myriad' parse transform:
 
 	% We overwrite any pre-existing file:
 	{ ok, File } = file:open( Filename, [ write, raw ] ),

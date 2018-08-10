@@ -1,16 +1,16 @@
 #!/bin/sh
 
-# Copyright (C) 2011-2012 Olivier Boudeville
+# Copyright (C) 2011-2018 Olivier Boudeville
 #
-# This file is part of the Ceylan Erlang library.
+# This file is part of the Ceylan-Myriad library.
 
 
-USAGE="  Usage: "`basename $0`" [-h|--help] [ROOT_DIR]
+USAGE="  Usage: $(basename $0) [-h|--help] [ROOT_DIR]
 
   Determines the list of all types (according to Erlang type specifications) defined from the ROOT_DIR directory (if specified) or from the current directory."
 
 
-target_dir=`pwd`
+target_dir=$(pwd)
 
 if [ "$1" = "-h" ] || [ "$1" = "--help" ] ; then
 
@@ -47,7 +47,8 @@ echo "
 "
 
 cd $target_dir
-target_files=`find . -name '*.hrl' -o -name '*.erl'`
+
+target_files=$(find . -name '*.hrl' -o -name '*.erl')
 
 #echo "target_files = $target_files"
 
@@ -74,7 +75,7 @@ for f in $target_files ; do
 	# after 14, not after the '0.', thus the 'OR ..' clause; same thing for
 	# [warning(),...])
 	#
-	res=`cat "$f" | tr '\n' ' ' | grep -o -E '[[:space:]]+\-(type|opaque)([^.]|\.\.|\.\.\.)*\.' | sed -r 's|\s+| |g'`
+	res=$(/bin/cat "$f" | tr '\n' ' ' | grep -o -E '[[:space:]]+\-(type|opaque)([^.]|\.\.|\.\.\.)*\.' | sed -r 's|\s+| |g')
 
 	if [ -n "$res" ] ; then
 		echo "

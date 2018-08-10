@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, November 1, 2013.
 
 
@@ -130,7 +130,7 @@
 
 
 % Number of credits left (if applicable):
--type credits() :: basic_utils:count() | 'undefined'.
+-type credits() :: maybe( basic_utils:count() ).
 
 
 
@@ -170,7 +170,7 @@
 		   sender_description :: sender_description(),
 
 		   % Default account service class to be used, if not specified here:
-		   service_class :: 'undefined' | service_class()
+		   service_class :: maybe( service_class() )
 
 		  }).
 
@@ -198,7 +198,7 @@ create_sms( Message, Recipient, SenderDescription ) when is_list( Message )
 % Creates a SMS record instance from specified information.
 %
 -spec create_sms( message(), recipient(), sender_description(),
-				  'undefined' | service_class() ) -> sms().
+				  maybe( service_class() ) ) -> sms().
 create_sms( Message, Recipient, SenderDescription, ServiceClass )
   when is_list( Message ) andalso is_list( Recipient )
 	   andalso is_list( SenderDescription ) andalso is_atom( ServiceClass )->
@@ -250,11 +250,11 @@ send( #sms{ message=Message, recipient=Recipient,
 	% If the SMS does not specify a class, use the default from account:
 	ActualServiceClass = case ServiceClass of
 
-					  undefined ->
-						  DefaultClass;
+		undefined ->
+			DefaultClass;
 
-					  C ->
-						  C
+		C ->
+			C
 
 	end,
 

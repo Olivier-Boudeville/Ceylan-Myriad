@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 
 % Creation date: Tuesday, December 2, 2014
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 
@@ -73,11 +73,11 @@
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToExistingEntry/3, appendListToExistingEntry/3,
 		  appendToEntry/3, appendListToEntry/3,
-		  concatToEntry/3,
+		  concatToEntry/3, concatListToEntries/2,
 		  deleteFromEntry/3, deleteExistingFromEntry/3,
 		  popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
-		  isEmpty/1, size/1, getEntryCount/1,
+		  isEmpty/1, size/1,
 		  map/2, mapOnEntries/2, mapOnValues/2,
 		  fold/3, foldOnEntries/3,
 		  merge/2, optimise/1, toString/1, toString/2, display/1, display/2 ]).
@@ -185,8 +185,8 @@ addEntry( Key, Value, MapHashtable ) ->
 addEntries( EntryList, MapHashtable ) ->
 
 	lists:foldl( fun( { K, V }, Map ) ->
-						 %Map#{ K => V }
-						 maps:put( K, V, Map )
+					%Map#{ K => V }
+					maps:put( K, V, Map )
 				 end,
 				 _Acc0=MapHashtable,
 				 _List=EntryList ).
@@ -224,7 +224,7 @@ addNewEntry( Key, Value, MapHashtable ) ->
 addNewEntries( EntryList, MapHashtable ) ->
 
 	lists:foldl( fun( { K, V }, Map ) ->
-						 addNewEntry( K, V, Map )
+					addNewEntry( K, V, Map )
 				 end,
 				 _Acc0=MapHashtable,
 				 _List=EntryList ).
@@ -319,7 +319,7 @@ removeExistingEntry( Key, MapHashtable ) ->
 -spec removeEntries( [ key() ], map_hashtable() ) -> map_hashtable().
 removeEntries( Keys, MapHashtable ) ->
 	lists:foldl( fun( K, AccTable ) ->
-						 maps:remove( K, AccTable )
+					 maps:remove( K, AccTable )
 				 end,
 				 _InitAcc=MapHashtable,
 				 _List=Keys ).
@@ -336,7 +336,7 @@ removeEntries( Keys, MapHashtable ) ->
 -spec removeExistingEntries( [ key() ], map_hashtable() ) -> map_hashtable().
 removeExistingEntries( Keys, MapHashtable ) ->
 	lists:foldl( fun( K, AccTable ) ->
-						 removeExistingEntry( K, AccTable )
+					 removeExistingEntry( K, AccTable )
 				 end,
 				 _InitAcc=MapHashtable,
 				 _List=Keys ).
@@ -391,7 +391,7 @@ hasEntry( Key, MapHashtable ) ->
 % The key/value pair is expected to exist already, otherwise an exception
 % ({bad_key,Key}) is triggered.
 %
-% Note: could have been named as well getValue/2.
+% Note: could have been named as well getValue/2, which shall be preferred.
 %
 -spec getEntry( key(), map_hashtable() ) -> value().
 %getEntry( Key,  #{ Key := Value } ) ->
@@ -870,6 +870,28 @@ concatToEntry( Key, ListToConcat, MapHashtable ) when is_list( ListToConcat ) ->
 
 
 
+% Concatenes (on the left) specified lists to the values, supposed to be lists
+% as well, associated to specified keys, the input being thus a list of
+% key/list-value pairs.
+%
+% If a key does not already exist, it will be created and associated to the
+% specified list (as if beforehand the key was associated to an empty list)
+%
+% Ex: concatListToEntries( [ { hello, [ 1, 2 ] }, { world, [ 4 ] } ], MyTable ).
+%
+-spec concatListToEntries( list_hashtable:list_hashtable(), map_hashtable() ) ->
+								 map_hashtable().
+concatListToEntries( KeyListValuePairs, MapHashtable )
+  when is_list( KeyListValuePairs ) ->
+
+	lists:foldl( fun( { Key, ListToConcat }, AccTable ) ->
+					concatToEntry( Key, ListToConcat, AccTable )
+				 end,
+				 _Acc0=MapHashtable,
+				 _List=KeyListValuePairs ).
+
+
+
 % Deletes the first match of the specified element in the value associated to
 % specified key, this value being assumed to be a list.
 %
@@ -985,19 +1007,11 @@ isEmpty( _MapHashtable ) ->
 
 
 
-% Returns the size (number of entries) of this hashtable.
+% Returns the size (number of entries, i.e. of key/value pairs) of the specified
+% table.
 %
 -spec size( map_hashtable() ) -> hashtable:entry_count().
 size( MapHashtable ) ->
-	map_size( MapHashtable ).
-
-
-
-% Returns the number of entries (key/value pairs) stored in the specified map
-% hashtable.
-%
--spec getEntryCount( map_hashtable() ) -> hashtable:entry_count().
-getEntryCount( MapHashtable ) ->
 	map_size( MapHashtable ).
 
 
@@ -1032,7 +1046,7 @@ toString( MapHashtable, Bullet ) when is_list( Bullet ) ->
 						|| { K, V } <- lists:sort( L ) ],
 
 			% Flatten is needed, in order to use the result with ~s:
-			lists:flatten( io_lib:format( "table with ~B entry(ies):~s",
+			lists:flatten( io_lib:format( "table with ~B entry(ies): ~s",
 				[ map_size( MapHashtable ),
 				  text_utils:strings_to_string( Strings, Bullet ) ] ) )
 

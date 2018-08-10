@@ -2,6 +2,8 @@
 
 # Copyright (C) 2008-2018 Olivier Boudeville
 #
+# Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+#
 # This file is part of the Ceylan-Myriad project.
 
 
@@ -147,6 +149,7 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ] ; do
 
 	if [ "$1" = "-v" ] ; then
 		be_verbose=0
+		echo "(verbose mode activated)"
 		token_eaten=0
 	fi
 
@@ -264,7 +267,12 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ] ; do
 		# in a row.
 
 		# Yes, these two versions *are* needed:
+
 		to_eval="-eval $1"
+
+		# Would not work if the module name contained a dash:
+		#to_eval="-eval '$1'"
+
 		to_eval_run_erl="-eval '$1'"
 
 		# Not used, as write pipe not used either anymore:
@@ -297,7 +305,13 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ] ; do
 		# We stop the parsing and add all remaining options remaining:
 		do_stop=0
 		shift
+
+		# No difference:
 		verbatim_opt="${verbatim_opt} $*"
+		#verbatim_opt="${verbatim_opt} $@"
+
+		#echo "verbatim_opt = ${verbatim_opt}"
+
 		token_eaten=0
 	fi
 
@@ -508,7 +522,8 @@ if [ -n "${short_name}" ] ; then
 
 	if [ $be_verbose -eq 0 ] ; then
 
-		echo "Launching: ${command}"
+		# Displayed later: echo "Launching: ${command}"
+		:
 
 	else
 
@@ -527,7 +542,8 @@ else
 
 		if [ $be_verbose -eq 0 ] ; then
 
-			echo "Launching: ${command}"
+			# Displayed later: echo "Launching: ${command}"
+			:
 
 		else
 
@@ -633,6 +649,13 @@ else
 
 	#echo "Launching a VM, using direct command-line execution."
 	final_command="${ERL} ${to_eval} ${command}"
+
+fi
+
+
+if [ $be_verbose -eq 0 ] ; then
+
+	echo "Launching: ${final_command}"
 
 fi
 
