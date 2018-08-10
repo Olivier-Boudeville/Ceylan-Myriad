@@ -49,6 +49,7 @@
 -type function_info() :: #function_info{}.
 
 
+
 % Location of a form in an AST, so that the order of forms can be recreated.
 %
 % We use sortable identifiers so that any number of new forms can be introduced
@@ -248,15 +249,35 @@
 -export([ extract_module_info_from_ast/1, init_module_info/0,
 		  check_module_info/1,
 		  recompose_ast_from_module_info/1,
-		  write_module_info_to_file/2, module_info_to_string/1 ]).
+		  write_module_info_to_file/2,
+		  module_info_to_string/1, module_info_to_string/2,
+		  module_info_to_string/3 ]).
 
 
--export([ function_info_to_string/1 ]).
+% Elements for textual descriptions:
+-export([ forms_to_string/3,
+		  module_entry_to_string/2,
+		  compilation_options_to_string/3, compilation_options_to_string/4,
+		  optional_callbacks_to_string/3,
+		  parse_attribute_table_to_string/2, parse_attribute_table_to_string/3,
+		  remote_spec_definitions_to_string/3,
+		  includes_to_string/3, includes_to_string/4,
+		  type_exports_to_string/2, type_exports_to_string/3,
+		  types_to_string/3,
+		  records_to_string/1, records_to_string/2,
+		  function_imports_to_string/4,
+		  functions_to_string/3,
+		  last_line_to_string/1,
+		  unhandled_forms_to_string/3,
+		  fields_to_strings/1, field_to_string/3,
+		  function_id_to_string/1,
+		  function_info_to_string/1, function_info_to_string/2,
+		  function_info_to_string/3 ]).
 
 
 % General type-info helpers:
 -export([ ensure_type_exported/4, ensure_type_not_exported/3,
-		  type_info_to_string/1 ]).
+		  type_id_to_string/1, type_info_to_string/3 ]).
 
 
 % Local shorthands:
@@ -403,7 +424,7 @@ ensure_function_not_exported( FunId, _ExportLocs=[ Loc | T ], ExportTable ) ->
 %
 % Note: relies on text_utils.
 %
--spec located_ast_to_string( located_ast() ) -> text_utils:string().
+-spec located_ast_to_string( located_ast() ) -> text_utils:ustring().
 located_ast_to_string( AST ) ->
 
 	% Raw, not sorted on purpose:
@@ -566,8 +587,8 @@ check_module_types( #module_info{ types=Types } ) ->
 check_type( TypeId, _TypeInfo=#type_info{ definition=[] } ) ->
 	ast_utils:raise_error( [ no_definition_found_for, TypeId ] );
 
-check_type( _TypeId={ Name, Arity }, _TypeInfo=#type_info{
-										 name=Name, variables=TypeVars } ) ->
+check_type( _TypeId={ Name, Arity },
+			_TypeInfo=#type_info{ name=Name, variables=TypeVars } ) ->
 
 	case length( TypeVars ) of
 
@@ -647,7 +668,6 @@ recompose_ast_from_module_info( #module_info{
 			% module_info() are indeed read here, so that they are reinjected
 			% indeed in the output AST.
 
-			% (module)
 			module={ _ModuleName, ModuleLocDef },
 
 			% (compilation_options)
@@ -682,8 +702,8 @@ recompose_ast_from_module_info( #module_info{
 
 			unhandled_forms=UnhandledLocForms } ) ->
 
-	ParseAttributeLocDefs = [ Form
-			   || { _Value, Form } <- ?table:values( ParseAttributeTable ) ],
+	ParseAttributeLocDefs = [ LocForm
+			   || { _Value, LocForm } <- ?table:values( ParseAttributeTable ) ],
 
 	{ TypeExportLocDefs, TypeLocDefs } = ast_type:get_located_forms_for(
 										   TypeExportTable, TypeTable ),
@@ -803,223 +823,517 @@ write_module_info_to_file( ModuleInfo, Filename ) ->
 
 
 
-% Returns a textual description of specified module information.
+% Returns a textual description of specified module information, not including
+% forms, and based on a default indentation level.
 %
-% Note: the location information is dropped for all located definitions.
+% Note: here the location information is dropped for all located definitions.
 %
 -spec module_info_to_string( module_info() ) -> text_utils:ustring().
+module_info_to_string( ModuleInfo ) ->
+	module_info_to_string( ModuleInfo, _DoIncludeForms=false ).
+
+
+% Returns a textual description of specified module information, including forms
+% if requested, and based on a default indentation level.
+%
+% Note: here the location information is dropped for all located definitions.
+%
+-spec module_info_to_string( module_info(), boolean() ) -> text_utils:ustring().
+module_info_to_string( ModuleInfo, DoIncludeForms ) ->
+	module_info_to_string( ModuleInfo, DoIncludeForms, _IndentationLevel=0 ).
+
+
+% Returns a textual description of specified module information, including forms
+% if requested, and with specified indentation level.
+%
+% Note: here the location information is dropped for all located definitions.
+%
+-spec module_info_to_string( module_info(), boolean(),
+					 text_utils:indentation_level() ) -> text_utils:ustring().
 module_info_to_string( #module_info{
 						 module=ModuleEntry,
 						 compilation_options=CompileTable,
-						 compilation_option_defs=_CompileOptDefs,
+						 compilation_option_defs=CompileOptDefs,
 						 parse_attributes=ParseAttributeTable,
+						 remote_spec_defs=RemoteSpecDefs,
 						 includes=Includes,
-						 include_defs=_IncludeDefs,
-						 type_exports=TypeExports,
-						 types=Types,
+						 include_defs=IncludeDefs,
+						 type_exports=TypeExportTable,
+						 types=TypeTable,
 						 records=RecordTable,
 						 function_imports=FunImportTable,
-						 function_imports_defs=_FunImportDefs,
+						 function_imports_defs=FunImportDefs,
 						 function_exports=_FunctionExports,
 						 functions=FunctionTable,
 						 optional_callbacks_defs=OptCallbacksDefs,
-						 last_line=LastLine,
-						 unhandled_forms=UnhandledForms } ) ->
+						 last_line=LastLineLocDef,
+						 errors=Errors,
+						 unhandled_forms=UnhandledForms },
+					   DoIncludeForms,
+					   IndentationLevel ) ->
 
-	ModuleName = case ModuleEntry of
 
-		{ ThisModName, _ModuleLocDef } ->
-			ThisModName;
+	% For this textual description, we mostly rely on the higher-level
+	% information available.
 
-		undefined ->
-			"unamed module"
+	% As the next strings will be collected in a level of their own:
+	NextIndentationLevel = IndentationLevel + 1,
 
-	end,
+	% Information gathered in the order of the fields:
 
-	FunctionStrings = [ io_lib:format( "~s",
-								   [ function_info_to_string( FunInfo ) ] )
-			|| { _FunId, FunInfo } <- ?table:enumerate( FunctionTable ) ],
+	ModuleString = module_entry_to_string( ModuleEntry, DoIncludeForms ),
 
-	TypeStrings = [ io_lib:format( "~s", [ type_info_to_string( TypeInfo ) ] )
-						|| { _TypeId, TypeInfo } <- ?table:enumerate( Types ) ],
+	Infos = [ compilation_options_to_string( CompileTable, CompileOptDefs,
+								 DoIncludeForms, NextIndentationLevel ),
 
-	LastLineString = case LastLine of
+			  optional_callbacks_to_string( OptCallbacksDefs, DoIncludeForms,
+											NextIndentationLevel ),
 
-		undefined ->
-			"unknown";
+			  parse_attribute_table_to_string( ParseAttributeTable,
+							  DoIncludeForms, NextIndentationLevel ),
 
-		{ _Loc, { eof, Count } } ->
-			io_lib:format( "~B", [ Count ] )
+			  remote_spec_definitions_to_string( RemoteSpecDefs, DoIncludeForms,
+												 NextIndentationLevel ),
 
-	end,
+			  includes_to_string( Includes, IncludeDefs, DoIncludeForms,
+								  NextIndentationLevel ),
 
-	% To mark an additional offset for the sublists:
-	NextIndentationLevel = 1,
+			  % No form to manage:
+			  type_exports_to_string( TypeExportTable, NextIndentationLevel ),
 
-	UnhandledString = case UnhandledForms of
+			  types_to_string( TypeTable, DoIncludeForms,
+							   NextIndentationLevel ),
+
+			  records_to_string( RecordTable, NextIndentationLevel ),
+
+			  function_imports_to_string( FunImportTable, FunImportDefs,
+								  DoIncludeForms, NextIndentationLevel ),
+
+			  functions_to_string( FunctionTable, DoIncludeForms,
+								   NextIndentationLevel ),
+
+			  last_line_to_string( LastLineLocDef ),
+
+			  errors_to_string( Errors, NextIndentationLevel ),
+
+			  unhandled_forms_to_string( UnhandledForms, DoIncludeForms,
+										 NextIndentationLevel ) ],
+
+	text_utils:format( "Information about module ~s:~s", [ ModuleString,
+			 text_utils:strings_to_string( Infos, IndentationLevel ) ] ).
+
+
+
+% Returns a textual representation of the specified forms, if requested, and
+% using specified indentation level.
+%
+% (helper used by the various *_to_string functions)
+%
+-spec forms_to_string( [ ast_info:located_form() ], boolean(),
+				 text_utils:indentation_level() ) -> text_utils:ustring().
+forms_to_string( _LocForms, _DoIncludeForms=false, _IndentationLevel ) ->
+	% No representation wanted here:
+	"";
+
+% As a result, DoIncludeForms known to be true below:
+forms_to_string( _LocForms=[], _DoIncludeForms, _IndentationLevel ) ->
+	"(there are no corresponding forms)";
+
+
+forms_to_string( LocForms, _DoIncludeForms, IndentationLevel ) ->
+
+	FormStrings = [ text_utils:format( "~p", [ F ] )
+					|| { _Loc, F } <- LocForms ],
+
+	FormString = text_utils:strings_to_string( FormStrings,
+											   IndentationLevel ),
+
+	text_utils:format( "~nThe corresponding forms are: ~s", [ FormString ] ).
+
+
+
+% Returns a textual representation of the name of the module corresponding to
+% specified entry, possibly with forms.
+%
+-spec module_entry_to_string( module_entry(), boolean() ) ->
+									text_utils:ustring().
+module_entry_to_string( _ModuleEntry=undefined, _DoIncludeForms ) ->
+	"(unnamed module)";
+
+module_entry_to_string( _ModuleEntry={ ThisModName, _ModuleLocDef },
+						_DoIncludeForms=false ) ->
+	text_utils:atom_to_string( ThisModName );
+
+module_entry_to_string( _ModuleEntry={ ThisModName,
+									   _ModuleLocDef={ _Loc, Form } },
+						_DoIncludeForms=true ) ->
+	text_utils:format( "~s (represented as form '~p')",
+					   [ ThisModName, Form ] ).
+
+
+
+% Returns a textual representation of compilation options, based on a default
+% indentation level.
+%
+-spec compilation_options_to_string( compile_option_table(),
+		  [ ast_info:located_form() ], boolean() ) -> text_utils:ustring().
+compilation_options_to_string( CompileTable, CompileOptDefs, DoIncludeForms ) ->
+	compilation_options_to_string( CompileTable, CompileOptDefs, DoIncludeForms,
+								   _IndentationLevel=0 ).
+
+
+
+% Returns a textual representation of compilation options, with specified
+% indentation level.
+%
+-spec compilation_options_to_string( compile_option_table(),
+	 [ ast_info:located_form() ], boolean(), text_utils:indentation_level() ) ->
+										   text_utils:ustring().
+compilation_options_to_string( CompileTable, CompileOptDefs, DoIncludeForms,
+							   IndentationLevel ) ->
+
+	case ?table:enumerate( CompileTable ) of
 
 		[] ->
-			"all forms have been handled";
+			"no compile option defined";
 
-		_ ->
-			UnhandledStrings = [ text_utils:format( "~p", [ Form ] )
-								 || { _Loc, Form } <- UnhandledForms ],
 
-			text_utils:format( "~B unhandled form(s):~s",
-							   [ length( UnhandledForms ),
-								 text_utils:strings_to_string( UnhandledStrings,
-											NextIndentationLevel ) ] )
-	end,
+		CompileOpts ->
 
-	% Commented-out: the raw terms that correspond to the higher-level form
-	% output just above.
+			CompStrings = [ text_utils:format( "for option '~s': ~p",
+											   [ OptName, OptValue ] )
+							|| { OptName, OptValue } <- CompileOpts ],
 
-	ParseAttributes = ?table:enumerate( ParseAttributeTable ),
+			OptString = text_utils:format( "~B compile option(s) defined:~s",
+							   [ length( CompileOpts ),
+								 text_utils:strings_to_string( CompStrings,
+												   IndentationLevel ) ] ),
 
-	Infos = [
+			OptString ++ forms_to_string( CompileOptDefs, DoIncludeForms,
+										  IndentationLevel + 1 )
 
-			%text_utils:format( "module name: '~s'", [ Module ] ),
-			%text_utils:format( "module definition: ~p~n", [ ModuleDef ] ),
+	end.
 
-			case ?table:enumerate( CompileTable ) of
 
-				[] ->
-					"no compile option defined";
 
-				CompileOpts ->
-					CompStrings = [ text_utils:format( "for option '~s': ~p",
-													   [ OptName, OptValue ] )
-									|| { OptName, OptValue } <- CompileOpts ],
-					text_utils:format( "~B compile option(s) defined:~s",
-						   [ length( CompileOpts ),
-							 text_utils:strings_to_string( CompStrings,
-												   NextIndentationLevel ) ] )
+% Returns a textual representation of the specified optional callbacks, based on
+% a default indentation level.
+%
+-spec optional_callbacks_to_string( [ ast_info:located_form() ], boolean(),
+			text_utils:indentation_level() ) -> text_utils:ustring().
+optional_callbacks_to_string( _OptCallbacksDefs=[], _DoIncludeForms,
+							  _IndentationLevel ) ->
+	"no optional callback defined";
 
-			end,
+optional_callbacks_to_string( OptCallbacksDefs, _DoIncludeForms=false,
+							 _IndentationLevel ) ->
+	text_utils:format( "~B lists of optional callbacks defined",
+					   [ length( OptCallbacksDefs ) ] );
 
-			case OptCallbacksDefs of
+optional_callbacks_to_string( OptCallbacksDefs, _DoIncludeForms=true,
+							  IndentationLevel ) ->
+	optional_callbacks_to_string( OptCallbacksDefs, _DoIncForms=false,
+								  IndentationLevel )
+		++ forms_to_string( OptCallbacksDefs, _DoIncludeForms=true,
+							IndentationLevel + 1 ).
 
-				[] ->
-					"no optional callback defined";
 
-				_ ->
-					text_utils:format( "~B lists of optional callback defined",
-									   [ length( OptCallbacksDefs ) ] )
 
-			end,
+% Returns a textual representation of the specified parse-attribute table, based
+% on a default indentation level.
+%
+-spec parse_attribute_table_to_string( attribute_table(), boolean() ) ->
+											 text_utils:ustring().
+parse_attribute_table_to_string( ParseAttributeTable, DoIncludeForms ) ->
+	parse_attribute_table_to_string( ParseAttributeTable, DoIncludeForms,
+									 _IndentationLevel=0 ).
 
-			 % Like: -foo( bar ).
-			case ParseAttributes of
 
-				[] ->
-					"no parse attribute defined";
 
-				_ ->
-					ParseAttrString = text_utils:strings_to_sorted_string( [
-							text_utils:format( "attribute '~s' set to: '~p'",
-											   [ AttrName, AttrValue ] )
-							 || { AttrName, { AttrValue, _AttrForm } }
-									<- ParseAttributes ],
-							 NextIndentationLevel ),
+% Returns a textual representation of the specified parse-attribute table, with
+% specified indentation level.
+%
+-spec parse_attribute_table_to_string( attribute_table(), boolean(),
+			   text_utils:indentation_level() ) -> text_utils:ustring().
+parse_attribute_table_to_string( ParseAttributeTable, DoIncludeForms,
+								 IndentationLevel ) ->
 
-					text_utils:format( "~B parse attribute(s) defined:~s",
-									   [ length( ParseAttributes ),
-										 ParseAttrString ] )
+	% Parse attributes are like: '-foo( bar ).':
+	case ?table:enumerate( ParseAttributeTable ) of
 
-			end,
+		[] ->
+			"no parse attribute defined";
 
-			case Includes of
+		ParseAttributes ->
+			ParseAttrString = text_utils:strings_to_sorted_string( [
+				begin
 
-				[] ->
-					"no file included";
+					AttrValues = [ V || { V, _LocForm } <- AttrEntries ],
 
-				_ ->
-					IncludeString = text_utils:strings_to_sorted_string( [
-							text_utils:format( "~s", [ Inc ] )
-									   || Inc <- Includes ],
-									   NextIndentationLevel ),
-					text_utils:format( "~B include(s) specified:~s",
-									   [ length( Includes ), IncludeString ] )
+					text_utils:format( "attribute '~s', set to: ~s", [ AttrName,
+						text_utils:terms_to_listed_string( AttrValues ) ] )
 
-			end,
+				end || { AttrName, AttrEntries } <- ParseAttributes ] ),
 
-			%text_utils:format( "include definitions: ~p~n",
-			%					 [ [ I || { _, I } <- IncludeDefs ] ] ),
+			BaseString = text_utils:format( "~B parse attribute(s) defined: ~s",
+							   [ length( ParseAttributes ), ParseAttrString ] ),
 
-			case ?table:enumerate( TypeExports ) of
+			% To avoid collecting forms uselessly:
+			case DoIncludeForms of
 
-				[] ->
-					"no type exported";
+				true ->
+					Forms =
+						[ F || { _AName, { _AValue, F } } <- ParseAttributes ],
 
-				TypeExportEntries ->
+					BaseString ++ forms_to_string( Forms, _DoIncludeForms=true,
+												   IndentationLevel + 1 );
 
-					TypeExpString = text_utils:strings_to_sorted_string(
-						[ text_utils:format( "at line #~B:~s", [ Line,
-							  text_utils:strings_to_string(
-								[ text_utils:format( "~s/~B",
-													 [ TypeName, TypeArity ] )
-								  || { TypeName, TypeArity } <- TypeIds ],
-								NextIndentationLevel + 1 ) ] )
+				false ->
+					BaseString
+
+			end
+
+	end.
+
+
+
+
+
+
+% Returns a textual representation of the specified definitions of remote
+% specifications, with specified indentation level.
+%
+-spec remote_spec_definitions_to_string( [ ast_info:located_form() ], boolean(),
+					   text_utils:indentation_level() ) -> text_utils:ustring().
+remote_spec_definitions_to_string( _RemoteSpecDefs=[], _DoIncludeForms,
+								   _IndentationLevel ) ->
+	"no remote spec definition";
+
+remote_spec_definitions_to_string( RemoteSpecDefs, DoIncludeForms,
+								   IndentationLevel ) ->
+
+	BaseString = text_utils:format( "~B remote spec definition(s)",
+									[ length( RemoteSpecDefs ) ] ),
+
+	BaseString ++ forms_to_string( RemoteSpecDefs, DoIncludeForms,
+								   IndentationLevel + 1 ).
+
+
+
+% Returns a textual representation of the specified includes, based on a default
+% indentation level.
+%
+-spec includes_to_string( [ file_utils:bin_file_path() ],
+			  [ ast_info:located_form() ], boolean() ) -> text_utils:ustring().
+includes_to_string( Includes, IncludeDefs, DoIncludeForms ) ->
+	includes_to_string( Includes, IncludeDefs, DoIncludeForms,
+						_IndentationLevel=0 ).
+
+
+% Returns a textual representation of the specified includes, with specified
+% indentation level.
+%
+-spec includes_to_string( [ file_utils:bin_file_path() ],
+		  [ ast_info:located_form() ], boolean(),
+		  text_utils:indentation_level() ) -> text_utils:ustring().
+includes_to_string( _Includes=[], _IncludeDefs, _DoIncludeForms,
+					_IndentationLevel ) ->
+	"no file included";
+
+includes_to_string( Includes, IncludeDefs, DoIncludeForms,
+					IndentationLevel ) ->
+
+	IncludeString = text_utils:strings_to_sorted_string(
+					  [ text_utils:format( "~s", [ Inc ] ) || Inc <- Includes ],
+					  IndentationLevel ),
+
+	text_utils:format( "~B include(s): ~s",
+					   [ length( Includes ), IncludeString ] )
+		++ forms_to_string( IncludeDefs, DoIncludeForms, IndentationLevel + 1 ).
+
+
+
+% Returns a textual representation of the specified type exports, based on a
+% default indentation level.
+%
+-spec type_exports_to_string( type_export_table(), boolean() ) ->
+									text_utils:ustring().
+type_exports_to_string( TypeExportTable, DoIncludeForms ) ->
+	type_exports_to_string( TypeExportTable, DoIncludeForms,
+							_IndentationLevel=0 ).
+
+
+% Returns a textual representation of the specified type exports, with specified
+% indentation level.
+%
+-spec type_exports_to_string( type_export_table(), boolean(),
+				 text_utils:indentation_level() ) -> text_utils:ustring().
+type_exports_to_string( TypeExportTable, _DoIncludeForms, IndentationLevel ) ->
+
+	case ?table:enumerate( TypeExportTable ) of
+
+		[] ->
+			"no type export defined";
+
+		TypeExportEntries ->
+
+			% The indentation is 2 below, to account for the case where there
+			% are multiple exports; should there be only one, we have to live
+			% with an extra indentation level then:
+			%
+			TypeExpString = text_utils:strings_to_sorted_string(
+							  [ text_utils:format( "at line #~B: export of ~s",
+										   [ Line, text_utils:strings_to_string(
+								[ type_id_to_string( TypeId )
+								  || TypeId <- TypeIds ],
+								IndentationLevel + 2 ) ] )
 						  || { _Loc, { Line, TypeIds } } <- TypeExportEntries ],
-						NextIndentationLevel ),
+							  IndentationLevel + 1 ),
 
-					text_utils:format( "~B type export declaration(s):~s",
+			% No form to represent, as none stored:
+			text_utils:format( "~B type export(s) defined: ~s",
 							   [ length( TypeExportEntries ), TypeExpString ] )
 
-			end,
+	end.
 
-			 %text_utils:format( "type export definitions: ~p~n",
-			 %				   [ [ E || { _, E } <- TypeExportDefs ] ] ),
 
-			 case ?table:enumerate( RecordTable ) of
 
-				[] ->
-					 "no record declared";
+% Returns a textual representation of the specified type table, with specified
+% indentation level.
+%
+-spec types_to_string( type_table(), boolean(),
+					   text_utils:indentation_level() ) -> text_utils:ustring().
+types_to_string( TypeTable, DoIncludeForms, IndentationLevel ) ->
 
-				RecordEntries ->
-					 RecordString = text_utils:strings_to_sorted_string( [
+	case ?table:values( TypeTable ) of
 
-						begin
+		[] ->
+			"no type definition defined";
 
-							FieldStrings = fields_to_strings( FieldTable ),
+		TypeInfos ->
 
-							FieldString = text_utils:strings_to_string(
-										FieldStrings, NextIndentationLevel+1 ),
+			TypeStrings = [ type_info_to_string( TypeInfo, DoIncludeForms,
+												 IndentationLevel )
+							|| TypeInfo <- TypeInfos ],
 
-							text_utils:format(
-							  "record '~s' having ~B fields:~s",
-							  [ RecordName, length( FieldStrings ),
-								FieldString ] )
+			text_utils:format( "~B type definition(s) specified: ~s",
+							   [ length( TypeInfos ),
+								 text_utils:strings_to_string( TypeStrings,
+												   IndentationLevel ) ] )
 
-								% Mute variables below: NextLocation, Line:
-						end || { RecordName, { FieldTable, _, _ } }
-								   <- RecordEntries ],
-							   NextIndentationLevel ),
-					 text_utils:format( "~B records defined:~s",
-								   [ length( RecordEntries ), RecordString ] )
+	end.
 
-			 end,
 
-			 case ?table:enumerate( FunImportTable ) of
 
-				 [] ->
-					 "no function imported";
+% Returns a textual representation of the specified records, based on a default
+% indentation level.
+%
+-spec records_to_string( ast_info:record_table() ) ->
+							   text_utils:ustring().
+records_to_string( RecordTable ) ->
+	records_to_string( RecordTable, _IndentationLevel=0 ).
 
-				 ImportEntries ->
-					 ImpString = text_utils:strings_to_sorted_string(
-					   [ text_utils:format( "from module '~s': ~p",
-							[ ModName, FunIds ] )
-						 || { ModName, FunIds } <- ImportEntries ],
-								   NextIndentationLevel ),
-					 text_utils:format(
-					   "Function imports declared from ~B modules: ~s",
-					   [ length( ImportEntries ), ImpString ] )
 
-			 end,
 
-			 %text_utils:format( "~B function export definitions: ~p~n",
-			 %					[ length( FunctionExports ),
-			 %					  [ F || { _, F } <- FunctionExports ] ] ),
+% Returns a textual representation of the specified records, with specified
+% indentation level.
+%
+% Note: no available form to display.
+%
+-spec records_to_string( ast_info:record_table(),
+				 text_utils:indentation_level() ) -> text_utils:ustring().
+records_to_string( RecordTable, IndentationLevel ) ->
+
+	case ?table:enumerate( RecordTable ) of
+
+		[] ->
+			"no record defined";
+
+		RecordEntries ->
+			RecordString = text_utils:strings_to_sorted_string( [
+
+				begin
+
+					FieldStrings = fields_to_strings( FieldTable ),
+
+					% Indentation level 2, supposing we have more than one field
+					% generally:
+					%
+					FieldString = text_utils:strings_to_enumerated_string(
+									FieldStrings, IndentationLevel + 2 ),
+
+					text_utils:format( "record '~s' having ~B fields:~s",
+									   [ RecordName, length( FieldStrings ),
+										 FieldString ] )
+
+
+				end || { RecordName, { FieldTable, _NextLocation, _Line } }
+						   <- RecordEntries ],
+				IndentationLevel ),
+
+			text_utils:format( "~B records defined: ~s",
+							   [ length( RecordEntries ), RecordString ] )
+
+	end.
+
+
+
+% Returns a textual representation of the specified function imports, with
+% specified indentation level.
+%
+-spec function_imports_to_string( function_import_table(),
+		   [ ast_info:located_form() ], boolean(),
+			 text_utils:indentation_level() ) -> text_utils:ustring().
+function_imports_to_string( FunImportTable, FunImportDefs, DoIncludeForms,
+							IndentationLevel ) ->
+
+	case ?table:enumerate( FunImportTable ) of
+
+		[] ->
+			"no function imported";
+
+		ImportPairs ->
+
+			ModuleString = text_utils:strings_to_sorted_string( [
+
+				begin
+
+					IdStrings = [ function_id_to_string( FunId )
+								  || FunId <- FunIds ],
+
+					text_utils:format( "from module '~s': ~s", [ ModuleName,
+						text_utils:strings_to_enumerated_string( IdStrings ) ] )
+
+
+				end || { ModuleName, FunIds } <- ImportPairs ],
+				IndentationLevel ),
+
+			text_utils:format( "function imports from ~B modules: ~s",
+							   [ length( ImportPairs ), ModuleString ] )
+				++ forms_to_string( FunImportDefs, DoIncludeForms,
+									IndentationLevel + 1 )
+
+	end.
+
+
+
+% Returns a textual representation of the specified functions, with specified
+% indentation level.
+%
+-spec functions_to_string( ast_info:function_table(), boolean(),
+				 text_utils:indentation_level() ) -> text_utils:ustring().
+functions_to_string( FunctionTable, DoIncludeForms, IndentationLevel ) ->
+
+	case ?table:values( FunctionTable ) of
+
+		[] ->
+			"no function information";
+
+		FunInfos ->
+
+			FunctionStrings = [
+				function_info_to_string( FunInfo, DoIncludeForms )
+					|| FunInfo <- FunInfos ],
 
 			 case FunctionStrings of
 
@@ -1027,36 +1341,69 @@ module_info_to_string( #module_info{
 					 "no function defined";
 
 				 _ ->
-					 text_utils:format( "~B functions defined:~s",
+					 text_utils:format( "~B functions defined: ~s",
 										[ length( FunctionStrings ),
 										  text_utils:strings_to_string(
 											FunctionStrings,
-											NextIndentationLevel ) ] )
+											IndentationLevel ) ] )
 
-			 end,
+			 end
 
-			 case TypeStrings of
+	end.
 
-				 [] ->
-					 "no type defined";
 
-				 _ ->
-					 text_utils:format( "~B types defined:~s",
-										[ length( TypeStrings ),
-										  text_utils:strings_to_string(
-											TypeStrings,
-											NextIndentationLevel ) ] )
 
-			 end,
+% Returns a textual representation of a module last line / line count.
+%
+-spec last_line_to_string( basic_utils:maybe( ast_info:located_form() ) ) ->
+								 text_utils:ustring().
+last_line_to_string( _LastLine=undefined ) ->
+	"unknown line count";
 
-			 text_utils:format( "line count: ~s", [ LastLineString ] ),
+last_line_to_string( _LastLine={ _Loc, { eof, Count } } ) ->
+	text_utils:format( "~B lines of source code", [ Count ] ).
 
-			 UnhandledString
 
-			],
 
-	text_utils:format( "Information about module '~s':~s",
-					   [ ModuleName, text_utils:strings_to_string( Infos ) ] ).
+% Returns a textual representation of specified errors.
+%
+-spec errors_to_string( [ error() ], text_utils:indentation_level() ) ->
+							  text_utils:ustring().
+errors_to_string( _Errors=[], _IndentationLevel ) ->
+	"no error to report";
+
+errors_to_string( Errors, IndentationLevel ) ->
+	text_utils:format( "~B error(s) to report: ~s",
+					   [ length( Errors ),
+						 text_utils:strings_to_string(
+			[ text_utils:format( "in ~s, line ~B: ~p",
+								 [ Filename, Line, Reason ] )
+			  || { Filename, Line, Reason } <- Errors ],
+											 IndentationLevel ) ] ).
+
+
+
+% Returns a textual representation of specified unhandled forms.
+%
+-spec unhandled_forms_to_string( [ ast_info:located_form() ], boolean(),
+				 text_utils:indentation_level() ) -> text_utils:ustring().
+unhandled_forms_to_string( _UnhandledForms=[], _DoIncludeForms=false,
+						   _IndentationLevel ) ->
+	"no unhandled form to report";
+
+unhandled_forms_to_string( UnhandledForms, _DoIncludeForms=false,
+						   _IndentationLevel ) ->
+	text_utils:format( "~B unhandled form(s)",
+					   [ length( UnhandledForms ) ] );
+
+unhandled_forms_to_string( UnhandledForms, _DoIncludeForms=true,
+						   IndentationLevel ) ->
+	text_utils:format( "~s: ~s", [
+		unhandled_forms_to_string( UnhandledForms, _DoIncludeForms=false,
+									IndentationLevel ),
+		text_utils:strings_to_string( [ text_utils:format( "~p", [ F ] )
+										|| { _Loc, F } <- UnhandledForms ],
+			 IndentationLevel + 1 ) ] ).
 
 
 
@@ -1065,7 +1412,7 @@ module_info_to_string( #module_info{
 % Returns a list of textual representations for each of the record fields in
 % specified table.
 %
--spec fields_to_strings( field_table() ) -> [ text_utils:string() ].
+-spec fields_to_strings( field_table() ) -> [ text_utils:ustring() ].
 fields_to_strings( FieldTable ) ->
 
 	[ field_to_string( FieldName, FieldType, DefaultValue )
@@ -1106,10 +1453,38 @@ field_to_string( FieldName, FieldType, DefaultValue ) ->
 
 
 
+% Returns a textual description of the specified function identifier.
+%
+-spec function_id_to_string( function_id() ) -> text_utils:ustring().
+function_id_to_string( { FunctionName, FunctionArity } ) ->
+	text_utils:format( "~s/~B", [ FunctionName, FunctionArity ] ).
+
+
+
+% Returns a textual description of the specified function information, not
+% including its forms (clauses), with a default indentation level.
+%
+-spec function_info_to_string( function_info() ) -> text_utils:ustring().
+function_info_to_string( FunctionInfo ) ->
+	function_info_to_string( FunctionInfo, _DoIncludeForms=false ).
+
+
+
+% Returns a textual description of the specified function information, including
+% its forms (clauses) if specified, with a default indentation level.
+%
+-spec function_info_to_string( function_info(), boolean() ) ->
+									 text_utils:ustring().
+function_info_to_string( FunctionInfo, DoIncludeForms ) ->
+	function_info_to_string( FunctionInfo, DoIncludeForms,
+							 _IndentationLevel=0 ).
+
+
 
 % Returns a textual description of the specified function information.
 %
--spec function_info_to_string( function_info() ) -> text_utils:ustring().
+-spec function_info_to_string( function_info(), boolean(),
+				 text_utils:indentation_level() ) -> text_utils:ustring().
 function_info_to_string( #function_info{ name=Name,
 										 arity=Arity,
 										 location=_Location,
@@ -1117,16 +1492,18 @@ function_info_to_string( #function_info{ name=Name,
 										 clauses=Clauses,
 										 spec=LocatedSpec,
 										 callback=IsCallback,
-										 exported=Exported } ) ->
+										 exported=Exported }, DoIncludeForms,
+						 IndentationLevel ) ->
 
 	ExportString = case Exported of
 
-		undefined ->
-			"local";
+		[] ->
+			%"local";
+			"not exported";
 
 		ExportLoc ->
 			text_utils:format( "exported in ~s",
-				  [ id_utils:sortable_id_to_string( ExportLoc ) ] )
+				  [ id_utils:sortable_ids_to_string( ExportLoc ) ] )
 
 	end,
 
@@ -1138,7 +1515,7 @@ function_info_to_string( #function_info{ name=Name,
 
 		_ ->
 			text_utils:format( "defined from line #~B, with "
-			   "~B clause(s) defined", [ Line, length( Clauses ) ] )
+			   "~B clause(s) specified", [ Line, length( Clauses ) ] )
 
 	end,
 
@@ -1160,8 +1537,20 @@ function_info_to_string( #function_info{ name=Name,
 
 	end,
 
-	text_utils:format( "~s/~B, ~s, ~s and ~s",
-				   [ Name, Arity, ExportString, DefString, SpecString ] ).
+	BaseString = text_utils:format( "~s/~B, ~s, ~s and ~s",
+						[ Name, Arity, ExportString, DefString, SpecString ] ),
+
+	case DoIncludeForms of
+
+		true ->
+			text_utils:format( "~s~n~s",
+							   [ BaseString, ast_function:clauses_to_string(
+										  Clauses, IndentationLevel + 1 ) ] );
+
+		false ->
+			BaseString
+
+	end.
 
 
 
@@ -1293,25 +1682,36 @@ ensure_type_not_exported( TypeId, _ExportLocs=[ Loc | T ], ExportTable ) ->
 
 
 
+% Returns a textual description of the specified type identifier.
+%
+-spec type_id_to_string( type_id() ) -> text_utils:ustring().
+type_id_to_string( { TypeName, TypeArity } ) ->
+	text_utils:format( "~s/~B", [ TypeName, TypeArity ] ).
+
+
+
 % Returns a textual description of the specified type information.
 %
--spec type_info_to_string( type_info() ) -> text_utils:ustring().
-type_info_to_string( #type_info{ name=Name,
+-spec type_info_to_string( type_info(), boolean(),
+				   text_utils:indentation_level() ) -> text_utils:ustring().
+type_info_to_string( #type_info{ name=TypeName,
 								 variables=TypeVariables,
 								 opaque=IsOpaque,
 								 location=_Location,
 								 line=_Line,
 								 definition=Definition,
-								 exported=Exported } ) ->
+								 exported=Exported },
+					 DoIncludeForms,
+					 _IndentationLevel ) ->
 
 	ExportString = case Exported of
 
 		[] ->
 			"local";
 
-		ExportLoc ->
+		ExportLocs ->
 			text_utils:format( "exported in ~s",
-							   [ id_utils:sortable_id_to_string( ExportLoc ) ] )
+					   [ id_utils:sortable_ids_to_string( ExportLocs ) ] )
 
 	end,
 
@@ -1328,9 +1728,22 @@ type_info_to_string( #type_info{ name=Name,
 
 	end,
 
-	DefString = text_utils:format( "defined by: ~p", [ Definition ] ),
-
 	Arity = length( TypeVariables ),
 
-	text_utils:format( "~s/~B, ~s, ~s and ~s",
-					   [ Name, Arity, OpaqueString, ExportString, DefString ] ).
+	TypeIdString = text_utils:format( "for type ~s: ",
+					  [ type_id_to_string( { TypeName, Arity } ) ] ),
+
+	BaseStrings = [ OpaqueString, ExportString ],
+
+	AllStrings = case DoIncludeForms of
+
+		true ->
+			FormString = text_utils:format( "defined by: ~p", [ Definition ] ),
+			list_utils:append_at_end( FormString, BaseStrings );
+
+		false ->
+			BaseStrings
+
+	end,
+
+	TypeIdString ++ text_utils:strings_to_listed_string( AllStrings ).

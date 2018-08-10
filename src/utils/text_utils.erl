@@ -61,6 +61,7 @@
 		  string_to_float/1, try_string_to_float/1,
 		  string_to_atom/1, strings_to_atoms/1,
 		  terms_to_string/1, terms_to_enumerated_string/1,
+		  terms_to_listed_string/1,
 		  binary_to_atom/1,
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
@@ -503,7 +504,11 @@ strings_to_string( L=[ SingleString ] ) when is_list( SingleString ) ->
 	% list and no dangling final quote is desirable:
 	%io_lib:format( " '~ts'", L );
 
-	io_lib:format( " ~ts", L );
+	% No leading space, the caller is expected to have it specified by himself,
+	% like in: "foo: ~s", not as "foo:~s":
+
+	%io_lib:format( " ~ts", L );
+	io_lib:format( "~ts", L );
 
 strings_to_string( ListOfStrings ) when is_list( ListOfStrings ) ->
 
@@ -657,7 +662,7 @@ atoms_to_listed_string( ListOfAtoms ) ->
 % and green".
 %
 strings_to_listed_string( _ListOfStrings=[] ) ->
-	throw( no_string_to_list );
+	throw( empty_list_of_strings_to_list );
 
 strings_to_listed_string( _ListOfStrings=[ SingleString ] ) ->
 	SingleString;
@@ -667,8 +672,18 @@ strings_to_listed_string( ListOfStrings ) ->
 	% Here all strings shall be separated with commas, except the last, starting
 	% with "and":
 
-	{ LastString, OtherStrings } = list_utils:extract_last_element(
-									 ListOfStrings ),
+	% We do not want here a dependency onto list_utils, which is not
+	% bootstrapped, as this current function might be called from the Myriad
+	% parse transform.
+
+	%{ LastString, OtherStrings } = list_utils:extract_last_element(
+	%								 ListOfStrings ),
+
+	% A somewhat inlined version of it:
+	[ LastString | RevOtherStrings ] = lists:reverse( ListOfStrings ),
+
+	OtherStrings = lists:reverse( RevOtherStrings ),
+
 	OtherStringsString = text_utils:join( ", ", OtherStrings ),
 
 	text_utils:format( "~s and ~s", [ OtherStringsString, LastString ] ).
@@ -1489,6 +1504,16 @@ terms_to_string( Terms ) ->
 -spec terms_to_enumerated_string( [ term() ] ) -> string().
 terms_to_enumerated_string( Terms ) ->
 	strings_to_enumerated_string( [ format( "~p", [ T ] ) || T <- Terms ] ).
+
+
+
+% Returns a textual representation of the specified terms, as a listed
+% representation of their user-friendly (i.e. based on ~p) default
+% representation.
+%
+-spec terms_to_listed_string( [ term() ] ) -> string().
+terms_to_listed_string( Terms ) ->
+	strings_to_listed_string( [ format( "~p", [ T ] ) || T <- Terms ] ).
 
 
 

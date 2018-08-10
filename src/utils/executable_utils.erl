@@ -128,7 +128,7 @@
 
 
 % The name of a command-line value (ex: "blue"):
--type command_line_value() :: text_utils:string().
+-type command_line_value() :: text_utils:ustring().
 
 
 % The association between an option and the various values associated to its

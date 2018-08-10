@@ -234,7 +234,7 @@ read_rows( Device, Separator, RowCount, FieldCount, Acc ) ->
 
 % Parses specified line into a proper row.
 %
--spec parse_row( text_utils:string(), char() ) ->
+-spec parse_row( text_utils:ustring(), char() ) ->
 					   basic_utils:maybe( { row(), field_count() } ).
 parse_row( Line, Separator ) ->
 
@@ -259,7 +259,7 @@ parse_row( Line, Separator ) ->
 
 % Returns a textual representation of specified content.
 %
--spec content_to_string( content() ) -> text_utils:string().
+-spec content_to_string( content() ) -> text_utils:ustring().
 content_to_string( Content ) ->
 	text_utils:format( "content of ~B rows:~s", [ length( Content ),
 					   text_utils:terms_to_enumerated_string( Content ) ] ).

@@ -34,7 +34,8 @@
 
 
 
-% Description of the module name:
+% Description of a module name:
+%
 -type module_entry() :: basic_utils:maybe( { basic_utils:module_name(),
 											 ast_info:located_form() } ).
 
@@ -43,49 +44,84 @@
 % A record to store and centralise information gathered about an Erlang
 % (compiled) module.
 %
-% Allows to perform checkings and to reorder and transform the returned version
-% of it (for that, located ASTs and forms are used).
+% Allows to perform checkings, and to reorder and transform the returned version
+% of it.
 %
-% We store the located forms verbatim whenever possible (in *_def* counterpart
-% fields), notably to preserve the line numbers within.
+% For that, ASTs and forms are used, in a located version of them, as the form
+% order matters (to the actual compilation) and is a different, complementary
+% information to the original line numbers, which are kept for source reference
+% purposes.
 %
-% As a consequence there are generally two fields per theme:
+% We store the located forms verbatim whenever possible (depending on the case,
+% either directly in the same field, or in *_def* counterpart fields), notably
+% to preserve the line numbers within.
 %
-% - the high-level, developer-friendly one (ex: 'module')
-% - the raw one in AST form (ex: 'module_def')
+% In the former case, a single field (ex: 'module') contains a pair of
+% information, whose first element is the higher level, syntax-free information
+% that was gathered, and whose second element is a lower level, form-based,
+% information (a bit more informative in terms of syntax and source layout, yet
+% less tractable from a user point of view).
+
+% In the latter case, there are thus two fields per theme:
+%
+% - the high-level, developer-friendly one (ex: 'compilation_options')
+% - the raw one in AST form (ex: 'compilation_option_defs')
 %
 % It is up to the user to ensure that, if either field is modified, its
-% counterpart one is updated accordingly.
+% counterpart one is updated accordingly. Note that there may not be a
+% one-to-one mapping between the elements of two associated fields.
 %
 -record( module_info, {
 
 
-		% Name of that module, together with its definition (located form):
+		% Name (if any) of that module, together with its definition (as a
+		% located form):
+		%
 		module = undefined :: module_entry(),
 
 
+
 		% A table, whose keys are compilation options (ex: no_auto_import,
-		% inline, etc.) and whose values are aggregated lists of their
+		% inline, etc.) and whose values are aggregated *lists* of their
 		% associated values (ex: [{size,1}] and [{get_bucket_index,2},{f/1}]).
 		%
-		% Note: for the 'inline' key, if full inlining is enabled ( '-compile(
-		% inline ).'), then its associated key is not a list of function
-		% identifiers, but 'all'.
+		% Note:
+		%
+		% - for this aggregated, higher-level field, the specific way that was
+		% used in order to specify these various information (ex: separately or
+		% in groups, at which actual file locations, etc.) is abstracted out
+		%
+		% - the 'inline' key is special-cased to account for its variants: if
+		% full inlining is enabled ( '-compile( inline ).'), then its associated
+		% key is not a list of function identifiers, but the 'all' atom
+		%
+		% - this field is to be kept in sync with its 'compilation_option_defs'
+		% counterpart lower-level field
 		%
 		compilation_options :: ast_info:compile_option_table(),
 
 
-		% A table, as multiple compile attributes can be declared, like:
+		% The actual, lower-level definitions of the compilation options, like
+		% in:
 		%
-		% Ex: {attribute,67,compile,{no_auto_import,[{size,1}]}},
-		%     {attribute,63,compile,{inline,[{get_bucket_index,2}]}}
+		% [...]
+		% {attribute,61,compile,{no_auto_import,[{size,1}]}},
+		% {attribute,63,compile,{inline,[{get_bucket_index,2}]}},
+		% {attribute,64,compile,{no_auto_import,[{foo,1},{bar,2}]}},
+		% [...]
+		%
+		% Note: to be kept in sync with its 'compilation_options' counterpart
+		% higher-level field
 		%
 		compilation_option_defs = [] :: [ ast_info:located_form() ],
 
 
+
 		% Parse-level attributes (ex: '-my_attribute( my_value ).'), as a table
-		% associating, to an attribute name (an atom key), a list of pairs
-		% comprising each a value and an AST form.
+		% associating, to an attribute name (an atom key such as
+		% 'my_attribute'), a list of pairs comprising each a value (ex:
+		% my_value) and the corresponding AST form (knowing of course that a
+		% given attribute name may be used multiple times).
 		%
 		% Such attributes, also named "wild attributes", mostly correspond to
 		% user-defined ones.
@@ -93,18 +129,26 @@
 		parse_attributes :: ast_info:attribute_table(),
 
 
-		% As remote function specifications can be defined, like:
+		% Remote function specifications may be defined, like in:
 		% -spec Mod:Name(...) -> ...
+		%
+		% Note: no counterpart field.
 		%
 		remote_spec_defs = [] :: [ ast_info:located_form() ],
 
 
+
 		% Include files (typically *.hrl files).
 		%
-		% Unlike the raw definitions (in 'include_defs'), this field does not
-		% include the filename of the module being compiled (ex: "foobar.erl").
+		% Unlike the raw definitions (in the 'include_defs' field), this field
+		% does not include the filename of the module being compiled (ex:
+		% "foobar.erl").
 		%
-		% (there is no duplicate either in that include list)
+		% (there is no duplicate either in that include list; we do not use a
+		% set here though, as set_utils is not a bootstrapped module)
+		%
+		% Note: to be kept in sync with its 'include_defs' counterpart
+		% lower-level field.
 		%
 		includes = [] :: [ file_utils:bin_file_path() ],
 
@@ -114,27 +158,36 @@
 		% (possibly a given file might be included more than once; it is
 		% generally the case for the module being currently compiled)
 		%
+		% Note: to be kept in sync with its 'includes' counterpart higher-level
+		% field.
+		%
 		include_defs = [] :: [ ast_info:located_form() ],
 
 
+
 		% Whether a type (possibly any kind of it; ex: opaque or not) is
-		% exported is recorded primarily in its own type_info record through a
-		% list of locations, while the information sufficient to reconstruct the
-		% actual forms for the exports of all types are recorded here.
+		% exported is stored primarily in its own type_info record (see the
+		% 'types' field) through a list of locations, while the information
+		% sufficient to reconstruct the actual forms for the exports of all
+		% types are recorded here.
 		%
 		% Note: it is better that way, as a type export attribute may define any
 		% number of exports, and we need to record its definition line.
 		%
-		% (this field must be kept synchronised with the table in the
-		% 'types' field)
+		% Note: this field must be kept synchronised with the table in the
+		% 'types' field.
 		%
 		type_exports :: ast_info:type_export_table(),
 
 
 		% All information, indexed by type identifiers, about all the types
-		% defined in that module:
+		% defined in that module.
+		%
+		% Note: this field must be kept synchronised with the table in the
+		% 'type_exports' field.
 		%
 		types :: ast_info:type_table(),
+
 
 
 		% All information (notably: field descriptions), indexed by record
@@ -143,12 +196,20 @@
 		records :: ast_info:record_table(),
 
 
-		% Lists the functions imported by that module, per-module.
+
+		% Lists the functions imported by that module, indexed per
+		% implementation module (each being a key of that table).
+		%
+		% Note: to be kept in sync with its 'function_imports_defs' counterpart
+		% lower-level field.
 		%
 		function_imports :: ast_info:function_import_table(),
 
 
 		% The definitions of the function imports:
+		%
+		% Note: to be kept in sync with its 'function_imports' counterpart
+		% higher-level field.
 		%
 		function_imports_defs = [] :: [ ast_info:located_form() ],
 
@@ -162,8 +223,8 @@
 		% Note: it is better that way, as a function export attribute may define
 		% any number of exports, and we need to record its definition line.
 		%
-		% (this field must be kept synchronised with the table in the
-		% 'functions' field)
+		% Note: this field must be kept synchronised with the table in the
+		% 'functions' field.
 		%
 		function_exports :: ast_info:function_export_table(),
 
@@ -171,10 +232,16 @@
 		% All information, indexed by function identifiers, about all the
 		% functions defined in that module:
 		%
+		% Note: this field must be kept synchronised with the table in the
+		% 'function_exports' field.
+		%
 		functions :: ast_info:function_table(),
 
 
+
 		% The definitions of the list of optional callbacks:
+		%
+		% Note: no counterpart field.
 		%
 		optional_callbacks_defs = [] :: [ ast_info:located_form() ],
 
@@ -243,7 +310,7 @@
 
 		   % Tells whether this type has been exported, as a (possibly
 		   % empty) list of the location(s) of its actual export(s), knowing
-		   % that a type can be exported more than once or never:
+		   % that a type can be exported more than once, or never:
 		   %
 		   exported = [] :: [ ast_info:location() ]
 
@@ -288,6 +355,7 @@
 
 		   % The type specification (if any) of that function, as an abstract
 		   % form:
+		   %
 		   spec = undefined ::
 			 basic_utils:maybe( ast_info:located_function_spec() ),
 

@@ -1089,7 +1089,7 @@ get_state() ->
 % string, a suffix string (dealing with size and redirection).
 %
 -spec get_dialog_settings( setting_table() ) ->
-				  { text_utils:string(), text_utils:string() }.
+				  { text_utils:ustring(), text_utils:ustring() }.
 get_dialog_settings( SettingTable ) ->
 
 	TitleOpt = case ?ui_table:getValueWithDefaults( 'title',
@@ -1140,7 +1140,7 @@ get_dialog_settings( SettingTable ) ->
 
 % Returns a string to be used fir I/O redirection in an execution command.
 %
--spec get_redirect_string() -> text_utils:string().
+-spec get_redirect_string() -> text_utils:ustring().
 get_redirect_string() ->
 	% As 'nouse_stdio' will be needed:
 	"2>&4".

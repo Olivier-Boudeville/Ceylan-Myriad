@@ -621,7 +621,7 @@ read_port( Port, Data ) ->
 % with -noinput (and thus so that {text,term}_ui can be used with the same VM
 % settings).
 %
--spec get_line( text_utils:string() ) -> text_utils:string().
+-spec get_line( text_utils:ustring() ) -> text_utils:ustring().
 get_line( Prompt ) ->
 	get_line( Prompt, get_line_helper_script() ).
 
@@ -631,8 +631,8 @@ get_line( Prompt ) ->
 % with -noinput (and thus so that {text,term}_ui can be used with the same VM
 % settings).
 %
--spec get_line( text_utils:string(), file_utils:executable_path() ) ->
-					  text_utils:string().
+-spec get_line( text_utils:ustring(), file_utils:executable_path() ) ->
+					  text_utils:ustring().
 get_line( Prompt, GetLineScriptPath ) ->
 
 

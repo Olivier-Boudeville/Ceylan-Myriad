@@ -61,7 +61,7 @@
 							| { 'char', line(), char() }
 							| { 'float', line(), float() }
 							| { 'integer', line(), integer() }
-							| { 'string', line(), text_utils:string() }.
+							| { 'string', line(), text_utils:ustring() }.
 
 
 -type ast_compound_literal() :: { 'nil', line() }.

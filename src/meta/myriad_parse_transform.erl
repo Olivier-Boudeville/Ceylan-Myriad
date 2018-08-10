@@ -157,6 +157,24 @@ run_standalone( FileToTransform ) ->
 % The parse transform itself, transforming the specified (Myriad-based) Abstract
 % Format code into another (Erlang-compliant) one.
 %
+% Note: the (compile) Options variable is currently ignored, as we do not know
+% what we could do with it. There is nevertheless valuable information in it,
+% like in:
+%
+% Options = [report_warnings, {d,debug_mode_is_enabled}, beam, report_errors,
+%			{cwd,"[...]/foo"}, {outdir,"[...]/foo"}, {i,"[...]/foo/../bar"},
+%           [...]
+%			{parse_transform,myriad_parse_transform}, debug_info,
+%           warnings_as_errors, warn_unused_import, warn_obsolete_guards,
+%           warn_shadow_vars, warn_export_vars, warn_export_all,
+%           encrypt_debug_info, {debug_info_key,"Ceylan-Myriad"} ]
+%
+% Notably, short of managing specifically 'debug_info' et al., apparently in the
+% resulting BEAM files there is no Core Erlang code (see the output of 'make
+% generate-local-plt' for more information, like: 'Could not get Core Erlang
+% code for: foo/baz.beam; Recompile with +debug_info or analyze starting from
+% source code').
+%
 -spec parse_transform( ast(), meta_utils:parse_transform_options() ) -> ast().
 parse_transform( InputAST, _Options ) ->
 
@@ -180,7 +198,12 @@ apply_myriad_transform( InputAST ) ->
 
 	%trace_utils:debug_fmt( "~n## INPUT ####################################" ),
 	%trace_utils:debug_fmt( "Myriad input AST:~n~p~n~n", [ InputAST ] ),
-	%ast_utils:write_ast_to_file( InputAST, "Input-AST.txt" ),
+
+	%ast_utils:write_ast_to_file( InputAST, "Myriad-input-AST.txt" ),
+
+	% This allows to compare input and output ASTs more easily:
+	%ast_utils:write_ast_to_file( lists:sort( InputAST ),
+	%							 "Myriad-input-AST-sorted.txt" ),
 
 	BaseModuleInfo = ast_info:extract_module_info_from_ast( InputAST ),
 
@@ -190,36 +213,52 @@ apply_myriad_transform( InputAST ) ->
 	%trace_utils:debug_fmt( "Input module info: ~s",
 	%		   [ ast_info:module_info_to_string( BaseModuleInfo ) ] ),
 
-	Transforms = get_myriad_ast_transforms_for( BaseModuleInfo ),
 
-	%trace_utils:debug_fmt( "~nApplying following ~s",
-	%		   [ ast_transform:ast_transforms_to_string( Transforms ) ] ),
+	TransformedModuleInfo = transform_module_info( BaseModuleInfo ),
 
-	TransformedModuleInfo = meta_utils:apply_ast_transforms( Transforms,
-															 BaseModuleInfo ),
 
-	OutputModuleInfo = TransformedModuleInfo,
-
-	%ast_info:write_module_info_to_file( OutputModuleInfo,
+	%ast_info:write_module_info_to_file( TransformedModuleInfo,
 	%									"Output-module_info.txt" ),
 
 	%trace_utils:debug( "~n## OUTPUT ###################################" ),
 	%trace_utils:debug_fmt( "Output module info: ~s",
-	%		   [ ast_info:module_info_to_string( OutputModuleInfo ) ] ),
+	%		   [ ast_info:module_info_to_string( TransformedModuleInfo ) ] ),
 	%io:format( "Output module info: ~s",
-	%		   [ ast_info:module_info_to_string( OutputModuleInfo ) ] ),
+	%		   [ ast_info:module_info_to_string( TransformedModuleInfo ) ] ),
 
-	OutputAST = ast_info:recompose_ast_from_module_info( OutputModuleInfo ),
+	OutputAST = ast_info:recompose_ast_from_module_info(
+				  TransformedModuleInfo ),
 
 	%trace_utils:debug_fmt( "~n~nMyriad output AST:~n~p~n", [ OutputAST ] ),
 
-	%OutputASTFilename = text_utils:format( "Output-AST-for-module-~s.txt",
-	%				   [ element( 1, OutputModuleInfo#module_info.module ) ] ),
+	%OutputASTFilename = text_utils:format(
+	%           "Myriad-output-AST-for-module-~s.txt",
+	%			[ element( 1, TransformedModuleInfo#module_info.module ) ] ),
 
 	%ast_utils:write_ast_to_file( OutputAST, OutputASTFilename ),
 
-	{ OutputAST, OutputModuleInfo }.
+	%ast_utils:write_ast_to_file( lists:sort( OutputAST ),
+	%							 "Myriad-output-AST-sorted.txt" ),
 
+	{ OutputAST, TransformedModuleInfo }.
+
+
+
+% Transforms (at the Myriad level) specified module information.
+%
+-spec transform_module_info( module_info() ) -> module_info().
+transform_module_info( ModuleInfo ) ->
+
+	% First determines the right transforms:
+	Transforms = get_myriad_ast_transforms_for( ModuleInfo ),
+
+	% Then apply them:
+
+	%trace_utils:debug_fmt( "~nApplying following ~s",
+	%		   [ ast_transform:ast_transforms_to_string( Transforms ) ] ),
+
+	% Returns an updated module information:
+	meta_utils:apply_ast_transforms( Transforms, ModuleInfo ).
 
 
 

@@ -702,7 +702,7 @@ ERLANG_COMPILER_OPT_BASE += $(ERLANG_COMPILER_GENERAL_OPT) $(INC)        \
 # Base options to compile parse transforms themselves (and their helper
 # modules):
 #
-#ERLANG_COMPILER_OPT_FOR_PT += $(ERLANG_COMPILER_OPT_BASE)
+ERLANG_COMPILER_OPT_FOR_PT += $(ERLANG_COMPILER_OPT_BASE)
 
 
 # Conditionally defined so that upper layer may update these settings (ex:

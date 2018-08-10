@@ -57,6 +57,11 @@
 -export([ get_located_forms_for/2 ]).
 
 
+% Helpers:
+-export([ clauses_to_string/2 ]).
+
+
+
 % Shorthands:
 
 -type function_arity() :: meta_utils:function_arity().
@@ -351,14 +356,7 @@ transform_function_constraint( { 'type', Line, 'constraint',
 								   { [ located_form() ], [ located_form() ] }.
 get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 
-	FunExportInfos = ?table:enumerate( FunctionExportTable ),
-
-	%ast_utils:display_debug( "FunExportInfos = ~p",
-	%  [ FunExportInfos ] ),
-
-	FunExportLocDefs = [ { Loc, { attribute, Line, export, FunIds } }
-				   || { Loc, { Line, FunIds } } <- FunExportInfos ],
-
+	FunExportLocDefs = get_function_export_forms( FunctionExportTable ),
 
 	% Dropping the keys (the function_id(), i.e. function identifiers), focusing
 	% on their associated function_info():
@@ -400,3 +398,36 @@ get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 						_List=FunInfos ),
 
 	{ FunExportLocDefs, FunctionLocDefs }.
+
+
+
+% Returns located forms corresponding to known function exports, generated from
+% specified table.
+%
+-spec get_function_export_forms( ast_info:function_export_table() ) ->
+									   [ ast_info:located_form() ].
+get_function_export_forms( FunctionExportTable ) ->
+
+	FunExportInfos = ?table:enumerate( FunctionExportTable ),
+
+	%ast_utils:display_debug( "FunExportInfos = ~p",
+	%  [ FunExportInfos ] ),
+
+	[ { Loc, { attribute, Line, export, FunIds } }
+	  || { Loc, { Line, FunIds } } <- FunExportInfos ].
+
+
+
+% Returns a textual description of the specified function clauses, using
+% specified indentation level.
+%
+-spec clauses_to_string( meta_utils:clause_def(),
+					 text_utils:indentation_level() ) -> text_utils:ustring().
+clauses_to_string( _Clauses=[], _IndentationLevel ) ->
+	"no function clause defined";
+
+clauses_to_string( Clauses, IndentationLevel ) ->
+	text_utils:format( "~B function clauses defined: ~s", [ length( Clauses ),
+		text_utils:strings_to_string(
+				 [ text_utils:format( "~p", [ C ] ) || C <- Clauses ],
+				 IndentationLevel ) ] ).

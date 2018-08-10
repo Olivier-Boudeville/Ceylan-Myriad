@@ -336,9 +336,11 @@ get_last_element( _List=[ _H | T ] ) ->
 % Note: not computationnally efficient, usually having to retrieve the last
 % element suggests a bad code design.
 %
-% Crashes (with 'no function clause') if the input list is empty.
-%
 -spec extract_last_element( list() ) -> { element(), list() }.
+extract_last_element( _List=[] ) ->
+	throw( cannot_extract_from_empty_list );
+
+
 extract_last_element( List ) ->
 
 	% Probably the most efficient variant:
@@ -634,11 +636,13 @@ delete_all_in( Elem, _List=[ H | T ], Acc ) ->
 % costlier than adding them at head.
 %
 -spec append_at_end( element(), list() ) -> nonempty_list().
-append_at_end( ElemList, L ) when is_list( ElemList ) andalso is_list( L ) ->
-	% Should be more efficient than:
-	%lists:reverse( [ Elem | lists:reverse( L ) ] ):
-	L ++ ElemList;
-
+% This clause was not a bright idea:
+% - beware of not using a string (hence a list) as first parameter, if not
+% expecting it to be managed as a list
+%
+%append_at_end( ElemList, L ) when is_list( ElemList ) andalso is_list( L ) ->
+%	L ++ ElemList;
+%
 append_at_end( Elem, L ) when is_list( L ) ->
 	% Should be more efficient than:
 	%lists:reverse( [ Elem | lists:reverse( L ) ] ):

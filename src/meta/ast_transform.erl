@@ -679,7 +679,7 @@ transform_transformed_term( TargetTerm, TypeDescription, TermTransformer,
 % Returns a textual description of specified AST transforms.
 %
 -spec ast_transforms_to_string( meta_utils:ast_transforms() ) ->
-									  text_utils:string().
+									  text_utils:ustring().
 ast_transforms_to_string( #ast_transforms{
 							 local_types=MaybeLocalTypeTable,
 							 remote_types=MaybeRemoteTypeTable,

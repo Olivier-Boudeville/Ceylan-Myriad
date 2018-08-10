@@ -731,7 +731,7 @@ get_best_ui_backend() ->
 
 % Returns a textual description of specified setting table.
 %
--spec settings_to_string( setting_table() ) -> text_utils:string().
+-spec settings_to_string( setting_table() ) -> text_utils:ustring().
 settings_to_string( SettingTable ) ->
 	case ?ui_table:size( SettingTable ) of
 

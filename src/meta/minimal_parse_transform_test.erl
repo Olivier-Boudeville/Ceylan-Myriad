@@ -43,21 +43,21 @@ perform_direct_ast_operations( TargetSourceFile ) ->
 
 	io:format( "~nNow performing directly AST-level operations:~n~n" ),
 
-	BaseAST = meta_utils:erl_to_ast( TargetSourceFile ),
+	BaseAST = ast_utils:erl_to_ast( TargetSourceFile ),
 
 	io:format( "Base AST:~n~p~n", [ BaseAST ] ),
 
-	BaseModuleInfo = meta_utils:extract_module_info_from_ast( BaseAST ),
+	BaseModuleInfo = ast_info:extract_module_info_from_ast( BaseAST ),
 
 	io:format( "Base module info: ~s~n~n",
-			   [ meta_utils:module_info_to_string( BaseModuleInfo ) ] ),
+			   [ ast_info:module_info_to_string( BaseModuleInfo ) ] ),
 
 	FinalModuleInfo = BaseModuleInfo,
 
 	io:format( "Final module info: ~s~n~n",
-			   [ meta_utils:module_info_to_string( FinalModuleInfo ) ] ),
+			   [ ast_info:module_info_to_string( FinalModuleInfo ) ] ),
 
-	FinalAST = meta_utils:recompose_ast_from_module_info( FinalModuleInfo ),
+	FinalAST = ast_info:recompose_ast_from_module_info( FinalModuleInfo ),
 
 	io:format( "Final AST:~n~p~n", [ FinalAST ] ).
 

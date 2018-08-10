@@ -102,6 +102,7 @@
 		  display_error/1, display_error/2,
 		  display_fatal/1, display_fatal/2 ]).
 
+
 % Signaling:
 %
 -export([ notify_warning/2,
@@ -118,7 +119,7 @@
 % Shorthands:
 
 -type ast() :: ast_base:ast().
--type ast_form() :: ast_base:ast_form().
+-type form() :: ast_base:form().
 -type line() :: ast_base:line().
 -type form_context() :: ast_base:form_context().
 
@@ -376,7 +377,6 @@ beam_to_ast( BeamFilename ) ->
 
 	% We could basically list all chunks, but we are only interested here in the
 	% abstract code:
-	%
 
 	% Everything:
 	%Chunks = [ abstract_code, attributes, compile_info, exports,
@@ -430,7 +430,7 @@ beam_to_ast( BeamFilename ) ->
 % Converts the specified Erlang term (ex: the float '42.0') into a corresponding
 % form (ex: '{ float, _Line=0, 42.0 }').
 %
--spec term_to_form( term() ) -> ast_form().
+-spec term_to_form( term() ) -> form().
 term_to_form( Term ) ->
 
 	case erl_syntax:abstract( Term ) of
@@ -475,7 +475,7 @@ variable_names_to_ast( VariableNames, Line ) ->
 % Ex: string_to_form( "f() -> hello_world." ) returns
 %   { function, 1, f, 0, [ { clause, 1, [], [], [ {atom,1,hello_world} ] } ] }
 %
--spec string_to_form( string() ) -> ast_form().
+-spec string_to_form( string() ) -> form().
 string_to_form( FormString ) ->
 	string_to_form( FormString, _Loc=1 ).
 
@@ -487,7 +487,7 @@ string_to_form( FormString ) ->
 % Ex: string_to_form( "f() -> hello_world.", 42 ) returns
 %   { function, 1, f, 0, [ { clause, 42, [], [], [ {atom,1,hello_world} ] } ] }
 %
--spec string_to_form( string(), ast_base:file_loc() ) -> ast_form().
+-spec string_to_form( string(), ast_base:file_loc() ) -> form().
 string_to_form( FormString, Location ) ->
 
 	% First get Erlang tokens from that string:
@@ -592,7 +592,7 @@ string_to_value( ExpressionString ) ->
 
 % Displays specified text as debug.
 %
--spec display_debug( text_utils:string() ) -> basic_utils:void().
+-spec display_debug( text_utils:ustring() ) -> basic_utils:void().
 display_debug( String ) ->
 	io:format( "[debug] ~s~n", [ String ] ).
 
@@ -608,7 +608,7 @@ display_debug( FormatString, Values ) ->
 
 % Displays specified text as trace.
 %
--spec display_trace( text_utils:string() ) -> basic_utils:void().
+-spec display_trace( text_utils:ustring() ) -> basic_utils:void().
 display_trace( String ) ->
 	io:format( "[trace] ~s~n", [ String ] ).
 
@@ -624,7 +624,7 @@ display_trace( FormatString, Values ) ->
 
 % Displays specified text as info.
 %
--spec display_info( text_utils:string() ) -> basic_utils:void().
+-spec display_info( text_utils:ustring() ) -> basic_utils:void().
 display_info( String ) ->
 	io:format( "[info] ~s~n", [ String ] ).
 
@@ -639,7 +639,7 @@ display_info( FormatString, Values ) ->
 
 % Displays specified text as warning.
 %
--spec display_warning( text_utils:string() ) -> basic_utils:void().
+-spec display_warning( text_utils:ustring() ) -> basic_utils:void().
 display_warning( String ) ->
 	io:format( "[warning] ~s~n", [ String ] ).
 
@@ -655,7 +655,7 @@ display_warning( FormatString, Values ) ->
 
 % Displays specified text as error.
 %
--spec display_error( text_utils:string() ) -> basic_utils:void().
+-spec display_error( text_utils:ustring() ) -> basic_utils:void().
 display_error( String ) ->
 	io:format( "~n[error] ~s~n", [ String ] ).
 
@@ -671,7 +671,7 @@ display_error( FormatString, Values ) ->
 
 % Displays specified text as fatal.
 %
--spec display_fatal( text_utils:string() ) -> basic_utils:void().
+-spec display_fatal( text_utils:ustring() ) -> basic_utils:void().
 display_fatal( String ) ->
 	io:format( "[fatal] ~s~n", [ String ] ).
 
@@ -699,7 +699,8 @@ notify_warning( Elements, Context ) ->
 
 
 % Raises a (compile-time, rather ad hoc) error when applying a parse transform,
-% to stop the build on failure and report the actual error, thanks to the specified term (often, a list of error elements).
+% to stop the build on failure and report the actual error, thanks to the
+% specified term (often, a list of error elements).
 %
 % Used to be a simple throw, but then for parse transforms the error message was
 % garbled in messages like:
@@ -845,7 +846,7 @@ interpret_stack_trace( _StackTrace=[ H | T ], Acc, Count ) ->
 % compiled.
 %
 -spec get_error_form( basic_utils:error_reason(), basic_utils:module_name(),
-					  line() ) -> ast_form().
+					  line() ) -> form().
 get_error_form( ErrorTerm, FormatErrorModule, Line ) ->
 
 	% Actually the most standard way of reporting an error seems to insert a

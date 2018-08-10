@@ -34,7 +34,7 @@
 
 % Defines that are common, transverse to all user interface backends.
 
--type text() :: text_utils:string().
+-type text() :: text_utils:ustring().
 
 -type label() :: text().
 -type prompt() :: text().
