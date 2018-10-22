@@ -31,15 +31,13 @@ if [ ! -f "${source_file}" ] ; then
 
 fi
 
-
-#rule_file="$CEYLAN_SRC/doc/GNUmakerules-docutils.inc"
-rule_file="$(dirname $0)/GNUmakerules-docutils.inc"
+rule_file="$(dirname $0)/../../doc/GNUmakerules-docutils.inc"
 
 #echo "rule_file = ${rule_file}"
 
 if [ ! -f "${rule_file}" ] ; then
 
-	echo "  Error, rule file to generate PDF ${rule_file} not found." 1>&2
+	echo "  Error, rule file to generate PDF (${rule_file}) not found." 1>&2
 	exit 11
 
 fi
@@ -57,6 +55,6 @@ if [ -f "${target_file}" ] ; then
 fi
 
 
-echo "Generating now ${target_file} from ${source_file}..." && make -f "${rule_file}" "${target_file}" && echo "Generation succeeded!"
+echo "Generating now ${target_file} from ${source_file}..." && make -s -f "${rule_file}" "${target_file}" && echo "Generation succeeded!"
 
 /bin/rm -f ${file_prefix}.aux ${file_prefix}.tex ${file_prefix}.out ${file_prefix}.log
