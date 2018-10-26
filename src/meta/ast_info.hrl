@@ -40,6 +40,18 @@
 											 ast_info:located_form() } ).
 
 
+% Describes a location that can be either absolutely set, or auto-located "just"
+% after a given one.
+%
+% Typically useful to freely define locations for elements that shall be located
+% after a given marker, yet with no specific order between themselves (ex: there
+% may be no specific order in a list of type definitions, yet they may be
+% located before, say, the function definitions).
+%
+-type smart_location() :: ast_info:location()
+						| { 'locate_at', ast_info:location() }.
+
+
 
 % A record to store and centralise information gathered about an Erlang
 % (compiled) module.
@@ -252,6 +264,11 @@
 		% to avoid a costly addition in last position)
 		%
 		last_line :: ast_info:located_form(),
+
+
+		% Section markers, offering reference locations to AST transformations
+		%
+		markers :: ast_info:section_marker_table(),
 
 
 		% Error information collected when traversing the AST

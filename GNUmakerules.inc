@@ -103,16 +103,17 @@ endif
 
 
 .PHONY: all all-pre-hook all-parallel-recurse all-recurse
-		all-parse-transforms bootstrap-modules make-all-parse-transforms    \
-		rebuild test test-recurse doc-recurse build-tests launch			\
-		install-all install-announce install-ebin install-bin install-src	\
-		install-include install-examples install-test install-doc			\
-		info-install info-install-locations info-install-content            \
-		generate-list-of-erlang-types generate-list-of-local-types          \
-		generate-local-plt self-check-against-plt check check-hook help-erl \
-		clean clean-erlang clean-python clean-database clean-recurse        \
-		clean-outputs real-clean                                            \
-		info info-files info-meta info-erlang info-python info-java         \
+		all-parse-transforms bootstrap-modules make-all-parse-transforms     \
+		build-debug rebuild test test-recurse doc-recurse build-tests launch \
+		install-all install-announce install-ebin install-bin install-src	 \
+		install-include install-examples install-test install-doc			 \
+		info-install info-install-locations info-install-content             \
+		generate-list-of-erlang-types generate-list-of-local-types           \
+		generate-local-plt self-check-against-plt write-debug-key-file       \
+		check check-hook help-erl                                            \
+		clean clean-erlang clean-python clean-database clean-recurse         \
+		clean-outputs real-clean                                             \
+		info info-files info-meta info-erlang info-python info-java          \
 		$(MODULES_DIRS)
 
 
@@ -140,7 +141,6 @@ else
 all: all-recurse-pre-hook all-recurse $(BEAM_FILES) $(JAVA_CLASS_FILES)
 
 endif
-
 
 
 all-parse-transforms: bootstrap-modules make-all-parse-transforms
@@ -208,6 +208,11 @@ all-recurse: $(BEAM_FILES)
 	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $@ $<
 
 
+# To interpret more easily compilation errors during development:
+build-debug:
+	@$(MAKE) -s all CORE_COUNT=1 | more
+
+
 rebuild: clean all
 
 
@@ -225,7 +230,14 @@ rebuild: clean all
 # See also: in GNUmakevars.inc, the BOOTSTRAP_MODULES variable.
 
 # We cherry-pick modules in various source directories, and select all modules
-# in 'src/meta', built generically:
+# in 'src/meta', which are then built generically.
+
+# A difficulty is that we have to generate each BEAM file in the same directory
+# as their source (hence the 'cd $$(dirname $@)'), however the automatically-set
+# MYRIAD_TOP variable points only to the root of Myriad. As a result, paths
+# (typically include ones) will not be correct, so we added BOOTSTRAP_INCLUDES
+# to insert the correct ones.
+
 
 # Note: maybe these (identical) rules can be factored with just different
 # sources and targets.
@@ -235,17 +247,17 @@ rebuild: clean all
 
 $(MYRIAD_TOP)/src/utils/basic_utils.beam: $(MYRIAD_TOP)/src/utils/basic_utils.erl
 	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
 
 $(MYRIAD_TOP)/src/utils/text_utils.beam: $(MYRIAD_TOP)/src/utils/text_utils.erl
 	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
 
 $(MYRIAD_TOP)/src/utils/id_utils.beam: $(MYRIAD_TOP)/src/utils/id_utils.erl
 	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
 
 
@@ -255,7 +267,7 @@ $(MYRIAD_TOP)/src/utils/id_utils.beam: $(MYRIAD_TOP)/src/utils/id_utils.erl
 
 $(MYRIAD_TOP)/src/meta/%.beam: $(MYRIAD_TOP)/src/meta/%.erl
 	@echo "		Compiling bootstrap meta module $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
 
 
@@ -263,12 +275,12 @@ $(MYRIAD_TOP)/src/meta/%.beam: $(MYRIAD_TOP)/src/meta/%.erl
 
 #$(MYRIAD_TOP)/src/data-management/list_table.beam: $(MYRIAD_TOP)/src/data-management/list_table.erl
 #	@echo "		Compiling bootstrap module $<"
-#	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+#	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
 
 $(MYRIAD_TOP)/src/data-management/map_hashtable.beam: $(MYRIAD_TOP)/src/data-management/map_hashtable.erl
 	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 
 
 
@@ -662,7 +674,7 @@ endif
 # We do not want to issue an error if only warnings (code: 2) were emitted:
 generate-local-plt: add-prerequisite-plts
 	@echo "    Generating PLT for $(PACKAGE_NAME) ($(PLT_FILE)), based on $(BASE_PLT)"
-	@$(DIALYZER) --add_to_plt --output_plt $(PLT_FILE) -r $(PACKAGE_TOP)/src --plt $(BASE_PLT); if [ $$? -eq 1 ] ; then exit 1 ; else exit 0 ; fi
+	$(DIALYZER) --add_to_plt --output_plt $(PLT_FILE) -r $(PACKAGE_TOP)/src --plt $(BASE_PLT); if [ $$? -eq 1 ] ; then exit 1 ; else exit 0 ; fi
 
 
 # Made to be enriched (with child targets) on a per-layer basis:
@@ -670,10 +682,28 @@ add-prerequisite-plts:
 	@echo "Prerequisite PLTs added."
 
 
-
+# If Dialyzer complains that it cannot get Core Erlang code for a set of BEAM
+# files (ex: with "Recompile with +debug_info or analyze starting from source
+# code"), then the element lacking is most probably not the +debug_info switch
+# when compiling these BEAMs, but the debug_info key when running Dializer
+# itself.
+#
+# Such a key can be for example specified in ~/.erlang.crypt, as:
+# [{debug_info, des3_cbc, [], "Ceylan-Myriad"}].
+#
+# See also the write-debug-key-file target.
+#
 self-check-against-plt: all $(PLT_FILE)
-	@echo "    Checking $(PACKAGE_NAME) against its PLT ($(PLT_FILE))"
+	@echo " Checking $(PACKAGE_NAME) against its PLT ($(PLT_FILE))"
 	@$(DIALYZER) $(DIALYZER_OPT) --plt $(PLT_FILE) -r .
+
+
+# Stores on disk the current debug key for BEAMs, so that tools like Dialyzer
+# can determine it:
+#
+write-debug-key-file:
+	@echo "[{debug_info, des3_cbc, [], \""$(DEBUG_INFO_KEY)"\"}]." > ~/.erlang.crypt
+
 
 
 # Far easier target name to remember:
@@ -682,7 +712,8 @@ self-check-against-plt: all $(PLT_FILE)
 check: check-hook clean all test generate-local-plt self-check-against-plt
 
 
-check_hook:
+check-hook:
+
 
 %.plt: %.beam
 	@echo "    Checking module '$<' against relevant PLT ($(PLT_FILE))"

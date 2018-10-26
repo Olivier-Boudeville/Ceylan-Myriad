@@ -277,7 +277,7 @@ add_function( FunInfo=#function_info{ exported=ExportLocs },
 
 	NewFunTable = ?table:addEntry( FunId, FunInfo, FunTable ),
 
-	% Now updating the exports:
+	% Now updating accordingly the overall export table:
 	NewExportTable = ast_info:ensure_function_exported( FunId, ExportLocs,
 											  ModuleInfo, ExportTable ),
 

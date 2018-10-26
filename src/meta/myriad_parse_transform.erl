@@ -124,7 +124,8 @@
 -define( default_table_type, map_hashtable ).
 
 
--export([ run_standalone/1, parse_transform/2, apply_myriad_transform/1 ]).
+-export([ run_standalone/1, parse_transform/2, apply_myriad_transform/1,
+		  transform_module_info/1 ]).
 
 
 

@@ -60,14 +60,19 @@
 % defined.
 %
 % Thanks to locations (which order forms appropriately, including the ones
-% regarding file references), once forms have been recomposed by design a stored
-% line always is always relative to the current file.
+% regarding file references), once forms have been recomposed, by design a
+% stored line is always relative to the current file.
 %
-% 'auto_located' means that the corresponding form is yet to be located at this
-% position (thus a tranformation pass is still to be applied to needed in the
-% overall list before it is sortable).
+% 'locate_at' means that the corresponding form is yet to be located after the
+% specified marker in the AST stream (thus a transformation pass is still to be
+% applied before it becomes an actual sortable identifier).
 %
--type location() :: ast_base:form_location() | 'auto_located'.
+% We try to translate section markers in actual locations rather sooner than
+% later, as markers are not expected to move, and it would probably be more
+% difficult to recreate a consistency at later stages.
+%
+-type location() :: ast_base:form_location()
+				  | { 'locate_at', section_marker() }.
 
 
 % When processing an AST (ex: read from a BEAM file), the order of the forms
@@ -92,6 +97,53 @@
 % Located type specification of a function:
 %
 -type located_function_spec() :: { location(), meta_utils:function_spec() }.
+
+
+
+% Known section markers, listed in their expected order of appearance in an AST
+% stream (ex: a source file). All markers are expected to be set (located) as
+% soon as the scan of an AST into a module_info has been done.
+%
+-type section_marker() ::
+
+		% Marker designating the beginning of the AST stream / source file:
+		'begin_marker'
+
+		% Marker designating a section dedicated to the export of types
+		% (i.e. where -import([ bar/n, ...]) declarations may be gathered):
+		%
+	  | 'export_types_marker'
+
+
+		% Marker designating a section dedicated to the export of functions
+		% (i.e. where -export([ foo/n, ...]) declarations may be gathered):
+		%
+	  | 'export_functions_marker'
+
+
+		% Marker designating a section dedicated to the import of functions
+		% (i.e. where -import( Module, Funcitons ) declarations may be
+		% gathered):
+		%
+	  | 'import_functions_marker'
+
+	  % Not relevant, as includes have already be inlined in an input AST:
+	  %| 'include_marker'    % Include declarations
+
+
+		% Marker designating a section dedicated to the definition of records:
+		%
+	  | 'definition_records_marker'
+
+		% Marker designating a section dedicated to the definition of types:
+		%
+	  | 'definition_types_marker'
+
+		% Marker designating a section dedicated to the definition of functions:
+		%
+	  | 'definition_functions_marker'
+
+	  | 'end_marker'.       % End of the AST stream / source file
 
 
 
@@ -206,7 +258,7 @@
 % - this table must be explicitly updated whenever adding or removing a function
 % in a module_info 'functions' field; see: add_function/2 and remove_function/2
 %
-% - [ function_id() ] used, not a set, to better preserve order
+% - a list of function_id() is used, not a set, to better preserve order
 %
 -type function_export_table() :: ?table:?table( location(),
 						   { ast_base:line(), [ function_id() ] } ).
@@ -216,6 +268,13 @@
 % A table associating to each function identifier a full function information.
 %
 -type function_table() :: ?table:?table( function_id(), function_info() ).
+
+
+% A table storing the actual locations corresponding to the standard section
+% markers:
+%
+-type section_marker_table() :: ?table:?table( section_marker(), location() ).
+
 
 
 % All relevant information about an error found in an AST:
@@ -233,11 +292,14 @@
 			   located_function_spec/0, attribute/0 ]).
 
 
+-export_type([ section_marker/0 ]).
+
+
 % Tables to be found in the module_info record:
 -export_type([ compile_option_table/0, attribute_table/0,
 			   type_export_table/0, type_table/0, record_table/0,
 			   function_import_table/0, function_export_table/0,
-			   function_table/0 ]).
+			   function_table/0, section_marker_table/0 ]).
 
 
 % General module-info helpers:
@@ -268,6 +330,8 @@
 		  function_imports_to_string/4,
 		  functions_to_string/3,
 		  last_line_to_string/1,
+		  markers_to_string/2,
+		  errors_to_string/2,
 		  unhandled_forms_to_string/3,
 		  fields_to_strings/1, field_to_string/3,
 		  function_id_to_string/1,
@@ -294,63 +358,16 @@
 
 
 
-% Ensures that specified function is exported at the specified location(s).
+% Ensures that the specified function is exported at the specified location(s).
 %
 -spec ensure_function_exported( function_id(), [ location() ], module_info(),
 					   function_export_table() ) -> function_export_table().
 ensure_function_exported( _FunId, _ExportLocs=[], _ModuleInfo, ExportTable ) ->
 	ExportTable;
 
-ensure_function_exported( FunId, _ExportLocs=[ _Loc=auto_located | T ],
-						  ModuleInfo, ExportTable ) ->
-
-	% When a function export is to be auto-located, we attach it just after the
-	% module definition, to avoid possibly placing an export after a function
-	% definition:
-
-	ModuleLoc = case ModuleInfo#module_info.module of
-
-		{ _ModuleName, _ModuleLocForm=undefined } ->
-			throw( { auto_locate_whereas_no_module_def, FunId } );
-
-		{ _ModuleName, _ModuleLocForm={ MLoc, _Form } } ->
-			MLoc
-
-	end,
-
-	FunExportLoc = id_utils:get_higher_next_depth_sortable_id( ModuleLoc ),
-
-	% This location may have already been used, thus:
-	case ?table:lookupEntry( FunExportLoc, ExportTable ) of
-
-		{ value, { Line, FunIds } } ->
-
-			case lists:member( FunId, FunIds ) of
-
-				true ->
-					% Already registered, perfect as is, continues with the next
-					% locations:
-					ensure_function_exported( FunId, T, ModuleInfo,
-											  ExportTable );
-
-				false ->
-					% Adding it then:
-					NewEntry = { Line, [ FunId | FunIds ] },
-					NewExportTable = ?table:addEntry( FunExportLoc, NewEntry ),
-					ensure_function_exported( FunId, T, ModuleInfo,
-											  NewExportTable )
-
-			end;
-
-		key_not_found ->
-			% We create a new location entry then:
-			NewEntry = { _DefaultLine=0, [ FunId ] },
-			NewExportTable = ?table:addEntry( FunExportLoc, NewEntry ),
-			ensure_function_exported( FunId, T, ModuleInfo, NewExportTable )
-
-	end;
-
-
+% Any kind of location, either direct or marker-based (they will be translated
+% later, when generating back an AST):
+%
 ensure_function_exported( FunId, _ExportLocs=[ Loc | T ], ModuleInfo,
 						  ExportTable ) ->
 
@@ -520,8 +537,8 @@ init_module_info() ->
 				  records=EmptyTable,
 				  function_imports=EmptyTable,
 				  function_exports=EmptyTable,
-				  functions=EmptyTable }.
-
+				  functions=EmptyTable,
+				  markers=EmptyTable }.
 
 
 
@@ -765,7 +782,7 @@ recompose_ast_from_module_info( #module_info{ errors=Errors } ) ->
 -spec get_ordered_ast_from( located_ast() ) -> ast().
 get_ordered_ast_from( UnorderedLocatedAST ) ->
 
-	% First pass: we replace any 'auto_located' location by an actual position
+	% First pass: we replace any 'auto_locate_after' location by an actual position
 	% just after the current one (collisions are allowed):
 	%
 	FullyLocatedAST = locate_all_in( UnorderedLocatedAST,
@@ -789,7 +806,7 @@ locate_all_in( _LocatedForms=[], _CurrentSortId, Acc ) ->
 	% Order does not matter anymore:
 	Acc;
 
-locate_all_in( _LocatedForms=[ { _Loc=auto_located, Form } | T ], CurrentSortId,
+locate_all_in( _LocatedForms=[ { _Loc=auto_locate_after, Form } | T ], CurrentSortId,
 			   Acc ) ->
 	% Better than get_next_sortable_id/1 to ensure grouped with previous:
 	NewSortId = id_utils:get_higher_next_depth_sortable_id( CurrentSortId ),
@@ -861,12 +878,13 @@ module_info_to_string( #module_info{
 						 type_exports=TypeExportTable,
 						 types=TypeTable,
 						 records=RecordTable,
-						 function_imports=FunImportTable,
-						 function_imports_defs=FunImportDefs,
+						 function_imports=FunctionImportTable,
+						 function_imports_defs=FunctionImportDefs,
 						 function_exports=_FunctionExports,
 						 functions=FunctionTable,
 						 optional_callbacks_defs=OptCallbacksDefs,
 						 last_line=LastLineLocDef,
+						 markers=MarkerTable,
 						 errors=Errors,
 						 unhandled_forms=UnhandledForms },
 					   DoIncludeForms,
@@ -876,7 +894,7 @@ module_info_to_string( #module_info{
 	% For this textual description, we mostly rely on the higher-level
 	% information available.
 
-	% As the next strings will be collected in a level of their own:
+	% As the next strings will be collected at a level of their own:
 	NextIndentationLevel = IndentationLevel + 1,
 
 	% Information gathered in the order of the fields:
@@ -906,13 +924,15 @@ module_info_to_string( #module_info{
 
 			  records_to_string( RecordTable, NextIndentationLevel ),
 
-			  function_imports_to_string( FunImportTable, FunImportDefs,
-								  DoIncludeForms, NextIndentationLevel ),
+			  function_imports_to_string( FunctionImportTable,
+				  FunctionImportDefs, DoIncludeForms, NextIndentationLevel ),
 
 			  functions_to_string( FunctionTable, DoIncludeForms,
 								   NextIndentationLevel ),
 
 			  last_line_to_string( LastLineLocDef ),
+
+			  markers_to_string( MarkerTable, NextIndentationLevel ),
 
 			  errors_to_string( Errors, NextIndentationLevel ),
 
@@ -1004,7 +1024,7 @@ compilation_options_to_string( CompileTable, CompileOptDefs, DoIncludeForms,
 											   [ OptName, OptValue ] )
 							|| { OptName, OptValue } <- CompileOpts ],
 
-			OptString = text_utils:format( "~B compile option(s) defined:~s",
+			OptString = text_utils:format( "~B compile option(s) defined: ~s",
 							   [ length( CompileOpts ),
 								 text_utils:strings_to_string( CompStrings,
 												   IndentationLevel ) ] ),
@@ -1147,7 +1167,8 @@ includes_to_string( Includes, IncludeDefs, DoIncludeForms,
 					  [ text_utils:format( "~s", [ Inc ] ) || Inc <- Includes ],
 					  IndentationLevel ),
 
-	text_utils:format( "~B include(s): ~s",
+	% Possibly with duplicates:
+	text_utils:format( "~B file include(s): ~s",
 					   [ length( Includes ), IncludeString ] )
 		++ forms_to_string( IncludeDefs, DoIncludeForms, IndentationLevel + 1 ).
 
@@ -1182,7 +1203,7 @@ type_exports_to_string( TypeExportTable, _DoIncludeForms, IndentationLevel ) ->
 			% with an extra indentation level then:
 			%
 			TypeExpString = text_utils:strings_to_sorted_string(
-							  [ text_utils:format( "at line #~B: export of ~s",
+							  [ text_utils:format( "at line #~B, export of: ~s",
 										   [ Line, text_utils:strings_to_string(
 								[ type_id_to_string( TypeId )
 								  || TypeId <- TypeIds ],
@@ -1271,7 +1292,7 @@ records_to_string( RecordTable, IndentationLevel ) ->
 						   <- RecordEntries ],
 				IndentationLevel ),
 
-			text_utils:format( "~B records defined: ~s",
+			text_utils:format( "~B record(s) defined: ~s",
 							   [ length( RecordEntries ), RecordString ] )
 
 	end.
@@ -1284,10 +1305,10 @@ records_to_string( RecordTable, IndentationLevel ) ->
 -spec function_imports_to_string( function_import_table(),
 		   [ ast_info:located_form() ], boolean(),
 			 text_utils:indentation_level() ) -> text_utils:ustring().
-function_imports_to_string( FunImportTable, FunImportDefs, DoIncludeForms,
-							IndentationLevel ) ->
+function_imports_to_string( FunctionImportTable, FunctionImportDefs,
+							DoIncludeForms,	IndentationLevel ) ->
 
-	case ?table:enumerate( FunImportTable ) of
+	case ?table:enumerate( FunctionImportTable ) of
 
 		[] ->
 			"no function imported";
@@ -1310,7 +1331,7 @@ function_imports_to_string( FunImportTable, FunImportDefs, DoIncludeForms,
 
 			text_utils:format( "function imports from ~B modules: ~s",
 							   [ length( ImportPairs ), ModuleString ] )
-				++ forms_to_string( FunImportDefs, DoIncludeForms,
+				++ forms_to_string( FunctionImportDefs, DoIncludeForms,
 									IndentationLevel + 1 )
 
 	end.
@@ -1341,9 +1362,9 @@ functions_to_string( FunctionTable, DoIncludeForms, IndentationLevel ) ->
 					 "no function defined";
 
 				 _ ->
-					 text_utils:format( "~B functions defined: ~s",
+					 text_utils:format( "~B function(s) defined: ~s",
 										[ length( FunctionStrings ),
-										  text_utils:strings_to_string(
+										  text_utils:strings_to_sorted_string(
 											FunctionStrings,
 											IndentationLevel ) ] )
 
@@ -1365,6 +1386,30 @@ last_line_to_string( _LastLine={ _Loc, { eof, Count } } ) ->
 
 
 
+% Returns a textual representation of the known section markers.
+%
+-spec markers_to_string( section_marker_table(),
+				 text_utils:indentation_level() ) -> text_utils:ustring().
+markers_to_string( MarkerTable, IndentationLevel ) ->
+
+	case ?table:enumerate( MarkerTable ) of
+
+		[] ->
+			"no known section marker";
+
+		MarkPairs ->
+			text_utils:format( "~B known section marker(s): ~s",
+					   [ length( MarkPairs ),
+						 text_utils:strings_to_string(
+			[ text_utils:format( "marker '~s' pointing to ~s",
+								 [ Marker, id_utils:sortable_id_to_string( Loc ) ] )
+			  || { Marker, Loc } <- MarkPairs ],
+						   IndentationLevel ) ] )
+
+	end.
+
+
+
 % Returns a textual representation of specified errors.
 %
 -spec errors_to_string( [ error() ], text_utils:indentation_level() ) ->
@@ -1379,7 +1424,7 @@ errors_to_string( Errors, IndentationLevel ) ->
 			[ text_utils:format( "in ~s, line ~B: ~p",
 								 [ Filename, Line, Reason ] )
 			  || { Filename, Line, Reason } <- Errors ],
-											 IndentationLevel ) ] ).
+						   IndentationLevel ) ] ).
 
 
 
@@ -1492,7 +1537,8 @@ function_info_to_string( #function_info{ name=Name,
 										 clauses=Clauses,
 										 spec=LocatedSpec,
 										 callback=IsCallback,
-										 exported=Exported }, DoIncludeForms,
+										 exported=Exported },
+						 DoIncludeForms,
 						 IndentationLevel ) ->
 
 	ExportString = case Exported of
@@ -1561,7 +1607,7 @@ function_info_to_string( #function_info{ name=Name,
 ensure_type_exported( _TypeId, _ExportLocs=[], _ModuleInfo, ExportTable ) ->
 	ExportTable;
 
-ensure_type_exported( TypeId, _ExportLocs=[ _Loc=auto_located | T ],
+ensure_type_exported( TypeId, _ExportLocs=[ _Loc=auto_locate_after | T ],
 					  ModuleInfo, ExportTable ) ->
 
 	% When a type export is to be auto-located, we attach it just after the
@@ -1571,7 +1617,7 @@ ensure_type_exported( TypeId, _ExportLocs=[ _Loc=auto_located | T ],
 	ModuleLoc = case ModuleInfo#module_info.module of
 
 		{ _ModuleName, _ModuleLocForm=undefined } ->
-			throw( { auto_locate_whereas_no_module_defined, TypeId } );
+			throw( { auto_locate_after_whereas_no_module_defined, TypeId } );
 
 		{ _ModuleName, { MLoc, _Form } } ->
 			MLoc

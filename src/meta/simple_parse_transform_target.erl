@@ -44,5 +44,12 @@
 
 -type my_record() :: #my_record{}.
 
+
 -export_type([ my_record/0 ]).
 
+
+-export([ destruct/1 ]).
+
+-spec destruct( wooper:state() ) -> wooper:state().
+destruct( State ) ->
+	State.

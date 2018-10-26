@@ -66,6 +66,7 @@
 -type module_info() :: ast_info:module_info().
 -type compile_option_table() :: ast_info:compile_option_table().
 -type located_form() :: ast_info:located_form().
+-type marker_table() :: ast_info:section_marker_table().
 
 
 
@@ -85,7 +86,7 @@
 % Then, for a more complete control, we match the AST against its intended,
 % "official" structure, as defined in
 % http://erlang.org/doc/apps/erts/absform.html; however, for a mere scan, this
-% is mostly useless, a more basic traversal is sufficient, and moreover
+% is mostly useless (as a more basic traversal is sufficient), and moreover
 % counter-productive as we might want to deviate from the base, Erlang rules in
 % the *input* AST (but of course the output one shall be legit).
 %
@@ -99,9 +100,56 @@
 % Deep, strict traversal is of use mainly for transformation (see
 % ast_transform.erl) rather than for scanning.
 %
-% We try to order clauses roughly in decreasing average frequency of appearance
-% in actual code.
+% Ultimately, resulting forms are to be validated anyway by the compiler (most
+% precise and efficient Erlang-level checking).
+%
+% We tried to order scan clauses roughly in decreasing average frequency of
+% appearance in the actual code to transform, yet often the order of clauses
+% matters (as it has a meaning and an impact).
 
+
+
+% Order of the forms in the AST
+%
+% A parse transform receives an (ordered) list of forms as input AST: forms are
+% ordered only by their position in that list (line numbers are contextual to
+% the last file declared as included, hence form order matters, and a form
+% cannot be ordered by itself), stored in a module_info record.
+%
+% Knowing that forms may have to be added, moved, updated, removed, etc. during
+% the transformation of an AST, positioning forms at specified points in an AST
+% stream is not straightforward (ex: the mere index of a form in the AST is not
+% stable, as any addition before this form would require this index to be
+% updated); moreover being able to keep track of their original order (to which
+% the parse transform tries to stick as much as possible) is certainly a safe
+% measure for debuggability.
+%
+% So, instead of storing forms in an AST, we store located forms in a located
+% AST: instead of having [ F1, F2, ..., Fn ], we may have for example [ { Loc2,
+% F2 }, { Loc1, F1 }, ..., { Locn, Fn } ], where Loc are (stable, immutable)
+% locations, i.e. form_location() - which are themselves id_utils:sortable_id().
+%
+% It allows to store, in a located AST, (located) forms in an arbitrary order:
+% sorting them according to their location reorders them as intended (note that
+% the AST scan results in an in-order located AST, which is more convenient for
+% insertions).
+%
+% Special AST pseudo-locations have been defined, including 'auto_locate_after',
+% which is, when iterating through a located AST, to be replaced by an actual
+% location just after the current one (relative positioning, based on the
+% current order of the stream).
+%
+% We also found it useful to define section markers (see
+% ast_info:section_marker/0), which are standard reference points within an AST,
+% to offer absolute positioning.
+%
+% Scanning an AST tries to automatically set these section markers, based on the
+% content found.
+%
+% For example, one may want a given form to be placed at the beginning of the
+% section for function exports; then the location of this form shall be
+% specified as being after the corresponding marker, i.e. after the location
+% stored in marker ''.
 
 
 
@@ -113,6 +161,13 @@ scan( AST ) ->
 
 	InitModuleInfo = ast_info:init_module_info(),
 
+	FirstLocation = id_utils:get_initial_sortable_id(),
+
+	FirstMarkerTable = ?table:addNewEntry( begin_marker, FirstLocation,
+										   InitModuleInfo#module_info.markers ),
+
+	FirstModuleInfo = InitModuleInfo#module_info{ markers=FirstMarkerTable },
+
 	% Application of 7.1.1:
 	%
 	% "If D is a module declaration consisting of the forms F_1, ..., F_k, then
@@ -120,8 +175,7 @@ scan( AST ) ->
 	%
 	% So iterating in the list of forms that make for the AST:
 	%
-	case scan_forms( AST, InitModuleInfo,
-					 _NextLocation=id_utils:get_initial_sortable_id(),
+	case scan_forms( AST, FirstModuleInfo, _NextLocation=FirstLocation,
 					 _CurrentFileRef=undefined ) of
 
 		M=#module_info{ errors=[] } ->
@@ -146,7 +200,7 @@ scan( AST ) ->
  % Ex: foo.erl:102: can't find include file "bar.hrl"
 %
 -spec report_error( { ast_scan:scan_context(), basic_utils:error_reason() } ) ->
-	basic_utils:void().
+						  basic_utils:void().
 report_error( { Context, Error } ) ->
 
 	ErrorString = case Error of
@@ -238,7 +292,8 @@ context_to_string( { Filename, Line } ) ->
 %
 scan_forms( _AST=[ _Form={ 'attribute', Line, 'export', FunctionIds } | T ],
 			M=#module_info{ function_exports=ExportTable,
-							functions=FunctionTable },
+							functions=FunctionTable,
+							markers=MarkerTable },
 			NextLocation, CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "function export declaration for ~p",
@@ -286,9 +341,24 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export', FunctionIds } | T ],
 	NewExportTable = ?table:addNewEntry( NextLocation, { Line, FunctionIds },
 										 ExportTable ),
 
+	NewMarkerTable = case ?table:hasEntry( export_functions_marker,
+										   MarkerTable ) of
+
+		true ->
+			% Already found, nothing to do.
+			MarkerTable;
+
+		false ->
+			?table:addEntry( export_functions_marker, NextLocation,
+							 MarkerTable )
+
+	end,
+
+
 	% And then recurses with the next forms:
 	scan_forms( T, M#module_info{ function_exports=NewExportTable,
-								  functions=NewFunctionTable },
+								  functions=NewFunctionTable,
+								  markers=NewMarkerTable },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
@@ -302,7 +372,8 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export', FunctionIds } | T ],
 scan_forms( _AST=[ Form={ 'attribute', Line, 'import',
 							{ ModuleName, FunIds } } | T ],
 			 M=#module_info{ function_imports=ImportTable,
-							 function_imports_defs=ImportDefs },
+							 function_imports_defs=ImportDefs,
+							 markers=MarkerTable },
 			NextLocation, CurrentFileReference ) ->
 
 	Context = { CurrentFileReference, Line },
@@ -315,8 +386,20 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'import',
 
 	NewImportDefs = [ { NextLocation, Form } | ImportDefs ],
 
+	NewMarkerTable = case ?table:hasEntry( import_functions_marker, MarkerTable ) of
+
+		true ->
+			% Already found, nothing to do.
+			MarkerTable;
+
+		false ->
+			?table:addEntry( import_functions_marker, NextLocation, MarkerTable )
+
+	end,
+
 	scan_forms( T, M#module_info{ function_imports=NewImportTable,
-								  function_imports_defs=NewImportDefs },
+								  function_imports_defs=NewImportDefs,
+								  markers=NewMarkerTable },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
@@ -411,8 +494,9 @@ scan_forms( _AST=[ Form={ 'attribute', _Line, 'file',
 % Rep(F) = {function,LINE,Name,Arity,[Rep(Fc_1), ...,Rep(Fc_k)]}."
 %
 scan_forms( [ { 'function', Line, FunctionName, FunctionArity, Clauses } | T ],
-			M=#module_info{ functions=FunctionTable }, NextLocation,
-			CurrentFileReference ) ->
+			M=#module_info{ functions=FunctionTable,
+							markers=MarkerTable },
+			NextLocation, CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "function definition for ~p/~p",
 	% [ FunctionName, FunctionArity ] ),
@@ -476,10 +560,22 @@ scan_forms( [ { 'function', Line, FunctionName, FunctionArity, Clauses } | T ],
 
 	NewFunctionTable = ?table:addEntry( _K=FunId, _V=FunInfo, FunctionTable ),
 
+	NewMarkerTable = case ?table:hasEntry( definition_functions_marker, MarkerTable ) of
+
+		true ->
+			% Already found, nothing to do.
+			MarkerTable;
+
+		false ->
+			?table:addEntry( definition_functions_marker, NextLocation, MarkerTable )
+
+	end,
+
 	%ast_utils:display_debug( "function ~s/~B with ~B clauses registered.",
 	%			   [ FunctionName, FunctionArity, length( Clauses ) ] ),
 
-	scan_forms( T, M#module_info{ functions=NewFunctionTable },
+	scan_forms( T, M#module_info{ functions=NewFunctionTable,
+								  markers=NewMarkerTable },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
@@ -587,8 +683,8 @@ scan_forms( [ Form={ 'attribute', Line, _AttributeName='optional_callbacks',
 				CurrentFileReference );
 
 
-% (asm attribute, not specified in the spec yet known of the id parse
-% transform; checked and then treated as any wild parse attribute)
+% (asm attribute, not specified in the spec yet known of the id parse transform;
+% checked and then treated as any wild parse attribute)
 %
 scan_forms( [ Form={ 'attribute', _Line, AttributeName='asm',
 					 Def={ 'function', _N, _A, _Code } } | T ],
@@ -605,6 +701,7 @@ scan_forms( [ Form={ 'attribute', _Line, AttributeName='asm',
 					   ParseAttributeTable ) },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
+
 
 
 % 7.1.8: Remote function type specification handling.
@@ -654,7 +751,8 @@ scan_forms( [ Form={ 'attribute', Line, 'spec',
 %
 scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
 						   { RecordName, DescFields } } | T ],
-			M=#module_info{ records=RecordTable },
+			M=#module_info{ records=RecordTable,
+							markers=MarkerTable },
 			NextLocation, CurrentFileReference ) ->
 
 	Context = { CurrentFileReference, Line },
@@ -683,7 +781,20 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
 	% New entry by design:
 	NewRecordTable = ?table:addEntry( RecordName, NewRecordDef, RecordTable ),
 
-	scan_forms( T, M#module_info{ records=NewRecordTable },
+	NewMarkerTable = case ?table:hasEntry( definition_records_marker,
+										   MarkerTable ) of
+
+		true ->
+			% Already found, nothing to do.
+			MarkerTable;
+
+		false ->
+			?table:addEntry( definition_records_marker, NextLocation, MarkerTable )
+
+	end,
+
+	scan_forms( T, M#module_info{ records=NewRecordTable,
+								  markers=NewMarkerTable },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
@@ -698,7 +809,8 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
 %
 scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 						   { TypeName, TypeDef, TypeVariables } } | T ],
-			 M=#module_info{ types=TypeTable },
+			 M=#module_info{ types=TypeTable,
+							 markers=MarkerTable },
 			 NextLocation, CurrentFileReference )
   when TypeDesignator == 'type' orelse TypeDesignator == 'opaque' ->
 
@@ -771,7 +883,20 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 
 	NewTypeTable = ?table:addEntry( TypeId, NewTypeInfo, TypeTable ),
 
-	scan_forms( T, M#module_info{ types=NewTypeTable },
+	NewMarkerTable = case ?table:hasEntry( definition_types_marker,
+										   MarkerTable ) of
+
+		true ->
+			% Already found, nothing to do.
+			MarkerTable;
+
+		false ->
+			?table:addEntry( definition_types_marker, NextLocation, MarkerTable )
+
+	end,
+
+	scan_forms( T, M#module_info{ types=NewTypeTable,
+								  markers=NewMarkerTable },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
@@ -789,7 +914,9 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 % = {attribute,LINE,export_type,[{Type_1,A_1}, ..., {Type_k,A_k}]}."
 %
 scan_forms( _AST=[ _Form={ 'attribute', Line, 'export_type', TypeIds } | T ],
-			M=#module_info{ type_exports=ExportTable, types=TypeTable },
+			M=#module_info{ type_exports=ExportTable,
+							types=TypeTable,
+							markers=MarkerTable },
 			NextLocation, CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "Type export declaration for ~p", [ TypeIds ] ),
@@ -837,8 +964,20 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export_type', TypeIds } | T ],
 	NewExportTable = ?table:addNewEntry( NextLocation, { Line, TypeIds },
 										 ExportTable ),
 
+	NewMarkerTable = case ?table:hasEntry( export_types_marker, MarkerTable ) of
+
+		true ->
+			% Already found, nothing to do.
+			MarkerTable;
+
+		false ->
+			?table:addEntry( export_types_marker, NextLocation, MarkerTable )
+
+	end,
+
 	scan_forms( T, M#module_info{ type_exports=NewExportTable,
-								  types=NewTypeTable },
+								  types=NewTypeTable,
+								  markers=NewMarkerTable },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
@@ -1024,6 +1163,7 @@ scan_forms( _AST=[ _Form={ 'warning', WarningTerm } | T ],
 % We expect the module name to be known when ending the processing (so that we
 % can remove its corresponding file from the includes):
 %
+% Here, no module found:
 scan_forms( _AST=[ _Form={ 'eof', Line } ],
 			M=#module_info{ module=undefined,
 							errors=Errors }, _NextLocation,
@@ -1042,13 +1182,20 @@ scan_forms( _AST=[ _Form={ 'eof', Line } ],
 scan_forms( _AST=[ Form={ 'eof', _Line } ],
 			M=#module_info{ last_line=undefined,
 							module={ ModuleName, _ModuleLocDef },
-							includes=Inc },
-			_NextLocation, _CurrentFileReference ) ->
+							includes=Inc,
+							markers=MarkerTable },
+			NextLocation, _CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "eof declaration at ~p.", [ Line ] ),
 
-	% Surely not wanting anything to be able to go past it:
-	LocForm = { id_utils:get_sortable_id_upper_bound(), Form },
+	% Certainly better than id_utils:get_sortable_id_upper_bound(), as for
+	% example we may want to add form after that original end:
+	%
+	EndLocation = NextLocation,
+
+	NewMarkerTable = finalize_marker_table( EndLocation, MarkerTable ),
+
+	LocForm = { NextLocation, Form },
 
 	% End of file found, doing some housekeeping.
 
@@ -1063,7 +1210,9 @@ scan_forms( _AST=[ Form={ 'eof', _Line } ],
 	NoModInc = lists:delete( BinModFilename, Inc ),
 
 	% Only "normal", non-recursing exit of that longer function:
-	M#module_info{ includes=NoModInc, last_line=LocForm };
+	M#module_info{ includes=NoModInc,
+				   markers=NewMarkerTable,
+				   last_line=LocForm };
 
 
 %%
@@ -1144,7 +1293,7 @@ register_compile_attribute( _CompileInfo={ CompileOpt, OptValues },
 
 % Non-inlining, single compile option (hence not a list):
 register_compile_attribute( _CompileInfo={ CompileOpt, OptValue }, CompileTable,
-		_Context ) when is_atom( CompileOpt ) ->
+							_Context ) when is_atom( CompileOpt ) ->
 
 	?table:appendToEntry( CompileOpt, OptValue, CompileTable );
 
@@ -1153,7 +1302,8 @@ register_compile_attribute( _CompileInfo=[], CompileTable, _Context ) ->
 	CompileTable;
 
 
-register_compile_attribute( _CompileInfo=[ CpInfo | T ], CompileTable, Context ) ->
+register_compile_attribute( _CompileInfo=[ CpInfo | T ], CompileTable,
+							Context ) ->
 
 	NewCompileTable = register_compile_attribute( CpInfo, CompileTable,
 												  Context ),
@@ -1263,3 +1413,131 @@ check_parse_attribute_name( Other, Context ) ->
 										basic_utils:parse_attribute_name().
 check_parse_attribute_name( Name ) ->
 	check_parse_attribute_name( Name, _Context=undefined ).
+
+
+
+
+% Finalizes the marker table, to ensure that, in all cases, after a scan all
+% markers are defined (even if no clause triggered their specific setting).
+%
+-spec finalize_marker_table( ast_info:location(), marker_table() ) ->
+								   marker_table().
+finalize_marker_table( EndLocation, MarkerTable ) ->
+
+	EndMarkerTable = ?table:addNewEntry( end_marker, EndLocation, MarkerTable ),
+
+	% By design begin_marker has already been set, and end_marker is registered
+	% now.
+	%
+	% We have now to handle all cases about whether each of the other,
+	% intermediate markers is already available or not, so that ultimately, all
+	% of them are set, and in the expected order:
+	%
+	LeftmostMarker = ?table:getEntry( begin_marker, EndMarkerTable ),
+
+	% Will always be the rightmost, as we will move only the left bound (to the
+	% right):
+	%
+	EndMarker = EndLocation,
+
+
+	{ LeftmostAfterExpT, TableAfterExpT } = case ?table:lookupEntry(
+						   export_types_marker, EndMarkerTable ) of
+
+		key_not_found ->
+			ExpTMarker = id_utils:get_sortable_id_between( LeftmostMarker,
+														   EndMarker ),
+			ExpTTable = ?table:addEntry( export_types_marker, ExpTMarker,
+										 EndMarkerTable ),
+
+			% We now consider the left bound to be the export marker (not the
+			% begin one anymore):
+			%
+			{ ExpTMarker, ExpTTable };
+
+		{ value, ExpTMarker } ->
+			{ ExpTMarker, EndMarkerTable }
+
+	end,
+
+
+	{ LeftmostAfterExpF, TableAfterExpF } = case ?table:lookupEntry(
+						   export_functions_marker, TableAfterExpT ) of
+
+		key_not_found ->
+			ExpFMarker = id_utils:get_sortable_id_between( LeftmostAfterExpT,
+														   EndMarker ),
+			ExpFTable = ?table:addEntry( export_functions_marker,
+										 LeftmostAfterExpT, TableAfterExpT ),
+
+			% We now consider the left bound to be the export marker:
+			{ ExpFMarker, ExpFTable };
+
+		{ value, ExpFMarker } ->
+			{ ExpFMarker, TableAfterExpT }
+
+	end,
+
+
+	{ LeftmostAfterImp, TableAfterImp } = case ?table:lookupEntry(
+							  import_functions_marker, TableAfterExpF ) of
+
+		key_not_found ->
+			ImpMarker = id_utils:get_sortable_id_between( LeftmostAfterExpF,
+														  EndMarker ),
+			ImpTable = ?table:addEntry( import_functions_marker, ImpMarker,
+										TableAfterExpF ),
+			{ ImpMarker, ImpTable };
+
+		{ value, ImpMarker } ->
+			{ ImpMarker, TableAfterExpF }
+
+	end,
+
+
+	{ LeftmostAfterRec, TableAfterRec } = case ?table:lookupEntry(
+							  definition_records_marker, TableAfterImp ) of
+
+		key_not_found ->
+			RecMarker = id_utils:get_sortable_id_between( LeftmostAfterImp,
+														  EndMarker ),
+			RecTable = ?table:addEntry( definition_records_marker, RecMarker,
+										TableAfterImp ),
+			{ RecMarker, RecTable };
+
+		{ value, RecMarker } ->
+			{ RecMarker, TableAfterImp }
+
+	end,
+
+
+	{ LeftmostAfterDefT, TableAfterDefT } = case ?table:lookupEntry(
+							  definition_types_marker, TableAfterRec ) of
+
+		key_not_found ->
+			DefTMarker = id_utils:get_sortable_id_between( LeftmostAfterRec,
+														   EndMarker ),
+			DefTTable = ?table:addEntry( definition_types_marker, DefTMarker,
+										 TableAfterRec ),
+			{ DefTMarker, DefTTable };
+
+		{ value, DefTMarker } ->
+			{ DefTMarker, TableAfterRec }
+
+	end,
+
+
+	% Returns directly the final table:
+	case ?table:lookupEntry( definition_functions_marker, TableAfterDefT ) of
+
+		key_not_found ->
+			DefMarker = id_utils:get_sortable_id_between( LeftmostAfterDefT,
+														  EndMarker ),
+			?table:addEntry( definition_functions_marker, DefMarker,
+							 TableAfterDefT );
+
+		% { value, DefMarker } ->
+		_ ->
+			TableAfterDefT
+
+	end.

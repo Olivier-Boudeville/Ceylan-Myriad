@@ -34,6 +34,10 @@
 -module(id_utils).
 
 
+% For the table macro, knowing the current module is bootstrapped:
+-include("meta_utils.hrl").
+
+
 % UUID section.
 
 
@@ -62,19 +66,23 @@
 
 
 % Corresponds to smart (sortable, insertion-friendly) identifiers, typically
-% represented as {1}, {2}, {2,1}, {4}, etc.
+% represented (externally) as {1}, {2}, {2,1}, {4}, etc.
 %
 % Sometimes identifiers that can be sorted and that allow introducing any number
-% of new identifiers between any two successive ones are needed.
+% of new identifiers *between* any two (successive or not) ones are useful; as a
+% result, insertion is most probably the most frequent creation operation to be
+% performed on sortable identifiers.
 %
-% We use non-empty lists of non-negative integers for that, whose last integer
-% must be strictly positive (so that lower values can always be introduced).
+% We use non-empty lists of non-negative integers ("digits") for that, whose
+% last integer element must be strictly positive (so that lower values can
+% always be introduced).
 %
 % The Erlang default ordering for this datatype corresponds to this need.
 %
-% For example, if having defined two identifiers [7,2] and [7,3], we can
-% introduce two identifiers between them, typically [7,2,1] and [7,2,2], since
-% the Erlang term ordering tells us that [7,2] < [7,2,1] < [7,2,2] < [7,3].
+% For example, if having defined two identifiers defined internally as [7,2] and
+% [7,3], we can introduce two identifiers between them, typically [7,2,1] and
+% [7,2,2], since the Erlang term ordering tells us that [7,2] < [7,2,1] <
+% [7,2,2] < [7,3].
 %
 % As a result, no need to define specific comparison operators, '=:=', '<' and
 % '>', and thus 'lists:sort/1', 'lists:keysort/2' are already adequate for that.
@@ -88,17 +96,27 @@
 % Designed to be efficiently compared/ordered, at the cost of more expensive
 % insertions.
 %
-% An additional goal is to generate identifiers that remain as short as
-% possible.
+% An additional goal is to generate identifiers that remain as short and
+% human-readable as possible.
 %
-% Not accepted: -type sortable_id() :: [ non_neg_integer() ]
-%                                    | ?lower_bound_id | ?upper_bound_id.
+% Not accepted by the compiler:
+%  -type sortable_id() ::
+%     [ non_neg_integer() ] | ?lower_bound_id | ?upper_bound_id.
 %
-% To include bounds:
+% To include bounds as well:
 -type sortable_id() :: [ integer() ] | bitstring().
 
 
--export_type([ sortable_id/0 ]).
+% Any type of element to which an identifier could be associated:
+-type identifiable_element() :: any().
+
+
+% A table associating, to an element, its sortable identifier.
+-type identifier_table() :: ?table:?table( identifiable_element(),
+										   sortable_id() ).
+
+
+-export_type([ sortable_id/0, identifiable_element/0, identifier_table/0 ]).
 
 
 -export([ get_initial_sortable_id/0, get_next_sortable_id/1,
@@ -107,7 +125,9 @@
 		  check_sortable_id/1, get_successor_sortable_id/1,
 		  get_higher_same_depth_sortable_id/1,
 		  get_higher_next_depth_sortable_id/1,
-		  sortable_id_to_string/1, sortable_ids_to_string/1 ]).
+		  assign_sorted_identifiers/2,
+		  sortable_id_to_string/1, sortable_ids_to_string/1,
+		  identifier_table_to_string/1 ]).
 
 
 
@@ -175,6 +195,7 @@ uuidgen_internal() ->
 
 
 
+
 % Sortable identifier section.
 
 
@@ -198,20 +219,27 @@ get_next_sortable_id( Id ) ->
 % Returns a sortable identifier that can be inserted between the two specified
 % ones, which are presumably ordered.
 %
-% Ex: get_sortable_id_between( [1,1], [1,2] ) may return [1,1,1].
+% Note: most probably the most useful function in order to create new sortable
+% identifiers.
+%
+% Ex: get_sortable_id_between( [1,7,1], [1,7,2] ) may return [1,7,1,1].
 %
 -spec get_sortable_id_between( sortable_id(), sortable_id() ) -> sortable_id().
+get_sortable_id_between( Id, Id ) ->
+	throw( { empty_id_range, Id } );
+
 get_sortable_id_between( ?upper_bound_id, _Id ) ->
 	throw( cannot_exceed_upper_bound );
 
 get_sortable_id_between( _Id, ?lower_bound_id ) ->
 	throw( cannot_go_below_lower_bound );
 
-get_sortable_id_between( ?lower_bound_id, _Id ) ->
-	throw( { not_implemented, from_lower_bound } );
+get_sortable_id_between( ?lower_bound_id, Id ) ->
+	% As lower bound, [0], can be managed through the main rule:
+	get_sortable_id_between( ?lower_bound_id, Id, _Acc=[] );
 
-get_sortable_id_between( _Id, ?upper_bound_id ) ->
-	throw( { not_implemented, to_upper_bound } );
+get_sortable_id_between( Id, ?upper_bound_id ) ->
+	get_higher_same_depth_sortable_id( Id );
 
 get_sortable_id_between( Id, Id ) ->
 	throw( { equal_sortable_identifiers, Id } );
@@ -225,11 +253,13 @@ get_sortable_id_between( LowerId, HigherId ) ->
 
 
 
+% Principle: we iterate through the listed digits (from left to right) until
+% they differ.
+%
 % (helper)
 %
 % Here still in a common prefix:
-get_sortable_id_between( _Lower=[ H | Tl ], _Higher=[ H | Th ],
-						 Acc ) ->
+get_sortable_id_between( _Lower=[ H | Tl ], _Higher=[ H | Th ], Acc ) ->
 	get_sortable_id_between( Tl, Th, [ H | Acc ] );
 
 
@@ -396,14 +426,206 @@ get_higher_next_depth_sortable_id( SortId ) ->
 
 
 
+% Assigns sorted identifiers to the specified elements not being already
+% identified (in the specified table, supposedly having its initial elements
+% appropriately sorted), so that the order of these elements is respected by
+% their identifiers in the returned table.
+%
+% Ex: if ElementsToIdentify=[ 'a', 'b', 'c', 'd' ] and, in IdentifierTable, 'a'
+% is associated to La and 'd' to Ld, supposing La < Ld, whereas 'b' and 'c' are
+% not already associated, then the returned table will also associate Lc to 'c'
+% and Ld to 'd' so that La < Lb < Lc < Ld.
+%
+% Throws an exception if no correct mapping could be devised.
+%
+-spec assign_sorted_identifiers( [ identifiable_element() ],
+								 identifier_table() ) -> identifier_table().
+assign_sorted_identifiers( _ElementsToIdentify=[], IdentifierTable ) ->
+	IdentifierTable;
+
+% Using the first element in order to establish a correct lower bound:
+assign_sorted_identifiers( _ElementsToIdentify=[ E | T ], IdentifierTable ) ->
+
+	% Establishing first a relevant (lowest) identifier for the first element:
+	{ FirstId, NewTable } = case ?table:lookupEntry( E, IdentifierTable ) of
+
+		key_not_found ->
+			% Not identified yet, we have to assign it a newly forged
+			% identifier, yet we have to ensure that it is by design lower than
+			% all others (if any) in the table; we just have to know the lowest
+			% of them then:
+			%
+			% (a precomputed stack should be used to search for lowest IDs only
+			% once)
+			%
+			NewId = case find_lowest_identifier_in( T, IdentifierTable ) of
+
+				undefined ->
+					% None found, hence the default lower bound will do:
+					ResId = get_initial_sortable_id(),
+					trace_utils:debug_fmt( "- managing element ~p, "
+						   "not having already an identifier, with no next "
+						   "identifier found, hence identified as ~s",
+						   [ E, sortable_id_to_string( ResId ) ] ),
+					ResId;
+
+				LowestId ->
+					% Then the new identifier shall be even lower:
+					ResId = get_sortable_id_between(
+							  get_sortable_id_lower_bound(), LowestId ),
+
+					trace_utils:debug_fmt( "- managing element ~p, "
+						   "not having already an identifier, with next "
+						   "identifier found as ~s, hence identified as ~s",
+						   [ E, sortable_id_to_string( LowestId ),
+							 sortable_id_to_string( ResId ) ] ),
+
+					ResId
+
+			end,
+			NewIdTable = ?table:addNewEntry( E, NewId, IdentifierTable ),
+			{ NewId, NewIdTable };
+
+		{ value, FoundId } ->
+			trace_utils:debug_fmt( "- managing element ~p, already having "
+								   "an identifier, ~s",
+								   [ E, sortable_id_to_string( FoundId ) ] ),
+			{ FoundId, IdentifierTable }
+
+	end,
+
+	assign_ranged_identifiers( T, _ToIdentifyRev=[], FirstId, NewTable ).
+
+
+
+% Returns the lowest identifier associated to the specified elements (whose
+% order does not matter).
+%
+% (helper)
+%
+-spec find_lowest_identifier_in( [ identifiable_element() ],
+				 identifier_table() ) -> basic_utils:maybe( sortable_id() ).
+find_lowest_identifier_in( Elements, IdentifierTable ) ->
+	LowestId = find_lowest_identifier_in( Elements, IdentifierTable,
+										  _LowestId=undefined ),
+	trace_utils:debug_fmt( "- lowest identifier found in ~s is: ~s",
+						   [ identifier_table_to_string( IdentifierTable ),
+							 sortable_id_to_string( LowestId ) ] ),
+	LowestId.
+
+
+
+find_lowest_identifier_in( _Elements=[], _IdentifierTable, LowestId ) ->
+	% Possibly 'undefined':
+	LowestId;
+
+find_lowest_identifier_in( _Elements=[ E | T ], IdentifierTable, LowestId ) ->
+
+	case ?table:lookupEntry( E, IdentifierTable ) of
+
+		key_not_found ->
+			find_lowest_identifier_in( T, IdentifierTable, LowestId );
+
+		{ value, Id } ->
+			NewLowestId = case LowestId of
+
+				undefined ->
+					Id;
+
+				_ ->
+					erlang:min( LowestId, Id )
+
+			end,
+			find_lowest_identifier_in( T, IdentifierTable, NewLowestId )
+
+	end.
+
+
+
+% Accumulates non-identified elements until, in addition to the specified lower
+% bound, and upper bound is found or no element remains; then assigns ordered
+% identifiers to all these elements.
+%
+% (helper)
+%
+-spec assign_ranged_identifiers( [ identifiable_element() ],
+		 [ identifiable_element() ], sortable_id(), identifier_table() ) ->
+									   identifier_table().
+assign_ranged_identifiers( _RemainingElems=[], _ToIdentifyRev=[], _LowerId,
+						   IdentifierTable ) ->
+	% Last element was identified, nothing pending, already ready:
+	IdentifierTable;
+
+assign_ranged_identifiers( _RemainingElems=[], ToIdentifyRev, LowerId,
+						   IdentifierTable ) ->
+	% Here we exhausted the elements, whereas we have still elements to identify
+	% and no known upper bound, so we rely on the absolute upper bound:
+	%
+	MaxId = get_sortable_id_upper_bound(),
+
+	ToIdentify = lists:reverse( ToIdentifyRev ),
+
+	assign_in_turn_ids( LowerId, MaxId, ToIdentify, IdentifierTable );
+
+
+% New element to process, maybe identified, maybe not:
+assign_ranged_identifiers( _RemainingElems=[ E | T ], ToIdentifyRev, LowerId,
+						   IdentifierTable ) ->
+	% Here we try to stop accumulating unidentified elements, if E is:
+	case ?table:lookupEntry( E, IdentifierTable ) of
+
+		key_not_found ->
+			% No, so it is another element yet to identify:
+			assign_ranged_identifiers( T, [ E | ToIdentifyRev ], LowerId,
+									   IdentifierTable );
+
+		{ value, Id } ->
+			% This element gave us thus an upper bound:
+			NewIdTable = assign_in_turn_ids( LowerId, Id, ToIdentifyRev,
+											 IdentifierTable ),
+			assign_ranged_identifiers( T, _ToIdentifyRev=[], LowerId,
+									   NewIdTable )
+
+	end.
+
+
+
+
+% Assigns an identifier to each of the specified elements, using specified
+% (excluded) identifier bounds for that.
+%
+% (helper)
+%
+-spec assign_in_turn_ids( sortable_id(), sortable_id(),
+	  [ identifiable_element() ], identifier_table() ) -> identifier_table().
+assign_in_turn_ids( _LowerId, _HigherId, _ElemsToIdentify=[],
+					IdentifierTable ) ->
+	IdentifierTable;
+
+assign_in_turn_ids( LowerId, HigherId, _ElemsToIdentify=[ E | T ],
+					IdentifierTable ) ->
+
+	NewId = get_sortable_id_between( LowerId, HigherId ),
+
+	trace_utils:debug_fmt( "- assigning to element ~p, between ~s and ~s: ~s",
+						   [ E, sortable_id_to_string( LowerId ),
+							 sortable_id_to_string( HigherId ),
+							 sortable_id_to_string( NewId ) ] ),
+
+	NewIdtable = ?table:addNewEntry( E, NewId, IdentifierTable ),
+
+	assign_in_turn_ids( NewId, HigherId, T, NewIdtable ).
+
+
+
 % Returns a textual representation of specified sortable identifier.
 %
 -spec sortable_id_to_string( sortable_id() ) -> text_utils:ustring().
 sortable_id_to_string( _Id=?lower_bound_id ) ->
-	"sortable identifier lower bound";
+	"lower bound";
 
 sortable_id_to_string( _Id=?upper_bound_id ) ->
-	"sortable identifier upper bound";
+	"upper bound";
 
 sortable_id_to_string( Id ) ->
 	% Better represented as tuple:
@@ -420,3 +642,28 @@ sortable_ids_to_string( _Ids=[] ) ->
 sortable_ids_to_string( Ids ) ->
 	text_utils:strings_to_listed_string(
 	  [ sortable_id_to_string( Id ) || Id <- Ids ] ).
+
+
+
+% Returns a textual representation of specified table of sortable identifiers.
+%
+-spec identifier_table_to_string( identifier_table() ) -> text_utils:ustring().
+identifier_table_to_string( IdentifierTable ) ->
+
+	case ?table:enumerate( IdentifierTable ) of
+
+		[] ->
+			"empty identifier table";
+
+		ElemIdPairs ->
+
+			Strings = [ text_utils:format( "element '~p' associated to "
+										   "identifier ~s",
+										   [ E, sortable_id_to_string( Id ) ] )
+						|| { E, Id } <- ElemIdPairs ],
+
+			text_utils:format( "identifier table having ~B entries: ~s",
+							   [ length( ElemIdPairs ),
+								 text_utils:strings_to_string( Strings ) ] )
+
+	end.

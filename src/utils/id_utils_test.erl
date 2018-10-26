@@ -70,4 +70,21 @@ run() ->
 	test_facilities:display( "Lower and upper bounds in terms of sortable "
 							 "identifiers are: ~s.", [ BoundString ] ),
 
+	ElementsToIdentify=[ 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i' ],
+
+	%KnownIds = [],
+	%KnownIds = [ { a, [ 5 ] } ],
+	KnownIds = [ { b, [ 5 ] } ],
+
+	IdentifierTable = table:new( KnownIds ),
+
+	NewIdentifierTable = id_utils:assign_sorted_identifiers( ElementsToIdentify,
+															 IdentifierTable ),
+
+	test_facilities:display( "Identifier table ~s, once updated for elements ~w, "
+							 "with known identifiers ~w, is: ~s",
+	  [ id_utils:identifier_table_to_string( IdentifierTable ),
+		ElementsToIdentify, KnownIds,
+		id_utils:identifier_table_to_string( NewIdentifierTable ) ] ),
+
 	test_facilities:stop().
