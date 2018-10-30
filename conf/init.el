@@ -90,6 +90,13 @@
 ;;(require 'erlang-flymake)
 
 
+;; To be able to move between windows simply thanks to S-<arrow> (i.e. holding
+;; shift, and hitting one of the 4 arrow keys; however the block selection
+;; becomes then a bit more cumbersome):
+;;
+(windmove-default-keybindings)
+
+
 ;; Taken from
 ;; https://stackoverflow.com/questions/11043004/emacs-compile-buffer-auto-close:
 
