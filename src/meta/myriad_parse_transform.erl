@@ -142,8 +142,6 @@ run_standalone( FileToTransform ) ->
 
 	AST = ast_utils:erl_to_ast( FileToTransform ),
 
-	%io:format( "Input AST:~n~p~n~n", [ AST ] ),
-
 	% Options like : [ report_warnings, {d,debug_mode_is_enabled}, beam,
 	% report_errors, {cwd,"X"}, {outdir,Y"}, {i,"A"},{i,"B"}, debug_info, etc.
 	% are probably not all set, but it is unlikely to be a problem here.
@@ -179,9 +177,7 @@ run_standalone( FileToTransform ) ->
 -spec parse_transform( ast(), meta_utils:parse_transform_options() ) -> ast().
 parse_transform( InputAST, _Options ) ->
 
-	%io:format( "  (applying parse transform '~p')~n", [ ?MODULE ] ),
-
-	%io:format( "Options: ~p~n", [ Options ] ),
+	%ast_utils:display_debug( "Options: ~p~n", [ Options ] ),
 
 	% In the context of this direct parse transform, the module_info is of no
 	% use afterwards and thus can be dropped:
@@ -197,8 +193,10 @@ parse_transform( InputAST, _Options ) ->
 -spec apply_myriad_transform( ast() ) -> { ast(), module_info() }.
 apply_myriad_transform( InputAST ) ->
 
-	%trace_utils:debug_fmt( "~n## INPUT ####################################" ),
-	%trace_utils:debug_fmt( "Myriad input AST:~n~p~n~n", [ InputAST ] ),
+	%ast_utils:display_debug( "  (applying parse transform '~p')~n", [ ?MODULE ] ),
+
+	%ast_utils:display_debug( "~n## INPUT ####################################" ),
+	%ast_utils:display_debug( "Myriad input AST:~n~p~n~n", [ InputAST ] ),
 
 	%ast_utils:write_ast_to_file( InputAST, "Myriad-input-AST.txt" ),
 
@@ -211,7 +209,10 @@ apply_myriad_transform( InputAST ) ->
 	%ast_info:write_module_info_to_file( BaseModuleInfo,
 	%									  "Input-module_info.txt" ),
 
-	%trace_utils:debug_fmt( "Input module info: ~s",
+	%ast_utils:display_debug( "Input module info: ~s",
+	%		   [ ast_info:module_info_to_string( BaseModuleInfo ) ] ),
+
+	%ast_utils:display_debug( "Input module info: ~s~n~n",
 	%		   [ ast_info:module_info_to_string( BaseModuleInfo ) ] ),
 
 
@@ -222,21 +223,22 @@ apply_myriad_transform( InputAST ) ->
 	%									"Output-module_info.txt" ),
 
 	%trace_utils:debug( "~n## OUTPUT ###################################" ),
-	%trace_utils:debug_fmt( "Output module info: ~s",
+	%ast_utils:display_debug( "Output module info: ~s",
 	%		   [ ast_info:module_info_to_string( TransformedModuleInfo ) ] ),
-	%io:format( "Output module info: ~s",
+	%ast_utils:display_debug( "Output module info: ~s~n~n",
 	%		   [ ast_info:module_info_to_string( TransformedModuleInfo ) ] ),
 
 	OutputAST = ast_info:recompose_ast_from_module_info(
 				  TransformedModuleInfo ),
 
-	%trace_utils:debug_fmt( "~n~nMyriad output AST:~n~p~n", [ OutputAST ] ),
+	%ast_utils:display_debug( "~n~nMyriad output AST:~n~p~n", [ OutputAST ] ),
+	%ast_utils:display_debug( "Myriad output AST:~n~p~n~n", [ OutputAST ] ),
 
-	%OutputASTFilename = text_utils:format(
-	%           "Myriad-output-AST-for-module-~s.txt",
-	%			[ element( 1, TransformedModuleInfo#module_info.module ) ] ),
+	OutputASTFilename = text_utils:format(
+				"Myriad-output-AST-for-module-~s.txt",
+				[ element( 1, TransformedModuleInfo#module_info.module ) ] ),
 
-	%ast_utils:write_ast_to_file( OutputAST, OutputASTFilename ),
+	ast_utils:write_ast_to_file( OutputAST, OutputASTFilename ),
 
 	%ast_utils:write_ast_to_file( lists:sort( OutputAST ),
 	%							 "Myriad-output-AST-sorted.txt" ),
@@ -255,7 +257,7 @@ transform_module_info( ModuleInfo ) ->
 
 	% Then apply them:
 
-	%trace_utils:debug_fmt( "~nApplying following ~s",
+	%ast_utils:display_debug( "~nApplying following ~s",
 	%		   [ ast_transform:ast_transforms_to_string( Transforms ) ] ),
 
 	% Returns an updated module information:

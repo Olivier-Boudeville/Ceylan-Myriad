@@ -86,9 +86,9 @@
 
 (require 'erlang-start)
 
+
 ;; Not used anymore, as faulty errors are triggered when using WOOPER:
 ;;(require 'erlang-flymake)
-
 
 ;; To be able to move between windows simply thanks to S-<arrow> (i.e. holding
 ;; shift, and hitting one of the 4 arrow keys; however the block selection

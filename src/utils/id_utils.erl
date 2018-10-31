@@ -433,10 +433,17 @@ get_higher_next_depth_sortable_id( SortId ) ->
 %
 % Ex: if ElementsToIdentify=[ 'a', 'b', 'c', 'd' ] and, in IdentifierTable, 'a'
 % is associated to La and 'd' to Ld, supposing La < Ld, whereas 'b' and 'c' are
-% not already associated, then the returned table will also associate Lc to 'c'
-% and Ld to 'd' so that La < Lb < Lc < Ld.
+% not already associated, then the returned table will also associate some Lc to
+% 'c' and some Ld to 'd' so that La < Lb < Lc < Ld.
 %
 % Throws an exception if no correct mapping could be devised.
+%
+% Note: this is certainly not a trivial algorithm, as sortable identifiers
+% should be generated only between two already existing ones (not "just after" a
+% given one, for example).
+%
+% Important note: this function finally was not used and the current test (in
+% id_utils_test.erl) shows it still has at least one bug. Beware!
 %
 -spec assign_sorted_identifiers( [ identifiable_element() ],
 								 identifier_table() ) -> identifier_table().

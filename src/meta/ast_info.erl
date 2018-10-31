@@ -63,16 +63,25 @@
 % regarding file references), once forms have been recomposed, by design a
 % stored line is always relative to the current file.
 %
-% 'locate_at' means that the corresponding form is yet to be located after the
-% specified marker in the AST stream (thus a transformation pass is still to be
-% applied before it becomes an actual sortable identifier).
+% 'locate_at' means that the corresponding form is yet to be located just after
+% the location pointed at by the specified marker in the AST stream (thus a
+% transformation pass is still to be applied before it becomes an actual
+% sortable identifier). Such a relative location allows for example to place
+% forms just after (and never, for example, just before) a module declaration.
 %
 % We try to translate section markers in actual locations rather sooner than
 % later, as markers are not expected to move, and it would probably be more
 % difficult to recreate a consistency at later stages.
 %
+% Similarly, 'locate_after' means that a form is yet to be located after the
+% specified form.
+%
+% There is no specific order enforced between the possibly several forms located
+% at a given marker or after a given form.
+%
 -type location() :: ast_base:form_location()
-				  | { 'locate_at', section_marker() }.
+				  | { 'locate_at', section_marker() }
+				  | { 'locate_after', ast_base:form_location() }.
 
 
 % When processing an AST (ex: read from a BEAM file), the order of the forms
@@ -100,23 +109,36 @@
 
 
 
-% Known section markers, listed in their expected order of appearance in an AST
-% stream (ex: a source file). All markers are expected to be set (located) as
-% soon as the scan of an AST into a module_info has been done.
+% Known section markers (insertion points), listed in their expected order of
+% appearance in an AST stream (ex: a source file). All markers are expected to
+% be set (located) as soon as the scan of an AST into a module_info has been
+% done.
+%
+% These are, more specifically, the points, the lower location from which
+% corresponding elements would be inserted (hence not necessarily in the exact
+% same order as inferred from an AST). Multiple markers may point to the same
+% location.
 %
 -type section_marker() ::
 
 		% Marker designating the beginning of the AST stream / source file:
 		'begin_marker'
 
+
+		% Marker designating a section starting just after the module
+		% declaration (i.e. '-module(my_module_name).'):
+		%
+	  | 'module_marker'
+
+
 		% Marker designating a section dedicated to the export of types
-		% (i.e. where -import([ bar/n, ...]) declarations may be gathered):
+		% (i.e. where '-import([ bar/n, ...]).' declarations may be gathered):
 		%
 	  | 'export_types_marker'
 
 
 		% Marker designating a section dedicated to the export of functions
-		% (i.e. where -export([ foo/n, ...]) declarations may be gathered):
+		% (i.e. where '-export([ foo/n, ...]).' declarations may be gathered):
 		%
 	  | 'export_functions_marker'
 
@@ -135,9 +157,11 @@
 		%
 	  | 'definition_records_marker'
 
+
 		% Marker designating a section dedicated to the definition of types:
 		%
 	  | 'definition_types_marker'
+
 
 		% Marker designating a section dedicated to the definition of functions:
 		%
@@ -312,12 +336,32 @@
 		  check_module_info/1,
 		  recompose_ast_from_module_info/1,
 		  write_module_info_to_file/2,
+
+		  get_default_module_location/0, get_default_module_location/1,
+
+		  get_default_export_type_location/0, get_default_export_type_location/1,
+
+		  get_default_export_function_location/0,
+		  get_default_export_function_location/1,
+
+		  get_default_import_function_location/0,
+		  get_default_import_function_location/1,
+
+		  get_default_definition_record_location/0,
+		  get_default_definition_record_location/1,
+
+		  get_default_definition_type_location/0,
+		  get_default_definition_type_location/1,
+
+		  get_default_definition_function_location/0,
+		  get_default_definition_function_location/1,
+
 		  module_info_to_string/1, module_info_to_string/2,
 		  module_info_to_string/3 ]).
 
 
 % Elements for textual descriptions:
--export([ forms_to_string/3,
+-export([ forms_to_string/3, location_to_string/1,
 		  module_entry_to_string/2,
 		  compilation_options_to_string/3, compilation_options_to_string/4,
 		  optional_callbacks_to_string/3,
@@ -646,7 +690,7 @@ check_function( FunId, _FunInfo=#function_info{ clauses=[],
 
 % No definition, no spec, hence exported:
 check_function( _FunId, _FunInfo=#function_info{ clauses=[],
-												spec=undefined } ) ->
+												 spec=undefined } ) ->
 	% Silenced, as we prefer this error to be reported through the toolchain
 	% itself, to better integration in error handling:
 	%
@@ -715,6 +759,8 @@ recompose_ast_from_module_info( #module_info{
 
 			last_line=LastLineLocDef,
 
+			markers=MarkerTable,
+
 			errors=[],
 
 			unhandled_forms=UnhandledLocForms } ) ->
@@ -731,13 +777,12 @@ recompose_ast_from_module_info( #module_info{
 									FunctionExportTable, FunctionTable ),
 
 
-	% All these definitions are located, yet we start from a sensible order so
-	% that inserted forms do not end up in corner cases:
+	% we used to start from a sensible order so that inserted forms do not end
+	% up in corner cases, yet all these definitions are located, so their order
+	% does not really matter once we have only explicit locations.
 	%
-	% (order does not really matter thanks to explicit locations)
-	%
-	UnorderedLocatedAST = [ ModuleLocDef |
-							   ParseAttributeLocDefs
+	UnorderedLocatedAST = [ ModuleLocDef
+							| ParseAttributeLocDefs
 							++ RemoteSpecLocDefs
 							++ FunExportLocDefs
 							++ IncludeLocDefs
@@ -750,10 +795,11 @@ recompose_ast_from_module_info( #module_info{
 							++ FunctionLocDefs
 							++ [ LastLineLocDef | UnhandledLocForms ] ],
 
+
 	%ast_utils:display_debug( "Unordered located AST:~n~p~n",
 	%						 [ UnorderedLocatedAST ] ),
 
-	OrderedAST = get_ordered_ast_from( UnorderedLocatedAST ),
+	OrderedAST = get_ordered_ast_from( UnorderedLocatedAST, MarkerTable ),
 
 	%ast_utils:display_debug( "Recomposed AST:~n~p~n",
 	%						 [ OrderedAST ] ),
@@ -766,57 +812,207 @@ recompose_ast_from_module_info( #module_info{ errors=Errors } ) ->
 
 	ErrorStrings = [ text_utils:to_string( E ) || E <- Errors ],
 
-	trace_utils:error_fmt( "~B errors spotted in AST:~s", [ length( Errors ),
-						text_utils:strings_to_string( ErrorStrings ) ] ),
+	trace_utils:error_fmt( "~B errors spotted in AST:~s",
+		[ length( Errors ), text_utils:strings_to_string( ErrorStrings ) ] ),
 
 	throw( { errors_in_ast, Errors } ).
-
-
-
 
 
 
 % Returns an (ordered, with no location information) AST from the specified
 % unordered, located AST.
 %
--spec get_ordered_ast_from( located_ast() ) -> ast().
-get_ordered_ast_from( UnorderedLocatedAST ) ->
+-spec get_ordered_ast_from( located_ast(), section_marker_table() ) -> ast().
+get_ordered_ast_from( UnorderedLocatedAST, MarkerTable ) ->
 
-	% First pass: we replace any 'auto_locate_after' location by an actual position
-	% just after the current one (collisions are allowed):
+	%ast_utils:display_debug( "~nUnordered, non-immediate located input AST:~n~p",
+	%						 [ UnorderedLocatedAST ] ),
+
+	% We replace any non-immediate location by an immediate one, and have the
+	% whole sorted, then unlocated:
 	%
-	FullyLocatedAST = locate_all_in( UnorderedLocatedAST,
-						id_utils:get_initial_sortable_id(), _Acc=[] ),
-
-	% We then sort form according to their recorded location:
-	OrderedLocatedAST = lists:keysort( _LocIndex=1, FullyLocatedAST ),
+	ReorderedAST = reorder_forms_in( UnorderedLocatedAST, MarkerTable ),
 
 	% One of the most useful view of output:
-	%ast_utils:display_debug( "Ordered located AST:~n~s~n",
-	%			   [ located_ast_to_string( OrderedLocatedAST ) ] ),
+	%ast_utils:display_debug( "~nOrdered, unlocated output AST:~n~p",
+	%						 [ ReorderedAST ] ),
 
-	% And then we remove that information once sorted, returning an ordered,
-	% unlocated AST:
+	ReorderedAST.
+
+
+
+% Reorders specified located AST: returns an (unlocated) AST, whose form order
+% has been determined thanks to an intermediary step fully based on immediate
+% locations.
+%
+-spec reorder_forms_in( located_ast(), section_marker_table() ) -> ast().
+reorder_forms_in( LocatedForms, MarkerTable ) ->
+
+	% Separate immediate locations from others, which are all converted in a
+	% locate_after form and then correctly inserted:
 	%
-	[ Form || { _Location, Form } <- OrderedLocatedAST ].
+	reorder_forms_in( LocatedForms, MarkerTable, _AccLoc=[], _AccLocAfter=[] ).
+
+
+% locate_at are first transformed into locate_after locations, then all
+% locate_after are properly inserted into the AST stream.
+%
+% (helper)
+%
+reorder_forms_in( _LocatedForms=[], _MarkerTable, AccLoc, AccLocAfter ) ->
+
+	% Locations are the first elements of the pairs:
+	LocIndex=1,
+
+	% All forms inspected, we want in-order immediate located and located_at
+	% forms:
+	OrderedLocForms = lists:keysort( LocIndex, AccLoc ),
+
+	OrderedLocAfter = lists:keysort( LocIndex, AccLocAfter ),
+
+	insert_after_located_forms( OrderedLocAfter, OrderedLocForms );
+
+
+reorder_forms_in( _LocatedForms=[ { { locate_at, MarkerName }, Form } | T ],
+				  MarkerTable, AccLoc, AccLocAfter ) ->
+
+	MarkerLoc = ?table:getEntry( MarkerName, MarkerTable ),
+
+	NewAccLocAfter = [ { MarkerLoc, Form } | AccLocAfter ],
+
+	reorder_forms_in( T, MarkerTable, AccLoc, NewAccLocAfter );
+
+
+reorder_forms_in( _LocatedForms=[ { { locate_after, Loc }, Form } | T ],
+			   MarkerTable, AccLoc, AccLocAfter ) ->
+	reorder_forms_in( T, MarkerTable, AccLoc, [ { Loc, Form } | AccLocAfter ] );
+
+
+% E={ Loc, Form } expected:
+reorder_forms_in( _LocatedForms=[ E | T ], MarkerTable, AccLoc, AccLocAfter ) ->
+	reorder_forms_in( T, MarkerTable, [ E | AccLoc ], AccLocAfter ).
 
 
 
-locate_all_in( _LocatedForms=[], _CurrentSortId, Acc ) ->
-	% Order does not matter anymore:
-	Acc;
 
-locate_all_in( _LocatedForms=[ { _Loc=auto_locate_after, Form } | T ], CurrentSortId,
-			   Acc ) ->
-	% Better than get_next_sortable_id/1 to ensure grouped with previous:
-	NewSortId = id_utils:get_higher_next_depth_sortable_id( CurrentSortId ),
-	locate_all_in( T, NewSortId, [ { NewSortId, Form } | Acc ] );
+% Merges the specified immediate and located-after ordered ists of forms:
+% inserts the located-after forms in a right position in the immediate-located
+% AST stream, and returns the resulting AST, once properly ordered and fully
+% unlocated.
+%
+% (helper)
+%
+-spec insert_after_located_forms( located_ast(), located_ast() ) ->
+										located_ast().
+insert_after_located_forms( LocAfterForms, LocForms ) ->
+	insert_after_located_forms( LocAfterForms, LocForms,
+								_CurrentLocInfo=undefined, _AccForms=[] ).
 
-locate_all_in( _LocatedForms=[ LocForm={ ActualLoc, _Form } | T ],
-			   _CurrentSortId, Acc ) ->
-	locate_all_in( T, ActualLoc, [ LocForm | Acc ] ).
 
 
+% No more located-after forms, and no current aggregation:
+%
+% (AccForms is a reversed, unlocated AST)
+%
+insert_after_located_forms( _LocAfter=[], LocForms, _CurrentLocInfo=undefined,
+							AccForms ) ->
+
+	% The remaining immediate-located forms, once unlocated:
+	RemainingImmediateForms = [ F || { _Loc, F } <- LocForms ],
+
+	lists:reverse( AccForms ) ++ RemainingImmediateForms;
+
+
+% The case with LocAfter=[] and CurrentLocInfo defined is managed in the clause
+% below that is commented as "First non-matching...".
+
+
+% A new located-after form is found (wheras there is no current one):
+insert_after_located_forms( _LocAfter=[ { TargetLoc, TargetForm } | T ],
+							LocForms, _CurrentLocInfo=undefined, AccForms ) ->
+
+	% Preparing the regrouping:
+	NewLocInfo = { TargetLoc, [ TargetForm ] },
+
+	insert_after_located_forms( T, LocForms, NewLocInfo, AccForms );
+
+
+% Still matching the current location (TargetLoc), hence aggregating forms:
+insert_after_located_forms( _LocAfter=[ { TargetLoc, TargetForm } | T ],
+							LocForms, _CurrentLocInfo={ TargetLoc, CurrentForms },
+							AccForms ) ->
+
+	NewLocInfo = { TargetLoc, [ TargetForm | CurrentForms ] },
+
+	insert_after_located_forms( T, LocForms, NewLocInfo, AccForms );
+
+
+% First non-matching after-location found, storing the information aggregated
+% beforehand:
+%
+% Here LocAfter does not match { TargetLoc, TargetForm } - so it is either [ {
+% _AnotherLoc, _TargetForm } | _T ] or [].
+%
+insert_after_located_forms( LocAfter, LocForms,
+							_CurrentLocInfo={ TargetLoc, CurrentForms },
+							AccForms ) ->
+
+	% We remove the location information; once reversed, we will have, by
+	% increasing locations, for a given location, the base form followed by all
+	% associated located_after forms.
+
+	% For example, here:
+	%   TargetLoc=6
+	%   CurrentForms=[ Fa, Fb ]
+	%   LocForms = [ {2,F2}, {5,F5}, {6,F6}, {8,F8}, {9,F9} ]
+	% Then, after split_at_location/2:
+	%   RevUnlocPrefix = [ F5, F2 ]
+	%   BaseForm = F6
+	%   LocSuffix = [ {8,F8}, {9,F9} ]
+	%
+	% Then we can have:
+	% NewAccLocForms = [ Fa, Fb ] ++ [ F6 | [ F5, F2 ] ] ++ AccForms
+
+	{ RevUnlocPrefix, BaseForm, LocSuffix } =
+		split_at_location( TargetLoc, LocForms ),
+
+	NewAccLocForms = CurrentForms ++ [ BaseForm | RevUnlocPrefix ] ++ AccForms,
+
+	% Next step will process this new location:
+	insert_after_located_forms( LocAfter, LocSuffix,
+								_NewCurrentLocInfo=undefined, NewAccLocForms ).
+
+
+
+
+% Returns { RevUnlocPrefix, BaseForm, LocSuffix } so that:
+%
+% InputLocForms = (reversed, located version of RevUnlocPrefix) ++ [
+% {Loc,BaseForm} | LocSuffix ]
+%
+% The specified location is expected to be found in the specified (ordered) AST.
+%
+% (helper)
+%
+-spec split_at_location( location(), located_ast() ) ->
+							{ located_ast(), form(), located_ast() }.
+split_at_location( Loc, InputLocForms ) ->
+	split_at_location( Loc, InputLocForms, _Acc=[] ).
+
+
+% (helper)
+split_at_location( Loc, _InputLocForms=[], _Acc ) ->
+	throw( { base_location_not_found, Loc } );
+
+% Found:
+split_at_location( Loc, _LocForms=[ { Loc, BaseForm } | T ], Acc ) ->
+	% Acc already in the right order:
+	{ Acc, BaseForm, T };
+
+% Skips base located forms until matching:
+split_at_location( Loc, _LocForms=[ { _OtherLoc, Form } | T ], Acc ) ->
+	% Implied: when Loc < OtherLoc ->
+	split_at_location( Loc,  T, [ Form | Acc ] ).
 
 
 
@@ -837,6 +1033,134 @@ write_module_info_to_file( ModuleInfo, Filename ) ->
 	ok = file:write( File, module_info_to_string( ModuleInfo ) ),
 
 	ok = file:close( File ).
+
+
+
+
+% Returns the conventional location designating where forms can be be added just
+% after the declaration of the module name, as an indirect location.
+%
+-spec get_default_module_location() -> location().
+get_default_module_location() ->
+	{ locate_at, module_marker }.
+
+
+% Returns the conventional location designating where forms can be be added just
+% after the declaration of the module name, as an immediate location.
+%
+-spec get_default_module_location( section_marker_table() ) -> location().
+get_default_module_location( MarkerTable ) ->
+	?table:getEntry( module_marker, MarkerTable ).
+
+
+
+% Returns the conventional location at which new types may be exported, as an
+% indirect location.
+%
+-spec get_default_export_type_location() -> location().
+get_default_export_type_location() ->
+	{ locate_at, export_types_marker }.
+
+
+% Returns the conventional location at which new types may be exported, as an
+% immediate location.
+%
+-spec get_default_export_type_location( section_marker_table() ) ->
+											  location().
+get_default_export_type_location( MarkerTable)  ->
+	?table:getEntry( export_types_marker, MarkerTable ).
+
+
+
+% Returns the conventional location at which new functions may be exported, as
+% an indirect location.
+%
+-spec get_default_export_function_location() -> location().
+get_default_export_function_location() ->
+	{ locate_at, export_functions_marker }.
+
+
+% Returns the conventional location at which new functions may be exported, as
+% an immediate location.
+%
+-spec get_default_export_function_location( section_marker_table() ) ->
+												  location().
+get_default_export_function_location( MarkerTable ) ->
+	?table:getEntry( export_functions_marker, MarkerTable ).
+
+
+
+% Returns the conventional location at which functions may be imported, as an
+% indirect location.
+%
+-spec get_default_import_function_location() -> location().
+get_default_import_function_location() ->
+	{ locate_at, import_functions_marker }.
+
+
+% Returns the conventional location at which functions may be imported, as an
+% immediate location.
+%
+-spec get_default_import_function_location( section_marker_table() ) ->
+												  location().
+get_default_import_function_location( MarkerTable ) ->
+	?table:getEntry( import_functions_marker, MarkerTable ).
+
+
+
+
+% Returns the conventional location at which new records may be defined, as an
+% indirect location.
+%
+-spec get_default_definition_record_location() -> location().
+get_default_definition_record_location() ->
+	{ locate_at, definition_records_marker }.
+
+
+% Returns the conventional location at which new records may be defined, as an
+% immediate location.
+%
+-spec get_default_definition_record_location( section_marker_table() ) ->
+													location().
+get_default_definition_record_location( MarkerTable ) ->
+	?table:getEntry( definition_records_marker, MarkerTable ).
+
+
+
+% Returns the conventional location at which new types may be defined, as an
+% indirect location.
+%
+-spec get_default_definition_type_location() -> location().
+get_default_definition_type_location() ->
+	{ locate_at, definition_types_marker }.
+
+
+% Returns the conventional location at which new types may be defined, as an
+% immediate location.
+%
+-spec get_default_definition_type_location( section_marker_table() ) ->
+												  location().
+get_default_definition_type_location( MarkerTable ) ->
+	?table:getEntry( definition_types_marker, MarkerTable ).
+
+
+
+% Returns the conventional location at which new functions may be defined, as an
+% indirect location.
+%
+-spec get_default_definition_function_location() -> location().
+get_default_definition_function_location() ->
+	{ locate_at, definition_functions_marker }.
+
+
+% Returns the conventional location at which new functions may be defined, as an
+% immediate location.
+%
+-spec get_default_definition_function_location( section_marker_table() ) ->
+													  location().
+get_default_definition_function_location( MarkerTable ) ->
+	?table:getEntry( definition_functions_marker, MarkerTable ).
+
 
 
 
@@ -969,6 +1293,21 @@ forms_to_string( LocForms, _DoIncludeForms, IndentationLevel ) ->
 											   IndentationLevel ),
 
 	text_utils:format( "~nThe corresponding forms are: ~s", [ FormString ] ).
+
+
+
+% Returns a textual representation of the specified location.
+%
+-spec location_to_string( location() ) -> text_utils:ustring().
+location_to_string( { locate_at, MarkerName } ) ->
+	text_utils:format( "at marker ~s", [ MarkerName ] );
+
+location_to_string( { locate_after, Location } ) ->
+	text_utils:format( "after ~s",
+					   [ id_utils:sortable_id_to_string( Location ) ] );
+
+location_to_string( Location ) ->
+	id_utils:sortable_id_to_string( Location ).
 
 
 
@@ -1398,13 +1737,17 @@ markers_to_string( MarkerTable, IndentationLevel ) ->
 			"no known section marker";
 
 		MarkPairs ->
-			text_utils:format( "~B known section marker(s): ~s",
-					   [ length( MarkPairs ),
-						 text_utils:strings_to_string(
+
+			SortedMarkPairs = lists:keysort( _Index=2, MarkPairs ),
+
+			text_utils:format( "~B known section marker(s), sorted by "
+							   "increasing locations: ~s",
+							   [ length( MarkPairs ),
+								 text_utils:strings_to_string(
 			[ text_utils:format( "marker '~s' pointing to ~s",
 								 [ Marker, id_utils:sortable_id_to_string( Loc ) ] )
-			  || { Marker, Loc } <- MarkPairs ],
-						   IndentationLevel ) ] )
+			  || { Marker, Loc } <- SortedMarkPairs ],
+								   IndentationLevel ) ] )
 
 	end.
 
@@ -1547,9 +1890,12 @@ function_info_to_string( #function_info{ name=Name,
 			%"local";
 			"not exported";
 
-		ExportLoc ->
-			text_utils:format( "exported in ~s",
-				  [ id_utils:sortable_ids_to_string( ExportLoc ) ] )
+		ExportLocs ->
+			Strings = [ ast_info:location_to_string( L ) || L <- ExportLocs ],
+
+			text_utils:format( "exported in following ~B location(s): ~s",
+				  [ length( ExportLocs ),
+					text_utils:strings_to_string( Strings ) ] )
 
 	end,
 

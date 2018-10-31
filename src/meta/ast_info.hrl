@@ -40,19 +40,6 @@
 											 ast_info:located_form() } ).
 
 
-% Describes a location that can be either absolutely set, or auto-located "just"
-% after a given one.
-%
-% Typically useful to freely define locations for elements that shall be located
-% after a given marker, yet with no specific order between themselves (ex: there
-% may be no specific order in a list of type definitions, yet they may be
-% located before, say, the function definitions).
-%
--type smart_location() :: ast_info:location()
-						| { 'locate_at', ast_info:location() }.
-
-
-
 % A record to store and centralise information gathered about an Erlang
 % (compiled) module.
 %
@@ -235,8 +222,13 @@
 		% Note: it is better that way, as a function export attribute may define
 		% any number of exports, and we need to record its definition line.
 		%
-		% Note: this field must be kept synchronised with the table in the
-		% 'functions' field.
+		% This field must be kept synchronised with the table in the 'functions'
+		% field.
+		%
+		% As empty exports are allowed (i.e. '-export([]).'), by default, at the
+		% 'export_functions_marker' marker such an empty export is automatically
+		% defined, so that the parse transforms are able to populate it whenever
+		% they decide to introduce new functions that shall be exported.
 		%
 		function_exports :: ast_info:function_export_table(),
 
@@ -266,7 +258,7 @@
 		last_line :: ast_info:located_form(),
 
 
-		% Section markers, offering reference locations to AST transformations
+		% Section markers, offering reference locations to AST transformations.
 		%
 		markers :: ast_info:section_marker_table(),
 
@@ -336,7 +328,8 @@
 
 
 
-% Describes a function (generally extracted from a module).
+% Describes a function (generally extracted from a module, or possibly
+% automatically generated).
 %
 -record( function_info, {
 
@@ -350,7 +343,8 @@
 
 
 		   % Corresponds to the location of the full form for the definition
-		   % (first clause) of this function (not of the spec):
+		   % (first clause) of this function (not of the spec, which has its
+		   % specific field below):
 		   %
 		   location = undefined :: basic_utils:maybe( ast_info:location() ),
 

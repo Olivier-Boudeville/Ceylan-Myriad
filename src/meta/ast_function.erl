@@ -74,6 +74,8 @@
 -type function_info() :: ast_info:function_info().
 -type function_table() :: ast_info:function_table().
 
+-type function_export_table() :: ast_info:function_export_table().
+
 -type ast_transforms() :: ast_transform:ast_transforms().
 
 
@@ -356,17 +358,15 @@ transform_function_constraint( { 'type', Line, 'constraint',
 								   { [ located_form() ], [ located_form() ] }.
 get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 
-	FunExportLocDefs = get_function_export_forms( FunctionExportTable ),
-
 	% Dropping the keys (the function_id(), i.e. function identifiers), focusing
 	% on their associated function_info():
 	%
 	FunInfos = ?table:values( FunctionTable ),
 
-	FunctionLocDefs = lists:foldl(
+	{ FunctionLocDefs, NewFunctionExportTable } = lists:foldl(
 
 						% We filter out these entries, as they are only exported
-						% (not defined); the compiler will take care of that
+						% (never defined); the compiler will take care of that,
 						% with better, more standard messages:
 						%
 						fun( #function_info{ line=undefined,
@@ -378,26 +378,85 @@ get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 											 location=Location,
 											 line=Line,
 											 clauses=Clauses,
-											 spec=MaybeSpec }, Acc ) ->
+											 spec=MaybeSpec,
+											 exported=ExportLocs },
+							 { AccLocDefs, AccExportTable } ) ->
 
 								LocFunForm = { Location,
 								  { function, Line, Name, Arity, Clauses } },
 
-								case MaybeSpec of
+								NewAccLocDefs = case MaybeSpec of
 
 									undefined ->
-										[ LocFunForm | Acc ];
+										[ LocFunForm | AccLocDefs ];
 
 									LocSpecForm ->
-										[ LocSpecForm, LocFunForm | Acc ]
+										[ LocSpecForm, LocFunForm | AccLocDefs ]
 
-								end
+								end,
+
+								% Should a function declare that it is exported
+								% as a given location that happens to correspond
+								% to a registered export declaration (ex: the
+								% default one), we ensure that this function is
+								% indeed exported there:
+								%
+								NewAccExportTable = update_export_table( Name,
+									Arity, ExportLocs, AccExportTable ),
+
+								{ NewAccLocDefs, NewAccExportTable }
 
 						end,
-						_Acc0=[],
+						_Acc0={ [], FunctionExportTable },
 						_List=FunInfos ),
 
+	FunExportLocDefs = get_function_export_forms( NewFunctionExportTable ),
+
 	{ FunExportLocDefs, FunctionLocDefs }.
+
+
+
+% Ensures that the specified function is as expected exported in the specified
+% (supposedly export) locations.
+%
+%
+-spec update_export_table( meta_utils:function_name(), arity(),
+						   [ ast_info:location() ], function_export_table() ) ->
+								 function_export_table().
+update_export_table( _FunctionName, _Arity, _ExportLocs=[], ExportTable ) ->
+	ExportTable;
+
+update_export_table( FunctionName, Arity, _ExportLocs=[ Loc | H ],
+					 ExportTable ) ->
+
+	FunId = { FunctionName, Arity },
+
+	case ?table:lookupEntry( Loc, ExportTable ) of
+
+		key_not_found ->
+			% If there is not even an export declaration at this location, it is
+			% abnormal:
+			%
+			throw( { no_export_declaration_at, Loc, FunId } );
+
+		{ value, { Line, FunIds } } ->
+
+			NewFunIds = case lists:member( FunId, FunIds ) of
+
+				true ->
+					FunIds;
+
+				false ->
+					[ FunId | FunIds ]
+
+			end,
+
+			NewExportTable = ?table:addEntry( Loc, { Line, NewFunIds },
+											  ExportTable ),
+
+			update_export_table( FunctionName, Arity, H, NewExportTable )
+
+	end.
 
 
 

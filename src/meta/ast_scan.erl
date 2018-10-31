@@ -149,8 +149,11 @@
 % For example, one may want a given form to be placed at the beginning of the
 % section for function exports; then the location of this form shall be
 % specified as being after the corresponding marker, i.e. after the location
-% stored in marker ''.
-
+% stored in marker 'export_functions_marker'.
+%
+% However, depending on the AST content, markers may not be set, or may even not
+% be sorted according to our canonical order (ex: 'export_functions_marker' may
+% be set before 'export_types_marker', it is still legit compilation-wise).
 
 
 % Scans the specified AST, expected to correspond to a module definition, and
@@ -411,7 +414,8 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'import',
 % {attribute,LINE,module,Mod}."
 %
 scan_forms( _AST=[ Form={ 'attribute', Line, 'module', ModuleName } | T ],
-			 M=#module_info{ module=undefined },
+			 M=#module_info{ module=undefined,
+							 markers=MarkerTable },
 			 NextLocation, CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "module declaration for ~s", [ ModuleName ] ),
@@ -426,7 +430,11 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'module', ModuleName } | T ],
 
 	LocForm = { NextLocation, Form },
 
-	scan_forms( T, M#module_info{ module={ ModuleName, LocForm } },
+	NewMarkerTable = ?table:addNewEntry( module_marker, NextLocation,
+										 MarkerTable ),
+
+	scan_forms( T, M#module_info{ module={ ModuleName, LocForm },
+								  markers=NewMarkerTable },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
@@ -1180,9 +1188,10 @@ scan_forms( _AST=[ _Form={ 'eof', Line } ],
 
 % Form expected to be defined once, and to be the last one:
 scan_forms( _AST=[ Form={ 'eof', _Line } ],
-			M=#module_info{ last_line=undefined,
-							module={ ModuleName, _ModuleLocDef },
+			M=#module_info{ module={ ModuleName, _ModuleLocDef },
 							includes=Inc,
+							function_exports=ExportTable,
+							last_line=undefined,
 							markers=MarkerTable },
 			NextLocation, _CurrentFileReference ) ->
 
@@ -1199,6 +1208,15 @@ scan_forms( _AST=[ Form={ 'eof', _Line } ],
 
 	% End of file found, doing some housekeeping.
 
+	% We generate here a default export form, supposedly at line 0 for easier
+	% interpretation; it will start empty but may be enriched by parse
+	% transforms, when they need to export functions that they just added.
+
+	ExportLoc = ast_info:get_default_export_function_location(),
+
+	NewExportTable = ?table:addEntry( ExportLoc, { _FirstLine=0, _Empty=[] },
+									  ExportTable ),
+
 	% We just do not want to have the filename of the currently processed module
 	% among the includes:
 
@@ -1211,8 +1229,9 @@ scan_forms( _AST=[ Form={ 'eof', _Line } ],
 
 	% Only "normal", non-recursing exit of that longer function:
 	M#module_info{ includes=NoModInc,
-				   markers=NewMarkerTable,
-				   last_line=LocForm };
+				   function_exports=NewExportTable,
+				   last_line=LocForm,
+				   markers=NewMarkerTable };
 
 
 %%
@@ -1244,7 +1263,6 @@ scan_forms( _AST=[], _ModuleInfo, _NextLocation, CurrentFileReference ) ->
 
 scan_forms( Unexpected, _ModuleInfo, _NextLocation, CurrentFileReference ) ->
 	ast_utils:raise_error( { not_an_ast, Unexpected }, CurrentFileReference ).
-
 
 
 
@@ -1418,126 +1436,165 @@ check_parse_attribute_name( Name ) ->
 
 
 % Finalizes the marker table, to ensure that, in all cases, after a scan all
-% markers are defined (even if no clause triggered their specific setting).
+% markers are (adequately) defined (even if no clause in the AST triggered their
+% specific setting).
 %
 -spec finalize_marker_table( ast_info:location(), marker_table() ) ->
 								   marker_table().
-finalize_marker_table( EndLocation, MarkerTable ) ->
+finalize_marker_table( EndMarkerLoc, MarkerTable ) ->
 
-	EndMarkerTable = ?table:addNewEntry( end_marker, EndLocation, MarkerTable ),
-
-	% By design begin_marker has already been set, and end_marker is registered
-	% now.
+	% Useful for a later stack-based placement; we obtain a list of
+	% {MarkerName,MarkerLoc} pairs, sorted by increasing locations:
 	%
+	OriginalPairs = get_ordered_marker_location_pairs( MarkerTable ),
+
+	% No bound kept:
+	[ { begin_marker, BeginMarkerLoc } | BoundlessPairs ] = OriginalPairs,
+
+	% First a basic bound check:
+	case BeginMarkerLoc < EndMarkerLoc of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { end_before_begin, EndMarkerLoc, BeginMarkerLoc } )
+
+	end,
+
+
+	% By design begin_marker has already been set in the table, and end_marker
+	% will be registered now:
+	%
+	EndMarkerTable = ?table:addNewEntry( end_marker, EndMarkerLoc,
+										 MarkerTable ),
+
+
 	% We have now to handle all cases about whether each of the other,
 	% intermediate markers is already available or not, so that ultimately, all
-	% of them are set, and in the expected order:
+	% of them are set, and in the expected order.
 	%
-	LeftmostMarker = ?table:getEntry( begin_marker, EndMarkerTable ),
-
-	% Will always be the rightmost, as we will move only the left bound (to the
-	% right):
+	% This can be done only in an approximate manner, as the vanilla AST may rely
+	% on a different - yet, compilation-wise, still legit - section order.
 	%
-	EndMarker = EndLocation,
+	% The main rule to abide is that exports and imports shall precede
+	% definitions. The rest is mostly a matter of convention.
+	%
+	% For that, we proceed first per marker name in ascending order (as defined
+	% in ast_info:section_marker/0), and for each of them, in turn, we simply
+	% unstack location pairs accordingly.
 
+	% Marker shorthands:
 
-	{ LeftmostAfterExpT, TableAfterExpT } = case ?table:lookupEntry(
-						   export_types_marker, EndMarkerTable ) of
+	ModMarker = module_marker,
+
+	InterMarkers = [ export_types_marker, export_functions_marker,
+					 import_functions_marker, definition_records_marker,
+					 definition_types_marker ],
+
+	F = _FunDefMarker = definition_functions_marker,
+
+	% The newer, simpler algorithm supposes that the only order that matters between
+	% markers is that:
+	% - the begin marker comes first
+	% - then the module marker (ModMarker)
+	% - then the intermediate markers (InterMarkers), in no specific order
+	% - then the definition marker (FunDefMarker, a.k.a. as F)
+	% - then the end marker
+
+	ModMarkerLoc = case ?table:lookupEntry( ModMarker, EndMarkerTable ) of
 
 		key_not_found ->
-			ExpTMarker = id_utils:get_sortable_id_between( LeftmostMarker,
-														   EndMarker ),
-			ExpTTable = ?table:addEntry( export_types_marker, ExpTMarker,
-										 EndMarkerTable ),
+			% An AST without a module definition will probably be a problem;
+			% trying to mitigate it as we can:
+			BeginMarkerLoc;
 
-			% We now consider the left bound to be the export marker (not the
-			% begin one anymore):
-			%
-			{ ExpTMarker, ExpTTable };
-
-		{ value, ExpTMarker } ->
-			{ ExpTMarker, EndMarkerTable }
+		{ value, ModLoc } ->
+			ModLoc
 
 	end,
 
-
-	{ LeftmostAfterExpF, TableAfterExpF } = case ?table:lookupEntry(
-						   export_functions_marker, TableAfterExpT ) of
+	{ NewFLoc, DefaultLoc } = case ?table:lookupEntry( F, EndMarkerTable ) of
 
 		key_not_found ->
-			ExpFMarker = id_utils:get_sortable_id_between( LeftmostAfterExpT,
-														   EndMarker ),
-			ExpFTable = ?table:addEntry( export_functions_marker,
-										 LeftmostAfterExpT, TableAfterExpT ),
 
-			% We now consider the left bound to be the export marker:
-			{ ExpFMarker, ExpFTable };
+			% F is not located yet, we will find a proper location then:
+			case lists:reverse( BoundlessPairs ) of
 
-		{ value, ExpFMarker } ->
-			{ ExpFMarker, TableAfterExpT }
+				[] ->
+					% Here no intermediate marker at all was defined, we thus
+					% define two of them, a first (for the non-F markers) and a
+					% second, at its right (for F):
+					%
+					NonFLoc = id_utils:get_sortable_id_between( ModMarkerLoc,
+																EndMarkerLoc ),
+
+					FLoc = id_utils:get_sortable_id_between( NonFLoc,
+															 EndMarkerLoc ),
+
+					{ FLoc, NonFLoc };
+
+				[ { _LastMarker, LastMarkerLoc } | _Others ] ->
+					% Here we have at least one non-F location, that will be
+					% used for all non-F markers that are not located yet, and
+					% also to establish the location of F:
+					%
+					FLoc = id_utils:get_sortable_id_between( LastMarkerLoc,
+															 EndMarkerLoc ),
+
+					{ FLoc, LastMarkerLoc }
+
+			end;
+
+		{ value, FLoc } ->
+			DefLoc = id_utils:get_sortable_id_between( ModMarkerLoc, FLoc ),
+			{ FLoc, DefLoc }
 
 	end,
 
+	case NewFLoc > DefaultLoc of
 
-	{ LeftmostAfterImp, TableAfterImp } = case ?table:lookupEntry(
-							  import_functions_marker, TableAfterExpF ) of
+		true ->
+			ok;
 
-		key_not_found ->
-			ImpMarker = id_utils:get_sortable_id_between( LeftmostAfterExpF,
-														  EndMarker ),
-			ImpTable = ?table:addEntry( import_functions_marker, ImpMarker,
-										TableAfterExpF ),
-			{ ImpMarker, ImpTable };
-
-		{ value, ImpMarker } ->
-			{ ImpMarker, TableAfterExpF }
+		false ->
+			throw( { wrong_location_order, DefaultLoc, NewFLoc } )
 
 	end,
 
+	MarkerEntries = [ { ModMarker, ModMarkerLoc }, { F, NewFLoc } ],
 
-	{ LeftmostAfterRec, TableAfterRec } = case ?table:lookupEntry(
-							  definition_records_marker, TableAfterImp ) of
+	UpdatedMarkerTable = ?table:addEntries( MarkerEntries, EndMarkerTable ),
 
-		key_not_found ->
-			RecMarker = id_utils:get_sortable_id_between( LeftmostAfterImp,
-														  EndMarker ),
-			RecTable = ?table:addEntry( definition_records_marker, RecMarker,
-										TableAfterImp ),
-			{ RecMarker, RecTable };
-
-		{ value, RecMarker } ->
-			{ RecMarker, TableAfterImp }
-
-	end,
+	add_missing_markers( InterMarkers, DefaultLoc, UpdatedMarkerTable ).
 
 
-	{ LeftmostAfterDefT, TableAfterDefT } = case ?table:lookupEntry(
-							  definition_types_marker, TableAfterRec ) of
 
-		key_not_found ->
-			DefTMarker = id_utils:get_sortable_id_between( LeftmostAfterRec,
-														   EndMarker ),
-			DefTTable = ?table:addEntry( definition_types_marker, DefTMarker,
-										 TableAfterRec ),
-			{ DefTMarker, DefTTable };
+% (helper)
+add_missing_markers( _Markers=[], _DefaultLoc, MarkerTable ) ->
+	MarkerTable;
 
-		{ value, DefTMarker } ->
-			{ DefTMarker, TableAfterRec }
+add_missing_markers( _Markers=[ M | T ], DefaultLoc, MarkerTable ) ->
+
+	NewMarkerTable = case ?table:hasEntry( M, MarkerTable ) of
+
+		true ->
+			MarkerTable;
+
+		false ->
+			?table:addEntry( M, DefaultLoc, MarkerTable )
 
 	end,
+	add_missing_markers( T, DefaultLoc, NewMarkerTable ).
 
 
-	% Returns directly the final table:
-	case ?table:lookupEntry( definition_functions_marker, TableAfterDefT ) of
 
-		key_not_found ->
-			DefMarker = id_utils:get_sortable_id_between( LeftmostAfterDefT,
-														  EndMarker ),
-			?table:addEntry( definition_functions_marker, DefMarker,
-							 TableAfterDefT );
-
-		% { value, DefMarker } ->
-		_ ->
-			TableAfterDefT
-
-	end.
+% Returns a list of {MarkerName,MarkerLoc} pairs, sorted by increasing
+% locations.
+%
+% (helper)
+%
+-spec get_ordered_marker_location_pairs( marker_table() ) ->
+				   [ { ast_info:section_marker(), ast_info:location() } ].
+get_ordered_marker_location_pairs( MarkerTable ) ->
+	lists:keysort( _Index=2, ?table:enumerate( MarkerTable ) ).

@@ -112,7 +112,7 @@ endif
 		generate-local-plt self-check-against-plt write-debug-key-file       \
 		check check-hook help-erl                                            \
 		clean clean-erlang clean-python clean-database clean-recurse         \
-		clean-outputs real-clean                                             \
+		clean-outputs clean-ast-debug real-clean                             \
 		info info-files info-meta info-erlang info-python info-java          \
 		$(MODULES_DIRS)
 
@@ -674,7 +674,7 @@ endif
 # We do not want to issue an error if only warnings (code: 2) were emitted:
 generate-local-plt: add-prerequisite-plts
 	@echo "    Generating PLT for $(PACKAGE_NAME) ($(PLT_FILE)), based on $(BASE_PLT)"
-	$(DIALYZER) --add_to_plt --output_plt $(PLT_FILE) -r $(PACKAGE_TOP)/src --plt $(BASE_PLT); if [ $$? -eq 1 ] ; then exit 1 ; else exit 0 ; fi
+	@$(DIALYZER) --add_to_plt --output_plt $(PLT_FILE) -r $(PACKAGE_TOP)/src --plt $(BASE_PLT); if [ $$? -eq 1 ] ; then exit 1 ; else exit 0 ; fi
 
 
 # Made to be enriched (with child targets) on a per-layer basis:
@@ -783,6 +783,13 @@ clean-recurse:
 	exit 1; fi ; done
 
 endif
+
+
+# Removes the debug files created about ASTs:
+clean-ast-debug: clean-ast-debug-myriad
+
+clean-ast-debug-myriad:
+	@find . -name 'Myriad-*put-AST*.txt' -exec srm '{}' ';'
 
 
 clean-outputs:

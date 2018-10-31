@@ -48,6 +48,20 @@
 -include_lib("kernel/include/file.hrl").
 
 
+% Directly obtained from the epp module:
+
+-type include_path() :: [ file_utils:directory_name() ].
+-type macro() :: atom() | { atom(), term() }.
+-type source_encoding() :: 'latin1' | 'utf8'.
+
+-type preprocessor_option() :: { 'includes', include_path() }
+							 | { 'macros', [ macro() ] }
+							 | { 'default_encoding', source_encoding() }
+							 | 'extra'.
+
+-export_type([ include_path/0, macro/0, source_encoding/0,
+			   preprocessor_option/0 ]).
+
 
 % Directly inspired from erl_lint:
 
@@ -86,7 +100,8 @@
 
 % Converting:
 %
--export([ erl_to_ast/1, beam_to_ast/1, term_to_form/1, variable_names_to_ast/2,
+-export([ erl_to_ast/1, erl_to_ast/2,
+		  beam_to_ast/1, term_to_form/1, variable_names_to_ast/2,
 		  string_to_form/1, string_to_form/2,
 		  string_to_expressions/1, string_to_expressions/2,
 		  string_to_value/1 ]).
@@ -325,7 +340,8 @@ check_arity( Other, Context ) ->
 % Conversion section.
 
 
-% Reads specified Erlang source file (*.erl) and returns the corresponding AST.
+% Reads specified Erlang source file (*.erl) and returns the corresponding AST,
+% based on default preprocessor options.
 %
 % For example useful to debug a parse transform first separately from the
 % compile pipe-line, relying here on the usual, convenient error management
@@ -334,8 +350,22 @@ check_arity( Other, Context ) ->
 %
 -spec erl_to_ast( file_utils:file_name() ) -> ast().
 erl_to_ast( ErlSourceFilename ) ->
+	erl_to_ast( ErlSourceFilename, _PreprocessorOptions=[] ).
 
-	case epp:parse_file( ErlSourceFilename, _Opts=[] ) of
+
+
+% Reads specified Erlang source file (*.erl) and returns the corresponding AST,
+% based on specified preprocessor (eep) options.
+%
+% For example useful to debug a parse transform first separately from the
+% compile pipe-line, relying here on the usual, convenient error management
+% instead of having little informative messages like: 'undefined parse transform
+% 'foobar'' as soon as a call to a non-existing module:function/arity is made.
+%
+-spec erl_to_ast( file_utils:file_name(), [ preprocessor_option() ] ) -> ast().
+erl_to_ast( ErlSourceFilename, PreprocessorOptions ) ->
+
+	case epp:parse_file( ErlSourceFilename, PreprocessorOptions ) of
 
 		{ error, Error } ->
 			throw( { parse_file_failed, ErlSourceFilename, Error } );
