@@ -30,26 +30,14 @@
 %
 -module(simple_parse_transform_target).
 
-
--record( my_record, {
-
-		   my_field_1,
-
-		   my_field_2 = 4,
-
-		   my_field_4 = 5 :: integer()
-
-}).
+-export([ new/2 ]).
 
 
--type my_record() :: #my_record{}.
+-spec new( wooper:construction_parameter(), wooper:construction_parameter() ) -> pid().
 
 
--export_type([ my_record/0 ]).
+new( A, B ) ->
+ spawn( fun() ->
+			wooper:construct_and_run( ?MODULE, [ A, B ] )
+		end ).
 
-
--export([ destruct/1 ]).
-
--spec destruct( wooper:state() ) -> wooper:state().
-destruct( State ) ->
-	State.

@@ -445,7 +445,7 @@ transform_case_clause(
 
 % Actually bodies can be empty lists (ex: if a try/catch does not have an
 % 'after' clause, its associated body will be empty).
-% 
+%
 %transform_body( _BodyExprs=[], _Transforms ) ->
 %	ast_utils:raise_error( invalid_empty_body );
 

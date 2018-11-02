@@ -565,6 +565,7 @@ ifndef BOOTSTRAP_MODULES
 				$(MYRIAD_TOP)/src/meta/example_parse_transform.erl       \
 				$(MYRIAD_TOP)/src/meta/minimal_parse_transform_test.erl  \
 				$(MYRIAD_TOP)/src/meta/simple_parse_transform_target.erl \
+				$(MYRIAD_TOP)/src/meta/ast_generation_test.erl           \
 				$(MYRIAD_TOP)/src/meta/meta_utils_test.erl
 
 

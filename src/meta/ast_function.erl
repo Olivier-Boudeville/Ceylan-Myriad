@@ -347,8 +347,8 @@ transform_function_constraint( { 'type', Line, 'constraint',
 
 % Returns a pair made of (two) lists of located forms corresponding to:
 %
-% - all the function export declarations that are described in the specified
-% function export table
+% - all the function export declarations (possibly automatically enriched) that
+% are described in the specified function export table
 %
 % - all the function definitions and specs that are described in the specified
 % function table
@@ -399,7 +399,7 @@ get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 								% as a given location that happens to correspond
 								% to a registered export declaration (ex: the
 								% default one), we ensure that this function is
-								% indeed exported there:
+								% indeed exported there (auto-export):
 								%
 								NewAccExportTable = update_export_table( Name,
 									Arity, ExportLocs, AccExportTable ),

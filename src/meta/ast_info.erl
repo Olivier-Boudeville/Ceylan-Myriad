@@ -114,10 +114,16 @@
 % be set (located) as soon as the scan of an AST into a module_info has been
 % done.
 %
-% These are, more specifically, the points, the lower location from which
+% These are, more specifically, the points, the lower locations from which
 % corresponding elements would be inserted (hence not necessarily in the exact
-% same order as inferred from an AST). Multiple markers may point to the same
-% location.
+% same order as inferred from an AST).
+%
+% Multiple markers may point to the same location.
+%
+% There may or may not be actual forms at such locations in the corresponding
+% AST: to preserve their order, markers may point to locations that have been
+% generated, i.e. that have not been directly obtained that the initial scan
+% (ex: inserted between an actual one and the logical end of the AST).
 %
 -type section_marker() ::
 
@@ -374,7 +380,7 @@
 		  function_imports_to_string/4,
 		  functions_to_string/3,
 		  last_line_to_string/1,
-		  markers_to_string/2,
+		  markers_to_string/1, markers_to_string/2,
 		  errors_to_string/2,
 		  unhandled_forms_to_string/3,
 		  fields_to_strings/1, field_to_string/3,
@@ -773,6 +779,7 @@ recompose_ast_from_module_info( #module_info{
 
 	RecordLocDefs = ast_record:get_located_forms_for( RecordTable ),
 
+	% Auto-exports functions if relevant:
 	{ FunExportLocDefs, FunctionLocDefs } = ast_function:get_located_forms_for(
 									FunctionExportTable, FunctionTable ),
 
@@ -825,7 +832,7 @@ recompose_ast_from_module_info( #module_info{ errors=Errors } ) ->
 -spec get_ordered_ast_from( located_ast(), section_marker_table() ) -> ast().
 get_ordered_ast_from( UnorderedLocatedAST, MarkerTable ) ->
 
-	%ast_utils:display_debug( "~nUnordered, non-immediate located input AST:~n~p",
+	%ast_utils:display_debug( "Unordered, non-immediate located input AST:~n~p",
 	%						 [ UnorderedLocatedAST ] ),
 
 	% We replace any non-immediate location by an immediate one, and have the
@@ -834,7 +841,7 @@ get_ordered_ast_from( UnorderedLocatedAST, MarkerTable ) ->
 	ReorderedAST = reorder_forms_in( UnorderedLocatedAST, MarkerTable ),
 
 	% One of the most useful view of output:
-	%ast_utils:display_debug( "~nOrdered, unlocated output AST:~n~p",
+	%ast_utils:display_debug( "Ordered, unlocated output AST:~n~p",
 	%						 [ ReorderedAST ] ),
 
 	ReorderedAST.
@@ -847,6 +854,10 @@ get_ordered_ast_from( UnorderedLocatedAST, MarkerTable ) ->
 %
 -spec reorder_forms_in( located_ast(), section_marker_table() ) -> ast().
 reorder_forms_in( LocatedForms, MarkerTable ) ->
+
+	%trace_utils:debug_fmt( "Reording following forms:~n~p~n"
+	%					   "while there are ~s", [ LocatedForms,
+	%					   markers_to_string( MarkerTable ) ] ),
 
 	% Separate immediate locations from others, which are all converted in a
 	% locate_after form and then correctly inserted:
@@ -873,6 +884,7 @@ reorder_forms_in( _LocatedForms=[], _MarkerTable, AccLoc, AccLocAfter ) ->
 	insert_after_located_forms( OrderedLocAfter, OrderedLocForms );
 
 
+% Manages locate_at information (transforms them in locate_after):
 reorder_forms_in( _LocatedForms=[ { { locate_at, MarkerName }, Form } | T ],
 				  MarkerTable, AccLoc, AccLocAfter ) ->
 
@@ -883,8 +895,9 @@ reorder_forms_in( _LocatedForms=[ { { locate_at, MarkerName }, Form } | T ],
 	reorder_forms_in( T, MarkerTable, AccLoc, NewAccLocAfter );
 
 
+% Manages locate_after information (aggregates them):
 reorder_forms_in( _LocatedForms=[ { { locate_after, Loc }, Form } | T ],
-			   MarkerTable, AccLoc, AccLocAfter ) ->
+				  MarkerTable, AccLoc, AccLocAfter ) ->
 	reorder_forms_in( T, MarkerTable, AccLoc, [ { Loc, Form } | AccLocAfter ] );
 
 
@@ -895,7 +908,7 @@ reorder_forms_in( _LocatedForms=[ E | T ], MarkerTable, AccLoc, AccLocAfter ) ->
 
 
 
-% Merges the specified immediate and located-after ordered ists of forms:
+% Merges the specified immediate and located-after ordered lists of forms:
 % inserts the located-after forms in a right position in the immediate-located
 % AST stream, and returns the resulting AST, once properly ordered and fully
 % unlocated.
@@ -905,6 +918,8 @@ reorder_forms_in( _LocatedForms=[ E | T ], MarkerTable, AccLoc, AccLocAfter ) ->
 -spec insert_after_located_forms( located_ast(), located_ast() ) ->
 										located_ast().
 insert_after_located_forms( LocAfterForms, LocForms ) ->
+	%trace_utils:debug_fmt( "Merging located-after forms: ~n~p~n  in:~n~p.",
+	%					   [ LocAfterForms, LocForms ] ),
 	insert_after_located_forms( LocAfterForms, LocForms,
 								_CurrentLocInfo=undefined, _AccForms=[] ).
 
@@ -947,8 +962,8 @@ insert_after_located_forms( _LocAfter=[ { TargetLoc, TargetForm } | T ],
 	insert_after_located_forms( T, LocForms, NewLocInfo, AccForms );
 
 
-% First non-matching after-location found, storing the information aggregated
-% beforehand:
+% First non-matching after-location found, storing the information that has been
+% aggregated beforehand.
 %
 % Here LocAfter does not match { TargetLoc, TargetForm } - so it is either [ {
 % _AnotherLoc, _TargetForm } | _T ] or [].
@@ -973,10 +988,18 @@ insert_after_located_forms( LocAfter, LocForms,
 	% Then we can have:
 	% NewAccLocForms = [ Fa, Fb ] ++ [ F6 | [ F5, F2 ] ] ++ AccForms
 
-	{ RevUnlocPrefix, BaseForm, LocSuffix } =
-		split_at_location( TargetLoc, LocForms ),
+	% The target location may or may not point to an actual form:
+	{ NewAccLocForms, LocSuffix } =
+			case split_at_location( TargetLoc, LocForms ) of
 
-	NewAccLocForms = CurrentForms ++ [ BaseForm | RevUnlocPrefix ] ++ AccForms,
+		{ RevUnlocPrefix, _BaseForm=undefined, LocationSuffix } ->
+		   { CurrentForms ++ RevUnlocPrefix ++ AccForms, LocationSuffix };
+
+		{ RevUnlocPrefix, BaseForm, LocationSuffix } ->
+			{ CurrentForms ++ [ BaseForm | RevUnlocPrefix ] ++ AccForms,
+			  LocationSuffix }
+
+	end,
 
 	% Next step will process this new location:
 	insert_after_located_forms( LocAfter, LocSuffix,
@@ -997,6 +1020,8 @@ insert_after_located_forms( LocAfter, LocForms,
 -spec split_at_location( location(), located_ast() ) ->
 							{ located_ast(), form(), located_ast() }.
 split_at_location( Loc, InputLocForms ) ->
+	%trace_utils:debug_fmt( "Splitting at location ~p following forms:~n~p",
+	%					   [ Loc, InputLocForms ] ),
 	split_at_location( Loc, InputLocForms, _Acc=[] ).
 
 
@@ -1009,10 +1034,17 @@ split_at_location( Loc, _LocForms=[ { Loc, BaseForm } | T ], Acc ) ->
 	% Acc already in the right order:
 	{ Acc, BaseForm, T };
 
-% Skips base located forms until matching:
-split_at_location( Loc, _LocForms=[ { _OtherLoc, Form } | T ], Acc ) ->
-	% Implied: when Loc < OtherLoc ->
-	split_at_location( Loc,  T, [ Form | Acc ] ).
+% Skips base located forms until matching (Loc not reached yet):
+split_at_location( Loc, _LocForms=[ { OtherLoc, Form } | T ], Acc )
+  when OtherLoc < Loc ->
+	split_at_location( Loc, T, [ Form | Acc ] );
+
+% Here, implicitly, OtherLoc just went past Loc, so:
+split_at_location( _Loc, LocForms, Acc ) ->
+	% Acc already in the right order:
+	{ Acc, _BaseForm=undefined, LocForms }.
+
+
 
 
 
@@ -1727,9 +1759,18 @@ last_line_to_string( _LastLine={ _Loc, { eof, Count } } ) ->
 
 % Returns a textual representation of the known section markers.
 %
+-spec markers_to_string( section_marker_table() ) -> text_utils:ustring().
+markers_to_string( MarkerTable ) ->
+	markers_to_string( MarkerTable, _IndentationLevel=0 ).
+
+
+
+% Returns a textual representation of the known section markers.
+%
 -spec markers_to_string( section_marker_table(),
 				 text_utils:indentation_level() ) -> text_utils:ustring().
 markers_to_string( MarkerTable, IndentationLevel ) ->
+
 
 	case ?table:enumerate( MarkerTable ) of
 

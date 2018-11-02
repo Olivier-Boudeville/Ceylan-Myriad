@@ -537,8 +537,8 @@ get_remote_call_repl_helper( _Replacements=[
 % transform.
 
 
-% Transforms "blindly" (i.e. with no a-priori knowledge about its strucuture)
-% the specified arbitrary term (possibly with nested subterms, as the function
+% Transforms "blindly" (i.e. with no a-priori knowledge about its structure) the
+% specified arbitrary term (possibly with nested subterms, as the function
 % recurses in lists and tuples), calling specified transformer function on each
 % instance of the specified type, in order to replace that instance by the
 % result of that function.
