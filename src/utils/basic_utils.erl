@@ -106,6 +106,12 @@
 -type bit_mask() :: integer().
 
 
+% Describes an (Erlang, inter-process) messsage:
+%
+-type message() :: any().
+
+
+
 % Term designated a reason (which may be any term):
 %
 % Note: useful to have self-describing types.
@@ -137,6 +143,10 @@
 % (i.e. "Nothing") before being set later:
 %
 -type maybe( T ) :: T | 'undefined'.
+
+
+% To account for wildcard entries:
+-type wildcardable( T ) :: T | 'any'.
 
 
 % To denote that a piece of data comes from the program boundaries (interfaces)
@@ -219,10 +229,10 @@
 -type fixme() :: any().
 
 
--export_type([ void/0, count/0, non_null_count/0, bit_mask/0,
+-export_type([ void/0, count/0, non_null_count/0, bit_mask/0, message/0,
 			   reason/0, exit_reason/0,
 			   error_reason/0, error_term/0, error_type/0,
-			   base_status/0, maybe/1,
+			   base_status/0, maybe/1, wildcardable/1,
 			   external_data/0, unchecked_data/0, user_data/0,
 			   accumulator/0,
 			   version_number/0, version/0, two_digit_version/0, any_version/0,
