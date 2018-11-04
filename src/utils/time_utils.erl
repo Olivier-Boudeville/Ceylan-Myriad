@@ -54,11 +54,16 @@
 -export([ compare_dates/2, check_date_order/2, get_date_difference/2 ]).
 
 
-% As calendar:daynum is not exported:
+% As calendar:daynum/0 is not exported:
 %
 % (Monday is 1, Tuesday is 2, etc.)
 %
 -type day_index() :: 1..7.
+
+
+% User-friendly version of day_index/0:
+-type week_day() :: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday'
+				  | 'Friday' | 'Saturday' | 'Sunday'.
 
 
 % Calendar date; used to be less precise calendar:date():
@@ -71,7 +76,7 @@
 				  unit_utils:canonical_second() }.
 
 
--export_type([ day_index/0, date/0, time/0 ]).
+-export_type([ day_index/0, week_day/0, date/0, time/0 ]).
 
 
 % For rough, averaged conversions:
