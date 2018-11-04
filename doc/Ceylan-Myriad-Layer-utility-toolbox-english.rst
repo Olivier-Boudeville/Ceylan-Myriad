@@ -35,7 +35,7 @@ These helpers (code and typing information) are thematically aggregated in modul
 - services to offer **randomness** (``random.erl``), with regard to various sources (the Erlang built-in algorithm, ``crypto``, newer ones like ``exsplus`` - our current default, ``exs64`` and ``exs1024``), for seeding, drawing, etc.
 - very little support of **RDF** operations, standing for `Resource Description Framework <https://en.wikipedia.org/wiki/Resource_Description_Framework>`_ (``rdf_utils.erl``)
 - facilities to perform **REST calls** (``rest_utils.erl``), using built-in ``httpc`` and ``http_client``, and possibly a JSON parser, `jsx <https://github.com/talentdeficit/jsx/>`_
-- elements for the sending of **SMS** (``sms_utils.erl``), based on third-party providers providing REST interfaces
+- elements for the sending of **SMS** (``sms_utils.erl``), based either on third-party providers providing REST APIs, or via a mobile phone (typically connected thanks to a USB cable)
 - support for operations at the **operating-system** level (``system_utils.{e,h}rl``)
 - services to handle **text** (``text_utils.erl``)
 - functions to manage **time** information (``time_utils.erl``)
