@@ -137,6 +137,13 @@ MYRIAD_INC := -I$(MYRIAD_SRC)
 
 INC += $(foreach dir,$(BEAM_DIRS),-I$(dir))
 
+# Special-cased includes for bootstrapped modules, which by default are
+# associated to a wrong directory prefix, as their MYRIAD_TOP variable points at
+# the Myriad root instead of their actual source directory:
+#
+BOOTSTRAP_INCLUDES := -I$(MYRIAD_TOP)/../meta
+
+
 
 # To know when the including makefile is the sole root one:
 #
@@ -432,7 +439,10 @@ endif
 
 ERLANG_USUAL_ROOT := ~/Software/Erlang/Erlang-current-install
 
+
 ERLANG_COMPILER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which erlc 2>/dev/null)
+# To check actual compile options:
+#ERLANG_COMPILER := echo "COMPILE OPTIONS:"
 
 
 ERLANG_BIN_ROOT := $(shell dirname $(ERLANG_COMPILER) )
@@ -555,6 +565,7 @@ ifndef BOOTSTRAP_MODULES
 				$(MYRIAD_TOP)/src/meta/example_parse_transform.erl       \
 				$(MYRIAD_TOP)/src/meta/minimal_parse_transform_test.erl  \
 				$(MYRIAD_TOP)/src/meta/simple_parse_transform_target.erl \
+				$(MYRIAD_TOP)/src/meta/ast_generation_test.erl           \
 				$(MYRIAD_TOP)/src/meta/meta_utils_test.erl
 
 
@@ -564,19 +575,20 @@ ifndef BOOTSTRAP_MODULES
 
 
 	# We list here all prerequisites of the 'Myriad' parse-transform:
-	## - basic_utils: to provide the basic services
-	## - text_utils: to display debugging information regarding the transforms
-	## - id_utils: used here to sort the forms
-	## - most of 'meta', including:
-	##    * meta_utils: to support the metaprogramming needs
-	##    * ast_info: to centralise information regarding ASTs
-	##    * ast_utils: to handle the AST
-	##    * ast_scan: to scan the AST
-	##    * type_utils: to handle types
-	## - [not bootstrapped anymore] list_table: useful for tables that shall preserve
-	##	the order of entries
-	## - map_hashtable: to manage the module information
-	##
+	#
+	# - basic_utils: to provide the basic services
+	# - text_utils: to display debugging information regarding the transforms
+	# - id_utils: used here to sort the forms
+	# - most of 'meta', including:
+	#    * meta_utils: to support the metaprogramming needs
+	#    * ast_info: to centralise information regarding ASTs
+	#    * ast_utils: to handle the AST
+	#    * ast_scan: to scan the AST
+	#    * type_utils: to handle types
+	# - [not bootstrapped anymore] list_table: useful for tables that shall
+	#	preserve the order of entries
+	# - map_hashtable: to manage the module information
+	#
 	BOOTSTRAP_MODULES = $(MYRIAD_TOP)/src/utils/basic_utils.beam             \
 						$(MYRIAD_TOP)/src/utils/text_utils.beam              \
 						$(MYRIAD_TOP)/src/utils/id_utils.beam                \
@@ -605,7 +617,9 @@ ifndef PARSE_TRANSFORM_DIRS
 endif
 
 
-DEBUG_INFO_KEY_OPT = +'{debug_info_key,"Ceylan-Myriad"}'
+DEBUG_INFO_KEY := "Ceylan-Myriad"
+
+DEBUG_INFO_KEY_OPT = +'{debug_info_key,$(DEBUG_INFO_KEY)}'
 
 
 # General (base, transverse) compilation options that should be used for all
@@ -703,6 +717,10 @@ ERLANG_COMPILER_OPT_BASE += $(ERLANG_COMPILER_GENERAL_OPT) $(INC)        \
 # modules):
 #
 ERLANG_COMPILER_OPT_FOR_PT += $(ERLANG_COMPILER_OPT_BASE)
+
+ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED = $(ERLANG_COMPILER_OPT_FOR_PT) \
+									   $(BOOTSTRAP_INCLUDES)
+
 
 
 # Conditionally defined so that upper layer may update these settings (ex:

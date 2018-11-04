@@ -1,4 +1,4 @@
-% Copyright (C) 2015-2018 Olivier Boudeville
+% Copyright (C) 2014-2018 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -26,18 +26,37 @@
 % Creation date: Friday, December 19, 2014.
 
 
-% A simple target module in order to test how parse transforms can operate.
+% Unit tests for the AST generation services.
 %
--module(simple_parse_transform_target).
-
--export([ new/2 ]).
-
-
--spec new( wooper:construction_parameter(), wooper:construction_parameter() ) -> pid().
+% See the ast_generation.erl tested module.
+%
+-module(ast_generation_test).
 
 
-new( A, B ) ->
- spawn( fun() ->
-			wooper:construct_and_run( ?MODULE, [ A, B ] )
-		end ).
+% For run/0 export and al:
+-include("test_facilities.hrl").
 
+
+
+-spec run() -> no_return().
+run() ->
+
+	test_facilities:start( ?MODULE ),
+
+
+	ParamCount = 4,
+
+	HeaderParams = ast_generation:get_header_params( ParamCount ),
+
+	test_facilities:display( "Testing ~B-parameter generation: ~p.",
+							 [ ParamCount, HeaderParams ] ),
+
+
+	VarCount = 2,
+
+	Vars = ast_generation:list_variables( VarCount ),
+
+	test_facilities:display( "Listing ~B variables:~n~p", [ VarCount, Vars ] ),
+
+
+	test_facilities:stop().

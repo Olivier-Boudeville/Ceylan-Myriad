@@ -5,7 +5,7 @@ MYRIAD_TOP = .
 		register-version-in-header register-myriad list-beam-dirs             \
 		add-prerequisite-plts prepare-base-plt add-erlhdf5-plt add-jsx-plt    \
 		add-sqlite3-plt link-plt clean-ast-outputs stats                      \
-		info-paths info-settings info-compile info-parse-transform
+		info-paths info-settings info-compile info-parse-transform info-check
 
 
 
@@ -61,7 +61,6 @@ help-batch:
 	@echo " additional make targets)"
 
 
-
 register-version-in-header:
 	@if [ -z "$(VERSION_FILE)" ] ; then \
 	echo "Error, no version file defined." 1>&2 ; exit 50 ; else \
@@ -105,7 +104,7 @@ add-sqlite3-plt:
 
 # As upper layers may rely on the 'Myriad' naming:
 link-plt:
-	@/bin/ln -s $(PLT_FILE) $(MYRIAD_PLT_FILE)
+	@/bin/ln -s --force $(PLT_FILE) $(MYRIAD_PLT_FILE)
 
 
 # Removes the text files that may be spit by the myriad parse transform for
@@ -148,3 +147,8 @@ info-parse-transform:
 	@echo "ERLANG_COMPILER_OPT_FOR_PT = $(ERLANG_COMPILER_OPT_FOR_PT)"
 	@echo "META_BEAM_FILES = $(META_BEAM_FILES)"
 	@echo "ERLANG_COMPILER_PARSE_TRANSFORM_OPT = $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT)"
+
+
+info-check:
+	@echo "DIALYZER = $(DIALYZER)"
+	@echo "DIALYZER_OPT = $(DIALYZER_OPT)"

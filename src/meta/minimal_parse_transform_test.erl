@@ -70,7 +70,7 @@ run() ->
 	TargetSourceFile = "simple_parse_transform_target.erl",
 	%TargetSourceFile = "../data-management/preferences.erl",
 
-	io:format( "Applying the myriad parse transform to the "
+	io:format( "Applying the Myriad parse transform to the "
 			   "'~s' source file.~n~n", [ TargetSourceFile ] ),
 
 	TransformedAST = myriad_parse_transform:run_standalone( TargetSourceFile ),
@@ -81,4 +81,7 @@ run() ->
 
 	%perform_direct_ast_operations( TargetSourceFile ),
 
-	init:stop( _StatusCode=0 ).
+	io:format( "Test successful." ),
+
+	% Otherwise freezes indefinitely:
+	basic_utils:stop().

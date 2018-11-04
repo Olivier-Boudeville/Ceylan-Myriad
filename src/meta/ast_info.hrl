@@ -40,7 +40,6 @@
 											 ast_info:located_form() } ).
 
 
-
 % A record to store and centralise information gathered about an Erlang
 % (compiled) module.
 %
@@ -223,8 +222,17 @@
 		% Note: it is better that way, as a function export attribute may define
 		% any number of exports, and we need to record its definition line.
 		%
-		% Note: this field must be kept synchronised with the table in the
-		% 'functions' field.
+		% As empty exports are allowed (i.e. '-export([]).'), by default at the
+		% 'export_functions_marker' marker such an empty export is automatically
+		% defined, so that the parse transforms are able to populate it whenever
+		% they decide to introduce new functions that shall be exported.
+		%
+		% This field must be kept synchronised with the table in the 'functions'
+		% field; note however that, should a function_info record there declare
+		% among its locations (in its 'exported' field) the location of an
+		% actual export form (typically the one of the previous marker) in this
+		% current field (function_exports), the corresponding export will be
+		% added here automatically, if not already defined.
 		%
 		function_exports :: ast_info:function_export_table(),
 
@@ -252,6 +260,11 @@
 		% to avoid a costly addition in last position)
 		%
 		last_line :: ast_info:located_form(),
+
+
+		% Section markers, offering reference locations to AST transformations.
+		%
+		markers :: ast_info:section_marker_table(),
 
 
 		% Error information collected when traversing the AST
@@ -319,7 +332,8 @@
 
 
 
-% Describes a function (generally extracted from a module).
+% Describes a function (generally extracted from a module, or possibly
+% automatically generated).
 %
 -record( function_info, {
 
@@ -333,7 +347,8 @@
 
 
 		   % Corresponds to the location of the full form for the definition
-		   % (first clause) of this function (not of the spec):
+		   % (first clause) of this function (not of the spec, which has its
+		   % specific field below):
 		   %
 		   location = undefined :: basic_utils:maybe( ast_info:location() ),
 
@@ -368,7 +383,11 @@
 
 		   % Tells whether this function has been exported, as a (possibly
 		   % empty) list of the location(s) of its actual export(s), knowing
-		   % that a function can be exported more than once or never:
+		   % that a function can be exported more than once or never.
+		   %
+		   % Note that, provided a legit location is specified here (i.e. the
+		   % location of an actual export form), this function will be
+		   % automatically declared in that export form, should it be not already)
 		   %
 		   exported = [] :: [ ast_info:location() ]
 

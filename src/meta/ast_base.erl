@@ -82,6 +82,11 @@
 -type form() :: erl_parse:abstract_form() | erl_parse:form_info().
 
 
+% An element (a part) of a form (ex: a clause of a function definition):
+%
+-type form_element() :: any().
+
+
 % Abstract Syntax Tree, standard representation of parse trees for Erlang
 % programs as Erlang terms. This representation is known as the abstract format.
 %
@@ -102,4 +107,4 @@
 -type ast_atom() :: { 'atom', line(), atom() }.
 
 
--export_type([ ast_element/0, form/0, ast/0, ast_atom/0 ]).
+-export_type([ ast_element/0, form/0, form_element/0, ast/0, ast_atom/0 ]).

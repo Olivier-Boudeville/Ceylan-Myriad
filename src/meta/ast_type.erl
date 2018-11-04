@@ -1332,6 +1332,7 @@ check_type_ids( List, Context ) when is_list( List ) ->
 check_type_ids( Other, Context ) ->
 	ast_utils:raise_error( [ invalid_type_identifier_list, Other ], Context ).
 
+
 % Checks that specified variable is legit.
 %
 -spec check_type_variable( term() ) -> ast_variable().
@@ -1408,7 +1409,7 @@ get_located_forms_for( TypeExportTable, TypeTable ) ->
 	%  [ TypeExportInfos ] ),
 
 	TypeExportLocDefs = [ { Loc, { attribute, Line, export_type, TypeIds } }
-				   || { Loc, { Line, TypeIds } } <- TypeExportInfos ],
+						  || { Loc, { Line, TypeIds } } <- TypeExportInfos ],
 
 	% Dropping the keys (the type_id(), i.e. type identifiers), focusing on
 	% their associated type_info()
