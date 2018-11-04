@@ -54,6 +54,10 @@
 %
 % As a result we may define for a given unit both forms, singular and plural
 % (ex: year() for a specific year, and years() for a duration in years).
+%
+% We tend to use integer/0 values, not positive_integer/0 ones, to better
+% account for differences.
+
 
 
 % Time-related section.
