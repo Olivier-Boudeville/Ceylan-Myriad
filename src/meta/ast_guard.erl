@@ -66,7 +66,8 @@
 		  { 'remote', line(), ast_base:ast_element(), ast_base:ast_atom() }
 			| ast_base:ast_atom(),
 		  [ ast_guard_test() ] }
-	  | ast_map:ast_map_form( ast_guard_test() ).
+	  %| ast_map:ast_map_form( ast_guard_test() ).
+	  | ast_map:ast_map_form().
 
 
 
@@ -639,7 +640,7 @@ direct_transform_guard_test( _GuardTest={ 'record_field', Line, RecordGuardTest,
 % "If Gt is a record field index #Name.Field, where Field is an atom, then
 % Rep(Gt) = {record_index,LINE,Name,Rep(Field)}."
 %
-direct_transform_guard_test( _RecordGuardTest={ 'record_index', Line, 
+direct_transform_guard_test( _RecordGuardTest={ 'record_index', Line,
 												RecordName, FieldName },
 							 Transforms ) ->
 

@@ -102,7 +102,7 @@ endif
 # not taken into account at run-time, as not recompiled).
 
 
-.PHONY: all all-pre-hook all-parallel-recurse all-recurse
+.PHONY: dummy all all-pre-hook all-parallel-recurse all-recurse
 		all-parse-transforms bootstrap-modules make-all-parse-transforms     \
 		build-debug rebuild test test-recurse doc-recurse build-tests launch \
 		install-all install-announce install-ebin install-bin install-src	 \
@@ -123,6 +123,12 @@ endif
 # that are not pleasing to the eye.
 
 
+
+dummy:
+	@echo "You are executing the default, do-nothing make rule. You may want specify an actual target instead (ex: 'make foo')."
+
+
+
 # Defining the BASE_MAKEFILE variable in top makefiles allows to define a
 # specific (parallel) 'all' rule for them, while other makefiles just recurse
 # accordingly:
@@ -132,7 +138,7 @@ ifeq ($(BASE_MAKEFILE),true)
 # CORE_COUNT defined in myriad/GNUmakevars.inc:
 all: all-pre-hook all-parse-transforms
 	@echo "   Building all, in parallel over $(CORE_COUNT) core(s), from $(PWD)"
-	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m &&  \
+	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && \
 		$(MAKE) -s all-recurse -j $(CORE_COUNT) && cd .. ; else echo "     (directory $$m skipped)" ; \
 	fi ) ; then exit 1; fi ; done
 
@@ -185,12 +191,19 @@ all-recurse-pre-hook:
 # makefile, letting then 'make' use its job server for that task:
 all-parallel-recurse:
 	@echo "   Building all on parallel over $(CORE_COUNT) cores (in "$(PWD) #$$(basename $(PWD))
-	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s all -j $(CORE_COUNT) CMD_LINE_OPT="${CMD_LINE_OPT}" && cd .. ; else echo "	  (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
+	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s all -j $(CORE_COUNT) CMD_LINE_OPT="${CMD_LINE_OPT}" && cd .. ; else echo "    (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
 
 
-
-all-recurse: $(BEAM_FILES)
+# We used to define '$(BEAM_FILES)' as prerequisites to this target; however
+# then the "Building all" message was output after its directory was processed,
+# not before.
+#
+# To avoid triggering the dummy target should no BEAM file be found, inner make
+# command is conditional.
+#
+all-recurse:
 	@echo "   Building all in "$(PWD) #$$(basename $(PWD))
+	@if [ -n "$(BEAM_FILES)" ] ; then $(MAKE) -s $(BEAM_FILES) ; fi
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s all CMD_LINE_OPT="${CMD_LINE_OPT}" USE_HDF5=$(USE_HDF5) USE_REST=$(USE_REST) USE_SQLITE=$(USE_SQLITE) && cd .. ; else echo "  (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
 
 
@@ -730,7 +743,7 @@ clean: clean-erlang clean-python clean-java clean-database clean-override \
 
 
 clean-erlang:
-	@echo "    Cleaning all in "$(PWD) #$$(basename $(PWD))
+	@echo "   Cleaning all in "$(PWD) #$$(basename $(PWD))
 	-@/bin/rm -f *.beam *.jam erl_crash.dump erlang.log.*
 
 
@@ -769,9 +782,9 @@ ifeq ($(ROOT_MAKEFILE),true)
 # More talkative:
 clean-recurse:
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then      \
-	echo "   Cleaning in '$$(basename $$m)' layer" ; cd $$m &&            \
+	echo "  Cleaning in '$$(basename $$m)' layer" ; cd $$m &&            \
 	$(MAKE) -s clean CMD_LINE_OPT="${CMD_LINE_OPT}" &&   \
-	cd .. ; else echo "		(directory $$m skipped)" ; fi ) ; then \
+	cd .. ; else echo "    (directory $$m skipped)" ; fi ) ; then \
 	exit 1; fi ; done
 
 else
@@ -779,7 +792,7 @@ else
 clean-recurse:
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then      \
 	cd $$m && $(MAKE) -s clean CMD_LINE_OPT="${CMD_LINE_OPT}" &&   \
-	cd .. ; else echo "		(directory $$m skipped)" ; fi ) ; then \
+	cd .. ; else echo "    (directory $$m skipped)" ; fi ) ; then \
 	exit 1; fi ; done
 
 endif
@@ -796,7 +809,7 @@ clean-outputs:
 
 
 # To be enriched by user layers:
-real-clean: clean real-clean-recurse
+real-clean: clean clean-ast-debug real-clean-recurse
 
 real-clean-recurse:
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then      \

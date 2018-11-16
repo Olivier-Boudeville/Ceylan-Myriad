@@ -515,8 +515,8 @@ forge_remote_call( ModuleName, FunctionName, Params, Line ) ->
 						 line(), line() ) -> ast_expression().
 forge_remote_call( ModuleName, FunctionName, Params, Line1, Line2 ) ->
 	{ 'call', Line1, { remote, Line2,
-					 ast_value:forge_atom_value( ModuleName, Line2 ),
-					 ast_value:forge_atom_value( FunctionName, Line2 ) },
+					   ast_value:forge_atom_value( ModuleName, Line2 ),
+					   ast_value:forge_atom_value( FunctionName, Line2 ) },
 	  Params }.
 
 
@@ -527,7 +527,7 @@ forge_remote_call( ModuleName, FunctionName, Params, Line1, Line2 ) ->
 % Checks that specified function clauses are legit.
 %
 -spec check_function_clauses( term(), function_arity() ) ->
-									[ meta_utils:function_clause() ].
+									[ ast_function_clause() ].
 check_function_clauses( Clauses, FunctionArity ) ->
 	check_function_clauses( Clauses, FunctionArity, _Context=undefined ).
 
@@ -535,7 +535,7 @@ check_function_clauses( Clauses, FunctionArity ) ->
 % Checks that specified function clauses are legit.
 %
 -spec check_function_clauses( term(), function_arity(), form_context() ) ->
-									[ meta_utils:function_clause() ].
+									[ ast_function_clause() ].
 check_function_clauses( Clauses, FunctionArity, Context )
   when is_list( Clauses ) ->
 	ast_utils:check_arity( FunctionArity, Context ),

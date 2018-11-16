@@ -48,7 +48,7 @@
 
 % An expression that can be evaluated to an integer:
 %
--type ast_integer_expression() :: ast_expression:ast_expression().
+-type ast_integer_expression() :: ast_expression().
 
 
 -export_type([ ast_expression/0, ast_integer_expression/0 ]).

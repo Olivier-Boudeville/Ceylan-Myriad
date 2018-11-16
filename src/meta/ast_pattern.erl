@@ -70,7 +70,7 @@
 -type line() :: ast_base:line().
 
 -type ast_transforms() :: ast_transform:ast_transforms().
--type ast_element() :: ast_type:ast_element().
+-type ast_element() :: ast_base:ast_element().
 
 
 % Regarding patterns vs expressions:
@@ -101,8 +101,7 @@
 %
 % "Such sequences occur as the list of arguments to a function or fun."
 %
--spec transform_pattern( ast_utils:pattern(), ast_transforms() ) ->
-							   ast_utils:pattern().
+-spec transform_pattern( ast_pattern(), ast_transforms() ) -> ast_pattern().
 % A list of patterns should have already been iterated over upstream:
 %transform_pattern( PatternList, Transforms ) when is_list( PatternList ) ->
 
@@ -482,7 +481,7 @@ transform_variable( VariableName, _Line, _Transforms )  ->
 %
 % (note: better here than in ast_record)
 %
--spec transform_pattern_fields( ast_record:pattern_fields(),
+-spec transform_pattern_fields( [ ast_record:ast_pattern_field() ],
 								ast_transforms() ) -> [ ast_element() ].
 transform_pattern_fields( PatternFields, Transforms ) ->
 	[ transform_pattern_field( PF, Transforms ) || PF <- PatternFields ].
@@ -494,8 +493,8 @@ transform_pattern_fields( PatternFields, Transforms ) ->
 % Note: according to erl_id_trans, field names are full expressions here, but
 % only atoms are allowed by the linter.
 %
--spec transform_pattern_field( ast_record:pattern_field(), ast_transforms() ) ->
-									  ast_element().
+-spec transform_pattern_field( ast_record:ast_pattern_field(),
+							   ast_transforms() ) -> ast_element().
 transform_pattern_field( { 'record_field', Line1,
 			   N={ atom, _Line2, _FieldName }, Pattern }, Transforms ) ->
 

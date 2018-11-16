@@ -70,6 +70,9 @@
 -type stack_trace() :: [ stack_item() ].
 
 
+-export_type([ code_path/0, stack_location/0, stack_item/0, stack_trace/0 ]).
+
+
 % The file extension of a BEAM file:
 -define( beam_extension, ".beam" ).
 

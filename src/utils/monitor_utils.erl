@@ -49,15 +49,19 @@
 % Monitoring an Erlang process:
 
 % (not exported yet by the 'erlang' module)
-%-type monitored_process() :: pid() | registered_process_identifier().
--type monitored_process() :: erlang:monitor_process_identifier().
+%-type monitored_process() :: erlang:monitor_process_identifier().
+-type monitored_process() :: pid() | registered_process_identifier().
+
+-type registered_process_identifier() ::
+		registered_name() | { registered_name(), node() }.
 
 
 % Monitoring an Erlang port:
 %
 % (not exported yet by the 'erlang' module)
-%-type monitored_port() :: port() | registered_name().
--type monitored_port() :: erlang:monitor_port_identifier().
+%-type monitored_port() :: erlang:monitor_port_identifier().
+-type monitored_port() :: port() | registered_name().
+
 
 
 % Monitoring time offsets:
@@ -96,6 +100,10 @@
 
 
 -export([ monitor_nodes/1, monitor_nodes/2 ]).
+
+
+% Shorthand:
+-type registered_name() :: naming_utils:registration_name().
 
 
 

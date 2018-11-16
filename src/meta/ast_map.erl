@@ -71,11 +71,15 @@
 		  [ ast_map_association( KeyType, ValueType ) ] }.
 
 
+% Possibly not relevant:
+-type ast_map_form() :: ast_map_creation_form() | ast_map_update_form().
+
 
 -export_type([ ast_map/2, map_field_association_type/0,
 			   ast_map_association/0, ast_map_association/2,
 			   ast_map_creation_form/0, ast_map_creation_form/2,
-			   ast_map_update_form/0, ast_map_update_form/2 ]).
+			   ast_map_update_form/0, ast_map_update_form/2,
+			   ast_map_form/0 ]).
 
 
 

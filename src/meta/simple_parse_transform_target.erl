@@ -30,14 +30,8 @@
 %
 -module(simple_parse_transform_target).
 
--export([ new/2 ]).
+-export([ f/1 ]).
 
 
--spec new( wooper:construction_parameter(), wooper:construction_parameter() ) -> pid().
-
-
-new( A, B ) ->
- spawn( fun() ->
-			wooper:construct_and_run( ?MODULE, [ A, B ] )
-		end ).
-
+f( A ) ->
+	io:format( "Hello ~p", [ A ] ).

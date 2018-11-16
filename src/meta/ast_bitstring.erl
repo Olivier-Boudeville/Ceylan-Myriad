@@ -39,7 +39,7 @@
 %
 % Actual size maybe be omitted:
 %
--type maybe_size() :: 'default' | ast_base:integer_expression().
+-type maybe_size() :: 'default' | ast_expression:ast_integer_expression().
 
 
 

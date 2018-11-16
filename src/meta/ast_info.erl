@@ -315,21 +315,29 @@
 				   basic_utils:error_reason() }.
 
 
-% Top-level elements:
-%
 -export_type([ module_info/0, type_info/0, function_info/0,
+
 			   location/0, located_form/0, located_ast/0,
-			   located_function_spec/0, attribute/0 ]).
+			   located_function_spec/0,
 
+			   section_marker/0,
 
--export_type([ section_marker/0 ]).
+			   compile_option_name/0, compile_option_value/0,
+			   compile_option_table/0,
 
+			   attribute_name/0, attribute_value/0, attribute/0,
+			   attribute_table/0,
 
-% Tables to be found in the module_info record:
--export_type([ compile_option_table/0, attribute_table/0,
-			   type_export_table/0, type_table/0, record_table/0,
+			   type_export_table/0, type_table/0,
+
+			   record_table/0, record_definition/0, field_table/0,
+
 			   function_import_table/0, function_export_table/0,
-			   function_table/0, section_marker_table/0 ]).
+			   function_table/0, section_marker_table/0,
+
+			   error/0
+
+			 ]).
 
 
 % General module-info helpers:

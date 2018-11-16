@@ -227,7 +227,6 @@
 
 -type located_form() :: ast_info:located_form().
 
--type ast_variable() :: ast_type:ast_variable().
 -type type_table() :: ast_info:type_table().
 -type type_name() :: type_utils:type_name().
 
@@ -449,7 +448,7 @@ transform_type( TypeDef={ 'type', Line, 'tuple', _Any }, _Transforms ) ->
 %
 % "If T is a list of elements of type A, then Rep(T) = {type,LINE,list,Rep(A)}."
 %
-transform_type( _TypeDef={ 'type', Line, 'list', [ ElementType ] }, 
+transform_type( _TypeDef={ 'type', Line, 'list', [ ElementType ] },
 				Transforms ) ->
 
 	NewElementType = transform_type( ElementType, Transforms ),
@@ -1243,14 +1242,14 @@ forge_type_variable( VariableName, Line ) when is_atom( VariableName ) ->
 
 % Checks that specified type name is legit.
 %
--spec check_type_name( term() ) -> basic_utils:type_name().
+-spec check_type_name( term() ) -> type_name().
 check_type_name( Name ) ->
 	check_type_name( Name, _Context=undefined ).
 
 
 % Checks that specified type name is legit.
 %
--spec check_type_name( term(), form_context() ) -> basic_utils:type_name().
+-spec check_type_name( term(), form_context() ) -> type_name().
 check_type_name( Name, _Context ) when is_atom( Name ) ->
 	Name;
 
@@ -1335,7 +1334,7 @@ check_type_ids( Other, Context ) ->
 
 % Checks that specified variable is legit.
 %
--spec check_type_variable( term() ) -> ast_variable().
+-spec check_type_variable( term() ) -> ast_variable_pattern().
 check_type_variable( ASTVariable ) ->
 	check_type_variable( ASTVariable, _Context=undefined ).
 
@@ -1343,7 +1342,7 @@ check_type_variable( ASTVariable ) ->
 % Checks that specified variable is legit.
 %
 -spec check_type_variable( term(), form_context() ) ->
-								 ast_variable().
+								 ast_variable_pattern().
 check_type_variable( ASTVariable={ 'var', Line, VariableName }, Context )
   when is_atom( VariableName ) ->
 	ast_utils:check_line( Line, Context ),
@@ -1356,14 +1355,15 @@ check_type_variable( Other, Context ) ->
 
 % Checks that specified variables are legit.
 %
--spec check_type_variables( term() ) -> [ ast_variable() ].
+-spec check_type_variables( term() ) -> [ ast_variable_pattern() ].
 check_type_variables( ASTVariables ) ->
 	check_type_variables( ASTVariables, _Context=undefined ).
 
 
 % Checks that specified variables are legit.
 %
--spec check_type_variables( term(), form_context() ) -> [ ast_variable() ].
+-spec check_type_variables( term(), form_context() ) ->
+								  [ ast_variable_pattern() ].
 check_type_variables( List, Context ) when is_list( List ) ->
 	[ check_type_variable( ASTVariable, Context ) || ASTVariable <- List ];
 

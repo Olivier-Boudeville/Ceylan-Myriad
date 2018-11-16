@@ -189,6 +189,11 @@
 -type function_id() :: { function_name(), function_arity() }.
 
 
+% The type of a function (currenty: unclear semantics).
+%
+-type function_type() :: any().
+
+
 % The form corresponding to the definition of a clause of a function, typically
 % { clause, LINE, Rep(Ps), Rep(Gs), Rep(B) } for '( Ps ) when Gs -> B':
 %
@@ -209,14 +214,14 @@
 
 
 -export_type([ parse_transform_options/0,
-			   module_name/0, function_name/0, function_id/0,
+			   module_name/0,
+			   function_name/0, function_arity/0, function_id/0,
+			   function_type/0,
 			   clause_def/0, function_spec/0, variable_name/0 ]).
 
 
 
 % Local shorthands:
-
--type type_name() :: type_utils:type_name().
 
 -type form() :: ast_base:form().
 

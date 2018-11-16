@@ -291,13 +291,13 @@
 
 
 		   % The name of that type:
-		   name = undefined :: meta_utils:type_name(),
+		   name = undefined :: type_utils:type_name(),
 
 
 		   % The (ordered) list of variable definitions (ex: [ { var, Line, 'X'
 		   % } ]) of this type:
 		   %
-		   variables = [] :: [ ast_utils:ast_variable() ],
+		   variables = [] :: [ ast_type:ast_variable_pattern() ],
 
 
 		   % Tells whether this type is defined as opaque:

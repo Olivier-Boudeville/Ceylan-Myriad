@@ -64,7 +64,7 @@ clean: clean-test-tree
 
 
 clean-test-tree:
-	@echo " Cleaning test tree $(TEST_TREE)"
+	@echo "   Cleaning test tree $(TEST_TREE)"
 	-@/bin/rm -rf $(TEST_TREE)
 
 

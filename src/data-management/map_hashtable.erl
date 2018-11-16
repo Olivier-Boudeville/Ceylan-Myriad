@@ -879,7 +879,7 @@ concatToEntry( Key, ListToConcat, MapHashtable ) when is_list( ListToConcat ) ->
 %
 % Ex: concatListToEntries( [ { hello, [ 1, 2 ] }, { world, [ 4 ] } ], MyTable ).
 %
--spec concatListToEntries( list_hashtable:list_hashtable(), map_hashtable() ) ->
+-spec concatListToEntries( list_table:list_table(), map_hashtable() ) ->
 								 map_hashtable().
 concatListToEntries( KeyListValuePairs, MapHashtable )
   when is_list( KeyListValuePairs ) ->

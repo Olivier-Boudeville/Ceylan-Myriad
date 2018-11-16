@@ -1427,8 +1427,7 @@ check_parse_attribute_name( Other, Context ) ->
 
 % Checks that specified parse attribute name is legit.
 %
--spec check_parse_attribute_name( term() ) ->
-										basic_utils:parse_attribute_name().
+-spec check_parse_attribute_name( term() ) -> parse_attribute_name().
 check_parse_attribute_name( Name ) ->
 	check_parse_attribute_name( Name, _Context=undefined ).
 

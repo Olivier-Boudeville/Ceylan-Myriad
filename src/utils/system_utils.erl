@@ -260,7 +260,8 @@
 			   actual_filesystem_type/0, pseudo_filesystem_type/0,
 			   filesystem_type/0, fs_info/0,
 
-			   command/0, return_code/0, command_output/0, command_outcome/0,
+			   command/0, port_option/0, return_code/0, command_output/0,
+			   command_outcome/0,
 
 			   shell_expression/0, expression_outcome/0,
 

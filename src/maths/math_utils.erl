@@ -428,4 +428,4 @@ canonify( AngleInDegrees ) when is_integer( AngleInDegrees ) ->
 
 % Here we assume it is a floating-point value, positive or not.
 canonify( AngleInDegrees ) ->
-	AngleInDegrees - 360 * floor( AngleInDegrees / 360 ).
+	AngleInDegrees - 360 * math:floor( AngleInDegrees / 360 ).

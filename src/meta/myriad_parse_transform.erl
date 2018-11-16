@@ -234,11 +234,11 @@ apply_myriad_transform( InputAST ) ->
 	%ast_utils:display_debug( "~n~nMyriad output AST:~n~p~n", [ OutputAST ] ),
 	%ast_utils:display_debug( "Myriad output AST:~n~p~n~n", [ OutputAST ] ),
 
-	OutputASTFilename = text_utils:format(
-				"Myriad-output-AST-for-module-~s.txt",
-				[ element( 1, TransformedModuleInfo#module_info.module ) ] ),
+	%OutputASTFilename = text_utils:format(
+	%			"Myriad-output-AST-for-module-~s.txt",
+	%			[ element( 1, TransformedModuleInfo#module_info.module ) ] ),
 
-	ast_utils:write_ast_to_file( OutputAST, OutputASTFilename ),
+	%ast_utils:write_ast_to_file( OutputAST, OutputASTFilename ),
 
 	%ast_utils:write_ast_to_file( lists:sort( OutputAST ),
 	%							 "Myriad-output-AST-sorted.txt" ),
@@ -271,7 +271,7 @@ transform_module_info( ModuleInfo ) ->
 % (helper)
 %
 -spec get_myriad_ast_transforms_for( module_info() ) ->
-										   meta_utils:ast_transforms().
+										   ast_transform:ast_transforms().
 get_myriad_ast_transforms_for(
   #module_info{ parse_attributes=ParseAttributes } ) ->
 
@@ -383,7 +383,7 @@ get_myriad_ast_transforms_for(
 
 % Returns the name of the actual module to use for tables.
 %
--spec get_actual_table_type( meta_utils:attribute_table() ) ->
+-spec get_actual_table_type( ast_info:attribute_table() ) ->
 								   basic_utils:module_name().
 get_actual_table_type( ParseAttributeTable ) ->
 
@@ -399,7 +399,7 @@ get_actual_table_type( ParseAttributeTable ) ->
 
 		{ value, { InvalidTableType, _LocForm } } ->
 			ast_utils:raise_error( { invalid_table_type_override,
-									  InvalidTableType } );
+									 InvalidTableType } );
 
 		key_not_found ->
 			TableType = ?default_table_type,

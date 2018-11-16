@@ -38,11 +38,12 @@ OVERALL_DOCUMENT_SOURCE = $(DOC_BASE_NAME).rst
 
 
 # Default do-nothing target:
+doc:
+
 all:
 	@echo "  Run 'make full-doc' to generate the manual of the 'Myriad' layer."
 
 
-doc:
 
 
 full-doc: $(DOC_BASE_NAME).pdf $(DOC_BASE_NAME).html
