@@ -57,6 +57,10 @@ run() ->
 
 	map_hashtable:display( "Vanilla map hashtable", MyH1 ),
 
+	%UniqueEntries = [ {a,1}, {b,1}, {a,666} ],
+	UniqueEntries = [ {a,1}, {b,1}, {c,666} ],
+	map_hashtable:new_from_unique_entries( UniqueEntries ),
+
 	%map_hashtable:display( MyH1 ),
 	test_facilities:display( "Adding entries in map hashtable." ),
 	MyH2 = map_hashtable:new( 4 ),
