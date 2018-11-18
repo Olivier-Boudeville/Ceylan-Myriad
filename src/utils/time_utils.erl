@@ -79,6 +79,10 @@
 -export_type([ day_index/0, week_day/0, date/0, time/0 ]).
 
 
+% Basics:
+-export([ get_textual_date/1 ]).
+
+
 % For rough, averaged conversions:
 -export([ years_to_seconds/1, months_to_seconds/1, weeks_to_seconds/1,
 		  days_to_seconds/1, hours_to_seconds/1 ]).
@@ -116,6 +120,14 @@
 
 
 -export_type([ timestamp/0, precise_timestamp/0, time_out/0, posix_seconds/0 ]).
+
+
+
+% Returns a string corresponding to the specified date, like: "30/11/2009".
+%
+-spec get_textual_date( date() ) -> string().
+get_textual_date( { Year, Month, Day } ) ->
+	io_lib:format( "~B/~B/~B", [ Day, Month, Year ] ).
 
 
 
@@ -442,9 +454,8 @@ get_textual_timestamp() ->
 %
 -spec get_textual_timestamp( timestamp() ) -> string().
 get_textual_timestamp( { { Year, Month, Day }, { Hour, Minute, Second } } ) ->
-	io_lib:format( "~p/~p/~p ~B:~2..0B:~2..0B",
+	io_lib:format( "~B/~B/~B ~B:~2..0B:~2..0B",
 				   [ Year, Month, Day, Hour, Minute, Second ] ).
-
 
 
 % Returns a string corresponding to the current timestamp and able to be a part
