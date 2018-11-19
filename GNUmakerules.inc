@@ -203,7 +203,6 @@ all-parallel-recurse:
 #
 all-recurse:
 	@echo "   Building all in "$(PWD) #$$(basename $(PWD))
-	@if [ -n "$(BEAM_FILES)" ] ; then $(MAKE) -s $(BEAM_FILES) ; fi
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s all CMD_LINE_OPT="${CMD_LINE_OPT}" USE_HDF5=$(USE_HDF5) USE_REST=$(USE_REST) USE_SQLITE=$(USE_SQLITE) && cd .. ; else echo "  (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
 
 
