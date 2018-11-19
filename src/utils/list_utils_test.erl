@@ -147,6 +147,13 @@ run() ->
 	false = list_utils:unordered_compare( [a,b], [a,c] ),
 	false = list_utils:unordered_compare( [a,b], [a] ),
 
+
+	[ a, b, [ c, d ], e ] = list_utils:flatten_once(
+								[ [ a ], [ b, [ c, d ] ], [ e ] ] ),
+
+	[ a, b, c ] = list_utils:filter_out_undefined(
+					[ undefined, a, b, undefined, c, undefined ] ),
+
 	{ 3, 2 } = list_utils:determine_tuple_info(
 				 [ { a, 1 }, { b, 1 }, { c, 2 } ] ),
 

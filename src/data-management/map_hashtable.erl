@@ -27,9 +27,9 @@
 
 
 
-% Implementation of an hashtable based on the then newly-introduced standard
-% type: the map, supposedly the most efficient available implementation of an
-% associative table.
+% Implementation of an associative table based on the then newly-introduced
+% standard type: the map, supposedly the most efficient available implementation
+% of an associative table.
 %
 % See map_table_test.erl for the corresponding test.
 % See hashtable.erl for parent, base implementation.
@@ -62,7 +62,7 @@
 
 % Exact same API as the one of hashtable:
 %
--export([ new/0, new/1,
+-export([ new/0, new/1, new_from_unique_entries/1,
 		  addEntry/3, addEntries/2, addNewEntry/3, addNewEntries/2,
 		  updateEntry/3, updateEntries/2,
 		  removeEntry/2, removeExistingEntry/2,
@@ -129,17 +129,46 @@ new() ->
 	#{}.
 
 
-
-% As map hashtables manage by themselves their size, no need to specify any
-% target size. This function is only defined so that we can transparently switch
-% APIs with the hashtable module.
+% Creates a new table.
+%
+% As map tables manage by themselves their size, no need to specify any target
+% size. This clause is only defined so that we can transparently switch APIs
+% with the other table modules.
 %
 -spec new( hashtable:entry_count() | hashtable:entries() ) -> map_hashtable().
 new( ExpectedNumberOfEntries ) when is_integer( ExpectedNumberOfEntries ) ->
 	#{};
 
+% If the same key appears more than once, the latter (right-most) value is used
+% and the previous values are ignored.
+%
 new( InitialEntries ) when is_list( InitialEntries ) ->
 	maps:from_list( InitialEntries ).
+
+
+% Creates a new table from specified list of key/values pairs, expecting no
+% duplicate in the keys, otherwise throwing an exception.
+%
+% Allows to safely load entries in a table without risking a silent overwrite of
+% any entry.
+%
+new_from_unique_entries( InitialEntries ) when is_list( InitialEntries ) ->
+
+	EntryCount = length( InitialEntries ),
+
+	Table = new( InitialEntries ),
+
+	case map_size( Table ) of
+
+		EntryCount ->
+			Table;
+
+		S ->
+			DupCount = EntryCount - S,
+			SortedEntries = lists:sort( InitialEntries ),
+			throw( { duplicate_keys_found, DupCount, SortedEntries } )
+
+	end.
 
 
 

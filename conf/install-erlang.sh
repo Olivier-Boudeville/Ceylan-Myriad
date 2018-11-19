@@ -14,7 +14,9 @@ LANG=C; export LANG
 erlang_version="21.1"
 erlang_md5="482f91cf34c2ffb1dff6e716a15afefa"
 
-# Candidate version (ex: either cutting-edge or previous stable version):
+# Candidate version (ex: either cutting-edge or, most probably, the previous
+# stable version):
+#
 erlang_version_candidate="21.0"
 erlang_md5_candidate="350988f024f88e9839c3715b35e7e27a"
 

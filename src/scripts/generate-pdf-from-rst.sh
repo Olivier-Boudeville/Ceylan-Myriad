@@ -33,7 +33,7 @@ fi
 
 
 #rule_file="$CEYLAN_SRC/doc/GNUmakerules-docutils.inc"
-rule_file="$(dirname $0)/GNUmakerules-docutils.inc"
+rule_file="$(dirname $0)/../../doc/GNUmakerules-docutils.inc"
 
 #echo "rule_file = ${rule_file}"
 

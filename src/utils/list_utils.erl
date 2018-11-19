@@ -57,7 +57,7 @@
 		  difference/2, cartesian_product/1,
 		  subtract_all_duplicates/2, delete_existing/2, delete_if_existing/2,
 		  delete_all_in/2, append_at_end/2, is_list_of_integers/1,
-		  unordered_compare/2, flatten_once/1 ]).
+		  unordered_compare/2, flatten_once/1, filter_out_undefined/1 ]).
 
 
 % For list of tuples (ex: typically used by the HDF5 binding), extended flatten
@@ -610,6 +610,7 @@ delete_if_existing( Elem, _List=[ H | T ], Acc ) ->
 %
 -spec delete_all_in( element(), list() ) -> list().
 delete_all_in( Elem, List ) ->
+	% A list comprehension would have sufficed:
 	delete_all_in( Elem, List, _Acc=[] ).
 
 
@@ -701,6 +702,15 @@ flatten_once( [ L | T ], Acc ) when is_list( L ) ->
 
 flatten_once( [ Unexpected | _T ], _Acc ) ->
 	throw( { not_a_list, Unexpected } ).
+
+
+
+% Filters out all elements equal to 'undefined'; preserves order.
+%
+-spec filter_out_undefined( list() ) -> list().
+filter_out_undefined( L ) ->
+	% Or: delete_all_in( undefined, L ).
+	[ E || E <- L, E =/= undefined ].
 
 
 
