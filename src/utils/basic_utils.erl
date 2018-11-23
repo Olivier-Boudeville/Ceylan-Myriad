@@ -198,7 +198,14 @@
 -type argument() :: any().
 
 
-% A mfa (module-function-arguments) command:
+% Shorthand for Module, Function, Arity:
+%
+% (commented-out, as mfa() is a builtin type; it cannot be redefined)
+%
+%-type mfa() :: { module_name(), function_name(), arity() }.
+
+
+% A command (module-function-arguments):
 -type command_spec() :: { module_name(), function_name(), [ argument() ] }.
 
 
@@ -225,7 +232,9 @@
 -type status_code() :: 0..255. % i.e. byte()
 
 
-% Useful as a temporary type placeholder, during development:
+% Useful as a temporary type placeholder, during development (easy to grep
+% afterwards):
+%
 -type fixme() :: any().
 
 
@@ -237,8 +246,8 @@
 			   accumulator/0,
 			   version_number/0, version/0, two_digit_version/0, any_version/0,
 			   positive_index/0,
-			   module_name/0, function_name/0, argument/0, command_spec/0,
-			   record_name/0, field_name/0,
+			   module_name/0, function_name/0, argument/0,
+			   command_spec/0, record_name/0, field_name/0,
 			   user_name/0, atom_user_name/0,
 			   comparison_result/0, exception_class/0, status_code/0,
 			   fixme/0 ]).

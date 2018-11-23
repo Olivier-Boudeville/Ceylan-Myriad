@@ -123,7 +123,7 @@
 								   math_utils:percent() }.
 
 
-% For record declarations:
+% For record declarations and shell commands:
 -include("system_utils.hrl").
 
 
@@ -536,7 +536,7 @@ run_executable( Command, Environment, WorkingDir, PortOptions ) ->
 	%					   [ Command, environment_to_string( Environment ),
 	%						 WorkingDir, PortOptions ] ),
 
-	PortOptsWithEnv = [ { env, Environment } | PortOptions  ],
+	PortOptsWithEnv = [ { env, Environment } | PortOptions ],
 
 	PortOptsWithPath = case WorkingDir of
 
@@ -1347,12 +1347,9 @@ display_memory_summary() ->
 -spec get_total_physical_memory() -> byte_size().
 get_total_physical_memory() ->
 
-	% Note: '\\awk' is '\awk' once escaped; a backslash allows to unalias the
-	% corresponding command, to avoid not-so-compliant alternatives to be used.
-
 	% First check the expected unit is returned, by pattern-matching:
-	UnitCommand = "/bin/cat /proc/meminfo | /bin/grep 'MemTotal:' "
-				  "| \\awk '{print $3}'",
+	UnitCommand = ?cat "/proc/meminfo |" ?grep "'MemTotal:' |"
+		?awk "'{print $3}'",
 
 	case run_executable( UnitCommand ) of
 
@@ -1360,9 +1357,8 @@ get_total_physical_memory() ->
 
 			% Ok, using kB indeed.
 
-			ValueCommand =
-				"/bin/cat /proc/meminfo | /bin/grep 'MemTotal:' "
-				"| \\awk '{print $2}'",
+			ValueCommand = ?cat "/proc/meminfo |" ?grep "'MemTotal:' |"
+				?awk "'{print $2}'",
 
 			% The returned value of following command is like "12345\n", in
 			% bytes:
@@ -1418,12 +1414,12 @@ get_total_physical_memory_on( Node ) ->
 	% No standard environment enforced here.
 
 	% First check the expected unit is returned, by pattern-matching:
-	UnitCommand = "/bin/cat /proc/meminfo | /bin/grep 'MemTotal:' "
-				  "| \\awk '{print $3}'",
+	UnitCommand = ?cat "/proc/meminfo |" ?grep "'MemTotal:' |"
+		?awk "'{print $3}'",
 	"kB\n" = rpc:call( Node, os, cmd, [ UnitCommand ] ),
 
-	ValueCommand = "/bin/cat /proc/meminfo | /bin/grep 'MemTotal:' "
-				   "| \\awk '{print $2}'",
+	ValueCommand = ?cat "/proc/meminfo |" ?grep "'MemTotal:' |"
+		?awk "'{print $2}'",
 	ValueCommandOutput = rpc:call( Node, os, cmd, [ ValueCommand ] ),
 
 	% The returned value of following command is like "12345\n", in bytes:
@@ -1497,8 +1493,8 @@ get_total_memory_used() ->
 
 	% So finally we prefered /proc/meminfo, used first to get MemTotal:
 	%
-	TotalString = case run_executable( "/bin/cat /proc/meminfo | "
-				"/bin/grep '^MemTotal:' | \\awk '{print $2,$3}'" ) of
+	TotalString = case run_executable( ?cat "/proc/meminfo |"
+					 ?grep "'^MemTotal:' |" ?awk "'{print $2,$3}'" ) of
 
 		{ _TotalExitCode=0, TotalOutput } ->
 			%io:format( "TotalOutput: '~p'~n", [ TotalOutput ] ),
@@ -1517,8 +1513,8 @@ get_total_memory_used() ->
 	% MemAvailable does not seem always available:
 	%
 	FreeString = case run_executable(
-			"/bin/cat /proc/meminfo | /bin/grep '^MemAvailable:' "
-			"| \\awk '{print $2,$3}'" )  of
+			?cat "/proc/meminfo |" ?grep "'^MemAvailable:' |"
+						?awk "'{print $2,$3}'" )  of
 
 		{ _AvailExitCode=0, MemAvailOutput } ->
 			%io:format( "## using MemAvailable~n" ),
@@ -1531,9 +1527,8 @@ get_total_memory_used() ->
 
 			%io:format( "## using MemFree~n" ),
 
-			case run_executable(
-				   "/bin/cat /proc/meminfo | /bin/grep '^MemFree:' | "
-				   "\\awk '{print $2,$3}'" ) of
+			case run_executable( ?cat "/proc/meminfo |" ?grep "'^MemFree:' |"
+								 ?awk "'{print $2,$3}'" ) of
 
 				{ _FreeExitCode=0, MemFreeOutput } ->
 					MemFreeOutput;
@@ -1558,7 +1553,7 @@ get_total_memory_used() ->
 			%io:format( "## using free~n" ),
 
 			case run_executable(
-				"/bin/free -b | /bin/grep '/cache' | \\awk '{print $3}'" ) of
+				?free "-b |" ?grep "'/cache' |" ?awk "'{print $3}'" ) of
 
 				{ _ExitCode=0, FreeOutput } ->
 					% Already in bytes:
@@ -1626,9 +1621,8 @@ get_swap_status() ->
 
 	% Same reason as for get_total_memory_used/0:
 	%SwapInfos = os:cmd( "free -b | grep 'Swap:' | awk '{print $2, $3}'" ),
-	SwapTotalString = case run_executable(
-		  "/bin/cat /proc/meminfo | /bin/grep '^SwapTotal:' | "
-		  "\\awk '{print $2,$3}'" ) of
+	SwapTotalString = case run_executable( ?cat "/proc/meminfo |"
+		?grep "'^SwapTotal:' |" ?awk "'{print $2,$3}'" ) of
 
 		{ _TotalExitCode=0, TotalOutput } ->
 			TotalOutput;
@@ -1644,8 +1638,8 @@ get_swap_status() ->
 
 
 	SwapFreeString = case run_executable(
-		"cat /proc/meminfo | /bin/grep '^SwapFree:' | "
-		"\\awk '{print $2,$3}'" ) of
+							?cat "/proc/meminfo |" ?grep "'^SwapFree:' |"
+							?awk "'{print $2,$3}'" ) of
 
 		{ _FreeExitCode=0, FreeOutput } ->
 			FreeOutput;
@@ -1678,14 +1672,14 @@ get_swap_status_string() ->
 		case get_swap_status() of
 
 			{ _UsedSwap, _TotalSwap=0 } ->
-					   "no swap found";
+				"no swap found";
 
 			{ UsedSwap, TotalSwap } ->
-					   io_lib:format( "swap used: ~s over a total of ~s (~s)",
-									  [ interpret_byte_size( UsedSwap ),
-										interpret_byte_size( TotalSwap ),
-										text_utils:percent_to_string(
-										  UsedSwap / TotalSwap ) ] )
+				io_lib:format( "swap used: ~s over a total of ~s (~s)",
+							   [ interpret_byte_size( UsedSwap ),
+								 interpret_byte_size( TotalSwap ),
+								 text_utils:percent_to_string(
+								   UsedSwap / TotalSwap ) ] )
 
 		end
 
@@ -1707,7 +1701,7 @@ get_swap_status_string() ->
 get_core_count() ->
 
 	CoreString = case run_executable(
-						"/bin/cat /proc/cpuinfo | /bin/grep -c processor" ) of
+						?cat "/proc/cpuinfo |" ?grep "-c processor" ) of
 
 		{ _ExitCode=0, Output } ->
 			Output;
@@ -1770,7 +1764,7 @@ get_process_count_string() ->
 	try
 
 		io_lib:format( "number of existing Erlang processes: ~B ",
-					  [ get_process_count() ] )
+					   [ get_process_count() ] )
 
 	catch _AnyClass:Exception ->
 
@@ -1879,7 +1873,7 @@ compute_detailed_cpu_usage( _StartCounters={ U1, N1, S1, I1, O1 },
 
 			% Avoids rounding errors:
 			OtherPercent = math_utils:round_after( 100 - AllButOtherPercent,
-										  RoundDigits ),
+												   RoundDigits ),
 
 			{ UserPercent, NicePercent, SystemPercent, IdlePercent,
 			  OtherPercent }
@@ -1897,7 +1891,7 @@ get_cpu_usage_counters() ->
 
 	% grep more versatile than: '| head -n 1':
 	StatString = case run_executable(
-						"/bin/cat /proc/stat | /bin/grep 'cpu '" ) of
+						?cat "/proc/stat |" ?grep "'cpu '" ) of
 
 		{ _ExitCode=0, Output } ->
 			Output;
@@ -1936,7 +1930,7 @@ get_cpu_usage_counters() ->
 -spec get_disk_usage() -> text_utils:ustring().
 get_disk_usage() ->
 
-	case run_executable( "/bin/df -h" ) of
+	case run_executable( ?df "-h" ) of
 
 		{ _ExitCode=0, Output } ->
 			Output;
@@ -1986,8 +1980,8 @@ get_known_pseudo_filesystems() ->
 -spec get_mount_points() -> [ file_utils:path() ].
 get_mount_points() ->
 
-	FirstCmd = "/bin/df -h --local --output=target"
-		++ get_exclude_pseudo_fs_opt() ++ " | /bin/grep -v 'Mounted on'",
+	FirstCmd = ?df "-h --local --output=target"
+		++ get_exclude_pseudo_fs_opt() ++ " |" ?grep "-v 'Mounted on'",
 
 	case run_executable( FirstCmd ) of
 
@@ -1998,9 +1992,9 @@ get_mount_points() ->
 		{ _FirstExitCode, _FirstErrorOutput } ->
 
 			% Older versions of df may not know the --output option:
-			SecondCmd = "/bin/df -h --local "
+			SecondCmd = ?df "-h --local "
 				++ get_exclude_pseudo_fs_opt()
-				++ "| /bin/grep -v 'Mounted on' | \\awk '{print $6}'",
+				++ "| " ?grep "-v 'Mounted on' |" ?awk "'{print $6}'",
 
 			case run_executable( SecondCmd ) of
 
@@ -2038,10 +2032,9 @@ get_filesystem_info( BinFilesystemPath ) when is_binary( BinFilesystemPath ) ->
 
 get_filesystem_info( FilesystemPath ) ->
 
-	Cmd = "/bin/df --block-size=1K --local "
-		++ get_exclude_pseudo_fs_opt()
+	Cmd = ?df "--block-size=1K --local " ++ get_exclude_pseudo_fs_opt()
 		++ " --output=source,target,fstype,used,avail,iused,iavail '"
-		++ FilesystemPath ++ "' | /bin/grep -v 'Mounted on'",
+		++ FilesystemPath ++ "' |" ?grep "-v 'Mounted on'",
 
 	case run_executable( Cmd ) of
 
@@ -2090,9 +2083,9 @@ get_filesystem_info_alternate( FilesystemPath ) ->
 
 	%io:format( "## using alternate df~n" ),
 
-	Cmd = "/bin/df --block-size=1K --local "
+	Cmd = ?df "--block-size=1K --local "
 		++ get_exclude_pseudo_fs_opt() ++ " "
-		++ FilesystemPath ++ "| /bin/grep -v 'Mounted on'",
+		++ FilesystemPath ++ "|" ?grep "-v 'Mounted on'",
 
 	case run_executable( Cmd ) of
 
@@ -2201,10 +2194,9 @@ get_operating_system_description() ->
 
 		true ->
 
-			case run_executable( "/bin/cat " ++ OSfile ++
-					" | /bin/grep PRETTY_NAME | "
-					"/bin/sed 's|^PRETTY_NAME=\"||1' | "
-					"/bin/sed 's|\"$||1' 2>/dev/null" ) of
+			case run_executable( ?cat ++ OSfile ++ " |" ?grep "PRETTY_NAME |"
+					?sed "'s|^PRETTY_NAME=\"||1' |"
+					?sed "'s|\"$||1' 2>/dev/null" ) of
 
 				{ _ExitCode=0, Output } ->
 					Output;

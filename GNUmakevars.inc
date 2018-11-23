@@ -332,6 +332,14 @@ ifndef BASE_MAKEFILE
 endif
 
 
+# Overriding BASE_PLT is useful to take into account third-party prerequisites:
+ifndef BASE_PLT
+
+  BASE_PLT := $(PREDECESSOR_PLT)
+
+endif
+
+
 
 # Overall settings section.
 
@@ -393,6 +401,104 @@ else
 
 
 endif
+
+
+
+ALL_ERL_FILES = $(wildcard *.erl)
+
+
+
+# Excluded sources, as depending on prerequisites:
+
+
+ifeq ($(USE_HDF5),false)
+
+  EXCLUDED_SOURCES := $(EXCLUDED_SOURCES) hdf5_support.erl      \
+										  hdf5_support_test.erl \
+										  raw_hdf5_test.erl
+
+endif
+
+
+ifeq ($(USE_REST),false)
+
+  EXCLUDED_SOURCES := $(EXCLUDED_SOURCES) rest_support.erl rest_support_test.erl
+
+endif
+
+
+ifeq ($(USE_SQLITE),false)
+
+  EXCLUDED_SOURCES := $(EXCLUDED_SOURCES) sql_support.erl sql_support_test.erl
+
+endif
+
+
+
+ERL_FILES = $(filter-out $(EXCLUDED_SOURCES), $(ALL_ERL_FILES))
+
+
+# Includes test beams:
+BEAM_FILES = $(patsubst %.erl,%.beam,$(ERL_FILES))
+
+
+# Excludes the tests depending on prerequisites:
+TEST_SOURCES = $(filter-out $(EXCLUDED_SOURCES), $(wildcard *_test.erl))
+
+TEST_TARGETS = $(patsubst %.erl,%,$(TEST_SOURCES))
+
+
+
+# Java subsection.
+
+# Java (local) source files:
+JAVA_FILES = $(wildcard *.java)
+
+
+# Java class (bytecode) files:
+ifeq ($(USE_JAVA_BINDING),true)
+
+	 JAVA_CLASS_FILES = $(patsubst %.java,%.class,$(JAVA_FILES))
+
+endif
+
+
+
+# Regarding dependency management.
+
+# One can just ignore dependencies and rebuild "blindly" every module in current
+# subtree.
+
+# One just has not to forget to issue 'make' from a right location, before
+# running one's Erlang program.
+
+# Another option is to track dependencies explicitly.
+
+# We found no existing way of managing dependencies automatically, thus they
+# have to be declared by hand.
+
+# We want these user-specified dependencies to work with the generic rules to
+# build beam files and to run programs.
+
+# For example, 'make MyObject_run' would check MyObject_test.beam and its
+# dependencies before running it.
+
+# A generic rule like: '%.beam: %.erl' would not take into account dependencies.
+
+# A generic rule like: '%.beam: %.erl %_dependencies' with a definition like
+# 'MyObject_dependencies: A.beam moduleB.beam' would work (and modules not
+# depending on others could be managed with a second generic rule: '%.beam:
+# %.erl'), but generic targets, as defined in GNUmakerules.inc, seem to be
+# *always* rebuilt, not depending on their .PHONY status.
+
+# In our case, MyObject.beam (and all its prerequisites!) would thus always be
+# rebuilt, even if no change at all was operated on the corresponding sources,
+# which would not be acceptable.
+
+# Thus we stick from now to the basic strategy: always issue a global 'make' at
+# the root of the source before running a program, otherwise be doomed (changes
+# not taken into account at run-time, as not recompiled).
+
 
 
 
@@ -480,12 +586,19 @@ ERLANG_INTERPRETER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which erl 2>/dev/n
 ERLANG_INTERPRETER_OPT_DEBUG = -init_debug -smp
 
 
-# Finally not useful:
-ifndef FQDN
+# Force your FQDN, if ever relevant in your setting:
+# FQDN := a_host_name.a_domain_name
+
+ifdef FQDN
+
+  FQDN_OPT= "--fqdn $(FQDN)"
+
+else
 
   #FQDN    := $$(host $(hostname) | awk '{ print $$1 }' | head -n 1)
   FQDN    := $$(hostname -f)
 
+  # Not useful in this case:
   #FQDN_OPT= "--fqdn $(FQDN)"
 
 endif

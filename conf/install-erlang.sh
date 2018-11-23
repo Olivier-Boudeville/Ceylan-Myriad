@@ -104,10 +104,6 @@ use_prefix=0
 do_patch=1
 
 
-# By default, the Erlang build tree will not be removed (more convenient):
-do_remove_build_tree=1
-
-
 erlang_download_location="http://erlang.org/download"
 
 # The user that is to perform the build (everything but installation):
@@ -217,6 +213,10 @@ done
 SUDO_CMD=""
 
 
+# By default, the Erlang build tree will be removed:
+do_remove_build_tree=0
+
+
 # Then check whether one parameter remains:
 
 if [ -z "$read_parameter" ] ; then
@@ -246,6 +246,11 @@ if [ -z "$read_parameter" ] ; then
 
 	   prefix="$HOME/Software/Erlang/Erlang-${erlang_version}"
 	   echo "Not run as root, thus using default installation directory '$prefix' (and user '${build_user}')."
+
+	   # In this case the Erlang build tree will *not* be removed (as it is more
+	   # convenient for "more advanced" usage):
+	   #
+	   do_remove_build_tree=1
 
    fi
 

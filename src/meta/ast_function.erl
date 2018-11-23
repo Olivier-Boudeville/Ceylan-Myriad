@@ -331,7 +331,7 @@ transform_function_constraints( FunctionConstraints, Transforms ) ->
 
 
 % "If C is a constraint V :: T, where V is a type variable and T is a type, then
-% Rep(C) = {type,LINE,constraint,[{atom,LINE,is_subtype},[Rep(V),Rep(T)]]}. "
+% Rep(C) = {type,LINE,constraint,[{atom,LINE,is_subtype},[Rep(V),Rep(T)]]}."
 %
 transform_function_constraint( { 'type', Line, 'constraint',
 		[ AtomConstraint={ atom, _LineAtom, _SomeAtom }, [ TypeVar, Type ] ] },

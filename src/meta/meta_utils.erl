@@ -424,6 +424,7 @@ apply_ast_transforms( Transforms, ModuleInfo=#module_info{
 	NewRecordTable = ast_type:transform_types_in_record_table( RecordTable,
 															   Transforms ),
 
+	%ast_utils:display_debug( "Transforming all functions..." ),
 	NewFunctionTable = ast_function:transform_functions( FunctionTable,
 														 Transforms ),
 
