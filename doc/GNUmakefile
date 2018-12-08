@@ -47,6 +47,7 @@ all:
 
 
 full-doc: $(DOC_BASE_NAME).pdf $(DOC_BASE_NAME).html
+	@/bin/cat $(DOC_BASE_NAME).html | sed 's|^</head>|<link href="myriad-icon.png" rel="icon"></head>|1' > /tmp/.myriad.tmp ; /bin/mv -f /tmp/.myriad.tmp $(DOC_BASE_NAME).html
 
 
 # Creates a separate repository for the GitHub pages branch:

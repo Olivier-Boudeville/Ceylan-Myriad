@@ -20,7 +20,7 @@
 
 :raw-html:`<a name="myriad_top"></a>`
 
-:raw-html:`<div class="banner"><p><em>Myriad documentation</em> <a href="http://myriad.esperide.org">browse latest</a> <a href="https://olivier-boudeville.github.io/Ceylan-Myriad/myriad.html">browse mirror</a> <a href="myriad.pdf">get PDF</a> <a href="#myriad_top">go to top</a> <a href="#myriad_bottom">go to bottom</a> <a href="mailto:about(dash)myriad(at)esperide(dot)com?subject=[Ceylan-Myriad]%20Remark">mail us</a></p></div>`
+:raw-html:`<div class="banner"><p><em><a href="http://myriad.esperide.org">Myriad documentation</em> <a href="http://myriad.esperide.org">browse latest</a> <a href="https://olivier-boudeville.github.io/Ceylan-Myriad/myriad.html">browse mirror</a> <a href="myriad.pdf">get PDF</a> <a href="#myriad_top">go to top</a> <a href="#myriad_bottom">go to bottom</a> <a href="mailto:about(dash)myriad(at)esperide(dot)com?subject=[Ceylan-Myriad]%20Remark">mail us</a></p></div>`
 
 
 
@@ -37,9 +37,9 @@ Technical Manual of the ``Ceylan-Myriad`` Layer
 :Organisation: Copyright (C) 2008-2018 Olivier Boudeville
 :Contact: about (dash) myriad (at) esperide (dot) com
 :Creation Date: Wednesday, August 11, 2010
-:Lastly Updated: Sunday, May 6, 2018
+:Lastly Updated: Saturday, December 8, 2018
 :Status: Work in progress
-:Version: 0.2.8
+:Version: 0.2.9
 :Dedication: Users and maintainers of the ``Myriad`` layer.
 :Abstract:
 
