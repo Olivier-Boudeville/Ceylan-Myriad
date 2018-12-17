@@ -139,6 +139,9 @@
 -type bin_file_path() :: binary().
 
 
+% Designates an executable, generally without a path (ex: "foobar"):
+-type executable_name() :: file_name().
+
 % Designates a path to an executable; ex:
 % "../my_dir/other/run.sh").
 %
@@ -197,7 +200,8 @@
 
 -export_type([ path/0, bin_path/0,
 			   file_name/0, filename/0, file_path/0,
-			   bin_file_name/0, bin_file_path/0, executable_path/0,
+			   bin_file_name/0, bin_file_path/0,
+			   executable_name/0, executable_path/0,
 			   directory_name/0, bin_directory_name/0,
 			   extension/0,
 			   entry_type/0,
