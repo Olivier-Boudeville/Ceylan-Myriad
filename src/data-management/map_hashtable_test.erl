@@ -153,7 +153,7 @@ run() ->
 				  { ?MyFifthKey, [ some_element ] } ], MyH9 ),
 
 	test_facilities:display( "Listing a concatenated table: ~s",
-		[ map_hashtable:toString( MyH10 ) ] ),
+							 [ map_hashtable:toString( MyH10 ) ] ),
 
 	test_facilities:display( "Applying a fun to all values of "
 							 "previous hashtable" ),
@@ -203,6 +203,14 @@ run() ->
 	% Any optimisation would be automatic:
 	test_facilities:display( "Merged table: ~s.",
 							 [ map_hashtable:toString( MyH12 ) ] ),
+
+	MyH13 = map_hashtable:new(),
+
+	MyH14 = map_hashtable:new( [ { ?MyFourthKey, x }, { ?MyFifthKey, y } ] ),
+
+	MyMergeResTable = map_hashtable:merge_unique( MyH4, MyH14 ),
+
+	MyMergeResTable = map_hashtable:merge_unique( [ MyH4, MyH13, MyH14 ] ),
 
 	Keys = [ ?MyFirstKey, ?MyThirdKey ],
 

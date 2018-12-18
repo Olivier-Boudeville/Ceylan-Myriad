@@ -374,9 +374,8 @@ add_type( TypeInfo=#type_info{
 % Unregisters specified type from specified module.
 %
 -spec remove_type( type_info(), module_info() ) -> module_info().
-remove_type( TypeInfo=#type_info{
-						 variables=TypeVariables,
-						 exported=ExportLocs },
+remove_type( TypeInfo=#type_info{ variables=TypeVariables,
+								  exported=ExportLocs },
 			 ModuleInfo=#module_info{ type_exports=ExportTable,
 									  types=TypeTable } ) ->
 
@@ -404,34 +403,41 @@ remove_type( TypeInfo=#type_info{
 
 
 
-% Applies specified AST transformations to specified module information.
+% Applies specified AST transformations (mostly depth-first) to the specified
+% module information.
 %
 % (helper)
 %
--spec apply_ast_transforms( ast_transform:ast_transforms(), module_info() ) ->
-								  module_info().
-apply_ast_transforms( Transforms, ModuleInfo=#module_info{
-												types=TypeTable,
-												records=RecordTable,
-												functions=FunctionTable } ) ->
+-spec apply_ast_transforms( module_info(), ast_transform:ast_transforms() ) ->
+							  { module_info(), ast_transform:ast_transforms() }.
+apply_ast_transforms( ModuleInfo=#module_info{ types=TypeTable,
+											   records=RecordTable,
+											   functions=FunctionTable },
+					  Transforms ) ->
+
+	% Note: we consider that no transformation state is to be carried from a
+	% top-level transformation to another (so we consider that Transforms is
+	% immutable here)
 
 	% First, update the type definitions accordingly (including in records):
 
 	%ast_utils:display_debug( "Transforming known types..." ),
-	NewTypeTable = ast_type:transform_type_table( TypeTable, Transforms ),
+	{ NewTypeTable, TypeTransforms } =
+		ast_type:transform_type_table( TypeTable, Transforms ),
 
 	%ast_utils:display_debug( "Transforming known types in records..." ),
-	NewRecordTable = ast_type:transform_types_in_record_table( RecordTable,
-															   Transforms ),
+	{ NewRecordTable, RecTransforms } =
+		ast_type:transform_types_in_record_table( RecordTable, TypeTransforms ),
 
 	%ast_utils:display_debug( "Transforming all functions..." ),
-	NewFunctionTable = ast_function:transform_functions( FunctionTable,
-														 Transforms ),
+	{ NewFunctionTable, FunTransforms } =
+		ast_function:transform_functions( FunctionTable, RecTransforms ),
 
 	% Updated module_info returned:
-	ModuleInfo#module_info{ types=NewTypeTable,
-							records=NewRecordTable,
-							functions=NewFunctionTable }.
+	{ ModuleInfo#module_info{ types=NewTypeTable,
+							  records=NewRecordTable,
+							  functions=NewFunctionTable },
+	  FunTransforms }.
 
 
 

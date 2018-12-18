@@ -114,13 +114,22 @@
 -type ast_transforms() :: ast_transform:ast_transforms().
 
 
+% For the ast_transforms record:
+-include("ast_transform.hrl").
+
+% For rec_guard-related defines:
+-include("ast_utils.hrl").
+
+
 
 % Transforms specified list of binary elements involved in a bitstring
 % expression.
 %
 % Note: finally common to patterns, expressions and guard expressions.
 %
-transform_bin_elements( BinElements, Transforms ) ->
+-spec transform_bin_elements( [ bin_element() ], ast_transforms() ) ->
+									{ [ bin_element() ], ast_transforms() }.
+transform_bin_elements( BinElements, Transforms ) ?rec_guard ->
 
 	% Note: context-insensitive function, considering that any kind of
 	% expression can be found here.
@@ -128,7 +137,8 @@ transform_bin_elements( BinElements, Transforms ) ->
 	%transform_bin_elements( BinElements, Transforms,
 	%				   fun ast_expression:transform_expression/2 ) .
 
-	[ transform_bin_element( BE, Transforms ) || BE <- BinElements ].
+	lists:mapfoldl( fun transform_bin_element/2, _Acc0=Transforms,
+					_List=BinElements ).
 
 
 
@@ -138,38 +148,46 @@ transform_bin_elements( BinElements, Transforms ) ->
 %
 % (corresponds to pattern_grp/1 in erl_id_trans)
 %
--spec transform_bin_element( bin_element(), ast_transforms() ) -> bin_element().
-transform_bin_element( _BinElem={ bin_element, Line, Element, Size,
-								  TypeSpecifierList }, Transforms ) ->
+-spec transform_bin_element( bin_element(), ast_transforms() ) ->
+								   { bin_element(), ast_transforms() }.
+transform_bin_element(
+  _BinElem={ bin_element, Line, Element, Size, TypeSpecifierList },
+  Transforms ) ?rec_guard ->
 
-	NewElement = ast_expression:transform_expression( Element, Transforms ),
+	{ NewElement, ElemTransforms } =
+		ast_expression:transform_expression( Element, Transforms ),
 
-	NewSize = case Size of
+	{ NewSize, SizeTransforms } = case Size of
 
 		default ->
-			default;
+			{ default, ElemTransforms };
 
 		_ ->
-			ast_expression:transform_expression( Size, Transforms )
+			ast_expression:transform_expression( Size, ElemTransforms )
 
 	end,
 
-	NewTypeSpecifierList = case TypeSpecifierList of
+	{ NewTypeSpecifierList, TypeTransforms } = case TypeSpecifierList of
 
 		default ->
-			default;
+			{ default, SizeTransforms };
 
 		_ ->
-			[ transform_type_specifier( TypeSpecifier, Transforms )
-						|| TypeSpecifier <- TypeSpecifierList ]
+			lists:mapfoldl( fun transform_type_specifier/2,
+							_Acc0=SizeTransforms,
+							_List=TypeSpecifierList )
 
 	end,
 
-	{ 'bin_element', Line, NewElement, NewSize, NewTypeSpecifierList };
+	NewExpr = { 'bin_element', Line, NewElement, NewSize,
+				NewTypeSpecifierList },
 
-transform_bin_element( Unexpected, _Transforms ) ->
+	{ NewExpr, TypeTransforms };
+
+
+transform_bin_element( Unexpected, Transforms )
+  when is_record( Transforms, ast_transforms )->
 	ast_utils:raise_error( [ unexpected_bitstring_bin_element, Unexpected ] ).
-
 
 
 
@@ -179,12 +197,17 @@ transform_bin_element( Unexpected, _Transforms ) ->
 % guard, in an expression, etc.).
 %
 -spec transform_bin_elements( [ bin_element() ], ast_transforms(),
-							  element_transform_fun() ) -> [ bin_element() ].
-transform_bin_elements( BinElements, Transforms, TransformFun ) ->
-	[ transform_bin_element( E, Transforms, TransformFun )
-	  || E <- BinElements ].
+		  element_transform_fun() ) -> { [ bin_element() ], ast_transforms() }.
 
+transform_bin_elements( BinElements, Transforms, TransformFun ) ?rec_guard ->
 
+	% Closure, to capture TransformFun:
+	ActualFun = fun( E, AccTransforms ) ->
+						transform_bin_element( E, AccTransforms,
+											   TransformFun )
+				end,
+
+	lists:mapfoldl( ActualFun, _Acc0=Transforms, _List=BinElements ).
 
 
 
@@ -194,36 +217,43 @@ transform_bin_elements( BinElements, Transforms, TransformFun ) ->
 % can be found here (ex: a guard test).
 %
 -spec transform_bin_element( bin_element(), ast_transforms(),
-							 element_transform_fun() ) -> bin_element().
-transform_bin_element( _BinElem={ 'bin_element', Line, Element, Size,
-							 TypeSpecifierList }, Transforms, TransformFun ) ->
+			element_transform_fun() ) -> { bin_element(), ast_transforms() }.
+transform_bin_element(
+  _BinElem={ 'bin_element', Line, Element, Size, TypeSpecifierList },
+  Transforms, TransformFun ) ?rec_guard ->
 
-	NewElement = TransformFun( Element, Transforms ),
+	{ NewElement, ElemTransforms } = TransformFun( Element, Transforms ),
 
-	NewSize = case Size of
+	{ NewSize, SizeTransforms } = case Size of
 
 		default ->
-			default;
+			{ default, ElemTransforms };
 
 		_ ->
-			ast_expression:transform_expression( Size, Transforms )
+			ast_expression:transform_expression( Size, ElemTransforms )
 
 	end,
 
-	NewTypeSpecifierList = case TypeSpecifierList of
+	{ NewTypeSpecifierList, TypeTransforms } = case TypeSpecifierList of
 
 		default ->
-			default;
+			{ default, SizeTransforms };
 
 		_ ->
-			[ transform_type_specifier( TypeSpecifier, Transforms )
-						|| TypeSpecifier <- TypeSpecifierList ]
+			lists:mapfoldl( fun transform_type_specifier/2,
+							_Acc0=SizeTransforms,
+							_List=TypeSpecifierList )
 
 	end,
 
-	{ 'bin_element', Line, NewElement, NewSize, NewTypeSpecifierList };
+	NewExpr = { 'bin_element', Line, NewElement, NewSize,
+				NewTypeSpecifierList },
 
-transform_bin_element( Unexpected, _Transforms, _TransformFun ) ->
+	{ NewExpr, TypeTransforms };
+
+
+transform_bin_element( Unexpected, Transforms, _TransformFun )
+  when is_record( Transforms, ast_transforms ) ->
 	ast_utils:raise_error( [ unexpected_bitstring_bin_element, Unexpected ] ).
 
 
@@ -240,13 +270,13 @@ transform_bin_element( Unexpected, _Transforms, _TransformFun ) ->
 %
 % Note: maybe the types there shall be transformed as well.
 %
-transform_type_specifier( TypeSpecifier, _Transforms )
+transform_type_specifier( TypeSpecifier, Transforms )
   when is_atom( TypeSpecifier ) ->
-	TypeSpecifier;
+	{ TypeSpecifier, Transforms };
 
-transform_type_specifier( TypeSpecifier={ A, Value }, _Transforms )
+transform_type_specifier( TypeSpecifier={ A, Value }, Transforms )
   when is_atom( A ) andalso is_integer( Value ) ->
-	TypeSpecifier;
+	{ TypeSpecifier, Transforms };
 
 transform_type_specifier( Unexpected, _Transforms ) ->
 	ast_utils:raise_error(

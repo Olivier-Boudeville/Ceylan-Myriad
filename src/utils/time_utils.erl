@@ -88,6 +88,12 @@
 		  days_to_seconds/1, hours_to_seconds/1 ]).
 
 
+% Time-related section.
+%
+-export([ get_intertime_duration/2 ]).
+
+
+
 % Timestamp-related section.
 %
 -export([ get_timestamp/0,
@@ -415,6 +421,21 @@ days_to_seconds( DayDuration ) ->
 -spec hours_to_seconds( unit_utils:hours() ) -> unit_utils:seconds().
 hours_to_seconds( HourDuration ) ->
 	HourDuration * 3600.
+
+
+
+% Time section.
+
+
+% Returns the signed duration, in integer seconds, between the two specified
+% times.
+%
+% A positive duration will be returned iff the first specified time is before
+% the second one.
+%
+-spec get_intertime_duration( time(), time() ) -> unit_utils:seconds().
+get_intertime_duration( { H1, M1, S1 }, { H2, M2, S2 } ) ->
+	( ( H2 - H1 ) * 60 + ( M2 - M1 ) ) * 60 + ( S2 - S1 ).
 
 
 

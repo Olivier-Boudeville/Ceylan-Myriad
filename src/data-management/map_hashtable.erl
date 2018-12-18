@@ -80,7 +80,8 @@
 		  isEmpty/1, size/1,
 		  map/2, mapOnEntries/2, mapOnValues/2,
 		  fold/3, foldOnEntries/3,
-		  merge/2, optimise/1, toString/1, toString/2, display/1, display/2 ]).
+		  merge/2, merge_unique/2, merge_unique/1,
+		  optimise/1, toString/1, toString/2, display/1, display/2 ]).
 
 
 
@@ -187,7 +188,7 @@ new_from_unique_entries( InitialEntries ) when is_list( InitialEntries ) ->
 % be checked)
 %
 %
-% Note: in non-debug mode, these extra-checkings may be removed.
+% Note: in non-debug mode, these extra checkings may be removed.
 
 
 
@@ -620,8 +621,8 @@ mapOnEntries( Fun, MapHashtable ) ->
 % contained in this hashtable.
 %
 % Allows to apply "in-place" an operation on all values without having to
-% enumerate the content of the hashtable and iterate on it (hence without having
-% to duplicate the whole content in memory).
+% enumerate the content of the hashtable, to iterate on it (hence without having
+% to duplicate the whole content in memory), and to recreate the table.
 %
 % Note: the keys are left as are, hence the structure of the hashtable does not
 % change.
@@ -782,6 +783,39 @@ toggleEntry( Key, MapHashtable )->
 merge( MapHashtableBase, MapHashtableAdd ) ->
 	% Order matters:
 	maps:merge( MapHashtableAdd, MapHashtableBase ).
+
+
+
+% Merges the two specified tables into one, expecting that their keys are unique
+% (i.e. that they do not intersect), otherwise throws an exception.
+%
+% Note: for an improved efficiency, ideally the smaller table shall be the first
+% one.
+%
+-spec merge_unique( map_hashtable(), map_hashtable() ) -> map_hashtable().
+merge_unique( FirstHashtable, SecondHashtable ) ->
+	FirstEntries = enumerate( FirstHashtable ),
+	addNewEntries( FirstEntries, SecondHashtable ).
+
+
+% Merges the all specified tables into one, expecting that their keys are unique
+% (i.e. that they do not intersect), otherwise throws an exception.
+%
+% Note: for an improved efficiency, ideally the tables shall be listed from the
+% smaller to the bigger.
+%
+-spec merge_unique( [ map_hashtable() ] ) -> map_hashtable().
+% (no empty list expected)
+merge_unique( _Tables=[ Table ] ) ->
+	Table;
+
+% To avoid recreating from scratch the first table:
+merge_unique( _Tables=[ HTable | T ] ) ->
+	lists:foldl( fun( Table, AccTable ) ->
+						 merge_unique( Table, AccTable )
+				 end,
+				 _Acc0=HTable,
+				 _List=T ).
 
 
 

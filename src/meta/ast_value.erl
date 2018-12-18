@@ -57,11 +57,11 @@
 % Ex: nil, in {nil,33} for [] at line #33.
 %
 %
--type ast_atomic_literal() :: { 'atom', line(), atom() }
-							| { 'char', line(), char() }
-							| { 'float', line(), float() }
+-type ast_atomic_literal() :: { 'atom',    line(), atom() }
+							| { 'char',    line(), char() }
+							| { 'float',   line(), float() }
 							| { 'integer', line(), integer() }
-							| { 'string', line(), text_utils:ustring() }.
+							| { 'string',  line(), text_utils:ustring() }.
 
 
 -type ast_compound_literal() :: { 'nil', line() }.
@@ -99,6 +99,12 @@
 -type ast_transforms() :: ast_transform:ast_transforms().
 
 
+% For the ast_transforms record:
+-include("ast_transform.hrl").
+
+% For rec_guard-related defines:
+-include("ast_utils.hrl").
+
 
 % Section for value transformation.
 
@@ -107,23 +113,25 @@
 % onto it.
 %
 -spec transform_value( ast_atomic_literal(), ast_transforms() ) ->
-							 ast_atomic_literal().
-transform_value( Literal={ atom, _Line, _Atom }, _Transforms ) ->
-	Literal;
+							 { ast_atomic_literal(), ast_transforms() }.
+transform_value( Literal={ atom, _Line, _Atom }, Transforms ) ?rec_guard ->
+	{ Literal, Transforms };
 
-transform_value( Literal={ char, _Line, _Char }, _Transforms ) ->
-	Literal;
+transform_value( Literal={ char, _Line, _Char }, Transforms ) ?rec_guard ->
+	{ Literal, Transforms };
 
-transform_value( Literal={ float, _Line, _Float }, _Transforms ) ->
-	Literal;
+transform_value( Literal={ float, _Line, _Float }, Transforms ) ?rec_guard ->
+	{ Literal, Transforms };
 
-transform_value( Literal={ integer, _Line, _Integer }, _Transforms ) ->
-	Literal;
+transform_value( Literal={ integer, _Line, _Integer },
+				 Transforms ) ?rec_guard ->
+	{ Literal, Transforms };
 
-transform_value( Literal={ string, _Line, _String }, _Transforms ) ->
-	Literal;
+transform_value( Literal={ string, _Line, _String }, Transforms ) ?rec_guard ->
+	{ Literal, Transforms };
 
-transform_value( UnexpectedLiteral, _Transforms ) ->
+transform_value( UnexpectedLiteral, Transforms )
+  when is_record( Transforms, ast_transforms ) ->
 	throw( { unexpected_literal, UnexpectedLiteral } ).
 
 

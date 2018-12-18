@@ -50,8 +50,9 @@
 
 -type scan_context() :: { ast_base:file_reference(), ast_base:line() }.
 
+-type error_report() :: text_utils:ustring().
 
--export_type([ parse_attribute_name/0, scan_context/0 ]).
+-export_type([ parse_attribute_name/0, scan_context/0, error_report/0 ]).
 
 
 -export([ scan/1, check_parse_attribute_name/1, check_parse_attribute_name/2 ]).
@@ -216,6 +217,9 @@ report_error( { Context, Error } ) ->
 		{ undefined_macro_variable, VariableName } ->
 			text_utils:format( "undefined macro variable '~s'",
 							   [ VariableName ] );
+
+		String when is_list( String ) ->
+			text_utils:format( "~s", [ String ] );
 
 		Other ->
 			text_utils:format( "~p", [ Other ] )
@@ -389,14 +393,16 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'import',
 
 	NewImportDefs = [ { NextLocation, Form } | ImportDefs ],
 
-	NewMarkerTable = case ?table:hasEntry( import_functions_marker, MarkerTable ) of
+	NewMarkerTable = case ?table:hasEntry( import_functions_marker,
+										   MarkerTable ) of
 
 		true ->
 			% Already found, nothing to do.
 			MarkerTable;
 
 		false ->
-			?table:addEntry( import_functions_marker, NextLocation, MarkerTable )
+			?table:addEntry( import_functions_marker, NextLocation,
+							 MarkerTable )
 
 	end,
 
@@ -501,10 +507,13 @@ scan_forms( _AST=[ Form={ 'attribute', _Line, 'file',
 % is a function clause with a pattern sequence of the same length Arity, then
 % Rep(F) = {function,LINE,Name,Arity,[Rep(Fc_1), ...,Rep(Fc_k)]}."
 %
-scan_forms( [ { 'function', Line, FunctionName, FunctionArity, Clauses } | T ],
-			M=#module_info{ functions=FunctionTable,
-							markers=MarkerTable },
-			NextLocation, CurrentFileReference ) ->
+scan_forms(
+  [ _Form={ 'function', Line, FunctionName, FunctionArity, Clauses } | T ],
+  M=#module_info{ functions=FunctionTable,
+				  markers=MarkerTable,
+				  errors=Errors },
+				  %unhandled_forms=UnhandledForms },
+  NextLocation, CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "function definition for ~p/~p",
 	% [ FunctionName, FunctionArity ] ),
@@ -522,60 +531,108 @@ scan_forms( [ { 'function', Line, FunctionName, FunctionArity, Clauses } | T ],
 
 	FunId = { FunctionName, FunctionArity },
 
-	FunInfo = case ?table:lookupEntry( FunId, FunctionTable ) of
+	{ FunInfo, MaybeError } =
+			case ?table:lookupEntry( FunId, FunctionTable ) of
+
 
 		key_not_found ->
 			% New entry then:
-			#function_info{ name=FunctionName,
-							arity=FunctionArity,
-							location=NextLocation,
-							line=Line,
-							clauses=Clauses
-							% Implicit:
-							%spec=undefined,
-							%callback=undefined,
-							%exported=[]
-						  };
+			Finfo = #function_info{ name=FunctionName,
+									arity=FunctionArity,
+									location=NextLocation,
+									line=Line,
+									clauses=Clauses
+									% Implicit:
+									%spec=undefined,
+									%callback=undefined,
+									%exported=[]
+								  },
+			{ Finfo, undefined };
+
 
 		{ value, F=#function_info{ clauses=[] } } ->
-				% Already here because of an export; just add the missing
-				% information then:
-				F#function_info{ location=NextLocation,
-								 line=Line,
-								 clauses=Clauses };
+			% Already here because of an export; just add the missing
+			% information then:
+			Finfo = F#function_info{ location=NextLocation,
+									 line=Line,
+									 clauses=Clauses },
+			{ Finfo, undefined };
 
-		% Here a definition was already set:
-		% (previous line not necessarily in the same file)
-		%
-		% We tried to silence that error to rely on the compiler, yet
-		% commenting-out this led to having a double definition not properly
-		% handled:
-		%
-		% (a better approach would be to store a list of such list of clauses,
-		% and to reinject them as they are, so that the compiler sees them and
-		% complains in a standard manner afterwards)
-		%
-		{ value, #function_info{ line=PreviousLine } } ->
-			ast_utils:raise_error( [ multiple_definition_for, FunId,
-									 { previous_line, PreviousLine } ],
-								   Context )
 
-		% Would result in ignoring this definition:
+		% Here a definition was already set: (previous line not necessarily in
+		% the context of the same file)
+
+		% We tried to silence that error (let it go through) in order to rely on
+		% the compiler, yet commenting-out this led to having a double
+		% definition not properly handled:
+		%
+		% Would result in ignoring this definition, hence compiling incorrectly:
+		%
 		%{ value, F } ->
-		%	F
+		%   { F, ok }
+
+		% We could crash directly, yet the error message would not be nicely
+		% integrated in an IDE (as not standard):
+
+		%{ value, #function_info{ line=PreviousLine } } ->
+		%	ast_utils:raise_error( [ multiple_definitions_for, FunId,
+		%							 { previous_line, PreviousLine } ],
+		%						   Context )
+
+		% A better approach could have been to store a list of such list of
+		% clauses, and to reinject them as they are (as unhandled forms), so
+		% that the compiler sees them and complains in a standard manner
+		% afterwards; but then it triggers a warning of ours (that we want to
+		% keep) about unhandled forms, and the standard message is less
+		% informative than ours (only "FILE:LINE: function foo/1 already
+		% defined"), so we finally prefer ours:
+
+		{ value, F=#function_info{ name=FunctionName,
+								   arity=FunctionArity,
+								   line=SomeLine } } ->
+
+			% Note that the past error was not necessarily in the same file:
+			%
+			% (this information could be determined thanks to the located forms,
+			% yet you require quite a lot of development)
+
+			Report = text_utils:format( "multiple definitions for ~s/~B "
+										"(past definition at line ~B)",
+										[ FunctionName, FunctionArity,
+										  SomeLine ] ),
+
+			Error = { Context, Report },
+			%UnhandledLocForm = { NextLocation, Form },
+
+			{ F, Error }
+			% { F, UnhandledLocForm }
+
+
 
 	end,
 
 	NewFunctionTable = ?table:addEntry( _K=FunId, _V=FunInfo, FunctionTable ),
 
-	NewMarkerTable = case ?table:hasEntry( definition_functions_marker, MarkerTable ) of
+	NewMarkerTable = case ?table:hasEntry( definition_functions_marker,
+										   MarkerTable ) of
 
 		true ->
 			% Already found, nothing to do.
 			MarkerTable;
 
 		false ->
-			?table:addEntry( definition_functions_marker, NextLocation, MarkerTable )
+			?table:addEntry( definition_functions_marker, NextLocation,
+							 MarkerTable )
+
+	end,
+
+	NewErrors = case MaybeError of
+
+		undefined ->
+			Errors;
+
+		_ ->
+			[ MaybeError | Errors ]
 
 	end,
 
@@ -583,7 +640,9 @@ scan_forms( [ { 'function', Line, FunctionName, FunctionArity, Clauses } | T ],
 	%			   [ FunctionName, FunctionArity, length( Clauses ) ] ),
 
 	scan_forms( T, M#module_info{ functions=NewFunctionTable,
-								  markers=NewMarkerTable },
+								  markers=NewMarkerTable,
+								  errors=NewErrors },
+								  %unhandled_forms=NewUnhandledForms },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
@@ -647,7 +706,7 @@ scan_forms( [ Form={ 'attribute', Line, SpecType,
 
 		% Here a spec was already set:
 		%_ ->
-		%	ast_utils:raise_error( [ multiple_spec_for, FunId ], Context )
+		%	ast_utils:raise_error( [ multiple_specs_for, FunId ], Context )
 
 		% Finally we prefer letting the compiler complain by itself about these
 		% multiple specs:
@@ -797,7 +856,8 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
 			MarkerTable;
 
 		false ->
-			?table:addEntry( definition_records_marker, NextLocation, MarkerTable )
+			?table:addEntry( definition_records_marker, NextLocation,
+							 MarkerTable )
 
 	end,
 
@@ -899,7 +959,8 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 			MarkerTable;
 
 		false ->
-			?table:addEntry( definition_types_marker, NextLocation, MarkerTable )
+			?table:addEntry( definition_types_marker, NextLocation,
+							 MarkerTable )
 
 	end,
 
@@ -1473,8 +1534,8 @@ finalize_marker_table( EndMarkerLoc, MarkerTable ) ->
 	% intermediate markers is already available or not, so that ultimately, all
 	% of them are set, and in the expected order.
 	%
-	% This can be done only in an approximate manner, as the vanilla AST may rely
-	% on a different - yet, compilation-wise, still legit - section order.
+	% This can be done only in an approximate manner, as the vanilla AST may
+	% rely on a different - yet, compilation-wise, still legit - section order.
 	%
 	% The main rule to abide is that exports and imports shall precede
 	% definitions. The rest is mostly a matter of convention.
@@ -1493,8 +1554,9 @@ finalize_marker_table( EndMarkerLoc, MarkerTable ) ->
 
 	F = _FunDefMarker = definition_functions_marker,
 
-	% The newer, simpler algorithm supposes that the only order that matters between
-	% markers is that:
+	% The newer, simpler algorithm supposes that the only order that matters
+	% between markers is that:
+	%
 	% - the begin marker comes first
 	% - then the module marker (ModMarker)
 	% - then the intermediate markers (InterMarkers), in no specific order

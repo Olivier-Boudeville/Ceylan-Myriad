@@ -10,15 +10,25 @@
 LANG=C; export LANG
 
 
+
+# Now we keep the MD5 sums of the sources of former Erlang/OTP versions, in
+# order to be able to switch back and forth more easily:
+
+erlang_md5_for_21_1="482f91cf34c2ffb1dff6e716a15afefa"
+erlang_md5_for_21_0="350988f024f88e9839c3715b35e7e27a"
+erlang_md5_for_20_1="4c9eb112cd0e56f17c474218825060ee"
+
+
 # Current stable:
 erlang_version="21.1"
-erlang_md5="482f91cf34c2ffb1dff6e716a15afefa"
+erlang_md5="${erlang_md5_for_21_1}"
+
 
 # Candidate version (ex: either cutting-edge or, most probably, the previous
 # stable version):
-#
-erlang_version_candidate="21.0"
-erlang_md5_candidate="350988f024f88e9839c3715b35e7e27a"
+
+erlang_version_candidate="20.1"
+erlang_md5_candidate="${erlang_md5_for_20_1}"
 
 
 plt_file="Erlang-$erlang_version.plt"
@@ -60,7 +70,7 @@ Example:
   sudo install-erlang.sh
 	will install current official stable version of Erlang ($erlang_version) in /usr/local/ (i.e. system-wide)
 
-For Debian-based distributions, you should preferably run beforehand, as root: 'apt-get update && apt-get install g++ make libncurses5-dev openssl libssl-dev libwxgtk2.8-dev libgl1-mesa-dev libglu1-mesa-dev libpng3', otherwise for example the crypto, wx or observer modules might not be available or usable.
+For Debian-based distributions, you should preferably run beforehand, as root: 'apt-get update && apt-get build-dep erlang && apt-get install g++ make libncurses5-dev openssl libssl-dev libwxgtk2.8-dev libgl1-mesa-dev libglu1-mesa-dev libpng3', otherwise for example the crypto, wx or observer modules might not be available or usable.
 "
 
 

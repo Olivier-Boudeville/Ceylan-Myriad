@@ -31,12 +31,12 @@
 % A set is a container that:
 %
 % - does not allow duplicates (adding an element more than once is like adding
-% it once)
+% it only once)
 %
 % - has no intrinsic order (yet can be iterated over)
 %
 % Note: we provide here a basic, general-purpose set support, and do not rely on
-% data_utils.hrl which provides a much lighter, alternate level of indirection.
+% any lighter, alternate level of indirection.
 %
 % See set_utils_test.erl for the corresponding test.
 %

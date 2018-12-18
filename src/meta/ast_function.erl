@@ -73,6 +73,7 @@
 -type located_form() :: ast_info:located_form().
 -type function_info() :: ast_info:function_info().
 -type function_table() :: ast_info:function_table().
+-type function_pair() :: { meta_utils:function_id(), function_info() }.
 
 -type function_export_table() :: ast_info:function_export_table().
 
@@ -89,6 +90,8 @@
 % For the ast_transform record:
 -include("ast_transform.hrl").
 
+% For the rec_guard-related defines:
+-include("ast_utils.hrl").
 
 
 % Checks that specified function name is legit.
@@ -196,12 +199,11 @@ check_function_types( Other, _FunctionArity, Context ) ->
 	ast_utils:raise_error( [ invalid_function_type_list, Other ], Context ).
 
 
-
 % Transforms the functions in specified table, based on specified transforms.
 %
 -spec transform_functions( function_table(), ast_transforms() ) ->
-								 function_table().
-transform_functions( FunctionTable, Transforms ) ->
+								 { function_table(), ast_transforms() }.
+transform_functions( FunctionTable, Transforms ) ?rec_guard ->
 
 	%ast_utils:display_debug( "Transforming functions..." ),
 
@@ -209,38 +211,63 @@ transform_functions( FunctionTable, Transforms ) ->
 
 	FunIdInfoPairs = ?table:enumerate( FunctionTable ),
 
-	NewFunIdInfoPairs = [ { FunId, transform_function( FunInfo, Transforms ) }
-						  || { FunId, FunInfo } <- FunIdInfoPairs ],
+	{ NewFunIdInfoPairs, NewTransforms } = lists:mapfoldl(
+			fun transform_function_pair/2, _Acc0=Transforms,
+			_List=FunIdInfoPairs ),
 
-	?table:new( NewFunIdInfoPairs ).
+	NewFunctionTable = ?table:new( NewFunIdInfoPairs ),
+
+	{ NewFunctionTable, NewTransforms }.
+
+
+
+% Transforms specified function pair: { FunId, FunInfo }.
+%
+% Allows to keep around the function identifier, to recreate the function table
+% more easily.
+%
+-spec transform_function_pair( function_pair(), ast_transforms() ) ->
+									 { function_pair(), ast_transforms() }.
+transform_function_pair( { FunId, FunctionInfo }, Transforms ) ?rec_guard ->
+
+	{ NewFunctionInfo, NewTransforms } =
+		transform_function( FunctionInfo, Transforms ),
+
+	{ { FunId, NewFunctionInfo }, NewTransforms }.
 
 
 
 % Transforms specified function.
 %
 -spec transform_function( function_info(), ast_transforms() ) ->
-								function_info().
+								{ function_info(), ast_transforms() }.
 transform_function( FunctionInfo=#function_info{ clauses=ClauseDefs,
 												 spec=MaybeLocFunSpec },
-					Transforms ) ->
+					Transforms ) ?rec_guard ->
 
 	% We have to transform the clauses and the spec:
 
-	NewClauseDefs = [ ast_clause:transform_function_clause( ClauseDef,
-															Transforms )
-					  || ClauseDef <- ClauseDefs ],
+	{ NewClauseDefs, ClauseTransforms } = lists:mapfoldl(
+			fun ast_clause:transform_function_clause/2, _Acc0=Transforms,
+			_List=ClauseDefs ),
 
-	NewLocFunSpec = case MaybeLocFunSpec of
+
+	{ NewLocFunSpec, FunSpecTransforms } = case MaybeLocFunSpec of
 
 		undefined ->
-		undefined;
+			{ undefined, ClauseTransforms } ;
 
 		{ Loc, FunSpec } ->
-			{ Loc, transform_function_spec( FunSpec, Transforms ) }
+			{ NewFunSpec, NewTransforms } =
+							   transform_function_spec( FunSpec, Transforms ),
+			{ { Loc, NewFunSpec }, NewTransforms }
 
 	end,
 
-	FunctionInfo#function_info{ clauses=NewClauseDefs, spec=NewLocFunSpec }.
+	FinalFunctionInfo = FunctionInfo#function_info{ clauses=NewClauseDefs,
+													spec=NewLocFunSpec },
+
+	{ FinalFunctionInfo, FunSpecTransforms }.
 
 
 
@@ -253,9 +280,9 @@ transform_function( FunctionInfo=#function_info{ clauses=ClauseDefs,
 % Rep(Ft_k)]}}.
 %
 -spec transform_function_spec( function_spec(), ast_transforms() ) ->
-									 function_spec().
+									 { function_spec(), ast_transforms() }.
 transform_function_spec( { 'attribute', Line, SpecType, { FunId, SpecList } },
-						 Transforms ) ->
+						 Transforms ) ?rec_guard ->
 
 	% Ex for '-spec f( type_a() ) -> type_b().':
 
@@ -265,9 +292,14 @@ transform_function_spec( { 'attribute', Line, SpecType, { FunId, SpecList } },
 	%
 
 	%ast_utils:display_trace( "SpecList = ~p", [ SpecList ] ),
-	NewSpecList = [ transform_spec( Spec, Transforms ) || Spec <- SpecList ],
 
-	{ 'attribute', Line, SpecType, { FunId, NewSpecList } }.
+	{ NewSpecList, NewTransforms } =
+			lists:mapfoldl( fun transform_spec/2, _Acc0=Transforms,
+			_List=SpecList ),
+
+	NewFunSpec = { 'attribute', Line, SpecType, { FunId, NewSpecList } },
+
+	{ NewFunSpec, NewTransforms }.
 
 
 
@@ -281,17 +313,21 @@ transform_function_spec( { 'attribute', Line, SpecType, { FunId, SpecList } },
 % {type,LINE,bounded_fun,[Rep(Ft_1),Rep(Fc)]}."
 %
 transform_spec( { 'type', Line, 'bounded_fun',
-				  [ FunctionType, FunctionConstraint ] }, Transforms ) ->
+		  [ FunctionType, FunctionConstraint ] }, Transforms ) ?rec_guard ->
 
-	NewFunctionType = transform_function_type( FunctionType, Transforms ),
+	{ NewFunctionType, TypeTransforms } =
+		transform_function_type( FunctionType, Transforms ),
 
-	NewFunctionConstraint = transform_function_constraints( FunctionConstraint,
-															Transforms ),
+	{ NewFunctionConstraint, ConstTransforms } =
+		transform_function_constraints( FunctionConstraint, TypeTransforms ),
 
-	{ 'type', Line, 'bounded_fun', [ NewFunctionType, NewFunctionConstraint ] };
+	NewSpec = { 'type', Line, 'bounded_fun',
+				[ NewFunctionType, NewFunctionConstraint ] },
+
+	{ NewSpec, ConstTransforms };
 
 
-transform_spec( OtherSpec, Transforms ) ->
+transform_spec( OtherSpec, Transforms ) ?rec_guard ->
 	transform_function_type( OtherSpec, Transforms ).
 
 
@@ -304,13 +340,15 @@ transform_spec( OtherSpec, Transforms ) ->
 %
 transform_function_type( { 'type', LineFirst, 'fun',
 	   [ { 'type', LineSecond, 'product', ParamTypes }, ResultType ] },
-						 Transforms ) ->
+						 Transforms ) ?rec_guard ->
 
-	[ NewResultType | NewParamTypes ] = ast_type:transform_types(
-			[ ResultType | ParamTypes ], Transforms ),
+	{ [ NewResultType | NewParamTypes ], NewTransforms } =
+		ast_type:transform_types( [ ResultType | ParamTypes ], Transforms ),
 
-	{ 'type', LineFirst, 'fun',
-	  [ { 'type', LineSecond, 'product', NewParamTypes }, NewResultType ] };
+	NewTypeSpec = { 'type', LineFirst, 'fun',
+	  [ { 'type', LineSecond, 'product', NewParamTypes }, NewResultType ] },
+
+	{ NewTypeSpec, NewTransforms };
 
 transform_function_type( UnexpectedFunType, _Transforms ) ->
 	ast_utils:raise_error( [ unexpected_function_type, UnexpectedFunType ] ).
@@ -323,10 +361,9 @@ transform_function_type( UnexpectedFunType, _Transforms ) ->
 % "A function constraint Fc is a non-empty sequence of constraints C_1, ...,
 % C_k, and Rep(Fc) = [Rep(C_1), ..., Rep(C_k)]."
 %
-transform_function_constraints( FunctionConstraints, Transforms ) ->
-
-	[ transform_function_constraint( FC, Transforms )
-	  || FC <- FunctionConstraints ].
+transform_function_constraints( FunctionConstraints, Transforms ) ?rec_guard ->
+	lists:mapfoldl( fun transform_function_constraint/2, _Acc0=Transforms,
+					_List=FunctionConstraints ).
 
 
 
@@ -335,13 +372,17 @@ transform_function_constraints( FunctionConstraints, Transforms ) ->
 %
 transform_function_constraint( { 'type', Line, 'constraint',
 		[ AtomConstraint={ atom, _LineAtom, _SomeAtom }, [ TypeVar, Type ] ] },
-		Transforms ) ->
+		Transforms ) ?rec_guard ->
 
-	NewTypeVar = ast_type:transform_type( TypeVar, Transforms ),
+	{ NewTypeVar, VarTransforms } =
+		ast_type:transform_type( TypeVar, Transforms ),
 
-	NewType = ast_type:transform_type( Type, Transforms ),
+	{ NewType, NewTransforms } = ast_type:transform_type( Type, VarTransforms ),
 
-	{ 'type', Line, 'constraint', [ AtomConstraint, [ NewTypeVar, NewType ] ] }.
+	NewTypeSpec = { 'type', Line, 'constraint',
+					[ AtomConstraint, [ NewTypeVar, NewType ] ] },
+
+	{ NewTypeSpec, NewTransforms }.
 
 
 

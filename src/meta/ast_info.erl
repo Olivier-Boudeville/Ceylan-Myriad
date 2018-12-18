@@ -311,8 +311,7 @@
 %
 % (note: includes warnings)
 %
--type error() :: { file_utils:file_name(), ast_base:line(),
-				   basic_utils:error_reason() }.
+-type error() :: { ast_scan:scan_context(), ast_scan:error_report() }.
 
 
 -export_type([ module_info/0, type_info/0, function_info/0,
@@ -353,7 +352,8 @@
 
 		  get_default_module_location/0, get_default_module_location/1,
 
-		  get_default_export_type_location/0, get_default_export_type_location/1,
+		  get_default_export_type_location/0,
+		  get_default_export_type_location/1,
 
 		  get_default_export_function_location/0,
 		  get_default_export_function_location/1,
@@ -399,7 +399,8 @@
 
 % General type-info helpers:
 -export([ ensure_type_exported/4, ensure_type_not_exported/3,
-		  type_id_to_string/1, type_info_to_string/3 ]).
+		  type_id_to_string/1,
+		  type_info_to_string/1, type_info_to_string/3 ]).
 
 
 % Local shorthands:
@@ -443,9 +444,13 @@ ensure_function_exported( FunId, _ExportLocs=[ Loc | T ], ModuleInfo,
 											  ExportTable );
 
 				false ->
+
 					% Adding it then:
 					NewEntry = { Line, [ FunId | FunIds ] },
-					NewExportTable = ?table:addEntry( Loc, NewEntry),
+
+					NewExportTable =
+						?table:addEntry( Loc, NewEntry, ExportTable ),
+
 					ensure_function_exported( FunId, T, ModuleInfo,
 											  NewExportTable )
 
@@ -480,7 +485,7 @@ ensure_function_not_exported( FunId, _ExportLocs=[ Loc | T ], ExportTable ) ->
 					?table:removeEntry( Loc, ExportTable );
 
 				ShrunkFunIds ->
-					?table:addEntry( Loc, { Line, ShrunkFunIds } )
+					?table:addEntry( Loc, { Line, ShrunkFunIds }, ExportTable )
 
 			end,
 
@@ -616,12 +621,15 @@ check_module_info( ModuleInfo=#module_info{ unhandled_forms=[] } ) ->
 	check_module_types( ModuleInfo ),
 	check_module_functions( ModuleInfo );
 
-check_module_info( #module_info{ unhandled_forms=UnhandledForms } ) ->
+check_module_info( #module_info{ unhandled_forms=_UnhandledForms } ) ->
 
-	Forms = [ F || { _Loc, F } <- UnhandledForms ],
+	%Forms = [ F || { _Loc, F } <- UnhandledForms ],
 
-	ast_utils:raise_error( [ unhandled_forms, Forms ] ).
+	%ast_utils:raise_error( [ unhandled_forms, Forms ] ).
 
+	% A warning has already been issued, we let these unexpected forms flow
+	% through and be caught by the compiler:
+	ok.
 
 
 
@@ -825,7 +833,7 @@ recompose_ast_from_module_info( #module_info{
 % If there was at least one error reported:
 recompose_ast_from_module_info( #module_info{ errors=Errors } ) ->
 
-	ErrorStrings = [ text_utils:to_string( E ) || E <- Errors ],
+	ErrorStrings = [ text_utils:term_to_string( E ) || E <- Errors ],
 
 	trace_utils:error_fmt( "~B errors spotted in AST:~s",
 		[ length( Errors ), text_utils:strings_to_string( ErrorStrings ) ] ),
@@ -2128,6 +2136,15 @@ ensure_type_not_exported( TypeId, _ExportLocs=[ Loc | T ], ExportTable ) ->
 -spec type_id_to_string( type_id() ) -> text_utils:ustring().
 type_id_to_string( { TypeName, TypeArity } ) ->
 	text_utils:format( "~s/~B", [ TypeName, TypeArity ] ).
+
+
+
+% Returns a textual description of the specified type information.
+%
+-spec type_info_to_string( type_info() ) -> text_utils:ustring().
+type_info_to_string( TypeInfo ) ->
+	type_info_to_string( TypeInfo, _DoIncludeForms=false,
+						 _IndentationLevel=0 ).
 
 
 

@@ -113,7 +113,7 @@ ensure_list_of_atoms( Atom ) when is_atom( Atom ) ->
 	[ Atom ];
 
 ensure_list_of_atoms( List ) when is_list( List ) ->
-	case meta_utils:is_homogeneous( List, _CommonType=atom ) of
+	case type_utils:is_homogeneous( List, _CommonType=atom ) of
 
 		true ->
 			List;
@@ -136,7 +136,7 @@ ensure_list_of_tuples( Tuple ) when is_tuple( Tuple ) ->
 	[ Tuple ];
 
 ensure_list_of_tuples( List ) when is_list( List ) ->
-	case meta_utils:is_homogeneous( List, _CommonType=tuple ) of
+	case type_utils:is_homogeneous( List, _CommonType=tuple ) of
 
 		true ->
 			List;
@@ -160,7 +160,7 @@ ensure_list_of_pids( Pid ) when is_pid( Pid ) ->
 	[ Pid ];
 
 ensure_list_of_pids( List ) when is_list( List ) ->
-	case meta_utils:is_homogeneous( List, _CommonType=pid ) of
+	case type_utils:is_homogeneous( List, _CommonType=pid ) of
 
 		true ->
 			List;

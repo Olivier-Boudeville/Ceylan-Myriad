@@ -277,6 +277,9 @@
 		%
 		% '{error,{LineNumber,erl_parse, ["syntax error before: ","')'"]}}''.
 		%
+		% or forms meant to trigger errors (ex: if resulting in defining a
+		% function more than once)
+		%
 		unhandled_forms = [] :: [ ast_info:located_form() ]
 
 

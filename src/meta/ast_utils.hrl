@@ -1,4 +1,4 @@
-% Copyright (C) 2015-2018 Olivier Boudeville
+% Copyright (C) 2014-2018 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,18 +23,15 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Friday, December 19, 2014.
+% Creation date: Saturday, February 3, 2018.
 
 
-% A simple target module in order to test how parse transforms can operate.
-%
--module(simple_parse_transform_target).
+-define( rec_base_guard, is_record( Transforms, ast_transforms ) ).
 
--export([ f/1 ]).
+% Useful to trigger an error sooner when debugging:
+%-define( rec_guard, when ?rec_base_guard ).
+%-define( andalso_rec_guard, andalso ?rec_base_guard ).
 
-
-f( A ) ->
-	io:format( "Hello ~p", [ A ] ),
-	State = toto,
-	Name = tata,
-	{ State, Name }.
+% Normal setting:
+-define( rec_guard, ).
+-define( andalso_rec_guard, ).

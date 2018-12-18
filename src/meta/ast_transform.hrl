@@ -30,8 +30,8 @@
 
 % Describes the transformations to be applied onto an AST when scanning it.
 %
-% Typically centralises automatic the replacements of all known kinds to be
-% done.
+% Typically centralises the automatic replacements of all known kinds to be
+% performed.
 %
 -record( ast_transforms, {
 
@@ -51,7 +51,20 @@
 
 	% Transformations (if any) defined for remote calls:
 	remote_calls = undefined :: basic_utils:maybe(
-								  ast_transform:remote_call_transform_table() )
+								  ast_transform:remote_call_transform_table() ),
 
+
+	% Transformations (if any) to be applied on expressions as a whole (ex:
+	% exceeding the mere transformations of calls into calls):
+	%
+	% Note: currently, the only expression kind that is supported is: 'call'.
+	%
+	expressions = undefined :: basic_utils:maybe(
+								 ast_transform:expression_transform_table() ),
+
+	% Any user-defined transformation state that is to be kept and updated
+	% in the course of a transformation.
+	%
+	transformation_state = undefined :: ast_transform:transformation_state()
 
 } ).

@@ -84,7 +84,14 @@
 (setq exec-path (cons "~/Software/Erlang/Erlang-current-install/lib/erlang/bin" exec-path))
 (setq exec-path (cons "/usr/local/lib/erlang/bin" exec-path))
 
+;; erlang-electric-semicolon removed, as more a nuisance than a help (function
+;; headers generally pasted from first):
+;;
+(setq erlang-electric-commands '(erlang-electric-comma
+								 erlang-electric-g))
+
 (require 'erlang-start)
+
 
 
 ;; Not used anymore, as faulty errors are triggered when using WOOPER:

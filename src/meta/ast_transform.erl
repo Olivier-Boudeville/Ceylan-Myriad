@@ -32,7 +32,7 @@
 %
 % Note that the transform relies on a rather complex and complete traversal of
 % the abstract syntax of the AST, inspired from the spec (in
-% http://erlang.org/doc/apps/erts/absform.html) and also checked againd the
+% http://erlang.org/doc/apps/erts/absform.html) and also checked against the
 % Erlang 'id' parse transformation (see lib/stdlib/examples/erl_id_trans.erl).
 %
 -module(ast_transform).
@@ -94,12 +94,13 @@
 % we apply an anonymous function to determine the corresponding information,
 % based on context:
 -type local_type_replacement() :: type_replacement()
-			| fun( ( type_name(), type_arity() ) -> type_replacement() ).
+			| fun( ( type_name(), type_arity(), transformation_state() ) ->
+						 { type_replacement(), transformation_state() } ).
 
 
 % Table defining replacements of local types:
--type local_type_transform_table() :: ?table:?table( local_type_id_match(),
-												   local_type_replacement() ).
+-type local_type_transform_table() ::
+		?table:?table( local_type_id_match(), local_type_replacement() ).
 
 
 % Remote subsection:
@@ -107,17 +108,19 @@
 -type remote_type_id_match() :: { module_name_match(), type_name_match(),
 								  type_arity_match() }.
 
+
 % Either we directly set the target module and type names (using same arity), or
 % we apply an anonymous function to determine the corresponding information,
 % based on context:
 -type remote_type_replacement() :: type_replacement()
-			 | fun( ( module_name(), type_name(), type_arity() ) ->
-								type_replacement() ) .
+			 | fun( ( module_name(), type_name(), type_arity(),
+					  transformation_state() ) ->
+						  { type_replacement(), transformation_state() } ).
 
 
 % Table defining replacements of remote types:
--type remote_type_transform_table() :: ?table:?table( remote_type_id_match(),
-													remote_type_replacement() ).
+-type remote_type_transform_table() ::
+		?table:?table( remote_type_id_match(), remote_type_replacement() ).
 
 
 
@@ -150,12 +153,13 @@
 % information, based on context:
 %
 -type local_call_replacement() :: call_replacement()
-			 | fun( ( function_name(), arity() ) -> call_replacement() ) .
+			 | fun( ( function_name(), arity(), transformation_state() ) ->
+						  { call_replacement(), transformation_state() } ) .
 
 
-% Table defining replacements of local call:
--type local_call_transform_table() :: ?table:?table( local_call_match(),
-												local_call_replacement() ).
+% Table defining replacements of local calls:
+-type local_call_transform_table() ::
+		?table:?table( local_call_match(), local_call_replacement() ).
 
 
 % Remote subsection:
@@ -168,13 +172,40 @@
 % information, based on context:
 %
 -type remote_call_replacement() :: call_replacement()
-			 | fun( ( module_name(), function_name(), arity() ) ->
-								call_replacement() ) .
+			 | fun( ( module_name(), function_name(), arity(),
+					  transformation_state() ) ->
+						  { call_replacement(), transformation_state() } ).
 
 
-% Table defining replacements of remote call:
--type remote_call_transform_table() :: ?table:?table( remote_call_match(),
-												remote_call_replacement() ).
+% Table defining replacements of remote calls:
+-type remote_call_transform_table() ::
+		?table:?table( remote_call_match(), remote_call_replacement() ).
+
+
+
+%% Expression replacement section.
+
+
+% User-supplied function to define how expressions shall be replaced:
+-type expression_replacement_function() :: fun(
+  ( line(), ast_expression:function_ref_expression(),
+	ast_expression:params_expression(), transformation_state() ) ->
+					{ ast_expression(), transformation_state() } ).
+
+
+% Table defining replacements of whole expressions:
+-type expression_transform_table() :: ?table:?table(
+	  ast_expression:expression_kind(), expression_replacement_function() ).
+
+
+
+% Any state that is to be preserved in the course of a transformation (so that
+% it may have a memory) and that may be ultimately read (i.e. to be used for its
+% inner mode of operation and possibly for the caller's sake as well).
+%
+-type transformation_state() :: any().
+
+
 
 
 
@@ -197,6 +228,13 @@
 			   local_call_transform_table/0,
 			   remote_call_match/0, remote_call_replacement/0,
 			   remote_call_transform_table/0 ]).
+
+
+% For expression replacements:
+-export_type([ expression_replacement_function/0,
+			   expression_transform_table/0 ]).
+
+-export_type([ transformation_state/0 ]).
 
 
 
@@ -227,7 +265,7 @@
 % context (ex: in a guard, in an expression, etc.).
 %
 -type transform_fun( TargetType ) :: fun( ( TargetType, ast_transforms() ) ->
-												TargetType ).
+											{ TargetType, ast_transforms() } ).
 
 
 -export_type([ term_transformer/0, transform_fun/0, transform_fun/1 ]).
@@ -245,6 +283,9 @@
 
 -type function_name() :: meta_utils:function_name().
 -type module_name() :: meta_utils:module_name().
+
+-type line() :: ast_base:line().
+-type ast_expression() :: ast_expression:ast_expression().
 
 
 
@@ -646,7 +687,7 @@ transform_tuple( TargetTuple, TypeDescription, TermTransformer, UserData ) ->
 	TermAsList = tuple_to_list( TargetTuple ),
 
 	{ NewList, NewUserData } = transform_list( TermAsList, TypeDescription,
-										  TermTransformer, UserData ),
+											   TermTransformer, UserData ),
 
 	{ list_to_tuple( NewList ), NewUserData }.
 
@@ -656,7 +697,7 @@ transform_tuple( TargetTuple, TypeDescription, TermTransformer, UserData ) ->
 % } pair, we must recurse in nested tuples like: { 3, { user_id, "Hello" }, 1 }.
 %
 transform_transformed_term( TargetTerm, TypeDescription, TermTransformer,
-					   UserData ) ->
+							UserData ) ->
 
 	case TermTransformer( TargetTerm, UserData ) of
 
@@ -683,7 +724,8 @@ ast_transforms_to_string( #ast_transforms{
 							 local_types=MaybeLocalTypeTable,
 							 remote_types=MaybeRemoteTypeTable,
 							 local_calls=MaybeLocalCallTable,
-							 remote_calls=MaybeRemoteCallTable } ) ->
+							 remote_calls=MaybeRemoteCallTable,
+							 expressions=MaybeExpressions } ) ->
 
 	Bullet = "  - ",
 
@@ -731,7 +773,20 @@ ast_transforms_to_string( #ast_transforms{
 
 	end,
 
+	ExprStr = case MaybeExpressions of
+
+		undefined ->
+			"no expression-level transformation";
+
+		ExprTransfTable ->
+			text_utils:format( "expression-level transformations defined, "
+							   "for following ~B expression kinds: ~w",
+							   [ ?table:size( ExprTransfTable ),
+								 ?table:keys( ExprTransfTable ) ] )
+
+	end,
+
 	TableString = text_utils:strings_to_string( [ LocalTypeStr, RemoteTypeStr,
-					LocalCallStr, RemoteCallStr ] ),
+					LocalCallStr, RemoteCallStr, ExprStr ] ),
 
 	text_utils:format( "AST transformations: ~s", [ TableString ] ).

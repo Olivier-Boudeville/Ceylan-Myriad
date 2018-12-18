@@ -140,6 +140,13 @@
 -type ast_expression() :: ast_expression:ast_expression().
 -type line() :: ast_base:line().
 -type form_context() :: ast_base:form_context().
+-type ast_transforms() :: ast_transform:ast_transforms().
+
+% For the ast_transform record:
+-include("ast_transform.hrl").
+
+% For the rec_guard-related defines:
+-include("ast_utils.hrl").
 
 
 
@@ -168,34 +175,40 @@
 %
 % (helper)
 %
--spec transform_clauses_generic( [ ast_clause() ],
-		 ast_transform:ast_transforms() ) -> [ ast_clause() ].
-transform_clauses_generic( Clauses, Transforms ) ->
-	[ transform_clause_generic( C, Transforms ) || C <- Clauses ].
+-spec transform_clauses_generic( [ ast_clause() ], ast_transforms() ) ->
+									   { [ ast_clause() ], ast_transforms() }.
+transform_clauses_generic( Clauses, Transforms ) ?rec_guard ->
+	lists:mapfoldl( fun transform_clause_generic/2, _Acc0=Transforms,
+					_List=Clauses ).
 
 
 
--spec transform_clause_generic( ast_clause(),
-		 ast_transform:ast_transforms() ) -> ast_clause().
+-spec transform_clause_generic( ast_clause(), ast_transforms() ) ->
+									  { [ ast_clause() ], ast_transforms() }.
 transform_clause_generic(
   _Clause={ 'clause', Line, HeadPatternSequence, GuardSequence, BodyExprs },
-  Transforms ) ->
+  Transforms ) ?rec_guard ->
 
 	%ast_utils:display_debug( "Intercepting generic clause ~p...", [ Clause ] ),
 
-	NewHeadPatternSequence = ast_pattern:transform_pattern_sequence(
-										 HeadPatternSequence, Transforms ),
+	{ NewHeadPatternSequence, HeadTransforms } =
+		ast_pattern:transform_pattern_sequence( HeadPatternSequence,
+												Transforms ),
 
 	% Possibly empty guard list:
-	NewGuardSequence = ast_guard:transform_guard_sequence( GuardSequence,
-														   Transforms ),
+	{ NewGuardSequence, GuardTransforms } =
+		ast_guard:transform_guard_sequence( GuardSequence, HeadTransforms ),
 
-	NewBodyExprs = transform_body( BodyExprs, Transforms ),
+	{ NewBodyExprs, BodyTransforms } =
+		transform_body( BodyExprs, GuardTransforms ),
 
-	Res = { 'clause', Line, NewHeadPatternSequence, NewGuardSequence,
-			NewBodyExprs },
+	NewExpr = { 'clause', Line, NewHeadPatternSequence, NewGuardSequence,
+				NewBodyExprs },
 
-	%ast_utils:display_debug( "... returning generic clause ~p", [ Res ] ),
+	Res = { NewExpr, BodyTransforms },
+
+	%ast_utils:display_debug( "... returning generic clause and state ~p",
+	%                         [ Res ] ),
 
 	Res.
 
@@ -207,8 +220,8 @@ transform_clause_generic(
 % Transforms specified list of function clauses.
 %
 -spec transform_function_clauses( [ ast_function_clause() ],
-		 ast_transform:ast_transforms() ) -> [ ast_function_clause() ].
-transform_function_clauses( FunctionClauses, Transforms ) ->
+		 ast_transforms() ) -> { [ ast_function_clause() ], ast_transforms() }.
+transform_function_clauses( FunctionClauses, Transforms ) ?rec_guard ->
 	transform_clauses_generic( FunctionClauses, Transforms ).
 
 
@@ -224,9 +237,9 @@ transform_function_clauses( FunctionClauses, Transforms ) ->
 %  sequence, Gs is a guard sequence and B is a body, then Rep(C) =
 %  {clause,LINE,Rep(Ps),Rep(Gs),Rep(B)}."
 %
--spec transform_function_clause( ast_function_clause(),
-		 ast_transform:ast_transforms() ) -> ast_function_clause().
-transform_function_clause( Clause, Transforms ) ->
+-spec transform_function_clause( ast_function_clause(), ast_transforms() ) ->
+								   { ast_function_clause(), ast_transforms() }.
+transform_function_clause( Clause, Transforms ) ?rec_guard ->
 	transform_clause_generic( Clause, Transforms ).
 
 
@@ -236,17 +249,17 @@ transform_function_clause( Clause, Transforms ) ->
 
 % Transforms specified list of try clauses.
 %
--spec transform_try_clauses( [ ast_try_clause() ],
-		 ast_transform:ast_transforms() ) -> [ ast_try_clause() ].
-transform_try_clauses( TryClauses, Transforms ) ->
+-spec transform_try_clauses( [ ast_try_clause() ], ast_transforms() ) ->
+								   { [ ast_try_clause() ], ast_transforms() }.
+transform_try_clauses( TryClauses, Transforms ) ?rec_guard ->
 	transform_clauses_generic( TryClauses, Transforms ).
 
 
 % Transforms specified try clause.
 %
--spec transform_try_clause( ast_try_clause(),
-		 ast_transform:ast_transforms() ) -> ast_try_clause().
-transform_try_clause( TryClause, Transforms ) ->
+-spec transform_try_clause( ast_try_clause(), ast_transforms() ) ->
+								   { [ ast_try_clause() ], ast_transforms() }.
+transform_try_clause( TryClause, Transforms ) ?rec_guard ->
 	transform_clause_generic( TryClause, Transforms ).
 
 
@@ -261,11 +274,11 @@ transform_try_clause( TryClause, Transforms ) ->
 
 % Transforms specified list of 'catch' clauses.
 %
--spec transform_catch_clauses( [ ast_catch_clause() ],
-		 ast_transform:ast_transforms() ) -> [ ast_catch_clause() ].
-transform_catch_clauses( CatchClauses, Transforms ) ->
-	[ transform_catch_clause( CC, Transforms ) || CC <- CatchClauses ].
-
+-spec transform_catch_clauses( [ ast_catch_clause() ], ast_transforms() ) ->
+								 { [ ast_catch_clause() ], ast_transforms() }.
+transform_catch_clauses( CatchClauses, Transforms ) ?rec_guard ->
+	lists:mapfoldl( fun transform_catch_clause/2, _Acc0=Transforms,
+					_List=CatchClauses ).
 
 
 % Catch clause with no variable, with or without a guard sequence (1/4 and 3/4):
@@ -277,28 +290,33 @@ transform_catch_clauses( CatchClauses, Transforms ) ->
 % sequence, and B is a body, then Rep(C) =
 % {clause,LINE,[Rep({throw,P,_})],Rep(Gs),Rep(B)}."
 %
--spec transform_catch_clause( ast_catch_clause(),
-				  ast_transform:ast_transforms() ) -> ast_catch_clause().
+-spec transform_catch_clause( ast_catch_clause(), ast_transforms() ) ->
+									{ ast_catch_clause(), ast_transforms() }.
 transform_catch_clause(
   _Clause={ 'clause', Line, [ { throw, Pattern, Any } ], GuardSequence,
-		   BodyExprs },
-  Transforms ) ->
+			BodyExprs },
+  Transforms ) ?rec_guard ->
 
 	ast_utils:display_warning( "transform_catch_clause: Any= ~p", [ Any ] ),
 
 	%ast_utils:display_debug( "Intercepting catch clause ~p...", [ Clause ] ),
 
-	NewPattern = ast_pattern:transform_pattern( Pattern, Transforms ),
+	{ NewPattern, PatTransforms } =
+		ast_pattern:transform_pattern( Pattern, Transforms ),
 
-	NewGuardSequence = ast_guard:transform_guard_sequence( GuardSequence,
-														   Transforms ),
+	{ NewGuardSequence, GuardTransforms } = ast_guard:transform_guard_sequence(
+											  GuardSequence, PatTransforms ),
 
-	NewBodyExprs = transform_body( BodyExprs, Transforms ),
+	{ NewBodyExprs, BodyTransforms } =
+		transform_body( BodyExprs, GuardTransforms ),
 
-	Res = { 'clause', Line, [ { 'throw', NewPattern, Any } ], NewGuardSequence,
-			NewBodyExprs },
+	NewExpr = { 'clause', Line, [ { 'throw', NewPattern, Any } ],
+				NewGuardSequence,NewBodyExprs },
 
-	%ast_utils:display_debug( "... returning catch clause ~p", [ Res ] ),
+	Res = { NewExpr, BodyTransforms },
+
+	%ast_utils:display_debug( "... returning catch clause and state ~p",
+	%                         [ Res ] ),
 
 	Res;
 
@@ -316,7 +334,7 @@ transform_catch_clause(
 transform_catch_clause(
   _Clause={ 'clause', Line, [ HeadPattern={ _X, _P, _Any } ], GuardSequence,
 			BodyExprs },
-  Transforms ) ->
+  Transforms ) ?rec_guard ->
 
 	%ast_utils:display_debug( "transform_catch_clause: X=~p, P=~p, Any= ~p",
 	%						  [ X, P, Any ] ),
@@ -325,18 +343,22 @@ transform_catch_clause(
 	%						 [ Clause ] ),
 
 	% Includes atomic literals:
-	NewHeadPattern = ast_pattern:transform_pattern( HeadPattern, Transforms ),
+	{ NewHeadPattern, HeadTransforms } =
+		ast_pattern:transform_pattern( HeadPattern, Transforms ),
 
-	NewGuardSequence = ast_guard:transform_guard_sequence( GuardSequence,
-														   Transforms ),
+	{ NewGuardSequence, GuardTransforms } =
+		ast_guard:transform_guard_sequence( GuardSequence, HeadTransforms ),
 
-	NewBodyExprs = transform_body( BodyExprs, Transforms ),
+	{ NewBodyExprs, BodyTransforms } =
+		transform_body( BodyExprs, GuardTransforms ),
 
-	Res = { 'clause', Line, [ NewHeadPattern ], NewGuardSequence,
-			NewBodyExprs },
+	NewExpr = { 'clause', Line, [ NewHeadPattern ], NewGuardSequence,
+				NewBodyExprs },
 
-	%ast_utils:display_debug( "... returning catch clause with variable ~p",
-	%						 [ Res ] ),
+	Res = { NewExpr, BodyTransforms },
+
+	%ast_utils:display_debug( "... returning catch clause with variable "
+	%                         "and state ~p", [ Res ] ),
 
 	Res.
 
@@ -349,10 +371,11 @@ transform_catch_clause(
 
 % Transforms specified list of 'if' clauses.
 %
--spec transform_if_clauses( [ ast_if_clause() ],
-		 ast_transform:ast_transforms() ) -> [ ast_if_clause() ].
-transform_if_clauses( IfClauses, Transforms ) ->
-	[ transform_if_clause( IC, Transforms ) || IC <- IfClauses ].
+-spec transform_if_clauses( [ ast_if_clause() ], ast_transforms() ) ->
+								  { [ ast_if_clause() ], ast_transforms() }.
+transform_if_clauses( IfClauses, Transforms ) ?rec_guard ->
+	lists:mapfoldl( fun transform_if_clause/2, _Acc0=Transforms,
+					_List=IfClauses ).
 
 
 
@@ -363,23 +386,26 @@ transform_if_clauses( IfClauses, Transforms ) ->
 %
 % (no pattern sequence allowed)
 %
--spec transform_if_clause( ast_if_clause(), ast_transform:ast_transforms() ) ->
-								 ast_if_clause().
+-spec transform_if_clause( ast_if_clause(), ast_transforms() ) ->
+								{ ast_if_clause(), ast_transforms() }.
 transform_if_clause(
   _Clause={ 'clause', Line, HeadPatternSequence=[], GuardSequence, BodyExprs },
-  Transforms ) ->
+  Transforms ) ?rec_guard ->
 
 	%ast_utils:display_debug( "Intercepting if clause ~p...", [ Clause ] ),
 
-	NewGuardSequence = ast_guard:transform_guard_sequence( GuardSequence,
-														   Transforms ),
+	{ NewGuardSequence, GuardTransforms } =
+		ast_guard:transform_guard_sequence( GuardSequence, Transforms ),
 
-	NewBodyExprs = transform_body( BodyExprs, Transforms ),
+	{ NewBodyExprs, BodyTransforms } =
+		transform_body( BodyExprs, GuardTransforms ),
 
-	Res = { 'clause', Line, HeadPatternSequence, NewGuardSequence,
-			NewBodyExprs },
+	NewExpr = { 'clause', Line, HeadPatternSequence, NewGuardSequence,
+				NewBodyExprs },
 
-	%ast_utils:display_debug( "... returning if clause ~p", [ Res ] ),
+	Res = { NewExpr, BodyTransforms },
+
+	%ast_utils:display_debug( "... returning if clause and state ~p", [ Res ] ),
 
 	Res.
 
@@ -394,11 +420,11 @@ transform_if_clause(
 
 % Transforms specified list of 'case' clauses.
 %
--spec transform_case_clauses( [ ast_case_clause() ],
-		 ast_transform:ast_transforms() ) -> [ ast_case_clause() ].
-transform_case_clauses( CaseClauses, Transforms ) ->
-	[ transform_case_clause( CC, Transforms ) || CC <- CaseClauses ].
-
+-spec transform_case_clauses( [ ast_case_clause() ], ast_transforms() ) ->
+									{ [ ast_case_clause() ], ast_transforms() }.
+transform_case_clauses( CaseClauses, Transforms ) ?rec_guard ->
+	lists:mapfoldl( fun transform_case_clause/2, _Acc0=Transforms,
+					_List=CaseClauses ).
 
 
 % Transforms specified 'case' clause.
@@ -412,24 +438,30 @@ transform_case_clauses( CaseClauses, Transforms ) ->
 %
 % (a single pattern allowed)
 %
--spec transform_case_clause( ast_case_clause(),
-				ast_transform:ast_transforms() ) -> ast_case_clause().
+-spec transform_case_clause( ast_case_clause(), ast_transforms() ) ->
+									{ [ ast_case_clause() ], ast_transforms() }.
 transform_case_clause(
   _Clause={ 'clause', Line, [ Pattern ], GuardSequence, BodyExprs },
-  Transforms ) ->
+  Transforms ) ?rec_guard ->
 
 	%ast_utils:display_debug( "Intercepting case clause ~p...", [ Clause ] ),
 
-	NewPattern = ast_pattern:transform_pattern( Pattern, Transforms ),
+	{ NewPattern, PatTransforms } =
+		ast_pattern:transform_pattern( Pattern, Transforms ),
 
-	NewGuardSequence = ast_guard:transform_guard_sequence( GuardSequence,
-														   Transforms ),
+	{ NewGuardSequence, GuardTransforms } =
+		ast_guard:transform_guard_sequence( GuardSequence, PatTransforms ),
 
-	NewBodyExprs = transform_body( BodyExprs, Transforms ),
+	{ NewBodyExprs, BodyTransforms } =
+		transform_body( BodyExprs, GuardTransforms ),
 
-	Res = { 'clause', Line, [ NewPattern ], NewGuardSequence, NewBodyExprs },
+	NewExpr = { 'clause', Line, [ NewPattern ], NewGuardSequence,
+				NewBodyExprs },
 
-	%ast_utils:display_debug( "... returning case clause ~p", [ Res ] ),
+	Res = { NewExpr, BodyTransforms },
+
+	%ast_utils:display_debug( "... returning case clause and state ~p",
+	%                         [ Res ] ),
 
 	Res.
 
@@ -440,8 +472,8 @@ transform_case_clause(
 % "A body B is a non-empty sequence of expressions E_1, ..., E_k, and Rep(B) =
 % [Rep(E_1), ..., Rep(E_k)]."
 %
--spec transform_body( ast_body(), ast_transform:ast_transforms() ) ->
-							ast_body().
+-spec transform_body( ast_body(), ast_transforms() ) ->
+							{ ast_body(), ast_transforms() }.
 
 % Actually bodies can be empty lists (ex: if a try/catch does not have an
 % 'after' clause, its associated body will be empty).
@@ -449,7 +481,8 @@ transform_case_clause(
 %transform_body( _BodyExprs=[], _Transforms ) ->
 %	ast_utils:raise_error( invalid_empty_body );
 
-transform_body( BodyExprs, Transforms ) when is_list( BodyExprs ) ->
+transform_body( BodyExprs, Transforms )
+  when is_list( BodyExprs ) ?andalso_rec_guard ->
 	ast_expression:transform_expressions( BodyExprs, Transforms );
 
 transform_body( Other, _Transforms ) ->

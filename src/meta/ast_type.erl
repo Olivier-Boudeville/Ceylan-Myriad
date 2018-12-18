@@ -232,12 +232,15 @@
 
 
 -type record_table() :: ast_info:record_table().
+
 -type field_table() :: ast_info:field_table().
+-type field_pair() :: ast_record:field_pair().
 
 -type type_info() :: ast_info:type_info().
+-type type_pair() :: { type_utils:type_id(), type_info() }.
 
 -type record_definition() :: ast_info:record_definition().
-
+-type record_pair() :: ast_record:record_pair().
 
 -type ast_transforms() :: ast_transform:ast_transforms().
 
@@ -252,7 +255,14 @@
 % For the ast_transforms record:
 -include("ast_transform.hrl").
 
+% For the rec_guard define:
+-include("ast_utils.hrl").
 
+
+% Implementation notes:
+%
+% The use of lists:mapfoldl/3 should preferably be replaced by
+% ?table:mapOnValues/2.
 
 
 % Transformation section.
@@ -261,26 +271,50 @@
 % Transforms the types in specified type table, according to specified
 % transforms.
 %
--spec transform_type_table( type_table(), ast_transforms() ) -> type_table().
-transform_type_table( TypeTable, Transforms ) ->
+-spec transform_type_table( type_table(), ast_transforms() ) ->
+								  { type_table(), ast_transforms() }.
+transform_type_table( TypeTable, Transforms ) ?rec_guard ->
 
 	% { type_id(), type_info() } pairs:
 	TypePairs = ?table:enumerate( TypeTable ),
 
-	NewTypePairs = [ { TypeId, transform_type_info( TypeInfo, Transforms ) }
-					 || { TypeId, TypeInfo } <- TypePairs ],
+	{ NewTypePairs, NewTransforms } = lists:mapfoldl(
+			fun transform_type_info_pair/2, _Acc0=Transforms,
+			_List=TypePairs ),
 
-	?table:new( NewTypePairs ).
+	NewTypeTable = ?table:new( NewTypePairs ),
+
+	{ NewTypeTable, NewTransforms }.
+
+
+
+% Transforms specified function pair: { FunId, FunInfo }.
+%
+% Allows to keep around the function identifier, to recreate the function table
+% more easily.
+%
+-spec transform_type_info_pair( type_pair(), ast_transforms() ) ->
+									 { type_pair(), ast_transforms() }.
+transform_type_info_pair( { TypeId, TypeInfo }, Transforms ) ?rec_guard ->
+
+	{ NewTypeInfo, NewTransforms } =
+		transform_type_info( TypeInfo, Transforms ),
+
+	{ { TypeId, NewTypeInfo }, NewTransforms }.
 
 
 
 % (helper)
--spec transform_type_info( type_info(), ast_transforms() ) -> type_info().
-transform_type_info( TypeInfo=#type_info{ definition=TypeDef }, Transforms ) ->
+-spec transform_type_info( type_info(), ast_transforms() ) ->
+								 { type_info(), ast_transforms() }.
+transform_type_info( TypeInfo=#type_info{ definition=TypeDef },
+					 Transforms ) ?rec_guard ->
 
-	NewTypeDef = transform_type( TypeDef, Transforms ),
+	{ NewTypeDef, NewTransforms } = transform_type( TypeDef, Transforms ),
 
-	TypeInfo#type_info{ definition=NewTypeDef }.
+	NewTypeInfo = TypeInfo#type_info{ definition=NewTypeDef },
+
+	{ NewTypeInfo, NewTransforms }.
 
 
 
@@ -288,61 +322,105 @@ transform_type_info( TypeInfo=#type_info{ definition=TypeDef }, Transforms ) ->
 % transforms.
 %
 -spec transform_types_in_record_table( record_table(), ast_transforms() ) ->
-										record_table().
-transform_types_in_record_table( RecordTable, Transforms ) ->
+										{ record_table(), ast_transforms() }.
+transform_types_in_record_table( RecordTable, Transforms ) ?rec_guard ->
 
 	% { record_name(), record_definition() } pairs:
 	RecordPairs = ?table:enumerate( RecordTable ),
 
-	NewRecordPairs = [ { RecordName, transform_record_definition( RecordDef,
-																  Transforms ) }
-					   || { RecordName, RecordDef } <- RecordPairs ],
+	{ NewRecordPairs, NewTransforms } = lists:mapfoldl(
+			fun transform_record_pair/2, _Acc0=Transforms,
+			_List=RecordPairs ),
 
-	?table:new( NewRecordPairs ).
+	NewRecordTable = ?table:new( NewRecordPairs ),
+
+	{ NewRecordTable, NewTransforms }.
+
+
+
+% Transforms specified record pair: { RecordName, RecordDef }.
+%
+% Allows to keep around the record name, to recreate the record table more
+% easily.
+%
+-spec transform_record_pair( record_pair(), ast_transforms() ) ->
+									 { record_pair(), ast_transforms() }.
+transform_record_pair( { RecordName, RecordDef }, Transforms ) ?rec_guard ->
+
+	{ NewRecordDef, NewTransforms } =
+		transform_record_definition( RecordDef, Transforms ),
+
+	{ { RecordName, NewRecordDef }, NewTransforms }.
 
 
 
 % (helper)
 -spec transform_record_definition( record_definition(), ast_transforms() ) ->
-										 record_definition().
+									{ record_definition(), ast_transforms() }.
 transform_record_definition( _RecordDef={ FieldTable, Loc, Line },
-							 Transforms ) ->
+							 Transforms ) ?rec_guard ->
 
-	NewFieldTable = transform_field_table( FieldTable, Transforms ),
+	{ NewFieldTable, NewTransforms } =
+		transform_field_table( FieldTable, Transforms ),
 
-	{ NewFieldTable, Loc, Line }.
+	NewRecordDef = { NewFieldTable, Loc, Line },
+
+	{ NewRecordDef, NewTransforms }.
 
 
 
 % (helper)
--spec transform_field_table( field_table(), ast_transforms() ) -> field_table().
-transform_field_table( FieldTable, Transforms ) ->
+-spec transform_field_table( field_table(), ast_transforms() ) ->
+								   { field_table(), ast_transforms() }.
+transform_field_table( FieldTable, Transforms ) ?rec_guard ->
 
-	[ { FieldName, transform_field_definition( FieldDef, Transforms ) }
-	  || { FieldName, FieldDef } <- FieldTable ].
+	%io:format( "Field table is:~p~n", [ FieldTable ] ),
 
+	% Is already a list directly (no key/value pairs to preserve here):
+	lists:mapfoldl( fun transform_field_pair/2, _Acc0=Transforms,
+					_List=FieldTable ).
+
+
+
+% Transforms specified field pair: { FieldName, FieldInfo }.
+%
+% Allows to keep around the field name, to recreate the field table more easily.
+%
+-spec transform_field_pair( field_pair(), ast_transforms() ) ->
+								  { field_pair(), ast_transforms() }.
+transform_field_pair( { FieldName, FieldDef }, Transforms ) ?rec_guard ->
+
+	{ NewFieldDef, NewTransforms } =
+		transform_field_definition( FieldDef, Transforms ),
+
+	{ { FieldName, NewFieldDef }, NewTransforms }.
 
 
 
 % (helper)
 transform_field_definition( FieldDef={ _AstType=undefined, _AstValue=undefined,
-								   _FirstLine, _SecondLine }, _Transforms ) ->
+									   _FirstLine, _SecondLine },
+							Transforms ) ->
 
 	%ast_utils:display_debug( "Field definition (clause #1):~n  ~p",
-	%						 [ FieldDef ] ),
+	%						  [ FieldDef ] ),
 
-	FieldDef;
+	{ FieldDef, Transforms };
 
 
 transform_field_definition( _FieldDef={ _AstType=undefined, AstValue,
-								   FirstLine, SecondLine }, Transforms ) ->
+										FirstLine, SecondLine },
+							Transforms ) ->
 
 	%ast_utils:display_debug( "Field definition (clause #2):~n  ~p",
 	%						 [ FieldDef ] ),
 
-	NewAstValue = ast_expression:transform_expression( AstValue, Transforms ),
+	{ NewAstValue, NewTransforms } =
+		ast_expression:transform_expression( AstValue, Transforms ),
 
-	{ undefined, NewAstValue, FirstLine, SecondLine };
+	NewFieldDef = { undefined, NewAstValue, FirstLine, SecondLine },
+
+	{ NewFieldDef, NewTransforms };
 
 
 transform_field_definition( _FieldDef={ AstType, _AstValue=undefined, FirstLine,
@@ -351,9 +429,11 @@ transform_field_definition( _FieldDef={ AstType, _AstValue=undefined, FirstLine,
 	%ast_utils:display_debug( "Field definition (clause #3):~n  ~p",
 	%						 [ FieldDef ] ),
 
-	NewAstType = transform_type( AstType, Transforms ),
+	{ NewAstType, NewTransforms } = transform_type( AstType, Transforms ),
 
-	{ NewAstType, undefined, FirstLine, SecondLine };
+	NewFieldDef = { NewAstType, undefined, FirstLine, SecondLine },
+
+	{ NewFieldDef, NewTransforms };
 
 
 transform_field_definition(
@@ -362,20 +442,24 @@ transform_field_definition(
 	%ast_utils:display_debug( "Field definition (clause #4):~n  ~p",
 	%						 [ FieldDef ] ),
 
-	NewAstType = transform_type( AstType, Transforms ),
+	{ NewAstType, TypeTransforms } = transform_type( AstType, Transforms ),
 
-	NewAstValue = ast_expression:transform_expression( AstValue, Transforms ),
+	{ NewAstValue, ExprTransforms } =
+		ast_expression:transform_expression( AstValue, TypeTransforms ),
 
-	{ NewAstType, NewAstValue, FirstLine, SecondLine }.
+	FieldDef = { NewAstType, NewAstValue, FirstLine, SecondLine },
 
+	{ FieldDef, ExprTransforms }.
 
 
 
 % Transforms specified list of types.
 %
--spec transform_types( [ ast_type() ], ast_transforms() ) -> [ ast_type() ].
+-spec transform_types( [ ast_type() ], ast_transforms() ) ->
+							 { [ ast_type() ], ast_transforms() }.
 transform_types( Types, Transforms ) ->
-	[ transform_type( T, Transforms ) || T <- Types ].
+	% Is already a list directly (no key/value pairs to preserve here):
+	lists:mapfoldl( fun transform_type/2, _Acc0=Transforms, _List=Types ).
 
 
 
@@ -409,7 +493,8 @@ transform_types( Types, Transforms ) ->
 %
 % (helper)
 %
--spec transform_type( ast_type(), ast_transforms() ) -> ast_type().
+-spec transform_type( ast_type(), ast_transforms() ) ->
+							{ ast_type(), ast_transforms() }.
 
 % Handling tuples:
 
@@ -421,16 +506,22 @@ transform_types( Types, Transforms ) ->
 %
 transform_type( _TypeDef={ 'type', Line, 'tuple', ElementTypes }, Transforms )
   when is_list( ElementTypes ) ->
-	{ 'type', Line, 'tuple',
-	  [ transform_type( Elem, Transforms ) || Elem <- ElementTypes ] };
+
+	% Is already a list directly (no key/value pairs to preserve here):
+	{ NewElementTypes, NewTransforms } = lists:mapfoldl( fun transform_type/2,
+					  _Acc0=Transforms, _List=ElementTypes ),
+
+	NewTypeDef = { 'type', Line, 'tuple', NewElementTypes },
+
+	{ NewTypeDef, NewTransforms };
 
 
 % General tuple type found (i.e. tuple()):
 %
 % "If T is a tuple type tuple(), then Rep(T) = {type,LINE,tuple,any}."
 %
-transform_type( TypeDef={ 'type', _Line, 'tuple', 'any' }, _Transforms ) ->
-	TypeDef;
+transform_type( TypeDef={ 'type', _Line, 'tuple', 'any' }, Transforms ) ->
+	{ TypeDef, Transforms };
 
 transform_type( TypeDef={ 'type', Line, 'tuple', _Any }, _Transforms ) ->
 	ast_utils:raise_error( [ unexpected_typedef_tuple_form, TypeDef ],
@@ -451,9 +542,12 @@ transform_type( TypeDef={ 'type', Line, 'tuple', _Any }, _Transforms ) ->
 transform_type( _TypeDef={ 'type', Line, 'list', [ ElementType ] },
 				Transforms ) ->
 
-	NewElementType = transform_type( ElementType, Transforms ),
+	{ NewElementType, NewTransforms } =
+		transform_type( ElementType, Transforms ),
 
-	{ 'type', Line, 'list', [ NewElementType ] };
+	NewTypeDef = { 'type', Line, 'list', [ NewElementType ] },
+
+	{ NewTypeDef, NewTransforms };
 
 
 % General list type found (i.e. list()):
@@ -462,13 +556,13 @@ transform_type( _TypeDef={ 'type', Line, 'list', [ ElementType ] },
 %
 % "If T is a list type list(), then Rep(T) = {type,LINE,list,any}."
 %
-transform_type( TypeDef={ 'type', _Line, 'list', 'any' }, _Transforms ) ->
-	TypeDef;
+transform_type( TypeDef={ 'type', _Line, 'list', 'any' }, Transforms ) ->
+	{ TypeDef, Transforms };
 
 
 % Yes, at least in some cases list() may be translated as {type,LINE,list,[]}:
-transform_type( TypeDef={ 'type', _Line, 'list', [] }, _Transforms ) ->
-	TypeDef;
+transform_type( TypeDef={ 'type', _Line, 'list', [] }, Transforms ) ->
+	{ TypeDef, Transforms };
 
 
 transform_type( TypeDef={ 'type', _Line, 'list', _Any }, _Transforms ) ->
@@ -479,8 +573,8 @@ transform_type( TypeDef={ 'type', _Line, 'list', _Any }, _Transforms ) ->
 %
 % "If T is the empty list type [], then Rep(T) = {type,Line,nil,[]}"
 %
-transform_type( TypeDef={ 'type', _Line, 'nil', [] }, _Transforms ) ->
-	TypeDef;
+transform_type( TypeDef={ 'type', _Line, 'nil', [] }, Transforms ) ->
+	{ TypeDef, Transforms };
 
 
 
@@ -489,8 +583,7 @@ transform_type( TypeDef={ 'type', _Line, 'nil', [] }, _Transforms ) ->
 % "If T is a bitstring type <<_:M,_:_*N>>, where M and N are singleton integer
 % types, then Rep(T) = {type,LINE,binary,[Rep(M),Rep(N)]}."
 %
-transform_type( _TypeDef={ 'type', Line, 'binary', [ M, N ] },
-				Transforms ) ->
+transform_type( _TypeDef={ 'type', Line, 'binary', [ M, N ] }, Transforms ) ->
 
 	% To be removed once ever seen displayed:
 	%ast_utils:display_warning( "Not transforming binary elements ~p and ~p.",
@@ -498,11 +591,13 @@ transform_type( _TypeDef={ 'type', Line, 'binary', [ M, N ] },
 
 	% Finally transformed, as managed in erl_id_trans:
 
-	NewM = transform_type( M, Transforms ),
+	{ NewM, MTransforms } = transform_type( M, Transforms ),
 
-	NewN = transform_type( N, Transforms ),
+	{ NewN, NTransforms } = transform_type( N, MTransforms ),
 
-	{ 'type', Line, 'binary', [ NewM, NewN ] };
+	TypeDef = { 'type', Line, 'binary', [ NewM, NewN ] },
+
+	{ TypeDef, NTransforms };
 
 
 
@@ -517,19 +612,21 @@ transform_type( _TypeDef={ 'type', Line, 'range', [ L, H ] }, Transforms ) ->
 
 	% Finally transformed, as managed in erl_id_trans:
 
-	NewL = transform_type( L, Transforms ),
+	{ NewL, LTransforms } = transform_type( L, Transforms ),
 
-	NewH = transform_type( H, Transforms ),
+	{ NewH, HTransforms } = transform_type( H, LTransforms ),
 
-	{ 'type', Line, 'range', [ NewL, NewH ] };
+	NewTypeDef = { 'type', Line, 'range', [ NewL, NewH ] },
+
+	{ NewTypeDef, HTransforms };
 
 
 % Handling maps:
 
 % "If T is a map type map(), then Rep(T) = {type,LINE,map,any}."
 %
-transform_type( TypeDef={ 'type', _Line, 'map', 'any' }, _Transforms ) ->
-	TypeDef;
+transform_type( TypeDef={ 'type', _Line, 'map', 'any' }, Transforms ) ->
+	{ TypeDef, Transforms };
 
 
 % "If T is a map type #{A_1, ..., A_k}, where each A_i is an association type,
@@ -538,10 +635,13 @@ transform_type( TypeDef={ 'type', _Line, 'map', 'any' }, _Transforms ) ->
 transform_type( _TypeDef={ 'type', Line, 'map', AssocTypes },
 				Transforms ) ->
 
-	NewAssocTypes = [ transform_association_type( T, Transforms )
-					  || T <- AssocTypes ],
+	% Is already a list directly (no key/value pairs to preserve here):
+	{ NewAssocTypes, NewTransforms } = lists:mapfoldl(
+		fun transform_association_type/2, _Acc0=Transforms, _List=AssocTypes ),
 
-	{ 'type', Line, 'map', NewAssocTypes };
+	NewTypeDef = { 'type', Line, 'map', NewAssocTypes },
+
+	{ NewTypeDef, NewTransforms };
 
 
 
@@ -549,8 +649,8 @@ transform_type( _TypeDef={ 'type', Line, 'map', AssocTypes },
 
 
 % "If T is a fun type fun(), then Rep(T) = {type,LINE,'fun',[]}."
-transform_type( TypeDef={ 'type', _Line, 'fun', [] }, _Transforms ) ->
-	TypeDef;
+transform_type( TypeDef={ 'type', _Line, 'fun', [] }, Transforms ) ->
+	{ TypeDef, Transforms };
 
 
 % "If T is a fun type fun((...) -> T_0), then Rep(T) =
@@ -560,9 +660,11 @@ transform_type( _TypeDef={ 'type', Line1, 'fun',
 						   [ Any={ 'type', _Line2, 'any' } ], ResultType },
 				Transforms ) ->
 
-	NewResultType = transform_type( ResultType, Transforms ),
+	{ NewResultType, NewTransforms } = transform_type( ResultType, Transforms ),
 
-	{ 'type', Line1, 'fun', [ Any, NewResultType ] };
+	NewTypeDef = { 'type', Line1, 'fun', [ Any, NewResultType ] },
+
+	{ NewTypeDef, NewTransforms };
 
 
 % "If T is a fun type fun(Ft), where Ft is a function type, then Rep(T) =
@@ -571,7 +673,6 @@ transform_type( _TypeDef={ 'type', Line1, 'fun',
 % ParamsResult corresponds to any [ Params, ResultType ]:
 %
 transform_type( TypeDef={ 'type', _Line, 'fun', _ParamsResult }, Transforms ) ->
-
 	ast_function:transform_function_type( TypeDef, Transforms );
 
 
@@ -583,28 +684,32 @@ transform_type( TypeDef={ 'type', _Line, 'fun', _ParamsResult }, Transforms ) ->
 transform_type( _TypeDef={ 'type', Line, 'union', UnifiedTypes },
 				Transforms ) ->
 
-	NewUnifiedTypes = [ transform_type( T, Transforms ) || T <- UnifiedTypes ],
+	% Is already a list directly (no key/value pairs to preserve here):
+	{ NewUnifiedTypes, NewTransforms } = lists:mapfoldl(
+		fun transform_type/2, _Acc0=Transforms, _List=UnifiedTypes ),
 
-	{ 'type', Line, 'union', NewUnifiedTypes };
+	NewTypeDef = { 'type', Line, 'union', NewUnifiedTypes },
+
+	{ NewTypeDef, NewTransforms };
 
 
 % Simple built-in type, like 'boolean()', translating in '{ type, 57, boolean,
 % [] }':
 %
 transform_type( TypeDef={ 'type', _Line, BuiltinType, _TypeVars=[] },
-				_Transforms ) ->
+				Transforms ) ->
 
 	case lists:member( BuiltinType,
 					   type_utils:get_ast_simple_builtin_types() ) of
 
 		true ->
-			TypeDef;
+			{ TypeDef, Transforms };
 
 		false ->
 			ast_utils:display_warning( "Not expecting type '~s' "
 				"(in ast_type:transform_type/3), assuming simple builtin type, "
 				"in:~n  ~p", [ BuiltinType, TypeDef ] ),
-			TypeDef
+			{ TypeDef, Transforms }
 
 	end;
 
@@ -619,10 +724,14 @@ transform_type( _TypeDef={ 'type', Line, 'record',
 				   _TypeVars=[ N={ atom, _LineT, _RecordName } | FieldTypes ] },
 				Transforms ) ->
 
-	NewFieldTypes = [ transform_field_type( FT, Transforms )
-					  || FT <- FieldTypes ],
+	% Is already a list directly (no key/value pairs to preserve here):
+	{ NewFieldTypes, NewTransforms } = lists:mapfoldl(
+		fun transform_field_type/2, _Acc0=Transforms,
+		_List=FieldTypes ),
 
-	{ 'type', Line, 'record', [ N | NewFieldTypes ] };
+	NewTypeDef = { 'type', Line, 'record', [ N | NewFieldTypes ] },
+
+	{ NewTypeDef, NewTransforms };
 
 
 % Known other built-in types (catch-all for all remaining 'type'):
@@ -635,29 +744,34 @@ transform_type( TypeDef={ 'type', Line, BuiltinType, TypeVars },
 							   "parametrized builtin type, in:~n  ~p",
 							   [ BuiltinType, TypeDef ] ),
 
-	NewTypeVars = [ transform_type( T, Transforms ) || T <- TypeVars ],
+	% Is already a list directly (no key/value pairs to preserve here):
+	{ NewTypeVars, NewTransforms } = lists:mapfoldl(
+		 fun transform_type/2, _Acc0=Transforms, _List=TypeVars ),
 
-	{ 'type', Line, BuiltinType, NewTypeVars };
+	NewTypeDef = { 'type', Line, BuiltinType, NewTypeVars },
+
+	{ NewTypeDef, NewTransforms };
 
 
 
-
-% Handling user type (necessary a local one):
+% Handling user type (necessarily a local one):
 
 
 transform_type( _TypeDef={ 'user_type', Line, TypeName, TypeVars },
 			Transforms=#ast_transforms{ local_types=LocalTransformTable } ) ->
 
-	TypeArity = length( TypeVars ),
+	% Is already a list directly (no key/value pairs to preserve here):
+	{ NewTypeVars, NewTransforms } = lists:mapfoldl( fun transform_type/2,
+					 _Acc0=Transforms, _List=TypeVars ),
 
-	NewTypeVars = [ transform_type( T, Transforms ) || T <- TypeVars ],
+	TypeArity = length( TypeVars ),
 
 	% Note: no user-to-local type rewriting deemed useful.
 
-	Outcome = case LocalTransformTable of
+	{ Outcome, LocalTransforms } = case LocalTransformTable of
 
 		undefined ->
-			unchanged;
+			{ unchanged, NewTransforms };
 
 		_ ->
 
@@ -667,7 +781,7 @@ transform_type( _TypeDef={ 'user_type', Line, TypeName, TypeVars },
 
 				% Module *and* type overridden:
 				{ value, E={ _NewModuleName, _NewTypeName } } ->
-					E;
+					{ E, NewTransforms };
 
 				% Same type, only module overridden:
 				% (never happens, as module always specified in table)
@@ -675,7 +789,8 @@ transform_type( _TypeDef={ 'user_type', Line, TypeName, TypeVars },
 				%	{ NewModuleName, TypeName };
 
 				{ value, TransformFun } when is_function( TransformFun ) ->
-					TransformFun( TypeName, TypeArity );
+					transform_local_type_with_fun( TransformFun, TypeName,
+												   TypeArity, NewTransforms );
 
 				key_not_found ->
 
@@ -684,22 +799,23 @@ transform_type( _TypeDef={ 'user_type', Line, TypeName, TypeVars },
 											 LocalTransformTable ) of
 
 						{ value, E={ _NewModuleName, _NewTypeName } } ->
-							E;
+							{ E, NewTransforms };
 
 						% Same type, only module overridden:
 						% (was commented-out out, but may happen?)
 						%
 						{ value, NewModuleName }
 						  when is_atom( NewModuleName ) ->
-							{ NewModuleName, TypeName };
+							{ { NewModuleName, TypeName }, NewTransforms };
 
 						{ value, TransformFun }
 						  when is_function( TransformFun ) ->
-							TransformFun( TypeName, TypeArity );
+							transform_local_type_with_fun( TransformFun,
+									TypeName, TypeArity, NewTransforms );
 
 						key_not_found ->
 							% Nope, let it as it is:
-							unchanged
+							{ unchanged, NewTransforms }
 
 					end
 
@@ -707,7 +823,7 @@ transform_type( _TypeDef={ 'user_type', Line, TypeName, TypeVars },
 
 	end,
 
-	case Outcome of
+	NewTypeDef = case Outcome of
 
 		unchanged ->
 			% TypeDef with only updated TypeVars:
@@ -716,7 +832,9 @@ transform_type( _TypeDef={ 'user_type', Line, TypeName, TypeVars },
 		{ SetModuleName, SetTypeName } ->
 			forge_remote_type( SetModuleName, SetTypeName, NewTypeVars, Line )
 
-	end;
+	end,
+
+	{ NewTypeDef, LocalTransforms };
 
 
 
@@ -735,16 +853,17 @@ transform_type( _TypeDef={ 'remote_type', Line,
 				Transforms=#ast_transforms{
 							  remote_types=RemoteTransformTable } ) ->
 
-	NewTypeVars = [ transform_type( TypeVar, Transforms )
-					|| TypeVar <- TypeVars ],
+	% Is already a list directly (no key/value pairs to preserve here):
+	{ NewTypeVars, NewTransforms } = lists:mapfoldl(
+		  fun transform_type/2, _Acc0=Transforms, _List=TypeVars ),
 
 	TypeArity = length( TypeVars ),
 
 	% Returning the new type information:
-	Outcome = case RemoteTransformTable of
+	{ Outcome, RemoteTransforms } = case RemoteTransformTable of
 
 		undefined ->
-			unchanged;
+			{ unchanged, NewTransforms };
 
 		_ ->
 
@@ -753,14 +872,15 @@ transform_type( _TypeDef={ 'remote_type', Line,
 
 				 % Module *and* type overridden:
 				{ value, E={ _NewModuleName, _NewTypeName } } ->
-					E;
+					{ E, NewTransforms };
 
 				 % Same type; only the module is overridden:
 				{ value, NewModuleName } when is_atom( NewModuleName ) ->
-					{ NewModuleName, TypeName };
+					{ { NewModuleName, TypeName }, NewTransforms };
 
 				{ value, TransformFun } when is_function( TransformFun ) ->
-					TransformFun( ModuleName, TypeName, TypeArity );
+					transform_remote_type_with_fun( TransformFun, ModuleName,
+									  TypeName, TypeArity, NewTransforms );
 
 				key_not_found ->
 
@@ -772,7 +892,7 @@ transform_type( _TypeDef={ 'remote_type', Line,
 											 RemoteTransformTable ) of
 
 						{ value, E={ _NewModuleName, _NewTypeName } } ->
-							E;
+							{ E, NewTransforms };
 
 						 % Same type, only module overridden (never happens by
 						 % design):
@@ -782,30 +902,34 @@ transform_type( _TypeDef={ 'remote_type', Line,
 
 						{ value, TransformFun }
 						  when is_function( TransformFun ) ->
-							TransformFun( ModuleName, TypeName, TypeArity );
+							transform_remote_type_with_fun( TransformFun,
+							  ModuleName, TypeName, TypeArity, NewTransforms );
 
 						key_not_found ->
 
 							% Nope; maybe a wildcard type (and arity) then?
-							case ?table:lookupEntry( { ModuleName, _AnyType='_',
-										 AnyArity }, RemoteTransformTable ) of
+							case ?table:lookupEntry(
+									{ ModuleName, _AnyType='_', AnyArity },
+									RemoteTransformTable ) of
 
 								{ value, E={ _NewModuleName, _NewTypeName } } ->
-									E;
+									{ E, NewTransforms };
 
 								% Same type, only module overridden:
 								{ value, NewModuleName }
 								  when is_atom( NewModuleName ) ->
-									{ NewModuleName, TypeName };
+									{ { NewModuleName, TypeName },
+									  NewTransforms };
 
 								{ value, TransformFun }
 								  when is_function( TransformFun ) ->
-									TransformFun( ModuleName, TypeName,
-												  TypeArity );
+									transform_remote_type_with_fun(
+									  TransformFun, ModuleName, TypeName,
+									  TypeArity, NewTransforms );
 
 								key_not_found ->
 									% Nope, let it as it is:
-									unchanged
+									{ unchanged, NewTransforms }
 
 							end
 
@@ -815,7 +939,7 @@ transform_type( _TypeDef={ 'remote_type', Line,
 
 	end,
 
-	case Outcome of
+	NewTypeDef = case Outcome of
 
 		unchanged ->
 			% TypeDef with updated TypeVars:
@@ -825,7 +949,10 @@ transform_type( _TypeDef={ 'remote_type', Line,
 			forge_remote_type( SetModuleName, SetTypeName, NewTypeVars, Line,
 							   LineM, LineT )
 
-	end;
+	end,
+
+	{ NewTypeDef, RemoteTransforms };
+
 
 
 % Second, the case where at least either the module or the type name is not
@@ -838,22 +965,30 @@ transform_type( _TypeDef={ 'remote_type', Line1, [ Mod, Typ, TypeVars ] },
 	%ast_utils:display_debug( "Transforming a remote type whose module and "
 	%						 "type information are ~p and ~p.", [ Mod, Typ ] ),
 
-	[ NewMod, NewTyp ] = [ transform_type( T, Transforms )
-						   || T <- [ Mod, Typ ] ],
+	{ NewMod, ModTransforms } = transform_type( Mod, Transforms ),
 
-	NewTypeVars = [ transform_type( T, Transforms ) || T <- TypeVars ],
+	{ NewTyp, TypTransforms } = transform_type( Typ, ModTransforms ),
 
-	{ 'remote_type', Line1, [ NewMod, NewTyp, NewTypeVars ] };
+	% Is already a list directly (no key/value pairs to preserve here):
+	{ NewTypeVars, NewTransforms } = lists:mapfoldl(
+		  fun transform_type/2, _Acc0=TypTransforms, _List=TypeVars ),
+
+	NewTypeDef = { 'remote_type', Line1, [ NewMod, NewTyp, NewTypeVars ] },
+
+	{ NewTypeDef, NewTransforms };
+
 
 
 % Variable declaration, possibly obtained through declarations like:
 % -type my_type( T ) :: other_type( T ).
 % or:
 % -opaque tree( T ) :: { T, [ tree(T) ] }.
-transform_type( TypeDef={ 'var', _Line, _TypeName }, _Transforms ) ->
+transform_type( TypeDef={ 'var', _Line, _TypeName }, Transforms ) ->
 
 	%NewVar = transform_type_variable( TypeName, Line, SomeTransform ),
-	TypeDef;
+
+	{ TypeDef, Transforms };
+
 
 
 % Annotated type, most probably obtained from the field of a record like:
@@ -875,9 +1010,12 @@ transform_type( _TypeDef={ 'ann_type', Line,
 	%NewVar = transform_type_variable( VariableName, Line2, _SomeTransform ),
 	NewVar = Var,
 
-	NewInternalTypeDef = transform_type( InternalTypeDef, Transforms ),
+	{ NewInternalTypeDef, NewTransforms } =
+		transform_type( InternalTypeDef, Transforms ),
 
-	{ 'ann_type', Line, [ NewVar, NewInternalTypeDef ] };
+	NewTypeDef = { 'ann_type', Line, [ NewVar, NewInternalTypeDef ] },
+
+	{ NewTypeDef, NewTransforms };
 
 
 
@@ -890,11 +1028,14 @@ transform_type( _TypeDef={ 'ann_type', Line,
 transform_type( _TypeDef={ 'op', Line, Operator, LeftType, RightType },
 				Transforms ) ->
 
-	NewLeftType = transform_type( LeftType, Transforms ),
+	{ NewLeftType, LeftTransforms } = transform_type( LeftType, Transforms ),
 
-	NewRightType = transform_type( RightType, Transforms ),
+	{ NewRightType, RightTransforms } =
+		transform_type( RightType, LeftTransforms ),
 
-	{ 'op', Line, Operator, NewLeftType, NewRightType };
+	NewTypeDef = { 'op', Line, Operator, NewLeftType, NewRightType },
+
+	{ NewTypeDef, RightTransforms };
 
 
 
@@ -906,9 +1047,12 @@ transform_type( _TypeDef={ 'op', Line, Operator, LeftType, RightType },
 %
 transform_type( _TypeDef={ 'op', Line, Operator, OperandType }, Transforms ) ->
 
-	NewOperandType = transform_type( OperandType, Transforms ),
+	{ NewOperandType, NewTransforms } =
+		transform_type( OperandType, Transforms ),
 
-	{ 'op', Line, Operator, NewOperandType };
+	NewTypeDef = { 'op', Line, Operator, NewOperandType },
+
+	{ NewTypeDef, NewTransforms };
 
 
 
@@ -917,7 +1061,7 @@ transform_type( _TypeDef={ 'op', Line, Operator, OperandType }, Transforms ) ->
 %
 % Note: this clause must remain at the end of the series, as a near-default one.
 %
-transform_type( TypeDef={ TypeName, _Line, _Value }, _Transforms ) ->
+transform_type( TypeDef={ TypeName, _Line, _Value }, Transforms ) ->
 
 	% For some unknown reason, in erl_id_trans.erl only a subset of the
 	% immediate types are managed (in type/1; ex: 'integer' but not 'float'):
@@ -929,7 +1073,7 @@ transform_type( TypeDef={ TypeName, _Line, _Value }, _Transforms ) ->
 
 		true ->
 			%ast_value:transform_value( TypeDef, _SomeTransforms ),
-			TypeDef;
+			{ TypeDef, Transforms };
 
 		false ->
 			ast_utils:raise_error( [ unexpected_immediate_value, TypeDef ] )
@@ -943,6 +1087,34 @@ transform_type( TypeDef, _Transforms ) ->
 
 
 
+% (helper)
+transform_local_type_with_fun( TransformFun, TypeName, TypeArity,
+							   Transforms=#ast_transforms{
+									 transformation_state=TransfoState } ) ->
+
+	{ TypeReplacement, NewTransfoState } =
+		TransformFun( TypeName, TypeArity, TransfoState ),
+
+	NewTransforms = Transforms#ast_transforms{
+					  transformation_state=NewTransfoState },
+
+	{ TypeReplacement, NewTransforms }.
+
+
+
+% (helper)
+transform_remote_type_with_fun( TransformFun, ModuleName, TypeName, TypeArity,
+								Transforms=#ast_transforms{
+									 transformation_state=TransfoState } ) ->
+
+	{ TypeReplacement, NewTransfoState } =
+		TransformFun( ModuleName, TypeName, TypeArity, TransfoState ),
+
+	NewTransforms = Transforms#ast_transforms{
+					  transformation_state=NewTransfoState },
+
+	{ TypeReplacement, NewTransforms }.
+
 
 % Transforming association types (from maps).
 
@@ -954,9 +1126,14 @@ transform_type( TypeDef, _Transforms ) ->
 transform_association_type( { 'type', Line, 'map_field_assoc',
 							  Types=[ _K, _V ] }, Transforms ) ->
 
-	NewTypes = [ transform_type( T, Transforms ) || T <- Types ],
+	% Is already a list directly (no key/value pairs to preserve here):
+	{ NewTypes, NewTransforms } = lists:mapfoldl(
+		  fun transform_type/2, _Acc0=Transforms, _List=Types ),
 
-	{ 'type', Line, 'map_field_assoc', NewTypes };
+	TypeDef = { 'type', Line, 'map_field_assoc', NewTypes },
+
+	{ TypeDef, NewTransforms };
+
 
 
 % "If A is an association type K := V, where K and V are types, then Rep(A) =
@@ -965,9 +1142,14 @@ transform_association_type( { 'type', Line, 'map_field_assoc',
 transform_association_type( { 'type', Line, 'map_field_exact',
 							  Types=[ _K, _V ] }, Transforms ) ->
 
-	NewTypes = [ transform_type( T, Transforms ) || T <- Types ],
+	% Is already a list directly (no key/value pairs to preserve here):
+	{ NewTypes, NewTransforms } = lists:mapfoldl(
+		  fun transform_type/2, _Acc0=Transforms, _List=Types ),
 
-	{ 'type', Line, 'map_field_exact', NewTypes }.
+	TypeDef = { 'type', Line, 'map_field_exact', NewTypes },
+
+	{ TypeDef, NewTransforms }.
+
 
 
 
@@ -980,20 +1162,22 @@ transform_field_type( { 'type', Line, 'field_type',
 						[ N={ atom, _LineN, _FieldName }, FieldType ] },
 					  Transforms ) ->
 
-	NewFieldType = transform_type( FieldType, Transforms ),
+	{ NewFieldType, NewTransforms } = transform_type( FieldType, Transforms ),
 
-	{ 'type', Line, 'field_type', [ N, NewFieldType ] }.
+	TypeDef = { 'type', Line, 'field_type', [ N, NewFieldType ] },
+
+	{ TypeDef, NewTransforms }.
+
 
 
 
 % Transforms specified AST variable.
 %
 -spec transform_type_variable( variable_name(), line(), ast_transforms() ) ->
-								ast_element().
-transform_type_variable( VariableName, _Line, _Transforms )
+								{ ast_element(), ast_transforms() }.
+transform_type_variable( VariableName, _Line, Transforms )
   when is_atom( VariableName ) ->
-	VariableName.
-
+	{ VariableName, Transforms }.
 
 
 

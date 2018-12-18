@@ -65,8 +65,6 @@
 -type ast_element() :: ast_base:ast_element().
 -type ast_transforms() :: ast_transform:ast_transforms().
 
--type record_name() :: basic_utils:record_name().
--type field_name() :: basic_utils:field_name().
 
 -type ast_type() :: ast_type:ast_type().
 -type maybe_ast_type() :: ast_type:maybe_ast_type().
@@ -74,9 +72,15 @@
 -type maybe_ast_immediate_value() :: ast_value:maybe_ast_immediate_value().
 
 -type record_table() :: ast_info:record_table().
+
+-type record_name() :: basic_utils:record_name().
+
 -type record_definition() :: ast_info:record_definition().
+-type record_pair() :: { record_name(), record_definition() }.
+
 -type field_table() :: ast_info:field_table().
 
+-type field_name() :: basic_utils:field_name().
 
 
 % Defines the field of a type of record (type and default value, if specified;
@@ -85,6 +89,9 @@
 %
 -type field_definition() :: { maybe_ast_type(), maybe_ast_immediate_value(),
 							  line(), line() }.
+
+
+-type field_pair() :: { field_name(), field_definition() }.
 
 
 % Field identifier, possibly '_':
@@ -126,7 +133,9 @@
 
 
 
--export_type([ field_definition/0, field_id/0, ast_field_id/0,
+-export_type([ record_pair/0,
+			   field_definition/0, field_id/0, field_name/0, field_pair/0,
+			   ast_field_id/0,
 			   ast_untyped_record_field_definition/1,
 			   ast_typed_record_field_definition/1,
 			   ast_record_field_definition/0, ast_record_field_definition/1,
@@ -143,6 +152,14 @@
 -include("meta_utils.hrl").
 
 
+% For the ast_transforms record:
+-include("ast_transform.hrl").
+
+% For rec_guard-related defines:
+-include("ast_utils.hrl").
+
+
+
 % Often names (ex: of a record, or a field) are transmitted as parameters
 % whereas they are usually not necessary, yet it is useful at least for error
 % reporting.
@@ -153,69 +170,80 @@
 % field of a module_info record), according to specified transforms.
 %
 -spec transform_record_definitions( ast_info:record_table(),
-				   ast_transforms() ) -> ast_info:record_table().
-transform_record_definitions( RecordTable, Transforms ) ->
+		   ast_transforms() ) -> { ast_info:record_table(), ast_transforms() }.
+transform_record_definitions( RecordTable, Transforms ) ?rec_guard ->
 
-	% { RecordName, RecordDefinition } pairs:
+	% { record_name(), record_definition() } pairs:
 	RecordPairs = ?table:enumerate( RecordTable ),
 
-	NewRecordPairs = [ transform_record_definition( RecordName,
-									RecordDefinition, Transforms )
-					   || { RecordName, RecordDefinition } <- RecordPairs ],
+	{ NewRecordPairs, NewTransforms } = lists:mapfoldl(
+		fun transform_record_pair/2, _Acc0=Transforms,
+		_List=RecordPairs ),
 
-	?table:new( NewRecordPairs ).
+	NewRecordTable = ?table:new( NewRecordPairs ),
+
+	{ NewRecordTable, NewTransforms }.
 
 
 
-% Transforms the specified record definition.
+% Transforms the specified record pair: { RecordName, RecordDef }.
 %
--spec transform_record_definition( record_name(), record_definition(),
-			   ast_transforms() ) -> { record_name(), record_definition() }.
-transform_record_definition( RecordName,
-				  _RecordDefinition={ FieldTable, Loc, Line }, Transforms ) ->
+% Allows to keep around the record name, to recreate the record table more
+% easily.
+%
+-spec transform_record_pair( record_pair(), ast_transforms() ) ->
+									 { record_pair(), ast_transforms() }.
+transform_record_pair(
+  _RecordPair={ RecordName, _RecordDefinition={ FieldTable, Loc, Line } },
+  Transforms ) ?rec_guard ->
 
 	% { FieldName, FieldDefinition } pairs:
 	FieldPairs = ?table:enumerate( FieldTable ),
 
-	NewFieldPairs = [ transform_field_definition( FieldName, FieldDefinition,
-												  Transforms )
-					  || { FieldName, FieldDefinition } <- FieldPairs ],
+	{ NewFieldPairs, NewTransforms } = lists:mapfoldl(
+		fun transform_field_pair/2, _Acc0=Transforms,
+		_List=FieldPairs ),
 
 	NewFieldTable = ?table:new( NewFieldPairs ),
 
 	NewRecordDefinition = { NewFieldTable, Loc, Line },
 
-	{ RecordName, NewRecordDefinition }.
+	{ { RecordName, NewRecordDefinition }, NewTransforms }.
 
 
 
 % Transforms the specified field definition.
 %
--spec transform_field_definition( field_name(), field_definition(),
-		ast_transforms() ) -> { field_name(), field_definition() }.
-transform_field_definition( FieldName,
-							_FieldDescription={ FieldType, FieldDefaultValue },
-							Transforms ) ->
+-spec transform_field_pair( { field_name(), field_definition() },
+		ast_transforms() ) ->
+					 { { field_name(), field_definition() }, ast_transforms() }.
+transform_field_pair(
+  { FieldName,
+	_FieldDescription={ FieldType, FieldDefaultValue } },
+  Transforms ) ?rec_guard ->
 
-	NewFieldType = transform_field_definition_type( FieldType, Transforms ),
+	{ NewFieldType, FieldTransforms } =
+		transform_field_definition_type( FieldType, Transforms ),
 
-	NewFieldDefaultValue= transform_field_definition_default_value(
-							FieldDefaultValue, Transforms ),
+	{ NewFieldDefaultValue, DefTransforms } =
+		transform_field_definition_default_value( FieldDefaultValue,
+												  FieldTransforms ),
 
 	NewFieldDescription = { NewFieldType, NewFieldDefaultValue },
 
-	{ FieldName, NewFieldDescription }.
+	{ { FieldName, NewFieldDescription }, DefTransforms }.
 
 
 
 % Transforms the specified field type.
 %
 -spec transform_field_definition_type( maybe_ast_type(), ast_transforms() ) ->
-											 maybe_ast_type().
-transform_field_definition_type( _FieldType=undefined, _Transforms ) ->
-	undefined;
+										{ maybe_ast_type(), ast_transforms() }.
+transform_field_definition_type( _FieldType=undefined,
+								 Transforms ) ?rec_guard ->
+	{ undefined, Transforms };
 
-transform_field_definition_type( FieldType, Transforms ) ->
+transform_field_definition_type( FieldType, Transforms ) ?rec_guard ->
 	ast_type:transform_type( FieldType, Transforms ).
 
 
@@ -223,12 +251,13 @@ transform_field_definition_type( FieldType, Transforms ) ->
 % Transforms the specified field default value.
 %
 -spec transform_field_definition_default_value( maybe_ast_immediate_value(),
-							  ast_transforms() ) -> maybe_ast_immediate_value().
+	  ast_transforms() ) -> { maybe_ast_immediate_value(), ast_transforms() }.
 transform_field_definition_default_value( _FieldDefaultValue=undefined,
-										  _Transforms ) ->
-	undefined;
+										  Transforms ) ?rec_guard ->
+	{ undefined, Transforms };
 
-transform_field_definition_default_value( FieldDefaultValue, Transforms ) ->
+transform_field_definition_default_value( FieldDefaultValue,
+										  Transforms ) ?rec_guard ->
 	ast_value:transform_value( FieldDefaultValue, Transforms ).
 
 
@@ -241,9 +270,9 @@ transform_field_definition_default_value( FieldDefaultValue, Transforms ) ->
 %
 -spec transform_record_field_definitions( [ ast_record_field_definition() ],
 			ast_transforms() ) -> [ ast_record_field_definition() ].
-transform_record_field_definitions( RecordFields, Transforms ) ->
-	[ transform_record_field_definition( RF, Transforms )
-	  || RF <- RecordFields ].
+transform_record_field_definitions( RecordFields, Transforms ) ?rec_guard ->
+	lists:mapfoldl( fun transform_record_field_definition/2, _Acc0=Transforms,
+					_List=RecordFields ).
 
 
 
@@ -252,54 +281,69 @@ transform_record_field_definitions( RecordFields, Transforms ) ->
 % Ex: {record_field,LINE,Rep(Field_k),Rep(Gt_k)}.
 %
 -spec transform_record_field_definition( ast_record_field_definition(),
-			   ast_transforms() ) -> ast_record_field_definition().
+										 ast_transforms() ) ->
+			{ ast_record_field_definition(), ast_transforms() }.
 % With a value and no type specified here:
 transform_record_field_definition(
-  _RF={ 'record_field', Line, ASTFieldName, ASTValue }, Transforms ) ->
+  _RF={ 'record_field', Line, ASTFieldName, ASTValue },
+  Transforms ) ?rec_guard ->
 
-	NewASTFieldName = transform_record_field_name( ASTFieldName, Transforms ),
+	{ NewASTFieldName, FieldTransforms } =
+		transform_record_field_name( ASTFieldName, Transforms ),
 
-	NewASTValue = ast_value:transform_value( ASTValue, Transforms ),
+	{ NewASTValue, ValueTransforms } =
+		ast_value:transform_value( ASTValue, FieldTransforms ),
 
-	{ 'record_field', Line, NewASTFieldName, NewASTValue };
+	NewRF = { 'record_field', Line, NewASTFieldName, NewASTValue },
+
+	{ NewRF, ValueTransforms };
 
 
 % With no value and no type specified here:
 transform_record_field_definition( _RF={ 'record_field', Line, ASTFieldName },
-								   Transforms ) ->
+								   Transforms ) ?rec_guard ->
 
-	NewASTFieldName = transform_record_field_name( ASTFieldName, Transforms ),
+	{ NewASTFieldName, NewTransforms } =
+		transform_record_field_name( ASTFieldName, Transforms ),
 
-	{ 'record_field', Line, NewASTFieldName };
+	{ { 'record_field', Line, NewASTFieldName }, NewTransforms };
 
 
 % With a value and a type specified here:
 transform_record_field_definition(
   _RF={ 'typed_record_field', { 'record_field', Line, ASTFieldName, ASTValue },
-		ASTType }, Transforms ) ->
+		ASTType }, Transforms ) ?rec_guard ->
 
-	NewASTFieldName = transform_record_field_name( ASTFieldName, Transforms ),
+	{ NewASTFieldName, NameTransforms } =
+		transform_record_field_name( ASTFieldName, Transforms ),
 
-	NewASTValue = ast_value:transform_value( ASTValue, Transforms ),
+	{ NewASTValue, ValueTransforms } =
+		ast_value:transform_value( ASTValue, NameTransforms ),
 
-	NewASTType = ast_type:transform_type( ASTType, Transforms ),
+	{ NewASTType, TypeTransforms } =
+		ast_type:transform_type( ASTType, ValueTransforms ),
 
-	{ 'typed_record_field',
-	  { 'record_field', Line, NewASTFieldName, NewASTValue }, NewASTType };
+	RF = { 'typed_record_field',
+		   { 'record_field', Line, NewASTFieldName, NewASTValue }, NewASTType },
+
+	{ RF, TypeTransforms };
 
 
 % With no value and a type specified here:
 transform_record_field_definition(
   _RF={ 'typed_record_field', { 'record_field', Line, ASTFieldName }, ASTType },
-  Transforms ) ->
+  Transforms ) ?rec_guard ->
 
-	NewASTFieldName = transform_record_field_name( ASTFieldName, Transforms ),
+	{ NewASTFieldName, NameTransforms } =
+		transform_record_field_name( ASTFieldName, Transforms ),
 
-	NewASTType = ast_type:transform_type( ASTType, Transforms ),
+	{ NewASTType, TypeTransforms } =
+		ast_type:transform_type( ASTType, NameTransforms ),
 
-	{ 'typed_record_field', { 'record_field', Line, NewASTFieldName },
-	  NewASTType }.
+	RF = { 'typed_record_field', { 'record_field', Line, NewASTFieldName },
+		   NewASTType },
 
+	{ RF, TypeTransforms }.
 
 
 
@@ -307,8 +351,8 @@ transform_record_field_definition(
 % Transforms the name of the specified field.
 %
 -spec transform_record_field_name( ast_element(), ast_transforms() ) ->
-										 ast_element().
-transform_record_field_name( ASTFieldName, Transforms ) ->
+										{ ast_element(), ast_transforms() }.
+transform_record_field_name( ASTFieldName, Transforms ) ?rec_guard ->
 
 	% Note: field names are full expressions here, but only atoms are allowed
 	% by the parser (dixit the id parse transform).

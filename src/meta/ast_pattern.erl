@@ -73,6 +73,14 @@
 -type ast_element() :: ast_base:ast_element().
 
 
+
+% For the ast_transforms record:
+-include("ast_transform.hrl").
+
+% For rec_guard-related defines:
+-include("ast_utils.hrl").
+
+
 % Regarding patterns vs expressions:
 %
 % "Notice that every pattern has the same source form as some expression, and is
@@ -101,19 +109,22 @@
 %
 % "Such sequences occur as the list of arguments to a function or fun."
 %
--spec transform_pattern( ast_pattern(), ast_transforms() ) -> ast_pattern().
+-spec transform_pattern( ast_pattern(), ast_transforms() ) ->
+							   { ast_pattern(), ast_transforms() }.
 % A list of patterns should have already been iterated over upstream:
 %transform_pattern( PatternList, Transforms ) when is_list( PatternList ) ->
 
 	%ast_utils:display_debug( "Intercepting pattern list ~p...",
 	%						 [ PatternList ] ),
 
-%	NewPatternList = [ transform_pattern( P, Transforms ) || P <- PatternList ],
+	%%Res = { NewPatternList, NewTransforms }:
+	%Res = lists:mapfoldl( fun transform_pattern/2, _Acc0=Transforms,
+	%                       _List=PatternList ).
 
-	%ast_utils:display_debug( "... returning pattern list ~p",
-	%						   [ NewPatternList ] ),
+	%ast_utils:display_debug( "... returning pattern list and state ~p",
+	%						  [ Res ] ),
 
-%	NewPatternList;
+	%Res;
 
 
 % Match pattern found:
@@ -124,17 +135,21 @@
 % Left and Right members are patterns here (not general expressions).
 %
 transform_pattern( _E={ 'match', Line, LeftPattern, RightPattern },
-				   Transforms ) ->
+				   Transforms ) ?rec_guard ->
 
 	%ast_utils:display_debug( "Intercepting match pattern ~p...", [ E ] ),
 
-	NewLeftPattern = transform_pattern( LeftPattern, Transforms ),
+	{ NewLeftPattern, LeftTransforms } = transform_pattern( LeftPattern,
+															Transforms ),
 
-	NewRightPattern = transform_pattern( RightPattern, Transforms ),
+	{ NewRightPattern, RightTransforms } = transform_pattern( RightPattern,
+															  LeftTransforms ),
 
-	Res = { 'match', Line, NewLeftPattern, NewRightPattern },
+	NewExpr = { 'match', Line, NewLeftPattern, NewRightPattern },
+	Res = { NewExpr, RightTransforms },
 
-	%ast_utils:display_debug( "... returning match pattern ~p", [ Res ] ),
+	%ast_utils:display_debug( "... returning match pattern and state ~p",
+	%                         [ Res ] ),
 
 	Res;
 
@@ -145,17 +160,24 @@ transform_pattern( _E={ 'match', Line, LeftPattern, RightPattern },
 % {cons,LINE,Rep(P_h),Rep(P_t)}."
 %
 transform_pattern( _E={ 'cons', Line, HeadPattern, TailPattern },
-				   Transforms ) ->
+				   Transforms ) ?rec_guard ->
 
 	%ast_utils:display_debug( "Intercepting cons pattern ~p...", [ E ] ),
 
-	[ NewHeadPattern, NewTailPattern ] =
-		[ ast_pattern:transform_pattern( P, Transforms )
-		  || P <- [ HeadPattern, TailPattern ] ],
+	% As, for trees, we tend to be depth-first, we prefer this order:
 
-	Res = { cons, Line, NewHeadPattern, NewTailPattern },
+	{ NewTailPattern, TailTransforms } = ast_pattern:transform_pattern(
+										   TailPattern, Transforms ),
 
-	%ast_utils:display_debug( "... returning cons pattern ~p", [ Res ] ),
+	{ NewHeadPattern, HeadTransforms } = ast_pattern:transform_pattern(
+										   HeadPattern, TailTransforms ),
+
+	NewExpr = { cons, Line, NewHeadPattern, NewTailPattern },
+
+	Res = { NewExpr, HeadTransforms },
+
+	%ast_utils:display_debug( "... returning cons pattern and state ~p",
+	%                         [ Res ] ),
 
 	Res;
 
@@ -164,13 +186,14 @@ transform_pattern( _E={ 'cons', Line, HeadPattern, TailPattern },
 %
 % "If P is a nil pattern [], then Rep(P) = {nil,LINE}."
 %
-transform_pattern( E={ 'nil', _Line }, _Transforms ) ->
+transform_pattern( E={ 'nil', _Line }, Transforms ) ?rec_guard ->
 
 	%ast_utils:display_debug( "Intercepting nil pattern ~p...", [ E ] ),
 
-	Res = E,
+	Res = { E, Transforms },
 
-	%ast_utils:display_debug( "... returning nil pattern ~p", [ Res ] ),
+	%ast_utils:display_debug( "... returning nil pattern and state ~p",
+	%                         [ Res ] ),
 
 	Res;
 
@@ -189,12 +212,15 @@ transform_pattern( E={ 'nil', _Line }, _Transforms ) ->
 
 %	ast_utils:display_debug( "Intercepting receive pattern ~p...", [ E ] ),
 
-%	NewClauses = [ ast_clause:transform_case_clause( C, Transforms )
-%				   || C <- Clauses ],
+%   { NewClauses, NewTransforms } = lists:mapfoldl(
+%       fun transform_case_clause/2, _Acc0=Transforms, _List=Clauses ),
 
-%	Res = { 'receive', Line, NewClauses },
-
-%	ast_utils:display_debug( "... returning receive pattern ~p", [ Res ] ),
+%	NewExpr = { 'receive', Line, NewClauses },
+%
+%   Res = { NewExpr, NewClauses },
+%
+%	ast_utils:display_debug( "... returning receive pattern and state ~p",
+%                            [ Res ] ),
 
 %	Res;
 
@@ -204,25 +230,28 @@ transform_pattern( E={ 'nil', _Line }, _Transforms ) ->
 % then Rep(E) = {'receive',LINE,[Rep(Cc_1), ..., Rep(Cc_k)],Rep(E_0),Rep(B_t)}."
 %
 %transform_pattern( E={ 'receive', Line, Clauses, Expression, Body },
-%				   Transforms ) ->
+%					Transforms ) ->
 
 %	ast_utils:display_debug( "Intercepting receive pattern with after ~p...",
 %							 [ E ] ),
 
-%	NewClauses = [ ast_clause:transform_case_clause( C, Transforms )
-%				   || C <- Clauses ],
+%   { NewClauses, ClauseTransforms } = lists:mapfoldl(
+%       fun transform_case_clause/2, _Acc0=Transforms, _List=Clauses ),
 
-%	NewExpression = ast_expression:transform_expression( Expression,
-%														 Transforms ),
+%	{ NewExpression, ExprTransforms } = ast_expression:transform_expression(
+%                                            Expression, ClauseTransforms ),
 
-%	NewBody = ast_clause:transform_body( Body, Transforms ),
+%	{ NewBody, BodyTransforms } = ast_clause:transform_body( Body,
+%                                                            ExprTransforms ),
 
-%	Res = { 'receive', Line, NewClauses, NewExpression, NewBody },
+%	NewExpr = { 'receive', Line, NewClauses, NewExpression, NewBody },
+%
+%   Res = { NewExpr, BodyTransforms },
 
-%	ast_utils:display_debug( "... returning receive pattern with after ~p",
-%							 [ Res ] ),
+%	ast_utils:display_debug( "... returning receive pattern with after "
+%                            "and state ~p", [ Res ] ),
 
-%	Res;
+%	 Res;
 
 
 
@@ -231,16 +260,20 @@ transform_pattern( E={ 'nil', _Line }, _Transforms ) ->
 % "If P is a map pattern #{A_1, ..., A_k}, where each A_i is an association
 % P_i_1 := P_i_2, then Rep(P) = {map,LINE,[Rep(A_1), ..., Rep(A_k)]}."
 %
-transform_pattern( _E={ 'map', Line, Associations }, Transforms ) ->
+transform_pattern( _E={ 'map', Line, Associations }, Transforms ) ?rec_guard ->
 
 	%ast_utils:display_debug( "Intercepting map pattern ~p...", [ E ] ),
 
-	NewAssociations = [ transform_pattern( A, Transforms )
-						|| A <- Associations ],
+	{ NewAssociations, NewTransforms } = lists:mapfoldl(
+		   fun transform_pattern/2, _Acc0=Transforms, _List=Associations ),
 
-	Res = { 'map', Line, NewAssociations },
 
-	%ast_utils:display_debug( "... returning map pattern ~p", [ Res ] ),
+	NewExp = { 'map', Line, NewAssociations },
+
+	Res = { NewExp, NewTransforms },
+
+	%ast_utils:display_debug( "... returning map pattern and state ~p",
+	%                         [ Res ] ),
 
 	Res;
 
@@ -252,19 +285,23 @@ transform_pattern( _E={ 'map', Line, Associations }, Transforms ) ->
 % http://erlang.org/doc/apps/erts/absform.html); apparently, no map_field_assoc
 % to expect here, according to the same source.
 %
-transform_pattern( _E={ 'map_field_exact', Line, Key, Value }, Transforms ) ->
+transform_pattern( _E={ 'map_field_exact', Line, Key, Value },
+				   Transforms ) ?rec_guard ->
 
 	%ast_utils:display_debug( "Intercepting map exact association ~p...",
-	%						 [ E ] ),
+	%						  [ E ] ),
 
-	NewKey = ast_expression:transform_expression( Key, Transforms ),
+	{ NewKey, KeyTransforms } =
+		ast_expression:transform_expression( Key, Transforms ),
 
-	NewValue = transform_pattern( Value, Transforms ),
+	{ NewValue, ValueTransforms } = transform_pattern( Value, KeyTransforms ),
 
-	Res = { 'map_field_exact', Line, NewKey, NewValue },
+	NewExpr = { 'map_field_exact', Line, NewKey, NewValue },
 
-	%ast_utils:display_debug( "... returning map exact association ~p",
-	%						 [ Res ] ),
+	Res = { NewExpr, ValueTransforms },
+
+	%ast_utils:display_debug( "... returning map exact association and state "
+	%                         "~p", [ Res ] ),
 
 	Res;
 
@@ -278,13 +315,14 @@ transform_pattern( _E={ 'map_field_exact', Line, Key, Value }, Transforms ) ->
 %
 % "If P is a bitstring pattern <<P_1:Size_1/TSL_1, ..., P_k:Size_k/TSL_k>>,
 % where each Size_i is an pattern that can be evaluated to an integer, and
-% each TSL_i is a type specificer list, then Rep(P) =
+% each TSL_i is a type specifier list, then Rep(P) =
 % {bin,LINE,[{bin_element,LINE,Rep(P_1),Rep(Size_1),Rep(TSL_1)}, ...,
 % {bin_element,LINE,Rep(P_k),Rep(Size_k),Rep(TSL_k)}]}. For Rep(TSL), see
 % below. An omitted Size_i is represented by default. An omitted TSL_i is
 % represented by default."
 %
-transform_pattern( _Clause={ 'bin', Line, BinElements }, Transforms ) ->
+transform_pattern( _Clause={ 'bin', Line, BinElements },
+				   Transforms ) ?rec_guard ->
 
 	%ast_utils:display_debug( "Intercepting bitstring pattern ~p...",
 	%						 [ Clause ] ),
@@ -295,12 +333,15 @@ transform_pattern( _Clause={ 'bin', Line, BinElements }, Transforms ) ->
 	%NewBinElements = ast_bitstring:transform_bin_elements( BinElements,
 	%					   Transforms, fun transform_pattern/2 ),
 
-	NewBinElements = ast_bitstring:transform_bin_elements( BinElements,
-														   Transforms ),
+	{ NewBinElements, NewTransforms } = ast_bitstring:transform_bin_elements(
+										  BinElements, Transforms ),
 
-	Res = { 'bin', Line, NewBinElements },
+	NewExpr = { 'bin', Line, NewBinElements },
 
-	%ast_utils:display_debug( "... returning bitstring pattern ~p", [ Res ] ),
+	Res = { NewExpr, NewTransforms },
+
+	%ast_utils:display_debug( "... returning bitstring pattern and state ~p",
+	%                         [ Res ] ),
 
 	Res;
 
@@ -312,16 +353,21 @@ transform_pattern( _Clause={ 'bin', Line, BinElements }, Transforms ) ->
 %
 % Note: patterns, not expressions here, as shown by erl_id_trans.
 %
-transform_pattern( _Clause={ 'tuple', Line, Patterns }, Transforms ) ->
+transform_pattern( _Clause={ 'tuple', Line, Patterns },
+				   Transforms ) ?rec_guard ->
 
 	%ast_utils:display_debug( "Intercepting tuple pattern ~p...",
 	%						 [ Clause ] ),
 
-	NewPatterns = [ transform_pattern( P, Transforms )|| P <- Patterns ],
+	{ NewPatterns, NewTransforms } = lists:mapfoldl( fun transform_pattern/2,
+									 _Acc0=Transforms, _List=Patterns ),
 
-	Res = { 'tuple', Line, NewPatterns },
+	NewExpr = { 'tuple', Line, NewPatterns },
 
-	%ast_utils:display_debug( "... returning tuple pattern ~p", [ Res ] ),
+	Res = { NewExpr, NewTransforms },
+
+	%ast_utils:display_debug( "... returning tuple pattern and state ~p",
+	%                         [ Res ] ),
 
 	Res;
 
@@ -333,16 +379,21 @@ transform_pattern( _Clause={ 'tuple', Line, Patterns }, Transforms ) ->
 % "If P is a variable pattern V, then Rep(P) = {var,LINE,A}, where A is an atom
 % with a printname consisting of the same characters as V."
 %
-transform_pattern( _Clause={ 'var', Line, VariableName }, Transforms ) ->
+transform_pattern( _Clause={ 'var', Line, VariableName },
+				   Transforms ) ?rec_guard ->
 
 	%ast_utils:display_debug( "Intercepting variable pattern ~p...",
 	%						 [ Clause ] ),
 
-	NewVariableName = transform_variable( VariableName, Line, Transforms ),
+	{ NewVariableName, NewTransforms } =
+		transform_variable( VariableName, Line, Transforms ),
 
-	Res = { 'var', Line, NewVariableName },
+	NewExpr = { 'var', Line, NewVariableName },
 
-	%ast_utils:display_debug( "... returning variable pattern ~p", [ Res ] ),
+	Res = { NewExpr, NewTransforms },
+
+	%ast_utils:display_debug( "... returning variable pattern and state ~p",
+	%                         [ Res ] ),
 
 	Res;
 
@@ -352,7 +403,7 @@ transform_pattern( _Clause={ 'var', Line, VariableName }, Transforms ) ->
 % (difficult to discriminate more at this level)
 %
 transform_pattern( Clause={ LiteralType, _Line, _Value }, Transforms )
-  when is_atom( LiteralType ) ->
+  when is_atom( LiteralType ) ?andalso_rec_guard ->
 
 	% Maybe Value could just be sent (or no transformation be considered):
 	ast_value:transform_value( Clause, Transforms );
@@ -367,41 +418,48 @@ transform_pattern( Clause={ LiteralType, _Line, _Value }, Transforms )
 % {record_field,LINE,Rep(Field_k),Rep(P_k)}]}."
 %
 transform_pattern( _Clause={ 'record', Line, RecordName, PatternFields },
-				   Transforms ) ->
+				   Transforms ) ?rec_guard ->
 
-	NewPatternFields = transform_pattern_fields( PatternFields, Transforms ),
+	{ NewPatternFields, NewTransforms } =
+		transform_pattern_fields( PatternFields, Transforms ),
 
-	{ 'record', Line, RecordName, NewPatternFields };
+	NewExpr = { 'record', Line, RecordName, NewPatternFields },
+
+	{ NewExpr, NewTransforms };
 
 
 % Access to a record field found (see previous clause):
 %
 transform_pattern( _Clause={ 'record_field', Line, RecordName, FieldName,
-							FieldValue }, Transforms ) ->
+							 FieldValue }, Transforms ) ?rec_guard ->
 
-	NewRecordName = ast_expression:transform_expression( RecordName,
-														 Transforms ),
+	{ NewRecordName, RecTransforms } = ast_expression:transform_expression(
+										 RecordName, Transforms ),
 
 	% (FieldName not specifically inspected by erl_trans_id for some reason)
 
-	NewFieldValue = ast_expression:transform_expression( FieldValue,
-														 Transforms ),
+	{ NewFieldValue, FieldTransforms } = ast_expression:transform_expression(
+										   FieldValue, RecTransforms ),
 
-	{ 'record_field', Line, NewRecordName, FieldName, NewFieldValue };
+	NewExpr = { 'record_field', Line, NewRecordName, FieldName, NewFieldValue },
+
+	{ NewExpr, FieldTransforms };
 
 
 % Update of a record field found (see 'record' clause):
 %
 transform_pattern( _Clause={ 'record_field', Line, FieldName, FieldValue },
-				   Transforms ) ->
+				   Transforms ) ?rec_guard ->
 
-	NewFieldName = ast_expression:transform_expression( FieldName,
-														Transforms ),
+	{ NewFieldName, FieldTransforms } = ast_expression:transform_expression(
+										  FieldName, Transforms ),
 
-	NewFieldValue = ast_expression:transform_expression( FieldValue,
-														 Transforms ),
+	{ NewFieldValue, ValueTransforms } =
+		ast_expression:transform_expression( FieldValue, FieldTransforms ),
 
-	{ 'record_field', Line, NewFieldName, NewFieldValue };
+	NewExpr = { 'record_field', Line, NewFieldName, NewFieldValue },
+
+	{ NewExpr, ValueTransforms };
 
 
 % Record index found:
@@ -410,11 +468,14 @@ transform_pattern( _Clause={ 'record_field', Line, FieldName, FieldValue },
 % then Rep(P) = {record_index,LINE,Name,Rep(Field)}."
 %
 transform_pattern( _Clause={ 'record_index', Line, RecordName, PatternField },
-				   Transforms ) ->
+				   Transforms ) ?rec_guard ->
 
-	NewPatternField = transform_pattern( PatternField, Transforms ),
+	{ NewPatternField, NewTransforms } =
+		transform_pattern( PatternField, Transforms ),
 
-	{ 'record_index', Line, RecordName, NewPatternField };
+	NewExpr = { 'record_index', Line, RecordName, NewPatternField },
+
+	{ NewExpr, NewTransforms };
 
 
 % "If P is an operator pattern P_1 Op P_2, where Op is a binary operator (this
@@ -426,12 +487,12 @@ transform_pattern( _Clause={ 'record_index', Line, RecordName, PatternField },
 % by the compiler)
 %
 transform_pattern( Clause={ 'op', _Line, _BinaryOperator, _LeftOperand,
-							_RightOperand }, _Transforms ) ->
-	Clause;
+							_RightOperand }, Transforms ) ?rec_guard ->
+	{ Clause, Transforms };
 
 transform_pattern( Clause={ 'op', _Line, _UnaryOperator, _Operand },
-				   _Transforms ) ->
-	Clause;
+				   Transforms ) ?rec_guard ->
+	{ Clause, Transforms };
 
 
 
@@ -448,7 +509,8 @@ transform_pattern( Clause={ 'op', _Line, _UnaryOperator, _Operand },
 
 
 % Other pattern found:
-transform_pattern( E, _Transforms ) ->
+transform_pattern( E, Transforms )
+  when is_record( Transforms, ast_transforms ) ->
 	%ast_utils:display_warning( "Letting unhandled pattern ~p as is.",
 	%  [ E ] ),
 	%E.
@@ -461,9 +523,10 @@ transform_pattern( E, _Transforms ) ->
 % Note: the case where the sequence is empty is managed here as well.
 %
 -spec transform_pattern_sequence( ast_pattern_sequence(), ast_transforms() ) ->
-									  ast_pattern_sequence().
-transform_pattern_sequence( Patterns, Transforms ) ->
-	[ transform_pattern( P, Transforms ) || P <- Patterns ].
+								   { ast_pattern_sequence(), ast_transforms() }.
+transform_pattern_sequence( Patterns, Transforms ) ?rec_guard ->
+	lists:mapfoldl( fun transform_pattern/2, _Acc0=Transforms,
+					_List=Patterns ).
 
 
 
@@ -471,10 +534,10 @@ transform_pattern_sequence( Patterns, Transforms ) ->
 % relevant AST transformations.
 %
 -spec transform_variable( meta_utils:variable_name(), line(),
-						  ast_transforms() ) -> ast_element().
-transform_variable( VariableName, _Line, _Transforms )  ->
+				  ast_transforms() ) -> { ast_element(), ast_transforms() }.
+transform_variable( VariableName, _Line, Transforms ) ?rec_guard ->
 	% Currently no transformation done:
-	VariableName.
+	{ VariableName, Transforms }.
 
 
 % Transforms specified pattern fields.
@@ -482,9 +545,10 @@ transform_variable( VariableName, _Line, _Transforms )  ->
 % (note: better here than in ast_record)
 %
 -spec transform_pattern_fields( [ ast_record:ast_pattern_field() ],
-								ast_transforms() ) -> [ ast_element() ].
-transform_pattern_fields( PatternFields, Transforms ) ->
-	[ transform_pattern_field( PF, Transforms ) || PF <- PatternFields ].
+				ast_transforms() ) -> { [ ast_element() ], ast_transforms() }.
+transform_pattern_fields( PatternFields, Transforms ) ?rec_guard ->
+	lists:mapfoldl( fun transform_pattern_field/2, _Acc0=Transforms,
+					_List=PatternFields ).
 
 
 
@@ -494,18 +558,22 @@ transform_pattern_fields( PatternFields, Transforms ) ->
 % only atoms are allowed by the linter.
 %
 -spec transform_pattern_field( ast_record:ast_pattern_field(),
-							   ast_transforms() ) -> ast_element().
+				  ast_transforms() ) -> { ast_element(), ast_transforms() }.
 transform_pattern_field( { 'record_field', Line1,
-			   N={ atom, _Line2, _FieldName }, Pattern }, Transforms ) ->
+		   N={ atom, _Line2, _FieldName }, Pattern }, Transforms ) ?rec_guard ->
 
-	NewPattern = transform_pattern( Pattern, Transforms ),
+	{ NewPattern, NewTransforms } = transform_pattern( Pattern, Transforms ),
 
-	{ 'record_field', Line1, N, NewPattern };
+	NewExpr = { 'record_field', Line1, N, NewPattern },
+
+	{ NewExpr, NewTransforms };
 
 
 transform_pattern_field( { 'record_field', Line1,
-		   N={ 'var', _Line2, _FieldName='_' }, Pattern }, Transforms ) ->
+	  N={ 'var', _Line2, _FieldName='_' }, Pattern }, Transforms ) ?rec_guard ->
 
-	NewPattern = transform_pattern( Pattern, Transforms ),
+	{ NewPattern, NewTransforms } = transform_pattern( Pattern, Transforms ),
 
-	{ 'record_field', Line1, N, NewPattern }.
+	NewExpr = { 'record_field', Line1, N, NewPattern },
+
+	{ NewExpr, NewTransforms }.

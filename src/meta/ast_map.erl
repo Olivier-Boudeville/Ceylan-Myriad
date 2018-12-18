@@ -94,6 +94,13 @@
 -type ast_transforms() :: ast_transform:ast_transforms().
 
 
+% For the ast_transform record:
+-include("ast_transform.hrl").
+
+% For the rec_guard define:
+-include("ast_utils.hrl").
+
+
 
 % Transforms specified list of map associations involved in a map operation.
 %
@@ -101,10 +108,10 @@
 % can be found for the association keys and values.
 %
 -spec transform_map_associations( [ ast_map_association() ],
-						  ast_transforms() ) -> [ ast_map_association() ].
-transform_map_associations( Associations, Transforms ) ->
+		ast_transforms() ) -> { [ ast_map_association() ], ast_transforms() }.
+transform_map_associations( Associations, Transforms ) ?rec_guard ->
 	transform_map_associations( Associations, Transforms,
-					   fun ast_expression:transform_expression/2 ).
+								fun ast_expression:transform_expression/2 ).
 
 
 % Transforms specified list of map associations involved in a map operation,
@@ -113,10 +120,18 @@ transform_map_associations( Associations, Transforms ) ->
 % expression, etc.).
 %
 -spec transform_map_associations( [ ast_map_association() ], ast_transforms(),
-				  ast_transform:transform_fun() ) -> [ ast_map_association() ].
-transform_map_associations( Associations, Transforms, TransformFun ) ->
-	[ transform_map_association( E, Transforms, TransformFun )
-	  || E <- Associations ].
+		ast_transform:transform_fun() ) ->
+						   { [ ast_map_association() ], ast_transforms() }.
+transform_map_associations( Associations, Transforms,
+							TransformFun ) ?rec_guard ->
+
+	% Closure, to capture TransformFun:
+	ActualFun = fun( A, AccTransforms ) ->
+						transform_map_association( A, AccTransforms,
+												   TransformFun )
+				end,
+
+	lists:mapfoldl( ActualFun, _Acc0=Transforms, _List=Associations ).
 
 
 
@@ -129,14 +144,17 @@ transform_map_associations( Associations, Transforms, TransformFun ) ->
 %       Rep(A) = {map_field_exact,LINE,Rep(K),Rep(V)}."
 %
 -spec transform_map_association( ast_map_association(), ast_transforms(),
-				 ast_transform:transform_fun() ) -> ast_map_association().
+		 ast_transform:transform_fun() ) ->
+				{ ast_map_association(), ast_transforms() }.
 transform_map_association( { MapAssocType, Line, ASTKey, ASTValue }, Transforms,
 						   TransformFun )
-  when MapAssocType =:= 'map_field_assoc'
-	   orelse MapAssocType =:= 'map_field_exact'->
+  when ( MapAssocType =:= 'map_field_assoc'
+		 orelse MapAssocType =:= 'map_field_exact' ) ?andalso_rec_guard ->
 
-	NewASTKey = TransformFun( ASTKey, Transforms ),
+	{ NewASTKey, KeyTransforms } = TransformFun( ASTKey, Transforms ),
 
-	NewASTValue = TransformFun( ASTValue, Transforms ),
+	{ NewASTValue, ValueTransforms } = TransformFun( ASTValue, KeyTransforms ),
 
-	{ MapAssocType, Line, NewASTKey, NewASTValue }.
+	Assoc = { MapAssocType, Line, NewASTKey, NewASTValue },
+
+	{ Assoc, ValueTransforms }.

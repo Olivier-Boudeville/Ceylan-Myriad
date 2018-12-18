@@ -193,9 +193,12 @@ parse_transform( InputAST, _Options ) ->
 -spec apply_myriad_transform( ast() ) -> { ast(), module_info() }.
 apply_myriad_transform( InputAST ) ->
 
-	%ast_utils:display_debug( "  (applying parse transform '~p')~n", [ ?MODULE ] ),
+	%ast_utils:display_debug( "  (applying parse transform '~p')~n",
+	%                         [ ?MODULE ] ),
 
-	%ast_utils:display_debug( "~n## INPUT ####################################" ),
+	%ast_utils:display_debug(
+	%           "~n## INPUT ####################################" ),
+
 	%ast_utils:display_debug( "Myriad input AST:~n~p~n~n", [ InputAST ] ),
 
 	%ast_utils:write_ast_to_file( InputAST, "Myriad-input-AST.txt" ),
@@ -215,8 +218,9 @@ apply_myriad_transform( InputAST ) ->
 	%ast_utils:display_debug( "Input module info: ~s~n~n",
 	%		   [ ast_info:module_info_to_string( BaseModuleInfo ) ] ),
 
-
-	TransformedModuleInfo = transform_module_info( BaseModuleInfo ),
+	% Currently the resulting transforms are not kept:
+	{ TransformedModuleInfo, _ModuleTransforms } =
+		transform_module_info( BaseModuleInfo ),
 
 
 	%ast_info:write_module_info_to_file( TransformedModuleInfo,
@@ -249,7 +253,8 @@ apply_myriad_transform( InputAST ) ->
 
 % Transforms (at the Myriad level) specified module information.
 %
--spec transform_module_info( module_info() ) -> module_info().
+-spec transform_module_info( module_info() ) ->
+					   { module_info(), ast_transform:ast_transforms() }.
 transform_module_info( ModuleInfo ) ->
 
 	% First determines the right transforms:
@@ -260,8 +265,8 @@ transform_module_info( ModuleInfo ) ->
 	%ast_utils:display_debug( "~nApplying following ~s",
 	%		   [ ast_transform:ast_transforms_to_string( Transforms ) ] ),
 
-	% Returns an updated module information:
-	meta_utils:apply_ast_transforms( Transforms, ModuleInfo ).
+	% Returns updated transforms and module information:
+	meta_utils:apply_ast_transforms( ModuleInfo, Transforms ).
 
 
 
@@ -341,11 +346,17 @@ get_myriad_ast_transforms_for(
 				% DesiredTableType:DesiredTableType/N instead:
 				%
 				{ { _ModuleName=table, '_' },
-				  fun( _TypeName=table, _TypeArity ) ->
-						  { _Module=DesiredTableType, DesiredTableType };
-					 ( OtherTypeName, _TypeArity ) ->
-						  { DesiredTableType, OtherTypeName }
-				  end } ] ),
+				  fun( _TypeName=table, _TypeArity, TransfoState ) ->
+						  TypeId = { _Module=DesiredTableType,
+									 DesiredTableType },
+						  { TypeId, TransfoState };
+
+					 ( OtherTypeName, _TypeArity, TransfoState ) ->
+						  TypeId = { DesiredTableType, OtherTypeName },
+						  { TypeId, TransfoState }
+
+				  end
+				} ] ),
 
 
 	% Regarding remote types, we want to replace:
@@ -355,11 +366,13 @@ get_myriad_ast_transforms_for(
 	%
 	RemoteTypeTransforms = ast_transform:get_remote_type_transform_table( [
 				{ { table, '_', '_' },
-				  fun( _ModName, _TypeName=table, _TypeArity ) ->
-						  { DesiredTableType, DesiredTableType  };
+				  fun( _ModName, _TypeName=table, _TypeArity, TransfoState ) ->
+						  TypeId = { DesiredTableType, DesiredTableType  },
+						  { TypeId, TransfoState };
 
-					 ( _ModName, TypeName, _TypeArity ) ->
-						  { DesiredTableType, TypeName }
+					 ( _ModName, TypeName, _TypeArity, TransfoState ) ->
+						  TypeId = { DesiredTableType, TypeName },
+						  { TypeId, TransfoState }
 
 				  end } ] ),
 
