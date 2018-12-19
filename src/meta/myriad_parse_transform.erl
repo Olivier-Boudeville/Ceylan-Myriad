@@ -255,7 +255,7 @@ apply_myriad_transform( InputAST ) ->
 %
 -spec transform_module_info( module_info() ) ->
 					   { module_info(), ast_transform:ast_transforms() }.
-transform_module_info( ModuleInfo ) ->
+transform_module_info( ModuleInfo ) when is_record( ModuleInfo, module_info ) ->
 
 	% First determines the right transforms:
 	Transforms = get_myriad_ast_transforms_for( ModuleInfo ),

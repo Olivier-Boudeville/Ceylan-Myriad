@@ -163,6 +163,8 @@
 -spec scan( ast() ) -> module_info().
 scan( AST ) ->
 
+	%ast_utils:display_trace( "scanning AST" ),
+
 	InitModuleInfo = ast_info:init_module_info(),
 
 	FirstLocation = id_utils:get_initial_sortable_id(),
@@ -171,6 +173,8 @@ scan( AST ) ->
 										   InitModuleInfo#module_info.markers ),
 
 	FirstModuleInfo = InitModuleInfo#module_info{ markers=FirstMarkerTable },
+
+	%ast_utils:display_trace( "beginning scan" ),
 
 	% Application of 7.1.1:
 	%
@@ -183,16 +187,22 @@ scan( AST ) ->
 					 _CurrentFileRef=undefined ) of
 
 		M=#module_info{ errors=[] } ->
+			%ast_utils:display_trace( "no error to report" ),
 			% No error, let's continue:
 			M;
 
-		#module_info{ errors=Errors } ->
+		_M=#module_info{ errors=Errors } ->
+			%ast_utils:display_debug( "reporting errors: ~p", [ Errors ] ),
 			[ report_error( E ) || E <- Errors ],
+
 			% No need to be that violent:
 			%erlang:halt( 1 )
 			%exit( Errors )
 			%exit( errors_reported )
 			exit( "fix your code :)" )
+
+			% If wanting instead to ignore errors, at least at this step:
+			%M
 
 	end.
 

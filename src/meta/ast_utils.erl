@@ -443,7 +443,7 @@ beam_to_ast( BeamFilename ) ->
 
 		{ ok, { _Module, [ { abstract_code, { _RawAbstractV1,
 											  AbstractCode } } ] } } ->
-			%ast_utils:ast_utils:display_debug( "Module = ~p.", [ Module ] ),
+			%display_debug( "Module = ~p.", [ Module ] ),
 			AbstractCode;
 
 		{ error, beam_lib, Reason } ->
@@ -525,7 +525,7 @@ string_to_form( FormString, Location ) ->
 
 		% Ex: [{atom,1,f},{'(',1},{')',1},{'->',1},{atom,1,hello_world},{dot,1}]
 		{ ok, Toks, _EndLocation } ->
-			%ast_utils:display_debug( "Tokens: ~p", [ Toks ] ),
+			%display_debug( "Tokens: ~p", [ Toks ] ),
 			Toks;
 
 		ErrorTok ->
@@ -576,7 +576,7 @@ string_to_expressions( ExpressionString, Location ) ->
 		% Ex: [ {'[',42}, {'{',42}, {atom,42,a}, {',',42}, {integer,42,1},
 		% {'}',42}, {',',42}, {atom,42,foobar}, {']',42} ]
 		{ ok, Toks, _EndLocation } ->
-			%ast_utils:display_debug( "Tokens: ~p", [ Toks ] ),
+			%display_debug( "Tokens: ~p", [ Toks ] ),
 			Toks;
 
 		ErrorTok ->
@@ -750,7 +750,7 @@ notify_warning( Elements, Context ) ->
 raise_error( ErrorTerm ) ->
 
 	%throw( ErrorTerm )
-	%ast_utils:ast_utils:display_error( "~p", [ ErrorTerm ] ),
+	%display_error( "~p", [ ErrorTerm ] ),
 
 	% Does not add any information (just non-relevant erl_parse, epp
 	% etc. state):

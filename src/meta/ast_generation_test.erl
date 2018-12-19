@@ -43,6 +43,12 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
+	AtomList = [ a, b, c ],
+
+	AtomListForm = ast_generation:list_atoms( AtomList ),
+
+	test_facilities:display( "The form version of ~p is:~n~p",
+							 [ AtomList, AtomListForm ] ),
 
 	ParamCount = 4,
 

@@ -34,7 +34,4 @@
 
 
 f( A ) ->
-	io:format( "Hello ~p", [ A ] ),
-	State = toto,
-	Name = tata,
-	{ State, Name }.
+	io:format( "Hello ~p", [ A ] ).

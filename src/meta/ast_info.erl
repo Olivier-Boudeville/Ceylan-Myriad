@@ -530,7 +530,7 @@ extract_module_info_from_ast( AST ) ->
 	%ast_utils:display_debug( "Processing following AST:~n~p",
 	%  [ AST ] ),
 
-	%ast_utils:display_debug( "Processing AST:" ),
+	%ast_utils:display_debug( "Processing AST..." ),
 
 	%ast_utils:write_ast_to_file( AST, "original-extracted-ast.txt" ),
 
@@ -559,7 +559,7 @@ extract_module_info_from_ast( AST ) ->
 	% modules (like {meta,text}_utils) - this should be the case here:
 	%
 	%ast_utils:display_debug( "Resulting module information:~n~s",
-	%		   [ module_info_to_string( ModuleInfo ) ] ),
+	%						 [ module_info_to_string( ModuleInfo ) ] ),
 
 	case ModuleInfo#module_info.unhandled_forms of
 
@@ -835,10 +835,16 @@ recompose_ast_from_module_info( #module_info{ errors=Errors } ) ->
 
 	ErrorStrings = [ text_utils:term_to_string( E ) || E <- Errors ],
 
-	trace_utils:error_fmt( "~B errors spotted in AST:~s",
+	trace_utils:error_fmt( "~B errors spotted in AST: ~s",
 		[ length( Errors ), text_utils:strings_to_string( ErrorStrings ) ] ),
 
-	throw( { errors_in_ast, Errors } ).
+	throw( { errors_in_ast, Errors } );
+
+
+recompose_ast_from_module_info( Unexpected ) ->
+
+	throw( { unexpected_term_as_module_info, Unexpected } ).
+
 
 
 
