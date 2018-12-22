@@ -54,13 +54,14 @@
 								  ast_transform:remote_call_transform_table() ),
 
 
-	% Transformations (if any) to be applied on expressions as a whole (ex:
-	% exceeding the mere transformations of calls into calls):
+	% Records the transformations (if any) to be applied on AST elements as a
+	% whole (generally exceeding the mere transformations of calls into calls,
+	% like rewriting bodies) whenever a trigger is found.
 	%
-	% Note: currently, the only expression kind that is supported is: 'call'.
+	% Triggers currently supported: 'call', 'body'.
 	%
-	expressions = undefined :: basic_utils:maybe(
-								 ast_transform:expression_transform_table() ),
+	transform_table = undefined ::
+	  basic_utils:maybe( ast_transform:ast_transform_table() ),
 
 	% Any user-defined transformation state that is to be kept and updated
 	% in the course of a transformation.
