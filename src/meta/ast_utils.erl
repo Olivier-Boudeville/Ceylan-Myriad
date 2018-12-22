@@ -789,8 +789,6 @@ raise_error( Elements, Context, OriginLayer ) when is_list( Elements ) ->
 
 	AllElements = get_elements_with_context( Elements, Context ),
 
-	%StackTrace = erlang:get_stacktrace(),
-
 	try
 
 		% To avoid a single-element tuple:
@@ -806,7 +804,19 @@ raise_error( Elements, Context, OriginLayer ) when is_list( Elements ) ->
 
 		display_error( "Error raised while performing ~s-level transformations:"
 					   "~n  ~p~n", [ OriginLayer, ReportedElems ] ),
-		throw( myriad_transformation_failed )
+
+		DisplayStacktrace = true,
+		%DisplayStacktrace = false,
+
+		case DisplayStacktrace of
+
+			true ->
+				throw( myriad_transformation_failed );
+
+			false ->
+				ok
+
+		end
 
 	catch
 
