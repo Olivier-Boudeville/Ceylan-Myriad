@@ -183,19 +183,41 @@
 
 
 
-%% Expression replacement section.
+%% AST subtree replacement section.
+
+
+% Lists the contexts that may trigger a transformation function:
+-type transform_trigger() :: ast_expression:expression_kind()
+							 | 'body'.
+
+
+% User-supplied function to define how bodies shall be transformed:
+%
+-type body_transform_function() :: fun( ( ast_body(), ast_transforms() ) ->
+											{ ast_body(), ast_transforms() } ).
 
 
 % User-supplied function to define how expressions shall be replaced:
 -type expression_replacement_function() :: fun(
   ( line(), ast_expression:function_ref_expression(),
-	ast_expression:params_expression(), transformation_state() ) ->
-					{ ast_expression(), transformation_state() } ).
+	ast_expression:params_expression(), ast_transforms() ) ->
+					{ ast_expression(), ast_transforms() } ).
 
 
-% Table defining replacements of whole expressions:
--type expression_transform_table() :: ?table:?table(
-	  ast_expression:expression_kind(), expression_replacement_function() ).
+% All the kinds of functions able to transform at least a part of an AST:
+-type ast_transform_function() :: body_transform_function()
+								| expression_replacement_function().
+
+
+% Table defining replacements of parts of an input AST:
+%
+% Note: a full ast_transforms record (not a mere transformation state) is used
+% as input (and output) of these transformation functions so that they can
+% trigger in turn recursive transformation calls (ex: to
+% ast_expression:transform_expressions/2) by themselves.
+%
+-type ast_transform_table() ::
+		?table:?table( transform_trigger(), ast_transform_function() ).
 
 
 
@@ -232,7 +254,8 @@
 
 % For expression replacements:
 -export_type([ expression_replacement_function/0,
-			   expression_transform_table/0 ]).
+			   ast_transform_function/0,
+			   ast_transform_table/0 ]).
 
 -export_type([ transformation_state/0 ]).
 
@@ -286,7 +309,7 @@
 
 -type line() :: ast_base:line().
 -type ast_expression() :: ast_expression:ast_expression().
-
+-type ast_body() :: ast_clause:ast_body().
 
 
 %% Type replacement section.
@@ -725,7 +748,8 @@ ast_transforms_to_string( #ast_transforms{
 							 remote_types=MaybeRemoteTypeTable,
 							 local_calls=MaybeLocalCallTable,
 							 remote_calls=MaybeRemoteCallTable,
-							 expressions=MaybeExpressions } ) ->
+							 transform_table=MaybeTransformTable,
+							 transformation_state=TransfoState } ) ->
 
 	Bullet = "  - ",
 
@@ -773,20 +797,22 @@ ast_transforms_to_string( #ast_transforms{
 
 	end,
 
-	ExprStr = case MaybeExpressions of
+	TransfoTableStr = case MaybeTransformTable of
 
 		undefined ->
-			"no expression-level transformation";
+			"no AST transformation defined";
 
-		ExprTransfTable ->
-			text_utils:format( "expression-level transformations defined, "
-							   "for following ~B expression kinds: ~w",
-							   [ ?table:size( ExprTransfTable ),
-								 ?table:keys( ExprTransfTable ) ] )
+		TransfoTable ->
+			text_utils:format( "AST transformations defined, "
+							   "for following ~B triggers: ~w; "
+							   "transformation state is: '~p'",
+							   [ ?table:size( TransfoTable ),
+								 ?table:keys( TransfoTable ),
+								 TransfoState ] )
 
 	end,
 
 	TableString = text_utils:strings_to_string( [ LocalTypeStr, RemoteTypeStr,
-					LocalCallStr, RemoteCallStr, ExprStr ] ),
+					LocalCallStr, RemoteCallStr, TransfoTableStr ] ),
 
 	text_utils:format( "AST transformations: ~s", [ TableString ] ).
