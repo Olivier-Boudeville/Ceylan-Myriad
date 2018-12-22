@@ -142,6 +142,10 @@
 -type form_context() :: ast_base:form_context().
 -type ast_transforms() :: ast_transform:ast_transforms().
 
+
+% For the table macro:
+-include("meta_utils.hrl").
+
 % For the ast_transform record:
 -include("ast_transform.hrl").
 
@@ -483,7 +487,26 @@ transform_case_clause(
 
 transform_body( BodyExprs, Transforms )
   when is_list( BodyExprs ) ?andalso_rec_guard ->
-	ast_expression:transform_expressions( BodyExprs, Transforms );
+
+	case Transforms#ast_transforms.transform_table of
+
+		undefined ->
+			ast_expression:transform_expressions( BodyExprs, Transforms );
+
+		TransformTable ->
+			case ?table:lookupEntry( 'body', TransformTable ) of
+
+				key_not_found ->
+					ast_expression:transform_expressions( BodyExprs,
+														  Transforms );
+
+				{ value, BodyTransformFun } ->
+					% Returns directly { NewBodyExprs, NewTransforms }:
+					BodyTransformFun( BodyExprs, Transforms )
+
+			end
+
+	end;
 
 transform_body( Other, _Transforms ) ->
 	ast_utils:raise_error( [ invalid_body, Other ] ).
