@@ -146,24 +146,22 @@ transform_expression( _E={ 'call', LineCall, FunctionRef, Params },
 	%ast_utils:display_debug( "Intercepting call expression ~p...", [ E ] ),
 
 	% Maybe expressions have to be transformed as a whole?
-	Res = case Transforms#ast_transforms.expressions of
+	Res = case Transforms#ast_transforms.transform_table of
 
 		undefined ->
 			transform_call( LineCall, FunctionRef, Params, Transforms );
 
-		ExprTransfTable ->
-			case ?table:lookupEntry( 'call', ExprTransfTable ) of
+		TransformTable ->
+			case ?table:lookupEntry( 'call', TransformTable ) of
 
 				key_not_found ->
 					transform_call( LineCall, FunctionRef, Params, Transforms );
 
 				{ value, CallTransformFun } ->
-					{ NewExpr, NewTransformState } = CallTransformFun(
-						  LineCall, FunctionRef, Params,
-						  Transforms#ast_transforms.transformation_state ),
+					% Returns directly { NewExpr, NewTransforms }:
+					CallTransformFun( LineCall, FunctionRef, Params,
+									  Transforms )
 
-					{ NewExpr, Transforms#ast_transforms{
-								 transformation_state=NewTransformState } }
 			end
 
 	end,
