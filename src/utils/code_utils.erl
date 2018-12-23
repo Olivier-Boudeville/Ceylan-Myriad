@@ -45,7 +45,8 @@
 		  interpret_stacktrace/0,
 		  interpret_stacktrace/1,
 		  interpret_stacktrace/2,
-		  interpret_stack_item/2 ]).
+		  interpret_stack_item/2,
+		  display_stacktrace/0 ]).
 
 
 
@@ -577,3 +578,16 @@ interpret_stack_item( { Module, Function, Arguments, Location },
 % Never fail:
 interpret_stack_item( I, _FullPathsWanted ) ->
 	text_utils:format( "~p", [ I ] ).
+
+
+
+% Displays the current stacktrace (not stopping the execution).
+%
+-spec display_stacktrace() -> void().
+display_stacktrace() ->
+
+	% We do not want to include display_stacktrace/0 in the stack:
+	StackTrace = tl( get_stacktrace() ),
+
+	io:format( "Current stacktrace is: ~s~n",
+			   [ interpret_stacktrace( StackTrace ) ] ).
