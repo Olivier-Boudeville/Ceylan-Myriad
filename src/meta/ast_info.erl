@@ -182,13 +182,28 @@
 
 -type compile_option_name() :: atom().
 
+% In some cases (at least when it is specified from the command-line), a
+% compilation option is a triplet (ex: -Dmy_other_test_token=51 is translated,
+% in terms of a parse-transform option, as: {d,my_other_test_token,51}).
+%
+% The value associated to the option name ('d') is then:
+% {my_other_test_token,51}.
+%
 -type compile_option_value() :: term().
+
+
+% As typically obtained from options fed to a parse-transform:
+-type compile_option_entry() :: compile_option_name()
+					  | { compile_option_name(), compile_option_value() }.
 
 
 % For easy access to compilation information:
 %
+% Note that an option specified without a value (ex: -Dmy_token on the command
+% line) will be associated to the 'undefined' value.
+%
 -type compile_option_table() :: ?table:?table( compile_option_name(),
-											   [ compile_option_value() ] ).
+									basic_utils:maybe( [ compile_option_value() ] ) ).
 
 
 
@@ -322,7 +337,7 @@
 			   section_marker/0,
 
 			   compile_option_name/0, compile_option_value/0,
-			   compile_option_table/0,
+			   compile_option_entry/0, compile_option_table/0,
 
 			   attribute_name/0, attribute_value/0, attribute/0,
 			   attribute_table/0,
@@ -346,7 +361,7 @@
 
 % Module-info section:
 -export([ extract_module_info_from_ast/1, init_module_info/0,
-		  check_module_info/1,
+		  check_module_info/1, interpret_options/2,
 		  recompose_ast_from_module_info/1,
 		  write_module_info_to_file/2,
 
@@ -2211,3 +2226,41 @@ type_info_to_string( #type_info{ name=TypeName,
 	end,
 
 	TypeIdString ++ text_utils:strings_to_listed_string( AllStrings ).
+
+
+
+% Interprets the specified compilation options, that were typically specified
+% through the command-line.
+%
+-spec interpret_options( [ compile_option_entry() ], module_info() ) ->
+							   module_info().
+interpret_options( OptionList,
+				   ModuleInfo=#module_info{
+								 compilation_options=OptionTable } ) ->
+	NewOptionTable = scan_options( OptionList, OptionTable ),
+
+	ModuleInfo#module_info{ compilation_options=NewOptionTable }.
+
+
+% (helper)
+scan_options( _OptionList=[], OptionTable ) ->
+	OptionTable;
+
+scan_options( _OptionList=[ { Name, Value } | T ], OptionTable ) ->
+	NewOptionTable = ?table:appendToEntry( _K=Name, Value, OptionTable ),
+	scan_options( T, NewOptionTable );
+
+scan_options( _OptionList=[ { Name, BaseValue, OtherValue } | T ],
+			  OptionTable ) ->
+	NewOptionTable = ?table:appendToEntry( _K=Name, { BaseValue, OtherValue },
+										   OptionTable ),
+	scan_options( T, NewOptionTable );
+
+scan_options( _OptionList=[ Name | T ], OptionTable ) when is_atom( Name ) ->
+	% No clash wanted:
+	NewOptionTable = ?table:addNewEntry( _K=Name, _V=undefined, OptionTable ),
+	scan_options( T, NewOptionTable );
+
+
+scan_options( _OptionList=[ Unexpected | _T ], _OptionTable ) ->
+	throw( { unexpected_compilation_option, Unexpected } ).
