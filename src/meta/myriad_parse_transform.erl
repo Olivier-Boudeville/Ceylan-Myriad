@@ -124,7 +124,7 @@
 -define( default_table_type, map_hashtable ).
 
 
--export([ run_standalone/1, parse_transform/2, apply_myriad_transform/1,
+-export([ run_standalone/1, parse_transform/2, apply_myriad_transform/2,
 		  transform_module_info/1 ]).
 
 
@@ -142,14 +142,14 @@ run_standalone( FileToTransform ) ->
 
 	AST = ast_utils:erl_to_ast( FileToTransform ),
 
-	% Options like : [ report_warnings, {d,debug_mode_is_enabled}, beam,
+	% Options like : [ report_warnings, {d,debug_mode}, beam,
 	% report_errors, {cwd,"X"}, {outdir,Y"}, {i,"A"},{i,"B"}, debug_info, etc.
 	% are probably not all set, but it is unlikely to be a problem here.
 	%
 	% (anyway, for example defining a non-exported function in the target module
 	% leads to a "unused function" warning)
 	%
-	apply_myriad_transform( AST ).
+	apply_myriad_transform( AST, _Options=[] ).
 
 
 
@@ -160,7 +160,7 @@ run_standalone( FileToTransform ) ->
 % what we could do with it. There is nevertheless valuable information in it,
 % like in:
 %
-% Options = [report_warnings, {d,debug_mode_is_enabled}, beam, report_errors,
+% Options = [report_warnings, {d,debug_mode}, beam, report_errors,
 %			{cwd,"[...]/foo"}, {outdir,"[...]/foo"}, {i,"[...]/foo/../bar"},
 %           [...]
 %			{parse_transform,myriad_parse_transform}, debug_info,
@@ -175,14 +175,14 @@ run_standalone( FileToTransform ) ->
 % source code').
 %
 -spec parse_transform( ast(), meta_utils:parse_transform_options() ) -> ast().
-parse_transform( InputAST, _Options ) ->
+parse_transform( InputAST, Options ) ->
 
 	%ast_utils:display_debug( "Options: ~p~n", [ Options ] ),
 
 	% In the context of this direct parse transform, the module_info is of no
 	% use afterwards and thus can be dropped:
 	%
-	{ MyriadAST, _MyriadModuleInfo } = apply_myriad_transform( InputAST ),
+	{ MyriadAST, _MyriadModuleInfo } = apply_myriad_transform( InputAST, Options ),
 
 	MyriadAST.
 
@@ -190,8 +190,9 @@ parse_transform( InputAST, _Options ) ->
 
 % Defined to be reused in multiple contexts.
 %
--spec apply_myriad_transform( ast() ) -> { ast(), module_info() }.
-apply_myriad_transform( InputAST ) ->
+-spec apply_myriad_transform( ast(), meta_utils:parse_transform_options() ) ->
+									{ ast(), module_info() }.
+apply_myriad_transform( InputAST, Options ) ->
 
 	%ast_utils:display_debug( "  (applying parse transform '~p')~n",
 	%                         [ ?MODULE ] ),
@@ -199,7 +200,7 @@ apply_myriad_transform( InputAST ) ->
 	%ast_utils:display_debug(
 	%           "~n## INPUT ####################################" ),
 
-	%ast_utils:display_debug( "Myriad input AST:~n~p~n~n", [ InputAST ] ),
+	ast_utils:display_debug( "Myriad input AST:~n~p~n~n", [ InputAST ] ),
 
 	%ast_utils:write_ast_to_file( InputAST, "Myriad-input-AST.txt" ),
 
@@ -209,18 +210,17 @@ apply_myriad_transform( InputAST ) ->
 
 	BaseModuleInfo = ast_info:extract_module_info_from_ast( InputAST ),
 
-	%ast_info:write_module_info_to_file( BaseModuleInfo,
+	WithOptsModuleInfo = ast_info:interpret_options( Options, BaseModuleInfo ),
+
+	%ast_info:write_module_info_to_file( WithOptsModuleInfo,
 	%									  "Input-module_info.txt" ),
 
-	%ast_utils:display_debug( "Input module info: ~s",
-	%		   [ ast_info:module_info_to_string( BaseModuleInfo ) ] ),
-
-	%ast_utils:display_debug( "Input module info: ~s~n~n",
-	%		   [ ast_info:module_info_to_string( BaseModuleInfo ) ] ),
+	ast_utils:display_debug( "Input module info: ~s~n~n",
+			   [ ast_info:module_info_to_string( WithOptsModuleInfo ) ] ),
 
 	% Currently the resulting transforms are not kept:
 	{ TransformedModuleInfo, _ModuleTransforms } =
-		transform_module_info( BaseModuleInfo ),
+		transform_module_info( WithOptsModuleInfo ),
 
 
 	%ast_info:write_module_info_to_file( TransformedModuleInfo,
@@ -278,7 +278,8 @@ transform_module_info( ModuleInfo ) when is_record( ModuleInfo, module_info ) ->
 -spec get_myriad_ast_transforms_for( module_info() ) ->
 										   ast_transform:ast_transforms().
 get_myriad_ast_transforms_for(
-  #module_info{ parse_attributes=ParseAttributes } ) ->
+  #module_info{ compilation_options=CompileOptTable,
+				parse_attributes=ParseAttributes } ) ->
 
 	% We will be replacing here all calls to the 'table' pseudo-module by calls
 	% to the actual module that may be designated by a specific parse attribute,
@@ -386,11 +387,21 @@ get_myriad_ast_transforms_for(
 				%
 				{ { table, '_', '_' }, DesiredTableType } ] ),
 
+	%add cond_utils -> fun
+
+	% Finally, we want to read any tokens specified to drive the activation of
+	% conditional code:
+	%
+	TokenTable = cond_utils:get_token_table_from( CompileOptTable ),
+
+	%trace_utils:debug_fmt( "Token table:~n~p", [ TokenTable ] ),
+
 	% Returns an overall description of these requested AST transformations:
 	#ast_transforms{ local_types=LocalTypeTransforms,
 					 remote_types=RemoteTypeTransforms,
 					 local_calls=LocalCallTransforms,
-					 remote_calls=RemoteCallTransforms }.
+					 remote_calls=RemoteCallTransforms,
+					 transformation_state=TokenTable } .
 
 
 
