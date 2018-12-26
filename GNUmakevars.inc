@@ -373,7 +373,7 @@ ifeq ($(EXECUTION_TARGET),development)
   # No exec_target_is_production shall be defined here:
   ERLANG_COMPILER_EXEC_TARGET_OPT :=
 
-  ERLANG_COMPILER_DEBUG_OPT := -Ddebug_mode_is_enabled
+  ERLANG_COMPILER_DEBUG_OPT := -Ddebug_mode
 
 
 else ifeq ($(EXECUTION_TARGET),production)
@@ -402,6 +402,12 @@ else
 
 endif
 
+
+# Allows to list the tokens used for the enabling of conditional code:
+#ERLANG_COMPILER_TOKEN_OPT :=
+
+# To test conditional checks:
+ERLANG_COMPILER_TOKEN_OPT := -Dmy_test_token -Dmy_other_test_token=51
 
 
 ALL_ERL_FILES = $(wildcard *.erl)
@@ -672,6 +678,7 @@ ifndef BOOTSTRAP_MODULES
 
 	META_SRC_FILES = $(wildcard $(MYRIAD_TOP)/src/meta/*.erl)
 
+	# As they do not need to be specifically bootstrapped:
 	EXCLUDED_FROM_BOOTSTRAPPED_META = \
 				$(MYRIAD_TOP)/src/meta/myriad_parse_transform.erl        \
 				$(MYRIAD_TOP)/src/meta/myriad_parse_transform_test.erl   \
@@ -679,7 +686,9 @@ ifndef BOOTSTRAP_MODULES
 				$(MYRIAD_TOP)/src/meta/minimal_parse_transform_test.erl  \
 				$(MYRIAD_TOP)/src/meta/simple_parse_transform_target.erl \
 				$(MYRIAD_TOP)/src/meta/ast_generation_test.erl           \
-				$(MYRIAD_TOP)/src/meta/meta_utils_test.erl
+				$(MYRIAD_TOP)/src/meta/meta_utils_test.erl               \
+				$(MYRIAD_TOP)/src/meta/cond_utils_test.erl               \
+
 
 
 	META_FILTERED_SRC_FILES = $(filter-out $(EXCLUDED_FROM_BOOTSTRAPPED_META),$(META_SRC_FILES))
@@ -823,7 +832,8 @@ ERLANG_COMPILER_OPT_BASE += $(ERLANG_COMPILER_GENERAL_OPT) $(INC)        \
 	$(ERLANG_COMPILER_EXEC_TARGET_OPT) $(ERLANG_COMPILER_DEBUG_OPT)      \
 	$(ERLANG_COMPILER_NATIVE_COMPILATION_OPT)                            \
 	$(ERLANG_COMPILER_WARNING_OPT)                                       \
-	$(ERLANG_COMPILER_OPT_DEBUG)
+	$(ERLANG_COMPILER_OPT_DEBUG)                                         \
+	$(ERLANG_COMPILER_TOKEN_OPT)
 
 
 # Base options to compile parse transforms themselves (and their helper
