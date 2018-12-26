@@ -32,7 +32,7 @@
 -module(ast_generation).
 
 
--export([ list_atoms/1, list_variables/1,
+-export([ list_to_form/1, form_to_list/1, list_atoms/1, list_variables/1,
 		  get_iterated_param_name/1, get_header_params/1 ]).
 
 
@@ -40,11 +40,45 @@
 -type form_element() :: ast_base:form_element().
 
 
+% Transforms specified list (whose elements are typically themselves form
+% elements already) into the AST version of a list.
+%
+% Ex: list_to_form( [ {atom,Line,a}, {atom,Line,b} ] ) =
+% { cons,Line,{atom,Line,a}, {cons,Line,{atom,Line,b}, {nil,Line} } }.
+%
+% See form_to_list/1 for the reciprocal function.
+%
+-spec list_to_form( list() ) -> form_element().
+list_to_form( _List=[] ) ->
+	{ nil, _Line=0 };
+
+list_to_form( _List=[ E | T ] ) ->
+	Line = 0,
+	{ cons, Line, E, list_to_form( T ) }.
+
+
+
+% Transforms specified AST list into the corresponding plain list.
+%
+% Ex: form_to_list( { cons,Line,{atom,Line,a}, {cons,Line,{atom,Line,b},
+% {nil,Line} } } ) = [ {atom,Line,a}, {atom,Line,b} ].
+%
+% See list_to_form/1 for the reciprocal function.
+%
+-spec form_to_list( form_element() ) -> list().
+form_to_list( { nil, _Line } ) ->
+	[];
+
+form_to_list( { cons, _Line, E, NestedForm } ) ->
+	[ E | form_to_list( NestedForm ) ].
+
+
 
 % Returns the form element corresponding a list of atoms.
 %
 % Ex: { cons,Line,{atom,Line,a}, {cons,Line,{atom,Line,b}, {nil,Line} } } =
 %         list_atoms( [ 'a', 'b' ] ).
+%
 -spec list_atoms( [ atom() ] ) -> form_element().
 list_atoms( _AtomList=[] ) ->
 	{ nil, _Line=0 };

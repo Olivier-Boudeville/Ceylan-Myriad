@@ -45,10 +45,25 @@ run() ->
 
 	AtomList = [ a, b, c ],
 
+	AtomFormList = [ { atom, _Line=0, A } || A <- AtomList ],
+
+	AtomListForm = ast_generation:list_to_form( AtomFormList ),
+
+	% Check:
+	AtomListForm = { cons, 0, {atom,0,a},
+					 { cons, 0, {atom,0,b},
+					   { cons, 0, {atom,0,c},
+						 { nil,0 } } } },
+
+	% Another check:
 	AtomListForm = ast_generation:list_atoms( AtomList ),
 
 	test_facilities:display( "The form version of ~p is:~n~p",
 							 [ AtomList, AtomListForm ] ),
+
+	% Check:
+	AtomFormList = ast_generation:form_to_list( AtomListForm ),
+
 
 	ParamCount = 4,
 
@@ -62,7 +77,12 @@ run() ->
 
 	Vars = ast_generation:list_variables( VarCount ),
 
+
 	test_facilities:display( "Listing ~B variables:~n~p", [ VarCount, Vars ] ),
 
+	% Check:
+	Vars = { cons, 0, {var,0,'Myriad_Param_1'},
+			 { cons, 0, {var,0,'Myriad_Param_2'},
+			   {nil,0} } },
 
 	test_facilities:stop().
