@@ -1254,21 +1254,21 @@ is_alive( TargetPid, Node ) when is_pid( TargetPid ) ->
 % Returns whether the debug mode is activated for the compilation of this
 % module.
 
-% Dispatched in actual clauses, otherwise Dializer will detect an
+% Dispatched in actual clauses, otherwise Dialyzer will detect an
 % underspecification:
 %
 %-spec is_debug_mode_enabled() -> boolean().
 
--ifdef(debug_mode_is_enabled).
+-ifdef(debug_mode).
 
 -spec is_debug_mode_enabled() -> true.
 is_debug_mode_enabled() ->
 	true.
 
--else. % debug_mode_is_enabled
+-else. % debug_mode
 
 -spec is_debug_mode_enabled() -> false.
 is_debug_mode_enabled() ->
 	false.
 
--endif. % debug_mode_is_enabled
+-endif. % debug_mode

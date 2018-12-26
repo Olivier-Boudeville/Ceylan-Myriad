@@ -376,14 +376,14 @@ get_user_home_directory_string() ->
 %
 -spec await_output_completion() -> void().
 
--ifdef(debug_mode_is_enabled).
+-ifdef(debug_mode).
 
 % Default time-out duration (0.3 second, for loaded computers):
 await_output_completion() ->
 	% Milliseconds:
 	await_output_completion( _TimeOut=300 ).
 
--else. % debug_mode_is_enabled
+-else. % debug_mode
 
 
 % Extended time-out (2.5 seconds), if for example being in production, on a
@@ -395,7 +395,7 @@ await_output_completion() ->
 	% Milliseconds:
 	await_output_completion( _TimeOut=2500 ).
 
--endif. % debug_mode_is_enabled
+-endif. % debug_mode
 
 
 
