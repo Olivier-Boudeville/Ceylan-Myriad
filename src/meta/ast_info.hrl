@@ -90,6 +90,14 @@
 		% used in order to specify these various information (ex: separately or
 		% in groups, at which actual file locations, etc.) is abstracted out
 		%
+		% - options can also be specified through the command line with the -D
+		% selector (ex: see ERLANG_COMPILER_TOKEN_OPT); as the in-source ones,
+		% they are gathered in this table (yet do not have of course counterpart
+		% forms in the compilation_option_defs field below); no specific
+		% precedence between command-line options applies, as to a given option
+		% name is associated a list of values (so they can be all aggregated in
+		% that entry)
+		%
 		% - the 'inline' key is special-cased to account for its variants: if
 		% full inlining is enabled ( '-compile( inline ).'), then its associated
 		% key is not a list of function identifiers, but the 'all' atom
