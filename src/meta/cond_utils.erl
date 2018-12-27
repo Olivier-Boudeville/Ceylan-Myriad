@@ -57,7 +57,8 @@
 
 
 % Table to establish easily whether a token has been defined and, if yes, a
-% value (if any; otherwise it is set to 'undefined') that has been associated to it.
+% value (if any; otherwise it is set to 'undefined') that has been associated to
+% it.
 %
 -type token_table() :: ?table:?table( token(), basic_utils:maybe( term() ) ).
 
