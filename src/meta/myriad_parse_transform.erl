@@ -182,7 +182,8 @@ parse_transform( InputAST, Options ) ->
 	% In the context of this direct parse transform, the module_info is of no
 	% use afterwards and thus can be dropped:
 	%
-	{ MyriadAST, _MyriadModuleInfo } = apply_myriad_transform( InputAST, Options ),
+	{ MyriadAST, _MyriadModuleInfo } =
+		apply_myriad_transform( InputAST, Options ),
 
 	MyriadAST.
 
@@ -381,11 +382,55 @@ get_myriad_ast_transforms_for(
 	%LocalCallTransforms = meta_utils:get_local_call_transform_table( [] ),
 	LocalCallTransforms = undefined,
 
+	% We used to define a simple, direct transformation from 'table' to
+	% DesiredTableType, however the addition of the cond_utils support led to
+	% have to define a full-blown call transform fun, instead of a mere mapping
+	% and also instead of a remote_call_replacement fun/4, which cannot take
+	% into the value of arguments (ex: the specified token) - just being
+	% parametrised by an arity.
+	%
+	% So (anonymous mute variables corresponding to line numbers):
+
+	RemoteCallTransformFun = fun
+
+		( LineCall,
+		  _FunctionRef={ remote, _, {atom,_,cond_utils},
+						 {atom,_,if_defined} },
+		  Params=[ {atom,_,Token}, ExprFormList ],
+		  Transforms=#ast_transforms{
+			transformation_state=TokenTable } ) ->
+
+			case ?table:lookupEntry( Token, TokenTable ) of
+
+				% Any value associated to this token will do, as we want just to
+				% detect whether it is defined at all:
+				%
+				{ value, _Any } ->
+					% Corresponding code (expressions) thus enabled; the AST
+					% sees them as the elements of a list ({cond,_,E,
+					% {cond,...}), we need a direct list here, so:
+					Exprs = ast_generation:form_to_list( ExprFormList ),
+
+					% So that the call as a whole is replaced with a series of
+					% expressions:
+					%
+					{ E
+					
+
+		( _Mod=table, AnyFunName, AnyArity, TransfoState ) ->
+				{ DesiredTableType, TransfoState };
+
+		   ( _Mod=cond_utils, _FunName=if_defined, _Arity=2,
+			 TransfoState=TokenTable ) ->
+
+
+
 	RemoteCallTransforms = ast_transform:get_remote_call_transform_table( [
 				% For all function names and arities, the 'table' module shall
 				% be replaced in remote calls by the desired table type:
 				%
-				{ { table, '_', '_' }, DesiredTableType } ] ),
+				{ { table, '_', '_' }, DesiredTableType },
+				{ { cond_utils, if_defined, 2 }] ),
 
 	%add cond_utils -> fun
 
