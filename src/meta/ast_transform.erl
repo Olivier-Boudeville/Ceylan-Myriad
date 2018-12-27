@@ -28,7 +28,7 @@
 
 
 % Module in charge of transforming AST elements, typically by operating on a
-% module_info record obtained after the transformning of an AST.
+% module_info record obtained after the transforming of an AST.
 %
 % Note that the transform relies on a rather complex and complete traversal of
 % the abstract syntax of the AST, inspired from the spec (in
@@ -191,17 +191,20 @@
 							 | 'body'.
 
 
-% User-supplied function to define how bodies shall be transformed:
+% User-supplied function to define how AST bodies shall be transformed:
 %
 -type body_transform_function() :: fun( ( ast_body(), ast_transforms() ) ->
 											{ ast_body(), ast_transforms() } ).
 
 
 % User-supplied function to define how expressions shall be replaced:
+%
+% (currently describing only call replacements)
+%
 -type expression_replacement_function() :: fun(
   ( line(), ast_expression:function_ref_expression(),
 	ast_expression:params_expression(), ast_transforms() ) ->
-					{ ast_expression(), ast_transforms() } ).
+					{ [ ast_expression() ], ast_transforms() } ).
 
 
 % All the kinds of functions able to transform at least a part of an AST:
@@ -312,8 +315,9 @@
 -type ast_body() :: ast_clause:ast_body().
 
 
-%% Type replacement section.
 
+
+%% Type replacement section.
 
 
 % Returns a table describing local type replacements.
