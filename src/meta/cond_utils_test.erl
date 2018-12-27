@@ -52,8 +52,9 @@ run() ->
 	A = 1,
 	B = 2,
 
-     A = 1,
+	cond_utils:if_defined( Token,
+						   _Exprs=[ A = 1,
 									io:format( "Conditional code executed!~n" ),
-									B = A + 1,
+									B = A + 1 ] ),
 
 	test_facilities:stop().
