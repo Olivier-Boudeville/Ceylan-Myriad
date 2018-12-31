@@ -138,8 +138,8 @@ register_as( Pid, Name, local_only ) when is_atom( Name ) ->
 
 register_as( Pid, Name, global_only ) when is_atom( Name ) ->
 
-	%trace_utils:debug_fmt( "register_as: global_only, with PID=~w and Name='~p'.",
-	%					   [ Pid, Name ] ),
+	%trace_utils:debug_fmt( "register_as: global_only, with PID=~w "
+	%                       "and Name='~p'.", [ Pid, Name ] ),
 
 	case global:register_name( Name, Pid ) of
 
