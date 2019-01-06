@@ -76,6 +76,11 @@
 % a given form into a (possibly empty) list of forms (rather than a single
 % form).
 
+% Allowing the definition of transformation functions allows to give full
+% control to the user-specified transformations (ex: w.r.t. to recursion in
+% parameters).
+
+
 
 % Shorthands:
 
@@ -168,6 +173,11 @@ transform_expression( _E={ 'call', LineCall, FunctionRef, Params },
 
 				{ value, CallTransformFun } ->
 					% Returns directly { NewExprs, NewTransforms }:
+					%
+					% (note that this transform function is responsible for
+					% recursing in the parameters if needed - which is probably
+					% the case)
+					%
 					CallTransformFun( LineCall, FunctionRef, Params,
 									  Transforms )
 
@@ -217,8 +227,8 @@ transform_expression( _E={ 'case', Line, TestExpression, CaseClauses },
 	{ [ NewTestExpression ], TestTransforms } =
 		transform_expression( TestExpression, Transforms ),
 
-	{ NewCaseClauses, CaseTransforms } = ast_clause:transform_case_clauses(
-										   CaseClauses, TestTransforms ),
+	{ NewCaseClauses, CaseTransforms } =
+		ast_clause:transform_case_clauses( CaseClauses, TestTransforms ),
 
 	NewExpr = { 'case', Line, NewTestExpression, NewCaseClauses },
 
@@ -1095,8 +1105,14 @@ transform_expression( Expression, Transforms )
 		  ast_transforms() ) -> { [ ast_expression() ], ast_transforms() }.
 transform_call( LineCall, FunctionRef, Params, Transforms ) ?rec_guard ->
 
+	%ast_utils:display_debug( "transforming call to function reference ~p",
+	%						 [ FunctionRef ] ),
+
 	{ [ TransformedFunctionRef ], FuncTransforms } =
 		transform_expression( FunctionRef, Transforms ),
+
+	%ast_utils:display_debug( "transforming call parameters ~p",
+	%						 [ Params ] ),
 
 	% First recurses, knowing that function parameters are expressions:
 	{ [ NewParams ], ParamsTransforms } =
@@ -1322,8 +1338,8 @@ transform_call_expression( OriginalExpr={ 'remote', LineRemote,
 										  _F={ atom, LineFun, FunctionName } },
 						   Arity, Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "intercepting remote call expression "
-	%						 "to ~s:~s/~B...",
+	%ast_utils:display_debug( "intercepting remote call expression to "
+	%						 "~s:~s/~B...",
 	%						 [ ModuleName, FunctionName, Arity ] ),
 
 	Outcome = case Transforms#ast_transforms.remote_calls of
