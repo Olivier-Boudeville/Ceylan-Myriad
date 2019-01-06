@@ -245,7 +245,7 @@ transform_function( FunctionInfo=#function_info{ clauses=ClauseDefs,
 												 spec=MaybeLocFunSpec },
 					Transforms ) ?rec_guard ->
 
-	% We have to transform the clauses and the spec:
+	% We have to transform the clauses (first) and the spec (second):
 
 	{ NewClauseDefs, ClauseTransforms } = lists:mapfoldl(
 			fun ast_clause:transform_function_clause/2, _Acc0=Transforms,
