@@ -210,8 +210,9 @@ apply_myriad_transform( InputAST, Options ) ->
 	%ast_utils:write_ast_to_file( InputAST, "Myriad-input-AST.txt" ),
 
 	% This allows to compare input and output ASTs more easily:
-	%ast_utils:write_ast_to_file( lists:sort( InputAST ),
-	%							 "Myriad-input-AST-sorted.txt" ),
+	% (most useful input option)
+	ast_utils:write_ast_to_file( lists:sort( InputAST ),
+								 "Myriad-input-AST-sorted.txt" ),
 
 	BaseModuleInfo = ast_info:extract_module_info_from_ast( InputAST ),
 
@@ -249,8 +250,8 @@ apply_myriad_transform( InputAST, Options ) ->
 
 	%ast_utils:write_ast_to_file( OutputAST, OutputASTFilename ),
 
-	%ast_utils:write_ast_to_file( lists:sort( OutputAST ),
-	%							 "Myriad-output-AST-sorted.txt" ),
+	ast_utils:write_ast_to_file( lists:sort( OutputAST ),
+								 "Myriad-output-AST-sorted.txt" ),
 
 	{ OutputAST, TransformedModuleInfo }.
 
@@ -347,6 +348,7 @@ get_myriad_ast_transforms_for(
 	LocalTypeTransforms = ast_transform:get_local_type_transform_table( [
 				{ { void,  0 }, basic_utils },
 				{ { maybe, 1 }, basic_utils },
+
 				% First clause defined as we do not want to obtain
 				% DesiredTableType:table/N, but
 				% DesiredTableType:DesiredTableType/N instead:
@@ -390,9 +392,9 @@ get_myriad_ast_transforms_for(
 	% DesiredTableType, however the addition of the cond_utils support led to
 	% have to define a full-blown call transform fun (to perform a more radical
 	% transformation), instead of a mere mapping and also instead of a
-	% remote_call_replacement fun/4, which would not be able to take into the
-	% value of arguments (ex: the specified token), since being just being
-	% parametrised by an arity.
+	% remote_call_replacement fun/4 - which would not be able to take into
+	% account the value of arguments (ex: the specified token), since being just
+	% being parametrised by an arity.
 	%
 	% So (anonymous mute variables corresponding to line numbers):
 
@@ -416,18 +418,18 @@ get_myriad_ast_transforms_for(
 				{ value, _Any } ->
 					% The corresponding, specified code (expressions) is thus
 					% enabled; the AST sees them as the elements of a list
-					% ({cond,_,E1, {cond,_,E2,...}), whereas we need a direct list
-					% here (i.e. [E1, E2, ...]), so:
+					% ({cond,_,E1, {cond,_,E2,...}), whereas we need a direct
+					% list here (i.e. [E1, E2, ...]), so:
 					%
 					Exprs = ast_generation:form_to_list( ExprFormList ),
 
-					% So that the call as a whole is replaced with a series of
-					% expressions:
-					%
-					{ Exprs, Transforms };
+					% This injected code may need to be transformed, so:
+					ast_expression:transform_expressions( Exprs, Transforms );
 
 				key_not_found ->
-					% Token not defined, so expressions are skipped:
+					% Token not defined, so these expressions are skipped as a
+					% whole:
+					%
 					{ _Exprs=[], Transforms }
 
 			end;
@@ -440,18 +442,36 @@ get_myriad_ast_transforms_for(
 		  _FunctionRef={ remote, Line1, {atom,Line2,table}, FunNameForm },
 		  Params,
 		  Transforms ) ->
+			  ast_utils:display_debug( "replacing call to 'table' by a call "
+									   "to '~p' at line #~B for parameters ~p",
+									   [ DesiredTableType, Line1, Params ] ),
+
 			  % Just swap the 'table' module with the desired one:
 			  NewFunctionRef = { remote, Line1, {atom,Line2,DesiredTableType},
 								 FunNameForm },
-			  NewExpr = { call, LineCall, NewFunctionRef, Params },
 
-			 { [ NewExpr ], Transforms };
+			  % We have to recurse as well in parameters, as they may themselves
+			  % contain calls to 'table' as well, like in:
+			  %
+			  % TargetTable = table:addEntry( a, 1, table:new() ),
+
+			  { NewParams, NewTransforms } =
+					ast_expression:transform_expressions( Params, Transforms ),
+
+			  NewExpr = { call, LineCall, NewFunctionRef, NewParams },
+
+			 { [ NewExpr ], NewTransforms };
 
 
 		% Other calls shall go through:
 		( LineCall, FunctionRef, Params, Transforms ) ->
-			OriginalExpr = { call, LineCall, FunctionRef, Params },
-			{ [ OriginalExpr ], Transforms }
+			ast_utils:display_trace( "(not changing ~p)", [ FunctionRef ] ),
+
+			{ NewParams, NewTransforms } =
+					ast_expression:transform_expressions( Params, Transforms ),
+
+			RecursedExpr = { call, LineCall, FunctionRef, NewParams },
+			{ [ RecursedExpr ], NewTransforms }
 
 
 	end,
