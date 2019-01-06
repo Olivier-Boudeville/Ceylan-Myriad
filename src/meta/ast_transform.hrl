@@ -40,6 +40,7 @@
 	local_types = undefined :: basic_utils:maybe(
 								  ast_transform:local_type_transform_table() ),
 
+
 	% Transformations (if any) defined for remote types:
 	remote_types = undefined :: basic_utils:maybe(
 								  ast_transform:remote_type_transform_table() ),
@@ -48,6 +49,7 @@
 	% Transformations (if any) defined for module-local calls:
 	local_calls = undefined :: basic_utils:maybe(
 								  ast_transform:local_call_transform_table() ),
+
 
 	% Transformations (if any) defined for remote calls:
 	remote_calls = undefined :: basic_utils:maybe(
@@ -62,6 +64,7 @@
 	%
 	transform_table = undefined ::
 	  basic_utils:maybe( ast_transform:ast_transform_table() ),
+
 
 	% Any user-defined transformation state that is to be kept and updated
 	% in the course of a transformation.
