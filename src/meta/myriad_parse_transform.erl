@@ -602,9 +602,9 @@ get_ast_global_transforms( DesiredTableType ) ->
 		  _FunctionRef={ remote, Line1, {atom,Line2,table}, FunNameForm },
 		  Params,
 		  Transforms ) ->
-			  ast_utils:display_debug( "replacing call to 'table' by a call "
-									   "to '~p' at line #~B for parameters ~p",
-									   [ DesiredTableType, Line1, Params ] ),
+			  %ast_utils:display_debug( "replacing call to 'table' by a call "
+			  %						   "to '~p' at line #~B for parameters ~p",
+			  %						   [ DesiredTableType, Line1, Params ] ),
 
 			  % Just swap the 'table' module with the desired one:
 			  NewFunctionRef = { remote, Line1, {atom,Line2,DesiredTableType},
