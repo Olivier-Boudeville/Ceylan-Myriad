@@ -480,7 +480,7 @@ endif
 clean-ast-debug: clean-ast-debug-myriad
 
 clean-ast-debug-myriad:
-	@find . -name 'Myriad-*put-AST*.txt' -exec srm '{}' ';'
+	@find . -name 'Myriad-*put-AST*.txt' -exec /bin/rm -f '{}' ';'
 
 
 clean-outputs:
