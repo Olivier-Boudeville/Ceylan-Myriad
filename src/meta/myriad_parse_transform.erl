@@ -72,6 +72,10 @@
 % used, as explained in the previous point); this is why testing a parse
 % transform as a mere function called from a test case is strongly recommended
 
+% To ease troubleshooting: enable the writing to file of the input and output
+% ASTs, and compare them (ex: 'meld Myriad-input-AST-sorted.txt
+% Myriad-output-AST-sorted.txt').
+
 
 % For the module_info record:
 -include("ast_info.hrl").
@@ -195,13 +199,13 @@ parse_transform( InputAST, Options ) ->
 									{ ast(), module_info() }.
 apply_myriad_transform( InputAST, Options ) ->
 
-	%ast_utils:display_debug( "  (applying parse transform '~p')~n",
+	%ast_utils:display_debug( "applying parse transform '~p'",
 	%                         [ ?MODULE ] ),
 
 	%ast_utils:display_debug(
 	%           "~n## INPUT ####################################" ),
 
-	ast_utils:display_debug( "Myriad input AST:~n~p~n~n", [ InputAST ] ),
+	%ast_utils:display_debug( "Myriad input AST:~n~p~n~n", [ InputAST ] ),
 
 	%ast_utils:write_ast_to_file( InputAST, "Myriad-input-AST.txt" ),
 
@@ -216,8 +220,8 @@ apply_myriad_transform( InputAST, Options ) ->
 	%ast_info:write_module_info_to_file( WithOptsModuleInfo,
 	%									  "Input-module_info.txt" ),
 
-	ast_utils:display_debug( "Input module info: ~s~n~n",
-			   [ ast_info:module_info_to_string( WithOptsModuleInfo ) ] ),
+	%ast_utils:display_debug( "Input module info: ~s~n~n",
+	%		   [ ast_info:module_info_to_string( WithOptsModuleInfo ) ] ),
 
 	% Currently the resulting transforms are not kept:
 	{ TransformedModuleInfo, _ModuleTransforms } =
@@ -384,19 +388,23 @@ get_myriad_ast_transforms_for(
 
 	% We used to define a simple, direct transformation from 'table' to
 	% DesiredTableType, however the addition of the cond_utils support led to
-	% have to define a full-blown call transform fun, instead of a mere mapping
-	% and also instead of a remote_call_replacement fun/4, which cannot take
-	% into the value of arguments (ex: the specified token) - just being
+	% have to define a full-blown call transform fun (to perform a more radical
+	% transformation), instead of a mere mapping and also instead of a
+	% remote_call_replacement fun/4, which would not be able to take into the
+	% value of arguments (ex: the specified token), since being just being
 	% parametrised by an arity.
 	%
 	% So (anonymous mute variables corresponding to line numbers):
 
 	RemoteCallTransformFun = fun
 
-		( LineCall,
+		% Calls to cond_utils:if_defined( Token, Exprs ) shall be replaced
+		% either by specified expressions or by nothing:
+		%
+		( _LineCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils},
 						 {atom,_,if_defined} },
-		  Params=[ {atom,_,Token}, ExprFormList ],
+		  _Params=[ {atom,_,Token}, ExprFormList ],
 		  Transforms=#ast_transforms{
 			transformation_state=TokenTable } ) ->
 
@@ -406,36 +414,53 @@ get_myriad_ast_transforms_for(
 				% detect whether it is defined at all:
 				%
 				{ value, _Any } ->
-					% Corresponding code (expressions) thus enabled; the AST
-					% sees them as the elements of a list ({cond,_,E,
-					% {cond,...}), we need a direct list here, so:
+					% The corresponding, specified code (expressions) is thus
+					% enabled; the AST sees them as the elements of a list
+					% ({cond,_,E1, {cond,_,E2,...}), whereas we need a direct list
+					% here (i.e. [E1, E2, ...]), so:
+					%
 					Exprs = ast_generation:form_to_list( ExprFormList ),
 
 					% So that the call as a whole is replaced with a series of
 					% expressions:
 					%
-					{ E
-					
+					{ Exprs, Transforms };
 
-		( _Mod=table, AnyFunName, AnyArity, TransfoState ) ->
-				{ DesiredTableType, TransfoState };
+				key_not_found ->
+					% Token not defined, so expressions are skipped:
+					{ _Exprs=[], Transforms }
 
-		   ( _Mod=cond_utils, _FunName=if_defined, _Arity=2,
-			 TransfoState=TokenTable ) ->
-
+			end;
 
 
-	RemoteCallTransforms = ast_transform:get_remote_call_transform_table( [
-				% For all function names and arities, the 'table' module shall
-				% be replaced in remote calls by the desired table type:
-				%
-				{ { table, '_', '_' }, DesiredTableType },
-				{ { cond_utils, if_defined, 2 }] ),
+		% For all function names and arities, the 'table' module shall be
+		% replaced in remote calls by the desired table type:
+		%
+		( LineCall,
+		  _FunctionRef={ remote, Line1, {atom,Line2,table}, FunNameForm },
+		  Params,
+		  Transforms ) ->
+			  % Just swap the 'table' module with the desired one:
+			  NewFunctionRef = { remote, Line1, {atom,Line2,DesiredTableType},
+								 FunNameForm },
+			  NewExpr = { call, LineCall, NewFunctionRef, Params },
 
-	%add cond_utils -> fun
+			 { [ NewExpr ], Transforms };
 
-	% Finally, we want to read any tokens specified to drive the activation of
-	% conditional code:
+
+		% Other calls shall go through:
+		( LineCall, FunctionRef, Params, Transforms ) ->
+			OriginalExpr = { call, LineCall, FunctionRef, Params },
+			{ [ OriginalExpr ], Transforms }
+
+
+	end,
+
+	TransformTable = ?table:new(
+						[ { _Trigger=call, RemoteCallTransformFun } ] ),
+
+	% Finally, we want to read any tokens specified by the user in order to
+	% drive the activation of conditional code:
 	%
 	TokenTable = cond_utils:get_token_table_from( CompileOptTable ),
 
@@ -445,7 +470,8 @@ get_myriad_ast_transforms_for(
 	#ast_transforms{ local_types=LocalTypeTransforms,
 					 remote_types=RemoteTypeTransforms,
 					 local_calls=LocalCallTransforms,
-					 remote_calls=RemoteCallTransforms,
+					 %Not useful anymore: remote_calls=RemoteCallTransforms,
+					 transform_table=TransformTable,
 					 transformation_state=TokenTable } .
 
 
