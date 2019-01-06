@@ -50,6 +50,8 @@
 %
 -type ast_integer_expression() :: ast_expression().
 
+-type ast_field_init() :: ast_record:ast_untyped_record_field_definition().
+
 
 -export_type([ ast_expression/0, ast_integer_expression/0 ]).
 
@@ -80,7 +82,7 @@
 -type line() :: ast_base:line().
 -type ast_transforms() :: ast_transform:ast_transforms().
 
-
+-type form() :: ast_base:form().
 
 
 % List-comprehension generator.
@@ -150,7 +152,7 @@
 transform_expression( _E={ 'call', LineCall, FunctionRef, Params },
 					  Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting call expression ~p...", [ E ] ),
+	%ast_utils:display_debug( "intercepting call expression ~p...", [ E ] ),
 
 	% Maybe expressions have to be transformed as a whole?
 	Res = case Transforms#ast_transforms.transform_table of
@@ -186,7 +188,7 @@ transform_expression( _E={ 'call', LineCall, FunctionRef, Params },
 %
 transform_expression( _E={ 'if', Line, Clauses }, Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting if expression ~p...", [ E ] ),
+	%ast_utils:display_debug( "intercepting if expression ~p...", [ E ] ),
 
 	{ NewClauses, NewTransforms } =
 		ast_clause:transform_if_clauses( Clauses, Transforms ),
@@ -210,7 +212,7 @@ transform_expression( _E={ 'if', Line, Clauses }, Transforms ) ?rec_guard ->
 transform_expression( _E={ 'case', Line, TestExpression, CaseClauses },
 					  Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting case expression ~p...", [ E ] ),
+	%ast_utils:display_debug( "intercepting case expression ~p...", [ E ] ),
 
 	{ [ NewTestExpression ], TestTransforms } =
 		transform_expression( TestExpression, Transforms ),
@@ -236,22 +238,26 @@ transform_expression( _E={ 'case', Line, TestExpression, CaseClauses },
 transform_expression( _E={ 'match', Line, MatchPattern, MatchExpression },
 					  Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting match expression ~p...", [ E ] ),
+	%ast_utils:display_debug( "intercepting match expression ~p...", [ E ] ),
 
 	{ NewMatchPattern, PatternTransforms } =
 		ast_pattern:transform_pattern( MatchPattern, Transforms ),
 
+	%ast_utils:display_debug( "Transforming match expression: ~p",
+	%						 [ MatchExpression ] ),
+
 	{ [ NewMatchExpression ], ExprTransforms } =
 		transform_expression( MatchExpression, PatternTransforms ),
 
+	%ast_utils:display_debug( "New match expression:~p",
+	%						 [ NewMatchExpression ] ),
+
 	NewExpr = { 'match', Line, NewMatchPattern, NewMatchExpression },
 
-	Res = { [ NewExpr ], ExprTransforms },
+	%ast_utils:display_debug( "... returning match expression:~n~p~n"
+	%						 "and state:~n~p", [ NewExpr, ExprTransforms  ] ),
 
-	%ast_utils:display_debug( "... returning match expressions and state ~p",
-	%                         [ Res ] ),
-
-	Res;
+	{ [ NewExpr ], ExprTransforms };
 
 
 
@@ -267,7 +273,7 @@ transform_expression( _E={ 'match', Line, MatchPattern, MatchExpression },
 transform_expression( _E={ 'bin', Line, BinElemPatterns },
 					  Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting bin expression ~p...", [ E ] ),
+	%ast_utils:display_debug( "intercepting bin expression ~p...", [ E ] ),
 
 	{ NewBinElemPattern, NewTransforms } = ast_bitstring:transform_bin_elements(
 											 BinElemPatterns, Transforms ),
@@ -290,7 +296,7 @@ transform_expression( _E={ 'bin', Line, BinElemPatterns },
 transform_expression( _E={ 'op', Line, Operator, Operand },
 					  Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting unary operation expression ~p...",
+	%ast_utils:display_debug( "intercepting unary operation expression ~p...",
 	%						 [ E ] ),
 
 	{ [ NewOperand ], NewTransforms } =
@@ -314,7 +320,7 @@ transform_expression( _E={ 'op', Line, Operator, Operand },
 transform_expression( _E={ 'op', Line, Operator, LeftOperand, RightOperand },
 					  Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting binary operation expression ~p...",
+	%ast_utils:display_debug( "intercepting binary operation expression ~p...",
 	%						 [ E ] ),
 
 	{ [ NewLeftOperand ], LeftTransforms } =
@@ -343,7 +349,7 @@ transform_expression( _E={ 'op', Line, Operator, LeftOperand, RightOperand },
 transform_expression( _E={ 'receive', Line, ReceiveClauses },
 					  Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting simple receive expression ~p...",
+	%ast_utils:display_debug( "intercepting simple receive expression ~p...",
 	%						 [ E ] ),
 
 	% 'case' clauses relevant here:
@@ -369,7 +375,7 @@ transform_expression( _E={ 'receive', Line, ReceiveClauses },
 transform_expression( _E={ 'receive', Line, ReceiveClauses, AfterTest,
 						   AfterExpressions }, Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting receive expression with after "
+	%ast_utils:display_debug( "intercepting receive expression with after "
 	%						 "~p...", [ E ] ),
 
 	% 'case' clauses relevant here:
@@ -379,8 +385,8 @@ transform_expression( _E={ 'receive', Line, ReceiveClauses, AfterTest,
 	{ [ NewAfterTest ], AfterTestTransforms } =
 		transform_expression( AfterTest, CaseTransforms ),
 
-	{ NewAfterExpressions, AfterTransforms } = transform_expressions(
-							  AfterExpressions, AfterTestTransforms ),
+	{ NewAfterExpressions, AfterTransforms } =
+		transform_expressions( AfterExpressions, AfterTestTransforms ),
 
 	NewExpr = { 'receive', Line, NewReceiveClauses, NewAfterTest,
 				NewAfterExpressions },
@@ -424,7 +430,7 @@ transform_expression( _E={ 'receive', Line, ReceiveClauses, AfterTest,
 transform_expression( _E={ 'try', Line, TryBody, TryClauses, CatchClauses,
 						   AfterBody }, Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting try expression ~p...", [ E ] ),
+	%ast_utils:display_debug( "intercepting try expression ~p...", [ E ] ),
 
 	{ NewTryBody, TryBodyTranforms } =
 		ast_clause:transform_body( TryBody, Transforms ),
@@ -479,7 +485,7 @@ transform_expression( _E={ 'remote', Line, ModuleExpr, FunctionExpr },
 transform_expression( _E={ 'catch', Line, Expression },
 					  Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting catch expression ~p...", [ E ] ),
+	%ast_utils:display_debug( "intercepting catch expression ~p...", [ E ] ),
 
 	{ [ NewExpression ], NewTransforms } =
 		transform_expression( Expression, Transforms ),
@@ -505,7 +511,7 @@ transform_expression( _E={ 'catch', Line, Expression },
 transform_expression( _E={ 'cons', Line, HeadExpression, TailExpression },
 					  Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting cons expression ~p...", [ E ] ),
+	%ast_utils:display_debug( "intercepting cons expression ~p...", [ E ] ),
 
 	{ [ NewHeadExpression ], HeadTranforms } =
 		transform_expression( HeadExpression, Transforms ),
@@ -533,7 +539,7 @@ transform_expression( _E={ 'cons', Line, HeadExpression, TailExpression },
 transform_expression( _E={ 'lc', Line, Expression, Qualifiers },
 					  Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting list comprehension ~p...", [ E ] ),
+	%ast_utils:display_debug( "intercepting list comprehension ~p...", [ E ] ),
 
 	{ [ NewExpression ], ExprTransforms } =
 		transform_expression( Expression, Transforms ),
@@ -559,7 +565,7 @@ transform_expression( _E={ 'lc', Line, Expression, Qualifiers },
 transform_expression( _E={ 'bc', Line, Expression, Qualifiers },
 					  Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting bitstring comprehension ~p...",
+	%ast_utils:display_debug( "intercepting bitstring comprehension ~p...",
 	%						 [ E ] ),
 
 	{ [ NewExpression ], ExprTransforms } =
@@ -586,7 +592,7 @@ transform_expression( _E={ 'bc', Line, Expression, Qualifiers },
 transform_expression( _E={ 'tuple', Line, Expressions },
 					  Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting tuple skeleton ~p...", [ E ] ),
+	%ast_utils:display_debug( "intercepting tuple skeleton ~p...", [ E ] ),
 
 	{ NewExpressions, NewTransforms } =
 		transform_expressions( Expressions, Transforms ),
@@ -611,7 +617,7 @@ transform_expression( _E={ 'tuple', Line, Expressions },
 transform_expression( _E={ 'map', Line, Expressions },
 					  Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting map creation ~p...", [ E ] ),
+	%ast_utils:display_debug( "intercepting map creation ~p...", [ E ] ),
 
 	{ NewExpressions, NewTransforms } =
 		transform_expressions( Expressions, Transforms ),
@@ -635,7 +641,7 @@ transform_expression( _E={ 'map', Line, Expressions },
 transform_expression( _E={ 'map', Line, MapRefExpression, AssocExpressions },
 					  Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting map update ~p...", [ E ] ),
+	%ast_utils:display_debug( "intercepting map update ~p...", [ E ] ),
 
 	{ [ NewMapRefExpression | NewAssocExpressions ], NewTransforms } =
 		transform_expressions( [ MapRefExpression | AssocExpressions ],
@@ -659,7 +665,7 @@ transform_expression( _E={ 'map', Line, MapRefExpression, AssocExpressions },
 transform_expression( _E={ 'map_field_assoc', Line, KeyExpression,
 						   ValueExpression }, Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting map association ~p...", [ E ] ),
+	%ast_utils:display_debug( "intercepting map association ~p...", [ E ] ),
 
 	{ [ NewKeyExpression ], KeyTransforms } =
 		transform_expression( KeyExpression, Transforms ),
@@ -685,7 +691,7 @@ transform_expression( _E={ 'map_field_assoc', Line, KeyExpression,
 transform_expression( _E={ 'map_field_exact', Line, KeyExpression,
 						  ValueExpression }, Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting map exact association ~p...",
+	%ast_utils:display_debug( "intercepting map exact association ~p...",
 	%						 [ E ] ),
 
 	{ [ NewKeyExpression ], KeyTransforms } =
@@ -719,7 +725,7 @@ transform_expression( _E={ 'map_field_exact', Line, KeyExpression,
 transform_expression( _E={ 'record', Line, RecordName, FieldInits },
 					  Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting record creation expression ~p...",
+	%ast_utils:display_debug( "intercepting record creation expression ~p...",
 	%						 [ E ] ),
 
 	{ NewFieldInits, NewTransforms } =
@@ -730,7 +736,7 @@ transform_expression( _E={ 'record', Line, RecordName, FieldInits },
 	Res = { [ NewExpr ], NewTransforms },
 
 	%ast_utils:display_debug( "... returning record creation expression "
-	%                         "and state ~p", [ Res ] ),
+	%						 "and state ~p", [ Res ] ),
 
 	Res;
 
@@ -743,7 +749,7 @@ transform_expression( _E={ 'record', Line, RecordName, FieldInits },
 transform_expression( _E={ 'record_index', Line, RecordName, FieldName },
 					  Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting record index expression ~p...",
+	%ast_utils:display_debug( "intercepting record index expression ~p...",
 	%						 [ E ] ),
 
 	{ [ NewFieldName ], NewTransforms } =
@@ -767,7 +773,7 @@ transform_expression( _E={ 'record_index', Line, RecordName, FieldName },
 transform_expression( _E={ 'record_field', Line, RecordRef, RecordName,
 						   FieldName }, Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting record field access expression "
+	%ast_utils:display_debug( "intercepting record field access expression "
 	%						 "~p...", [ E ] ),
 
 	{ [ NewRecordRef ], RefTransforms } =
@@ -781,7 +787,7 @@ transform_expression( _E={ 'record_field', Line, RecordRef, RecordName,
 	Res = { [ NewExpr ], NameTransforms },
 
 	%ast_utils:display_debug( "... returning record field access expression "
-	%                         "and state ~p", [ Res ] ),
+	%						 "and state ~p", [ Res ] ),
 
 	Res;
 
@@ -797,7 +803,7 @@ transform_expression( _E={ 'record_field', Line, RecordRef, Field },
 	ast_utils:display_warning( "Clause about record field expression "
 							   "actually triggered." ),
 
-	%ast_utils:display_debug( "Intercepting record field expression ~p...",
+	%ast_utils:display_debug( "intercepting record field expression ~p...",
 	%						 [ E ] ),
 
 	{ [ NewRecordRef ], RefTransforms } =
@@ -826,7 +832,7 @@ transform_expression( _E={ 'record_field', Line, RecordRef, Field },
 transform_expression( _E={ 'record', Line, RecordRef, RecordName,
 						   FieldUpdates }, Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting record update expression ~p...",
+	%ast_utils:display_debug( "intercepting record update expression ~p...",
 	%						 [ E ] ),
 
 	{ [ NewRecordRef ], RefTransforms } =
@@ -840,7 +846,7 @@ transform_expression( _E={ 'record', Line, RecordRef, RecordName,
 	Res = { [ NewExpr ], UpTransforms },
 
 	%ast_utils:display_debug( "... returning record update expression "
-	%                         "and state ~p", [ Res ] ),
+	%						 "and state ~p", [ Res ] ),
 
 	Res;
 
@@ -855,7 +861,7 @@ transform_expression( _E={ 'block', Line, Expressions },
 					  Transforms ) ?rec_guard ->
 
 	% Unfolds this block into a sequence of expressions:
-	{ [ NewExpressions ], NewTransforms } =
+	{ NewExpressions, NewTransforms } =
 		transform_expressions( Expressions, Transforms ),
 
 	NewExpr = { 'block', Line, NewExpressions },
@@ -880,7 +886,7 @@ transform_expression( _E={ 'block', Line, Expressions },
 transform_expression( _E={ 'fun', Line, { 'clauses', FunctionClauses } },
 					  Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting clause-based fun expression ~p...",
+	%ast_utils:display_debug( "intercepting clause-based fun expression ~p...",
 	%						 [ E ] ),
 
 	{ NewFunctionClauses, NewTransforms } =
@@ -902,7 +908,7 @@ transform_expression( _E={ 'fun', Line, { 'clauses', FunctionClauses } },
 transform_expression( E={ 'fun', _Line, { 'function', _Name, _Arity } },
 					  Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting local fun expression ~p...",
+	%ast_utils:display_debug( "intercepting local fun expression ~p...",
 	%						 [ E ] ),
 
 	%NewName = transform_expression( Name, Transforms ),
@@ -936,7 +942,7 @@ transform_expression( E={ 'fun', _Line,
 	ast_utils:display_warning( "Pre-R15 fun expression '~p' detected, "
 							   "this warning should be silenced.", [ E ] ),
 
-	%ast_utils:display_debug( "Intercepting pre-R15 fun expression ~p...",
+	%ast_utils:display_debug( "intercepting pre-R15 fun expression ~p...",
 	%						 [ E ] ),
 
 	Res = { [ E ], Transforms },
@@ -956,7 +962,7 @@ transform_expression( _E={ 'fun', Line, _F={ 'function', ModuleName,
 											FunctionName, FunctionArity } },
 					  Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting remote fun expression ~p...",
+	%ast_utils:display_debug( "intercepting remote fun expression ~p...",
 	%						 [ E ] ),
 
 	{ [ NewModuleName ], ModTransforms } =
@@ -985,7 +991,7 @@ transform_expression( _E={ 'fun', Line, _F={ 'function', ModuleName,
 transform_expression( E={ 'var', _Line, _VarAtomName },
 					  Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting var expression with clauses ~p...",
+	%ast_utils:display_debug( "intercepting var expression with clauses ~p...",
 	%						 [ E ] ),
 
 	% Currently names not transformed:
@@ -1006,7 +1012,7 @@ transform_expression( E={ 'var', _Line, _VarAtomName },
 %
 transform_expression( E={ 'nil', _Line }, Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting nil expression with clauses ~p...",
+	%ast_utils:display_debug( "intercepting nil expression with clauses ~p...",
 	%						 [ E ] ),
 
 	% Currently not transformed:
@@ -1028,7 +1034,7 @@ transform_expression( E={ 'nil', _Line }, Transforms ) ?rec_guard ->
 transform_expression( _E={ 'named_fun', Line, Name, FunctionClauses },
 					  Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting named fun expression ~p...",
+	%ast_utils:display_debug( "intercepting named fun expression ~p...",
 	%						 [ E ] ),
 
 	{ NewFunctionClauses, NewTransforms } =
@@ -1056,7 +1062,9 @@ transform_expression( E={ AtomicLiteralType, _Line, _Value },
 										  AtomicLiteralType =:= 'string' )
 										?andalso_rec_guard ->
 
-	[ ast_value:transform_value( E, Transforms ) ];
+	{ NewExpr, NewTransforms } = ast_value:transform_value( E, Transforms ),
+
+	{ [ NewExpr ], NewTransforms };
 
 
 % Default catch-all:
@@ -1079,7 +1087,9 @@ transform_expression( Expression, Transforms )
 % expressions.
 
 
-% Transforms an expression corresponding to a function call into another one.
+
+% Transforms an expression corresponding to a function call into another one
+% (exactly).
 %
 -spec transform_call( line(), function_ref_expression(), params_expression(),
 		  ast_transforms() ) -> { [ ast_expression() ], ast_transforms() }.
@@ -1111,9 +1121,45 @@ transform_call( LineCall, FunctionRef, Params, Transforms ) ?rec_guard ->
 -spec transform_expressions( [ ast_expression() ], ast_transforms() ) ->
 								  { [ ast_expression() ], ast_transforms() }.
 transform_expressions( Expressions, Transforms ) ?rec_guard ->
-FIXME
-	lists:mapfoldl( fun transform_expression/2, _Acc0=Transforms,
-					_List=Expressions ).
+
+	% An expression is transformed into a *list* of expressions:
+	{ ExprLists, NewTransforms } = lists:mapfoldl(
+		 fun transform_expression/2, _Acc0=Transforms, _List=Expressions ),
+
+	% We do not want expressions to remain nested over two levels:
+	OneLevelExprList = merge_expression_lists( ExprLists ),
+
+	{ OneLevelExprList, NewTransforms }.
+
+
+
+% Removes a single depth of nesting (not an arbitrary flattening) regarding
+% expressions.
+%
+% (helper)
+%
+% Note: directly inspired from list_utils:flatten_once/1, yet we do not want to
+% bootstrap the full list_utils module just for that.
+%
+merge_expression_lists( List ) ->
+	%ast_utils:display_trace( "merging expression list ~p", [ List ] ),
+	merge_expression_lists( List, _Acc=[] ).
+
+
+
+% (helper)
+%
+% Note: not using simply 'lists:reverse( Acc );' and a (more efficient) 'L ++
+% Acc', as we would end up with [1,[3,4],2] - whereas we want to preserve order.
+%
+merge_expression_lists( [], Acc ) ->
+	Acc;
+
+merge_expression_lists( [ L | T ], Acc ) when is_list( L ) ->
+	merge_expression_lists( T, Acc ++ L );
+
+merge_expression_lists( [ Unexpected | _T ], _Acc ) ->
+	throw( { not_a_list, Unexpected } ).
 
 
 
@@ -1141,11 +1187,11 @@ transform_qualifiers( Qualifiers, Transforms ) ?rec_guard ->
 transform_qualifier( _Qualifier={ 'generate', Line, Pattern, Expression },
 					 Transforms ) ?rec_guard ->
 
-	{ NewPattern, PatTransforms } = ast_pattern:transform_pattern( Pattern,
-																   Transforms ),
+	{ NewPattern, PatTransforms } =
+		ast_pattern:transform_pattern( Pattern, Transforms ),
 
-	{ NewExpression, ExpTransforms } = transform_expression( Expression,
-															 PatTransforms ),
+	{ [ NewExpression ], ExpTransforms } =
+		transform_expression( Expression, PatTransforms ),
 
 	NewExpr = { 'generate', Line, NewPattern, NewExpression },
 
@@ -1158,11 +1204,11 @@ transform_qualifier( _Qualifier={ 'generate', Line, Pattern, Expression },
 transform_qualifier( _Qualifier={ 'b_generate', Line, Pattern, Expression },
 					 Transforms ) ?rec_guard ->
 
-	{ NewPattern, PatTransforms } = ast_pattern:transform_pattern( Pattern,
-																   Transforms ),
+	{ NewPattern, PatTransforms } =
+		ast_pattern:transform_pattern( Pattern, Transforms ),
 
-	{ NewExpression, ExpTransforms } = transform_expression( Expression,
-															 PatTransforms ),
+	{ [ NewExpression ], ExpTransforms } =
+		transform_expression( Expression, PatTransforms ),
 
 	NewExpr = { 'b_generate', Line, NewPattern, NewExpression },
 
@@ -1173,7 +1219,8 @@ transform_qualifier( _Qualifier={ 'b_generate', Line, Pattern, Expression },
 % "If Q is a filter E, where E is an expression, then Rep(Q) = Rep(E)."
 %
 transform_qualifier( _Qualifier=Expression, Transforms ) ?rec_guard ->
-	transform_expression( Expression, Transforms ).
+	{ [ E ], NewTransforms } = transform_expression( Expression, Transforms ),
+	{ E, NewTransforms }.
 
 
 
@@ -1185,10 +1232,26 @@ transform_qualifier( _Qualifier=Expression, Transforms ) ?rec_guard ->
 %
 % (helper)
 %
+-spec transform_record_field_inits( [ ast_field_init() ], ast_transforms() ) ->
+				{ [ ast_field_init() ], ast_transforms() }.
 transform_record_field_inits( RecordFieldInits, Transforms ) ?rec_guard ->
-FIXME
-	lists:mapfoldl( fun transform_record_field_init/2, _Acc0=Transforms,
-					_List=RecordFieldInits ).
+
+	%ast_utils:display_trace( "transforming record field init ~p.",
+	%				   [ RecordFieldInits ] ),
+
+	% An expression is transformed into a *list* of expressions:
+	{ ExprLists, NewTransforms } = lists:mapfoldl(
+		fun transform_record_field_init/2, _Acc0=Transforms,
+									 _List=RecordFieldInits ),
+
+	% We do not want expressions to remain nested over two levels:
+	OneLevelExprList = merge_expression_lists( ExprLists ),
+
+	%ast_utils:display_trace( "record field inits ~n~p transformed as:~n~p",
+	%						 [ RecordFieldInits, OneLevelExprList ] ),
+
+	{ OneLevelExprList, NewTransforms }.
+
 
 
 % Includes the case where FieldName is '_':
@@ -1213,8 +1276,17 @@ transform_record_field_init( { 'record_field', LineField,
 % (helper)
 %
 transform_record_field_updates( RecordFieldUpdates, Transforms ) ?rec_guard ->
-	lists:mapfoldl( fun transform_record_field_update/2, _Acc0=Transforms,
-					_List=RecordFieldUpdates ).
+
+	%ast_utils:display_debug( "transforming record field updates ~p",
+	%						 [ RecordFieldUpdates ] ),
+
+	_Res = lists:mapfoldl( fun transform_record_field_update/2, _Acc0=Transforms,
+						  _List=RecordFieldUpdates ).
+
+	%ast_utils:display_debug( "transformed record field updates: ~p",
+	%						 [ element( 1, Res ) ] ),
+
+	%Res.
 
 
 transform_record_field_update( { 'record_field', LineField,
@@ -1226,7 +1298,8 @@ transform_record_field_update( { 'record_field', LineField,
 
 	NewExpr = { record_field, LineField, FieldNameASTAtom, NewFieldValue },
 
-	{ [ NewExpr ], NewTransforms }.
+	% Single expression here by design:
+	{ NewExpr, NewTransforms }.
 
 
 
@@ -1249,7 +1322,7 @@ transform_call_expression( OriginalExpr={ 'remote', LineRemote,
 										  _F={ atom, LineFun, FunctionName } },
 						   Arity, Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting remote call expression "
+	%ast_utils:display_debug( "intercepting remote call expression "
 	%						 "to ~s:~s/~B...",
 	%						 [ ModuleName, FunctionName, Arity ] ),
 
@@ -1361,7 +1434,7 @@ transform_call_expression( _FunctionRef={ 'remote', LineRemote, ModuleExpr,
 										  FunctionExpr },
 						   _Arity, Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting non-immediate remote call "
+	%ast_utils:display_debug( "intercepting non-immediate remote call "
 	%						 "expression ~p...", [ FunctionRef ] ),
 
 	{ [ NewModuleExpr ], ModTransforms } =
@@ -1388,7 +1461,7 @@ transform_call_expression( _FunctionRef={ 'remote', LineRemote, ModuleExpr,
 transform_call_expression( CallExpr={ 'atom', LineFun, FunName }, Arity,
 						   Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting local call expression ~p...",
+	%ast_utils:display_debug( "intercepting local call expression ~p...",
 	%						 [ CallExpr ] ),
 
 	Outcome = case Transforms#ast_transforms.local_calls of

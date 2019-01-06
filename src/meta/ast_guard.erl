@@ -303,12 +303,12 @@ direct_transform_guard_test( _GuardTest={ 'cons', Line, HeadGuardTest,
 	% context (ex: for guards), different AST structures are expected.
 
 	% So, not ast_expression:transform_expression/2 here:
-	{ NewHeadGuardTest, HeadTransforms } = direct_transform_guard_test(
-											 HeadGuardTest, Transforms ),
+	{ NewHeadGuardTest, HeadTransforms } =
+		direct_transform_guard_test( HeadGuardTest, Transforms ),
 
 	% Expecting a list for tail?
-	{ NewTailGuardTest, TailTransforms } = direct_transform_guard_test(
-											 TailGuardTest, HeadTransforms ),
+	{ NewTailGuardTest, TailTransforms } =
+		direct_transform_guard_test( TailGuardTest, HeadTransforms ),
 
 	NewExpr = { 'cons', Line, NewHeadGuardTest, NewTailGuardTest },
 

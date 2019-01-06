@@ -438,8 +438,8 @@ transform_pattern( _Clause={ 'record_field', Line, RecordName, FieldName,
 
 	% (FieldName not specifically inspected by erl_trans_id for some reason)
 
-	{ NewFieldValue, FieldTransforms } = ast_expression:transform_expression(
-										   FieldValue, RecTransforms ),
+	{ NewFieldValue, FieldTransforms } =
+		ast_expression:transform_expression( FieldValue, RecTransforms ),
 
 	NewExpr = { 'record_field', Line, NewRecordName, FieldName, NewFieldValue },
 
@@ -451,8 +451,8 @@ transform_pattern( _Clause={ 'record_field', Line, RecordName, FieldName,
 transform_pattern( _Clause={ 'record_field', Line, FieldName, FieldValue },
 				   Transforms ) ?rec_guard ->
 
-	{ NewFieldName, FieldTransforms } = ast_expression:transform_expression(
-										  FieldName, Transforms ),
+	{ NewFieldName, FieldTransforms } =
+		ast_expression:transform_expression( FieldName, Transforms ),
 
 	{ NewFieldValue, ValueTransforms } =
 		ast_expression:transform_expression( FieldValue, FieldTransforms ),

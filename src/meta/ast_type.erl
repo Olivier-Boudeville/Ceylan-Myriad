@@ -347,8 +347,14 @@ transform_types_in_record_table( RecordTable, Transforms ) ?rec_guard ->
 									 { record_pair(), ast_transforms() }.
 transform_record_pair( { RecordName, RecordDef }, Transforms ) ?rec_guard ->
 
+	%ast_utils:display_trace( "transforming definition of record '~s'.",
+	%						 [ RecordName ] ),
+
 	{ NewRecordDef, NewTransforms } =
 		transform_record_definition( RecordDef, Transforms ),
+
+	%ast_utils:display_trace( "transformed definition of record '~s' to:~n~p.",
+	%						 [ RecordName, NewRecordDef ] ),
 
 	{ { RecordName, NewRecordDef }, NewTransforms }.
 
@@ -373,8 +379,6 @@ transform_record_definition( _RecordDef={ FieldTable, Loc, Line },
 -spec transform_field_table( field_table(), ast_transforms() ) ->
 								   { field_table(), ast_transforms() }.
 transform_field_table( FieldTable, Transforms ) ?rec_guard ->
-
-	%io:format( "Field table is:~p~n", [ FieldTable ] ),
 
 	% Is already a list directly (no key/value pairs to preserve here):
 	lists:mapfoldl( fun transform_field_pair/2, _Acc0=Transforms,
@@ -415,7 +419,7 @@ transform_field_definition( _FieldDef={ _AstType=undefined, AstValue,
 	%ast_utils:display_debug( "Field definition (clause #2):~n  ~p",
 	%						 [ FieldDef ] ),
 
-	{ NewAstValue, NewTransforms } =
+	{ [ NewAstValue ], NewTransforms } =
 		ast_expression:transform_expression( AstValue, Transforms ),
 
 	NewFieldDef = { undefined, NewAstValue, FirstLine, SecondLine },
@@ -444,7 +448,7 @@ transform_field_definition(
 
 	{ NewAstType, TypeTransforms } = transform_type( AstType, Transforms ),
 
-	{ NewAstValue, ExprTransforms } =
+	{ [ NewAstValue ], ExprTransforms } =
 		ast_expression:transform_expression( AstValue, TypeTransforms ),
 
 	FieldDef = { NewAstType, NewAstValue, FirstLine, SecondLine },

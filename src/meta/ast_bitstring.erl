@@ -151,10 +151,10 @@ transform_bin_elements( BinElements, Transforms ) ?rec_guard ->
 -spec transform_bin_element( bin_element(), ast_transforms() ) ->
 								   { bin_element(), ast_transforms() }.
 transform_bin_element(
-  _BinElem={ bin_element, Line, Element, Size, TypeSpecifierList },
+  _BinElem={ 'bin_element', Line, Element, Size, TypeSpecifierList },
   Transforms ) ?rec_guard ->
 
-	{ NewElement, ElemTransforms } =
+	{ [ NewElement ], ElemTransforms } =
 		ast_expression:transform_expression( Element, Transforms ),
 
 	{ NewSize, SizeTransforms } = case Size of
@@ -163,7 +163,9 @@ transform_bin_element(
 			{ default, ElemTransforms };
 
 		_ ->
-			ast_expression:transform_expression( Size, ElemTransforms )
+			{ [ NewSizeElem ], NewSizeTransforms } =
+					   ast_expression:transform_expression( Size, ElemTransforms ),
+			{ NewSizeElem, NewSizeTransforms }
 
 	end,
 
@@ -179,8 +181,8 @@ transform_bin_element(
 
 	end,
 
-	NewExpr = { 'bin_element', Line, NewElement, NewSize,
-				NewTypeSpecifierList },
+	NewExpr =
+		{ 'bin_element', Line, NewElement, NewSize,	NewTypeSpecifierList },
 
 	{ NewExpr, TypeTransforms };
 

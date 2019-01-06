@@ -115,6 +115,11 @@
 -type ast_untyped_record_field_definition( ValueType ) ::
 		{ 'record_field', line(), ast_field_id(), ValueType }.
 
+
+-type ast_untyped_record_field_definition() ::
+		ast_untyped_record_field_definition( term() ).
+
+
 -type ast_typed_record_field_definition( ValueType ) ::
 		{ 'typed_record_field', line(),
 		  ast_untyped_record_field_definition( ValueType ),
@@ -137,6 +142,7 @@
 			   field_definition/0, field_id/0, field_name/0, field_pair/0,
 			   ast_field_id/0,
 			   ast_untyped_record_field_definition/1,
+			   ast_untyped_record_field_definition/0,
 			   ast_typed_record_field_definition/1,
 			   ast_record_field_definition/0, ast_record_field_definition/1,
 			   ast_pattern_field/0 ]).
@@ -173,6 +179,9 @@
 		   ast_transforms() ) -> { ast_info:record_table(), ast_transforms() }.
 transform_record_definitions( RecordTable, Transforms ) ?rec_guard ->
 
+	ast_utils:display_trace( "transforming the definition of following "
+							 "records: ~p", [ ?table:keys( RecordTable ) ] ),
+
 	% { record_name(), record_definition() } pairs:
 	RecordPairs = ?table:enumerate( RecordTable ),
 
@@ -203,6 +212,8 @@ transform_record_pair(
 	{ NewFieldPairs, NewTransforms } = lists:mapfoldl(
 		fun transform_field_pair/2, _Acc0=Transforms,
 		_List=FieldPairs ),
+
+	ast_utils:display_trace( "transforming record ~p", [ RecordName ] ),
 
 	NewFieldTable = ?table:new( NewFieldPairs ),
 
@@ -288,6 +299,9 @@ transform_record_field_definition(
   _RF={ 'record_field', Line, ASTFieldName, ASTValue },
   Transforms ) ?rec_guard ->
 
+	%ast_utils:display_trace( "transforming record field '~p' of value ~p"
+	%						 " (type 1).", [ ASTFieldName, ASTValue ] ),
+
 	{ NewASTFieldName, FieldTransforms } =
 		transform_record_field_name( ASTFieldName, Transforms ),
 
@@ -303,6 +317,9 @@ transform_record_field_definition(
 transform_record_field_definition( _RF={ 'record_field', Line, ASTFieldName },
 								   Transforms ) ?rec_guard ->
 
+	%ast_utils:display_trace( "transforming record field '~p' (type 2).",
+	%						 [ ASTFieldName ] ),
+
 	{ NewASTFieldName, NewTransforms } =
 		transform_record_field_name( ASTFieldName, Transforms ),
 
@@ -313,6 +330,9 @@ transform_record_field_definition( _RF={ 'record_field', Line, ASTFieldName },
 transform_record_field_definition(
   _RF={ 'typed_record_field', { 'record_field', Line, ASTFieldName, ASTValue },
 		ASTType }, Transforms ) ?rec_guard ->
+
+	%ast_utils:display_trace( "transforming record field '~p' of value ~p and "
+	%		 "type ~p (type 3).", [ ASTFieldName, ASTValue, ASTType ] ),
 
 	{ NewASTFieldName, NameTransforms } =
 		transform_record_field_name( ASTFieldName, Transforms ),
@@ -333,6 +353,9 @@ transform_record_field_definition(
 transform_record_field_definition(
   _RF={ 'typed_record_field', { 'record_field', Line, ASTFieldName }, ASTType },
   Transforms ) ?rec_guard ->
+
+	%ast_utils:display_trace( "transforming record field '~p' of type ~p "
+	%						 "(type 4).", [ ASTFieldName, ASTType ] ),
 
 	{ NewASTFieldName, NameTransforms } =
 		transform_record_field_name( ASTFieldName, Transforms ),
@@ -361,7 +384,10 @@ transform_record_field_name( ASTFieldName, Transforms ) ?rec_guard ->
 	%ast_type:check_ast_atom( ASTFieldName, Line ),
 	%NewASTFieldName = TransformFun( ASTFieldName, Transforms ),
 
-	ast_expression:transform_expression( ASTFieldName, Transforms ).
+	{ [ NameExpr ], NewTransforms } =
+		ast_expression:transform_expression( ASTFieldName, Transforms ),
+
+	{ NameExpr, NewTransforms }.
 
 
 
@@ -374,8 +400,7 @@ get_located_forms_for( RecordTable ) ->
 	RecordPairs = ?table:enumerate( RecordTable ),
 
 	lists:foldl( fun( { RecordName, RecordDef }, Acc ) ->
-						 [ get_located_form_for_record( RecordName, RecordDef )
-						   | Acc ]
+				  [ get_located_form_for_record( RecordName, RecordDef ) | Acc ]
 				 end,
 				 _Acc0=[],
 				 _List=RecordPairs ).
@@ -401,7 +426,6 @@ get_located_form_for_record( RecordName,
 %
 -spec recompose_field_definitions( field_table() ) -> [ form() ].
 recompose_field_definitions( FieldTable ) ->
-
 	[ recompose_field_definition( FieldName, FieldDef )
 	  || { FieldName, FieldDef } <- FieldTable ].
 

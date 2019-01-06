@@ -193,7 +193,7 @@ transform_clause_generic(
   _Clause={ 'clause', Line, HeadPatternSequence, GuardSequence, BodyExprs },
   Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting generic clause ~p...", [ Clause ] ),
+	%ast_utils:display_debug( "Intercepting generic clause:~n~p~n", [ Clause ] ),
 
 	{ NewHeadPatternSequence, HeadTransforms } =
 		ast_pattern:transform_pattern_sequence( HeadPatternSequence,
@@ -209,12 +209,10 @@ transform_clause_generic(
 	NewExpr = { 'clause', Line, NewHeadPatternSequence, NewGuardSequence,
 				NewBodyExprs },
 
-	Res = { NewExpr, BodyTransforms },
+	%ast_utils:display_debug( "... returning generic clause:~n~p~n~n"
+	%						 "and state:~n~p", [ NewExpr, BodyTransforms ] ),
 
-	%ast_utils:display_debug( "... returning generic clause and state ~p",
-	%                         [ Res ] ),
-
-	Res.
+	{ NewExpr, BodyTransforms }.
 
 
 
@@ -488,21 +486,47 @@ transform_case_clause(
 transform_body( BodyExprs, Transforms )
   when is_list( BodyExprs ) ?andalso_rec_guard ->
 
+	%ast_utils:display_trace( "transforming body: ~p...", [ BodyExprs ] ),
+
 	case Transforms#ast_transforms.transform_table of
 
 		undefined ->
-			ast_expression:transform_expressions( BodyExprs, Transforms );
+
+			NewBodyPair =
+				ast_expression:transform_expressions( BodyExprs, Transforms ),
+
+			%ast_utils:display_debug(
+			%  "returning transformed body pair (case 1):~n~p",
+			%  [ NewBodyPair ] ),
+
+			NewBodyPair;
+
 
 		TransformTable ->
 			case ?table:lookupEntry( 'body', TransformTable ) of
 
 				key_not_found ->
-					ast_expression:transform_expressions( BodyExprs,
-														  Transforms );
+
+					NewBodyPair = ast_expression:transform_expressions(
+									 BodyExprs, Transforms ),
+
+					%ast_utils:display_debug(
+					%  "returning transformed body pair (case 2):~n~p",
+					%  [ NewBodyPair ] ),
+
+					NewBodyPair;
+
 
 				{ value, BodyTransformFun } ->
-					% Returns directly { NewBodyExprs, NewTransforms }:
-					BodyTransformFun( BodyExprs, Transforms )
+
+					% Returns directly { NewBodyPair, NewTransforms }:
+					NewBodyPair = BodyTransformFun( BodyExprs, Transforms ),
+
+					%ast_utils:display_debug(
+					%  "returning transformed body pair (case 3):~n~p",
+					%  [ NewBodyPair ] ),
+
+					NewBodyPair
 
 			end
 
