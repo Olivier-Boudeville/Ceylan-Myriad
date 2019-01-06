@@ -43,18 +43,22 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	Token = debug_mode,
-	%Token = non_existing_token,
 
 	test_facilities:display(
-	  "Testing code whose execution is conditioned by token '~s'.", [ Token ] ),
+	  "Testing code whose execution is conditioned by a token." ),
 
 	A = 1,
 	B = 2,
 
-	cond_utils:if_defined( Token,
-						   _Exprs=[ A = 1,
-									io:format( "Conditional code executed!~n" ),
-									B = A + 1 ] ),
+	% To silence a warning about A and B being unused should the token not be
+	% defined:
+	%
+	_C = A + B,
+
+	cond_utils:if_defined( non_existing_token,
+	%cond_utils:if_defined( debug_mode,
+						   [ A = 1,
+							 io:format( "Conditional code executed!~n" ),
+							 B = A + 1 ] ),
 
 	test_facilities:stop().

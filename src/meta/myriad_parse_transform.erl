@@ -92,6 +92,7 @@
 
 -type ast() :: ast_base:ast().
 -type module_info() :: ast_info:module_info().
+-type module_name() :: basic_utils:module_name().
 
 
 
@@ -211,8 +212,8 @@ apply_myriad_transform( InputAST, Options ) ->
 
 	% This allows to compare input and output ASTs more easily:
 	% (most useful input option)
-	ast_utils:write_ast_to_file( lists:sort( InputAST ),
-								 "Myriad-input-AST-sorted.txt" ),
+	%ast_utils:write_ast_to_file( lists:sort( InputAST ),
+	%							 "Myriad-input-AST-sorted.txt" ),
 
 	BaseModuleInfo = ast_info:extract_module_info_from_ast( InputAST ),
 
@@ -250,8 +251,8 @@ apply_myriad_transform( InputAST, Options ) ->
 
 	%ast_utils:write_ast_to_file( OutputAST, OutputASTFilename ),
 
-	ast_utils:write_ast_to_file( lists:sort( OutputAST ),
-								 "Myriad-output-AST-sorted.txt" ),
+	%ast_utils:write_ast_to_file( lists:sort( OutputAST ),
+	%							 "Myriad-output-AST-sorted.txt" ),
 
 	{ OutputAST, TransformedModuleInfo }.
 
@@ -334,70 +335,164 @@ get_myriad_ast_transforms_for(
 	% Determines the target table type that we want to rely on ultimately:
 	DesiredTableType = get_actual_table_type( ParseAttributes ),
 
-	% So, regarding local types, we want to replace:
-	%  - void() with basic_utils:void() (i.e. prefixed with basic_utils)
-	%  - maybe(T) with basic_utils:maybe(T)
-	%  - table/N (ex: table() or table(K,V)) with DesiredTableType/N (ex:
-	%  DesiredTableType:DesiredTableType() or
-	%  DesiredTableType:DesiredTableType(K,V))
-	%  (as if table() was a local, hence builtin, type)
+	LocalTypeTransformTable = get_local_type_transforms( DesiredTableType ),
+	RemoteTypeTransformTable = get_remote_type_transforms( DesiredTableType ),
+
+	LocalCallTransformTable = get_local_call_transforms(),
+	RemoteCallTransformTable = get_remote_call_transforms(),
+
+	ASTTransformTable = get_ast_global_transforms( DesiredTableType ),
+
+	% Finally, we want to read any tokens specified by the user in order to
+	% drive the activation of conditional code:
 	%
-	% Replacements to be done only for specified arities:
-	% (as these substitutions overlap, a lambda function is provided)
-	%
-	LocalTypeTransforms = ast_transform:get_local_type_transform_table( [
-				{ { void,  0 }, basic_utils },
-				{ { maybe, 1 }, basic_utils },
+	TokenTable = cond_utils:get_token_table_from( CompileOptTable ),
 
-				% First clause defined as we do not want to obtain
-				% DesiredTableType:table/N, but
-				% DesiredTableType:DesiredTableType/N instead:
-				%
-				{ { _ModuleName=table, '_' },
-				  fun( _TypeName=table, _TypeArity, TransfoState ) ->
-						  TypeId = { _Module=DesiredTableType,
-									 DesiredTableType },
-						  { TypeId, TransfoState };
+	%trace_utils:debug_fmt( "Token table:~n~p", [ TokenTable ] ),
 
-					 ( OtherTypeName, _TypeArity, TransfoState ) ->
-						  TypeId = { DesiredTableType, OtherTypeName },
-						  { TypeId, TransfoState }
-
-				  end
-				} ] ),
+	% Returns an overall description of these requested AST transformations:
+	#ast_transforms{ local_types=LocalTypeTransformTable,
+					 remote_types=RemoteTypeTransformTable,
+					 local_calls=LocalCallTransformTable,
+					 remote_calls=RemoteCallTransformTable,
+					 transform_table=ASTTransformTable,
+					 transformation_state=TokenTable } .
 
 
-	% Regarding remote types, we want to replace:
-	%  - table:table/N with DesiredTableType:DesiredTableType/N (N=0 or N=2)
-	%  - table:T with DesiredTableType:T (ex: table:value() )
-	% (as these substitutions overlap, a lambda function is provided)
-	%
-	RemoteTypeTransforms = ast_transform:get_remote_type_transform_table( [
-				{ { table, '_', '_' },
-				  fun( _ModName, _TypeName=table, _TypeArity, TransfoState ) ->
-						  TypeId = { DesiredTableType, DesiredTableType  },
-						  { TypeId, TransfoState };
 
-					 ( _ModName, TypeName, _TypeArity, TransfoState ) ->
-						  TypeId = { DesiredTableType, TypeName },
-						  { TypeId, TransfoState }
+% Returns the name of the actual module to use for tables.
+%
+-spec get_actual_table_type( ast_info:attribute_table() ) -> module_name().
+get_actual_table_type( ParseAttributeTable ) ->
 
-				  end } ] ),
+	% Let's see whether a specific table_type has been specified:
+	DesiredTableType = case ?table:lookupEntry( table_type,
+												ParseAttributeTable ) of
 
-	% None currently used here:
-	%LocalCallTransforms = meta_utils:get_local_call_transform_table( [] ),
-	LocalCallTransforms = undefined,
+		{ value, { TableType, _LocForm } } when is_atom( TableType ) ->
+			ast_utils:display_info( "Default table type ('~s') overridden "
+									"for this module to '~s'.~n",
+									[ ?default_table_type, TableType ] ),
+			TableType;
 
-	% We used to define a simple, direct transformation from 'table' to
-	% DesiredTableType, however the addition of the cond_utils support led to
-	% have to define a full-blown call transform fun (to perform a more radical
-	% transformation), instead of a mere mapping and also instead of a
-	% remote_call_replacement fun/4 - which would not be able to take into
-	% account the value of arguments (ex: the specified token), since being just
-	% being parametrised by an arity.
-	%
-	% So (anonymous mute variables corresponding to line numbers):
+		{ value, { InvalidTableType, _LocForm } } ->
+			ast_utils:raise_error( { invalid_table_type_override,
+									 InvalidTableType } );
 
+		key_not_found ->
+			TableType = ?default_table_type,
+			%ast_utils:display_trace( "Using default table ~p.~n",
+			%				   [ TableType ] ),
+			TableType
+
+	end,
+
+	%ast_utils:display_debug( "Will replace references to the 'table' module "
+	%						  "and datatypes by references to '~s'.",
+	%						  [ DesiredTableType ] ),
+
+	DesiredTableType.
+
+
+
+
+% Regarding local types, we want to replace:
+%
+% - void() with basic_utils:void() (i.e. prefixed with basic_utils)
+%
+% - maybe(T) with basic_utils:maybe(T)
+%
+% - table/N (ex: table() or table(K,V)) with DesiredTableType/N (ex:
+% DesiredTableType:DesiredTableType() or DesiredTableType:DesiredTableType(K,V))
+% (as if table() was a local, hence builtin, type)
+%
+-spec get_local_type_transforms( module_name() ) ->
+								   ast_transform:local_type_transform_table().
+get_local_type_transforms( DesiredTableType ) ->
+
+	ast_transform:get_local_type_transform_table( [
+
+		% Replacements to be done only for specified arities:
+		{ { void,  0 }, basic_utils },
+		{ { maybe, 1 }, basic_utils },
+
+		% A transformation function is needed to discriminate correctly between
+		% the cases: the first clause is defined as we do not want to obtain
+		% DesiredTableType:table/N, but DesiredTableType:DesiredTableType/N
+		% instead.
+		%
+		{ { _ModuleName=table, '_' },
+			fun( _TypeName=table, _TypeArity, TransfoState ) ->
+				TypeId = { _Module=DesiredTableType, DesiredTableType },
+				{ TypeId, TransfoState };
+
+				( OtherTypeName, _TypeArity, TransfoState ) ->
+				TypeId = { DesiredTableType, OtherTypeName },
+				{ TypeId, TransfoState }
+
+			end
+		} ] ).
+
+
+
+% Regarding remote types, we want to replace:
+%
+%  - table:table/N with DesiredTableType:DesiredTableType/N (N=0 or N=2)
+%
+%  - table:T with DesiredTableType:T (ex: table:value() )
+%
+% (as these substitutions overlap, a lambda function is provided)
+%
+-spec get_remote_type_transforms( module_name() ) ->
+								   ast_transform:remote_type_transform_table().
+get_remote_type_transforms( DesiredTableType ) ->
+	ast_transform:get_remote_type_transform_table( [
+		{ { table, '_', '_' },
+			fun( _ModName, _TypeName=table, _TypeArity, TransfoState ) ->
+				TypeId = { DesiredTableType, DesiredTableType  },
+				{ TypeId, TransfoState };
+
+			   ( _ModName, TypeName, _TypeArity, TransfoState ) ->
+				TypeId = { DesiredTableType, TypeName },
+				{ TypeId, TransfoState }
+
+			end
+		} ] ).
+
+
+
+% None currently used here:
+%
+-spec get_local_call_transforms() ->
+								   ast_transform:local_call_transform_table().
+get_local_call_transforms() ->
+	%meta_utils:get_local_call_transform_table( [] ),
+	undefined.
+
+
+
+% None used anymore, superseded by a more powerful AST transform table.
+%
+-spec get_remote_call_transforms() ->
+								   ast_transform:remote_call_transform_table().
+get_remote_call_transforms() ->
+	undefined.
+
+
+
+% We used to define a simple, direct transformation from 'table' to
+% DesiredTableType, however the addition of the cond_utils support led to have
+% to define a full-blown call transform fun (to perform a more radical
+% transformation), instead of a mere mapping and also instead of a
+% remote_call_replacement fun/4 - which would not be able to take into account
+% the value of arguments (ex: the specified token), since being just being
+% parametrised by an arity.
+%
+-spec get_ast_global_transforms( module_name() ) ->
+								   ast_transform:ast_transform_table().
+get_ast_global_transforms( DesiredTableType ) ->
+
+	% Anonymous mute variables corresponding to line numbers:
 	RemoteCallTransformFun = fun
 
 		% Calls to cond_utils:if_defined( Token, Exprs ) shall be replaced
@@ -406,9 +501,12 @@ get_myriad_ast_transforms_for(
 		( _LineCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils},
 						 {atom,_,if_defined} },
-		  _Params=[ {atom,_,Token}, ExprFormList ],
+		  _Params=[ {atom,LineToken,Token}, ExprFormList ],
 		  Transforms=#ast_transforms{
 			transformation_state=TokenTable } ) ->
+
+			%ast_utils:display_debug( "Call to cond_utils:if_defined/2 found, "
+			%						 "for token '~p'.", [ Token ] ),
 
 			case ?table:lookupEntry( Token, TokenTable ) of
 
@@ -416,23 +514,85 @@ get_myriad_ast_transforms_for(
 				% detect whether it is defined at all:
 				%
 				{ value, _Any } ->
-					% The corresponding, specified code (expressions) is thus
-					% enabled; the AST sees them as the elements of a list
-					% ({cond,_,E1, {cond,_,E2,...}), whereas we need a direct
-					% list here (i.e. [E1, E2, ...]), so:
-					%
-					Exprs = ast_generation:form_to_list( ExprFormList ),
 
-					% This injected code may need to be transformed, so:
-					ast_expression:transform_expressions( Exprs, Transforms );
+					% So we will (attempt to) inject expressions.
+
+					case ExprFormList of
+
+						% Nothing to inject here (empty conditional expression
+						% list):
+						%
+						{ nil, _ } ->
+							{ _NewExprs=[], Transforms };
+
+						% Non-empty expression list:
+						%
+						ExprFormList={ cons, _, _Head, _Tail } ->
+
+							%ast_utils:display_debug(
+							%  "Token '~p' defined, hence injecting expressions"
+							%  "~p", [ Token, ExprFormList ] ),
+
+							% The corresponding, specified code (expressions) is
+							% thus enabled; the AST expects them as the elements
+							% of a list ({cond,_,E1, {cond,_,E2,...}), whereas
+							% we need a direct list here (i.e. [E1, E2, ...]),
+							% so:
+							%
+							Exprs = ast_generation:form_to_list( ExprFormList ),
+
+							% This injected code may need to be transformed (ex:
+							% if referencing the table module), so:
+							%
+							ast_expression:transform_expressions( Exprs,
+																  Transforms );
+
+						Other ->
+							% Other, non-list (ex: match pattern) unsupported
+							% expression parameter:
+							%
+							ast_utils:display_error( "Unsupported conditioned "
+								"expression specified for "
+								"cond_utils:if_defined/2, at line ~B:~n~p",
+								[ LineToken , Other] ),
+							ast_utils:raise_error(
+							  { unsupported_conditioned_expression,
+								{line,LineToken} } )
+
+					end;
 
 				key_not_found ->
-					% Token not defined, so these expressions are skipped as a
-					% whole:
-					%
+					%ast_utils:display_debug( "Token '~p' not defined, hence "
+					%						 "skipping as a whole "
+					%						 "expressions ~n~p",
+					%						 [ Token, ExprFormList ] ),
 					{ _Exprs=[], Transforms }
 
 			end;
+
+		( _LineCall,
+		  _FunctionRef={ remote, _, {atom,_,cond_utils},
+						 {atom,_,if_defined} },
+		  _Params=[ { var,Line,VarName}, _Exprs ],
+		  _Transforms ) ->
+			ast_utils:display_error(
+			  "A token used with cond_utils:if_defined/2 must be an immediate "
+			  "value (precisely an atom), not a (runtime) variable like '~s' "
+			  "(at line ~B).", [ VarName, Line ] ),
+			ast_utils:raise_error( { non_immediate_token, VarName,
+									 {line,Line} } );
+
+
+		( _LineCall,
+		  _FunctionRef={ remote, _, {atom,_,cond_utils},
+						 {atom,Line,if_defined} },
+		  _Params=[ _Other, _Exprs ],
+		  _Transforms ) ->
+			ast_utils:display_error(
+			  "A token used with cond_utils:if_defined/2 must be an immediate "
+			  "value (precisely an atom), not a runtime construct like the one "
+			  "at line ~B.", [ Line ] ),
+			ast_utils:raise_error( { non_immediate_token, {line,Line} } );
 
 
 		% For all function names and arities, the 'table' module shall be
@@ -465,7 +625,8 @@ get_myriad_ast_transforms_for(
 
 		% Other calls shall go through:
 		( LineCall, FunctionRef, Params, Transforms ) ->
-			ast_utils:display_trace( "(not changing ~p)", [ FunctionRef ] ),
+
+			%ast_utils:display_trace( "(not changing ~p)", [ FunctionRef ] ),
 
 			{ NewParams, NewTransforms } =
 					ast_expression:transform_expressions( Params, Transforms ),
@@ -476,56 +637,5 @@ get_myriad_ast_transforms_for(
 
 	end,
 
-	TransformTable = ?table:new(
-						[ { _Trigger=call, RemoteCallTransformFun } ] ),
-
-	% Finally, we want to read any tokens specified by the user in order to
-	% drive the activation of conditional code:
-	%
-	TokenTable = cond_utils:get_token_table_from( CompileOptTable ),
-
-	%trace_utils:debug_fmt( "Token table:~n~p", [ TokenTable ] ),
-
-	% Returns an overall description of these requested AST transformations:
-	#ast_transforms{ local_types=LocalTypeTransforms,
-					 remote_types=RemoteTypeTransforms,
-					 local_calls=LocalCallTransforms,
-					 %Not useful anymore: remote_calls=RemoteCallTransforms,
-					 transform_table=TransformTable,
-					 transformation_state=TokenTable } .
-
-
-
-% Returns the name of the actual module to use for tables.
-%
--spec get_actual_table_type( ast_info:attribute_table() ) ->
-								   basic_utils:module_name().
-get_actual_table_type( ParseAttributeTable ) ->
-
-	% Let's see whether a specific table_type has been specified:
-	DesiredTableType = case ?table:lookupEntry( table_type,
-												ParseAttributeTable ) of
-
-		{ value, { TableType, _LocForm } } when is_atom( TableType ) ->
-			ast_utils:display_info( "Default table type ('~s') overridden "
-									"for this module to '~s'.~n",
-									[ ?default_table_type, TableType ] ),
-			TableType;
-
-		{ value, { InvalidTableType, _LocForm } } ->
-			ast_utils:raise_error( { invalid_table_type_override,
-									 InvalidTableType } );
-
-		key_not_found ->
-			TableType = ?default_table_type,
-			%ast_utils:display_trace( "Using default table ~p.~n",
-			%				   [ TableType ] ),
-			TableType
-
-	end,
-
-	%ast_utils:display_debug( "Will replace references to the 'table' module "
-	%						  "and datatypes by references to '~s'.",
-	%						  [ DesiredTableType ] ),
-
-	DesiredTableType.
+	% Returning a corresponding remote call transformation table:
+	?table:new( [ { _Trigger=call, RemoteCallTransformFun } ] ).

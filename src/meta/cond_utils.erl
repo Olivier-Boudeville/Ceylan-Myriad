@@ -194,10 +194,26 @@ if_defined( Expressions ) ->
 
 
 
-% Conditional execution, enabled iff the specified token has been specified (i.e. iff
-% its token has been specified, either through the command-line or as an
-% in-source compile option).
+% Conditional execution, enabled iff the specified token has been specified
+% (i.e. iff its token has been specified, either through the command-line or as
+% an in-source compile option), in which case the specified expressions are
+% injected (otherwise they are simply dismissed as a whole).
 %
+% Note: the first parameter, Token, must be an immediate value, an atom (not
+% even a variable whose value happens to be an atom).
+%
+% So 'cond_utils:if_defined( hello, [...] )' will be accepted, while even 'A=hello,
+% cond_utils:if_defined( A, [...] )' will be rejected.
+%
+% As for the second parameter, it shall be directly a list of expressions; for
+% example 'cond_utils:if_defined( debug_mode, _Exprs=[...])' would be rejected.
+%
+% Finally, should the relevant token not be defined, the corresponding
+% expressions are dismissed, which may lead variables only mentioned in said
+% expressions to be reported as unused; for example: 'A = 1,
+% cond_utils:if_defined( non_existing_token, [ A = 1, ... ] )' will report that
+% variable 'A' is unused.
+% 
 -spec if_defined( token(), expressions() ) -> void().
 if_defined( Token, Expressions ) ->
 
