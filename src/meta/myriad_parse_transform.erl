@@ -57,12 +57,12 @@
 % bootstrapped modules* (see BOOTSTRAP_MODULES in GNUmakevars.inc for their
 % actual list)
 %
-%     Indeed, the other modules (of Ceylan-Myriad) are not bootstrapped, so they
-%     can enjoy the services offered by this parse transform, but of course they
-%     thus require this transform to be compiled in order to be themselves
-%     compiled; as a consequence, that parse transform may not use them at
-%     execution-time (by design they cannot be compiled yet), so many facilities
-%     are out of reach for this very particular, base parse transform
+%   Indeed, the other modules (of Ceylan-Myriad) are not bootstrapped, so they
+%   can enjoy the services offered by this parse transform, but of course they
+%   thus require this transform to be compiled in order to be themselves
+%   compiled; as a consequence, that parse transform may not use them at
+%   execution-time (by design they cannot be compiled yet), so many facilities
+%   are out of reach for this very particular, base parse transform
 %
 %
 % - when a parse transform fails, one will not get much more than: '{"init
@@ -93,6 +93,8 @@
 -type ast() :: ast_base:ast().
 -type module_info() :: ast_info:module_info().
 -type module_name() :: basic_utils:module_name().
+-type ast_expression() :: ast_expression:ast_expression().
+-type ast_transforms() :: ast_transform:ast_transforms().
 
 
 
@@ -201,7 +203,7 @@ parse_transform( InputAST, Options ) ->
 apply_myriad_transform( InputAST, Options ) ->
 
 	%ast_utils:display_debug( "applying parse transform '~p'",
-	%                         [ ?MODULE ] ),
+	%						 [ ?MODULE ] ),
 
 	%ast_utils:display_debug(
 	%           "~n## INPUT ####################################" ),
@@ -233,14 +235,14 @@ apply_myriad_transform( InputAST, Options ) ->
 	%ast_info:write_module_info_to_file( TransformedModuleInfo,
 	%									"Output-module_info.txt" ),
 
-	%trace_utils:debug( "~n## OUTPUT ###################################" ),
+	%ast_utils:display_debug( "~n## OUTPUT ###################################" ),
 	%ast_utils:display_debug( "Output module info: ~s",
 	%		   [ ast_info:module_info_to_string( TransformedModuleInfo ) ] ),
 	%ast_utils:display_debug( "Output module info: ~s~n~n",
 	%		   [ ast_info:module_info_to_string( TransformedModuleInfo ) ] ),
 
-	OutputAST = ast_info:recompose_ast_from_module_info(
-				  TransformedModuleInfo ),
+	OutputAST =
+		ast_info:recompose_ast_from_module_info( TransformedModuleInfo ),
 
 	%ast_utils:display_debug( "~n~nMyriad output AST:~n~p~n", [ OutputAST ] ),
 	%ast_utils:display_debug( "Myriad output AST:~n~p~n~n", [ OutputAST ] ),
@@ -348,7 +350,8 @@ get_myriad_ast_transforms_for(
 	%
 	TokenTable = cond_utils:get_token_table_from( CompileOptTable ),
 
-	%trace_utils:debug_fmt( "Token table:~n~p", [ TokenTable ] ),
+	%ast_utils:display_debug_fmt( "Token table:~n~p",
+	%							 [ ?table:toString( TokenTable ) ] ),
 
 	% Returns an overall description of these requested AST transformations:
 	#ast_transforms{ local_types=LocalTypeTransformTable,
@@ -495,15 +498,49 @@ get_ast_global_transforms( DesiredTableType ) ->
 	% Anonymous mute variables corresponding to line numbers:
 	RemoteCallTransformFun = fun
 
-		% Calls to cond_utils:if_defined( Token, Exprs ) shall be replaced
-		% either by specified expressions or by nothing:
+		%%%%%%% Section for cond_utils:if_debug/1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+		% Calls to cond_utils:if_debug( Exprs ) shall be replaced either by the
+		% corresponding specified expressions or by nothing:
 		%
 		( _LineCall,
-		  _FunctionRef={ remote, _, {atom,_,cond_utils},
-						 {atom,_,if_defined} },
+		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,LineFun,if_debug} },
+		  _Params=[ ExprFormList ],
+		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
+
+			%ast_utils:display_debug( "Call to cond_utils:if_debug/1 found" ),
+
+			% Implicit token here:
+			Token = debug_mode,
+
+			case ?table:lookupEntry( Token, TokenTable ) of
+
+				% Any value associated to this token will do, as we want just to
+				% detect whether it is defined at all:
+				%
+				{ value, _Any } ->
+					% So we will (attempt to) inject expressions.
+					inject_expressions( ExprFormList, Transforms, LineFun );
+
+				key_not_found ->
+					%ast_utils:display_debug( "Token '~p' not defined, hence "
+					%	"skipping as a whole expressions ~n~p",
+					%	[ Token, ExprFormList ] ),
+					{ _Exprs=[], Transforms }
+
+			end;
+
+		%%%%%%% Section for cond_utils:if_defined %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+		%%%%%%% Subsection for cond_utils:if_defined/2 %%%%%%%%%%%%%%%%%%%%%%%%%
+
+		% Calls to cond_utils:if_defined( Token, Exprs ) shall be replaced
+		% either by the corresponding specified expressions or by nothing:
+		%
+		( _LineCall,
+		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,if_defined} },
 		  _Params=[ {atom,LineToken,Token}, ExprFormList ],
-		  Transforms=#ast_transforms{
-			transformation_state=TokenTable } ) ->
+		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
 			%ast_utils:display_debug( "Call to cond_utils:if_defined/2 found, "
 			%						 "for token '~p'.", [ Token ] ),
@@ -514,65 +551,19 @@ get_ast_global_transforms( DesiredTableType ) ->
 				% detect whether it is defined at all:
 				%
 				{ value, _Any } ->
-
 					% So we will (attempt to) inject expressions.
-
-					case ExprFormList of
-
-						% Nothing to inject here (empty conditional expression
-						% list):
-						%
-						{ nil, _ } ->
-							{ _NewExprs=[], Transforms };
-
-						% Non-empty expression list:
-						%
-						ExprFormList={ cons, _, _Head, _Tail } ->
-
-							%ast_utils:display_debug(
-							%  "Token '~p' defined, hence injecting expressions"
-							%  "~p", [ Token, ExprFormList ] ),
-
-							% The corresponding, specified code (expressions) is
-							% thus enabled; the AST expects them as the elements
-							% of a list ({cond,_,E1, {cond,_,E2,...}), whereas
-							% we need a direct list here (i.e. [E1, E2, ...]),
-							% so:
-							%
-							Exprs = ast_generation:form_to_list( ExprFormList ),
-
-							% This injected code may need to be transformed (ex:
-							% if referencing the table module), so:
-							%
-							ast_expression:transform_expressions( Exprs,
-																  Transforms );
-
-						Other ->
-							% Other, non-list (ex: match pattern) unsupported
-							% expression parameter:
-							%
-							ast_utils:display_error( "Unsupported conditioned "
-								"expression specified for "
-								"cond_utils:if_defined/2, at line ~B:~n~p",
-								[ LineToken , Other] ),
-							ast_utils:raise_error(
-							  { unsupported_conditioned_expression,
-								{line,LineToken} } )
-
-					end;
+					inject_expressions( ExprFormList, Transforms, LineToken );
 
 				key_not_found ->
 					%ast_utils:display_debug( "Token '~p' not defined, hence "
-					%						 "skipping as a whole "
-					%						 "expressions ~n~p",
-					%						 [ Token, ExprFormList ] ),
+					%	"skipping as a whole expressions ~n~p",
+					%	[ Token, ExprFormList ] ),
 					{ _Exprs=[], Transforms }
 
 			end;
 
 		( _LineCall,
-		  _FunctionRef={ remote, _, {atom,_,cond_utils},
-						 {atom,_,if_defined} },
+		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,if_defined} },
 		  _Params=[ { var,Line,VarName}, _Exprs ],
 		  _Transforms ) ->
 			ast_utils:display_error(
@@ -594,6 +585,331 @@ get_ast_global_transforms( DesiredTableType ) ->
 			  "at line ~B.", [ Line ] ),
 			ast_utils:raise_error( { non_immediate_token, {line,Line} } );
 
+
+		%%%%%%% Subsection for cond_utils:if_defined/3 %%%%%%%%%%%%%%%%%%%%%%%%%
+
+		% Calls to cond_utils:if_defined( Token, ExprFormListIfDef,
+		% ExprsIfNotDef ) shall be replaced by either of the corresponding
+		% specified expressions, depending on whether the specified token has
+		% been defined:
+		%
+		( _LineCall,
+		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,if_defined} },
+		  _Params=[ {atom,LineToken,Token}, ExprFormListIfDef,
+					ExprFormListIfNotDef ],
+		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
+
+			%ast_utils:display_debug( "Call to cond_utils:if_defined/3 found, "
+			%						 "for token '~p'.", [ Token ] ),
+
+			case ?table:lookupEntry( Token, TokenTable ) of
+
+				% Any value associated to this token will do, as we want just to
+				% detect whether it is defined at all:
+				%
+				{ value, _Any } ->
+					%ast_utils:display_debug( "Token '~p' defined, hence "
+					%						 "injecting the expressions ~p",
+					%						 [ Token, ExprFormListIfDef ] ),
+					inject_expressions( ExprFormListIfDef, Transforms,
+										LineToken );
+
+				key_not_found ->
+					%ast_utils:display_debug( "Token '~p' not defined, hence "
+					%						 "injecting the expressions ~p",
+					%						 [ Token, ExprFormListIfNotDef ] ),
+					inject_expressions( ExprFormListIfNotDef, Transforms,
+										LineToken )
+
+			end;
+
+		( _LineCall,
+		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,if_defined} },
+		  _Params=[ { var,Line,VarName}, _ExprFormListIfDef,
+					_ExprFormListIfNotDef ],
+		  _Transforms ) ->
+			ast_utils:display_error(
+			  "A token used with cond_utils:if_defined/3 must be an immediate "
+			  "value (precisely an atom), not a (runtime) variable like '~s' "
+			  "(at line ~B).", [ VarName, Line ] ),
+			ast_utils:raise_error( { non_immediate_token, VarName,
+									 {line,Line} } );
+
+
+		( _LineCall,
+		  _FunctionRef={ remote, _, {atom,_,cond_utils},
+						 {atom,Line,if_defined} },
+		  _Params=[ _Other, _ExprFormListIfDef, _ExprFormListIfNotDef ],
+		  _Transforms ) ->
+			ast_utils:display_error(
+			  "A token used with cond_utils:if_defined/3 must be an immediate "
+			  "value (precisely an atom), not a runtime construct like the one "
+			  "at line ~B.", [ Line ] ),
+			ast_utils:raise_error( { non_immediate_token, {line,Line} } );
+
+
+
+		%%%%%%% Section for cond_utils:if_set_to %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+		%%%%%%% Subsection for cond_utils:if_set_to/3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+		% Calls to cond_utils:if_set_to( Token, Value, Exprs ) shall be replaced
+		% either by the corresponding specified expressions or by nothing:
+		%
+		( _LineCall,
+		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,if_set_to} },
+		  _Params=[ {atom,LineToken,Token}, ValueForm, ExprFormList ],
+		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
+
+			%ast_utils:display_debug( "Call to cond_utils:if_set_to/3 found, "
+			%						 "for token '~p' and value '~p'.",
+			%						 [ Token, ValueForm ] ),
+
+			RequestedValue = get_value( ValueForm ),
+
+			case ?table:lookupEntry( Token, TokenTable ) of
+
+				% Right value found matching:
+				{ value, RequestedValue } ->
+					%ast_utils:display_debug( "Token '~p' defined and set to "
+					%			 "the right value ('~p'), hence "
+					%			 "injecting the expressions ~p",
+					%			 [ Token, RequestedValue, ExprFormList ] ),
+
+					% So we will (attempt to) inject expressions.
+					inject_expressions( ExprFormList, Transforms, LineToken );
+
+				% Another value found:
+				{ value, _OtherValue } ->
+					%ast_utils:display_debug( "Token '~p' defined but not set "
+					%	"to the right value (set to '~s' instead of '~s'), "
+					%	"hence skipping as a whole expressions ~n~p",
+					%	[ Token, OtherValue, RequestedValue, ExprFormList ] ),
+					{ _Exprs=[], Transforms };
+
+				key_not_found ->
+					%ast_utils:display_debug( "Token '~p' not defined, hence "
+					%						 "skipping as a whole "
+					%						 "expressions ~n~p",
+					%						 [ Token, ExprFormList ] ),
+					{ _Exprs=[], Transforms }
+
+			end;
+
+
+		( _LineCall,
+		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,if_set_to} },
+		  _Params=[ { var,Line,VarName}, _ValueForm, _Exprs ],
+		  _Transforms ) ->
+			ast_utils:display_error(
+			  "A token used with cond_utils:if_set_to/3 must be an immediate "
+			  "value (precisely an atom), not a (runtime) variable like '~s' "
+			  "(at line ~B).", [ VarName, Line ] ),
+			ast_utils:raise_error( { non_immediate_token, VarName,
+									 {line,Line} } );
+
+
+		( _LineCall,
+		  _FunctionRef={ remote, _, {atom,_,cond_utils},
+						 {atom,Line,if_set_to} },
+		  _Params=[ _Other, _ValueForm, _Exprs ],
+		  _Transforms ) ->
+			ast_utils:display_error(
+			  "A token used with cond_utils:if_set_to/3 must be an immediate "
+			  "value (precisely an atom), not a runtime construct like the one "
+			  "at line ~B.", [ Line ] ),
+			ast_utils:raise_error( { non_immediate_token, {line,Line} } );
+
+
+
+		%%%%%%% Subsection for cond_utils:if_set_to/4 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+		% Calls to cond_utils:if_set_to( Token, Value, ExprFormListIfMatching,
+		% ExprsIfNotMatching ) shall be replaced by either of the corresponding
+		% specified expressions, depending on whether the specified token has
+		% been set to the specified value:
+		%
+		( _LineCall,
+		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,if_set_to} },
+		  _Params=[ {atom,LineToken,Token}, ValueForm, ExprFormListIfMatching,
+					ExprFormListIfNotMatching ],
+		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
+
+			%ast_utils:display_debug( "Call to cond_utils:if_set_to/4 found, "
+			%	 "for token '~p' and value '~p'.", [ Token, ValueForm ] ),
+
+			RequestedValue = get_value( ValueForm ),
+
+			case ?table:lookupEntry( Token, TokenTable ) of
+
+				% Right value found matching:
+				{ value, RequestedValue } ->
+					%ast_utils:display_debug( "Token '~p' defined and set to "
+					%	 "the right value ('~p'), hence "
+					%	 "injecting the expressions ~p",
+					%	 [ Token, RequestedValue, ExprFormListIfMatching ] ),
+
+					% So we will (attempt to) inject expressions.
+					inject_expressions( ExprFormListIfMatching, Transforms,
+										LineToken );
+
+				% Another value found:
+				{ value, _OtherValue } ->
+					%ast_utils:display_debug( "Token '~p' defined but not set "
+					%	"to the right value (set to '~s' instead of '~s'), "
+					%	"hence injecting the expressions ~p",
+					%	[ Token, OtherValue, RequestedValue,
+					%	  ExprFormListIfNotMatching ] ),
+
+					% So we will (attempt to) inject expressions.
+					inject_expressions( ExprFormListIfNotMatching, Transforms,
+										LineToken );
+
+				key_not_found ->
+					%ast_utils:display_debug( "Token '~p' not defined, hence "
+					%		 "injecting the expressions ~p",
+					%		 [ Token, ExprFormListIfNotMatching ] ),
+					inject_expressions( ExprFormListIfNotMatching, Transforms,
+										LineToken )
+
+			end;
+
+		( _LineCall,
+		  _FunctionRef={ remote, _, {atom,_,cond_utils},
+						 {atom,_,if_set_to} },
+		  _Params=[ { var,Line,VarName}, _ValueForm,_ExprFormListIfMatching,
+					_ExprFormListIfNotMatching ], _Transforms ) ->
+			ast_utils:display_error(
+			  "A token used with cond_utils:if_set_to/4 must be an immediate "
+			  "value (precisely an atom), not a (runtime) variable like '~s' "
+			  "(at line ~B).", [ VarName, Line ] ),
+			ast_utils:raise_error( { non_immediate_token, VarName,
+									 {line,Line} } );
+
+
+		( _LineCall,
+		  _FunctionRef={ remote, _, {atom,_,cond_utils},
+						 {atom,Line,if_set_to} },
+		  _Params=[ _Other, _ValueForm, _ExprFormListIfMatching,
+					_ExprFormListIfNotMatching ], _Transforms ) ->
+			ast_utils:display_error(
+			  "A token used with cond_utils:if_set_to/4 must be an immediate "
+			  "value (precisely an atom), not a runtime construct like the one "
+			  "at line ~B.", [ Line ] ),
+			ast_utils:raise_error( { non_immediate_token, {line,Line} } );
+
+
+		%%%%%%% Section for cond_utils:assert %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+		%%%%%%% Subsection for cond_utils:assert/1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+		( _LineCall,
+		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,LineAssert,assert} },
+		  _Params=[ ExpressionForm ],
+		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
+
+			%ast_utils:display_debug( "Call to cond_utils:assert/1 found, "
+			%						 "with expression form ~p.",
+			%						 [ ExpressionForm ] ),
+
+			% Implicit token here:
+			Token = debug_mode,
+
+			case ?table:lookupEntry( Token, TokenTable ) of
+
+				% Any value associated to this token will do, as we want just to
+				% detect whether it is defined at all:
+				%
+				{ value, _Any } ->
+					% So we will (attempt to) inject a match expression:
+					inject_match_expression( ExpressionForm, Transforms,
+											 LineAssert );
+
+				key_not_found ->
+					%ast_utils:display_debug( "Token '~p' not defined, hence "
+					%	"skipping as a whole expressions ~n~p",
+					%	[ Token, ExprFormList ] ),
+					{ _Exprs=[], Transforms }
+
+			end;
+
+
+		%%%%%%% Subsection for cond_utils:assert/2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+		( _LineCall,
+		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,assert} },
+		  _Params=[ {atom,LineToken,Token}, ExpressionForm ],
+		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
+
+			ast_utils:display_debug( "Call to cond_utils:assert/2 found, "
+									 "with token '~p' and expression form ~p.",
+									 [ Token, ExpressionForm ] ),
+
+			case ?table:lookupEntry( Token, TokenTable ) of
+
+				% Any value associated to this token will do, as we want just to
+				% detect whether it is defined at all:
+				%
+				{ value, _Any } ->
+					% So we will (attempt to) inject a match expression:
+					inject_match_expression( ExpressionForm, Transforms,
+											 LineToken );
+
+				key_not_found ->
+					%ast_utils:display_debug( "Token '~p' not defined, hence "
+					%	"skipping as a whole expressions ~n~p",
+					%	[ Token, ExprFormList ] ),
+					{ _Exprs=[], Transforms }
+
+			end;
+
+
+		%%%%%%% Subsection for cond_utils:assert/3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+		( _LineCall,
+		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,assert} },
+		  _Params=[ {atom,LineToken,Token}, ValueForm, ExpressionForm ],
+		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
+
+			%ast_utils:display_debug( "Call to cond_utils:assert/3 found, "
+			%						 "with token '~p' and expression form ~p.",
+			%						 [ Token, ExpressionForm ] ),
+
+			RequestedValue = get_value( ValueForm ),
+
+			case ?table:lookupEntry( Token, TokenTable ) of
+
+				% Right value found matching:
+				{ value, RequestedValue } ->
+					%ast_utils:display_debug( "Token '~p' defined and set to "
+					%			 "the right value ('~p'), hence "
+					%			 "injecting the expressions ~p",
+					%			 [ Token, RequestedValue, ExpressionForm ] ),
+
+					% So we will (attempt to) inject a match expression:
+					inject_match_expression( ExpressionForm, Transforms,
+											 LineToken );
+
+				% Another value found:
+				{ value, _OtherValue } ->
+					%ast_utils:display_debug( "Token '~p' defined but not set "
+					%	"to the right value (set to '~s' instead of '~s'), "
+					%	"hence skipping as a whole expressions ~n~p",
+					%	[ Token, OtherValue, RequestedValue, ExpressionForm ] ),
+					{ _Exprs=[], Transforms };
+
+				key_not_found ->
+					%ast_utils:display_debug( "Token '~p' not defined, hence "
+					%	"skipping as a whole expressions ~n~p",
+					%	[ Token, ExprFormList ] ),
+					{ _Exprs=[], Transforms }
+
+			end;
+
+
+		%%%%%%% Section for table %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 		% For all function names and arities, the 'table' module shall be
 		% replaced in remote calls by the desired table type:
@@ -626,7 +942,9 @@ get_ast_global_transforms( DesiredTableType ) ->
 		% Other calls shall go through:
 		( LineCall, FunctionRef, Params, Transforms ) ->
 
-			%ast_utils:display_trace( "(not changing ~p)", [ FunctionRef ] ),
+			%ast_utils:display_trace( "(not changing function referenced as ~p "
+			%						 "whose parameters are ~p)",
+			%						 [ FunctionRef, Params ] ),
 
 			{ NewParams, NewTransforms } =
 					ast_expression:transform_expressions( Params, Transforms ),
@@ -639,3 +957,105 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 	% Returning a corresponding remote call transformation table:
 	?table:new( [ { _Trigger=call, RemoteCallTransformFun } ] ).
+
+
+
+% (helper)
+%
+-spec inject_expressions( ast_expression(), ast_transforms(),
+			  ast_base:line() ) -> { [ ast_expression() ], ast_transforms() }.
+% Nothing to inject here (empty conditional expression list):
+inject_expressions( _ExprFormList={ nil, _ }, Transforms, _Line ) ->
+	{ _NewExprs=[], Transforms };
+
+% A list of expressions shall be injected here:
+inject_expressions( ExprFormList={ cons, _, _Head, _Tail }, Transforms,
+					_Line ) ->
+
+	%ast_utils:display_debug( "Token '~p' defined, hence injecting expressions"
+	%						  "corresponding to ~p", [ Token, ExprFormList ] ),
+
+	% The corresponding, specified code (expressions) is thus enabled; the AST
+	% expects them as the elements of a list ({cons,_,E1, {cons,_,E2,...}),
+	% whereas we need an actual, direct list here (i.e. [E1, E2, ...]), so:
+	%
+	Exprs = ast_generation:form_to_list( ExprFormList ),
+
+	% This injected code may need to be transformed (ex: if referencing the
+	% table module), so:
+	%
+	ast_expression:transform_expressions( Exprs, Transforms );
+
+
+% Other, non-list (ex: match pattern) unsupported expression parameter:
+inject_expressions( OtherExprForm, _Transforms, Line ) ->
+
+	ast_utils:display_error( "Unsupported expression specified at line ~B for "
+							 "a conditional injection:~n~p",
+							 [ Line, OtherExprForm ] ),
+
+	ast_utils:raise_error( { unsupported_expression_for_conditional_injection,
+							 {line,Line} } ).
+
+
+
+% Injects an expression checking whether once evaluated the corresponding form
+% matches the 'true' atom.
+
+% (helper)
+%
+-spec inject_match_expression( ast_expression(), ast_transforms(),
+		   ast_base:line() ) -> { [ ast_expression() ], ast_transforms() }.
+inject_match_expression( ExpressionForm, Transforms, Line ) ->
+
+	% Was initially:
+	% NewExpr = { match, Line, {atom,Line,true}, ExpressionForm },
+	% yet the error message was not sufficiently clear: {badmatch,false}.
+
+	% Now corresponds roughly to:
+	%
+	% case EXPR of
+	%	true ->
+	%		ok;
+	%	Other ->
+	%		throw( { assertion_failed, Other } )
+	% end.
+	%
+	% (no need to do more as the stacktrace with line numbers shall be output)
+
+	% We have to ensure that the name of the variable that we bind in the second
+	% clause is reasonably unique, otherwise, should more than one assert be
+	% found by the compiler in a given scope, it would deem that this variable
+	% name (ex: 'Other') would be unsafe in 'case' (and of course this name
+	% should not clash with user-defined ones). So:
+	%
+	VarName = list_to_atom( io_lib:format( "Myriad_assert_var_name-~B",
+										   [ Line ] ) ),
+
+	NewExpr = { 'case', Line, ExpressionForm,
+				[ {clause,Line,[{atom,Line,true}],[],[{atom,Line,ok}]},
+				  {clause,Line,
+					 [{var,Line,VarName}], [],
+					 [{call,Line,
+						  {atom,Line,throw},
+						  [ { tuple, Line,[ {atom,Line,assertion_failed},
+											{var,Line,VarName} ] } ] }]}] },
+
+	ast_expression:transform_expression( NewExpr, Transforms ).
+
+
+
+% Returns the actual value corresponding to the specified form (regardless of
+% its actual type).
+%
+get_value( { atom, _Line, Atom } ) ->
+	Atom;
+
+get_value( { integer, _Line, Integer } ) ->
+	Integer;
+
+get_value( { float, _Line, Float } ) ->
+	Float;
+
+get_value( Other ) ->
+	throw( { unsupported_conditional_value, Other } ).

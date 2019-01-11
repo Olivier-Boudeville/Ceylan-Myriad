@@ -52,8 +52,11 @@
 
 -type ast_field_init() :: ast_record:ast_untyped_record_field_definition().
 
+-type ast_expressions() :: [ ast_expression() ].
 
--export_type([ ast_expression/0, ast_integer_expression/0 ]).
+
+-export_type([ ast_expression/0, ast_integer_expression/0,
+			   ast_expressions/0 ]).
 
 
 -export([ transform_expression/2, transform_expressions/2 ]).
@@ -1077,7 +1080,7 @@ transform_expression( E={ AtomicLiteralType, _Line, _Value },
 	{ [ NewExpr ], NewTransforms };
 
 
-% Default catch-all:
+% Partial catch-all:
 transform_expression( Expression, Transforms )
   when is_record( Transforms, ast_transforms ) ->
 
@@ -1088,8 +1091,12 @@ transform_expression( Expression, Transforms )
 	%
 	%ast_pattern:transform_pattern( Expression, Transforms ).
 
-	ast_utils:raise_error( [ unexpected_expression, Expression ] ).
+	ast_utils:raise_error( [ unexpected_expression, Expression ] );
 
+
+% Final catch-all:
+transform_expression( Expression, Transforms ) ->
+	ast_utils:raise_error( [ transforms_expected, Transforms, Expression ] ).
 
 
 
@@ -1138,7 +1145,9 @@ transform_call( LineCall, FunctionRef, Params, Transforms ) ?rec_guard ->
 								  { [ ast_expression() ], ast_transforms() }.
 transform_expressions( Expressions, Transforms ) ?rec_guard ->
 
-	% An expression is transformed into a *list* of expressions:
+	% An expression is transformed into a *list* of expressions: (probably
+	% lists:mapfoldl/3 should be replaced by ad-hoc code, to ease debugging)
+	%
 	{ ExprLists, NewTransforms } = lists:mapfoldl(
 		 fun transform_expression/2, _Acc0=Transforms, _List=Expressions ),
 

@@ -1,4 +1,4 @@
-# This is the file that all 'Myriad' GNUmakefiles, and only them, should
+# This is the single file that all Myriad GNUmakefiles, and only them, should
 # include.
 
 # Prerequisite: MYRIAD_TOP must be set.
@@ -41,8 +41,9 @@
 
 # Finally, GNUmakerules files have further been split into
 # GNUmakerules-automatic.inc and GNUmakerules-explicit.inc, to let an upper
-# layer define explicit rules without having them override an already-defined
-# (in a lower layer) default target (such as 'all').
+# layer define explicit rules (ex: when overriding base cleaning with a
+# 'clean-local' target) without having them shadow any already-defined (in a
+# lower layer) default target (such as 'all').
 
 include $(MYRIAD_TOP)/GNUmakevars.inc
 

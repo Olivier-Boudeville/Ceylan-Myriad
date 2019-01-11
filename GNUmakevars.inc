@@ -407,7 +407,8 @@ endif
 #ERLANG_COMPILER_TOKEN_OPT :=
 
 # To test conditional checks:
-ERLANG_COMPILER_TOKEN_OPT := -Dmy_test_token -Dmy_other_test_token=51
+ERLANG_COMPILER_TOKEN_OPT := -Dmy_first_test_token -Dmy_second_test_token=200 \
+							 -Dmy_third_test_token=some_text
 
 
 ALL_ERL_FILES = $(wildcard *.erl)
@@ -494,8 +495,8 @@ endif
 # A generic rule like: '%.beam: %.erl %_dependencies' with a definition like
 # 'MyObject_dependencies: A.beam moduleB.beam' would work (and modules not
 # depending on others could be managed with a second generic rule: '%.beam:
-# %.erl'), but generic targets, as defined in GNUmakerules.inc, seem to be
-# *always* rebuilt, not depending on their .PHONY status.
+# %.erl'), but generic targets, as defined in GNUmakerules-automatic.inc, seem
+# to be *always* rebuilt, not depending on their .PHONY status.
 
 # In our case, MyObject.beam (and all its prerequisites!) would thus always be
 # rebuilt, even if no change at all was operated on the corresponding sources,
@@ -669,8 +670,8 @@ ERL_LAUNCHER = $(MYRIAD_SRC)/scripts/launch-erl.sh
 # not parse-transformed; typically *used* by parse-transforms, or being a
 # parse-transform themselves)
 #
-# (see the 'Bootstrap section' in GNUmakerules.inc for their special-cased
-# build)
+# (see the 'Bootstrap section' in GNUmakerules-explicit.inc for their
+# special-cased build)
 #
 ifndef BOOTSTRAP_MODULES
 

@@ -1,10 +1,10 @@
-# Here are gathered explicit (immediate, static) rules for Myriad.
+# Here are gathered explicit (immediate, static) specific rules for Myriad.
 #
 # See GNUmakerules-automatic.inc for their automatic (generic, pattern-based)
 # counterparts.
 
 
-# Prerequisite: TRACES_TOP must be set.
+# Prerequisite: MYRIAD_TOP must be set.
 
 
 .PHONY: .PHONY-myriad-explicit
@@ -442,14 +442,14 @@ clean-database:
 # This target has been added in order to allow the packages making use of
 # 'Myriad' to define their specific cleaning rules.
 #
-# They could have defined in their own GNUmakerules.inc something like:
+# They could have defined in their own GNUmakerules-explicit.inc something like:
 #	clean: clean-mypackage
 #	clean-mypackage:
 #	  -@/bin/rm foo.mypackage
 # but then this 'clean' target would become the default one, whereas we expect
 # the 'all' default target of 'Myriad' to be triggered.
-# Thus we finally allowed upper packages to make their cleaning thanks to:
-# FILES_TO_CLEAN += foo.mypackage in their GNUmakevars.inc
+# Thus we finally allowed upper packages to specify their cleaning thanks to:
+# 'FILES_TO_CLEAN += foo.mypackage' in their GNUmakevars.inc
 clean-override:
 	@#echo "FILES_TO_CLEAN = $(FILES_TO_CLEAN)"
 	-@/bin/rm -f $(FILES_TO_CLEAN)

@@ -2239,6 +2239,9 @@ interpret_options( OptionList,
 								 compilation_options=OptionTable } ) ->
 	NewOptionTable = scan_options( OptionList, OptionTable ),
 
+	%ast_utils:display_debug( "Scanned compilation options:~n~s",
+	%						 [ ?table:toString( NewOptionTable ) ] ),
+
 	ModuleInfo#module_info{ compilation_options=NewOptionTable }.
 
 

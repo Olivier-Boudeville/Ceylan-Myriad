@@ -8,12 +8,12 @@
 # See GNUmakerules-explicit.inc for the explicit (immediate, static)
 # counterparts.
 
-
 # From here all variables are expected to be updated, as first all the variables
 # of englobing projects should be set, then only rules based on that variables
 # should be defined.
 
 
+# Prerequisite: MYRIAD_TOP must be set.
 
 # Now defining the generic rules operating on the variables.
 

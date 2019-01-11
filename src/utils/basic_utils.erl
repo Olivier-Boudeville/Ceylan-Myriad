@@ -64,7 +64,9 @@
 		  create_uniform_tuple/2,
 		  stop/0, stop/1, stop_on_success/0, stop_on_failure/0,
 		  stop_on_failure/1,
-		  ignore/1, freeze/0, crash/0, enter_infinite_loop/0, trigger_oom/0 ]).
+		  identity/1, ignore_unused/1,
+		  freeze/0, crash/0, enter_infinite_loop/0,
+		  trigger_oom/0 ]).
 
 
 
@@ -314,15 +316,30 @@ stop_on_failure( StatusCode ) ->
 
 
 
+% Identity function: returns its argument as it is.
+%
+% Useful to avoid having the compiler being too smart by notifying annoying,
+% spurious messages (ex: no clause will ever match) in some tests.
+%
+-spec identity( term() ) -> term().
+identity( Term ) ->
+	Term.
+
+
+
 % Ignores specified argument.
 %
 % Useful to define, for debugging purposes, terms that will be (temporarily)
 % unused without blocking the compilation.
 %
--spec ignore( any() ) -> void().
-ignore( _Term ) ->
-	io:format( "Warning: unused term ignored thanks to "
-			   "basic_utils:ignore/1.~n" ).
+% Ex: basic_utils:ignore_unused( [ A, B, C ] )
+%
+-spec ignore_unused( any() ) -> void().
+ignore_unused( _Term ) ->
+	% Preferred silent:
+	ok.
+	%trace_utils:warning_fmt( "unused term (~p) ignored "
+	%			 "(thanks to basic_utils:ignore_unused/1).", [ _Term ] ).
 
 
 

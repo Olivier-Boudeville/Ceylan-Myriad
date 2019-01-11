@@ -33,21 +33,48 @@
 -module(cond_utils).
 
 
--export([ get_token_table_from/1, if_defined/1, if_defined/2 ]).
+
+% Note: we use to believe that a token could be defined either through a -D
+% command-line option or through an in-source compile attribute.
+%
+% If the comand-line is suitable for that, this is not the case of a compile
+% attribute such as: '-define( my_test_token, 200 ).'.
+%
+% Indeed, the latter solution only results in any '?my_test_token' to be
+% replaced with its associated value, whereas we would have liked to discover a
+% priori that the token 'my_test_token' exists and is associated to 200 (in
+% order to feed our token table).
+%
+% As we cannot do that with such a compile attribute (those equal to '-define'
+% do not end up at all in the AST), one has to stick to the -D command-line
+% option (ex: -Dmy_test_token=200).
+
+
+
+-export([ get_token_table_from/1,
+		  if_debug/1, if_defined/2, if_defined/3,
+		  if_set_to/3, if_set_to/4,
+		  assert/1, assert/2, assert/3 ]).
 
 
 % For the table macro:
 -include("meta_utils.hrl").
 
 
-% A token (defined either through a -D command-line option or through an
-% in-source compile attribute), whose definition enables the conditional
-% execution of associated code.
+
+
+% A token (defined through the command-line), whose definition enables the
+% conditional execution of associated code.
 %
 % Ex: a 'debug_gui' token would enable, if defined, associated code, like in:
 % cond_utils:if_defined( debug_gui, [ f(), A = B, g( C ) ] )
 %
 -type token() :: atom().
+
+
+% A value associated to a token:
+%
+-type value() :: term().
 
 
 % An expression that is conditionally enabled:
@@ -185,19 +212,18 @@ register_tokens( _L=[ Token | T ], TokenTable ) when is_atom( Token ) ->
 
 
 % Conditional execution, enabled iff the debug mode has been enabled (i.e. iff
-% its token has been specified, either through the command-line or as an
-% in-source compile option).
+% its token has been specified through the command-line).
 %
--spec if_defined( expressions() ) -> void().
-if_defined( Expressions ) ->
+-spec if_debug( expressions() ) -> void().
+if_debug( Expressions ) ->
 	if_defined( _Token=debug_mode, Expressions ).
 
 
 
 % Conditional execution, enabled iff the specified token has been specified
-% (i.e. iff its token has been specified, either through the command-line or as
-% an in-source compile option), in which case the specified expressions are
-% injected (otherwise they are simply dismissed as a whole).
+% (i.e. iff its token has been defined through the command-line), in which case
+% the specified expressions are injected (otherwise they are simply dismissed as
+% a whole).
 %
 % Note: the first parameter, Token, must be an immediate value, an atom (not
 % even a variable whose value happens to be an atom).
@@ -213,11 +239,134 @@ if_defined( Expressions ) ->
 % expressions to be reported as unused; for example: 'A = 1,
 % cond_utils:if_defined( non_existing_token, [ A = 1, ... ] )' will report that
 % variable 'A' is unused.
-% 
+%
 -spec if_defined( token(), expressions() ) -> void().
-if_defined( Token, Expressions ) ->
+if_defined( Token, _Expressions ) ->
 
 	% Never expected to be called, as replaced by the Myriad parse transform
 	% either by the actual expressions, or by nothing at all:
 	%
-	throw( { untransformed_conditional, Token, Expressions } ).
+	% (note that if the transformation fails, due to strict, non-lazy
+	% evaluation, the expressions will be evaluated in all cases)
+	%
+	%throw( { untransformed_conditional, {if_defined,2}, Token, Expressions } ).
+
+	% Should be sufficient thanks to the stacktrace:
+	throw( { untransformed_conditional, {if_defined,2}, Token } ).
+
+
+
+% Conditional execution of one of the two specified lists of expressions,
+% depending on whether the specified token has been defined through the
+% command-line.
+%
+% If the token has been defined, the first list of expressions is injected,
+% otherwise the second is.
+%
+% See if_defined/2 for use and caveats.
+%
+-spec if_defined( token(), expressions(), expressions() ) -> void().
+if_defined( Token, _ExpressionsIfDefined, _ExpressionsIfNotDefined ) ->
+
+	% Never expected to be called, as replaced by the Myriad parse transform
+	% by either of the actual expressions:
+	%
+	throw( { untransformed_conditional, {if_defined,3}, Token } ).
+
+
+
+% Conditional execution of the specified list of expressions, depending on
+% whether the specified token has been defined through the command-line *and*
+% has been set to the specified (immediate) value.
+%
+% The specified list of expressions is injected iff the token has been defined
+% and set to the specified value.
+%
+% See if_defined/2 for use and caveats.
+%
+-spec if_set_to( token(), value(), expressions() ) -> void().
+if_set_to( Token, _Value, _Expressions ) ->
+
+	% Never expected to be called, as replaced by the Myriad parse transform
+	% either by the actual expressions, or by nothing at all:
+	%
+	throw( { untransformed_conditional, {if_set_to,3}, Token } ).
+
+
+
+% Conditional execution of one of the two specified lists of expressions,
+% depending on whether the specified token has been defined through the
+% command-line *and* has been set to the specified (immediate) value.
+%
+% If the token has been defined and set to the specified value, the first list
+% of expressions is injected, otherwise (different value or not defined) the
+% second is.
+
+% See if_set_to/4 for use and caveats.
+%
+-spec if_set_to( token(), value(), expressions(), expressions() ) -> void().
+if_set_to( Token, _Value, _ExpressionsIfMatching, _ExpressionsOtherwise ) ->
+
+	% Never expected to be called, as replaced by the Myriad parse transform
+	% by either of the actual expressions:
+	%
+	throw( { untransformed_conditional, {if_set_to,4}, Token } ).
+
+
+
+% If in debug mode, asserts that the specified expression is true,
+% i.e. evaluates it at runtime and matches it with the atom 'true'.
+%
+% In debug mode (i.e when the debug_mode token has been defined), and only in
+% that mode, the check will be done (at runtime), and possibly will fail by
+% throwing a { assertion_failed, Other } exception, where Other is the actual
+% (non-true) value breaking that assertion (of course the usual stacktrace with
+% line numbers will be available).
+%
+-spec assert( expression() ) -> void().
+assert( _Expression ) ->
+	%assert( _Token=debug_mode, Expression ).
+
+	% Never expected to be called, as replaced by the Myriad parse transform
+	% by either of the actual expressions:
+	%
+	throw( { untransformed_conditional, {assert,1} } ).
+
+
+
+% If the specified token has been defined, asserts that the specified expression
+% is true, i.e. evaluates it at runtime, matches it with the atom 'true'.
+%
+% In debug mode (i.e when the debug_mode token has been defined), and only in
+% that mode, the check will be done (at runtime), and possibly will fail by
+% throwing a { assertion_failed, Other } exception, where Other is the actual
+% (non-true) value breaking that assertion (of course the usual stacktrace with
+% line numbers will be available).
+%
+-spec assert( token(), expression() ) -> void().
+assert( Token, _Expression ) ->
+
+	% Never expected to be called, as replaced by the Myriad parse transform
+	% by either of the actual expressions:
+	%
+	throw( { untransformed_conditional, {assert,2}, Token } ).
+
+
+
+% If the specified token has been defined and set to the specified value,
+% asserts that the specified expression is true, i.e. evaluates it at runtime,
+% matches it with the atom 'true'.
+%
+% In debug mode (i.e when the debug_mode token has been defined), and only in
+% that mode, the check will be done (at runtime), and possibly will fail by
+% throwing a { assertion_failed, Other } exception, where Other is the actual
+% (non-true) value breaking that assertion (of course the usual stacktrace with
+% line numbers will be available).
+%
+-spec assert( token(), value(), expression() ) -> void().
+assert( Token, _Value, _Expression ) ->
+
+	% Never expected to be called, as replaced by the Myriad parse transform
+	% by either of the actual expressions:
+	%
+	throw( { untransformed_conditional, {assert,3}, Token } ).

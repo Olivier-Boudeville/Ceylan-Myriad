@@ -37,6 +37,26 @@
 -include("test_facilities.hrl").
 
 
+% Tokens may only be defined on the command-line (ex: see ERLANG_COMPILER_TOKEN_OPT
+% in GNUmakevars.inc for that).
+%
+% Indeed, should they be specified directly in the sources, like below, such a
+% definition would not be appear per se in the AST, and thus the corresponding
+% tokens would not be known:
+%
+%-define( my_test_token, 200 ).
+%-define( my_other_test_token, some_text ).
+%
+% Based on the settings specified in GNUmakevars.inc, we expect:
+% - my_first_test_token to be defined, yet with no associated value
+% - my_second_test_token to be defined, set to 200
+% - my_third_test_token to be defined, set to some_text
+% (and no other token to be defined)
+
+% Note: we use here the process dictionary in order to detect more easily any
+% unexpected, non-legit code execution; we want not only to detect whenever a
+% right branch is executed, but also when a wrong one is, or both, or none.
+
 
 -spec run() -> no_return().
 run() ->
@@ -44,8 +64,8 @@ run() ->
 	test_facilities:start( ?MODULE ),
 
 
-	test_facilities:display(
-	  "Testing code whose execution is conditioned by a token." ),
+	test_facilities:display( "Testing code whose execution is conditioned by "
+							 "the definition of a token." ),
 
 	A = 1,
 	B = 2,
@@ -53,12 +73,108 @@ run() ->
 	% To silence a warning about A and B being unused should the token not be
 	% defined:
 	%
-	_C = A + B,
+	basic_utils:ignore_unused( [ A, B ] ),
 
-	cond_utils:if_defined( non_existing_token,
-	%cond_utils:if_defined( debug_mode,
+
+	test_facilities:display( "Testing cond_utils:if_defined/2." ),
+
+	cond_utils:if_debug( [ io:format( "We are in debug mode!~n" ),
+						   trace_utils:info( "And we like it!" ) ] ),
+
+	test_facilities:display( "Testing cond_utils:if_defined/2." ),
+
+
+	process_dictionary:put( process_test_key, 1 ),
+
+	%cond_utils:if_defined( non_existing_token,
+	cond_utils:if_defined( my_first_test_token,
 						   [ A = 1,
 							 io:format( "Conditional code executed!~n" ),
-							 B = A + 1 ] ),
+							 B = A + 1,
+							 process_dictionary:put( process_test_key, 2 ) ] ),
+
+	2 = process_dictionary:get( process_test_key ),
+
+
+	test_facilities:display( "Testing cond_utils:if_defined/3." ),
+
+	cond_utils:if_defined( my_first_test_token,
+			   [ trace_utils:info( "Correct branch selected." ),
+				 process_dictionary:put( process_test_key, 3 ) ],
+			   [ process_dictionary:put( process_test_key, 4 ),
+				 trace_utils:error( "Wrong branch selected (4)." ) ] ),
+
+	3 = process_dictionary:get( process_test_key ),
+
+
+	test_facilities:display( "Testing cond_utils:if_set_to/3." ),
+
+	cond_utils:if_set_to( my_second_test_token, 200,
+		[ trace_utils:info(
+			"Test token detected and set as expected (5)." ),
+		  process_dictionary:put( process_test_key, 5 ) ] ),
+
+	5 = process_dictionary:get( process_test_key ),
+
+
+	test_facilities:display( "Testing cond_utils:if_set_to/4." ),
+
+	cond_utils:if_set_to( another_non_existing_token, some_different_text,
+		[ trace_utils:error( "Wrong branch selected (6)." ),
+		  process_dictionary:put( process_test_key, 6 ) ],
+		[ process_dictionary:put( process_test_key, 7 ),
+		  trace_utils:info(
+			"Other test token detected and managed as expected (7)." ) ] ),
+
+	7 = process_dictionary:get( process_test_key ),
+
+	cond_utils:if_set_to( my_third_test_token, some_text,
+		[ process_dictionary:put( process_test_key, 8 ),
+		  trace_utils:info(
+			"Other test token detected and managed as expected (8)." ) ],
+		[ process_dictionary:put( process_test_key, 9 ),
+		  trace_utils:error( "Wrong branch selected (9)." ) ] ),
+
+	8 = process_dictionary:get( process_test_key ),
+
+	cond_utils:if_set_to( my_third_test_token, some_different_text,
+		[ trace_utils:error( "Wrong branch selected (10)." ),
+		  process_dictionary:put( process_test_key, 10 ) ],
+		[ process_dictionary:put( process_test_key, 11 ),
+		  trace_utils:info(
+			"Other test token detected and managed as expected (11)." ) ] ),
+
+	11 = process_dictionary:get( process_test_key ),
+
+
+	test_facilities:display( "Testing cond_utils:assert/1." ),
+
+	cond_utils:assert( true ),
+	cond_utils:assert( not false ),
+	% Would fail in debug mode: cond_utils:assert( false ),
+
+	cond_utils:assert( A =:= basic_utils:identity( A ) ),
+	%cond_utils:assert( A =/= basic_utils:identity( A ) ),
+
+
+	test_facilities:display( "Testing cond_utils:assert/2." ),
+
+	cond_utils:assert( my_first_test_token, not ( B =:= 1 ) ),
+	cond_utils:assert( my_first_test_token, B =:= 2 ),
+	%cond_utils:assert( my_first_test_token, not ( B =:= 2 ) ),
+
+	cond_utils:assert( non_existing_token, true ),
+	cond_utils:assert( non_existing_token, false ),
+
+
+	test_facilities:display( "Testing cond_utils:assert/3." ),
+
+	% Injected, as token value matches:
+	cond_utils:assert( my_second_test_token, 200, true ),
+	%cond_utils:assert( my_second_test_token, 200, false ),
+
+	% Not injected, as token value does not match:
+	cond_utils:assert( my_third_test_token, some_different_text, true ),
+	cond_utils:assert( my_third_test_token, some_different_text, false ),
 
 	test_facilities:stop().
