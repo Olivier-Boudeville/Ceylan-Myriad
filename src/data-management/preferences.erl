@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Creation date: Thursday, October 31, 2013
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 
@@ -172,11 +172,11 @@ get( Key, FileName ) ->
 % Associates, in current preferences, specified value to specified key (possibly
 % overwriting any previous value).
 %
--spec set( key(), value() ) -> basic_utils:void().
+-spec set( key(), value() ) -> void().
 set( Key, Value ) ->
 	set( Key, Value, get_default_preferences_path() ).
 
--spec set( key(), value(), file_utils:file_name() ) -> basic_utils:void().
+-spec set( key(), value(), file_utils:file_name() ) -> void().
 set( Key, Value, FileName ) ->
 
 	ServerPid = start( FileName ),
@@ -253,7 +253,7 @@ is_preferences_default_file_available() ->
 % Checks that the default preferences file exists, throws an exception
 % otherwise.
 %
--spec check_preferences_default_file() -> basic_utils:void().
+-spec check_preferences_default_file() -> void().
 check_preferences_default_file() ->
 
 	case is_preferences_default_file_available() of
@@ -272,12 +272,12 @@ check_preferences_default_file() ->
 %
 % Never fails.
 %
--spec stop() -> basic_utils:void().
+-spec stop() -> void().
 stop() ->
 	stop( get_default_preferences_path() ).
 
 
--spec stop( file_utils:file_name() ) -> basic_utils:void().
+-spec stop( file_utils:file_name() ) -> void().
 stop( FileName ) ->
 
 	RegistrationName = get_registration_name( FileName ),
@@ -340,9 +340,9 @@ server_main_run( SpawnerPid, RegistrationName, FileName ) ->
 %
 server_main_loop( Table ) ->
 
-	%io:format( "Waiting for preferences-related request, "
+	%trace_utils:debug_fmt( "Waiting for preferences-related request, "
 	%			"having ~B recorded preferences.~n",
-	%			[ table:getEntryCount( Table ) ] ),
+	%			[ table:size( Table ) ] ),
 
 	receive
 

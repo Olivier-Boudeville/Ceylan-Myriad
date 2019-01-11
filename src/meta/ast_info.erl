@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, February 3, 2018.
 
 
@@ -49,6 +49,7 @@
 -type function_info() :: #function_info{}.
 
 
+
 % Location of a form in an AST, so that the order of forms can be recreated.
 %
 % We use sortable identifiers so that any number of new forms can be introduced
@@ -59,14 +60,28 @@
 % defined.
 %
 % Thanks to locations (which order forms appropriately, including the ones
-% regarding file references), once forms have been recomposed by design a stored
-% line always is always relative to the current file.
+% regarding file references), once forms have been recomposed, by design a
+% stored line is always relative to the current file.
 %
-% 'auto_located' means that the corresponding form is yet to be located at this
-% position (thus a tranformation pass is still to be applied to needed in the
-% overall list before it is sortable).
+% 'locate_at' means that the corresponding form is yet to be located just after
+% the location pointed at by the specified marker in the AST stream (thus a
+% transformation pass is still to be applied before it becomes an actual
+% sortable identifier). Such a relative location allows for example to place
+% forms just after (and never, for example, just before) a module declaration.
 %
--type location() :: ast_base:form_location() | 'auto_located'.
+% We try to translate section markers in actual locations rather sooner than
+% later, as markers are not expected to move, and it would probably be more
+% difficult to recreate a consistency at later stages.
+%
+% Similarly, 'locate_after' means that a form is yet to be located after the
+% specified form.
+%
+% There is no specific order enforced between the possibly several forms located
+% at a given marker or after a given form.
+%
+-type location() :: ast_base:form_location()
+				  | { 'locate_at', section_marker() }
+				  | { 'locate_after', ast_base:form_location() }.
 
 
 % When processing an AST (ex: read from a BEAM file), the order of the forms
@@ -94,18 +109,101 @@
 
 
 
+% Known section markers (insertion points), listed in their expected order of
+% appearance in an AST stream (ex: a source file). All markers are expected to
+% be set (located) as soon as the scan of an AST into a module_info has been
+% done.
+%
+% These are, more specifically, the points, the lower locations from which
+% corresponding elements would be inserted (hence not necessarily in the exact
+% same order as inferred from an AST).
+%
+% Multiple markers may point to the same location.
+%
+% There may or may not be actual forms at such locations in the corresponding
+% AST: to preserve their order, markers may point to locations that have been
+% generated, i.e. that have not been directly obtained that the initial scan
+% (ex: inserted between an actual one and the logical end of the AST).
+%
+-type section_marker() ::
+
+		% Marker designating the beginning of the AST stream / source file:
+		'begin_marker'
+
+
+		% Marker designating a section starting just after the module
+		% declaration (i.e. '-module(my_module_name).'):
+		%
+	  | 'module_marker'
+
+
+		% Marker designating a section dedicated to the export of types
+		% (i.e. where '-import([ bar/n, ...]).' declarations may be gathered):
+		%
+	  | 'export_types_marker'
+
+
+		% Marker designating a section dedicated to the export of functions
+		% (i.e. where '-export([ foo/n, ...]).' declarations may be gathered):
+		%
+	  | 'export_functions_marker'
+
+
+		% Marker designating a section dedicated to the import of functions
+		% (i.e. where -import( Module, Funcitons ) declarations may be
+		% gathered):
+		%
+	  | 'import_functions_marker'
+
+	  % Not relevant, as includes have already be inlined in an input AST:
+	  %| 'include_marker'    % Include declarations
+
+
+		% Marker designating a section dedicated to the definition of records:
+		%
+	  | 'definition_records_marker'
+
+
+		% Marker designating a section dedicated to the definition of types:
+		%
+	  | 'definition_types_marker'
+
+
+		% Marker designating a section dedicated to the definition of functions:
+		%
+	  | 'definition_functions_marker'
+
+	  | 'end_marker'.       % End of the AST stream / source file
+
+
+
 % Tables to be found in the module_info record:
 
 
 -type compile_option_name() :: atom().
 
+% In some cases (at least when it is specified from the command-line), a
+% compilation option is a triplet (ex: -Dmy_other_test_token=51 is translated,
+% in terms of a parse-transform option, as: {d,my_other_test_token,51}).
+%
+% The value associated to the option name ('d') is then:
+% {my_other_test_token,51}.
+%
 -type compile_option_value() :: term().
+
+
+% As typically obtained from options fed to a parse-transform:
+-type compile_option_entry() :: compile_option_name()
+					  | { compile_option_name(), compile_option_value() }.
 
 
 % For easy access to compilation information:
 %
+% Note that an option specified without a value (ex: -Dmy_token on the command
+% line) will be associated to the 'undefined' value.
+%
 -type compile_option_table() :: ?table:?table( compile_option_name(),
-											   [ compile_option_value() ] ).
+									basic_utils:maybe( [ compile_option_value() ] ) ).
 
 
 
@@ -125,9 +223,14 @@
 -type attribute() :: { attribute_name(), attribute_value() }.
 
 
-% For easy access to parse attributes:
+% For easy access to the values and AST forms associated to a parse attribute,
+% from its name.
 %
--type attribute_table() :: ?table:?table( attribute_name(), attribute_value() ).
+% For example, to the 'dialyzer' key will be associated the values and located
+% forms of the various '-dialyzer( XXX ).' found in a source file.
+%
+-type attribute_table() :: ?table:?table( attribute_name(),
+					   [ { attribute_value(), ast_info:located_form() } ] ).
 
 
 
@@ -167,10 +270,18 @@
 -type record_definition() :: { field_table(), location(), line() }.
 
 
+
 % A table associating to a given field of a record its description.
 %
--type field_table() :: ?table:?table( basic_utils:field_name(),
-									  ast_record:field_definition() ).
+% The ?table type (usually map_hashtable) cannot be used, as it does not
+% preserve the order of its entries, whereas the fields are indexed in
+% tuple-records according to their rank in the corresponding list.
+
+% Best solution here is not a list_table (which does not strictly preserve
+% element order either), but a plain (ordered) list (of pairs).
+%
+-type field_table() :: [ { basic_utils:field_name(),
+						   ast_record:field_definition() } ].
 
 
 
@@ -192,7 +303,7 @@
 % - this table must be explicitly updated whenever adding or removing a function
 % in a module_info 'functions' field; see: add_function/2 and remove_function/2
 %
-% - [ function_id() ] used, not a set, to better preserve order
+% - a list of function_id() is used, not a set, to better preserve order
 %
 -type function_export_table() :: ?table:?table( location(),
 						   { ast_base:line(), [ function_id() ] } ).
@@ -204,19 +315,43 @@
 -type function_table() :: ?table:?table( function_id(), function_info() ).
 
 
-
-% Top-level elements:
+% A table storing the actual locations corresponding to the standard section
+% markers:
 %
+-type section_marker_table() :: ?table:?table( section_marker(), location() ).
+
+
+
+% All relevant information about an error found in an AST:
+%
+% (note: includes warnings)
+%
+-type error() :: { ast_scan:scan_context(), ast_scan:error_report() }.
+
+
 -export_type([ module_info/0, type_info/0, function_info/0,
+
 			   location/0, located_form/0, located_ast/0,
-			   located_function_spec/0, attribute/0 ]).
+			   located_function_spec/0,
 
+			   section_marker/0,
 
-% Tables to be found in the module_info record:
--export_type([ compile_option_table/0, attribute_table/0,
-			   type_export_table/0, type_table/0, record_table/0,
+			   compile_option_name/0, compile_option_value/0,
+			   compile_option_entry/0, compile_option_table/0,
+
+			   attribute_name/0, attribute_value/0, attribute/0,
+			   attribute_table/0,
+
+			   type_export_table/0, type_table/0,
+
+			   record_table/0, record_definition/0, field_table/0,
+
 			   function_import_table/0, function_export_table/0,
-			   function_table/0 ]).
+			   function_table/0, section_marker_table/0,
+
+			   error/0
+
+			 ]).
 
 
 % General module-info helpers:
@@ -226,17 +361,61 @@
 
 % Module-info section:
 -export([ extract_module_info_from_ast/1, init_module_info/0,
-		  check_module_info/1,
+		  check_module_info/1, interpret_options/2,
 		  recompose_ast_from_module_info/1,
-		  write_module_info_to_file/2, module_info_to_string/1 ]).
+		  write_module_info_to_file/2,
+
+		  get_default_module_location/0, get_default_module_location/1,
+
+		  get_default_export_type_location/0,
+		  get_default_export_type_location/1,
+
+		  get_default_export_function_location/0,
+		  get_default_export_function_location/1,
+
+		  get_default_import_function_location/0,
+		  get_default_import_function_location/1,
+
+		  get_default_definition_record_location/0,
+		  get_default_definition_record_location/1,
+
+		  get_default_definition_type_location/0,
+		  get_default_definition_type_location/1,
+
+		  get_default_definition_function_location/0,
+		  get_default_definition_function_location/1,
+
+		  module_info_to_string/1, module_info_to_string/2,
+		  module_info_to_string/3 ]).
 
 
--export([ function_info_to_string/1 ]).
+% Elements for textual descriptions:
+-export([ forms_to_string/3, location_to_string/1,
+		  module_entry_to_string/2,
+		  compilation_options_to_string/3, compilation_options_to_string/4,
+		  optional_callbacks_to_string/3,
+		  parse_attribute_table_to_string/2, parse_attribute_table_to_string/3,
+		  remote_spec_definitions_to_string/3,
+		  includes_to_string/3, includes_to_string/4,
+		  type_exports_to_string/2, type_exports_to_string/3,
+		  types_to_string/3,
+		  records_to_string/1, records_to_string/2,
+		  function_imports_to_string/4,
+		  functions_to_string/3,
+		  last_line_to_string/1,
+		  markers_to_string/1, markers_to_string/2,
+		  errors_to_string/2,
+		  unhandled_forms_to_string/3,
+		  fields_to_strings/1, field_to_string/3,
+		  function_id_to_string/1,
+		  function_info_to_string/1, function_info_to_string/2,
+		  function_info_to_string/3 ]).
 
 
 % General type-info helpers:
 -export([ ensure_type_exported/4, ensure_type_not_exported/3,
-		  type_info_to_string/1 ]).
+		  type_id_to_string/1,
+		  type_info_to_string/1, type_info_to_string/3 ]).
 
 
 % Local shorthands:
@@ -253,63 +432,16 @@
 
 
 
-% Ensures that specified function is exported at the specified location(s).
+% Ensures that the specified function is exported at the specified location(s).
 %
 -spec ensure_function_exported( function_id(), [ location() ], module_info(),
 					   function_export_table() ) -> function_export_table().
 ensure_function_exported( _FunId, _ExportLocs=[], _ModuleInfo, ExportTable ) ->
 	ExportTable;
 
-ensure_function_exported( FunId, _ExportLocs=[ _Loc=auto_located | T ],
-						  ModuleInfo, ExportTable ) ->
-
-	% When a function export is to be auto-located, we attach it just after the
-	% module definition, to avoid possibly placing an export after a function
-	% definition:
-
-	ModuleLoc = case ModuleInfo#module_info.module_def of
-
-		undefined ->
-			throw( { auto_locate_whereas_no_module_def, FunId } );
-
-		{ MLoc, _Form } ->
-			MLoc
-
-	end,
-
-	FunExportLoc = id_utils:get_higher_next_depth_sortable_id( ModuleLoc ),
-
-	% This location may have already been used, thus:
-	case ?table:lookupEntry( FunExportLoc, ExportTable ) of
-
-		{ value, { Line, FunIds } } ->
-
-			case lists:member( FunId, FunIds ) of
-
-				true ->
-					% Already registered, perfect as is, continues with the next
-					% locations:
-					ensure_function_exported( FunId, T, ModuleInfo,
-											  ExportTable );
-
-				false ->
-					% Adding it then:
-					NewEntry = { Line, [ FunId | FunIds ] },
-					NewExportTable = ?table:addEntry( FunExportLoc, NewEntry ),
-					ensure_function_exported( FunId, T, ModuleInfo,
-											  NewExportTable )
-
-			end;
-
-		key_not_found ->
-			% We create a new location entry then:
-			NewEntry = { _DefaultLine=0, [ FunId ] },
-			NewExportTable = ?table:addEntry( FunExportLoc, NewEntry ),
-			ensure_function_exported( FunId, T, ModuleInfo, NewExportTable )
-
-	end;
-
-
+% Any kind of location, either direct or marker-based (they will be translated
+% later, when generating back an AST):
+%
 ensure_function_exported( FunId, _ExportLocs=[ Loc | T ], ModuleInfo,
 						  ExportTable ) ->
 
@@ -327,9 +459,13 @@ ensure_function_exported( FunId, _ExportLocs=[ Loc | T ], ModuleInfo,
 											  ExportTable );
 
 				false ->
+
 					% Adding it then:
 					NewEntry = { Line, [ FunId | FunIds ] },
-					NewExportTable = ?table:addEntry( Loc, NewEntry),
+
+					NewExportTable =
+						?table:addEntry( Loc, NewEntry, ExportTable ),
+
 					ensure_function_exported( FunId, T, ModuleInfo,
 											  NewExportTable )
 
@@ -364,7 +500,7 @@ ensure_function_not_exported( FunId, _ExportLocs=[ Loc | T ], ExportTable ) ->
 					?table:removeEntry( Loc, ExportTable );
 
 				ShrunkFunIds ->
-					?table:addEntry( Loc, { Line, ShrunkFunIds } )
+					?table:addEntry( Loc, { Line, ShrunkFunIds }, ExportTable )
 
 			end,
 
@@ -383,7 +519,7 @@ ensure_function_not_exported( FunId, _ExportLocs=[ Loc | T ], ExportTable ) ->
 %
 % Note: relies on text_utils.
 %
--spec located_ast_to_string( located_ast() ) -> text_utils:string().
+-spec located_ast_to_string( located_ast() ) -> text_utils:ustring().
 located_ast_to_string( AST ) ->
 
 	% Raw, not sorted on purpose:
@@ -409,7 +545,7 @@ extract_module_info_from_ast( AST ) ->
 	%ast_utils:display_debug( "Processing following AST:~n~p",
 	%  [ AST ] ),
 
-	%ast_utils:display_debug( "Processing AST:" ),
+	%ast_utils:display_debug( "Processing AST..." ),
 
 	%ast_utils:write_ast_to_file( AST, "original-extracted-ast.txt" ),
 
@@ -438,7 +574,7 @@ extract_module_info_from_ast( AST ) ->
 	% modules (like {meta,text}_utils) - this should be the case here:
 	%
 	%ast_utils:display_debug( "Resulting module information:~n~s",
-	%		   [ module_info_to_string( ModuleInfo ) ] ),
+	%						 [ module_info_to_string( ModuleInfo ) ] ),
 
 	case ModuleInfo#module_info.unhandled_forms of
 
@@ -479,8 +615,8 @@ init_module_info() ->
 				  records=EmptyTable,
 				  function_imports=EmptyTable,
 				  function_exports=EmptyTable,
-				  functions=EmptyTable }.
-
+				  functions=EmptyTable,
+				  markers=EmptyTable }.
 
 
 
@@ -488,9 +624,6 @@ init_module_info() ->
 %
 -spec check_module_info( module_info() ) -> basic_utils:void().
 check_module_info( #module_info{ module=undefined } ) ->
-	ast_utils:raise_error( no_module_known );
-
-check_module_info( #module_info{ module_def=undefined } ) ->
 	ast_utils:raise_error( no_module_defined );
 
 check_module_info( #module_info{ last_line=undefined } ) ->
@@ -499,42 +632,19 @@ check_module_info( #module_info{ last_line=undefined } ) ->
 
 check_module_info( ModuleInfo=#module_info{ unhandled_forms=[] } ) ->
 	%ast_utils:display_debug( "Checking AST." ),
-	check_module_parse( ModuleInfo ),
 	check_module_include( ModuleInfo ),
 	check_module_types( ModuleInfo ),
 	check_module_functions( ModuleInfo );
 
-check_module_info( #module_info{ unhandled_forms=UnhandledForms } ) ->
+check_module_info( #module_info{ unhandled_forms=_UnhandledForms } ) ->
 
-	Forms = [ F || { _Loc, F } <- UnhandledForms ],
+	%Forms = [ F || { _Loc, F } <- UnhandledForms ],
 
-	ast_utils:raise_error( [ unhandled_forms, Forms ] ).
+	%ast_utils:raise_error( [ unhandled_forms, Forms ] ).
 
-
-
-% Helper to check module parsed attributes.
-%
-check_module_parse( #module_info{
-						 parse_attributes=ParseAttributeTable,
-						 parse_attribute_defs=ParseAttributeDefs } ) ->
-
-	Len = ?table:size( ParseAttributeTable ),
-
-	case length( ParseAttributeDefs ) of
-
-		Len ->
-			ok;
-
-		FormCount ->
-			ast_utils:display_error( "Inconsistent parse attribute state: ~s "
-									 "vs ~B forms:~n~p",
-						   [ ?table:toString( ParseAttributeTable ),
-							 FormCount, ParseAttributeDefs ] ),
-			ast_utils:raise_error( [ parse_attribute_mismatch,
-									 ?table:enumerate( ParseAttributeTable ),
-									 ParseAttributeDefs ] )
-
-	end.
+	% A warning has already been issued, we let these unexpected forms flow
+	% through and be caught by the compiler:
+	ok.
 
 
 
@@ -575,8 +685,8 @@ check_module_types( #module_info{ types=Types } ) ->
 check_type( TypeId, _TypeInfo=#type_info{ definition=[] } ) ->
 	ast_utils:raise_error( [ no_definition_found_for, TypeId ] );
 
-check_type( _TypeId={ Name, Arity }, _TypeInfo=#type_info{
-										 name=Name, variables=TypeVars } ) ->
+check_type( _TypeId={ Name, Arity },
+			_TypeInfo=#type_info{ name=Name, variables=TypeVars } ) ->
 
 	case length( TypeVars ) of
 
@@ -608,11 +718,30 @@ check_module_functions( #module_info{ functions=Functions } ) ->
 	[ check_function( FunId, FunInfo ) || { FunId, FunInfo } <- FunInfos ].
 
 
+% No definition, and neither with a spec nor exported, yet registered (strange):
+check_function( FunId, _FunInfo=#function_info{ clauses=[],
+												spec=undefined,
+												exported=[] } ) ->
+	ast_utils:raise_error( [ no_clause_found_for_function, FunId ] );
 
-% Nothing to check for 'spec' or 'exported':
-%
-check_function( FunId, _FunInfo=#function_info{ clauses=[] } ) ->
-	ast_utils:raise_error( [ no_clause_found_for, FunId ] );
+
+% No definition, no spec, hence exported:
+check_function( _FunId, _FunInfo=#function_info{ clauses=[],
+												 spec=undefined } ) ->
+	% Silenced, as we prefer this error to be reported through the toolchain
+	% itself, to better integration in error handling:
+	%
+	%ast_utils:raise_error( [ function_exported_yet_not_defined, FunId ] );
+	ok;
+
+% No definition, not exported, hence just a spec:
+check_function( _FunId, _FunInfo=#function_info{ clauses=[],
+												 exported=[] } ) ->
+	% Silenced, as we prefer this error to be reported through the toolchain
+	% itself, to better integration in error handling:
+	%
+	%ast_utils:raise_error( [ function_spec_without_definition, FunId ] );
+	ok;
 
 check_function( _FunId={ Name, Arity },
 				_FunInfo=#function_info{ name=Name, arity=Arity } ) ->
@@ -637,14 +766,12 @@ recompose_ast_from_module_info( #module_info{
 			% module_info() are indeed read here, so that they are reinjected
 			% indeed in the output AST.
 
-			% (module)
-			module_def=ModuleLocDef,
+			module={ _ModuleName, ModuleLocDef },
 
 			% (compilation_options)
 			compilation_option_defs=CompileOptLocDefs,
 
-			% (parse_attributes)
-			parse_attribute_defs=ParseAttributeLocDefs,
+			parse_attributes=ParseAttributeTable,
 
 			remote_spec_defs=RemoteSpecLocDefs,
 
@@ -669,27 +796,31 @@ recompose_ast_from_module_info( #module_info{
 
 			last_line=LastLineLocDef,
 
-			unhandled_forms=UnhandledLocForms
+			markers=MarkerTable,
 
-								  } ) ->
+			errors=[],
 
+			unhandled_forms=UnhandledLocForms } ) ->
+
+	ParseAttributeLocDefs = [ LocForm
+			   || { _Value, LocForm } <- ?table:values( ParseAttributeTable ) ],
 
 	{ TypeExportLocDefs, TypeLocDefs } = ast_type:get_located_forms_for(
 										   TypeExportTable, TypeTable ),
 
 	RecordLocDefs = ast_record:get_located_forms_for( RecordTable ),
 
+	% Auto-exports functions if relevant:
 	{ FunExportLocDefs, FunctionLocDefs } = ast_function:get_located_forms_for(
-												FunctionExportTable, FunctionTable ),
+									FunctionExportTable, FunctionTable ),
 
 
-	% All these definitions are located, yet we start from a sensible order so
-	% that inserted forms do not end up in corner cases:
+	% we used to start from a sensible order so that inserted forms do not end
+	% up in corner cases, yet all these definitions are located, so their order
+	% does not really matter once we have only explicit locations.
 	%
-	% (order does not really matter thanks to explicit locations)
-	%
-	UnorderedLocatedAST = [ ModuleLocDef |
-							   ParseAttributeLocDefs
+	UnorderedLocatedAST = [ ModuleLocDef
+							| ParseAttributeLocDefs
 							++ RemoteSpecLocDefs
 							++ FunExportLocDefs
 							++ IncludeLocDefs
@@ -702,19 +833,32 @@ recompose_ast_from_module_info( #module_info{
 							++ FunctionLocDefs
 							++ [ LastLineLocDef | UnhandledLocForms ] ],
 
-	%ast_utils:display_debug( "Unordered located AST:~n~p~n",
-	%  [ UnorderedLocatedAST ] ),
 
-	OrderedAST = get_ordered_ast_from( UnorderedLocatedAST ),
+	%ast_utils:display_debug( "Unordered located AST:~n~p~n",
+	%						 [ UnorderedLocatedAST ] ),
+
+	OrderedAST = get_ordered_ast_from( UnorderedLocatedAST, MarkerTable ),
 
 	%ast_utils:display_debug( "Recomposed AST:~n~p~n",
-	%  [ OrderedAST ] ),
+	%						 [ OrderedAST ] ),
 
-	OrderedAST.
-
-
+	OrderedAST;
 
 
+% If there was at least one error reported:
+recompose_ast_from_module_info( #module_info{ errors=Errors } ) ->
+
+	ErrorStrings = [ text_utils:term_to_string( E ) || E <- Errors ],
+
+	trace_utils:error_fmt( "~B errors spotted in AST: ~s",
+		[ length( Errors ), text_utils:strings_to_string( ErrorStrings ) ] ),
+
+	throw( { errors_in_ast, Errors } );
+
+
+recompose_ast_from_module_info( Unexpected ) ->
+
+	throw( { unexpected_term_as_module_info, Unexpected } ).
 
 
 
@@ -722,42 +866,220 @@ recompose_ast_from_module_info( #module_info{
 % Returns an (ordered, with no location information) AST from the specified
 % unordered, located AST.
 %
--spec get_ordered_ast_from( located_ast() ) -> ast().
-get_ordered_ast_from( UnorderedLocatedAST ) ->
+-spec get_ordered_ast_from( located_ast(), section_marker_table() ) -> ast().
+get_ordered_ast_from( UnorderedLocatedAST, MarkerTable ) ->
 
-	% First pass: we replace any 'auto_located' location by an actual position
-	% just after the current one (collisions are allowed):
+	%ast_utils:display_debug( "Unordered, non-immediate located input AST:~n~p",
+	%						 [ UnorderedLocatedAST ] ),
+
+	% We replace any non-immediate location by an immediate one, and have the
+	% whole sorted, then unlocated:
 	%
-	FullyLocatedAST = locate_all_in( UnorderedLocatedAST,
-						id_utils:get_initial_sortable_id(), _Acc=[] ),
-
-	% We then sort form according to their recorded location:
-	OrderedLocatedAST = lists:keysort( _LocIndex=1, FullyLocatedAST ),
+	ReorderedAST = reorder_forms_in( UnorderedLocatedAST, MarkerTable ),
 
 	% One of the most useful view of output:
-	ast_utils:display_debug( "Ordered located AST:~n~s~n",
-				   [ located_ast_to_string( OrderedLocatedAST ) ] ),
+	%ast_utils:display_debug( "Ordered, unlocated output AST:~n~p",
+	%						 [ ReorderedAST ] ),
 
-	% And then we remove that information once sorted, returning an ordered,
-	% unlocated AST:
+	ReorderedAST.
+
+
+
+% Reorders specified located AST: returns an (unlocated) AST, whose form order
+% has been determined thanks to an intermediary step fully based on immediate
+% locations.
+%
+-spec reorder_forms_in( located_ast(), section_marker_table() ) -> ast().
+reorder_forms_in( LocatedForms, MarkerTable ) ->
+
+	%trace_utils:debug_fmt( "Reording following forms:~n~p~n"
+	%					   "while there are ~s", [ LocatedForms,
+	%					   markers_to_string( MarkerTable ) ] ),
+
+	% Separate immediate locations from others, which are all converted in a
+	% locate_after form and then correctly inserted:
 	%
-	[ Form || { _Location, Form } <- OrderedLocatedAST ].
+	reorder_forms_in( LocatedForms, MarkerTable, _AccLoc=[], _AccLocAfter=[] ).
+
+
+% locate_at are first transformed into locate_after locations, then all
+% locate_after are properly inserted into the AST stream.
+%
+% (helper)
+%
+reorder_forms_in( _LocatedForms=[], _MarkerTable, AccLoc, AccLocAfter ) ->
+
+	% Locations are the first elements of the pairs:
+	LocIndex=1,
+
+	% All forms inspected, we want in-order immediate located and located_at
+	% forms:
+	OrderedLocForms = lists:keysort( LocIndex, AccLoc ),
+
+	OrderedLocAfter = lists:keysort( LocIndex, AccLocAfter ),
+
+	insert_after_located_forms( OrderedLocAfter, OrderedLocForms );
+
+
+% Manages locate_at information (transforms them in locate_after):
+reorder_forms_in( _LocatedForms=[ { { locate_at, MarkerName }, Form } | T ],
+				  MarkerTable, AccLoc, AccLocAfter ) ->
+
+	MarkerLoc = ?table:getEntry( MarkerName, MarkerTable ),
+
+	NewAccLocAfter = [ { MarkerLoc, Form } | AccLocAfter ],
+
+	reorder_forms_in( T, MarkerTable, AccLoc, NewAccLocAfter );
+
+
+% Manages locate_after information (aggregates them):
+reorder_forms_in( _LocatedForms=[ { { locate_after, Loc }, Form } | T ],
+				  MarkerTable, AccLoc, AccLocAfter ) ->
+	reorder_forms_in( T, MarkerTable, AccLoc, [ { Loc, Form } | AccLocAfter ] );
+
+
+% E={ Loc, Form } expected:
+reorder_forms_in( _LocatedForms=[ E | T ], MarkerTable, AccLoc, AccLocAfter ) ->
+	reorder_forms_in( T, MarkerTable, [ E | AccLoc ], AccLocAfter ).
 
 
 
-locate_all_in( _LocatedForms=[], _CurrentSortId, Acc ) ->
-	% Order does not matter anymore:
-	Acc;
 
-locate_all_in( _LocatedForms=[ { _Loc=auto_located, Form } | T ], CurrentSortId,
-			   Acc ) ->
-	% Better than get_next_sortable_id/1 to ensure grouped with previous:
-	NewSortId = id_utils:get_higher_next_depth_sortable_id( CurrentSortId ),
-	locate_all_in( T, NewSortId, [ { NewSortId, Form } | Acc ] );
+% Merges the specified immediate and located-after ordered lists of forms:
+% inserts the located-after forms in a right position in the immediate-located
+% AST stream, and returns the resulting AST, once properly ordered and fully
+% unlocated.
+%
+% (helper)
+%
+-spec insert_after_located_forms( located_ast(), located_ast() ) ->
+										located_ast().
+insert_after_located_forms( LocAfterForms, LocForms ) ->
+	%trace_utils:debug_fmt( "Merging located-after forms: ~n~p~n  in:~n~p.",
+	%					   [ LocAfterForms, LocForms ] ),
+	insert_after_located_forms( LocAfterForms, LocForms,
+								_CurrentLocInfo=undefined, _AccForms=[] ).
 
-locate_all_in( _LocatedForms=[ LocForm={ ActualLoc, _Form } | T ],
-			   _CurrentSortId, Acc ) ->
-	locate_all_in( T, ActualLoc, [ LocForm | Acc ] ).
+
+
+% No more located-after forms, and no current aggregation:
+%
+% (AccForms is a reversed, unlocated AST)
+%
+insert_after_located_forms( _LocAfter=[], LocForms, _CurrentLocInfo=undefined,
+							AccForms ) ->
+
+	% The remaining immediate-located forms, once unlocated:
+	RemainingImmediateForms = [ F || { _Loc, F } <- LocForms ],
+
+	lists:reverse( AccForms ) ++ RemainingImmediateForms;
+
+
+% The case with LocAfter=[] and CurrentLocInfo defined is managed in the clause
+% below that is commented as "First non-matching...".
+
+
+% A new located-after form is found (wheras there is no current one):
+insert_after_located_forms( _LocAfter=[ { TargetLoc, TargetForm } | T ],
+							LocForms, _CurrentLocInfo=undefined, AccForms ) ->
+
+	% Preparing the regrouping:
+	NewLocInfo = { TargetLoc, [ TargetForm ] },
+
+	insert_after_located_forms( T, LocForms, NewLocInfo, AccForms );
+
+
+% Still matching the current location (TargetLoc), hence aggregating forms:
+insert_after_located_forms( _LocAfter=[ { TargetLoc, TargetForm } | T ],
+							LocForms, _CurrentLocInfo={ TargetLoc, CurrentForms },
+							AccForms ) ->
+
+	NewLocInfo = { TargetLoc, [ TargetForm | CurrentForms ] },
+
+	insert_after_located_forms( T, LocForms, NewLocInfo, AccForms );
+
+
+% First non-matching after-location found, storing the information that has been
+% aggregated beforehand.
+%
+% Here LocAfter does not match { TargetLoc, TargetForm } - so it is either [ {
+% _AnotherLoc, _TargetForm } | _T ] or [].
+%
+insert_after_located_forms( LocAfter, LocForms,
+							_CurrentLocInfo={ TargetLoc, CurrentForms },
+							AccForms ) ->
+
+	% We remove the location information; once reversed, we will have, by
+	% increasing locations, for a given location, the base form followed by all
+	% associated located_after forms.
+
+	% For example, here:
+	%   TargetLoc=6
+	%   CurrentForms=[ Fa, Fb ]
+	%   LocForms = [ {2,F2}, {5,F5}, {6,F6}, {8,F8}, {9,F9} ]
+	% Then, after split_at_location/2:
+	%   RevUnlocPrefix = [ F5, F2 ]
+	%   BaseForm = F6
+	%   LocSuffix = [ {8,F8}, {9,F9} ]
+	%
+	% Then we can have:
+	% NewAccLocForms = [ Fa, Fb ] ++ [ F6 | [ F5, F2 ] ] ++ AccForms
+
+	% The target location may or may not point to an actual form:
+	{ NewAccLocForms, LocSuffix } =
+			case split_at_location( TargetLoc, LocForms ) of
+
+		{ RevUnlocPrefix, _BaseForm=undefined, LocationSuffix } ->
+		   { CurrentForms ++ RevUnlocPrefix ++ AccForms, LocationSuffix };
+
+		{ RevUnlocPrefix, BaseForm, LocationSuffix } ->
+			{ CurrentForms ++ [ BaseForm | RevUnlocPrefix ] ++ AccForms,
+			  LocationSuffix }
+
+	end,
+
+	% Next step will process this new location:
+	insert_after_located_forms( LocAfter, LocSuffix,
+								_NewCurrentLocInfo=undefined, NewAccLocForms ).
+
+
+
+
+% Returns { RevUnlocPrefix, BaseForm, LocSuffix } so that:
+%
+% InputLocForms = (reversed, located version of RevUnlocPrefix) ++ [
+% {Loc,BaseForm} | LocSuffix ]
+%
+% The specified location is expected to be found in the specified (ordered) AST.
+%
+% (helper)
+%
+-spec split_at_location( location(), located_ast() ) ->
+							{ located_ast(), form(), located_ast() }.
+split_at_location( Loc, InputLocForms ) ->
+	%trace_utils:debug_fmt( "Splitting at location ~p following forms:~n~p",
+	%					   [ Loc, InputLocForms ] ),
+	split_at_location( Loc, InputLocForms, _Acc=[] ).
+
+
+% (helper)
+split_at_location( Loc, _InputLocForms=[], _Acc ) ->
+	throw( { base_location_not_found, Loc } );
+
+% Found:
+split_at_location( Loc, _LocForms=[ { Loc, BaseForm } | T ], Acc ) ->
+	% Acc already in the right order:
+	{ Acc, BaseForm, T };
+
+% Skips base located forms until matching (Loc not reached yet):
+split_at_location( Loc, _LocForms=[ { OtherLoc, Form } | T ], Acc )
+  when OtherLoc < Loc ->
+	split_at_location( Loc, T, [ Form | Acc ] );
+
+% Here, implicitly, OtherLoc just went past Loc, so:
+split_at_location( _Loc, LocForms, Acc ) ->
+	% Acc already in the right order:
+	{ Acc, _BaseForm=undefined, LocForms }.
 
 
 
@@ -772,7 +1094,7 @@ locate_all_in( _LocatedForms=[ LocForm={ ActualLoc, _Form } | T ],
 write_module_info_to_file( ModuleInfo, Filename ) ->
 
 	% Note: we cannot actually use file_utils, which is not a prerequisite of
-	% the 'Common' parse transform:
+	% the 'Myriad' parse transform:
 
 	% We overwrite any pre-existing file:
 	{ ok, File } = file:open( Filename, [ write, raw ] ),
@@ -783,213 +1105,664 @@ write_module_info_to_file( ModuleInfo, Filename ) ->
 
 
 
-% Returns a textual description of specified module information.
+
+% Returns the conventional location designating where forms can be be added just
+% after the declaration of the module name, as an indirect location.
 %
-% Note: the location information is dropped for all located definitions.
+-spec get_default_module_location() -> location().
+get_default_module_location() ->
+	{ locate_at, module_marker }.
+
+
+% Returns the conventional location designating where forms can be be added just
+% after the declaration of the module name, as an immediate location.
+%
+-spec get_default_module_location( section_marker_table() ) -> location().
+get_default_module_location( MarkerTable ) ->
+	?table:getEntry( module_marker, MarkerTable ).
+
+
+
+% Returns the conventional location at which new types may be exported, as an
+% indirect location.
+%
+-spec get_default_export_type_location() -> location().
+get_default_export_type_location() ->
+	{ locate_at, export_types_marker }.
+
+
+% Returns the conventional location at which new types may be exported, as an
+% immediate location.
+%
+-spec get_default_export_type_location( section_marker_table() ) ->
+											  location().
+get_default_export_type_location( MarkerTable)  ->
+	?table:getEntry( export_types_marker, MarkerTable ).
+
+
+
+% Returns the conventional location at which new functions may be exported, as
+% an indirect location.
+%
+-spec get_default_export_function_location() -> location().
+get_default_export_function_location() ->
+	{ locate_at, export_functions_marker }.
+
+
+% Returns the conventional location at which new functions may be exported, as
+% an immediate location.
+%
+-spec get_default_export_function_location( section_marker_table() ) ->
+												  location().
+get_default_export_function_location( MarkerTable ) ->
+	?table:getEntry( export_functions_marker, MarkerTable ).
+
+
+
+% Returns the conventional location at which functions may be imported, as an
+% indirect location.
+%
+-spec get_default_import_function_location() -> location().
+get_default_import_function_location() ->
+	{ locate_at, import_functions_marker }.
+
+
+% Returns the conventional location at which functions may be imported, as an
+% immediate location.
+%
+-spec get_default_import_function_location( section_marker_table() ) ->
+												  location().
+get_default_import_function_location( MarkerTable ) ->
+	?table:getEntry( import_functions_marker, MarkerTable ).
+
+
+
+
+% Returns the conventional location at which new records may be defined, as an
+% indirect location.
+%
+-spec get_default_definition_record_location() -> location().
+get_default_definition_record_location() ->
+	{ locate_at, definition_records_marker }.
+
+
+% Returns the conventional location at which new records may be defined, as an
+% immediate location.
+%
+-spec get_default_definition_record_location( section_marker_table() ) ->
+													location().
+get_default_definition_record_location( MarkerTable ) ->
+	?table:getEntry( definition_records_marker, MarkerTable ).
+
+
+
+% Returns the conventional location at which new types may be defined, as an
+% indirect location.
+%
+-spec get_default_definition_type_location() -> location().
+get_default_definition_type_location() ->
+	{ locate_at, definition_types_marker }.
+
+
+% Returns the conventional location at which new types may be defined, as an
+% immediate location.
+%
+-spec get_default_definition_type_location( section_marker_table() ) ->
+												  location().
+get_default_definition_type_location( MarkerTable ) ->
+	?table:getEntry( definition_types_marker, MarkerTable ).
+
+
+
+% Returns the conventional location at which new functions may be defined, as an
+% indirect location.
+%
+-spec get_default_definition_function_location() -> location().
+get_default_definition_function_location() ->
+	{ locate_at, definition_functions_marker }.
+
+
+% Returns the conventional location at which new functions may be defined, as an
+% immediate location.
+%
+-spec get_default_definition_function_location( section_marker_table() ) ->
+													  location().
+get_default_definition_function_location( MarkerTable ) ->
+	?table:getEntry( definition_functions_marker, MarkerTable ).
+
+
+
+
+% Returns a textual description of specified module information, not including
+% forms, and based on a default indentation level.
+%
+% Note: here the location information is dropped for all located definitions.
 %
 -spec module_info_to_string( module_info() ) -> text_utils:ustring().
+module_info_to_string( ModuleInfo ) ->
+	module_info_to_string( ModuleInfo, _DoIncludeForms=false ).
+
+
+% Returns a textual description of specified module information, including forms
+% if requested, and based on a default indentation level.
+%
+% Note: here the location information is dropped for all located definitions.
+%
+-spec module_info_to_string( module_info(), boolean() ) -> text_utils:ustring().
+module_info_to_string( ModuleInfo, DoIncludeForms ) ->
+	module_info_to_string( ModuleInfo, DoIncludeForms, _IndentationLevel=0 ).
+
+
+% Returns a textual description of specified module information, including forms
+% if requested, and with specified indentation level.
+%
+% Note: here the location information is dropped for all located definitions.
+%
+-spec module_info_to_string( module_info(), boolean(),
+					 text_utils:indentation_level() ) -> text_utils:ustring().
 module_info_to_string( #module_info{
-						 module=Module,
-						 module_def={ _, _ModuleDef },
+						 module=ModuleEntry,
 						 compilation_options=CompileTable,
-						 compilation_option_defs=_CompileOptDefs,
+						 compilation_option_defs=CompileOptDefs,
 						 parse_attributes=ParseAttributeTable,
-						 parse_attribute_defs=_ParseAttributeDefs,
+						 remote_spec_defs=RemoteSpecDefs,
 						 includes=Includes,
-						 include_defs=_IncludeDefs,
-						 type_exports=TypeExports,
-						 types=Types,
+						 include_defs=IncludeDefs,
+						 type_exports=TypeExportTable,
+						 types=TypeTable,
 						 records=RecordTable,
-						 function_imports=FunImportTable,
-						 function_imports_defs=_FunImportDefs,
+						 function_imports=FunctionImportTable,
+						 function_imports_defs=FunctionImportDefs,
 						 function_exports=_FunctionExports,
-						 functions=Functions,
+						 functions=FunctionTable,
 						 optional_callbacks_defs=OptCallbacksDefs,
-						 last_line=LastLine,
-						 unhandled_forms=UnhandledForms } ) ->
+						 last_line=LastLineLocDef,
+						 markers=MarkerTable,
+						 errors=Errors,
+						 unhandled_forms=UnhandledForms },
+					   DoIncludeForms,
+					   IndentationLevel ) ->
 
-	FunctionStrings = [ io_lib:format( "~s",
-								   [ function_info_to_string( FunInfo ) ] )
-					|| { _FunId, FunInfo } <- ?table:enumerate( Functions ) ],
 
-	TypeStrings = [ io_lib:format( "~s", [ type_info_to_string( TypeInfo ) ] )
-						|| { _TypeId, TypeInfo } <- ?table:enumerate( Types ) ],
+	% For this textual description, we mostly rely on the higher-level
+	% information available.
 
-	LastLineString = case LastLine of
+	% As the next strings will be collected at a level of their own:
+	NextIndentationLevel = IndentationLevel + 1,
 
-		undefined ->
-			"unknown";
+	% Information gathered in the order of the fields:
 
-		{ _Loc, { eof, Count } } ->
-			io_lib:format( "~B", [ Count ] )
+	ModuleString = module_entry_to_string( ModuleEntry, DoIncludeForms ),
 
-	end,
+	Infos = [ compilation_options_to_string( CompileTable, CompileOptDefs,
+								 DoIncludeForms, NextIndentationLevel ),
 
-	% To mark an additional offset for the sublists:
-	NextIndentationLevel = 1,
+			  optional_callbacks_to_string( OptCallbacksDefs, DoIncludeForms,
+											NextIndentationLevel ),
 
-	UnhandledString = case UnhandledForms of
+			  parse_attribute_table_to_string( ParseAttributeTable,
+							  DoIncludeForms, NextIndentationLevel ),
+
+			  remote_spec_definitions_to_string( RemoteSpecDefs, DoIncludeForms,
+												 NextIndentationLevel ),
+
+			  includes_to_string( Includes, IncludeDefs, DoIncludeForms,
+								  NextIndentationLevel ),
+
+			  % No form to manage:
+			  type_exports_to_string( TypeExportTable, NextIndentationLevel ),
+
+			  types_to_string( TypeTable, DoIncludeForms,
+							   NextIndentationLevel ),
+
+			  records_to_string( RecordTable, NextIndentationLevel ),
+
+			  function_imports_to_string( FunctionImportTable,
+				  FunctionImportDefs, DoIncludeForms, NextIndentationLevel ),
+
+			  functions_to_string( FunctionTable, DoIncludeForms,
+								   NextIndentationLevel ),
+
+			  last_line_to_string( LastLineLocDef ),
+
+			  markers_to_string( MarkerTable, NextIndentationLevel ),
+
+			  errors_to_string( Errors, NextIndentationLevel ),
+
+			  unhandled_forms_to_string( UnhandledForms, DoIncludeForms,
+										 NextIndentationLevel ) ],
+
+	text_utils:format( "Information about module ~s:~s", [ ModuleString,
+			 text_utils:strings_to_string( Infos, IndentationLevel ) ] ).
+
+
+
+% Returns a textual representation of the specified forms, if requested, and
+% using specified indentation level.
+%
+% (helper used by the various *_to_string functions)
+%
+-spec forms_to_string( [ ast_info:located_form() ], boolean(),
+				 text_utils:indentation_level() ) -> text_utils:ustring().
+forms_to_string( _LocForms, _DoIncludeForms=false, _IndentationLevel ) ->
+	% No representation wanted here:
+	"";
+
+% As a result, DoIncludeForms known to be true below:
+forms_to_string( _LocForms=[], _DoIncludeForms, _IndentationLevel ) ->
+	"(there are no corresponding forms)";
+
+
+forms_to_string( LocForms, _DoIncludeForms, IndentationLevel ) ->
+
+	FormStrings = [ text_utils:format( "~p", [ F ] )
+					|| { _Loc, F } <- LocForms ],
+
+	FormString = text_utils:strings_to_string( FormStrings,
+											   IndentationLevel ),
+
+	text_utils:format( "~nThe corresponding forms are: ~s", [ FormString ] ).
+
+
+
+% Returns a textual representation of the specified location.
+%
+-spec location_to_string( location() ) -> text_utils:ustring().
+location_to_string( { locate_at, MarkerName } ) ->
+	text_utils:format( "at marker ~s", [ MarkerName ] );
+
+location_to_string( { locate_after, Location } ) ->
+	text_utils:format( "after ~s",
+					   [ id_utils:sortable_id_to_string( Location ) ] );
+
+location_to_string( Location ) ->
+	id_utils:sortable_id_to_string( Location ).
+
+
+
+% Returns a textual representation of the name of the module corresponding to
+% specified entry, possibly with forms.
+%
+-spec module_entry_to_string( module_entry(), boolean() ) ->
+									text_utils:ustring().
+module_entry_to_string( _ModuleEntry=undefined, _DoIncludeForms ) ->
+	"(unnamed module)";
+
+module_entry_to_string( _ModuleEntry={ ThisModName, _ModuleLocDef },
+						_DoIncludeForms=false ) ->
+	text_utils:atom_to_string( ThisModName );
+
+module_entry_to_string( _ModuleEntry={ ThisModName,
+									   _ModuleLocDef={ _Loc, Form } },
+						_DoIncludeForms=true ) ->
+	text_utils:format( "~s (represented as form '~p')",
+					   [ ThisModName, Form ] ).
+
+
+
+% Returns a textual representation of compilation options, based on a default
+% indentation level.
+%
+-spec compilation_options_to_string( compile_option_table(),
+		  [ ast_info:located_form() ], boolean() ) -> text_utils:ustring().
+compilation_options_to_string( CompileTable, CompileOptDefs, DoIncludeForms ) ->
+	compilation_options_to_string( CompileTable, CompileOptDefs, DoIncludeForms,
+								   _IndentationLevel=0 ).
+
+
+
+% Returns a textual representation of compilation options, with specified
+% indentation level.
+%
+-spec compilation_options_to_string( compile_option_table(),
+	 [ ast_info:located_form() ], boolean(), text_utils:indentation_level() ) ->
+										   text_utils:ustring().
+compilation_options_to_string( CompileTable, CompileOptDefs, DoIncludeForms,
+							   IndentationLevel ) ->
+
+	case ?table:enumerate( CompileTable ) of
 
 		[] ->
-			"all forms have been handled";
+			"no compile option defined";
 
-		_ ->
-			UnhandledStrings = [ text_utils:format( "~p", [ Form ] )
-								 || { _Loc, Form } <- UnhandledForms ],
 
-			text_utils:format( "~B unhandled form(s):~s",
-							   [ length( UnhandledForms ),
-								 text_utils:strings_to_string( UnhandledStrings,
-											NextIndentationLevel ) ] )
-	end,
+		CompileOpts ->
 
-	% Commented-out: the raw terms that correspond to the higher-level form
-	% output just above.
+			CompStrings = [ text_utils:format( "for option '~s': ~p",
+											   [ OptName, OptValue ] )
+							|| { OptName, OptValue } <- CompileOpts ],
 
-	ParseAttributes = ?table:enumerate( ParseAttributeTable ),
+			OptString = text_utils:format( "~B compile option(s) defined: ~s",
+							   [ length( CompileOpts ),
+								 text_utils:strings_to_string( CompStrings,
+												   IndentationLevel ) ] ),
 
-	Infos = [
+			OptString ++ forms_to_string( CompileOptDefs, DoIncludeForms,
+										  IndentationLevel + 1 )
 
-			%text_utils:format( "module name: '~s'", [ Module ] ),
-			%text_utils:format( "module definition: ~p~n", [ ModuleDef ] ),
+	end.
 
-			case ?table:enumerate( CompileTable ) of
 
-				[] ->
-					"no compile option defined";
 
-				CompileOpts ->
-					CompStrings = [ text_utils:format( "for option '~s': ~p",
-													   [ OptName, OptValue ] )
-									|| { OptName, OptValue } <- CompileOpts ],
-					text_utils:format( "~B compile option(s) defined: ~s~n",
-						   [ length( CompileOpts ),
-							 text_utils:strings_to_string( CompStrings ) ] )
+% Returns a textual representation of the specified optional callbacks, based on
+% a default indentation level.
+%
+-spec optional_callbacks_to_string( [ ast_info:located_form() ], boolean(),
+			text_utils:indentation_level() ) -> text_utils:ustring().
+optional_callbacks_to_string( _OptCallbacksDefs=[], _DoIncludeForms,
+							  _IndentationLevel ) ->
+	"no optional callback defined";
 
-			end,
+optional_callbacks_to_string( OptCallbacksDefs, _DoIncludeForms=false,
+							 _IndentationLevel ) ->
+	text_utils:format( "~B lists of optional callbacks defined",
+					   [ length( OptCallbacksDefs ) ] );
 
-			case OptCallbacksDefs of
+optional_callbacks_to_string( OptCallbacksDefs, _DoIncludeForms=true,
+							  IndentationLevel ) ->
+	optional_callbacks_to_string( OptCallbacksDefs, _DoIncForms=false,
+								  IndentationLevel )
+		++ forms_to_string( OptCallbacksDefs, _DoIncludeForms=true,
+							IndentationLevel + 1 ).
 
-				[] ->
-					"no optional callback defined";
 
-				_ ->
-					text_utils:format( "~B lists of optional callback defined",
-									   [ length( OptCallbacksDefs ) ] )
 
-			end,
+% Returns a textual representation of the specified parse-attribute table, based
+% on a default indentation level.
+%
+-spec parse_attribute_table_to_string( attribute_table(), boolean() ) ->
+											 text_utils:ustring().
+parse_attribute_table_to_string( ParseAttributeTable, DoIncludeForms ) ->
+	parse_attribute_table_to_string( ParseAttributeTable, DoIncludeForms,
+									 _IndentationLevel=0 ).
 
-			 % Like: -foo( bar ).
-			case ParseAttributes of
 
-				[] ->
-					"no parse attribute defined";
 
-				_ ->
-					ParseAttrString = text_utils:strings_to_sorted_string( [
-							text_utils:format( "attribute '~s' set to: '~p'",
-											   [ AttrName, AttrValue ] )
-							 || { AttrName, AttrValue } <- ParseAttributes ],
-							 NextIndentationLevel ),
+% Returns a textual representation of the specified parse-attribute table, with
+% specified indentation level.
+%
+-spec parse_attribute_table_to_string( attribute_table(), boolean(),
+			   text_utils:indentation_level() ) -> text_utils:ustring().
+parse_attribute_table_to_string( ParseAttributeTable, DoIncludeForms,
+								 IndentationLevel ) ->
 
-					text_utils:format( "~B parse attribute(s) defined:~s",
-									   [ length( ParseAttributes ),
-										 ParseAttrString ] )
+	% Parse attributes are like: '-foo( bar ).':
+	case ?table:enumerate( ParseAttributeTable ) of
 
-			end,
+		[] ->
+			"no parse attribute defined";
 
-			%text_utils:format( "parse attribute definitions: ~p~n",
-			%				   [ [ P || { _, P } <- ParseAttributeDefs ] ] ),
+		ParseAttributes ->
+			ParseAttrString = text_utils:strings_to_sorted_string( [
+				begin
 
-			case Includes of
+					AttrValues = [ V || { V, _LocForm } <- AttrEntries ],
 
-				[] ->
-					"no file included";
+					text_utils:format( "attribute '~s', set to: ~s", [ AttrName,
+						text_utils:terms_to_listed_string( AttrValues ) ] )
 
-				_ ->
-					IncludeString = text_utils:strings_to_sorted_string( [
-							text_utils:format( "~s", [ Inc ] )
-									   || Inc <- Includes ],
-									   NextIndentationLevel ),
-					text_utils:format( "~B include(s) specified:~s",
-									   [ length( Includes ), IncludeString ] )
+				end || { AttrName, AttrEntries } <- ParseAttributes ] ),
 
-			end,
+			BaseString = text_utils:format( "~B parse attribute(s) defined: ~s",
+							   [ length( ParseAttributes ), ParseAttrString ] ),
 
-			%text_utils:format( "include definitions: ~p~n",
-			%					 [ [ I || { _, I } <- IncludeDefs ] ] ),
+			% To avoid collecting forms uselessly:
+			case DoIncludeForms of
 
-			case ?table:enumerate( TypeExports ) of
+				true ->
+					Forms =
+						[ F || { _AName, { _AValue, F } } <- ParseAttributes ],
 
-				[] ->
-					"no type exported";
+					BaseString ++ forms_to_string( Forms, _DoIncludeForms=true,
+												   IndentationLevel + 1 );
 
-				TypeExportEntries ->
+				false ->
+					BaseString
 
-					TypeExpString = text_utils:strings_to_sorted_string(
-						[ text_utils:format( "at line #~B:~s", [ Line,
-							  text_utils:strings_to_string(
-								[ text_utils:format( "~s/~B",
-													 [ TypeName, TypeArity ] )
-								  || { TypeName, TypeArity } <- TypeIds ],
-								NextIndentationLevel + 1 ) ] )
+			end
+
+	end.
+
+
+
+
+
+
+% Returns a textual representation of the specified definitions of remote
+% specifications, with specified indentation level.
+%
+-spec remote_spec_definitions_to_string( [ ast_info:located_form() ], boolean(),
+					   text_utils:indentation_level() ) -> text_utils:ustring().
+remote_spec_definitions_to_string( _RemoteSpecDefs=[], _DoIncludeForms,
+								   _IndentationLevel ) ->
+	"no remote spec definition";
+
+remote_spec_definitions_to_string( RemoteSpecDefs, DoIncludeForms,
+								   IndentationLevel ) ->
+
+	BaseString = text_utils:format( "~B remote spec definition(s)",
+									[ length( RemoteSpecDefs ) ] ),
+
+	BaseString ++ forms_to_string( RemoteSpecDefs, DoIncludeForms,
+								   IndentationLevel + 1 ).
+
+
+
+% Returns a textual representation of the specified includes, based on a default
+% indentation level.
+%
+-spec includes_to_string( [ file_utils:bin_file_path() ],
+			  [ ast_info:located_form() ], boolean() ) -> text_utils:ustring().
+includes_to_string( Includes, IncludeDefs, DoIncludeForms ) ->
+	includes_to_string( Includes, IncludeDefs, DoIncludeForms,
+						_IndentationLevel=0 ).
+
+
+% Returns a textual representation of the specified includes, with specified
+% indentation level.
+%
+-spec includes_to_string( [ file_utils:bin_file_path() ],
+		  [ ast_info:located_form() ], boolean(),
+		  text_utils:indentation_level() ) -> text_utils:ustring().
+includes_to_string( _Includes=[], _IncludeDefs, _DoIncludeForms,
+					_IndentationLevel ) ->
+	"no file included";
+
+includes_to_string( Includes, IncludeDefs, DoIncludeForms,
+					IndentationLevel ) ->
+
+	IncludeString = text_utils:strings_to_sorted_string(
+					  [ text_utils:format( "~s", [ Inc ] ) || Inc <- Includes ],
+					  IndentationLevel ),
+
+	% Possibly with duplicates:
+	text_utils:format( "~B file include(s): ~s",
+					   [ length( Includes ), IncludeString ] )
+		++ forms_to_string( IncludeDefs, DoIncludeForms, IndentationLevel + 1 ).
+
+
+
+% Returns a textual representation of the specified type exports, based on a
+% default indentation level.
+%
+-spec type_exports_to_string( type_export_table(), boolean() ) ->
+									text_utils:ustring().
+type_exports_to_string( TypeExportTable, DoIncludeForms ) ->
+	type_exports_to_string( TypeExportTable, DoIncludeForms,
+							_IndentationLevel=0 ).
+
+
+% Returns a textual representation of the specified type exports, with specified
+% indentation level.
+%
+-spec type_exports_to_string( type_export_table(), boolean(),
+				 text_utils:indentation_level() ) -> text_utils:ustring().
+type_exports_to_string( TypeExportTable, _DoIncludeForms, IndentationLevel ) ->
+
+	case ?table:enumerate( TypeExportTable ) of
+
+		[] ->
+			"no type export defined";
+
+		TypeExportEntries ->
+
+			% The indentation is 2 below, to account for the case where there
+			% are multiple exports; should there be only one, we have to live
+			% with an extra indentation level then:
+			%
+			TypeExpString = text_utils:strings_to_sorted_string(
+							  [ text_utils:format( "at line #~B, export of: ~s",
+										   [ Line, text_utils:strings_to_string(
+								[ type_id_to_string( TypeId )
+								  || TypeId <- TypeIds ],
+								IndentationLevel + 2 ) ] )
 						  || { _Loc, { Line, TypeIds } } <- TypeExportEntries ],
-						NextIndentationLevel ),
+							  IndentationLevel + 1 ),
 
-					text_utils:format( "~B type export declaration(s):~s",
+			% No form to represent, as none stored:
+			text_utils:format( "~B type export(s) defined: ~s",
 							   [ length( TypeExportEntries ), TypeExpString ] )
 
-			end,
+	end.
 
-			 %text_utils:format( "type export definitions: ~p~n",
-			 %				   [ [ E || { _, E } <- TypeExportDefs ] ] ),
 
-			 case ?table:enumerate( RecordTable ) of
 
-				[] ->
-					 "no record declared";
+% Returns a textual representation of the specified type table, with specified
+% indentation level.
+%
+-spec types_to_string( type_table(), boolean(),
+					   text_utils:indentation_level() ) -> text_utils:ustring().
+types_to_string( TypeTable, DoIncludeForms, IndentationLevel ) ->
 
-				RecordEntries ->
-					 RecordString = text_utils:strings_to_sorted_string( [
+	case ?table:values( TypeTable ) of
 
-						begin
+		[] ->
+			"no type definition defined";
 
-							FieldStrings = fields_to_strings( FieldTable ),
+		TypeInfos ->
 
-							FieldString = text_utils:strings_to_string(
-										FieldStrings, NextIndentationLevel+1 ),
+			TypeStrings = [ type_info_to_string( TypeInfo, DoIncludeForms,
+												 IndentationLevel )
+							|| TypeInfo <- TypeInfos ],
 
-							text_utils:format(
-							  "record '~s' having ~B fields:~s",
-							  [ RecordName, length( FieldStrings ),
-								FieldString ] )
+			text_utils:format( "~B type definition(s) specified: ~s",
+							   [ length( TypeInfos ),
+								 text_utils:strings_to_string( TypeStrings,
+												   IndentationLevel ) ] )
 
-						end || { RecordName, FieldTable } <- RecordEntries ],
-						NextIndentationLevel ),
-					 text_utils:format( "~B records defined:~s",
-								   [ length( RecordEntries ), RecordString ] )
+	end.
 
-			 end,
 
-			 case ?table:enumerate( FunImportTable ) of
 
-				 [] ->
-					 "no function imported";
+% Returns a textual representation of the specified records, based on a default
+% indentation level.
+%
+-spec records_to_string( ast_info:record_table() ) ->
+							   text_utils:ustring().
+records_to_string( RecordTable ) ->
+	records_to_string( RecordTable, _IndentationLevel=0 ).
 
-				 ImportEntries ->
-					 ImpString = text_utils:strings_to_sorted_string(
-					   [ text_utils:format( "from module '~s': ~p",
-							[ ModName, FunIds ] )
-						 || { ModName, FunIds } <- ImportEntries ] ),
-					 text_utils:format(
-					   "Function imports declared from ~B modules: ~s",
-					   [ length( ImportEntries ), ImpString ] )
 
-			 end,
 
-			 %text_utils:format( "~B function export definitions: ~p~n",
-			 %					[ length( FunctionExports ),
-			 %					  [ F || { _, F } <- FunctionExports ] ] ),
+% Returns a textual representation of the specified records, with specified
+% indentation level.
+%
+% Note: no available form to display.
+%
+-spec records_to_string( ast_info:record_table(),
+				 text_utils:indentation_level() ) -> text_utils:ustring().
+records_to_string( RecordTable, IndentationLevel ) ->
+
+	case ?table:enumerate( RecordTable ) of
+
+		[] ->
+			"no record defined";
+
+		RecordEntries ->
+			RecordString = text_utils:strings_to_sorted_string( [
+
+				begin
+
+					FieldStrings = fields_to_strings( FieldTable ),
+
+					% Indentation level 2, supposing we have more than one field
+					% generally:
+					%
+					FieldString = text_utils:strings_to_enumerated_string(
+									FieldStrings, IndentationLevel + 2 ),
+
+					text_utils:format( "record '~s' having ~B fields:~s",
+									   [ RecordName, length( FieldStrings ),
+										 FieldString ] )
+
+
+				end || { RecordName, { FieldTable, _NextLocation, _Line } }
+						   <- RecordEntries ],
+				IndentationLevel ),
+
+			text_utils:format( "~B record(s) defined: ~s",
+							   [ length( RecordEntries ), RecordString ] )
+
+	end.
+
+
+
+% Returns a textual representation of the specified function imports, with
+% specified indentation level.
+%
+-spec function_imports_to_string( function_import_table(),
+		   [ ast_info:located_form() ], boolean(),
+			 text_utils:indentation_level() ) -> text_utils:ustring().
+function_imports_to_string( FunctionImportTable, FunctionImportDefs,
+							DoIncludeForms,	IndentationLevel ) ->
+
+	case ?table:enumerate( FunctionImportTable ) of
+
+		[] ->
+			"no function imported";
+
+		ImportPairs ->
+
+			ModuleString = text_utils:strings_to_sorted_string( [
+
+				begin
+
+					IdStrings = [ function_id_to_string( FunId )
+								  || FunId <- FunIds ],
+
+					text_utils:format( "from module '~s': ~s", [ ModuleName,
+						text_utils:strings_to_enumerated_string( IdStrings ) ] )
+
+
+				end || { ModuleName, FunIds } <- ImportPairs ],
+				IndentationLevel ),
+
+			text_utils:format( "function imports from ~B modules: ~s",
+							   [ length( ImportPairs ), ModuleString ] )
+				++ forms_to_string( FunctionImportDefs, DoIncludeForms,
+									IndentationLevel + 1 )
+
+	end.
+
+
+
+% Returns a textual representation of the specified functions, with specified
+% indentation level.
+%
+-spec functions_to_string( ast_info:function_table(), boolean(),
+				 text_utils:indentation_level() ) -> text_utils:ustring().
+functions_to_string( FunctionTable, DoIncludeForms, IndentationLevel ) ->
+
+	case ?table:values( FunctionTable ) of
+
+		[] ->
+			"no function information";
+
+		FunInfos ->
+
+			FunctionStrings = [
+				function_info_to_string( FunInfo, DoIncludeForms )
+					|| FunInfo <- FunInfos ],
 
 			 case FunctionStrings of
 
@@ -997,36 +1770,106 @@ module_info_to_string( #module_info{
 					 "no function defined";
 
 				 _ ->
-					 text_utils:format( "~B functions defined:~s",
+					 text_utils:format( "~B function(s) defined: ~s",
 										[ length( FunctionStrings ),
-										  text_utils:strings_to_string(
+										  text_utils:strings_to_sorted_string(
 											FunctionStrings,
-											NextIndentationLevel ) ] )
+											IndentationLevel ) ] )
 
-			 end,
+			 end
 
-			 case TypeStrings of
+	end.
 
-				 [] ->
-					 "no type defined";
 
-				 _ ->
-					 text_utils:format( "~B types defined:~s",
-										[ length( TypeStrings ),
-										  text_utils:strings_to_string(
-											TypeStrings,
-											NextIndentationLevel ) ] )
 
-			 end,
+% Returns a textual representation of a module last line / line count.
+%
+-spec last_line_to_string( basic_utils:maybe( ast_info:located_form() ) ) ->
+								 text_utils:ustring().
+last_line_to_string( _LastLine=undefined ) ->
+	"unknown line count";
 
-			 text_utils:format( "line count: ~s", [ LastLineString ] ),
+last_line_to_string( _LastLine={ _Loc, { eof, Count } } ) ->
+	text_utils:format( "~B lines of source code", [ Count ] ).
 
-			 UnhandledString
 
-			],
 
-	text_utils:format( "Information about module '~s':~s",
-					   [ Module, text_utils:strings_to_string( Infos ) ] ).
+% Returns a textual representation of the known section markers.
+%
+-spec markers_to_string( section_marker_table() ) -> text_utils:ustring().
+markers_to_string( MarkerTable ) ->
+	markers_to_string( MarkerTable, _IndentationLevel=0 ).
+
+
+
+% Returns a textual representation of the known section markers.
+%
+-spec markers_to_string( section_marker_table(),
+				 text_utils:indentation_level() ) -> text_utils:ustring().
+markers_to_string( MarkerTable, IndentationLevel ) ->
+
+
+	case ?table:enumerate( MarkerTable ) of
+
+		[] ->
+			"no known section marker";
+
+		MarkPairs ->
+
+			SortedMarkPairs = lists:keysort( _Index=2, MarkPairs ),
+
+			text_utils:format( "~B known section marker(s), sorted by "
+							   "increasing locations: ~s",
+							   [ length( MarkPairs ),
+								 text_utils:strings_to_string(
+			[ text_utils:format( "marker '~s' pointing to ~s",
+								 [ Marker, id_utils:sortable_id_to_string( Loc ) ] )
+			  || { Marker, Loc } <- SortedMarkPairs ],
+								   IndentationLevel ) ] )
+
+	end.
+
+
+
+% Returns a textual representation of specified errors.
+%
+-spec errors_to_string( [ error() ], text_utils:indentation_level() ) ->
+							  text_utils:ustring().
+errors_to_string( _Errors=[], _IndentationLevel ) ->
+	"no error to report";
+
+errors_to_string( Errors, IndentationLevel ) ->
+	text_utils:format( "~B error(s) to report: ~s",
+					   [ length( Errors ),
+						 text_utils:strings_to_string(
+			[ text_utils:format( "in ~s, line ~B: ~p",
+								 [ Filename, Line, Reason ] )
+			  || { Filename, Line, Reason } <- Errors ],
+						   IndentationLevel ) ] ).
+
+
+
+% Returns a textual representation of specified unhandled forms.
+%
+-spec unhandled_forms_to_string( [ ast_info:located_form() ], boolean(),
+				 text_utils:indentation_level() ) -> text_utils:ustring().
+unhandled_forms_to_string( _UnhandledForms=[], _DoIncludeForms=false,
+						   _IndentationLevel ) ->
+	"no unhandled form to report";
+
+unhandled_forms_to_string( UnhandledForms, _DoIncludeForms=false,
+						   _IndentationLevel ) ->
+	text_utils:format( "~B unhandled form(s)",
+					   [ length( UnhandledForms ) ] );
+
+unhandled_forms_to_string( UnhandledForms, _DoIncludeForms=true,
+						   IndentationLevel ) ->
+	text_utils:format( "~s: ~s", [
+		unhandled_forms_to_string( UnhandledForms, _DoIncludeForms=false,
+									IndentationLevel ),
+		text_utils:strings_to_string( [ text_utils:format( "~p", [ F ] )
+										|| { _Loc, F } <- UnhandledForms ],
+			 IndentationLevel + 1 ) ] ).
 
 
 
@@ -1035,13 +1878,12 @@ module_info_to_string( #module_info{
 % Returns a list of textual representations for each of the record fields in
 % specified table.
 %
--spec fields_to_strings( field_table() ) -> [ text_utils:string() ].
+-spec fields_to_strings( field_table() ) -> [ text_utils:ustring() ].
 fields_to_strings( FieldTable ) ->
 
-	FieldEntries = ?table:enumerate( FieldTable ),
-
 	[ field_to_string( FieldName, FieldType, DefaultValue )
-	  || { FieldName, { FieldType, DefaultValue } } <- FieldEntries ].
+	  || { FieldName, { FieldType, DefaultValue, _FirstLine, _SecondLine } }
+			 <- FieldTable ].
 
 
 
@@ -1077,10 +1919,38 @@ field_to_string( FieldName, FieldType, DefaultValue ) ->
 
 
 
+% Returns a textual description of the specified function identifier.
+%
+-spec function_id_to_string( function_id() ) -> text_utils:ustring().
+function_id_to_string( { FunctionName, FunctionArity } ) ->
+	text_utils:format( "~s/~B", [ FunctionName, FunctionArity ] ).
+
+
+
+% Returns a textual description of the specified function information, not
+% including its forms (clauses), with a default indentation level.
+%
+-spec function_info_to_string( function_info() ) -> text_utils:ustring().
+function_info_to_string( FunctionInfo ) ->
+	function_info_to_string( FunctionInfo, _DoIncludeForms=false ).
+
+
+
+% Returns a textual description of the specified function information, including
+% its forms (clauses) if specified, with a default indentation level.
+%
+-spec function_info_to_string( function_info(), boolean() ) ->
+									 text_utils:ustring().
+function_info_to_string( FunctionInfo, DoIncludeForms ) ->
+	function_info_to_string( FunctionInfo, DoIncludeForms,
+							 _IndentationLevel=0 ).
+
+
 
 % Returns a textual description of the specified function information.
 %
--spec function_info_to_string( function_info() ) -> text_utils:ustring().
+-spec function_info_to_string( function_info(), boolean(),
+				 text_utils:indentation_level() ) -> text_utils:ustring().
 function_info_to_string( #function_info{ name=Name,
 										 arity=Arity,
 										 location=_Location,
@@ -1088,21 +1958,36 @@ function_info_to_string( #function_info{ name=Name,
 										 clauses=Clauses,
 										 spec=LocatedSpec,
 										 callback=IsCallback,
-										 exported=Exported } ) ->
+										 exported=Exported },
+						 DoIncludeForms,
+						 IndentationLevel ) ->
 
 	ExportString = case Exported of
 
-		undefined ->
-			"local";
+		[] ->
+			%"local";
+			"not exported";
 
-		ExportLoc ->
-			text_utils:format( "exported in ~s",
-				  [ id_utils:sortable_id_to_string( ExportLoc ) ] )
+		ExportLocs ->
+			Strings = [ ast_info:location_to_string( L ) || L <- ExportLocs ],
+
+			text_utils:format( "exported in following ~B location(s): ~s",
+				  [ length( ExportLocs ),
+					text_utils:strings_to_string( Strings ) ] )
 
 	end,
 
-	DefString = text_utils:format( "defined from line #~B, "
-			   "with ~B clause(s) defined", [ Line, length( Clauses ) ] ),
+	DefString = case Line of
+
+		undefined ->
+			text_utils:format( "with ~B clause(s) defined",
+							   [ length( Clauses ) ] );
+
+		_ ->
+			text_utils:format( "defined from line #~B, with "
+			   "~B clause(s) specified", [ Line, length( Clauses ) ] )
+
+	end,
 
 	SpecString = case LocatedSpec of
 
@@ -1122,8 +2007,20 @@ function_info_to_string( #function_info{ name=Name,
 
 	end,
 
-	text_utils:format( "~s/~B, ~s, ~s and ~s",
-				   [ Name, Arity, ExportString, DefString, SpecString ] ).
+	BaseString = text_utils:format( "~s/~B, ~s, ~s and ~s",
+						[ Name, Arity, ExportString, DefString, SpecString ] ),
+
+	case DoIncludeForms of
+
+		true ->
+			text_utils:format( "~s~n~s",
+							   [ BaseString, ast_function:clauses_to_string(
+										  Clauses, IndentationLevel + 1 ) ] );
+
+		false ->
+			BaseString
+
+	end.
 
 
 
@@ -1134,19 +2031,19 @@ function_info_to_string( #function_info{ name=Name,
 ensure_type_exported( _TypeId, _ExportLocs=[], _ModuleInfo, ExportTable ) ->
 	ExportTable;
 
-ensure_type_exported( TypeId, _ExportLocs=[ _Loc=auto_located | T ],
+ensure_type_exported( TypeId, _ExportLocs=[ _Loc=auto_locate_after | T ],
 					  ModuleInfo, ExportTable ) ->
 
 	% When a type export is to be auto-located, we attach it just after the
 	% module definition, to avoid possibly placing an export after a type
 	% definition:
 
-	ModuleLoc = case ModuleInfo#module_info.module_def of
+	ModuleLoc = case ModuleInfo#module_info.module of
 
-		undefined ->
-			throw( { auto_locate_whereas_no_module_def, TypeId } );
+		{ _ModuleName, _ModuleLocForm=undefined } ->
+			throw( { auto_locate_after_whereas_no_module_defined, TypeId } );
 
-		{ MLoc, _Form } ->
+		{ _ModuleName, { MLoc, _Form } } ->
 			MLoc
 
 	end,
@@ -1255,25 +2152,45 @@ ensure_type_not_exported( TypeId, _ExportLocs=[ Loc | T ], ExportTable ) ->
 
 
 
+% Returns a textual description of the specified type identifier.
+%
+-spec type_id_to_string( type_id() ) -> text_utils:ustring().
+type_id_to_string( { TypeName, TypeArity } ) ->
+	text_utils:format( "~s/~B", [ TypeName, TypeArity ] ).
+
+
+
 % Returns a textual description of the specified type information.
 %
 -spec type_info_to_string( type_info() ) -> text_utils:ustring().
-type_info_to_string( #type_info{ name=Name,
+type_info_to_string( TypeInfo ) ->
+	type_info_to_string( TypeInfo, _DoIncludeForms=false,
+						 _IndentationLevel=0 ).
+
+
+
+% Returns a textual description of the specified type information.
+%
+-spec type_info_to_string( type_info(), boolean(),
+				   text_utils:indentation_level() ) -> text_utils:ustring().
+type_info_to_string( #type_info{ name=TypeName,
 								 variables=TypeVariables,
 								 opaque=IsOpaque,
 								 location=_Location,
 								 line=_Line,
 								 definition=Definition,
-								 exported=Exported } ) ->
+								 exported=Exported },
+					 DoIncludeForms,
+					 _IndentationLevel ) ->
 
 	ExportString = case Exported of
 
 		[] ->
 			"local";
 
-		ExportLoc ->
+		ExportLocs ->
 			text_utils:format( "exported in ~s",
-							   [ id_utils:sortable_id_to_string( ExportLoc ) ] )
+					   [ id_utils:sortable_ids_to_string( ExportLocs ) ] )
 
 	end,
 
@@ -1290,9 +2207,60 @@ type_info_to_string( #type_info{ name=Name,
 
 	end,
 
-	DefString = text_utils:format( "defined by: ~p", [ Definition ] ),
-
 	Arity = length( TypeVariables ),
 
-	text_utils:format( "~s/~B, ~s, ~s and ~s",
-					   [ Name, Arity, OpaqueString, ExportString, DefString ] ).
+	TypeIdString = text_utils:format( "for type ~s: ",
+					  [ type_id_to_string( { TypeName, Arity } ) ] ),
+
+	BaseStrings = [ OpaqueString, ExportString ],
+
+	AllStrings = case DoIncludeForms of
+
+		true ->
+			FormString = text_utils:format( "defined by: ~p", [ Definition ] ),
+			list_utils:append_at_end( FormString, BaseStrings );
+
+		false ->
+			BaseStrings
+
+	end,
+
+	TypeIdString ++ text_utils:strings_to_listed_string( AllStrings ).
+
+
+
+% Interprets the specified compilation options, that were typically specified
+% through the command-line.
+%
+-spec interpret_options( [ compile_option_entry() ], module_info() ) ->
+							   module_info().
+interpret_options( OptionList,
+				   ModuleInfo=#module_info{
+								 compilation_options=OptionTable } ) ->
+	NewOptionTable = scan_options( OptionList, OptionTable ),
+
+	ModuleInfo#module_info{ compilation_options=NewOptionTable }.
+
+
+% (helper)
+scan_options( _OptionList=[], OptionTable ) ->
+	OptionTable;
+
+scan_options( _OptionList=[ { Name, Value } | T ], OptionTable ) ->
+	NewOptionTable = ?table:appendToEntry( _K=Name, Value, OptionTable ),
+	scan_options( T, NewOptionTable );
+
+scan_options( _OptionList=[ { Name, BaseValue, OtherValue } | T ],
+			  OptionTable ) ->
+	NewOptionTable = ?table:appendToEntry( _K=Name, { BaseValue, OtherValue },
+										   OptionTable ),
+	scan_options( T, NewOptionTable );
+
+scan_options( _OptionList=[ Name | T ], OptionTable ) when is_atom( Name ) ->
+	% No clash wanted:
+	NewOptionTable = ?table:addNewEntry( _K=Name, _V=undefined, OptionTable ),
+	scan_options( T, NewOptionTable );
+
+
+scan_options( _OptionList=[ Unexpected | _T ], _OptionTable ) ->
+	throw( { unexpected_compilation_option, Unexpected } ).

@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, February 4, 2018.
 
 
@@ -57,11 +57,11 @@
 % Ex: nil, in {nil,33} for [] at line #33.
 %
 %
--type ast_atomic_literal() :: { 'atom', line(), atom() }
-							| { 'char', line(), char() }
-							| { 'float', line(), float() }
+-type ast_atomic_literal() :: { 'atom',    line(), atom() }
+							| { 'char',    line(), char() }
+							| { 'float',   line(), float() }
 							| { 'integer', line(), integer() }
-							| { 'string', line(), text_utils:string() }.
+							| { 'string',  line(), text_utils:ustring() }.
 
 
 -type ast_compound_literal() :: { 'nil', line() }.
@@ -99,28 +99,40 @@
 -type ast_transforms() :: ast_transform:ast_transforms().
 
 
+% For the ast_transforms record:
+-include("ast_transform.hrl").
+
+% For rec_guard-related defines:
+-include("ast_utils.hrl").
+
 
 % Section for value transformation.
 
 
-% Transforms specified value, operating relevant AST transformations onto it.
+% Transforms specified literal value, operating relevant AST transformations
+% onto it.
 %
 -spec transform_value( ast_atomic_literal(), ast_transforms() ) ->
-							 ast_atomic_literal().
-transform_value( Litteral={ atom, _Line, _Atom }, _Transforms ) ->
-	Litteral;
+							 { ast_atomic_literal(), ast_transforms() }.
+transform_value( Literal={ atom, _Line, _Atom }, Transforms ) ?rec_guard ->
+	{ Literal, Transforms };
 
-transform_value( Litteral={ char, _Line, _Char }, _Transforms ) ->
-	Litteral;
+transform_value( Literal={ char, _Line, _Char }, Transforms ) ?rec_guard ->
+	{ Literal, Transforms };
 
-transform_value( Litteral={ float, _Line, _Float }, _Transforms ) ->
-	Litteral;
+transform_value( Literal={ float, _Line, _Float }, Transforms ) ?rec_guard ->
+	{ Literal, Transforms };
 
-transform_value( Litteral={ integer, _Line, _Integer }, _Transforms ) ->
-	Litteral;
+transform_value( Literal={ integer, _Line, _Integer },
+				 Transforms ) ?rec_guard ->
+	{ Literal, Transforms };
 
-transform_value( Litteral={ string, _Line, _String }, _Transforms ) ->
-	Litteral.
+transform_value( Literal={ string, _Line, _String }, Transforms ) ?rec_guard ->
+	{ Literal, Transforms };
+
+transform_value( UnexpectedLiteral, Transforms )
+  when is_record( Transforms, ast_transforms ) ->
+	throw( { unexpected_literal, UnexpectedLiteral } ).
 
 
 

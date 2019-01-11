@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, December 19, 2014.
 
 
@@ -54,7 +54,7 @@
 % }, where foo and bar are expected to be defined in the context
 %
 % F3. explicit-type, i.e. a fully explicit, self-standing term defining a type
-% (therefore relying only on built-in types and constructs); for example,
+% (therefore relying only on built-in types and type constructs); for example,
 % supposing that the type foo is an alias for float, and that the type bar is
 % specified as "'hello'|'goodbye'", the same example translates to the following
 % explicit type: { union, [ float, {union,[ {atom,hello}, {atom,goodbye} ]},
@@ -360,7 +360,7 @@
 % on a translated version of the textual type (which is for example:
 % "[{float,boolean}]").
 %
-% This "internal type language of the Common layer" is largely inspired from the
+% This "internal type language of the Myriad layer" is largely inspired from the
 % forms that can be found in actual ASTs.
 %
 % Requirements for this term-based description were:
@@ -472,11 +472,18 @@
 % Type-related functions:
 %
 -export([ description_to_type/1, type_to_description/1, type_to_string/1,
-		  get_type_of/1, get_immediate_types/0, get_elementary_types/0,
-		  get_simple_builtin_types/0,
+		  get_type_of/1, get_immediate_types/0, get_ast_simple_builtin_types/0,
+		  get_elementary_types/0, get_simple_builtin_types/0,
 		  is_type/1, is_of_type/2,
 		  is_of_described_type/2, is_homogeneous/1, is_homogeneous/2,
 		  are_types_identical/2 ]).
+
+
+
+% Conversion:
+%
+-export([ ensure_integer/1, ensure_float/1, ensure_number/1, ensure_boolean/1,
+		  ensure_string/1, ensure_binary/1 ]).
 
 
 % Checking:
@@ -702,12 +709,48 @@ get_type_of( Term ) when is_reference( Term ) ->
 
 
 
-% Returns a list of the possible types for immediate values (typically found in
-% an AST like, like 'undefined' in: {atom,42,undefined}).
+% Returns a list of the possible types for immediate values.
 %
 -spec get_immediate_types() -> [ type_name() ].
 get_immediate_types() ->
-	[ 'atom', 'binary', 'boolean', 'float', 'integer' ].
+	% Not sure this list is very accurate or relevant:
+	[ 'atom', 'float', 'integer', 'binary', 'boolean' ].
+
+
+
+% Returns a list of the possible types for immediate values (typically found in
+% an AST like, like 'undefined' in: {atom,42,undefined}).
+%
+% From http://erlang.org/doc/apps/erts/absform.html:
+%
+% "There are five kinds of atomic literals, which are represented in the same
+% way in patterns, expressions, and guards:
+%
+% - If L is an atom literal, then Rep(L) = {atom,LINE,L}.
+%
+% - If L is a character literal, then Rep(L) = {char,LINE,L}.
+%
+% - If L is a float literal, then Rep(L) = {float,LINE,L}.
+%
+% - If L is an integer literal, then Rep(L) = {integer,LINE,L}.
+%
+% - If L is a string literal consisting of the characters C_1, ..., C_k, then
+% Rep(L) = {string,LINE,[C_1, ..., C_k]}."
+%
+% Actually additional types can be found in ASTs.
+%
+-spec get_ast_simple_builtin_types() -> [ type_name() ].
+get_ast_simple_builtin_types() ->
+
+	% See http://erlang.org/doc/reference_manual/typespec.html for a complete
+	% list:
+
+	[ 'term', 'binary', 'bitstring', 'boolean', 'byte', 'char', 'nil', 'number',
+	  'list', 'maybe_improper_list', 'nonempty_list', 'string',
+	  'nonempty_string', 'iodata', 'iolist', 'function', 'module', 'mfa',
+	  'arity', 'identifier', 'node', 'timeout', 'no_return',
+	  'any', 'integer', 'float', 'atom', 'pos_integer', 'neg_integer',
+	  'non_neg_integer', 'pid', 'reference', 'port' ].
 
 
 % Returns a list of the elementary, "atomic" types
@@ -870,6 +913,87 @@ are_types_identical( Type, Type ) ->
 
 are_types_identical( _FirstType, _SecondType ) ->
 	false.
+
+
+
+
+
+% ensure_* section.
+%
+% Note: using such functions may be a bad practice, as it may lead to losing the
+% awareness of the types of the variables that are handled. We may even decide
+% in the future to output warning traces whenever the specified element happens
+% not to be of the target type.
+
+
+
+% Ensures that specified term is an integer, and returns it.
+%
+% If it is a float, will return a truncated (integer) version of it.
+%
+-spec ensure_integer( number() ) -> integer().
+ensure_integer( N ) when is_integer( N ) ->
+	N;
+
+ensure_integer( N ) when is_float( N ) ->
+	trunc( N );
+
+ensure_integer( N ) ->
+	throw( { cannot_be_cast_to_integer, N } ).
+
+
+
+% Ensures that specified term is a float, and returns it.
+%
+% If it is an integer, will return a floating-point version of it.
+%
+-spec ensure_float( number() ) -> float().
+ensure_float( N ) when is_float( N ) ->
+	N;
+
+ensure_float( N ) when is_integer( N ) ->
+	float( N );
+
+ensure_float( N ) ->
+	throw( { cannot_be_cast_to_float, N } ).
+
+
+
+% Ensures that specified term is a number, and returns it.
+%
+-spec ensure_number( number() ) -> number().
+ensure_number( N ) when is_number( N ) ->
+	N;
+
+ensure_number( N ) ->
+	throw( { not_a_number, N } ).
+
+
+
+% Ensures that specified term is a boolean, and returns it.
+%
+-spec ensure_boolean( term() ) -> boolean().
+ensure_boolean( B ) when is_boolean( B ) ->
+	B;
+
+ensure_boolean( B ) ->
+	throw( { not_a_boolean, B } ).
+
+
+
+% Ensures that specified term is a string, and returns it.
+%
+-spec ensure_string( term() ) -> string().
+ensure_string( S ) ->
+	text_utils:ensure_string( S ).
+
+
+
+% Ensures that specified term is a binary string, and returns it.
+%
+-spec ensure_binary( term() ) -> string().
+ensure_binary( S ) ->
+	text_utils:ensure_binary( S ).
 
 
 

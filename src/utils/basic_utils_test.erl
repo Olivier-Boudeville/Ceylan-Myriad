@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 % Unit tests for the basic utils toolbox.
@@ -36,13 +36,14 @@
 -include("test_facilities.hrl").
 
 
--spec check_process_specific_values( integer(), integer() ) ->
-										   basic_utils:void().
+-spec check_process_specific_values( integer(), integer() ) -> void().
 check_process_specific_values( Min, Max ) ->
 
 	Self = self(),
 
-	F = fun() -> Self ! basic_utils:get_process_specific_value( Min, Max ) end,
+	F = fun() ->
+			Self ! basic_utils:get_process_specific_value( Min, Max )
+		end,
 
 	[ spawn( F ) || _X <- lists:seq( 1, 10 ) ],
 

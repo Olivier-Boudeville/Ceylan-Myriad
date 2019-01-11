@@ -2,9 +2,11 @@
 %% -*- erlang -*-
 %%! -smp enable
 
-% Copyright (C) 2010-2016 Olivier Boudeville
+% Copyright (C) 2010-2018 Olivier Boudeville
 %
-% This file is part of the Ceylan Erlang library.
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+%
+% This file is part of the Ceylan-Myriad library.
 
 
 
@@ -38,9 +40,10 @@
 
 % The key used to decipher the BEAM files, if needed:
 %
-% (must match the debug_info_key in ERLANG_COMPILER_OPT, see
-% common/GNUmakevars.inc)
--define( beam_key, "Ceylan-common" ).
+% (must match the debug_info_key in DEBUG_INFO_KEY_OPT, see
+% Ceylan-Myriad/GNUmakevars.inc)
+%
+-define( beam_key, "Ceylan-Myriad" ).
 
 
 get_usage() ->
@@ -95,8 +98,8 @@ get_wooper_spec_suppressions() ->
 	  {"executeOneway",2}, {"executeOneway",3}, {"executeOnewayWith",3},
 	  {"executeOnewayWith",4}, {"executeRequest",2}, {"executeRequest",3},
 	  {"executeRequestWith",3}, {"executeRequestWith",4}, {"getAttribute",2},
-	  {"get_class_name",0}, {"get_class_name",1}, {"get_superclasses",0},
-	  {"get_superclasses",1}, {"hasAttribute",2} ].
+	  {"getClassname",0}, {"getClassname",1}, {"getSuperclasses",0},
+	  {"getSuperclasses",1}, {"hasAttribute",2} ].
 
 
 
@@ -109,46 +112,46 @@ get_trace_spec_suppressions() ->
 
 % Entry point of the script.
 main( [ "-h" ] ) ->
-	io:format( "~s", [get_usage()] );
+	io:format( "~s", [ get_usage() ] );
 
 main( [ "--help" ] ) ->
-	io:format( "~s", [get_usage()] );
+	io:format( "~s", [ get_usage() ] );
 
-main( [Element] ) ->
+main( [ Element ] ) ->
 
-	case exists(Element) of
+	case exists( Element ) of
 
 		true ->
 
-			case get_type_of(Element) of
+			case get_type_of( Element ) of
 
 				directory ->
-					manage_dir(Element);
+					manage_dir( Element );
 
 				regular ->
 					% One-element list, for homogeneity:
-					[manage_file(Element)];
+					[ manage_file( Element ) ];
 
 				Other ->
 					io:format( "   Error, element '~s' exists, but is neither "
-							  "a file nor a directory (~s).~n~s",
-							  [Element,Other,get_usage()] ),
-					throw( {unexpected_element,Element,Other} )
+							   "a file nor a directory (~s).~n~s",
+							   [ Element, Other, get_usage() ] ),
+					throw( { unexpected_element, Element, Other } )
 
 			end;
 
 		false ->
 
 			io:format( "   Error, element '~s' could not be found.",
-					  [Element] ),
+					   [ Element ] ),
 
-			throw( {element_not_found,Element} )
+			throw( { element_not_found, Element } )
 
 	end;
 
 main( _ ) ->
 	io:format( "~n   Error, exactly one parameter should be specified.~n~n~s",
-			  [ get_usage() ] ).
+			   [ get_usage() ] ).
 
 
 
@@ -164,27 +167,29 @@ is_verbose() ->
 
 
 
-get_all_beams_from(Dir) ->
+get_all_beams_from( Dir ) ->
 
 	case is_existing_directory( Dir ) of
 
 		false ->
-			throw( {non_existing_input_directory,Dir} );
+			throw( { non_existing_input_directory, Dir } );
 
 		true ->
 			ok
 
 	end,
 
-	FileFun = fun( File, Acc ) -> [File|Acc] end,
+	FileFun = fun( File, Acc ) ->
+				  [ File | Acc ]
+			  end,
 
-	AllBeamFiles = filelib:fold_files( Dir, _RegExp=".beam" ++ [$$],
-		  _Recursive=true, FileFun, _AccIn=[] ),
+	AllBeamFiles = filelib:fold_files( Dir, _RegExp=".beam" ++ [ $$ ],
+									   _Recursive=true, FileFun, _AccIn=[] ),
 
 	case AllBeamFiles of
 
 		[] ->
-			throw( {no_beam_file_to_process_from,Dir} );
+			throw( { no_beam_file_to_process_from, Dir } );
 
 		_ ->
 			AllBeamFiles
@@ -196,10 +201,10 @@ get_all_beams_from(Dir) ->
 % Adds type specifications recursively from the specified directory.
 manage_dir( Dir ) ->
 
-	AllBeamFiles = case get_all_beams_from(Dir) of
+	AllBeamFiles = case get_all_beams_from( Dir ) of
 
 		[] ->
-			throw( {no_beam_file_to_process_from,Dir} );
+			throw( { no_beam_file_to_process_from, Dir } );
 
 		L ->
 			L
@@ -207,21 +212,22 @@ manage_dir( Dir ) ->
 	end,
 
 	io:format( "~nWill operate on all BEAM files found from ~s:~n~p~n~n",
-			  [ Dir, AllBeamFiles ] ),
+			   [ Dir, AllBeamFiles ] ),
 
-	[ manage_file(F) || F <- AllBeamFiles ].
+	[ manage_file( F ) || F <- AllBeamFiles ].
 
 
 
 
 % Generates type specifications for the specified BEAM file, and writes them on
 % file.
+%
 manage_file( BeamPath ) ->
 
 	BeamDir = filename:dirname( BeamPath ),
 	BeamFilename = filename:basename( BeamPath ),
 
-	case filename:extension(BeamFilename) of
+	case filename:extension( BeamFilename ) of
 
 		".beam" ->
 			ok ;
@@ -229,44 +235,46 @@ manage_file( BeamPath ) ->
 		Other ->
 			io:format( "~nError, a BEAM file (extension: '.beam') is expected, "
 					   "whereas target file is '~s' (extension: '~s').~n~n",
-					  [BeamFilename,Other] ),
+					   [ BeamFilename, Other ] ),
 
-			throw( {not_a_beam_file,BeamFilename,Other} )
+			throw( { not_a_beam_file, BeamFilename, Other } )
 
 
 	end,
 
-	io:format( " - managing BEAM file '~s'~n", [BeamPath] ),
+	io:format( " - managing BEAM file '~s'~n", [ BeamPath ] ),
 
 	% One key to rule all BEAMs:
-	beam_lib:crypto_key_fun( fun(init) -> ok; (_) -> ?beam_key end ),
+	beam_lib:crypto_key_fun( fun (init) -> ok;
+								 (_) -> ?beam_key
+							 end ),
 
 	% 'Plt' means 'Persistent Lookup Table':
 	PltFilename = "/tmp/" ++ BeamFilename ++ ".plt",
 
-	Options = [ {files,[BeamPath]}, {output_plt,PltFilename},
-			   {analysis_type,'plt_build'} ],
+	Options = [ { files, [ BeamPath ] }, { output_plt, PltFilename },
+				{ analysis_type, 'plt_build' } ],
 
-	%io:format( "#### Build plt: ~p.~n~n", [Options] ),
+	%io:format( "#### Build plt: ~p.~n~n", [ Options ] ),
 
 	% Similar to: dialyzer -c m.beam --build_plt --output_plt /tmp/m.beam.plt
-	try dialyzer:run(Options) of
+	try dialyzer:run( Options ) of
 
 		Res ->
 			interpret_dialyzer_message( Res, BeamPath )
 
-	catch throw:{dialyzer_error,Thrown} ->
+	catch throw:{ dialyzer_error, Thrown } ->
 
 			% If the abstract code is not found, it is either because the BEAM
 			% is not compiled with debug_info, or it is compiled so, but without
 			% a key matching the beam_key defined in this file.
 
 			io:format( "~nError, dialyzer run failed for ~s: ~s (or is it the "
-					  "debug key in this script that does not match the "
-					  "BEAM one, or a BEAM not compiled "
-					  "with debug information?)~n~n", [BeamPath,Thrown] ),
+					   "debug key in this script that does not match the "
+					   "BEAM one, or a BEAM not compiled "
+					   "with debug information?)~n~n", [ BeamPath, Thrown ] ),
 
-			throw( {dialyzer_run_failed,BeamPath,Thrown} )
+			throw( { dialyzer_run_failed, BeamPath, Thrown } )
 
 	end,
 
@@ -278,8 +286,9 @@ manage_file( BeamPath ) ->
 interpret_dialyzer_message( [], _BeamFile ) ->
 	ok;
 
-interpret_dialyzer_message( [ W={warn_callgraph,{File,Index},
-		   {call_to_missing,[Module,delete,1]} } | T ], BeamFile ) ->
+interpret_dialyzer_message( [ W={ warn_callgraph, { File, Index },
+								  { call_to_missing, [ Module, delete, 1 ] } } | T ],
+							BeamFile ) ->
 
 	% With WOOPER, delete/1 is used if defined in the class, otherwise WOOPER
 	% manages it by itself.
@@ -293,47 +302,53 @@ interpret_dialyzer_message( [ W={warn_callgraph,{File,Index},
 
 		0 ->
 			notify( io_lib:format( "~n#### Warning when processing ~s: "
-					   "~s:delete/1 called from ~p (line ~B), "
-					   "whereas was never defined; dialyzer says: '~s'~n",
-					   [BeamFile,Module,File,Index,
-						dialyzer:format_warning(W)] ) );
+								   "~s:delete/1 called from ~p (line ~B), "
+								   "whereas was never defined; dialyzer says: "
+								   "'~s'~n",
+								   [ BeamFile, Module, File, Index,
+									 dialyzer:format_warning( W ) ] ) );
 
 		_ ->
 			notify( io_lib:format(
 					  "~n(suppressed warning when processing ~s about correct "
-					  "destructor ~s:delete/1)~n~n", [BeamFile,Module] ) )
+					  "destructor ~s:delete/1)~n~n", [ BeamFile, Module ] ) )
 
 	end,
+
 	interpret_dialyzer_message( T, BeamFile );
 
-interpret_dialyzer_message( [ {warn_callgraph,{File,Index},
-		   {call_to_missing,[Module,Function,Arity]} } | T ], BeamFile ) ->
+
+interpret_dialyzer_message( [ { warn_callgraph, { File, Index },
+				{ call_to_missing, [ Module, Function, Arity ] } } | T ],
+							BeamFile ) ->
 	io:format( "~n#### Warning when processing ~s: "
 			   "~s:~s/~B called from ~s (line ~B), "
 			   "whereas was never defined.~n~n",
-			   [BeamFile,Module,Function,Arity,File,Index] ),
+			   [ BeamFile, Module, Function, Arity, File, Index ] ),
+
 	interpret_dialyzer_message( T, BeamFile );
 
-interpret_dialyzer_message( [H|T], BeamFile ) ->
-	io:format( "~n#### Warning when processing ~s:~n~p.~n", [BeamFile,H] ),
+interpret_dialyzer_message( [ H | T ], BeamFile ) ->
+	io:format( "~n#### Warning when processing ~s:~n~p.~n", [ BeamFile, H ] ),
 	interpret_dialyzer_message( T, BeamFile ).
 
 
 
 % Reads type specifications from the dialyzer-produced Plt file, and integrates
 % them in the corresponding source file, at the relevant locations (hopefully).
+%
 integrate_info_from_plt( PltFilename, BeamDir ) ->
 
 	%io:format( " - reading specifications from plt file '~s'~n",
-	%		  [PltFilename] ),
+	%		  [ PltFilename ] ),
 
-	{Plt,_Info} = dialyzer_plt:plt_and_info_from_file(PltFilename),
+	{ Plt, _Info } = dialyzer_plt:plt_and_info_from_file( PltFilename ),
 
 	% Contains the deduced type specifications as basic terms:
-	%io:format( "~n#### Plt: ~p.~n~n", [Plt] ),
+	%io:format( "~n#### Plt: ~p.~n~n", [ Plt ] ),
 
 	% Looks like path, dict of module dependencies, etc.:
-	%io:format( "~n#### Information: ~p.~n~n", [Info] ),
+	%io:format( "~n#### Information: ~p.~n~n", [ Info ] ),
 
 	% A text with a module header and the list of specs (all in one string).
 	% Ex:
@@ -341,37 +356,38 @@ integrate_info_from_plt( PltFilename, BeamDir ) ->
 	%
 	%%% ------- Module: file_utils -------
 	%
-	% -spec close(_) -> any()
-	% -spec close(_,'overcome_failure' | 'throw_if_failed') -> any()
-	% -spec convert_to_filename([any()]) -> any()
+	% -spec close( _ ) -> any()
+	% -spec close( _, 'overcome_failure' | 'throw_if_failed' ) -> any()
+	% -spec convert_to_filename( [ any() ] ) -> any()
 	% [...]
 	% """
 	%
-	SpecString = dialyzer_plt:get_specs(Plt),
-	%io:format( "~n#### Specification string:~n~s.~n~n", [SpecString] ),
+	SpecString = dialyzer_plt:get_specs( Plt ),
+	%io:format( "~n#### Specification string:~n~s.~n~n", [ SpecString ] ),
 
 	% Just split the module name (new first element) from the specs:
-	_R = [_|SlicedSpecs] = split_module_and_specs(SpecString),
-	%io:format( "~n#### Split specifications:~n~s~n~n", [R] ),
+	_R = [ _ | SlicedSpecs ] = split_module_and_specs( SpecString ),
+
+	%io:format( "~n#### Split specifications:~n~s~n~n", [ R ] ),
 	% Ex: [ "-spec close(_) -> any()",
-	% "-spec close(_,'overcome_failure' | 'throw_if_failed') -> any()" ]
+	% "-spec close( _, 'overcome_failure' | 'throw_if_failed' ) -> any()" ]
 	write_specs( SlicedSpecs, BeamDir ).
 
 
 % Allows to remove the module header for dialyzer output.
-split_module_and_specs(Specs) ->
-	re:split( Specs, "%% ------- Module: (.*) -------", [ {return,list} ] ).
+split_module_and_specs( Specs ) ->
+	re:split( Specs, "%% ------- Module: (.*) -------", [ { return, list } ] ).
 
 
 
 % Manages the writing back of the source file, with specifications added.
 write_specs( AllSpecs, Dir ) ->
 
-	[ModuleName|T] = AllSpecs,
-	[ModuleSpecs|Rest] = T,
+	[ ModuleName | T ] = AllSpecs,
+	[ ModuleSpecs | Rest ] = T,
 
-	%io:format( "#### Module name: '~s'~n~n", [ModuleName] ),
-	%io:format( "#### Module specs: ~s~n~n", [ModuleSpecs] ),
+	%io:format( "#### Module name: '~s'~n~n", [ ModuleName ] ),
+	%io:format( "#### Module specs: ~s~n~n", [ ModuleSpecs ] ),
 
 	case Rest of
 
@@ -380,7 +396,7 @@ write_specs( AllSpecs, Dir ) ->
 
 		_ ->
 			io:format( "#### Warning: unexpected content after retrieved "
-					  "specifications: ~s.~n~n", [Rest] )
+					   "specifications: ~s.~n~n", [ Rest ] )
 
 	end,
 
@@ -394,28 +410,31 @@ write_specs( AllSpecs, Dir ) ->
 
 	ErlPath = find_source_file_for( ModuleName, Dir ),
 
-	%io:format( " - inserting specs into source file '~s'~n", [ErlPath] ),
+	%io:format( " - inserting specs into source file '~s'~n", [ ErlPath ] ),
 
 	perform_any_backup( ErlPath ),
 
 	% Read file:
 
-	{ok,Device} = file:open( ErlPath, [read,write] ),
+	{ ok, Device } = file:open( ErlPath, [ read, write ] ),
 	Lines = read_all_lines( Device, _Acc=[] ),
 
-	FlattenLines = lists:flatten(Lines),
+	FlattenLines = lists:flatten( Lines ),
 
 	% Split and filter ModuleSpecs:
-	ModuleSplit = re:split( ModuleSpecs, "\n", [ {return,list} ] ),
-	%io:format( "ModuleSplit =~n~s", [ModuleSplit] ),
+	ModuleSplit = re:split( ModuleSpecs, "\n", [ { return, list } ] ),
+	%io:format( "ModuleSplit =~n~s", [ ModuleSplit ] ),
 
 	% List of strings containing type specs:
 
-	NotEmptyFun = fun(X) -> X /= [] end,
+	NotEmptyFun = fun(X) ->
+						  X /= []
+				  end,
+
 	SlicedModuleSpecs = lists:filter( NotEmptyFun, ModuleSplit ),
 
 	%io:format( "~n#### Processed type specifications: ~p.~n~n",
-	%		[SlicedModuleSpecs] ),
+	%		  [ SlicedModuleSpecs ] ),
 
 	% We must first find out where to insert this spec, i.e. determine where the
 	% definition of the corresponding function lies.
@@ -430,18 +449,18 @@ write_specs( AllSpecs, Dir ) ->
 	%  corresponding to the function definition, FunEntries
 
 	SpecEntries = build_spec_entries( SlicedModuleSpecs ),
-	%io:format( "SpecEntries = ~p~n", [SpecEntries] ),
+	%io:format( "SpecEntries = ~p~n", [ SpecEntries ] ),
 
 	FunctionNames = get_function_names( SpecEntries ),
-	%io:format( "FunctionNames = ~p~n", [FunctionNames] ),
+	%io:format( "FunctionNames = ~p~n", [ FunctionNames ] ),
 
 	FunEntries = build_fun_entries( FunctionNames, FlattenLines ),
-	%io:format( "FunEntries = ~p~n", [FunEntries] ),
+	%io:format( "FunEntries = ~p~n", [ FunEntries ] ),
 
 	NewSource = insert_spec( FlattenLines, FunEntries, SpecEntries ),
 
 	%io:format( "~n#################################~nNew source:~n~n~s",
-	%		   [NewSource] ),
+	%		   [ NewSource ] ),
 
 	% Write specifications to file:
 	ok = file:write_file( ErlPath, NewSource ).
@@ -450,11 +469,11 @@ write_specs( AllSpecs, Dir ) ->
 
 % Returns a list of all the different function names in the specified entries.
 get_function_names( SpecEntries ) ->
-	AllNames = [ Name || {Name,_Arity,_Spec} <- SpecEntries ],
+	AllNames = [ Name || { Name, _Arity, _Spec } <- SpecEntries ],
 	uniquify( AllNames ).
 
-uniquify(List) ->
-	sets:to_list( sets:from_list(List) ).
+uniquify( List ) ->
+	sets:to_list( sets:from_list( List ) ).
 
 % Returns a list of {FunctionName,Arity,Spec} entries.
 build_spec_entries( Specs ) ->
@@ -463,16 +482,16 @@ build_spec_entries( Specs ) ->
  build_spec_entries( _Specs=[], Acc ) ->
 	Acc;
 
-build_spec_entries( [Spec|T], Acc ) ->
+build_spec_entries( [ Spec | T ], Acc ) ->
 
-	%io:format( "~n - building spec entry for ~s~n", [Spec] ),
+	%io:format( "~n - building spec entry for ~s~n", [ Spec ] ),
 
-	Split = re:split( Spec, "-spec (.+)(\s*)->", [ {return,list} ] ),
-	[ _ | [FunctionHead|_] ] = Split,
+	Split = re:split( Spec, "-spec (.+)(\s*)->", [ { return, list } ] ),
+	[ _ | [ FunctionHead | _ ] ] = Split,
 
 	% Remove whitespaces:
-	StrippedFunctionHead = string:strip(FunctionHead),
-	%io:format( " StrippedFunctionHead = ~s~n", [StrippedFunctionHead] ),
+	StrippedFunctionHead = string:strip( FunctionHead ),
+	%io:format( " StrippedFunctionHead = ~s~n", [ StrippedFunctionHead ] ),
 
 	case get_function_name( StrippedFunctionHead ) of
 
@@ -481,10 +500,10 @@ build_spec_entries( [Spec|T], Acc ) ->
 			build_spec_entries( T, Acc );
 
 		FunctionName ->
-			%io:format( "   + function name: ~s~n", [FunctionName] ),
+			%io:format( "   + function name: ~s~n", [ FunctionName ] ),
 			Arity = get_arity( StrippedFunctionHead ),
-			%io:format( "   + function arity: ~B~n", [Arity] ),
-			build_spec_entries( T, [ {FunctionName,Arity,Spec++"."} | Acc ] )
+			%io:format( "   + function arity: ~B~n", [ Arity ] ),
+			build_spec_entries( T, [ { FunctionName, Arity, Spec ++ "." } | Acc ] )
 
 	end.
 
@@ -497,10 +516,12 @@ build_fun_entries( FunctionNames, Text ) ->
 	RE = "\n(" ++ lists:flatten( join( _Sep="|", FunctionNames ) )
 		++ ")\\([^)]*\\)((?U)(.|\n)*->)",
 
-	%io:format( "RE = ~s~n", [RE] ),
+	%io:format( "RE = ~s~n", [ RE ] ),
 
 	% We need the index *and* the matched pattern:
-	{match,IndexList} = re:run( Text, RE, [ global, {capture,first,index} ] ),
+	{ match, IndexList } = re:run( Text, RE,
+								   [ global, { capture, first, index } ] ),
+
 	% IndexList = [ [{2795,19}], [{2976,27}], etc.
 	% If list was used instead of index:
 	% {match,[["\nget_timestamp() ->"],
@@ -508,19 +529,22 @@ build_fun_entries( FunctionNames, Text ) ->
 
 	% {FunctionHead,Index} pairs:
 	% (we do not retain the initial \n):
-	Pairs = [ { string:substr(Text,Index+2,Len-1), Index+2 }
-			  || [{Index,Len}] <- IndexList ],
-	%io:format( "Pairs = ~p~n", [Pairs] ),
+	Pairs = [ { string:substr( Text, Index+2, Len-1 ), Index+2 }
+			  || [ { Index, Len } ] <- IndexList ],
+
+	%io:format( "Pairs = ~p~n", [ Pairs ] ),
 	% Pairs = [{"get_timestamp() ->",2797},
 	%	 {"get_precise_duration( _FirstTimestamp={A1,A2,A3},\n\t\t\t\t\t
 	% _SecondTimestamp={B1,B2,B3} ) ->",5283},
-	%	 {"register_as( Pid, Name, local_only ) when is_atom(Name) ->",6250},
+	%	 {"register_as( Pid, Name, local_only ) when is_atom( Name ) ->",6250},
 	% etc.
 
 	% Now we just have to determine the corresponding function names and arity,
 	% as we did for specs:
-	FullPairs = [ {get_function_name(FH), get_arity( strip_right_of_sig(FH) ),
-				   Index} || {FH,Index} <- Pairs ],
+	%
+	FullPairs = [ { get_function_name( FH ),
+					get_arity( strip_right_of_sig( FH ) ), Index }
+				  || { FH, Index } <- Pairs ],
 
 	% We remove any clause after the first, for a {FunName,Arity} combination:
 	SortedByArities = lists:keysort( _ArityPos=2, FullPairs ),
@@ -547,43 +571,44 @@ build_fun_entries( FunctionNames, Text ) ->
 filter_clauses( _Entries=[], _Current, Acc ) ->
 	Acc;
 
-filter_clauses( [ {FunName,Arity,_Index} | T ],
-				Current={FunName,Arity,_AnyIndex}, Acc ) ->
+filter_clauses( [ { FunName, Arity, _Index } | T ],
+				Current={ FunName, Arity, _AnyIndex }, Acc ) ->
 	% Here head is a non-first clause (name and arity match the current first
 	% clause), skip it:
 	filter_clauses( T, Current, Acc );
 
-filter_clauses( [H|T], _Current, Acc ) ->
+filter_clauses( [ H | T ], _Current, Acc ) ->
 	% Here we change at least arity, it is a new first clause:
-	filter_clauses( T, _NewCurrent=H, [H|Acc] ).
+	filter_clauses( T, _NewCurrent=H, [ H | Acc ] ).
 
 
 % Removes any guard(s) and "->":
 strip_right_of_sig( FunctionHead ) ->
-	re:replace( FunctionHead, "\\)((?s).*)->", ")", [ {return,list} ] ).
+	re:replace( FunctionHead, "\\)((?s).*)->", ")", [ { return, list } ] ).
 
 
 % Returns the function name corresponding to specified signature string.
 get_function_name( FunctionHead ) ->
-	R = re:replace( FunctionHead, "\\((?s).*", "", [ {return,list} ] ),
-	%io:format(  "get_function_name for ~s: ~s.~n", [FunctionHead,R] ),
+	R = re:replace( FunctionHead, "\\((?s).*", "", [ { return, list } ] ),
+	%io:format(  "get_function_name for ~s: ~s.~n", [ FunctionHead, R ] ),
 	R.
 
 
 % Returns the function arity corresponding to specified signature string.
+%
 get_arity( FunctionHead ) ->
 
 	% Extract the parameters spec, first strip lefter part:
 	LeftParamStrip = re:replace( FunctionHead, "[a-zA-Z0-9_]+\\(",
-								 "", [ {return,list} ] ),
+								 "", [ { return, list } ] ),
 
 	% Remove the ending ")" (and only that):
 	Params = string:substr( LeftParamStrip, _Start=1,
-							_Len=length(LeftParamStrip)-1 ),
-	%io:format( "Params = ~p~n", [Params] ),
+							_Len=length( LeftParamStrip )-1 ),
+	%io:format( "Params = ~p~n", [ Params ] ),
 
 	Arity = compute_first_level_element_count( Params ),
-	%io:format( "get_arity for ~s: ~B.~n", [FunctionHead,Arity] ),
+	%io:format( "get_arity for ~s: ~B.~n", [ FunctionHead, Arity ] ),
 	Arity.
 
 
@@ -610,25 +635,25 @@ insert_spec( Text, _FunEntries=[], SpecEntries, _Offset ) ->
 	notify_unexpected_spec( SpecEntries ),
 	Text;
 
-insert_spec( Text, [ {FunName,Arity,Index} | T ], SpecEntries, Offset ) ->
+insert_spec( Text, [ { FunName, Arity, Index } | T ], SpecEntries, Offset ) ->
 
 	% Jump from index to index, inserting the relevant spec:
 	case get_spec_for( FunName, Arity, SpecEntries, _Acc=[] ) of
 
 		not_found ->
 			% Must be local functions:
-			%io:format( "  (no spec found for ~s/~B).~n", [FunName,Arity] ),
+			%io:format( "  (no spec found for ~s/~B).~n", [ FunName, Arity ] ),
 			insert_spec( Text, T, SpecEntries, Offset );
 
-		{Spec,OtherSpecs} ->
-			SpecOffset = Index+Offset,
+		{ Spec,OtherSpecs } ->
+			SpecOffset = Index + Offset,
 
 			Left = string:sub_string( Text, _Start=1, SpecOffset-1 ),
 			Right = string:sub_string( Text, SpecOffset ),
 
-			ActualSpec = format_spec(Spec) ++ "\n",
+			ActualSpec = format_spec( Spec ) ++ "\n",
 			NewText = Left ++ ActualSpec ++ Right,
-			NewOffset = Offset + length(ActualSpec),
+			NewOffset = Offset + length( ActualSpec ),
 
 			insert_spec( NewText, T, OtherSpecs, NewOffset )
 
@@ -639,15 +664,15 @@ insert_spec( Text, [ {FunName,Arity,Index} | T ], SpecEntries, Offset ) ->
 notify_unexpected_spec( [] ) ->
 	ok;
 
-notify_unexpected_spec( [ {FunctionName,Arity,_Spec} | T ] ) ->
+notify_unexpected_spec( [ { FunctionName, Arity, _Spec } | T ] ) ->
 
-	case lists:member( {FunctionName,Arity}, get_spec_suppressions() ) orelse
-		lists:member( {FunctionName,any}, get_spec_suppressions() ) of
+	case lists:member( { FunctionName, Arity }, get_spec_suppressions() )
+		orelse lists:member( { FunctionName, any }, get_spec_suppressions() ) of
 
 		true ->
 			notify( io_lib:format( "~n  (suppressed warning about ~s/~B "
 								   "not being found in sources)~n",
-								   [FunctionName,Arity] ) ),
+								   [ FunctionName, Arity ] ) ),
 			ok;
 
 		false ->
@@ -657,31 +682,32 @@ notify_unexpected_spec( [ {FunctionName,Arity,_Spec} | T ] ) ->
 
 			io:format( "~n~n  ### Warning: function ~s/~B not found in source, "
 					   "whereas found from BEAM.~n~n",
-					  [ FunctionName, Arity ] ),
+					   [ FunctionName, Arity ] ),
 
 			notify_unexpected_spec( T )
 
 	end;
 
 notify_unexpected_spec( Other ) ->
-	throw( {unexpected_spec_content,Other} ).
+	throw( { unexpected_spec_content, Other } ).
 
 
 
 % Returns the corresponding spec and the list of remaining ones (order not
 % preserved).
-get_spec_for( FunName, Arity, _Specs=[ {FunName,Arity,Spec} | T ], Acc ) ->
-	{Spec, T++Acc};
+%
+get_spec_for( FunName, Arity, _Specs=[ { FunName, Arity, Spec } | T ], Acc ) ->
+	{ Spec, T ++ Acc };
 
 get_spec_for( _FunName, _Arity, _Specs=[], _Acc ) ->
-	%throw( { spec_not_found_for, {FunName,Arity} } );
+	%throw( { spec_not_found_for, { FunName, Arity } } );
 
 	% Actually not finding a spec for a given function is not abnormal, as
 	% apparently Dialyzer outputs specs only for *exported* functions.
 	not_found;
 
-get_spec_for( FunName, Arity, _Specs=[NonMatchingEntry|T], Acc ) ->
-	get_spec_for( FunName, Arity, T, [NonMatchingEntry|Acc] ).
+get_spec_for( FunName, Arity, _Specs=[ NonMatchingEntry | T ], Acc ) ->
+	get_spec_for( FunName, Arity, T, [ NonMatchingEntry | Acc ] ).
 
 
 -define( line_max_length, 80 ).
@@ -694,7 +720,7 @@ get_spec_for( FunName, Arity, _Specs=[NonMatchingEntry|T], Acc ) ->
 % Formats specified spec, for pretty-printing.
 % Returns a list of lines.
 format_spec( Spec ) when length(Spec) < ?line_max_length ->
-	[Spec];
+	[ Spec ];
 
 format_spec( Spec ) ->
 
@@ -702,22 +728,22 @@ format_spec( Spec ) ->
 	% level:
 
 	% Here the line is too long, split at the arrow:
-	%[Left,Right] = re:split( Spec, "->", [ {return,list} ] ),
+	%[ Left, Right ] = re:split( Spec, "->", [ { return, list } ] ),
 
-	%% Lines = case length(Left) + 2 < ?line_max_length of
+	%% Lines = case length( Left ) + 2 < ?line_max_length of
 
 	%%		true  ->
 	%%			[ Left ++ "->" , Right ];
 
 	%%		false ->
 
-	%%			case length(Right) + 2 + ?line_offset < ?line_max_length of
+	%%			case length( Right ) + 2 + ?line_offset < ?line_max_length of
 
 	%%				true ->
-	%%					[Left, ?line_header ++ "->" ++ Right ];
+	%%					[ Left, ?line_header ++ "->" ++ Right ];
 
 	%%				false ->
-	%%					[Left, ?line_header ++ "->", ?line_header ++ Right]
+	%%					[ Left, ?line_header ++ "->", ?line_header ++ Right ]
 
 	%%			end
 
@@ -730,26 +756,28 @@ format_spec( Spec ) ->
 
 % Returns the full path of the .erl source file corresponding to the specified
 % module.
+%
 find_source_file_for( ModuleName, Dir ) ->
 
 	% Could be as well the replacement of the extension.
 
 	% (not using "\.erl$" to avoid a problem with emacs syntax highlighting)
 	%% ErlPath = filelib:fold_files( Dir, ModuleName ++ "\.erl" ++ [ $$ ], true,
-	%%			 fun(File, []) ->
+	%%			 fun( File, [] ) ->
 	%%				 File
 	%%			 end, []),
 
 	%% case ErlPath of
 
 	%%	[] ->
-	%%		throw( {cannot_find_source_file_for,ModuleName,Dir} );
+	%%		throw( { cannot_find_source_file_for, ModuleName, Dir } );
 
-	%%	[Path] ->
+	%%	[ Path ] ->
 	%%		Path;
 
 	%%	MultiplePaths ->
-	%%		throw( {multiple_source_files_for,ModuleName,Dir,MultiplePaths} )
+	%%		throw( { multiple_source_files_for, ModuleName, Dir,
+	%%             MultiplePaths } )
 
 	%% end.
 
@@ -766,11 +794,11 @@ perform_any_backup( ErlPath ) ->
 			Destination = ErlPath ++ ".specbak",
 			case file:copy( ErlPath, Destination ) of
 
-				{ok,_BytesCopied} ->
+				{ ok, _BytesCopied } ->
 					ok;
 
-				{error,Reason} ->
-					throw( {cannot_backup_file,ErlPath,Reason} )
+				{ error, Reason } ->
+					throw( { cannot_backup_file, ErlPath, Reason } )
 
 			end;
 
@@ -782,16 +810,17 @@ perform_any_backup( ErlPath ) ->
 
 
 % Reads all lines from specified device (file descriptor).
+%
 read_all_lines( Device, Acc ) ->
 
 	case io:get_line( Device, "" ) of
 
 		eof  ->
-			file:close(Device),
-			lists:reverse(Acc);
+			file:close( Device ),
+			lists:reverse( Acc );
 
 		Line ->
-			read_all_lines( Device, [Line|Acc] )
+			read_all_lines( Device, [ Line | Acc ] )
 
 	end.
 
@@ -809,7 +838,7 @@ compute_first_level_element_count( _ArgString=[] ) ->
 
 compute_first_level_element_count( ArgString ) ->
 	compute_first_level_element_count( ArgString, _BraceLevel=0, _ParenLevel=0,
-				_BrackLevel=0, _InitialCount=1 ).
+									   _BrackLevel=0, _InitialCount=1 ).
 
 
 % Expressions must be well-balanced:
@@ -818,11 +847,11 @@ compute_first_level_element_count( _ArgString=[], _BraceLevel=0,
 	% Here we parsed correctly the full string:
 	Count;
 
-compute_first_level_element_count( [$,|T], _BraceLevel=0, _ParenLevel=0,
+compute_first_level_element_count( [ $, | T ], _BraceLevel=0, _ParenLevel=0,
 								   _BrackLevel=0, Count ) ->
 	% Here we found a top-level comma, the only interesting kind:
 	compute_first_level_element_count( T, _BraceLevel=0, _ParenLevel=0,
-			_BrackLevel=0, Count+1 );
+									   _BrackLevel=0, Count+1 );
 
 compute_first_level_element_count( [$,|T], BraceLevel, ParenLevel,
 								   BrackLevel, Count ) ->
@@ -830,37 +859,37 @@ compute_first_level_element_count( [$,|T], BraceLevel, ParenLevel,
 	compute_first_level_element_count( T, BraceLevel, ParenLevel, BrackLevel,
 									   Count );
 
-compute_first_level_element_count( [${|T], BraceLevel, ParenLevel,
+compute_first_level_element_count( [ ${ | T ], BraceLevel, ParenLevel,
 								   BrackLevel, Count ) ->
 	compute_first_level_element_count( T, BraceLevel+1, ParenLevel,
 									   BrackLevel, Count );
 
-compute_first_level_element_count( [$}|T], BraceLevel, ParenLevel,
+compute_first_level_element_count( [ $} | T ], BraceLevel, ParenLevel,
 								   BrackLevel, Count ) ->
 	compute_first_level_element_count( T, BraceLevel-1, ParenLevel,
 									   BrackLevel, Count );
 
-compute_first_level_element_count( [$[|T], BraceLevel, ParenLevel, BrackLevel,
+compute_first_level_element_count( [ $[ | T ], BraceLevel, ParenLevel, BrackLevel,
 								   Count ) ->
 	compute_first_level_element_count( T, BraceLevel, ParenLevel,
 									   BrackLevel+1, Count );
 
-compute_first_level_element_count( [$]|T], BraceLevel, ParenLevel, BrackLevel,
+compute_first_level_element_count( [ $] | T ], BraceLevel, ParenLevel, BrackLevel,
 								   Count ) ->
 	compute_first_level_element_count( T, BraceLevel, ParenLevel, BrackLevel-1,
 									   Count );
 
-compute_first_level_element_count( [$(|T], BraceLevel, ParenLevel, BrackLevel,
+compute_first_level_element_count( [ $( | T ], BraceLevel, ParenLevel, BrackLevel,
 								   Count ) ->
 	compute_first_level_element_count( T, BraceLevel, ParenLevel+1,
 									   BrackLevel, Count );
 
-compute_first_level_element_count( [$)|T], BraceLevel, ParenLevel, BrackLevel,
+compute_first_level_element_count( [ $) | T ], BraceLevel, ParenLevel, BrackLevel,
 								   Count ) ->
 	compute_first_level_element_count( T, BraceLevel, ParenLevel-1, BrackLevel,
 									   Count );
 
-compute_first_level_element_count( [_H|T], BraceLevel, ParenLevel, BrackLevel,
+compute_first_level_element_count( [ _H | T ], BraceLevel, ParenLevel, BrackLevel,
 								   Count ) ->
 	% All other characters:
 	compute_first_level_element_count( T, BraceLevel, ParenLevel, BrackLevel,
@@ -881,10 +910,10 @@ notify( Message ) ->
 
 
 
+
+%% Verbatim duplication sections.
 %%
-%% Verbatime duplication sections.
-%%
-%% Maybe using common/src/utils/script_utils.erl would be better than
+%% Maybe using myriad/src/utils/script_utils.erl would be better than
 %% duplicating code here.
 %%
 
@@ -893,7 +922,7 @@ notify( Message ) ->
 % references fixed) the functions of interest, so that there is no prerequisite.
 
 
-% Taken from common/src/utils/text_utils.erl:
+% Taken from myriad/src/utils/text_utils.erl:
 
 % join(Separator,ListToJoin), ex: join( '-', [ "Barbara", "Ann" ] ).
 %
@@ -906,30 +935,30 @@ notify( Message ) ->
 % filename:join functions instead.
 %
 % Note: use string:tokens to split the string.
-join( _Separator, []) ->
+join( _Separator, [])  ->
 	"";
 
-join(Separator,ListToJoin) ->
-	lists:flatten( lists:reverse( join(Separator, ListToJoin, []) ) ).
+join( Separator, ListToJoin ) ->
+	lists:flatten( lists:reverse( join( Separator, ListToJoin, [] ) ) ).
 
 
-join(_Separator,[],Acc) ->
+join( _Separator, [], Acc ) ->
 	Acc;
 
-join(_Separator,[H| [] ],Acc) ->
-	[H|Acc];
+join( _Separator, [ H | [] ], Acc ) ->
+	[ H | Acc ];
 
-join(Separator,[H|T],Acc) ->
-	join(Separator, T, [Separator,H|Acc]).
-
-
-% End of the common/src/utils/text_utils.erl section.
+join( Separator, [ H | T ], Acc ) ->
+	join( Separator, T, [ Separator, H | Acc ] ).
 
 
+% End of the myriad/src/utils/text_utils.erl section.
 
 
 
-% Taken from common/src/utils/file_utils.erl:
+
+
+% Taken from myriad/src/utils/file_utils.erl:
 
 
 % For the file_info record:
@@ -937,13 +966,14 @@ join(Separator,[H|T],Acc) ->
 
 
 % Tells whether specified file entry exists, regardless of its type.
-exists(EntryName) ->
-	case file:read_file_info(EntryName) of
+%
+exists( EntryName ) ->
+	case file:read_file_info( EntryName ) of
 
-		{ok,_FileInfo} ->
+		{ ok, _FileInfo } ->
 			true;
 
-		{error,_Reason} ->
+		{ error, _Reason } ->
 			false
 
 	end.
@@ -952,20 +982,21 @@ exists(EntryName) ->
 
 % Returns the type of the specified file entry, in:
 % device | directory | regular | other.
-get_type_of(EntryName) ->
+%
+get_type_of( EntryName ) ->
 
-	case file:read_file_info(EntryName) of
+	case file:read_file_info( EntryName ) of
 
-		{ok,FileInfo} ->
+		{ ok, FileInfo } ->
 			#file_info{ type=FileType } = FileInfo,
 			FileType;
 
-		{error,eloop} ->
+		{ error, eloop } ->
 			% Probably a recursive symlink:
-			throw({too_many_symlink_levels,EntryName});
+			throw( { too_many_symlink_levels, EntryName } );
 
-		{error,enoent} ->
-			throw({non_existing_entry,EntryName})
+		{ error,enoent } ->
+			throw( { non_existing_entry, EntryName } )
 
 	end.
 
@@ -973,8 +1004,9 @@ get_type_of(EntryName) ->
 % Returns whether the specified entry exists and is a directory.
 %
 % Returns true or false, and cannot trigger an exception.
-is_existing_directory(EntryName) ->
-	case exists(EntryName) andalso get_type_of(EntryName) of
+%
+is_existing_directory( EntryName ) ->
+	case exists( EntryName ) andalso get_type_of( EntryName ) of
 
 		directory ->
 			true ;
@@ -985,6 +1017,4 @@ is_existing_directory(EntryName) ->
 	end.
 
 
-% End of the common/src/utils/file_utils.erl section.
-
-
+% End of the myriad/src/utils/file_utils.erl section.

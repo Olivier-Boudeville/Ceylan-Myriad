@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, July 24, 2015
 
 
@@ -54,11 +54,16 @@
 -export([ compare_dates/2, check_date_order/2, get_date_difference/2 ]).
 
 
-% As calendar:daynum is not exported:
+% As calendar:daynum/0 is not exported:
 %
 % (Monday is 1, Tuesday is 2, etc.)
 %
 -type day_index() :: 1..7.
+
+
+% User-friendly version of day_index/0:
+-type week_day() :: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday'
+				  | 'Friday' | 'Saturday' | 'Sunday'.
 
 
 % Calendar date; used to be less precise calendar:date():
@@ -71,12 +76,22 @@
 				  unit_utils:canonical_second() }.
 
 
--export_type([ day_index/0, date/0, time/0 ]).
+-export_type([ day_index/0, week_day/0, date/0, time/0 ]).
+
+
+% Basics:
+-export([ get_textual_date/1 ]).
 
 
 % For rough, averaged conversions:
 -export([ years_to_seconds/1, months_to_seconds/1, weeks_to_seconds/1,
 		  days_to_seconds/1, hours_to_seconds/1 ]).
+
+
+% Time-related section.
+%
+-export([ get_intertime_duration/2 ]).
+
 
 
 % Timestamp-related section.
@@ -114,6 +129,14 @@
 
 
 
+% Returns a string corresponding to the specified date, like: "30/11/2009".
+%
+-spec get_textual_date( date() ) -> string().
+get_textual_date( { Year, Month, Day } ) ->
+	io_lib:format( "~B/~B/~B", [ Day, Month, Year ] ).
+
+
+
 
 % Month section.
 
@@ -141,7 +164,7 @@ canonicalise_month( M ) when is_integer( M ) andalso M >= 0 ->
 
 % Checks that specified month is a canonical one.
 %
--spec check_month_canonical( unit_utils:month() ) -> basic_utils:void().
+-spec check_month_canonical( unit_utils:month() ) -> void().
 check_month_canonical( Month ) when is_integer( Month ) andalso Month >= 1
 									andalso Month =< 12 ->
 	ok;
@@ -154,7 +177,7 @@ check_month_canonical( Month ) ->
 % Ensures that the starting canonical month is strictly before the stopping one.
 %
 -spec check_month_order( unit_utils:absolute_month(),
-						  unit_utils:absolute_month() ) -> basic_utils:void().
+						 unit_utils:absolute_month() ) -> void().
 check_month_order( Start={ StartYear, StartMonth },
 				   Stop= { StopYear, StopMonth } ) ->
 
@@ -261,7 +284,7 @@ week_day_to_string( DayIndex ) ->
 
 % Checks that specified date is a canonical one.
 %
--spec check_date_canonical( date() ) -> basic_utils:void().
+-spec check_date_canonical( date() ) -> void().
 check_date_canonical( _Date={ Year, Month, Day } ) when
 	  is_integer( Year ) andalso is_integer( Month ) andalso
 	  is_integer( Day ) andalso Month >= 1 andalso Month =< 12
@@ -329,7 +352,7 @@ compare_helper( _FirstDate, _SecondDate ) ->
 % Note: both dates are expected to be in canonical form (ex: not more than 12
 % months or 31 days in the specified date).
 %
--spec check_date_order( date(), date() ) -> basic_utils:void().
+-spec check_date_order( date(), date() ) -> void().
 check_date_order( StartDate, StopDate ) ->
 
 	case compare_dates( StartDate, StopDate ) of
@@ -401,6 +424,21 @@ hours_to_seconds( HourDuration ) ->
 
 
 
+% Time section.
+
+
+% Returns the signed duration, in integer seconds, between the two specified
+% times.
+%
+% A positive duration will be returned iff the first specified time is before
+% the second one.
+%
+-spec get_intertime_duration( time(), time() ) -> unit_utils:seconds().
+get_intertime_duration( { H1, M1, S1 }, { H2, M2, S2 } ) ->
+	( ( H2 - H1 ) * 60 + ( M2 - M1 ) ) * 60 + ( S2 - S1 ).
+
+
+
 
 % Timestamp section.
 
@@ -408,7 +446,7 @@ hours_to_seconds( HourDuration ) ->
 % Timestamp-related functions.
 
 
-% Returns a tipmestamp tuple describing the current time.
+% Returns a timestamp tuple describing the current time.
 %
 % Ex: { {Year,Month,Day}, {Hour,Minute,Second} } = time_utils:get_timestamp()
 % may return '{ {2007,9,6}, {15,9,14} }'.
@@ -424,6 +462,9 @@ get_timestamp() ->
 % Returns a string corresponding to the current timestamp, like:
 % "2009/9/1 11:46:53".
 %
+% Note that the display order here is YY-MM-DD (same as when specifying the
+% timestamp), as opposed to DD-MM-YY, which is maybe more usual.
+%
 -spec get_textual_timestamp() -> string().
 get_textual_timestamp() ->
 	get_textual_timestamp( get_timestamp() ).
@@ -434,9 +475,8 @@ get_textual_timestamp() ->
 %
 -spec get_textual_timestamp( timestamp() ) -> string().
 get_textual_timestamp( { { Year, Month, Day }, { Hour, Minute, Second } } ) ->
-	io_lib:format( "~p/~p/~p ~B:~2..0B:~2..0B",
+	io_lib:format( "~B/~B/~B ~B:~2..0B:~2..0B",
 				   [ Year, Month, Day, Hour, Minute, Second ] ).
-
 
 
 % Returns a string corresponding to the current timestamp and able to be a part

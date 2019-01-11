@@ -23,13 +23,13 @@
 % <http://www.mozilla.org/MPL/>.
 
 % Creation date: Tuesday, December 2, 2014
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 
-% Implementation of an hashtable based on the then newly-introduced standard
-% type: the map, supposedly the most efficient available implementation of an
-% associative table.
+% Implementation of an associative table based on the then newly-introduced
+% standard type: the map, supposedly the most efficient available implementation
+% of an associative table.
 %
 % See map_table_test.erl for the corresponding test.
 % See hashtable.erl for parent, base implementation.
@@ -62,7 +62,7 @@
 
 % Exact same API as the one of hashtable:
 %
--export([ new/0, new/1,
+-export([ new/0, new/1, new_from_unique_entries/1,
 		  addEntry/3, addEntries/2, addNewEntry/3, addNewEntries/2,
 		  updateEntry/3, updateEntries/2,
 		  removeEntry/2, removeExistingEntry/2,
@@ -73,14 +73,15 @@
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToExistingEntry/3, appendListToExistingEntry/3,
 		  appendToEntry/3, appendListToEntry/3,
-		  concatToEntry/3,
+		  concatToEntry/3, concatListToEntries/2,
 		  deleteFromEntry/3, deleteExistingFromEntry/3,
 		  popFromEntry/2,
 		  enumerate/1, selectEntries/2, keys/1, values/1,
-		  isEmpty/1, size/1, getEntryCount/1,
+		  isEmpty/1, size/1,
 		  map/2, mapOnEntries/2, mapOnValues/2,
 		  fold/3, foldOnEntries/3,
-		  merge/2, optimise/1, toString/1, toString/2, display/1, display/2 ]).
+		  merge/2, merge_unique/2, merge_unique/1,
+		  optimise/1, toString/1, toString/2, display/1, display/2 ]).
 
 
 
@@ -129,17 +130,46 @@ new() ->
 	#{}.
 
 
-
-% As map hashtables manage by themselves their size, no need to specify any
-% target size. This function is only defined so that we can transparently switch
-% APIs with the hashtable module.
+% Creates a new table.
+%
+% As map tables manage by themselves their size, no need to specify any target
+% size. This clause is only defined so that we can transparently switch APIs
+% with the other table modules.
 %
 -spec new( hashtable:entry_count() | hashtable:entries() ) -> map_hashtable().
 new( ExpectedNumberOfEntries ) when is_integer( ExpectedNumberOfEntries ) ->
 	#{};
 
+% If the same key appears more than once, the latter (right-most) value is used
+% and the previous values are ignored.
+%
 new( InitialEntries ) when is_list( InitialEntries ) ->
 	maps:from_list( InitialEntries ).
+
+
+% Creates a new table from specified list of key/values pairs, expecting no
+% duplicate in the keys, otherwise throwing an exception.
+%
+% Allows to safely load entries in a table without risking a silent overwrite of
+% any entry.
+%
+new_from_unique_entries( InitialEntries ) when is_list( InitialEntries ) ->
+
+	EntryCount = length( InitialEntries ),
+
+	Table = new( InitialEntries ),
+
+	case map_size( Table ) of
+
+		EntryCount ->
+			Table;
+
+		S ->
+			DupCount = EntryCount - S,
+			SortedEntries = lists:sort( InitialEntries ),
+			throw( { duplicate_keys_found, DupCount, SortedEntries } )
+
+	end.
 
 
 
@@ -158,7 +188,7 @@ new( InitialEntries ) when is_list( InitialEntries ) ->
 % be checked)
 %
 %
-% Note: in non-debug mode, these extra-checkings may be removed.
+% Note: in non-debug mode, these extra checkings may be removed.
 
 
 
@@ -185,8 +215,8 @@ addEntry( Key, Value, MapHashtable ) ->
 addEntries( EntryList, MapHashtable ) ->
 
 	lists:foldl( fun( { K, V }, Map ) ->
-						 %Map#{ K => V }
-						 maps:put( K, V, Map )
+					%Map#{ K => V }
+					maps:put( K, V, Map )
 				 end,
 				 _Acc0=MapHashtable,
 				 _List=EntryList ).
@@ -224,7 +254,7 @@ addNewEntry( Key, Value, MapHashtable ) ->
 addNewEntries( EntryList, MapHashtable ) ->
 
 	lists:foldl( fun( { K, V }, Map ) ->
-						 addNewEntry( K, V, Map )
+					addNewEntry( K, V, Map )
 				 end,
 				 _Acc0=MapHashtable,
 				 _List=EntryList ).
@@ -319,7 +349,7 @@ removeExistingEntry( Key, MapHashtable ) ->
 -spec removeEntries( [ key() ], map_hashtable() ) -> map_hashtable().
 removeEntries( Keys, MapHashtable ) ->
 	lists:foldl( fun( K, AccTable ) ->
-						 maps:remove( K, AccTable )
+					 maps:remove( K, AccTable )
 				 end,
 				 _InitAcc=MapHashtable,
 				 _List=Keys ).
@@ -336,7 +366,7 @@ removeEntries( Keys, MapHashtable ) ->
 -spec removeExistingEntries( [ key() ], map_hashtable() ) -> map_hashtable().
 removeExistingEntries( Keys, MapHashtable ) ->
 	lists:foldl( fun( K, AccTable ) ->
-						 removeExistingEntry( K, AccTable )
+					 removeExistingEntry( K, AccTable )
 				 end,
 				 _InitAcc=MapHashtable,
 				 _List=Keys ).
@@ -391,7 +421,7 @@ hasEntry( Key, MapHashtable ) ->
 % The key/value pair is expected to exist already, otherwise an exception
 % ({bad_key,Key}) is triggered.
 %
-% Note: could have been named as well getValue/2.
+% Note: could have been named as well getValue/2, which shall be preferred.
 %
 -spec getEntry( key(), map_hashtable() ) -> value().
 %getEntry( Key,  #{ Key := Value } ) ->
@@ -591,8 +621,8 @@ mapOnEntries( Fun, MapHashtable ) ->
 % contained in this hashtable.
 %
 % Allows to apply "in-place" an operation on all values without having to
-% enumerate the content of the hashtable and iterate on it (hence without having
-% to duplicate the whole content in memory).
+% enumerate the content of the hashtable, to iterate on it (hence without having
+% to duplicate the whole content in memory), and to recreate the table.
 %
 % Note: the keys are left as are, hence the structure of the hashtable does not
 % change.
@@ -756,6 +786,39 @@ merge( MapHashtableBase, MapHashtableAdd ) ->
 
 
 
+% Merges the two specified tables into one, expecting that their keys are unique
+% (i.e. that they do not intersect), otherwise throws an exception.
+%
+% Note: for an improved efficiency, ideally the smaller table shall be the first
+% one.
+%
+-spec merge_unique( map_hashtable(), map_hashtable() ) -> map_hashtable().
+merge_unique( FirstHashtable, SecondHashtable ) ->
+	FirstEntries = enumerate( FirstHashtable ),
+	addNewEntries( FirstEntries, SecondHashtable ).
+
+
+% Merges the all specified tables into one, expecting that their keys are unique
+% (i.e. that they do not intersect), otherwise throws an exception.
+%
+% Note: for an improved efficiency, ideally the tables shall be listed from the
+% smaller to the bigger.
+%
+-spec merge_unique( [ map_hashtable() ] ) -> map_hashtable().
+% (no empty list expected)
+merge_unique( _Tables=[ Table ] ) ->
+	Table;
+
+% To avoid recreating from scratch the first table:
+merge_unique( _Tables=[ HTable | T ] ) ->
+	lists:foldl( fun( Table, AccTable ) ->
+						 merge_unique( Table, AccTable )
+				 end,
+				 _Acc0=HTable,
+				 _List=T ).
+
+
+
 % Optimises this hashtable.
 %
 % A no-operation for map hashtables.
@@ -867,6 +930,28 @@ concatToEntry( Key, ListToConcat, MapHashtable ) when is_list( ListToConcat ) ->
 			addEntry( Key, ListToConcat ++ CurrentList, MapHashtable )
 
 	end.
+
+
+
+% Concatenes (on the left) specified lists to the values, supposed to be lists
+% as well, associated to specified keys, the input being thus a list of
+% key/list-value pairs.
+%
+% If a key does not already exist, it will be created and associated to the
+% specified list (as if beforehand the key was associated to an empty list)
+%
+% Ex: concatListToEntries( [ { hello, [ 1, 2 ] }, { world, [ 4 ] } ], MyTable ).
+%
+-spec concatListToEntries( list_table:list_table(), map_hashtable() ) ->
+								 map_hashtable().
+concatListToEntries( KeyListValuePairs, MapHashtable )
+  when is_list( KeyListValuePairs ) ->
+
+	lists:foldl( fun( { Key, ListToConcat }, AccTable ) ->
+					concatToEntry( Key, ListToConcat, AccTable )
+				 end,
+				 _Acc0=MapHashtable,
+				 _List=KeyListValuePairs ).
 
 
 
@@ -985,19 +1070,11 @@ isEmpty( _MapHashtable ) ->
 
 
 
-% Returns the size (number of entries) of this hashtable.
+% Returns the size (number of entries, i.e. of key/value pairs) of the specified
+% table.
 %
 -spec size( map_hashtable() ) -> hashtable:entry_count().
 size( MapHashtable ) ->
-	map_size( MapHashtable ).
-
-
-
-% Returns the number of entries (key/value pairs) stored in the specified map
-% hashtable.
-%
--spec getEntryCount( map_hashtable() ) -> hashtable:entry_count().
-getEntryCount( MapHashtable ) ->
 	map_size( MapHashtable ).
 
 
@@ -1032,7 +1109,7 @@ toString( MapHashtable, Bullet ) when is_list( Bullet ) ->
 						|| { K, V } <- lists:sort( L ) ],
 
 			% Flatten is needed, in order to use the result with ~s:
-			lists:flatten( io_lib:format( "table with ~B entry(ies):~s",
+			lists:flatten( io_lib:format( "table with ~B entry(ies): ~s",
 				[ map_size( MapHashtable ),
 				  text_utils:strings_to_string( Strings, Bullet ) ] ) )
 

@@ -1,13 +1,18 @@
 #!/bin/sh
 
-# Copyright (C) 2009-2015 Olivier Boudeville
+# Copyright (C) 2009-2018 Olivier Boudeville
 #
-# This file is part of the Ceylan Erlang library.
+# Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+#
+# This file is part of the Ceylan-Myriad library.
 
 
 USAGE="  Usage: $(basename $0) <RST FILE>
   Generates a PDF file from the specified RST file, overwriting any past file with that name.
   Ex: '$(basename $0) my_file.rst' will attempt to generate a new 'my_file.pdf' file."
+
+
+# Arch packages: do not forget 'pacman -S rubber python-pygments'.
 
 
 if [ "$1" = "-h" ] || [ -z "$1" ] ; then
@@ -28,7 +33,7 @@ fi
 
 
 #rule_file="$CEYLAN_SRC/doc/GNUmakerules-docutils.inc"
-rule_file="$(dirname $0)/GNUmakerules-docutils.inc"
+rule_file="$(dirname $0)/../../doc/GNUmakerules-docutils.inc"
 
 #echo "rule_file = ${rule_file}"
 

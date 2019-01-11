@@ -22,8 +22,8 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
-% Creation date: Sunday, February 4, 2018.
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: Sunday, February 4, 2018
 
 
 
@@ -161,11 +161,14 @@
 			   ast_variable_name/0, ast_variable_pattern/0 ]).
 
 
+% For types, we used to propagate through transformation calls only the two
+% local/remote type tables, yet it was not relevant enough: for example, when
+% tranforming a record type, a field may have a default value defined (ex:
+% table()), in which case we must be able to transform an expression as well.
+%
+% As a result, for types as well, we pass around the full transforms (i.e. the
+% full ast_transforms record).
 
-
-% Currently, the overall transform record is not propagated when transforming
-% types (only the two local/remote type tables are), this may change in the
-% future.
 
 
 
@@ -198,12 +201,13 @@
 		  check_type_variable/1, check_type_variable/2,
 		  check_type_variables/1, check_type_variables/2,
 
-		  check_ast_atom/1 ]).
+		  check_ast_atom/1, check_ast_atom/2 ]).
 
 
 % Transformations:
--export([ transform_types/2, transform_types_in_records/2,
-		  transform_type/3, transform_association_type/3,
+-export([ transform_type_table/2, transform_types_in_record_table/2,
+		  transform_types/2, transform_type/2,
+		  transform_association_type/2,
 		  transform_type_variable/3 ]).
 
 
@@ -223,17 +227,20 @@
 
 -type located_form() :: ast_info:located_form().
 
--type ast_variable() :: ast_type:ast_variable().
 -type type_table() :: ast_info:type_table().
 -type type_name() :: type_utils:type_name().
 
+
 -type record_table() :: ast_info:record_table().
+
 -type field_table() :: ast_info:field_table().
+-type field_pair() :: ast_record:field_pair().
 
 -type type_info() :: ast_info:type_info().
+-type type_pair() :: { type_utils:type_id(), type_info() }.
 
 -type record_definition() :: ast_info:record_definition().
-
+-type record_pair() :: ast_record:record_pair().
 
 -type ast_transforms() :: ast_transform:ast_transforms().
 
@@ -248,6 +255,15 @@
 % For the ast_transforms record:
 -include("ast_transform.hrl").
 
+% For the rec_guard define:
+-include("ast_utils.hrl").
+
+
+% Implementation notes:
+%
+% The use of lists:mapfoldl/3 should preferably be replaced by
+% ?table:mapOnValues/2.
+
 
 % Transformation section.
 
@@ -255,121 +271,199 @@
 % Transforms the types in specified type table, according to specified
 % transforms.
 %
--spec transform_types( type_table(), ast_transforms() ) -> type_table().
-transform_types( TypeTable, _Transforms=#ast_transforms{
-										   local_types=undefined,
-										   remote_types=undefined } ) ->
-	TypeTable;
-
-transform_types( TypeTable, _Transforms=#ast_transforms{
-										   local_types=MaybeLocalTypes,
-										   remote_types=MaybeRemoteTypes } ) ->
-
-	%ast_utils:display_debug( "Local type replacement table: ~s",
-	%	   [ ?table:toString( Replacements#ast_transforms.local_types ) ] ),
-
-	%ast_utils:display_debug( "Remote type replacement table: ~s",
-	%	   [ ?table:toString( Replacements#ast_transforms.remote_types ) ] ),
+-spec transform_type_table( type_table(), ast_transforms() ) ->
+								  { type_table(), ast_transforms() }.
+transform_type_table( TypeTable, Transforms ) ?rec_guard ->
 
 	% { type_id(), type_info() } pairs:
 	TypePairs = ?table:enumerate( TypeTable ),
 
-	NewTypePairs = [ { TypeId, transform_type_info( TypeInfo, MaybeLocalTypes,
-													MaybeRemoteTypes ) }
-					 || { TypeId, TypeInfo } <- TypePairs ],
+	{ NewTypePairs, NewTransforms } = lists:mapfoldl(
+			fun transform_type_info_pair/2, _Acc0=Transforms,
+			_List=TypePairs ),
 
-	?table:new( NewTypePairs ).
+	NewTypeTable = ?table:new( NewTypePairs ),
+
+	{ NewTypeTable, NewTransforms }.
+
+
+
+% Transforms specified function pair: { FunId, FunInfo }.
+%
+% Allows to keep around the function identifier, to recreate the function table
+% more easily.
+%
+-spec transform_type_info_pair( type_pair(), ast_transforms() ) ->
+									 { type_pair(), ast_transforms() }.
+transform_type_info_pair( { TypeId, TypeInfo }, Transforms ) ?rec_guard ->
+
+	{ NewTypeInfo, NewTransforms } =
+		transform_type_info( TypeInfo, Transforms ),
+
+	{ { TypeId, NewTypeInfo }, NewTransforms }.
 
 
 
 % (helper)
--spec transform_type_info( type_info(),
-		basic_utils:maybe( meta_utils:local_type_transform_table() ),
-		basic_utils:maybe( meta_utils:remote_type_transform_table() ) ) ->
-								 type_info().
+-spec transform_type_info( type_info(), ast_transforms() ) ->
+								 { type_info(), ast_transforms() }.
 transform_type_info( TypeInfo=#type_info{ definition=TypeDef },
-					 MaybeLocalTypes, MaybeRemoteTypes ) ->
+					 Transforms ) ?rec_guard ->
 
-	NewTypeDef = transform_type( TypeDef, MaybeLocalTypes, MaybeRemoteTypes ),
+	{ NewTypeDef, NewTransforms } = transform_type( TypeDef, Transforms ),
 
-	TypeInfo#type_info{ definition=NewTypeDef }.
+	NewTypeInfo = TypeInfo#type_info{ definition=NewTypeDef },
+
+	{ NewTypeInfo, NewTransforms }.
 
 
 
 % Transforms the types in specified record table, according to specified
 % transforms.
 %
--spec transform_types_in_records( record_table(), ast_transforms() ) ->
-										record_table().
-transform_types_in_records( RecordTable, _Transforms=#ast_transforms{
-											 local_types=undefined,
-											 remote_types=undefined } ) ->
-	RecordTable;
-
-
-transform_types_in_records( RecordTable, _Transforms=#ast_transforms{
-										   local_types=MaybeLocalTypes,
-										   remote_types=MaybeRemoteTypes } ) ->
+-spec transform_types_in_record_table( record_table(), ast_transforms() ) ->
+										{ record_table(), ast_transforms() }.
+transform_types_in_record_table( RecordTable, Transforms ) ?rec_guard ->
 
 	% { record_name(), record_definition() } pairs:
 	RecordPairs = ?table:enumerate( RecordTable ),
 
-	NewRecordPairs = [ { RecordName, transform_record_definition( RecordDef,
-									MaybeLocalTypes, MaybeRemoteTypes ) }
-					   || { RecordName, RecordDef } <- RecordPairs ],
+	{ NewRecordPairs, NewTransforms } = lists:mapfoldl(
+			fun transform_record_pair/2, _Acc0=Transforms,
+			_List=RecordPairs ),
 
-	?table:new( NewRecordPairs ).
+	NewRecordTable = ?table:new( NewRecordPairs ),
+
+	{ NewRecordTable, NewTransforms }.
+
+
+
+% Transforms specified record pair: { RecordName, RecordDef }.
+%
+% Allows to keep around the record name, to recreate the record table more
+% easily.
+%
+-spec transform_record_pair( record_pair(), ast_transforms() ) ->
+									 { record_pair(), ast_transforms() }.
+transform_record_pair( { RecordName, RecordDef }, Transforms ) ?rec_guard ->
+
+	%ast_utils:display_trace( "transforming definition of record '~s'.",
+	%						 [ RecordName ] ),
+
+	{ NewRecordDef, NewTransforms } =
+		transform_record_definition( RecordDef, Transforms ),
+
+	%ast_utils:display_trace( "transformed definition of record '~s' to:~n~p.",
+	%						 [ RecordName, NewRecordDef ] ),
+
+	{ { RecordName, NewRecordDef }, NewTransforms }.
 
 
 
 % (helper)
--spec transform_record_definition( record_definition(),
-		basic_utils:maybe( meta_utils:local_record_transform_table() ),
-		basic_utils:maybe( meta_utils:remote_record_transform_table() ) ) ->
-										 record_definition().
+-spec transform_record_definition( record_definition(), ast_transforms() ) ->
+									{ record_definition(), ast_transforms() }.
 transform_record_definition( _RecordDef={ FieldTable, Loc, Line },
-							 MaybeLocalTypes, MaybeRemoteTypes ) ->
+							 Transforms ) ?rec_guard ->
 
-	NewFieldTable = transform_field_table( FieldTable, MaybeLocalTypes,
-										   MaybeRemoteTypes ),
+	{ NewFieldTable, NewTransforms } =
+		transform_field_table( FieldTable, Transforms ),
 
-	{ NewFieldTable, Loc, Line }.
+	NewRecordDef = { NewFieldTable, Loc, Line },
 
-
-
-% (helper)
--spec transform_field_table( field_table(),
-		basic_utils:maybe( meta_utils:local_record_transform_table() ),
-		basic_utils:maybe( meta_utils:remote_record_transform_table() ) ) ->
-								   field_table().
-transform_field_table( FieldTable, _MaybeLocalTypes=undefined,
-					   _MaybeRemoteTypes=undefined ) ->
-	FieldTable;
-
-transform_field_table( FieldTable, MaybeLocalTypes, MaybeRemoteTypes ) ->
-
-	FieldPairs = ?table:enumerate( FieldTable ),
-
-	NewFieldPairs = [ { FieldName, transform_field_definition( FieldDef,
-									MaybeLocalTypes, MaybeRemoteTypes ) }
-					   || { FieldName, FieldDef } <- FieldPairs ],
-
-	?table:new( NewFieldPairs ).
+	{ NewRecordDef, NewTransforms }.
 
 
 
 % (helper)
-transform_field_definition( FieldDef={ _AstType=undefined, _MaybeAstValue },
-							_MaybeLocalTypes, _MaybeRemoteTypes ) ->
-	FieldDef;
+-spec transform_field_table( field_table(), ast_transforms() ) ->
+								   { field_table(), ast_transforms() }.
+transform_field_table( FieldTable, Transforms ) ?rec_guard ->
 
-transform_field_definition( _FieldDef={ AstType, MaybeAstValue },
-							MaybeLocalTypes, MaybeRemoteTypes ) ->
+	% Is already a list directly (no key/value pairs to preserve here):
+	lists:mapfoldl( fun transform_field_pair/2, _Acc0=Transforms,
+					_List=FieldTable ).
 
-	NewAstType = transform_type( AstType, MaybeLocalTypes, MaybeRemoteTypes ),
 
-	{ NewAstType, MaybeAstValue }.
 
+% Transforms specified field pair: { FieldName, FieldInfo }.
+%
+% Allows to keep around the field name, to recreate the field table more easily.
+%
+-spec transform_field_pair( field_pair(), ast_transforms() ) ->
+								  { field_pair(), ast_transforms() }.
+transform_field_pair( { FieldName, FieldDef }, Transforms ) ?rec_guard ->
+
+	{ NewFieldDef, NewTransforms } =
+		transform_field_definition( FieldDef, Transforms ),
+
+	{ { FieldName, NewFieldDef }, NewTransforms }.
+
+
+
+% (helper)
+transform_field_definition( FieldDef={ _AstType=undefined, _AstValue=undefined,
+									   _FirstLine, _SecondLine },
+							Transforms ) ->
+
+	%ast_utils:display_debug( "Field definition (clause #1):~n  ~p",
+	%						  [ FieldDef ] ),
+
+	{ FieldDef, Transforms };
+
+
+transform_field_definition( _FieldDef={ _AstType=undefined, AstValue,
+										FirstLine, SecondLine },
+							Transforms ) ->
+
+	%ast_utils:display_debug( "Field definition (clause #2):~n  ~p",
+	%						 [ FieldDef ] ),
+
+	{ [ NewAstValue ], NewTransforms } =
+		ast_expression:transform_expression( AstValue, Transforms ),
+
+	NewFieldDef = { undefined, NewAstValue, FirstLine, SecondLine },
+
+	{ NewFieldDef, NewTransforms };
+
+
+transform_field_definition( _FieldDef={ AstType, _AstValue=undefined, FirstLine,
+										SecondLine }, Transforms ) ->
+
+	%ast_utils:display_debug( "Field definition (clause #3):~n  ~p",
+	%						 [ FieldDef ] ),
+
+	{ NewAstType, NewTransforms } = transform_type( AstType, Transforms ),
+
+	NewFieldDef = { NewAstType, undefined, FirstLine, SecondLine },
+
+	{ NewFieldDef, NewTransforms };
+
+
+transform_field_definition(
+  _FieldDef={ AstType, AstValue, FirstLine, SecondLine }, Transforms ) ->
+
+	%ast_utils:display_debug( "Field definition (clause #4):~n  ~p",
+	%						 [ FieldDef ] ),
+
+	{ NewAstType, TypeTransforms } = transform_type( AstType, Transforms ),
+
+	{ [ NewAstValue ], ExprTransforms } =
+		ast_expression:transform_expression( AstValue, TypeTransforms ),
+
+	FieldDef = { NewAstType, NewAstValue, FirstLine, SecondLine },
+
+	{ FieldDef, ExprTransforms }.
+
+
+
+% Transforms specified list of types.
+%
+-spec transform_types( [ ast_type() ], ast_transforms() ) ->
+							 { [ ast_type() ], ast_transforms() }.
+transform_types( Types, Transforms ) ->
+	% Is already a list directly (no key/value pairs to preserve here):
+	lists:mapfoldl( fun transform_type/2, _Acc0=Transforms, _List=Types ).
 
 
 
@@ -381,7 +475,7 @@ transform_field_definition( _FieldDef={ AstType, MaybeAstValue },
 % still getting inspiration from its section 7.7.
 %
 % We currently consider that all type definitions correspond to an
-% ast_utils:ast_type(), i.e. one of:
+% ast_type(), i.e. one of:
 %
 % - ast_utils:ast_builtin_type(): { type, Line, TypeName, TypeVars },
 % where TypeVars are often (not always) a list; ex: {type,LINE,union,[Rep(T_1),
@@ -403,10 +497,8 @@ transform_field_definition( _FieldDef={ AstType, MaybeAstValue },
 %
 % (helper)
 %
--spec transform_type( ast_utils:ast_type(),
-		basic_utils:maybe( meta_utils:local_type_transform_table() ),
-		basic_utils:maybe( meta_utils:remote_type_transform_table() ) ) ->
-						   ast_utils:ast_type().
+-spec transform_type( ast_type(), ast_transforms() ) ->
+							{ ast_type(), ast_transforms() }.
 
 % Handling tuples:
 
@@ -416,24 +508,26 @@ transform_field_definition( _FieldDef={ AstType, MaybeAstValue },
 % "If T is a tuple type {T_1, ..., T_k}, then
 % Rep(T) = {type,LINE,tuple,[Rep(T_1), ..., Rep(T_k)]}."
 %
-transform_type( _TypeDef={ 'type', Line, 'tuple', ElementTypes },
-				LocalTransformTable, RemoteTransformTable )
+transform_type( _TypeDef={ 'type', Line, 'tuple', ElementTypes }, Transforms )
   when is_list( ElementTypes ) ->
-	{ type, Line, tuple,
-	  [ transform_type( Elem, LocalTransformTable, RemoteTransformTable )
-		|| Elem <- ElementTypes ] };
+
+	% Is already a list directly (no key/value pairs to preserve here):
+	{ NewElementTypes, NewTransforms } = lists:mapfoldl( fun transform_type/2,
+					  _Acc0=Transforms, _List=ElementTypes ),
+
+	NewTypeDef = { 'type', Line, 'tuple', NewElementTypes },
+
+	{ NewTypeDef, NewTransforms };
 
 
 % General tuple type found (i.e. tuple()):
 %
 % "If T is a tuple type tuple(), then Rep(T) = {type,LINE,tuple,any}."
 %
-transform_type( TypeDef={ 'type', _Line, 'tuple', 'any' }, _LocalTransformTable,
-				_RemoteTransformTable ) ->
-	TypeDef;
+transform_type( TypeDef={ 'type', _Line, 'tuple', 'any' }, Transforms ) ->
+	{ TypeDef, Transforms };
 
-transform_type( TypeDef={ 'type', Line, 'tuple', _Any }, _LocalTransformTable,
-				_RemoteTransformTable ) ->
+transform_type( TypeDef={ 'type', Line, 'tuple', _Any }, _Transforms ) ->
 	ast_utils:raise_error( [ unexpected_typedef_tuple_form, TypeDef ],
 						   _Context=Line );
 
@@ -450,12 +544,14 @@ transform_type( TypeDef={ 'type', Line, 'tuple', _Any }, _LocalTransformTable,
 % "If T is a list of elements of type A, then Rep(T) = {type,LINE,list,Rep(A)}."
 %
 transform_type( _TypeDef={ 'type', Line, 'list', [ ElementType ] },
-				LocalTransformTable, RemoteTransformTable ) ->
+				Transforms ) ->
 
-	NewElementType = transform_type( ElementType, LocalTransformTable,
-								RemoteTransformTable ),
+	{ NewElementType, NewTransforms } =
+		transform_type( ElementType, Transforms ),
 
-	{ type, Line, list, [ NewElementType ] };
+	NewTypeDef = { 'type', Line, 'list', [ NewElementType ] },
+
+	{ NewTypeDef, NewTransforms };
 
 
 % General list type found (i.e. list()):
@@ -464,19 +560,16 @@ transform_type( _TypeDef={ 'type', Line, 'list', [ ElementType ] },
 %
 % "If T is a list type list(), then Rep(T) = {type,LINE,list,any}."
 %
-transform_type( TypeDef={ 'type', _Line, 'list', 'any' }, _LocalTransformTable,
-		   _RemoteTransformTable ) ->
-	TypeDef;
+transform_type( TypeDef={ 'type', _Line, 'list', 'any' }, Transforms ) ->
+	{ TypeDef, Transforms };
 
 
 % Yes, at least in some cases list() may be translated as {type,LINE,list,[]}:
-transform_type( TypeDef={ 'type', _Line, 'list', [] }, _LocalTransformTable,
-		   _RemoteTransformTable ) ->
-	TypeDef;
+transform_type( TypeDef={ 'type', _Line, 'list', [] }, Transforms ) ->
+	{ TypeDef, Transforms };
 
 
-transform_type( TypeDef={ 'type', _Line, 'list', _Any }, _LocalTransformTable,
-				_RemoteTransformTable ) ->
+transform_type( TypeDef={ 'type', _Line, 'list', _Any }, _Transforms ) ->
 	ast_utils:raise_error( [ unexpected_typedef_list_form, TypeDef ] );
 
 
@@ -484,9 +577,8 @@ transform_type( TypeDef={ 'type', _Line, 'list', _Any }, _LocalTransformTable,
 %
 % "If T is the empty list type [], then Rep(T) = {type,Line,nil,[]}"
 %
-transform_type( TypeDef={ 'type', _Line, 'nil', [] }, _LocalTransformTable,
-				_RemoteTransformTable ) ->
-	TypeDef;
+transform_type( TypeDef={ 'type', _Line, 'nil', [] }, Transforms ) ->
+	{ TypeDef, Transforms };
 
 
 
@@ -495,8 +587,7 @@ transform_type( TypeDef={ 'type', _Line, 'nil', [] }, _LocalTransformTable,
 % "If T is a bitstring type <<_:M,_:_*N>>, where M and N are singleton integer
 % types, then Rep(T) = {type,LINE,binary,[Rep(M),Rep(N)]}."
 %
-transform_type( _TypeDef={ 'type', Line, 'binary', [ M, N ] },
-				LocalTransformTable, RemoteTransformTable ) ->
+transform_type( _TypeDef={ 'type', Line, 'binary', [ M, N ] }, Transforms ) ->
 
 	% To be removed once ever seen displayed:
 	%ast_utils:display_warning( "Not transforming binary elements ~p and ~p.",
@@ -504,19 +595,20 @@ transform_type( _TypeDef={ 'type', Line, 'binary', [ M, N ] },
 
 	% Finally transformed, as managed in erl_id_trans:
 
-	NewM = transform_type( M, LocalTransformTable, RemoteTransformTable ),
+	{ NewM, MTransforms } = transform_type( M, Transforms ),
 
-	NewN = transform_type( N, LocalTransformTable, RemoteTransformTable ),
+	{ NewN, NTransforms } = transform_type( N, MTransforms ),
 
-	{ type, Line, binary, [ NewM, NewN ] };
+	TypeDef = { 'type', Line, 'binary', [ NewM, NewN ] },
+
+	{ TypeDef, NTransforms };
 
 
 
 % "If T is an integer range type L .. H, where L and H are singleton integer
 % types, then Rep(T) = {type,LINE,range,[Rep(L),Rep(H)]}."
 %
-transform_type( _TypeDef={ 'type', Line, 'range', [ L, H ] },
-				LocalTransformTable, RemoteTransformTable ) ->
+transform_type( _TypeDef={ 'type', Line, 'range', [ L, H ] }, Transforms ) ->
 
 	% To be removed once ever seen displayed:
 	%ast_utils:display_warning( "Not transforming range bound ~p and ~p.",
@@ -524,32 +616,36 @@ transform_type( _TypeDef={ 'type', Line, 'range', [ L, H ] },
 
 	% Finally transformed, as managed in erl_id_trans:
 
-	NewL = transform_type( L, LocalTransformTable, RemoteTransformTable ),
+	{ NewL, LTransforms } = transform_type( L, Transforms ),
 
-	NewH = transform_type( H, LocalTransformTable, RemoteTransformTable ),
+	{ NewH, HTransforms } = transform_type( H, LTransforms ),
 
-	{ type, Line, range, [ NewL, NewH ] };
+	NewTypeDef = { 'type', Line, 'range', [ NewL, NewH ] },
+
+	{ NewTypeDef, HTransforms };
 
 
 % Handling maps:
 
 % "If T is a map type map(), then Rep(T) = {type,LINE,map,any}."
 %
-transform_type( TypeDef={ 'type', _Line, 'map', 'any' }, _LocalTransformTable,
-				_RemoteTransformTable ) ->
-	TypeDef;
+transform_type( TypeDef={ 'type', _Line, 'map', 'any' }, Transforms ) ->
+	{ TypeDef, Transforms };
 
 
 % "If T is a map type #{A_1, ..., A_k}, where each A_i is an association type,
 % then Rep(T) = {type,LINE,map,[Rep(A_1), ..., Rep(A_k)]}."
 %
 transform_type( _TypeDef={ 'type', Line, 'map', AssocTypes },
-				LocalTransformTable, RemoteTransformTable ) ->
+				Transforms ) ->
 
-	NewAssocTypes = [ transform_association_type( T, LocalTransformTable,
-						RemoteTransformTable ) || T <- AssocTypes ],
+	% Is already a list directly (no key/value pairs to preserve here):
+	{ NewAssocTypes, NewTransforms } = lists:mapfoldl(
+		fun transform_association_type/2, _Acc0=Transforms, _List=AssocTypes ),
 
-	{ type, Line, map, NewAssocTypes };
+	NewTypeDef = { 'type', Line, 'map', NewAssocTypes },
+
+	{ NewTypeDef, NewTransforms };
 
 
 
@@ -557,23 +653,31 @@ transform_type( _TypeDef={ 'type', Line, 'map', AssocTypes },
 
 
 % "If T is a fun type fun(), then Rep(T) = {type,LINE,'fun',[]}."
-transform_type( TypeDef={ 'type', _Line, 'fun', [] }, _LocalTransformTable,
-				_RemoteTransformTable ) ->
-	TypeDef;
+transform_type( TypeDef={ 'type', _Line, 'fun', [] }, Transforms ) ->
+	{ TypeDef, Transforms };
 
 
 % "If T is a fun type fun((...) -> T_0), then Rep(T) =
 % {type,LINE,'fun',[{type,LINE,any},Rep(T_0)]}."
 %
 transform_type( _TypeDef={ 'type', Line1, 'fun',
-						   [ Any={ 'type', _Line2, 'any' }, ResultType ] },
-				LocalTransformTable, RemoteTransformTable ) ->
+						   [ Any={ 'type', _Line2, 'any' } ], ResultType },
+				Transforms ) ->
 
-	NewResultType = transform_type( ResultType, LocalTransformTable,
-								   RemoteTransformTable ),
+	{ NewResultType, NewTransforms } = transform_type( ResultType, Transforms ),
 
-	{ type, Line1, 'fun', [ Any, NewResultType ] };
+	NewTypeDef = { 'type', Line1, 'fun', [ Any, NewResultType ] },
 
+	{ NewTypeDef, NewTransforms };
+
+
+% "If T is a fun type fun(Ft), where Ft is a function type, then Rep(T) =
+% Rep(Ft)."
+%
+% ParamsResult corresponds to any [ Params, ResultType ]:
+%
+transform_type( TypeDef={ 'type', _Line, 'fun', _ParamsResult }, Transforms ) ->
+	ast_function:transform_function_type( TypeDef, Transforms );
 
 
 % Handling union types:
@@ -582,31 +686,34 @@ transform_type( _TypeDef={ 'type', Line1, 'fun',
 % {type,LINE,union,[Rep(T_1), ..., Rep(T_k)]}."
 %
 transform_type( _TypeDef={ 'type', Line, 'union', UnifiedTypes },
-				LocalTransformTable, RemoteTransformTable ) ->
+				Transforms ) ->
 
-	NewUnifiedTypes = [ transform_type( T, LocalTransformTable,
-									   RemoteTransformTable )
-						|| T <- UnifiedTypes ],
+	% Is already a list directly (no key/value pairs to preserve here):
+	{ NewUnifiedTypes, NewTransforms } = lists:mapfoldl(
+		fun transform_type/2, _Acc0=Transforms, _List=UnifiedTypes ),
 
-	{ type, Line, union, NewUnifiedTypes };
+	NewTypeDef = { 'type', Line, 'union', NewUnifiedTypes },
+
+	{ NewTypeDef, NewTransforms };
 
 
 % Simple built-in type, like 'boolean()', translating in '{ type, 57, boolean,
 % [] }':
 %
 transform_type( TypeDef={ 'type', _Line, BuiltinType, _TypeVars=[] },
-				_LocalTransformTable, _RemoteTransformTable ) ->
+				Transforms ) ->
 
-	case lists:member( BuiltinType, type_utils:get_immediate_types() ) of
+	case lists:member( BuiltinType,
+					   type_utils:get_ast_simple_builtin_types() ) of
 
 		true ->
-			TypeDef;
+			{ TypeDef, Transforms };
 
 		false ->
-			ast_utils:display_warning( "Not expecting type '~s', assuming "
-									   "simple builtin type (in ~p).",
-									   [ BuiltinType, TypeDef ] ),
-			TypeDef
+			ast_utils:display_warning( "Not expecting type '~s' "
+				"(in ast_type:transform_type/3), assuming simple builtin type, "
+				"in:~n  ~p", [ BuiltinType, TypeDef ] ),
+			{ TypeDef, Transforms }
 
 	end;
 
@@ -619,50 +726,56 @@ transform_type( TypeDef={ 'type', _Line, BuiltinType, _TypeVars=[] },
 %
 transform_type( _TypeDef={ 'type', Line, 'record',
 				   _TypeVars=[ N={ atom, _LineT, _RecordName } | FieldTypes ] },
-				LocalTransformTable, RemoteTransformTable ) ->
+				Transforms ) ->
 
-	NewFieldTypes = [ transform_field_type( FT, LocalTransformTable,
-							RemoteTransformTable ) || FT <- FieldTypes ],
+	% Is already a list directly (no key/value pairs to preserve here):
+	{ NewFieldTypes, NewTransforms } = lists:mapfoldl(
+		fun transform_field_type/2, _Acc0=Transforms,
+		_List=FieldTypes ),
 
-	{ type, Line, record, [ N, NewFieldTypes ] };
+	NewTypeDef = { 'type', Line, 'record', [ N | NewFieldTypes ] },
+
+	{ NewTypeDef, NewTransforms };
 
 
 % Known other built-in types (catch-all for all remaining 'type'):
 %
 %
 transform_type( TypeDef={ 'type', Line, BuiltinType, TypeVars },
-				LocalTransformTable, RemoteTransformTable )
-  when is_list( TypeVars ) ->
+				Transforms ) when is_list( TypeVars ) ->
 
 	ast_utils:display_warning( "Not expecting type '~s', assuming unknown "
-							   "parametrized builtin type (in ~p).",
+							   "parametrized builtin type, in:~n  ~p",
 							   [ BuiltinType, TypeDef ] ),
 
-	NewTypeVars = [ transform_type( T, LocalTransformTable,
-							   RemoteTransformTable ) || T <- TypeVars ],
+	% Is already a list directly (no key/value pairs to preserve here):
+	{ NewTypeVars, NewTransforms } = lists:mapfoldl(
+		 fun transform_type/2, _Acc0=Transforms, _List=TypeVars ),
 
-	{ type, Line, BuiltinType, NewTypeVars };
+	NewTypeDef = { 'type', Line, BuiltinType, NewTypeVars },
+
+	{ NewTypeDef, NewTransforms };
 
 
 
-
-% Handling user type (necessary a local one):
+% Handling user type (necessarily a local one):
 
 
 transform_type( _TypeDef={ 'user_type', Line, TypeName, TypeVars },
-				LocalTransformTable, RemoteTransformTable ) ->
+			Transforms=#ast_transforms{ local_types=LocalTransformTable } ) ->
+
+	% Is already a list directly (no key/value pairs to preserve here):
+	{ NewTypeVars, NewTransforms } = lists:mapfoldl( fun transform_type/2,
+					 _Acc0=Transforms, _List=TypeVars ),
 
 	TypeArity = length( TypeVars ),
 
-	NewTypeVars = [ transform_type( T, LocalTransformTable,
-							   RemoteTransformTable ) || T <- TypeVars ],
-
 	% Note: no user-to-local type rewriting deemed useful.
 
-	Outcome = case LocalTransformTable of
+	{ Outcome, LocalTransforms } = case LocalTransformTable of
 
 		undefined ->
-			unchanged;
+			{ unchanged, NewTransforms };
 
 		_ ->
 
@@ -672,7 +785,7 @@ transform_type( _TypeDef={ 'user_type', Line, TypeName, TypeVars },
 
 				% Module *and* type overridden:
 				{ value, E={ _NewModuleName, _NewTypeName } } ->
-					E;
+					{ E, NewTransforms };
 
 				% Same type, only module overridden:
 				% (never happens, as module always specified in table)
@@ -680,7 +793,8 @@ transform_type( _TypeDef={ 'user_type', Line, TypeName, TypeVars },
 				%	{ NewModuleName, TypeName };
 
 				{ value, TransformFun } when is_function( TransformFun ) ->
-					TransformFun( TypeName, TypeArity );
+					transform_local_type_with_fun( TransformFun, TypeName,
+												   TypeArity, NewTransforms );
 
 				key_not_found ->
 
@@ -689,22 +803,23 @@ transform_type( _TypeDef={ 'user_type', Line, TypeName, TypeVars },
 											 LocalTransformTable ) of
 
 						{ value, E={ _NewModuleName, _NewTypeName } } ->
-							E;
+							{ E, NewTransforms };
 
 						% Same type, only module overridden:
 						% (was commented-out out, but may happen?)
 						%
 						{ value, NewModuleName }
 						  when is_atom( NewModuleName ) ->
-							{ NewModuleName, TypeName };
+							{ { NewModuleName, TypeName }, NewTransforms };
 
 						{ value, TransformFun }
 						  when is_function( TransformFun ) ->
-							TransformFun( TypeName, TypeArity );
+							transform_local_type_with_fun( TransformFun,
+									TypeName, TypeArity, NewTransforms );
 
 						key_not_found ->
 							% Nope, let it as it is:
-							unchanged
+							{ unchanged, NewTransforms }
 
 					end
 
@@ -712,16 +827,18 @@ transform_type( _TypeDef={ 'user_type', Line, TypeName, TypeVars },
 
 	end,
 
-	case Outcome of
+	NewTypeDef = case Outcome of
 
 		unchanged ->
 			% TypeDef with only updated TypeVars:
-			{ user_type, Line, TypeName, NewTypeVars };
+			{ 'user_type', Line, TypeName, NewTypeVars };
 
 		{ SetModuleName, SetTypeName } ->
 			forge_remote_type( SetModuleName, SetTypeName, NewTypeVars, Line )
 
-	end;
+	end,
+
+	{ NewTypeDef, LocalTransforms };
 
 
 
@@ -737,18 +854,20 @@ transform_type( _TypeDef={ 'user_type', Line, TypeName, TypeVars },
 transform_type( _TypeDef={ 'remote_type', Line,
 						 [ M={ atom, LineM, ModuleName },
 						   T={ atom, LineT, TypeName }, TypeVars ] },
-		   LocalTransformTable, RemoteTransformTable ) ->
+				Transforms=#ast_transforms{
+							  remote_types=RemoteTransformTable } ) ->
 
-	NewTypeVars = [ transform_type( TypeVar, LocalTransformTable,
-							   RemoteTransformTable ) || TypeVar <- TypeVars ],
+	% Is already a list directly (no key/value pairs to preserve here):
+	{ NewTypeVars, NewTransforms } = lists:mapfoldl(
+		  fun transform_type/2, _Acc0=Transforms, _List=TypeVars ),
 
 	TypeArity = length( TypeVars ),
 
 	% Returning the new type information:
-	Outcome = case RemoteTransformTable of
+	{ Outcome, RemoteTransforms } = case RemoteTransformTable of
 
 		undefined ->
-			unchanged;
+			{ unchanged, NewTransforms };
 
 		_ ->
 
@@ -757,14 +876,15 @@ transform_type( _TypeDef={ 'remote_type', Line,
 
 				 % Module *and* type overridden:
 				{ value, E={ _NewModuleName, _NewTypeName } } ->
-					E;
+					{ E, NewTransforms };
 
 				 % Same type; only the module is overridden:
 				{ value, NewModuleName } when is_atom( NewModuleName ) ->
-					{ NewModuleName, TypeName };
+					{ { NewModuleName, TypeName }, NewTransforms };
 
 				{ value, TransformFun } when is_function( TransformFun ) ->
-					TransformFun( ModuleName, TypeName, TypeArity );
+					transform_remote_type_with_fun( TransformFun, ModuleName,
+									  TypeName, TypeArity, NewTransforms );
 
 				key_not_found ->
 
@@ -776,7 +896,7 @@ transform_type( _TypeDef={ 'remote_type', Line,
 											 RemoteTransformTable ) of
 
 						{ value, E={ _NewModuleName, _NewTypeName } } ->
-							E;
+							{ E, NewTransforms };
 
 						 % Same type, only module overridden (never happens by
 						 % design):
@@ -786,30 +906,34 @@ transform_type( _TypeDef={ 'remote_type', Line,
 
 						{ value, TransformFun }
 						  when is_function( TransformFun ) ->
-							TransformFun( ModuleName, TypeName, TypeArity );
+							transform_remote_type_with_fun( TransformFun,
+							  ModuleName, TypeName, TypeArity, NewTransforms );
 
 						key_not_found ->
 
 							% Nope; maybe a wildcard type (and arity) then?
-							case ?table:lookupEntry( { ModuleName, _AnyType='_',
-										 AnyArity }, RemoteTransformTable ) of
+							case ?table:lookupEntry(
+									{ ModuleName, _AnyType='_', AnyArity },
+									RemoteTransformTable ) of
 
 								{ value, E={ _NewModuleName, _NewTypeName } } ->
-									E;
+									{ E, NewTransforms };
 
 								% Same type, only module overridden:
 								{ value, NewModuleName }
 								  when is_atom( NewModuleName ) ->
-									{ NewModuleName, TypeName };
+									{ { NewModuleName, TypeName },
+									  NewTransforms };
 
 								{ value, TransformFun }
 								  when is_function( TransformFun ) ->
-									TransformFun( ModuleName, TypeName,
-												  TypeArity );
+									transform_remote_type_with_fun(
+									  TransformFun, ModuleName, TypeName,
+									  TypeArity, NewTransforms );
 
 								key_not_found ->
 									% Nope, let it as it is:
-									unchanged
+									{ unchanged, NewTransforms }
 
 							end
 
@@ -819,47 +943,56 @@ transform_type( _TypeDef={ 'remote_type', Line,
 
 	end,
 
-	case Outcome of
+	NewTypeDef = case Outcome of
 
 		unchanged ->
 			% TypeDef with updated TypeVars:
-			{ remote_type, Line, [ M, T, NewTypeVars ] };
+			{ 'remote_type', Line, [ M, T, NewTypeVars ] };
 
 		{ SetModuleName, SetTypeName } ->
 			forge_remote_type( SetModuleName, SetTypeName, NewTypeVars, Line,
 							   LineM, LineT )
 
-	end;
+	end,
+
+	{ NewTypeDef, RemoteTransforms };
+
 
 
 % Second, the case where at least either the module or the type name is not
 % immediate:
 %
 transform_type( _TypeDef={ 'remote_type', Line1, [ Mod, Typ, TypeVars ] },
-				LocalTransformTable, RemoteTransformTable ) ->
+				Transforms ) ->
 
 	% Wondering what these could be:
-	ast_utils:display_debug( "Transforming a remote type whose module and type "
-							 "information are ~p and ~p.", [ Mod, Typ ] ),
+	%ast_utils:display_debug( "Transforming a remote type whose module and "
+	%						 "type information are ~p and ~p.", [ Mod, Typ ] ),
 
-	[ NewMod, NewTyp ] = [ transform_type( T, LocalTransformTable,
-							   RemoteTransformTable ) || T <- [ Mod, Typ ] ],
+	{ NewMod, ModTransforms } = transform_type( Mod, Transforms ),
 
-	NewTypeVars = [ transform_type( T, LocalTransformTable,
-								   RemoteTransformTable ) || T <- TypeVars ],
+	{ NewTyp, TypTransforms } = transform_type( Typ, ModTransforms ),
 
-	{ remote_type, Line1, [ NewMod, NewTyp, NewTypeVars ] };
+	% Is already a list directly (no key/value pairs to preserve here):
+	{ NewTypeVars, NewTransforms } = lists:mapfoldl(
+		  fun transform_type/2, _Acc0=TypTransforms, _List=TypeVars ),
+
+	NewTypeDef = { 'remote_type', Line1, [ NewMod, NewTyp, NewTypeVars ] },
+
+	{ NewTypeDef, NewTransforms };
+
 
 
 % Variable declaration, possibly obtained through declarations like:
 % -type my_type( T ) :: other_type( T ).
 % or:
 % -opaque tree( T ) :: { T, [ tree(T) ] }.
-transform_type( TypeDef={ 'var', _Line, _TypeName }, _LocalTransformTable,
-				_RemoteTransformTable ) ->
+transform_type( TypeDef={ 'var', _Line, _TypeName }, Transforms ) ->
 
 	%NewVar = transform_type_variable( TypeName, Line, SomeTransform ),
-	TypeDef;
+
+	{ TypeDef, Transforms };
+
 
 
 % Annotated type, most probably obtained from the field of a record like:
@@ -876,15 +1009,17 @@ transform_type( TypeDef={ 'var', _Line, _TypeName }, _LocalTransformTable,
 transform_type( _TypeDef={ 'ann_type', Line,
 					  [ Var={ 'var', _Line2, _VariableName },
 						InternalTypeDef ] },
-				LocalTransformTable, RemoteTransformTable ) ->
+				Transforms ) ->
 
 	%NewVar = transform_type_variable( VariableName, Line2, _SomeTransform ),
 	NewVar = Var,
 
-	NewInternalTypeDef = transform_type( InternalTypeDef, LocalTransformTable,
-										 RemoteTransformTable ),
+	{ NewInternalTypeDef, NewTransforms } =
+		transform_type( InternalTypeDef, Transforms ),
 
-	{ ann_type, Line, [ NewVar, NewInternalTypeDef ] };
+	NewTypeDef = { 'ann_type', Line, [ NewVar, NewInternalTypeDef ] },
+
+	{ NewTypeDef, NewTransforms };
 
 
 
@@ -895,15 +1030,16 @@ transform_type( _TypeDef={ 'ann_type', Line,
 % time), then Rep(T) = {op,LINE,Op,Rep(T_1),Rep(T_2)}."
 %
 transform_type( _TypeDef={ 'op', Line, Operator, LeftType, RightType },
-				LocalTransformTable, RemoteTransformTable ) ->
+				Transforms ) ->
 
-	NewLeftType = transform_type( LeftType, LocalTransformTable,
-								  RemoteTransformTable ),
+	{ NewLeftType, LeftTransforms } = transform_type( LeftType, Transforms ),
 
-	NewRightType = transform_type( RightType, LocalTransformTable,
-								   RemoteTransformTable ),
+	{ NewRightType, RightTransforms } =
+		transform_type( RightType, LeftTransforms ),
 
-	{ op, Line, Operator, NewLeftType, NewRightType };
+	NewTypeDef = { 'op', Line, Operator, NewLeftType, NewRightType },
+
+	{ NewTypeDef, RightTransforms };
 
 
 
@@ -913,13 +1049,14 @@ transform_type( _TypeDef={ 'op', Line, Operator, LeftType, RightType },
 % occurrence of an expression that can be evaluated to an integer at compile
 % time), then Rep(T) = {op,LINE,Op,Rep(T_0)}."
 %
-transform_type( _TypeDef={ 'op', Line, Operator, OperandType },
-				LocalTransformTable, RemoteTransformTable ) ->
+transform_type( _TypeDef={ 'op', Line, Operator, OperandType }, Transforms ) ->
 
-	NewOperandType = transform_type( OperandType, LocalTransformTable,
-									 RemoteTransformTable ),
+	{ NewOperandType, NewTransforms } =
+		transform_type( OperandType, Transforms ),
 
-	{ op, Line, Operator, NewOperandType };
+	NewTypeDef = { 'op', Line, Operator, NewOperandType },
+
+	{ NewTypeDef, NewTransforms };
 
 
 
@@ -928,8 +1065,7 @@ transform_type( _TypeDef={ 'op', Line, Operator, OperandType },
 %
 % Note: this clause must remain at the end of the series, as a near-default one.
 %
-transform_type( TypeDef={ TypeName, _Line, _Value }, _LocalTransformTable,
-				_RemoteTransformTable ) ->
+transform_type( TypeDef={ TypeName, _Line, _Value }, Transforms ) ->
 
 	% For some unknown reason, in erl_id_trans.erl only a subset of the
 	% immediate types are managed (in type/1; ex: 'integer' but not 'float'):
@@ -941,7 +1077,7 @@ transform_type( TypeDef={ TypeName, _Line, _Value }, _LocalTransformTable,
 
 		true ->
 			%ast_value:transform_value( TypeDef, _SomeTransforms ),
-			TypeDef;
+			{ TypeDef, Transforms };
 
 		false ->
 			ast_utils:raise_error( [ unexpected_immediate_value, TypeDef ] )
@@ -949,11 +1085,39 @@ transform_type( TypeDef={ TypeName, _Line, _Value }, _LocalTransformTable,
 	end;
 
 
-transform_type( TypeDef, _LocalTransformTable, _RemoteTransformTable ) ->
+transform_type( TypeDef, _Transforms ) ->
 	ast_utils:raise_error( [ unhandled_typedef, TypeDef ] ).
 
 
 
+
+% (helper)
+transform_local_type_with_fun( TransformFun, TypeName, TypeArity,
+							   Transforms=#ast_transforms{
+									 transformation_state=TransfoState } ) ->
+
+	{ TypeReplacement, NewTransfoState } =
+		TransformFun( TypeName, TypeArity, TransfoState ),
+
+	NewTransforms = Transforms#ast_transforms{
+					  transformation_state=NewTransfoState },
+
+	{ TypeReplacement, NewTransforms }.
+
+
+
+% (helper)
+transform_remote_type_with_fun( TransformFun, ModuleName, TypeName, TypeArity,
+								Transforms=#ast_transforms{
+									 transformation_state=TransfoState } ) ->
+
+	{ TypeReplacement, NewTransfoState } =
+		TransformFun( ModuleName, TypeName, TypeArity, TransfoState ),
+
+	NewTransforms = Transforms#ast_transforms{
+					  transformation_state=NewTransfoState },
+
+	{ TypeReplacement, NewTransforms }.
 
 
 % Transforming association types (from maps).
@@ -962,31 +1126,34 @@ transform_type( TypeDef, _LocalTransformTable, _RemoteTransformTable ) ->
 % "If A is an association type K => V, where K and V are types, then Rep(A) =
 % {type,LINE,map_field_assoc,[Rep(K),Rep(V)]}."
 %
--spec transform_association_type( ast_utils:ast_type(),
-		basic_utils:maybe( meta_utils:local_type_transform_table() ),
-		basic_utils:maybe( meta_utils:remote_type_transform_table() ) ) ->
-						   ast_utils:ast_type().
+-spec transform_association_type( ast_type(), ast_transforms() ) -> ast_type().
 transform_association_type( { 'type', Line, 'map_field_assoc',
-							  Types=[ _K, _V ] },
-							LocalTransformTable, RemoteTransformTable ) ->
+							  Types=[ _K, _V ] }, Transforms ) ->
 
-	NewTypes = [ transform_type( T, LocalTransformTable, RemoteTransformTable )
-				 || T <- Types ],
+	% Is already a list directly (no key/value pairs to preserve here):
+	{ NewTypes, NewTransforms } = lists:mapfoldl(
+		  fun transform_type/2, _Acc0=Transforms, _List=Types ),
 
-	{ type, Line, map_field_assoc, NewTypes };
+	TypeDef = { 'type', Line, 'map_field_assoc', NewTypes },
+
+	{ TypeDef, NewTransforms };
+
 
 
 % "If A is an association type K := V, where K and V are types, then Rep(A) =
 % {type,LINE,map_field_exact,[Rep(K),Rep(V)]}.
 %
 transform_association_type( { 'type', Line, 'map_field_exact',
-							  Types=[ _K, _V ] },
-							LocalTransformTable, RemoteTransformTable ) ->
+							  Types=[ _K, _V ] }, Transforms ) ->
 
-	NewTypes = [ transform_type( T, LocalTransformTable, RemoteTransformTable )
-				 || T <- Types ],
+	% Is already a list directly (no key/value pairs to preserve here):
+	{ NewTypes, NewTransforms } = lists:mapfoldl(
+		  fun transform_type/2, _Acc0=Transforms, _List=Types ),
 
-	{ type, Line, map_field_exact, NewTypes }.
+	TypeDef = { 'type', Line, 'map_field_exact', NewTypes },
+
+	{ TypeDef, NewTransforms }.
+
 
 
 
@@ -996,24 +1163,25 @@ transform_association_type( { 'type', Line, 'map_field_exact',
 % {type,LINE,field_type,[Rep(Name),Rep(Type)]}."
 %
 transform_field_type( { 'type', Line, 'field_type',
-						[ N={ atom, _LineN, _FieldName }, FieldType ]  },
-					  LocalTransformTable, RemoteTransformTable ) ->
+						[ N={ atom, _LineN, _FieldName }, FieldType ] },
+					  Transforms ) ->
 
-	NewFieldType = transform_type( FieldType, LocalTransformTable,
-								   RemoteTransformTable ),
+	{ NewFieldType, NewTransforms } = transform_type( FieldType, Transforms ),
 
-	{ type, Line, field_type, [ N, NewFieldType ] }.
+	TypeDef = { 'type', Line, 'field_type', [ N, NewFieldType ] },
+
+	{ TypeDef, NewTransforms }.
+
 
 
 
 % Transforms specified AST variable.
 %
 -spec transform_type_variable( variable_name(), line(), ast_transforms() ) ->
-								ast_element().
-transform_type_variable( VariableName, _Line, _Transforms )
+								{ ast_element(), ast_transforms() }.
+transform_type_variable( VariableName, _Line, Transforms )
   when is_atom( VariableName ) ->
-	VariableName.
-
+	{ VariableName, Transforms }.
 
 
 
@@ -1262,14 +1430,14 @@ forge_type_variable( VariableName, Line ) when is_atom( VariableName ) ->
 
 % Checks that specified type name is legit.
 %
--spec check_type_name( term() ) -> basic_utils:type_name().
+-spec check_type_name( term() ) -> type_name().
 check_type_name( Name ) ->
 	check_type_name( Name, _Context=undefined ).
 
 
 % Checks that specified type name is legit.
 %
--spec check_type_name( term(), form_context() ) -> basic_utils:type_name().
+-spec check_type_name( term(), form_context() ) -> type_name().
 check_type_name( Name, _Context ) when is_atom( Name ) ->
 	Name;
 
@@ -1280,15 +1448,14 @@ check_type_name( Other, Context ) ->
 
 % Checks that specified type definition is legit.
 %
--spec check_type_definition( term() ) -> ast_utils:ast_type_definition().
+-spec check_type_definition( term() ) -> ast_type_definition().
 check_type_definition( TypeDef ) ->
 	check_type_definition( TypeDef, _Context=undefined ).
 
 
 % Checks that specified type definition is legit.
 %
--spec check_type_definition( term(), form_context() ) ->
-								   ast_utils:ast_type_definition().
+-spec check_type_definition( term(), form_context() ) -> ast_type_definition().
 check_type_definition( TypeDef, _Context ) when is_tuple( TypeDef ) ->
 	TypeDef;
 
@@ -1352,9 +1519,10 @@ check_type_ids( List, Context ) when is_list( List ) ->
 check_type_ids( Other, Context ) ->
 	ast_utils:raise_error( [ invalid_type_identifier_list, Other ], Context ).
 
+
 % Checks that specified variable is legit.
 %
--spec check_type_variable( term() ) -> ast_variable().
+-spec check_type_variable( term() ) -> ast_variable_pattern().
 check_type_variable( ASTVariable ) ->
 	check_type_variable( ASTVariable, _Context=undefined ).
 
@@ -1362,7 +1530,7 @@ check_type_variable( ASTVariable ) ->
 % Checks that specified variable is legit.
 %
 -spec check_type_variable( term(), form_context() ) ->
-								 ast_variable().
+								 ast_variable_pattern().
 check_type_variable( ASTVariable={ 'var', Line, VariableName }, Context )
   when is_atom( VariableName ) ->
 	ast_utils:check_line( Line, Context ),
@@ -1375,14 +1543,15 @@ check_type_variable( Other, Context ) ->
 
 % Checks that specified variables are legit.
 %
--spec check_type_variables( term() ) -> [ ast_variable() ].
+-spec check_type_variables( term() ) -> [ ast_variable_pattern() ].
 check_type_variables( ASTVariables ) ->
 	check_type_variables( ASTVariables, _Context=undefined ).
 
 
 % Checks that specified variables are legit.
 %
--spec check_type_variables( term(), form_context() ) -> [ ast_variable() ].
+-spec check_type_variables( term(), form_context() ) ->
+								  [ ast_variable_pattern() ].
 check_type_variables( List, Context ) when is_list( List ) ->
 	[ check_type_variable( ASTVariable, Context ) || ASTVariable <- List ];
 
@@ -1428,7 +1597,7 @@ get_located_forms_for( TypeExportTable, TypeTable ) ->
 	%  [ TypeExportInfos ] ),
 
 	TypeExportLocDefs = [ { Loc, { attribute, Line, export_type, TypeIds } }
-				   || { Loc, { Line, TypeIds } } <- TypeExportInfos ],
+						  || { Loc, { Line, TypeIds } } <- TypeExportInfos ],
 
 	% Dropping the keys (the type_id(), i.e. type identifiers), focusing on
 	% their associated type_info()

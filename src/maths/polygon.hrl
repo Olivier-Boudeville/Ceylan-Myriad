@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 % Describes a polygon, convex or not, simple or not.
@@ -42,9 +42,6 @@
 
 		   % Bounding-box information:
 		   % (can be for example a circle or a right_cuboid)
-		   bounding_box = undefined :: 'undefined' |
-									  bounding_box:bounding_box()
+		   bounding_box = undefined :: maybe( bounding_box:bounding_box() )
 
-		  }
-
-	   ).
+}).

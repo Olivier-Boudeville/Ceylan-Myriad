@@ -5,3 +5,4 @@
 *.plt
 *erlang.log.*
 declared-types-in-*.txt
+src/scripts/myriad-example-tree

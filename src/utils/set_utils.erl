@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
 
@@ -31,12 +31,12 @@
 % A set is a container that:
 %
 % - does not allow duplicates (adding an element more than once is like adding
-% it once)
+% it only once)
 %
 % - has no intrinsic order (yet can be iterated over)
 %
 % Note: we provide here a basic, general-purpose set support, and do not rely on
-% data_utils.hrl which provides a much lighter, alternate level of indirection.
+% any lighter, alternate level of indirection.
 %
 % See set_utils_test.erl for the corresponding test.
 %
@@ -213,7 +213,7 @@ is_set( Term ) ->
 
 % Ensures that the specified term is a set, throws an exception if not.
 %
--spec check_set( term() ) -> basic_utils:void().
+-spec check_set( term() ) -> void().
 check_set( Term ) ->
 	case is_set( Term ) of
 

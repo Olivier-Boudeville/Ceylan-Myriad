@@ -1,4 +1,4 @@
-COMMON_TOP = ../..
+MYRIAD_TOP = ../..
 
 .PHONY: all test-hdf5 clean clean-local
 
@@ -29,4 +29,4 @@ clean-local:
 
 
 
-include $(COMMON_TOP)/GNUmakesettings.inc
+include $(MYRIAD_TOP)/GNUmakesettings.inc

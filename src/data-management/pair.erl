@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Creation date: Thursday, April 30, 2015
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 
@@ -31,7 +31,7 @@
 %
 -module(pair).
 
--export([ first/1, second/1, swap/1 ]).
+-export([ first/1, second/1, swap/1, to_list/1 ]).
 
 -compile( { inline, [ first/1, second/1, swap/1 ] } ).
 
@@ -63,3 +63,11 @@ second( { _X, Y } ) ->
 -spec swap( pair() ) -> pair().
 swap( { X, Y } ) ->
 	{ Y, X }.
+
+
+
+% Returns a list of two elements corresponding to specified pair.
+%
+-spec to_list( pair() ) -> list().
+to_list( { F, S } ) ->
+	[ F, S ].

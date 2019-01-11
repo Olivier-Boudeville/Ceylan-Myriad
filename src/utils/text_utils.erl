@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
 
@@ -34,7 +34,7 @@
 
 
 
-% Note that string:tokens can be used to split strings.
+% Note that string:tokens/1 can be used to split strings.
 
 
 
@@ -49,15 +49,20 @@
 		  strings_to_string/1, strings_to_sorted_string/1,
 		  strings_to_string/2, strings_to_sorted_string/2,
 		  strings_to_enumerated_string/1, strings_to_enumerated_string/2,
-		  binary_list_to_string/1, binaries_to_string/1,
+		  strings_to_listed_string/1,
+		  binaries_to_string/1, binaries_to_string/2,
 		  binaries_to_sorted_string/1,
-		  atom_list_to_string/1, atoms_to_string/1, atoms_to_sorted_string/1,
+		  atoms_to_string/1, atoms_to_sorted_string/1, atoms_to_listed_string/1,
 		  proplist_to_string/1, version_to_string/1,
 		  atom_to_binary/1,
 		  string_to_binary/1, binary_to_string/1,
 		  strings_to_binaries/1, binaries_to_strings/1,
-		  string_to_integer/1, string_to_float/1,
-		  string_to_atom/1, strings_to_atoms/1, binary_to_atom/1,
+		  string_to_integer/1, try_string_to_integer/1,
+		  string_to_float/1, try_string_to_float/1,
+		  string_to_atom/1, strings_to_atoms/1,
+		  terms_to_string/1, terms_to_enumerated_string/1,
+		  terms_to_listed_string/1,
+		  binary_to_atom/1,
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
 		  duration_to_string/1,
@@ -68,15 +73,19 @@
 
 % Other string operations:
 %
--export([ get_lexicographic_distance/2, uppercase_initial_letter/1,
+-export([ get_lexicographic_distance/2, find_longer_common_prefix/1,
+		  uppercase_initial_letter/1,
 		  to_lowercase/1, to_uppercase/1,
 		  join/2,
-		  split/2, split_at_first/2, split_camel_case/1,
+		  split/2, split_at_whitespaces/1, split_at_first/2, split_camel_case/1,
 		  tokenizable_to_camel_case/2,
 
 		  substitute/3, filter/2, split_after_prefix/2,
 
 		  list_whitespaces/0,
+
+		  escape_single_quotes/1, escape_double_quotes/1,
+		  escape_all_quotes/1,
 
 		  is_uppercase/1, is_figure/1,
 		  remove_ending_carriage_return/1, remove_last_characters/2,
@@ -89,7 +98,8 @@
 		  format_text_for_width/2,
 		  pad_string/2, pad_string_left/2, pad_string_right/2,
 		  is_string/1, is_non_empty_string/1, is_list_of_strings/1,
-		  is_bin_string/1 ]).
+		  is_bin_string/1,
+		  is_list_of_binaries/1 ]).
 
 
 % Restructured-Text (RST) related functions.
@@ -208,7 +218,7 @@
 
 
 % This module being a bootstrap one, the 'table' pseudo-module is not available
-% (as this module is not processed by the 'Common' parse transform):
+% (as this module is not processed by the 'Myriad' parse transform):
 %
 -define( table, map_hashtable ).
 
@@ -311,7 +321,8 @@ term_to_string( Term, MaxDepthCount, MaxLength ) when MaxLength >= 3 ->
 %
 -spec integer_to_string( integer() ) -> string().
 integer_to_string( IntegerValue ) ->
-	hd( io_lib:format( "~B", [ IntegerValue ] ) ).
+	% Nonsensical: hd( io_lib:format( "~B", [ IntegerValue ] ) ).
+	io_lib:format( "~B", [ IntegerValue ] ).
 
 
 
@@ -482,16 +493,29 @@ strings_to_enumerated_string( ListOfStrings, IndentationLevel ) ->
 
 
 
-% Returns a string that pretty-prints specified list of strings, with default
+% Returns a string that pretty-prints specified list of strings (actually, any
+% element that can be processed with ~s will do; ex: atoms), with default
 % bullets.
 %
 -spec strings_to_string( [ ustring() ] ) -> ustring().
+strings_to_string( L=[ SingleString ] ) when is_list( SingleString ) ->
+
+	% Not retained, as the single string may itself correspond to a full, nested
+	% list and no dangling final quote is desirable:
+	%io_lib:format( " '~ts'", L );
+
+	% No leading space, the caller is expected to have it specified by himself,
+	% like in: "foo: ~s", not as "foo:~s":
+
+	%io_lib:format( " ~ts", L );
+	io_lib:format( "~ts", L );
+
 strings_to_string( ListOfStrings ) when is_list( ListOfStrings ) ->
 
 	%trace_utils:debug_fmt( "Stringifying ~p.", [ ListOfStrings ] ),
 
 	% Leading '~n' had been removed for some unknown reason:
-	io_lib:format( "~n~ts", [ strings_to_string(
+	io_lib:format( "~n~ts~n", [ strings_to_string(
 					   ListOfStrings, _Acc=[], get_default_bullet() ) ] );
 
 strings_to_string( ErrorTerm ) ->
@@ -499,8 +523,9 @@ strings_to_string( ErrorTerm ) ->
 
 
 
-% Returns a string that pretty-prints specified list of strings once reordered
-% (and with default bullets).
+% Returns a string that pretty-prints specified list of strings (actually, any
+% element that can be processed with ~s will do; ex: atoms) once reordered (and
+% with default bullets).
 %
 -spec strings_to_sorted_string( [ ustring() ] ) -> ustring().
 strings_to_sorted_string( ListOfStrings ) when is_list( ListOfStrings ) ->
@@ -511,8 +536,9 @@ strings_to_sorted_string( ErrorTerm ) ->
 
 
 
-% Returns a string that pretty-prints specified list of strings, with
-% user-specified bullets.
+% Returns a string that pretty-prints specified list of strings (actually, any
+% element that can be processed with ~s will do; ex: atoms), with user-specified
+% bullets.
 %
 % This can be a solution to nest bullet lists, by specifying a bullet with an
 % offset, such as " * ".
@@ -521,16 +547,10 @@ strings_to_sorted_string( ErrorTerm ) ->
 							   ustring().
 strings_to_string( _ListOfStrings=[ SingleString ], _LevelOrBullet )
   when is_list( SingleString ) ->
-	% For a single string, no need for leading and trailing newlines, but it is
-	% better to have it separated (with single quotes, themselves surrounded by
-	% spaces) from the surrounding text:
-	%Pattern = " '~ts' "
-	%Pattern = "'~ts'",
-
-	% Leading space, as usually the result is used in "foobar:~s", not in
-	% "foobar: ~s":
-	Pattern = " ~ts",
-	io_lib:format( Pattern, [ SingleString ] );
+	% For a single string, no need for leading and trailing newlines, but it
+	% used to be separated (with single quotes) from the surrounding text
+	% (not done anymore, as the single may be itself a bullet list)
+	io_lib:format( "~ts", [ SingleString ]);
 
 strings_to_string( ListOfStrings, IndentationLevel )
   when is_integer( IndentationLevel ) ->
@@ -555,8 +575,9 @@ strings_to_string( _ListOfStrings, ErrorTerm ) ->
 
 
 
-% Returns a string that pretty-prints specified list of strings once reordered,
-% with user-specified indentation level or bullet.
+% Returns a string that pretty-prints specified list of strings (actually, any
+% element that can be processed with ~s will do; ex: atoms) once reordered, with
+% user-specified indentation level or bullet.
 %
 -spec strings_to_sorted_string( [ ustring() ],
 								indentation_level_or_bullet() ) -> ustring().
@@ -569,25 +590,22 @@ strings_to_sorted_string( ErrorTerm, _IndentationOrBullet ) ->
 
 
 
-
-
-
-% Returns a string that pretty-prints specified list of binary strings, with
-% default bullets.
-%
--spec binary_list_to_string( [ binary() ] ) -> ustring().
-binary_list_to_string( ListOfBinaries ) ->
-	binaries_to_string( ListOfBinaries ).
-
-
-
 % Returns a string that pretty-prints specified list of binary strings, with
 % default bullets.
 %
 -spec binaries_to_string( [ binary() ] ) -> ustring().
 binaries_to_string( ListOfBinaries ) ->
+	binaries_to_string( ListOfBinaries, _IndentationLevel=0 ).
+
+
+% Returns a string that pretty-prints specified list of binary strings, with
+% specified indentation level.
+%
+-spec binaries_to_string( [ binary() ], indentation_level() ) -> ustring().
+binaries_to_string( ListOfBinaries, IndentationLevel ) ->
 	Strings = binaries_to_strings( ListOfBinaries ),
-	strings_to_string( Strings ).
+	strings_to_string( Strings, IndentationLevel ).
+
 
 
 % Returns a string that pretty-prints specified list of sorted binary strings,
@@ -602,27 +620,17 @@ binaries_to_sorted_string( ListOfBinaries ) ->
 % Returns a string that pretty-prints specified list of atoms, with default
 % bullets.
 %
--spec atom_list_to_string( [ atom() ] ) -> ustring().
-atom_list_to_string( ListOfAtoms ) ->
-	io_lib:format( "~n~ts", [ atom_list_to_string( ListOfAtoms, [] ) ] ).
-
-
-atom_list_to_string( [], Acc ) ->
-	 Acc;
-
-atom_list_to_string( [ H | T ], Acc ) when is_atom( H )  ->
-	atom_list_to_string( T, Acc ++ get_default_bullet()
-						 ++ io_lib:format(  "~ts~n", [ H ] ) ).
-
-
-
-% Returns a string that pretty-prints the specified list of atoms, with default
-% bullets.
-%
 -spec atoms_to_string( [ atom() ] ) -> ustring().
 atoms_to_string( ListOfAtoms ) ->
-	atom_list_to_string( ListOfAtoms ).
+	io_lib:format( "~n~ts", [ atoms_to_string( ListOfAtoms, [] ) ] ).
 
+
+atoms_to_string( [], Acc ) ->
+	 Acc;
+
+atoms_to_string( [ H | T ], Acc ) when is_atom( H )  ->
+	atoms_to_string( T, Acc ++ get_default_bullet()
+						 ++ io_lib:format(  "~ts~n", [ H ] ) ).
 
 
 % Returns a string that pretty-prints the specified list of atoms once ordered,
@@ -630,7 +638,55 @@ atoms_to_string( ListOfAtoms ) ->
 %
 -spec atoms_to_sorted_string( [ atom() ] ) -> ustring().
 atoms_to_sorted_string( ListOfAtoms ) ->
-	atom_list_to_string( lists:sort( ListOfAtoms ) ).
+	atoms_to_string( lists:sort( ListOfAtoms ) ).
+
+
+
+% Returns a string that pretty-prints the specified list of atoms, listed
+% directly in the text.
+%
+% Ex: atoms_to_listed_string( [ red, blue, green ] ) returns "red, blue and
+% green".
+%
+-spec atoms_to_listed_string( [ atom() ] ) -> ustring().
+atoms_to_listed_string( ListOfAtoms ) ->
+	ListOfStrings = [ atom_to_string( A ) || A <- ListOfAtoms ],
+	strings_to_listed_string( ListOfStrings ).
+
+
+
+% Returns a string that pretty-prints the specified list of strings, listed
+% directly in the text.
+%
+% Ex: strings_to_listed_string( [ "red", "blue", "green" ] ) returns "red, blue
+% and green".
+%
+strings_to_listed_string( _ListOfStrings=[] ) ->
+	throw( empty_list_of_strings_to_list );
+
+strings_to_listed_string( _ListOfStrings=[ SingleString ] ) ->
+	SingleString;
+
+strings_to_listed_string( ListOfStrings ) ->
+
+	% Here all strings shall be separated with commas, except the last, starting
+	% with "and":
+
+	% We do not want here a dependency onto list_utils, which is not
+	% bootstrapped, as this current function might be called from the Myriad
+	% parse transform.
+
+	%{ LastString, OtherStrings } = list_utils:extract_last_element(
+	%								 ListOfStrings ),
+
+	% A somewhat inlined version of it:
+	[ LastString | RevOtherStrings ] = lists:reverse( ListOfStrings ),
+
+	OtherStrings = lists:reverse( RevOtherStrings ),
+
+	OtherStringsString = text_utils:join( ", ", OtherStrings ),
+
+	text_utils:format( "~s and ~s", [ OtherStringsString, LastString ] ).
 
 
 
@@ -982,6 +1038,10 @@ format( FormatString, Values ) ->
 
 		_:_ ->
 
+			% Useful to obtain the stacktrace of a culprit or to check for
+			% silent errors:
+			%throw( { badly_formatted, FormatString, Values } )
+
 			io_lib:format( "[error: badly formatted string output] "
 						   "Format string was '~p', values were '~p'.",
 						   [ FormatString, Values ] )
@@ -1032,12 +1092,12 @@ bin_format( FormatString, Values ) ->
 
 % Returns a string version of the specified text-like parameter.
 %
-% Note: using such functions may be a bad practice, as it may lead to loosing
-% the awareness of the types of the variables that are handled. We may even
-% decide in the future to output warning traces whenever the specified element
-% happens not to be a string.
+% Note: using such functions may be a bad practice, as it may lead to losing the
+% awareness of the types of the variables that are handled. We may even decide
+% in the future to output warning traces whenever the specified element happens
+% not to be a string.
 %
--spec ensure_string( any_string() ) -> string().
+-spec ensure_string( term() ) -> string().
 ensure_string( String ) when is_list( String ) ->
 	String;
 
@@ -1051,11 +1111,16 @@ ensure_string( F ) when is_float( F ) ->
 	float_to_list( F );
 
 ensure_string( U ) ->
-	throw( { wrong_value, U } ).
+	throw( { invalid_value, U } ).
 
 
 
 % Returns a binary string version of the specified text-like parameter.
+%
+% Note: using such functions may be a bad practice, as it may lead to losing the
+% awareness of the types of the variables that are handled. We may even decide
+% in the future to output warning traces whenever the specified element happens
+% not to be a binary.
 %
 -spec ensure_binary( any_string() ) -> binary().
 ensure_binary( BinString ) when is_binary( BinString ) ->
@@ -1065,7 +1130,7 @@ ensure_binary( String ) when is_list( String ) ->
 	string_to_binary( String );
 
 ensure_binary( String ) ->
-	throw({ invalid_value, String }).
+	throw( { invalid_value, String } ).
 
 
 % Returns the lexicographic distance between the two specified strings, i.e. the
@@ -1144,6 +1209,60 @@ get_lexicographic_distance( FirstString=[ _H1 | T1 ], SecondString=[ _H2 | T2 ],
 			{ Len, ?table:addEntry( Key, Len, Table3 ) }
 
 	end.
+
+
+% Returns the longer prefix that is common to all of the specified strings, and
+% a list of the specified strings with this prefix removed.
+%
+-spec find_longer_common_prefix( [ string() ] ) -> { string(), [ string() ] }.
+find_longer_common_prefix( _Strings=[] ) ->
+	throw( empty_string_list );
+
+find_longer_common_prefix( _Strings=[ S ] ) ->
+	{ S, [ "" ] };
+
+find_longer_common_prefix( _Strings=[ S | T ] ) ->
+	% If having more than one string, take the first as the reference:
+	find_prefix_helper( T, _RefString=S, _AccPrefix=[] ).
+
+
+% (helper)
+find_prefix_helper( Strings, _RefString=[], AccPrefix ) ->
+	% Characters of the reference exhausted, it is the prefix as a whole:
+	{ lists:reverse( AccPrefix ), [ "" | Strings ] };
+
+
+find_prefix_helper( Strings, RefString=[ C | T ], AccPrefix ) ->
+
+	case are_all_starting_with( C, Strings ) of
+
+		{ true, NewStrings } ->
+			find_prefix_helper( NewStrings, T, [ C | AccPrefix ] );
+
+		false ->
+			% Do not forget the reference one:
+			{ lists:reverse( AccPrefix ), [ RefString | Strings ] }
+
+	end.
+
+
+
+% (helper)
+are_all_starting_with( C, Strings ) ->
+	are_all_starting_with( C, Strings, _Acc=[] ).
+
+
+are_all_starting_with( _C, _Strings=[], Acc ) ->
+	% String order does not matter:
+	{ true, Acc };
+
+% This string matches:
+are_all_starting_with( C, _Strings=[ [ C | Rest ] | T ], Acc ) ->
+	are_all_starting_with( C, T, [ Rest | Acc ] );
+
+% Either _Strings=[ [] | T ] or _Strings=[ [ NonC | Rest ] | T ]:
+are_all_starting_with( _C, _Strings, _Acc ) ->
+	false.
 
 
 
@@ -1225,6 +1344,27 @@ string_to_integer( String ) ->
 
 
 
+% Returns an integer which corresponds to the specified text.
+%
+% Returns the 'undefined' atom if the conversion failed.
+%
+-spec try_string_to_integer( ustring() ) -> basic_utils:maybe( integer() ).
+try_string_to_integer( String ) ->
+
+	try list_to_integer( String ) of
+
+		I ->
+			I
+
+	catch
+
+		error:badarg ->
+			undefined
+
+	end.
+
+
+
 % Returns a float which corresponds to the specified text, not depending on its
 % being defined as an integer or as a float.
 %
@@ -1232,6 +1372,26 @@ string_to_integer( String ) ->
 %
 -spec string_to_float( ustring() ) -> float().
 string_to_float( String ) ->
+
+	case try_string_to_float( String ) of
+
+		undefined ->
+			throw( { float_conversion_failed, String } );
+
+		F ->
+			F
+
+	end.
+
+
+
+% Returns a float which corresponds to the specified text, not depending on its
+% being defined as an integer or as a float.
+%
+% Returns the 'undefined' atom if the conversion failed.
+%
+-spec try_string_to_float( ustring() ) -> basic_utils:maybe( float() ).
+try_string_to_float( String ) ->
 
 	% Erlang is very picky (too much?) when interpreting floats-as-a-string: if
 	% there is an exponent, it shall be 'e' (preferably that 'E' which is
@@ -1300,7 +1460,7 @@ string_to_float( String ) ->
 			catch
 
 				error:badarg ->
-					throw( { float_conversion_failed, String } )
+					undefined
 
 			end
 
@@ -1329,6 +1489,34 @@ string_to_atom( String ) ->
 
 
 
+% Returns a textual representation of the specified terms, as a list of their
+% user-friendly (i.e. based on ~p) default representation.
+%
+-spec terms_to_string( [ term() ] ) -> string().
+terms_to_string( Terms ) ->
+	strings_to_string( [ format( "~p", [ T ] ) || T <- Terms ] ).
+
+
+
+% Returns a textual representation of the specified terms, as an enumerated list
+% of their user-friendly (i.e. based on ~p) default representation.
+%
+-spec terms_to_enumerated_string( [ term() ] ) -> string().
+terms_to_enumerated_string( Terms ) ->
+	strings_to_enumerated_string( [ format( "~p", [ T ] ) || T <- Terms ] ).
+
+
+
+% Returns a textual representation of the specified terms, as a listed
+% representation of their user-friendly (i.e. based on ~p) default
+% representation.
+%
+-spec terms_to_listed_string( [ term() ] ) -> string().
+terms_to_listed_string( Terms ) ->
+	strings_to_listed_string( [ format( "~p", [ T ] ) || T <- Terms ] ).
+
+
+
 % Converts specified list of plain strings into a corresponding list of atoms.
 %
 % Note that a bounded number of atoms should be created that way, lest the atom
@@ -1353,7 +1541,7 @@ uppercase_initial_letter( _Letters=[ First | Others ] ) ->
 
 
 
-% Sets the specified string to lowercase.
+% Sets the specified string to lowercase, i.e. downcase it.
 %
 -spec to_lowercase( string() ) -> string().
 to_lowercase( String ) ->
@@ -1368,7 +1556,7 @@ to_uppercase( String ) ->
 
 
 
-% join( Separator, ListToJoin ), to be used like in:
+% join( Separator, StringsToJoin ), to be used like in:
 %   join( $-, [ "Barbara", "Ann" ] ) = "Barbara-Ann".
 %
 % Separator can be a character, like $a, or a string, like ", ".
@@ -1379,7 +1567,7 @@ to_uppercase( String ) ->
 % Inspired from http://www.trapexit.org/String_join_with.
 %
 % For file-related paths, you are expected to use portable standard
-% filename:join functions instead.
+% filename:join/{1,2} functions instead.
 %
 % Note: conversely, use string:tokens to split the string.
 %
@@ -1411,12 +1599,20 @@ join( Separator, _ListToJoin=[ H | T ], Acc ) ->
 %
 % Defined here not to chase anymore after string:tokens/2.
 %
-% See list_whitespaces/0 to get a list of all whitespaces, as potential
-% delimiters.
+% See also: split_at_whitespaces/0.
 %
 -spec split( ustring(), [ uchar() ] ) -> [ ustring() ].
 split( String, Delimiters ) ->
 	string:tokens( String, Delimiters ).
+
+
+
+% Splits the specified string into a list of strings, using whitespaces as
+% delimiters.
+%
+-spec split_at_whitespaces( ustring() ) -> [ ustring() ].
+split_at_whitespaces( String ) ->
+	split( String, list_whitespaces() ).
 
 
 
@@ -1528,11 +1724,15 @@ tokenizable_to_camel_case( String, SeparatorsList ) ->
 
 
 
-% Substitutes in specified string the source character with the target one.
+% Substitutes in specified string the source character with the target one (all
+% occurrences thereof).
 %
 % Note: simpler and probably more efficient that a regular expression.
 %
--spec substitute( uchar(), uchar(), ustring() ) -> ustring().
+-spec substitute( uchar(), uchar(), ustring() | bin_string() ) -> ustring().
+substitute( SourceChar, TargetChar, BinString ) when is_binary( BinString ) ->
+	substitute( SourceChar, TargetChar, binary_to_string( BinString ) );
+
 substitute( SourceChar, TargetChar, String ) ->
 	substitute( SourceChar, TargetChar, String, _Acc=[] ).
 
@@ -1593,6 +1793,70 @@ split_after_prefix( _Prefix, _String ) ->
 -spec list_whitespaces() -> [ char() ].
 list_whitespaces() ->
 	" \t\n".
+
+
+
+% Returns specified text, in which single quotes have been escaped (i.e. "'" has
+% been replaced with "\'" - ignore the double quotes in this example).
+%
+-spec escape_single_quotes( string() ) -> string().
+escape_single_quotes( Text ) ->
+	escape_single_quotes_helper( Text, _Acc=[] ).
+
+
+escape_single_quotes_helper( _Text=[], Acc ) ->
+	lists:reverse( Acc );
+
+escape_single_quotes_helper( _Text=[ $' | T ], Acc ) ->
+	% As will be reversed:
+	escape_single_quotes_helper( T, "'\\" ++ Acc );
+
+escape_single_quotes_helper( _Text=[ C | T ], Acc ) ->
+	escape_single_quotes_helper( T, [ C | Acc ] ).
+
+
+
+% Returns specified text, in which double quotes have been escaped (i.e. '"' has
+% been replaced with '\"' - ignore the single quotes in this example).
+%
+-spec escape_double_quotes( string() ) -> string().
+escape_double_quotes( Text ) ->
+	escape_double_quotes_helper( Text, _Acc=[] ).
+
+
+escape_double_quotes_helper( _Text=[], Acc ) ->
+	lists:reverse( Acc );
+
+escape_double_quotes_helper( _Text=[ $" | T ], Acc ) ->
+	% As will be reversed:
+	escape_double_quotes_helper( T, "\"\\" ++ Acc );
+
+escape_double_quotes_helper( _Text=[ C | T ], Acc ) ->
+	escape_double_quotes_helper( T, [ C | Acc ] ).
+
+
+
+% Returns specified text, in which all quotes have been escaped (i.e. ' and "
+% have been replaced respectively with \' and \").
+%
+-spec escape_all_quotes( string() ) -> string().
+escape_all_quotes( Text ) ->
+	escape_all_quotes_helper( Text, _Acc=[] ).
+
+
+escape_all_quotes_helper( _Text=[], Acc ) ->
+	lists:reverse( Acc );
+
+escape_all_quotes_helper( _Text=[ $' | T ], Acc ) ->
+	% As will be reversed:
+	escape_all_quotes_helper( T, "'\\" ++ Acc );
+
+escape_all_quotes_helper( _Text=[ $" | T ], Acc ) ->
+	% As will be reversed:
+	escape_all_quotes_helper( T, "\"\\" ++ Acc );
+
+escape_all_quotes_helper( _Text=[ C | T ], Acc ) ->
+	escape_all_quotes_helper( T, [ C | Acc ] ).
 
 
 
@@ -1828,7 +2092,14 @@ pad_string( String, Width ) when length( String ) =< Width ->
 %
 -spec pad_string_left( ustring(), integer() ) -> ustring().
 pad_string_left( String, Width ) when length( String ) =< Width ->
-	lists:flatten( io_lib:format( "~*.s", [ -Width, String ] ) ).
+
+	% Note that the settings listed in
+	% http://erlang.org/doc/apps/stdlib/unicode_usage.html shall be enforced so
+	% that character encoding is properly supported (with Unicode), otherwise
+	% characters such as "e" with an accent are considered as two characters
+	% instead of one, leading to incorrect (insufficient) padding:
+	%
+	lists:flatten( io_lib:format( "~*.ts", [ -Width, String ] ) ).
 
 
 % Returns the specified string, padded with spaces to specified width,
@@ -1836,7 +2107,7 @@ pad_string_left( String, Width ) when length( String ) =< Width ->
 %
 -spec pad_string_right( ustring(), integer() ) -> ustring().
 pad_string_right( String, Width ) when length( String ) =< Width ->
-	lists:flatten( io_lib:format( "~*.s", [ Width, String ] ) ).
+	lists:flatten( io_lib:format( "~*.ts", [ Width, String ] ) ).
 
 
 % Returns true iff the parameter is a (non-nested) string (actually a plain list
@@ -1926,6 +2197,16 @@ is_bin_string( Term ) when is_binary( Term ) ->
 is_bin_string( _Term ) ->
 	false.
 
+
+
+% Tells whether specified term is a list of binaries.
+%
+-spec is_list_of_binaries( term() ) -> boolean().
+is_list_of_binaries( List ) when is_list( List ) ->
+	lists:all( fun is_bin_string/1, List );
+
+is_list_of_binaries( _NotList ) ->
+	false.
 
 
 

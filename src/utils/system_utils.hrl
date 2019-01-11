@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 
@@ -81,7 +81,7 @@
 		% per-usage CPU percentages (floats in [0,100]), since last update, or
 		% 'undefined' (if not usage could be computed).
 		%
-		cpu_usage :: basic_utils:maybe( system_utils:cpu_usage_percentages() ),
+		cpu_usage :: maybe( system_utils:cpu_usage_percentages() ),
 
 
 		% The number of Erlang processes running on this node:
@@ -89,3 +89,42 @@
 
 
 } ).
+
+
+
+% The basic builtin shell commands and related executables (ex: cat, awk, grep,
+% df) are not so easy to manage, as, from a distribution to another, they tend
+% to sit in different locations (ex: /bin/, /usr/bin) and/or to be aliased or
+% symlinked (ex: /usr/bin/awk being gawk). Depending also on the user
+% environment, different conventions apply.
+%
+% These commands could be referred to directly as 'awk' or 'grep', yet it may be
+% considered as a risk, with non-standard if not malicious executables being
+% potentially thrown in a user's environment.
+%
+% Here we at least centralise the (unique) versions we prefer, and ensure that
+% safer bet are done.
+%
+% Commands are unaliased; for example, '\\awk' is '\awk' once escaped; a
+% backslash allows to unalias the corresponding command, to avoid
+% not-so-compliant alternatives to be used.
+%
+% See https://www.tldp.org/LDP/GNU-Linux-Tools-Summary/html/c1195.htm for more
+% information.
+
+-define( awk, " \\awk " ).
+
+% "/bin/cat" should be valid as well:
+-define( cat, " \\cat " ).
+
+% "/bin/df" should be valid as well:
+-define( df, " \\df " ).
+
+% "/bin/free" should be valid as well:
+-define( free, " \\free " ).
+
+% "/bin/grep" should be valid as well:
+-define( grep, " \\grep " ).
+
+% "/bin/sed" should be valid as well:
+-define( sed, " \\sed " ).

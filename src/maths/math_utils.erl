@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, February 15, 2010.
 
 
@@ -428,4 +428,4 @@ canonify( AngleInDegrees ) when is_integer( AngleInDegrees ) ->
 
 % Here we assume it is a floating-point value, positive or not.
 canonify( AngleInDegrees ) ->
-	AngleInDegrees - 360 * floor( AngleInDegrees / 360 ).
+	AngleInDegrees - 360 * math:floor( AngleInDegrees / 360 ).

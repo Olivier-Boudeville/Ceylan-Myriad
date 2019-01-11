@@ -1,6 +1,8 @@
 #!/bin/sh
 
-# Copyright (C) 2009-2017 Olivier Boudeville
+# Copyright (C) 2009-2018 Olivier Boudeville
+#
+# Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 #
 # This file is part of the Ceylan-Myriad project.
 
@@ -8,13 +10,25 @@
 LANG=C; export LANG
 
 
-# Current stable:
-erlang_version="20.2"
-erlang_md5="429f126fd3e1e29a1eb1be2f8a15dc90"
 
-# Candidate version (ex: either cutting-edge or previous stable version):
+# Now we keep the MD5 sums of the sources of former Erlang/OTP versions, in
+# order to be able to switch back and forth more easily:
+
+erlang_md5_for_21_1="482f91cf34c2ffb1dff6e716a15afefa"
+erlang_md5_for_21_0="350988f024f88e9839c3715b35e7e27a"
+erlang_md5_for_20_1="4c9eb112cd0e56f17c474218825060ee"
+
+
+# Current stable:
+erlang_version="21.1"
+erlang_md5="${erlang_md5_for_21_1}"
+
+
+# Candidate version (ex: either cutting-edge or, most probably, the previous
+# stable version):
+
 erlang_version_candidate="20.1"
-erlang_md5_candidate="7840521e80dbb394852f265ef3e04744"
+erlang_md5_candidate="${erlang_md5_for_20_1}"
 
 
 plt_file="Erlang-$erlang_version.plt"
@@ -56,7 +70,7 @@ Example:
   sudo install-erlang.sh
 	will install current official stable version of Erlang ($erlang_version) in /usr/local/ (i.e. system-wide)
 
-For Debian-based distributions, you should preferably run beforehand, as root: 'apt-get update && apt-get install g++ make libncurses5-dev openssl libssl-dev libwxgtk2.8-dev libgl1-mesa-dev libglu1-mesa-dev libpng3', otherwise for example the crypto, wx or observer modules might not be available or usable.
+For Debian-based distributions, you should preferably run beforehand, as root: 'apt-get update && apt-get build-dep erlang && apt-get install g++ make libncurses5-dev openssl libssl-dev libwxgtk2.8-dev libgl1-mesa-dev libglu1-mesa-dev libpng3', otherwise for example the crypto, wx or observer modules might not be available or usable.
 "
 
 
@@ -94,12 +108,10 @@ do_generate_plt=1
 # By default, use an installation prefix:
 use_prefix=0
 
-# By default, the Erlang sources will be patched to better suit our use:
-do_patch=0
-
-
-# By default, the Erlang build tree will not be removed (more convenient):
-do_remove_build_tree=1
+# By default, the Erlang sources will NOT be patched to better suit our use (as
+# useless since Erlang 21.0):
+#
+do_patch=1
 
 
 erlang_download_location="http://erlang.org/download"
@@ -211,6 +223,10 @@ done
 SUDO_CMD=""
 
 
+# By default, the Erlang build tree will be removed:
+do_remove_build_tree=0
+
+
 # Then check whether one parameter remains:
 
 if [ -z "$read_parameter" ] ; then
@@ -240,6 +256,11 @@ if [ -z "$read_parameter" ] ; then
 
 	   prefix="$HOME/Software/Erlang/Erlang-${erlang_version}"
 	   echo "Not run as root, thus using default installation directory '$prefix' (and user '${build_user}')."
+
+	   # In this case the Erlang build tree will *not* be removed (as it is more
+	   # convenient for "more advanced" usage):
+	   #
+	   do_remove_build_tree=1
 
    fi
 
@@ -480,6 +501,9 @@ fi
 cd ${erlang_src_prefix}
 
 
+# Apparently not needed since Erlang 21.0, where 'infinity' is specified in
+# terms of time-out:
+#
 if [ $do_patch -eq 0 ] ; then
 
 	echo "Patching first the Erlang sources."
@@ -749,4 +773,4 @@ if [ $do_generate_plt -eq 0 ] ; then
 fi
 
 echo "
-If wanting to generate a list of all the declared types in this Erlang distribution, and if having the 'Common' package, you can run: 'cd common ; make generate-list-of-erlang-types ERLANG_SOURCE_ROOT=${prefix}'."
+If wanting to generate a list of all the declared types in this Erlang distribution, and if having the 'Myriad' package, you can run: 'cd Ceylan-Myriad && make generate-list-of-erlang-types ERLANG_SOURCE_ROOT=${prefix}'."

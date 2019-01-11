@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Thursday, February 11, 2010.
 
 
@@ -45,9 +45,11 @@
 
 
 % System-related functions.
--export([
+-export([ run_executable/1, run_executable/2, run_executable/3,
+		  run_executable/4,
 
-		  run_executable/1, run_executable/2, run_executable/3,
+		  get_line/1, get_line/2, get_line_helper_script/0,
+
 		  get_standard_environment/0,
 		  monitor_port/2,
 		  evaluate_shell_expression/1, evaluate_shell_expression/2,
@@ -88,7 +90,9 @@
 
 		  get_operating_system_description/0,
 		  get_operating_system_description_string/0,
-		  get_system_description/0 ]).
+		  get_system_description/0,
+
+		  has_graphical_output/0 ]).
 
 
 % Prerequisite-related section.
@@ -119,7 +123,7 @@
 								   math_utils:percent() }.
 
 
-% For record declarations:
+% For record declarations and shell commands:
 -include("system_utils.hrl").
 
 
@@ -184,6 +188,13 @@
 -type command() :: text_utils:ustring().
 
 
+% An option used to spawn a port (others managed through specific parameters):
+%
+-type port_option() :: { 'packet', 1 | 2 | 4 }
+					 | 'stream'
+					 | { 'line', basic_utils:count() }.
+
+
 % Return the (positive integer) return code of an executable being run
 % (a.k.a. exit status):
 %
@@ -230,9 +241,8 @@
 
 
 % Working directory of an executed command:
--type working_dir() :: file_utils:directory_name()
-					 | file_utils:bin_directory_name()
-					 | 'undefined'.
+-type working_dir() :: maybe( file_utils:directory_name()
+							  | file_utils:bin_directory_name() ).
 
 
 % Basic authentication information:
@@ -250,7 +260,8 @@
 			   actual_filesystem_type/0, pseudo_filesystem_type/0,
 			   filesystem_type/0, fs_info/0,
 
-			   command/0, return_code/0, command_output/0, command_outcome/0,
+			   command/0, port_option/0, return_code/0, command_output/0,
+			   command_outcome/0,
 
 			   shell_expression/0, expression_outcome/0,
 
@@ -363,26 +374,28 @@ get_user_home_directory_string() ->
 %
 % In this case, await_output_completion/1 should be used, with a larger delay.
 %
--spec await_output_completion() -> basic_utils:void().
+-spec await_output_completion() -> void().
 
--ifdef(debug_mode_is_enabled).
+-ifdef(debug_mode).
 
-% Default time-out duration (one second):
+% Default time-out duration (0.3 second, for loaded computers):
 await_output_completion() ->
-	await_output_completion( _TimeOut=100 ).
+	% Milliseconds:
+	await_output_completion( _TimeOut=300 ).
 
--else. % debug_mode_is_enabled
+-else. % debug_mode
 
 
-% Extended time-out (one minute), if for example being in production, on a
+% Extended time-out (2.5 seconds), if for example being in production, on a
 % possibly heavily loaded system:
 %
 % (warning: this may impact adversely the timing if intensive logging is used)
 %
 await_output_completion() ->
-	await_output_completion( _TimeOut=2000 ).
+	% Milliseconds:
+	await_output_completion( _TimeOut=2500 ).
 
--endif. % debug_mode_is_enabled
+-endif. % debug_mode
 
 
 
@@ -393,23 +406,46 @@ await_output_completion() ->
 % then immediately halting the VM, in order to avoid a race condition between
 % the displaying and the halting.
 %
--spec await_output_completion( unit_utils:millisecond() ) -> basic_utils:void().
-await_output_completion( TimeOut ) ->
+-spec await_output_completion( unit_utils:millisecond() ) -> void().
+await_output_completion( _TimeOut ) ->
 
 	% Not sure it is really the proper way of waiting, however should be still
 	% better than timer:sleep( 500 ):
 	%
 	% (we suppose that the time-out here is in milliseconds)
 
-	%io:format( "(awaiting output completion)~n", [] ),
+	%trace_utils:debug( "(awaiting output completion)" ),
 
-	% Almost just a yield:
+	% Almost just a yield (re-enabled, see below):
 	timer:sleep( 10 ),
 
-	%io:format( "(output completed)~n", [] ),
+	%trace_utils:debug( "(output completed)" ),
 
 	% Does not seem always sufficient:
-	sys:get_status( error_logger, TimeOut ).
+	% (supposing timeout() is in milliseconds)
+
+	% Does not exist anymore since Erlang 21.0
+	%
+	% (we get at runtime: {noproc,{sys,get_status,[error_logger,300]}})
+	%
+	% sys:get_status( error_logger, TimeOut ).
+
+	% We considered adding to test_facilities:start/1 a configuration of the
+	% default logger_std_h handler so that async_mode_qlen was set to 0 (to
+	% ensure synchronicity in all cases), yet we are not using
+	% error_logger/logger for our usual outputs (we use io:format/{1,2} rather
+	% than erlang:display/1, see basic_utils:display/1).
+
+	% And apparently io:format/{1,2} are actually synchronous
+	% (cf. http://erlang.org/pipermail/erlang-questions/2011-July/059908.html),
+	% so nothing seems to be done to ensure that no output can be lost.
+	% (time will tell, as we at least used to notice that outputs could be lost)
+
+	% As for logger, a doubt remains about its synchronicity, see
+	% test_facilities:start/1 about that.
+	%
+
+	ok.
 
 
 
@@ -421,13 +457,15 @@ await_output_completion( TimeOut ) ->
 % Section to run executables and evaluation shell expressions.
 %
 % The former will return both the exit code and the command output, while the
-% latter will be able only to return the command output (command being either an
-% executable with arguments or a shell expression).
+% latter will be able only to return the command output (command being then a
+% full shell expression either, thus possibly reduced to just an executable with
+% arguments).
 
 
 % We wish we could specify a command as a single, standalone one, or as a list
 % of command elements, but the lack of a string type prevents it (as the
 % parameter of the called functions would be a list in both cases).
+
 
 
 % Runs (synchronously) specified executable with arguments, specified as a
@@ -456,7 +494,7 @@ run_executable( Command ) ->
 
 
 
-% Executes (synchronously) specified shell command (specified as a single,
+% Executes (synchronously) specified executable (specified as a single,
 % standalone string) in specified shell environment and current directory, and
 % returns its return code (exit status) and its outputs (both the standard and
 % the error ones).
@@ -467,7 +505,7 @@ run_executable( Command, Environment ) ->
 
 
 
-% Executes (synchronously) specified shell command (specified as a single,
+% Executes (synchronously) specified executable (specified as a single,
 % standalone string) in specified shell environment and directory, and returns
 % its return code (exit status) and its outputs (both the standard and the error
 % ones).
@@ -476,20 +514,37 @@ run_executable( Command, Environment ) ->
 							command_outcome().
 run_executable( Command, Environment, WorkingDir ) ->
 
-	%io:format( "Running executable: '~s' with environment '~s' "
-	%		   "from working directory '~p'.~n",
-	%		   [ Command, environment_to_string( Environment ), WorkingDir ] ),
+	% Removed: 'in'
+	DefaultBasePortOpts = [ stream, exit_status, use_stdio, stderr_to_stdout,
+							eof ],
 
-	PortOpts = [ stream, exit_status, use_stdio, stderr_to_stdout, in, eof,
-				 { env, Environment } ],
+	run_executable( Command, Environment, WorkingDir, DefaultBasePortOpts ).
+
+
+
+% Executes (synchronously) specified executable (specified as a single,
+% standalone string) in specified shell environment and directory, with
+% specified port options, and returns its return code (exit status) and its
+% outputs (both the standard and the error ones).
+%
+-spec run_executable( command(), environment(), working_dir(),
+					  [ port_option() ] ) -> command_outcome().
+run_executable( Command, Environment, WorkingDir, PortOptions ) ->
+
+	%trace_utils:debug_fmt( "Running executable: '~s' with environment '~s' "
+	%					   "from working directory '~p', with options ~p.",
+	%					   [ Command, environment_to_string( Environment ),
+	%						 WorkingDir, PortOptions ] ),
+
+	PortOptsWithEnv = [ { env, Environment } | PortOptions ],
 
 	PortOptsWithPath = case WorkingDir of
 
 		undefined ->
-			PortOpts;
+			PortOptsWithEnv;
 
 		_ ->
-			[ { cd, WorkingDir } | PortOpts ]
+			[ { cd, WorkingDir } | PortOptsWithEnv ]
 
 	end,
 
@@ -503,26 +558,27 @@ run_executable( Command, Environment, WorkingDir ) ->
 %
 read_port( Port, Data ) ->
 
-	%io:format( "Reading port ~p (data: '~p').~n", [ Port, Data ] ),
+	%trace_utils:debug_fmt( "Reading port ~p (data: '~p').", [ Port, Data ] ),
 
 	receive
 
 		{ Port, { data, NewData } } ->
-			%io:format( "Received data: '~p'.~n", [ NewData ] ),
+			%trace_utils:debug_fmt( "Received data: '~p'.", [ NewData ] ),
 			read_port( Port, [ NewData | Data ] );
 
 		% As mentioned in the documentation, "the eof message and the
 		% exit_status message appear in an unspecified order":
 
 		{ Port, eof } ->
-			%io:format( "Received eof (first).~n" ),
+			%trace_utils:debug( "Received eof (first)." ),
 			port_close( Port ),
 
 			receive
 
 				{ Port, { exit_status, ExitStatus } } ->
 
-					%io:format( "Received exit_status (second).~n" ),
+					trace_utils:debug_fmt(
+					  "Received exit_status (second): ~p.", [ ExitStatus ] ),
 
 					% Otherwise we have an enclosing list and last character is
 					% always "\n":
@@ -536,12 +592,13 @@ read_port( Port, Data ) ->
 
 		{ Port, { exit_status, ExitStatus } } ->
 
-			%io:format( "Received exit_status (first).~n" ),
+			%trace_utils:debug_fmt( "Received exit_status (first): ~p.",
+			%					   [ ExitStatus ] ),
 
 			receive
 
 				{ Port, eof } ->
-					%io:format( "Received eof (second).~n" ),
+					%trace_utils:debug( "Received eof (second)." ),
 
 					port_close( Port ),
 
@@ -561,6 +618,83 @@ read_port( Port, Data ) ->
 
 
 
+% Our version of io:get_line/1, as an external program so that the VM can be run
+% with -noinput (and thus so that {text,term}_ui can be used with the same VM
+% settings).
+%
+-spec get_line( text_utils:ustring() ) -> text_utils:ustring().
+get_line( Prompt ) ->
+	get_line( Prompt, get_line_helper_script() ).
+
+
+
+% Our version of io:get_line/1, as an external program so that the VM can be run
+% with -noinput (and thus so that {text,term}_ui can be used with the same VM
+% settings).
+%
+-spec get_line( text_utils:ustring(), file_utils:executable_path() ) ->
+					  text_utils:ustring().
+get_line( Prompt, GetLineScriptPath ) ->
+
+
+	% Having the script display the prompt would not work, as that script would
+	% not be able to write to the standard input (1):
+	%
+	%Cmd = text_utils:format( "get-line-as-external-program.sh \"~s\" 1>&4",
+	%						 [ Prompt ] ),
+
+	io:format( Prompt ),
+
+	% We have to execute a real executable (ex: not a shell builtin):
+	Cmd = GetLineScriptPath ++ " 1>&4",
+
+	Env = system_utils:get_standard_environment(),
+
+	PortOpts = [ stream, nouse_stdio, exit_status, eof ],
+
+	case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
+									  PortOpts ) of
+
+		{ _ExitStatus=0, UserText } ->
+			UserText;
+
+		{ ExitStatus, Any } ->
+			throw( { myriad_get_line_failed, ExitStatus, Any } )
+
+	end.
+
+
+
+
+% Returns the path to the Myriad helper script for get_line/1 operations.
+%
+-spec get_line_helper_script() -> file_utils:executable_path().
+get_line_helper_script() ->
+
+	GetLineScript = file_utils:join( script_utils:get_script_base_directory(),
+									 "get-line-as-external-program.sh" ),
+
+	case file_utils:is_existing_file( GetLineScript ) of
+
+		true ->
+
+			case file_utils:is_executable( GetLineScript ) of
+
+				true ->
+					GetLineScript;
+
+				false ->
+					throw( { script_not_executable, GetLineScript } )
+
+			end;
+
+		false ->
+			throw( { script_not_found, GetLineScript } )
+
+	end.
+
+
+
 % Returns a default, standard environment for "porcelain"-like executions,
 % i.e. executions that are, as much as possible, reproducible in various runtime
 % contexts (typically: with locale-independent outputs).
@@ -573,33 +707,36 @@ get_standard_environment() ->
 
 
 
-% Monitors a port: reads command data and signals from a port, and report it.
+% Monitors a port: reads command data and signals from a port, and reports it.
 %
 monitor_port( Port, Data ) ->
 
-	io:format( "Process ~p starting the monitoring of port ~p (data: '~p').~n",
-			   [ self(), Port, Data ] ),
+	%trace_utils:debug_fmt( "Process ~p starting the monitoring of "
+	%					   "port ~p (data: '~p').", [ self(), Port, Data ] ),
 
 	receive
 
 		{ Port, { data, NewData } } ->
-			io:format( "Port monitor ~p received data: '~p'.~n",
-					   [ self(), NewData ] ),
+			%trace_utils:debug_fmt( "Port monitor ~p received data: '~p'.",
+			%					   [ self(), NewData ] ),
+
 			monitor_port( Port, [ NewData | Data ] );
 
 		% As mentioned in the documentation, "the eof message and the
 		% exit_status message appear in an unspecified order":
 
 		{ Port, eof } ->
-			io:format( "Port monitor ~p received eof (first).~n", [ self() ] ),
+			%trace_utils:debug_fmt( "Port monitor ~p received eof (first).",
+			%					   [ self() ] ),
+
 			port_close( Port ),
 
 			receive
 
 				{ Port, { exit_status, ExitStatus } } ->
 
-					io:format( "Port monitor ~p received exit_status "
-							   "(second).~n", [ self() ] ),
+					%trace_utils:debug_fmt( "Port monitor ~p received exit_status "
+					%					   "(second).", [ self() ] ),
 
 					% Otherwise we have an enclosing list and last character is
 					% always "\n":
@@ -613,14 +750,14 @@ monitor_port( Port, Data ) ->
 
 		{ Port, { exit_status, ExitStatus } } ->
 
-			io:format( "Port monitor ~p received exit_status (first).~n",
-					   [ self() ] ),
+			%trace_utils:debug_fmt( "Port monitor ~p received exit_status (first).",
+			%					   [ self() ] ),
 
 			receive
 
 				{ Port, eof } ->
-					io:format( "Port monitor ~p received eof (second).~n",
-							   [ self() ] ),
+					%trace_utils:debug( "Port monitor ~p received eof (second).",
+					%				   [ self() ] ),
 
 					port_close( Port ),
 
@@ -634,7 +771,7 @@ monitor_port( Port, Data ) ->
 		% Added by ourselves so that we can avoid process leakage:
 		terminate_port ->
 
-			io:format( "Port monitor ~p terminating.~n", [ self() ] ),
+			%trace_utils:debug_fmt( "Port monitor ~p terminating.", [ self() ] ),
 
 			% Anyway no PID to send information to:
 			port_terminated
@@ -667,8 +804,9 @@ evaluate_shell_expression( Expression, Environment ) ->
 
 	FullExpression = get_actual_expression( Expression, Environment ),
 
-	%io:format( "Evaluation shell expression '~s' in environment ~s.~n",
-	%		   [ FullExpression, environment_to_string( Environment ) ] ),
+	%trace_utils:debug_fmt( "Evaluation shell expression '~s' "
+	%					   "in environment ~s.", [ FullExpression,
+	%						   environment_to_string( Environment ) ] ),
 
 	% No return code available, success supposed:
 	text_utils:remove_ending_carriage_return( os:cmd( FullExpression ) ).
@@ -691,7 +829,7 @@ evaluate_shell_expression( Expression, Environment ) ->
 % leak, one should consider using evaluate_background_shell_expression/1
 % instead.
 %
--spec run_background_executable( command() ) -> basic_utils:void().
+-spec run_background_executable( command() ) -> void().
 run_background_executable( Command ) ->
 	run_background_executable( Command, get_standard_environment() ).
 
@@ -709,8 +847,7 @@ run_background_executable( Command ) ->
 % leak, one should consider using evaluate_background_shell_expression/2
 % instead.
 %
--spec run_background_executable( command(), environment() ) ->
-									   basic_utils:void().
+-spec run_background_executable( command(), environment() ) -> void().
 run_background_executable( Command, Environment ) ->
 	run_background_executable( Command, Environment, _WorkingDir=undefined ).
 
@@ -729,7 +866,7 @@ run_background_executable( Command, Environment ) ->
 % instead.
 %
 -spec run_background_executable( command(), environment(), working_dir() ) ->
-									   basic_utils:void().
+									   void().
 run_background_executable( Command, Environment, WorkingDir ) ->
 
 	% Apparently using a port-based launch and a background execution will block
@@ -748,8 +885,7 @@ run_background_executable( Command, Environment, WorkingDir ) ->
 %
 % As a consequence it returns no return code (exit status) nor output.
 %
--spec evaluate_background_shell_expression( shell_expression() ) ->
-												  basic_utils:void().
+-spec evaluate_background_shell_expression( shell_expression() ) -> void().
 evaluate_background_shell_expression( Expression ) ->
 	evaluate_background_shell_expression( Expression,
 										  get_standard_environment() ).
@@ -762,7 +898,7 @@ evaluate_background_shell_expression( Expression ) ->
 % As a consequence it returns no return code (exit status) nor output.
 %
 -spec evaluate_background_shell_expression( shell_expression(),
-				environment() ) -> basic_utils:void().
+											environment() ) -> void().
 evaluate_background_shell_expression( Expression, Environment ) ->
 
 	FullExpression = get_actual_expression( Expression, Environment ),
@@ -827,7 +963,7 @@ get_environment_variable( VarName ) ->
 % overwriting a past value.
 %
 -spec set_environment_variable( env_variable_name(), env_variable_value() ) ->
-									  basic_utils:void().
+									  void().
 set_environment_variable( VarName, VarValue ) ->
 	os:putenv( VarName, VarValue ).
 
@@ -867,7 +1003,7 @@ environment_to_string( Environment ) ->
 							   end,
 							   Environment ),
 
-	VariableStrings = [ io_lib:format( "~s = ~s", [ Name, Value ] )
+	VariableStrings = [ text_utils:format( "~s = ~s", [ Name, Value ] )
 						|| { Name, Value } <- SetVars ],
 
 	FinalVariableStrings = case UnsetVars of
@@ -1187,7 +1323,7 @@ convert_byte_size_with_unit( SizeInBytes ) ->
 % Returns a summary of the dynamically allocated memory currently being used by
 % the Erlang emulator.
 %
--spec display_memory_summary() -> basic_utils:void().
+-spec display_memory_summary() -> void().
 display_memory_summary() ->
 
 	SysSize  = erlang:memory( system ),
@@ -1211,12 +1347,9 @@ display_memory_summary() ->
 -spec get_total_physical_memory() -> byte_size().
 get_total_physical_memory() ->
 
-	% Note: '\\awk' is '\awk' once escaped; a backslash allows to unalias the
-	% corresponding command, to avoid not-so-compliant alternatives to be used.
-
 	% First check the expected unit is returned, by pattern-matching:
-	UnitCommand = "/bin/cat /proc/meminfo | /bin/grep 'MemTotal:' "
-				  "| \\awk '{print $3}'",
+	UnitCommand = ?cat "/proc/meminfo |" ?grep "'MemTotal:' |"
+		?awk "'{print $3}'",
 
 	case run_executable( UnitCommand ) of
 
@@ -1224,9 +1357,8 @@ get_total_physical_memory() ->
 
 			% Ok, using kB indeed.
 
-			ValueCommand =
-				"/bin/cat /proc/meminfo | /bin/grep 'MemTotal:' "
-				"| \\awk '{print $2}'",
+			ValueCommand = ?cat "/proc/meminfo |" ?grep "'MemTotal:' |"
+				?awk "'{print $2}'",
 
 			% The returned value of following command is like "12345\n", in
 			% bytes:
@@ -1282,12 +1414,12 @@ get_total_physical_memory_on( Node ) ->
 	% No standard environment enforced here.
 
 	% First check the expected unit is returned, by pattern-matching:
-	UnitCommand = "/bin/cat /proc/meminfo | /bin/grep 'MemTotal:' "
-				  "| \\awk '{print $3}'",
+	UnitCommand = ?cat "/proc/meminfo |" ?grep "'MemTotal:' |"
+		?awk "'{print $3}'",
 	"kB\n" = rpc:call( Node, os, cmd, [ UnitCommand ] ),
 
-	ValueCommand = "/bin/cat /proc/meminfo | /bin/grep 'MemTotal:' "
-				   "| \\awk '{print $2}'",
+	ValueCommand = ?cat "/proc/meminfo |" ?grep "'MemTotal:' |"
+		?awk "'{print $2}'",
 	ValueCommandOutput = rpc:call( Node, os, cmd, [ ValueCommand ] ),
 
 	% The returned value of following command is like "12345\n", in bytes:
@@ -1361,8 +1493,8 @@ get_total_memory_used() ->
 
 	% So finally we prefered /proc/meminfo, used first to get MemTotal:
 	%
-	TotalString = case run_executable( "/bin/cat /proc/meminfo | "
-				"/bin/grep '^MemTotal:' | \\awk '{print $2,$3}'" ) of
+	TotalString = case run_executable( ?cat "/proc/meminfo |"
+					 ?grep "'^MemTotal:' |" ?awk "'{print $2,$3}'" ) of
 
 		{ _TotalExitCode=0, TotalOutput } ->
 			%io:format( "TotalOutput: '~p'~n", [ TotalOutput ] ),
@@ -1381,8 +1513,8 @@ get_total_memory_used() ->
 	% MemAvailable does not seem always available:
 	%
 	FreeString = case run_executable(
-			"/bin/cat /proc/meminfo | /bin/grep '^MemAvailable:' "
-			"| \\awk '{print $2,$3}'" )  of
+			?cat "/proc/meminfo |" ?grep "'^MemAvailable:' |"
+						?awk "'{print $2,$3}'" )  of
 
 		{ _AvailExitCode=0, MemAvailOutput } ->
 			%io:format( "## using MemAvailable~n" ),
@@ -1395,9 +1527,8 @@ get_total_memory_used() ->
 
 			%io:format( "## using MemFree~n" ),
 
-			case run_executable(
-				   "/bin/cat /proc/meminfo | /bin/grep '^MemFree:' | "
-				   "\\awk '{print $2,$3}'" ) of
+			case run_executable( ?cat "/proc/meminfo |" ?grep "'^MemFree:' |"
+								 ?awk "'{print $2,$3}'" ) of
 
 				{ _FreeExitCode=0, MemFreeOutput } ->
 					MemFreeOutput;
@@ -1422,7 +1553,7 @@ get_total_memory_used() ->
 			%io:format( "## using free~n" ),
 
 			case run_executable(
-				"/bin/free -b | /bin/grep '/cache' | \\awk '{print $3}'" ) of
+				?free "-b |" ?grep "'/cache' |" ?awk "'{print $3}'" ) of
 
 				{ _ExitCode=0, FreeOutput } ->
 					% Already in bytes:
@@ -1490,9 +1621,8 @@ get_swap_status() ->
 
 	% Same reason as for get_total_memory_used/0:
 	%SwapInfos = os:cmd( "free -b | grep 'Swap:' | awk '{print $2, $3}'" ),
-	SwapTotalString = case run_executable(
-		  "/bin/cat /proc/meminfo | /bin/grep '^SwapTotal:' | "
-		  "\\awk '{print $2,$3}'" ) of
+	SwapTotalString = case run_executable( ?cat "/proc/meminfo |"
+		?grep "'^SwapTotal:' |" ?awk "'{print $2,$3}'" ) of
 
 		{ _TotalExitCode=0, TotalOutput } ->
 			TotalOutput;
@@ -1508,8 +1638,8 @@ get_swap_status() ->
 
 
 	SwapFreeString = case run_executable(
-		"cat /proc/meminfo | /bin/grep '^SwapFree:' | "
-		"\\awk '{print $2,$3}'" ) of
+							?cat "/proc/meminfo |" ?grep "'^SwapFree:' |"
+							?awk "'{print $2,$3}'" ) of
 
 		{ _FreeExitCode=0, FreeOutput } ->
 			FreeOutput;
@@ -1542,14 +1672,14 @@ get_swap_status_string() ->
 		case get_swap_status() of
 
 			{ _UsedSwap, _TotalSwap=0 } ->
-					   "no swap found";
+				"no swap found";
 
 			{ UsedSwap, TotalSwap } ->
-					   io_lib:format( "swap used: ~s over a total of ~s (~s)",
-									  [ interpret_byte_size( UsedSwap ),
-										interpret_byte_size( TotalSwap ),
-										text_utils:percent_to_string(
-										  UsedSwap / TotalSwap ) ] )
+				io_lib:format( "swap used: ~s over a total of ~s (~s)",
+							   [ interpret_byte_size( UsedSwap ),
+								 interpret_byte_size( TotalSwap ),
+								 text_utils:percent_to_string(
+								   UsedSwap / TotalSwap ) ] )
 
 		end
 
@@ -1571,7 +1701,7 @@ get_swap_status_string() ->
 get_core_count() ->
 
 	CoreString = case run_executable(
-						"/bin/cat /proc/cpuinfo | /bin/grep -c processor" ) of
+						?cat "/proc/cpuinfo |" ?grep "-c processor" ) of
 
 		{ _ExitCode=0, Output } ->
 			Output;
@@ -1634,7 +1764,7 @@ get_process_count_string() ->
 	try
 
 		io_lib:format( "number of existing Erlang processes: ~B ",
-					  [ get_process_count() ] )
+					   [ get_process_count() ] )
 
 	catch _AnyClass:Exception ->
 
@@ -1677,13 +1807,13 @@ compute_cpu_usage_between( StartCounters, EndCounters ) ->
 %
 % Returns 'undefined' iff the specified usage is itself undefined.
 %
--spec compute_cpu_usage_for( basic_utils:maybe( cpu_usage_percentages() ) ) ->
-								   basic_utils:maybe( math_utils:percent() ).
+-spec compute_cpu_usage_for( maybe( cpu_usage_percentages() ) ) ->
+								   maybe( math_utils:percent() ).
 compute_cpu_usage_for( undefined ) ->
 	undefined;
 
 compute_cpu_usage_for( { UserPercent, NicePercent, SystemPercent, _IdlePercent,
-						OtherPercent } ) ->
+						 OtherPercent } ) ->
 
 	% Every usage matters here, except idle:
 	UserPercent + NicePercent + SystemPercent + OtherPercent.
@@ -1701,7 +1831,7 @@ compute_cpu_usage_for( { UserPercent, NicePercent, SystemPercent, _IdlePercent,
 % usage can be quantified then.
 %
 -spec compute_detailed_cpu_usage( cpu_usage_info(), cpu_usage_info() ) ->
-	basic_utils:maybe( cpu_usage_percentages() ).
+										maybe( cpu_usage_percentages() ).
 compute_detailed_cpu_usage( _StartCounters={ U1, N1, S1, I1, O1 },
 							_EndCounters = { U2, N2, S2, I2, O2 } ) ->
 
@@ -1743,7 +1873,7 @@ compute_detailed_cpu_usage( _StartCounters={ U1, N1, S1, I1, O1 },
 
 			% Avoids rounding errors:
 			OtherPercent = math_utils:round_after( 100 - AllButOtherPercent,
-										  RoundDigits ),
+												   RoundDigits ),
 
 			{ UserPercent, NicePercent, SystemPercent, IdlePercent,
 			  OtherPercent }
@@ -1761,7 +1891,7 @@ get_cpu_usage_counters() ->
 
 	% grep more versatile than: '| head -n 1':
 	StatString = case run_executable(
-						"/bin/cat /proc/stat | /bin/grep 'cpu '" ) of
+						?cat "/proc/stat |" ?grep "'cpu '" ) of
 
 		{ _ExitCode=0, Output } ->
 			Output;
@@ -1800,7 +1930,7 @@ get_cpu_usage_counters() ->
 -spec get_disk_usage() -> text_utils:ustring().
 get_disk_usage() ->
 
-	case run_executable( "/bin/df -h" ) of
+	case run_executable( ?df "-h" ) of
 
 		{ _ExitCode=0, Output } ->
 			Output;
@@ -1850,8 +1980,8 @@ get_known_pseudo_filesystems() ->
 -spec get_mount_points() -> [ file_utils:path() ].
 get_mount_points() ->
 
-	FirstCmd = "/bin/df -h --local --output=target"
-		++ get_exclude_pseudo_fs_opt() ++ " | /bin/grep -v 'Mounted on'",
+	FirstCmd = ?df "-h --local --output=target"
+		++ get_exclude_pseudo_fs_opt() ++ " |" ?grep "-v 'Mounted on'",
 
 	case run_executable( FirstCmd ) of
 
@@ -1862,9 +1992,9 @@ get_mount_points() ->
 		{ _FirstExitCode, _FirstErrorOutput } ->
 
 			% Older versions of df may not know the --output option:
-			SecondCmd = "/bin/df -h --local "
+			SecondCmd = ?df "-h --local "
 				++ get_exclude_pseudo_fs_opt()
-				++ "| /bin/grep -v 'Mounted on' | \\awk '{print $6}'",
+				++ "| " ?grep "-v 'Mounted on' |" ?awk "'{print $6}'",
 
 			case run_executable( SecondCmd ) of
 
@@ -1902,10 +2032,9 @@ get_filesystem_info( BinFilesystemPath ) when is_binary( BinFilesystemPath ) ->
 
 get_filesystem_info( FilesystemPath ) ->
 
-	Cmd = "/bin/df --block-size=1K --local "
-		++ get_exclude_pseudo_fs_opt()
+	Cmd = ?df "--block-size=1K --local " ++ get_exclude_pseudo_fs_opt()
 		++ " --output=source,target,fstype,used,avail,iused,iavail '"
-		++ FilesystemPath ++ "' | /bin/grep -v 'Mounted on'",
+		++ FilesystemPath ++ "' |" ?grep "-v 'Mounted on'",
 
 	case run_executable( Cmd ) of
 
@@ -1954,9 +2083,9 @@ get_filesystem_info_alternate( FilesystemPath ) ->
 
 	%io:format( "## using alternate df~n" ),
 
-	Cmd = "/bin/df --block-size=1K --local "
+	Cmd = ?df "--block-size=1K --local "
 		++ get_exclude_pseudo_fs_opt() ++ " "
-		++ FilesystemPath ++ "| /bin/grep -v 'Mounted on'",
+		++ FilesystemPath ++ "|" ?grep "-v 'Mounted on'",
 
 	case run_executable( Cmd ) of
 
@@ -2065,10 +2194,9 @@ get_operating_system_description() ->
 
 		true ->
 
-			case run_executable( "/bin/cat " ++ OSfile ++
-					" | /bin/grep PRETTY_NAME | "
-					"/bin/sed 's|^PRETTY_NAME=\"||1' | "
-					"/bin/sed 's|\"$||1' 2>/dev/null" ) of
+			case run_executable( ?cat ++ OSfile ++ " |" ?grep "PRETTY_NAME |"
+					?sed "'s|^PRETTY_NAME=\"||1' |"
+					?sed "'s|\"$||1' 2>/dev/null" ) of
 
 				{ _ExitCode=0, Output } ->
 					Output;
@@ -2149,6 +2277,24 @@ get_system_description() ->
 
 
 
+% Tells whether this host has graphical output (typically a running X server).
+%
+-spec has_graphical_output() -> boolean().
+has_graphical_output() ->
+
+	% Currently relying on this X-related variable:
+	case get_environment_variable( "DISPLAY" ) of
+
+		false ->
+			false;
+
+		_ ->
+			true
+
+	end.
+
+
+
 % Prerequisite section.
 
 % We suppose that by default all third-party dependencies (example taken here:
@@ -2204,7 +2350,7 @@ get_dependency_base_directory( PackageName="ErlPort" ) ->
 			DefaultDir = file_utils:normalise_path(
 						   file_utils:join( PathComponents ) ),
 
-			case file_utils:is_existing_directory( DefaultDir ) of
+			case file_utils:is_existing_directory_or_link( DefaultDir ) of
 
 				true ->
 					trace_utils:debug_fmt( "Using default Erlport directory '~s'.",
@@ -2226,7 +2372,7 @@ get_dependency_base_directory( PackageName="ErlPort" ) ->
 			case filename:basename( EnvDir ) of
 
 				"erlport" ->
-					case file_utils:is_existing_directory( EnvDir ) of
+					case file_utils:is_existing_directory_or_link( EnvDir ) of
 
 						true ->
 							trace_utils:debug_fmt( "Using the Erlport directory "
@@ -2296,7 +2442,7 @@ is_json_support_available() ->
 %
 -spec get_json_unavailability_hint() -> string().
 get_json_unavailability_hint() ->
-	"Hint: inspect, in common/GNUmakevars.inc, the USE_REST and "
+	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_REST and "
 	"JSX_BASE variables, knowing that the current code path is: "
 		++ code_utils:get_code_path_as_string().
 
@@ -2332,5 +2478,5 @@ is_hdf5_support_available() ->
 %
 -spec get_hdf5_unavailability_hint() -> string().
 get_hdf5_unavailability_hint() ->
-	"Hint: inspect, in common/GNUmakevars.inc, the USE_HDF5 and "
+	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_HDF5 and "
 	"ERLHDF5_BASE variables.".

@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, February 15, 2010.
 
 
@@ -281,7 +281,7 @@ set_edge_color( Color, Polygon ) ->
 % Returns the current edge color of the specified polygon, if specified,
 % otherwise 'undefined'.
 %
--spec get_edge_color( polygon() ) -> basic_utils:maybe( gui_color:color() ).
+-spec get_edge_color( polygon() ) -> maybe( gui_color:color() ).
 get_edge_color( Polygon ) ->
 	option_list:lookup( edge_color, Polygon#polygon.rendering ).
 
@@ -302,7 +302,7 @@ set_fill_color( Color, Polygon ) ->
 % Returns the current fill color of the specified polygon, if specified,
 % otherwise 'undefined'.
 %
--spec get_fill_color( polygon() ) -> basic_utils:maybe( gui_color:color() ).
+-spec get_fill_color( polygon() ) -> maybe( gui_color:color() ).
 get_fill_color( Polygon ) ->
 	option_list:lookup( fill, Polygon#polygon.rendering ).
 
@@ -321,7 +321,7 @@ get_rendering_options( Polygon ) ->
 %
 % Throws an exception if the polygon is not valid.
 %
--spec render( polygon(), gui:canvas() ) -> basic_utils:void().
+-spec render( polygon(), gui:canvas() ) -> void().
 render( Polygon, Canvas ) ->
 
 	%trace_utils:debug_fmt( "Rendering polygon:~n~s.",

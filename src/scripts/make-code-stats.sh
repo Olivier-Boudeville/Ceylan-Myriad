@@ -1,9 +1,10 @@
 #!/bin/sh
 
-# Copyright (C) 2010-2016 Olivier Boudeville (olivier.boudeville@esperide.com)
-
+# Copyright (C) 2010-2018 Olivier Boudeville
 #
-# This file is part of the Ceylan Erlang library.
+# Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+
+# This file is part of the Ceylan-Myriad library.
 
 
 USAGE="Usage: $(basename $0) SOURCE_DIRECTORY
@@ -54,7 +55,10 @@ cd $root_dir
 # Sometimes in /bin, sometimes in /usr/bin, etc.:
 FIND=$(which find 2>/dev/null)
 WC=$(which wc 2>/dev/null)
+EXPR=$(which expr 2>/dev/null)
 
+CAT=/bin/cat
+GREP=/bin/grep
 
 # -L: follow symlinks.
 
@@ -87,12 +91,12 @@ fi
 
 for f in ${target_files} ; do
 
-	cat $f >> "${tmp_file}"
+	${CAT} $f >> "${tmp_file}"
 
 done
 
 
-full_line_count=$(cat "${tmp_file}" | wc -l)
+full_line_count=$(${CAT} "${tmp_file}" | wc -l)
 
 if [ $full_line_count -eq 0 ] ; then
 
@@ -102,14 +106,15 @@ if [ $full_line_count -eq 0 ] ; then
 fi
 
 
-empty_line_count=$(/bin/cat "${tmp_file}" | /bin/grep '^$' | ${WC} -l)
-comment_line_count=$(/bin/cat "${tmp_file}" | /bin/grep '^[[:space:]]*%' | ${WC} -l)
+empty_line_count=$(${CAT} "${tmp_file}" | ${GREP} '^$' | ${WC} -l)
+comment_line_count=$(${CAT} "${tmp_file}" | ${GREP} '^[[:space:]]*%' | ${WC} -l)
 
-code_line_count=$(/bin/expr $full_line_count - $empty_line_count - $comment_line_count)
 
-empty_percentage=$(echo "scale=1; 100 * $empty_line_count / $full_line_count" | bc)
-comment_percentage=$(echo "scale=1; 100 * $comment_line_count / $full_line_count" | bc)
-code_percentage=$(echo "scale=1 ; 100 * $code_line_count / $full_line_count" | bc)
+code_line_count=$(${EXPR} $full_line_count - $empty_line_count - $comment_line_count)
+
+empty_percentage=$(echo "scale=1; 100 * $empty_line_count / $full_line_count" | ${BC})
+comment_percentage=$(echo "scale=1; 100 * $comment_line_count / $full_line_count" | ${BC})
+code_percentage=$(echo "scale=1 ; 100 * $code_line_count / $full_line_count" | ${BC})
 
 echo "In the Erlang source code found from $root_dir, we have:"
 echo "  + $erl_count source files (*.erl), $hrl_count header files (*.hrl)"

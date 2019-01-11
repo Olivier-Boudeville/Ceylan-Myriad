@@ -22,16 +22,16 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, December 19, 2014.
 
 
 
 % This module allows to test with as few dependencies as possible the
-% 'common_parse_transform' parse transform as a standalone unit, hence with
+% 'myriad_parse_transform' parse transform as a standalone unit, hence with
 % proper error and warning messages.
 %
-% See the common_parse_transform.erl tested module.
+% See the myriad_parse_transform.erl tested module.
 %
 -module(minimal_parse_transform_test).
 
@@ -43,21 +43,21 @@ perform_direct_ast_operations( TargetSourceFile ) ->
 
 	io:format( "~nNow performing directly AST-level operations:~n~n" ),
 
-	BaseAST = meta_utils:erl_to_ast( TargetSourceFile ),
+	BaseAST = ast_utils:erl_to_ast( TargetSourceFile ),
 
 	io:format( "Base AST:~n~p~n", [ BaseAST ] ),
 
-	BaseModuleInfo = meta_utils:extract_module_info_from_ast( BaseAST ),
+	BaseModuleInfo = ast_info:extract_module_info_from_ast( BaseAST ),
 
 	io:format( "Base module info: ~s~n~n",
-			   [ meta_utils:module_info_to_string( BaseModuleInfo ) ] ),
+			   [ ast_info:module_info_to_string( BaseModuleInfo ) ] ),
 
 	FinalModuleInfo = BaseModuleInfo,
 
 	io:format( "Final module info: ~s~n~n",
-			   [ meta_utils:module_info_to_string( FinalModuleInfo ) ] ),
+			   [ ast_info:module_info_to_string( FinalModuleInfo ) ] ),
 
-	FinalAST = meta_utils:recompose_ast_from_module_info( FinalModuleInfo ),
+	FinalAST = ast_info:recompose_ast_from_module_info( FinalModuleInfo ),
 
 	io:format( "Final AST:~n~p~n", [ FinalAST ] ).
 
@@ -67,18 +67,21 @@ perform_direct_ast_operations( TargetSourceFile ) ->
 run() ->
 
 	%TargetSourceFile = "code_utils.erl",
-	TargetSourceFile = "../data-management/simple_parse_transform_target.erl",
+	TargetSourceFile = "simple_parse_transform_target.erl",
 	%TargetSourceFile = "../data-management/preferences.erl",
 
-	io:format( "Applying the common parse transform to the "
+	io:format( "Applying the Myriad parse transform to the "
 			   "'~s' source file.~n~n", [ TargetSourceFile ] ),
 
-	TransformedAST = common_parse_transform:run_standalone( TargetSourceFile ),
+	TransformedAST = myriad_parse_transform:run_standalone( TargetSourceFile ),
 
 	io:format( "Transformed AST:~n~p~n~n", [ TransformedAST ] ),
 
-	ast_utils:write_ast_to_file( TransformedAST, TargetSourceFile ++ ".ast" ),
+	%ast_utils:write_ast_to_file( TransformedAST, TargetSourceFile ++ ".ast" ),
 
 	%perform_direct_ast_operations( TargetSourceFile ),
 
-	init:stop( _StatusCode=0 ).
+	io:format( "Test successful." ),
+
+	% Otherwise freezes indefinitely:
+	basic_utils:stop().

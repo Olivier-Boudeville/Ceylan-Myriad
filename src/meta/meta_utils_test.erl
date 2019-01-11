@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, December 19, 2014.
 
 
@@ -50,35 +50,35 @@ run() ->
 
 	test_facilities:display( "Testing typing information." ),
 
-	boolean = meta_utils:get_type_of( true ),
+	boolean = type_utils:get_type_of( true ),
 
-	atom = meta_utils:get_type_of( 'an atom' ),
+	atom = type_utils:get_type_of( 'an atom' ),
 
-	binary = meta_utils:get_type_of( list_to_binary( "1" ) ),
+	binary = type_utils:get_type_of( list_to_binary( "1" ) ),
 
-	float = meta_utils:get_type_of( 1.0 ),
+	float = type_utils:get_type_of( 1.0 ),
 
-	function = meta_utils:get_type_of( fun( X ) -> X + 1 end ),
+	function = type_utils:get_type_of( fun( X ) -> X + 1 end ),
 
-	integer = meta_utils:get_type_of( 42 ),
+	integer = type_utils:get_type_of( 42 ),
 
-	pid = meta_utils:get_type_of( self() ),
+	pid = type_utils:get_type_of( self() ),
 
-	list = meta_utils:get_type_of( [ hello, self() ] ),
+	list = type_utils:get_type_of( [ hello, self() ] ),
 
-	string = meta_utils:get_type_of( "Hello world!" ),
+	string = type_utils:get_type_of( "Hello world!" ),
 
-	%port = meta_utils:get_type_of( APort ),
+	%port = type_utils:get_type_of( APort ),
 
-	tuple = meta_utils:get_type_of( { a, b } ),
+	tuple = type_utils:get_type_of( { a, b } ),
 
-	reference = meta_utils:get_type_of( make_ref() ),
+	reference = type_utils:get_type_of( make_ref() ),
 
 
-	{ false, { boolean, float } } = meta_utils:is_homogeneous(
+	{ false, { boolean, float } } = type_utils:is_homogeneous(
 									  { true, 1.0, false } ),
 
-	{ true, integer } = meta_utils:is_homogeneous( [ 0, -4, 47, 12 ] ),
+	{ true, integer } = type_utils:is_homogeneous( [ 0, -4, 47, 12 ] ),
 
 
 	test_facilities:display( "Testing term recursive transformation." ),
@@ -98,7 +98,7 @@ run() ->
 	TermToTraverse = { pseudo_record, [], { a, 1.0 },
 					   [ { b, 42 }, "hello", [ <<"foo">> ] ], self() },
 
-	{ TraversedTerm, InspectData } = meta_utils:traverse_term( TermToTraverse,
+	{ TraversedTerm, InspectData } = ast_transform:transform_term( TermToTraverse,
 						_Type=atom, IdTermTransformer, _UserData=[] ),
 
 	test_facilities:display( "Traversal of term:~n'~p' with "
@@ -117,7 +117,7 @@ run() ->
 						  end,
 
 	% Requested to operate only on PIDs:
-	{ NewTraversedTerm, _UselessData } = meta_utils:traverse_term(
+	{ NewTraversedTerm, _UselessData } = ast_transform:transform_term(
 				TermToTraverse, _OtherType=pid, TextTermTransformer,
 				_OtherUserData=undefined ),
 
@@ -127,19 +127,19 @@ run() ->
 
 	% For the fun of being very meta:
 	%BeamFilename = "meta_utils_test.beam",
-	%BeamFilename = "basic_utils.beam",
-	BeamFilename = "../data-management/simple_parse_transform_target.beam",
+	%BeamFilename = "../utils/basic_utils.beam",
+	BeamFilename = "simple_parse_transform_target.beam",
 
-	ModuleAST = meta_utils:beam_to_ast( BeamFilename ),
+	ModuleAST = ast_utils:beam_to_ast( BeamFilename ),
 
 	io:format( "AST= ~p~n", [ ModuleAST ] ),
 
-	ModuleInfo = meta_utils:extract_module_info_from_ast( ModuleAST ),
+	ModuleInfo = ast_info:extract_module_info_from_ast( ModuleAST ),
 
 	TermString = "[ {tiger,[lion,leopard]} ]",
 
-	[ {tiger, [ lion, leopard ] } ] = meta_utils:string_to_value( TermString ),
+	[ {tiger, [ lion, leopard ] } ] = ast_utils:string_to_value( TermString ),
 
-	test_facilities:display( meta_utils:module_info_to_string( ModuleInfo ) ),
+	test_facilities:display( ast_info:module_info_to_string( ModuleInfo ) ),
 
 	test_facilities:stop().

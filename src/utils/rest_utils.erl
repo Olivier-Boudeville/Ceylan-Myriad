@@ -22,8 +22,8 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Authors: Olivier Boudeville (olivier.boudeville@esperide.com)
-%		   Samuel Thiriot (samuel.thiriot@edf.fr)
+% Authors: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+%		   Samuel Thiriot [samuel (dot) thiriot (at) edf (dot) fr]
 %
 % Creation date: Tuesday, December 1, 2015.
 
@@ -59,7 +59,8 @@
 		  http_put/1, http_put/2, http_put/4,
 		  http_delete/1, http_delete/2, http_delete/4,
 		  http_request/1, http_request/2, http_request/3, http_request/5,
-		  is_json_parser_available/0, to_json/1, from_json/1 ]).
+		  is_json_parser_available/0, to_json/1,
+		  from_json/1, from_json_as_maps/1 ]).
 
 
 % Defines the duration (in milliseconds) to wait before retrying, after a
@@ -78,6 +79,16 @@
 
 % JSON document:
 -type json() :: binary() | string().
+
+
+
+% Options for the JSON parsing:
+%
+% (see https://github.com/talentdeficit/jsx#decode12 for more information; no
+% type is defined there yet)
+%
+-type json_parsing_option() :: any().
+
 
 
 % HTTP/1.1 method:
@@ -123,7 +134,8 @@
 
 -type retries_count() :: basic_utils:count().
 
--export_type([ ssl_opt/0, json/0, method/0, content_type/0, field/0, value/0,
+-export_type([ ssl_opt/0, json/0, json_parsing_option/0,
+			   method/0, content_type/0, field/0, value/0,
 			   header/0, headers/0, body/0, status_code/0, status_line/0,
 			   request/0, http_option/0, http_options/0, option/0, options/0,
 			   result/0, context/0, retries_count/0 ]).
@@ -138,7 +150,7 @@
 
 % Starts the REST service, with default settings.
 %
--spec start() -> basic_utils:void().
+-spec start() -> void().
 start() ->
 	start( no_ssl ).
 
@@ -146,7 +158,7 @@ start() ->
 
 % Starts the REST service.
 %
--spec start( ssl_opt() ) -> basic_utils:void().
+-spec start( ssl_opt() ) -> void().
 start( Option ) ->
 
 	% Starts the (built-in) HTTP client:
@@ -169,7 +181,7 @@ start( Option ) ->
 
 % Stops the REST service.
 %
--spec stop() -> basic_utils:void().
+-spec stop() -> void().
 stop() ->
 
 	stop_json_parser(),
@@ -459,7 +471,7 @@ return_checked_result( Result ) ->
 
 % Checks the basic structure of an HTTP request, as needed by httpc.
 %
--spec check_http_request( method(), request() ) -> basic_utils:void().
+-spec check_http_request( method(), request() ) -> void().
 check_http_request( Method, _Request={ URL, Headers } )
   when is_list( Headers ) ->
 
@@ -545,7 +557,7 @@ check_http_request( _Method, Request ) ->
 
 % Starts the JSON parser.
 %
--spec start_json_parser() -> basic_utils:void().
+-spec start_json_parser() -> void().
 start_json_parser() ->
 
 	% We use the 'jsx' parser, an external prerequisite.
@@ -609,23 +621,65 @@ to_json( Term ) ->
 
 
 
+% Returns the default options for the JSON decoding.
+%
+-spec get_default_json_decoding_options() -> [ json_parsing_option() ].
+get_default_json_decoding_options() ->
+	% We prefer {state,<<"PUBLISHED">>} to {<<"state">>,<<"PUBLISHED">>}:
+	[ { labels, atom } ].
+
+
+
 % Converts (decodes) specified JSON element into an Erlang term counterpart.
 %
 -spec from_json( json() ) -> term().
-from_json( BinJson ) when is_binary( BinJson ) ->
+from_json( Json ) ->
+	from_json( Json, get_default_json_decoding_options() ).
+
+
+
+% Converts (decodes) specified JSON element into an Erlang term counterpart,
+% with specified parsing options.
+%
+-spec from_json( json(), [ json_parsing_option() ] ) -> term().
+from_json( BinJson, Opts ) when is_binary( BinJson ) ->
+
 	%trace_utils:debug_fmt( "Decoding '~p'.", [ BinJson ] ),
 
-	% We prefer {state,<<"PUBLISHED">>} to {<<"state">>,<<"PUBLISHED">>}:
-	jsx:decode( BinJson, _Opts=[ { labels, atom } ] );
+	% Note that at least some errors in the JSON file (ex: missing comma) will
+	% lead only to an exception such as:
+	%
+	% ** exception error: bad argument
+	%  in function  jsx_decoder:maybe_done/4
+	%
+	% (not even returning a line number for the faulty part...)
 
-from_json( StringJson ) when is_list( StringJson ) ->
+	jsx:decode( BinJson, Opts );
+
+from_json( StringJson, Opts ) when is_list( StringJson ) ->
 	BinJson = text_utils:string_to_binary( StringJson ),
-	from_json( BinJson ).
+	from_json( BinJson, Opts ).
+
+
+
+% Converts (decodes) specified JSON element recursively so that it returns a
+% table containing tables, themselves containing potentially tables, etc.
+%
+% Note that if in a given scope a key is present more than once, only one of its
+% values will be retained (actually the lastly defined one).
+%
+-spec from_json_as_maps( json() ) -> table:table().
+from_json_as_maps( BinJson ) when is_binary( BinJson ) ->
+
+	Opts = [ return_maps | get_default_json_decoding_options() ],
+
+	from_json( BinJson, Opts ).
+
 
 
 
 % Stops the JSON parser.
 %
--spec stop_json_parser() -> basic_utils:void().
+-spec stop_json_parser() -> void().
 stop_json_parser() ->
 	ok.

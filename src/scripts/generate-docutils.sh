@@ -2,6 +2,8 @@
 
 # Copyright (C) 2010-2018 Olivier Boudeville
 #
+# Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+
 # This file is part of the Ceylan-Myriad library.
 
 
@@ -168,6 +170,16 @@ manage_rst_to_pdf()
 
 	echo "${begin_marker} building PDF target $target corresponding to source $source"
 
+	# Never triggered:
+	if [ -f "${target}" ]; then
+
+		echo "  (removing pre-existing target '${target}')"
+
+		/bin/rm -f "${target}"
+
+	fi
+
+
 	# Input extension is generally '.rst' (allows to remove only the final
 	# extension, even if there were dots in the base name):
 	tex_file=$(echo $source|sed 's|\.[^\.]*$|.tex|1')
@@ -202,7 +214,7 @@ manage_rst_to_pdf()
 		echo "Warning: 'rubber' not found, using pdflatex directly." 1>&2
 
 		# Run thrice on purpose, to fix links:
-		echo "LateX command: ${latex_to_pdf} ${latex_to_pdf_opt} ${tex_file}"
+		#echo "LateX command: ${latex_to_pdf} ${latex_to_pdf_opt} ${tex_file}"
 
 		${latex_to_pdf} ${latex_to_pdf_opt} ${tex_file} && \
 		${latex_to_pdf} ${latex_to_pdf_opt} ${tex_file} && \
@@ -222,10 +234,25 @@ manage_rst_to_pdf()
 	if [ ! $res -eq 0 ] ; then
 
 		if [ ${res} -eq 1 ] ; then
-		   echo "${begin_marker} Warning: PDF generation returned code 1 for $source." 1>&2
+
+			echo "${begin_marker} Warning: PDF generation returned code 1 for $source." 1>&2
+
 		else
-		   echo "${begin_marker} Error: PDF generation failed for $source (error code: $res)." 1>&2
-		   exit 7
+
+			# We might receive exit statuses greater than 1, yet have the right
+			# PDF produced:
+
+			if [ -f "${target}" ]; then
+
+				echo "${begin_marker} Error reported (code: ${res}), yet the PDF file ($(pwd)/${target}) could be nevertheless generated."
+
+			else
+
+				echo "${begin_marker} Error: PDF generation failed for $source (error code: $res)." 1>&2
+				exit 7
+
+			fi
+
 		fi
 
 	fi

@@ -1,15 +1,21 @@
-COMMON_TOP = ../../..
+MYRIAD_TOP = ../../..
 
-.PHONY: all run test-all
+.PHONY: all test-interactive
+
+
+
+MODULES_DIRS = textual graphical
 
 
 all:
 
-
-run: gui_overall_run
-
-
-test-all: all gui_minimal_run gui_simple_run gui_overall_run
+test:
 
 
-include $(COMMON_TOP)/GNUmakesettings.inc
+# In addition to parameter-less, batch test:
+test-interactive:
+	@for b in text_ui term_ui gui ; do echo ; echo "With backend '$$b' selected:" ; $(MAKE) -s ui_run CMD_LINE_OPT="--use-ui-backend $$b" ; done
+	@if ! $(MAKE) ui_run CMD_LINE_OPT="--use-ui-backend non_existing_gui" 2>/dev/null ; then exit 0; else exit 5 ; fi
+
+
+include $(MYRIAD_TOP)/GNUmakesettings.inc

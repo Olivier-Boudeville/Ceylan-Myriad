@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Creation date: Monday, May 25, 2015
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
 
@@ -39,7 +39,7 @@
 
 % The content of a node of a tree ('undefined' means empty content):
 %
--type node_content() :: any() | 'undefined'.
+-type node_content() :: maybe( any() ).
 
 
 % Any tree is made of the content of its root and of any number of (ordered)
@@ -78,7 +78,7 @@
 %
 -spec new() -> tree().
 new() ->
-	{ undefined, [] }.
+	{ _NodeContent=undefined, _Subtrees=[] }.
 
 
 
@@ -86,7 +86,7 @@ new() ->
 %
 -spec new( node_content() ) -> tree().
 new( NodeContent ) ->
-	{ NodeContent, [] }.
+	{ NodeContent, _Subtrees=[] }.
 
 
 
@@ -146,7 +146,7 @@ fold_breadth_first( ContentFun, InitialAcc, _Tree={ Content, Subtrees } ) ->
 	NodeAcc = ContentFun( Content, InitialAcc ),
 
 	lists:foldl( fun( ChildTree, Acc ) ->
-						 fold_breadth_first( ContentFun, Acc, ChildTree )
+					 fold_breadth_first( ContentFun, Acc, ChildTree )
 				 end,
 				 NodeAcc, Subtrees ).
 

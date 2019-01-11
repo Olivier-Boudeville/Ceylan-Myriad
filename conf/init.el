@@ -84,10 +84,24 @@
 (setq exec-path (cons "~/Software/Erlang/Erlang-current-install/lib/erlang/bin" exec-path))
 (setq exec-path (cons "/usr/local/lib/erlang/bin" exec-path))
 
+;; erlang-electric-semicolon removed, as more a nuisance than a help (function
+;; headers generally pasted from first):
+;;
+(setq erlang-electric-commands '(erlang-electric-comma
+								 erlang-electric-g))
+
 (require 'erlang-start)
+
+
 
 ;; Not used anymore, as faulty errors are triggered when using WOOPER:
 ;;(require 'erlang-flymake)
+
+;; To be able to move between windows simply thanks to S-<arrow> (i.e. holding
+;; shift, and hitting one of the 4 arrow keys; however the block selection
+;; becomes then a bit more cumbersome):
+;;
+(windmove-default-keybindings)
 
 
 ;; Taken from
@@ -265,13 +279,11 @@
 
 ;; Depends on the screen height:
 
-;; For a netbook:
+;; For a netbook or possibly a laptop:
 ;;(add-to-list 'default-frame-alist (cons 'height 35))
 
 ;; For a normal screen:
-(add-to-list 'default-frame-alist (cons 'height 49))
-
-;;(add-to-list 'default-frame-alist (cons 'height 58))
+(add-to-list 'default-frame-alist (cons 'height 52))
 
 
 ;; Key section:
@@ -627,7 +639,10 @@
 (setq vc-follow-symlinks nil)
 (setq line-move-visual nil)
 
-(setq default-tab-width 4)
+;; Only for older Emacs apparently:(setq default-tab-width 4)
+(setq-default tab-width 4)
+
+(setq tab-width 4)
 
 (setq scroll-step 1)
 (show-paren-mode 1)
@@ -636,6 +651,13 @@
 (savehist-mode 1)
 
 (setq frame-title-format '("%b" (buffer-file-name ": %f")))
+
+
+;; Wrong: (setq default-tab-width 4)
+(setq-default tab-width 4)
+
+(setq tab-width 4)
+
 
 (setq tool-bar-mode nil)
 

@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, January 21, 2018.
 
 
@@ -48,11 +48,15 @@
 %
 -type parse_attribute_name() :: atom().
 
+-type scan_context() :: { ast_base:file_reference(), ast_base:line() }.
 
--export_type([ parse_attribute_name/0 ]).
+-type error_report() :: text_utils:ustring().
+
+-export_type([ parse_attribute_name/0, scan_context/0, error_report/0 ]).
 
 
 -export([ scan/1, check_parse_attribute_name/1, check_parse_attribute_name/2 ]).
+
 
 
 
@@ -61,12 +65,9 @@
 -type ast() :: ast_base:ast().
 -type form_context() :: ast_base:form_context().
 -type module_info() :: ast_info:module_info().
-
-
-%-type function_name() :: meta_utils:function_name().
-%-type function_arity() :: meta_utils:function_arity().
-%-type function_id() :: meta_utils:function_id().
-%-type function_clause() :: ast_base:form().
+-type compile_option_table() :: ast_info:compile_option_table().
+-type located_form() :: ast_info:located_form().
+-type marker_table() :: ast_info:section_marker_table().
 
 
 
@@ -86,7 +87,7 @@
 % Then, for a more complete control, we match the AST against its intended,
 % "official" structure, as defined in
 % http://erlang.org/doc/apps/erts/absform.html; however, for a mere scan, this
-% is mostly useless, a more basic traversal is sufficient, and moreover
+% is mostly useless (as a more basic traversal is sufficient), and moreover
 % counter-productive as we might want to deviate from the base, Erlang rules in
 % the *input* AST (but of course the output one shall be legit).
 %
@@ -100,10 +101,60 @@
 % Deep, strict traversal is of use mainly for transformation (see
 % ast_transform.erl) rather than for scanning.
 %
-% We try to order clauses roughly in decreasing average frequency of appearance
-% in actual code.
+% Ultimately, resulting forms are to be validated anyway by the compiler (most
+% precise and efficient Erlang-level checking).
+%
+% We tried to order scan clauses roughly in decreasing average frequency of
+% appearance in the actual code to transform, yet often the order of clauses
+% matters (as it has a meaning and an impact).
 
 
+
+% Order of the forms in the AST
+%
+% A parse transform receives an (ordered) list of forms as input AST: forms are
+% ordered only by their position in that list (line numbers are contextual to
+% the last file declared as included, hence form order matters, and a form
+% cannot be ordered by itself), stored in a module_info record.
+%
+% Knowing that forms may have to be added, moved, updated, removed, etc. during
+% the transformation of an AST, positioning forms at specified points in an AST
+% stream is not straightforward (ex: the mere index of a form in the AST is not
+% stable, as any addition before this form would require this index to be
+% updated); moreover being able to keep track of their original order (to which
+% the parse transform tries to stick as much as possible) is certainly a safe
+% measure for debuggability.
+%
+% So, instead of storing forms in an AST, we store located forms in a located
+% AST: instead of having [ F1, F2, ..., Fn ], we may have for example [ { Loc2,
+% F2 }, { Loc1, F1 }, ..., { Locn, Fn } ], where Loc are (stable, immutable)
+% locations, i.e. form_location() - which are themselves id_utils:sortable_id().
+%
+% It allows to store, in a located AST, (located) forms in an arbitrary order:
+% sorting them according to their location reorders them as intended (note that
+% the AST scan results in an in-order located AST, which is more convenient for
+% insertions).
+%
+% Special AST pseudo-locations have been defined, including 'auto_locate_after',
+% which is, when iterating through a located AST, to be replaced by an actual
+% location just after the current one (relative positioning, based on the
+% current order of the stream).
+%
+% We also found it useful to define section markers (see
+% ast_info:section_marker/0), which are standard reference points within an AST,
+% to offer absolute positioning.
+%
+% Scanning an AST tries to automatically set these section markers, based on the
+% content found.
+%
+% For example, one may want a given form to be placed at the beginning of the
+% section for function exports; then the location of this form shall be
+% specified as being after the corresponding marker, i.e. after the location
+% stored in marker 'export_functions_marker'.
+%
+% However, depending on the AST content, markers may not be set, or may even not
+% be sorted according to our canonical order (ex: 'export_functions_marker' may
+% be set before 'export_types_marker', it is still legit compilation-wise).
 
 
 % Scans the specified AST, expected to correspond to a module definition, and
@@ -112,7 +163,18 @@
 -spec scan( ast() ) -> module_info().
 scan( AST ) ->
 
+	%ast_utils:display_trace( "scanning AST" ),
+
 	InitModuleInfo = ast_info:init_module_info(),
+
+	FirstLocation = id_utils:get_initial_sortable_id(),
+
+	FirstMarkerTable = ?table:addNewEntry( begin_marker, FirstLocation,
+										   InitModuleInfo#module_info.markers ),
+
+	FirstModuleInfo = InitModuleInfo#module_info{ markers=FirstMarkerTable },
+
+	%ast_utils:display_trace( "beginning scan" ),
 
 	% Application of 7.1.1:
 	%
@@ -121,9 +183,75 @@ scan( AST ) ->
 	%
 	% So iterating in the list of forms that make for the AST:
 	%
-	scan_forms( AST, InitModuleInfo,
-				_NextLocation=id_utils:get_initial_sortable_id(),
-				_CurrentFileRef=undefined ).
+	case scan_forms( AST, FirstModuleInfo, _NextLocation=FirstLocation,
+					 _CurrentFileRef=undefined ) of
+
+		M=#module_info{ errors=[] } ->
+			%ast_utils:display_trace( "no error to report" ),
+			% No error, let's continue:
+			M;
+
+		_M=#module_info{ errors=Errors } ->
+			%ast_utils:display_debug( "reporting errors: ~p", [ Errors ] ),
+			[ report_error( E ) || E <- Errors ],
+
+			% No need to be that violent:
+			%erlang:halt( 1 )
+			%exit( Errors )
+			%exit( errors_reported )
+			exit( "fix your code :)" )
+
+			% If wanting instead to ignore errors, at least at this step:
+			%M
+
+	end.
+
+
+
+% Reports specified error, using the same format as erlc, so that tools can
+% parse these errors as well.
+%
+ % Ex: foo.erl:102: can't find include file "bar.hrl"
+%
+-spec report_error( { ast_scan:scan_context(), basic_utils:error_reason() } ) ->
+						  basic_utils:void().
+report_error( { Context, Error } ) ->
+
+	ErrorString = case Error of
+
+		% Ex: Msg="head mismatch"
+		{ parse_error, Msg } when is_list( Msg ) ->
+			%text_utils:format( "parse error: ~s", [ Msg ] );
+			text_utils:format( "~s", [ Msg ] );
+
+		{ undefined_macro_variable, VariableName } ->
+			text_utils:format( "undefined macro variable '~s'",
+							   [ VariableName ] );
+
+		String when is_list( String ) ->
+			text_utils:format( "~s", [ String ] );
+
+		Other ->
+			text_utils:format( "~p", [ Other ] )
+
+	end,
+
+	io:format( "~s: ~s~n", [ context_to_string( Context ), ErrorString ] ).
+
+
+
+% Returns a textual representation of specified compilation context.
+%
+-spec context_to_string( ast_scan:scan_context() ) -> string().
+context_to_string( { Filename, Line } ) ->
+
+	% Respects the standard formatting:
+	%
+	% (note: using file_utils:normalise_path/1 would suppose file_utils is
+	% already built...)
+	%
+	text_utils:format( "~s:~B", [ Filename, Line ] ).
+
 
 
 %%
@@ -160,7 +288,7 @@ scan( AST ) ->
 %  - 7.1.12: Type export [lacking in reference page]
 %  - 7.1.13: Compile export [lacking in reference page]
 %  - 7.1.14 : Parse errors
-%  - 7.1.15 : Enf of file
+%  - 7.1.15 : End of file
 
 % Extra Section 7.9: Catch-all for unexpected forms
 
@@ -181,7 +309,8 @@ scan( AST ) ->
 %
 scan_forms( _AST=[ _Form={ 'attribute', Line, 'export', FunctionIds } | T ],
 			M=#module_info{ function_exports=ExportTable,
-							functions=FunctionTable },
+							functions=FunctionTable,
+							markers=MarkerTable },
 			NextLocation, CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "function export declaration for ~p",
@@ -229,9 +358,24 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export', FunctionIds } | T ],
 	NewExportTable = ?table:addNewEntry( NextLocation, { Line, FunctionIds },
 										 ExportTable ),
 
+	NewMarkerTable = case ?table:hasEntry( export_functions_marker,
+										   MarkerTable ) of
+
+		true ->
+			% Already found, nothing to do.
+			MarkerTable;
+
+		false ->
+			?table:addEntry( export_functions_marker, NextLocation,
+							 MarkerTable )
+
+	end,
+
+
 	% And then recurses with the next forms:
 	scan_forms( T, M#module_info{ function_exports=NewExportTable,
-								  functions=NewFunctionTable },
+								  functions=NewFunctionTable,
+								  markers=NewMarkerTable },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
@@ -245,7 +389,8 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export', FunctionIds } | T ],
 scan_forms( _AST=[ Form={ 'attribute', Line, 'import',
 							{ ModuleName, FunIds } } | T ],
 			 M=#module_info{ function_imports=ImportTable,
-							 function_imports_defs=ImportDefs },
+							 function_imports_defs=ImportDefs,
+							 markers=MarkerTable },
 			NextLocation, CurrentFileReference ) ->
 
 	Context = { CurrentFileReference, Line },
@@ -258,8 +403,22 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'import',
 
 	NewImportDefs = [ { NextLocation, Form } | ImportDefs ],
 
+	NewMarkerTable = case ?table:hasEntry( import_functions_marker,
+										   MarkerTable ) of
+
+		true ->
+			% Already found, nothing to do.
+			MarkerTable;
+
+		false ->
+			?table:addEntry( import_functions_marker, NextLocation,
+							 MarkerTable )
+
+	end,
+
 	scan_forms( T, M#module_info{ function_imports=NewImportTable,
-								  function_imports_defs=NewImportDefs },
+								  function_imports_defs=NewImportDefs,
+								  markers=NewMarkerTable },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
@@ -271,7 +430,8 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'import',
 % {attribute,LINE,module,Mod}."
 %
 scan_forms( _AST=[ Form={ 'attribute', Line, 'module', ModuleName } | T ],
-			 M=#module_info{ module=undefined, module_def=undefined },
+			 M=#module_info{ module=undefined,
+							 markers=MarkerTable },
 			 NextLocation, CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "module declaration for ~s", [ ModuleName ] ),
@@ -286,7 +446,11 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'module', ModuleName } | T ],
 
 	LocForm = { NextLocation, Form },
 
-	scan_forms( T, M#module_info{ module=ModuleName, module_def=LocForm },
+	NewMarkerTable = ?table:addNewEntry( module_marker, NextLocation,
+										 MarkerTable ),
+
+	scan_forms( T, M#module_info{ module={ ModuleName, LocForm },
+								  markers=NewMarkerTable },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
@@ -295,7 +459,7 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'module', ModuleName } | T ],
 % the compiler anyway.
 %
 scan_forms( _AST=[ _Form={ 'attribute', Line, 'module', ModuleName } | _T ],
-			 #module_info{ module=PreviousModuleName },
+			 #module_info{ module={ PreviousModuleName, _PreviousLocDef } },
 			 _NextLocation, CurrentFileReference ) ->
 	throw( { multiple_module_definitions, PreviousModuleName, ModuleName,
 			 { CurrentFileReference, Line } } );
@@ -353,9 +517,13 @@ scan_forms( _AST=[ Form={ 'attribute', _Line, 'file',
 % is a function clause with a pattern sequence of the same length Arity, then
 % Rep(F) = {function,LINE,Name,Arity,[Rep(Fc_1), ...,Rep(Fc_k)]}."
 %
-scan_forms( [ { 'function', Line, FunctionName, FunctionArity, Clauses } | T ],
-			M=#module_info{ functions=FunctionTable }, NextLocation,
-			CurrentFileReference ) ->
+scan_forms(
+  [ _Form={ 'function', Line, FunctionName, FunctionArity, Clauses } | T ],
+  M=#module_info{ functions=FunctionTable,
+				  markers=MarkerTable,
+				  errors=Errors },
+				  %unhandled_forms=UnhandledForms },
+  NextLocation, CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "function definition for ~p/~p",
 	% [ FunctionName, FunctionArity ] ),
@@ -373,40 +541,118 @@ scan_forms( [ { 'function', Line, FunctionName, FunctionArity, Clauses } | T ],
 
 	FunId = { FunctionName, FunctionArity },
 
-	FunInfo = case ?table:lookupEntry( FunId, FunctionTable ) of
+	{ FunInfo, MaybeError } =
+			case ?table:lookupEntry( FunId, FunctionTable ) of
+
 
 		key_not_found ->
 			% New entry then:
-			#function_info{ name=FunctionName,
-							arity=FunctionArity,
-							location=NextLocation,
-							line=Line,
-							clauses=Clauses
-							% Implicit:
-							%spec=undefined,
-							%callback=undefined,
-							%exported=[]
-						  };
+			Finfo = #function_info{ name=FunctionName,
+									arity=FunctionArity,
+									location=NextLocation,
+									line=Line,
+									clauses=Clauses
+									% Implicit:
+									%spec=undefined,
+									%callback=undefined,
+									%exported=[]
+								  },
+			{ Finfo, undefined };
+
 
 		{ value, F=#function_info{ clauses=[] } } ->
-				% Already here because of an export; just add the missing
-				% information then:
-				F#function_info{ location=NextLocation,
-								 line=Line,
-								 clauses=Clauses };
+			% Already here because of an export; just add the missing
+			% information then:
+			Finfo = F#function_info{ location=NextLocation,
+									 line=Line,
+									 clauses=Clauses },
+			{ Finfo, undefined };
 
-		% Here a definition was already set:
-		_ ->
-			ast_utils:raise_error( [ multiple_definition_for, FunId ], Context )
+
+		% Here a definition was already set: (previous line not necessarily in
+		% the context of the same file)
+
+		% We tried to silence that error (let it go through) in order to rely on
+		% the compiler, yet commenting-out this led to having a double
+		% definition not properly handled:
+		%
+		% Would result in ignoring this definition, hence compiling incorrectly:
+		%
+		%{ value, F } ->
+		%   { F, ok }
+
+		% We could crash directly, yet the error message would not be nicely
+		% integrated in an IDE (as not standard):
+
+		%{ value, #function_info{ line=PreviousLine } } ->
+		%	ast_utils:raise_error( [ multiple_definitions_for, FunId,
+		%							 { previous_line, PreviousLine } ],
+		%						   Context )
+
+		% A better approach could have been to store a list of such list of
+		% clauses, and to reinject them as they are (as unhandled forms), so
+		% that the compiler sees them and complains in a standard manner
+		% afterwards; but then it triggers a warning of ours (that we want to
+		% keep) about unhandled forms, and the standard message is less
+		% informative than ours (only "FILE:LINE: function foo/1 already
+		% defined"), so we finally prefer ours:
+
+		{ value, F=#function_info{ name=FunctionName,
+								   arity=FunctionArity,
+								   line=SomeLine } } ->
+
+			% Note that the past error was not necessarily in the same file:
+			%
+			% (this information could be determined thanks to the located forms,
+			% yet you require quite a lot of development)
+
+			Report = text_utils:format( "multiple definitions for ~s/~B "
+										"(past definition at line ~B)",
+										[ FunctionName, FunctionArity,
+										  SomeLine ] ),
+
+			Error = { Context, Report },
+			%UnhandledLocForm = { NextLocation, Form },
+
+			{ F, Error }
+			% { F, UnhandledLocForm }
+
+
 
 	end,
 
 	NewFunctionTable = ?table:addEntry( _K=FunId, _V=FunInfo, FunctionTable ),
 
+	NewMarkerTable = case ?table:hasEntry( definition_functions_marker,
+										   MarkerTable ) of
+
+		true ->
+			% Already found, nothing to do.
+			MarkerTable;
+
+		false ->
+			?table:addEntry( definition_functions_marker, NextLocation,
+							 MarkerTable )
+
+	end,
+
+	NewErrors = case MaybeError of
+
+		undefined ->
+			Errors;
+
+		_ ->
+			[ MaybeError | Errors ]
+
+	end,
+
 	%ast_utils:display_debug( "function ~s/~B with ~B clauses registered.",
 	%			   [ FunctionName, FunctionArity, length( Clauses ) ] ),
 
-	scan_forms( T, M#module_info{ functions=NewFunctionTable },
+	scan_forms( T, M#module_info{ functions=NewFunctionTable,
+								  markers=NewMarkerTable,
+								  errors=NewErrors },
+								  %unhandled_forms=NewUnhandledForms },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
@@ -428,8 +674,8 @@ scan_forms( [ Form={ 'attribute', Line, SpecType,
 
 	Context = { CurrentFileReference, Line },
 
-	{ FunctionName, FunctionArity } = ast_function:check_function_id(
-										FunId, Context ),
+	{ FunctionName, FunctionArity } = ast_function:check_function_id( FunId,
+																	  Context ),
 
 	ast_function:check_function_types( FunctionTypes, FunctionArity, Context ),
 
@@ -469,8 +715,14 @@ scan_forms( [ Form={ 'attribute', Line, SpecType,
 							 callback=IsCallback };
 
 		% Here a spec was already set:
-		_ ->
-			ast_utils:raise_error( [ multiple_spec_for, FunId ], Context )
+		%_ ->
+		%	ast_utils:raise_error( [ multiple_specs_for, FunId ], Context )
+
+		% Finally we prefer letting the compiler complain by itself about these
+		% multiple specs:
+		%
+		{ value, F } ->
+			F
 
 	end,
 
@@ -495,7 +747,8 @@ scan_forms( [ Form={ 'attribute', Line, _AttributeName='optional_callbacks',
 	Context = { CurrentFileReference, Line },
 
 	% Surprisingly, in erl_id_trans.erl, the corresponding check may fail (as is
-	% in a try/catch clause), and in this case is replaced by its original value.
+	% in a try/catch clause), and in this case is replaced by its original
+	% value.
 	%
 	ast_function:check_function_ids( FunIds, Context ),
 
@@ -507,26 +760,25 @@ scan_forms( [ Form={ 'attribute', Line, _AttributeName='optional_callbacks',
 				CurrentFileReference );
 
 
-% (asm attribute, not specified in the spec yet known of the id parse
-% transform; checked and then treated as any wild parse attribute)
+% (asm attribute, not specified in the spec yet known of the id parse transform;
+% checked and then treated as any wild parse attribute)
 %
 scan_forms( [ Form={ 'attribute', _Line, AttributeName='asm',
 					 Def={ 'function', _N, _A, _Code } } | T ],
-			  M=#module_info{ parse_attributes=ParseAttributeTable,
-							  parse_attribute_defs=AttributeDefs },
+			  M=#module_info{ parse_attributes=ParseAttributeTable },
 			NextLocation, CurrentFileReference ) ->
 
-	%ast_utils:display_debug( "Asm attribute definition: '~p'.",
-	%						 [ Def ] ),
+	%ast_utils:display_debug( "Asm attribute definition: '~p'.", [ Def ] ),
 
 	LocForm = { NextLocation, Form },
 
-	scan_forms( T, M#module_info{
-				   parse_attributes=?table:addEntry( AttributeName,
-							_AttributeValue=Def, ParseAttributeTable ),
-				   parse_attribute_defs=[ LocForm | AttributeDefs ] },
+	% Expected once:
+	scan_forms( T, M#module_info{ parse_attributes=?table:appendToEntry(
+					   AttributeName, { _AttributeValue=Def, LocForm },
+					   ParseAttributeTable ) },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
+
 
 
 % 7.1.8: Remote function type specification handling.
@@ -576,20 +828,51 @@ scan_forms( [ Form={ 'attribute', Line, 'spec',
 %
 scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
 						   { RecordName, DescFields } } | T ],
-			M=#module_info{ records=RecordTable },
+			M=#module_info{ records=RecordTable,
+							markers=MarkerTable },
 			NextLocation, CurrentFileReference ) ->
 
 	Context = { CurrentFileReference, Line },
 
-	ast_utils:check_record_name( RecordName, Context ),
+	ast_type:check_record_name( RecordName, Context ),
+
+	% Finally we let the compiler complain:
+	%case ?table:hasEntry( RecordName, RecordTable ) of
+	%
+	%	true ->
+	%		ast_utils:raise_error(
+	%		  [ multiple_definitions_for_record, RecordName ], Context );
+	%
+	%	false ->
+	%		ok
+	%
+	%end,
 
 	FieldTable = scan_field_descriptions( DescFields, CurrentFileReference ),
 
 	NewRecordDef = { FieldTable, NextLocation, Line },
 
-	NewRecordTable = ?table:addNewEntry( RecordName, NewRecordDef, RecordTable ),
+	%ast_utils:display_debug( "Adding for record '~p' following "
+	%						 "definition:~n~p", [ RecordName, NewRecordDef ] ),
 
-	scan_forms( T, M#module_info{ records=NewRecordTable },
+	% New entry by design:
+	NewRecordTable = ?table:addEntry( RecordName, NewRecordDef, RecordTable ),
+
+	NewMarkerTable = case ?table:hasEntry( definition_records_marker,
+										   MarkerTable ) of
+
+		true ->
+			% Already found, nothing to do.
+			MarkerTable;
+
+		false ->
+			?table:addEntry( definition_records_marker, NextLocation,
+							 MarkerTable )
+
+	end,
+
+	scan_forms( T, M#module_info{ records=NewRecordTable,
+								  markers=NewMarkerTable },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
@@ -604,7 +887,8 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
 %
 scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 						   { TypeName, TypeDef, TypeVariables } } | T ],
-			 M=#module_info{ types=TypeTable },
+			 M=#module_info{ types=TypeTable,
+							 markers=MarkerTable },
 			 NextLocation, CurrentFileReference )
   when TypeDesignator == 'type' orelse TypeDesignator == 'opaque' ->
 
@@ -634,10 +918,20 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 	NewTypeInfo = case ?table:lookupEntry( TypeId, TypeTable ) of
 
 		% If a TypeInfo is found for that type name, it must be only because it
-		% has already been exported:
+		% has already been exported (not expected to be already defined):
 
-		{ value, #type_info{ exported=[] } } ->
-			ast_utils:raise_error( [ multiple_definitions_for_type, TypeId ],
+		{ value, #type_info{ line=LineDef,
+							 exported=[] } } ->
+
+			% We did not keep the line (or file) of the initial definition:
+			trace_utils:error_fmt( "Type ~s/~B defined at line #~B of "
+								   "file '~s', whereas it had already been "
+								   "defined at line #~B.",
+								   [ TypeName, TypeArity, Line,
+									 CurrentFileReference, LineDef ] ),
+
+			ast_utils:raise_error( [ multiple_definitions_for_type, TypeId,
+									 { previously_defined_at_line, LineDef } ],
 								   Context );
 
 		{ value, ExportTypeInfo } ->
@@ -667,13 +961,27 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 
 	NewTypeTable = ?table:addEntry( TypeId, NewTypeInfo, TypeTable ),
 
-	scan_forms( T, M#module_info{ types=NewTypeTable },
+	NewMarkerTable = case ?table:hasEntry( definition_types_marker,
+										   MarkerTable ) of
+
+		true ->
+			% Already found, nothing to do.
+			MarkerTable;
+
+		false ->
+			?table:addEntry( definition_types_marker, NextLocation,
+							 MarkerTable )
+
+	end,
+
+	scan_forms( T, M#module_info{ types=NewTypeTable,
+								  markers=NewMarkerTable },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
 
-% 7.1.11: Other, "wild" parse attributes: this section comes later, so that it
-% matches only if none of the other attribute-related ones (such as for
+% 7.1.11: Other, "wild" parse attributes: this section will come later, so that
+% it matches only if none of the other attribute-related ones (such as for
 % 'export_type') matched.
 
 
@@ -685,7 +993,9 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 % = {attribute,LINE,export_type,[{Type_1,A_1}, ..., {Type_k,A_k}]}."
 %
 scan_forms( _AST=[ _Form={ 'attribute', Line, 'export_type', TypeIds } | T ],
-			M=#module_info{ type_exports=ExportTable, types=TypeTable },
+			M=#module_info{ type_exports=ExportTable,
+							types=TypeTable,
+							markers=MarkerTable },
 			NextLocation, CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "Type export declaration for ~p", [ TypeIds ] ),
@@ -697,7 +1007,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export_type', TypeIds } | T ],
 
 		fun( TypeId, TypeTableAcc ) ->
 
-			{ Name, _Arity } = ast_utils:check_type_id( TypeId, Context ),
+			{ Name, _Arity } = ast_type:check_type_id( TypeId, Context ),
 
 			NewTypeInfo = case ?table:lookupEntry( TypeId, TypeTableAcc ) of
 
@@ -733,8 +1043,20 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export_type', TypeIds } | T ],
 	NewExportTable = ?table:addNewEntry( NextLocation, { Line, TypeIds },
 										 ExportTable ),
 
+	NewMarkerTable = case ?table:hasEntry( export_types_marker, MarkerTable ) of
+
+		true ->
+			% Already found, nothing to do.
+			MarkerTable;
+
+		false ->
+			?table:addEntry( export_types_marker, NextLocation, MarkerTable )
+
+	end,
+
 	scan_forms( T, M#module_info{ type_exports=NewExportTable,
-								  types=NewTypeTable },
+								  types=NewTypeTable,
+								  markers=NewMarkerTable },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
@@ -742,69 +1064,18 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export_type', TypeIds } | T ],
 
 % 7.1.13: Compilation option handling [lacking in reference page].
 %
-% We may have here full or regular inlining, and possibly other options.
+% We may have here full or regular inlining (single function or list thereof),
+% and possibly other options.
 %
-
-% Full inlining:
-scan_forms( _AST=[ Form={ 'attribute', _Line, 'compile', 'inline' } | T ],
-			 M=#module_info{ compilation_options=CompileTable,
-							 compilation_option_defs=CompileDefs },
-			NextLocation, CurrentFileReference ) ->
-
-	% Overrides any previously existing entry:
-	NewCompileTable = ?table:addEntry( inline, all, CompileTable ),
-
-	NewCompileDefs = [ { NextLocation, Form } | CompileDefs ],
-
-	scan_forms( T, M#module_info{ compilation_options=NewCompileTable,
-								  compilation_option_defs=NewCompileDefs },
-				id_utils:get_next_sortable_id( NextLocation ),
-				CurrentFileReference );
-
-
-% Regular inlining:
-scan_forms( _AST=[ Form={ 'attribute', Line, 'compile',
-						  { inline, InlineOpts } } | T ],
+scan_forms( _AST=[ Form={ 'attribute', Line, 'compile', CompileInfo } | T ],
 			 M=#module_info{ compilation_options=CompileTable,
 							 compilation_option_defs=CompileDefs },
 			NextLocation, CurrentFileReference ) ->
 
 	Context = { CurrentFileReference, Line },
 
-	ast_utils:check_inline_options( InlineOpts, Context ),
-
-	InlineOpt = case ?table:lookupEntry( inline, CompileTable ) of
-
-		{ value, all } ->
-			all;
-
-		{ value, InlineList } ->
-			InlineOpts ++ InlineList;
-
-		key_not_found ->
-			InlineOpts
-
-	end,
-
-	NewCompileTable = ?table:addEntry( inline, InlineOpt, CompileTable ),
-
-	NewCompileDefs = [ { NextLocation, Form } | CompileDefs ],
-
-	scan_forms( T, M#module_info{ compilation_options=NewCompileTable,
-								  compilation_option_defs=NewCompileDefs },
-				id_utils:get_next_sortable_id( NextLocation ),
-				CurrentFileReference );
-
-
-% Non-inlining compile options:
-scan_forms( _AST=[ Form={ 'attribute', _Line, 'compile',
-							{ CompilationOption, Options } } | T ],
-			 M=#module_info{ compilation_options=CompileTable,
-							 compilation_option_defs=CompileDefs },
-			NextLocation, CurrentFileReference ) ->
-
-	NewCompileTable = ?table:appendListToEntry( CompilationOption, Options,
-												CompileTable ),
+	NewCompileTable = register_compile_attribute( CompileInfo, CompileTable,
+												  Context ),
 
 	NewCompileDefs = [ { NextLocation, Form } | CompileDefs ],
 
@@ -820,25 +1091,23 @@ scan_forms( _AST=[ Form={ 'attribute', _Line, 'compile',
 % sections matched)
 %
 scan_forms( [ Form={ 'attribute', Line, AttributeName, AttributeValue } | T ],
-			M=#module_info{ parse_attributes=ParseAttributeTable,
-							parse_attribute_defs=AttributeDefs },
+			M=#module_info{ parse_attributes=ParseAttributeTable },
 			NextLocation, CurrentFileReference ) ->
 
-	%ast_utils:display_debug( "Parse attribute definition for '~p'.",
-	%						 [ AttributeName ] ),
+	%ast_utils:display_debug( "Parse attribute definition for '~p': ~p",
+	%						 [ AttributeName, AttributeValue ] ),
 
 	Context = { CurrentFileReference, Line },
 
-	ast_utils:check_parse_attribute_name( AttributeName, Context ),
-
-	% No constraint on AttributeValue applies.
+	check_parse_attribute_name( AttributeName, Context ),
 
 	LocForm = { NextLocation, Form },
 
-	scan_forms( T, M#module_info{
-				   parse_attributes=?table:addEntry( AttributeName,
-										  AttributeValue, ParseAttributeTable ),
-				   parse_attribute_defs=[ LocForm | AttributeDefs ] },
+	% As a wild attribute may be defined more than once:
+	NewParseAttributeTable = ?table:appendToEntry( AttributeName,
+					   { AttributeValue, LocForm }, ParseAttributeTable ),
+
+	scan_forms( T, M#module_info{ parse_attributes=NewParseAttributeTable },
 				id_utils:get_next_sortable_id( NextLocation ),
 				CurrentFileReference );
 
@@ -869,8 +1138,10 @@ scan_forms( [ Form={ 'attribute', Line, AttributeName, AttributeValue } | T ],
 % in call from compile:'-internal_comp/4-anonymous-1-'/2 (compile.erl, line 295)
 % in call from compile:fold_comp/3 (compile.erl, line 321)
 %
-% So we manage the errors by ourselves (losing the emacs error mode support).
-
+% So we manage the errors by ourselves, aggregating them first, then reporting
+% them (along with warnings) in a standard format so that tools can accommodate
+% them.
+%
 % (for some reason, the reported lines are incremented, we have to decrement
 % them)
 
@@ -879,49 +1150,77 @@ scan_forms( [ Form={ 'attribute', Line, AttributeName, AttributeValue } | T ],
 
 % eep include error:
 scan_forms( _AST=[ _Form={ 'error',
-	   { Line, 'epp', { 'include', 'file', FileName } } } | _T ], _ModuleInfo,
-			 _NextLocation, CurrentFileReference ) ->
+	   { Line, 'epp', { 'include', 'file', FileName } } } | T ],
+			M=#module_info{ errors=Errors },
+			NextLocation, CurrentFileReference ) ->
 
 	Context = { CurrentFileReference, Line-1 },
+	%ast_utils:raise_error( [ include_file_not_found, FileName ], Context );
 
-	ast_utils:raise_error( [ include_file_not_found, FileName ], Context );
+	NewError = { Context, { include_file_not_found, FileName } },
+
+	scan_forms( T, M#module_info{ errors=[ NewError | Errors ] },
+				id_utils:get_next_sortable_id( NextLocation ),
+				CurrentFileReference );
 
 
 % eep undefined macro variable error:
 scan_forms( _AST=[ _Form={ 'error',
-	   { Line, 'epp', { 'undefined', VariableName, 'none' } } } | _T ], _ModuleInfo,
-			 _NextLocation, CurrentFileReference ) ->
+	   { Line, 'epp', { 'undefined', VariableName, 'none' } } } | T ],
+			M=#module_info{ errors=Errors }, NextLocation,
+			CurrentFileReference ) ->
 
-	Context = { CurrentFileReference, Line-1 },
+	% Wrong: Context = { CurrentFileReference, Line-1 },
+	Context = { CurrentFileReference, Line },
 
-	ast_utils:raise_error( [ undefined_macro_variable, VariableName ],
-						   Context );
+	%ast_utils:raise_error( [ undefined_macro_variable, VariableName ],
+	%					   Context );
+
+	NewError = { Context, { undefined_macro_variable, VariableName } },
+
+	scan_forms( T, M#module_info{ errors=[ NewError | Errors ] },
+				id_utils:get_next_sortable_id( NextLocation ),
+				CurrentFileReference );
 
 
 % eep general errors:
-scan_forms( _AST=[ _Form={ 'error', { Line, 'epp', Reason } } | _T ], _ModuleInfo,
-			 _NextLocation, CurrentFileReference ) ->
+scan_forms( _AST=[ _Form={ 'error', { Line, 'epp', Reason } } | T ],
+			M=#module_info{ errors=Errors }, NextLocation,
+			CurrentFileReference ) ->
 
 	Context = { CurrentFileReference, Line-1 },
+	%ast_utils:raise_error( [ preprocessing_failed, Reason ], Context );
 
-	ast_utils:raise_error( [ preprocessing_failed, Reason ], Context );
+	NewError = { Context, { epp_error, Reason } },
+
+	scan_forms( T, M#module_info{ errors=[ NewError | Errors ] },
+				id_utils:get_next_sortable_id( NextLocation ),
+				CurrentFileReference );
 
 
 % Parser (erl_parse) errors:
-scan_forms( _AST=[ _Form={ 'error', { Line, 'erl_parse', Reason } } | _T ],
-			 _ModuleInfo, _NextLocation, CurrentFileReference ) ->
+scan_forms( _AST=[ _Form={ 'error', { Line, 'erl_parse', Reason } } | T ],
+			M=#module_info{ errors=Errors }, NextLocation,
+			CurrentFileReference ) ->
 
-	Context = { CurrentFileReference, Line-1 },
+	%Context = { CurrentFileReference, Line-1 },
+	Context = { CurrentFileReference, Line },
 
-	ast_utils:raise_error( [ parsing_failed, io_lib:format( Reason, [] ) ],
-						   Context );
+	%ast_utils:raise_error( [ parsing_failed, io_lib:format( Reason, [] ) ],
+	%					   Context );
 
+	NewError = { Context, { parse_error, Reason } },
+
+	scan_forms( T, M#module_info{ errors=[ NewError | Errors ] },
+				id_utils:get_next_sortable_id( NextLocation ),
+				CurrentFileReference );
 
 % Any kind of other error:
 scan_forms( _AST=[ _Form={ 'error', ErrorTerm } | _T ],
-			 _ModuleInfo, _NextLocation, CurrentFileReference ) ->
+			_ModuleInfo, _NextLocation, CurrentFileReference ) ->
 
-	ast_utils:raise_error( [ scan_error, ErrorTerm],
+	% No line information available, so:
+	ast_utils:raise_error( [ scan_error, ErrorTerm ],
 						   _Context=CurrentFileReference );
 
 
@@ -929,6 +1228,7 @@ scan_forms( _AST=[ _Form={ 'error', ErrorTerm } | _T ],
 scan_forms( _AST=[ _Form={ 'warning', WarningTerm } | T ],
 			ModuleInfo, NextLocation, CurrentFileReference ) ->
 
+	% No line information available, so:
 	ast_utils:notify_warning( [ scan_warning, WarningTerm ],
 							  _Context=CurrentFileReference ),
 
@@ -942,37 +1242,67 @@ scan_forms( _AST=[ _Form={ 'warning', WarningTerm } | T ],
 % We expect the module name to be known when ending the processing (so that we
 % can remove its corresponding file from the includes):
 %
+% Here, no module found:
 scan_forms( _AST=[ _Form={ 'eof', Line } ],
-			Infos=#module_info{ module=undefined }, _NextLocation,
+			M=#module_info{ module=undefined,
+							errors=Errors }, _NextLocation,
 			CurrentFileReference ) ->
 	Context = { CurrentFileReference, Line },
-	ast_utils:raise_error( [ eof_while_no_module, Infos ], Context );
+	%ast_utils:raise_error( [ eof_while_no_module, Infos ], Context );
+
+	NewError = { Context, eof_while_no_module },
+
+	% Directly returned:
+	M#module_info{ errors=[ NewError | Errors ] };
+
 
 
 % Form expected to be defined once, and to be the last one:
-scan_forms( _AST=[ Form={ 'eof', Line } ],
-			M=#module_info{ last_line=undefined, module=Module, includes=Inc },
-			_NextLocation, _CurrentFileReference ) ->
+scan_forms( _AST=[ Form={ 'eof', _Line } ],
+			M=#module_info{ module={ ModuleName, _ModuleLocDef },
+							includes=Inc,
+							function_exports=ExportTable,
+							last_line=undefined,
+							markers=MarkerTable },
+			NextLocation, _CurrentFileReference ) ->
 
-	ast_utils:display_debug( "eof declaration at ~p.", [ Line ] ),
+	%ast_utils:display_debug( "eof declaration at ~p.", [ Line ] ),
 
-	% Surely not wanting anything to be able to go past it:
-	LocForm = { id_utils:get_sortable_id_upper_bound(), Form },
+	% Certainly better than id_utils:get_sortable_id_upper_bound(), as for
+	% example we may want to add form after that original end:
+	%
+	EndLocation = NextLocation,
+
+	NewMarkerTable = finalize_marker_table( EndLocation, MarkerTable ),
+
+	LocForm = { NextLocation, Form },
 
 	% End of file found, doing some housekeeping.
+
+	% We generate here a default export form, supposedly at line 0 for easier
+	% interpretation; it will start empty but may be enriched by parse
+	% transforms, when they need to export functions that they just added.
+
+	ExportLoc = ast_info:get_default_export_function_location(),
+
+	NewExportTable = ?table:addEntry( ExportLoc, { _FirstLine=0, _Empty=[] },
+									  ExportTable ),
 
 	% We just do not want to have the filename of the currently processed module
 	% among the includes:
 
 	% Reconstructs the supposedly deduced module filename:
 	BinModFilename = text_utils:string_to_binary(
-					atom_to_list( Module ) ++ ".erl" ),
+					   atom_to_list( ModuleName ) ++ ".erl" ),
 
 	% Due to the removal of include duplicates, can be listed only up to once:
 	NoModInc = lists:delete( BinModFilename, Inc ),
 
 	% Only "normal", non-recursing exit of that longer function:
-	M#module_info{ includes=NoModInc, last_line=LocForm };
+	M#module_info{ includes=NoModInc,
+				   function_exports=NewExportTable,
+				   last_line=LocForm,
+				   markers=NewMarkerTable };
 
 
 %%
@@ -1000,8 +1330,74 @@ scan_forms( _AST=[ UnhandledForm | T ],
 
 % The scan termination is expected to happen *only* when eof is found:
 scan_forms( _AST=[], _ModuleInfo, _NextLocation, CurrentFileReference ) ->
-	ast_utils:raise_error( [ no_eof_found ], CurrentFileReference ).
+	ast_utils:raise_error( [ no_eof_found ], CurrentFileReference );
 
+scan_forms( Unexpected, _ModuleInfo, _NextLocation, CurrentFileReference ) ->
+	ast_utils:raise_error( { not_an_ast, Unexpected }, CurrentFileReference ).
+
+
+
+
+% Registers specified parse attribute regarding compilation.
+%
+-spec register_compile_attribute( term(), compile_option_table(),
+								  scan_context() ) ->
+			   { compile_option_table(), [ located_form() ] }.
+% Full inlining requested:
+register_compile_attribute( _CompileInfo='inline', CompileTable, _Context ) ->
+
+	% Overrides any previously existing inline entry:
+	?table:addEntry( inline, all, CompileTable );
+
+
+% Regular inlining:
+register_compile_attribute( _CompileInfo={ 'inline', InlineValues },
+		CompileTable, Context ) when is_list( InlineValues ) ->
+
+	ast_utils:check_inline_options( InlineValues, Context ),
+
+	NewInlineValues = case ?table:lookupEntry( inline, CompileTable ) of
+
+		{ value, all } ->
+			all;
+
+		{ value, InlineList } ->
+			InlineValues ++ InlineList;
+
+		key_not_found ->
+			InlineValues
+
+	end,
+
+	?table:addEntry( inline, NewInlineValues, CompileTable );
+
+
+% Non-inlining, compile option with multiple values specified:
+register_compile_attribute( _CompileInfo={ CompileOpt, OptValues },
+							CompileTable, _Context )
+  when is_atom( CompileOpt ) andalso is_list( OptValues ) ->
+
+	?table:appendListToEntry( CompileOpt, OptValues, CompileTable );
+
+
+% Non-inlining, single compile option (hence not a list):
+register_compile_attribute( _CompileInfo={ CompileOpt, OptValue }, CompileTable,
+							_Context ) when is_atom( CompileOpt ) ->
+
+	?table:appendToEntry( CompileOpt, OptValue, CompileTable );
+
+
+register_compile_attribute( _CompileInfo=[], CompileTable, _Context ) ->
+	CompileTable;
+
+
+register_compile_attribute( _CompileInfo=[ CpInfo | T ], CompileTable,
+							Context ) ->
+
+	NewCompileTable = register_compile_attribute( CpInfo, CompileTable,
+												  Context ),
+
+	register_compile_attribute( T, NewCompileTable, Context ).
 
 
 
@@ -1009,62 +1405,75 @@ scan_forms( _AST=[], _ModuleInfo, _NextLocation, CurrentFileReference ) ->
 % Processes the fields of a given record definition.
 %
 % Note: field names could be full expressions here, but only atoms are allowed
-% by the parser (dixit the id parse transform).
+% by the parser (dixit the erl_id_trans parse transform).
 %
 -spec scan_field_descriptions( [ ast_base:ast_element() ],
-					   ast_base:file_reference() ) -> meta_utils:field_table().
+					   ast_base:file_reference() ) -> ast_info:field_table().
 scan_field_descriptions( FieldDescriptions, CurrentFileReference ) ->
-
-	FieldTable = ?table:new(),
-
 	scan_field_descriptions( FieldDescriptions, CurrentFileReference,
-							 FieldTable ).
+							 _FieldTable=[] ).
 
 
 % (helper)
 %
 scan_field_descriptions( _FieldDescriptions=[], _CurrentFileReference,
 						 FieldTable ) ->
-	FieldTable;
+	% Preserve original field order:
+	lists:reverse( FieldTable );
 
 % Here no type or default value are specified for that field:
 %
 scan_field_descriptions( _FieldDescriptions=[
-		{ 'record_field', _Line1, { atom, _Line2, FieldName } } | T ],
+		{ 'record_field', FirstLine, { atom, SecondLine, FieldName } } | T ],
 		CurrentFileReference, FieldTable ) ->
 
-	NewFieldTable = ?table:addNewEntry( FieldName,
-		  { _FieldType=undefined, _DefaultValue=undefined }, FieldTable ),
+	FieldDesc = { _FieldType=undefined, _DefaultValue=undefined, FirstLine,
+				  SecondLine },
+
+	NewFieldTable = [ { FieldName, FieldDesc } | FieldTable ],
+
 	scan_field_descriptions( T, CurrentFileReference, NewFieldTable );
+
 
 % Here only a type is specified for that field:
 scan_field_descriptions( _FieldDescriptions=[
 	   { 'typed_record_field',
-		  { 'record_field', _Line1, { atom, _Line2, FieldName } }, FieldType }
-												| T ],
-						 CurrentFileReference, FieldTable ) ->
-	NewFieldTable = ?table:addNewEntry( FieldName,
-					  { FieldType, _DefaultValue=undefined }, FieldTable ),
+		  { 'record_field', FirstLine, { atom, SecondLine, FieldName } },
+		 FieldType } | T ], CurrentFileReference, FieldTable ) ->
+
+	FieldDesc = { FieldType, _DefaultValue=undefined, FirstLine, SecondLine },
+
+	NewFieldTable = [ { FieldName, FieldDesc } | FieldTable ],
+
 	scan_field_descriptions( T, CurrentFileReference, NewFieldTable );
 
+
 % Here only a default value is specified for that field:
-scan_field_descriptions( _FieldDescriptions=[
-	   { 'record_field', _Line1, { atom, _Line2, FieldName }, DefaultValue }
-												| T ],
+scan_field_descriptions( _FieldDescriptions=[ { 'record_field', FirstLine,
+			   { atom, SecondLine, FieldName }, DefaultValue } | T ],
 						 CurrentFileReference, FieldTable ) ->
-	NewFieldTable = ?table:addNewEntry( FieldName,
-		  { _FieldType=undefined, DefaultValue }, FieldTable ),
+
+	FieldDesc = { _FieldType=undefined, DefaultValue, FirstLine, SecondLine },
+
+	NewFieldTable = [ { FieldName, FieldDesc } | FieldTable ],
+
 	scan_field_descriptions( T, CurrentFileReference, NewFieldTable );
+
 
 % Here a type and a default, immediate value are specified for that field:
 scan_field_descriptions( _FieldDescriptions=[
 	   { 'typed_record_field',
-		  { 'record_field', _Line1,
-		   { atom, _Line2, FieldName }, DefaultValue }, FieldType }
-												| T ],
+		  { 'record_field', FirstLine, { atom, SecondLine, FieldName },
+			DefaultValue }, FieldType } | T ],
 						 CurrentFileReference, FieldTable ) ->
-	NewFieldTable = ?table:addNewEntry( FieldName, { FieldType, DefaultValue },
-										FieldTable ),
+
+	%ast_utils:display_debug( "Field default value: ~p.", [ DefaultValue ] ),
+	%ast_utils:display_debug( "Field type: ~p.", [ FieldType ] ),
+
+	FieldDesc = { FieldType, DefaultValue, FirstLine, SecondLine },
+
+	NewFieldTable = [ { FieldName, FieldDesc } | FieldTable ],
+
 	scan_field_descriptions( T, CurrentFileReference, NewFieldTable );
 
 
@@ -1089,7 +1498,174 @@ check_parse_attribute_name( Other, Context ) ->
 
 % Checks that specified parse attribute name is legit.
 %
--spec check_parse_attribute_name( term() ) ->
-										basic_utils:parse_attribute_name().
+-spec check_parse_attribute_name( term() ) -> parse_attribute_name().
 check_parse_attribute_name( Name ) ->
 	check_parse_attribute_name( Name, _Context=undefined ).
+
+
+
+
+% Finalizes the marker table, to ensure that, in all cases, after a scan all
+% markers are (adequately) defined (even if no clause in the AST triggered their
+% specific setting).
+%
+-spec finalize_marker_table( ast_info:location(), marker_table() ) ->
+								   marker_table().
+finalize_marker_table( EndMarkerLoc, MarkerTable ) ->
+
+	% Useful for a later stack-based placement; we obtain a list of
+	% {MarkerName,MarkerLoc} pairs, sorted by increasing locations:
+	%
+	OriginalPairs = get_ordered_marker_location_pairs( MarkerTable ),
+
+	% No bound kept:
+	[ { begin_marker, BeginMarkerLoc } | BoundlessPairs ] = OriginalPairs,
+
+	% First a basic bound check:
+	case BeginMarkerLoc < EndMarkerLoc of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { end_before_begin, EndMarkerLoc, BeginMarkerLoc } )
+
+	end,
+
+
+	% By design begin_marker has already been set in the table, and end_marker
+	% will be registered now:
+	%
+	EndMarkerTable = ?table:addNewEntry( end_marker, EndMarkerLoc,
+										 MarkerTable ),
+
+
+	% We have now to handle all cases about whether each of the other,
+	% intermediate markers is already available or not, so that ultimately, all
+	% of them are set, and in the expected order.
+	%
+	% This can be done only in an approximate manner, as the vanilla AST may
+	% rely on a different - yet, compilation-wise, still legit - section order.
+	%
+	% The main rule to abide is that exports and imports shall precede
+	% definitions. The rest is mostly a matter of convention.
+	%
+	% For that, we proceed first per marker name in ascending order (as defined
+	% in ast_info:section_marker/0), and for each of them, in turn, we simply
+	% unstack location pairs accordingly.
+
+	% Marker shorthands:
+
+	ModMarker = module_marker,
+
+	InterMarkers = [ export_types_marker, export_functions_marker,
+					 import_functions_marker, definition_records_marker,
+					 definition_types_marker ],
+
+	F = _FunDefMarker = definition_functions_marker,
+
+	% The newer, simpler algorithm supposes that the only order that matters
+	% between markers is that:
+	%
+	% - the begin marker comes first
+	% - then the module marker (ModMarker)
+	% - then the intermediate markers (InterMarkers), in no specific order
+	% - then the definition marker (FunDefMarker, a.k.a. as F)
+	% - then the end marker
+
+	ModMarkerLoc = case ?table:lookupEntry( ModMarker, EndMarkerTable ) of
+
+		key_not_found ->
+			% An AST without a module definition will probably be a problem;
+			% trying to mitigate it as we can:
+			BeginMarkerLoc;
+
+		{ value, ModLoc } ->
+			ModLoc
+
+	end,
+
+	{ NewFLoc, DefaultLoc } = case ?table:lookupEntry( F, EndMarkerTable ) of
+
+		key_not_found ->
+
+			% F is not located yet, we will find a proper location then:
+			case lists:reverse( BoundlessPairs ) of
+
+				[] ->
+					% Here no intermediate marker at all was defined, we thus
+					% define two of them, a first (for the non-F markers) and a
+					% second, at its right (for F):
+					%
+					NonFLoc = id_utils:get_sortable_id_between( ModMarkerLoc,
+																EndMarkerLoc ),
+
+					FLoc = id_utils:get_sortable_id_between( NonFLoc,
+															 EndMarkerLoc ),
+
+					{ FLoc, NonFLoc };
+
+				[ { _LastMarker, LastMarkerLoc } | _Others ] ->
+					% Here we have at least one non-F location, that will be
+					% used for all non-F markers that are not located yet, and
+					% also to establish the location of F:
+					%
+					FLoc = id_utils:get_sortable_id_between( LastMarkerLoc,
+															 EndMarkerLoc ),
+
+					{ FLoc, LastMarkerLoc }
+
+			end;
+
+		{ value, FLoc } ->
+			DefLoc = id_utils:get_sortable_id_between( ModMarkerLoc, FLoc ),
+			{ FLoc, DefLoc }
+
+	end,
+
+	case NewFLoc > DefaultLoc of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { wrong_location_order, DefaultLoc, NewFLoc } )
+
+	end,
+
+	MarkerEntries = [ { ModMarker, ModMarkerLoc }, { F, NewFLoc } ],
+
+	UpdatedMarkerTable = ?table:addEntries( MarkerEntries, EndMarkerTable ),
+
+	add_missing_markers( InterMarkers, DefaultLoc, UpdatedMarkerTable ).
+
+
+
+% (helper)
+add_missing_markers( _Markers=[], _DefaultLoc, MarkerTable ) ->
+	MarkerTable;
+
+add_missing_markers( _Markers=[ M | T ], DefaultLoc, MarkerTable ) ->
+
+	NewMarkerTable = case ?table:hasEntry( M, MarkerTable ) of
+
+		true ->
+			MarkerTable;
+
+		false ->
+			?table:addEntry( M, DefaultLoc, MarkerTable )
+
+	end,
+	add_missing_markers( T, DefaultLoc, NewMarkerTable ).
+
+
+
+% Returns a list of {MarkerName,MarkerLoc} pairs, sorted by increasing
+% locations.
+%
+% (helper)
+%
+-spec get_ordered_marker_location_pairs( marker_table() ) ->
+				   [ { ast_info:section_marker(), ast_info:location() } ].
+get_ordered_marker_location_pairs( MarkerTable ) ->
+	lists:keysort( _Index=2, ?table:enumerate( MarkerTable ) ).

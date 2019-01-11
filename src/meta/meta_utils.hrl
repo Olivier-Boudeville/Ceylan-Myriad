@@ -22,13 +22,13 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Tuesday, December 30, 2014.
 
 
 
 % For all modules being bootstrap ones, the 'table' pseudo-module is not
-% available (as these modules are not processed by the 'Common' parse
+% available (as these modules are not processed by the 'Myriad' parse
 % transform).
 %
 % So no table pseudo-module can be available for them, only ?table is available

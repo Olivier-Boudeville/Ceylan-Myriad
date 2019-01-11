@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, December 19, 2014.
 
 
@@ -189,6 +189,11 @@
 -type function_id() :: { function_name(), function_arity() }.
 
 
+% The type of a function (currenty: unclear semantics).
+%
+-type function_type() :: any().
+
+
 % The form corresponding to the definition of a clause of a function, typically
 % { clause, LINE, Rep(Ps), Rep(Gs), Rep(B) } for '( Ps ) when Gs -> B':
 %
@@ -209,14 +214,14 @@
 
 
 -export_type([ parse_transform_options/0,
-			   module_name/0, function_name/0, function_id/0,
+			   module_name/0,
+			   function_name/0, function_arity/0, function_id/0,
+			   function_type/0,
 			   clause_def/0, function_spec/0, variable_name/0 ]).
 
 
 
 % Local shorthands:
-
--type type_name() :: type_utils:type_name().
 
 -type form() :: ast_base:form().
 
@@ -277,7 +282,7 @@ add_function( FunInfo=#function_info{ exported=ExportLocs },
 
 	NewFunTable = ?table:addEntry( FunId, FunInfo, FunTable ),
 
-	% Now updating the exports:
+	% Now updating accordingly the overall export table:
 	NewExportTable = ast_info:ensure_function_exported( FunId, ExportLocs,
 											  ModuleInfo, ExportTable ),
 
@@ -369,9 +374,8 @@ add_type( TypeInfo=#type_info{
 % Unregisters specified type from specified module.
 %
 -spec remove_type( type_info(), module_info() ) -> module_info().
-remove_type( TypeInfo=#type_info{
-						 variables=TypeVariables,
-						 exported=ExportLocs },
+remove_type( TypeInfo=#type_info{ variables=TypeVariables,
+								  exported=ExportLocs },
 			 ModuleInfo=#module_info{ type_exports=ExportTable,
 									  types=TypeTable } ) ->
 
@@ -399,33 +403,41 @@ remove_type( TypeInfo=#type_info{
 
 
 
-% Applies specified AST transformations to specified module information.
+% Applies specified AST transformations (mostly depth-first) to the specified
+% module information.
 %
 % (helper)
 %
--spec apply_ast_transforms( ast_transform:ast_transforms(), module_info() ) ->
-								  module_info().
-apply_ast_transforms( Transforms, ModuleInfo=#module_info{
-												types=TypeTable,
-												records=RecordTable,
-												functions=FunctionTable } ) ->
+-spec apply_ast_transforms( module_info(), ast_transform:ast_transforms() ) ->
+							  { module_info(), ast_transform:ast_transforms() }.
+apply_ast_transforms( ModuleInfo=#module_info{ types=TypeTable,
+											   records=RecordTable,
+											   functions=FunctionTable },
+					  Transforms ) ->
+
+	% Note: we consider that no transformation state is to be carried from a
+	% top-level transformation to another (so we consider that Transforms is
+	% immutable here)
 
 	% First, update the type definitions accordingly (including in records):
 
-	ast_utils:display_debug( "Transforming known types..." ),
-	NewTypeTable = ast_type:transform_types( TypeTable, Transforms ),
+	%ast_utils:display_trace( "transforming known types" ),
+	{ NewTypeTable, TypeTransforms } =
+		ast_type:transform_type_table( TypeTable, Transforms ),
 
-	ast_utils:display_debug( "Transforming known types in records..." ),
-	NewRecordTable = ast_type:transform_types_in_records( RecordTable,
-														  Transforms ),
+	%ast_utils:display_trace( "transforming known types in records" ),
+	{ NewRecordTable, RecTransforms } =
+		ast_type:transform_types_in_record_table( RecordTable, TypeTransforms ),
 
-	NewFunctionTable = ast_function:transform_functions( FunctionTable, 
-														 Transforms ),
+	%ast_utils:display_trace( "transforming all functions" ),
+	{ NewFunctionTable, FunTransforms } =
+		ast_function:transform_functions( FunctionTable, RecTransforms ),
 
 	% Updated module_info returned:
-	ModuleInfo#module_info{ types=NewTypeTable,
-							records=NewRecordTable,
-							functions=NewFunctionTable }.
+	{ ModuleInfo#module_info{ types=NewTypeTable,
+							  records=NewRecordTable,
+							  functions=NewFunctionTable },
+	  FunTransforms }.
 
 
 

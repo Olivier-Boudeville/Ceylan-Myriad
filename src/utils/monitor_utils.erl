@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville (olivier.boudeville@esperide.com)
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
 
@@ -49,15 +49,19 @@
 % Monitoring an Erlang process:
 
 % (not exported yet by the 'erlang' module)
-%-type monitored_process() :: pid() | registered_process_identifier().
--type monitored_process() :: erlang:monitor_process_identifier().
+%-type monitored_process() :: erlang:monitor_process_identifier().
+-type monitored_process() :: pid() | registered_process_identifier().
+
+-type registered_process_identifier() ::
+		registered_name() | { registered_name(), node() }.
 
 
 % Monitoring an Erlang port:
 %
 % (not exported yet by the 'erlang' module)
-%-type monitored_port() :: port() | registered_name().
--type monitored_port() :: erlang:monitor_port_identifier().
+%-type monitored_port() :: erlang:monitor_port_identifier().
+-type monitored_port() :: port() | registered_name().
+
 
 
 % Monitoring time offsets:
@@ -98,12 +102,16 @@
 -export([ monitor_nodes/1, monitor_nodes/2 ]).
 
 
+% Shorthand:
+-type registered_name() :: naming_utils:registration_name().
+
+
 
 % Subscribes or unsubscribes the calling process to node status change messages.
 %
 % See net_kernel:monitor_nodes/2 for more information.
 %
--spec monitor_nodes( boolean() ) -> basic_utils:void().
+-spec monitor_nodes( boolean() ) -> void().
 monitor_nodes( DoStartNewSubscription ) ->
 	monitor_nodes( DoStartNewSubscription, _Options=[] ).
 
@@ -113,8 +121,7 @@ monitor_nodes( DoStartNewSubscription ) ->
 %
 % See net_kernel:monitor_nodes/2 for more information.
 %
--spec monitor_nodes( boolean(), [ monitor_node_option() ] ) ->
-						   basic_utils:void().
+-spec monitor_nodes( boolean(), [ monitor_node_option() ] ) -> void().
 monitor_nodes( DoStartNewSubscription, Options ) ->
 
 	case net_kernel:monitor_nodes( DoStartNewSubscription, Options ) of
