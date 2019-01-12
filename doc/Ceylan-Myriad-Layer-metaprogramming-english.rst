@@ -31,8 +31,10 @@ For that, following changes are operated:
 - in type specifications, the Myriad-specific ``void/0``, ``maybe/1`` types are adequately translated:
 
  - ``void()`` becomes ``basic_utils:void()``, a type alias of ``any()``, made to denote returned terms that are not expected to be used by the caller (as if that function's only purpose was its side-effects)
- - ``maybe(T)`` becomes the type union ``'undefined' | T``
+ - ``maybe(T)`` becomes the type union ``'undefined'|T``
 
 - both in type specifications and actual code, ``table/2``, the Myriad-specific associative table pseudo-type, is translated into an actual `table type`_:
  - by default, ``map_hashtable`` (the generally most efficient one)
  - unless it is overridden on a per-module basis with the ``table_type`` define, like in: ``-table_type(list_table).``
+
+- the ``cond_utils`` services will drive conditional code injection

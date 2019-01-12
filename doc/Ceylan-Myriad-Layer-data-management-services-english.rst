@@ -22,3 +22,5 @@ Some generic **data-structures**, in addition to the ones provided built-in with
 - a way of **generating a read-only associative table** whose key/value pairs can be read from any number (potentially extremely large) of readers very efficiently (``const_table.erl``)
 - a specific support for **other datatypes** (``pair.erl``, ``option_list.erl``, ``preferences.erl``, ``tree.erl``)
 - a first-level, optional support of the `HDF5 <https://www.hdfgroup.org/HDF5/>`_ file format (based on, and thus requiring, the `enhanced fork <https://github.com/Olivier-Boudeville-EDF/erlhdf5>`_ we made of `erlhdf5 <https://github.com/RomanShestakov/erlhdf5>`_)
+
+Finally, the ``void/0`` and ``maybe/1`` types are supported (thanks to the Myriad parse-transform).
