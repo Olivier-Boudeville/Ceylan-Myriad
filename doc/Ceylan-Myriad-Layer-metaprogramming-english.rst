@@ -38,3 +38,10 @@ For that, following changes are operated:
  - unless it is overridden on a per-module basis with the ``table_type`` define, like in: ``-table_type(list_table).``
 
 - the ``cond_utils`` services will drive conditional code injection
+
+
+More generally, Myriad offers the support to traverse *any* AST (the whole Erlang grammar is supported, in its abstract form) and to **transform** it (ex: an expression being removed, transformed or replaced by other expressions), with the ability for the user to define his own type/call replacement mappings, or more general transformation functions to be triggered when specified elements are found in the AST (ex: remote calls with relevant MFA).
+
+The traversal may be done in a stateful manner, i.e. any user-defined transformation will be able to access (read/write) any state of its own in the course of the traversal.
+
+As a result, a single pass through the input AST may be done, in which any kind of transformations may be applied, resulting in another (Erlang-compliant) AST being output and afterwards compiled.
