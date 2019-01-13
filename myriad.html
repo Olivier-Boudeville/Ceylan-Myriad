@@ -32,7 +32,7 @@
 <tr class="field"><th class="field-name">Creation Date:</th><td class="field-body"><p class="first">Wednesday, August 11, 2010</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Lastly Updated:</th><td class="field-body"><p class="first">Saturday, January 12, 2019</p>
+<tr class="field"><th class="field-name">Lastly Updated:</th><td class="field-body"><p class="first">Sunday, January 13, 2019</p>
 </td>
 </tr>
 <tr class="field"><th class="field-name">Status:</th><td class="field-body"><p class="first">Work in progress</p>
@@ -287,7 +287,7 @@ various implementations thereof, tests and benchmarks, in:</p>
 <div class="section" id="defining-a-token">
 <h4><a class="toc-backref" href="#id26">Defining a token</a></h4>
 <p>A <em>token</em> (a symbol) may or may not defined.</p>
-<p>To define <tt class="docutils literal">my_token</tt>, simply ensure that the a <tt class="docutils literal"><span class="pre">-Dmy_token</span></tt> command-line option is specified to the compiler (ex: refer to  <tt class="docutils literal">ERLANG_COMPILER_TOKEN_OPT</tt> in <tt class="docutils literal">GNUmakevars.inc</tt>).</p>
+<p>To define <tt class="docutils literal">my_token</tt>, simply ensure that the a <tt class="docutils literal"><span class="pre">-Dmy_token</span></tt> command-line option is specified to the compiler (ex: refer to <tt class="docutils literal">ERLANG_COMPILER_TOKEN_OPT</tt>, in <tt class="docutils literal">GNUmakevars.inc</tt>).</p>
 <p>To define <tt class="docutils literal">my_token</tt> and set it to the integer value <tt class="docutils literal">127</tt>, use the <tt class="docutils literal"><span class="pre">-Dmy_token=127</span></tt> command-line option. Values can also be floats (ex: <tt class="docutils literal"><span class="pre">-Dmy_token=3.14</span></tt>) or atoms (ex: <tt class="docutils literal"><span class="pre">-Dmy_token=some_atom</span></tt>).</p>
 <p>A special token is <tt class="docutils literal">debug_mode</tt>; if it is defined at all (and possibly associated to any value), the debug mode of Myriad is enabled.</p>
 </div>
@@ -298,7 +298,7 @@ various implementations thereof, tests and benchmarks, in:</p>
 <pre class="literal-block">
 cond_utils:if_debug([A=B+1,io:format(&quot;Hello ~p&quot;,[A])])
 </pre>
-<p>will enable the specified code (a series of arbitrarily nested expressions) iff (if and only if) the <tt class="docutils literal">debug_mode</tt> token has been defined.</p>
+<p>will enable the specified code (either an arbitrarily nested expression or a list thereof) iff (if and only if) the <tt class="docutils literal">debug_mode</tt> token has been defined.</p>
 <p>Similarly, <tt class="docutils literal">if_defined/2</tt>, for example used as:</p>
 <pre class="literal-block">
 cond_utils:if_defined(my_token,[EXPR1,EXPR2,...])
@@ -320,7 +320,7 @@ cond_utils:if_defined(a_token,FIRST_EXPR_LIST,SECOND_EXPR_LIST])
 <pre class="literal-block">
 cond_utils:if_set_to(some_token,42,EXPR_LIST)
 </pre>
-<p>will inject <tt class="docutils literal">EXPR_LIST</tt> iff <tt class="docutils literal">some_token</tt> has been defined and set to <tt class="docutils literal">42</tt> (i.e. <tt class="docutils literal"><span class="pre">-Dsome_token=42</span></tt>). As a result, the specified expressions will not be injected if <tt class="docutils literal">some_token</tt> has been set to another value, or not been defined at all.</p>
+<p>will inject <tt class="docutils literal">EXPR_LIST</tt> iff <tt class="docutils literal">some_token</tt> has been defined and set to <tt class="docutils literal">42</tt> (i.e. <tt class="docutils literal"><span class="pre">-Dsome_token=42</span></tt>). As a result, the specified expressions will not be injected if <tt class="docutils literal">some_token</tt> has been set to another value, or not been defined at all. As usual, instead of a list of expressions, a single expression may be specified.</p>
 <p>As for <tt class="docutils literal">if_set_to/4</tt>, in:</p>
 <pre class="literal-block">
 cond_utils:if_set_to(a_token,a_symbol,FIRST_EXPR_LIST,SECOND_EXPR_LIST)
@@ -329,20 +329,27 @@ cond_utils:if_set_to(a_token,a_symbol,FIRST_EXPR_LIST,SECOND_EXPR_LIST)
 </div>
 <div class="section" id="controlling-assertions">
 <h4><a class="toc-backref" href="#id28">Controlling assertions</a></h4>
-<p>It may be convenient that, depending on a compile-time token (ex: the debug mode, typically triggered thanks to the <tt class="docutils literal"><span class="pre">-Ddebug_mode</span></tt> compilation option), <em>assertions</em> (expressions expected to evaluate to the atom <tt class="docutils literal">true</tt>) are enabled, whereas they shall be dismissed as a whole should that token not be defined.</p>
+<p>It may be convenient that, depending on a compile-time token (ex: in debug mode, typically triggered thanks to the <tt class="docutils literal"><span class="pre">-Ddebug_mode</span></tt> compilation option), <em>assertions</em> (expressions expected to evaluate to the atom <tt class="docutils literal">true</tt>) are enabled, whereas they shall be dismissed as a whole should that token not be defined.</p>
 <p>To define an assertion enabled in debug mode, use <tt class="docutils literal">assert/1</tt>, like in:</p>
 <pre class="literal-block">
 cond_utils:assert(foo(A,B)=:=10)
 </pre>
 <p>Should at runtime the expression specified to <tt class="docutils literal">assert/1</tt> be evaluated to a value <tt class="docutils literal">V</tt> that is different from the atom <tt class="docutils literal">true</tt>, a <tt class="docutils literal">{assertion_failed,V}</tt> exception will be thrown.</p>
-<p>More generally, an assertion may be enabled by another token than <tt class="docutils literal">debug_mode</tt> being defined, like in:</p>
+<p>More generally, an assertion may be enabled by any token (not <tt class="docutils literal">debug_mode</tt> only) being defined, like in:</p>
 <pre class="literal-block">
 cond_utils:assert(my_token,bar(C))
 </pre>
-<p>Finally, an assertion may be enabled iff a token has been defined and set to a given value, like in:</p>
+<p>Finally, an assertion may be enabled iff a token (here, <tt class="docutils literal">some_token</tt>) has been defined and set to a given value (here, <tt class="docutils literal">42</tt>), like in:</p>
 <pre class="literal-block">
 cond_utils:assert(some_token,42,not baz() andalso A)
 </pre>
+<p>This may be useful for example to control, on a per-theme basis, the level of checking performed, like in:</p>
+<pre class="literal-block">
+cond_utils:assert(debug_gui,1,basic_testing()),
+cond_utils:assert(debug_gui,2,more_involved_testing()),
+cond_utils:assert(debug_gui,3,paranoid_testing()),
+</pre>
+<p>Note that, in this case, a given level of checking should include the one just below it (ex: <tt class="docutils literal">more_involved_testing()</tt> should call <tt class="docutils literal">basic_testing()</tt>).</p>
 </div>
 <div class="section" id="for-more-information">
 <h4><a class="toc-backref" href="#id29">For more information</a></h4>
