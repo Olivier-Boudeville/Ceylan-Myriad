@@ -40,18 +40,12 @@
 % Tokens may only be defined on the command-line (ex: see ERLANG_COMPILER_TOKEN_OPT
 % in GNUmakevars.inc for that).
 %
-% Indeed, should they be specified directly in the sources, like below, such a
-% definition would not be appear per se in the AST, and thus the corresponding
-% tokens would not be known:
-%
-%-define( my_test_token, 200 ).
-%-define( my_other_test_token, some_text ).
-%
 % Based on the settings specified in GNUmakevars.inc, we expect:
 % - my_first_test_token to be defined, yet with no associated value
 % - my_second_test_token to be defined, set to 200
 % - my_third_test_token to be defined, set to some_text
 % (and no other token to be defined)
+
 
 % Note: we use here the process dictionary in order to detect more easily any
 % unexpected, non-legit code execution; we want not only to detect whenever a
@@ -98,9 +92,9 @@ run() ->
 
 	test_facilities:display( "Testing cond_utils:if_defined/3." ),
 
+	% A single expression is used here:
 	cond_utils:if_defined( my_first_test_token,
-			   [ trace_utils:info( "Correct branch selected." ),
-				 process_dictionary:put( process_test_key, 3 ) ],
+			   process_dictionary:put( process_test_key, 3 ),
 			   [ process_dictionary:put( process_test_key, 4 ),
 				 trace_utils:error( "Wrong branch selected (4)." ) ] ),
 

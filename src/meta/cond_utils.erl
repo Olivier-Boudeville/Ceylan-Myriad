@@ -34,69 +34,6 @@
 
 
 
-% Note: we use to believe that a token could be defined either through a -D
-% command-line option or through an in-source compile attribute.
-%
-% If the comand-line is suitable for that, this is not the case of a compile
-% attribute such as: '-define( my_test_token, 200 ).'.
-%
-% Indeed, the latter solution only results in any '?my_test_token' to be
-% replaced with its associated value, whereas we would have liked to discover a
-% priori that the token 'my_test_token' exists and is associated to 200 (in
-% order to feed our token table).
-%
-% As we cannot do that with such a compile attribute (those equal to '-define'
-% do not end up at all in the AST), one has to stick to the -D command-line
-% option (ex: -Dmy_test_token=200).
-
-
-
--export([ get_token_table_from/1,
-		  if_debug/1, if_defined/2, if_defined/3,
-		  if_set_to/3, if_set_to/4,
-		  assert/1, assert/2, assert/3 ]).
-
-
-% For the table macro:
--include("meta_utils.hrl").
-
-
-
-
-% A token (defined through the command-line), whose definition enables the
-% conditional execution of associated code.
-%
-% Ex: a 'debug_gui' token would enable, if defined, associated code, like in:
-% cond_utils:if_defined( debug_gui, [ f(), A = B, g( C ) ] )
-%
--type token() :: atom().
-
-
-% A value associated to a token:
-%
--type value() :: term().
-
-
-% An expression that is conditionally enabled:
--type expression() :: any().
-
--type expressions() :: expression() | [ expression() ].
-
-
-% Table to establish easily whether a token has been defined and, if yes, a
-% value (if any; otherwise it is set to 'undefined') that has been associated to
-% it.
-%
--type token_table() :: ?table:?table( token(), basic_utils:maybe( term() ) ).
-
--export_type([ token/0, expression/0, expressions/0, token_table/0 ]).
-
-
-% Shorthand:
--type void() :: basic_utils:void().
-
-
-
 % Implementation notes:
 %
 % About tokens
@@ -127,6 +64,77 @@
 % -endif
 %
 % the parse transform is also able to take into account these information.
+%
+% Tokens cannot be specified directly in the sources, like shown below, as such
+% a definition would not be appear per se in the AST, and thus the corresponding
+% tokens would not be known:
+%
+%-define( my_test_token, 200 ).
+%-define( my_other_test_token, some_text ).
+%
+% As a result, tokens are solely to be defined through command-line options.
+
+
+% More precisely: we used to believe that a token could be defined either
+% through a -D command-line option or through an in-source compile attribute.
+%
+% If the command-line is suitable for that, this is not the case of a compile
+% attribute such as: '-define( my_test_token, 200 ).'.
+%
+% Indeed, the latter solution only results in any '?my_test_token' to be
+% replaced with its associated value, whereas we would have liked to discover a
+% priori that the token 'my_test_token' exists and is associated to 200 (in
+% order to feed our token table).
+%
+% As we cannot do that with such a compile attribute (those corresponding to
+% '-define(...)'  do not end up at all in the AST), one has to stick to the -D
+% command-line option (ex: -Dmy_test_token=200).
+
+
+
+-export([ get_token_table_from/1,
+		  if_debug/1, if_defined/2, if_defined/3,
+		  if_set_to/3, if_set_to/4,
+		  assert/1, assert/2, assert/3 ]).
+
+
+% For the table macro:
+-include("meta_utils.hrl").
+
+
+
+% A token (defined through the command-line), whose definition enables the
+% conditional execution of associated code.
+%
+% Ex: a 'debug_gui' token would enable, if defined, associated code, like in:
+% cond_utils:if_defined( debug_gui, [ f(), A = B, g( C ) ] )
+%
+-type token() :: atom().
+
+
+% A value associated to a token:
+%
+-type value() :: term().
+
+
+% An expression that is conditionally enabled:
+-type expression() :: any().
+
+% The conditional code injected is either a single expression or a list thereof:
+-type expressions() :: expression() | [ expression() ].
+
+
+% Table to establish easily whether a token has been defined and, if yes, a
+% value (if any; otherwise it is set to 'undefined') that has been associated to
+% it.
+%
+-type token_table() :: ?table:?table( token(), basic_utils:maybe( term() ) ).
+
+-export_type([ token/0, expression/0, expressions/0, token_table/0 ]).
+
+
+% Shorthand:
+-type void() :: basic_utils:void().
 
 
 
@@ -210,9 +218,9 @@ register_tokens( _L=[ Token | T ], TokenTable ) when is_atom( Token ) ->
 
 
 
-
-% Conditional execution, enabled iff the debug mode has been enabled (i.e. iff
-% its token has been specified through the command-line).
+% Conditional execution of specified expression or list thereof, enabled iff the
+% debug mode has been set (i.e. iff the 'debug_mode' token has been defined
+% through the command-line).
 %
 -spec if_debug( expressions() ) -> void().
 if_debug( Expressions ) ->
@@ -222,7 +230,7 @@ if_debug( Expressions ) ->
 
 % Conditional execution, enabled iff the specified token has been specified
 % (i.e. iff its token has been defined through the command-line), in which case
-% the specified expressions are injected (otherwise they are simply dismissed as
+% the specified expression(s) are injected (otherwise they are simply dismissed as
 % a whole).
 %
 % Note: the first parameter, Token, must be an immediate value, an atom (not
@@ -231,14 +239,16 @@ if_debug( Expressions ) ->
 % So 'cond_utils:if_defined( hello, [...] )' will be accepted, while even 'A=hello,
 % cond_utils:if_defined( A, [...] )' will be rejected.
 %
-% As for the second parameter, it shall be directly a list of expressions; for
-% example 'cond_utils:if_defined( debug_mode, _Exprs=[...])' would be rejected.
+% As for the second parameter, it shall be *directly* either a single expression
+% or a list thereof; for example 'cond_utils:if_defined( debug_mode,
+% _Exprs=[...])' would be rejected.
 %
 % Finally, should the relevant token not be defined, the corresponding
-% expressions are dismissed, which may lead variables only mentioned in said
-% expressions to be reported as unused; for example: 'A = 1,
-% cond_utils:if_defined( non_existing_token, [ A = 1, ... ] )' will report that
-% variable 'A' is unused.
+% expressions are dismissed as a whole, which may lead variables only mentioned
+% in said expressions to be reported as unused.
+%
+% For example: 'A=1, cond_utils:if_defined( non_existing_token, [ A=1, ... ] )'
+% will report that variable 'A' is unused.
 %
 -spec if_defined( token(), expressions() ) -> void().
 if_defined( Token, _Expressions ) ->
@@ -256,8 +266,8 @@ if_defined( Token, _Expressions ) ->
 
 
 
-% Conditional execution of one of the two specified lists of expressions,
-% depending on whether the specified token has been defined through the
+% Conditional execution of one of the two specified expressions or lists
+% thereof, depending on whether the specified token has been defined through the
 % command-line.
 %
 % If the token has been defined, the first list of expressions is injected,
@@ -275,8 +285,8 @@ if_defined( Token, _ExpressionsIfDefined, _ExpressionsIfNotDefined ) ->
 
 
 
-% Conditional execution of the specified list of expressions, depending on
-% whether the specified token has been defined through the command-line *and*
+% Conditional execution of the specified expression or list thereof, depending
+% on whether the specified token has been defined through the command-line *and*
 % has been set to the specified (immediate) value.
 %
 % The specified list of expressions is injected iff the token has been defined
@@ -294,15 +304,15 @@ if_set_to( Token, _Value, _Expressions ) ->
 
 
 
-% Conditional execution of one of the two specified lists of expressions,
-% depending on whether the specified token has been defined through the
+% Conditional execution of one of the two specified expressions or lists
+% thereof, depending on whether the specified token has been defined through the
 % command-line *and* has been set to the specified (immediate) value.
 %
 % If the token has been defined and set to the specified value, the first list
 % of expressions is injected, otherwise (different value or not defined) the
 % second is.
 
-% See if_set_to/4 for use and caveats.
+% See if_defined/2 for use and caveats.
 %
 -spec if_set_to( token(), value(), expressions(), expressions() ) -> void().
 if_set_to( Token, _Value, _ExpressionsIfMatching, _ExpressionsOtherwise ) ->
@@ -317,7 +327,7 @@ if_set_to( Token, _Value, _ExpressionsIfMatching, _ExpressionsOtherwise ) ->
 % If in debug mode, asserts that the specified expression is true,
 % i.e. evaluates it at runtime and matches it with the atom 'true'.
 %
-% In debug mode (i.e when the debug_mode token has been defined), and only in
+% In debug mode (i.e when the 'debug_mode' token has been defined), and only in
 % that mode, the check will be done (at runtime), and possibly will fail by
 % throwing a { assertion_failed, Other } exception, where Other is the actual
 % (non-true) value breaking that assertion (of course the usual stacktrace with
@@ -334,14 +344,11 @@ assert( _Expression ) ->
 
 
 
-% If the specified token has been defined, asserts that the specified expression
-% is true, i.e. evaluates it at runtime, matches it with the atom 'true'.
+% If the specified token has been defined through the command-line, asserts that
+% the specified expression is true, i.e. evaluates it at runtime and matches it
+% with the atom 'true'.
 %
-% In debug mode (i.e when the debug_mode token has been defined), and only in
-% that mode, the check will be done (at runtime), and possibly will fail by
-% throwing a { assertion_failed, Other } exception, where Other is the actual
-% (non-true) value breaking that assertion (of course the usual stacktrace with
-% line numbers will be available).
+% See assert/1 for use and caveats.
 %
 -spec assert( token(), expression() ) -> void().
 assert( Token, _Expression ) ->
@@ -353,15 +360,11 @@ assert( Token, _Expression ) ->
 
 
 
-% If the specified token has been defined and set to the specified value,
-% asserts that the specified expression is true, i.e. evaluates it at runtime,
-% matches it with the atom 'true'.
+% If the specified token has been defined through the command-line and set to
+% the specified value, asserts that the specified expression is true,
+% i.e. evaluates it at runtime and matches it with the atom 'true'.
 %
-% In debug mode (i.e when the debug_mode token has been defined), and only in
-% that mode, the check will be done (at runtime), and possibly will fail by
-% throwing a { assertion_failed, Other } exception, where Other is the actual
-% (non-true) value breaking that assertion (of course the usual stacktrace with
-% line numbers will be available).
+% See assert/1 for use and caveats.
 %
 -spec assert( token(), value(), expression() ) -> void().
 assert( Token, _Value, _Expression ) ->

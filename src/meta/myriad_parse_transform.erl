@@ -843,9 +843,9 @@ get_ast_global_transforms( DesiredTableType ) ->
 		  _Params=[ {atom,LineToken,Token}, ExpressionForm ],
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
-			ast_utils:display_debug( "Call to cond_utils:assert/2 found, "
-									 "with token '~p' and expression form ~p.",
-									 [ Token, ExpressionForm ] ),
+			%ast_utils:display_debug( "Call to cond_utils:assert/2 found, "
+			%						 "with token '~p' and expression form ~p.",
+			%						 [ Token, ExpressionForm ] ),
 
 			case ?table:lookupEntry( Token, TokenTable ) of
 
@@ -987,15 +987,20 @@ inject_expressions( ExprFormList={ cons, _, _Head, _Tail }, Transforms,
 	ast_expression:transform_expressions( Exprs, Transforms );
 
 
-% Other, non-list (ex: match pattern) unsupported expression parameter:
-inject_expressions( OtherExprForm, _Transforms, Line ) ->
+% Other, non-list (ex: call, match pattern, etc.) expression parameter, which
+% used to be unsupported; now the constraint of having a list of expressions is
+% relaxed, a single expression is accepted as well:
+%
+inject_expressions( ExprForm, Transforms, _Line ) ->
 
-	ast_utils:display_error( "Unsupported expression specified at line ~B for "
-							 "a conditional injection:~n~p",
-							 [ Line, OtherExprForm ] ),
+	% ast_utils:display_error( "Unsupported expression specified at line ~B for "
+	%						 "a conditional injection (:~n~p",
+	%						 [ Line, OtherExprForm ] ),
 
-	ast_utils:raise_error( { unsupported_expression_for_conditional_injection,
-							 {line,Line} } ).
+	% ast_utils:raise_error( { unsupported_expression_for_conditional_injection,
+	%						 {line,Line} } ).
+
+	ast_expression:transform_expression( ExprForm, Transforms ).
 
 
 
