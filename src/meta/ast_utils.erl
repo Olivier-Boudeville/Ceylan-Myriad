@@ -831,11 +831,17 @@ raise_error( Elements, Context, OriginLayer ) when is_list( Elements ) ->
 		% Post-21.0 code:
 		_C:_R:StackTrace ->
 
+			% Used to confirm that, in some cases, the direct, original
+			% stacktrace returned by the Erlang VM seems limited to the N=8
+			% latest calls (deeper ones being thus lacking, unfortunately):
+			%
+			%io:format( "Full stack trace:~n~p~n", [ StackTrace ] ),
+
 			% Removing useless {ast_utils,raise_error,2,...:
 			ActualStackTrace = tl( StackTrace ),
 
-			StackElements = interpret_stack_trace( ActualStackTrace, _Acc=[],
-												   _Count=1 ),
+			StackElements =
+				interpret_stack_trace( ActualStackTrace, _Acc=[], _Count=1 ),
 
 			% These are Myriad-internal information, generally of no use to
 			% understand the problem regarding the code being compiled:

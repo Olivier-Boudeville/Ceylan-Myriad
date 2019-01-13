@@ -205,9 +205,7 @@ check_function_types( Other, _FunctionArity, Context ) ->
 								 { function_table(), ast_transforms() }.
 transform_functions( FunctionTable, Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Transforming functions..." ),
-
-	%ast_utils:display_debug( "Transforming known types in function specs..." ),
+	%?display_trace( "Transforming all functions" ),
 
 	FunIdInfoPairs = ?table:enumerate( FunctionTable ),
 
@@ -230,6 +228,9 @@ transform_functions( FunctionTable, Transforms ) ?rec_guard ->
 									 { function_pair(), ast_transforms() }.
 transform_function_pair( { FunId, FunctionInfo }, Transforms ) ?rec_guard ->
 
+	?display_trace( "Transforming function ~p.",
+							 [ FunId ] ),
+
 	{ NewFunctionInfo, NewTransforms } =
 		transform_function( FunctionInfo, Transforms ),
 
@@ -247,6 +248,8 @@ transform_function( FunctionInfo=#function_info{ clauses=ClauseDefs,
 
 	% We have to transform the clauses (first) and the spec (second):
 
+	?display_trace( "Transforming clauses." ),
+
 	{ NewClauseDefs, ClauseTransforms } = lists:mapfoldl(
 			fun ast_clause:transform_function_clause/2, _Acc0=Transforms,
 			_List=ClauseDefs ),
@@ -258,8 +261,9 @@ transform_function( FunctionInfo=#function_info{ clauses=ClauseDefs,
 			{ undefined, ClauseTransforms } ;
 
 		{ Loc, FunSpec } ->
+			?display_trace( "Transforming function spec." ),
 			{ NewFunSpec, NewTransforms } =
-							   transform_function_spec( FunSpec, Transforms ),
+						   transform_function_spec( FunSpec, Transforms ),
 			{ { Loc, NewFunSpec }, NewTransforms }
 
 	end,
@@ -291,7 +295,7 @@ transform_function_spec( { 'attribute', Line, SpecType, { FunId, SpecList } },
 	% {user_type,652,type_b,[]}] } ]
 	%
 
-	%ast_utils:display_trace( "SpecList = ~p", [ SpecList ] ),
+	%?display_trace( "SpecList = ~p", [ SpecList ] ),
 
 	{ NewSpecList, NewTransforms } =
 			lists:mapfoldl( fun transform_spec/2, _Acc0=Transforms,

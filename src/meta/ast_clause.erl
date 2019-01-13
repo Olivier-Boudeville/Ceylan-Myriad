@@ -182,6 +182,7 @@
 -spec transform_clauses_generic( [ ast_clause() ], ast_transforms() ) ->
 									   { [ ast_clause() ], ast_transforms() }.
 transform_clauses_generic( Clauses, Transforms ) ?rec_guard ->
+
 	lists:mapfoldl( fun transform_clause_generic/2, _Acc0=Transforms,
 					_List=Clauses ).
 
@@ -190,21 +191,32 @@ transform_clauses_generic( Clauses, Transforms ) ?rec_guard ->
 -spec transform_clause_generic( ast_clause(), ast_transforms() ) ->
 									  { [ ast_clause() ], ast_transforms() }.
 transform_clause_generic(
-  _Clause={ 'clause', Line, HeadPatternSequence, GuardSequence, BodyExprs },
+  Clause={ 'clause', Line, HeadPatternSequence, GuardSequence, BodyExprs },
   Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Intercepting generic clause:~n~p~n", [ Clause ] ),
+	?display_trace( "Transforming clause:~n~p~n", [ Clause ] ),
+
+	?display_trace( "Transforming head patterns." ),
 
 	{ NewHeadPatternSequence, HeadTransforms } =
 		ast_pattern:transform_pattern_sequence( HeadPatternSequence,
 												Transforms ),
 
+
+	?display_trace( "Transforming guards." ),
+
 	% Possibly empty guard list:
 	{ NewGuardSequence, GuardTransforms } =
 		ast_guard:transform_guard_sequence( GuardSequence, HeadTransforms ),
 
+
+	%?display_trace( "Transforming body." ),
+	?display_trace( "Transforming body:~n~p", [ BodyExprs ] ),
+
 	{ NewBodyExprs, BodyTransforms } =
 		transform_body( BodyExprs, GuardTransforms ),
+
+	?display_trace( "Transformed body:~n~p", [ NewBodyExprs ] ),
 
 	NewExpr = { 'clause', Line, NewHeadPatternSequence, NewGuardSequence,
 				NewBodyExprs },
@@ -486,7 +498,7 @@ transform_case_clause(
 transform_body( BodyExprs, Transforms )
   when is_list( BodyExprs ) ?andalso_rec_guard ->
 
-	%ast_utils:display_trace( "transforming body: ~p...", [ BodyExprs ] ),
+	%?display_trace( "transforming body: ~p...", [ BodyExprs ] ),
 
 	case Transforms#ast_transforms.transform_table of
 
@@ -496,7 +508,7 @@ transform_body( BodyExprs, Transforms )
 				ast_expression:transform_expressions( BodyExprs, Transforms ),
 
 			%ast_utils:display_debug(
-			%  "returning transformed body pair (case 1):~n~p",
+			%  "returning directly transformed body pair (case 1):~n~p",
 			%  [ NewBodyPair ] ),
 
 			NewBodyPair;
@@ -511,7 +523,7 @@ transform_body( BodyExprs, Transforms )
 									 BodyExprs, Transforms ),
 
 					%ast_utils:display_debug(
-					%  "returning transformed body pair (case 2):~n~p",
+					%  "returning directly transformed body pair (case 2):~n~p",
 					%  [ NewBodyPair ] ),
 
 					NewBodyPair;
@@ -523,7 +535,7 @@ transform_body( BodyExprs, Transforms )
 					NewBodyPair = BodyTransformFun( BodyExprs, Transforms ),
 
 					%ast_utils:display_debug(
-					%  "returning transformed body pair (case 3):~n~p",
+					%  "returning fun-transformed body pair (case 3):~n~p",
 					%  [ NewBodyPair ] ),
 
 					NewBodyPair

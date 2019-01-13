@@ -202,7 +202,7 @@ parse_transform( InputAST, Options ) ->
 									{ ast(), module_info() }.
 apply_myriad_transform( InputAST, Options ) ->
 
-	%ast_utils:display_debug( "applying parse transform '~p'",
+	%ast_utils:display_debug( "  (applying parse transform '~p')",
 	%						 [ ?MODULE ] ),
 
 	%ast_utils:display_debug(
@@ -265,6 +265,8 @@ apply_myriad_transform( InputAST, Options ) ->
 -spec transform_module_info( module_info() ) ->
 					   { module_info(), ast_transform:ast_transforms() }.
 transform_module_info( ModuleInfo ) when is_record( ModuleInfo, module_info ) ->
+
+	?display_trace( "[Myriad] Transforming module information." ),
 
 	% First determines the right transforms:
 	Transforms = get_myriad_ast_transforms_for( ModuleInfo ),
@@ -384,7 +386,7 @@ get_actual_table_type( ParseAttributeTable ) ->
 
 		key_not_found ->
 			TableType = ?default_table_type,
-			%ast_utils:display_trace( "Using default table ~p.~n",
+			%?display_trace( "Using default table ~p.~n",
 			%				   [ TableType ] ),
 			TableType
 
@@ -942,7 +944,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 		% Other calls shall go through:
 		( LineCall, FunctionRef, Params, Transforms ) ->
 
-			%ast_utils:display_trace( "(not changing function referenced as ~p "
+			%?display_trace( "(not changing function referenced as ~p "
 			%						 "whose parameters are ~p)",
 			%						 [ FunctionRef, Params ] ),
 
