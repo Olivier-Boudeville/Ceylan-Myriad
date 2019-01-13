@@ -43,14 +43,14 @@
 %-define( enable_myriad_display_trace, ).
 
 
--ifdef(enable_myriad_display_trace).
+-ifdef(enable_myriad_traces).
 
 -define( display_trace( S ), ast_utils:display_trace( "[Myriad] " ++ S ) ).
 
 -define( display_trace( S, F ),
 		 ast_utils:display_trace( "[Myriad] " ++ S, F ) ).
 
--else. % enable_myriad_display_trace
+-else. % enable_myriad_traces
 
 % To avoid variables being reported as unused depending on the mode:
 
@@ -60,4 +60,4 @@
 -define( display_trace( S, F ),
 		 basic_utils:ignore_unused({ myriad_trace_disabled, S, F } ) ).
 
--endif. % enable_myriad_display_trace
+-endif. % enable_myriad_traces
