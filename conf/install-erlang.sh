@@ -10,25 +10,30 @@
 LANG=C; export LANG
 
 
+# Note: if one wants to download src or doc archives by oneself, point directly
+# to http://erlang.org/download/.
+
+
 
 # Now we keep the MD5 sums of the sources of former Erlang/OTP versions, in
 # order to be able to switch back and forth more easily:
 
+erlang_md5_for_21_2="8a797dfe4cfb1bbf1b007f01b2f5a1ad"
 erlang_md5_for_21_1="482f91cf34c2ffb1dff6e716a15afefa"
 erlang_md5_for_21_0="350988f024f88e9839c3715b35e7e27a"
 erlang_md5_for_20_1="4c9eb112cd0e56f17c474218825060ee"
 
 
 # Current stable:
-erlang_version="21.1"
-erlang_md5="${erlang_md5_for_21_1}"
+erlang_version="21.2"
+erlang_md5="${erlang_md5_for_21_2}"
 
 
 # Candidate version (ex: either cutting-edge or, most probably, the previous
 # stable version):
 
-erlang_version_candidate="20.1"
-erlang_md5_candidate="${erlang_md5_for_20_1}"
+erlang_version_candidate="21.1"
+erlang_md5_candidate="${erlang_md5_for_21_1}"
 
 
 plt_file="Erlang-$erlang_version.plt"
@@ -280,10 +285,13 @@ fi
 
 
 erlang_src_prefix="otp_src_${erlang_version}"
+#erlang_src_prefix="otp-OTP-${erlang_version}"
+
 erlang_src_archive="${erlang_src_prefix}.tar.gz"
 
-
+# Not knowning currently where newer doc archives can be obtained:
 erlang_doc_prefix="otp_doc_html_${erlang_version}"
+
 erlang_doc_archive="${erlang_doc_prefix}.tar.gz"
 
 
