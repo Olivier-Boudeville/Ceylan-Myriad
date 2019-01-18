@@ -1,4 +1,4 @@
-% Copyright (C) 2014-2018 Olivier Boudeville
+% Copyright (C) 2014-2019 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -811,7 +811,7 @@ raise_error( Elements, Context, OriginLayer ) when is_list( Elements ) ->
 		case DisplayStacktrace of
 
 			true ->
-				throw( myriad_transformation_failed );
+				throw( { ast_transformation_failed_in, OriginLayer } );
 
 			false ->
 				ok

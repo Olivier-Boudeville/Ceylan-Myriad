@@ -1,4 +1,4 @@
-% Copyright (C) 2017-2018 Olivier Boudeville
+% Copyright (C) 2017-2019 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -61,10 +61,10 @@
 
 
 % A format with quantifiers (such as ~p):
--type trace_format() :: string().
+-type trace_format() :: text_utils:format_string().
 
 % Values corresponding to format quantifiers:
--type trace_values() :: [ any() ] .
+-type trace_values() :: text_utils:format_values().
 
 % Categorization of a trace message:
 -type trace_message_categorization() :: string().

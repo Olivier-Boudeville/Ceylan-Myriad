@@ -1,4 +1,4 @@
-% Copyright (C) 2016-2018 Olivier Boudeville
+% Copyright (C) 2016-2019 Olivier Boudeville
 %
 % Include file meant to simplify the writing of Myriad-using escripts.
 %

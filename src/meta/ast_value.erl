@@ -1,4 +1,4 @@
-% Copyright (C) 2018-2018 Olivier Boudeville
+% Copyright (C) 2018-2019 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -77,7 +77,7 @@
 
 
 % Transformations:
--export([ transform_value/2 ]).
+-export([ transform_value/2, get_immediate_value/1 ]).
 
 
 
@@ -133,6 +133,23 @@ transform_value( Literal={ string, _Line, _String }, Transforms ) ?rec_guard ->
 transform_value( UnexpectedLiteral, Transforms )
   when is_record( Transforms, ast_transforms ) ->
 	throw( { unexpected_literal, UnexpectedLiteral } ).
+
+
+
+% Returns the actual (immediate) value corresponding to the specified form
+% (regardless of its actual type).
+%
+get_immediate_value( { atom, _Line, Atom } ) ->
+	Atom;
+
+get_immediate_value( { integer, _Line, Integer } ) ->
+	Integer;
+
+get_immediate_value( { float, _Line, Float } ) ->
+	Float;
+
+get_immediate_value( Other ) ->
+	throw( { unsupported_immediate_value, Other } ).
 
 
 

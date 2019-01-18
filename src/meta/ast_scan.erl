@@ -1,4 +1,4 @@
-% Copyright (C) 2018-2018 Olivier Boudeville
+% Copyright (C) 2018-2019 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -708,8 +708,7 @@ scan_forms( [ Form={ 'attribute', Line, SpecType,
 							spec=LocatedSpec,
 							callback=IsCallback };
 
-		{ value, F=#function_info{ spec=undefined,
-								   callback=undefined } } ->
+		{ value, F=#function_info{ spec=undefined } } ->
 			% Just add that spec form and callback status then:
 			F#function_info{ spec=LocatedSpec,
 							 callback=IsCallback };

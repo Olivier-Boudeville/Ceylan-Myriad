@@ -1,4 +1,4 @@
-% Copyright (C) 2016-2018 Olivier Boudeville
+% Copyright (C) 2016-2019 Olivier Boudeville
 %
 % Transferred from merge-tree.escript to benefit from a more user-friendly
 % debugging.

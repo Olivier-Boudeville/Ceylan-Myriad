@@ -1,4 +1,4 @@
-% Copyright (C) 2014-2018 Olivier Boudeville
+% Copyright (C) 2014-2019 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -386,10 +386,13 @@
 			 basic_utils:maybe( ast_info:located_function_spec() ),
 
 
-		   % Tells whether the function has a mere specification, or if it is a
-		   % callback:
+		   % Tells whether the function is a callback (hence declared as such
+		   % with a -callback attribute) or not.
 		   %
-		   callback = undefined :: basic_utils:maybe( boolean() ),
+		   % The latter case is the default (whether this function is declared
+		   % with a -spec attribute, or with no related attribute at all).
+		   %
+		   callback = false :: boolean(),
 
 
 		   % Tells whether this function has been exported, as a (possibly

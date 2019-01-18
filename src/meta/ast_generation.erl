@@ -1,4 +1,4 @@
-% Copyright (C) 2018-2018 Olivier Boudeville
+% Copyright (C) 2018-2019 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -32,7 +32,9 @@
 -module(ast_generation).
 
 
--export([ list_to_form/1, form_to_list/1, list_atoms/1, list_variables/1,
+-export([ list_to_form/1, form_to_list/1,
+		  atoms_to_form/1, form_to_atoms/1,
+		  enumerated_variables_to_form/1,
 		  get_iterated_param_name/1, get_header_params/1 ]).
 
 
@@ -74,38 +76,52 @@ form_to_list( { cons, _Line, E, NestedForm } ) ->
 
 
 
-% Returns the form element corresponding a list of atoms.
+% Returns the form element corresponding to the specified list of atoms.
 %
 % Ex: { cons,Line,{atom,Line,a}, {cons,Line,{atom,Line,b}, {nil,Line} } } =
-%         list_atoms( [ 'a', 'b' ] ).
+%         atoms_to_form( [ 'a', 'b' ] ).
 %
--spec list_atoms( [ atom() ] ) -> form_element().
-list_atoms( _AtomList=[] ) ->
+-spec atoms_to_form( [ atom() ] ) -> form_element().
+atoms_to_form( _AtomList=[] ) ->
 	{ nil, _Line=0 };
 
-list_atoms( _AtomList=[ Atom | H ] ) ->
+atoms_to_form( _AtomList=[ Atom | H ] ) ->
 	Line = 0,
-	{ cons, Line, { atom, Line, Atom }, list_atoms( H ) }.
+	{ cons, Line, { atom, Line, Atom }, atoms_to_form( H ) }.
+
+
+
+% Returns the list of atoms corresponding to the specified form element.
+%
+% Ex: [ 'a', 'b' ] = atoms_to_form( { cons,Line,{atom,Line,a},
+% {cons,Line,{atom,Line,b}, {nil,Line} } } ).
+%
+-spec form_to_atoms( form_element() ) -> [ atom() ].
+form_to_atoms( { nil, _Line } ) ->
+	[];
+
+form_to_atoms( { cons, _Line, {atom,_,Atom}, NestedForm } ) ->
+	[ Atom | form_to_atoms( NestedForm ) ].
 
 
 
 % Returns the form element corresponding a list of variables.
 %
 % Ex: { cons, Line, {var,Line,'A'}, { cons,Line,{var,Line,'B'}, {nil,Line}} } =
-%         list_variables( 2 ).
+%         enumerated_variables_to_form( 2 ).
 %
--spec list_variables( basic_utils:count() ) -> form_element().
-list_variables( Count ) ->
-	list_variables( Count, _Index=1 ).
+-spec enumerated_variables_to_form( basic_utils:count() ) -> form_element().
+enumerated_variables_to_form( Count ) ->
+	enumerated_variables_to_form( Count, _Index=1 ).
 
 
-list_variables( _Count=0, _Index ) ->
+enumerated_variables_to_form( _Count=0, _Index ) ->
 	{ nil, _Line=0 };
 
-list_variables( Count, Index ) ->
+enumerated_variables_to_form( Count, Index ) ->
 	Line = 0,
 	{ cons, Line, { var, Line, get_iterated_param_name( Index ) },
-	  list_variables( Count-1, Index+1 ) }.
+	  enumerated_variables_to_form( Count-1, Index+1 ) }.
 
 
 % Returns, in AST form, a reference to an iterated variable.

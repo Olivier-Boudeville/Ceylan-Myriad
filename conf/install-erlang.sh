@@ -30,10 +30,10 @@ erlang_md5="${erlang_md5_for_21_2}"
 
 
 # Candidate version (ex: either cutting-edge or, most probably, the previous
-# stable version):
-
-erlang_version_candidate="21.1"
-erlang_md5_candidate="${erlang_md5_for_21_1}"
+# version that we deem stable enough, should the current introduce regressions):
+#
+erlang_version_candidate="21.0"
+erlang_md5_candidate="${erlang_md5_for_21_0}"
 
 
 plt_file="Erlang-$erlang_version.plt"

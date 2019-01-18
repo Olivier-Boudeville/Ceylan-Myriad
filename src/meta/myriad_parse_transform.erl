@@ -1,4 +1,4 @@
-% Copyright (C) 2014-2018 Olivier Boudeville
+% Copyright (C) 2014-2019 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -668,7 +668,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 			%						 "for token '~p' and value '~p'.",
 			%						 [ Token, ValueForm ] ),
 
-			RequestedValue = get_value( ValueForm ),
+			RequestedValue = ast_value:get_immediate_value( ValueForm ),
 
 			case ?table:lookupEntry( Token, TokenTable ) of
 
@@ -742,7 +742,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 			%ast_utils:display_debug( "Call to cond_utils:if_set_to/4 found, "
 			%	 "for token '~p' and value '~p'.", [ Token, ValueForm ] ),
 
-			RequestedValue = get_value( ValueForm ),
+			RequestedValue = ast_value:get_immediate_value( ValueForm ),
 
 			case ?table:lookupEntry( Token, TokenTable ) of
 
@@ -879,7 +879,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 			%						 "with token '~p' and expression form ~p.",
 			%						 [ Token, ExpressionForm ] ),
 
-			RequestedValue = get_value( ValueForm ),
+			RequestedValue = ast_value:get_immediate_value( ValueForm ),
 
 			case ?table:lookupEntry( Token, TokenTable ) of
 
@@ -1051,18 +1051,3 @@ inject_match_expression( ExpressionForm, Transforms, Line ) ->
 	ast_expression:transform_expression( NewExpr, Transforms ).
 
 
-
-% Returns the actual value corresponding to the specified form (regardless of
-% its actual type).
-%
-get_value( { atom, _Line, Atom } ) ->
-	Atom;
-
-get_value( { integer, _Line, Integer } ) ->
-	Integer;
-
-get_value( { float, _Line, Float } ) ->
-	Float;
-
-get_value( Other ) ->
-	throw( { unsupported_conditional_value, Other } ).

@@ -1,4 +1,4 @@
-% Copyright (C) 2018-2018 Olivier Boudeville
+% Copyright (C) 2018-2019 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -60,7 +60,8 @@
 -type process_dictionary() :: list_table:list_table().
 
 
--export_type([ key/0, value/0, entry/0, entries/0, entry_count/0 ]).
+-export_type([ key/0, value/0, entry/0, entries/0, entry_count/0,
+			   process_dictionary/0 ]).
 
 
 

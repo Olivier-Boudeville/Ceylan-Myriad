@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2018 Olivier Boudeville
+% Copyright (C) 2003-2019 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %

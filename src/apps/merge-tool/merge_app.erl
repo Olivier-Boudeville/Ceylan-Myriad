@@ -1,4 +1,4 @@
-% Copyright (C) 2016-2018 Olivier Boudeville
+% Copyright (C) 2016-2019 Olivier Boudeville
 %
 % Module defined in order to be able to test the merge services outside of an
 % escript context.

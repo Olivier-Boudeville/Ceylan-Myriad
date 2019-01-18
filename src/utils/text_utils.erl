@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2018 Olivier Boudeville
+% Copyright (C) 2003-2019 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -124,6 +124,10 @@
 -type format_string() :: string().
 
 
+% Lists of terms corresponding to a format string:
+%
+-type format_values() :: [ term() ].
+
 
 % These strings are supposed to contain Regular Expressions, like in:
 % "*-emitter-(first|second)-*".
@@ -211,7 +215,8 @@
 -type distance() :: non_neg_integer().
 
 
--export_type([ format_string/0, regex_string/0, title/0, label/0,
+-export_type([ format_string/0, format_values/0,
+			   regex_string/0, title/0, label/0,
 			   bin_string/0, unicode_string/0, uchar/0, ustring/0,
 			   string_like/0, indentation_level/0, distance/0 ]).
 

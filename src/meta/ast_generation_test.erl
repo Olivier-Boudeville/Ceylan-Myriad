@@ -1,4 +1,4 @@
-% Copyright (C) 2014-2018 Olivier Boudeville
+% Copyright (C) 2014-2019 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -45,24 +45,18 @@ run() ->
 
 	AtomList = [ a, b, c ],
 
-	AtomFormList = [ { atom, _Line=0, A } || A <- AtomList ],
-
-	AtomListForm = ast_generation:list_to_form( AtomFormList ),
+	AtomListForm = ast_generation:atoms_to_form( AtomList ),
 
 	% Check:
-	AtomListForm = { cons, 0, {atom,0,a},
-					 { cons, 0, {atom,0,b},
-					   { cons, 0, {atom,0,c},
-						 { nil,0 } } } },
+	AtomListForm = { cons, 0, {atom,0,a}, { cons, 0, {atom,0,b},
+					   { cons, 0, {atom,0,c}, { nil,0 } } } },
 
-	% Another check:
-	AtomListForm = ast_generation:list_atoms( AtomList ),
 
 	test_facilities:display( "The form version of ~p is:~n~p",
 							 [ AtomList, AtomListForm ] ),
 
 	% Check:
-	AtomFormList = ast_generation:form_to_list( AtomListForm ),
+	AtomList = ast_generation:form_to_atoms( AtomListForm ),
 
 
 	ParamCount = 4,
@@ -75,14 +69,13 @@ run() ->
 
 	VarCount = 2,
 
-	Vars = ast_generation:list_variables( VarCount ),
+	Vars = ast_generation:enumerated_variables_to_form( VarCount ),
 
 
 	test_facilities:display( "Listing ~B variables:~n~p", [ VarCount, Vars ] ),
 
 	% Check:
 	Vars = { cons, 0, {var,0,'Myriad_Param_1'},
-			 { cons, 0, {var,0,'Myriad_Param_2'},
-			   {nil,0} } },
+			 { cons, 0, {var,0,'Myriad_Param_2'}, {nil,0} } },
 
 	test_facilities:stop().
