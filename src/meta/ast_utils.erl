@@ -721,9 +721,16 @@ display_fatal( FormatString, Values ) ->
 -spec notify_warning( [ term() ], form_context() ) -> basic_utils:void().
 notify_warning( Elements, Context ) ->
 
-	AllElements = get_elements_with_context( Elements, Context ),
+	case get_elements_with_context( Elements, Context ) of
 
-	display_warning( "~p", [ AllElements ] ).
+		% Supposedly a string:
+		[ SingleElement ] when is_list( SingleElement ) ->
+			display_warning( "~s", [ SingleElement ] );
+
+		AllElements ->
+			display_warning( "~p", [ AllElements ] )
+
+	end.
 
 
 
