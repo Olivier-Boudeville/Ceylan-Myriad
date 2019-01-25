@@ -63,8 +63,14 @@
 -type form_context() :: basic_utils:maybe( line() | file_loc() ).
 
 
+% In-source context (typically to report errors):
+% (ex: {"foo.erl",112}).
+%
+-type source_context() :: { file_utils:filename(),
+							basic_utils:maybe( line() ) }.
+
 -export_type([ form_location/0, file_reference/0, line/0, file_loc/0,
-			   form_context/0 ]).
+			   form_context/0, source_context/0 ]).
 
 
 

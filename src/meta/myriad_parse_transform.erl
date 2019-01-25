@@ -289,7 +289,8 @@ transform_module_info( ModuleInfo ) when is_record( ModuleInfo, module_info ) ->
 -spec get_myriad_ast_transforms_for( module_info() ) ->
 										   ast_transform:ast_transforms().
 get_myriad_ast_transforms_for(
-  #module_info{ compilation_options=CompileOptTable,
+  #module_info{ module=ModuleEntry,
+				compilation_options=CompileOptTable,
 				parse_attributes=ParseAttributes } ) ->
 
 	% We will be replacing here all calls to the 'table' pseudo-module by calls
@@ -355,11 +356,22 @@ get_myriad_ast_transforms_for(
 	%ast_utils:display_debug_fmt( "Token table:~n~p",
 	%							 [ ?table:toString( TokenTable ) ] ),
 
+	TargetModuleName = case ModuleEntry of
+
+		undefined ->
+			undefined;
+
+		{ ModName, _ModLocForm } ->
+			ModName
+
+	end,
+
 	% Returns an overall description of these requested AST transformations:
 	#ast_transforms{ local_types=LocalTypeTransformTable,
 					 remote_types=RemoteTypeTransformTable,
 					 local_calls=LocalCallTransformTable,
 					 remote_calls=RemoteCallTransformTable,
+					 transformed_module_name=TargetModuleName,
 					 transform_table=ASTTransformTable,
 					 transformation_state=TokenTable } .
 
@@ -1049,5 +1061,3 @@ inject_match_expression( ExpressionForm, Transforms, Line ) ->
 											{var,Line,VarName} ] } ] }]}] },
 
 	ast_expression:transform_expression( NewExpr, Transforms ).
-
-

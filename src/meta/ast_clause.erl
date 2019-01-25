@@ -183,6 +183,9 @@
 									   { [ ast_clause() ], ast_transforms() }.
 transform_clauses_generic( Clauses, Transforms ) ?rec_guard ->
 
+	% As a result, a given clause when transformed will benefit from the
+	% processing of any previous one (of the same function of course):
+	%
 	lists:mapfoldl( fun transform_clause_generic/2, _Acc0=Transforms,
 					_List=Clauses ).
 

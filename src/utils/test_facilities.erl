@@ -155,7 +155,7 @@ fail( Reason ) ->
 	% For some reason erlang:error is unable to interpret strings as strings,
 	% they are always output as unreadable lists.
 
-	basic_utils:display( "~n!!!! Test failed, reason: ~s.~n~n", [ Reason ] ),
+	basic_utils:display( "~n!!!! Test failed, reason: ~s~n", [ Reason ] ),
 
 	% Never returns:
 	erlang:error( "Test failed" ),
@@ -184,20 +184,6 @@ fail( FormatString, ValueList ) ->
 	% For some reason, erlang:error is unable to interpret strings as strings,
 	% they are always output as unreadable lists.
 
-	ErrorMessage = io_lib:format( "~n!!!! Test failed, reason: ~s.~n~n",
-								[ io_lib:format( FormatString, ValueList ) ] ),
+	ReasonMessage = text_utils:format( FormatString, ValueList ),
 
-	basic_utils:display( "~n!!!! Test failed, reason: ~s.~n~n",
-						 [ ErrorMessage ] ),
-
-	% Never returns:
-	erlang:error( "Test failed" ),
-
-	% Hence probably not that useful:
-	system_utils:await_output_completion(),
-
-	basic_utils:stop_on_failure(),
-
-	% Useless, but otherwise Dialyzer will complain that this function has no
-	% local return:
-	test_failed.
+	fail( ReasonMessage ).

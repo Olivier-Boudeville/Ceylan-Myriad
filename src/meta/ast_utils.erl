@@ -780,7 +780,7 @@ raise_error( ErrorTerm ) ->
 % Note: this function is used to report errors detected by Myriad itself (not by
 % the Erlang toolchain).
 %
--spec raise_error( term(), form_context() ) -> no_return().
+-spec raise_error( term(), basic_utils:maybe( form_context() ) ) -> no_return().
 raise_error( ErrorTerm, Context ) ->
 	raise_error( ErrorTerm, Context, _OriginLayer="Myriad" ).
 
@@ -794,23 +794,35 @@ raise_error( ErrorTerm, Context ) ->
 %
 raise_error( Elements, Context, OriginLayer ) when is_list( Elements ) ->
 
-	AllElements = get_elements_with_context( Elements, Context ),
+	Prefix = case Context of
+
+		undefined ->
+			"~Error";
+
+		{ Filename, Line } ->
+			io_lib:format( "error ~s:~B:", [ Filename, Line ] );
+
+		Line ->
+			io_lib:format( "error at line ~B:", [ Line ] )
+
+	end,
 
 	try
 
 		% To avoid a single-element tuple:
-		ReportedElems = case AllElements of
+		ReportedElems = case Elements of
 
 			[ Elem ] ->
 				Elem;
 
 			_ ->
-				list_to_tuple( AllElements )
+				list_to_tuple( Elements )
 
 		end,
 
-		display_error( "Error raised while performing ~s-level transformations:"
-					   "~n  ~p~n", [ OriginLayer, ReportedElems ] ),
+
+		display_error( "~s raised while performing ~s-level transformations:"
+					   "~n  ~p~n", [ Prefix, OriginLayer, ReportedElems ] ),
 
 		DisplayStacktrace = true,
 		%DisplayStacktrace = false,
@@ -944,15 +956,24 @@ get_elements_with_context( Elements, _Context=undefined ) ->
 
 get_elements_with_context( Elements, _Context={ FilePath, Line } )
   when is_binary( FilePath ) andalso is_integer( Line ) ->
-	Elements ++ [ { file, text_utils:binary_to_string( FilePath ) },
-				  { line, Line } ];
+	%Elements ++ [ { file, text_utils:binary_to_string( FilePath ) },
+	%			  { line, Line } ];
+
+	% We mimic the default error formatting so that tools (like IDE) have a
+	% chance to automatically point to the right location in the sources:
+	%
+	Prefix = io_lib:format( "~s:~B: ",
+							[ text_utils:binary_to_string( FilePath ), Line ] ),
+	[ Prefix | Elements ];
 
 get_elements_with_context( Elements, _Context=Line ) when is_integer( Line ) ->
 	Elements ++ [ { line, Line } ];
 
 get_elements_with_context( Elements, _Context=FilePath )
   when is_binary( FilePath ) ->
-	Elements ++ [ { file, text_utils:binary_to_string( FilePath ) } ];
+	Prefix = io_lib:format( "~s:0: ",
+							[ text_utils:binary_to_string( FilePath ) ] ),
+	[ Prefix | Elements ];
 
 get_elements_with_context( Elements, Context ) ->
 	% No list_utils module used from this module:

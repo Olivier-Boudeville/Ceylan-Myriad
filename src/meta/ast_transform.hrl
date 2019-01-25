@@ -56,6 +56,13 @@
 								  ast_transform:remote_call_transform_table() ),
 
 
+	% Allows to record the name of the module being transformed (useful for
+	% example for error messages):
+	%
+	transformed_module_name = undefined ::
+	  basic_utils:maybe( basic_utils:module_name() ),
+
+
 	% Records the transformations (if any) to be applied on AST elements as a
 	% whole (generally exceeding the mere transformations of calls into calls,
 	% like rewriting bodies) whenever a trigger is found.
