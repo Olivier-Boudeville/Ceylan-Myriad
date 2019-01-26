@@ -792,44 +792,40 @@ raise_error( ErrorTerm, Context ) ->
 % _OriginLayer="FooLayer" ) shall result in throwing { invalid_module_name,
 % Other, { line, 112 } }.
 %
-raise_error( Elements, Context, OriginLayer ) when is_list( Elements ) ->
+-spec raise_error( text_utils:ustring(),
+				   basic_utils:maybe( ast_base:source_context() ),
+				   basic_utils:layer_name() ) -> no_return().
+raise_error( Message, Context, OriginLayer ) ->
 
 	Prefix = case Context of
 
 		undefined ->
-			"~Error";
+			"Error";
 
 		{ Filename, Line } ->
-			io_lib:format( "error ~s:~B:", [ Filename, Line ] );
+			io_lib:format( "~s:~B: error", [ Filename, Line ] );
 
 		Line ->
-			io_lib:format( "error at line ~B:", [ Line ] )
+			io_lib:format( "Error at line ~B:", [ Line ] )
 
 	end,
 
+
+	% Used to rely on display_error/1, yet we want to respect the standard error
+	% report format, so:
+	%
+	io:format( "~s raised while performing ~s-level transformations:"
+			   "~n  ~s~n", [ Prefix, OriginLayer, Message ] ),
+
+	DisplayStacktrace = true,
+	%DisplayStacktrace = false,
+
 	try
-
-		% To avoid a single-element tuple:
-		ReportedElems = case Elements of
-
-			[ Elem ] ->
-				Elem;
-
-			_ ->
-				list_to_tuple( Elements )
-
-		end,
-
-
-		display_error( "~s raised while performing ~s-level transformations:"
-					   "~n  ~p~n", [ Prefix, OriginLayer, ReportedElems ] ),
-
-		DisplayStacktrace = true,
-		%DisplayStacktrace = false,
 
 		case DisplayStacktrace of
 
 			true ->
+				% To get a stack trace:
 				throw( { ast_transformation_failed_in, OriginLayer } );
 
 			false ->
@@ -875,10 +871,7 @@ raise_error( Elements, Context, OriginLayer ) when is_list( Elements ) ->
 	%throw( list_to_tuple( AllElements ) );
 	%{ error, AllElements };
 	%exit( AllElements );
-	halt( 5 );
-
-raise_error( SingleElement, Context, OriginLayer ) ->
-	raise_error( [ SingleElement ], Context, OriginLayer ).
+	halt( 5 ).
 
 
 
