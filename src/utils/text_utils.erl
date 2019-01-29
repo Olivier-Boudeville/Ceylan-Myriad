@@ -44,6 +44,7 @@
 % Conversions between terms and strings (both ways).
 %
 -export([ term_to_string/1, term_to_string/2, term_to_string/3,
+		  term_to_binary/1,
 		  integer_to_string/1, atom_to_string/1, pid_to_string/1,
 		  record_to_string/1,
 		  strings_to_string/1, strings_to_sorted_string/1,
@@ -256,6 +257,15 @@ term_to_string( Term ) ->
 			io_lib:format( "~p", [ Term ] )
 
 	end.
+
+
+
+% Returns a human-readable binary string describing specified term.
+%
+-spec term_to_binary( term() ) -> bin_string().
+term_to_binary( Term ) ->
+	String = term_to_string( Term ),
+	string_to_binary( String ).
 
 
 
