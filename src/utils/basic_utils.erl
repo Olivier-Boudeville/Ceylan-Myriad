@@ -113,6 +113,10 @@
 -type message() :: any().
 
 
+% Describes a PID or a port:
+%
+-type pid_or_port() :: pid() | port().
+
 
 % Term designated a reason (which may be any term):
 %
@@ -245,7 +249,7 @@
 
 
 -export_type([ void/0, count/0, non_null_count/0, bit_mask/0, message/0,
-			   reason/0, exit_reason/0,
+			   pid_or_port/0, reason/0, exit_reason/0,
 			   error_reason/0, error_term/0, error_type/0,
 			   base_status/0, maybe/1, wildcardable/1,
 			   external_data/0, unchecked_data/0, user_data/0,

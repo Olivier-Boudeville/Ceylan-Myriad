@@ -792,8 +792,7 @@ raise_error( ErrorTerm, Context ) ->
 % _OriginLayer="FooLayer" ) shall result in throwing { invalid_module_name,
 % Other, { line, 112 } }.
 %
--spec raise_error( text_utils:ustring(),
-				   basic_utils:maybe( ast_base:source_context() ),
+-spec raise_error( term(), basic_utils:maybe( ast_base:source_context() ),
 				   basic_utils:layer_name() ) -> no_return().
 raise_error( Message, Context, OriginLayer ) ->
 
@@ -815,7 +814,7 @@ raise_error( Message, Context, OriginLayer ) ->
 	% report format, so:
 	%
 	io:format( "~s raised while performing ~s-level transformations:"
-			   "~n  ~s~n", [ Prefix, OriginLayer, Message ] ),
+			   "~n  ~p~n", [ Prefix, OriginLayer, Message ] ),
 
 	DisplayStacktrace = true,
 	%DisplayStacktrace = false,

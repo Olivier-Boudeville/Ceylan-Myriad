@@ -1019,6 +1019,9 @@ EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -noinput
 #EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -noshell
 
 
+# Available in Ceylan-Hull:
+DOC_TRACKER := $$(which track-make-automatic-source.sh)
+
 
 DIALYZER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which dialyzer 2>/dev/null)
 

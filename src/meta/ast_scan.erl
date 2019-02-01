@@ -1247,9 +1247,9 @@ scan_forms( _AST=[ _Form={ 'eof', Line } ],
 							errors=Errors }, _NextLocation,
 			CurrentFileReference ) ->
 	Context = { CurrentFileReference, Line },
-	%ast_utils:raise_error( [ eof_while_no_module, Infos ], Context );
 
-	NewError = { Context, eof_while_no_module },
+	NewError = { Context, "end of file reached whereas no suitable module "
+						  "declaration (ex: '-module(foobar).') found." },
 
 	% Directly returned:
 	M#module_info{ errors=[ NewError | Errors ] };

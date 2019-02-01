@@ -20,7 +20,7 @@
 			  generate-local-plt self-check-against-plt write-debug-key-file   \
 			  check check-hook help-erl                                        \
 			  clean clean-erlang clean-python clean-database clean-recurse     \
-			  clean-outputs clean-ast-debug real-clean                         \
+			  clean-outputs clean-ast-debug real-clean track                   \
 			  info info-files info-meta info-erlang info-python info-java
 
 
@@ -495,6 +495,10 @@ real-clean-recurse:
 	cd .. ; else echo "		(directory $$m skipped)" ; fi ) ; then \
 	exit 1; fi ; done
 
+
+# We prefer tracking the HTML version thereof (rather than the PDF one):
+track:
+	@$(DOC_TRACKER) $(OVERALL_DOCUMENT_SOURCE)
 
 
 info: info-files
