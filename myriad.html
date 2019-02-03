@@ -18,7 +18,7 @@
 <p><span class="raw-html"><center><img src="myriad-title.png" width="70%"></img></center></span>
 </p>
 <div class="section" id="technical-manual-of-the-ceylan-myriad-layer">
-<h1><a class="toc-backref" href="#id14">Technical Manual of the <tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt> Layer</a></h1>
+<h1><a class="toc-backref" href="#id22">Technical Manual of the <tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt> Layer</a></h1>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -32,13 +32,13 @@
 <tr class="field"><th class="field-name">Creation Date:</th><td class="field-body"><p class="first">Wednesday, August 11, 2010</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Lastly Updated:</th><td class="field-body"><p class="first">Sunday, January 13, 2019</p>
+<tr class="field"><th class="field-name">Lastly Updated:</th><td class="field-body"><p class="first">Sunday, February 3, 2019</p>
 </td>
 </tr>
 <tr class="field"><th class="field-name">Status:</th><td class="field-body"><p class="first">Work in progress</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Version:</th><td class="field-body"><p class="first">0.2.9</p>
+<tr class="field"><th class="field-name">Version:</th><td class="field-body"><p class="first">1.2.1</p>
 </td>
 </tr>
 <tr class="field"><th class="field-name">Dedication:</th><td class="field-body"><p class="first">Users and maintainers of the <tt class="docutils literal">Myriad</tt> layer.</p>
@@ -55,127 +55,206 @@ The next level of information is to read the corresponding <a class="reference e
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of Contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#technical-manual-of-the-ceylan-myriad-layer" id="id14">Technical Manual of the <tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt> Layer</a><ul>
-<li><a class="reference internal" href="#overview-context" id="id15">Overview &amp; Context</a></li>
-<li><a class="reference internal" href="#usage-guidelines" id="id16">Usage Guidelines</a><ul>
-<li><a class="reference internal" href="#license" id="id17">License</a></li>
-<li><a class="reference internal" href="#about-layers" id="id18">About Layers</a></li>
-<li><a class="reference internal" href="#recommended-usage-contribution" id="id19">Recommended Usage &amp; Contribution</a></li>
+<li><a class="reference internal" href="#technical-manual-of-the-ceylan-myriad-layer" id="id22">Technical Manual of the <tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt> Layer</a><ul>
+<li><a class="reference internal" href="#overview-context" id="id23">Overview &amp; Context</a></li>
+<li><a class="reference internal" href="#usage-guidelines" id="id24">Usage Guidelines</a><ul>
+<li><a class="reference internal" href="#license" id="id25">License</a></li>
+<li><a class="reference internal" href="#about-layers" id="id26">About Layers</a></li>
+<li><a class="reference internal" href="#recommended-usage-contribution" id="id27">Recommended Usage &amp; Contribution</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#services-offered-by-the-myriad-layer" id="id20">Services Offered by the <tt class="docutils literal">Myriad</tt> Layer</a><ul>
-<li><a class="reference internal" href="#general-build-structure" id="id21">General Build Structure</a></li>
-<li><a class="reference internal" href="#general-settings" id="id22">General Settings</a></li>
-<li><a class="reference internal" href="#maths-services" id="id23">Maths Services</a></li>
-<li><a class="reference internal" href="#data-management-services" id="id24">Data-Management Services</a></li>
-<li><a class="reference internal" href="#support-for-code-injection" id="id25">Support for Code Injection</a><ul>
-<li><a class="reference internal" href="#defining-a-token" id="id26">Defining a token</a></li>
-<li><a class="reference internal" href="#using-tokens-to-enable-code-injection" id="id27">Using tokens to enable code injection</a></li>
-<li><a class="reference internal" href="#controlling-assertions" id="id28">Controlling assertions</a></li>
-<li><a class="reference internal" href="#for-more-information" id="id29">For more information</a></li>
+<li><a class="reference internal" href="#getting-myriad" id="id28">Getting Myriad</a><ul>
+<li><a class="reference internal" href="#prerequisites" id="id29">Prerequisites</a></li>
+<li><a class="reference internal" href="#getting-the-sources" id="id30">Getting the Sources</a></li>
+<li><a class="reference internal" href="#building-myriad" id="id31">Building Myriad</a></li>
+<li><a class="reference internal" href="#testing-myriad" id="id32">Testing Myriad</a></li>
+<li><a class="reference internal" href="#type-checking-myriad" id="id33">Type-checking Myriad</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#helpers-for-user-interface-programming" id="id30">Helpers For User Interface Programming</a><ul>
-<li><a class="reference internal" href="#various-flavours-of-user-interfaces" id="id31">Various Flavours of User Interfaces</a></li>
-<li><a class="reference internal" href="#raw-text-user-interface-text-ui" id="id32">Raw Text User Interface: <tt class="docutils literal">text_ui</tt></a></li>
-<li><a class="reference internal" href="#terminal-text-user-interface-term-ui" id="id33">Terminal Text User Interface: <tt class="docutils literal">term_ui</tt></a></li>
-<li><a class="reference internal" href="#graphical-user-interface-gui" id="id34">Graphical User Interface: <tt class="docutils literal">gui</tt></a></li>
+<li><a class="reference internal" href="#services-offered-by-the-myriad-layer" id="id34">Services offered by the <tt class="docutils literal">Myriad</tt> Layer</a><ul>
+<li><a class="reference internal" href="#general-build-structure" id="id35">General Build Structure</a></li>
+<li><a class="reference internal" href="#general-settings" id="id36">General Settings</a></li>
+<li><a class="reference internal" href="#maths-services" id="id37">Maths Services</a></li>
+<li><a class="reference internal" href="#data-management-services" id="id38">Data-Management Services</a></li>
+<li><a class="reference internal" href="#support-for-code-injection" id="id39">Support for Code Injection</a><ul>
+<li><a class="reference internal" href="#defining-a-token" id="id40">Defining a token</a></li>
+<li><a class="reference internal" href="#using-tokens-to-enable-code-injection" id="id41">Using tokens to enable code injection</a></li>
+<li><a class="reference internal" href="#controlling-assertions" id="id42">Controlling assertions</a></li>
+<li><a class="reference internal" href="#for-more-information" id="id43">For more information</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#all-purpose-helper-scripts" id="id35">All-Purpose Helper Scripts</a></li>
-<li><a class="reference internal" href="#utility-toolbox" id="id36">Utility Toolbox</a></li>
-<li><a class="reference internal" href="#support-for-metaprogramming" id="id37">Support for Metaprogramming</a></li>
-<li><a class="reference internal" href="#management-of-units" id="id38">Management of Units</a><ul>
-<li><a class="reference internal" href="#motivation" id="id39">Motivation</a></li>
-<li><a class="reference internal" href="#available-support" id="id40">Available Support</a></li>
-<li><a class="reference internal" href="#specifying-units" id="id41">Specifying Units</a><ul>
-<li><a class="reference internal" href="#aliases" id="id42">Aliases</a></li>
-<li><a class="reference internal" href="#built-in-units" id="id43">Built-in Units</a></li>
-<li><a class="reference internal" href="#composing-one-s-units" id="id44">Composing One's Units</a></li>
-<li><a class="reference internal" href="#checking-units" id="id45">Checking Units</a></li>
+<li><a class="reference internal" href="#helpers-for-user-interface-programming" id="id44">Helpers For User Interface Programming</a><ul>
+<li><a class="reference internal" href="#various-flavours-of-user-interfaces" id="id45">Various Flavours of User Interfaces</a></li>
+<li><a class="reference internal" href="#raw-text-user-interface-text-ui" id="id46">Raw Text User Interface: <tt class="docutils literal">text_ui</tt></a></li>
+<li><a class="reference internal" href="#terminal-text-user-interface-term-ui" id="id47">Terminal Text User Interface: <tt class="docutils literal">term_ui</tt></a></li>
+<li><a class="reference internal" href="#graphical-user-interface-gui" id="id48">Graphical User Interface: <tt class="docutils literal">gui</tt></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#possible-improvements-regarding-dimensional-analysis" id="id46">Possible Improvements Regarding Dimensional Analysis</a></li>
+<li><a class="reference internal" href="#all-purpose-helper-scripts" id="id49">All-Purpose Helper Scripts</a></li>
+<li><a class="reference internal" href="#utility-toolbox" id="id50">Utility Toolbox</a></li>
+<li><a class="reference internal" href="#support-for-metaprogramming" id="id51">Support for Metaprogramming</a></li>
+<li><a class="reference internal" href="#management-of-units" id="id52">Management of Units</a><ul>
+<li><a class="reference internal" href="#motivation" id="id53">Motivation</a></li>
+<li><a class="reference internal" href="#available-support" id="id54">Available Support</a></li>
+<li><a class="reference internal" href="#specifying-units" id="id55">Specifying Units</a><ul>
+<li><a class="reference internal" href="#aliases" id="id56">Aliases</a></li>
+<li><a class="reference internal" href="#built-in-units" id="id57">Built-in Units</a></li>
+<li><a class="reference internal" href="#composing-one-s-units" id="id58">Composing One's Units</a></li>
+<li><a class="reference internal" href="#checking-units" id="id59">Checking Units</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#sql-support" id="id47">SQL support</a><ul>
-<li><a class="reference internal" href="#about-sql" id="id48">About SQL</a></li>
-<li><a class="reference internal" href="#database-back-end" id="id49">Database Back-end</a></li>
-<li><a class="reference internal" href="#erlang-binding" id="id50">Erlang Binding</a></li>
-<li><a class="reference internal" href="#sql-support-provided-by-the-myriad-layer" id="id51">SQL Support Provided By the <em>Myriad</em> Layer</a></li>
-<li><a class="reference internal" href="#troubleshooting" id="id52">Troubleshooting</a><ul>
-<li><a class="reference internal" href="#compiling-module-sql-support-erl-can-t-find-include-file-sqlite3-hrl" id="id53">Compiling module sql_support.erl : can't find include file &quot;sqlite3.hrl&quot;</a></li>
+<li><a class="reference internal" href="#possible-improvements-regarding-dimensional-analysis" id="id60">Possible Improvements Regarding Dimensional Analysis</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#sql-support" id="id61">SQL support</a><ul>
+<li><a class="reference internal" href="#about-sql" id="id62">About SQL</a></li>
+<li><a class="reference internal" href="#database-back-end" id="id63">Database Back-end</a></li>
+<li><a class="reference internal" href="#erlang-binding" id="id64">Erlang Binding</a></li>
+<li><a class="reference internal" href="#sql-support-provided-by-the-myriad-layer" id="id65">SQL Support Provided By the <em>Myriad</em> Layer</a></li>
+<li><a class="reference internal" href="#sql-related-troubleshooting" id="id66">SQL-related Troubleshooting</a><ul>
+<li><a class="reference internal" href="#compiling-module-sql-support-erl-can-t-find-include-file-sqlite3-hrl" id="id67">Compiling module sql_support.erl : can't find include file &quot;sqlite3.hrl&quot;</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a class="reference internal" href="#myriad-gotchas" id="id54"><tt class="docutils literal">Myriad</tt> Gotchas</a><ul>
-<li><a class="reference internal" href="#header-dependencies" id="id55">Header dependencies</a></li>
-<li><a class="reference internal" href="#about-the-table-module" id="id56">About the <tt class="docutils literal">table</tt> module</a></li>
+<li><a class="reference internal" href="#myriad-gotchas" id="id68"><tt class="docutils literal">Myriad</tt> Gotchas</a><ul>
+<li><a class="reference internal" href="#header-dependencies" id="id69">Header dependencies</a></li>
+<li><a class="reference internal" href="#about-the-table-module" id="id70">About the <tt class="docutils literal">table</tt> module</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#support-for-myriad" id="id71">Support for <tt class="docutils literal">Myriad</tt></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#ending-word" id="id57">Ending Word</a></li>
+<li><a class="reference internal" href="#ending-word" id="id72">Ending Word</a></li>
 </ul>
 </li>
 </ul>
 </div>
 <p></p>
 <div class="section" id="overview-context">
-<h2><a class="toc-backref" href="#id15">Overview &amp; Context</a></h2>
+<h2><a class="toc-backref" href="#id23">Overview &amp; Context</a></h2>
 <p>When using any programming language, there are always <strong>recurring patterns</strong> that prove useful.</p>
-<p>Instead of writing them again and again, we prefer to gather them all in a <strong>low-level layer</strong> (mostly a modest <strong>code library</strong>), in their most convenient, reliable, efficient version, together with their specification, documentation and testing.</p>
-<p>This layer provides its (generally lightweight, simple) services just on top of the <a class="reference external" href="http://erlang.org">Erlang</a> language, as a relatively small (comprising currently about 60k lines), thin layer.</p>
-<p>These services tend to stay away from introducing any new dependency. Should a key, generic service need a third-party prerequisite (ex: library to manage a complex data format, or to process specific data), that dependency should be made fully optional <a class="footnote-reference" href="#id3" id="id2">[1]</a> (then, should that depency be found not available, the corresponding service would be transparently disabled).</p>
+<p>Instead of writing them again and again, we preferred gathering them all in a <strong>low-level layer</strong> (mostly a modest <strong>code library</strong>), in their most convenient, reliable, efficient version, together with their specification, documentation and testing.</p>
+<p>This layer provides its (generally lightweight, simple) services just on top of the <a class="reference external" href="http://erlang.org">Erlang</a> <a class="footnote-reference" href="#id3" id="id2">[1]</a> language, as a relatively small (comprising currently about 70k lines), thin layer.</p>
 <table class="docutils footnote" frame="void" id="id3" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id2">[1]</a></td><td>One may refer for example to what we did respectively for HDF5 and for JSON parsers in the context of REST support, with the <tt class="docutils literal">USE_HDF5</tt> and <tt class="docutils literal">USE_REST</tt> Make variables.</td></tr>
+<tr><td class="label"><a class="fn-backref" href="#id2">[1]</a></td><td>If needing to discover/learn Erlang, we recommend browsing <a class="reference external" href="https://learnyousomeerlang.com">Learn You Some Erlang for great good!</a> or, even better, buying their book!</td></tr>
 </tbody>
 </table>
-<p>As a consequence, for the <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan">Ceylan</a> project, the first level of the software stack we use relies on this <tt class="docutils literal">Myriad</tt> layer - whose official, more specific name is the <tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt> layer (and formerly known as the <tt class="docutils literal">Common</tt> layer).</p>
+<p>These services tend to stay away from introducing any new dependency. Should a key, generic service need a third-party prerequisite (ex: library to manage a complex data format, or to process specific data), that dependency should be made fully optional <a class="footnote-reference" href="#id5" id="id4">[2]</a> (then, should that dependency be found not available at build or run time, the corresponding service would be transparently disabled).</p>
+<table class="docutils footnote" frame="void" id="id5" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id4">[2]</a></td><td>One may refer for example to what we did respectively for HDF5 and for JSON parsers in the context of REST support, with the <tt class="docutils literal">USE_HDF5</tt> and <tt class="docutils literal">USE_REST</tt> Make variables.</td></tr>
+</tbody>
+</table>
+<p>As a consequence, for the <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan">Ceylan</a> project, the first level of the Erlang-based software stack that we use relies on this <tt class="docutils literal">Myriad</tt> layer - whose official, more specific name is the <tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt> <a class="footnote-reference" href="#id8" id="id7">[3]</a> layer.</p>
+<table class="docutils footnote" frame="void" id="id8" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id7">[3]</a></td><td>It was formerly known as the <tt class="docutils literal">Common</tt> layer.</td></tr>
+</tbody>
+</table>
 </div>
 <div class="section" id="usage-guidelines">
-<h2><a class="toc-backref" href="#id16">Usage Guidelines</a></h2>
+<h2><a class="toc-backref" href="#id24">Usage Guidelines</a></h2>
 <div class="section" id="license">
-<h3><a class="toc-backref" href="#id17">License</a></h3>
+<h3><a class="toc-backref" href="#id25">License</a></h3>
 <p>The <tt class="docutils literal">Myriad</tt> layer is licensed by its author (Olivier Boudeville) under a disjunctive tri-license, giving you the choice of one of the three following sets of free software/open source licensing terms:</p>
 <ul class="simple">
-<li><a class="reference external" href="http://www.mozilla.org/MPL/MPL-1.1.html">Mozilla Public License</a> (MPL), version 1.1 or later (very close to the former <a class="reference external" href="http://www.erlang.org/EPLICENSE">Erlang Public License</a>, except aspects regarding Ericsson and/or the Swedish law)</li>
-<li><a class="reference external" href="http://www.gnu.org/licenses/gpl-3.0.html">GNU General Public License</a> (GPL), version 3.0 or later</li>
-<li><a class="reference external" href="http://www.gnu.org/licenses/lgpl.html">GNU Lesser General Public License</a> (LGPL), version 3.0 or later</li>
+<li>the <a class="reference external" href="http://www.mozilla.org/MPL/MPL-1.1.html">Mozilla Public License</a> (MPL), version 1.1 or later (very close to the former <a class="reference external" href="http://www.erlang.org/EPLICENSE">Erlang Public License</a>, except aspects regarding Ericsson and/or the Swedish law)</li>
+<li>the <a class="reference external" href="http://www.gnu.org/licenses/gpl-3.0.html">GNU General Public License</a> (GPL), version 3.0 or later</li>
+<li>the <a class="reference external" href="http://www.gnu.org/licenses/lgpl.html">GNU Lesser General Public License</a> (LGPL), version 3.0 or later</li>
 </ul>
 <p>This allows the use of the <tt class="docutils literal">Myriad</tt> code in as wide a variety of software projects as possible, while still maintaining copyleft on this code.</p>
 <p>Being triple-licensed means that someone (the licensee) who modifies and/or distributes it can choose which of the available sets of licence terms he/she is operating under.</p>
 <p>Enhancements are expected to be back-contributed (hopefully), so that everyone can benefit from them.</p>
 </div>
 <div class="section" id="about-layers">
-<h3><a class="toc-backref" href="#id18">About Layers</a></h3>
+<h3><a class="toc-backref" href="#id26">About Layers</a></h3>
 <p>The <tt class="docutils literal">Myriad</tt> services are to be used by this layer itself (for its inner workings), and, more importantly, are to be re-used, specialised and enriched by layers built on top of it.</p>
-<p>The general rule is that a layer may depend on (i.e. make use of) all layers <em>below</em> it, but cannot refer to any layer <em>above</em> it (it should be literally unaware of their existence).</p>
-<p>So, in a bottom-up view, a typical software stack begins with the operating system (typically GNU/Linux), then <a class="reference external" href="http://erlang/org">Erlang/OTP</a>, then <tt class="docutils literal">Myriad</tt>, then any layer(s) built on top of them (ex: <a class="reference external" href="http://wooper.esperide.org">WOOPER</a>).</p>
+<p>The general rule is that a layer may depend on (i.e. make use of) all layers <em>below</em> it (not only the one just preceding it), but cannot refer to any layer <em>above</em> it (it should be literally unaware of their existence).</p>
+<p>So, in a bottom-up view, generally a software stack mentioned here begins with the operating system (typically GNU/Linux), then <a class="reference external" href="http://erlang/org">Erlang/OTP</a>, then <tt class="docutils literal">Myriad</tt>, then any layer(s) built on top of them (ex: <a class="reference external" href="http://wooper.esperide.org">WOOPER</a>).</p>
 <p>Of course a given layer does not mask the layers below; for example programs using the <tt class="docutils literal">Myriad</tt> layer typically use also a lot the services brought by the <a class="reference external" href="http://erlang.org/erldoc">Erlang base libraries</a>.</p>
 </div>
 <div class="section" id="recommended-usage-contribution">
-<h3><a class="toc-backref" href="#id19">Recommended Usage &amp; Contribution</a></h3>
+<h3><a class="toc-backref" href="#id27">Recommended Usage &amp; Contribution</a></h3>
 <p>When developing Ceylan-based code, if needing a service already provided by this <tt class="docutils literal">Myriad</tt> layer, it is strongly advised to use that service and, possibly (if useful), expand or enrich it, with backward compatibility in mind.</p>
 <p>If such a service is not provided by the current version of the layer, yet is deemed generic enough, then it should preferably be directly added to the relevant part of the library and called from the code that was needing it.</p>
 <p>Of course, contributions of all sorts are welcome.</p>
-<p>We do our best to test at least lightly each element provided. All services offered in a <tt class="docutils literal">foo.erl</tt> file are thus expected to be tested in the companion <tt class="docutils literal">foo_test.erl</tt> file, generally located in the same directory. Once there, running this test is as simple as executing:</p>
+<p>We do our best to test, at least lightly, each element provided. All services offered in a <tt class="docutils literal">foo.erl</tt> file are thus expected to be tested in the companion <tt class="docutils literal">foo_test.erl</tt> file, generally located in the same directory. Once there, running this test is as simple as executing:</p>
 <pre class="literal-block">
 $ make foo_run
 </pre>
 <p>Note that however we have not reached the discipline level of an exhaustive <tt class="docutils literal">eunit</tt> test suite for each service (most of them being almost trivial).</p>
 <p>The <a class="reference external" href="http://erlang.org/doc/apps/dialyzer/dialyzer_chapter.html">Dialyzer</a> static analysis tool is regularly run on the code-base (see the <tt class="docutils literal"><span class="pre">generate-local-plt</span></tt> and <tt class="docutils literal"><span class="pre">self-check-against-plt</span></tt> generic Make targets for that).</p>
+</div>
+</div>
+<div class="section" id="getting-myriad">
+<h2><a class="toc-backref" href="#id28">Getting Myriad</a></h2>
+<div class="section" id="prerequisites">
+<span id="prerequisite"></span><h3><a class="toc-backref" href="#id29">Prerequisites</a></h3>
+<p>The <strong>operating system</strong> is supposed to be any not-so-old <tt class="docutils literal">GNU/Linux</tt> distribution <a class="footnote-reference" href="#id10" id="id9">[4]</a>.</p>
+<p>People reported uses of Myriad on <tt class="docutils literal">Mac OS</tt>, yet no extensive testing has been done there.</p>
+<p>Whereas Erlang supports <tt class="docutils literal">Windows</tt> and we tried to be as cross-platform as possible, even with tools like <tt class="docutils literal">MSYS2</tt> / <tt class="docutils literal"><span class="pre">MinGW-w64</span></tt> we suppose quite a lot of special cases would have to be addressed (patches welcome, though!).</p>
+<table class="docutils footnote" frame="void" id="id10" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id9">[4]</a></td><td>For what it is worth, we prefer <a class="reference external" href="https://www.archlinux.org/">Arch Linux</a>, but this des not really matter here.</td></tr>
+</tbody>
+</table>
+<p>The main tool prerequisite is of course having the <a class="reference external" href="http://erlang.org">Erlang</a> environment available, in its <tt class="docutils literal">21.0</tt> version or more recent.</p>
+<p>There are various ways of obtaining it (from your distribution, from prebuilt packages, directly from the sources), one of which being our <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/install-erlang.sh">install-erlang.sh</a> script; see its <tt class="docutils literal"><span class="pre">--help</span></tt> option for more guidance.</p>
+</div>
+<div class="section" id="getting-the-sources">
+<h3><a class="toc-backref" href="#id30">Getting the Sources</a></h3>
+<p>This is pretty straightforward:</p>
+<pre class="literal-block">
+$ git clone https://github.com/Olivier-Boudeville/Ceylan-Myriad.git
+</pre>
+<p>This should download in your current directory the full Myriad repository.</p>
+</div>
+<div class="section" id="building-myriad">
+<span id="build"></span><h3><a class="toc-backref" href="#id31">Building Myriad</a></h3>
+<p>This is as simple as:</p>
+<pre class="literal-block">
+$ cd Ceylan-Myriad
+$ make all
+</pre>
+<p>The parallel build of the whole layer (services and tests alike) shall complete successfully (if it is not the case, see our <a class="reference internal" href="#support">support</a> section).</p>
+<p>One may just run <tt class="docutils literal">make</tt> by itself in order to list the main available options.</p>
+</div>
+<div class="section" id="testing-myriad">
+<span id="testing"></span><h3><a class="toc-backref" href="#id32">Testing Myriad</a></h3>
+<p>Just run, still from the <tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt> directory:</p>
+<pre class="literal-block">
+$ make test
+</pre>
+<p>The testing shall complete successfully (if it is not the case, see our <a class="reference internal" href="#support">support</a> section).</p>
+</div>
+<div class="section" id="type-checking-myriad">
+<span id="type-checking"></span><h3><a class="toc-backref" href="#id33">Type-checking Myriad</a></h3>
+<p>As Myriad is (by default) to enable debug information with a key-based protection of the resulting BEAM files, one should first have such key defined.</p>
+<p>One way of doing so is, if wanted, to update the default key (see <tt class="docutils literal">DEBUG_INFO_KEY</tt> in <tt class="docutils literal">GNUmakevars.inc</tt>) and to write in on disk (ex: <tt class="docutils literal">make <span class="pre">write-debug-key-file</span></tt>), and to rebuild Myriad accordingly afterwards (ex: <tt class="docutils literal">make rebuild</tt>).</p>
+<p>Then, still from the <tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt> root directory:</p>
+<pre class="literal-block">
+$ make generate-local-plt self-check-against-plt
+</pre>
+<p>It will trigger a full type-checking of Myriad, done thanks to <a class="reference external" href="http://erlang.org/doc/man/dialyzer.html">Dialyzer</a>.</p>
+<p>This time-consuming phase will complete with a rather long list of notifications. Help us reducing it! These messages are numerous, but we do not think that most of them are so worrying.</p>
+<p>Finally, to trigger in one go a full rebuild, testing and type-checking, one may run:</p>
+<pre class="literal-block">
+$ make check
+</pre>
 <p></p>
 </div>
 </div>
 <div class="section" id="services-offered-by-the-myriad-layer">
-<h2><a class="toc-backref" href="#id20">Services Offered by the <tt class="docutils literal">Myriad</tt> Layer</a></h2>
+<h2><a class="toc-backref" href="#id34">Services offered by the <tt class="docutils literal">Myriad</tt> Layer</a></h2>
 <p>The <tt class="docutils literal">Myriad</tt> services are gathered into following themes:</p>
 <ol class="arabic simple">
-<li>General <a class="reference internal" href="#build">build</a> structure</li>
+<li>General <a class="reference internal" href="#build-structure">build structure</a></li>
 <li>General <a class="reference internal" href="#settings">settings</a></li>
 <li><a class="reference internal" href="#maths">Maths</a> services</li>
 <li><a class="reference internal" href="#data-management">Data-management</a> services</li>
@@ -190,28 +269,34 @@ $ make foo_run
 <ul class="simple">
 <li>HDF5 support</li>
 <li>REST support</li>
-<li>third-party language bindings (ex: Python, Java, maybe in the future Haskell)</li>
+<li>third-party language bindings (ex: Python, Java, maybe in the future Haskell; C/C++ is to be tackled by our <a class="reference external" href="http://seaplus.esperide.org">Seaplus</a> project)</li>
 <li>RDF support</li>
 </ul>
-<p>Even if this is not an exhaustive walk-through, each of them is detailed in turn below.</p>
+<p>Even if this document does not constitute an exhaustive walk-through, each of them is detailed in turn below.</p>
 <p>The next level of detail is to peer at the referenced source files, as they include many implementation notes, comments and typing information.</p>
 <p></p>
 <div class="section" id="general-build-structure">
-<span id="build"></span><h3><a class="toc-backref" href="#id21">General Build Structure</a></h3>
+<span id="build-structure"></span><h3><a class="toc-backref" href="#id35">General Build Structure</a></h3>
 <p>Various elements are defined at the <tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt> level to set-up an appropriate build, based on <a class="reference external" href="http://www.gnu.org/software/make/manual/make.html">GNU Make</a>.</p>
 <p>This includes:</p>
 <ul class="simple">
-<li>a set of pre-defined Make <strong>variables</strong>, describing various settings that will be reused by generic rules (ex: to compile modules with relevant flags, to create source archives, to install an application, to manage the various paths, to perform test checking, to generate archives, installs and releases, etc.); these variables are defined in <tt class="docutils literal">myriad/GNUmakevars.inc</tt></li>
-<li>a set of generic <strong>rules</strong>, to compile and run various modules and tests, to generate various elements of documentation, etc.; these rules are defined in <tt class="docutils literal">myriad/GNUmakerules.inc</tt></li>
-<li><strong>examples</strong> of minimal Make files, which mostly specify the relative base path and only refer to the generic variables and rules; see <tt class="docutils literal">myriad/src/GNUmakefile</tt> as an example</li>
+<li>a set of pre-defined Make <strong>variables</strong>, describing various settings that will be reused by generic rules (ex: to compile modules with relevant flags, to create source archives, to install an application, to manage the various paths, to perform test checking, to generate archives, installs and releases, etc.); these variables are defined in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/GNUmakevars.inc</span></tt></li>
+<li>a set of generic <strong>rules</strong>, to compile and run various modules and tests, to generate various elements of documentation, etc.; these rules are defined (still from the <tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt> root directory), in:<ul>
+<li><tt class="docutils literal"><span class="pre">GNUmakerules-automatic.inc</span></tt>, for all rules that apply generically to a some kinds of targets</li>
+<li><tt class="docutils literal"><span class="pre">GNUmakerules-explicit.inc</span></tt>, for all &quot;direct&quot; rules, that are no parametrised by a pattern</li>
+<li><tt class="docutils literal"><span class="pre">doc/GNUmakerules-docutils.inc</span></tt>, for all documentation-related rules</li>
+</ul>
+</li>
+<li>finally, the whole is gathered in a unique file to include, <tt class="docutils literal">GNUmakesettings.inc</tt>, whose structure allows for a safe and sound combination of all these build element across a series of layers (the first of which being Myriad)</li>
+<li><strong>examples</strong> of minimal Make files, which mostly specify the relative base path and only refer to the generic variables and rules; see <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/GNUmakefile</span></tt> as an example</li>
 </ul>
 <p>These build facilities are designed to be enriched in turn by all layers above, which may add or override variables and rules.</p>
 <p>An example of this stacked structure is the <tt class="docutils literal"><span class="pre">Ceylan-WOOPER</span></tt> layer (see <a class="reference external" href="http://wooper.esperide.org">official site</a>), which is directly built on top of <tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt> (and itself a base layer for other layers and applications).</p>
 <p></p>
 </div>
 <div class="section" id="general-settings">
-<span id="settings"></span><h3><a class="toc-backref" href="#id22">General Settings</a></h3>
-<p>These general-purpose settings and helpers, gathered in the <tt class="docutils literal">myriad/conf</tt> directory, deal with:</p>
+<span id="settings"></span><h3><a class="toc-backref" href="#id36">General Settings</a></h3>
+<p>These general-purpose settings and helpers, gathered in the <tt class="docutils literal"><span class="pre">Ceylan-Myriad/conf</span></tt> directory, deal with:</p>
 <ul class="simple">
 <li>default CSS files (<tt class="docutils literal"><span class="pre">Default-docutils.css</span></tt>)</li>
 <li>our recommended versions of (commented) configuration files for various tools:</li>
@@ -228,8 +313,8 @@ $ make foo_run
 <p></p>
 </div>
 <div class="section" id="maths-services">
-<span id="maths"></span><h3><a class="toc-backref" href="#id23">Maths Services</a></h3>
-<p>Some simple maths-related operations are defined in the <tt class="docutils literal">myriad/src/maths</tt> directory:</p>
+<span id="maths"></span><h3><a class="toc-backref" href="#id37">Maths Services</a></h3>
+<p>Some simple maths-related operations are defined in the <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/maths</span></tt> directory:</p>
 <ul class="simple">
 <li>the most basic services are centralised in <tt class="docutils literal">math_utils.erl</tt> and provide:<ul>
 <li><strong>general operations</strong> apparently lacking to Erlang (for example for conversions or rounding (<tt class="docutils literal">floor/1</tt>, <tt class="docutils literal">ceiling/1</tt>), or not exactly implemented as we would have liked (ex: <tt class="docutils literal">modulo/2</tt>)</li>
@@ -259,8 +344,8 @@ $ make foo_run
 <p></p>
 </div>
 <div class="section" id="data-management-services">
-<span id="data-management"></span><h3><a class="toc-backref" href="#id24">Data-Management Services</a></h3>
-<p id="table-type">Some generic <strong>data-structures</strong>, in addition to the ones provided built-in with Erlang, are defined in <tt class="docutils literal"><span class="pre">myriad/src/data-management</span></tt>, notably:</p>
+<span id="data-management"></span><h3><a class="toc-backref" href="#id38">Data-Management Services</a></h3>
+<p id="table-type">Some generic <strong>data-structures</strong>, in addition to the ones provided built-in with Erlang, are defined in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/data-management</span></tt>, notably:</p>
 <ul>
 <li><p class="first">a set of <strong>associative tables</strong>, with a rather complete interface (to create,
 update, enrich, search, query, list, map, fold, merge, display, etc.) and
@@ -282,17 +367,17 @@ various implementations thereof, tests and benchmarks, in:</p>
 <p></p>
 </div>
 <div class="section" id="support-for-code-injection">
-<span id="code-injection"></span><h3><a class="toc-backref" href="#id25">Support for Code Injection</a></h3>
+<span id="code-injection"></span><h3><a class="toc-backref" href="#id39">Support for Code Injection</a></h3>
 <p>It may be useful to decide, at compile-time, based on tokens specified on the command-line, whether some code should be enabled.</p>
 <div class="section" id="defining-a-token">
-<h4><a class="toc-backref" href="#id26">Defining a token</a></h4>
+<h4><a class="toc-backref" href="#id40">Defining a token</a></h4>
 <p>A <em>token</em> (a symbol) may or may not defined.</p>
 <p>To define <tt class="docutils literal">my_token</tt>, simply ensure that the a <tt class="docutils literal"><span class="pre">-Dmy_token</span></tt> command-line option is specified to the compiler (ex: refer to <tt class="docutils literal">ERLANG_COMPILER_TOKEN_OPT</tt>, in <tt class="docutils literal">GNUmakevars.inc</tt>).</p>
 <p>To define <tt class="docutils literal">my_token</tt> and set it to the integer value <tt class="docutils literal">127</tt>, use the <tt class="docutils literal"><span class="pre">-Dmy_token=127</span></tt> command-line option. Values can also be floats (ex: <tt class="docutils literal"><span class="pre">-Dmy_token=3.14</span></tt>) or atoms (ex: <tt class="docutils literal"><span class="pre">-Dmy_token=some_atom</span></tt>).</p>
 <p>A special token is <tt class="docutils literal">debug_mode</tt>; if it is defined at all (and possibly associated to any value), the debug mode of Myriad is enabled.</p>
 </div>
 <div class="section" id="using-tokens-to-enable-code-injection">
-<h4><a class="toc-backref" href="#id27">Using tokens to enable code injection</a></h4>
+<h4><a class="toc-backref" href="#id41">Using tokens to enable code injection</a></h4>
 <p>Various primitives for <em>code injection</em> are available in the <tt class="docutils literal">cond_utils</tt> (mostly pseudo-) module.</p>
 <p><tt class="docutils literal">if_debug/1</tt>, for example used as:</p>
 <pre class="literal-block">
@@ -303,11 +388,11 @@ cond_utils:if_debug([A=B+1,io:format(&quot;Hello ~p&quot;,[A])])
 <pre class="literal-block">
 cond_utils:if_defined(my_token,[EXPR1,EXPR2,...])
 </pre>
-<p>will inject <tt class="docutils literal">EXPR1</tt>, <tt class="docutils literal">EXPR2</tt>, etc. if <tt class="docutils literal">my_token</tt> has been defined (any value associated to this token value will be ignored), otherwise the <tt class="docutils literal">if_defined/2</tt> call will be removed as a whole <a class="footnote-reference" href="#id6" id="id5">[2]</a>.</p>
-<table class="docutils footnote" frame="void" id="id6" rules="none">
+<p>will inject <tt class="docutils literal">EXPR1</tt>, <tt class="docutils literal">EXPR2</tt>, etc. if <tt class="docutils literal">my_token</tt> has been defined (any value associated to this token value will be ignored), otherwise the <tt class="docutils literal">if_defined/2</tt> call will be removed as a whole <a class="footnote-reference" href="#id14" id="id13">[5]</a>.</p>
+<table class="docutils footnote" frame="void" id="id14" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id5">[2]</a></td><td>So <tt class="docutils literal"><span class="pre">if_debug([...])</span></tt> behaves exactly as: <tt class="docutils literal"><span class="pre">if_defined(debug_mode,[...])</span></tt>.</td></tr>
+<tr><td class="label"><a class="fn-backref" href="#id13">[5]</a></td><td>So <tt class="docutils literal"><span class="pre">if_debug([...])</span></tt> behaves exactly as: <tt class="docutils literal"><span class="pre">if_defined(debug_mode,[...])</span></tt>.</td></tr>
 </tbody>
 </table>
 <p>As for <tt class="docutils literal">if_defined/3</tt>, it supports two lists of expressions:</p>
@@ -328,7 +413,7 @@ cond_utils:if_set_to(a_token,a_symbol,FIRST_EXPR_LIST,SECOND_EXPR_LIST)
 <p><tt class="docutils literal">FIRST_EXPR_LIST</tt> will be injected iff <tt class="docutils literal">a_token</tt> has been defined and set to <tt class="docutils literal">a_symbol</tt>, otherwise <tt class="docutils literal">SECOND_EXPR_LIST</tt> will be.</p>
 </div>
 <div class="section" id="controlling-assertions">
-<h4><a class="toc-backref" href="#id28">Controlling assertions</a></h4>
+<h4><a class="toc-backref" href="#id42">Controlling assertions</a></h4>
 <p>It may be convenient that, depending on a compile-time token (ex: in debug mode, typically triggered thanks to the <tt class="docutils literal"><span class="pre">-Ddebug_mode</span></tt> compilation option), <em>assertions</em> (expressions expected to evaluate to the atom <tt class="docutils literal">true</tt>) are enabled, whereas they shall be dismissed as a whole should that token not be defined.</p>
 <p>To define an assertion enabled in debug mode, use <tt class="docutils literal">assert/1</tt>, like in:</p>
 <pre class="literal-block">
@@ -352,17 +437,21 @@ cond_utils:assert(debug_gui,3,paranoid_testing()),
 <p>Note that, in this case, a given level of checking should include the one just below it (ex: <tt class="docutils literal">more_involved_testing()</tt> should call <tt class="docutils literal">basic_testing()</tt>).</p>
 </div>
 <div class="section" id="for-more-information">
-<h4><a class="toc-backref" href="#id29">For more information</a></h4>
+<h4><a class="toc-backref" href="#id43">For more information</a></h4>
 <p>Refer for usage and stubs to the <tt class="docutils literal">cond_utils</tt> module (defined in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/meta</span></tt>), knowing that it is actually implemented thanks to the Myriad parse transform.</p>
 <p>For examples and testing, see the <tt class="docutils literal">cond_utils_test</tt> module, available at the same location.</p>
 <p></p>
 </div>
 </div>
 <div class="section" id="helpers-for-user-interface-programming">
-<span id="graphical-user-interface"></span><span id="user-interface"></span><h3><a class="toc-backref" href="#id30">Helpers For User Interface Programming</a></h3>
-<p>Some services have been defined, in <tt class="docutils literal"><span class="pre">myriad/src/user-interface</span></tt>, in order to handle more easily interactions with the user, i.e. to provide a user interface.</p>
+<span id="graphical-user-interface"></span><span id="user-interface"></span><h3><a class="toc-backref" href="#id44">Helpers For User Interface Programming</a></h3>
+<p>Some services have been defined, in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/user-interface</span></tt>, in order to handle more easily interactions with the user, i.e. to provide a user interface.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The user-interface services, as a whole, are currently <em>not</em> functional. A rewriting thereof as been started yet has not completed yet.</p>
+</div>
 <div class="section" id="various-flavours-of-user-interfaces">
-<h4><a class="toc-backref" href="#id31">Various Flavours of User Interfaces</a></h4>
+<h4><a class="toc-backref" href="#id45">Various Flavours of User Interfaces</a></h4>
 <p>Such a user interface may be:</p>
 <ul class="simple">
 <li>either <strong>text-only</strong>, within a console, relying either on the very basic <tt class="docutils literal">text_ui</tt> (for raw text) or its more advanced <tt class="docutils literal">term_ui</tt> counterpart (for terminal-based outputs)</li>
@@ -391,12 +480,12 @@ $ make ui_run CMD_LINE_OPT=&quot;--use-ui-backend term_ui&quot;
 <p>(see the corresponding <tt class="docutils literal">GNUmakefile</tt> for more information)</p>
 </div>
 <div class="section" id="raw-text-user-interface-text-ui">
-<h4><a class="toc-backref" href="#id32">Raw Text User Interface: <tt class="docutils literal">text_ui</tt></a></h4>
+<h4><a class="toc-backref" href="#id46">Raw Text User Interface: <tt class="docutils literal">text_ui</tt></a></h4>
 <p>This is the most basic, line-based monochrome textual interface, directly in raw text with no cursor control.</p>
-<p>Located in <tt class="docutils literal"><span class="pre">myriad/src/user-interface/textual</span></tt>, see <tt class="docutils literal">text_ui.erl</tt> for its implementation, and <tt class="docutils literal">text_ui_test.erl</tt> for an example of its use.</p>
+<p>Located in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/user-interface/textual</span></tt>, see <tt class="docutils literal">text_ui.erl</tt> for its implementation, and <tt class="docutils literal">text_ui_test.erl</tt> for an example of its use.</p>
 </div>
 <div class="section" id="terminal-text-user-interface-term-ui">
-<h4><a class="toc-backref" href="#id33">Terminal Text User Interface: <tt class="docutils literal">term_ui</tt></a></h4>
+<h4><a class="toc-backref" href="#id47">Terminal Text User Interface: <tt class="docutils literal">term_ui</tt></a></h4>
 <p>This is a more advanced textual interface than the previous one, with colors, dialog boxes, support of locales, etc., based on <a class="reference external" href="https://en.wikipedia.org/wiki/Dialog_(software)">dialog</a> (possibly <a class="reference external" href="https://en.wikipedia.org/wiki/Newt_(programming_library)">whiptail</a> could be supported as well). Such backend of course must be available on the execution host then.</p>
 <p>For example, to secure these prerequisites:</p>
 <pre class="literal-block">
@@ -406,10 +495,10 @@ $ pacman -S dialog
 # On Debian-like distros:
 $ apt-get install dialog
 </pre>
-<p>Located in <tt class="docutils literal"><span class="pre">myriad/src/user-interface/textual</span></tt>, see <tt class="docutils literal">term_ui.erl</tt> for its implementation, and <tt class="docutils literal">term_ui_test.erl</tt> for an example of its use.</p>
+<p>Located in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/user-interface/textual</span></tt>, see <tt class="docutils literal">term_ui.erl</tt> for its implementation, and <tt class="docutils literal">term_ui_test.erl</tt> for an example of its use.</p>
 </div>
 <div class="section" id="graphical-user-interface-gui">
-<h4><a class="toc-backref" href="#id34">Graphical User Interface: <tt class="docutils literal">gui</tt></a></h4>
+<h4><a class="toc-backref" href="#id48">Graphical User Interface: <tt class="docutils literal">gui</tt></a></h4>
 <p>This interface relied initially on <a class="reference external" href="http://erlang.org/doc/man/gs.html">gs</a>, now on <a class="reference external" href="http://erlang.org/doc/man/wx.html">wx</a> (a port of <a class="reference external" href="https://www.wxwidgets.org/">wxWidgets</a>), maybe later in HTML 5. For the base dialogs, <a class="reference external" href="https://en.wikipedia.org/wiki/Zenity">Zenity</a> could have been on option.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
@@ -417,7 +506,7 @@ $ apt-get install dialog
 </div>
 <p>The goal is to provide a small, lightweight API (including message types) that are higher-level than <tt class="docutils literal">wx</tt>, and do not depend on any particular GUI backend (such as <tt class="docutils literal">wx</tt>, <tt class="docutils literal">gs</tt>, etc.) to avoid that user programs become obsolete too quickly, as backends for GUI rise and fall relatively often.</p>
 <p>So for example the messages received by the user programs shall not mention <tt class="docutils literal">wx</tt>, and they should take the form of <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-WOOPER">WOOPER</a> messages to allow for user code that would rely on WOOPER.</p>
-<p>Located in <tt class="docutils literal"><span class="pre">myriad/src/user-interface/graphical</span></tt>, see <tt class="docutils literal">gui.erl</tt>, <tt class="docutils literal">gui_color.erl</tt>, <tt class="docutils literal">gui_text.erl</tt>, <tt class="docutils literal">gui_canvas.erl</tt>, etc., with a few tests (<tt class="docutils literal">gui_test.erl</tt>, <tt class="docutils literal">lorenz_test.erl</tt>).</p>
+<p>Located in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/user-interface/graphical</span></tt>, see <tt class="docutils literal">gui.erl</tt>, <tt class="docutils literal">gui_color.erl</tt>, <tt class="docutils literal">gui_text.erl</tt>, <tt class="docutils literal">gui_canvas.erl</tt>, etc., with a few tests (<tt class="docutils literal">gui_test.erl</tt>, <tt class="docutils literal">lorenz_test.erl</tt>).</p>
 <p>Related information of interest:</p>
 <ul class="simple">
 <li>wxErlang: <a class="reference external" href="https://arifishaq.files.wordpress.com/2017/12/wxerlang-getting-started.pdf">Getting started</a> and <a class="reference external" href="https://arifishaq.files.wordpress.com/2018/04/wxerlang-speeding-up.pdf">Speeding up</a>, by Arif Ishaq</li>
@@ -428,10 +517,10 @@ $ apt-get install dialog
 </div>
 </div>
 <div class="section" id="all-purpose-helper-scripts">
-<span id="helper-scripts"></span><h3><a class="toc-backref" href="#id35">All-Purpose Helper Scripts</a></h3>
-<p>A small set of scripts has been defined, in <tt class="docutils literal">myriad/src/scripts</tt>, in order to help:</p>
+<span id="helper-scripts"></span><h3><a class="toc-backref" href="#id49">All-Purpose Helper Scripts</a></h3>
+<p>A small set of scripts has been defined, in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/scripts</span></tt>, in order to help:</p>
 <ul class="simple">
-<li>finding in (Erlang) source code <strong>type definitions</strong> (<tt class="docutils literal"><span class="pre">find-type-definition.sh</span></tt>) and <strong>function specifications</strong> (<tt class="docutils literal"><span class="pre">find-function-specification.sh</span></tt>)</li>
+<li>finding in (Erlang) source code <strong>type definitions</strong> (<tt class="docutils literal"><span class="pre">find-type-definition.sh</span></tt>, <tt class="docutils literal"><span class="pre">find-record-definition.sh</span></tt>) and <strong>function specifications</strong> (<tt class="docutils literal"><span class="pre">find-function-specification.sh</span></tt>)</li>
 <li><strong>benchmarking</strong> Erlang code: <tt class="docutils literal"><span class="pre">benchmark-command.escript</span></tt>, <tt class="docutils literal"><span class="pre">benchmark-command.sh</span></tt>, <tt class="docutils literal">etop.sh</tt></li>
 <li>generating <strong>documentation</strong>: <tt class="docutils literal"><span class="pre">generate-docutils.sh</span></tt>, <tt class="docutils literal"><span class="pre">generate-pdf-from-rst.sh</span></tt></li>
 <li>supporting <strong>explicit typing</strong>: <tt class="docutils literal"><span class="pre">list-available-types.sh</span></tt>, <tt class="docutils literal"><span class="pre">add-deduced-type-specs.escript</span></tt></li>
@@ -443,8 +532,8 @@ $ apt-get install dialog
 <p></p>
 </div>
 <div class="section" id="utility-toolbox">
-<span id="toolbox"></span><h3><a class="toc-backref" href="#id36">Utility Toolbox</a></h3>
-<p>This is the <strong>core</strong> of the <tt class="docutils literal">Myriad</tt> library: a toolbox comprising many helper functions (with their tests), defined in the <tt class="docutils literal">myriad/src/utils</tt> directory, often providing enhanced, more specialised services compared to the ones offered by the Erlang standard libraries.</p>
+<span id="toolbox"></span><h3><a class="toc-backref" href="#id50">Utility Toolbox</a></h3>
+<p>This is the <strong>core</strong> of the <tt class="docutils literal">Myriad</tt> library: a toolbox comprising many helper functions (with their tests), defined in the <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/utils</span></tt> directory, often providing enhanced, more specialised services compared to the ones offered by the Erlang standard libraries.</p>
 <p>These helpers (code and typing information) are thematically aggregated in modules that are generally suffixed by <tt class="docutils literal">_utils</tt>, and include:</p>
 <ul class="simple">
 <li>many <strong>basic, general-purpose services</strong>, defined in <tt class="docutils literal">basic_utils.erl</tt>, regarding:</li>
@@ -486,7 +575,7 @@ $ apt-get install dialog
 <p></p>
 </div>
 <div class="section" id="support-for-metaprogramming">
-<span id="metaprogramming"></span><h3><a class="toc-backref" href="#id37">Support for Metaprogramming</a></h3>
+<span id="metaprogramming"></span><h3><a class="toc-backref" href="#id51">Support for Metaprogramming</a></h3>
 <p>Over time, quite a lot of developments grew to form primitives that manage ASTs (<em>Astract Syntax Trees</em>), based on Erlang's parse transforms.</p>
 <p>These developments are gathered in the <tt class="docutils literal">src/meta</tt> directory, providing notably:</p>
 <ul class="simple">
@@ -529,32 +618,32 @@ $ apt-get install dialog
 <p></p>
 </div>
 <div class="section" id="management-of-units">
-<span id="units"></span><h3><a class="toc-backref" href="#id38">Management of Units</a></h3>
+<span id="units"></span><h3><a class="toc-backref" href="#id52">Management of Units</a></h3>
 <div class="section" id="motivation">
-<h4><a class="toc-backref" href="#id39">Motivation</a></h4>
+<h4><a class="toc-backref" href="#id53">Motivation</a></h4>
 <p>A value of a given type (ex: a float) can actually correspond to quantities as different as meters and kilowatts per hour.</p>
 <p>Therefore <strong>units shall preferably be specified alongside with values being processed</strong>, and a language to express, check and convert these units must be retained. Of course units are of interest as other metadata are - such as accuracy, semantics, etc.</p>
 </div>
 <div class="section" id="available-support">
-<h4><a class="toc-backref" href="#id40">Available Support</a></h4>
+<h4><a class="toc-backref" href="#id54">Available Support</a></h4>
 <p>The <tt class="docutils literal">Myriad</tt> layer provides such a service, in a very basic, ad hoc form (which is useful to introduce &quot;special&quot; non-physical, non-standard units, such as <tt class="docutils literal">euro/year</tt>), meant to be enriched over time.</p>
 </div>
 <div class="section" id="specifying-units">
-<h4><a class="toc-backref" href="#id41">Specifying Units</a></h4>
+<h4><a class="toc-backref" href="#id55">Specifying Units</a></h4>
 <div class="section" id="aliases">
-<h5><a class="toc-backref" href="#id42">Aliases</a></h5>
+<h5><a class="toc-backref" href="#id56">Aliases</a></h5>
 <p>For convenience, <em>aliases</em> of units can be defined, i.e. alternate names for a given canonical unit. For example the Hertz unit (<tt class="docutils literal">Hz</tt>) is an alias of the <tt class="docutils literal"><span class="pre">s^-1</span></tt> (per-second) canonical unit.</p>
 </div>
 <div class="section" id="built-in-units">
-<h5><a class="toc-backref" href="#id43">Built-in Units</a></h5>
-<p>So one may use the following <strong>built-in units</strong>, whose symbol <a class="footnote-reference" href="#id10" id="id8">[3]</a> is specified here between brackets, like in <tt class="docutils literal">&quot;[N.m]&quot;</tt> (an alternate notation is to prefix a unit with <tt class="docutils literal">U:</tt>, like in <tt class="docutils literal">&quot;U: N.m&quot;</tt>):</p>
+<h5><a class="toc-backref" href="#id57">Built-in Units</a></h5>
+<p>So one may use the following <strong>built-in units</strong>, whose symbol <a class="footnote-reference" href="#id18" id="id16">[6]</a> is specified here between brackets, like in <tt class="docutils literal">&quot;[N.m]&quot;</tt> (an alternate notation is to prefix a unit with <tt class="docutils literal">U:</tt>, like in <tt class="docutils literal">&quot;U: N.m&quot;</tt>):</p>
 <ul class="simple">
 <li>the seven <a class="reference external" href="https://en.wikipedia.org/wiki/SI_base_unit">SI base units</a>, namely:</li>
 </ul>
 <blockquote>
 <ul class="simple">
 <li>meter, for length [<tt class="docutils literal">m</tt>]</li>
-<li>gram, for mass [<tt class="docutils literal">g</tt>] <a class="footnote-reference" href="#id11" id="id9">[4]</a> (note: this is a footnote, not an exponent!)</li>
+<li>gram, for mass [<tt class="docutils literal">g</tt>] <a class="footnote-reference" href="#id19" id="id17">[7]</a> (note: this is a footnote, not an exponent!)</li>
 <li>second, for time [<tt class="docutils literal">s</tt>]</li>
 <li>ampere, for electric current [<tt class="docutils literal">A</tt>]</li>
 <li>kelvin, for thermodynamic temperature [<tt class="docutils literal">K</tt>]</li>
@@ -646,16 +735,16 @@ $ apt-get install dialog
 <li>zepto, i.e. 10<sup>-21</sup> [<tt class="docutils literal">z</tt>]</li>
 <li>yocto, i.e. 10<sup>-24</sup> [<tt class="docutils literal">y</tt>]</li>
 </ul>
-<table class="docutils footnote" frame="void" id="id10" rules="none">
+<table class="docutils footnote" frame="void" id="id18" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id8">[3]</a></td><td>To avoid requesting the user to type specific Unicode characters, we transliterated some of the symbols. For example, instead of using the capital Omega letter, we used <tt class="docutils literal">Ohm</tt>.</td></tr>
+<tr><td class="label"><a class="fn-backref" href="#id16">[6]</a></td><td>To avoid requesting the user to type specific Unicode characters, we transliterated some of the symbols. For example, instead of using the capital Omega letter, we used <tt class="docutils literal">Ohm</tt>.</td></tr>
 </tbody>
 </table>
-<table class="docutils footnote" frame="void" id="id11" rules="none">
+<table class="docutils footnote" frame="void" id="id19" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id9">[4]</a></td><td>We preferred here deviating a bit from the SI system, by using this non-prefixed unit (the <em>gram</em>) instead of the SI standard one, which happens to be the <em>kilogram</em>.</td></tr>
+<tr><td class="label"><a class="fn-backref" href="#id17">[7]</a></td><td>We preferred here deviating a bit from the SI system, by using this non-prefixed unit (the <em>gram</em>) instead of the SI standard one, which happens to be the <em>kilogram</em>.</td></tr>
 </tbody>
 </table>
 </blockquote>
@@ -672,12 +761,12 @@ $ apt-get install dialog
 </div>
 </div>
 <div class="section" id="composing-one-s-units">
-<h5><a class="toc-backref" href="#id44">Composing One's Units</a></h5>
-<p>So an actual unit can be composed from the aforementioned built-in units (be they base, derived, widely used, special units; prefixed or not) <a class="footnote-reference" href="#id13" id="id12">[5]</a>, using two built-in operators, which are <tt class="docutils literal">&quot;.&quot;</tt> (multiply, represented by the dot character - not <tt class="docutils literal">&quot;*&quot;</tt>) and <tt class="docutils literal">&quot;/&quot;</tt> (divide, represented by the forward slash character).</p>
-<table class="docutils footnote" frame="void" id="id13" rules="none">
+<h5><a class="toc-backref" href="#id58">Composing One's Units</a></h5>
+<p>So an actual unit can be composed from the aforementioned built-in units (be they base, derived, widely used, special units; prefixed or not) <a class="footnote-reference" href="#id21" id="id20">[8]</a>, using two built-in operators, which are <tt class="docutils literal">&quot;.&quot;</tt> (multiply, represented by the dot character - not <tt class="docutils literal">&quot;*&quot;</tt>) and <tt class="docutils literal">&quot;/&quot;</tt> (divide, represented by the forward slash character).</p>
+<table class="docutils footnote" frame="void" id="id21" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id12">[5]</a></td><td>In the future, defining an actual unit from other actual units might be contemplated.</td></tr>
+<tr><td class="label"><a class="fn-backref" href="#id20">[8]</a></td><td>In the future, defining an actual unit from other actual units might be contemplated.</td></tr>
 </tbody>
 </table>
 <p>The resulting type shall be specified as a string, containing a series of built-in units (potentially prefixed) alternating with built-in operators, like in: <tt class="docutils literal">&quot;kW.s/m&quot;</tt>.</p>
@@ -692,10 +781,10 @@ $ apt-get install dialog
 <li>symbolic unit checking (i.e. determining that a derived unit such as <tt class="docutils literal">N.s</tt> (newton.second) is actually, in canonical SI units, <tt class="docutils literal"><span class="pre">m^2.kg.s^-1</span></tt>), and thus that values of these two types can safely be used indifferently in computations</li>
 <li>automatic value conversions (ex: converting <tt class="docutils literal">km/hour</tt> into <tt class="docutils literal">m/s</tt>), provided that the overall computational precision is not significantly deteriorated</li>
 </ul>
-<p>The corresponding mechanisms (type information, conversion functions, unit checking and transformation, etc.) are defined in <tt class="docutils literal">unit_utils.erl</tt> and tested in <tt class="docutils literal">unit_utils_test.erl</tt>,  in the <tt class="docutils literal">myriad/src/utils</tt> directory.</p>
+<p>The corresponding mechanisms (type information, conversion functions, unit checking and transformation, etc.) are defined in <tt class="docutils literal">unit_utils.erl</tt> and tested in <tt class="docutils literal">unit_utils_test.erl</tt>,  in the <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/utils</span></tt> directory.</p>
 </div>
 <div class="section" id="checking-units">
-<h5><a class="toc-backref" href="#id45">Checking Units</a></h5>
+<h5><a class="toc-backref" href="#id59">Checking Units</a></h5>
 <p>A typical example:</p>
 <pre class="literal-block">
 1&gt; MyInputValue=&quot;-24 mS.m^-1&quot;.
@@ -711,7 +800,7 @@ Corresponding value: -24.0.
 </div>
 </div>
 <div class="section" id="possible-improvements-regarding-dimensional-analysis">
-<h4><a class="toc-backref" href="#id46">Possible Improvements Regarding Dimensional Analysis</a></h4>
+<h4><a class="toc-backref" href="#id60">Possible Improvements Regarding Dimensional Analysis</a></h4>
 <p>Some programming languages provide systems to manage dimensional information (ex: for physical quantities), generally through add-ons or libraries (rarely as a built-in feature).</p>
 <p>A first level of support is to provide, like here, an API to manage units. Other levels can be:</p>
 <ol class="arabic simple">
@@ -724,14 +813,14 @@ Corresponding value: -24.0.
 </div>
 </div>
 <div class="section" id="sql-support">
-<h3><a class="toc-backref" href="#id47">SQL support</a></h3>
+<h3><a class="toc-backref" href="#id61">SQL support</a></h3>
 <div class="section" id="about-sql">
-<h4><a class="toc-backref" href="#id48">About SQL</a></h4>
+<h4><a class="toc-backref" href="#id62">About SQL</a></h4>
 <p>Some amount of <a class="reference external" href="https://en.wikipedia.org/wiki/SQL">SQL</a> (<em>Structured Query Language</em>) support for relational database operations is provided by the <tt class="docutils literal">Myriad</tt> layer.</p>
 <p>As this support relies on an optional prerequisite, this service is disabled by default.</p>
 </div>
 <div class="section" id="database-back-end">
-<h4><a class="toc-backref" href="#id49">Database Back-end</a></h4>
+<h4><a class="toc-backref" href="#id63">Database Back-end</a></h4>
 <p>To perform SQL operations, a corresponding software solution must be available.</p>
 <p>The SQL back-end chosen here is the <a class="reference external" href="https://www.sqlite.org/about.html">SQLite 3</a> library. It provides a self-contained, serverless, zero-configuration, transactional SQL database. It is an embedded SQL database engine, as opposed to server-based ones, like <a class="reference external" href="https://en.wikipedia.org/wiki/PostgreSQL">PostgreSQL</a> or <a class="reference external" href="https://en.wikipedia.org/wiki/MariaDB">MariaDB</a>.</p>
 <p>It can be installed on Debian thanks to the <tt class="docutils literal">sqlite3</tt> and <tt class="docutils literal"><span class="pre">sqlite3-dev</span></tt> packages, <tt class="docutils literal">sqlite</tt> on Arch Linux..</p>
@@ -754,7 +843,7 @@ sqlite&gt; .quit
 <p>A file <tt class="docutils literal">my_test</tt>, identified as <tt class="docutils literal">SQLite 3.x database</tt>, must have been created, and can be safely removed.</p>
 </div>
 <div class="section" id="erlang-binding">
-<h4><a class="toc-backref" href="#id50">Erlang Binding</a></h4>
+<h4><a class="toc-backref" href="#id64">Erlang Binding</a></h4>
 <p>This database system is directly accessed thanks to an Erlang binding.</p>
 <p>Two of them have been identified as good candidates:</p>
 <ul class="simple">
@@ -763,7 +852,7 @@ sqlite&gt; .quit
 </ul>
 <p>Both are free software.</p>
 <p>We finally preferred <tt class="docutils literal"><span class="pre">erlang-sqlite3</span></tt>.</p>
-<p>By default we consider that this back-end has been installed in <tt class="docutils literal"><span class="pre">~/Software/erlang-sqlite3</span></tt>. The <tt class="docutils literal">SQLITE3_BASE</tt> variable in <tt class="docutils literal">myriad/GNUmakevars.inc</tt> can be set to match any other install path.</p>
+<p>By default we consider that this back-end has been installed in <tt class="docutils literal"><span class="pre">~/Software/erlang-sqlite3</span></tt>. The <tt class="docutils literal">SQLITE3_BASE</tt> variable in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/GNUmakevars.inc</span></tt> can be set to match any other install path.</p>
 <p>Recommended installation process:</p>
 <pre class="literal-block">
 $ mkdir ~/Software
@@ -814,12 +903,12 @@ Cover analysis: ~/Software/erlang-sqlite3/.eunit/index.html
 <p>Pretty reassuring.</p>
 </div>
 <div class="section" id="sql-support-provided-by-the-myriad-layer">
-<h4><a class="toc-backref" href="#id51">SQL Support Provided By the <em>Myriad</em> Layer</a></h4>
-<p>To enable this support, once the corresponding back-end (see <a class="reference internal" href="#database-back-end">Database Back-end</a>) and binding (see <a class="reference internal" href="#erlang-binding">Erlang Binding</a>) have been installed, the <tt class="docutils literal">USE_SQLITE</tt> variable should be set to <tt class="docutils literal">true</tt> in <tt class="docutils literal">myriad/GNUmakevars.inc</tt> and <tt class="docutils literal">Myriad</tt> shall be rebuilt.</p>
-<p>Then the corresponding implementation (<tt class="docutils literal">sql_support.erl</tt>) and test (<tt class="docutils literal">sql_support_test.erl</tt>), both in <tt class="docutils literal"><span class="pre">myriad/src/data-management</span></tt>, will be built (use <tt class="docutils literal">make clean all</tt> from the root of <tt class="docutils literal">Myriad</tt>) and able to be run (execute <tt class="docutils literal">make sql_support_run</tt> for that).</p>
+<h4><a class="toc-backref" href="#id65">SQL Support Provided By the <em>Myriad</em> Layer</a></h4>
+<p>To enable this support, once the corresponding back-end (see <a class="reference internal" href="#database-back-end">Database Back-end</a>) and binding (see <a class="reference internal" href="#erlang-binding">Erlang Binding</a>) have been installed, the <tt class="docutils literal">USE_SQLITE</tt> variable should be set to <tt class="docutils literal">true</tt> in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/GNUmakevars.inc</span></tt> and <tt class="docutils literal">Myriad</tt> shall be rebuilt.</p>
+<p>Then the corresponding implementation (<tt class="docutils literal">sql_support.erl</tt>) and test (<tt class="docutils literal">sql_support_test.erl</tt>), both in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/data-management</span></tt>, will be built (use <tt class="docutils literal">make clean all</tt> from the root of <tt class="docutils literal">Myriad</tt>) and able to be run (execute <tt class="docutils literal">make sql_support_run</tt> for that).</p>
 <p>Testing it:</p>
 <pre class="literal-block">
-$ cd myriad/src/data-management
+$ cd Ceylan-Myriad/src/data-management
 $ make sql_support_run
        Compiling module sql_support.erl
        Compiling module sql_support_test.erl
@@ -835,36 +924,44 @@ $ make sql_support_run
 </pre>
 <p>Looks good.</p>
 </div>
-<div class="section" id="troubleshooting">
-<h4><a class="toc-backref" href="#id52">Troubleshooting</a></h4>
+<div class="section" id="sql-related-troubleshooting">
+<h4><a class="toc-backref" href="#id66">SQL-related Troubleshooting</a></h4>
 <div class="section" id="compiling-module-sql-support-erl-can-t-find-include-file-sqlite3-hrl">
-<h5><a class="toc-backref" href="#id53">Compiling module sql_support.erl : can't find include file &quot;sqlite3.hrl&quot;</a></h5>
+<h5><a class="toc-backref" href="#id67">Compiling module sql_support.erl : can't find include file &quot;sqlite3.hrl&quot;</a></h5>
 <ul class="simple">
-<li><tt class="docutils literal">USE_SQLITE</tt> not set to <tt class="docutils literal">true</tt> in <tt class="docutils literal">myriad/GNUmakevars.inc</tt></li>
-<li><tt class="docutils literal"><span class="pre">erlang-sqlite3</span></tt> back-end not correctly installed (ex: <tt class="docutils literal">SQLITE3_BASE</tt> not pointing to a right path in <tt class="docutils literal">myriad/GNUmakevars.inc</tt>)</li>
+<li><tt class="docutils literal">USE_SQLITE</tt> not set to <tt class="docutils literal">true</tt> in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/GNUmakevars.inc</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">erlang-sqlite3</span></tt> back-end not correctly installed (ex: <tt class="docutils literal">SQLITE3_BASE</tt> not pointing to a right path in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/GNUmakevars.inc</span></tt>)</li>
 </ul>
 <p></p>
 </div>
 </div>
 </div>
 <div class="section" id="myriad-gotchas">
-<h3><a class="toc-backref" href="#id54"><tt class="docutils literal">Myriad</tt> Gotchas</a></h3>
+<h3><a class="toc-backref" href="#id68"><tt class="docutils literal">Myriad</tt> Gotchas</a></h3>
 <div class="section" id="header-dependencies">
-<h4><a class="toc-backref" href="#id55">Header dependencies</a></h4>
+<h4><a class="toc-backref" href="#id69">Header dependencies</a></h4>
 <p>Only a very basic dependency between header files (<tt class="docutils literal">*.hrl</tt>) and implementation files (<tt class="docutils literal">*.erl</tt>) is managed.</p>
 <p>As expected, if <tt class="docutils literal">X.hrl</tt> changed, <tt class="docutils literal">X.beam</tt> will be recompiled whether or not <tt class="docutils literal">X.erl</tt> changed. However, any <tt class="docutils literal">Y.erl</tt> that would include <tt class="docutils literal">X.hrl</tt> would not be automatically recompiled.</p>
 <p>Typically, when in doubt after having modified a record in a header file, just run <tt class="docutils literal">make rebuild</tt> from the root of that layer (build is fast anyway, as quite parallel).</p>
 </div>
 <div class="section" id="about-the-table-module">
-<h4><a class="toc-backref" href="#id56">About the <tt class="docutils literal">table</tt> module</a></h4>
+<h4><a class="toc-backref" href="#id70">About the <tt class="docutils literal">table</tt> module</a></h4>
 <p>This is a pseudo module, which is not meant to exist as such (no <tt class="docutils literal">table.erl</tt>, no <tt class="docutils literal">table.beam</tt>).</p>
 <p>The <tt class="docutils literal">Myriad</tt> parse transform replaces references to the <tt class="docutils literal">table</tt> module by references to the <tt class="docutils literal">map_hashtable</tt> module. See <a class="reference internal" href="#table-transformations">table transformations</a> for more information.</p>
 <p></p>
 </div>
 </div>
+<div class="section" id="support-for-myriad">
+<span id="support"></span><h3><a class="toc-backref" href="#id71">Support for <tt class="docutils literal">Myriad</tt></a></h3>
+<p>So you respected the <a class="reference internal" href="#prerequisite">prerequisite</a> and <a class="reference internal" href="#build">build</a> sections, and something went wrong? Generally we made sure that any detected error is blocking and loudly reported, with as much context as possible.</p>
+<p>The simpler solution is then to <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/issues">create a relevant issue</a>.</p>
+<p>For all other needs, please drop an email to the address listed on top of document. We do our best to answer on a timely basis.</p>
+<p>Finally, provided that they meet licensing terms, scope and quality standards, contributions of all sorts are vey welcome, be them porting efforts, increased test coverage, functional enrichments, documentation improvements, code enhancements, etc.</p>
+<p></p>
+</div>
 </div>
 <div class="section" id="ending-word">
-<h2><a class="toc-backref" href="#id57">Ending Word</a></h2>
+<h2><a class="toc-backref" href="#id72">Ending Word</a></h2>
 <p>Each time that you need a basic service that:</p>
 <ul class="simple">
 <li>seems neither provided by the Erlang <a class="reference external" href="http://erlang.org/doc/man_index.html">built-in modules</a> nor by this <tt class="docutils literal">Myriad</tt> layer</li>
