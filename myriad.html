@@ -125,7 +125,7 @@ The next level of information is to read the corresponding <a class="reference e
 <li><a class="reference internal" href="#support-for-myriad" id="id71">Support for <tt class="docutils literal">Myriad</tt></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#ending-word" id="id72">Ending Word</a></li>
+<li><a class="reference internal" href="#contributions-ending-word" id="id72">Contributions &amp; Ending Word</a></li>
 </ul>
 </li>
 </ul>
@@ -283,7 +283,7 @@ $ make check
 <li>a set of pre-defined Make <strong>variables</strong>, describing various settings that will be reused by generic rules (ex: to compile modules with relevant flags, to create source archives, to install an application, to manage the various paths, to perform test checking, to generate archives, installs and releases, etc.); these variables are defined in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/GNUmakevars.inc</span></tt></li>
 <li>a set of generic <strong>rules</strong>, to compile and run various modules and tests, to generate various elements of documentation, etc.; these rules are defined (still from the <tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt> root directory), in:<ul>
 <li><tt class="docutils literal"><span class="pre">GNUmakerules-automatic.inc</span></tt>, for all rules that apply generically to a some kinds of targets</li>
-<li><tt class="docutils literal"><span class="pre">GNUmakerules-explicit.inc</span></tt>, for all &quot;direct&quot; rules, that are no parametrised by a pattern</li>
+<li><tt class="docutils literal"><span class="pre">GNUmakerules-explicit.inc</span></tt>, for all &quot;direct&quot; rules, that are not pattern-based</li>
 <li><tt class="docutils literal"><span class="pre">doc/GNUmakerules-docutils.inc</span></tt>, for all documentation-related rules</li>
 </ul>
 </li>
@@ -956,12 +956,12 @@ $ make sql_support_run
 <p>So you respected the <a class="reference internal" href="#prerequisite">prerequisite</a> and <a class="reference internal" href="#build">build</a> sections, and something went wrong? Generally we made sure that any detected error is blocking and loudly reported, with as much context as possible.</p>
 <p>The simpler solution is then to <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/issues">create a relevant issue</a>.</p>
 <p>For all other needs, please drop an email to the address listed on top of document. We do our best to answer on a timely basis.</p>
-<p>Finally, provided that they meet licensing terms, scope and quality standards, contributions of all sorts are vey welcome, be them porting efforts, increased test coverage, functional enrichments, documentation improvements, code enhancements, etc.</p>
+<p>Finally, provided that they meet licensing terms, scope and quality standards, contributions of all sorts are vey welcome, be them porting efforts, increased test coverage, functional enrichments, documentation improvements, code enhancements, etc. See the next section for additional guidelines.</p>
 <p></p>
 </div>
 </div>
-<div class="section" id="ending-word">
-<h2><a class="toc-backref" href="#id72">Ending Word</a></h2>
+<div class="section" id="contributions-ending-word">
+<h2><a class="toc-backref" href="#id72">Contributions &amp; Ending Word</a></h2>
 <p>Each time that you need a basic service that:</p>
 <ul class="simple">
 <li>seems neither provided by the Erlang <a class="reference external" href="http://erlang.org/doc/man_index.html">built-in modules</a> nor by this <tt class="docutils literal">Myriad</tt> layer</li>
