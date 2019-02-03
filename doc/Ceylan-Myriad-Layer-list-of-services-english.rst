@@ -1,11 +1,11 @@
 
 ----------------------------------------
-Services Offered by the ``Myriad`` Layer
+Services offered by the ``Myriad`` Layer
 ----------------------------------------
 
 The ``Myriad`` services are gathered into following themes:
 
-#. General build_ structure
+#. General `build structure`_
 #. General settings_
 #. Maths_ services
 #. `Data-management`_ services
@@ -20,10 +20,10 @@ In future versions of this document, following topics will be discussed:
 
 - HDF5 support
 - REST support
-- third-party language bindings (ex: Python, Java, maybe in the future Haskell)
+- third-party language bindings (ex: Python, Java, maybe in the future Haskell; C/C++ is to be tackled by our `Seaplus <http://seaplus.esperide.org>`_ project)
 - RDF support
 
-Even if this is not an exhaustive walk-through, each of them is detailed in turn below.
+Even if this document does not constitute an exhaustive walk-through, each of them is detailed in turn below.
 
 The next level of detail is to peer at the referenced source files, as they include many implementation notes, comments and typing information.
 

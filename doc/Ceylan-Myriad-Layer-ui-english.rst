@@ -7,8 +7,10 @@
 Helpers For User Interface Programming
 ======================================
 
-Some services have been defined, in ``myriad/src/user-interface``, in order to handle more easily interactions with the user, i.e. to provide a user interface.
+Some services have been defined, in ``Ceylan-Myriad/src/user-interface``, in order to handle more easily interactions with the user, i.e. to provide a user interface.
 
+
+.. Note:: The user-interface services, as a whole, are currently *not* functional. A rewriting thereof as been started yet has not completed yet.
 
 
 Various Flavours of User Interfaces
@@ -55,7 +57,7 @@ Raw Text User Interface: ``text_ui``
 
 This is the most basic, line-based monochrome textual interface, directly in raw text with no cursor control.
 
-Located in ``myriad/src/user-interface/textual``, see ``text_ui.erl`` for its implementation, and ``text_ui_test.erl`` for an example of its use.
+Located in ``Ceylan-Myriad/src/user-interface/textual``, see ``text_ui.erl`` for its implementation, and ``text_ui_test.erl`` for an example of its use.
 
 
 
@@ -73,7 +75,7 @@ For example, to secure these prerequisites::
  $ apt-get install dialog
 
 
-Located in ``myriad/src/user-interface/textual``, see ``term_ui.erl`` for its implementation, and ``term_ui_test.erl`` for an example of its use.
+Located in ``Ceylan-Myriad/src/user-interface/textual``, see ``term_ui.erl`` for its implementation, and ``term_ui_test.erl`` for an example of its use.
 
 
 
@@ -90,7 +92,7 @@ The goal is to provide a small, lightweight API (including message types) that a
 So for example the messages received by the user programs shall not mention ``wx``, and they should take the form of `WOOPER <https://github.com/Olivier-Boudeville/Ceylan-WOOPER>`_ messages to allow for user code that would rely on WOOPER.
 
 
-Located in ``myriad/src/user-interface/graphical``, see ``gui.erl``, ``gui_color.erl``, ``gui_text.erl``, ``gui_canvas.erl``, etc., with a few tests (``gui_test.erl``, ``lorenz_test.erl``).
+Located in ``Ceylan-Myriad/src/user-interface/graphical``, see ``gui.erl``, ``gui_color.erl``, ``gui_text.erl``, ``gui_canvas.erl``, etc., with a few tests (``gui_test.erl``, ``lorenz_test.erl``).
 
 
 

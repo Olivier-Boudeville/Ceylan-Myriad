@@ -6,7 +6,7 @@
 General Settings
 ================
 
-These general-purpose settings and helpers, gathered in the ``myriad/conf`` directory, deal with:
+These general-purpose settings and helpers, gathered in the ``Ceylan-Myriad/conf`` directory, deal with:
 
 - default CSS files (``Default-docutils.css``)
 - our recommended versions of (commented) configuration files for various tools:

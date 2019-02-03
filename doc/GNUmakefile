@@ -69,6 +69,10 @@ export-to-mirror:
 	@/bin/cp -f $(WEB_CONTENT) $(MYRIAD_WEB_MIRROR_BRANCH) && cd $(MYRIAD_WEB_MIRROR_BRANCH) && git add . && git merge -s ours && git commit -m "Myriad doc updated." && git push
 
 
+# The modular approach disallows using our tracking script:
+track: $(DOC_BASE_NAME).html
+
+
 clean: clean-doc
 
 clean-doc:

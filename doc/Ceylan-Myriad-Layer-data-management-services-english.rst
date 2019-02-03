@@ -10,7 +10,7 @@ Data-Management Services
 
 .. _`table type`:
 
-Some generic **data-structures**, in addition to the ones provided built-in with Erlang, are defined in ``myriad/src/data-management``, notably:
+Some generic **data-structures**, in addition to the ones provided built-in with Erlang, are defined in ``Ceylan-Myriad/src/data-management``, notably:
 
 - a set of **associative tables**, with a rather complete interface (to create,
   update, enrich, search, query, list, map, fold, merge, display, etc.) and
