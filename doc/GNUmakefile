@@ -21,6 +21,7 @@ CURRENT_MYRIAD_DOC := $(DOC_PDF_NAME)-$(CURRENT_VERSION).pdf
 
 PROJECT_CSS := pygments-default.css,myriad.css
 
+PROJECT_ICON := myriad-icon.png
 
 WEB_CONTENT = *.html *.css *.png *.pdf
 

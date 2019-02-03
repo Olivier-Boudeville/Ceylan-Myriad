@@ -1023,6 +1023,11 @@ EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -noinput
 DOC_TRACKER := $$(which track-make-automatic-source.sh)
 
 
+ifdef PROJECT_ICON
+  PROJECT_ICON_OPT := --icon-file $(PROJECT_ICON)
+endif
+
+
 DIALYZER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which dialyzer 2>/dev/null)
 
 

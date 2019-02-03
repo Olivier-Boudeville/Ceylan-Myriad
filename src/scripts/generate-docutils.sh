@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2010-2018 Olivier Boudeville
+# Copyright (C) 2010-2019 Olivier Boudeville
 #
 # Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
@@ -9,7 +9,7 @@
 
 # Note: docutils has been finally preferred to txt2tags.
 
-USAGE="Usage: $(basename $0) <target rst file> [ --pdf | --all | <comma-separated path(s) to CSS file to be used, ex: common/css/XXX.css,other.css> ]
+USAGE="Usage: $(basename $0) <target rst file> [ --pdf | --all | <comma-separated path(s) to CSS file to be used, ex: common/css/XXX.css,other.css> ] [--icon-file ICON_FILENAME]
 
 Updates specified file from more recent docutils source (*.rst).
 If '--pdf' is specified, a PDF will be created, if '--all' is specified, all output formats (i.e. HTML and PDF) will be created, otherwise HTML files only will be generated, using any specified CSS file.
@@ -73,6 +73,7 @@ if [ -e "${rst_file}" ] ; then
 		shift
 
 		css_file="$1"
+		shift
 
 		if [ -n "${css_file}" ] ; then
 			#echo "Using CSS file ${css_file}."
@@ -84,6 +85,7 @@ if [ -e "${rst_file}" ] ; then
 	else
 
 		css_file="$1"
+		shift
 
 		if [ -n "${css_file}" ] ; then
 			#echo "Using CSS file ${css_file}."
@@ -100,6 +102,37 @@ else
 	exit 2
 
 fi
+
+
+if [ "$1" = "--icon-file" ] ; then
+
+	shift
+
+	icon_file="$1"
+	shift
+
+	if [ ! -f "${icon_file}" ] ; then
+
+		echo "  Error, specified icon file (${icon_file}) does not exist." 1>&2
+		exit 55
+
+	else
+
+		echo "Using icon file '${icon_file}'."
+
+	fi
+
+else
+
+	if [ -n "$1" ] ; then
+
+		echo "  Error, unexpected parameter ($1)." 1>&2
+		exit 60
+
+	fi
+
+fi
+
 
 
 if [ $do_generate_html -eq 0 ] ; then
@@ -139,6 +172,7 @@ fi
 
 manage_rst_to_html()
 # $1: name of the .rst file to convert to HTML.
+# $2:
 {
 
 	source="$1"
@@ -148,7 +182,7 @@ manage_rst_to_html()
 
 
 	#echo ${docutils_html} ${docutils_html_opt} $source $target
-	${docutils_html} ${docutils_html_opt} $source $target
+	${docutils_html} ${docutils_html_opt} "$source" "$target"
 
 
 	if [ ! $? -eq 0 ] ; then
@@ -156,6 +190,15 @@ manage_rst_to_html()
 		exit 5
 	fi
 
+	if [ -n "${icon_file}" ] ; then
+
+		tmp_file=".tmp-$target"
+
+		/bin/cat "$target" | sed "s|</head>$|<link href=\"${icon_file}\" rel=\"icon\"></head>|1" > "${tmp_file}"
+
+		/bin/mv -f "${tmp_file}" "$target"
+
+	fi
 
 }
 

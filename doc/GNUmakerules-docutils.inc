@@ -173,7 +173,7 @@ VIEW_PDF := yes
 
 %.html: %.rst
 	@echo "     Generating HTML documentation $@"
-	@$(RST_GENERATOR) $< $(PROJECT_CSS)
+	@$(RST_GENERATOR) $< $(PROJECT_CSS) $(PROJECT_ICON_OPT)
 
 
 %.pdf: %.traces
