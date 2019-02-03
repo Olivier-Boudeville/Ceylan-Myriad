@@ -106,6 +106,14 @@ Technical Manual of the ``Ceylan-Myriad`` Layer
 
 :raw-latex:`\pagebreak`
 
+
+-------------
+Please React!
+-------------
+
+If you have information more detailed or more recent than those presented in this document, if you noticed errors, neglects or points insufficiently discussed, drop us a line! (for that, follow the Support_ guidelines).
+
+
 ---------------------------
 Contributions & Ending Word
 ---------------------------
@@ -132,6 +140,6 @@ Thanks in advance, and have fun with Myriad!
 
 .. figure:: myriad-title.png
    :alt: Myriad logo
-   :scale: 25
+   :scale: 20
 
 :raw-html:`<a name="myriad_bottom"></a>`
