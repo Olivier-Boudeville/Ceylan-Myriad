@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2009-2018 Olivier Boudeville
+# Copyright (C) 2009-2019 Olivier Boudeville
 #
 # Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 #
