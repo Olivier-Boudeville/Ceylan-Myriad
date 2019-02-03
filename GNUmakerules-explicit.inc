@@ -381,7 +381,7 @@ add-prerequisite-plts:
 # If Dialyzer complains that it cannot get Core Erlang code for a set of BEAM
 # files (ex: with "Recompile with +debug_info or analyze starting from source
 # code"), then the element lacking is most probably not the +debug_info switch
-# when compiling these BEAMs, but the debug_info key when running Dializer
+# when compiling these BEAMs, but the debug_info key when running Dialyzer
 # itself.
 #
 # Such a key can be for example specified in ~/.erlang.crypt, as:
