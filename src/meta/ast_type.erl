@@ -295,6 +295,23 @@ transform_type_table( TypeTable, Transforms ) ?rec_guard ->
 %
 -spec transform_type_info_pair( type_pair(), ast_transforms() ) ->
 									 { type_pair(), ast_transforms() }.
+transform_type_info_pair( { TypeId, #type_info{ line=Line,
+												definition=undefined,
+												exported=Export } },
+							_Transforms )
+  when Export =/= [] ?andalso_rec_guard ->
+
+	% A context could be recreated with the module and line, and use to raise
+	% the error, yet, at least for types, it is not unlikely they are exported
+	% in an header file and thus we would possibly be pointing to a wrong place.
+
+	trace_utils:error_fmt(
+	  "Type ~s/~B is exported, yet has never been defined.",
+	  pair:to_list( TypeId ) ),
+
+	ast_utils:raise_error( [ type_exported_yet_not_defined, TypeId ],
+						   _Context=Line );
+
 transform_type_info_pair( { TypeId, TypeInfo }, Transforms ) ?rec_guard ->
 
 	{ NewTypeInfo, NewTransforms } =

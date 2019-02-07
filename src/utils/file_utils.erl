@@ -1613,26 +1613,35 @@ ensure_path_is_absolute( TargetPath, BasePath ) ->
 
 
 
-% Normalises specified path (canonicalise it), by translating it so that no
-% superfluous '.' or '..' is present afterwards.
+% Normalises specified path (canonicalises it), by translating it so that no
+% intermediate, superfluous '.' or '..' is present afterwards.
 %
 % For example, "/home/garfield/../lisa/./src/.././tube" shall be normalised in
 % "/home/lisa/tube".
 %
--spec normalise_path( path() ) -> path().
+-spec normalise_path( path() ) -> path();
+					( bin_path() ) -> bin_path().
 normalise_path( _Path="." ) ->
 	".";
 	%get_current_directory();
 
-normalise_path( Path ) ->
+normalise_path( Path ) when is_list( Path ) ->
 
-	%io:format( "Normalising path '~p'.~n", [ Path ] ),
+	%text_utils:debug_fmt( "Normalising path '~p'.~n", [ Path ] ),
 
 	ElemList = filename:split( Path ),
 
-	join( filter_elems( ElemList, _Acc=[] ) ).
+	join( filter_elems( ElemList, _Acc=[] ) );
+
+normalise_path( BinPath ) when is_binary( BinPath ) ->
+
+	Path = text_utils:binary_to_string( BinPath ),
+
+	text_utils:string_to_binary( normalise_path( Path ) ).
 
 
+
+% (helper)
 filter_elems( _ElemList=[], Acc ) ->
 	lists:reverse( Acc );
 

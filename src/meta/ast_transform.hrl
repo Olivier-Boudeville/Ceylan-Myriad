@@ -63,6 +63,13 @@
 	  basic_utils:maybe( basic_utils:module_name() ),
 
 
+	% Allows to record the name and arity of the function (if any) being
+	% transformed (useful for example for error messages):
+	%
+	transformed_function_identifier = undefined ::
+	  basic_utils:maybe( meta_utils:function_id() ),
+
+
 	% Records the transformations (if any) to be applied on AST elements as a
 	% whole (generally exceeding the mere transformations of calls into calls,
 	% like rewriting bodies) whenever a trigger is found.

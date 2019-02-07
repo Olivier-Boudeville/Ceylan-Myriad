@@ -753,6 +753,7 @@ ast_transforms_to_string( #ast_transforms{
 							 local_calls=MaybeLocalCallTable,
 							 remote_calls=MaybeRemoteCallTable,
 							 transformed_module_name=ModuleName,
+							 transformed_function_identifier=MaybeFunId,
 							 transform_table=MaybeTransformTable,
 							 transformation_state=TransfoState } ) ->
 
@@ -805,11 +806,22 @@ ast_transforms_to_string( #ast_transforms{
 	ModuleString = case ModuleName of
 
 		undefined ->
-			"no target module defined";
+			"no target module specified";
 
 		_ ->
 			text_utils:format( "being applied to module '~s'",
 							   [ ModuleName ] )
+
+	end,
+
+	FunIdString = case MaybeFunId of
+
+		undefined ->
+			"no transformed function specified";
+
+		{ FunName, Arity } ->
+			text_utils:format( "applied to function ~s/~B",
+							   [ FunName, Arity ] )
 
 	end,
 
@@ -829,6 +841,7 @@ ast_transforms_to_string( #ast_transforms{
 	end,
 
 	TableString = text_utils:strings_to_string( [ LocalTypeStr, RemoteTypeStr,
-			LocalCallStr, RemoteCallStr, ModuleString, TransfoTableStr ] ),
+			LocalCallStr, RemoteCallStr, ModuleString, FunIdString,
+			TransfoTableStr ] ),
 
 	text_utils:format( "AST transformations: ~s", [ TableString ] ).

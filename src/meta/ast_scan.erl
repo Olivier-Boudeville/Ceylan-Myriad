@@ -923,11 +923,15 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 							 exported=[] } } ->
 
 			% We did not keep the line (or file) of the initial definition:
-			trace_utils:error_fmt( "Type ~s/~B defined at line #~B of "
-								   "file '~s', whereas it had already been "
-								   "defined at line #~B.",
-								   [ TypeName, TypeArity, Line,
-									 CurrentFileReference, LineDef ] ),
+			trace_utils:error_fmt( "Type ~s/~B defined at line #~B of file "
+				"'~s', whereas it had already been defined at line #~B.",
+				[ TypeName, TypeArity, Line,
+				  % We used to normalise paths, however then 'file_utils' would
+				  % have to be bootstrapped as well, which does not seem
+				  % desirable:
+				  %file_utils:normalise_path( CurrentFileReference ),
+				  CurrentFileReference,
+				  LineDef ] ),
 
 			ast_utils:raise_error( [ multiple_definitions_for_type, TypeId,
 									 { previously_defined_at_line, LineDef } ],

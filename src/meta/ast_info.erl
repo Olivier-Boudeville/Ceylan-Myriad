@@ -2007,7 +2007,7 @@ function_info_to_string( #function_info{ name=Name,
 
 	end,
 
-	BaseString = text_utils:format( "~s/~B, ~s, ~s and ~s",
+	BaseString = text_utils:format( "function ~s/~B, ~s, ~s and ~s",
 						[ Name, Arity, ExportString, DefString, SpecString ] ),
 
 	case DoIncludeForms of
