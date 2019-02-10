@@ -9,7 +9,9 @@ DOC_PDF_NAME := $(DOC_BASE_NAME).pdf
 
 OVERALL_DOCUMENT_TARGET = $(DOC_BASE_NAME).rst
 
-DOC_GENERATED_FILES = $(DOC_PDF_NAME) $(DOC_BASE_NAME).html
+HTML_TARGET = $(DOC_BASE_NAME).html
+
+DOC_GENERATED_FILES = $(DOC_PDF_NAME) $(HTML_TARGET)
 
 DOC_FILES = $(DOC_GENERATED_FILES)
 
@@ -47,7 +49,7 @@ all:
 
 
 
-full-doc: $(DOC_BASE_NAME).pdf $(DOC_BASE_NAME).html
+full-doc: $(DOC_BASE_NAME).pdf $(HTML_TARGET)
 
 
 # Creates a separate repository for the GitHub pages branch:
@@ -60,6 +62,12 @@ clone-mirror:
 export-doc: clean-doc full-doc export-to-official export-to-mirror
 
 
+# Drawback: scp will not preserve symlinks, it will duplicate files instead.
+
+# rsync would not, but requires a different source layout (copies a full tree,
+# not a set of files), so current not used:
+# rsync -avze "ssh $(SP)" $(SOME_WEB_TREE) $(WEB_SRV):$(WEB_ROOT)/Myriad/
+#
 export-to-official:
 	@echo "   Exporting Myriad documentation to official website"
 	@/bin/scp $(SP) $(WEB_CONTENT) $(WEB_SRV):$(WEB_ROOT)/Myriad/
@@ -71,7 +79,7 @@ export-to-mirror:
 
 
 # The modular approach disallows using our tracking script:
-track: $(DOC_BASE_NAME).html
+track: $(HTML_TARGET)
 
 
 clean: clean-doc
