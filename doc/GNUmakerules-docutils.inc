@@ -229,7 +229,7 @@ create-doc: regenerate-doc clean-doc-repository make-doc-repository
 
 
 regenerate-doc:
-	@echo "     Regenerating all documentation elements"
+	@echo "     Regenerating all documentation elements from $(DOCUTILS_TOP)"
 	@cd $(DOCUTILS_TOP) && $(MAKE) -s doc
 
 
