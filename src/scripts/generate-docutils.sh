@@ -190,15 +190,24 @@ manage_rst_to_html()
 		exit 5
 	fi
 
+	tmp_file=".tmp-$target"
+
 	if [ -n "${icon_file}" ] ; then
 
-		tmp_file=".tmp-$target"
-
-		/bin/cat "$target" | sed "s|</head>$|<link href=\"${icon_file}\" rel=\"icon\"></head>|1" > "${tmp_file}"
+		/bin/cat "$target" | sed "s|</head>$|<link href=\"${icon_file}\" rel=\"icon\">\n</head>|1" > "${tmp_file}"
 
 		/bin/mv -f "${tmp_file}" "$target"
 
 	fi
+
+	echo "  Adding the viewport settings"
+
+	# Apparently the viewport settings are strongly recommended in all cases for
+	# mobile support:
+	#
+	/bin/cat "$target" | sed 's|</head>$|<meta name="viewport" content="width=device-width, initial-scale=1.0">\n</head>|1' > "${tmp_file}"
+
+	/bin/mv -f "${tmp_file}" "$target"
 
 }
 
