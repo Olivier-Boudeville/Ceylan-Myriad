@@ -36,10 +36,10 @@ Technical Manual of the ``Ceylan-Myriad`` Layer
 
 :Organisation: Copyright (C) 2008-2019 Olivier Boudeville
 :Contact: about (dash) myriad (at) esperide (dot) com
-:Creation Date: Wednesday, August 11, 2010
-:Lastly Updated: Sunday, February 10, 2019
-:Status: Work in progress
-:Version: 1.2.2
+:Creation date: Wednesday, August 11, 2010
+:Lastly updated: Wednesday, February 13, 2019
+:Status: Stable
+:Version: 1.2.4
 :Dedication: Users and maintainers of the ``Myriad`` layer.
 :Abstract:
 
@@ -138,8 +138,10 @@ Thanks in advance, and have fun with Myriad!
 .. comment Mostly added to ensure there is at least one figure directive,
 .. otherwise the LateX graphic support will not be included:
 
+.. Note: scale ignored for HTML output
+
 .. figure:: myriad-title.png
    :alt: Myriad logo
-   :scale: 15
+   :scale: 25
 
 :raw-html:`<a name="myriad_bottom"></a>`

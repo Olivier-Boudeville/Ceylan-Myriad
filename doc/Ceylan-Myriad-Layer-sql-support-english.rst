@@ -28,9 +28,14 @@ Various related tools are very convenient in order to interact with a SQLite dat
 
 On Arch Linux, one can thus use: ``pacman -Sy sqlite sqlitebrowser sqliteman``.
 
-Testing the back-end::
+Testing the back-end:
+
+.. code:: bash
 
  $ sqlite3 my_test
+
+.. code:: sql
+
  SQLite version 3.13.0 2016-05-18 10:57:30
  Enter ".help" for usage hints.
  sqlite> create table tblone(one varchar(10), two smallint);
@@ -61,7 +66,9 @@ We finally preferred ``erlang-sqlite3``.
 
 By default we consider that this back-end has been installed in ``~/Software/erlang-sqlite3``. The ``SQLITE3_BASE`` variable in ``Ceylan-Myriad/GNUmakevars.inc`` can be set to match any other install path.
 
-Recommended installation process::
+Recommended installation process:
+
+.. code:: bash
 
  $ mkdir ~/Software
  $ cd ~/Software
@@ -86,7 +93,9 @@ Recommended installation process::
  [...]
 
 
-Testing the binding::
+Testing the binding:
+
+.. code:: bash
 
   make test
   ./rebar get-deps compile eunit
@@ -120,7 +129,9 @@ To enable this support, once the corresponding back-end (see `Database Back-end`
 
 Then the corresponding implementation (``sql_support.erl``) and test (``sql_support_test.erl``), both in ``Ceylan-Myriad/src/data-management``, will be built (use ``make clean all`` from the root of ``Myriad``) and able to be run (execute ``make sql_support_run`` for that).
 
-Testing it::
+Testing it:
+
+.. code:: bash
 
  $ cd Ceylan-Myriad/src/data-management
  $ make sql_support_run

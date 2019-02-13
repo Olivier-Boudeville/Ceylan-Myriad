@@ -176,7 +176,9 @@ The corresponding mechanisms (type information, conversion functions, unit check
 Checking Units
 ..............
 
-A typical example::
+A typical example:
+
+.. code:: erlang
 
  1> MyInputValue="-24 mS.m^-1".
  2> {Value,Unit}=unit_utils:parse_value_with_unit(MyInputValue).

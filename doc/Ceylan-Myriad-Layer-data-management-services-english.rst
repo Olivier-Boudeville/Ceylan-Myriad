@@ -14,7 +14,9 @@ Some generic **data-structures**, in addition to the ones provided built-in with
 
 - a set of **associative tables**, with a rather complete interface (to create,
   update, enrich, search, query, list, map, fold, merge, display, etc.) and
-  various implementations thereof, tests and benchmarks, in::
+  various implementations thereof, tests and benchmarks, in:
+
+.. code:: erlang
 
   {hash,lazy_hash,list_,tracked_hash,map_hash}table.erl
 

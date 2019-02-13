@@ -47,7 +47,9 @@ If such a service is not provided by the current version of the layer, yet is de
 
 Of course, contributions of all sorts are welcome.
 
-We do our best to test, at least lightly, each element provided. All services offered in a ``foo.erl`` file are thus expected to be tested in the companion ``foo_test.erl`` file, generally located in the same directory. Once there, running this test is as simple as executing::
+We do our best to test, at least lightly, each element provided. All services offered in a ``foo.erl`` file are thus expected to be tested in the companion ``foo_test.erl`` file, generally located in the same directory. Once there, running this test is as simple as executing:
+
+.. code:: bash
 
  $ make foo_run
 

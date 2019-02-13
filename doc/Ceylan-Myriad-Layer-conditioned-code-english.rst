@@ -28,13 +28,17 @@ Using tokens to enable code injection
 
 Various primitives for *code injection* are available in the ``cond_utils`` (mostly pseudo-) module.
 
-``if_debug/1``, for example used as::
+``if_debug/1``, for example used as:
+
+.. code:: erlang
 
  cond_utils:if_debug([A=B+1,io:format("Hello ~p",[A])])
 
 will enable the specified code (either an arbitrarily nested expression or a list thereof) iff (if and only if) the ``debug_mode`` token has been defined.
 
-Similarly, ``if_defined/2``, for example used as::
+Similarly, ``if_defined/2``, for example used as:
+
+.. code:: erlang
 
  cond_utils:if_defined(my_token,[EXPR1,EXPR2,...])
 
@@ -43,21 +47,28 @@ will inject ``EXPR1``, ``EXPR2``, etc. if ``my_token`` has been defined (any val
 .. [#] So ``if_debug([...])`` behaves exactly as: ``if_defined(debug_mode,[...])``.
 
 
-As for ``if_defined/3``, it supports two lists of expressions::
+As for ``if_defined/3``, it supports two lists of expressions:
+
+.. code:: erlang
 
  cond_utils:if_defined(a_token,FIRST_EXPR_LIST,SECOND_EXPR_LIST])
+
 
 If ``a_token`` has been defined, the first list will be injected, otherwise the second will be.
 
 Finally, with ``if_set_to/{3,4}``, the injection will depend not only of a token being defined or not, but also onto the value (if any) to which it is associated.
 
-An example with ``if_set_to/3``::
+An example with ``if_set_to/3``:
+
+.. code:: erlang
 
  cond_utils:if_set_to(some_token,42,EXPR_LIST)
 
 will inject ``EXPR_LIST`` iff ``some_token`` has been defined and set to ``42`` (i.e. ``-Dsome_token=42``). As a result, the specified expressions will not be injected if ``some_token`` has been set to another value, or not been defined at all. As usual, instead of a list of expressions, a single expression may be specified.
 
-As for ``if_set_to/4``, in::
+As for ``if_set_to/4``, in:
+
+.. code:: erlang
 
  cond_utils:if_set_to(a_token,a_symbol,FIRST_EXPR_LIST,SECOND_EXPR_LIST)
 
@@ -70,23 +81,31 @@ Controlling assertions
 
 It may be convenient that, depending on a compile-time token (ex: in debug mode, typically triggered thanks to the ``-Ddebug_mode`` compilation option), *assertions* (expressions expected to evaluate to the atom ``true``) are enabled, whereas they shall be dismissed as a whole should that token not be defined.
 
-To define an assertion enabled in debug mode, use ``assert/1``, like in::
+To define an assertion enabled in debug mode, use ``assert/1``, like in:
+
+.. code:: erlang
 
  cond_utils:assert(foo(A,B)=:=10)
 
 Should at runtime the expression specified to ``assert/1`` be evaluated to a value ``V`` that is different from the atom ``true``, a ``{assertion_failed,V}`` exception will be thrown.
 
-More generally, an assertion may be enabled by any token (not ``debug_mode`` only) being defined, like in::
+More generally, an assertion may be enabled by any token (not ``debug_mode`` only) being defined, like in:
+
+.. code:: erlang
 
  cond_utils:assert(my_token,bar(C))
 
 
-Finally, an assertion may be enabled iff a token (here, ``some_token``) has been defined and set to a given value (here, ``42``), like in::
+Finally, an assertion may be enabled iff a token (here, ``some_token``) has been defined and set to a given value (here, ``42``), like in:
+
+.. code:: erlang
 
  cond_utils:assert(some_token,42,not baz() andalso A)
 
 
-This may be useful for example to control, on a per-theme basis, the level of checking performed, like in::
+This may be useful for example to control, on a per-theme basis, the level of checking performed, like in:
+
+.. code:: erlang
 
  cond_utils:assert(debug_gui,1,basic_testing()),
  cond_utils:assert(debug_gui,2,more_involved_testing()),

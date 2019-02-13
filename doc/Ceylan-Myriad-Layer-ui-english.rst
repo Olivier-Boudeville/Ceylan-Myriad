@@ -38,13 +38,17 @@ We also defined the **settings table**, which is a table gathering all the setti
 
 Thanks to these "Matryoshka" APIs and the settings table, the definition of a more generic ``ui`` interface has been possible. It selects automatically, based on available local software dependencies, **the most advanced available backend**, with the most relevant settings.
 
-For example a relevant backend will be automatically selected by::
+For example a relevant backend will be automatically selected by:
+
+.. code:: bash
 
  $ cd src/user-interface/src
  $ make ui_run
 
 
-On the other hand, if wanting to select a specified backend::
+On the other hand, if wanting to select a specified backend:
+
+.. code:: bash
 
  $ make ui_run CMD_LINE_OPT="--use-ui-backend term_ui"
 
@@ -66,7 +70,9 @@ Terminal Text User Interface: ``term_ui``
 
 This is a more advanced textual interface than the previous one, with colors, dialog boxes, support of locales, etc., based on `dialog <https://en.wikipedia.org/wiki/Dialog_(software)>`_ (possibly `whiptail <https://en.wikipedia.org/wiki/Newt_(programming_library)>`_ could be supported as well). Such backend of course must be available on the execution host then.
 
-For example, to secure these prerequisites::
+For example, to secure these prerequisites:
+
+.. code:: bash
 
  # On Arch Linux:
  $ pacman -S dialog

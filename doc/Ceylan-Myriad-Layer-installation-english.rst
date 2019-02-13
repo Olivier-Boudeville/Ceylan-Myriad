@@ -25,7 +25,9 @@ There are various ways of obtaining it (from your distribution, from prebuilt pa
 Getting the Sources
 ===================
 
-This is pretty straightforward::
+This is pretty straightforward:
+
+.. code:: bash
 
  $ git clone https://github.com/Olivier-Boudeville/Ceylan-Myriad.git
 
@@ -37,7 +39,9 @@ This should download in your current directory the full Myriad repository.
 Building Myriad
 ===============
 
-This is as simple as::
+This is as simple as:
+
+.. code:: bash
 
  $ cd Ceylan-Myriad
  $ make all
@@ -53,7 +57,9 @@ One may just run ``make`` by itself in order to list the main available options.
 Testing Myriad
 ==============
 
-Just run, still from the ``Ceylan-Myriad`` directory::
+Just run, still from the ``Ceylan-Myriad`` directory:
+
+.. code:: bash
 
  $ make test
 
@@ -70,7 +76,9 @@ As Myriad is (by default) to enable debug information with a key-based protectio
 
 One way of doing so is, if wanted, to update the default key (see ``DEBUG_INFO_KEY`` in ``GNUmakevars.inc``) and to write in on disk (ex: ``make write-debug-key-file``), and to rebuild Myriad accordingly afterwards (ex: ``make rebuild``).
 
-Then, still from the ``Ceylan-Myriad`` root directory::
+Then, still from the ``Ceylan-Myriad`` root directory:
+
+.. code:: bash
 
  $ make generate-local-plt self-check-against-plt
 
@@ -78,6 +86,8 @@ It will trigger a full type-checking of Myriad, done thanks to `Dialyzer <http:/
 
 This time-consuming phase will complete with a rather long list of notifications. Help us reducing it! These messages are numerous, but we do not think that most of them are so worrying.
 
-Finally, to trigger in one go a full rebuild, testing and type-checking, one may run::
+Finally, to trigger in one go a full rebuild, testing and type-checking, one may run:
+
+.. code:: bash
 
  $ make check
