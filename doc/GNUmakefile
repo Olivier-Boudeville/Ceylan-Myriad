@@ -79,7 +79,13 @@ export-to-mirror:
 
 
 # The modular approach disallows using our tracking script:
-track: $(HTML_TARGET)
+track-local:
+	@echo "Track target disabled, as documentation is not generated from a standalone source file. Prefer the html target." 1>&2
+	@exit 5
+
+
+html: clean-doc $(HTML_TARGET)
+
 
 
 clean: clean-doc
