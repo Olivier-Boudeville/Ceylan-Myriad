@@ -31,16 +31,16 @@
 <tr class="field"><th class="field-name">Contact:</th><td class="field-body"><p class="first">about (dash) myriad (at) esperide (dot) com</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Creation Date:</th><td class="field-body"><p class="first">Wednesday, August 11, 2010</p>
+<tr class="field"><th class="field-name">Creation date:</th><td class="field-body"><p class="first">Wednesday, August 11, 2010</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Lastly Updated:</th><td class="field-body"><p class="first">Sunday, February 10, 2019</p>
+<tr class="field"><th class="field-name">Lastly updated:</th><td class="field-body"><p class="first">Wednesday, February 13, 2019</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Status:</th><td class="field-body"><p class="first">Work in progress</p>
+<tr class="field"><th class="field-name">Status:</th><td class="field-body"><p class="first">Stable</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Version:</th><td class="field-body"><p class="first">1.2.2</p>
+<tr class="field"><th class="field-name">Version:</th><td class="field-body"><p class="first">1.2.4</p>
 </td>
 </tr>
 <tr class="field"><th class="field-name">Dedication:</th><td class="field-body"><p class="first">Users and maintainers of the <tt class="docutils literal">Myriad</tt> layer.</p>
@@ -187,7 +187,7 @@ The next level of information is to read the corresponding <a class="reference e
 <p>If such a service is not provided by the current version of the layer, yet is deemed generic enough, then it should preferably be directly added to the relevant part of the library and called from the code that was needing it.</p>
 <p>Of course, contributions of all sorts are welcome.</p>
 <p>We do our best to test, at least lightly, each element provided. All services offered in a <tt class="docutils literal">foo.erl</tt> file are thus expected to be tested in the companion <tt class="docutils literal">foo_test.erl</tt> file, generally located in the same directory. Once there, running this test is as simple as executing:</p>
-<pre class="literal-block">
+<pre class="code bash literal-block">
 $ make foo_run
 </pre>
 <p>Note that however we have not reached the discipline level of an exhaustive <tt class="docutils literal">eunit</tt> test suite for each service (most of them being almost trivial).</p>
@@ -213,7 +213,7 @@ $ make foo_run
 <div class="section" id="getting-the-sources">
 <h3><a class="toc-backref" href="#id30">Getting the Sources</a></h3>
 <p>This is pretty straightforward:</p>
-<pre class="literal-block">
+<pre class="code bash literal-block">
 $ git clone https://github.com/Olivier-Boudeville/Ceylan-Myriad.git
 </pre>
 <p>This should download in your current directory the full Myriad repository.</p>
@@ -221,8 +221,8 @@ $ git clone https://github.com/Olivier-Boudeville/Ceylan-Myriad.git
 <div class="section" id="building-myriad">
 <span id="build"></span><h3><a class="toc-backref" href="#id31">Building Myriad</a></h3>
 <p>This is as simple as:</p>
-<pre class="literal-block">
-$ cd Ceylan-Myriad
+<pre class="code bash literal-block">
+$ <span class="nb">cd</span> Ceylan-Myriad
 $ make all
 </pre>
 <p>The parallel build of the whole layer (services and tests alike) shall complete successfully (if it is not the case, see our <a class="reference internal" href="#support">support</a> section).</p>
@@ -231,8 +231,8 @@ $ make all
 <div class="section" id="testing-myriad">
 <span id="testing"></span><h3><a class="toc-backref" href="#id32">Testing Myriad</a></h3>
 <p>Just run, still from the <tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt> directory:</p>
-<pre class="literal-block">
-$ make test
+<pre class="code bash literal-block">
+$ make <span class="nb">test</span>
 </pre>
 <p>The testing shall complete successfully (if it is not the case, see our <a class="reference internal" href="#support">support</a> section).</p>
 </div>
@@ -241,13 +241,13 @@ $ make test
 <p>As Myriad is (by default) to enable debug information with a key-based protection of the resulting BEAM files, one should first have such key defined.</p>
 <p>One way of doing so is, if wanted, to update the default key (see <tt class="docutils literal">DEBUG_INFO_KEY</tt> in <tt class="docutils literal">GNUmakevars.inc</tt>) and to write in on disk (ex: <tt class="docutils literal">make <span class="pre">write-debug-key-file</span></tt>), and to rebuild Myriad accordingly afterwards (ex: <tt class="docutils literal">make rebuild</tt>).</p>
 <p>Then, still from the <tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt> root directory:</p>
-<pre class="literal-block">
+<pre class="code bash literal-block">
 $ make generate-local-plt self-check-against-plt
 </pre>
 <p>It will trigger a full type-checking of Myriad, done thanks to <a class="reference external" href="http://erlang.org/doc/man/dialyzer.html">Dialyzer</a>.</p>
 <p>This time-consuming phase will complete with a rather long list of notifications. Help us reducing it! These messages are numerous, but we do not think that most of them are so worrying.</p>
 <p>Finally, to trigger in one go a full rebuild, testing and type-checking, one may run:</p>
-<pre class="literal-block">
+<pre class="code bash literal-block">
 $ make check
 </pre>
 <p></p>
@@ -349,22 +349,19 @@ $ make check
 <div class="section" id="data-management-services">
 <span id="data-management"></span><h3><a class="toc-backref" href="#id38">Data-Management Services</a></h3>
 <p id="table-type">Some generic <strong>data-structures</strong>, in addition to the ones provided built-in with Erlang, are defined in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/data-management</span></tt>, notably:</p>
-<ul>
-<li><p class="first">a set of <strong>associative tables</strong>, with a rather complete interface (to create,
+<ul class="simple">
+<li>a set of <strong>associative tables</strong>, with a rather complete interface (to create,
 update, enrich, search, query, list, map, fold, merge, display, etc.) and
-various implementations thereof, tests and benchmarks, in:</p>
-<pre class="literal-block">
-{hash,lazy_hash,list_,tracked_hash,map_hash}table.erl
+various implementations thereof, tests and benchmarks, in:</li>
+</ul>
+<pre class="code erlang literal-block">
+<span class="p">{</span><span class="nb">hash</span><span class="p">,</span><span class="n">lazy_hash</span><span class="p">,</span><span class="n">list_</span><span class="p">,</span><span class="n">tracked_hash</span><span class="p">,</span><span class="n">map_hash</span><span class="p">}</span><span class="n">table</span><span class="p">.</span><span class="n">erl</span>
 </pre>
-</li>
-<li><p class="first">a <tt class="docutils literal">table</tt> <strong>pseudo-module</strong> to abstract them out from the user's point of view; note that this is a fully virtual module, in the sense that neither <tt class="docutils literal">table.erl</tt> nor <tt class="docutils literal">table.beam</tt> exist (the <tt class="docutils literal">Myriad</tt> parse transform replaces a call to the <tt class="docutils literal">table</tt> module by, currently, a call to the <tt class="docutils literal">map_table</tt> module; so, in order to consult the <tt class="docutils literal">table</tt> API, please refer to <tt class="docutils literal">map_table.erl</tt>)</p>
-</li>
-<li><p class="first">a way of <strong>generating a read-only associative table</strong> whose key/value pairs can be read from any number (potentially extremely large) of readers very efficiently (<tt class="docutils literal">const_table.erl</tt>)</p>
-</li>
-<li><p class="first">a specific support for <strong>other datatypes</strong> (<tt class="docutils literal">pair.erl</tt>, <tt class="docutils literal">option_list.erl</tt>, <tt class="docutils literal">preferences.erl</tt>, <tt class="docutils literal">tree.erl</tt>)</p>
-</li>
-<li><p class="first">a first-level, optional support of the <a class="reference external" href="https://www.hdfgroup.org/HDF5/">HDF5</a> file format (based on, and thus requiring, the <a class="reference external" href="https://github.com/Olivier-Boudeville-EDF/erlhdf5">enhanced fork</a> we made of <a class="reference external" href="https://github.com/RomanShestakov/erlhdf5">erlhdf5</a>)</p>
-</li>
+<ul class="simple">
+<li>a <tt class="docutils literal">table</tt> <strong>pseudo-module</strong> to abstract them out from the user's point of view; note that this is a fully virtual module, in the sense that neither <tt class="docutils literal">table.erl</tt> nor <tt class="docutils literal">table.beam</tt> exist (the <tt class="docutils literal">Myriad</tt> parse transform replaces a call to the <tt class="docutils literal">table</tt> module by, currently, a call to the <tt class="docutils literal">map_table</tt> module; so, in order to consult the <tt class="docutils literal">table</tt> API, please refer to <tt class="docutils literal">map_table.erl</tt>)</li>
+<li>a way of <strong>generating a read-only associative table</strong> whose key/value pairs can be read from any number (potentially extremely large) of readers very efficiently (<tt class="docutils literal">const_table.erl</tt>)</li>
+<li>a specific support for <strong>other datatypes</strong> (<tt class="docutils literal">pair.erl</tt>, <tt class="docutils literal">option_list.erl</tt>, <tt class="docutils literal">preferences.erl</tt>, <tt class="docutils literal">tree.erl</tt>)</li>
+<li>a first-level, optional support of the <a class="reference external" href="https://www.hdfgroup.org/HDF5/">HDF5</a> file format (based on, and thus requiring, the <a class="reference external" href="https://github.com/Olivier-Boudeville-EDF/erlhdf5">enhanced fork</a> we made of <a class="reference external" href="https://github.com/RomanShestakov/erlhdf5">erlhdf5</a>)</li>
 </ul>
 <p>Finally, the <tt class="docutils literal">void/0</tt> and <tt class="docutils literal">maybe/1</tt> types are supported (thanks to the Myriad parse-transform).</p>
 <p></p>
@@ -383,13 +380,13 @@ various implementations thereof, tests and benchmarks, in:</p>
 <h4><a class="toc-backref" href="#id41">Using tokens to enable code injection</a></h4>
 <p>Various primitives for <em>code injection</em> are available in the <tt class="docutils literal">cond_utils</tt> (mostly pseudo-) module.</p>
 <p><tt class="docutils literal">if_debug/1</tt>, for example used as:</p>
-<pre class="literal-block">
-cond_utils:if_debug([A=B+1,io:format(&quot;Hello ~p&quot;,[A])])
+<pre class="code erlang literal-block">
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_debug</span><span class="p">([</span><span class="nv">A</span><span class="o">=</span><span class="nv">B</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&quot;Hello </span><span class="si">~p</span><span class="s">&quot;</span><span class="p">,[</span><span class="nv">A</span><span class="p">])])</span>
 </pre>
 <p>will enable the specified code (either an arbitrarily nested expression or a list thereof) iff (if and only if) the <tt class="docutils literal">debug_mode</tt> token has been defined.</p>
 <p>Similarly, <tt class="docutils literal">if_defined/2</tt>, for example used as:</p>
-<pre class="literal-block">
-cond_utils:if_defined(my_token,[EXPR1,EXPR2,...])
+<pre class="code erlang literal-block">
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="n">my_token</span><span class="p">,[</span><span class="nv">EXPR1</span><span class="p">,</span><span class="nv">EXPR2</span><span class="p">,...])</span>
 </pre>
 <p>will inject <tt class="docutils literal">EXPR1</tt>, <tt class="docutils literal">EXPR2</tt>, etc. if <tt class="docutils literal">my_token</tt> has been defined (any value associated to this token value will be ignored), otherwise the <tt class="docutils literal">if_defined/2</tt> call will be removed as a whole <a class="footnote-reference" href="#id14" id="id13">[5]</a>.</p>
 <table class="docutils footnote" frame="void" id="id14" rules="none">
@@ -399,19 +396,19 @@ cond_utils:if_defined(my_token,[EXPR1,EXPR2,...])
 </tbody>
 </table>
 <p>As for <tt class="docutils literal">if_defined/3</tt>, it supports two lists of expressions:</p>
-<pre class="literal-block">
-cond_utils:if_defined(a_token,FIRST_EXPR_LIST,SECOND_EXPR_LIST])
+<pre class="code erlang literal-block">
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="n">a_token</span><span class="p">,</span><span class="nv">FIRST_EXPR_LIST</span><span class="p">,</span><span class="nv">SECOND_EXPR_LIST</span><span class="p">])</span>
 </pre>
 <p>If <tt class="docutils literal">a_token</tt> has been defined, the first list will be injected, otherwise the second will be.</p>
 <p>Finally, with <tt class="docutils literal"><span class="pre">if_set_to/{3,4}</span></tt>, the injection will depend not only of a token being defined or not, but also onto the value (if any) to which it is associated.</p>
 <p>An example with <tt class="docutils literal">if_set_to/3</tt>:</p>
-<pre class="literal-block">
-cond_utils:if_set_to(some_token,42,EXPR_LIST)
+<pre class="code erlang literal-block">
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_set_to</span><span class="p">(</span><span class="n">some_token</span><span class="p">,</span><span class="mi">42</span><span class="p">,</span><span class="nv">EXPR_LIST</span><span class="p">)</span>
 </pre>
 <p>will inject <tt class="docutils literal">EXPR_LIST</tt> iff <tt class="docutils literal">some_token</tt> has been defined and set to <tt class="docutils literal">42</tt> (i.e. <tt class="docutils literal"><span class="pre">-Dsome_token=42</span></tt>). As a result, the specified expressions will not be injected if <tt class="docutils literal">some_token</tt> has been set to another value, or not been defined at all. As usual, instead of a list of expressions, a single expression may be specified.</p>
 <p>As for <tt class="docutils literal">if_set_to/4</tt>, in:</p>
-<pre class="literal-block">
-cond_utils:if_set_to(a_token,a_symbol,FIRST_EXPR_LIST,SECOND_EXPR_LIST)
+<pre class="code erlang literal-block">
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_set_to</span><span class="p">(</span><span class="n">a_token</span><span class="p">,</span><span class="n">a_symbol</span><span class="p">,</span><span class="nv">FIRST_EXPR_LIST</span><span class="p">,</span><span class="nv">SECOND_EXPR_LIST</span><span class="p">)</span>
 </pre>
 <p><tt class="docutils literal">FIRST_EXPR_LIST</tt> will be injected iff <tt class="docutils literal">a_token</tt> has been defined and set to <tt class="docutils literal">a_symbol</tt>, otherwise <tt class="docutils literal">SECOND_EXPR_LIST</tt> will be.</p>
 </div>
@@ -419,23 +416,23 @@ cond_utils:if_set_to(a_token,a_symbol,FIRST_EXPR_LIST,SECOND_EXPR_LIST)
 <h4><a class="toc-backref" href="#id42">Controlling assertions</a></h4>
 <p>It may be convenient that, depending on a compile-time token (ex: in debug mode, typically triggered thanks to the <tt class="docutils literal"><span class="pre">-Ddebug_mode</span></tt> compilation option), <em>assertions</em> (expressions expected to evaluate to the atom <tt class="docutils literal">true</tt>) are enabled, whereas they shall be dismissed as a whole should that token not be defined.</p>
 <p>To define an assertion enabled in debug mode, use <tt class="docutils literal">assert/1</tt>, like in:</p>
-<pre class="literal-block">
-cond_utils:assert(foo(A,B)=:=10)
+<pre class="code erlang literal-block">
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">foo</span><span class="p">(</span><span class="nv">A</span><span class="p">,</span><span class="nv">B</span><span class="p">)</span><span class="o">=:=</span><span class="mi">10</span><span class="p">)</span>
 </pre>
 <p>Should at runtime the expression specified to <tt class="docutils literal">assert/1</tt> be evaluated to a value <tt class="docutils literal">V</tt> that is different from the atom <tt class="docutils literal">true</tt>, a <tt class="docutils literal">{assertion_failed,V}</tt> exception will be thrown.</p>
 <p>More generally, an assertion may be enabled by any token (not <tt class="docutils literal">debug_mode</tt> only) being defined, like in:</p>
-<pre class="literal-block">
-cond_utils:assert(my_token,bar(C))
+<pre class="code erlang literal-block">
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">my_token</span><span class="p">,</span><span class="n">bar</span><span class="p">(</span><span class="nv">C</span><span class="p">))</span>
 </pre>
 <p>Finally, an assertion may be enabled iff a token (here, <tt class="docutils literal">some_token</tt>) has been defined and set to a given value (here, <tt class="docutils literal">42</tt>), like in:</p>
-<pre class="literal-block">
-cond_utils:assert(some_token,42,not baz() andalso A)
+<pre class="code erlang literal-block">
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">some_token</span><span class="p">,</span><span class="mi">42</span><span class="p">,</span><span class="ow">not</span> <span class="n">baz</span><span class="p">()</span> <span class="ow">andalso</span> <span class="nv">A</span><span class="p">)</span>
 </pre>
 <p>This may be useful for example to control, on a per-theme basis, the level of checking performed, like in:</p>
-<pre class="literal-block">
-cond_utils:assert(debug_gui,1,basic_testing()),
-cond_utils:assert(debug_gui,2,more_involved_testing()),
-cond_utils:assert(debug_gui,3,paranoid_testing()),
+<pre class="code erlang literal-block">
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">debug_gui</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">basic_testing</span><span class="p">()),</span>
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">debug_gui</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">more_involved_testing</span><span class="p">()),</span>
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">debug_gui</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="n">paranoid_testing</span><span class="p">()),</span>
 </pre>
 <p>Note that, in this case, a given level of checking should include the one just below it (ex: <tt class="docutils literal">more_involved_testing()</tt> should call <tt class="docutils literal">basic_testing()</tt>).</p>
 </div>
@@ -472,13 +469,13 @@ cond_utils:assert(debug_gui,3,paranoid_testing()),
 <p>We also defined the <strong>settings table</strong>, which is a table gathering all the settings specified by the developer that the user interface does its best to accommodate.</p>
 <p>Thanks to these &quot;Matryoshka&quot; APIs and the settings table, the definition of a more generic <tt class="docutils literal">ui</tt> interface has been possible. It selects automatically, based on available local software dependencies, <strong>the most advanced available backend</strong>, with the most relevant settings.</p>
 <p>For example a relevant backend will be automatically selected by:</p>
-<pre class="literal-block">
-$ cd src/user-interface/src
+<pre class="code bash literal-block">
+$ <span class="nb">cd</span> src/user-interface/src
 $ make ui_run
 </pre>
 <p>On the other hand, if wanting to select a specified backend:</p>
-<pre class="literal-block">
-$ make ui_run CMD_LINE_OPT=&quot;--use-ui-backend term_ui&quot;
+<pre class="code bash literal-block">
+$ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span class="s2">&quot;--use-ui-backend term_ui&quot;</span>
 </pre>
 <p>(see the corresponding <tt class="docutils literal">GNUmakefile</tt> for more information)</p>
 </div>
@@ -491,12 +488,12 @@ $ make ui_run CMD_LINE_OPT=&quot;--use-ui-backend term_ui&quot;
 <h4><a class="toc-backref" href="#id47">Terminal Text User Interface: <tt class="docutils literal">term_ui</tt></a></h4>
 <p>This is a more advanced textual interface than the previous one, with colors, dialog boxes, support of locales, etc., based on <a class="reference external" href="https://en.wikipedia.org/wiki/Dialog_(software)">dialog</a> (possibly <a class="reference external" href="https://en.wikipedia.org/wiki/Newt_(programming_library)">whiptail</a> could be supported as well). Such backend of course must be available on the execution host then.</p>
 <p>For example, to secure these prerequisites:</p>
-<pre class="literal-block">
-# On Arch Linux:
-$ pacman -S dialog
+<pre class="code bash literal-block">
+<span class="c1"># On Arch Linux:
+</span>$ pacman -S dialog
 
-# On Debian-like distros:
-$ apt-get install dialog
+<span class="c1"># On Debian-like distros:
+</span>$ apt-get install dialog
 </pre>
 <p>Located in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/user-interface/textual</span></tt>, see <tt class="docutils literal">term_ui.erl</tt> for its implementation, and <tt class="docutils literal">term_ui_test.erl</tt> for an example of its use.</p>
 </div>
@@ -789,16 +786,16 @@ $ apt-get install dialog
 <div class="section" id="checking-units">
 <h5><a class="toc-backref" href="#id59">Checking Units</a></h5>
 <p>A typical example:</p>
-<pre class="literal-block">
-1&gt; MyInputValue=&quot;-24 mS.m^-1&quot;.
-2&gt; {Value,Unit}=unit_utils:parse_value_with_unit(MyInputValue).
-3&gt; io:format(&quot;Corresponding value: ~f.~n&quot;, [ Value ] ).
-Corresponding value: -24.0.
-4&gt; io:format(&quot;Corresponding unit: ~s.~n&quot;,
-   [unit_utils:unit_to_string(Unit)]).
-&quot;s^3.A^2.g^-1.m^-3, of order -6&quot;
-5&gt; unit_utils:value_with_unit_to_string(Value,Unit).
-&quot;-2.4e-5 s^3.A^2.g^-1.m^-3&quot;
+<pre class="code erlang literal-block">
+<span class="mi">1</span><span class="o">&gt;</span> <span class="nv">MyInputValue</span><span class="o">=</span><span class="s">&quot;-24 mS.m^-1&quot;</span><span class="p">.</span>
+<span class="mi">2</span><span class="o">&gt;</span> <span class="p">{</span><span class="nv">Value</span><span class="p">,</span><span class="nv">Unit</span><span class="p">}</span><span class="o">=</span><span class="nn">unit_utils</span><span class="p">:</span><span class="nf">parse_value_with_unit</span><span class="p">(</span><span class="nv">MyInputValue</span><span class="p">).</span>
+<span class="mi">3</span><span class="o">&gt;</span> <span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&quot;Corresponding value: </span><span class="si">~f</span><span class="s">.</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span> <span class="p">[</span> <span class="nv">Value</span> <span class="p">]</span> <span class="p">).</span>
+<span class="nv">Corresponding</span> <span class="nn">value</span><span class="p">:</span> <span class="o">-</span><span class="mi">24</span><span class="p">.</span><span class="mi">0</span><span class="p">.</span>
+<span class="mi">4</span><span class="o">&gt;</span> <span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&quot;Corresponding unit: </span><span class="si">~s</span><span class="s">.</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span>
+   <span class="p">[</span><span class="nn">unit_utils</span><span class="p">:</span><span class="nf">unit_to_string</span><span class="p">(</span><span class="nv">Unit</span><span class="p">)]).</span>
+<span class="s">&quot;s^3.A^2.g^-1.m^-3, of order -6&quot;</span>
+<span class="mi">5</span><span class="o">&gt;</span> <span class="nn">unit_utils</span><span class="p">:</span><span class="nf">value_with_unit_to_string</span><span class="p">(</span><span class="nv">Value</span><span class="p">,</span><span class="nv">Unit</span><span class="p">).</span>
+<span class="s">&quot;-2.4e-5 s^3.A^2.g^-1.m^-3&quot;</span>
 </pre>
 </div>
 </div>
@@ -831,17 +828,19 @@ Corresponding value: -24.0.
 <p>Various related tools are very convenient in order to interact with a SQLite database, including <tt class="docutils literal">sqlitebrowser</tt> and <tt class="docutils literal">sqliteman</tt>.</p>
 <p>On Arch Linux, one can thus use: <tt class="docutils literal">pacman <span class="pre">-Sy</span> sqlite sqlitebrowser sqliteman</tt>.</p>
 <p>Testing the back-end:</p>
-<pre class="literal-block">
+<pre class="code bash literal-block">
 $ sqlite3 my_test
-SQLite version 3.13.0 2016-05-18 10:57:30
-Enter &quot;.help&quot; for usage hints.
-sqlite&gt; create table tblone(one varchar(10), two smallint);
-sqlite&gt; insert into tblone values('helloworld',20);
-sqlite&gt; insert into tblone values('my_myriad', 30);
-sqlite&gt; select * from tblone;
-helloworld|20
-my_myriad|30
-sqlite&gt; .quit
+</pre>
+<pre class="code sql literal-block">
+<span class="n">SQLite</span> <span class="k">version</span> <span class="mi">3</span><span class="p">.</span><span class="mi">13</span><span class="p">.</span><span class="mi">0</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">18</span> <span class="mi">10</span><span class="p">:</span><span class="mi">57</span><span class="p">:</span><span class="mi">30</span>
+<span class="n">Enter</span> <span class="ss">&quot;.help&quot;</span> <span class="k">for</span> <span class="k">usage</span> <span class="n">hints</span><span class="p">.</span>
+<span class="n">sqlite</span><span class="o">&gt;</span> <span class="k">create</span> <span class="k">table</span> <span class="n">tblone</span><span class="p">(</span><span class="n">one</span> <span class="nb">varchar</span><span class="p">(</span><span class="mi">10</span><span class="p">),</span> <span class="n">two</span> <span class="nb">smallint</span><span class="p">);</span>
+<span class="n">sqlite</span><span class="o">&gt;</span> <span class="k">insert</span> <span class="k">into</span> <span class="n">tblone</span> <span class="k">values</span><span class="p">(</span><span class="s1">'helloworld'</span><span class="p">,</span><span class="mi">20</span><span class="p">);</span>
+<span class="n">sqlite</span><span class="o">&gt;</span> <span class="k">insert</span> <span class="k">into</span> <span class="n">tblone</span> <span class="k">values</span><span class="p">(</span><span class="s1">'my_myriad'</span><span class="p">,</span> <span class="mi">30</span><span class="p">);</span>
+<span class="n">sqlite</span><span class="o">&gt;</span> <span class="k">select</span> <span class="o">*</span> <span class="k">from</span> <span class="n">tblone</span><span class="p">;</span>
+<span class="n">helloworld</span><span class="o">|</span><span class="mi">20</span>
+<span class="n">my_myriad</span><span class="o">|</span><span class="mi">30</span>
+<span class="n">sqlite</span><span class="o">&gt;</span> <span class="p">.</span><span class="n">quit</span>
 </pre>
 <p>A file <tt class="docutils literal">my_test</tt>, identified as <tt class="docutils literal">SQLite 3.x database</tt>, must have been created, and can be safely removed.</p>
 </div>
@@ -857,50 +856,50 @@ sqlite&gt; .quit
 <p>We finally preferred <tt class="docutils literal"><span class="pre">erlang-sqlite3</span></tt>.</p>
 <p>By default we consider that this back-end has been installed in <tt class="docutils literal"><span class="pre">~/Software/erlang-sqlite3</span></tt>. The <tt class="docutils literal">SQLITE3_BASE</tt> variable in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/GNUmakevars.inc</span></tt> can be set to match any other install path.</p>
 <p>Recommended installation process:</p>
-<pre class="literal-block">
+<pre class="code bash literal-block">
 $ mkdir ~/Software
-$ cd ~/Software
+$ <span class="nb">cd</span> ~/Software
 $ git clone https://github.com/alexeyr/erlang-sqlite3.git
-Cloning into 'erlang-sqlite3'...
-remote: Counting objects: 1786, done.
-remote: Total 1786 (delta 0), reused 0 (delta 0), pack-reused 1786
-Receiving objects: 100% (1786/1786), 3.24 MiB | 570.00 KiB/s, done.
-Resolving deltas: 100% (865/865), done.
-Checking connectivity... done.
-$ cd erlang-sqlite3/
+Cloning into <span class="s1">'erlang-sqlite3'</span>...
+remote: Counting objects: <span class="m">1786</span>, <span class="k">done</span>.
+remote: Total <span class="m">1786</span> <span class="o">(</span>delta <span class="m">0</span><span class="o">)</span>, reused <span class="m">0</span> <span class="o">(</span>delta <span class="m">0</span><span class="o">)</span>, pack-reused <span class="m">1786</span>
+Receiving objects: <span class="m">100</span>% <span class="o">(</span><span class="m">1786</span>/1786<span class="o">)</span>, <span class="m">3</span>.24 MiB <span class="p">|</span> <span class="m">570</span>.00 KiB/s, <span class="k">done</span>.
+Resolving deltas: <span class="m">100</span>% <span class="o">(</span><span class="m">865</span>/865<span class="o">)</span>, <span class="k">done</span>.
+Checking connectivity... <span class="k">done</span>.
+$ <span class="nb">cd</span> erlang-sqlite3/
 $ make
 rm -rf deps ebin priv/*.so doc/* .eunit/* c_src/*.o config.tmp
 rm -f config.tmp
-echo &quot;normal&quot; &gt; config.tmp
-./rebar get-deps compile
-==&gt; erlang-sqlite3 (get-deps)
-==&gt; erlang-sqlite3 (compile)
+<span class="nb">echo</span> <span class="s2">&quot;normal&quot;</span> &gt; config.tmp
+./rebar get-deps <span class="nv">compile</span>
+<span class="o">==</span>&gt; erlang-sqlite3 <span class="o">(</span>get-deps<span class="o">)</span>
+<span class="o">==</span>&gt; erlang-sqlite3 <span class="o">(</span>compile<span class="o">)</span>
 Compiled src/sqlite3_lib.erl
 Compiled src/sqlite3.erl
 Compiling c_src/sqlite3_drv.c
-[...]
+<span class="o">[</span>...<span class="o">]</span>
 </pre>
 <p>Testing the binding:</p>
-<pre class="literal-block">
-make test
-./rebar get-deps compile eunit
-==&gt; erlang-sqlite3 (get-deps)
-==&gt; erlang-sqlite3 (compile)
-==&gt; erlang-sqlite3 (eunit)
+<pre class="code bash literal-block">
+make <span class="nb">test</span>
+./rebar get-deps compile <span class="nv">eunit</span>
+<span class="o">==</span>&gt; erlang-sqlite3 <span class="o">(</span>get-deps<span class="o">)</span>
+<span class="o">==</span>&gt; erlang-sqlite3 <span class="o">(</span>compile<span class="o">)</span>
+<span class="o">==</span>&gt; erlang-sqlite3 <span class="o">(</span>eunit<span class="o">)</span>
 Compiled src/sqlite3.erl
 Compiled src/sqlite3_lib.erl
 Compiled test/sqlite3_test.erl
-======================== EUnit ========================
-module 'sqlite3_test'
-  sqlite3_test: all_test_ (basic_functionality)...[0.002 s] ok
-  sqlite3_test: all_test_ (table_info)...ok
-  [...]
+<span class="o">========================</span> <span class="nv">EUnit</span> <span class="o">========================</span>
+module <span class="s1">'sqlite3_test'</span>
+  sqlite3_test: all_test_ <span class="o">(</span>basic_functionality<span class="o">)</span>...<span class="o">[</span><span class="m">0</span>.002 s<span class="o">]</span> ok
+  sqlite3_test: all_test_ <span class="o">(</span>table_info<span class="o">)</span>...ok
+  <span class="o">[</span>...<span class="o">]</span>
   sqlite3_lib: delete_sql_test...ok
   sqlite3_lib: drop_table_sql_test...ok
-  [done in 0.024 s]
-  module 'sqlite3'
-=======================================================
-All 30 tests passed.
+  <span class="o">[</span><span class="k">done</span> in <span class="m">0</span>.024 s<span class="o">]</span>
+  module <span class="s1">'sqlite3'</span>
+<span class="o">=======================================================</span>
+All <span class="m">30</span> tests passed.
 Cover analysis: ~/Software/erlang-sqlite3/.eunit/index.html
 </pre>
 <p>Pretty reassuring.</p>
@@ -910,20 +909,20 @@ Cover analysis: ~/Software/erlang-sqlite3/.eunit/index.html
 <p>To enable this support, once the corresponding back-end (see <a class="reference internal" href="#database-back-end">Database Back-end</a>) and binding (see <a class="reference internal" href="#erlang-binding">Erlang Binding</a>) have been installed, the <tt class="docutils literal">USE_SQLITE</tt> variable should be set to <tt class="docutils literal">true</tt> in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/GNUmakevars.inc</span></tt> and <tt class="docutils literal">Myriad</tt> shall be rebuilt.</p>
 <p>Then the corresponding implementation (<tt class="docutils literal">sql_support.erl</tt>) and test (<tt class="docutils literal">sql_support_test.erl</tt>), both in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/data-management</span></tt>, will be built (use <tt class="docutils literal">make clean all</tt> from the root of <tt class="docutils literal">Myriad</tt>) and able to be run (execute <tt class="docutils literal">make sql_support_run</tt> for that).</p>
 <p>Testing it:</p>
-<pre class="literal-block">
-$ cd Ceylan-Myriad/src/data-management
+<pre class="code bash literal-block">
+$ <span class="nb">cd</span> Ceylan-Myriad/src/data-management
 $ make sql_support_run
        Compiling module sql_support.erl
        Compiling module sql_support_test.erl
-       Running unitary test sql_support_run
- [...]
+       Running unitary <span class="nb">test</span> sql_support_run
+ <span class="o">[</span>...<span class="o">]</span>
  --&gt; Testing module sql_support_test.
- Starting SQL support (based on SQLite3).
- [...]
+ Starting SQL support <span class="o">(</span>based on SQLite3<span class="o">)</span>.
+ <span class="o">[</span>...<span class="o">]</span>
  Closing database.
  Stopping SQL support.
  --&gt; Successful end of test.
- (test finished, interpreter halted)
+ <span class="o">(</span><span class="nb">test</span> finished, interpreter halted<span class="o">)</span>
 </pre>
 <p>Looks good.</p>
 </div>
