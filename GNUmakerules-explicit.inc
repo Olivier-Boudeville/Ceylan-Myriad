@@ -112,7 +112,7 @@ all-recurse: $(BEAM_FILES)
 
 # To interpret more easily compilation errors during development:
 build-debug:
-	@$(MAKE) -s all CORE_COUNT=1 | more
+	@$(MAKE) -s all CORE_COUNT=1 | less
 
 
 rebuild: clean all

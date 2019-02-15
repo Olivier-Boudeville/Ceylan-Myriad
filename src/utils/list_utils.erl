@@ -35,6 +35,12 @@
 -module(list_utils).
 
 
+% Note: if having an (at least mostly) constant list, possibly containing a
+% large number of elements, and on which the main operation that shall be fast
+% is element look-up (telling whether or not a given element is in the list),
+% then the set type shall be preferred (see set_utils.erl for that).
+
+
 
 % For list_impl:
 -include("data_types.hrl").

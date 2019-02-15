@@ -534,7 +534,7 @@ transform_body( BodyExprs, Transforms )
 
 				{ value, BodyTransformFun } ->
 
-					% Returns directly { NewBodyPair, NewTransforms }:
+					% Returns directly { NewBody, NewTransforms }:
 					NewBodyPair = BodyTransformFun( BodyExprs, Transforms ),
 
 					%ast_utils:display_debug(

@@ -110,6 +110,9 @@ run() ->
 	"/home/lisa/tube" = file_utils:normalise_path(
 						  "/home/garfield/../lisa/./src/.././tube" ),
 
+	"../homer/bart.beam" = file_utils:normalise_path(
+							 "../src/../homer/./bart.beam" ),
+
 
 	LeafName = "hello.txt",
 

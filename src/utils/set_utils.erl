@@ -48,7 +48,7 @@
 
 % Set-related operations are:
 %
--export([ new/0, singleton/1, add/2, addAsNew/2, add_element_list/2,
+-export([ new/0, new/1, singleton/1, add/2, addAsNew/2, add_element_list/2,
 		  union/2, union/1, intersection/2, intersection/1,
 		  difference/2, is_set/1, check_set/1, is_subset/2,
 		  from_list/1, to_list/1,
@@ -95,7 +95,6 @@
 % The purpose is to provide a set-like container, iterable yet *not preserving
 % order*, able to perform some operations (typically: element look-up) more
 % efficiently than plain lists, especially when the number of elements becomes
-
 % significant.
 
 
@@ -105,6 +104,15 @@
 -spec new() -> set().
 new() ->
 	?set_impl:new().
+
+
+
+% Returns a new set, containing the elements of specified list (possibly
+% unordered and containing duplicates).
+%
+-spec new( [ element() ] ) -> set().
+new( ElementList ) ->
+	?set_impl:from_list( ElementList ).
 
 
 
@@ -153,7 +161,7 @@ addAsNew( Element, Set ) ->
 %
 -spec add_element_list( list(), set() ) -> set().
 %add_element_list( _PlainList=[], Set ) ->
-%Set;
+%  Set;
 
 %add_element_list( _PlainList=[ H | T ], Set ) ->
 %NewSet = ?set_impl:add_element( H, SetImplSet ),
@@ -339,10 +347,10 @@ safe_delete( Element, Set ) ->
 
 
 
-% Returns a textual representation of specified set.
-%
+% Returns a textual representation of the specified set.
 -spec to_string( set() ) -> string().
 to_string( Set ) ->
+
 	case ?set_impl:size( Set ) of
 
 		0 ->
@@ -357,7 +365,7 @@ to_string( Set ) ->
 			ElemStrings = [ text_utils:format( "~p", [ E ] )
 							|| E <- ?set_impl:to_list( Set ) ],
 
-			text_utils:format( "set containing following ~B elements:~s",
+			text_utils:format( "set containing following ~B elements: ~s",
 					[ S, text_utils:strings_to_string( ElemStrings ) ] )
 
 	end.

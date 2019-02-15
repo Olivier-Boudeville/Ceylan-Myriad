@@ -1627,7 +1627,7 @@ normalise_path( _Path="." ) ->
 
 normalise_path( Path ) when is_list( Path ) ->
 
-	%text_utils:debug_fmt( "Normalising path '~p'.~n", [ Path ] ),
+	%trace_utils:debug_fmt( "Normalising path '~s'.", [ Path ] ),
 
 	ElemList = filename:split( Path ),
 
@@ -1648,8 +1648,17 @@ filter_elems( _ElemList=[], Acc ) ->
 filter_elems( _ElemList=[ "." | T ], Acc ) ->
 	filter_elems( T, Acc );
 
-filter_elems( _ElemList=[ ".." | T ], Acc ) ->
-	filter_elems( T, tl( Acc ) );
+% We can remove one level iff there is at least one:
+filter_elems( _ElemList=[ ".." | T ], _Acc=[ _ | AccT ] ) ->
+	filter_elems( T, AccT );
+
+% No level left, so this ".." should not be filtered out:
+%
+% (however this clause is a special case of the next, hence can be commented
+% out)
+%
+%filter_elems( _ElemList=[ PathElement=".." | T ], Acc ) ->
+%	filter_elems( T, [ PathElement | Acc ] );
 
 filter_elems( _ElemList=[ E | T ], Acc ) ->
 	filter_elems( T, [ E | Acc ] ).
