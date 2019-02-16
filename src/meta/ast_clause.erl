@@ -43,6 +43,8 @@
 % - try clauses
 % - catch clauses
 %
+% One may note they actually all obey the same structure (same quintuplet).
+%
 -type ast_clause() :: ast_function_clause() | ast_if_clause()
 					| ast_case_clause() | ast_try_clause()
 					| ast_catch_clause().
@@ -120,7 +122,8 @@
 
 
 
--export([ transform_function_clauses/2, transform_function_clause/2,
+-export([ transform_clause_default/2,
+		  transform_function_clauses/2, transform_function_clause/2,
 
 		  transform_try_clauses/2, transform_try_clause/2,
 		  transform_catch_clauses/2, transform_catch_clause/2,
@@ -191,13 +194,61 @@ transform_clauses_generic( Clauses, Transforms ) ?rec_guard ->
 
 
 
+% Transforms a single clause, generic version.
 -spec transform_clause_generic( ast_clause(), ast_transforms() ) ->
-									  { [ ast_clause() ], ast_transforms() }.
-transform_clause_generic(
-  Clause={ 'clause', Line, HeadPatternSequence, GuardSequence, BodyExprs },
-  Transforms ) ?rec_guard ->
+									  { ast_clause(), ast_transforms() }.
+transform_clause_generic( Clause, Transforms ) ?rec_guard ->
 
 	?display_trace( "Transforming clause:~n~p~n", [ Clause ] ),
+
+	% Maybe a clause replacement function has been defined?
+	case Transforms#ast_transforms.transform_table of
+
+		undefined ->
+
+			NewClausePair = transform_clause_default( Clause, Transforms ),
+
+			%ast_utils:display_debug(
+			%  "returning directly transformed clause pair (case 1):~n~p",
+			%  [ NewClausePair ] ),
+
+			NewClausePair;
+
+
+		TransformTable ->
+			case ?table:lookupEntry( 'clause', TransformTable ) of
+
+				key_not_found ->
+					NewClausePair = transform_clause_default( Clause,
+															  Transforms ),
+
+					%ast_utils:display_debug( "returning directly transformed "
+					%                         "clause pair (case 2):~n~p",
+					%                         [ NewClausePair ] ),
+
+					NewClausePair;
+
+				{ value, ClauseTransformFun } ->
+
+					% Returns directly { NewClause, NewTransforms }:
+					NewClausePair = ClauseTransformFun( Clause, Transforms ),
+
+					%ast_utils:display_debug(
+					%  "returning fun-transformed clause pair (case 3):~n~p",
+					%  [ NewClausePair ] ),
+
+					NewClausePair
+
+			end
+
+	end.
+
+
+
+% Default transformation applied to function clauses.
+transform_clause_default(
+  _Clause={ 'clause', Line, HeadPatternSequence, GuardSequence, BodyExprs },
+  Transforms ) ->
 
 	?display_trace( "Transforming head patterns." ),
 
@@ -231,11 +282,11 @@ transform_clause_generic(
 
 
 
+
 % Function clause section.
 
 
 % Transforms specified list of function clauses.
-%
 -spec transform_function_clauses( [ ast_function_clause() ],
 		 ast_transforms() ) -> { [ ast_function_clause() ], ast_transforms() }.
 transform_function_clauses( FunctionClauses, Transforms ) ?rec_guard ->
