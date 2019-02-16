@@ -188,13 +188,22 @@
 
 % Lists the contexts that may trigger a transformation function:
 -type transform_trigger() :: ast_expression:expression_kind()
+							 | 'clause'
 							 | 'body'.
 
 
+% User-supplied function to define how AST clauses shall be transformed:
+-type clause_transform_function() ::
+		fun( ( ast_clause(), ast_transforms() ) ->
+				   { ast_clause(), ast_transforms() } ).
+
+
 % User-supplied function to define how AST bodies shall be transformed:
-%
 -type body_transform_function() :: fun( ( ast_body(), ast_transforms() ) ->
 											{ ast_body(), ast_transforms() } ).
+
+
+
 
 
 % User-supplied function to define how expressions shall be replaced:
@@ -208,7 +217,8 @@
 
 
 % All the kinds of functions able to transform at least a part of an AST:
--type ast_transform_function() :: body_transform_function()
+-type ast_transform_function() :: clause_transform_function()
+								| body_transform_function()
 								| expression_replacement_function().
 
 
@@ -244,6 +254,13 @@
 			   local_type_transform_table/0,
 			   remote_type_id_match/0, remote_type_replacement/0,
 			   remote_type_transform_table/0 ]).
+
+% For clause replacements:
+-export_type([ clause_transform_function/0 ]).
+
+
+% For body replacements:
+-export_type([ body_transform_function/0 ]).
 
 
 % For call replacements:
@@ -313,7 +330,7 @@
 -type line() :: ast_base:line().
 -type ast_expression() :: ast_expression:ast_expression().
 -type ast_body() :: ast_clause:ast_body().
-
+-type ast_clause() :: ast_clause:ast_clause().
 
 
 
@@ -661,7 +678,6 @@ transform_term( TargetTerm, TypeDescription, TermTransformer, UserData )
 % Here the term is a tuple (or a record...), and we are not interested in them:
 transform_term( TargetTerm, TypeDescription, TermTransformer, UserData )
   when is_tuple( TargetTerm ) ->
-
 	transform_tuple( TargetTerm, TypeDescription, TermTransformer, UserData );
 
 
