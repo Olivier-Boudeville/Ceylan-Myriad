@@ -83,6 +83,17 @@
 	% Any user-defined transformation state that is to be kept and updated
 	% in the course of a transformation.
 	%
-	transformation_state = undefined :: ast_transform:transformation_state()
+	transformation_state = undefined :: ast_transform:transformation_state(),
+
+
+	% The function to call in order to format, for the sake of logging in a
+	% user-friendly manner, the output of a transformation.
+	%
+	% Introduced so that a transformation caller can set a formatter managing
+	% the transformation state that was defined (useful if some parts of it are
+	% not of interest and/or very bulky to format).
+	%
+	transform_formatter = fun ast_transform:default_formatter/2 ::
+								ast_transform:transform_formatter()
 
 } ).
