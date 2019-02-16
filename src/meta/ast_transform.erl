@@ -187,6 +187,10 @@
 
 
 % Lists the contexts that may trigger a transformation function:
+%
+% Note that not all triggers are supported, but that adding any lacking one is
+% not especially difficult.
+%
 -type transform_trigger() :: ast_expression:expression_kind()
 							 | 'clause'
 							 | 'body'.
@@ -241,6 +245,13 @@
 -type transformation_state() :: any().
 
 
+% Designates a function able to properly format typically the output of
+% expression transformation (ex: when exiting an
+% ast_expression:transform_expression/2 clause).
+%
+-type transform_formatter() :: fun( ( text_utils:format_string(),
+				  text_utils:format_values() ) -> text_utils:ustring() ).
+
 
 
 
@@ -277,7 +288,7 @@
 			   ast_transform_function/0,
 			   ast_transform_table/0 ]).
 
--export_type([ transformation_state/0 ]).
+-export_type([ transformation_state/0, transform_formatter/0 ]).
 
 
 
@@ -316,7 +327,7 @@
 
 -export([ get_local_type_transform_table/1, get_remote_type_transform_table/1,
 		  get_local_call_transform_table/1, get_remote_call_transform_table/1,
-		  transform_term/4, ast_transforms_to_string/1 ]).
+		  transform_term/4, ast_transforms_to_string/1, default_formatter/2 ]).
 
 
 % Shorthands:
@@ -849,7 +860,7 @@ ast_transforms_to_string( #ast_transforms{
 		TransfoTable ->
 			text_utils:format( "AST transformations defined, "
 							   "for following ~B triggers: ~w; "
-							   "transformation state is: '~p'",
+							   "transformation state is:~n  ~p",
 							   [ ?table:size( TransfoTable ),
 								 ?table:keys( TransfoTable ),
 								 TransfoState ] )
@@ -861,3 +872,12 @@ ast_transforms_to_string( #ast_transforms{
 			TransfoTableStr ] ),
 
 	text_utils:format( "AST transformations: ~s", [ TableString ] ).
+
+
+
+% The default transform_formatter() to be used:
+-spec default_formatter( text_utils:format_string(),
+						 text_utils:format_values() ) -> text_utils:ustring().
+default_formatter( _FormatString, _FormatValue ) ->
+	%text_utils:format( "[Myriad-Transforms] " ++ FormatString, FormatValue ).
+	ok.
