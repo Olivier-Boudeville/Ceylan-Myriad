@@ -92,6 +92,8 @@
 
 		  fatal/1, fatal_fmt/2, fatal_categorized/2, fatal_categorized_timed/3,
 
+		  void/1, void_fmt/2, void_categorized/2, void_categorized_timed/3,
+
 		  echo/2, echo/3, echo/4
 
 		]).
@@ -350,6 +352,39 @@ fatal_categorized_timed( Message, _MessageCategorization=uncategorized,
 fatal_categorized_timed( Message, MessageCategorization, Timestamp ) ->
 	severe_display( "[fatal][~s][at ~s] ~s",
 					[ MessageCategorization, Timestamp, Message ] ).
+
+
+
+% "Outputs" specified void message.
+%
+-spec void( trace_message() ) -> void().
+void( _Message ) ->
+	ok.
+
+
+% "Outputs" specified formatted void message.
+%
+-spec void_fmt( trace_format(), trace_values() ) -> void().
+void_fmt( _Format, _Values ) ->
+	ok.
+
+
+% "Outputs" specified void message, with specified message categorization.
+%
+-spec void_categorized( trace_message(), trace_message_categorization() ) ->
+							   void().
+void_categorized( _Message, _MessageCategorization ) ->
+	ok.
+
+
+
+% "Outputs" specified void message, with specified message categorization and
+% time information.
+%
+-spec void_categorized_timed( trace_message(), trace_message_categorization(),
+							  trace_timestamp() ) -> void().
+void_categorized_timed( _Message, _MessageCategorization, _Timestamp ) ->
+	ok.
 
 
 
