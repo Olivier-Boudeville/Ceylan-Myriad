@@ -1823,7 +1823,7 @@ markers_to_string( MarkerTable, IndentationLevel ) ->
 							   [ length( MarkPairs ),
 								 text_utils:strings_to_string(
 			[ text_utils:format( "marker '~s' pointing to ~s",
-								 [ Marker, id_utils:sortable_id_to_string( Loc ) ] )
+						 [ Marker, id_utils:sortable_id_to_string( Loc ) ] )
 			  || { Marker, Loc } <- SortedMarkPairs ],
 								   IndentationLevel ) ] )
 
