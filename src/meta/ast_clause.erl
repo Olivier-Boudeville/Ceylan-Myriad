@@ -379,7 +379,7 @@ transform_catch_clause(
 		transform_body( BodyExprs, GuardTransforms ),
 
 	NewExpr = { 'clause', Line, [ { 'throw', NewPattern, Any } ],
-				NewGuardSequence,NewBodyExprs },
+				NewGuardSequence, NewBodyExprs },
 
 	Res = { NewExpr, BodyTransforms },
 
@@ -476,9 +476,6 @@ transform_if_clause(
 	%ast_utils:display_debug( "... returning if clause and state ~p", [ Res ] ),
 
 	Res.
-
-
-
 
 
 
