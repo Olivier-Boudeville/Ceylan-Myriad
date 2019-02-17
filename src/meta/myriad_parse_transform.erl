@@ -235,7 +235,7 @@ apply_myriad_transform( InputAST, Options ) ->
 	%ast_info:write_module_info_to_file( TransformedModuleInfo,
 	%									"Output-module_info.txt" ),
 
-	%ast_utils:display_debug( "~n## OUTPUT ###################################" ),
+	%ast_utils:display_debug( "~n## OUTPUT #################################" ),
 	%ast_utils:display_debug( "Output module info: ~s",
 	%		   [ ast_info:module_info_to_string( TransformedModuleInfo ) ] ),
 	%ast_utils:display_debug( "Output module info: ~s~n~n",
