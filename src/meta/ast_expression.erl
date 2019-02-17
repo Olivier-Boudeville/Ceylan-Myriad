@@ -1413,10 +1413,10 @@ transform_simple_receive( Line, ReceiveClauses, Transforms ) ?rec_guard ->
 % (default traversal implementation)
 %
 -spec transform_receive_with_after( line(), [ ast_case_clause() ],
-		ast_expression(), [ ast_expression() ], ast_transforms() ) ->
+		ast_expression(), ast_body(), ast_transforms() ) ->
 								{ [ ast_expression() ], ast_transforms() }.
 transform_receive_with_after( Line, ReceiveClauses, AfterTest,
-					   AfterExpressions, Transforms ) ?rec_guard ->
+							  AfterBody, Transforms ) ?rec_guard ->
 
 	% 'case' clauses relevant here:
 	{ NewReceiveClauses, CaseTransforms } =
@@ -1425,11 +1425,16 @@ transform_receive_with_after( Line, ReceiveClauses, AfterTest,
 	{ [ NewAfterTest ], AfterTestTransforms } =
 		transform_expression( AfterTest, CaseTransforms ),
 
-	{ NewAfterExpressions, AfterTransforms } =
-		transform_expressions( AfterExpressions, AfterTestTransforms ),
+	% Not exactly, as this is a body:
+	%
+	%{ NewAfterExpressions, AfterTransforms } =
+	%	transform_expressions( AfterExpressions, AfterTestTransforms ),
+	%
+	{ NewAfterBody, AfterTransforms } =
+		ast_clause:transform_body( AfterBody, AfterTestTransforms ),
 
 	NewExpr = { 'receive', Line, NewReceiveClauses, NewAfterTest,
-				NewAfterExpressions },
+				 NewAfterBody },
 
 	{ [ NewExpr ], AfterTransforms }.
 
