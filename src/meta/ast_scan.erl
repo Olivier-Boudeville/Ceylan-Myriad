@@ -192,8 +192,10 @@ scan( AST ) ->
 			M;
 
 		_M=#module_info{ errors=Errors } ->
-			%ast_utils:display_debug( "reporting errors: ~p", [ Errors ] ),
-			[ report_error( E ) || E <- Errors ],
+			ReorderedErrors = lists:reverse( Errors ),
+			%ast_utils:display_debug( "reporting errors: ~p",
+			%						 [ ReorderedErrors ] ),
+			[ report_error( E ) || E <- ReorderedErrors ],
 
 			% No need to be that violent:
 			%erlang:halt( 1 )
