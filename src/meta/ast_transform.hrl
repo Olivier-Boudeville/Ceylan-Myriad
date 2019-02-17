@@ -57,7 +57,7 @@
 
 
 	% Allows to record the name of the module being transformed (useful for
-	% example for error messages):
+	% example for error messages, to report the source filename):
 	%
 	transformed_module_name = undefined ::
 	  basic_utils:maybe( basic_utils:module_name() ),
