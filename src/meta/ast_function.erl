@@ -410,13 +410,37 @@ get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 
 	{ FunctionLocDefs, NewFunctionExportTable } = lists:foldl(
 
-						% We filter out these entries, as they are only exported
-						% (never defined); the compiler will take care of that,
-						% with better, more standard messages:
+						% We used to filter out/report as errors these entries,
+						% as they are exported but never defined; but the
+						% compiler will take care of that, with better, more
+						% standard messages:
 						%
-						fun( #function_info{ line=undefined,
-											 clauses=[] }, Acc ) ->
-								Acc;
+						fun( #function_info{ name=Name,
+											 arity=Arity,
+											 line=undefined,
+											 clauses=[],
+											 spec=MaybeSpec },
+							 { AccLocDefs, AccExportTable } ) ->
+
+								NewAccLocDefs = case MaybeSpec of
+
+									% Should never happen:
+									undefined ->
+										throw( { spec_expected,
+												 { Name, Arity } } );
+
+									% We already know that compilation will
+									% fail, but we prefer letting the compiler
+									% report that by itself later, with its own
+									% error messages, so we still include that
+									% lone spec form:
+									%
+									LocSpecForm ->
+										[ LocSpecForm | AccLocDefs ]
+
+								end,
+								{ NewAccLocDefs, AccExportTable };
+
 
 						   ( #function_info{ name=Name,
 											 arity=Arity,
@@ -450,6 +474,7 @@ get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 									Arity, ExportLocs, AccExportTable ),
 
 								{ NewAccLocDefs, NewAccExportTable }
+
 
 						end,
 						_Acc0={ [], FunctionExportTable },

@@ -335,7 +335,7 @@ endif
 # Overriding BASE_PLT is useful to take into account third-party prerequisites:
 ifndef BASE_PLT
 
-  BASE_PLT := $(PREDECESSOR_PLT)
+  BASE_PLT = $(PREDECESSOR_PLT)
 
 endif
 

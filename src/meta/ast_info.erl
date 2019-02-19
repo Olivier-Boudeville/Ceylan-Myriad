@@ -586,7 +586,7 @@ extract_module_info_from_ast( AST ) ->
 			UnHandledStrings = [ text_utils:format( "~p", [ Form ] )
 								 || { _Loc, Form } <- UnhandledForms ],
 
-			ast_utils:display_warning( "~B forms have not be handled: ~s",
+			ast_utils:display_warning( "~B forms have not been handled: ~s",
 							 [ length( UnhandledForms ),
 						 text_utils:strings_to_string( UnHandledStrings ) ] )
 
@@ -640,7 +640,8 @@ check_module_info( #module_info{ unhandled_forms=_UnhandledForms } ) ->
 
 	%Forms = [ F || { _Loc, F } <- UnhandledForms ],
 
-	%ast_utils:raise_error( [ unhandled_forms, Forms ] ).
+	%ast_utils:raise_error( [ unhandled_forms, UnhandledForms ] ).
+	%trace_utils:warning_fmt( "Unhandled forms: ~p", [ UnhandledForms ] ),
 
 	% A warning has already been issued, we let these unexpected forms flow
 	% through and be caught by the compiler:
@@ -710,7 +711,6 @@ check_type( TypeId, _TypeInfo=#type_info{ name=SecondName,
 
 
 % Helper to check module functions.
-%
 check_module_functions( #module_info{ functions=Functions } ) ->
 
 	FunInfos = ?table:enumerate( Functions ),
@@ -726,21 +726,26 @@ check_function( FunId, _FunInfo=#function_info{ clauses=[],
 
 
 % No definition, no spec, hence exported:
-check_function( _FunId, _FunInfo=#function_info{ clauses=[],
-												 spec=undefined } ) ->
+check_function( FunId, _FunInfo=#function_info{ clauses=[],
+												spec=undefined } ) ->
 	% Silenced, as we prefer this error to be reported through the toolchain
-	% itself, to better integration in error handling:
+	% itself, for a better integration in error handling:
 	%
-	%ast_utils:raise_error( [ function_exported_yet_not_defined, FunId ] );
-	ok;
+	ast_utils:raise_error( [ function_exported_yet_not_defined, FunId ] );
+	%ok;
 
 % No definition, not exported, hence just a spec:
 check_function( _FunId, _FunInfo=#function_info{ clauses=[],
-												 exported=[] } ) ->
+												exported=[] } ) ->
+
 	% Silenced, as we prefer this error to be reported through the toolchain
-	% itself, to better integration in error handling:
-	%
+	% itself, for a better integration in error handling:
+
 	%ast_utils:raise_error( [ function_spec_without_definition, FunId ] );
+
+	%trace_utils:warning_fmt( "Function spec without a definition for ~s/~B.",
+	%						 pair:to_list( FunId ) );
+
 	ok;
 
 check_function( _FunId={ Name, Arity },

@@ -87,10 +87,18 @@
 
 
 % To tell that a returned value is not of interest to the caller:
-% (could/should be: "-type void() :: 'VoiD'" for example)
+% (could have been: "-type void() :: 'VoiD' or 'myriad_void'" for example)
 %
-%-opaque void() :: any().
--type void() :: any().
+% Nevertheless, should, for any reason, a value of the void/0 type have to be
+% specified, the 'void' atom shall be preferred, knowing that any value can be
+% returned and comply with this type.
+%
+% Opaque types currently not always well managed by the Erlang standard
+% toolchain:
+%
+%-opaque void() :: any() | 'void'.
+%
+-type void() :: any() | 'void'.
 
 
 % Allows to count elements (positive integer, possibly zero):

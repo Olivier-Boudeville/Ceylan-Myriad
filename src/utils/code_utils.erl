@@ -582,12 +582,11 @@ interpret_stack_item( I, _FullPathsWanted ) ->
 
 
 % Displays the current stacktrace (not stopping the execution).
-%
 -spec display_stacktrace() -> void().
 display_stacktrace() ->
 
 	% We do not want to include display_stacktrace/0 in the stack:
 	StackTrace = tl( get_stacktrace() ),
 
-	io:format( "Current stacktrace is: ~s~n",
-			   [ interpret_stacktrace( StackTrace ) ] ).
+	trace_utils:trace_fmt( "Current stacktrace is (latest calls first): ~s~n",
+						   [ interpret_stacktrace( StackTrace ) ] ).
