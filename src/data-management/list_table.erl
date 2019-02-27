@@ -67,7 +67,8 @@
 		  isEmpty/1, size/1,
 		  mapOnEntries/2, mapOnValues/2,
 		  foldOnEntries/3,
-		  merge/2, optimise/1, toString/1, toString/2, display/1, display/2 ]).
+		  merge/2, merge_in_key/3, merge_in_keys/2,
+		  optimise/1, toString/1, toString/2, display/1, display/2 ]).
 
 
 
@@ -217,7 +218,7 @@ hasEntry( Key, Table ) ->
 % directly.
 %
 % The key/value pair is expected to exist already, otherwise an exception is
-% raised.
+% thrown.
 %
 % Note: could have been named as well getValue/2, which shall be preferred.
 %
@@ -242,7 +243,7 @@ getEntry( Key, Table ) ->
 % directly.
 %
 % The key/value pair is expected to exist already, otherwise an exception is
-% raised.
+% thrown.
 %
 % Note: defined for naming consistency of the API.
 %
@@ -255,8 +256,8 @@ getValue( Key, Table ) ->
 % Extracts specified entry from specified table, i.e. returns the associated
 % value and removes that entry from the table.
 %
-% The key/value pair is expected to exist already, otherwise an exception is
-% raised.
+% The key/value pair is expected to exist already in the specified table,
+% otherwise an exception is thrown.
 %
 -spec extractEntry( key(), list_table() ) -> { value(), list_table() }.
 extractEntry( Key, Table ) ->
@@ -317,7 +318,7 @@ getValueWithDefaults( Key, DefaultValue, Table ) ->
 % (ordered) list of keys of this table.
 %
 % The key/value pairs are expected to exist already, otherwise an exception is
-% raised.
+% thrown.
 %
 % Ex: [ Color=red, Age=23, Mass=51 ] = list_table:getValues( [ color, age, mass
 % ], [ { color, red }, { mass, 51 }, { age, 23 } ] )
@@ -345,7 +346,7 @@ getValues( Keys, Table ) ->
 % otherwise throwing an exception.
 %
 % The key/value pairs are expected to exist already, otherwise an exception is
-% raised.
+% thrown.
 %
 % Ex: [ Color=red, Age=23, Mass=51 ] = list_table:getAllValues( [ color, age,
 % mass ], [ { color, red }, { mass, 51 }, { age, 23 } ] )
@@ -513,6 +514,53 @@ merge( TableBase, TableAdd ) ->
 	Add = lists:ukeysort( _N=1, TableAdd ),
 
 	lists:umerge( Base, Add ).
+
+
+
+% In a table whose values are expected to be lists, gathers all the values
+% associated to the keys listed in AlternateKeys and associates them to
+% ReferenceKey instead (in addition to any value that would already be
+% associated to it).
+%
+% Useful for example to gather into a single entry the values associated to
+% aliases in terms of command-line options, like values associated to a
+% '--length' key and to a '-l' or '--len' shorthand key.
+%
+% Ex: MergedTable = merge_in_key( '--length', [ '-l', '--len' ], MyTable ).
+%
+-spec merge_in_key( key(), [ key() ], list_table() ) -> list_table().
+merge_in_key( _ReferenceKey, _AlternateKeys=[], Table ) ->
+	Table;
+
+merge_in_key( ReferenceKey, _AlternateKeys=[ K | T ], Table ) ->
+	case hasEntry( K, Table ) of
+
+		true ->
+			{ ValueList, ShrunkTable } = extractEntry( K, Table ),
+			NewTable =
+				appendListToEntry( ReferenceKey, ValueList, ShrunkTable ),
+			merge_in_key( ReferenceKey, T, NewTable );
+
+		false ->
+			merge_in_key( ReferenceKey, T, Table )
+
+	end.
+
+
+
+% Performs a key merge, as merge_in_key/3, however not for a single reference
+% key / aliases entries, but for a set thereof.
+%
+% Ex: MergedTable = merge_in_keys( [ { '--length', [ '-l', '--len' ] },
+%       { '--help', [ '-h' ] } ], MyTable ).
+%
+-spec merge_in_keys( list_table(), list_table() ) -> list_table().
+merge_in_keys( _KeyAssoc=[], Table ) ->
+	Table;
+
+merge_in_keys( _KeyAssoc=[ { K, AltKeys } | T ], Table ) ->
+	MergedTable = merge_in_key( K, AltKeys, Table ),
+	merge_in_keys( T, MergedTable ).
 
 
 
