@@ -166,7 +166,6 @@ get_usage() ->
 
 
 % Typically for testing:
-%
 -spec run() -> void().
 run() ->
 	ArgTable = executable_utils:get_argument_table(),
