@@ -726,13 +726,13 @@ check_function( FunId, _FunInfo=#function_info{ clauses=[],
 
 
 % No definition, no spec, hence exported:
-check_function( FunId, _FunInfo=#function_info{ clauses=[],
+check_function( _FunId, _FunInfo=#function_info{ clauses=[],
 												spec=undefined } ) ->
 	% Silenced, as we prefer this error to be reported through the toolchain
 	% itself, for a better integration in error handling:
 	%
-	ast_utils:raise_error( [ function_exported_yet_not_defined, FunId ] );
-	%ok;
+	%ast_utils:raise_error( [ function_exported_yet_not_defined, FunId ] );
+	ok;
 
 % No definition, not exported, hence just a spec:
 check_function( _FunId, _FunInfo=#function_info{ clauses=[],
