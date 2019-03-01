@@ -865,23 +865,29 @@ extract_command_argument( Option, ArgumentTable ) ->
 argument_table_to_string( ArgTable ) ->
 
 	% No-op:
-	ArgPairs = list_table:enumerate( ArgTable ),
-
-	ArgStrings = [ case ArgumentLists of
+	case list_table:enumerate( ArgTable ) of
 
 		[] ->
-			text_utils:format( "option '-~s'", [ Option ] );
+			"no command-line option specified";
 
-		_ ->
-			text_utils:format( "option '-~s', with argument lists: ~p",
-							   [ Option, ArgumentLists ] )
+		ArgPairs ->
+			ArgStrings = [ case ArgumentLists of
 
-				   end || { Option, ArgumentLists } <- ArgPairs ],
+				[] ->
+					text_utils:format( "option '-~s'", [ Option ] );
 
-	text_utils:format( "~B command-line options specified "
-					   "(listed alphabetically):~s",
-					   [ length( ArgPairs ),
-						 text_utils:strings_to_sorted_string( ArgStrings ) ] ).
+				_ ->
+					text_utils:format( "option '-~s', with argument lists: ~p",
+									   [ Option, ArgumentLists ] )
+
+						   end || { Option, ArgumentLists } <- ArgPairs ],
+
+			text_utils:format( "~B command-line options specified "
+							   "(listed alphabetically): ~s",
+							   [ length( ArgPairs ),
+						 text_utils:strings_to_sorted_string( ArgStrings ) ] )
+
+	end.
 
 
 

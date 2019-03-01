@@ -11,7 +11,12 @@
 % To silence unused warnings:
 -export([ get_script_base_directory/0,
 		  get_myriad_base_directory/0,
-		  update_code_path_for_myriad/0 ]).
+		  update_code_path_for_myriad/0,
+		  update_code_path_for_myriad_from_module/0 ]).
+
+
+% For the file_info record:
+-include_lib("kernel/include/file.hrl").
 
 
 % Verbatim section.
@@ -23,8 +28,8 @@
 % Returns the base directory of that script, i.e. where it is stored (regardless
 % of the possibly relative path whence it was launched).
 %
-% Note: useful to locate resources (ex: other modules) defined with that script
-% and needed by it.
+% Note: useful to locate resources (ex: other modules, header files) defined
+% with that script and needed by it.
 %
 -spec get_script_base_directory() -> file_utils:path().
 get_script_base_directory() ->
@@ -56,9 +61,38 @@ get_script_base_directory() ->
 get_myriad_base_directory() ->
 
 	% We cannot use file_utils:normalise_path/1 here: Myriad not usable from
-	% that point yet!
+	% that point yet.
 	%
-	filename:join( [ get_script_base_directory(), "..", ".." ] ).
+	% Two main possibilites here: the current escript is located in src/scripts
+	% or in src/apps/SOME_APP; trying them in turn, using src/meta as an
+	% indicator:
+	%
+	% So, maybe script is in src/scripts:
+	FirstBaseCandidate = filename:join(
+						   [ get_script_base_directory(), "..", ".." ] ),
+
+	FirstMetaPath = filename:join( [ FirstBaseCandidate, "src", "meta" ] ),
+
+	case file:read_file_info( FirstMetaPath ) of
+		{ ok, #file_info{ type=directory } } ->
+			FirstBaseCandidate;
+
+		{ error, _Reason } ->
+			% Maybe in src/apps/SOME_APP then:
+			SecondBaseCandidate = filename:join( FirstBaseCandidate, ".." ),
+			SecondMetaPath = filename:join(
+							   [ SecondBaseCandidate, "src", "meta" ] ),
+			case file:read_file_info( SecondMetaPath ) of
+				{ ok, #file_info{ type=directory } } ->
+					SecondBaseCandidate;
+
+				{ error, _Reason } ->
+					throw( { myriad_base_directory_not_found,
+							 FirstBaseCandidate, SecondBaseCandidate } )
+
+			end
+
+	end.
 
 
 
@@ -90,6 +124,8 @@ update_code_path_for_myriad_from_module() ->
 % Updates the VM code path so that all modules of the 'Myriad' layer can be
 % readily used from an escript.
 %
+% The specified root directory is supposed correct (no further checking made).
+%
 % Note: this function and its helpers might be copied verbatim to the target
 % escript so that it can really be used from anywhere (not only from the
 % directory it is stored).
@@ -100,7 +136,8 @@ update_code_path_for_myriad_from_module() ->
 										 basic_utils:void().
 update_code_path_for_myriad( MyriadRootDir ) ->
 
-	%trace_utils:debug_fmt( "Root of 'Myriad': ~s.", [ MyriadRootDir ] ),
+	% Should not use trace_utils for that, as Myriad not found yet here:
+	%io:format( "Root of 'Myriad': '~s'.~n", [ MyriadRootDir ] ),
 
 	MyriadSrcDir = filename:join( MyriadRootDir, "src" ),
 
