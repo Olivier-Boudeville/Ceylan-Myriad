@@ -66,12 +66,26 @@
 -export_type([ seed_element/0, seed/0, random_state/0 ]).
 
 
+% Uncomment to enable the logging of random operations:
+%-define( log_random,).
+
+-ifdef( log_random ).
+
+-define( trace_random(FS,FV), trace_utils:trace_fmt( FS, FV ) ).
+
+-else. % log_random
+
+-define( trace_random(FS,FV), no_trace ).
+
+-endif. % log_random
+
 
 % Functions for random management.
 
 
-% If use_crypto_module is defined, the crypto module will be used, otherwise the
-% rand module will be used instead (the random module being now deprecated).
+% If use_crypto_module is defined, the crypto module will be used, otherwise
+% (which is the default now) the rand module will be used instead (the random
+% module being now deprecated).
 %
 % Currently the crypto module is not used by default, as:
 %
@@ -88,7 +102,7 @@
 %
 % Therefore crypto cannot be easily swapped with other random generators.
 %
-% The engine may support in the future the use of TinyMT and/or SFMT.
+% The current module may support in the future the use of TinyMT and/or SFMT.
 %
 % Of course, switching random engines will generate different random series.
 %
@@ -100,8 +114,8 @@
 
 
 % Specs gathered here, because of macro guards.
--spec start_random_source( seed_element(), seed_element(), seed_element() )
-						 -> random_state().
+-spec start_random_source( seed_element(), seed_element(), seed_element() ) ->
+								 random_state().
 
 -spec start_random_source( 'default_seed' | 'time_based_seed' | seed() ) ->
 								 void().
@@ -128,7 +142,6 @@
 
 
 % Generates a list of Count elements uniformly drawn in [ 1, N ].
-%
 -spec get_random_values( pos_integer(), basic_utils:count() ) ->
 							   [ pos_integer() ].
 get_random_values( N, Count ) ->
@@ -139,18 +152,18 @@ get_random_values_helper( _N, _Count=0, Acc ) ->
 	Acc;
 
 get_random_values_helper( N, Count, Acc ) ->
-	get_random_values_helper( N, Count - 1, [ get_random_value( N ) | Acc ] ).
+	get_random_values_helper( N, Count-1, [ get_random_value( N ) | Acc ] ).
 
 
 
 % Generates a list of Count elements uniformly drawn in [Nmin;Nmax].
-%
 -spec get_random_values( integer(), integer(), basic_utils:count() ) ->
 							   [ integer() ].
 get_random_values( Nmin, Nmax, Count ) ->
 	get_random_values_helper( Nmin, Nmax, Count, _Acc=[] ).
 
 
+% (helper)
 get_random_values_helper( _Nmin, _Nmax, _Count=0, Acc ) ->
 	Acc;
 
@@ -168,20 +181,21 @@ get_random_values_helper( Nmin, Nmax, Count, Acc ) ->
 
 % crypto module used here.
 %
-% Warning: the seed and state management is presumably global (not per-process).
+% Warning: the seed and state management are presumably global (not
+% per-process).
 
 
 % Starts the random source with specified seeding.
-%
 start_random_source( _A, _B, _C ) ->
 	throw( crypto_module_cannot_be_seeded ).
 
 
 
 % Starts the random source with specified seeding.
-%
 start_random_source( default_seed ) ->
-	%io:format( "~w starting random source with crypto.~n", [ self() ] ),
+
+	?trace_random( "~w starting random source with crypto.", [ self() ] ),
+
 	ok = crypto:start();
 
 start_random_source( time_based_seed ) ->
@@ -194,13 +208,11 @@ can_be_seeded() ->
 
 
 % Resets the random source with a new seed.
-%
 reset_random_source( _Seed ) ->
 	throw( crypto_module_cannot_be_reset ).
 
 
 % Stops the random source.
-%
 stop_random_source() ->
 	ok = crypto:stop().
 
@@ -281,7 +293,7 @@ set_random_state( _NewState ) ->
 
 
 % Here we do not use the 'crypto' module; we use the 'rand' one (replacing the
-% deprecated 'random' module), and this is the default.
+% deprecated 'random' module), and this is the default setting now.
 
 
 % For the 'random' module, according to
@@ -309,7 +321,7 @@ set_random_state( _NewState ) ->
 % Xorshift116+, 58 bits precision and period of 2^116-1, 320 bytes per state, on
 % 64-bit:
 %
-% (corrected version of exsplus, yet now superseded by exrop)
+% (corrected version of exsplus, yet now superseded by exrop, see below)
 %
 %-define( rand_algorithm, exsp ).
 
@@ -319,7 +331,7 @@ set_random_state( _NewState ) ->
 %
 % Jump function: equivalent to 2^64 calls.
 %
-% Default in OTP 20, to be used in most cases:
+% Default since OTP 20, to be used in most cases:
 %
 -define( rand_algorithm, exrop ).
 
@@ -343,22 +355,24 @@ set_random_state( _NewState ) ->
 % Starts the random source with specified seeding.
 %
 % Note: if a process does not explicitly select a seed, with 'rand' a
-% non-constant seed will be assigned. For reproducibility, start explicitly your
-% random sources.
+% non-constant seed will be assigned. For reproducibility, start your random
+% sources with a seed of your own.
 %
 start_random_source( A, B, C ) ->
 
-	%io:format( "~w starting random source with rand (~p), seeded with "
-	%		   "~w.~n", [ self(), ?rand_algorithm, { A, B, C } ] ),
+	Seed = { A, B, C },
+
+	?trace_random( "~w starting random source with rand (~p), "
+				   "seeded with ~w.", [ self(), ?rand_algorithm, Seed ] ),
 
 	%random:seed( A, B, C ).
-	rand:seed( ?rand_algorithm, { A, B, C } ).
+	rand:seed( ?rand_algorithm, Seed ).
 
 
 
-% Seeds the random number generator, either with specified seed, or with a
+% Seeds the random number generator, with specified seeding., or with a
 % default seed (if wanting to obtain the same random series at each run) or with
-% current time (if wanting "real" non-reproducible randomness).
+% current time (if wanting "real", non-reproducible randomness).
 %
 % Spec already specified, for all random settings.
 %
@@ -380,9 +394,9 @@ start_random_source( default_seed ) ->
 	%
 	ConstantSeed = { _A=17, _B=79, _C=1111 },
 
-	%io:format( "~w starting random source with rand (~p), using default "
-	%		   "constant seed ~w.~n",
-	%		   [ self(), ?rand_algorithm, ConstantSeed ] ),
+	?trace_random( "~w starting random source with rand (~p), "
+				   "using default constant seed ~w.",
+				   [ self(), ?rand_algorithm, ConstantSeed ] ),
 
 	rand:seed( ?rand_algorithm, ConstantSeed );
 
@@ -395,7 +409,7 @@ start_random_source( time_based_seed ) ->
 	{ A, B, C } = { erlang:monotonic_time(), erlang:unique_integer(),
 					erlang:time_offset() },
 
-	%io:format( "~w forging time-based seed ~p.~n", [ self(), { A, B, C } ] ),
+	?trace_random( "~w forging time-based seed ~p.", [ self(), { A, B, C } ] ),
 
 	% Directly inspired from third example in
 	% http://osdir.com/ml/erlang-questions-programming/2013-10/msg00244.html:
@@ -411,16 +425,13 @@ can_be_seeded() ->
 
 
 % Resets the random source with a new seed.
-%
 reset_random_source( Seed ) ->
-
 	% New seeding, as opposed to the setting of a previously defined state:
 	rand:seed( ?rand_algorithm, Seed ).
 
 
 
 % Stops the random source.
-%
 stop_random_source() ->
 	ok.
 
@@ -558,7 +569,6 @@ get_random_subset( ValueCount, InputList ) ->
 
 
 % The upper bound for a seed element.
-%
 -define(seed_upper_bound,65500).
 
 
@@ -577,7 +587,8 @@ get_random_seed() ->
 
 % Checks that the specified seed is valid.
 %
-% Ex: { 0, 0, 0 } does not yield a correct random series.
+% Ex: at least with some algorithms, { 0, 0, 0 } does not yield a correct random
+% series.
 %
 -spec check_random_seed( seed() ) -> void().
 check_random_seed( { A, B, C } ) when is_integer( A ) andalso is_integer( B )
