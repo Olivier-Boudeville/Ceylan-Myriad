@@ -295,22 +295,34 @@ transform_type_table( TypeTable, Transforms ) ?rec_guard ->
 %
 -spec transform_type_info_pair( type_pair(), ast_transforms() ) ->
 									 { type_pair(), ast_transforms() }.
-transform_type_info_pair( { TypeId, #type_info{ line=Line,
-												definition=undefined,
-												exported=Export } },
-							_Transforms )
+transform_type_info_pair( { TypeId, _TypeInfo=#type_info{ line=Line,
+														  definition=undefined,
+														  exported=Export } },
+							Transforms )
   when Export =/= [] ?andalso_rec_guard ->
+
+	% We cannot let this error go through, as it would remain silent.
 
 	% A context could be recreated with the module and line, and use to raise
 	% the error, yet, at least for types, it is not unlikely they are exported
 	% in an header file and thus we would possibly be pointing to a wrong place.
 
-	trace_utils:error_fmt(
-	  "Type ~s/~B is exported, yet has never been defined.",
-	  pair:to_list( TypeId ) ),
+	ErrorMessage = text_utils:format( "type ~s/~B is exported, yet has never "
+									  "been defined.", pair:to_list( TypeId ) ),
 
-	ast_utils:raise_error( [ type_exported_yet_not_defined, TypeId ],
-						   _Context=Line );
+	UsedLine = case Line of
+
+		undefined ->
+			0;
+
+		_ ->
+			Line
+
+	end,
+
+	ast_utils:raise_error( ErrorMessage, Transforms, UsedLine );
+
+	%{ { TypeId, TypeInfo }, Transforms };
 
 transform_type_info_pair( { TypeId, TypeInfo }, Transforms ) ?rec_guard ->
 
@@ -717,7 +729,7 @@ transform_type( _TypeDef={ 'type', Line, 'union', UnifiedTypes },
 % Simple built-in type, like 'boolean()', translating in '{ type, 57, boolean,
 % [] }':
 %
-transform_type( TypeDef={ 'type', _Line, BuiltinType, _TypeVars=[] },
+transform_type( TypeDef={ 'type', Line, BuiltinType, _TypeVars=[] },
 				Transforms ) ->
 
 	case lists:member( BuiltinType,
@@ -727,10 +739,21 @@ transform_type( TypeDef={ 'type', _Line, BuiltinType, _TypeVars=[] },
 			{ TypeDef, Transforms };
 
 		false ->
-			ast_utils:display_warning( "Not expecting type '~s' "
-				"(in ast_type:transform_type/3), assuming simple builtin type, "
-				"in:~n  ~p", [ BuiltinType, TypeDef ] ),
-			{ TypeDef, Transforms }
+			case BuiltinType of
+
+				bool ->
+					ast_utils:raise_error( "the bool/0 type does not exist "
+						"as a builtin type; use boolean/0 instead.",
+						Transforms, Line ),
+					halt( 5 );
+
+				_ ->
+					ast_utils:display_warning( "Not expecting type '~s' "
+						"(in ast_type:transform_type/3), assuming simple "
+						"builtin type, in:~n  ~p", [ BuiltinType, TypeDef ] ),
+					{ TypeDef, Transforms }
+
+			end
 
 	end;
 
@@ -756,8 +779,6 @@ transform_type( _TypeDef={ 'type', Line, 'record',
 
 
 % Known other built-in types (catch-all for all remaining 'type'):
-%
-%
 transform_type( TypeDef={ 'type', Line, BuiltinType, TypeVars },
 				Transforms ) when is_list( TypeVars ) ->
 
