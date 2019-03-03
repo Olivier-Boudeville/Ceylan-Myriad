@@ -415,19 +415,20 @@ get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 						% compiler will take care of that, with better, more
 						% standard messages:
 						%
-						fun( #function_info{ name=Name,
-											 arity=Arity,
-											 line=undefined,
+						fun( #function_info{ line=undefined,
 											 clauses=[],
 											 spec=MaybeSpec },
 							 { AccLocDefs, AccExportTable } ) ->
 
 								NewAccLocDefs = case MaybeSpec of
 
-									% Should never happen:
+									% Happens if this function is only exported,
+									% with neither a spec nor a definition (will
+									% be caught by the compiler and reported
+									% with a relevant diagnosis:
+									%
 									undefined ->
-										throw( { spec_expected,
-												 { Name, Arity } } );
+										AccLocDefs;
 
 									% We already know that compilation will
 									% fail, but we prefer letting the compiler
