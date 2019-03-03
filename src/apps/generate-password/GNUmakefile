@@ -10,11 +10,14 @@ all:
 
 
 
-run-direct: password_generation.beam generate_password_exec
+run-direct: generate_password_exec
 
 
-run-param: password_generation.beam
+run-param:
 	@$(MAKE) generate_password_exec CMD_LINE_OPT="-h"
+
+
+generate_password_exec: password_generation.beam
 
 
 help:

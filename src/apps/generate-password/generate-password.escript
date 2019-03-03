@@ -2,9 +2,11 @@
 %% -*- erlang -*-
 %%! -pz ../../scripts
 
+% Additionally: this escript will only work when run from its current
+% directory...
 
 
-% Copyright (C) 2016-2019 Olivier Boudeville
+% Copyright (C) 2018-2019 Olivier Boudeville
 % [olivier (dot) boudeville (at) esperide (dot) com]
 
 

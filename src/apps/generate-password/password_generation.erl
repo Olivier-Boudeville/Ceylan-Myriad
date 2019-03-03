@@ -1,4 +1,4 @@
-% Copyright (C) 2016-2019 Olivier Boudeville
+% Copyright (C) 2018-2019 Olivier Boudeville
 %
 % Transferred from generate-password.escript to benefit from a more
 % user-friendly debugging.
@@ -13,10 +13,18 @@
 % Implementation notes:
 %
 
--define( exec_name, "generate-password.escript.escript" ).
+-define( exec_name, "generate-password.escript" ).
 
 
 -export([ run/0, main/1 ]).
+
+
+-type alphabet() :: [ char() ].
+
+-type password() :: text_utils:ustring().
+
+-export([ generate_password/2 ]).
+
 
 % Typically for testing:
 -spec run() -> void().
@@ -27,21 +35,32 @@ run() ->
 
 % Defaults:
 
--define( default_length, 16 ).
--define( default_alphabet, default ).
+-define( default_min_length, "12" ).
+-define( default_max_length, "18" ).
+
+-define( default_alphabet, "extended" ).
 
 
 -spec get_usage() -> basic_utils:void().
 get_usage() ->
-	"Usage: ?exec_name [-i|--interactive] [-l LEN|--length LEN] "
-		"[-a ALPHABET|--alphabet ALPHABET] [-h|--help]~n"
+	text_utils:format( "Usage: ~s "
+	%text_utils:format( "Usage: ~s [-i|--interactive] "
+		"[-a ALPHABET|--alphabet ALPHABET] "
+		"[-l MIN_LEN MAX_LEN|--length MIN_LEN MAX_LEN] "
+		"[-h|--help]~n"
 		"  Generates a suitable password, where:~n"
-		"    - LEN is the (exact) number of characters to generate for "
-		"this password [default: ?default_length]~n"
-		"    - ALPHABET designates the set of characters to draw from, among:~n"
-		"       * 'default': alphanumeric letters, all cases [A-Za-z0-9]~n"
-		"       * 'extended': 'default' + basic punctuation~n"
-		"       * 'full': 'default' + all punctuation~n".
+		"    - ALPHABET designates the set of characters to draw from "
+		"(default one being '~s'), among:~n"
+		"       * 'base': alphanumeric letters, all cases [A-Za-z0-9]~n"
+		"       * 'extended': 'base' + basic punctuation (i.e. '~s')~n"
+		"       * 'full': 'base' + all punctuation "
+		"(i.e. basic + '~s')~n"
+		"    - MIN_LEN and MAX_LEN are the respective minimum and maximum "
+		"numbers of characters (bounds included) used to "
+		"generate this password [default: between ~s and ~s]~n",
+		[ ?exec_name, ?default_alphabet,
+		  get_alphabet( basic_punctuation ), get_alphabet( extra_punctuation ),
+		  ?default_min_length, ?default_max_length ] ).
 
 
 
@@ -55,12 +74,14 @@ main( ArgTable ) ->
 	%trace_utils:debug_fmt( "Original script-specific arguments: ~s",
 	%	   [ executable_utils:argument_table_to_string( ArgTable ) ] ),
 
-	[ InteractiveRefKey, LengthRefKey, AlphaRefKey, HelpRefKey ] =
-		[ '-interactive', '-length', '-alphabet', '-help' ],
+	[ %InteractiveRefKey, 
+	  LengthRefKey, AlphaRefKey, HelpRefKey ] =
+		[ %'-interactive',
+		  '-length', '-alphabet', '-help' ],
 
 	% Standardises command-line options:
 	MergedTable = list_table:merge_in_keys( [
-			{ InteractiveRefKey, [ 'i' ] },
+			%{ InteractiveRefKey, [ 'i' ] },
 			{ LengthRefKey, [ 'l' ] },
 			{ AlphaRefKey, [ 'a' ] },
 			{ HelpRefKey, [ 'h' ] } ], ArgTable ),
@@ -79,32 +100,75 @@ main( ArgTable ) ->
 
 	end,
 
-	{ IsInteractive, InterTable } = case list_table:extractEntryWithDefaults(
-				 InteractiveRefKey, _DefaultInter=false, MergedTable ) of
+	%{ IsInteractive, InterTable } = case list_table:extractEntryWithDefaults(
+	%			 InteractiveRefKey, _DefaultInter=false, MergedTable ) of
+	%
+	%	{ [], ShrunkTable } ->
+	%		{ true, ShrunkTable };
+	%
+	%	P={ false, _ShrunkTable } ->
+	%		P
+	%
+	%end,
 
-		{ [], ShrunkTable } ->
-			{ true, ShrunkTable };
+	%trace_utils:debug_fmt( "Interactive: ~s", [ IsInteractive ] ),
 
-		P={ false, _ShrunkTable } ->
-			P
+	{ LengthStrings, LenTable } =
+		list_table:extractEntryWithDefaults(
+		  LengthRefKey,
+		  _LenDefault=[ ?default_min_length, ?default_max_length ],
+		  %InterTable ),
+		  MergedTable ),
+
+	{ MinLengthString, MaxLengthString } = case LengthStrings of
+
+		[ Min, Max ] ->
+			{ Min, Max };
+
+		Other ->
+			trace_utils:error( "Error, a minimum and maximum lengths must "
+							   "be specified." ),
+			throw( { invalid_length_specification, Other } )
 
 	end,
 
-	trace_utils:debug_fmt( "Interactive: ~s", [ IsInteractive ] ),
+	MinLength = text_utils:string_to_integer( MinLengthString ),
+	MaxLength = text_utils:string_to_integer( MaxLengthString ),
 
-	{ [ LengthString ], LenTable } = list_table:extractEntryWithDefaults(
-			LengthRefKey, _LenDefault=[ ?default_length ], InterTable ),
+	case MinLength > MaxLength of
 
-	Length = text_utils:string_to_integer( LengthString ),
+		true ->
+			throw( { invalid_length_order, MinLength, MaxLength } );
 
-	trace_utils:debug_fmt( "Length: ~B", [ Length ] ),
+		false ->
+			ok
 
-	{ [ AlphabetStringSpec ], AlphaTable } = list_table:extractEntryWithDefaults(
-			AlphaRefKey, _AlphaDefault=[ ?default_alphabet ], LenTable ),
+	end,
+
+	case MinLength > 0 of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { invalid_minimum_length, MinLength } )
+
+	end,
+
+
+	%trace_utils:debug_fmt( "Min length: ~B", [ MinLength ] ),
+	%trace_utils:debug_fmt( "Max length: ~B", [ MaxLength ] ),
+
+	{ [ AlphabetStringSpec ], AlphaTable } =
+		list_table:extractEntryWithDefaults( AlphaRefKey,
+							_AlphaDefault=[ ?default_alphabet ], LenTable ),
 
 	AlphabetSpec = text_utils:string_to_atom( AlphabetStringSpec ),
 
-	trace_utils:debug_fmt( "Alphabet spec: ~s", [ AlphabetSpec ] ),
+	%trace_utils:debug_fmt( "Alphabet spec: ~s", [ AlphabetSpec ] ),
+
+	[ Length ] =
+		random_utils:get_random_values( MinLength, MaxLength, _Count=1 ),
 
 	case list_table:keys( AlphaTable ) of
 
@@ -120,16 +184,21 @@ main( ArgTable ) ->
 
 	Alphabet = get_alphabet( AlphabetSpec ),
 
-	trace_utils:debug_fmt( "Input alphabet corresponding to spec ~p: "
-						   "'~w' (i.e. '~s').",
-						   [ AlphabetSpec, Alphabet, Alphabet] ),
+	%trace_utils:debug_fmt( "Input alphabet corresponding to spec ~p: "
+	%					   "'~w' (i.e. '~s').",
+	%					   [ AlphabetSpec, Alphabet, Alphabet ] ),
+
+	Password = generate_password( Alphabet, Length ),
+
+	io:format( "Generated password (alphabet spec: ~s, length: ~B) is:    "
+			   "~s    ~n", [ AlphabetSpec, Length, Password ] ),
 
 	basic_utils:stop( _ErrorCode=0 ).
 
 
 % Displays the usage of this service, and stops (with no error).
 display_usage() ->
-	trace_utils:info_fmt(  get_usage(), [] ),
+	io:format( get_usage(), [] ),
 	basic_utils:stop( _ErrorCode=0 ).
 
 
@@ -139,7 +208,7 @@ display_usage() ->
 get_alphabet( AlphabetSpecs ) when is_list( AlphabetSpecs ) ->
 	list_utils:flatten_once( [ get_alphabet( A ) || A <- AlphabetSpecs ] );
 
-get_alphabet( _AlphabetSpec=default ) ->
+get_alphabet( _AlphabetSpec=base ) ->
 	get_alphabet( [ lower_case, upper_case, numeric ] );
 
 get_alphabet( _AlphabetSpec=extended ) ->
@@ -156,10 +225,39 @@ get_alphabet( _AlphabetSpec=upper_case ) ->
 	lists:seq( $A, $Z );
 
 get_alphabet( _AlphabetSpec=numeric ) ->
-	lists:seq( 0, 9 );
+	lists:seq( $0, $9 );
 
 get_alphabet( _AlphabetSpec=basic_punctuation ) ->
 	[ $[, $], $(, $), ${, $}, $:, $,, $;, $-, $_, $., $!, $? ];
 
 get_alphabet( _AlphabetSpec=extra_punctuation ) ->
 	[ $", $', $@, $ , $/, $&, $$, $*, $\\, $^, $%, $=, $+, $| ].
+
+
+% Generates a password of specified exact length, from specified alphabet.
+-spec generate_password( alphabet(), basic_utils:count() ) -> password().
+generate_password( Alphabet, CharCount ) ->
+
+	% Of course we do not want a reproducible seeding:
+	random_utils:start_random_source( time_based_seed ),
+
+	AlphaSize = length( Alphabet ),
+
+	%trace_utils:debug_fmt( "Alphabet size: ~B", [ AlphaSize ] ),
+
+	generate_helper( CharCount, Alphabet, AlphaSize, _Acc=[] ).
+
+
+
+% (helper)
+generate_helper( _CharCount=0, _Alphabet, _AlphaSize, Acc ) ->
+	% No order matters, no reverse useful:
+	Acc;
+
+generate_helper( CharCount, Alphabet, AlphaSize, Acc ) ->
+	NewCharIndex = random_utils:get_random_value( AlphaSize ),
+	NewChar = list_utils:get_element_at( Alphabet, NewCharIndex ),
+	%trace_utils:debug_fmt( "Drawn '~B' (~s), at index #~B",
+	%					   [ NewChar, [ NewChar ], NewCharIndex ] ),
+
+	generate_helper( CharCount-1, Alphabet, AlphaSize, [ NewChar | Acc ] ).

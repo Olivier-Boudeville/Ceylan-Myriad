@@ -6,5 +6,8 @@
 
 # Any argument(s) specified to this script shall be interpreted as a plain,
 # extra one:
-#
-make -s generate_password_exec CMD_LINE_OPT="-extra $*"
+
+# To debug:
+#make -s generate_password_exec CMD_LINE_OPT="-extra $*"
+
+cd ${CEYLAN_MYRIAD}/src/apps/generate-password && generate-password.escript $*
