@@ -63,11 +63,14 @@
 			   preprocessor_option/0 ]).
 
 
+% For ast_transforms():
+-include("ast_transform.hrl").
+
+
 % Directly inspired from erl_lint:
 
 
 % Description of a compilation-related issue (error or warning).
-%
 -type issue_description() :: term().
 
 
@@ -90,7 +93,6 @@
 
 
 % Checking:
-%
 -export([ check_ast/1,
 		  check_line/2,
 		  check_module_name/1, check_module_name/2,
@@ -99,7 +101,6 @@
 
 
 % Converting:
-%
 -export([ erl_to_ast/1, erl_to_ast/2,
 		  beam_to_ast/1, term_to_form/1, variable_names_to_ast/2,
 		  string_to_form/1, string_to_form/2,
@@ -109,7 +110,6 @@
 
 
 % Displaying:
-%
 -export([ display_debug/1, display_debug/2,
 		  display_trace/1, display_trace/2,
 		  display_info/1, display_info/2,
@@ -119,14 +119,12 @@
 
 
 % Signaling:
-%
 -export([ notify_warning/2,
 		  raise_error/1, raise_error/2, raise_error/3,
 		  get_error_form/3, format_error/1 ]).
 
 
 % Other:
-%
 -export([ write_ast_to_file/2 ]).
 
 
@@ -137,14 +135,13 @@
 -type form() :: ast_base:form().
 -type line() :: ast_base:line().
 -type form_context() :: ast_base:form_context().
-
+-type ast_transforms() :: ast_transform:ast_transforms().
 
 
 % Checking section.
 
 
 % Checks whether specified AST is legit: lints it.
-%
 -spec check_ast( ast() ) -> basic_utils:void().
 check_ast( AST ) ->
 
@@ -200,7 +197,6 @@ check_ast( AST ) ->
 
 
 % Interprets specified list of issue reports.
-%
 -spec interpret_issue_reports( [ issue_report() ] ) -> basic_utils:void().
 interpret_issue_reports( _IssueReports=[] ) ->
 	% Should never happen:
@@ -221,7 +217,6 @@ interpret_issue_reports( IssueReports ) ->
 
 
 % Interprets specific issue report.
-%
 -spec interpret_issue_report( issue_report() ) -> basic_utils:void().
 interpret_issue_report( _IssueReport={ Filename, IssueInfos } ) ->
 
@@ -236,7 +231,6 @@ interpret_issue_report( _IssueReport={ Filename, IssueInfos } ) ->
 
 
 % Interprets specific error description.
-%
 -spec interpret_issue_info( file_utils:file_name(), issue_info() ) ->
 								  basic_utils:void().
 interpret_issue_info( Filename,
@@ -268,7 +262,6 @@ interpret_issue_description( IssueDescription, DectectorModule ) ->
 
 
 % Checks that specified line reference is legit.
-%
 -spec check_line( term(), form_context() ) -> line().
 check_line( Line, _Context ) when is_integer( Line ) andalso Line >= 0 ->
 	Line;
@@ -280,7 +273,6 @@ check_line( Other, Context ) ->
 
 
 % Checks that specified module name is legit.
-%
 -spec check_module_name( term() ) -> basic_utils:module_name().
 check_module_name( Name ) ->
 	check_module_name( Name, _Context=undefined ).
@@ -289,7 +281,6 @@ check_module_name( Name ) ->
 
 
 % Checks that specified module name is legit.
-%
 -spec check_module_name( term(), form_context() ) -> basic_utils:module_name().
 check_module_name( Name, _Context ) when is_atom( Name ) ->
 	Name;
@@ -300,14 +291,12 @@ check_module_name( Other, Context ) ->
 
 
 % Checks that specified inline options are legit.
-%
 -spec check_inline_options( term() ) -> [ meta_utils:function_id() ].
 check_inline_options( FunIds ) ->
 	check_inline_options( FunIds, _Context=undefined ).
 
 
 % Checks that specified inline options are legit.
-%
 -spec check_inline_options( term(), form_context() ) ->
 								  [ meta_utils:function_id() ].
 check_inline_options( FunIds, Context ) when is_list( FunIds ) ->
@@ -320,14 +309,12 @@ check_inline_options( Other, Context ) ->
 
 
 % Checks that specified (function or type) arity is legit.
-%
 -spec check_arity( term() ) -> arity().
 check_arity( Arity ) ->
 	check_arity( Arity, _Context=undefined ).
 
 
 % Checks that specified (function or type) arity is legit.
-%
 -spec check_arity( term(), form_context() ) -> arity().
 check_arity( Arity, _Context ) when is_integer( Arity ) andalso Arity >= 0 ->
 	Arity;
@@ -621,14 +608,12 @@ string_to_value( ExpressionString ) ->
 
 
 % Displays specified text as debug.
-%
 -spec display_debug( text_utils:ustring() ) -> basic_utils:void().
 display_debug( String ) ->
 	io:format( "[debug] ~s~n", [ String ] ).
 
 
-% Displays specified text as debug.
-%
+% Displays specified formatted text as debug.
 -spec display_debug( text_utils:format_string(), [ term() ] ) ->
 						  basic_utils:void().
 display_debug( FormatString, Values ) ->
@@ -637,14 +622,12 @@ display_debug( FormatString, Values ) ->
 
 
 % Displays specified text as trace.
-%
 -spec display_trace( text_utils:ustring() ) -> basic_utils:void().
 display_trace( String ) ->
 	io:format( "[trace] ~s~n", [ String ] ).
 
 
-% Displays specified text as trace.
-%
+% Displays specified formatted text as trace.
 -spec display_trace( text_utils:format_string(), [ term() ] ) ->
 						  basic_utils:void().
 display_trace( FormatString, Values ) ->
@@ -653,14 +636,12 @@ display_trace( FormatString, Values ) ->
 
 
 % Displays specified text as info.
-%
 -spec display_info( text_utils:ustring() ) -> basic_utils:void().
 display_info( String ) ->
 	io:format( "[info] ~s~n", [ String ] ).
 
 
-% Displays specified text as info.
-%
+% Displays specified formatted text as info.
 -spec display_info( text_utils:format_string(), [ term() ] ) ->
 						  basic_utils:void().
 display_info( FormatString, Values ) ->
@@ -668,14 +649,12 @@ display_info( FormatString, Values ) ->
 
 
 % Displays specified text as warning.
-%
 -spec display_warning( text_utils:ustring() ) -> basic_utils:void().
 display_warning( String ) ->
 	io:format( "[warning] ~s~n", [ String ] ).
 
 
-% Displays specified text as warning.
-%
+% Displays specified formatted text as warning.
 -spec display_warning( text_utils:format_string(), [ term() ] ) ->
 						  basic_utils:void().
 display_warning( FormatString, Values ) ->
@@ -684,14 +663,12 @@ display_warning( FormatString, Values ) ->
 
 
 % Displays specified text as error.
-%
 -spec display_error( text_utils:ustring() ) -> basic_utils:void().
 display_error( String ) ->
 	io:format( "~n[error] ~s~n", [ String ] ).
 
 
-% Displays specified text as error.
-%
+% Displays specified formatted text as error.
 -spec display_error( text_utils:format_string(), [ term() ] ) ->
 						  basic_utils:void().
 display_error( FormatString, Values ) ->
@@ -700,14 +677,12 @@ display_error( FormatString, Values ) ->
 
 
 % Displays specified text as fatal.
-%
 -spec display_fatal( text_utils:ustring() ) -> basic_utils:void().
 display_fatal( String ) ->
 	io:format( "[fatal] ~s~n", [ String ] ).
 
 
-% Displays specified text as fatal.
-%
+% Displays specified formatted text as fatal.
 -spec display_fatal( text_utils:format_string(), [ term() ] ) ->
 						  basic_utils:void().
 display_fatal( FormatString, Values ) ->
@@ -717,7 +692,6 @@ display_fatal( FormatString, Values ) ->
 
 
 % Notifies a warning, with specified context.
-%
 -spec notify_warning( [ term() ], form_context() ) -> basic_utils:void().
 notify_warning( Elements, Context ) ->
 
@@ -793,7 +767,14 @@ raise_error( ErrorTerm, Context ) ->
 % Other, { line, 112 } }.
 %
 -spec raise_error( term(), basic_utils:maybe( ast_base:source_context() ),
-				   basic_utils:layer_name() ) -> no_return().
+				   basic_utils:layer_name() ) -> no_return();
+				 ( text_utils:ustring(), ast_transforms(), line() ) ->
+						 no_return().
+raise_error( Message, #ast_transforms{ transformed_module_name=ModName },
+			 Line ) ->
+	io:format( "~s.erl:~B: ~s~n", [ ModName, Line, Message ] ),
+	halt( 5 );
+
 raise_error( Message, Context, OriginLayer ) ->
 
 	Prefix = case Context of
@@ -873,7 +854,6 @@ raise_error( Message, Context, OriginLayer ) ->
 	halt( 5 ).
 
 
-
 % (helper)
 interpret_stack_trace( _StackTrace=[], Acc, _Count ) ->
 	lists:reverse( Acc );
@@ -932,7 +912,6 @@ get_error_form( ErrorTerm, FormatErrorModule, Line ) ->
 format_error( ErrorTerm ) ->
 
 	% Of course this is just an example:
-	%
 	text_utils:format( "my ast_utils error reported: ~s", [ ErrorTerm ] ).
 
 
