@@ -67,7 +67,7 @@
 
 -export([ put/2, get/1, remove/1,
 		  get_dictionary/0, get_keys/0, get_keys_for/1,
-		  blank/0 ]).
+		  blank/0, to_string/0 ]).
 
 
 % Puts specified entry in the process dictionary; returns any value previously
@@ -79,10 +79,12 @@ put( Key, Value ) ->
 
 
 
-% Returns the value (if any) associated to specified key in the process dictionary.
+% Returns the value (if any) associated to specified key in the process
+% dictionary.
 %
 -spec get( key() ) -> maybe( value() ).
 get( Key ) ->
+	%trace_utils:debug_fmt( "Getting key '~s' (as ~p).", [ Key, self() ] ),
 	erlang:get( Key ).
 
 
@@ -96,8 +98,7 @@ remove( Key ) ->
 
 
 
-% Returns the full process dictionary, as a term.
-%
+% Returns the full process dictionary, as a list of {Key,Value} pairs.
 -spec get_dictionary() -> process_dictionary().
 get_dictionary() ->
 	erlang:get().
@@ -105,15 +106,14 @@ get_dictionary() ->
 
 
 % Returns a list of all keys present in the process dictionary.
-%
 -spec get_keys() -> [ key() ].
 get_keys() ->
 	erlang:get_keys().
 
 
 
-% Returns a list of keys that are associated with the specified value in the process
-% dictionary.
+% Returns a list of keys that are associated with the specified value in the
+% process dictionary.
 %
 -spec get_keys_for( value() ) -> [ key() ].
 get_keys_for( Value ) ->
@@ -127,3 +127,26 @@ get_keys_for( Value ) ->
 -spec blank() -> process_dictionary().
 blank() ->
 	erlang:erase().
+
+
+% Returns a textual description of the current state of the process dictionary.
+-spec to_string() -> text_utils:string().
+to_string() ->
+
+	case erlang:get() of
+
+		[] ->
+			text_utils:format( "the process dictionary of ~p is empty",
+							   [ self() ] );
+
+		Pairs ->
+			Strings = lists:sort( [ text_utils:format(
+									  "key '~s' associated to value '~p'",
+									  [ K, V ] ) || { K, V } <- Pairs ] ),
+
+			text_utils:format( "the process dictionary of ~p contains "
+							   "~B pair(s): ~s",
+							   [ self(), length( Pairs ),
+								 text_utils:strings_to_string( Strings ) ] )
+
+	end.
