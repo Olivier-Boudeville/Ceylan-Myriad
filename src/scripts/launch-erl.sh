@@ -136,6 +136,8 @@ busy_limit=1024
 
 
 
+warning_prefix="[launch-erl.sh] Warning:"
+
 
 # To stop interpreting options when having to manage them verbatim:
 do_stop=1
@@ -321,7 +323,7 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ] ; do
 	fi
 
 	if [ $token_eaten -eq 1 ] ; then
-		echo "Warning, unknown argument ('$1'), adding \
+		echo "${warning_prefix} unknown argument ('$1'), adding \
 it 'as is' to command-line." 1>&2
 		verbatim_opt="${verbatim_opt} $1"
 	fi
@@ -436,7 +438,7 @@ if [ -x "${realpath_exec}" ] ; then
 			#echo "  + $new_dir"
 			shortened_code_dirs="$shortened_code_dirs $new_dir"
 		else
-			echo "Warning: directory '$d' does not exist." 1>&2
+			echo "${warning_prefix} directory '$d' does not exist." 1>&2
 		fi
 
 	done
