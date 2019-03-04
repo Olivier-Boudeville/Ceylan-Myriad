@@ -21,7 +21,10 @@
 (require 'server)
 (or (server-running-p)
 	(server-start))
-
+;;
+;; Also tried:
+;;(load "server")
+;;(unless (server-running-p) (server-start))
 
 ;; Compiles .el files newer than their .elc counterpart, or not having one:
 ;; One can also use M-x byte-compile-file to precompile .el files (ex: linum).
@@ -280,7 +283,7 @@
 ;; Depends on the screen height:
 
 ;; For a netbook or possibly a laptop:
-;;(add-to-list 'default-frame-alist (cons 'height 35))
+;;(add-to-list 'default-frame-alist (cons 'height 36))
 
 ;; For a normal screen:
 (add-to-list 'default-frame-alist (cons 'height 52))
