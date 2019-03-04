@@ -106,7 +106,6 @@
 
 
 % Returns a new empty table dimensioned for the default number of entries.
-%
 -spec new() -> list_table().
 new() ->
 	[].
@@ -207,7 +206,6 @@ lookupEntry( Key, Table ) ->
 
 
 % Tells whether the specified key exists in the table: returns true or false.
-%
 -spec hasEntry( key(), list_table() ) -> boolean().
 hasEntry( Key, Table ) ->
 	lists:keymember( Key, _N=1, Table ).
@@ -734,7 +732,6 @@ selectEntries( _Keys=[ K | T ], Table, Acc ) ->
 
 
 % Returns a list containing all the keys of this table (with no duplicate).
-%
 -spec keys( list_table() ) -> [ key() ].
 keys( Table ) ->
 	list_utils:uniquify( [ K || { K, _V } <- Table ] ).
@@ -752,7 +749,6 @@ values( Table ) ->
 
 
 % Returns whether the specified table is empty (not storing any key/value pair).
-%
 -spec isEmpty( list_table() ) -> boolean().
 isEmpty( _Table=[] ) ->
 	true;
@@ -793,7 +789,6 @@ optimise( Table ) ->
 
 
 % Returns a textual description of the specified table.
-%
 -spec toString( list_table() ) -> string().
 toString( Table ) ->
 	toString( Table, user_friendly ).
@@ -809,7 +804,7 @@ toString( Table, _Displaytype ) ->
 	case enumerate( Table ) of
 
 		[] ->
-			"Empty table";
+			"empty table";
 
 		L ->
 
@@ -818,7 +813,7 @@ toString( Table, _Displaytype ) ->
 						|| { K, V } <- lists:sort( L ) ],
 
 			% Flatten is needed, in order to use the result with ~s:
-			lists:flatten( io_lib:format( "Table with ~B entry(ies):~s~n",
+			lists:flatten( io_lib:format( "table with ~B entry(ies): ~s~n",
 				[ length( L ),
 				  text_utils:strings_to_string( Strings ) ] ) )
 
@@ -827,7 +822,6 @@ toString( Table, _Displaytype ) ->
 
 
 % Displays the specified table on the standard output.
-%
 -spec display( list_table() ) -> void().
 display( Table ) ->
 	io:format( "~s~n", [ toString( Table ) ] ).
