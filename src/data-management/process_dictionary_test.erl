@@ -45,6 +45,9 @@ run() ->
 
 	test_facilities:display( "Testing the support of the process dictionary." ),
 
+	test_facilities:display( "Initial state: ~s",
+							 [ process_dictionary:to_string() ] ),
+
 	InitTable = process_dictionary:get_dictionary(),
 
 	test_facilities:display( "Initial content: ~s",
@@ -82,5 +85,8 @@ run() ->
 
 	test_facilities:display( "Final content: ~s",
 							 [ list_table:toString( FinalTable ) ] ),
+
+	test_facilities:display( "Final state: ~s",
+							 [ process_dictionary:to_string() ] ),
 
 	test_facilities:stop().
