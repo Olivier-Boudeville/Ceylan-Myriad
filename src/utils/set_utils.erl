@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: July 1, 2007.
+% Creation date: July 1, 2016.
 
 
 % Gathering of various facilities about sets.
