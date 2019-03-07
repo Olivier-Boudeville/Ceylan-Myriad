@@ -27,7 +27,6 @@
 
 
 % This header file gathers mostly following info records:
-%
 % - module_info
 % - type_info
 % - function_info
@@ -35,7 +34,6 @@
 
 
 % Description of a module name:
-%
 -type module_entry() :: basic_utils:maybe( { basic_utils:module_name(),
 											 ast_info:located_form() } ).
 
@@ -60,7 +58,7 @@
 % that was gathered, and whose second element is a lower level, form-based,
 % information (a bit more informative in terms of syntax and source layout, yet
 % less tractable from a user point of view).
-
+%
 % In the latter case, there are thus two fields per theme:
 %
 % - the high-level, developer-friendly one (ex: 'compilation_options')
@@ -271,12 +269,10 @@
 
 
 		% Section markers, offering reference locations to AST transformations.
-		%
 		markers :: ast_info:section_marker_table(),
 
 
 		% Error information collected when traversing the AST
-		%
 		errors = [] :: [ ast_info:error() ],
 
 
@@ -328,7 +324,6 @@
 
 
 		   % Type actual definition, a (non-located) abstract form:
-		   %
 		   definition = undefined :: ast_type:ast_type(),
 
 
