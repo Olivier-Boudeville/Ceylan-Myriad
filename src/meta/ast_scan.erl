@@ -924,20 +924,14 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 		{ value, #type_info{ line=LineDef,
 							 exported=[] } } ->
 
-			% We did not keep the line (or file) of the initial definition:
-			trace_utils:error_fmt( "Type ~s/~B defined at line #~B of file "
-				"'~s', whereas it had already been defined at line #~B.",
-				[ TypeName, TypeArity, Line,
-				  % We used to normalise paths, however then 'file_utils' would
-				  % have to be bootstrapped as well, which does not seem
-				  % desirable:
-				  %file_utils:normalise_path( CurrentFileReference ),
-				  CurrentFileReference,
-				  LineDef ] ),
+			% We have to report this multiple definition, otherwise it will not
+			% be seen by the compiler afterwards (the extra type definition
+			% would be skipped before reaching the compiler)
 
-			ast_utils:raise_error( [ multiple_definitions_for_type, TypeId,
-									 { previously_defined_at_line, LineDef } ],
-								   Context );
+			ast_utils:raise_usage_error( "type ~s/~B defined here, whereas "
+			  "it had already been defined at line #~B.",
+			  [ TypeName, TypeArity, LineDef ], CurrentFileReference, Line );
+
 
 		{ value, ExportTypeInfo } ->
 			ExportTypeInfo#type_info{ name=TypeName,
@@ -948,6 +942,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 									  definition=TypeDef
 									  %exported: already set
 											   };
+
 
 		% Usual case:
 		key_not_found ->

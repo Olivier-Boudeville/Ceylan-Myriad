@@ -74,7 +74,7 @@ main( ArgTable ) ->
 	%trace_utils:debug_fmt( "Original script-specific arguments: ~s",
 	%	   [ executable_utils:argument_table_to_string( ArgTable ) ] ),
 
-	[ %InteractiveRefKey, 
+	[ %InteractiveRefKey,
 	  LengthRefKey, AlphaRefKey, HelpRefKey ] =
 		[ %'-interactive',
 		  '-length', '-alphabet', '-help' ],

@@ -34,7 +34,6 @@
 
 
 
-
 % User-related functions.
 -export([ get_user_name/0, get_user_name_string/0,
 		  get_user_home_directory/0, get_user_home_directory_string/0 ]).
@@ -98,7 +97,6 @@
 % Prerequisite-related section.
 
 % Name of a (third-party) prerequisite package (ex: "ErlPort", "jsx", etc.).
-%
 -type package_name() :: string().
 
 -export_type([ package_name/0 ]).
@@ -151,7 +149,6 @@
 
 
 % Stores information about a filesystem:
-%
 -record( fs_info, {
 
 		   % Device name (ex: /dev/sda5):
@@ -177,7 +174,6 @@
 
 } ).
 
-
 -type fs_info() :: #fs_info{}.
 
 
@@ -189,7 +185,6 @@
 
 
 % An option used to spawn a port (others managed through specific parameters):
-%
 -type port_option() :: { 'packet', 1 | 2 | 4 }
 					 | 'stream'
 					 | { 'line', basic_utils:count() }.
@@ -204,18 +199,15 @@
 
 
 % Output of the run of an executable:
-%
 -type command_output() :: text_utils:ustring().
 
 
 % All information returned by a shell command:
-%
 -type command_outcome() :: { return_code(), command_output() }.
 
 
 
 % Describes a shell expression:
-%
 -type shell_expression() :: text_utils:ustring().
 
 
@@ -268,9 +260,7 @@
 			   env_variable_name/0, env_variable_value/0, environment/0,
 			   working_dir/0,
 
-			   user_name/0, password/0, basic_credential/0
-
-			 ]).
+			   user_name/0, password/0, basic_credential/0 ]).
 
 
 
@@ -279,7 +269,6 @@
 
 
 % Returns the name of the current user, as a plain string.
-%
 -spec get_user_name() -> string().
 get_user_name() ->
 
@@ -321,7 +310,6 @@ get_user_name_string() ->
 
 
 % Returns the home directory of the current user, as a plain string.
-%
 -spec get_user_home_directory() -> string().
 get_user_home_directory() ->
 
@@ -555,7 +543,6 @@ run_executable( Command, Environment, WorkingDir, PortOptions ) ->
 
 
 % Helper to read command data from a port.
-%
 read_port( Port, Data ) ->
 
 	%trace_utils:debug_fmt( "Reading port ~p (data: '~p').", [ Port, Data ] ),
@@ -667,7 +654,6 @@ get_line( Prompt, GetLineScriptPath ) ->
 
 
 % Returns the path to the Myriad helper script for get_line/1 operations.
-%
 -spec get_line_helper_script() -> file_utils:executable_path().
 get_line_helper_script() ->
 
@@ -708,7 +694,6 @@ get_standard_environment() ->
 
 
 % Monitors a port: reads command data and signals from a port, and reports it.
-%
 monitor_port( Port, Data ) ->
 
 	%trace_utils:debug_fmt( "Process ~p starting the monitoring of "
@@ -970,7 +955,6 @@ set_environment_variable( VarName, VarValue ) ->
 
 
 % Returns the current shell environment, sorted by variable names.
-%
 -spec get_environment() -> environment().
 get_environment() ->
 
@@ -981,7 +965,6 @@ get_environment() ->
 
 
 % Returns a textual description of the current shell environment.
-%
 -spec environment_to_string() -> string().
 environment_to_string() ->
 	environment_to_string( get_environment() ).
@@ -989,7 +972,6 @@ environment_to_string() ->
 
 
 % Returns a textual description of the specified shell environment.
-%
 -spec environment_to_string( environment() ) -> string().
 environment_to_string( Environment ) ->
 
@@ -1091,7 +1073,6 @@ get_application_version( Application ) ->
 
 
 % Returns the size, in bytes, of a word of this Virtual Machine.
-%
 -spec get_size_of_vm_word() -> basic_utils:count().
 get_size_of_vm_word() ->
 	erlang:system_info( wordsize ).
@@ -1491,7 +1472,7 @@ get_total_memory_used() ->
 	%{ AppliUsedSize, AppliUsedSize + TotalFreeSize }.
 
 
-	% So finally we prefered /proc/meminfo, used first to get MemTotal:
+	% So finally we preferred /proc/meminfo, used first to get MemTotal:
 	%
 	TotalString = case run_executable( ?cat "/proc/meminfo |"
 					 ?grep "'^MemTotal:' |" ?awk "'{print $2,$3}'" ) of
@@ -1746,7 +1727,6 @@ get_core_count_string() ->
 
 
 % Returns the number of live Erlang processes on the current node.
-%
 -spec get_process_count() -> basic_utils:count().
 get_process_count() ->
 	erlang:system_info( process_count ).
@@ -1926,7 +1906,6 @@ get_cpu_usage_counters() ->
 
 
 % Returns the current usage of disks, as a human-readable string.
-%
 -spec get_disk_usage() -> text_utils:ustring().
 get_disk_usage() ->
 
@@ -1965,7 +1944,6 @@ get_disk_usage_string() ->
 
 
 % Returns a list of the known types of pseudo-filesystems.
-%
 -spec get_known_pseudo_filesystems() -> [ pseudo_filesystem_type() ].
 get_known_pseudo_filesystems() ->
 
@@ -2013,7 +1991,6 @@ get_mount_points() ->
 
 
 % (helper for df)
-%
 get_exclude_pseudo_fs_opt() ->
 
 	Excludes = [ " --exclude-type=" ++ text_utils:atom_to_string( P )
@@ -2024,7 +2001,6 @@ get_exclude_pseudo_fs_opt() ->
 
 
 % Returns information about the specified filesystem.
-%
 -spec get_filesystem_info( file_utils:bin_path() | file_utils:path() ) ->
 								 fs_info().
 get_filesystem_info( BinFilesystemPath ) when is_binary( BinFilesystemPath ) ->
@@ -2075,7 +2051,6 @@ get_filesystem_info( FilesystemPath ) ->
 
 
 % Alternate version, if the base version failed.
-%
 get_filesystem_info_alternate( FilesystemPath ) ->
 
 	% df must have failed, probably outdated and not understanding --output,
@@ -2122,7 +2097,6 @@ get_filesystem_info_alternate( FilesystemPath ) ->
 
 
 % Returns a textual description of the specified filesystem information.
-%
 -spec filesystem_info_to_string( fs_info() ) -> text_utils:ustring().
 filesystem_info_to_string( #fs_info{ filesystem=Fs, mount_point=Mount,
 									 type=Type,
@@ -2184,7 +2158,6 @@ get_current_directory_string() ->
 
 
 % Returns a string describing the current operating system.
-%
 -spec get_operating_system_description() -> text_utils:ustring().
 get_operating_system_description() ->
 
@@ -2278,7 +2251,6 @@ get_system_description() ->
 
 
 % Tells whether this host has graphical output (typically a running X server).
-%
 -spec has_graphical_output() -> boolean().
 has_graphical_output() ->
 
@@ -2430,7 +2402,6 @@ get_dependency_code_directory( PackageName ) ->
 
 
 % Tells whether a JSON support is available.
-%
 -spec is_json_support_available() -> boolean().
 is_json_support_available() ->
 	% This module can be built in all cases:
@@ -2448,7 +2419,6 @@ get_json_unavailability_hint() ->
 
 
 % Tells whether an HDF5 support is available.
-%
 -spec is_hdf5_support_available() -> boolean().
 is_hdf5_support_available() ->
 

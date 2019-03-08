@@ -42,7 +42,6 @@
 
 
 % Conversions between terms and strings (both ways).
-%
 -export([ term_to_string/1, term_to_string/2, term_to_string/3,
 		  term_to_binary/1,
 		  integer_to_string/1, atom_to_string/1, pid_to_string/1,
@@ -73,7 +72,6 @@
 
 
 % Other string operations:
-%
 -export([ get_lexicographic_distance/2, find_longer_common_prefix/1,
 		  uppercase_initial_letter/1,
 		  to_lowercase/1, to_uppercase/1,
@@ -126,7 +124,6 @@
 
 
 % Lists of terms corresponding to a format string:
-%
 -type format_values() :: [ term() ].
 
 
@@ -144,22 +141,18 @@
 
 
 % A string that describes a title:
-%
 -type title() :: string().
 
 
 % A string that describes a label:
-%
 -type label() :: string().
 
 
 % A binary corresponding to a string:
-%
 -type bin_string() :: binary().
 
 
 % Any kind of string:
-%
 -type any_string() :: string() | bin_string().
 
 
@@ -196,12 +189,10 @@
 
 
 % The level of indentation (starts at zero, and the higher, the most nested).
-%
 -type indentation_level() :: basic_utils:count().
 
 
 % A bullet, to denote the elements of a list.
-%
 -type bullet() :: ustring().
 
 
@@ -240,7 +231,6 @@
 
 
 % Returns a human-readable string describing specified term.
-%
 -spec term_to_string( term() ) -> string().
 term_to_string( _Term=[] ) ->
 	% Otherwise would be an empty string:
@@ -261,7 +251,6 @@ term_to_string( Term ) ->
 
 
 % Returns a human-readable binary string describing specified term.
-%
 -spec term_to_binary( term() ) -> bin_string().
 term_to_binary( Term ) ->
 	String = term_to_string( Term ),
@@ -342,7 +331,6 @@ integer_to_string( IntegerValue ) ->
 
 
 % Returns a plain string corresponding to the specified atom.
-%
 -spec atom_to_string( atom() ) -> string().
 atom_to_string( Atom ) ->
 	atom_to_list( Atom ).
@@ -350,7 +338,6 @@ atom_to_string( Atom ) ->
 
 
 % Returns a plain string corresponding to the specified PID.
-%
 -spec pid_to_string( pid() ) -> string().
 pid_to_string( Pid ) ->
 
@@ -415,7 +402,6 @@ record_to_string( _Record ) -> % No 'when is_record( Record, Tag ) ->' here.
 
 
 % Returns the default bullet to be used for top-level lists.
-%
 -spec get_default_bullet() -> ustring().
 get_default_bullet() ->
 	get_bullet_for_level( 0 ).
@@ -423,7 +409,6 @@ get_default_bullet() ->
 
 
 % Returns the bullet to be used for specified indentation level.
-%
 -spec get_bullet_for_level( indentation_level() ) -> bullet().
 get_bullet_for_level( 0 ) ->
 	" + ";
@@ -494,7 +479,7 @@ strings_to_enumerated_string( ListOfStrings, IndentationLevel ) ->
 	{ _FinalCount, ReversedStrings } = lists:foldl(
 				 fun( String, _Acc={ Count, Strings } ) ->
 
-					 NewStrings = [ text_utils:format( "~s~B. ~ts~n",
+					 NewStrings = [ format( "~s~B. ~ts~n",
 									   [ Prefix, Count, String ] ) | Strings ],
 					 { Count + 1, NewStrings }
 
@@ -699,9 +684,9 @@ strings_to_listed_string( ListOfStrings ) ->
 
 	OtherStrings = lists:reverse( RevOtherStrings ),
 
-	OtherStringsString = text_utils:join( ", ", OtherStrings ),
+	OtherStringsString = join( ", ", OtherStrings ),
 
-	text_utils:format( "~s and ~s", [ OtherStringsString, LastString ] ).
+	format( "~s and ~s", [ OtherStringsString, LastString ] ).
 
 
 
@@ -740,7 +725,6 @@ proplist_to_string( Proplist ) ->
 
 
 % Returns a string describing the specified three-element version.
-%
 -spec version_to_string( basic_utils:version() ) -> string().
 version_to_string( { V1, V2, V3 } ) ->
 	io_lib:format( "~B.~B.~B", [ V1, V2, V3 ] ).
@@ -748,7 +732,6 @@ version_to_string( { V1, V2, V3 } ) ->
 
 
 % Returns a binary string corresponding to the specified atom.
-%
 -spec atom_to_binary( atom() ) -> bin_string().
 atom_to_binary( Atom ) ->
 	string_to_binary( atom_to_string( Atom ) ).
@@ -1183,7 +1166,6 @@ ensure_binary( String ) ->
 
 
 % Significantly more efficient version, using memoization:
-%
 -spec get_lexicographic_distance( string(), string() ) -> distance().
 get_lexicographic_distance( FirstString, SecondString ) ->
 	{ Distance, _NewAccTable } = get_lexicographic_distance( FirstString,
@@ -1282,7 +1264,6 @@ are_all_starting_with( _C, _Strings, _Acc ) ->
 
 
 % Converts a plain (list-based) string into a binary.
-%
 -spec string_to_binary( ustring() ) -> binary().
 string_to_binary( String ) when is_list( String ) ->
 	try
@@ -1304,7 +1285,6 @@ string_to_binary( Other ) ->
 
 
 % Converts a binary into a plain (list-based) string.
-%
 -spec binary_to_string( binary() ) -> ustring().
 binary_to_string( Binary ) when is_binary( Binary ) ->
 	erlang:binary_to_list( Binary );
@@ -1557,14 +1537,12 @@ uppercase_initial_letter( _Letters=[ First | Others ] ) ->
 
 
 % Sets the specified string to lowercase, i.e. downcase it.
-%
 -spec to_lowercase( string() ) -> string().
 to_lowercase( String ) ->
 	string:to_lower( String ).
 
 
 % Sets the specified string to uppercase.
-%
 -spec to_uppercase( string() ) -> string().
 to_uppercase( String ) ->
 	string:to_upper( String ).
@@ -1596,7 +1574,6 @@ join( Separator, ListToJoin ) ->
 
 
 % Helper:
-%
 join( _Separator, _ListToJoin=[], Acc) ->
 	Acc;
 
@@ -1804,7 +1781,6 @@ split_after_prefix( _Prefix, _String ) ->
 
 
 % Returns a list of all known whitespaces.
-%
 -spec list_whitespaces() -> [ char() ].
 list_whitespaces() ->
 	" \t\n".
@@ -1876,7 +1852,6 @@ escape_all_quotes_helper( _Text=[ C | T ], Acc ) ->
 
 
 % Tells whether specified character is an uppercase one.
-%
 -spec is_uppercase( uchar() ) -> boolean().
 is_uppercase( Char ) ->
 
@@ -1897,7 +1872,6 @@ is_uppercase( Char ) ->
 
 
 % Tells whether specified character is a figure (in 0..9).
-%
 -spec is_figure( char() ) -> boolean().
 is_figure( Char ) when is_integer( Char ) andalso Char >= $0
 					   andalso Char =< $9 ->
@@ -1909,7 +1883,6 @@ is_figure( Char ) when is_integer( Char ) ->
 
 
 % Removes the ending "\n" character(s) of specified string.
-%
 -spec remove_ending_carriage_return( ustring() ) -> ustring().
 remove_ending_carriage_return( String ) when is_list( String ) ->
 
@@ -1941,7 +1914,6 @@ remove_last_characters( String, Count ) ->
 
 
 % Removes all whitespaces from specified string, and returns the result.
-%
 -spec remove_whitespaces( ustring() ) -> ustring().
 remove_whitespaces( String ) ->
 	re:replace( String, "\s", "", [ global, unicode, { return, list } ] ).
@@ -1959,7 +1931,6 @@ trim_whitespaces( String ) ->
 
 
 % Removes all leading whitespaces from specified string, and returns the result.
-%
 -spec trim_leading_whitespaces( ustring() ) -> ustring().
 trim_leading_whitespaces( String ) ->
 
@@ -2002,7 +1973,6 @@ format_text_for_width( Text, Width ) ->
 
 
 % Joins words from the list, line by line.
-%
 join_words( WordList, Width ) ->
 	join_words( WordList, Width, _Lines=[], _CurrentLine="",
 				_CurrentLineLen=0 ).
@@ -2203,7 +2173,6 @@ is_list_of_strings( _Other ) ->
 
 
 % Returns true iff the specified parameter is a binary string.
-%
 -spec is_bin_string( term() ) -> boolean().
 is_bin_string( Term ) when is_binary( Term ) ->
 	%is_string( binary_to_list( Term ) );
@@ -2215,7 +2184,6 @@ is_bin_string( _Term ) ->
 
 
 % Tells whether specified term is a list of binaries.
-%
 -spec is_list_of_binaries( term() ) -> boolean().
 is_list_of_binaries( List ) when is_list( List ) ->
 	lists:all( fun is_bin_string/1, List );
@@ -2284,7 +2252,6 @@ aggregate_word( String=[ $_ | _T ], 1, Acc ) ->
 	aggregate_word( String, 0, Acc );
 
 % An escaped underscore will fit:
-%
 aggregate_word( [ $_ | T ], Count, Acc ) ->
 	% Adding '_\' as it will reversed (into the expected '\_'):
 	aggregate_word( T, Count-2, [ $\_, $\\ | Acc ] );
@@ -2409,7 +2376,6 @@ encode_as_url( [ { Key, Value } | T ], Acc ) ->
 
 
 % Encodes specified element so that it can be used in an URL.
-%
 -spec encode_element_as_url( ustring() ) -> ustring().
 encode_element_as_url( E ) ->
 	% They seem to produce quite similar results in our few test cases:
@@ -2419,7 +2385,6 @@ encode_element_as_url( E ) ->
 
 
 % Escapes specified list of {Key,Value} pairs so that it can used into some URL.
-%
 -spec escape( option_list:option_list() ) -> ustring().
 escape( OptionList ) ->
 	%io:format( "~n~nEscaping '~p'.~n", [ OptionList ] ),
@@ -2439,10 +2404,9 @@ escape( [ { Key, Value } | T ], Acc ) ->
 
 
 % Escapes specified element so that it can be used in some URL.
-%
 -spec escape_key( option_list:key() ) -> ustring().
 escape_key( Key ) when is_atom( Key ) ->
-	text_utils:atom_to_string( Key ).
+	atom_to_string( Key ).
 
 
 -spec escape_value( ustring() ) -> ustring().

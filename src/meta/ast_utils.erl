@@ -121,6 +121,7 @@
 % Signaling:
 -export([ notify_warning/2,
 		  raise_error/1, raise_error/2, raise_error/3,
+		  raise_usage_error/4,
 		  get_error_form/3, format_error/1 ]).
 
 
@@ -871,6 +872,22 @@ interpret_stack_trace( _StackTrace=[ H | T ], Acc, Count ) ->
 	Text = io_lib:format( "~p~n", [ H ] ),
 	interpret_stack_trace( T, [ Text | Acc ], Count+1 ).
 
+
+
+% Raises a (compile-time, rather ad hoc) user-related error, with specified
+% source context, to stop the build on failure and report adequately the actual
+% error to the user.
+%
+-spec raise_usage_error( text_utils:format_string(), text_utils:format_values(),
+						 file_utils:filename(), ast_base:line() ) -> no_return().
+raise_usage_error( ErrorFormatString, ErrorValues, Filename, Line ) ->
+
+	ErrorString = io_lib:format( ErrorFormatString, ErrorValues ),
+
+	io:format( "~s:~B: ~s~n", [ Filename, Line, ErrorString ] ),
+
+	% Almost the only way to stop the processing of the AST:
+	halt( 5 ).
 
 
 % Returns an AST form in order to raise a (compile-time, standard) error when
