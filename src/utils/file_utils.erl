@@ -92,7 +92,6 @@
 
 
 % I/O section.
-%
 -export([ open/2, open/3, close/1, close/2,
 		  read/2, write/2, write/3,
 		  read_whole/1, write_whole/2,
@@ -100,7 +99,6 @@
 
 
 % Compression-related operations.
-%
 -export([ get_extension_for/1, compress/2, decompress/2,
 		  file_to_zipped_term/1, zipped_term_to_unzipped_file/1,
 		  zipped_term_to_unzipped_file/2,
@@ -168,7 +166,10 @@
 -type entry_type() :: 'device' | 'directory' | 'other' | 'regular' | 'symlink'.
 
 
-% Relevant flags when opening a file:
+% Relevant flags when opening a file (ex: read, write, append, exclusive, raw,
+% etc.).
+%
+% See http://erlang.org/doc/man/file.html#open-2 for their detailed description.
 %
 % (file:mode() not exported currently unfortunately, see
 % lib/kernel/src/file.erl)
@@ -191,7 +192,6 @@
 
 
 % The various permissions that can be combined for file-like elements:
-%
 -type permission() :: 'owner_read' | 'owner_write' | 'owner_execute'
 					  | 'group_read' | 'group_write' | 'group_execute'
 					  | 'other_read' | 'other_write' | 'other_execute'
@@ -247,7 +247,6 @@ join( FirstPath, SecondPath ) ->
 
 
 % Converts specified name to an acceptable filename, filesystem-wise.
-%
 -spec convert_to_filename( string() ) ->
 		file_name(). % none() in case of erlang:error/2
 convert_to_filename( Name ) ->
@@ -341,7 +340,6 @@ replace_extension( Filename, SourceExtension, TargetExtension ) ->
 
 
 % Tells whether specified file entry exists, regardless of its type.
-%
 -spec exists( file_name() ) -> boolean().
 exists( EntryName ) ->
 
@@ -358,7 +356,6 @@ exists( EntryName ) ->
 
 
 % Returns the type of the specified file entry.
-%
 -spec get_type_of( file_name() ) -> entry_type().
 get_type_of( EntryName ) ->
 
@@ -710,7 +707,7 @@ set_current_directory( DirName ) ->
 
 
 
-% Helper function.
+% (helper)
 %
 % Returns a tuple containing four lists corresponding to the sorting of all
 % file elements: { Directories, Files, Devices, OtherFiles }.
@@ -827,7 +824,7 @@ filter_by_excluded_suffixes( Filenames, ExcludedSuffixes ) ->
 
 
 
-
+% (helper)
 -spec has_matching_suffix( file_name(), [ string() ] ) -> boolean().
 has_matching_suffix( _Filename, _ExcludedSuffixes=[] ) ->
 	false;
@@ -881,7 +878,7 @@ find_files_from( RootDir ) ->
 
 
 
-% Helper.
+% (helper)
 find_files_from( RootDir, CurrentRelativeDir, Acc ) ->
 
 	%io:format( "find_files_from with root = '~s', current = '~s'.~n",
@@ -922,7 +919,7 @@ find_files_with_extension_from( RootDir, Extension ) ->
 
 
 
-% Helper.
+% (helper)
 find_files_with_extension_from( RootDir, CurrentRelativeDir, Extension, Acc ) ->
 
 	%io:format( "find_files_from in ~s.~n", [ CurrentRelativeDir ] ),
@@ -976,7 +973,7 @@ find_files_with_excluded_dirs( RootDir, ExcludedDirList ) ->
 								  ExcludedDirList, _Acc=[] ).
 
 
-% Helper.
+% (helper)
 find_files_with_excluded_dirs( RootDir, CurrentRelativeDir, ExcludedDirList,
 							Acc ) ->
 
@@ -1030,7 +1027,7 @@ find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes ) ->
 
 
 
-% Helper:
+% (helper)
 find_files_with_excluded_suffixes( RootDir, CurrentRelativeDir,
 										ExcludedSuffixes, Acc ) ->
 
@@ -1098,7 +1095,7 @@ find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirList,
 											   ).
 
 
-% Helper:
+% (helper)
 find_files_with_excluded_dirs_and_suffixes( RootDir, CurrentRelativeDir,
 		ExcludedDirList, ExcludedSuffixes, Acc ) ->
 
@@ -1147,7 +1144,7 @@ prefix_files_with( RootDir, Files ) ->
 	prefix_files_with( RootDir, Files, _Acc=[] ).
 
 
-% Helper:
+% (helper)
 prefix_files_with( _RootDir, _Files=[], Acc ) ->
 	Acc;
 
@@ -1168,7 +1165,7 @@ find_directories_from( RootDir ) ->
 	find_directories_from( RootDir, "", _Acc=[] ).
 
 
-% Helper:
+% (helper)
 find_directories_from( RootDir, CurrentRelativeDir, Acc ) ->
 
 	%io:format( "find_directories_from in ~s.~n", [ CurrentRelativeDir ] ),
@@ -1182,7 +1179,7 @@ find_directories_from( RootDir, CurrentRelativeDir, Acc ) ->
 
 
 
-% Helper:
+% (helper)
 list_directories_in_subdirs( _Dirs=[], _RootDir, _CurrentRelativeDir, Acc ) ->
 	Acc;
 
@@ -1254,7 +1251,7 @@ create_directory_if_not_existing( Dirname ) ->
 
 
 
-% Helper:
+% (helper)
 create_dir_elem( _Elems=[], _Prefix ) ->
 	ok;
 
@@ -1320,7 +1317,6 @@ remove_file( Filename ) ->
 
 
 % Removes (deletes) specified files, specified as a list of plain strings.
-%
 -spec remove_files( [ file_name() ] ) -> void().
 remove_files( FilenameList ) ->
 	[ remove_file( Filename ) || Filename <- FilenameList ].
@@ -1355,7 +1351,6 @@ remove_files_if_existing( FilenameList ) ->
 
 
 % Removes specified directory, which must be empty.
-%
 -spec remove_directory( directory_name() ) -> void().
 remove_directory( DirectoryName ) ->
 
@@ -1448,7 +1443,6 @@ copy_file_if_existing( SourceFilename, DestinationFilename ) ->
 
 
 % Renames specified file.
-%
 -spec rename( file_name(), file_name() ) -> void().
 rename( SourceFilename, DestinationFilename ) ->
 	move_file( SourceFilename, DestinationFilename ).
@@ -1456,7 +1450,6 @@ rename( SourceFilename, DestinationFilename ) ->
 
 
 % Moves specified file so that it is now designated by specified filename.
-%
 -spec move_file( file_name(), file_name() ) -> void().
 move_file( SourceFilename, DestinationFilename ) ->
 
@@ -1481,7 +1474,6 @@ move_file( SourceFilename, DestinationFilename ) ->
 
 
 % Returns the low-level permission associated to specified one.
-%
 -spec get_permission_for( permission() | [ permission() ] ) -> integer().
 get_permission_for( owner_read ) ->
 	8#00400;
@@ -1526,7 +1518,6 @@ get_permission_for( PermissionList ) when is_list( PermissionList ) ->
 
 
 % Changes the permissions of specified file.
-%
 -spec change_permissions( file_name(), permission() | [ permission() ] ) ->
 								void().
 change_permissions( Filename, NewPermissions ) ->
@@ -1729,9 +1720,8 @@ path_to_variable_name( Filename ) ->
 	path_to_variable_name( Filename, "File_" ).
 
 
-
+% (helper)
 % Removes any leading './'.
-%
 -spec path_to_variable_name( path(), string() ) -> string().
 path_to_variable_name( [ $.,$/ | T ], Prefix ) ->
 	convert( T, Prefix );
@@ -1741,8 +1731,7 @@ path_to_variable_name( Filename, Prefix ) ->
 
 
 
-% Helper function:
-%
+% (helper)
 convert( Filename, Prefix ) ->
 
 	NoDashName = re:replace( lists:flatten( Filename ), "-+", "_",
@@ -1778,8 +1767,7 @@ remove_upper_levels_and_extension( FilePath ) ->
 
 
 
-% Returns a list of the known file extensions that refer image files.
-%
+% Returns a list of the known file extensions that refer to image files.
 -spec get_image_extensions() -> [ extension() ].
 get_image_extensions() ->
 	% TIFF, TGA and al deemed deprecated:
@@ -1791,7 +1779,6 @@ get_image_extensions() ->
 
 
 % Returns the image path corresponding to the specified file.
-%
 -spec get_image_file_png( file_name() ) -> path().
 get_image_file_png( Image ) ->
   filename:join( [ ?ResourceDir, "images", Image ++ ".png" ] ).
@@ -1799,7 +1786,6 @@ get_image_file_png( Image ) ->
 
 
 % Returns the image path corresponding to the specified file.
-%
 -spec get_image_file_gif( file_name() ) -> path().
 get_image_file_gif( Image ) ->
   filename:join( [ ?ResourceDir, "images", Image ++ ".gif" ] ).
@@ -1856,8 +1842,6 @@ open( Filename, Options ) ->
 %
 -spec open( file_name(), [ file_open_mode() ],
 		   'try_once' | 'try_endlessly' | 'try_endlessly_safer' ) -> file().
-		% For the contents in above tuple(): reference to type #file_descriptor
-		% of erlang module: file.hrl
 open( Filename, Options, _AttemptMode=try_endlessly_safer ) ->
 
 	File = open( Filename, Options, try_endlessly ),
@@ -1990,6 +1974,8 @@ read( File, Count ) ->
 
 % Writes specified content into specified file.
 %
+% Operates on files opened in raw mode or not.
+%
 % Throws an exception on failure.
 %
 -spec write( file(), iodata() ) -> void().
@@ -2011,8 +1997,7 @@ write( File, Content ) ->
 %
 % Throws an exception on failure.
 %
--spec write( file(), text_utils:format_string(), [ term() ] ) ->
-				   void().
+-spec write( file(), text_utils:format_string(), [ term() ] ) -> void().
 write( File, FormatString, Values ) ->
 
 	Text = text_utils:format( FormatString, Values ),
