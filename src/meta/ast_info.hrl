@@ -293,7 +293,6 @@
 
 
 % Describes a type (generally extracted from a module).
-%
 -record( type_info, {
 
 
