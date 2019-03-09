@@ -480,7 +480,7 @@ ensure_function_exported( FunId, _ExportLocs=[ Loc | T ], ModuleInfo,
 
 
 % Ensures that specified function is not exported at the specified location(s),
-% in the specified function export table.
+% in the specified function export table (un-export said function).
 %
 -spec ensure_function_not_exported( meta_utils:function_id(), [ location() ],
 						function_export_table() ) -> function_export_table().
