@@ -362,7 +362,8 @@
 		   % file):
 		   %
 		   % (this information is a priori redundant with the one in the first
-		   % clause, yet present in the forms, thus kept here)
+		   % clause, yet present in the forms, thus kept here; note that the
+		   % linter will not accept an 'undefined' value)
 		   %
 		   line = undefined :: basic_utils:maybe( ast_base:line() ),
 
