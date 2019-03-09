@@ -99,12 +99,10 @@
 
 
 % An AST including location information:
-%
 -type located_ast() :: [ located_form() ].
 
 
 % Located type specification of a function:
-%
 -type located_function_spec() :: { location(), meta_utils:function_spec() }.
 
 
@@ -160,17 +158,14 @@
 
 
 		% Marker designating a section dedicated to the definition of records:
-		%
 	  | 'definition_records_marker'
 
 
 		% Marker designating a section dedicated to the definition of types:
-		%
 	  | 'definition_types_marker'
 
 
 		% Marker designating a section dedicated to the definition of functions:
-		%
 	  | 'definition_functions_marker'
 
 	  | 'end_marker'.       % End of the AST stream / source file
@@ -208,18 +203,15 @@
 
 
 % The name of a (parse-level) attribute (ex: '-my_attribute( my_value ).').
-%
 -type attribute_name() :: atom().
 
 
 % The value of a (parse-level) attribute (ex: '-my_attribute( my_value ).').
-%
 -type attribute_value() :: term().
 
 
 
 % Parse-level attribute:
-%
 -type attribute() :: { attribute_name(), attribute_value() }.
 
 
@@ -252,7 +244,6 @@
 
 
 % A table associating to each type identifier a full type information.
-%
 -type type_table() :: ?table:?table( type_id(), type_info() ).
 
 
@@ -266,7 +257,6 @@
 
 
 % The full definition of a record.
-%
 -type record_definition() :: { field_table(), location(), line() }.
 
 
@@ -301,7 +291,8 @@
 % Note:
 %
 % - this table must be explicitly updated whenever adding or removing a function
-% in a module_info 'functions' field; see: add_function/2 and remove_function/2
+% in a module_info 'functions' field; see: meta_utils:add_function/2 and
+% meta_utils:remove_function/2
 %
 % - a list of function_id() is used, not a set, to better preserve order
 %
@@ -311,7 +302,6 @@
 
 
 % A table associating to each function identifier a full function information.
-%
 -type function_table() :: ?table:?table( function_id(), function_info() ).
 
 
@@ -349,9 +339,7 @@
 			   function_import_table/0, function_export_table/0,
 			   function_table/0, section_marker_table/0,
 
-			   error/0
-
-			 ]).
+			   error/0 ]).
 
 
 % General module-info helpers:
@@ -433,7 +421,6 @@
 
 
 % Ensures that the specified function is exported at the specified location(s).
-%
 -spec ensure_function_exported( function_id(), [ location() ], module_info(),
 					   function_export_table() ) -> function_export_table().
 ensure_function_exported( _FunId, _ExportLocs=[], _ModuleInfo, ExportTable ) ->
@@ -455,6 +442,7 @@ ensure_function_exported( FunId, _ExportLocs=[ Loc | T ], ModuleInfo,
 				true ->
 					% Already registered, perfect as is, continues with the next
 					% locations:
+					%
 					ensure_function_exported( FunId, T, ModuleInfo,
 											  ExportTable );
 
@@ -510,7 +498,6 @@ ensure_function_not_exported( FunId, _ExportLocs=[ Loc | T ], ExportTable ) ->
 			throw( { inconsistent_export_location, Loc, FunId } )
 
 	end.
-
 
 
 
@@ -621,7 +608,6 @@ init_module_info() ->
 
 
 % Checks the correctness of specified module information.
-%
 -spec check_module_info( module_info() ) -> basic_utils:void().
 check_module_info( #module_info{ module=undefined } ) ->
 	ast_utils:raise_error( no_module_defined );
@@ -650,7 +636,6 @@ check_module_info( #module_info{ unhandled_forms=_UnhandledForms } ) ->
 
 
 % Helper to check module includes.
-%
 check_module_include( #module_info{ includes=Includes,
 									include_defs=IncludeDefs } ) ->
 
@@ -672,7 +657,6 @@ check_module_include( #module_info{ includes=Includes,
 
 
 % Helper to check module types.
-%
 check_module_types( #module_info{ types=Types } ) ->
 
 	TypeInfos = ?table:enumerate( Types ),
@@ -682,7 +666,6 @@ check_module_types( #module_info{ types=Types } ) ->
 
 
 % Nothing to check for 'spec' or 'exported':
-%
 check_type( TypeId, _TypeInfo=#type_info{ definition=[] } ) ->
 	ast_utils:raise_error( [ no_definition_found_for, TypeId ] );
 
@@ -761,7 +744,6 @@ check_function( FunId, _FunInfo=#function_info{ name=SecondName,
 
 
 % Recomposes an AST from specified module information.
-%
 -spec recompose_ast_from_module_info( module_info() ) -> ast().
 recompose_ast_from_module_info( #module_info{
 
@@ -769,7 +751,7 @@ recompose_ast_from_module_info( #module_info{
 
 			% Note: one should regularly check that all relevant fields of
 			% module_info() are indeed read here, so that they are reinjected
-			% indeed in the output AST.
+			% as expected in the output AST.
 
 			module={ _ModuleName, ModuleLocDef },
 
@@ -820,7 +802,7 @@ recompose_ast_from_module_info( #module_info{
 									FunctionExportTable, FunctionTable ),
 
 
-	% we used to start from a sensible order so that inserted forms do not end
+	% We used to start from a sensible order so that inserted forms do not end
 	% up in corner cases, yet all these definitions are located, so their order
 	% does not really matter once we have only explicit locations.
 	%
@@ -1371,7 +1353,6 @@ forms_to_string( LocForms, _DoIncludeForms, IndentationLevel ) ->
 
 
 % Returns a textual representation of the specified location.
-%
 -spec location_to_string( location() ) -> text_utils:ustring().
 location_to_string( { locate_at, MarkerName } ) ->
 	text_utils:format( "at marker ~s", [ MarkerName ] );
@@ -1788,7 +1769,6 @@ functions_to_string( FunctionTable, DoIncludeForms, IndentationLevel ) ->
 
 
 % Returns a textual representation of a module last line / line count.
-%
 -spec last_line_to_string( basic_utils:maybe( ast_info:located_form() ) ) ->
 								 text_utils:ustring().
 last_line_to_string( _LastLine=undefined ) ->
@@ -1800,7 +1780,6 @@ last_line_to_string( _LastLine={ _Loc, { eof, Count } } ) ->
 
 
 % Returns a textual representation of the known section markers.
-%
 -spec markers_to_string( section_marker_table() ) -> text_utils:ustring().
 markers_to_string( MarkerTable ) ->
 	markers_to_string( MarkerTable, _IndentationLevel=0 ).
@@ -1808,7 +1787,6 @@ markers_to_string( MarkerTable ) ->
 
 
 % Returns a textual representation of the known section markers.
-%
 -spec markers_to_string( section_marker_table(),
 				 text_utils:indentation_level() ) -> text_utils:ustring().
 markers_to_string( MarkerTable, IndentationLevel ) ->
@@ -1837,7 +1815,6 @@ markers_to_string( MarkerTable, IndentationLevel ) ->
 
 
 % Returns a textual representation of specified errors.
-%
 -spec errors_to_string( [ error() ], text_utils:indentation_level() ) ->
 							  text_utils:ustring().
 errors_to_string( _Errors=[], _IndentationLevel ) ->
@@ -1855,7 +1832,6 @@ errors_to_string( Errors, IndentationLevel ) ->
 
 
 % Returns a textual representation of specified unhandled forms.
-%
 -spec unhandled_forms_to_string( [ ast_info:located_form() ], boolean(),
 				 text_utils:indentation_level() ) -> text_utils:ustring().
 unhandled_forms_to_string( _UnhandledForms=[], _DoIncludeForms=false,
@@ -1925,7 +1901,6 @@ field_to_string( FieldName, FieldType, DefaultValue ) ->
 
 
 % Returns a textual description of the specified function identifier.
-%
 -spec function_id_to_string( function_id() ) -> text_utils:ustring().
 function_id_to_string( { FunctionName, FunctionArity } ) ->
 	text_utils:format( "~s/~B", [ FunctionName, FunctionArity ] ).
@@ -1953,7 +1928,6 @@ function_info_to_string( FunctionInfo, DoIncludeForms ) ->
 
 
 % Returns a textual description of the specified function information.
-%
 -spec function_info_to_string( function_info(), boolean(),
 				 text_utils:indentation_level() ) -> text_utils:ustring().
 function_info_to_string( #function_info{ name=Name,
@@ -2030,7 +2004,6 @@ function_info_to_string( #function_info{ name=Name,
 
 
 % Ensures that specified type is exported at the specified location(s).
-%
 -spec ensure_type_exported( type_id(), [ location() ], module_info(),
 							type_export_table() ) -> type_export_table().
 ensure_type_exported( _TypeId, _ExportLocs=[], _ModuleInfo, ExportTable ) ->
@@ -2124,7 +2097,6 @@ ensure_type_exported( TypeId, _ExportLocs=[ Loc | T ], ModuleInfo,
 
 
 % Ensures that specified type is not exported at the specified location(s).
-%
 -spec ensure_type_not_exported( type_id(), [ location() ],
 								type_export_table() ) -> type_export_table().
 ensure_type_not_exported( _TypeId, _ExportLocs=[], ExportTable ) ->
@@ -2158,7 +2130,6 @@ ensure_type_not_exported( TypeId, _ExportLocs=[ Loc | T ], ExportTable ) ->
 
 
 % Returns a textual description of the specified type identifier.
-%
 -spec type_id_to_string( type_id() ) -> text_utils:ustring().
 type_id_to_string( { TypeName, TypeArity } ) ->
 	text_utils:format( "~s/~B", [ TypeName, TypeArity ] ).
@@ -2166,7 +2137,6 @@ type_id_to_string( { TypeName, TypeArity } ) ->
 
 
 % Returns a textual description of the specified type information.
-%
 -spec type_info_to_string( type_info() ) -> text_utils:ustring().
 type_info_to_string( TypeInfo ) ->
 	type_info_to_string( TypeInfo, _DoIncludeForms=false,
@@ -2175,7 +2145,6 @@ type_info_to_string( TypeInfo ) ->
 
 
 % Returns a textual description of the specified type information.
-%
 -spec type_info_to_string( type_info(), boolean(),
 				   text_utils:indentation_level() ) -> text_utils:ustring().
 type_info_to_string( #type_info{ name=TypeName,
