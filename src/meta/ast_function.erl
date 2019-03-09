@@ -27,7 +27,6 @@
 
 
 
-
 % Module in charge of providing constructs to manage functions in an AST.
 %
 % Note: function clauses are managed in the ast_clause module.
@@ -95,7 +94,6 @@
 
 
 % Checks that specified function name is legit.
-%
 -spec check_function_name( term() ) -> basic_utils:function_name().
 check_function_name( Name ) ->
 	check_function_name( Name, _Context=undefined ).
@@ -103,7 +101,6 @@ check_function_name( Name ) ->
 
 
 % Checks that specified function name is legit.
-%
 -spec check_function_name( term(), form_context() ) ->
 								 basic_utils:function_name().
 check_function_name( Name, _Context ) when is_atom( Name ) ->
@@ -118,14 +115,12 @@ check_function_name( Other, Context ) ->
 
 
 % Checks that specified function identifier is legit.
-%
 -spec check_function_id( term() ) -> meta_utils:function_id().
 check_function_id( Id ) ->
 	check_function_id( Id, _Context=undefined ).
 
 
 % Checks that specified function identifier is legit.
-%
 -spec check_function_id( term(), form_context() ) -> meta_utils:function_id().
 check_function_id( FunctionId={ FunctionName, FunctionArity }, Context ) ->
 	check_function_name( FunctionName, Context ),
@@ -138,14 +133,12 @@ check_function_id( Other, Context ) ->
 
 
 % Checks that specified function identifiers are legit.
-%
 -spec check_function_ids( term() ) -> [ meta_utils:function_id() ].
 check_function_ids( Ids ) ->
 	check_function_ids( Ids, _Context=undefined ).
 
 
 % Checks that specified function identifiers are legit.
-%
 -spec check_function_ids( term(), form_context() ) ->
 								[ meta_utils:function_id() ].
 check_function_ids( List, Context ) when is_list( List ) ->
@@ -158,7 +151,6 @@ check_function_ids( Other, Context ) ->
 
 
 % Checks that specified function type is legit.
-%
 -spec check_function_type( term(), function_arity() ) ->
 								 meta_utils:function_type().
 check_function_type( Type, FunctionArity ) ->
@@ -166,7 +158,6 @@ check_function_type( Type, FunctionArity ) ->
 
 
 % Checks that specified function type is legit.
-%
 -spec check_function_type( term(), function_arity(), form_context() ) ->
 								 meta_utils:function_type().
 check_function_type( _FunctionType, _FunctionArity, _Context ) ->
@@ -181,7 +172,6 @@ check_function_type( _FunctionType, _FunctionArity, _Context ) ->
 
 
 % Checks that specified function types are legit.
-%
 -spec check_function_types( term(), function_arity() ) ->
 								  [ meta_utils:function_type() ].
 check_function_types( Types, FunctionArity ) ->
@@ -189,7 +179,6 @@ check_function_types( Types, FunctionArity ) ->
 
 
 % Checks that specified function types are legit.
-%
 -spec check_function_types( term(), function_arity(), form_context() ) ->
 								[ meta_utils:function_type() ].
 check_function_types( List, FunctionArity, Context ) when is_list( List ) ->
@@ -200,7 +189,6 @@ check_function_types( Other, _FunctionArity, Context ) ->
 
 
 % Transforms the functions in specified table, based on specified transforms.
-%
 -spec transform_functions( function_table(), ast_transforms() ) ->
 								 { function_table(), ast_transforms() }.
 transform_functions( FunctionTable, Transforms ) ?rec_guard ->
@@ -228,8 +216,7 @@ transform_functions( FunctionTable, Transforms ) ?rec_guard ->
 									 { function_pair(), ast_transforms() }.
 transform_function_pair( { FunId, FunctionInfo }, Transforms ) ?rec_guard ->
 
-	?display_trace( "Transforming function ~p.",
-							 [ FunId ] ),
+	?display_trace( "Transforming function ~p.", [ FunId ] ),
 
 	{ NewFunctionInfo, NewTransforms } =
 		transform_function( FunctionInfo, Transforms ),
@@ -239,7 +226,6 @@ transform_function_pair( { FunId, FunctionInfo }, Transforms ) ?rec_guard ->
 
 
 % Transforms specified function.
-%
 -spec transform_function( function_info(), ast_transforms() ) ->
 								{ function_info(), ast_transforms() }.
 transform_function( FunctionInfo=#function_info{ clauses=ClauseDefs,
@@ -443,6 +429,7 @@ get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 								{ NewAccLocDefs, AccExportTable };
 
 
+						   % Only potentially correct configuration:
 						   ( #function_info{ name=Name,
 											 arity=Arity,
 											 location=Location,
@@ -451,6 +438,29 @@ get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 											 spec=MaybeSpec,
 											 exported=ExportLocs },
 							 { AccLocDefs, AccExportTable } ) ->
+
+
+								case Location of
+
+									undefined ->
+										throw( { location_not_defined_for,
+												 { Name, Arity } } );
+
+									_ ->
+										ok
+
+								end,
+
+								case Line of
+
+									undefined ->
+										throw( { line_not_defined_for,
+												 { Name, Arity } } );
+
+									L when is_integer( L ) ->
+										ok
+
+								end,
 
 								LocFunForm = { Location,
 								  { function, Line, Name, Arity, Clauses } },
@@ -489,7 +499,6 @@ get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 
 % Ensures that the specified function is as expected exported in the specified
 % (supposedly export) locations.
-%
 %
 -spec update_export_table( meta_utils:function_name(), arity(),
 						   [ ast_info:location() ], function_export_table() ) ->
