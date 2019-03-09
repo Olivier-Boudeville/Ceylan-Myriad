@@ -89,13 +89,11 @@
 
 
 % Time-related section.
-%
 -export([ get_intertime_duration/2 ]).
 
 
 
 % Timestamp-related section.
-%
 -export([ get_timestamp/0,
 		  get_textual_timestamp/0, get_textual_timestamp/1,
 		  get_textual_timestamp_for_path/0, get_textual_timestamp_for_path/1,
@@ -130,7 +128,6 @@
 
 
 % Returns a string corresponding to the specified date, like: "30/11/2009".
-%
 -spec get_textual_date( date() ) -> string().
 get_textual_date( { Year, Month, Day } ) ->
 	io_lib:format( "~B/~B/~B", [ Day, Month, Year ] ).
@@ -141,9 +138,7 @@ get_textual_date( { Year, Month, Day } ) ->
 % Month section.
 
 
-
 % Canonicalises specified month.
-%
 -spec canonicalise_month( unit_utils:month() ) -> unit_utils:canonical_month().
 canonicalise_month( M ) when is_integer( M ) andalso M >= 0 ->
 
@@ -163,7 +158,6 @@ canonicalise_month( M ) when is_integer( M ) andalso M >= 0 ->
 
 
 % Checks that specified month is a canonical one.
-%
 -spec check_month_canonical( unit_utils:month() ) -> void().
 check_month_canonical( Month ) when is_integer( Month ) andalso Month >= 1
 									andalso Month =< 12 ->
@@ -175,7 +169,6 @@ check_month_canonical( Month ) ->
 
 
 % Ensures that the starting canonical month is strictly before the stopping one.
-%
 -spec check_month_order( unit_utils:absolute_month(),
 						 unit_utils:absolute_month() ) -> void().
 check_month_order( Start={ StartYear, StartMonth },
@@ -283,7 +276,6 @@ week_day_to_string( DayIndex ) ->
 
 
 % Checks that specified date is a canonical one.
-%
 -spec check_date_canonical( date() ) -> void().
 check_date_canonical( _Date={ Year, Month, Day } ) when
 	  is_integer( Year ) andalso is_integer( Month ) andalso
@@ -369,7 +361,6 @@ check_date_order( StartDate, StopDate ) ->
 
 
 % Returns the signed duration, in days, between the two specified dates.
-%
 -spec get_date_difference( date(), date() ) -> unit_utils:days().
 get_date_difference( FirstDate, SecondDate ) ->
 
@@ -403,21 +394,18 @@ months_to_seconds( MonthDuration ) ->
 
 
 % Converts a duration in weeks into a duration in seconds.
-%
 -spec weeks_to_seconds( unit_utils:weeks() ) -> unit_utils:seconds().
 weeks_to_seconds( WeekDuration ) ->
 	WeekDuration * 7 * 24 * 3600.
 
 
 % Converts a duration in days into a duration in seconds.
-%
 -spec days_to_seconds( unit_utils:days() ) -> unit_utils:seconds().
 days_to_seconds( DayDuration ) ->
 	DayDuration * 24 * 3600.
 
 
 % Converts a duration in hours into a duration in seconds.
-%
 -spec hours_to_seconds( unit_utils:hours() ) -> unit_utils:seconds().
 hours_to_seconds( HourDuration ) ->
 	HourDuration * 3600.
@@ -499,7 +487,6 @@ get_textual_timestamp_for_path( { { Year, Month, Day },
 
 
 % Alias of get_textual_timestamp/1, defined for clarity.
-%
 -spec timestamp_to_string( timestamp() ) -> string().
 timestamp_to_string( Timestamp ) ->
 	get_textual_timestamp( Timestamp ).
