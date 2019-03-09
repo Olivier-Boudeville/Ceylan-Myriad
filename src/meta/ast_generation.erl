@@ -110,6 +110,8 @@ form_to_atoms( { cons, _Line, {atom,_,Atom}, NestedForm } ) ->
 % Ex: { cons, Line, {var,Line,'A'}, { cons,Line,{var,Line,'B'}, {nil,Line}} } =
 %         enumerated_variables_to_form( 2 ).
 %
+% See also: get_header_params/1.
+%
 -spec enumerated_variables_to_form( basic_utils:count() ) -> form_element().
 enumerated_variables_to_form( Count ) ->
 	enumerated_variables_to_form( Count, _Index=1 ).
@@ -143,6 +145,8 @@ get_iterated_param_name( Count ) ->
 % header, like in 'f(A,B)->...'.
 %
 % Ex: [ {var,Line,'A'}, {var,Line,'B'} ] = get_header_params( 2 ).
+%
+% See also: enumerated_variables_to_form/1.
 %
 -spec get_header_params( arity() ) -> [ form_element() ].
 get_header_params( Arity ) ->
