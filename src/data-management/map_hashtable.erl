@@ -37,17 +37,17 @@
 %
 % We provide different multiple types of hashtables, including:
 %
-% - 'hashtable', the most basic, safest, reference implementation
-% - and quite efficient as well
+% - 'hashtable', the most basic, safest, reference implementation - and quite
+% efficient as well
 %
 % - 'tracked_hashtable', an attempt of optimisation of it (not necessarily the
 % best)
 %
-% - 'lazy_hashtable', deciding to optimise in a less costly way
-% than 'tracked_hashtable'
+% - 'lazy_hashtable', deciding to optimise in a less costly way than
+% 'tracked_hashtable'
 %
-% - 'map_hashtable' (this module), which is probably the most efficient
-% implementation (speed/size compromise)
+% - 'map_hashtable' (this module), which is the newest, probably most efficient
+% in most cases implementation (speed/size compromise)
 %
 % - 'list_table', a list-based implementation, efficient for smaller tables (and
 % only them)
@@ -60,15 +60,14 @@
 -module(map_hashtable).
 
 
-% Exact same API as the one of hashtable:
-%
+% Mostly the same API as the one of hashtable (but richer):
 -export([ new/0, new/1, new_from_unique_entries/1,
 		  addEntry/3, addEntries/2, addNewEntry/3, addNewEntries/2,
 		  updateEntry/3, updateEntries/2,
 		  removeEntry/2, removeExistingEntry/2,
 		  removeEntries/2, removeExistingEntries/2,
 		  lookupEntry/2, hasEntry/2, getEntry/2,
-		  extractEntry/2, getEntries/2,
+		  extractEntry/2, extractEntryIfExisting/2, getEntries/2,
 		  getValue/2, getValues/2, getValueWithDefaults/3, getAllValues/2,
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToExistingEntry/3, appendListToExistingEntry/3,
@@ -122,8 +121,7 @@
 
 
 
-% Returns a new empty map table.
-%
+% Returns a new, empty, map-based hashtable.
 -spec new() -> map_hashtable().
 new() ->
 	% Empty map:
@@ -402,7 +400,6 @@ lookupEntry( Key, MapHashtable ) ->
 
 
 % Tells whether the specified key exists in the table: returns true or false.
-%
 -spec hasEntry( key(), map_hashtable() ) -> boolean().
 hasEntry( Key, MapHashtable ) ->
 	maps:is_key( Key, MapHashtable ).
@@ -556,8 +553,8 @@ getAllValues( Keys, Hashtable ) ->
 
 
 
-% Extracts specified entry from specified hashtable, i.e. returns the associated
-% value and removes that entry from the table.
+% Extracts specified entry from specified hashtable, i.e. returns its associated
+% value and removes that entry from the returned table.
 %
 % The key/value pair is expected to exist already, otherwise an exception is
 % raised (typically {badkey,KeyNotFound}).
@@ -569,6 +566,29 @@ getAllValues( Keys, Hashtable ) ->
 extractEntry( Key, MapHashtable ) ->
 	Value = maps:get( Key, MapHashtable ),
 	{ Value, maps:remove( Key, MapHashtable ) }.
+
+
+
+% Extracts specified entry (if any) from specified hashtable, i.e. returns its
+% associated value and removes that entry from the returned table.
+%
+% Otherwise, i.e. if that entry does not exist, returns false.
+%
+-spec extractEntryIfExisting( key(), map_hashtable() ) ->
+				  'false' | { value(), map_hashtable() }.
+extractEntryIfExisting( Key, MapHashtable ) ->
+	case maps:is_key( Key, MapHashtable ) of
+
+		true ->
+			Value = maps:get( Key, MapHashtable ),
+			{ Value, maps:remove( Key, MapHashtable ) };
+
+		false ->
+			false
+
+	end.
+
+
 
 
 
@@ -1036,7 +1056,6 @@ selectEntries( Keys, MapHashtable ) ->
 
 
 % Returns a list containing all the keys of this hashtable.
-%
 -spec keys( map_hashtable() ) -> [ key() ].
 keys( MapHashtable ) ->
 	maps:keys( MapHashtable ).
@@ -1079,8 +1098,7 @@ size( MapHashtable ) ->
 
 
 
-% Returns a textual description of the specified hashtable.
-%
+% Returns a textual description of the specified map hashtable.
 -spec toString( map_hashtable() ) -> string().
 toString( MapHashtable ) ->
 	toString( MapHashtable, _DefaultBullet=" + " ).
@@ -1120,16 +1138,15 @@ toString( MapHashtable, _DescriptionType ) ->
 
 
 
-% Displays the specified hashtable on the standard output.
-%
+% Displays the specified map hashtable on the standard output.
 -spec display( map_hashtable() ) -> basic_utils:void().
 display( MapHashtable ) ->
 	io:format( "~s~n", [ toString( MapHashtable ) ] ).
 
 
 
-% Displays the specified hashtable on the standard output, with the specified
-% title on top.
+% Displays the specified map hashtable on the standard output, with the
+% specified title on top.
 %
 -spec display( string(), map_hashtable() ) -> basic_utils:void().
 display( Title, MapHashtable ) ->
