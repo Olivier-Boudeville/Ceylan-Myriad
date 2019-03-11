@@ -1047,7 +1047,7 @@ format( FormatString, Values ) ->
 	end,
 
 	% Using 'flatten' allows for example to have clearer string outputs in case
-	% of error:
+	% of error (at a rather low cost):
 	%
 	lists:flatten( String ).
 
