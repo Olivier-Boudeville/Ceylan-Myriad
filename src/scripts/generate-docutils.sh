@@ -7,7 +7,16 @@
 # This file is part of the Ceylan-Myriad library.
 
 
-# Note: docutils has been finally preferred to txt2tags.
+# Notes:
+#
+#  - docutils has been finally preferred to txt2tags
+#
+#  - beware of not running more than one instance of this script against the
+# same RST source file: they would trigger at the same time (file saved) and
+# each would remove the temporary files of the others, leading to spurious
+# errors...
+
+
 
 USAGE="Usage: $(basename $0) <target rst file> [ --pdf | --all | <comma-separated path(s) to CSS file to be used, ex: common/css/XXX.css,other.css> ] [--icon-file ICON_FILENAME]
 
@@ -190,11 +199,27 @@ manage_rst_to_html()
 		exit 5
 	fi
 
+	if [ ! -f "${target}" ] ; then
+
+		echo "  Error, no target file '${target}' generated." 1>&2
+		exit 60
+
+	fi
+
 	tmp_file=".tmp-${target}"
 
 	if [ -n "${icon_file}" ] ; then
 
+		echo "  Referencing the icon"
+
 		/bin/cat "${target}" | sed "s|</head>$|<link href=\"${icon_file}\" rel=\"icon\">\n</head>|1" > "${tmp_file}"
+
+		if [ ! -f "${tmp_file}" ] ; then
+
+			echo "  Error, no temporary file '${tmp_file}' obtained." 1>&2
+			exit 61
+
+		fi
 
 		/bin/mv -f "${tmp_file}" "${target}"
 
@@ -206,6 +231,13 @@ manage_rst_to_html()
 	# for mobile support:
 	#
 	/bin/cat "${target}" | sed 's|</head>$|<meta name="viewport" content="width=device-width, initial-scale=1.0">\n</head>|1' > "${tmp_file}"
+
+	if [ ! -f "${tmp_file}" ] ; then
+
+		echo "  Error, no temporary file '${tmp_file}' obtained." 1>&2
+		exit 62
+
+	fi
 
 	/bin/mv -f "${tmp_file}" "${target}"
 
