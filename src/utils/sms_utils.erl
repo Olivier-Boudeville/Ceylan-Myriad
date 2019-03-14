@@ -85,7 +85,6 @@
 
 % Service class of a SMS being sent:
 -type service_class() ::
-
 		% Only sensible for the 'verysms' provider:
 		'eco' | 'pro'.
 
@@ -125,7 +124,6 @@
 
 
 % Describes the result of the sending, as reported by the gateway:
-%
 -type sending_outcome() :: 'success' | { failure_reason(), diagnosis() }.
 
 
@@ -135,7 +133,6 @@
 
 
 % Describes a SMS account at a provider.
-%
 -record( sms_account, {
 
 		   provider :: provider(),
@@ -150,9 +147,7 @@
 
 		   sent_count :: basic_utils:count(),
 
-		   sent_success_count :: basic_utils:count()
-
-} ).
+		   sent_success_count :: basic_utils:count() } ).
 
 
 -type sms_account() :: #sms_account{}.
@@ -160,7 +155,6 @@
 
 
 % Describes a SMS.
-%
 -record( sms, {
 
 		   message :: message(),
@@ -170,9 +164,7 @@
 		   sender_description :: sender_description(),
 
 		   % Default account service class to be used, if not specified here:
-		   service_class :: maybe( service_class() )
-
-		  }).
+		   service_class :: maybe( service_class() ) }).
 
 
 -type sms() :: #sms{}.
@@ -196,14 +188,14 @@ create_sms( Message, Recipient, SenderDescription ) when is_list( Message )
 
 
 % Creates a SMS record instance from specified information.
-%
 -spec create_sms( message(), recipient(), sender_description(),
 				  maybe( service_class() ) ) -> sms().
 create_sms( Message, Recipient, SenderDescription, ServiceClass )
   when is_list( Message ) andalso is_list( Recipient )
 	   andalso is_list( SenderDescription ) andalso is_atom( ServiceClass )->
 
-	%io:format( "created '~s' ~B~n", [ Message, length( Message ) ] ),
+	%trace_utils:debug_fmt( "created '~s' ~B.",
+	%                       [ Message, length( Message ) ] ),
 
 	% More checking should be done:
 
@@ -235,7 +227,6 @@ create_sms( Message, Recipient, SenderDescription, ServiceClass )
 
 
 % Sends specified SMS, using specified account.
-%
 -spec send( sms(), sms_account() ) -> { sending_outcome(), sms_account() }.
 send( #sms{ message=Message, recipient=Recipient,
 			sender_description=SenderDescription, service_class=ServiceClass },
@@ -275,11 +266,9 @@ send( #sms{ message=Message, recipient=Recipient,
 
 	end,
 
-	{ Outcome, Account#sms_account{
-				 credits = NewCredits,
-				 sent_count = SentCount + 1,
-				 sent_success_count = NewSuccesses
-				} }.
+	{ Outcome, Account#sms_account{ credits=NewCredits,
+									sent_count=SentCount + 1,
+									sent_success_count=NewSuccesses	} }.
 
 
 
@@ -303,16 +292,14 @@ send( _Provider=verysms, _ServiceClass=eco, Username, Password, Message,
 
 	EcoURL = "http://www.verysms.fr/api_sendsms.php",
 
-	FullData = [
-				{ 'user', Username },
-				{ 'pass', Password },
-				{ 'dest', Recipient },
-				{ 'flash', "" },
-				{ 'type', "" },
-				{ 'url', "" },
-				{ 'msg', Message },
-				{ 'origine', SenderDescription }
-			  ],
+	FullData = [ { 'user', Username },
+				 { 'pass', Password },
+				 { 'dest', Recipient },
+				 { 'flash', "" },
+				 { 'type', "" },
+				 { 'url', "" },
+				 { 'msg', Message },
+				 { 'origine', SenderDescription } ],
 
 	% For this provider, text_utils:escape/1 must be used instead of
 	% text_utils:encode_as_url/1:
@@ -340,18 +327,16 @@ send( _Provider=verysms, _ServiceClass=pro, Username, Password, Message,
 
 	ProURL = "http://www.verysms.fr/api_sendsmspro.php",
 
-	FullData = [
-				{ 'user', Username },
-				{ 'pass', Password },
-				{ 'dest', Recipient },
-				{ 'flash', "" },
-				{ 'type', "" },
-				{ 'url', "" },
-				{ 'msg', Message },
-				{ 'senderID', SenderDescription },
-				{ 'origine', "ceylan" },
-				{ 'idSending', "1" }
-			  ],
+	FullData = [ { 'user', Username },
+				 { 'pass', Password },
+				 { 'dest', Recipient },
+				 { 'flash', "" },
+				 { 'type', "" },
+				 { 'url', "" },
+				 { 'msg', Message },
+				 { 'senderID', SenderDescription },
+				 { 'origine', "ceylan" },
+				 { 'idSending', "1" } ],
 
 	% For this provider, text_utils:escape/1 must be used instead of
 	% text_utils:encode_as_url/1:
@@ -381,7 +366,7 @@ send( Provider=verysms, ServiceClass, _Username, _Password, _Message,
 
 
 send( Provider, _ServiceClass, _Username, _Password, _Message, _Recipient,
-	 _SenderDescription ) ->
+	  _SenderDescription ) ->
 
 	throw( { unsupported_sms_provider, Provider } ).
 
@@ -414,13 +399,12 @@ update_credits( Account=#sms_account{ credits=Credits } ) ->
 
 
 % Returns a textual description of the specified SMS account.
-%
 -spec account_to_string( sms_account() ) -> string().
 account_to_string( #sms_account{ provider=Provider, user_name=Username,
 								 password=Password, default_class=DefaultClass,
 								 credits=Credits, sent_count=SentCount,
 								 sent_success_count=SentSuccessCount } ) ->
-	io_lib:format( "SMS account on provider '~s': user name is '~s', "
+	text_utils:format( "SMS account on provider '~s': user name is '~s', "
 				   "password is '~s', relying on default sending class '~s', "
 				   "with stored credits: ~p; ~B success sendings over a total "
 				   "of ~B",
@@ -430,7 +414,6 @@ account_to_string( #sms_account{ provider=Provider, user_name=Username,
 
 
 % Returns a textual description of the specified SMS.
-%
 -spec sms_to_string( sms() ) -> string().
 sms_to_string( #sms{ message=Message, recipient=Recipient,
 					 sender_description=SenderDesc,
@@ -439,10 +422,10 @@ sms_to_string( #sms{ message=Message, recipient=Recipient,
 	% Encoding (ex: of accentuated characters) changes the byte size:
 	Len = length( Message ),
 
-	io_lib:format( "SMS whose message is '~s' (character length: ~B bytes), "
-				   "sent to recipient number '~s' from sender '~p' "
-				   "with service class ~p",
-				   [ Message, Len, Recipient, SenderDesc, ServiceClass ] ).
+	text_utils:format( "SMS whose message is '~s' (character length: ~B bytes), "
+					   "sent to recipient number '~s' from sender '~p' "
+					   "with service class ~p",
+					   [ Message, Len, Recipient, SenderDesc, ServiceClass ] ).
 
 
 
@@ -450,7 +433,6 @@ sms_to_string( #sms{ message=Message, recipient=Recipient,
 
 
 % A regex with the re module could be used:
-%
 check_recipient( Recipient ) ->
 	check_recipient( Recipient, Recipient ).
 
@@ -472,7 +454,6 @@ check_recipient( _Remaining=[ C | T ], Recipient ) ->
 
 
 % Returns the MIME type to be used here.
-%
 get_mime_type() ->
 	"application/x-www-form-urlencoded".
 
@@ -483,17 +464,15 @@ get_mime_type() ->
 %
 -spec get_credits_for( sms_account() ) -> credits().
 get_credits_for( _Account=#sms_account{ provider=verysms, user_name=Username,
-								 password=Password } ) ->
+										password=Password } ) ->
 
 	% Might be started multiple times:
 	inets:start(),
 
 	CreditURL = "http://www.verysms.fr/credit.php",
 
-	FullData = [
-				{ 'user', Username },
-				{ 'pass', Password }
-			  ],
+	FullData = [ { 'user', Username },
+				 { 'pass', Password } ],
 
 	% For this provider, text_utils:escape/1 must be used instead of
 	% text_utils:encode_as_url/1:
@@ -550,10 +529,9 @@ get_credits_for( _Account=#sms_account{ provider=verysms, user_name=Username,
 %
 execute_request( Request, Username, Password, Recipient ) ->
 
-	%io:format( "Request: '~p'.~n",  [ Request ] ),
+	%trace_utils:debug_fmt( "Request: '~p'.",  [ Request ] ),
 
 	% We strongly prefer POST over GET (safer, stricter):
-	%
 	case httpc:request( _Method=post, Request, _HTTPOptions=[], _Options=[] ) of
 
 		% HTTPVersion below: typically equal to "HTTP/1.1";
