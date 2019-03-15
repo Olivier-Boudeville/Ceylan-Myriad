@@ -34,7 +34,6 @@
 
 
 % Registration functions.
-%
 -export([ register_as/2, register_as/3, register_or_return_registered/2,
 		  unregister/2,
 
@@ -54,12 +53,16 @@
 -type registration_name() :: atom().
 
 
--type registration_scope() :: 'global_only' | 'local_only'
-							| 'local_and_global' | 'none'.
+-type registration_scope() :: 'global_only'
+							| 'local_only'
+							| 'local_and_global'
+							| 'none'.
 
 
--type look_up_scope() :: 'global' | 'local'
-					   | 'local_and_global' | 'local_otherwise_global'.
+-type look_up_scope() :: 'global'
+					   | 'local'
+					   | 'local_and_global'
+					   | 'local_otherwise_global'.
 
 
 -export_type([ registration_name/0, registration_scope/0, look_up_scope/0 ]).
@@ -77,23 +80,23 @@
 
 % Registers the current process under specified name, which must be an atom.
 %
-% Declaration is register_as( Name, RegistrationType ) with
-% RegistrationType in 'local_only', 'global_only', 'local_and_global', 'none'
-% depending on what kind of registration is requested.
+% Declaration is register_as( Name, RegistrationScope ) with RegistrationScope
+% in 'local_only', 'global_only', 'local_and_global', 'none' depending on what
+% kind of registration is requested.
 %
 % Throws an exception on failure (ex: if that name is already registered).
 %
 -spec register_as( registration_name(), registration_scope() ) -> void().
-register_as( Name, RegistrationType ) ->
-	register_as( self(), Name, RegistrationType ).
+register_as( Name, RegistrationScope ) ->
+	register_as( self(), Name, RegistrationScope ).
 
 
 
 % Registers specified (local) PID under specified name, which must be an atom.
 %
-% Declaration is: register_as( Pid, Name, RegistrationType ) with
-% RegistrationType in 'local_only', 'global_only', 'local_and_global',
-% 'none', depending on what kind of registration is requested.
+% Declaration is: register_as( Pid, Name, RegistrationScope ) with
+% RegistrationScope in 'local_only', 'global_only', 'local_and_global', 'none',
+% depending on what kind of registration is requested.
 %
 % Throws an exception on failure.
 %
@@ -265,12 +268,12 @@ unregister( _Name, none ) ->
 %
 -spec get_registered_pid_for( registration_name() ) -> pid().
 get_registered_pid_for( Name ) ->
-	get_registered_pid_for( Name, _RegistrationType=local_otherwise_global ).
+	get_registered_pid_for( Name, _RegistrationScope=local_otherwise_global ).
 
 
 
 -spec get_registered_pid_for( registration_name(), look_up_scope() ) ->  pid().
-get_registered_pid_for( Name, _RegistrationType=local_otherwise_global ) ->
+get_registered_pid_for( Name, _RegistrationScope=local_otherwise_global ) ->
 
 	try
 
@@ -293,7 +296,7 @@ get_registered_pid_for( Name, _RegistrationType=local_otherwise_global ) ->
 
 	end;
 
-get_registered_pid_for( Name, _RegistrationType=local ) ->
+get_registered_pid_for( Name, _RegistrationScope=local ) ->
 	case erlang:whereis( Name ) of
 
 		undefined ->
@@ -304,7 +307,7 @@ get_registered_pid_for( Name, _RegistrationType=local ) ->
 
 	end;
 
-get_registered_pid_for( Name, _RegistrationType=global ) ->
+get_registered_pid_for( Name, _RegistrationScope=global ) ->
 	case global:whereis_name( Name ) of
 
 		undefined ->
@@ -316,8 +319,9 @@ get_registered_pid_for( Name, _RegistrationType=global ) ->
 	end;
 
 % So that the atom used for registration can be used for look-up as well,
-% notably in static methods (see the registration_type defines).
-get_registered_pid_for( Name, _RegistrationType=local_and_global ) ->
+% notably in static methods (see the registration_scope defines).
+%
+get_registered_pid_for( Name, _RegistrationScope=local_and_global ) ->
 	get_registered_pid_for( Name, local_otherwise_global ).
 
 
@@ -368,7 +372,7 @@ get_registered_names( _LookUpScope=local ) ->
 %
 -spec is_registered( registration_name() ) -> pid() | 'not_registered'.
 is_registered( Name ) ->
-	is_registered( Name, _RegistrationType=local_otherwise_global ).
+	is_registered( Name, _RegistrationScope=local_otherwise_global ).
 
 
 
@@ -445,7 +449,7 @@ is_registered( Name, _LookUpScope=local_otherwise_global ) ->
 % which.
 %
 % So that the atom used for registration can be used for look-up as well,
-% notably in static methods (see the registration_type defines).
+% notably in static methods (see the registration_scope defines).
 %
 is_registered( Name, _LookUpScope=local_only ) ->
 	is_registered( Name, local );
@@ -588,7 +592,6 @@ wait_for_remote_local_registrations_of( RegisteredName, Nodes,
 
 
 % Displays registered processes.
-%
 -spec display_registered() -> void().
 display_registered() ->
 

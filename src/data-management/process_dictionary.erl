@@ -130,7 +130,7 @@ blank() ->
 
 
 % Returns a textual description of the current state of the process dictionary.
--spec to_string() -> text_utils:string().
+-spec to_string() -> text_utils:ustring().
 to_string() ->
 
 	case erlang:get() of

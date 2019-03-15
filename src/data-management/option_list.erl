@@ -27,8 +27,11 @@
 
 
 
-
 % Generic option list implementation, loosely based on proplist.
+%
+% Note that our option lists only have {Key,Value} pairs (ex: no entry is made
+% of a single atom).
+%
 % See option_list_test.erl for the corresponding test.
 %
 % An option list is basically a list containing key/value pairs, keys being
@@ -40,6 +43,7 @@
 % See also the proplists standard module.
 %
 -module(option_list).
+
 
 -export([ new/0, new/1, set/2, get/2, lookup/2, update_with/2, extract/2,
 		  enumerate/1, to_string/1 ]).
@@ -55,22 +59,20 @@
 -type option_list() :: entries().
 
 
-% For better type information (but no type overriding with different arity
-% permitted):
+% For better type information (type overriding with different arity used not to
+% be permitted):
 %
-%-type option_list( _K, _V ) :: option_list().
+-type option_list( _K, _V ) :: option_list().
 
 
--export_type([ key/0, value/0, entry/0, entries/0, option_list/0 ]).
+-export_type([ key/0, value/0, entry/0, entries/0,
+			   option_list/0, option_list/2 ]).
 
 
-% Note: our option lists only have {Key,Value} pairs (ex: no entry is made of a
-% single atom).
 
 
 
 % Creates a new, empty option list.
-%
 -spec new() -> option_list().
 new() ->
 	[].
@@ -78,7 +80,6 @@ new() ->
 
 
 % Creates a new option list from specified list containing {Key,Value} pairs
-%
 -spec new( entries() ) -> option_list().
 new( Entries ) ->
 	% The internal representation happens to be the same:
@@ -100,7 +101,7 @@ set( Entry, OptionList ) ->
 	set( Entry, OptionList, _Acc=[] ).
 
 
-% Helper function:
+% (helper)
 set( Entry, _OptionList=[], Acc ) ->
 	% Here no key matched:
 	[ Entry | lists:reverse( Acc ) ];
@@ -192,8 +193,7 @@ enumerate( OptionList ) ->
 
 
 % Returns a string describing the specified option list.
-%
 -spec to_string( option_list() ) -> text_utils:ustring().
 to_string( OptionList ) ->
-	Strings = [ io_lib:format( "~p: ~p", [ K, V ] ) || { K, V } <- OptionList ],
+	Strings = [ text_utils:format( "~p: ~p", [ K, V ] ) || { K, V } <- OptionList ],
 	text_utils:strings_to_string( Strings ).

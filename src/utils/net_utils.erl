@@ -88,25 +88,25 @@
 
 
 % We tend to favor atom-based node names (usual in Erlang) to string-based ones:
--type atom_node_name()   :: node().
+-type atom_node_name() :: node().
 
 -type string_node_name() :: nonempty_string().
 
 
--type node_name()        :: atom_node_name() | string_node_name().
+-type node_name() :: atom_node_name() | string_node_name().
 
 % See net_kernel:monitor_nodes/2 for more information:
 -type node_type() :: 'visible' | 'hidden' | 'all'.
 
 
--type atom_host_name()   :: atom().
+-type atom_host_name() :: atom().
 -type string_host_name() :: nonempty_string().
--type host_name()        :: atom_host_name() | string_host_name().
+-type host_name() :: atom_host_name() | string_host_name().
 
 -type host_identifier() :: string_host_name() | ip_address().
 
 
--type check_duration()    :: non_neg_integer().
+-type check_duration() :: non_neg_integer().
 -type check_node_timing() :: check_duration() | 'immediate' | 'with_waiting'.
 
 -type node_naming_mode() :: 'long_name' | 'short_name'.
@@ -121,15 +121,15 @@
 -type tcp_port_range() :: { tcp_port(), tcp_port() }.
 -type udp_port_range() :: { udp_port(), udp_port() }.
 
+-type tcp_port_restriction() :: 'no_restriction' | tcp_port_range().
+
 
 % The possible protocols for an URL:
-%
 -type protocol_type() :: 'http' | 'https' | 'ftp'.
 
 
 
 % Path of an URL (ex: 'access/login'):
-%
 -type path() :: string().
 
 
@@ -138,6 +138,7 @@
 
 % Full information about an URL:
 -type url_info() :: #url_info{}.
+
 
 % An URL:
 -type url() :: string().
@@ -151,6 +152,7 @@
 			   node_naming_mode/0, cookie/0,
 			   net_port/0, tcp_port/0, udp_port/0,
 			   tcp_port_range/0, udp_port_range/0,
+			   tcp_port_restriction/0,
 			   protocol_type/0, path/0, url_info/0, url/0 ]).
 
 
@@ -173,7 +175,7 @@ ping( Hostname ) when is_list( Hostname ) ->
 
 	Command = "/bin/ping " ++ Hostname ++ " -q -c 1 ",
 
-	%io:format( "Ping command: ~s~n.", [ Command ] ),
+	%trace_utils:debug_fmt( "Ping command: ~s.", [ Command ] ),
 
 	case system_utils:run_executable( Command ) of
 
@@ -236,7 +238,6 @@ localhost( fqdn ) ->
 
 
 % Returns the host name by itself (at least attempts to do so):
-%
 localhost( short ) ->
 
 	FQDN = localhost( fqdn ),
@@ -247,7 +248,7 @@ localhost( short ) ->
 
 
 
-% Helper:
+% (helper)
 -spec localhost_last_resort() -> string_host_name().
 localhost_last_resort() ->
 
@@ -290,7 +291,7 @@ get_local_ip_addresses() ->
 
 	end,
 
-	%io:format( "Interface list:~n~p~n", [ IfList ] ),
+	%trace_utils:debug_fmt( "Interface list:~n~p", [ IfList ] ),
 
 	% Rules: put non-routable (network-local) interfaces last (including
 	% loopback, i.e. "lo", which must be the very last one), try to put routable
@@ -314,8 +315,8 @@ filter_interfaces( _IfList=[], FirstIfs, LastIfs, Loopback ) ->
 filter_interfaces( _IfList=[ _If={ Name, Options } | T ], FirstIfs, LastIfs,
 				   Loopback ) ->
 
-	%io:format( "Examining interface named '~p', with options ~p.~n",
-	%		   [ Name, Options ] ),
+	%trace_utils:debug_fmt( "Examining interface named '~p', with options ~p.",
+	%						[ Name, Options ] ),
 
 	case proplists:get_value( _K=addr, Options ) of
 
@@ -438,7 +439,6 @@ reverse_lookup( IPAddress ) ->
 
 
 % (helper using dig-like commands, i.e. the 'drill'/'dig' ones)
-%
 reverse_lookup_with_dig_like( IPAddress, DigLikeCmd ) ->
 
 	% We remove empty lines and comments (lines starting with ';;') and extract
@@ -493,7 +493,6 @@ reverse_lookup_with_dig_like( IPAddress, DigLikeCmd ) ->
 
 
 % (helper using the 'host' command)
-%
 reverse_lookup_with_host( IPAddress, HostCmd ) ->
 
 	Cmd = HostCmd ++ " -W 1 " ++ ipv4_to_string( IPAddress ) ++ " 2>/dev/null",
@@ -502,7 +501,8 @@ reverse_lookup_with_host( IPAddress, HostCmd ) ->
 
 		{ _ExitCode=0, Output } ->
 
-			%io:format( "'host' command: ~s, result: ~s.~n", [ Cmd, Output ] ),
+			%trace_utils:debug_fmt( "'host' command: ~s, result: ~s.",
+			%                       [ Cmd, Output ] ),
 
 			case string:tokens( Output, " " ) of
 
@@ -571,7 +571,7 @@ check_node_availability( Nodename ) when is_atom( Nodename ) ->
 
 	% Useful to troubleshoot longer ping durations:
 	% (apparently this may come from badly configured DNS)
-	%trace_utils:debug_fmt( "Pinging node '~s'...~n", [ Nodename ] ),
+	%trace_utils:debug_fmt( "Pinging node '~s'...", [ Nodename ] ),
 
 	case net_adm:ping( Nodename ) of
 
@@ -637,8 +637,8 @@ check_node_availability( Nodename, _Timing=immediate ) ->
 check_node_availability( Nodename, _Timing=with_waiting )
   when is_atom( Nodename ) ->
 
-	%io:format( "check_node_availability of node '~s' with default waiting.~n",
-	%		   [ Nodename ] ),
+	%trace_utils:debug_fmt( "check_node_availability of node '~s' with "
+	%                       "default waiting.", [ Nodename ] ),
 
 	% 3 seconds is a good default:
 	check_node_availability( Nodename, _Duration=3000 );
@@ -647,20 +647,20 @@ check_node_availability( Nodename, _Timing=with_waiting )
 check_node_availability( Nodename, Duration )  ->
 
 	% In all cases, start with one immediate look-up:
-	%io:format( "Pinging '~s' (case A) now...", [ Nodename ] ),
+	%trace_utils:debug_fmt( "Pinging '~s' (case A) now...", [ Nodename ] ),
 	case net_adm:ping( Nodename ) of
 
 		pong ->
 
-			%io:format( " - node '~s' found directly available.~n",
-			%		   [ Nodename ] ),
+			%trace_utils:debug_fmt( " - node '~s' found directly available.",
+			%						[ Nodename ] ),
 
 			{ true, 0 } ;
 
 		pang ->
 
-			%io:format( " - node '~s' not yet found available.~n",
-			%		   [ Nodename ] ),
+			%trace_utils:debug_fmt( " - node '~s' not yet found available.",
+			%						[ Nodename ] ),
 
 			% Hopefully too early, let's retry later:
 			check_node_availability( Nodename,
@@ -684,8 +684,8 @@ check_node_availability( Nodename, CurrentDurationStep, ElapsedDuration,
 
 	ActualDurationStep = erlang:min( CurrentDurationStep, RemainingDuration ),
 
-	%io:format( "check_node_availability: actual step is ~B ms, "
-	%			"elapsed is ~B ms, for a specified duration of ~B ms.~n",
+	%trace_utils:debug_fmt( "check_node_availability: actual step is ~B ms, "
+	%			"elapsed is ~B ms, for a specified duration of ~B ms.",
 	%			[ ActualDurationStep, ElapsedDuration, SpecifiedMaxDuration ] ),
 
 	% By design we are directly following a ping attempt:
@@ -693,19 +693,19 @@ check_node_availability( Nodename, CurrentDurationStep, ElapsedDuration,
 
 	NewElapsedDuration = ElapsedDuration + ActualDurationStep,
 
-	%io:format( "Pinging '~s' (case B) now...", [ Nodename ] ),
+	%trace_utils:debug_fmt( "Pinging '~s' (case B) now...", [ Nodename ] ),
 	case net_adm:ping( Nodename ) of
 
 		pong ->
-			%io:format( " - node '~s' found available after ~B ms.~n",
-			%			[ Nodename, NewElapsedDuration ] ),
+			%trace_utils:debug_fmt( " - node '~s' found available after ~B ms.",
+			%						[ Nodename, NewElapsedDuration ] ),
 
 			{ true, NewElapsedDuration } ;
 
 		pang ->
 
-			%io:format( " - node '~s' NOT found available after ~B ms.~n",
-			%			[ Nodename, NewElapsedDuration ] ),
+			%trace_utils:debug_fmt( " - node '~s' NOT found available after "
+			%                     "~B ms.", [ Nodename, NewElapsedDuration ] ),
 
 			% Too early, let's retry later:
 			NewCurrentDurationStep = erlang:min( 2 * CurrentDurationStep,
@@ -721,8 +721,8 @@ check_node_availability( Nodename, CurrentDurationStep, ElapsedDuration,
 check_node_availability( _Nodename, _CurrentDurationStep, ElapsedDuration,
 						 _SpecifiedMaxDuration ) ->
 
-	%io:format( " - node '~s' found NOT available, after ~B ms.~n",
-	%		   [ Nodename, ElapsedDuration ] ),
+	%trace_utils:debug_fmt( " - node '~s' found NOT available, after ~B ms.",
+	%						[ Nodename, ElapsedDuration ] ),
 
 	{ false, ElapsedDuration }.
 
@@ -837,7 +837,8 @@ launch_epmd( Port ) when is_integer( Port ) ->
 			% Better through command line than using the environment to specify
 			% the port:
 			EpmdCmd = text_utils:format( "~s -port ~B", [ EPMDPath, Port ] ),
-			%io:format( "Launching EPMD thanks to '~s'.~n", [ EpmdCmd ] ),
+			%trace_utils:debug_fmt( "Launching EPMD thanks to '~s'.",
+			%                       [ EpmdCmd ] ),
 			system_utils:run_background_executable( EpmdCmd )
 
 	end.
@@ -895,7 +896,7 @@ enable_distribution_helper( NodeName, NameType, NamingMode,
 							RemainingAttempts ) ->
 
 	%trace_utils:debug_fmt( "Starting distribution for node name ~s, as '~w'.",
-	%		   [ NodeName, NameType ] ),
+	%						[ NodeName, NameType ] ),
 
 	case net_kernel:start( [ NodeName, NameType ] ) of
 
@@ -921,9 +922,10 @@ enable_distribution_helper( NodeName, NameType, NamingMode,
 							 ExtraReason } );
 
 				N ->
-					trace_utils:trace_fmt( "(attempt of enabling ~p distribution "
-										   "for node '~s' failed, retrying...)",
-										   [ NamingMode, NodeName ] ),
+					trace_utils:warning_fmt(
+					  "(attempt of enabling ~p distribution "
+					  "for node '~s' failed, retrying...)",
+					  [ NamingMode, NodeName ] ),
 					timer:sleep( 300 ),
 					enable_distribution_helper( NodeName, NameType, NamingMode,
 												N - 1 )
@@ -966,7 +968,6 @@ set_cookie( Cookie ) ->
 
 
 % Sets the Erlang cookie for the specified node.
-%
 -spec set_cookie( cookie(), atom_node_name() ) -> void().
 set_cookie( Cookie, Node ) ->
 	erlang:set_cookie( Node, Cookie ).
@@ -1000,8 +1001,8 @@ shutdown_node( Nodename ) when is_list( Nodename ) ->
 
 shutdown_node( Nodename ) when is_atom( Nodename ) ->
 
-	%io:format( "Request to shut down node '~s' from node '~s'.~n",
-	%		  [ Nodename, node() ] ),
+	%trace_utils:debug_fmt( "Request to shut down node '~s' from node '~s'.",
+	%						[ Nodename, node() ] ),
 
 	case lists:member( Nodename, nodes() ) of
 
@@ -1009,8 +1010,8 @@ shutdown_node( Nodename ) when is_atom( Nodename ) ->
 
 			try
 
-				%io:format( "Sending shutdown command for '~s'.~n",
-				%           [ Nodename ] )
+				%trace_utils:debug_fmt( "Sending shutdown command for '~s'.",
+				%                       [ Nodename ] )
 
 				%rpc:cast( Nodename, erlang, halt, [] )
 
@@ -1020,8 +1021,9 @@ shutdown_node( Nodename ) when is_atom( Nodename ) ->
 			catch
 
 				_T:E ->
-					io:format( "Error while shutting down node '~s': ~p.~n",
-							   [ Nodename, E ] )
+					trace_utils:error_fmt(
+					  "Error while shutting down node '~s': ~p.",
+					  [ Nodename, E ] )
 
 			end,
 
@@ -1029,7 +1031,8 @@ shutdown_node( Nodename ) when is_atom( Nodename ) ->
 			%ok;
 
 		false ->
-			%io:format( "Node '~s' apparently not connected.~n", [ Nodename ] ),
+			%trace_utils:debug_fmt( "Node '~s' apparently not connected.",
+			%                       [ Nodename ] ),
 			ok
 
 	end.
@@ -1077,8 +1080,8 @@ wait_unavailable( Nodename, AttemptCount, Duration ) ->
 
 	%	_T:E ->
 
-	%		io:format( "Error while pinging node '~s': exception '~p'.~n",
-	%				  [ Nodename, E ] )
+	%		trace_utils:debug_fmt( "Error while pinging node '~s': "
+	%           "exception '~p'.", [ Nodename, E ] )
 
 	%end.
 
@@ -1166,8 +1169,8 @@ get_tcp_port_range_option( no_restriction ) ->
 get_tcp_port_range_option( { MinTCPPort, MaxTCPPort } )
   when is_integer( MinTCPPort ) andalso is_integer( MaxTCPPort )
 	   andalso MinTCPPort < MaxTCPPort ->
-	%io:format( "Enforcing following TCP range: [~B,~B].~n",
-	%		   [ MinTCPPort, MaxTCPPort ] ),
+	%trace_utils:debug_fmt( "Enforcing following TCP range: [~B,~B].",
+	%						[ MinTCPPort, MaxTCPPort ] ),
 	io_lib:format( " -kernel inet_dist_listen_min ~B inet_dist_listen_max ~B ",
 				   [ MinTCPPort, MaxTCPPort ] ).
 
@@ -1256,6 +1259,7 @@ send_file( Filename, RecipientPid ) ->
 
 	% Notifies the recipient so that it can receive the content:
 	% (note: we mimic the WOOPER conventions here)
+	%
 	RecipientPid ! { sendFile, [ BinFilename, Permissions, self() ] },
 
 	receive
@@ -1265,7 +1269,7 @@ send_file( Filename, RecipientPid ) ->
 			% We used to rely on hostnames:
 			% Hostname = text_utils:binary_to_string( BinHostname ),
 
-			%io:format( "~w connecting to ~s:~B to send '~s'.~n",
+			%trace_utils:debug_fmt( "~w connecting to ~s:~B to send '~s'.",
 			%		   [ self(), ipv4_to_string( RemoteIP ), Port, Filename ] ),
 
 			DataSocket = case gen_tcp:connect( RemoteIP, Port,
@@ -1288,8 +1292,8 @@ send_file( Filename, RecipientPid ) ->
 
 			%	{ ok, BinFileContent } ->
 
-			%		%io:format( "Sending ~B elements.~n",
-			%		%		  [ size( BinFileContent ) ] ),
+			%		%trace_utils:debug_fmt( "Sending ~B elements.",
+			%		%						[ size( BinFileContent ) ] ),
 
 			%		case gen_tcp:send( DataSocket, BinFileContent ) of
 
@@ -1313,13 +1317,13 @@ send_file( Filename, RecipientPid ) ->
 			% it is definitively the best solution:
 			%
 
-			%:format( "~w performing sendfile, using data socket ~p.~n",
-			%		   [ self(), DataSocket ] ),
+			%trace_utils:debug_fmt( "~w performing sendfile, using data "
+			%                       "socket ~p.", [ self(), DataSocket ] ),
 
 			case file:sendfile( Filename, DataSocket ) of
 
 				{ ok, _SentByteCount } ->
-					%io:format( "~w sent file.~n", [ self() ] ),
+					%trace_utils:debug_fmt( "~w sent file.", [ self() ] ),
 					ok;
 
 				{ error, Reason } ->
@@ -1379,8 +1383,8 @@ receive_file( EmitterPid, TargetDir, Port ) ->
 	% BinHostname = text_utils:string_to_binary( localhost() ),
 	LocalIP = get_local_ip_address(),
 
-	%io:format( "~w (on ~w) determined its local IP: ~w.~n",
-	%		   [ self(), node(), LocalIP ] ),
+	%trace_utils:debug_fmt( "~w (on ~w) determined its local IP: ~w.",
+	%						[ self(), node(), LocalIP ] ),
 
 	receive
 
@@ -1400,12 +1404,12 @@ receive_file( EmitterPid, TargetDir, Port ) ->
 					Filename = file_utils:join( TargetDir,
 								 text_utils:binary_to_string( BinFilename ) ),
 
-					%io:format( "Writing received file in '~s'.~n",
-					%		  [ Filename ] ),
+					%trace_utils:debug_fmt( "Writing received file in '~s'.",
+					%						[ Filename ] ),
 
 					% Do not know the units for { delayed_write, Size, Delay }:
-					OutputFile = file_utils:open( Filename, [ write, raw,
-													 binary, delayed_write ] ),
+					OutputFile = file_utils:open( Filename,
+									   [ write, raw, binary, delayed_write ] ),
 
 					% Mono-client, yet using a separate socket for actual
 					% sending:
@@ -1453,12 +1457,13 @@ receive_file_chunk( DataSocket, OutputFile ) ->
 	receive
 
 		{ tcp, DataSocket, Data } ->
-			%io:format( "Received chunk of ~B elements.~n", [ size( Data ) ] ),
+			%trace_utils:debug_fmt( "Received chunk of ~B elements.",
+			%                       [ size( Data ) ] ),
 			file_utils:write( OutputFile, Data ),
 			receive_file_chunk( DataSocket, OutputFile );
 
 		{ tcp_closed, DataSocket } ->
-			%io:format( "Connection closed.~n" ),
+			%trace_utils:debug( "Connection closed." ),
 			ok = gen_tcp:close( DataSocket ),
 			file_utils:close( OutputFile )
 
@@ -1490,14 +1495,12 @@ is_routable( _ ) ->
 
 
 % Returns a string describing the specified IPv4 address.
-%
 -spec ipv4_to_string( ip_v4_address() ) -> string().
 ipv4_to_string( { N1, N2, N3, N4 } ) ->
 	text_utils:format( "~B.~B.~B.~B", [ N1, N2, N3, N4 ] ).
 
 
 % Returns a string describing the specified IPv4 address and port.
-%
 -spec ipv4_to_string( ip_v4_address(), net_port() ) -> string().
 ipv4_to_string( { N1, N2, N3, N4 }, Port ) ->
 	text_utils:format( "~B.~B.~B.~B:~B", [ N1, N2, N3, N4, Port ] ).
@@ -1505,14 +1508,12 @@ ipv4_to_string( { N1, N2, N3, N4 }, Port ) ->
 
 
 % Returns a string describing the specified IPv6 address.
-%
 -spec ipv6_to_string( ip_v6_address() ) -> string().
 ipv6_to_string( { N1, N2, N3, N4, N5, N6 } ) ->
 	text_utils:format( "~B.~B.~B.~B", [ N1, N2, N3, N4, N5, N6 ] ).
 
 
 % Returns a string describing the specified IPv6 address and port.
-%
 -spec ipv6_to_string( ip_v6_address(), net_port() ) -> string().
 ipv6_to_string( Ipv6={ _N1, _N2, _N3, _N4, _N5, _N6 }, Port ) ->
 	text_utils:format( "~s:~B", [ ipv6_to_string( Ipv6 ), Port ] ).
@@ -1521,7 +1522,6 @@ ipv6_to_string( Ipv6={ _N1, _N2, _N3, _N4, _N5, _N6 }, Port ) ->
 
 
 % Returns a string describing the specified host.
-%
 -spec host_to_string( host_identifier() ) -> string().
 host_to_string( IPv4={ _N1, _N2, _N3, _N4 } ) ->
 	ipv4_to_string( IPv4 );
@@ -1534,7 +1534,6 @@ host_to_string( Address ) ->
 
 
 % Returns a string describing the specified URL information.
-%
 -spec url_info_to_string( url_info() ) -> string().
 url_info_to_string( #url_info{ protocol=Protocol, host_identifier=Host,
 							   port=Port, path=Path } ) ->
