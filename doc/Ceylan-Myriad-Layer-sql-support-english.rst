@@ -50,8 +50,8 @@ A file ``my_test``, identified as ``SQLite 3.x database``, must have been create
 
 
 
-Erlang Binding
---------------
+Erlang SQL Binding
+------------------
 
 This database system is directly accessed thanks to an Erlang binding.
 
