@@ -60,7 +60,6 @@
 
 
 % Not expected to be legit symbols:
-%
 -define( any_module_name, '_' ).
 
 -type module_name_match() :: module_name() | ?any_module_name.
@@ -711,7 +710,6 @@ transform_term( TargetTerm, TypeDescription, TermTransformer, UserData ) ->
 
 
 % Helper to traverse a list.
-%
 transform_list( TargetList, TypeDescription, TermTransformer, UserData ) ->
 
 	{ NewList, NewUserData } = lists:foldl(
@@ -734,7 +732,6 @@ transform_list( TargetList, TypeDescription, TermTransformer, UserData ) ->
 
 
 % Helper to traverse a tuple.
-%
 transform_tuple( TargetTuple, TypeDescription, TermTransformer, UserData ) ->
 
 	% We do exactly as with lists:
@@ -772,7 +769,6 @@ transform_transformed_term( TargetTerm, TypeDescription, TermTransformer,
 
 
 % Returns a textual description of specified AST transforms.
-%
 -spec ast_transforms_to_string( ast_transforms() ) -> text_utils:ustring().
 ast_transforms_to_string( #ast_transforms{
 							 local_types=MaybeLocalTypeTable,

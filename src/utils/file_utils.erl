@@ -158,6 +158,10 @@
 -type directory_name() :: path().
 -type bin_directory_name() :: binary().
 
+-type directory_path() :: path().
+-type bin_directory_path() :: binary().
+
+
 
 % An extension in a filename (ex: "baz", in "foobar.baz.json"):
 -type extension() :: string().
@@ -213,6 +217,7 @@
 			   executable_name/0, executable_path/0, bin_executable_path/0,
 			   script_path/0, bin_script_path/0,
 			   directory_name/0, bin_directory_name/0,
+			   directory_path/0, bin_directory_path/0,
 			   extension/0,
 			   entry_type/0,
 			   permission/0,
@@ -680,7 +685,7 @@ create_empty_file( Filename ) ->
 %
 % Throws an exception on failure.
 %
--spec get_current_directory() -> directory_name().
+-spec get_current_directory() -> directory_path().
 get_current_directory() ->
 
 	case file:get_cwd() of

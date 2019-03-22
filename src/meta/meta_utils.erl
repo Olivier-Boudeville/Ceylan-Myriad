@@ -165,7 +165,6 @@
 %% Module subsection.
 
 % The name of a module:
-%
 -type module_name() :: basic_utils:module_name().
 
 
@@ -174,12 +173,10 @@
 
 
 % The name of a function:
-%
 -type function_name() :: basic_utils:function_name().
 
 
 % The arity of a function:
-%
 -type function_arity() :: arity().
 
 
@@ -190,7 +187,6 @@
 
 
 % The type of a function (currenty: unclear semantics).
-%
 -type function_type() :: any().
 
 
@@ -232,7 +228,6 @@
 
 
 % Parse-transform related functions:
-%
 -export([ apply_ast_transforms/2,
 		  add_function/2, remove_function/2,
 		  add_type/2, remove_type/2 ]).
@@ -240,7 +235,6 @@
 
 
 % General functions, not operating an ASTs:
-%
 -export([ list_exported_functions/1, get_arities_for/2,
 		  is_function_exported/3, check_potential_call/3 ]).
 
@@ -251,7 +245,6 @@
 
 
 % Registers specified function in specified module.
-%
 -spec add_function( function_info(), module_info() ) -> module_info().
 add_function( FunInfo=#function_info{ exported=ExportLocs },
 			  ModuleInfo=#module_info{ function_exports=ExportTable,
@@ -293,7 +286,6 @@ add_function( FunInfo=#function_info{ exported=ExportLocs },
 
 
 % Unregisters specified function from specified module.
-%
 -spec remove_function( function_info(), module_info() ) -> module_info().
 remove_function( FunInfo=#function_info{ exported=ExportLocs },
 				 ModuleInfo=#module_info{ function_exports=ExportTable,
@@ -327,7 +319,6 @@ remove_function( FunInfo=#function_info{ exported=ExportLocs },
 
 
 % Registers the specified, fully-described type in specified module.
-%
 -spec add_type( type_info(), module_info() ) -> module_info().
 add_type( TypeInfo=#type_info{
 					  variables=TypeVariables,
@@ -372,7 +363,6 @@ add_type( TypeInfo=#type_info{
 
 
 % Unregisters specified type from specified module.
-%
 -spec remove_type( type_info(), module_info() ) -> module_info().
 remove_type( TypeInfo=#type_info{ variables=TypeVariables,
 								  exported=ExportLocs },

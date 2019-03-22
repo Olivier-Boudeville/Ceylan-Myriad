@@ -47,14 +47,12 @@
 
 
 % Checks regarding lists:
-%
 -export([ ensure_list/1, ensure_list_of_atoms/1, ensure_list_of_tuples/1,
 		  ensure_list_of_pids/1 ]).
 
 
 
 % Basic list operations:
-%
 -export([ get_element_at/2, insert_element_at/3, extract_element_at/2,
 		  remove_element_at/2, remove_last_element/1,
 		  get_last_element/1, extract_last_element/1,
@@ -74,7 +72,6 @@
 
 
 % Random operations on lists:
-%
 -export([ random_permute/1, random_permute_reciprocal/1,
 		  draw_element/1, draw_element/2, draw_element_weighted/1,
 		  draw_elements_from/2 ]).
@@ -161,7 +158,6 @@ ensure_list_of_tuples( Other ) ->
 % list of its own if not already a list, or check that this list is only
 % populated of PIDs.
 %
-
 ensure_list_of_pids( Pid ) when is_pid( Pid ) ->
 	[ Pid ];
 
@@ -658,7 +654,6 @@ append_at_end( Elem, L ) when is_list( L ) ->
 
 
 % Returns whether the specified list contains only integers.
-%
 -spec is_list_of_integers( term() ) -> boolean().
 is_list_of_integers( [] ) ->
 	true;
@@ -712,7 +707,6 @@ flatten_once( [ Unexpected | _T ], _Acc ) ->
 
 
 % Filters out all elements equal to 'undefined'; preserves order.
-%
 -spec filter_out_undefined( list() ) -> list().
 filter_out_undefined( L ) ->
 	% Or: delete_all_in( undefined, L ).
@@ -736,7 +730,7 @@ determine_tuple_info( _TupleList=[ FirstTuple | T ] )
 	{ Count, TupleSize }.
 
 
-% Helper.
+% (helper)
 check_tuple_length( _TupleList=[], _TupleSize, AccCount ) ->
 	AccCount;
 
