@@ -35,13 +35,11 @@
 
 
 % Notification-related functions.
-%
 -export([ speak/1, notify_user/1, notify_user/2 ]).
 
 
 
 % Message-related functions.
-%
 -export([ flush_pending_messages/0, flush_pending_messages/1,
 		  wait_for/2, wait_for/4, wait_for_acks/4, wait_for_acks/5,
 		  wait_for_summable_acks/5,
@@ -50,7 +48,6 @@
 
 
 % Miscellaneous functions.
-%
 -export([ size/1, display_process_info/1,
 		  checkpoint/1,
 		  display/1, display/2, display_timed/2, display_timed/3,
@@ -102,27 +99,22 @@
 
 
 % Allows to count elements (positive integer, possibly zero):
-%
 -type count() :: non_neg_integer().
 
 
 % Allows to count elements (strictly positive integer):
-%
 -type non_null_count() :: pos_integer().
 
 
 % Describes a mask of bits:
-%
 -type bit_mask() :: integer().
 
 
 % Describes an (Erlang, inter-process) messsage:
-%
 -type message() :: any().
 
 
 % Describes a PID or a port:
-%
 -type pid_or_port() :: pid() | port().
 
 
@@ -174,7 +166,6 @@
 
 
 % Designates data whose type and value has not been checked yet.
-%
 -type unchecked_data() :: term().
 
 
@@ -318,14 +309,12 @@ stop_on_success() ->
 
 
 % Stops smoothly the underlying VM, with a default error status code (1).
-%
 -spec stop_on_failure() -> no_return().
 stop_on_failure() ->
 	stop_on_failure( _OurDefaultErrorCode=5 ).
 
 
 % Stops smoothly the underlying VM, with a default error status code (1).
-%
 -spec stop_on_failure( status_code() ) -> no_return().
 stop_on_failure( StatusCode ) ->
 	stop( StatusCode ).
@@ -435,7 +424,6 @@ trigger_oom() ->
 
 
 % Speaks the specified message, using espeak.
-%
 -spec speak( string() ) -> void().
 speak( Message ) ->
 	system_utils:run_background_executable(
@@ -473,7 +461,6 @@ notify_user( Message, FormatList ) ->
 
 
 % Flushes all the messages still in the mailbox of this process.
-%
 -spec flush_pending_messages() -> void().
 flush_pending_messages() ->
 
@@ -605,7 +592,6 @@ wait_for_acks( WaitedSenders, MaxDurationInSeconds, Period,
 
 
 % (helper)
-%
 wait_for_acks_helper( _WaitedSenders=[], _InitialTimestamp,
 			  _MaxDurationInSeconds, _Period, _AckReceiveAtom, _ThrowAtom ) ->
 	ok;
@@ -639,7 +625,7 @@ wait_for_acks_helper( WaitedSenders, InitialTimestamp, MaxDurationInSeconds,
 					% Still waiting then:
 
 					%io:format( "(still waiting for instances ~p)~n",
-					%   [ WaitedSenders ] ),
+					%          [ WaitedSenders ] ),
 
 					wait_for_acks_helper( WaitedSenders, InitialTimestamp,
 						MaxDurationInSeconds, Period, AckReceiveAtom,
@@ -680,7 +666,6 @@ wait_for_summable_acks( WaitedSenders, InitialValue, MaxDurationInSeconds,
 %
 % Throws a { ThrowAtom, StillWaitedSenders } exception on time-out.
 %
-%
 -spec wait_for_summable_acks( [ pid() ], number(), time_utils:time_out(),
 		   unit_utils:milliseconds(), atom(), atom() ) -> number().
 wait_for_summable_acks( WaitedSenders, CurrentValue, MaxDurationInSeconds,
@@ -695,7 +680,6 @@ wait_for_summable_acks( WaitedSenders, CurrentValue, MaxDurationInSeconds,
 
 
 % (helper)
-%
 wait_for_summable_acks_helper( _WaitedSenders=[], CurrentValue,
 							   _InitialTimestamp, _MaxDurationInSeconds,
 							   _Period, _AckReceiveAtom, _ThrowAtom ) ->
@@ -838,7 +822,7 @@ wait_for_many_acks_helper( WaitedSenders, InitialTimestamp,
 send_to_pid_set( Message, PidSet ) ->
 
 	% Conceptually (not a basic list, though):
-	 % [ Pid ! Message || Pid <- PidSet ]
+	% [ Pid ! Message || Pid <- PidSet ]
 
 	% With iterators, it is done slightly slower yet with less RAM rather than
 	% first using set_utils:to_list/1 then iterating on the resulting plain
@@ -852,7 +836,6 @@ send_to_pid_set( Message, PidSet ) ->
 
 
 % (helper)
-%
 send_to_pid_set( _Message, none, Count ) ->
 	Count;
 
@@ -861,18 +844,17 @@ send_to_pid_set( Message, { Pid, NewIterator }, Count ) ->
 	send_to_pid_set( Message, set_utils:next( NewIterator ), Count+1 ).
 
 
+
 % Miscellaneous functions.
 
 
 % Returns the number of bytes used by specified term.
-%
 -spec size( term() ) -> system_utils:byte_size().
 size( Term ) ->
 	system_utils:get_size( Term ).
 
 
 % Displays information about the process(es) identified by specified PID.
-%
 -spec display_process_info( pid() | [ pid() ] ) -> void().
 display_process_info( PidList ) when is_list( PidList ) ->
 	[ display_process_info( Pid ) || Pid <- PidList ];
@@ -898,7 +880,7 @@ display_process_info( Pid ) when is_pid( Pid ) ->
 					io:format( "PID ~w refers to a local live process, "
 							   "whose information are:~s",
 							   [ Pid,
-								  text_utils:strings_to_string( Strings ) ] )
+								 text_utils:strings_to_string( Strings ) ] )
 
 			end;
 
@@ -1095,7 +1077,7 @@ parse_version( VersionString ) ->
 	Elems = string:tokens( VersionString, "." ),
 
 	% Then simply switch to {4,22,1}:
-	list_to_tuple( [ text_utils:string_to_integer(E) || E <- Elems ] ).
+	list_to_tuple( [ text_utils:string_to_integer( E ) || E <- Elems ] ).
 
 
 
@@ -1194,7 +1176,6 @@ get_process_specific_value() ->
 
 
 % Returns a process-specific value in [Min,Max[.
-%
 -spec get_process_specific_value( integer(), integer() ) -> integer().
 get_process_specific_value( Min, Max ) ->
 
