@@ -155,7 +155,6 @@
 % beam,report_errors, {cwd,"X"}, {outdir,"Y"}, {i,"Z"}, {parse_transform,P},
 % debug_info, warnings_as_errors, etc.
 %
-%
 % (hence not a list_table, anyway not available here)
 %
 -type parse_transform_options() :: proplists:proplist().
