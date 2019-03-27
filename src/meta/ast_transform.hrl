@@ -93,7 +93,7 @@
 	% the transformation state that was defined (useful if some parts of it are
 	% not of interest and/or very bulky to format).
 	%
-	transform_formatter = fun ast_transform:default_formatter/2 ::
-								ast_transform:transform_formatter()
+	transform_formatter = fun ast_transform:default_formatter/2
+								   :: ast_transform:transform_formatter()
 
 } ).
