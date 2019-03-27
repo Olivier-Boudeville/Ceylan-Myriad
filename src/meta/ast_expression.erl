@@ -36,7 +36,7 @@
 
 % The description of an expression in an AST, with line information.
 %
-% Ex: '{integer,97,2}' or '{match,117, {var,117,'A'}, {atom,117,foobar}}' , etc.
+% Ex: '{integer,97,2}' or '{match,117, {var,117,'A'}, {atom,117,foobar}}', etc.
 %
 % Note: an expression is different from a pattern: even if they share at least
 % some types of forms, they are to be interpreted differently (ex: their
@@ -47,7 +47,6 @@
 
 
 % An expression that can be evaluated to an integer:
-%
 -type ast_integer_expression() :: ast_expression().
 
 -type ast_field_init() :: ast_record:ast_untyped_record_field_definition().
@@ -100,13 +99,13 @@
 
 
 % List-comprehension generator.
--type lc_generator_qualifier() :: { 'generate', line(),
-						ast_pattern:ast_pattern(), ast_expression() }.
+-type lc_generator_qualifier() ::
+		{ 'generate', line(), ast_pattern:ast_pattern(), ast_expression() }.
 
 
 % Bitstring generator.
--type bitstring_generator_qualifier() :: { 'b_generate', line(),
-						ast_pattern:ast_pattern(), ast_expression() }.
+-type bitstring_generator_qualifier() ::
+		{ 'b_generate', line(),	ast_pattern:ast_pattern(), ast_expression() }.
 
 
 
@@ -1592,7 +1591,6 @@ transform_qualifier( _Qualifier={ 'b_generate', Line, Pattern, Expression },
 
 
 % "If Q is a filter E, where E is an expression, then Rep(Q) = Rep(E)."
-%
 transform_qualifier( _Qualifier=Expression, Transforms ) ?rec_guard ->
 	{ [ E ], NewTransforms } = transform_expression( Expression, Transforms ),
 	{ E, NewTransforms }.
@@ -1897,6 +1895,5 @@ transform_call_expression( CallExpr={ 'atom', LineFun, FunName }, Arity,
 
 
 % Ex: happens with a line like: 'MyNode = MyContentFun( Content, "hello" )'.
-%
 transform_call_expression( CallExpr, _Arity, Transforms ) ?rec_guard ->
 	transform_expression( CallExpr, Transforms ).
