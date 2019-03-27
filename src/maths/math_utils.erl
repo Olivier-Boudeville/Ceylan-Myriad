@@ -77,6 +77,10 @@
 -type percent() :: float().
 
 
+% For integer percentages (in [0..100] generally):
+-type integer_percent() :: integer().
+
+
 % For probabilities:
 -type probability() :: float().
 
@@ -89,7 +93,8 @@
 						 | 'relative' | { 'relative', float() }.
 
 
--export_type([ non_zero_integer/0, variance/0, percent/0, probability/0 ]).
+-export_type([ non_zero_integer/0, variance/0,
+			   percent/0, integer_percent/0, probability/0 ]).
 
 
 
@@ -117,10 +122,10 @@
 %			T - 1;
 %
 %		%Pos when Pos > 0 ->
-%		%	T;
+%		%   T;
 %
 %		_PositiveOrNull ->
-%			T
+%           T
 %
 %	end.
 
@@ -142,7 +147,7 @@ ceiling( X ) ->
 			T + 1;
 
 		%Neg when Neg < 0 ->
-		%	T;
+		%  T;
 
 		_NegativeOrNull ->
 			T
@@ -182,7 +187,6 @@ float_to_integer( F ) ->
 
 
 % Converts specified float to integer, using specified conversion tolerance.
-%
 -spec float_to_integer( float(), conversion_type() ) -> integer().
 float_to_integer( F, _ConversionType=exact ) ->
 
@@ -277,7 +281,6 @@ clamp( _Min, _Max, Value ) ->
 
 
 % Returns the square, augmented of a little margin, of the specified element.
-%
 squarify( L ) ->
 	% "Taylor series", square( epsilon ) is negligible here:
 	L * ( L + ?epsilon ).
@@ -413,7 +416,6 @@ is_null( X ) ->
 
 
 % Converts specified angle in radian into the same angle expressed in degrees.
-%
 -spec radian_to_degree( unit_utils:radians() ) -> unit_utils:degrees().
 radian_to_degree( AngleInRadians ) ->
 	AngleInRadians * 180 / math:pi().
