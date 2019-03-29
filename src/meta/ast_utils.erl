@@ -879,7 +879,7 @@ interpret_stack_trace( _StackTrace=[ H | T ], Acc, Count ) ->
 % error to the user.
 %
 -spec raise_usage_error( text_utils:format_string(), text_utils:format_values(),
-						 file_utils:filename(), ast_base:line() ) -> no_return().
+					 file_utils:filename(), ast_base:line() ) -> no_return().
 raise_usage_error( ErrorFormatString, ErrorValues, Filename, Line ) ->
 
 	ErrorString = io_lib:format( ErrorFormatString, ErrorValues ),

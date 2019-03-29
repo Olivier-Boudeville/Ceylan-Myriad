@@ -213,7 +213,7 @@ scan( AST ) ->
 % Reports specified error, using the same format as erlc, so that tools can
 % parse these errors as well.
 %
- % Ex: foo.erl:102: can't find include file "bar.hrl"
+% Ex: foo.erl:102: can't find include file "bar.hrl"
 %
 -spec report_error( { ast_scan:scan_context(), basic_utils:error_reason() } ) ->
 						  basic_utils:void().
@@ -427,7 +427,7 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'import',
 
 
 % 7.1.4: Module handling.
-
+%
 % "If F is an attribute -module(Mod), then Rep(F) =
 % {attribute,LINE,module,Mod}."
 %
@@ -1150,18 +1150,19 @@ scan_forms( [ Form={ 'attribute', Line, AttributeName, AttributeValue } | T ],
 
 % eep include error:
 scan_forms( _AST=[ _Form={ 'error',
-	   { Line, 'epp', { 'include', 'file', FileName } } } | T ],
-			M=#module_info{ errors=Errors },
-			NextLocation, CurrentFileReference ) ->
+	   { Line, 'epp', { 'include', 'file', FileName } } } | _T ],
+			_M=#module_info{ errors=_Errors },
+			_NextLocation, CurrentFileReference ) ->
 
-	Context = { CurrentFileReference, Line-1 },
-	%ast_utils:raise_error( [ include_file_not_found, FileName ], Context );
+	% Better error message if managed directly:
+	ast_utils:raise_usage_error( "include file not found: '~s'.",
+								 [ FileName ], CurrentFileReference, Line );
 
-	NewError = { Context, { include_file_not_found, FileName } },
+	%NewError = { Context, { include_file_not_found, FileName } },
 
-	scan_forms( T, M#module_info{ errors=[ NewError | Errors ] },
-				id_utils:get_next_sortable_id( NextLocation ),
-				CurrentFileReference );
+	%scan_forms( T, M#module_info{ errors=[ NewError | Errors ] },
+	%			id_utils:get_next_sortable_id( NextLocation ),
+	%			CurrentFileReference );
 
 
 % eep undefined macro variable error:
@@ -1415,14 +1416,12 @@ scan_field_descriptions( FieldDescriptions, CurrentFileReference ) ->
 
 
 % (helper)
-%
 scan_field_descriptions( _FieldDescriptions=[], _CurrentFileReference,
 						 FieldTable ) ->
 	% Preserve original field order:
 	lists:reverse( FieldTable );
 
 % Here no type or default value are specified for that field:
-%
 scan_field_descriptions( _FieldDescriptions=[
 		{ 'record_field', FirstLine, { atom, SecondLine, FieldName } } | T ],
 		CurrentFileReference, FieldTable ) ->
@@ -1486,7 +1485,6 @@ scan_field_descriptions( _FieldDescriptions=[ UnexpectedDesc | _T ],
 
 
 % Checks that specified parse attribute name is legit.
-%
 -spec check_parse_attribute_name( term(), form_context() ) ->
 										parse_attribute_name().
 check_parse_attribute_name( Name, _Context ) when is_atom( Name ) ->
@@ -1497,7 +1495,6 @@ check_parse_attribute_name( Other, Context ) ->
 
 
 % Checks that specified parse attribute name is legit.
-%
 -spec check_parse_attribute_name( term() ) -> parse_attribute_name().
 check_parse_attribute_name( Name ) ->
 	check_parse_attribute_name( Name, _Context=undefined ).
