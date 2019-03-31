@@ -35,8 +35,8 @@ run() ->
 
 % Defaults:
 
--define( default_min_length, "12" ).
--define( default_max_length, "18" ).
+-define( default_min_length, "15" ).
+-define( default_max_length, "20" ).
 
 -define( default_alphabet, "extended" ).
 
