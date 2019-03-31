@@ -106,6 +106,8 @@
 ;;
 (windmove-default-keybindings)
 
+(setq buffers-menu-max-size nil)
+
 
 ;; Taken from
 ;; https://stackoverflow.com/questions/11043004/emacs-compile-buffer-auto-close:
