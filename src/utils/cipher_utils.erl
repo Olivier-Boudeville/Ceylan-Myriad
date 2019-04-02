@@ -255,7 +255,7 @@ generate_key( KeyFilename, Transforms ) ->
 %
 -spec key_to_string( key() ) -> string().
 key_to_string( Key ) ->
-	text_utils:format( "Key composed of following ~B cipher(s):~s",
+	text_utils:format( "Key composed of following ~B cipher(s): ~s",
 					   [ length( Key ),
 						 text_utils:strings_to_string( key_to_string(
 								   lists:reverse( Key ), _Acc=[] ) ) ] ).
@@ -1202,7 +1202,7 @@ mealy_table_to_string( Table ) ->
 	AlphabetSize = array:size( array:get( 0, Table ) ),
 
 	text_utils:format( "Mealy table with ~B states and an alphabet of "
-					   "~B letters:~s",
+					   "~B letters: ~s",
 					   [ StateCount, AlphabetSize,
 						 text_utils:strings_to_string( StateStrings ) ] ).
 

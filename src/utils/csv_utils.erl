@@ -99,7 +99,8 @@
 %
 % - non-comma separators
 %
-% - comments (lines starting with the # character, potentially with leading whitespaces are ignored)
+% - comments (lines starting with the # character, potentially with leading
+% whitespaces are ignored)
 %
 % - blank lines
 %
@@ -160,8 +161,8 @@ read_file( Filename, Separator ) when is_list( Filename ) ->
 
 	Res = { _Content, _RowCount, _FieldCount } = read_rows( File, Separator ),
 
-	%trace_utils:debug_fmt( "Read content (~B rows, each having ~p fields):~n~p",
-	%					   [ RowCount, FieldCount, Content ] ),
+	%trace_utils:debug_fmt( "Read content (~B rows, each having ~p fields): "
+	%           "~n~p", [ RowCount, FieldCount, Content ] ),
 
 	file_utils:close( File ),
 
@@ -170,7 +171,6 @@ read_file( Filename, Separator ) when is_list( Filename ) ->
 
 
 % Returns the context read from specified device/file.
-%
 -spec read_rows( file_utils:file(), separator() ) ->
 						{ content(), row_count(), field_count() }.
 read_rows( File, Separator ) ->
@@ -180,7 +180,6 @@ read_rows( File, Separator ) ->
 
 
 % (helper)
-%
 read_rows( Device, Separator, RowCount, FieldCount, Acc ) ->
 
 	case io:get_line( Device, _Prompt="" ) of
@@ -233,7 +232,6 @@ read_rows( Device, Separator, RowCount, FieldCount, Acc ) ->
 
 
 % Parses specified line into a proper row.
-%
 -spec parse_row( text_utils:ustring(), char() ) ->
 					   basic_utils:maybe( { row(), field_count() } ).
 parse_row( Line, Separator ) ->
@@ -258,8 +256,7 @@ parse_row( Line, Separator ) ->
 
 
 % Returns a textual representation of specified content.
-%
 -spec content_to_string( content() ) -> text_utils:ustring().
 content_to_string( Content ) ->
-	text_utils:format( "content of ~B rows:~s", [ length( Content ),
+	text_utils:format( "content of ~B rows: ~s", [ length( Content ),
 					   text_utils:terms_to_enumerated_string( Content ) ] ).

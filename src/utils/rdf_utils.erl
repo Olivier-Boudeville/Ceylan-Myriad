@@ -85,7 +85,6 @@
 
 
 % Identifies uniquely what resource a RDF triplet is describing (input node).
-%
 -type subject() :: iri().
 
 
@@ -102,7 +101,6 @@
 
 
 % A RDF statement, a property triplet (named triple as more usual here):
-%
 -type triple() :: { subject(), predicate(), object() }.
 
 
@@ -110,12 +108,10 @@
 
 
 % Vocabulary, typically to be used for internal purposes.
-%
 -type vocabulary() :: set_utils:set( iri() ).
 
 
 % Vocabulary, typically to be specified by the user (simpler form).
-%
 -type user_vocabulary() :: [ string_iri() ].
 
 
@@ -131,7 +127,6 @@
 
 
 % Tells whether specified term is an IRI.
-%
 -spec is_iri( term() ) -> boolean().
 is_iri( Term ) ->
 	text_utils:is_bin_string( Term ).
@@ -139,7 +134,6 @@ is_iri( Term ) ->
 
 
 % Tells whether specified term is a (RDF) literal.
-%
 -spec is_literal( term() ) -> boolean().
 is_literal( _Term ) ->
 	%text_utils:is_bin_string( Term ).
@@ -149,7 +143,6 @@ is_literal( _Term ) ->
 
 
 % Tells whether specified term is a RDF subject.
-%
 -spec is_subject( term() ) -> boolean().
 is_subject( Term ) ->
 	is_iri( Term ).
@@ -157,7 +150,6 @@ is_subject( Term ) ->
 
 
 % Tells whether specified term is a RDF predicate.
-%
 -spec is_predicate( term() ) -> boolean().
 is_predicate( Term ) ->
 	is_iri( Term ).
@@ -165,7 +157,6 @@ is_predicate( Term ) ->
 
 
 % Tells whether specified term is a RDF object.
-%
 -spec is_object( term() ) -> boolean().
 is_object( Term ) ->
 	is_iri( Term ) orelse is_literal( Term ).
@@ -173,7 +164,6 @@ is_object( Term ) ->
 
 
 % Evaluates specified statement, and returns whether it holds.
-%
 -spec evaluate_statement( subject(), predicate(), object() ) -> boolean().
 evaluate_statement( _Subject, _Predicate= <<"is_a">>, _Object ) ->
 	% Not implemented yet:
@@ -194,7 +184,6 @@ implies( FirstVocabulary, SecondVocabulary ) ->
 
 
 % Returns a textual representation of specified vocabulary.
-%
 -spec vocabulary_to_string( vocabulary() ) -> string().
 vocabulary_to_string( Vocabulary ) ->
 	vocabulary_to_string( Vocabulary, _IndentationLevel=0 ).
@@ -219,8 +208,10 @@ vocabulary_to_string( Vocabulary, IndentationLevel ) ->
 
 		SemList ->
 
-			SemString = text_utils:binaries_to_string( SemList, IndentationLevel ),
-			text_utils:format( "a vocabulary comprising ~B terms:~s",
+			SemString = text_utils:binaries_to_string( SemList,
+													   IndentationLevel ),
+
+			text_utils:format( "a vocabulary comprising ~B terms: ~s",
 							   [ length( SemList ), SemString ] )
 
 	end.

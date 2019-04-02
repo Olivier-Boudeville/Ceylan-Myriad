@@ -974,7 +974,7 @@ toString( Hashtable, user_friendly ) ->
 						|| { K, V } <- lists:sort( L ) ],
 
 			% Flatten is needed, in order to use the result with ~s:
-			lists:flatten( io_lib:format( "Hashtable with ~B entry(ies):~s~n",
+			lists:flatten( io_lib:format( "Hashtable with ~B entry(ies): ~s~n",
 				[ length( L ),
 				  text_utils:strings_to_string( Strings ) ] ) )
 

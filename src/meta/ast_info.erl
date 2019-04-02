@@ -26,8 +26,6 @@
 % Creation date: Saturday, February 3, 2018.
 
 
-
-
 % Module centralising the management of all information that can be extracted
 % from ASTs.
 %
@@ -1319,7 +1317,7 @@ module_info_to_string( #module_info{
 			  unhandled_forms_to_string( UnhandledForms, DoIncludeForms,
 										 NextIndentationLevel ) ],
 
-	text_utils:format( "Information about module ~s:~s", [ ModuleString,
+	text_utils:format( "Information about module ~s: ~s", [ ModuleString,
 			 text_utils:strings_to_string( Infos, IndentationLevel ) ] ).
 
 
@@ -1677,7 +1675,7 @@ records_to_string( RecordTable, IndentationLevel ) ->
 					FieldString = text_utils:strings_to_enumerated_string(
 									FieldStrings, IndentationLevel + 2 ),
 
-					text_utils:format( "record '~s' having ~B fields:~s",
+					text_utils:format( "record '~s' having ~B fields: ~s",
 									   [ RecordName, length( FieldStrings ),
 										 FieldString ] )
 

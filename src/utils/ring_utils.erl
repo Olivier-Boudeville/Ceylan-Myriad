@@ -63,7 +63,6 @@
 
 
 % Returns a ring corresponding to the specified list.
-%
 -spec from_list( list() ) -> ring().
 from_list( InputList ) ->
 	{ InputList, InputList }.
@@ -71,7 +70,6 @@ from_list( InputList ) ->
 
 
 % Returns a list corresponding to the current state of specified ring.
-%
 -spec to_list( ring() ) -> list().
 to_list( Ring={ _WorkingList, ReferenceList } ) ->
 	{ List, _NewRing } = get_next( _Count=length( ReferenceList ), Ring ),
@@ -79,7 +77,6 @@ to_list( Ring={ _WorkingList, ReferenceList } ) ->
 
 
 % Pops the head of specified ring: return { Head, UpdatedRing }.
-%
 -spec head( ring() ) -> { term(), ring() }.
 head( _Ring={ _WorkingList=[], ReferenceList } ) ->
 	% Replenish:
@@ -114,7 +111,6 @@ get_next_helper( Count, Ring, Acc ) ->
 
 
 % Returns the list from which the ring was created (in its original order).
-%
 -spec get_reference_list( ring() ) -> [ term() ].
 get_reference_list( _Ring={ _WorkingList, ReferenceList } ) ->
 	ReferenceList.
@@ -122,7 +118,6 @@ get_reference_list( _Ring={ _WorkingList, ReferenceList } ) ->
 
 
 % Returns the number of elements in the specified ring.
-%
 -spec size( ring() ) -> basic_utils:count().
 size( _Ring={ _WorkingList, ReferenceList } ) ->
 	length( ReferenceList ).
@@ -130,7 +125,6 @@ size( _Ring={ _WorkingList, ReferenceList } ) ->
 
 
 % Returns a textual representation of the specified ring.
-%
 -spec to_string( ring() ) -> string().
 to_string( Ring ) ->
 
@@ -148,7 +142,7 @@ to_string( Ring ) ->
 			ElemString = text_utils:strings_to_string( [
 				   text_utils:format( "~p", [ E ] ) || E <- Elements ] ),
 
-			text_utils:format( "ring with following ~B elements:~s",
+			text_utils:format( "ring with following ~B elements: ~s",
 							   [ length( Elements ), ElemString ] )
 
 	end.

@@ -396,19 +396,17 @@ get_code_path() ->
 
 
 % Returns a textual representation of the current code path.
-%
 -spec get_code_path_as_string() -> string().
 get_code_path_as_string() ->
 
 	CodePath = get_code_path(),
 
-	text_utils:format( "current code path is:~s",
+	text_utils:format( "current code path is: ~s",
 					   [ text_utils:strings_to_string( CodePath ) ] ).
 
 
 
 % Returns a textual description of the specified code path.
-%
 -spec code_path_to_string( code_path() ) -> string().
 code_path_to_string( _CodePath=[] ) ->
 	% Initial space intended for caller-side consistency:
@@ -437,7 +435,6 @@ list_beams_in_path() ->
 
 
 % Returns the filename of the BEAM file corresponding to specified module.
-%
 -spec get_beam_filename( basic_utils:module_name() ) -> file_utils:file_name().
 get_beam_filename( ModuleName ) when is_atom( ModuleName ) ->
 
@@ -502,7 +499,6 @@ get_stacktrace() ->
 
 
 % Returns a "smart" textual representation of the current stacktrace.
-%
 -spec interpret_stacktrace() -> string().
 interpret_stacktrace() ->
 
@@ -513,7 +509,6 @@ interpret_stacktrace() ->
 
 
 % Returns a "smart" textual representation of specified stacktrace.
-%
 -spec interpret_stacktrace( stack_trace() ) -> string().
 interpret_stacktrace( StackTrace ) ->
 	interpret_stacktrace( StackTrace, _FullPathsWanted=false ).

@@ -95,19 +95,20 @@ run() ->
 
 	ListOfStrings = [ "Hello", "World", "Vampire" ],
 
-	test_facilities:display( "Displaying list ~p as a string:~s",
+	test_facilities:display( "Displaying list ~p as a string: ~s",
 		[ ListOfStrings, text_utils:strings_to_string( ListOfStrings ) ] ),
 
 
 	NestedStrings = [ [ "A1" ] ],
-	%NestedStrings = [ [ "A1", "A2", "A3" ], [ "B1" ], [ "C1", "C2" ], [ "D1" ] ],
+	%NestedStrings = [ [ "A1", "A2", "A3" ], [ "B1" ], [ "C1", "C2" ],
+	%                  [ "D1" ] ],
 
 	Strings = [ text_utils:format( "blah: ~s",
 				 [ text_utils:strings_to_string( N, _IndentationLevel=1 ) ] )
 				|| N <- NestedStrings ],
 
 	% Emulating the way it is used in practice:
-	test_facilities:display( "Displaying nested strings:~s and continuing.",
+	test_facilities:display( "Displaying nested strings: ~s and continuing.",
 		[ text_utils:strings_to_string( Strings ) ] ),
 
 
@@ -156,11 +157,11 @@ run() ->
 	SecondTestString = [ $o, [ $s, $d ], $l ],
 
 	test_facilities:display( "Determining whether '~p' is a string: ~w; "
-							 "a non-empty string: ~w",
-							 [ SecondTestString,
-							   text_utils:is_string( SecondTestString ),
-							   text_utils:is_non_empty_string( SecondTestString )
-							 ] ),
+						 "a non-empty string: ~w",
+						 [ SecondTestString,
+						   text_utils:is_string( SecondTestString ),
+						   text_utils:is_non_empty_string( SecondTestString )
+						 ] ),
 
 	false = text_utils:is_string( SecondTestString ),
 	false = text_utils:is_non_empty_string( SecondTestString ),
@@ -182,11 +183,11 @@ run() ->
 	FourthTestString = an_atom,
 
 	test_facilities:display( "Determining whether '~p' is a string: ~w; "
-							 "a non-empty string: ~w",
-							 [ FourthTestString,
-							   text_utils:is_string( FourthTestString ),
-							   text_utils:is_non_empty_string( FourthTestString )
-							 ] ),
+						 "a non-empty string: ~w",
+						 [ FourthTestString,
+						   text_utils:is_string( FourthTestString ),
+						   text_utils:is_non_empty_string( FourthTestString )
+						 ] ),
 
 	false = text_utils:is_string( FourthTestString ),
 	false = text_utils:is_non_empty_string( FourthTestString ),
@@ -302,7 +303,7 @@ run() ->
 			text_utils:get_lexicographic_distance( RefString, S )
 						] ) || S <- CompareStrings ],
 
-	test_facilities:display( "Lexicographic distance between '~s' and:~s",
+	test_facilities:display( "Lexicographic distance between '~s' and: ~s",
 		[ RefString, text_utils:strings_to_string( ResultStrings ) ] ),
 
 	% Variant tested yet way too slow, hence fully disabled:
@@ -311,7 +312,7 @@ run() ->
 	%					] ) || S <- CompareStrings ],
 
 	%test_facilities:display( "Lexicographic distance between '~s' "
-	%						 "and (variant):~s",
+	%						 "and (variant): ~s",
 	%	[ RefString, text_utils:strings_to_string( VariantResultStrings ) ] ),
 
 
@@ -334,7 +335,7 @@ run() ->
 	NumberedString = text_utils:strings_to_enumerated_string( CompareStrings,
 														  IndentationLevel ),
 
-	test_facilities:display( "Numbered list with indentation level ~B:~s",
+	test_facilities:display( "Numbered list with indentation level ~B: ~s",
 							 [ IndentationLevel, NumberedString ] ),
 
 
@@ -403,10 +404,10 @@ run() ->
 	EscapeString = "I *am* to be \"escaped\", as 'I shall be escaped'",
 
 	test_facilities:display( "Single-quote escaping '~s' results in: '~s'.",
-			 [ EscapeString, text_utils:escape_single_quotes( EscapeString ) ] ),
+		 [ EscapeString, text_utils:escape_single_quotes( EscapeString ) ] ),
 
 	test_facilities:display( "Double-quote escaping '~s' results in: '~s'.",
-			 [ EscapeString, text_utils:escape_double_quotes( EscapeString ) ] ),
+		 [ EscapeString, text_utils:escape_double_quotes( EscapeString ) ] ),
 
 	test_facilities:display( "All-quote escaping '~s' results in: '~s'.",
 			 [ EscapeString, text_utils:escape_all_quotes( EscapeString ) ] ),

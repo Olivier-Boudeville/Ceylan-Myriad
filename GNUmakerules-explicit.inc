@@ -141,8 +141,15 @@ rebuild: clean all
 # to insert the correct ones.
 
 
-# Note: maybe these (identical) rules can be factored with just different
-# sources and targets.
+# Note:
+#
+# - these rules are rather convoluted, as apparently the -o command-line option
+#	of erlc ignores any path prior to the target, and thus writes the resulting
+#	BEAM into the current directory; we have thus to go in the target directory
+#	first
+#
+# - maybe these (identical) rules can be factored with just different sources
+#	and targets
 
 
 # In 'utils':

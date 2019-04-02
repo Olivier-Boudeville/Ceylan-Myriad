@@ -270,7 +270,6 @@ handle_reference_option( RefTreePath, ArgumentTable ) ->
 
 
 % Handles the command-line whenever the --reference option was not specified.
-%
 handle_non_reference_option( ArgumentTable ) ->
 
 	% No reference, it must then either be a pure scan or a uniquify here:
@@ -362,7 +361,6 @@ handle_non_reference_option( ArgumentTable ) ->
 
 
 % Displays the usage of this service, and stops (with no error).
-%
 display_usage() ->
 	ui:display( "~s", [ get_usage() ] ),
 	basic_utils:stop( _ErrorCode=0 ).
@@ -380,7 +378,6 @@ stop_on_option_error( Message, ErrorCode ) ->
 
 
 % Scans specified tree.
-%
 -spec scan( file_utils:directory_name() ) -> void().
 scan( TreePath ) ->
 
@@ -471,7 +468,6 @@ create_analyzer_ring( UserState ) ->
 
 
 % Actual scanning of specified path, producing specified cache file.
-%
 scan_helper( TreePath, CacheFilename, UserState ) ->
 
 	AnalyzerRing = create_analyzer_ring( UserState ),
@@ -488,7 +484,6 @@ scan_helper( TreePath, CacheFilename, UserState ) ->
 
 
 % Uniquifies specified tree.
-%
 -spec uniquify( file_utils:directory_name() ) -> void().
 uniquify( TreePath ) ->
 
@@ -558,7 +553,6 @@ merge( InputTreePath, ReferenceTreePath ) ->
 
 
 % Starts user-related services.
-%
 -spec start_user_service( file_utils:file_name() ) -> user_state().
 start_user_service( LogFilename ) ->
 
@@ -578,7 +572,6 @@ start_user_service( LogFilename ) ->
 
 
 % Displays and logs specified text.
-%
 -spec trace( string(), user_state() ) -> user_state().
 trace( Message, _UserState={ UIState, LogFile } ) ->
 	NewUIState = ui:trace( Message, UIState ),
@@ -588,7 +581,6 @@ trace( Message, _UserState={ UIState, LogFile } ) ->
 
 
 % Displays and logs specified formatted text.
-%
 -spec trace( text_utils:format_string(), [ term() ], user_state() ) ->
 				   user_state().
 trace( FormatString, Values, _UserState={ UIState, LogFile } ) ->
@@ -600,7 +592,6 @@ trace( FormatString, Values, _UserState={ UIState, LogFile } ) ->
 
 
 % Logs specified debug text.
-%
 -spec trace_debug( string(), user_state() ) -> user_state().
 trace_debug( Message, _UserState={ UIState, LogFile } ) ->
 	%NewUIState = ui:trace( Message, UIState ),
@@ -610,7 +601,6 @@ trace_debug( Message, _UserState={ UIState, LogFile } ) ->
 
 
 % Logs specified debug formatted text.
-%
 -spec trace_debug( text_utils:format_string(), [ term() ], user_state() ) ->
 				   user_state().
 trace_debug( FormatString, Values, _UserState={ UIState, LogFile } ) ->
@@ -623,7 +613,6 @@ trace_debug( FormatString, Values, _UserState={ UIState, LogFile } ) ->
 
 
 % Stops user-related services.
-%
 -spec stop_user_service( user_state() ) -> basic_utils:void().
 stop_user_service( _UserState=#user_state{ log_file=LogFile } ) ->
 
@@ -636,7 +625,6 @@ stop_user_service( _UserState=#user_state{ log_file=LogFile } ) ->
 
 
 % Checks that the source and target trees exist.
-%
 -spec check_content_trees( tree_data(), tree_data() ) -> void().
 check_content_trees( InputTree, ReferenceTreePath ) ->
 
@@ -661,8 +649,8 @@ check_content_trees( InputTree, ReferenceTreePath ) ->
 	end.
 
 
+
 % Returns the path of the cache file corresponding to the specified tree path.
-%
 -spec get_cache_path_for( file_utils:directory_name() ) ->
 								file_utils:file_name().
 get_cache_path_for( TreePath ) ->
@@ -671,7 +659,6 @@ get_cache_path_for( TreePath ) ->
 
 
 % Ensures that specified tree path exists.
-%
 -spec check_tree_path_exists( file_utils:directory_name() ) -> void().
 check_tree_path_exists( TreePath ) ->
 
@@ -733,7 +720,6 @@ create_merge_cache_file_for( TreePath, AnalyzerRing, UserState ) ->
 
 
 % Creates merge cache file with specified name, for specified content tree.
-%
 -spec create_merge_cache_file_for( file_utils:directory_name(),
 		  file_utils:file_name(), analyzer_ring(), user_state() ) ->
 										 tree_data().
@@ -783,7 +769,6 @@ create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
 
 
 % Writes the specified tree data into specified file.
-%
 write_tree_data( MergeFile, #tree_data{ root=RootDir,
 										entries=Entries }, _UserState ) ->
 
@@ -812,7 +797,6 @@ get_file_content_for( SHA1, FileDataElems ) ->
 
 
 % Spawns the specified number of data analyzers, and returns their PID.
-%
 -spec spawn_data_analyzers( count(), user_state() ) -> [ analyzer_pid() ].
 spawn_data_analyzers( Count, UserState ) ->
 	trace_debug( "Spawning ~B data analyzers.", [ Count ], UserState ),
@@ -822,7 +806,6 @@ spawn_data_analyzers( Count, UserState ) ->
 
 
 % Terminates specified data analyzers.
-%
 -spec terminate_data_analyzers( analyzer_ring(), user_state() ) -> void().
 terminate_data_analyzers( AnalyzerRing, UserState ) ->
 
@@ -848,7 +831,7 @@ scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 	% Not wanting to index our own files (if any already exists):
 	FilteredFiles = lists:delete( ?merge_cache_filename, AllFiles ),
 
-	trace_debug( "Found ~B files:~s", [ length( FilteredFiles ),
+	trace_debug( "Found ~B files: ~s", [ length( FilteredFiles ),
 			text_utils:strings_to_string( FilteredFiles ) ], UserState ),
 
 	% For lighter message sendings and storage:
@@ -914,7 +897,6 @@ scan_files( _Files=[ Filename | T ], AnalyzerRing,
 
 
 % Manages specified received file data, and returns an updated tree data.
-%
 -spec manage_received_data( file_data(), tree_data() ) -> tree_data().
 manage_received_data( FileData=#file_data{ type=Type, sha1_sum=Sum },
 					  TreeData=#tree_data{ entries=Entries,
@@ -962,7 +944,6 @@ manage_received_data( FileData=#file_data{ type=Type, sha1_sum=Sum },
 
 
 % Waits for the remaining file entries to be analyzed.
-%
 wait_entries( TreeData, _WaitedCount=0 ) ->
 	%trace_debug( "All file entries waited for finally obtained." ),
 	TreeData;
@@ -982,7 +963,6 @@ wait_entries( TreeData, WaitedCount ) ->
 
 
 % The loop run by each analyzer process.
-%
 -spec analyze_loop() -> void().
 analyze_loop() ->
 
@@ -1024,7 +1004,6 @@ analyze_loop() ->
 
 
 % Returns a textual diagnosis of specified tree.
-%
 -spec diagnose_tree( tree_data(), user_state() ) -> tree_data().
 diagnose_tree( TreeData=#tree_data{ root=_RootDir,
 								   entries=EntryTable,
@@ -1108,7 +1087,6 @@ filter_duplications( SHA1Entries ) ->
 
 
 % Returns { AccDupEntries, AccUniqueTable }:
-%
 filter_duplications( _SHA1Entry=[], Acc ) ->
 	Acc;
 
@@ -1129,7 +1107,6 @@ filter_duplications( _SHA1Entries=[ SHA1Entry | T ],
 
 
 % Processes the spotted duplications by asking the user.
-%
 -spec process_duplications( [ sha1_entry() ], count(), sha1_table(),
 							user_state() ) -> { sha1_table(), count() }.
 process_duplications( DuplicationCases, TotalDupCaseCount, UniqueTable,
@@ -1285,7 +1262,7 @@ manage_duplication( FileEntries, DuplicationCaseCount, TotalDupCaseCount, Size,
 			FileEntries;
 
 		leave ->
-			trace( "[~B/~B] Leaving as they are (prefix: '~s'):~s",
+			trace( "[~B/~B] Leaving as they are (prefix: '~s'): ~s",
 				   [ DuplicationCaseCount, TotalDupCaseCount, Prefix,
 					 DuplicateString ], UserState ),
 			FileEntries;
@@ -1327,7 +1304,6 @@ keep_only_one( Prefix, TrimmedPaths, PathStrings, UserState ) ->
 
 
 % Returns a textual description of specified tree data.
-%
 -spec tree_data_to_string( tree_data() ) -> string().
 tree_data_to_string( #tree_data{ root=RootDir,
 								 entries=Table,
@@ -1360,8 +1336,8 @@ tree_data_to_string( #tree_data{ root=RootDir,
 	end.
 
 
+
 % Returns a textual description of specified file data.
-%
 -spec file_data_to_string( file_data() ) -> string().
 file_data_to_string( #file_data{ path=Path,
 								 size=Size,

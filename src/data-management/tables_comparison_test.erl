@@ -216,6 +216,7 @@ run_basic_tests() ->
 
 	% removeEntry can also be used if the specified key is not here, will return
 	% an identical table.
+	%
 	hashtable:display( "Hashtable", MyH6 ),
 
 
@@ -240,6 +241,7 @@ run_basic_tests() ->
 
 	% removeEntry can also be used if the specified key is not here, will return
 	% an identical table.
+	%
 	tracked_hashtable:display( "Tracked hashtable", MyTH6 ),
 
 
@@ -260,6 +262,7 @@ run_basic_tests() ->
 
 	% removeEntry can also be used if the specified key is not here, will return
 	% an identical table.
+	%
 	lazy_hashtable:display( "Lazy hashtable", MyLH6 ),
 
 
@@ -296,6 +299,7 @@ run_basic_tests() ->
 
 	% removeEntry can also be used if the specified key is not here, will return
 	% an identical table.
+	%
 	list_table:display( "List hashtable", MyL6 ),
 
 
@@ -413,8 +417,7 @@ run_basic_tests() ->
 	Keys = [ ?MyFirstKey, ?MyThirdKey ],
 
 	test_facilities:display( "Listing the entries for keys in map table ~p:"
-							 "~n ~p",
-							 [ Keys, map_hashtable:selectEntries( Keys, MyMH9 ) ] ),
+		"~n ~p", [ Keys, map_hashtable:selectEntries( Keys, MyMH9 ) ] ),
 
 
 
@@ -568,7 +571,7 @@ update_table( Table, Module, Pairs ) ->
 %
 benchmark_look_ups( Table, Module, Pairs ) ->
 
-	%io:format( "Benchmarking ~s on:~n~s~n",
+	%test_facilities:display( "Benchmarking ~s on:~n~s",
 	%		   [ Module, Module:toString( Table ) ] ),
 
 	Count = 100 * ?run_count,
@@ -604,8 +607,9 @@ run_performance_tests() ->
 
 	Pairs = get_pairs(),
 
-	io:format( "Feeding empty tables with ~B initial key/value pairs.~n",
-			   [ length( Pairs ) ] ),
+	test_facilities:display(
+	  "Feeding empty tables with ~B initial key/value pairs.",
+	  [ length( Pairs ) ] ),
 
 	% Do it 5 times at blank to avoid transition effects:
 	_FedTablesWithTimings = [ [ feed_table( T, M, Pairs )
@@ -618,24 +622,24 @@ run_performance_tests() ->
 	FedTimeStrings = [ text_utils:format( "for ~s: ~.3f ms", [ M, Timing ] )
 				   || { M, _T, Timing } <- FedTablesWithTimings ],
 
-	io:format( "~nFeed durations:~s",
+	test_facilities:display( "~nFeed durations: ~s",
 			   [ text_utils:strings_to_string( FedTimeStrings ) ] ),
 
 
 
 	FedSizeStrings = [ text_utils:format( "for ~s: ~s", [ M,
-			 system_utils:interpret_byte_size_with_unit( basic_utils:size( T ) ) ] )
+		 system_utils:interpret_byte_size_with_unit( basic_utils:size( T ) ) ] )
 					   || { M, T, _Timing } <- FedTablesWithTimings ],
 
-	io:format( "~nSizes:~s",
+	test_facilities:display( "~nSizes: ~s",
 			   [ text_utils:strings_to_string( FedSizeStrings ) ] ),
 
 
 	OtherPairs = get_other_pairs( Pairs ),
 
-	io:format( "~n~nUpdating these tables with ~B key/value pairs "
-			   "(equal mix of updated and new keys).~n",
-			   [ length( OtherPairs ) ] ),
+	test_facilities:display(
+	  "~n~nUpdating these tables with ~B key/value pairs "
+	  "(equal mix of updated and new keys).", [ length( OtherPairs ) ] ),
 
 	FedTables = [ { M, T } || { M, T, _Timing } <- FedTablesWithTimings ],
 
@@ -646,7 +650,7 @@ run_performance_tests() ->
 	UpTimeStrings = [ text_utils:format( "for ~s: ~.3f ms", [ M, Timing ] )
 				   || { M, _T, Timing } <- UpdatedTablesWithTimings ],
 
-	io:format( "~nUpdate durations:~s",
+	test_facilities:display( "~nUpdate durations: ~s",
 			   [ text_utils:strings_to_string( UpTimeStrings ) ] ),
 
 
@@ -654,11 +658,12 @@ run_performance_tests() ->
 		system_utils:interpret_byte_size_with_unit( basic_utils:size( T ) ) ] )
 					   || { M, T, _Timing } <- UpdatedTablesWithTimings ],
 
-	io:format( "~nSizes:~s",
+	test_facilities:display( "~nSizes: ~s",
 			   [ text_utils:strings_to_string( UpSizeStrings ) ] ),
 
 
-	io:format( "~nBenchmarking look-ups (with no optimisation).~n" ),
+	test_facilities:display(
+	  "~nBenchmarking look-ups (with no optimisation)." ),
 
 	ShuffledPairs = list_utils:random_permute( OtherPairs ),
 
@@ -669,7 +674,7 @@ run_performance_tests() ->
 										   [ M, 1000 * Timing ] )
 				   || { M, Timing } <- LookedUpTimings ],
 
-	io:format( "~nLook-up durations:~s",
+	test_facilities:display( "~nLook-up durations: ~s",
 			   [ text_utils:strings_to_string( LookedUpStrings ) ] ),
 
 
@@ -677,7 +682,8 @@ run_performance_tests() ->
 						|| { M, T, _Timing } <- UpdatedTablesWithTimings ],
 
 
-	io:format( "~nBenchmarking look-ups (after optimisation).~n" ),
+	test_facilities:display(
+	  "~nBenchmarking look-ups (after optimisation)." ),
 
 	NewLookedUpTimings = [ benchmark_look_ups( T, M, ShuffledPairs )
 						|| { M, T, _Timings } <- OptimisedTables ],
@@ -686,7 +692,7 @@ run_performance_tests() ->
 											  [ M, 1000 * Timing ] )
 				   || { M, Timing } <- NewLookedUpTimings ],
 
-	io:format( "~nLook-up durations:~s",
+	test_facilities:display( "~nLook-up durations: ~s",
 			   [ text_utils:strings_to_string( NewLookedUpStrings ) ] ),
 
 
@@ -699,18 +705,21 @@ run_performance_tests() ->
 	Hashes = [ { M, erlang:phash2( L ) }
 			   || { M, L } <- AllListedTables ],
 
-	%io:format( "Checking content:~s", [ text_utils:strings_to_string(
+	%test_facilities:display( "Checking content: ~s",
+	%    [ text_utils:strings_to_string(
 	%									  [ io_lib:format( "for ~s: ~s",
 	%												 [ M, M:toString( T ) ] )
 	%			   || { M, T, _Timing } <- FinalTablesWithTimings ] ) ] ),
 
-	io:format( "~nChecking hashes:~s", [ text_utils:strings_to_string(
-					[ io_lib:format( "for ~s: ~p", [ M, H ] )
-									   || { M, H } <- Hashes ] ) ] ),
+	test_facilities:display( "~nChecking hashes: ~s",
+							 [ text_utils:strings_to_string(
+								 [ io_lib:format( "for ~s: ~p", [ M, H ] )
+								   || { M, H } <- Hashes ] ) ] ),
 
-	io:format( "~nChecking final states: ok~n" ),
+	test_facilities:display( "~nChecking final states: ok" ),
 
-	%io:format( "Reference: ~s~n", [ hashtable:toString( First ) ] ),
+	%test_facilities:display( "Reference: ~s",
+	%                         [ hashtable:toString( First ) ] ),
 
 
 	[ FirstList= OtherListedTable || { _, OtherListedTable } <- Others ].

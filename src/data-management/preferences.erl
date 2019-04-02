@@ -97,6 +97,7 @@
 
 % Name of the default preferences file (searched at the root of the user
 % account):
+%
 -define( default_preferences_filename, ".ceylan-erlang-preferences.txt" ).
 
 
@@ -186,8 +187,7 @@ set( Key, Value, FileName ) ->
 
 
 
-%  Returns a textual description of the preferences server (if any).
-%
+% Returns a textual description of the preferences server (if any).
 -spec to_string() -> string().
 to_string() ->
 	to_string( get_default_preferences_path() ).
@@ -217,7 +217,6 @@ to_string( FileName ) ->
 
 
 % Returns the full, absolute path to the default preferences filename.
-%
 -spec get_default_preferences_path() -> file_utils:path().
 get_default_preferences_path() ->
 	file_utils:join( system_utils:get_user_home_directory(),
@@ -237,7 +236,6 @@ get_registration_name( FilePath ) ->
 
 
 % Returns whether the default preferences file is available and its full path.
-%
 -spec is_preferences_default_file_available() ->
 			{ boolean(), file_utils:path() }.
 is_preferences_default_file_available() ->
@@ -297,8 +295,7 @@ stop( FileName ) ->
 % Section for the preferences server itself.
 
 
-% Launcher of the preference server.
-%
+% Launcher of the preferences server.
 server_main_run( SpawnerPid, RegistrationName, FileName ) ->
 
 	case naming_utils:register_or_return_registered( RegistrationName,
@@ -337,7 +334,6 @@ server_main_run( SpawnerPid, RegistrationName, FileName ) ->
 
 
 % Main loop of the preferences server.
-%
 server_main_loop( Table ) ->
 
 	%trace_utils:debug_fmt( "Waiting for preferences-related request, "
@@ -383,7 +379,7 @@ server_main_loop( Table ) ->
 					Strings = [ text_utils:format( "~p: ~p", [ K, V ] )
 								|| { K, V } <- lists:sort( L ) ],
 
-					text_utils:format( "~B preferences recorded:~s~n",
+					text_utils:format( "~B preferences recorded: ~s~n",
 								   [ length( L ),
 									 text_utils:strings_to_string( Strings ) ] )
 
@@ -419,7 +415,7 @@ add_preferences_from( Filename, Table ) ->
 				ok ->
 					NewTable = table:addEntries( Entries, Table ),
 					%io:format( "Loaded from preferences file '~s' "
-					%           "following entries:~s",
+					%           "following entries: ~s",
 					% [ PrefFilename, table:toString( NewTable ) ] ),
 				   %io:format( "Preferences file '~s' loaded.~n",
 				   %	[ Filename ] ),
@@ -452,7 +448,6 @@ add_preferences_from( Filename, Table ) ->
 
 
 % Checks specified entries.
-%
 check_entries( _Entries=[] ) ->
 	ok;
 

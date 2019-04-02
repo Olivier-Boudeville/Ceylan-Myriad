@@ -878,7 +878,7 @@ display_process_info( Pid ) when is_pid( Pid ) ->
 					Strings = [ io_lib:format( "~s: ~p", [ K, V ] )
 							   || { K, V } <- PropList ],
 					io:format( "PID ~w refers to a local live process, "
-							   "whose information are:~s",
+							   "whose information are: ~s",
 							   [ Pid,
 								 text_utils:strings_to_string( Strings ) ] )
 
@@ -906,7 +906,7 @@ display_process_info( Pid ) when is_pid( Pid ) ->
 								|| { K, V } <- PropList ],
 
 					io:format( "PID ~w refers to a live process on "
-							   "remote node ~s, whose information are:~s",
+							   "remote node ~s, whose information are: ~s",
 							   [ Pid, OtherNode,
 								 text_utils:strings_to_string( Strings ) ] )
 

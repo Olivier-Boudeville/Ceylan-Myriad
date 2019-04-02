@@ -36,7 +36,6 @@
 
 
 % Type to designate all known programming languages:
-%
 -type language() :: 'erlang' | 'python' | 'java'.
 
 
@@ -49,7 +48,6 @@
 
 
 % The PID of a Python interpreter runtime container:
-%
 -type python_interpreter_container_pid() :: python_utils:interpreter_pid().
 
 
@@ -82,7 +80,6 @@ get_supported_foreign_languages() ->
 
 
 % Returns a list of all supported programming languages (including Erlang).
-%
 -spec get_supported_languages() -> [ language() ].
 get_supported_languages() ->
 	[ erlang | get_supported_foreign_languages() ].
@@ -90,15 +87,12 @@ get_supported_languages() ->
 
 
 % Returns a string describing the specified language.
-%
 -spec language_to_string( language() ) -> string().
 language_to_string( Language ) ->
 	language_to_string( Language, _IndentationLevel=0 ).
 
 
 % Returns a string describing the specified language.
-%
-
 -spec language_to_string( language(), text_utils:indentation_level() ) ->
 								string().
 language_to_string( erlang, _IndentationLevel ) ->
@@ -115,7 +109,7 @@ language_to_string( Language, _IndentationLevel ) when is_atom( Language ) ->
 
 language_to_string( { Language, CodePath }, IndentationLevel )
   when is_atom( Language ) andalso is_list( CodePath ) ->
-	text_utils:format( "~s, with following code path:~s",
+	text_utils:format( "~s, with following code path: ~s",
 		   [ language_to_string( Language ),
 			 text_utils:strings_to_string( CodePath, IndentationLevel+1 ) ] );
 
@@ -134,7 +128,6 @@ get_additional_beam_directories_for( Languages ) ->
 
 
 % (helper)
-%
 get_additional_beam_directories_for( _Languages=[], Acc ) ->
 	lists:reverse( Acc );
 
