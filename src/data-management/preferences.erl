@@ -41,13 +41,14 @@
 % The format of preferences is a series of Erlang terms as strings, separated by
 % dots (i.e. the format understood by file:consult/1).
 %
-% Example of content of a preference file:
+% Example of content of a preferences file:
 % """
 % { my_first_color, red }.
 % { myheight, 1.80 }.
+% { myName, "Sylvester the cat" }.
 % """
 %
-% (of course without the quotes and the leading ampersands)
+% (of course without the quotes)
 %
 -module(preferences).
 
@@ -74,8 +75,11 @@
 -type entry() :: table:entry().
 -type entries() :: table:entries().
 
+% The PID of a preferences server:
+-type preferences_pid() :: pid().
 
--export_type([ key/0, value/0, entry/0, entries/0 ]).
+
+-export_type([ key/0, value/0, entry/0, entries/0, preferences_pid/0 ]).
 
 
 
@@ -98,21 +102,28 @@
 % Name of the default preferences file (searched at the root of the user
 % account):
 %
--define( default_preferences_filename, ".ceylan-erlang-preferences.txt" ).
+-define( default_preferences_filename, ".ceylan-settings.txt" ).
 
 
 
 % Ensures that, if not done already, the preferences service is started and
-% initialised immediately, if wanting an explicit start rather than one implied
-% by the use of an operation onto it.
+% initialised immediately (based on the default preferences path), if wanting an
+% explicit start rather than one implied by the use of an operation onto it.
 %
 % Returns in any case the PID of the corresponding preferences server.
 %
--spec start() -> pid().
+-spec start() -> preferences_pid().
 start() ->
 	start( get_default_preferences_path() ).
 
--spec start( file_utils:file_name() ) -> pid().
+
+
+% Ensures that, if not done already, the preferences service is started and
+% initialised immediately with the specified filename.
+%
+% Returns in any case the PID of the corresponding preferences server.
+%
+-spec start( file_utils:file_name() ) -> preferences_pid().
 start( FileName ) ->
 
 	RegistrationName = get_registration_name( FileName ),
@@ -129,13 +140,13 @@ start( FileName ) ->
 			% No sensible link to be created here, so we must beware of a silent
 			% crash of this server:
 			%
-			spawn( fun() -> server_main_run( CallerPid, RegistrationName,
-											 FileName )
+			spawn( fun() ->
+					   server_main_run( CallerPid, RegistrationName, FileName )
 				   end ),
 
 			receive
 
-				{ preference_server_pid, Pid } ->
+				{ preferences_server_pid, Pid } ->
 					Pid
 
 			end;
@@ -148,13 +159,20 @@ start( FileName ) ->
 
 
 % Returns the value associated to specified key in the preferences (if any),
-% otherwise 'undefined'.
+% otherwise 'undefined', based on the default preferences file, and possibly
+% launching a corresponding preferences server if needed.
 %
--spec get( key() ) -> value().
+-spec get( key() ) -> maybe( value() ).
 get( Key ) ->
 	get( Key, get_default_preferences_path() ).
 
--spec get( key(), file_utils:file_name() ) -> value().
+
+
+% Returns the value associated to specified key in the preferences (if any),
+% otherwise 'undefined', based on the specified preferences file, and possibly
+% launching a corresponding preferences server if needed.
+%
+-spec get( key(), file_utils:file_name() ) -> maybe( value() ).
 get( Key, FileName ) ->
 
 	ServerPid = start( FileName ),
@@ -319,7 +337,7 @@ server_main_run( SpawnerPid, RegistrationName, FileName ) ->
 			end,
 
 			% Spawner could already know that PID in this case:
-			SpawnerPid ! { preference_server_pid, self() },
+			SpawnerPid ! { preferences_server_pid, self() },
 
 			% Never returns:
 			server_main_loop( FinalTable );
@@ -327,7 +345,7 @@ server_main_run( SpawnerPid, RegistrationName, FileName ) ->
 
 		ServerPid ->
 			% Notifies and terminates:
-			SpawnerPid ! { preference_server_pid, ServerPid }
+			SpawnerPid ! { preferences_server_pid, ServerPid }
 
 	end.
 
@@ -337,8 +355,8 @@ server_main_run( SpawnerPid, RegistrationName, FileName ) ->
 server_main_loop( Table ) ->
 
 	%trace_utils:debug_fmt( "Waiting for preferences-related request, "
-	%			"having ~B recorded preferences.~n",
-	%			[ table:size( Table ) ] ),
+	%						"having ~B recorded preferences.",
+	%						[ table:size( Table ) ] ),
 
 	receive
 
@@ -414,11 +432,14 @@ add_preferences_from( Filename, Table ) ->
 
 				ok ->
 					NewTable = table:addEntries( Entries, Table ),
+
 					%io:format( "Loaded from preferences file '~s' "
 					%           "following entries: ~s",
 					% [ PrefFilename, table:toString( NewTable ) ] ),
+
 				   %io:format( "Preferences file '~s' loaded.~n",
 				   %	[ Filename ] ),
+
 				   NewTable;
 
 				ErrorString ->
