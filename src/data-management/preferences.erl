@@ -48,7 +48,7 @@
 % { myName, "Sylvester the cat" }.
 % """
 %
-% (of course without the quotes)
+% (of course without the quotes and the leading percent sign)
 %
 -module(preferences).
 

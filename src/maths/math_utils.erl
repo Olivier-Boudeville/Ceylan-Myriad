@@ -34,11 +34,11 @@
 
 
 % General operations:
--export([ ceiling/1, round_after/2,
+-export([ floor/1, ceiling/1, round_after/2,
 		  float_to_integer/1, float_to_integer/2,
 		  modulo/2, clamp/3, squarify/1 ]).
 
--compile({ inline, [ ceiling/1, round_after/2,
+-compile({ inline, [ floor/1, ceiling/1, round_after/2,
 					 float_to_integer/1, float_to_integer/2,
 					 modulo/2, clamp/3, squarify/1 ] }).
 
@@ -103,16 +103,22 @@
 % General section.
 
 
-% Note: deprecated in favor of erlang:floor/1.
 %
 % Floor returns the biggest integer smaller than the specified floating-point
 % value.
 %
 % Inspired from http://schemecookbook.org/Erlang/NumberRounding.
 %
-% Not: not to be used anymore, rely on the now available erlang:floor/1.
-%-spec myfloor( number() ) -> integer().
-%floor( X ) ->
+% Note: used to be deprecated in favor of math:floor/1, yet we prefer the
+% version here, which returns an integer rather than a float.
+%
+-spec floor( number() ) -> integer().
+floor( X ) ->
+
+	% As math:floor/1 returns a float:
+	erlang:trunc( math:floor( X ) ).
+
+% Also possible:
 %
 %	T = erlang:trunc( X ),
 %
