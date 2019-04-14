@@ -360,6 +360,7 @@ if [ $use_run_erl -eq 0 ] ; then
 
 	# Suffixes the PID, for unicity (the / suffix does not seem relevant,
 	# despite http://www.erlang.org/doc/man/run_erl.html):
+	#
 	run_pipe="/tmp/launch-erl-${shell_pid}"
 
 	write_pipe="${run_pipe}.w"
@@ -486,6 +487,7 @@ command="${command} ${cookie_opt} ${tcp_port_opt}"
 
 # nslookup could be used as well:
 # (some laptops timeout when using the 'host' command)
+#
 if [ -z "${fqdn}" ] ; then
 
 	# Not used anymore:
@@ -677,6 +679,7 @@ if [ $use_run_erl -eq 0 ] ; then
 
 	# eval is needed for nested expansion, otherwise:
 	# 'Syntax error: Unterminated quoted string'.
+	#
 	eval "${final_command}"
 
 	# Disabled as not working properly:
@@ -697,7 +700,7 @@ if [ $use_run_erl -eq 0 ] ; then
 
 else
 
-	# Not using run_erl here, direct launch:
+	# Not using run_erl here, direct launch (the current default):
 
 	#echo "direct command: ${final_command}"
 	${final_command}
