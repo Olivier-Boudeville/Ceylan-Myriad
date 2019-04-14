@@ -76,7 +76,7 @@ run() ->
 	false = map_hashtable:isEmpty( MyH4 ),
 
 	MyUpdatedH4 = map_hashtable:updateEntry( ?MySecondKey, MyFirstValue, MyH4 ),
-	MyFirstValue = map_hashtable:getEntry( ?MySecondKey, MyUpdatedH4 ),
+	MyFirstValue = map_hashtable:getValue( ?MySecondKey, MyUpdatedH4 ),
 
 
 	map_hashtable:display( "The map hashtable", MyH4 ),

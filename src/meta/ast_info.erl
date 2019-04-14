@@ -910,7 +910,7 @@ reorder_forms_in( _LocatedForms=[], _MarkerTable, AccLoc, AccLocAfter ) ->
 reorder_forms_in( _LocatedForms=[ { { locate_at, MarkerName }, Form } | T ],
 				  MarkerTable, AccLoc, AccLocAfter ) ->
 
-	MarkerLoc = ?table:getEntry( MarkerName, MarkerTable ),
+	MarkerLoc = ?table:getValue( MarkerName, MarkerTable ),
 
 	NewAccLocAfter = [ { MarkerLoc, Form } | AccLocAfter ],
 
@@ -1104,7 +1104,7 @@ get_default_module_location() ->
 %
 -spec get_default_module_location( section_marker_table() ) -> location().
 get_default_module_location( MarkerTable ) ->
-	?table:getEntry( module_marker, MarkerTable ).
+	?table:getValue( module_marker, MarkerTable ).
 
 
 
@@ -1122,7 +1122,7 @@ get_default_export_type_location() ->
 -spec get_default_export_type_location( section_marker_table() ) ->
 											  location().
 get_default_export_type_location( MarkerTable)  ->
-	?table:getEntry( export_types_marker, MarkerTable ).
+	?table:getValue( export_types_marker, MarkerTable ).
 
 
 
@@ -1140,7 +1140,7 @@ get_default_export_function_location() ->
 -spec get_default_export_function_location( section_marker_table() ) ->
 												  location().
 get_default_export_function_location( MarkerTable ) ->
-	?table:getEntry( export_functions_marker, MarkerTable ).
+	?table:getValue( export_functions_marker, MarkerTable ).
 
 
 
@@ -1158,7 +1158,7 @@ get_default_import_function_location() ->
 -spec get_default_import_function_location( section_marker_table() ) ->
 												  location().
 get_default_import_function_location( MarkerTable ) ->
-	?table:getEntry( import_functions_marker, MarkerTable ).
+	?table:getValue( import_functions_marker, MarkerTable ).
 
 
 
@@ -1177,7 +1177,7 @@ get_default_definition_record_location() ->
 -spec get_default_definition_record_location( section_marker_table() ) ->
 													location().
 get_default_definition_record_location( MarkerTable ) ->
-	?table:getEntry( definition_records_marker, MarkerTable ).
+	?table:getValue( definition_records_marker, MarkerTable ).
 
 
 
@@ -1195,7 +1195,7 @@ get_default_definition_type_location() ->
 -spec get_default_definition_type_location( section_marker_table() ) ->
 												  location().
 get_default_definition_type_location( MarkerTable ) ->
-	?table:getEntry( definition_types_marker, MarkerTable ).
+	?table:getValue( definition_types_marker, MarkerTable ).
 
 
 
@@ -1213,7 +1213,7 @@ get_default_definition_function_location() ->
 -spec get_default_definition_function_location( section_marker_table() ) ->
 													  location().
 get_default_definition_function_location( MarkerTable ) ->
-	?table:getEntry( definition_functions_marker, MarkerTable ).
+	?table:getValue( definition_functions_marker, MarkerTable ).
 
 
 

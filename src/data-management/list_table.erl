@@ -57,8 +57,7 @@
 		  removeEntry/2, removeEntries/2,
 		  lookupEntry/2, hasEntry/2,
 		  extractEntry/2, extractEntryWithDefaults/3,
-		  getEntry/2, getValue/2,
-		  getValueWithDefaults/3, getValues/2, getAllValues/2,
+		  getValue/2, getValueWithDefaults/3, getValues/2, getAllValues/2,
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToExistingEntry/3, appendListToExistingEntry/3,
 		  appendToEntry/3, appendListToEntry/3,
@@ -218,10 +217,8 @@ hasEntry( Key, Table ) ->
 % The key/value pair is expected to exist already, otherwise an exception is
 % thrown.
 %
-% Note: could have been named as well getValue/2, which shall be preferred.
-%
--spec getEntry( key(), list_table() ) -> value().
-getEntry( Key, Table ) ->
+-spec getValue( key(), list_table() ) -> value().
+getValue( Key, Table ) ->
 
 	case lists:keyfind( Key, _N=1, Table ) of
 
@@ -234,20 +231,6 @@ getEntry( Key, Table ) ->
 			throw( { key_not_found, Key } )
 
 	end.
-
-
-
-% Retrieves the value corresponding to specified (existing) key and returns it
-% directly.
-%
-% The key/value pair is expected to exist already, otherwise an exception is
-% thrown.
-%
-% Note: defined for naming consistency of the API.
-%
--spec getValue( key(), list_table() ) -> value().
-getValue( Key, Table ) ->
-	getEntry( Key, Table ).
 
 
 

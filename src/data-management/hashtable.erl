@@ -96,7 +96,7 @@
 		  addEntry/3, addDiagnosedEntry/3,
 		  addEntries/2, addDiagnosedEntries/2,
 		  removeEntry/2, removeDiagnosedEntry/2,
-		  lookupEntry/2, hasEntry/2, getEntry/2, extractEntry/2,
+		  lookupEntry/2, hasEntry/2, getValue/2, extractEntry/2,
 		  getValueWithDefaults/3, getValues/2, getAllValues/2,
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToEntry/3, deleteFromEntry/3, popFromEntry/2,
@@ -369,8 +369,8 @@ hasEntry( Key, Hashtable ) ->
 % The key/value pair is expected to exist already, otherwise an exception is
 % raised.
 %
--spec getEntry( key(), hashtable() ) -> value().
-getEntry( Key, Hashtable ) ->
+-spec getValue( key(), hashtable() ) -> value().
+getValue( Key, Hashtable ) ->
 
 	case lookupInList( Key, element( get_bucket_index( Key, Hashtable ),
 									 Hashtable ) ) of
@@ -1177,7 +1177,6 @@ bucket_toString( _EmptyBucket ) ->
 
 
 % Returns the value corresponding to the key in the specified list.
-%
 lookupInList( _Key, _TargetList=[] ) ->
 
 	% We hesitated and considered returning the key since, if this function is
@@ -1185,7 +1184,7 @@ lookupInList( _Key, _TargetList=[] ) ->
 	% found, the raised 'badmatch' will directly specify the offending key
 	% instead of a mere {badmatch,key_not_found}.
 	%
-	% However now getEntry/2 throws an exception and should be used instead.
+	% However now getValue/2 throws an exception and should be used instead.
 
 	%{ key_not_found, Key };
 	key_not_found;

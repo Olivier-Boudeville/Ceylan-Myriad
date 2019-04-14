@@ -40,7 +40,6 @@
 -include("gui.hrl").
 
 
-% FIXME
 -export([ get_name/1, draw_lines/3 ]).
 
 
@@ -523,7 +522,7 @@ gui_main_loop( _State=#gui_state{ main_frame=_MainFrame,
 	%%		%io:format( "Drawing ~B points from ~w.~n", [ length( NewPoints ),
 	%%		%											 SendingSolverPid ] ),
 
-	%%		{ Color, LastPoint } = table:getEntry( SendingSolverPid,
+	%%		{ Color, LastPoint } = table:getValue( SendingSolverPid,
 	%%											   SolverTable ),
 
 	%%		NewLastPoint = draw_lines( Canvas, [ LastPoint | NewPoints ],
@@ -542,7 +541,7 @@ gui_main_loop( _State=#gui_state{ main_frame=_MainFrame,
 	%%		io:format( " - drawing ~p (from ~p)~n",
 	%%				   [ NewPoint, SendingSolverPid ] ),
 
-	%%		{ Color, LastPoint } = table:getEntry( SendingSolverPid,
+	%%		{ Color, LastPoint } = table:getValue( SendingSolverPid,
 	%%											   SolverTable ),
 
 	%%		SourceDrawPoint = project_2D( LastPoint, Screen ),

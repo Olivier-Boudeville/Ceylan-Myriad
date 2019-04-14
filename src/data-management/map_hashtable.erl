@@ -66,8 +66,8 @@
 		  updateEntry/3, updateEntries/2,
 		  removeEntry/2, removeExistingEntry/2,
 		  removeEntries/2, removeExistingEntries/2,
-		  lookupEntry/2, hasEntry/2, getEntry/2,
-		  extractEntry/2, extractEntryIfExisting/2, getEntries/2,
+		  lookupEntry/2, hasEntry/2,
+		  extractEntry/2, extractEntryIfExisting/2,
 		  getValue/2, getValues/2, getValueWithDefaults/3, getAllValues/2,
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToExistingEntry/3, appendListToExistingEntry/3,
@@ -418,12 +418,10 @@ hasEntry( Key, MapHashtable ) ->
 % The key/value pair is expected to exist already, otherwise an exception
 % ({bad_key,Key}) is triggered.
 %
-% Note: could have been named as well getValue/2, which shall be preferred.
-%
--spec getEntry( key(), map_hashtable() ) -> value().
-%getEntry( Key,  #{ Key := Value } ) ->
+-spec getValue( key(), map_hashtable() ) -> value().
+%getValue( Key,  #{ Key := Value } ) ->
 %	Value.
-getEntry( Key, MapHashtable ) ->
+getValue( Key, MapHashtable ) ->
 	try
 
 		maps:get( Key, MapHashtable )
@@ -439,34 +437,19 @@ getEntry( Key, MapHashtable ) ->
 
 
 
-% Retrieves the value corresponding to specified (existing) key and returns it
-% directly.
-%
-% The key/value pair is expected to exist already, otherwise an exception
-% ({bad_key,Key}) is triggered.
-%
-% Note: defined for naming consistency of the API.
-%
--spec getValue( key(), map_hashtable() ) -> value().
-getValue( Key, MapHashtable ) ->
-	getEntry( Key, MapHashtable ).
-
-
-
-
 % Returns the (ordered) list of values that correspond to the specified
 % (ordered) list of keys of this table.
 %
 % The key/value pairs are expected to exist already, otherwise an exception is
 % raised.
 %
-% Ex: [ Color, Age, Mass ] = map_hashtable:getEntries( [ color, age, mass ],
+% Ex: [ Color, Age, Mass ] = map_hashtable:getValues( [ color, age, mass ],
 %                                                      MyMapTable ] )
 %
 % Note: could have been named as well getValues/2.
 %
--spec getEntries( [ key() ], map_hashtable() ) -> [ value() ].
-getEntries( Keys, Hashtable ) ->
+-spec getValues( [ key() ], map_hashtable() ) -> [ value() ].
+getValues( Keys, Hashtable ) ->
 
 	{ RevValues, _FinalTable } = lists:foldl(
 
@@ -502,25 +485,8 @@ getValueWithDefaults( Key, DefaultValue, MapHashtable ) ->
 
 
 % Returns the (ordered) list of values that correspond to the specified
-% (ordered) list of keys of this table.
-%
-% The key/value pairs are expected to exist already, otherwise an exception is
-% raised.
-%
-% Ex: [ Color, Age, Mass ] = map_hashtable:getValues( [ color, age, mass ],
-%                                                     MyMapTable ] )
-%
-% Note: defined for naming consistency of the API.
-%
--spec getValues( [ key() ], map_hashtable() ) -> [ value() ].
-getValues( Keys, Hashtable ) ->
-	getEntries( Keys, Hashtable ).
-
-
-
-% Returns the (ordered) list of values that correspond to the specified
-% (ordered) list of keys of this table, ensuring all entries have been read,
-% otherwise throwing an exception.
+% (ordered) list of keys of this table, ensuring all entries in the specified
+% table have been read, otherwise throwing an exception.
 %
 % The key/value pairs are expected to exist already, otherwise an exception is
 % raised.

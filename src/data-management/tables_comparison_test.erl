@@ -579,7 +579,7 @@ benchmark_look_ups( Table, Module, Pairs ) ->
 	Start = time_utils:get_precise_timestamp(),
 
 	_Values = [ lists:foldl( fun( { K, V }, T ) ->
-									 V = Module:getEntry( K, T ),
+									 V = Module:getValue( K, T ),
 									 T
 							   end,
 							   _Acc0=Table,

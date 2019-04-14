@@ -213,7 +213,6 @@
 
 
 % Basic UI operations.
-%
 -export([ is_available/0,
 
 		  start/0, start/1,
@@ -312,7 +311,6 @@
 
 
 % Tells whether this user-interface backend is available.
-%
 -spec is_available() -> boolean().
 is_available() ->
 
@@ -363,7 +361,6 @@ start( Options ) ->
 
 
 % (helper)
-%
 start_helper( _Options=[], UIState ) ->
 
 	case process_dictionary:put( ?ui_name_key, ?MODULE ) of
@@ -410,7 +407,6 @@ start_helper( SingleElem, UIState ) ->
 
 
 % (helper)
-%
 -spec init_state_with_dimensions( dialog_tool(), file_utils:file_path() ) ->
 										ui_state().
 init_state_with_dimensions( Tool=dialog, DialogPath ) ->
@@ -451,15 +447,13 @@ init_state_with_dimensions( Tool=dialog, DialogPath ) ->
 
 
 
-% Sets specified UI setting.
-%
+% Sets specified UI setting.%
 -spec set( ui_setting_key(), ui_setting_value() ) -> void().
 set( SettingKey, SettingValue ) ->
 	set( [ { SettingKey, SettingValue } ] ).
 
 
 % Sets specified UI settings.
-%
 -spec set( [ ui_setting_entry() ] ) -> void().
 set( SettingEntries ) ->
 
@@ -472,7 +466,6 @@ set( SettingEntries ) ->
 
 
 % Unsets specified UI setting.
-%
 -spec unset( [ ui_setting_key() ] | ui_setting_key() ) -> void().
 unset( SettingKeys ) when is_list( SettingKeys ) ->
 
@@ -494,7 +487,6 @@ unset( SettingKey ) ->
 
 
 % Displays specified text, as a normal message.
-%
 -spec display( text() ) -> void().
 display( Text ) ->
 
@@ -545,7 +537,6 @@ display( Text ) ->
 
 
 % Displays specified formatted text, as a normal message.
-%
 -spec display( text_utils:format_string(), [ term() ] ) -> void().
 display( FormatString, Values ) ->
 	display( text_utils:format( FormatString, Values ) ).
@@ -553,7 +544,6 @@ display( FormatString, Values ) ->
 
 
 % Displays in-order the items of specified list, as a normal message.
-%
 -spec display_numbered_list( label(), [ text() ] ) -> void().
 display_numbered_list( Label, Lines ) ->
 	LineStrings = text_utils:strings_to_enumerated_string( Lines ),
@@ -562,7 +552,6 @@ display_numbered_list( Label, Lines ) ->
 
 
 % Displays specified text, as an error message.
-%
 -spec display_error( text() ) -> void().
 display_error( Text ) ->
 
@@ -620,14 +609,12 @@ display_error( Text ) ->
 
 
 % Displays specified formatted text, as an error message.
-%
 -spec display_error( text_utils:format_string(), [ term() ] ) -> void().
 display_error( FormatString, Values ) ->
 	display_error( text_utils:format( FormatString, Values ) ).
 
 
 % Displays in-order the items of specified list, as an error message.
-%
 -spec display_error_numbered_list( label(), [ text() ] ) -> void().
 display_error_numbered_list( Label, Lines ) ->
 	LineStrings = text_utils:strings_to_enumerated_string( Lines ),
@@ -635,7 +622,6 @@ display_error_numbered_list( Label, Lines ) ->
 
 
 % Adds a default separation between previous and next content.
-%
 -spec add_separation() -> void().
 add_separation() ->
 	% Could be a clear.
@@ -947,14 +933,12 @@ trace( FormatString, Values ) ->
 
 
 % Clears the interface.
-%
 -spec clear() -> void().
 clear() ->
 	clear( get_state() ).
 
 
 % Clears the interface.
-%
 -spec clear( ui_state() ) -> void().
 clear( #term_ui_state{ dialog_tool_path=ToolPath } ) ->
 
@@ -985,7 +969,6 @@ clear( #term_ui_state{ dialog_tool_path=ToolPath } ) ->
 
 
 % Stops the UI.
-%
 -spec stop() -> void().
 stop() ->
 	stop( get_state() ).
@@ -993,7 +976,6 @@ stop() ->
 
 
 % Stops the UI.
-%
 -spec stop( ui_state() ) -> void().
 stop( UIState=#term_ui_state{ log_file=undefined } ) ->
 	stop_helper( UIState );
@@ -1005,7 +987,6 @@ stop( UIState=#term_ui_state{ log_file=LogFile } ) ->
 
 
 % (helper)
-%
 %stop_helper( #term_ui_state{ state_filename=StateFilename } ) ->
 stop_helper( _UIState ) ->
 
@@ -1022,7 +1003,6 @@ stop_helper( _UIState ) ->
 
 
 % Tries to find a suitable dialog tool.
-%
 -spec lookup_dialog_tool() ->
 					maybe( { dialog_tool(), file_utils:file_path() } ).
 lookup_dialog_tool() ->
@@ -1123,8 +1103,8 @@ get_dialog_settings( SettingTable ) ->
 	% Dialogs look a lot better if not using the maximum dimensions but
 	% requesting auto sizing:
 
-	%Height = ?ui_table:getEntry( 'max_height', SettingTable ),
-	%Width = ?ui_table:getEntry( 'max_width', SettingTable ),
+	%Height = ?ui_table:getValue( 'max_height', SettingTable ),
+	%Width = ?ui_table:getValue( 'max_width', SettingTable ),
 
 	% Auto:
 	Height = 0,
@@ -1139,7 +1119,6 @@ get_dialog_settings( SettingTable ) ->
 
 
 % Returns a string to be used fir I/O redirection in an execution command.
-%
 -spec get_redirect_string() -> text_utils:ustring().
 get_redirect_string() ->
 	% As 'nouse_stdio' will be needed:
@@ -1148,7 +1127,6 @@ get_redirect_string() ->
 
 
 % Returns the settings suitable for an execution of the backend.
-%
 -spec get_execution_settings() -> { system_utils:environment(),
 									[ system_utils:port_option() ] }.
 get_execution_settings() ->
@@ -1165,7 +1143,6 @@ get_execution_settings() ->
 
 
 % Sets the specified setting to specified value, in the (implicit) UI state.
-%
 -spec set_setting( ui_setting_key(), ui_setting_value() ) -> void().
 set_setting( SettingKey, SettingValue ) ->
 	NewUIState = set_setting( SettingKey, SettingValue, get_state() ),
@@ -1174,7 +1151,6 @@ set_setting( SettingKey, SettingValue ) ->
 
 
 % Sets the specified setting to specified value, in the specified UI state.
-%
 -spec set_setting( ui_setting_key(), ui_setting_value(), ui_state() ) ->
 						 ui_state().
 set_setting( SettingKey, SettingValue,
@@ -1188,7 +1164,6 @@ set_setting( SettingKey, SettingValue,
 
 
 % Sets the specified settings to specified values, in the (implicit) UI state.
-%
 -spec set_settings( [ ui_setting_entry() ] ) -> void().
 set_settings( SettingEntries ) ->
 	NewUIState = set_settings( SettingEntries, get_state() ),
@@ -1197,7 +1172,6 @@ set_settings( SettingEntries ) ->
 
 
 % Sets the specified settings to specified values, in the specified UI state.
-%
 -spec set_settings( [ ui_setting_entry() ], ui_state() ) -> ui_state().
 set_settings( SettingEntries,
 			  UIState=#term_ui_state{ settings=SettingTable } ) ->
@@ -1209,7 +1183,6 @@ set_settings( SettingEntries,
 
 
 % Unsets specified setting, in the (implicit) UI state.
-%
 -spec unset_setting( ui_setting_key() ) -> void().
 unset_setting( SettingKey ) ->
 	NewUIState = unset_setting( SettingKey, get_state() ),
@@ -1218,7 +1191,6 @@ unset_setting( SettingKey ) ->
 
 
 % Unsets specified setting, in the specified UI state.
-%
 -spec unset_setting( ui_setting_key(), ui_state()) -> void().
 unset_setting( SettingKey,
 			   UIState=#term_ui_state{ settings=SettingTable } ) ->
@@ -1252,14 +1224,12 @@ get_setting( SettingKey, #term_ui_state{ settings=SettingTable } ) ->
 
 
 % Returns a textual description of the (implicit) UI state.
-%
 -spec to_string() -> string().
 to_string() ->
 	to_string( get_state() ).
 
 
 % Returns a textual description of the specified UI state.
-%
 -spec to_string( ui_state() ) -> string().
 to_string( #term_ui_state{ %state_filename=StateFilename,
 						   dialog_tool=DialogTool,

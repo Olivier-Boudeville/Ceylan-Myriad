@@ -72,7 +72,7 @@
 % Exact same API as the one of hashtable:
 %
 -export([ new/0, new/1, addEntry/3, addEntries/2,
-		  removeEntry/2, lookupEntry/2, hasEntry/2, getEntry/2,
+		  removeEntry/2, lookupEntry/2, hasEntry/2, getValue/2,
 		  extractEntry/2, getValueWithDefaults/3, getValues/2, getAllValues/2,
 		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
 		  appendToEntry/3, deleteFromEntry/3, popFromEntry/2,
@@ -259,9 +259,9 @@ hasEntry( Key, _LazyHashtable={ Hashtable, _OpCount } ) ->
 % The key/value pair is expected to exist already, otherwise a bad match is
 % triggered.
 %
--spec getEntry( key(), lazy_hashtable() ) -> value().
-getEntry( Key, _LazyHashtable={ Hashtable, _OpCount } ) ->
-	hashtable:getEntry( Key, Hashtable ).
+-spec getValue( key(), lazy_hashtable() ) -> value().
+getValue( Key, _LazyHashtable={ Hashtable, _OpCount } ) ->
+	hashtable:getValue( Key, Hashtable ).
 
 
 
