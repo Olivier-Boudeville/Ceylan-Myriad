@@ -255,7 +255,7 @@ add_function( FunInfo=#function_info{ exported=ExportLocs },
 	case ?table:hasEntry( FunId, FunTable ) of
 
 		true ->
-			CurrentFunInfo = ?table:getEntry( FunId, FunTable ),
+			CurrentFunInfo = ?table:getValue( FunId, FunTable ),
 			CurrentFunString = ast_info:function_info_to_string(
 								 CurrentFunInfo ),
 
@@ -333,7 +333,7 @@ add_type( TypeInfo=#type_info{
 	case ?table:hasEntry( TypeId, TypeTable ) of
 
 		true ->
-			CurrentTypeInfo = ?table:getEntry( TypeId, TypeTable ),
+			CurrentTypeInfo = ?table:getValue( TypeId, TypeTable ),
 			CurrentTypeString = ast_info:type_info_to_string( CurrentTypeInfo ),
 
 			AddedTypeString = ast_info:type_info_to_string( TypeInfo ),

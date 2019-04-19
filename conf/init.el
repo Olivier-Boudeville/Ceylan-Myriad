@@ -288,7 +288,7 @@
 ;;(add-to-list 'default-frame-alist (cons 'height 36))
 
 ;; For a normal screen:
-(add-to-list 'default-frame-alist (cons 'height 52))
+(add-to-list 'default-frame-alist (cons 'height 50))
 
 
 ;; Key section:

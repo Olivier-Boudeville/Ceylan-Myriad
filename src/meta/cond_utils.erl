@@ -27,7 +27,7 @@
 
 
 
-% Management of conditional compilation, like generalized, limitation-less
+% Management of conditional compilation - like generalized, limitation-less
 % macros.
 %
 -module(cond_utils).
@@ -87,7 +87,7 @@
 % order to feed our token table).
 %
 % As we cannot do that with such a compile attribute (those corresponding to
-% '-define(...)'  do not end up at all in the AST), one has to stick to the -D
+% '-define(...)' do not end up at all in the AST), one has to stick to the -D
 % command-line option (ex: -Dmy_test_token=200).
 
 
@@ -139,7 +139,6 @@
 
 
 % Returns the tokens declared among the compile options.
-%
 -spec get_token_table_from( ast_info:compile_option_table() ) ->
 								  token_table().
 get_token_table_from( OptionTable ) ->
@@ -163,7 +162,8 @@ get_token_table_from( OptionTable ) ->
 register_tokens( _L=[], TokenTable ) ->
 	TokenTable;
 
-register_tokens( _L=[ { Token, Value } | T ], TokenTable ) when is_atom( Token ) ->
+register_tokens( _L=[ { Token, Value } | T ], TokenTable )
+  when is_atom( Token ) ->
 	% Crashes if a token is defined more than once (must be abnormal):
 	NewTokenTable = ?table:addNewEntry( Token, Value, TokenTable ),
 	register_tokens( T, NewTokenTable );
@@ -230,14 +230,14 @@ if_debug( Expressions ) ->
 
 % Conditional execution, enabled iff the specified token has been specified
 % (i.e. iff its token has been defined through the command-line), in which case
-% the specified expression(s) are injected (otherwise they are simply dismissed as
-% a whole).
+% the specified expression(s) are injected (otherwise they are simply dismissed
+% as a whole).
 %
 % Note: the first parameter, Token, must be an immediate value, an atom (not
 % even a variable whose value happens to be an atom).
 %
-% So 'cond_utils:if_defined( hello, [...] )' will be accepted, while even 'A=hello,
-% cond_utils:if_defined( A, [...] )' will be rejected.
+% So 'cond_utils:if_defined( hello, [...] )' will be accepted, while even
+% 'A=hello, cond_utils:if_defined( A, [...] )' will be rejected.
 %
 % As for the second parameter, it shall be *directly* either a single expression
 % or a list thereof; for example 'cond_utils:if_defined( debug_mode,

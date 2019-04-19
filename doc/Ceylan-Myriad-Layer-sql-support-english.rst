@@ -125,7 +125,7 @@ Pretty reassuring.
 SQL Support Provided By the *Myriad* Layer
 ------------------------------------------
 
-To enable this support, once the corresponding back-end (see `Database Back-end`_) and binding (see `Erlang Binding`_) have been installed, the ``USE_SQLITE`` variable should be set to ``true`` in ``Ceylan-Myriad/GNUmakevars.inc`` and ``Myriad`` shall be rebuilt.
+To enable this support, once the corresponding back-end (see `Database Back-end`_) and binding (see `Erlang SQL Binding`_) have been installed, the ``USE_SQLITE`` variable should be set to ``true`` in ``Ceylan-Myriad/GNUmakevars.inc`` and ``Myriad`` shall be rebuilt.
 
 Then the corresponding implementation (``sql_support.erl``) and test (``sql_support_test.erl``), both in ``Ceylan-Myriad/src/data-management``, will be built (use ``make clean all`` from the root of ``Myriad``) and able to be run (execute ``make sql_support_run`` for that).
 
