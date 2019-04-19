@@ -269,7 +269,9 @@ add_function( FunctionName, FunctionArity, Clauses,
 
 		true ->
 			CurrentFunInfo = ?table:getValue( FunId, FunTable ),
-			CurrentFunString = ast_info:function_info_to_string( CurrentFunInfo ),
+			CurrentFunString = ast_info:function_info_to_string(
+								 CurrentFunInfo ),
+
 			ast_utils:display_error( "Function ~p already defined, as ~s.",
 									 [ FunId, CurrentFunString ] ),
 
