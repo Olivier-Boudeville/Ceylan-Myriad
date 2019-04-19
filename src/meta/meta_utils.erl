@@ -228,7 +228,7 @@
 
 % Parse-transform related functions:
 -export([ apply_ast_transforms/2,
-		  add_function/2, remove_function/2,
+		  add_function/3, add_function/4, remove_function/2,
 		  add_type/2, remove_type/2 ]).
 
 
@@ -243,27 +243,35 @@
 % Function addition/removal section.
 
 
-% Registers specified function in specified module.
--spec add_function( function_info(), module_info() ) -> module_info().
-add_function( FunInfo=#function_info{ exported=ExportLocs },
-			  ModuleInfo=#module_info{ function_exports=ExportTable,
-									   functions=FunTable } ) ->
+% Registers (includes exporting) specified (spec-less) function in specified
+% module.
+%
+-spec add_function( basic_utils:function_id(), [ clause_def() ], module_info() ) ->
+						  module_info().
+add_function( _FunId={ FunctionName, FunctionArity }, Clauses, ModuleInfo ) ->
+	add_function( FunctionName, FunctionArity, Clauses, ModuleInfo ).
+
+
+% Registers (includes exporting) specified (spec-less) function in specified
+% module.
+%
+-spec add_function( basic_utils:function_name(), meta_utils:function_arity(),
+					[ clause_def() ], module_info() ) -> module_info().
+add_function( FunctionName, FunctionArity, Clauses,
+			  ModuleInfo=#module_info{ %function_exports=ExportTable,
+									   functions=FunTable,
+									   markers=MarkerTable } ) ->
 
 	% Let's check first that the function is not already defined:
-	FunId = { FunInfo#function_info.name, FunInfo#function_info.arity },
+	FunId = { FunctionName, FunctionArity },
 
 	case ?table:hasEntry( FunId, FunTable ) of
 
 		true ->
-			CurrentFunInfo = ?table:getEntry( FunId, FunTable ),
-			CurrentFunString = ast_info:function_info_to_string(
-								 CurrentFunInfo ),
-
-			AddedFunString = ast_info:function_info_to_string( FunInfo ),
-
-			ast_utils:display_error( "Function ~p already defined, as ~s, "
-						   "whereas to be added, as ~s.",
-						   [ FunId, CurrentFunString, AddedFunString ] ),
+			CurrentFunInfo = ?table:getValue( FunId, FunTable ),
+			CurrentFunString = ast_info:function_info_to_string( CurrentFunInfo ),
+			ast_utils:display_error( "Function ~p already defined, as ~s.",
+									 [ FunId, CurrentFunString ] ),
 
 			throw( { function_already_defined, FunId } );
 
@@ -272,13 +280,30 @@ add_function( FunInfo=#function_info{ exported=ExportLocs },
 
 	end,
 
+	DefLoc = ?table:getValue( definition_functions_marker, MarkerTable ),
+
+	ExportLoc = ast_info:get_default_export_function_location(),
+
+	FunInfo = #function_info{ name=FunctionName,
+							  arity=FunctionArity,
+							  location=DefLoc,
+							  line=0,
+							  clauses=Clauses,
+							  spec=undefined,
+							  callback=false,
+
+							  % Will be auto-exported once module is recomposed:
+							  exported=[ ExportLoc ] },
+
 	NewFunTable = ?table:addEntry( FunId, FunInfo, FunTable ),
 
-	% Now updating accordingly the overall export table:
-	NewExportTable = ast_info:ensure_function_exported( FunId, ExportLocs,
-											  ModuleInfo, ExportTable ),
+	% It is not strictly needed anymore to update accordingly the overall export
+	% table, as would be done automatically when recomposing the AST:
+	%
+	%NewExportTable = ast_info:ensure_function_exported( FunId, [ ExportLoc ],
+	%										  ModuleInfo, ExportTable ),
 
-	ModuleInfo#module_info{ function_exports=NewExportTable,
+	ModuleInfo#module_info{ %function_exports=NewExportTable,
 							functions=NewFunTable }.
 
 
@@ -333,7 +358,7 @@ add_type( TypeInfo=#type_info{
 	case ?table:hasEntry( TypeId, TypeTable ) of
 
 		true ->
-			CurrentTypeInfo = ?table:getEntry( TypeId, TypeTable ),
+			CurrentTypeInfo = ?table:getValue( TypeId, TypeTable ),
 			CurrentTypeString = ast_info:type_info_to_string( CurrentTypeInfo ),
 
 			AddedTypeString = ast_info:type_info_to_string( TypeInfo ),
