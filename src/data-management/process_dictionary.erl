@@ -39,7 +39,10 @@
 % places where the process dictionary is used.
 %
 % This module could have been need 'impure_table' as well, and could have obeyed
-% a table-like API.
+% a table-like APIaplying only to a singleton.
+%
+% Note: associating to a key the 'undefined' value is, here, semantically the
+% same as not defining such an entry.
 %
 -module(process_dictionary).
 
@@ -65,13 +68,13 @@
 
 
 
--export([ put/2, get/1, remove/1,
+-export([ put/2, putAsNew/2, get/1, getExisting/1, remove/1, removeExisting/1,
 		  get_dictionary/0, get_keys/0, get_keys_for/1,
 		  blank/0, to_string/0 ]).
 
 
-% Puts specified entry in the process dictionary; returns any value previously
-% associated to that key.
+% Puts specified entry in the process dictionary; returns any value that was
+% previously associated to that key.
 %
 -spec put( key(), value() ) -> maybe( value() ).
 put( Key, Value ) ->
@@ -79,7 +82,25 @@ put( Key, Value ) ->
 
 
 
-% Returns the value (if any) associated to specified key in the process
+% Puts specified entry in the process dictionary; raises an exception if ever
+% the specified key was already registered in the process dictionary.
+%
+-spec putAsNew( key(), value() ) -> void().
+putAsNew( Key, Value ) ->
+
+	case erlang:get( Key ) of
+
+		undefined ->
+			erlang:put( Key, Value );
+
+		Other ->
+			throw( { already_registered_key, Key, Other } )
+
+	end.
+
+
+
+% Returns the value (if any) associated to the specified key in the process
 % dictionary.
 %
 -spec get( key() ) -> maybe( value() ).
@@ -89,12 +110,50 @@ get( Key ) ->
 
 
 
+% Returns the value expected to be associated to the specified key in the
+% process dictionary, otherwise throws an exception.
+%
+-spec getExisting( key() ) -> value().
+getExisting( Key ) ->
+
+	case erlang:get( Key ) of
+
+		undefined ->
+			throw( { non_registered_key, Key } );
+
+		Other ->
+			Other
+
+	end.
+
+
+
+
 % Removes any entry in the process dictionary corresponding to specified key,
 % returning any value that was associated with it.
 %
 -spec remove( key() ) -> maybe( value() ).
 remove( Key ) ->
 	erlang:erase( Key ).
+
+
+
+% Removes the entry in the process dictionary expected to correspond to the
+% specified key and returning it, otherwise throwing an exception, should no
+% value be associated to specified key.
+%
+-spec removeExisting( key() ) -> value().
+removeExisting( Key ) ->
+
+	case erlang:erase( Key ) of
+
+		undefined ->
+			throw( { non_registered_key, Key } );
+
+		Other ->
+			Other
+
+	end.
 
 
 
@@ -127,6 +186,7 @@ get_keys_for( Value ) ->
 -spec blank() -> process_dictionary().
 blank() ->
 	erlang:erase().
+
 
 
 % Returns a textual description of the current state of the process dictionary.
