@@ -35,8 +35,13 @@
 %
 % - has no intrinsic order (yet can be iterated over)
 %
-% Note: we provide here a basic, general-purpose set support, and do not rely on
-% any lighter, alternate level of indirection.
+% Notes:
+%
+% - we provide here a basic, general-purpose set support, and do not rely on any
+% lighter, alternate level of indirection
+%
+% - if you feel the need for an associative table whose values do no matter,
+% your actual need is a set!
 %
 % See set_utils_test.erl for the corresponding test.
 %
@@ -100,7 +105,6 @@
 
 
 % Returns a new empty set.
-%
 -spec new() -> set().
 new() ->
 	?set_impl:new().
@@ -173,14 +177,12 @@ add_element_list( List, Set ) ->
 
 
 % Returns the union of the two specified sets.
-%
 -spec union( set(), set() ) -> set().
 union( FirstSet, SecondSet ) ->
 	?set_impl:union( FirstSet, SecondSet ).
 
 
 % Returns the union of the specified sets.
-%
 -spec union( [ set() ] ) -> set().
 union( ListOfSets ) ->
 	?set_impl:union( ListOfSets ).
@@ -188,14 +190,12 @@ union( ListOfSets ) ->
 
 
 % Returns the intersection of the two specified sets.
-%
 -spec intersection( set(), set() ) -> set().
 intersection( FirstSet, SecondSet ) ->
 	?set_impl:intersection( FirstSet, SecondSet ).
 
 
 % Returns the intersection of the specified sets.
-%
 -spec intersection( [ set() ] ) -> set().
 intersection( ListOfSets ) ->
 	?set_impl:intersection( ListOfSets ).
@@ -212,7 +212,6 @@ difference( FirstSet, SecondSet ) ->
 
 
 % Returns whether the specified term appears to be a legit set.
-%
 -spec is_set( term() ) -> boolean().
 is_set( Term ) ->
 	?set_impl:is_set( Term ).
@@ -220,7 +219,6 @@ is_set( Term ) ->
 
 
 % Ensures that the specified term is a set, throws an exception if not.
-%
 -spec check_set( term() ) -> void().
 check_set( Term ) ->
 	case is_set( Term ) of
@@ -245,7 +243,6 @@ is_subset( FirstSet, SecondSet ) ->
 
 
 % Returns a set created from specified list.
-%
 -spec from_list( list() ) -> set().
 from_list( List ) ->
 	?set_impl:from_list( List ).
@@ -253,7 +250,6 @@ from_list( List ) ->
 
 
 % Returns a list created from the elements of specified set.
-%
 -spec to_list( set() ) -> list().
 to_list( Set ) ->
 	?set_impl:to_list( Set ).
@@ -261,7 +257,6 @@ to_list( Set ) ->
 
 
 % Returns true iff specified element is an element of specified set.
-%
 -spec member( element(), set() ) -> boolean().
 member( Element, Set ) ->
 	?set_impl:is_member( Element, Set ).
@@ -269,7 +264,6 @@ member( Element, Set ) ->
 
 
 % Returns whether the specified set is empty.
-%
 -spec is_empty( set() ) -> boolean().
 is_empty( Set ) ->
 	% Not defined for ordsets:
@@ -279,7 +273,6 @@ is_empty( Set ) ->
 
 
 % Returns the number of elements in specified set.
-%
 -spec size( set() ) -> basic_utils:count().
 size( Set ) ->
 	?set_impl:size( Set ).
@@ -305,8 +298,6 @@ iterator( Set ) ->
 %iterator_from( Element, Set ) ->
 
 % Allows the iterators to be gone through.
-%
-%
 -spec next( iterator() ) -> { element(), iterator() } | 'none'.
 next( Iterator ) ->
 	?set_impl:next( Iterator ).
