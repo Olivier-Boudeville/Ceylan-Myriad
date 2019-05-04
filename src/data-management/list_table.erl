@@ -104,10 +104,12 @@
 
 
 
+
 % Returns a new empty table dimensioned for the default number of entries.
 -spec new() -> list_table().
 new() ->
 	[].
+
 
 
 % Returns a new empty table dimensioned for the specified expected number of
@@ -117,7 +119,7 @@ new() ->
 new( ExpectedNumberOfEntries ) when is_integer( ExpectedNumberOfEntries ) ->
 	[];
 
-
+% Returns a new table containing the specified (initial) entries.
 new( InitialEntries ) when is_list( InitialEntries ) ->
 
 	% We do not keep the specified list as it is, as we want to check that it
