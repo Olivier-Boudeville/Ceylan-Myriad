@@ -241,7 +241,7 @@ term_to_string( Term ) ->
 	case io_lib:printable_list( Term ) of
 
 		true ->
-			io_lib:format( "~s", [ Term ] );
+			io_lib:format( "~ts", [ Term ] );
 
 		_    ->
 			io_lib:format( "~p", [ Term ] )
@@ -271,7 +271,7 @@ term_to_string( Term, MaxDepthCount ) ->
 	case io_lib:printable_list( Term ) of
 
 		true ->
-			io_lib:format( "~s", [ Term ] );
+			io_lib:format( "~ts", [ Term ] );
 
 		_    ->
 			io_lib:format( "~P", [ Term, MaxDepthCount ] )
@@ -297,7 +297,7 @@ term_to_string( Term, MaxDepthCount, MaxLength ) when MaxLength >= 3 ->
 
 		true ->
 			% The '*' character in the format string is not suitable here:
-			lists:flatten( io_lib:format( "~s", [ Term ] ) );
+			lists:flatten( io_lib:format( "~ts", [ Term ] ) );
 
 		_ ->
 			lists:flatten( io_lib:format( "~P", [ Term, MaxDepthCount ] ) )
@@ -489,7 +489,7 @@ strings_to_enumerated_string( ListOfStrings, IndentationLevel ) ->
 
 	OrderedStrings = lists:reverse( ReversedStrings ),
 
-	format( "~n~s", [ lists:flatten( OrderedStrings ) ] ).
+	format( "~n~ts", [ lists:flatten( OrderedStrings ) ] ).
 
 
 
@@ -686,7 +686,7 @@ strings_to_listed_string( ListOfStrings ) ->
 
 	OtherStringsString = join( ", ", OtherStrings ),
 
-	format( "~s and ~s", [ OtherStringsString, LastString ] ).
+	format( "~ts and ~ts", [ OtherStringsString, LastString ] ).
 
 
 
@@ -717,7 +717,7 @@ strings_to_atoms( StringList ) when is_list( StringList ) ->
 proplist_to_string( Proplist ) ->
 
 	% In this context, key and value known to be strings or atoms:
-	Strings = [ io_lib:format( "~s: ~s", [ K, V ] )
+	Strings = [ io_lib:format( "~ts: ~ts", [ K, V ] )
 				|| { K, V } <- lists:sort( Proplist ) ],
 
 	strings_to_string( Strings ).
