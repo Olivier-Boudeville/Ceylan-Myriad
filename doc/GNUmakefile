@@ -34,7 +34,7 @@ GITHUB_PAGES_BASE := $(shell basename "$(MYRIAD_WEB_MIRROR_BRANCH)")
 OVERALL_DOCUMENT_SOURCE = $(DOC_BASE_NAME).rst
 
 
-.PHONY: all doc full-doc clone-mirror                    \
+.PHONY: all doc full-doc html clone-mirror               \
 		export-doc export-to-official export-to-mirror   \
 		info-web clean clean-doc test uml-diagram-test
 
@@ -47,9 +47,9 @@ all:
 	@echo "  Run 'make full-doc' to generate the manual of the 'Myriad' layer."
 
 
-
-
 full-doc: $(DOC_BASE_NAME).pdf $(HTML_TARGET)
+
+html: clean-doc $(HTML_TARGET)
 
 
 # Creates a separate repository for the GitHub pages branch:
@@ -82,10 +82,6 @@ export-to-mirror:
 track-local:
 	@echo "Track target disabled, as documentation is not generated from a standalone source file. Prefer the html target." 1>&2
 	@exit 5
-
-
-html: clean-doc $(HTML_TARGET)
-
 
 
 clean: clean-doc
