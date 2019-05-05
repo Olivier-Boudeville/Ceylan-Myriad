@@ -935,8 +935,10 @@ display( Message ) ->
 
 	% Finally io:format has been preferred to erlang:display, as the latter one
 	% displays quotes around the strings.
-
-	io:format( "~s~n", [ Message ] ),
+	%
+	% ~ts, not ~s, as we want to properly output Unicode characters:
+	%
+	io:format( "~ts~n", [ Message ] ),
 	system_utils:await_output_completion().
 
 	% May not go through group leader (like io:format), thus less likely to
