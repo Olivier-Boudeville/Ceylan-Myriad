@@ -30,8 +30,8 @@
 %
 % See:
 %
-% - text_ui_test.erl for the corresponding test
-% - term_ui.erl for a more advanced text interface
+% - text_ui_test.erl for the test of the most basic text interface
+% - term_ui.erl for a more advanced text interface (ncurses-based)
 % - gui.erl for a graphical counterpart
 %
 % See also: trace_utils.erl for another kind of output.
@@ -50,6 +50,8 @@
 % option: --use-ui-backend BACKEND_NAME, where BACKEND_NAME is the name of the
 % associated backend (ex: text_ui, term_ui or gui).
 %
+% For example: make ui_run CMD_LINE_OPT="--use-ui-backend text_ui"
+%
 % See examples like merge-tree.escript (merge_utils.erl) allowing the user to
 % override the actual backend.
 
@@ -60,13 +62,13 @@
 % Implementation notes:
 %
 % Each backend is to store its current state into a specific state record (ex:
-% term_ui_state()), kept under a backend-specific key (see ui_name_key) in the
-% process dictionary.
+% of type term_ui_state()), kept under a backend-specific key (see ui_name_key)
+% in the process dictionary.
 %
 % Among the fields of these backend records, one is the settings table (see the
-% setting_table()). It allows the developer to specify all kinds of settings
-% (ex: default window size), which may or may not be accommodated by a given
-% backend.
+% setting_table() type). It allows the developer to specify all kinds of
+% settings (ex: default window size), which may or may not be accommodated by a
+% given backend.
 
 
 -include("ui.hrl").
@@ -76,7 +78,6 @@
 
 
 % Directly forwarded section:
-%
 -export([ set/1, set/2, unset/1,
 
 		  display/1, display/2,
@@ -108,28 +109,21 @@
 		  set_settings/1, set_settings/2,
 
 		  unset_setting/1, unset_setting/2,
-		  get_setting/1
-
-]).
+		  get_setting/1 ]).
 
 
 -export([ trace/1, trace/2,
-
 		  clear/0,
-
 		  stop/0,
-
 		  settings_to_string/1 ]).
 
 
 % Typically text_ui_state() | term_ui_state() | ...
-%
 -type ui_state() :: any().
 
 
 
 % Starts the UI with default settings.
-%
 -spec start() -> void().
 start() ->
 	start( _Opts=[] ).
@@ -137,7 +131,7 @@ start() ->
 
 
 % Starts the UI with specified settings, and returns the command-line arguments
-% expurged from any UI-related option (as an argument table).
+% expurged of any UI-related option (as an argument table).
 %
 % Stores the corresponding state in the process dictionary.
 %
@@ -151,8 +145,9 @@ start( Options ) ->
 
 
 
-% Starts the UI with specified settings, and returns the command-line arguments
-% expurged from any UI-related option (as an argument table).
+% Starts the UI with specified table-based settings, and returns the
+% command-line arguments, still as a table, expurged of any UI-related option
+% (as an argument table).
 %
 % Stores the corresponding state in the process dictionary.
 %
@@ -179,8 +174,9 @@ start( Options, ArgumentTable ) ->
 														ArgumentTable ) of
 
 		{ [], ArgTable } ->
-			% No backend specified, determining it:
+			trace_utils:debug( "No backend specified, determining it." ),
 			{ get_best_ui_backend(), ArgTable };
+
 
 		{ [ BackendName ], OtherArgTable } ->
 
@@ -214,7 +210,7 @@ start( Options, ArgumentTable ) ->
 	end,
 
 	trace_utils:debug_fmt( "The '~s' backend module has been selected.",
-								   [ BackendModuleName ] ),
+						   [ BackendModuleName ] ),
 
 	% Expects this backend to register its name and state in the process
 	% dictionary:
@@ -232,7 +228,6 @@ start( Options, ArgumentTable ) ->
 
 
 % Sets specified UI setting.
-%
 -spec set( ui_setting_key(), ui_setting_value() ) -> void().
 set( SettingKey, SettingValue ) ->
 
@@ -242,7 +237,6 @@ set( SettingKey, SettingValue ) ->
 
 
 % Sets specified UI settings.
-%
 -spec set( [ ui_setting_entry() ] ) -> void().
 set( SettingEntries ) ->
 
@@ -253,7 +247,6 @@ set( SettingEntries ) ->
 
 
 % Unsets specified UI setting.
-%
 -spec unset( [ ui_setting_key() ] | ui_setting_key() ) -> void().
 unset( SettingElement ) ->
 
@@ -265,7 +258,7 @@ unset( SettingElement ) ->
 
 % Displays specified text, as a normal message.
 %
-% Note: all types of quotes are allowed in specified text.
+% Note: all types of quotes are allowed in the specified text.
 %
 -spec display( text() ) -> void().
 display( Text ) ->
@@ -277,8 +270,8 @@ display( Text ) ->
 
 
 % Displays specified formatted text, as a normal message.
-%
--spec display( text_utils:format_string(), [ term() ] ) -> void().
+-spec display( text_utils:format_string(), text_utils:format_values() ) ->
+					 void().
 display( FormatString, Values ) ->
 
 	UIModule = get_backend_name(),
@@ -286,8 +279,7 @@ display( FormatString, Values ) ->
 	UIModule:display( FormatString, Values ).
 
 
-% Displays in-order the items of specified list, as a normal message.
-%
+% Displays in-order the items of the specified list, as a normal message.
 -spec display_numbered_list( label(), [ text() ] ) -> void().
 display_numbered_list( Label, Lines ) ->
 
@@ -299,7 +291,6 @@ display_numbered_list( Label, Lines ) ->
 
 
 % Displays specified text, as an error message.
-%
 -spec display_error( text() ) -> void().
 display_error( Text ) ->
 
@@ -310,8 +301,8 @@ display_error( Text ) ->
 
 
 % Displays specified formatted text, as an error message.
-%
--spec display_error( text_utils:format_string(), [ term() ] ) -> void().
+-spec display_error( text_utils:format_string(), text_utils:format_values() ) ->
+						   void().
 display_error( FormatString, Values ) ->
 
 	UIModule = get_backend_name(),
@@ -320,8 +311,7 @@ display_error( FormatString, Values ) ->
 
 
 
-% Displays in-order the items of specified list, as an error message.
-%
+% Displays in-order the items of the specified list, as an error message.
 -spec display_error_numbered_list( label(), [ text() ] ) -> void().
 display_error_numbered_list( Label, Lines ) ->
 
@@ -332,7 +322,6 @@ display_error_numbered_list( Label, Lines ) ->
 
 
 % Adds a default separation between previous and next content.
-%
 -spec add_separation() -> void().
 add_separation() ->
 
@@ -343,7 +332,7 @@ add_separation() ->
 
 
 
-% Returns the user-entered text.
+% Returns the user-entered text after specified prompt, based on an implicit state..
 %
 % (const)
 %
@@ -356,8 +345,8 @@ get_text( Prompt, UIState ) ->
 
 
 
-% Returns the user-entered text, once translated to an integer, based on an
-% implicit state.
+% Returns the user-entered text after specified prompt, once translated to an
+% integer, based on an implicit state.
 %
 % (const)
 %
@@ -370,8 +359,9 @@ get_text_as_integer( Prompt, UIState ) ->
 
 
 
-% Returns the user-entered text, once translated to an integer, based on an
-% implicit state, prompting the user until a valid input is obtained.
+% Returns the user-entered text after specified prompt, once translated to an
+% integer, based on an implicit state, prompting the user until a valid input is
+% obtained.
 %
 % (const)
 %
@@ -384,7 +374,8 @@ read_text_as_integer( Prompt, UIState ) ->
 
 
 
-% Returns the user-entered text (if any), once translated to an integer.
+% Returns the user-entered text (if any) after specified prompt, once translated
+% to an integer.
 %
 % (const)
 %
@@ -397,9 +388,10 @@ get_text_as_maybe_integer( Prompt, UIState ) ->
 
 
 
-% Returns the user-entered text, once translated to an integer, prompting the
-% user until a valid input is obtained: either a string that resolves to an
-% (then returned) integer, or an empty string (then returning 'undefined').
+% Returns the user-entered text after specified prompt, once translated to an
+% integer, prompting the user until a valid input is obtained: either a string
+% that resolves to an integer (then returned), or an empty string (then
+% returning 'undefined').
 %
 % (const)
 %
@@ -412,7 +404,7 @@ read_text_as_maybe_integer( Prompt, UIState ) ->
 
 
 
-% Displays specified prompt, let the user choose between two options, "yes" and
+% Displays specified prompt, lets the user choose between two options, "yes" and
 % "no" (with specified default option), and returns that choice.
 %
 -spec ask_yes_no( prompt(), binary_choice() ) -> binary_choice().
@@ -561,8 +553,7 @@ choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
 
 
 
-% Sets the specified setting to specified value, in the (implicit) UI state.
-%
+% Sets the specified setting to the specified value, in the (implicit) UI state.
 -spec set_setting( ui_setting_key(), ui_setting_value() ) -> void().
 set_setting( SettingKey, SettingValue ) ->
 
@@ -572,8 +563,7 @@ set_setting( SettingKey, SettingValue ) ->
 
 
 
-% Sets the specified setting to specified value, in the specified UI state.
-%
+% Sets the specified setting to the specified value, in the specified UI state.
 -spec set_setting( ui_setting_key(), ui_setting_value(), ui_state() ) ->
 						 ui_state().
 set_setting( SettingKey, SettingValue, UIState ) ->
@@ -584,7 +574,8 @@ set_setting( SettingKey, SettingValue, UIState ) ->
 
 
 
-% Sets the specified settings to specified values, in the (implicit) UI state.
+% Sets the specified settings to the specified values, in the (implicit) UI
+% state.
 %
 -spec set_settings( [ ui_setting_entry() ] ) -> void().
 set_settings( SettingEntries ) ->
@@ -595,7 +586,8 @@ set_settings( SettingEntries ) ->
 
 
 
-% Sets the specified settings to specified values, in the specified UI state.
+% Sets the specified settings to the specified values, in the specified UI
+% state.
 %
 -spec set_settings( [ ui_setting_entry() ], ui_state() ) -> ui_state().
 set_settings( SettingEntries, UIState ) ->
@@ -606,8 +598,7 @@ set_settings( SettingEntries, UIState ) ->
 
 
 
-% Unsets specified setting, in the (implicit) UI state.
-%
+% Unsets the specified setting, in the (implicit) UI state.
 -spec unset_setting( ui_setting_key() ) -> void().
 unset_setting( SettingKey ) ->
 
@@ -617,8 +608,7 @@ unset_setting( SettingKey ) ->
 
 
 
-% Unsets specified setting, in the specified UI state.
-%
+% Unsets the specified setting, in the specified UI state.
 -spec unset_setting( ui_setting_key() , ui_state()) -> void().
 unset_setting( SettingKey, UIState ) ->
 
@@ -645,7 +635,6 @@ get_setting( SettingKey ) ->
 
 
 % Traces specified status string, by displaying it, and possibly logging it.
-%
 -spec trace( string() ) -> void().
 trace( Message ) ->
 
@@ -654,8 +643,8 @@ trace( Message ) ->
 	UIModule:trace( Message ).
 
 
+
 % Displays and logs specified formatted text.
-%
 -spec trace( text_utils:format_string(), [ term() ] ) -> void().
 trace( FormatString, Values ) ->
 
@@ -666,7 +655,6 @@ trace( FormatString, Values ) ->
 
 
 % Clears the interface.
-%
 -spec clear() -> void().
 clear() ->
 
@@ -677,7 +665,6 @@ clear() ->
 
 
 % Stops the UI.
-%
 -spec stop() -> void().
 stop() ->
 	UIModuleName = get_backend_name(),
@@ -705,7 +692,6 @@ get_backend_name() ->
 
 
 % Returns the most suitable UI backend found.
-%
 -spec get_best_ui_backend() -> basic_utils:module_name().
 get_best_ui_backend() ->
 
@@ -729,8 +715,7 @@ get_best_ui_backend() ->
 
 
 
-% Returns a textual description of specified setting table.
-%
+% Returns a textual description of the specified setting table.
 -spec settings_to_string( setting_table() ) -> text_utils:ustring().
 settings_to_string( SettingTable ) ->
 	case ?ui_table:size( SettingTable ) of

@@ -158,14 +158,12 @@
 
 
 % Command-line argument section:
-%
 -export([ get_argument_table/0, get_argument_table/1, generate_argument_table/1,
 		  extract_command_argument/1, extract_command_argument/2,
 		  argument_table_to_string/1 ]).
 
 
 % Miscellaneous section:
-%
 -export([ is_batch/0 ]).
 
 
@@ -481,7 +479,9 @@ get_default_image_viewer_path() ->
 
 
 % Returns the name of the default image browser tool.
-% Used to be: gqview (renamed)
+%
+% Used to be: gqview (renamed since then).
+%
 -spec get_default_image_browser_name() -> string().
 get_default_image_browser_name() ->
 	% Was a mere compatibility alias for gqview:
@@ -540,7 +540,9 @@ get_default_wide_text_viewer_path( CharacterWidth ) ->
 
 
 % Returns the name of the default trace viewer tool.
+%
 % Could be also: nedit, gedit, etc.
+%
 -spec get_default_trace_viewer_name() -> string().
 get_default_trace_viewer_name() ->
 
@@ -558,7 +560,9 @@ get_default_trace_viewer_name() ->
 
 
 % Returns an absolute path to the default trace viewer tool.
+%
 % Could be also: nedit, gedit, etc.
+%
 -spec get_default_trace_viewer_path() -> file_utils:file_name().
 get_default_trace_viewer_path() ->
 	% Note: expected to be on the PATH:
@@ -664,56 +668,48 @@ get_current_gnuplot_version() ->
 
 
 % Returns the default tool to use to compress in the ZIP format.
-%
 -spec get_default_zip_compress_tool() -> file_utils:file_name().
 get_default_zip_compress_tool() ->
 	find_executable( "zip" ).
 
 
 % Returns the default tool to use to decompress in the ZIP format.
-%
 -spec get_default_zip_decompress_tool() -> file_utils:file_name().
 get_default_zip_decompress_tool() ->
 	find_executable( "unzip" ).
 
 
 % Returns the default tool to use to decompress in the BZIP2 format.
-%
 -spec get_default_bzip2_compress_tool() -> file_utils:file_name().
 get_default_bzip2_compress_tool() ->
 	find_executable( "bzip2" ).
 
 
 % Returns the default tool to use to decompress in the BZIP2 format.
-%
 -spec get_default_bzip2_decompress_tool() -> file_utils:file_name().
 get_default_bzip2_decompress_tool() ->
 	find_executable( "bunzip2" ).
 
 
 % Returns the default tool to use to compress in the XZ format.
-%
 -spec get_default_xz_compress_tool() -> file_utils:file_name().
 get_default_xz_compress_tool() ->
 	find_executable( "xz" ).
 
 
 % Returns the default tool to use to decompress in the XZ format.
-%
 -spec get_default_xz_decompress_tool() -> file_utils:file_name().
 get_default_xz_decompress_tool() ->
 	find_executable( "unxz" ).
 
 
 % Returns the default tool to compute MD5 sums.
-%
 -spec get_default_md5_tool() -> file_utils:file_name().
 get_default_md5_tool() ->
 	find_executable( "md5sum" ).
 
 
 % Returns the default tool to compute SHA sums.
-%
 -spec get_default_sha_tool() -> file_utils:file_name().
 get_default_sha_tool() ->
 	find_executable( "shasum" ).
@@ -721,7 +717,6 @@ get_default_sha_tool() ->
 
 
 % Returns the default tool to execute Java programs.
-%
 -spec get_default_java_runtime() -> file_utils:file_name().
 get_default_java_runtime() ->
 	find_executable( "java" ).
@@ -784,8 +779,14 @@ get_default_jinterface_path() ->
 % Returns a canonical argument table, obtained from the user command-line
 % arguments supplied to the interpreter.
 %
-% Note: to be called in the context of a standard erl execution (as opposed to
-% an escript one).
+% Note:
+%
+% - only the arguments specified on the command-line after the '-extra' marker
+% will be taken into account; ex:
+%        make ui_run CMD_LINE_OPT="-extra --use-ui-backend text_ui"
+%
+% - to be called in the context of a standard erl execution (as opposed to
+% an escript one)
 %
 -spec get_argument_table() -> argument_table().
 get_argument_table() ->
@@ -793,8 +794,8 @@ get_argument_table() ->
 	% We do not want to include the VM-specific arguments (such as -noshell,
 	% -pz, etc.); use, in the command-line, '-extra', before arguments to
 	% consider as plain ones:
+	%
 	%Args = init:get_arguments(),
-
 	Args = init:get_plain_arguments(),
 
 	%trace_utils:debug_fmt( "Arguments obtained: ~p.", [ Args ] ),
@@ -859,8 +860,7 @@ extract_command_argument( Option, ArgumentTable ) ->
 
 
 
-% Returns a textual representation of specified argument table.
-%
+% Returns a textual representation of the specified argument table.
 -spec argument_table_to_string( argument_table() ) -> string().
 argument_table_to_string( ArgTable ) ->
 

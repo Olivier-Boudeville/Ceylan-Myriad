@@ -48,24 +48,35 @@
 		  get_arguments/1 ]).
 
 
+
 % Tells whether the currently running Erlang code is executed as an escript or
 % as a regular Erlang program.
 %
 -spec is_running_as_escript() -> boolean().
 is_running_as_escript() ->
 
-	% escript:script_name/0 only meant to succeed from an escript:
+	% We thought that escript:script_name/0 was only meant to succeed if
+	% executed from an escript, yet, if simply run from a module, it will still
+	% succeed if at least an extra command-line line was specified.
+	%
+	% So escript:script_name() will fail if erl is launched with no option,
+	% whereas it will succeed if launched with 'erl -extra foobar' for example.
+	%
+	% Currently we have no solution, and are not big fans of escripts, so in
+	% (ambiguous) all cases we will consider we are not running from an escript.
 
 	try
 
 		case escript:script_name() of
 
-			_Any ->
-				true
+			_Name ->
+				%trace_utils:debug_fmt( "Script name: '~p'.", [ Name ] ),
+				%true
+				false
 
 		end
 
-			% typically {badmatch,[]} from escript.erl:
+			% Typically {badmatch,[]} from escript.erl:
 			catch error:_Error ->
 					false
 
@@ -112,8 +123,8 @@ update_code_path_for_myriad() ->
 % Returns the base directory of that script, i.e. where it is stored (regardless
 % of the possibly relative path whence it was launched).
 %
-% Note: useful to locate resources (ex: other modules) defined with that script
-% and needed by it.
+% Note: useful to locate resources (ex: other modules) defined in link to that
+% script and needed by it.
 %
 -spec get_script_base_directory() -> file_utils:path().
 get_script_base_directory() ->
@@ -121,6 +132,7 @@ get_script_base_directory() ->
 	case is_running_as_escript() of
 
 		true ->
+			%trace_utils:debug( "Found running as escript." ),
 
 			% filename:absname/1 could be used instead:
 			FullPath = case escript:script_name() of
@@ -140,6 +152,9 @@ get_script_base_directory() ->
 
 
 		false ->
+
+			%trace_utils:debug( "Found not running as escript." ),
+
 			CodePath = code_utils:get_code_path(),
 
 			MyriadPath = get_myriad_path_from( CodePath ),
@@ -154,7 +169,6 @@ get_script_base_directory() ->
 
 
 % (helper)
-%
 get_myriad_path_from( CodePath ) ->
 
 	% Two base directories are licit for Myriad, a reference one and a
@@ -170,23 +184,26 @@ get_myriad_path_from( CodePath ) ->
 					throw( unable_to_determine_myriad_root );
 
 				Path ->
+					%trace_utils:debug_fmt( "Found from myriad: '~s'.",
+					%					   [ Path ] ),
 					Path
 
 			end;
 
 		Path ->
+			%trace_utils:debug_fmt( "Found from Ceylan-Myriad: '~s'.",
+			%					   [ Path ] ),
 			Path
 
 	end.
 
 
 
+% (sub-helper)
 get_myriad_path_from( _Paths=[], _BaseDirName ) ->
 	undefined;
 
 get_myriad_path_from( [ Path | T ], BaseDirName ) ->
-
-
 	case string:split( Path, BaseDirName ) of
 
 		[ Prefix, _Suffix ] ->
@@ -276,7 +293,9 @@ manage_option( Option, RemainingArgs, OptionTable ) ->
 
 
 % (helper)
+%
 % All arguments processed here:
+%
 collect_values_for_option( _Args=[], AccValues ) ->
 	{ lists:reverse( AccValues ), _NextOption=none };
 
