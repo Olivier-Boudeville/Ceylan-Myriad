@@ -121,7 +121,7 @@
 % Signaling:
 -export([ notify_warning/2,
 		  raise_error/1, raise_error/2, raise_error/3,
-		  raise_usage_error/4,
+		  raise_usage_error/3, raise_usage_error/4,
 		  get_error_form/3, format_error/1 ]).
 
 
@@ -709,7 +709,6 @@ notify_warning( Elements, Context ) ->
 
 
 
-
 % Raises a (compile-time, rather ad hoc) error when applying a parse transform,
 % to stop the build on failure and report the actual error, thanks to the
 % specified term (often, a list of error elements).
@@ -758,6 +757,7 @@ raise_error( ErrorTerm ) ->
 -spec raise_error( term(), basic_utils:maybe( form_context() ) ) -> no_return().
 raise_error( ErrorTerm, Context ) ->
 	raise_error( ErrorTerm, Context, _OriginLayer="Myriad" ).
+
 
 
 % Raises an error, with specified context, from the specified layer (expected to
@@ -874,12 +874,34 @@ interpret_stack_trace( _StackTrace=[ H | T ], Acc, Count ) ->
 
 
 
+
+% Raises a (compile-time, rather ad hoc) user-related error, with specified
+% source context, to stop the build on failure and report adequately the actual
+% error to the user.
+%
+-spec raise_usage_error( text_utils:format_string(), text_utils:format_values(),
+						 file_utils:filename() ) -> no_return().
+raise_usage_error( ErrorFormatString, ErrorValues, Filename ) ->
+	raise_usage_error( ErrorFormatString, ErrorValues, Filename, _Line=0 ).
+
+
+
 % Raises a (compile-time, rather ad hoc) user-related error, with specified
 % source context, to stop the build on failure and report adequately the actual
 % error to the user.
 %
 -spec raise_usage_error( text_utils:format_string(), text_utils:format_values(),
 					 file_utils:filename(), ast_base:line() ) -> no_return().
+raise_usage_error( ErrorFormatString, ErrorValues, Filename,
+				   _Line=undefined ) ->
+	raise_usage_error( ErrorFormatString, ErrorValues, Filename,
+					   _ActualLine=0 );
+
+raise_usage_error( ErrorFormatString, ErrorValues, ModuleName, Line )
+  when is_atom( ModuleName ) ->
+	Filename = io_lib:format( "~s.erl", [ ModuleName ] ),
+	raise_usage_error( ErrorFormatString, ErrorValues, Filename, Line );
+
 raise_usage_error( ErrorFormatString, ErrorValues, Filename, Line ) ->
 
 	ErrorString = io_lib:format( ErrorFormatString, ErrorValues ),

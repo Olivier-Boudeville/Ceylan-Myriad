@@ -4,6 +4,6 @@ MYRIAD_TOP = ../../..
 
 all:
 
-doc: MyriadGUI.pdf
+doc:
 
 include $(MYRIAD_TOP)/GNUmakesettings.inc

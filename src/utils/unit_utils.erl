@@ -193,6 +193,7 @@
 -export_type([ km_per_hour/0, meters_per_second/0, meters_per_tick/0 ]).
 
 
+
 % Surface-related section.
 
 -type square_meters() :: float().
@@ -202,6 +203,7 @@
 -type surface_units() :: square_meters().
 
 -export_type([ square_meters/0, surface_reference_unit/0, surface_units/0 ]).
+
 
 
 % Volume-related section.

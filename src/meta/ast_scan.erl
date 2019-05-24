@@ -928,8 +928,11 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 			% be seen by the compiler afterwards (the extra type definition
 			% would be skipped before reaching the compiler)
 
+			% "some line" as we do not know here to which source files this
+			% corresponds:
+			%
 			ast_utils:raise_usage_error( "type ~s/~B defined here, whereas "
-			  "it had already been defined at line #~B.",
+			  "it had already been defined at (some) line #~B.",
 			  [ TypeName, TypeArity, LineDef ], CurrentFileReference, Line );
 
 

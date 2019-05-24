@@ -608,17 +608,19 @@ init_module_info() ->
 % Checks the correctness of specified module information.
 -spec check_module_info( module_info() ) -> basic_utils:void().
 check_module_info( #module_info{ module=undefined } ) ->
-	ast_utils:raise_error( no_module_defined );
+	ast_utils:raise_error( "no '-module' define found" );
 
 check_module_info( #module_info{ last_line=undefined } ) ->
-	ast_utils:raise_error( no_last_line_found );
+	ast_utils:raise_error( "no last line found" );
 
 
-check_module_info( ModuleInfo=#module_info{ unhandled_forms=[] } ) ->
+check_module_info( ModuleInfo=#module_info{
+								 module={ ModuleName, _LocForm },
+								 unhandled_forms=[] } ) ->
 	%ast_utils:display_debug( "Checking AST." ),
-	check_module_include( ModuleInfo ),
-	check_module_types( ModuleInfo ),
-	check_module_functions( ModuleInfo );
+	check_module_include( ModuleInfo, ModuleName ),
+	check_module_types( ModuleInfo, ModuleName ),
+	check_module_functions( ModuleInfo, ModuleName );
 
 check_module_info( #module_info{ unhandled_forms=_UnhandledForms } ) ->
 
@@ -627,7 +629,7 @@ check_module_info( #module_info{ unhandled_forms=_UnhandledForms } ) ->
 	%ast_utils:raise_error( [ unhandled_forms, UnhandledForms ] ).
 	%trace_utils:warning_fmt( "Unhandled forms: ~p", [ UnhandledForms ] ),
 
-	% A warning has already been issued, we let these unexpected forms flow
+	% A warning may have already been issued, we let these unexpected forms flow
 	% through and be caught by the compiler:
 	ok.
 
@@ -635,7 +637,8 @@ check_module_info( #module_info{ unhandled_forms=_UnhandledForms } ) ->
 
 % Helper to check module includes.
 check_module_include( #module_info{ includes=Includes,
-									include_defs=IncludeDefs } ) ->
+									include_defs=IncludeDefs },
+					  ModuleName ) ->
 
 	Len = length( Includes ),
 
@@ -643,8 +646,9 @@ check_module_include( #module_info{ includes=Includes,
 
 		% Includes are filtered (ex: for duplicates):
 		L when L < Len ->
-			ast_utils:raise_error( [ include_mismatch, Includes,
-									 IncludeDefs ] );
+			ast_utils:raise_usage_error( "mismatch regarding includes, "
+				"having ~B includes (~p) and ~B include definitions (~p).",
+				[ Len, Includes, L, IncludeDefs ], ModuleName );
 
 		_ ->
 			ok
@@ -655,20 +659,25 @@ check_module_include( #module_info{ includes=Includes,
 
 
 % Helper to check module types.
-check_module_types( #module_info{ types=Types } ) ->
+check_module_types( #module_info{ types=Types }, Filename ) ->
 
 	TypeInfos = ?table:enumerate( Types ),
 
-	[ check_type( TypeId, TypeInfo ) || { TypeId, TypeInfo } <- TypeInfos ].
+	[ check_type( TypeId, TypeInfo, Filename )
+	  || { TypeId, TypeInfo } <- TypeInfos ].
 
 
 
 % Nothing to check for 'spec' or 'exported':
-check_type( TypeId, _TypeInfo=#type_info{ definition=[] } ) ->
-	ast_utils:raise_error( [ no_definition_found_for, TypeId ] );
+check_type( TypeId, _TypeInfo=#type_info{ line=Line, definition=[] },
+			Filename ) ->
+	ast_utils:raise_usage_error( "no definition found for type ~s/~B.",
+								 pair:to_list( TypeId ), Filename, Line );
 
 check_type( _TypeId={ Name, Arity },
-			_TypeInfo=#type_info{ name=Name, variables=TypeVars } ) ->
+			_TypeInfo=#type_info{ line=Line, name=Name,
+								  variables=TypeVars },
+			Filename ) ->
 
 	case length( TypeVars ) of
 
@@ -676,68 +685,85 @@ check_type( _TypeId={ Name, Arity },
 			ok;
 
 		OtherArity ->
-			ast_utils:raise_error(
-			  [ type_arity_mismatch, Name, { Arity, OtherArity } ] )
+			ast_utils:raise_usage_error( "mismatch between the definition of "
+				"type ~s and its export; respective arities are ~B and ~B",
+				[ Name, Arity, OtherArity ], Filename, Line )
 
 	end;
 
 check_type( TypeId, _TypeInfo=#type_info{ name=SecondName,
-										  variables=TypeVars } ) ->
+										  variables=TypeVars,
+										  line=Line },
+			Filename ) ->
 
 	SecondArity = length( TypeVars ),
 
-	ast_utils:raise_error( [ type_definition_mismatch, TypeId,
-							 { SecondName, SecondArity } ] ).
+	ast_utils:raise_usage_error(
+		"mismatch in terms of type definition, between ~s/~B and ~s/~B.",
+		pair:to_list( TypeId ) ++ [ SecondName, SecondArity ],
+		Filename, Line ).
 
 
 
 % Helper to check module functions.
-check_module_functions( #module_info{ functions=Functions } ) ->
+check_module_functions( #module_info{ functions=Functions }, ModuleName ) ->
 
 	FunInfos = ?table:enumerate( Functions ),
 
-	[ check_function( FunId, FunInfo ) || { FunId, FunInfo } <- FunInfos ].
+	[ check_function( FunId, FunInfo, ModuleName )
+	  || { FunId, FunInfo } <- FunInfos ].
 
 
 % No definition, and neither with a spec nor exported, yet registered (strange):
 check_function( FunId, _FunInfo=#function_info{ clauses=[],
 												spec=undefined,
-												exported=[] } ) ->
-	ast_utils:raise_error( [ no_clause_found_for_function, FunId ] );
+												exported=[] },
+				ModuleName ) ->
+	ast_utils:raise_usage_error( "no clause found for function ~s/~B",
+								 pair:to_list( FunId ), ModuleName );
 
 
 % No definition, no spec, hence exported:
-check_function( _FunId, _FunInfo=#function_info{ clauses=[],
-												spec=undefined } ) ->
+check_function( _FunId,
+				_FunInfo=#function_info{ clauses=[], spec=undefined },
+				_ModuleName ) ->
+
 	% Silenced, as we prefer this error to be reported through the toolchain
 	% itself, for a better integration in error handling:
 	%
-	%ast_utils:raise_error( [ function_exported_yet_not_defined, FunId ] );
+	%ast_utils:raise_usage_error( "function ~s/~B exported yet not defined",
+	%    pair:to_list( FunId ), ModuleName ] );
 	ok;
 
 % No definition, not exported, hence just a spec:
 check_function( _FunId, _FunInfo=#function_info{ clauses=[],
-												exported=[] } ) ->
+												 exported=[] },
+				_ModuleName ) ->
 
 	% Silenced, as we prefer this error to be reported through the toolchain
 	% itself, for a better integration in error handling:
 
-	%ast_utils:raise_error( [ function_spec_without_definition, FunId ] );
+	%ast_utils:raise_usage_error( "function spec without definition for ~s/~B",
+	%                             pair:to_list( FunId ), ModuleName );
 
 	%trace_utils:warning_fmt( "Function spec without a definition for ~s/~B.",
-	%						 pair:to_list( FunId ) );
+	%						  pair:to_list( FunId ) );
 
 	ok;
 
 check_function( _FunId={ Name, Arity },
-				_FunInfo=#function_info{ name=Name, arity=Arity } ) ->
+				_FunInfo=#function_info{ name=Name, arity=Arity },
+				_ModuleName ) ->
 	% Match:
 	ok;
 
 check_function( FunId, _FunInfo=#function_info{ name=SecondName,
-												arity=SecondArity } ) ->
-	ast_utils:raise_error( [ function_definition_mismatch, FunId,
-							 { SecondName, SecondArity } ] ).
+												arity=SecondArity },
+				ModuleName ) ->
+	ast_utils:raise_usage_error(
+	  "function definition mismatch for ~s/~B vs ~s/~B",
+	  pair:to_list( FunId ) ++ [ { SecondName, SecondArity } ],
+	  ModuleName ).
 
 
 

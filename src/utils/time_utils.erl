@@ -98,7 +98,8 @@
 		  get_textual_timestamp/0, get_textual_timestamp/1,
 		  get_textual_timestamp_for_path/0, get_textual_timestamp_for_path/1,
 		  timestamp_to_string/1, string_to_timestamp/1,
-		  get_duration/2, get_duration_since/1, get_textual_duration/2,
+		  get_duration/1, get_duration/2,
+		  get_duration_since/1, get_textual_duration/2,
 		  get_precise_timestamp/0, get_precise_duration/2,
 		  get_precise_duration_since/1,
 		  get_date_after/2 ]).
@@ -521,6 +522,13 @@ string_to_timestamp( TimestampString ) ->
 
 
 
+% Returns the (signed) duration in seconds corresponding to the specified time.
+-spec get_duration( time_utils:time() ) -> unit_utils:seconds().
+get_duration( { Hours, Minutes, Seconds } ) ->
+	( Hours * 60 + Minutes ) * 60 + Seconds.
+
+
+
 % Returns the (signed) duration in seconds between the two specified timestamps,
 % using the first one as starting time and the second one as stopping time.
 %
@@ -532,6 +540,7 @@ get_duration( FirstTimestamp, SecondTimestamp ) ->
 	Second = calendar:datetime_to_gregorian_seconds( SecondTimestamp ),
 
 	Second - First.
+
 
 
 
