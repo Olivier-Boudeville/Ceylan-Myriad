@@ -110,21 +110,18 @@
 
 
 % Outputs specified debug message.
-%
 -spec debug( trace_message() ) -> void().
 debug( Message ) ->
 	actual_display( "[debug] " ++ Message ).
 
 
 % Outputs specified formatted debug message.
-%
 -spec debug_fmt( trace_format(), trace_values() ) -> void().
 debug_fmt( Format, Values ) ->
 	actual_display( "[debug] " ++ Format, Values ).
 
 
 % Outputs specified debug message, with specified message categorization.
-%
 -spec debug_categorized( trace_message(), trace_message_categorization() ) ->
 							   void().
 debug_categorized( Message, _MessageCategorization=uncategorized ) ->
@@ -150,21 +147,18 @@ debug_categorized_timed( Message, MessageCategorization, Timestamp ) ->
 
 
 % Outputs specified trace message.
-%
 -spec trace( trace_message() ) -> void().
 trace( Message ) ->
 	actual_display( "[trace] " ++ Message ).
 
 
 % Outputs specified formatted trace message.
-%
 -spec trace_fmt( trace_format(), trace_values() ) -> void().
 trace_fmt( Format, Values ) ->
 	actual_display( "[trace] " ++ Format, Values ).
 
 
 % Outputs specified trace message, with specified message categorization.
-%
 -spec trace_categorized( trace_message(), trace_message_categorization() ) ->
 							   void().
 trace_categorized( Message, _MessageCategorization=uncategorized ) ->
@@ -190,21 +184,18 @@ trace_categorized_timed( Message, MessageCategorization, Timestamp ) ->
 
 
 % Outputs specified info message.
-%
 -spec info( trace_message() ) -> void().
 info( Message ) ->
 	actual_display( "[info] " ++ Message ).
 
 
 % Outputs specified formatted info message.
-%
 -spec info_fmt( trace_format(), trace_values() ) -> void().
 info_fmt( Format, Values ) ->
 	actual_display( "[info] " ++ Format, Values ).
 
 
 % Outputs specified info message, with specified message categorization.
-%
 -spec info_categorized( trace_message(), trace_message_categorization() ) ->
 							  void().
 info_categorized( Message, _MessageCategorization=uncategorized ) ->
@@ -230,7 +221,6 @@ info_categorized_timed( Message, MessageCategorization, Timestamp ) ->
 
 
 % Outputs specified warning message.
-%
 -spec warning( trace_message() ) -> void().
 warning( Message ) ->
 	severe_display( "[warning] " ++ Message ),
@@ -238,7 +228,6 @@ warning( Message ) ->
 
 
 % Outputs specified formatted warning message.
-%
 -spec warning_fmt( trace_format(), trace_values() ) ->void().
 warning_fmt( Format, Values ) ->
 	severe_display( "[warning] " ++ Format, Values ),
@@ -246,7 +235,6 @@ warning_fmt( Format, Values ) ->
 
 
 % Outputs specified warning message, with specified message categorization.
-%
 -spec warning_categorized( trace_message(), trace_message_categorization() ) ->
 								 void().
 warning_categorized( Message, _MessageCategorization=uncategorized ) ->
@@ -272,7 +260,6 @@ warning_categorized_timed( Message, MessageCategorization, Timestamp ) ->
 
 
 % Outputs specified error message.
-%
 -spec error( trace_message() ) -> void().
 error( Message ) ->
 	severe_display( "[error] " ++ Message ),
@@ -280,7 +267,6 @@ error( Message ) ->
 
 
 % Outputs specified formatted error message.
-%
 -spec error_fmt( trace_format(), trace_values() ) -> void().
 error_fmt( Format, Values ) ->
 	severe_display( "[error] " ++ Format, Values ),
@@ -288,7 +274,6 @@ error_fmt( Format, Values ) ->
 
 
 % Outputs specified error message, with specified message categorization.
-%
 -spec error_categorized( trace_message(), trace_message_categorization() ) ->
 							   void().
 error_categorized( Message, _MessageCategorization=uncategorized ) ->
@@ -314,7 +299,6 @@ error_categorized_timed( Message, MessageCategorization, Timestamp ) ->
 
 
 % Outputs specified fatal message.
-%
 -spec fatal( trace_message() ) -> void().
 fatal( Message ) ->
 	severe_display( "[fatal] " ++ Message ),
@@ -322,7 +306,6 @@ fatal( Message ) ->
 
 
 % Outputs specified formatted fatal message.
-%
 -spec fatal_fmt( trace_format(), trace_values() ) -> void().
 fatal_fmt( Format, Values ) ->
 	severe_display( "[fatal] " ++ Format, Values ),
@@ -330,7 +313,6 @@ fatal_fmt( Format, Values ) ->
 
 
 % Outputs specified fatal message, with specified message categorization.
-%
 -spec fatal_categorized( trace_message(), trace_message_categorization() ) ->
 							   void().
 fatal_categorized( Message, _MessageCategorization=uncategorized ) ->
@@ -356,21 +338,18 @@ fatal_categorized_timed( Message, MessageCategorization, Timestamp ) ->
 
 
 % "Outputs" specified void message.
-%
 -spec void( trace_message() ) -> void().
 void( _Message ) ->
 	ok.
 
 
 % "Outputs" specified formatted void message.
-%
 -spec void_fmt( trace_format(), trace_values() ) -> void().
 void_fmt( _Format, _Values ) ->
 	ok.
 
 
 % "Outputs" specified void message, with specified message categorization.
-%
 -spec void_categorized( trace_message(), trace_message_categorization() ) ->
 							   void().
 void_categorized( _Message, _MessageCategorization ) ->

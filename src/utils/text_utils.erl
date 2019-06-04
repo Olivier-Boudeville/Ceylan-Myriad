@@ -187,7 +187,6 @@
 
 
 
-
 % The level of indentation (starts at zero, and the higher, the most nested).
 -type indentation_level() :: basic_utils:count().
 
@@ -284,8 +283,8 @@ term_to_string( Term, MaxDepthCount ) ->
 % nesting depth, and up to specified string length (at least 3, so that the
 % "..." marker can be inserted.
 %
--spec term_to_string( term(), basic_utils:count(), basic_utils:count() )
-					-> string().
+-spec term_to_string( term(), basic_utils:count(), basic_utils:count() )->
+							string().
 term_to_string( _Term=[], _MaxDepthCount, _MaxLength ) ->
 	% Otherwise would be an empty string:
 	"[]";

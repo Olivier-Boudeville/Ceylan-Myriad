@@ -778,6 +778,9 @@ raise_error( Message, #ast_transforms{ transformed_module_name=ModName },
 
 raise_error( Message, Context, OriginLayer ) ->
 
+	%trace_utils:debug_fmt( "Message: ~p, Context: ~p, Layer: ~p",
+	%						[ Message, Context, OriginLayer ] ),
+
 	Prefix = case Context of
 
 		undefined ->
@@ -786,8 +789,14 @@ raise_error( Message, Context, OriginLayer ) ->
 		{ Filename, Line } ->
 			io_lib:format( "~s:~B: error", [ Filename, Line ] );
 
-		Line ->
-			io_lib:format( "Error at line ~B:", [ Line ] )
+		Filename when is_binary( Filename ) ->
+			io_lib:format( "Error in ~s", [ Filename ] );
+
+		Line when is_integer( Line ) ->
+			io_lib:format( "Error at line ~B", [ Line ] );
+
+		Other ->
+			io_lib:format( "Error in unexpected context ~p", [ Other ] )
 
 	end,
 

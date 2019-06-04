@@ -448,7 +448,7 @@ get_beam_filename( ModuleName ) when is_atom( ModuleName ) ->
 % Tells whether specified module has its BEAM file in the current code path.
 %
 % Returns either a list of its paths (if being available at least once), or
-% 'not_found'.
+% 'not_found' (hence: this is not a boolean return!).
 %
 % Note that a given module can be nevertheless found more than once, typically
 % if reachable from the current directory and an absolute one in the code path.
