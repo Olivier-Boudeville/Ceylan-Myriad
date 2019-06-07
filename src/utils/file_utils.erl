@@ -119,6 +119,8 @@
 -type path() :: string().
 -type bin_path() :: binary().
 
+-type any_path() :: path() | bin_path().
+
 
 % Designates a filename, generally without a path (ex: "foobar.txt"):
 -type file_name() :: path().
@@ -211,7 +213,7 @@
 					  | 'set_user_id' | 'set_group_id'.
 
 
--export_type([ path/0, bin_path/0,
+-export_type([ path/0, bin_path/0, any_path/0,
 			   file_name/0, filename/0, file_path/0,
 			   bin_file_name/0, bin_file_path/0,
 			   executable_name/0, executable_path/0, bin_executable_path/0,
@@ -235,7 +237,8 @@
 % instead. However filename:join( [ "", "my_dir" ] ) results in "/my_dir",
 % whereas often we would want "my_dir", which is returned by file_utils:join/1.
 %
--spec join( [ path() ] ) -> path().
+-spec join( [ any_path() ] ) -> any_path().
+% Skips only initial empty strings (ex: not binary ones):
 join( _ComponentList=[ "" | T ] ) ->
 	filename:join( T );
 
@@ -250,7 +253,8 @@ join( ComponentList ) ->
 % used instead. However filename:join( "", "my_dir" ) results in "/my_dir",
 % whereas often we would want "my_dir", which is returned by file_utils:join/2.
 %
--spec join( path(), path() ) -> path().
+-spec join( any_path(), any_path() ) -> any_path().
+% Skips only initial empty strings (ex: not binary ones):
 join( _FirstPath="", SecondPath ) ->
 	SecondPath ;
 
