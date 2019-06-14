@@ -54,6 +54,8 @@
 		  evaluate_shell_expression/1, evaluate_shell_expression/2,
 
 		  run_background_executable/1, run_background_executable/2,
+		  run_background_executable/3,
+
 		  evaluate_background_shell_expression/1,
 		  evaluate_background_shell_expression/2,
 
@@ -179,7 +181,7 @@
 
 
 % Describes a command to be run (i.e. path to an executable, with possibly
-% parameters):
+% command-line arguments):
 %
 -type command() :: text_utils:ustring().
 
@@ -203,7 +205,7 @@
 
 
 % All information returned by a shell command:
--type command_outcome() :: { return_code(), command_output() }.
+-type execution_outcome() :: { return_code(), command_output() }.
 
 
 
@@ -253,7 +255,7 @@
 			   filesystem_type/0, fs_info/0,
 
 			   command/0, port_option/0, return_code/0, command_output/0,
-			   command_outcome/0,
+			   execution_outcome/0,
 
 			   shell_expression/0, expression_outcome/0,
 
@@ -456,87 +458,106 @@ await_output_completion( _TimeOut ) ->
 
 
 
-% Runs (synchronously) specified executable with arguments, specified as a
-% single, standalone string, with a standard environment, from the current
-% working directory, and returns its return code (exit status) and its outputs
-% (both the standard and the error ones).
+% Runs (synchronously) specified command (an executable path possibly followed
+% with command-line arguments; specified as a single, standalone string), with
+% no specific port option, with a standard environment, from the current working
+% directory, and returns its return code (exit status) and its outputs (both the
+% standard and the error ones).
 %
 % This function will run a specific executable, not evaluate a shell expression
 % (that would possibly run executables).
 %
 % So one should not try to abuse this function by adding '&' at the end to
 % trigger a background launch - this would just be interpreted as a last
-% argument. Use run_background_executable/{1,2} in this module instead.
+% argument. Use run_background_executable/{1,2,3} in this module instead.
 %
-%-spec run_executable( command() | [ command() ] ) -> command_outcome().
-%run_executable( Commands ) when is_list( Commands ) ->
--spec run_executable( command() ) -> command_outcome().
-%run_executable( Commands ) ->
-
-%	ActualCommand = text_utils:join( _Sep=" ", Commands ),
-
-%	run_executable( ActualCommand );
-
+-spec run_executable( command() ) -> execution_outcome().
 run_executable( Command ) ->
 	run_executable( Command, get_standard_environment() ).
 
 
 
-% Executes (synchronously) specified executable (specified as a single,
-% standalone string) in specified shell environment and current directory, and
-% returns its return code (exit status) and its outputs (both the standard and
-% the error ones).
+% Executes (synchronously) specified command (an executable path possibly
+% followed with command-line arguments; specified as a single, standalone
+% string), with no specific port option, in specified shell environment and in
+% the current directory, and returns its return code (exit status) and its
+% outputs (both the standard and the error ones).
 %
--spec run_executable( command(), environment() ) -> command_outcome().
+% This function will run a specific executable, not evaluate a shell expression
+% (that would possibly run executables).
+%
+% So one should not try to abuse this function by adding '&' at the end to
+% trigger a background launch - this would just be interpreted as a last
+% argument. Use run_background_executable/{1,2,3} in this module instead.
+%
+-spec run_executable( command(), environment() ) ->
+							execution_outcome().
 run_executable( Command, Environment ) ->
 	run_executable( Command, Environment, _WorkingDir=undefined ).
 
 
 
-% Executes (synchronously) specified executable (specified as a single,
-% standalone string) in specified shell environment and directory, and returns
-% its return code (exit status) and its outputs (both the standard and the error
-% ones).
+% Executes (synchronously) specified command (an executable path possibly
+% followed with command-line arguments; specified as a single, standalone
+% string), with no specific port option, in specified shell environment and
+% directory, and returns its return code (exit status) and its outputs (both the
+% standard and the error ones).
 %
--spec run_executable( command(), environment(), working_dir() ) ->
-							command_outcome().
-run_executable( Command, Environment, WorkingDir ) ->
+% This function will run a specific executable, not evaluate a shell expression
+% (that would possibly run executables).
+%
+% So one should not try to abuse this function by adding '&' at the end to
+% trigger a background launch - this would just be interpreted as a last
+% argument. Use run_background_executable/{1,2,3} in this module instead.
+%
+-spec run_executable( command(), environment(),
+					  maybe( working_dir() ) ) -> execution_outcome().
+run_executable( Command, Environment, MaybeWorkingDir ) ->
 
 	% Removed: 'in'
-	DefaultBasePortOpts = [ stream, exit_status, use_stdio, stderr_to_stdout,
-							eof ],
+	DefaultBasePortOpts =
+		[ stream, exit_status, use_stdio, stderr_to_stdout, eof ],
 
-	run_executable( Command, Environment, WorkingDir, DefaultBasePortOpts ).
+	run_executable( Command, Environment, MaybeWorkingDir,
+					DefaultBasePortOpts ).
 
 
 
-% Executes (synchronously) specified executable (specified as a single,
-% standalone string) in specified shell environment and directory, with
-% specified port options, and returns its return code (exit status) and its
-% outputs (both the standard and the error ones).
+% Executes (synchronously) specified executable (an executable path possibly
+% followed with command-line arguments; specified as a single, standalone
+% string), in specified shell environment and directory, with specified port
+% options (possibly containing any relevant command-line arguments; see
+% http://erlang.org/doc/man/erlang.html#open_port-2).
 %
--spec run_executable( command(), environment(), working_dir(),
-					  [ port_option() ] ) -> command_outcome().
-run_executable( Command, Environment, WorkingDir, PortOptions ) ->
+% Returns its return code (exit status) and its outputs (both the standard and
+% the error ones).
+%
+-spec run_executable( command(), environment(), maybe( working_dir() ),
+					  [ port_option() ] ) -> execution_outcome().
+run_executable( Command, Environment, MaybeWorkingDir, PortOptions ) ->
 
-	%trace_utils:debug_fmt( "Running executable: '~s' with environment '~s' "
-	%					   "from working directory '~p', with options ~p.",
-	%					   [ Command, environment_to_string( Environment ),
-	%						 WorkingDir, PortOptions ] ),
+	%trace_utils:debug_fmt( "Running executable: '~s' with "
+	%    "~s from working directory '~s', with options ~w.",
+	%    [ Command, environment_to_string( Environment ), MaybeWorkingDir,
+	%	  PortOptions ] ),
 
 	PortOptsWithEnv = [ { env, Environment } | PortOptions ],
 
-	PortOptsWithPath = case WorkingDir of
+	PortOptsWithPath = case MaybeWorkingDir of
 
 		undefined ->
 			PortOptsWithEnv;
 
-		_ ->
+		WorkingDir ->
 			[ { cd, WorkingDir } | PortOptsWithEnv ]
 
 	end,
 
+	% Not spawn_executable, so command may include arguments:
 	Port = open_port( { spawn, Command }, PortOptsWithPath ),
+
+	%trace_utils:debug_fmt( "Spawned port ~p for command '~s'.",
+	%					   [ Port, Command ] ),
 
 	read_port( Port, _Data=[] ).
 
@@ -557,15 +578,18 @@ read_port( Port, Data ) ->
 		% exit_status message appear in an unspecified order":
 
 		{ Port, eof } ->
-			%trace_utils:debug( "Received eof (first)." ),
+
+			%trace_utils:debug_fmt( "Received eof (first), closing ~p.",
+			%					   [ Port ] ),
+
 			port_close( Port ),
 
 			receive
 
 				{ Port, { exit_status, ExitStatus } } ->
 
-					trace_utils:debug_fmt(
-					  "Received exit_status (second): ~p.", [ ExitStatus ] ),
+					%trace_utils:debug_fmt(
+					%  "Received exit_status (second): ~p.", [ ExitStatus ] ),
 
 					% Otherwise we have an enclosing list and last character is
 					% always "\n":
@@ -580,12 +604,13 @@ read_port( Port, Data ) ->
 		{ Port, { exit_status, ExitStatus } } ->
 
 			%trace_utils:debug_fmt( "Received exit_status (first): ~p.",
-			%					   [ ExitStatus ] ),
+			%						[ ExitStatus ] ),
 
 			receive
 
 				{ Port, eof } ->
-					%trace_utils:debug( "Received eof (second)." ),
+					%trace_utils:debug_fmt( "Received eof (second), "
+					%					   "closing ~p.", [ Port ] ),
 
 					port_close( Port ),
 
@@ -598,8 +623,20 @@ read_port( Port, Data ) ->
 
 		% Added by ourselves so that we can avoid process leakage:
 		terminate_port ->
+
+			%trace_utils:debug_fmt( "Terminating port ~p.", [ Port ] ),
+
 			% Anyway no PID to send information to:
 			port_terminated
+
+
+		% Other messages should not be intercepted (ex: they could be in
+		% relation to other ongoing ports):
+		%
+		%Other ->
+		%	trace_utils:warning_fmt( "Received unexpected message: ~p.",
+		%							 [ Other ] ),
+		%	Other
 
 	 end.
 
@@ -720,8 +757,8 @@ monitor_port( Port, Data ) ->
 
 				{ Port, { exit_status, ExitStatus } } ->
 
-					%trace_utils:debug_fmt( "Port monitor ~p received exit_status "
-					%					   "(second).", [ self() ] ),
+					%trace_utils:debug_fmt( "Port monitor ~p received "
+					%   "exit_status (second).", [ self() ] ),
 
 					% Otherwise we have an enclosing list and last character is
 					% always "\n":
@@ -735,14 +772,14 @@ monitor_port( Port, Data ) ->
 
 		{ Port, { exit_status, ExitStatus } } ->
 
-			%trace_utils:debug_fmt( "Port monitor ~p received exit_status (first).",
-			%					   [ self() ] ),
+			%trace_utils:debug_fmt( "Port monitor ~p received "
+			%   "exit_status (first).", [ self() ] ),
 
 			receive
 
 				{ Port, eof } ->
-					%trace_utils:debug( "Port monitor ~p received eof (second).",
-					%				   [ self() ] ),
+					%trace_utils:debug( "Port monitor ~p received eof "
+					%                   "(second).", [ self() ] ),
 
 					port_close( Port ),
 
@@ -756,7 +793,8 @@ monitor_port( Port, Data ) ->
 		% Added by ourselves so that we can avoid process leakage:
 		terminate_port ->
 
-			%trace_utils:debug_fmt( "Port monitor ~p terminating.", [ self() ] ),
+			%trace_utils:debug_fmt( "Port monitor ~p terminating.",
+			%                       [ self() ] ),
 
 			% Anyway no PID to send information to:
 			port_terminated
@@ -790,7 +828,7 @@ evaluate_shell_expression( Expression, Environment ) ->
 	FullExpression = get_actual_expression( Expression, Environment ),
 
 	%trace_utils:debug_fmt( "Evaluation shell expression '~s' "
-	%					   "in environment ~s.", [ FullExpression,
+	%						"in ~s", [ FullExpression,
 	%						   environment_to_string( Environment ) ] ),
 
 	% No return code available, success supposed:
@@ -802,8 +840,9 @@ evaluate_shell_expression( Expression, Environment ) ->
 
 
 
-% Executes asynchronously, in the background, specified executable with
-% parameters, in a standard environment.
+% Executes asynchronously, in the background, specified executable (with no
+% specific parameter nor port option, and from the current directory), in a
+% standard shell environment.
 %
 % As a consequence it returns no return code (exit status) nor output.
 %
@@ -815,13 +854,14 @@ evaluate_shell_expression( Expression, Environment ) ->
 % instead.
 %
 -spec run_background_executable( command() ) -> void().
-run_background_executable( Command ) ->
-	run_background_executable( Command, get_standard_environment() ).
+run_background_executable( ExecPath ) ->
+	run_background_executable( ExecPath, get_standard_environment() ).
 
 
 
-% Executes asynchronously, in the background, specified shell command, in
-% specified environment.
+% Executes asynchronously, in the background, specified executable (with no
+% specific parameter nor port option, and from the current directory), in the
+% specified shell environment.
 %
 % As a consequence it returns no return code (exit status) nor output.
 %
@@ -832,14 +872,16 @@ run_background_executable( Command ) ->
 % leak, one should consider using evaluate_background_shell_expression/2
 % instead.
 %
--spec run_background_executable( command(), environment() ) -> void().
-run_background_executable( Command, Environment ) ->
-	run_background_executable( Command, Environment, _WorkingDir=undefined ).
+-spec run_background_executable( command(),
+								 environment() ) -> void().
+run_background_executable( ExecPath, Environment ) ->
+	run_background_executable( ExecPath, Environment, _WorkingDir=undefined ).
 
 
 
-% Executes asynchronously, in the background, specified shell command, in
-% specified environment.
+% Executes asynchronously, in the background, specified executable (with no
+% specific parameter nor port option), in the specified shell environment and
+% from the specified working directory.
 %
 % As a consequence it returns no return code (exit status) nor output.
 %
@@ -850,17 +892,50 @@ run_background_executable( Command, Environment ) ->
 % leak, one should consider using evaluate_background_shell_expression/2
 % instead.
 %
--spec run_background_executable( command(), environment(), working_dir() ) ->
-									   void().
-run_background_executable( Command, Environment, WorkingDir ) ->
+-spec run_background_executable( command(), environment(),
+								 maybe( working_dir() ) ) -> void().
+run_background_executable( ExecPath, Environment, MaybeWorkingDir ) ->
+	run_background_executable( ExecPath, Environment, MaybeWorkingDir,
+							   _PortOptions=[] ).
+
+
+
+% Executes asynchronously, in the background, specified executable, in the
+% specified shell environment and working directory, with specified options
+% (possibly containing any relevant command-line arguments; see
+% http://erlang.org/doc/man/erlang.html#open_port-2).
+%
+% As a consequence it returns no return code (exit status) nor output.
+%
+% For that, as it is a process-blocking operation in Erlang, a dedicated process
+% is spawned (and most probably lost).
+%
+% If this function is expected to be called many times, to avoid the process
+% leak, one should consider using evaluate_background_shell_expression/2
+% instead.
+%
+-spec run_background_executable( command(), environment(),
+				 maybe( working_dir() ), [ port_option() ] ) -> void().
+run_background_executable( Command, Environment, MaybeWorkingDir,
+						   PortOptions ) ->
+
+	%trace_utils:debug_fmt( "Running executable '~s' with ~s "
+	%   "from working directory '~s', with options ~p.",
+	%   [ ExecPath, environment_to_string( Environment ), MaybeWorkingDir,
+	%     PortOptions ] ),
 
 	% Apparently using a port-based launch and a background execution will block
 	% the current process, so we sacrifice a process here - yet we monitor it:
 	%
 	spawn_link( fun() ->
-					_Port = run_executable( Command, Environment, WorkingDir )
-					% Not very useful, as nothing to monitor normally:
-					%monitor_port( Port, _Data=[] )
+
+					ExecOutcome = run_executable( Command, Environment,
+											MaybeWorkingDir, PortOptions ),
+
+					% Does not seem to be ever executed:
+					trace_utils:debug_fmt( "Execution outcome: ~p.",
+										   [ ExecOutcome ] )
+
 				end ).
 
 
@@ -887,6 +962,10 @@ evaluate_background_shell_expression( Expression ) ->
 evaluate_background_shell_expression( Expression, Environment ) ->
 
 	FullExpression = get_actual_expression( Expression, Environment ),
+
+	%trace_utils:debug_fmt(
+	%  "Evaluating in the background following shell expression: '~s'.",
+	%  [ FullExpression ] ),
 
 	os:cmd( FullExpression ++ " &" ).
 
@@ -973,6 +1052,9 @@ environment_to_string() ->
 
 % Returns a textual description of the specified shell environment.
 -spec environment_to_string( environment() ) -> string().
+environment_to_string( _Environment=[] ) ->
+	"an empty shell environment";
+
 environment_to_string( Environment ) ->
 
 	{ SetVars, UnsetVars } = lists:partition(
@@ -1003,7 +1085,8 @@ environment_to_string( Environment ) ->
 
 	end,
 
-	text_utils:strings_to_string( FinalVariableStrings ).
+	"following shell environment: "
+		++ text_utils:strings_to_string( FinalVariableStrings ).
 
 
 
@@ -2316,8 +2399,8 @@ get_dependency_base_directory( PackageName="ErlPort" ) ->
 
 			% Then trying default path:
 
-			PathComponents = [ get_user_home_directory(), "Software", PackageName,
-							   "erlport" ],
+			PathComponents = [ get_user_home_directory(), "Software",
+							   PackageName, "erlport" ],
 
 			DefaultDir = file_utils:normalise_path(
 						   file_utils:join( PathComponents ) ),
@@ -2325,8 +2408,8 @@ get_dependency_base_directory( PackageName="ErlPort" ) ->
 			case file_utils:is_existing_directory_or_link( DefaultDir ) of
 
 				true ->
-					trace_utils:debug_fmt( "Using default Erlport directory '~s'.",
-										   [ DefaultDir ] ),
+					trace_utils:debug_fmt( "Using default Erlport directory "
+										   "'~s'.", [ DefaultDir ] ),
 					DefaultDir;
 
 				false ->
@@ -2347,9 +2430,9 @@ get_dependency_base_directory( PackageName="ErlPort" ) ->
 					case file_utils:is_existing_directory_or_link( EnvDir ) of
 
 						true ->
-							trace_utils:debug_fmt( "Using the Erlport directory "
-								"specified in the ERLPORT_BASE_DIR environment "
-								"variable: '~s'.", [ EnvDir ] ),
+							trace_utils:debug_fmt( "Using the Erlport "
+								"directory specified in the ERLPORT_BASE_DIR "
+								"environment variable: '~s'.", [ EnvDir ] ),
 							EnvDir;
 
 						false ->

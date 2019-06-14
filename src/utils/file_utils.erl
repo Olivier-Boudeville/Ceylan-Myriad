@@ -208,9 +208,9 @@
 
 % The various permissions that can be combined for file-like elements:
 -type permission() :: 'owner_read' | 'owner_write' | 'owner_execute'
-					  | 'group_read' | 'group_write' | 'group_execute'
-					  | 'other_read' | 'other_write' | 'other_execute'
-					  | 'set_user_id' | 'set_group_id'.
+					| 'group_read' | 'group_write' | 'group_execute'
+					| 'other_read' | 'other_write' | 'other_execute'
+					| 'set_user_id' | 'set_group_id'.
 
 
 -export_type([ path/0, bin_path/0, any_path/0,
@@ -1593,8 +1593,8 @@ ensure_path_is_absolute( Path ) ->
 
 
 
-% Returns an absolute path corresponding to specified path, using base path as
-% root directory (this must be an absolute path).
+% Returns an absolute, normalised path corresponding to specified path, using
+% base path as root directory (this must be an absolute path).
 %
 % Ex: ensure_path_is_absolute( "tmp/foo", "/home/dalton" ) will return
 % "/home/dalton/tmp/foo".
@@ -1613,7 +1613,7 @@ ensure_path_is_absolute( TargetPath, BasePath ) ->
 			case is_absolute_path( BasePath ) of
 
 				true ->
-					join( BasePath, TargetPath );
+					normalise_path( join( BasePath, TargetPath ) );
 
 				false ->
 					throw( { base_path_not_absolute, BasePath } )
@@ -1834,7 +1834,7 @@ open( Filename, Options ) ->
 
 % Opens the file corresponding to specified filename (first parameter) with
 % specified list of options (second parameter; refer to file:open/2 for detailed
-% documentation).
+% documentation, see http://erlang.org/doc/man/file.html#open-2).
 %
 % Third parameter is the "attempt mode", either 'try_once', 'try_endlessly' or
 % 'try_endlessly_safer', depending respectively on whether we want to try to
