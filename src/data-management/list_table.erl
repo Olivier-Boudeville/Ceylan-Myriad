@@ -47,7 +47,9 @@
 % smaller table (and only them)
 %
 % They are to provide the same API (signatures and contracts).
-
+%
+% See also: list_utils.erl
+%
 -module(list_table).
 
 

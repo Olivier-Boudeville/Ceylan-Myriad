@@ -139,6 +139,12 @@
 -type bin_file_path() :: binary().
 
 
+% Could also be the more general file:name_all():
+-type any_file_name() :: file_name() | bin_file_name().
+
+-type any_file_path() :: file_path() | bin_file_path().
+
+
 % Designates an executable, generally without a path (ex: "foobar"):
 -type executable_name() :: file_name().
 
@@ -160,8 +166,13 @@
 -type directory_name() :: path().
 -type bin_directory_name() :: binary().
 
+-type any_directory_name() :: directory_name() | bin_directory_name().
+
+
 -type directory_path() :: path().
 -type bin_directory_path() :: binary().
+
+-type any_directory_path() :: directory_path() | bin_directory_path().
 
 
 
@@ -207,15 +218,17 @@
 
 
 % The various permissions that can be combined for file-like elements:
--type permission() :: 'owner_read' | 'owner_write' | 'owner_execute'
-					| 'group_read' | 'group_write' | 'group_execute'
-					| 'other_read' | 'other_write' | 'other_execute'
+-type permission() :: 'owner_read'  | 'owner_write' | 'owner_execute'
+					| 'group_read'  | 'group_write' | 'group_execute'
+					| 'other_read'  | 'other_write' | 'other_execute'
 					| 'set_user_id' | 'set_group_id'.
 
 
 -export_type([ path/0, bin_path/0, any_path/0,
 			   file_name/0, filename/0, file_path/0,
 			   bin_file_name/0, bin_file_path/0,
+			   any_file_name/0, any_file_path/0,
+			   any_directory_name/0, any_directory_path/0,
 			   executable_name/0, executable_path/0, bin_executable_path/0,
 			   script_path/0, bin_script_path/0,
 			   directory_name/0, bin_directory_name/0,
@@ -985,8 +998,8 @@ list_files_in_subdirs_with_extension( _Dirs=[ H | T ], Extension, RootDir,
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
 %
--spec find_files_with_excluded_dirs( directory_name(), [ directory_name() ] )
-		-> [ file_name() ].
+-spec find_files_with_excluded_dirs( directory_name(),
+									 [ directory_name() ] ) -> [ file_name() ].
 find_files_with_excluded_dirs( RootDir, ExcludedDirList ) ->
 	find_files_with_excluded_dirs( RootDir, _CurrentRelativeDir="",
 								  ExcludedDirList, _Acc=[] ).
@@ -1314,14 +1327,14 @@ create_temporary_directory() ->
 
 
 
-% Removes (deletes) specified file, specified as a plain string.
+% Removes (deletes) specified file, specified as any kind of string.
 %
 % Throws an exception if any problem occurs.
 %
--spec remove_file( file_name() ) -> void().
+-spec remove_file( any_file_name() ) -> void().
 remove_file( Filename ) ->
 
-	%io:format( "## Removing file '~s'.~n", [ Filename ] ),
+	%trace_utils:warning_fmt( "## Removing file '~s'.", [ Filename ] ),
 
 	case file:delete( Filename ) of
 
@@ -1335,17 +1348,17 @@ remove_file( Filename ) ->
 
 
 
-% Removes (deletes) specified files, specified as a list of plain strings.
--spec remove_files( [ file_name() ] ) -> void().
+% Removes (deletes) specified files, specified as a list of any kind of strings.
+-spec remove_files( [ any_file_name() ] ) -> void().
 remove_files( FilenameList ) ->
 	[ remove_file( Filename ) || Filename <- FilenameList ].
 
 
 
-% Removes specified file, specified as a plain string, iff it is already
+% Removes specified file, specified as any kind of string, iff it is already
 % existing, otherwise does nothing.
 %
--spec remove_file_if_existing( file_name() ) -> void().
+-spec remove_file_if_existing( any_file_name() ) -> void().
 remove_file_if_existing( Filename ) ->
 
 	case is_existing_file( Filename ) of
@@ -1360,20 +1373,21 @@ remove_file_if_existing( Filename ) ->
 
 
 
-% Removes each specified file, in specified list of plain strings, iff it is
-% already existing.
+% Removes each specified file, in specified list of any kind of strings, iff it
+% is already existing.
 %
--spec remove_files_if_existing( [ file_name() ] ) -> void().
+-spec remove_files_if_existing( [ any_file_name() ] ) -> void().
 remove_files_if_existing( FilenameList ) ->
 	[ remove_file_if_existing( Filename ) || Filename <- FilenameList ].
 
 
 
 % Removes specified directory, which must be empty.
--spec remove_directory( directory_name() ) -> void().
+-spec remove_directory( any_directory_name() ) -> void().
 remove_directory( DirectoryName ) ->
 
-	%io:format( "## Removing directory '~s'.~n", [ DirectoryName ] ),
+	%trace_utils:warning_fmt( "## Removing directory '~s'.",
+	%                         [ DirectoryName ] ),
 
 	case file:del_dir( DirectoryName ) of
 
@@ -1472,8 +1486,8 @@ rename( SourceFilename, DestinationFilename ) ->
 -spec move_file( file_name(), file_name() ) -> void().
 move_file( SourceFilename, DestinationFilename ) ->
 
-	%io:format( "## Moving file '~s' to '~s'.~n",
-	%		   [ SourceFilename, DestinationFilename ] ),
+	%trace_utils:warning_fmt( "## Moving file '~s' to '~s'.",
+	%						  [ SourceFilename, DestinationFilename ] ),
 
 	%copy_file( SourceFilename, DestinationFilename ),
 	%remove_file( SourceFilename ).
@@ -2033,14 +2047,16 @@ write( File, FormatString, Values ) ->
 
 
 
-% Reads the content of the specified file, based on its filename specified as a
-% plain string, and returns the corresponding binary, or throws an exception on
-% failure.
+% Reads the content of the specified file, based on its filename specified as
+% any kind of string (plain, binary, atom, etc.), and returns the corresponding
+% binary, or throws an exception on failure.
 %
 % See also: read_terms/1 to read directly Erlang terms.
 %
--spec read_whole( file_name() ) -> binary().
+-spec read_whole( any_file_name() ) -> binary().
 read_whole( Filename ) ->
+
+	%trace_utils:debug_fmt( "Reading as a whole '~s'.", [ Filename ] ),
 
 	case file:read_file( Filename ) of
 
@@ -2054,13 +2070,18 @@ read_whole( Filename ) ->
 
 
 
-% Writes the specified binary in specified file, whose filename is specified as
-% a plain string. Throws an exception on failure.
+% Writes the specified content in specified file, whose filename is specified as
+% any kind of string.
 %
--spec write_whole( file_name(), binary() ) -> void().
-write_whole( Filename, Binary ) ->
+% Throws an exception on failure.
+%
+-spec write_whole( any_file_name(), string() | binary() ) -> void().
+write_whole( Filename, StringContent ) when is_list( StringContent ) ->
+	write_whole( Filename, text_utils:string_to_binary( StringContent ) );
 
-	case file:write_file( Filename, Binary ) of
+write_whole( Filename, BinaryContent ) ->
+
+	case file:write_file( Filename, BinaryContent ) of
 
 		ok ->
 			ok;
@@ -2450,16 +2471,18 @@ files_to_zipped_term( FilenameList ) ->
 %
 % Returns a binary.
 %
--spec files_to_zipped_term( [ file_name() ], directory_name() ) -> binary().
+-spec files_to_zipped_term( [ any_file_name() ], directory_name() ) -> binary().
 files_to_zipped_term( FilenameList, BaseDirectory ) ->
 
 	DummyFileName = "dummy",
 
-	%io:format( "files_to_zipped_term operating from ~s on files: ~p.~n",
-	%		  [ BaseDirectory, FilenameList ] ),
+	%trace_utils:info_fmt( "files_to_zipped_term operating, from '~s', "
+	%					   "on following ~B files:~n~s.",
+	%					   [ BaseDirectory, length( FilenameList ),
+	%						 text_utils:terms_to_string( FilenameList ) ] ),
 
 	 case zip:zip( DummyFileName, FilenameList,
-						[ memory, { cwd, BaseDirectory } ] ) of
+				   [ memory, { cwd, BaseDirectory } ] ) of
 
 		 { ok, { _DummyFileName, Bin } } ->
 			 Bin;
@@ -2469,12 +2492,12 @@ files_to_zipped_term( FilenameList, BaseDirectory ) ->
 
 			 % Such a short error might be difficult to diagnose:
 
-			 %io:format( "~nfiles_to_zipped_term/2 failed from '~s':~n"
-			 %			"~n - directory '~p' exists? ~p",
+			 %trace_utils:warning_fmt( "files_to_zipped_term/2 failed "
+			 %  "from '~s':~n~n - directory '~p' exists? ~p",
 			 %		[ get_current_directory(), BaseDirectory,
-			 %			is_existing_directory( BaseDirectory ) ] ),
+			 %		  is_existing_directory( BaseDirectory ) ] ),
 
-			 % [ io:format( "~n - file '~p' exists? ~p", [ F,
+			 % [ trace_utils:warning_fmt( "~n - file '~p' exists? ~p", [ F,
 			 %	   is_existing_file( F ) ] ) || F <- FilenameList ],
 
 			 throw( { zip_failed, BaseDirectory, FilenameList } );

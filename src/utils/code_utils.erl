@@ -46,7 +46,8 @@
 		  interpret_stacktrace/1,
 		  interpret_stacktrace/2,
 		  interpret_stack_item/2,
-		  display_stacktrace/0 ]).
+		  display_stacktrace/0,
+		  interpret_undef_exception/3 ]).
 
 
 
@@ -585,3 +586,58 @@ display_stacktrace() ->
 
 	trace_utils:trace_fmt( "Current stacktrace is (latest calls first): ~s~n",
 						   [ interpret_stacktrace( StackTrace ) ] ).
+
+
+
+% Interprets an undef exception, typically after it has been raised.
+-spec interpret_undef_exception( basic_utils:module_name(),
+		 basic_utils:function_name(), arity() ) -> text_utils:ustring().
+interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
+
+	case code_utils:is_beam_in_path( ModuleName ) of
+
+		not_found ->
+			text_utils:format( "no module ~s found in code path, "
+							   "explaining why its ~s/~B function is "
+							   "reported as being undefined; ~s",
+							   [ ModuleName, FunctionName, Arity,
+								 code_utils:get_code_path_as_string() ] );
+
+
+		_ModulePath ->
+
+			case meta_utils:get_arities_for( ModuleName,
+											 FunctionName ) of
+
+				[] ->
+					text_utils:format( "module ~s found in code path, yet "
+									   "it does not export a ~s function "
+									   "(for any arity)",
+									   [ ModuleName, FunctionName ] );
+
+				Arities ->
+					case lists:member( Arity, Arities ) of
+
+						true ->
+							% Should never happen?
+							text_utils:format(
+							  "module ~s found in code path, and "
+							  "it exports the ~s/~B function indeed",
+							  [ ModuleName, FunctionName, Arity ] );
+
+						false ->
+							text_utils:format(
+							  "module ~s found in code path, yet "
+							  "it does export a ~s/~B function; "
+							  "as it exports this function for "
+							  "other arities (i.e. ~w), maybe the call to "
+							  "that function was made with a wrong number "
+							  "of parameters",
+							  [ ModuleName, FunctionName, Arity,
+								lists:sort( Arities ) ] )
+
+					end
+
+			end
+
+	end.

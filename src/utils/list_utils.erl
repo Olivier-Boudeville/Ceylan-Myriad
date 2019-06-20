@@ -30,7 +30,7 @@
 %
 % See list_utils_test.erl for the corresponding test.
 %
-% See also: set_utils.erl
+% See also: set_utils.erl and list_table.erl.
 %
 -module(list_utils).
 

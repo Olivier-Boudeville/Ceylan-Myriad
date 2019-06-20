@@ -632,7 +632,6 @@ if [ -n $prefix ] ; then
 	${LN} -sf lib/observer-*/priv/bin/cdv
 
 	# The same for JInterface:
-	#
 	${LN} -sf lib/jinterface-* jinterface
 
 	# Then go again in the install (not source) tree to create the base link:
