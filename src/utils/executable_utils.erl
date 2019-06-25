@@ -59,6 +59,9 @@
 		 get_default_image_browser_name/0,
 		 get_default_image_browser_path/0,
 
+		 get_default_web_browser_name/0,
+		 get_default_web_browser_path/0,
+
 		 get_default_pdf_viewer_name/0,
 		 get_default_pdf_viewer_path/0,
 
@@ -492,6 +495,19 @@ get_default_image_browser_name() ->
 -spec get_default_image_browser_path() -> file_utils:file_name().
 get_default_image_browser_path() ->
 	find_executable( get_default_image_browser_name() ).
+
+
+
+% Returns the name of the default web browser.
+-spec get_default_web_browser_name() -> string().
+get_default_web_browser_name() ->
+	"firefox".
+
+
+% Returns an absolute path to the default web browser tool.
+-spec get_default_web_browser_path() -> file_utils:file_name().
+get_default_web_browser_path() ->
+	find_executable( get_default_web_browser_name() ).
 
 
 

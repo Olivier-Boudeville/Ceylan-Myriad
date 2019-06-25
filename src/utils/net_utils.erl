@@ -37,12 +37,12 @@
 
 
 
-% Host-related functions.
+% Host-related functions:
 -export([ ping/1, localhost/0, localhost/1,
 		  get_local_ip_addresses/0, get_local_ip_address/0, reverse_lookup/1 ]).
 
 
-% Node-related functions.
+% Node-related functions:
 -export([ localnode/0, get_all_connected_nodes/0,
 		  check_node_availability/1, check_node_availability/2,
 		  get_node_naming_mode/0, get_naming_compliant_hostname/2,
@@ -52,16 +52,20 @@
 		  shutdown_node/0, shutdown_node/1 ]).
 
 
-% Net-related command line options.
+% Net-related command line options:
 -export([ get_cookie_option/0, get_epmd_environment/1, get_node_name_option/2,
 		  get_tcp_port_range_option/1, get_basic_node_launching_command/5 ]).
 
 
-% Net-related transfers.
+% Net-related transfers:
 -export([ send_file/2, receive_file/1, receive_file/2, receive_file/3 ]).
 
 
-% Address-related functions.
+% Server-related functions:
+-export([ is_service_running_at/1 ]).
+
+
+% Address-related functions:
 -export([ is_routable/1 ]).
 
 
@@ -1469,6 +1473,33 @@ receive_file_chunk( DataSocket, OutputFile ) ->
 
 	end.
 
+
+
+% Tells whether a service (socket) is running on the local host at specified
+% TCP port.
+%
+-spec is_service_running_at( tcp_port() ) -> boolean().
+is_service_running_at( TCPPort ) ->
+
+	%trace_utils:debug_fmt( "Testing local service availability at port #~B...",
+	%						[ TCPPort ] ),
+
+	% Presumably a lot quicker than attempting to connect:
+	case gen_tcp:listen( TCPPort, _Opts=[] ) of
+
+		{ ok, Socket } ->
+			gen_tcp:close( Socket ),
+			false;
+
+		{ error, _Error=eaddrinuse } ->
+			true;
+
+		{ error, Error } ->
+			trace_utils:error_fmt( "Error when testing service availability "
+								   "at local TCP port #~B: ~p", [ TCPPort, Error ] ),
+			throw( { unexpected_error, Error, TCPPort } )
+
+	end.
 
 
 

@@ -55,7 +55,6 @@
 
 
 % No legit sortable identifier can be smaller than that one:
-%
 -define( lower_bound_id, [ 0 ] ).
 
 
@@ -170,7 +169,6 @@ generate_uuid() ->
 
 
 % Quick and dirty replacement:
-%
 uuidgen_internal() ->
 
 	% Using /dev/random instead would incur waiting of a few seconds that were
@@ -209,7 +207,6 @@ get_initial_sortable_id() ->
 
 
 % Returns a relevant sortable identifier that is superior to the specified one.
-%
 -spec get_next_sortable_id( sortable_id() ) -> sortable_id().
 get_next_sortable_id( Id ) ->
 	get_higher_same_depth_sortable_id( Id ).
@@ -340,7 +337,6 @@ get_sortable_id_upper_bound() ->
 
 
 % Checks that the specified sortable identifier is legit.
-%
 -spec check_sortable_id( sortable_id() ) -> basic_utils:void().
 check_sortable_id( _Id=[] ) ->
 	throw( { invalid_sortable_identifier, empty_list } );
@@ -626,7 +622,6 @@ assign_in_turn_ids( LowerId, HigherId, _ElemsToIdentify=[ E | T ],
 
 
 % Returns a textual representation of specified sortable identifier.
-%
 -spec sortable_id_to_string( sortable_id() ) -> text_utils:ustring().
 sortable_id_to_string( _Id=?lower_bound_id ) ->
 	"lower bound";
@@ -641,7 +636,6 @@ sortable_id_to_string( Id ) ->
 
 
 % Returns a textual representation of specified sortable identifiers.
-%
 -spec sortable_ids_to_string( [ sortable_id() ] ) -> text_utils:ustring().
 sortable_ids_to_string( _Ids=[] ) ->
 	"(no sortable id)";
@@ -653,7 +647,6 @@ sortable_ids_to_string( Ids ) ->
 
 
 % Returns a textual representation of specified table of sortable identifiers.
-%
 -spec identifier_table_to_string( identifier_table() ) -> text_utils:ustring().
 identifier_table_to_string( IdentifierTable ) ->
 

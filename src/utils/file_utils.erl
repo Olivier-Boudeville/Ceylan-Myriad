@@ -39,7 +39,10 @@
 
 % Filename-related operations.
 %
-% See also: filename:dirname/1 and basename:dirname/1.
+% See also: filename:dirname/1 and filename:basename/1.
+% Ex:
+%  - filename:dirname("/aaa/bbb.txt") = "/aaa"
+%  - filename:basename("/aaa/bbb.txt") = "bbb.txt"
 %
 -export([ join/1, join/2, convert_to_filename/1,
 		  get_extensions/1, get_extension/1, replace_extension/3,
@@ -119,6 +122,7 @@
 -type path() :: string().
 -type bin_path() :: binary().
 
+% We do not believe that atoms shall be legit paths:
 -type any_path() :: path() | bin_path().
 
 
@@ -244,37 +248,111 @@
 % Filename-related operations.
 
 
+% Platform-specific:
+
+% UNIX conventions:
+-define( directory_separator, $/ ).
+
+% Windows conventions:
+%-define( directory_separator, $\ ).
+
+
+
 % Joins the specified list of path elements.
 %
-% Note: join/1 added back to file_utils, filename:join( Components ) can be used
-% instead. However filename:join( [ "", "my_dir" ] ) results in "/my_dir",
-% whereas often we would want "my_dir", which is returned by file_utils:join/1.
+% This function has been added back to this module; filename:join( Components )
+% could be used instead (at least to some extent), however filename:join( [ "",
+% "my_dir" ] ) results in "/my_dir", whereas often we would want "my_dir"
+% instead - which is returned by our function; moreover, if one of the
+% components includes an absolute path (such as "/xxx" with Unix conventions),
+% the preceding components, if any, were removed from the result (which does not
+% seem desirable); here we throw an exception instead.
+%
+% So we deem our version simpler and less prone to surprise (least
+% astonishment).
 %
 -spec join( [ any_path() ] ) -> any_path().
-% Skips only initial empty strings (ex: not binary ones):
-join( _ComponentList=[ "" | T ] ) ->
-	filename:join( T );
-
 join( ComponentList ) ->
-	filename:join( ComponentList ).
+	lists:foldr( fun join/2, _Acc0="", _List=ComponentList ).
 
 
 
 % Joins the two specified path elements.
 %
-% Note: join/2 added back to file_utils, filename:join( Name1, Name2 ) can be
-% used instead. However filename:join( "", "my_dir" ) results in "/my_dir",
-% whereas often we would want "my_dir", which is returned by file_utils:join/2.
+% This function has been added back to this module; filename:join( Name1, Name2
+% ) could be used instead (at least to some extent); however filename:join( "",
+% "my_dir" ) results in "/my_dir", whereas often we would want "my_dir" - which
+% is returned by our function; moreover filename:join( SomePath, AbsPath= [
+% ?directory_separator | _ ] ) returns AbsPath, dropping SomePath for some
+% reason (which does not seem desirable); here we throw an exception instead.
+%
+% So we deem our version simpler and less prone to surprise (least
+% astonishment).
 %
 -spec join( any_path(), any_path() ) -> any_path().
-% Skips only initial empty strings (ex: not binary ones):
+% Skips only initial empty paths of all sorts:
 join( _FirstPath="", SecondPath ) ->
 	SecondPath ;
 
+join( _FirstPath= <<"">>, SecondPath ) ->
+	SecondPath ;
+
+% If second is string (already):
+join( FirstPath, SecondPath=[ ?directory_separator | _ ] ) ->
+	throw( { rightwise_absolute_directory, SecondPath,
+			 { leftwise, FirstPath } } );
+
+join( FirstPath, SecondPath ) when is_binary( FirstPath ) ->
+	join( text_utils:binary_to_string( FirstPath ), SecondPath );
+
+% Second as string to match separator above:
+join( FirstPath, SecondPath ) when is_binary( SecondPath ) ->
+	join( FirstPath, text_utils:binary_to_string( SecondPath ) );
+
+% Both are strings from this point:
+join( FirstPath, _SecondPath="" ) ->
+	% We do not want to add a trailing separator (ex: "/home/lisa", not
+	% "/home/lisa/"):
+	%
+	FirstPath;
+
 join( FirstPath, SecondPath ) ->
-	filename:join( FirstPath, SecondPath ).
+
+	% First as at least one element by design; avoid adding an extra separator:
+	%
+	% (we do not use list_utils:get_last_element/1 here as we do not want this
+	% very common function of the file_utils module to depend on a list_utils
+	% one):
+	%
+	case get_last_element( FirstPath ) of
+
+		?directory_separator ->
+			text_utils:format( "~s~s", [ FirstPath, SecondPath ] );
+
+		_ ->
+			text_utils:format( "~s~c~s",
+					   [ FirstPath, ?directory_separator, SecondPath ] )
+
+	end.
 
 
+
+% Duplicated verbatim from list_utils, so that file_utils can remain a mostly
+% autonomous, pioneer module.
+%
+% Returns the last element of the specified list.
+%
+% Note: not computationnally efficient, usually having to retrieve the last
+% element suggests a bad code design.
+%
+% Crashes (with 'no function clause') if the input list is empty.
+%
+%-spec get_last_element( list() ) -> element().
+get_last_element( _List=[ SingleElement ] ) ->
+	SingleElement;
+
+get_last_element( _List=[ _H | T ] ) ->
+	get_last_element( T ).
 
 
 
@@ -1655,6 +1733,8 @@ normalise_path( Path ) when is_list( Path ) ->
 
 	ElemList = filename:split( Path ),
 
+	%trace_utils:debug_fmt( "ElemList: ~p", [ ElemList ] ),
+
 	join( filter_elems( ElemList, _Acc=[] ) );
 
 normalise_path( BinPath ) when is_binary( BinPath ) ->
@@ -2081,9 +2161,24 @@ write_whole( Filename, StringContent ) when is_list( StringContent ) ->
 
 write_whole( Filename, BinaryContent ) ->
 
+	%trace_utils:debug_fmt( "Writing to '~s' following content:~n~s",
+	%					   [ Filename, BinaryContent ] ),
+
 	case file:write_file( Filename, BinaryContent ) of
 
 		ok ->
+			% Useless, paranoid checking:
+			%case is_existing_file( Filename ) of
+			%
+			%	true ->
+			%		trace_utils:debug_fmt( "'~s' written as a whole.",
+			%							   [ Filename ] ),
+			%		ok;
+			%
+			%	false ->
+			%		throw( { write_whole_failed, Filename, no_file } )
+			%
+			%end;
 			ok;
 
 		{ error, Error } ->
