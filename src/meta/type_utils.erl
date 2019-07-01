@@ -293,7 +293,6 @@
 
 
 % Analoguous to function_id/0:
-%
 -type type_id() :: { type_name(), type_arity() }.
 
 
@@ -470,7 +469,6 @@
 
 
 % Type-related functions:
-%
 -export([ description_to_type/1, type_to_description/1, type_to_string/1,
 		  get_type_of/1, get_immediate_types/0, get_ast_simple_builtin_types/0,
 		  get_elementary_types/0, get_simple_builtin_types/0,
@@ -481,13 +479,11 @@
 
 
 % Conversion:
-%
 -export([ ensure_integer/1, ensure_float/1, ensure_number/1, ensure_boolean/1,
 		  ensure_string/1, ensure_binary/1 ]).
 
 
 % Checking:
-%
 -export([ check_atom/1 ]).
 
 
@@ -534,7 +530,6 @@ description_to_type( TypeDescription ) ->
 	%end.
 
 % Last: all other types.
-%
 scan_type( _TypeDescription ) ->
 	% Most imprecise (yet correct) type (commented-out as may hide issues):
 	any.
@@ -544,12 +539,10 @@ scan_type( _TypeDescription ) ->
 
 
 % Splits the specified type description according to union delimiters
-%
 -spec tokenise_per_union( type_description() ) -> [ type_description() ].
 tokenise_per_union( TypeDescription ) ->
 
 	% We track the nesting depth and only fetch the top-level union members;
-	%
 	InitialNestingDepth = { _P=0, _B=0 },
 	parse_nesting( TypeDescription, InitialNestingDepth ).
 
@@ -635,7 +628,6 @@ type_to_description( Type ) ->
 
 
 % Returns a textual representation of the specified type.
-%
 -spec type_to_string( type() ) -> string().
 type_to_string( Type ) ->
 	type_to_description( Type ).
@@ -710,7 +702,6 @@ get_type_of( Term ) when is_reference( Term ) ->
 
 
 % Returns a list of the possible types for immediate values.
-%
 -spec get_immediate_types() -> [ type_name() ].
 get_immediate_types() ->
 	% Not sure this list is very accurate or relevant:
@@ -753,8 +744,7 @@ get_ast_simple_builtin_types() ->
 	  'non_neg_integer', 'pid', 'reference', 'port' ].
 
 
-% Returns a list of the elementary, "atomic" types
-%
+% Returns a list of the elementary, "atomic" types.
 -spec get_elementary_types() -> [ type_name() ].
 get_elementary_types() ->
 	get_immediate_types() ++
@@ -960,7 +950,6 @@ ensure_float( N ) ->
 
 
 % Ensures that specified term is a number, and returns it.
-%
 -spec ensure_number( number() ) -> number().
 ensure_number( N ) when is_number( N ) ->
 	N;
@@ -971,7 +960,6 @@ ensure_number( N ) ->
 
 
 % Ensures that specified term is a boolean, and returns it.
-%
 -spec ensure_boolean( term() ) -> boolean().
 ensure_boolean( B ) when is_boolean( B ) ->
 	B;
@@ -982,7 +970,6 @@ ensure_boolean( B ) ->
 
 
 % Ensures that specified term is a string, and returns it.
-%
 -spec ensure_string( term() ) -> string().
 ensure_string( S ) ->
 	text_utils:ensure_string( S ).
@@ -990,7 +977,6 @@ ensure_string( S ) ->
 
 
 % Ensures that specified term is a binary string, and returns it.
-%
 -spec ensure_binary( term() ) -> string().
 ensure_binary( S ) ->
 	text_utils:ensure_binary( S ).
@@ -998,7 +984,6 @@ ensure_binary( S ) ->
 
 
 % Checks that specified term is an atom indeed.
-%
 -spec check_atom( term() ) -> atom().
 check_atom( Atom ) when is_atom( Atom ) ->
 	Atom;
