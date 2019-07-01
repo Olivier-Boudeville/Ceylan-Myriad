@@ -141,6 +141,8 @@ new( ExpectedNumberOfEntries ) when is_integer( ExpectedNumberOfEntries ) ->
 % If the same key appears more than once, the latter (right-most) value is used
 % and the previous values are ignored.
 %
+% Throws bad_arg if a non-pair term is found in this list.
+%
 new( InitialEntries ) when is_list( InitialEntries ) ->
 	maps:from_list( InitialEntries ).
 
