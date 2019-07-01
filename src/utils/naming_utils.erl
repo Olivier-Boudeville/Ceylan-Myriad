@@ -50,6 +50,7 @@
 		  display_registered/0 ]).
 
 
+% Necessarily an atom:
 -type registration_name() :: atom().
 
 
@@ -74,7 +75,9 @@
 % Note that:
 % - only local processes can be registered locally
 % - a given PID cannot be registered globally under more than one name
-
+% - if a registered process terminates (for any of the two scopes), its name is
+% automatically unregistered (see
+% http://erlang.org/doc/reference_manual/processes.htmlhttp://erlang.org/doc/man/global.html)
 
 
 
@@ -218,6 +221,9 @@ register_or_return_registered( Name, Scope ) when is_atom( Name ) ->
 % Unregisters specified name from specified registry.
 %
 % Throws an exception in case of failure.
+%
+% Note: when a process terminates, it unregisters its name (if any)
+% automatically from all scopes.
 %
 -spec unregister( registration_name(), registration_scope() ) -> void().
 unregister( Name, local_only ) ->
