@@ -448,6 +448,9 @@ get_beam_dirs_for( VariableName ) ->
 % Allows to obtain the code path that shall be declared to the VM so that all
 % the corresponding BEAMs become available.
 %
+% The CEYLAN_MYRIAD environment variable must be defined and must point to the
+% corresponding root directory.
+%
 % Note: all code run from that function shall rely on plain Erlang, so that
 % Myriad itself can be made available with that module.
 %
@@ -474,8 +477,13 @@ declare_beam_dirs_for( VariableName ) ->
 % Declares automatically the relevant BEAM directories in the code path so that
 % Ceylan-Myriad can be fully usable from then on.
 %
-% Note: the determined directories are not specifically checked for existence,
-% and are added at the end of the code path.
+% Note:
+%
+% - the CEYLAN_MYRIAD environment variable must be defined and must point to the
+% corresponding root directory
+%
+% - the determined directories are not specifically checked for existence, and
+% are added at the end of the code path
 %
 -spec declare_beam_dirs_for_myriad() -> void().
 declare_beam_dirs_for_myriad() ->
