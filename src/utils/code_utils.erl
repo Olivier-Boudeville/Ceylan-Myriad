@@ -39,6 +39,8 @@
 		  deploy_modules/2, deploy_modules/3,
 		  declare_beam_directory/1, declare_beam_directory/2,
 		  declare_beam_directories/1, declare_beam_directories/2,
+		  get_beam_dirs_for/1, get_beam_dirs_for_myriad/0,
+		  declare_beam_dirs_for/1, declare_beam_dirs_for_myriad/0,
 		  get_code_path/0, get_code_path_as_string/0, code_path_to_string/1,
 		  list_beams_in_path/0, get_beam_filename/1, is_beam_in_path/1,
 		  get_stacktrace/0,
@@ -55,7 +57,7 @@
 % runtime elements (Erlang -pa/-pz, Python sys.path with PYTHONPATH, Java
 % classpath, etc.)
 %
--type code_path() :: [ file_utils:directory_name() ].
+-type code_path() :: [ file_utils:directory_path() ].
 
 
 %-type stack_location() :: [ { file, file_utils:path() },
@@ -78,6 +80,11 @@
 
 % The file extension of a BEAM file:
 -define( beam_extension, ".beam" ).
+
+
+% For the file_info record:
+-include_lib("kernel/include/file.hrl").
+
 
 
 % Code-related functions.
@@ -380,6 +387,99 @@ check_beam_dirs( _Dirs=[ D | T ] ) ->
 			throw( { non_existing_beam_directory, D } )
 
 	end.
+
+
+
+% Returns the (ordered) list of (absolute) runtime BEAM directories obtained
+% from the build system located in the directory designated as the value
+% associated to the specified environment variable name.
+%
+% Allows to obtain the code path that shall be declared to the VM so that all
+% the corresponding BEAMs become available.
+%
+% Note: all code run from that function shall rely on plain Erlang, so that
+% Myriad itself can be made available with that module. As a result, this module
+% can be copied or simply symlinked from any directory, and will be usable
+% (regarding the get_beam_dirs_for* functions) from there as such (i.e. with no
+% specific extra prerequisite to take into account).
+%
+% Ex: get_beam_dirs_for( "CEYLAN_MYRIAD" ).
+%
+-spec get_beam_dirs_for( system_utils:env_variable_name() ) -> code_path().
+get_beam_dirs_for( VariableName ) ->
+
+	case os:getenv( VariableName ) of
+
+		false ->
+			throw( { env_variable_not_set, VariableName } );
+
+		BaseDir ->
+			case file:read_link_info( BaseDir ) of
+
+				{ ok, #file_info{ type=directory } } ->
+					ok;
+
+				{ ok, #file_info{ type=symlink } } ->
+					ok;
+
+				{ ok , #file_info{ type=OtherType } } ->
+					throw( { invalid_filesystem_entry, OtherType, BaseDir } );
+
+				{ error, E } ->
+					throw( { directory_lookup_error, E, BaseDir } )
+
+			end,
+
+			Command = io_lib:format(
+						"cd ~s && make list-beam-dirs 2>/dev/null",
+						[ BaseDir ] ),
+
+			Dirs = string:tokens( os:cmd( Command ), _Sep="\n" ),
+			%io:format( "Dirs:~n~p", [ Dirs ] )
+			Dirs
+
+	end.
+
+
+
+% Returns the (ordered) list of (absolute) runtime BEAM directories
+% corresponding to this layer (i.e. the Ceylan-Myriad one).
+%
+% Allows to obtain the code path that shall be declared to the VM so that all
+% the corresponding BEAMs become available.
+%
+% Note: all code run from that function shall rely on plain Erlang, so that
+% Myriad itself can be made available with that module.
+%
+-spec get_beam_dirs_for_myriad() -> code_path().
+get_beam_dirs_for_myriad() ->
+	% Expected to be set by convention in the environment:
+	get_beam_dirs_for( "CEYLAN_MYRIAD" ).
+
+
+
+% Declares automatically the relevant BEAM directories in the code path so that
+% the layer whose base directory is designated as the value associated to the
+% specified environment variable name is fully usable from then on.
+%
+% Note: the determined directories are not specifically checked for existence,
+% and are added at the end of the code path.
+%
+-spec declare_beam_dirs_for( system_utils:env_variable_name() ) -> void().
+declare_beam_dirs_for( VariableName ) ->
+	code:add_pathsz( get_beam_dirs_for( VariableName ) ).
+
+
+
+% Declares automatically the relevant BEAM directories in the code path so that
+% Ceylan-Myriad can be fully usable from then on.
+%
+% Note: the determined directories are not specifically checked for existence,
+% and are added at the end of the code path.
+%
+-spec declare_beam_dirs_for_myriad() -> void().
+declare_beam_dirs_for_myriad() ->
+	code:add_pathsz( get_beam_dirs_for_myriad() ).
 
 
 
