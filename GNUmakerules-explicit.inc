@@ -16,8 +16,8 @@
 			  install-src install-include install-examples install-test        \
 			  install-doc info-install info-install-locations                  \
 			  info-install-content                                             \
-			  rebar3-compile rebar3-create-tree rebar3-populate-build-tree          \
-			  rebar3-copy-beams rebar3-clean                                        \
+			  rebar3-compile rebar3-create-tree rebar3-populate-build-tree     \
+			  rebar3-create-app-file rebar3-copy-beams rebar3-clean            \
 			  generate-list-of-erlang-types generate-list-of-local-types       \
 			  generate-local-plt self-check-against-plt write-debug-key-file   \
 			  check check-hook help-erl                                        \
@@ -366,7 +366,7 @@ info-install-content:
 #
 rebar3-compile:
 	@echo "  Compiling $(PROJECT_NAME) for a rebar3+hex compliant build (in ./_build)"
-	@$(MAKE) -s rebar3-clean rebar3-create-tree rebar3-populate-build-tree all rebar3-copy-beams
+	@$(MAKE) -s rebar3-clean rebar3-create-tree rebar3-populate-build-tree rebar3-create-app-file all rebar3-copy-beams
 
 
 # See for more information:
@@ -393,6 +393,16 @@ rebar3-populate-build-tree:
 	@true Using a src symlink, hence disabled: find src -name '*.erl' -a ! -name '*_test.erl' -exec /bin/cp '{}' _build/default/lib/$(REBAR3_PROJECT_NAME)/src/ ';'
 	@find src -name '*_test.erl' -exec /bin/cp '{}' _build/default/lib/$(REBAR3_PROJECT_NAME)/test/ ';'
 	@find src -name '*.hrl' -exec /bin/cp '{}' _build/default/lib/$(REBAR3_PROJECT_NAME)/include/ ';'
+
+#	@/bin/cp LICENSE
+
+
+# For modules, remove paths, extension, replace newlines with commas, and remove
+# the last one:
+#
+rebar3-create-app-file:
+	@echo "  Generating rebar3 app file"
+	@all_modules=$$(find src -name '*.erl' -a ! -name '*_test.erl' -exec echo '{}' ';' | sed 's|.*/||1' | sed 's|.erl$$||1' | tr '\n' ','| sed 's|,|, |g' | sed 's|, $$||1' ) ; cat conf/$(REBAR3_PROJECT_NAME).app.src | sed "s|MYRIAD_VERSION|$(MYRIAD_VERSION).0|1" | sed "s|MYRIAD_MODULES|$$all_modules|1"> _build/default/lib/$(REBAR3_PROJECT_NAME)/ebin/$(REBAR3_PROJECT_NAME).app
 
 
 # Currently excluding test BEAMs, for a smaller size:
