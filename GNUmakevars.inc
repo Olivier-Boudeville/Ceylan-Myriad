@@ -10,8 +10,13 @@ ifndef PROJECT_NAME
 endif
 
 
-MYRIAD_VERSION := 0.1
+# REBAR3_PROJECT_NAME should be defined on a per-project basis.
+ifndef REBAR3_PROJECT_NAME
+	REBAR3_PROJECT_NAME := myriad
+endif
 
+
+MYRIAD_VERSION := 0.1
 
 # PROJECT_VERSION should be defined on a per-project basis.
 ifndef PROJECT_VERSION
