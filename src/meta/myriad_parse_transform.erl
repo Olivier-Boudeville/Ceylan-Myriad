@@ -102,12 +102,13 @@
 %
 % Currently, the 'myriad' parse transform is in charge of:
 %
-% - replacing all calls and type specifications referring to the pseudo-module
-% 'table' (a module that does not exist) into counterparts referring to the
-% default, actual type of associative table that we currently use instead (ex:
-% we have hashtable, lazy_hashtable, tracked_hashtable, map_hashtable, etc.) -
-% unless the table type to be used is explicitly specified in the target,
-% transformed module
+% - replacing all calls and type specifications referring to the 'table'
+% pseudo-type (either itself prefixed with the 'table' module - that does not
+% exist, or as a local pseudo-type) into counterparts referring to the default,
+% actual type of associative table that we currently use instead (ex: we have
+% hashtable, lazy_hashtable, tracked_hashtable, map_hashtable, etc.) - unless
+% the table type to be used is explicitly specified in the target, transformed
+% module
 %
 %     As a result, one's code source may include 'MyTable = table:new(), ...' or
 %     '-type my_type() :: [ { float(), table() } ].' and have them correctly
