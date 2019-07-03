@@ -226,16 +226,17 @@ launch: Emakefile
 
 
 # Installation section.
+#
+
+# The goal here is to perform an installation of this layer in a prefixed
+# directory (mostly regardless of OTP conventions).
 
 
 # For a development-ready install:
-#
 install-package: all doc install-all
 
 
 # For a production-ready install:
-#
-#
 install-prod-standard: all
 	@sudo $(MAKE) install-prod PACKAGE_INSTALLATION_PREFIX=$(DEFAULT_PRODUCTION_INSTALLATION_PREFIX)
 
@@ -499,7 +500,7 @@ real-clean: clean clean-ast-debug real-clean-recurse
 real-clean-recurse:
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then      \
 	cd $$m && $(MAKE) -s real-clean CMD_LINE_OPT="${CMD_LINE_OPT}" &&   \
-	cd .. ; else echo "		(directory $$m skipped)" ; fi ) ; then \
+	cd .. ; else echo "     (directory $$m skipped)" ; fi ) ; then \
 	exit 1; fi ; done
 
 
