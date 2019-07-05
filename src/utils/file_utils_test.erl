@@ -113,6 +113,24 @@ run() ->
 	"../homer/bart.beam" = file_utils:normalise_path(
 							 "../src/../homer/./bart.beam" ),
 
+	% Define suitable paths for testing:
+
+	LowerPath = "../../a/b",
+	LowerPath = file_utils:make_relative( LowerPath ),
+
+	LowerPathAbs = file_utils:ensure_path_is_absolute( LowerPath ),
+	LowerPath = file_utils:make_relative( LowerPathAbs ),
+
+	HigherPath = "c/d/e",
+	HigherPath = file_utils:make_relative( HigherPath ),
+
+	HigherPathAbs = file_utils:ensure_path_is_absolute( HigherPath ),
+	HigherPath = file_utils:make_relative( HigherPathAbs ),
+
+	file_utils:make_relative( "/etc/host.conf" ),
+
+	OtherRelativePath = "my-dir/my-file",
+	OtherRelativePath = file_utils:make_relative( OtherRelativePath ),
 
 	LeafName = "hello.txt",
 

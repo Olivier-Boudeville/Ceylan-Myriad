@@ -82,7 +82,7 @@
 
 		  is_absolute_path/1,
 		  ensure_path_is_absolute/1, ensure_path_is_absolute/2,
-		  normalise_path/1,
+		  normalise_path/1, make_relative/1, make_relative/2,
 
 		  is_leaf_among/2,
 
@@ -271,6 +271,8 @@
 % So we deem our version simpler and less prone to surprise (least
 % astonishment).
 %
+% See filename:split/1 for the reverse operation.
+%
 -spec join( [ any_path() ] ) -> any_path().
 join( ComponentList ) ->
 	lists:foldr( fun join/2, _Acc0="", _List=ComponentList ).
@@ -288,6 +290,8 @@ join( ComponentList ) ->
 %
 % So we deem our version simpler and less prone to surprise (least
 % astonishment).
+%
+% See filename:split/1 for the reverse operation.
 %
 -spec join( any_path(), any_path() ) -> any_path().
 % Skips only initial empty paths of all sorts:
@@ -1685,8 +1689,8 @@ ensure_path_is_absolute( Path ) ->
 
 
 
-% Returns an absolute, normalised path corresponding to specified path, using
-% base path as root directory (this must be an absolute path).
+% Returns an absolute, normalised path corresponding to the specified target
+% path, using base path as root directory (this must be an absolute path).
 %
 % Ex: ensure_path_is_absolute( "tmp/foo", "/home/dalton" ) will return
 % "/home/dalton/tmp/foo".
@@ -1742,6 +1746,53 @@ normalise_path( BinPath ) when is_binary( BinPath ) ->
 	Path = text_utils:binary_to_string( BinPath ),
 
 	text_utils:string_to_binary( normalise_path( Path ) ).
+
+
+
+
+% Returns a version of the specified path that is relative to the current
+% directory.
+%
+-spec make_relative( file_utils:path() ) -> file_utils:directory_path().
+make_relative( Path ) ->
+	make_relative( Path, _RefDir=get_current_directory() ).
+
+
+
+% Returns a version of the specified path that is relative to the specified
+% reference directory.
+%
+-spec make_relative( file_utils:path(), file_utils:directory_path() ) ->
+							 file_utils:directory_path().
+make_relative( Path, RefDir ) when is_list( Path ) ->
+
+	AbsPath = ensure_path_is_absolute( Path ),
+
+	%trace_utils:debug_fmt( "Making path '~s' (absolute form: '~s') relative "
+	%					   "to reference directory ('~s').",
+	%					   [ Path, AbsPath, RefDir ] ),
+
+	TargetPathElems = filename:split( AbsPath ),
+	RefPathElems = filename:split( RefDir ),
+
+	make_relative_helper( TargetPathElems, RefPathElems ).
+
+
+
+% First, drop any common path prefix:
+make_relative_helper( [ E | TPathElems ], [ E | TRefPathElems ] ) ->
+	make_relative_helper( TPathElems, TRefPathElems );
+
+% Found first non-matching directory element:
+make_relative_helper( PathElems, RefPathElems ) ->
+	FromRef = [ ".." || _ <- lists:seq( 1, length( RefPathElems ) ) ],
+	Res = join( FromRef ++ PathElems ),
+	%trace_utils:debug_fmt( "Returned path: '~s'.", [ Res ] ),
+	Res.
+
+
+
+
 
 
 
