@@ -77,8 +77,8 @@ VIEW_GRAPH := no
 #
 %.png: %.graph
 	@echo "     Generating $@ from graph $<"
-	@$(MAKE) check-dot
-	@if $(DOT) $(DOT_OPT) -o$@ -Tpng $< ; then if [ "$(VIEW_GRAPH)" != "no" ] ; then $(IMG_VIEWER) $@ ; fi ; fi
+	@$(MAKE) -s check-dot
+	@if $(DOT) $(DOT_OPT) -o$@ -Tpng $< ; then if [ "$(VIEW_GRAPH)" != "no" ] ; then $(IMG_VIEWER) $@; fi ; fi
 
 
 GRAPH_SRC = $(wildcard *.graph)

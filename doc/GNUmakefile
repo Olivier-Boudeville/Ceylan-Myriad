@@ -1,13 +1,16 @@
 MYRIAD_TOP = ..
 
 
-DOCUTILS_TOP = $(MYRIAD_TOP)
+.PHONY: all doc full-doc html clone-mirror                        \
+		export-doc export-to-official export-to-mirror            \
+		clean clean-doc real-clean info-web test uml-diagram-test
+
 
 DOC_BASE_NAME := Ceylan-Myriad-Layer-technical-manual-english
 
-DOC_PDF_NAME := $(DOC_BASE_NAME).pdf
+OVERALL_DOCUMENT_SOURCE = $(DOC_BASE_NAME).rst
 
-OVERALL_DOCUMENT_TARGET = $(DOC_BASE_NAME).rst
+DOC_PDF_NAME := $(DOC_BASE_NAME).pdf
 
 HTML_TARGET = $(DOC_BASE_NAME).html
 
@@ -19,7 +22,7 @@ DOC_FILES = $(DOC_GENERATED_FILES)
 # The current, operational version of Myriad:
 CURRENT_VERSION := 1.0
 
-CURRENT_MYRIAD_DOC := $(DOC_PDF_NAME)-$(CURRENT_VERSION).pdf
+CURRENT_MYRIAD_DOC := $(DOC_BASE_NAME)-$(CURRENT_VERSION).pdf
 
 PROJECT_CSS := pygments-default.css,myriad.css
 
@@ -29,14 +32,6 @@ WEB_CONTENT = *.html *.css *.png *.pdf
 
 # Read from the user's environment:
 GITHUB_PAGES_BASE := $(shell basename "$(MYRIAD_WEB_MIRROR_BRANCH)")
-
-
-OVERALL_DOCUMENT_SOURCE = $(DOC_BASE_NAME).rst
-
-
-.PHONY: all doc full-doc html clone-mirror               \
-		export-doc export-to-official export-to-mirror   \
-		info-web clean clean-doc test uml-diagram-test
 
 
 
@@ -78,17 +73,16 @@ export-to-mirror:
 	@/bin/cp -f $(WEB_CONTENT) $(MYRIAD_WEB_MIRROR_BRANCH) && cd $(MYRIAD_WEB_MIRROR_BRANCH) && git add . && git merge -s ours && git commit -m "Myriad doc updated." && git push && git pull --ff-only
 
 
-# The modular approach disallows using our tracking script:
-track-local:
-	@echo "Track target disabled, as documentation is not generated from a standalone source file. Prefer the html target." 1>&2
-	@exit 5
-
 
 clean: clean-doc
 
 clean-doc:
+	@echo "     Cleaning documentation"
 	-@/bin/rm -f *.aux *.log *.maf *.mtc* *.stc* *.tex *.toc \
 	$(CURRENT_MYRIAD_DOC) $(DOC_GENERATED_FILES)
+
+
+real-clean: clean
 
 
 info-web:
@@ -99,6 +93,7 @@ info-web:
 
 # As a side-effect, early checking that the 'dot' tool will be available:
 test: uml-diagram-test
+
 
 uml-diagram-test:
 	@$(MAKE) uml_class_diagram_example.png

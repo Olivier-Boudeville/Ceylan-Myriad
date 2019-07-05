@@ -16,6 +16,8 @@
 			  install-src install-include install-examples install-test        \
 			  install-doc info-install info-install-locations                  \
 			  info-install-content                                             \
+			  rebar3-compile rebar3-create-tree rebar3-populate-build-tree     \
+			  rebar3-create-app-file rebar3-copy-beams rebar3-clean            \
 			  generate-list-of-erlang-types generate-list-of-local-types       \
 			  generate-local-plt self-check-against-plt write-debug-key-file   \
 			  check check-hook help-erl                                        \
@@ -226,16 +228,18 @@ launch: Emakefile
 
 
 # Installation section.
+#
+
+# The goal here is to perform an installation of this layer in a prefixed
+# directory (mostly regardless of OTP conventions; see the rebar3-* targets for
+# that).
 
 
 # For a development-ready install:
-#
 install-package: all doc install-all
 
 
 # For a production-ready install:
-#
-#
 install-prod-standard: all
 	@sudo $(MAKE) install-prod PACKAGE_INSTALLATION_PREFIX=$(DEFAULT_PRODUCTION_INSTALLATION_PREFIX)
 
@@ -352,6 +356,64 @@ info-install-content:
 	@echo "  TESTS_TO_INSTALL_BEAMS = $(TESTS_TO_INSTALL_BEAMS)"
 	@echo "  TESTS_TO_INSTALL_SRC = $(TESTS_TO_INSTALL_SRC)"
 	@echo "  DOC_TO_INSTALL = $(DOC_TO_INSTALL)"
+
+
+
+# Allows a rebar3+hex compliant build:
+#
+# (note: we copy sources before compiling and copying BEAM files so that rebar3
+# will not try to recompile modules by itself)
+#
+rebar3-compile:
+	@echo "  Compiling $(PROJECT_NAME) for a rebar3+hex compliant build (in ./_build)"
+	@$(MAKE) -s rebar3-clean rebar3-create-tree rebar3-populate-build-tree rebar3-create-app-file all rebar3-copy-beams
+
+
+# See for more information:
+# http://erlang.org/doc/design_principles/applications.html#directory-structure
+#
+# Note: we now create a symlink directly pointing to the real src tree, instead
+# of copying the source files as a whole in the build tree. It is almost
+# mandatory, as the link above tells us that this src directory in _build should
+# never be deeper than one level (whereas we have more levels than that), and
+# apparently if rebar3 is not able to locate, for an ebin/ X.beam, a X.erl, it
+# will attempt to recompile it (and obviously fail).
+#
+# See https://www.rebar3.org/discuss/5d1c82951e0cbe00121f12db for more details.
+#
+rebar3-create-tree:
+	@echo " Creating rebar3 build tree"
+	@mkdir -p _build/default/lib/$(REBAR3_PROJECT_NAME)/{priv,include,doc,test,ebin}
+	@cd _build/default/lib/$(REBAR3_PROJECT_NAME)/ && ln -s ../../../../src
+
+
+# Currently, priv and doc not specifically populated:
+rebar3-populate-build-tree:
+	@echo "  Copying sources in rebar3 build tree"
+	@true Using a src symlink, hence disabled: find src -name '*.erl' -a ! -name '*_test.erl' -exec /bin/cp '{}' _build/default/lib/$(REBAR3_PROJECT_NAME)/src/ ';'
+	@find src -name '*_test.erl' -exec /bin/cp '{}' _build/default/lib/$(REBAR3_PROJECT_NAME)/test/ ';'
+	@find src -name '*.hrl' -exec /bin/cp '{}' _build/default/lib/$(REBAR3_PROJECT_NAME)/include/ ';'
+
+#	@/bin/cp LICENSE
+
+
+# For modules, remove paths, extension, replace newlines with commas, and remove
+# the last one:
+#
+rebar3-create-app-file:
+	@echo "  Generating rebar3 app file"
+	@all_modules=$$(find src -name '*.erl' -a ! -name '*_test.erl' -exec echo '{}' ';' | sed 's|.*/||1' | sed 's|.erl$$||1' | tr '\n' ','| sed 's|,|, |g' | sed 's|, $$||1' ) ; cat conf/$(REBAR3_PROJECT_NAME).app.src | sed "s|MYRIAD_VERSION|$(MYRIAD_VERSION).0|1" | sed "s|MYRIAD_MODULES|$$all_modules|1"> _build/default/lib/$(REBAR3_PROJECT_NAME)/ebin/$(REBAR3_PROJECT_NAME).app
+
+
+# Currently excluding test BEAMs, for a smaller size:
+rebar3-copy-beams:
+	@echo "  Copying non-test BEAM modules in rebar3 build tree"
+	@find src -name '*.beam' -a ! -name '*_test.beam' -exec /bin/cp '{}' _build/default/lib/$(REBAR3_PROJECT_NAME)/ebin/ ';'
+
+
+rebar3-clean:
+	@echo "  Removing any prior rebar3 build tree"
+	-@/bin/rm -rf _build
 
 
 
@@ -499,7 +561,7 @@ real-clean: clean clean-ast-debug real-clean-recurse
 real-clean-recurse:
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then      \
 	cd $$m && $(MAKE) -s real-clean CMD_LINE_OPT="${CMD_LINE_OPT}" &&   \
-	cd .. ; else echo "		(directory $$m skipped)" ; fi ) ; then \
+	cd .. ; else echo "     (directory $$m skipped)" ; fi ) ; then \
 	exit 1; fi ; done
 
 
