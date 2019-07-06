@@ -265,6 +265,9 @@
 			   user_name/0, password/0, basic_credential/0 ]).
 
 
+% For myriad_spawn*:
+-include("spawn_utils.hrl").
+
 
 
 % User-related functions.
@@ -927,7 +930,7 @@ run_background_executable( Command, Environment, MaybeWorkingDir,
 	% Apparently using a port-based launch and a background execution will block
 	% the current process, so we sacrifice a process here - yet we monitor it:
 	%
-	spawn_link( fun() ->
+	?myriad_spawn_link( fun() ->
 
 					ExecOutcome = run_executable( Command, Environment,
 											MaybeWorkingDir, PortOptions ),
@@ -936,7 +939,7 @@ run_background_executable( Command, Environment, MaybeWorkingDir,
 					trace_utils:debug_fmt( "Execution outcome: ~p.",
 										   [ ExecOutcome ] )
 
-				end ).
+						end ).
 
 
 

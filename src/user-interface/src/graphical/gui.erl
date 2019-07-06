@@ -135,13 +135,11 @@
 
 
 % Basic GUI operations.
-%
 -export([ is_available/0, start/0, start/1, set_debug_level/1, stop/0 ]).
 
 
 
 % Event-related operations.
-%
 -export([ subscribe_to_events/1, propagate_event/1 ]).
 
 
@@ -158,14 +156,12 @@
 
 
 % General-purpose:
-%
 -export([ set_tooltip/2 ]).
 
 
 
 
 % Windows:
-%
 -export([ create_window/0, create_window/1, create_window/2, create_window/5,
 		  set_sizer/2, show/1, hide/1, get_size/1, destruct_window/1 ]).
 
@@ -180,30 +176,25 @@
 
 
 % Panels:
-%
 -export([ create_panel/0, create_panel/1, create_panel/2, create_panel/4,
 		  create_panel/5, create_panel/6 ]).
 
 
 % Buttons:
-%
 -export([ create_button/2, create_button/6, create_buttons/2 ]).
 
 
 % Sizers:
-%
 -export([ create_sizer/1, create_sizer_with_box/2,
 		  create_sizer_with_labelled_box/3, add_to_sizer/2, add_to_sizer/3,
 		  clear_sizer/1, clear_sizer/2 ]).
 
 
 % Status bars:
-%
 -export([ create_status_bar/1, push_status_text/2 ]).
 
 
 % Canvas support (forwarded to gui_canvas).
-%
 -export([ create_canvas/1, set_draw_color/2, set_fill_color/2,
 		  set_background_color/2, get_rgb/2, set_rgb/2,
 		  draw_line/3, draw_line/4, draw_lines/2, draw_lines/3,
@@ -222,6 +213,9 @@
 % For related, internal, wx-related defines:
 -include("gui_internal_defines.hrl").
 
+
+% For myriad_spawn*:
+-include("spawn_utils.hrl").
 
 
 
@@ -252,7 +246,6 @@
 
 
 % Internal, overall types for all GUI objects:
-%
 -type object_type() :: wx_object_type() | myriad_object_type().
 
 
@@ -277,19 +270,16 @@
 
 
 % The additional widget types introduced by MyriadGUI:
-%
 -type myriad_object_type() :: 'canvas'.
 
 
 % Records the actual state of a MyriadGUI object:
-%
 -type myriad_object_state() :: gui_canvas:canvas_state().
 						   % | all other *_state() that may be introduced
 
 
 
 % The construction parameters of a MyriadGUI object:
-%
 -type construction_parameters() :: [ term() ].
 
 
@@ -333,6 +323,7 @@
 
 -type sizer() :: wxSizer:wxSizer().
 
+
 % Elements that can be included in a sizer:
 -type sizer_child() :: window() | sizer().
 
@@ -367,7 +358,7 @@
 % Options for windows, see:
 % http://docs.wxwidgets.org/stable/wx_wxwindow.html and
 % http://docs.wxwidgets.org/stable/wx_windowstyles.html#windowstyles
-
+%
 -type window_style_opt() :: 'default'
 						  | 'simple_border'
 						  | 'double_border'
@@ -476,7 +467,6 @@
 
 
 % Options for event management connections:
-%
 -type connect_opt() ::   { 'id', integer() }
 					   | { lastId, integer() }
 					   | { skip, boolean() }
@@ -531,7 +521,6 @@
 
 
 % Tells whether this user-interface backend is available.
-%
 -spec is_available() -> boolean().
 is_available() ->
 	% As simple as:
@@ -542,7 +531,6 @@ is_available() ->
 
 
 % Starts the MyriadGUI subsystem.
-%
 -spec start() -> void().
 start() ->
 
@@ -559,8 +547,8 @@ start() ->
 	% connect/n can use the right actual, first-level subscriber PID, which is
 	% the internal main loop in charge of the message routing and conversion.
 
-	LoopPid = spawn_link( gui_event, start_main_event_loop,
-						  [ WxServer, WxEnv ] ),
+	LoopPid = ?myriad_spawn_link( gui_event, start_main_event_loop,
+								  [ WxServer, WxEnv ] ),
 
 	trace_utils:trace_fmt( "Main loop running on ~w (created from ~w).",
 						   [ LoopPid, self() ] ),
@@ -573,7 +561,6 @@ start() ->
 
 
 % Starts the GUI subsystem, with specified debug level.
-%
 -spec start( debug_level() ) -> void().
 start( DebugLevel ) ->
 	start(),
@@ -582,7 +569,6 @@ start( DebugLevel ) ->
 
 
 % Sets the debug level(s) of the GUI.
-%
 -spec set_debug_level( debug_level() ) -> void().
 set_debug_level( DebugLevels ) when is_list( DebugLevels ) ->
 	wx:debug( [ gui_wx_backend:to_wx_debug_level( L ) || L <- DebugLevels ] );
@@ -648,7 +634,6 @@ propagate_event( EventContext ) ->
 
 
 % Stops the GUI subsystem.
-%
 -spec stop() -> void().
 stop() ->
 
@@ -673,7 +658,6 @@ stop() ->
 
 
 % Attaches a tooltip to specified widget.
-%
 -spec set_tooltip( window(), label() ) -> void().
 set_tooltip( _Canvas={ myriad_object_ref, canvas, CanvasId }, Label ) ->
 	get_main_loop_pid() ! { setTooltip, [ CanvasId, Label ] };
@@ -696,14 +680,12 @@ set_tooltip( Window, Label ) ->
 
 
 % Creates a new window.
-%
 -spec create_window() -> window().
 create_window() ->
 	wxWindow:new().
 
 
 % (internal use only)
-%
 -spec create_window( wx_id(), window() ) -> window().
 create_window( Id, Parent ) ->
 
@@ -726,7 +708,6 @@ create_window( Size ) ->
 
 
 % (internal use only)
-%
 -spec create_window( position(), size(), window_style(), wx_id(), window() ) ->
 						   window().
 create_window( Position, Size, Style, Id, Parent ) ->
@@ -746,7 +727,6 @@ create_window( Position, Size, Style, Id, Parent ) ->
 
 
 % Creates a canvas, attached to specified parent window.
-%
 -spec create_canvas( window() ) -> canvas().
 create_canvas( Parent ) ->
 
@@ -756,7 +736,6 @@ create_canvas( Parent ) ->
 
 
 % Sets the color to be used for the drawing of the outline of shapes.
-%
 -spec set_draw_color( canvas(), gui_color:color() ) -> void().
 set_draw_color( _Canvas={ myriad_object_ref, canvas, CanvasId }, Color ) ->
 	get_main_loop_pid() ! { setCanvasDrawColor, [ CanvasId, Color ] }.
@@ -764,7 +743,6 @@ set_draw_color( _Canvas={ myriad_object_ref, canvas, CanvasId }, Color ) ->
 
 
 % Sets the color to be using for filling surfaces.
-%
 -spec set_fill_color( canvas(), gui_color:color() ) -> void().
 set_fill_color( _Canvas={ myriad_object_ref, canvas, CanvasId }, Color ) ->
 	get_main_loop_pid() ! { setCanvasFillColor, [ CanvasId, Color ] }.
@@ -772,7 +750,6 @@ set_fill_color( _Canvas={ myriad_object_ref, canvas, CanvasId }, Color ) ->
 
 
 % Sets the background color of the specified window.
-%
 -spec set_background_color( window(), gui_color:color() ) -> void().
 set_background_color( _Canvas={ myriad_object_ref, canvas, CanvasId },
 					  Color ) ->
@@ -791,7 +768,6 @@ set_background_color( Window, Color ) ->
 
 
 % Returns the RGB value of the pixel at specified position.
-%
 -spec get_rgb( canvas(), linear_2D:point() ) ->
 					 gui_color:color_by_decimal_with_alpha().
 get_rgb( _Canvas={ myriad_object_ref, canvas, CanvasId }, Point ) ->
@@ -808,7 +784,6 @@ get_rgb( _Canvas={ myriad_object_ref, canvas, CanvasId }, Point ) ->
 
 
 % Sets the pixel at specified position to the current RGB point value.
-%
 -spec set_rgb( canvas(), linear_2D:point() ) -> void().
 set_rgb( _Canvas={ myriad_object_ref, canvas, CanvasId }, Point ) ->
 	get_main_loop_pid() ! { setCanvasRGB, [ CanvasId, Point ] }.
@@ -866,7 +841,6 @@ draw_segment( _Canvas={ myriad_object_ref, canvas, CanvasId }, L, Y1, Y2 ) ->
 
 
 % Draws the specified polygon, closing the lines and filling them.
-%
 -spec draw_polygon( canvas(), [ linear_2D:point() ] ) -> void().
 draw_polygon( _Canvas={ myriad_object_ref, canvas, CanvasId }, Points ) ->
 	get_main_loop_pid() ! { drawCanvasPolygon, [ CanvasId, Points ] }.
@@ -1003,8 +977,7 @@ blit( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
 
 
 
-% Clears specified canvas.
-%
+% Clears the specified canvas.
 -spec clear( canvas() ) -> void().
 clear( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
 	get_main_loop_pid() ! { clearCanvas, CanvasId }.
@@ -1014,7 +987,6 @@ clear( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
 
 
 % Associates specified sizer to specified window.
-%
 -spec set_sizer( window(), sizer() ) -> void().
 set_sizer( _Canvas={ myriad_object_ref, canvas, CanvasId }, Sizer ) ->
 	get_main_loop_pid() ! { getCanvasPanel, [ CanvasId ], self() },
@@ -1070,7 +1042,6 @@ hide( Window ) ->
 
 
 % Returns the size (as a 2D vector, i.e. {Width,Height}) of specified window.
-%
 -spec get_size( window() ) -> linear_2D:vector().
 get_size( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
 
@@ -1088,8 +1059,8 @@ get_size( Window ) ->
 	wxWindow:getSize( Window ).
 
 
+
 % Destructs specified window.
-%
 -spec destruct_window( window() ) -> void().
 destruct_window( Window ) ->
 	wxWindow:destroy( Window ).
@@ -1119,7 +1090,6 @@ create_frame() ->
 
 
 % Creates a new frame, with default position, size, style, ID and parent.
-%
 -spec create_frame( title() ) -> frame().
 create_frame( Title ) ->
 	wxFrame:new( to_wx_parent( undefined ),
@@ -1128,7 +1098,6 @@ create_frame( Title ) ->
 
 
 % Creates a new frame, with specified size, and default ID and parent.
-%
 -spec create_frame( title(), size() ) -> frame().
 create_frame( Title, Size ) ->
 
@@ -1152,7 +1121,6 @@ create_frame( Title, Id, Parent ) ->
 
 
 % Creates a new frame, with default parent.
-%
 -spec create_frame( title(), position(), size(), frame_style() ) -> frame().
 create_frame( Title, Position, Size, Style ) ->
 
@@ -1191,7 +1159,6 @@ create_frame( Title, Position, Size, Style, Id, Parent ) ->
 
 
 % Creates a new panel.
-%
 -spec create_panel() -> panel().
 create_panel() ->
 	wxPanel:new().
@@ -1199,10 +1166,10 @@ create_panel() ->
 
 
 % Creates a new panel, associated to specified parent.
-%
 -spec create_panel( window() ) -> panel().
 create_panel( Parent ) ->
 	wxPanel:new( Parent ).
+
 
 
 % Creates a new panel, associated to specified parent and with specified
@@ -1272,7 +1239,6 @@ create_panel( Parent, X, Y, Width, Height, Options ) ->
 
 
 % Creates a new (labelled) button, with parent specified.
-%
 -spec create_button( label(), window() ) -> button().
 create_button( Label, Parent ) ->
 
@@ -1288,7 +1254,6 @@ create_button( Label, Parent ) ->
 
 
 % Creates new (labelled) buttons, with their (single, common) parent specified.
-%
 -spec create_buttons( [ label() ], window() ) -> [ button() ].
 create_buttons( Labels, Parent ) ->
 	create_buttons_helper( Labels, Parent, _Acc=[] ).
@@ -1329,7 +1294,6 @@ create_button( Label, Position, Size, Style, Id, Parent ) ->
 
 
 % Creates a sizer operating on specified orientation.
-%
 -spec create_sizer( orientation() ) -> sizer().
 create_sizer( Orientation ) ->
 	ActualOrientation = to_wx_orientation( Orientation ),
@@ -1363,7 +1327,6 @@ create_sizer_with_labelled_box( Orientation, Parent, Label ) ->
 
 
 % Adds specified element, or elements with options, to the specified sizer.
-%
 -spec add_to_sizer( sizer(), sizer_child() ) -> sizer_item();
 				  (  sizer(), [ { sizer_child(), sizer_options() } ] ) ->
 						  void().
@@ -1426,7 +1389,6 @@ add_to_sizer( Sizer, Element, Options ) ->
 
 
 % Clears specified sizer, detaching and deleting all its child windows.
-%
 -spec clear_sizer( sizer() ) -> void().
 clear_sizer( Sizer ) ->
 	clear_sizer( Sizer, _DeleteWindows=true ).
@@ -1448,7 +1410,6 @@ clear_sizer( Sizer, DeleteWindows ) ->
 
 
 % Creates and attaches a status bar to the specified frame.
-%
 -spec create_status_bar( frame() ) -> status_bar().
 create_status_bar( Frame ) ->
 	% No interesting option:
@@ -1457,7 +1418,6 @@ create_status_bar( Frame ) ->
 
 
 % Pushes specified text in the specified status bar.
-%
 -spec push_status_text( text(), status_bar() ) -> void().
 push_status_text( Text, StatusBar ) ->
 	wxStatusBar:pushStatusText( StatusBar, Text ).
@@ -1510,7 +1470,6 @@ get_main_loop_pid() ->
 
 
 % Fetches (from the process dictionary) the MyriadGUI environment.
-%
 -spec get_gui_env() -> gui_env().
 get_gui_env() ->
 
@@ -1536,7 +1495,6 @@ get_gui_env() ->
 
 
 % Returns a textual representation of the specified GUI object.
-%
 -spec object_to_string( gui_object() ) -> string().
 object_to_string( #myriad_object_ref{ object_type=ObjectType,
 									  myriad_instance_pid=InstancePid } ) ->
@@ -1554,7 +1512,6 @@ object_to_string( { wx_ref, InstanceRef, WxObjectType, State } ) ->
 
 
 % Returns a textual representation of the specified GUI event context.
-%
 -spec context_to_string( gui_event_context() ) -> string().
 context_to_string( #gui_event_context{ id=Id, user_data=UserData,
 									   backend_event=WxEvent } ) ->
