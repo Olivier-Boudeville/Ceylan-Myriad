@@ -387,7 +387,9 @@ rebar3-create-tree:
 	@cd _build/default/lib/$(REBAR3_PROJECT_NAME)/ && ln -s ../../../../src
 
 
-# Currently, priv and doc not specifically populated:
+# Currently, priv and doc not specifically populated, and all header files
+#  (including internal ones) are copied to include:
+#
 rebar3-populate-build-tree:
 	@echo "  Copying sources in rebar3 build tree"
 	@true Using a src symlink, hence disabled: find src -name '*.erl' -a ! -name '*_test.erl' -exec /bin/cp '{}' _build/default/lib/$(REBAR3_PROJECT_NAME)/src/ ';'
