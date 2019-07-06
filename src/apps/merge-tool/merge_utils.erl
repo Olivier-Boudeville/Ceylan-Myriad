@@ -150,6 +150,10 @@
 -define( exec_name, "merge.sh" ).
 
 
+% For myriad_spawn*:
+-include("spawn_utils.hrl").
+
+
 -spec get_usage() -> void().
 get_usage() ->
 	" Usage: following operations can be triggered: \n"
@@ -800,7 +804,7 @@ get_file_content_for( SHA1, FileDataElems ) ->
 -spec spawn_data_analyzers( count(), user_state() ) -> [ analyzer_pid() ].
 spawn_data_analyzers( Count, UserState ) ->
 	trace_debug( "Spawning ~B data analyzers.", [ Count ], UserState ),
-	[ spawn_link( fun() -> analyze_loop() end )
+	[ ?myriad_spawn_link( fun() -> analyze_loop() end )
 	  || _C <- lists:seq( 1, Count ) ].
 
 
