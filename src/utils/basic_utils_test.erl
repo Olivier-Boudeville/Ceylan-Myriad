@@ -36,6 +36,11 @@
 -include("test_facilities.hrl").
 
 
+% For myriad_spawn*:
+-include("spawn_utils.hrl").
+
+
+
 -spec check_process_specific_values( integer(), integer() ) -> void().
 check_process_specific_values( Min, Max ) ->
 
@@ -150,6 +155,45 @@ run() ->
 	check_process_specific_values( Min, Max ),
 
 	basic_utils:display_process_info( self() ),
+
+
+	Self = self(),
+
+	test_facilities:display( "Testing myriad_spawn, based on a ~s.",
+							 [ ?myriad_spawn_info ] ),
+
+	?myriad_spawn( fun() ->
+
+					   % Closure:
+					   Self ! myriad_spawned
+
+				   end ),
+
+	receive
+
+		myriad_spawned ->
+			ok
+
+	end,
+
+
+	test_facilities:display( "Testing myriad_spawn_link, based on a ~s.",
+							 [ ?myriad_spawn_info ] ),
+
+	?myriad_spawn_link( fun() ->
+
+					   % Closure:
+					   Self ! myriad_spawned_linked
+
+						end ),
+
+	receive
+
+		myriad_spawned_linked ->
+			ok
+
+	end,
+
 
 	test_facilities:display( "This test was compiled with the execution target "
 							 "set to '~s', and debug mode is ~s.",
