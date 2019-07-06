@@ -614,12 +614,15 @@ transform_expression( ?e={ 'try', Line, TryBody, TryClauses, CatchClauses,
 	Res;
 
 
+% Useful indeed, typically should a define be replaced by
+% module_name:function_name (see the myriad_spawn define for an example)
+%
 transform_expression( ?e={ 'remote', Line, ModuleExpr, FunctionExpr },
 					  Transforms ) ?rec_guard ->
 
-	% Apparently useful indeed:
-	ast_utils:display_warning( "Remote transform expression actually useful, "
-							   "this warning can be silenced." ),
+	%ast_utils:display_debug( "Remote transform expression, with module "
+	%						 "expression '~p' and function one '~p'.",
+	%						 [ ModuleExpr, FunctionExpr ] ),
 
 	% TO-DO: add a 'remote' transform trigger.
 
