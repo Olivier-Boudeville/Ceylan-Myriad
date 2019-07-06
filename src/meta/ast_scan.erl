@@ -219,6 +219,9 @@ scan( AST ) ->
 						  basic_utils:void().
 report_error( { Context, Error } ) ->
 
+	% No trace_utils yet here:
+	%io:format( "Reporting error ~p in context ~p.", [ Error, Context ] ),
+
 	ErrorString = case Error of
 
 		% Ex: Msg="head mismatch"
@@ -226,9 +229,14 @@ report_error( { Context, Error } ) ->
 			%text_utils:format( "parse error: ~s", [ Msg ] );
 			text_utils:format( "~s", [ Msg ] );
 
-		{ undefined_macro_variable, VariableName } ->
+		{ undefined_macro_variable, VariableName }
+						when is_atom( VariableName ) ->
 			text_utils:format( "undefined macro variable '~s'",
 							   [ VariableName ] );
+
+		{ epp_error, { undefined, MacroName, Arity } }
+				when is_atom( MacroName ) andalso is_integer( Arity ) ->
+			text_utils:format( "undefined macro ~s/~B", [ MacroName, Arity ] );
 
 		String when is_list( String ) ->
 			text_utils:format( "~s", [ String ] );
@@ -243,7 +251,6 @@ report_error( { Context, Error } ) ->
 
 
 % Returns a textual representation of specified compilation context.
-%
 -spec context_to_string( ast_scan:scan_context() ) -> string().
 context_to_string( { Filename, Line } ) ->
 
