@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Creation date: Thursday, October 31, 2013
+% Creation date: Thursday, October 31, 2013.
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
@@ -53,7 +53,8 @@
 -module(preferences).
 
 
--export([ start/0, start/1, get/1, get/2, set/2, set/3, to_string/0,
+-export([ start/0, start/1, start_link/0, start_link/1,
+		  get/1, get/2, set/2, set/3, to_string/0,
 		  to_string/1, get_default_preferences_path/0,
 		  is_preferences_default_file_available/0,
 		  check_preferences_default_file/0,
@@ -82,6 +83,9 @@
 -export_type([ key/0, value/0, entry/0, entries/0, preferences_pid/0 ]).
 
 
+% For myriad_spawn*:
+-include("spawn_utils.hrl").
+
 
 % Implementation notes:
 %
@@ -96,6 +100,10 @@
 
 
 % Default name for global registration:
+%
+% (not used anymore so that multiple preferences servers, based on different
+% data files, can coexist)
+%
 %-define( default_preferences_server_name, ceylan_preferences_server ).
 
 
@@ -115,6 +123,18 @@
 -spec start() -> preferences_pid().
 start() ->
 	start( get_default_preferences_path() ).
+
+
+% Ensures that, if not done already, the preferences service is started and
+% linked, and initialised immediately (based on the default preferences path),
+% if wanting an explicit start rather than one implied by the use of an
+% operation onto it.
+%
+% Returns in any case the PID of the corresponding preferences server.
+%
+-spec start_link() -> preferences_pid().
+start_link() ->
+	start_link( get_default_preferences_path() ).
 
 
 
@@ -140,9 +160,49 @@ start( FileName ) ->
 			% No sensible link to be created here, so we must beware of a silent
 			% crash of this server:
 			%
-			spawn( fun() ->
+			?myriad_spawn( fun() ->
 					   server_main_run( CallerPid, RegistrationName, FileName )
-				   end ),
+						   end ),
+
+			receive
+
+				{ preferences_server_pid, Pid } ->
+					Pid
+
+			end;
+
+		Pid ->
+			Pid
+
+	end.
+
+
+
+% Ensures that, if not done already, the preferences service is started and
+% linked, and initialised immediately with the specified filename.
+%
+% Returns in any case the PID of the corresponding preferences server.
+%
+-spec start_link( file_utils:file_name() ) -> preferences_pid().
+start_link( FileName ) ->
+
+	RegistrationName = get_registration_name( FileName ),
+
+	case naming_utils:is_registered( RegistrationName, global ) of
+
+		not_registered ->
+
+			% A goal is to acquire the "lock" (the global name) ASAP, deferring
+			% all possible other operations:
+			%
+			CallerPid = self(),
+
+			% No sensible link to be created here, so we must beware of a silent
+			% crash of this server:
+			%
+			?myriad_spawn_link( fun() ->
+				server_main_run( CallerPid, RegistrationName, FileName )
+								end ),
 
 			receive
 
