@@ -1077,12 +1077,18 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export_type', TypeIds } | T ],
 % We may have here full or regular inlining (single function or list thereof),
 % and possibly other options.
 %
+% Note that options can also be specified through the command line (ex:
+% "-Ddebug_mode").
+%
 scan_forms( _AST=[ Form={ 'attribute', Line, 'compile', CompileInfo } | T ],
 			 M=#module_info{ compilation_options=CompileTable,
 							 compilation_option_defs=CompileDefs },
 			NextLocation, CurrentFileReference ) ->
 
 	Context = { CurrentFileReference, Line },
+
+	%ast_utils:display_debug( "Registration compilation option:~n~p~n",
+	%						 [ CompileInfo ] ),
 
 	NewCompileTable = register_compile_attribute( CompileInfo, CompileTable,
 												  Context ),
@@ -1350,7 +1356,6 @@ scan_forms( Unexpected, _ModuleInfo, _NextLocation, CurrentFileReference ) ->
 
 
 % Registers specified parse attribute regarding compilation.
-%
 -spec register_compile_attribute( term(), compile_option_table(),
 								  scan_context() ) ->
 			   { compile_option_table(), [ located_form() ] }.

@@ -57,6 +57,7 @@
 		  remove_element_at/2, remove_last_element/1,
 		  get_last_element/1, extract_last_element/1,
 		  get_index_of/2, split_at/2, uniquify/1,
+		  ensure_is_once_in/2,
 		  has_duplicates/1, get_duplicates/1, union/2, intersection/2,
 		  difference/2, cartesian_product/1,
 		  subtract_all_duplicates/2, delete_existing/2, delete_if_existing/2,
@@ -426,6 +427,26 @@ split_at( _List=[ H | T ], Count, MaxLen, Acc ) ->
 uniquify( List ) ->
 	% There is probably a more efficient way of doing the same:
 	sets:to_list( sets:from_list( List ) ).
+
+
+
+% Ensures that specified element is included once in specified unordered list
+% (supposed to contain it already up to once).
+%
+% Note: refer to set_utils for a more proper implementation of set.
+%
+-spec ensure_is_once_in( term(), list() ) -> list().
+ensure_is_once_in( Elem, List ) ->
+
+	case lists:member( Elem, List ) of
+
+		true ->
+			List;
+
+		false ->
+			[ Elem | List ]
+
+	end.
 
 
 

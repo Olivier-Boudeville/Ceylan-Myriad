@@ -2235,33 +2235,46 @@ type_info_to_string( #type_info{ name=TypeName,
 interpret_options( OptionList,
 				   ModuleInfo=#module_info{
 								 compilation_options=OptionTable } ) ->
+
 	NewOptionTable = scan_options( OptionList, OptionTable ),
 
 	%ast_utils:display_debug( "Scanned compilation options:~n~s",
-	%						 [ ?table:toString( NewOptionTable ) ] ),
+	%						  [ ?table:toString( NewOptionTable ) ] ),
 
 	ModuleInfo#module_info{ compilation_options=NewOptionTable }.
+
+
+
+% Note that values may accumulate for various options, like for a 'd' key to
+% which the following value could be associated: [ [ {my_second_test_token,200},
+% {my_second_test_token,201} ].
 
 
 % (helper)
 scan_options( _OptionList=[], OptionTable ) ->
 	OptionTable;
 
+% Ex: {d,debug_mode}
 scan_options( _OptionList=[ { Name, Value } | T ], OptionTable ) ->
 	NewOptionTable = ?table:appendToEntry( _K=Name, Value, OptionTable ),
 	scan_options( T, NewOptionTable );
 
+% Ex: {d,my_second_test_token,200}
 scan_options( _OptionList=[ { Name, BaseValue, OtherValue } | T ],
 			  OptionTable ) ->
 	NewOptionTable = ?table:appendToEntry( _K=Name, { BaseValue, OtherValue },
 										   OptionTable ),
 	scan_options( T, NewOptionTable );
 
+% Ex: report_errors
 scan_options( _OptionList=[ Name | T ], OptionTable ) when is_atom( Name ) ->
-	% No clash wanted:
-	NewOptionTable = ?table:addNewEntry( _K=Name, _V=undefined, OptionTable ),
-	scan_options( T, NewOptionTable );
 
+	% No clash wanted, throws an exception is the same key appears more than
+	% once:
+	%
+	NewOptionTable = ?table:addNewEntry( _K=Name, _V=undefined, OptionTable ),
+
+	scan_options( T, NewOptionTable );
 
 scan_options( _OptionList=[ Unexpected | _T ], _OptionTable ) ->
 	throw( { unexpected_compilation_option, Unexpected } ).

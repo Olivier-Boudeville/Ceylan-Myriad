@@ -204,12 +204,14 @@ parse_transform( InputAST, Options ) ->
 apply_myriad_transform( InputAST, Options ) ->
 
 	%ast_utils:display_debug( "  (applying parse transform '~p')",
-	%						 [ ?MODULE ] ),
+	%						  [ ?MODULE ] ),
 
 	%ast_utils:display_debug(
 	%           "~n## INPUT ####################################" ),
 
 	%ast_utils:display_debug( "Myriad input AST:~n~p~n~n", [ InputAST ] ),
+
+	%ast_utils:display_debug( "Myriad options:~n~p~n", [ Options ] ),
 
 	%ast_utils:write_ast_to_file( InputAST, "Myriad-input-AST.txt" ),
 
@@ -354,8 +356,8 @@ get_myriad_ast_transforms_for(
 	%
 	TokenTable = cond_utils:get_token_table_from( CompileOptTable ),
 
-	%ast_utils:display_debug_fmt( "Token table:~n~p",
-	%							 [ ?table:toString( TokenTable ) ] ),
+	%ast_utils:display_debug( "Token table:~n~s",
+	%						 [ ?table:toString( TokenTable ) ] ),
 
 	TargetModuleName = case ModuleEntry of
 
