@@ -74,7 +74,6 @@ start_common() ->
 
 
 % Stops a test; expected to be the last test statement in the normal case.
-%
 -spec stop() -> no_return().
 stop() ->
 	basic_utils:display( "\n--> Successful end of test.\n" ),
@@ -83,7 +82,6 @@ stop() ->
 
 
 % Displays a test message.
-%
 -spec display( string() ) -> void().
 display( Message ) ->
 	% Carriage return already added in basic_utils:display/1:
@@ -126,6 +124,7 @@ finished() ->
 
 	% Useless, but otherwise Dialyzer will complain that this function has no
 	% local return:
+	%
 	test_success.
 
 
@@ -134,7 +133,11 @@ finished() ->
 
 finished() ->
 
-	basic_utils:display( "(test finished, interpreter still running)~n" ),
+	basic_utils:display( "(test finished, interpreter still running)~n"
+						 "(if the Erlang shell is not available, ensure that "
+						 "no '-noinput' VM command-line option is used;~n"
+						 " see EXEC_INTERNAL_OPTIONS in Ceylan-Myriad's "
+						 "GNUmakevars.inc for that)", _Necessary=[] ),
 
 	%system_utils:await_output_completion(),
 
