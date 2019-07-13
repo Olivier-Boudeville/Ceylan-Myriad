@@ -1024,7 +1024,7 @@ duration_to_string( Milliseconds ) ->
 % Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected
 % Unicode inputs resulting on crashes afterwards.
 %
--spec format( format_string(), [ term() ] ) -> ustring().
+-spec format( format_string(), format_values() ) -> ustring().
 format( FormatString, Values ) ->
 
 	String = try
