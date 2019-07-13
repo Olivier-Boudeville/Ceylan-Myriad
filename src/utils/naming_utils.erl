@@ -45,7 +45,7 @@
 		  is_registered/1, is_registered/2,
 		  wait_for_registration_of/2,
 		  wait_for_global_registration_of/1, wait_for_global_registration_of/2,
-		  wait_for_local_registration_of/1,
+		  wait_for_local_registration_of/1, wait_for_local_registration_of/2,
 		  wait_for_remote_local_registrations_of/2,
 		  display_registered/0 ]).
 
@@ -515,7 +515,7 @@ wait_for_global_registration_of( Name, SecondsToWait ) ->
 %
 -spec wait_for_local_registration_of( registration_name() ) -> pid() | port().
 wait_for_local_registration_of( Name ) ->
-	wait_for_local_registration_of( Name , 5 ).
+	wait_for_local_registration_of( Name , _Seconds=5 ).
 
 
 wait_for_local_registration_of( Name, _Seconds=0 ) ->
