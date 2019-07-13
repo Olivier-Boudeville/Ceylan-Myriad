@@ -238,6 +238,18 @@ report_error( { Context, Error } ) ->
 				when is_atom( MacroName ) andalso is_integer( Arity ) ->
 			text_utils:format( "undefined macro ~s/~B", [ MacroName, Arity ] );
 
+		% Ex: DirectiveName = ifdef
+		{ epp_error, { bad, DirectiveName } } when is_atom( DirectiveName )  ->
+			text_utils:format( "invalid ~s preprocessor directive",
+							   [ DirectiveName ] );
+
+		% Ex: Problem = "unbalanced"
+		{ epp_error, { illegal, Problem, DirectiveName } }
+						when is_atom( DirectiveName )  ->
+			text_utils:format( "illegal ~s ~s preprocessor directive",
+							   [ Problem, DirectiveName ] );
+
+
 		String when is_list( String ) ->
 			text_utils:format( "~s", [ String ] );
 
