@@ -1009,7 +1009,11 @@ INTERNAL_OPTIONS := -start-verbatim-options $(INTERNAL_OPTIONS)
 # relying on io:get_line/1) require the opposite.
 
 # So we finally designed a work-around (see system_utils:get_line/1) to stick
-# with the option needed by term_ui:
+# with the option needed by term_ui.
+#
+# Note that setting a -noinput option implies that, for example when running a
+# test, the user will not be able to use the Erlang shell afterwards (like done
+# in test_facilities:finished/0).
 
 # term_ui displays and terminates (text_ui is ok):
 #EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -noinput -noshell
