@@ -1,3 +1,13 @@
+% Description of the Myriad OTP application, typically used by rebar3.
+
+% Note: if this file is named myriad.app, it is a *generated* file, whose source
+% is conf/myriad.app.src.
+
+% See also:
+% - http://erlang.org/doc/man/app.html
+% - https://learnyousomeerlang.com/building-otp-applications
+
+
 {application, myriad,
  [{description, "Ceylan-Myriad, a generic-purpose Erlang toolbox, as an OTP application library here (see http://myriad.esperide.org)"},
   {vsn, "MYRIAD_VERSION"},
@@ -15,11 +25,9 @@
   {licenses, ["Ceylan-Myriad is licensed by its author (Olivier Boudeville) under a disjunctive tri-license, giving you the choice of one of the three following sets of free software/open source licensing terms:
 	- the Mozilla Public License (MPL), version 1.1 or later (very close to the former Erlang Public License, except aspects regarding Ericsson and/or the Swedish law)
 	- the GNU General Public License (GPL), version 3.0 or later
-	- the GNU Lesser General Public License (LGPL), version 3.0 or later"]},
+	- the GNU Lesser General Public License (LGPL), version 3.0 or later"]}
 
-  % Library application, not library one, so no specific behaviour:
+  % Library application, not an active one, so no specific behaviour of its own:
   % {mod, {myriad_app,[]}}
-
-  {links, []}
 
  ]}.
