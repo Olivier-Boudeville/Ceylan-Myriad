@@ -16,6 +16,7 @@
 			  install-src install-include install-examples install-test        \
 			  install-doc info-install info-install-locations                  \
 			  info-install-content                                             \
+			  rebar3-application rebar3-release                                \
 			  rebar3-compile rebar3-create-tree rebar3-populate-build-tree     \
 			  rebar3-create-app-file rebar3-copy-beams rebar3-clean            \
 			  generate-list-of-erlang-types generate-list-of-local-types       \
@@ -359,13 +360,39 @@ info-install-content:
 
 
 
-# Allows a rebar3+hex compliant build:
+# Section for the support of a rebar3+relx+hex compliant build.
+
+REBAR_DEBUG :=
+#REBAR_DEBUG := DEBUG=1
+
+
+# Two targets to remember what can be issued on the command-line:
+
+rebar3-application:
+	@echo "  Triggering the overall creation by rebar3 of an application corresponding to $(PROJECT_NAME)"
+	@$(REBAR_DEBUG) rebar3 compile
+
+
+# Currently:
+# "===> Failed to solve release: Dependency myriad is specified as a dependency
+# but is not reachable by the system."
+#
+rebar3-release:
+	@echo "  Triggering the overall creation by rebar3 of a (relx-based) release corresponding to $(PROJECT_NAME)"
+	@$(REBAR_DEBUG) rebar3 release
+
+
+
+# Targets called by hooks specified to rebar3 through the rebar.config file:
+
+
+# This overall target is called (thanks to a pre-hook) when running: 'rebar3 compile'
 #
 # (note: we copy sources before compiling and copying BEAM files so that rebar3
 # will not try to recompile modules by itself)
 #
 rebar3-compile:
-	@echo "  Compiling $(PROJECT_NAME) for a rebar3+hex compliant build (in ./_build)"
+	@echo "  Preparing $(PROJECT_NAME) for a rebar3 compliant build (in ./_build)"
 	@$(MAKE) -s rebar3-clean rebar3-create-tree rebar3-populate-build-tree rebar3-create-app-file all rebar3-copy-beams
 
 
@@ -382,29 +409,43 @@ rebar3-compile:
 # See https://www.rebar3.org/discuss/5d1c82951e0cbe00121f12db for more details.
 #
 rebar3-create-tree:
-	@echo " Creating rebar3 build tree"
+	@echo "  Creating rebar3 build tree"
 	@mkdir -p _build/default/lib/$(REBAR3_PROJECT_NAME)/{priv,include,doc,test,ebin}
 	@cd _build/default/lib/$(REBAR3_PROJECT_NAME)/ && ln -s ../../../../src
 
 
-# Currently, priv and doc not specifically populated, and all header files
-#  (including internal ones) are copied to include:
+# Currently, priv is not specifically populated, and all header files (including
+# internal ones) are copied to include:
+#
+# (note that the sources of conditionally-compiled modules like sql_support are
+# intentionally left-out, otherwise the release as a whole will be considered as
+# an unreachable_package: 'Dependency XXX is specified as a dependency but is
+# not reachable by the system.')
+#
+# The symptom can be better seen with REBAR_DEBUG=1 above; for example:
+#
+# ===> Resolving OTP Applications from directories:
+# [...]
+#
+# ===> Missing beam file sql_support
+#  [...]/_build/default/lib/myriad/ebin/sql_support.beam
+#
+# Solution: no listing such BEAM files among the modules in the .app.src file.
 #
 rebar3-populate-build-tree:
 	@echo "  Copying sources in rebar3 build tree"
-	@true Using a src symlink, hence disabled: find src -name '*.erl' -a ! -name '*_test.erl' -exec /bin/cp '{}' _build/default/lib/$(REBAR3_PROJECT_NAME)/src/ ';'
+	@true Using a src symlink, hence disabled: find src -name '*.erl' -a ! -name '*_test.erl' -a ! -name sql_support.erl -a ! -name hdf5_support.erl -exec /bin/cp '{}' _build/default/lib/$(REBAR3_PROJECT_NAME)/src/ ';'
 	@find src -name '*_test.erl' -exec /bin/cp '{}' _build/default/lib/$(REBAR3_PROJECT_NAME)/test/ ';'
 	@find src -name '*.hrl' -exec /bin/cp '{}' _build/default/lib/$(REBAR3_PROJECT_NAME)/include/ ';'
-
-#	@/bin/cp LICENSE
+	@/bin/cp LICENSE README.md _build/default/lib/$(REBAR3_PROJECT_NAME)/doc
 
 
 # For modules, remove paths, extension, replace newlines with commas, and remove
 # the last one:
 #
 rebar3-create-app-file:
-	@echo "  Generating rebar3 app file"
-	@all_modules=$$(find src -name '*.erl' -a ! -name '*_test.erl' -exec echo '{}' ';' | sed 's|.*/||1' | sed 's|.erl$$||1' | tr '\n' ','| sed 's|,|, |g' | sed 's|, $$||1' ) ; cat conf/$(REBAR3_PROJECT_NAME).app.src | sed "s|MYRIAD_VERSION|$(MYRIAD_VERSION).0|1" | sed "s|MYRIAD_MODULES|$$all_modules|1"> _build/default/lib/$(REBAR3_PROJECT_NAME)/ebin/$(REBAR3_PROJECT_NAME).app
+	@echo "  Generating rebar3 $(REBAR3_PROJECT_NAME).app file"
+	@all_modules=$$(find src -name '*.erl' -a ! -name '*_test.erl' -a ! -name sql_support.erl -a ! -name hdf5_support.erl -exec echo '{}' ';' | sed 's|.*/||1' | sed 's|.erl$$||1' | tr '\n' ','| sed 's|,|, |g' | sed 's|, $$||1' ) ; cat conf/$(REBAR3_PROJECT_NAME).app.src | sed "s|MYRIAD_VERSION|$(MYRIAD_VERSION)|1" | sed "s|MYRIAD_MODULES|$$all_modules|1"> _build/default/lib/$(REBAR3_PROJECT_NAME)/ebin/$(REBAR3_PROJECT_NAME).app
 
 
 # Currently excluding test BEAMs, for a smaller size:
