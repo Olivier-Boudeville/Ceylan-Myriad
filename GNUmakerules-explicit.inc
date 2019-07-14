@@ -388,6 +388,8 @@ rebar3-production-release:
 	@$(REBAR_DEBUG) rebar3 as prod release
 
 
+
+
 # Targets called by hooks specified to rebar3 through the rebar.config file:
 
 
@@ -425,7 +427,8 @@ rebar3-create-tree:
 # (note that the sources of conditionally-compiled modules like sql_support are
 # intentionally left-out, otherwise the release as a whole will be considered as
 # an unreachable_package: 'Dependency XXX is specified as a dependency but is
-# not reachable by the system.')
+# not reachable by the system.'; they are also explicitly excluded in the
+# exclude_files section of the .app.src file)
 #
 # The symptom can be better seen with REBAR_DEBUG=1 above; for example:
 #
