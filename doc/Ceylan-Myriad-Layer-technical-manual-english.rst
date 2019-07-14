@@ -37,7 +37,7 @@ Technical Manual of the ``Ceylan-Myriad`` Layer
 :Organisation: Copyright (C) 2008-2019 Olivier Boudeville
 :Contact: about (dash) myriad (at) esperide (dot) com
 :Creation date: Sunday, August 17, 2008
-:Lastly updated: Wednesday, July 3, 2019
+:Lastly updated: Sunday, July 14, 2019
 :Status: Stable
 :Version: 1.2.8
 :Dedication: Users and maintainers of the ``Myriad`` layer.
