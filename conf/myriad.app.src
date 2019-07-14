@@ -25,9 +25,25 @@
   {licenses, ["Ceylan-Myriad is licensed by its author (Olivier Boudeville) under a disjunctive tri-license, giving you the choice of one of the three following sets of free software/open source licensing terms:
 	- the Mozilla Public License (MPL), version 1.1 or later (very close to the former Erlang Public License, except aspects regarding Ericsson and/or the Swedish law)
 	- the GNU General Public License (GPL), version 3.0 or later
-	- the GNU Lesser General Public License (LGPL), version 3.0 or later"]}
+	- the GNU Lesser General Public License (LGPL), version 3.0 or later"]},
 
   % Library application, not an active one, so no specific behaviour of its own:
   % {mod, {myriad_app,[]}}
+
+  { links, [ {"Official website", "http://myriad.esperide.org" },
+			 {"Github", "https://github.com/Olivier-Boudeville/Ceylan-Myriad"} ]},
+
+  % By default we exclude sources which provide a conditional support (i.e. that
+  % depend on third-party prerequisites):
+  %
+  % (note that they are also filtered out in our make system in the 'modules'
+  % section above)
+  %
+  {exclude_files, [ "src/data-management/sql_support.erl",
+					"src/data-management/sql_support.erl",
+
+					"src/data-management/hdf5_support.erl",
+					"src/data-management/hdf5_support_test.erl",
+					"src/data-management/raw_hdf5_test.erl" ]}
 
  ]}.
