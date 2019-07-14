@@ -1,4 +1,4 @@
-% Description of the Myriad OTP application, typically used by rebar3.
+% Description of the Myriad OTP library application, typically used by rebar3.
 
 % Note: if this file is named myriad.app, it is a *generated* file, whose source
 % is conf/myriad.app.src.
