@@ -16,9 +16,11 @@
 			  install-src install-include install-examples install-test        \
 			  install-doc info-install info-install-locations                  \
 			  info-install-content                                             \
-			  rebar3-application rebar3-release                                \
+			  rebar3-application rebar3-release rebar3-development-release     \
+			  rebar3-production-release                                        \
 			  rebar3-compile rebar3-create-tree rebar3-populate-build-tree     \
-			  rebar3-create-app-file rebar3-copy-beams rebar3-clean            \
+			  rebar3-create-app-file rebar3-copy-beams                         \
+			  rebar3-clean rebar3-real-clean                                   \
 			  generate-list-of-erlang-types generate-list-of-local-types       \
 			  generate-local-plt self-check-against-plt write-debug-key-file   \
 			  check check-hook help-erl                                        \
@@ -362,9 +364,6 @@ info-install-content:
 
 # Section for the support of a rebar3+relx+hex compliant build.
 
-REBAR_DEBUG :=
-#REBAR_DEBUG := DEBUG=1
-
 
 # Two targets to remember what can be issued on the command-line:
 
@@ -373,14 +372,20 @@ rebar3-application:
 	@$(REBAR_DEBUG) rebar3 compile
 
 
-# Currently:
-# "===> Failed to solve release: Dependency myriad is specified as a dependency
-# but is not reachable by the system."
-#
-rebar3-release:
-	@echo "  Triggering the overall creation by rebar3 of a (relx-based) release corresponding to $(PROJECT_NAME)"
+rebar3-release: rebar3-development-release
+
+
+rebar3-development-release:
+	@echo "  Triggering the overall creation by rebar3 of a (relx-based) development release corresponding to $(PROJECT_NAME)"
 	@$(REBAR_DEBUG) rebar3 release
 
+
+# Supposedly more functional/flexible than 'rebar3 release -d false' or 'rebar3
+# release -n prod':
+#
+rebar3-production-release:
+	@echo "  Triggering the overall creation by rebar3 of a (relx-based) production release corresponding to $(PROJECT_NAME)"
+	@$(REBAR_DEBUG) rebar3 as prod release
 
 
 # Targets called by hooks specified to rebar3 through the rebar.config file:
@@ -392,8 +397,8 @@ rebar3-release:
 # will not try to recompile modules by itself)
 #
 rebar3-compile:
-	@echo "  Preparing $(PROJECT_NAME) for a rebar3 compliant build (in ./_build)"
-	@$(MAKE) -s rebar3-clean rebar3-create-tree rebar3-populate-build-tree rebar3-create-app-file all rebar3-copy-beams
+	@echo "  Preparing $(PROJECT_NAME) for a rebar3 compliant build (in $(REBAR_BUILD_DIR))"
+	@$(MAKE) -s rebar3-clean rebar3-create-tree rebar3-populate-build-tree rebar3-create-app-file all rebar3-copy-beams REBAR_PROFILE=$(REBAR_PROFILE) REBAR_BUILD_DIR=$(REBAR_BUILD_DIR)
 
 
 # See for more information:
@@ -409,9 +414,9 @@ rebar3-compile:
 # See https://www.rebar3.org/discuss/5d1c82951e0cbe00121f12db for more details.
 #
 rebar3-create-tree:
-	@echo "  Creating rebar3 build tree"
-	@mkdir -p _build/default/lib/$(REBAR3_PROJECT_NAME)/{priv,include,doc,test,ebin}
-	@cd _build/default/lib/$(REBAR3_PROJECT_NAME)/ && ln -s ../../../../src
+	@echo "  Creating rebar3 build tree in $(REBAR_BUILD_DIR)"
+	@mkdir -p $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/{priv,include,doc,test,ebin}
+	@cd $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ && ln -s ../../../../src
 
 
 # Currently, priv is not specifically populated, and all header files (including
@@ -434,10 +439,10 @@ rebar3-create-tree:
 #
 rebar3-populate-build-tree:
 	@echo "  Copying sources in rebar3 build tree"
-	@true Using a src symlink, hence disabled: find src -name '*.erl' -a ! -name '*_test.erl' -a ! -name sql_support.erl -a ! -name hdf5_support.erl -exec /bin/cp '{}' _build/default/lib/$(REBAR3_PROJECT_NAME)/src/ ';'
-	@find src -name '*_test.erl' -exec /bin/cp '{}' _build/default/lib/$(REBAR3_PROJECT_NAME)/test/ ';'
-	@find src -name '*.hrl' -exec /bin/cp '{}' _build/default/lib/$(REBAR3_PROJECT_NAME)/include/ ';'
-	@/bin/cp LICENSE README.md _build/default/lib/$(REBAR3_PROJECT_NAME)/doc
+	@true Using a src symlink, hence disabled: find src -name '*.erl' -a ! -name '*_test.erl' -a ! -name sql_support.erl -a ! -name hdf5_support.erl -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/src/ ';'
+	@find src -name '*_test.erl' -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/test/ ';'
+	@find src -name '*.hrl' -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/include/ ';'
+	@/bin/cp LICENSE README.md $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/doc
 
 
 # For modules, remove paths, extension, replace newlines with commas, and remove
@@ -445,19 +450,23 @@ rebar3-populate-build-tree:
 #
 rebar3-create-app-file:
 	@echo "  Generating rebar3 $(REBAR3_PROJECT_NAME).app file"
-	@all_modules=$$(find src -name '*.erl' -a ! -name '*_test.erl' -a ! -name sql_support.erl -a ! -name hdf5_support.erl -exec echo '{}' ';' | sed 's|.*/||1' | sed 's|.erl$$||1' | tr '\n' ','| sed 's|,|, |g' | sed 's|, $$||1' ) ; cat conf/$(REBAR3_PROJECT_NAME).app.src | sed "s|MYRIAD_VERSION|$(MYRIAD_VERSION)|1" | sed "s|MYRIAD_MODULES|$$all_modules|1"> _build/default/lib/$(REBAR3_PROJECT_NAME)/ebin/$(REBAR3_PROJECT_NAME).app
+	@all_modules=$$(find src -name '*.erl' -a ! -name '*_test.erl' -a ! -name sql_support.erl -a ! -name hdf5_support.erl -exec echo '{}' ';' | sed 's|.*/||1' | sed 's|.erl$$||1' | tr '\n' ','| sed 's|,|, |g' | sed 's|, $$||1' ) ; cat conf/$(REBAR3_PROJECT_NAME).app.src | sed "s|MYRIAD_VERSION|$(MYRIAD_VERSION)|1" | sed "s|MYRIAD_MODULES|$$all_modules|1" > $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ebin/$(REBAR3_PROJECT_NAME).app
 
 
 # Currently excluding test BEAMs, for a smaller size:
 rebar3-copy-beams:
 	@echo "  Copying non-test BEAM modules in rebar3 build tree"
-	@find src -name '*.beam' -a ! -name '*_test.beam' -exec /bin/cp '{}' _build/default/lib/$(REBAR3_PROJECT_NAME)/ebin/ ';'
+	@find src -name '*.beam' -a ! -name '*_test.beam' -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ebin/ ';'
 
 
 rebar3-clean:
-	@echo "  Removing any prior rebar3 build tree"
-	-@/bin/rm -rf _build
+	@echo "  Removing any prior rebar3 build tree for profile $(REBAR_PROFILE)"
+	-@/bin/rm -rf $(REBAR_BUILD_DIR)
 
+
+rebar3-real-clean:
+	@echo "  Removing any prior rebar3 build root ($(REBAR_BUILD_ROOT)), hence for all profiles"
+	-@/bin/rm -rf $(REBAR_BUILD_ROOT)
 
 
 # Allows to generate a file listing all the types defined in the specified

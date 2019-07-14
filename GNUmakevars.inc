@@ -1037,6 +1037,34 @@ ifdef PROJECT_ICON
 endif
 
 
+
+
+# Release settings.
+
+
+REBAR_DEBUG :=
+#REBAR_DEBUG := DEBUG=1
+
+
+# Default profile:
+
+ifndef REBAR_PROFILE
+	   REBAR_PROFILE := default
+endif
+
+ifndef REBAR_BUILD_ROOT
+	   REBAR_BUILD_ROOT := _build
+endif
+
+ifndef REBAR_BUILD_DIR
+	   REBAR_BUILD_DIR := $(REBAR_BUILD_ROOT)/$(REBAR_PROFILE)
+endif
+
+
+
+# Verification settings.
+
+
 DIALYZER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which dialyzer 2>/dev/null)
 
 
@@ -1075,3 +1103,4 @@ endif
 
 
 MAKE_CODE_STATS := $(MYRIAD_TOP)/src/scripts/make-code-stats.sh
+
