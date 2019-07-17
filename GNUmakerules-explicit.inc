@@ -20,7 +20,7 @@
 			  rebar3-production-release                                        \
 			  rebar3-compile rebar3-create-tree rebar3-populate-build-tree     \
 			  rebar3-create-app-file rebar3-copy-beams                         \
-			  rebar3-clean rebar3-real-clean                                   \
+			  rebar3-clean rebar3-real-clean rebar3-info                       \
 			  generate-list-of-erlang-types generate-list-of-local-types       \
 			  generate-local-plt self-check-against-plt write-debug-key-file   \
 			  check check-hook help-erl                                        \
@@ -368,13 +368,14 @@ info-install-content:
 # Two targets to remember what can be issued on the command-line:
 
 rebar3-application:
-	@echo "  Triggering the overall creation by rebar3 of an application corresponding to $(PROJECT_NAME)"
+	@echo "  Triggering the overall creation by rebar3 of an OTP application corresponding to $(PROJECT_NAME)"
 	@$(REBAR_DEBUG) rebar3 compile
 
 
 rebar3-release: rebar3-development-release
 
 
+# Default is development:
 rebar3-development-release:
 	@echo "  Triggering the overall creation by rebar3 of a (relx-based) development release corresponding to $(PROJECT_NAME)"
 	@$(REBAR_DEBUG) rebar3 release
@@ -399,16 +400,16 @@ rebar3-production-release:
 # will not try to recompile modules by itself)
 #
 rebar3-compile:
-	@echo "  Preparing $(PROJECT_NAME) for a rebar3 compliant build (in $(REBAR_BUILD_DIR))"
+	@echo "  Preparing $(PROJECT_NAME) for a rebar3 compliant build (in $(REBAR_BUILD_DIR), for profile $(REBAR_PROFILE))"
 	@$(MAKE) -s rebar3-clean rebar3-create-tree rebar3-populate-build-tree rebar3-create-app-file all rebar3-copy-beams REBAR_PROFILE=$(REBAR_PROFILE) REBAR_BUILD_DIR=$(REBAR_BUILD_DIR)
 
 
 # See for more information:
 # http://erlang.org/doc/design_principles/applications.html#directory-structure
 #
-# Note: we now create a symlink directly pointing to the real src tree, instead
-# of copying the source files as a whole in the build tree. It is almost
-# mandatory, as the link above tells us that this src directory in _build should
+# Note: we now create a symlink directly pointing to the real 'src' tree,
+# instead of copying the source files as a whole in the build tree. It is almost
+# mandatory, as the URL above tells us that this src directory in _build should
 # never be deeper than one level (whereas we have more levels than that), and
 # apparently if rebar3 is not able to locate, for an ebin/ X.beam, a X.erl, it
 # will attempt to recompile it (and obviously fail).
@@ -421,11 +422,11 @@ rebar3-create-tree:
 	@cd $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ && ln -s ../../../../src
 
 
-# Currently, priv is not specifically populated, and all header files (including
-# internal ones) are copied to include:
+# Currently, 'priv' is not specifically populated, and all header files (including
+# internal ones) are copied to 'include':
 #
 # (note that the sources of conditionally-compiled modules like sql_support are
-# intentionally left-out, otherwise the release as a whole will be considered as
+# intentionally left out, otherwise the release as a whole will be considered as
 # an unreachable_package: 'Dependency XXX is specified as a dependency but is
 # not reachable by the system.'; they are also explicitly excluded in the
 # exclude_files section of the .app.src file)
@@ -438,11 +439,11 @@ rebar3-create-tree:
 # ===> Missing beam file sql_support
 #  [...]/_build/default/lib/myriad/ebin/sql_support.beam
 #
-# Solution: no listing such BEAM files among the modules in the .app.src file.
+# Solution: not listing such BEAM files among the modules in the .app.src file.
 #
 rebar3-populate-build-tree:
 	@echo "  Copying sources in rebar3 build tree"
-	@true Using a src symlink, hence disabled: find src -name '*.erl' -a ! -name '*_test.erl' -a ! -name sql_support.erl -a ! -name hdf5_support.erl -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/src/ ';'
+	@true "Using a src symlink, hence disabled: find src -name '*.erl' -a ! -name '*_test.erl' -a ! -name sql_support.erl -a ! -name hdf5_support.erl -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/src/ ';'"
 	@find src -name '*_test.erl' -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/test/ ';'
 	@find src -name '*.hrl' -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/include/ ';'
 	@/bin/cp LICENSE README.md $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/doc
@@ -451,9 +452,14 @@ rebar3-populate-build-tree:
 # For modules, remove paths, extension, replace newlines with commas, and remove
 # the last one:
 #
+# Not specifically removing source files, each .app.src does that thanks its
+# 'exclude_files' entry, with MODULES_FOR_REBAR3:
+#
+# -a ! -name sql_support.erl -a ! -name hdf5_support.erl
+#
 rebar3-create-app-file:
 	@echo "  Generating rebar3 $(REBAR3_PROJECT_NAME).app file"
-	@all_modules=$$(find src -name '*.erl' -a ! -name '*_test.erl' -a ! -name sql_support.erl -a ! -name hdf5_support.erl -exec echo '{}' ';' | sed 's|.*/||1' | sed 's|.erl$$||1' | tr '\n' ','| sed 's|,|, |g' | sed 's|, $$||1' ) ; cat conf/$(REBAR3_PROJECT_NAME).app.src | sed "s|MYRIAD_VERSION|$(MYRIAD_VERSION)|1" | sed "s|MYRIAD_MODULES|$$all_modules|1" > $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ebin/$(REBAR3_PROJECT_NAME).app
+	@all_modules=$$(find src -name '*.erl' -a ! -name '*_test.erl' $(REBAR3_FIND_SRC_OPT) -exec echo '{}' ';' | sed 's|.*/||1' | sed 's|.erl$$||1' | tr '\n' ','| sed 's|,|, |g' | sed 's|, $$||1' | sort ) ; cat conf/$(REBAR3_PROJECT_NAME).app.src | sed "s|VERSION_FOR_REBAR3|$(VERSION_FOR_REBAR3)|1" | sed "s|MODULES_FOR_REBAR3|$$all_modules|1" > $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ebin/$(REBAR3_PROJECT_NAME).app
 
 
 # Currently excluding test BEAMs, for a smaller size:
@@ -470,6 +476,16 @@ rebar3-clean:
 rebar3-real-clean:
 	@echo "  Removing any prior rebar3 build root ($(REBAR_BUILD_ROOT)), hence for all profiles"
 	-@/bin/rm -rf $(REBAR_BUILD_ROOT)
+
+
+rebar3-info:
+	@echo "REBAR_DEBUG = $(REBAR_DEBUG)"
+	@echo "REBAR_PROFILE = $(REBAR_PROFILE)"
+	@echo "REBAR_BUILD_ROOT = $(REBAR_BUILD_ROOT)"
+	@echo "REBAR_BUILD_DIR = $(REBAR_BUILD_DIR)"
+	@echo "REBAR3_FIND_SRC_EXCLUDES = $(REBAR3_FIND_SRC_EXCLUDES)"
+	@echo "REBAR3_FIND_SRC_OPT = $(REBAR3_FIND_SRC_OPT)"
+
 
 
 # Allows to generate a file listing all the types defined in the specified

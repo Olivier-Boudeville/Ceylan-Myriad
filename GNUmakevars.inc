@@ -24,6 +24,12 @@ ifndef PROJECT_VERSION
 endif
 
 
+# Name intentionally does not include the current layer, for more generic rules:
+ifndef VERSION_FOR_REBAR3
+	VERSION_FOR_REBAR3 := $(PROJECT_VERSION)
+endif
+
+
 ifndef PACKAGE_NAME
 	PACKAGE_NAME := Ceylan-Myriad
 endif
@@ -1048,6 +1054,10 @@ REBAR_DEBUG :=
 
 # Default profile:
 
+# Note: not always honored, refer to 'make rebar3-info' to see that
+# REBAR_BUILD_DIR is set in some cases regardless of this variable when run in
+# rebar3's pre_hooks.
+#
 ifndef REBAR_PROFILE
 	   REBAR_PROFILE := default
 endif
@@ -1060,6 +1070,25 @@ ifndef REBAR_BUILD_DIR
 	   REBAR_BUILD_DIR := $(REBAR_BUILD_ROOT)/$(REBAR_PROFILE)
 endif
 
+
+ifndef REBAR3_FIND_SRC_OPT
+
+	ifndef REBAR3_FIND_SRC_EXCLUDES
+
+		# Do not insert spaces here:
+		ifeq ($(PROJECT_NAME),Ceylan-Myriad)
+
+			# For Myriad then:
+			REBAR3_FIND_SRC_EXCLUDES := sql_support.erl hdf5_support.erl
+
+		endif
+
+		# Generated a relevant GNU find option for excluded sources:
+		REBAR3_FIND_SRC_OPT := $(patsubst %,-a ! -name %,$(REBAR3_FIND_SRC_EXCLUDES))
+
+	endif
+
+endif
 
 
 # Verification settings.
@@ -1103,4 +1132,3 @@ endif
 
 
 MAKE_CODE_STATS := $(MYRIAD_TOP)/src/scripts/make-code-stats.sh
-
