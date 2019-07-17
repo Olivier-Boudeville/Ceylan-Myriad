@@ -42,7 +42,7 @@
 % The code path is not supposed to be updated with the one for 'Myriad', so
 % extra care must be taken not to call Myriad helper modules for implementations
 % here meant to be run before the update of the code path.
-
+%
 -export([ is_running_as_escript/0, update_code_path_for_myriad/0,
 		  get_script_base_directory/0, get_myriad_base_directory/0,
 		  get_arguments/1 ]).
@@ -240,11 +240,17 @@ get_myriad_base_directory() ->
 % available for escripts), for which options start with a start, may have any
 % number of arguments, and may be specified more than once in the command-line.
 %
+% Note: switches to the Unicode encoding (ex: use "~tp" then).
+%
 % Allows to write code that can be seamlessly triggered by a erl interpreter or
 % by an escript, by putting them in the latter case in this "canonical" form.
 %
 -spec get_arguments( [ string() ] ) -> executable_utils:argument_table().
 get_arguments( Args ) ->
+
+	% Useful side-effect, difficult to troubleshoot:
+	ok = io:setopts( [ { encoding, unicode } ] ),
+
 	get_arguments( Args, _OptionTable=list_table:new() ).
 
 
