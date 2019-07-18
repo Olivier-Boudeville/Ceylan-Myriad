@@ -115,9 +115,6 @@
 -type event_source() :: wx_event_handler() | myriad_event_handler().
 
 
--export_type([ event_message/0, event_source/0 ]).
-
-
 -type wx_event_handler() :: wxEvtHandler:wxEvtHandler().
 
 
@@ -146,12 +143,12 @@
 % The PID of a user calling process:
 -type user_pid() :: pid().
 
+
 % The PID of an event subscriber:
 -type event_subscriber_pid() :: pid().
 
 
 % So that user process(es) can subscribe to GUI events:
-%
 -type event_subscription() ::
 		{ list_utils:maybe_list( event_type() ),
 		  list_utils:maybe_list( gui_object() ),
@@ -162,8 +159,16 @@
 % Specifies, for an event subscriber (by default: the calling process), any
 % combination of type of events and GUI objects that shall be listened to.
 %
--type event_subscription_spec() :: list_utils:maybe_list(
-									 event_subscription() ).
+-type event_subscription_spec() ::
+		list_utils:maybe_list( event_subscription() ).
+
+
+-export_type([ event_message/0, event_source/0,
+			   wx_event_handler/0, myriad_event_handler/0,
+			   wx_event_type/0, wx_close_event_type/0,
+			   event_type/0, user_pid/0,
+			   event_subscriber_pid/0, event_subscription/0,
+			   event_subscription_spec/0 ]).
 
 
 
@@ -309,8 +314,7 @@
 -type wx_event_info() :: tuple().
 
 
-% To silence unused warnings:
--export_type([ wx_event_type/0 ]).
+-export_type([ wx_event/0, wx_event_info/0 ]).
 
 
 % Shorthands:
@@ -653,6 +657,7 @@ process_event_message( { adjustObject, ObjectRef }, LoopState ) ->
 
 % Currently we update widgets regardless of whether one of their parent windows
 % is reported here as shown:
+%
 process_event_message( { onShow, [ _Windows ] }, LoopState ) ->
 
 			ObjectsToAdjust = LoopState#loop_state.objects_to_adjust,
@@ -733,7 +738,7 @@ process_only_latest_repaint_event( CurrentWxRepaintEvent, SourceObject,
 
 
 % Processes specified wx event message.
--spec process_wx_event( wx_id(), gui:wx_object(),
+-spec process_wx_event( wx_id(), wx:wx_object(),
 						gui:user_data(), wx_event_info(), wx_event(),
 						loop_state() ) -> loop_state().
 process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
@@ -1131,7 +1136,6 @@ update_event_table( _EventTypes=[ EventType | T ], Subscribers,
 
 
 % Adjusts the specified MyriadGUI instances.
-%
 -spec adjust_objects( [ myriad_object_ref() ], event_table(),
 					  myriad_type_table() ) -> myriad_type_table().
 adjust_objects( _ObjectsToAdjust=[], _EventTable, TypeTable ) ->
@@ -1171,7 +1175,6 @@ adjust_objects( _ObjectsToAdjust=[ CanvasRef=#myriad_object_ref{
 
 
 % Returns the internal state of the specified canvas instance.
-%
 -spec get_canvas_instance_state( gui:myriad_instance_pid(),
 						 myriad_type_table() ) -> gui:myriad_object_state().
 get_canvas_instance_state( CanvasId, TypeTable ) ->
@@ -1180,7 +1183,6 @@ get_canvas_instance_state( CanvasId, TypeTable ) ->
 
 
 % Returns the internal state of the specified MyriadGUI instance.
-%
 -spec get_instance_state( myriad_object_ref(), myriad_type_table() ) ->
 								gui:myriad_object_state().
 get_instance_state( { myriad_object_ref, MyriadObjectType, InstanceId },
@@ -1190,7 +1192,6 @@ get_instance_state( { myriad_object_ref, MyriadObjectType, InstanceId },
 
 
 % Returns the internal state of the specified MyriadGUI instance.
-%
 -spec get_instance_state( myriad_object_ref(), myriad_type_table(),
 						  myriad_type_table() ) -> gui:myriad_object_state().
 get_instance_state( MyriadObjectType, InstanceId, TypeTable ) ->
@@ -1225,7 +1226,6 @@ get_instance_state( MyriadObjectType, InstanceId, TypeTable ) ->
 
 
 % Sets the internal state of the specified canvas instance.
-%
 -spec set_canvas_instance_state( gui:myriad_instance_pid(),
 	gui:myriad_object_state(), myriad_type_table() ) -> myriad_type_table().
 set_canvas_instance_state( CanvasId, CanvasState, TypeTable ) ->
@@ -1235,7 +1235,6 @@ set_canvas_instance_state( CanvasId, CanvasState, TypeTable ) ->
 
 
 % Returns the internal state of the specified MyriadGUI instance.
-%
 -spec set_instance_state( myriad_object_ref(), gui:myriad_object_state(),
 						  myriad_type_table() ) -> myriad_type_table().
 set_instance_state( { myriad_object_ref, MyriadObjectType, InstanceId },

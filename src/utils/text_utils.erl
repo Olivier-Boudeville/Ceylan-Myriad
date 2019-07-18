@@ -208,7 +208,7 @@
 
 -export_type([ format_string/0, format_values/0,
 			   regex_string/0, title/0, label/0,
-			   bin_string/0, unicode_string/0, uchar/0, ustring/0,
+			   bin_string/0, any_string/0, unicode_string/0, uchar/0, ustring/0,
 			   string_like/0, indentation_level/0, distance/0 ]).
 
 

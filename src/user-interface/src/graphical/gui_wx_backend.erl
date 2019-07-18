@@ -28,7 +28,6 @@
 
 
 % Gathers all elements relative to the wx backend (itself based on WxWidgets).
-%
 -module(gui_wx_backend).
 
 
@@ -133,8 +132,7 @@
 
 
 % Conversions from MyriadGUI to wx:
-%
--export([ to_wx_object_type/1, 
+-export([ to_wx_object_type/1,
 		  to_wx_event_type/1, from_wx_event_type/1,
 		  to_wx_debug_level/1,
 		  window_style_to_bitmask/1,
@@ -150,7 +148,6 @@
 
 
 % Conversions from wx to MyriadGUI:
-%
 -export([ from_wx_object_type/1 ]).
 
 
@@ -221,7 +218,7 @@
 
 
 % To avoid unused warnings:
--export_type([ wx_native_object_type/0 ]).
+-export_type([ wx_id/0, wx_native_object_type/0 ]).
 
 
 % For canvas_state():
@@ -241,7 +238,6 @@
 
 
 % Converts a MyriadGUI type of object into a wx one.
-%
 -spec to_wx_object_type( gui:myriad_object_type() ) -> gui:wx_object_type().
 to_wx_object_type( object ) ->
 	wxObject;
@@ -289,7 +285,6 @@ to_wx_object_type( Other ) ->
 
 
 % Converts a wx type of object into a MyriadGUI one.
-%
 -spec from_wx_object_type( gui:wx_object_type() ) -> gui:myriad_object_type().
 from_wx_object_type( wxObject ) ->
 	object;
@@ -342,8 +337,6 @@ from_wx_object_type( Other ) ->
 
 
 % Converts a MyriadGUI type of event into a wx one.
-%
-
 -spec to_wx_event_type( event_type() ) -> gui_event:wx_event_type().
 to_wx_event_type( onWindowClosed ) ->
 	close_window;
@@ -364,7 +357,6 @@ to_wx_event_type( Other ) ->
 
 
 % Converts a wx type of event into a MyriadGUI one.
-%
 -spec from_wx_event_type( gui_event:wx_event_type() ) -> event_type().
 from_wx_event_type( close_window ) ->
 	onWindowClosed;
@@ -694,7 +686,7 @@ sizer_flag_to_bitmask( _Flag=align_center_horizontal ) ->
 %
 % (helper)
 %
--spec to_wx_id( maybe( gui:myriad_instance_id() ) ) -> wx_id().
+-spec to_wx_id( maybe( gui:myriad_instance_pid() ) ) -> wx_id().
 to_wx_id( undefined ) ->
 	?any_id;
 
@@ -707,7 +699,7 @@ to_wx_id( Other ) ->
 %
 % (helper)
 %
--spec to_wx_parent( maybe( gui:myriad_instance_id() ) ) -> wx_id().
+-spec to_wx_parent( maybe( gui:myriad_instance_pid() ) ) -> wx_id().
 to_wx_parent( undefined ) ->
 	?no_parent;
 
@@ -759,6 +751,7 @@ to_wx_orientation( horizontal ) ->
 	?wxHORIZONTAL.
 
 
+
 %
 % Section for the conversions from wx to MyriadGUI:
 %
@@ -783,7 +776,6 @@ wx_id_to_window( Id ) ->
 
 
 % Returns a textual representation of the specified GUI object wx identifier.
-%
 -spec wx_id_to_string( wx_id() ) -> string().
 wx_id_to_string( _Id=undefined ) ->
 	"no id defined";
@@ -842,7 +834,6 @@ connect( SourceObject, EventType, Options ) ->
 
 
 % Unsubscribes the event source, for all event types.
-%
 -spec disconnect( gui_event:event_source() ) -> boolean().
 disconnect( #canvas_state{ panel=Panel } ) ->
 	disconnect( Panel );

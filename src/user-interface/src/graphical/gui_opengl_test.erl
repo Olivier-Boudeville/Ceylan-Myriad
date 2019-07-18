@@ -39,7 +39,7 @@
 -record( my_test_state, {
 
 	% Internal state of the gui subsystem:
-	gui_state :: gui:state(),
+	gui_state :: term(), %gui:state(),
 
 	% Test-specific state:
 	test_main_frame :: gui:frame()
@@ -87,7 +87,6 @@ run_test_gui() ->
 
 
 % Runs the test.
-%
 -spec run() -> no_return().
 run() ->
 

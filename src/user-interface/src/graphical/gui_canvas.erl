@@ -64,19 +64,16 @@
 
 
 % Pixel-level operations.
-%
 -export([ get_rgb/2, set_rgb/2 ]).
 
 
 % Line-related rendering.
-%
 -export([ draw_line/3, draw_line/4, draw_lines/2, draw_lines/3, draw_segment/4,
 		  draw_polygon/2 ]).
 
 
 
 % Rendering of other elements.
-%
 -export([ draw_label/3,
 		  draw_cross/2, draw_cross/3, draw_cross/4, draw_labelled_cross/4,
 		  draw_labelled_cross/5, draw_circle/3, draw_circle/4,
@@ -85,7 +82,6 @@
 
 
 % Image loading.
-%
 -export([ load_image/2, load_image/3 ]).
 
 
@@ -124,8 +120,7 @@
 
 
 % A specific kind of gui_object_ref():
-%
--type canvas() :: { gui_object_ref, 'canvas', gui:myriad_instance_id() }.
+-type canvas() :: { gui_object_ref, 'canvas', gui:myriad_instance_pid() }.
 
 
 -export_type([ canvas_state/0, gl_canvas/0, canvas/0 ]).
@@ -212,7 +207,6 @@ resize( Canvas=#canvas_state{ bitmap=Bitmap, back_buffer=BackBuffer },
 
 
 % Clears the back-buffer of the specified canvas.
-%
 -spec clear( canvas_state() ) -> void().
 clear( #canvas_state{ back_buffer=BackBuffer } ) ->
 	wxMemoryDC:clear( BackBuffer ).
@@ -243,7 +237,6 @@ blit( Canvas=#canvas_state{ panel=Panel,
 
 
 % Returns the size of this canvas, as { IntegerWidth, IntegerHeight }.
-%
 -spec get_size( canvas_state() ) -> linear_2D:dimensions().
 get_size( #canvas_state{ back_buffer=BackBuffer } ) ->
 	wxDC:getSize( BackBuffer ).
@@ -251,7 +244,6 @@ get_size( #canvas_state{ back_buffer=BackBuffer } ) ->
 
 
 % Destroys specified canvas.
-%
 -spec destroy( canvas_state() ) -> void().
 destroy( #canvas_state{ back_buffer=BackBuffer } ) ->
 	wxMemoryDC:destroy( BackBuffer ).
@@ -262,7 +254,6 @@ destroy( #canvas_state{ back_buffer=BackBuffer } ) ->
 
 
 % Sets the color to be used for the drawing of the outline of shapes.
-%
 -spec set_draw_color( canvas_state(), gui_color:color() ) -> void().
 set_draw_color( Canvas, Color ) when is_atom( Color ) ->
 	set_draw_color( Canvas, gui_color:get_color( Color ) );
@@ -275,7 +266,6 @@ set_draw_color( Canvas, Color ) ->
 
 
 % Sets the color to be using for filling surfaces.
-%
 -spec set_fill_color( canvas_state(), gui_color:color() ) -> void().
 set_fill_color( #canvas_state{ back_buffer=BackBuffer }, _Color=none ) ->
 	% We want transparency here:
@@ -292,7 +282,6 @@ set_fill_color( #canvas_state{ back_buffer=BackBuffer }, Color ) ->
 
 
 % Sets the background color of the specified canvas.
-%
 -spec set_background_color( canvas_state(), gui_color:color() ) -> void().
 set_background_color( #canvas_state{ back_buffer=BackBuffer }, Color ) ->
 
@@ -312,7 +301,6 @@ set_background_color( #canvas_state{ back_buffer=BackBuffer }, Color ) ->
 
 
 % Returns the RGB value of the pixel at specified position.
-%
 -spec get_rgb( canvas_state(), linear_2D:point() ) ->
 					 gui_color:color_by_decimal_with_alpha().
 get_rgb( #canvas_state{ back_buffer=BackBuffer }, Point ) ->
@@ -330,7 +318,6 @@ get_rgb( #canvas_state{ back_buffer=BackBuffer }, Point ) ->
 
 
 % Sets the pixel at specified position to the current RGB point value.
-%
 -spec set_rgb( canvas_state(), linear_2D:point() ) -> void().
 set_rgb( #canvas_state{ back_buffer=BackBuffer }, Point ) ->
 
@@ -401,7 +388,6 @@ draw_segment( Canvas, L, Y1, Y2 ) ->
 
 
 % Draws the specified polygon, closing the lines and filling them.
-%
 -spec draw_polygon( canvas_state(), [ linear_2D:point() ] ) -> void().
 draw_polygon( #canvas_state{ back_buffer=BackBuffer }, Points ) ->
 	wxDC:drawPolygon( BackBuffer, Points ).
@@ -432,8 +418,8 @@ draw_cross( Canvas, Location ) ->
 % Draws an upright cross at specified location (2D point), with specified edge
 % length.
 %
--spec draw_cross( canvas_state(), linear_2D:point(), linear:integer_distance() ) ->
-						void().
+-spec draw_cross( canvas_state(), linear_2D:point(),
+				  linear:integer_distance() ) -> void().
 draw_cross( Canvas, _Location={X,Y}, EdgeLength ) ->
 	Offset = EdgeLength div 2,
 	% The last pixel of a line is not drawn, hence the +1:
@@ -483,8 +469,8 @@ draw_labelled_cross( Canvas, Location, EdgeLength, Color, LabelText ) ->
 % Renders specified circle (actually, depending on the fill color, it may be a
 % disc) in specified canvas.
 %
--spec draw_circle( canvas_state(), linear_2D:point(), linear:integer_distance() ) ->
-						 void().
+-spec draw_circle( canvas_state(), linear_2D:point(),
+				   linear:integer_distance() ) -> void().
 draw_circle( #canvas_state{ back_buffer=BackBuffer }, Center, Radius ) ->
 	wxDC:drawCircle( BackBuffer, Center, Radius ).
 

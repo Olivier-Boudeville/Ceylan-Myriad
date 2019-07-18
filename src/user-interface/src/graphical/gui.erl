@@ -490,13 +490,19 @@
 
 
 
--export_type([ length/0, coordinate/0, point/0, orientation/0,
-			   object_type/0, myriad_instance_pid/0, id/0, wx_server/0,
-			   window/0, frame/0, panel/0, button/0, sizer/0, status_bar/0,
+-export_type([ length/0, coordinate/0, point/0, position/0, size/0,
+			   orientation/0, object_type/0, wx_object_type/0,
+			   myriad_object_type/0, myriad_instance_pid/0,
+			   title/0, label/0, user_data/0,
+			   id/0, gui_object/0, wx_server/0,
+			   window/0, frame/0, panel/0, button/0,
+			   sizer/0, sizer_child/0, sizer_item/0, status_bar/0,
 			   bitmap/0, back_buffer/0, canvas/0,
 			   construction_parameters/0, backend_event/0, connect_options/0,
 			   window_style/0, frame_style/0, button_style/0,
-			   sizer_flag/0, error_message/0 ]).
+			   sizer_flag_opt/0, sizer_flag/0, sizer_option/0, sizer_options/0,
+			   connect_opt/0, debug_level_opt/0, debug_level/0,
+			   error_message/0 ]).
 
 
 % To avoid unused warnings:

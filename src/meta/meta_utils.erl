@@ -246,8 +246,8 @@
 % Registers (includes exporting) specified (spec-less) function in specified
 % module.
 %
--spec add_function( basic_utils:function_id(), [ clause_def() ],
-					module_info() ) -> module_info().
+-spec add_function( function_id(), [ clause_def() ], module_info() ) ->
+						  module_info().
 add_function( _FunId={ FunctionName, FunctionArity }, Clauses, ModuleInfo ) ->
 	add_function( FunctionName, FunctionArity, Clauses, ModuleInfo ).
 
