@@ -418,8 +418,8 @@ rebar3-compile:
 #
 rebar3-create-tree:
 	@echo "  Creating rebar3 build tree in $(REBAR_BUILD_DIR)"
-	@mkdir -p $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/{priv,include,doc,test,ebin}
-	@cd $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ && ln -s ../../../../src
+	@mkdir -p $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/{priv/examples,include,doc,test,ebin}
+	@cd $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ && ln -sf ../../../../src
 
 
 # Currently, 'priv' is not specifically populated, and all header files (including
@@ -444,8 +444,10 @@ rebar3-create-tree:
 rebar3-populate-build-tree:
 	@echo "  Copying sources in rebar3 build tree"
 	@true "Using a src symlink, hence disabled: find src -name '*.erl' -a ! -name '*_test.erl' -a ! -name sql_support.erl -a ! -name hdf5_support.erl -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/src/ ';'"
-	@find src -name '*_test.erl' -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/test/ ';'
+	@# As tests may be in a separate 'tests' directory for example, and we do not want to select _build, in order to be idempotent:
+	@find src test* -name '*_test.erl' -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/test/ ';' 1>/dev/null 2>&1 | true
 	@find src -name '*.hrl' -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/include/ ';'
+	@find examples -name '*rl' -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/priv/examples ';' 1>/dev/null 2>&1 | true
 	@/bin/cp LICENSE README.md $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/doc
 
 
