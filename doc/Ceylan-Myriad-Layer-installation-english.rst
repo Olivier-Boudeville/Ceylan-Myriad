@@ -129,6 +129,46 @@ From the root of a Myriad clone, to obtain the Ceylan-Myriad library application
 
 It will trigger ``rebar3`` that, through a hook, will trigger at the right step the relevant Myriad Make-based targets, resulting in a full, OTP-compliant build tree created in ``_build`` (including a properly-generated ``_build/default/lib/myriad/ebin/myriad.app`` file), and more generally in a proper OTP application.
 
+The OTP application support can be tested through a (compiled) source tree; from the root of Myriad::
+
+ $ cd src/utils
+ $ make otp_application_run
+		Running unitary test otp_application_run (third form) from otp_application_test
+
+ --> Testing module otp_application_test.
+
+ Starting the Myriad application.
+ Myriad version: {1,0,0}.
+ Current user name: 'stallone'.
+ Stopping the Myriad application.
+ Successful end of test of the Myriad application.
+ =INFO REPORT==== 18-Jul-2019::22:37:24.779037 ===
+	application: myriad
+	exited: stopped
+	type: temporary
+
+ --> Successful end of test.
+
+ (test finished, interpreter halted)
+
+
+It can be also tested manually, directly through the build tree used by rebar3; from the root of Myriad::
+
+ $ erl -pz _build/default/lib/myriad/ebin/
+ Erlang/OTP 22 [erts-10.4] [source] [64-bit] [smp:8:8] [...]
+
+ Eshell V10.4  (abort with ^G)
+ 1> application:start(myriad).
+ ok
+ 2> text_utils:format( "Hello ~s", [ world ] ).
+ "Hello world"
+ 3> application:stop(myriad).
+ =INFO REPORT==== 18-Jul-2019::22:47:36.429804 ===
+	application: myriad
+	exited: stopped
+	type: temporary
+
+
 
 OTP Release
 -----------
