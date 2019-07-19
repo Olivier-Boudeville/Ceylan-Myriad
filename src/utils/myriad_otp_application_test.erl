@@ -23,11 +23,11 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-
+% Creation date: Friday, July 19, 2019.
 
 
 % Testing of Myriad as an OTP library application.
--module(otp_application_test).
+-module(myriad_otp_application_test).
 
 
 % For run/0 export and al:
@@ -76,8 +76,9 @@ run() ->
 
 		false ->
 			trace_utils:warning_fmt( "No build directory found for the Myriad "
-									 "application (searched for '~s'), "
-									 "stopping this test.", [ EBinPath ] )
+				"application (searched for '~s'), stopping this test "
+				"(run beforehand 'make rebar3-compile' at the root of the "
+				"source tree for a more relevant testing).", [ EBinPath ] )
 
 	end,
 
