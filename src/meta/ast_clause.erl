@@ -216,7 +216,7 @@ transform_clause_generic( Clause, Transforms ) ?rec_guard ->
 
 
 		TransformTable ->
-			case ?table:lookupEntry( 'clause', TransformTable ) of
+			case ?table:lookup_entry( 'clause', TransformTable ) of
 
 				key_not_found ->
 					NewClausePair = transform_clause_default( Clause,
@@ -566,7 +566,7 @@ transform_body( BodyExprs, Transforms )
 
 
 		TransformTable ->
-			case ?table:lookupEntry( 'body', TransformTable ) of
+			case ?table:lookup_entry( 'body', TransformTable ) of
 
 				key_not_found ->
 

@@ -1175,12 +1175,12 @@ get_lexicographic_distance( FirstString, SecondString ) ->
 % Actual helper:
 get_lexicographic_distance( _FirstString=[], SecondString, AccTable ) ->
 	Len = length( SecondString ),
-	NewTable = ?table:addEntry( _K={ [], SecondString }, _V=Len, AccTable ),
+	NewTable = ?table:add_entry( _K={ [], SecondString }, _V=Len, AccTable ),
 	{ Len, NewTable };
 
 get_lexicographic_distance( FirstString, _SecondString=[], AccTable ) ->
 	Len = length( FirstString ),
-	NewTable = ?table:addEntry( _K={ FirstString, [] }, _V=Len, AccTable ),
+	NewTable = ?table:add_entry( _K={ FirstString, [] }, _V=Len, AccTable ),
 	{ Len, NewTable };
 
 get_lexicographic_distance( _FirstString=[ H | T1 ], _SecondString=[ H | T2 ],
@@ -1190,7 +1190,7 @@ get_lexicographic_distance( _FirstString=[ H | T1 ], _SecondString=[ H | T2 ],
 get_lexicographic_distance( FirstString=[ _H1 | T1 ], SecondString=[ _H2 | T2 ],
 							AccTable ) ->
 	Key = { FirstString, SecondString },
-	case ?table:lookupEntry( Key, AccTable ) of
+	case ?table:lookup_entry( Key, AccTable ) of
 
 		{ value, Distance } ->
 			{ Distance, AccTable };
@@ -1202,7 +1202,7 @@ get_lexicographic_distance( FirstString=[ _H1 | T1 ], SecondString=[ _H2 | T2 ],
 														   Table1 ),
 			{ Len3, Table3 } = get_lexicographic_distance( T1, T2, Table2 ),
 			Len = 1 + lists:min( [ Len1, Len2, Len3 ] ),
-			{ Len, ?table:addEntry( Key, Len, Table3 ) }
+			{ Len, ?table:add_entry( Key, Len, Table3 ) }
 
 	end.
 

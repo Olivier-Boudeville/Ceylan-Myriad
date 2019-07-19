@@ -265,10 +265,10 @@ add_function( FunctionName, FunctionArity, Clauses,
 	% Let's check first that the function is not already defined:
 	FunId = { FunctionName, FunctionArity },
 
-	case ?table:hasEntry( FunId, FunTable ) of
+	case ?table:has_entry( FunId, FunTable ) of
 
 		true ->
-			CurrentFunInfo = ?table:getValue( FunId, FunTable ),
+			CurrentFunInfo = ?table:get_value( FunId, FunTable ),
 			CurrentFunString = ast_info:function_info_to_string(
 								 CurrentFunInfo ),
 
@@ -282,7 +282,7 @@ add_function( FunctionName, FunctionArity, Clauses,
 
 	end,
 
-	DefLoc = ?table:getValue( definition_functions_marker, MarkerTable ),
+	DefLoc = ?table:get_value( definition_functions_marker, MarkerTable ),
 
 	ExportLoc = ast_info:get_default_export_function_location(),
 
@@ -297,7 +297,7 @@ add_function( FunctionName, FunctionArity, Clauses,
 							  % Will be auto-exported once module is recomposed:
 							  exported=[ ExportLoc ] },
 
-	NewFunTable = ?table:addEntry( FunId, FunInfo, FunTable ),
+	NewFunTable = ?table:add_entry( FunId, FunInfo, FunTable ),
 
 	% It is not strictly needed anymore to update accordingly the overall export
 	% table, as would be done automatically when recomposing the AST:
@@ -320,10 +320,10 @@ remove_function( FunInfo=#function_info{ exported=ExportLocs },
 	FunId = { FunInfo#function_info.name, FunInfo#function_info.arity },
 
 	% First forget its description:
-	NewFunTable = case ?table:hasEntry( FunId, FunTable ) of
+	NewFunTable = case ?table:has_entry( FunId, FunTable ) of
 
 		true ->
-			?table:removeEntry( FunId, FunTable );
+			?table:remove_entry( FunId, FunTable );
 
 		false ->
 			throw( { non_existing_function_to_remove, FunId } )
@@ -357,10 +357,10 @@ add_type( TypeInfo=#type_info{
 	% Let's check first that the type is not already defined:
 	TypeId = { TypeInfo#type_info.name, Arity },
 
-	case ?table:hasEntry( TypeId, TypeTable ) of
+	case ?table:has_entry( TypeId, TypeTable ) of
 
 		true ->
-			CurrentTypeInfo = ?table:getValue( TypeId, TypeTable ),
+			CurrentTypeInfo = ?table:get_value( TypeId, TypeTable ),
 			CurrentTypeString = ast_info:type_info_to_string( CurrentTypeInfo ),
 
 			AddedTypeString = ast_info:type_info_to_string( TypeInfo ),
@@ -376,7 +376,7 @@ add_type( TypeInfo=#type_info{
 
 	end,
 
-	NewTypeTable = ?table:addEntry( TypeId, TypeInfo, TypeTable ),
+	NewTypeTable = ?table:add_entry( TypeId, TypeInfo, TypeTable ),
 
 	% Now updating the exports:
 	NewExportTable = ast_info:ensure_type_exported( TypeId, ExportLocs,
@@ -400,10 +400,10 @@ remove_type( TypeInfo=#type_info{ variables=TypeVariables,
 	TypeId = { TypeInfo#type_info.name, Arity },
 
 	% First forget its description:
-	NewTypeTable = case ?table:hasEntry( TypeId, TypeTable ) of
+	NewTypeTable = case ?table:has_entry( TypeId, TypeTable ) of
 
 		true ->
-			?table:removeEntry( TypeId, TypeTable );
+			?table:remove_entry( TypeId, TypeTable );
 
 		false ->
 			throw( { non_existing_type_to_remove, TypeId } )

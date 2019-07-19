@@ -59,7 +59,7 @@ run() ->
 
 	NestedTerm = { "semper fidelis", true, [ 1, 1.0, ?MODULE ] },
 
-	TargetTable = table:addEntries( [ { 'foo', 42.0 },
+	TargetTable = table:add_entries( [ { 'foo', 42.0 },
 									  { 'baz', "hello" },
 									  { 'composite', NestedTerm } ],
 									table:new() ),
@@ -68,7 +68,7 @@ run() ->
 
 	test_facilities:display(
 	  "Generating pseudo-module '~s' from following table:~n~s",
-	  [ ModuleName, table:toString( TargetTable ) ] ),
+	  [ ModuleName, table:to_string( TargetTable ) ] ),
 
 	const_table:generate( ModuleName, TargetTable ),
 

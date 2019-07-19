@@ -389,7 +389,7 @@ get_local_type_repl_helper( _Replacements=[
 		  Replacement={ _TargetModule, _TargetType } } | T ], Table ) ->
 
 	% Up to one transformation per source type:
-	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	NewTable = ?table:add_new_entry( Src, Replacement, Table ),
 	get_local_type_repl_helper( T, NewTable );
 
 % Same target type here:
@@ -400,7 +400,7 @@ get_local_type_repl_helper( _Replacements=[
 	Replacement = { TargetModule, SourceTypeMatch },
 
 	% Up to one transformation per source type:
-	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	NewTable = ?table:add_new_entry( Src, Replacement, Table ),
 	get_local_type_repl_helper( T, NewTable );
 
 
@@ -409,7 +409,7 @@ get_local_type_repl_helper(_Replacements=[
   when is_function( ReplaceFun ) ->
 
 	% Up to one transformation per source type:
-	NewTable = ?table:addNewEntry( Src, ReplaceFun, Table ),
+	NewTable = ?table:add_new_entry( Src, ReplaceFun, Table ),
 	get_local_type_repl_helper( T, NewTable ).
 
 
@@ -454,7 +454,7 @@ get_remote_type_repl_helper( _Replacements=[
 			Replacement={ _TargetModule, _TargetType } } | T ], Table ) ->
 
 	% Up to one transformation per source type:
-	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	NewTable = ?table:add_new_entry( Src, Replacement, Table ),
 	get_remote_type_repl_helper( T, NewTable );
 
 % Same target type here:
@@ -466,7 +466,7 @@ get_remote_type_repl_helper( _Replacements=[
 	Replacement = { TargetModule, SourceTypeMatch },
 
 	% Up to one transformation per source type:
-	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	NewTable = ?table:add_new_entry( Src, Replacement, Table ),
 	get_remote_type_repl_helper( T, NewTable );
 
 
@@ -476,7 +476,7 @@ get_remote_type_repl_helper( _Replacements=[
   when is_function( ReplaceFun ) ->
 
 	% Up to one transformation per source type:
-	NewTable = ?table:addNewEntry( Src, ReplaceFun, Table ),
+	NewTable = ?table:add_new_entry( Src, ReplaceFun, Table ),
 	get_remote_type_repl_helper( T, NewTable ).
 
 
@@ -532,7 +532,7 @@ get_local_call_repl_helper( _Replacements=[
 		  Replacement={ _TargetModule, _TargetFunctionName } } | T ], Table ) ->
 
 	% Up to one transformation per source function:
-	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	NewTable = ?table:add_new_entry( Src, Replacement, Table ),
 	get_local_call_repl_helper( T, NewTable );
 
 % Same target function name here:
@@ -543,7 +543,7 @@ get_local_call_repl_helper( _Replacements=[
 	Replacement = { TargetModule, SourceFunctionNameMatch },
 
 	% Up to one transformation per source function:
-	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	NewTable = ?table:add_new_entry( Src, Replacement, Table ),
 	get_local_call_repl_helper( T, NewTable );
 
 
@@ -552,7 +552,7 @@ get_local_call_repl_helper(_Replacements=[
 						   Table ) when is_function( ReplaceFun ) ->
 
 	% Up to one transformation per source function:
-	NewTable = ?table:addNewEntry( Src, ReplaceFun, Table ),
+	NewTable = ?table:add_new_entry( Src, ReplaceFun, Table ),
 	get_local_call_repl_helper( T, NewTable ).
 
 
@@ -599,7 +599,7 @@ get_remote_call_repl_helper( _Replacements=[
 							 Table ) ->
 
 	% Up to one transformation per source function:
-	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	NewTable = ?table:add_new_entry( Src, Replacement, Table ),
 	get_remote_call_repl_helper( T, NewTable );
 
 % Same target function name here:
@@ -610,7 +610,7 @@ get_remote_call_repl_helper( _Replacements=[
 	Replacement = { TargetModule, SourceFunctionNameMatch },
 
 	% Up to one transformation per source function:
-	NewTable = ?table:addNewEntry( Src, Replacement, Table ),
+	NewTable = ?table:add_new_entry( Src, Replacement, Table ),
 	get_remote_call_repl_helper( T, NewTable );
 
 
@@ -619,7 +619,7 @@ get_remote_call_repl_helper( _Replacements=[
 	  ReplaceFun } | T ], Table ) when is_function( ReplaceFun ) ->
 
 	% Up to one transformation per source function:
-	NewTable = ?table:addNewEntry( Src, ReplaceFun, Table ),
+	NewTable = ?table:add_new_entry( Src, ReplaceFun, Table ),
 	get_remote_call_repl_helper( T, NewTable ).
 
 
@@ -789,7 +789,7 @@ ast_transforms_to_string( #ast_transforms{
 
 		_ ->
 			text_utils:format( "local types transformed based on ~s",
-				   [ ?table:toString( MaybeLocalTypeTable, Bullet ) ] )
+				   [ ?table:to_string( MaybeLocalTypeTable, Bullet ) ] )
 
 	end,
 
@@ -800,7 +800,7 @@ ast_transforms_to_string( #ast_transforms{
 
 		_ ->
 			text_utils:format( "remote types transformed based on ~s",
-				   [ ?table:toString( MaybeRemoteTypeTable, Bullet ) ] )
+				   [ ?table:to_string( MaybeRemoteTypeTable, Bullet ) ] )
 
 	end,
 
@@ -811,7 +811,7 @@ ast_transforms_to_string( #ast_transforms{
 
 		_ ->
 			text_utils:format( "local calls transformed based on ~s",
-				   [ ?table:toString( MaybeLocalCallTable, Bullet ) ] )
+				   [ ?table:to_string( MaybeLocalCallTable, Bullet ) ] )
 
 	end,
 
@@ -822,7 +822,7 @@ ast_transforms_to_string( #ast_transforms{
 
 		_ ->
 			text_utils:format( "remote calls transformed based on ~s",
-				   [ ?table:toString( MaybeRemoteCallTable, Bullet ) ] )
+				   [ ?table:to_string( MaybeRemoteCallTable, Bullet ) ] )
 
 	end,
 

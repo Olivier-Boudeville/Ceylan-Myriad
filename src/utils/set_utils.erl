@@ -53,7 +53,7 @@
 
 % Set-related operations are:
 %
--export([ new/0, new/1, singleton/1, add/2, addAsNew/2, add_element_list/2,
+-export([ new/0, new/1, singleton/1, add/2, add_as_new/2, add_element_list/2,
 		  union/2, union/1, intersection/2, intersection/1,
 		  difference/2, is_set/1, check_set/1, is_subset/2,
 		  from_list/1, to_list/1,
@@ -146,8 +146,8 @@ add( Element, Set ) ->
 % inserted, checking that this element was not already in the original set
 % (otherwise a batmatch exception is thrown).
 %
--spec addAsNew( element(), set() ) -> set().
-addAsNew( Element, Set ) ->
+-spec add_as_new( element(), set() ) -> set().
+add_as_new( Element, Set ) ->
 	case ?set_impl:is_member( Element, Set ) of
 
 		false ->

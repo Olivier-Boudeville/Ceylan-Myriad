@@ -511,7 +511,7 @@ update_export_table( FunctionName, Arity, _ExportLocs=[ Loc | H ],
 
 	FunId = { FunctionName, Arity },
 
-	case ?table:lookupEntry( Loc, ExportTable ) of
+	case ?table:lookup_entry( Loc, ExportTable ) of
 
 		key_not_found ->
 			% If there is not even an export declaration at this location, it is
@@ -531,7 +531,7 @@ update_export_table( FunctionName, Arity, _ExportLocs=[ Loc | H ],
 
 			end,
 
-			NewExportTable = ?table:addEntry( Loc, { Line, NewFunIds },
+			NewExportTable = ?table:add_entry( Loc, { Line, NewFunIds },
 											  ExportTable ),
 
 			update_export_table( FunctionName, Arity, H, NewExportTable )

@@ -431,7 +431,7 @@ ensure_function_exported( FunId, _ExportLocs=[ Loc | T ], ModuleInfo,
 						  ExportTable ) ->
 
 	% Here we have an immediate location:
-	case ?table:lookupEntry( Loc, ExportTable ) of
+	case ?table:lookup_entry( Loc, ExportTable ) of
 
 		{ value, { Line, FunIds } } ->
 
@@ -450,7 +450,7 @@ ensure_function_exported( FunId, _ExportLocs=[ Loc | T ], ModuleInfo,
 					NewEntry = { Line, [ FunId | FunIds ] },
 
 					NewExportTable =
-						?table:addEntry( Loc, NewEntry, ExportTable ),
+						?table:add_entry( Loc, NewEntry, ExportTable ),
 
 					ensure_function_exported( FunId, T, ModuleInfo,
 											  NewExportTable )
@@ -475,7 +475,7 @@ ensure_function_not_exported( _FunId, _ExportLocs=[], ExportTable ) ->
 
 ensure_function_not_exported( FunId, _ExportLocs=[ Loc | T ], ExportTable ) ->
 
-	case ?table:lookupEntry( Loc, ExportTable ) of
+	case ?table:lookup_entry( Loc, ExportTable ) of
 
 		{ value, { Line, FunIds } } ->
 
@@ -483,10 +483,10 @@ ensure_function_not_exported( FunId, _ExportLocs=[ Loc | T ], ExportTable ) ->
 			NewExportTable = case lists:delete( FunId, FunIds ) of
 
 				[] ->
-					?table:removeEntry( Loc, ExportTable );
+					?table:remove_entry( Loc, ExportTable );
 
 				ShrunkFunIds ->
-					?table:addEntry( Loc, { Line, ShrunkFunIds }, ExportTable )
+					?table:add_entry( Loc, { Line, ShrunkFunIds }, ExportTable )
 
 			end,
 
@@ -936,7 +936,7 @@ reorder_forms_in( _LocatedForms=[], _MarkerTable, AccLoc, AccLocAfter ) ->
 reorder_forms_in( _LocatedForms=[ { { locate_at, MarkerName }, Form } | T ],
 				  MarkerTable, AccLoc, AccLocAfter ) ->
 
-	MarkerLoc = ?table:getValue( MarkerName, MarkerTable ),
+	MarkerLoc = ?table:get_value( MarkerName, MarkerTable ),
 
 	NewAccLocAfter = [ { MarkerLoc, Form } | AccLocAfter ],
 
@@ -1130,7 +1130,7 @@ get_default_module_location() ->
 %
 -spec get_default_module_location( section_marker_table() ) -> location().
 get_default_module_location( MarkerTable ) ->
-	?table:getValue( module_marker, MarkerTable ).
+	?table:get_value( module_marker, MarkerTable ).
 
 
 
@@ -1148,7 +1148,7 @@ get_default_export_type_location() ->
 -spec get_default_export_type_location( section_marker_table() ) ->
 											  location().
 get_default_export_type_location( MarkerTable)  ->
-	?table:getValue( export_types_marker, MarkerTable ).
+	?table:get_value( export_types_marker, MarkerTable ).
 
 
 
@@ -1166,7 +1166,7 @@ get_default_export_function_location() ->
 -spec get_default_export_function_location( section_marker_table() ) ->
 												  location().
 get_default_export_function_location( MarkerTable ) ->
-	?table:getValue( export_functions_marker, MarkerTable ).
+	?table:get_value( export_functions_marker, MarkerTable ).
 
 
 
@@ -1184,7 +1184,7 @@ get_default_import_function_location() ->
 -spec get_default_import_function_location( section_marker_table() ) ->
 												  location().
 get_default_import_function_location( MarkerTable ) ->
-	?table:getValue( import_functions_marker, MarkerTable ).
+	?table:get_value( import_functions_marker, MarkerTable ).
 
 
 
@@ -1203,7 +1203,7 @@ get_default_definition_record_location() ->
 -spec get_default_definition_record_location( section_marker_table() ) ->
 													location().
 get_default_definition_record_location( MarkerTable ) ->
-	?table:getValue( definition_records_marker, MarkerTable ).
+	?table:get_value( definition_records_marker, MarkerTable ).
 
 
 
@@ -1221,7 +1221,7 @@ get_default_definition_type_location() ->
 -spec get_default_definition_type_location( section_marker_table() ) ->
 												  location().
 get_default_definition_type_location( MarkerTable ) ->
-	?table:getValue( definition_types_marker, MarkerTable ).
+	?table:get_value( definition_types_marker, MarkerTable ).
 
 
 
@@ -1239,7 +1239,7 @@ get_default_definition_function_location() ->
 -spec get_default_definition_function_location( section_marker_table() ) ->
 													  location().
 get_default_definition_function_location( MarkerTable ) ->
-	?table:getValue( definition_functions_marker, MarkerTable ).
+	?table:get_value( definition_functions_marker, MarkerTable ).
 
 
 
@@ -2053,7 +2053,7 @@ ensure_type_exported( TypeId, _ExportLocs=[ _Loc=auto_locate_after | T ],
 	TypeExportLoc = id_utils:get_higher_next_depth_sortable_id( ModuleLoc ),
 
 	% This location may have already been used, thus:
-	case ?table:lookupEntry( TypeExportLoc, ExportTable ) of
+	case ?table:lookup_entry( TypeExportLoc, ExportTable ) of
 
 		{ value, { Line, TypeIds } } ->
 
@@ -2067,7 +2067,7 @@ ensure_type_exported( TypeId, _ExportLocs=[ _Loc=auto_locate_after | T ],
 				false ->
 					% Adding it then:
 					NewEntry = { Line, [ TypeId | TypeIds ] },
-					NewExportTable = ?table:addEntry( TypeExportLoc, NewEntry,
+					NewExportTable = ?table:add_entry( TypeExportLoc, NewEntry,
 													  ExportTable ),
 					ensure_type_exported( TypeId, T, ModuleInfo,
 										  NewExportTable )
@@ -2078,7 +2078,7 @@ ensure_type_exported( TypeId, _ExportLocs=[ _Loc=auto_locate_after | T ],
 		key_not_found ->
 			% We create a new location entry then:
 			NewEntry = { _DefaultLine=0, [ TypeId ] },
-			NewExportTable = ?table:addEntry( TypeExportLoc, NewEntry,
+			NewExportTable = ?table:add_entry( TypeExportLoc, NewEntry,
 											  ExportTable ),
 			ensure_type_exported( TypeId, T, ModuleInfo,
 								  NewExportTable )
@@ -2090,7 +2090,7 @@ ensure_type_exported( TypeId, _ExportLocs=[ Loc | T ], ModuleInfo,
 					  ExportTable ) ->
 
 	% Here we have an immediate location:
-	case ?table:lookupEntry( Loc, ExportTable ) of
+	case ?table:lookup_entry( Loc, ExportTable ) of
 
 		{ value, { Line, TypeIds } } ->
 
@@ -2104,7 +2104,7 @@ ensure_type_exported( TypeId, _ExportLocs=[ Loc | T ], ModuleInfo,
 				false ->
 					% Adding it then:
 					NewEntry = { Line, [ TypeId | TypeIds ] },
-					NewExportTable = ?table:addEntry( Loc, NewEntry,
+					NewExportTable = ?table:add_entry( Loc, NewEntry,
 													  ExportTable ),
 					ensure_type_exported( TypeId, T, ModuleInfo,
 										  NewExportTable )
@@ -2128,7 +2128,7 @@ ensure_type_not_exported( _TypeId, _ExportLocs=[], ExportTable ) ->
 
 ensure_type_not_exported( TypeId, _ExportLocs=[ Loc | T ], ExportTable ) ->
 
-	case ?table:lookupEntry( Loc, ExportTable ) of
+	case ?table:lookup_entry( Loc, ExportTable ) of
 
 		{ value, { Line, TypeIds } } ->
 
@@ -2136,10 +2136,10 @@ ensure_type_not_exported( TypeId, _ExportLocs=[ Loc | T ], ExportTable ) ->
 			NewExportTable = case lists:delete( TypeId, TypeIds ) of
 
 				[] ->
-					?table:removeEntry( Loc, ExportTable );
+					?table:remove_entry( Loc, ExportTable );
 
 				ShrunkTypeIds ->
-					?table:addEntry( Loc, { Line, ShrunkTypeIds },
+					?table:add_entry( Loc, { Line, ShrunkTypeIds },
 									 ExportTable )
 
 			end,
@@ -2239,7 +2239,7 @@ interpret_options( OptionList,
 	NewOptionTable = scan_options( OptionList, OptionTable ),
 
 	%ast_utils:display_debug( "Scanned compilation options:~n~s",
-	%						  [ ?table:toString( NewOptionTable ) ] ),
+	%						  [ ?table:to_string( NewOptionTable ) ] ),
 
 	ModuleInfo#module_info{ compilation_options=NewOptionTable }.
 
@@ -2256,13 +2256,13 @@ scan_options( _OptionList=[], OptionTable ) ->
 
 % Ex: {d,debug_mode}
 scan_options( _OptionList=[ { Name, Value } | T ], OptionTable ) ->
-	NewOptionTable = ?table:appendToEntry( _K=Name, Value, OptionTable ),
+	NewOptionTable = ?table:append_to_entry( _K=Name, Value, OptionTable ),
 	scan_options( T, NewOptionTable );
 
 % Ex: {d,my_second_test_token,200}
 scan_options( _OptionList=[ { Name, BaseValue, OtherValue } | T ],
 			  OptionTable ) ->
-	NewOptionTable = ?table:appendToEntry( _K=Name, { BaseValue, OtherValue },
+	NewOptionTable = ?table:append_to_entry( _K=Name, { BaseValue, OtherValue },
 										   OptionTable ),
 	scan_options( T, NewOptionTable );
 
@@ -2272,7 +2272,7 @@ scan_options( _OptionList=[ Name | T ], OptionTable ) when is_atom( Name ) ->
 	% No clash wanted, throws an exception is the same key appears more than
 	% once:
 	%
-	NewOptionTable = ?table:addNewEntry( _K=Name, _V=undefined, OptionTable ),
+	NewOptionTable = ?table:add_new_entry( _K=Name, _V=undefined, OptionTable ),
 
 	scan_options( T, NewOptionTable );
 

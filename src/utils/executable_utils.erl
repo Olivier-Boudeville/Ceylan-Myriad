@@ -871,7 +871,7 @@ extract_command_argument( Option ) ->
 -spec extract_command_argument( command_line_option(), argument_table() ) ->
 			  { [ command_line_value() ], argument_table() }.
 extract_command_argument( Option, ArgumentTable ) ->
-	list_table:extractEntryWithDefaults( _K=Option, _DefaultValue=[],
+	list_table:extract_entry_with_defaults( _K=Option, _DefaultValue=[],
 										 ArgumentTable ).
 
 

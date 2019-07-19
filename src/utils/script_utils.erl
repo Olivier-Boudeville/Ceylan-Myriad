@@ -283,7 +283,7 @@ manage_option( Option, RemainingArgs, OptionTable ) ->
 															_AccValues=[] ),
 
 	% This option may already be registered in the table:
-	NewOptionTable = list_table:appendListToEntry( _K=OptionAtom, OptValues,
+	NewOptionTable = list_table:append_list_to_entry( _K=OptionAtom, OptValues,
 												   OptionTable ),
 
 	case NextOptionInfo of

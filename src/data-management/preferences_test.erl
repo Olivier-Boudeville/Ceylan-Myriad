@@ -57,15 +57,15 @@ run() ->
 							 "from test: ~p",
 							 [ TargetKey, preferences:get( TargetKey ) ] ),
 
-	TargetValue = "This is a test value!",
+	Target_value = "This is a test value!",
 
-	preferences:set( TargetKey, TargetValue ),
+	preferences:set( TargetKey, Target_value ),
 
 	test_facilities:display( "Value associated to ~s after it is set "
 							 "from test: ~p",
 							 [ TargetKey, preferences:get( TargetKey ) ] ),
 
-	TargetValue = preferences:get( TargetKey ),
+	Target_value = preferences:get( TargetKey ),
 
 	test_facilities:display( preferences:to_string() ),
 

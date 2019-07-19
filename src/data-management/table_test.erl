@@ -55,7 +55,7 @@ run() ->
 
 	MyH1 = table:new( 10 ),
 
-	true = table:isEmpty( MyH1 ),
+	true = table:is_empty( MyH1 ),
 
 	table:display( "Vanilla table", MyH1 ),
 	MyH1Optimised = table:optimise( MyH1 ),
@@ -65,44 +65,44 @@ run() ->
 	MyH2 = table:new( 4 ),
 
 	MyFirstValue = "MyFirstValue",
-	MyH3 = table:addEntry( ?MyFirstKey, MyFirstValue, MyH2 ),
-	false = table:isEmpty( MyH3 ),
+	MyH3 = table:add_entry( ?MyFirstKey, MyFirstValue, MyH2 ),
+	false = table:is_empty( MyH3 ),
 
 	MySecondValue = [ 1, 2, 3 ],
-	MyH4 = table:addEntry( ?MySecondKey, MySecondValue, MyH3 ),
-	false = table:isEmpty( MyH4 ),
+	MyH4 = table:add_entry( ?MySecondKey, MySecondValue, MyH3 ),
+	false = table:is_empty( MyH4 ),
 
 	table:display( MyH4 ),
 
 	MyH4Size = table:size( MyH4 ),
 	test_facilities:display( "Size of table '~s': ~B entries",
-							 [ table:toString( MyH4 ), MyH4Size ] ),
+							 [ table:to_string( MyH4 ), MyH4Size ] ),
 
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
-		table:lookupEntry( ?MyFirstKey, MyH4 ) ] ),
-	{ value, MyFirstValue } = table:lookupEntry( ?MyFirstKey, MyH4 ),
+		table:lookup_entry( ?MyFirstKey, MyH4 ) ] ),
+	{ value, MyFirstValue } = table:lookup_entry( ?MyFirstKey, MyH4 ),
 
 	test_facilities:display( "Removing that entry." ),
-	MyH5 = table:removeEntry( ?MyFirstKey, MyH4 ),
-	false = table:isEmpty( MyH5 ),
+	MyH5 = table:remove_entry( ?MyFirstKey, MyH4 ),
+	false = table:is_empty( MyH5 ),
 
 	test_facilities:display( "Extracting the same entry from "
 							 "the same initial table." ),
-	{ MyFirstValue, MyH5 } = table:extractEntry( ?MyFirstKey, MyH4 ),
+	{ MyFirstValue, MyH5 } = table:extract_entry( ?MyFirstKey, MyH4 ),
 
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
-		table:lookupEntry( ?MyFirstKey, MyH5 ) ] ),
+		table:lookup_entry( ?MyFirstKey, MyH5 ) ] ),
 
-	key_not_found  = table:lookupEntry( ?MyFirstKey, MyH5 ),
+	key_not_found  = table:lookup_entry( ?MyFirstKey, MyH5 ),
 
-	[ MySecondValue, MyFirstValue ] = table:getAllValues(
+	[ MySecondValue, MyFirstValue ] = table:get_all_values(
 										[ ?MySecondKey, ?MyFirstKey ], MyH4 ),
 
-	% removeEntry can also be used if the specified key is not here, will return
+	% remove_entry can also be used if the specified key is not here, will return
 	% an identical table.
 	table:display( MyH5 ),
 	test_facilities:display( "Testing double key registering." ),
-	MyH6 = table:addEntry( ?MySecondKey, anything, MyH5 ),
+	MyH6 = table:add_entry( ?MySecondKey, anything, MyH5 ),
 	table:display( MyH6 ),
 
 	test_facilities:display( "Enumerating the table: ~p",
@@ -124,7 +124,7 @@ run() ->
 					 V
 			   end,
 
-	table:mapOnValues( FunValue, MyH4 ),
+	table:map_on_values( FunValue, MyH4 ),
 
 
 	test_facilities:display( "Applying a fun to all entries of "
@@ -138,7 +138,7 @@ run() ->
 					E
 			   end,
 
-	table:mapOnEntries( FunEntry, MyH4 ),
+	table:map_on_entries( FunEntry, MyH4 ),
 
 	test_facilities:display( "Folding on the same initial table to "
 							 "count the number of entries." ),
@@ -147,19 +147,19 @@ run() ->
 					   AccCount + 1
 			   end,
 
-	2 = table:foldOnEntries( FunCount, _InitialCount=0, MyH4 ),
+	2 = table:fold_on_entries( FunCount, _InitialCount=0, MyH4 ),
 
-	0 = table:foldOnEntries( FunCount, _InitialCount=0, MyH1 ),
+	0 = table:fold_on_entries( FunCount, _InitialCount=0, MyH1 ),
 
 	true = list_utils:unordered_compare( [ ?MyFirstKey, ?MySecondKey ],
 										 table:keys( MyH4 ) ),
 
-	MyH7 = table:addEntry( ?MyThirdKey, 3, MyH6 ),
+	MyH7 = table:add_entry( ?MyThirdKey, 3, MyH6 ),
 
 	% MyH8 should have { MySecondKey, [1,2,3] } and { ?MyThirdKey, 3 }:
 	MyH8 = table:merge( MyH4, MyH7 ),
 	test_facilities:display( "Merged table: ~s",
-							 [ table:toString( MyH8 ) ] ),
+							 [ table:to_string( MyH8 ) ] ),
 
 	MyH9 = table:optimise( MyH8 ),
 	table:display( "Optimised merged table", MyH9 ),
@@ -167,6 +167,6 @@ run() ->
 	Keys = [ ?MyFirstKey, ?MyThirdKey ],
 
 	test_facilities:display( "Listing the entries for keys ~p:~n ~p",
-							 [ Keys, table:selectEntries( Keys, MyH9 ) ] ),
+							 [ Keys, table:select_entries( Keys, MyH9 ) ] ),
 
 	test_facilities:stop().

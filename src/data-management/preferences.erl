@@ -422,7 +422,7 @@ server_main_loop( Table ) ->
 
 		{ get_preference, Key, SenderPid } ->
 
-			Answer = case table:lookupEntry( Key, Table ) of
+			Answer = case table:lookup_entry( Key, Table ) of
 
 				key_not_found ->
 					undefined;
@@ -439,7 +439,7 @@ server_main_loop( Table ) ->
 
 		{ set_preference, Key, Value } ->
 
-			NewTable = table:addEntry( Key, Value, Table ),
+			NewTable = table:add_entry( Key, Value, Table ),
 
 			server_main_loop( NewTable );
 
@@ -491,11 +491,11 @@ add_preferences_from( Filename, Table ) ->
 			case check_entries( Entries ) of
 
 				ok ->
-					NewTable = table:addEntries( Entries, Table ),
+					NewTable = table:add_entries( Entries, Table ),
 
 					%io:format( "Loaded from preferences file '~s' "
 					%           "following entries: ~s",
-					% [ PrefFilename, table:toString( NewTable ) ] ),
+					% [ PrefFilename, table:to_string( NewTable ) ] ),
 
 				   %io:format( "Preferences file '~s' loaded.~n",
 				   %	[ Filename ] ),

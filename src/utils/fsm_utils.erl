@@ -59,7 +59,7 @@ create_blank_fsm_state() ->
 -spec setFsmAttribute( table:table(), table:key(), table:value() ) ->
 							 table:table().
 setFsmAttribute( FsmState, AttributeName, AttributeValue ) ->
-	table:addEntry( AttributeName, AttributeValue, FsmState ).
+	table:add_entry( AttributeName, AttributeValue, FsmState ).
 
 
 
@@ -73,7 +73,7 @@ setFsmAttribute( FsmState, AttributeName, AttributeValue ) ->
 					 -> table:value() | 'attribute_not_found'.
 getFsmAttribute( FsmState, AttributeName ) ->
 
-	case table:lookupEntry( AttributeName, FsmState ) of
+	case table:lookup_entry( AttributeName, FsmState ) of
 
 		key_not_found->
 			attribute_not_found ;

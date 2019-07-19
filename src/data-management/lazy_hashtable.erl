@@ -71,16 +71,16 @@
 
 % Exact same API as the one of hashtable:
 %
--export([ new/0, new/1, addEntry/3, addEntries/2,
-		  removeEntry/2, lookupEntry/2, hasEntry/2, getValue/2,
-		  extractEntry/2, getValueWithDefaults/3, getValues/2, getAllValues/2,
-		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
-		  appendToEntry/3, deleteFromEntry/3, popFromEntry/2,
-		  enumerate/1, selectEntries/2, keys/1, values/1,
-		  isEmpty/1, size/1,
-		  mapOnEntries/2, mapOnValues/2,
-		  foldOnEntries/3,
-		  merge/2, optimise/1, toString/1, toString/2, display/1, display/2 ]).
+-export([ new/0, new/1, add_entry/3, add_entries/2,
+		  remove_entry/2, lookup_entry/2, has_entry/2, get_value/2,
+		  extract_entry/2, get_value_with_defaults/3, get_values/2, get_all_values/2,
+		  add_to_entry/3, subtract_from_entry/3, toggle_entry/2,
+		  append_to_entry/3, delete_from_entry/3, pop_from_entry/2,
+		  enumerate/1, select_entries/2, keys/1, values/1,
+		  is_empty/1, size/1,
+		  map_on_entries/2, map_on_values/2,
+		  fold_on_entries/3,
+		  merge/2, optimise/1, to_string/1, to_string/2, display/1, display/2 ]).
 
 
 % These functions are exported only to ease the tracked_hashtable
@@ -164,7 +164,7 @@ new( InitialEntries ) when is_list( InitialEntries ) ->
 
 	BlankTable = new(),
 
-	addEntries( InitialEntries, BlankTable ).
+	add_entries( InitialEntries, BlankTable ).
 
 
 
@@ -187,10 +187,10 @@ new_with_buckets( _NumberOfBuckets ) ->
 % specified threshold, we will verify whether an hashtable optimization is
 % necessary and, if yes, it will be performed.
 %
--spec addEntry( key(), value(), lazy_hashtable() ) -> lazy_hashtable().
-addEntry( Key, Value, _LazyHashtable={ Hashtable, OpCount } ) ->
+-spec add_entry( key(), value(), lazy_hashtable() ) -> lazy_hashtable().
+add_entry( Key, Value, _LazyHashtable={ Hashtable, OpCount } ) ->
 
-	AugmentedTable = hashtable:addEntry( Key, Value, Hashtable ),
+	AugmentedTable = hashtable:add_entry( Key, Value, Hashtable ),
 
 	% Optimization to be performed if enough operations were done:
 	optimise_table_if_necessary( { AugmentedTable, OpCount + 1 } ).
@@ -202,10 +202,10 @@ addEntry( Key, Value, _LazyHashtable={ Hashtable, OpCount } ) ->
 % If there is already a pair with this key, then its previous value will be
 % replaced by the specified one.
 %
--spec addEntries( hashtable:entries(), lazy_hashtable() ) -> lazy_hashtable().
-addEntries( EntryList, _LazyHashtable={ Hashtable, OpCount } ) ->
+-spec add_entries( hashtable:entries(), lazy_hashtable() ) -> lazy_hashtable().
+add_entries( EntryList, _LazyHashtable={ Hashtable, OpCount } ) ->
 
-	AugmentedTable = hashtable:addEntries( EntryList, Hashtable ),
+	AugmentedTable = hashtable:add_entries( EntryList, Hashtable ),
 
 	% This may lead to a count vastly greater than the threshold, but it is not
 	% a problem:
@@ -223,10 +223,10 @@ addEntries( EntryList, _LazyHashtable={ Hashtable, OpCount } ) ->
 %
 % Returns an updated lazy table.
 %
--spec removeEntry( key(), lazy_hashtable() ) -> lazy_hashtable().
-removeEntry( Key, _LazyHashtable={ Hashtable, OpCount } ) ->
+-spec remove_entry( key(), lazy_hashtable() ) -> lazy_hashtable().
+remove_entry( Key, _LazyHashtable={ Hashtable, OpCount } ) ->
 
-	UpdatedTable = hashtable:removeEntry( Key, Hashtable ),
+	UpdatedTable = hashtable:remove_entry( Key, Hashtable ),
 
 	optimise_table_if_necessary( { UpdatedTable, OpCount + 1 } ).
 
@@ -238,18 +238,18 @@ removeEntry( Key, _LazyHashtable={ Hashtable, OpCount } ) ->
 % table, or { value, Value }, with Value being the value associated to the
 % specified key.
 %
--spec lookupEntry( key(), lazy_hashtable() ) ->
+-spec lookup_entry( key(), lazy_hashtable() ) ->
 						 'key_not_found' | { 'value', value() }.
-lookupEntry( Key, _LazyHashtable={ Hashtable, _OpCount } ) ->
-	hashtable:lookupEntry( Key, Hashtable ).
+lookup_entry( Key, _LazyHashtable={ Hashtable, _OpCount } ) ->
+	hashtable:lookup_entry( Key, Hashtable ).
 
 
 
 % Tells whether the specified key exists in the table: returns true or false.
 %
--spec hasEntry( key(), lazy_hashtable() ) -> boolean().
-hasEntry( Key, _LazyHashtable={ Hashtable, _OpCount } ) ->
-	hashtable:hasEntry( Key, Hashtable ).
+-spec has_entry( key(), lazy_hashtable() ) -> boolean().
+has_entry( Key, _LazyHashtable={ Hashtable, _OpCount } ) ->
+	hashtable:has_entry( Key, Hashtable ).
 
 
 
@@ -259,9 +259,9 @@ hasEntry( Key, _LazyHashtable={ Hashtable, _OpCount } ) ->
 % The key/value pair is expected to exist already, otherwise a bad match is
 % triggered.
 %
--spec getValue( key(), lazy_hashtable() ) -> value().
-getValue( Key, _LazyHashtable={ Hashtable, _OpCount } ) ->
-	hashtable:getValue( Key, Hashtable ).
+-spec get_value( key(), lazy_hashtable() ) -> value().
+get_value( Key, _LazyHashtable={ Hashtable, _OpCount } ) ->
+	hashtable:get_value( Key, Hashtable ).
 
 
 
@@ -271,10 +271,10 @@ getValue( Key, _LazyHashtable={ Hashtable, _OpCount } ) ->
 % The key/value pair is expected to exist already, otherwise an exception is
 % raised.
 %
--spec extractEntry( key(), lazy_hashtable() ) -> { value(), lazy_hashtable() }.
-extractEntry( Key, _LazyHashtable={ Hashtable, OpCount } ) ->
+-spec extract_entry( key(), lazy_hashtable() ) -> { value(), lazy_hashtable() }.
+extract_entry( Key, _LazyHashtable={ Hashtable, OpCount } ) ->
 
-	{ Value, NewHashtable } = hashtable:extractEntry( Key, Hashtable ),
+	{ Value, NewHashtable } = hashtable:extract_entry( Key, Hashtable ),
 
 	NewLazyTable = { NewHashtable, OpCount + 1 },
 
@@ -285,10 +285,10 @@ extractEntry( Key, _LazyHashtable={ Hashtable, OpCount } ) ->
 % Looks for specified entry in specified table and, if found, returns the
 % associated value; otherwise returns the specified default value.
 %
--spec getValueWithDefaults( key(), value(), lazy_hashtable() ) -> value().
-getValueWithDefaults( Key, DefaultValue,
+-spec get_value_with_defaults( key(), value(), lazy_hashtable() ) -> value().
+get_value_with_defaults( Key, DefaultValue,
 					  _LazyHashtable={ Hashtable, _OpCount } ) ->
-	hashtable:getValueWithDefaults( Key, DefaultValue, Hashtable ).
+	hashtable:get_value_with_defaults( Key, DefaultValue, Hashtable ).
 
 
 
@@ -298,17 +298,17 @@ getValueWithDefaults( Key, DefaultValue,
 % The key/value pairs are expected to exist already, otherwise an exception is
 % raised.
 %
-% Ex: [ Color, Age, Mass ] = lazy_hashtable:getValues( [ color, age, mass ],
+% Ex: [ Color, Age, Mass ] = lazy_hashtable:get_values( [ color, age, mass ],
 %   MyLazyTable ] )
 %
--spec getValues( [ key() ], lazy_hashtable() ) -> [ value() ].
-getValues( Keys, Hashtable ) ->
+-spec get_values( [ key() ], lazy_hashtable() ) -> [ value() ].
+get_values( Keys, Hashtable ) ->
 
 	{ RevValues, _FinalTable } = lists:foldl(
 
 				fun( _Elem=Key, _Acc={ Values, Table } ) ->
 
-					   { Value, ShrunkTable } = extractEntry( Key, Table ),
+					   { Value, ShrunkTable } = extract_entry( Key, Table ),
 					   { [ Value | Values ], ShrunkTable }
 
 				end,
@@ -326,23 +326,23 @@ getValues( Keys, Hashtable ) ->
 % The key/value pairs are expected to exist already, otherwise an exception is
 % raised.
 %
-% Ex: [ Color=red, Age=23, Mass=51 ] = lazy_hashtable:getAllValues( [ color,
+% Ex: [ Color=red, Age=23, Mass=51 ] = lazy_hashtable:get_all_values( [ color,
 %   age, mass ], [ { color, red }, { mass, 51 }, { age, 23 } ] )
 %
--spec getAllValues( [ key() ], lazy_hashtable() ) -> [ value() ].
-getAllValues( Keys, Hashtable ) ->
+-spec get_all_values( [ key() ], lazy_hashtable() ) -> [ value() ].
+get_all_values( Keys, Hashtable ) ->
 
 	{ RevValues, FinalTable } = lists:foldl(
 		   fun( _Elem=Key, _Acc={ Values, Table } ) ->
 
-				   { Value, ShrunkTable } = extractEntry( Key, Table ),
+				   { Value, ShrunkTable } = extract_entry( Key, Table ),
 				   { [ Value | Values ], ShrunkTable }
 
 		   end,
 		   _Acc0={ [], Hashtable },
 		   _List=Keys ),
 
-	case isEmpty( FinalTable ) of
+	case is_empty( FinalTable ) of
 
 		true ->
 			lists:reverse( RevValues );
@@ -367,11 +367,11 @@ getAllValues( Keys, Hashtable ) ->
 %
 % One may request the returned hashtable to be optimised after this call.
 %
--spec mapOnEntries( fun( ( entry() ) -> entry() ), lazy_hashtable() ) ->
+-spec map_on_entries( fun( ( entry() ) -> entry() ), lazy_hashtable() ) ->
 						  lazy_hashtable().
-mapOnEntries( Fun, _LazyHashtable={ Hashtable, OpCount }  ) ->
+map_on_entries( Fun, _LazyHashtable={ Hashtable, OpCount }  ) ->
 
-	NewHashtable = hashtable:mapOnEntries( Fun, Hashtable ),
+	NewHashtable = hashtable:map_on_entries( Fun, Hashtable ),
 
 	{ NewHashtable, OpCount }.
 
@@ -387,11 +387,11 @@ mapOnEntries( Fun, _LazyHashtable={ Hashtable, OpCount }  ) ->
 % Note: the keys are left as are, hence the structure of the hashtable does not
 % change.
 %
--spec mapOnValues( fun( ( value() ) -> value() ), lazy_hashtable() ) ->
+-spec map_on_values( fun( ( value() ) -> value() ), lazy_hashtable() ) ->
 						 lazy_hashtable().
-mapOnValues( Fun, _LazyHashtable={ Hashtable, OpCount } ) ->
+map_on_values( Fun, _LazyHashtable={ Hashtable, OpCount } ) ->
 
-	NewHashtable = hashtable:mapOnValues( Fun, Hashtable ),
+	NewHashtable = hashtable:map_on_values( Fun, Hashtable ),
 
 	{ NewHashtable, OpCount }.
 
@@ -404,13 +404,13 @@ mapOnValues( Fun, _LazyHashtable={ Hashtable, OpCount } ) ->
 %
 % Returns the final accumulator.
 %
--spec foldOnEntries( fun( ( entry(), basic_utils:accumulator() )
+-spec fold_on_entries( fun( ( entry(), basic_utils:accumulator() )
 						  -> basic_utils:accumulator() ),
 					 basic_utils:accumulator(),
 					 lazy_hashtable() ) ->
 						   basic_utils:accumulator().
-foldOnEntries( Fun, InitialAcc, _LazyHashtable={ Hashtable, _OpCount } ) ->
-	hashtable:foldOnEntries( Fun, InitialAcc, Hashtable ).
+fold_on_entries( Fun, InitialAcc, _LazyHashtable={ Hashtable, _OpCount } ) ->
+	hashtable:fold_on_entries( Fun, InitialAcc, Hashtable ).
 
 
 
@@ -420,13 +420,13 @@ foldOnEntries( Fun, InitialAcc, _LazyHashtable={ Hashtable, _OpCount } ) ->
 % An exception is thrown if the key does not exist, a bad arithm is triggered if
 % no addition can be performed on the associated value.
 %
--spec addToEntry( key(), number(), lazy_hashtable() ) -> lazy_hashtable().
-addToEntry( Key, Value, LazyHashtable ) ->
+-spec add_to_entry( key(), number(), lazy_hashtable() ) -> lazy_hashtable().
+add_to_entry( Key, Value, LazyHashtable ) ->
 
-	case lookupEntry( Key, LazyHashtable ) of
+	case lookup_entry( Key, LazyHashtable ) of
 
 		{ value, Number } ->
-			addEntry( Key, Number + Value, LazyHashtable );
+			add_entry( Key, Number + Value, LazyHashtable );
 
 		%key_not_found ->
 		_ ->
@@ -443,14 +443,14 @@ addToEntry( Key, Value, LazyHashtable ) ->
 % An exception is thrown if the key does not exist, a bad arithm is triggered if
 % no subtraction can be performed on the associated value.
 %
--spec subtractFromEntry( key(), number(), lazy_hashtable() )
+-spec subtract_from_entry( key(), number(), lazy_hashtable() )
 					   -> lazy_hashtable().
-subtractFromEntry( Key, Value, LazyHashtable ) ->
+subtract_from_entry( Key, Value, LazyHashtable ) ->
 
-	case lookupEntry( Key, LazyHashtable ) of
+	case lookup_entry( Key, LazyHashtable ) of
 
 		{ value, Number } ->
-			addEntry( Key, Number - Value, LazyHashtable );
+			add_entry( Key, Number - Value, LazyHashtable );
 
 		%key_not_found ->
 		_ ->
@@ -467,9 +467,9 @@ subtractFromEntry( Key, Value, LazyHashtable ) ->
 % An exception is thrown if the key does not exist or if its associated value is
 % not a boolean.
 %
--spec toggleEntry( key(), lazy_hashtable() ) -> lazy_hashtable().
-toggleEntry( Key, _LazyHashtable={ Hashtable, OpCount } ) ->
-	{ hashtable:toggleEntry( Key, Hashtable ), OpCount + 1 }.
+-spec toggle_entry( key(), lazy_hashtable() ) -> lazy_hashtable().
+toggle_entry( Key, _LazyHashtable={ Hashtable, OpCount } ) ->
+	{ hashtable:toggle_entry( Key, Hashtable ), OpCount + 1 }.
 
 
 
@@ -561,14 +561,14 @@ optimise_table_if_necessary( LazyTable={ Hashtable, CurrentOpCount } ) ->
 % Note: no check is performed to ensure the value is a list indeed, and the
 % '[|]' operation will not complain if not.
 %
--spec appendToEntry( key(), term(), lazy_hashtable() )
+-spec append_to_entry( key(), term(), lazy_hashtable() )
 	-> lazy_hashtable().
-appendToEntry( Key, Element, LazyHashtable ) ->
+append_to_entry( Key, Element, LazyHashtable ) ->
 
-	case lookupEntry( Key, LazyHashtable ) of
+	case lookup_entry( Key, LazyHashtable ) of
 
 		{ value, List } ->
-			addEntry( Key, [ Element | List ], LazyHashtable );
+			add_entry( Key, [ Element | List ], LazyHashtable );
 
 		key_not_found ->
 			throw( { key_not_found, Key } )
@@ -584,13 +584,13 @@ appendToEntry( Key, Element, LazyHashtable ) ->
 %
 % If the element is not in the specified list, the list will not be modified.
 %
--spec deleteFromEntry( key(), term(), lazy_hashtable() ) -> lazy_hashtable().
-deleteFromEntry( Key, Element, LazyHashtable ) ->
+-spec delete_from_entry( key(), term(), lazy_hashtable() ) -> lazy_hashtable().
+delete_from_entry( Key, Element, LazyHashtable ) ->
 
-	case lookupEntry( Key, LazyHashtable ) of
+	case lookup_entry( Key, LazyHashtable ) of
 
 		{ value, List } ->
-			addEntry( Key, lists:delete( Element, List ), LazyHashtable );
+			add_entry( Key, lists:delete( Element, List ), LazyHashtable );
 
 		%key_not_found ->
 		_ ->
@@ -604,14 +604,14 @@ deleteFromEntry( Key, Element, LazyHashtable ) ->
 % Pops the head of the value (supposed to be a list) associated to specified
 % key, and returns a pair made of the popped head and the new hashtable.
 %
--spec popFromEntry( key(), lazy_hashtable() ) ->
+-spec pop_from_entry( key(), lazy_hashtable() ) ->
 						  { term(), lazy_hashtable() }.
-popFromEntry( Key, LazyHashtable ) ->
+pop_from_entry( Key, LazyHashtable ) ->
 
-	case lookupEntry( Key, LazyHashtable ) of
+	case lookup_entry( Key, LazyHashtable ) of
 
 		{ value, [ H | T ] } ->
-			{ H, addEntry( Key, T, LazyHashtable ) };
+			{ H, add_entry( Key, T, LazyHashtable ) };
 
 		%key_not_found ->
 		_ ->
@@ -636,9 +636,9 @@ enumerate( _LazyHashtable={ Hashtable, _OpCount } ) ->
 % Returns a list of key/value pairs corresponding to the list of specified keys,
 % or throws a badmatch is at least one key is not found.
 %
--spec selectEntries( [ key() ], lazy_hashtable() ) -> hashtable:entries().
-selectEntries( Keys, _LazyHashtable={ Hashtable, _OpCount } ) ->
-	hashtable:selectEntries( Keys, Hashtable ).
+-spec select_entries( [ key() ], lazy_hashtable() ) -> hashtable:entries().
+select_entries( Keys, _LazyHashtable={ Hashtable, _OpCount } ) ->
+	hashtable:select_entries( Keys, Hashtable ).
 
 
 % Returns a list containing all the keys of this hashtable.
@@ -661,9 +661,9 @@ values( _LazyHashtable={ Hashtable, _OpCount }  ) ->
 % Returns whether the specified hashtable is empty (not storing any key/value
 % pair).
 %
--spec isEmpty( lazy_hashtable() ) -> boolean().
-isEmpty( _LazyHashtable={ Hashtable, _OpCount } ) ->
-	hashtable:isEmpty( Hashtable ).
+-spec is_empty( lazy_hashtable() ) -> boolean().
+is_empty( _LazyHashtable={ Hashtable, _OpCount } ) ->
+	hashtable:is_empty( Hashtable ).
 
 
 
@@ -678,18 +678,18 @@ size( _LazyTable={ Hashtable, _CurrentOpCount } ) ->
 
 % Returns a textual description of the specified hashtable.
 %
--spec toString( lazy_hashtable() ) -> string().
-toString( _LazyHashtable={ Hashtable, _OpCount } ) ->
-	hashtable:toString( Hashtable ).
+-spec to_string( lazy_hashtable() ) -> string().
+to_string( _LazyHashtable={ Hashtable, _OpCount } ) ->
+	hashtable:to_string( Hashtable ).
 
 
 
 % Returned string is either quite raw (if using 'internal') or a bit more
 % elaborate (if using 'user_friendly').
 %
--spec toString( lazy_hashtable(), 'internal' | 'user_friendly' ) -> string().
-toString( _LazyHashtable={ Hashtable, _OpCount }, DescriptionType ) ->
-	hashtable:toString( Hashtable, DescriptionType ).
+-spec to_string( lazy_hashtable(), 'internal' | 'user_friendly' ) -> string().
+to_string( _LazyHashtable={ Hashtable, _OpCount }, DescriptionType ) ->
+	hashtable:to_string( Hashtable, DescriptionType ).
 
 
 

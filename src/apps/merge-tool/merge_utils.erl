@@ -190,14 +190,14 @@ main( ArgTable ) ->
 	trace_utils:debug_fmt( "Script-specific arguments: ~s",
 		   [ executable_utils:argument_table_to_string( FilteredArgTable ) ] ),
 
-	case list_table:hasEntry( 'h', FilteredArgTable )
-		orelse list_table:hasEntry( '-help', FilteredArgTable ) of
+	case list_table:has_entry( 'h', FilteredArgTable )
+		orelse list_table:has_entry( '-help', FilteredArgTable ) of
 
 		true ->
 			display_usage();
 
 		false ->
-			case list_table:extractEntryWithDefaults( '-reference', undefined,
+			case list_table:extract_entry_with_defaults( '-reference', undefined,
 													  FilteredArgTable ) of
 
 				{ [ RefTreePath ], NoRefArgTable }
@@ -232,7 +232,7 @@ handle_reference_option( RefTreePath, ArgumentTable ) ->
 	% If there is a --reference option, it is a merge, and there must be a
 	% --input option as well:
 
-	case list_table:extractEntryWithDefaults( '-input', undefined,
+	case list_table:extract_entry_with_defaults( '-input', undefined,
 											  ArgumentTable ) of
 
 		{ undefined, ArgumentTable } ->
@@ -247,7 +247,7 @@ handle_reference_option( RefTreePath, ArgumentTable ) ->
 		{ [ InputTreePath ], ArgumentTable } when is_list( InputTreePath ) ->
 
 			% Check no unknown option remains:
-			case list_table:isEmpty( ArgumentTable ) of
+			case list_table:is_empty( ArgumentTable ) of
 
 				true ->
 					merge( InputTreePath, RefTreePath );
@@ -278,18 +278,18 @@ handle_non_reference_option( ArgumentTable ) ->
 
 	% No reference, it must then either be a pure scan or a uniquify here:
 
-	case list_table:extractEntryWithDefaults( '-scan', undefined,
+	case list_table:extract_entry_with_defaults( '-scan', undefined,
 											  ArgumentTable ) of
 
 		% Not a scan, then a uniquify?
 		{ undefined, NoScanArgTable } ->
 
-			case list_table:extractEntryWithDefaults( '-uniquify', undefined,
+			case list_table:extract_entry_with_defaults( '-uniquify', undefined,
 													  NoScanArgTable ) of
 
 				{ undefined, NoUniqArgTable } ->
 
-					AddedString = case list_table:isEmpty( NoUniqArgTable ) of
+					AddedString = case list_table:is_empty( NoUniqArgTable ) of
 
 						true ->
 							"(no command-line option specified)";
@@ -311,7 +311,7 @@ handle_non_reference_option( ArgumentTable ) ->
 				  when is_list( UniqTreePath ) ->
 
 					% Check no unknown option remains:
-					case list_table:isEmpty( NoUniqArgTable ) of
+					case list_table:is_empty( NoUniqArgTable ) of
 
 						true ->
 							uniquify( UniqTreePath );
@@ -340,7 +340,7 @@ handle_non_reference_option( ArgumentTable ) ->
 		{ [ ScanTreePath ], ScanArgTable }  when is_list( ScanTreePath ) ->
 
 			% Check no unknown option remains:
-			case list_table:isEmpty( ScanArgTable ) of
+			case list_table:is_empty( ScanArgTable ) of
 
 				true ->
 					scan( ScanTreePath ),
@@ -914,13 +914,13 @@ manage_received_data( FileData=#file_data{ type=Type, sha1_sum=Sum },
 	%			 [ file_data_to_string( FileData ) ] ),
 
 	% Ensures that we associate a list to each SHA1 sum:
-	NewEntries = case table:lookupEntry( Sum, Entries ) of
+	NewEntries = case table:lookup_entry( Sum, Entries ) of
 
 		key_not_found ->
-			table:addEntry( Sum, [ FileData ], Entries );
+			table:add_entry( Sum, [ FileData ], Entries );
 
 		{ value, SumEntries } ->
-			table:addEntry( Sum, [ FileData | SumEntries ], Entries )
+			table:add_entry( Sum, [ FileData | SumEntries ], Entries )
 
 	end,
 
@@ -1098,7 +1098,7 @@ filter_duplications( _SHA1Entry=[], Acc ) ->
 filter_duplications( _SHA1Entry=[ { Sha1Key, V=[ _SingleContent ] } | T ],
 				   _Acc={ AccDupEntries, AccUniqueTable } ) ->
 	% Single content, hence unique:
-	NewTable = table:addEntry( Sha1Key, V, AccUniqueTable ),
+	NewTable = table:add_entry( Sha1Key, V, AccUniqueTable ),
 	filter_duplications( T, { AccDupEntries, NewTable } );
 
 % SHA1Entry is { Sha1Key, V } with at least two elements in V here:
@@ -1135,7 +1135,7 @@ process_duplications_helper( _DupCases=[ { Sha1Key, DuplicateList } | T ],
 	Size = check_duplicates( Sha1Key, DuplicateList ),
 	SelectedFileEntries = manage_duplication( DuplicateList, AccDupCount,
 							  TotalDupCount, Size, UserState ),
-	NewAccTable = table:addEntry( Sha1Key, SelectedFileEntries, AccTable ),
+	NewAccTable = table:add_entry( Sha1Key, SelectedFileEntries, AccTable ),
 	NewRemoveCount = AccRemoveCount + length( DuplicateList )
 		- length( SelectedFileEntries ),
 	NewAcc = { NewAccTable, AccDupCount+1, NewRemoveCount },

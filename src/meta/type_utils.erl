@@ -233,7 +233,7 @@
 % solely created and handled as a whole by the 'table' pseudo-module.
 %
 % For example, MyEmptyTable = table:table(), MyTable =
-% table:addNewEntry(42,"This is the answer"), MyOtherTable = table:new([ {1,
+% table:add_new_entry(42,"This is the answer"), MyOtherTable = table:new([ {1,
 % "One"}, {2, "Two"}, {5, "Five"} ]).
 %
 % Note: tables are not yet supported.

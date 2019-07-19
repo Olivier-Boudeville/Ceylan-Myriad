@@ -450,7 +450,7 @@ assign_sorted_identifiers( _ElementsToIdentify=[], IdentifierTable ) ->
 assign_sorted_identifiers( _ElementsToIdentify=[ E | T ], IdentifierTable ) ->
 
 	% Establishing first a relevant (lowest) identifier for the first element:
-	{ FirstId, NewTable } = case ?table:lookupEntry( E, IdentifierTable ) of
+	{ FirstId, NewTable } = case ?table:lookup_entry( E, IdentifierTable ) of
 
 		key_not_found ->
 			% Not identified yet, we have to assign it a newly forged
@@ -486,7 +486,7 @@ assign_sorted_identifiers( _ElementsToIdentify=[ E | T ], IdentifierTable ) ->
 					ResId
 
 			end,
-			NewIdTable = ?table:addNewEntry( E, NewId, IdentifierTable ),
+			NewIdTable = ?table:add_new_entry( E, NewId, IdentifierTable ),
 			{ NewId, NewIdTable };
 
 		{ value, FoundId } ->
@@ -524,7 +524,7 @@ find_lowest_identifier_in( _Elements=[], _IdentifierTable, LowestId ) ->
 
 find_lowest_identifier_in( _Elements=[ E | T ], IdentifierTable, LowestId ) ->
 
-	case ?table:lookupEntry( E, IdentifierTable ) of
+	case ?table:lookup_entry( E, IdentifierTable ) of
 
 		key_not_found ->
 			find_lowest_identifier_in( T, IdentifierTable, LowestId );
@@ -575,7 +575,7 @@ assign_ranged_identifiers( _RemainingElems=[], ToIdentifyRev, LowerId,
 assign_ranged_identifiers( _RemainingElems=[ E | T ], ToIdentifyRev, LowerId,
 						   IdentifierTable ) ->
 	% Here we try to stop accumulating unidentified elements, if E is:
-	case ?table:lookupEntry( E, IdentifierTable ) of
+	case ?table:lookup_entry( E, IdentifierTable ) of
 
 		key_not_found ->
 			% No, so it is another element yet to identify:
@@ -615,7 +615,7 @@ assign_in_turn_ids( LowerId, HigherId, _ElemsToIdentify=[ E | T ],
 							 sortable_id_to_string( HigherId ),
 							 sortable_id_to_string( NewId ) ] ),
 
-	NewIdtable = ?table:addNewEntry( E, NewId, IdentifierTable ),
+	NewIdtable = ?table:add_new_entry( E, NewId, IdentifierTable ),
 
 	assign_in_turn_ids( NewId, HigherId, T, NewIdtable ).
 

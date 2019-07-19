@@ -221,7 +221,7 @@ transform_expression( ?e={ 'call', Line, FunctionRef, Params },
 			transform_call( Line, FunctionRef, Params, Transforms );
 
 		TransformTable ->
-			case ?table:lookupEntry( 'call', TransformTable ) of
+			case ?table:lookup_entry( 'call', TransformTable ) of
 
 				key_not_found ->
 					transform_call( Line, FunctionRef, Params, Transforms );
@@ -262,7 +262,7 @@ transform_expression( ?e={ 'if', Line, Clauses }, Transforms ) ?rec_guard ->
 			transform_if( Line, Clauses, Transforms );
 
 		TransformTable ->
-			case ?table:lookupEntry( 'if', TransformTable ) of
+			case ?table:lookup_entry( 'if', TransformTable ) of
 
 				key_not_found ->
 					transform_if( Line, Clauses, Transforms );
@@ -306,7 +306,7 @@ transform_expression( ?e={ 'case', Line, TestExpression, CaseClauses },
 			transform_case( Line, TestExpression, CaseClauses, Transforms );
 
 		TransformTable ->
-			case ?table:lookupEntry( 'case', TransformTable ) of
+			case ?table:lookup_entry( 'case', TransformTable ) of
 
 				key_not_found ->
 					transform_case( Line, TestExpression, CaseClauses,
@@ -350,7 +350,7 @@ transform_expression( ?e={ 'match', Line, MatchPattern, MatchExpression },
 			transform_match( Line, MatchPattern, MatchExpression, Transforms );
 
 		TransformTable ->
-			case ?table:lookupEntry( 'match', TransformTable ) of
+			case ?table:lookup_entry( 'match', TransformTable ) of
 
 				key_not_found ->
 					transform_match( Line, MatchPattern, MatchExpression,
@@ -478,7 +478,7 @@ transform_expression( ?e={ 'receive', Line, ReceiveClauses },
 			transform_simple_receive( Line, ReceiveClauses, Transforms );
 
 		TransformTable ->
-			case ?table:lookupEntry( 'simple_receive', TransformTable ) of
+			case ?table:lookup_entry( 'simple_receive', TransformTable ) of
 
 				key_not_found ->
 					transform_simple_receive( Line, ReceiveClauses,
@@ -522,7 +522,7 @@ transform_expression( ?e={ 'receive', Line, ReceiveClauses, AfterTest,
 										  AfterExpressions, Transforms );
 
 		TransformTable ->
-			case ?table:lookupEntry( 'receive_with_after', TransformTable ) of
+			case ?table:lookup_entry( 'receive_with_after', TransformTable ) of
 
 				key_not_found ->
 					transform_receive_with_after( Line, ReceiveClauses,
@@ -589,7 +589,7 @@ transform_expression( ?e={ 'try', Line, TryBody, TryClauses, CatchClauses,
 						   Transforms );
 
 		TransformTable ->
-			case ?table:lookupEntry( 'try', TransformTable ) of
+			case ?table:lookup_entry( 'try', TransformTable ) of
 
 				key_not_found ->
 					transform_try( Line, TryBody, TryClauses, CatchClauses,
@@ -659,7 +659,7 @@ transform_expression( ?e={ 'catch', Line, Expression },
 			transform_catch( Line, Expression, Transforms );
 
 		TransformTable ->
-			case ?table:lookupEntry( 'catch', TransformTable ) of
+			case ?table:lookup_entry( 'catch', TransformTable ) of
 
 				key_not_found ->
 					transform_catch( Line, Expression, Transforms );
@@ -1708,7 +1708,7 @@ transform_call_expression( OriginalExpr={ 'remote', LineRemote,
 
 		RemoteReplaceTable ->
 
-			case ?table:lookupEntry( { ModuleName, FunctionName, Arity },
+			case ?table:lookup_entry( { ModuleName, FunctionName, Arity },
 									 RemoteReplaceTable ) of
 
 				{ value, E={ _NewModuleName, _NewFunctionName } } ->
@@ -1720,7 +1720,7 @@ transform_call_expression( OriginalExpr={ 'remote', LineRemote,
 				key_not_found ->
 
 					% Maybe a wildcard arity was defined then?
-					case ?table:lookupEntry(
+					case ?table:lookup_entry(
 							{ ModuleName, FunctionName, _AnyArity='_' },
 							RemoteReplaceTable ) of
 
@@ -1743,7 +1743,7 @@ transform_call_expression( OriginalExpr={ 'remote', LineRemote,
 							% (note: the case of a wildcard function name and a
 							% set, actual arity is not deemed relevant)
 
-							case ?table:lookupEntry( { ModuleName,
+							case ?table:lookup_entry( { ModuleName,
 									   _AnyFunctionName='_', _AnyArity='_' },
 													 RemoteReplaceTable ) of
 
@@ -1844,7 +1844,7 @@ transform_call_expression( CallExpr={ 'atom', LineFun, FunName }, Arity,
 
 		LocalReplaceTable ->
 
-			case ?table:lookupEntry( { FunName, Arity }, LocalReplaceTable ) of
+			case ?table:lookup_entry( { FunName, Arity }, LocalReplaceTable ) of
 
 				{ value, E={ _NewModuleName, _NewFunName } } ->
 					E;
@@ -1855,7 +1855,7 @@ transform_call_expression( CallExpr={ 'atom', LineFun, FunName }, Arity,
 				key_not_found ->
 
 					% Maybe a wildcard arity was defined then?
-					case ?table:lookupEntry( { FunName, _AnyArity='_' },
+					case ?table:lookup_entry( { FunName, _AnyArity='_' },
 											 LocalReplaceTable ) of
 
 						{ value, E={ _NewModuleName, _NewFunName } } ->

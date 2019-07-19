@@ -22,7 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Creation date: Saturday, May 4, 2019
+% Creation date: Saturday, May 4, 2019.
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
@@ -35,13 +35,7 @@
 -module(bijective_table).
 
 
-% Standard (snake_case, now to be preferred) and Table-like (CamelCase) namings
-% supported:
-%
--export([ new/1,
-		  get_first_for/2, getFirstFor/2,
-		  get_second_for/2, getSecondFor/2,
-		  to_string/1, toString/1 ]).
+-export([ new/1, get_first_for/2, get_second_for/2, to_string/1 ]).
 
 
 -opaque bijective_table() :: bijective_table( any(), any() ).
@@ -96,16 +90,7 @@ new( InitialEntries ) -> % list type tested by table:new/1:
 %
 -spec get_first_for( second_type(), bijective_table() ) -> first_type().
 get_first_for( Second, _BijTable={ _FirstToSecondTable, SecondToFirstTable } ) ->
-	table:getValue( Second, SecondToFirstTable ).
-
-
-
-% Returns the element of the first type that corresponds to the specified
-% element of the second type.
-%
--spec getFirstFor( second_type(), bijective_table() ) -> first_type().
-getFirstFor( Second, Table ) ->
-	get_first_for( Second, Table ).
+	table:get_value( Second, SecondToFirstTable ).
 
 
 
@@ -114,16 +99,7 @@ getFirstFor( Second, Table ) ->
 %
 -spec get_second_for( first_type(), bijective_table() ) -> second_type().
 get_second_for( First, _BijTable={ FirstToSecondTable, _SecondToFirstTable } ) ->
-	table:getValue( First, FirstToSecondTable ).
-
-
-
-% Returns the element of the second type that corresponds to the specified
-% element of the first type.
-%
--spec getSecondFor( first_type(), bijective_table() ) -> second_type().
-getSecondFor( First, Table ) ->
-	get_second_for( First, Table ).
+	table:get_value( First, FirstToSecondTable ).
 
 
 
@@ -145,10 +121,3 @@ to_string( _BijTable={ FirstToSecondTable, _SecondToFirstTable } ) ->
 
 
 	end.
-
-
-
-% Returns a textual description of the specified bijective table.
--spec toString( bijective_table() ) -> text_utils:ustring().
-toString( Table ) ->
-	to_string( Table ).

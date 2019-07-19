@@ -111,7 +111,7 @@ get_code_for( ModuleName ) ->
 
 			FoundBeams = list_beams_in_path(),
 
-			ModString= text_utils:strings_to_string( FoundBeams ),
+			ModString= text_utils:atoms_to_string( FoundBeams ),
 
 			trace_utils:error_fmt( "Unable to find object code for '~s' "
 								   "on '~s', knowing that the current "

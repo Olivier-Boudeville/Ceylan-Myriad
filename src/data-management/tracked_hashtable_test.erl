@@ -50,66 +50,66 @@ run() ->
 
 	MyH1 = tracked_hashtable:new( 10 ),
 
-	true = tracked_hashtable:isEmpty( MyH1 ),
+	true = tracked_hashtable:is_empty( MyH1 ),
 	tracked_hashtable:display( "Vanilla tracked table ", MyH1 ),
 
 	MyH2 = tracked_hashtable:new( 4 ),
 
 	MyFirstValue = "MyFirstValue",
-	MyH3 = tracked_hashtable:addEntry( ?MyFirstKey, MyFirstValue, MyH2 ),
-	false = tracked_hashtable:isEmpty( MyH3 ),
+	MyH3 = tracked_hashtable:add_entry( ?MyFirstKey, MyFirstValue, MyH2 ),
+	false = tracked_hashtable:is_empty( MyH3 ),
 	tracked_hashtable:display("The tracked hashtable", MyH3 ),
 
 	MySecondValue = [ 1, 2, 3 ],
-	MyH4 = tracked_hashtable:addEntry( ?MySecondKey, MySecondValue, MyH3 ),
-	false = tracked_hashtable:isEmpty( MyH4 ),
+	MyH4 = tracked_hashtable:add_entry( ?MySecondKey, MySecondValue, MyH3 ),
+	false = tracked_hashtable:is_empty( MyH4 ),
 
 	tracked_hashtable:display( "The tracked hashtable", MyH4 ),
 
 	MyH4Size = tracked_hashtable:size( MyH4 ),
 	test_facilities:display( "Size of table '~s': ~B entries",
-							 [ tracked_hashtable:toString( MyH4 ), MyH4Size ] ),
+							 [ tracked_hashtable:to_string( MyH4 ), MyH4Size ] ),
 
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
-		tracked_hashtable:lookupEntry( ?MyFirstKey, MyH4 ) ] ),
+		tracked_hashtable:lookup_entry( ?MyFirstKey, MyH4 ) ] ),
 
-	{ value, "MyFirstValue" } = tracked_hashtable:lookupEntry( ?MyFirstKey,
+	{ value, "MyFirstValue" } = tracked_hashtable:lookup_entry( ?MyFirstKey,
 															   MyH4 ),
 
 	test_facilities:display( "Removing that entry." ),
 
-	MyH5 = tracked_hashtable:removeEntry( ?MyFirstKey, MyH4 ),
-	false = tracked_hashtable:isEmpty( MyH5 ),
+	MyH5 = tracked_hashtable:remove_entry( ?MyFirstKey, MyH4 ),
+	false = tracked_hashtable:is_empty( MyH5 ),
 
 	test_facilities:display( "Extracting the same entry from "
 							 "the same initial table." ),
-	{ "MyFirstValue", MyH5 } = tracked_hashtable:extractEntry( ?MyFirstKey,
+	{ "MyFirstValue", MyH5 } = tracked_hashtable:extract_entry( ?MyFirstKey,
 															   MyH4 ),
 
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MySecondKey,
-			tracked_hashtable:lookupEntry( ?MySecondKey, MyH5 ) ] ),
+			tracked_hashtable:lookup_entry( ?MySecondKey, MyH5 ) ] ),
 
-	{ value, [1,2,3] } = tracked_hashtable:lookupEntry( ?MySecondKey, MyH5 ),
+	{ value, [1,2,3] } = tracked_hashtable:lookup_entry( ?MySecondKey, MyH5 ),
 
 	test_facilities:display( "Removing the last entry." ),
-	MyH55 = tracked_hashtable:removeEntry( ?MySecondKey, MyH5 ),
-	true = tracked_hashtable:isEmpty( MyH55 ),
+	MyH55 = tracked_hashtable:remove_entry( ?MySecondKey, MyH5 ),
+	true = tracked_hashtable:is_empty( MyH55 ),
 	tracked_hashtable:display("The tracked hashtable ", MyH55 ),
 
 	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
-		tracked_hashtable:lookupEntry( ?MyFirstKey, MyH5 ) ] ),
+		tracked_hashtable:lookup_entry( ?MyFirstKey, MyH5 ) ] ),
 
-	key_not_found = tracked_hashtable:lookupEntry( ?MyFirstKey,	MyH5 ),
+	key_not_found = tracked_hashtable:lookup_entry( ?MyFirstKey,	MyH5 ),
 
-	[ MySecondValue, MyFirstValue ] = tracked_hashtable:getAllValues(
+	[ MySecondValue, MyFirstValue ] = tracked_hashtable:get_all_values(
 										[ ?MySecondKey, ?MyFirstKey ], MyH4 ),
 
-	% removeEntry can also be used if the specified key is not here, will return
+	% remove_entry can also be used if the specified key is not here, will return
 	% an identical table.
 	tracked_hashtable:display( "The tracked hashtable ", MyH5 ),
 
 	test_facilities:display( "Testing double key registering." ),
-	MyH6 = tracked_hashtable:addEntry( ?MySecondKey, anything, MyH5 ),
+	MyH6 = tracked_hashtable:add_entry( ?MySecondKey, anything, MyH5 ),
 	tracked_hashtable:display( "MyH6", MyH6 ),
 
 	test_facilities:display( "Enumerating the hashtable : ~p",
@@ -131,7 +131,7 @@ run() ->
 				V
 	end,
 
-	tracked_hashtable:mapOnValues( FunValue, MyH4 ),
+	tracked_hashtable:map_on_values( FunValue, MyH4 ),
 
 
 	test_facilities:display( "Applying a fun to all entries of "
@@ -144,7 +144,7 @@ run() ->
 				E
 	end,
 
-	tracked_hashtable:mapOnEntries( FunEntry, MyH4 ),
+	tracked_hashtable:map_on_entries( FunEntry, MyH4 ),
 
 	test_facilities:display( "Folding on the same initial hashtable to "
 							 "count the number of entries." ),
@@ -153,21 +153,21 @@ run() ->
 					   AccCount + 1
 			   end,
 
-	2 = tracked_hashtable:foldOnEntries( FunCount, _InitialCount=0, MyH4 ),
+	2 = tracked_hashtable:fold_on_entries( FunCount, _InitialCount=0, MyH4 ),
 
-	0 = tracked_hashtable:foldOnEntries( FunCount, _InitialCount=0, MyH1 ),
+	0 = tracked_hashtable:fold_on_entries( FunCount, _InitialCount=0, MyH1 ),
 
 
 	true = list_utils:unordered_compare( [ ?MyFirstKey, ?MySecondKey ],
 										 tracked_hashtable:keys( MyH4 ) ),
 
-	MyH7 = tracked_hashtable:addEntry( ?MyThirdKey, 3, MyH6 ),
+	MyH7 = tracked_hashtable:add_entry( ?MyThirdKey, 3, MyH6 ),
 
 	% MyH8 should have { AnotherKey, [1,2,3] } and { ?MyThirdKey, 3 }:
 	MyH8 = tracked_hashtable:merge( MyH4, MyH7 ),
 
 	test_facilities:display( "Merged table: ~s~n",
-	   [ tracked_hashtable:toString( MyH8 ) ] ),
+	   [ tracked_hashtable:to_string( MyH8 ) ] ),
 
 	tracked_hashtable:display( "The Merged Hashtable of tracked hashtable",
 							MyH8 ),
@@ -175,6 +175,6 @@ run() ->
 	Keys = [ ?MyFirstKey, ?MyThirdKey ],
 
 	test_facilities:display( "Listing the entries for keys ~p:~n ~p",
-					[ Keys, tracked_hashtable:selectEntries( Keys, MyH8 ) ] ),
+					[ Keys, tracked_hashtable:select_entries( Keys, MyH8 ) ] ),
 
 	test_facilities:stop().

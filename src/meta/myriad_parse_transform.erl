@@ -357,7 +357,7 @@ get_myriad_ast_transforms_for(
 	TokenTable = cond_utils:get_token_table_from( CompileOptTable ),
 
 	%ast_utils:display_debug( "Token table:~n~s",
-	%						 [ ?table:toString( TokenTable ) ] ),
+	%						 [ ?table:to_string( TokenTable ) ] ),
 
 	TargetModuleName = case ModuleEntry of
 
@@ -386,7 +386,7 @@ get_myriad_ast_transforms_for(
 get_actual_table_type( ParseAttributeTable ) ->
 
 	% Let's see whether a specific table_type has been specified:
-	DesiredTableType = case ?table:lookupEntry( table_type,
+	DesiredTableType = case ?table:lookup_entry( table_type,
 												ParseAttributeTable ) of
 
 		{ value, { TableType, _LocForm } } when is_atom( TableType ) ->
@@ -530,7 +530,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 			% Implicit token here:
 			Token = debug_mode,
 
-			case ?table:lookupEntry( Token, TokenTable ) of
+			case ?table:lookup_entry( Token, TokenTable ) of
 
 				% Any value associated to this token will do, as we want just to
 				% detect whether it is defined at all:
@@ -562,7 +562,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 			%ast_utils:display_debug( "Call to cond_utils:if_defined/2 found, "
 			%						 "for token '~p'.", [ Token ] ),
 
-			case ?table:lookupEntry( Token, TokenTable ) of
+			case ?table:lookup_entry( Token, TokenTable ) of
 
 				% Any value associated to this token will do, as we want just to
 				% detect whether it is defined at all:
@@ -619,7 +619,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 			%ast_utils:display_debug( "Call to cond_utils:if_defined/3 found, "
 			%						 "for token '~p'.", [ Token ] ),
 
-			case ?table:lookupEntry( Token, TokenTable ) of
+			case ?table:lookup_entry( Token, TokenTable ) of
 
 				% Any value associated to this token will do, as we want just to
 				% detect whether it is defined at all:
@@ -685,7 +685,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 			RequestedValue = ast_value:get_immediate_value( ValueForm ),
 
-			case ?table:lookupEntry( Token, TokenTable ) of
+			case ?table:lookup_entry( Token, TokenTable ) of
 
 				% Right value found matching:
 				{ value, RequestedValue } ->
@@ -759,7 +759,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 			RequestedValue = ast_value:get_immediate_value( ValueForm ),
 
-			case ?table:lookupEntry( Token, TokenTable ) of
+			case ?table:lookup_entry( Token, TokenTable ) of
 
 				% Right value found matching:
 				{ value, RequestedValue } ->
@@ -834,7 +834,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 			% Implicit token here:
 			Token = debug_mode,
 
-			case ?table:lookupEntry( Token, TokenTable ) of
+			case ?table:lookup_entry( Token, TokenTable ) of
 
 				% Any value associated to this token will do, as we want just to
 				% detect whether it is defined at all:
@@ -864,7 +864,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 			%						 "with token '~p' and expression form ~p.",
 			%						 [ Token, ExpressionForm ] ),
 
-			case ?table:lookupEntry( Token, TokenTable ) of
+			case ?table:lookup_entry( Token, TokenTable ) of
 
 				% Any value associated to this token will do, as we want just to
 				% detect whether it is defined at all:
@@ -896,7 +896,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 			RequestedValue = ast_value:get_immediate_value( ValueForm ),
 
-			case ?table:lookupEntry( Token, TokenTable ) of
+			case ?table:lookup_entry( Token, TokenTable ) of
 
 				% Right value found matching:
 				{ value, RequestedValue } ->
@@ -946,7 +946,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 			  % We have to recurse as well in parameters, as they may themselves
 			  % contain calls to 'table' as well, like in:
 			  %
-			  % TargetTable = table:addEntry( a, 1, table:new() ),
+			  % TargetTable = table:add_entry( a, 1, table:new() ),
 
 			  { NewParams, NewTransforms } =
 					ast_expression:transform_expressions( Params, Transforms ),

@@ -26,7 +26,6 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-
 % Generic hash table implementation.
 % See hashtable_test.erl for the corresponding test.
 
@@ -54,7 +53,6 @@
 % only them)
 %
 % They are to provide the same API (signatures and contracts).
-%
 %
 -module(hashtable).
 
@@ -91,20 +89,19 @@
 
 
 % The standard hashtable API:
-%
 -export([ new/0, new/1,
-		  addEntry/3, addDiagnosedEntry/3,
-		  addEntries/2, addDiagnosedEntries/2,
-		  removeEntry/2, removeDiagnosedEntry/2,
-		  lookupEntry/2, hasEntry/2, getValue/2, extractEntry/2,
-		  getValueWithDefaults/3, getValues/2, getAllValues/2,
-		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
-		  appendToEntry/3, deleteFromEntry/3, popFromEntry/2,
-		  enumerate/1, selectEntries/2, keys/1, values/1,
-		  isEmpty/1, size/1,
-		  mapOnEntries/2, mapOnValues/2,
-		  foldOnEntries/3,
-		  merge/2, optimise/1, toString/1, toString/2, display/1, display/2 ]).
+		  add_entry/3, add_diagnosed_entry/3,
+		  add_entries/2, add_diagnosed_entries/2,
+		  remove_entry/2, remove_diagnosed_entry/2,
+		  lookup_entry/2, has_entry/2, get_value/2, extract_entry/2,
+		  get_value_with_defaults/3, get_values/2, get_all_values/2,
+		  add_to_entry/3, subtract_from_entry/3, toggle_entry/2,
+		  append_to_entry/3, delete_from_entry/3, pop_from_entry/2,
+		  enumerate/1, select_entries/2, keys/1, values/1,
+		  is_empty/1, size/1,
+		  map_on_entries/2, map_on_values/2,
+		  fold_on_entries/3,
+		  merge/2, optimise/1, to_string/1, to_string/2, display/1, display/2 ]).
 
 
 
@@ -162,7 +159,6 @@
 
 
 % Returns a new empty hashtable dimensioned for the default number of entries.
-%
 -spec new() -> hashtable().
 new() ->
 	new( ?DefaultNumberOfEntries ).
@@ -184,7 +180,7 @@ new( InitialEntries ) when is_list( InitialEntries ) ->
 
 	BlankTable = new(),
 
-	addEntries( InitialEntries, BlankTable ).
+	add_entries( InitialEntries, BlankTable ).
 
 
 
@@ -205,8 +201,8 @@ new_with_buckets( NumberOfBuckets ) ->
 % If there is already a pair with this key, then its previous value will be
 % replaced by the specified one.
 %
--spec addEntry( key(), value(), hashtable() ) -> hashtable().
-addEntry( Key, Value, Hashtable ) ->
+-spec add_entry( key(), value(), hashtable() ) -> hashtable().
+add_entry( Key, Value, Hashtable ) ->
 
 	KeyIndex = get_bucket_index( Key, Hashtable ),
 
@@ -225,9 +221,9 @@ addEntry( Key, Value, Hashtable ) ->
 % If there is already a pair with this key, then its previous value will be
 % replaced by the specified one.
 %
--spec addDiagnosedEntry( key(), value(), hashtable() ) ->
+-spec add_diagnosed_entry( key(), value(), hashtable() ) ->
 							   { hashtable(), 'added' | 'updated' }.
-addDiagnosedEntry( Key, Value, Hashtable ) ->
+add_diagnosed_entry( Key, Value, Hashtable ) ->
 
 	KeyIndex = get_bucket_index( Key, Hashtable ),
 
@@ -248,12 +244,12 @@ addDiagnosedEntry( Key, Value, Hashtable ) ->
 % If there is already a pair with this key, then its previous value will be
 % replaced by the specified one.
 %
--spec addEntries( entries(), hashtable() ) -> hashtable().
-addEntries( _EntryList=[], Hashtable ) ->
+-spec add_entries( entries(), hashtable() ) -> hashtable().
+add_entries( _EntryList=[], Hashtable ) ->
 	Hashtable;
 
-addEntries( [ { EntryName, EntryValue } | Rest ], Hashtable ) ->
-	addEntries( Rest, addEntry( EntryName, EntryValue, Hashtable ) ).
+add_entries( [ { EntryName, EntryValue } | Rest ], Hashtable ) ->
+	add_entries( Rest, add_entry( EntryName, EntryValue, Hashtable ) ).
 
 
 
@@ -263,17 +259,17 @@ addEntries( [ { EntryName, EntryValue } | Rest ], Hashtable ) ->
 % If there is already a pair with this key, then its previous value will be
 % replaced by the specified one.
 %
--spec addDiagnosedEntries( entries(), hashtable() ) ->
+-spec add_diagnosed_entries( entries(), hashtable() ) ->
 								 { hashtable(), 'added' | 'updated' }.
-addDiagnosedEntries( Entries, Hashtable ) ->
+add_diagnosed_entries( Entries, Hashtable ) ->
 	lists:foldl( fun( _Entry={K,V}, _Acc={ Table, _Diag='added' } ) ->
-						 NewTable = addEntry( K, V, Table ),
+						 NewTable = add_entry( K, V, Table ),
 						 { NewTable, added };
 
 					% Implicitly, Diag is 'updated' here:
 					( _Entry={K,V}, _Acc={ Table, _Diag } ) ->
 						 % Returns directly { NewTable, NewDiagnosis }:
-						 addDiagnosedEntry( K, V, Table )
+						 add_diagnosed_entry( K, V, Table )
 
 					end,
 					_InitialAcc={ Hashtable, _InitialDiag=updated },
@@ -288,8 +284,8 @@ addDiagnosedEntries( Entries, Hashtable ) ->
 %
 % Returns an updated table.
 %
--spec removeEntry( key(), hashtable() ) -> hashtable().
-removeEntry( Key, Hashtable ) ->
+-spec remove_entry( key(), hashtable() ) -> hashtable().
+remove_entry( Key, Hashtable ) ->
 
 	KeyIndex = get_bucket_index( Key, Hashtable ),
 
@@ -308,9 +304,9 @@ removeEntry( Key, Hashtable ) ->
 %
 % Returns a diagnosis and an updated table.
 %
--spec removeDiagnosedEntry( key(), hashtable() ) ->
+-spec remove_diagnosed_entry( key(), hashtable() ) ->
 					  { 'deleted', hashtable() } | 'unchanged'.
-removeDiagnosedEntry( Key, Hashtable ) ->
+remove_diagnosed_entry( Key, Hashtable ) ->
 
 	KeyIndex = get_bucket_index( Key, Hashtable ),
 
@@ -336,20 +332,19 @@ removeDiagnosedEntry( Key, Hashtable ) ->
 % table, or { value, Value }, with Value being the value associated to the
 % specified key.
 %
--spec lookupEntry( key(), hashtable() ) ->
+-spec lookup_entry( key(), hashtable() ) ->
 				 'key_not_found' | { 'value', value() }.
-lookupEntry( Key, Hashtable ) ->
-	lookupInList( Key, element( get_bucket_index( Key, Hashtable ),
+lookup_entry( Key, Hashtable ) ->
+	lookup_in_list( Key, element( get_bucket_index( Key, Hashtable ),
 		Hashtable ) ).
 
 
 
 % Tells whether the specified key exists in the table: returns true or false.
-%
--spec hasEntry( key(), hashtable() ) -> boolean().
-hasEntry( Key, Hashtable ) ->
+-spec has_entry( key(), hashtable() ) -> boolean().
+has_entry( Key, Hashtable ) ->
 
-	case lookupInList( Key,
+	case lookup_in_list( Key,
 			element( get_bucket_index( Key, Hashtable ), Hashtable ) ) of
 
 		{ value, _Value } ->
@@ -369,10 +364,10 @@ hasEntry( Key, Hashtable ) ->
 % The key/value pair is expected to exist already, otherwise an exception is
 % raised.
 %
--spec getValue( key(), hashtable() ) -> value().
-getValue( Key, Hashtable ) ->
+-spec get_value( key(), hashtable() ) -> value().
+get_value( Key, Hashtable ) ->
 
-	case lookupInList( Key, element( get_bucket_index( Key, Hashtable ),
+	case lookup_in_list( Key, element( get_bucket_index( Key, Hashtable ),
 									 Hashtable ) ) of
 
 		% Most likely case first:
@@ -394,8 +389,8 @@ getValue( Key, Hashtable ) ->
 % The key/value pair is expected to exist already, otherwise an exception is
 % raised.
 %
--spec extractEntry( key(), hashtable() ) -> { value(), hashtable() }.
-extractEntry( Key, Hashtable ) ->
+-spec extract_entry( key(), hashtable() ) -> { value(), hashtable() }.
+extract_entry( Key, Hashtable ) ->
 
 	BucketIndex = get_bucket_index( Key, Hashtable ),
 
@@ -421,10 +416,10 @@ extractEntry( Key, Hashtable ) ->
 % Looks for specified entry in specified table and, if found, returns the
 % associated value; otherwise returns the specified default value.
 %
--spec getValueWithDefaults( key(), value(), hashtable() ) -> value().
-getValueWithDefaults( Key, DefaultValue, Hashtable ) ->
+-spec get_value_with_defaults( key(), value(), hashtable() ) -> value().
+get_value_with_defaults( Key, DefaultValue, Hashtable ) ->
 
-	case lookupInList( Key, element( get_bucket_index( Key, Hashtable ),
+	case lookup_in_list( Key, element( get_bucket_index( Key, Hashtable ),
 									 Hashtable ) ) of
 
 		% Most likely case first:
@@ -445,17 +440,17 @@ getValueWithDefaults( Key, DefaultValue, Hashtable ) ->
 % The key/value pairs are expected to exist already, otherwise an exception is
 % raised.
 %
-% Ex: [ Color, Age, Mass ] = hashtable:getValues( [ color, age, mass ],
+% Ex: [ Color, Age, Mass ] = hashtable:get_values( [ color, age, mass ],
 %   MyTable ] )
 %
--spec getValues( [ key() ], hashtable() ) -> [ value() ].
-getValues( Keys, Hashtable ) ->
+-spec get_values( [ key() ], hashtable() ) -> [ value() ].
+get_values( Keys, Hashtable ) ->
 
 	{ RevValues, _FinalTable } = lists:foldl(
 
 				fun( _Elem=Key, _Acc={ Values, Table } ) ->
 
-					   { Value, ShrunkTable } = extractEntry( Key, Table ),
+					   { Value, ShrunkTable } = extract_entry( Key, Table ),
 					   { [ Value | Values ], ShrunkTable }
 
 				end,
@@ -473,23 +468,23 @@ getValues( Keys, Hashtable ) ->
 % The key/value pairs are expected to exist already, otherwise an exception is
 % raised.
 %
-% Ex: [ Color=red, Age=23, Mass=51 ] = hashtable:getAllValues( [ color, age,
+% Ex: [ Color=red, Age=23, Mass=51 ] = hashtable:get_all_values( [ color, age,
 %   mass ], [ { color, red }, { mass, 51 }, { age, 23 } ] )
 %
--spec getAllValues( [ key() ], hashtable() ) -> [ value() ].
-getAllValues( Keys, Hashtable ) ->
+-spec get_all_values( [ key() ], hashtable() ) -> [ value() ].
+get_all_values( Keys, Hashtable ) ->
 
 	{ RevValues, FinalTable } = lists:foldl(
 		   fun( _Elem=Key, _Acc={ Values, Table } ) ->
 
-				   { Value, ShrunkTable } = extractEntry( Key, Table ),
+				   { Value, ShrunkTable } = extract_entry( Key, Table ),
 				   { [ Value | Values ], ShrunkTable }
 
 		   end,
 		   _Acc0={ [], Hashtable },
 		   _List=Keys ),
 
-	case isEmpty( FinalTable ) of
+	case is_empty( FinalTable ) of
 
 		true ->
 			lists:reverse( RevValues );
@@ -514,8 +509,8 @@ getAllValues( Keys, Hashtable ) ->
 %
 % One may request the returned hashtable to be optimised after this call.
 %
--spec mapOnEntries( fun( ( entry() ) -> entry() ), hashtable() ) -> hashtable().
-mapOnEntries( Fun, Hashtable ) ->
+-spec map_on_entries( fun( ( entry() ) -> entry() ), hashtable() ) -> hashtable().
+map_on_entries( Fun, Hashtable ) ->
 
 	BucketList = tuple_to_list( Hashtable ),
 
@@ -544,7 +539,7 @@ map_on_entries( Fun, _BucketList=[ Bucket | T ], Hashtable ) ->
 				{ NewKey, NewValue } = Fun( Entry ),
 
 				% NewKey may not be in the same bucket as Key:
-				addEntry( NewKey, NewValue, AccTable )
+				add_entry( NewKey, NewValue, AccTable )
 
 		end,
 		_InitialAcc=Hashtable,
@@ -564,8 +559,8 @@ map_on_entries( Fun, _BucketList=[ Bucket | T ], Hashtable ) ->
 % Note: the keys are left as are, hence the structure of the hashtable does not
 % change.
 %
--spec mapOnValues( fun( ( value() ) -> value() ), hashtable() ) -> hashtable().
-mapOnValues( Fun, Hashtable ) ->
+-spec map_on_values( fun( ( value() ) -> value() ), hashtable() ) -> hashtable().
+map_on_values( Fun, Hashtable ) ->
 
 	BucketList = tuple_to_list( Hashtable ),
 
@@ -591,15 +586,15 @@ map_bucket_for_values( Fun, Bucket ) ->
 %
 % Returns the final accumulator.
 %
--spec foldOnEntries( fun( ( entry(), basic_utils:accumulator() )
+-spec fold_on_entries( fun( ( entry(), basic_utils:accumulator() )
 						  -> basic_utils:accumulator() ),
 					 basic_utils:accumulator(),
 					 hashtable() ) -> basic_utils:accumulator().
-foldOnEntries( Fun, InitialAcc, Hashtable ) ->
+fold_on_entries( Fun, InitialAcc, Hashtable ) ->
 
 	BucketList = tuple_to_list( Hashtable ),
 
-	fold_on_entries( Fun, BucketList, InitialAcc ).
+	fold_on_entries_helper( Fun, BucketList, InitialAcc ).
 
 
 
@@ -607,14 +602,14 @@ foldOnEntries( Fun, InitialAcc, Hashtable ) ->
 %
 % Could be itself a fold!
 %
-fold_on_entries( _Fun, _BucketList=[], Acc ) ->
+fold_on_entries_helper( _Fun, _BucketList=[], Acc ) ->
 	Acc;
 
-fold_on_entries( Fun, _BucketList=[ Bucket | T ], Acc ) ->
+fold_on_entries_helper( Fun, _BucketList=[ Bucket | T ], Acc ) ->
 
 	NewAcc = lists:foldl( Fun, Acc, _List=Bucket ),
 
-	fold_on_entries( Fun, T, NewAcc ).
+	fold_on_entries_helper( Fun, T, NewAcc ).
 
 
 
@@ -625,14 +620,14 @@ fold_on_entries( Fun, _BucketList=[ Bucket | T ], Acc ) ->
 % An exception is thrown if the key does not exist, a bad arithm is triggered if
 % no addition can be performed on the associated value.
 %
--spec addToEntry( key(), number(), hashtable() ) -> hashtable().
-addToEntry( Key, Value, Hashtable ) ->
+-spec add_to_entry( key(), number(), hashtable() ) -> hashtable().
+add_to_entry( Key, Value, Hashtable ) ->
 
-	case lookupInList( Key,
+	case lookup_in_list( Key,
 		element( get_bucket_index( Key, Hashtable ), Hashtable ) ) of
 
 		{ value, Number } ->
-			addEntry( Key, Number + Value, Hashtable );
+			add_entry( Key, Number + Value, Hashtable );
 
 		%key_not_found ->
 		_ ->
@@ -649,14 +644,14 @@ addToEntry( Key, Value, Hashtable ) ->
 % An exception is thrown if the key does not exist, a bad arithm is triggered if
 % no subtraction can be performed on the associated value.
 %
--spec subtractFromEntry( key(), number(), hashtable() ) -> hashtable().
-subtractFromEntry( Key, Value, Hashtable ) ->
+-spec subtract_from_entry( key(), number(), hashtable() ) -> hashtable().
+subtract_from_entry( Key, Value, Hashtable ) ->
 
-	case lookupInList( Key,
+	case lookup_in_list( Key,
 		element( get_bucket_index( Key, Hashtable ), Hashtable ) ) of
 
 		{ value, Number } ->
-			addEntry( Key, Number - Value, Hashtable );
+			add_entry( Key, Number - Value, Hashtable );
 
 		%key_not_found ->
 		_ ->
@@ -674,17 +669,17 @@ subtractFromEntry( Key, Value, Hashtable ) ->
 % An exception is thrown if the key does not exist or if its associated value is
 % not a boolean.
 %
--spec toggleEntry( key(), hashtable() ) -> hashtable().
-toggleEntry( Key, Hashtable ) ->
+-spec toggle_entry( key(), hashtable() ) -> hashtable().
+toggle_entry( Key, Hashtable ) ->
 
-	case lookupInList( Key,
+	case lookup_in_list( Key,
 			element( get_bucket_index( Key, Hashtable ), Hashtable ) ) of
 
 		{ value, true } ->
-			addEntry( Key, false, Hashtable );
+			add_entry( Key, false, Hashtable );
 
 		{ value, false } ->
-			addEntry( Key, true, Hashtable );
+			add_entry( Key, true, Hashtable );
 
 		{ value, Other } ->
 			throw( { non_boolean_value, Other } );
@@ -708,7 +703,7 @@ merge( HashtableBase, HashtableAdd ) ->
 	% associated value is the one of the latest to be added.
 
 	lists:foldl(
-		fun( { Key, Value }, Acc ) -> addEntry( Key, Value, Acc ) end,
+		fun( { Key, Value }, Acc ) -> add_entry( Key, Value, Acc ) end,
 		_InitialAcc=HashtableAdd,
 		_List=enumerate( HashtableBase ) ).
 
@@ -722,14 +717,14 @@ merge( HashtableBase, HashtableAdd ) ->
 % Note: no check is performed to ensure the value is a list indeed, and the
 % '[|]' operation will not complain if not.
 %
--spec appendToEntry( key(), term(), hashtable() ) -> hashtable().
-appendToEntry( Key, Element, Hashtable ) ->
+-spec append_to_entry( key(), term(), hashtable() ) -> hashtable().
+append_to_entry( Key, Element, Hashtable ) ->
 
-	case lookupInList( Key,
+	case lookup_in_list( Key,
 		element( get_bucket_index( Key, Hashtable ), Hashtable ) ) of
 
 		{ value, List } ->
-			addEntry( Key, [ Element | List ], Hashtable );
+			add_entry( Key, [ Element | List ], Hashtable );
 
 		%key_not_found ->
 		_ ->
@@ -746,14 +741,14 @@ appendToEntry( Key, Element, Hashtable ) ->
 %
 % If the element is not in the specified list, the list will not be modified.
 %
--spec deleteFromEntry( key(), term(), hashtable() ) -> hashtable().
-deleteFromEntry( Key, Element, Hashtable ) ->
+-spec delete_from_entry( key(), term(), hashtable() ) -> hashtable().
+delete_from_entry( Key, Element, Hashtable ) ->
 
-	case lookupInList( Key,
+	case lookup_in_list( Key,
 		element( get_bucket_index( Key, Hashtable ), Hashtable ) ) of
 
 		{ value, List } ->
-			addEntry( Key, lists:delete( Element, List ), Hashtable );
+			add_entry( Key, lists:delete( Element, List ), Hashtable );
 
 		%key_not_found ->
 		_ ->
@@ -767,13 +762,13 @@ deleteFromEntry( Key, Element, Hashtable ) ->
 % Pops the head of the value (supposed to be a list) associated to specified
 % key, and returns a pair made of the popped head and of the new hashtable.
 %
--spec popFromEntry( key(), hashtable() ) -> { term(), hashtable() }.
-popFromEntry( Key, Hashtable ) ->
+-spec pop_from_entry( key(), hashtable() ) -> { term(), hashtable() }.
+pop_from_entry( Key, Hashtable ) ->
 
-	case lookupEntry( Key, Hashtable ) of
+	case lookup_entry( Key, Hashtable ) of
 
 		{ value, [ H | T ] } ->
-			{ H, addEntry( Key, T, Hashtable ) };
+			{ H, add_entry( Key, T, Hashtable ) };
 
 		%key_not_found ->
 		_ ->
@@ -799,19 +794,19 @@ enumerate( Hashtable ) ->
 % Returns a list of key/value pairs corresponding to the list of specified keys,
 % or throws a badmatch is at least one key is not found.
 %
--spec selectEntries( [ key() ], hashtable() ) -> entries().
-selectEntries( Keys, Hashtable ) ->
-	selectEntries( Keys, Hashtable, _Acc=[] ).
+-spec select_entries( [ key() ], hashtable() ) -> entries().
+select_entries( Keys, Hashtable ) ->
+	select_entries( Keys, Hashtable, _Acc=[] ).
 
-selectEntries( _Keys=[], _Hashtable, Acc ) ->
+select_entries( _Keys=[], _Hashtable, Acc ) ->
 	Acc;
 
-selectEntries( _Keys=[ K | T ], Hashtable, Acc ) ->
+select_entries( _Keys=[ K | T ], Hashtable, Acc ) ->
 
-	case lookupEntry( K, Hashtable ) of
+	case lookup_entry( K, Hashtable ) of
 
 		{ value, V } ->
-			selectEntries( T, Hashtable, [ { K, V } | Acc ] );
+			select_entries( T, Hashtable, [ { K, V } | Acc ] );
 
 		%key_not_found ->
 		_ ->
@@ -823,7 +818,6 @@ selectEntries( _Keys=[ K | T ], Hashtable, Acc ) ->
 
 
 % Returns a list containing all the keys of this hashtable.
-%
 -spec keys( hashtable() ) -> [ key() ].
 keys( Hashtable ) ->
 	get_keys_from_buckets( tuple_to_list( Hashtable ), _Acc=[] ).
@@ -843,24 +837,24 @@ values( Hashtable ) ->
 % Returns whether the specified hashtable is empty (not storing any key/value
 % pair).
 %
--spec isEmpty( hashtable() ) -> boolean().
-isEmpty( Hashtable ) ->
+-spec is_empty( hashtable() ) -> boolean().
+is_empty( Hashtable ) ->
 	BucketList = tuple_to_list( Hashtable ),
-	is_empty( BucketList ).
+	is_empty_helper( BucketList ).
 
 
 % Tells whether the specified list of lists is empty.
-%
-is_empty( [] ) ->
+is_empty_helper( [] ) ->
 	true;
 
-is_empty( [ _L=[] | T ] ) ->
-	is_empty( T );
+is_empty_helper( [ _L=[] | T ] ) ->
+	is_empty_helper( T );
 
-is_empty( _Any ) ->
+is_empty_helper( _Any ) ->
 	% Here we have an overall list which is not empty, whose first element is
 	% itself not an empty list, thus there is at least one entry and we can stop
 	% here:
+	%
 	false.
 
 
@@ -874,8 +868,7 @@ size( Hashtable ) ->
 						 Sum + length( Bucket )
 				 end,
 				 _InitialAcc=0,
-				 _List=tuple_to_list( Hashtable )
-			   ).
+				 _List=tuple_to_list( Hashtable ) ).
 
 
 
@@ -928,7 +921,6 @@ must_optimise( EntryCount, BucketCount ) ->
 
 
 % Performs an optimisation of the specified hashtable.
-%
 -spec optimise_unconditionally( entry_count(), bucket_count(), entries(),
 								hashtable() ) -> hashtable().
 optimise_unconditionally( EntryCount, CurrentBucketCount, Entries,
@@ -944,23 +936,24 @@ optimise_unconditionally( EntryCount, CurrentBucketCount, Entries,
 
 		_ ->
 			NewTable = new_with_buckets( IdealBucketCount ),
-			addEntries( Entries, NewTable )
+			add_entries( Entries, NewTable )
 
 	end.
 
 
+
 % Returns a textual description of the specified hashtable.
-%
--spec toString( hashtable() ) -> string().
-toString( Hashtable ) ->
-	toString( Hashtable, user_friendly ).
+-spec to_string( hashtable() ) -> string().
+to_string( Hashtable ) ->
+	to_string( Hashtable, user_friendly ).
+
 
 
 % Returned string is either quite raw (if using 'internal') or a bit more
 % elaborate (if using 'user_friendly').
 %
--spec toString( hashtable(), 'internal' | 'user_friendly' ) -> string().
-toString( Hashtable, user_friendly ) ->
+-spec to_string( hashtable(), 'internal' | 'user_friendly' ) -> string().
+to_string( Hashtable, user_friendly ) ->
 
 	case enumerate( Hashtable ) of
 
@@ -980,12 +973,12 @@ toString( Hashtable, user_friendly ) ->
 
 	end;
 
-toString( Hashtable, internal ) when tuple_size( Hashtable ) > 0 ->
+to_string( Hashtable, internal ) when tuple_size( Hashtable ) > 0 ->
 
 	lists:foldl(
 
 		fun( Bucket, Acc ) ->
-			Acc ++ io_lib:format( "  + ~s~n", [ bucket_toString( Bucket ) ] )
+			Acc ++ io_lib:format( "  + ~s~n", [ bucket_to_string( Bucket ) ] )
 		end,
 
 		io_lib:format( "Hashtable with ~B bucket(s) and ~B entry(ies): ~n",
@@ -993,17 +986,16 @@ toString( Hashtable, internal ) when tuple_size( Hashtable ) > 0 ->
 
 		tuple_to_list( Hashtable ) );
 
-toString( _Hashtable, internal ) ->
+to_string( _Hashtable, internal ) ->
 	io_lib:format( "Empty hashtable~n", [] ).
 
 
 
 
 % Displays the specified hashtable on the standard output.
-%
 -spec display( hashtable() ) -> void().
 display( Hashtable ) ->
-	io:format( "~s~n", [ toString( Hashtable ) ] ).
+	io:format( "~s~n", [ to_string( Hashtable ) ] ).
 
 
 
@@ -1012,7 +1004,7 @@ display( Hashtable ) ->
 %
 -spec display( string(), hashtable() ) -> void().
 display( Title, Hashtable ) ->
-	io:format( "~s:~n~s~n", [ Title, toString( Hashtable ) ] ).
+	io:format( "~s:~n~s~n", [ Title, to_string( Hashtable ) ] ).
 
 
 
@@ -1022,7 +1014,6 @@ display( Title, Hashtable ) ->
 
 
 % Returns the ideal number of buckets needed for specified number of entries.
-%
 -spec get_ideal_bucket_count( entry_count() ) -> basic_utils:count().
 get_ideal_bucket_count( EntryCount ) ->
 
@@ -1156,8 +1147,7 @@ get_bucket_count( Hashtable ) ->
 
 
 % Returns a string describing a hashtable bucket (list of key/value pairs):
-%
-bucket_toString( Bucket ) when length(Bucket) > 0 ->
+bucket_to_string( Bucket ) when length(Bucket) > 0 ->
 	lists:foldl(
 
 		fun( { Key, Value }, Acc ) ->
@@ -1171,29 +1161,29 @@ bucket_toString( Bucket ) when length(Bucket) > 0 ->
 
 		Bucket );
 
-bucket_toString( _EmptyBucket ) ->
+bucket_to_string( _EmptyBucket ) ->
 	"Empty bucket".
 
 
 
 % Returns the value corresponding to the key in the specified list.
-lookupInList( _Key, _TargetList=[] ) ->
+lookup_in_list( _Key, _TargetList=[] ) ->
 
 	% We hesitated and considered returning the key since, if this function is
-	% used like '{value,V} = hashtable:lookupInList( K,L)', if the key is not
+	% used like '{value,V} = hashtable:lookup_in_list( K,L)', if the key is not
 	% found, the raised 'badmatch' will directly specify the offending key
 	% instead of a mere {badmatch,key_not_found}.
 	%
-	% However now getValue/2 throws an exception and should be used instead.
+	% However now get_value/2 throws an exception and should be used instead.
 
 	%{ key_not_found, Key };
 	key_not_found;
 
-lookupInList( Key, _TargetList=[ { Key, Value } | _T ] ) ->
+lookup_in_list( Key, _TargetList=[ { Key, Value } | _T ] ) ->
 	{ value, Value };
 
-lookupInList( Key, _TargetList=[ _H | T ] ) ->
-	lookupInList( Key, T ).
+lookup_in_list( Key, _TargetList=[ _H | T ] ) ->
+	lookup_in_list( Key, T ).
 
 
 
@@ -1220,7 +1210,6 @@ extractFromList( Key, _TargetList=[ H | T ], AccList ) ->
 
 
 % Iterates over buckets and fetches the keys.
-%
 get_keys_from_buckets( _Buckets=[], Acc ) ->
 	Acc;
 
@@ -1230,7 +1219,6 @@ get_keys_from_buckets(  _Buckets=[ H | T ], Acc ) ->
 
 
 % Iterates over buckets and fetches the values.
-%
 get_values_from_buckets( _Buckets=[], Acc ) ->
 	Acc;
 

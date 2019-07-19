@@ -144,7 +144,7 @@
 get_token_table_from( OptionTable ) ->
 
 	% The 'd' compile option must correspond to the compilation defines:
-	case ?table:lookupEntry( _K='d', OptionTable ) of
+	case ?table:lookup_entry( _K='d', OptionTable ) of
 
 		% Ex: L=[my_test_token,{my_other_test_token,51}]
 		{ value, L } ->
@@ -165,12 +165,12 @@ register_tokens( _L=[], TokenTable ) ->
 register_tokens( _L=[ { Token, Value } | T ], TokenTable )
   when is_atom( Token ) ->
 	% Crashes if a token is defined more than once (must be abnormal):
-	NewTokenTable = ?table:addNewEntry( Token, Value, TokenTable ),
+	NewTokenTable = ?table:add_new_entry( Token, Value, TokenTable ),
 	register_tokens( T, NewTokenTable );
 
 register_tokens( _L=[ Token | T ], TokenTable ) when is_atom( Token ) ->
 	% A token without a value is associated to 'undefined':
-	NewTokenTable = ?table:addNewEntry( Token, _V=undefined, TokenTable ),
+	NewTokenTable = ?table:add_new_entry( Token, _V=undefined, TokenTable ),
 	register_tokens( T, NewTokenTable ).
 
 

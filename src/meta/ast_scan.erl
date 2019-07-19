@@ -169,7 +169,7 @@ scan( AST ) ->
 
 	FirstLocation = id_utils:get_initial_sortable_id(),
 
-	FirstMarkerTable = ?table:addNewEntry( begin_marker, FirstLocation,
+	FirstMarkerTable = ?table:add_new_entry( begin_marker, FirstLocation,
 										   InitModuleInfo#module_info.markers ),
 
 	FirstModuleInfo = InitModuleInfo#module_info{ markers=FirstMarkerTable },
@@ -350,7 +350,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export', FunctionIds } | T ],
 
 			{ Name, Arity } = ast_function:check_function_id( FunId, Context ),
 
-			NewFunInfo = case ?table:lookupEntry( FunId, FunTableAcc ) of
+			NewFunInfo = case ?table:lookup_entry( FunId, FunTableAcc ) of
 
 				 key_not_found ->
 
@@ -373,17 +373,17 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export', FunctionIds } | T ],
 
 			end,
 
-			?table:addEntry( FunId, NewFunInfo, FunTableAcc )
+			?table:add_entry( FunId, NewFunInfo, FunTableAcc )
 
 		end,
 		_Acc0=FunctionTable,
 		_List=FunctionIds ),
 
 	% At least initially, exactly one export entry per location:
-	NewExportTable = ?table:addNewEntry( NextLocation, { Line, FunctionIds },
+	NewExportTable = ?table:add_new_entry( NextLocation, { Line, FunctionIds },
 										 ExportTable ),
 
-	NewMarkerTable = case ?table:hasEntry( export_functions_marker,
+	NewMarkerTable = case ?table:has_entry( export_functions_marker,
 										   MarkerTable ) of
 
 		true ->
@@ -391,7 +391,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export', FunctionIds } | T ],
 			MarkerTable;
 
 		false ->
-			?table:addEntry( export_functions_marker, NextLocation,
+			?table:add_entry( export_functions_marker, NextLocation,
 							 MarkerTable )
 
 	end,
@@ -423,12 +423,12 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'import',
 	ast_utils:check_module_name( ModuleName, Context ),
 	ast_function:check_function_ids( FunIds, Context ),
 
-	NewImportTable = ?table:appendListToEntry( ModuleName, FunIds,
+	NewImportTable = ?table:append_list_to_entry( ModuleName, FunIds,
 											   ImportTable ),
 
 	NewImportDefs = [ { NextLocation, Form } | ImportDefs ],
 
-	NewMarkerTable = case ?table:hasEntry( import_functions_marker,
+	NewMarkerTable = case ?table:has_entry( import_functions_marker,
 										   MarkerTable ) of
 
 		true ->
@@ -436,7 +436,7 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'import',
 			MarkerTable;
 
 		false ->
-			?table:addEntry( import_functions_marker, NextLocation,
+			?table:add_entry( import_functions_marker, NextLocation,
 							 MarkerTable )
 
 	end,
@@ -471,7 +471,7 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'module', ModuleName } | T ],
 
 	LocForm = { NextLocation, Form },
 
-	NewMarkerTable = ?table:addNewEntry( module_marker, NextLocation,
+	NewMarkerTable = ?table:add_new_entry( module_marker, NextLocation,
 										 MarkerTable ),
 
 	scan_forms( T, M#module_info{ module={ ModuleName, LocForm },
@@ -567,7 +567,7 @@ scan_forms(
 	FunId = { FunctionName, FunctionArity },
 
 	{ FunInfo, MaybeError } =
-			case ?table:lookupEntry( FunId, FunctionTable ) of
+			case ?table:lookup_entry( FunId, FunctionTable ) of
 
 
 		key_not_found ->
@@ -646,9 +646,9 @@ scan_forms(
 
 	end,
 
-	NewFunctionTable = ?table:addEntry( _K=FunId, _V=FunInfo, FunctionTable ),
+	NewFunctionTable = ?table:add_entry( _K=FunId, _V=FunInfo, FunctionTable ),
 
-	NewMarkerTable = case ?table:hasEntry( definition_functions_marker,
+	NewMarkerTable = case ?table:has_entry( definition_functions_marker,
 										   MarkerTable ) of
 
 		true ->
@@ -656,7 +656,7 @@ scan_forms(
 			MarkerTable;
 
 		false ->
-			?table:addEntry( definition_functions_marker, NextLocation,
+			?table:add_entry( definition_functions_marker, NextLocation,
 							 MarkerTable )
 
 	end,
@@ -719,7 +719,7 @@ scan_forms( [ Form={ 'attribute', Line, SpecType,
 
 	end,
 
-	FunInfo = case ?table:lookupEntry( FunId, FunctionTable ) of
+	FunInfo = case ?table:lookup_entry( FunId, FunctionTable ) of
 
 		key_not_found ->
 
@@ -750,7 +750,7 @@ scan_forms( [ Form={ 'attribute', Line, SpecType,
 
 	end,
 
-	NewFunctionTable = ?table:addEntry( _K=FunId, _V=FunInfo, FunctionTable ),
+	NewFunctionTable = ?table:add_entry( _K=FunId, _V=FunInfo, FunctionTable ),
 
 	%ast_utils:display_debug( "spec for function ~s/~B registered.",
 	%		   [ FunctionName, FunctionArity ] ),
@@ -797,7 +797,7 @@ scan_forms( [ Form={ 'attribute', _Line, AttributeName='asm',
 	LocForm = { NextLocation, Form },
 
 	% Expected once:
-	scan_forms( T, M#module_info{ parse_attributes=?table:appendToEntry(
+	scan_forms( T, M#module_info{ parse_attributes=?table:append_to_entry(
 					   AttributeName, { _AttributeValue=Def, LocForm },
 					   ParseAttributeTable ) },
 				id_utils:get_next_sortable_id( NextLocation ),
@@ -861,7 +861,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
 	ast_type:check_record_name( RecordName, Context ),
 
 	% Finally we let the compiler complain:
-	%case ?table:hasEntry( RecordName, RecordTable ) of
+	%case ?table:has_entry( RecordName, RecordTable ) of
 	%
 	%	true ->
 	%		ast_utils:raise_error(
@@ -880,9 +880,9 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
 	%						 "definition:~n~p", [ RecordName, NewRecordDef ] ),
 
 	% New entry by design:
-	NewRecordTable = ?table:addEntry( RecordName, NewRecordDef, RecordTable ),
+	NewRecordTable = ?table:add_entry( RecordName, NewRecordDef, RecordTable ),
 
-	NewMarkerTable = case ?table:hasEntry( definition_records_marker,
+	NewMarkerTable = case ?table:has_entry( definition_records_marker,
 										   MarkerTable ) of
 
 		true ->
@@ -890,7 +890,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
 			MarkerTable;
 
 		false ->
-			?table:addEntry( definition_records_marker, NextLocation,
+			?table:add_entry( definition_records_marker, NextLocation,
 							 MarkerTable )
 
 	end,
@@ -939,7 +939,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 
 	TypeId = { TypeName, TypeArity },
 
-	NewTypeInfo = case ?table:lookupEntry( TypeId, TypeTable ) of
+	NewTypeInfo = case ?table:lookup_entry( TypeId, TypeTable ) of
 
 		% If a TypeInfo is found for that type name, it must be only because it
 		% has already been exported (not expected to be already defined):
@@ -985,9 +985,9 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 
 	end,
 
-	NewTypeTable = ?table:addEntry( TypeId, NewTypeInfo, TypeTable ),
+	NewTypeTable = ?table:add_entry( TypeId, NewTypeInfo, TypeTable ),
 
-	NewMarkerTable = case ?table:hasEntry( definition_types_marker,
+	NewMarkerTable = case ?table:has_entry( definition_types_marker,
 										   MarkerTable ) of
 
 		true ->
@@ -995,7 +995,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 			MarkerTable;
 
 		false ->
-			?table:addEntry( definition_types_marker, NextLocation,
+			?table:add_entry( definition_types_marker, NextLocation,
 							 MarkerTable )
 
 	end,
@@ -1035,7 +1035,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export_type', TypeIds } | T ],
 
 			{ Name, _Arity } = ast_type:check_type_id( TypeId, Context ),
 
-			NewTypeInfo = case ?table:lookupEntry( TypeId, TypeTableAcc ) of
+			NewTypeInfo = case ?table:lookup_entry( TypeId, TypeTableAcc ) of
 
 				 key_not_found ->
 
@@ -1059,24 +1059,24 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export_type', TypeIds } | T ],
 
 			end,
 
-			?table:addEntry( TypeId, NewTypeInfo, TypeTableAcc )
+			?table:add_entry( TypeId, NewTypeInfo, TypeTableAcc )
 
 		end,
 		_Acc0=TypeTable,
 		_List=TypeIds ),
 
 	% Initially, exactly one export entry per location:
-	NewExportTable = ?table:addNewEntry( NextLocation, { Line, TypeIds },
+	NewExportTable = ?table:add_new_entry( NextLocation, { Line, TypeIds },
 										 ExportTable ),
 
-	NewMarkerTable = case ?table:hasEntry( export_types_marker, MarkerTable ) of
+	NewMarkerTable = case ?table:has_entry( export_types_marker, MarkerTable ) of
 
 		true ->
 			% Already found, nothing to do.
 			MarkerTable;
 
 		false ->
-			?table:addEntry( export_types_marker, NextLocation, MarkerTable )
+			?table:add_entry( export_types_marker, NextLocation, MarkerTable )
 
 	end,
 
@@ -1136,7 +1136,7 @@ scan_forms( [ Form={ 'attribute', Line, AttributeName, AttributeValue } | T ],
 	LocForm = { NextLocation, Form },
 
 	% As a wild attribute may be defined more than once:
-	NewParseAttributeTable = ?table:appendToEntry( AttributeName,
+	NewParseAttributeTable = ?table:append_to_entry( AttributeName,
 					   { AttributeValue, LocForm }, ParseAttributeTable ),
 
 	scan_forms( T, M#module_info{ parse_attributes=NewParseAttributeTable },
@@ -1318,7 +1318,7 @@ scan_forms( _AST=[ Form={ 'eof', _Line } ],
 
 	ExportLoc = ast_info:get_default_export_function_location(),
 
-	NewExportTable = ?table:addEntry( ExportLoc, { _FirstLine=0, _Empty=[] },
+	NewExportTable = ?table:add_entry( ExportLoc, { _FirstLine=0, _Empty=[] },
 									  ExportTable ),
 
 	% We just do not want to have the filename of the currently processed module
@@ -1379,7 +1379,7 @@ scan_forms( Unexpected, _ModuleInfo, _NextLocation, CurrentFileReference ) ->
 register_compile_attribute( _CompileInfo='inline', CompileTable, _Context ) ->
 
 	% Overrides any previously existing inline entry:
-	?table:addEntry( inline, all, CompileTable );
+	?table:add_entry( inline, all, CompileTable );
 
 
 % Regular inlining:
@@ -1388,7 +1388,7 @@ register_compile_attribute( _CompileInfo={ 'inline', InlineValues },
 
 	ast_utils:check_inline_options( InlineValues, Context ),
 
-	NewInlineValues = case ?table:lookupEntry( inline, CompileTable ) of
+	NewInlineValues = case ?table:lookup_entry( inline, CompileTable ) of
 
 		{ value, all } ->
 			all;
@@ -1401,7 +1401,7 @@ register_compile_attribute( _CompileInfo={ 'inline', InlineValues },
 
 	end,
 
-	?table:addEntry( inline, NewInlineValues, CompileTable );
+	?table:add_entry( inline, NewInlineValues, CompileTable );
 
 
 % Non-inlining, compile option with multiple values specified:
@@ -1409,14 +1409,14 @@ register_compile_attribute( _CompileInfo={ CompileOpt, OptValues },
 							CompileTable, _Context )
   when is_atom( CompileOpt ) andalso is_list( OptValues ) ->
 
-	?table:appendListToEntry( CompileOpt, OptValues, CompileTable );
+	?table:append_list_to_entry( CompileOpt, OptValues, CompileTable );
 
 
 % Non-inlining, single compile option (hence not a list):
 register_compile_attribute( _CompileInfo={ CompileOpt, OptValue }, CompileTable,
 							_Context ) when is_atom( CompileOpt ) ->
 
-	?table:appendToEntry( CompileOpt, OptValue, CompileTable );
+	?table:append_to_entry( CompileOpt, OptValue, CompileTable );
 
 
 register_compile_attribute( _CompileInfo=[], CompileTable, _Context ) ->
@@ -1564,7 +1564,7 @@ finalize_marker_table( EndMarkerLoc, MarkerTable ) ->
 	% By design begin_marker has already been set in the table, and end_marker
 	% will be registered now:
 	%
-	EndMarkerTable = ?table:addNewEntry( end_marker, EndMarkerLoc,
+	EndMarkerTable = ?table:add_new_entry( end_marker, EndMarkerLoc,
 										 MarkerTable ),
 
 
@@ -1601,7 +1601,7 @@ finalize_marker_table( EndMarkerLoc, MarkerTable ) ->
 	% - then the definition marker (FunDefMarker, a.k.a. as F)
 	% - then the end marker
 
-	ModMarkerLoc = case ?table:lookupEntry( ModMarker, EndMarkerTable ) of
+	ModMarkerLoc = case ?table:lookup_entry( ModMarker, EndMarkerTable ) of
 
 		key_not_found ->
 			% An AST without a module definition will probably be a problem;
@@ -1613,7 +1613,7 @@ finalize_marker_table( EndMarkerLoc, MarkerTable ) ->
 
 	end,
 
-	{ NewFLoc, DefaultLoc } = case ?table:lookupEntry( F, EndMarkerTable ) of
+	{ NewFLoc, DefaultLoc } = case ?table:lookup_entry( F, EndMarkerTable ) of
 
 		key_not_found ->
 
@@ -1663,7 +1663,7 @@ finalize_marker_table( EndMarkerLoc, MarkerTable ) ->
 
 	MarkerEntries = [ { ModMarker, ModMarkerLoc }, { F, NewFLoc } ],
 
-	UpdatedMarkerTable = ?table:addEntries( MarkerEntries, EndMarkerTable ),
+	UpdatedMarkerTable = ?table:add_entries( MarkerEntries, EndMarkerTable ),
 
 	add_missing_markers( InterMarkers, DefaultLoc, UpdatedMarkerTable ).
 
@@ -1675,13 +1675,13 @@ add_missing_markers( _Markers=[], _DefaultLoc, MarkerTable ) ->
 
 add_missing_markers( _Markers=[ M | T ], DefaultLoc, MarkerTable ) ->
 
-	NewMarkerTable = case ?table:hasEntry( M, MarkerTable ) of
+	NewMarkerTable = case ?table:has_entry( M, MarkerTable ) of
 
 		true ->
 			MarkerTable;
 
 		false ->
-			?table:addEntry( M, DefaultLoc, MarkerTable )
+			?table:add_entry( M, DefaultLoc, MarkerTable )
 
 	end,
 	add_missing_markers( T, DefaultLoc, NewMarkerTable ).

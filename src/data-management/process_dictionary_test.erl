@@ -51,7 +51,7 @@ run() ->
 	InitTable = process_dictionary:get_dictionary(),
 
 	test_facilities:display( "Initial content: ~s",
-							 [ list_table:toString( InitTable ) ] ),
+							 [ list_table:to_string( InitTable ) ] ),
 
 	FirstKey = hello,
 
@@ -84,7 +84,7 @@ run() ->
 	FinalTable = process_dictionary:get_dictionary(),
 
 	test_facilities:display( "Final content: ~s",
-							 [ list_table:toString( FinalTable ) ] ),
+							 [ list_table:to_string( FinalTable ) ] ),
 
 	test_facilities:display( "Final state: ~s",
 							 [ process_dictionary:to_string() ] ),

@@ -1,4 +1,4 @@
-;; Use our 'update-emacs-modules.sh' to update the *.el files of interest.
+;; Use our 'update-emacs-modules.sh' script to update the *.el files of interest.
 
 (setq load-path (cons "~/.emacs.d/my-modules" load-path))
 
@@ -718,7 +718,7 @@
   ;; If you edit it by hand, you could mess it up, so be careful.
   ;; Your init file should contain only one such instance.
   ;; If there is more than one, they won't work right.
- '(default ((t (:inherit nil :stipple nil :background "black" :foreground "white" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 113 :width normal :foundry "unknown" :family "DejaVu Sans Mono"))))
+ '(default ((t (:inherit nil :stipple nil :background "black" :foreground "white" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 95 :width normal :foundry "unknown" :family "DejaVu Sans Mono"))))
  '(rst-level-1-face ((t (:background "#00f" :foreground "#fff"))) t)
  '(rst-level-2-face ((t (:background "#00a" :foreground "#ddd"))) t)
  '(rst-level-3-face ((t (:background "#003" :foreground "#bbb"))) t)

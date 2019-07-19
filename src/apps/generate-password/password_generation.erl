@@ -90,7 +90,7 @@ main( ArgTable ) ->
 	%	   [ executable_utils:argument_table_to_string( MergedTable ) ] ),
 
 
-	case list_table:hasEntry( HelpRefKey, MergedTable ) of
+	case list_table:has_entry( HelpRefKey, MergedTable ) of
 
 		true ->
 			display_usage();
@@ -100,7 +100,7 @@ main( ArgTable ) ->
 
 	end,
 
-	%{ IsInteractive, InterTable } = case list_table:extractEntryWithDefaults(
+	%{ IsInteractive, InterTable } = case list_table:extract_entry_with_defaults(
 	%			 InteractiveRefKey, _DefaultInter=false, MergedTable ) of
 	%
 	%	{ [], ShrunkTable } ->
@@ -114,7 +114,7 @@ main( ArgTable ) ->
 	%trace_utils:debug_fmt( "Interactive: ~s", [ IsInteractive ] ),
 
 	{ LengthStrings, LenTable } =
-		list_table:extractEntryWithDefaults(
+		list_table:extract_entry_with_defaults(
 		  LengthRefKey,
 		  _LenDefault=[ ?default_min_length, ?default_max_length ],
 		  %InterTable ),
@@ -160,7 +160,7 @@ main( ArgTable ) ->
 	%trace_utils:debug_fmt( "Max length: ~B", [ MaxLength ] ),
 
 	{ [ AlphabetStringSpec ], AlphaTable } =
-		list_table:extractEntryWithDefaults( AlphaRefKey,
+		list_table:extract_entry_with_defaults( AlphaRefKey,
 							_AlphaDefault=[ ?default_alphabet ], LenTable ),
 
 	AlphabetSpec = text_utils:string_to_atom( AlphabetStringSpec ),

@@ -87,7 +87,7 @@
 generate( ModuleName, Table ) ->
 
 	%io:format( "Generating pseudo-module '~s' from following table:~n~s~n",
-	%		   [ ModuleName, table:toString( Table ) ] ),
+	%		   [ ModuleName, table:to_string( Table ) ] ),
 
 	% Just a name, not any actual file:
 	PseudoModuleFilename = "const_table_generated_"

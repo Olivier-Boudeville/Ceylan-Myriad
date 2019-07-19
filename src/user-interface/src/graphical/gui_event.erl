@@ -745,7 +745,7 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 				  LoopState=#loop_state{ event_table=EventTable,
 										 reassign_table=ReassignTable } ) ->
 
-	ActualGUIObject = case table:lookupEntry( GUIObject, ReassignTable ) of
+	ActualGUIObject = case table:lookup_entry( GUIObject, ReassignTable ) of
 
 		key_not_found ->
 			trace_utils:trace_fmt( "Wx event received about '~s':~n~p.",
@@ -769,7 +769,7 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 	% shall itself by resized, see gui_canvas:update/2.
 
 	% Then notify the subscribers (could use get_subscribers_for/3):
-	case table:lookupEntry( ActualGUIObject, EventTable ) of
+	case table:lookup_entry( ActualGUIObject, EventTable ) of
 
 		key_not_found ->
 			% At least one subscriber would be expected:
@@ -787,7 +787,7 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 
 			EventType = gui_wx_backend:from_wx_event_type( WxEventType ),
 
-			case list_table:lookupEntry( EventType, DispatchTable ) of
+			case list_table:lookup_entry( EventType, DispatchTable ) of
 
 				{ value, _Subscribers=[] } ->
 					trace_utils:error_fmt( "For GUI object '~s', event type "
@@ -817,14 +817,14 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 								 [ event_subscriber_pid() ].
 get_subscribers_for( GUIObject, EventType, EventTable ) ->
 
-	case table:lookupEntry( GUIObject, EventTable ) of
+	case table:lookup_entry( GUIObject, EventTable ) of
 
 		key_not_found ->
 			[];
 
 		{ value, DispatchTable } ->
 
-			case list_table:lookupEntry( EventType, DispatchTable ) of
+			case list_table:lookup_entry( EventType, DispatchTable ) of
 
 				key_not_found ->
 					[];
@@ -865,7 +865,7 @@ process_myriad_creation( ObjectType, ConstructionParams, CallerPid,
 			% An event about its internal panel will be reassigned to its canvas
 			% owner:
 			%
-			NewReassignTable = table:addNewEntry( PanelRef, CanvasRef,
+			NewReassignTable = table:add_new_entry( PanelRef, CanvasRef,
 												  ReassignTable ),
 
 			% After this canvas is created, its panel, when finally shown, will
@@ -902,7 +902,7 @@ register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 						   "of following state:~n~p.",
 						   [ ObjectType, ObjectInitialState ] ),
 
-	{ NewInstanceId, NewInstanceReferential } = case table:lookupEntry(
+	{ NewInstanceId, NewInstanceReferential } = case table:lookup_entry(
 													ObjectType, TypeTable ) of
 
 		key_not_found ->
@@ -926,7 +926,7 @@ register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 
 			NextInstanceId = InstanceCount + 1,
 
-			NextInstanceTable = table:addEntry( NextInstanceId,
+			NextInstanceTable = table:add_entry( NextInstanceId,
 									 ObjectInitialState, InstanceTable ),
 
 			NextInstanceReferential = InstanceReferential#instance_referential{
@@ -942,7 +942,7 @@ register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 	MyriadRef = #myriad_object_ref{ object_type=ObjectType,
 									myriad_instance_pid=NewInstanceId },
 
-	NewTypeTable = table:addEntry( ObjectType, NewInstanceReferential,
+	NewTypeTable = table:add_entry( ObjectType, NewInstanceReferential,
 								   TypeTable ),
 
 	{ MyriadRef, NewTypeTable }.
@@ -1090,7 +1090,7 @@ register_event_types_for( GUIObject, EventTypes, Subscribers,
 			[ event_subscriber_pid() ], event_table() ) -> event_table().
 record_subscriptions( GUIObject, EventTypes, Subscribers, EventTable ) ->
 
-	NewDispatchTable= case table:lookupEntry( GUIObject, EventTable ) of
+	NewDispatchTable= case table:lookup_entry( GUIObject, EventTable ) of
 
 		key_not_found ->
 			UniqueSubscribers = list_utils:uniquify( Subscribers ),
@@ -1102,7 +1102,7 @@ record_subscriptions( GUIObject, EventTypes, Subscribers, EventTable ) ->
 
 	end,
 
-	table:addEntry( GUIObject, NewDispatchTable, EventTable ).
+	table:add_entry( GUIObject, NewDispatchTable, EventTable ).
 
 
 
@@ -1117,7 +1117,7 @@ update_event_table( _EventTypes=[], _Subscribers, DispatchTable ) ->
 update_event_table( _EventTypes=[ EventType | T ], Subscribers,
 					DispatchTable ) ->
 
-	NewSubscribers = case list_table:lookupEntry( EventType,
+	NewSubscribers = case list_table:lookup_entry( EventType,
 												  DispatchTable ) of
 
 		key_not_found ->
@@ -1128,7 +1128,7 @@ update_event_table( _EventTypes=[ EventType | T ], Subscribers,
 
 	end,
 
-	NewDispatchTable = list_table:addEntry( EventType, NewSubscribers,
+	NewDispatchTable = list_table:add_entry( EventType, NewSubscribers,
 											DispatchTable ),
 
 	update_event_table( T, Subscribers, NewDispatchTable ).
@@ -1198,11 +1198,11 @@ get_instance_state( MyriadObjectType, InstanceId, TypeTable ) ->
 
 	%trace_utils:debug_fmt( "~s", [ type_table_to_string( TypeTable ) ] ),
 
-	case table:lookupEntry( MyriadObjectType, TypeTable ) of
+	case table:lookup_entry( MyriadObjectType, TypeTable ) of
 
 		{ value, #instance_referential{ instance_table=InstanceTable } } ->
 
-			case table:lookupEntry( InstanceId, InstanceTable ) of
+			case table:lookup_entry( InstanceId, InstanceTable ) of
 
 				{ value, InstanceState } ->
 					InstanceState;
@@ -1254,20 +1254,20 @@ set_instance_state( MyriadObjectType, InstanceId, InstanceState, TypeTable ) ->
 
 	%trace_utils:debug_fmt( "~s", [ type_table_to_string( TypeTable ) ] ),
 
-	case table:lookupEntry( MyriadObjectType, TypeTable ) of
+	case table:lookup_entry( MyriadObjectType, TypeTable ) of
 
 		{ value, Referential=#instance_referential{
 								instance_table=InstanceTable } } ->
 
 			% Already existing, hence no change in instance count:
-			NewInstanceTable = table:updateEntry( InstanceId, InstanceState,
+			NewInstanceTable = table:update_entry( InstanceId, InstanceState,
 												  InstanceTable ),
 
 			NewReferential = Referential#instance_referential{
 								instance_table=NewInstanceTable },
 
 			% An update actually:
-			table:addEntry( MyriadObjectType, NewReferential, TypeTable );
+			table:add_entry( MyriadObjectType, NewReferential, TypeTable );
 
 
 		key_not_found ->

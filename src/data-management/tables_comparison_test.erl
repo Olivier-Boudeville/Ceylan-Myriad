@@ -90,28 +90,28 @@ run_basic_tests() ->
 
 	test_facilities:display( " ~n Comparison of tables creation: " ),
 	MyH1 = hashtable:new( 10 ),
-	true = hashtable:isEmpty( MyH1 ),
+	true = hashtable:is_empty( MyH1 ),
 	hashtable:display( "Vanilla hashtable", MyH1 ),
 	MyH1Optimised = hashtable:optimise( MyH1 ),
 	hashtable:display( "Optimized hash table", MyH1Optimised ),
 
 
 	MyTH1 = tracked_hashtable:new( 10 ),
-	true = tracked_hashtable:isEmpty( MyTH1 ),
+	true = tracked_hashtable:is_empty( MyTH1 ),
 	tracked_hashtable:display( "Vanilla tracked table ", MyTH1 ),
 
 	MyLH1 = lazy_hashtable:new( 10 ),
-	true = lazy_hashtable:isEmpty( MyLH1 ),
+	true = lazy_hashtable:is_empty( MyLH1 ),
 	lazy_hashtable:display( "Vanilla lazy hashtable", MyLH1 ),
 
 	display_separator(),
 	MyM1 = map_hashtable:new( 10 ),
-	true = map_hashtable:isEmpty( MyM1 ),
+	true = map_hashtable:is_empty( MyM1 ),
 	map_hashtable:display( "Vanilla map hashtable", MyM1 ),
 
 	display_separator(),
 	MyL1 = list_table:new( 10 ),
-	true = list_table:isEmpty( MyL1 ),
+	true = list_table:is_empty( MyL1 ),
 	list_table:display( "Vanilla list hashtable", MyL1 ),
 
 
@@ -126,14 +126,14 @@ run_basic_tests() ->
 
 	test_facilities:display( "Adding entries in hash table:" ),
 	MyH2 = hashtable:new( 4 ),
-	MyH3 = hashtable:addEntry( ?MyFirstKey, "MyFirstValue", MyH2 ),
-	false = hashtable:isEmpty( MyH3 ),
+	MyH3 = hashtable:add_entry( ?MyFirstKey, "MyFirstValue", MyH2 ),
+	false = hashtable:is_empty( MyH3 ),
 
-	MyH4 = hashtable:addEntry( ?MySecondKey, "MySecondValue", MyH3 ),
-	false = hashtable:isEmpty( MyH4 ),
+	MyH4 = hashtable:add_entry( ?MySecondKey, "MySecondValue", MyH3 ),
+	false = hashtable:is_empty( MyH4 ),
 
-	MyH5 = hashtable:addEntry( ?MyThirdKey, [1,2,3], MyH4 ),
-	false = hashtable:isEmpty( MyH5 ),
+	MyH5 = hashtable:add_entry( ?MyThirdKey, [1,2,3], MyH4 ),
+	false = hashtable:is_empty( MyH5 ),
 	hashtable:display( MyH5 ),
 
 	MyH5Optimised = hashtable:optimise( MyH5 ),
@@ -142,14 +142,14 @@ run_basic_tests() ->
 
 	test_facilities:display( "Adding entries in tracked hashtable:"),
 	MyTH2 = tracked_hashtable:new(4 ),
-	MyTH3 = tracked_hashtable:addEntry( ?MyFirstKey, "MyFirstValue", MyTH2 ),
-	false = tracked_hashtable:isEmpty( MyTH3 ),
+	MyTH3 = tracked_hashtable:add_entry( ?MyFirstKey, "MyFirstValue", MyTH2 ),
+	false = tracked_hashtable:is_empty( MyTH3 ),
 
-	MyTH4 = tracked_hashtable:addEntry( ?MySecondKey, "MySecondValue", MyTH3 ),
-	false = tracked_hashtable:isEmpty( MyTH4 ),
+	MyTH4 = tracked_hashtable:add_entry( ?MySecondKey, "MySecondValue", MyTH3 ),
+	false = tracked_hashtable:is_empty( MyTH4 ),
 
-	MyTH5 = tracked_hashtable:addEntry( ?MyThirdKey, [1,2,3], MyTH4 ),
-	false = tracked_hashtable:isEmpty( MyTH5 ),
+	MyTH5 = tracked_hashtable:add_entry( ?MyThirdKey, [1,2,3], MyTH4 ),
+	false = tracked_hashtable:is_empty( MyTH5 ),
 	tracked_hashtable:display( "Tracked hashtable: ", MyTH5 ),
 
 	MyTH5Optimised = tracked_hashtable:optimise( MyTH5 ),
@@ -158,14 +158,14 @@ run_basic_tests() ->
 
 	test_facilities:display( "Adding entries in lazy hashtable:" ),
 	MyLH2 = lazy_hashtable:new( 4 ),
-	MyLH3 = lazy_hashtable:addEntry( ?MyFirstKey, "MyFirstValue", MyLH2 ),
-	false = lazy_hashtable:isEmpty( MyLH3 ),
+	MyLH3 = lazy_hashtable:add_entry( ?MyFirstKey, "MyFirstValue", MyLH2 ),
+	false = lazy_hashtable:is_empty( MyLH3 ),
 
-	MyLH4 = lazy_hashtable:addEntry( ?MySecondKey, "MySecondValue", MyLH3 ),
-	false = lazy_hashtable:isEmpty( MyLH4 ),
+	MyLH4 = lazy_hashtable:add_entry( ?MySecondKey, "MySecondValue", MyLH3 ),
+	false = lazy_hashtable:is_empty( MyLH4 ),
 
-	MyLH5 = lazy_hashtable:addEntry( ?MyThirdKey, [1,2,3], MyLH4 ),
-	false = lazy_hashtable:isEmpty( MyLH5 ),
+	MyLH5 = lazy_hashtable:add_entry( ?MyThirdKey, [1,2,3], MyLH4 ),
+	false = lazy_hashtable:is_empty( MyLH5 ),
 	lazy_hashtable:display( "Lazy hashtable: ", MyLH5 ),
 
 	MyLH5Optimised = lazy_hashtable:optimise( MyLH5 ),
@@ -174,27 +174,27 @@ run_basic_tests() ->
 
 	test_facilities:display( "Adding entries in map hashtable:" ),
 	MyMH2 = map_hashtable:new( 4 ),
-	MyMH3 = map_hashtable:addEntry( ?MyFirstKey, "MyFirstValue", MyMH2 ),
-	false = map_hashtable:isEmpty( MyMH3 ),
+	MyMH3 = map_hashtable:add_entry( ?MyFirstKey, "MyFirstValue", MyMH2 ),
+	false = map_hashtable:is_empty( MyMH3 ),
 
-	MyMH4 = map_hashtable:addEntry( ?MySecondKey, "MySecondValue", MyMH3 ),
-	false = map_hashtable:isEmpty( MyMH4 ),
+	MyMH4 = map_hashtable:add_entry( ?MySecondKey, "MySecondValue", MyMH3 ),
+	false = map_hashtable:is_empty( MyMH4 ),
 
-	MyMH5 = map_hashtable:addEntry( ?MyThirdKey, [1,2,3], MyMH4 ),
-	false = map_hashtable:isEmpty( MyMH5 ),
+	MyMH5 = map_hashtable:add_entry( ?MyThirdKey, [1,2,3], MyMH4 ),
+	false = map_hashtable:is_empty( MyMH5 ),
 	map_hashtable:display( "Map hashtable: ", MyMH5 ),
 
 
 	test_facilities:display( "Adding entries in list hashtable:" ),
 	MyL2 = list_table:new( 4 ),
-	MyL3 = list_table:addEntry( ?MyFirstKey, "MyFirstValue", MyL2 ),
-	false = list_table:isEmpty( MyL3 ),
+	MyL3 = list_table:add_entry( ?MyFirstKey, "MyFirstValue", MyL2 ),
+	false = list_table:is_empty( MyL3 ),
 
-	MyL4 = list_table:addEntry( ?MySecondKey, "MySecondValue", MyL3 ),
-	false = list_table:isEmpty( MyL4 ),
+	MyL4 = list_table:add_entry( ?MySecondKey, "MySecondValue", MyL3 ),
+	false = list_table:is_empty( MyL4 ),
 
-	MyL5 = list_table:addEntry( ?MyThirdKey, [1,2,3], MyL4 ),
-	false = list_table:isEmpty( MyL5 ),
+	MyL5 = list_table:add_entry( ?MyThirdKey, [1,2,3], MyL4 ),
+	false = list_table:is_empty( MyL5 ),
 	list_table:display( "List hashtable: ", MyL5 ),
 
 
@@ -202,19 +202,19 @@ run_basic_tests() ->
 
 
 	test_facilities:display( "Looking up for ~s in hashtable: ~p",
-		   [ ?MyFirstKey, hashtable:lookupEntry( ?MyFirstKey, MyH5 ) ] ),
+		   [ ?MyFirstKey, hashtable:lookup_entry( ?MyFirstKey, MyH5 ) ] ),
 
-	{ value, "MyFirstValue" } = hashtable:lookupEntry( ?MyFirstKey, MyH5 ),
+	{ value, "MyFirstValue" } = hashtable:lookup_entry( ?MyFirstKey, MyH5 ),
 
 	test_facilities:display( "Removing that entry." ),
-	MyH6 = hashtable:removeEntry( ?MyFirstKey, MyH5 ),
-	false = hashtable:isEmpty( MyH6 ),
+	MyH6 = hashtable:remove_entry( ?MyFirstKey, MyH5 ),
+	false = hashtable:is_empty( MyH6 ),
 	test_facilities:display( "Looking up for ~s hashtable: ~p", [ ?MyFirstKey,
-		hashtable:lookupEntry( ?MyFirstKey, MyH6 ) ] ),
+		hashtable:lookup_entry( ?MyFirstKey, MyH6 ) ] ),
 
-	key_not_found = hashtable:lookupEntry( ?MyFirstKey, MyH6 ),
+	key_not_found = hashtable:lookup_entry( ?MyFirstKey, MyH6 ),
 
-	% removeEntry can also be used if the specified key is not here, will return
+	% remove_entry can also be used if the specified key is not here, will return
 	% an identical table.
 	%
 	hashtable:display( "Hashtable", MyH6 ),
@@ -223,23 +223,23 @@ run_basic_tests() ->
 
 	test_facilities:display( "Looking up for ~s in tracked hashtable: ~p",
 		[ ?MyFirstKey,
-		  tracked_hashtable:lookupEntry( ?MyFirstKey, MyTH5 ) ] ),
+		  tracked_hashtable:lookup_entry( ?MyFirstKey, MyTH5 ) ] ),
 
 	{ value, "MyFirstValue" } =
-		tracked_hashtable:lookupEntry( ?MyFirstKey, MyTH5 ),
+		tracked_hashtable:lookup_entry( ?MyFirstKey, MyTH5 ),
 
 	test_facilities:display( "Removing that entry." ),
-	MyTH6 = tracked_hashtable:removeEntry( ?MyFirstKey, MyTH5 ),
-	false = tracked_hashtable:isEmpty( MyTH6 ),
+	MyTH6 = tracked_hashtable:remove_entry( ?MyFirstKey, MyTH5 ),
+	false = tracked_hashtable:is_empty( MyTH6 ),
 
 	test_facilities:display( "Looking up for ~s in tracked hashtable: ~p",
 		[ ?MyFirstKey,
-		  tracked_hashtable:lookupEntry( ?MyFirstKey, MyTH6 ) ] ),
+		  tracked_hashtable:lookup_entry( ?MyFirstKey, MyTH6 ) ] ),
 
-	key_not_found = tracked_hashtable:lookupEntry( ?MyFirstKey,
+	key_not_found = tracked_hashtable:lookup_entry( ?MyFirstKey,
 															 MyTH6 ),
 
-	% removeEntry can also be used if the specified key is not here, will return
+	% remove_entry can also be used if the specified key is not here, will return
 	% an identical table.
 	%
 	tracked_hashtable:display( "Tracked hashtable", MyTH6 ),
@@ -247,20 +247,20 @@ run_basic_tests() ->
 
 
 	test_facilities:display( "Looking up for ~s in lazy hashtable: ~p",
-		[ ?MyFirstKey, lazy_hashtable:lookupEntry( ?MyFirstKey, MyLH5 ) ] ),
+		[ ?MyFirstKey, lazy_hashtable:lookup_entry( ?MyFirstKey, MyLH5 ) ] ),
 
-	{ value, "MyFirstValue" } = lazy_hashtable:lookupEntry( ?MyFirstKey,
+	{ value, "MyFirstValue" } = lazy_hashtable:lookup_entry( ?MyFirstKey,
 														   MyLH5 ),
 
 	test_facilities:display( "Removing that entry." ),
-	MyLH6 = lazy_hashtable:removeEntry( ?MyFirstKey, MyLH5 ),
-	false = lazy_hashtable:isEmpty( MyLH6 ),
+	MyLH6 = lazy_hashtable:remove_entry( ?MyFirstKey, MyLH5 ),
+	false = lazy_hashtable:is_empty( MyLH6 ),
 	test_facilities:display( "Looking up for ~s in lazy hashtable: ~p",
-		[ ?MyFirstKey, lazy_hashtable:lookupEntry( ?MyFirstKey, MyLH6 ) ] ),
+		[ ?MyFirstKey, lazy_hashtable:lookup_entry( ?MyFirstKey, MyLH6 ) ] ),
 
-	key_not_found = lazy_hashtable:lookupEntry( ?MyFirstKey, MyLH6 ),
+	key_not_found = lazy_hashtable:lookup_entry( ?MyFirstKey, MyLH6 ),
 
-	% removeEntry can also be used if the specified key is not here, will return
+	% remove_entry can also be used if the specified key is not here, will return
 	% an identical table.
 	%
 	lazy_hashtable:display( "Lazy hashtable", MyLH6 ),
@@ -268,36 +268,36 @@ run_basic_tests() ->
 
 
 	test_facilities:display( "Looking up for ~s in map hashtable: ~p",
-		[ ?MyFirstKey, map_hashtable:lookupEntry( ?MyFirstKey, MyMH5 ) ] ),
+		[ ?MyFirstKey, map_hashtable:lookup_entry( ?MyFirstKey, MyMH5 ) ] ),
 
-	{ value, "MyFirstValue" } = map_hashtable:lookupEntry( ?MyFirstKey,
+	{ value, "MyFirstValue" } = map_hashtable:lookup_entry( ?MyFirstKey,
 														   MyMH5 ),
 
 	test_facilities:display( "Removing that entry." ),
-	MyMH6 = map_hashtable:removeEntry( ?MyFirstKey, MyMH5 ),
-	false = map_hashtable:isEmpty( MyMH6 ),
+	MyMH6 = map_hashtable:remove_entry( ?MyFirstKey, MyMH5 ),
+	false = map_hashtable:is_empty( MyMH6 ),
 	test_facilities:display( "Looking up for ~s in map hashtable: ~p",
-		[ ?MyFirstKey, map_hashtable:lookupEntry( ?MyFirstKey, MyMH6 ) ] ),
+		[ ?MyFirstKey, map_hashtable:lookup_entry( ?MyFirstKey, MyMH6 ) ] ),
 
-	key_not_found = map_hashtable:lookupEntry( ?MyFirstKey, MyMH6 ),
+	key_not_found = map_hashtable:lookup_entry( ?MyFirstKey, MyMH6 ),
 
 
 	test_facilities:display( "Looking up for ~s in list hashtable: ~p",
-		[ ?MyFirstKey, list_table:lookupEntry( ?MyFirstKey, MyL5 ) ] ),
+		[ ?MyFirstKey, list_table:lookup_entry( ?MyFirstKey, MyL5 ) ] ),
 
-	{ value, "MyFirstValue" } = list_table:lookupEntry( ?MyFirstKey,
+	{ value, "MyFirstValue" } = list_table:lookup_entry( ?MyFirstKey,
 															MyL5 ),
 
 	test_facilities:display( "Removing that entry." ),
-	MyL6 = list_table:removeEntry( ?MyFirstKey, MyL5 ),
-	false = list_table:isEmpty( MyL6 )
+	MyL6 = list_table:remove_entry( ?MyFirstKey, MyL5 ),
+	false = list_table:is_empty( MyL6 )
 		,
 	test_facilities:display( "Looking up for ~s in list hashtable: ~p",
-		[ ?MyFirstKey, list_table:lookupEntry( ?MyFirstKey, MyL6 ) ] ),
+		[ ?MyFirstKey, list_table:lookup_entry( ?MyFirstKey, MyL6 ) ] ),
 
-	key_not_found = list_table:lookupEntry( ?MyFirstKey, MyL6 ),
+	key_not_found = list_table:lookup_entry( ?MyFirstKey, MyL6 ),
 
-	% removeEntry can also be used if the specified key is not here, will return
+	% remove_entry can also be used if the specified key is not here, will return
 	% an identical table.
 	%
 	list_table:display( "List hashtable", MyL6 ),
@@ -309,7 +309,7 @@ run_basic_tests() ->
 
 	test_facilities:display( "Testing double key registering." ),
 
-	MyH7 = hashtable:addEntry( ?MyThirdKey, anything, MyH6 ),
+	MyH7 = hashtable:add_entry( ?MyThirdKey, anything, MyH6 ),
 	hashtable:display( MyH7 ),
 
 	test_facilities:display( "Enumerating the hash table: ~p",
@@ -321,24 +321,24 @@ run_basic_tests() ->
 	true = list_utils:unordered_compare( [ ?MySecondKey, ?MyThirdKey ],
 										 hashtable:keys( MyH6 ) ),
 
-	MyH8 = hashtable:addEntries( [ {?MyThirdKey,3}, {?MyFourthKey,4} ], MyH7 ),
+	MyH8 = hashtable:add_entries( [ {?MyThirdKey,3}, {?MyFourthKey,4} ], MyH7 ),
 
 	MyH9 = hashtable:merge( MyH4, MyH8 ),
 	test_facilities:display( "Merged table: ~s, size of buckets is ~B.",
-		[ hashtable:toString( MyH9 ), hashtable:get_bucket_count( MyH9 ) ] ),
+		[ hashtable:to_string( MyH9 ), hashtable:get_bucket_count( MyH9 ) ] ),
 
 	MyH10 = hashtable:optimise( MyH9 ),
 	test_facilities:display( "The optimised table: ~s size of buckets is ~B.",
-		[ hashtable:toString( MyH10 ), hashtable:get_bucket_count( MyH10 ) ] ),
+		[ hashtable:to_string( MyH10 ), hashtable:get_bucket_count( MyH10 ) ] ),
 
 	Keys = [ ?MyFirstKey, ?MyThirdKey ],
 
 	test_facilities:display( "Listing the entries for keys in table ~p:"
-					"~n ~p", [ Keys, hashtable:selectEntries( Keys, MyH10 ) ] ),
+					"~n ~p", [ Keys, hashtable:select_entries( Keys, MyH10 ) ] ),
 
 
 
-	MyTH7 = tracked_hashtable:addEntry( ?MyThirdKey, anything, MyTH6 ),
+	MyTH7 = tracked_hashtable:add_entry( ?MyThirdKey, anything, MyTH6 ),
 	tracked_hashtable:display( MyTH7 ),
 
 	test_facilities:display( "Enumerating the tracked hash table: ~p.",
@@ -350,22 +350,22 @@ run_basic_tests() ->
 	true = list_utils:unordered_compare( [ ?MySecondKey,?MyThirdKey ],
 										 tracked_hashtable:keys( MyTH6 ) ),
 
-	MyTH8 = tracked_hashtable:addEntries(
+	MyTH8 = tracked_hashtable:add_entries(
 							  [ {?MyThirdKey,3}, {?MyFourthKey,4} ], MyTH7 ),
 
 	MyTH9 = tracked_hashtable:merge( MyTH4, MyTH8 ),
 
 	test_facilities:display( "Merged tracked table: ~s",
-				[ tracked_hashtable:toString( MyTH9 ) ] ),
+				[ tracked_hashtable:to_string( MyTH9 ) ] ),
 
 	Keys = [ ?MyFirstKey, ?MyThirdKey ],
 
 	test_facilities:display( "Listing the entries for keys ~p in tracked table:"
-		" ~n ~p", [ Keys, tracked_hashtable:selectEntries( Keys, MyTH9 ) ] ),
+		" ~n ~p", [ Keys, tracked_hashtable:select_entries( Keys, MyTH9 ) ] ),
 
 
 
-	MyLH7 = lazy_hashtable:addEntry( ?MyThirdKey, anything, MyLH6 ),
+	MyLH7 = lazy_hashtable:add_entry( ?MyThirdKey, anything, MyLH6 ),
 	lazy_hashtable:display( MyLH7 ),
 
 	test_facilities:display( "Enumerating the lazy table: ~p.",
@@ -377,23 +377,23 @@ run_basic_tests() ->
 	true = list_utils:unordered_compare( [ ?MySecondKey, ?MyThirdKey ],
 										 lazy_hashtable:keys( MyLH6 ) ),
 
-	MyLH8 = lazy_hashtable:addEntries(
+	MyLH8 = lazy_hashtable:add_entries(
 			[ {?MyThirdKey,3}, {?MyFourthKey,4} ], MyLH7 ),
 
 	MyLH9 = lazy_hashtable:merge( MyLH4, MyLH8 ),
 
 	test_facilities:display( "Merged lazy table: ~s",
-			[ lazy_hashtable:toString( MyLH9 ) ] ),
+			[ lazy_hashtable:to_string( MyLH9 ) ] ),
 
 	Keys = [ ?MyFirstKey, ?MyThirdKey ],
 
 	test_facilities:display( "Listing the entries for keys in lazy table ~p:"
-		"~n ~p", [ Keys, lazy_hashtable:selectEntries( Keys, MyLH9 ) ] ),
+		"~n ~p", [ Keys, lazy_hashtable:select_entries( Keys, MyLH9 ) ] ),
 
 
 
 
-	MyMH7 = map_hashtable:addEntry( ?MyThirdKey, anything, MyMH6 ),
+	MyMH7 = map_hashtable:add_entry( ?MyThirdKey, anything, MyMH6 ),
 	map_hashtable:display( MyMH7 ),
 
 	test_facilities:display( "Enumerating the map table: ~p.",
@@ -405,23 +405,23 @@ run_basic_tests() ->
 	true = list_utils:unordered_compare( [ ?MySecondKey, ?MyThirdKey ],
 										 map_hashtable:keys( MyMH6 ) ),
 
-	MyMH8 = map_hashtable:addEntries(
+	MyMH8 = map_hashtable:add_entries(
 			[ {?MyThirdKey,3}, {?MyFourthKey,4} ], MyMH7 ),
 
 	MyMH9 = map_hashtable:merge( MyMH4, MyMH8 ),
 
 
 	test_facilities:display( "Merged map table: ~s",
-			[ map_hashtable:toString( MyMH9 ) ] ),
+			[ map_hashtable:to_string( MyMH9 ) ] ),
 
 	Keys = [ ?MyFirstKey, ?MyThirdKey ],
 
 	test_facilities:display( "Listing the entries for keys in map table ~p:"
-		"~n ~p", [ Keys, map_hashtable:selectEntries( Keys, MyMH9 ) ] ),
+		"~n ~p", [ Keys, map_hashtable:select_entries( Keys, MyMH9 ) ] ),
 
 
 
-	MyL7 = list_table:addEntry( ?MyThirdKey, anything, MyL6 ),
+	MyL7 = list_table:add_entry( ?MyThirdKey, anything, MyL6 ),
 	list_table:display( MyL7 ),
 
 	test_facilities:display( "Enumerating the list table: ~p.",
@@ -433,19 +433,19 @@ run_basic_tests() ->
 	true = list_utils:unordered_compare( [ ?MySecondKey, ?MyThirdKey ],
 										 list_table:keys( MyL6 ) ),
 
-	MyL8 = list_table:addEntries(
+	MyL8 = list_table:add_entries(
 			[ {?MyThirdKey,3}, {?MyFourthKey,4} ], MyL7 ),
 
 	MyL9 = list_table:merge( MyL4, MyL8 ),
 
 
 	test_facilities:display( "Merged list table: ~s",
-			[ list_table:toString( MyL9 ) ] ),
+			[ list_table:to_string( MyL9 ) ] ),
 
 	Keys = [ ?MyFirstKey, ?MyThirdKey ],
 
 	test_facilities:display( "Listing the entries for keys in list table ~p:"
-		"~n ~p", [ Keys, list_table:selectEntries( Keys, MyL9 ) ] ).
+		"~n ~p", [ Keys, list_table:select_entries( Keys, MyL9 ) ] ).
 
 
 
@@ -521,7 +521,7 @@ feed_table( Table, Module, Pairs ) ->
 	Start = time_utils:get_precise_timestamp(),
 
 	NewTables = [ lists:foldl( fun( { K, V }, T ) ->
-									Module:addEntry( K, V, T )
+									Module:add_entry( K, V, T )
 							   end,
 							   _Acc0=Table,
 							   _List=Pairs ) || _C <- lists:seq( 1, Count ) ],
@@ -549,7 +549,7 @@ update_table( Table, Module, Pairs ) ->
 	Start = time_utils:get_precise_timestamp(),
 
 	NewTables = [ lists:foldl( fun( { K, V }, T ) ->
-									Module:addEntry( K, V, T )
+									Module:add_entry( K, V, T )
 							   end,
 							   _Acc0=Table,
 							   _List=Pairs ) || _C <- lists:seq( 1, Count ) ],
@@ -572,14 +572,14 @@ update_table( Table, Module, Pairs ) ->
 benchmark_look_ups( Table, Module, Pairs ) ->
 
 	%test_facilities:display( "Benchmarking ~s on:~n~s",
-	%		   [ Module, Module:toString( Table ) ] ),
+	%		   [ Module, Module:to_string( Table ) ] ),
 
 	Count = 100 * ?run_count,
 
 	Start = time_utils:get_precise_timestamp(),
 
 	_Values = [ lists:foldl( fun( { K, V }, T ) ->
-									 V = Module:getValue( K, T ),
+									 V = Module:get_value( K, T ),
 									 T
 							   end,
 							   _Acc0=Table,
@@ -708,7 +708,7 @@ run_performance_tests() ->
 	%test_facilities:display( "Checking content: ~s",
 	%    [ text_utils:strings_to_string(
 	%									  [ io_lib:format( "for ~s: ~s",
-	%												 [ M, M:toString( T ) ] )
+	%												 [ M, M:to_string( T ) ] )
 	%			   || { M, T, _Timing } <- FinalTablesWithTimings ] ) ] ),
 
 	test_facilities:display( "~nChecking hashes: ~s",
@@ -719,7 +719,7 @@ run_performance_tests() ->
 	test_facilities:display( "~nChecking final states: ok" ),
 
 	%test_facilities:display( "Reference: ~s",
-	%                         [ hashtable:toString( First ) ] ),
+	%                         [ hashtable:to_string( First ) ] ),
 
 
 	[ FirstList= OtherListedTable || { _, OtherListedTable } <- Others ].

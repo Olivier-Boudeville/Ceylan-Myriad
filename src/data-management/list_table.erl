@@ -55,21 +55,21 @@
 
 % The standard table API:
 %
--export([ new/0, new/1, addEntry/3, addEntries/2,
-		  removeEntry/2, removeEntries/2,
-		  lookupEntry/2, hasEntry/2,
-		  extractEntry/2, extractEntryWithDefaults/3,
-		  getValue/2, getValueWithDefaults/3, getValues/2, getAllValues/2,
-		  addToEntry/3, subtractFromEntry/3, toggleEntry/2,
-		  appendToExistingEntry/3, appendListToExistingEntry/3,
-		  appendToEntry/3, appendListToEntry/3,
-		  deleteFromEntry/3, popFromEntry/2,
-		  enumerate/1, selectEntries/2, keys/1, values/1,
-		  isEmpty/1, size/1,
-		  mapOnEntries/2, mapOnValues/2,
-		  foldOnEntries/3,
+-export([ new/0, new/1, add_entry/3, add_entries/2,
+		  remove_entry/2, remove_entries/2,
+		  lookup_entry/2, has_entry/2,
+		  extract_entry/2, extract_entry_with_defaults/3,
+		  get_value/2, get_value_with_defaults/3, get_values/2, get_all_values/2,
+		  add_to_entry/3, subtract_from_entry/3, toggle_entry/2,
+		  append_to_existing_entry/3, append_list_to_existing_entry/3,
+		  append_to_entry/3, append_list_to_entry/3,
+		  delete_from_entry/3, pop_from_entry/2,
+		  enumerate/1, select_entries/2, keys/1, values/1,
+		  is_empty/1, size/1,
+		  map_on_entries/2, map_on_values/2,
+		  fold_on_entries/3,
 		  merge/2, merge_in_key/3, merge_in_keys/2,
-		  optimise/1, toString/1, toString/2, display/1, display/2 ]).
+		  optimise/1, to_string/1, to_string/2, display/1, display/2 ]).
 
 
 
@@ -128,7 +128,7 @@ new( InitialEntries ) when is_list( InitialEntries ) ->
 	% only contains pairs and, more importantly, that there is no key
 	% duplication in our (then) inner list:
 	%
-	addEntries( InitialEntries, [] ).
+	add_entries( InitialEntries, [] ).
 
 
 
@@ -137,8 +137,8 @@ new( InitialEntries ) when is_list( InitialEntries ) ->
 % If there is already a pair with this key, then its previous value will be
 % replaced by the specified one.
 %
--spec addEntry( key(), value(), list_table() ) -> list_table().
-addEntry( Key, Value, Table ) ->
+-spec add_entry( key(), value(), list_table() ) -> list_table().
+add_entry( Key, Value, Table ) ->
 	lists:keystore( Key, _N=1, Table, _NewTuple={ Key, Value } ).
 
 
@@ -148,12 +148,12 @@ addEntry( Key, Value, Table ) ->
 % If there is already a pair with this key, then its previous value will be
 % replaced by the specified one.
 %
--spec addEntries( entries(), list_table() ) -> list_table().
-addEntries( _EntryList=[], Table ) ->
+-spec add_entries( entries(), list_table() ) -> list_table().
+add_entries( _EntryList=[], Table ) ->
 	Table;
 
-addEntries( [ { EntryName, EntryValue } | Rest ], Table ) ->
-	addEntries( Rest, addEntry( EntryName, EntryValue, Table ) ).
+add_entries( [ { EntryName, EntryValue } | Rest ], Table ) ->
+	add_entries( Rest, add_entry( EntryName, EntryValue, Table ) ).
 
 
 
@@ -164,8 +164,8 @@ addEntries( [ { EntryName, EntryValue } | Rest ], Table ) ->
 %
 % Returns an updated table.
 %
--spec removeEntry( key(), list_table() ) -> list_table().
-removeEntry( Key, Table ) ->
+-spec remove_entry( key(), list_table() ) -> list_table().
+remove_entry( Key, Table ) ->
 	lists:keydelete( Key, _N=1, Table ).
 
 
@@ -177,8 +177,8 @@ removeEntry( Key, Table ) ->
 %
 % Returns an updated table.
 %
--spec removeEntries( [ key() ], list_table() ) -> list_table().
-removeEntries( Keys, Table ) ->
+-spec remove_entries( [ key() ], list_table() ) -> list_table().
+remove_entries( Keys, Table ) ->
 	lists:foldl( fun( K, AccTable ) ->
 					lists:keydelete( K, _N=1, AccTable )
 				 end,
@@ -192,9 +192,9 @@ removeEntries( Keys, Table ) ->
 % Returns either 'key_not_found' if no such key is registered in the table, or {
 % value, Value }, with Value being the value associated to the specified key.
 %
--spec lookupEntry( key(), list_table() ) ->
+-spec lookup_entry( key(), list_table() ) ->
 				 'key_not_found' | { 'value', value() }.
-lookupEntry( Key, Table ) ->
+lookup_entry( Key, Table ) ->
 
 	case lists:keyfind( Key, _N=1, Table ) of
 
@@ -209,8 +209,8 @@ lookupEntry( Key, Table ) ->
 
 
 % Tells whether the specified key exists in the table: returns true or false.
--spec hasEntry( key(), list_table() ) -> boolean().
-hasEntry( Key, Table ) ->
+-spec has_entry( key(), list_table() ) -> boolean().
+has_entry( Key, Table ) ->
 	lists:keymember( Key, _N=1, Table ).
 
 
@@ -221,8 +221,8 @@ hasEntry( Key, Table ) ->
 % The key/value pair is expected to exist already, otherwise an exception is
 % thrown.
 %
--spec getValue( key(), list_table() ) -> value().
-getValue( Key, Table ) ->
+-spec get_value( key(), list_table() ) -> value().
+get_value( Key, Table ) ->
 
 	case lists:keyfind( Key, _N=1, Table ) of
 
@@ -244,8 +244,8 @@ getValue( Key, Table ) ->
 % The key/value pair is expected to exist already in the specified table,
 % otherwise an exception is thrown.
 %
--spec extractEntry( key(), list_table() ) -> { value(), list_table() }.
-extractEntry( Key, Table ) ->
+-spec extract_entry( key(), list_table() ) -> { value(), list_table() }.
+extract_entry( Key, Table ) ->
 
 	case lists:keytake( Key, _N=1, Table ) of
 
@@ -265,14 +265,14 @@ extractEntry( Key, Table ) ->
 % If no such key is available, returns the specified default value and the
 % original table.
 %
--spec extractEntryWithDefaults( key(), value(), list_table() ) ->
+-spec extract_entry_with_defaults( key(), value(), list_table() ) ->
 									  { value(), list_table() }.
-extractEntryWithDefaults( Key, DefaultValue, Table ) ->
+extract_entry_with_defaults( Key, DefaultValue, Table ) ->
 
-	case hasEntry( Key, Table ) of
+	case has_entry( Key, Table ) of
 
 		true ->
-			extractEntry( Key, Table );
+			extract_entry( Key, Table );
 
 		false ->
 			{ DefaultValue, Table }
@@ -284,8 +284,8 @@ extractEntryWithDefaults( Key, DefaultValue, Table ) ->
 % Looks for specified entry in specified table and, if found, returns the
 % associated value; otherwise returns the specified default value.
 %
--spec getValueWithDefaults( key(), value(), list_table() ) -> value().
-getValueWithDefaults( Key, DefaultValue, Table ) ->
+-spec get_value_with_defaults( key(), value(), list_table() ) -> value().
+get_value_with_defaults( Key, DefaultValue, Table ) ->
 
 	case lists:keyfind( Key, _N=1, Table ) of
 
@@ -305,17 +305,17 @@ getValueWithDefaults( Key, DefaultValue, Table ) ->
 % The key/value pairs are expected to exist already, otherwise an exception is
 % thrown.
 %
-% Ex: [ Color=red, Age=23, Mass=51 ] = list_table:getValues( [ color, age, mass
+% Ex: [ Color=red, Age=23, Mass=51 ] = list_table:get_values( [ color, age, mass
 % ], [ { color, red }, { mass, 51 }, { age, 23 } ] )
 %
--spec getValues( [ key() ], list_table() ) -> [ value() ].
-getValues( Keys, Table ) ->
+-spec get_values( [ key() ], list_table() ) -> [ value() ].
+get_values( Keys, Table ) ->
 
 	{ RevValues, _FinalTable } = lists:foldl(
 
 				fun( _Elem=Key, _Acc={ Values, AccTable } ) ->
 
-					   { Value, ShrunkTable } = extractEntry( Key, AccTable ),
+					   { Value, ShrunkTable } = extract_entry( Key, AccTable ),
 					   { [ Value | Values ], ShrunkTable }
 
 				end,
@@ -333,16 +333,16 @@ getValues( Keys, Table ) ->
 % The key/value pairs are expected to exist already, otherwise an exception is
 % thrown.
 %
-% Ex: [ Color=red, Age=23, Mass=51 ] = list_table:getAllValues( [ color, age,
+% Ex: [ Color=red, Age=23, Mass=51 ] = list_table:get_all_values( [ color, age,
 % mass ], [ { color, red }, { mass, 51 }, { age, 23 } ] )
 %
--spec getAllValues( [ key() ], list_table() ) -> [ value() ].
-getAllValues( Keys, Table ) ->
+-spec get_all_values( [ key() ], list_table() ) -> [ value() ].
+get_all_values( Keys, Table ) ->
 
 	case lists:foldl(
 		   fun( _Elem=Key, _Acc={ Values, AccTable } ) ->
 
-				   { Value, ShrunkTable } = extractEntry( Key, AccTable ),
+				   { Value, ShrunkTable } = extract_entry( Key, AccTable ),
 				   { [ Value | Values ], ShrunkTable }
 
 		   end,
@@ -373,9 +373,9 @@ getAllValues( Keys, Table ) ->
 %
 % One may request the returned table to be optimised after this call.
 %
--spec mapOnEntries( fun( ( entry() ) -> entry() ), list_table() ) ->
+-spec map_on_entries( fun( ( entry() ) -> entry() ), list_table() ) ->
 						  list_table().
-mapOnEntries( Fun, Table ) ->
+map_on_entries( Fun, Table ) ->
 	[ Fun( E ) || E <- Table ].
 
 
@@ -391,9 +391,9 @@ mapOnEntries( Fun, Table ) ->
 % Note: the keys are left as are, hence the structure of the table does not
 % change.
 %
--spec mapOnValues( fun( ( value() ) -> value() ), list_table() ) ->
+-spec map_on_values( fun( ( value() ) -> value() ), list_table() ) ->
 						 list_table().
-mapOnValues( Fun, Table ) ->
+map_on_values( Fun, Table ) ->
 	lists:keymap( Fun, _N=2, Table ).
 
 
@@ -404,11 +404,11 @@ mapOnValues( Fun, Table ) ->
 %
 % Returns the final accumulator.
 %
--spec foldOnEntries( fun( ( entry(), basic_utils:accumulator() )
+-spec fold_on_entries( fun( ( entry(), basic_utils:accumulator() )
 						  -> basic_utils:accumulator() ),
 					 basic_utils:accumulator(), list_table() ) ->
 						   basic_utils:accumulator().
-foldOnEntries( Fun, InitialAcc, Table ) ->
+fold_on_entries( Fun, InitialAcc, Table ) ->
 	lists:foldl( Fun, InitialAcc, Table ).
 
 
@@ -419,8 +419,8 @@ foldOnEntries( Fun, InitialAcc, Table ) ->
 % An exception is thrown if the key does not exist, a bad arithm is triggered if
 % no addition can be performed on the associated value.
 %
--spec addToEntry( key(), number(), list_table() ) -> list_table().
-addToEntry( Key, Number, Table ) ->
+-spec add_to_entry( key(), number(), list_table() ) -> list_table().
+add_to_entry( Key, Number, Table ) ->
 
 	case lists:keytake( Key, _N=1, Table ) of
 
@@ -441,9 +441,9 @@ addToEntry( Key, Number, Table ) ->
 % An exception is thrown if the key does not exist, a bad arithm is triggered if
 % no subtraction can be performed on the associated value.
 %
--spec subtractFromEntry( key(), number(), list_table() ) ->
+-spec subtract_from_entry( key(), number(), list_table() ) ->
 							   list_table().
-subtractFromEntry( Key, Number, Table ) ->
+subtract_from_entry( Key, Number, Table ) ->
 
 	case lists:keytake( Key, _N=1, Table ) of
 
@@ -464,8 +464,8 @@ subtractFromEntry( Key, Number, Table ) ->
 % An exception is thrown if the key does not exist or if its associated value is
 % not a boolean.
 %
--spec toggleEntry( key(), list_table() ) -> list_table().
-toggleEntry( Key, Table ) ->
+-spec toggle_entry( key(), list_table() ) -> list_table().
+toggle_entry( Key, Table ) ->
 
 	case lists:keytake( Key, _N=1, Table ) of
 
@@ -518,12 +518,12 @@ merge_in_key( _ReferenceKey, _AlternateKeys=[], Table ) ->
 	Table;
 
 merge_in_key( ReferenceKey, _AlternateKeys=[ K | T ], Table ) ->
-	case hasEntry( K, Table ) of
+	case has_entry( K, Table ) of
 
 		true ->
-			{ ValueList, ShrunkTable } = extractEntry( K, Table ),
+			{ ValueList, ShrunkTable } = extract_entry( K, Table ),
 			NewTable =
-				appendListToEntry( ReferenceKey, ValueList, ShrunkTable ),
+				append_list_to_entry( ReferenceKey, ValueList, ShrunkTable ),
 			merge_in_key( ReferenceKey, T, NewTable );
 
 		false ->
@@ -557,9 +557,9 @@ merge_in_keys( _KeyAssoc=[ { K, AltKeys } | T ], Table ) ->
 % Note: no check is performed to ensure the value is a list indeed, and the
 % '[|]' operation will not complain if not.
 %
--spec appendToExistingEntry( key(), term(), list_table() ) ->
+-spec append_to_existing_entry( key(), term(), list_table() ) ->
 								   list_table().
-appendToExistingEntry( Key, Element, Table ) ->
+append_to_existing_entry( Key, Element, Table ) ->
 
 	case lists:keytake( Key, _N=1, Table ) of
 
@@ -578,9 +578,9 @@ appendToExistingEntry( Key, Element, Table ) ->
 %
 % An exception is thrown if the key does not exist.
 %
--spec appendListToExistingEntry( key(), [ term() ], list_table() ) ->
+-spec append_list_to_existing_entry( key(), [ term() ], list_table() ) ->
 								   list_table().
-appendListToExistingEntry( Key, Elements, Table ) ->
+append_list_to_existing_entry( Key, Elements, Table ) ->
 
 	case lists:keytake( Key, _N=1, Table ) of
 
@@ -603,8 +603,8 @@ appendListToExistingEntry( Key, Elements, Table ) ->
 % Note: no check is performed to ensure the value is a list indeed, and the
 % '[|]' operation will not complain if not.
 %
--spec appendToEntry( key(), term(), list_table() ) -> list_table().
-appendToEntry( Key, Element, Table ) ->
+-spec append_to_entry( key(), term(), list_table() ) -> list_table().
+append_to_entry( Key, Element, Table ) ->
 
 	case lists:keytake( Key, _N=1, Table ) of
 
@@ -624,9 +624,9 @@ appendToEntry( Key, Element, Table ) ->
 % If that key does not already exist, it will be created and associated to a
 % list containing only the specified elements.
 %
--spec appendListToEntry( key(), [ term() ], list_table() ) ->
+-spec append_list_to_entry( key(), [ term() ], list_table() ) ->
 							   list_table().
-appendListToEntry( Key, Elements, Table ) ->
+append_list_to_entry( Key, Elements, Table ) ->
 
 	case lists:keytake( Key, _N=1, Table ) of
 
@@ -647,8 +647,8 @@ appendListToEntry( Key, Elements, Table ) ->
 %
 % If the element is not in the specified list, the list will not be modified.
 %
--spec deleteFromEntry( key(), term(), list_table() ) -> list_table().
-deleteFromEntry( Key, Element, Table ) ->
+-spec delete_from_entry( key(), term(), list_table() ) -> list_table().
+delete_from_entry( Key, Element, Table ) ->
 
 	case lists:keytake( Key, _N=1, Table ) of
 
@@ -665,8 +665,8 @@ deleteFromEntry( Key, Element, Table ) ->
 % Pops the head of the value (supposed to be a list) associated to specified
 % key, and returns a pair made of the popped head and of the new table.
 %
--spec popFromEntry( key(), list_table() ) -> { term(), list_table() }.
-popFromEntry( Key, Table ) ->
+-spec pop_from_entry( key(), list_table() ) -> { term(), list_table() }.
+pop_from_entry( Key, Table ) ->
 
 	case lists:keytake( Key, _N=1, Table ) of
 
@@ -695,14 +695,14 @@ enumerate( Table ) ->
 % Returns a list of key/value pairs corresponding to the list of specified keys,
 % or throws a badmatch is at least one key is not found.
 %
--spec selectEntries( [ key() ], list_table() ) -> entries().
-selectEntries( Keys, Table ) ->
-	selectEntries( Keys, Table, _Acc=[] ).
+-spec select_entries( [ key() ], list_table() ) -> entries().
+select_entries( Keys, Table ) ->
+	select_entries( Keys, Table, _Acc=[] ).
 
-selectEntries( _Keys=[], _Table, Acc ) ->
+select_entries( _Keys=[], _Table, Acc ) ->
 	Acc;
 
-selectEntries( _Keys=[ K | T ], Table, Acc ) ->
+select_entries( _Keys=[ K | T ], Table, Acc ) ->
 
 	case lists:keyfind( K, _N=1, Table ) of
 
@@ -712,7 +712,7 @@ selectEntries( _Keys=[ K | T ], Table, Acc ) ->
 
 		%{ K, V } ->
 		Entry ->
-			selectEntries( T, Table, [ Entry | Acc ] )
+			select_entries( T, Table, [ Entry | Acc ] )
 
 	end.
 
@@ -736,11 +736,11 @@ values( Table ) ->
 
 
 % Returns whether the specified table is empty (not storing any key/value pair).
--spec isEmpty( list_table() ) -> boolean().
-isEmpty( _Table=[] ) ->
+-spec is_empty( list_table() ) -> boolean().
+is_empty( _Table=[] ) ->
 	true;
 
-isEmpty( _Table ) ->
+is_empty( _Table ) ->
 	false.
 
 
@@ -776,17 +776,17 @@ optimise( Table ) ->
 
 
 % Returns a textual description of the specified table.
--spec toString( list_table() ) -> string().
-toString( Table ) ->
-	toString( Table, user_friendly ).
+-spec to_string( list_table() ) -> string().
+to_string( Table ) ->
+	to_string( Table, user_friendly ).
 
 
 
 % Returned string is either quite raw (if using 'internal') or a bit more
 % elaborate (if using 'user_friendly').
 %
--spec toString( list_table(), 'internal' | 'user_friendly' ) -> string().
-toString( Table, _Displaytype ) ->
+-spec to_string( list_table(), 'internal' | 'user_friendly' ) -> string().
+to_string( Table, _Displaytype ) ->
 
 	case enumerate( Table ) of
 
@@ -811,7 +811,7 @@ toString( Table, _Displaytype ) ->
 % Displays the specified table on the standard output.
 -spec display( list_table() ) -> void().
 display( Table ) ->
-	io:format( "~s~n", [ toString( Table ) ] ).
+	io:format( "~s~n", [ to_string( Table ) ] ).
 
 
 
@@ -820,4 +820,4 @@ display( Table ) ->
 %
 -spec display( string(), list_table() ) -> void().
 display( Title, Table ) ->
-	io:format( "~s:~n~s~n", [ Title, toString( Table ) ] ).
+	io:format( "~s:~n~s~n", [ Title, to_string( Table ) ] ).

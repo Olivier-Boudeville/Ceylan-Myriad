@@ -522,7 +522,7 @@ gui_main_loop( _State=#gui_state{ main_frame=_MainFrame,
 	%%		%io:format( "Drawing ~B points from ~w.~n", [ length( NewPoints ),
 	%%		%											 SendingSolverPid ] ),
 
-	%%		{ Color, LastPoint } = table:getValue( SendingSolverPid,
+	%%		{ Color, LastPoint } = table:get_value( SendingSolverPid,
 	%%											   SolverTable ),
 
 	%%		NewLastPoint = draw_lines( Canvas, [ LastPoint | NewPoints ],
@@ -530,7 +530,7 @@ gui_main_loop( _State=#gui_state{ main_frame=_MainFrame,
 
 	%%		gui_canvas:blit( Canvas ),
 
-	%%		NewSolverTable = table:addEntry( _K=SendingSolverPid,
+	%%		NewSolverTable = table:add_entry( _K=SendingSolverPid,
 	%%							_V={ Color, NewLastPoint }, SolverTable ),
 
 	%%		State#gui_state{ solver_table=NewSolverTable };
@@ -541,7 +541,7 @@ gui_main_loop( _State=#gui_state{ main_frame=_MainFrame,
 	%%		io:format( " - drawing ~p (from ~p)~n",
 	%%				   [ NewPoint, SendingSolverPid ] ),
 
-	%%		{ Color, LastPoint } = table:getValue( SendingSolverPid,
+	%%		{ Color, LastPoint } = table:get_value( SendingSolverPid,
 	%%											   SolverTable ),
 
 	%%		SourceDrawPoint = project_2D( LastPoint, Screen ),
@@ -553,7 +553,7 @@ gui_main_loop( _State=#gui_state{ main_frame=_MainFrame,
 
 	%%		gui_canvas:blit( Canvas ),
 
-	%%		NewSolverTable = table:addEntry( _K=SendingSolverPid,
+	%%		NewSolverTable = table:add_entry( _K=SendingSolverPid,
 	%%							_V={ Color, NewPoint }, SolverTable ),
 
 	%%		State#gui_state{ solver_table=NewSolverTable };

@@ -459,7 +459,7 @@ set( SettingEntries ) ->
 
 	UIState = #term_ui_state{ settings=SettingTable } = get_state(),
 
-	NewSettingTable = ?ui_table:addEntries( SettingEntries, SettingTable ),
+	NewSettingTable = ?ui_table:add_entries( SettingEntries, SettingTable ),
 
 	set_state( UIState#term_ui_state{ settings=NewSettingTable } ).
 
@@ -471,7 +471,7 @@ unset( SettingKeys ) when is_list( SettingKeys ) ->
 
 	UIState = #term_ui_state{ settings=SettingTable } = get_state(),
 
-	NewSettingTable = ?ui_table:removeEntries( SettingKeys, SettingTable ),
+	NewSettingTable = ?ui_table:remove_entries( SettingKeys, SettingTable ),
 
 	set_state( UIState#term_ui_state{ settings=NewSettingTable } );
 
@@ -479,7 +479,7 @@ unset( SettingKey ) ->
 
 	UIState = #term_ui_state{ settings=SettingTable } = get_state(),
 
-	NewSettingTable = ?ui_table:removeEntry( SettingKey, SettingTable ),
+	NewSettingTable = ?ui_table:remove_entry( SettingKey, SettingTable ),
 
 	set_state( UIState#term_ui_state{ settings=NewSettingTable } ).
 
@@ -569,7 +569,7 @@ display_error( Text ) ->
 
 	%trace_utils:debug_fmt( "Dialog path: '~s'.", [ ToolPath ] ),
 
-	ErrorSettingTable = ?ui_table:addEntry( 'title', ?red"Error"?normal,
+	ErrorSettingTable = ?ui_table:add_entry( 'title', ?red"Error"?normal,
 											SettingTable ),
 
 	{ SettingString, SuffixString } = get_dialog_settings( ErrorSettingTable ),
@@ -1072,7 +1072,7 @@ get_state() ->
 				  { text_utils:ustring(), text_utils:ustring() }.
 get_dialog_settings( SettingTable ) ->
 
-	TitleOpt = case ?ui_table:getValueWithDefaults( 'title',
+	TitleOpt = case ?ui_table:get_value_with_defaults( 'title',
 								   _Default=undefined, SettingTable ) of
 
 		undefined ->
@@ -1084,7 +1084,7 @@ get_dialog_settings( SettingTable ) ->
 
 	end,
 
-	BacktitleOpt = case ?ui_table:getValueWithDefaults( 'backtitle',
+	BacktitleOpt = case ?ui_table:get_value_with_defaults( 'backtitle',
 								   _Default=undefined, SettingTable ) of
 
 		undefined ->
@@ -1103,8 +1103,8 @@ get_dialog_settings( SettingTable ) ->
 	% Dialogs look a lot better if not using the maximum dimensions but
 	% requesting auto sizing:
 
-	%Height = ?ui_table:getValue( 'max_height', SettingTable ),
-	%Width = ?ui_table:getValue( 'max_width', SettingTable ),
+	%Height = ?ui_table:get_value( 'max_height', SettingTable ),
+	%Width = ?ui_table:get_value( 'max_width', SettingTable ),
 
 	% Auto:
 	Height = 0,
@@ -1156,7 +1156,7 @@ set_setting( SettingKey, SettingValue ) ->
 set_setting( SettingKey, SettingValue,
 			 UIState=#term_ui_state{ settings=SettingTable } ) ->
 
-	NewSettingTable = ?ui_table:addEntry( SettingKey, SettingValue,
+	NewSettingTable = ?ui_table:add_entry( SettingKey, SettingValue,
 										  SettingTable ),
 
 	UIState#term_ui_state{ settings=NewSettingTable }.
@@ -1176,7 +1176,7 @@ set_settings( SettingEntries ) ->
 set_settings( SettingEntries,
 			  UIState=#term_ui_state{ settings=SettingTable } ) ->
 
-	NewSettingTable = ?ui_table:addEntries( SettingEntries, SettingTable ),
+	NewSettingTable = ?ui_table:add_entries( SettingEntries, SettingTable ),
 
 	UIState#term_ui_state{ settings=NewSettingTable }.
 
@@ -1195,7 +1195,7 @@ unset_setting( SettingKey ) ->
 unset_setting( SettingKey,
 			   UIState=#term_ui_state{ settings=SettingTable } ) ->
 
-	NewSettingTable = ?ui_table:addEntry( SettingKey, _SettingValue=undefined,
+	NewSettingTable = ?ui_table:add_entry( SettingKey, _SettingValue=undefined,
 										  SettingTable ),
 
 	UIState#term_ui_state{ settings=NewSettingTable }.
@@ -1216,7 +1216,7 @@ get_setting( SettingKey ) ->
 -spec get_setting( ui_setting_key(), ui_state() ) ->
 						 maybe( ui_setting_value() ).
 get_setting( SettingKey, #term_ui_state{ settings=SettingTable } ) ->
-	?ui_table:getValueWithDefaults( SettingKey, _Default=undefined,
+	?ui_table:get_value_with_defaults( SettingKey, _Default=undefined,
 									SettingTable ).
 
 

@@ -262,7 +262,7 @@
 % Implementation notes:
 %
 % The use of lists:mapfoldl/3 should preferably be replaced by
-% ?table:mapOnValues/2.
+% ?table:map_on_values/2.
 
 
 % Transformation section.
@@ -818,7 +818,7 @@ transform_type( _TypeDef={ 'user_type', Line, TypeName, TypeVars },
 		_ ->
 
 			% Returning the new type information:
-			case ?table:lookupEntry( { TypeName, TypeArity },
+			case ?table:lookup_entry( { TypeName, TypeArity },
 									 LocalTransformTable ) of
 
 				% Module *and* type overridden:
@@ -837,7 +837,7 @@ transform_type( _TypeDef={ 'user_type', Line, TypeName, TypeVars },
 				key_not_found ->
 
 					% Maybe a wildcard arity was defined then?
-					case ?table:lookupEntry( { TypeName, _AnyArity='_' },
+					case ?table:lookup_entry( { TypeName, _AnyArity='_' },
 											 LocalTransformTable ) of
 
 						{ value, E={ _NewModuleName, _NewTypeName } } ->
@@ -909,7 +909,7 @@ transform_type( _TypeDef={ 'remote_type', Line,
 
 		_ ->
 
-			case ?table:lookupEntry( { ModuleName, TypeName, TypeArity },
+			case ?table:lookup_entry( { ModuleName, TypeName, TypeArity },
 									 RemoteTransformTable ) of
 
 				 % Module *and* type overridden:
@@ -930,7 +930,7 @@ transform_type( _TypeDef={ 'remote_type', Line,
 
 					AnyArity = '_',
 
-					case ?table:lookupEntry( { ModuleName, TypeName, AnyArity },
+					case ?table:lookup_entry( { ModuleName, TypeName, AnyArity },
 											 RemoteTransformTable ) of
 
 						{ value, E={ _NewModuleName, _NewTypeName } } ->
@@ -950,7 +950,7 @@ transform_type( _TypeDef={ 'remote_type', Line,
 						key_not_found ->
 
 							% Nope; maybe a wildcard type (and arity) then?
-							case ?table:lookupEntry(
+							case ?table:lookup_entry(
 									{ ModuleName, _AnyType='_', AnyArity },
 									RemoteTransformTable ) of
 

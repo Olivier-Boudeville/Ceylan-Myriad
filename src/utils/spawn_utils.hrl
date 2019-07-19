@@ -45,9 +45,15 @@
 
   % In development mode then:
 
-  -define( myriad_spawn_info, "proc_lib spawn" ).
-  -define( myriad_spawn, proc_lib:spawn ).
-  -define( myriad_spawn_link, proc_lib:spawn_link ).
+  % Currently disabled as leading to way too verbose error reports (ex: detailed
+  % state of all neighbours):
 
+  %-define( myriad_spawn_info, "proc_lib spawn" ).
+  %-define( myriad_spawn, proc_lib:spawn ).
+  %-define( myriad_spawn_link, proc_lib:spawn_link ).
+
+  -define( myriad_spawn_info, "basic spawn" ).
+  -define( myriad_spawn, spawn ).
+  -define( myriad_spawn_link, spawn_link ).
 
 -endif. % exec_target_is_production

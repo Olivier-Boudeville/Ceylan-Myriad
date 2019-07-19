@@ -199,7 +199,7 @@ set( SettingEntries ) ->
 
 	UIState = #text_ui_state{ settings=SettingTable } = get_state(),
 
-	NewSettingTable = ?ui_table:addEntries( SettingEntries, SettingTable ),
+	NewSettingTable = ?ui_table:add_entries( SettingEntries, SettingTable ),
 
 	set_state( UIState#text_ui_state{ settings=NewSettingTable } ).
 
@@ -212,7 +212,7 @@ unset( SettingKeys ) when is_list( SettingKeys ) ->
 
 	UIState = #text_ui_state{ settings=SettingTable } = get_state(),
 
-	NewSettingTable = ?ui_table:removeEntries( SettingKeys, SettingTable ),
+	NewSettingTable = ?ui_table:remove_entries( SettingKeys, SettingTable ),
 
 	set_state( UIState#text_ui_state{ settings=NewSettingTable } );
 
@@ -220,7 +220,7 @@ unset( SettingKey ) ->
 
 	UIState = #text_ui_state{ settings=SettingTable } = get_state(),
 
-	NewSettingTable = ?ui_table:removeEntry( SettingKey, SettingTable ),
+	NewSettingTable = ?ui_table:remove_entry( SettingKey, SettingTable ),
 
 	set_state( UIState#text_ui_state{ settings=NewSettingTable } ).
 
@@ -827,7 +827,7 @@ set_setting( SettingKey, SettingValue ) ->
 set_setting( SettingKey, SettingValue,
 			 UIState=#text_ui_state{ settings=SettingTable } ) ->
 
-	NewSettingTable = ?ui_table:addEntry( SettingKey, SettingValue,
+	NewSettingTable = ?ui_table:add_entry( SettingKey, SettingValue,
 										  SettingTable ),
 
 	UIState#text_ui_state{ settings=NewSettingTable }.
@@ -849,7 +849,7 @@ set_settings( SettingEntries ) ->
 set_settings( SettingEntries,
 			  UIState=#text_ui_state{ settings=SettingTable } ) ->
 
-	NewSettingTable = ?ui_table:addEntries( SettingEntries, SettingTable ),
+	NewSettingTable = ?ui_table:add_entries( SettingEntries, SettingTable ),
 
 	UIState#text_ui_state{ settings=NewSettingTable }.
 
@@ -869,7 +869,7 @@ get_setting( SettingKey ) ->
 -spec get_setting( ui_setting_key(), ui_state() ) ->
 						 maybe( ui_setting_value() ).
 get_setting( SettingKey, #text_ui_state{ settings=SettingTable } ) ->
-	?ui_table:getValueWithDefaults( SettingKey, _Default=undefined,
+	?ui_table:get_value_with_defaults( SettingKey, _Default=undefined,
 									SettingTable ).
 
 

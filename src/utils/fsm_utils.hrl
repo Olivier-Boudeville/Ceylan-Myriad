@@ -32,7 +32,7 @@
 % Returns an updated state.
 %
 -define( setFsmAttribute( FsmState, AttributeName, AttributeValue ),
-	table:addEntry( AttributeName, AttributeValue, FsmState )
+	table:add_entry( AttributeName, AttributeValue, FsmState )
 ).
 
 
@@ -44,7 +44,7 @@
 % See also: getAttr/1.
 %
 -define( getFsmAttribute( FsmState, AttributeName ),
-	case table:lookupEntry( AttributeName, FsmState ) of
+	case table:lookup_entry( AttributeName, FsmState ) of
 
 		key_not_found ->
 			attribute_not_found ;
