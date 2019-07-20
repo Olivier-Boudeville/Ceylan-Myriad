@@ -132,10 +132,11 @@ It will trigger ``rebar3`` that, through a hook, will trigger at the right step 
 The OTP application support can be tested through a (compiled) source tree; from the root of Myriad::
 
  $ cd src/utils
- $ make otp_application_run
-		Running unitary test otp_application_run (third form) from otp_application_test
+ $ make myriad_otp_application_run
+		Running unitary test myriad_otp_application_run (third form) from
+		   myriad_otp_application_test
 
- --> Testing module otp_application_test.
+ --> Testing module myriad_otp_application_test.
 
  Starting the Myriad application.
  Myriad version: {1,0,0}.
@@ -173,7 +174,7 @@ It can be also tested manually, directly through the build tree used by rebar3; 
 OTP Release
 -----------
 
-Quite similarly, to obtain a Ceylan-Myriad OTP release, possibly for a given profile like ``default`` (development mode) or ``prod`` (production mode) - refer to ``REBAR_PROFILE`` in ``GNUmakevars.inc``, one just has to run::
+Quite similarly, to obtain a Ceylan-Myriad OTP release (`relx <https://github.com/erlware/relx>`_ being used in the background), possibly for a given profile like ``default`` (development mode) or ``prod`` (production mode) - refer to ``REBAR_PROFILE`` in ``GNUmakevars.inc``, one just has to run::
 
  $ make rebar3-release
 
@@ -185,7 +186,7 @@ The `hex <https://hex.pm/>`_ package manager relies on mix, which is commonly in
 
 .. comment  As an example on Arch Linux, to obtain hex, one would do the following:: $ pacman -S elixir
 
-Thanks to the rebar3 integration with the ``rebar3_hex`` plugin specified in Myriad's `rebar.config <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/rebar.config>`_, hex will be automatically installed and set up.
+Thanks to the rebar3 integration with the ``rebar3_hex`` plugin specified in Myriad's `rebar.config <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/rebar.config>`_, ``hex`` will be automatically installed and set up.
 
 Following the publishing guidelines (`[1] <https://hex.pm/docs/rebar3_publish>`_, `[2] <https://www.rebar3.org/docs/publishing-packages>`_), after having created a proper hex user, trying to run ``rebar3 hex publish`` in our case resulted in a strange behaviour::
 
@@ -197,4 +198,4 @@ Following the publishing guidelines (`[1] <https://hex.pm/docs/rebar3_publish>`_
 
 and then the command just finished with no specific error.
 
-We will retry later when these tools will have made more progress.
+We filed a `bug report <https://www.rebar3.org/discuss/5d316b697eda3a002e68ca8e>`_, and will retry later when these tools will have made some additional progress.
