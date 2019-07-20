@@ -64,7 +64,7 @@ export-doc: clean-doc full-doc export-to-official export-to-mirror
 # rsync -avze "ssh $(SP)" $(SOME_WEB_TREE) $(WEB_SRV):$(WEB_ROOT)/Myriad/
 #
 export-to-official:
-	@echo "   Exporting Myriad documentation to official website"
+	@echo "   Exporting Myriad documentation to official website ($(WEB_SRV))"
 	@/bin/scp $(SP) $(WEB_CONTENT) $(WEB_SRV):$(WEB_ROOT)/Myriad/
 
 
