@@ -34,6 +34,7 @@ This is pretty straightforward, based on the `project repository <https://github
 
 This should download in your current directory the full Myriad repository.
 
+The Myriad ``master`` branch is meant to stick to the latest stable version: we try to ensure that this main line always stays functional (sorry for the pun). Evolutions are to take place in feature branches and to be merged only when ready.
 
 
 .. _build:
@@ -41,7 +42,7 @@ This should download in your current directory the full Myriad repository.
 Building Myriad
 ===============
 
-This is as simple as:
+If a relevant Erlang installation is available, this is as simple as:
 
 .. code:: bash
 
@@ -115,7 +116,10 @@ However, to better integrate with other Erlang developments (which are mostly OT
 OTP Application
 ---------------
 
-Myriad is not an *active* OTP application, and as such does not rely on, or provides, services running in the background; so no supervision tree or ``gen_server`` is involved here, just a library application ready for OTP integration. In development mode, ``proc_lib``-based spawns are done.
+Myriad is not an *active* OTP application, and as such does not rely on, or provides, services running in the background; so no supervision tree or ``gen_server`` is involved here, just a library application ready for OTP integration [#]_.
+
+.. [#] Speaking of OTP, in development mode, ``proc_lib``-based spawns used to be enabled, yet this led to longer error messages that were not that useful; see ``spawn_utils.hrl`` if wanting to re-enable them.
+
 
 There are `various ways <https://www.rebar3.org/docs/getting-started>`_  for obtaining ``rebar3``; we prefer::
 
@@ -188,14 +192,4 @@ The `hex <https://hex.pm/>`_ package manager relies on mix, which is commonly in
 
 Thanks to the rebar3 integration with the ``rebar3_hex`` plugin specified in Myriad's `rebar.config <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/rebar.config>`_, ``hex`` will be automatically installed and set up.
 
-Following the publishing guidelines (`[1] <https://hex.pm/docs/rebar3_publish>`_, `[2] <https://www.rebar3.org/docs/publishing-packages>`_), after having created a proper hex user, trying to run ``rebar3 hex publish`` in our case resulted in a strange behaviour::
-
- Select application(s):
- ------------
- A) All
- [1-0] or (A)ll  ("A")>
-
-
-and then the command just finished with no specific error.
-
-We filed a `bug report <https://www.rebar3.org/discuss/5d316b697eda3a002e68ca8e>`_, and will retry later when these tools will have made some additional progress.
+By following the publishing guidelines (`[1] <https://hex.pm/docs/rebar3_publish>`_, `[2] <https://www.rebar3.org/docs/publishing-packages>`_), we were able to publish `Hex packages for Myriad <https://hex.pm/packages/myriad>`_. And there was much rejoicing...
