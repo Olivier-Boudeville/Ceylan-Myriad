@@ -20,7 +20,7 @@
 			  rebar3-production-release                                        \
 			  rebar3-compile rebar3-create-tree rebar3-populate-build-tree     \
 			  rebar3-create-app-file rebar3-copy-beams                         \
-			  rebar3-clean rebar3-real-clean rebar3-info                       \
+			  rebar3-clean rebar3-real-clean rebar3-info rebar3-hex-publish    \
 			  generate-list-of-erlang-types generate-list-of-local-types       \
 			  generate-local-plt self-check-against-plt write-debug-key-file   \
 			  check check-hook help-erl                                        \
@@ -488,6 +488,10 @@ rebar3-info:
 	@echo "REBAR3_FIND_SRC_EXCLUDES = $(REBAR3_FIND_SRC_EXCLUDES)"
 	@echo "REBAR3_FIND_SRC_OPT = $(REBAR3_FIND_SRC_OPT)"
 
+
+rebar3-hex-publish: rebar3-compile
+	@cd $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME) && /bin/mv ebin/$(REBAR3_PROJECT_NAME).app src/$(REBAR3_PROJECT_NAME).app.src && /bin/rm -f src && mkdir src && find ../../../../src/ -name '*.erl' -a ! -name '*_test.erl' -exec /bin/cp '{}' src ';'
+	@rebar3 hex publish
 
 
 # Allows to generate a file listing all the types defined in the specified
