@@ -254,6 +254,11 @@ report_error( { Context, Error } ) ->
 			text_utils:format( "mismatch regarding macro '~s' (wrong arity?)",
 							   [ MacroName ] );
 
+		% Ex: MacroName=send_info_fmt
+		{ epp_error, { arg_error, MacroName } } ->
+			text_utils:format( "argument error in macro '~s' "
+							   "(ex: non-closed parenthesis?)", [ MacroName ] );
+
 		String when is_list( String ) ->
 			text_utils:format( "~s", [ String ] );
 
