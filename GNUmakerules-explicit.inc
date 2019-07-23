@@ -367,13 +367,20 @@ info-install-content:
 
 # The two main targets for application and release:
 
-rebar3-application: set-base-rebar-conf
+
+# Apparently, a pre-existing rebar.lock file might cause version dependencies
+# not to be respected (ex: sticking to an older hex version of a dependency,
+# whereas a newer one was specified), so we remove it when appropriate.
+
+
+rebar3-application: set-base-rebar-conf rebar3-clean
 	@echo "  Triggering the overall creation by rebar3 of an OTP application corresponding to $(PROJECT_NAME)"
+	-@/bin/rm -f rebar.lock 2>/dev/null
 	@$(REBAR_DEBUG) rebar3 compile
-	@$(MAKE) remove-rebar-conf
+	@$(MAKE) -s remove-rebar-conf
 
 
-rebar3-release: set-base-rebar-conf rebar3-development-release unset-base-rebar-conf
+rebar3-release: rebar3-development-release
 
 
 # If making a rebar application or release:
@@ -382,32 +389,35 @@ set-base-rebar-conf:
 	@ln -sf conf/rebar.config
 
 
-# If publishing an hex package:
+# If publishing an hex package (conf/ not included in the package, hence no
+# symlink shall point to it, hence a copy of rebar configuration file):
+#
 set-hex-rebar-conf:
 	@echo "  Setting rebar hex configuration"
-	-@ln -sf conf/rebar-for-hex.config ./rebar.config
+	@/bin/rm -f rebar.config 2>/dev/null
+	@/bin/cp -f conf/rebar-for-hex.config ./rebar.config
 
 
-# Just a symlink:
-remove-rebar-conf
+# A symlink or a copy (in the case of hex):
+remove-rebar-conf:
 	@echo "  Removing rebar configuration"
 	@/bin/rm -f rebar.config
 
 
 # Default is development:
-rebar3-development-release: set-base-rebar-conf
+rebar3-development-release: set-base-rebar-conf rebar3-clean
 	@echo "  Triggering the overall creation by rebar3 of a (relx-based) development release corresponding to $(PROJECT_NAME)"
 	@$(REBAR_DEBUG) rebar3 release
-	@$(MAKE) remove-rebar-conf
+	@$(MAKE) -s remove-rebar-conf
 
 
 # Supposedly more functional/flexible than 'rebar3 release -d false' or 'rebar3
 # release -n prod':
 #
-rebar3-production-release: set-base-rebar-conf
+rebar3-production-release: set-base-rebar-conf rebar3-clean
 	@echo "  Triggering the overall creation by rebar3 of a (relx-based) production release corresponding to $(PROJECT_NAME)"
 	@$(REBAR_DEBUG) rebar3 as prod release
-	@$(MAKE) remove-rebar-conf
+	@$(MAKE) -s remove-rebar-conf
 
 
 
@@ -422,7 +432,7 @@ rebar3-production-release: set-base-rebar-conf
 # will not try to recompile modules by itself)
 #
 rebar3-compile:
-	@echo "  Preparing $(PROJECT_NAME) for a rebar3 compliant build (in $(REBAR_BUILD_DIR), for profile $(REBAR_PROFILE))"
+	@echo "  Preparing $(PROJECT_NAME) for a rebar3-compliant build (in $(REBAR_BUILD_DIR))"
 	@$(MAKE) -s set-base-rebar-conf rebar3-clean rebar3-create-tree rebar3-populate-build-tree rebar3-create-app-file all rebar3-copy-beams REBAR_PROFILE=$(REBAR_PROFILE) REBAR_BUILD_DIR=$(REBAR_BUILD_DIR)
 
 
@@ -495,8 +505,8 @@ rebar3-copy-beams:
 
 
 rebar3-clean:
-	@echo "  Removing any prior rebar3 build tree for profile $(REBAR_PROFILE)"
-	-@/bin/rm -rf $(REBAR_BUILD_DIR)
+	@echo "  Removing any prior rebar3 build tree for this project ($(REBAR_BUILD_BASE)"
+	-@/bin/rm -rf $(REBAR_BUILD_BASE) 2>/dev/null
 
 
 rebar3-real-clean:
@@ -538,14 +548,18 @@ rebar3-info:
 
 # - a correct, non-template, src/$(REBAR3_PROJECT_NAME).app.src is needed
 
-rebar3-hex-publish: set-hex-rebar-conf rebar3-clean rebar3-create-app-file
+rebar3-hex-publish: set-hex-rebar-conf rebar3-clean clean rebar3-create-app-file
 	@/bin/cp -f $(REBAR_BUILD_BASE)/ebin/$(REBAR3_PROJECT_NAME).app src/$(REBAR3_PROJECT_NAME).app.src
-	@mkdir priv && /bin/cp -f GNUmake* conf/hex-compile-hook-script.sh priv/
-	@echo rebar3 hex publish
-	@echo /bin/rm -rf priv/
-	@echo /bin/rm -f src/$(REBAR3_PROJECT_NAME).app.src
-	@echo $(MAKE) rebar3-clean
-	@echo $(MAKE) remove-rebar-conf
+	@mkdir -p priv/hex-packaging/{root,doc}
+	@/bin/cp -f conf/hex-compile-hook-script.sh priv/hex-packaging/
+	@/bin/cp -f GNUmake* priv/hex-packaging/root
+	@/bin/cp -f doc/GNUmake* priv/hex-packaging/doc
+	@rebar3 hex publish
+	@/bin/rm -rf priv/
+	@/bin/rm -f src/$(REBAR3_PROJECT_NAME).app.src
+	@$(MAKE) -s rebar3-clean
+	@$(MAKE) -s remove-rebar-conf
+
 
 
 # Allows to generate a file listing all the types defined in the specified
