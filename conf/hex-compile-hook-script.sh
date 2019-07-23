@@ -35,14 +35,24 @@ make -s all || exit 20
 # Like the rebar3-copy-beams target:
 find src -name '*.beam' -a ! -name '*_test.beam' -exec /bin/cp -f '{}' ebin/ ';' || exit 25
 
-find src test* -name '*.hrl' -exec /bin/cp -f '{}' include/ ';' || exit 30
+find src -name '*.hrl' -exec /bin/cp -f '{}' include/ ';' || exit 30
+
+# Note that only the 'src' directory is available in an hex package; if the test
+# sources are among the sources in 'src', they will be found, whereas if there
+# is for example a 'tests' directory in the same directory as the 'src' one, it
+# will not even be included in the hex package.
+#
+find src -name '*_test.erl' -exec /bin/cp -f '{}' test/ ';' || exit 35
+
 
 # OTP conventions:
-/bin/cp src/${guessed_package_name}.app.src ebin/${guessed_package_name}.app || exit 35
+/bin/cp -f src/${guessed_package_name}.app.src ebin/${guessed_package_name}.app || exit 40
 
 echo "  Successful end of hex compile hook script for ${guessed_package_name}"
 
 # Hides the source files, otherwise rebar will attempt to recompile them (reason
 # unclear) and fail:
+#
+# (not needing to hide any source file in 'test')
 #
 find src -name '*rl' -exec /bin/mv -f '{}' '{}'-hidden ';'
