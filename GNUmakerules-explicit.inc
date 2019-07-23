@@ -471,13 +471,14 @@ rebar3-create-tree:
 # ===> Missing beam file sql_support
 #  [...]/_build/default/lib/myriad/ebin/sql_support.beam
 #
-# Solution: not listing such BEAM files among the modules in the .app.src file.
+# Solution: not listing such conditional BEAM files among the modules in the
+# .app.src file.
 #
 rebar3-populate-build-tree:
 	@echo "  Copying sources in rebar3 build tree"
 	@true "Using a src symlink, hence disabled: find src -name '*.erl' -a ! -name '*_test.erl' -a ! -name sql_support.erl -a ! -name hdf5_support.erl -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/src/ ';'"
 	@# As tests may be in a separate 'tests' directory for example, and we do not want to select the content of _build once copied, in order to be idempotent:
-	@find src test* -name '*_test.erl' -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/test/ ';' 1>/dev/null 2>&1 | true
+	@find src tests -name '*_test.erl' -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/test/ ';' 1>/dev/null 2>&1 | true
 	@find src -name '*.hrl' -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/include/ ';'
 	@find examples -name '*rl' -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/priv/examples ';' 1>/dev/null 2>&1 | true
 	@/bin/cp LICENSE README.md $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/doc
