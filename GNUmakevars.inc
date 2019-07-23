@@ -1052,6 +1052,10 @@ REBAR_DEBUG :=
 #REBAR_DEBUG := DEBUG=1
 
 
+ifndef REBAR_BUILD_ROOT
+	   REBAR_BUILD_ROOT := _build
+endif
+
 # Default profile:
 
 # Note: not always honored, refer to 'make rebar3-info' to see that
@@ -1062,12 +1066,12 @@ ifndef REBAR_PROFILE
 	   REBAR_PROFILE := default
 endif
 
-ifndef REBAR_BUILD_ROOT
-	   REBAR_BUILD_ROOT := _build
-endif
-
 ifndef REBAR_BUILD_DIR
 	   REBAR_BUILD_DIR := $(REBAR_BUILD_ROOT)/$(REBAR_PROFILE)
+endif
+
+ifndef REBAR_BUILD_BASE
+	   REBAR_BUILD_BASE := $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)
 endif
 
 

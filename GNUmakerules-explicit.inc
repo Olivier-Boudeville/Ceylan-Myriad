@@ -365,28 +365,49 @@ info-install-content:
 # Section for the support of a rebar3+relx+hex compliant build.
 
 
-# Two targets to remember what can be issued on the command-line:
+# The two main targets for application and release:
 
-rebar3-application:
+rebar3-application: set-base-rebar-conf
 	@echo "  Triggering the overall creation by rebar3 of an OTP application corresponding to $(PROJECT_NAME)"
 	@$(REBAR_DEBUG) rebar3 compile
+	@$(MAKE) remove-rebar-conf
 
 
-rebar3-release: rebar3-development-release
+rebar3-release: set-base-rebar-conf rebar3-development-release unset-base-rebar-conf
+
+
+# If making a rebar application or release:
+set-base-rebar-conf:
+	@echo "  Setting rebar base configuration"
+	@ln -sf conf/rebar.config
+
+
+# If publishing an hex package:
+set-hex-rebar-conf:
+	@echo "  Setting rebar hex configuration"
+	-@ln -sf conf/rebar-for-hex.config ./rebar.config
+
+
+# Just a symlink:
+remove-rebar-conf
+	@echo "  Removing rebar configuration"
+	@/bin/rm -f rebar.config
 
 
 # Default is development:
-rebar3-development-release:
+rebar3-development-release: set-base-rebar-conf
 	@echo "  Triggering the overall creation by rebar3 of a (relx-based) development release corresponding to $(PROJECT_NAME)"
 	@$(REBAR_DEBUG) rebar3 release
+	@$(MAKE) remove-rebar-conf
 
 
 # Supposedly more functional/flexible than 'rebar3 release -d false' or 'rebar3
 # release -n prod':
 #
-rebar3-production-release:
+rebar3-production-release: set-base-rebar-conf
 	@echo "  Triggering the overall creation by rebar3 of a (relx-based) production release corresponding to $(PROJECT_NAME)"
 	@$(REBAR_DEBUG) rebar3 as prod release
+	@$(MAKE) remove-rebar-conf
 
 
 
@@ -394,14 +415,15 @@ rebar3-production-release:
 # Targets called by hooks specified to rebar3 through the rebar.config file:
 
 
-# This overall target is called (thanks to a pre-hook) when running: 'rebar3 compile'
+# This overall target is called (thanks to a pre-hook) when running: 'rebar3
+# compile'
 #
 # (note: we copy sources before compiling and copying BEAM files so that rebar3
 # will not try to recompile modules by itself)
 #
 rebar3-compile:
 	@echo "  Preparing $(PROJECT_NAME) for a rebar3 compliant build (in $(REBAR_BUILD_DIR), for profile $(REBAR_PROFILE))"
-	@$(MAKE) -s rebar3-clean rebar3-create-tree rebar3-populate-build-tree rebar3-create-app-file all rebar3-copy-beams REBAR_PROFILE=$(REBAR_PROFILE) REBAR_BUILD_DIR=$(REBAR_BUILD_DIR)
+	@$(MAKE) -s set-base-rebar-conf rebar3-clean rebar3-create-tree rebar3-populate-build-tree rebar3-create-app-file all rebar3-copy-beams REBAR_PROFILE=$(REBAR_PROFILE) REBAR_BUILD_DIR=$(REBAR_BUILD_DIR)
 
 
 # See for more information:
@@ -422,8 +444,8 @@ rebar3-create-tree:
 	@cd $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ && ln -sf ../../../../src
 
 
-# Currently, 'priv' is not specifically populated, and all header files (including
-# internal ones) are copied to 'include':
+# Currently, 'priv' is not specifically populated, and all header files
+# (including internal ones) are copied to 'include':
 #
 # (note that the sources of conditionally-compiled modules like sql_support are
 # intentionally left out, otherwise the release as a whole will be considered as
@@ -444,7 +466,7 @@ rebar3-create-tree:
 rebar3-populate-build-tree:
 	@echo "  Copying sources in rebar3 build tree"
 	@true "Using a src symlink, hence disabled: find src -name '*.erl' -a ! -name '*_test.erl' -a ! -name sql_support.erl -a ! -name hdf5_support.erl -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/src/ ';'"
-	@# As tests may be in a separate 'tests' directory for example, and we do not want to select _build, in order to be idempotent:
+	@# As tests may be in a separate 'tests' directory for example, and we do not want to select the content of _build once copied, in order to be idempotent:
 	@find src test* -name '*_test.erl' -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/test/ ';' 1>/dev/null 2>&1 | true
 	@find src -name '*.hrl' -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/include/ ';'
 	@find examples -name '*rl' -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/priv/examples ';' 1>/dev/null 2>&1 | true
@@ -461,6 +483,8 @@ rebar3-populate-build-tree:
 #
 rebar3-create-app-file:
 	@echo "  Generating rebar3 $(REBAR3_PROJECT_NAME).app file"
+	@# This target may be called for hex for example:
+	@mkdir -p $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ebin
 	@all_modules=$$(find src -name '*.erl' -a ! -name '*_test.erl' $(REBAR3_FIND_SRC_OPT) -exec echo '{}' ';' | sed 's|.*/||1' | sed 's|.erl$$||1' | tr '\n' ','| sed 's|,|, |g' | sed 's|, $$||1' | sort ) ; cat conf/$(REBAR3_PROJECT_NAME).app.src | sed "s|VERSION_FOR_REBAR3|$(VERSION_FOR_REBAR3)|1" | sed "s|MODULES_FOR_REBAR3|$$all_modules|1" > $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ebin/$(REBAR3_PROJECT_NAME).app
 
 
@@ -489,9 +513,39 @@ rebar3-info:
 	@echo "REBAR3_FIND_SRC_OPT = $(REBAR3_FIND_SRC_OPT)"
 
 
-rebar3-hex-publish: rebar3-compile
-	@cd $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME) && /bin/mv ebin/$(REBAR3_PROJECT_NAME).app src/$(REBAR3_PROJECT_NAME).app.src && /bin/rm -f src && mkdir src && find ../../../../src/ -name '*.erl' -a ! -name '*_test.erl' -exec /bin/cp '{}' src ';'
-	@rebar3 hex publish
+# Changes have to be applied for hex packages, which are very different from
+# applications or releases.
+
+# The simplest studying approach was to use the build of another hex package
+# relying on Myriad to test how relevant is its package: 'make
+# rebar3-application' done for WOOPER (which depends on Myriad, specified here
+# as an hex dependency) shows notably that a
+# ~/.cache/rebar3/hex/hexpm/packages/myriad-x.y.z.tar file is downloaded, which
+# contains the VERSION, CHECKSUM, metadata.config and contents.tar.gz files.
+
+# This last archive shows that the whole Myriad source tree is preserved, in its
+# original, nested form, except for the root GNUmake* files (as a result, no
+# rebar3 _build tree is used at all). So Myriad should copy them in priv/ and
+# the compile hook is to copy them from priv/ to the root of the extracted
+# package build tree.
+
+# So, apparently:
+
+# - a temporary priv/ is to be used
+
+# - BEAMs shall not be included in the archive, as hex packages are source
+#   containers, not binary ones
+
+# - a correct, non-template, src/$(REBAR3_PROJECT_NAME).app.src is needed
+
+rebar3-hex-publish: set-hex-rebar-conf rebar3-clean rebar3-create-app-file
+	@/bin/cp -f $(REBAR_BUILD_BASE)/ebin/$(REBAR3_PROJECT_NAME).app src/$(REBAR3_PROJECT_NAME).app.src
+	@mkdir priv && /bin/cp -f GNUmake* conf/hex-compile-hook-script.sh priv/
+	@echo rebar3 hex publish
+	@echo /bin/rm -rf priv/
+	@echo /bin/rm -f src/$(REBAR3_PROJECT_NAME).app.src
+	@echo $(MAKE) rebar3-clean
+	@echo $(MAKE) remove-rebar-conf
 
 
 # Allows to generate a file listing all the types defined in the specified
