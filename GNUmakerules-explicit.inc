@@ -702,7 +702,7 @@ clean-outputs:
 
 
 # To be enriched by user layers:
-real-clean: clean clean-ast-debug real-clean-recurse
+real-clean: clean clean-ast-debug real-clean-recurse rebar3-real-clean
 
 real-clean-recurse:
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then      \

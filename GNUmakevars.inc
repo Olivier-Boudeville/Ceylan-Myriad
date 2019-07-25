@@ -67,6 +67,12 @@ PROJECT_RELEASE_ARCHIVE_BZ2 := $(PROJECT_RELEASE_BASE).tar.bz2
 PROJECT_RELEASE_ARCHIVE_XZ  := $(PROJECT_RELEASE_BASE).tar.xz
 
 
+# Useful to define a Make variable without setting a value to it (ex: in order
+# to be able to specifically define at a given layer a variable MY_VAR, to
+# prevent that, at the layer below, a 'ifndef MY_VAR' is triggered; see
+# BOOTSTRAP_MODULES in Ceylan-Traces for an example of it):
+#
+empty =
 
 
 # Installation section.
