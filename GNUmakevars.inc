@@ -16,7 +16,7 @@ ifndef REBAR3_PROJECT_NAME
 endif
 
 
-MYRIAD_VERSION := 1.0.4
+MYRIAD_VERSION := 1.0.5
 
 # PROJECT_VERSION should be defined on a per-project basis.
 ifndef PROJECT_VERSION

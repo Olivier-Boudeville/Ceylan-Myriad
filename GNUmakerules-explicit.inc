@@ -506,7 +506,7 @@ rebar3-copy-beams:
 
 
 rebar3-clean:
-	@echo "  Removing any prior rebar3 build tree for this project ($(REBAR_BUILD_BASE)"
+	@echo "  Removing any prior rebar3 build tree for this project ($(REBAR_BUILD_BASE))"
 	-@/bin/rm -rf $(REBAR_BUILD_BASE) 2>/dev/null
 
 
@@ -552,7 +552,7 @@ rebar3-info:
 rebar3-hex-publish: set-hex-rebar-conf rebar3-clean clean rebar3-create-app-file
 	@/bin/cp -f $(REBAR_BUILD_BASE)/ebin/$(REBAR3_PROJECT_NAME).app src/$(REBAR3_PROJECT_NAME).app.src
 	@mkdir -p priv/hex-packaging/{root,doc}
-	@/bin/cp -f conf/hex-compile-hook-script.sh priv/hex-packaging/
+	@/bin/cp -f $(MYRIAD_TOP)/conf/hex-compile-hook-script.sh priv/hex-packaging/
 	@/bin/cp -f GNUmake* priv/hex-packaging/root
 	@/bin/cp -f doc/GNUmake* priv/hex-packaging/doc
 	@rebar3 hex publish
