@@ -74,6 +74,12 @@
 -include("ui.hrl").
 
 
+% Describes the interactivity mode of a user interface:
+-type interactivity_mode() :: 'batch' | 'interactive'.
+
+-export_type([ interactivity_mode/0 ]).
+
+
 -export([ start/0, start/1, start/2 ]).
 
 

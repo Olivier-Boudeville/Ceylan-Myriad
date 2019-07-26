@@ -1313,7 +1313,16 @@ strings_to_binaries( StringList ) ->
 -spec binaries_to_strings( [ bin_string() ] ) -> [ ustring() ].
 binaries_to_strings( BinaryList ) ->
 	% Order must be preserved:
-	[ erlang:binary_to_list( B ) || B <- BinaryList ].
+	%[ erlang:binary_to_list( B ) || B <- BinaryList ].
+	[ try
+
+		  erlang:binary_to_list( B )
+
+	  catch _:E ->
+
+		  throw( { binary_conversion_failed, E, B } )
+
+	  end || B <- BinaryList ].
 
 
 

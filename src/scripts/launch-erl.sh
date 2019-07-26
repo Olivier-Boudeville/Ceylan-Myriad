@@ -439,7 +439,17 @@ if [ -x "${realpath_exec}" ] ; then
 			#echo "  + $new_dir"
 			shortened_code_dirs="$shortened_code_dirs $new_dir"
 		else
-			echo "${warning_prefix} directory '$d' does not exist." 1>&2
+
+			# Very useful warning, yet now that we support Hex packages, we have
+			# to define extra ebin directories should a dependency be accessed
+			# through to a built OTP application, and such permanent warnings
+			# would be unpleasant, so we disabled the following:
+
+			# echo "${warning_prefix} directory '$d' does not exist." 1>&2
+
+			# No-op:
+			:
+
 		fi
 
 	done

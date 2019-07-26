@@ -78,7 +78,7 @@
 
 		  copy_file/2, copy_file_if_existing/2, copy_file_in/2,
 
-		  rename/2, move_file/2, change_permissions/2,
+		  rename/2, move_file/2, append_file/2, change_permissions/2,
 
 		  is_absolute_path/1,
 		  ensure_path_is_absolute/1, ensure_path_is_absolute/2,
@@ -1588,6 +1588,33 @@ move_file( SourceFilename, DestinationFilename ) ->
 
 
 
+% Appends, at the end of the first specified file, the content of the second
+% specified one: concatenates the second with the first one.
+%
+-spec append_file( file_name(), file_name() ) -> void().
+append_file( TargetFilename, ToAppendFilename ) ->
+
+	ToAppendBin = read_whole( ToAppendFilename ),
+
+	% Test needed, otherwise the next append could create from scratch the
+	% target file (would be a masked failure):
+	%
+	case is_existing_file_or_link( TargetFilename ) of
+
+		true ->
+			TargetFile = open( TargetFilename, _Opts=[ append ] ),
+
+			write( TargetFile, ToAppendBin ),
+
+			close( TargetFile );
+
+		false ->
+			throw( { append_target_file_not_found, TargetFilename } )
+
+	end.
+
+
+
 % Returns the low-level permission associated to specified one.
 -spec get_permission_for( permission() | [ permission() ] ) -> integer().
 get_permission_for( owner_read ) ->
@@ -1964,6 +1991,8 @@ get_image_file_gif( Image ) ->
 % options (as listed for file:open/2 in
 % http://erlang.org/doc/man/file.html#open-2, i.e. read, write, append,
 % exclusive, raw, etc.).
+%
+% Note that using 'raw' is likely to cause problems with encodings.
 %
 % Returns the file reference, or throws an exception.
 %
@@ -2586,7 +2615,29 @@ zipped_term_to_unzipped_file( ZippedTerm, TargetFilename ) ->
 
 
 
-% Reads in memory the files specified from their filenames, zips the
+% Reads in memory the files specified from their filenames (as plain strings),
+% zips the corresponding term, and returns it.
+%
+% Note: useful for network transfers of small files.
+%
+% Larger ones should be transferred with TCP/IP and by chunks.
+%
+% Returns a binary.
+%
+-spec files_to_zipped_term( [ file_name() ] ) -> binary().
+files_to_zipped_term( FilenameList ) ->
+
+	DummyFileName = "dummy",
+
+	{ ok, { _DummyFileName, Bin } } =
+		zip:zip( DummyFileName, FilenameList, [ memory ] ),
+
+	Bin.
+
+
+
+% Reads in memory the files specified from their filenames (as plain strings),
+% assuming their path is relative to the specified base directory, zips the
 % corresponding term, and returns it.
 %
 % Note: useful for network transfers of small files.
@@ -2595,37 +2646,15 @@ zipped_term_to_unzipped_file( ZippedTerm, TargetFilename ) ->
 %
 % Returns a binary.
 %
--spec files_to_zipped_term( [file_name()] ) -> binary().
-files_to_zipped_term( FilenameList ) ->
-
-	DummyFileName = "dummy",
-
-	{ ok, { _DummyFileName, Bin } } = zip:zip( DummyFileName, FilenameList,
-										[ memory ] ),
-
-	Bin.
-
-
-
-% Reads in memory the files specified from their filenames, assuming their path
-% is relative to the specified base directory, zips the corresponding term, and
-% returns it.
-%
-% Note: useful for network transfers of small files.
-%
-% Larger ones should be transferred with TCP/IP and by chunks.
-%
-% Returns a binary.
-%
--spec files_to_zipped_term( [ any_file_name() ], directory_name() ) -> binary().
+-spec files_to_zipped_term( [ file_name() ], any_directory_name() ) -> binary().
 files_to_zipped_term( FilenameList, BaseDirectory ) ->
 
 	DummyFileName = "dummy",
 
 	%trace_utils:info_fmt( "files_to_zipped_term operating, from '~s', "
-	%					   "on following ~B files:~n~s.",
-	%					   [ BaseDirectory, length( FilenameList ),
-	%						 text_utils:terms_to_string( FilenameList ) ] ),
+	%					  "on following ~B file(s): ~s",
+	%					  [ BaseDirectory, length( FilenameList ),
+	%						text_utils:terms_to_string( FilenameList ) ] ),
 
 	 case zip:zip( DummyFileName, FilenameList,
 				   [ memory, { cwd, BaseDirectory } ] ) of
@@ -2648,6 +2677,9 @@ files_to_zipped_term( FilenameList, BaseDirectory ) ->
 
 			 throw( { zip_failed, BaseDirectory, FilenameList } );
 
+		 % einval might mean for example that at least some filenames are
+		 % binaries rather that plain strings:
+		 %
 		 { error, Other } ->
 			 throw( { zip_failed, Other, BaseDirectory, FilenameList } )
 

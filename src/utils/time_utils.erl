@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Friday, July 24, 2015
+% Creation date: Friday, July 24, 2015.
 
 
 
@@ -96,6 +96,7 @@
 % Timestamp-related section.
 -export([ get_timestamp/0,
 		  get_textual_timestamp/0, get_textual_timestamp/1,
+		  get_french_textual_timestamp/1,
 		  get_textual_timestamp_for_path/0, get_textual_timestamp_for_path/1,
 		  timestamp_to_string/1, string_to_timestamp/1,
 		  get_duration/1, get_duration/2,
@@ -466,6 +467,16 @@ get_textual_timestamp() ->
 get_textual_timestamp( { { Year, Month, Day }, { Hour, Minute, Second } } ) ->
 	io_lib:format( "~B/~B/~B ~B:~2..0B:~2..0B",
 				   [ Year, Month, Day, Hour, Minute, Second ] ).
+
+
+% Returns a string corresponding to the specified timestamp expressed in French,
+% like: "le 1/9/2009/9/1, à 11h46m53".
+%
+-spec get_french_textual_timestamp( timestamp() ) -> string().
+get_french_textual_timestamp( { { Year, Month, Day }, { Hour, Minute, Second } } ) ->
+	io_lib:format( "le ~B/~B/~B, à ~Bh~2..0Bm~2..0Bs",
+				   [ Day, Month, Year, Hour, Minute, Second ] ).
+
 
 
 % Returns a string corresponding to the current timestamp and able to be a part
