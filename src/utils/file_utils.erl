@@ -56,7 +56,8 @@
 		  get_size/1, get_last_modification_time/1, touch/1,
 		  create_empty_file/1,
 
-		  get_current_directory/0, set_current_directory/1,
+		  get_current_directory/0, get_bin_current_directory/0,
+		  set_current_directory/1,
 
 		  filter_by_extension/2, filter_by_extensions/2,
 		  filter_by_included_suffixes/2, filter_by_excluded_suffixes/2,
@@ -271,9 +272,12 @@
 % So we deem our version simpler and less prone to surprise (least
 % astonishment).
 %
+% Plain and binary strings can be freely used as arguments, and returns a plain
+% string in all cases.
+%
 % See filename:split/1 for the reverse operation.
 %
--spec join( [ any_path() ] ) -> any_path().
+-spec join( [ any_path() ] ) -> path().
 join( ComponentList ) ->
 	lists:foldr( fun join/2, _Acc0="", _List=ComponentList ).
 
@@ -291,9 +295,12 @@ join( ComponentList ) ->
 % So we deem our version simpler and less prone to surprise (least
 % astonishment).
 %
+% Plain and binary strings can be freely used as arguments, and returns a plain
+% string in all cases.
+%
 % See filename:split/1 for the reverse operation.
 %
--spec join( any_path(), any_path() ) -> any_path().
+-spec join( any_path(), any_path() ) -> path().
 % Skips only initial empty paths of all sorts:
 join( _FirstPath="", SecondPath ) ->
 	SecondPath ;
@@ -796,6 +803,16 @@ get_current_directory() ->
 			throw( { failed_to_determine_current_directory, Reason } )
 
 	end.
+
+
+
+% Returns the current directory, as a binary string.
+%
+% Throws an exception on failure.
+%
+-spec get_bin_current_directory() -> bin_directory_path().
+get_bin_current_directory() ->
+	text_utils:string_to_binary( get_current_directory() ).
 
 
 
@@ -1789,9 +1806,9 @@ make_relative( Path ) ->
 % Returns a version of the specified path that is relative to the specified
 % reference directory.
 %
--spec make_relative( file_utils:path(), file_utils:directory_path() ) ->
+-spec make_relative( file_utils:any_path(), file_utils:directory_path() ) ->
 							 file_utils:directory_path().
-make_relative( Path, RefDir ) when is_list( Path ) ->
+make_relative( Path, RefDir ) when is_list( Path ) andalso is_list( RefDir ) ->
 
 	AbsPath = ensure_path_is_absolute( Path ),
 
@@ -1802,7 +1819,14 @@ make_relative( Path, RefDir ) when is_list( Path ) ->
 	TargetPathElems = filename:split( AbsPath ),
 	RefPathElems = filename:split( RefDir ),
 
-	make_relative_helper( TargetPathElems, RefPathElems ).
+	make_relative_helper( TargetPathElems, RefPathElems );
+
+
+make_relative( BinPath, RefDir ) when is_binary( BinPath ) ->
+	make_relative( text_utils:binary_to_string( BinPath ), RefDir );
+
+make_relative( Path, RefDir ) ->
+	throw( { invalid_parameters, Path, RefDir } ).
 
 
 

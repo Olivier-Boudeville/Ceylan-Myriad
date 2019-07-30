@@ -22,8 +22,8 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 
-% Creation date: Tuesday, December 2, 2014
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: Tuesday, December 2, 2014.
 
 
 
@@ -68,7 +68,8 @@
 		  remove_entries/2, remove_existing_entries/2,
 		  lookup_entry/2, has_entry/2,
 		  extract_entry/2, extract_entry_if_existing/2,
-		  get_value/2, get_values/2, get_value_with_defaults/3, get_all_values/2,
+		  get_value/2, get_values/2, get_value_with_defaults/3,
+		  get_all_values/2,
 		  add_to_entry/3, subtract_from_entry/3, toggle_entry/2,
 		  append_to_existing_entry/3, append_list_to_existing_entry/3,
 		  append_to_entry/3, append_list_to_entry/3,
@@ -180,12 +181,12 @@ new_from_unique_entries( InitialEntries ) when is_list( InitialEntries ) ->
 % checking about the key will be done)
 %
 % - if one knows that the specified key *is not* already used in the table, one
-% should use add_new_entry/3 and add_new_entries/2 (and the absence of the key will
-% be checked)
+% should use add_new_entry/3 and add_new_entries/2 (and the absence of the key
+% will be checked)
 %
 % - if one knows that the specified key *is* already used in the table, one
-% should use update_entry/3 and update_entries/2 (and the presence of the key will
-% be checked)
+% should use update_entry/3 and update_entries/2 (and the presence of the key
+% will be checked)
 %
 %
 % Note: in non-debug mode, these extra checkings may be removed.
@@ -250,7 +251,8 @@ add_new_entry( Key, Value, MapHashtable ) ->
 % If there is already a pair with this key, then its previous value will be
 % replaced by the specified one.
 %
--spec add_new_entries( hashtable:entries(), map_hashtable() ) -> map_hashtable().
+-spec add_new_entries( hashtable:entries(), map_hashtable() ) ->
+							 map_hashtable().
 add_new_entries( EntryList, MapHashtable ) ->
 
 	lists:foldl( fun( { K, V }, Map ) ->
@@ -710,7 +712,8 @@ add_to_entry( Key, Value, MapHashtable ) ->
 % An exception is thrown if the key does not exist, a bad arithm is triggered if
 % no subtraction can be performed on the associated value.
 %
--spec subtract_from_entry( key(), number(), map_hashtable() ) -> map_hashtable().
+-spec subtract_from_entry( key(), number(), map_hashtable() ) ->
+								 map_hashtable().
 % subtract_from_entry( Key, Value, MapHashtable=#{ Key => BaseValue } ) ->
 %	MapHashtable#{ Key => BaseValue - Value };
 %
@@ -907,7 +910,8 @@ append_list_to_entry( Key, Elements, MapHashtable ) ->
 % specified list (as if beforehand the key was associated to an empty list)
 %
 -spec concat_to_entry( key(), list(), map_hashtable() ) -> map_hashtable().
-concat_to_entry( Key, ListToConcat, MapHashtable ) when is_list( ListToConcat ) ->
+concat_to_entry( Key, ListToConcat, MapHashtable )
+  when is_list( ListToConcat ) ->
 
 	case lookup_entry( Key, MapHashtable ) of
 
@@ -928,7 +932,8 @@ concat_to_entry( Key, ListToConcat, MapHashtable ) when is_list( ListToConcat ) 
 % If a key does not already exist, it will be created and associated to the
 % specified list (as if beforehand the key was associated to an empty list)
 %
-% Ex: concat_list_to_entries( [ { hello, [ 1, 2 ] }, { world, [ 4 ] } ], MyTable ).
+% Ex: concat_list_to_entries( [ { hello, [ 1, 2 ] }, { world, [ 4 ] } ],
+%                             MyTable ).
 %
 -spec concat_list_to_entries( list_table:list_table(), map_hashtable() ) ->
 								 map_hashtable().

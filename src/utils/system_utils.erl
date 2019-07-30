@@ -2236,6 +2236,7 @@ get_current_directory_string() ->
 					   [ file_utils:get_current_directory() ] )
 
 	catch _AnyClass:Exception ->
+
 			io_lib:format( "no information about the current directory "
 						   "could be obtained (~p)", [ Exception ] )
 
