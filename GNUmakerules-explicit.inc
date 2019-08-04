@@ -383,19 +383,20 @@ rebar3-application: set-base-rebar-conf rebar3-clean
 rebar3-release: rebar3-development-release
 
 
-# If making a rebar application or release:
+# If making a rebar application or release, a symlink will suffice:
 set-base-rebar-conf:
 	@echo "  Setting rebar base configuration"
-	@ln -sf conf/rebar.config
+	@/bin/rm -f rebar.config 2>/dev/null
+	@cd conf && $(MAKE) -s rebar.config && cd .. && ln -sf conf/rebar.config
 
 
 # If publishing an hex package (conf/ not included in the package, hence no
-# symlink shall point to it, hence a copy of rebar configuration file):
+# symlink shall point to it, hence an actual copy of rebar configuration file):
 #
 set-hex-rebar-conf:
 	@echo "  Setting rebar hex configuration"
 	@/bin/rm -f rebar.config 2>/dev/null
-	@/bin/cp -f conf/rebar-for-hex.config ./rebar.config
+	@cd conf && $(MAKE) -s rebar-for-hex.config && /bin/cp -f rebar-for-hex.config ../rebar.config
 
 
 # A symlink or a copy (in the case of hex):
@@ -549,13 +550,16 @@ rebar3-info:
 
 # - a correct, non-template, src/$(REBAR3_PROJECT_NAME).app.src is needed
 
+# To publish a package, 'rebar3 hex user auth' is expected to have been executed
+# at least once on the publishing computer.
+#
 rebar3-hex-publish: set-hex-rebar-conf rebar3-clean clean rebar3-create-app-file
 	@/bin/cp -f $(REBAR_BUILD_BASE)/ebin/$(REBAR3_PROJECT_NAME).app src/$(REBAR3_PROJECT_NAME).app.src
 	@mkdir -p priv/hex-packaging/{root,doc}
 	@/bin/cp -f $(MYRIAD_TOP)/conf/hex-compile-hook-script.sh priv/hex-packaging/
 	@/bin/cp -f GNUmake* priv/hex-packaging/root
 	@/bin/cp -f doc/GNUmake* priv/hex-packaging/doc
-	@rebar3 hex publish
+	@$(REBAR_DEBUG) rebar3 hex publish
 	@/bin/rm -rf priv/
 	@/bin/rm -f src/$(REBAR3_PROJECT_NAME).app.src
 	@$(MAKE) -s rebar3-clean
