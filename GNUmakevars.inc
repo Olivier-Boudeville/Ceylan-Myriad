@@ -16,7 +16,9 @@ ifndef REBAR3_PROJECT_NAME
 endif
 
 
+# For all uses, including rebar:
 MYRIAD_VERSION := 1.0.7
+
 
 # PROJECT_VERSION should be defined on a per-project basis.
 ifndef PROJECT_VERSION
@@ -1054,8 +1056,8 @@ endif
 # Release settings.
 
 
-REBAR_DEBUG :=
-#REBAR_DEBUG := DEBUG=1
+#REBAR_DEBUG :=
+REBAR_DEBUG := DEBUG=1
 
 
 ifndef REBAR_BUILD_ROOT
@@ -1099,6 +1101,24 @@ ifndef REBAR3_FIND_SRC_OPT
 	endif
 
 endif
+
+
+# Results of the filling of corresponding templates:
+REBAR_CONF_FILES := rebar.config             \
+					rebar-for-hex.config     \
+					rebar-for-testing.config
+
+
+REBAR_TEST_DIR := /tmp
+
+
+# To install rebar3: https://github.com/erlang/rebar3#getting-started
+#
+# Typically obtained thanks to : mkdir -p ~/Software && cd ~/Software && git
+# clone https://github.com/erlang/rebar3.git && cd rebar3 && ./bootstrap
+#
+REBAR_3_EXEC = $$(which rebar3 2>/dev/null)
+
 
 
 # Verification settings.

@@ -29,7 +29,6 @@
 # that are not pleasing to the eye.
 
 
-
 # We must first go into the directory in which the source of the parse transform
 # lies, otherwise the BEAM file will be created on the current (ex: root)
 # directory:

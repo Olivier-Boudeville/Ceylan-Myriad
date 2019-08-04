@@ -20,7 +20,9 @@
 			  rebar3-production-release                                        \
 			  rebar3-compile rebar3-create-tree rebar3-populate-build-tree     \
 			  rebar3-create-app-file rebar3-copy-beams                         \
-			  rebar3-clean rebar3-real-clean rebar3-info rebar3-hex-publish    \
+			  rebar3-clean rebar3-real-clean rebar-test-clean                  \
+			  rebar3-cache-clean rebar3-info rebar3-hex-publish                \
+			  test-hex-package                                                 \
 			  generate-list-of-erlang-types generate-list-of-local-types       \
 			  generate-local-plt self-check-against-plt write-debug-key-file   \
 			  check check-hook help-erl                                        \
@@ -49,6 +51,9 @@ all: all-pre-hook all-parse-transforms
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && \
 		$(MAKE) -s all-recurse -j $(CORE_COUNT) && cd .. ; else echo "     (directory $$m skipped)" ; \
 	fi ) ; then exit 1; fi ; done
+
+clean:
+	-@/bin/rm -f $(REBAR_CONF_FILES)
 
 else
 
@@ -511,9 +516,23 @@ rebar3-clean:
 	-@/bin/rm -rf $(REBAR_BUILD_BASE) 2>/dev/null
 
 
-rebar3-real-clean:
+rebar3-real-clean: rebar-test-clean rebar3-cache-clean
 	@echo "  Removing any prior rebar3 build root ($(REBAR_BUILD_ROOT)), hence for all profiles"
 	-@/bin/rm -rf $(REBAR_BUILD_ROOT)
+
+
+rebar-test-clean:
+	@echo  "  Cleaning rebar3+hex test directory $(REBAR_TEST_DIR)"
+	-@/bin/rm -rf $(REBAR_TEST_DIR)/_build
+	-@/bin/rm -f $(REBAR_TEST_DIR)/rebar.lock
+
+
+# Otherwise could reuse wrong cached versions (ex: 1.O.6.tar instead of
+# 1.0.7.tar), or a former version of a recently-submitted package:
+#
+rebar3-cache-clean:
+	@echo "  Removing rebar3 cache for $(REBAR3_PROJECT_NAME)"
+	-@/bin/rm -f $$HOME/.cache/rebar3/hex/hexpm/packages/$(REBAR3_PROJECT_NAME)-*
 
 
 rebar3-info:
@@ -523,6 +542,9 @@ rebar3-info:
 	@echo "REBAR_BUILD_DIR = $(REBAR_BUILD_DIR)"
 	@echo "REBAR3_FIND_SRC_EXCLUDES = $(REBAR3_FIND_SRC_EXCLUDES)"
 	@echo "REBAR3_FIND_SRC_OPT = $(REBAR3_FIND_SRC_OPT)"
+	@echo "REBAR_TEST_DIR = $(REBAR_TEST_DIR)"
+	@echo "REBAR_3_EXEC = $(REBAR_3_EXEC)"
+	@echo "VERSION_FOR_REBAR3 = $(VERSION_FOR_REBAR3)"
 
 
 # Changes have to be applied for hex packages, which are very different from
@@ -534,22 +556,22 @@ rebar3-info:
 # as an hex dependency) shows notably that a
 # ~/.cache/rebar3/hex/hexpm/packages/myriad-x.y.z.tar file is downloaded, which
 # contains the VERSION, CHECKSUM, metadata.config and contents.tar.gz files.
-
+#
 # This last archive shows that the whole Myriad source tree is preserved, in its
 # original, nested form, except for the root GNUmake* files (as a result, no
 # rebar3 _build tree is used at all). So Myriad should copy them in priv/ and
 # the compile hook is to copy them from priv/ to the root of the extracted
 # package build tree.
-
+#
 # So, apparently:
-
+#
 # - a temporary priv/ is to be used
-
+#
 # - BEAMs shall not be included in the archive, as hex packages are source
 #   containers, not binary ones
-
+#
 # - a correct, non-template, src/$(REBAR3_PROJECT_NAME).app.src is needed
-
+#
 # To publish a package, 'rebar3 hex user auth' is expected to have been executed
 # at least once on the publishing computer.
 #
@@ -565,6 +587,11 @@ rebar3-hex-publish: set-hex-rebar-conf rebar3-clean clean rebar3-create-app-file
 	@$(MAKE) -s rebar3-clean
 	@$(MAKE) -s remove-rebar-conf
 
+
+test-hex-package: clean-for-rebar rebar-for-testing.config
+	@echo "  Testing $(PROJECT_NAME) hex package ('$(REBAR3_PROJECT_NAME)' package, version $(VERSION_FOR_REBAR3)) in $(REBAR_TEST_DIR) using $(REBAR_3_EXEC)"
+	@/bin/cp -f rebar-for-testing.config $(REBAR_TEST_DIR)/rebar.config
+	@cd $(REBAR_TEST_DIR) && $(REBAR_3_EXEC) update && $(REBAR_3_EXEC) compile
 
 
 # Allows to generate a file listing all the types defined in the specified

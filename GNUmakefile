@@ -4,7 +4,7 @@ MYRIAD_TOP = .
 .PHONY: help help-intro help-myriad help-hints help-batch                     \
 		register-version-in-header register-myriad list-beam-dirs             \
 		add-prerequisite-plts prepare-base-plt add-erlhdf5-plt add-jsx-plt    \
-		add-sqlite3-plt link-plt clean-ast-outputs stats                      \
+		add-sqlite3-plt link-plt clean-rebar clean-ast-outputs stats          \
 		info-paths info-settings info-compile info-parse-transform info-check
 
 
@@ -28,7 +28,6 @@ include $(MYRIAD_TOP)/GNUmakesettings.inc
 # may have to be taken into account, and have already started feeding PLT_FILE:
 #
 BASE_PLT := $(PLT_FILE)
-
 
 
 
@@ -107,7 +106,9 @@ link-plt:
 	@/bin/ln -s --force $(PLT_FILE) $(MYRIAD_PLT_FILE)
 
 
-clean:
+clean: clean-rebar
+
+clean-rebar:
 	-@/bin/rm -f rebar.config
 	-@/bin/rm -rf priv/
 
