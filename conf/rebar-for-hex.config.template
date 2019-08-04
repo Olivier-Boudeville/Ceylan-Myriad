@@ -2,6 +2,9 @@
 % an hex package* (ex: in this case only src/ is packaged, and none of the root
 % GNUmake* files), so that Ceylan-Myriad can better integrate in the current OTP
 % ecosystem, despite its (more complex) build based on GNU make.
+%
+% This is also a template, so that version numbers can be updated from a
+% centralized place (namely GNUmakevars.inc).
 
 
 % Base layout was obtained thanks to: 'rebar3 new lib myriad', as Myriad is a

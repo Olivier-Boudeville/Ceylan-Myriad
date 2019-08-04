@@ -48,7 +48,7 @@ find src -name '*_test.erl' -exec /bin/cp -f '{}' test/ ';' || exit 35
 # OTP conventions:
 /bin/cp -f src/${guessed_package_name}.app.src ebin/${guessed_package_name}.app || exit 40
 
-echo "  Successful end of hex compile hook script for ${guessed_package_name}"
+echo "  Successful end of hex compile hook script for ${guessed_package_name}, in $(pwd)"
 
 # Hides the source files, otherwise rebar will attempt to recompile them (reason
 # unclear) and fail:

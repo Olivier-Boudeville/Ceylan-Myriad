@@ -1,26 +1,18 @@
 % This is a (manually crafted) configuration file of rebar3, so that
-% Ceylan-Myriad can better integrate in the current OTP ecosystem, despite its
-% (more complex) build based on GNU make.
+% Ceylan-Myriad can be directly tested separately (i.e. without needing to
+% install upper layers, i.e. software depending on it): emulates a user of the
+% Myriad library.
+%
+% This is also a template, so that version numbers can be updated from a
+% centralized place (namely GNUmakevars.inc).
 
-
-% Base layout was obtained thanks to: 'rebar3 new lib myriad', as Myriad is a
-% library OTP application (without supervision trees).
-
-% To be run from the library root as 'rebar3 compile' or 'rebar3 release'.
-
-
-% See also:
-% - http://erlang.org/doc/design_principles/release_structure.html
-% - https://www.rebar3.org/docs/releases
-% - https://learnyousomeerlang.com/release-is-the-word
+% To be run from the 'conf' directory, using the 'test-myriad-otp' target.
 
 
 
 % Settings for the 'default' profile follow.
 
-
-% No dependency (except Erlang of course):
-{deps, []}.
+{deps, [ {myriad, "VERSION_FOR_REBAR3"} ]}.
 
 
 % We need to rely on our dedicated build procedure (ex: for the parse transforms
