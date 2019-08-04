@@ -107,6 +107,11 @@ link-plt:
 	@/bin/ln -s --force $(PLT_FILE) $(MYRIAD_PLT_FILE)
 
 
+clean:
+	-@/bin/rm -f rebar.config
+	-@/bin/rm -rf priv/
+
+
 # Removes the text files that may be spit by the myriad parse transform for
 # debugging purposes:
 #
