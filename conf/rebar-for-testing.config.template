@@ -6,7 +6,7 @@
 % This is also a template, so that version numbers can be updated from a
 % centralized place (namely GNUmakevars.inc).
 
-% To be run from the 'conf' directory, using the 'test-myriad-otp' target.
+% To be run from the 'conf' directory, using the 'test-hex-package' target.
 
 
 

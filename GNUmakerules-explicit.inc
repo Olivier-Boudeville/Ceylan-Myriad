@@ -52,8 +52,11 @@ all: all-pre-hook all-parse-transforms
 		$(MAKE) -s all-recurse -j $(CORE_COUNT) && cd .. ; else echo "     (directory $$m skipped)" ; \
 	fi ) ; then exit 1; fi ; done
 
+
 clean:
-	-@/bin/rm -f $(REBAR_CONF_FILES)
+	-@/bin/rm -f rebar.config
+	-@/bin/rm -rf _build/
+
 
 else
 

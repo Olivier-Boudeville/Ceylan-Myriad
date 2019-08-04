@@ -9,8 +9,8 @@ MYRIAD_TOP = .
 
 
 
-#MODULES_DIRS = contrib src doc
-MODULES_DIRS = src doc
+#MODULES_DIRS = contrib src doc conf
+MODULES_DIRS = src doc conf
 
 
 # To override the 'all' default target with a parallel version:
@@ -105,12 +105,6 @@ add-sqlite3-plt:
 link-plt:
 	@/bin/ln -s --force $(PLT_FILE) $(MYRIAD_PLT_FILE)
 
-
-clean: clean-rebar
-
-clean-rebar:
-	-@/bin/rm -f rebar.config
-	-@/bin/rm -rf priv/
 
 
 # Removes the text files that may be spit by the myriad parse transform for

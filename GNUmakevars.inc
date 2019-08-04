@@ -26,7 +26,9 @@ ifndef PROJECT_VERSION
 endif
 
 
-# Name intentionally does not include the current layer, for more generic rules:
+# Variable name intentionally not including the current layer, for more generic
+# rules:
+
 ifndef VERSION_FOR_REBAR3
 	VERSION_FOR_REBAR3 := $(PROJECT_VERSION)
 endif
