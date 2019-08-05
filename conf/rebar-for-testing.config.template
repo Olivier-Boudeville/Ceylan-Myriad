@@ -6,7 +6,12 @@
 % This is also a template, so that version numbers can be updated from a
 % centralized place (namely GNUmakevars.inc).
 
-% To be run from the 'conf' directory, using the 'test-hex-package' target.
+% To be run through the 'test-hex-package' make target.
+%
+
+% Note that this testing relates just to the ability of bringing up the
+% specified Myriad version as a dependency; there is no actual test involved,
+% i.e. no depending sources that would make use here of Myriad.
 
 
 
@@ -15,16 +20,17 @@
 {deps, [ {myriad, "VERSION_FOR_REBAR3"} ]}.
 
 
-% We need to rely on our dedicated build procedure (ex: for the parse transforms
-% involved):
-%
-% Could not set REBAR_PROFILE=$(REBAR_PROFILE):
+
+% Nothing below applies, as this testing just targets to trigger the build of
+% Myriad, not of specific tests making use of it:
 %
 %{pre_hooks, [ {compile, "make -s rebar3-info"} ]}.
-{pre_hooks, [ {compile, "make -s rebar3-compile"} ]}.
+%{pre_hooks, [ {compile, "make -s rebar3-compile"} ]}.
+%{pre_hooks, [ {compile, "priv/hex-packaging/hex-compile-hook-script.sh"} ]}.
+{pre_hooks, [ {compile, "echo 'Myriad testing pre-compile hook!'"} ]}.
 
-%{post_hooks, [
-%	{compile, "echo 'Myriad post-compile hook!'"} ]}.
+{post_hooks, [
+	{compile, "echo 'Myriad testing post-compile hook!'"} ]}.
 
 
 

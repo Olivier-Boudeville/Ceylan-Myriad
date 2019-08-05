@@ -17,7 +17,7 @@ endif
 
 
 # For all uses, including rebar:
-MYRIAD_VERSION := 1.0.7
+MYRIAD_VERSION := 1.0.8
 
 
 # PROJECT_VERSION should be defined on a per-project basis.
@@ -1058,8 +1058,8 @@ endif
 # Release settings.
 
 
-#REBAR_DEBUG :=
-REBAR_DEBUG := DEBUG=1
+REBAR_DEBUG :=
+#REBAR_DEBUG := DEBUG=1
 
 
 ifndef REBAR_BUILD_ROOT

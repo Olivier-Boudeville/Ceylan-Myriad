@@ -17,7 +17,7 @@
 			  install-doc info-install info-install-locations                  \
 			  info-install-content                                             \
 			  rebar3-application rebar3-release rebar3-development-release     \
-			  rebar3-production-release                                        \
+			  rebar3-production-release rebar3-update                          \
 			  rebar3-compile rebar3-create-tree rebar3-populate-build-tree     \
 			  rebar3-create-app-file rebar3-copy-beams                         \
 			  rebar3-clean rebar3-real-clean rebar-test-clean                  \
@@ -381,7 +381,7 @@ info-install-content:
 # whereas a newer one was specified), so we remove it when appropriate.
 
 
-rebar3-application: set-base-rebar-conf rebar3-clean
+rebar3-application: rebar3-clean rebar3-update set-base-rebar-conf
 	@echo "  Triggering the overall creation by rebar3 of an OTP application corresponding to $(PROJECT_NAME)"
 	-@/bin/rm -f rebar.lock 2>/dev/null
 	@$(REBAR_DEBUG) rebar3 compile
@@ -407,14 +407,14 @@ set-hex-rebar-conf:
 	@cd conf && $(MAKE) -s rebar-for-hex.config && /bin/cp -f rebar-for-hex.config ../rebar.config
 
 
-# A symlink or a copy (in the case of hex):
+# Either a symlink or a copy (in the case of hex):
 remove-rebar-conf:
 	@echo "  Removing rebar configuration"
 	@/bin/rm -f rebar.config
 
 
 # Default is development:
-rebar3-development-release: set-base-rebar-conf rebar3-clean
+rebar3-development-release: rebar3-clean rebar3-update set-base-rebar-conf
 	@echo "  Triggering the overall creation by rebar3 of a (relx-based) development release corresponding to $(PROJECT_NAME)"
 	@$(REBAR_DEBUG) rebar3 release
 	@$(MAKE) -s remove-rebar-conf
@@ -423,12 +423,19 @@ rebar3-development-release: set-base-rebar-conf rebar3-clean
 # Supposedly more functional/flexible than 'rebar3 release -d false' or 'rebar3
 # release -n prod':
 #
-rebar3-production-release: set-base-rebar-conf rebar3-clean
+rebar3-production-release: rebar3-clean rebar3-update set-base-rebar-conf
 	@echo "  Triggering the overall creation by rebar3 of a (relx-based) production release corresponding to $(PROJECT_NAME)"
 	@$(REBAR_DEBUG) rebar3 as prod release
 	@$(MAKE) -s remove-rebar-conf
 
 
+# Needed to update local package information according to (server-side) hex,
+# otherwise rebar will stick to obsolve package versions (ex: if having just
+# published a new version of a dependency)
+#
+rebar3-update:
+	@echo "  Updating rebar (hex package repository)"
+	@$(REBAR_DEBUG) rebar3 update
 
 
 # Targets called by hooks specified to rebar3 through the rebar.config file:
@@ -532,6 +539,7 @@ rebar-test-clean:
 
 # Otherwise could reuse wrong cached versions (ex: 1.O.6.tar instead of
 # 1.0.7.tar), or a former version of a recently-submitted package:
+# (actually triggering the rebar3-update target should suffice)
 #
 rebar3-cache-clean:
 	@echo "  Removing rebar3 cache for $(REBAR3_PROJECT_NAME)"
@@ -578,7 +586,7 @@ rebar3-info:
 # To publish a package, 'rebar3 hex user auth' is expected to have been executed
 # at least once on the publishing computer.
 #
-rebar3-hex-publish: set-hex-rebar-conf rebar3-clean clean rebar3-create-app-file
+rebar3-hex-publish: rebar3-clean clean set-hex-rebar-conf rebar3-create-app-file
 	@/bin/cp -f $(REBAR_BUILD_BASE)/ebin/$(REBAR3_PROJECT_NAME).app src/$(REBAR3_PROJECT_NAME).app.src
 	@mkdir -p priv/hex-packaging/{root,doc}
 	@/bin/cp -f $(MYRIAD_TOP)/conf/hex-compile-hook-script.sh priv/hex-packaging/
@@ -591,9 +599,9 @@ rebar3-hex-publish: set-hex-rebar-conf rebar3-clean clean rebar3-create-app-file
 	@$(MAKE) -s remove-rebar-conf
 
 
-test-hex-package: clean-for-rebar rebar-for-testing.config
+test-hex-package: rebar-test-clean
 	@echo "  Testing $(PROJECT_NAME) hex package ('$(REBAR3_PROJECT_NAME)' package, version $(VERSION_FOR_REBAR3)) in $(REBAR_TEST_DIR) using $(REBAR_3_EXEC)"
-	@/bin/cp -f rebar-for-testing.config $(REBAR_TEST_DIR)/rebar.config
+	@cd conf && $(MAKE) -s rebar-for-testing.config && /bin/cp -f rebar-for-testing.config $(REBAR_TEST_DIR)/rebar.config
 	@cd $(REBAR_TEST_DIR) && $(REBAR_3_EXEC) update && $(REBAR_3_EXEC) compile
 
 
