@@ -1,6 +1,14 @@
 # Prerequisite: MYRIAD_TOP must be set.
 
 
+# Useful to target for example the root of the current layer (ex: to locate the
+# relevant, layer-local '_build' directory):
+#
+ifndef LAYER_TOP
+	   LAYER_TOP := $(MYRIAD_TOP)
+endif
+
+
 # Project section.
 
 
@@ -1062,9 +1070,11 @@ REBAR_DEBUG :=
 #REBAR_DEBUG := DEBUG=1
 
 
+# Relative to the usual root of this layer:
 ifndef REBAR_BUILD_ROOT
 	   REBAR_BUILD_ROOT := _build
 endif
+
 
 # Default profile:
 
@@ -1079,6 +1089,10 @@ endif
 ifndef REBAR_BUILD_DIR
 	   REBAR_BUILD_DIR := $(REBAR_BUILD_ROOT)/$(REBAR_PROFILE)
 endif
+
+
+MYRIAD_REBAR_BUILD_BASE := $(REBAR_BUILD_DIR)/lib/myriad
+
 
 ifndef REBAR_BUILD_BASE
 	   REBAR_BUILD_BASE := $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)
