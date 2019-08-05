@@ -49,7 +49,8 @@
 %
 {relx, [
 
-  {release, {myriad_release, {cmd, "cat GNUmakevars.inc | grep 'MYRIAD_VERSION := '| sed 's|^MYRIAD_VERSION := ||1' | tr -d '\n'"}}, [sasl, myriad]},
+  {release, {myriad_release, {cmd, "cat GNUmakevars.inc | grep 'MYRIAD_VERSION := '| sed 's|^MYRIAD_VERSION := ||1' | tr -d '\n'"}},
+			[sasl, myriad]},
 
   %{sys_config, "./config/sys.config"},
   %{vm_args, "./config/vm.args"},
@@ -69,7 +70,8 @@
   {prod, [ {relx, [
 
 	% Same as default profile:
-	{release, {myriad_release, {cmd, "cat GNUmakevars.inc | grep 'MYRIAD_VERSION := '|sed 's|^MYRIAD_VERSION := ||1' | tr -d '\n'"}}, [sasl, myriad]},
+	{release, {myriad_release, {cmd, "cat GNUmakevars.inc | grep 'MYRIAD_VERSION := '|sed 's|^MYRIAD_VERSION := ||1' | tr -d '\n'"}},
+			  [sasl, myriad]},
 
 	% For the build makefiles:
 	{env, [ { 'REBAR_PROFILE', "prod" } ] },
@@ -83,7 +85,7 @@
 	{extended_start_script, true},
 	{include_src, false}
 
-	]}]
+  ]}]
 
 }] }.
 

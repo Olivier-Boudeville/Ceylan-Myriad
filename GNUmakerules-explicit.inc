@@ -381,14 +381,14 @@ info-install-content:
 # whereas a newer one was specified), so we remove it when appropriate.
 
 
-rebar3-application: rebar3-clean rebar3-update set-base-rebar-conf
+rebar3-application: rebar3-real-clean clean rebar3-update set-base-rebar-conf
 	@echo "  Triggering the overall creation by rebar3 of an OTP application corresponding to $(PROJECT_NAME)"
 	-@/bin/rm -f rebar.lock 2>/dev/null
 	@$(REBAR_DEBUG) rebar3 compile
 	@$(MAKE) -s remove-rebar-conf
 
 
-rebar3-release: rebar3-development-release
+rebar3-release: rebar3-real-clean clean rebar3-development-release
 
 
 # If making a rebar application or release, a symlink will suffice:
@@ -543,7 +543,8 @@ rebar-test-clean:
 #
 rebar3-cache-clean:
 	@echo "  Removing rebar3 cache for $(REBAR3_PROJECT_NAME)"
-	-@/bin/rm -f $$HOME/.cache/rebar3/hex/hexpm/packages/$(REBAR3_PROJECT_NAME)-*
+	@# Wiping dependencies and all as well: @/bin/rm -f $$HOME/.cache/rebar3/hex/hexpm/packages/$(REBAR3_PROJECT_NAME)-*
+	-@/bin/rm -f $$HOME/.cache/rebar3/hex/hexpm/packages/*
 
 
 rebar3-info:
