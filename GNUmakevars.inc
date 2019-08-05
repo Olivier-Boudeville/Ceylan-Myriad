@@ -24,8 +24,8 @@ ifndef REBAR3_PROJECT_NAME
 endif
 
 
-# For all uses, including rebar:
-MYRIAD_VERSION := 1.0.8
+# The uniquely-defined version of this layer, for all uses including rebar:
+MYRIAD_VERSION := 1.0.9
 
 
 # PROJECT_VERSION should be defined on a per-project basis.
@@ -964,11 +964,12 @@ endif
 # as, otherwise, as soon as a process changes the current working directory, any
 # further loading of a user-defined module, for example if used then for the
 # first time, would fail).
-BEAM_PATH_OPT := $(foreach dir,$(BEAM_DIRS),--beam-dir $$(pwd)/$(dir)) \
+#
+BEAM_PATH_OPT = $(foreach dir,$(BEAM_DIRS),--beam-dir $$(pwd)/$(dir)) \
 				 $(foreach dir,$(ABS_BEAM_DIRS),--beam-dir $(dir))
 
 
-OVERALL_PZ_OPT := $(foreach dir,$(BEAM_DIRS),-pz $(dir))
+OVERALL_PZ_OPT = $(foreach dir,$(BEAM_DIRS),-pz $(dir))
 
 
 # Increases the distribution buffer busy limit (default is 1024):
@@ -1014,9 +1015,11 @@ ERL_PARAMETERIZED_LAUNCHER = $(ERL_LAUNCHER) $(FQDN_OPT) $(FIREWALL_OPT)  \
 # (use net_utils:get_node_naming_mode/0 to detect the naming mode at runtime)
 #
 ifndef NODE_NAMING
-  NODE_NAMING="--ln"
-  #NODE_NAMING="--sn"
-  #NODE_NAMING="--nn"
+
+  NODE_NAMING = "--ln"
+  #NODE_NAMING = "--sn"
+  #NODE_NAMING = "--nn"
+
 endif
 
 
@@ -1091,7 +1094,7 @@ ifndef REBAR_BUILD_DIR
 endif
 
 
-MYRIAD_REBAR_BUILD_BASE := $(REBAR_BUILD_DIR)/lib/myriad
+MYRIAD_REBAR_BUILD_BASE = $(REBAR_BUILD_DIR)/lib/myriad
 
 
 ifndef REBAR_BUILD_BASE

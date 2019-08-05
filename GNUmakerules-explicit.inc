@@ -557,6 +557,8 @@ rebar3-info:
 	@echo "REBAR_TEST_DIR = $(REBAR_TEST_DIR)"
 	@echo "REBAR_3_EXEC = $(REBAR_3_EXEC)"
 	@echo "VERSION_FOR_REBAR3 = $(VERSION_FOR_REBAR3)"
+	@echo "MYRIAD_REBAR_BUILD_BASE = $(MYRIAD_REBAR_BUILD_BASE)"
+	@echo "MYRIAD_OTP_BEAM_DIR_FROM_USUAL = $(MYRIAD_OTP_BEAM_DIR_FROM_USUAL)"
 
 
 # Changes have to be applied for hex packages, which are very different from
