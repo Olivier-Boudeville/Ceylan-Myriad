@@ -379,8 +379,7 @@ info-install-content:
 # Apparently, a pre-existing rebar.lock file might cause version dependencies
 # not to be respected (ex: sticking to an older hex version of a dependency,
 # whereas a newer one was specified), so we remove it when appropriate.
-
-
+#
 rebar3-application: rebar3-real-clean clean rebar3-update set-base-rebar-conf
 	@echo "  Triggering the overall creation by rebar3 of an OTP application corresponding to $(PROJECT_NAME)"
 	-@/bin/rm -f rebar.lock 2>/dev/null
@@ -416,6 +415,7 @@ remove-rebar-conf:
 # Default is development:
 rebar3-development-release: rebar3-clean rebar3-update set-base-rebar-conf
 	@echo "  Triggering the overall creation by rebar3 of a (relx-based) development release corresponding to $(PROJECT_NAME)"
+	-@/bin/rm -f rebar.lock 2>/dev/null
 	@$(REBAR_DEBUG) rebar3 release
 	@$(MAKE) -s remove-rebar-conf
 
@@ -425,6 +425,7 @@ rebar3-development-release: rebar3-clean rebar3-update set-base-rebar-conf
 #
 rebar3-production-release: rebar3-clean rebar3-update set-base-rebar-conf
 	@echo "  Triggering the overall creation by rebar3 of a (relx-based) production release corresponding to $(PROJECT_NAME)"
+	-@/bin/rm -f rebar.lock 2>/dev/null
 	@$(REBAR_DEBUG) rebar3 as prod release
 	@$(MAKE) -s remove-rebar-conf
 
@@ -588,6 +589,9 @@ rebar3-info:
 #
 # To publish a package, 'rebar3 hex user auth' is expected to have been executed
 # at least once on the publishing computer.
+#
+# We thought that rebar.lock could/should be removed before publishing a
+# package, however it is a direct by-product of 'rebar3 hex publish'.
 #
 rebar3-hex-publish: rebar3-clean clean set-hex-rebar-conf rebar3-create-app-file
 	@/bin/cp -f $(REBAR_BUILD_BASE)/ebin/$(REBAR3_PROJECT_NAME).app src/$(REBAR3_PROJECT_NAME).app.src
