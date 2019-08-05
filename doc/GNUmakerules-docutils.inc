@@ -224,7 +224,7 @@ create-doc: regenerate-doc clean-doc-repository make-doc-repository
 	@echo "     Generating full (PDF) documentation from \
 	$(OVERALL_DOCUMENT_SOURCE) in $(TMP_RST_REPOSITORY)  \
 	(log in $(GENERATOR_LOG_FILE))"
-	@$(MAKE) $(TMP_RST_REPOSITORY)/$(OVERALL_DOCUMENT_TARGET) 2>&1 | \
+	@$(MAKE) -s $(TMP_RST_REPOSITORY)/$(OVERALL_DOCUMENT_TARGET) 2>&1 | \
 	tee $(GENERATOR_LOG_FILE)
 
 
