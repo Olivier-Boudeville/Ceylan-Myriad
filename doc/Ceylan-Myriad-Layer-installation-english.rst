@@ -199,3 +199,27 @@ For more details, one may have a look at:
 - `rebar.config.template <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/rebar.config.template>`_, the general rebar configuration file used when generating the Myriad OTP application and release
 - `rebar-for-hex.config.template <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/rebar-for-hex.config.template>`_, to generate a corresponding Hex package for Myriad (whose structure and conventions is quite different from the previous OTP elements)
 - `rebar-for-testing.config.template <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/rebar-for-testing.config.template>`_, the simplest test of the previous Hex package: an empty rebar project having for sole dependency that Hex package
+
+
+Other OTP-related Make Target of Interest
+-----------------------------------------
+
+To populate the OTP build tree (by default, from the GIT root, ``_build/default/lib/myriad/``)::
+
+ $ make rebar3-compile
+
+To publish an Hex package (once the proper version number has been set in ``GNUmakevars.inc``, see ``MYRIAD_VERSION``)::
+
+ $ make rebar3-hex-publish
+
+
+To test such a package::
+
+ $ make test-hex-package
+
+
+To populate directly the OTP local build tree with the Ceylan dependencies located alongside the current install (not useful for Myriad - which depends on none, but useful for upper layers) rather than fetching them through Hex (otherwise may more Hex packages would have to be published for testing during development)::
+
+ $ make rebar3-local-update
+
+Many more targets are defined in `GNUmakerules-explicit.inc <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/GNUmakerules-explicit.inc>`_.
