@@ -22,6 +22,7 @@
 			  rebar3-create-app-file rebar3-copy-beams                         \
 			  rebar3-clean rebar3-real-clean rebar-test-clean                  \
 			  rebar3-cache-clean rebar3-info rebar3-hex-publish                \
+			  rebar3-local-update                                              \
 			  test-hex-package                                                 \
 			  generate-list-of-erlang-types generate-list-of-local-types       \
 			  generate-local-plt self-check-against-plt write-debug-key-file   \
@@ -604,6 +605,10 @@ rebar3-hex-publish: rebar3-clean clean set-hex-rebar-conf rebar3-create-app-file
 	@/bin/rm -f src/$(REBAR3_PROJECT_NAME).app.src
 	@$(MAKE) -s rebar3-clean
 	@$(MAKE) -s remove-rebar-conf
+
+
+# Nothing to dofor Myriad, not having dependency:
+rebar3-local-update:
 
 
 test-hex-package: rebar-test-clean
