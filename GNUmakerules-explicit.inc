@@ -432,7 +432,7 @@ rebar3-production-release: rebar3-clean rebar3-update set-base-rebar-conf
 
 
 # Needed to update local package information according to (server-side) hex,
-# otherwise rebar will stick to obsolve package versions (ex: if having just
+# otherwise rebar will stick to obsolete package versions (ex: if having just
 # published a new version of a dependency)
 #
 rebar3-update:
@@ -443,10 +443,10 @@ rebar3-update:
 # Targets called by hooks specified to rebar3 through the rebar.config file:
 
 
-# This overall target is called (thanks to a pre-hook) when running: 'rebar3
-# compile'
+# This overall target is called (thanks to a pre-hook) when running directly 'rebar3
+# compile' or indirectly (ex: 'rebar3 release')
 #
-# (note: we copy sources before compiling and copying BEAM files so that rebar3
+# (note: we copy sources before compiling and copying BEAM files, so that rebar3
 # will not try to recompile modules by itself)
 #
 rebar3-compile:
@@ -457,12 +457,15 @@ rebar3-compile:
 # See for more information:
 # http://erlang.org/doc/design_principles/applications.html#directory-structure
 #
-# Note: we now create a symlink directly pointing to the real 'src' tree,
-# instead of copying the source files as a whole in the build tree. It is almost
-# mandatory, as the URL above tells us that this src directory in _build should
-# never be deeper than one level (whereas we have more levels than that), and
-# apparently if rebar3 is not able to locate, for an ebin/ X.beam, a X.erl, it
-# will attempt to recompile it (and obviously fail).
+
+# Note: we now create a symlink directly pointing to the real 'src' tree (most
+# probably useless, as rebar creates it by itself), instead of copying the
+# source files as a whole in the build tree. It is almost mandatory, as the URL
+# above tells us that this src directory in _build should never be deeper than
+# one level (whereas we have more levels than that), and apparently if rebar3 is
+# not able to locate, for an ebin/X.beam, a X.erl, it will attempt to recompile
+# it (and obviously fail).
+
 #
 # See https://www.rebar3.org/discuss/5d1c82951e0cbe00121f12db for more details.
 #
