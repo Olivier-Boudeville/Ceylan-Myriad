@@ -1139,6 +1139,32 @@ REBAR_TEST_DIR := /tmp
 REBAR_3_EXEC = $$(which rebar3 2>/dev/null)
 
 
+# Elements for the generation of rebar.config:
+
+# The modules to build first ('erl_first_files'):
+#
+
+# (the initial '../' are removed as this variable will be evaluated from the
+# 'conf' directory)
+#
+REBAR_FIRST_FILES = \"`echo $(patsubst ../%.beam,\"%.erl\",$(BOOTSTRAP_MODULES))|sed 's| |", "|g'`\"
+
+
+REBAR_INCS = {i,\"`echo $(patsubst -I../%,\"%\",$(INC))|sed 's| |"}, {i,"|g'`\"}
+
+
+# Some source files cannot be compiled in all cases (typically because they
+# depend on prerequisites that may or may not be installed).
+#
+# As rebar will attempt blindly to compile them, we have to hide these files
+#  whenever necessary.
+#
+UNSUPPORTED_SOURCES := src/data-management/sql_support.erl          \
+					   src/data-management/sql_support_test.erl     \
+					   src/data-management/hdf5_support.erl         \
+					   src/data-management/hdf5_support_test.erl    \
+					   src/data-management/raw_hdf5_test.erl
+
 
 # Verification settings.
 

@@ -5,8 +5,8 @@ MYRIAD_TOP = .
 		register-version-in-header register-myriad list-beam-dirs             \
 		add-prerequisite-plts prepare-base-plt add-erlhdf5-plt add-jsx-plt    \
 		add-sqlite3-plt link-plt clean-rebar clean-ast-outputs stats          \
-		info-paths info-settings info-compile info-parse-transform info-check
-
+		info-paths info-settings info-compile info-parse-transform info-check \
+		info-rebar3
 
 
 #MODULES_DIRS = contrib src doc conf
@@ -141,6 +141,7 @@ info-compile:
 	@echo "OVERALL_PZ_OPT = $(OVERALL_PZ_OPT)"
 	@echo "ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES = $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES)"
 	@echo "ERLANG_INTERPRETER = $(ERLANG_INTERPRETER)"
+	@echo "UNSUPPORTED_SOURCES = $(UNSUPPORTED_SOURCES)"
 
 
 info-parse-transform:
@@ -153,3 +154,11 @@ info-parse-transform:
 info-check:
 	@echo "DIALYZER = $(DIALYZER)"
 	@echo "DIALYZER_OPT = $(DIALYZER_OPT)"
+
+
+# Useful to extract information to be specified in a parallel rebar.config:
+info-rebar3:
+	@echo "BOOTSTRAP_MODULES = $(BOOTSTRAP_MODULES)"
+	@echo "INC = $(INC)"
+	@echo "REBAR3_FIND_SRC_EXCLUDES = $(REBAR3_FIND_SRC_EXCLUDES)"
+	@echo "REBAR3_FIND_SRC_OPT = $(REBAR3_FIND_SRC_OPT)"

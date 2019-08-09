@@ -17,10 +17,12 @@
 			  install-doc info-install info-install-locations                  \
 			  info-install-content                                             \
 			  rebar3-application rebar3-release rebar3-development-release     \
-			  rebar3-production-release rebar3-update                          \
-			  rebar3-compile rebar3-create-tree rebar3-populate-build-tree     \
-			  rebar3-create-app-file rebar3-copy-beams                         \
-			  rebar3-clean rebar3-real-clean rebar-test-clean                  \
+			  rebar3-production-release rebar3-hide-unsupported-sources        \
+              rebar3-restore-unsupported-sources                               \
+			  rebar3-update rebar3-compile rebar3-create-tree                  \
+			  rebar3-populate-build-tree rebar3-create-app-file                \
+			  rebar3-copy-beams rebar3-clean rebar3-real-clean                 \
+			  rebar-test-clean                                                 \
 			  rebar3-cache-clean rebar3-info rebar3-hex-publish                \
 			  rebar3-local-update                                              \
 			  test-hex-package                                                 \
@@ -381,14 +383,12 @@ info-install-content:
 # not to be respected (ex: sticking to an older hex version of a dependency,
 # whereas a newer one was specified), so we remove it when appropriate.
 #
-rebar3-application: rebar3-real-clean clean rebar3-update set-base-rebar-conf
+rebar3-application: rebar3-real-clean clean rebar3-update set-base-rebar-conf \
+					rebar3-hide-unsupported-sources
 	@echo "  Triggering the overall creation by rebar3 of an OTP application corresponding to $(PROJECT_NAME)"
 	-@/bin/rm -f rebar.lock 2>/dev/null
 	@$(REBAR_DEBUG) rebar3 compile
-	@$(MAKE) -s remove-rebar-conf
-
-
-rebar3-release: rebar3-real-clean clean rebar3-development-release
+	@$(MAKE) -s remove-rebar-conf rebar3-restore-unsupported-sources
 
 
 # If making a rebar application or release, a symlink will suffice:
@@ -396,6 +396,17 @@ set-base-rebar-conf:
 	@echo "  Setting rebar base configuration"
 	@/bin/rm -f rebar.config 2>/dev/null
 	@cd conf && $(MAKE) -s rebar.config && cd .. && ln -sf conf/rebar.config
+
+
+# Apparently no way of telling rebar to exclude some source files, so:
+rebar3-hide-unsupported-sources:
+	@echo "  Hiding unsupported sources"
+	@for f in $(UNSUPPORTED_SOURCES); do /bin/mv -f $$f $$f-hidden ; done
+
+
+rebar3-restore-unsupported-sources:
+	@echo "  Restoring unsupported sources"
+	@for f in $(UNSUPPORTED_SOURCES); do /bin/mv -f $$f-hidden $$f ; done
 
 
 # If publishing an hex package (conf/ not included in the package, hence no
@@ -413,22 +424,32 @@ remove-rebar-conf:
 	@/bin/rm -f rebar.config
 
 
-# Default is development:
-rebar3-development-release: rebar3-clean rebar3-update set-base-rebar-conf
-	@echo "  Triggering the overall creation by rebar3 of a (relx-based) development release corresponding to $(PROJECT_NAME)"
+
+# By default, development releases, not production:
+rebar3-release: rebar3-development-release
+
+
+pre-release: rebar3-real-clean clean rebar3-update set-base-rebar-conf \
+			 rebar3-hide-unsupported-sources
 	-@/bin/rm -f rebar.lock 2>/dev/null
+
+
+post-release: rebar3-restore-unsupported-sources remove-rebar-conf
+
+
+rebar3-development-release: pre-release
+	@echo "  Triggering the overall creation by rebar3 of a (relx-based) development release including $(PROJECT_NAME)"
 	@$(REBAR_DEBUG) rebar3 release
-	@$(MAKE) -s remove-rebar-conf
+	@$(MAKE) -s post-release
 
 
 # Supposedly more functional/flexible than 'rebar3 release -d false' or 'rebar3
 # release -n prod':
 #
-rebar3-production-release: rebar3-clean rebar3-update set-base-rebar-conf
-	@echo "  Triggering the overall creation by rebar3 of a (relx-based) production release corresponding to $(PROJECT_NAME)"
-	-@/bin/rm -f rebar.lock 2>/dev/null
+rebar3-production-release: pre-release
+	@echo "  Triggering the overall creation by rebar3 of a (relx-based) production release including $(PROJECT_NAME)"
 	@$(REBAR_DEBUG) rebar3 as prod release
-	@$(MAKE) -s remove-rebar-conf
+	@$(MAKE) -s post-release
 
 
 # Needed to update local package information according to (server-side) hex,
@@ -633,6 +654,26 @@ test-hex-package: rebar-test-clean
 #
 generate-list-of-erlang-types:
 	@if [ -z "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, no ERLANG_SOURCE_ROOT variable specified." ; exit 15 ; fi ; if [ ! -d "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, specified directory (ERLANG_SOURCE_ROOT=$$ERLANG_SOURCE_ROOT) does not exist." ; exit 16 ; fi ; target_file="declared-types-in-Erlang.txt" ; erl="$(ERLANG_INTERPRETER)" ; target_path=$$(echo $$erl|sed "s|/bin/erl$$|/$$target_file|1") ; echo "  Generating the list of types declared in the Erlang runtime..." &&  $(MYRIAD_TOP)/src/scripts/list-available-types.sh "$$ERLANG_SOURCE_ROOT" > $$target_path && echo "  Types have been collected in '$$target_path'."
+
+
+FAKE_OTP_ROOT := /tmp/ceylan-fake-otp-projects/$(REBAR3_PROJECT_NAME)
+
+# Section for newer OTP management: we create now automatically from our actual
+# source tree (in GIT) a simpler, fake one that respects the conventions that
+# rebar3 expects (instead of trying to have our actual build tree be somewhat
+# compliant with rebar3, which proved utterly complicated and frustrating) .
+#
+# Unfortunately this will not work either, as even in this case rebar will try
+# to recompile these BEAMs... (and fail; sigh).
+#
+create-fake-otp-project: all
+	@echo "  Creating a fake OTP project for $(REBAR3_PROJECT_NAME) in $(FAKE_OTP_ROOT)"
+	-@/bin/rm -rf $(FAKE_OTP_ROOT)
+	@mkdir -p $(FAKE_OTP_ROOT)/{src,include,priv,ebin}
+	@find . -name '*.erl' -a ! -name '*_test.*' -exec /bin/cp -f '{}' $(FAKE_OTP_ROOT)/src/ ';'
+	@find . -name '*.hrl' -a ! -name '*_test.*' -exec /bin/cp -f '{}' $(FAKE_OTP_ROOT)/include/ ';'
+	@find . -name '*.beam' -a ! -name '*_test.*' -exec /bin/cp -f '{}' $(FAKE_OTP_ROOT)/ebin/ ';'
+	# Copy rebar.config in root, myriad.app in ebin, etc.
 
 
 
