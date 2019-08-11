@@ -1,3 +1,10 @@
+% Note: with the newer rebar-based build, there is no more need for an
+% hex-dedicated rebar configuration file, or for a custom hook such as
+% hex-compile-hook-script.sh.
+%
+% So this file is mostly obsolete and is scheduled for removal.
+
+
 % This is a (manually crafted) configuration file of rebar3 *in the context of
 % an hex package* (ex: in this case only src/ is packaged, and none of the root
 % GNUmake* files), so that Ceylan-Myriad can better integrate in the current OTP
