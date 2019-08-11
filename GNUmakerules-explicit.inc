@@ -17,7 +17,9 @@
 			  install-src install-include install-examples install-test        \
 			  install-doc info-install info-install-locations                  \
 			  info-install-content                                             \
-			  rebar3-application rebar3-release rebar3-development-release     \
+			  rebar3-application set-rebar-conf                                \
+			  rebar3-make-include-links rebar3-clean-include-links             \
+			  rebar3-release rebar3-development-release                        \
 			  rebar3-production-release rebar3-hide-unsupported-sources        \
 			  rebar3-restore-unsupported-sources                               \
 			  rebar3-update rebar3-compile rebar3-create-tree                  \
@@ -388,11 +390,11 @@ info-install-content:
 # whereas a newer one was specified), so we remove it when appropriate.
 #
 rebar3-application: rebar3-real-clean clean rebar3-update set-rebar-conf \
-					rebar3-hide-unsupported-sources
+					rebar3-make-include-links rebar3-hide-unsupported-sources
 	@echo "  Triggering the overall creation by rebar3 of an OTP application corresponding to $(PROJECT_NAME)"
 	-@/bin/rm -f rebar.lock 2>/dev/null
 	@$(REBAR_DEBUG) rebar3 compile
-	@$(MAKE) -s rebar3-restore-unsupported-sources remove-rebar-conf 
+	@$(MAKE) -s rebar3-restore-unsupported-sources remove-rebar-conf
 
 
 # If making a rebar application or release, a symlink suffices, yet not if
@@ -404,6 +406,20 @@ set-rebar-conf:
 	@echo "  Setting rebar configuration"
 	@/bin/rm -f rebar.config 2>/dev/null
 	@cd conf && $(MAKE) -s rebar.config && /bin/cp -f rebar.config ../
+
+
+# Visibly rebar is not able to deal with nested includes; so this target creates
+# appropriate symlinks for rebar, while preserving our intented structure:
+#
+rebar3-make-include-links:
+	@echo "  Populating the include symlinks"
+	@cd include && for d in $$(find * -type d); do for h in $$(/bin/ls $$d/*.hrl 2>/dev/null) ; do ln -sf $$h ; done ; done
+
+
+# Gets rid of include symlinks created for rebar:
+rebar3-clean-include-links:
+	@echo "  Cleaning the include symlinks"
+	@cd include && /bin/rm -f *.hrl || true
 
 
 # Either a symlink or a copy (at least in the case of hex):

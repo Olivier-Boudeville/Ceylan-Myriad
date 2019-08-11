@@ -164,13 +164,13 @@ MYRIAD_INC := -I$(MYRIAD_SRC)
 # BEAM_DIRS are relative paths of BEAM files, ABS_BEAM_DIRS are the
 # corresponding absolute paths.
 
-INC += $(foreach dir,$(BEAM_DIRS),-I$(dir))
+INC += $(foreach dir,$(BEAM_DIRS),-I$$(echo $(dir)|sed 's|src|include|1'))
 
 # Special-cased includes for bootstrapped modules, which by default are
 # associated to a wrong directory prefix, as their MYRIAD_TOP variable points at
 # the Myriad root instead of their actual source directory:
 #
-BOOTSTRAP_INCLUDES := -I$(MYRIAD_TOP)/../meta
+BOOTSTRAP_INCLUDES := -I$(MYRIAD_TOP)/../../include/meta
 
 
 
@@ -858,12 +858,14 @@ ERLANG_COMPILER_WARNING_OPT += -W$(WARNING_LEVEL) +warn_export_all \
 #
 # Instead 'export ERL_COMPILER_OPTIONS=bin_opt_info' shall be punctually used.
 #
-ERLANG_COMPILER_OPT_BASE += $(ERLANG_COMPILER_GENERAL_OPT) $(INC)        \
-	$(ERLANG_COMPILER_EXEC_TARGET_OPT) $(ERLANG_COMPILER_DEBUG_OPT)      \
-	$(ERLANG_COMPILER_NATIVE_COMPILATION_OPT)                            \
-	$(ERLANG_COMPILER_WARNING_OPT)                                       \
-	$(ERLANG_COMPILER_OPT_DEBUG)                                         \
-	$(ERLANG_COMPILER_TOKEN_OPT)
+ERLANG_COMPILER_OPT_BASE +=                \
+ $(ERLANG_COMPILER_GENERAL_OPT) $(INC)     \
+ $(ERLANG_COMPILER_EXEC_TARGET_OPT)        \
+ $(ERLANG_COMPILER_DEBUG_OPT)              \
+ $(ERLANG_COMPILER_NATIVE_COMPILATION_OPT) \
+ $(ERLANG_COMPILER_WARNING_OPT)            \
+ $(ERLANG_COMPILER_OPT_DEBUG)              \
+ $(ERLANG_COMPILER_TOKEN_OPT)
 
 
 # Base options to compile parse transforms themselves (and their helper

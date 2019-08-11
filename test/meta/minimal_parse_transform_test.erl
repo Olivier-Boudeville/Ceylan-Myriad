@@ -66,9 +66,9 @@ perform_direct_ast_operations( TargetSourceFile ) ->
 -spec run() -> no_return().
 run() ->
 
-	%TargetSourceFile = "code_utils.erl",
+	%TargetSourceFile = "../../src/utils/code_utils.erl",
 	TargetSourceFile = "simple_parse_transform_target.erl",
-	%TargetSourceFile = "../data-management/preferences.erl",
+	%TargetSourceFile = "../../src/data-management/preferences.erl",
 
 	io:format( "Applying the Myriad parse transform to the "
 			   "'~s' source file.~n~n", [ TargetSourceFile ] ),

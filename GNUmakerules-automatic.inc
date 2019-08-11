@@ -42,7 +42,6 @@
 	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $@ $<
 
 
-
 # Standard general rules:
 
 

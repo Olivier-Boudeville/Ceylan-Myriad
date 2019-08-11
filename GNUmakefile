@@ -10,7 +10,7 @@ MYRIAD_TOP = .
 
 
 #MODULES_DIRS = contrib src doc conf
-MODULES_DIRS = src doc conf
+MODULES_DIRS = src doc conf test
 
 
 # To override the 'all' default target with a parallel version:
@@ -160,5 +160,6 @@ info-check:
 info-rebar3:
 	@echo "BOOTSTRAP_MODULES = $(BOOTSTRAP_MODULES)"
 	@echo "INC = $(INC)"
+	@echo "REBAR_INCS = $(REBAR_INCS)"
 	@echo "REBAR3_FIND_SRC_EXCLUDES = $(REBAR3_FIND_SRC_EXCLUDES)"
 	@echo "REBAR3_FIND_SRC_OPT = $(REBAR3_FIND_SRC_OPT)"
