@@ -1,3 +1,4 @@
+
 # Here are gathered explicit (immediate, static) specific rules for Myriad.
 #
 # See GNUmakerules-automatic.inc for their automatic (generic, pattern-based)
@@ -18,7 +19,7 @@
 			  info-install-content                                             \
 			  rebar3-application rebar3-release rebar3-development-release     \
 			  rebar3-production-release rebar3-hide-unsupported-sources        \
-              rebar3-restore-unsupported-sources                               \
+			  rebar3-restore-unsupported-sources                               \
 			  rebar3-update rebar3-compile rebar3-create-tree                  \
 			  rebar3-populate-build-tree rebar3-create-app-file                \
 			  rebar3-copy-beams rebar3-clean rebar3-real-clean                 \
@@ -58,7 +59,7 @@ all: all-pre-hook all-parse-transforms
 
 clean:
 	-@/bin/rm -f rebar.config
-	-@/bin/rm -rf _build/
+	-@/bin/rm -rf $(REBAR_BUILD_ROOT)
 
 
 else
@@ -106,11 +107,13 @@ all-pre-hook:
 all-recurse-pre-hook:
 
 
+
 # This rule is not used by default, as we use the -j option from the root
 # makefile, letting then 'make' use its job server for that task:
 all-parallel-recurse:
 	@echo "   Building all on parallel over $(CORE_COUNT) cores (in "$(PWD) #$$(basename $(PWD))
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s all -j $(CORE_COUNT) CMD_LINE_OPT="${CMD_LINE_OPT}" && cd .. ; else echo "    (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
+
 
 
 # We used to define '$(BEAM_FILES)' as prerequisites to this target; however
@@ -241,8 +244,8 @@ launch: Emakefile
 
 
 
-# Installation section.
-#
+# Installation section (in an ad-hoc way).
+
 
 # The goal here is to perform an installation of this layer in a prefixed
 # directory (mostly regardless of OTP conventions; see the rebar3-* targets for
@@ -376,60 +379,56 @@ info-install-content:
 # Section for the support of a rebar3+relx+hex compliant build.
 
 
-# The two main targets for application and release:
+# The two main rebar-based targets for application and release are:
+# 'rebar3-application' and 'rebar3-release':
 
 
 # Apparently, a pre-existing rebar.lock file might cause version dependencies
 # not to be respected (ex: sticking to an older hex version of a dependency,
 # whereas a newer one was specified), so we remove it when appropriate.
 #
-rebar3-application: rebar3-real-clean clean rebar3-update set-base-rebar-conf \
+rebar3-application: rebar3-real-clean clean rebar3-update set-rebar-conf \
 					rebar3-hide-unsupported-sources
 	@echo "  Triggering the overall creation by rebar3 of an OTP application corresponding to $(PROJECT_NAME)"
 	-@/bin/rm -f rebar.lock 2>/dev/null
 	@$(REBAR_DEBUG) rebar3 compile
-	@$(MAKE) -s remove-rebar-conf rebar3-restore-unsupported-sources
+	@$(MAKE) -s rebar3-restore-unsupported-sources remove-rebar-conf 
 
 
-# If making a rebar application or release, a symlink will suffice:
-set-base-rebar-conf:
-	@echo "  Setting rebar base configuration"
-	@/bin/rm -f rebar.config 2>/dev/null
-	@cd conf && $(MAKE) -s rebar.config && cd .. && ln -sf conf/rebar.config
-
-
-# Apparently no way of telling rebar to exclude some source files, so:
-rebar3-hide-unsupported-sources:
-	@echo "  Hiding unsupported sources"
-	@for f in $(UNSUPPORTED_SOURCES); do /bin/mv -f $$f $$f-hidden ; done
-
-
-rebar3-restore-unsupported-sources:
-	@echo "  Restoring unsupported sources"
-	@for f in $(UNSUPPORTED_SOURCES); do /bin/mv -f $$f-hidden $$f ; done
-
-
-# If publishing an hex package (conf/ not included in the package, hence no
-# symlink shall point to it, hence an actual copy of rebar configuration file):
+# If making a rebar application or release, a symlink suffices, yet not if
+# publishing an hex package (conf/ not included in the package, hence no symlink
+# shall point to it, hence an actual copy of rebar configuration file), so we
+# prefer to copy in all cases:
 #
-set-hex-rebar-conf:
-	@echo "  Setting rebar hex configuration"
+set-rebar-conf:
+	@echo "  Setting rebar configuration"
 	@/bin/rm -f rebar.config 2>/dev/null
-	@cd conf && $(MAKE) -s rebar-for-hex.config && /bin/cp -f rebar-for-hex.config ../rebar.config
+	@cd conf && $(MAKE) -s rebar.config && /bin/cp -f rebar.config ../
 
 
-# Either a symlink or a copy (in the case of hex):
+# Either a symlink or a copy (at least in the case of hex):
 remove-rebar-conf:
 	@echo "  Removing rebar configuration"
 	@/bin/rm -f rebar.config
 
 
+# Apparently no way of telling rebar to exclude some source files, so:
+rebar3-hide-unsupported-sources:
+	@echo "  Hiding unsupported sources"
+	@for f in $(UNSUPPORTED_SOURCES); do /bin/mv -f $$f $$f-hidden ; done 2>/dev/null || true
 
-# By default, development releases, not production:
+
+rebar3-restore-unsupported-sources:
+	@echo "  Restoring unsupported sources"
+	-@for f in $(UNSUPPORTED_SOURCES); do /bin/mv -f $$f-hidden $$f ; done 2>/dev/null || true
+
+
+
+# By default, development releases, not production ones:
 rebar3-release: rebar3-development-release
 
 
-pre-release: rebar3-real-clean clean rebar3-update set-base-rebar-conf \
+pre-release: rebar3-real-clean clean rebar3-update set-rebar-conf \
 			 rebar3-hide-unsupported-sources
 	-@/bin/rm -f rebar.lock 2>/dev/null
 
@@ -453,26 +452,29 @@ rebar3-production-release: pre-release
 
 
 # Needed to update local package information according to (server-side) hex,
-# otherwise rebar will stick to obsolete package versions (ex: if having just
-# published a new version of a dependency)
+# otherwise rebar could stick locally to obsolete package versions (ex: if
+# having just published a new version of a dependency)
 #
 rebar3-update:
-	@echo "  Updating rebar (hex package repository)"
+	@echo "  Updating rebar-hex package repository"
 	@$(REBAR_DEBUG) rebar3 update
 
 
-# Targets called by hooks specified to rebar3 through the rebar.config file:
 
 
-# This overall target is called (thanks to a pre-hook) when running directly 'rebar3
-# compile' or indirectly (ex: 'rebar3 release')
+# Below are listed targets - now not used anymore - called by hooks specified to
+# rebar3 through the rebar.config file:
+
+
+# This (now obsolete) overall target used to be called (thanks to a pre-hook)
+# when running directly 'rebar3 compile' or indirectly (ex: 'rebar3 release')
 #
-# (note: we copy sources before compiling and copying BEAM files, so that rebar3
-# will not try to recompile modules by itself)
+# (note: we used to copy sources before compiling and copying BEAM files, so that rebar3
+# would not try to recompile modules by itself)
 #
 rebar3-compile:
 	@echo "  Preparing $(PROJECT_NAME) for a rebar3-compliant build (in $(REBAR_BUILD_DIR))"
-	@$(MAKE) -s set-base-rebar-conf rebar3-clean rebar3-create-tree rebar3-populate-build-tree rebar3-create-app-file all rebar3-copy-beams REBAR_PROFILE=$(REBAR_PROFILE) REBAR_BUILD_DIR=$(REBAR_BUILD_DIR)
+	@$(MAKE) -s set-rebar-conf rebar3-clean rebar3-create-tree rebar3-populate-build-tree rebar3-create-app-file all rebar3-copy-beams REBAR_PROFILE=$(REBAR_PROFILE) REBAR_BUILD_DIR=$(REBAR_BUILD_DIR)
 
 
 # See for more information:
@@ -486,7 +488,6 @@ rebar3-compile:
 # one level (whereas we have more levels than that), and apparently if rebar3 is
 # not able to locate, for an ebin/X.beam, a X.erl, it will attempt to recompile
 # it (and obviously fail).
-
 #
 # See https://www.rebar3.org/discuss/5d1c82951e0cbe00121f12db for more details.
 #
@@ -558,9 +559,10 @@ rebar3-clean:
 	-@/bin/rm -rf $(REBAR_BUILD_BASE) 2>/dev/null
 
 
+# Adding _build for increased safety:
 rebar3-real-clean: rebar-test-clean rebar3-cache-clean
 	@echo "  Removing any prior rebar3 build root ($(REBAR_BUILD_ROOT)), hence for all profiles"
-	-@/bin/rm -rf $(REBAR_BUILD_ROOT)
+	-@/bin/rm -rf $(REBAR_BUILD_ROOT) _build
 
 
 rebar-test-clean:
@@ -593,8 +595,12 @@ rebar3-info:
 	@echo "MYRIAD_OTP_BEAM_DIR_FROM_USUAL = $(MYRIAD_OTP_BEAM_DIR_FROM_USUAL)"
 
 
-# Changes have to be applied for hex packages, which are very different from
-# applications or releases.
+# Changes had to be applied for hex packages that were very different from the
+# ones for applications or releases. Now that we defined an (optional) rebar
+# build, a specific rebar.config for the generation of hex packages is not
+# needed anymore, and some targets below were simplified / are not used anymore
+# (ex: no more hook needed).
+
 
 # The simplest studying approach was to use the build of another hex package
 # relying on Myriad to test how relevant is its package: 'make
@@ -622,16 +628,17 @@ rebar3-info:
 # at least once on the publishing computer.
 #
 # We thought that rebar.lock could/should be removed before publishing a
-# package, however it is a direct by-product of 'rebar3 hex publish'.
+# package, however it is a direct by-product of 'rebar3 hex publish', so nothing
+# is done at this level.
 #
-rebar3-hex-publish: rebar3-clean clean set-hex-rebar-conf rebar3-create-app-file
+rebar3-hex-publish: rebar3-clean clean set-rebar-conf rebar3-create-app-file
 	@/bin/cp -f $(REBAR_BUILD_BASE)/ebin/$(REBAR3_PROJECT_NAME).app src/$(REBAR3_PROJECT_NAME).app.src
-	@mkdir -p priv/hex-packaging/{root,doc}
-	@/bin/cp -f $(MYRIAD_TOP)/conf/hex-compile-hook-script.sh priv/hex-packaging/
-	@/bin/cp -f GNUmake* priv/hex-packaging/root
-	@/bin/cp -f doc/GNUmake* priv/hex-packaging/doc
+	@#mkdir -p priv/hex-packaging/{root,doc}
+	@#/bin/cp -f $(MYRIAD_TOP)/conf/hex-compile-hook-script.sh priv/hex-packaging/
+	@#/bin/cp -f GNUmake* priv/hex-packaging/root
+	@#/bin/cp -f doc/GNUmake* priv/hex-packaging/doc
 	@$(REBAR_DEBUG) rebar3 hex publish
-	@/bin/rm -rf priv/
+	@#/bin/rm -rf priv/
 	@/bin/rm -f src/$(REBAR3_PROJECT_NAME).app.src
 	@$(MAKE) -s rebar3-clean
 	@$(MAKE) -s remove-rebar-conf
@@ -645,6 +652,10 @@ test-hex-package: rebar-test-clean
 	@echo "  Testing $(PROJECT_NAME) hex package ('$(REBAR3_PROJECT_NAME)' package, version $(VERSION_FOR_REBAR3)) in $(REBAR_TEST_DIR) using $(REBAR_3_EXEC)"
 	@cd conf && $(MAKE) -s rebar-for-testing.config && /bin/cp -f rebar-for-testing.config $(REBAR_TEST_DIR)/rebar.config
 	@cd $(REBAR_TEST_DIR) && $(REBAR_3_EXEC) update && $(REBAR_3_EXEC) compile
+
+
+# End of the longer rebar-related section.
+
 
 
 # Allows to generate a file listing all the types defined in the specified
