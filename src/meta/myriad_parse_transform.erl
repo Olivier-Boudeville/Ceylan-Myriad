@@ -150,7 +150,7 @@ run_standalone( FileToTransform ) ->
 
 	AST = ast_utils:erl_to_ast( FileToTransform ),
 
-	% Options like : [ report_warnings, {d,debug_mode}, beam,
+	% Options like : [ report_warnings, {d,myriad_debug_mode}, beam,
 	% report_errors, {cwd,"X"}, {outdir,Y"}, {i,"A"},{i,"B"}, debug_info, etc.
 	% are probably not all set, but it is unlikely to be a problem here.
 	%
@@ -168,7 +168,7 @@ run_standalone( FileToTransform ) ->
 % what we could do with it. There is nevertheless valuable information in it,
 % like in:
 %
-% Options = [report_warnings, {d,debug_mode}, beam, report_errors,
+% Options = [report_warnings, {d,myriad_debug_mode}, beam, report_errors,
 %			{cwd,"[...]/foo"}, {outdir,"[...]/foo"}, {i,"[...]/foo/../bar"},
 %           [...]
 %			{parse_transform,myriad_parse_transform}, debug_info,
@@ -528,7 +528,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 			%ast_utils:display_debug( "Call to cond_utils:if_debug/1 found" ),
 
 			% Implicit token here:
-			Token = debug_mode,
+			Token = myriad_debug_mode,
 
 			case ?table:lookup_entry( Token, TokenTable ) of
 
@@ -832,7 +832,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 			%						 [ ExpressionForm ] ),
 
 			% Implicit token here:
-			Token = debug_mode,
+			Token = myriad_debug_mode,
 
 			case ?table:lookup_entry( Token, TokenTable ) of
 

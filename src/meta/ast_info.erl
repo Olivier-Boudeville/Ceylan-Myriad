@@ -2254,7 +2254,7 @@ interpret_options( OptionList,
 scan_options( _OptionList=[], OptionTable ) ->
 	OptionTable;
 
-% Ex: {d,debug_mode}
+% Ex: {d,myriad_debug_mode}
 scan_options( _OptionList=[ { Name, Value } | T ], OptionTable ) ->
 	NewOptionTable = ?table:append_to_entry( _K=Name, Value, OptionTable ),
 	scan_options( T, NewOptionTable );

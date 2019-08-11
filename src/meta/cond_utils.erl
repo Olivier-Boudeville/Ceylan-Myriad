@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Tuesday, December 25, 2018
+% Creation date: Tuesday, December 25, 2018.
 
 
 
@@ -219,12 +219,12 @@ register_tokens( _L=[ Token | T ], TokenTable ) when is_atom( Token ) ->
 
 
 % Conditional execution of specified expression or list thereof, enabled iff the
-% debug mode has been set (i.e. iff the 'debug_mode' token has been defined
-% through the command-line).
+% debug mode has been set (i.e. iff the 'myriad_debug_mode' token has been
+% defined through the command-line).
 %
 -spec if_debug( expressions() ) -> void().
 if_debug( Expressions ) ->
-	if_defined( _Token=debug_mode, Expressions ).
+	if_defined( _Token=myriad_debug_mode, Expressions ).
 
 
 
@@ -240,7 +240,7 @@ if_debug( Expressions ) ->
 % 'A=hello, cond_utils:if_defined( A, [...] )' will be rejected.
 %
 % As for the second parameter, it shall be *directly* either a single expression
-% or a list thereof; for example 'cond_utils:if_defined( debug_mode,
+% or a list thereof; for example 'cond_utils:if_defined( myriad_debug_mode,
 % _Exprs=[...])' would be rejected.
 %
 % Finally, should the relevant token not be defined, the corresponding
@@ -317,8 +317,8 @@ if_set_to( Token, _Value, _Expressions ) ->
 -spec if_set_to( token(), value(), expressions(), expressions() ) -> void().
 if_set_to( Token, _Value, _ExpressionsIfMatching, _ExpressionsOtherwise ) ->
 
-	% Never expected to be called, as replaced by the Myriad parse transform
-	% by either of the actual expressions:
+	% Never expected to be called, as replaced by the Myriad parse transform by
+	% either of the actual expressions:
 	%
 	throw( { untransformed_conditional, {if_set_to,4}, Token } ).
 
@@ -327,18 +327,18 @@ if_set_to( Token, _Value, _ExpressionsIfMatching, _ExpressionsOtherwise ) ->
 % If in debug mode, asserts that the specified expression is true,
 % i.e. evaluates it at runtime and matches it with the atom 'true'.
 %
-% In debug mode (i.e when the 'debug_mode' token has been defined), and only in
-% that mode, the check will be done (at runtime), and possibly will fail by
-% throwing a { assertion_failed, Other } exception, where Other is the actual
+% In debug mode (i.e when the 'myriad_debug_mode' token has been defined), and
+% only in that mode, the check will be done (at runtime), and possibly will fail
+% by throwing a { assertion_failed, Other } exception, where Other is the actual
 % (non-true) value breaking that assertion (of course the usual stacktrace with
 % line numbers will be available).
 %
 -spec assert( expression() ) -> void().
 assert( _Expression ) ->
-	%assert( _Token=debug_mode, Expression ).
+	%assert( _Token=myriad_debug_mode, Expression ).
 
-	% Never expected to be called, as replaced by the Myriad parse transform
-	% by either of the actual expressions:
+	% Never expected to be called, as replaced by the Myriad parse transform by
+	% either of the actual expressions:
 	%
 	throw( { untransformed_conditional, {assert,1} } ).
 
@@ -353,8 +353,8 @@ assert( _Expression ) ->
 -spec assert( token(), expression() ) -> void().
 assert( Token, _Expression ) ->
 
-	% Never expected to be called, as replaced by the Myriad parse transform
-	% by either of the actual expressions:
+	% Never expected to be called, as replaced by the Myriad parse transform by
+	% either of the actual expressions:
 	%
 	throw( { untransformed_conditional, {assert,2}, Token } ).
 
@@ -369,7 +369,7 @@ assert( Token, _Expression ) ->
 -spec assert( token(), value(), expression() ) -> void().
 assert( Token, _Value, _Expression ) ->
 
-	% Never expected to be called, as replaced by the Myriad parse transform
-	% by either of the actual expressions:
+	% Never expected to be called, as replaced by the Myriad parse transform by
+	% either of the actual expressions:
 	%
 	throw( { untransformed_conditional, {assert,3}, Token } ).

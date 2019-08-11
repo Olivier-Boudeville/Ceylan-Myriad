@@ -25,7 +25,7 @@ endif
 
 
 # The uniquely-defined version of this layer, for all uses (including rebar):
-MYRIAD_VERSION := 1.0.11
+MYRIAD_VERSION := 1.0.12
 
 
 # PROJECT_VERSION should be defined on a per-project basis.
@@ -402,7 +402,7 @@ ifeq ($(EXECUTION_TARGET),development)
   # No exec_target_is_production shall be defined here:
   ERLANG_COMPILER_EXEC_TARGET_OPT :=
 
-  ERLANG_COMPILER_DEBUG_OPT := -Ddebug_mode
+  ERLANG_COMPILER_DEBUG_OPT := -Dmyriad_debug_mode
 
 
 else ifeq ($(EXECUTION_TARGET),production)

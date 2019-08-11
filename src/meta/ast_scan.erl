@@ -1099,7 +1099,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export_type', TypeIds } | T ],
 % and possibly other options.
 %
 % Note that options can also be specified through the command line (ex:
-% "-Ddebug_mode").
+% "-Dmyriad_debug_mode").
 %
 scan_forms( _AST=[ Form={ 'attribute', Line, 'compile', CompileInfo } | T ],
 			 M=#module_info{ compilation_options=CompileTable,

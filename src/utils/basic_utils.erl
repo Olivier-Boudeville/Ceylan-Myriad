@@ -1267,24 +1267,24 @@ is_alive( TargetPid, Node ) when is_pid( TargetPid ) ->
 
 
 
-% Returns whether the debug mode is activated for the compilation of this
-% module.
+% Returns whether the (Myriad-enforced) debug mode is activated for the
+% compilation of this module.
 
 % Dispatched in actual clauses, otherwise Dialyzer will detect an
 % underspecification:
 %
 %-spec is_debug_mode_enabled() -> boolean().
 
--ifdef(debug_mode).
+-ifdef(myriad_debug_mode).
 
 -spec is_debug_mode_enabled() -> true.
 is_debug_mode_enabled() ->
 	true.
 
--else. % debug_mode
+-else. % myriad_debug_mode
 
 -spec is_debug_mode_enabled() -> false.
 is_debug_mode_enabled() ->
 	false.
 
--endif. % debug_mode
+-endif. % myriad_debug_mode

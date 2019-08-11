@@ -25,7 +25,8 @@
 % Base layout was obtained thanks to: 'rebar3 new lib myriad', as Myriad is a
 % library OTP application (without supervision trees).
 
-% To be run from the library root as 'rebar3 compile' or 'rebar3 release'.
+% To be taken into account, from the library root, through 'make
+% rebar3-application' or 'make rebar3-release'.
 
 
 % See also:
@@ -42,7 +43,7 @@
 
 
 % Include directories found in INC:
-{erl_opts, [ debug_info, {d,debug_mode}, {debug_info_key,"DEBUG_KEY_FOR_REBAR"}, report_warnings, warn_export_all, warn_export_vars, warn_shadow_vars, warn_obsolete_guards, warn_unused_import, warnings_as_errors, {parse_transform,myriad_parse_transform}, INCS_FOR_REBAR ]}.
+{erl_opts, [ {d,myriad_debug_mode}, debug_info, {debug_info_key,"DEBUG_KEY_FOR_REBAR"}, report_warnings, warn_export_all, warn_export_vars, warn_shadow_vars, warn_obsolete_guards, warn_unused_import, warnings_as_errors, {parse_transform,myriad_parse_transform}, INCS_FOR_REBAR ]}.
 
 
 % Bootstrapped modules (from BOOTSTRAP_MODULES):
@@ -73,8 +74,10 @@
   {release, {myriad_release, "VERSION_FOR_REBAR3"},
 			[sasl, myriad]},
 
-  % Like for the default profile, except for {d,debug_mode}:
-  {erl_opts, [ debug_info, {debug_info_key,"DEBUG_KEY_FOR_REBAR"}, report_warnings, warn_export_all, warn_export_vars, warn_shadow_vars, warn_obsolete_guards, warn_unused_import, warnings_as_errors, {parse_transform,myriad_parse_transform}, INCS_FOR_REBAR ]},
+  % Like for the default profile, except for removed {d,myriad_debug_mode} and
+  % added {d,exec_target_is_production}:
+  %
+  {erl_opts, [ {d,exec_target_is_production}, debug_info, {debug_info_key,"DEBUG_KEY_FOR_REBAR"}, report_warnings, warn_export_all, warn_export_vars, warn_shadow_vars, warn_obsolete_guards, warn_unused_import, warnings_as_errors, {parse_transform,myriad_parse_transform}, INCS_FOR_REBAR ]},
 
   %{sys_config, "./config/sys.config"},
   %{vm_args, "./config/vm.args"},
