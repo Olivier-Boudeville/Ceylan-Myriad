@@ -110,7 +110,7 @@ We felt that OTP build tools and Emakefiles were not expressive enough for our n
 
 It allows to introduce all the generic rules we wanted, to define many conditional settings, to walk through an arbitrarily nested source tree, to integrate within a layered stack (notably alongside some other ``Ceylan-*`` libraries that depend on Ceylan-Myriad) and to perform a multi-stage build to accommodate the compilation and use of parse-transforms, with their own set of prerequisites.
 
-However, to better integrate with other Erlang developments (which are mostly OTP-compliant), we added the (optional) possibility of generating a Myriad *OTP library application* out of the build tree, ready to be integrated into an (OTP) *release* and to be available as an Hex package. For that we rely on `rebar3 <https://www.rebar3.org/>`_, `relx <https://github.com/erlware/relx>`_ and `hex <https://hex.pm/>`_.
+However, to better integrate with other Erlang developments (which are mostly OTP-compliant), we added the (optional) possibility of generating a Myriad *OTP library application* out of the build tree, ready to be integrated into an (OTP) *release* and to be available as an Hex *package*. For that we rely on `rebar3 <https://www.rebar3.org/>`_, `relx <https://github.com/erlware/relx>`_ and `hex <https://hex.pm/>`_.
 
 
 OTP Application
@@ -131,9 +131,11 @@ From the root of a Myriad clone, to obtain the Ceylan-Myriad library *applicatio
 
  $ make rebar3-application
 
-It will trigger ``rebar3`` that, through a hook, will trigger at the right step the relevant Myriad Make-based targets, resulting in a full, OTP-compliant build tree created in ``_build`` (including a properly-generated ``_build/default/lib/myriad/ebin/myriad.app`` file), and more generally in a proper OTP application.
+It will trigger ``rebar3``, resulting [#]_ in a full, OTP-compliant build tree created in ``_build`` (including a properly-generated ``_build/default/lib/myriad/ebin/myriad.app`` file), and more generally in a proper OTP application.
 
-The OTP application support can be tested through a (already-built) source tree; then, from the root of Myriad::
+.. [#] The operation was previously done through a rebar pre-compile hook, so that the our native build system could be relied upon before injecting the produced BEAMs into rebar's ``_build`` tree. Because of extraneous, failing recompilations being triggered by rebar, now we rely on a build system parallel to - and directly inspired by - our native one, directly done from within rebar (once properly triggered by our user-oriented Make targets).
+
+As a result, the OTP application support can be tested from the root of an (already-built, with ``make rebar3-application``) Myriad source tree::
 
  $ cd src/utils
  $ make myriad_otp_application_run
@@ -178,7 +180,7 @@ This support can be also tested manually, directly through the build tree used b
 OTP Release
 -----------
 
-Quite similarly, to obtain a Ceylan-Myriad OTP *release* (`relx <https://github.com/erlware/relx>`_ being used in the background), possibly for a given profile like ``default`` (development mode) or ``prod`` (production mode) - refer to ``REBAR_PROFILE`` in ``GNUmakevars.inc``, one just has to run::
+Quite similarly, to obtain a Ceylan-Myriad OTP *release* (`relx <https://github.com/erlware/relx>`_ being used in the background), possibly for a given profile like ``default`` (development mode) or ``prod`` (production mode) - refer to ``REBAR_PROFILE`` in ``GNUmakevars.inc``, one just has to run, from the root of Myriad::
 
  $ make rebar3-release
 
@@ -192,7 +194,10 @@ The `hex <https://hex.pm/>`_ package manager relies on mix, which is commonly in
 
 Thanks to the rebar3 integration with the ``rebar3_hex`` plugin specified in Myriad's `rebar.config <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/rebar.config>`_, ``hex`` will be automatically installed and set up.
 
-By following the publishing guidelines (`[1] <https://hex.pm/docs/rebar3_publish>`_, `[2] <https://www.rebar3.org/docs/publishing-packages>`_), we were able to publish `Hex packages for Myriad <https://hex.pm/packages/myriad>`_. And there was much rejoicing!
+By following the publishing guidelines (`[1] <https://hex.pm/docs/rebar3_publish>`_, `[2] <https://www.rebar3.org/docs/publishing-packages>`_), we were able to publish `Hex packages for Myriad <https://hex.pm/packages/myriad>`_ that can be freely used. And there was much rejoicing!
+
+One just has to specify for example ``{deps,[myriad]}.`` in one's ``rebar.config``, and that's it.
+
 
 For more details, one may have a look at:
 
