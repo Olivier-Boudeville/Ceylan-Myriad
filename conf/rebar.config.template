@@ -40,8 +40,10 @@
 % No dependency (except Erlang of course):
 {deps, []}.
 
+
 % Include directories found in INC:
-{erl_opts, [debug_info, {parse_transform,myriad_parse_transform}, INCS_FOR_REBAR ]}.
+{erl_opts, [ debug_info, {d,debug_mode}, {debug_info_key,"DEBUG_KEY_FOR_REBAR"}, report_warnings, warn_export_all, warn_export_vars, warn_shadow_vars, warn_obsolete_guards, warn_unused_import, warnings_as_errors, {parse_transform,myriad_parse_transform}, INCS_FOR_REBAR ]}.
+
 
 % Bootstrapped modules (from BOOTSTRAP_MODULES):
 {erl_first_files, [ FIRST_FILES_FOR_REBAR ]}.
@@ -71,10 +73,13 @@
   {release, {myriad_release, "VERSION_FOR_REBAR3"},
 			[sasl, myriad]},
 
+  % Like for the default profile, except for {d,debug_mode}:
+  {erl_opts, [ debug_info, {debug_info_key,"DEBUG_KEY_FOR_REBAR"}, report_warnings, warn_export_all, warn_export_vars, warn_shadow_vars, warn_obsolete_guards, warn_unused_import, warnings_as_errors, {parse_transform,myriad_parse_transform}, INCS_FOR_REBAR ]},
+
   %{sys_config, "./config/sys.config"},
   %{vm_args, "./config/vm.args"},
 
-  {dev_mode, true},
+  {dev_mode, false},
   {include_erts, false},
 
   {extended_start_script, true},
