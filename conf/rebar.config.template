@@ -57,11 +57,22 @@
 %{pre_hooks, [ {compile, "make -s rebar3-compile"} ]}.
 
 
+% Now we just create a symlink for each (public) header, so that software
+% depending on this layer just have to include one 'include' directory (and
+% remain happily unaware of its internal structure):
+%
+% (it is a pre-hook, not a post-one, as these symlinks are needed to compile
+% Myriad itself when taken as a dependency - as the relative directories
+% specified in {i,..} options apply only when compiling from the root, not from
+% a directory offset like _build/lib/..., not only the software depending on it)
+%
+{pre_hooks, [ {compile, "make -s rebar3-make-include-links"} ]}.
+
 % We create a symlink for each (public) header, so that software depending on
 % this layer just have to include one 'include' directory (and remain happily
 % unaware of its internal structure):
 %
-{post_hooks, [ {compile, "make -s rebar3-make-include-links"} ]}.
+%{post_hooks, [ {compile, "echo Myriad post-hook!"} ]}.
 
 
 
