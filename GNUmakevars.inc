@@ -163,8 +163,11 @@ MYRIAD_INC := -I$(MYRIAD_SRC)
 
 # BEAM_DIRS are relative paths of BEAM files, ABS_BEAM_DIRS are the
 # corresponding absolute paths.
-
+#
+# The 'include' structure matches the one of 'src':
+#
 INC += $(foreach dir,$(BEAM_DIRS),-I$$(echo $(dir)|sed 's|src|include|1'))
+
 
 # Special-cased includes for bootstrapped modules, which by default are
 # associated to a wrong directory prefix, as their MYRIAD_TOP variable points at
@@ -1152,7 +1155,18 @@ REBAR_3_EXEC = $$(which rebar3 2>/dev/null)
 REBAR_FIRST_FILES = \"`echo $(patsubst ../%.beam,\"%.erl\",$(BOOTSTRAP_MODULES))|sed 's| |", "|g'`\"
 
 
-REBAR_INCS = {i,\"`echo $(patsubst -I../%,\"%\",$(INC))|sed 's| |"}, {i,"|g'`\"}
+# Transforming a recursively expanded variable into a simply expanded, otherwise
+# later transformations will fail (cannot be nested):
+#
+#
+# Note: is correct as happens last in the parsing process (after all layers, all
+# GNUmake* files)
+#
+STABLE_INC := $(INC)
+
+
+# Far from being straightforward (patsubst would fail due to nesting):
+REBAR_INCS := {i,\"`echo $(STABLE_INC)|sed 's| |\"}, {i,\"|g' | sed 's|-I\.\./||g'`\"}
 
 
 # Some source files cannot be compiled in all cases (typically because they
