@@ -22,6 +22,7 @@
 			  rebar3-release rebar3-development-release                        \
 			  rebar3-production-release rebar3-hide-unsupported-sources        \
 			  rebar3-restore-unsupported-sources                               \
+			  rebar3-compile-pre-hook rebar3-compile-post-hook                 \
 			  rebar3-update rebar3-compile rebar3-create-tree                  \
 			  rebar3-populate-build-tree rebar3-create-app-file                \
 			  rebar3-copy-beams rebar3-clean rebar3-real-clean                 \
@@ -444,6 +445,28 @@ rebar3-restore-unsupported-sources:
 	@echo "  Restoring unsupported sources"
 	-@for f in $(UNSUPPORTED_SOURCES); do /bin/mv -f $$f-hidden $$f ; done 2>/dev/null || true
 
+
+
+# Targets triggered by rebar compile hooks:
+
+
+# Now we just create a symlink for each (public) header, so that software
+# depending on this layer just have to include one 'include' directory (and
+# remain happily unaware of its internal structure):
+#
+# (it is done as a pre-hook, not a post-one, as these symlinks are needed to
+# compile Myriad itself when taken as a dependency - as the relative directories
+# specified in {i,..} options apply only when compiling from the root, not from
+# a directory offset like _build/lib/..., not only the software depending on it)
+#
+# (unsupported sources are also hidden, otherwise their build will be attempted
+# and will fail)
+#
+rebar3-compile-pre-hook: rebar3-hide-unsupported-sources \
+						 rebar3-make-include-links
+
+
+rebar3-compile-post-hook:
 
 
 # By default, development releases, not production ones:
