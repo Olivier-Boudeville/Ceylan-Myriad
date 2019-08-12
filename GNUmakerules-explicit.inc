@@ -464,9 +464,11 @@ rebar3-restore-unsupported-sources:
 #
 rebar3-compile-pre-hook: rebar3-hide-unsupported-sources \
 						 rebar3-make-include-links
+	@echo "rebar3 pre-compile hook executed in $(pwd)."
 
 
 rebar3-compile-post-hook:
+	@echo "rebar3 post-compile hook executed in $(pwd)."
 
 
 # By default, development releases, not production ones:
@@ -519,8 +521,8 @@ rebar3-update:
 # This (now obsolete) overall target used to be called (thanks to a pre-hook)
 # when running directly 'rebar3 compile' or indirectly (ex: 'rebar3 release')
 #
-# (note: we used to copy sources before compiling and copying BEAM files, so that rebar3
-# would not try to recompile modules by itself)
+# (note: we used to copy sources before compiling and copying BEAM files, so
+# that rebar3 would not try to recompile modules by itself)
 #
 rebar3-compile:
 	@echo "  Preparing $(PROJECT_NAME) for a rebar3-compliant build (in $(REBAR_BUILD_DIR))"
