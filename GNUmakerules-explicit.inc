@@ -570,7 +570,7 @@ rebar3-copy-beams:
 	@find src -name '*.beam' -a ! -name '*_test.beam' -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ebin/ ';'
 
 
-rebar3-clean:
+rebar3-clean: rebar3-clean-include-links rebar3-restore-unsupported-sources
 	@echo "  Removing any prior rebar3 build tree for this project ($(REBAR_BUILD_BASE))"
 	-@/bin/rm -rf $(REBAR_BUILD_BASE) 2>/dev/null
 
