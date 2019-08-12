@@ -419,7 +419,7 @@ set-rebar-conf:
 #
 rebar3-make-include-links:
 	@echo "  Populating the include symlinks"
-	@cd include && for d in $$(find * -type d); do for h in $$(/bin/ls $$d/*.hrl 2>/dev/null) ; do ln -sf $$h ; done ; done
+	@cd include && for d in $$(find * -type d 2>/dev/null); do for h in $$(/bin/ls $$d/*.hrl 2>/dev/null) ; do ln -sf $$h ; done ; done
 
 
 # Gets rid of include symlinks created for rebar:
