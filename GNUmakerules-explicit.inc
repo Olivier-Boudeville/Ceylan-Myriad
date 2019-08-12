@@ -423,10 +423,13 @@ rebar3-make-include-links:
 	@cd include && for d in $$(find * -type d 2>/dev/null); do for h in $$(/bin/ls $$d/*.hrl 2>/dev/null) ; do ln -sf $$h ; done ; done
 
 
-# Gets rid of include symlinks created for rebar:
+
+# Gets rid of include symlinks created for rebar (and only the symlinks, as a
+# layer may rely on flat, actual includes):
+#
 rebar3-clean-include-links:
 	@echo "  Cleaning the include symlinks"
-	@cd include && /bin/rm -f *.hrl || true
+	@cd include && find . -maxdepth 1 -type l -exec /bin/rm -f '{}' ';'
 
 
 # Either a symlink or a copy (at least in the case of hex):
