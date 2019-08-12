@@ -18,15 +18,14 @@
 % perform extraneous, failing recompilations.
 
 % Finally we created from scratch a direct rebar structure with 'rebar3 new lib
-% myriad') and filled by hand the resulting rebar.config until it became
+% myriad' and filled by hand the resulting rebar.config until it became
 % satisfactory; then we automated (at least most of) its generation from Make.
 
 
-% Base layout was obtained thanks to: 'rebar3 new lib myriad', as Myriad is a
-% library OTP application (without supervision trees).
-
-% To be taken into account, from the library root, through 'make
-% rebar3-application' or 'make rebar3-release'.
+% Base layout obtained thanks to: 'rebar3 new lib myriad', as Myriad is a
+% library OTP application (without supervision trees), and to be taken into
+% account, from the library root, through 'make rebar3-application' or 'make
+% rebar3-release'.
 
 
 % See also:
