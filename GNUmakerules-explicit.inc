@@ -389,8 +389,14 @@ info-install-content:
 # not to be respected (ex: sticking to an older hex version of a dependency,
 # whereas a newer one was specified), so we remove it when appropriate.
 #
+# (creating a ebin/*.app file is necessary at this point, otherwise no module
+# will be compiled, leading to an empty application; the same applies - silently
+# - if the conf/*.app.src, hence the ebin/*.app file, are invalid - ex: cannot
+# be parsed)
+#
 rebar3-application: rebar3-real-clean clean rebar3-update set-rebar-conf \
-					rebar3-make-include-links rebar3-hide-unsupported-sources
+					rebar3-make-include-links rebar3-hide-unsupported-sources \
+					rebar3-create-app-file
 	@echo "  Triggering the overall creation by rebar3 of an OTP application corresponding to $(PROJECT_NAME)"
 	-@/bin/rm -f rebar.lock 2>/dev/null
 	@$(REBAR_DEBUG) rebar3 compile
@@ -444,8 +450,13 @@ rebar3-restore-unsupported-sources:
 rebar3-release: rebar3-development-release
 
 
-pre-release: rebar3-real-clean clean rebar3-update set-rebar-conf \
-			 rebar3-hide-unsupported-sources
+# Creating a ebin/*.app file is necessary here, otherwise this layer is a
+# dependency "not reachable by the system" (same error is the .app exists yet is
+# invalid):
+#
+pre-release: rebar3-real-clean clean rebar3-update          \
+			 rebar3-hide-unsupported-sources set-rebar-conf \
+			 rebar3-create-app-file
 	-@/bin/rm -f rebar.lock 2>/dev/null
 
 
@@ -490,7 +501,9 @@ rebar3-update:
 #
 rebar3-compile:
 	@echo "  Preparing $(PROJECT_NAME) for a rebar3-compliant build (in $(REBAR_BUILD_DIR))"
-	@$(MAKE) -s set-rebar-conf rebar3-clean rebar3-create-tree rebar3-populate-build-tree rebar3-create-app-file all rebar3-copy-beams REBAR_PROFILE=$(REBAR_PROFILE) REBAR_BUILD_DIR=$(REBAR_BUILD_DIR)
+	@$(MAKE) -s set-rebar-conf rebar3-clean rebar3-create-tree \
+	rebar3-populate-build-tree rebar3-create-app-file all rebar3-copy-beams \
+	REBAR_PROFILE=$(REBAR_PROFILE) REBAR_BUILD_DIR=$(REBAR_BUILD_DIR)
 
 
 # See for more information:
@@ -556,6 +569,11 @@ rebar3-populate-build-tree:
 #
 # -a ! -name sql_support.erl -a ! -name hdf5_support.erl
 #
+# A .app file seems to be necessary in all cases, to generate: an application
+# (otherwise nothing is built), a release (otherwise dependency not reachable),
+# and probably an hex package as well.
+#
+#
 rebar3-create-app-file:
 	@echo "  Generating rebar3 $(REBAR3_PROJECT_NAME).app file"
 	@# This target may be called for hex for example:
@@ -573,10 +591,11 @@ rebar3-copy-beams:
 rebar3-clean: rebar3-clean-include-links rebar3-restore-unsupported-sources
 	@echo "  Removing any prior rebar3 build tree for this project ($(REBAR_BUILD_BASE))"
 	-@/bin/rm -rf $(REBAR_BUILD_BASE) 2>/dev/null
+	-@/bin/rm -f ebin/$(REBAR3_PROJECT_NAME).app
 
 
 # Adding _build for increased safety:
-rebar3-real-clean: rebar-test-clean rebar3-cache-clean
+rebar3-real-clean: rebar3-clean rebar-test-clean rebar3-cache-clean
 	@echo "  Removing any prior rebar3 build root ($(REBAR_BUILD_ROOT)), hence for all profiles"
 	-@/bin/rm -rf $(REBAR_BUILD_ROOT) _build
 
