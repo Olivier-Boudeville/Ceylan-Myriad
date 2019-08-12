@@ -56,8 +56,12 @@
 %{pre_hooks, [ {compile, "make -s rebar3-info"} ]}.
 %{pre_hooks, [ {compile, "make -s rebar3-compile"} ]}.
 
-%{post_hooks, [
-%	{compile, "echo 'Myriad post-compile hook!'"} ]}.
+
+% We create a symlink for each (public) header, so that software depending on
+% this layer just have to include one 'include' directory (and remain happily
+% unaware of its internal structure):
+%
+{post_hooks, [ {compile, "make -s rebar3-make-include-links"} ]}.
 
 
 
