@@ -30,7 +30,7 @@ if [ ! $# -eq 1 ] ; then
 fi
 
 
-echo "Looking for the definition of the '${record_name}' Erlang record from ${base_dir}..."
+echo "Looking for the definition of the '${record_name}' Erlang record from '${base_dir}'..."
 echo
 
 
