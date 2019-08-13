@@ -1,10 +1,10 @@
-% This is a (manually crafted) configuration file of rebar3, so that
-% Ceylan-Myriad can be directly tested separately (i.e. without needing to
-% install upper layers, i.e. software depending on it): emulates a user of the
-% Myriad library.
-%
-% This is also a template, so that version numbers can be updated from a
-% centralized place (namely GNUmakevars.inc).
+% This is a configuration file of rebar3, so that Ceylan-Myriad can be directly
+% tested separately (i.e. without needing to install upper layers, i.e. software
+% depending on it): emulates a user of the Myriad library.
+
+% If the name of this file is 'rebar.config', then it is a generated file,
+% otherwise it is a template (in conf/rebar-for-testing.config.template), meant
+% to be filled by information coming from GNUmakevars.inc.
 
 % To be run through the 'test-hex-package' make target.
 
@@ -36,6 +36,9 @@
 %
 % With relx, only direct dependencies need to be listed, and version constraints
 % can be used, instead of exact, specific versions.
+%
+% Probably that these releases are superfluous, in the sense that they are the
+% same as the ones already included in Myriad's rebar.config.template.
 %
 {relx, [
 
