@@ -1,6 +1,6 @@
 #!/usr/bin/env escript
 %% -*- erlang -*-
-%%! -pz ../../scripts
+%%! -pz ../../..
 
 % Additionally: this escript will only work when run from its current
 % directory...
@@ -21,10 +21,10 @@
 
 % For update_code_path_for_myriad/0 and all:
 %
-% (ugly hack, in link with '-pz ../../scripts', simply to be able to include an
+% (ugly hack, in link with '-pz ...' above, simply to be able to include an
 % header file...)
 %
--include_lib("scripts/myriad_script_include.hrl").
+-include_lib("../../../include/scripts/myriad_script_include.hrl").
 
 
 % Entry point of this escript.
