@@ -1,6 +1,6 @@
 MYRIAD_TOP = ..
 
-MODULES_DIRS = data-management maths meta scripts user-interface utils apps
+MODULES_DIRS = data-management maths meta user-interface utils
 
 
 clean:
