@@ -88,7 +88,7 @@
   {prod, [ {relx, [
 
 	% Same as default profile:
-	{release, {myriad_release, "VERSION_FOR_REBAR3"}},
+	{release, {myriad_release, "VERSION_FOR_REBAR3"},
 			  [sasl, myriad]},
 
 	% Like for the default profile, except for removed {d,myriad_debug_mode} and
