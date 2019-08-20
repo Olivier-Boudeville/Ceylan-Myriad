@@ -247,6 +247,13 @@ launch: Emakefile
 
 
 
+# Section regarding installation and OTP integration.
+
+
+# All of them should be available only from the root of the layer:
+ifeq ($(BASE_MAKEFILE),true)
+
+
 # Installation section (in an ad-hoc way).
 
 
@@ -395,13 +402,16 @@ info-install-content:
 # - if the conf/*.app.src, hence the ebin/*.app file, are invalid - ex: cannot
 # be parsed)
 #
+# ('remove-rebar-conf' target not kept, as rebar.config shall not be deleted in
+# GIT)
+#
 rebar3-application: rebar3-real-clean clean rebar3-update set-rebar-conf \
 					rebar3-make-include-links rebar3-hide-unsupported-sources \
 					rebar3-create-app-file
 	@echo "  Triggering the overall creation by rebar3 of an OTP application corresponding to $(PROJECT_NAME)"
 	-@/bin/rm -f rebar.lock 2>/dev/null
 	@$(REBAR_DEBUG) rebar3 compile
-	@$(MAKE) -s rebar3-restore-unsupported-sources remove-rebar-conf
+	@$(MAKE) -s rebar3-restore-unsupported-sources
 
 
 # If making a rebar application or release, a symlink suffices, yet not if
@@ -488,7 +498,8 @@ pre-release: rebar3-real-clean clean rebar3-update          \
 	-@/bin/rm -f rebar.lock 2>/dev/null
 
 
-post-release: rebar3-restore-unsupported-sources remove-rebar-conf
+# rebar.config not to be deleted, hence 'remove-rebar-conf' target removed:
+post-release: rebar3-restore-unsupported-sources
 
 
 rebar3-development-release: pre-release
@@ -750,6 +761,12 @@ create-fake-otp-project: all
 	# Copy rebar.config in root, myriad.app in ebin, etc.
 
 
+real-clean: rebar3-real-clean
+
+# End of the section regarding installation and OTP integration:
+endif
+
+
 
 generate-list-of-local-types:
 	@echo "    Listing all types defined in package '$(PACKAGE_NAME)', in the $$(basename $(TYPE_LIST_FILE)) file"
@@ -880,7 +897,7 @@ clean-outputs:
 
 
 # To be enriched by user layers:
-real-clean: clean clean-ast-debug real-clean-recurse rebar3-real-clean
+real-clean: clean clean-ast-debug real-clean-recurse
 
 real-clean-recurse:
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then      \
