@@ -25,7 +25,7 @@ endif
 
 
 # The uniquely-defined version of this layer, for all uses (including rebar):
-MYRIAD_VERSION := 1.0.12
+MYRIAD_VERSION := 1.0.14
 
 
 # PROJECT_VERSION should be defined on a per-project basis.
@@ -87,7 +87,9 @@ PROJECT_RELEASE_ARCHIVE_XZ  := $(PROJECT_RELEASE_BASE).tar.xz
 empty =
 
 
-# Installation section.
+
+# Installation section (custom one, now mostly deprecated in favor of the OTP
+# one, done through rebar3).
 
 
 # If wanting to install that package, following installation prefix is used.
@@ -164,7 +166,7 @@ MYRIAD_INC := -I$(MYRIAD_SRC)
 # BEAM_DIRS are relative paths of BEAM files, ABS_BEAM_DIRS are the
 # corresponding absolute paths.
 #
-# The 'include' structure matches the one of 'src':
+# As the 'include' structure matches the one of 'src':
 #
 INC += $(foreach dir,$(BEAM_DIRS),-I$$(echo $(dir)|sed 's|src|include|1'))
 
@@ -688,7 +690,14 @@ MYRIAD_BEAM_DIRS = $(MYRIAD_BEAM)/data-management              \
 				   $(MYRIAD_BEAM)/apps/merge-tool
 
 
-BEAM_DIRS += $(MYRIAD_BEAM_DIRS)
+
+# Myriad's parent directory added to the code path, as any external code using
+# Myriad is expected to reference its (public) headers thanks to, for example,
+# '-include_lib("myriad/include/ast_info.hrl").'; knowing that -include_lib
+# relies on the code path, not the header file path, we thus add Myriad's
+# include directory to the code path:
+#
+BEAM_DIRS += $(MYRIAD_BEAM_DIRS) $(MYRIAD_TOP)/..
 
 
 ERL_LAUNCHER = $(MYRIAD_SRC)/scripts/launch-erl.sh
@@ -1148,9 +1157,8 @@ REBAR_3_EXEC = $$(which rebar3 2>/dev/null)
 # Elements for the generation of rebar.config:
 
 # The modules to build first ('erl_first_files'):
-#
 
-# (the initial '../' are removed as this variable will be evaluated from the
+# (the initial '../'s are removed, as this variable will be evaluated from the
 # 'conf' directory)
 #
 REBAR_FIRST_FILES = \"`echo $(patsubst ../%.beam,\"%.erl\",$(BOOTSTRAP_MODULES))|sed 's| |", "|g'`\"
@@ -1158,7 +1166,6 @@ REBAR_FIRST_FILES = \"`echo $(patsubst ../%.beam,\"%.erl\",$(BOOTSTRAP_MODULES))
 
 # Transforming a recursively expanded variable into a simply expanded, otherwise
 # later transformations will fail (cannot be nested):
-#
 #
 # Note: is correct as happens last in the parsing process (after all layers, all
 # GNUmake* files)
