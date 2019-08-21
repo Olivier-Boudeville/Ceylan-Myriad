@@ -17,7 +17,7 @@
 			  install-src install-include install-examples install-test        \
 			  install-doc info-install info-install-locations                  \
 			  info-install-content                                             \
-			  rebar3-application set-rebar-conf                                \
+			  rebar3-application set-rebar-conf set-rebar-conf-for-hex         \
 			  rebar3-make-include-links rebar3-clean-include-links             \
 			  rebar3-release rebar3-development-release                        \
 			  rebar3-production-release rebar3-hide-unsupported-sources        \
@@ -425,6 +425,12 @@ set-rebar-conf:
 	@cd conf && $(MAKE) -s rebar.config && /bin/cp -f rebar.config ../
 
 
+set-rebar-conf-for-hex:
+	@echo "  Setting rebar configuration for hex"
+	@/bin/rm -f rebar.config 2>/dev/null
+	@cd conf && $(MAKE) -s rebar-for-hex.config && /bin/cp -f rebar-for-hex.config ../rebar.config
+
+
 # This target creates appropriate symlinks for rebar, while preserving our
 # intented structure; this is not needed for the current layer, but is required
 # by any upper layer in order to compile:
@@ -706,20 +712,35 @@ rebar3-info:
 # package, however it is a direct by-product of 'rebar3 hex publish', so nothing
 # is done at this level.
 #
-rebar3-hex-publish: rebar3-clean clean set-rebar-conf rebar3-create-app-file
+# For an (hex) package, we:
+#
+# - copy all nested headers directly in the root of 'include', to ensure they
+# will be found by users
+#
+# - hide temporarily the excluded sources from hex, to prevent their
+# recompilation (hex does not take into account the .app.src file, hence does
+# not rely on explicitly-specified modules to build)
+#
+# - remove rebar.lock, otherwise a past myriad dep (ex: GIT-based) will be reused
+#
+rebar3-hex-publish: rebar3-clean clean set-rebar-conf-for-hex rebar3-create-app-file
 	@/bin/cp -f $(REBAR_BUILD_BASE)/ebin/$(REBAR3_PROJECT_NAME).app src/$(REBAR3_PROJECT_NAME).app.src
+	@cd include && find * -mindepth 1 -a -name '*.hrl' -exec ln -sf '{}' ';'
+	@cd src && for f in $(EXCLUDED_SOURCES); do find . -name "$$f" -exec /bin/mv -f '{}' "{}-hidden" ';' ; done
 	@#mkdir -p priv/hex-packaging/{root,doc}
 	@#/bin/cp -f $(MYRIAD_TOP)/conf/hex-compile-hook-script.sh priv/hex-packaging/
 	@#/bin/cp -f GNUmake* priv/hex-packaging/root
 	@#/bin/cp -f doc/GNUmake* priv/hex-packaging/doc
+	-@/bin/rm -f rebar.lock 2>/dev/null
 	@$(REBAR_DEBUG) rebar3 hex publish
+	@cd src && to_rename=$$(for f in $(EXCLUDED_SOURCES); do find . -name "$$f-hidden" ; done) && for f in $$to_rename ; do /bin/mv -f $$f $$(echo $$f | sed 's|-hidden||1')  ; done
 	@#/bin/rm -rf priv/
 	@/bin/rm -f src/$(REBAR3_PROJECT_NAME).app.src
 	@$(MAKE) -s rebar3-clean
 	@$(MAKE) -s remove-rebar-conf
 
 
-# Nothing to dofor Myriad, not having dependency:
+# Nothing to do for Myriad, not having dependency:
 rebar3-local-update:
 
 
