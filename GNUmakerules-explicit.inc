@@ -721,7 +721,11 @@ rebar3-info:
 # recompilation (hex does not take into account the .app.src file, hence does
 # not rely on explicitly-specified modules to build)
 #
-# - remove rebar.lock, otherwise a past myriad dep (ex: GIT-based) will be reused
+# - remove rebar.lock, otherwise a past myriad dep (ex: GIT-based) will be
+# reused
+#
+# - afterwards we restore the ebin/*.app and rebar.config files for standard
+# releases, in order to avoid having them considered as deleted by GIT
 #
 rebar3-hex-publish: rebar3-clean clean set-rebar-conf-for-hex rebar3-create-app-file
 	@/bin/cp -f $(REBAR_BUILD_BASE)/ebin/$(REBAR3_PROJECT_NAME).app src/$(REBAR3_PROJECT_NAME).app.src
@@ -736,8 +740,7 @@ rebar3-hex-publish: rebar3-clean clean set-rebar-conf-for-hex rebar3-create-app-
 	@cd src && to_rename=$$(for f in $(EXCLUDED_SOURCES); do find . -name "$$f-hidden" ; done) && for f in $$to_rename ; do /bin/mv -f $$f $$(echo $$f | sed 's|-hidden||1')  ; done
 	@#/bin/rm -rf priv/
 	@/bin/rm -f src/$(REBAR3_PROJECT_NAME).app.src
-	@$(MAKE) -s rebar3-clean
-	@$(MAKE) -s remove-rebar-conf
+	@$(MAKE) -s rebar3-clean rebar3-create-app-file set-rebar-conf
 
 
 # Nothing to do for Myriad, not having dependency:
