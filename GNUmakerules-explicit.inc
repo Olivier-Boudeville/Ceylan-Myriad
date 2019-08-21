@@ -429,6 +429,9 @@ set-rebar-conf:
 # appropriate symlinks for rebar, while preserving our intented structure:
 #
 rebar3-make-include-links:
+	@echo "  (no include symlinks created)"
+
+rebar3-make-include-links-disabled:
 	@echo "  Populating the include symlinks"
 	@cd include && for d in $$(find * -type d 2>/dev/null); do for h in $$(/bin/ls $$d/*.hrl 2>/dev/null) ; do ln -sf $$h ; done ; done
 
