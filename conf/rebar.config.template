@@ -3,23 +3,24 @@
 % more flexible) native build based on GNU make.
 %
 % If the name of this file is 'rebar.config', then it is a generated file,
-% otherwise it is a template (in conf/rebar.config.template), meant to be filled
-% by information coming from GNUmakevars.inc.
+% otherwise it is a template (located in conf/rebar.config.template), meant to
+% be filled by information coming from GNUmakevars.inc.
 %
 % The previous version of this file used a compile pre-hook (triggering the
 % 'rebar3-compile' make target), however having BEAM files that were more recent
 % than their sources was not sufficient to prevent rebar from attempting to
 % recompile them (and fail).
-
-% As the option of writing a custom rebar compile module and/or plugin is not so
-% relevant (long, complicated and risky), we also tried with no luck the
-% generation of a separate, fake, non-nested, OTP-standard layout (see the
-% 'create-fake-otp-project' make target), however rebar was still attempting to
-% perform extraneous, failing recompilations.
-
+%
+% As the option of writing a custom rebar compile module and/or plugin was not
+% deemed so relevant (long, complicated and risky), we also tried with no luck
+% the generation of a separate, fake, non-nested, already fully-built
+% OTP-standard layout (see the 'create-fake-otp-project' make target), however
+% rebar was still attempting to perform extraneous, failing recompilations.
+%
 % Finally we created from scratch a direct rebar structure with 'rebar3 new lib
 % myriad' and filled by hand the resulting rebar.config until it became
-% satisfactory; then we automated (at least most of) its generation from Make.
+% satisfactory enough; then we automated (at least most of) its generation from
+% Make, so that upper layers could integrate similarly.
 
 
 % Base layout obtained thanks to: 'rebar3 new lib myriad', as Myriad is a
@@ -42,7 +43,7 @@
 
 
 % Include directories found in INC:
-{erl_opts, [ {d,myriad_debug_mode}, debug_info, {debug_info_key,"DEBUG_KEY_FOR_REBAR"}, report_warnings, warn_export_all, warn_export_vars, warn_shadow_vars, warn_obsolete_guards, warn_unused_import, warnings_as_errors, {parse_transform,myriad_parse_transform}, INCS_FOR_REBAR ]}.
+{erl_opts, [ {d,myriad_debug_mode}, debug_info, {debug_info_key,"DEBUG_KEY_FOR_REBAR"}, report_warnings, warn_export_all, warn_export_vars, warn_shadow_vars, warn_obsolete_guards, warn_unused_import, warnings_as_errors, {parse_transform,myriad_parse_transform} ]}.
 
 
 % Bootstrapped modules (from BOOTSTRAP_MODULES):
@@ -67,12 +68,10 @@
   {release, {myriad_release, "VERSION_FOR_REBAR3"},
 			[sasl, myriad]},
 
-  % Exactly like for the default profile:
-  {erl_opts, [ {d,myriad_debug_mode}, debug_info, {debug_info_key,"DEBUG_KEY_FOR_REBAR"}, report_warnings, warn_export_all, warn_export_vars, warn_shadow_vars, warn_obsolete_guards, warn_unused_import, warnings_as_errors, {parse_transform,myriad_parse_transform}, INCS_FOR_REBAR ]},
-
   %{sys_config, "./config/sys.config"},
   %{vm_args, "./config/vm.args"},
 
+  % Base, development version:
   {dev_mode, true},
   {include_erts, false},
 
@@ -84,12 +83,8 @@
 
 {profiles, [
 
-  % Production mode:
-  {prod, [ {relx, [
-
-	% Same as default profile:
-	{release, {myriad_release, "VERSION_FOR_REBAR3"},
-			  [sasl, myriad]},
+  % Production mode (the default one when used as a dependency):
+  {prod, [
 
 	% Like for the default profile, except for removed {d,myriad_debug_mode} and
 	% added {d,exec_target_is_production}:
@@ -99,25 +94,33 @@
 	% For the build makefiles:
 	{env, [ { 'REBAR_PROFILE', "prod" } ] },
 
-	% Not wanting the release to contain symlinks to applications:
-	{dev_mode, false},
+	{relx, [
 
-	% Creating a full target system:
-	{include_erts, true},
+	  % Not wanting the release to contain symlinks to applications:
+	  {dev_mode, false},
 
-	{extended_start_script, true},
-	{include_src, false}
+	  % Creating a full target system:
+	  {include_erts, true},
 
-  ]}]
+	  {extended_start_script, true},
+	  {include_src, false}
 
-}] }.
-
-
-% For a test profile:
-% {d,my_first_test_token}, {d,my_second_test_token,200}, {d,my_third_test_token,some_text}
+	  ]} ] },
 
 
-% For packages:
+  {test, [
+
+	% Test profile, like the production one except for the three, final,
+	% token-related defines:
+	%
+	{erl_opts, [ {d,exec_target_is_production}, debug_info, {debug_info_key,"DEBUG_KEY_FOR_REBAR"}, report_warnings, warn_export_all, warn_export_vars, warn_shadow_vars, warn_obsolete_guards, warn_unused_import, warnings_as_errors, {parse_transform,myriad_parse_transform}, INCS_FOR_REBAR, {d,my_first_test_token}, {d,my_second_test_token,200}, {d,my_third_test_token,some_text} ]}
+
+  ]}
+
+]}.
+
+
+% For Hex packages (see https://hex.pm/):
 %
 % (use 'rebar3 update' to enable the hex plugin)
 %
