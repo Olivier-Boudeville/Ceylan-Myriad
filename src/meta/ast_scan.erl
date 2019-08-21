@@ -259,6 +259,11 @@ report_error( { Context, Error } ) ->
 			text_utils:format( "argument error in macro '~s' "
 							   "(ex: non-closed parenthesis?)", [ MacroName ] );
 
+		% Ex: HeaderPath="myriad/include/ast_info.hrl"
+		{ epp_error, { include, lib, HeaderPath } } ->
+			text_utils:format( "could not find include_lib header file '~s'",
+							   [ HeaderPath ] );
+
 		String when is_list( String ) ->
 			text_utils:format( "~s", [ String ] );
 
