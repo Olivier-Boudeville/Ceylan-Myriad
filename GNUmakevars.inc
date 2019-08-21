@@ -1074,6 +1074,7 @@ endif
 # Release settings.
 
 
+# Toggle for additional logs:
 REBAR_DEBUG :=
 #REBAR_DEBUG := DEBUG=1
 
