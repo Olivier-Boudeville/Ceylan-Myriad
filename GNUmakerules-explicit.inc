@@ -425,13 +425,11 @@ set-rebar-conf:
 	@cd conf && $(MAKE) -s rebar.config && /bin/cp -f rebar.config ../
 
 
-# Visibly rebar is not able to deal with nested includes; so this target creates
-# appropriate symlinks for rebar, while preserving our intented structure:
+# This target creates appropriate symlinks for rebar, while preserving our
+# intented structure; this is not needed for the current layer, but is required
+# by any upper layer in order to compile:
 #
 rebar3-make-include-links:
-	@echo "  (no include symlinks created)"
-
-rebar3-make-include-links-disabled:
 	@echo "  Populating the include symlinks"
 	@cd include && for d in $$(find * -type d 2>/dev/null); do for h in $$(/bin/ls $$d/*.hrl 2>/dev/null) ; do ln -sf $$h ; done ; done
 
