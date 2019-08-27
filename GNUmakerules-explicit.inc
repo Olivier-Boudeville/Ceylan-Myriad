@@ -53,7 +53,7 @@ all:
 ifeq ($(BASE_MAKEFILE),true)
 
 # CORE_COUNT defined in myriad/GNUmakevars.inc:
-all: all-pre-hook all-parse-transforms
+all: all-pre-hook all-parse-transforms rebar3-make-include-links
 	@echo "   Building all, in parallel over $(CORE_COUNT) core(s), from $(PWD)"
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && \
 		$(MAKE) -s all-recurse -j $(CORE_COUNT) && cd .. ; else echo "     (directory $$m skipped)" ; \

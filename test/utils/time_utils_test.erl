@@ -57,6 +57,11 @@ run() ->
 	test_facilities:display( "Timestamp for path is ~s.", [
 		time_utils:get_textual_timestamp_for_path( InitialTimestamp ) ] ),
 
+	SomeTimestamp = { {2017,5,20}, {12,00,17} },
+
+	"2017-05-20 12:00:17" =
+		time_utils:get_textual_timestamp_with_dashes( SomeTimestamp ),
+
 	TextualTimeStamp = "14/4/2011 18:48:51",
 	test_facilities:display( "Parsed timestamp for '~s' is ~p.", [
 		TextualTimeStamp,

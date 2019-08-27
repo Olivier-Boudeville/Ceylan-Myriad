@@ -94,10 +94,16 @@
 
 
 % Timestamp-related section.
+%
+% Note: the base Erlang term comparison allows to compare directly timestamps;
+% for example, if T1={{2019,8,26},{17,1,16}} and T2={{2019,8,26},{17,2,5}}, then
+% T1 < T2 ("T1 is before T2") is true.
+%
 -export([ get_timestamp/0,
 		  get_textual_timestamp/0, get_textual_timestamp/1,
 		  get_french_textual_timestamp/1,
 		  get_textual_timestamp_for_path/0, get_textual_timestamp_for_path/1,
+		  get_textual_timestamp_with_dashes/1,
 		  timestamp_to_string/1, string_to_timestamp/1,
 		  get_duration/1, get_duration/2,
 		  get_duration_since/1, get_textual_duration/2,
@@ -488,13 +494,24 @@ get_textual_timestamp_for_path() ->
 
 
 % Returns a string corresponding to the specified timestamp and able to be a
-% part of a path, like: "2010-11-18-at-13h-30m-35s.".
+% part of a path, like: "2010-11-18-at-13h-30m-35s".
 %
 -spec get_textual_timestamp_for_path( timestamp() ) -> string().
 get_textual_timestamp_for_path( { { Year, Month, Day },
 								  { Hour, Minute, Second } } ) ->
 	io_lib:format( "~p-~p-~p-at-~Bh-~2..0Bm-~2..0Bs",
 				   [ Year, Month, Day, Hour, Minute, Second ] ).
+
+
+% Returns a string corresponding to the specified timestamp, with "dash"
+% conventions (ex: used by jsgantt), like: "2017-05-20 12:00:17".
+%
+-spec get_textual_timestamp_with_dashes( timestamp() ) -> string().
+get_textual_timestamp_with_dashes( { { Year, Month, Day },
+									 { Hour, Minute, Second } } ) ->
+	io_lib:format( "~B-~2..0B-~2..0B ~B:~2..0B:~2..0B",
+				   [ Year, Month, Day, Hour, Minute, Second ] ).
+
 
 
 

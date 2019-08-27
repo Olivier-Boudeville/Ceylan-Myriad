@@ -787,7 +787,7 @@ display_helper( Channel, FormatString, Values ) ->
 			ok;
 
 		Backtitle ->
-			io:format( Channel, "~n [Backtile: ~s]~n", [ Backtitle ] )
+			io:format( Channel, "~n [Backtitle: ~s]~n", [ Backtitle ] )
 
 	end,
 

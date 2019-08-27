@@ -54,7 +54,8 @@
 		  display_error/1, display_error/2,
 		  debug/1, debug/2,
 		  parse_version/1, compare_versions/2,
-		  get_process_specific_value/0, get_process_specific_value/2,
+		  get_process_specific_value/0, get_process_specific_value/1,
+		  get_process_specific_value/2,
 		  get_execution_target/0,
 		  is_alive/1, is_alive/2,
 		  is_debug_mode_enabled/0,
@@ -1143,19 +1144,36 @@ compare_versions( {A1,A2}, {B1,B2} ) ->
 % Mostly based on its PID.
 %
 % Useful for example when a large number of similar processes try to access to
-% the same resource (ex: a set of file descriptors) over time: they can rely on
-% some random waiting based on that process-specific value in order to smooth
-% the accesses over time.
+% the same resource (ex: a set of file descriptors) at the same time: they can
+% rely on some random waiting based on that process-specific value in order to
+% smooth the accesses over time.
 %
 % We could imagine taking into account as well the current time, the process
 % reductions, etc. or generating a reference.
 %
 -spec get_process_specific_value() -> pos_integer().
 get_process_specific_value() ->
+	get_process_specific_value( self() ).
+
+
+
+% Returns a value (a strictly positive integer) expected to be as much as
+% possible specific to the specified PID.
+%
+% Useful for example when a large number of similar processes try to access to
+% the same resource (ex: a set of file descriptors) at the same time: they can
+% rely on some random waiting based on that process-specific value in order to
+% smooth the accesses over time.
+%
+% We could imagine taking into account as well the current time, the process
+% reductions, etc. or generating a reference.
+%
+-spec get_process_specific_value( pid() ) -> pos_integer().
+get_process_specific_value( Pid ) ->
 
 	% PID are akin to <X.Y.Z>.
 
-	PidAsText = lists:flatten( io_lib:format( "~w", [ self() ] ) ),
+	PidAsText = lists:flatten( io_lib:format( "~w", [ Pid ] ) ),
 
 	%io:format( "PID: ~w.~n", [ self() ] ) ,
 	% Ex: ["<0","33","0>"]:

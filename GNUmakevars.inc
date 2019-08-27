@@ -1213,7 +1213,7 @@ endif
 
 
 # For later reuse in the next layer of the software stack:
-MYRIAD_PLT_FILE := $(MYRIAD_TOP)/myriad.plt
+MYRIAD_PLT_FILE := $(MYRIAD_TOP)/Ceylan-Myriad.plt
 
 
 # Shorthand:
