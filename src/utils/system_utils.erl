@@ -663,7 +663,6 @@ get_line( Prompt ) ->
 					  text_utils:ustring().
 get_line( Prompt, GetLineScriptPath ) ->
 
-
 	% Having the script display the prompt would not work, as that script would
 	% not be able to write to the standard input (1):
 	%
