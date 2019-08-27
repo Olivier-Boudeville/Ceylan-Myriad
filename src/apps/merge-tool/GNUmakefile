@@ -1,7 +1,7 @@
 MYRIAD_TOP = ../../..
 
 .PHONY: make-test-tree test-local test-local-scan run-test-tree \
-		debug run-direct clean-test-tree
+		debug run-direct help clean clean-test-tree
 
 
 # Previously run as an escript, but due to an issue with term_ui (i.e. dialog),
@@ -15,8 +15,8 @@ TEST_TREE := "myriad-example-tree"
 
 TEST_LOG_FILE := "merge-tree.log"
 
-#UI_BACKEND := text_ui
-UI_BACKEND := term_ui
+UI_BACKEND := text_ui
+#UI_BACKEND := term_ui
 
 
 

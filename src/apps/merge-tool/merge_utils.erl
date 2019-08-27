@@ -22,7 +22,7 @@
 
 
 % Version of this tool:
--define( merge_script_version, "0.0.2" ).
+-define( merge_script_version, "0.0.3" ).
 
 
 -define( default_log_filename, "merge-tree.log" ).
@@ -40,12 +40,14 @@
 
 % Data associated to a given file-like element.
 %
-% Note: these records are typically stored in tables, the associated key
-% potentially duplicating their path (not a problem).
+% Note: these records are typically values stored in tables, whose associated
+% key is potentially duplicating their path (not a problem).
 %
 -record( file_data, {
 
-		   % Path of this file (an identifier), relative to the tree root:
+		   % Path of this file (an identifier thereof), relative to the tree
+		   % root:
+		   %
 		   path :: file_utils:bin_path(),
 
 		   % Type of the file element:
@@ -70,7 +72,8 @@
 
 % Table referencing file entries based on their SHA1:
 %
-% (exactly one file_data record per SHA1 key, once the tree is uniquified)
+% (a list of exactly one file_data record per SHA1 key, once the tree is
+% uniquified)
 %
 -type sha1_table() :: table( sha1(), [ file_data() ] ).
 
@@ -80,10 +83,11 @@
 
 
 % Data associated to a content tree.
-%
 -record( tree_data, {
 
-		   % Base, absolute (binary) path of the root of that tree:
+		   % Base, absolute (binary) path of the root of that tree in the
+		   % filesystem:
+		   %
 		   root :: file_utils:bin_directory_name(),
 
 		   % Each key is the SHA1 sum of a file content, each value is a list of
@@ -117,6 +121,7 @@
 
 -record( user_state, {
 
+	% File handle (if any) to write logs:
 	log_file = undefined :: maybe( file_utils:file() )
 
 }).
@@ -127,7 +132,7 @@
 
 
 
-% To run from the interpreter rather than as an escript:
+% In order to run from the interpreter rather than through an escript:
 -export([ run/0, scan/1, main/1 ]).
 
 
@@ -136,7 +141,6 @@
 
 
 % Ring of analyzer processes:
-%
 -type analyzer_ring() :: ring_utils:ring( analyzer_pid() ).
 
 
@@ -160,12 +164,12 @@ get_usage() ->
 	"  - either: '"?exec_name" --input INPUT_TREE --reference REFERENCE_TREE'\n"
 	"  - or: '"?exec_name" --scan A_TREE'\n"
 	"  - or: '"?exec_name" --uniquify A_TREE'\n\n"
-	"  Ensures, for the first form, that all the changes in a possibly more up-to-date, \"newer\" tree (INPUT_TREE) are merged back to the reference tree (REFERENCE_TREE), from which the first tree may have derived. Once executed, only a refreshed reference tree will exist, as the input tree will be removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
-	"   In the reference tree, in-tree duplicated content will be either kept as it is, or removed as a whole, or replaced by symbolic links in order to keep only a single version of each actual content.\n"
+	"  Ensures, for the first form, that all the changes in a possibly more up-to-date, \"newer\" tree (INPUT_TREE) are merged back to the reference tree (REFERENCE_TREE), from which the first tree may have derived. Once executed, only a refreshed, complemented reference tree will exist, as the input tree will have been removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
+	"   In the reference tree, in-tree duplicated content will be either kept as it is, or removed as a whole (to keep only one copy thereof), or replaced by symbolic links in order to keep only a single reference version of each actual content.\n"
 	"   At the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they not have changed. As a result, once a merge is done, the reference tree may contain an uniquified version of the union of the two specified trees, and the tree to scan will not exist anymore.\n\n"
-	"   For the second form (--scan option), the specified tree will simply be inspected for duplicates, and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation)\n\n"
-	"   For the third form (--uniquify option), the specified tree will be scanned first (see previous operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links), and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation))\n\n"
-	"   When an cache file is found, it can be either ignored or re-used, either as it is or after an inspection, which itself can be weak (only sizes and timestamps are checked) or strong (then actual contents are compared)".
+	"   For the second form (--scan option), the specified tree will simply be inspected for duplicates, and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
+	"   For the third form (--uniquify option), the specified tree will be scanned first (see previous operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links), and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
+	"   When a cache file is found, it can be either ignored or re-used, either as it is or after a check, which itself can be weak (only sizes and timestamps are checked) or strong (then actual contents are fully compared)".
 
 
 
@@ -187,7 +191,7 @@ main( ArgTable ) ->
 
 	FilteredArgTable = ui:start( _Opts=[], ArgTable ),
 
-	trace_utils:debug_fmt( "Script-specific arguments: ~s",
+	trace_utils:debug_fmt( "Script-specific argument(s): ~s",
 		   [ executable_utils:argument_table_to_string( FilteredArgTable ) ] ),
 
 	case list_table:has_entry( 'h', FilteredArgTable )
@@ -233,17 +237,16 @@ handle_reference_option( RefTreePath, ArgumentTable ) ->
 	% --input option as well:
 
 	case list_table:extract_entry_with_defaults( '-input', undefined,
-											  ArgumentTable ) of
+												 ArgumentTable ) of
 
 		{ undefined, ArgumentTable } ->
 			InputString = text_utils:format(
-							"no input tree specified; options were: ~s",
-							[ executable_utils:argument_table_to_string(
-								ArgumentTable ) ] ),
+			  "no input tree specified; options were: ~s",
+			  [ executable_utils:argument_table_to_string( ArgumentTable ) ] ),
 			stop_on_option_error( InputString, 23 );
 
 
-		% Here, an input tree specified as well:
+		% Here, an input tree was specified as well:
 		{ [ InputTreePath ], ArgumentTable } when is_list( InputTreePath ) ->
 
 			% Check no unknown option remains:
@@ -265,7 +268,7 @@ handle_reference_option( RefTreePath, ArgumentTable ) ->
 		% Typically more than one input option specified:
 		{ UnexpectedInputTreeOpts, _ArgumentTable } ->
 			InputString = text_utils:format( "unexpected --input options: ~p",
-											[ UnexpectedInputTreeOpts ] ),
+											 [ UnexpectedInputTreeOpts ] ),
 			stop_on_option_error( InputString, 27 )
 
 
@@ -277,15 +280,14 @@ handle_reference_option( RefTreePath, ArgumentTable ) ->
 handle_non_reference_option( ArgumentTable ) ->
 
 	% No reference, it must then either be a pure scan or a uniquify here:
-
 	case list_table:extract_entry_with_defaults( '-scan', undefined,
-											  ArgumentTable ) of
+												 ArgumentTable ) of
 
 		% Not a scan, then a uniquify?
 		{ undefined, NoScanArgTable } ->
 
 			case list_table:extract_entry_with_defaults( '-uniquify', undefined,
-													  NoScanArgTable ) of
+														 NoScanArgTable ) of
 
 				{ undefined, NoUniqArgTable } ->
 
@@ -748,7 +750,7 @@ create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
 								 "% - for content tree '~s'~n"
 								 "% - on ~s~n~n"
 								 "% Structure of file entries: SHA1, "
-								"relative path, size, timestamp~n~n" ,
+								"relative path, size in bytes, timestamp~n~n" ,
 					  [ ScriptName, ?merge_script_version,
 						net_utils:localhost(), AbsTreePath,
 						time_utils:get_textual_timestamp() ] ),
@@ -888,7 +890,7 @@ scan_files( _Files=[ Filename | T ], AnalyzerRing,
 		{ file_analyzed, FileData } ->
 
 			NewTreeData = manage_received_data( FileData, TreeData ),
-			% Plus one (sending) minus one (receiving):
+			% Plus one (sending) minus one (receiving) waited:
 			scan_files( T, NewRing, NewTreeData, WaitedCount )
 
 	after 0 ->

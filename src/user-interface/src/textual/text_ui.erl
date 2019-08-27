@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Wednesday, May 2, 2018
+% Creation date: Wednesday, May 2, 2018.
 
 
 
@@ -46,14 +46,13 @@
 % keep around a UI-state variable in all calls.
 %
 % So now the UI state is fully implicit; counterpart functions with an explicit
-% state use to be also provided (ex: if having a large number of UI operations
+% state used to be also provided (ex: if having a large number of UI operations
 % to perform in a row), in which case they were to return an updated state,
-% however it proved to combersome to define and use.
+% however it proved too cumbersome to define and use.
 
 
 % Basic UI operations.
-%
--export([ % No is_available/0, as deemed always available.
+-export([ % No is_available/0, as text_ui is deemed always available.
 
 		  start/0, start/1,
 
@@ -157,7 +156,7 @@ start( Options ) ->
 % (non-exported helper)
 start( _Options=[], UIState ) ->
 
-	% Check:
+	% Also a check:
 	undefined = process_dictionary:put( ?ui_name_key, ?MODULE ),
 
 	% No prior state expected:
@@ -186,14 +185,13 @@ start( SingleElem, UIState ) ->
 
 
 % Sets specified UI setting.
-%
 -spec set( ui_setting_key(), ui_setting_value() ) -> void().
 set( SettingKey, SettingValue ) ->
 	set( [ { SettingKey, SettingValue } ] ).
 
 
+
 % Sets specified UI settings.
-%
 -spec set( [ ui_setting_entry() ] ) -> void().
 set( SettingEntries ) ->
 
@@ -206,7 +204,6 @@ set( SettingEntries ) ->
 
 
 % Unsets specified UI setting.
-%
 -spec unset( [ ui_setting_key() ] | ui_setting_key() ) -> void().
 unset( SettingKeys ) when is_list( SettingKeys ) ->
 
@@ -227,7 +224,6 @@ unset( SettingKey ) ->
 
 
 % Displays specified text, as a normal message.
-%
 -spec display( text() ) -> void().
 display( Text ) ->
 	display_helper( _Channel=standard_io, Text ).
@@ -235,7 +231,6 @@ display( Text ) ->
 
 
 % Displays specified formatted text, as a normal message.
-%
 -spec display( text_utils:format_string(), [ term() ] ) -> void().
 display( FormatString, Values ) ->
 	display_helper( _Channel=standard_io, FormatString, Values ).
@@ -243,7 +238,6 @@ display( FormatString, Values ) ->
 
 
 % Displays in-order the items of specified list, as a normal message.
-%
 -spec display_numbered_list( label(), [ text() ] ) -> void().
 display_numbered_list( Label, Lines ) ->
 	LineStrings = text_utils:strings_to_enumerated_string( Lines ),
@@ -252,7 +246,6 @@ display_numbered_list( Label, Lines ) ->
 
 
 % Displays specified text, as an error message.
-%
 -spec display_error( text() ) -> void().
 display_error( Text ) ->
 	display_helper( standard_error, ?error_prefix ++ Text ++ ?error_suffix ).
@@ -260,7 +253,6 @@ display_error( Text ) ->
 
 
 % Displays specified formatted text, as an error message.
-%
 -spec display_error( text_utils:format_string(), [ term() ] ) -> void().
 display_error( FormatString, Values ) ->
 	display_helper( standard_error,
@@ -269,7 +261,6 @@ display_error( FormatString, Values ) ->
 
 
 % Displays in-order the items of specified list, as an error message.
-%
 -spec display_error_numbered_list( label(), [ text() ] ) -> void().
 display_error_numbered_list( Label, Lines ) ->
 	LineStrings = text_utils:strings_to_enumerated_string( Lines ),
@@ -280,7 +271,6 @@ display_error_numbered_list( Label, Lines ) ->
 
 
 % Adds a default separation between previous and next content.
-%
 -spec add_separation() -> void().
 add_separation() ->
 	display( _Text="" ).
@@ -294,11 +284,19 @@ add_separation() ->
 %
 -spec get_text( prompt(), ui_state() ) -> text().
 get_text( Prompt,
-		  _UIState ) ->
-		  %#text_ui_state{ get_line_script=GetLineScript } ) ->
-	text_utils:remove_ending_carriage_return( io:get_line( Prompt ) ).
-	%text_utils:remove_ending_carriage_return(
-	%  system_utils:get_line( Prompt, GetLineScript ) ).
+		  %_UIState ) ->
+		  #text_ui_state{ get_line_script=GetLineScript } ) ->
+
+	%trace_utils:debug( "get_text/2 called." ),
+
+	% If not using our script, will freeze:
+	%Read = io:get_line( Prompt ),
+
+	Read = system_utils:get_line( Prompt, GetLineScript ),
+
+	%trace_utils:debug( "get_text/2 read: '~p'.", [ Read ] ),
+
+	text_utils:remove_ending_carriage_return( Read ).
 
 
 
@@ -671,7 +669,6 @@ trace( Message ) ->
 
 
 % Traces specified message, by displaying it, and possibly logging it.
-%
 -spec trace( message(), ui_state() ) -> void();
 		   ( text_utils:format_string(), [ term() ] ) -> void().
 trace( Message, UIState ) when is_record( UIState, text_ui_state ) ->
@@ -705,7 +702,6 @@ trace( FormatString, Values ) ->
 
 
 % Stops the UI.
-%
 -spec stop() -> void().
 stop() ->
 
@@ -714,7 +710,6 @@ stop() ->
 
 
 % Stops the UI.
-%
 -spec stop( ui_state() ) -> void().
 stop( #text_ui_state{ log_file=undefined } ) ->
 	stop_helper();
@@ -777,7 +772,6 @@ display_helper( Channel, Text ) ->
 
 
 % Displays specified formatted text, on specified channel.
-%
 -spec display_helper( channel(), text_utils:format_string(), [ term() ] ) ->
 							void().
 display_helper( Channel, FormatString, Values ) ->
@@ -793,7 +787,7 @@ display_helper( Channel, FormatString, Values ) ->
 			ok;
 
 		Backtitle ->
-			io:format( Channel, "~n [~s]~n", [ Backtitle ] )
+			io:format( Channel, "~n [Backtile: ~s]~n", [ Backtitle ] )
 
 	end,
 
@@ -803,7 +797,7 @@ display_helper( Channel, FormatString, Values ) ->
 			ok;
 
 		Title ->
-			io:format( Channel, "     ~s~n", [ Title ] )
+			io:format( Channel, "Title:     ~s~n", [ Title ] )
 
 	end,
 
@@ -812,7 +806,6 @@ display_helper( Channel, FormatString, Values ) ->
 
 
 % Sets the specified setting to specified value, in the (implicit) UI state.
-%
 -spec set_setting( ui_setting_key(), ui_setting_value() ) -> void().
 set_setting( SettingKey, SettingValue ) ->
 	NewUIState = set_setting( SettingKey, SettingValue, get_state() ),
@@ -821,7 +814,6 @@ set_setting( SettingKey, SettingValue ) ->
 
 
 % Sets the specified setting to specified value, in the specified UI state.
-%
 -spec set_setting( ui_setting_key(), ui_setting_value(), ui_state() ) ->
 						 ui_state().
 set_setting( SettingKey, SettingValue,
@@ -835,7 +827,6 @@ set_setting( SettingKey, SettingValue,
 
 
 % Sets the specified settings to specified values, in the (implicit) UI state.
-%
 -spec set_settings( [ ui_setting_entry() ] ) -> void().
 set_settings( SettingEntries ) ->
 	NewUIState = set_settings( SettingEntries, get_state() ),
@@ -844,7 +835,6 @@ set_settings( SettingEntries ) ->
 
 
 % Sets the specified settings to specified values, in the specified UI state.
-%
 -spec set_settings( [ ui_setting_entry() ], ui_state() ) -> ui_state().
 set_settings( SettingEntries,
 			  UIState=#text_ui_state{ settings=SettingTable } ) ->
@@ -875,14 +865,12 @@ get_setting( SettingKey, #text_ui_state{ settings=SettingTable } ) ->
 
 
 % Returns a textual description of the (implicit) UI state.
-%
 -spec to_string() -> string().
 to_string() ->
 	to_string( get_state() ).
 
 
 % Returns a textual description of the specified UI state.
-%
 -spec to_string( ui_state() ) -> string().
 to_string( #text_ui_state{ get_line_script=GetLineScript,
 						   log_console=LogConsole,

@@ -23,16 +23,16 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Saturday, May 5, 2018
+% Creation date: Saturday, May 5, 2018.
 
 
-% Aggregates all code transverse to UI backends.
+% Aggregates all code transverse to the various actual UI backends.
 %
 % See:
 %
 % - text_ui_test.erl for the test of the most basic text interface
 % - term_ui.erl for a more advanced text interface (ncurses-based)
-% - gui.erl for a graphical counterpart
+% - gui.erl for a graphical counterpart thereof
 %
 % See also: trace_utils.erl for another kind of output.
 %
@@ -46,24 +46,40 @@
 % By default, this module will do its best to select the most suitable backend,
 % i.e. the most advanced among the available ones.
 %
-% One may select, from the command-line, a given backend thanks to the following
-% option: --use-ui-backend BACKEND_NAME, where BACKEND_NAME is the name of the
-% associated backend (ex: text_ui, term_ui or gui).
+% One may select, from the command-line, a specific backend thanks to the
+% following option: --use-ui-backend BACKEND_NAME, where BACKEND_NAME is the
+% name of the associated backend (ex: text_ui, term_ui or gui).
 %
 % For example: make ui_run CMD_LINE_OPT="--use-ui-backend text_ui"
 %
-% See examples like merge-tree.escript (merge_utils.erl) allowing the user to
+% See examples like merge-tree.escript (merge_utils.erl) allow the user to
 % override the actual backend.
 
-% Note that the actual option starts with one extra dash (thus two):
+
+% Note that the actual option starts with one extra dash (thus two of them):
 -define( ui_backend_opt, '-use-ui-backend' ).
+
+
+% Usage conventions:
+
+% read_* primitives will loop until having a satisfactory entry specified,
+% whereas their get_* counterparts will try only once.
+
+% When offering the user a choice within a range of options, choice designators
+% (possibly atoms, like 'do_save' or 'do_exit') can be used (see for example
+% choose_designated_item/*) to designate and handle a logical choice made by the
+% user regardless of how it was introduced (ex: possibly in different languages,
+% according to the locale).
+%
+% Another possibility is to designate choices based on their index (numerical
+% order), see for example choose_numbered_item/*).
 
 
 % Implementation notes:
 %
 % Each backend is to store its current state into a specific state record (ex:
-% of type term_ui_state()), kept under a backend-specific key (see ui_name_key)
-% in the process dictionary.
+% of type term_ui_state()), kept under a separate, backend-specific key (see
+% ui_name_key) in the process dictionary.
 %
 % Among the fields of these backend records, one is the settings table (see the
 % setting_table() type). It allows the developer to specify all kinds of
@@ -124,7 +140,7 @@
 		  settings_to_string/1 ]).
 
 
-% Typically text_ui_state() | term_ui_state() | ...
+% Typically text_ui_state() | term_ui_state() | guiçstate() | ...
 -type ui_state() :: any().
 
 
@@ -137,7 +153,7 @@ start() ->
 
 
 % Starts the UI with specified settings, and returns the command-line arguments
-% expurged of any UI-related option (as an argument table).
+% once expurged of any of the known UI-related option (as an argument table).
 %
 % Stores the corresponding state in the process dictionary.
 %
@@ -152,8 +168,8 @@ start( Options ) ->
 
 
 % Starts the UI with specified table-based settings, and returns the
-% command-line arguments, still as a table, expurged of any UI-related option
-% (as an argument table).
+% command-line arguments, still as a table, once expurged of any UI-related
+% option (as an argument table).
 %
 % Stores the corresponding state in the process dictionary.
 %
@@ -252,7 +268,7 @@ set( SettingEntries ) ->
 
 
 
-% Unsets specified UI setting.
+% Unsets specified UI setting(s).
 -spec unset( [ ui_setting_key() ] | ui_setting_key() ) -> void().
 unset( SettingElement ) ->
 
@@ -338,7 +354,7 @@ add_separation() ->
 
 
 
-% Returns the user-entered text after specified prompt, based on an implicit state..
+% Returns the user-entered text after specified prompt, based on an implicit state.
 %
 % (const)
 %
@@ -381,7 +397,7 @@ read_text_as_integer( Prompt, UIState ) ->
 
 
 % Returns the user-entered text (if any) after specified prompt, once translated
-% to an integer.
+% to (possibly) an integer.
 %
 % (const)
 %
@@ -441,6 +457,8 @@ choose_designated_item( Choices ) ->
 %
 % (const)
 %
+-spec choose_designated_item( label(), [ choice_element() ] ) ->
+									choice_designator().
 choose_designated_item( Label, Choices ) ->
 
 	UIModule = get_backend_name(),
@@ -482,9 +500,6 @@ choose_numbered_item( Choices ) ->
 % specified ones (specified as direct text, with no specific designator
 % provided), and returns its index.
 %
-% Selects, based on an implicit state, using the specified label, an item among
-% the specified ones, and returns its index.
-%
 -spec choose_numbered_item( [ choice_element() ], ui_state() ) ->
 								  choice_index();
 						  ( label(), [ choice_element() ] ) -> choice_index().
@@ -493,6 +508,7 @@ choose_numbered_item( Choices, UIState ) ->
 	UIModule = get_backend_name(),
 
 	UIModule:choose_numbered_item( Choices, UIState ).
+
 
 
 % Selects, based on an explicit state, using the specified label, an item among
@@ -506,6 +522,7 @@ choose_numbered_item( Label, Choices, UIState ) ->
 	UIModule = get_backend_name(),
 
 	UIModule:choose_numbered_item( Label, Choices, UIState ).
+
 
 
 % Selects, based on an implicit state, using a default label, an item among the
@@ -697,11 +714,14 @@ get_backend_name() ->
 
 
 
-% Returns the most suitable UI backend found.
+% Returns the most suitable UI backend found, as automatically determined.
+%
+% By decreasing order of preference: gui, term_ui and text_ui.
+%
 -spec get_best_ui_backend() -> basic_utils:module_name().
 get_best_ui_backend() ->
 
-	case gui:is_available() of
+	RightResult = case gui:is_available() of
 
 		true ->
 			gui;
@@ -717,7 +737,16 @@ get_best_ui_backend() ->
 
 			end
 
-	end.
+	end,
+
+	% Tired of failures for the moment:
+	RiggedResult = text_ui,
+
+	trace_utils:warning_fmt( "Selecting '~s', as currently hardcoded "
+							 "(should have been '~s').", 
+							 [ RiggedResult, RightResult ] ),
+
+	RiggedResult.
 
 
 
