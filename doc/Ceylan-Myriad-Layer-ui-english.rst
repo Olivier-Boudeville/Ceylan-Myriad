@@ -21,20 +21,20 @@ Such a user interface may be:
 - either **text-only**, within a console, relying either on the very basic ``text_ui`` (for raw text) or its more advanced ``term_ui`` counterpart (for terminal-based outputs)
 - or **graphical**, with ``gui``
 
-Text-based user interfaces are quite useful, as they are lightweight, incur few dependencies (if any), and can be used for headless remote servers (``text_ui`` and ``term_ui`` work well through SSH, and require no X server nor mouse).
+Text-based user interfaces are quite useful, as they are lightweight, incur few dependencies (if any), and can be used with headless remote servers (``text_ui`` and ``term_ui`` work well through SSH, and require no X server nor mouse).
 
 As for graphical-based user interfaces, they are the richest, most usual, and generally the most convenient, user-friendly interfaces.
 
-User interfaces tend to have a **state**, which can be:
+The user interfaces provided by Myriad are stateful, they rely on a **state** that can be:
 
 - either ``explicit``, in a functional way; thus having to be carried in all calls
-- or ``implicit``, using, for that very specific need only, the process dictionary (even if otherwise we never use it)
+- or ``implicit``, using - for that very specific need only - the process dictionary (even if we try to stay away of it as much as possible)
 
-We tested the two approaches and preferred the latter (implicit) one, which thus finally fully superseded the (former) explicit one.
+We tested the two approaches and preferred the latter (implicit) one, which was found considerably more flexible and thus finally fully superseded the (former) explicit one.
 
 We made our best so that a lower-level API interface (relying on a more basic backend) is **strictly included** in the higher-level ones (ex: ``term_ui`` adds concepts - like the one of window or box - to the line-based ``text_ui``), in order that any program using a given user interface may use any of the next, upper ones as well (provided implicit states are used), in the following order: the ``text_ui`` API is included in the one of ``term_ui``, which is itself included in the one of ``gui``.
 
-We also defined the **settings table**, which is a table gathering all the settings specified by the developer that the user interface does its best to accommodate.
+We also defined the **settings table**, which is a table gathering all the settings specified by the developer, which the current user interface does its best to accommodate.
 
 Thanks to these "Matryoshka" APIs and the settings table, the definition of a more generic ``ui`` interface has been possible. It selects automatically, based on available local software dependencies, **the most advanced available backend**, with the most relevant settings.
 
@@ -42,7 +42,7 @@ For example a relevant backend will be automatically selected by:
 
 .. code:: bash
 
- $ cd src/user-interface/src
+ $ cd test/user-interface/src
  $ make ui_run
 
 
@@ -52,7 +52,7 @@ On the other hand, if wanting to select a specified backend:
 
  $ make ui_run CMD_LINE_OPT="--use-ui-backend term_ui"
 
-(see the corresponding ``GNUmakefile`` for more information)
+(see the corresponding `GNUmakefile <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/test/user-interface/src/GNUmakefile>`_ for more information)
 
 
 
@@ -61,7 +61,7 @@ Raw Text User Interface: ``text_ui``
 
 This is the most basic, line-based monochrome textual interface, directly in raw text with no cursor control.
 
-Located in ``Ceylan-Myriad/src/user-interface/textual``, see ``text_ui.erl`` for its implementation, and ``text_ui_test.erl`` for an example of its use.
+Located in ``{src,test}/user-interface/textual``, see ``text_ui.erl`` for its implementation, and ``text_ui_test.erl`` for an example of its use.
 
 
 
@@ -81,24 +81,24 @@ For example, to secure these prerequisites:
  $ apt-get install dialog
 
 
-Located in ``Ceylan-Myriad/src/user-interface/textual``, see ``term_ui.erl`` for its implementation, and ``term_ui_test.erl`` for an example of its use.
+Located in ``{src,test}/user-interface/textual``, see ``term_ui.erl`` for its implementation, and ``term_ui_test.erl`` for an example of its use.
 
 
 
 Graphical User Interface: ``gui``
 ---------------------------------
 
-This interface relied initially on `gs <http://erlang.org/doc/man/gs.html>`_, now on `wx <http://erlang.org/doc/man/wx.html>`_ (a port of `wxWidgets <https://www.wxwidgets.org/>`_), maybe later in HTML 5. For the base dialogs, `Zenity <https://en.wikipedia.org/wiki/Zenity>`_ could have been on option.
+This interface relied initially on `gs <http://erlang.org/doc/man/gs.html>`_, now on `wx <http://erlang.org/doc/man/wx.html>`_ (a port of `wxWidgets <https://www.wxwidgets.org/>`_), maybe later in HTML 5 (possibly relying on the `Nitrogen web framework<http://nitrogenproject.com/>`_ for that). For the base dialogs, `Zenity <https://en.wikipedia.org/wiki/Zenity>`_ could have been on option.
 
-.. Note:: GUI services are currently being reworked, to provide a ``gs`` like concurrent API while relying underneath on ``wx``, with some additions (such as canvases).
+.. Note:: GUI services are currently being reworked, to provide a ``gs``-like concurrent API while relying underneath on ``wx``, with some additions (such as canvases).
 
 
 The goal is to provide a small, lightweight API (including message types) that are higher-level than ``wx``, and do not depend on any particular GUI backend (such as ``wx``, ``gs``, etc.) to avoid that user programs become obsolete too quickly, as backends for GUI rise and fall relatively often.
 
-So for example the messages received by the user programs shall not mention ``wx``, and they should take the form of `WOOPER <https://github.com/Olivier-Boudeville/Ceylan-WOOPER>`_ messages to allow for user code that would rely on WOOPER.
+So for example the messages received by the user programs shall not mention ``wx``, and they should take a form compliant with `WOOPER <https://github.com/Olivier-Boudeville/Ceylan-WOOPER>`_ message conventions, to easily enable user code to rely on WOOPER if wanted.
 
 
-Located in ``Ceylan-Myriad/src/user-interface/graphical``, see ``gui.erl``, ``gui_color.erl``, ``gui_text.erl``, ``gui_canvas.erl``, etc., with a few tests (``gui_test.erl``, ``lorenz_test.erl``).
+Located in ``{src,test}/user-interface/graphical``, see ``gui.erl``, ``gui_color.erl``, ``gui_text.erl``, ``gui_canvas.erl``, etc., with a few tests (``gui_test.erl``, ``lorenz_test.erl``).
 
 
 

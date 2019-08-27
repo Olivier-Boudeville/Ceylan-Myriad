@@ -192,7 +192,7 @@ The `hex <https://hex.pm/>`_ package manager relies on mix, which is commonly in
 
 .. comment  As an example on Arch Linux, to obtain hex, one would do the following:: $ pacman -S elixir
 
-Thanks to the rebar3 integration with the ``rebar3_hex`` plugin specified in Myriad's `rebar.config <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/rebar.config>`_, ``hex`` will be automatically installed and set up.
+Thanks to the rebar3 integration with the ``rebar3_hex`` plugin specified in Myriad's (generated) `rebar.config <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/rebar.config>`_, ``hex`` will be automatically installed and set up.
 
 By following the publishing guidelines (`[1] <https://hex.pm/docs/rebar3_publish>`_, `[2] <https://www.rebar3.org/docs/publishing-packages>`_), we were able to publish `Hex packages for Myriad <https://hex.pm/packages/myriad>`_ that can be freely used. And there was much rejoicing!
 
@@ -206,8 +206,8 @@ For more details, one may have a look at:
 - `rebar-for-testing.config.template <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/rebar-for-testing.config.template>`_, the simplest test of the previous Hex package: an empty rebar project having for sole dependency that Hex package
 
 
-Other OTP-related Make Target of Interest
------------------------------------------
+Other OTP-related Make Targets of Interest
+------------------------------------------
 
 To populate the OTP build tree (by default, from the GIT root, ``_build/default/lib/myriad/``)::
 
