@@ -1101,12 +1101,12 @@ list_files_in_subdirs_with_extension( _Dirs=[ H | T ], Extension, RootDir,
 									 [ directory_name() ] ) -> [ file_name() ].
 find_files_with_excluded_dirs( RootDir, ExcludedDirList ) ->
 	find_files_with_excluded_dirs( RootDir, _CurrentRelativeDir="",
-								  ExcludedDirList, _Acc=[] ).
+								   ExcludedDirList, _Acc=[] ).
 
 
 % (helper)
 find_files_with_excluded_dirs( RootDir, CurrentRelativeDir, ExcludedDirList,
-							Acc ) ->
+							   Acc ) ->
 
 	%io:format( "find_files_with_excluded_dirs in ~s.~n",
 	% [ CurrentRelativeDir ] ),
@@ -1120,7 +1120,7 @@ find_files_with_excluded_dirs( RootDir, CurrentRelativeDir, ExcludedDirList,
 	%
 	FilteredDirectories = [ D || D <- Directories,
 		not ( lists:member( join( CurrentRelativeDir, D ), ExcludedDirList )
-			 or lists:member( D, ExcludedDirList ) ) ],
+			  or lists:member( D, ExcludedDirList ) ) ],
 
 	Acc ++ list_files_in_subdirs_excluded_dirs( FilteredDirectories, RootDir,
 								CurrentRelativeDir, ExcludedDirList, _Acc=[] )
@@ -1150,17 +1150,17 @@ list_files_in_subdirs_excluded_dirs( _Dirs=[ H | T ], RootDir,
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
 %
--spec find_files_with_excluded_suffixes( directory_name(), [ string() ])
-		-> [ file_name() ].
+-spec find_files_with_excluded_suffixes( directory_name(), [ string() ]) ->
+											   [ file_name() ].
 find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes ) ->
 	find_files_with_excluded_suffixes( RootDir, _CurrentRelativeDir="",
-									  ExcludedSuffixes, _Acc=[] ).
+									   ExcludedSuffixes, _Acc=[] ).
 
 
 
 % (helper)
 find_files_with_excluded_suffixes( RootDir, CurrentRelativeDir,
-										ExcludedSuffixes, Acc ) ->
+								   ExcludedSuffixes, Acc ) ->
 
 	%io:format( "find_files_with_excluded_suffixes in ~s.~n",
 	% [ CurrentRelativeDir ] ),
@@ -1178,9 +1178,10 @@ find_files_with_excluded_suffixes( RootDir, CurrentRelativeDir,
 
 % Helper for find_files_with_excluded_suffixes/4:
 -spec list_files_in_subdirs_with_excluded_suffixes( list(), [ string() ],
-		directory_name(), directory_name(), [ file_name() ]) -> [ file_name() ].
+		directory_name(), directory_name(), [ file_name() ] ) ->
+														  [ file_name() ].
 list_files_in_subdirs_with_excluded_suffixes( [], _ExcludedSuffixes, _RootDir,
-									_CurrentRelativeDir, Acc ) ->
+											  _CurrentRelativeDir, Acc ) ->
 	Acc;
 
 list_files_in_subdirs_with_excluded_suffixes( [ H | T ], ExcludedSuffixes,
@@ -1215,7 +1216,7 @@ list_files_in_subdirs_with_excluded_suffixes( [ H | T ], ExcludedSuffixes,
 -spec find_files_with_excluded_dirs_and_suffixes( directory_name(),
 		[ directory_name() ], [ string() ] ) -> [ file_name() ].
 find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirList,
-										   ExcludedSuffixes ) ->
+											ExcludedSuffixes ) ->
 
 	%{ ok, CurrentDir } = file:get_cwd(),
 	%io:format( "find_files_with_excluded_dirs_and_suffixes: current is ~s, "
@@ -1267,8 +1268,7 @@ list_files_in_subdirs_excluded_dirs_and_suffixes( _Dirs=[ H | T ], RootDir,
 		++ Acc ).
 
 
-
-
+% Prefixes specified paths with specified root directory.
 -spec prefix_files_with( directory_name(), [ file_name() ] ) -> [ file_name() ].
 prefix_files_with( RootDir, Files ) ->
 	%io:format( "Prefixing ~p with '~s'.~n", [ Files, RootDir ] ),
@@ -1345,7 +1345,7 @@ create_directory( Dirname ) ->
 % already existing ( { create_directory_failed, "foobar", eexist } ).
 %
 -spec create_directory( directory_name(),
-	   'create_no_parent' | 'create_parents' ) -> void().
+						'create_no_parent' | 'create_parents' ) -> void().
 create_directory( Dirname, create_no_parent ) ->
 
 	case file:make_dir( Dirname ) of
