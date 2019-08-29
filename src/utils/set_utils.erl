@@ -52,10 +52,9 @@
 
 
 % Set-related operations are:
-%
 -export([ new/0, new/1, singleton/1, add/2, add_as_new/2, add_element_list/2,
 		  union/2, union/1, intersection/2, intersection/1,
-		  difference/2, is_set/1, check_set/1, is_subset/2,
+		  difference/2, differences/2, is_set/1, check_set/1, is_subset/2,
 		  from_list/1, to_list/1,
 		  member/2, is_empty/1, size/1,
 		  iterator/1, next/1,
@@ -104,7 +103,7 @@
 
 
 
-% Returns a new empty set.
+% Returns a new, empty, set.
 -spec new() -> set().
 new() ->
 	?set_impl:new().
@@ -208,6 +207,17 @@ intersection( ListOfSets ) ->
 -spec difference( set(), set() ) -> set().
 difference( FirstSet, SecondSet ) ->
 	?set_impl:difference( FirstSet, SecondSet ).
+
+
+% Returns the differences between the first specified set and the second as a
+% pair, whose first element corresponds to the elements of the first set that
+% are not in the second one, and whose second element corresponds to the
+% elements of the second set that are not in the first one.
+%
+-spec differences( set(), set() ) -> { set(), set() }.
+differences( FirstSet, SecondSet ) ->
+	{ ?set_impl:difference( FirstSet, SecondSet ),
+	  ?set_impl:difference( SecondSet, FirstSet ) }.
 
 
 
