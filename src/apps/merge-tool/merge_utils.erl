@@ -57,7 +57,8 @@
 		   size :: system_utils:byte_size(),
 
 		   % Timestamp of the last content modification of this file, as known
-		   % of the filesystem:
+		   % of the filesystem, and as an integer number of seconds since
+		   % 1970-01-01 00:00 UTC:
 		   %
 		   timestamp :: time_utils:posix_seconds(),
 
@@ -88,7 +89,7 @@
 		   % Base, absolute (binary) path of the root of that tree in the
 		   % filesystem:
 		   %
-		   root :: file_utils:bin_directory_name(),
+		   root :: file_utils:directory_name(),
 
 		   % Each key is the SHA1 sum of a file content, each value is a list of
 		   % the file entries whose content matches that sum (hence are supposed
@@ -168,7 +169,7 @@ get_usage() ->
 	"   In the reference tree, in-tree duplicated content will be either kept as it is, or removed as a whole (to keep only one copy thereof), or replaced by symbolic links in order to keep only a single reference version of each actual content.\n"
 	"   At the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they not have changed. As a result, once a merge is done, the reference tree may contain an uniquified version of the union of the two specified trees, and the tree to scan will not exist anymore.\n\n"
 	"   For the second form (--scan option), the specified tree will simply be inspected for duplicates, and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
-	"   For the third form (--uniquify option), the specified tree will be scanned first (see previous operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links), and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
+	"   For the third form (--uniquify option), the specified tree will be scanned first (see previous operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links), and once done a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
 	"   When a cache file is found, it can be either ignored or re-used, either as it is or after a check, which itself can be weak (only sizes and timestamps are checked) or strong (then actual contents are fully compared)".
 
 
@@ -387,7 +388,7 @@ stop_on_option_error( Message, ErrorCode ) ->
 -spec scan( file_utils:directory_name() ) -> void().
 scan( TreePath ) ->
 
-	trace_utils:debug_fmt( "Request to scan '~s'.", [ TreePath ] ),
+	trace_utils:debug_fmt( "Requested to scan '~s'.", [ TreePath ] ),
 
 	% Prepare for various outputs:
 	UserState = start_user_service( ?default_log_filename ),
@@ -493,7 +494,7 @@ scan_helper( TreePath, CacheFilename, UserState ) ->
 -spec uniquify( file_utils:directory_name() ) -> void().
 uniquify( TreePath ) ->
 
-	trace_utils:debug_fmt( "Request to uniquify '~s'.", [ TreePath ] ),
+	trace_utils:debug_fmt( "Requested to uniquify '~s'.", [ TreePath ] ),
 
 	% Prepare for various outputs:
 	UserState = start_user_service( ?default_log_filename ),
@@ -568,10 +569,10 @@ start_user_service( LogFilename ) ->
 	LogFile = file_utils:open( LogFilename,
 							   _Opts=[ append, raw, delayed_write ] ),
 
-	file_utils:write( LogFile, "~nStarting new merge session on ~s "
-					  "(version ~s) at ~s.~n",
-					  [ net_utils:localhost(), ?merge_script_version,
-						time_utils:get_textual_timestamp() ] ),
+	file_utils:write( LogFile, "~nStarting new merge session "
+		  "(merge tool version ~s) on ~s at ~s.~n",
+		  [ ?merge_script_version, net_utils:localhost(),
+			time_utils:get_textual_timestamp() ] ),
 
 	#user_state{ log_file=LogFile }.
 
@@ -686,26 +687,126 @@ check_tree_path_exists( TreePath ) ->
 % corresponding datastructure.
 %
 -spec update_content_tree( file_utils:directory_name(), analyzer_ring(),
-						   user_state() ) -> void().
+						   user_state() ) -> tree_data().
 update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 
-	CacheFilename = get_cache_path_for( TreePath ),
+	CacheFilePath = get_cache_path_for( TreePath ),
 
-	case file_utils:is_existing_file( CacheFilename ) of
+	MaybeTreeData = case file_utils:is_existing_file( CacheFilePath ) of
 
 		true ->
-
 			trace_utils:debug_fmt( "Using existing cache file '~s'.",
-								   [ CacheFilename ] ),
+								   [ CacheFilePath ] ),
 
 			% Load it, if trusted (typically if not older from the newest
-			% element in tree):
+			% file in tree):
 			%
-			throw( fixme_2 );
+			{ NewestTimestamp, ContentFiles } =
+				find_newest_timestamp_from( TreePath, CacheFilePath ),
+
+			case file_utils:get_last_modification_time( CacheFilePath ) of
+
+
+				CacheTimestamp when CacheTimestamp < NewestTimestamp ->
+					trace_utils:debug_fmt( "Timestamp of cache file (~p) older "
+						"than most recent file timestamp in tree (~p), "
+						"rebuilding cache file.",
+						[ CacheTimestamp, NewestTimestamp ] ),
+					undefined;
+
+
+				CacheTimestamp ->
+
+					trace_utils:debug_fmt( "Timestamp of cache file is "
+						"acceptable (as ~p is not older than the most recent "
+						"file timestamp in tree, ~p), just performing a quick "
+						"check of file existences and sizes to further "
+						"validate it.",
+						[ CacheTimestamp, NewestTimestamp ] ),
+
+					case quick_cache_check( CacheFilePath, ContentFiles,
+											TreePath ) of
+
+						undefined ->
+							trace_utils:debug( "Cache file does not match "
+								"actual tree, rebuilding cache file." ),
+							undefined;
+
+						TreeData ->
+							trace_utils:debug( "Cache file seems to match "
+								"actual tree, considering it legit." ),
+							TreeData
+
+					end
+
+			end;
 
 		false ->
-			create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
-										 UserState )
+			trace_utils:debug( "No cache file found, creating it." ),
+			undefined
+
+	end,
+
+	case MaybeTreeData of
+
+		undefined ->
+			create_merge_cache_file_for( TreePath, CacheFilePath, AnalyzerRing,
+										 UserState );
+
+		_ ->
+			MaybeTreeData
+
+	end.
+
+
+
+% Returns the last content modification timestamp of the most recently modified
+% file (the merge cache file excluded) in specified tree, and a list of the
+% actual files (as relative paths).
+%
+-spec find_newest_timestamp_from( file_utils:directory_path(),
+			file_utils:file_path() ) -> { maybe( time_utils:posix_seconds() ),
+										  [ file_utils:file_path() ] }.
+find_newest_timestamp_from( RootPath, CacheFilePath ) ->
+
+	CacheFilename = filename:basename( CacheFilePath ),
+
+	ActualFileRelPaths = list_utils:delete_existing( CacheFilename,
+								 file_utils:find_files_from( RootPath ) ),
+
+	MaybeTimestamp = case ActualFileRelPaths of
+
+		% Any atom is deemed superior to any integer, so the cache file will be
+		% considered up to date:
+		%
+		[] ->
+			undefined;
+
+		_ ->
+			% Any actual timestamp will shadow a null one:
+			get_newest_timestamp( ActualFileRelPaths, RootPath, _MostRecentTimestamp=0 )
+
+	end,
+
+	% Files returned to avoid performing multiple traversals:
+	{ MaybeTimestamp, ActualFileRelPaths }.
+
+
+
+get_newest_timestamp( _ContentFiles=[], _RootPath, MostRecentTimestamp ) ->
+	MostRecentTimestamp;
+
+get_newest_timestamp( _ContentFiles=[ F | T ], RootPath, MostRecentTimestamp ) ->
+
+	FilePath = file_utils:join( RootPath, F ),
+
+	case file_utils:get_last_modification_time( FilePath ) of
+
+		Timestamp when Timestamp > MostRecentTimestamp ->
+			get_newest_timestamp( T, RootPath, Timestamp );
+
+		_ ->
+			get_newest_timestamp( T, RootPath, MostRecentTimestamp )
 
 	end.
 
@@ -782,8 +883,10 @@ write_tree_data( MergeFile, #tree_data{ root=RootDir,
 									get_file_content_for( SHA1, FileData )
 											++ Acc
 								end,
-								_Acc0=[ { root,
-									text_utils:binary_to_string( RootDir ) } ],
+								% Strings preferred to binaries, as shorter and
+								% more standard in files (no << and >> added):
+								%
+								_Acc0=[ { root, RootDir } ],
 								_List=table:enumerate( Entries ) ),
 
 	file_utils:write_direct_terms( MergeFile, lists:reverse( EntryContent ) ).
@@ -792,10 +895,11 @@ write_tree_data( MergeFile, #tree_data{ root=RootDir,
 
 % Checking on the SHA1:
 get_file_content_for( SHA1, FileDataElems ) ->
-	[ { file, SHA1, text_utils:binary_to_string( RelativePath ), Size,
+	% Storage format a bit different from working one:
+	[ { file_entry, SHA1, text_utils:binary_to_string( RelativePath ), Size,
 		Timestamp }
 	  || #file_data{ path=RelativePath,
-					 % type
+					 % type: not to store
 					 size=Size,
 					 timestamp=Timestamp,
 					 sha1_sum=RecSHA1 } <- FileDataElems, RecSHA1 =:= SHA1 ].
@@ -854,8 +958,7 @@ scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 				  analyzer_ring() ) -> tree_data().
 scan_files( Files, AbsTreePath, AnalyzerRing ) ->
 
-	InitialTreeData = #tree_data{
-						 root=text_utils:string_to_binary( AbsTreePath ) },
+	InitialTreeData = #tree_data{ root= AbsTreePath },
 
 	scan_files( Files, AnalyzerRing, InitialTreeData, _WaitedCount=0 ).
 
@@ -879,7 +982,8 @@ scan_files( _Files=[ Filename | T ], AnalyzerRing,
 	%			 [ FullPath, AnalyzerPid ] ),
 
 	% WOOPER-style request:
-	AnalyzerPid ! { analyzeFile, [ AbsTreePath, Filename ], self() },
+	AnalyzerPid ! { analyzeFile, [ text_utils:string_to_binary( AbsTreePath ),
+								   Filename ], self() },
 
 	% Helps controlling flow and avoiding too large mailboxes on either side
 	% (this main script, being slowed down, or the analyzers), by attempting to
@@ -991,7 +1095,7 @@ analyze_loop() ->
 			%			  [ self(), FullPath ] ),
 
 			FileData = #file_data{
-				% We prefer storing elative filenames:
+				% We prefer storing relative filenames:
 				path=RelativeBinFilename,
 				type=file_utils:get_type_of( FilePath ),
 				size=file_utils:get_size( FilePath ),
@@ -1012,8 +1116,8 @@ analyze_loop() ->
 % Returns a textual diagnosis of specified tree.
 -spec diagnose_tree( tree_data(), user_state() ) -> tree_data().
 diagnose_tree( TreeData=#tree_data{ root=_RootDir,
-								   entries=EntryTable,
-								   file_count=FileCount }, UserState ) ->
+									entries=EntryTable,
+									file_count=FileCount }, UserState ) ->
 
 	DuplicateCount = FileCount - table:size( EntryTable ),
 
@@ -1274,7 +1378,7 @@ manage_duplication( FileEntries, DuplicationCaseCount, TotalDupCaseCount, Size,
 			FileEntries;
 
 		abort ->
-			trace( "(request to abort the merge)", UserState ),
+			trace( "(requested to abort the merge)", UserState ),
 			basic_utils:stop( 5 )
 
 	end.
@@ -1307,6 +1411,118 @@ keep_only_one( Prefix, TrimmedPaths, PathStrings, UserState ) ->
 
 	KeptFile.
 
+
+
+% Performs a quick check (i.e. with no checksum computed of the file contents)
+% of the specified tree, against the specified cache file: check that both file
+% sets match (no extra element in either size) and that the cached and actual
+% sizes match as well.
+%
+-spec quick_cache_check( file_utils:file_path(), [ file_utils:file_path() ],
+						 file_utils:directory_path() ) -> maybe( tree_data() ).
+quick_cache_check( CacheFilename, ContentFiles, TreePath ) ->
+
+	[ _RootInfo={ root, CachedTreePath } | FileInfos ] =
+		file_utils:read_terms( CacheFilename ),
+
+	case CachedTreePath of
+
+		TreePath ->
+			ok;
+
+		_ ->
+			throw( { non_matching_tree_paths, CachedTreePath, TreePath } )
+
+	end,
+
+	ActualFileCount = length( ContentFiles ),
+
+	CachedFileCount = length( FileInfos ),
+
+	CachedFilePairs =
+		[ { Path, Size } || { file_entry, _SHA1, Path, Size, _Timestamp } <- FileInfos ],
+
+	case ActualFileCount of
+
+		CachedFileCount ->
+			trace_utils:debug_fmt( "Cached and actual file counts match "
+					   "(~B files).", [ CachedFileCount ] );
+
+		_ ->
+			trace_utils:trace_fmt( "The cached and actual file counts do not "
+								   "match: ~B are referenced in cache, ~B exist "
+								   "in the filesystem.",
+								   [ CachedFileCount, ActualFileCount ] )
+
+	end,
+
+	CachedFilenames = [ FilePath || { FilePath, _FileSize } <- CachedFilePairs ],
+
+	CachedFileset = set_utils:new( CachedFilenames ),
+	ActualFileset = set_utils:new( ContentFiles ),
+
+	{ OnlyCachedSet, OnlyActualSet } =
+		set_utils:differences( CachedFileset, ActualFileset ),
+
+	MustRescanFirst = case set_utils:is_empty( OnlyCachedSet ) of
+
+		true ->
+			false;
+
+		false ->
+			OnlyCacheList = set_utils:to_list( OnlyCachedSet ),
+			trace_utils:trace_fmt( "Following ~B files are referenced in "
+				"cache, yet do not exist on the filesystem: ~s",
+				[ length( OnlyCacheList ),
+				  text_utils:strings_to_string( OnlyCacheList ) ] ),
+			true
+
+	end,
+
+	MustRescan = case set_utils:is_empty( OnlyActualSet ) of
+
+		true ->
+			MustRescanFirst;
+
+		false ->
+			OnlyActualList = set_utils:to_list( OnlyActualSet ),
+			trace_utils:trace_fmt( "Following ~B files exist on the filesystem, "
+								   "yet are not referenced in cache: ~s",
+				[ length( OnlyActualList ),
+				  text_utils:strings_to_string( OnlyActualList ) ] ),
+			true
+
+	end,
+
+	case MustRescan of
+
+		true ->
+			% Will trigger a rescan:
+			undefined;
+
+		false ->
+			% The two sets match, yet do they agree on the file sizes as well?
+			case check_file_sizes_match( CachedFilePairs, ContentFiles,
+										 TreePath ) of
+
+				true ->
+					TreePath;
+
+				false ->
+					undefined
+
+			end
+
+	end.
+
+
+
+% Checks that the actual file sizes match the specified ones.
+-spec check_file_sizes_match( [ { file_utils:file_path(), system_utils:byte_size() } ],
+		[ file_utils:file_path() ], file_utils:directory_path() ) ->
+									maybe( tree_data() ).
+check_file_sizes_match( _FilePairs, _FilePaths, _TreePath ) ->
+	throw( todo ).
 
 
 % Returns a textual description of specified tree data.
