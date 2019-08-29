@@ -497,6 +497,9 @@ strings_to_enumerated_string( ListOfStrings, IndentationLevel ) ->
 % bullets.
 %
 -spec strings_to_string( [ ustring() ] ) -> ustring().
+strings_to_string( [] ) ->
+	"(empty list)";
+
 strings_to_string( L=[ SingleString ] ) when is_list( SingleString ) ->
 
 	% Not retained, as the single string may itself correspond to a full, nested
