@@ -1,7 +1,7 @@
 MYRIAD_TOP = ../../..
 
-.PHONY: make-test-tree test-local test-local-scan run-test-tree \
-		debug run-direct help clean clean-test-tree
+.PHONY: make-test-tree test-local test-initial-scan test-extra-scan test-uniquify \
+		make-test-tree run-test-tree process-test-log
 
 
 # Previously run as an escript, but due to an issue with term_ui (i.e. dialog),
@@ -35,10 +35,17 @@ make-test-tree: clean-test-tree
 	@tree $(TEST_TREE)
 
 
-test-local: test-local-scan
+test-local: test-initial-scan test-extra-scan
 
 
-test-local-scan: make-test-tree run-test-tree process-test-log
+# Meant to create a cache file:
+test-initial-scan: make-test-tree run-test-tree process-test-log
+
+# Meant to perform a light check of the pre-existing cache file:
+test-extra-scan: run-test-tree process-test-log
+
+test-uniquify:
+	@$(MAKE) -s all && $(MERGE_SCRIPT) --uniquify $(TEST_TREE) --use-ui-backend $(UI_BACKEND)
 
 
 run-test-tree:
