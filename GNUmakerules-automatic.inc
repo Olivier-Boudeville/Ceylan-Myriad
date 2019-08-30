@@ -226,12 +226,14 @@
 
 %_run: %_test %.beam
 	@echo "		Running unitary test $@ (second form) from $^"
+	@#$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
 
 
 # Again and again one will remove the '@' to inspect the actual command-line:
 %_run: %_test
 	@echo "		Running unitary test $@ (third form) from $^"
+	@#$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
 
 

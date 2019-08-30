@@ -1704,7 +1704,8 @@ change_permissions( Filename, NewPermissions ) ->
 is_absolute_path( _Path=[ $/ | _Rest ] ) ->
 	true;
 
-is_absolute_path( _Path ) ->
+% Not wanting to let for example atoms slip through:
+is_absolute_path( Path ) when is_list( Path )->
 	false.
 
 

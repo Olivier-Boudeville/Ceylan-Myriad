@@ -60,8 +60,10 @@ all: all-pre-hook all-parse-transforms rebar3-make-include-links
 	fi ) ; then exit 1; fi ; done
 
 
+# Not removing rebar.config anymore, to avoid that GIT considers it deleted on
+# purpose:
+#
 clean:
-	-@/bin/rm -f rebar.config
 	-@/bin/rm -rf $(REBAR_BUILD_ROOT)
 
 
