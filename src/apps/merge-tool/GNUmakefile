@@ -1,7 +1,9 @@
 MYRIAD_TOP = ../../..
 
+
 .PHONY: make-test-tree test-local test-initial-scan test-extra-scan test-uniquify \
-		make-test-tree run-test-tree process-test-log
+		make-test-tree run-test-tree                                              \
+		post-test process-test-log reset-keyboard-mode
 
 
 # Previously run as an escript, but due to an issue with term_ui (i.e. dialog),
@@ -22,6 +24,21 @@ UI_BACKEND := text_ui
 
 all:
 
+
+test-local: test-initial-scan test-extra-scan
+
+
+# Meant to create a cache file:
+test-initial-scan: make-test-tree pre-test run-test-tree post-test
+
+# Meant to perform a light check of the pre-existing cache file:
+test-extra-scan: pre-test run-test-tree post-test
+
+
+test-uniquify: pre-test make-test-tree
+	@$(MERGE_SCRIPT) --uniquify $(TEST_TREE) --use-ui-backend $(UI_BACKEND); $(MAKE) -s post-test
+
+
 make-test-tree: clean-test-tree
 	@echo " Creating test tree..."
 	@mkdir -p $(TEST_TREE)/foo/bar
@@ -35,32 +52,36 @@ make-test-tree: clean-test-tree
 	@tree $(TEST_TREE)
 
 
-test-local: test-initial-scan test-extra-scan
-
-
-# Meant to create a cache file:
-test-initial-scan: make-test-tree run-test-tree process-test-log
-
-# Meant to perform a light check of the pre-existing cache file:
-test-extra-scan: run-test-tree process-test-log
-
-test-uniquify:
-	@$(MAKE) -s all && $(MERGE_SCRIPT) --uniquify $(TEST_TREE) --use-ui-backend $(UI_BACKEND)
+pre-test:
+	@$(MAKE) -s all
+	@/bin/rm -f "$(TEST_LOG_FILE)" || true
 
 
 run-test-tree:
-	@$(MAKE) -s all && $(MERGE_SCRIPT) --scan $(TEST_TREE) --use-ui-backend $(UI_BACKEND)
+	@$(MERGE_SCRIPT) --scan $(TEST_TREE) --use-ui-backend $(UI_BACKEND) ; $(MAKE) -s post-test
 
 
 debug:
-	@/bin/rm -f "$(TEST_LOG_FILE)" ; $(MAKE) -s test process-test-log
+	@/bin/rm -f "$(TEST_LOG_FILE)" ; $(MAKE) -s test post-test
 
-
-process-test-log:
-	@if [ -f "$(TEST_LOG_FILE)" ] ; then echo ; echo "#### Content of $(TEST_LOG_FILE) follows:" ; more "$(TEST_LOG_FILE)" ; /bin/rm -f "$(TEST_LOG_FILE)" ; fi
 
 
 run-direct: merge_exec
+
+
+post-test: process-test-log reset-keyboard-mode
+
+process-test-log:
+	@if [ -f "$(TEST_LOG_FILE)" ] ; then echo ; echo "#### Content of $(TEST_LOG_FILE) follows:" ; more "$(TEST_LOG_FILE)" ; fi
+
+
+# Some configurations seem to screw up the terminal (weirdly, most keystrokes
+# are then lost)
+#
+# (note: script found in Ceylan-Hull)
+#
+reset-keyboard-mode:
+	@reset-keyboard-mode.sh
 
 
 help:
