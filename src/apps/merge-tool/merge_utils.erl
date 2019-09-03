@@ -37,6 +37,12 @@
 -type sha1() :: executable_utils:sha1_sum().
 -type count() :: basic_utils:count().
 
+-type file_path() :: file_utils:file_path().
+-type bin_file_path() :: file_utils:bin_file_path().
+
+-type directory_path() :: file_utils:directory_path().
+-type file() :: file_utils:file().
+
 
 % Data associated to a given file-like element.
 %
@@ -89,7 +95,7 @@
 		   % Base, absolute (binary) path of the root of that tree in the
 		   % filesystem:
 		   %
-		   root :: file_utils:directory_name(),
+		   root :: directory_path(),
 
 		   % Each key is the SHA1 sum of a file content, each value is a list of
 		   % the file entries whose content matches that sum (hence are supposed
@@ -123,7 +129,7 @@
 -record( user_state, {
 
 	% File handle (if any) to write logs:
-	log_file = undefined :: maybe( file_utils:file() )
+	log_file = undefined :: maybe( file() )
 
 }).
 
@@ -165,12 +171,12 @@ get_usage() ->
 	"  - either: '"?exec_name" --input INPUT_TREE --reference REFERENCE_TREE'\n"
 	"  - or: '"?exec_name" --scan A_TREE'\n"
 	"  - or: '"?exec_name" --uniquify A_TREE'\n\n"
-	"  Ensures, for the first form, that all the changes in a possibly more up-to-date, \"newer\" tree (INPUT_TREE) are merged back to the reference tree (REFERENCE_TREE), from which the first tree may have derived. Once executed, only a refreshed, complemented reference tree will exist, as the input tree will have been removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
+	"   Ensures, for the first form, that all the changes in a possibly more up-to-date, \"newer\" tree (INPUT_TREE) are merged back to the reference tree (REFERENCE_TREE), from which the first tree may have derived. Once executed, only a refreshed, complemented reference tree will exist, as the input tree will have been removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
 	"   In the reference tree, in-tree duplicated content will be either kept as it is, or removed as a whole (to keep only one copy thereof), or replaced by symbolic links in order to keep only a single reference version of each actual content.\n"
 	"   At the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they not have changed. As a result, once a merge is done, the reference tree may contain an uniquified version of the union of the two specified trees, and the tree to scan will not exist anymore.\n\n"
 	"   For the second form (--scan option), the specified tree will simply be inspected for duplicates, and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
 	"   For the third form (--uniquify option), the specified tree will be scanned first (see previous operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links), and once done a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
-	"   When a cache file is found, it can be either ignored or re-used, either as it is or after a check, which itself can be weak (only sizes and timestamps are checked) or strong (then actual contents are fully compared)".
+	"   When a cache file is found, it can be either ignored or re-used, either as it is or after a check, which itself can be weak (only sizes and timestamps are checked) or strong (then actual contents are fully compared).".
 
 
 
@@ -202,8 +208,8 @@ main( ArgTable ) ->
 			display_usage();
 
 		false ->
-			case list_table:extract_entry_with_defaults( '-reference', undefined,
-													  FilteredArgTable ) of
+			case list_table:extract_entry_with_defaults( '-reference',
+									 undefined, FilteredArgTable ) of
 
 				{ [ RefTreePath ], NoRefArgTable }
 				  when is_list( RefTreePath ) ->
@@ -250,7 +256,7 @@ handle_reference_option( RefTreePath, ArgumentTable ) ->
 		% Here, an input tree was specified as well:
 		{ [ InputTreePath ], ArgumentTable } when is_list( InputTreePath ) ->
 
-			% Check no unknown option remains:
+			% Check that no unknown option remains:
 			case list_table:is_empty( ArgumentTable ) of
 
 				true ->
@@ -484,7 +490,7 @@ scan_helper( TreePath, CacheFilename, UserState ) ->
 
 	trace_utils:debug( "Scan finished." ),
 
-	terminate_data_analyzers( AnalyzerRing, UserState ),
+	terminate_data_analyzers( ring_utils:to_list( AnalyzerRing ), UserState ),
 
 	TreeData.
 
@@ -513,15 +519,44 @@ uniquify( TreePath ) ->
 
 	TreeData = update_content_tree( AbsTreePath, AnalyzerRing, UserState ),
 
-	_NewTreeData = diagnose_tree( TreeData, UserState ),
+	NewTreeData = deduplicate_tree( TreeData, UserState ),
 
-	trace_utils:debug( "Uniquification finished." ),
+	trace_debug( "Uniquification finished, resulting on following tree: ~s",
+				 [ tree_data_to_string( NewTreeData ) ], UserState ),
 
 	terminate_data_analyzers( Analyzers, UserState ),
+
+	% We leave an up-to-date cache file:
+	create_merge_cache_file_from( NewTreeData, UserState ),
 
 	stop_user_service( UserState ),
 
 	basic_utils:stop( 0 ).
+
+
+
+% Creates (typically after a tree update) a merge cache file (overwriting any
+% prior one) with specified name, for specified content tree.
+%
+-spec create_merge_cache_file_from( tree_data(), user_state() ) ->
+										  file_path().
+create_merge_cache_file_from( TreeData=#tree_data{ root=RootDir },
+							  UserState ) ->
+
+	CacheFilename = get_cache_path_for( RootDir ),
+
+	CacheFile = file_utils:open( CacheFilename,
+								 _Opts=[ write, raw, delayed_write ] ),
+
+	write_cache_header( CacheFile, RootDir ),
+
+	write_tree_data( CacheFile, TreeData, UserState ),
+
+	write_cache_footer( CacheFile ),
+
+	file_utils:close( CacheFile ),
+
+	CacheFilename.
 
 
 
@@ -566,8 +601,8 @@ start_user_service( LogFilename ) ->
 	trace_utils:debug_fmt( "Logs will be written to '~s'.", [ LogFilename ] ),
 
 	% We append to the log file (not resetting it), if it already exists:
-	LogFile = file_utils:open( LogFilename,
-							   _Opts=[ append, raw, delayed_write ] ),
+	% (no delayed_write, to avoid missing logs when halting on error)
+	LogFile = file_utils:open( LogFilename, _Opts=[ append, raw ] ),
 
 	file_utils:write( LogFile, "~nStarting new merge session "
 		  "(merge tool version ~s) on ~s at ~s.~n",
@@ -584,7 +619,6 @@ trace( Message, _UserState={ UIState, LogFile } ) ->
 	NewUIState = ui:trace( Message, UIState ),
 	file_utils:write( LogFile, Message ++ "\n" ),
 	{ NewUIState, LogFile }.
-
 
 
 % Displays and logs specified formatted text.
@@ -604,7 +638,6 @@ trace_debug( Message, _UserState={ UIState, LogFile } ) ->
 	%NewUIState = ui:trace( Message, UIState ),
 	file_utils:write( LogFile, Message ++ "\n" ),
 	{ UIState, LogFile }.
-
 
 
 % Logs specified debug formatted text.
@@ -695,7 +728,7 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 	MaybeTreeData = case file_utils:is_existing_file( CacheFilePath ) of
 
 		true ->
-			trace_utils:debug_fmt( "Using existing cache file '~s'.",
+			trace_utils:debug_fmt( "Found existing cache file '~s'.",
 								   [ CacheFilePath ] ),
 
 			% Load it, if trusted (typically if not older from the newest
@@ -764,9 +797,9 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 % file (the merge cache file excluded) in specified tree, and a list of the
 % actual files (as relative paths).
 %
--spec find_newest_timestamp_from( file_utils:directory_path(),
-			file_utils:file_path() ) -> { maybe( time_utils:posix_seconds() ),
-										  [ file_utils:file_path() ] }.
+-spec find_newest_timestamp_from( directory_path(),
+								  file_path() ) ->
+	  { maybe( time_utils:posix_seconds() ), [ file_path() ] }.
 find_newest_timestamp_from( RootPath, CacheFilePath ) ->
 
 	CacheFilename = filename:basename( CacheFilePath ),
@@ -784,7 +817,8 @@ find_newest_timestamp_from( RootPath, CacheFilePath ) ->
 
 		_ ->
 			% Any actual timestamp will shadow a null one:
-			get_newest_timestamp( ActualFileRelPaths, RootPath, _MostRecentTimestamp=0 )
+			get_newest_timestamp( ActualFileRelPaths, RootPath,
+								  _MostRecentTimestamp=0 )
 
 	end,
 
@@ -793,10 +827,12 @@ find_newest_timestamp_from( RootPath, CacheFilePath ) ->
 
 
 
+% Returns the lastest modification timestamp among the specified files.
 get_newest_timestamp( _ContentFiles=[], _RootPath, MostRecentTimestamp ) ->
 	MostRecentTimestamp;
 
-get_newest_timestamp( _ContentFiles=[ F | T ], RootPath, MostRecentTimestamp ) ->
+get_newest_timestamp( _ContentFiles=[ F | T ], RootPath,
+					  MostRecentTimestamp ) ->
 
 	FilePath = file_utils:join( RootPath, F ),
 
@@ -826,7 +862,9 @@ create_merge_cache_file_for( TreePath, AnalyzerRing, UserState ) ->
 
 
 
-% Creates merge cache file with specified name, for specified content tree.
+% Creates (typically from scratch) a merge cache file with specified name, for
+% specified content tree.
+%
 -spec create_merge_cache_file_for( file_utils:directory_name(),
 		  file_utils:file_name(), analyzer_ring(), user_state() ) ->
 										 tree_data().
@@ -842,19 +880,7 @@ create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
 	MergeFile = file_utils:open( CacheFilename,
 								 _Opts=[ write, raw, delayed_write ] ),
 
-	%ScriptName = filename:basename( escript:script_name() ),
-	ScriptName = ?MODULE,
-
-	file_utils:write( MergeFile, "% Merge cache file written by '~s' "
-								 "(version ~s):~n"
-								 "% - on host '~s'~n"
-								 "% - for content tree '~s'~n"
-								 "% - on ~s~n~n"
-								 "% Structure of file entries: SHA1, "
-								"relative path, size in bytes, timestamp~n~n" ,
-					  [ ScriptName, ?merge_script_version,
-						net_utils:localhost(), AbsTreePath,
-						time_utils:get_textual_timestamp() ] ),
+	write_cache_header( MergeFile, AbsTreePath ),
 
 	_BlankDataTable = table:new(),
 
@@ -862,12 +888,12 @@ create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
 
 	TreeData = scan_tree( AbsTreePath, AnalyzerRing, UserState ),
 
-	trace( "Scanned tree: " ++ tree_data_to_string( TreeData ), UserState ),
+	trace( "Scanned tree: ~s.",
+		   [ tree_data_to_string( TreeData ) ], UserState ),
 
 	write_tree_data( MergeFile, TreeData, UserState ),
 
-	file_utils:write( MergeFile, "~n% End of merge cache file (at ~s).",
-					  [ time_utils:get_textual_timestamp() ] ),
+	write_cache_footer( MergeFile ),
 
 	file_utils:close( MergeFile ),
 
@@ -875,10 +901,40 @@ create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
 
 
 
+% Writes the header of specified cache file.
+-spec write_cache_header( file(), directory_path() ) -> void().
+write_cache_header( File, AbsTreePath ) ->
+
+	%ScriptName = filename:basename( escript:script_name() ),
+	ScriptName = ?MODULE,
+
+	file_utils:write( File, "% Merge cache file written by '~s' (version ~s):~n"
+							"% - on host '~s'~n"
+							"% - for content tree '~s'~n"
+							"% - on ~s~n~n"
+							"% Structure of file entries: SHA1, "
+							"relative path, size in bytes, timestamp~n~n" ,
+					  [ ScriptName, ?merge_script_version,
+						net_utils:localhost(), AbsTreePath,
+						time_utils:get_textual_timestamp() ] ).
+
+
+
+% Writes the footer of specified cache file.
+-spec write_cache_footer( file() ) -> void().
+write_cache_footer( File ) ->
+	file_utils:write( File, "~n% End of merge cache file (at ~s).",
+					  [ time_utils:get_textual_timestamp() ] ).
+
+
+
 % Writes the specified tree data into specified file.
 write_tree_data( MergeFile, #tree_data{ root=RootDir,
 										entries=Entries }, _UserState ) ->
 
+	% Converting file_data records into file_entry elements to be stored
+	% in-file:
+	%
 	EntryContent = lists:foldl( fun( { SHA1, FileData }, Acc ) ->
 									get_file_content_for( SHA1, FileData )
 											++ Acc
@@ -916,20 +972,17 @@ spawn_data_analyzers( Count, UserState ) ->
 
 
 % Terminates specified data analyzers.
--spec terminate_data_analyzers( analyzer_ring(), user_state() ) -> void().
-terminate_data_analyzers( AnalyzerRing, UserState ) ->
+-spec terminate_data_analyzers( [ analyzer_pid() ], user_state() ) -> void().
+terminate_data_analyzers( Analyzers, _UserState ) ->
 
-	PidList = ring_utils:to_list( AnalyzerRing ),
+	%trace_debug( "Terminating ~B data analyzers (~p).",
+	%			 [ length( Analyzers ), Analyzers ], UserState ),
 
-	trace_debug( "Terminating ~B data analyzers (~p).",
-				 [ length( PidList ), PidList ], UserState ),
-
-	[ P ! terminate || P <- PidList ].
+	[ P ! terminate || P <- Analyzers ].
 
 
 
 % Scans for good the specified tree, whose path is expected to exist.
-%
 -spec scan_tree( file_utils:path(), analyzer_ring(), user_state() ) ->
 					   tree_data().
 scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
@@ -954,8 +1007,8 @@ scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 % Scans specified content files, using for that the specified analyzers,
 % returning the corresponding tree data.
 %
--spec scan_files( [ file_utils:bin_file_name() ], file_utils:path(),
-				  analyzer_ring() ) -> tree_data().
+-spec scan_files( [ bin_file_path() ], file_utils:path(), analyzer_ring() ) ->
+						tree_data().
 scan_files( Files, AbsTreePath, AnalyzerRing ) ->
 
 	InitialTreeData = #tree_data{ root= AbsTreePath },
@@ -1112,17 +1165,16 @@ analyze_loop() ->
 	end.
 
 
-
-% Returns a textual diagnosis of specified tree.
--spec diagnose_tree( tree_data(), user_state() ) -> tree_data().
-diagnose_tree( TreeData=#tree_data{ root=_RootDir,
-									entries=EntryTable,
-									file_count=FileCount }, UserState ) ->
+% Interacts with the user so that the specified tree can be deduplicated.
+-spec deduplicate_tree( tree_data(), user_state() ) -> tree_data().
+deduplicate_tree( TreeData=#tree_data{ root=RootDir,
+									   entries=EntryTable,
+									   file_count=FileCount }, UserState ) ->
 
 	DuplicateCount = FileCount - table:size( EntryTable ),
 
-	{ NewEntryTable, RemovedDuplicateCount } = manage_duplicates(
-												   EntryTable, UserState ),
+	{ NewEntryTable, RemovedDuplicateCount } =
+		manage_duplicates( EntryTable, RootDir, UserState ),
 
 	RemainingDuplicateCount = DuplicateCount - RemovedDuplicateCount,
 
@@ -1151,21 +1203,24 @@ diagnose_tree( TreeData=#tree_data{ root=_RootDir,
 % Manages all duplicates found in specified table, returns an updated table and
 % the number of duplicates removed.
 %
--spec manage_duplicates( sha1_table(), user_state() ) ->
-							   { sha1_table(), count() }.
-manage_duplicates( EntryTable, UserState ) ->
+-spec manage_duplicates( sha1_table(), directory_path(),
+						 user_state() ) -> { sha1_table(), count() }.
+manage_duplicates( EntryTable, RootDir, UserState ) ->
 
 	ContentEntries = table:enumerate( EntryTable ),
 
 	% We could have forced that no duplication at all exists afterwards (and
 	% then a given SHA1 sum would be associated to exactly one content), however
-	% it would be too strict, hence we kept a list associated to each SHA1 sum:
+	% it would be too strict, hence we kept a list associated to each SHA1 sum.
 	%
 	% Two passes: one to establish and count the duplications, another to solve
 	% them; returns a list of duplications, and a content table referencing all
 	% non-duplicated entries.
 	%
 	{ DuplicationCases, UniqueTable } = filter_duplications( ContentEntries ),
+
+	% UniqueTable contains all unique elements, while DuplicationCases contains
+	% all non-unique ones.
 
 	case length( DuplicationCases ) of
 
@@ -1176,11 +1231,10 @@ manage_duplicates( EntryTable, UserState ) ->
 
 		TotalDupCaseCount ->
 			ui:display( "~B case(s) of content duplication detected, "
-						"examining them in turn.~n",
-						[ TotalDupCaseCount ] ),
+						"examining them in turn.~n", [ TotalDupCaseCount ] ),
 
 			process_duplications( DuplicationCases, TotalDupCaseCount,
-								  UniqueTable, UserState )
+								  UniqueTable, RootDir, UserState )
 
 	end.
 
@@ -1193,7 +1247,7 @@ manage_duplicates( EntryTable, UserState ) ->
 								 { [ sha1_entry() ], sha1_table() }.
 filter_duplications( SHA1Entries ) ->
 	% Far better than a fold:
-	filter_duplications( SHA1Entries, _Acc={ [], table:new() } ).
+	filter_duplications( SHA1Entries, _Acc={ _DupEntries=[], table:new() } ).
 
 
 % Returns { AccDupEntries, AccUniqueTable }:
@@ -1202,7 +1256,7 @@ filter_duplications( _SHA1Entry=[], Acc ) ->
 
 % By design V is never empty:
 filter_duplications( _SHA1Entry=[ { Sha1Key, V=[ _SingleContent ] } | T ],
-				   _Acc={ AccDupEntries, AccUniqueTable } ) ->
+					 _Acc={ AccDupEntries, AccUniqueTable } ) ->
 	% Single content, hence unique:
 	NewTable = table:add_entry( Sha1Key, V, AccUniqueTable ),
 	filter_duplications( T, { AccDupEntries, NewTable } );
@@ -1210,7 +1264,7 @@ filter_duplications( _SHA1Entry=[ { Sha1Key, V=[ _SingleContent ] } | T ],
 % SHA1Entry is { Sha1Key, V } with at least two elements in V here:
 filter_duplications( _SHA1Entries=[ SHA1Entry | T ],
 					 _Acc={ AccDupEntries, AccUniqueTable } ) ->
-	% At least one duplicate here:
+	% So at least one duplicate here:
 	NewDupEntries = [ SHA1Entry | AccDupEntries ],
 	filter_duplications( T, { NewDupEntries, AccUniqueTable } ).
 
@@ -1218,42 +1272,55 @@ filter_duplications( _SHA1Entries=[ SHA1Entry | T ],
 
 % Processes the spotted duplications by asking the user.
 -spec process_duplications( [ sha1_entry() ], count(), sha1_table(),
-							user_state() ) -> { sha1_table(), count() }.
+	directory_path(), user_state() ) -> { sha1_table(), count() }.
 process_duplications( DuplicationCases, TotalDupCaseCount, UniqueTable,
-					  UserState ) ->
+					  RootDir, UserState ) ->
+
+	trace_utils:debug_fmt( "Pre-deduplication unique table: ~s",
+						   [ table:to_string( UniqueTable ) ] ),
+
 	Acc0 = { UniqueTable, _InitialDupCount=1, _InitialRemoved=0 },
 	process_duplications_helper( DuplicationCases, TotalDupCaseCount, Acc0,
-								 UserState ).
+								 RootDir, UserState ).
 
 
 
-% (helper)
+
+% Helper returning { sha1_table(), count() }:
 process_duplications_helper( _DupCases=[], _TotalDupCount,
-							 _Acc={ AccTable, _AccDupCount, AccRemoveCount },
-							 _UserState ) ->
+	  _Acc={ AccTable, _AccDupCount, AccRemoveCount }, _RootDir, _UserState ) ->
+
+	trace_utils:debug_fmt( "Post-deduplication unique table: ~s",
+						   [ table:to_string( AccTable ) ] ),
+
 	{ AccTable, AccRemoveCount };
 
 process_duplications_helper( _DupCases=[ { Sha1Key, DuplicateList } | T ],
 							 TotalDupCount,
 							 _Acc={ AccTable, AccDupCount, AccRemoveCount },
-							 UserState ) ->
+							 RootDir, UserState ) ->
 
 	Size = check_duplicates( Sha1Key, DuplicateList ),
-	SelectedFileEntries = manage_duplication( DuplicateList, AccDupCount,
-							  TotalDupCount, Size, UserState ),
+
+	SelectedFileEntries = manage_duplication_case( DuplicateList, AccDupCount,
+							  TotalDupCount, Size, RootDir, UserState ),
+
 	NewAccTable = table:add_entry( Sha1Key, SelectedFileEntries, AccTable ),
+
 	NewRemoveCount = AccRemoveCount + length( DuplicateList )
 		- length( SelectedFileEntries ),
+
 	NewAcc = { NewAccTable, AccDupCount+1, NewRemoveCount },
-	process_duplications_helper( T, TotalDupCount, NewAcc, UserState ).
+
+	process_duplications_helper( T, TotalDupCount, NewAcc, RootDir, UserState ).
 
 
 
 % Checks a duplication set: same SHA1 sum and also size must be found for all
 % file entries (would most probably detect any SHA1 collision, however unlikely
-% it maybe).
+% it maybe); returns the (common) size.
 %
--spec check_duplicates( sha1(), [ file_data() ] ) -> basic_utils:void().
+-spec check_duplicates( sha1(), [ file_data() ] ) -> system_utils:byte_size().
 % Not possible: check_duplicates( _SHA1Sum, _DuplicateList=[] ) ->
 %	ok;
 
@@ -1271,12 +1338,11 @@ check_duplicates( SHA1Sum, FirstPath, Size, _DuplicateList=[
 	   #file_data{ sha1_sum=SHA1Sum, size=Size } | T ] ) ->
 	check_duplicates( SHA1Sum, FirstPath, Size, T );
 
+% (and a different SHA1 sum would trigger a case clause)
 check_duplicates( SHA1Sum, FirstPath, Size, _DuplicateList=[
-	   #file_data{ path=OtherPath, sha1_sum=SHA1Sum, size=OtherSize }
-															| _T ] ) ->
+	  #file_data{ path=OtherPath, sha1_sum=SHA1Sum, size=OtherSize } | _T ] ) ->
 	throw( { sha1_collision_detected, SHA1Sum, { FirstPath, Size },
 			 { OtherPath, OtherSize } } ).
-
 
 
 
@@ -1284,10 +1350,11 @@ check_duplicates( SHA1Sum, FirstPath, Size, _DuplicateList=[
 %
 % Returns the (regular) files that remain for that content.
 %
--spec manage_duplication( [ file_data() ], count(), count(),
-					system_utils:byte_size(), user_state() ) -> [ file_data() ].
-manage_duplication( FileEntries, DuplicationCaseCount, TotalDupCaseCount, Size,
-					UserState ) ->
+-spec manage_duplication_case( [ file_data() ], count(), count(),
+	system_utils:byte_size(), directory_path(), user_state() ) ->
+								[ file_data() ].
+manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
+						 Size, RootDir, UserState ) ->
 
 	SizeString = system_utils:interpret_byte_size_with_unit( Size ),
 
@@ -1314,10 +1381,10 @@ manage_duplication( FileEntries, DuplicationCaseCount, TotalDupCaseCount, Size,
 		{ "", _AllPathStrings } ->
 
 			Lbl = text_utils:format( "Following ~B files have the exact same "
-									   "content (and thus size, of ~s)",
-									   [ Count, SizeString ] ),
+									 "content (and thus size, of ~s)",
+									 [ Count, SizeString ] ),
 
-			{ Lbl, "", PathStrings };
+			{ Lbl, _Prefix="", PathStrings };
 
 		% We do not re-reuse the remaining, prefixless strings as they do not
 		% comprise the basename (only the dirname):
@@ -1350,7 +1417,7 @@ manage_duplication( FileEntries, DuplicationCaseCount, TotalDupCaseCount, Size,
 				{ 'abort', "Abort" } ],
 
 	SelectedChoice = ui:choose_designated_item(
-					   text_utils:format( "~s~n~nChoices are:", [ FullLabel ] ),
+					   text_utils:format( "~s~nChoices are:", [ FullLabel ] ),
 					   Choices ),
 
 	ui:unset_setting( 'title' ),
@@ -1361,10 +1428,15 @@ manage_duplication( FileEntries, DuplicationCaseCount, TotalDupCaseCount, Size,
 
 		keep ->
 			KeptFilePath = keep_only_one( Prefix, ShortenPaths, PathStrings,
-										  UserState ),
+										  RootDir, UserState ),
+
 			trace( "Kept only reference file '~s'", [ KeptFilePath ],
 				   UserState ),
-			[ KeptFilePath ];
+
+			%trace_utils:debug_fmt( "Entries to scan: ~p", [ FileEntries ] ),
+
+			% As this is a list of file_data:
+			[ find_data_entry_for( KeptFilePath, FileEntries ) ];
 
 		elect ->
 			%elect_and_link(
@@ -1372,44 +1444,89 @@ manage_duplication( FileEntries, DuplicationCaseCount, TotalDupCaseCount, Size,
 			FileEntries;
 
 		leave ->
-			trace( "[~B/~B] Leaving as they are (prefix: '~s'): ~s",
-				   [ DuplicationCaseCount, TotalDupCaseCount, Prefix,
+			PrefixString = case Prefix of
+
+				"" ->
+					"";
+
+				Prefix ->
+					text_utils:format( " (prefix: '~s')", [ Prefix ] )
+
+			end,
+
+			trace( "[~B/~B] Leaving as they are~s: ~s",
+				   [ DuplicationCaseCount, TotalDupCaseCount, PrefixString,
 					 DuplicateString ], UserState ),
 			FileEntries;
 
 		abort ->
+			ui:display( "Uniquification aborted, stopping now." ),
 			trace( "(requested to abort the merge)", UserState ),
 			basic_utils:stop( 5 )
 
 	end.
 
 
+% Returns the file_data record in the specified list that corresponds to the
+% specified path.
+%
+-spec find_data_entry_for( file_path(), [ file_data() ] ) ->
+								 file_data().
+find_data_entry_for( FilePath, _FileEntries=[] ) ->
+	throw( { not_found, FilePath } );
+
+% Match:
+find_data_entry_for( FilePath,
+					 _FileEntries=[ FD=#file_data{ path=FilePath } | _T ] ) ->
+	FD;
+
+find_data_entry_for( FilePath, _FileEntries=[ _FD | T ] ) ->
+	find_data_entry_for( FilePath, T ).
+
+
 
 % Selects among the specified files the single one that shall be kept, and
-% returns it.
+% returns it as a binary.
 %
-keep_only_one( Prefix, TrimmedPaths, PathStrings, UserState ) ->
+-spec keep_only_one( string(), [ file_path() ], [ file_path() ],
+					 directory_path(), user_state() ) -> bin_file_path().
+keep_only_one( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
 
 	ui:set_setting( 'title', _Title="Selecting the unique reference version" ),
 
-	KeptIndex = ui:choose_numbered_item(
-	  _Label=text_utils:format( "Please choose the (single) file to keep, "
-								"among:~n(common prefix '~s' omitted)",
-								[ Prefix ] ),
-	  _Choices=TrimmedPaths ),
+	BaseLabel = "~nPlease choose the (single) file to keep, among:",
+
+	Label = case Prefix of
+
+		"" ->
+			BaseLabel;
+
+		_ ->
+			text_utils:format( "~s~n(common prefix '~s' omitted)",
+							   [ BaseLabel, Prefix ] )
+
+	end,
+
+	KeptIndex = ui:choose_numbered_item( Label, _Choices=TrimmedPaths ),
 
 	ui:unset_setting( 'title' ),
 
-	{ KeptFile, ToRemovePaths } = list_utils:extract_element_at( PathStrings,
-																 KeptIndex ),
+	{ KeptFile, ToRemovePaths } =
+		list_utils:extract_element_at( PathStrings, KeptIndex ),
 
-	file_utils:remove_files( ToRemovePaths ),
+	trace( "Keeping '~s', removing (based on common prefix '~s' and "
+		   "root directory '~s'): ~s ",
+		   [ KeptFile, Prefix, RootDir,
+			 text_utils:strings_to_string( ToRemovePaths ) ], UserState ),
 
-	trace( "Keeping '~s', removing ~s",
-		   [ KeptFile, text_utils:strings_to_string( ToRemovePaths ) ],
-		   UserState ),
+	RootPrefix = file_utils:join( RootDir, Prefix ),
 
-	KeptFile.
+	ToRemoveFullPaths = [ file_utils:join( RootPrefix, P )
+						  || P <- ToRemovePaths ],
+
+	file_utils:remove_files( ToRemoveFullPaths ),
+
+	text_utils:string_to_binary( KeptFile ).
 
 
 
@@ -1418,8 +1535,8 @@ keep_only_one( Prefix, TrimmedPaths, PathStrings, UserState ) ->
 % sets match (no extra element in either size) and that the cached and actual
 % sizes match as well.
 %
--spec quick_cache_check( file_utils:file_path(), [ file_utils:file_path() ],
-						 file_utils:directory_path() ) -> maybe( tree_data() ).
+-spec quick_cache_check( file_path(), [ file_path() ],
+						 directory_path() ) -> maybe( tree_data() ).
 quick_cache_check( CacheFilename, ContentFiles, TreePath ) ->
 
 	[ _RootInfo={ root, CachedTreePath } | FileInfos ] =
@@ -1439,24 +1556,25 @@ quick_cache_check( CacheFilename, ContentFiles, TreePath ) ->
 
 	CachedFileCount = length( FileInfos ),
 
-	CachedFilePairs =
-		[ { Path, Size } || { file_entry, _SHA1, Path, Size, _Timestamp } <- FileInfos ],
+	CachedFilePairs = [ { Path, Size }
+		  || { file_entry, _SHA1, Path, Size, _Timestamp } <- FileInfos ],
 
 	case ActualFileCount of
 
 		CachedFileCount ->
 			trace_utils:debug_fmt( "Cached and actual file counts match "
-					   "(~B files).", [ CachedFileCount ] );
+								   "(~B files).", [ CachedFileCount ] );
 
 		_ ->
 			trace_utils:trace_fmt( "The cached and actual file counts do not "
-								   "match: ~B are referenced in cache, ~B exist "
-								   "in the filesystem.",
-								   [ CachedFileCount, ActualFileCount ] )
+				"match: ~B are referenced in cache, ~B exist "
+				"in the filesystem.",
+				[ CachedFileCount, ActualFileCount ] )
 
 	end,
 
-	CachedFilenames = [ FilePath || { FilePath, _FileSize } <- CachedFilePairs ],
+	CachedFilenames = [ FilePath
+						|| { FilePath, _FileSize } <- CachedFilePairs ],
 
 	CachedFileset = set_utils:new( CachedFilenames ),
 	ActualFileset = set_utils:new( ContentFiles ),
@@ -1486,8 +1604,8 @@ quick_cache_check( CacheFilename, ContentFiles, TreePath ) ->
 
 		false ->
 			OnlyActualList = set_utils:to_list( OnlyActualSet ),
-			trace_utils:trace_fmt( "Following ~B files exist on the filesystem, "
-								   "yet are not referenced in cache: ~s",
+			trace_utils:trace_fmt( "Following ~B files exist on the "
+				"filesystem, yet are not referenced in cache: ~s",
 				[ length( OnlyActualList ),
 				  text_utils:strings_to_string( OnlyActualList ) ] ),
 			true
@@ -1501,12 +1619,26 @@ quick_cache_check( CacheFilename, ContentFiles, TreePath ) ->
 			undefined;
 
 		false ->
-			% The two sets match, yet do they agree on the file sizes as well?
-			case check_file_sizes_match( CachedFilePairs, ContentFiles,
-										 TreePath ) of
 
+			trace_utils:debug( "The file paths and names match." ),
+
+			% The two sets match, yet do they agree on the file sizes as well?
+			%
+			% (CachedFilePairs tells us both the paths and the expected sizes,
+			% hence no need for ContentFiles)
+			%
+			case check_file_sizes_match( CachedFilePairs, TreePath ) of
+
+				% Alles gut, so create the corresponding receptacle:
 				true ->
-					TreePath;
+					trace_utils:debug_fmt( "The sizes of the ~B files match.",
+										   [ CachedFileCount ] ),
+
+					#tree_data{ root=CachedTreePath,
+								entries=build_entry_table( FileInfos ),
+								file_count=CachedFileCount
+								% Not managed (at least yet): the other counts.
+								};
 
 				false ->
 					undefined
@@ -1517,12 +1649,63 @@ quick_cache_check( CacheFilename, ContentFiles, TreePath ) ->
 
 
 
+% Builds the entry table from specified terms.
+-spec build_entry_table( [ tuple() ] ) -> sha1_table().
+build_entry_table( FileInfos ) ->
+
+	EntryTable = table:new(),
+
+	build_entry_table( FileInfos, EntryTable ).
+
+
+% (helper)
+build_entry_table( _FileInfos=[], EntryTable ) ->
+	EntryTable;
+
+build_entry_table(
+  _FileInfos=[ { file_entry, SHA1, RelativePath, Size, Timestamp } | T  ],
+  EntryTable ) ->
+
+	FileData = #file_data{ path=text_utils:string_to_binary( RelativePath ),
+						   type=regular,
+						   size=Size,
+						   timestamp=Timestamp,
+						   sha1_sum=SHA1 },
+
+	NewEntryTable = table:append_to_entry( SHA1, FileData, EntryTable ),
+
+	build_entry_table( T, NewEntryTable ).
+
+
+
+
 % Checks that the actual file sizes match the specified ones.
--spec check_file_sizes_match( [ { file_utils:file_path(), system_utils:byte_size() } ],
-		[ file_utils:file_path() ], file_utils:directory_path() ) ->
-									maybe( tree_data() ).
-check_file_sizes_match( _FilePairs, _FilePaths, _TreePath ) ->
-	throw( todo ).
+-spec check_file_sizes_match(
+		[ { file_path(), system_utils:byte_size() } ],
+		directory_path() ) -> boolean().
+check_file_sizes_match( _FilePairs=[], _TreePath ) ->
+	true;
+
+check_file_sizes_match( _FilePairs=[ { FilePath, FileSize } | T ], TreePath ) ->
+
+	FileFullPath = file_utils:join( TreePath, FilePath ),
+
+	case file_utils:get_size( FileFullPath ) of
+
+		FileSize ->
+			check_file_sizes_match( T, TreePath );
+
+		ActualSize ->
+			trace_utils:debug_fmt( "For file '~s', cached size is ~s (~B bytes)"
+				", whereas actual size is ~s (~B bytes), "
+				"invalidating thus cache file.",
+				[ FileFullPath, system_utils:interpret_byte_size( FileSize ),
+				  FileSize, system_utils:interpret_byte_size( ActualSize ),
+				  ActualSize ] ),
+			false
+
+	end.
+
 
 
 % Returns a textual description of specified tree data.
