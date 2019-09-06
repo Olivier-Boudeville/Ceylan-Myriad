@@ -292,10 +292,21 @@ stop() ->
 -spec stop( status_code() ) -> no_return().
 stop( StatusCode ) ->
 
-	% Far less brutal than erlang:halt/{0,1}:
-	init:stop( StatusCode ),
+	%trace_utils:debug( "Immediate stop." ),
+
+	% Far less brutal than erlang:halt/{0,1}, yet awfully slow, and
+	% actually non-blocking:
+	%
+	%init:stop( StatusCode ),
+
+	% So, finally preferred (as blocking and fast):
+	halt( StatusCode ),
+
+	%trace_utils:debug( "Stopped." ),
 
 	% To avoid that the calling process continues with the next instructions:
+	% (would happen with init:stop/1, but not halt/{0,1})
+	%
 	freeze().
 
 
@@ -358,6 +369,9 @@ ignore_unused( _Term ) ->
 %
 -spec freeze() -> no_return().
 freeze() ->
+
+	%trace_utils:debug( "Freezing..." ),
+
 	receive
 
 		not_expected_to_be_received ->
