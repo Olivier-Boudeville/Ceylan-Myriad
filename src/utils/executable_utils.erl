@@ -105,17 +105,14 @@
 
 
 % MD5 sum, a 128-bit hash value:
-%
 -type md5_sum() :: non_neg_integer().
 
 
 % SHA1 sum, a 160-bit hash value:
-%
 -type sha1_sum() :: non_neg_integer().
 
 
 % SHA sum, a hash value of unspecified size:
-%
 -type sha_sum() :: non_neg_integer().
 
 
@@ -643,6 +640,7 @@ get_default_scp_executable_path() ->
 
 
 
+% Returns an absolute path to a gnuplot executable.
 -spec get_gnuplot_path() -> file_utils:file_name().
 get_gnuplot_path() ->
 	% Note: expected to be on the PATH:
