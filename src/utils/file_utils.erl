@@ -62,9 +62,11 @@
 		  filter_by_extension/2, filter_by_extensions/2,
 		  filter_by_included_suffixes/2, filter_by_excluded_suffixes/2,
 
-		  find_files_from/1, find_files_with_extension_from/2,
+		  find_files_from/1, find_files_from/2,
+		  find_files_with_extension_from/2, find_files_with_extension_from/3,
 		  find_files_with_excluded_dirs/2,
 		  find_files_with_excluded_suffixes/2,
+		  find_files_with_excluded_suffixes/3,
 		  find_files_with_excluded_dirs_and_suffixes/3,
 		  find_directories_from/1,
 
@@ -79,7 +81,9 @@
 
 		  copy_file/2, copy_file_if_existing/2, copy_file_in/2,
 
-		  rename/2, move_file/2, append_file/2, change_permissions/2,
+		  rename/2, move_file/2, create_link/2,
+
+		  append_file/2, change_permissions/2,
 
 		  is_absolute_path/1,
 		  ensure_path_is_absolute/1, ensure_path_is_absolute/2,
@@ -148,6 +152,10 @@
 -type any_file_name() :: file_name() | bin_file_name().
 
 -type any_file_path() :: file_path() | bin_file_path().
+
+
+% The name of a (symbolic) link:
+-type link_name() :: string().
 
 
 % Designates an executable, generally without a path (ex: "foobar"):
@@ -670,14 +678,15 @@ is_existing_directory_or_link( EntryName ) ->
 	end.
 
 
-
-% Returns a tuple made of a four lists describing the file elements found in
-% specified directory: { Files, Directories, OtherFiles, Devices }.
+% Returns a tuple containing five lists corresponding to the sorting of all
+% filesystem elements, namely { RegularFiles, Symlinks, Directories, OtherFiles,
+% Devices }.
 %
-% Note that Files include symbolic links (dead or not).
+% Note that symbolic links mayr or may not be dead.
 %
 -spec list_dir_elements( directory_name() ) ->
-	{ [ file_name() ], [ directory_name() ], [ file_name() ], [ file_name() ] }.
+			 { [ file_name() ], [ file_name() ], [ directory_name() ],
+			   [ file_name() ], [ file_name() ] }.
 list_dir_elements( Dirname ) ->
 
 	%io:format( "list_dir_elements for '~s'.~n", [ Dirname ] ),
@@ -685,7 +694,7 @@ list_dir_elements( Dirname ) ->
 	{ ok, LocalDirElements } = file:list_dir( Dirname ),
 
 	classify_dir_elements( Dirname, LocalDirElements, _Devices=[],
-			_Directories=[], _Files=[], _OtherFiles=[] ).
+			_Directories=[], _Files=[], _Symlinks=[], _OtherFiles=[] ).
 
 
 
@@ -840,41 +849,42 @@ set_current_directory( DirName ) ->
 
 % (helper)
 %
-% Returns a tuple containing four lists corresponding to the sorting of all
-% file elements: { Directories, Files, Devices, OtherFiles }.
+% Returns a tuple containing five lists corresponding to the sorting of all
+% filesystem elements, namely { RegularFiles, Symlinks, Directories, OtherFiles,
+% Devices }.
 %
 % Note that Files include symbolic links (dead or not).
 %
 classify_dir_elements( _Dirname, _Elements=[], Devices, Directories, Files,
-					   OtherFiles ) ->
+					   Symlinks, OtherFiles ) ->
 	% Note the reordering:
-	{ Files, Directories, OtherFiles, Devices };
+	{ Files, Symlinks, Directories, OtherFiles, Devices };
 
 classify_dir_elements( Dirname, _Elements=[ H | T ], Devices, Directories,
-					   Files, OtherFiles ) ->
+					   Files, Symlinks, OtherFiles ) ->
 
 	 case get_type_of( filename:join( Dirname, H ) ) of
 
 		device ->
 			classify_dir_elements( Dirname, T, [ H | Devices ], Directories,
-								   Files, OtherFiles );
+								   Files, Symlinks, OtherFiles );
 
 		directory ->
 			classify_dir_elements( Dirname, T, Devices, [ H | Directories ],
-								   Files, OtherFiles );
+								   Files, Symlinks, OtherFiles );
 
 		regular ->
 			classify_dir_elements( Dirname, T, Devices, Directories,
-								  [ H | Files ], OtherFiles );
+								   [ H | Files ], Symlinks, OtherFiles );
 
-		% Managed as regular files:
+		% Used to be managed as regular files:
 		symlink ->
-			classify_dir_elements( Dirname, T, Devices, Directories,
-								   [ H | Files ], OtherFiles );
+			classify_dir_elements( Dirname, T, Devices, Directories, Files,
+								   [ H | Symlinks ], OtherFiles );
 
 		other ->
 			classify_dir_elements( Dirname, T, Devices, Directories,
-								   Files, [ H | OtherFiles ] )
+								   Files, Symlinks, [ H | OtherFiles ] )
 
 	end.
 
@@ -995,8 +1005,8 @@ has_matching_suffix( Filename, [ S | OtherS ] ) ->
 
 
 
-% Returns the list of all regular files found from the root, in the whole
-% subtree (i.e. recursively).
+% Returns the list of all files (regular ones and symlinks) found from the root,
+% in the whole subtree (i.e. recursively).
 %
 % All extensions and suffixes accepted, no excluded directories.
 %
@@ -1005,82 +1015,169 @@ has_matching_suffix( Filename, [ S | OtherS ] ) ->
 %
 -spec find_files_from( directory_name() ) -> [ file_name() ].
 find_files_from( RootDir ) ->
-	find_files_from( RootDir, _CurrentRelativeDir="", _Acc=[] ).
+	Res = find_files_from( RootDir, _CurrentRelativeDir="",
+						   _IncludeSymlinks=true, _Acc=[] ),
+	%trace_utils:debug_fmt( "Files found from '~s':~n~p", [ RootDir, Res ] ),
+	Res.
 
 
 
-% (helper)
-find_files_from( RootDir, CurrentRelativeDir, Acc ) ->
-
-	%io:format( "find_files_from with root = '~s', current = '~s'.~n",
-	%	[ RootDir, CurrentRelativeDir ] ),
-
-	{ RegularFiles, Directories, _OtherFiles, _Devices } = list_dir_elements(
-		join( RootDir, CurrentRelativeDir ) ),
-
-	Acc ++ list_files_in_subdirs( Directories, RootDir, CurrentRelativeDir, [] )
-		++ prefix_files_with( CurrentRelativeDir, RegularFiles ).
-
-
-% Specific helper for find_files_from/3 above:
-list_files_in_subdirs( _Dirs=[], _RootDir, _CurrentRelativeDir, Acc ) ->
-	Acc;
-
-list_files_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir, Acc ) ->
-
-	%io:format( "list_files_in_subdirs with root = '~s', current = '~s' "
-	%	"and H='~s'.~n", [ RootDir, CurrentRelativeDir, H ] ),
-
-	list_files_in_subdirs( T, RootDir, CurrentRelativeDir,
-		find_files_from( RootDir, join( CurrentRelativeDir, H ), [] ) ++ Acc ).
-
-
-
-% Returns the list of all regular files found from the root with specified
-% extension, in the whole subtree (i.e. recursively).
+% Returns the list of all files (regular ones and, if requested, symlinks) found
+% from the root, in the whole subtree (i.e. recursively).
+%
+% All extensions and suffixes accepted, no excluded directories.
 %
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
 %
--spec find_files_with_extension_from( directory_name(), extension() )
-		-> [ file_name() ].
-find_files_with_extension_from( RootDir, Extension ) ->
-	find_files_with_extension_from( RootDir, _CurrentRelativeDir="",
-									Extension, _Acc=[] ).
+-spec find_files_from( directory_name(), boolean() ) -> [ file_name() ].
+find_files_from( RootDir, IncludeSymlinks ) ->
+	Res = find_files_from( RootDir, _CurrentRelativeDir="", IncludeSymlinks,
+						   _Acc=[] ),
+	%trace_utils:debug_fmt( "Files found from '~s':~n~p", [ RootDir, Res ] ),
+	Res.
 
 
 
 % (helper)
-find_files_with_extension_from( RootDir, CurrentRelativeDir, Extension, Acc ) ->
+find_files_from( RootDir, CurrentRelativeDir, IncludeSymlinks, Acc ) ->
 
-	%io:format( "find_files_from in ~s.~n", [ CurrentRelativeDir ] ),
+	%trace_utils:debug_fmt( "find_files_from with root = '~s', current = '~s'.",
+	%						[ RootDir, CurrentRelativeDir ] ),
 
-	{ RegularFiles, Directories, _OtherFiles, _Devices } = list_dir_elements(
-		join( RootDir, CurrentRelativeDir ) ),
+	{ RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
+		list_dir_elements( join( RootDir, CurrentRelativeDir ) ),
+
+	Files = case IncludeSymlinks of
+
+		true ->
+			RegularFiles ++ Symlinks;
+
+		false ->
+			RegularFiles
+
+	end,
+
+	Acc ++ list_files_in_subdirs( Directories, RootDir, CurrentRelativeDir,
+								  IncludeSymlinks, _NextAcc=[] )
+		++ prefix_files_with( CurrentRelativeDir, Files ).
+
+
+% Specific helper for find_files_from/3 above:
+list_files_in_subdirs( _Dirs=[], _RootDir, _CurrentRelativeDir,
+					   _IncludeSymlinks, Acc ) ->
+	Acc;
+
+list_files_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir,
+					   IncludeSymlinks, Acc ) ->
+
+	%io:format( "list_files_in_subdirs with root = '~s', current = '~s' "
+	%	"and H='~s'.~n", [ RootDir, CurrentRelativeDir, H ] ),
+
+	list_files_in_subdirs( T, RootDir, CurrentRelativeDir, IncludeSymlinks,
+		find_files_from( RootDir, join( CurrentRelativeDir, H ),
+						 IncludeSymlinks, _NextAcc=[] ) ++ Acc ).
+
+
+
+% Returns the list of all files (regular ones and symlinks) found from the root
+% with specified extension, in the whole subtree (i.e. recursively).
+%
+% All returned pathnames are relative to this root.
+% Ex: [ "./a.txt", "./tmp/b.txt" ].
+%
+-spec find_files_with_extension_from( directory_name(), extension() ) ->
+											[ file_name() ].
+find_files_with_extension_from( RootDir, Extension ) ->
+	find_files_with_extension_from( RootDir, _CurrentRelativeDir="",
+			_IncludeSymlinks=true, Extension, _Acc=[] ).
+
+
+
+% Returns the list of all files (regular ones and, if requested, symlinks) found
+% from the root with specified extension, in the whole subtree
+% (i.e. recursively).
+%
+% All returned pathnames are relative to this root.
+% Ex: [ "./a.txt", "./tmp/b.txt" ].
+%
+-spec find_files_with_extension_from( directory_name(), extension(),
+									  boolean() ) -> [ file_name() ].
+find_files_with_extension_from( RootDir, Extension, IncludeSymlinks ) ->
+	find_files_with_extension_from( RootDir, _CurrentRelativeDir="",
+									IncludeSymlinks, Extension, _Acc=[] ).
+
+
+
+% (helper)
+find_files_with_extension_from( RootDir, CurrentRelativeDir, IncludeSymlinks,
+								Extension, Acc ) ->
+
+	%io:format( "find_files_with_extension_from in ~s.~n",
+	%           [ CurrentRelativeDir ] ),
+
+	{ RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
+		list_dir_elements( join( RootDir, CurrentRelativeDir ) ),
+
+	Files = case IncludeSymlinks of
+
+		true ->
+			RegularFiles ++ Symlinks;
+
+		false ->
+			RegularFiles
+
+	end,
 
 	Acc ++ list_files_in_subdirs_with_extension( Directories, Extension,
-										RootDir, CurrentRelativeDir, [] )
+				RootDir, CurrentRelativeDir, IncludeSymlinks, _NextAcc=[] )
 		++ prefix_files_with( CurrentRelativeDir,
-			filter_by_extension( RegularFiles, Extension ) ).
+							  filter_by_extension( Files, Extension ) ).
 
 
 % Helper for find_files_with_extension_from/4:
 list_files_in_subdirs_with_extension( _Dirs=[], _Extension, _RootDir,
-									  _CurrentRelativeDir, Acc) ->
+				_CurrentRelativeDir, _IncludeSymlinks, Acc ) ->
 	Acc;
 
 list_files_in_subdirs_with_extension( _Dirs=[ H | T ], Extension, RootDir,
-									  CurrentRelativeDir, Acc ) ->
+				CurrentRelativeDir, IncludeSymlinks, Acc ) ->
 	list_files_in_subdirs_with_extension( T, Extension, RootDir,
-		CurrentRelativeDir,
+		CurrentRelativeDir, IncludeSymlinks,
 		find_files_with_extension_from( RootDir, join( CurrentRelativeDir, H ),
-			Extension, [] ) ++ Acc ).
+			IncludeSymlinks, Extension, _NextAcc=[] ) ++ Acc ).
 
 
 
+% Returns the list of all files (regular ones and symlinks) found from the root,
+% in the whole subtree (i.e. recursively), with specified directories excluded.
+%
+% Note that the excluded directories can be specified as a full path (ex:
+% "foo/bar/not-wanted"), or just as a final directory name (ex:
+% "my-excluded-name"). In the latter case, all directories bearing that name
+% (ex: "foo/bar/my-excluded-name") will be excluded as well.
+%
+% Thus when a directory D is specified in the excluded list, each traversed
+% directory T will be compared twice to D: T will be matched against D, and
+% against filename:basename(T), i.e. its final name, as well. As soon as one
+% matches, T will be excluded.
+%
+% All extensions accepted.
+%
+% All returned pathnames are relative to this root.
+% Ex: [ "./a.txt", "./tmp/b.txt" ].
+%
+-spec find_files_with_excluded_dirs( directory_name(), [ directory_name() ] ) ->
+										   [ file_name() ].
+find_files_with_excluded_dirs( RootDir, ExcludedDirList ) ->
+	find_files_with_excluded_dirs( RootDir, ExcludedDirList,
+								   _IncludeSymlinks=true ).
 
-% Returns the list of all regular files found from the root, in the whole
-% subtree (i.e. recursively), with specified directories excluded.
+
+
+% Returns the list of all files (regular ones and, if requested, symlinks) found
+% from the root, in the whole subtree (i.e. recursively), with specified
+% directories excluded.
 %
 % Note that the excluded directories can be specified as a full path (ex:
 % "foo/bar/not-wanted"), for just as a final directory name (ex:
@@ -1097,22 +1194,32 @@ list_files_in_subdirs_with_extension( _Dirs=[ H | T ], Extension, RootDir,
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
 %
--spec find_files_with_excluded_dirs( directory_name(),
-									 [ directory_name() ] ) -> [ file_name() ].
-find_files_with_excluded_dirs( RootDir, ExcludedDirList ) ->
+-spec find_files_with_excluded_dirs( directory_name(), [ directory_name() ],
+									 boolean() ) -> [ file_name() ].
+find_files_with_excluded_dirs( RootDir, ExcludedDirList, IncludeSymlinks ) ->
 	find_files_with_excluded_dirs( RootDir, _CurrentRelativeDir="",
-								   ExcludedDirList, _Acc=[] ).
+								   ExcludedDirList, IncludeSymlinks, _Acc=[] ).
 
 
 % (helper)
 find_files_with_excluded_dirs( RootDir, CurrentRelativeDir, ExcludedDirList,
-							   Acc ) ->
+							   IncludeSymlinks, Acc ) ->
 
 	%io:format( "find_files_with_excluded_dirs in ~s.~n",
 	% [ CurrentRelativeDir ] ),
 
-	{ RegularFiles, Directories, _OtherFiles, _Devices } = list_dir_elements(
-		join( RootDir, CurrentRelativeDir ) ),
+	{ RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
+		list_dir_elements( join( RootDir, CurrentRelativeDir ) ),
+
+	Files = case IncludeSymlinks of
+
+		true ->
+			RegularFiles ++ Symlinks;
+
+		false ->
+			RegularFiles
+
+	end,
 
 	% If for example ExcludedDirList=[ ".svn" ], we want to eliminate not only
 	% ".svn" but also all "foo/bar/.svn", i.e. all directories having the same
@@ -1120,85 +1227,111 @@ find_files_with_excluded_dirs( RootDir, CurrentRelativeDir, ExcludedDirList,
 	%
 	FilteredDirectories = [ D || D <- Directories,
 		not ( lists:member( join( CurrentRelativeDir, D ), ExcludedDirList )
-			  or lists:member( D, ExcludedDirList ) ) ],
+			  orelse lists:member( D, ExcludedDirList ) ) ],
 
 	Acc ++ list_files_in_subdirs_excluded_dirs( FilteredDirectories, RootDir,
-								CurrentRelativeDir, ExcludedDirList, _Acc=[] )
-		++ prefix_files_with( CurrentRelativeDir, RegularFiles ).
+				CurrentRelativeDir, ExcludedDirList, IncludeSymlinks, _Acc=[] )
+		++ prefix_files_with( CurrentRelativeDir, Files ).
 
 
 % Specific helper for find_files_with_excluded_dirs/4 above:
 list_files_in_subdirs_excluded_dirs( _Dirs=[], _RootDir,
-		_CurrentRelativeDir, _ExcludedDirList, Acc ) ->
+		_CurrentRelativeDir, _ExcludedDirList, _IncludeSymlinks, Acc ) ->
 	Acc;
 
 list_files_in_subdirs_excluded_dirs( _Dirs=[ H | T ], RootDir,
-		CurrentRelativeDir, ExcludedDirList, Acc ) ->
+		CurrentRelativeDir, ExcludedDirList, IncludeSymlinks, Acc ) ->
 
 	list_files_in_subdirs_excluded_dirs( T, RootDir, CurrentRelativeDir,
-		ExcludedDirList,
+		ExcludedDirList, IncludeSymlinks,
 		find_files_with_excluded_dirs( RootDir, join( CurrentRelativeDir, H ),
-			ExcludedDirList, [] ) ++ Acc ).
+			ExcludedDirList, IncludeSymlinks, _NextAcc=[] ) ++ Acc ).
 
 
 
 
 
-% Returns the list of all regular files found from the root which do not match
-% any of the specified suffixes, in the whole subtree (i.e. recursively).
+% Returns the list of all files (regular ones or symlinks) found from the root
+% which do not match any of the specified suffixes, in the whole subtree
+% (i.e. recursively).
 %
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
 %
--spec find_files_with_excluded_suffixes( directory_name(), [ string() ]) ->
+-spec find_files_with_excluded_suffixes( directory_name(), [ string() ] ) ->
 											   [ file_name() ].
 find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes ) ->
 	find_files_with_excluded_suffixes( RootDir, _CurrentRelativeDir="",
-									   ExcludedSuffixes, _Acc=[] ).
+				ExcludedSuffixes, _IncludeSymlinks=true, _Acc=[] ).
+
+
+
+% Returns the list of all files (regular ones or, if requested, symlinks) found
+% from the root which do not match any of the specified suffixes, in the whole
+% subtree (i.e. recursively).
+%
+% All returned pathnames are relative to this root.
+% Ex: [ "./a.txt", "./tmp/b.txt" ].
+%
+-spec find_files_with_excluded_suffixes( directory_name(), [ string() ],
+										 boolean() ) -> [ file_name() ].
+find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes,
+								   IncludeSymlinks ) ->
+	find_files_with_excluded_suffixes( RootDir, _CurrentRelativeDir="",
+				ExcludedSuffixes, IncludeSymlinks, _Acc=[] ).
 
 
 
 % (helper)
 find_files_with_excluded_suffixes( RootDir, CurrentRelativeDir,
-								   ExcludedSuffixes, Acc ) ->
+					   ExcludedSuffixes, IncludeSymlinks, Acc ) ->
 
 	%io:format( "find_files_with_excluded_suffixes in ~s.~n",
 	% [ CurrentRelativeDir ] ),
 
-	{ RegularFiles, Directories, _OtherFiles, _Devices } = list_dir_elements(
-		join( RootDir, CurrentRelativeDir ) ),
+	{ RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
+		list_dir_elements( join( RootDir, CurrentRelativeDir ) ),
+
+	Files = case IncludeSymlinks of
+
+		true ->
+			RegularFiles ++ Symlinks;
+
+		false ->
+			RegularFiles
+
+	end,
 
 	Acc ++ list_files_in_subdirs_with_excluded_suffixes( Directories,
-			ExcludedSuffixes, RootDir, CurrentRelativeDir, [] )
-		++ prefix_files_with( CurrentRelativeDir,
-			filter_by_excluded_suffixes( RegularFiles, ExcludedSuffixes ) ).
+			ExcludedSuffixes, RootDir, CurrentRelativeDir, IncludeSymlinks,
+			_NextAcc=[] ) ++ prefix_files_with( CurrentRelativeDir,
+			  filter_by_excluded_suffixes( Files, ExcludedSuffixes ) ).
 
 
 
 
 % Helper for find_files_with_excluded_suffixes/4:
 -spec list_files_in_subdirs_with_excluded_suffixes( list(), [ string() ],
-		directory_name(), directory_name(), [ file_name() ] ) ->
+		directory_name(), directory_name(), boolean(), [ file_name() ] ) ->
 														  [ file_name() ].
 list_files_in_subdirs_with_excluded_suffixes( [], _ExcludedSuffixes, _RootDir,
-											  _CurrentRelativeDir, Acc ) ->
+							  _CurrentRelativeDir, _IncludeSymlinks, Acc ) ->
 	Acc;
 
 list_files_in_subdirs_with_excluded_suffixes( [ H | T ], ExcludedSuffixes,
-								  RootDir, CurrentRelativeDir, Acc ) ->
+					  RootDir, CurrentRelativeDir, IncludeSymlinks, Acc ) ->
 	list_files_in_subdirs_with_excluded_suffixes( T, ExcludedSuffixes, RootDir,
-		CurrentRelativeDir,
+		CurrentRelativeDir, IncludeSymlinks,
 		find_files_with_excluded_suffixes( RootDir,
-			 join( CurrentRelativeDir, H ), ExcludedSuffixes, [] ) ++ Acc ).
+			join( CurrentRelativeDir, H ), ExcludedSuffixes, IncludeSymlinks,
+			_NextAcc=[] ) ++ Acc ).
 
 
 
 
-
-
-% Returns the list of all regular files found from the root with specified
-% suffix, in the whole subtree (i.e. recursively), with specified directories
-% excluded.
+% Returns the list of all files (regular ones and symlinks) found from the root
+% with specified suffix, in the whole subtree (i.e. recursively), with specified
+% directories excluded.
 %
 % Note that the excluded directories can be specified as a full path (ex:
 % "foo/bar/not-wanted"), for just as a final directory name (ex:
@@ -1217,25 +1350,61 @@ list_files_in_subdirs_with_excluded_suffixes( [ H | T ], ExcludedSuffixes,
 		[ directory_name() ], [ string() ] ) -> [ file_name() ].
 find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirList,
 											ExcludedSuffixes ) ->
+	find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirList,
+								ExcludedSuffixes, _IncludeSymlinks=true ).
+
+
+
+% Returns the list of all files (regular ones and, if requested, symlinks) found
+% from the root with specified suffix, in the whole subtree (i.e. recursively),
+% with specified directories excluded.
+%
+% Note that the excluded directories can be specified as a full path (ex:
+% "foo/bar/not-wanted"), for just as a final directory name (ex:
+% "my-excluded-name"). In the latter case, all directories bearing that name
+% (ex: "foo/bar/my-excluded-name") will be excluded as well.
+%
+% Thus when a directory D is specified in the excluded list, each traversed
+% directory T will be compared twice to D: T will be matched against D, and
+% against filename:basename(T), i.e. its final name, as well. As soon as one
+% matches, T will be excluded.
+%
+% All returned pathnames are relative to this root.
+% Ex: [ "./a.txt", "./tmp/b.txt" ].
+%
+-spec find_files_with_excluded_dirs_and_suffixes( directory_name(),
+		[ directory_name() ], [ string() ], boolean() ) -> [ file_name() ].
+find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirList,
+							ExcludedSuffixes, IncludeSymlinks ) ->
 
 	%{ ok, CurrentDir } = file:get_cwd(),
 	%io:format( "find_files_with_excluded_dirs_and_suffixes: current is ~s, "
-	%		  "root is ~s.~n", [ CurrentDir, RootDir ] ),
+	%			"root is ~s.~n", [ CurrentDir, RootDir ] ),
 
 	find_files_with_excluded_dirs_and_suffixes( RootDir,
-			_CurrentRelativeDir="", ExcludedDirList, ExcludedSuffixes, _Acc=[]
-											   ).
+			_CurrentRelativeDir="", ExcludedDirList, ExcludedSuffixes,
+			IncludeSymlinks, _Acc=[] ).
 
 
 % (helper)
 find_files_with_excluded_dirs_and_suffixes( RootDir, CurrentRelativeDir,
-		ExcludedDirList, ExcludedSuffixes, Acc ) ->
+		ExcludedDirList, ExcludedSuffixes, IncludeSymlinks, Acc ) ->
 
 	%io:format( "find_files_with_excluded_dirs_and_suffixes in ~s / ~s.~n",
-	% [ RootDir, CurrentRelativeDir ] ),
+	%           [ RootDir, CurrentRelativeDir ] ),
 
-	{ RegularFiles, Directories, _OtherFiles, _Devices } = list_dir_elements(
-		join( RootDir, CurrentRelativeDir ) ),
+	{ RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
+		list_dir_elements( join( RootDir, CurrentRelativeDir ) ),
+
+	Files = case IncludeSymlinks of
+
+		true ->
+			RegularFiles ++ Symlinks;
+
+		false ->
+			RegularFiles
+
+	end,
 
 	% If for example ExcludedDirList=[ ".svn" ], we want to eliminate not only
 	% ".svn" but also all "foo/bar/.svn", i.e. all directories having the same
@@ -1243,29 +1412,31 @@ find_files_with_excluded_dirs_and_suffixes( RootDir, CurrentRelativeDir,
 	%
 	FilteredDirectories = [ D || D <- Directories,
 		not ( lists:member( join( CurrentRelativeDir, D ), ExcludedDirList )
-			 or lists:member( D, ExcludedDirList ) ) ],
+			 orelse lists:member( D, ExcludedDirList ) ) ],
 
 	Acc ++ list_files_in_subdirs_excluded_dirs_and_suffixes(
 			FilteredDirectories, RootDir, CurrentRelativeDir,
-			ExcludedDirList, ExcludedSuffixes, _Acc=[] )
+			ExcludedDirList, ExcludedSuffixes, IncludeSymlinks, _Acc=[] )
 		++ prefix_files_with( CurrentRelativeDir,
-			filter_by_excluded_suffixes( RegularFiles, ExcludedSuffixes ) ).
+			filter_by_excluded_suffixes( Files, ExcludedSuffixes ) ).
 
 
 
 
 % Specific helper for find_files_with_excluded_dirs_and_suffixes/5 above:
 list_files_in_subdirs_excluded_dirs_and_suffixes( _Dirs=[], _RootDir,
-		_CurrentRelativeDir, _ExcludedDirList, _ExcludedSuffixes, Acc ) ->
+		_CurrentRelativeDir, _ExcludedDirList, _ExcludedSuffixes,
+		_IncludeSymlinks, Acc ) ->
 	Acc;
 
 list_files_in_subdirs_excluded_dirs_and_suffixes( _Dirs=[ H | T ], RootDir,
-		CurrentRelativeDir, ExcludedDirList, ExcludedSuffixes, Acc ) ->
+		CurrentRelativeDir, ExcludedDirList, ExcludedSuffixes, IncludeSymlinks,
+		Acc ) ->
 	list_files_in_subdirs_excluded_dirs_and_suffixes( T, RootDir,
-		CurrentRelativeDir, ExcludedDirList, ExcludedSuffixes,
+		CurrentRelativeDir, ExcludedDirList, ExcludedSuffixes, IncludeSymlinks,
 		find_files_with_excluded_dirs_and_suffixes( RootDir,
-			join(CurrentRelativeDir,H), ExcludedDirList, ExcludedSuffixes, [] )
-		++ Acc ).
+			join( CurrentRelativeDir, H ), ExcludedDirList, ExcludedSuffixes,
+			IncludeSymlinks, _NextAcc=[] ) ++ Acc ).
 
 
 % Prefixes specified paths with specified root directory.
@@ -1436,6 +1607,7 @@ remove_file( Filename ) ->
 	%trace_utils:warning_fmt( "## Removing file '~s'.", [ Filename ] ),
 
 	case file:delete( Filename ) of
+	%case ok of
 
 		ok ->
 			ok;
@@ -1600,6 +1772,28 @@ move_file( SourceFilename, DestinationFilename ) ->
 		Error ->
 			throw( { move_file_failed, Error,  SourceFilename,
 					 DestinationFilename } )
+
+	end.
+
+
+
+% Creates a symbolic link pointing to specified target path, bearing specified
+% (link) name.
+%
+-spec create_link( path(), link_name() ) -> void().
+create_link( TargetPath, LinkName ) ->
+
+	%trace_utils:debug_fmt( "Creating a link '~s' to '~s', while in '~s'.",
+	%					   [ LinkName, TargetPath, get_current_directory() ] ),
+
+	case file:make_symlink( TargetPath, LinkName ) of
+
+		ok ->
+			ok;
+
+		{ error, Reason } ->
+			throw( { link_creation_failed, { target, TargetPath },
+					 { link, LinkName }, Reason } )
 
 	end.
 
@@ -1794,60 +1988,6 @@ normalise_path( BinPath ) when is_binary( BinPath ) ->
 
 
 
-
-% Returns a version of the specified path that is relative to the current
-% directory.
-%
--spec make_relative( file_utils:path() ) -> file_utils:directory_path().
-make_relative( Path ) ->
-	make_relative( Path, _RefDir=get_current_directory() ).
-
-
-
-% Returns a version of the specified path that is relative to the specified
-% reference directory.
-%
--spec make_relative( file_utils:any_path(), file_utils:directory_path() ) ->
-							 file_utils:directory_path().
-make_relative( Path, RefDir ) when is_list( Path ) andalso is_list( RefDir ) ->
-
-	AbsPath = ensure_path_is_absolute( Path ),
-
-	%trace_utils:debug_fmt( "Making path '~s' (absolute form: '~s') relative "
-	%					   "to reference directory ('~s').",
-	%					   [ Path, AbsPath, RefDir ] ),
-
-	TargetPathElems = filename:split( AbsPath ),
-	RefPathElems = filename:split( RefDir ),
-
-	make_relative_helper( TargetPathElems, RefPathElems );
-
-
-make_relative( BinPath, RefDir ) when is_binary( BinPath ) ->
-	make_relative( text_utils:binary_to_string( BinPath ), RefDir );
-
-make_relative( Path, RefDir ) ->
-	throw( { invalid_parameters, Path, RefDir } ).
-
-
-
-% First, drop any common path prefix:
-make_relative_helper( [ E | TPathElems ], [ E | TRefPathElems ] ) ->
-	make_relative_helper( TPathElems, TRefPathElems );
-
-% Found first non-matching directory element:
-make_relative_helper( PathElems, RefPathElems ) ->
-	FromRef = [ ".." || _ <- lists:seq( 1, length( RefPathElems ) ) ],
-	Res = join( FromRef ++ PathElems ),
-	%trace_utils:debug_fmt( "Returned path: '~s'.", [ Res ] ),
-	Res.
-
-
-
-
-
-
-
 % (helper)
 filter_elems( _ElemList=[], Acc ) ->
 	lists:reverse( Acc );
@@ -1891,6 +2031,67 @@ filter_elems( _ElemList=[ E | T ], Acc ) ->
 
 % filter_elems( _Elems=[ E | T ], Acc ) ->
 %	filter_elems( T, [ E | Acc ] ).
+
+
+
+
+
+% Returns a version of the specified path that is relative to the current
+% directory.
+%
+-spec make_relative( file_utils:path() ) -> file_utils:directory_path().
+make_relative( Path ) ->
+	make_relative( Path, _RefDir=get_current_directory() ).
+
+
+
+% Returns a version of the first specified path that is relative to the
+% specified second reference directory.
+%
+-spec make_relative( file_utils:any_path(), file_utils:directory_path() ) ->
+							 file_utils:directory_path().
+make_relative( Path, RefDir ) when is_list( Path ) andalso is_list( RefDir ) ->
+
+	AbsPath = ensure_path_is_absolute( Path ),
+
+	AbsRefDir = ensure_path_is_absolute( RefDir ),
+
+	%trace_utils:debug_fmt( "Making path '~s' (absolute form: '~s') relative "
+	%					   "to reference directory '~s' (absolute form: '~s').",
+	%					   [ Path, AbsPath, RefDir, AbsRefDir ] ),
+
+	TargetPathElems = filename:split( AbsPath ),
+	RefPathElems = filename:split( AbsRefDir ),
+
+	make_relative_helper( TargetPathElems, RefPathElems );
+
+
+make_relative( BinPath, RefDir ) when is_binary( BinPath ) ->
+	make_relative( text_utils:binary_to_string( BinPath ), RefDir );
+
+make_relative( Path, RefDir ) ->
+	throw( { invalid_parameters, Path, RefDir } ).
+
+
+
+% First, drop any common path prefix:
+make_relative_helper( [ E | TPathElems ], [ E | TRefPathElems ] ) ->
+	make_relative_helper( TPathElems, TRefPathElems );
+
+% Found first non-matching directory element:
+make_relative_helper( PathElems, RefPathElems ) ->
+
+	%trace_utils:debug_fmt( "Paths split at : ~p vs ~p.",
+	%					   [ PathElems, RefPathElems ] ),
+
+	FromRef = [ ".." || _ <- lists:seq( 1, length( RefPathElems ) ) ],
+
+	Res = join( FromRef ++ PathElems ),
+
+	%trace_utils:debug_fmt( "Returned path: '~s'.", [ Res ] ),
+
+	Res.
+
 
 
 
