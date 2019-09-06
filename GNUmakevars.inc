@@ -1055,14 +1055,23 @@ INTERNAL_OPTIONS := -start-verbatim-options $(INTERNAL_OPTIONS)
 # Note that setting a -noinput option implies that, for example when running a
 # test, the user will not be able to use the Erlang shell afterwards (like done
 # in test_facilities:finished/0).
+#
 
-# term_ui displays and terminates (text_ui is ok):
+# Moreover, should the Erlang program abort, the initial (UNIX) shell from which
+# the program was launched may malfunction a lot (many kepy presses being then
+# lost), and despite countermeasures (such as
+# Ceylan-Hull/reset-keyboard-mode.sh), we did not manage to restore it in these
+# cases, which is certainly a problem.
+
+# term_ui is ko (displays and terminates), text_ui is ok:
 #EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -noinput -noshell
 
 # The same:
 #EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS)
 
-# term_ui is ok, text_ui by default (with no work-around) has no input:
+# term_ui is ok, text_ui by default has no input but with our workaround is ok,
+# yet crashing may disrupt the hosting UNIX shell:
+#
 EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -noinput
 
 # term_ui is ok, text_ui has no input:
