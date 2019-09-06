@@ -140,7 +140,7 @@
 
 
 % In order to run from the interpreter rather than through an escript:
--export([ run/0, scan/1, main/1 ]).
+-export([ run/0, scan/3, main/1 ]).
 
 
 % The PID of an analyzer process:
@@ -168,15 +168,17 @@
 -spec get_usage() -> void().
 get_usage() ->
 	" Usage: following operations can be triggered: \n"
-	"  - either: '"?exec_name" --input INPUT_TREE --reference REFERENCE_TREE'\n"
-	"  - or: '"?exec_name" --scan A_TREE'\n"
-	"  - or: '"?exec_name" --uniquify A_TREE'\n\n"
+	"  - '"?exec_name" --input INPUT_TREE --reference REFERENCE_TREE'\n"
+	"  - '"?exec_name" --scan A_TREE'\n"
+	"  - '"?exec_name" --uniquify A_TREE'\n"
+	"  - '"?exec_name" -h' or '"?exec_name" --help'\n\n"
 	"   Ensures, for the first form, that all the changes in a possibly more up-to-date, \"newer\" tree (INPUT_TREE) are merged back to the reference tree (REFERENCE_TREE), from which the first tree may have derived. Once executed, only a refreshed, complemented reference tree will exist, as the input tree will have been removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
 	"   In the reference tree, in-tree duplicated content will be either kept as it is, or removed as a whole (to keep only one copy thereof), or replaced by symbolic links in order to keep only a single reference version of each actual content.\n"
 	"   At the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they not have changed. As a result, once a merge is done, the reference tree may contain an uniquified version of the union of the two specified trees, and the tree to scan will not exist anymore.\n\n"
 	"   For the second form (--scan option), the specified tree will simply be inspected for duplicates, and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
 	"   For the third form (--uniquify option), the specified tree will be scanned first (see previous operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links), and once done a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
-	"   When a cache file is found, it can be either ignored or re-used, either as it is or after a check, which itself can be weak (only sizes and timestamps are checked) or strong (then actual contents are fully compared).".
+	"   For the fourth form (-h / --help option), displays this help\n\n"
+	"   When a cache file is found, it can be either ignored (and thus recreated) or re-used, either as it is or after a weak check, where only sizes and timestamps are then verified.".
 
 
 
@@ -194,12 +196,15 @@ run() ->
 -spec main( executable_utils:argument_table() ) -> void().
 main( ArgTable ) ->
 
-	trace_utils:info( "Running..." ),
+	%trace_utils:info( "Running..." ),
 
-	FilteredArgTable = ui:start( _Opts=[], ArgTable ),
+	UIOptions = [ log_console ],
+	%UIOptions = [],
 
-	trace_utils:debug_fmt( "Script-specific argument(s): ~s",
-		   [ executable_utils:argument_table_to_string( FilteredArgTable ) ] ),
+	FilteredArgTable = ui:start( UIOptions, ArgTable ),
+
+	%trace_utils:debug_fmt( "Script-specific argument(s): ~s",
+	%	   [ executable_utils:argument_table_to_string( FilteredArgTable ) ] ),
 
 	case list_table:has_entry( 'h', FilteredArgTable )
 		orelse list_table:has_entry( '-help', FilteredArgTable ) of
@@ -246,18 +251,21 @@ handle_reference_option( RefTreePath, ArgumentTable ) ->
 	case list_table:extract_entry_with_defaults( '-input', undefined,
 												 ArgumentTable ) of
 
-		{ undefined, ArgumentTable } ->
+		{ undefined, NewArgumentTable } ->
 			InputString = text_utils:format(
 			  "no input tree specified; options were: ~s",
-			  [ executable_utils:argument_table_to_string( ArgumentTable ) ] ),
+			  [ executable_utils:argument_table_to_string(
+				  NewArgumentTable ) ] ),
 			stop_on_option_error( InputString, 23 );
 
 
 		% Here, an input tree was specified as well:
-		{ [ InputTreePath ], ArgumentTable } when is_list( InputTreePath ) ->
+		{ [ InputTreePath ], NewArgumentTable } when is_list( InputTreePath ) ->
+
+			%trace_utils:debug_fmt( "InputTreePath: ~p", [ InputTreePath ] ),
 
 			% Check that no unknown option remains:
-			case list_table:is_empty( ArgumentTable ) of
+			case list_table:is_empty( NewArgumentTable ) of
 
 				true ->
 					merge( InputTreePath, RefTreePath );
@@ -266,15 +274,15 @@ handle_reference_option( RefTreePath, ArgumentTable ) ->
 					Msg = text_utils:format(
 							"unexpected extra options specified: ~s",
 							[ executable_utils:argument_table_to_string(
-								ArgumentTable ) ] ),
+								NewArgumentTable ) ] ),
 					stop_on_option_error( Msg, 24 )
 
 			end;
 
 
 		% Typically more than one input option specified:
-		{ UnexpectedInputTreeOpts, _ArgumentTable } ->
-			InputString = text_utils:format( "unexpected --input options: ~p",
+		{ UnexpectedInputTreeOpts, _NewArgumentTable } ->
+			InputString = text_utils:format( "unexpected --input options: ~s",
 											 [ UnexpectedInputTreeOpts ] ),
 			stop_on_option_error( InputString, 27 )
 
@@ -352,7 +360,18 @@ handle_non_reference_option( ArgumentTable ) ->
 			case list_table:is_empty( ScanArgTable ) of
 
 				true ->
-					scan( ScanTreePath ),
+					% Prepare for various outputs:
+					UserState = start_user_service( ?default_log_filename ),
+
+					AnalyzerRing = create_analyzer_ring( UserState ),
+
+					scan( ScanTreePath, AnalyzerRing, UserState ),
+
+					terminate_data_analyzers(
+					  ring_utils:to_list( AnalyzerRing ), UserState ),
+
+					stop_user_service( UserState ),
+
 					basic_utils:stop( _ErrorCode=0 );
 
 				false ->
@@ -390,14 +409,12 @@ stop_on_option_error( Message, ErrorCode ) ->
 
 
 
-% Scans specified tree.
--spec scan( file_utils:directory_name() ) -> void().
-scan( TreePath ) ->
+% Scans specified tree, returning the corresponding datastructure.
+-spec scan( file_utils:directory_name(), analyzer_ring(), user_state() ) ->
+				  tree_data().
+scan( TreePath, AnalyzerRing, UserState ) ->
 
 	trace_utils:debug_fmt( "Requested to scan '~s'.", [ TreePath ] ),
-
-	% Prepare for various outputs:
-	UserState = start_user_service( ?default_log_filename ),
 
 	AbsTreePath = file_utils:ensure_path_is_absolute( TreePath ),
 
@@ -412,20 +429,30 @@ scan( TreePath ) ->
 		true ->
 
 			Label = text_utils:format( "A cache file already exists for '~s'. "
-										" We can:", [ TreePath ] ),
+										"We can:", [ TreePath ] ),
 
-			%			{ 'reuse', "Re-use that file as it is" },
-
+			% No 'strong_check' deemed useful (synonym of recreating from
+			% scratch, hence of 'ignore').
 
 			Choices = [
-				{ 'ignore', "Ignore this version, and recreate this file" },
-				{ 'weak_update', "Update it thanks to a weak check "
-								 "(based on sizes and timestamps)" },
-				{ 'strong_update', "Update it thanks to a strong check "
-								 "(based on actual file contents)" },
+				{ 'weak_check', "Re-use this file, provided that it passes "
+				  "a weak check (based on sizes and timestamps), otherwise "
+				  "recreate it" },
+				{ 'ignore', "Ignore this version, and recreate this file "
+				  "unconditionally" },
+				{ 'no_check', "Re-use this file as it is, with no specific "
+				  "check involved" },
 				{ 'abort', "Abort scan" } ],
 
 			case ui:choose_designated_item( Label, Choices ) of
+
+				weak_check ->
+					% No need to restate the tree, is in the path of the cache
+					% file:
+					%
+					ui:display( "Performing a weak check of '~s'.",
+								[ CacheFilename ] ),
+					update_content_tree( TreePath, AnalyzerRing, UserState );
 
 				ignore ->
 					ui:display( "Ignoring existing cache file (~s), "
@@ -433,23 +460,22 @@ scan( TreePath ) ->
 								[ CacheFilename ] ),
 					perform_scan( TreePath, CacheFilename, UserState );
 
-				weak_update ->
-					throw(weak_update);
-
-				strong_update ->
-					throw(strong_update);
+				no_check ->
+					ui:display( "Re-using '~s' with no specific check.",
+								[ CacheFilename ] ),
+					read_cache_file( CacheFilename );
 
 				abort ->
 					ui:display( "Scan aborted, cache file (~s) left as it was.",
 								[ CacheFilename ] ),
-					basic_utils:stop( 5 )
+					trace( "(requested to abort the scan)", UserState ),
+					basic_utils:stop( 0 )
 
 			end;
 
 		false ->
 			ui:display( "No cache file (~s) found, performing full scan "
-						"to recreate it.",
-						[ CacheFilename ] ),
+						"to recreate it.", [ CacheFilename ] ),
 			perform_scan( TreePath, CacheFilename, UserState )
 
 	end.
@@ -460,12 +486,28 @@ perform_scan( TreePath, CacheFilename, UserState ) ->
 
 	TreeData = scan_helper( TreePath, CacheFilename, UserState ),
 
-	ui:display( "Scan result: ~s", [ tree_data_to_string( TreeData ) ] ),
+	ui:display( "Scan result stored in '~s': ~s",
+				[ CacheFilename, tree_data_to_string( TreeData ) ] ),
 
-	stop_user_service( UserState ),
+	TreeData.
 
-	basic_utils:stop( 0 ).
 
+
+% Reads as it is specified cache file, and returns the corresponding tree data.
+%
+% Note that the cache file is expected to exist.
+%
+-spec read_cache_file( file_utils:file_path() ) -> tree_data().
+read_cache_file( CacheFilename ) ->
+
+	[ _RootInfo={ root, CachedTreePath } | FileInfos ] =
+		file_utils:read_terms( CacheFilename ),
+
+	#tree_data{ root=CachedTreePath,
+				entries=build_entry_table( FileInfos ),
+				file_count=length( FileInfos )
+				% Not managed (at least yet): the other counts.
+			  }.
 
 
 % (helper)
@@ -480,7 +522,9 @@ create_analyzer_ring( UserState ) ->
 
 
 
-% Actual scanning of specified path, producing specified cache file.
+% Actual scanning of specified path, producing specified cache file from
+% scratch.
+%
 scan_helper( TreePath, CacheFilename, UserState ) ->
 
 	AnalyzerRing = create_analyzer_ring( UserState ),
@@ -548,7 +592,7 @@ create_merge_cache_file_from( TreeData=#tree_data{ root=RootDir },
 	CacheFile = file_utils:open( CacheFilename,
 								 _Opts=[ write, raw, delayed_write ] ),
 
-	write_cache_header( CacheFile, RootDir ),
+	write_cache_header( CacheFile ),
 
 	write_tree_data( CacheFile, TreeData, UserState ),
 
@@ -567,13 +611,16 @@ create_merge_cache_file_from( TreeData=#tree_data{ root=RootDir },
 				   void().
 merge( InputTreePath, ReferenceTreePath ) ->
 
+	trace_utils:debug_fmt( "Requested to merge '~s' into '~s'.",
+						   [ InputTreePath, ReferenceTreePath ] ),
+
 	% Prepare for various outputs:
 	UserState = start_user_service( ?default_log_filename ),
 
-	check_content_trees( InputTreePath, ReferenceTreePath ),
-
 	trace( "Merging (possibly newer) tree '~s' into reference tree '~s'...",
 		   [ InputTreePath, ReferenceTreePath ], UserState ),
+
+	check_content_trees( InputTreePath, ReferenceTreePath ),
 
 	% Best, reasonable usage:
 	Analyzers = spawn_data_analyzers( system_utils:get_core_count() + 1,
@@ -581,11 +628,60 @@ merge( InputTreePath, ReferenceTreePath ) ->
 
 	AnalyzerRing = ring_utils:from_list( Analyzers ),
 
-	update_content_tree( InputTreePath, AnalyzerRing, UserState ),
+	InputTree = update_content_tree( InputTreePath, AnalyzerRing, UserState ),
+
+	ReferenceTree = update_content_tree( ReferenceTreePath, AnalyzerRing,
+										 UserState ),
+
+	merge_trees( InputTree, ReferenceTree, UserState ),
 
 	terminate_data_analyzers( Analyzers, UserState ),
 
 	stop_user_service( UserState ).
+
+
+% Merges the specified input tree into the reference one.
+-spec merge_trees( tree_data(), tree_data(), user_state() ) -> tree_data().
+merge_trees( _InputTree=#tree_data{ root=InputRootDir,
+									entries=InputEntries },
+			 _ReferenceTree=#tree_data{ root=ReferenceRootDir,
+										entries=ReferenceEntries },
+			 UserState ) ->
+
+	InputSHA1Set = set_utils:new( table:keys( InputEntries ) ),
+	ReferenceSHA1Set = set_utils:new( table:keys( ReferenceEntries ) ),
+
+	LackingInRefSet = set_utils:difference( InputSHA1Set, ReferenceSHA1Set ),
+
+	case set_utils:size( LackingInRefSet ) of
+
+		0 ->
+			ui:display( "The content of the input tree path ('~s') is strictly "
+						"included into the one of the reference tree ('~s'), "
+						"hence nothing special is to merge, "
+						"removing directly the input tree.",
+						[ InputRootDir, ReferenceRootDir ] ),
+
+			file_utils:remove_directory( InputRootDir );
+
+		LackingCount ->
+			Label = text_utils:format( "Exactly ~B contents are present in the "
+									   "input tree ('~s') but are lacking in "
+									   "the reference one ('~s').",
+									   [ LackingCount, InputRootDir,
+										 ReferenceRootDir ] ),
+
+			Choices = [ { 'select', "Select on a per-content basis what shall "
+						  "be done" },
+						{ 'copy', "Copy that content (once uniquified) "
+						  "as a whole" },
+						{ 'drop', "Drop that extra content as a whole (it will "
+						  "thus be lost afterwards)" },
+						{ 'abort', "Abort" } ],
+
+			SelectedChoice = ui:choose_designated_item(
+					   text_utils:format( "~s~nChoices are:", [ FullLabel ] ),
+					   Choices ),
 
 
 
@@ -602,6 +698,7 @@ start_user_service( LogFilename ) ->
 
 	% We append to the log file (not resetting it), if it already exists:
 	% (no delayed_write, to avoid missing logs when halting on error)
+	%
 	LogFile = file_utils:open( LogFilename, _Opts=[ append, raw ] ),
 
 	file_utils:write( LogFile, "~nStarting new merge session "
@@ -613,42 +710,41 @@ start_user_service( LogFilename ) ->
 
 
 
-% Displays and logs specified text.
+% Displays (if set so) and logs specified text.
 -spec trace( string(), user_state() ) -> user_state().
-trace( Message, _UserState={ UIState, LogFile } ) ->
-	NewUIState = ui:trace( Message, UIState ),
+trace( Message, UserState=#user_state{ log_file=LogFile } ) ->
 	file_utils:write( LogFile, Message ++ "\n" ),
-	{ NewUIState, LogFile }.
+	ui:trace( Message ),
+	UserState.
 
 
-% Displays and logs specified formatted text.
+
+% Displays (if set so) and logs specified formatted text.
 -spec trace( text_utils:format_string(), [ term() ], user_state() ) ->
 				   user_state().
-trace( FormatString, Values, _UserState={ UIState, LogFile } ) ->
+trace( FormatString, Values, UserState=#user_state{ log_file=LogFile } ) ->
 	Msg = text_utils:format( FormatString, Values ),
-	NewUIState = ui:trace( Msg, UIState ),
 	file_utils:write( LogFile, Msg ++ "\n" ),
-	{ NewUIState, LogFile }.
+	ui:trace( Msg ),
+	UserState.
 
 
 
 % Logs specified debug text.
 -spec trace_debug( string(), user_state() ) -> user_state().
-trace_debug( Message, _UserState={ UIState, LogFile } ) ->
-	%NewUIState = ui:trace( Message, UIState ),
+trace_debug( Message, UserState=#user_state{ log_file=LogFile } ) ->
 	file_utils:write( LogFile, Message ++ "\n" ),
-	{ UIState, LogFile }.
+	UserState.
 
 
 % Logs specified debug formatted text.
 -spec trace_debug( text_utils:format_string(), [ term() ], user_state() ) ->
 				   user_state().
-trace_debug( FormatString, Values, _UserState={ UIState, LogFile } ) ->
+trace_debug( FormatString, Values,
+			 UserState=#user_state{ log_file=LogFile } ) ->
 	Msg = text_utils:format( FormatString, Values ),
-	%NewUIState = ui:trace( Msg, UIState ),
 	file_utils:write( LogFile, Msg ++ "\n" ),
-	{ UIState, LogFile }.
-
+	UserState.
 
 
 
@@ -656,11 +752,19 @@ trace_debug( FormatString, Values, _UserState={ UIState, LogFile } ) ->
 -spec stop_user_service( user_state() ) -> basic_utils:void().
 stop_user_service( _UserState=#user_state{ log_file=LogFile } ) ->
 
+	trace_utils:debug( "Stopping user service." ),
+
 	ui:stop(),
 
 	file_utils:write( LogFile, "Stopping merge session.~n", [] ),
 
-	file_utils:close( LogFile ).
+	file_utils:close( LogFile ),
+
+	trace_utils:debug( "Stopped." ),
+
+	basic_utils:stop( _ErrorCode=0 ).
+
+
 
 
 
@@ -715,9 +819,9 @@ check_tree_path_exists( TreePath ) ->
 
 
 
-% Updates specified content tree: verifies that it exists, that a merge cache
-% file exists and is up to date (otherwise rebuilds it), and returns the
-% corresponding datastructure.
+% Updates specified content tree (based on a "weak" check): verifies that it
+% exists, that a merge cache file exists and is up to date (otherwise rebuilds
+% it), and returns the corresponding tree datastructure.
 %
 -spec update_content_tree( file_utils:directory_name(), analyzer_ring(),
 						   user_state() ) -> tree_data().
@@ -738,7 +842,6 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 				find_newest_timestamp_from( TreePath, CacheFilePath ),
 
 			case file_utils:get_last_modification_time( CacheFilePath ) of
-
 
 				CacheTimestamp when CacheTimestamp < NewestTimestamp ->
 					trace_utils:debug_fmt( "Timestamp of cache file (~p) older "
@@ -775,7 +878,8 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 			end;
 
 		false ->
-			trace_utils:debug( "No cache file found, creating it." ),
+			trace_utils:debug_fmt( "No cache file found for '~s', creating it.",
+								   [ TreePath ] ),
 			undefined
 
 	end,
@@ -797,15 +901,16 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 % file (the merge cache file excluded) in specified tree, and a list of the
 % actual files (as relative paths).
 %
--spec find_newest_timestamp_from( directory_path(),
-								  file_path() ) ->
+-spec find_newest_timestamp_from( directory_path(), file_path() ) ->
 	  { maybe( time_utils:posix_seconds() ), [ file_path() ] }.
 find_newest_timestamp_from( RootPath, CacheFilePath ) ->
 
 	CacheFilename = filename:basename( CacheFilePath ),
 
 	ActualFileRelPaths = list_utils:delete_existing( CacheFilename,
-								 file_utils:find_files_from( RootPath ) ),
+		 file_utils:find_files_from( RootPath, _IncludeSymlinks=false ) ),
+
+	%trace_utils:debug_fmt( "ActualFileRelPaths = ~p", [ ActualFileRelPaths ] ),
 
 	MaybeTimestamp = case ActualFileRelPaths of
 
@@ -875,12 +980,13 @@ create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
 
 	check_tree_path_exists( AbsTreePath ),
 
+	io:format( "Z10" ),
 	trace( "Creating merge cache file '~s'.", [ CacheFilename ], UserState ),
 
 	MergeFile = file_utils:open( CacheFilename,
 								 _Opts=[ write, raw, delayed_write ] ),
 
-	write_cache_header( MergeFile, AbsTreePath ),
+	write_cache_header( MergeFile ),
 
 	_BlankDataTable = table:new(),
 
@@ -902,20 +1008,18 @@ create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
 
 
 % Writes the header of specified cache file.
--spec write_cache_header( file(), directory_path() ) -> void().
-write_cache_header( File, AbsTreePath ) ->
+-spec write_cache_header( file() ) -> void().
+write_cache_header( File ) ->
 
 	%ScriptName = filename:basename( escript:script_name() ),
 	ScriptName = ?MODULE,
 
-	file_utils:write( File, "% Merge cache file written by '~s' (version ~s):~n"
-							"% - on host '~s'~n"
-							"% - for content tree '~s'~n"
-							"% - on ~s~n~n"
+	file_utils:write( File, "% Merge cache file written by '~s' (version ~s),~n"
+							"% on host '~s', at ~s.~n~n"
 							"% Structure of file entries: SHA1, "
 							"relative path, size in bytes, timestamp~n~n" ,
 					  [ ScriptName, ?merge_script_version,
-						net_utils:localhost(), AbsTreePath,
+						net_utils:localhost(),
 						time_utils:get_textual_timestamp() ] ).
 
 
@@ -964,8 +1068,8 @@ get_file_content_for( SHA1, FileDataElems ) ->
 
 % Spawns the specified number of data analyzers, and returns their PID.
 -spec spawn_data_analyzers( count(), user_state() ) -> [ analyzer_pid() ].
-spawn_data_analyzers( Count, UserState ) ->
-	trace_debug( "Spawning ~B data analyzers.", [ Count ], UserState ),
+spawn_data_analyzers( Count, _UserState ) ->
+	%trace_debug( "Spawning ~B data analyzers.", [ Count ], UserState ),
 	[ ?myriad_spawn_link( fun() -> analyze_loop() end )
 	  || _C <- lists:seq( 1, Count ) ].
 
@@ -1011,7 +1115,7 @@ scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 						tree_data().
 scan_files( Files, AbsTreePath, AnalyzerRing ) ->
 
-	InitialTreeData = #tree_data{ root= AbsTreePath },
+	InitialTreeData = #tree_data{ root=AbsTreePath },
 
 	scan_files( Files, AnalyzerRing, InitialTreeData, _WaitedCount=0 ).
 
@@ -1119,7 +1223,12 @@ wait_entries( TreeData, WaitedCount ) ->
 
 		{ file_analyzed, FileData } ->
 			NewTreeData = manage_received_data( FileData, TreeData ),
-			wait_entries( NewTreeData, WaitedCount-1 )
+			wait_entries( NewTreeData, WaitedCount-1 );
+
+		{ file_disappeared, BinFilePath } ->
+			trace_utils:debug_fmt( "File '~s' reported as having disappeared.",
+								   [ BinFilePath ] ),
+			wait_entries( TreeData, WaitedCount-1 )
 
 	end.
 
@@ -1147,16 +1256,41 @@ analyze_loop() ->
 			%trace_debug( "Analyzer ~w taking in charge '~s'...",
 			%			  [ self(), FullPath ] ),
 
-			FileData = #file_data{
-				% We prefer storing relative filenames:
-				path=RelativeBinFilename,
-				type=file_utils:get_type_of( FilePath ),
-				size=file_utils:get_size( FilePath ),
-				timestamp=file_utils:get_last_modification_time( FilePath ),
-				sha1_sum=executable_utils:compute_sha1_sum( FilePath ) },
+			case file_utils:is_existing_file( FilePath ) of
 
-			SenderPid ! { file_analyzed, FileData },
-			analyze_loop();
+				true ->
+					FileData = #file_data{
+					   % We prefer storing relative filenames:
+					   path=RelativeBinFilename,
+					   type=file_utils:get_type_of( FilePath ),
+					   size=file_utils:get_size( FilePath ),
+					   timestamp=file_utils:get_last_modification_time(
+								   FilePath ),
+					   sha1_sum=executable_utils:compute_sha1_sum( FilePath ) },
+
+					SenderPid ! { file_analyzed, FileData },
+					analyze_loop();
+
+				false ->
+					case file_utils:exists( FilePath ) of
+
+						true ->
+							Type = file_utils:get_type_of( FilePath ),
+							trace_utils:info_fmt( "The type of entry '~s' "
+								"switched from regular (file) to ~s.",
+								[ Type ] );
+
+						false ->
+							trace_utils:info_fmt( "The file '~s' does not "
+								"exist anymore.", [ FilePath ] )
+
+					end,
+
+					BinFilePath = text_utils:string_to_binary( FilePath ),
+					SenderPid ! { file_disappeared, BinFilePath },
+					analyze_loop()
+
+			end;
 
 		terminate ->
 			%trace_debug( "Analyzer ~w terminated.", [ self() ] ),
@@ -1276,8 +1410,8 @@ filter_duplications( _SHA1Entries=[ SHA1Entry | T ],
 process_duplications( DuplicationCases, TotalDupCaseCount, UniqueTable,
 					  RootDir, UserState ) ->
 
-	trace_utils:debug_fmt( "Pre-deduplication unique table: ~s",
-						   [ table:to_string( UniqueTable ) ] ),
+	%trace_utils:debug_fmt( "Pre-deduplication unique table: ~s",
+	%					   [ table:to_string( UniqueTable ) ] ),
 
 	Acc0 = { UniqueTable, _InitialDupCount=1, _InitialRemoved=0 },
 	process_duplications_helper( DuplicationCases, TotalDupCaseCount, Acc0,
@@ -1352,14 +1486,16 @@ check_duplicates( SHA1Sum, FirstPath, Size, _DuplicateList=[
 %
 -spec manage_duplication_case( [ file_data() ], count(), count(),
 	system_utils:byte_size(), directory_path(), user_state() ) ->
-								[ file_data() ].
+									 [ file_data() ].
 manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 						 Size, RootDir, UserState ) ->
 
 	SizeString = system_utils:interpret_byte_size_with_unit( Size ),
 
-	PathStrings = [ text_utils:binary_to_string( E#file_data.path )
-					|| E <- FileEntries ],
+	PathStrings = lists:sort( [ text_utils:binary_to_string( E#file_data.path )
+					|| E <- FileEntries ] ),
+
+	%trace_utils:debug_fmt( "PathStrings = ~p", [ PathStrings ] ),
 
 	% As we do not want a common prefix to include any basename:
 	Dirnames = [ filename:dirname( P ) || P <- PathStrings ],
@@ -1375,15 +1511,14 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 	% By design more than one path:
 	{ Label, Prefix, ShortenPaths } =
-		case text_utils:find_longer_common_prefix( Dirnames ) of
+		case text_utils:find_longest_common_prefix( Dirnames ) of
 
-		% No common prefix here:
+		% No common prefix at all here:
 		{ "", _AllPathStrings } ->
 
 			Lbl = text_utils:format( "Following ~B files have the exact same "
 									 "content (and thus size, of ~s)",
 									 [ Count, SizeString ] ),
-
 			{ Lbl, _Prefix="", PathStrings };
 
 		% We do not re-reuse the remaining, prefixless strings as they do not
@@ -1405,8 +1540,13 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 	end,
 
+	%trace_utils:debug_fmt( "ShortenPaths = ~p", [ ShortenPaths ] ),
+
 	DuplicateString = text_utils:format( ": ~s",
-					[ text_utils:strings_to_sorted_string( ShortenPaths ) ] ),
+					[ text_utils:strings_to_string( ShortenPaths ) ] ),
+
+	%trace_utils:debug_fmt( "DuplicateString = ~p", [ DuplicateString ] ),
+
 
 	FullLabel = Label ++ DuplicateString,
 
@@ -1426,6 +1566,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 	case SelectedChoice of
 
+
 		keep ->
 			KeptFilePath = keep_only_one( Prefix, ShortenPaths, PathStrings,
 										  RootDir, UserState ),
@@ -1438,10 +1579,15 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 			% As this is a list of file_data:
 			[ find_data_entry_for( KeptFilePath, FileEntries ) ];
 
+
 		elect ->
-			%elect_and_link(
-			trace( "TODO", UserState ),
-			FileEntries;
+			% Symlinks ignored:
+			ElectedFilePath = elect_and_link( Prefix, ShortenPaths, PathStrings,
+											  RootDir, UserState ),
+
+			% As this is a list of file_data:
+			[ find_data_entry_for( ElectedFilePath, FileEntries ) ];
+
 
 		leave ->
 			PrefixString = case Prefix of
@@ -1459,10 +1605,11 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 					 DuplicateString ], UserState ),
 			FileEntries;
 
+
 		abort ->
 			ui:display( "Uniquification aborted, stopping now." ),
 			trace( "(requested to abort the merge)", UserState ),
-			basic_utils:stop( 5 )
+			basic_utils:stop( 0 )
 
 	end.
 
@@ -1485,16 +1632,19 @@ find_data_entry_for( FilePath, _FileEntries=[ _FD | T ] ) ->
 
 
 
-% Selects among the specified files the single one that shall be kept, and
-% returns it as a binary.
+% Selects among the specified files the single one that shall be kept while the
+% others are removed, and returns its filename as a binary.
 %
 -spec keep_only_one( string(), [ file_path() ], [ file_path() ],
 					 directory_path(), user_state() ) -> bin_file_path().
 keep_only_one( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
 
-	ui:set_setting( 'title', _Title="Selecting the unique reference version" ),
+	ui:set_setting( 'title',
+					_Title="Selecting the unique reference version to keep, "
+					"whereas the others are to be removed" ),
 
-	BaseLabel = "~nPlease choose the (single) file to keep, among:",
+	BaseLabel = "~nPlease choose the (single) file to keep "
+				  "(others being removed), among:",
 
 	Label = case Prefix of
 
@@ -1511,12 +1661,12 @@ keep_only_one( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
 
 	ui:unset_setting( 'title' ),
 
-	{ KeptFile, ToRemovePaths } =
+	{ KeptFilePath, ToRemovePaths } =
 		list_utils:extract_element_at( PathStrings, KeptIndex ),
 
 	trace( "Keeping '~s', removing (based on common prefix '~s' and "
 		   "root directory '~s'): ~s ",
-		   [ KeptFile, Prefix, RootDir,
+		   [ KeptFilePath, Prefix, RootDir,
 			 text_utils:strings_to_string( ToRemovePaths ) ], UserState ),
 
 	RootPrefix = file_utils:join( RootDir, Prefix ),
@@ -1526,25 +1676,112 @@ keep_only_one( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
 
 	file_utils:remove_files( ToRemoveFullPaths ),
 
-	text_utils:string_to_binary( KeptFile ).
+	text_utils:string_to_binary( KeptFilePath ).
+
+
+
+% Selects among the specified files the single one that shall be elected and
+% kept, while the others are removed and replaced by symlinks pointing to that
+% file, and returns it as a binary.
+%
+-spec elect_and_link( string(), [ file_path() ], [ file_path() ],
+					  directory_path(), user_state() ) -> bin_file_path().
+elect_and_link( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
+
+	ui:set_setting( 'title', _Title="Selecting the unique version to elect "
+					"as a reference, whereas the others will be replaced "
+					"by symbolic links pointing to it" ),
+
+	BaseLabel = "~nPlease choose the (single) file to elect, among:",
+
+	Label = case Prefix of
+
+		"" ->
+			BaseLabel;
+
+		_ ->
+			text_utils:format( "~s~n(common prefix '~s' omitted)",
+							   [ BaseLabel, Prefix ] )
+
+	end,
+
+	ElectedIndex = ui:choose_numbered_item( Label, _Choices=TrimmedPaths ),
+
+	ui:unset_setting( 'title' ),
+
+	{ ElectedFilePath, FutureLinkPaths } =
+		list_utils:extract_element_at( PathStrings, ElectedIndex ),
+
+	trace( "Electing '~s', replacing by symlinks (based on common prefix '~s' "
+		   "and root directory '~s'): ~s ",
+		   [ ElectedFilePath, Prefix, RootDir,
+			 text_utils:strings_to_string( FutureLinkPaths ) ], UserState ),
+
+	RootPrefix = file_utils:join( RootDir, Prefix ),
+
+	ToRemoveFullPaths = [ file_utils:join( RootPrefix, P )
+						  || P <- FutureLinkPaths ],
+
+	file_utils:remove_files( ToRemoveFullPaths ),
+
+	create_links_to( ElectedFilePath, FutureLinkPaths, RootDir ),
+
+	text_utils:string_to_binary( ElectedFilePath ).
+
+
+
+% Creates relative, symbolic links to the specified file path.
+create_links_to( _TargetFilePath, _LinkPaths=[], _RootDir ) ->
+	ok;
+
+create_links_to( TargetFilePath, _LinkPaths= [ Link | T ], RootDir ) ->
+
+	% We want to create the (shortest) relative link, from source to target:
+
+	LinkDir = filename:dirname( Link ),
+
+	RelativeTargetFilePath = file_utils:make_relative( TargetFilePath,
+													   LinkDir ),
+
+	file_utils:create_link( RelativeTargetFilePath,
+							file_utils:join( RootDir, Link ) ),
+
+	create_links_to( TargetFilePath, T, RootDir ).
 
 
 
 % Performs a quick check (i.e. with no checksum computed of the file contents)
 % of the specified tree, against the specified cache file: check that both file
-% sets match (no extra element in either size) and that the cached and actual
-% sizes match as well.
+% sets match (no extra element on either size) and that the cached and actual
+% file sizes match as well.
 %
--spec quick_cache_check( file_path(), [ file_path() ],
-						 directory_path() ) -> maybe( tree_data() ).
+-spec quick_cache_check( file_path(), [ file_path() ], directory_path() ) ->
+							   maybe( tree_data() ).
 quick_cache_check( CacheFilename, ContentFiles, TreePath ) ->
 
-	[ _RootInfo={ root, CachedTreePath } | FileInfos ] =
-		file_utils:read_terms( CacheFilename ),
+	case file_utils:read_terms( CacheFilename ) of
+
+		[ _RootInfo={ root, CachedTreePath } | FileInfos ] ->
+			quick_cache_check_helper( ContentFiles, TreePath, CachedTreePath,
+									  FileInfos );
+
+		_Other ->
+			trace_utils:warning_fmt( "Invalid cache file '~s', removing it"
+									 " and recreating it.", [ CacheFilename ] ),
+			file_utils:remove_file( CacheFilename ),
+			undefined
+
+	end.
+
+
+% (helper)
+quick_cache_check_helper( ContentFiles, TreePath, CachedTreePath, FileInfos ) ->
+
+	AbsTreePath = file_utils:ensure_path_is_absolute( TreePath ),
 
 	case CachedTreePath of
 
-		TreePath ->
+		AbsTreePath ->
 			ok;
 
 		_ ->
@@ -1566,6 +1803,7 @@ quick_cache_check( CacheFilename, ContentFiles, TreePath ) ->
 								   "(~B files).", [ CachedFileCount ] );
 
 		_ ->
+			% Does not fail immediately, for a better error report:
 			trace_utils:trace_fmt( "The cached and actual file counts do not "
 				"match: ~B are referenced in cache, ~B exist "
 				"in the filesystem.",
@@ -1631,7 +1869,7 @@ quick_cache_check( CacheFilename, ContentFiles, TreePath ) ->
 
 				% Alles gut, so create the corresponding receptacle:
 				true ->
-					trace_utils:debug_fmt( "The sizes of the ~B files match.",
+					trace_utils:debug_fmt( "All sizes of the ~B files match.",
 										   [ CachedFileCount ] ),
 
 					#tree_data{ root=CachedTreePath,
@@ -1641,6 +1879,7 @@ quick_cache_check( CacheFilename, ContentFiles, TreePath ) ->
 								};
 
 				false ->
+					% Will trigger a rescan:
 					undefined
 
 			end
@@ -1725,6 +1964,9 @@ tree_data_to_string( #tree_data{ root=RootDir,
 	%					 SymlinkCount ] ).
 
 	case table:size( Table ) of
+
+		0 ->
+			"empty tree";
 
 		FileCount ->
 			text_utils:format( "tree '~s' having ~B files, "
