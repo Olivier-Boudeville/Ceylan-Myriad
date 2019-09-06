@@ -94,7 +94,7 @@
 -type java_classname() :: atom().
 
 % The name of a Java class, as a string (ex: "Foobar"):
--type java_string_classname() :: atom().
+-type java_string_classname() :: text_utils:ustring().
 
 
 % Designates as precisely as possible a Java class:

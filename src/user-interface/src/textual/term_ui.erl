@@ -900,7 +900,6 @@ trace( Message ) ->
 
 
 % Traces specified message, by displaying it, and possibly logging it.
-%
 -spec trace( message(), ui_state() ) -> void();
 		   ( text_utils:format_string(), [ term() ] ) -> void().
 trace( Message, UIState ) when is_record( UIState, term_ui_state ) ->
@@ -910,7 +909,7 @@ trace( Message, UIState ) when is_record( UIState, term_ui_state ) ->
 	case UIState#term_ui_state.log_console of
 
 		true ->
-			text_ui:display( TraceMessage, UIState );
+			text_ui:display( TraceMessage );
 
 		false ->
 			ok
@@ -923,7 +922,7 @@ trace( Message, UIState ) when is_record( UIState, term_ui_state ) ->
 			ok;
 
 		LogFile ->
-			text_ui:display( LogFile, TraceMessage, UIState )
+			text_ui:display( LogFile, TraceMessage )
 
 end;
 

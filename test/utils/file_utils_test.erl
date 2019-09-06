@@ -43,8 +43,8 @@ run() ->
 
 	CurrentDir = file_utils:get_current_directory(),
 
-	{ _RegularFiles, _Directories, _OtherFiles, _Devices } = Elements
-		= file_utils:list_dir_elements( CurrentDir ),
+	{ _RegularFiles, _Symlinks, _Directories, _OtherFiles, _Devices } =
+		Elements = file_utils:list_dir_elements( CurrentDir ),
 
 	BeamExtension = ".beam",
 

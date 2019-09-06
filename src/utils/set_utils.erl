@@ -75,11 +75,7 @@
 
 
 % For homogeneous sets:
-%
-% (strangely reported as unused by the compiler: 'type set(_) is unused',
-% although exported)
-%
-%-type set( T ) :: gb_sets:set( T ).
+-type set( T ) :: gb_sets:set( T ).
 
 
 % Element of a set:
@@ -90,7 +86,7 @@
 -type iterator() :: gb_sets:iter().
 
 
--export_types([ set/0, set/1, element/0, iterator/0 ]).
+-export_type([ set/0, set/1, element/0, iterator/0 ]).
 
 
 

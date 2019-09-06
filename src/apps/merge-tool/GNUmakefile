@@ -101,7 +101,7 @@ help:
 	@$(MERGE_SCRIPT) --help --use-ui-backend $(UI_BACKEND)
 
 
-clean: clean-test-tree
+clean: clean-test-trees
 
 
 clean-test-trees:

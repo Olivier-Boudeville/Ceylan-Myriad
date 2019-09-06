@@ -1472,8 +1472,8 @@ find_directories_from( RootDir, CurrentRelativeDir, Acc ) ->
 
 	%io:format( "find_directories_from in ~s.~n", [ CurrentRelativeDir ] ),
 
-	{ _RegularFiles, Directories, _OtherFiles, _Devices } = list_dir_elements(
-		join( RootDir, CurrentRelativeDir ) ),
+	{ _RegularFiles, _Symlinks, Directories, _OtherFiles, _Devices } =
+		list_dir_elements( join( RootDir, CurrentRelativeDir ) ),
 
 	Acc ++ list_directories_in_subdirs( Directories,
 			RootDir, CurrentRelativeDir, _Acc=[] )

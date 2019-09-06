@@ -646,7 +646,7 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 									entries=InputEntries },
 			 _ReferenceTree=#tree_data{ root=ReferenceRootDir,
 										entries=ReferenceEntries },
-			 UserState ) ->
+			 _UserState ) ->
 
 	InputSHA1Set = set_utils:new( table:keys( InputEntries ) ),
 	ReferenceSHA1Set = set_utils:new( table:keys( ReferenceEntries ) ),
@@ -679,11 +679,13 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 						  "thus be lost afterwards)" },
 						{ 'abort', "Abort" } ],
 
-			SelectedChoice = ui:choose_designated_item(
-					   text_utils:format( "~s~nChoices are:", [ FullLabel ] ),
+			_SelectedChoice = ui:choose_designated_item(
+					   text_utils:format( "~s~nChoices are:", [ Label ] ),
 					   Choices ),
 
+			throw( todo )
 
+	end.
 
 
 

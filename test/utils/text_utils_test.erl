@@ -85,8 +85,7 @@ run() ->
 	MaxLen = 5,
 
 	test_facilities:display( "More output with term_to_string "
-							 "with max depth ~B and max length ~B: "
-							 "~s, ~s and ~s.",
+		"with max depth ~B and max length ~B: ~s, ~s and ~s.",
 		[ MaxDepth, MaxLen,
 		  text_utils:term_to_string( an_atom, MaxDepth, MaxLen ),
 		  text_utils:term_to_string( [ 1, 2 ], MaxDepth, MaxLen ),
@@ -118,10 +117,8 @@ run() ->
 	TargetWidth = 10,
 
 	test_facilities:display( "Displaying text '~s' once formatted "
-							 "for a width of ~B:~n~p",
-							 [ LongLine, TargetWidth,
-							   text_utils:format_text_for_width( LongLine,
-														   TargetWidth ) ] ),
+		"for a width of ~B:~n~p", [ LongLine, TargetWidth,
+			text_utils:format_text_for_width( LongLine, TargetWidth ) ] ),
 
 
 	JustWideEnoughLine = "<0.33.0>",
@@ -144,11 +141,9 @@ run() ->
 	FirstTestString = "Hello world!",
 
 	test_facilities:display( "Determining whether '~p' is a string: ~w; "
-							 "a non-empty string: ~w",
-							 [ FirstTestString,
-							   text_utils:is_string( FirstTestString ),
-							   text_utils:is_non_empty_string( FirstTestString )
-							 ] ),
+		"a non-empty string: ~w",
+		[ FirstTestString, text_utils:is_string( FirstTestString ),
+		  text_utils:is_non_empty_string( FirstTestString ) ] ),
 
 	true = text_utils:is_string( FirstTestString ),
 	true = text_utils:is_non_empty_string( FirstTestString ),
@@ -157,11 +152,9 @@ run() ->
 	SecondTestString = [ $o, [ $s, $d ], $l ],
 
 	test_facilities:display( "Determining whether '~p' is a string: ~w; "
-						 "a non-empty string: ~w",
-						 [ SecondTestString,
-						   text_utils:is_string( SecondTestString ),
-						   text_utils:is_non_empty_string( SecondTestString )
-						 ] ),
+		"a non-empty string: ~w", [ SecondTestString,
+		text_utils:is_string( SecondTestString ),
+		text_utils:is_non_empty_string( SecondTestString ) ] ),
 
 	false = text_utils:is_string( SecondTestString ),
 	false = text_utils:is_non_empty_string( SecondTestString ),
@@ -170,11 +163,9 @@ run() ->
 	ThirdTestString = [ $e, 1, 2, $r ],
 
 	test_facilities:display( "Determining whether '~p' is a string: ~w; "
-							 "a non-empty string: ~w",
-							 [ ThirdTestString,
-							   text_utils:is_string( ThirdTestString ),
-							   text_utils:is_non_empty_string( ThirdTestString )
-							 ] ),
+		"a non-empty string: ~w", [ ThirdTestString,
+		text_utils:is_string( ThirdTestString ),
+		text_utils:is_non_empty_string( ThirdTestString ) ] ),
 
 	true = text_utils:is_string( ThirdTestString ),
 	true = text_utils:is_non_empty_string( ThirdTestString ),
@@ -183,11 +174,9 @@ run() ->
 	FourthTestString = an_atom,
 
 	test_facilities:display( "Determining whether '~p' is a string: ~w; "
-						 "a non-empty string: ~w",
-						 [ FourthTestString,
-						   text_utils:is_string( FourthTestString ),
-						   text_utils:is_non_empty_string( FourthTestString )
-						 ] ),
+		"a non-empty string: ~w", [ FourthTestString,
+		text_utils:is_string( FourthTestString ),
+		text_utils:is_non_empty_string( FourthTestString ) ] ),
 
 	false = text_utils:is_string( FourthTestString ),
 	false = text_utils:is_non_empty_string( FourthTestString ),
@@ -196,11 +185,9 @@ run() ->
 	FifthTestString = "",
 
 	test_facilities:display( "Determining whether '~p' is a string: ~w; "
-							 "a non-empty string: ~w",
-							 [ FifthTestString,
-							   text_utils:is_string( FifthTestString ),
-							   text_utils:is_non_empty_string( FifthTestString )
-							 ] ),
+		"a non-empty string: ~w", [ FifthTestString,
+		text_utils:is_string( FifthTestString ),
+		text_utils:is_non_empty_string( FifthTestString ) ] ),
 
 	true = text_utils:is_string( FifthTestString ),
 	false = text_utils:is_non_empty_string( FifthTestString ),
@@ -214,9 +201,8 @@ run() ->
 
 	SecondList = [ FirstTestString ],
 	test_facilities:display( "Determining whether '~p' is "
-							 "a list of strings: ~w.",
-							 [ SecondList,
-							   text_utils:is_list_of_strings( SecondList ) ] ),
+		"a list of strings: ~w.", [ SecondList,
+		text_utils:is_list_of_strings( SecondList ) ] ),
 
 	true = text_utils:is_list_of_strings( SecondList ),
 
@@ -283,9 +269,9 @@ run() ->
 
 	OtherStringList = [ "The", "little red", "wolf" ],
 	test_facilities:display(
-			  "When strings: ~s are converted into atoms, we have: ~w.",
-			  [ text_utils:strings_to_string( OtherStringList ),
-				text_utils:strings_to_atoms( OtherStringList ) ] ),
+		"When strings: ~s are converted into atoms, we have: ~w.",
+		[ text_utils:strings_to_string( OtherStringList ),
+		  text_utils:strings_to_atoms( OtherStringList ) ] ),
 
 	Colors = [ red, blue, green ],
 
@@ -300,8 +286,8 @@ run() ->
 					   "Little red rooster", RefString ++ " foobar" ],
 
 	ResultStrings = [ text_utils:format( "'~s': ~B", [ S,
-			text_utils:get_lexicographic_distance( RefString, S )
-						] ) || S <- CompareStrings ],
+			text_utils:get_lexicographic_distance( RefString, S ) ] )
+					  || S <- CompareStrings ],
 
 	test_facilities:display( "Lexicographic distance between '~s' and: ~s",
 		[ RefString, text_utils:strings_to_string( ResultStrings ) ] ),
@@ -317,17 +303,17 @@ run() ->
 
 
 	FirstInput = [ "abca", "xyz" ],
-	{ "", FirstInput } = text_utils:find_longer_common_prefix( FirstInput ),
+	{ "", FirstInput } = text_utils:find_longest_common_prefix( FirstInput ),
 
 	SecondInput = [ "abca", "xyz", "abca" ],
-	{ "", SecondInput } = text_utils:find_longer_common_prefix( SecondInput ),
+	{ "", SecondInput } = text_utils:find_longest_common_prefix( SecondInput ),
 
-	{ "ab", [ "" ] } = text_utils:find_longer_common_prefix( [ "ab" ] ),
+	{ "ab", [ "" ] } = text_utils:find_longest_common_prefix( [ "ab" ] ),
 
-	{ "abc", [ "a", "b" ] } = text_utils:find_longer_common_prefix(
+	{ "abc", [ "a", "b" ] } = text_utils:find_longest_common_prefix(
 								[ "abca", "abcb" ] ),
 
-	{ "abc", [ "", "b" ] } = text_utils:find_longer_common_prefix(
+	{ "abc", [ "", "b" ] } = text_utils:find_longest_common_prefix(
 							   [ "abc", "abcb" ] ),
 
 
@@ -347,10 +333,9 @@ run() ->
 				  1, 0.9, 2, 999, 1000, 1001, 999999, 1000000, 1000001 ],
 
 	[ test_facilities:display( " - an integer distance of ~w millimeters "
-							   "is ~s, and roughly ~s",
-							   [ D, text_utils:distance_to_string( D ),
-								 text_utils:distance_to_short_string( D ) ] )
-	  || D <- Distances ],
+		"is ~s, and roughly ~s",
+		[ D, text_utils:distance_to_string( D ),
+		  text_utils:distance_to_short_string( D ) ] ) || D <- Distances ],
 
 
 	test_facilities:display( "Testing the textual conversion of durations:" ),
@@ -363,15 +348,14 @@ run() ->
 
 	[ test_facilities:display(
 		" - an integer duration of ~w milliseconds is ~s",
-		[ D, text_utils:duration_to_string( D ) ] )
-	  || D <- Durations ],
+		[ D, text_utils:duration_to_string( D ) ] ) || D <- Durations ],
 
 
 	test_facilities:display( "Testing the upper-casing of first letter:" ),
 
 	[ test_facilities:display( " - '~s' becomes '~s'",
 				[ T, text_utils:uppercase_initial_letter( T ) ] )
-	 || T <- [ [], "a", "A", "Hello", "hello" ] ],
+	  || T <- [ [], "a", "A", "Hello", "hello" ] ],
 
 	WesternText = "I am a lonesome cowboy",
 
@@ -404,19 +388,19 @@ run() ->
 	EscapeString = "I *am* to be \"escaped\", as 'I shall be escaped'",
 
 	test_facilities:display( "Single-quote escaping '~s' results in: '~s'.",
-		 [ EscapeString, text_utils:escape_single_quotes( EscapeString ) ] ),
+		[ EscapeString, text_utils:escape_single_quotes( EscapeString ) ] ),
 
 	test_facilities:display( "Double-quote escaping '~s' results in: '~s'.",
-		 [ EscapeString, text_utils:escape_double_quotes( EscapeString ) ] ),
+		[ EscapeString, text_utils:escape_double_quotes( EscapeString ) ] ),
 
 	test_facilities:display( "All-quote escaping '~s' results in: '~s'.",
-			 [ EscapeString, text_utils:escape_all_quotes( EscapeString ) ] ),
+		[ EscapeString, text_utils:escape_all_quotes( EscapeString ) ] ),
 
 
 	RemovalCount = 3,
 
-	"I am a lonesome cow" = text_utils:remove_last_characters(
-							  WesternText, RemovalCount ),
+	"I am a lonesome cow" =
+		text_utils:remove_last_characters( WesternText, RemovalCount ),
 
 	false = text_utils:is_list_of_binaries( [ "Foo", "Bar" ] ),
 
