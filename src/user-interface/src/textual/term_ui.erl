@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Wednesday, May 2, 2018
+% Creation date: Wednesday, May 2, 2018.
 
 
 
@@ -447,7 +447,7 @@ init_state_with_dimensions( Tool=dialog, DialogPath ) ->
 
 
 
-% Sets specified UI setting.%
+% Sets specified UI setting.
 -spec set( ui_setting_key(), ui_setting_value() ) -> void().
 set( SettingKey, SettingValue ) ->
 	set( [ { SettingKey, SettingValue } ] ).
@@ -1157,7 +1157,7 @@ set_setting( SettingKey, SettingValue,
 			 UIState=#term_ui_state{ settings=SettingTable } ) ->
 
 	NewSettingTable = ?ui_table:add_entry( SettingKey, SettingValue,
-										  SettingTable ),
+										   SettingTable ),
 
 	UIState#term_ui_state{ settings=NewSettingTable }.
 
