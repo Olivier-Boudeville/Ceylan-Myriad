@@ -84,6 +84,8 @@
 		  set_setting/2, set_setting/3,
 		  set_settings/1, set_settings/2,
 
+		  unset_setting/1, unset_setting/2,
+
 		  get_setting/1,
 
 		  trace/1, trace/2,
@@ -177,6 +179,10 @@ start( _Options=[ { log_file, Filename } | T ], UIState ) ->
 	LogFile = file_utils:open( Filename, [ write, exclusive ] ),
 	file_utils:write( LogFile, "Starting text UI.\n" ),
 	NewUIState = UIState#text_ui_state{ log_file=LogFile },
+	start( T, NewUIState );
+
+start( _Options=[ log_console | T ], UIState ) ->
+	NewUIState = UIState#text_ui_state{ log_console=true },
 	start( T, NewUIState );
 
 start( SingleElem, UIState ) ->
@@ -418,6 +424,8 @@ choose_designated_item( Label, Choices ) ->
 -spec choose_designated_item( label(), [ choice_element() ], ui_state() ) ->
 									choice_designator().
 choose_designated_item( Label, Choices, UIState ) ->
+
+	%trace_utils:debug_fmt( "Choices = ~p", [ Choices ] ),
 
 	{ Designators, Texts } = lists:unzip( Choices ),
 
@@ -673,12 +681,14 @@ trace( Message ) ->
 		   ( text_utils:format_string(), [ term() ] ) -> void().
 trace( Message, UIState ) when is_record( UIState, text_ui_state ) ->
 
+	%trace_utils:debug_fmt( "UIState: ~p", [ UIState ] ),
+
 	TraceMessage = "[trace] " ++ Message ++ "\n",
 
 	case UIState#text_ui_state.log_console of
 
 		true ->
-			display( TraceMessage, UIState );
+			display( TraceMessage );
 
 		false ->
 			ok
@@ -757,8 +767,6 @@ get_state() ->
 			UIState
 
 	end.
-
-
 
 
 % Displays specified text, on specified channel.
@@ -840,6 +848,26 @@ set_settings( SettingEntries,
 			  UIState=#text_ui_state{ settings=SettingTable } ) ->
 
 	NewSettingTable = ?ui_table:add_entries( SettingEntries, SettingTable ),
+
+	UIState#text_ui_state{ settings=NewSettingTable }.
+
+
+
+% Unsets specified setting, in the (implicit) UI state.
+-spec unset_setting( ui_setting_key() ) -> void().
+unset_setting( SettingKey ) ->
+	NewUIState = unset_setting( SettingKey, get_state() ),
+	set_state( NewUIState ).
+
+
+
+% Unsets specified setting, in the specified UI state.
+-spec unset_setting( ui_setting_key(), ui_state()) -> void().
+unset_setting( SettingKey,
+			   UIState=#text_ui_state{ settings=SettingTable } ) ->
+
+	NewSettingTable = ?ui_table:add_entry( SettingKey, _SettingValue=undefined,
+										   SettingTable ),
 
 	UIState#text_ui_state{ settings=NewSettingTable }.
 
