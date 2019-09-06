@@ -86,6 +86,9 @@
 % settings (ex: default window size), which may or may not be accommodated by a
 % given backend.
 
+% There are in the interfaces very similar primitives to deal with internal
+% settings, like set/{1,2} and set_setting/{2,3}. They all have a purpose, some
+% variations relying on an explicit state, others not.
 
 -include("ui.hrl").
 
@@ -211,8 +214,8 @@ start( Options, ArgumentTable ) ->
 
 				not_found ->
 					trace_utils:error_fmt( "No BEAM file found in code path "
-										   "for user-specified UI backend module "
-										   "'~s'.", [ BackendModName ] ),
+						   "for user-specified UI backend module '~s'.",
+						   [ BackendModName ] ),
 					throw( { ui_backend_module_not_found, BackendModName } );
 
 				[ SinglePath ] ->
@@ -221,7 +224,8 @@ start( Options, ArgumentTable ) ->
 					{ BackendModName, OtherArgTable };
 
 				MultiplePaths ->
-					throw( { multiple_ui_backend_modules_found, MultiplePaths } )
+					throw( { multiple_ui_backend_modules_found,
+							 MultiplePaths } )
 
 			end;
 
@@ -354,7 +358,8 @@ add_separation() ->
 
 
 
-% Returns the user-entered text after specified prompt, based on an implicit state.
+% Returns the user-entered text after specified prompt, based on an implicit
+% state.
 %
 % (const)
 %
@@ -743,7 +748,7 @@ get_best_ui_backend() ->
 	RiggedResult = text_ui,
 
 	trace_utils:warning_fmt( "Selecting '~s', as currently hardcoded "
-							 "(should have been '~s').", 
+							 "(should have been '~s').",
 							 [ RiggedResult, RightResult ] ),
 
 	RiggedResult.
