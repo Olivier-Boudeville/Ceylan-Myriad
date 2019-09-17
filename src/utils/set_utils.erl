@@ -58,7 +58,7 @@
 		  from_list/1, to_list/1,
 		  member/2, is_empty/1, size/1,
 		  iterator/1, next/1,
-		  delete/2, safe_delete/2, to_string/1 ]).
+		  delete/2, delete_existing/2, to_string/1 ]).
 
 
 % Our default elected type of set:
@@ -313,8 +313,8 @@ next( Iterator ) ->
 % Removes the specified element (if any) from the specified set, and returns the
 % resulting set.
 %
-% Note: does not fail if the element was not in the set; use safe_delete/2 to
-% ensure that the element was present.
+% Note: does not fail if the element was not in the set; use delete_existing/2
+% to ensure that the element was present.
 %
 -spec delete( term(), set() ) -> set().
 delete( Element, Set ) ->
@@ -326,10 +326,10 @@ delete( Element, Set ) ->
 % removing it, and returning the resulting set.
 %
 % Note: use delete/2 to delete an element without checking whether the element
-% is present in the set.
+% was already present in the set.
 %
--spec safe_delete( term(), set() ) -> set().
-safe_delete( Element, Set ) ->
+-spec delete_existing( term(), set() ) -> set().
+delete_existing( Element, Set ) ->
 
 	case ?set_impl:is_element( Element, Set ) of
 

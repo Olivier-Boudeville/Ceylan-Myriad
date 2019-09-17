@@ -80,7 +80,7 @@ run() ->
 	test_facilities:display( "Four elements: ~s",
 							 [ set_utils:to_string( FourElements ) ] ),
 
-	ThreeElements = set_utils:safe_delete( third, FourElements ),
+	ThreeElements = set_utils:delete_existing( third, FourElements ),
 
 	false = set_utils:is_empty( ThreeElements ),
 	3 = set_utils:size( ThreeElements ),
@@ -88,7 +88,7 @@ run() ->
 	test_facilities:display( "Three elements: ~s",
 							 [ set_utils:to_string( ThreeElements ) ] ),
 
-	OtherTwoElements = set_utils:safe_delete( first, ThreeElements ),
+	OtherTwoElements = set_utils:delete_existing( first, ThreeElements ),
 
 	false = set_utils:is_empty( OtherTwoElements ),
 	2 = set_utils:size( OtherTwoElements ),

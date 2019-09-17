@@ -798,8 +798,8 @@ wait_for_many_acks_helper( WaitedSenders, InitialTimestamp,
 
 				{ AckReceiveAtom, WaitedPid } ->
 
-					NewWaited = set_utils:safe_delete( WaitedPid,
-													   WaitedSenders ),
+					NewWaited = set_utils:delete_existing( WaitedPid,
+														   WaitedSenders ),
 
 					wait_for_many_acks_helper( NewWaited, InitialTimestamp,
 					   MaxDurationInSeconds, Period, AckReceiveAtom, ThrowAtom )

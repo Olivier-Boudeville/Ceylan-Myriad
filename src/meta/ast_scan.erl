@@ -220,7 +220,7 @@ scan( AST ) ->
 report_error( { Context, Error } ) ->
 
 	% No trace_utils yet here:
-	%io:format( "Reporting error ~p in context ~p.", [ Error, Context ] ),
+	%io:format( "Reporting error ~p in context ~p.~n", [ Error, Context ] ),
 
 	ErrorString = case Error of
 
@@ -233,6 +233,13 @@ report_error( { Context, Error } ) ->
 						when is_atom( VariableName ) ->
 			text_utils:format( "undefined macro variable '~s'",
 							   [ VariableName ] );
+
+		% Ex: a wrong use of a record, such as R#my_rec instead of R=#myrec:
+		{ unexpected_pattern, Pattern } ->
+			text_utils:format( "unexpected pattern: ~p", [ Pattern ] );
+
+		{ scan_error, ScanError } ->
+			text_utils:format( "scan error: ~p", [ ScanError ] );
 
 		{ epp_error, { undefined, MacroName, Arity } }
 				when is_atom( MacroName ) andalso is_integer( Arity ) ->
@@ -1235,6 +1242,24 @@ scan_forms( _AST=[ _Form={ 'error', { Line, 'epp', Reason } } | T ],
 	%ast_utils:raise_error( [ preprocessing_failed, Reason ], Context );
 
 	NewError = { Context, { epp_error, Reason } },
+
+	scan_forms( T, M#module_info{ errors=[ NewError | Errors ] },
+				id_utils:get_next_sortable_id( NextLocation ),
+				CurrentFileReference );
+
+
+% Parser (erl_scan) errors:
+scan_forms( _AST=[ _Form={ 'error', { Line, 'erl_scan', Reason } } | T ],
+			M=#module_info{ errors=Errors }, NextLocation,
+			CurrentFileReference ) ->
+
+	%Context = { CurrentFileReference, Line-1 },
+	Context = { CurrentFileReference, Line },
+
+	%ast_utils:raise_error( [ parsing_failed, io_lib:format( Reason, [] ) ],
+	%					   Context );
+
+	NewError = { Context, { scan_error, Reason } },
 
 	scan_forms( T, M#module_info{ errors=[ NewError | Errors ] },
 				id_utils:get_next_sortable_id( NextLocation ),
