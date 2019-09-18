@@ -915,18 +915,20 @@ distance_to_short_string( Millimeters ) ->
 
 
 % Returns an approximate textual description of the specified duration, expected
-% to be expressed as an integer number of milliseconds.
+% to be expressed as a number of milliseconds (integer otherwise, if being
+% floating-point, it will be rounded), or as the 'infinity' atom.
 %
 % Ex: for a duration of 150012 ms, returns:
 % "2 minutes, 30 seconds and 12 milliseconds".
 %
 % See also: basic_utils:get_textual_duration/2.
 %
--spec duration_to_string( unit_utils:milliseconds() | float() ) -> string().
+-spec duration_to_string( unit_utils:milliseconds() | float() | 'infinity' ) ->
+								string().
 duration_to_string( Milliseconds ) when is_float( Milliseconds )->
 	duration_to_string( erlang:round( Milliseconds ) );
 
-duration_to_string( Milliseconds ) ->
+duration_to_string( Milliseconds ) when is_integer( Milliseconds )->
 
 	FullSeconds = Milliseconds div 1000,
 
@@ -1014,7 +1016,10 @@ duration_to_string( Milliseconds ) ->
 		[ Smaller | Bigger ] ->
 			join( ", ", lists:reverse( Bigger ) ) ++ " and " ++ Smaller
 
-	end.
+	end;
+
+duration_to_string( infinity ) ->
+	"infinity".
 
 
 
