@@ -61,6 +61,7 @@
 
 		  get_environment_prefix/1, get_actual_expression/2,
 		  get_environment_variable/1, set_environment_variable/2,
+		  add_path_for_library_lookup/1, add_paths_for_library_lookup/1,
 		  get_environment/0, environment_to_string/0, environment_to_string/1,
 
 		  get_interpreter_version/0, get_application_version/1,
@@ -1031,7 +1032,62 @@ get_environment_variable( VarName ) ->
 -spec set_environment_variable( env_variable_name(), env_variable_value() ) ->
 									  void().
 set_environment_variable( VarName, VarValue ) ->
+
+	% Hopefully a string or 'false':
+	%trace_utils:debug_fmt( "Setting environment variable '~s' to '~s'.",
+	%					   [ VarName, VarValue ] ),
+
 	os:putenv( VarName, VarValue ).
+
+
+
+% Adds specified path to the system's library search path (typically
+% LD_LIBRARY_PATH), in first position.
+%
+% A relative path will be transformed into an absolute one first.
+%
+-spec add_path_for_library_lookup( file_utils:path() ) -> void().
+add_path_for_library_lookup( PathName ) ->
+	add_paths_for_library_lookup( [ PathName ] ).
+
+
+
+% Adds specified paths to the system's library search path (typically
+% LD_LIBRARY_PATH), in first position, respecting the specified path order.
+%
+% Any relative path will be transformed into an absolute one first.
+%
+-spec add_paths_for_library_lookup( [ file_utils:path() ] ) -> void().
+add_paths_for_library_lookup( Paths ) ->
+	add_paths_for_library_lookup( Paths, _Acc=[] ).
+
+
+add_paths_for_library_lookup( _Paths=[], Acc ) ->
+
+	LibOptVarName = "LD_LIBRARY_PATH",
+
+	BaseLibOpt = case system_utils:get_environment_variable( LibOptVarName ) of
+
+		false ->
+			[];
+
+		VarValue ->
+			[ VarValue ]
+
+	end,
+
+	ToJoin = lists:reverse( BaseLibOpt ++ Acc ),
+
+	NewLibOpt = text_utils:join( _Sep=":", ToJoin ),
+
+	system_utils:set_environment_variable( LibOptVarName, NewLibOpt );
+
+
+add_paths_for_library_lookup( [ Path | T ], Acc ) ->
+
+	AbsPath = file_utils:ensure_path_is_absolute( Path ),
+
+	add_paths_for_library_lookup( T, [ AbsPath | Acc ] ).
 
 
 
