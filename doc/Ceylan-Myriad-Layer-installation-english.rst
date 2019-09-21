@@ -61,7 +61,7 @@ One may just run ``make`` by itself in order to list the main available options.
 Testing Myriad
 ==============
 
-Just run, still from the ``Ceylan-Myriad`` directory:
+Just run, still from the ``myriad`` directory:
 
 .. code:: bash
 
@@ -80,7 +80,7 @@ As Myriad is (by default) to enable debug information with a key-based protectio
 
 One way of doing so is, if wanted, to update the default key (see ``DEBUG_INFO_KEY`` in ``GNUmakevars.inc``) and to write in on disk (ex: ``make write-debug-key-file``), and to rebuild Myriad accordingly afterwards (ex: ``make rebuild``).
 
-Then, still from the ``Ceylan-Myriad`` root directory:
+Then, still from the ``myriad`` root directory:
 
 .. code:: bash
 

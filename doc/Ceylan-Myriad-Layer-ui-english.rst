@@ -7,7 +7,7 @@
 Helpers For User Interface Programming
 ======================================
 
-Some services have been defined, in ``Ceylan-Myriad/src/user-interface``, in order to handle more easily interactions with the user, i.e. to provide a user interface.
+Some services have been defined, in ``myriad/src/user-interface``, in order to handle more easily interactions with the user, i.e. to provide a user interface.
 
 
 .. Note:: The user-interface services, as a whole, are currently *not* functional. A rewriting thereof as been started yet has not completed yet.
@@ -88,7 +88,7 @@ Located in ``{src,test}/user-interface/textual``, see ``term_ui.erl`` for its im
 Graphical User Interface: ``gui``
 ---------------------------------
 
-This interface relied initially on `gs <http://erlang.org/doc/man/gs.html>`_, now on `wx <http://erlang.org/doc/man/wx.html>`_ (a port of `wxWidgets <https://www.wxwidgets.org/>`_), maybe later in HTML 5 (possibly relying on the `Nitrogen web framework<http://nitrogenproject.com/>`_ for that). For the base dialogs, `Zenity <https://en.wikipedia.org/wiki/Zenity>`_ could have been on option.
+This interface relied initially on ``gs`` (now deprecated), now on `wx <http://erlang.org/doc/man/wx.html>`_ (a port of `wxWidgets <https://www.wxwidgets.org/>`_), maybe later in HTML 5 (possibly relying on the `Nitrogen web framework <http://nitrogenproject.com/>`_ for that). For the base dialogs, `Zenity <https://en.wikipedia.org/wiki/Zenity>`_ could have been on option.
 
 .. Note:: GUI services are currently being reworked, to provide a ``gs``-like concurrent API while relying underneath on ``wx``, with some additions (such as canvases).
 
@@ -105,5 +105,7 @@ Located in ``{src,test}/user-interface/graphical``, see ``gui.erl``, ``gui_color
 Related information of interest:
 
 - wxErlang: `Getting started <https://arifishaq.files.wordpress.com/2017/12/wxerlang-getting-started.pdf>`_ and `Speeding up <https://arifishaq.files.wordpress.com/2018/04/wxerlang-speeding-up.pdf>`_, by Arif Ishaq
-- http://www.idiom.com/~turner/wxtut/wxwidgets.html
+
 - http://wxerlang.dougedmunds.com/
+
+.. comment 404: - http://www.idiom.com/~turner/wxtut/wxwidgets.html

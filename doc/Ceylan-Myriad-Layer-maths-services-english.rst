@@ -7,7 +7,7 @@
 Maths Services
 ==============
 
-Some simple maths-related operations are defined in the ``Ceylan-Myriad/src/maths`` directory:
+Some simple maths-related operations are defined in the ``myriad/src/maths`` directory:
 
 - the most basic services are centralised in ``math_utils.erl`` and provide:
 

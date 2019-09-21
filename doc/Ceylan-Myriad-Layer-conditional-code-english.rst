@@ -119,6 +119,6 @@ Note that, in this case, a given level of checking should include the one just b
 For more information
 --------------------
 
-Refer for usage and stubs to the ``cond_utils`` module (defined in ``Ceylan-Myriad/src/meta``), knowing that it is actually implemented thanks to the Myriad parse transform.
+Refer for usage and stubs to the ``cond_utils`` module (defined in ``myriad/src/meta``), knowing that it is actually implemented thanks to the Myriad parse transform.
 
 For examples and testing, see the ``cond_utils_test`` module, available at the same location.

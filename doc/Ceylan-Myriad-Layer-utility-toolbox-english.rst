@@ -7,7 +7,7 @@
 Utility Toolbox
 ===============
 
-This is the **core** of the ``Myriad`` library: a toolbox comprising many helper functions (with their tests), defined in the ``Ceylan-Myriad/src/utils`` directory, often providing enhanced, more specialised services compared to the ones offered by the Erlang standard libraries.
+This is the **core** of the ``Ceylan-Myriad`` library: a toolbox comprising many helper functions (with their tests), defined in the ``myriad/src/utils`` directory, often providing enhanced, more specialised services compared to the ones offered by the Erlang standard libraries.
 
 These helpers (code and typing information) are thematically aggregated in modules that are generally suffixed by ``_utils``, and include:
 

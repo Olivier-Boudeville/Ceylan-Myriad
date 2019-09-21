@@ -63,12 +63,12 @@ export-doc: clean-doc full-doc export-to-official export-to-mirror
 # not a set of files), so current not used:
 # rsync -avze "ssh $(SP)" $(SOME_WEB_TREE) $(WEB_SRV):$(WEB_ROOT)/Myriad/
 #
-export-to-official:
+export-to-official: full-doc
 	@echo "   Exporting Myriad documentation to official website ($(WEB_SRV))"
 	@/bin/scp $(SP) $(WEB_CONTENT) $(WEB_SRV):$(WEB_ROOT)/Myriad/
 
 
-export-to-mirror:
+export-to-mirror: full-doc
 	@echo "   Exporting Myriad documentation to mirror website in $(MYRIAD_WEB_MIRROR_BRANCH)"
 	@/bin/cp -f $(WEB_CONTENT) $(MYRIAD_WEB_MIRROR_BRANCH) && cd $(MYRIAD_WEB_MIRROR_BRANCH) && git add . && git merge -s ours && git commit -m "Myriad doc updated." && git push && git pull --ff-only
 
@@ -86,6 +86,7 @@ real-clean: clean
 
 
 info-web:
+	@echo "HTML_TARGET = $(HTML_TARGET)"
 	@echo "WEB_CONTENT = $(WEB_CONTENT)"
 	@echo "MYRIAD_WEB_MIRROR_BRANCH = $(MYRIAD_WEB_MIRROR_BRANCH)"
 	@echo "GITHUB_PAGES_BASE = $(GITHUB_PAGES_BASE)"

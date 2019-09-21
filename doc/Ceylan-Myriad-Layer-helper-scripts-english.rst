@@ -5,7 +5,7 @@
 All-Purpose Helper Scripts
 ==========================
 
-A small set of scripts has been defined, in ``Ceylan-Myriad/src/scripts``, in order to help:
+A small set of scripts has been defined, in ``myriad/src/scripts``, in order to help:
 
 - finding in (Erlang) source code **type definitions** (``find-type-definition.sh``, ``find-record-definition.sh``) and **function specifications** (``find-function-specification.sh``)
 - **benchmarking** Erlang code: ``benchmark-command.escript``, ``benchmark-command.sh``, ``etop.sh``
