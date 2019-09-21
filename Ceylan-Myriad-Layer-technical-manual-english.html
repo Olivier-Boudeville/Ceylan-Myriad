@@ -215,7 +215,7 @@ $ make foo_run
 </tbody>
 </table>
 <p>The main tool prerequisite is of course having the <a class="reference external" href="http://erlang.org">Erlang</a> environment available, in its <tt class="docutils literal">22.0</tt> version or more recent.</p>
-<p>There are various ways of obtaining it (from your distribution, from prebuilt packages, directly from the sources), one of which being our <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/install-erlang.sh">install-erlang.sh</a> script; see its <tt class="docutils literal"><span class="pre">--help</span></tt> option for more guidance.</p>
+<p>There are various ways of obtaining it (from your distribution, from prebuilt packages, directly from the sources), one of which being our <a class="reference external" href="https://github.com/Olivier-Boudeville/myriad/blob/master/conf/install-erlang.sh">install-erlang.sh</a> script; see its <tt class="docutils literal"><span class="pre">--help</span></tt> option for more guidance.</p>
 </div>
 <div class="section" id="getting-the-sources">
 <h3><a class="toc-backref" href="#id40">Getting the Sources</a></h3>
@@ -238,7 +238,7 @@ $ make all
 </div>
 <div class="section" id="testing-myriad">
 <span id="testing"></span><h3><a class="toc-backref" href="#id42">Testing Myriad</a></h3>
-<p>Just run, still from the <tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt> directory:</p>
+<p>Just run, still from the <tt class="docutils literal">myriad</tt> directory:</p>
 <pre class="code bash literal-block">
 $ make <span class="nb">test</span>
 </pre>
@@ -248,7 +248,7 @@ $ make <span class="nb">test</span>
 <span id="type-checking"></span><h3><a class="toc-backref" href="#id43">Type-checking Myriad</a></h3>
 <p>As Myriad is (by default) to enable debug information with a key-based protection of the resulting BEAM files, one should first have such key defined.</p>
 <p>One way of doing so is, if wanted, to update the default key (see <tt class="docutils literal">DEBUG_INFO_KEY</tt> in <tt class="docutils literal">GNUmakevars.inc</tt>) and to write in on disk (ex: <tt class="docutils literal">make <span class="pre">write-debug-key-file</span></tt>), and to rebuild Myriad accordingly afterwards (ex: <tt class="docutils literal">make rebuild</tt>).</p>
-<p>Then, still from the <tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt> root directory:</p>
+<p>Then, still from the <tt class="docutils literal">myriad</tt> root directory:</p>
 <pre class="code bash literal-block">
 $ make generate-local-plt self-check-against-plt
 </pre>
@@ -400,18 +400,18 @@ $ make rebar3-local-update
 <p></p>
 <div class="section" id="general-build-structure">
 <span id="build-structure"></span><h3><a class="toc-backref" href="#id50">General Build Structure</a></h3>
-<p>Various elements are defined at the <tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt> level to set-up an appropriate build, based on <a class="reference external" href="http://www.gnu.org/software/make/manual/make.html">GNU Make</a>.</p>
+<p>Various elements are defined at the <tt class="docutils literal">myriad</tt> level to set-up an appropriate build, based on <a class="reference external" href="http://www.gnu.org/software/make/manual/make.html">GNU Make</a>.</p>
 <p>This includes:</p>
 <ul class="simple">
-<li>a set of pre-defined Make <strong>variables</strong>, describing various settings that will be reused by generic rules (ex: to compile modules with relevant flags, to create source archives, to install an application, to manage the various paths, to perform test checking, to generate archives, installs and releases, etc.); these variables are defined in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/GNUmakevars.inc</span></tt></li>
-<li>a set of generic <strong>rules</strong>, to compile and run various modules and tests, to generate various elements of documentation, etc.; these rules are defined (still from the <tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt> root directory), in:<ul>
+<li>a set of pre-defined Make <strong>variables</strong>, describing various settings that will be reused by generic rules (ex: to compile modules with relevant flags, to create source archives, to install an application, to manage the various paths, to perform test checking, to generate archives, installs and releases, etc.); these variables are defined in <tt class="docutils literal">myriad/GNUmakevars.inc</tt></li>
+<li>a set of generic <strong>rules</strong>, to compile and run various modules and tests, to generate various elements of documentation, etc.; these rules are defined (still from the <tt class="docutils literal">myriad</tt> root directory), in:<ul>
 <li><tt class="docutils literal"><span class="pre">GNUmakerules-automatic.inc</span></tt>, for all rules that apply generically to a some kinds of targets</li>
 <li><tt class="docutils literal"><span class="pre">GNUmakerules-explicit.inc</span></tt>, for all &quot;direct&quot; rules, that are not pattern-based</li>
 <li><tt class="docutils literal"><span class="pre">doc/GNUmakerules-docutils.inc</span></tt>, for all documentation-related rules</li>
 </ul>
 </li>
 <li>finally, the whole is gathered in a unique file to include, <tt class="docutils literal">GNUmakesettings.inc</tt>, whose structure allows for a safe and sound combination of all these build element across a series of layers (the first of which being Myriad)</li>
-<li><strong>examples</strong> of minimal Make files, which mostly specify the relative base path and only refer to the generic variables and rules; see <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/GNUmakefile</span></tt> as an example</li>
+<li><strong>examples</strong> of minimal Make files, which mostly specify the relative base path and only refer to the generic variables and rules; see <tt class="docutils literal">myriad/src/GNUmakefile</tt> as an example</li>
 </ul>
 <p>These build facilities are designed to be enriched in turn by all layers above, which may add or override variables and rules.</p>
 <p>An example of this stacked structure is the <tt class="docutils literal"><span class="pre">Ceylan-WOOPER</span></tt> layer (see <a class="reference external" href="http://wooper.esperide.org">official site</a>), which is directly built on top of <tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt> (and itself a base layer for other layers and applications).</p>
@@ -419,7 +419,7 @@ $ make rebar3-local-update
 </div>
 <div class="section" id="general-settings">
 <span id="settings"></span><h3><a class="toc-backref" href="#id51">General Settings</a></h3>
-<p>These general-purpose settings and helpers, gathered in the <tt class="docutils literal"><span class="pre">Ceylan-Myriad/conf</span></tt> directory, deal with:</p>
+<p>These general-purpose settings and helpers, gathered in the <tt class="docutils literal">myriad/conf</tt> directory, deal with:</p>
 <ul class="simple">
 <li>default CSS files (<tt class="docutils literal"><span class="pre">Default-docutils.css</span></tt>)</li>
 <li>our recommended versions of (commented) configuration files for various tools:</li>
@@ -437,7 +437,7 @@ $ make rebar3-local-update
 </div>
 <div class="section" id="maths-services">
 <span id="maths"></span><h3><a class="toc-backref" href="#id52">Maths Services</a></h3>
-<p>Some simple maths-related operations are defined in the <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/maths</span></tt> directory:</p>
+<p>Some simple maths-related operations are defined in the <tt class="docutils literal">myriad/src/maths</tt> directory:</p>
 <ul class="simple">
 <li>the most basic services are centralised in <tt class="docutils literal">math_utils.erl</tt> and provide:<ul>
 <li><strong>general operations</strong> apparently lacking to Erlang (for example for conversions or rounding (<tt class="docutils literal">floor/1</tt>, <tt class="docutils literal">ceiling/1</tt>), or not exactly implemented as we would have liked (ex: <tt class="docutils literal">modulo/2</tt>)</li>
@@ -468,7 +468,7 @@ $ make rebar3-local-update
 </div>
 <div class="section" id="data-management-services">
 <span id="data-management"></span><h3><a class="toc-backref" href="#id53">Data-Management Services</a></h3>
-<p id="table-type">Some generic <strong>data-structures</strong>, in addition to the ones provided built-in with Erlang, are defined in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/data-management</span></tt>, notably:</p>
+<p id="table-type">Some generic <strong>data-structures</strong>, in addition to the ones provided built-in with Erlang, are defined in <tt class="docutils literal"><span class="pre">myriad/src/data-management</span></tt>, notably:</p>
 <ul class="simple">
 <li>a set of <strong>associative tables</strong>, with a rather complete interface (to create,
 update, enrich, search, query, list, map, fold, merge, display, etc.) and
@@ -558,14 +558,14 @@ various implementations thereof, tests and benchmarks, in:</li>
 </div>
 <div class="section" id="for-more-information">
 <h4><a class="toc-backref" href="#id58">For more information</a></h4>
-<p>Refer for usage and stubs to the <tt class="docutils literal">cond_utils</tt> module (defined in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/meta</span></tt>), knowing that it is actually implemented thanks to the Myriad parse transform.</p>
+<p>Refer for usage and stubs to the <tt class="docutils literal">cond_utils</tt> module (defined in <tt class="docutils literal">myriad/src/meta</tt>), knowing that it is actually implemented thanks to the Myriad parse transform.</p>
 <p>For examples and testing, see the <tt class="docutils literal">cond_utils_test</tt> module, available at the same location.</p>
 <p></p>
 </div>
 </div>
 <div class="section" id="helpers-for-user-interface-programming">
 <span id="graphical-user-interface"></span><span id="user-interface"></span><h3><a class="toc-backref" href="#id59">Helpers For User Interface Programming</a></h3>
-<p>Some services have been defined, in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/user-interface</span></tt>, in order to handle more easily interactions with the user, i.e. to provide a user interface.</p>
+<p>Some services have been defined, in <tt class="docutils literal"><span class="pre">myriad/src/user-interface</span></tt>, in order to handle more easily interactions with the user, i.e. to provide a user interface.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p class="last">The user-interface services, as a whole, are currently <em>not</em> functional. A rewriting thereof as been started yet has not completed yet.</p>
@@ -619,7 +619,7 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 </div>
 <div class="section" id="graphical-user-interface-gui">
 <h4><a class="toc-backref" href="#id63">Graphical User Interface: <tt class="docutils literal">gui</tt></a></h4>
-<p>This interface relied initially on <a class="reference external" href="http://erlang.org/doc/man/gs.html">gs</a>, now on <a class="reference external" href="http://erlang.org/doc/man/wx.html">wx</a> (a port of <a class="reference external" href="https://www.wxwidgets.org/">wxWidgets</a>), maybe later in HTML 5 (possibly relying on the <a href="#id89"><span class="problematic" id="id90">`Nitrogen web framework&lt;http://nitrogenproject.com/&gt;`_</span></a> for that). For the base dialogs, <a class="reference external" href="https://en.wikipedia.org/wiki/Zenity">Zenity</a> could have been on option.</p>
+<p>This interface relied initially on <tt class="docutils literal">gs</tt> (now deprecated), now on <a class="reference external" href="http://erlang.org/doc/man/wx.html">wx</a> (a port of <a class="reference external" href="https://www.wxwidgets.org/">wxWidgets</a>), maybe later in HTML 5 (possibly relying on the <a class="reference external" href="http://nitrogenproject.com/">Nitrogen web framework</a> for that). For the base dialogs, <a class="reference external" href="https://en.wikipedia.org/wiki/Zenity">Zenity</a> could have been on option.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p class="last">GUI services are currently being reworked, to provide a <tt class="docutils literal">gs</tt>-like concurrent API while relying underneath on <tt class="docutils literal">wx</tt>, with some additions (such as canvases).</p>
@@ -630,7 +630,6 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <p>Related information of interest:</p>
 <ul class="simple">
 <li>wxErlang: <a class="reference external" href="https://arifishaq.files.wordpress.com/2017/12/wxerlang-getting-started.pdf">Getting started</a> and <a class="reference external" href="https://arifishaq.files.wordpress.com/2018/04/wxerlang-speeding-up.pdf">Speeding up</a>, by Arif Ishaq</li>
-<li><a class="reference external" href="http://www.idiom.com/~turner/wxtut/wxwidgets.html">http://www.idiom.com/~turner/wxtut/wxwidgets.html</a></li>
 <li><a class="reference external" href="http://wxerlang.dougedmunds.com/">http://wxerlang.dougedmunds.com/</a></li>
 </ul>
 <p></p>
@@ -638,7 +637,7 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 </div>
 <div class="section" id="all-purpose-helper-scripts">
 <span id="helper-scripts"></span><h3><a class="toc-backref" href="#id64">All-Purpose Helper Scripts</a></h3>
-<p>A small set of scripts has been defined, in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/scripts</span></tt>, in order to help:</p>
+<p>A small set of scripts has been defined, in <tt class="docutils literal">myriad/src/scripts</tt>, in order to help:</p>
 <ul class="simple">
 <li>finding in (Erlang) source code <strong>type definitions</strong> (<tt class="docutils literal"><span class="pre">find-type-definition.sh</span></tt>, <tt class="docutils literal"><span class="pre">find-record-definition.sh</span></tt>) and <strong>function specifications</strong> (<tt class="docutils literal"><span class="pre">find-function-specification.sh</span></tt>)</li>
 <li><strong>benchmarking</strong> Erlang code: <tt class="docutils literal"><span class="pre">benchmark-command.escript</span></tt>, <tt class="docutils literal"><span class="pre">benchmark-command.sh</span></tt>, <tt class="docutils literal">etop.sh</tt></li>
@@ -653,7 +652,7 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 </div>
 <div class="section" id="utility-toolbox">
 <span id="toolbox"></span><h3><a class="toc-backref" href="#id65">Utility Toolbox</a></h3>
-<p>This is the <strong>core</strong> of the <tt class="docutils literal">Myriad</tt> library: a toolbox comprising many helper functions (with their tests), defined in the <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/utils</span></tt> directory, often providing enhanced, more specialised services compared to the ones offered by the Erlang standard libraries.</p>
+<p>This is the <strong>core</strong> of the <tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt> library: a toolbox comprising many helper functions (with their tests), defined in the <tt class="docutils literal">myriad/src/utils</tt> directory, often providing enhanced, more specialised services compared to the ones offered by the Erlang standard libraries.</p>
 <p>These helpers (code and typing information) are thematically aggregated in modules that are generally suffixed by <tt class="docutils literal">_utils</tt>, and include:</p>
 <ul class="simple">
 <li>many <strong>basic, general-purpose services</strong>, defined in <tt class="docutils literal">basic_utils.erl</tt>, regarding:</li>
@@ -901,7 +900,7 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <li>symbolic unit checking (i.e. determining that a derived unit such as <tt class="docutils literal">N.s</tt> (newton.second) is actually, in canonical SI units, <tt class="docutils literal"><span class="pre">m^2.kg.s^-1</span></tt>), and thus that values of these two types can safely be used indifferently in computations</li>
 <li>automatic value conversions (ex: converting <tt class="docutils literal">km/hour</tt> into <tt class="docutils literal">m/s</tt>), provided that the overall computational precision is not significantly deteriorated</li>
 </ul>
-<p>The corresponding mechanisms (type information, conversion functions, unit checking and transformation, etc.) are defined in <tt class="docutils literal">unit_utils.erl</tt> and tested in <tt class="docutils literal">unit_utils_test.erl</tt>,  in the <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/utils</span></tt> directory.</p>
+<p>The corresponding mechanisms (type information, conversion functions, unit checking and transformation, etc.) are defined in <tt class="docutils literal">unit_utils.erl</tt> and tested in <tt class="docutils literal">unit_utils_test.erl</tt>,  in the <tt class="docutils literal">myriad/src/utils</tt> directory.</p>
 </div>
 <div class="section" id="checking-units">
 <h5><a class="toc-backref" href="#id74">Checking Units</a></h5>
@@ -974,7 +973,7 @@ $ sqlite3 my_test
 </ul>
 <p>Both are free software.</p>
 <p>We finally preferred <tt class="docutils literal"><span class="pre">erlang-sqlite3</span></tt>.</p>
-<p>By default we consider that this back-end has been installed in <tt class="docutils literal"><span class="pre">~/Software/erlang-sqlite3</span></tt>. The <tt class="docutils literal">SQLITE3_BASE</tt> variable in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/GNUmakevars.inc</span></tt> can be set to match any other install path.</p>
+<p>By default we consider that this back-end has been installed in <tt class="docutils literal"><span class="pre">~/Software/erlang-sqlite3</span></tt>. The <tt class="docutils literal">SQLITE3_BASE</tt> variable in <tt class="docutils literal">myriad/GNUmakevars.inc</tt> can be set to match any other install path.</p>
 <p>Recommended installation process:</p>
 <pre class="code bash literal-block">
 $ mkdir ~/Software
@@ -1026,11 +1025,11 @@ Cover analysis: ~/Software/erlang-sqlite3/.eunit/index.html
 </div>
 <div class="section" id="sql-support-provided-by-the-myriad-layer">
 <h4><a class="toc-backref" href="#id80">SQL Support Provided By the <em>Myriad</em> Layer</a></h4>
-<p>To enable this support, once the corresponding back-end (see <a class="reference internal" href="#database-back-end">Database Back-end</a>) and binding (see <a class="reference internal" href="#erlang-sql-binding">Erlang SQL Binding</a>) have been installed, the <tt class="docutils literal">USE_SQLITE</tt> variable should be set to <tt class="docutils literal">true</tt> in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/GNUmakevars.inc</span></tt> and <tt class="docutils literal">Myriad</tt> shall be rebuilt.</p>
-<p>Then the corresponding implementation (<tt class="docutils literal">sql_support.erl</tt>) and test (<tt class="docutils literal">sql_support_test.erl</tt>), both in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/data-management</span></tt>, will be built (use <tt class="docutils literal">make clean all</tt> from the root of <tt class="docutils literal">Myriad</tt>) and able to be run (execute <tt class="docutils literal">make sql_support_run</tt> for that).</p>
+<p>To enable this support, once the corresponding back-end (see <a class="reference internal" href="#database-back-end">Database Back-end</a>) and binding (see <a class="reference internal" href="#erlang-sql-binding">Erlang SQL Binding</a>) have been installed, the <tt class="docutils literal">USE_SQLITE</tt> variable should be set to <tt class="docutils literal">true</tt> in <tt class="docutils literal">myriad/GNUmakevars.inc</tt> and <tt class="docutils literal">Myriad</tt> shall be rebuilt.</p>
+<p>Then the corresponding implementation (<tt class="docutils literal">sql_support.erl</tt>) and test (<tt class="docutils literal">sql_support_test.erl</tt>), both in <tt class="docutils literal"><span class="pre">myriad/src/data-management</span></tt>, will be built (use <tt class="docutils literal">make clean all</tt> from the root of <tt class="docutils literal">Myriad</tt>) and able to be run (execute <tt class="docutils literal">make sql_support_run</tt> for that).</p>
 <p>Testing it:</p>
 <pre class="code bash literal-block">
-$ <span class="nb">cd</span> Ceylan-Myriad/src/data-management
+$ <span class="nb">cd</span> myriad/src/data-management
 $ make sql_support_run
        Compiling module sql_support.erl
        Compiling module sql_support_test.erl
@@ -1051,8 +1050,8 @@ $ make sql_support_run
 <div class="section" id="compiling-module-sql-support-erl-can-t-find-include-file-sqlite3-hrl">
 <h5><a class="toc-backref" href="#id82">Compiling module sql_support.erl : can't find include file &quot;sqlite3.hrl&quot;</a></h5>
 <ul class="simple">
-<li><tt class="docutils literal">USE_SQLITE</tt> not set to <tt class="docutils literal">true</tt> in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/GNUmakevars.inc</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">erlang-sqlite3</span></tt> back-end not correctly installed (ex: <tt class="docutils literal">SQLITE3_BASE</tt> not pointing to a right path in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/GNUmakevars.inc</span></tt>)</li>
+<li><tt class="docutils literal">USE_SQLITE</tt> not set to <tt class="docutils literal">true</tt> in <tt class="docutils literal">myriad/GNUmakevars.inc</tt></li>
+<li><tt class="docutils literal"><span class="pre">erlang-sqlite3</span></tt> back-end not correctly installed (ex: <tt class="docutils literal">SQLITE3_BASE</tt> not pointing to a right path in <tt class="docutils literal">myriad/GNUmakevars.inc</tt>)</li>
 </ul>
 <p></p>
 </div>
@@ -1106,12 +1105,6 @@ $ make sql_support_run
 </div>
 <p><span class="raw-html"><a name="myriad_bottom"></a></span></p>
 </div>
-</div>
-<div class="system-messages section">
-<h1>Docutils System Messages</h1>
-<div class="system-message" id="id89">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">Ceylan-Myriad-Layer-ui-english.rst</tt>, line 91); <em><a href="#id90">backlink</a></em></p>
-Unknown target name: &quot;nitrogen web framework&lt;http://nitrogenproject.com/&gt;&quot;.</div>
 </div>
 </div>
 </body>
