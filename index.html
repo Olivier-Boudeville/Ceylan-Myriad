@@ -34,7 +34,7 @@
 <tr class="field"><th class="field-name">Creation date:</th><td class="field-body"><p class="first">Sunday, August 17, 2008</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Lastly updated:</th><td class="field-body"><p class="first">Wednesday, August 21, 2019</p>
+<tr class="field"><th class="field-name">Lastly updated:</th><td class="field-body"><p class="first">Saturday, September 21, 2019</p>
 </td>
 </tr>
 <tr class="field"><th class="field-name">Status:</th><td class="field-body"><p class="first">Stable</p>
@@ -185,20 +185,20 @@ The next level of information is to read the corresponding <a class="reference e
 <h3><a class="toc-backref" href="#id36">About Layers</a></h3>
 <p>The <tt class="docutils literal">Myriad</tt> services are to be used by this layer itself (for its inner workings), and, more importantly, are to be re-used, specialised and enriched by layers built on top of it.</p>
 <p>The general rule is that a layer may depend on (i.e. make use of) all layers <em>below</em> it (not only the one just preceding it), but cannot refer to any layer <em>above</em> it (it should be literally unaware of their existence).</p>
-<p>So, in a bottom-up view, generally a software stack mentioned here begins with the operating system (typically GNU/Linux), then <a class="reference external" href="http://erlang/org">Erlang/OTP</a>, then <tt class="docutils literal">Myriad</tt>, then any layer(s) built on top of them (ex: <a class="reference external" href="http://wooper.esperide.org">WOOPER</a>).</p>
+<p>So, in a bottom-up view, generally a software stack mentioned here begins with the operating system (typically GNU/Linux), then <a class="reference external" href="http://erlang.org">Erlang/OTP</a>, then <tt class="docutils literal">Myriad</tt>, then any layer(s) built on top of them (ex: <a class="reference external" href="http://wooper.esperide.org">WOOPER</a>).</p>
 <p>Of course a given layer does not mask the layers below; for example programs using the <tt class="docutils literal">Myriad</tt> layer typically use also a lot the services brought by the <a class="reference external" href="http://erlang.org/erldoc">Erlang base libraries</a>.</p>
 </div>
 <div class="section" id="recommended-usage-contribution">
 <h3><a class="toc-backref" href="#id37">Recommended Usage &amp; Contribution</a></h3>
 <p>When developing Ceylan-based code, if needing a service already provided by this <tt class="docutils literal">Myriad</tt> layer, it is strongly advised to use that service and, possibly (if useful), expand or enrich it, with backward compatibility in mind.</p>
-<p>If such a service is not provided by the current version of the layer, yet is deemed generic enough, then it should preferably be directly added to the relevant part of the library and called from the code that was needing it.</p>
+<p>If such a service is not provided by the current version of the layer, yet is deemed generic enough, then it should preferably be added directly to the relevant part of the library and called from the code that was needing it.</p>
 <p>Of course, contributions of all sorts are welcome.</p>
-<p>We do our best to test, at least lightly, each element provided. All services offered in a <tt class="docutils literal">foo.erl</tt> file are thus expected to be tested in the companion <tt class="docutils literal">foo_test.erl</tt> file, generally located in the same directory. Once there, running this test is as simple as executing:</p>
+<p>We do our best to test, at least lightly, each element provided. All services offered in a <tt class="docutils literal">foo.erl</tt> file are thus expected to be tested in the companion <tt class="docutils literal">foo_test.erl</tt> file, in the <tt class="docutils literal">test</tt> tree (whose structure tends to mirror the one of the <tt class="docutils literal">src</tt> tree). Once there, running this test is as simple as executing:</p>
 <pre class="code bash literal-block">
 $ make foo_run
 </pre>
 <p>Note that however we have not reached the discipline level of an exhaustive <tt class="docutils literal">eunit</tt> test suite for each service (most of them being almost trivial).</p>
-<p>The <a class="reference external" href="http://erlang.org/doc/apps/dialyzer/dialyzer_chapter.html">Dialyzer</a> static analysis tool is regularly run on the code-base (see the <tt class="docutils literal"><span class="pre">generate-local-plt</span></tt> and <tt class="docutils literal"><span class="pre">self-check-against-plt</span></tt> generic Make targets for that).</p>
+<p>The <a class="reference external" href="http://erlang.org/doc/apps/dialyzer/dialyzer_chapter.html">Dialyzer</a> static analysis tool is regularly run on the code base (see the <tt class="docutils literal"><span class="pre">generate-local-plt</span></tt> and <tt class="docutils literal"><span class="pre">self-check-against-plt</span></tt> generic Make targets for that).</p>
 </div>
 </div>
 <div class="section" id="getting-myriad">
@@ -577,32 +577,32 @@ various implementations thereof, tests and benchmarks, in:</li>
 <li>either <strong>text-only</strong>, within a console, relying either on the very basic <tt class="docutils literal">text_ui</tt> (for raw text) or its more advanced <tt class="docutils literal">term_ui</tt> counterpart (for terminal-based outputs)</li>
 <li>or <strong>graphical</strong>, with <tt class="docutils literal">gui</tt></li>
 </ul>
-<p>Text-based user interfaces are quite useful, as they are lightweight, incur few dependencies (if any), and can be used for headless remote servers (<tt class="docutils literal">text_ui</tt> and <tt class="docutils literal">term_ui</tt> work well through SSH, and require no X server nor mouse).</p>
+<p>Text-based user interfaces are quite useful, as they are lightweight, incur few dependencies (if any), and can be used with headless remote servers (<tt class="docutils literal">text_ui</tt> and <tt class="docutils literal">term_ui</tt> work well through SSH, and require no X server nor mouse).</p>
 <p>As for graphical-based user interfaces, they are the richest, most usual, and generally the most convenient, user-friendly interfaces.</p>
-<p>User interfaces tend to have a <strong>state</strong>, which can be:</p>
+<p>The user interfaces provided by Myriad are stateful, they rely on a <strong>state</strong> that can be:</p>
 <ul class="simple">
 <li>either <tt class="docutils literal">explicit</tt>, in a functional way; thus having to be carried in all calls</li>
-<li>or <tt class="docutils literal">implicit</tt>, using, for that very specific need only, the process dictionary (even if otherwise we never use it)</li>
+<li>or <tt class="docutils literal">implicit</tt>, using - for that very specific need only - the process dictionary (even if we try to stay away of it as much as possible)</li>
 </ul>
-<p>We tested the two approaches and preferred the latter (implicit) one, which thus finally fully superseded the (former) explicit one.</p>
+<p>We tested the two approaches and preferred the latter (implicit) one, which was found considerably more flexible and thus finally fully superseded the (former) explicit one.</p>
 <p>We made our best so that a lower-level API interface (relying on a more basic backend) is <strong>strictly included</strong> in the higher-level ones (ex: <tt class="docutils literal">term_ui</tt> adds concepts - like the one of window or box - to the line-based <tt class="docutils literal">text_ui</tt>), in order that any program using a given user interface may use any of the next, upper ones as well (provided implicit states are used), in the following order: the <tt class="docutils literal">text_ui</tt> API is included in the one of <tt class="docutils literal">term_ui</tt>, which is itself included in the one of <tt class="docutils literal">gui</tt>.</p>
-<p>We also defined the <strong>settings table</strong>, which is a table gathering all the settings specified by the developer that the user interface does its best to accommodate.</p>
+<p>We also defined the <strong>settings table</strong>, which is a table gathering all the settings specified by the developer, which the current user interface does its best to accommodate.</p>
 <p>Thanks to these &quot;Matryoshka&quot; APIs and the settings table, the definition of a more generic <tt class="docutils literal">ui</tt> interface has been possible. It selects automatically, based on available local software dependencies, <strong>the most advanced available backend</strong>, with the most relevant settings.</p>
 <p>For example a relevant backend will be automatically selected by:</p>
 <pre class="code bash literal-block">
-$ <span class="nb">cd</span> src/user-interface/src
+$ <span class="nb">cd</span> test/user-interface/src
 $ make ui_run
 </pre>
 <p>On the other hand, if wanting to select a specified backend:</p>
 <pre class="code bash literal-block">
 $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span class="s2">&quot;--use-ui-backend term_ui&quot;</span>
 </pre>
-<p>(see the corresponding <tt class="docutils literal">GNUmakefile</tt> for more information)</p>
+<p>(see the corresponding <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/test/user-interface/src/GNUmakefile">GNUmakefile</a> for more information)</p>
 </div>
 <div class="section" id="raw-text-user-interface-text-ui">
 <h4><a class="toc-backref" href="#id61">Raw Text User Interface: <tt class="docutils literal">text_ui</tt></a></h4>
 <p>This is the most basic, line-based monochrome textual interface, directly in raw text with no cursor control.</p>
-<p>Located in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/user-interface/textual</span></tt>, see <tt class="docutils literal">text_ui.erl</tt> for its implementation, and <tt class="docutils literal">text_ui_test.erl</tt> for an example of its use.</p>
+<p>Located in <tt class="docutils literal"><span class="pre">{src,test}/user-interface/textual</span></tt>, see <tt class="docutils literal">text_ui.erl</tt> for its implementation, and <tt class="docutils literal">text_ui_test.erl</tt> for an example of its use.</p>
 </div>
 <div class="section" id="terminal-text-user-interface-term-ui">
 <h4><a class="toc-backref" href="#id62">Terminal Text User Interface: <tt class="docutils literal">term_ui</tt></a></h4>
@@ -615,18 +615,18 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <span class="c1"># On Debian-like distros:
 </span>$ apt-get install dialog
 </pre>
-<p>Located in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/user-interface/textual</span></tt>, see <tt class="docutils literal">term_ui.erl</tt> for its implementation, and <tt class="docutils literal">term_ui_test.erl</tt> for an example of its use.</p>
+<p>Located in <tt class="docutils literal"><span class="pre">{src,test}/user-interface/textual</span></tt>, see <tt class="docutils literal">term_ui.erl</tt> for its implementation, and <tt class="docutils literal">term_ui_test.erl</tt> for an example of its use.</p>
 </div>
 <div class="section" id="graphical-user-interface-gui">
 <h4><a class="toc-backref" href="#id63">Graphical User Interface: <tt class="docutils literal">gui</tt></a></h4>
-<p>This interface relied initially on <a class="reference external" href="http://erlang.org/doc/man/gs.html">gs</a>, now on <a class="reference external" href="http://erlang.org/doc/man/wx.html">wx</a> (a port of <a class="reference external" href="https://www.wxwidgets.org/">wxWidgets</a>), maybe later in HTML 5. For the base dialogs, <a class="reference external" href="https://en.wikipedia.org/wiki/Zenity">Zenity</a> could have been on option.</p>
+<p>This interface relied initially on <a class="reference external" href="http://erlang.org/doc/man/gs.html">gs</a>, now on <a class="reference external" href="http://erlang.org/doc/man/wx.html">wx</a> (a port of <a class="reference external" href="https://www.wxwidgets.org/">wxWidgets</a>), maybe later in HTML 5 (possibly relying on the <a href="#id89"><span class="problematic" id="id90">`Nitrogen web framework&lt;http://nitrogenproject.com/&gt;`_</span></a> for that). For the base dialogs, <a class="reference external" href="https://en.wikipedia.org/wiki/Zenity">Zenity</a> could have been on option.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">GUI services are currently being reworked, to provide a <tt class="docutils literal">gs</tt> like concurrent API while relying underneath on <tt class="docutils literal">wx</tt>, with some additions (such as canvases).</p>
+<p class="last">GUI services are currently being reworked, to provide a <tt class="docutils literal">gs</tt>-like concurrent API while relying underneath on <tt class="docutils literal">wx</tt>, with some additions (such as canvases).</p>
 </div>
 <p>The goal is to provide a small, lightweight API (including message types) that are higher-level than <tt class="docutils literal">wx</tt>, and do not depend on any particular GUI backend (such as <tt class="docutils literal">wx</tt>, <tt class="docutils literal">gs</tt>, etc.) to avoid that user programs become obsolete too quickly, as backends for GUI rise and fall relatively often.</p>
-<p>So for example the messages received by the user programs shall not mention <tt class="docutils literal">wx</tt>, and they should take the form of <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-WOOPER">WOOPER</a> messages to allow for user code that would rely on WOOPER.</p>
-<p>Located in <tt class="docutils literal"><span class="pre">Ceylan-Myriad/src/user-interface/graphical</span></tt>, see <tt class="docutils literal">gui.erl</tt>, <tt class="docutils literal">gui_color.erl</tt>, <tt class="docutils literal">gui_text.erl</tt>, <tt class="docutils literal">gui_canvas.erl</tt>, etc., with a few tests (<tt class="docutils literal">gui_test.erl</tt>, <tt class="docutils literal">lorenz_test.erl</tt>).</p>
+<p>So for example the messages received by the user programs shall not mention <tt class="docutils literal">wx</tt>, and they should take a form compliant with <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-WOOPER">WOOPER</a> message conventions, to easily enable user code to rely on WOOPER if wanted.</p>
+<p>Located in <tt class="docutils literal"><span class="pre">{src,test}/user-interface/graphical</span></tt>, see <tt class="docutils literal">gui.erl</tt>, <tt class="docutils literal">gui_color.erl</tt>, <tt class="docutils literal">gui_text.erl</tt>, <tt class="docutils literal">gui_canvas.erl</tt>, etc., with a few tests (<tt class="docutils literal">gui_test.erl</tt>, <tt class="docutils literal">lorenz_test.erl</tt>).</p>
 <p>Related information of interest:</p>
 <ul class="simple">
 <li>wxErlang: <a class="reference external" href="https://arifishaq.files.wordpress.com/2017/12/wxerlang-getting-started.pdf">Getting started</a> and <a class="reference external" href="https://arifishaq.files.wordpress.com/2018/04/wxerlang-speeding-up.pdf">Speeding up</a>, by Arif Ishaq</li>
@@ -1106,6 +1106,12 @@ $ make sql_support_run
 </div>
 <p><span class="raw-html"><a name="myriad_bottom"></a></span></p>
 </div>
+</div>
+<div class="system-messages section">
+<h1>Docutils System Messages</h1>
+<div class="system-message" id="id89">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">Ceylan-Myriad-Layer-ui-english.rst</tt>, line 91); <em><a href="#id90">backlink</a></em></p>
+Unknown target name: &quot;nitrogen web framework&lt;http://nitrogenproject.com/&gt;&quot;.</div>
 </div>
 </div>
 </body>
