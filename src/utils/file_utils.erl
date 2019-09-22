@@ -77,7 +77,7 @@
 		  remove_file/1, remove_file_if_existing/1,
 		  remove_files/1, remove_files_if_existing/1,
 
-		  remove_directory/1,
+		  remove_empty_directory/1, remove_empty_path/1, remove_directory/1,
 
 		  copy_file/2, copy_file_if_existing/2, copy_file_in/2,
 
@@ -678,11 +678,13 @@ is_existing_directory_or_link( EntryName ) ->
 	end.
 
 
-% Returns a tuple containing five lists corresponding to the sorting of all
-% filesystem elements, namely { RegularFiles, Symlinks, Directories, OtherFiles,
-% Devices }.
+
+% Returns a tuple containing five lists corresponding to the per-type
+% dispatching of all filesystem elements local to specified directory (hence not
+% recursively traversed), namely:
+% { RegularFiles, Symlinks, Directories, OtherFiles, Devices }.
 %
-% Note that symbolic links mayr or may not be dead.
+% Note that symbolic links may or may not be dead.
 %
 -spec list_dir_elements( directory_name() ) ->
 			 { [ file_name() ], [ file_name() ], [ directory_name() ],
@@ -1653,11 +1655,13 @@ remove_files_if_existing( FilenameList ) ->
 
 
 
-% Removes specified directory, which must be empty.
--spec remove_directory( any_directory_name() ) -> void().
-remove_directory( DirectoryName ) ->
+% Removes specified directory, which must be empty (so: behaves mostly like
+% the 'rmdir' shell command).
+%
+-spec remove_empty_directory( any_directory_name() ) -> void().
+remove_empty_directory( DirectoryName ) ->
 
-	%trace_utils:warning_fmt( "## Removing directory '~s'.",
+	%trace_utils:warning_fmt( "## Removing empty directory '~s'.",
 	%                         [ DirectoryName ] ),
 
 	case file:del_dir( DirectoryName ) of
@@ -1666,9 +1670,93 @@ remove_directory( DirectoryName ) ->
 			ok;
 
 		{ error, Reason } ->
-			throw( { remove_directory_failed, Reason, DirectoryName } )
+			% Probably not so empty:
+			throw( { remove_empty_directory_failed, Reason, DirectoryName } )
 
 	end.
+
+
+
+% Removes all (supposedly) empty directories pertaining to the specified local,
+% relative path, i.e. this path (ex: a/b/c) and all its ancestors (hence a/b and
+% a are - if empty - removed as well); so behaves mostly like the 'rmdir
+% --parents' shell command.
+%
+-spec remove_empty_path( any_directory_name() ) -> void().
+remove_empty_path( DirectoryName ) ->
+
+	%trace_utils:warning_fmt( "## Removing empty path '~s'.",
+	%                         [ DirectoryName ] ),
+
+	remove_empty_path_helper( DirectoryName ).
+
+
+% (helper)
+remove_empty_path_helper( _DirectoryName="." ) ->
+	ok;
+
+remove_empty_path_helper( DirectoryName ) ->
+	remove_empty_directory( DirectoryName ),
+	remove_empty_path_helper( filename:dirname( DirectoryName ) ).
+
+
+
+% Removes specified (possibly non-empty) directory as a whole, recursively (so:
+% behaves mostly like the 'rm -rf ' shell command; of course to use with care).
+%
+% Note that if any usual file entry is found in the tree (ex: device or file
+% that is neither regular nor a symbolic link), the operation will stop on error
+% (whereas elements may alredy have been removed).
+%
+-spec remove_directory( any_directory_name() ) -> void().
+remove_directory( DirectoryName ) ->
+
+	%trace_utils:warning_fmt( "## Removing recursively directory '~s'.",
+	%                         [ DirectoryName ] ),
+
+	% We do it programmatically, rather than running a command like '/bin/rm -rf
+	% ...':
+
+	% All local elements:
+	{ RegularFiles, Symlinks, Directories, OtherFiles, Devices } =
+		list_dir_elements( DirectoryName ),
+
+	case Devices of
+
+		[] ->
+			ok;
+
+		_ ->
+			trace_utils:error_fmt( "Not removing directory '~s', as it "
+							   "contains device entries: ~p.", [ Devices ] ),
+
+			throw( { device_entries_found, Devices } )
+
+	end,
+
+	case OtherFiles of
+
+		[] ->
+			ok;
+
+		_ ->
+			trace_utils:error_fmt( "Not removing directory '~s', as it "
+			   "contains unexpected filesystem entries: ~p.", [ OtherFiles ] ),
+
+			throw( { unexpected_entries_found, OtherFiles } )
+
+	end,
+
+	% Depth-first of course:
+	[ remove_directory( join( DirectoryName, SubDir ) )
+	  || SubDir <- Directories ],
+
+	% Then removing all local regular files and symlinks:
+	[ remove_file( join( DirectoryName, F ) )
+	  || F <- Symlinks ++ RegularFiles ],
+
+	% Finally removing this (now empty) directory as well:
+	remove_empty_directory( DirectoryName ).
 
 
 
