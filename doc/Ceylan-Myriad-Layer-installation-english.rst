@@ -176,6 +176,15 @@ This support can be also tested manually, directly through the build tree used b
 	type: temporary
 
 
+When needing to include a Myriad header file (taking ``spawn_utils.hrl`` as an example) in one's code, OTP conventions mandate using::
+
+ -include_lib("myriad/include/spawn_utils.hrl").
+
+rather than::
+
+ -include("spawn_utils.hrl").
+
+
 
 OTP Release
 -----------
