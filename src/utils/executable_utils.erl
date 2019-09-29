@@ -40,6 +40,9 @@
 -export([ lookup_executable/1, find_executable/1 ]).
 
 
+% Section for command-line facilities:
+-export([ protect_from_shell/1 ]).
+
 
 % Section for most usual commands:
 -export([ generate_png_from_graph_file/2,
@@ -203,6 +206,32 @@ find_executable( ExecutableName ) ->
 
 
 
+
+% Section for command-line facilities.
+
+
+% Protects specified argument from shell parsing, typically if specifying a
+% filename including a single quote.
+%
+-spec protect_from_shell( text_utils:ustring() ) -> text_utils:ustring().
+protect_from_shell( ArgumentString ) ->
+
+	% Not sufficient (ex: "echo 'aaa\'bbb'"):
+	%text_utils:protect_from_shell( ArgumentString ).
+
+	protect_from_shell_helper( ArgumentString, _Acc=[] ).
+
+
+% (helper)
+protect_from_shell_helper( _Text=[], Acc ) ->
+	lists:reverse( Acc );
+
+protect_from_shell_helper( _Text=[ $' | T ], Acc ) ->
+	% As will be reversed:
+	protect_from_shell_helper( T, "''\\'" ++ Acc );
+
+protect_from_shell_helper( _Text=[ C | T ], Acc ) ->
+	protect_from_shell_helper( T, [ C | Acc ] ).
 
 
 
@@ -386,7 +415,7 @@ compute_md5_sum( Filename ) ->
 
 	% Removes the filename after the MD5 code:
 	Cmd = system_utils:run_executable( get_default_md5_tool() ++ " '"
-									   ++ Filename ++ "' | sed 's|  .*$||1'" ),
+			   ++ protect_from_shell( Filename ) ++ "' | sed 's|  .*$||1'" ),
 
 	case Cmd of
 
@@ -429,11 +458,12 @@ compute_sha_sum( Filename, SizeOfSHAAlgorithm )
 
 	end,
 
-	% Removes the filename after the MD5 code:
+	% Removes the filename after the SHA code:
 	Cmd = system_utils:run_executable( get_default_sha_tool()
 					 ++ " --algorithm "
 					 ++ text_utils:format( "~B '", [ SizeOfSHAAlgorithm ] )
-					 ++ Filename ++ "' | sed 's|  .*$||1'" ),
+					 ++ protect_from_shell( Filename )
+					 ++ "' | sed 's|  .*$||1'" ),
 
 	case Cmd of
 
