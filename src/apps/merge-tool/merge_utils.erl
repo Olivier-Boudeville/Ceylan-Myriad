@@ -316,16 +316,16 @@ handle_non_reference_option( ArgumentTable ) ->
 					AddedString = case list_table:is_empty( NoUniqArgTable ) of
 
 						true ->
-							"(no command-line option specified)";
+							" (no command-line option specified)";
 
 						false ->
-							"~nInstead " ++
+							"; instead: " ++
 								executable_utils:argument_table_to_string(
 								  NoScanArgTable )
 
 							end,
 
-					Msg = text_utils:format( "no operation specified ~s",
+					Msg = text_utils:format( "no operation specified~s",
 											 [ AddedString ] ),
 
 					stop_on_option_error( Msg, 20 );
@@ -410,7 +410,7 @@ display_usage() ->
 % (on error).
 %
 stop_on_option_error( Message, ErrorCode ) ->
-	ui:display_error( "Error, ~s~n~n~s", [ Message, get_usage() ] ),
+	ui:display_error( "Error, ~s.~n~n~s", [ Message, get_usage() ] ),
 	basic_utils:stop( ErrorCode ).
 
 
@@ -736,8 +736,15 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 -spec move_content_to_merge( [ sha1() ], directory_path(), sha1_table(),
 		 directory_path(), sha1_table(), directory_path(), user_state() ) ->
 							sha1_table().
-move_content_to_merge( _ToMove=[], InputRootDir, _InputEntries,
+move_content_to_merge( _ToMove=[], InputRootDir, InputEntries,
 				_ReferenceRootDir, ReferenceEntries, _TargetDir, _UserState ) ->
+
+	% Removing the content that does not have been moved (hence shall be
+	% deleted):
+	%
+	file_utils:remove_files( list_utils:flatten_once( [
+		  [ file_utils:join( InputRootDir, FD#file_data.path ) || FD <- FDL ]
+							  || FDL <- table:values( InputEntries ) ] ) ),
 
 	% Input tree shall be now void of content and thus removed:
 	file_utils:remove_file( get_cache_path_for( InputRootDir ) ),
@@ -1011,6 +1018,8 @@ check_content_trees( InputTree, ReferenceTreePath ) ->
 			ok;
 
 		false ->
+			trace_utils:error_fmt( "Error, specified input tree ('~s') "
+								   "does not exist.", [ InputTree ] ),
 			throw( { non_existing_input_tree, InputTree } )
 
 	end,
@@ -1021,6 +1030,8 @@ check_content_trees( InputTree, ReferenceTreePath ) ->
 			ok;
 
 		false ->
+			trace_utils:error_fmt( "Error, specified reference tree ('~s') "
+								   "does not exist.", [ ReferenceTreePath ] ),
 			throw( { non_existing_reference_tree, ReferenceTreePath } )
 
 	end.
@@ -2016,6 +2027,9 @@ quick_cache_check_helper( ContentFiles, TreePath, CachedTreePath, FileInfos ) ->
 			ok;
 
 		_ ->
+			trace_utils:error_fmt( "The actual tree path ('~s') does not match "
+								   "the one found in its cache file ('~s').",
+								   [ AbsTreePath, CachedTreePath ] ),
 			throw( { non_matching_tree_paths, CachedTreePath, TreePath } )
 
 	end,
