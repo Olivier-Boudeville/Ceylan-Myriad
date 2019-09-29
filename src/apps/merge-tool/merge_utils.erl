@@ -84,6 +84,7 @@
 %
 -type sha1_table() :: table( sha1(), [ file_data() ] ).
 
+%-type sha1_set() :: set_utils:set( sha1() ).
 
 % Pair entries of a sha1_table/0:
 -type sha1_entry() :: { sha1(), [ file_data() ] }.
@@ -159,6 +160,12 @@
 % Not run anymore as an escript, as raised issues with term_ui (i.e. dialog):
 %-define( exec_name, "merge-tree.escript" ).
 -define( exec_name, "merge.sh" ).
+
+
+% The subdirectory in the reference tree in which selected content will be
+% transferred:
+%
+-define( merge_dir, "content_from_merge" ).
 
 
 % For myriad_spawn*:
@@ -435,14 +442,14 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 			% scratch, hence of 'ignore').
 
 			Choices = [
-				{ 'weak_check', "Re-use this file, provided that it passes "
+				{ weak_check, "Re-use this file, provided that it passes "
 				  "a weak check (based on sizes and timestamps), otherwise "
 				  "recreate it" },
-				{ 'ignore', "Ignore this version, and recreate this file "
+				{ ignore, "Ignore this version, and recreate this file "
 				  "unconditionally" },
-				{ 'no_check', "Re-use this file as it is, with no specific "
+				{ no_check, "Re-use this file as it is, with no specific "
 				  "check involved" },
-				{ 'abort', "Abort scan" } ],
+				{ abort, "Abort scan" } ],
 
 			case ui:choose_designated_item( Label, Choices ) of
 
@@ -644,14 +651,21 @@ merge( InputTreePath, ReferenceTreePath ) ->
 -spec merge_trees( tree_data(), tree_data(), user_state() ) -> tree_data().
 merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 									entries=InputEntries },
-			 _ReferenceTree=#tree_data{ root=ReferenceRootDir,
-										entries=ReferenceEntries },
-			 _UserState ) ->
+			 ReferenceTree=#tree_data{ root=ReferenceRootDir,
+									   entries=ReferenceEntries },
+			 UserState ) ->
 
 	InputSHA1Set = set_utils:new( table:keys( InputEntries ) ),
 	ReferenceSHA1Set = set_utils:new( table:keys( ReferenceEntries ) ),
 
 	LackingInRefSet = set_utils:difference( InputSHA1Set, ReferenceSHA1Set ),
+
+	ui:set_setting( 'backtitle', text_utils:format( "Merging in ~s",
+													[ ReferenceRootDir ] ) ),
+
+	ToMerge = set_utils:to_list( LackingInRefSet ),
+
+	TargetDir = file_utils:join( ReferenceRootDir, ?merge_dir ),
 
 	case set_utils:size( LackingInRefSet ) of
 
@@ -662,7 +676,10 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 						"removing directly the input tree.",
 						[ InputRootDir, ReferenceRootDir ] ),
 
-			file_utils:remove_directory( InputRootDir );
+			%trace_utils:warning_fmt( "Removing recursively directory '~s'.",
+			%						 [ InputRootDir ] );
+			file_utils:remove_directory( InputRootDir ),
+			ReferenceTree;
 
 		LackingCount ->
 			Label = text_utils:format( "Exactly ~B contents are present in the "
@@ -671,21 +688,235 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 									   [ LackingCount, InputRootDir,
 										 ReferenceRootDir ] ),
 
-			Choices = [ { 'select', "Select on a per-content basis what shall "
-						  "be done" },
-						{ 'copy', "Copy that content (once uniquified) "
-						  "as a whole" },
-						{ 'drop', "Drop that extra content as a whole (it will "
-						  "thus be lost afterwards)" },
-						{ 'abort', "Abort" } ],
+			Choices = [ { move, "Move this content (once uniquified) "
+						  "as a whole in the reference tree" },
+						{ cherry_pick,
+						  "Cherry-pick which content to move to reference tree "
+						  "or to delete" },
+						{ delete, "Delete as a whole this content (it will "
+						  "thus be permanently lost afterwards)" },
+						{ abort, "Abort merge" } ],
 
-			_SelectedChoice = ui:choose_designated_item(
+			NewReferenceEntries = case ui:choose_designated_item(
 					   text_utils:format( "~s~nChoices are:", [ Label ] ),
-					   Choices ),
+					   Choices ) of
 
-			throw( todo )
+				move ->
+					file_utils:create_directory_if_not_existing( TargetDir ),
+					move_content_to_merge( ToMerge, InputRootDir, InputEntries,
+										   ReferenceRootDir, ReferenceEntries,
+										   TargetDir, UserState );
+
+				cherry_pick ->
+					file_utils:create_directory_if_not_existing( TargetDir ),
+					cherry_pick_content_to_merge( ToMerge,
+							InputRootDir, InputEntries, ReferenceRootDir,
+							ReferenceEntries, TargetDir, UserState );
+
+				delete ->
+					delete_content_to_merge( ToMerge, InputRootDir,
+											 InputEntries, UserState ),
+					ReferenceEntries;
+
+				abort ->
+					trace( "(requested to abort the merge)", UserState ),
+					basic_utils:stop( 0 )
+
+			end,
+
+			ReferenceTree#tree_data{ entries=NewReferenceEntries }
 
 	end.
+
+
+
+% Moves all specified content in the reference tree, and returns an updated view
+% thereof.
+%
+-spec move_content_to_merge( [ sha1() ], directory_path(), sha1_table(),
+		 directory_path(), sha1_table(), directory_path(), user_state() ) ->
+							sha1_table().
+move_content_to_merge( _ToMove=[], InputRootDir, _InputEntries,
+				_ReferenceRootDir, ReferenceEntries, _TargetDir, _UserState ) ->
+
+	% Input tree shall be now void of content and thus removed:
+	file_utils:remove_file( get_cache_path_for( InputRootDir ) ),
+	file_utils:remove_empty_tree( InputRootDir ),
+
+	ReferenceEntries;
+
+move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
+				ReferenceRootDir, ReferenceEntries, TargetDir, UserState ) ->
+
+	% Single element, as expected to be uniquified:
+	{ FileDatas, NewInputEntries } =
+		table:extract_entry( SHA1, InputEntries ),
+
+	ElectedFileData = case FileDatas of
+
+		[ FileData ] ->
+			FileData;
+
+		_ ->
+			Label = text_utils:format( "~B files correspond to the same input "
+					"content; please select the unique one that shall be "
+					"copied in the reference tree:", [ length( FileDatas ) ] ),
+
+			Choices = [ FD#file_data.path || FD <- FileDatas ],
+
+			DefaultChoiceIndex = 1,
+
+			Index = ui:choose_numbered_item_with_default( Label, Choices,
+														  DefaultChoiceIndex ),
+
+			{ Selected, Others } = list_utils:extract_element_at( FileDatas,
+																  Index ),
+				ToRemove = [ file_utils:join( InputRootDir,
+							   FD#file_data.path ) || FD <- Others ],
+
+				file_utils:remove_files( ToRemove ),
+
+				trace_utils:trace_fmt( "Removed ~B file(s): ~s",
+					   [ length( ToRemove ),
+						 text_utils:strings_to_string( ToRemove ) ] ),
+
+				Selected
+
+	end,
+
+	RelPath = ElectedFileData#file_data.path,
+
+	% With a check:
+	SHA1 = ElectedFileData#file_data.sha1_sum,
+
+	SrcPath = file_utils:join( InputRootDir, RelPath ),
+
+	% We do not preserve the directory structure of the input tree; this may be
+	% wanted, though.
+
+	Filename = filename:basename( RelPath ),
+	TgtPath = file_utils:join( TargetDir, Filename ),
+
+	% As clashes may happen in the elected target directory:
+	NewPath = case file_utils:exists( TgtPath ) of
+
+		true ->
+			AutoPath = file_utils:get_non_clashing_entry_name_from( TgtPath ),
+			%Msg = text_utils:format( "When moving '~s' in the reference target"
+			%						 " directory ('~s'), an entry with that "
+			%						 "was found already existing.~n"
+			%						 "Shall we rename it automatically to ~s, "
+			%						 "or ask for a new name?",
+			%						 [ Filename, TargetDir, AutoPath ] ),
+			%ui:ask_yes_no( "
+
+			% At least for the moment, we stick to auto-renaming only; returning
+			% the new path:
+			%
+			file_utils:move_file( SrcPath, AutoPath );
+
+		false ->
+			file_utils:move_file( SrcPath, TgtPath )
+
+	end,
+
+	trace_utils:trace_fmt( "Moved '~s' to '~s'.", [ SrcPath, NewPath ] ),
+
+	% Make the new path relative to the root of the reference tree (TargetDir
+	% being itself relative to it):
+	%
+	NewRelPath = case string:prefix( NewPath, _Prefix=ReferenceRootDir ) of
+
+		nomatch ->
+			throw( { relative_path_not_found, ReferenceRootDir, NewPath } );
+
+		TrailingPath ->
+			TrailingPath
+
+	end,
+
+	% Selective update:
+	NewFileData = ElectedFileData#file_data{
+			path=NewRelPath,
+			% To avoid any kind of discrepancy:
+			timestamp=file_utils:get_last_modification_time( NewPath ) },
+
+	NewReferenceEntries =
+		table:add_new_entry( SHA1, NewFileData, ReferenceEntries ),
+
+	move_content_to_merge( T, InputRootDir, NewInputEntries, ReferenceRootDir,
+						   NewReferenceEntries, TargetDir, UserState ).
+
+
+
+% Selects which of the specified elements among the input entries shall be
+% merged in the reference content, and how.
+%
+-spec cherry_pick_content_to_merge( [ sha1() ], directory_path(), sha1_table(),
+		   directory_path(), sha1_table(), directory_path(), user_state() ) ->
+										  sha1_table().
+cherry_pick_content_to_merge( ToPick, InputRootDir, InputEntries,
+				  ReferenceRootDir, ReferenceEntries, TargetDir, UserState ) ->
+
+	TotalContentCount = length( ToPick ),
+
+	PickChoices = [ { move, text_utils:format( "Move this "
+						   "content in reference tree (in '~s')",
+											   [ ReferenceRootDir ] ) },
+					{ delete, "Delete this content" },
+					{ abort, "Abort merge" } ],
+
+	cherry_pick_files( ToPick, InputRootDir, InputEntries, ReferenceRootDir,
+					   ReferenceEntries, TargetDir, PickChoices, _Count=1,
+					   TotalContentCount, UserState ).
+
+
+
+% Allows the user to cherry-pick the files that shall be copied (others being
+% removed).
+%
+cherry_pick_files( _ToPick=[], InputRootDir, _InputEntries, _ReferenceRootDir,
+				   ReferenceEntries, _TargetDir, _PickChoices, _Count,
+				   _TotalContentCount, _UserState ) ->
+
+	% Input tree shall be now void of content and thus removed:
+	file_utils:remove_file( get_cache_path_for( InputRootDir ) ),
+	file_utils:remove_empty_tree( InputRootDir ),
+
+	ReferenceEntries;
+
+cherry_pick_files( _ToPick=[ _SHA1 | T ], InputRootDir, InputEntries,
+				   ReferenceRootDir, ReferenceEntries, TargetDir, PickChoices,
+				   Count, TotalContentCount, UserState ) ->
+
+	throw( todo_cherry_pick ),
+
+	cherry_pick_files( T, InputRootDir, InputEntries,
+					   ReferenceRootDir, ReferenceEntries, TargetDir,
+					   PickChoices, Count, TotalContentCount, UserState ).
+
+
+
+% Deletes all specified content.
+%
+% Does it on a per-content basic rather than doing nothing before the input tree
+% is removed as whole, as more control is preferred (to check the final input
+% tree has been indeed emptied of all content).
+%
+-spec delete_content_to_merge( [ sha1() ], directory_path(), sha1_table(),
+						user_state() ) -> sha1_table().
+delete_content_to_merge( ToDelete, InputRootDir, InputEntries, _UserState ) ->
+
+	Paths = [ begin
+				  FileData = table:get_value( SHA1, InputEntries ),
+				  file_utils:join( InputRootDir, FileData#file_data.path )
+			  end || SHA1 <- ToDelete ],
+
+	file_utils:remove_files( [ get_cache_path_for( InputRootDir ) | Paths ] ),
+
+	% Shall be now void of content:
+	file_utils:remove_empty_tree( InputRootDir ).
+
 
 
 
@@ -982,7 +1213,6 @@ create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
 
 	check_tree_path_exists( AbsTreePath ),
 
-	io:format( "Z10" ),
 	trace( "Creating merge cache file '~s'.", [ CacheFilename ], UserState ),
 
 	MergeFile = file_utils:open( CacheFilename,
@@ -1552,11 +1782,11 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 	FullLabel = Label ++ DuplicateString,
 
-	Choices = [ { 'keep', "Keep only one of these files" },
-				{ 'elect', "Elect a reference file, replacing each other by "
+	Choices = [ { keep, "Keep only one of these files" },
+				{ elect, "Elect a reference file, replacing each other by "
 				  "a symbolic link pointing to it" },
-				{ 'leave', "Leave them as they are" },
-				{ 'abort', "Abort" } ],
+				{ leave, "Leave them as they are" },
+				{ abort, "Abort" } ],
 
 	SelectedChoice = ui:choose_designated_item(
 					   text_utils:format( "~s~nChoices are:", [ FullLabel ] ),
@@ -1619,8 +1849,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 % Returns the file_data record in the specified list that corresponds to the
 % specified path.
 %
--spec find_data_entry_for( file_path(), [ file_data() ] ) ->
-								 file_data().
+-spec find_data_entry_for( file_path(), [ file_data() ] ) -> file_data().
 find_data_entry_for( FilePath, _FileEntries=[] ) ->
 	throw( { not_found, FilePath } );
 
@@ -1641,7 +1870,7 @@ find_data_entry_for( FilePath, _FileEntries=[ _FD | T ] ) ->
 					 directory_path(), user_state() ) -> bin_file_path().
 keep_only_one( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
 
-	ui:set_setting( 'title',
+	ui:set_setting( title,
 					_Title="Selecting the unique reference version to keep, "
 					"whereas the others are to be removed" ),
 
@@ -1661,7 +1890,7 @@ keep_only_one( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
 
 	KeptIndex = ui:choose_numbered_item( Label, _Choices=TrimmedPaths ),
 
-	ui:unset_setting( 'title' ),
+	ui:unset_setting( title ),
 
 	{ KeptFilePath, ToRemovePaths } =
 		list_utils:extract_element_at( PathStrings, KeptIndex ),
@@ -1690,7 +1919,7 @@ keep_only_one( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
 					  directory_path(), user_state() ) -> bin_file_path().
 elect_and_link( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
 
-	ui:set_setting( 'title', _Title="Selecting the unique version to elect "
+	ui:set_setting( title, _Title="Selecting the unique version to elect "
 					"as a reference, whereas the others will be replaced "
 					"by symbolic links pointing to it" ),
 
@@ -1709,7 +1938,7 @@ elect_and_link( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
 
 	ElectedIndex = ui:choose_numbered_item( Label, _Choices=TrimmedPaths ),
 
-	ui:unset_setting( 'title' ),
+	ui:unset_setting( title ),
 
 	{ ElectedFilePath, FutureLinkPaths } =
 		list_utils:extract_element_at( PathStrings, ElectedIndex ),
@@ -1742,8 +1971,8 @@ create_links_to( TargetFilePath, _LinkPaths= [ Link | T ], RootDir ) ->
 
 	LinkDir = filename:dirname( Link ),
 
-	RelativeTargetFilePath = file_utils:make_relative( TargetFilePath,
-													   LinkDir ),
+	RelativeTargetFilePath =
+		file_utils:make_relative( TargetFilePath, LinkDir ),
 
 	file_utils:create_link( RelativeTargetFilePath,
 							file_utils:join( RootDir, Link ) ),
@@ -1768,8 +1997,8 @@ quick_cache_check( CacheFilename, ContentFiles, TreePath ) ->
 									  FileInfos );
 
 		_Other ->
-			trace_utils:warning_fmt( "Invalid cache file '~s', removing it"
-									 " and recreating it.", [ CacheFilename ] ),
+			trace_utils:warning_fmt( "Invalid cache file '~s', removing it "
+									 "and recreating it.", [ CacheFilename ] ),
 			file_utils:remove_file( CacheFilename ),
 			undefined
 

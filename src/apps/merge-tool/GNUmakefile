@@ -41,7 +41,7 @@ test-extra-scan: pre-test run-test-tree post-test
 
 
 test-uniquify: pre-test make-test-trees
-	@$(MERGE_SCRIPT) --uniquify $(TEST_CONTENT_TREE) --use-ui-backend $(UI_BACKEND) $(MAKE) -s post-test
+	@$(MERGE_SCRIPT) --uniquify $(TEST_CONTENT_TREE) --use-ui-backend $(UI_BACKEND) ; $(MAKE) -s post-test
 
 
 test-merge: pre-test make-test-trees
