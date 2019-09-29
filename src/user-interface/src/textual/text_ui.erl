@@ -123,7 +123,7 @@
 %
 -type channel() :: io:device().
 
--define( error_prefix, "~n [error] " ).
+-define( error_prefix, "~n[error] " ).
 -define( error_suffix, "~n" ).
 
 
@@ -809,7 +809,9 @@ display_helper( Channel, FormatString, Values ) ->
 
 	end,
 
-	io:format( Channel, FormatString ++ "~n", Values ).
+	% Otherwise, at least in some cases, '~n' can be literally output:
+	String = text_utils:format( FormatString ++ "~n", Values ),
+	io:format( Channel, String, [] ).
 
 
 
