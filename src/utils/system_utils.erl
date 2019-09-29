@@ -541,8 +541,8 @@ run_executable( Command, Environment, MaybeWorkingDir ) ->
 run_executable( Command, Environment, MaybeWorkingDir, PortOptions ) ->
 
 	%trace_utils:debug_fmt( "Running executable: '~s' with "
-	%    "~s from working directory '~s', with options ~w.",
-	%    [ Command, environment_to_string( Environment ), MaybeWorkingDir,
+	%	"~s from working directory '~s', with options ~w.",
+	%	[ Command, environment_to_string( Environment ), MaybeWorkingDir,
 	%	  PortOptions ] ),
 
 	PortOptsWithEnv = [ { env, Environment } | PortOptions ],
