@@ -77,11 +77,14 @@
 		  remove_file/1, remove_file_if_existing/1,
 		  remove_files/1, remove_files_if_existing/1,
 
-		  remove_empty_directory/1, remove_empty_path/1, remove_directory/1,
+		  remove_empty_directory/1, remove_empty_path/1, remove_empty_tree/1,
+		  remove_directory/1,
 
 		  copy_file/2, copy_file_if_existing/2, copy_file_in/2,
 
 		  rename/2, move_file/2, create_link/2,
+
+		  get_non_clashing_entry_name_from/1,
 
 		  append_file/2, change_permissions/2,
 
@@ -1536,25 +1539,6 @@ create_directory( Dirname, create_parents ) ->
 
 
 
-% Creates specified directory (but not any parents), if not already existing.
-%
-% Throws an exception if the operation fails.
-%
--spec create_directory_if_not_existing( directory_name() ) -> void().
-create_directory_if_not_existing( Dirname ) ->
-
-	case is_existing_directory( Dirname ) of
-
-		true ->
-			ok;
-
-		false ->
-			create_directory( Dirname )
-
-	end.
-
-
-
 % (helper)
 create_dir_elem( _Elems=[], _Prefix ) ->
 	ok;
@@ -1573,6 +1557,25 @@ create_dir_elem( _Elems=[ H | T ], Prefix ) ->
 
 	end,
 	create_dir_elem( T, NewPrefix ).
+
+
+
+% Creates specified directory (but not any parents), if not already existing.
+%
+% Throws an exception if the operation fails.
+%
+-spec create_directory_if_not_existing( directory_name() ) -> void().
+create_directory_if_not_existing( Dirname ) ->
+
+	case is_existing_directory( Dirname ) of
+
+		true ->
+			ok;
+
+		false ->
+			create_directory( Dirname )
+
+	end.
 
 
 
@@ -1658,55 +1661,130 @@ remove_files_if_existing( FilenameList ) ->
 % Removes specified directory, which must be empty (so: behaves mostly like
 % the 'rmdir' shell command).
 %
--spec remove_empty_directory( any_directory_name() ) -> void().
-remove_empty_directory( DirectoryName ) ->
+-spec remove_empty_directory( any_directory_path() ) -> void().
+remove_empty_directory( DirectoryPath ) ->
 
 	%trace_utils:warning_fmt( "## Removing empty directory '~s'.",
-	%                         [ DirectoryName ] ),
+	%                         [ DirectoryPath ] ),
 
-	case file:del_dir( DirectoryName ) of
+	case file:del_dir( DirectoryPath ) of
 
 		ok ->
 			ok;
 
 		{ error, Reason } ->
 			% Probably not so empty:
-			throw( { remove_empty_directory_failed, Reason, DirectoryName } )
+			throw( { remove_empty_directory_failed, Reason, DirectoryPath } )
 
 	end.
 
 
 
 % Removes all (supposedly) empty directories pertaining to the specified local,
-% relative path, i.e. this path (ex: a/b/c) and all its ancestors (hence a/b and
-% a are - if empty - removed as well); so behaves mostly like the 'rmdir
-% --parents' shell command.
+% relative directory path, i.e. this path (ex: a/b/c) and all its ancestors
+% (hence a/b and a are - if empty - removed as well, and none of their possible
+% siblings of course); so behaves mostly like the 'rmdir --parents' shell
+% command.
 %
--spec remove_empty_path( any_directory_name() ) -> void().
-remove_empty_path( DirectoryName ) ->
+% Note: does not remove an (empty) tree, just a given directory and its local
+% ancestors.
+%
+-spec remove_empty_path( any_directory_path() ) -> void().
+remove_empty_path( DirectoryPath ) ->
 
-	%trace_utils:warning_fmt( "## Removing empty path '~s'.",
-	%                         [ DirectoryName ] ),
+	%trace_utils:warning_fmt( "## Removing empty directory '~s'.",
+	%                         [ DirectoryPath ] ),
 
-	remove_empty_path_helper( DirectoryName ).
+	remove_empty_path_helper( DirectoryPath ).
 
 
 % (helper)
-remove_empty_path_helper( _DirectoryName="." ) ->
+remove_empty_path_helper( _DirectoryPath="." ) ->
 	ok;
 
-remove_empty_path_helper( DirectoryName ) ->
-	remove_empty_directory( DirectoryName ),
-	remove_empty_path_helper( filename:dirname( DirectoryName ) ).
+remove_empty_path_helper( DirectoryPath ) ->
+	remove_empty_directory( DirectoryPath ),
+	remove_empty_path_helper( filename:dirname( DirectoryPath ) ).
+
+
+
+% Removes all (supposedly) empty directories found from specified directory,
+% expected to be the root of a tree that contains only (possibly nested)
+% directories (and no other kind of filesystem entry).
+%
+-spec remove_empty_tree( any_directory_path() ) -> void().
+remove_empty_tree( DirectoryPath ) ->
+
+	%trace_utils:warning_fmt( "## Removing empty tree '~s'.",
+	%						 [ DirectoryPath ] ),
+
+	% For clarity:
+	case is_existing_directory( DirectoryPath ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { directory_not_found, DirectoryPath } )
+
+	end,
+
+	{ RegularFiles, Symlinks, Directories, OtherFiles, Devices } =
+		list_dir_elements( DirectoryPath ),
+
+	case RegularFiles of
+
+		[] ->
+			ok;
+
+		_ ->
+			throw( { regular_files_found, RegularFiles } )
+
+	end,
+
+	case Symlinks of
+
+		[] ->
+			ok;
+
+		_ ->
+			throw( { symbolic_links_found, Symlinks } )
+
+	end,
+
+	case OtherFiles of
+
+		[] ->
+			ok;
+
+		_ ->
+			throw( { other_files_found, OtherFiles } )
+
+	end,
+
+	case Devices of
+
+		[] ->
+			ok;
+
+		_ ->
+			throw( { devices_found, Devices } )
+
+	end,
+
+	[ remove_empty_tree( join( DirectoryPath, D ) ) || D <- Directories ],
+
+	% Now an empty directory, so:
+	remove_directory( DirectoryPath ).
 
 
 
 % Removes specified (possibly non-empty) directory as a whole, recursively (so:
 % behaves mostly like the 'rm -rf ' shell command; of course to use with care).
 %
-% Note that if any usual file entry is found in the tree (ex: device or file
+% Note that if any unusual file entry is found in the tree (ex: device or file
 % that is neither regular nor a symbolic link), the operation will stop on error
-% (whereas elements may alredy have been removed).
+% (whereas elements may already have been removed).
 %
 -spec remove_directory( any_directory_name() ) -> void().
 remove_directory( DirectoryName ) ->
@@ -1727,8 +1805,8 @@ remove_directory( DirectoryName ) ->
 			ok;
 
 		_ ->
-			trace_utils:error_fmt( "Not removing directory '~s', as it "
-							   "contains device entries: ~p.", [ Devices ] ),
+			trace_utils:error_fmt( "Interrupting removal of directory '~s', as "
+						   "device entries have been found: ~p.", [ Devices ] ),
 
 			throw( { device_entries_found, Devices } )
 
@@ -1740,8 +1818,9 @@ remove_directory( DirectoryName ) ->
 			ok;
 
 		_ ->
-			trace_utils:error_fmt( "Not removing directory '~s', as it "
-			   "contains unexpected filesystem entries: ~p.", [ OtherFiles ] ),
+			trace_utils:error_fmt( "Interrupting removal of directory '~s', as "
+						"unexpected filesystem entries have been found: ~p.",
+						[ OtherFiles ] ),
 
 			throw( { unexpected_entries_found, OtherFiles } )
 
@@ -1835,14 +1914,20 @@ copy_file_if_existing( SourceFilename, DestinationFilename ) ->
 
 
 % Renames specified file.
--spec rename( file_name(), file_name() ) -> void().
+%
+% Returns, for convenience, the new name.
+%
+-spec rename( file_name(), file_name() ) -> file_name().
 rename( SourceFilename, DestinationFilename ) ->
 	move_file( SourceFilename, DestinationFilename ).
 
 
 
 % Moves specified file so that it is now designated by specified filename.
--spec move_file( file_name(), file_name() ) -> void().
+%
+% Returns, for convenience, the new name.
+%
+-spec move_file( file_name(), file_name() ) -> file_name().
 move_file( SourceFilename, DestinationFilename ) ->
 
 	%trace_utils:warning_fmt( "## Moving file '~s' to '~s'.",
@@ -1855,10 +1940,10 @@ move_file( SourceFilename, DestinationFilename ) ->
 	case file:rename( SourceFilename, DestinationFilename ) of
 
 		ok ->
-			ok;
+			DestinationFilename;
 
 		Error ->
-			throw( { move_file_failed, Error,  SourceFilename,
+			throw( { move_file_failed, Error, SourceFilename,
 					 DestinationFilename } )
 
 	end.
@@ -1882,6 +1967,49 @@ create_link( TargetPath, LinkName ) ->
 		{ error, Reason } ->
 			throw( { link_creation_failed, { target, TargetPath },
 					 { link, LinkName }, Reason } )
+
+	end.
+
+
+
+% Returns a path deriving from specified one so that it does not clash with any
+% pre-existing entry.
+%
+-spec get_non_clashing_entry_name_from( path() ) -> path().
+get_non_clashing_entry_name_from( Path ) ->
+
+	% Ex:
+	% - if "aaa/bbb/foobar.txt" is specified, returns "aaa/bbb/foobar.txt-1"
+	% - if "aaa/bbb/foobar.txt-4" is specified, returns "aaa/bbb/foobar.txt-5"
+
+	case exists( Path ) of
+
+		true ->
+			case string:split( Path, _SearchPattern="-", _Where=trailing ) of
+
+				[ _Path ] ->
+					text_utils:format( "~s-1", [ Path ] );
+
+				[ BasePath, FinalPart ] ->
+					case text_utils:try_string_to_integer( FinalPart ) of
+
+						undefined ->
+							text_utils:format( "~s-1", [ Path ] );
+
+						Count ->
+							TestedPath = text_utils:format( "~s-~B",
+														[ BasePath, Count+1 ] ),
+
+							% As clashes may happen for any name:
+							get_non_clashing_entry_name_from( TestedPath )
+
+
+				end
+
+			end;
+
+		false ->
+			Path
 
 	end.
 
@@ -2251,7 +2379,10 @@ convert( Filename, Prefix ) ->
 
 
 % Removes all upper levels of a path (absolute or not), as well as the extension
-% of the resulting file name:
+% of the resulting file name.
+%
+% Ex: "foobar" =
+%           file_utils:remove_upper_levels_and_extension( "aa/bb/foobar.txt" ).
 %
 remove_upper_levels_and_extension( FilePath ) ->
 
