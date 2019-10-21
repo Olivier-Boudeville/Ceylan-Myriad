@@ -22,52 +22,54 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Creation date: Thursday, April 30, 2015
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: Thursday, April 30, 2015.
 
 
 
 % Minor utilities to manage pairs (2-element tuples).
-%
 -module(pair).
 
--export([ first/1, second/1, swap/1, to_list/1 ]).
+-export([ first/1, second/1, swap/1, to_list/1, to_string/1 ]).
 
 -compile( { inline, [ first/1, second/1, swap/1 ] } ).
 
 
+-type element() :: any().
 
--type pair() :: { any(), any() }.
+-type pair() :: { element(), element() }.
 
 -export_type([ pair/0 ]).
 
 
-% Returns the first element of specified pair.
-%
--spec first( pair() ) -> pair().
+% Returns the first element of the specified pair.
+-spec first( pair() ) -> element().
 first( { X, _Y } ) ->
 	X.
 
 
 
-% Returns the second element of specified pair.
-%
--spec second( pair() ) -> pair().
+% Returns the second element of the specified pair.
+-spec second( pair() ) -> element().
 second( { _X, Y } ) ->
 	Y.
 
 
 
 % Returns a pair whose elements have been swapped compared to specified one.
-%
 -spec swap( pair() ) -> pair().
 swap( { X, Y } ) ->
 	{ Y, X }.
 
 
 
-% Returns a list of two elements corresponding to specified pair.
-%
--spec to_list( pair() ) -> list().
+% Returns a list of two elements corresponding to the specified pair.
+-spec to_list( pair() ) -> [ element() ].
 to_list( { F, S } ) ->
 	[ F, S ].
+
+
+% Returns a textual description of the specified pair.
+-spec to_string( pair() ) -> text_utils:ustring().
+to_string( { X, Y } ) ->
+	text_utils:format( "{ ~p, ~p }", [ X, Y ] ).

@@ -1,6 +1,8 @@
 #!/usr/bin/env escript
 %% -*- erlang -*-
-%%! -pz ../../..
+
+
+%% Not used: ! -pz ../../../src/utils
 
 % Additionally: this escript will only work when run from its current
 % directory...

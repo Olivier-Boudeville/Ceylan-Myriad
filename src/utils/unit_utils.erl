@@ -120,6 +120,9 @@
 -type any_seconds() :: seconds() | float_seconds().
 
 
+% Square seconds (s^2):
+-type square_seconds() :: float().
+
 
 -type millisecond()  :: integer().
 -type milliseconds() :: integer().
@@ -134,6 +137,9 @@
 % Microsecond in the second:
 -type canonical_microsecond() :: 0..999999.
 
+
+% Mean Time To Failure:
+-type mttf() :: time_utils:dhms_duration().
 
 
 % Frequency:
@@ -156,10 +162,10 @@
 			   minute/0, minutes/0, canonical_minute/0,
 			   second/0, seconds/0, canonical_second/0,
 			   float_second/0, float_seconds/0,
-			   any_second/0, any_seconds/0,
+			   any_second/0, any_seconds/0, square_seconds/0,
 			   millisecond/0, milliseconds/0, canonical_millisecond/0,
 			   microsecond/0,microseconds/0, canonical_microsecond/0,
-			   hertz/0, time_reference_unit/0, time_units/0 ]).
+			   mttf/0, hertz/0, time_reference_unit/0, time_units/0 ]).
 
 
 

@@ -303,7 +303,11 @@
 		   % The (ordered) list of variable definitions (ex: [ { var, Line, 'X'
 		   % } ]) of this type:
 		   %
-		   variables = [] :: [ ast_type:ast_variable_pattern() ],
+		   % Note: set purposedly not to an empty list by default (to convey a
+		   % different meaning)
+		   %
+		   variables = undefined ::
+			 basic_utils:maybe( [ ast_type:ast_variable_pattern() ] ),
 
 
 		   % Tells whether this type is defined as opaque:

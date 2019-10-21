@@ -676,6 +676,13 @@ check_type( TypeId, _TypeInfo=#type_info{ line=Line, definition=[] },
 
 check_type( _TypeId={ Name, Arity },
 			_TypeInfo=#type_info{ line=Line, name=Name,
+								  variables=undefined },
+			Filename ) ->
+	ast_utils:raise_usage_error( "type ~s/~B is exported yet not defined.",
+				[ Name, Arity ], Filename, Line );
+
+check_type( _TypeId={ Name, Arity },
+			_TypeInfo=#type_info{ line=Line, name=Name,
 								  variables=TypeVars },
 			Filename ) ->
 

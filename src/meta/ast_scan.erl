@@ -989,8 +989,8 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 
 		% Usual case:
 		key_not_found ->
-			%ast_utils:display_debug( "New type '~s' defined as:~n~p",
-			%						 [ TypeName, TypeDef ] ),
+			%ast_utils:display_debug( "New type '~s' defined (at line #~p) "
+			%						  "as:~n~p", [ TypeName, Line, TypeDef ] ),
 			#type_info{ name=TypeName,
 						variables=TypeVariables,
 						opaque=IsOpaque,

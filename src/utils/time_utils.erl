@@ -76,7 +76,12 @@
 				  unit_utils:canonical_second() }.
 
 
--export_type([ day_index/0, week_day/0, date/0, time/0 ]).
+% Day/Hour/Minute/Second duration, for example used with MTTF:
+-type dhms_duration() :: { unit_utils:days(), unit_utils:hours(),
+						   unit_utils:minutes(), unit_utils:seconds() }.
+
+
+-export_type([ day_index/0, week_day/0, date/0, time/0, dhms_duration/0 ]).
 
 
 % Basics:
@@ -85,7 +90,7 @@
 
 % For rough, averaged conversions:
 -export([ years_to_seconds/1, months_to_seconds/1, weeks_to_seconds/1,
-		  days_to_seconds/1, hours_to_seconds/1 ]).
+		  days_to_seconds/1, hours_to_seconds/1, dhms_to_seconds/1 ]).
 
 
 % Time-related section.
@@ -105,6 +110,7 @@
 		  get_textual_timestamp_for_path/0, get_textual_timestamp_for_path/1,
 		  get_textual_timestamp_with_dashes/1,
 		  timestamp_to_string/1, string_to_timestamp/1,
+		  dhms_to_string/1,
 		  get_duration/1, get_duration/2,
 		  get_duration_since/1, get_textual_duration/2,
 		  get_precise_timestamp/0, get_precise_duration/2,
@@ -419,6 +425,12 @@ hours_to_seconds( HourDuration ) ->
 	HourDuration * 3600.
 
 
+% Converts a duration in Days/Hours/Minutes/Seconds into a duration in seconds.
+-spec dhms_to_seconds( time_utils:dhms_duration() ) -> unit_utils:seconds().
+dhms_to_seconds( { Days, Hours, Minutes, Seconds } ) ->
+	Seconds + 60 * ( Minutes + 60 * ( Hours + 24 * Days ) ).
+
+
 
 % Time section.
 
@@ -461,7 +473,7 @@ get_timestamp() ->
 % Note that the display order here is YY-MM-DD (same as when specifying the
 % timestamp), as opposed to DD-MM-YY, which is maybe more usual.
 %
--spec get_textual_timestamp() -> string().
+-spec get_textual_timestamp() -> text_utils:ustring().
 get_textual_timestamp() ->
 	get_textual_timestamp( get_timestamp() ).
 
@@ -469,7 +481,7 @@ get_textual_timestamp() ->
 % Returns a string corresponding to the specified timestamp, like:
 % "2009/9/1 11:46:53".
 %
--spec get_textual_timestamp( timestamp() ) -> string().
+-spec get_textual_timestamp( timestamp() ) -> text_utils:ustring().
 get_textual_timestamp( { { Year, Month, Day }, { Hour, Minute, Second } } ) ->
 	io_lib:format( "~B/~B/~B ~B:~2..0B:~2..0B",
 				   [ Year, Month, Day, Hour, Minute, Second ] ).
@@ -478,10 +490,33 @@ get_textual_timestamp( { { Year, Month, Day }, { Hour, Minute, Second } } ) ->
 % Returns a string corresponding to the specified timestamp expressed in French,
 % like: "le 1/9/2009/9/1, à 11h46m53".
 %
--spec get_french_textual_timestamp( timestamp() ) -> string().
-get_french_textual_timestamp( { { Year, Month, Day }, { Hour, Minute, Second } } ) ->
-	io_lib:format( "le ~B/~B/~B, à ~Bh~2..0Bm~2..0Bs",
-				   [ Day, Month, Year, Hour, Minute, Second ] ).
+-spec get_french_textual_timestamp( timestamp() ) -> text_utils:ustring().
+get_french_textual_timestamp( { { Year, Month, Day },
+								{ Hour, Minute, Second } } ) ->
+
+	%trace_utils:debug_fmt( "le ~B/~B/~B, à ~Bh~2..0Bm~2..0Bs",
+	%					   [ Day, Month, Year, Hour, Minute, Second ] ),
+
+	case Second of
+
+		0 ->
+			case Minute of
+
+				0 ->
+					io_lib:format( "le ~B/~B/~B, à ~Bh",
+								   [ Day, Month, Year, Hour ] );
+
+				_ ->
+					io_lib:format( "le ~B/~B/~B, à ~Bh~2..0B",
+								   [ Day, Month, Year, Hour, Minute ] )
+
+				end;
+
+		_ ->
+			io_lib:format( "le ~B/~B/~B, à ~Bh~2..0Bm~2..0Bs",
+						   [ Day, Month, Year, Hour, Minute, Second ] )
+
+	end.
 
 
 
@@ -547,6 +582,13 @@ string_to_timestamp( TimestampString ) ->
 			throw( { timestamp_parsing_failed, TimestampString } )
 
 	end.
+
+
+
+% Returns a textual description of specified DHMS-based duration.
+-spec dhms_to_string( dhms_duration() ) -> text_utils:ustring().
+dhms_to_string( DHMS ) ->
+	text_utils:duration_to_string( 1000 * dhms_to_seconds( DHMS ) ).
 
 
 

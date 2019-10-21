@@ -10,4 +10,4 @@
 # To debug:
 #make -s generate_password_exec CMD_LINE_OPT="-extra $*"
 
-cd ${CEYLAN_MYRIAD}/src/apps/generate-password && generate-password.escript $*
+cd ${CEYLAN_MYRIAD} && make -s all 1>/dev/null && cd src/apps/generate-password && generate-password.escript $*
