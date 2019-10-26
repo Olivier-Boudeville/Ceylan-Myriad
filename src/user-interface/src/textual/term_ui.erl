@@ -203,13 +203,14 @@
 % 'rangebox' dialog:
 
 
-
-
 % Also useful:
 %
 % - 'dialog --print-maxsize' (ex: MaxSize: 35, 123)
 % - 'dialog --clear'
 
+
+% The temporary file needed to collect the outputs of some backend operations:
+-define( temp_file, "/tmp/.myriad.term_ui.tmp" ).
 
 
 % Basic UI operations.
@@ -229,6 +230,12 @@
 
 		  add_separation/0,
 
+		  get_text/1, get_text/2,
+		  get_text_as_integer/1, get_text_as_integer/2,
+		  get_text_as_maybe_integer/1, get_text_as_maybe_integer/2,
+		  read_text_as_integer/1, read_text_as_integer/2,
+		  read_text_as_maybe_integer/1, read_text_as_maybe_integer/2,
+
 		  ask_yes_no/2, ask_yes_no/3,
 
 		  choose_designated_item/1, choose_designated_item/2,
@@ -245,6 +252,7 @@
 		  set_settings/1, set_settings/2,
 
 		  unset_setting/1, unset_setting/2,
+		  unset_settings/1, unset_settings/2,
 
 		  get_setting/1,
 
@@ -412,7 +420,7 @@ start_helper( SingleElem, UIState ) ->
 init_state_with_dimensions( Tool=dialog, DialogPath ) ->
 
 	Cmd = text_utils:join( _Sep=" ", [ DialogPath, "--print-maxsize",
-									   get_redirect_string() ] ),
+									   get_redirect_string_for_code() ] ),
 
 	%trace_utils:debug_fmt( "Command: '~s'.", [ Cmd ] ),
 
@@ -505,7 +513,7 @@ display( Text ) ->
 	%trace_utils:debug_fmt( "Dialog path: '~s'.", [ ToolPath ] ),
 
 
-	{ SettingString, SuffixString } = get_dialog_settings( SettingTable ),
+	{ SettingString, SuffixString } = get_dialog_settings_for_return_code( SettingTable ),
 
 	%trace_utils:debug_fmt( "Setting string: '~s'.", [ SettingString ] ),
 	%trace_utils:debug_fmt( "Suffix string: '~s'.", [ SuffixString ] ),
@@ -570,9 +578,9 @@ display_error( Text ) ->
 	%trace_utils:debug_fmt( "Dialog path: '~s'.", [ ToolPath ] ),
 
 	ErrorSettingTable = ?ui_table:add_entry( 'title', ?red"Error"?normal,
-											SettingTable ),
+											 SettingTable ),
 
-	{ SettingString, SuffixString } = get_dialog_settings( ErrorSettingTable ),
+	{ SettingString, SuffixString } = get_dialog_settings_for_return_code( ErrorSettingTable ),
 
 	%trace_utils:debug_fmt( "Setting string: '~s'.", [ SettingString ] ),
 	%trace_utils:debug_fmt( "Suffix string: '~s'.", [ SuffixString ] ),
@@ -581,9 +589,9 @@ display_error( Text ) ->
 	%OKLabel = "--ok-label '"?red" Abort "?normal"'",
 	OKLabel = "--ok-label 'Abort'",
 
-	DialogString = "--colors " ++ OKLabel ++ text_utils:format(
-											   " --msgbox \"~s\" ~s",
-											   [ EscapedText, SuffixString ] ),
+	DialogString = "--colors " ++ OKLabel
+		++ text_utils:format( " --msgbox \"~s\" ~s",
+							  [ EscapedText, SuffixString ] ),
 
 	Cmd = text_utils:join( _Sep=" ",
 						   [ ToolPath, SettingString, DialogString ] ),
@@ -622,10 +630,210 @@ display_error_numbered_list( Label, Lines ) ->
 
 
 % Adds a default separation between previous and next content.
+%
+% Note: meaningless for this backend.
+%
 -spec add_separation() -> void().
 add_separation() ->
 	% Could be a clear.
 	ok.
+
+
+
+% Returns the user-entered text, based on an implicit state.
+%
+% (const)
+%
+-spec get_text( prompt() ) -> text().
+get_text( Prompt ) ->
+	get_text( Prompt, _UIState=get_state() ).
+
+
+% Returns the user-entered text, based on an explicit state.
+%
+% (const)
+%
+-spec get_text( prompt(), ui_state() ) -> text().
+get_text( Prompt,
+		  %_UIState ) ->
+		  #term_ui_state{ dialog_tool_path=ToolPath,
+						  settings=SettingTable } ) ->
+
+	% Ex: dialog --backtitle "AA" --inputbox "Enter your name:" 8 40 2>
+	% foobar.txt
+
+	% Single quotes induce no specific issues (as are enclosed in double ones)
+	EscapedPrompt = text_utils:escape_double_quotes( Prompt ),
+
+	{ SettingString, SuffixString } =
+		get_dialog_settings_for_file_return( SettingTable ),
+
+	DialogString = text_utils:format( "--inputbox \"~s\" ~s",
+									  [ EscapedPrompt, SuffixString ] ),
+
+	CmdStrings = [ ToolPath, SettingString, DialogString ],
+
+	%trace_utils:debug_fmt( "CmdStrings = ~p", [ CmdStrings ] ),
+
+	Cmd = text_utils:join( _Sep=" ", CmdStrings ),
+
+	{ Env, PortOpts } = get_execution_settings(),
+
+	Read = case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
+											 PortOpts ) of
+
+		{ _ExitStatus=0, Result } ->
+			trace_utils:debug_fmt( "Result = ~p", [ Result ] ),
+			TmpFilename = ?temp_file,
+			case file_utils:is_existing_file( TmpFilename ) of
+
+				true ->
+					BinContent = file_utils:read_whole( TmpFilename ),
+					trace_utils:debug_fmt( "Content = ~p", [ BinContent ] ),
+					text_utils:binary_to_string( BinContent );
+
+				false ->
+					throw( { term_ui_temp_file_not_found, TmpFilename } )
+
+			end;
+
+		{ ExitStatus, Output } ->
+			throw( { get_text_failed, ExitStatus, Output } )
+
+	end,
+
+	trace_utils:debug_fmt( "get_text/2 read: '~p'.", [ Read ] ),
+
+	text_utils:remove_ending_carriage_return( Read ).
+
+
+
+% Returns the user-entered text, once translated to an integer, based on an
+% implicit state.
+%
+% (const)
+%
+-spec get_text_as_integer( prompt(), ui_state() ) -> text().
+get_text_as_integer( Prompt ) ->
+	get_text_as_integer( Prompt, _UIState=get_state() ).
+
+
+% Returns the user-entered text, once translated to an integer, based on an
+% explicit state.
+%
+% (const)
+%
+-spec get_text_as_integer( prompt(), ui_state() ) -> text().
+get_text_as_integer( Prompt, UIState ) ->
+
+	Text = get_text( Prompt, UIState ),
+
+	text_utils:string_to_integer( Text ).
+
+
+
+% Returns the user-entered text, once translated to an integer, based on an
+% implicit state, prompting the user until a valid input is obtained.
+%
+% (const)
+%
+-spec read_text_as_integer( prompt() ) -> text().
+read_text_as_integer( Prompt ) ->
+	read_text_as_integer( Prompt, _UIState=get_state() ).
+
+
+% Returns the user-entered text, once translated to an integer, based on an
+% explicit state, prompting the user until a valid input is obtained.
+%
+% (const)
+%
+-spec read_text_as_integer( prompt(), ui_state() ) -> text().
+read_text_as_integer( Prompt, UIState ) ->
+
+	Text = get_text( Prompt, UIState ),
+
+	case text_utils:try_string_to_integer( Text ) of
+
+		undefined ->
+			%trace_utils:debug_fmt( "(rejected: '~s')", [ Text ] ),
+			read_text_as_integer( Prompt, UIState );
+
+		I ->
+			I
+
+	end.
+
+
+
+% Returns the user-entered text (if any) after specified prompt, once translated
+% to (possibly) an integer, based on an implicit state.
+%
+% (const)
+%
+-spec get_text_as_maybe_integer( prompt() ) -> maybe( text() ).
+get_text_as_maybe_integer( Prompt ) ->
+	get_text_as_maybe_integer( Prompt, _UIState=get_state() ).
+
+
+% Returns the user-entered text (if any) after specified prompt, once translated
+% to (possibly) an integer, based on an explicit state.
+%
+% (const)
+%
+-spec get_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( text() ).
+get_text_as_maybe_integer( Prompt, UIState ) ->
+
+	case get_text( Prompt, UIState ) of
+
+		"" ->
+			undefined;
+
+		Text ->
+			text_utils:string_to_integer( Text )
+
+	end.
+
+
+
+% Returns the user-entered text after specified prompt, once translated to an
+% integer, prompting the user until a valid input is obtained: either a string
+% that resolves to an integer (then returned), or an empty string (then
+% returning 'undefined'), based on an implicit state.
+%
+% (const)
+%
+-spec read_text_as_maybe_integer( prompt() ) -> maybe( text() ).
+read_text_as_maybe_integer( Prompt ) ->
+	read_text_as_maybe_integer( Prompt, _UIState=get_state() ).
+
+
+% Returns the user-entered text after specified prompt, once translated to an
+% integer, prompting the user until a valid input is obtained: either a string
+% that resolves to an integer (then returned), or an empty string (then
+% returning 'undefined'), based on an explicit state.
+%
+% (const)
+%
+-spec read_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( text() ).
+read_text_as_maybe_integer( Prompt, UIState ) ->
+
+	case get_text( Prompt, UIState ) of
+
+		"" ->
+			undefined;
+
+		Text ->
+			case text_utils:try_string_to_integer( Text ) of
+
+				undefined ->
+					read_text_as_integer( Prompt, UIState );
+
+				I ->
+					I
+
+			end
+
+	end.
 
 
 
@@ -661,7 +869,8 @@ ask_yes_no( Prompt, BinaryDefault, #term_ui_state{ dialog_tool_path=ToolPath,
 
 	end,
 
-	{ SettingString, SuffixString } = get_dialog_settings( SettingTable ),
+	{ SettingString, SuffixString } =
+		get_dialog_settings_for_return_code( SettingTable ),
 
 	DialogString = text_utils:format( "~s --yesno \"~s\" ~s",
 						  [ DefaultChoiceOpt, EscapedPrompt, SuffixString ] ),
@@ -747,13 +956,14 @@ choose_designated_item( Label, Choices,
 							  _Acc0=[],
 							  _List=NumChoices ),
 
-	{ SettingString, _SuffixString } = get_dialog_settings( SettingTable ),
+	{ SettingString, _SuffixString } =
+		get_dialog_settings_for_return_code( SettingTable ),
 
 	AutoSizeString = "0 0",
 
 	DialogStrings = [ "--menu", "\"" ++ Label ++ "\"", AutoSizeString,
-			  _MenuHeight=text_utils:integer_to_string( ChoiceCount )
-			  | lists:reverse( [ get_redirect_string() | NumStrings ] ) ],
+	  _MenuHeight=text_utils:integer_to_string( ChoiceCount )
+		 | lists:reverse( [ get_redirect_string_for_code() | NumStrings ] ) ],
 
 	CmdStrings = [ ToolPath, SettingString | DialogStrings ],
 
@@ -1065,11 +1275,37 @@ get_state() ->
 
 
 % Returns the command-line options corresponding to specified table: a settings
-% string, a suffix string (dealing with size and redirection).
+% string, a suffix string (dealing with size and redirection for an output
+% returned as a return code).
 %
--spec get_dialog_settings( setting_table() ) ->
+-spec get_dialog_settings_for_return_code( setting_table() ) ->
 				  { text_utils:ustring(), text_utils:ustring() }.
-get_dialog_settings( SettingTable ) ->
+get_dialog_settings_for_return_code( SettingTable ) ->
+
+	{ SettingsString, SuffixString } = get_dialog_base_settings( SettingTable ),
+
+	{ SettingsString, text_utils:format( "~s ~s",
+					   [ SuffixString, get_redirect_string_for_code() ] ) }.
+
+
+
+% Returns the command-line options corresponding to specified table: a settings
+% string, a suffix string (dealing with size and redirection for an output
+% returned as a temporary file).
+%
+-spec get_dialog_settings_for_file_return( setting_table() ) ->
+				  { text_utils:ustring(), text_utils:ustring() }.
+get_dialog_settings_for_file_return( SettingTable ) ->
+
+	{ SettingsString, SuffixString } = get_dialog_base_settings( SettingTable ),
+
+	{ SettingsString, text_utils:format( "~s ~s",
+					   [ SuffixString, get_redirect_string_for_file() ] ) }.
+
+
+
+% Returns the base settings for dialog, expected redirection.
+get_dialog_base_settings( SettingTable ) ->
 
 	TitleOpt = case ?ui_table:get_value_with_defaults( 'title',
 								   _Default=undefined, SettingTable ) of
@@ -1109,27 +1345,35 @@ get_dialog_settings( SettingTable ) ->
 	Height = 0,
 	Width = 0,
 
-
-	SuffixString = text_utils:format( "~B ~B ~s",
-								  [ Height, Width, get_redirect_string() ] ),
+	SuffixString = text_utils:format( "~B ~B", [ Height, Width ] ),
 
 	{ SettingsString, SuffixString }.
 
 
 
-% Returns a string to be used fir I/O redirection in an execution command.
--spec get_redirect_string() -> text_utils:ustring().
-get_redirect_string() ->
+% Returns a string to be used for I/O redirection in an execution command
+% relying on exit statuses (hence only for a single positive integer output).
+%
+-spec get_redirect_string_for_code() -> text_utils:ustring().
+get_redirect_string_for_code() ->
 	% As 'nouse_stdio' will be needed:
 	"2>&4".
 
 
+% Returns a string to be used for I/O redirection in an execution command
+% relying on a temporary file (hence for any kind of outputs).
+%
+get_redirect_string_for_file() ->
+	"2> " ++ ?temp_file.
+
+
 
 % Returns the settings suitable for an execution of the backend.
--spec get_execution_settings() -> { system_utils:environment(),
-									[ system_utils:port_option() ] }.
+-spec get_execution_settings() ->
+		  { system_utils:environment(),	[ system_utils:port_option() ] }.
 get_execution_settings() ->
 
+	% Results in having LANG=C:
 	Env = system_utils:get_standard_environment(),
 
 	% Finding this combination was really not obvious:
@@ -1188,14 +1432,32 @@ unset_setting( SettingKey ) ->
 	set_state( NewUIState ).
 
 
+% Unsets specified settings, in the (implicit) UI state.
+-spec unset_settings( [ ui_setting_key() ] ) -> void().
+unset_settings( SettingKeys ) ->
+	NewUIState = unset_settings( SettingKeys, get_state() ),
+	set_state( NewUIState ).
+
+
 
 % Unsets specified setting, in the specified UI state.
--spec unset_setting( ui_setting_key(), ui_state()) -> void().
+-spec unset_setting( ui_setting_key(), ui_state() ) -> void().
 unset_setting( SettingKey,
 			   UIState=#term_ui_state{ settings=SettingTable } ) ->
 
 	NewSettingTable = ?ui_table:add_entry( SettingKey, _SettingValue=undefined,
-										  SettingTable ),
+										   SettingTable ),
+
+	UIState#term_ui_state{ settings=NewSettingTable }.
+
+
+% Unsets specified settings, in the specified UI state.
+-spec unset_settings( [ ui_setting_key() ], ui_state() ) -> void().
+unset_settings( SettingKeys,
+				UIState=#term_ui_state{ settings=SettingTable } ) ->
+
+	NewEntries = [ { S, undefined } || S <- SettingKeys ],
+	NewSettingTable = ?ui_table:add_entries( NewEntries, SettingTable ),
 
 	UIState#term_ui_state{ settings=NewSettingTable }.
 
@@ -1236,7 +1498,7 @@ to_string( #term_ui_state{ %state_filename=StateFilename,
 						   locale=Locale,
 						   log_console=LogConsole,
 						   log_file=LogFile,
-						   settings=SettingTable }) ->
+						   settings=SettingTable } ) ->
 
 	DialogString = text_utils:format( "~s (found in '~s')",
 									  [ DialogTool, DialogToolPath ] ),

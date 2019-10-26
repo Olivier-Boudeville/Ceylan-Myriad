@@ -36,6 +36,59 @@
 -include("test_facilities.hrl").
 
 
+% For an easier disabling:
+-export([ test_basic_message_display/0, test_user_entry/0 ]).
+
+
+% Test of the display of a basic display.
+-spec test_basic_message_display() -> void().
+test_basic_message_display() ->
+
+	ui:set_settings( [ { title,
+		"This is a title about the display of a basic message." },
+					   { backtitle,
+		"This is a back-title about the display of a basic message." } ] ),
+
+	Message = "It has been a long time, dear master.",
+
+	ui:display( "The UI service greets you.~n~s", [ Message ] ),
+
+	ui:unset_settings( [ title, backtitle ] ).
+
+
+
+% Test of the facilities regarding user entry.
+-spec test_user_entry() -> void().
+test_user_entry() ->
+
+	ui:set_settings( [ { title,
+		"This is a title about the support of user input." },
+					   { backtitle,
+		"This is a back-title about the support of user input." } ] ),
+
+	Lower = 10,
+	Upper = 42,
+
+	Prompt = text_utils:format( "Please enter an integer between ~B and ~B "
+								"(bounds included): ", [ Lower, Upper ] ),
+
+	case ui:read_text_as_maybe_integer( Prompt ) of
+
+		undefined ->
+			ui:display_error( "Invalid value entered, please retry." ),
+			test_user_entry();
+
+		V when V >= Lower andalso V =< Upper ->
+			ui:display( "Congratulation, you entered a correct value: ~B",
+						[ V ] );
+
+		V ->
+			ui:display_error( "Sorry, ~B is not between ~B and ~B.",
+							  [ V, Lower, Upper ] ),
+			test_user_entry()
+
+	end.
+
 
 % The actual test:
 run_test_ui() ->
@@ -44,7 +97,9 @@ run_test_ui() ->
 
 	ui:start(),
 
-	ui:display( "The UI service greets you." ),
+	test_basic_message_display(),
+   
+    test_user_entry(),
 
 	ui:stop().
 

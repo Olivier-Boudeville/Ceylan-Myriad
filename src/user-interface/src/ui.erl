@@ -46,8 +46,8 @@
 % By default, this module will do its best to select the most suitable backend,
 % i.e. the most advanced among the available ones.
 %
-% One may select, from the command-line, a specific backend thanks to the
-% following option: --use-ui-backend BACKEND_NAME, where BACKEND_NAME is the
+% One may instead select, from the command-line, a specific backend thanks to
+% the following option: --use-ui-backend BACKEND_NAME, where BACKEND_NAME is the
 % name of the associated backend (ex: text_ui, term_ui or gui).
 %
 % For example: make ui_run CMD_LINE_OPT="--use-ui-backend text_ui"
@@ -61,6 +61,8 @@
 
 
 % Usage conventions:
+
+% Now all user interfaces proceed based on screens.
 
 % read_* primitives will loop until having a satisfactory entry specified,
 % whereas their get_* counterparts will try only once.
@@ -78,7 +80,7 @@
 % Implementation notes:
 %
 % Each backend is to store its current state into a specific state record (ex:
-% of type term_ui_state()), kept under a separate, backend-specific key (see
+% of type term_ui_state() ), kept under a separate, backend-specific key (see
 % ui_name_key) in the process dictionary.
 %
 % Among the fields of these backend records, one is the settings table (see the
@@ -115,8 +117,11 @@
 
 		  add_separation/0,
 
-		  get_text/2, get_text_as_integer/2, get_text_as_maybe_integer/2,
-		  read_text_as_integer/2, read_text_as_maybe_integer/2,
+		  get_text/1, get_text/2,
+		  get_text_as_integer/1, get_text_as_integer/2,
+		  get_text_as_maybe_integer/1, get_text_as_maybe_integer/2,
+		  read_text_as_integer/1, read_text_as_integer/2,
+		  read_text_as_maybe_integer/1, read_text_as_maybe_integer/2,
 
 		  ask_yes_no/2,
 
@@ -134,6 +139,8 @@
 		  set_settings/1, set_settings/2,
 
 		  unset_setting/1, unset_setting/2,
+		  unset_settings/1, unset_settings/2,
+
 		  get_setting/1 ]).
 
 
@@ -143,7 +150,7 @@
 		  settings_to_string/1 ]).
 
 
-% Typically text_ui_state() | term_ui_state() | guiçstate() | ...
+% Typically text_ui_state() | term_ui_state() | gui_state() | ...
 -type ui_state() :: any().
 
 
@@ -357,8 +364,20 @@ add_separation() ->
 
 
 
-
 % Returns the user-entered text after specified prompt, based on an implicit
+% state.
+%
+% (const)
+%
+-spec get_text( prompt() ) -> text().
+get_text( Prompt ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:get_text( Prompt ).
+
+
+% Returns the user-entered text after specified prompt, based on an explicit
 % state.
 %
 % (const)
@@ -377,6 +396,19 @@ get_text( Prompt, UIState ) ->
 %
 % (const)
 %
+-spec get_text_as_integer( prompt() ) -> text().
+get_text_as_integer( Prompt ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:get_text_as_integer( Prompt ).
+
+
+% Returns the user-entered text after specified prompt, once translated to an
+% integer, based on an explicit state.
+%
+% (const)
+%
 -spec get_text_as_integer( prompt(), ui_state() ) -> text().
 get_text_as_integer( Prompt, UIState ) ->
 
@@ -392,6 +424,20 @@ get_text_as_integer( Prompt, UIState ) ->
 %
 % (const)
 %
+-spec read_text_as_integer( prompt() ) -> text().
+read_text_as_integer( Prompt ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:read_text_as_integer( Prompt ).
+
+
+% Returns the user-entered text after specified prompt, once translated to an
+% integer, based on an explicit state, prompting the user until a valid input is
+% obtained.
+%
+% (const)
+%
 -spec read_text_as_integer( prompt(), ui_state() ) -> text().
 read_text_as_integer( Prompt, UIState ) ->
 
@@ -402,7 +448,21 @@ read_text_as_integer( Prompt, UIState ) ->
 
 
 % Returns the user-entered text (if any) after specified prompt, once translated
-% to (possibly) an integer.
+% to (possibly) an integer, based on an implicit state.
+%
+% (const)
+%
+-spec get_text_as_maybe_integer( prompt() ) -> maybe( text() ).
+get_text_as_maybe_integer( Prompt ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:get_text_as_maybe_integer( Prompt ).
+
+
+
+% Returns the user-entered text (if any) after specified prompt, once translated
+% to (possibly) an integer, based on an explicit state.
 %
 % (const)
 %
@@ -418,7 +478,22 @@ get_text_as_maybe_integer( Prompt, UIState ) ->
 % Returns the user-entered text after specified prompt, once translated to an
 % integer, prompting the user until a valid input is obtained: either a string
 % that resolves to an integer (then returned), or an empty string (then
-% returning 'undefined').
+% returning 'undefined'), based on an implicit state.
+%
+% (const)
+%
+-spec read_text_as_maybe_integer( prompt() ) -> maybe( text() ).
+read_text_as_maybe_integer( Prompt ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:read_text_as_maybe_integer( Prompt ).
+
+
+% Returns the user-entered text after specified prompt, once translated to an
+% integer, prompting the user until a valid input is obtained: either a string
+% that resolves to an integer (then returned), or an empty string (then
+% returning 'undefined'), based on an explicit state.
 %
 % (const)
 %
@@ -636,13 +711,34 @@ unset_setting( SettingKey ) ->
 
 
 
+% Unsets the specified settings, in the (implicit) UI state.
+-spec unset_settings( [ ui_setting_key() ] ) -> void().
+unset_settings( SettingKeys ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:unset_settings( SettingKeys ).
+
+
+
 % Unsets the specified setting, in the specified UI state.
--spec unset_setting( ui_setting_key() , ui_state()) -> void().
+-spec unset_setting( ui_setting_key(), ui_state() ) -> void().
 unset_setting( SettingKey, UIState ) ->
 
 	UIModule = get_backend_name(),
 
 	UIModule:unset_setting( SettingKey, UIState ).
+
+
+% Unsets the specified settings, in the specified UI state.
+-spec unset_settings( [ ui_setting_key() ], ui_state() ) -> void().
+unset_settings( SettingKeys, UIState ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:unset_settings( SettingKeys, UIState ).
+
+
 
 
 

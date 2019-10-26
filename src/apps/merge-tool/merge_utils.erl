@@ -421,7 +421,7 @@ stop_on_option_error( Message, ErrorCode ) ->
 				  tree_data().
 scan( TreePath, AnalyzerRing, UserState ) ->
 
-	trace_utils:debug_fmt( "Requested to scan '~s'.", [ TreePath ] ),
+	%trace_utils:debug_fmt( "Requested to scan '~s'.", [ TreePath ] ),
 
 	AbsTreePath = file_utils:ensure_path_is_absolute( TreePath ),
 
@@ -436,7 +436,7 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 		true ->
 
 			Label = text_utils:format( "A cache file already exists for '~s'. "
-										"We can:", [ TreePath ] ),
+									   "We can:", [ TreePath ] ),
 
 			% No 'strong_check' deemed useful (synonym of recreating from
 			% scratch, hence of 'ignore').
@@ -1542,6 +1542,7 @@ analyze_loop() ->
 	end.
 
 
+
 % Interacts with the user so that the specified tree can be deduplicated.
 -spec deduplicate_tree( tree_data(), user_state() ) -> tree_data().
 deduplicate_tree( TreeData=#tree_data{ root=RootDir,
@@ -1550,6 +1551,7 @@ deduplicate_tree( TreeData=#tree_data{ root=RootDir,
 
 	DuplicateCount = FileCount - table:size( EntryTable ),
 
+	% Actual deduplication:
 	{ NewEntryTable, RemovedDuplicateCount } =
 		manage_duplicates( EntryTable, RootDir, UserState ),
 
@@ -1747,6 +1749,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 	Title = text_utils:format( "Examining duplication case ~B/~B",
 							   [ DuplicationCaseCount, TotalDupCaseCount ] ),
+	trace_utils:trace_fmt( "New title shall : ~s", [ Title ] ),
 
 	ui:set_setting( 'title', Title ),
 

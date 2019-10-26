@@ -28,7 +28,7 @@
 
 
 % This is the most basic, line-based monochrome textual interface, directly in
-% raw text with no cursor control.
+% raw text, with no cursor control.
 %
 % See:
 % - text_ui_test.erl for the corresponding test
@@ -68,8 +68,11 @@
 
 		  add_separation/0,
 
-		  get_text/2, get_text_as_integer/2, get_text_as_maybe_integer/2,
-		  read_text_as_integer/2,
+		  get_text/1, get_text/2,
+		  get_text_as_integer/1, get_text_as_integer/2,
+		  get_text_as_maybe_integer/1, get_text_as_maybe_integer/2,
+		  read_text_as_integer/1, read_text_as_integer/2,
+		  read_text_as_maybe_integer/1, read_text_as_maybe_integer/2,
 
 		  choose_designated_item/1, choose_designated_item/2,
 		  choose_designated_item/3,
@@ -85,6 +88,7 @@
 		  set_settings/1, set_settings/2,
 
 		  unset_setting/1, unset_setting/2,
+		  unset_settings/1, unset_settings/2,
 
 		  get_setting/1,
 
@@ -277,14 +281,25 @@ display_error_numbered_list( Label, Lines ) ->
 
 
 % Adds a default separation between previous and next content.
+%
+% Note: shall not be used, as cannot apply to all backends.
+%
 -spec add_separation() -> void().
 add_separation() ->
 	display( _Text="" ).
 
 
 
+% Returns the user-entered text, based on an implicit state.
+%
+% (const)
+%
+-spec get_text( prompt() ) -> text().
+get_text( Prompt ) ->
+	get_text( Prompt, _UIState=get_state() ).
 
-% Returns the user-entered text.
+
+% Returns the user-entered text, based on an explicit state.
 %
 % (const)
 %
@@ -312,6 +327,16 @@ get_text( Prompt,
 % (const)
 %
 -spec get_text_as_integer( prompt(), ui_state() ) -> text().
+get_text_as_integer( Prompt ) ->
+	get_text_as_integer( Prompt, _UIState=get_state() ).
+
+
+% Returns the user-entered text, once translated to an integer, based on an
+% explicit state.
+%
+% (const)
+%
+-spec get_text_as_integer( prompt(), ui_state() ) -> text().
 get_text_as_integer( Prompt, UIState ) ->
 
 	Text = get_text( Prompt, UIState ),
@@ -322,6 +347,16 @@ get_text_as_integer( Prompt, UIState ) ->
 
 % Returns the user-entered text, once translated to an integer, based on an
 % implicit state, prompting the user until a valid input is obtained.
+%
+% (const)
+%
+-spec read_text_as_integer( prompt() ) -> text().
+read_text_as_integer( Prompt ) ->
+	read_text_as_integer( Prompt, _UIState=get_state() ).
+
+
+% Returns the user-entered text, once translated to an integer, based on an
+% explicit state, prompting the user until a valid input is obtained.
 %
 % (const)
 %
@@ -343,7 +378,18 @@ read_text_as_integer( Prompt, UIState ) ->
 
 
 
-% Returns the user-entered text (if any), once translated to an integer.
+% Returns the user-entered text (if any) after specified prompt, once translated
+% to (possibly) an integer, based on an implicit state.
+%
+% (const)
+%
+-spec get_text_as_maybe_integer( prompt() ) -> maybe( text() ).
+get_text_as_maybe_integer( Prompt ) ->
+	get_text_as_maybe_integer( Prompt, _UIState=get_state() ).
+
+
+% Returns the user-entered text (if any) after specified prompt, once translated
+% to (possibly) an integer, based on an explicit state.
 %
 % (const)
 %
@@ -362,9 +408,22 @@ get_text_as_maybe_integer( Prompt, UIState ) ->
 
 
 
-% Returns the user-entered text, once translated to an integer, prompting the
-% user until a valid input is obtained: either a string that resolves to an
-% (then returned) integer, or an empty string (then returning 'undefined').
+% Returns the user-entered text after specified prompt, once translated to an
+% integer, prompting the user until a valid input is obtained: either a string
+% that resolves to an integer (then returned), or an empty string (then
+% returning 'undefined'), based on an implicit state.
+%
+% (const)
+%
+-spec read_text_as_maybe_integer( prompt() ) -> maybe( text() ).
+read_text_as_maybe_integer( Prompt ) ->
+	read_text_as_maybe_integer( Prompt, _UIState=get_state() ).
+
+
+% Returns the user-entered text after specified prompt, once translated to an
+% integer, prompting the user until a valid input is obtained: either a string
+% that resolves to an integer (then returned), or an empty string (then
+% returning 'undefined'), based on an explicit state.
 %
 % (const)
 %
@@ -862,14 +921,33 @@ unset_setting( SettingKey ) ->
 	set_state( NewUIState ).
 
 
+% Unsets specified settings, in the (implicit) UI state.
+-spec unset_settings( [ ui_setting_key() ] ) -> void().
+unset_settings( SettingKeys ) ->
+	NewUIState = unset_settings( SettingKeys, get_state() ),
+	set_state( NewUIState ).
+
+
 
 % Unsets specified setting, in the specified UI state.
--spec unset_setting( ui_setting_key(), ui_state()) -> void().
+-spec unset_setting( ui_setting_key(), ui_state() ) -> void().
 unset_setting( SettingKey,
 			   UIState=#text_ui_state{ settings=SettingTable } ) ->
 
 	NewSettingTable = ?ui_table:add_entry( SettingKey, _SettingValue=undefined,
 										   SettingTable ),
+
+	UIState#text_ui_state{ settings=NewSettingTable }.
+
+
+
+% Unsets specified settings, in the specified UI state.
+-spec unset_settings( [ ui_setting_key() ], ui_state() ) -> void().
+unset_settings( SettingKeys,
+				UIState=#text_ui_state{ settings=SettingTable } ) ->
+
+	NewEntries = [ { S, undefined } || S <- SettingKeys ],
+	NewSettingTable = ?ui_table:add_entries( NewEntries, SettingTable ),
 
 	UIState#text_ui_state{ settings=NewSettingTable }.
 
