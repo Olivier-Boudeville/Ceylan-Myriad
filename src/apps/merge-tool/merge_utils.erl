@@ -648,7 +648,10 @@ merge( InputTreePath, ReferenceTreePath ) ->
 	stop_user_service( UserState ).
 
 
-% Merges the specified input tree into the reference one.
+
+% Merges the specified input tree into the reference one, returning the latter
+% once updated.
+%
 -spec merge_trees( tree_data(), tree_data(), user_state() ) -> tree_data().
 merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 									entries=InputEntries },
@@ -661,8 +664,8 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 
 	LackingInRefSet = set_utils:difference( InputSHA1Set, ReferenceSHA1Set ),
 
-	ui:set_setting( 'backtitle', text_utils:format( "Merging in ~s",
-													[ ReferenceRootDir ] ) ),
+	ui:set_setting( 'backtitle',
+			text_utils:format( "Merging in ~s", [ ReferenceRootDir ] ) ),
 
 	ToMerge = set_utils:to_list( LackingInRefSet ),
 
@@ -677,8 +680,9 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 						"removing directly the input tree.",
 						[ InputRootDir, ReferenceRootDir ] ),
 
-			%trace_utils:warning_fmt( "Removing recursively directory '~s'.",
-			%						 [ InputRootDir ] );
+			trace_debug( "Removing recursively directory '~s'.",
+						 [ InputRootDir ], UserState ),
+
 			file_utils:remove_directory( InputRootDir ),
 			ReferenceTree;
 
@@ -740,9 +744,7 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 move_content_to_merge( _ToMove=[], InputRootDir, InputEntries,
 				_ReferenceRootDir, ReferenceEntries, _TargetDir, _UserState ) ->
 
-	% Removing the content that does not have been moved (hence shall be
-	% deleted):
-	%
+	% Removing the content that has not been moved (hence shall be deleted):
 	file_utils:remove_files( list_utils:flatten_once( [
 		  [ file_utils:join( InputRootDir, FD#file_data.path ) || FD <- FDL ]
 							  || FDL <- table:values( InputEntries ) ] ) ),
@@ -756,9 +758,7 @@ move_content_to_merge( _ToMove=[], InputRootDir, InputEntries,
 move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 				ReferenceRootDir, ReferenceEntries, TargetDir, UserState ) ->
 
-	% Single element, as expected to be uniquified:
-	{ FileDatas, NewInputEntries } =
-		table:extract_entry( SHA1, InputEntries ),
+	{ FileDatas, NewInputEntries } = table:extract_entry( SHA1, InputEntries ),
 
 	ElectedFileData = case FileDatas of
 
@@ -786,18 +786,18 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 
 			end,
 
-			{ Selected, Others } = list_utils:extract_element_at( FileDatas,
-																  Index ),
-				ToRemove = [ file_utils:join( InputRootDir,
-							   FD#file_data.path ) || FD <- Others ],
+			{ Selected, Others } =
+					list_utils:extract_element_at( FileDatas, Index ),
 
-				file_utils:remove_files( ToRemove ),
+			ToRemove = [ file_utils:join( InputRootDir, FD#file_data.path )
+						 || FD <- Others ],
 
-				trace_utils:trace_fmt( "Removed ~B file(s): ~s",
-					   [ length( ToRemove ),
-						 text_utils:strings_to_string( ToRemove ) ] ),
+			file_utils:remove_files( ToRemove ),
 
-				Selected
+			trace_debug( "Removed ~B file(s): ~s", [ length( ToRemove ),
+				text_utils:strings_to_string( ToRemove ) ], UserState ),
+
+			Selected
 
 	end,
 
@@ -808,17 +808,28 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 
 	SrcPath = file_utils:join( InputRootDir, RelPath ),
 
-	% We do not preserve the directory structure of the input tree; this may be
-	% wanted, though.
+	% We do our best to preserve the directory structure of the input tree in
+	% the reference one (clearer for the user and reducing the likeliness of
+	% clashes).
+
+	FullTargetDir = file_utils:join( TargetDir, filename:dirname( RelPath ) ),
+
+	file_utils:create_directory( FullTargetDir, create_parents ),
 
 	Filename = filename:basename( RelPath ),
-	TgtPath = file_utils:join( TargetDir, Filename ),
 
-	% As clashes may happen in the elected target directory:
+	TgtPath = file_utils:join( FullTargetDir, Filename ),
+
+	% As clashes could happen in the elected target directory:
 	NewPath = case file_utils:exists( TgtPath ) of
 
 		true ->
 			AutoPath = file_utils:get_non_clashing_entry_name_from( TgtPath ),
+
+			trace_debug( "Target path in reference tree ('~s'), is already "
+				"existing (as '~s'); moved file to be renamed to '~s'.",
+				[ SrcPath, TgtPath, AutoPath ], UserState ),
+
 			%Msg = text_utils:format( "When moving '~s' in the reference target"
 			%						 " directory ('~s'), an entry with that "
 			%						 "was found already existing.~n"
@@ -827,8 +838,8 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 			%						 [ Filename, TargetDir, AutoPath ] ),
 			%ui:ask_yes_no( "
 
-			% At least for the moment, we stick to auto-renaming only; returning
-			% the new path:
+			% At least for the moment, we stick to auto-renaming only (simpler);
+			% returning the new path:
 			%
 			file_utils:move_file( SrcPath, AutoPath );
 
@@ -837,7 +848,7 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 
 	end,
 
-	trace_utils:trace_fmt( "Moved '~s' to '~s'.", [ SrcPath, NewPath ] ),
+	trace_debug( "Moved '~s' to '~s'.", [ SrcPath, NewPath ], UserState ),
 
 	% Make the new path relative to the root of the reference tree (TargetDir
 	% being itself relative to it):
@@ -858,6 +869,7 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 			% To avoid any kind of discrepancy:
 			timestamp=file_utils:get_last_modification_time( NewPath ) },
 
+	% New content in reference:
 	NewReferenceEntries =
 		table:add_new_entry( SHA1, NewFileData, ReferenceEntries ),
 
