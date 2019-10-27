@@ -56,7 +56,7 @@
 -export([ get_element_at/2, insert_element_at/3, extract_element_at/2,
 		  remove_element_at/2, remove_last_element/1,
 		  get_last_element/1, extract_last_element/1,
-		  get_index_of/2, split_at/2, uniquify/1,
+		  get_index_of/2, get_maybe_index_of/2, split_at/2, uniquify/1,
 		  ensure_is_once_in/2,
 		  has_duplicates/1, get_duplicates/1, union/2, intersection/2,
 		  difference/2, cartesian_product/1,
@@ -367,24 +367,47 @@ extract_last_element( List ) ->
 
 
 % Returns the index, in [1..length(List)], of the (first occurrence of the)
-% specified element in the specified list. Throws an exception if the element is
-% not found.
+% specified element in the specified list.
+%
+% Throws an exception if the element is not found.
 %
 % Ex: 3 = get_index_of( bar, [ foo, ugh, bar, baz ] )
 %
 -spec get_index_of( element(), list() ) -> basic_utils:count().
 get_index_of( Element, List ) ->
-	get_index_of( Element, List, _Count=1 ).
+	case get_maybe_index_of( Element, List ) of
+
+		undefined ->
+			throw( { non_existing_element, Element } );
+
+		I ->
+			I
+
+	end.
 
 
-get_index_of( Element, _List=[], _Count ) ->
-	throw( { non_existing_element, Element } );
 
-get_index_of( Element, _List=[ Element | _T ], Count  ) ->
+% Returns the index, in [1..length(List)], of the (first occurrence of the)
+% specified element in the specified list, or 'undefined' if the element is not
+% found.
+%
+% Ex:
+%   3 = get_maybe_index_of( bar, [ foo, ugh, bar, baz ] )
+%   undefined = get_maybe_index_of( xxx, [ foo, ugh, bar, baz ] )
+%
+-spec get_maybe_index_of( element(), list() ) -> maybe( basic_utils:count() ).
+get_maybe_index_of( Element, List ) ->
+	get_maybe_index_of( Element, List, _Count=1 ).
+
+
+get_maybe_index_of( _Element, _List=[], _Count ) ->
+	undefined;
+
+get_maybe_index_of( Element, _List=[ Element | _T ], Count  ) ->
 	Count;
 
-get_index_of( Element, _List=[ _H | T ], Count ) ->
-	get_index_of( Element, T, Count + 1 ).
+get_maybe_index_of( Element, _List=[ _H | T ], Count ) ->
+	get_maybe_index_of( Element, T, Count + 1 ).
 
 
 
