@@ -312,7 +312,6 @@
 
 
 
-
 % The key used by this module to store its state in the process dictionaty:
 -define( state_key, term_ui_state ).
 
@@ -404,6 +403,10 @@ start_helper( _Options=[ { log_file, Filename } | T ], UIState ) ->
 	LogFile = file_utils:open( Filename, [ write, exclusive ] ),
 	file_utils:write( LogFile, "Starting term UI.\n" ),
 	NewUIState = UIState#term_ui_state{ log_file=LogFile },
+	start_helper( T, NewUIState );
+
+start_helper( _Options=[ log_console | T ], UIState ) ->
+	NewUIState = UIState#term_ui_state{ log_console=true },
 	start_helper( T, NewUIState );
 
 start_helper( UnexpectedList, _UIState ) when is_list( UnexpectedList ) ->
@@ -504,8 +507,8 @@ display( Text ) ->
 	% Single quotes induce no specific issues (as are enclosed in double ones)
 	EscapedText = text_utils:escape_double_quotes( Text ),
 
-	trace_utils:debug_fmt( "Original text: '~s'; once escaped: '~s'.",
-						   [ Text, EscapedText ] ),
+	%trace_utils:debug_fmt( "Original text: '~s'; once escaped: '~s'.",
+	%					   [ Text, EscapedText ] ),
 
 	#term_ui_state{ dialog_tool_path=ToolPath,
 					settings=SettingTable } = get_state(),
@@ -524,7 +527,7 @@ display( Text ) ->
 	Cmd = text_utils:join( _Sep=" ",
 						   [ ToolPath, SettingString, DialogString ] ),
 
-	trace_utils:debug_fmt( "term_ui display command: '~s'.", [ Cmd ] ),
+	%trace_utils:debug_fmt( "term_ui display command: '~s'.", [ Cmd ] ),
 
 	{ Env, PortOpts } = get_execution_settings(),
 
@@ -535,7 +538,7 @@ display( Text ) ->
 			ok;
 
 		{ _ExitStatus=0, Output } ->
-			trace_utils:debug_fmt( "Display output: '~s'.", [ Output ] );
+			trace_utils:warning_fmt( "Unexpected output: '~s'.", [ Output ] );
 
 		{ ExitStatus, Output } ->
 			throw( { display_error_reported, ExitStatus, Output } )
@@ -596,7 +599,7 @@ display_error( Text ) ->
 	Cmd = text_utils:join( _Sep=" ",
 						   [ ToolPath, SettingString, DialogString ] ),
 
-	trace_utils:debug_fmt( "term_ui display command: '~s'.", [ Cmd ] ),
+	%trace_utils:debug_fmt( "term_ui display command: '~s'.", [ Cmd ] ),
 
 	{ Env, PortOpts } = get_execution_settings(),
 
@@ -606,8 +609,8 @@ display_error( Text ) ->
 		{ _ExitStatus=0, _Output="" } ->
 			ok;
 
-		{ _ExitStatus=0, Output } ->
-			trace_utils:debug_fmt( "Display output: '~s'.", [ Output ] );
+		%{ _ExitStatus=0, Output } ->
+			%trace_utils:debug_fmt( "Display output: '~s'.", [ Output ] );
 
 		{ ExitStatus, Output } ->
 			throw( { display_error_reported, ExitStatus, Output } )
@@ -649,7 +652,8 @@ get_text( Prompt ) ->
 	get_text( Prompt, _UIState=get_state() ).
 
 
-% Returns the user-entered text, based on an explicit state.
+% Returns the user-entered text, based on an explicit state, or throws
+% operation_cancelled if the user preferred the cancel button.
 %
 % (const)
 %
@@ -682,14 +686,14 @@ get_text( Prompt,
 	Read = case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
 											 PortOpts ) of
 
-		{ _ExitStatus=0, Result } ->
-			trace_utils:debug_fmt( "Result = ~p", [ Result ] ),
+		{ _ExitStatus=0, _Result="" } ->
 			TmpFilename = ?temp_file,
 			case file_utils:is_existing_file( TmpFilename ) of
 
 				true ->
 					BinContent = file_utils:read_whole( TmpFilename ),
-					trace_utils:debug_fmt( "Content = ~p", [ BinContent ] ),
+					%trace_utils:debug_fmt( "Content = ~p", [ BinContent ] ),
+					file_utils:remove_file(TmpFilename ),
 					text_utils:binary_to_string( BinContent );
 
 				false ->
@@ -697,12 +701,18 @@ get_text( Prompt,
 
 			end;
 
+		{ _ExitStatus=0, Result } ->
+			throw( { unexpected_result, Result } );
+
+		{ _ExitStatus=1, _Output=[] } ->
+			throw( operation_cancelled );
+
 		{ ExitStatus, Output } ->
 			throw( { get_text_failed, ExitStatus, Output } )
 
 	end,
 
-	trace_utils:debug_fmt( "get_text/2 read: '~p'.", [ Read ] ),
+	%trace_utils:debug_fmt( "get_text/2 read: '~p'.", [ Read ] ),
 
 	text_utils:remove_ending_carriage_return( Read ).
 
@@ -756,6 +766,7 @@ read_text_as_integer( Prompt, UIState ) ->
 
 		undefined ->
 			%trace_utils:debug_fmt( "(rejected: '~s')", [ Text ] ),
+			display_error( "Invalid value specified (~p).", [ Text ] ),
 			read_text_as_integer( Prompt, UIState );
 
 		I ->
@@ -826,7 +837,7 @@ read_text_as_maybe_integer( Prompt, UIState ) ->
 			case text_utils:try_string_to_integer( Text ) of
 
 				undefined ->
-					read_text_as_integer( Prompt, UIState );
+					read_text_as_maybe_integer( Prompt, UIState );
 
 				I ->
 					I
@@ -902,13 +913,16 @@ ask_yes_no( Prompt, BinaryDefault, #term_ui_state{ dialog_tool_path=ToolPath,
 % Selects, using a default prompt, an item among the specified ones (comprising,
 % for each, an internal designator and a text), and returns its designator.
 %
+% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
+% cancel that operation.
+%
 % (const)
 %
 -spec choose_designated_item( [ choice_element() ] ) -> choice_designator().
 choose_designated_item( Choices ) ->
 
 	Label = text_utils:format( "Select among these ~B choices:",
-								[ length( Choices ) ] ),
+							   [ length( Choices ) + 1 ] ),
 
 	choose_designated_item( Label, Choices ).
 
@@ -916,6 +930,9 @@ choose_designated_item( Choices ) ->
 
 % Selects, using specified prompt, an item among the specified ones (comprising,
 % for each, an internal designator and a text), and returns its designator.
+%
+% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
+% cancel that operation.
 %
 % (const)
 %
@@ -930,6 +947,9 @@ choose_designated_item( Label, Choices ) ->
 % the specified ones (comprising, for each, an internal designator and a text),
 % and returns its designator.
 %
+% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
+% cancel that operation.
+%
 % (const)
 %
 -spec choose_designated_item( label(), [ choice_element() ], ui_state() ) ->
@@ -941,6 +961,16 @@ choose_designated_item( Label, Choices,
 	% Ex: dialog --menu "Hello" 0 0 0 1 One 2 Two 3 Three
 
 	{ Designators, Texts } = lists:unzip( Choices ),
+
+	case lists:member( ui_cancel, Designators ) of
+
+		true ->
+			throw( { disallowed_choice_designator, ui_cancel } );
+
+		false ->
+			ok
+
+	end,
 
 	ChoiceCount = length( Choices ),
 
@@ -980,6 +1010,9 @@ choose_designated_item( Label, Choices,
 			ChosenNum = text_utils:string_to_integer( Result ),
 			list_utils:get_element_at( Designators, ChosenNum );
 
+		{ _ExitStatus=1, _Output=[] } ->
+			ui_cancel;
+
 		{ ExitStatus, Output } ->
 			throw( { choice_failed, ExitStatus, Output } )
 
@@ -990,6 +1023,9 @@ choose_designated_item( Label, Choices,
 % Selects, based on an implicit state, using a default label, an item among the
 % specified ones (specified as direct text, with no specific designator
 % provided), and returns its index.
+%
+% Note that index zero can also be returned, corresponding to the 'ui_cancel'
+% atom, should the user prefer to cancel that operation.
 %
 -spec choose_numbered_item( [ choice_text() ] ) ->  choice_index().
 choose_numbered_item( Choices ) ->
@@ -1023,6 +1059,9 @@ choose_numbered_item( Label, Choices ) ->
 % the specified ones (specified as direct text, with no specific designator
 % provided), and returns its index.
 %
+% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
+% cancel that operation.
+%
 -spec choose_numbered_item( label(), [ choice_text() ], ui_state() ) ->
 								  choice_index().
 choose_numbered_item( Label, Choices, UIState ) ->
@@ -1036,13 +1075,24 @@ choose_numbered_item( Label, Choices, UIState ) ->
 	%
 	ChoiceElements = lists:zip( lists:seq( 1, length( Choices ) ), Choices ),
 
-	choose_designated_item( Label, ChoiceElements, UIState ).
+	case choose_designated_item( Label, ChoiceElements, UIState ) of
+
+		ui_cancel ->
+			0;
+
+		D ->
+			D
+
+	end.
 
 
 
 
 % Selects, based on an implicit state, using a default label, an item among the
 % specified ones, and returns its index.
+%
+% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
+% cancel that operation.
 %
 -spec choose_numbered_item_with_default( [ choice_element() ],
 										 choice_index() ) -> choice_index().
@@ -1058,6 +1108,9 @@ choose_numbered_item_with_default( Choices, DefaultChoiceIndex ) ->
 %
 % Selects, based on an implicit state, using the specified label and default
 % item, an item among the specified ones, and returns its index.
+%
+% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
+% cancel that operation.
 %
 -spec choose_numbered_item_with_default( [ choice_element() ], choice_index(),
 										 ui_state() ) -> choice_index();
@@ -1082,6 +1135,9 @@ choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex ) ->
 % Selects, based on an explicit state, using the specified label and default
 % item, an item among the specified ones (specified as direct text, with no
 % specific designator provided), and returns its index.
+%
+% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
+% cancel that operation.
 %
 -spec choose_numbered_item_with_default( label(), [ choice_element() ],
 			maybe( choice_index() ), ui_state() ) -> choice_index().
@@ -1119,7 +1175,7 @@ trace( Message, UIState ) when is_record( UIState, term_ui_state ) ->
 	case UIState#term_ui_state.log_console of
 
 		true ->
-			text_ui:display( TraceMessage );
+			trace_utils:trace( TraceMessage );
 
 		false ->
 			ok
@@ -1370,7 +1426,7 @@ get_redirect_string_for_file() ->
 
 % Returns the settings suitable for an execution of the backend.
 -spec get_execution_settings() ->
-		  { system_utils:environment(),	[ system_utils:port_option() ] }.
+		  { system_utils:environment(), [ system_utils:port_option() ] }.
 get_execution_settings() ->
 
 	% Results in having LANG=C:
