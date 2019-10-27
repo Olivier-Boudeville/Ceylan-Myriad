@@ -108,7 +108,8 @@
 		   log_console = false :: boolean(),
 		   log_file = undefined :: maybe( file_utils:file() ),
 
-		   settings :: setting_table() }).
+		   settings :: setting_table() } ).
+
 
 -type ui_state() :: #text_ui_state{}.
 
@@ -363,6 +364,8 @@ read_text_as_integer( Prompt ) ->
 -spec read_text_as_integer( prompt(), ui_state() ) -> text().
 read_text_as_integer( Prompt, UIState ) ->
 
+	display( _Text="" ),
+
 	Text = get_text( Prompt, UIState ),
 
 	case text_utils:try_string_to_integer( Text ) of
@@ -453,6 +456,9 @@ read_text_as_maybe_integer( Prompt, UIState ) ->
 % Selects, using a default prompt, an item among the specified ones, and returns
 % its designator.
 %
+% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
+% cancel that operation.
+%
 % (const)
 %
 -spec choose_designated_item( [ choice_element() ] ) -> choice_designator().
@@ -468,6 +474,9 @@ choose_designated_item( Choices ) ->
 % Selects, using specified prompt, an item among the specified ones, and returns
 % its designator.
 %
+% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
+% cancel that operation.
+%
 % (const)
 %
 choose_designated_item( Label, Choices ) ->
@@ -478,6 +487,9 @@ choose_designated_item( Label, Choices ) ->
 % Selects, based on an explicit state, using the specified label, an item among
 % the specified ones, and returns its designator.
 %
+% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
+% cancel that operation.
+%
 % (const)
 %
 -spec choose_designated_item( label(), [ choice_element() ], ui_state() ) ->
@@ -486,7 +498,18 @@ choose_designated_item( Label, Choices, UIState ) ->
 
 	%trace_utils:debug_fmt( "Choices = ~p", [ Choices ] ),
 
+
 	{ Designators, Texts } = lists:unzip( Choices ),
+
+	case lists:member( ui_cancel, Designators ) of
+
+		true ->
+			throw( { disallowed_choice_designator, ui_cancel } );
+
+		false ->
+			ok
+
+	end,
 
 	ChoiceCount = length( Choices ),
 
@@ -540,6 +563,9 @@ choose_designated_item( Label, Choices, UIState ) ->
 % Selects, based on an implicit state, using a default label, an item among the
 % specified ones, and returns its index.
 %
+% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
+% cancel that operation.
+%
 -spec choose_numbered_item( [ choice_element() ] ) ->  choice_index().
 choose_numbered_item( Choices ) ->
 	choose_numbered_item( Choices, get_state() ).
@@ -550,6 +576,9 @@ choose_numbered_item( Choices ) ->
 %
 % Selects, based on an implicit state, using the specified label, an item among
 % the specified ones, and returns its index.
+%
+% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
+% cancel that operation.
 %
 -spec choose_numbered_item( [ choice_element() ], ui_state() ) ->
 								  choice_index();
@@ -569,6 +598,9 @@ choose_numbered_item( Label, Choices ) ->
 
 % Selects, based on an explicit state, using the specified label, an item among
 % the specified ones, and returns its index.
+%
+% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
+% cancel that operation.
 %
 -spec choose_numbered_item( label(), [ choice_element() ], ui_state() ) ->
 								  choice_index().
@@ -624,6 +656,9 @@ choose_numbered_item( Label, Choices, UIState ) ->
 % Selects, based on an implicit state, using a default label, an item among the
 % specified ones, and returns its index.
 %
+% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
+% cancel that operation.
+%
 -spec choose_numbered_item_with_default( [ choice_element() ],
 										 choice_index() ) -> choice_index().
 choose_numbered_item_with_default( Choices, DefaultChoiceIndex ) ->
@@ -638,6 +673,9 @@ choose_numbered_item_with_default( Choices, DefaultChoiceIndex ) ->
 % Selects, based on an implicit state, using the specified label and default
 % item, an item among the specified ones, and returns its index.
 %
+% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
+% cancel that operation.
+%
 -spec choose_numbered_item_with_default( [ choice_element() ], choice_index(),
 										 ui_state() ) -> choice_index();
 									   ( label(), [ choice_element() ],
@@ -647,7 +685,7 @@ choose_numbered_item_with_default( Choices, DefaultChoiceIndex, UIState )
   when is_record( UIState, text_ui_state ) ->
 
 	Label = text_utils:format( "Select among these ~B choices:",
-								[ length( Choices ) ] ),
+							   [ length( Choices ) ] ),
 
 	choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
 									   UIState );
@@ -660,6 +698,9 @@ choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex ) ->
 
 % Selects, based on an explicit state, using the specified label and default
 % item, an item among the specified ones, and returns its index.
+%
+% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
+% cancel that operation.
 %
 -spec choose_numbered_item_with_default( label(), [ choice_element() ],
 			maybe( choice_index() ), ui_state() ) -> choice_index().
@@ -889,7 +930,7 @@ set_setting( SettingKey, SettingValue,
 			 UIState=#text_ui_state{ settings=SettingTable } ) ->
 
 	NewSettingTable = ?ui_table:add_entry( SettingKey, SettingValue,
-										  SettingTable ),
+										   SettingTable ),
 
 	UIState#text_ui_state{ settings=NewSettingTable }.
 
