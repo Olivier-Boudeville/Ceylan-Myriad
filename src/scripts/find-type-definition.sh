@@ -1,7 +1,7 @@
 #!/bin/sh
 
 
-USAGE="  Usage: $(basename $0) A_TYPE [A_DIR]\nAttempts to find the definition of the specified Erlang type from specified directory (if any), otherwise from current one."
+usage="  Usage: $(basename $0) A_TYPE [A_DIR]\nAttempts to find the definition of the specified Erlang type from specified directory (if any), otherwise from current one."
 
 base_dir=$(pwd)
 
@@ -24,13 +24,14 @@ fi
 
 if [ ! $# -eq 1 ] ; then
 
-	echo "$USAGE" 1>&2
+	echo "$usage" 1>&2
 	exit 5
 
 fi
 
+base_dir=$(realpath ${base_dir})
 
-echo "Looking for the '${type}' Erlang type from ${base_dir}..."
+echo "Looking for the '${type}' Erlang type, from '${base_dir}':"
 echo
 
 
