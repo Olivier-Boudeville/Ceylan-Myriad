@@ -75,7 +75,8 @@ test_user_entry() ->
 	case ui:read_text_as_maybe_integer( Prompt ) of
 
 		undefined ->
-			ui:display_error( "Invalid value entered, please retry." ),
+			ui:display_error( "A non-empty value must be entered, "
+							  "please retry." ),
 			test_user_entry();
 
 		V when V >= Lower andalso V =< Upper ->
@@ -98,8 +99,8 @@ run_test_ui() ->
 	ui:start(),
 
 	test_basic_message_display(),
-   
-    test_user_entry(),
+
+	test_user_entry(),
 
 	ui:stop().
 
