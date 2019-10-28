@@ -1561,7 +1561,8 @@ create_dir_elem( _Elems=[ H | T ], Prefix ) ->
 
 
 
-% Creates specified directory (but not any parents), if not already existing.
+% Creates specified directory (but not any parent thereof), if not already
+% existing.
 %
 % Throws an exception if the operation fails.
 %

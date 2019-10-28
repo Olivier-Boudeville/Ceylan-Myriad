@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Sunday, July 1, 2018
+% Creation date: Sunday, July 1, 2018.
 
 
 % Defines for term_utils rendering.

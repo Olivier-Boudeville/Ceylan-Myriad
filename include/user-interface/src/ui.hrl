@@ -26,7 +26,6 @@
 
 
 % Options to initialise a user interface:
-%
 -type ui_options() :: [ any() ].
 
 -export_type([ ui_options/0 ]).
@@ -56,7 +55,12 @@
 %
 % (usually an atom, but possibly an integer or anything else)
 %
--type choice_designator() :: term().
+% Note that there is a reserved designator (i.e. that shall never be specified
+% among the user ones) that is the 'ui_cancel' atom, which is returned by a
+% backend whenever the user chose to cancel the operation rather than selecting
+% one of the available options.
+%
+-type choice_designator() :: term() | 'ui_cancel'.
 
 
 % The index of a choice (starting at 1):

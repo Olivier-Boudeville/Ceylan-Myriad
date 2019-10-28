@@ -22,8 +22,8 @@ TEST_TREES := $(TEST_CONTENT_TREE) $(TEST_REFERENCE_TREE)
 
 TEST_LOG_FILE := "merge-tree.log"
 
-UI_BACKEND := text_ui
-#UI_BACKEND := term_ui
+#UI_BACKEND := text_ui
+UI_BACKEND := term_ui
 
 
 
@@ -45,7 +45,7 @@ test-uniquify: pre-test make-test-trees
 
 
 test-merge: pre-test make-test-trees
-	@$(MERGE_SCRIPT) --input $(TEST_CONTENT_TREE) --reference $(TEST_REFERENCE_TREE) ; $(MAKE) -s post-test
+	@$(MERGE_SCRIPT) --input $(TEST_CONTENT_TREE) --reference $(TEST_REFERENCE_TREE) --use-ui-backend $(UI_BACKEND) ; $(MAKE) -s post-test
 
 
 # Reference starts empty in this test:

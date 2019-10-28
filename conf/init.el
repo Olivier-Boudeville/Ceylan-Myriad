@@ -286,10 +286,10 @@
 ;; Depends on the screen height:
 
 ;; For a netbook or possibly a laptop:
-;;(add-to-list 'default-frame-alist (cons 'height 36))
+(add-to-list 'default-frame-alist (cons 'height 46))
 
 ;; For a normal screen:
-(add-to-list 'default-frame-alist (cons 'height 50))
+;;(add-to-list 'default-frame-alist (cons 'height 50))
 
 
 ;; Key section:
@@ -554,7 +554,7 @@
 
 (setq ispell-dictionary "english")
 (setq ispell-program-name "aspell")
-(add-hook 'text-mode-hook 'flyspell-mode)
+;;(add-hook 'text-mode-hook 'flyspell-mode)
 
 (defun fd-switch-dictionary()
 	  (interactive)
@@ -722,7 +722,7 @@
   ;; If you edit it by hand, you could mess it up, so be careful.
   ;; Your init file should contain only one such instance.
   ;; If there is more than one, they won't work right.
- '(default ((t (:inherit nil :stipple nil :background "black" :foreground "white" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 100 :width normal :foundry "unknown" :family "DejaVu Sans Mono"))))
+ '(default ((t (:inherit nil :stipple nil :background "black" :foreground "white" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 125 :width normal :foundry "unknown" :family "DejaVu Sans Mono"))))
  '(rst-level-1-face ((t (:background "#00f" :foreground "#fff"))) t)
  '(rst-level-2-face ((t (:background "#00a" :foreground "#ddd"))) t)
  '(rst-level-3-face ((t (:background "#003" :foreground "#bbb"))) t)

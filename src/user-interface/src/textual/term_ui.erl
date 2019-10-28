@@ -203,13 +203,14 @@
 % 'rangebox' dialog:
 
 
-
-
 % Also useful:
 %
 % - 'dialog --print-maxsize' (ex: MaxSize: 35, 123)
 % - 'dialog --clear'
 
+
+% The temporary file needed to collect the outputs of some backend operations:
+-define( temp_file, "/tmp/.myriad.term_ui.tmp" ).
 
 
 % Basic UI operations.
@@ -229,6 +230,12 @@
 
 		  add_separation/0,
 
+		  get_text/1, get_text/2,
+		  get_text_as_integer/1, get_text_as_integer/2,
+		  get_text_as_maybe_integer/1, get_text_as_maybe_integer/2,
+		  read_text_as_integer/1, read_text_as_integer/2,
+		  read_text_as_maybe_integer/1, read_text_as_maybe_integer/2,
+
 		  ask_yes_no/2, ask_yes_no/3,
 
 		  choose_designated_item/1, choose_designated_item/2,
@@ -245,6 +252,7 @@
 		  set_settings/1, set_settings/2,
 
 		  unset_setting/1, unset_setting/2,
+		  unset_settings/1, unset_settings/2,
 
 		  get_setting/1,
 
@@ -301,7 +309,6 @@
 
 
 -export_type([ ui_state/0 ]).
-
 
 
 
@@ -398,6 +405,10 @@ start_helper( _Options=[ { log_file, Filename } | T ], UIState ) ->
 	NewUIState = UIState#term_ui_state{ log_file=LogFile },
 	start_helper( T, NewUIState );
 
+start_helper( _Options=[ log_console | T ], UIState ) ->
+	NewUIState = UIState#term_ui_state{ log_console=true },
+	start_helper( T, NewUIState );
+
 start_helper( UnexpectedList, _UIState ) when is_list( UnexpectedList ) ->
 	throw( { unexpected_options, UnexpectedList } );
 
@@ -412,7 +423,7 @@ start_helper( SingleElem, UIState ) ->
 init_state_with_dimensions( Tool=dialog, DialogPath ) ->
 
 	Cmd = text_utils:join( _Sep=" ", [ DialogPath, "--print-maxsize",
-									   get_redirect_string() ] ),
+									   get_redirect_string_for_code() ] ),
 
 	%trace_utils:debug_fmt( "Command: '~s'.", [ Cmd ] ),
 
@@ -496,8 +507,8 @@ display( Text ) ->
 	% Single quotes induce no specific issues (as are enclosed in double ones)
 	EscapedText = text_utils:escape_double_quotes( Text ),
 
-	trace_utils:debug_fmt( "Original text: '~s'; once escaped: '~s'.",
-						   [ Text, EscapedText ] ),
+	%trace_utils:debug_fmt( "Original text: '~s'; once escaped: '~s'.",
+	%					   [ Text, EscapedText ] ),
 
 	#term_ui_state{ dialog_tool_path=ToolPath,
 					settings=SettingTable } = get_state(),
@@ -505,7 +516,7 @@ display( Text ) ->
 	%trace_utils:debug_fmt( "Dialog path: '~s'.", [ ToolPath ] ),
 
 
-	{ SettingString, SuffixString } = get_dialog_settings( SettingTable ),
+	{ SettingString, SuffixString } = get_dialog_settings_for_return_code( SettingTable ),
 
 	%trace_utils:debug_fmt( "Setting string: '~s'.", [ SettingString ] ),
 	%trace_utils:debug_fmt( "Suffix string: '~s'.", [ SuffixString ] ),
@@ -516,7 +527,7 @@ display( Text ) ->
 	Cmd = text_utils:join( _Sep=" ",
 						   [ ToolPath, SettingString, DialogString ] ),
 
-	trace_utils:debug_fmt( "term_ui display command: '~s'.", [ Cmd ] ),
+	%trace_utils:debug_fmt( "term_ui display command: '~s'.", [ Cmd ] ),
 
 	{ Env, PortOpts } = get_execution_settings(),
 
@@ -527,7 +538,7 @@ display( Text ) ->
 			ok;
 
 		{ _ExitStatus=0, Output } ->
-			trace_utils:debug_fmt( "Display output: '~s'.", [ Output ] );
+			trace_utils:warning_fmt( "Unexpected output: '~s'.", [ Output ] );
 
 		{ ExitStatus, Output } ->
 			throw( { display_error_reported, ExitStatus, Output } )
@@ -570,9 +581,9 @@ display_error( Text ) ->
 	%trace_utils:debug_fmt( "Dialog path: '~s'.", [ ToolPath ] ),
 
 	ErrorSettingTable = ?ui_table:add_entry( 'title', ?red"Error"?normal,
-											SettingTable ),
+											 SettingTable ),
 
-	{ SettingString, SuffixString } = get_dialog_settings( ErrorSettingTable ),
+	{ SettingString, SuffixString } = get_dialog_settings_for_return_code( ErrorSettingTable ),
 
 	%trace_utils:debug_fmt( "Setting string: '~s'.", [ SettingString ] ),
 	%trace_utils:debug_fmt( "Suffix string: '~s'.", [ SuffixString ] ),
@@ -581,14 +592,14 @@ display_error( Text ) ->
 	%OKLabel = "--ok-label '"?red" Abort "?normal"'",
 	OKLabel = "--ok-label 'Abort'",
 
-	DialogString = "--colors " ++ OKLabel ++ text_utils:format(
-											   " --msgbox \"~s\" ~s",
-											   [ EscapedText, SuffixString ] ),
+	DialogString = "--colors " ++ OKLabel
+		++ text_utils:format( " --msgbox \"~s\" ~s",
+							  [ EscapedText, SuffixString ] ),
 
 	Cmd = text_utils:join( _Sep=" ",
 						   [ ToolPath, SettingString, DialogString ] ),
 
-	trace_utils:debug_fmt( "term_ui display command: '~s'.", [ Cmd ] ),
+	%trace_utils:debug_fmt( "term_ui display command: '~s'.", [ Cmd ] ),
 
 	{ Env, PortOpts } = get_execution_settings(),
 
@@ -598,8 +609,8 @@ display_error( Text ) ->
 		{ _ExitStatus=0, _Output="" } ->
 			ok;
 
-		{ _ExitStatus=0, Output } ->
-			trace_utils:debug_fmt( "Display output: '~s'.", [ Output ] );
+		%{ _ExitStatus=0, Output } ->
+			%trace_utils:debug_fmt( "Display output: '~s'.", [ Output ] );
 
 		{ ExitStatus, Output } ->
 			throw( { display_error_reported, ExitStatus, Output } )
@@ -622,10 +633,218 @@ display_error_numbered_list( Label, Lines ) ->
 
 
 % Adds a default separation between previous and next content.
+%
+% Note: meaningless for this backend.
+%
 -spec add_separation() -> void().
 add_separation() ->
 	% Could be a clear.
 	ok.
+
+
+
+% Returns the user-entered text, based on an implicit state.
+%
+% (const)
+%
+-spec get_text( prompt() ) -> text().
+get_text( Prompt ) ->
+	get_text( Prompt, _UIState=get_state() ).
+
+
+% Returns the user-entered text, based on an explicit state, or throws
+% operation_cancelled if the user preferred the cancel button.
+%
+% (const)
+%
+-spec get_text( prompt(), ui_state() ) -> text().
+get_text( Prompt,
+		  %_UIState ) ->
+		  #term_ui_state{ dialog_tool_path=ToolPath,
+						  settings=SettingTable } ) ->
+
+	% Ex: dialog --backtitle "AA" --inputbox "Enter your name:" 8 40 2>
+	% foobar.txt
+
+	% Single quotes induce no specific issues (as are enclosed in double ones)
+	EscapedPrompt = text_utils:escape_double_quotes( Prompt ),
+
+	{ SettingString, SuffixString } =
+		get_dialog_settings_for_file_return( SettingTable ),
+
+	DialogString = text_utils:format( "--inputbox \"~s\" ~s",
+									  [ EscapedPrompt, SuffixString ] ),
+
+	CmdStrings = [ ToolPath, SettingString, DialogString ],
+
+	%trace_utils:debug_fmt( "CmdStrings = ~p", [ CmdStrings ] ),
+
+	Cmd = text_utils:join( _Sep=" ", CmdStrings ),
+
+	{ Env, PortOpts } = get_execution_settings(),
+
+	Read = case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
+											 PortOpts ) of
+
+		{ _ExitStatus=0, _Result="" } ->
+			TmpFilename = ?temp_file,
+			case file_utils:is_existing_file( TmpFilename ) of
+
+				true ->
+					BinContent = file_utils:read_whole( TmpFilename ),
+					%trace_utils:debug_fmt( "Content = ~p", [ BinContent ] ),
+					file_utils:remove_file(TmpFilename ),
+					text_utils:binary_to_string( BinContent );
+
+				false ->
+					throw( { term_ui_temp_file_not_found, TmpFilename } )
+
+			end;
+
+		{ _ExitStatus=0, Result } ->
+			throw( { unexpected_result, Result } );
+
+		{ _ExitStatus=1, _Output=[] } ->
+			throw( operation_cancelled );
+
+		{ ExitStatus, Output } ->
+			throw( { get_text_failed, ExitStatus, Output } )
+
+	end,
+
+	%trace_utils:debug_fmt( "get_text/2 read: '~p'.", [ Read ] ),
+
+	text_utils:remove_ending_carriage_return( Read ).
+
+
+
+% Returns the user-entered text, once translated to an integer, based on an
+% implicit state.
+%
+% (const)
+%
+-spec get_text_as_integer( prompt(), ui_state() ) -> text().
+get_text_as_integer( Prompt ) ->
+	get_text_as_integer( Prompt, _UIState=get_state() ).
+
+
+% Returns the user-entered text, once translated to an integer, based on an
+% explicit state.
+%
+% (const)
+%
+-spec get_text_as_integer( prompt(), ui_state() ) -> text().
+get_text_as_integer( Prompt, UIState ) ->
+
+	Text = get_text( Prompt, UIState ),
+
+	text_utils:string_to_integer( Text ).
+
+
+
+% Returns the user-entered text, once translated to an integer, based on an
+% implicit state, prompting the user until a valid input is obtained.
+%
+% (const)
+%
+-spec read_text_as_integer( prompt() ) -> text().
+read_text_as_integer( Prompt ) ->
+	read_text_as_integer( Prompt, _UIState=get_state() ).
+
+
+% Returns the user-entered text, once translated to an integer, based on an
+% explicit state, prompting the user until a valid input is obtained.
+%
+% (const)
+%
+-spec read_text_as_integer( prompt(), ui_state() ) -> text().
+read_text_as_integer( Prompt, UIState ) ->
+
+	Text = get_text( Prompt, UIState ),
+
+	case text_utils:try_string_to_integer( Text ) of
+
+		undefined ->
+			%trace_utils:debug_fmt( "(rejected: '~s')", [ Text ] ),
+			display_error( "Invalid value specified (~p).", [ Text ] ),
+			read_text_as_integer( Prompt, UIState );
+
+		I ->
+			I
+
+	end.
+
+
+
+% Returns the user-entered text (if any) after specified prompt, once translated
+% to (possibly) an integer, based on an implicit state.
+%
+% (const)
+%
+-spec get_text_as_maybe_integer( prompt() ) -> maybe( text() ).
+get_text_as_maybe_integer( Prompt ) ->
+	get_text_as_maybe_integer( Prompt, _UIState=get_state() ).
+
+
+% Returns the user-entered text (if any) after specified prompt, once translated
+% to (possibly) an integer, based on an explicit state.
+%
+% (const)
+%
+-spec get_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( text() ).
+get_text_as_maybe_integer( Prompt, UIState ) ->
+
+	case get_text( Prompt, UIState ) of
+
+		"" ->
+			undefined;
+
+		Text ->
+			text_utils:string_to_integer( Text )
+
+	end.
+
+
+
+% Returns the user-entered text after specified prompt, once translated to an
+% integer, prompting the user until a valid input is obtained: either a string
+% that resolves to an integer (then returned), or an empty string (then
+% returning 'undefined'), based on an implicit state.
+%
+% (const)
+%
+-spec read_text_as_maybe_integer( prompt() ) -> maybe( text() ).
+read_text_as_maybe_integer( Prompt ) ->
+	read_text_as_maybe_integer( Prompt, _UIState=get_state() ).
+
+
+% Returns the user-entered text after specified prompt, once translated to an
+% integer, prompting the user until a valid input is obtained: either a string
+% that resolves to an integer (then returned), or an empty string (then
+% returning 'undefined'), based on an explicit state.
+%
+% (const)
+%
+-spec read_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( text() ).
+read_text_as_maybe_integer( Prompt, UIState ) ->
+
+	case get_text( Prompt, UIState ) of
+
+		"" ->
+			undefined;
+
+		Text ->
+			case text_utils:try_string_to_integer( Text ) of
+
+				undefined ->
+					read_text_as_maybe_integer( Prompt, UIState );
+
+				I ->
+					I
+
+			end
+
+	end.
 
 
 
@@ -661,7 +880,8 @@ ask_yes_no( Prompt, BinaryDefault, #term_ui_state{ dialog_tool_path=ToolPath,
 
 	end,
 
-	{ SettingString, SuffixString } = get_dialog_settings( SettingTable ),
+	{ SettingString, SuffixString } =
+		get_dialog_settings_for_return_code( SettingTable ),
 
 	DialogString = text_utils:format( "~s --yesno \"~s\" ~s",
 						  [ DefaultChoiceOpt, EscapedPrompt, SuffixString ] ),
@@ -693,13 +913,16 @@ ask_yes_no( Prompt, BinaryDefault, #term_ui_state{ dialog_tool_path=ToolPath,
 % Selects, using a default prompt, an item among the specified ones (comprising,
 % for each, an internal designator and a text), and returns its designator.
 %
+% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
+% cancel that operation.
+%
 % (const)
 %
 -spec choose_designated_item( [ choice_element() ] ) -> choice_designator().
 choose_designated_item( Choices ) ->
 
 	Label = text_utils:format( "Select among these ~B choices:",
-								[ length( Choices ) ] ),
+							   [ length( Choices ) + 1 ] ),
 
 	choose_designated_item( Label, Choices ).
 
@@ -707,6 +930,9 @@ choose_designated_item( Choices ) ->
 
 % Selects, using specified prompt, an item among the specified ones (comprising,
 % for each, an internal designator and a text), and returns its designator.
+%
+% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
+% cancel that operation.
 %
 % (const)
 %
@@ -721,6 +947,9 @@ choose_designated_item( Label, Choices ) ->
 % the specified ones (comprising, for each, an internal designator and a text),
 % and returns its designator.
 %
+% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
+% cancel that operation.
+%
 % (const)
 %
 -spec choose_designated_item( label(), [ choice_element() ], ui_state() ) ->
@@ -732,6 +961,16 @@ choose_designated_item( Label, Choices,
 	% Ex: dialog --menu "Hello" 0 0 0 1 One 2 Two 3 Three
 
 	{ Designators, Texts } = lists:unzip( Choices ),
+
+	case lists:member( ui_cancel, Designators ) of
+
+		true ->
+			throw( { disallowed_choice_designator, ui_cancel } );
+
+		false ->
+			ok
+
+	end,
 
 	ChoiceCount = length( Choices ),
 
@@ -747,13 +986,14 @@ choose_designated_item( Label, Choices,
 							  _Acc0=[],
 							  _List=NumChoices ),
 
-	{ SettingString, _SuffixString } = get_dialog_settings( SettingTable ),
+	{ SettingString, _SuffixString } =
+		get_dialog_settings_for_return_code( SettingTable ),
 
 	AutoSizeString = "0 0",
 
 	DialogStrings = [ "--menu", "\"" ++ Label ++ "\"", AutoSizeString,
-			  _MenuHeight=text_utils:integer_to_string( ChoiceCount )
-			  | lists:reverse( [ get_redirect_string() | NumStrings ] ) ],
+	  _MenuHeight=text_utils:integer_to_string( ChoiceCount )
+		 | lists:reverse( [ get_redirect_string_for_code() | NumStrings ] ) ],
 
 	CmdStrings = [ ToolPath, SettingString | DialogStrings ],
 
@@ -770,6 +1010,96 @@ choose_designated_item( Label, Choices,
 			ChosenNum = text_utils:string_to_integer( Result ),
 			list_utils:get_element_at( Designators, ChosenNum );
 
+		{ _ExitStatus=1, _Output=[] } ->
+			ui_cancel;
+
+		{ ExitStatus, Output } ->
+			throw( { choice_failed, ExitStatus, Output } )
+
+	end.
+
+
+
+% Selects, based on an explicit state, using the specified label, an item among
+% the specified ones (comprising, for each, an internal designator and a text),
+% with a default choix designator being specified, and returns its designator.
+%
+% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
+% cancel that operation.
+%
+% (const)
+%
+-spec choose_designated_item_with_default( label(), [ choice_element() ],
+				choice_designator(), ui_state() ) -> choice_designator().
+choose_designated_item_with_default( Label, Choices, _DefaultChoiceDesignator,
+								 #term_ui_state{ dialog_tool_path=ToolPath,
+												 settings=SettingTable } ) ->
+
+	% Using radio list rather than menu, for the selectable initial, default
+	% choice:
+
+	% Ex: dialog --radiolist "Select CPU type:" 10 40 10 1 386SX off 2 386DX on
+	% 3 486SX off 4 486DX off
+
+	% (very much inspired from choose_designated_item/3 and
+	% choose_numbered_item/3)
+
+	{ Designators, Texts } = lists:unzip( Choices ),
+
+	case lists:member( ui_cancel, Designators ) of
+
+		true ->
+			throw( { disallowed_choice_designator, ui_cancel } );
+
+		false ->
+			ok
+
+	end,
+
+	ChoiceCount = length( Choices ),
+
+	% We simply tag the choices with a counter (rather than using the designator
+	% atoms):
+	%
+	NumChoices = lists:zip( lists:seq( 1, ChoiceCount ), Texts ),
+
+	NumStrings = lists:foldl( fun( { Num, Text }, AccStrings ) ->
+									 [ text_utils:format( " ~B \"~s\"",
+												[ Num, Text ] ) | AccStrings ]
+							  end,
+							  _Acc0=[],
+							  _List=NumChoices ),
+
+	{ SettingString, _SuffixString } =
+		get_dialog_settings_for_return_code( SettingTable ),
+
+	% Last element is the base list height:
+	AutoSizeString = "0 0 8",
+
+	throw( todo_stopped_here ),
+
+	DialogStrings = [ "--radiolist", "\"" ++ Label ++ "\"", AutoSizeString,
+	  _MenuHeight=text_utils:integer_to_string( ChoiceCount )
+		 | lists:reverse( [ get_redirect_string_for_code() | NumStrings ] ) ],
+
+	CmdStrings = [ ToolPath, SettingString | DialogStrings ],
+
+	%trace_utils:debug_fmt( "CmdStrings = ~p", [ CmdStrings ] ),
+
+	Cmd = text_utils:join( _Sep=" ", CmdStrings ),
+
+	{ Env, PortOpts } = get_execution_settings(),
+
+	case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
+									  PortOpts ) of
+
+		{ _ExitStatus=0, Result } ->
+			ChosenNum = text_utils:string_to_integer( Result ),
+			list_utils:get_element_at( Designators, ChosenNum );
+
+		{ _ExitStatus=1, _Output=[] } ->
+			ui_cancel;
+
 		{ ExitStatus, Output } ->
 			throw( { choice_failed, ExitStatus, Output } )
 
@@ -781,7 +1111,10 @@ choose_designated_item( Label, Choices,
 % specified ones (specified as direct text, with no specific designator
 % provided), and returns its index.
 %
--spec choose_numbered_item( [ choice_text() ] ) ->  choice_index().
+% Note that index zero can also be returned, corresponding to the 'ui_cancel'
+% atom, should the user prefer to cancel that operation.
+%
+-spec choose_numbered_item( [ choice_text() ] ) -> choice_index().
 choose_numbered_item( Choices ) ->
 	choose_numbered_item( Choices, get_state() ).
 
@@ -793,6 +1126,9 @@ choose_numbered_item( Choices ) ->
 % Selects, based on an implicit state, using the specified label, an item among
 % the specified ones, and returns its index.
 %
+% Note that index zero can also be returned, corresponding to the 'ui_cancel'
+% atom, should the user prefer to cancel that operation.
+%
 -spec choose_numbered_item( [ choice_text() ], ui_state() ) ->
 								  choice_index();
 						  ( label(), [ choice_element() ] ) -> choice_index().
@@ -800,7 +1136,7 @@ choose_numbered_item( Choices, UIState )
   when is_record( UIState, term_ui_state ) ->
 
 	Label = text_utils:format( "Select among these ~B choices:",
-								[ length( Choices ) ] ),
+							   [ length( Choices ) ] ),
 
 	choose_numbered_item( Label, Choices, UIState );
 
@@ -812,6 +1148,9 @@ choose_numbered_item( Label, Choices ) ->
 % Selects, based on an explicit state, using the specified label, an item among
 % the specified ones (specified as direct text, with no specific designator
 % provided), and returns its index.
+%
+% Note that index zero can also be returned, corresponding to the 'ui_cancel'
+% atom, should the user prefer to cancel that operation.
 %
 -spec choose_numbered_item( label(), [ choice_text() ], ui_state() ) ->
 								  choice_index().
@@ -826,16 +1165,28 @@ choose_numbered_item( Label, Choices, UIState ) ->
 	%
 	ChoiceElements = lists:zip( lists:seq( 1, length( Choices ) ), Choices ),
 
-	choose_designated_item( Label, ChoiceElements, UIState ).
+	case choose_designated_item( Label, ChoiceElements, UIState ) of
+
+		ui_cancel ->
+			0;
+
+		D ->
+			D
+
+	end.
 
 
 
 
 % Selects, based on an implicit state, using a default label, an item among the
-% specified ones, and returns its index.
+% specified ones, with a default choix index being specified, and returns its
+% index.
 %
--spec choose_numbered_item_with_default( [ choice_element() ],
-										 choice_index() ) -> choice_index().
+% Note that index zero can also be returned, corresponding to the 'ui_cancel'
+% atom, should the user prefer to cancel that operation.
+%
+-spec choose_numbered_item_with_default( [ choice_text() ], choice_index() ) ->
+											   choice_index().
 choose_numbered_item_with_default( Choices, DefaultChoiceIndex ) ->
 	choose_numbered_item_with_default( Choices, DefaultChoiceIndex,
 									   get_state() ).
@@ -849,16 +1200,18 @@ choose_numbered_item_with_default( Choices, DefaultChoiceIndex ) ->
 % Selects, based on an implicit state, using the specified label and default
 % item, an item among the specified ones, and returns its index.
 %
--spec choose_numbered_item_with_default( [ choice_element() ], choice_index(),
+% Note that index zero can also be returned, corresponding to the 'ui_cancel'
+% atom, should the user prefer to cancel that operation.
+%
+-spec choose_numbered_item_with_default( [ choice_text() ], choice_index(),
 										 ui_state() ) -> choice_index();
-									   ( label(), [ choice_element() ],
-										 maybe( choice_index() ) ) ->
-											   choice_index().
+									   ( label(), [ choice_text() ],
+										 choice_index() ) -> choice_index().
 choose_numbered_item_with_default( Choices, DefaultChoiceIndex, UIState )
   when is_record( UIState, term_ui_state ) ->
 
 	Label = text_utils:format( "Select among these ~B choices:",
-								[ length( Choices ) ] ),
+							   [ length( Choices ) ] ),
 
 	choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
 									   UIState );
@@ -873,15 +1226,46 @@ choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex ) ->
 % item, an item among the specified ones (specified as direct text, with no
 % specific designator provided), and returns its index.
 %
--spec choose_numbered_item_with_default( label(), [ choice_element() ],
-			maybe( choice_index() ), ui_state() ) -> choice_index().
-choose_numbered_item_with_default( _Label, _Choices, _DefaultChoiceIndex,
-								   _UIState ) ->
+% Note that index zero can also be returned, corresponding to the 'ui_cancel'
+% atom, should the user prefer to cancel that operation.
+%
+-spec choose_numbered_item_with_default( label(), [ choice_text() ],
+			choice_text(), ui_state() ) -> choice_index().
+choose_numbered_item_with_default( Label, Choices, DefaultChoiceText,
+								   UIState ) ->
 
-	% Using radio list rather than menu, for the selectable initial, default
-	% choice:
+	% We use a radio list here, to benefit from a default.
 
-	throw( todo ).
+	% (very much inspired from choose_numbered_item/3)
+
+	% We reuse choose_designated_item_with_default/4 in a hackhish yet very
+	% simple way, based on integer indexes:
+	%
+	ChoiceElements = lists:zip( lists:seq( 1, length( Choices ) ), Choices ),
+
+	DefaultChoiceIndex = case list_utils:get_maybe_index_of( DefaultChoiceText,
+															 Choices ) of
+
+		undefined ->
+			throw( { default_not_among_choices, DefaultChoiceText, Choices } );
+
+		I ->
+			I
+
+	end,
+
+	% Choice designators are simply integers here:
+	case choose_designated_item_with_default( Label, ChoiceElements,
+									  DefaultChoiceIndex, UIState ) of
+
+		ui_cancel ->
+			0;
+
+		D ->
+			D
+
+	end.
+
 
 
 
@@ -909,7 +1293,7 @@ trace( Message, UIState ) when is_record( UIState, term_ui_state ) ->
 	case UIState#term_ui_state.log_console of
 
 		true ->
-			text_ui:display( TraceMessage );
+			trace_utils:trace( TraceMessage );
 
 		false ->
 			ok
@@ -1065,11 +1449,37 @@ get_state() ->
 
 
 % Returns the command-line options corresponding to specified table: a settings
-% string, a suffix string (dealing with size and redirection).
+% string, a suffix string (dealing with size and redirection for an output
+% returned as a return code).
 %
--spec get_dialog_settings( setting_table() ) ->
+-spec get_dialog_settings_for_return_code( setting_table() ) ->
 				  { text_utils:ustring(), text_utils:ustring() }.
-get_dialog_settings( SettingTable ) ->
+get_dialog_settings_for_return_code( SettingTable ) ->
+
+	{ SettingsString, SuffixString } = get_dialog_base_settings( SettingTable ),
+
+	{ SettingsString, text_utils:format( "~s ~s",
+					   [ SuffixString, get_redirect_string_for_code() ] ) }.
+
+
+
+% Returns the command-line options corresponding to specified table: a settings
+% string, a suffix string (dealing with size and redirection for an output
+% returned as a temporary file).
+%
+-spec get_dialog_settings_for_file_return( setting_table() ) ->
+				  { text_utils:ustring(), text_utils:ustring() }.
+get_dialog_settings_for_file_return( SettingTable ) ->
+
+	{ SettingsString, SuffixString } = get_dialog_base_settings( SettingTable ),
+
+	{ SettingsString, text_utils:format( "~s ~s",
+					   [ SuffixString, get_redirect_string_for_file() ] ) }.
+
+
+
+% Returns the base settings for dialog, expected redirection.
+get_dialog_base_settings( SettingTable ) ->
 
 	TitleOpt = case ?ui_table:get_value_with_defaults( 'title',
 								   _Default=undefined, SettingTable ) of
@@ -1109,27 +1519,35 @@ get_dialog_settings( SettingTable ) ->
 	Height = 0,
 	Width = 0,
 
-
-	SuffixString = text_utils:format( "~B ~B ~s",
-								  [ Height, Width, get_redirect_string() ] ),
+	SuffixString = text_utils:format( "~B ~B", [ Height, Width ] ),
 
 	{ SettingsString, SuffixString }.
 
 
 
-% Returns a string to be used fir I/O redirection in an execution command.
--spec get_redirect_string() -> text_utils:ustring().
-get_redirect_string() ->
+% Returns a string to be used for I/O redirection in an execution command
+% relying on exit statuses (hence only for a single positive integer output).
+%
+-spec get_redirect_string_for_code() -> text_utils:ustring().
+get_redirect_string_for_code() ->
 	% As 'nouse_stdio' will be needed:
 	"2>&4".
 
 
+% Returns a string to be used for I/O redirection in an execution command
+% relying on a temporary file (hence for any kind of outputs).
+%
+get_redirect_string_for_file() ->
+	"2> " ++ ?temp_file.
+
+
 
 % Returns the settings suitable for an execution of the backend.
--spec get_execution_settings() -> { system_utils:environment(),
-									[ system_utils:port_option() ] }.
+-spec get_execution_settings() ->
+		  { system_utils:environment(), [ system_utils:port_option() ] }.
 get_execution_settings() ->
 
+	% Results in having LANG=C:
 	Env = system_utils:get_standard_environment(),
 
 	% Finding this combination was really not obvious:
@@ -1188,14 +1606,32 @@ unset_setting( SettingKey ) ->
 	set_state( NewUIState ).
 
 
+% Unsets specified settings, in the (implicit) UI state.
+-spec unset_settings( [ ui_setting_key() ] ) -> void().
+unset_settings( SettingKeys ) ->
+	NewUIState = unset_settings( SettingKeys, get_state() ),
+	set_state( NewUIState ).
+
+
 
 % Unsets specified setting, in the specified UI state.
--spec unset_setting( ui_setting_key(), ui_state()) -> void().
+-spec unset_setting( ui_setting_key(), ui_state() ) -> void().
 unset_setting( SettingKey,
 			   UIState=#term_ui_state{ settings=SettingTable } ) ->
 
 	NewSettingTable = ?ui_table:add_entry( SettingKey, _SettingValue=undefined,
-										  SettingTable ),
+										   SettingTable ),
+
+	UIState#term_ui_state{ settings=NewSettingTable }.
+
+
+% Unsets specified settings, in the specified UI state.
+-spec unset_settings( [ ui_setting_key() ], ui_state() ) -> void().
+unset_settings( SettingKeys,
+				UIState=#term_ui_state{ settings=SettingTable } ) ->
+
+	NewEntries = [ { S, undefined } || S <- SettingKeys ],
+	NewSettingTable = ?ui_table:add_entries( NewEntries, SettingTable ),
 
 	UIState#term_ui_state{ settings=NewSettingTable }.
 
@@ -1236,7 +1672,7 @@ to_string( #term_ui_state{ %state_filename=StateFilename,
 						   locale=Locale,
 						   log_console=LogConsole,
 						   log_file=LogFile,
-						   settings=SettingTable }) ->
+						   settings=SettingTable } ) ->
 
 	DialogString = text_utils:format( "~s (found in '~s')",
 									  [ DialogTool, DialogToolPath ] ),

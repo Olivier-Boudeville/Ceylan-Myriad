@@ -421,7 +421,7 @@ stop_on_option_error( Message, ErrorCode ) ->
 				  tree_data().
 scan( TreePath, AnalyzerRing, UserState ) ->
 
-	trace_utils:debug_fmt( "Requested to scan '~s'.", [ TreePath ] ),
+	trace_debug( "Requested to scan '~s'.", [ TreePath ], UserState ),
 
 	AbsTreePath = file_utils:ensure_path_is_absolute( TreePath ),
 
@@ -472,10 +472,10 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 								[ CacheFilename ] ),
 					read_cache_file( CacheFilename );
 
-				abort ->
+				C when C =:= abort orelse C =:= ui_cancel ->
 					ui:display( "Scan aborted, cache file (~s) left as it was.",
 								[ CacheFilename ] ),
-					trace( "(requested to abort the scan)", UserState ),
+					%trace_debug( "(requested to abort the scan)", UserState ),
 					basic_utils:stop( 0 )
 
 			end;
@@ -539,7 +539,7 @@ scan_helper( TreePath, CacheFilename, UserState ) ->
 	TreeData = create_merge_cache_file_for( TreePath, CacheFilename,
 											AnalyzerRing, UserState ),
 
-	trace_utils:debug( "Scan finished." ),
+	trace_debug( "Scan finished.", UserState ),
 
 	terminate_data_analyzers( ring_utils:to_list( AnalyzerRing ), UserState ),
 
@@ -551,10 +551,10 @@ scan_helper( TreePath, CacheFilename, UserState ) ->
 -spec uniquify( file_utils:directory_name() ) -> void().
 uniquify( TreePath ) ->
 
-	trace_utils:debug_fmt( "Requested to uniquify '~s'.", [ TreePath ] ),
-
 	% Prepare for various outputs:
 	UserState = start_user_service( ?default_log_filename ),
+
+	trace_debug( "Requested to uniquify '~s'.", [ TreePath ], UserState ),
 
 	AbsTreePath = file_utils:ensure_path_is_absolute( TreePath ),
 
@@ -618,14 +618,15 @@ create_merge_cache_file_from( TreeData=#tree_data{ root=RootDir },
 				   void().
 merge( InputTreePath, ReferenceTreePath ) ->
 
-	trace_utils:debug_fmt( "Requested to merge '~s' into '~s'.",
-						   [ InputTreePath, ReferenceTreePath ] ),
+	%trace_utils:debug_fmt( "Requested to merge '~s' into '~s'.",
+	%					   [ InputTreePath, ReferenceTreePath ] ),
 
 	% Prepare for various outputs:
 	UserState = start_user_service( ?default_log_filename ),
 
-	trace( "Merging (possibly newer) tree '~s' into reference tree '~s'...",
-		   [ InputTreePath, ReferenceTreePath ], UserState ),
+	trace_debug(
+	  "Merging (possibly newer) tree '~s' into reference tree '~s'...",
+	  [ InputTreePath, ReferenceTreePath ], UserState ),
 
 	check_content_trees( InputTreePath, ReferenceTreePath ),
 
@@ -647,7 +648,10 @@ merge( InputTreePath, ReferenceTreePath ) ->
 	stop_user_service( UserState ).
 
 
-% Merges the specified input tree into the reference one.
+
+% Merges the specified input tree into the reference one, returning the latter
+% once updated.
+%
 -spec merge_trees( tree_data(), tree_data(), user_state() ) -> tree_data().
 merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 									entries=InputEntries },
@@ -660,8 +664,8 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 
 	LackingInRefSet = set_utils:difference( InputSHA1Set, ReferenceSHA1Set ),
 
-	ui:set_setting( 'backtitle', text_utils:format( "Merging in ~s",
-													[ ReferenceRootDir ] ) ),
+	ui:set_setting( 'backtitle',
+			text_utils:format( "Merging in ~s", [ ReferenceRootDir ] ) ),
 
 	ToMerge = set_utils:to_list( LackingInRefSet ),
 
@@ -676,8 +680,9 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 						"removing directly the input tree.",
 						[ InputRootDir, ReferenceRootDir ] ),
 
-			%trace_utils:warning_fmt( "Removing recursively directory '~s'.",
-			%						 [ InputRootDir ] );
+			trace_debug( "Removing recursively directory '~s'.",
+						 [ InputRootDir ], UserState ),
+
 			file_utils:remove_directory( InputRootDir ),
 			ReferenceTree;
 
@@ -718,8 +723,8 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 											 InputEntries, UserState ),
 					ReferenceEntries;
 
-				abort ->
-					trace( "(requested to abort the merge)", UserState ),
+				C when C =:= abort orelse C =:= ui_cancel ->
+					trace_debug( "(requested to abort the merge)", UserState ),
 					basic_utils:stop( 0 )
 
 			end,
@@ -739,9 +744,7 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 move_content_to_merge( _ToMove=[], InputRootDir, InputEntries,
 				_ReferenceRootDir, ReferenceEntries, _TargetDir, _UserState ) ->
 
-	% Removing the content that does not have been moved (hence shall be
-	% deleted):
-	%
+	% Removing the content that has not been moved (hence shall be deleted):
 	file_utils:remove_files( list_utils:flatten_once( [
 		  [ file_utils:join( InputRootDir, FD#file_data.path ) || FD <- FDL ]
 							  || FDL <- table:values( InputEntries ) ] ) ),
@@ -755,9 +758,7 @@ move_content_to_merge( _ToMove=[], InputRootDir, InputEntries,
 move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 				ReferenceRootDir, ReferenceEntries, TargetDir, UserState ) ->
 
-	% Single element, as expected to be uniquified:
-	{ FileDatas, NewInputEntries } =
-		table:extract_entry( SHA1, InputEntries ),
+	{ FileDatas, NewInputEntries } = table:extract_entry( SHA1, InputEntries ),
 
 	ElectedFileData = case FileDatas of
 
@@ -773,21 +774,30 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 
 			DefaultChoiceIndex = 1,
 
-			Index = ui:choose_numbered_item_with_default( Label, Choices,
-														  DefaultChoiceIndex ),
+			Index = case ui:choose_numbered_item_with_default( Label, Choices,
+										   DefaultChoiceIndex ) of
 
-			{ Selected, Others } = list_utils:extract_element_at( FileDatas,
-																  Index ),
-				ToRemove = [ file_utils:join( InputRootDir,
-							   FD#file_data.path ) || FD <- Others ],
+				% ui_cancel:
+				0 ->
+					throw( operation_cancelled );
 
-				file_utils:remove_files( ToRemove ),
+				I ->
+					I
 
-				trace_utils:trace_fmt( "Removed ~B file(s): ~s",
-					   [ length( ToRemove ),
-						 text_utils:strings_to_string( ToRemove ) ] ),
+			end,
 
-				Selected
+			{ Selected, Others } =
+					list_utils:extract_element_at( FileDatas, Index ),
+
+			ToRemove = [ file_utils:join( InputRootDir, FD#file_data.path )
+						 || FD <- Others ],
+
+			file_utils:remove_files( ToRemove ),
+
+			trace_debug( "Removed ~B file(s): ~s", [ length( ToRemove ),
+				text_utils:strings_to_string( ToRemove ) ], UserState ),
+
+			Selected
 
 	end,
 
@@ -798,17 +808,28 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 
 	SrcPath = file_utils:join( InputRootDir, RelPath ),
 
-	% We do not preserve the directory structure of the input tree; this may be
-	% wanted, though.
+	% We do our best to preserve the directory structure of the input tree in
+	% the reference one (clearer for the user and reducing the likeliness of
+	% clashes).
+
+	FullTargetDir = file_utils:join( TargetDir, filename:dirname( RelPath ) ),
+
+	file_utils:create_directory( FullTargetDir, create_parents ),
 
 	Filename = filename:basename( RelPath ),
-	TgtPath = file_utils:join( TargetDir, Filename ),
 
-	% As clashes may happen in the elected target directory:
+	TgtPath = file_utils:join( FullTargetDir, Filename ),
+
+	% As clashes could happen in the elected target directory:
 	NewPath = case file_utils:exists( TgtPath ) of
 
 		true ->
 			AutoPath = file_utils:get_non_clashing_entry_name_from( TgtPath ),
+
+			trace_debug( "Target path in reference tree ('~s'), is already "
+				"existing (as '~s'); moved file to be renamed to '~s'.",
+				[ SrcPath, TgtPath, AutoPath ], UserState ),
+
 			%Msg = text_utils:format( "When moving '~s' in the reference target"
 			%						 " directory ('~s'), an entry with that "
 			%						 "was found already existing.~n"
@@ -817,8 +838,8 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 			%						 [ Filename, TargetDir, AutoPath ] ),
 			%ui:ask_yes_no( "
 
-			% At least for the moment, we stick to auto-renaming only; returning
-			% the new path:
+			% At least for the moment, we stick to auto-renaming only (simpler);
+			% returning the new path:
 			%
 			file_utils:move_file( SrcPath, AutoPath );
 
@@ -827,7 +848,7 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 
 	end,
 
-	trace_utils:trace_fmt( "Moved '~s' to '~s'.", [ SrcPath, NewPath ] ),
+	trace_debug( "Moved '~s' to '~s'.", [ SrcPath, NewPath ], UserState ),
 
 	% Make the new path relative to the root of the reference tree (TargetDir
 	% being itself relative to it):
@@ -848,6 +869,7 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 			% To avoid any kind of discrepancy:
 			timestamp=file_utils:get_last_modification_time( NewPath ) },
 
+	% New content in reference:
 	NewReferenceEntries =
 		table:add_new_entry( SHA1, NewFileData, ReferenceEntries ),
 
@@ -934,7 +956,7 @@ delete_content_to_merge( ToDelete, InputRootDir, InputEntries, _UserState ) ->
 -spec start_user_service( file_utils:file_name() ) -> user_state().
 start_user_service( LogFilename ) ->
 
-	trace_utils:debug_fmt( "Logs will be written to '~s'.", [ LogFilename ] ),
+	%trace_utils:debug_fmt( "Logs will be written to '~s'.", [ LogFilename ] ),
 
 	% We append to the log file (not resetting it), if it already exists:
 	% (no delayed_write, to avoid missing logs when halting on error)
@@ -990,17 +1012,17 @@ trace_debug( FormatString, Values,
 
 % Stops user-related services.
 -spec stop_user_service( user_state() ) -> basic_utils:void().
-stop_user_service( _UserState=#user_state{ log_file=LogFile } ) ->
+stop_user_service( UserState=#user_state{ log_file=LogFile } ) ->
 
-	trace_utils:debug( "Stopping user service." ),
+	trace_debug( "Stopping user service.", UserState ),
 
 	ui:stop(),
 
 	file_utils:write( LogFile, "Stopping merge session.~n", [] ),
 
-	file_utils:close( LogFile ),
+	trace_debug( "Stopped.", UserState ),
 
-	trace_utils:debug( "Stopped." ),
+	file_utils:close( LogFile ),
 
 	basic_utils:stop( _ErrorCode=0 ).
 
@@ -1076,8 +1098,8 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 	MaybeTreeData = case file_utils:is_existing_file( CacheFilePath ) of
 
 		true ->
-			trace_utils:debug_fmt( "Found existing cache file '~s'.",
-								   [ CacheFilePath ] ),
+			trace_debug( "Found existing cache file '~s'.",
+						 [ CacheFilePath ], UserState ),
 
 			% Load it, if trusted (typically if not older from the newest
 			% file in tree):
@@ -1088,7 +1110,7 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 			case file_utils:get_last_modification_time( CacheFilePath ) of
 
 				CacheTimestamp when CacheTimestamp < NewestTimestamp ->
-					trace_utils:debug_fmt( "Timestamp of cache file (~p) older "
+					ui:display( "Timestamp of cache file (~p) older "
 						"than most recent file timestamp in tree (~p), "
 						"rebuilding cache file.",
 						[ CacheTimestamp, NewestTimestamp ] ),
@@ -1097,23 +1119,23 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 
 				CacheTimestamp ->
 
-					trace_utils:debug_fmt( "Timestamp of cache file is "
+					trace_debug( "Timestamp of cache file is "
 						"acceptable (as ~p is not older than the most recent "
 						"file timestamp in tree, ~p), just performing a quick "
 						"check of file existences and sizes to further "
 						"validate it.",
-						[ CacheTimestamp, NewestTimestamp ] ),
+						[ CacheTimestamp, NewestTimestamp ], UserState ),
 
 					case quick_cache_check( CacheFilePath, ContentFiles,
-											TreePath ) of
+											TreePath, UserState ) of
 
 						undefined ->
-							trace_utils:debug( "Cache file does not match "
+							ui:display( "Cache file does not match "
 								"actual tree, rebuilding cache file." ),
 							undefined;
 
 						TreeData ->
-							trace_utils:debug( "Cache file seems to match "
+							ui:display( "Cache file seems to match "
 								"actual tree, considering it legit." ),
 							TreeData
 
@@ -1122,8 +1144,8 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 			end;
 
 		false ->
-			trace_utils:debug_fmt( "No cache file found for '~s', creating it.",
-								   [ TreePath ] ),
+			ui:display( "No cache file found for '~s', creating it.",
+						[ TreePath ] ),
 			undefined
 
 	end,
@@ -1224,7 +1246,8 @@ create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
 
 	check_tree_path_exists( AbsTreePath ),
 
-	trace( "Creating merge cache file '~s'.", [ CacheFilename ], UserState ),
+	trace_debug( "Creating merge cache file '~s'.", [ CacheFilename ],
+				 UserState ),
 
 	MergeFile = file_utils:open( CacheFilename,
 								 _Opts=[ write, raw, delayed_write ] ),
@@ -1237,8 +1260,8 @@ create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
 
 	TreeData = scan_tree( AbsTreePath, AnalyzerRing, UserState ),
 
-	trace( "Scanned tree: ~s.",
-		   [ tree_data_to_string( TreeData ) ], UserState ),
+	trace_debug( "Scanned tree: ~s.",
+				 [ tree_data_to_string( TreeData ) ], UserState ),
 
 	write_tree_data( MergeFile, TreeData, UserState ),
 
@@ -1311,8 +1334,8 @@ get_file_content_for( SHA1, FileDataElems ) ->
 
 % Spawns the specified number of data analyzers, and returns their PID.
 -spec spawn_data_analyzers( count(), user_state() ) -> [ analyzer_pid() ].
-spawn_data_analyzers( Count, _UserState ) ->
-	%trace_debug( "Spawning ~B data analyzers.", [ Count ], UserState ),
+spawn_data_analyzers( Count, UserState ) ->
+	trace_debug( "Spawning ~B data analyzers.", [ Count ], UserState ),
 	[ ?myriad_spawn_link( fun() -> analyze_loop() end )
 	  || _C <- lists:seq( 1, Count ) ].
 
@@ -1320,10 +1343,10 @@ spawn_data_analyzers( Count, _UserState ) ->
 
 % Terminates specified data analyzers.
 -spec terminate_data_analyzers( [ analyzer_pid() ], user_state() ) -> void().
-terminate_data_analyzers( Analyzers, _UserState ) ->
+terminate_data_analyzers( Analyzers, UserState ) ->
 
-	%trace_debug( "Terminating ~B data analyzers (~p).",
-	%			 [ length( Analyzers ), Analyzers ], UserState ),
+	trace_debug( "Terminating ~B data analyzers (~p).",
+				 [ length( Analyzers ), Analyzers ], UserState ),
 
 	[ P ! terminate || P <- Analyzers ].
 
@@ -1334,7 +1357,7 @@ terminate_data_analyzers( Analyzers, _UserState ) ->
 					   tree_data().
 scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 
-	trace( "Scanning tree '~s'...", [ AbsTreePath ], UserState ),
+	trace_debug( "Scanning tree '~s'...", [ AbsTreePath ], UserState ),
 
 	AllFiles = file_utils:find_files_from( AbsTreePath ),
 
@@ -1468,9 +1491,9 @@ wait_entries( TreeData, WaitedCount ) ->
 			NewTreeData = manage_received_data( FileData, TreeData ),
 			wait_entries( NewTreeData, WaitedCount-1 );
 
-		{ file_disappeared, BinFilePath } ->
-			trace_utils:debug_fmt( "File '~s' reported as having disappeared.",
-								   [ BinFilePath ] ),
+		{ file_disappeared, _BinFilePath } ->
+			%trace_utils:debug_fmt( "File '~s' reported as having disappeared.",
+			%					   [ BinFilePath ] ),
 			wait_entries( TreeData, WaitedCount-1 )
 
 	end.
@@ -1481,7 +1504,7 @@ wait_entries( TreeData, WaitedCount ) ->
 -spec analyze_loop() -> void().
 analyze_loop() ->
 
-	%trace_debug( "Analyzer ~w waiting...", [ self() ] ),
+	%trace_utils:debug_fmt( "Analyzer ~w waiting...", [ self() ] ),
 
 	receive
 
@@ -1496,8 +1519,8 @@ analyze_loop() ->
 
 			%FileBinPath = text_utils:string_to_binary( FilePath ),
 
-			%trace_debug( "Analyzer ~w taking in charge '~s'...",
-			%			  [ self(), FullPath ] ),
+			%trace_utils:debug_fmt( "Analyzer ~w taking in charge '~s'...",
+			%						[ self(), FullPath ] ),
 
 			case file_utils:is_existing_file( FilePath ) of
 
@@ -1536,10 +1559,11 @@ analyze_loop() ->
 			end;
 
 		terminate ->
-			%trace_debug( "Analyzer ~w terminated.", [ self() ] ),
+			%trace_utils:debug_fmt( "Analyzer ~w terminated.", [ self() ] ),
 			ok
 
 	end.
+
 
 
 % Interacts with the user so that the specified tree can be deduplicated.
@@ -1550,6 +1574,7 @@ deduplicate_tree( TreeData=#tree_data{ root=RootDir,
 
 	DuplicateCount = FileCount - table:size( EntryTable ),
 
+	% Actual deduplication:
 	{ NewEntryTable, RemovedDuplicateCount } =
 		manage_duplicates( EntryTable, RootDir, UserState ),
 
@@ -1558,19 +1583,18 @@ deduplicate_tree( TreeData=#tree_data{ root=RootDir,
 	case RemainingDuplicateCount of
 
 		0 ->
-			trace( "All ~B duplicates removed.", [ DuplicateCount ],
-				   UserState );
+			ui:display( "All ~B duplicates removed.", [ DuplicateCount ] );
 
 		Count when Count > 0 ->
-			trace( "Out of the ~B duplicates detected, ~B remain (~B removed).",
-				   [ DuplicateCount, Count, RemovedDuplicateCount ],
-				   UserState )
+			ui:display(
+			  "Out of the ~B duplicates detected, ~B remain (~B removed).",
+			  [ DuplicateCount, Count, RemovedDuplicateCount ] )
 
 	end,
 
 	NewFileCount = table:size( NewEntryTable ),
 
-	trace( "~B unique entries remain.", [ NewFileCount ], UserState ),
+	%trace_debug( "~B unique entries remain.", [ NewFileCount ], UserState ),
 
 	TreeData#tree_data{ entries=NewEntryTable,
 						file_count=NewFileCount }.
@@ -1653,8 +1677,8 @@ filter_duplications( _SHA1Entries=[ SHA1Entry | T ],
 process_duplications( DuplicationCases, TotalDupCaseCount, UniqueTable,
 					  RootDir, UserState ) ->
 
-	%trace_utils:debug_fmt( "Pre-deduplication unique table: ~s",
-	%					   [ table:to_string( UniqueTable ) ] ),
+	trace_debug( "Pre-deduplication unique table: ~s",
+				 [ table:to_string( UniqueTable ) ], UserState ),
 
 	Acc0 = { UniqueTable, _InitialDupCount=1, _InitialRemoved=0 },
 	process_duplications_helper( DuplicationCases, TotalDupCaseCount, Acc0,
@@ -1665,10 +1689,10 @@ process_duplications( DuplicationCases, TotalDupCaseCount, UniqueTable,
 
 % Helper returning { sha1_table(), count() }:
 process_duplications_helper( _DupCases=[], _TotalDupCount,
-	  _Acc={ AccTable, _AccDupCount, AccRemoveCount }, _RootDir, _UserState ) ->
+	  _Acc={ AccTable, _AccDupCount, AccRemoveCount }, _RootDir, UserState ) ->
 
-	trace_utils:debug_fmt( "Post-deduplication unique table: ~s",
-						   [ table:to_string( AccTable ) ] ),
+	trace_debug( "Post-deduplication unique table: ~s",
+				 [ table:to_string( AccTable ) ], UserState ),
 
 	{ AccTable, AccRemoveCount };
 
@@ -1677,6 +1701,7 @@ process_duplications_helper( _DupCases=[ { Sha1Key, DuplicateList } | T ],
 							 _Acc={ AccTable, AccDupCount, AccRemoveCount },
 							 RootDir, UserState ) ->
 
+	io:format( "A2" ) ,
 	Size = check_duplicates( Sha1Key, DuplicateList ),
 
 	SelectedFileEntries = manage_duplication_case( DuplicateList, AccDupCount,
@@ -1743,11 +1768,8 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 	% As we do not want a common prefix to include any basename:
 	Dirnames = [ filename:dirname( P ) || P <- PathStrings ],
 
-	ui:add_separation(),
-
 	Title = text_utils:format( "Examining duplication case ~B/~B",
 							   [ DuplicationCaseCount, TotalDupCaseCount ] ),
-
 	ui:set_setting( 'title', Title ),
 
 	Count = length( FileEntries ),
@@ -1810,17 +1832,16 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 	ui:unset_setting( 'title' ),
 
-	%trace( "Selected choice: ~p", [ SelectedChoice ], UserState ),
+	%trace_debug( "Selected choice: ~p", [ SelectedChoice ], UserState ),
 
 	case SelectedChoice of
-
 
 		keep ->
 			KeptFilePath = keep_only_one( Prefix, ShortenPaths, PathStrings,
 										  RootDir, UserState ),
 
-			trace( "Kept only reference file '~s'", [ KeptFilePath ],
-				   UserState ),
+			trace_debug( "Kept only reference file '~s'", [ KeptFilePath ],
+						 UserState ),
 
 			%trace_utils:debug_fmt( "Entries to scan: ~p", [ FileEntries ] ),
 
@@ -1848,15 +1869,15 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 			end,
 
-			trace( "[~B/~B] Leaving as they are~s: ~s",
-				   [ DuplicationCaseCount, TotalDupCaseCount, PrefixString,
-					 DuplicateString ], UserState ),
+			trace_debug( "[~B/~B] Leaving as they are~s: ~s",
+						 [ DuplicationCaseCount, TotalDupCaseCount,
+						   PrefixString, DuplicateString ], UserState ),
 			FileEntries;
 
 
-		abort ->
+		C when C =:= abort orelse C =:= ui_cancel ->
 			ui:display( "Uniquification aborted, stopping now." ),
-			trace( "(requested to abort the merge)", UserState ),
+			%trace_debug( "(requested to abort the merge)", UserState ),
 			basic_utils:stop( 0 )
 
 	end.
@@ -1888,9 +1909,9 @@ keep_only_one( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
 
 	ui:set_setting( title,
 					_Title="Selecting the unique reference version to keep, "
-					"whereas the others are to be removed" ),
+						   "whereas the others are to be removed" ),
 
-	BaseLabel = "~nPlease choose the (single) file to keep "
+	BaseLabel = "Please choose the (single) file to keep "
 				  "(others being removed), among:",
 
 	Label = case Prefix of
@@ -1904,17 +1925,26 @@ keep_only_one( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
 
 	end,
 
-	KeptIndex = ui:choose_numbered_item( Label, _Choices=TrimmedPaths ),
+	KeptIndex = case ui:choose_numbered_item( Label, _Choices=TrimmedPaths ) of
+
+		% ui_cancel:
+		0 ->
+			throw( operation_cancelled );
+
+		I ->
+			I
+
+	end,
 
 	ui:unset_setting( title ),
 
 	{ KeptFilePath, ToRemovePaths } =
 		list_utils:extract_element_at( PathStrings, KeptIndex ),
 
-	trace( "Keeping '~s', removing (based on common prefix '~s' and "
-		   "root directory '~s'): ~s ",
-		   [ KeptFilePath, Prefix, RootDir,
-			 text_utils:strings_to_string( ToRemovePaths ) ], UserState ),
+	trace_debug( "Keeping '~s', removing (based on common prefix '~s' and "
+				 "root directory '~s'): ~s ",
+				 [ KeptFilePath, Prefix, RootDir,
+				   text_utils:strings_to_string( ToRemovePaths ) ], UserState ),
 
 	ToRemoveFullPaths = [ file_utils:join( RootDir, P )
 						  || P <- ToRemovePaths ],
@@ -1950,17 +1980,28 @@ elect_and_link( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
 
 	end,
 
-	ElectedIndex = ui:choose_numbered_item( Label, _Choices=TrimmedPaths ),
+	ElectedIndex = case
+			 ui:choose_numbered_item( Label, _Choices=TrimmedPaths ) of
+
+		% ui_cancel:
+		0 ->
+			throw( operation_cancelled );
+
+		I ->
+			I
+
+	end,
 
 	ui:unset_setting( title ),
 
 	{ ElectedFilePath, FutureLinkPaths } =
 		list_utils:extract_element_at( PathStrings, ElectedIndex ),
 
-	trace( "Electing '~s', replacing by symlinks (based on common prefix '~s' "
-		   "and root directory '~s'): ~s",
-		   [ ElectedFilePath, Prefix, RootDir,
-			 text_utils:strings_to_string( FutureLinkPaths ) ], UserState ),
+	trace_debug( "Electing '~s', replacing by symlinks (based on common "
+				 "prefix '~s' and root directory '~s'): ~s ",
+				 [ ElectedFilePath, Prefix, RootDir,
+				   text_utils:strings_to_string( FutureLinkPaths ) ],
+				 UserState ),
 
 	ToRemoveFullPaths = [ file_utils:join( RootDir, P )
 						  || P <- FutureLinkPaths ],
@@ -1998,19 +2039,19 @@ create_links_to( TargetFilePath, _LinkPaths= [ Link | T ], RootDir ) ->
 % sets match (no extra element on either size) and that the cached and actual
 % file sizes match as well.
 %
--spec quick_cache_check( file_path(), [ file_path() ], directory_path() ) ->
-							   maybe( tree_data() ).
-quick_cache_check( CacheFilename, ContentFiles, TreePath ) ->
+-spec quick_cache_check( file_path(), [ file_path() ], directory_path(),
+						 user_state() ) -> maybe( tree_data() ).
+quick_cache_check( CacheFilename, ContentFiles, TreePath, UserState ) ->
 
 	case file_utils:read_terms( CacheFilename ) of
 
 		[ _RootInfo={ root, CachedTreePath } | FileInfos ] ->
 			quick_cache_check_helper( ContentFiles, TreePath, CachedTreePath,
-									  FileInfos );
+									  FileInfos, UserState );
 
 		_Other ->
-			trace_utils:warning_fmt( "Invalid cache file '~s', removing it "
-									 "and recreating it.", [ CacheFilename ] ),
+			trace_debug( "Invalid cache file '~s', removing it "
+						 "and recreating it.", [ CacheFilename ], UserState ),
 			file_utils:remove_file( CacheFilename ),
 			undefined
 
@@ -2018,7 +2059,8 @@ quick_cache_check( CacheFilename, ContentFiles, TreePath ) ->
 
 
 % (helper)
-quick_cache_check_helper( ContentFiles, TreePath, CachedTreePath, FileInfos ) ->
+quick_cache_check_helper( ContentFiles, TreePath, CachedTreePath, FileInfos,
+						  UserState ) ->
 
 	AbsTreePath = file_utils:ensure_path_is_absolute( TreePath ),
 
@@ -2028,9 +2070,9 @@ quick_cache_check_helper( ContentFiles, TreePath, CachedTreePath, FileInfos ) ->
 			ok;
 
 		_ ->
-			trace_utils:error_fmt( "The actual tree path ('~s') does not match "
-								   "the one found in its cache file ('~s').",
-								   [ AbsTreePath, CachedTreePath ] ),
+			trace_debug( "The actual tree path ('~s') does not match "
+						 "the one found in its cache file ('~s').",
+						 [ AbsTreePath, CachedTreePath ], UserState ),
 			throw( { non_matching_tree_paths, CachedTreePath, TreePath } )
 
 	end,
@@ -2045,15 +2087,15 @@ quick_cache_check_helper( ContentFiles, TreePath, CachedTreePath, FileInfos ) ->
 	case ActualFileCount of
 
 		CachedFileCount ->
-			trace_utils:debug_fmt( "Cached and actual file counts match "
-								   "(~B files).", [ CachedFileCount ] );
+			trace_debug( "Cached and actual file counts match (~B files).",
+						 [ CachedFileCount ], UserState );
 
 		_ ->
 			% Does not fail immediately, for a better error report:
-			trace_utils:trace_fmt( "The cached and actual file counts do not "
-				"match: ~B are referenced in cache, ~B exist "
-				"in the filesystem.",
-				[ CachedFileCount, ActualFileCount ] )
+			trace_debug( "The cached and actual file counts do not "
+						 "match: ~B are referenced in cache, ~B exist "
+						 "in the filesystem.",
+						 [ CachedFileCount, ActualFileCount ], UserState )
 
 	end,
 
@@ -2073,10 +2115,11 @@ quick_cache_check_helper( ContentFiles, TreePath, CachedTreePath, FileInfos ) ->
 
 		false ->
 			OnlyCacheList = set_utils:to_list( OnlyCachedSet ),
-			trace_utils:trace_fmt( "Following ~B files are referenced in "
-				"cache, yet do not exist on the filesystem: ~s",
-				[ length( OnlyCacheList ),
-				  text_utils:strings_to_string( OnlyCacheList ) ] ),
+			trace_debug( "Following ~B files are referenced in "
+						 "cache, yet do not exist on the filesystem: ~s",
+						 [ length( OnlyCacheList ),
+						   text_utils:strings_to_string( OnlyCacheList ) ],
+						 UserState ),
 			true
 
 	end,
@@ -2088,10 +2131,11 @@ quick_cache_check_helper( ContentFiles, TreePath, CachedTreePath, FileInfos ) ->
 
 		false ->
 			OnlyActualList = set_utils:to_list( OnlyActualSet ),
-			trace_utils:trace_fmt( "Following ~B files exist on the "
-				"filesystem, yet are not referenced in cache: ~s",
-				[ length( OnlyActualList ),
-				  text_utils:strings_to_string( OnlyActualList ) ] ),
+			trace_debug( "Following ~B files exist on the "
+						 "filesystem, yet are not referenced in cache: ~s",
+						 [ length( OnlyActualList ),
+						   text_utils:strings_to_string( OnlyActualList ) ],
+						 UserState ),
 			true
 
 	end,
@@ -2104,19 +2148,20 @@ quick_cache_check_helper( ContentFiles, TreePath, CachedTreePath, FileInfos ) ->
 
 		false ->
 
-			trace_utils:debug( "The file paths and names match." ),
+			trace_debug( "The file paths and names match.", UserState ),
 
 			% The two sets match, yet do they agree on the file sizes as well?
 			%
 			% (CachedFilePairs tells us both the paths and the expected sizes,
 			% hence no need for ContentFiles)
 			%
-			case check_file_sizes_match( CachedFilePairs, TreePath ) of
+			case check_file_sizes_match( CachedFilePairs, TreePath,
+										 UserState ) of
 
 				% Alles gut, so create the corresponding receptacle:
 				true ->
-					trace_utils:debug_fmt( "All sizes of the ~B files match.",
-										   [ CachedFileCount ] ),
+					trace_debug( "All sizes of the ~B files match.",
+								 [ CachedFileCount ], UserState ),
 
 					#tree_data{ root=CachedTreePath,
 								entries=build_entry_table( FileInfos ),
@@ -2167,26 +2212,27 @@ build_entry_table(
 % Checks that the actual file sizes match the specified ones.
 -spec check_file_sizes_match(
 		[ { file_path(), system_utils:byte_size() } ],
-		directory_path() ) -> boolean().
-check_file_sizes_match( _FilePairs=[], _TreePath ) ->
+		directory_path(), user_state() ) -> boolean().
+check_file_sizes_match( _FilePairs=[], _TreePath, _UserState ) ->
 	true;
 
-check_file_sizes_match( _FilePairs=[ { FilePath, FileSize } | T ], TreePath ) ->
+check_file_sizes_match( _FilePairs=[ { FilePath, FileSize } | T ], TreePath,
+						UserState ) ->
 
 	FileFullPath = file_utils:join( TreePath, FilePath ),
 
 	case file_utils:get_size( FileFullPath ) of
 
 		FileSize ->
-			check_file_sizes_match( T, TreePath );
+			check_file_sizes_match( T, TreePath, UserState );
 
 		ActualSize ->
-			trace_utils:debug_fmt( "For file '~s', cached size is ~s (~B bytes)"
+			trace_debug( "For file '~s', cached size is ~s (~B bytes)"
 				", whereas actual size is ~s (~B bytes), "
 				"invalidating thus cache file.",
 				[ FileFullPath, system_utils:interpret_byte_size( FileSize ),
 				  FileSize, system_utils:interpret_byte_size( ActualSize ),
-				  ActualSize ] ),
+				  ActualSize ], UserState ),
 			false
 
 	end.
