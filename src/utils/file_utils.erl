@@ -91,6 +91,7 @@
 		  is_absolute_path/1,
 		  ensure_path_is_absolute/1, ensure_path_is_absolute/2,
 		  normalise_path/1, make_relative/1, make_relative/2,
+		  get_longest_common_path/1,
 
 		  is_leaf_among/2,
 
@@ -2307,6 +2308,87 @@ make_relative_helper( PathElems, RefPathElems ) ->
 	%trace_utils:debug_fmt( "Returned path: '~s'.", [ Res ] ),
 
 	Res.
+
+
+
+% Returns a pair made of the longest path common to all specified directory
+% paths, and the corresponding suffixes, i.e. an (underordered) list of the
+% input paths (as lists of path elements) once the common prefix elements have
+% been removed.
+%
+% Like text_utils:get_longest_common_prefix/1, except that operates on path
+% elements, not characters.
+%
+-spec get_longest_common_path( [ directory_path() ] ) ->
+					 { directory_path(), [ directory_path() ] }.
+get_longest_common_path( DirPaths ) ->
+	DirElems = [ filename:split( D ) || D <- DirPaths ],
+	get_longest_common_path_helper( DirElems, _AccCommon=[] ).
+
+
+% (helper)
+get_longest_common_path_helper( DirElems, AccCommon ) ->
+
+	%trace_utils:debug_fmt( "get_longest_common_path_helper from ~p "
+	%						"(acc being ~p).", [ DirElems, AccCommon ] ),
+
+	case get_common_head_of( DirElems, _Acc=[] ) of
+
+		{ none, Tails } ->
+			%trace_utils:debug_fmt( "Finished, with common path ~s and "
+			%                       "tails: ~p.", [ AccCommon, Tails ] ),
+			{ join( lists:reverse( AccCommon ) ), Tails };
+
+		{ Elem, DirElemsTails } ->
+			get_longest_common_path_helper( DirElemsTails,
+											[ Elem | AccCommon ] )
+
+	end.
+
+
+
+% (sub-helper)
+get_common_head_of( _DirElemsTails=[], Acc ) ->
+	{ none, Acc };
+
+% We use the head (if any) of the first list as the one to check in the head of
+% all others:
+%
+get_common_head_of( _DirElemsTails=[ _First=[] | _Others ], Acc ) ->
+	{ none, Acc };
+
+get_common_head_of( _DirElemsTails=[ _First=[ Elem | T ] | Others ], Acc ) ->
+	case try_behead_with( Elem, Others ) of
+
+		non_matching ->
+			{ none, Acc };
+
+		NewOthers ->
+			{ Elem, [ T | NewOthers ] }
+
+	end.
+
+
+% (sub-sub-helper)
+try_behead_with( Elem, Others ) ->
+	%trace_utils:debug_fmt( "Beheading of ~p from '~s'", [ Others, Elem ] ),
+	try_behead_with( Elem, Others, _Acc=[] ).
+
+
+% Others depleted:
+try_behead_with( _Elem, _Others=[], Acc ) ->
+	 Acc;
+
+% A good Other:
+try_behead_with( Elem, _Others=[ [ Elem | R ] | T ], Acc ) ->
+	try_behead_with( Elem, T, [ R | Acc ] );
+
+% A bad Other:
+% Corresponds to: try_behead_with( Elem, Others=[ [ OtherElem | _R ] | _T ], _Acc ) ->
+% or to:          try_behead_with( Elem, Others=[ [] | _T ], _Acc ) ->
+try_behead_with( _Elem, _Others, _Acc ) ->
+	%trace_utils:debug_fmt( "'~s' could not be removed from ~p", [ Elem, Others ] ),
+	non_matching.
 
 
 
