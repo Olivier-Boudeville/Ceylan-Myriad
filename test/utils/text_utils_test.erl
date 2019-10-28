@@ -303,17 +303,17 @@ run() ->
 
 
 	FirstInput = [ "abca", "xyz" ],
-	{ "", FirstInput } = text_utils:find_longest_common_prefix( FirstInput ),
+	{ "", FirstInput } = text_utils:get_longest_common_prefix( FirstInput ),
 
 	SecondInput = [ "abca", "xyz", "abca" ],
-	{ "", SecondInput } = text_utils:find_longest_common_prefix( SecondInput ),
+	{ "", SecondInput } = text_utils:get_longest_common_prefix( SecondInput ),
 
-	{ "ab", [ "" ] } = text_utils:find_longest_common_prefix( [ "ab" ] ),
+	{ "ab", [ "" ] } = text_utils:get_longest_common_prefix( [ "ab" ] ),
 
-	{ "abc", [ "a", "b" ] } = text_utils:find_longest_common_prefix(
+	{ "abc", [ "a", "b" ] } = text_utils:get_longest_common_prefix(
 								[ "abca", "abcb" ] ),
 
-	{ "abc", [ "", "b" ] } = text_utils:find_longest_common_prefix(
+	{ "abc", [ "", "b" ] } = text_utils:get_longest_common_prefix(
 							   [ "abc", "abcb" ] ),
 
 

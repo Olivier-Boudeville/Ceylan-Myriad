@@ -72,7 +72,7 @@
 
 
 % Other string operations:
--export([ get_lexicographic_distance/2, find_longest_common_prefix/1,
+-export([ get_lexicographic_distance/2, get_longest_common_prefix/1,
 		  uppercase_initial_letter/1,
 		  to_lowercase/1, to_uppercase/1,
 		  join/2,
@@ -1217,30 +1217,32 @@ get_lexicographic_distance( FirstString=[ _H1 | T1 ], SecondString=[ _H2 | T2 ],
 % Returns the longest prefix that is common to all of the specified strings, and
 % a list of the specified strings with this prefix removed, in the same order.
 %
--spec find_longest_common_prefix( [ string() ] ) -> { string(), [ string() ] }.
-find_longest_common_prefix( _Strings=[] ) ->
+% See also: file_utils:get_longest_common_path/1.
+%
+-spec get_longest_common_prefix( [ string() ] ) -> { string(), [ string() ] }.
+get_longest_common_prefix( _Strings=[] ) ->
 	throw( empty_string_list );
 
-find_longest_common_prefix( _Strings=[ S ] ) ->
+get_longest_common_prefix( _Strings=[ S ] ) ->
 	{ S, [ "" ] };
 
-find_longest_common_prefix( _Strings=[ S | T ] ) ->
+get_longest_common_prefix( _Strings=[ S | T ] ) ->
 	% If having more than one string, take the first as the reference:
-	find_prefix_helper( T, _RefString=S, _AccPrefix=[] ).
+	get_prefix_helper( T, _RefString=S, _AccPrefix=[] ).
 
 
 % (helper)
-find_prefix_helper( Strings, _RefString=[], AccPrefix ) ->
+get_prefix_helper( Strings, _RefString=[], AccPrefix ) ->
 	% Characters of the reference exhausted, it is the prefix as a whole:
 	{ lists:reverse( AccPrefix ), [ "" | Strings ] };
 
 
-find_prefix_helper( Strings, RefString=[ C | T ], AccPrefix ) ->
+get_prefix_helper( Strings, RefString=[ C | T ], AccPrefix ) ->
 
 	case are_all_starting_with( C, Strings ) of
 
 		{ true, NewStrings } ->
-			find_prefix_helper( NewStrings, T, [ C | AccPrefix ] );
+			get_prefix_helper( NewStrings, T, [ C | AccPrefix ] );
 
 		false ->
 			% Do not forget the reference one:
