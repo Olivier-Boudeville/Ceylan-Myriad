@@ -747,6 +747,7 @@ stop_helper() ->
 %
 -spec set_state( ui_state() ) -> void().
 set_state( UIState ) ->
+	%trace_utils:debug_fmt( "Setting ~p in ", [ UIState, ?ui_state_key ] ),
 	process_dictionary:put( ?ui_state_key, UIState ).
 
 
@@ -848,6 +849,8 @@ set_settings( SettingEntries ) ->
 -spec set_settings( [ ui_setting_entry() ], ui_state() ) -> ui_state().
 set_settings( SettingEntries,
 			  UIState=#text_ui_state{ settings=SettingTable } ) ->
+
+	%trace_utils:debug_fmt( "Settings: ~p", [ SettingEntries ] ),
 
 	NewSettingTable = ?ui_table:add_entries( SettingEntries, SettingTable ),
 
