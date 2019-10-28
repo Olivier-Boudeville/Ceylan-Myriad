@@ -436,7 +436,7 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 		true ->
 
 			Label = text_utils:format( "A cache file already exists for '~s'. "
-										"We can:", [ TreePath ] ),
+									   "We can:", [ TreePath ] ),
 
 			% No 'strong_check' deemed useful (synonym of recreating from
 			% scratch, hence of 'ignore').
@@ -1521,7 +1521,7 @@ analyze_loop() ->
 							Type = file_utils:get_type_of( FilePath ),
 							trace_utils:info_fmt( "The type of entry '~s' "
 								"switched from regular (file) to ~s.",
-								[ Type ] );
+								[ FilePath, Type ] );
 
 						false ->
 							trace_utils:info_fmt( "The file '~s' does not "
@@ -1752,12 +1752,16 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 	Count = length( FileEntries ),
 
-	% By design more than one path:
+	% By design more than one path: text_utils:get_longest_common_prefix/1
+	% should not be used as for example a foobar-new directory could be a
+	% sibling of a foobar directory, resulting in -new/... meaningless suffixes;
+	% so:
+	%
 	{ Label, Prefix, ShortenPaths } =
-		case text_utils:find_longest_common_prefix( Dirnames ) of
+		case file_utils:get_longest_common_path( Dirnames ) of
 
 		% No common prefix at all here:
-		{ "", _AllPathStrings } ->
+		"" ->
 
 			Lbl = text_utils:format( "Following ~B files have the exact same "
 									 "content (and thus size, of ~s)",
@@ -1767,11 +1771,12 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 		% We do not re-reuse the remaining, prefixless strings as they do not
 		% comprise the basename (only the dirname):
 		%
-		{ Prfx, _ShortenStrings } ->
+		{ Prfx, _Tails } ->
 
 			PrefixLen = length( Prfx ),
 
-			TrimmedPaths = [ string:substr( P, PrefixLen + 1 )
+			% +1 for offset and +1 to remove leading /:
+			TrimmedPaths = [ string:substr( P, PrefixLen + 2 )
 							 || P <- PathStrings ],
 
 			Lbl = text_utils:format( "Following ~B files have the exact same "
@@ -1911,9 +1916,7 @@ keep_only_one( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
 		   [ KeptFilePath, Prefix, RootDir,
 			 text_utils:strings_to_string( ToRemovePaths ) ], UserState ),
 
-	RootPrefix = file_utils:join( RootDir, Prefix ),
-
-	ToRemoveFullPaths = [ file_utils:join( RootPrefix, P )
+	ToRemoveFullPaths = [ file_utils:join( RootDir, P )
 						  || P <- ToRemovePaths ],
 
 	file_utils:remove_files( ToRemoveFullPaths ),
@@ -1955,13 +1958,11 @@ elect_and_link( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
 		list_utils:extract_element_at( PathStrings, ElectedIndex ),
 
 	trace( "Electing '~s', replacing by symlinks (based on common prefix '~s' "
-		   "and root directory '~s'): ~s ",
+		   "and root directory '~s'): ~s",
 		   [ ElectedFilePath, Prefix, RootDir,
 			 text_utils:strings_to_string( FutureLinkPaths ) ], UserState ),
 
-	RootPrefix = file_utils:join( RootDir, Prefix ),
-
-	ToRemoveFullPaths = [ file_utils:join( RootPrefix, P )
+	ToRemoveFullPaths = [ file_utils:join( RootDir, P )
 						  || P <- FutureLinkPaths ],
 
 	file_utils:remove_files( ToRemoveFullPaths ),
