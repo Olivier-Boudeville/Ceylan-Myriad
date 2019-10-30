@@ -1701,7 +1701,6 @@ process_duplications_helper( _DupCases=[ { Sha1Key, DuplicateList } | T ],
 							 _Acc={ AccTable, AccDupCount, AccRemoveCount },
 							 RootDir, UserState ) ->
 
-	io:format( "A2" ) ,
 	Size = check_duplicates( Sha1Key, DuplicateList ),
 
 	SelectedFileEntries = manage_duplication_case( DuplicateList, AccDupCount,
@@ -1783,7 +1782,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 		case file_utils:get_longest_common_path( Dirnames ) of
 
 		% No common prefix at all here:
-		"" ->
+		{ _Prfx="", _Tails } ->
 
 			Lbl = text_utils:format( "Following ~B files have the exact same "
 									 "content (and thus size, of ~s)",
