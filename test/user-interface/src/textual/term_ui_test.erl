@@ -53,6 +53,25 @@ run_test_ui() ->
 
 	term_ui:display( "My second text to display!" ),
 
+	case term_ui:choose_designated_item_with_default(
+		   "Please choose a color among:",
+		   [ { red, "Reddish" }, { blue, "Blueish" }, { green, "Greenish" } ],
+		   blue ) of
+
+		red ->
+			term_ui:display( "Red was chosen!" );
+
+		blue ->
+			term_ui:display( "Blue was chosen!" );
+
+		green ->
+			term_ui:display( "Green was chosen!" );
+
+		ui_cancel ->
+			term_ui:display( "Choice cancelled by the user!" )
+
+	end,
+
 	trace_utils:debug_fmt( "UI state: ~s", [ term_ui:to_string() ] ),
 
 	term_ui:stop().
