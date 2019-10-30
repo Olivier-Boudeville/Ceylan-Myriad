@@ -62,8 +62,9 @@
 
 		  display_numbered_list/2,
 
-		  display_error/1, display_error/2,
+		  display_warning/1, display_warning/2,
 
+		  display_error/1, display_error/2,
 		  display_error_numbered_list/2,
 
 		  add_separation/0,
@@ -128,9 +129,11 @@
 %
 -type channel() :: io:device().
 
+-define( warning_prefix, "~n[warning] " ).
+-define( warning_suffix, "~n" ).
+
 -define( error_prefix, "~n[error] " ).
 -define( error_suffix, "~n" ).
-
 
 
 
@@ -247,7 +250,6 @@ display( FormatString, Values ) ->
 	display_helper( _Channel=standard_io, FormatString, Values ).
 
 
-
 % Displays in-order the items of specified list, as a normal message.
 -spec display_numbered_list( label(), [ text() ] ) -> void().
 display_numbered_list( Label, Lines ) ->
@@ -256,11 +258,24 @@ display_numbered_list( Label, Lines ) ->
 
 
 
+% Displays specified text, as a warning message.
+-spec display_warning( text() ) -> void().
+display_warning( Text ) ->
+	display_helper( standard_error, ?warning_prefix ++ Text ++ ?warning_suffix ).
+
+
+% Displays specified formatted text, as a warning message.
+-spec display_warning( text_utils:format_string(), [ term() ] ) -> void().
+display_warning( FormatString, Values ) ->
+	display_helper( standard_error,
+					?warning_prefix ++ FormatString ++ ?warning_suffix, Values ).
+
+
+
 % Displays specified text, as an error message.
 -spec display_error( text() ) -> void().
 display_error( Text ) ->
 	display_helper( standard_error, ?error_prefix ++ Text ++ ?error_suffix ).
-
 
 
 % Displays specified formatted text, as an error message.
@@ -497,7 +512,6 @@ choose_designated_item( Label, Choices ) ->
 choose_designated_item( Label, Choices, UIState ) ->
 
 	%trace_utils:debug_fmt( "Choices = ~p", [ Choices ] ),
-
 
 	{ Designators, Texts } = lists:unzip( Choices ),
 
@@ -896,7 +910,7 @@ display_helper( Channel, FormatString, Values ) ->
 			ok;
 
 		Backtitle ->
-			io:format( Channel, "~n [Backtitle: ~s]~n", [ Backtitle ] )
+			io:format( Channel, "~n~n [Backtitle: ~s]~n", [ Backtitle ] )
 
 	end,
 

@@ -111,8 +111,9 @@
 
 		  display_numbered_list/2,
 
-		  display_error/1, display_error/2,
+		  display_warning/1, display_warning/2,
 
+		  display_error/1, display_error/2,
 		  display_error_numbered_list/2,
 
 		  add_separation/0,
@@ -320,6 +321,28 @@ display_numbered_list( Label, Lines ) ->
 
 	UIModule:display_numbered_list( Label, Lines ).
 
+
+
+% Displays specified text, as a warning message.
+%
+% Note: all types of quotes are allowed in the specified text.
+%
+-spec display_warning( text() ) -> void().
+display_warning( Text ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:display( "Warning: " ++ Text ).
+
+
+% Displays specified formatted text, as a warning message.
+-spec display_warning( text_utils:format_string(), text_utils:format_values() ) ->
+					 void().
+display_warning( FormatString, Values ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:display( "Warning: " ++ FormatString, Values ).
 
 
 
@@ -841,7 +864,8 @@ get_best_ui_backend() ->
 	end,
 
 	% Tired of failures for the moment:
-	RiggedResult = text_ui,
+	%RiggedResult = text_ui,
+	RiggedResult = term_ui,
 
 	trace_utils:warning_fmt( "Selecting '~s', as currently hardcoded "
 							 "(should have been '~s').",

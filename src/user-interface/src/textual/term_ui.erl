@@ -224,8 +224,9 @@
 
 		  display_numbered_list/2,
 
-		  display_error/1, display_error/2,
+		  display_warning/1, display_warning/2,
 
+		  display_error/1, display_error/2,
 		  display_error_numbered_list/2,
 
 		  add_separation/0,
@@ -520,7 +521,8 @@ display( Text ) ->
 	%trace_utils:debug_fmt( "Dialog path: '~s'.", [ ToolPath ] ),
 
 
-	{ SettingString, SuffixString } = get_dialog_settings_for_return_code( SettingTable ),
+	{ SettingString, SuffixString } =
+		get_dialog_settings_for_return_code( SettingTable ),
 
 	%trace_utils:debug_fmt( "Setting string: '~s'.", [ SettingString ] ),
 	%trace_utils:debug_fmt( "Suffix string: '~s'.", [ SuffixString ] ),
@@ -566,6 +568,71 @@ display_numbered_list( Label, Lines ) ->
 
 
 
+% Displays specified text, as a warning message.
+-spec display_warning( text() ) -> void().
+display_warning( Text ) ->
+
+	% Simplified example:
+	%Cmd = "dialog --infobox 'Warning!' 8 40",
+
+	% Single quotes induce no specific issues (as are enclosed in double ones)
+	EscapedText = text_utils:escape_double_quotes( Text ),
+
+	%trace_utils:debug_fmt( "Original text: '~s'; once escaped: '~s'.",
+	%					   [ Text, EscapedText ] ),
+
+	#term_ui_state{ dialog_tool_path=ToolPath,
+					settings=SettingTable } = get_state(),
+
+	%trace_utils:debug_fmt( "Dialog path: '~s'.", [ ToolPath ] ),
+
+	WarningSettingTable = ?ui_table:add_entry( 'title', ?yellow"Warning"?normal,
+											   SettingTable ),
+
+	{ SettingString, SuffixString } =
+		get_dialog_settings_for_return_code( WarningSettingTable ),
+
+	%trace_utils:debug_fmt( "Setting string: '~s'.", [ SettingString ] ),
+	%trace_utils:debug_fmt( "Suffix string: '~s'.", [ SuffixString ] ),
+
+	% Apparently button colors are ignored:
+	%OKLabel = "--ok-label '"?red" Abort "?normal"'",
+	OKLabel = "--ok-label 'Abort'",
+
+	DialogString = "--colors " ++ OKLabel
+		++ text_utils:format( " --msgbox \"~s\" ~s",
+							  [ EscapedText, SuffixString ] ),
+
+	Cmd = text_utils:join( _Sep=" ",
+						   [ ToolPath, SettingString, DialogString ] ),
+
+	%trace_utils:debug_fmt( "term_ui display command: '~s'.", [ Cmd ] ),
+
+	{ Env, PortOpts } = get_execution_settings(),
+
+	case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
+									  PortOpts ) of
+
+		{ _ExitStatus=0, _Output="" } ->
+			ok;
+
+		%{ _ExitStatus=0, Output } ->
+			%trace_utils:debug_fmt( "Display output: '~s'.", [ Output ] );
+
+		{ ExitStatus, Output } ->
+			throw( { display_warning_reported, ExitStatus, Output } )
+
+	end.
+
+
+
+% Displays specified formatted text, as a warning message.
+-spec display_warning( text_utils:format_string(), [ term() ] ) -> void().
+display_warning( FormatString, Values ) ->
+	display_warning( text_utils:format( FormatString, Values ) ).
+
+
+
 % Displays specified text, as an error message.
 -spec display_error( text() ) -> void().
 display_error( Text ) ->
@@ -576,8 +643,8 @@ display_error( Text ) ->
 	% Single quotes induce no specific issues (as are enclosed in double ones)
 	EscapedText = text_utils:escape_double_quotes( Text ),
 
-	trace_utils:debug_fmt( "Original text: '~s'; once escaped: '~s'.",
-						   [ Text, EscapedText ] ),
+	%trace_utils:debug_fmt( "Original text: '~s'; once escaped: '~s'.",
+	%					   [ Text, EscapedText ] ),
 
 	#term_ui_state{ dialog_tool_path=ToolPath,
 					settings=SettingTable } = get_state(),
@@ -587,7 +654,8 @@ display_error( Text ) ->
 	ErrorSettingTable = ?ui_table:add_entry( 'title', ?red"Error"?normal,
 											 SettingTable ),
 
-	{ SettingString, SuffixString } = get_dialog_settings_for_return_code( ErrorSettingTable ),
+	{ SettingString, SuffixString } =
+		get_dialog_settings_for_return_code( ErrorSettingTable ),
 
 	%trace_utils:debug_fmt( "Setting string: '~s'.", [ SettingString ] ),
 	%trace_utils:debug_fmt( "Suffix string: '~s'.", [ SuffixString ] ),
@@ -1253,7 +1321,7 @@ choose_numbered_item( Prompt, Choices, UIState ) ->
 
 
 % Selects, based on an implicit state, using a default prompt, an item among the
-% specified ones, with a default choix index being specified, and returns its
+% specified ones, with a default item being specified, and returns its
 % index.
 %
 % Note that index zero can also be returned, corresponding to the 'ui_cancel'
@@ -1261,8 +1329,8 @@ choose_numbered_item( Prompt, Choices, UIState ) ->
 %
 -spec choose_numbered_item_with_default( [ choice_text() ], choice_index() ) ->
 											   choice_index().
-choose_numbered_item_with_default( Choices, DefaultChoiceIndex ) ->
-	choose_numbered_item_with_default( Choices, DefaultChoiceIndex,
+choose_numbered_item_with_default( Choices, DefaultChoiceText ) ->
+	choose_numbered_item_with_default( Choices, DefaultChoiceText,
 									   get_state() ).
 
 
@@ -1281,17 +1349,17 @@ choose_numbered_item_with_default( Choices, DefaultChoiceIndex ) ->
 										 ui_state() ) -> choice_index();
 									   ( prompt(), [ choice_text() ],
 										 choice_index() ) -> choice_index().
-choose_numbered_item_with_default( Choices, DefaultChoiceIndex, UIState )
+choose_numbered_item_with_default( Choices, DefaultChoiceText, UIState )
   when is_record( UIState, term_ui_state ) ->
 
 	Prompt = text_utils:format( "Select among these ~B choices:",
 							   [ length( Choices ) ] ),
 
-	choose_numbered_item_with_default( Prompt, Choices, DefaultChoiceIndex,
+	choose_numbered_item_with_default( Prompt, Choices, DefaultChoiceText,
 									   UIState );
 
-choose_numbered_item_with_default( Prompt, Choices, DefaultChoiceIndex ) ->
-	choose_numbered_item_with_default( Prompt, Choices, DefaultChoiceIndex,
+choose_numbered_item_with_default( Prompt, Choices, DefaultChoiceText ) ->
+	choose_numbered_item_with_default( Prompt, Choices, DefaultChoiceText,
 									   get_state() ).
 
 
@@ -1317,8 +1385,8 @@ choose_numbered_item_with_default( Prompt, Choices, DefaultChoiceText,
 	%
 	ChoiceElements = lists:zip( lists:seq( 1, length( Choices ) ), Choices ),
 
-	DefaultChoiceIndex = case list_utils:get_maybe_index_of( DefaultChoiceText,
-															 Choices ) of
+	DefaultChoiceIndex =
+		case list_utils:get_maybe_index_of( DefaultChoiceText, Choices ) of
 
 		undefined ->
 			throw( { default_not_among_choices, DefaultChoiceText, Choices } );

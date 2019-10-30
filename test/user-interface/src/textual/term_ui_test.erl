@@ -72,6 +72,26 @@ run_test_ui() ->
 
 	end,
 
+	case term_ui:choose_numbered_item_with_default(
+		   "Please choose a race among:",
+		   [ "Elves", "Orcs", "Humans" ], "Humans" ) of
+
+		1 ->
+			term_ui:display( "Elves were chosen!" );
+
+		2 ->
+			term_ui:display( "Orcs were chosen!" );
+
+		3 ->
+			term_ui:display( "Humans were chosen!" );
+
+		ui_cancel ->
+			term_ui:display( "Choice cancelled by the user!" )
+
+	end,
+
+
+
 	trace_utils:debug_fmt( "UI state: ~s", [ term_ui:to_string() ] ),
 
 	term_ui:stop().
