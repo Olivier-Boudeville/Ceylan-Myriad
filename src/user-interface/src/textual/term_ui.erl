@@ -241,6 +241,10 @@
 		  choose_designated_item/1, choose_designated_item/2,
 		  choose_designated_item/3,
 
+		  choose_designated_item_with_default/2,
+		  choose_designated_item_with_default/3,
+		  choose_designated_item_with_default/4,
+
 		  choose_numbered_item/1, choose_numbered_item/2,
 		  choose_numbered_item/3,
 
@@ -911,53 +915,58 @@ ask_yes_no( Prompt, BinaryDefault, #term_ui_state{ dialog_tool_path=ToolPath,
 
 
 % Selects, using a default prompt, an item among the specified ones (comprising,
-% for each, an internal designator and a text), and returns its designator.
+% for each, a user-specified, internal, designator and a text), and returns its
+% designator.
 %
-% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
-% cancel that operation.
+% Note that the 'ui_cancel' designator atom can also be returned, should the
+% user prefer to cancel that operation.
 %
 % (const)
 %
 -spec choose_designated_item( [ choice_element() ] ) -> choice_designator().
 choose_designated_item( Choices ) ->
 
-	Label = text_utils:format( "Select among these ~B choices:",
+	Prompt = text_utils:format( "Select among these ~B choices:",
 							   [ length( Choices ) + 1 ] ),
 
-	choose_designated_item( Label, Choices ).
+	choose_designated_item( Prompt, Choices ).
 
 
 
 % Selects, using specified prompt, an item among the specified ones (comprising,
-% for each, an internal designator and a text), and returns its designator.
+% for each, a user-specified, internal, designator and a text), and returns its
+% designator.
 %
-% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
-% cancel that operation.
-%
-% (const)
-%
--spec choose_designated_item( label(), [ choice_element() ] ) ->
-									choice_designator().
-choose_designated_item( Label, Choices ) ->
-	choose_designated_item( Label, Choices, get_state() ).
-
-
-
-% Selects, based on an explicit state, using the specified label, an item among
-% the specified ones (comprising, for each, an internal designator and a text),
-% and returns its designator.
-%
-% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
-% cancel that operation.
+% Note that the 'ui_cancel' designator atom can also be returned, should the
+% user prefer to cancel that operation.
 %
 % (const)
 %
--spec choose_designated_item( label(), [ choice_element() ], ui_state() ) ->
+-spec choose_designated_item( prompt(), [ choice_element() ] ) ->
 									choice_designator().
-choose_designated_item( Label, Choices,
+choose_designated_item( Prompt, Choices ) ->
+	choose_designated_item( Prompt, Choices, get_state() ).
+
+
+
+% Selects, based on an explicit state, using the specified prompt, an item among
+% the specified ones (comprising, for each, a user-specified, internal,
+% designator and a text), and returns its designator.
+%
+% Note that the 'ui_cancel' designator atom can also be returned, should the
+% user prefer to cancel that operation.
+%
+% (const)
+%
+-spec choose_designated_item( prompt(), [ choice_element() ], ui_state() ) ->
+									choice_designator().
+choose_designated_item( Prompt, Choices,
 						#term_ui_state{ dialog_tool_path=ToolPath,
 										settings=SettingTable } ) ->
 
+	% Command: dialog --menu <text> <height> <width> <menu height> <tag1>
+	% <item1>...
+	%
 	% Ex: dialog --menu "Hello" 0 0 0 1 One 2 Two 3 Three
 
 	{ Designators, Texts } = lists:unzip( Choices ),
@@ -991,7 +1000,7 @@ choose_designated_item( Label, Choices,
 
 	AutoSizeString = "0 0",
 
-	DialogStrings = [ "--menu", "\"" ++ Label ++ "\"", AutoSizeString,
+	DialogStrings = [ "--menu", "\"" ++ Prompt ++ "\"", AutoSizeString,
 	  _MenuHeight=text_utils:integer_to_string( ChoiceCount )
 		 | lists:reverse( [ get_redirect_string_for_code() | NumStrings ] ) ],
 
@@ -1020,29 +1029,72 @@ choose_designated_item( Label, Choices,
 
 
 
-% Selects, based on an explicit state, using the specified label, an item among
-% the specified ones (comprising, for each, an internal designator and a text),
-% with a default choix designator being specified, and returns its designator.
+% Selects, based on an implicit state, using a default prompt, an item among the
+% specified ones (comprising, for each, a user-specified, internal, designator
+% and a text), with a default choix designator being specified, and returns its
+% designator.
 %
-% Note that the 'ui_cancel' atom can also be returned, should the user prefer to
-% cancel that operation.
+% Note that the 'ui_cancel' designator atom can also be returned, should the
+% user prefer to cancel that operation.
 %
 % (const)
 %
--spec choose_designated_item_with_default( label(), [ choice_element() ],
+-spec choose_designated_item_with_default( [ choice_element() ],
+				choice_designator() ) -> choice_designator().
+choose_designated_item_with_default( Choices, DefaultChoiceDesignator ) ->
+
+	Prompt = text_utils:format( "Select among these ~B choices:",
+							   [ length( Choices ) + 1 ] ),
+
+	choose_designated_item_with_default( Prompt, Choices,
+						DefaultChoiceDesignator, get_state() ).
+
+
+% Selects, based on an implicit state, using the specified prompt, an item among
+% the specified ones (comprising, for each, a user-specified, internal,
+% designator and a text), with a default choix designator being specified, and
+% returns its designator.
+%
+% Note that the 'ui_cancel' designator atom can also be returned, should the
+% user prefer to cancel that operation.
+%
+% (const)
+%
+-spec choose_designated_item_with_default( prompt(), [ choice_element() ],
+				choice_designator() ) -> choice_designator().
+choose_designated_item_with_default( Prompt, Choices,
+									 DefaultChoiceDesignator ) ->
+	choose_designated_item_with_default( Prompt, Choices,
+						DefaultChoiceDesignator, get_state() ).
+
+
+
+% Selects, based on an explicit state, using the specified prompt, an item among
+% the specified ones (comprising, for each, a user-specified, internal,
+% designator and a text), with a default choix designator being specified, and
+% returns its designator.
+%
+% Note that the 'ui_cancel' designator atom can also be returned, should the
+% user prefer to cancel that operation.
+%
+% (const)
+%
+-spec choose_designated_item_with_default( prompt(), [ choice_element() ],
 				choice_designator(), ui_state() ) -> choice_designator().
-choose_designated_item_with_default( Label, Choices, _DefaultChoiceDesignator,
+choose_designated_item_with_default( Prompt, Choices, DefaultChoiceDesignator,
 								 #term_ui_state{ dialog_tool_path=ToolPath,
 												 settings=SettingTable } ) ->
 
-	% Using radio list rather than menu, for the selectable initial, default
-	% choice:
+	% Using 'radio list' rather than 'menu', for the selectable initial, default
+	% choice.
 
+	% Command: dialog --radiolist <text> <height> <width> <list height> <tag1>
+	% <item1> <status1>...
+	%
 	% Ex: dialog --radiolist "Select CPU type:" 10 40 10 1 386SX off 2 386DX on
 	% 3 486SX off 4 486DX off
 
-	% (very much inspired from choose_designated_item/3 and
-	% choose_numbered_item/3)
+	% (very much inspired from choose_designated_item/3)
 
 	{ Designators, Texts } = lists:unzip( Choices ),
 
@@ -1056,6 +1108,18 @@ choose_designated_item_with_default( Label, Choices, _DefaultChoiceDesignator,
 
 	end,
 
+	DefaultChoiceIndex = case list_utils:get_maybe_index_of(
+								DefaultChoiceDesignator, Designators ) of
+
+		undefined ->
+			throw( { default_designator_not_among_choices,
+					 DefaultChoiceDesignator, Designators } );
+
+		I ->
+			I
+
+	end,
+
 	ChoiceCount = length( Choices ),
 
 	% We simply tag the choices with a counter (rather than using the designator
@@ -1063,22 +1127,32 @@ choose_designated_item_with_default( Label, Choices, _DefaultChoiceDesignator,
 	%
 	NumChoices = lists:zip( lists:seq( 1, ChoiceCount ), Texts ),
 
-	NumStrings = lists:foldl( fun( { Num, Text }, AccStrings ) ->
-									 [ text_utils:format( " ~B \"~s\"",
-												[ Num, Text ] ) | AccStrings ]
-							  end,
-							  _Acc0=[],
-							  _List=NumChoices ),
+	% Cannot directly match DefaultChoiceIndex in the head of a clause (not
+	% understood by the compiler):
+	%
+	NumStrings = lists:foldl(
+		   fun( { Num, Text }, AccStrings ) ->
+				case Num of
+
+					DefaultChoiceIndex ->
+						[ text_utils:format( " ~B \"~s\" on",
+							[ DefaultChoiceIndex, Text ] ) | AccStrings ];
+
+					_ ->
+						[ text_utils:format( " ~B \"~s\" off",
+							[ Num, Text ] ) | AccStrings ]
+
+				end
+		end,
+		_Acc0=[],
+		_List=NumChoices ),
 
 	{ SettingString, _SuffixString } =
 		get_dialog_settings_for_return_code( SettingTable ),
 
-	% Last element is the base list height:
-	AutoSizeString = "0 0 8",
+	AutoSizeString = "0 0",
 
-	throw( todo_stopped_here ),
-
-	DialogStrings = [ "--radiolist", "\"" ++ Label ++ "\"", AutoSizeString,
+	DialogStrings = [ "--radiolist", "\"" ++ Prompt ++ "\"", AutoSizeString,
 	  _MenuHeight=text_utils:integer_to_string( ChoiceCount )
 		 | lists:reverse( [ get_redirect_string_for_code() | NumStrings ] ) ],
 
@@ -1107,7 +1181,7 @@ choose_designated_item_with_default( Label, Choices, _DefaultChoiceDesignator,
 
 
 
-% Selects, based on an implicit state, using a default label, an item among the
+% Selects, based on an implicit state, using a default prompt, an item among the
 % specified ones (specified as direct text, with no specific designator
 % provided), and returns its index.
 %
@@ -1119,11 +1193,11 @@ choose_numbered_item( Choices ) ->
 	choose_numbered_item( Choices, get_state() ).
 
 
-% Selects, based on an explicit state, using a default label, an item among the
+% Selects, based on an explicit state, using a default prompt, an item among the
 % specified ones (specified as direct text, with no specific designator
 % provided), and returns its index.
 %
-% Selects, based on an implicit state, using the specified label, an item among
+% Selects, based on an implicit state, using the specified prompt, an item among
 % the specified ones, and returns its index.
 %
 % Note that index zero can also be returned, corresponding to the 'ui_cancel'
@@ -1131,30 +1205,30 @@ choose_numbered_item( Choices ) ->
 %
 -spec choose_numbered_item( [ choice_text() ], ui_state() ) ->
 								  choice_index();
-						  ( label(), [ choice_element() ] ) -> choice_index().
+						  ( prompt(), [ choice_element() ] ) -> choice_index().
 choose_numbered_item( Choices, UIState )
   when is_record( UIState, term_ui_state ) ->
 
-	Label = text_utils:format( "Select among these ~B choices:",
+	Prompt = text_utils:format( "Select among these ~B choices:",
 							   [ length( Choices ) ] ),
 
-	choose_numbered_item( Label, Choices, UIState );
+	choose_numbered_item( Prompt, Choices, UIState );
 
-choose_numbered_item( Label, Choices ) ->
-	choose_numbered_item( Label, Choices, get_state() ).
+choose_numbered_item( Prompt, Choices ) ->
+	choose_numbered_item( Prompt, Choices, get_state() ).
 
 
 
-% Selects, based on an explicit state, using the specified label, an item among
+% Selects, based on an explicit state, using the specified prompt, an item among
 % the specified ones (specified as direct text, with no specific designator
 % provided), and returns its index.
 %
 % Note that index zero can also be returned, corresponding to the 'ui_cancel'
 % atom, should the user prefer to cancel that operation.
 %
--spec choose_numbered_item( label(), [ choice_text() ], ui_state() ) ->
+-spec choose_numbered_item( prompt(), [ choice_text() ], ui_state() ) ->
 								  choice_index().
-choose_numbered_item( Label, Choices, UIState ) ->
+choose_numbered_item( Prompt, Choices, UIState ) ->
 
 	% We could as well have used a radio list, yet a menu is probably a tad
 	% clearer (and selecting the default, initial entry would have no real use
@@ -1165,7 +1239,7 @@ choose_numbered_item( Label, Choices, UIState ) ->
 	%
 	ChoiceElements = lists:zip( lists:seq( 1, length( Choices ) ), Choices ),
 
-	case choose_designated_item( Label, ChoiceElements, UIState ) of
+	case choose_designated_item( Prompt, ChoiceElements, UIState ) of
 
 		ui_cancel ->
 			0;
@@ -1178,7 +1252,7 @@ choose_numbered_item( Label, Choices, UIState ) ->
 
 
 
-% Selects, based on an implicit state, using a default label, an item among the
+% Selects, based on an implicit state, using a default prompt, an item among the
 % specified ones, with a default choix index being specified, and returns its
 % index.
 %
@@ -1193,11 +1267,11 @@ choose_numbered_item_with_default( Choices, DefaultChoiceIndex ) ->
 
 
 
-% Selects, based on an explicit state, using a default label, an item among the
+% Selects, based on an explicit state, using a default prompt, an item among the
 % specified ones (specified as direct text, with no specific designator
 % provided) and returns its index.
 %
-% Selects, based on an implicit state, using the specified label and default
+% Selects, based on an implicit state, using the specified prompt and default
 % item, an item among the specified ones, and returns its index.
 %
 % Note that index zero can also be returned, corresponding to the 'ui_cancel'
@@ -1205,33 +1279,33 @@ choose_numbered_item_with_default( Choices, DefaultChoiceIndex ) ->
 %
 -spec choose_numbered_item_with_default( [ choice_text() ], choice_index(),
 										 ui_state() ) -> choice_index();
-									   ( label(), [ choice_text() ],
+									   ( prompt(), [ choice_text() ],
 										 choice_index() ) -> choice_index().
 choose_numbered_item_with_default( Choices, DefaultChoiceIndex, UIState )
   when is_record( UIState, term_ui_state ) ->
 
-	Label = text_utils:format( "Select among these ~B choices:",
+	Prompt = text_utils:format( "Select among these ~B choices:",
 							   [ length( Choices ) ] ),
 
-	choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
+	choose_numbered_item_with_default( Prompt, Choices, DefaultChoiceIndex,
 									   UIState );
 
-choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex ) ->
-	choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
+choose_numbered_item_with_default( Prompt, Choices, DefaultChoiceIndex ) ->
+	choose_numbered_item_with_default( Prompt, Choices, DefaultChoiceIndex,
 									   get_state() ).
 
 
 
-% Selects, based on an explicit state, using the specified label and default
+% Selects, based on an explicit state, using the specified prompt and default
 % item, an item among the specified ones (specified as direct text, with no
 % specific designator provided), and returns its index.
 %
 % Note that index zero can also be returned, corresponding to the 'ui_cancel'
 % atom, should the user prefer to cancel that operation.
 %
--spec choose_numbered_item_with_default( label(), [ choice_text() ],
+-spec choose_numbered_item_with_default( prompt(), [ choice_text() ],
 			choice_text(), ui_state() ) -> choice_index().
-choose_numbered_item_with_default( Label, Choices, DefaultChoiceText,
+choose_numbered_item_with_default( Prompt, Choices, DefaultChoiceText,
 								   UIState ) ->
 
 	% We use a radio list here, to benefit from a default.
@@ -1255,7 +1329,7 @@ choose_numbered_item_with_default( Label, Choices, DefaultChoiceText,
 	end,
 
 	% Choice designators are simply integers here:
-	case choose_designated_item_with_default( Label, ChoiceElements,
+	case choose_designated_item_with_default( Prompt, ChoiceElements,
 									  DefaultChoiceIndex, UIState ) of
 
 		ui_cancel ->
