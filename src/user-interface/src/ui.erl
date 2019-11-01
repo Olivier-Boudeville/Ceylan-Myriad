@@ -124,10 +124,14 @@
 		  read_text_as_integer/1, read_text_as_integer/2,
 		  read_text_as_maybe_integer/1, read_text_as_maybe_integer/2,
 
-		  ask_yes_no/2,
+		  ask_yes_no/1, ask_yes_no/2,
 
 		  choose_designated_item/1, choose_designated_item/2,
 		  choose_designated_item/3,
+
+		  choose_designated_item_with_default/2,
+		  choose_designated_item_with_default/3,
+		  choose_designated_item_with_default/4,
 
 		  choose_numbered_item/1, choose_numbered_item/2,
 		  choose_numbered_item/3,
@@ -529,6 +533,14 @@ read_text_as_maybe_integer( Prompt, UIState ) ->
 
 
 
+% Displays specified prompt, lets the user choose between two options, 'yes' and
+% 'no' (the default option here), and returns that choice.
+%
+-spec ask_yes_no( prompt() ) -> binary_choice().
+ask_yes_no( Prompt ) ->
+	ask_yes_no( Prompt, _BinaryDefault='no' ).
+
+
 % Displays specified prompt, lets the user choose between two options, "yes" and
 % "no" (with specified default option), and returns that choice.
 %
@@ -544,6 +556,9 @@ ask_yes_no( Prompt, BinaryDefault ) ->
 % Selects, using a default prompt, an item among the specified ones (comprising,
 % for each, an internal designator and a text), and returns its designator.
 %
+% Note that the 'ui_cancel' designator atom can also be returned, should the
+% user prefer to cancel that operation.
+%
 % (const)
 %
 -spec choose_designated_item( [ choice_element() ] ) -> choice_designator().
@@ -558,39 +573,113 @@ choose_designated_item( Choices ) ->
 % Selects, using specified prompt, an item among the specified ones (comprising,
 % for each, an internal designator and a text), and returns its designator.
 %
+% Note that the 'ui_cancel' designator atom can also be returned, should the
+% user prefer to cancel that operation.
+%
 % (const)
 %
--spec choose_designated_item( label(), [ choice_element() ] ) ->
+-spec choose_designated_item( prompt(), [ choice_element() ] ) ->
 									choice_designator().
-choose_designated_item( Label, Choices ) ->
+choose_designated_item( Prompt, Choices ) ->
 
 	UIModule = get_backend_name(),
 
-	UIModule:choose_designated_item( Label, Choices ).
+	UIModule:choose_designated_item( Prompt, Choices ).
 
 
 
-% Selects, based on an explicit state, using the specified label, an item among
+% Selects, based on an explicit state, using the specified prompt, an item among
 % the specified ones (comprising, for each, an internal designator and a text),
 % and returns its designator.
 %
+% Note that the 'ui_cancel' designator atom can also be returned, should the
+% user prefer to cancel that operation.
+%
 % (const)
 %
--spec choose_designated_item( label(), [ choice_element() ], ui_state() ) ->
+-spec choose_designated_item( prompt(), [ choice_element() ], ui_state() ) ->
 									choice_designator().
-choose_designated_item( Label, Choices, UIState ) ->
+choose_designated_item( Prompt, Choices, UIState ) ->
 
 	UIModule = get_backend_name(),
 
-	UIModule:choose_designated_item( Label, Choices, UIState ).
+	UIModule:choose_designated_item( Prompt, Choices, UIState ).
 
 
 
-% Selects, based on an implicit state, using a default label, an item among the
+% Selects, based on an implicit state, using a default prompt, an item among the
+% specified ones (comprising, for each, a user-specified, internal, designator
+% and a text), with a default choix designator being specified, and returns its
+% designator.
+%
+% Note that the 'ui_cancel' designator atom can also be returned, should the
+% user prefer to cancel that operation.
+%
+% (const)
+%
+-spec choose_designated_item_with_default( [ choice_element() ],
+				choice_designator() ) -> choice_designator().
+choose_designated_item_with_default( Choices, DefaultChoiceDesignator ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:choose_designated_item( Choices, DefaultChoiceDesignator ).
+
+
+
+% Selects, based on an implicit state, using the specified prompt, an item among
+% the specified ones (comprising, for each, a user-specified, internal,
+% designator and a text), with a default choix designator being specified, and
+% returns its designator.
+%
+% Note that the 'ui_cancel' designator atom can also be returned, should the
+% user prefer to cancel that operation.
+%
+% (const)
+%
+-spec choose_designated_item_with_default( prompt(), [ choice_element() ],
+				choice_designator() ) -> choice_designator().
+choose_designated_item_with_default( Prompt, Choices,
+									 DefaultChoiceDesignator ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:choose_designated_item_with_default( Prompt, Choices,
+												  DefaultChoiceDesignator ).
+
+
+
+% Selects, based on an explicit state, using the specified prompt, an item among
+% the specified ones (comprising, for each, a user-specified, internal,
+% designator and a text), with a default choix designator being specified, and
+% returns its designator.
+%
+% Note that the 'ui_cancel' designator atom can also be returned, should the
+% user prefer to cancel that operation.
+%
+% (const)
+%
+-spec choose_designated_item_with_default( prompt(), [ choice_element() ],
+				choice_designator(), ui_state() ) -> choice_designator().
+choose_designated_item_with_default( Prompt, Choices,
+							 DefaultChoiceDesignator, UIState ) ->
+
+	UIModule = get_backend_name(),
+
+	UIModule:choose_designated_item_with_default( Prompt, Choices,
+								DefaultChoiceDesignator, UIState ).
+
+
+
+
+% Selects, based on an implicit state, using a default prompt, an item among the
 % specified ones (specified as direct text, with no specific designator
 % provided), and returns its index.
 %
--spec choose_numbered_item( [ choice_element() ] ) ->  choice_index().
+% Note that index zero can also be returned, corresponding to the 'ui_cancel'
+% atom, should the user prefer to cancel that operation.
+%
+-spec choose_numbered_item( [ choice_element() ] ) -> choice_index().
 choose_numbered_item( Choices ) ->
 
 	UIModule = get_backend_name(),
@@ -599,13 +688,16 @@ choose_numbered_item( Choices ) ->
 
 
 
-% Selects, based on an explicit state, using a default label, an item among the
+% Selects, based on an explicit state, using a default prompt, an item among the
 % specified ones (specified as direct text, with no specific designator
 % provided), and returns its index.
 %
+% Note that index zero can also be returned, corresponding to the 'ui_cancel'
+% atom, should the user prefer to cancel that operation.
+%
 -spec choose_numbered_item( [ choice_element() ], ui_state() ) ->
 								  choice_index();
-						  ( label(), [ choice_element() ] ) -> choice_index().
+						  ( prompt(), [ choice_element() ] ) -> choice_index().
 choose_numbered_item( Choices, UIState ) ->
 
 	UIModule = get_backend_name(),
@@ -614,23 +706,29 @@ choose_numbered_item( Choices, UIState ) ->
 
 
 
-% Selects, based on an explicit state, using the specified label, an item among
+% Selects, based on an explicit state, using the specified prompt, an item among
 % the specified ones (specified as direct text, with no specific designator
 % provided), and returns its index.
 %
--spec choose_numbered_item( label(), [ choice_element() ], ui_state() ) ->
+% Note that index zero can also be returned, corresponding to the 'ui_cancel'
+% atom, should the user prefer to cancel that operation.
+%
+-spec choose_numbered_item( prompt(), [ choice_element() ], ui_state() ) ->
 								  choice_index().
-choose_numbered_item( Label, Choices, UIState ) ->
+choose_numbered_item( Prompt, Choices, UIState ) ->
 
 	UIModule = get_backend_name(),
 
-	UIModule:choose_numbered_item( Label, Choices, UIState ).
+	UIModule:choose_numbered_item( Prompt, Choices, UIState ).
 
 
 
-% Selects, based on an implicit state, using a default label, an item among the
+% Selects, based on an implicit state, using a default prompt, an item among the
 % specified ones (specified as direct text, with no specific designator
 % provided), and returns its index.
+%
+% Note that index zero can also be returned, corresponding to the 'ui_cancel'
+% atom, should the user prefer to cancel that operation.
 %
 -spec choose_numbered_item_with_default( [ choice_element() ],
 										 choice_index() ) -> choice_index().
@@ -642,16 +740,19 @@ choose_numbered_item_with_default( Choices, DefaultChoiceIndex ) ->
 
 
 
-% Selects, based on an explicit state, using a default label, an item among the
+% Selects, based on an explicit state, using a default prompt, an item among the
 % specified ones (specified as direct text, with no specific designator
 % provided), and returns its index.
 %
-% Selects, based on an implicit state, using the specified label and default
+% Selects, based on an implicit state, using the specified prompt and default
 % item, an item among the specified ones, and returns its index.
+%
+% Note that index zero can also be returned, corresponding to the 'ui_cancel'
+% atom, should the user prefer to cancel that operation.
 %
 -spec choose_numbered_item_with_default( [ choice_element() ], choice_index(),
 										 ui_state() ) -> choice_index();
-									   ( label(), [ choice_element() ],
+									   ( prompt(), [ choice_element() ],
 										 maybe( choice_index() ) ) ->
 											   choice_index().
 choose_numbered_item_with_default( Choices, DefaultChoiceIndex, UIState ) ->
@@ -663,18 +764,21 @@ choose_numbered_item_with_default( Choices, DefaultChoiceIndex, UIState ) ->
 
 
 
-% Selects, based on an explicit state, using the specified label and default
+% Selects, based on an explicit state, using the specified prompt and default
 % item, an item among the specified ones (specified as direct text, with no
 % specific designator provided), and returns its index.
 %
--spec choose_numbered_item_with_default( label(), [ choice_element() ],
+% Note that index zero can also be returned, corresponding to the 'ui_cancel'
+% atom, should the user prefer to cancel that operation.
+%
+-spec choose_numbered_item_with_default( prompt(), [ choice_element() ],
 			maybe( choice_index() ), ui_state() ) -> choice_index().
-choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
+choose_numbered_item_with_default( Prompt, Choices, DefaultChoiceIndex,
 								   UIState ) ->
 
 	UIModule = get_backend_name(),
 
-	UIModule:choose_numbered_item_with_default( Label, Choices,
+	UIModule:choose_numbered_item_with_default( Prompt, Choices,
 												DefaultChoiceIndex, UIState ).
 
 
