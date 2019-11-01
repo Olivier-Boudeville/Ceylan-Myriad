@@ -249,8 +249,8 @@ main( ArgTable ) ->
 %
 handle_reference_option( RefTreePath, ArgumentTable ) ->
 
-	ui:set_settings( [ { title, "Merging" },
-					   { backtitle, "Merging now..." } ] ),
+	ui:set_settings( [ { 'backtitle', "Merging now..." },
+					   { 'title', "Merging" } ] ),
 
 	% If there is a --reference option, it is a merge, and there must be a
 	% --input option as well:
@@ -435,7 +435,7 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 
 		true ->
 
-			Label = text_utils:format( "A cache file already exists for '~s'. "
+			Prompt = text_utils:format( "A cache file already exists for '~s'. "
 									   "We can:", [ TreePath ] ),
 
 			% No 'strong_check' deemed useful (synonym of recreating from
@@ -451,7 +451,7 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 				  "check involved" },
 				{ abort, "Abort scan" } ],
 
-			case ui:choose_designated_item( Label, Choices ) of
+			case ui:choose_designated_item( Prompt, Choices ) of
 
 				weak_check ->
 					% No need to restate the tree, is in the path of the cache
@@ -558,8 +558,8 @@ uniquify( TreePath ) ->
 
 	AbsTreePath = file_utils:ensure_path_is_absolute( TreePath ),
 
-	ui:set_settings( [ { 'backtitle', text_utils:format(
-								 "Uniquification of ~s", [ AbsTreePath ] ) },
+	ui:set_settings( [ { 'backtitle',
+			 text_utils:format( "Uniquification of ~s", [ AbsTreePath ] ) },
 					   { 'title', "Uniquification report" } ] ),
 
 	% Best, reasonable CPU usage:
@@ -596,8 +596,7 @@ create_merge_cache_file_from( TreeData=#tree_data{ root=RootDir },
 
 	CacheFilename = get_cache_path_for( RootDir ),
 
-	CacheFile = file_utils:open( CacheFilename,
-								 _Opts=[ write, raw, delayed_write ] ),
+	CacheFile = file_utils:open( CacheFilename, _Opts=[ write, raw ] ),
 
 	write_cache_header( CacheFile ),
 
@@ -687,11 +686,10 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 			ReferenceTree;
 
 		LackingCount ->
-			Label = text_utils:format( "Exactly ~B contents are present in the "
-									   "input tree ('~s') but are lacking in "
-									   "the reference one ('~s').",
-									   [ LackingCount, InputRootDir,
-										 ReferenceRootDir ] ),
+			Prompt = text_utils:format( "Exactly ~B contents are present in "
+						"the input tree ('~s') but are lacking in the "
+						"reference one ('~s').",
+						[ LackingCount, InputRootDir, ReferenceRootDir ] ),
 
 			Choices = [ { move, "Move this content (once uniquified) "
 						  "as a whole in the reference tree" },
@@ -703,7 +701,7 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 						{ abort, "Abort merge" } ],
 
 			NewReferenceEntries = case ui:choose_designated_item(
-					   text_utils:format( "~s~nChoices are:", [ Label ] ),
+					   text_utils:format( "~s~nChoices are:", [ Prompt ] ),
 					   Choices ) of
 
 				move ->
@@ -779,15 +777,15 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 			FileData;
 
 		_ ->
-			Label = text_utils:format( "~B files correspond to the same input "
+			Prompt = text_utils:format( "~B files correspond to the same input "
 					"content; please select the unique one that shall be "
-					"copied in the reference tree:", [ length( FileDatas ) ] ),
+					"copied to the reference tree:", [ length( FileDatas ) ] ),
 
 			Choices = [ FD#file_data.path || FD <- FileDatas ],
 
 			DefaultChoiceIndex = hd( Choices ),
 
-			Index = case ui:choose_numbered_item_with_default( Label, Choices,
+			Index = case ui:choose_numbered_item_with_default( Prompt, Choices,
 										   DefaultChoiceIndex ) of
 
 				% ui_cancel:
@@ -839,8 +837,8 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 		true ->
 			AutoPath = file_utils:get_non_clashing_entry_name_from( TgtPath ),
 
-			trace_debug( "Target path in reference tree ('~s'), is already "
-				"existing (as '~s'); moved file to be renamed to '~s'.",
+			trace_debug( "Target path in reference tree ('~s') is already "
+				"existing (as '~s'); the moved file is to be renamed to '~s'.",
 				[ SrcPath, TgtPath, AutoPath ], UserState ),
 
 			%Msg = text_utils:format( "When moving '~s' in the reference target"
@@ -851,15 +849,18 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 			%						 [ Filename, TargetDir, AutoPath ] ),
 			%ui:ask_yes_no( "
 
-			% At least for the moment, we stick to auto-renaming only (simpler);
-			% returning the new path:
+			% At least for the moment, we stick to auto-renaming only (simpler)
+			% rather than letting the user choose a new name; returning the new
+			% path:
 			%
-			file_utils:move_file( SrcPath, AutoPath );
+			AutoPath;
 
 		false ->
-			file_utils:move_file( SrcPath, TgtPath )
+			TgtPath
 
 	end,
+
+	file_utils:move_file( SrcPath, NewPath ),
 
 	trace_debug( "Moved '~s' to '~s'.", [ SrcPath, NewPath ], UserState ),
 
@@ -931,6 +932,9 @@ cherry_pick_files( _ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 				   ReferenceRootDir, ReferenceEntries, TargetDir, PickChoices,
 				   Count, TotalContentCount, UserState ) ->
 
+	ui:set_setting( 'title', text_utils:format( "Cherry-picking content ~B/~B",
+											  [ Count, TotalContentCount ] ) ),
+
 	NewReferenceEntries = case table:get_value( SHA1, InputEntries ) of
 
 		[ SingleFileData=#file_data{ path=ContentPath } ] ->
@@ -948,7 +952,7 @@ cherry_pick_files( _ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 					% Relative to reference directory:
 					MoveRelPath = file_utils:join( ?merge_dir, ContentPath ),
 
-					table:add_entry( SHA1, [ SingleFileData#file_data{
+					table:add_new_entry( SHA1, [ SingleFileData#file_data{
 								path=MoveRelPath } ], ReferenceEntries );
 
 				delete ->
@@ -958,7 +962,7 @@ cherry_pick_files( _ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 					ReferenceEntries;
 
 				C when C =:= abort orelse C =:= ui_cancel ->
-					ui:display( "Merge cherry-pick aborted." ),
+					ui:display( "Merge (single) cherry-pick aborted." ),
 					%trace_debug( "(requested to abort the cherry-pick)",
 					%             UserState ),
 					basic_utils:stop( 0 )
@@ -973,9 +977,8 @@ cherry_pick_files( _ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 			ContentPaths = [ ContentPath
 				 || #file_data{ path=ContentPath } <- MultipleFileData ],
 
-			Prompt = text_utils:format( "The same content can be "
-				"found in the following ~B input files "
-				"(all relative to '~s'): ~s~n"
+			Prompt = text_utils:format( "The same content can be found in "
+				"the following ~B input files (all relative to '~s'): ~s~n"
 				"Regarding that input content, shall we:",
 				[ FileCount, InputRootDir,
 				  text_utils:binaries_to_string( ContentPaths ) ] ),
@@ -1002,11 +1005,12 @@ cherry_pick_files( _ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 					end,
 
 					{ MovedFilePath, ToRemovePaths } =
-						list_utils:extract_element_at( ContentPaths,
-													   MoveIndex ),
+					   list_utils:extract_element_at( ContentPaths, MoveIndex ),
 
 					trace_debug( "Moving '~s' to reference tree, removing ~p.",
-								 [ MovedFilePath, ToRemovePaths ], UserState ),
+						[ MovedFilePath, 
+						  text_utils:binaries_to_string( ToRemovePaths ) ],
+						UserState ),
 
 					Source = file_utils:join( InputRootDir, MovedFilePath ),
 					Target = file_utils:join( TargetDir, MovedFilePath ),
@@ -1020,34 +1024,36 @@ cherry_pick_files( _ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 					% Relative to reference directory:
 					MoveRelPath = file_utils:join( ?merge_dir, MovedFilePath ),
 
-					% Any would do, exists by design:
+					% Any would do, head exists by design:
 					FileData = hd( MultipleFileData ),
-					table:add_entry( SHA1,
+					table:add_new_entry( SHA1,
 						[ FileData#file_data{ path=MoveRelPath } ],
 						ReferenceEntries );
 
 				delete ->
-					ToDelFiles = [ file_utils:join( InputRootDir, P )
-								   || P <- ContentPaths ],
 
 					DelPrompt = text_utils:format( "Really delete following "
-						"files, loosing their (unique) corresponding "
-						"content? ~s",
-						[ text_utils:strings_to_string( ToDelFiles ) ] ),
+						"files from input directory '~s', losing their (unique)"
+						" corresponding content? ~s", [ InputRootDir,
+							 text_utils:strings_to_string( ContentPaths ) ] ),
 
 					case ui:ask_yes_no( DelPrompt ) of
 
 						yes ->
+							ToDelFiles = [ file_utils:join( InputRootDir, P )
+										   || P <- ContentPaths ],
+
 							file_utils:remove_files( ToDelFiles );
 
 						no ->
 							% Input files hence left over.
 							ok
 
-					end;
+					end,
+					ReferenceEntries;
 
 				C when C =:= abort orelse C =:= ui_cancel ->
-					ui:display( "Merge cherry-pick aborted." ),
+					ui:display( "Merge (multiple) cherry-pick aborted." ),
 					%trace_debug( "(requested to abort the cherry-pick)",
 					%             UserState ),
 					basic_utils:stop( 0 )
@@ -1088,6 +1094,7 @@ delete_content_to_merge( SHA1sToDelete, InputRootDir, InputEntries,
 
 
 % Moves "safely" specified file.
+-spec safe_move( file_utils:file_path(), file_utils:file_path() ) -> void().
 safe_move( SourceFilePath, TargetFilePath ) ->
 
 	AckTargetPath = case file_utils:exists( TargetFilePath ) of
@@ -1108,11 +1115,13 @@ safe_move( SourceFilePath, TargetFilePath ) ->
 	% Ensures subdirectories exist in the target tree:
 	file_utils:create_directory( filename:dirname( AckTargetPath ),
 								 create_parents ),
+
 	file_utils:move_file( SourceFilePath, AckTargetPath ).
 
 
 
 % Deletes "safely" specified file.
+-spec safe_delete( file_utils:file_path() ) -> void().
 safe_delete( FilePath ) ->
 
 	Prompt = text_utils:format( "Really delete file '~s'?", [ FilePath ] ),
@@ -1279,8 +1288,8 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 	MaybeTreeData = case file_utils:is_existing_file( CacheFilePath ) of
 
 		true ->
-			trace_debug( "Found existing cache file '~s'.",
-						 [ CacheFilePath ], UserState ),
+			trace_debug( "Found existing cache file '~s'.", [ CacheFilePath ],
+						 UserState ),
 
 			% Load it, if trusted (typically if not older from the newest
 			% file in tree):
@@ -1311,13 +1320,13 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 											TreePath, UserState ) of
 
 						undefined ->
-							ui:display( "Cache file does not match "
-								"actual tree, rebuilding cache file." ),
+							ui:display( "Cache file does not match actual "
+										"tree, rebuilding cache file." ),
 							undefined;
 
 						TreeData ->
-							ui:display( "Cache file seems to match "
-								"actual tree, considering it legit." ),
+							ui:display( "Cache file seems to match actual "
+										"tree, considering it legit." ),
 							TreeData
 
 					end
@@ -1430,8 +1439,7 @@ create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
 	trace_debug( "Creating merge cache file '~s'.", [ CacheFilename ],
 				 UserState ),
 
-	MergeFile = file_utils:open( CacheFilename,
-								 _Opts=[ write, raw, delayed_write ] ),
+	MergeFile = file_utils:open( CacheFilename, _Opts=[ write, raw ] ),
 
 	write_cache_header( MergeFile ),
 
@@ -1586,8 +1594,8 @@ scan_files( _Files=[ Filename | T ], AnalyzerRing,
 	%			 [ FullPath, AnalyzerPid ] ),
 
 	% WOOPER-style request:
-	AnalyzerPid ! { analyzeFile, [ text_utils:string_to_binary( AbsTreePath ),
-								   Filename ], self() },
+	AnalyzerPid ! { analyzeFile,
+			[ text_utils:string_to_binary( AbsTreePath ), Filename ], self() },
 
 	% Helps controlling flow and avoiding too large mailboxes on either side
 	% (this main script, being slowed down, or the analyzers), by attempting to
@@ -1785,8 +1793,8 @@ deduplicate_tree( TreeData=#tree_data{ root=RootDir,
 % Manages all duplicates found in specified table, returns an updated table and
 % the number of duplicates removed.
 %
--spec manage_duplicates( sha1_table(), directory_path(),
-						 user_state() ) -> { sha1_table(), count() }.
+-spec manage_duplicates( sha1_table(), directory_path(), user_state() ) ->
+							   { sha1_table(), count() }.
 manage_duplicates( EntryTable, RootDir, UserState ) ->
 
 	ContentEntries = table:enumerate( EntryTable ),
@@ -1941,7 +1949,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 	SizeString = system_utils:interpret_byte_size_with_unit( Size ),
 
 	PathStrings = lists:sort( [ text_utils:binary_to_string( E#file_data.path )
-					|| E <- FileEntries ] ),
+								|| E <- FileEntries ] ),
 
 	%trace_utils:debug_fmt( "PathStrings = ~p", [ PathStrings ] ),
 
@@ -1950,6 +1958,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 	Title = text_utils:format( "Examining duplication case ~B/~B",
 							   [ DuplicationCaseCount, TotalDupCaseCount ] ),
+
 	ui:set_setting( 'title', Title ),
 
 	Count = length( FileEntries ),
@@ -1959,12 +1968,11 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 	% sibling of a foobar directory, resulting in -new/... meaningless suffixes;
 	% so:
 	%
-	{ Label, Prefix, ShortenPaths } =
+	{ Prompt, Prefix, ShortenPaths } =
 		case file_utils:get_longest_common_path( Dirnames ) of
 
 		% No common prefix at all here:
 		{ _Prfx="", _Tails } ->
-
 			Lbl = text_utils:format( "Following ~B files have the exact same "
 									 "content (and thus size, of ~s)",
 									 [ Count, SizeString ] ),
@@ -1997,8 +2005,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 	%trace_utils:debug_fmt( "DuplicateString = ~p", [ DuplicateString ] ),
 
-
-	FullLabel = Label ++ DuplicateString,
+	FullPrompt = Prompt ++ DuplicateString,
 
 	Choices = [ { keep, "Keep only one of these files" },
 				{ elect, "Elect a reference file, replacing each other by "
@@ -2007,7 +2014,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 				{ abort, "Abort" } ],
 
 	SelectedChoice = ui:choose_designated_item(
-					   text_utils:format( "~s~nChoices are:", [ FullLabel ] ),
+					   text_utils:format( "~s~nChoices are:", [ FullPrompt ] ),
 					   Choices ),
 
 	ui:unset_setting( 'title' ),
@@ -2052,6 +2059,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 			trace_debug( "[~B/~B] Leaving as they are~s: ~s",
 						 [ DuplicationCaseCount, TotalDupCaseCount,
 						   PrefixString, DuplicateString ], UserState ),
+
 			FileEntries;
 
 
@@ -2087,25 +2095,25 @@ find_data_entry_for( FilePath, _FileEntries=[ _FD | T ] ) ->
 					 directory_path(), user_state() ) -> bin_file_path().
 keep_only_one( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
 
-	ui:set_setting( title,
+	ui:set_setting( 'title',
 					_Title="Selecting the unique reference version to keep, "
 						   "whereas the others are to be removed" ),
 
-	BaseLabel = "Please choose the (single) file to keep "
+	BasePrompt = "Please choose the (single) file to keep "
 				  "(others being removed), among:",
 
-	Label = case Prefix of
+	Prompt = case Prefix of
 
 		"" ->
-			BaseLabel;
+			BasePrompt;
 
 		_ ->
 			text_utils:format( "~s~n(common prefix '~s' omitted)",
-							   [ BaseLabel, Prefix ] )
+							   [ BasePrompt, Prefix ] )
 
 	end,
 
-	KeptIndex = case ui:choose_numbered_item( Label, _Choices=TrimmedPaths ) of
+	KeptIndex = case ui:choose_numbered_item( Prompt, _Choices=TrimmedPaths ) of
 
 		% ui_cancel:
 		0 ->
@@ -2116,7 +2124,7 @@ keep_only_one( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
 
 	end,
 
-	ui:unset_setting( title ),
+	ui:unset_setting( 'title' ),
 
 	{ KeptFilePath, ToRemovePaths } =
 		list_utils:extract_element_at( PathStrings, KeptIndex ),
@@ -2143,25 +2151,25 @@ keep_only_one( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
 					  directory_path(), user_state() ) -> bin_file_path().
 elect_and_link( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
 
-	ui:set_setting( title, _Title="Selecting the unique version to elect "
+	ui:set_setting( 'title', _Title="Selecting the unique version to elect "
 					"as a reference, whereas the others will be replaced "
 					"by symbolic links pointing to it" ),
 
-	BaseLabel = "~nPlease choose the (single) file to elect, among:",
+	BasePrompt = "~nPlease choose the (single) file to elect, among:",
 
-	Label = case Prefix of
+	Prompt = case Prefix of
 
 		"" ->
-			BaseLabel;
+			BasePrompt;
 
 		_ ->
 			text_utils:format( "~s~n(common prefix '~s' omitted)",
-							   [ BaseLabel, Prefix ] )
+							   [ BasePrompt, Prefix ] )
 
 	end,
 
 	ElectedIndex = case
-			 ui:choose_numbered_item( Label, _Choices=TrimmedPaths ) of
+			 ui:choose_numbered_item( Prompt, _Choices=TrimmedPaths ) of
 
 		% ui_cancel:
 		0 ->
@@ -2172,7 +2180,7 @@ elect_and_link( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
 
 	end,
 
-	ui:unset_setting( title ),
+	ui:unset_setting( 'title' ),
 
 	{ ElectedFilePath, FutureLinkPaths } =
 		list_utils:extract_element_at( PathStrings, ElectedIndex ),
@@ -2390,9 +2398,8 @@ build_entry_table(
 
 
 % Checks that the actual file sizes match the specified ones.
--spec check_file_sizes_match(
-		[ { file_path(), system_utils:byte_size() } ],
-		directory_path(), user_state() ) -> boolean().
+-spec check_file_sizes_match( [ { file_path(), system_utils:byte_size() } ],
+							  directory_path(), user_state() ) -> boolean().
 check_file_sizes_match( _FilePairs=[], _TreePath, _UserState ) ->
 	true;
 
@@ -2407,9 +2414,8 @@ check_file_sizes_match( _FilePairs=[ { FilePath, FileSize } | T ], TreePath,
 			check_file_sizes_match( T, TreePath, UserState );
 
 		ActualSize ->
-			trace_debug( "For file '~s', cached size is ~s (~B bytes)"
-				", whereas actual size is ~s (~B bytes), "
-				"invalidating thus cache file.",
+			trace_debug( "For file '~s', cached size is ~s (~B bytes), whereas "
+				"actual size is ~s (~B bytes), invalidating thus cache file.",
 				[ FileFullPath, system_utils:interpret_byte_size( FileSize ),
 				  FileSize, system_utils:interpret_byte_size( ActualSize ),
 				  ActualSize ], UserState ),
@@ -2441,16 +2447,14 @@ tree_data_to_string( #tree_data{ root=RootDir,
 			"empty tree";
 
 		FileCount ->
-			text_utils:format( "tree '~s' having ~B files, "
-							   "each with unique content",
-							   [ RootDir, FileCount ] );
+			text_utils:format(
+			  "tree '~s' having ~B files, each with unique content",
+			  [ RootDir, FileCount ] );
 
 		ContentCount ->
-			text_utils:format( "tree '~s' having ~B files, corresponding "
-							   "only to ~B different contents "
-							   "(hence with ~B duplicates)",
-							   [ RootDir, FileCount, ContentCount,
-								 FileCount - ContentCount ] )
+			text_utils:format( "tree '~s' having ~B files, corresponding only "
+				"to ~B different contents (hence with ~B duplicates)",
+				[ RootDir, FileCount, ContentCount, FileCount - ContentCount ] )
 
 	end.
 
