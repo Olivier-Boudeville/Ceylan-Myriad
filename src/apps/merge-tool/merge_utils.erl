@@ -719,8 +719,21 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 							ReferenceEntries, TargetDir, UserState );
 
 				delete ->
-					delete_content_to_merge( ToMerge, InputRootDir,
-											 InputEntries, UserState ),
+					DelPrompt = text_utils:format( "Really delete the ~B "
+						"unique content elements found in the input tree "
+						"('~s')? ", [ LackingCount, InputRootDir ] ),
+
+					case ui:ask_yes_no( DelPrompt ) of
+
+						yes ->
+							delete_content_to_merge( ToMerge, InputRootDir,
+													 InputEntries, UserState );
+
+						no ->
+							% No deletion then.
+							ok
+
+					end,
 					ReferenceEntries;
 
 				C when C =:= abort orelse C =:= ui_cancel ->
@@ -772,7 +785,7 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 
 			Choices = [ FD#file_data.path || FD <- FileDatas ],
 
-			DefaultChoiceIndex = 1,
+			DefaultChoiceIndex = hd( Choices ),
 
 			Index = case ui:choose_numbered_item_with_default( Label, Choices,
 										   DefaultChoiceIndex ) of
@@ -889,9 +902,8 @@ cherry_pick_content_to_merge( ToPick, InputRootDir, InputEntries,
 
 	TotalContentCount = length( ToPick ),
 
-	PickChoices = [ { move, text_utils:format( "Move this "
-						   "content in reference tree (in '~s')",
-											   [ ReferenceRootDir ] ) },
+	PickChoices = [ { move, text_utils:format( "Move this content "
+						   "in reference tree (in '~s')", [ ?merge_dir ] ) },
 					{ delete, "Delete this content" },
 					{ abort, "Abort merge" } ],
 
@@ -908,44 +920,213 @@ cherry_pick_files( _ToPick=[], InputRootDir, _InputEntries, _ReferenceRootDir,
 				   ReferenceEntries, _TargetDir, _PickChoices, _Count,
 				   _TotalContentCount, _UserState ) ->
 
-	% Input tree shall be now void of content and thus removed:
+	% Input tree shall be now void of content and thus can be removed as such:
 	file_utils:remove_file( get_cache_path_for( InputRootDir ) ),
 	file_utils:remove_empty_tree( InputRootDir ),
 
 	ReferenceEntries;
 
-cherry_pick_files( _ToPick=[ _SHA1 | T ], InputRootDir, InputEntries,
+
+cherry_pick_files( _ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 				   ReferenceRootDir, ReferenceEntries, TargetDir, PickChoices,
 				   Count, TotalContentCount, UserState ) ->
 
-	throw( todo_cherry_pick ),
+	NewReferenceEntries = case table:get_value( SHA1, InputEntries ) of
+
+		[ SingleFileData=#file_data{ path=ContentPath } ] ->
+			FullContentPath = file_utils:join( InputRootDir, ContentPath ),
+			Prompt = text_utils:format( "Regarding the input content (solely) "
+				"in '~s', shall we:", [ FullContentPath ] ),
+
+			case ui:choose_designated_item_with_default( Prompt, PickChoices,
+					_DefaultChoiceDesignator=move ) of
+
+				move ->
+					Target = file_utils:join( TargetDir, ContentPath ),
+					safe_move( FullContentPath, Target ),
+
+					% Relative to reference directory:
+					MoveRelPath = file_utils:join( ?merge_dir, ContentPath ),
+
+					table:add_entry( SHA1, [ SingleFileData#file_data{
+								path=MoveRelPath } ], ReferenceEntries );
+
+				delete ->
+					safe_delete( FullContentPath ),
+
+					% Thus unchanged:
+					ReferenceEntries;
+
+				C when C =:= abort orelse C =:= ui_cancel ->
+					ui:display( "Merge cherry-pick aborted." ),
+					%trace_debug( "(requested to abort the cherry-pick)",
+					%             UserState ),
+					basic_utils:stop( 0 )
+
+			end;
+
+
+		MultipleFileData ->
+
+			FileCount = length( MultipleFileData ),
+
+			ContentPaths = [ ContentPath
+				 || #file_data{ path=ContentPath } <- MultipleFileData ],
+
+			Prompt = text_utils:format( "The same content can be "
+				"found in the following ~B input files "
+				"(all relative to '~s'): ~s~n"
+				"Regarding that input content, shall we:",
+				[ FileCount, InputRootDir,
+				  text_utils:binaries_to_string( ContentPaths ) ] ),
+
+			case ui:choose_designated_item_with_default( Prompt, PickChoices,
+					_DefaultChoiceDesignator=move ) of
+
+				move ->
+					SelectPrompt = "Select the (single) input file that "
+					  "shall be moved in the reference tree (the other "
+					  "input files with the same content being then removed):",
+
+					MoveIndex = case ui:choose_numbered_item( SelectPrompt,
+									ContentPaths ) of
+
+						0 ->
+							ui:display( "Merge cherry-pick aborted when "
+										"selecting the content to move." ),
+							basic_utils:stop( 0 );
+
+						I ->
+							I
+
+					end,
+
+					{ MovedFilePath, ToRemovePaths } =
+						list_utils:extract_element_at( ContentPaths,
+													   MoveIndex ),
+
+					trace_debug( "Moving '~s' to reference tree, removing ~p.",
+								 [ MovedFilePath, ToRemovePaths ], UserState ),
+
+					Source = file_utils:join( InputRootDir, MovedFilePath ),
+					Target = file_utils:join( TargetDir, MovedFilePath ),
+					safe_move( Source, Target ),
+
+					ToRemoveFullPaths = [ file_utils:join( InputRootDir, P )
+										  || P <- ToRemovePaths ],
+
+					file_utils:remove_files( ToRemoveFullPaths ),
+
+					% Relative to reference directory:
+					MoveRelPath = file_utils:join( ?merge_dir, MovedFilePath ),
+
+					% Any would do, exists by design:
+					FileData = hd( MultipleFileData ),
+					table:add_entry( SHA1,
+						[ FileData#file_data{ path=MoveRelPath } ],
+						ReferenceEntries );
+
+				delete ->
+					ToDelFiles = [ file_utils:join( InputRootDir, P )
+								   || P <- ContentPaths ],
+
+					DelPrompt = text_utils:format( "Really delete following "
+						"files, loosing their (unique) corresponding "
+						"content? ~s",
+						[ text_utils:strings_to_string( ToDelFiles ) ] ),
+
+					case ui:ask_yes_no( DelPrompt ) of
+
+						yes ->
+							file_utils:remove_files( ToDelFiles );
+
+						no ->
+							% Input files hence left over.
+							ok
+
+					end;
+
+				C when C =:= abort orelse C =:= ui_cancel ->
+					ui:display( "Merge cherry-pick aborted." ),
+					%trace_debug( "(requested to abort the cherry-pick)",
+					%             UserState ),
+					basic_utils:stop( 0 )
+
+			end
+
+	end,
 
 	cherry_pick_files( T, InputRootDir, InputEntries,
-					   ReferenceRootDir, ReferenceEntries, TargetDir,
-					   PickChoices, Count, TotalContentCount, UserState ).
+					   ReferenceRootDir, NewReferenceEntries, TargetDir,
+					   PickChoices, Count + 1, TotalContentCount, UserState ).
 
 
 
 % Deletes all specified content.
 %
 % Does it on a per-content basic rather than doing nothing before the input tree
-% is removed as whole, as more control is preferred (to check the final input
-% tree has been indeed emptied of all content).
+% is removed as whole, as more control is preferred (to check that the final
+% input tree has been indeed emptied of all content).
 %
 -spec delete_content_to_merge( [ sha1() ], directory_path(), sha1_table(),
-						user_state() ) -> sha1_table().
-delete_content_to_merge( ToDelete, InputRootDir, InputEntries, _UserState ) ->
+							   user_state() ) -> sha1_table().
+delete_content_to_merge( SHA1sToDelete, InputRootDir, InputEntries,
+						 _UserState ) ->
 
 	Paths = [ begin
-				  FileData = table:get_value( SHA1, InputEntries ),
-				  file_utils:join( InputRootDir, FileData#file_data.path )
-			  end || SHA1 <- ToDelete ],
+				  FileDatas = table:get_value( SHA1, InputEntries ),
+				  [ file_utils:join( InputRootDir, P )
+					|| #file_data{ path=P } <- FileDatas ]
+			  end || SHA1 <- SHA1sToDelete ],
 
-	file_utils:remove_files( [ get_cache_path_for( InputRootDir ) | Paths ] ),
+	file_utils:remove_files( [ get_cache_path_for( InputRootDir )
+							   | list_utils:flatten_once( Paths ) ] ),
 
 	% Shall be now void of content:
 	file_utils:remove_empty_tree( InputRootDir ).
 
+
+
+% Moves "safely" specified file.
+safe_move( SourceFilePath, TargetFilePath ) ->
+
+	AckTargetPath = case file_utils:exists( TargetFilePath ) of
+
+		true ->
+			FixTargetPath =
+				 file_utils:get_non_clashing_entry_name_from( TargetFilePath ),
+			ui:display_warning(
+			  "File '~s', due to a clash, had to be moved to '~s'.",
+			  [ SourceFilePath, FixTargetPath ] ),
+			FixTargetPath;
+
+		false ->
+			TargetFilePath
+
+	end,
+
+	% Ensures subdirectories exist in the target tree:
+	file_utils:create_directory( filename:dirname( AckTargetPath ),
+								 create_parents ),
+	file_utils:move_file( SourceFilePath, AckTargetPath ).
+
+
+
+% Deletes "safely" specified file.
+safe_delete( FilePath ) ->
+
+	Prompt = text_utils:format( "Really delete file '~s'?", [ FilePath ] ),
+
+	case ui:ask_yes_no( Prompt ) of
+
+		yes ->
+			file_utils:remove_file( FilePath );
+
+		no ->
+			% Input file hence left over.
+			ok
+
+	end.
 
 
 
