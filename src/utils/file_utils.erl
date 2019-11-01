@@ -1611,7 +1611,7 @@ create_temporary_directory() ->
 -spec remove_file( any_file_name() ) -> void().
 remove_file( Filename ) ->
 
-	%trace_utils:warning_fmt( "## Removing file '~s'.", [ Filename ] ),
+	%trace_utils:warning_fmt( "Removing file '~s'.", [ Filename ] ),
 
 	case file:delete( Filename ) of
 	%case ok of
@@ -1629,6 +1629,10 @@ remove_file( Filename ) ->
 % Removes (deletes) specified files, specified as a list of any kind of strings.
 -spec remove_files( [ any_file_name() ] ) -> void().
 remove_files( FilenameList ) ->
+
+	%trace_utils:warning_fmt( "Removing following files: ~s",
+	%						 [ text_utils:strings_to_string( FilenameList ) ] ),
+
 	[ remove_file( Filename ) || Filename <- FilenameList ].
 
 
