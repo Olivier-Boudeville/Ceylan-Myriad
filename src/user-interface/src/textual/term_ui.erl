@@ -1118,6 +1118,7 @@ choose_designated_item_with_default( Choices, DefaultChoiceDesignator ) ->
 						DefaultChoiceDesignator, get_state() ).
 
 
+
 % Selects, based on an implicit state, using the specified prompt, an item among
 % the specified ones (comprising, for each, a user-specified, internal,
 % designator and a text), with a default choix designator being specified, and
@@ -1297,6 +1298,8 @@ choose_numbered_item( Prompt, Choices ) ->
 -spec choose_numbered_item( prompt(), [ choice_text() ], ui_state() ) ->
 								  choice_index().
 choose_numbered_item( Prompt, Choices, UIState ) ->
+
+	%trace_utils:debug_fmt( "Prompt = ~s, Choices = ~p", [ Prompt, Choices ] ),
 
 	% We could as well have used a radio list, yet a menu is probably a tad
 	% clearer (and selecting the default, initial entry would have no real use
