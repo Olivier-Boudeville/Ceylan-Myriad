@@ -94,11 +94,15 @@ if [ -e "${rst_file}" ] ; then
 	else
 
 		css_file="$1"
-		shift
 
 		if [ -n "${css_file}" ] ; then
+
+			shift
+
 			#echo "Using CSS file ${css_file}."
 			css_opt="--stylesheet-path=${css_file}"
+
+
 		fi
 
 		docutils_html_opt="${docutils_html_opt} ${css_opt}"
