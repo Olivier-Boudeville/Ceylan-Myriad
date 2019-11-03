@@ -1,8 +1,8 @@
 MYRIAD_TOP = ../../..
 
 
-.PHONY: test-local test-initial-scan test-extra-scan test-uniquify           \
-		make-test-trees run-test-tree clean-test-trees                       \
+.PHONY: test-local test-initial-scan test-extra-scan test-uniquify uniquify \
+		make-test-trees run-test-tree clean-test-trees                      \
 		post-test process-test-log reset-keyboard-mode
 
 
@@ -40,7 +40,9 @@ test-initial-scan: make-test-trees pre-test run-test-tree post-test
 test-extra-scan: pre-test run-test-tree post-test
 
 
-test-uniquify: pre-test make-test-trees
+test-uniquify: pre-test make-test-trees uniquify
+
+uniquify:
 	@$(MERGE_SCRIPT) --uniquify $(TEST_CONTENT_TREE) --use-ui-backend $(UI_BACKEND) ; $(MAKE) -s post-test
 
 
@@ -82,7 +84,10 @@ debug:
 run-direct: merge_exec
 
 
-post-test: process-test-log reset-keyboard-mode
+# Not useful anymore:
+# post-test: process-test-log reset-keyboard-mode
+post-test:
+
 
 process-test-log:
 	@if [ -f "$(TEST_LOG_FILE)" ] ; then echo ; echo "#### Content of $(TEST_LOG_FILE) follows:" ; more "$(TEST_LOG_FILE)" ; fi

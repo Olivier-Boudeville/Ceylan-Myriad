@@ -30,6 +30,7 @@
 
 -export([ create_merge_cache_file_for/3,
 		  tree_data_to_string/1, file_data_to_string/1,
+		  display_tree_data/1, display_tree_data/2,
 		  trace/2, trace/3, trace_debug/2, trace_debug/3 ]).
 
 
@@ -436,7 +437,7 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 		true ->
 
 			Prompt = text_utils:format( "A cache file already exists for '~s'. "
-									   "We can:", [ TreePath ] ),
+										"We can:", [ TreePath ] ),
 
 			% No 'strong_check' deemed useful (synonym of recreating from
 			% scratch, hence of 'ignore').
@@ -451,14 +452,14 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 				  "check involved" },
 				{ abort, "Abort scan" } ],
 
-			case ui:choose_designated_item( Prompt, Choices ) of
+			ReadTreeData = case ui:choose_designated_item( Prompt, Choices ) of
 
 				weak_check ->
 					% No need to restate the tree, is in the path of the cache
 					% file:
 					%
-					ui:display( "Performing a weak check of '~s'.",
-								[ CacheFilename ] ),
+					%ui:display( "Performing a weak check of '~s'.",
+					%			[ CacheFilename ] ),
 					update_content_tree( TreePath, AnalyzerRing, UserState );
 
 				ignore ->
@@ -468,8 +469,8 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 					perform_scan( TreePath, CacheFilename, UserState );
 
 				no_check ->
-					ui:display( "Re-using '~s' with no specific check.",
-								[ CacheFilename ] ),
+					%ui:display( "Re-using '~s' with no specific check.",
+					%			[ CacheFilename ] ),
 					read_cache_file( CacheFilename );
 
 				C when C =:= abort orelse C =:= ui_cancel ->
@@ -478,12 +479,28 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 					%trace_debug( "(requested to abort the scan)", UserState ),
 					basic_utils:stop( 0 )
 
-			end;
+			end,
+
+			ReadPrompt = text_utils:format( "Scan result read from '~s'",
+											[ CacheFilename ] ),
+
+			display_tree_data( ReadTreeData, ReadPrompt ),
+
+			ReadTreeData;
+
 
 		false ->
 			ui:display( "No cache file (~s) found, performing full scan "
 						"to recreate it.", [ CacheFilename ] ),
-			perform_scan( TreePath, CacheFilename, UserState )
+
+			TreeData = perform_scan( TreePath, CacheFilename, UserState ),
+
+			ScanPrompt = text_utils:format( "Scan result determined for '~s'",
+											[ TreePath ] ),
+
+			display_tree_data( TreeData, ScanPrompt ),
+
+			TreeData
 
 	end.
 
@@ -493,8 +510,8 @@ perform_scan( TreePath, CacheFilename, UserState ) ->
 
 	TreeData = scan_helper( TreePath, CacheFilename, UserState ),
 
-	ui:display( "Scan result stored in '~s': ~s",
-				[ CacheFilename, tree_data_to_string( TreeData ) ] ),
+	%ui:display( "Scan result stored in '~s': ~s",
+	%			[ CacheFilename, tree_data_to_string( TreeData ) ] ),
 
 	TreeData.
 
@@ -575,6 +592,11 @@ uniquify( TreePath ) ->
 	trace_debug( "Uniquification finished, resulting on following tree: ~s",
 				 [ tree_data_to_string( NewTreeData ) ], UserState ),
 
+	Prompt = text_utils:format( "Information about the resulting uniquified "
+								"tree '~s'", [ NewTreeData#tree_data.root ] ),
+
+	display_tree_data( NewTreeData, Prompt ),
+
 	terminate_data_analyzers( Analyzers, UserState ),
 
 	% We leave an up-to-date cache file:
@@ -640,7 +662,14 @@ merge( InputTreePath, ReferenceTreePath ) ->
 	ReferenceTree = update_content_tree( ReferenceTreePath, AnalyzerRing,
 										 UserState ),
 
-	merge_trees( InputTree, ReferenceTree, UserState ),
+	MergeTreeData = merge_trees( InputTree, ReferenceTree, UserState ),
+
+	Prompt = text_utils:format( "Resulting merged tree '~s'",
+								[ ReferenceTreePath ] ),
+
+	display_tree_data( MergeTreeData, Prompt ),
+
+	create_merge_cache_file_from( MergeTreeData, UserState ),
 
 	terminate_data_analyzers( Analyzers, UserState ),
 
@@ -683,7 +712,10 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 						 [ InputRootDir ], UserState ),
 
 			file_utils:remove_directory( InputRootDir ),
+
+			% File count expected to be already correct:
 			ReferenceTree;
+
 
 		LackingCount ->
 			Prompt = text_utils:format( "Exactly ~B contents are present in "
@@ -707,8 +739,8 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 				move ->
 					file_utils:create_directory_if_not_existing( TargetDir ),
 					move_content_to_merge( ToMerge, InputRootDir, InputEntries,
-										   ReferenceRootDir, ReferenceEntries,
-										   TargetDir, UserState );
+						ReferenceRootDir, ReferenceEntries, TargetDir,
+						_Count=1, _TotalCount=LackingCount, UserState );
 
 				cherry_pick ->
 					file_utils:create_directory_if_not_existing( TargetDir ),
@@ -740,7 +772,10 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 
 			end,
 
-			ReferenceTree#tree_data{ entries=NewReferenceEntries }
+			FileCount = get_file_count_from( NewReferenceEntries ),
+
+			ReferenceTree#tree_data{ entries=NewReferenceEntries,
+									 file_count=FileCount }
 
 	end.
 
@@ -750,10 +785,11 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 % thereof.
 %
 -spec move_content_to_merge( [ sha1() ], directory_path(), sha1_table(),
-		 directory_path(), sha1_table(), directory_path(), user_state() ) ->
-							sha1_table().
+		directory_path(), sha1_table(), directory_path(), count(), count(),
+		user_state() ) -> sha1_table().
 move_content_to_merge( _ToMove=[], InputRootDir, InputEntries,
-				_ReferenceRootDir, ReferenceEntries, _TargetDir, _UserState ) ->
+				_ReferenceRootDir, ReferenceEntries, _TargetDir, _Count,
+				_TotalCount, _UserState ) ->
 
 	% Removing the content that has not been moved (hence shall be deleted):
 	file_utils:remove_files( list_utils:flatten_once( [
@@ -767,7 +803,11 @@ move_content_to_merge( _ToMove=[], InputRootDir, InputEntries,
 	ReferenceEntries;
 
 move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
-				ReferenceRootDir, ReferenceEntries, TargetDir, UserState ) ->
+		ReferenceRootDir, ReferenceEntries, TargetDir, Count, TotalCount,
+		UserState ) ->
+
+	ui:set_setting( 'title',
+		 text_utils:format( "Merging content ~B/~B", [ Count, TotalCount ] ) ),
 
 	{ FileDatas, NewInputEntries } = table:extract_entry( SHA1, InputEntries ),
 
@@ -873,7 +913,8 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 			throw( { relative_path_not_found, ReferenceRootDir, NewPath } );
 
 		TrailingPath ->
-			TrailingPath
+			% Not wanting the initial /:
+			text_utils:string_to_binary( tl( TrailingPath ) )
 
 	end,
 
@@ -885,10 +926,10 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 
 	% New content in reference:
 	NewReferenceEntries =
-		table:add_new_entry( SHA1, NewFileData, ReferenceEntries ),
+		table:add_new_entry( SHA1, [ NewFileData ], ReferenceEntries ),
 
 	move_content_to_merge( T, InputRootDir, NewInputEntries, ReferenceRootDir,
-						   NewReferenceEntries, TargetDir, UserState ).
+		   NewReferenceEntries, TargetDir, Count+1, TotalCount, UserState ).
 
 
 
@@ -950,7 +991,8 @@ cherry_pick_files( _ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 					safe_move( FullContentPath, Target ),
 
 					% Relative to reference directory:
-					MoveRelPath = file_utils:join( ?merge_dir, ContentPath ),
+					MoveRelPath = text_utils:string_to_binary(
+							file_utils:join( ?merge_dir, ContentPath ) ),
 
 					table:add_new_entry( SHA1, [ SingleFileData#file_data{
 								path=MoveRelPath } ], ReferenceEntries );
@@ -1008,7 +1050,7 @@ cherry_pick_files( _ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 					   list_utils:extract_element_at( ContentPaths, MoveIndex ),
 
 					trace_debug( "Moving '~s' to reference tree, removing ~p.",
-						[ MovedFilePath, 
+						[ MovedFilePath,
 						  text_utils:binaries_to_string( ToRemovePaths ) ],
 						UserState ),
 
@@ -1022,7 +1064,8 @@ cherry_pick_files( _ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 					file_utils:remove_files( ToRemoveFullPaths ),
 
 					% Relative to reference directory:
-					MoveRelPath = file_utils:join( ?merge_dir, MovedFilePath ),
+					MoveRelPath = text_utils:string_to_binary(
+						   file_utils:join( ?merge_dir, MovedFilePath ) ),
 
 					% Any would do, head exists by design:
 					FileData = hd( MultipleFileData ),
@@ -1139,6 +1182,19 @@ safe_delete( FilePath ) ->
 
 
 
+% Returns the number of files referenced in specified table.
+-spec get_file_count_from( sha1_table() ) -> count().
+get_file_count_from( SHA1Table ) ->
+
+	lists:foldl( fun( FileDataList, Acc ) ->
+					Acc + length( FileDataList )
+				 end,
+				 _Acc0=0,
+				 _List=table:values( SHA1Table ) ).
+
+
+
+
 % Helpers.
 
 
@@ -1214,8 +1270,9 @@ stop_user_service( UserState=#user_state{ log_file=LogFile } ) ->
 
 	file_utils:close( LogFile ),
 
-	basic_utils:stop( _ErrorCode=0 ).
+	io:format( "~n(execution success)~n" ),
 
+	basic_utils:stop( _ErrorCode=0 ).
 
 
 
@@ -1231,7 +1288,7 @@ check_content_trees( InputTree, ReferenceTreePath ) ->
 
 		false ->
 			trace_utils:error_fmt( "Error, specified input tree ('~s') "
-								   "does not exist.", [ InputTree ] ),
+					   "does not exist, aborting now.", [ InputTree ] ),
 			throw( { non_existing_input_tree, InputTree } )
 
 	end,
@@ -1243,7 +1300,7 @@ check_content_trees( InputTree, ReferenceTreePath ) ->
 
 		false ->
 			trace_utils:error_fmt( "Error, specified reference tree ('~s') "
-								   "does not exist.", [ ReferenceTreePath ] ),
+					   "does not exist, aborting now.", [ ReferenceTreePath ] ),
 			throw( { non_existing_reference_tree, ReferenceTreePath } )
 
 	end.
@@ -1358,7 +1415,7 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 % actual files (as relative paths).
 %
 -spec find_newest_timestamp_from( directory_path(), file_path() ) ->
-	  { maybe( time_utils:posix_seconds() ), [ file_path() ] }.
+					  { maybe( time_utils:posix_seconds() ), [ file_path() ] }.
 find_newest_timestamp_from( RootPath, CacheFilePath ) ->
 
 	CacheFilename = filename:basename( CacheFilePath ),
@@ -1427,8 +1484,7 @@ create_merge_cache_file_for( TreePath, AnalyzerRing, UserState ) ->
 % specified content tree.
 %
 -spec create_merge_cache_file_for( file_utils:directory_name(),
-		  file_utils:file_name(), analyzer_ring(), user_state() ) ->
-										 tree_data().
+		file_utils:file_name(), analyzer_ring(), user_state() ) -> tree_data().
 create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
 							 UserState ) ->
 
@@ -1534,7 +1590,7 @@ spawn_data_analyzers( Count, UserState ) ->
 -spec terminate_data_analyzers( [ analyzer_pid() ], user_state() ) -> void().
 terminate_data_analyzers( Analyzers, UserState ) ->
 
-	trace_debug( "Terminating ~B data analyzers (~p).",
+	trace_debug( "Terminating~B data analyzers (~p).",
 				 [ length( Analyzers ), Analyzers ], UserState ),
 
 	[ P ! terminate || P <- Analyzers ].
@@ -1548,13 +1604,14 @@ scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 
 	trace_debug( "Scanning tree '~s'...", [ AbsTreePath ], UserState ),
 
+	% Regular ones and symlinks:
 	AllFiles = file_utils:find_files_from( AbsTreePath ),
 
 	% Not wanting to index our own files (if any already exists):
 	FilteredFiles = lists:delete( ?merge_cache_filename, AllFiles ),
 
 	trace_debug( "Found ~B files: ~s", [ length( FilteredFiles ),
-			text_utils:strings_to_string( FilteredFiles ) ], UserState ),
+				 text_utils:strings_to_string( FilteredFiles ) ], UserState ),
 
 	% For lighter message sendings and storage:
 	FilteredBinFiles = text_utils:strings_to_binaries( FilteredFiles ),
@@ -1763,25 +1820,42 @@ deduplicate_tree( TreeData=#tree_data{ root=RootDir,
 
 	DuplicateCount = FileCount - table:size( EntryTable ),
 
+	% Check:
+	false = DuplicateCount < 0,
+
 	% Actual deduplication:
 	{ NewEntryTable, RemovedDuplicateCount } =
 		manage_duplicates( EntryTable, RootDir, UserState ),
 
 	RemainingDuplicateCount = DuplicateCount - RemovedDuplicateCount,
 
-	case RemainingDuplicateCount of
+	case DuplicateCount of
 
 		0 ->
-			ui:display( "All ~B duplicates removed.", [ DuplicateCount ] );
+			% Already said beforehand:
+			%ui:display( "There was no duplicate to remove." );
+			ok;
 
-		Count when Count > 0 ->
-			ui:display(
-			  "Out of the ~B duplicates detected, ~B remain (~B removed).",
-			  [ DuplicateCount, Count, RemovedDuplicateCount ] )
+		D when D > 0 ->
+			case RemainingDuplicateCount of
+
+				0 ->
+					ui:display( "All ~B duplicates removed.",
+								[ DuplicateCount ] );
+
+				Count when Count > 0 ->
+					ui:display( "Out of the ~B duplicates detected, "
+							"~B remain (~B removed).",
+							[ DuplicateCount, Count, RemovedDuplicateCount ] )
+
+			end
 
 	end,
 
-	NewFileCount = table:size( NewEntryTable ),
+	NewFileCount = table:size( NewEntryTable ) + RemainingDuplicateCount,
+
+	% Just an extra check:
+	NewFileCount = FileCount - RemovedDuplicateCount,
 
 	%trace_debug( "~B unique entries remain.", [ NewFileCount ], UserState ),
 
@@ -2422,6 +2496,53 @@ check_file_sizes_match( _FilePairs=[ { FilePath, FileSize } | T ], TreePath,
 			false
 
 	end.
+
+
+
+% Displays information about specified tree data, with a default prompt.
+-spec display_tree_data( tree_data() ) -> void().
+display_tree_data( TreeData=#tree_data{ root=RootDir } ) ->
+
+	Prompt = text_utils:format( "Information about tree '~s'", [ RootDir ] ),
+
+	display_tree_data( TreeData, Prompt ).
+
+
+% Displays information about specified tree data, with specified prompt.
+-spec display_tree_data( tree_data(), ui:prompt() ) -> void().
+display_tree_data( TreeData=#tree_data{ entries=EntryTable,
+										file_count=FileCount },
+				   Prompt ) ->
+
+	Suffix = case table:size( EntryTable ) of
+
+		FileCount ->
+			text_utils:format( "exactly ~B unique contents, and as many files, "
+							   "it is therefore uniquified",
+							   [ FileCount ] );
+
+		ContentCount ->
+			DupCount = FileCount - ContentCount,
+			case DupCount > 0 of
+
+				true ->
+					text_utils:format( "~B unique contents and ~B files "
+									   "(hence with ~B duplicates)",
+									   [ ContentCount, FileCount, DupCount ] );
+
+				false ->
+					trace_utils:error_fmt( "~B files, ~B contents, abnormal: "
+						 "~s", [ FileCount, ContentCount,
+								 tree_data_to_string( TreeData ) ] ),
+					throw( { inconsistency_detected, FileCount, ContentCount } )
+
+			end
+
+	end,
+
+	ui:display( "~s: this tree has ~s.", [ Prompt, Suffix ] ).
+
+
 
 
 
