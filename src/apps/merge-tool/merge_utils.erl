@@ -182,11 +182,11 @@ get_usage() ->
 	"  - '"?exec_name" -h' or '"?exec_name" --help'\n\n"
 	"   Ensures, for the first form, that all the changes in a possibly more up-to-date, \"newer\" tree (INPUT_TREE) are merged back to the reference tree (REFERENCE_TREE), from which the first tree may have derived. Once executed, only a refreshed, complemented reference tree will exist, as the input tree will have been removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
 	"   In the reference tree, in-tree duplicated content will be either kept as it is, or removed as a whole (to keep only one copy thereof), or replaced by symbolic links in order to keep only a single reference version of each actual content.\n"
-	"   At the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they not have changed. As a result, once a merge is done, the reference tree may contain an uniquified version of the union of the two specified trees, and the tree to scan will not exist anymore.\n\n"
+	"   At the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they have not changed. As a result, once a merge is done, the reference tree may contain an uniquified version of the union of the two specified trees, and the tree to scan will not exist anymore.\n\n"
 	"   For the second form (--scan option), the specified tree will simply be inspected for duplicates, and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
-	"   For the third form (--uniquify option), the specified tree will be scanned first (see previous operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links), and once done a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
-	"   For the fourth form (-h / --help option), displays this help\n\n"
-	"   When a cache file is found, it can be either ignored (and thus recreated) or re-used, either as it is or after a weak check, where only sizes and timestamps are then verified.".
+	"   For the third form (--uniquify option), the specified tree will be scanned first (see previous operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links), and once done a corresponding up-to-date '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
+	"   For the fourth form (-h or --help option), displays this help.\n\n"
+	"   When a cache file is found, it can be either ignored (and thus recreated) or re-used, either as it is or after a weak check, where only file existence, sizes and timestamps are then verified.".
 
 
 
@@ -276,7 +276,14 @@ handle_reference_option( RefTreePath, ArgumentTable ) ->
 			case list_table:is_empty( NewArgumentTable ) of
 
 				true ->
-					merge( InputTreePath, RefTreePath );
+					% Allows notably to remove any user-specified trailing /:
+					NormInputTreePath =
+						file_utils:normalise_path( InputTreePath ),
+
+					NormRefTreePath =
+						file_utils:normalise_path( RefTreePath ),
+
+					merge( NormInputTreePath, NormRefTreePath );
 
 				false ->
 					Msg = text_utils:format(
@@ -339,7 +346,12 @@ handle_non_reference_option( ArgumentTable ) ->
 					case list_table:is_empty( NoUniqArgTable ) of
 
 						true ->
-							uniquify( UniqTreePath );
+							% Allows notably to remove any user-specified
+							% trailing /:
+							%
+							NormUniqTreePath =
+								file_utils:normalise_path( UniqTreePath ),
+							uniquify( NormUniqTreePath );
 
 						false ->
 							Msg = text_utils:format(
@@ -373,7 +385,11 @@ handle_non_reference_option( ArgumentTable ) ->
 
 					AnalyzerRing = create_analyzer_ring( UserState ),
 
-					scan( ScanTreePath, AnalyzerRing, UserState ),
+					% Allows notably to remove any user-specified trailing /:
+					NormScanTreePath =
+						file_utils:normalise_path( ScanTreePath ),
+
+					scan( NormScanTreePath, AnalyzerRing, UserState ),
 
 					terminate_data_analyzers(
 					  ring_utils:to_list( AnalyzerRing ), UserState ),
@@ -495,7 +511,7 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 
 			TreeData = perform_scan( TreePath, CacheFilename, UserState ),
 
-			ScanPrompt = text_utils:format( "Scan result determined for '~s'",
+			ScanPrompt = text_utils:format( "Scan result for '~s'",
 											[ TreePath ] ),
 
 			display_tree_data( TreeData, ScanPrompt ),
@@ -1287,7 +1303,7 @@ check_content_trees( InputTree, ReferenceTreePath ) ->
 			ok;
 
 		false ->
-			trace_utils:error_fmt( "Error, specified input tree ('~s') "
+			ui:display_error( "Specified input tree ('~s') "
 					   "does not exist, aborting now.", [ InputTree ] ),
 			throw( { non_existing_input_tree, InputTree } )
 
@@ -1299,7 +1315,7 @@ check_content_trees( InputTree, ReferenceTreePath ) ->
 			ok;
 
 		false ->
-			trace_utils:error_fmt( "Error, specified reference tree ('~s') "
+			ui:display_error( "Specified reference tree ('~s') "
 					   "does not exist, aborting now.", [ ReferenceTreePath ] ),
 			throw( { non_existing_reference_tree, ReferenceTreePath } )
 
@@ -1351,40 +1367,51 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 			% Load it, if trusted (typically if not older from the newest
 			% file in tree):
 			%
-			{ NewestTimestamp, ContentFiles } =
-				find_newest_timestamp_from( TreePath, CacheFilePath ),
+			case find_newest_timestamp_from( TreePath, CacheFilePath ) of
 
-			case file_utils:get_last_modification_time( CacheFilePath ) of
 
-				CacheTimestamp when CacheTimestamp < NewestTimestamp ->
-					ui:display( "Timestamp of cache file (~p) older "
-						"than most recent file timestamp in tree (~p), "
-						"rebuilding cache file.",
-						[ CacheTimestamp, NewestTimestamp ] ),
+			{ _NoNewestTimestamp=undefined, _ContentFiles=[] } ->
+					ui:display( "Tree '~s' is empty, creating a blank cache "
+								"file for it.", [ TreePath ] ),
 					undefined;
 
+			{ NewestTimestamp, ContentFiles } ->
+					case file_utils:get_last_modification_time( CacheFilePath )
+					of
 
-				CacheTimestamp ->
-
-					trace_debug( "Timestamp of cache file is "
-						"acceptable (as ~p is not older than the most recent "
-						"file timestamp in tree, ~p), just performing a quick "
-						"check of file existences and sizes to further "
-						"validate it.",
-						[ CacheTimestamp, NewestTimestamp ], UserState ),
-
-					case quick_cache_check( CacheFilePath, ContentFiles,
-											TreePath, UserState ) of
-
-						undefined ->
-							ui:display( "Cache file does not match actual "
-										"tree, rebuilding cache file." ),
+						CacheTimestamp when CacheTimestamp < NewestTimestamp ->
+							ui:display( "Timestamp of cache file (~p) older "
+							  "than most recent file timestamp in tree (~p), "
+							  "rebuilding cache file for tree '~s'.",
+							  [ CacheTimestamp, NewestTimestamp, TreePath ] ),
 							undefined;
 
-						TreeData ->
-							ui:display( "Cache file seems to match actual "
-										"tree, considering it legit." ),
-							TreeData
+
+						CacheTimestamp ->
+
+							trace_debug( "Timestamp of cache file is "
+								"acceptable (as ~p is not older than the "
+								"most recent file timestamp in tree, ~p), "
+								"just performing a quick check of file "
+								"existences and sizes to further validate it.",
+								[ CacheTimestamp, NewestTimestamp ],
+								  UserState ),
+
+							case quick_cache_check( CacheFilePath, ContentFiles,
+													TreePath, UserState ) of
+
+								undefined ->
+									ui:display( "Cache file does not match "
+									  "actual tree, rebuilding cache file." ),
+									undefined;
+
+								TreeData ->
+									ui:display( "Cache file seems to match "
+									  "actual tree '~s', considering it "
+									  "legit.", [ TreePath ] ),
+									TreeData
+
+							end
 
 					end
 
@@ -2075,7 +2102,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 	%trace_utils:debug_fmt( "ShortenPaths = ~p", [ ShortenPaths ] ),
 
 	DuplicateString = text_utils:format( ": ~s",
-					[ text_utils:strings_to_string( ShortenPaths ) ] ),
+		[ text_utils:strings_to_string( ShortenPaths, _Bullet=" * " ) ] ),
 
 	%trace_utils:debug_fmt( "DuplicateString = ~p", [ DuplicateString ] ),
 
