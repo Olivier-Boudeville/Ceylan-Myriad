@@ -186,6 +186,7 @@ get_usage() ->
 	"   For the second form (--scan option), the specified tree will simply be inspected for duplicates, and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
 	"   For the third form (--uniquify option), the specified tree will be scanned first (see previous operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links), and once done a corresponding up-to-date '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
 	"   For the fourth form (-h or --help option), displays this help.\n\n"
+	"   Note that the --base-dir A_BASE_DIR option can be specified by the user to designate the base directory of all relative paths mentioned."
 	"   When a cache file is found, it can be either ignored (and thus recreated) or re-used, either as it is or after a weak check, where only file existence, sizes and timestamps are then verified.".
 
 
@@ -221,15 +222,37 @@ main( ArgTable ) ->
 			display_usage();
 
 		false ->
+			{ BaseDir, BaseArgTable } = case
+				list_table:extract_entry_with_defaults(
+				   '-base-dir', file_utils:get_current_directory(),
+				   FilteredArgTable ) of
+
+				{ [ InputBaseDir ], BaseDirArgTable } ->
+					{ InputBaseDir, BaseDirArgTable };
+
+				{ UnexpectedBaseDirOpts, _BaseDirArgumentTable } ->
+					InputString = text_utils:format(
+							"unexpected --base-dir options: ~s",
+							[ UnexpectedBaseDirOpts ] ),
+
+					stop_on_option_error( InputString, 29 )
+
+			end,
+
 			case list_table:extract_entry_with_defaults( '-reference',
-									 undefined, FilteredArgTable ) of
+									 undefined, BaseArgTable ) of
 
 				{ [ RefTreePath ], NoRefArgTable }
 				  when is_list( RefTreePath ) ->
-					handle_reference_option( RefTreePath, NoRefArgTable );
+
+					AbsRefTreePath = file_utils:ensure_path_is_absolute(
+							   RefTreePath, BaseDir ),
+
+					handle_reference_option( AbsRefTreePath, NoRefArgTable,
+											 BaseDir );
 
 				{ undefined, NoRefArgTable } ->
-					handle_non_reference_option( NoRefArgTable );
+					handle_non_reference_option( NoRefArgTable, BaseDir );
 
 				% Typically more than one reference option specified:
 				{ UnexpectedRefTreeOpts, _NoRefArgTable } ->
@@ -248,7 +271,7 @@ main( ArgTable ) ->
 % Handles the command-line whenever the --reference option was specified, with a
 % single corresponding parameter, of type list.
 %
-handle_reference_option( RefTreePath, ArgumentTable ) ->
+handle_reference_option( RefTreePath, ArgumentTable, BaseDir ) ->
 
 	ui:set_settings( [ { 'backtitle', "Merging now..." },
 					   { 'title', "Merging" } ] ),
@@ -276,14 +299,14 @@ handle_reference_option( RefTreePath, ArgumentTable ) ->
 			case list_table:is_empty( NewArgumentTable ) of
 
 				true ->
-					% Allows notably to remove any user-specified trailing /:
-					NormInputTreePath =
-						file_utils:normalise_path( InputTreePath ),
+					% Includes a normalisation; allows notably to remove any
+					% user-specified trailing /:
+					%
+					NormInputTreePath = file_utils:ensure_path_is_absolute(
+										  InputTreePath, BaseDir ),
 
-					NormRefTreePath =
-						file_utils:normalise_path( RefTreePath ),
-
-					merge( NormInputTreePath, NormRefTreePath );
+					% RefTreePath is already vetted:
+					merge( NormInputTreePath, RefTreePath );
 
 				false ->
 					Msg = text_utils:format(
@@ -307,7 +330,7 @@ handle_reference_option( RefTreePath, ArgumentTable ) ->
 
 
 % Handles the command-line whenever the --reference option was not specified.
-handle_non_reference_option( ArgumentTable ) ->
+handle_non_reference_option( ArgumentTable, BaseDir ) ->
 
 	% No reference, it must then either be a pure scan or a uniquify here:
 	case list_table:extract_entry_with_defaults( '-scan', undefined,
@@ -346,12 +369,13 @@ handle_non_reference_option( ArgumentTable ) ->
 					case list_table:is_empty( NoUniqArgTable ) of
 
 						true ->
-							% Allows notably to remove any user-specified
-							% trailing /:
+							% Includes normalisation; allows notably to remove
+							% any user-specified trailing /:
 							%
-							NormUniqTreePath =
-								file_utils:normalise_path( UniqTreePath ),
-							uniquify( NormUniqTreePath );
+							AbsUniqTreePath =
+								file_utils:ensure_path_is_absolute( UniqTreePath,
+																	BaseDir ),
+							uniquify( AbsUniqTreePath );
 
 						false ->
 							Msg = text_utils:format(
@@ -385,11 +409,13 @@ handle_non_reference_option( ArgumentTable ) ->
 
 					AnalyzerRing = create_analyzer_ring( UserState ),
 
-					% Allows notably to remove any user-specified trailing /:
-					NormScanTreePath =
-						file_utils:normalise_path( ScanTreePath ),
+					% Includes normalisation; allows notably to remove any
+					% user-specified trailing /:
+					%
+					AbsScanTreePath = file_utils:ensure_path_is_absolute(
+										ScanTreePath, BaseDir ),
 
-					scan( NormScanTreePath, AnalyzerRing, UserState ),
+					scan( AbsScanTreePath, AnalyzerRing, UserState ),
 
 					terminate_data_analyzers(
 					  ring_utils:to_list( AnalyzerRing ), UserState ),
@@ -1845,44 +1871,24 @@ deduplicate_tree( TreeData=#tree_data{ root=RootDir,
 									   entries=EntryTable,
 									   file_count=FileCount }, UserState ) ->
 
-	DuplicateCount = FileCount - table:size( EntryTable ),
+	InitialEntryCount = table:size( EntryTable ),
+
+	DuplicateCount = FileCount - InitialEntryCount,
 
 	% Check:
 	false = DuplicateCount < 0,
 
 	% Actual deduplication:
-	{ NewEntryTable, RemovedDuplicateCount } =
+	{ NewEntryTable, RemovedCount } =
 		manage_duplicates( EntryTable, RootDir, UserState ),
 
-	RemainingDuplicateCount = DuplicateCount - RemovedDuplicateCount,
+	% Possibly negative, should whole contents be erased:
+	RemainingDuplicateCount = DuplicateCount - RemovedCount,
 
-	case DuplicateCount of
+	ui:display( "While there were ~B duplicates detected, a total of ~B "
+				"files have been removed.", [ DuplicateCount, RemovedCount ] ),
 
-		0 ->
-			% Already said beforehand:
-			%ui:display( "There was no duplicate to remove." );
-			ok;
-
-		D when D > 0 ->
-			case RemainingDuplicateCount of
-
-				0 ->
-					ui:display( "All ~B duplicates removed.",
-								[ DuplicateCount ] );
-
-				Count when Count > 0 ->
-					ui:display( "Out of the ~B duplicates detected, "
-							"~B remain (~B removed).",
-							[ DuplicateCount, Count, RemovedDuplicateCount ] )
-
-			end
-
-	end,
-
-	NewFileCount = table:size( NewEntryTable ) + RemainingDuplicateCount,
-
-	% Just an extra check:
-	NewFileCount = FileCount - RemovedDuplicateCount,
+	NewFileCount = InitialEntryCount + RemainingDuplicateCount,
 
 	%trace_debug( "~B unique entries remain.", [ NewFileCount ], UserState ),
 
@@ -1892,7 +1898,8 @@ deduplicate_tree( TreeData=#tree_data{ root=RootDir,
 
 
 % Manages all duplicates found in specified table, returns an updated table and
-% the number of duplicates removed.
+% the number of files (usually duplicates, sometimes all files corresponding to
+% a given content) removed.
 %
 -spec manage_duplicates( sha1_table(), directory_path(), user_state() ) ->
 							   { sha1_table(), count() }.
@@ -1967,7 +1974,7 @@ filter_duplications( _SHA1Entries=[ SHA1Entry | T ],
 process_duplications( DuplicationCases, TotalDupCaseCount, UniqueTable,
 					  RootDir, UserState ) ->
 
-	trace_debug( "Pre-deduplication unique table: ~s",
+	trace_debug( "Pre-deduplicating unique table: ~s",
 				 [ table:to_string( UniqueTable ) ], UserState ),
 
 	Acc0 = { UniqueTable, _InitialDupCount=1, _InitialRemoved=0 },
@@ -1993,13 +2000,21 @@ process_duplications_helper( _DupCases=[ { Sha1Key, DuplicateList } | T ],
 
 	Size = check_duplicates( Sha1Key, DuplicateList ),
 
-	SelectedFileEntries = manage_duplication_case( DuplicateList, AccDupCount,
-							  TotalDupCount, Size, RootDir, UserState ),
+	% Returns an updated table and a list of the files containing that content:
+	{ NewAccTable, RemainingFileEntries } = case manage_duplication_case(
+	 DuplicateList, AccDupCount, TotalDupCount, Size, RootDir, UserState ) of
 
-	NewAccTable = table:add_entry( Sha1Key, SelectedFileEntries, AccTable ),
+		[] ->
+			{ table:remove_entry( Sha1Key, AccTable ), [] };
+
+		SelectFileEnts ->
+			{ table:add_entry( Sha1Key, SelectFileEnts, AccTable ),
+			  SelectFileEnts }
+
+	end,
 
 	NewRemoveCount = AccRemoveCount + length( DuplicateList )
-		- length( SelectedFileEntries ),
+		- length( RemainingFileEntries ),
 
 	NewAcc = { NewAccTable, AccDupCount+1, NewRemoveCount },
 
@@ -2064,10 +2079,9 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 	Count = length( FileEntries ),
 
-	% By design more than one path: text_utils:get_longest_common_prefix/1
-	% should not be used as for example a foobar-new directory could be a
-	% sibling of a foobar directory, resulting in -new/... meaningless suffixes;
-	% so:
+	% By design more than one path: text_utils:get_longest_common_path/1 should
+	% not be used as for example a 'foobar-new' directory could be a sibling of
+	% a 'foobar' directory, resulting in -new/... meaningless suffixes; so:
 	%
 	{ Prompt, Prefix, ShortenPaths } =
 		case file_utils:get_longest_common_path( Dirnames ) of
@@ -2108,10 +2122,11 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 	FullPrompt = Prompt ++ DuplicateString,
 
-	Choices = [ { keep, "Keep only one of these files" },
-				{ elect, "Elect a reference file, replacing each other by "
+	Choices = [ { elect, "Elect a reference file, replacing each other by "
 				  "a symbolic link pointing to it" },
+				{ keep, "Keep only one of these files" },
 				{ leave, "Leave them as they are" },
+				{ delete, "Delete them as a whole" },
 				{ abort, "Abort" } ],
 
 	SelectedChoice = ui:choose_designated_item(
@@ -2124,6 +2139,15 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 	case SelectedChoice of
 
+		elect ->
+			% Symlinks ignored:
+			ElectedFilePath = elect_and_link( Prefix, ShortenPaths, PathStrings,
+											  RootDir, UserState ),
+
+			% As this is a list of file_data:
+			[ find_data_entry_for( ElectedFilePath, FileEntries ) ];
+
+
 		keep ->
 			KeptFilePath = keep_only_one( Prefix, ShortenPaths, PathStrings,
 										  RootDir, UserState ),
@@ -2135,15 +2159,6 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 			% As this is a list of file_data:
 			[ find_data_entry_for( KeptFilePath, FileEntries ) ];
-
-
-		elect ->
-			% Symlinks ignored:
-			ElectedFilePath = elect_and_link( Prefix, ShortenPaths, PathStrings,
-											  RootDir, UserState ),
-
-			% As this is a list of file_data:
-			[ find_data_entry_for( ElectedFilePath, FileEntries ) ];
 
 
 		leave ->
@@ -2162,6 +2177,30 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 						   PrefixString, DuplicateString ], UserState ),
 
 			FileEntries;
+
+
+		delete ->
+			DelPrompt = text_utils:format( "Really delete all ~B "
+				"elements found in '~s' corresponding to that same content? "
+				"~n~nFollowing files would then be removed~s" ,
+				[ Count, RootDir, DuplicateString ] ),
+
+			case ui:ask_yes_no( DelPrompt ) of
+
+				yes ->
+					Paths = [ file_utils:join( RootDir, P )
+							  || P <- PathStrings ],
+
+					file_utils:remove_files( Paths ),
+					% Deleted in tree:
+					[];
+
+				no ->
+					% Back to the same:
+					manage_duplication_case( FileEntries, DuplicationCaseCount,
+								TotalDupCaseCount, Size, RootDir, UserState )
+
+			end;
 
 
 		C when C =:= abort orelse C =:= ui_cancel ->
@@ -2200,8 +2239,8 @@ keep_only_one( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
 					_Title="Selecting the unique reference version to keep, "
 						   "whereas the others are to be removed" ),
 
-	BasePrompt = "Please choose the (single) file to keep "
-				  "(others being removed), among:",
+	BasePrompt = text_utils:format( "~nPlease choose the (single) file to keep "
+									"(others being removed), among:", [] ),
 
 	Prompt = case Prefix of
 
@@ -2256,7 +2295,8 @@ elect_and_link( Prefix, TrimmedPaths, PathStrings, RootDir, UserState ) ->
 					"as a reference, whereas the others will be replaced "
 					"by symbolic links pointing to it" ),
 
-	BasePrompt = "~nPlease choose the (single) file to elect, among:",
+	BasePrompt = text_utils:format(
+	   "~nPlease choose the (single) file to elect, among:", [] ),
 
 	Prompt = case Prefix of
 
