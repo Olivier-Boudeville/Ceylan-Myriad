@@ -48,7 +48,8 @@
 		  get_extensions/1, get_extension/1, replace_extension/3,
 
 		  exists/1, get_type_of/1, is_file/1,
-		  is_existing_file/1, is_existing_file_or_link/1,
+		  is_existing_file/1, is_existing_link/1,
+		  is_existing_file_or_link/1,
 		  is_executable/1, is_directory/1, is_existing_directory/1,
 		  is_existing_directory_or_link/1,
 		  list_dir_elements/1,
@@ -62,7 +63,7 @@
 		  filter_by_extension/2, filter_by_extensions/2,
 		  filter_by_included_suffixes/2, filter_by_excluded_suffixes/2,
 
-		  find_files_from/1, find_files_from/2,
+		  find_files_from/1, find_files_from/2, find_regular_files_from/1,
 		  find_files_with_extension_from/2, find_files_with_extension_from/3,
 		  find_files_with_excluded_dirs/2,
 		  find_files_with_excluded_suffixes/2,
@@ -554,6 +555,25 @@ is_existing_file( EntryName ) ->
 
 
 
+% Returns whether the specified entry exists and is a symbolic file.
+%
+% Returns true or false, and cannot trigger an exception.
+%
+-spec is_existing_link( file_name() ) -> boolean().
+is_existing_link( EntryName ) ->
+
+	case exists( EntryName ) andalso get_type_of( EntryName ) of
+
+		symlink ->
+			true ;
+
+		_ ->
+			false
+
+	end.
+
+
+
 % Returns whether the specified entry exists and is either a regular file or a
 % symbolic link.
 %
@@ -1019,12 +1039,26 @@ has_matching_suffix( Filename, [ S | OtherS ] ) ->
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
 %
--spec find_files_from( directory_name() ) -> [ file_name() ].
+-spec find_files_from( any_directory_name() ) -> [ file_name() ].
 find_files_from( RootDir ) ->
 	Res = find_files_from( RootDir, _CurrentRelativeDir="",
 						   _IncludeSymlinks=true, _Acc=[] ),
 	%trace_utils:debug_fmt( "Files found from '~s':~n~p", [ RootDir, Res ] ),
 	Res.
+
+
+
+% Returns the list of all regular files found from the root, in the whole
+% subtree (i.e. recursively).
+%
+% All extensions and suffixes accepted, no excluded directories.
+%
+% All returned pathnames are relative to this root.
+% Ex: [ "./a.txt", "./tmp/b.txt" ].
+%
+-spec find_regular_files_from( any_directory_name() ) -> [ file_name() ].
+find_regular_files_from( RootDir ) ->
+	find_files_from( RootDir, _IncludeSymlinks=false ).
 
 
 
@@ -1036,7 +1070,7 @@ find_files_from( RootDir ) ->
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
 %
--spec find_files_from( directory_name(), boolean() ) -> [ file_name() ].
+-spec find_files_from( any_directory_name(), boolean() ) -> [ file_name() ].
 find_files_from( RootDir, IncludeSymlinks ) ->
 	Res = find_files_from( RootDir, _CurrentRelativeDir="", IncludeSymlinks,
 						   _Acc=[] ),
@@ -1092,7 +1126,7 @@ list_files_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir,
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
 %
--spec find_files_with_extension_from( directory_name(), extension() ) ->
+-spec find_files_with_extension_from( any_directory_name(), extension() ) ->
 											[ file_name() ].
 find_files_with_extension_from( RootDir, Extension ) ->
 	find_files_with_extension_from( RootDir, _CurrentRelativeDir="",
@@ -1107,7 +1141,7 @@ find_files_with_extension_from( RootDir, Extension ) ->
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
 %
--spec find_files_with_extension_from( directory_name(), extension(),
+-spec find_files_with_extension_from( any_directory_name(), extension(),
 									  boolean() ) -> [ file_name() ].
 find_files_with_extension_from( RootDir, Extension, IncludeSymlinks ) ->
 	find_files_with_extension_from( RootDir, _CurrentRelativeDir="",
@@ -1173,8 +1207,8 @@ list_files_in_subdirs_with_extension( _Dirs=[ H | T ], Extension, RootDir,
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
 %
--spec find_files_with_excluded_dirs( directory_name(), [ directory_name() ] ) ->
-										   [ file_name() ].
+-spec find_files_with_excluded_dirs( any_directory_name(),
+									 [ directory_name() ] ) -> [ file_name() ].
 find_files_with_excluded_dirs( RootDir, ExcludedDirList ) ->
 	find_files_with_excluded_dirs( RootDir, ExcludedDirList,
 								   _IncludeSymlinks=true ).
@@ -1200,7 +1234,7 @@ find_files_with_excluded_dirs( RootDir, ExcludedDirList ) ->
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
 %
--spec find_files_with_excluded_dirs( directory_name(), [ directory_name() ],
+-spec find_files_with_excluded_dirs( any_directory_name(), [ directory_name() ],
 									 boolean() ) -> [ file_name() ].
 find_files_with_excluded_dirs( RootDir, ExcludedDirList, IncludeSymlinks ) ->
 	find_files_with_excluded_dirs( RootDir, _CurrentRelativeDir="",
@@ -1247,7 +1281,6 @@ list_files_in_subdirs_excluded_dirs( _Dirs=[], _RootDir,
 
 list_files_in_subdirs_excluded_dirs( _Dirs=[ H | T ], RootDir,
 		CurrentRelativeDir, ExcludedDirList, IncludeSymlinks, Acc ) ->
-
 	list_files_in_subdirs_excluded_dirs( T, RootDir, CurrentRelativeDir,
 		ExcludedDirList, IncludeSymlinks,
 		find_files_with_excluded_dirs( RootDir, join( CurrentRelativeDir, H ),
@@ -1264,7 +1297,7 @@ list_files_in_subdirs_excluded_dirs( _Dirs=[ H | T ], RootDir,
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
 %
--spec find_files_with_excluded_suffixes( directory_name(), [ string() ] ) ->
+-spec find_files_with_excluded_suffixes( any_directory_name(), [ string() ] ) ->
 											   [ file_name() ].
 find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes ) ->
 	find_files_with_excluded_suffixes( RootDir, _CurrentRelativeDir="",
@@ -1279,7 +1312,7 @@ find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes ) ->
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
 %
--spec find_files_with_excluded_suffixes( directory_name(), [ string() ],
+-spec find_files_with_excluded_suffixes( any_directory_name(), [ string() ],
 										 boolean() ) -> [ file_name() ].
 find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes,
 								   IncludeSymlinks ) ->
@@ -1290,7 +1323,7 @@ find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes,
 
 % (helper)
 find_files_with_excluded_suffixes( RootDir, CurrentRelativeDir,
-					   ExcludedSuffixes, IncludeSymlinks, Acc ) ->
+								   ExcludedSuffixes, IncludeSymlinks, Acc ) ->
 
 	%io:format( "find_files_with_excluded_suffixes in ~s.~n",
 	% [ CurrentRelativeDir ] ),
@@ -1352,7 +1385,7 @@ list_files_in_subdirs_with_excluded_suffixes( [ H | T ], ExcludedSuffixes,
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
 %
--spec find_files_with_excluded_dirs_and_suffixes( directory_name(),
+-spec find_files_with_excluded_dirs_and_suffixes( any_directory_name(),
 		[ directory_name() ], [ string() ] ) -> [ file_name() ].
 find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirList,
 											ExcludedSuffixes ) ->
@@ -1378,7 +1411,7 @@ find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirList,
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
 %
--spec find_files_with_excluded_dirs_and_suffixes( directory_name(),
+-spec find_files_with_excluded_dirs_and_suffixes( any_directory_name(),
 		[ directory_name() ], [ string() ], boolean() ) -> [ file_name() ].
 find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirList,
 							ExcludedSuffixes, IncludeSymlinks ) ->
@@ -1468,7 +1501,7 @@ prefix_files_with( RootDir, [ H| T ], Acc ) ->
 % All returned pathnames are relative to this root.
 % Ex: [ "./my-dir", "./tmp/other-dir" ].
 %
--spec find_directories_from( directory_name() ) -> [ directory_name() ].
+-spec find_directories_from( any_directory_name() ) -> [ directory_name() ].
 find_directories_from( RootDir ) ->
 	find_directories_from( RootDir, "", _Acc=[] ).
 
