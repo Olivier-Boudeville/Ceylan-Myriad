@@ -1315,12 +1315,15 @@ strings_to_binaries( StringList ) ->
 
 
 
-% Converts a list of binaries into list of plain (list-based) string.
+% Converts a list of binaries into list of plain (list-based) strings.
 %
 % Order of items remains unaffected.
 %
 -spec binaries_to_strings( [ bin_string() ] ) -> [ ustring() ].
 binaries_to_strings( BinaryList ) ->
+
+	%trace_utils:debug_fmt( "binaries_to_strings: ~p", [ BinaryList ] ),
+
 	% Order must be preserved:
 	%[ erlang:binary_to_list( B ) || B <- BinaryList ].
 	[ try
