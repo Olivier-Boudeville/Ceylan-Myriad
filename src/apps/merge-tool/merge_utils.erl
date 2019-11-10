@@ -644,9 +644,12 @@ rescan( TreePath, AnalyzerRing, UserState ) ->
 								 UserState );
 
 				_ ->
-					ui:display( "~B notifications to report: ~s",
+					NotifString = text_utils:format(
+						"~B notifications to report: ~s",
 						[ length( Notifications ),
-						  text_utils:strings_to_string( Notifications ) ] )
+						  text_utils:strings_to_string( Notifications ) ] ),
+					trace_debug( NotifString, UserState ),
+					ui:display( NotifString )
 
 			end,
 
@@ -654,6 +657,10 @@ rescan( TreePath, AnalyzerRing, UserState ) ->
 											  [ TreePath ] ),
 
 			display_tree_data( TreeData, RescanPrompt ),
+
+			trace_debug( "Rescanned tree: ~s",
+						 [ tree_data_to_string( TreeData, _Verbose=true ) ],
+						 UserState ),
 
 			TreeData;
 
@@ -744,6 +751,7 @@ rescan_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
 			% Returning directly the updated tree:
 			{ TreeData, Notifications };
 
+
 		ExtraFiles ->
 
 			trace_debug( "Found ~B extra files during rescan: ~s",
@@ -785,15 +793,14 @@ rescan_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
 			% Here we have a list of data of the files that were not referenced
 			% yet; returns an updated tree:
 			%
-			{ integrate_extra_files( ExtraFileDatas, TreeData ),
+			{ integrate_extra_files( ExtraFileDatas, TreeData, UserState ),
 			  [ ExtraNotif | Notifications ] }
 
 	end;
 
-
 % Extracting next recorded file_data elements:
 rescan_files( FileSet, _Entries=[ { SHA1, FileDatas } | T ], TreeData,
-			  BinTreePath, AnalyzerRing, CacheTimestamp, Notifications, 
+			  BinTreePath, AnalyzerRing, CacheTimestamp, Notifications,
 			  UserState ) ->
 
 	% Not using a ring for punctual updates:
@@ -808,42 +815,70 @@ rescan_files( FileSet, _Entries=[ { SHA1, FileDatas } | T ], TreeData,
 
 
 % Integrates specfied file entries into specified tree data.
--spec integrate_extra_files( [ file_data() ], tree_data() ) -> tree_data().
-integrate_extra_files( _ExtraFileDatas=[], TreeData ) ->
+-spec integrate_extra_files( [ file_data() ], tree_data(), user_state() ) ->
+								   tree_data().
+integrate_extra_files( _ExtraFileDatas=[], TreeData, _UserState ) ->
 	TreeData;
 
 integrate_extra_files(
-  _ExtraFileDatas=[ FileData=#file_data{ sha1_sum=SHA1 } | T ], TreeData ) ->
+  _ExtraFileDatas=[ FileData=#file_data{ path=FilePath, sha1_sum=SHA1 } | T ],
+  TreeData=#tree_data{ entries=Entries,
+					   file_count=FileCount },
+  UserState ) ->
 
-	Entries = TreeData#tree_data.entries,
 	NewFileDatas = case table:lookup_entry( SHA1, Entries ) of
 
 		key_not_found ->
+			trace_debug( "Extra file '~s' has a unique content.",
+						 [ FilePath ], UserState ),
 			[ FileData ];
 
 		{ value, FileDatas } ->
+			trace_debug( "Extra file '~s' is a duplicate of a content "
+						 "corresponding now to ~B files.",
+						 [ FilePath, length( FileDatas ) + 1 ], UserState ),
 			[ FileData | FileDatas ]
 
 	end,
 
 	NewEntries = table:add_entry( SHA1, NewFileDatas, Entries ),
 
-	NewTreeData = TreeData#tree_data{ entries=NewEntries },
+	NewTreeData = TreeData#tree_data{ entries=NewEntries,
+									  file_count=FileCount+1 },
 
-	integrate_extra_files( T, NewTreeData ).
+	integrate_extra_files( T, NewTreeData, UserState ).
 
 
 
 % Checks whether the file data elements seem up to date: still existing, not
 % more recent than cache filename, and of the same size as referenced.
 %
-check_file_datas( _FileDatas=[], SHA1, FileSet, TreeData, _BinTreePath,
-				  FileDatas, ExtraNotifications ) ->
+check_file_datas( _FileDatas=[], SHA1, FileSet,
+				  TreeData=#tree_data{ entries=PrevEntries,
+									   file_count=PrevFileCount },
+				  _BinTreePath, FileDatas, ExtraNotifications ) ->
 
-	NewEntries = table:update_entry( SHA1, FileDatas,
-									 TreeData#tree_data.entries ),
+	NewEntryCount = length( FileDatas ),
 
-	NewTreeData = TreeData#tree_data{ entries=NewEntries },
+	OldEntryCount = length( table:get_value( SHA1, PrevEntries ) ),
+
+	DiffEntryCount = NewEntryCount - OldEntryCount,
+
+	% To be replenished through FileDatas:
+	WipedEntries = table:remove_entry( SHA1, PrevEntries ),
+
+	% We should not assign the elements in FileDatas to SHA1 - their checksum
+	% might differ now! So:
+
+	NewEntries = lists:foldl(
+		fun( FD=#file_data{ sha1_sum=ThisSHA1 }, AccEntries ) ->
+				table:append_to_entry( ThisSHA1, FD, AccEntries )
+		end,
+		_Acc0=WipedEntries,
+		_List=FileDatas ),
+
+	NewTreeData = TreeData#tree_data{ entries=NewEntries,
+									  file_count=PrevFileCount+DiffEntryCount },
 
 	{ FileSet, NewTreeData, ExtraNotifications };
 
@@ -2999,7 +3034,7 @@ display_tree_data( TreeData=#tree_data{ entries=EntryTable,
 
 				true ->
 					text_utils:format( "~B unique contents and ~B files "
-									   "(hence with ~B duplicates)",
+									   "(hence with a total of ~B duplicates)",
 									   [ ContentCount, FileCount, DupCount ] );
 
 				false ->
@@ -3020,13 +3055,22 @@ display_tree_data( TreeData=#tree_data{ entries=EntryTable,
 
 % Returns a textual description of specified tree data.
 -spec tree_data_to_string( tree_data() ) -> string().
+tree_data_to_string( TreeData ) ->
+	tree_data_to_string( TreeData, _Verbose=false ).
+
+
+% Returns a textual description of specified tree data, with specified
+% verbosity.
+%
+-spec tree_data_to_string( tree_data(), boolean() ) -> string().
 tree_data_to_string( #tree_data{ root=RootDir,
 								 entries=Table,
 								 file_count=FileCount,
 								 directory_count=_DirCount,
 								 symlink_count=_SymlinkCount,
 								 device_count=_DeviceCount,
-								 other_count=_OtherCount } ) ->
+								 other_count=_OtherCount },
+					 _Verbose=false ) ->
 
 	% Only looking for files:
 	%text_utils:format( "tree '~s' having ~B entries (~B files, ~B directories,"
@@ -3049,7 +3093,25 @@ tree_data_to_string( #tree_data{ root=RootDir,
 				"to ~B different contents (hence with ~B duplicates)",
 				[ RootDir, FileCount, ContentCount, FileCount - ContentCount ] )
 
-	end.
+	end;
+
+tree_data_to_string( TreeData, _Verbose=true ) ->
+
+	Entries = table:enumerate( TreeData#tree_data.entries ),
+
+	SHA1Strings = [
+
+		begin
+
+			Bins = [ FD#file_data.path || FD <- FDs ],
+			text_utils:format( "for SHA1 ~B: ~s", [ SHA1,
+				text_utils:binaries_to_string( Bins, _Indent=1 ) ] )
+
+		end || { SHA1, FDs } <- Entries ],
+
+	DetailString = text_utils:strings_to_enumerated_string( SHA1Strings ),
+
+	tree_data_to_string( TreeData, false ) ++ DetailString.
 
 
 
