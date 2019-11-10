@@ -57,7 +57,7 @@
 		  difference/2, differences/2, is_set/1, check_set/1, is_subset/2,
 		  from_list/1, to_list/1,
 		  member/2, is_empty/1, size/1,
-		  iterator/1, next/1,
+		  iterator/1, next/1, extract_if_existing/2,
 		  delete/2, delete_existing/2, to_string/1 ]).
 
 
@@ -71,11 +71,13 @@
 %
 -define( set_impl, gb_sets ).
 
--type set() :: gb_sets:set().
+%-type set() :: gb_sets:set().
+-type set() :: ?set_impl:set().
 
 
 % For homogeneous sets:
--type set( T ) :: gb_sets:set( T ).
+%-type set( T ) :: gb_sets:set( T ).
+-type set( T ) :: ?set_impl:set( T ).
 
 
 % Element of a set:
@@ -83,7 +85,7 @@
 
 
 % Internally, a kind of enumeration (list) of the elements in the set:
--type iterator() :: gb_sets:iter().
+-type iterator() :: ?set_impl:iter().
 
 
 -export_type([ set/0, set/1, element/0, iterator/0 ]).
@@ -158,15 +160,15 @@ add_as_new( Element, Set ) ->
 % Returns a set made of the specified set to which the elements of the specified
 % plain list have been added.
 %
--spec add_element_list( list(), set() ) -> set().
+-spec add_element_list( [ element() ], set() ) -> set().
 %add_element_list( _PlainList=[], Set ) ->
 %  Set;
 
 %add_element_list( _PlainList=[ H | T ], Set ) ->
 %NewSet = ?set_impl:add_element( H, SetImplSet ),
 %add_element_list( T, NewSet ).
-add_element_list( List, Set ) ->
-	AddSet = ?set_impl:from_list( List ),
+add_element_list( Elements, Set ) ->
+	AddSet = ?set_impl:from_list( Elements ),
 	?set_impl:union( AddSet, Set ).
 
 
@@ -248,15 +250,15 @@ is_subset( FirstSet, SecondSet ) ->
 
 
 
-% Returns a set created from specified list.
--spec from_list( list() ) -> set().
+% Returns a set created from specified list of elements.
+-spec from_list( [ element() ] ) -> set().
 from_list( List ) ->
 	?set_impl:from_list( List ).
 
 
 
 % Returns a list created from the elements of specified set.
--spec to_list( set() ) -> list().
+-spec to_list( set() ) -> [ element() ].
 to_list( Set ) ->
 	?set_impl:to_list( Set ).
 
@@ -310,13 +312,34 @@ next( Iterator ) ->
 
 
 
+% Extracts specified element (if any) from specified set, i.e. removes it from
+% the returned set.
+%
+% Otherwise, i.e. if that element does not exist in the specified set, returns
+% false.
+%
+-spec extract_if_existing( element(), set() ) -> 'false' | set().
+extract_if_existing( Element, Set ) ->
+
+	case ?set_impl:is_member( Element, Set ) of
+
+		true ->
+			?set_impl:del_element( Element, Set );
+
+		false ->
+			false
+
+	end.
+
+
+
 % Removes the specified element (if any) from the specified set, and returns the
 % resulting set.
 %
 % Note: does not fail if the element was not in the set; use delete_existing/2
 % to ensure that the element was present.
 %
--spec delete( term(), set() ) -> set().
+-spec delete( element(), set() ) -> set().
 delete( Element, Set ) ->
 	?set_impl:del_element( Element, Set ).
 
@@ -328,7 +351,7 @@ delete( Element, Set ) ->
 % Note: use delete/2 to delete an element without checking whether the element
 % was already present in the set.
 %
--spec delete_existing( term(), set() ) -> set().
+-spec delete_existing( element(), set() ) -> set().
 delete_existing( Element, Set ) ->
 
 	case ?set_impl:is_element( Element, Set ) of
