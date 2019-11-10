@@ -178,14 +178,17 @@ get_usage() ->
 	" Usage: following operations can be triggered: \n"
 	"  - '"?exec_name" --input INPUT_TREE --reference REFERENCE_TREE'\n"
 	"  - '"?exec_name" --scan A_TREE'\n"
+	"  - '"?exec_name" --rescan A_TREE'\n"
 	"  - '"?exec_name" --uniquify A_TREE'\n"
 	"  - '"?exec_name" -h' or '"?exec_name" --help'\n\n"
 	"   Ensures, for the first form, that all the changes in a possibly more up-to-date, \"newer\" tree (INPUT_TREE) are merged back to the reference tree (REFERENCE_TREE), from which the first tree may have derived. Once executed, only a refreshed, complemented reference tree will exist, as the input tree will have been removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
 	"   In the reference tree, in-tree duplicated content will be either kept as it is, or removed as a whole (to keep only one copy thereof), or replaced by symbolic links in order to keep only a single reference version of each actual content.\n"
 	"   At the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they have not changed. As a result, once a merge is done, the reference tree may contain an uniquified version of the union of the two specified trees, and the tree to scan will not exist anymore.\n\n"
 	"   For the second form (--scan option), the specified tree will simply be inspected for duplicates, and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
-	"   For the third form (--uniquify option), the specified tree will be scanned first (see previous operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links), and once done a corresponding up-to-date '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
-	"   For the fourth form (-h or --help option), displays this help.\n\n"
+	"   For the third form (--rescan option), an attempt to rebuild an updated '" ?merge_cache_filename "' file will be performed, computing only the checksum of the files that were not already referenced or whose timestamp or size changed.\n\n"
+	"   For the fourth form (--uniquify option), the specified tree will be scanned first (see previous operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links), and once done a corresponding up-to-date '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
+	"   For the fifth form (-h or --help option), displays this help.\n\n"
+
 	"   Note that the --base-dir A_BASE_DIR option can be specified by the user to designate the base directory of all relative paths mentioned."
 	"   When a cache file is found, it can be either ignored (and thus recreated) or re-used, either as it is or after a weak check, where only file existence, sizes and timestamps are then verified.".
 
@@ -295,27 +298,13 @@ handle_reference_option( RefTreePath, ArgumentTable, BaseDir ) ->
 
 			%trace_utils:debug_fmt( "InputTreePath: ~p", [ InputTreePath ] ),
 
-			% Check that no unknown option remains:
-			case list_table:is_empty( NewArgumentTable ) of
+			check_no_option_remains( NewArgumentTable ),
 
-				true ->
-					% Includes a normalisation; allows notably to remove any
-					% user-specified trailing /:
-					%
-					NormInputTreePath = file_utils:ensure_path_is_absolute(
+			NormInputTreePath = file_utils:ensure_path_is_absolute(
 										  InputTreePath, BaseDir ),
 
-					% RefTreePath is already vetted:
-					merge( NormInputTreePath, RefTreePath );
-
-				false ->
-					Msg = text_utils:format(
-							"unexpected extra options specified: ~s",
-							[ executable_utils:argument_table_to_string(
-								NewArgumentTable ) ] ),
-					stop_on_option_error( Msg, 24 )
-
-			end;
+			% RefTreePath is already vetted:
+			merge( NormInputTreePath, RefTreePath );
 
 
 		% Typically more than one input option specified:
@@ -332,97 +321,36 @@ handle_reference_option( RefTreePath, ArgumentTable, BaseDir ) ->
 % Handles the command-line whenever the --reference option was not specified.
 handle_non_reference_option( ArgumentTable, BaseDir ) ->
 
-	% No reference, it must then either be a pure scan or a uniquify here:
+	% No reference, it must then be a pure scan, a rescan or a uniquify here:
 	case list_table:extract_entry_with_defaults( '-scan', undefined,
 												 ArgumentTable ) of
 
-		% Not a scan, then a uniquify?
+		% Not a scan, then a rescan?
 		{ undefined, NoScanArgTable } ->
 
-			case list_table:extract_entry_with_defaults( '-uniquify', undefined,
+			case list_table:extract_entry_with_defaults( '-rescan', undefined,
 														 NoScanArgTable ) of
 
-				{ undefined, NoUniqArgTable } ->
+				% Not a rescan either:
+				{ undefined, NoRescanArgTable } ->
+					handle_neither_scan_options( NoRescanArgTable, BaseDir );
 
-					AddedString = case list_table:is_empty( NoUniqArgTable ) of
-
-						true ->
-							" (no command-line option specified)";
-
-						false ->
-							"; instead: " ++
-								executable_utils:argument_table_to_string(
-								  NoScanArgTable )
-
-							end,
-
-					Msg = text_utils:format( "no operation specified~s",
-											 [ AddedString ] ),
-
-					stop_on_option_error( Msg, 20 );
-
-
-				{ [ UniqTreePath ], NoUniqArgTable }
-				  when is_list( UniqTreePath ) ->
-
-					% Check no unknown option remains:
-					case list_table:is_empty( NoUniqArgTable ) of
-
-						true ->
-							% Includes normalisation; allows notably to remove
-							% any user-specified trailing /:
-							%
-							AbsUniqTreePath =
-								file_utils:ensure_path_is_absolute( UniqTreePath,
-																	BaseDir ),
-							uniquify( AbsUniqTreePath );
-
-						false ->
-							Msg = text_utils:format(
-									"unexpected extra options specified: ~s",
-									[ executable_utils:argument_table_to_string(
-										NoUniqArgTable ) ] ),
-							stop_on_option_error( Msg, 21 )
-
-					end;
-
-
-				{ UnexpectedUniqTreeOpts, _NoUniqArgTable } ->
-					UniqString = text_utils:format(
-								   "unexpected scan tree options: ~p",
-								   [ UnexpectedUniqTreeOpts ] ),
-
-					stop_on_option_error( UniqString, 22 )
+				% A rescan was requested:
+				{ [ RescanTreePath ], RescanArgTable }
+				  when is_list( RescanTreePath ) ->
+					handle_rescan_option( RescanTreePath, RescanArgTable,
+										  BaseDir )
 
 			end;
 
-
 		% A scan was requested:
-		{ [ ScanTreePath ], ScanArgTable }  when is_list( ScanTreePath ) ->
+		{ [ ScanTreePath ], ScanArgTable } when is_list( ScanTreePath ) ->
 
 			% Check no unknown option remains:
 			case list_table:is_empty( ScanArgTable ) of
 
 				true ->
-					% Prepare for various outputs:
-					UserState = start_user_service( ?default_log_filename ),
-
-					AnalyzerRing = create_analyzer_ring( UserState ),
-
-					% Includes normalisation; allows notably to remove any
-					% user-specified trailing /:
-					%
-					AbsScanTreePath = file_utils:ensure_path_is_absolute(
-										ScanTreePath, BaseDir ),
-
-					scan( AbsScanTreePath, AnalyzerRing, UserState ),
-
-					terminate_data_analyzers(
-					  ring_utils:to_list( AnalyzerRing ), UserState ),
-
-					stop_user_service( UserState ),
-
-					basic_utils:stop( _ErrorCode=0 );
+					handle_scan_option( ScanTreePath, ScanArgTable, BaseDir );
 
 				false ->
 					Msg = text_utils:format(
@@ -437,6 +365,129 @@ handle_non_reference_option( ArgumentTable, BaseDir ) ->
 			ScanString = text_utils:format( "unexpected scan tree options: ~p",
 											[ UnexpectedScanTreeOpts ] ),
 			stop_on_option_error( ScanString, 24 )
+
+	end.
+
+
+
+handle_neither_scan_options( ArgTable, BaseDir ) ->
+
+	% Not a scan or rescan, then a uniquify?
+	case list_table:extract_entry_with_defaults( '-uniquify', undefined,
+												 ArgTable ) of
+
+		{ undefined, NoUniqArgTable } ->
+
+			AddedString = case list_table:is_empty( NoUniqArgTable ) of
+
+				true ->
+					" (no command-line option specified)";
+
+				false ->
+					"; instead: " ++ executable_utils:argument_table_to_string(
+									   NoUniqArgTable )
+
+			end,
+
+			Msg = text_utils:format( "no operation specified~s",
+									 [ AddedString ] ),
+
+			stop_on_option_error( Msg, 20 );
+
+
+		{ [ UniqTreePath ], NoUniqArgTable } when is_list( UniqTreePath ) ->
+			handle_uniquify_option( UniqTreePath, NoUniqArgTable, BaseDir );
+
+
+		{ UnexpectedUniqTreeOpts, _NoUniqArgTable } ->
+
+			UniqString = text_utils:format( "unexpected scan tree options: ~p",
+											[ UnexpectedUniqTreeOpts ] ),
+
+			stop_on_option_error( UniqString, 22 )
+
+	end.
+
+
+
+handle_scan_option( ScanTreePath, ScanArgTable, BaseDir ) ->
+
+	check_no_option_remains( ScanArgTable ),
+
+	% Prepare for various outputs:
+	UserState = start_user_service( ?default_log_filename ),
+
+	AnalyzerRing = create_analyzer_ring( UserState ),
+
+	% Includes normalisation; allows notably to remove any user-specified
+	% trailing /:
+	%
+	AbsScanTreePath = file_utils:ensure_path_is_absolute( ScanTreePath,
+														  BaseDir ),
+
+	scan( AbsScanTreePath, AnalyzerRing, UserState ),
+
+	terminate_analyzer_ring( AnalyzerRing, UserState ),
+
+	stop_user_service( UserState ),
+
+	basic_utils:stop( _ErrorCode=0 ).
+
+
+
+handle_rescan_option( RescanTreePath, RescanArgTable, BaseDir ) ->
+
+	check_no_option_remains( RescanArgTable ),
+
+	% Prepare for various outputs:
+	UserState = start_user_service( ?default_log_filename ),
+
+	AnalyzerRing = create_analyzer_ring( UserState ),
+
+	% Includes normalisation; allows notably to remove any user-specified
+	% trailing /:
+	%
+	AbsRescanTreePath = file_utils:ensure_path_is_absolute( RescanTreePath,
+															BaseDir ),
+
+	NewTreeData = rescan( AbsRescanTreePath, AnalyzerRing, UserState ),
+
+	create_merge_cache_file_from( NewTreeData, UserState ),
+
+	terminate_analyzer_ring( AnalyzerRing, UserState ),
+
+	stop_user_service( UserState ),
+
+	basic_utils:stop( _ErrorCode=0 ).
+
+
+
+handle_uniquify_option( UniqTreePath, UniqArgTable, BaseDir ) ->
+
+	check_no_option_remains( UniqArgTable ),
+
+	% Includes normalisation; allows notably to remove any user-specified
+	% trailing /:
+	%
+	AbsUniqTreePath = file_utils:ensure_path_is_absolute( UniqTreePath,
+														  BaseDir ),
+
+	uniquify( AbsUniqTreePath ).
+
+
+
+check_no_option_remains( ArgTable ) ->
+
+	case list_table:is_empty( ArgTable ) of
+
+		true ->
+			ok;
+
+		false ->
+			Msg = text_utils:format( "unexpected extra options specified: ~s",
+							[ executable_utils:argument_table_to_string(
+								ArgTable ) ] ),
+			stop_on_option_error( Msg, 20 )
 
 	end.
 
@@ -464,12 +515,12 @@ stop_on_option_error( Message, ErrorCode ) ->
 				  tree_data().
 scan( TreePath, AnalyzerRing, UserState ) ->
 
+	% TreePath expected to be already absolute and normalised.
+
 	trace_debug( "Requested to scan '~s'.", [ TreePath ], UserState ),
 
-	AbsTreePath = file_utils:ensure_path_is_absolute( TreePath ),
-
 	ui:set_settings( [ { 'backtitle',
-					 text_utils:format( "Scan of ~s", [ AbsTreePath ] ) },
+					 text_utils:format( "Scan of ~s", [ TreePath ] ) },
 					   { 'title', "Scan report" } ] ),
 
 	CacheFilename = get_cache_path_for( TreePath ),
@@ -508,7 +559,8 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 					ui:display( "Ignoring existing cache file (~s), "
 								"performing now a full scan to recreate it.",
 								[ CacheFilename ] ),
-					perform_scan( TreePath, CacheFilename, UserState );
+					perform_scan( TreePath, CacheFilename, AnalyzerRing,
+								  UserState );
 
 				no_check ->
 					%ui:display( "Re-using '~s' with no specific check.",
@@ -535,7 +587,8 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 			ui:display( "No cache file (~s) found, performing full scan "
 						"to recreate it.", [ CacheFilename ] ),
 
-			TreeData = perform_scan( TreePath, CacheFilename, UserState ),
+			TreeData = perform_scan( TreePath, CacheFilename, AnalyzerRing,
+									 UserState ),
 
 			ScanPrompt = text_utils:format( "Scan result for '~s'",
 											[ TreePath ] ),
@@ -547,15 +600,347 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 	end.
 
 
-% (helper)
-perform_scan( TreePath, CacheFilename, UserState ) ->
 
-	TreeData = scan_helper( TreePath, CacheFilename, UserState ),
+% (helper)
+perform_scan( TreePath, CacheFilename, AnalyzerRing, UserState ) ->
+
+	TreeData = scan_helper( TreePath, CacheFilename, AnalyzerRing, UserState ),
 
 	%ui:display( "Scan result stored in '~s': ~s",
 	%			[ CacheFilename, tree_data_to_string( TreeData ) ] ),
 
 	TreeData.
+
+
+
+% Rescans specified tree, returning the corresponding datastructure.
+-spec rescan( file_utils:directory_name(), analyzer_ring(), user_state() ) ->
+				  tree_data().
+rescan( TreePath, AnalyzerRing, UserState ) ->
+
+	% TreePath expected to be already absolute and normalised.
+
+	trace_debug( "Requested to rescan '~s'.", [ TreePath ], UserState ),
+
+	BinTreePath = text_utils:string_to_binary( TreePath ),
+
+	ui:set_settings( [ { 'backtitle',
+					 text_utils:format( "Rescan of ~s", [ TreePath ] ) },
+					   { 'title', "Rescan report" } ] ),
+
+	CacheFilename = get_cache_path_for( TreePath ),
+
+	case file_utils:is_existing_file( CacheFilename ) of
+
+		true ->
+			{ TreeData, Notifications } =
+				perform_rescan( BinTreePath, CacheFilename, AnalyzerRing,
+								UserState ),
+
+			case Notifications of
+
+				[] ->
+					trace_debug( "No specific rescan notification to report.",
+								 UserState );
+
+				_ ->
+					ui:display( "~B notifications to report: ~s",
+						[ length( Notifications ),
+						  text_utils:strings_to_string( Notifications ) ] )
+
+			end,
+
+			RescanPrompt = text_utils:format( "Rescan result for '~s'",
+											  [ TreePath ] ),
+
+			display_tree_data( TreeData, RescanPrompt ),
+
+			TreeData;
+
+
+		false ->
+			ui:display( "No cache file (~s) found, performing full scan "
+						"to recreate it.", [ CacheFilename ] ),
+
+			TreeData = perform_scan( TreePath, CacheFilename, AnalyzerRing,
+									 UserState ),
+
+			ScanPrompt = text_utils:format( "Full scan result for '~s'",
+											[ TreePath ] ),
+
+			display_tree_data( TreeData, ScanPrompt ),
+
+			TreeData
+
+	end.
+
+
+
+% (helper)
+perform_rescan( BinTreePath, CacheFilename, AnalyzerRing, UserState ) ->
+
+	CacheTimestamp = file_utils:get_last_modification_time( CacheFilename ),
+
+	% Cache file expected to be already checked existing:
+	[ _RootInfo={ root, CachedTreePath } | FileInfos ] =
+		file_utils:read_terms( CacheFilename ),
+
+	ReadTreeData = #tree_data{ root=CachedTreePath,
+							   entries=build_entry_table( FileInfos ),
+							   file_count=length( FileInfos )
+							   % Not managed (at least yet): the other counts.
+							 },
+
+	case text_utils:binary_to_string( BinTreePath ) of
+
+		CachedTreePath ->
+			ok;
+
+		_ ->
+			ui:display_error( "Root path in cache filename ('~s') does not "
+							  "match actual tree to rescan: "
+							  "read '~s', user-specified as '~s'.",
+							  [ CacheFilename, CachedTreePath, BinTreePath ] ),
+			throw( { mismatching_paths, CachedTreePath, BinTreePath } )
+
+	end,
+
+	trace_debug( "Rescanning tree '~s'...", [ BinTreePath ], UserState ),
+
+	% Relative to specified path:
+	AllFiles = file_utils:find_regular_files_from( BinTreePath ),
+
+	% Not wanting to index our own files (if any already exists):
+	FilteredFiles = lists:delete( ?merge_cache_filename, AllFiles ),
+
+	trace_debug( "Found in filesystem ~B files: ~s", [ length( FilteredFiles ),
+				 text_utils:strings_to_string( FilteredFiles ) ], UserState ),
+
+	% For lighter message sendings and storage:
+	FilteredBinFiles = text_utils:strings_to_binaries( FilteredFiles ),
+
+	rescan_files( _FileSet=set_utils:from_list( FilteredBinFiles ),
+				  table:enumerate( ReadTreeData#tree_data.entries ),
+				  ReadTreeData, BinTreePath, AnalyzerRing, CacheTimestamp,
+				  _Notifications=[], UserState ).
+
+
+
+% Rescans specified content files, using for that the specified analyzers,
+% returning the corresponding tree data.
+%
+-spec rescan_files( set_utils:set( bin_file_path() ), [ sha1_entry() ],
+					tree_data(), file_utils:bin_path(), analyzer_ring(),
+					time_utils:posix_seconds(), [ string() ], user_state() ) ->
+						  { tree_data(), [ string() ] }.
+% All known entries exhausted; maybe extra files were in the filesystem:
+rescan_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
+			  _CacheTimestamp, Notifications, UserState ) ->
+
+	case set_utils:to_list( FileSet ) of
+
+		[] ->
+			trace_debug( "No extra file found during rescan.", UserState ),
+			% Returning directly the updated tree:
+			{ TreeData, Notifications };
+
+		ExtraFiles ->
+
+			trace_debug( "Found ~B extra files during rescan: ~s",
+						 [ length( ExtraFiles ),
+						   text_utils:binaries_to_string( ExtraFiles ) ],
+						 UserState ),
+
+			% Let's have the workers check these extra files (new ring not
+			% kept):
+			%
+			lists:foldl(
+			  fun( Filename, AccRing ) ->
+					  { AnalyzerPid, NewAccRing } = ring_utils:head( AccRing ),
+					  AnalyzerPid ! { checkNewFile,
+									  [ BinTreePath, Filename ], self() },
+					  NewAccRing
+			  end,
+			  _Acc0=AnalyzerRing,
+			  _List=ExtraFiles ),
+
+			% Waiting for all corresponding file_data elements:
+			ExtraFileDatas = lists:foldl(
+			  fun( _Count, AccFileDatas ) ->
+					  receive
+
+						  { file_checked, FileData } ->
+							  [ FileData | AccFileDatas ]
+
+					  end
+			  end,
+			  _SecondAcc0=[],
+			  _SecondList=lists:seq( 1, length( ExtraFiles ) ) ),
+
+			ExtraNotif = text_utils:format( "following ~B extra files were "
+					"added (not referenced yet): ~s",
+					[ length( ExtraFiles ),
+					  text_utils:binaries_to_string( ExtraFiles ) ] ),
+
+			% Here we have a list of data of the files that were not referenced
+			% yet; returns an updated tree:
+			%
+			{ integrate_extra_files( ExtraFileDatas, TreeData ),
+			  [ ExtraNotif | Notifications ] }
+
+	end;
+
+
+% Extracting next recorded file_data elements:
+rescan_files( FileSet, _Entries=[ { SHA1, FileDatas } | T ], TreeData,
+			  BinTreePath, AnalyzerRing, CacheTimestamp, Notifications, 
+			  UserState ) ->
+
+	% Not using a ring for punctual updates:
+	{ NewFileSet, NewTreeData, ExtraNotifications } =
+		check_file_datas( FileDatas, SHA1, FileSet, TreeData, BinTreePath,
+						  _NewFileDatas=[], _ExtraNotifications=[] ),
+
+	rescan_files( NewFileSet, T, NewTreeData, BinTreePath, AnalyzerRing,
+				  CacheTimestamp, ExtraNotifications ++ Notifications,
+				  UserState ).
+
+
+
+% Integrates specfied file entries into specified tree data.
+-spec integrate_extra_files( [ file_data() ], tree_data() ) -> tree_data().
+integrate_extra_files( _ExtraFileDatas=[], TreeData ) ->
+	TreeData;
+
+integrate_extra_files(
+  _ExtraFileDatas=[ FileData=#file_data{ sha1_sum=SHA1 } | T ], TreeData ) ->
+
+	Entries = TreeData#tree_data.entries,
+	NewFileDatas = case table:lookup_entry( SHA1, Entries ) of
+
+		key_not_found ->
+			[ FileData ];
+
+		{ value, FileDatas } ->
+			[ FileData | FileDatas ]
+
+	end,
+
+	NewEntries = table:add_entry( SHA1, NewFileDatas, Entries ),
+
+	NewTreeData = TreeData#tree_data{ entries=NewEntries },
+
+	integrate_extra_files( T, NewTreeData ).
+
+
+
+% Checks whether the file data elements seem up to date: still existing, not
+% more recent than cache filename, and of the same size as referenced.
+%
+check_file_datas( _FileDatas=[], SHA1, FileSet, TreeData, _BinTreePath,
+				  FileDatas, ExtraNotifications ) ->
+
+	NewEntries = table:update_entry( SHA1, FileDatas,
+									 TreeData#tree_data.entries ),
+
+	NewTreeData = TreeData#tree_data{ entries=NewEntries },
+
+	{ FileSet, NewTreeData, ExtraNotifications };
+
+% Take into account only regular files:
+check_file_datas( _FileDatas=[ FileData=#file_data{ path=RelativeBinFilename,
+													type=regular,
+													size=RecordedSize,
+													timestamp=RecordedTimestamp,
+													sha1_sum=SHA1 } | T ],
+				  SHA1, FileSet, TreeData, BinTreePath, FileDatas,
+				  ExtraNotifications ) ->
+
+	FullPath = file_utils:join( BinTreePath, RelativeBinFilename ),
+
+	case set_utils:extract_if_existing( RelativeBinFilename, FileSet ) of
+
+		% File not found anymore:
+		false ->
+			NewNotif = case file_utils:is_existing_link( FullPath ) of
+
+				true ->
+					text_utils:format( "regular file '~s' was replaced in tree "
+									   "by a link", [ FullPath ] );
+
+				false ->
+					text_utils:format( "no file element '~s' in tree anymore",
+									   [ FullPath ] )
+
+			end,
+
+			% Let's forget this file_data then:
+			check_file_datas( T, SHA1, FileSet, TreeData, BinTreePath,
+							  FileDatas, [ NewNotif | ExtraNotifications ] );
+
+		% Here the iterated file still exists as a regular one, let's check
+		% whether the other information are still valid:
+		%
+		ShrunkFileSet ->
+			{ UpdatedFileData, UpdatedNotifs } = case
+				   file_utils:get_last_modification_time( FullPath ) of
+
+				% Time matches here, maybe size as well:
+				RecordedTimestamp ->
+					case file_utils:get_size( FullPath ) of
+
+						% Same size, in the context of a (light) rescan we
+						% consider that the SHA1 must be the same as well then:
+						%
+						RecordedSize ->
+							{ FileData, ExtraNotifications };
+
+						% Different size, recreating the record from scratch:
+						OtherSize ->
+							NewNotif = text_utils:format(
+							   "file '~s' had a different size (moved from ~s "
+							   "to ~s), it has thus been reindexed.",
+							   [ FullPath, system_utils:interpret_byte_size(
+								  RecordedSize ),
+								 system_utils:interpret_byte_size( OtherSize )
+							   ] ),
+
+							% Recreating the record from scratch:
+							NewFileData = #file_data{
+						path=RelativeBinFilename,
+						type=regular,
+						size=OtherSize,
+						timestamp=RecordedTimestamp,
+						sha1_sum=executable_utils:compute_sha1_sum( FullPath ) },
+
+							{ NewFileData, [ NewNotif | ExtraNotifications ] }
+
+					end;
+
+
+				% Not here, must have been altered:
+				OtherTimestamp ->
+
+					NewNotif = text_utils:format( "file '~s' had a different "
+						"timestamp, it has thus been reindexed.",
+						[ FullPath ] ),
+
+					% Recreating the record from scratch:
+					NewFileData = #file_data{
+						path=RelativeBinFilename,
+						type=regular,
+						size=file_utils:get_size( FullPath ),
+						timestamp=OtherTimestamp,
+						sha1_sum=executable_utils:compute_sha1_sum( FullPath ) },
+
+					{ NewFileData, [ NewNotif | ExtraNotifications ] }
+
+			end,
+
+			check_file_datas( T, SHA1, ShrunkFileSet, TreeData, BinTreePath,
+				  [ UpdatedFileData | FileDatas ], UpdatedNotifs )
+
+	end.
 
 
 
@@ -577,11 +962,15 @@ read_cache_file( CacheFilename ) ->
 
 
 % (helper)
+-spec create_analyzer_ring( user_state() ) -> ring_utils:ring( analyzer_pid() ).
 create_analyzer_ring( UserState ) ->
 
 	% Best, reasonable CPU usage:
 	Analyzers = spawn_data_analyzers( system_utils:get_core_count() + 1,
 									  UserState ),
+
+	trace_debug( "Spawned ~B data analyzers: ~w.",
+				 [ length( Analyzers ), Analyzers ], UserState ),
 
 	% Returns the ring:
 	ring_utils:from_list( Analyzers ).
@@ -591,16 +980,14 @@ create_analyzer_ring( UserState ) ->
 % Actual scanning of specified path, producing specified cache file from
 % scratch.
 %
-scan_helper( TreePath, CacheFilename, UserState ) ->
-
-	AnalyzerRing = create_analyzer_ring( UserState ),
+scan_helper( TreePath, CacheFilename, AnalyzerRing, UserState ) ->
 
 	TreeData = create_merge_cache_file_for( TreePath, CacheFilename,
 											AnalyzerRing, UserState ),
 
 	trace_debug( "Scan finished.", UserState ),
 
-	terminate_data_analyzers( ring_utils:to_list( AnalyzerRing ), UserState ),
+	terminate_analyzer_ring( AnalyzerRing, UserState ),
 
 	TreeData.
 
@@ -621,11 +1008,7 @@ uniquify( TreePath ) ->
 			 text_utils:format( "Uniquification of ~s", [ AbsTreePath ] ) },
 					   { 'title', "Uniquification report" } ] ),
 
-	% Best, reasonable CPU usage:
-	Analyzers = spawn_data_analyzers( system_utils:get_core_count() + 1,
-									  UserState ),
-
-	AnalyzerRing = ring_utils:from_list( Analyzers ),
+	AnalyzerRing = create_analyzer_ring( UserState ),
 
 	TreeData = update_content_tree( AbsTreePath, AnalyzerRing, UserState ),
 
@@ -639,7 +1022,7 @@ uniquify( TreePath ) ->
 
 	display_tree_data( NewTreeData, Prompt ),
 
-	terminate_data_analyzers( Analyzers, UserState ),
+	terminate_analyzer_ring( AnalyzerRing, UserState ),
 
 	% We leave an up-to-date cache file:
 	create_merge_cache_file_from( NewTreeData, UserState ),
@@ -693,11 +1076,7 @@ merge( InputTreePath, ReferenceTreePath ) ->
 
 	check_content_trees( InputTreePath, ReferenceTreePath ),
 
-	% Best, reasonable usage:
-	Analyzers = spawn_data_analyzers( system_utils:get_core_count() + 1,
-									  UserState ),
-
-	AnalyzerRing = ring_utils:from_list( Analyzers ),
+	AnalyzerRing = create_analyzer_ring( UserState ),
 
 	InputTree = update_content_tree( InputTreePath, AnalyzerRing, UserState ),
 
@@ -713,7 +1092,7 @@ merge( InputTreePath, ReferenceTreePath ) ->
 
 	create_merge_cache_file_from( MergeTreeData, UserState ),
 
-	terminate_data_analyzers( Analyzers, UserState ),
+	terminate_analyzer_ring( AnalyzerRing, UserState ),
 
 	stop_user_service( UserState ).
 
@@ -1251,8 +1630,8 @@ start_user_service( LogFilename ) ->
 	%
 	LogFile = file_utils:open( LogFilename, _Opts=[ append, raw ] ),
 
-	file_utils:write( LogFile, "~nStarting new merge session "
-		  "(merge tool version ~s) on ~s at ~s.~n",
+	file_utils:write( LogFile, "~n~n~n###### Starting new merge session "
+		  "(merge tool version ~s) on ~s at ~s.~n~n",
 		  [ ?merge_script_version, net_utils:localhost(),
 			time_utils:get_textual_timestamp() ] ),
 
@@ -1552,10 +1931,6 @@ create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
 
 	write_cache_header( MergeFile ),
 
-	_BlankDataTable = table:new(),
-
-	_CurrentPosixTime = os:system_time(),
-
 	TreeData = scan_tree( AbsTreePath, AnalyzerRing, UserState ),
 
 	trace_debug( "Scanned tree: ~s.",
@@ -1630,20 +2005,25 @@ get_file_content_for( SHA1, FileDataElems ) ->
 
 
 
-% Spawns the specified number of data analyzers, and returns their PID.
+% Spawns the specified number of data analyzers, and returns a list of their
+% PID.
+%
 -spec spawn_data_analyzers( count(), user_state() ) -> [ analyzer_pid() ].
-spawn_data_analyzers( Count, UserState ) ->
-	trace_debug( "Spawning ~B data analyzers.", [ Count ], UserState ),
+spawn_data_analyzers( Count, _UserState ) ->
+	%trace_debug( "Spawning ~B data analyzers.", [ Count ], UserState ),
 	[ ?myriad_spawn_link( fun() -> analyze_loop() end )
 	  || _C <- lists:seq( 1, Count ) ].
 
 
 
 % Terminates specified data analyzers.
--spec terminate_data_analyzers( [ analyzer_pid() ], user_state() ) -> void().
-terminate_data_analyzers( Analyzers, UserState ) ->
+-spec terminate_analyzer_ring( ring_utils:rin( analyzer_pid() ),
+							   user_state() ) -> void().
+terminate_analyzer_ring( AnalyzerRing, UserState ) ->
 
-	trace_debug( "Terminating~B data analyzers (~p).",
+	Analyzers = ring_utils:to_list( AnalyzerRing ),
+
+	trace_debug( "Terminating ~B data analyzers (~p).",
 				 [ length( Analyzers ), Analyzers ], UserState ),
 
 	[ P ! terminate || P <- Analyzers ].
@@ -1663,7 +2043,8 @@ scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 	% Not wanting to index our own files (if any already exists):
 	FilteredFiles = lists:delete( ?merge_cache_filename, AllFiles ),
 
-	trace_debug( "Found ~B files: ~s", [ length( FilteredFiles ),
+	trace_debug( "Found ~B files in filesystem: ~s",
+				 [ length( FilteredFiles ),
 				 text_utils:strings_to_string( FilteredFiles ) ], UserState ),
 
 	% For lighter message sendings and storage:
@@ -1816,10 +2197,8 @@ analyze_loop() ->
 
 			FilePath = file_utils:join( AbsTreePath, RelativeFilename ),
 
-			%FileBinPath = text_utils:string_to_binary( FilePath ),
-
 			%trace_utils:debug_fmt( "Analyzer ~w taking in charge '~s'...",
-			%						[ self(), FullPath ] ),
+			%						[ self(), FilePath ] ),
 
 			case file_utils:is_existing_file( FilePath ) of
 
@@ -1856,6 +2235,32 @@ analyze_loop() ->
 					analyze_loop()
 
 			end;
+
+
+		{ checkNewFile, [ AbsTreeBinPath, RelativeBinFilename ], SenderPid } ->
+
+			AbsTreePath = text_utils:binary_to_string( AbsTreeBinPath ),
+
+			RelativeFilename = text_utils:binary_to_string(
+								 RelativeBinFilename ),
+
+			FilePath = file_utils:join( AbsTreePath, RelativeFilename ),
+
+			trace_utils:debug_fmt( "Analyzer ~w checking '~s'...",
+								   [ self(), FilePath ] ),
+
+			FileData = #file_data{
+					   % We prefer storing relative filenames:
+					   path=RelativeBinFilename,
+					   type=file_utils:get_type_of( FilePath ),
+					   size=file_utils:get_size( FilePath ),
+					   timestamp=file_utils:get_last_modification_time(
+								   FilePath ),
+					   sha1_sum=executable_utils:compute_sha1_sum( FilePath ) },
+
+			SenderPid ! { file_checked, FileData },
+			analyze_loop();
+
 
 		terminate ->
 			%trace_utils:debug_fmt( "Analyzer ~w terminated.", [ self() ] ),
