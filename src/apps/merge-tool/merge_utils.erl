@@ -1151,8 +1151,8 @@ merge( InputTreePath, ReferenceTreePath ) ->
 % once updated.
 %
 -spec merge_trees( tree_data(), tree_data(), user_state() ) -> tree_data().
-merge_trees( _InputTree=#tree_data{ root=InputRootDir,
-									entries=InputEntries },
+merge_trees( InputTree=#tree_data{ root=InputRootDir,
+								   entries=InputEntries },
 			 ReferenceTree=#tree_data{ root=ReferenceRootDir,
 									   entries=ReferenceEntries },
 			 UserState ) ->
@@ -1164,8 +1164,6 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 
 	ui:set_setting( 'backtitle',
 			text_utils:format( "Merging in ~s", [ ReferenceRootDir ] ) ),
-
-	ToMerge = set_utils:to_list( LackingInRefSet ),
 
 	TargetDir = file_utils:join( ReferenceRootDir, ?merge_dir ),
 
@@ -1181,6 +1179,7 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 			trace_debug( "Removing recursively directory '~s'.",
 						 [ InputRootDir ], UserState ),
 
+			% Recursive removal, beware!
 			file_utils:remove_directory( InputRootDir ),
 
 			% File count expected to be already correct:
@@ -1188,13 +1187,85 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 
 
 		LackingCount ->
+
+			% We will merge the content in the input tree that is not in the
+			% reference tree (removing the rest of the input tree, which is the
+			% intersection of the content of both trees), but the "original"
+			% content of the input tree may include duplicates, in which case
+			% this input content (only) will either be copied as a whole or
+			% (probably preferably) be uniquified on the fly:
+
+			ContentInBothSets =
+				set_utils:intersection( InputSHA1Set, ReferenceSHA1Set ),
+
+			% Clears out content already available in reference, so that only
+			% the original input content remains:
+			%
+			PurgedInputTree =
+				purge_tree_from( InputTree, ContentInBothSets, UserState ),
+
+			% Tells whether has duplicates:
+			RealInputTree = case PurgedInputTree#tree_data.file_count >
+								table:size( PurgedInputTree#tree_data.entries ) of
+
+				true ->
+
+					UniqPrompt = text_utils:format(
+						"There are duplicates among the ~B contents in the "
+						"input tree ('~s') that are original (i.e. that are "
+						"not in the reference one, '~s').~n"
+						"Shall we uniquify first that input, original content? ",
+						[ LackingCount, InputRootDir, ReferenceRootDir ] ),
+
+					case ui:ask_yes_no( UniqPrompt, _BinaryDefault=yes ) of
+
+						yes ->
+							DedupTree = deduplicate_tree( PurgedInputTree, UserState ),
+							case table:is_empty( DedupTree#tree_data.entries ) of
+
+								true ->
+									ui:display( "After uniquification, the "
+										"input tree path ('~s') no longer contains "
+										"original content; removing directly the "
+										"input tree.", [ InputRootDir ] ),
+
+									trace_debug( "Removing recursively directory '~s'.",
+												 [ InputRootDir ], UserState ),
+
+									% Recursive removal, beware!
+									file_utils:remove_directory( InputRootDir ),
+
+									% File count expected to be already correct:
+									ReferenceTree;
+
+								false ->
+									DedupTree
+
+							end;
+
+						no ->
+							PurgedInputTree
+
+					end;
+
+				false ->
+					PurgedInputTree
+
+			end,
+
+			RealInputEntries = RealInputTree#tree_data.entries,
+
+			% As whole contents may have been removed (by design non-empty):
+			ToMerge = table:keys( RealInputEntries ),
+
 			Prompt = text_utils:format( "Exactly ~B contents are present in "
 						"the input tree ('~s') but are lacking in the "
 						"reference one ('~s').",
-						[ LackingCount, InputRootDir, ReferenceRootDir ] ),
+						[ table:size( RealInputEntries ),
+						  InputRootDir, ReferenceRootDir ] ),
 
-			Choices = [ { move, "Move this content (once uniquified) "
-						  "as a whole in the reference tree" },
+			Choices = [ { move, "Move this content as a whole (one file per "
+						  "content) in the reference tree" },
 						{ cherry_pick,
 						  "Cherry-pick which content to move to reference tree "
 						  "or to delete" },
@@ -1208,14 +1279,18 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 
 				move ->
 					file_utils:create_directory_if_not_existing( TargetDir ),
-					move_content_to_merge( ToMerge, InputRootDir, InputEntries,
-						ReferenceRootDir, ReferenceEntries, TargetDir,
-						_Count=1, _TotalCount=LackingCount, UserState );
+
+					% If uniquification was chosen beforehand, no choice shall
+					% be left, and thus the unique remaining version will be moved:
+					%
+					move_content_to_merge( ToMerge, InputRootDir,
+						RealInputEntries, ReferenceRootDir, ReferenceEntries,
+						TargetDir, _TotalCount=LackingCount, UserState );
 
 				cherry_pick ->
 					file_utils:create_directory_if_not_existing( TargetDir ),
-					cherry_pick_content_to_merge( ToMerge,
-							InputRootDir, InputEntries, ReferenceRootDir,
+					cherry_pick_content_to_merge( ToMerge, InputRootDir,
+							RealInputEntries, ReferenceRootDir,
 							ReferenceEntries, TargetDir, UserState );
 
 				delete ->
@@ -1227,7 +1302,7 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 
 						yes ->
 							delete_content_to_merge( ToMerge, InputRootDir,
-													 InputEntries, UserState );
+													 RealInputEntries, UserState );
 
 						no ->
 							% No deletion then.
@@ -1251,44 +1326,76 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 
 
 
+% Purges specified tree from specified content, removing it from the filesystem
+% and returning the corresponding, updated, tree data.
+%
+-spec purge_tree_from( tree_data(), set_utils:set( sha1() ), user_state() ) ->
+							 tree_data().
+purge_tree_from( Tree=#tree_data{ root=RootDir,
+								  entries=Entries,
+								  file_count=FileCount },
+				 SHA1ToPurge, UserState ) ->
+
+	SHA1s = set_utils:to_list( SHA1ToPurge ),
+
+	{ PurgedEntries, RemoveCount } =
+		purge_helper( SHA1s, Entries, RootDir, _RemoveCount=0, UserState ),
+
+	Tree#tree_data{ entries=PurgedEntries,
+					file_count=FileCount - RemoveCount }.
+
+
+purge_helper( _SHA1s=[], Entries, _RootDir, RemoveCount, _UserState ) ->
+	{ Entries, RemoveCount };
+
+purge_helper( _SHA1s=[ SHA1 | T ], Entries, RootDir, RemoveCount, UserState ) ->
+
+	{ FileDatas, PurgedEntries } = table:extract_entry( SHA1, Entries ),
+
+	FilesToRemove = [ file_utils:join( RootDir, FD#file_data.path )
+							   || FD <- FileDatas ],
+
+	trace_debug( "Removing following files corresponding to non-original "
+				 "input content ~B: ~s", [ SHA1,
+				 text_utils:strings_to_string( FilesToRemove ) ], UserState ),
+
+	file_utils:remove_files( FilesToRemove ),
+
+	purge_helper( T, PurgedEntries, RootDir, RemoveCount + length( FileDatas ),
+				  UserState ).
+
+
+
 % Moves all specified content in the reference tree, and returns an updated view
 % thereof.
 %
 -spec move_content_to_merge( [ sha1() ], directory_path(), sha1_table(),
 		directory_path(), sha1_table(), directory_path(), count(), count(),
 		user_state() ) -> sha1_table().
+move_content_to_merge( ToMerge, InputRootDir, InputEntries,
+	   ReferenceRootDir, ReferenceEntries, TargetDir, TotalCount, UserState ) ->
+	move_content_to_merge( ToMerge, InputRootDir, InputEntries,
+						   ReferenceRootDir, ReferenceEntries, TargetDir,
+						   _Count=1, TotalCount, UserState ).
+
+
+
+% Moves as a whole all specified content in the reference tree, and returns an
+% updated view thereof.
+%
+-spec move_content_to_merge( [ sha1() ], directory_path(), sha1_table(),
+		directory_path(), sha1_table(), directory_path(), count(), count(),
+		user_state() ) -> sha1_table().
 move_content_to_merge( _ToMove=[], InputRootDir, InputEntries,
-				_ReferenceRootDir, ReferenceEntries, TargetDir, _Count,
-				_TotalCount, UserState ) ->
+					   _ReferenceRootDir, ReferenceEntries, TargetDir, _Count,
+					   _TotalCount, UserState ) ->
 
 	% Removing the content that has not been moved (hence shall be deleted):
 	file_utils:remove_files( list_utils:flatten_once( [
 		  [ file_utils:join( InputRootDir, FD#file_data.path ) || FD <- FDL ]
 							  || FDL <- table:values( InputEntries ) ] ) ),
 
-	% There may still be symbolic links in the input tree, though (that were
-	% either added the user or created by this tool when electing a reference
-	% file and replacing duplicates by links). We try to move them in the merge
-	% target directory (possibly breaking them in the process, should they be
-	% relative to a moved or removed element, or to content outside of the input
-	% tree):
-	%
-	case file_utils:find_links_from( InputRootDir ) of
-
-		[] ->
-			trace_debug( "No symlink to move from '~s'.", [ InputRootDir ],
-						 UserState ),
-			ok;
-
-		SymlinksToMove ->
-			MovedLinks = [ smart_move_to( InputRootDir, Lnk, TargetDir, UserState )
-						   || Lnk <- SymlinksToMove ],
-			trace_debug( "Moved ~B extraneous symlinks from '~s', now in: ~s",
-						 [ length( SymlinksToMove ), InputRootDir,
-						   text_utils:strings_to_string( MovedLinks ) ],
-						 UserState )
-
-	end,
+	preserve_symlinks( InputRootDir, TargetDir, UserState ),
 
 	% Input tree shall be now void of content and thus removed:
 	file_utils:remove_file( get_cache_path_for( InputRootDir ) ),
@@ -1383,6 +1490,37 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 
 
 
+% Preserves symlinks by moving them from input root directory to target directory.
+-spec preserve_symlinks( directory_path(), directory_path(), user_state() ) ->
+							   void().
+preserve_symlinks( InputRootDir, TargetDir, UserState ) ->
+
+	% There may still be symbolic links in the input tree (ex: that were either
+	% added the user or created by this tool when electing a reference file and
+	% replacing duplicates by links).
+
+	% We try to move them in the merge target directory (possibly breaking them
+	% in the process, should they be relative to a moved or removed element, or
+	% to content outside of the input tree):
+	%
+	case file_utils:find_links_from( InputRootDir ) of
+
+		[] ->
+			trace_debug( "No symlink to move from '~s'.", [ InputRootDir ],
+						 UserState ),
+			ok;
+
+		SymlinksToMove ->
+			MovedLinks = [ smart_move_to( InputRootDir, Lnk, TargetDir, UserState )
+						   || Lnk <- SymlinksToMove ],
+			trace_debug( "Moved ~B extraneous symlinks from '~s', now in: ~s",
+						 [ length( SymlinksToMove ), InputRootDir,
+						   text_utils:strings_to_string( MovedLinks ) ],
+						 UserState )
+
+	end.
+
+
 % Moves specified file element to target directory "smartly", by recreating this
 % relative directory in target root directory and renaming that moved file
 % appropriately in case of local name clash.
@@ -1471,8 +1609,12 @@ cherry_pick_content_to_merge( ToPick, InputRootDir, InputEntries,
 % removed).
 %
 cherry_pick_files( _ToPick=[], InputRootDir, _InputEntries, _ReferenceRootDir,
-				   ReferenceEntries, _TargetDir, _PickChoices, _Count,
-				   _TotalContentCount, _UserState ) ->
+				   ReferenceEntries, TargetDir, _PickChoices, _Count,
+				   _TotalContentCount, UserState ) ->
+
+	% All input files expected to have been removed.
+
+	preserve_symlinks( InputRootDir, TargetDir, UserState ),
 
 	% Input tree shall be now void of content and thus can be removed as such:
 	file_utils:remove_file( get_cache_path_for( InputRootDir ) ),
@@ -1481,9 +1623,11 @@ cherry_pick_files( _ToPick=[], InputRootDir, _InputEntries, _ReferenceRootDir,
 	ReferenceEntries;
 
 
-cherry_pick_files( _ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
+cherry_pick_files( ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 				   ReferenceRootDir, ReferenceEntries, TargetDir, PickChoices,
 				   Count, TotalContentCount, UserState ) ->
+
+	% In all cases all files for this SHA1 shall be removed from input tree:
 
 	ui:set_setting( 'title', text_utils:format( "Cherry-picking content ~B/~B",
 											  [ Count, TotalContentCount ] ) ),
@@ -1532,7 +1676,7 @@ cherry_pick_files( _ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 				 || #file_data{ path=ContentPath } <- MultipleFileData ],
 
 			Prompt = text_utils:format( "The same content can be found in "
-				"the following ~B input files (all relative to '~s'): ~s~n"
+				"the following ~B input files (all relative to '~s'): ~s~n~n"
 				"Regarding that input content, shall we:",
 				[ FileCount, InputRootDir,
 				  text_utils:binaries_to_string( ContentPaths ) ] ),
@@ -1590,7 +1734,7 @@ cherry_pick_files( _ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 					DelPrompt = text_utils:format( "Really delete following "
 						"files from input directory '~s', losing their (unique)"
 						" corresponding content? ~s", [ InputRootDir,
-							 text_utils:strings_to_string( ContentPaths ) ] ),
+							 text_utils:binaries_to_string( ContentPaths ) ] ),
 
 					case ui:ask_yes_no( DelPrompt ) of
 
@@ -1601,8 +1745,11 @@ cherry_pick_files( _ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 							file_utils:remove_files( ToDelFiles );
 
 						no ->
-							% Input files hence left over.
-							ok
+							% Going back to the beginning of this step:
+							cherry_pick_files( ToPick, InputRootDir,
+								InputEntries, ReferenceRootDir,
+								ReferenceEntries, TargetDir, PickChoices, Count,
+								TotalContentCount, UserState )
 
 					end,
 					ReferenceEntries;
@@ -1632,7 +1779,7 @@ cherry_pick_files( _ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 -spec delete_content_to_merge( [ sha1() ], directory_path(), sha1_table(),
 							   user_state() ) -> sha1_table().
 delete_content_to_merge( SHA1sToDelete, InputRootDir, InputEntries,
-						 _UserState ) ->
+						 UserState ) ->
 
 	Paths = [ begin
 				  FileDatas = table:get_value( SHA1, InputEntries ),
@@ -1642,6 +1789,26 @@ delete_content_to_merge( SHA1sToDelete, InputRootDir, InputEntries,
 
 	file_utils:remove_files( [ get_cache_path_for( InputRootDir )
 							   | list_utils:flatten_once( Paths ) ] ),
+
+	% Removing also any symlink left over:
+	case file_utils:find_links_from( InputRootDir ) of
+
+		[] ->
+			trace_debug( "No symlink to move from '~s'.", [ InputRootDir ],
+						 UserState ),
+			ok;
+
+		SymlinksToRemove ->
+			[ begin
+				  LnkFullPath = file_utils:join( InputRootDir, LnkPath ),
+				  file_utils:remove_file( LnkFullPath )
+			  end || LnkPath <- SymlinksToRemove ],
+			trace_debug( "Removed ~B extraneous symlinks from '~s': ~s",
+						 [ length( SymlinksToRemove ), InputRootDir,
+						   text_utils:strings_to_string( SymlinksToRemove ) ],
+						 UserState )
+
+	end,
 
 	% Shall be now void of content:
 	file_utils:remove_empty_tree( InputRootDir ).
@@ -2044,7 +2211,12 @@ write_cache_header( File ) ->
 	%ScriptName = filename:basename( escript:script_name() ),
 	ScriptName = ?MODULE,
 
-	file_utils:write( File, "% Merge cache file written by '~s' (version ~s),~n"
+	% UTF-8 must be specified there so that this file can be read by
+	% file:consult/1 afterwards despite special characters being included in
+	% filenames:
+	%
+	file_utils:write( File, "%% -*- coding: utf-8 -*-~n"
+							"% Merge cache file written by '~s' (version ~s),~n"
 							"% on host '~s', at ~s.~n~n"
 							"% Structure of file entries: SHA1, "
 							"relative path, size in bytes, timestamp~n~n" ,
@@ -2129,7 +2301,7 @@ scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 	trace_debug( "Scanning tree '~s'...", [ AbsTreePath ], UserState ),
 
 	% Regular ones and symlinks:
-	AllFiles = file_utils:find_files_from( AbsTreePath ),
+	AllFiles = file_utils:find_regular_files_from( AbsTreePath ),
 
 	% Not wanting to index our own files (if any already exists):
 	FilteredFiles = lists:delete( ?merge_cache_filename, AllFiles ),
@@ -2424,8 +2596,9 @@ manage_duplicates( EntryTable, RootDir, UserState ) ->
 
 
 		TotalDupCaseCount ->
-			ui:display( "~B case(s) of content duplication detected, "
-						"examining them in turn.~n", [ TotalDupCaseCount ] ),
+			ui:display( "~B case(s) of content duplication detected in '~s', "
+						"examining them in turn.~n",
+						[ TotalDupCaseCount, RootDir ] ),
 
 			process_duplications( DuplicationCases, TotalDupCaseCount,
 								  UniqueTable, RootDir, UserState )
