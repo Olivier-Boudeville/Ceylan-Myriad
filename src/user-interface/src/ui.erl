@@ -211,14 +211,14 @@ start( Options, ArgumentTable ) ->
 														ArgumentTable ) of
 
 		{ [], ArgTable } ->
-			trace_utils:debug( "No backend specified, determining it." ),
+			%trace_utils:debug( "No backend specified, determining it." ),
 			{ get_best_ui_backend(), ArgTable };
 
 
 		{ [ BackendName ], OtherArgTable } ->
 
-			trace_utils:debug_fmt( "Following backend was specified: '~s'.",
-								   [ BackendName ] ),
+			%trace_utils:debug_fmt( "Following backend was specified: '~s'.",
+			%					   [ BackendName ] ),
 
 			BackendModName = text_utils:string_to_atom( BackendName ),
 
@@ -230,9 +230,9 @@ start( Options, ArgumentTable ) ->
 						   [ BackendModName ] ),
 					throw( { ui_backend_module_not_found, BackendModName } );
 
-				[ SinglePath ] ->
-					trace_utils:debug_fmt( "UI backend module found as '~s'.",
-										   [ SinglePath ] ),
+				[ _SinglePath ] ->
+					%trace_utils:debug_fmt( "UI backend module found as '~s'.",
+					%					   [ SinglePath ] ),
 					{ BackendModName, OtherArgTable };
 
 				MultiplePaths ->
@@ -247,8 +247,8 @@ start( Options, ArgumentTable ) ->
 
 	end,
 
-	trace_utils:debug_fmt( "The '~s' backend module has been selected.",
-						   [ BackendModuleName ] ),
+	%trace_utils:debug_fmt( "The '~s' backend module has been selected.",
+	%					   [ BackendModuleName ] ),
 
 	% Expects this backend to register its name and state in the process
 	% dictionary:
@@ -538,7 +538,7 @@ read_text_as_maybe_integer( Prompt, UIState ) ->
 %
 -spec ask_yes_no( prompt() ) -> binary_choice().
 ask_yes_no( Prompt ) ->
-	ask_yes_no( Prompt, _BinaryDefault='no' ).
+	ask_yes_no( Prompt, _BinaryDefault=no ).
 
 
 % Displays specified prompt, lets the user choose between two options, "yes" and
@@ -949,7 +949,7 @@ get_backend_name() ->
 -spec get_best_ui_backend() -> basic_utils:module_name().
 get_best_ui_backend() ->
 
-	RightResult = case gui:is_available() of
+	_RightResult = case gui:is_available() of
 
 		true ->
 			gui;
@@ -967,13 +967,13 @@ get_best_ui_backend() ->
 
 	end,
 
-	% Tired of failures for the moment:
+	% For testing:
 	%RiggedResult = text_ui,
 	RiggedResult = term_ui,
 
-	trace_utils:warning_fmt( "Selecting '~s', as currently hardcoded "
-							 "(should have been '~s').",
-							 [ RiggedResult, RightResult ] ),
+	%trace_utils:warning_fmt( "Selecting '~s', as currently hardcoded "
+	%						 "(should have been '~s').",
+	%						 [ RiggedResult, RightResult ] ),
 
 	RiggedResult.
 
