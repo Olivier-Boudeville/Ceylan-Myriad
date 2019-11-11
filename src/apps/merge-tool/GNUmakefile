@@ -1,8 +1,9 @@
 MYRIAD_TOP = ../../..
 
 
-.PHONY: test-local test-initial-scan test-extra-scan test-uniquify uniquify \
-		make-test-trees run-test-tree clean-test-trees                      \
+.PHONY: test-local test-initial-scan test-extra-scan test-rescan test-uniquify \
+		test-merge uniquify \
+		make-test-trees scan-test-tree clean-test-trees                      \
 		post-test process-test-log reset-keyboard-mode
 
 
@@ -30,15 +31,17 @@ UI_BACKEND := term_ui
 all:
 
 
-test-local: test-initial-scan test-extra-scan
+test-local: test-initial-scan test-extra-scan test-rescan
 
 
 # Meant to create a cache file:
-test-initial-scan: make-test-trees pre-test run-test-tree post-test
+test-initial-scan: make-test-trees pre-test scan-test-tree post-test
 
 # Meant to perform a light check of the pre-existing cache file:
-test-extra-scan: pre-test run-test-tree post-test
+test-extra-scan: pre-test scan-test-tree post-test
 
+
+test-rescan: pre-test rescan-test-tree post-test
 
 test-uniquify: pre-test make-test-trees uniquify
 
@@ -50,7 +53,11 @@ test-merge: pre-test make-test-trees
 	@$(MERGE_SCRIPT) --input $(TEST_CONTENT_TREE) --reference $(TEST_REFERENCE_TREE) --use-ui-backend $(UI_BACKEND) ; $(MAKE) -s post-test
 
 
-# Reference starts empty in this test:
+# The input test tree will thus have 3 different contents in 6 regular files
+# (plus 2 symlinks).
+#
+# The reference tree starts empty in this test.
+#
 make-test-trees: clean-test-trees
 	@echo " Creating test tree..."
 	@mkdir -p $(TEST_CONTENT_TREE)/foo/bar
@@ -73,9 +80,14 @@ pre-test:
 	@/bin/rm -f "$(TEST_LOG_FILE)" || true
 
 
-run-test-tree:
+scan-test-tree:
 	@echo "  Running a scan of $(TEST_CONTENT_TREE)"
 	@$(MERGE_SCRIPT) --scan $(TEST_CONTENT_TREE) --use-ui-backend $(UI_BACKEND)
+
+
+rescan-test-tree:
+	@echo "  Running a rescan of $(TEST_CONTENT_TREE)"
+	@$(MERGE_SCRIPT) --rescan $(TEST_CONTENT_TREE) --use-ui-backend $(UI_BACKEND)
 
 
 debug:
