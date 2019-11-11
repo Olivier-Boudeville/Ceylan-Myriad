@@ -85,7 +85,7 @@
 
 
 % Basics:
--export([ get_textual_date/1 ]).
+-export([ get_textual_date/1, from_posix_timestamp/1 ]).
 
 
 % For rough, averaged conversions:
@@ -146,6 +146,24 @@
 get_textual_date( { Year, Month, Day } ) ->
 	io_lib:format( "~B/~B/~B", [ Day, Month, Year ] ).
 
+
+
+% Converts specified POSIX timestamp (typically the one obtained through
+% file-level operations such as file_utils:get_last_modification_time/1) into a
+% standard timestamp.
+%
+-spec from_posix_timestamp( posix_seconds() ) -> timestamp().
+from_posix_timestamp( PosixTimestamp ) ->
+
+	% Relative to 1/1/1970 0:0:0:
+	{ _Date={ Post1970Year, Month, Day }, Time } =
+		calendar:gregorian_seconds_to_datetime( PosixTimestamp),
+
+	% For services (ex: filesystem) typically returning their timestamp in local
+	% time:
+	%
+	calendar:universal_time_to_local_time(
+	  { { 1970 + Post1970Year, Month, Day }, Time } ).
 
 
 
