@@ -644,12 +644,27 @@ rescan( TreePath, AnalyzerRing, UserState ) ->
 								 UserState );
 
 				_ ->
+					NotifCount = length( Notifications ),
 					NotifString = text_utils:format(
 						"~B notifications to report: ~s",
-						[ length( Notifications ),
-						  text_utils:strings_to_string( Notifications ) ] ),
+						[ NotifCount,
+						  text_utils:strings_to_string( Notifications,
+														_Indent=1 ) ] ),
+
 					trace_debug( NotifString, UserState ),
-					ui:display( NotifString )
+
+					% Otherwise at least some UI backends might fail:
+					DisplayString = case NotifCount of
+
+						L when L > 15 ->
+							text_utils:format( "~B notifications to report, "
+							   "see logs for full details.", [ L ] );
+
+						_ ->
+							NotifString
+
+					end,
+					ui:display( DisplayString )
 
 			end,
 
@@ -754,11 +769,10 @@ rescan_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
 
 		ExtraFiles ->
 
-			trace_debug( "Found ~B extra files during rescan: ~s",
-						 [ length( ExtraFiles ),
+			trace_debug( "Found ~B extra files during rescan that will be "
+						 "checked now: ~s", [ length( ExtraFiles ),
 						   text_utils:binaries_to_string( ExtraFiles ) ],
 						 UserState ),
-
 			% Let's have the workers check these extra files (new ring not
 			% kept):
 			%
@@ -786,9 +800,9 @@ rescan_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
 			  _SecondList=lists:seq( 1, length( ExtraFiles ) ) ),
 
 			ExtraNotif = text_utils:format( "following ~B extra files were "
-					"added (not referenced yet): ~s",
-					[ length( ExtraFiles ),
-					  text_utils:binaries_to_string( ExtraFiles ) ] ),
+				"added (not referenced yet): ~s",
+				[ length( ExtraFiles ),
+				  text_utils:binaries_to_string( ExtraFiles, _Indent=1 ) ] ),
 
 			% Here we have a list of data of the files that were not referenced
 			% yet; returns an updated tree:
@@ -1244,13 +1258,37 @@ merge_trees( _InputTree=#tree_data{ root=InputRootDir,
 		directory_path(), sha1_table(), directory_path(), count(), count(),
 		user_state() ) -> sha1_table().
 move_content_to_merge( _ToMove=[], InputRootDir, InputEntries,
-				_ReferenceRootDir, ReferenceEntries, _TargetDir, _Count,
-				_TotalCount, _UserState ) ->
+				_ReferenceRootDir, ReferenceEntries, TargetDir, _Count,
+				_TotalCount, UserState ) ->
 
 	% Removing the content that has not been moved (hence shall be deleted):
 	file_utils:remove_files( list_utils:flatten_once( [
 		  [ file_utils:join( InputRootDir, FD#file_data.path ) || FD <- FDL ]
 							  || FDL <- table:values( InputEntries ) ] ) ),
+
+	% There may still be symbolic links in the input tree, though (that were
+	% either added the user or created by this tool when electing a reference
+	% file and replacing duplicates by links). We try to move them in the merge
+	% target directory (possibly breaking them in the process, should they be
+	% relative to a moved or removed element, or to content outside of the input
+	% tree):
+	%
+	case file_utils:find_links_from( InputRootDir ) of
+
+		[] ->
+			trace_debug( "No symlink to move from '~s'.", [ InputRootDir ],
+						 UserState ),
+			ok;
+
+		SymlinksToMove ->
+			MovedLinks = [ smart_move_to( InputRootDir, Lnk, TargetDir, UserState )
+						   || Lnk <- SymlinksToMove ],
+			trace_debug( "Moved ~B extraneous symlinks from '~s', now in: ~s",
+						 [ length( SymlinksToMove ), InputRootDir,
+						   text_utils:strings_to_string( MovedLinks ) ],
+						 UserState )
+
+	end,
 
 	% Input tree shall be now void of content and thus removed:
 	file_utils:remove_file( get_cache_path_for( InputRootDir ) ),
@@ -1308,57 +1346,13 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 
 	end,
 
-	RelPath = ElectedFileData#file_data.path,
-
 	% With a check:
 	SHA1 = ElectedFileData#file_data.sha1_sum,
 
-	SrcPath = file_utils:join( InputRootDir, RelPath ),
+	SourceRelPath =
+		text_utils:binary_to_string( ElectedFileData#file_data.path ),
 
-	% We do our best to preserve the directory structure of the input tree in
-	% the reference one (clearer for the user and reducing the likeliness of
-	% clashes).
-
-	FullTargetDir = file_utils:join( TargetDir, filename:dirname( RelPath ) ),
-
-	file_utils:create_directory( FullTargetDir, create_parents ),
-
-	Filename = filename:basename( RelPath ),
-
-	TgtPath = file_utils:join( FullTargetDir, Filename ),
-
-	% As clashes could happen in the elected target directory:
-	NewPath = case file_utils:exists( TgtPath ) of
-
-		true ->
-			AutoPath = file_utils:get_non_clashing_entry_name_from( TgtPath ),
-
-			trace_debug( "Target path in reference tree ('~s') is already "
-				"existing (as '~s'); the moved file is to be renamed to '~s'.",
-				[ SrcPath, TgtPath, AutoPath ], UserState ),
-
-			%Msg = text_utils:format( "When moving '~s' in the reference target"
-			%						 " directory ('~s'), an entry with that "
-			%						 "was found already existing.~n"
-			%						 "Shall we rename it automatically to ~s, "
-			%						 "or ask for a new name?",
-			%						 [ Filename, TargetDir, AutoPath ] ),
-			%ui:ask_yes_no( "
-
-			% At least for the moment, we stick to auto-renaming only (simpler)
-			% rather than letting the user choose a new name; returning the new
-			% path:
-			%
-			AutoPath;
-
-		false ->
-			TgtPath
-
-	end,
-
-	file_utils:move_file( SrcPath, NewPath ),
-
-	trace_debug( "Moved '~s' to '~s'.", [ SrcPath, NewPath ], UserState ),
+	NewPath = smart_move_to( InputRootDir, SourceRelPath, TargetDir, UserState ),
 
 	% Make the new path relative to the root of the reference tree (TargetDir
 	% being itself relative to it):
@@ -1386,6 +1380,68 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 
 	move_content_to_merge( T, InputRootDir, NewInputEntries, ReferenceRootDir,
 		   NewReferenceEntries, TargetDir, Count+1, TotalCount, UserState ).
+
+
+
+% Moves specified file element to target directory "smartly", by recreating this
+% relative directory in target root directory and renaming that moved file
+% appropriately in case of local name clash.
+%
+% Returns the final, absolute, name of this moved file.
+%
+-spec smart_move_to( directory_path(), file_path(), directory_path(),
+					 user_state() ) -> file_path().
+smart_move_to( SourceDir, SourceRelPath, TargetRootDir, UserState ) ->
+
+	SrcFullPath = file_utils:join( SourceDir, SourceRelPath ),
+
+	% We do our best to preserve the directory structure of the source tree in
+	% the target one (clearer for the user and reducing the likeliness of
+	% clashes).
+
+	FullTargetDir =
+		file_utils:join( TargetRootDir, filename:dirname( SourceRelPath ) ),
+
+	file_utils:create_directory( FullTargetDir, create_parents ),
+
+	Filename = filename:basename( SrcFullPath ),
+
+	TgtPath = file_utils:join( FullTargetDir, Filename ),
+
+	% As clashes could happen in the elected target subdirectory:
+	NewPath = case file_utils:exists( TgtPath ) of
+
+		true ->
+			AutoPath = file_utils:get_non_clashing_entry_name_from( TgtPath ),
+
+			trace_debug( "Target path in reference tree ('~s') is already "
+				"existing (as '~s'); the moved file is to be renamed to '~s'.",
+				[ SrcFullPath, TgtPath, AutoPath ], UserState ),
+
+			%Msg = text_utils:format( "When moving '~s' in the reference target"
+			%						 " directory ('~s'), an entry with that "
+			%						 "was found already existing.~n"
+			%						 "Shall we rename it automatically to ~s, "
+			%						 "or ask for a new name?",
+			%						 [ Filename, TargetDir, AutoPath ] ),
+			%ui:ask_yes_no( "
+
+			% At least for the moment, we stick to auto-renaming only (simpler)
+			% rather than letting the user choose a new name; returning the new
+			% path:
+			%
+			AutoPath;
+
+		false ->
+			TgtPath
+
+	end,
+
+	file_utils:move_file( SrcFullPath, NewPath ),
+
+	trace_debug( "Moved '~s' to '~s'.", [ SrcFullPath, NewPath ], UserState ),
+
+	NewPath.
 
 
 
@@ -1505,7 +1561,7 @@ cherry_pick_files( _ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 					{ MovedFilePath, ToRemovePaths } =
 					   list_utils:extract_element_at( ContentPaths, MoveIndex ),
 
-					trace_debug( "Moving '~s' to reference tree, removing ~p.",
+					trace_debug( "Moving '~s' to reference tree, removing ~s",
 						[ MovedFilePath,
 						  text_utils:binaries_to_string( ToRemovePaths ) ],
 						UserState ),

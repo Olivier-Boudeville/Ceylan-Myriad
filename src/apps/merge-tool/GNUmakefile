@@ -61,6 +61,8 @@ make-test-trees: clean-test-trees
 	@echo "Content #3" > $(TEST_CONTENT_TREE)/foo/bar/c.txt
 	@echo "Content #1" > $(TEST_CONTENT_TREE)/foo/baz/a.txt
 	@echo "Content #2" > $(TEST_CONTENT_TREE)/foo/baz/c.txt
+	@cd $(TEST_CONTENT_TREE)/foo && ln -s bar/c.txt
+	@cd $(TEST_CONTENT_TREE) && ln -s /tmp
 	@tree $(TEST_CONTENT_TREE)
 	@mkdir $(TEST_REFERENCE_TREE)
 	@echo
