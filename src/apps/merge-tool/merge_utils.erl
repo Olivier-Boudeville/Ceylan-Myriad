@@ -2039,34 +2039,73 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 					undefined;
 
 			{ NewestTimestamp, ContentFiles } ->
+
+					NewestString = time_utils:timestamp_to_string(
+						 time_utils:from_posix_timestamp( NewestTimestamp ) ),
+
 					case file_utils:get_last_modification_time( CacheFilePath )
 					of
 
 						CacheTimestamp when CacheTimestamp < NewestTimestamp ->
-							ui:display( "Timestamp of cache file (~p) older "
-							  "than most recent file timestamp in tree (~p), "
-							  "rebuilding cache file for tree '~s'.",
-							  [ CacheTimestamp, NewestTimestamp, TreePath ] ),
-							undefined;
+
+							CacheString = time_utils:timestamp_to_string(
+							  time_utils:from_posix_timestamp(
+								CacheTimestamp ) ),
+
+							Prompt = text_utils:format(
+							  "Timestamp of cache file (~s) older "
+							  "than most recent file timestamp in tree (~p).~n"
+							  "Rebuilding cache file for tree '~s'? "
+							  "(otherwise current cache file will be reused "
+							  "from now on)",
+							  [ CacheString, NewestString, TreePath ] ),
+
+							case ui:ask_yes_no( Prompt ) of
+
+								yes ->
+									undefined;
+
+								no ->
+									% For future uses as well:
+									file_utils:touch( CacheFilePath ),
+									% Loops:
+									update_content_tree( TreePath, AnalyzerRing,
+														 UserState )
+
+							end;
 
 
 						CacheTimestamp ->
 
+							CacheString = time_utils:timestamp_to_string(
+							  time_utils:from_posix_timestamp(
+								CacheTimestamp ) ),
+
 							trace_debug( "Timestamp of cache file is "
-								"acceptable (as ~p is not older than the "
-								"most recent file timestamp in tree, ~p), "
+								"acceptable (as ~s is not older than the "
+								"most recent file timestamp in tree, ~s), "
 								"just performing a quick check of file "
 								"existences and sizes to further validate it.",
-								[ CacheTimestamp, NewestTimestamp ],
-								  UserState ),
+								[ CacheString, NewestString ], UserState ),
 
 							case quick_cache_check( CacheFilePath, ContentFiles,
 													TreePath, UserState ) of
 
 								undefined ->
-									ui:display( "Cache file does not match "
-									  "actual tree, rebuilding cache file." ),
-									undefined;
+									case ui:ask_yes_no(
+										   "Cache file does not match actual "
+										   "tree, rebuilding cache file?~n"
+										   "(otherwise stops on error)",
+										   _Default=yes ) of
+
+										yes ->
+											undefined;
+
+										no ->
+											throw( { outdated_cache_file_for,
+													 TreePath } )
+
+									end;
 
 								TreeData ->
 									ui:display( "Cache file seems to match "
@@ -3057,21 +3096,42 @@ quick_cache_check( CacheFilename, ContentFiles, TreePath, UserState ) ->
 
 
 % (helper)
-quick_cache_check_helper( ContentFiles, TreePath, CachedTreePath, FileInfos,
+quick_cache_check_helper( ContentFiles, ActualTreePath, CachedTreePath, FileInfos,
 						  UserState ) ->
 
-	AbsTreePath = file_utils:ensure_path_is_absolute( TreePath ),
+	AbsActualTreePath =
+		file_utils:ensure_path_is_absolute( ActualTreePath ),
 
-	case CachedTreePath of
+	TreePath = case CachedTreePath of
 
-		AbsTreePath ->
-			ok;
+		AbsActualTreePath ->
+			ActualTreePath;
 
 		_ ->
-			trace_debug( "The actual tree path ('~s') does not match "
-						 "the one found in its cache file ('~s').",
-						 [ AbsTreePath, CachedTreePath ], UserState ),
-			throw( { non_matching_tree_paths, CachedTreePath, TreePath } )
+			NamePrompt = text_utils:format(
+						   "The actual tree path ('~s') does not match "
+						   "the one found in its cache file ('~s').~n~n"
+						   "Shall we override the one in the cache file with "
+						   "the actual one?",
+						   [ AbsActualTreePath, CachedTreePath ] ),
+
+			case ui:ask_yes_no( NamePrompt ) of
+
+				yes ->
+					trace_debug( "Overriding tree path in the cache file "
+						 "('~s') with the actual one ('~s').",
+						 [ CachedTreePath, AbsActualTreePath ], UserState ),
+					ActualTreePath;
+
+				no ->
+					trace_debug( "Not overriding tree path in the cache file "
+						 "('~s') with the actual one ('~s'), failing.",
+						 [ CachedTreePath, AbsActualTreePath ], UserState ),
+
+					throw( { non_matching_tree_paths, CachedTreePath,
+							 ActualTreePath } )
+
+			end
 
 	end,
 
