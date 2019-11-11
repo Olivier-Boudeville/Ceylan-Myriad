@@ -2019,11 +2019,17 @@ move_file( SourceFilename, DestinationFilename ) ->
 	%copy_file( SourceFilename, DestinationFilename ),
 	%remove_file( SourceFilename ).
 
-	% Simpler, better:
+	% Simpler, better, yet does not works across filesystems:
 	case file:rename( SourceFilename, DestinationFilename ) of
 
 		ok ->
 			DestinationFilename;
+
+		{ error, exdev } ->
+			%trace_utils:trace_fmt( "Moving across filesystems '~s' to '~s'.",
+			%					   [ SourceFilename, DestinationFilename ] ),
+			copy_file( SourceFilename, DestinationFilename ),
+			remove_file( SourceFilename );
 
 		Error ->
 			throw( { move_file_failed, Error, SourceFilename,
@@ -2892,9 +2898,10 @@ read_terms( Filename ) ->
 		{ error, Error } when is_atom( Error ) ->
 			throw( { reading_failed, Filename, Error } );
 
-		{ error, Error } ->
+		{ error, Error={ Line, Module, Term } } ->
 			Reason = file:format_error( Error ),
-			throw( { interpretation_failed, Filename, Reason } )
+			throw( { interpretation_failed, Filename, { line, Line },
+					 { module, Module }, { term, Term }, Reason } )
 
 	end.
 
