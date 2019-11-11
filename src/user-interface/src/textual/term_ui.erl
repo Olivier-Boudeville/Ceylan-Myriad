@@ -114,14 +114,15 @@
 
 
 % 'menu' dialog: allows to select one option among a set (quite similar to
-% radiolist)
+% radiolist, yet no default can be specified)
 %
 % - ex: LANG= dialog --menu "Choose one:" 10 30 3 1 red 2 green 3 blue
 %   (choice index written to standard error, possibly redirected)
 
 
 % 'radiolist' dialog: allows to select one option among a set (quite similar to
-% menu)
+% menu); potentially a bit misleading as, if hitting the Enter key, the selected
+% item will be the starred one, not necessarily the currently selected one...
 %
 % - ex: LANG= dialog --radiolist "Select CPU type:" 10 40 4 1 386SX off 2 386DX
 % on 3 486SX off 4 486DX off 2>${result_file}
