@@ -458,6 +458,9 @@ compute_sha_sum( Filename, SizeOfSHAAlgorithm )
 
 	end,
 
+	%trace_utils:trace_fmt( "Computing SHA~B sum of '~s'.",
+	%					   [ SizeOfSHAAlgorithm, Filename ] ),
+
 	% Removes the filename after the SHA code:
 	Cmd = system_utils:run_executable( get_default_sha_tool()
 					 ++ " --algorithm "
