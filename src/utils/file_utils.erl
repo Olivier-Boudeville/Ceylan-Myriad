@@ -63,7 +63,8 @@
 		  filter_by_extension/2, filter_by_extensions/2,
 		  filter_by_included_suffixes/2, filter_by_excluded_suffixes/2,
 
-		  find_files_from/1, find_files_from/2, find_regular_files_from/1,
+		  find_files_from/1, find_files_from/2,
+		  find_regular_files_from/1, find_links_from/1,
 		  find_files_with_extension_from/2, find_files_with_extension_from/3,
 		  find_files_with_excluded_dirs/2,
 		  find_files_with_excluded_suffixes/2,
@@ -1103,7 +1104,7 @@ find_files_from( RootDir, CurrentRelativeDir, IncludeSymlinks, Acc ) ->
 		++ prefix_files_with( CurrentRelativeDir, Files ).
 
 
-% Specific helper for find_files_from/3 above:
+% Specific helper for find_files_from/4 above:
 list_files_in_subdirs( _Dirs=[], _RootDir, _CurrentRelativeDir,
 					   _IncludeSymlinks, Acc ) ->
 	Acc;
@@ -1117,6 +1118,49 @@ list_files_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir,
 	list_files_in_subdirs( T, RootDir, CurrentRelativeDir, IncludeSymlinks,
 		find_files_from( RootDir, join( CurrentRelativeDir, H ),
 						 IncludeSymlinks, _NextAcc=[] ) ++ Acc ).
+
+
+
+% Returns the list of all symlinks found from the root, in the whole subtree
+% (i.e. recursively).
+%
+% All extensions and suffixes accepted, no excluded directories.
+%
+% All returned pathnames are relative to this root.
+% Ex: [ "./a.txt", "./tmp/b.txt" ].
+%
+-spec find_links_from( any_directory_name() ) -> [ file_name() ].
+find_links_from( RootDir ) ->
+	find_links_from( RootDir, _CurrentRelativeDir="", _Acc=[] ).
+
+
+% (helper)
+find_links_from( RootDir, CurrentRelativeDir, Acc ) ->
+
+	%trace_utils:debug_fmt( "find_links_from with root = '~s', current = '~s'.",
+	%						[ RootDir, CurrentRelativeDir ] ),
+
+	{ _RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
+		list_dir_elements( join( RootDir, CurrentRelativeDir ) ),
+
+	Acc ++ list_links_in_subdirs( Directories, RootDir, CurrentRelativeDir,
+								  _NextAcc=[] )
+		++ prefix_files_with( CurrentRelativeDir, Symlinks ).
+
+
+
+% Specific helper for find_links_from/3 above:
+list_links_in_subdirs( _Dirs=[], _RootDir, _CurrentRelativeDir, Acc ) ->
+	Acc;
+
+list_links_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir, Acc ) ->
+
+	%io:format( "list_links_in_subdirs with root = '~s', current = '~s' "
+	%	"and H='~s'.~n", [ RootDir, CurrentRelativeDir, H ] ),
+
+	list_links_in_subdirs( T, RootDir, CurrentRelativeDir,
+		find_links_from( RootDir, join( CurrentRelativeDir, H ),
+						 _NextAcc=[] ) ++ Acc ).
 
 
 
