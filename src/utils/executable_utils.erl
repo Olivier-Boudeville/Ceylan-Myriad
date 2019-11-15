@@ -471,7 +471,16 @@ compute_sha_sum( Filename, SizeOfSHAAlgorithm )
 	case Cmd of
 
 		{ _ExitCode=0, OutputString } ->
-			list_to_integer( OutputString, _Base=16 );
+			case text_utils:try_string_to_integer( OutputString, _Base=16 ) of
+
+				undefined ->
+					throw( { sha_computation_failed, invalid_result,
+							 OutputString } );
+
+				Sum ->
+					Sum
+
+			end;
 
 		{ ExitCode, ErrorOutput } ->
 			throw( { sha_computation_failed, ExitCode, ErrorOutput, Filename } )
