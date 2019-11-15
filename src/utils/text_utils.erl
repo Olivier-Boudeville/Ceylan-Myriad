@@ -57,7 +57,7 @@
 		  atom_to_binary/1,
 		  string_to_binary/1, binary_to_string/1,
 		  strings_to_binaries/1, binaries_to_strings/1,
-		  string_to_integer/1, try_string_to_integer/1,
+		  string_to_integer/1, try_string_to_integer/1, try_string_to_integer/2,
 		  string_to_float/1, try_string_to_float/1,
 		  string_to_atom/1, strings_to_atoms/1,
 		  terms_to_string/1, terms_to_enumerated_string/1,
@@ -600,13 +600,15 @@ binaries_to_string( ListOfBinaries ) ->
 	binaries_to_string( ListOfBinaries, _IndentationLevel=0 ).
 
 
+
 % Returns a string that pretty-prints specified list of binary strings, with
-% specified indentation level.
+% specified indentation level or bullet.
 %
--spec binaries_to_string( [ binary() ], indentation_level() ) -> ustring().
-binaries_to_string( ListOfBinaries, IndentationLevel ) ->
+-spec binaries_to_string( [ binary() ], indentation_level_or_bullet() ) ->
+								ustring().
+binaries_to_string( ListOfBinaries, IndentationOrBullet ) ->
 	Strings = binaries_to_strings( ListOfBinaries ),
-	strings_to_string( Strings, IndentationLevel ).
+	strings_to_string( Strings, IndentationOrBullet ).
 
 
 
@@ -617,6 +619,7 @@ binaries_to_string( ListOfBinaries, IndentationLevel ) ->
 binaries_to_sorted_string( ListOfBinaries ) ->
 	Strings = binaries_to_strings( ListOfBinaries ),
 	strings_to_string( lists:sort( Strings ) ).
+
 
 
 % Returns a string that pretty-prints specified list of atoms, with default
@@ -633,6 +636,7 @@ atoms_to_string( [], Acc ) ->
 atoms_to_string( [ H | T ], Acc ) when is_atom( H )  ->
 	atoms_to_string( T, Acc ++ get_default_bullet()
 						 ++ io_lib:format(  "~ts~n", [ H ] ) ).
+
 
 
 % Returns a string that pretty-prints the specified list of atoms once ordered,
@@ -1338,7 +1342,7 @@ binaries_to_strings( BinaryList ) ->
 
 
 
-% Returns an integer which corresponds to the specified text.
+% Returns an integer that corresponds to the specified text.
 %
 % Throws an exception if the conversion failed.
 %
@@ -1359,14 +1363,25 @@ string_to_integer( String ) ->
 
 
 
-% Returns an integer which corresponds to the specified text.
+% Returns an integer that corresponds to the specified text (expected to rely on
+% our usual base 10).
 %
 % Returns the 'undefined' atom if the conversion failed.
 %
 -spec try_string_to_integer( ustring() ) -> basic_utils:maybe( integer() ).
 try_string_to_integer( String ) ->
+	try_string_to_integer( String, _Base=10 ).
 
-	try list_to_integer( String ) of
+
+
+% Returns an integer that corresponds to the specified text, expected to rely on
+% the specified base.
+%
+% Returns the 'undefined' atom if the conversion failed.
+%
+-spec try_string_to_integer( ustring(), 2..36 ) -> basic_utils:maybe( integer() ).
+try_string_to_integer( String, Base ) ->
+	try list_to_integer( String, Base ) of
 
 		I ->
 			I
@@ -1380,7 +1395,7 @@ try_string_to_integer( String ) ->
 
 
 
-% Returns a float which corresponds to the specified text, not depending on its
+% Returns a float that corresponds to the specified text, not depending on its
 % being defined as an integer or as a float.
 %
 % Throws an exception if the conversion failed.
@@ -1400,7 +1415,7 @@ string_to_float( String ) ->
 
 
 
-% Returns a float which corresponds to the specified text, not depending on its
+% Returns a float that corresponds to the specified text, not depending on its
 % being defined as an integer or as a float.
 %
 % Returns the 'undefined' atom if the conversion failed.
