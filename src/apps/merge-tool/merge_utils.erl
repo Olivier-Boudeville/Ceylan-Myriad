@@ -27,10 +27,12 @@
 
 -define( default_log_filename, "merge-tree.log" ).
 
+-define( bullet_point, " * " ).
+
 
 -export([ create_merge_cache_file_for/3,
 		  tree_data_to_string/1, file_data_to_string/1,
-		  display_tree_data/1, display_tree_data/2,
+		  display_tree_data/2, display_tree_data/3,
 		  trace/2, trace/3, trace_debug/2, trace_debug/3 ]).
 
 
@@ -41,8 +43,11 @@
 -type file_path() :: file_utils:file_path().
 -type bin_file_path() :: file_utils:bin_file_path().
 
--type directory_path() :: file_utils:directory_path().
 -type file() :: file_utils:file().
+
+-type directory_path() :: file_utils:directory_path().
+-type bin_directory_path() :: file_utils:bin_directory_path().
+
 
 
 % Data associated to a given file-like element.
@@ -97,7 +102,7 @@
 		   % Base, absolute (binary) path of the root of that tree in the
 		   % filesystem:
 		   %
-		   root :: directory_path(),
+		   root :: bin_directory_path(),
 
 		   % Each key is the SHA1 sum of a file content, each value is a list of
 		   % the file entries whose content matches that sum (hence are supposed
@@ -578,7 +583,7 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 			ReadPrompt = text_utils:format( "Scan result read from '~s'",
 											[ CacheFilename ] ),
 
-			display_tree_data( ReadTreeData, ReadPrompt ),
+			display_tree_data( ReadTreeData, ReadPrompt, UserState ),
 
 			ReadTreeData;
 
@@ -593,7 +598,7 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 			ScanPrompt = text_utils:format( "Scan result for '~s'",
 											[ TreePath ] ),
 
-			display_tree_data( TreeData, ScanPrompt ),
+			display_tree_data( TreeData, ScanPrompt, UserState ),
 
 			TreeData
 
@@ -671,7 +676,7 @@ rescan( TreePath, AnalyzerRing, UserState ) ->
 			RescanPrompt = text_utils:format( "Rescan result for '~s'",
 											  [ TreePath ] ),
 
-			display_tree_data( TreeData, RescanPrompt ),
+			display_tree_data( TreeData, RescanPrompt, UserState ),
 
 			trace_debug( "Rescanned tree: ~s",
 						 [ tree_data_to_string( TreeData, _Verbose=true ) ],
@@ -690,7 +695,7 @@ rescan( TreePath, AnalyzerRing, UserState ) ->
 			ScanPrompt = text_utils:format( "Full scan result for '~s'",
 											[ TreePath ] ),
 
-			display_tree_data( TreeData, ScanPrompt ),
+			display_tree_data( TreeData, ScanPrompt, UserState ),
 
 			TreeData
 
@@ -699,7 +704,7 @@ rescan( TreePath, AnalyzerRing, UserState ) ->
 
 
 % (helper)
-perform_rescan( BinTreePath, CacheFilename, AnalyzerRing, UserState ) ->
+perform_rescan( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 
 	CacheTimestamp = file_utils:get_last_modification_time( CacheFilename ),
 
@@ -707,25 +712,42 @@ perform_rescan( BinTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 	[ _RootInfo={ root, CachedTreePath } | FileInfos ] =
 		file_utils:read_terms( CacheFilename ),
 
-	ReadTreeData = #tree_data{ root=CachedTreePath,
+	BinTreePath = case text_utils:binary_to_string( BinUserTreePath ) of
+
+		CachedTreePath ->
+			BinUserTreePath;
+
+		OtherTreePath ->
+			UpdatePrompt = text_utils:format(
+							 "Root path in cache filename ('~s') does not "
+							 "match actual tree to rescan: read as '~s', "
+							 "whereas user-specified as '~s'.~n~n"
+							 "Shall it be automatically updated to the "
+							 "actual one?~n"
+							 "(otherwise the rescan will stop on failure)~n~n"
+							 "Such an update is typically relevant if this "
+							 "tree has been moved since the last inspection.",
+							 [ CacheFilename, CachedTreePath,
+							   BinUserTreePath ] ),
+
+			case ui:ask_yes_no( UpdatePrompt, _BinaryDefault=no ) of
+
+				yes ->
+					BinUserTreePath;
+
+				no ->
+					throw( { mismatching_paths, CachedTreePath,
+							 OtherTreePath } )
+
+			end
+
+	end,
+
+	ReadTreeData = #tree_data{ root=BinTreePath,
 							   entries=build_entry_table( FileInfos ),
 							   file_count=length( FileInfos )
 							   % Not managed (at least yet): the other counts.
 							 },
-
-	case text_utils:binary_to_string( BinTreePath ) of
-
-		CachedTreePath ->
-			ok;
-
-		_ ->
-			ui:display_error( "Root path in cache filename ('~s') does not "
-							  "match actual tree to rescan: "
-							  "read '~s', user-specified as '~s'.",
-							  [ CacheFilename, CachedTreePath, BinTreePath ] ),
-			throw( { mismatching_paths, CachedTreePath, BinTreePath } )
-
-	end,
 
 	trace_debug( "Rescanning tree '~s'...", [ BinTreePath ], UserState ),
 
@@ -1069,7 +1091,7 @@ uniquify( TreePath ) ->
 	Prompt = text_utils:format( "Information about the resulting uniquified "
 								"tree '~s'", [ NewTreeData#tree_data.root ] ),
 
-	display_tree_data( NewTreeData, Prompt ),
+	display_tree_data( NewTreeData, Prompt, UserState ),
 
 	terminate_analyzer_ring( AnalyzerRing, UserState ),
 
@@ -1092,7 +1114,8 @@ create_merge_cache_file_from( TreeData=#tree_data{ root=RootDir },
 
 	CacheFilename = get_cache_path_for( RootDir ),
 
-	CacheFile = file_utils:open( CacheFilename, _Opts=[ write, raw ] ),
+	CacheFile = file_utils:open( CacheFilename,
+								 _Opts=[ write, raw, { encoding, utf8 } ] ),
 
 	write_cache_header( CacheFile ),
 
@@ -1137,7 +1160,7 @@ merge( InputTreePath, ReferenceTreePath ) ->
 	Prompt = text_utils:format( "Resulting merged tree '~s'",
 								[ ReferenceTreePath ] ),
 
-	display_tree_data( MergeTreeData, Prompt ),
+	display_tree_data( MergeTreeData, Prompt, UserState ),
 
 	create_merge_cache_file_from( MergeTreeData, UserState ),
 
@@ -1198,8 +1221,9 @@ merge_trees( InputTree=#tree_data{ root=InputRootDir,
 			ContentInBothSets =
 				set_utils:intersection( InputSHA1Set, ReferenceSHA1Set ),
 
-			% Clears out content already available in reference, so that only
-			% the original input content remains:
+			% Clears out from input tree the content that is already available
+			% in reference, so that only the original input content remains in
+			% the input tree:
 			%
 			PurgedInputTree =
 				purge_tree_from( InputTree, ContentInBothSets, UserState ),
@@ -1214,7 +1238,10 @@ merge_trees( InputTree=#tree_data{ root=InputRootDir,
 						"There are duplicates among the ~B contents in the "
 						"input tree ('~s') that are original (i.e. that are "
 						"not in the reference one, '~s').~n"
-						"Shall we uniquify first that input, original content? ",
+						"Shall we uniquify first that input, original content?~n"
+						"(this is recommended, otherwise for each of these "
+						"duplicates a single of them will have to be chosen by "
+						"the user so that it can be moved)",
 						[ LackingCount, InputRootDir, ReferenceRootDir ] ),
 
 					case ui:ask_yes_no( UniqPrompt, _BinaryDefault=yes ) of
@@ -1679,7 +1706,8 @@ cherry_pick_files( ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 				"the following ~B input files (all relative to '~s'): ~s~n~n"
 				"Regarding that input content, shall we:",
 				[ FileCount, InputRootDir,
-				  text_utils:binaries_to_string( ContentPaths ) ] ),
+				  text_utils:binaries_to_string( ContentPaths,
+												 ?bullet_point ) ] ),
 
 			case ui:choose_designated_item_with_default( Prompt, PickChoices,
 					_DefaultChoiceDesignator=move ) of
@@ -2092,11 +2120,13 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 													TreePath, UserState ) of
 
 								undefined ->
-									case ui:ask_yes_no(
+									MatchPrompt = text_utils:format(
 										   "Cache file does not match actual "
 										   "tree, rebuilding cache file?~n"
-										   "(otherwise stops on error)",
-										   _Default=yes ) of
+										   "(otherwise stops on error)", [] ),
+
+									case ui:ask_yes_no( MatchPrompt,
+														_Default=yes ) of
 
 										yes ->
 											undefined;
@@ -2824,7 +2854,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 	%trace_utils:debug_fmt( "ShortenPaths = ~p", [ ShortenPaths ] ),
 
 	DuplicateString = text_utils:format( ": ~s",
-		[ text_utils:strings_to_string( ShortenPaths, _Bullet=" * " ) ] ),
+		[ text_utils:strings_to_string( ShortenPaths, ?bullet_point ) ] ),
 
 	%trace_utils:debug_fmt( "DuplicateString = ~p", [ DuplicateString ] ),
 
@@ -3296,19 +3326,20 @@ check_file_sizes_match( _FilePairs=[ { FilePath, FileSize } | T ], TreePath,
 
 
 % Displays information about specified tree data, with a default prompt.
--spec display_tree_data( tree_data() ) -> void().
-display_tree_data( TreeData=#tree_data{ root=RootDir } ) ->
+-spec display_tree_data( tree_data(), user_state() ) -> void().
+display_tree_data( TreeData=#tree_data{ root=RootDir }, UserState ) ->
 
 	Prompt = text_utils:format( "Information about tree '~s'", [ RootDir ] ),
 
-	display_tree_data( TreeData, Prompt ).
+	display_tree_data( TreeData, Prompt, UserState ).
+
 
 
 % Displays information about specified tree data, with specified prompt.
--spec display_tree_data( tree_data(), ui:prompt() ) -> void().
+-spec display_tree_data( tree_data(), ui:prompt(), user_state() ) -> void().
 display_tree_data( TreeData=#tree_data{ entries=EntryTable,
 										file_count=FileCount },
-				   Prompt ) ->
+				   Prompt, UserState ) ->
 
 	Suffix = case table:size( EntryTable ) of
 
@@ -3336,7 +3367,10 @@ display_tree_data( TreeData=#tree_data{ entries=EntryTable,
 
 	end,
 
-	ui:display( "~s: this tree has ~s.", [ Prompt, Suffix ] ).
+	String = text_utils:format( "~s: this tree has ~s.", [ Prompt, Suffix ] ),
+
+	ui:display( String ),
+	trace_debug( String, UserState ).
 
 
 
