@@ -56,7 +56,8 @@ test-merge: pre-test make-test-trees
 # The input test tree will thus have 3 different contents in 6 regular files
 # (plus 2 symlinks).
 #
-# The reference tree starts empty in this test.
+# The reference test tree starts with 2 different contents, each with 2
+# duplicated, one of these contents being also in the input test tree.
 #
 make-test-trees: clean-test-trees
 	@echo " Creating test tree..."
@@ -71,7 +72,11 @@ make-test-trees: clean-test-trees
 	@cd $(TEST_CONTENT_TREE)/foo && ln -s bar/c.txt
 	@cd $(TEST_CONTENT_TREE) && ln -s /tmp
 	@tree $(TEST_CONTENT_TREE)
-	@mkdir $(TEST_REFERENCE_TREE)
+	@mkdir -p $(TEST_REFERENCE_TREE)/wilbur $(TEST_REFERENCE_TREE)/kinabe
+	@echo "Content #2" > $(TEST_REFERENCE_TREE)/wilbur/c.txt
+	@echo "Content #2" > $(TEST_REFERENCE_TREE)/kinabe/c.txt
+	@echo "Unique content" > $(TEST_REFERENCE_TREE)/wilbur/d.txt
+	@echo "Unique content" > $(TEST_REFERENCE_TREE)/e.txt
 	@echo
 
 
