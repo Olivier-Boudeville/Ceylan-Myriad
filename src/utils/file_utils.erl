@@ -2883,7 +2883,14 @@ write_whole( Filename, BinaryContent ) ->
 
 
 
-% Reads specified file, tries to read a list of terms from it, and returns it.
+% Reads specified file, tries to parse a list of terms from it, and returns it.
+%
+% If expecting to read UTF-8 content for a file, it should:
+%
+%  - have been opened for writing typically while including the { encoding, utf8
+%  } option
+%
+%  - start with a '%% -*- coding: utf-8 -*-' header
 %
 % Throws an exception on error.
 %
