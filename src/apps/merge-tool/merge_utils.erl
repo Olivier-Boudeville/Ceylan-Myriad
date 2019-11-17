@@ -28,7 +28,7 @@
 
 
 % Centralised:
--define( merge_file_options, [ write, raw, { encoding, utf8 } ] ).
+-define( merge_file_options, [ write, { encoding, utf8 } ] ).
 
 
 -define( default_log_filename, "merge-tree.log" ).
@@ -470,7 +470,7 @@ handle_rescan_option( RescanTreePath, RescanArgTable, BaseDir ) ->
 
 	NewTreeData = rescan( AbsRescanTreePath, AnalyzerRing, UserState ),
 
-	create_merge_cache_file_from( NewTreeData, UserState ),
+	write_cache_file( NewTreeData, UserState ),
 
 	terminate_analyzer_ring( AnalyzerRing, UserState ),
 
@@ -560,7 +560,7 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 				{ ignore, "Ignore this version, and recreate this file "
 				  "unconditionally" },
 				{ no_check, "Re-use this file as it is, with no specific "
-				  "check involved" },
+				  "check involved (not recommanded)" },
 				{ abort, "Abort scan" } ],
 
 			ReadTreeData = case ui:choose_designated_item( Prompt, Choices ) of
@@ -571,14 +571,22 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 					%
 					%ui:display( "Performing a weak check of '~s'.",
 					%			[ CacheFilename ] ),
-					update_content_tree( TreePath, AnalyzerRing, UserState );
+					UpTreeData = update_content_tree( TreePath, AnalyzerRing,
+													  UserState ),
+
+					% We leave an up-to-date cache file (ex: if a mismatching
+					% root directory had to be updated):
+					%
+					write_cache_file( UpTreeData, UserState ),
+
+					UpTreeData;
+
 
 				ignore ->
 					ui:display( "Ignoring existing cache file (~s), "
 								"performing now a full scan to recreate it.",
 								[ CacheFilename ] ),
-					perform_scan( TreePath, CacheFilename, AnalyzerRing,
-								  UserState );
+					perform_scan( TreePath, AnalyzerRing, UserState );
 
 				no_check ->
 					%ui:display( "Re-using '~s' with no specific check.",
@@ -605,8 +613,7 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 			ui:display( "No cache file (~s) found, performing full scan "
 						"to recreate it.", [ CacheFilename ] ),
 
-			TreeData = perform_scan( TreePath, CacheFilename, AnalyzerRing,
-									 UserState ),
+			TreeData = perform_scan( TreePath, AnalyzerRing, UserState ),
 
 			ScanPrompt = text_utils:format( "Scan result for '~s'",
 											[ TreePath ] ),
@@ -620,9 +627,9 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 
 
 % (helper)
-perform_scan( TreePath, CacheFilename, AnalyzerRing, UserState ) ->
+perform_scan( TreePath, AnalyzerRing, UserState ) ->
 
-	TreeData = scan_helper( TreePath, CacheFilename, AnalyzerRing, UserState ),
+	TreeData = scan_helper( TreePath, AnalyzerRing, UserState ),
 
 	%ui:display( "Scan result stored in '~s': ~s",
 	%			[ CacheFilename, tree_data_to_string( TreeData ) ] ),
@@ -702,8 +709,7 @@ rescan( TreePath, AnalyzerRing, UserState ) ->
 			ui:display( "No cache file (~s) found, performing full scan "
 						"to recreate it.", [ CacheFilename ] ),
 
-			TreeData = perform_scan( TreePath, CacheFilename, AnalyzerRing,
-									 UserState ),
+			TreeData = perform_scan( TreePath, AnalyzerRing, UserState ),
 
 			ScanPrompt = text_utils:format( "Full scan result for '~s'",
 											[ TreePath ] ),
@@ -1066,10 +1072,9 @@ create_analyzer_ring( UserState ) ->
 % Actual scanning of specified path, producing specified cache file from
 % scratch.
 %
-scan_helper( TreePath, CacheFilename, AnalyzerRing, UserState ) ->
+scan_helper( TreePath, AnalyzerRing, UserState ) ->
 
-	TreeData = create_merge_cache_file_for( TreePath, CacheFilename,
-											AnalyzerRing, UserState ),
+	TreeData = create_merge_cache_file_for( TreePath, AnalyzerRing, UserState ),
 
 	trace_debug( "Scan finished.", UserState ),
 
@@ -1111,35 +1116,11 @@ uniquify( TreePath ) ->
 	terminate_analyzer_ring( AnalyzerRing, UserState ),
 
 	% We leave an up-to-date cache file:
-	create_merge_cache_file_from( NewTreeData, UserState ),
+	write_cache_file( NewTreeData, UserState ),
 
 	stop_user_service( UserState ),
 
 	basic_utils:stop( 0 ).
-
-
-
-% Creates (typically after a tree update) a merge cache file (overwriting any
-% prior one) with specified name, for specified content tree.
-%
--spec create_merge_cache_file_from( tree_data(), user_state() ) ->
-										  file_path().
-create_merge_cache_file_from( TreeData=#tree_data{ root=BinRootDir },
-							  UserState ) ->
-
-	CacheFilename = get_cache_path_for( BinRootDir ),
-
-	CacheFile = file_utils:open( CacheFilename, ?merge_file_options ),
-
-	write_cache_header( CacheFile ),
-
-	write_tree_data( CacheFile, TreeData, UserState ),
-
-	write_cache_footer( CacheFile ),
-
-	file_utils:close( CacheFile ),
-
-	CacheFilename.
 
 
 
@@ -1176,7 +1157,7 @@ merge( InputTreePath, ReferenceTreePath ) ->
 
 	display_tree_data( MergeTreeData, Prompt, UserState ),
 
-	create_merge_cache_file_from( MergeTreeData, UserState ),
+	write_cache_file( MergeTreeData, UserState ),
 
 	terminate_analyzer_ring( AnalyzerRing, UserState ),
 
@@ -2132,7 +2113,7 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 								[ CacheString, NewestString ], UserState ),
 
 							case quick_cache_check( CacheFilePath, ContentFiles,
-													TreePath, UserState ) of
+									TreePath, AnalyzerRing, UserState ) of
 
 								undefined ->
 									MatchPrompt = text_utils:format(
@@ -2153,6 +2134,7 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 
 									end;
 
+
 								TreeData ->
 									ui:display( "Cache file seems to match "
 									  "actual tree '~s', considering it "
@@ -2172,11 +2154,13 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 
 	end,
 
+	%trace_utils:debug_fmt( "MaybeTreeData: ~s",
+	%					   [ type_utils:interpret_type_of( MaybeTreeData ) ] ),
+
 	case MaybeTreeData of
 
 		undefined ->
-			create_merge_cache_file_for( TreePath, CacheFilePath, AnalyzerRing,
-										 UserState );
+			create_merge_cache_file_for( TreePath, AnalyzerRing, UserState );
 
 		_ ->
 			MaybeTreeData
@@ -2245,27 +2229,29 @@ get_newest_timestamp( _ContentFiles=[ F | T ], RootPath,
 % (overwriting any priorly existing merge cache file), and returns that tree.
 %
 -spec create_merge_cache_file_for( file_utils:directory_name(),
-					   analyzer_ring(), user_state() ) -> tree_data().
+		analyzer_ring(), user_state() ) -> tree_data().
 create_merge_cache_file_for( TreePath, AnalyzerRing, UserState ) ->
-
-	CacheFilename = get_cache_path_for( TreePath ),
-
-	create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
-								 UserState ).
-
-
-
-% Creates (typically from scratch) a merge cache file with specified name, for
-% specified content tree.
-%
--spec create_merge_cache_file_for( file_utils:directory_name(),
-		file_utils:file_name(), analyzer_ring(), user_state() ) -> tree_data().
-create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
-							 UserState ) ->
 
 	AbsTreePath = file_utils:ensure_path_is_absolute( TreePath ),
 
 	check_tree_path_exists( AbsTreePath ),
+
+	TreeData = scan_tree( AbsTreePath, AnalyzerRing, UserState ),
+
+	trace_debug( "Scanned tree: ~s.",
+				 [ tree_data_to_string( TreeData ) ], UserState ),
+
+	write_cache_file( TreeData, UserState ),
+
+	TreeData.
+
+
+
+% Performs the actual writing of a cache file.
+-spec write_cache_file( tree_data(), user_state() ) -> void().
+write_cache_file( TreeData=#tree_data{ root=BinRootDir }, UserState ) ->
+
+	CacheFilename = get_cache_path_for( BinRootDir ),
 
 	trace_debug( "Creating merge cache file '~s'.", [ CacheFilename ],
 				 UserState ),
@@ -2274,18 +2260,11 @@ create_merge_cache_file_for( TreePath, CacheFilename, AnalyzerRing,
 
 	write_cache_header( MergeFile ),
 
-	TreeData = scan_tree( AbsTreePath, AnalyzerRing, UserState ),
-
-	trace_debug( "Scanned tree: ~s.",
-				 [ tree_data_to_string( TreeData ) ], UserState ),
-
 	write_tree_data( MergeFile, TreeData, UserState ),
 
 	write_cache_footer( MergeFile ),
 
-	file_utils:close( MergeFile ),
-
-	TreeData.
+	file_utils:close( MergeFile ).
 
 
 
@@ -3219,14 +3198,15 @@ create_links_to( TargetFilePath, _LinkPaths= [ Link | T ], BinRootDir ) ->
 % file sizes match as well.
 %
 -spec quick_cache_check( file_path(), [ file_path() ], directory_path(),
-						 user_state() ) -> maybe( tree_data() ).
-quick_cache_check( CacheFilename, ContentFiles, TreePath, UserState ) ->
+					 analyzer_ring(), user_state() ) -> maybe( tree_data() ).
+quick_cache_check( CacheFilename, ContentFiles, TreePath, AnalyzerRing,
+				   UserState ) ->
 
 	case file_utils:read_terms( CacheFilename ) of
 
 		[ _RootInfo={ root, CachedTreePath } | FileInfos ] ->
 			quick_cache_check_helper( ContentFiles, TreePath, CachedTreePath,
-									  FileInfos, UserState );
+									  FileInfos, AnalyzerRing, UserState );
 
 		_Other ->
 			trace_debug( "Invalid cache file '~s', removing it "
@@ -3238,15 +3218,19 @@ quick_cache_check( CacheFilename, ContentFiles, TreePath, UserState ) ->
 
 
 % (helper)
--spec quick_cache_check_helper( file_path(), [ file_path() ], directory_path(),
-			[ file_info() ], user_state() ) -> maybe( tree_data() ).
-quick_cache_check_helper( ContentFiles, ActualTreePath, CachedTreePath, FileInfos,
-						  UserState ) ->
+-spec quick_cache_check_helper( [ file_path() ], directory_path(),
+		 directory_path(), [ file_info() ], analyzer_ring(), user_state() ) ->
+									  maybe( tree_data() ).
+quick_cache_check_helper( ContentFiles, ActualTreePath, CachedTreePath,
+						  FileInfos, AnalyzerRing, UserState ) ->
+
+	%trace_utils:debug_fmt( "ActualTreePath = ~s, CachedTreePath = ~s.",
+	%					   [ ActualTreePath, CachedTreePath ] ),
 
 	AbsActualTreePath =
 		file_utils:ensure_path_is_absolute( ActualTreePath ),
 
-	TreePath = case CachedTreePath of
+	case CachedTreePath of
 
 		AbsActualTreePath ->
 			ActualTreePath;
@@ -3310,83 +3294,84 @@ quick_cache_check_helper( ContentFiles, ActualTreePath, CachedTreePath, FileInfo
 	{ OnlyCachedSet, OnlyActualSet } =
 		set_utils:differences( CachedFileset, ActualFileset ),
 
-	MustRescanFirst = case set_utils:is_empty( OnlyCachedSet ) of
+	FilesystemIsComplete = set_utils:is_empty( OnlyCachedSet ),
+
+	case FilesystemIsComplete of
 
 		true ->
-			false;
+			trace_debug( "Filesystem contains all content referenced "
+						 "in cache.", [], UserState );
 
 		false ->
+			% Some content disappeared:
 			OnlyCacheList = set_utils:to_list( OnlyCachedSet ),
 			trace_debug( "Following ~B files are referenced in "
 						 "cache, yet do not exist on the filesystem: ~s",
 						 [ length( OnlyCacheList ),
 						   text_utils:strings_to_string( OnlyCacheList ) ],
-						 UserState ),
-			true
+						 UserState )
 
 	end,
 
-	MustRescan = case set_utils:is_empty( OnlyActualSet ) of
+
+	CacheIsComplete = set_utils:is_empty( OnlyActualSet ),
+
+	case CacheIsComplete of
 
 		true ->
-			case MustRescanFirst of
-
-				true ->
-					trace_debug( "(no original content on filesystem, "
-								 "forcing rescan)", [], UserState );
-
-				false ->
-					ok
-
-			end,
-			MustRescanFirst;
+			trace_debug( "Cache references all content in filesystem.", [],
+						 UserState );
 
 		false ->
+			% Some content appeared:
 			OnlyActualList = set_utils:to_list( OnlyActualSet ),
 			trace_debug( "Following ~B files exist on the "
 						 "filesystem, yet are not referenced in cache: ~s",
 						 [ length( OnlyActualList ),
 						   text_utils:strings_to_string( OnlyActualList ) ],
-						 UserState ),
-			true
+						 UserState )
 
 	end,
+
+	MustRescan = not ( FilesystemIsComplete and CacheIsComplete ),
+
+	trace_debug( "Must rescan: ~s.", [ MustRescan ], UserState ),
 
 	case MustRescan of
 
 		true ->
-			% Will trigger a rescan:
-			undefined;
+			rescan( AbsActualTreePath, AnalyzerRing, UserState );
 
 		false ->
 
-			trace_debug( "The file paths and names match.", UserState ),
+			trace_debug( "In '~s', the file paths and names match the cache.",
+						 [ ActualTreePath ], UserState ),
 
 			% The two sets match, yet do they agree on the file sizes as well?
 			%
 			% (CachedFilePairs tells us both the paths and the expected sizes,
 			% hence no need for ContentFiles)
 			%
-			case check_file_sizes_match( CachedFilePairs, TreePath,
+			case check_file_sizes_match( CachedFilePairs, ActualTreePath,
 										 UserState ) of
 
 				% Alles gut, so create the corresponding receptacle:
 				true ->
-					trace_debug( "All sizes of the ~B files match.",
-								 [ CachedFileCount ], UserState ),
+					trace_debug( "All sizes of the ~B files match in '~s'.",
+						 [ CachedFileCount, ActualTreePath ], UserState ),
 
 					#tree_data{ root=text_utils:string_to_binary(
-									   CachedTreePath ),
+									   AbsActualTreePath ),
 								entries=build_entry_table( FileInfos ),
 								file_count=CachedFileCount
 								% Not managed (at least yet): the other counts.
 								};
 
 				false ->
-					% Will trigger a rescan:
-					trace_debug( "At least one file size does not match.",
-								 [], UserState ),
-					undefined
+					trace_debug( "At least one file size does not match "
+								 "in '~s', rescanning.",
+								 [ ActualTreePath ], UserState ),
+					rescan( AbsActualTreePath, AnalyzerRing, UserState )
 
 			end
 
