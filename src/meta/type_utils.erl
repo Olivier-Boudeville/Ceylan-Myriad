@@ -470,7 +470,8 @@
 
 % Type-related functions:
 -export([ description_to_type/1, type_to_description/1, type_to_string/1,
-		  get_type_of/1, get_immediate_types/0, get_ast_simple_builtin_types/0,
+		  get_type_of/1, interpret_type_of/1, interpret_type_of/2,
+		  get_immediate_types/0, get_ast_simple_builtin_types/0,
 		  get_elementary_types/0, get_simple_builtin_types/0,
 		  is_type/1, is_of_type/2,
 		  is_of_described_type/2, is_homogeneous/1, is_homogeneous/2,
@@ -698,6 +699,147 @@ get_type_of( Term ) when is_tuple( Term ) ->
 
 get_type_of( Term ) when is_reference( Term ) ->
 	'reference'.
+
+
+
+% Returns a string describing, in a user-friendly manner, the type of the
+% specified term (up to one level of nesting detailed).
+%
+-spec interpret_type_of( term() ) -> text_utils:ustring().
+interpret_type_of( Term ) ->
+	interpret_type_helper( Term, _CurrentNestingLevel=0,
+						   _MaxNestingLevel=1 ).
+
+
+% Returns a string describing, in a user-friendly manner, the type of the
+% specified term, up to the specified nesting level (either a positive integer
+% or the 'infinite' atom, to go as deep as possible in the term structure).
+%
+-spec interpret_type_of( term(), basic_utils:level() | 'infinite' ) ->
+							   text_utils:ustring().
+interpret_type_of( Term, MaxNestingLevel ) when MaxNestingLevel >= 0 ->
+	interpret_type_helper( Term, _CurrentNestingLevel=0, MaxNestingLevel ).
+
+
+
+% Returns a string describing, in a user-friendly manner, the type of the
+% specified term, describing any nested subterms up to the specified level.
+%
+-spec interpret_type_helper( term(), basic_utils:level(),
+							 basic_utils:level() ) -> text_utils:ustring().
+interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
+  when is_boolean( Term ) ->
+	text_utils:format( "boolean of value '~s'", [ Term ] );
+
+interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
+  when is_atom( Term ) ->
+	text_utils:format( "atom of value '~s'", [ Term ] );
+
+interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
+  when is_binary( Term ) ->
+	text_utils:format( "binary of value '~p'", [ Term ] );
+
+interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
+  when is_float( Term ) ->
+	text_utils:format( "float of value '~f'", [ Term ] );
+
+interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
+  when is_function( Term ) ->
+	text_utils:format( "function of value '~w'", [ Term ] );
+
+interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
+  when is_integer( Term ) ->
+	text_utils:format( "integer of value '~B'", [ Term ] );
+
+interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
+  when is_pid( Term ) ->
+	text_utils:format( "PID of value '~w'", [ Term ] );
+
+
+interpret_type_helper( Term, _CurrentNestingLevel=MaxNestingLevel,
+					   MaxNestingLevel ) when is_map( Term ) ->
+	text_utils:format( "map of ~B elements", [ maps:size( Term ) ] );
+
+interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
+  when is_map( Term ) ->
+
+	Elems = [ text_utils:format( "key ~s associated to value ~s",
+				   [ interpret_type_helper( K, CurrentNestingLevel + 1,
+											MaxNestingLevel ),
+					 interpret_type_helper( V, CurrentNestingLevel + 1,
+											MaxNestingLevel ) ] )
+			  || { K, V } <- maps:to_list( Term ) ],
+
+	text_utils:format( "map of ~B elements: ~s", [ maps:size( Term ),
+		  text_utils:strings_to_string( Elems, CurrentNestingLevel ) ] );
+
+
+interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
+  when is_port( Term ) ->
+	text_utils:format( "port of value '~p'", [ Term ] );
+
+interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
+  when is_reference( Term ) ->
+	text_utils:format( "reference of value '~p'", [ Term ] );
+
+
+interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
+  when is_list( Term ) ->
+
+	case text_utils:is_string( Term ) of
+
+		true ->
+			text_utils:format( "plain string '~s'", [ Term ] );
+
+		false ->
+			case CurrentNestingLevel of
+
+				MaxNestingLevel ->
+					text_utils:format( "list of ~B elements",
+									   [ length( Term ) ] );
+
+				_ ->
+					Elems = [ interpret_type_helper( E,
+								CurrentNestingLevel + 1, MaxNestingLevel )
+							  || E <- Term ],
+
+					text_utils:format( "list of ~B elements: ~s",
+						[ length( Term ),
+						  text_utils:strings_to_enumerated_string( Elems,
+												   CurrentNestingLevel ) ] )
+
+			end
+
+	end;
+
+
+interpret_type_helper( Term, _CurrentNestingLevel=MaxNestingLevel,
+					   MaxNestingLevel ) when is_tuple( Term ) ->
+	text_utils:format( "tuple of ~B elements", [ size( Term ) ] );
+
+interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
+  when is_tuple( Term ) ->
+
+	Elems = [ interpret_type_helper( E, CurrentNestingLevel + 1,
+									 MaxNestingLevel )
+			  || E <- tuple_to_list( Term ) ],
+
+	text_utils:format( "tuple of ~B elements: ~s", [ size( Term ),
+						  text_utils:strings_to_enumerated_string( Elems,
+											  CurrentNestingLevel ) ] );
+
+
+interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
+  when is_port( Term ) ->
+	text_utils:format( "port of value '~p'", [ Term ] );
+
+interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
+  when is_reference( Term ) ->
+	text_utils:format( "reference of value '~p'", [ Term ] );
+
+interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel ) ->
+	text_utils:format( "unknown type for '~p'", [ Term ] ).
+
 
 
 
