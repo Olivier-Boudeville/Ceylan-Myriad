@@ -107,6 +107,10 @@
 -type non_null_count() :: pos_integer().
 
 
+% Allows to count levels (ex: indentation ones, nesting ones):
+-type level() :: non_neg_integer().
+
+
 % Describes a mask of bits:
 -type bit_mask() :: integer().
 
@@ -248,7 +252,8 @@
 -type fixme() :: any().
 
 
--export_type([ void/0, count/0, non_null_count/0, bit_mask/0, message/0,
+-export_type([ void/0, count/0, non_null_count/0, level/0,
+			   bit_mask/0, message/0,
 			   pid_or_port/0, reason/0, exit_reason/0,
 			   error_reason/0, error_term/0, error_type/0,
 			   base_status/0, maybe/1, wildcardable/1,
