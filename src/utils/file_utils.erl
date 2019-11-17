@@ -286,8 +286,8 @@
 % So we deem our version simpler and less prone to surprise (least
 % astonishment).
 %
-% Plain and binary strings can be freely used as arguments, and returns a plain
-% string in all cases.
+% Plain and binary strings can be freely used as arguments, and a plain string
+% is returned in all cases.
 %
 % See filename:split/1 for the reverse operation.
 %
@@ -2607,7 +2607,10 @@ get_image_file_gif( Image ) ->
 % http://erlang.org/doc/man/file.html#open-2, i.e. read, write, append,
 % exclusive, raw, etc.).
 %
-% Note that using 'raw' is likely to cause problems with encodings.
+% Note that using 'raw' may cause problems with encodings.
+%
+% See read_terms/1 if planning to read that content as terms later, notably with
+% regard to encoding.
 %
 % Returns the file reference, or throws an exception.
 %
