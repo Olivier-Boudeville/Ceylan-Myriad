@@ -188,7 +188,7 @@
 
 
 % The level of indentation (starts at zero, and the higher, the most nested).
--type indentation_level() :: basic_utils:count().
+-type indentation_level() :: basic_utils:level().
 
 
 % A bullet, to denote the elements of a list.
