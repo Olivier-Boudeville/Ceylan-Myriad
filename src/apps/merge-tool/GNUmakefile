@@ -30,6 +30,8 @@ UI_BACKEND := term_ui
 
 all:
 
+test-all: test-local test-uniquify test-merge
+
 
 test-local: test-initial-scan test-extra-scan test-rescan
 
