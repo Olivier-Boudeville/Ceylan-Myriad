@@ -1534,6 +1534,7 @@ preserve_symlinks( InputRootDir, TargetDir, UserState ) ->
 			ok;
 
 		SymlinksToMove ->
+			trace_utils:debug_fmt( "SymlinksToMove = ~p", [ SymlinksToMove ] ),
 			MovedLinks = [ smart_move_to( InputRootDir, Lnk, TargetDir, UserState )
 						   || Lnk <- SymlinksToMove ],
 			trace_debug( "Moved ~B extraneous symlinks from '~s', now in: ~s",
@@ -2575,8 +2576,8 @@ analyze_loop() ->
 
 			FilePath = file_utils:join( AbsTreePath, RelativeFilename ),
 
-			trace_utils:debug_fmt( "Analyzer ~w checking '~s'...",
-								   [ self(), FilePath ] ),
+			%trace_utils:debug_fmt( "Analyzer ~w checking '~s'...",
+			%					   [ self(), FilePath ] ),
 
 			FileData = #file_data{
 					   % We prefer storing relative filenames:
