@@ -718,11 +718,13 @@ list_dir_elements( Dirname ) ->
 
 	%io:format( "list_dir_elements for '~s'.~n", [ Dirname ] ),
 
-	% Previously using file:list_dir/1, now collecting raw filenames as well, so
-	% that warning reports such as "Non-unicode filename <<"XXX">> ignored" are
-	% not issued anymore:
+	% Previously file:list_dir_all/1 was tested in order to collect raw
+	% filenames as well (hoping to avoid warning reports such as "Non-unicode
+	% filename <<"XXX">> ignored"), yet the returned names were mangled, leading
+	% to enoent whenever trying to open them (refer to
+	% http://erlang.org/doc/apps/stdlib/unicode_usage.html#notes-about-raw-filenames):
 	%
-	{ ok, LocalDirElements } = file:list_dir_all( Dirname ),
+	{ ok, LocalDirElements } = file:list_dir( Dirname ),
 
 	classify_dir_elements( Dirname, LocalDirElements, _Devices=[],
 			_Directories=[], _Files=[], _Symlinks=[], _OtherFiles=[] ).
