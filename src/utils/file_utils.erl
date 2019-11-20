@@ -718,7 +718,11 @@ list_dir_elements( Dirname ) ->
 
 	%io:format( "list_dir_elements for '~s'.~n", [ Dirname ] ),
 
-	{ ok, LocalDirElements } = file:list_dir( Dirname ),
+	% Previously using file:list_dir/1, now collecting raw filenames as well, so
+	% that warning reports such as "Non-unicode filename <<"XXX">> ignored" are
+	% not issued anymore:
+	%
+	{ ok, LocalDirElements } = file:list_dir_all( Dirname ),
 
 	classify_dir_elements( Dirname, LocalDirElements, _Devices=[],
 			_Directories=[], _Files=[], _Symlinks=[], _OtherFiles=[] ).
