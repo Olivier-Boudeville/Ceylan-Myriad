@@ -20,6 +20,13 @@
 % directories and all remain null
 %
 
+% Note that transferring a uniquified tree with scp may reintroduce duplicates
+% if the previous uniquification resulted in the then duplicates be replaced by
+% symlinks: scp will create a regular file for each symlink.
+%
+% So prefer using rsync:
+% rsync --links or rsync -avz -e "ssh -p MY_PORT" SRC HOST:DEST
+
 -define( merge_cache_filename, ".merge-tree.cache" ).
 
 
@@ -249,7 +256,9 @@ main( ArgTable ) ->
 				   FilteredArgTable ) of
 
 				{ [ InputBaseDir ], BaseDirArgTable } ->
-					{ InputBaseDir, BaseDirArgTable };
+					% Implied normalisation for example removes any trailing /:
+					{ file_utils:ensure_path_is_absolute( InputBaseDir ),
+					  BaseDirArgTable };
 
 				{ UnexpectedBaseDirOpts, _BaseDirArgumentTable } ->
 					InputString = text_utils:format(
@@ -318,8 +327,8 @@ handle_reference_option( RefTreePath, ArgumentTable, BaseDir ) ->
 
 			check_no_option_remains( NewArgumentTable ),
 
-			NormInputTreePath = file_utils:ensure_path_is_absolute(
-										  InputTreePath, BaseDir ),
+			NormInputTreePath =
+				file_utils:ensure_path_is_absolute( InputTreePath, BaseDir ),
 
 			% RefTreePath is already vetted:
 			merge( NormInputTreePath, RefTreePath );
@@ -356,8 +365,17 @@ handle_non_reference_option( ArgumentTable, BaseDir ) ->
 				% A rescan was requested:
 				{ [ RescanTreePath ], RescanArgTable }
 				  when is_list( RescanTreePath ) ->
-					handle_rescan_option( RescanTreePath, RescanArgTable,
-										  BaseDir )
+					AbsRescanTreePath = file_utils:ensure_path_is_absolute(
+										  RescanTreePath ),
+					handle_rescan_option( AbsRescanTreePath, RescanArgTable,
+										  BaseDir );
+
+				{ UnexpectedRescanTreeOpts, _RescanArgTable } ->
+					ScanString = text_utils:format(
+								   "unexpected rescan tree options: ~p",
+								   [ UnexpectedRescanTreeOpts ] ),
+					stop_on_option_error( ScanString, 29 )
+
 
 			end;
 
@@ -368,7 +386,9 @@ handle_non_reference_option( ArgumentTable, BaseDir ) ->
 			case list_table:is_empty( ScanArgTable ) of
 
 				true ->
-					handle_scan_option( ScanTreePath, ScanArgTable, BaseDir );
+					AbsScanTreePath = file_utils:ensure_path_is_absolute(
+										ScanTreePath ),
+					handle_scan_option( AbsScanTreePath, ScanArgTable, BaseDir );
 
 				false ->
 					Msg = text_utils:format(
@@ -414,7 +434,12 @@ handle_neither_scan_options( ArgTable, BaseDir ) ->
 
 
 		{ [ UniqTreePath ], NoUniqArgTable } when is_list( UniqTreePath ) ->
-			handle_uniquify_option( UniqTreePath, NoUniqArgTable, BaseDir );
+			% Includes normalisation; allows notably to remove any
+			% user-specified trailing /:
+			%
+			AbsUniqTreePath =
+				file_utils:ensure_path_is_absolute( UniqTreePath ),
+			handle_uniquify_option( AbsUniqTreePath, NoUniqArgTable, BaseDir );
 
 
 		{ UnexpectedUniqTreeOpts, _NoUniqArgTable } ->
@@ -428,7 +453,7 @@ handle_neither_scan_options( ArgTable, BaseDir ) ->
 
 
 
-handle_scan_option( ScanTreePath, ScanArgTable, BaseDir ) ->
+handle_scan_option( AbsScanTreePath, ScanArgTable, _BaseDir ) ->
 
 	check_no_option_remains( ScanArgTable ),
 
@@ -436,12 +461,6 @@ handle_scan_option( ScanTreePath, ScanArgTable, BaseDir ) ->
 	UserState = start_user_service( ?default_log_filename ),
 
 	AnalyzerRing = create_analyzer_ring( UserState ),
-
-	% Includes normalisation; allows notably to remove any user-specified
-	% trailing /:
-	%
-	AbsScanTreePath = file_utils:ensure_path_is_absolute( ScanTreePath,
-														  BaseDir ),
 
 	scan( AbsScanTreePath, AnalyzerRing, UserState ),
 
@@ -453,7 +472,7 @@ handle_scan_option( ScanTreePath, ScanArgTable, BaseDir ) ->
 
 
 
-handle_rescan_option( RescanTreePath, RescanArgTable, BaseDir ) ->
+handle_rescan_option( AbsRescanTreePath, RescanArgTable, _BaseDir ) ->
 
 	check_no_option_remains( RescanArgTable ),
 
@@ -461,12 +480,6 @@ handle_rescan_option( RescanTreePath, RescanArgTable, BaseDir ) ->
 	UserState = start_user_service( ?default_log_filename ),
 
 	AnalyzerRing = create_analyzer_ring( UserState ),
-
-	% Includes normalisation; allows notably to remove any user-specified
-	% trailing /:
-	%
-	AbsRescanTreePath = file_utils:ensure_path_is_absolute( RescanTreePath,
-															BaseDir ),
 
 	NewTreeData = rescan( AbsRescanTreePath, AnalyzerRing, UserState ),
 
@@ -480,15 +493,9 @@ handle_rescan_option( RescanTreePath, RescanArgTable, BaseDir ) ->
 
 
 
-handle_uniquify_option( UniqTreePath, UniqArgTable, BaseDir ) ->
+handle_uniquify_option( AbsUniqTreePath, UniqArgTable, _BaseDir ) ->
 
 	check_no_option_remains( UniqArgTable ),
-
-	% Includes normalisation; allows notably to remove any user-specified
-	% trailing /:
-	%
-	AbsUniqTreePath = file_utils:ensure_path_is_absolute( UniqTreePath,
-														  BaseDir ),
 
 	uniquify( AbsUniqTreePath ).
 
