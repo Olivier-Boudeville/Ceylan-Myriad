@@ -366,7 +366,7 @@ handle_non_reference_option( ArgumentTable, BaseDir ) ->
 				{ [ RescanTreePath ], RescanArgTable }
 				  when is_list( RescanTreePath ) ->
 					AbsRescanTreePath = file_utils:ensure_path_is_absolute(
-										  RescanTreePath ),
+										  RescanTreePath, BaseDir ),
 					handle_rescan_option( AbsRescanTreePath, RescanArgTable,
 										  BaseDir );
 
@@ -387,7 +387,7 @@ handle_non_reference_option( ArgumentTable, BaseDir ) ->
 
 				true ->
 					AbsScanTreePath = file_utils:ensure_path_is_absolute(
-										ScanTreePath ),
+										ScanTreePath, BaseDir ),
 					handle_scan_option( AbsScanTreePath, ScanArgTable, BaseDir );
 
 				false ->
@@ -438,7 +438,7 @@ handle_neither_scan_options( ArgTable, BaseDir ) ->
 			% user-specified trailing /:
 			%
 			AbsUniqTreePath =
-				file_utils:ensure_path_is_absolute( UniqTreePath ),
+				file_utils:ensure_path_is_absolute( UniqTreePath, BaseDir ),
 			handle_uniquify_option( AbsUniqTreePath, NoUniqArgTable, BaseDir );
 
 
@@ -1017,7 +1017,7 @@ check_file_datas( _FileDatas=[ FileData=#file_data{ path=RelativeBinFilename,
 					end;
 
 
-				% Not here, must have been altered:
+				% Time does not match here, must have been altered:
 				OtherTimestamp ->
 
 					NewNotif = text_utils:format( "file '~s' had a different "
@@ -1541,7 +1541,6 @@ preserve_symlinks( InputRootDir, TargetDir, UserState ) ->
 			ok;
 
 		SymlinksToMove ->
-			trace_utils:debug_fmt( "SymlinksToMove = ~p", [ SymlinksToMove ] ),
 			MovedLinks = [ smart_move_to( InputRootDir, Lnk, TargetDir, UserState )
 						   || Lnk <- SymlinksToMove ],
 			trace_debug( "Moved ~B extraneous symlinks from '~s', now in: ~s",
