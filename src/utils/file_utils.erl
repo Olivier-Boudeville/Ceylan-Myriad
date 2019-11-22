@@ -2252,7 +2252,7 @@ ensure_path_is_absolute( TargetPath, BasePath ) ->
 
 		true ->
 			% Already absolute:
-			TargetPath;
+			normalise_path( TargetPath );
 
 		false ->
 			% Relative, using specified base directory:
