@@ -856,8 +856,9 @@ perform_rescan( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 	% Not wanting to index our own files (if any already exists):
 	FilteredFiles = lists:delete( ?merge_cache_filename, AllFiles ),
 
-	trace_debug( "Found in filesystem ~B files: ~s", [ length( FilteredFiles ),
-				 text_utils:strings_to_string( FilteredFiles ) ], UserState ),
+	trace_debug( "Found in filesystem ~B files to rescan: ~s~n(end of list)~n",
+				 [ length( FilteredFiles ),
+				   text_utils:strings_to_string( FilteredFiles ) ], UserState ),
 
 	% For lighter message sendings and storage:
 	FilteredBinFiles = text_utils:strings_to_binaries( FilteredFiles ),
@@ -1226,8 +1227,6 @@ resync( TreePath, AnalyzerRing, UserState ) ->
 % (helper)
 perform_resync( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 
-	CacheTimestamp = file_utils:get_last_modification_time( CacheFilename ),
-
 	% Cache file expected to be already checked existing:
 	[ _RootInfo={ root, CachedTreePath } | FileInfos ] =
 		file_utils:read_terms( CacheFilename ),
@@ -1271,7 +1270,7 @@ perform_resync( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 							   % Not managed (at least yet): the other counts.
 							 },
 
-	trace_debug( "Resynchonising tree '~s'...", [ BinTreePath ], UserState ),
+	trace_debug( "Resynchronising tree '~s'...", [ BinTreePath ], UserState ),
 
 	% Relative to specified path:
 	AllFiles = file_utils:find_regular_files_from( BinTreePath ),
@@ -1279,16 +1278,17 @@ perform_resync( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 	% Not wanting to index our own files (if any already exists):
 	FilteredFiles = lists:delete( ?merge_cache_filename, AllFiles ),
 
-	trace_debug( "Found in filesystem ~B files: ~s", [ length( FilteredFiles ),
-				 text_utils:strings_to_string( FilteredFiles ) ], UserState ),
+	trace_debug( "Found in filesystem ~B files to resync: ~s~n(end of list)~n",
+				 [ length( FilteredFiles ),
+				   text_utils:strings_to_string( FilteredFiles ) ], UserState ),
 
 	% For lighter message sendings and storage:
 	FilteredBinFiles = text_utils:strings_to_binaries( FilteredFiles ),
 
 	resync_files( _FileSet=set_utils:from_list( FilteredBinFiles ),
 				  table:enumerate( ReadTreeData#tree_data.entries ),
-				  ReadTreeData, BinTreePath, AnalyzerRing, CacheTimestamp,
-				  _Notifications=[], UserState ).
+				  ReadTreeData, BinTreePath, AnalyzerRing, _Notifications=[],
+				  UserState ).
 
 
 
@@ -1296,12 +1296,11 @@ perform_resync( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 % returning the corresponding tree data.
 %
 -spec resync_files( set_utils:set( bin_file_path() ), [ sha1_entry() ],
-					tree_data(), file_utils:bin_path(), analyzer_ring(),
-					time_utils:posix_seconds(), [ string() ], user_state() ) ->
-						  { tree_data(), [ string() ] }.
+		tree_data(), file_utils:bin_path(), analyzer_ring(),
+		[ string() ], user_state() ) -> { tree_data(), [ string() ] }.
 % All known entries exhausted; maybe extra files were in the filesystem:
 resync_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
-			  _CacheTimestamp, Notifications, UserState ) ->
+			  Notifications, UserState ) ->
 
 	case set_utils:to_list( FileSet ) of
 
@@ -1317,6 +1316,7 @@ resync_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
 						 "checked now: ~s", [ length( ExtraFiles ),
 						   text_utils:binaries_to_string( ExtraFiles ) ],
 						 UserState ),
+
 			% Let's have the workers check these extra files (new ring not
 			% kept):
 			%
@@ -1358,8 +1358,7 @@ resync_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
 
 % Extracting next recorded file_data elements:
 resync_files( FileSet, _Entries=[ { SHA1, FileDatas } | T ], TreeData,
-			  BinTreePath, AnalyzerRing, CacheTimestamp, Notifications,
-			  UserState ) ->
+			  BinTreePath, AnalyzerRing, Notifications, UserState ) ->
 
 	% Not using a ring for punctual updates:
 	{ NewFileSet, NewTreeData, ExtraNotifications } =
@@ -1368,8 +1367,7 @@ resync_files( FileSet, _Entries=[ { SHA1, FileDatas } | T ], TreeData,
 				UserState ),
 
 	resync_files( NewFileSet, T, NewTreeData, BinTreePath, AnalyzerRing,
-				  CacheTimestamp, ExtraNotifications ++ Notifications,
-				  UserState ).
+				  ExtraNotifications ++ Notifications, UserState ).
 
 
 
