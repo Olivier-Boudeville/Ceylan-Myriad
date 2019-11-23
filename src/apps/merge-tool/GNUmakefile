@@ -1,8 +1,8 @@
 MYRIAD_TOP = ../../..
 
 
-.PHONY: test-local test-initial-scan test-extra-scan test-rescan test-uniquify \
-		test-merge uniquify \
+.PHONY: test-local test-initial-scan test-extra-scan test-rescan test-resync \
+		test-uniquify test-merge uniquify                                    \
 		make-test-trees scan-test-tree clean-test-trees                      \
 		post-test process-test-log reset-keyboard-mode
 
@@ -33,7 +33,7 @@ all:
 test-all: test-local test-uniquify test-merge
 
 
-test-local: test-initial-scan test-extra-scan test-rescan
+test-local: test-initial-scan test-extra-scan test-rescan test-resync
 
 
 # Meant to create a cache file:
@@ -45,6 +45,8 @@ test-extra-scan: pre-test scan-test-tree post-test
 
 test-rescan: pre-test rescan-test-tree post-test
 
+test-resync: pre-test resync-test-tree post-test
+
 test-uniquify: pre-test make-test-trees uniquify
 
 uniquify:
@@ -52,6 +54,7 @@ uniquify:
 
 
 test-merge: pre-test make-test-trees
+	@killall epmd 2>/dev/null
 	@$(MERGE_SCRIPT) --input $(TEST_CONTENT_TREE) --reference $(TEST_REFERENCE_TREE) --use-ui-backend $(UI_BACKEND) ; $(MAKE) -s post-test
 
 
@@ -95,6 +98,11 @@ scan-test-tree:
 rescan-test-tree:
 	@echo "  Running a rescan of $(TEST_CONTENT_TREE)"
 	@$(MERGE_SCRIPT) --rescan $(TEST_CONTENT_TREE) --use-ui-backend $(UI_BACKEND)
+
+
+resync-test-tree:
+	@echo "  Running a resync of $(TEST_CONTENT_TREE)"
+	@$(MERGE_SCRIPT) --resync $(TEST_CONTENT_TREE) --use-ui-backend $(UI_BACKEND)
 
 
 debug:
