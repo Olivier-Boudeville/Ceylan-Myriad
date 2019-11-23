@@ -82,7 +82,7 @@ make-test-trees: clean-test-trees
 	@echo "Content #2" > $(TEST_REFERENCE_TREE)/kinabe/c.txt
 	@echo "Unique content" > $(TEST_REFERENCE_TREE)/wilbur/d.txt
 	@echo "Unique content" > $(TEST_REFERENCE_TREE)/e.txt
-	@echo
+
 
 
 pre-test:
