@@ -436,6 +436,9 @@ compute_md5_sum( Filename ) ->
 %
 -spec compute_sha1_sum( file_utils:path() ) -> sha1_sum().
 compute_sha1_sum( Filename ) ->
+
+	trace_utils:trace_fmt( "Computing SHA1 sum of '~s'.", [ Filename ] ),
+
 	compute_sha_sum( Filename, _SizeOfSHAAlgorithm=1 ).
 
 
