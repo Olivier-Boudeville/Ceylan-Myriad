@@ -756,8 +756,6 @@ rescan( TreePath, AnalyzerRing, UserState ) ->
 						  text_utils:strings_to_string( Notifications,
 														_Indent=1 ) ] ),
 
-					trace_debug( NotifString, UserState ),
-
 					% Otherwise at least some UI backends might fail:
 					DisplayString = case NotifCount of
 
@@ -902,6 +900,8 @@ rescan_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
 			lists:foldl(
 			  fun( Filename, AccRing ) ->
 					  { AnalyzerPid, NewAccRing } = ring_utils:head( AccRing ),
+					  trace_debug( "Checking new file ~s", [ Filename ],
+								   UserState ),
 					  AnalyzerPid ! { checkNewFile,
 									  [ BinTreePath, Filename ], self() },
 					  NewAccRing
@@ -943,7 +943,8 @@ rescan_files( FileSet, _Entries=[ { SHA1, FileDatas } | T ], TreeData,
 	% Not using a ring for punctual updates:
 	{ NewFileSet, NewTreeData, ExtraNotifications } =
 		check_file_datas_for_scan( FileDatas, SHA1, FileSet, TreeData,
-				   BinTreePath, _NewFileDatas=[], _ExtraNotifications=[] ),
+				   BinTreePath, _NewFileDatas=[], _ExtraNotifications=[],
+				   UserState ),
 
 	rescan_files( NewFileSet, T, NewTreeData, BinTreePath, AnalyzerRing,
 				  CacheTimestamp, ExtraNotifications ++ Notifications,
@@ -993,7 +994,8 @@ integrate_extra_files(
 check_file_datas_for_scan( _FileDatas=[], SHA1, FileSet,
 						   TreeData=#tree_data{ entries=PrevEntries,
 												file_count=PrevFileCount },
-						   _BinTreePath, FileDatas, ExtraNotifications ) ->
+						   _BinTreePath, FileDatas, ExtraNotifications,
+						   _UserState ) ->
 
 	NewEntryCount = length( FileDatas ),
 
@@ -1027,7 +1029,7 @@ check_file_datas_for_scan( _FileDatas=[
 										 timestamp=RecordedTimestamp,
 										 sha1_sum=SHA1 } | T ],
 						   SHA1, FileSet, TreeData, BinTreePath, FileDatas,
-						   ExtraNotifications ) ->
+						   ExtraNotifications, UserState ) ->
 
 	FullPath = file_utils:join( BinTreePath, RelativeBinFilename ),
 
@@ -1049,7 +1051,8 @@ check_file_datas_for_scan( _FileDatas=[
 
 			% Let's forget this file_data then:
 			check_file_datas_for_scan( T, SHA1, FileSet, TreeData, BinTreePath,
-							   FileDatas, [ NewNotif | ExtraNotifications ] );
+							FileDatas, [ NewNotif | ExtraNotifications ],
+							UserState );
 
 		% Here the iterated file still exists as a regular one, let's check
 		% whether the other information are still valid:
@@ -1078,6 +1081,8 @@ check_file_datas_for_scan( _FileDatas=[
 								 system_utils:interpret_byte_size( OtherSize )
 							   ] ),
 
+							trace_debug( NewNotif, UserState ),
+
 							% Recreating the record from scratch:
 							NewFileData = #file_data{
 						path=RelativeBinFilename,
@@ -1098,6 +1103,8 @@ check_file_datas_for_scan( _FileDatas=[
 						"timestamp, it has thus been reindexed.",
 						[ FullPath ] ),
 
+					trace_debug( NewNotif, UserState ),
+
 					% Recreating the record from scratch:
 					NewFileData = #file_data{
 						path=RelativeBinFilename,
@@ -1111,7 +1118,8 @@ check_file_datas_for_scan( _FileDatas=[
 			end,
 
 			check_file_datas_for_scan( T, SHA1, ShrunkFileSet, TreeData,
-				BinTreePath, [ UpdatedFileData | FileDatas ], UpdatedNotifs )
+				BinTreePath, [ UpdatedFileData | FileDatas ], UpdatedNotifs,
+				UserState )
 
 	end.
 
@@ -1356,7 +1364,8 @@ resync_files( FileSet, _Entries=[ { SHA1, FileDatas } | T ], TreeData,
 	% Not using a ring for punctual updates:
 	{ NewFileSet, NewTreeData, ExtraNotifications } =
 		check_file_datas_for_sync( FileDatas, SHA1, FileSet, TreeData,
-				   BinTreePath, _NewFileDatas=[], _ExtraNotifications=[] ),
+				BinTreePath, _NewFileDatas=[], _ExtraNotifications=[],
+				UserState ),
 
 	resync_files( NewFileSet, T, NewTreeData, BinTreePath, AnalyzerRing,
 				  CacheTimestamp, ExtraNotifications ++ Notifications,
@@ -1371,7 +1380,8 @@ resync_files( FileSet, _Entries=[ { SHA1, FileDatas } | T ], TreeData,
 check_file_datas_for_sync( _FileDatas=[], SHA1, FileSet,
 						   TreeData=#tree_data{ entries=PrevEntries,
 												file_count=PrevFileCount },
-						   _BinTreePath, FileDatas, ExtraNotifications ) ->
+						   _BinTreePath, FileDatas, ExtraNotifications,
+						   _UserState ) ->
 
 	NewEntryCount = length( FileDatas ),
 
@@ -1404,7 +1414,7 @@ check_file_datas_for_sync( _FileDatas=[
 										 size=RecordedSize,
 										 sha1_sum=SHA1 } | T ],
 						   SHA1, FileSet, TreeData, BinTreePath, FileDatas,
-						   ExtraNotifications ) ->
+						   ExtraNotifications, UserState ) ->
 
 	FullPath = file_utils:join( BinTreePath, RelativeBinFilename ),
 
@@ -1426,7 +1436,8 @@ check_file_datas_for_sync( _FileDatas=[
 
 			% Let's forget this file_data then:
 			check_file_datas_for_sync( T, SHA1, FileSet, TreeData, BinTreePath,
-							   FileDatas, [ NewNotif | ExtraNotifications ] );
+							FileDatas, [ NewNotif | ExtraNotifications ],
+							UserState );
 
 		% Here the iterated file still exists as a regular one, let's check
 		% whether the size information is still valid (timestamp not taken into
@@ -1452,6 +1463,8 @@ check_file_datas_for_sync( _FileDatas=[
 								 system_utils:interpret_byte_size( OtherSize )
 							   ] ),
 
+							trace_debug( NewNotif, UserState ),
+
 							% Recreating the record from scratch:
 							NewFileData = #file_data{
 						path=RelativeBinFilename,
@@ -1466,7 +1479,8 @@ check_file_datas_for_sync( _FileDatas=[
 				end,
 
 			check_file_datas_for_sync( T, SHA1, ShrunkFileSet, TreeData,
-				BinTreePath, [ UpdatedFileData | FileDatas ], UpdatedNotifs )
+				BinTreePath, [ UpdatedFileData | FileDatas ], UpdatedNotifs,
+				UserState )
 
 	end.
 
@@ -2815,40 +2829,44 @@ scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 	% For lighter message sendings and storage:
 	FilteredBinFiles = text_utils:strings_to_binaries( FilteredFiles ),
 
-	scan_files( FilteredBinFiles, AbsTreePath, AnalyzerRing ).
+	scan_files( FilteredBinFiles, AbsTreePath, AnalyzerRing, UserState ).
 
 
 
 % Scans specified content files, using for that the specified analyzers,
 % returning the corresponding tree data.
 %
--spec scan_files( [ bin_file_path() ], file_utils:path(), analyzer_ring() ) ->
-						tree_data().
-scan_files( Files, AbsTreePath, AnalyzerRing ) ->
+-spec scan_files( [ bin_file_path() ], file_utils:path(), analyzer_ring(),
+				  user_state() ) -> tree_data().
+scan_files( Files, AbsTreePath, AnalyzerRing, UserState ) ->
 
 	InitialTreeData = #tree_data{
 			 root=text_utils:string_to_binary( AbsTreePath ) },
 
-	scan_files( Files, AnalyzerRing, InitialTreeData, _WaitedCount=0 ).
+	scan_files( Files, AnalyzerRing, InitialTreeData, _WaitedCount=0,
+				UserState ).
 
 
-scan_files( _Files=[], _AnalyzerRing, TreeData, _WaitedCount=0 ) ->
+scan_files( _Files=[], _AnalyzerRing, TreeData, _WaitedCount=0, _UserState ) ->
 	% In final state (none waited), hence directly returned:
 	%trace_info( "All file entries retrieved." ),
 	TreeData;
 
-scan_files( _Files=[], _AnalyzerRing, TreeData, WaitedCount ) ->
+scan_files( _Files=[], _AnalyzerRing, TreeData, WaitedCount, _UserState ) ->
 	% Will return an updated tree data, once all answers are received:
 	%trace_info( "Final waiting for ~B entries.", [ WaitedCount ] ),
 	wait_entries( TreeData, WaitedCount );
 
 scan_files( _Files=[ Filename | T ], AnalyzerRing,
-			TreeData=#tree_data{ root=BinAbsTreePath }, WaitedCount ) ->
+			TreeData=#tree_data{ root=BinAbsTreePath },
+			WaitedCount, UserState ) ->
 
 	{ AnalyzerPid, NewRing } = ring_utils:head( AnalyzerRing ),
 
 	%trace_debug( "Requesting analysis of '~s' by ~w.",
 	%			 [ FullPath, AnalyzerPid ] ),
+
+	trace_debug( "Scanning ~s.", [ Filename ], UserState ),
 
 	% WOOPER-style request:
 	AnalyzerPid ! { analyzeFile, [ BinAbsTreePath, Filename ], self() },
@@ -2868,7 +2886,7 @@ scan_files( _Files=[ Filename | T ], AnalyzerRing,
 	after 0 ->
 
 		% One sending, and no receiving here:
-		scan_files( T, NewRing, TreeData, WaitedCount+1 )
+		scan_files( T, NewRing, TreeData, WaitedCount+1, UserState )
 
 	end.
 
