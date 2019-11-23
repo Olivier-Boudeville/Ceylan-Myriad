@@ -204,6 +204,7 @@ get_usage() ->
 	"  - '"?exec_name" --input INPUT_TREE --reference REFERENCE_TREE'\n"
 	"  - '"?exec_name" --scan A_TREE'\n"
 	"  - '"?exec_name" --rescan A_TREE'\n"
+	"  - '"?exec_name" --resync A_TREE'\n"
 	"  - '"?exec_name" --uniquify A_TREE'\n"
 	"  - '"?exec_name" -h' or '"?exec_name" --help'\n\n"
 	"   Ensures, for the first form, that all the changes in a possibly more up-to-date, \"newer\" tree (INPUT_TREE) are merged back to the reference tree (REFERENCE_TREE), from which the first tree may have derived. Once executed, only a refreshed, complemented reference tree will exist, as the input tree will have been removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
@@ -211,8 +212,9 @@ get_usage() ->
 	"   At the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they have not changed. As a result, once a merge is done, the reference tree may contain an uniquified version of the union of the two specified trees, and the tree to scan will not exist anymore.\n\n"
 	"   For the second form (--scan option), the specified tree will simply be inspected for duplicates, and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
 	"   For the third form (--rescan option), an attempt to rebuild an updated '" ?merge_cache_filename "' file will be performed, computing only the checksum of the files that were not already referenced or whose timestamp or size changed.\n\n"
-	"   For the fourth form (--uniquify option), the specified tree will be scanned first (see previous operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links), and once done a corresponding up-to-date '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
-	"   For the fifth form (-h or --help option), displays this help.\n\n"
+	"   For the fourth form (--resync option), a rebuild even lighter than rescan of '" ?merge_cache_filename "' will be done, checking only sizes, and updating timestamps.\n\n"
+	"   For the fifth form (--uniquify option), the specified tree will be scanned first (see previous operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links), and once done a corresponding up-to-date '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
+	"   For the sixth form (-h or --help option), displays this help.\n\n"
 
 	"   Note that the --base-dir A_BASE_DIR option can be specified by the user to designate the base directory of all relative paths mentioned."
 	"   When a cache file is found, it can be either ignored (and thus recreated) or re-used, either as it is or after a weak check, where only file existence, sizes and timestamps are then verified.".
@@ -274,11 +276,7 @@ main( ArgTable ) ->
 
 				{ [ RefTreePath ], NoRefArgTable }
 				  when is_list( RefTreePath ) ->
-
-					AbsRefTreePath = file_utils:ensure_path_is_absolute(
-							   RefTreePath, BaseDir ),
-
-					handle_reference_option( AbsRefTreePath, NoRefArgTable,
+					handle_reference_option( RefTreePath, NoRefArgTable,
 											 BaseDir );
 
 				{ undefined, NoRefArgTable } ->
@@ -325,13 +323,9 @@ handle_reference_option( RefTreePath, ArgumentTable, BaseDir ) ->
 
 			%trace_utils:debug_fmt( "InputTreePath: ~p", [ InputTreePath ] ),
 
-			check_no_option_remains( NewArgumentTable ),
-
-			NormInputTreePath =
-				file_utils:ensure_path_is_absolute( InputTreePath, BaseDir ),
-
 			% RefTreePath is already vetted:
-			merge( NormInputTreePath, RefTreePath );
+			handle_merge_option( InputTreePath, RefTreePath, NewArgumentTable,
+								 BaseDir );
 
 
 		% Typically more than one input option specified:
@@ -348,7 +342,9 @@ handle_reference_option( RefTreePath, ArgumentTable, BaseDir ) ->
 % Handles the command-line whenever the --reference option was not specified.
 handle_non_reference_option( ArgumentTable, BaseDir ) ->
 
-	% No reference, it must then be a pure scan, a rescan or a uniquify here:
+	% No reference, it must then be a pure scan, a rescan, a resync or a
+	% uniquify here:
+	%
 	case list_table:extract_entry_with_defaults( '-scan', undefined,
 												 ArgumentTable ) of
 
@@ -365,9 +361,7 @@ handle_non_reference_option( ArgumentTable, BaseDir ) ->
 				% A rescan was requested:
 				{ [ RescanTreePath ], RescanArgTable }
 				  when is_list( RescanTreePath ) ->
-					AbsRescanTreePath = file_utils:ensure_path_is_absolute(
-										  RescanTreePath, BaseDir ),
-					handle_rescan_option( AbsRescanTreePath, RescanArgTable,
+					handle_rescan_option( RescanTreePath, RescanArgTable,
 										  BaseDir );
 
 				{ UnexpectedRescanTreeOpts, _RescanArgTable } ->
@@ -386,9 +380,7 @@ handle_non_reference_option( ArgumentTable, BaseDir ) ->
 			case list_table:is_empty( ScanArgTable ) of
 
 				true ->
-					AbsScanTreePath = file_utils:ensure_path_is_absolute(
-										ScanTreePath, BaseDir ),
-					handle_scan_option( AbsScanTreePath, ScanArgTable, BaseDir );
+					handle_scan_option( ScanTreePath, ScanArgTable, BaseDir );
 
 				false ->
 					Msg = text_utils:format(
@@ -410,50 +402,74 @@ handle_non_reference_option( ArgumentTable, BaseDir ) ->
 
 handle_neither_scan_options( ArgTable, BaseDir ) ->
 
-	% Not a scan or rescan, then a uniquify?
-	case list_table:extract_entry_with_defaults( '-uniquify', undefined,
+	% Not a scan or rescan, then either a resync or a uniquify?
+
+	case list_table:extract_entry_with_defaults( '-resync', undefined,
 												 ArgTable ) of
 
-		{ undefined, NoUniqArgTable } ->
+		{ undefined, NoResyncArgTable } ->
 
-			AddedString = case list_table:is_empty( NoUniqArgTable ) of
+			case list_table:extract_entry_with_defaults( '-uniquify', undefined,
+														 NoResyncArgTable ) of
 
-				true ->
-					" (no command-line option specified)";
+				{ undefined, NoUniqArgTable } ->
 
-				false ->
-					"; instead: " ++ executable_utils:argument_table_to_string(
-									   NoUniqArgTable )
+					AddedString = case list_table:is_empty( NoUniqArgTable ) of
 
-			end,
+									  true ->
+										  " (no command-line option specified)";
 
-			Msg = text_utils:format( "no operation specified~s",
-									 [ AddedString ] ),
+									  false ->
+										  "; instead: "
+						   ++ executable_utils:argument_table_to_string(
+								NoUniqArgTable )
 
-			stop_on_option_error( Msg, 20 );
+					end,
+
+					Msg = text_utils:format( "no operation specified~s",
+											 [ AddedString ] ),
+
+					stop_on_option_error( Msg, 20 );
+
+				{ [ UniqTreePath ], NoUniqArgTable }
+				  when is_list( UniqTreePath ) ->
+					handle_uniquify_option( UniqTreePath, NoUniqArgTable,
+											BaseDir );
 
 
-		{ [ UniqTreePath ], NoUniqArgTable } when is_list( UniqTreePath ) ->
-			% Includes normalisation; allows notably to remove any
-			% user-specified trailing /:
-			%
-			AbsUniqTreePath =
-				file_utils:ensure_path_is_absolute( UniqTreePath, BaseDir ),
-			handle_uniquify_option( AbsUniqTreePath, NoUniqArgTable, BaseDir );
+				{ UnexpectedUniqTreeOpts, _NoUniqArgTable } ->
+
+					UniqString = text_utils:format(
+								   "unexpected uniquify tree options: ~p",
+								   [ UnexpectedUniqTreeOpts ] ),
+
+					stop_on_option_error( UniqString, 22 )
+
+			end;
 
 
-		{ UnexpectedUniqTreeOpts, _NoUniqArgTable } ->
+		{ [ ResyncTreePath ], NoResyncArgTable }
+				  when is_list( ResyncTreePath ) ->
+					handle_resync_option( ResyncTreePath, NoResyncArgTable,
+										  BaseDir );
 
-			UniqString = text_utils:format( "unexpected scan tree options: ~p",
-											[ UnexpectedUniqTreeOpts ] ),
+		{ UnexpectedResyncTreeOpts, _NoResyncArgTable } ->
 
-			stop_on_option_error( UniqString, 22 )
+			ResyncString = text_utils:format(
+							 "unexpected resync tree options: ~p",
+							 [ UnexpectedResyncTreeOpts ] ),
+
+			stop_on_option_error( ResyncString, 24 )
 
 	end.
 
 
 
-handle_scan_option( AbsScanTreePath, ScanArgTable, _BaseDir ) ->
+
+handle_scan_option( UserScanTreePath, ScanArgTable, BaseDir ) ->
+
+	AbsScanTreePath = file_utils:ensure_path_is_absolute( UserScanTreePath,
+														  BaseDir ),
 
 	check_no_option_remains( ScanArgTable ),
 
@@ -472,7 +488,10 @@ handle_scan_option( AbsScanTreePath, ScanArgTable, _BaseDir ) ->
 
 
 
-handle_rescan_option( AbsRescanTreePath, RescanArgTable, _BaseDir ) ->
+handle_rescan_option( UserRescanTreePath, RescanArgTable, BaseDir ) ->
+
+	AbsRescanTreePath = file_utils:ensure_path_is_absolute( UserRescanTreePath,
+															BaseDir ),
 
 	check_no_option_remains( RescanArgTable ),
 
@@ -492,13 +511,53 @@ handle_rescan_option( AbsRescanTreePath, RescanArgTable, _BaseDir ) ->
 	basic_utils:stop( _ErrorCode=0 ).
 
 
+handle_resync_option( UserResyncTreePath, ResyncArgTable, BaseDir ) ->
 
-handle_uniquify_option( AbsUniqTreePath, UniqArgTable, _BaseDir ) ->
+	AbsResyncTreePath = file_utils:ensure_path_is_absolute( UserResyncTreePath,
+															BaseDir ),
+
+	check_no_option_remains( ResyncArgTable ),
+
+	% Prepare for various outputs:
+	UserState = start_user_service( ?default_log_filename ),
+
+	AnalyzerRing = create_analyzer_ring( UserState ),
+
+	NewTreeData = resync( AbsResyncTreePath, AnalyzerRing, UserState ),
+
+	write_cache_file( NewTreeData, UserState ),
+
+	terminate_analyzer_ring( AnalyzerRing, UserState ),
+
+	stop_user_service( UserState ),
+
+	basic_utils:stop( _ErrorCode=0 ).
+
+
+
+handle_uniquify_option( UserUniqTreePath, UniqArgTable, BaseDir ) ->
+
+	AbsUniqTreePath = file_utils:ensure_path_is_absolute( UserUniqTreePath,
+														  BaseDir ),
 
 	check_no_option_remains( UniqArgTable ),
 
 	uniquify( AbsUniqTreePath ).
 
+
+
+handle_merge_option( UserInputTreePath, UserRefTreePath, MergeArgTable,
+					 BaseDir ) ->
+
+	AbsInputTreePath = file_utils:ensure_path_is_absolute( UserInputTreePath,
+														   BaseDir ),
+
+	AbsRefTreePath = file_utils:ensure_path_is_absolute( UserRefTreePath,
+														 BaseDir ),
+
+	check_no_option_remains( MergeArgTable ),
+
+	merge( AbsInputTreePath, AbsRefTreePath ).
 
 
 check_no_option_remains( ArgTable ) ->
@@ -645,7 +704,9 @@ perform_scan( TreePath, AnalyzerRing, UserState ) ->
 
 
 
-% Rescans specified tree, returning the corresponding datastructure.
+% Rescans specified tree (as an absolution directory), returning the
+% corresponding datastructure.
+%
 -spec rescan( file_utils:directory_name(), analyzer_ring(), user_state() ) ->
 				  tree_data().
 rescan( TreePath, AnalyzerRing, UserState ) ->
@@ -659,6 +720,18 @@ rescan( TreePath, AnalyzerRing, UserState ) ->
 	ui:set_settings( [ { 'backtitle',
 					 text_utils:format( "Rescan of ~s", [ TreePath ] ) },
 					   { 'title', "Rescan report" } ] ),
+
+	case file_utils:is_existing_directory( TreePath ) of
+
+		true ->
+			ok;
+
+		false ->
+			ui:display_error( "Specified tree to rescan ('~s') is not "
+				"an existing directory; aborting now.", [ TreePath ] ),
+			throw( { non_existing_directory_to_rescan, TreePath } )
+
+	end,
 
 	CacheFilename = get_cache_path_for( TreePath ),
 
@@ -869,8 +942,8 @@ rescan_files( FileSet, _Entries=[ { SHA1, FileDatas } | T ], TreeData,
 
 	% Not using a ring for punctual updates:
 	{ NewFileSet, NewTreeData, ExtraNotifications } =
-		check_file_datas( FileDatas, SHA1, FileSet, TreeData, BinTreePath,
-						  _NewFileDatas=[], _ExtraNotifications=[] ),
+		check_file_datas_for_scan( FileDatas, SHA1, FileSet, TreeData,
+				   BinTreePath, _NewFileDatas=[], _ExtraNotifications=[] ),
 
 	rescan_files( NewFileSet, T, NewTreeData, BinTreePath, AnalyzerRing,
 				  CacheTimestamp, ExtraNotifications ++ Notifications,
@@ -917,10 +990,10 @@ integrate_extra_files(
 % Checks whether the file data elements seem up to date: still existing, not
 % more recent than cache filename, and of the same size as referenced.
 %
-check_file_datas( _FileDatas=[], SHA1, FileSet,
-				  TreeData=#tree_data{ entries=PrevEntries,
-									   file_count=PrevFileCount },
-				  _BinTreePath, FileDatas, ExtraNotifications ) ->
+check_file_datas_for_scan( _FileDatas=[], SHA1, FileSet,
+						   TreeData=#tree_data{ entries=PrevEntries,
+												file_count=PrevFileCount },
+						   _BinTreePath, FileDatas, ExtraNotifications ) ->
 
 	NewEntryCount = length( FileDatas ),
 
@@ -947,13 +1020,14 @@ check_file_datas( _FileDatas=[], SHA1, FileSet,
 	{ FileSet, NewTreeData, ExtraNotifications };
 
 % Take into account only regular files:
-check_file_datas( _FileDatas=[ FileData=#file_data{ path=RelativeBinFilename,
-													type=regular,
-													size=RecordedSize,
-													timestamp=RecordedTimestamp,
-													sha1_sum=SHA1 } | T ],
-				  SHA1, FileSet, TreeData, BinTreePath, FileDatas,
-				  ExtraNotifications ) ->
+check_file_datas_for_scan( _FileDatas=[
+					FileData=#file_data{ path=RelativeBinFilename,
+										 type=regular,
+										 size=RecordedSize,
+										 timestamp=RecordedTimestamp,
+										 sha1_sum=SHA1 } | T ],
+						   SHA1, FileSet, TreeData, BinTreePath, FileDatas,
+						   ExtraNotifications ) ->
 
 	FullPath = file_utils:join( BinTreePath, RelativeBinFilename ),
 
@@ -974,8 +1048,8 @@ check_file_datas( _FileDatas=[ FileData=#file_data{ path=RelativeBinFilename,
 			end,
 
 			% Let's forget this file_data then:
-			check_file_datas( T, SHA1, FileSet, TreeData, BinTreePath,
-							  FileDatas, [ NewNotif | ExtraNotifications ] );
+			check_file_datas_for_scan( T, SHA1, FileSet, TreeData, BinTreePath,
+							   FileDatas, [ NewNotif | ExtraNotifications ] );
 
 		% Here the iterated file still exists as a regular one, let's check
 		% whether the other information are still valid:
@@ -1036,8 +1110,363 @@ check_file_datas( _FileDatas=[ FileData=#file_data{ path=RelativeBinFilename,
 
 			end,
 
-			check_file_datas( T, SHA1, ShrunkFileSet, TreeData, BinTreePath,
-				  [ UpdatedFileData | FileDatas ], UpdatedNotifs )
+			check_file_datas_for_scan( T, SHA1, ShrunkFileSet, TreeData,
+				BinTreePath, [ UpdatedFileData | FileDatas ], UpdatedNotifs )
+
+	end.
+
+
+
+% Resyncs specified tree (as an absolution directory), returning the
+% corresponding datastructure.
+%
+-spec resync( file_utils:directory_name(), analyzer_ring(), user_state() ) ->
+				  tree_data().
+resync( TreePath, AnalyzerRing, UserState ) ->
+
+	% TreePath expected to be already absolute and normalised.
+
+	trace_debug( "Requested to resync '~s'.", [ TreePath ], UserState ),
+
+	BinTreePath = text_utils:string_to_binary( TreePath ),
+
+	ui:set_settings( [ { 'backtitle',
+					 text_utils:format( "Resync of ~s", [ TreePath ] ) },
+					   { 'title', "Resync report" } ] ),
+
+	case file_utils:is_existing_directory( TreePath ) of
+
+		true ->
+			ok;
+
+		false ->
+			ui:display_error( "Specified tree to resync ('~s') is not "
+				"an existing directory; aborting now.", [ TreePath ] ),
+			throw( { non_existing_directory_to_resync, TreePath } )
+
+	end,
+
+	CacheFilename = get_cache_path_for( TreePath ),
+
+	case file_utils:is_existing_file( CacheFilename ) of
+
+		true ->
+			{ TreeData, Notifications } =
+				perform_resync( BinTreePath, CacheFilename, AnalyzerRing,
+								UserState ),
+
+			case Notifications of
+
+				[] ->
+					trace_debug( "No specific resync notification to report.",
+								 UserState );
+
+				_ ->
+					NotifCount = length( Notifications ),
+					NotifString = text_utils:format(
+						"~B notifications to report: ~s",
+						[ NotifCount,
+						  text_utils:strings_to_string( Notifications,
+														_Indent=1 ) ] ),
+
+					trace_debug( NotifString, UserState ),
+
+					% Otherwise at least some UI backends might fail:
+					DisplayString = case NotifCount of
+
+						L when L > 15 ->
+							text_utils:format( "~B notifications to report, "
+							   "see logs for full details.", [ L ] );
+
+						_ ->
+							NotifString
+
+					end,
+					ui:display( DisplayString )
+
+			end,
+
+			ResyncPrompt = text_utils:format( "Resync result for '~s'",
+											  [ TreePath ] ),
+
+			display_tree_data( TreeData, ResyncPrompt, UserState ),
+
+			trace_debug( "Resynchronised tree: ~s",
+						 [ tree_data_to_string( TreeData, _Verbose=true ) ],
+						 UserState ),
+
+			TreeData;
+
+
+		false ->
+			ui:display( "No cache file (~s) found, performing full scan "
+						"to recreate it.", [ CacheFilename ] ),
+
+			TreeData = perform_scan( TreePath, AnalyzerRing, UserState ),
+
+			ScanPrompt = text_utils:format( "Full scan result for '~s'",
+											[ TreePath ] ),
+
+			display_tree_data( TreeData, ScanPrompt, UserState ),
+
+			TreeData
+
+	end.
+
+
+
+% (helper)
+perform_resync( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
+
+	CacheTimestamp = file_utils:get_last_modification_time( CacheFilename ),
+
+	% Cache file expected to be already checked existing:
+	[ _RootInfo={ root, CachedTreePath } | FileInfos ] =
+		file_utils:read_terms( CacheFilename ),
+
+	BinCachedTreePath = text_utils:string_to_binary( CachedTreePath ),
+
+	BinTreePath = case BinUserTreePath of
+
+		BinCachedTreePath ->
+			BinUserTreePath;
+
+		OtherBinTreePath ->
+			UpdatePrompt = text_utils:format(
+							 "Root path in cache filename ('~s') does not "
+							 "match actual tree to resync: read as '~s', "
+							 "whereas user-specified as '~s'.~n~n"
+							 "Shall it be automatically updated to the "
+							 "actual one?~n"
+							 "(otherwise the resync will stop on failure)~n~n"
+							 "Such an update is typically relevant if this "
+							 "tree has been moved since the last inspection.",
+							 [ CacheFilename, BinCachedTreePath,
+							   BinUserTreePath ] ),
+
+			case ui:ask_yes_no( UpdatePrompt, _BinaryDefault=no ) of
+
+				yes ->
+					BinUserTreePath;
+
+				no ->
+					throw( { mismatching_paths, BinCachedTreePath,
+							 OtherBinTreePath } )
+
+			end
+
+	end,
+
+	ReadTreeData = #tree_data{ root=BinTreePath,
+							   entries=build_entry_table( FileInfos ),
+							   file_count=length( FileInfos )
+							   % Not managed (at least yet): the other counts.
+							 },
+
+	trace_debug( "Resynchonising tree '~s'...", [ BinTreePath ], UserState ),
+
+	% Relative to specified path:
+	AllFiles = file_utils:find_regular_files_from( BinTreePath ),
+
+	% Not wanting to index our own files (if any already exists):
+	FilteredFiles = lists:delete( ?merge_cache_filename, AllFiles ),
+
+	trace_debug( "Found in filesystem ~B files: ~s", [ length( FilteredFiles ),
+				 text_utils:strings_to_string( FilteredFiles ) ], UserState ),
+
+	% For lighter message sendings and storage:
+	FilteredBinFiles = text_utils:strings_to_binaries( FilteredFiles ),
+
+	resync_files( _FileSet=set_utils:from_list( FilteredBinFiles ),
+				  table:enumerate( ReadTreeData#tree_data.entries ),
+				  ReadTreeData, BinTreePath, AnalyzerRing, CacheTimestamp,
+				  _Notifications=[], UserState ).
+
+
+
+% Resyncs specified content files, using for that the specified analyzers,
+% returning the corresponding tree data.
+%
+-spec resync_files( set_utils:set( bin_file_path() ), [ sha1_entry() ],
+					tree_data(), file_utils:bin_path(), analyzer_ring(),
+					time_utils:posix_seconds(), [ string() ], user_state() ) ->
+						  { tree_data(), [ string() ] }.
+% All known entries exhausted; maybe extra files were in the filesystem:
+resync_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
+			  _CacheTimestamp, Notifications, UserState ) ->
+
+	case set_utils:to_list( FileSet ) of
+
+		[] ->
+			trace_debug( "No extra file found during resync.", UserState ),
+			% Returning directly the updated tree:
+			{ TreeData, Notifications };
+
+
+		ExtraFiles ->
+
+			trace_debug( "Found ~B extra files during resync that will be "
+						 "checked now: ~s", [ length( ExtraFiles ),
+						   text_utils:binaries_to_string( ExtraFiles ) ],
+						 UserState ),
+			% Let's have the workers check these extra files (new ring not
+			% kept):
+			%
+			lists:foldl(
+			  fun( Filename, AccRing ) ->
+					  { AnalyzerPid, NewAccRing } = ring_utils:head( AccRing ),
+					  AnalyzerPid ! { checkNewFile,
+									  [ BinTreePath, Filename ], self() },
+					  NewAccRing
+			  end,
+			  _Acc0=AnalyzerRing,
+			  _List=ExtraFiles ),
+
+			% Waiting for all corresponding file_data elements:
+			ExtraFileDatas = lists:foldl(
+			  fun( _Count, AccFileDatas ) ->
+					  receive
+
+						  { file_checked, FileData } ->
+							  [ FileData | AccFileDatas ]
+
+					  end
+			  end,
+			  _SecondAcc0=[],
+			  _SecondList=lists:seq( 1, length( ExtraFiles ) ) ),
+
+			ExtraNotif = text_utils:format( "following ~B extra files were "
+				"added (not referenced yet): ~s",
+				[ length( ExtraFiles ),
+				  text_utils:binaries_to_string( ExtraFiles, _Indent=1 ) ] ),
+
+			% Here we have a list of data of the files that were not referenced
+			% yet; returns an updated tree:
+			%
+			{ integrate_extra_files( ExtraFileDatas, TreeData, UserState ),
+			  [ ExtraNotif | Notifications ] }
+
+	end;
+
+% Extracting next recorded file_data elements:
+resync_files( FileSet, _Entries=[ { SHA1, FileDatas } | T ], TreeData,
+			  BinTreePath, AnalyzerRing, CacheTimestamp, Notifications,
+			  UserState ) ->
+
+	% Not using a ring for punctual updates:
+	{ NewFileSet, NewTreeData, ExtraNotifications } =
+		check_file_datas_for_sync( FileDatas, SHA1, FileSet, TreeData,
+				   BinTreePath, _NewFileDatas=[], _ExtraNotifications=[] ),
+
+	resync_files( NewFileSet, T, NewTreeData, BinTreePath, AnalyzerRing,
+				  CacheTimestamp, ExtraNotifications ++ Notifications,
+				  UserState ).
+
+
+
+% Checks whether the file data elements seem up to date: still existing and of
+% the same size as referenced (timestamp ignored on purpose, not compared to
+% cache filename).
+%
+check_file_datas_for_sync( _FileDatas=[], SHA1, FileSet,
+						   TreeData=#tree_data{ entries=PrevEntries,
+												file_count=PrevFileCount },
+						   _BinTreePath, FileDatas, ExtraNotifications ) ->
+
+	NewEntryCount = length( FileDatas ),
+
+	OldEntryCount = length( table:get_value( SHA1, PrevEntries ) ),
+
+	DiffEntryCount = NewEntryCount - OldEntryCount,
+
+	% To be replenished through FileDatas:
+	WipedEntries = table:remove_entry( SHA1, PrevEntries ),
+
+	% We should not assign the elements in FileDatas to SHA1 - their checksum
+	% might differ now! So:
+
+	NewEntries = lists:foldl(
+		fun( FD=#file_data{ sha1_sum=ThisSHA1 }, AccEntries ) ->
+				table:append_to_entry( ThisSHA1, FD, AccEntries )
+		end,
+		_Acc0=WipedEntries,
+		_List=FileDatas ),
+
+	NewTreeData = TreeData#tree_data{ entries=NewEntries,
+									  file_count=PrevFileCount+DiffEntryCount },
+
+	{ FileSet, NewTreeData, ExtraNotifications };
+
+% Take into account only regular files:
+check_file_datas_for_sync( _FileDatas=[
+					FileData=#file_data{ path=RelativeBinFilename,
+										 type=regular,
+										 size=RecordedSize,
+										 sha1_sum=SHA1 } | T ],
+						   SHA1, FileSet, TreeData, BinTreePath, FileDatas,
+						   ExtraNotifications ) ->
+
+	FullPath = file_utils:join( BinTreePath, RelativeBinFilename ),
+
+	case set_utils:extract_if_existing( RelativeBinFilename, FileSet ) of
+
+		% File not found anymore:
+		false ->
+			NewNotif = case file_utils:is_existing_link( FullPath ) of
+
+				true ->
+					text_utils:format( "regular file '~s' was replaced in tree "
+									   "by a link", [ FullPath ] );
+
+				false ->
+					text_utils:format( "no file element '~s' in tree anymore",
+									   [ FullPath ] )
+
+			end,
+
+			% Let's forget this file_data then:
+			check_file_datas_for_sync( T, SHA1, FileSet, TreeData, BinTreePath,
+							   FileDatas, [ NewNotif | ExtraNotifications ] );
+
+		% Here the iterated file still exists as a regular one, let's check
+		% whether the size information is still valid (timestamp not taken into
+		% account here):
+		%
+		ShrunkFileSet ->
+			{ UpdatedFileData, UpdatedNotifs } =
+				case file_utils:get_size( FullPath ) of
+
+						% Same size, in the context of a (light) resync we
+						% consider that the SHA1 must be the same as well then:
+						%
+						RecordedSize ->
+							{ FileData, ExtraNotifications };
+
+						% Different size, recreating the record from scratch:
+						OtherSize ->
+							NewNotif = text_utils:format(
+							   "file '~s' had a different size (moved from ~s "
+							   "to ~s), it has thus been reindexed.",
+							   [ FullPath, system_utils:interpret_byte_size(
+								  RecordedSize ),
+								 system_utils:interpret_byte_size( OtherSize )
+							   ] ),
+
+							% Recreating the record from scratch:
+							NewFileData = #file_data{
+						path=RelativeBinFilename,
+						type=regular,
+						size=OtherSize,
+						timestamp=file_utils:get_last_modification_time(
+									FullPath ),
+						sha1_sum=executable_utils:compute_sha1_sum( FullPath ) },
+
+							{ NewFileData, [ NewNotif | ExtraNotifications ] }
+
+				end,
+
+			check_file_datas_for_sync( T, SHA1, ShrunkFileSet, TreeData,
+				BinTreePath, [ UpdatedFileData | FileDatas ], UpdatedNotifs )
 
 	end.
 
@@ -1132,7 +1561,7 @@ uniquify( TreePath ) ->
 
 
 % Merges the (supposedly more up-to-date) input tree into the target, reference
-% one.
+% one (both supposed to be absolute).
 %
 -spec merge( file_utils:directory_name(), file_utils:directory_name() ) ->
 				   void().
@@ -1605,9 +2034,9 @@ smart_move_to( SourceDir, SourceRelPath, TargetRootDir, UserState ) ->
 
 	end,
 
-	file_utils:move_file( SrcFullPath, NewPath ),
+	trace_debug( "Moving '~s' to '~s'.", [ SrcFullPath, NewPath ], UserState ),
 
-	trace_debug( "Moved '~s' to '~s'.", [ SrcFullPath, NewPath ], UserState ),
+	file_utils:move_file( SrcFullPath, NewPath ),
 
 	NewPath.
 
@@ -2187,7 +2616,7 @@ find_newest_timestamp_from( RootPath, CacheFilePath ) ->
 	CacheFilename = filename:basename( CacheFilePath ),
 
 	ActualFileRelPaths = list_utils:delete_existing( CacheFilename,
-		 file_utils:find_files_from( RootPath, _IncludeSymlinks=false ) ),
+		 file_utils:find_regular_files_from( RootPath ) ),
 
 	%trace_utils:debug_fmt( "ActualFileRelPaths = ~p", [ ActualFileRelPaths ] ),
 
