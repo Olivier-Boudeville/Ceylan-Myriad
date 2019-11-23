@@ -1585,6 +1585,19 @@ merge( InputTreePath, ReferenceTreePath ) ->
 	% Prepare for various outputs:
 	UserState = start_user_service( ?default_log_filename ),
 
+	% To avoid annihilation of a tree by itself:
+	case InputTreePath of
+
+		ReferenceTreePath ->
+			ui:display_error( "The same tree ('~s') is specified both as "
+							  "reference and input.", [ ReferenceTreePath ] ),
+			throw( { merge_on_same_directory, ReferenceTreePath } );
+
+		_ ->
+			ok
+
+	end,
+
 	trace_debug(
 	  "Merging (possibly newer) tree '~s' into reference tree '~s'...",
 	  [ InputTreePath, ReferenceTreePath ], UserState ),
