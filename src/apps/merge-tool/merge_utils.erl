@@ -816,7 +816,7 @@ perform_rescan( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 		BinCachedTreePath ->
 			BinUserTreePath;
 
-		OtherBinTreePath ->
+		_ ->
 			UpdatePrompt = text_utils:format(
 							 "Root path in cache filename ('~s') does not "
 							 "match actual tree to rescan: read as '~s', "
@@ -836,7 +836,7 @@ perform_rescan( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 
 				no ->
 					throw( { mismatching_paths, BinCachedTreePath,
-							 OtherBinTreePath } )
+							 BinUserTreePath } )
 
 			end
 
@@ -1238,7 +1238,7 @@ perform_resync( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 		BinCachedTreePath ->
 			BinUserTreePath;
 
-		OtherBinTreePath ->
+		_ ->
 			UpdatePrompt = text_utils:format(
 							 "Root path in cache filename ('~s') does not "
 							 "match actual tree to resync: read as '~s', "
@@ -1258,7 +1258,7 @@ perform_resync( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 
 				no ->
 					throw( { mismatching_paths, BinCachedTreePath,
-							 OtherBinTreePath } )
+							 BinUserTreePath } )
 
 			end
 
@@ -1995,8 +1995,18 @@ preserve_symlinks( InputRootDir, TargetDir, UserState ) ->
 			ok;
 
 		SymlinksToMove ->
-			MovedLinks = [ smart_move_to( InputRootDir, Lnk, TargetDir, UserState )
-						   || Lnk <- SymlinksToMove ],
+			MovedLinks = [ try
+
+							   smart_move_to( InputRootDir, Lnk, TargetDir, UserState )
+
+						   catch _AnyClass:Exception ->
+
+								text_utils:format( "error while smart moving "
+									"link '~s' from '~s' to '~s': ~p",
+									[ Lnk, InputRootDir, TargetDir, Exception ],
+									UserState )
+
+						   end || Lnk <- SymlinksToMove ],
 			trace_debug( "Moved ~B extraneous symlinks from '~s', now in: ~s",
 						 [ length( SymlinksToMove ), InputRootDir,
 						   text_utils:strings_to_string( MovedLinks ) ],
