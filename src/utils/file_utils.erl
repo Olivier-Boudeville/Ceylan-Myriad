@@ -82,7 +82,7 @@
 		  remove_empty_directory/1, remove_empty_path/1, remove_empty_tree/1,
 		  remove_directory/1,
 
-		  copy_file/2, copy_file_if_existing/2, copy_file_in/2,
+		  copy_file/2, try_copy_file/2, copy_file_if_existing/2, copy_file_in/2,
 
 		  rename/2, move_file/2, create_link/2,
 
@@ -1938,6 +1938,28 @@ remove_directory( DirectoryName ) ->
 -spec copy_file( file_name(), file_name() ) -> void().
 copy_file( SourceFilename, DestinationFilename ) ->
 
+	case try_copy_file( SourceFilename, DestinationFilename ) of
+
+		ok ->
+			ok;
+
+		{ error, Reason } ->
+			throw( { copy_file_failed, SourceFilename, Reason } )
+
+	end.
+
+
+
+% Copies a specified file to a given destination filename (not a directory name,
+% see copy_file_in/2 for that), overwriting any previous file.
+%
+% Note: content is copied and permissions are preserved (ex: the copy of an
+% executable file will be itself executable, other permissions as well, unlike
+% /bin/cp which relies on umask).
+%
+-spec try_copy_file( file_name(), file_name() ) -> basic_utils:base_status().
+try_copy_file( SourceFilename, DestinationFilename ) ->
+
 	% First, checks the source file exists and retrieves its meta-information:
 	case file:read_file_info( SourceFilename ) of
 
@@ -1947,16 +1969,23 @@ copy_file( SourceFilename, DestinationFilename ) ->
 
 				{ ok, _ByteCount } ->
 					% Now sets the permissions of the copy:
-					ok = file:change_mode( DestinationFilename, Mode );
+					case file:change_mode( DestinationFilename, Mode ) of
 
-				Error ->
-					throw( { copy_file_failed, SourceFilename,
-							 DestinationFilename, Error } )
+						ok ->
+							ok;
+
+						ChgModeError ->
+							ChgModeError
+
+					end;
+
+				CopyError ->
+					CopyError
 
 			end;
 
-		{ error, Reason } ->
-			throw( { copy_file_failed, SourceFilename, Reason } )
+		ReadError ->
+			ReadError
 
 	end.
 
@@ -1982,7 +2011,8 @@ copy_file_in( SourceFilename, DestinationDirectory ) ->
 
 
 
-% Copies a specified file to a given destination iff it is already existing.
+% Copies a specified file to a given destination iff this source file is already
+% existing.
 %
 % Note: content is copied and permissions are preserved (ex: the copy of an
 % executable file will be itself executable).
