@@ -279,6 +279,8 @@ report_error( { Context, Error } ) ->
 
 	end,
 
+	%trace_utils:debug_fmt( "Full error was: ~p", [ Error ] ),
+
 	io:format( "~s: ~s~n", [ context_to_string( Context ), ErrorString ] ).
 
 

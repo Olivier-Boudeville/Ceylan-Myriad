@@ -53,8 +53,8 @@
 -module(list_table).
 
 
+
 % The standard table API:
-%
 -export([ new/0, new/1, add_entry/3, add_entries/2,
 		  remove_entry/2, remove_entries/2,
 		  lookup_entry/2, has_entry/2,

@@ -420,6 +420,11 @@ transform_pattern( Clause={ LiteralType, _Line, _Value }, Transforms )
 transform_pattern( _Clause={ 'record', Line, RecordName, PatternFields },
 				   Transforms ) ?rec_guard ->
 
+	%ast_utils:display_debug( "Transforming record '~s' at line #~B, "
+	%	"fields being described as following patterns: ~p",
+	%	[ RecordName, Line, PatternFields ] ),
+
+
 	{ NewPatternFields, NewTransforms } =
 		transform_pattern_fields( PatternFields, Transforms ),
 
@@ -429,7 +434,6 @@ transform_pattern( _Clause={ 'record', Line, RecordName, PatternFields },
 
 
 % Access to a record field found (see previous clause):
-%
 transform_pattern( _Clause={ 'record_field', Line, RecordName, FieldName,
 							 FieldValue }, Transforms ) ?rec_guard ->
 
@@ -507,14 +511,30 @@ transform_pattern( Clause={ 'op', _Line, _UnaryOperator, _Operand },
 % parenthesized patterns cannot be distinguished from their bodies." (nothing to
 % do then)
 
-
-% Other pattern found:
 transform_pattern( E, Transforms )
   when is_record( Transforms, ast_transforms ) ->
-	%ast_utils:display_warning( "Letting unhandled pattern ~p as is.",
-	%  [ E ] ),
-	%E.
-	ast_utils:raise_error( [ unexpected_pattern, E ] ).
+
+	% Record classical misuse?
+	case is_tuple( E ) andalso element( 1, E ) =:= 'record'
+		% implicit due to previous match: andalso size( E ) =/= 4 of
+		andalso size( E ) > 4 of % for element( 3, E )
+			% Here the record notation was probably misused (typically
+			% MyVar#my_record{... was used where MyVar=#my_record{... was
+			% wanted):
+			%
+			true ->
+				ast_utils:display_error( "Invalid record pattern "
+					"at line #~p; maybe using MyVar#my_record where "
+					"MyVar=#my_record was meant?~n", [ element( 2, E ) ] ),
+				ast_utils:raise_error( [ invalid_record_use, E ] );
+
+			false ->
+				%ast_utils:display_warning( "Letting unhandled pattern ~p as "
+				%  "is.", [ E ] ),
+				% E.
+				ast_utils:raise_error( [ unexpected_pattern, E ] )
+
+	end.
 
 
 

@@ -1571,7 +1571,7 @@ uppercase_initial_letter( _Letters=[ First | Others ] ) ->
 
 
 
-% Sets the specified string to lowercase, i.e. downcase it.
+% Sets the specified string to lowercase, i.e. downcase it (as a whole).
 -spec to_lowercase( string() ) -> string().
 to_lowercase( String ) ->
 	string:to_lower( String ).
@@ -1597,7 +1597,7 @@ to_uppercase( String ) ->
 % For file-related paths, you are expected to use portable standard
 % filename:join/{1,2} functions instead.
 %
-% Note: conversely, use string:tokens to split the string.
+% Note: conversely, use split/2 to split the string.
 %
 -spec join( ustring() | uchar(), [ ustring() ] ) -> ustring().
 join( _Separator, _ListToJoin=[] ) ->
@@ -1684,7 +1684,6 @@ split_camel_case( String ) ->
 	case is_uppercase( hd( String ) ) of
 
 		true ->
-
 			split_camel_case( String, [] );
 
 		false ->
@@ -1692,6 +1691,8 @@ split_camel_case( String ) ->
 
 	end.
 
+
+% (helper)
 split_camel_case( _String=[], Acc ) ->
 	lists:reverse( Acc );
 
@@ -1704,11 +1705,11 @@ split_camel_case( _String=[ HeadChar | MoreChars ], Acc ) ->
 			% is_uppercase rertuns 'true' if a char is unchanged by 'to_upper',
 			% hence non-letter characters will be let in the second string:
 			IsLowercase = fun( C ) ->
-								  not is_uppercase( C )
+							  not is_uppercase( C )
 						  end,
 
-			{ TailOfWord, MoreWords } = lists:splitwith( IsLowercase,
-														 MoreChars ),
+			{ TailOfWord, MoreWords } =
+				lists:splitwith( IsLowercase, MoreChars ),
 
 			NewWord = [ HeadChar | TailOfWord ],
 
@@ -1725,7 +1726,7 @@ split_camel_case( _String=[ HeadChar | MoreChars ], Acc ) ->
 
 % Splits the specified string into a list of strings, based on the list of
 % separating characters provided in SeparatorsList, then turns these resulting
-% strings in th Capitalized Case (all lower-case except for the first letter)
+% strings in the Capitalized Case (all lower-case except for the first letter)
 % and finally joins them to get a long CamelCased string.
 %
 % Ex: tokenizable_to_camel_case( "industrial_WASTE_sOuRCe", "_" ) shall return
