@@ -161,11 +161,11 @@ run() ->
 				 [ { a, 1, 3 }, { b, 1, 0 } ] ),
 
 
-	{ [], [  a, b, c, d, e ] } = list_utils:split_at( [ a, b, c, d, e ], 0 ),
+	{ [], [  a, b, c, d, e ] } = list_utils:split_at( 0, [ a, b, c, d, e ] ),
 
-	{ [ c, b, a ], [ d, e] } = list_utils:split_at( [ a, b, c, d, e ], 3 ),
+	{ [ c, b, a ], [ d, e] } = list_utils:split_at( 3, [ a, b, c, d, e ] ),
 
-	{ [ e, d, c, b, a ], [] } = list_utils:split_at( [ a, b, c, d, e ], 100 ),
+	{ [ e, d, c, b, a ], [] } = list_utils:split_at( 100, [ a, b, c, d, e ] ),
 
 	Uniquified = list_utils:uniquify( L1 ),
 
