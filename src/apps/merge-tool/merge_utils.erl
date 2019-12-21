@@ -2015,6 +2015,7 @@ preserve_symlinks( InputRootDir, TargetDir, UserState ) ->
 	end.
 
 
+
 % Moves specified file element to target directory "smartly", by recreating this
 % relative directory in target root directory and renaming that moved file
 % appropriately in case of local name clash.
@@ -2864,23 +2865,22 @@ scan_files( Files, AbsTreePath, AnalyzerRing, UserState ) ->
 	InitialTreeData = #tree_data{
 			 root=text_utils:string_to_binary( AbsTreePath ) },
 
-	scan_files( Files, AnalyzerRing, InitialTreeData, _WaitedCount=0,
+	scan_files( Files, InitialTreeData, AnalyzerRing, _WaitedCount=0,
 				UserState ).
 
 
-scan_files( _Files=[], _AnalyzerRing, TreeData, _WaitedCount=0, _UserState ) ->
+scan_files( _Files=[], TreeData, _AnalyzerRing, _WaitedCount=0, _UserState ) ->
 	% In final state (none waited), hence directly returned:
 	%trace_info( "All file entries retrieved." ),
 	TreeData;
 
-scan_files( _Files=[], _AnalyzerRing, TreeData, WaitedCount, _UserState ) ->
+scan_files( _Files=[], TreeData, _AnalyzerRing, WaitedCount, _UserState ) ->
 	% Will return an updated tree data, once all answers are received:
 	%trace_info( "Final waiting for ~B entries.", [ WaitedCount ] ),
 	wait_entries( TreeData, WaitedCount );
 
-scan_files( _Files=[ Filename | T ], AnalyzerRing,
-			TreeData=#tree_data{ root=BinAbsTreePath },
-			WaitedCount, UserState ) ->
+scan_files( _Files=[ Filename | T ], TreeData=#tree_data{ root=BinAbsTreePath },
+			AnalyzerRing, WaitedCount, UserState ) ->
 
 	{ AnalyzerPid, NewRing } = ring_utils:head( AnalyzerRing ),
 
@@ -2902,12 +2902,12 @@ scan_files( _Files=[ Filename | T ], AnalyzerRing,
 
 			NewTreeData = manage_received_data( FileData, TreeData ),
 			% Plus one (sending) minus one (receiving) waited:
-			scan_files( T, NewRing, NewTreeData, WaitedCount )
+			scan_files( T, NewTreeData, NewRing, WaitedCount, UserState )
 
 	after 0 ->
 
 		% One sending, and no receiving here:
-		scan_files( T, NewRing, TreeData, WaitedCount+1, UserState )
+		scan_files( T, TreeData, NewRing, WaitedCount+1, UserState )
 
 	end.
 
