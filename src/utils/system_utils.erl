@@ -35,7 +35,7 @@
 
 
 % User-related functions.
--export([ get_user_name/0, get_user_name_string/0,
+-export([ get_user_name/0, get_user_name_string/0, get_user_name/1,
 		  get_user_home_directory/0, get_user_home_directory_string/0 ]).
 
 
@@ -316,7 +316,7 @@ get_user_name_string() ->
 
 
 % Returns the home directory of the current user, as a plain string.
--spec get_user_home_directory() -> string().
+-spec get_user_home_directory() -> file_utils:directory_path().
 get_user_home_directory() ->
 
 	% Was: os:getenv( "HOME" )
@@ -329,6 +329,14 @@ get_user_home_directory() ->
 			throw( { home_directory_not_found, Error } )
 
 	end.
+
+
+
+% Returns the home directory of the specified user, as a plain string.
+-spec get_user_home_directory( basic_utils:user_name() ) ->
+									 file_utils:directory_path().
+get_user_home_directory( Username ) ->
+	text_utils:format( "/home/~s", [ Username ] ).
 
 
 
@@ -350,6 +358,8 @@ get_user_home_directory_string() ->
 					   "obtained (~p)", [ Exception ] )
 
 	end.
+
+
 
 
 
