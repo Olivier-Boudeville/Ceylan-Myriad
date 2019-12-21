@@ -35,8 +35,9 @@
 
 
 % User-related functions.
--export([ get_user_name/0, get_user_name_string/0, get_user_name/1,
-		  get_user_home_directory/0, get_user_home_directory_string/0 ]).
+-export([ get_user_name/0, get_user_name_string/0,
+		  get_user_home_directory/0, get_user_home_directory/1,
+		  get_user_home_directory_string/0 ]).
 
 
 % Lower-level services.
