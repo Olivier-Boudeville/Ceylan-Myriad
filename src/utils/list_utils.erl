@@ -415,10 +415,10 @@ get_maybe_index_of( Element, _List=[ _H | T ], Count ) ->
 % returned): the first contains the first elements, up to MaxLen (in reverse
 % order), and the second the others (if any).
 %
-% Ex: split_at( [ a, b, c, d, e ], 3 ) = { [ c, b, a ], [ d, e] }
+% Ex: split_at( 3, [ a, b, c, d, e ] ) = { [ c, b, a ], [ d, e] }
 %
--spec split_at( list(), basic_utils:count() ) -> { list(), list() }.
-split_at( List, MaxLen ) ->
+-spec split_at( basic_utils:count(), list() ) -> { list(), list() }.
+split_at( MaxLen, List ) ->
 	split_at( List, _Count=0, MaxLen, _Acc=[] ).
 
 
