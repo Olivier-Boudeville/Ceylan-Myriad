@@ -5,7 +5,7 @@
 # relevant, layer-local '_build' directory):
 #
 ifndef LAYER_TOP
-	   LAYER_TOP := $(MYRIAD_TOP)
+	LAYER_TOP := $(MYRIAD_TOP)
 endif
 
 
@@ -43,7 +43,7 @@ endif
 
 
 ifndef PACKAGE_NAME
-	PACKAGE_NAME := Ceylan-Myriad
+	PACKAGE_NAME := $(PROJECT_NAME)
 endif
 
 
