@@ -111,8 +111,17 @@
 -type host_identifier() :: string_host_name() | ip_address().
 
 
+% A domain name (ex: "foo.baz.org"):
+-type domain_name() :: nonempty_string().
+
+-type bin_domain_name() :: text_utils:bin_string().
+
+
+
 % An element of a domain name (ex: "foo" in "bar.foo.baz.org"):
 -type subdomain() :: nonempty_string().
+
+-type bin_subdomain() :: text_utils:bin_string().
 
 
 -type check_duration() :: non_neg_integer().
@@ -156,7 +165,8 @@
 -export_type([ ip_v4_address/0, ip_v6_address/0, ip_address/0,
 			   atom_node_name/0, string_node_name/0, node_name/0, node_type/0,
 			   atom_host_name/0, string_host_name/0, host_name/0,
-			   host_identifier/0, subdomain/0,
+			   host_identifier/0,
+			   domain_name/0, bin_domain_name/0, subdomain/0, bin_subdomain/0,
 			   check_duration/0, check_node_timing/0,
 			   node_naming_mode/0, cookie/0,
 			   net_port/0, tcp_port/0, udp_port/0,
