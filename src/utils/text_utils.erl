@@ -219,10 +219,12 @@
 -define( table, map_hashtable ).
 
 
-% Maybe at least format/2 would be better inlined, however it does not seem
-% to be cross-module inlining (just inside this module?).
+% Maybe at least format/2 would be better inlined, however it is no cross-module
+% inlining (just inside this module), so a parse-transform may be used in order
+% to transform text_utils:format/2 into io_lib:format/2 or into its actual,
+% safer code.
 %
-%-compile( { inline, [ format/2 ] } ).
+-compile( { inline, [ format/2 ] } ).
 
 
 
@@ -1039,23 +1041,25 @@ duration_to_string( infinity ) ->
 -spec format( format_string(), format_values() ) -> ustring().
 format( FormatString, Values ) ->
 
-	String = try
+	String =
+		try
 
-				 io_lib:format( FormatString, Values )
+			io_lib:format( FormatString, Values )
 
-	catch
+		catch
 
-		_:_ ->
+			_:_ ->
 
-			% Useful to obtain the stacktrace of a culprit or to check for
-			% silent errors:
-			%throw( { badly_formatted, FormatString, Values } )
+				% Useful to obtain the stacktrace of a culprit or to check for
+				% silent errors:
+				%
+				%throw( { badly_formatted, FormatString, Values } )
 
-			io_lib:format( "[error: badly formatted string output] "
-						   "Format string was '~p', values were '~p'.",
-						   [ FormatString, Values ] )
+				io_lib:format( "[error: badly formatted string output] "
+							   "Format string was '~p', values were '~p'.",
+							   [ FormatString, Values ] )
 
-	end,
+		end,
 
 	% Using 'flatten' allows for example to have clearer string outputs in case
 	% of error (at a rather low cost):
