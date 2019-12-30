@@ -955,13 +955,20 @@ argument_table_to_string( ArgTable ) ->
 
 % Tells whether the program is run in batch mode.
 %
-% By default, a program is not in batch mode.
+% By default, a program is not in batch mode (hence is in interactive mode,
+% meaning it might trigger graphical displays).
 %
 % The most prioritary setting is if the "--batch" command line argument has been
 % set.
 %
 % Otherwise, the application configuration will be read (typically set from any
 % conf/sys.config file defined by the application).
+%
+% Note that, if relying on application configuration, the result will depend on
+% the {application name, callsite} pair. Indeed, if application foo depends on
+% application bar, and foo defined in its conf/sys.config file {is_batch,false}
+% whereas bar defined in its own configuration file {is_batch,true}, should a
+% process belonging to bar call this function, it will return false.
 %
 -spec is_batch() -> boolean().
 is_batch() ->
