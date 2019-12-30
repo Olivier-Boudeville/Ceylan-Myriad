@@ -959,7 +959,12 @@ display( Message ) ->
 	% ~ts, not ~s, as we want to properly output Unicode characters:
 	%
 	io:format( "~ts~n", [ Message ] ),
+
+	% Possibly to allow for a yield:
+	timer:sleep( 100 ),
+
 	system_utils:await_output_completion().
+
 
 	% May not go through group leader (like io:format), thus less likely to
 	% crash without displaying the message:
