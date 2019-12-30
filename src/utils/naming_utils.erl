@@ -37,6 +37,8 @@
 -export([ register_as/2, register_as/3, register_or_return_registered/2,
 		  unregister/2,
 
+		  registration_to_look_up_scope/1,
+
 		  get_registered_pid_for/1, get_registered_pid_for/2,
 		  get_locally_registered_pid_for/2,
 
