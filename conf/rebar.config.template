@@ -52,8 +52,9 @@
 
 
 % Could not set REBAR_PROFILE=$(REBAR_PROFILE):
-%{pre_hooks,  [ {compile, "make -s rebar3-compile-pre-hook"} ]}.
-%{post_hooks, [ {compile, "make -s rebar3-compile-post-hook"} ]}.
+% (hooks needed, for example to create the include symlinks)
+{pre_hooks,  [ {compile, "make -s rebar3-compile-pre-hook"} ]}.
+{post_hooks, [ {compile, "make -s rebar3-compile-post-hook"} ]}.
 
 
 
