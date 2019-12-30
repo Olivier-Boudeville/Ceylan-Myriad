@@ -953,21 +953,47 @@ argument_table_to_string( ArgTable ) ->
 % Miscellaneous section:
 
 
-% Tells whether the program is run in batch mode (i.e. with the "--batch"
-% command line argument).
+% Tells whether the program is run in batch mode.
+%
+% By default, a program is not in batch mode.
+%
+% The most prioritary setting is if the "--batch" command line argument has been
+% set.
+%
+% Otherwise, the application configuration will be read (typically set from any
+% conf/sys.config file defined by the application).
 %
 -spec is_batch() -> boolean().
 is_batch() ->
 
+	% Corresponds to the --batch command-line option:
 	case init:get_argument( '-batch' ) of
 
 		{ ok, _ } ->
+			trace_utils:debug( "Batch mode activated through command line." ),
 			true;
 
 		_ ->
-			false
+			case application:get_env( is_batch ) of
+
+				{ ok, true } ->
+					trace_utils:debug(
+					  "Batch mode enabled through configuration." ),
+					true;
+
+				{ ok, false } ->
+					trace_utils:debug(
+					  "Batch mode disabled through configuration." ),
+					false;
+
+				undefined ->
+					% Default then is:
+					false
+
+			end
 
 	end.
+
 
 
 
