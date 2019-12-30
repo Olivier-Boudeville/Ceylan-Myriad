@@ -2250,8 +2250,9 @@ is_absolute_path( Path ) when is_list( Path )->
 % If it is not already absolute, it will made so by using the current working
 % directory.
 %
--spec ensure_path_is_absolute( path() ) -> path().
-ensure_path_is_absolute( Path ) ->
+-spec ensure_path_is_absolute( path() ) -> path();
+							 ( bin_path() ) -> bin_path().
+ensure_path_is_absolute( Path ) when is_list( Path ) ->
 
 	AbsPath = case is_absolute_path( Path ) of
 
@@ -2265,7 +2266,12 @@ ensure_path_is_absolute( Path ) ->
 
 	end,
 
-	normalise_path( AbsPath ).
+	normalise_path( AbsPath );
+
+ensure_path_is_absolute( BinPath ) ->
+	Path = text_utils:binary_to_string( BinPath ),
+	text_utils:string_to_binary( ensure_path_is_absolute( Path ) ).
+
 
 
 
