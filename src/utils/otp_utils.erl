@@ -34,7 +34,11 @@
 % Name of an OTP application:
 -type application_name() :: atom().
 
--export_type([ application_name/0 ]).
+% The PID of an OTP supervisor:
+-type supervisor_pid() :: pid().
+
+
+-export_type([ application_name/0, supervisor_pid/0 ]).
 
 
 -export([ prepare_app_context/2, prepare_myriad_context/1 ]).
