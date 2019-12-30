@@ -987,6 +987,7 @@ is_batch() ->
 					false;
 
 				undefined ->
+					trace_utils:debug("Batch mode disabled (default)." ),
 					% Default then is:
 					false
 
