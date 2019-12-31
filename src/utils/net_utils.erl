@@ -105,10 +105,20 @@
 
 -type atom_host_name() :: atom().
 -type string_host_name() :: nonempty_string().
+-type bin_host_name() :: text_utils:bin_string().
 
--type host_name() :: atom_host_name() | string_host_name().
+-type host_name() :: atom_host_name() | string_host_name() | bin_host_name().
 
 -type host_identifier() :: string_host_name() | ip_address().
+
+
+% Fully-Qualified Domain Name:
+
+-type atom_fqdn() :: atom().
+-type string_fqdn() :: nonempty_string().
+-type bin_fqdn() :: text_utils:bin_string().
+
+-type fqdn() :: atom_fqdn() | string_fqdn() | bin_fqdn().
 
 
 % A domain name (ex: "foo.baz.org"):
@@ -164,8 +174,9 @@
 
 -export_type([ ip_v4_address/0, ip_v6_address/0, ip_address/0,
 			   atom_node_name/0, string_node_name/0, node_name/0, node_type/0,
-			   atom_host_name/0, string_host_name/0, host_name/0,
-			   host_identifier/0,
+			   atom_host_name/0, string_host_name/0, bin_host_name/0,
+			   host_name/0, host_identifier/0,
+			   atom_fqdn/0, string_fqdn/0, bin_fqdn/0, fqdn/0,
 			   domain_name/0, bin_domain_name/0, subdomain/0, bin_subdomain/0,
 			   check_duration/0, check_node_timing/0,
 			   node_naming_mode/0, cookie/0,
