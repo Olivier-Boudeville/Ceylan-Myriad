@@ -97,6 +97,10 @@
 -export([ get_intertime_duration/2 ]).
 
 
+% Shall be a bit cheaper:
+-compile( { inline, [ get_timestamp/0 ] } ).
+
+
 
 % Timestamp-related section.
 %
@@ -107,6 +111,7 @@
 -export([ get_timestamp/0,
 		  get_textual_timestamp/0, get_textual_timestamp/1,
 		  get_french_textual_timestamp/1,
+		  get_time2_textual_timestamp/0, get_time2_textual_timestamp/1,
 		  get_textual_timestamp_for_path/0, get_textual_timestamp_for_path/1,
 		  get_textual_timestamp_with_dashes/1,
 		  timestamp_to_string/1, string_to_timestamp/1,
@@ -506,7 +511,7 @@ get_textual_timestamp( { { Year, Month, Day }, { Hour, Minute, Second } } ) ->
 
 
 % Returns a string corresponding to the specified timestamp expressed in French,
-% like: "le 1/9/2009/9/1, à 11h46m53".
+% like: "le 1/9/2009, à 11h46m53".
 %
 -spec get_french_textual_timestamp( timestamp() ) -> text_utils:ustring().
 get_french_textual_timestamp( { { Year, Month, Day },
@@ -528,7 +533,7 @@ get_french_textual_timestamp( { { Year, Month, Day },
 					io_lib:format( "le ~B/~B/~B, à ~Bh~2..0B",
 								   [ Day, Month, Year, Hour, Minute ] )
 
-				end;
+			end;
 
 		_ ->
 			io_lib:format( "le ~B/~B/~B, à ~Bh~2..0Bm~2..0Bs",
@@ -538,12 +543,43 @@ get_french_textual_timestamp( { { Year, Month, Day },
 
 
 
+% Returns a string corresponding to the current timestamp expressed as the
+% "%time2" Date and time format, i.e. "yyyy-mm-dd hh-mm-ss"; for example:
+% "2020-01-01 00-01-22".
+%
+% Used by various web-related tools (see
+% https://awstats.sourceforge.io/docs/awstats_config.html#LogFormat and
+% https://awstats.sourceforge.io/docs/awstats_faq.html#PERSONALIZEDLOG).
+%
+-spec get_time2_textual_timestamp() -> text_utils:ustring().
+get_time2_textual_timestamp() ->
+	get_time2_textual_timestamp( get_timestamp() ).
+
+
+
+% Returns a string corresponding to the specified timestamp expressed as the
+% "%time2" Date and time format, i.e. "yyyy-mm-dd hh-mm-ss"; for example:
+% "2020-01-01 00-01-22".
+%
+% Used by various web-related tools (see
+% https://awstats.sourceforge.io/docs/awstats_config.html#LogFormat and
+% https://awstats.sourceforge.io/docs/awstats_faq.html#PERSONALIZEDLOG).
+%
+-spec get_time2_textual_timestamp( timestamp() ) -> text_utils:ustring().
+get_time2_textual_timestamp( { { Year, Month, Day },
+								{ Hour, Minute, Second } } ) ->
+	io_lib:format( "~4..0B-~2..0B-~2..0B ~2..0B-~2..0B-~2..0B",
+				   [ Year, Month, Day, Hour, Minute, Second ] ).
+
+
+
 % Returns a string corresponding to the current timestamp and able to be a part
-% of a path, like: "2010-11-18-at-13h-30m-35s.".
+% of a path, like: "2010-11-18-at-13h-30m-35s".
 %
 -spec get_textual_timestamp_for_path() -> string().
 get_textual_timestamp_for_path() ->
 	get_textual_timestamp_for_path( get_timestamp() ).
+
 
 
 % Returns a string corresponding to the specified timestamp and able to be a
