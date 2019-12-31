@@ -113,7 +113,8 @@
 
 
 % Compression-related operations.
--export([ get_extension_for/1, compress/2, decompress/2,
+-export([ get_extension_for/1,
+		  compress/1, compress/2, decompress/1, decompress/2,
 		  file_to_zipped_term/1, zipped_term_to_unzipped_file/1,
 		  zipped_term_to_unzipped_file/2,
 		  files_to_zipped_term/1, files_to_zipped_term/2,
@@ -1582,8 +1583,8 @@ list_directories_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir,
 
 
 
-% Creates specified directory, without creating any intermediate (parent)
-% directory that would not exist.
+% Creates specified directory ("mkdir"), without creating any intermediate
+% (parent) directory that would not exist.
 %
 % Throws an exception if the operation failed.
 %
@@ -1664,7 +1665,7 @@ create_directory_if_not_existing( Dirname ) ->
 
 
 
-% Creates a non previously existing temporary directory, and returs its full
+% Creates a non previously existing temporary directory, and returns its full
 % path.
 %
 -spec create_temporary_directory() -> directory_name().
@@ -1691,7 +1692,7 @@ create_temporary_directory() ->
 %
 % Throws an exception if any problem occurs.
 %
--spec remove_file( any_file_name() ) -> void().
+-spec remove_file( any_file_path() ) -> void().
 remove_file( Filename ) ->
 
 	%trace_utils:warning_fmt( "Removing file '~s'.", [ Filename ] ),
@@ -1710,7 +1711,7 @@ remove_file( Filename ) ->
 
 
 % Removes (deletes) specified files, specified as a list of any kind of strings.
--spec remove_files( [ any_file_name() ] ) -> void().
+-spec remove_files( [ any_file_path() ] ) -> void().
 remove_files( FilenameList ) ->
 
 	%trace_utils:warning_fmt( "Removing following files: ~s",
@@ -1723,7 +1724,7 @@ remove_files( FilenameList ) ->
 % Removes specified file, specified as any kind of string, iff it is already
 % existing, otherwise does nothing.
 %
--spec remove_file_if_existing( any_file_name() ) -> void().
+-spec remove_file_if_existing( any_file_path() ) -> void().
 remove_file_if_existing( Filename ) ->
 
 	case is_existing_file( Filename ) of
@@ -1741,7 +1742,7 @@ remove_file_if_existing( Filename ) ->
 % Removes each specified file, in specified list of any kind of strings, iff it
 % is already existing.
 %
--spec remove_files_if_existing( [ any_file_name() ] ) -> void().
+-spec remove_files_if_existing( [ any_file_path() ] ) -> void().
 remove_files_if_existing( FilenameList ) ->
 	[ remove_file_if_existing( Filename ) || Filename <- FilenameList ].
 
@@ -2204,28 +2205,27 @@ get_permission_for( set_group_id ) ->
 
 get_permission_for( PermissionList ) when is_list( PermissionList ) ->
 	lists:foldl( fun( P, Acc ) ->
-						 get_permission_for( P ) + Acc
+					 get_permission_for( P ) + Acc
 				 end,
 				 _Acc0=0,
 				 PermissionList ).
 
 
 
-% Changes the permissions of specified file.
--spec change_permissions( file_name(), permission() | [ permission() ] ) ->
+% Changes the permissions ("chmod") of specified filesystem element.
+-spec change_permissions( any_path(), permission() | [ permission() ] ) ->
 								void().
-change_permissions( Filename, NewPermissions ) ->
+change_permissions( Path, NewPermissions ) ->
 
 	ActualPerms = get_permission_for( NewPermissions ),
 
-	case file:change_mode( Filename, ActualPerms ) of
+	case file:change_mode( Path, ActualPerms ) of
 
 		ok ->
 			ok;
 
 		{ error, Reason } ->
-			throw( { change_permission_failed, Reason, Filename,
-					 NewPermissions } )
+			throw( { change_permission_failed, Reason, Path, NewPermissions } )
 
 	end.
 
@@ -2678,7 +2678,7 @@ get_image_file_gif( Image ) ->
 % not seem a viable solution right now (risk of exhausting the descriptors,
 % making the VM fail for example when loading a new BEAM).
 %
--spec open( file_name(), [ file_open_mode() ] ) -> file().
+-spec open( any_file_name(), [ file_open_mode() ] ) -> file().
 open( Filename, Options ) ->
 	open( Filename, Options, _Default=try_once ).
 
@@ -2711,7 +2711,7 @@ open( Filename, Options ) ->
 % processes than available file descriptors try to access to files. An effort is
 % made to desynchronize these processes to smooth the use of descriptors.
 %
--spec open( file_name(), [ file_open_mode() ],
+-spec open( any_file_name(), [ file_open_mode() ],
 		   'try_once' | 'try_endlessly' | 'try_endlessly_safer' ) -> file().
 open( Filename, Options, _AttemptMode=try_endlessly_safer ) ->
 
@@ -3051,6 +3051,26 @@ get_extension_for( _CompressionFormat=xz ) ->
 
 
 
+% Compresses specified file: creates a new, compressed version thereof (using
+% the most efficient, compacity-wise, compression tool available), whose
+% filename, established based on usual conventions, is returned. If a file with
+% that name already exists, it will be overwritten.
+%
+% For example, compress( "hello.png" ) will generate a "hello.png.xz"
+% file.
+%
+% The original file remain as is.
+%
+% Note: this function just takes care of compressing a single file, even if some
+% compressors (ex: zip) include features to create an archive of multiple files
+% first.
+%
+-spec compress( file_name() ) -> file_name().
+compress( Filename ) ->
+	compress( Filename, _CompressionFormat=xz ).
+
+
+
 % Compresses specified file: creates a new, compressed version thereof, whose
 % filename, established based on usual conventions, is returned. If a file with
 % that name already exists, it will be overwritten.
@@ -3133,6 +3153,31 @@ compress( Filename, _CompressionFormat=xz ) ->
 
 compress( _Filename, CompressionFormat ) ->
 	throw( { unsupported_compression_format, CompressionFormat } ).
+
+
+
+% Decompresses specified compressed file, expected to bear the extension
+% corresponding to the implicit, most compact format: recreates the original,
+% decompressed version thereof, whose filename, established based on usual
+% conventions, is returned: the name of the input file without its extension.
+%
+% This function works in pair with compress/2, and as such expects that each
+% compressed file contains exactly one file, bear the same filename except the
+% compressor extension.
+%
+% Typically, when a format MY_FORMAT is specified, converts a compressed file
+% name foo.extension_of(MY_FORMAT) into an uncompressed version of it named
+% 'foo'.
+%
+% So, for example, decompress( "foo.xz" ) will generate a "foo" file.
+%
+% If a file with that name already exists, it will be overwritten.
+%
+% The compressed file remains as is.
+%
+-spec decompress( file_name() ) -> file_name().
+decompress( Filename ) ->
+	decompress( Filename, _CompressionFormat=xz ).
 
 
 
