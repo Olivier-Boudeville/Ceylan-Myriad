@@ -153,7 +153,10 @@ add_entries( _EntryList=[], Table ) ->
 	Table;
 
 add_entries( [ { EntryName, EntryValue } | Rest ], Table ) ->
-	add_entries( Rest, add_entry( EntryName, EntryValue, Table ) ).
+	add_entries( Rest, add_entry( EntryName, EntryValue, Table ) );
+
+add_entries( [ Other | _Rest ], _Table ) ->
+	throw( { invalid_entry, Other } ).
 
 
 
@@ -793,6 +796,10 @@ to_string( Table, _Displaytype ) ->
 		[] ->
 			"empty table";
 
+		[ { K, V } ] ->
+			text_utils:format( "table with a single entry, key being ~p, "
+							   "value being ~p", [ K, V ] );
+
 		L ->
 
 			% Enforces a consistent order:
@@ -800,7 +807,7 @@ to_string( Table, _Displaytype ) ->
 						|| { K, V } <- lists:sort( L ) ],
 
 			% Flatten is needed, in order to use the result with ~s:
-			lists:flatten( io_lib:format( "table with ~B entry(ies): ~s~n",
+			lists:flatten( io_lib:format( "table with ~B entries: ~s",
 				[ length( L ),
 				  text_utils:strings_to_string( Strings ) ] ) )
 
