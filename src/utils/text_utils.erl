@@ -1060,7 +1060,7 @@ format( FormatString, Values ) ->
 									 [ FormatString, Values ] ),
 
 				% If wanting to be extra verbose:
-				io:format( Msg ),
+				io:format( Msg ++ "~n", [] ),
 
 				Msg
 
@@ -1083,17 +1083,28 @@ format( FormatString, Values ) ->
 -spec bin_format( format_string(), [ term() ] ) -> ustring().
 bin_format( FormatString, Values ) ->
 
-	String = try
+	String =
+		try
 
-				 io_lib:format( FormatString, Values )
+			io_lib:format( FormatString, Values )
 
-	catch
+		catch
 
 		_:_ ->
 
-			io_lib:format( "[error: badly formatted string output] "
-						   "Format: '~p', values: '~p'",
-						   [ FormatString, Values ] )
+				% Useful to obtain the stacktrace of a culprit or to check for
+				% silent errors:
+				%
+				%throw( { badly_formatted, FormatString, Values } )
+
+				Msg = io_lib:format( "[error: badly formatted string output] "
+									 "Format: '~p', values: '~p'",
+									 [ FormatString, Values ] ),
+
+				% If wanting to be extra verbose:
+				io:format( Msg ++ "~n", [] ),
+
+				Msg
 
 	end,
 
