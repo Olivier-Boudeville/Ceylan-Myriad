@@ -2281,8 +2281,9 @@ ensure_path_is_absolute( BinPath ) ->
 % Ex: ensure_path_is_absolute( "tmp/foo", "/home/dalton" ) will return
 % "/home/dalton/tmp/foo".
 %
--spec ensure_path_is_absolute( path(), path() ) -> path().
-ensure_path_is_absolute( TargetPath, BasePath ) ->
+-spec ensure_path_is_absolute( path(), path() ) -> path();
+							 ( bin_path(), bin_path() ) -> bin_path().
+ensure_path_is_absolute( TargetPath, BasePath ) when is_list( TargetPath ) ->
 
 	case is_absolute_path( TargetPath ) of
 
@@ -2291,17 +2292,34 @@ ensure_path_is_absolute( TargetPath, BasePath ) ->
 			normalise_path( TargetPath );
 
 		false ->
-			% Relative, using specified base directory:
-			case is_absolute_path( BasePath ) of
+			PlainBasePath = case is_list( BasePath ) of
 
 				true ->
-					normalise_path( join( BasePath, TargetPath ) );
+					BasePath;
 
 				false ->
-					throw( { base_path_not_absolute, BasePath } )
+					text_utils:binary_to_string( BasePath )
+
+			end,
+
+			% Relative, using specified base directory:
+			case is_absolute_path( PlainBasePath ) of
+
+				true ->
+					normalise_path( join( PlainBasePath, TargetPath ) );
+
+				false ->
+					throw( { base_path_not_absolute, PlainBasePath } )
 			end
 
-	end.
+	end;
+
+% Here at least TargetPath is a binary:
+ensure_path_is_absolute( BinTargetPath, BasePath ) ->
+	PlainTargetPath = text_utils:binary_to_string( BinTargetPath ),
+	AbsPath = ensure_path_is_absolute( PlainTargetPath, BasePath ),
+	text_utils:string_to_binary( AbsPath ).
+
 
 
 
