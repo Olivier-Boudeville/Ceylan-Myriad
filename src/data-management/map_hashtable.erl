@@ -142,7 +142,7 @@ new( ExpectedNumberOfEntries ) when is_integer( ExpectedNumberOfEntries ) ->
 % If the same key appears more than once, the latter (right-most) value is used
 % and the previous values are ignored.
 %
-% Throws bad_arg if a non-pair term is found in this list.
+% Throws bad argument (bad_arg) if a non-pair term is found in this list.
 %
 new( InitialEntries ) when is_list( InitialEntries ) ->
 	maps:from_list( InitialEntries ).
@@ -1093,6 +1093,10 @@ to_string( MapHashtable, Bullet ) when is_list( Bullet ) ->
 		[] ->
 			"empty table";
 
+		[ { K, V } ] ->
+			text_utils:format( "table with a single entry, key being ~p, "
+							   "value being ~p", [ K, V ] );
+
 		L ->
 
 			% Enforces a consistent order:
@@ -1100,7 +1104,7 @@ to_string( MapHashtable, Bullet ) when is_list( Bullet ) ->
 						|| { K, V } <- lists:sort( L ) ],
 
 			% Flatten is needed, in order to use the result with ~s:
-			lists:flatten( io_lib:format( "table with ~B entry(ies): ~s",
+			lists:flatten( io_lib:format( "table with ~B entries: ~s",
 				[ map_size( MapHashtable ),
 				  text_utils:strings_to_string( Strings, Bullet ) ] ) )
 
