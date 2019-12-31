@@ -1055,9 +1055,14 @@ format( FormatString, Values ) ->
 				%
 				%throw( { badly_formatted, FormatString, Values } )
 
-				io_lib:format( "[error: badly formatted string output] "
-							   "Format string was '~p', values were '~p'.",
-							   [ FormatString, Values ] )
+				Msg = io_lib:format( "[error: badly formatted string output] "
+									 "Format string was '~p', values were '~p'.",
+									 [ FormatString, Values ] ),
+
+				% If wanting to be extra verbose:
+				io:format( Msg ),
+
+				Msg
 
 		end,
 
