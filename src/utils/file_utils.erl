@@ -235,6 +235,7 @@
 %
 -type file() :: file:io_device().
 
+-type file_info() :: #file_info{}.
 
 
 % The various permissions that can be combined for file-like elements:
@@ -257,7 +258,7 @@
 			   entry_type/0,
 			   permission/0,
 			   compression_format/0,
-			   file/0 ]).
+			   file/0, file_info/0 ]).
 
 
 
@@ -2845,7 +2846,8 @@ read( File, Count ) ->
 
 % Writes specified content into specified file.
 %
-% Operates on files opened in raw mode or not.
+% Operates on files opened in raw mode (only way to do so), or not (works for
+% normal mode as well).
 %
 % Throws an exception on failure.
 %
