@@ -484,8 +484,13 @@ get_intertime_duration( { H1, M1, S1 }, { H2, M2, S2 } ) ->
 %
 -spec get_timestamp() -> timestamp().
 get_timestamp() ->
+
 	% Was: { erlang:date(), erlang:time() }.
+	%
 	% Better:
+	%
+	% (see also http://erlang.org/doc/apps/erts/time_correction.html)
+	%
 	erlang:localtime().
 
 
@@ -567,8 +572,8 @@ get_time2_textual_timestamp() ->
 %
 -spec get_time2_textual_timestamp( timestamp() ) -> text_utils:ustring().
 get_time2_textual_timestamp( { { Year, Month, Day },
-								{ Hour, Minute, Second } } ) ->
-	io_lib:format( "~4..0B-~2..0B-~2..0B ~2..0B-~2..0B-~2..0B",
+							   { Hour, Minute, Second } } ) ->
+	io_lib:format( "~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B",
 				   [ Year, Month, Day, Hour, Minute, Second ] ).
 
 
