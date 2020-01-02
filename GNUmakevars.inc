@@ -24,8 +24,10 @@ ifndef REBAR3_PROJECT_NAME
 endif
 
 
-# The uniquely-defined version of this layer, for all uses (including rebar):
-MYRIAD_VERSION := 1.0.14
+# The uniquely-defined version of this layer, for all uses (including rebar and
+# hex):
+#
+MYRIAD_VERSION := 1.0.15
 
 
 # PROJECT_VERSION should be defined on a per-project basis.
