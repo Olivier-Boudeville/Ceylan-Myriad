@@ -37,9 +37,9 @@ Technical Manual of the ``Ceylan-Myriad`` Layer
 :Organisation: Copyright (C) 2008-2019 Olivier Boudeville
 :Contact: about (dash) myriad (at) esperide (dot) com
 :Creation date: Sunday, August 17, 2008
-:Lastly updated: Saturday, September 21, 2019
+:Lastly updated: Thursday, January 2, 2020
 :Status: Stable
-:Version: 1.2.10
+:Version: 1.2.11
 :Dedication: Users and maintainers of the ``Myriad`` layer.
 :Abstract:
 
@@ -98,6 +98,8 @@ Technical Manual of the ``Ceylan-Myriad`` Layer
 
 .. include:: Ceylan-Myriad-Layer-sql-support-english.rst
 
+.. include:: Ceylan-Myriad-Layer-conventions-english.rst
+
 .. include:: Ceylan-Myriad-Layer-gotchas-english.rst
 
 .. include:: Ceylan-Myriad-Layer-support-english.rst
@@ -126,6 +128,7 @@ Each time that you need a basic service that:
 please either enrich our ``*_utils.erl`` helpers, or add new general services!
 
 
+.. _contribution:
 
 In such a case, we would prefer that, in contributed code:
 
