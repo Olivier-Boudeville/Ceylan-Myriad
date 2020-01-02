@@ -10,7 +10,7 @@
 
 {application, myriad,
  [{description, "Ceylan-Myriad, a generic-purpose Erlang toolbox, as an OTP application library here (see http://myriad.esperide.org)"},
-  {vsn, "1.0.12"},
+  {vsn, "1.0.15"},
 
   % No process registered:
   {registered, []},
