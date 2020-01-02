@@ -87,7 +87,10 @@ real-clean: clean
 
 info-web:
 	@echo "HTML_TARGET = $(HTML_TARGET)"
+	@echo "SP = $(SP)"
 	@echo "WEB_CONTENT = $(WEB_CONTENT)"
+	@echo "WEB_SRV = $(WEB_SRV)"
+	@echo "WEB_ROOT = $(WEB_ROOT)"
 	@echo "MYRIAD_WEB_MIRROR_BRANCH = $(MYRIAD_WEB_MIRROR_BRANCH)"
 	@echo "GITHUB_PAGES_BASE = $(GITHUB_PAGES_BASE)"
 
