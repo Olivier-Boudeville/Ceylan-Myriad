@@ -123,6 +123,10 @@
 -type pid_or_port() :: pid() | port().
 
 
+% For tables:
+-type atom_key() :: atom().
+
+
 % Term designated a reason (which may be any term):
 %
 % Note: useful to have self-describing types.
@@ -239,6 +243,15 @@
 -type comparison_result() :: 'lower' | 'equal' | 'higher'.
 
 
+
+% Compile-time execution target (not to be mixed up with execution_context/0):
+-type execution_target() :: 'production' | 'development'.
+
+% Runtime-time execution context (not to be mixed up with execution_target/0):
+-type execution_context() :: 'production' | 'development'.
+
+
+
 % The exception classes that can be raised:
 -type exception_class() :: 'throw' | 'exit' | 'error'.
 
@@ -253,8 +266,8 @@
 
 
 -export_type([ void/0, count/0, non_null_count/0, level/0,
-			   bit_mask/0, message/0,
-			   pid_or_port/0, reason/0, exit_reason/0,
+			   bit_mask/0, message/0, pid_or_port/0, atom_key/0,
+			   reason/0, exit_reason/0,
 			   error_reason/0, error_term/0, error_type/0,
 			   base_status/0, maybe/1, wildcardable/1,
 			   external_data/0, unchecked_data/0, user_data/0,
@@ -264,7 +277,8 @@
 			   module_name/0, function_name/0, argument/0,
 			   command_spec/0, layer_name/0, record_name/0, field_name/0,
 			   user_name/0, atom_user_name/0,
-			   comparison_result/0, exception_class/0, status_code/0,
+			   comparison_result/0, execution_target/0, execution_context/0,
+			   exception_class/0, status_code/0,
 			   fixme/0 ]).
 
 
@@ -1234,11 +1248,10 @@ get_process_specific_value( Min, Max ) ->
 % Returns the execution target this module was compiled with, i.e. either the
 % atom 'development' or 'production'.
 
-
 % Dispatched in actual clauses, otherwise Dialyzer will detect an
 % underspecification:
 %
-% -spec get_execution_target() -> 'production' | 'development'.
+% -spec get_execution_target() -> execution_target().
 
 -ifdef(exec_target_is_production).
 
