@@ -25,13 +25,10 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-
-% Shared records:
-
+-define( default_epmd_port, 4369 ).
 
 
 % Describes fully an URL, like: 'https://www.foo.org:81/access/login'.
-%
 -record( url_info, {
 
 		   % Protocol of the URL (ex: 'https'):
