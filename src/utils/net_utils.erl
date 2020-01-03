@@ -53,8 +53,10 @@
 
 
 % Net-related command line options:
--export([ get_cookie_option/0, get_epmd_environment/1, get_node_name_option/2,
-		  get_tcp_port_range_option/1, get_basic_node_launching_command/5 ]).
+-export([ get_cookie_option/0,
+		  get_default_epmd_port/0, get_epmd_environment/1,
+		  get_node_name_option/2, get_tcp_port_range_option/1,
+		  get_basic_node_launching_command/5 ]).
 
 
 % Net-related transfers:
@@ -1136,6 +1138,15 @@ get_cookie_option() ->
 			"-setcookie \"" ++ atom_to_list( Cookie ) ++ "\""
 
 	end.
+
+
+
+% Returns the default EPMD TCP port (not necesarily the one being currently
+% used).
+%
+-spec get_default_epmd_port() -> tcp_port().
+get_default_epmd_port() ->
+	?default_epmd_port.
 
 
 
