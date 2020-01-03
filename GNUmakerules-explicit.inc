@@ -917,7 +917,9 @@ endif
 clean-ast-debug: clean-ast-debug-myriad
 
 clean-ast-debug-myriad:
-	@find . -name 'Myriad-*put-AST*.txt' -exec /bin/rm -f '{}' ';'
+	@find . -name 'Myriad-*put-AST*.txt' -exec /bin/rm -f '{}' ';' 2>/dev/null || true
+
+
 
 
 clean-outputs:
