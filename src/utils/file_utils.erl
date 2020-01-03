@@ -36,6 +36,10 @@
 % Related standard modules: file, filename.
 
 
+% Note: using the file module has been known to cause synchronization overheads,
+% often prim_file is used instead.
+
+
 
 % Filename-related operations.
 %
