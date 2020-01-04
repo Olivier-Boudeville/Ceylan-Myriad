@@ -66,7 +66,7 @@
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
 		  duration_to_string/1,
-		  format/2, bin_format/2,
+		  format/2, bin_format/2, format/3,
 		  ensure_string/1, ensure_binary/1 ]).
 
 
@@ -1111,6 +1111,12 @@ bin_format( FormatString, Values ) ->
 	% No flattening needed here:
 	erlang:list_to_binary( String ).
 
+
+
+% Useful to catch silly mistakes involving an extra comma in a format string:
+-spec format( term(), term(), term() ) -> no_return().
+format( A, B, C ) ->
+	throw( { faulty_format_string, { A, B, C } } ).
 
 
 
