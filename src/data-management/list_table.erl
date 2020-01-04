@@ -59,6 +59,7 @@
 		  remove_entry/2, remove_entries/2,
 		  lookup_entry/2, has_entry/2,
 		  extract_entry/2, extract_entry_with_defaults/3,
+		  extract_entry_if_existing/2,
 		  get_value/2, get_value_with_defaults/3, get_values/2, get_all_values/2,
 		  add_to_entry/3, subtract_from_entry/3, toggle_entry/2,
 		  append_to_existing_entry/3, append_list_to_existing_entry/3,
@@ -104,6 +105,8 @@
 %
 % The proplists module could be used as well.
 
+
+-compile( { inline, [ has_entry/2, add_entry/3, extract_entry/2 ] } ).
 
 
 
@@ -262,6 +265,7 @@ extract_entry( Key, Table ) ->
 	end.
 
 
+
 % Extracts specified entry from specified table, i.e. returns the associated
 % value and removes that entry from the table.
 %
@@ -279,6 +283,27 @@ extract_entry_with_defaults( Key, DefaultValue, Table ) ->
 
 		false ->
 			{ DefaultValue, Table }
+
+	end.
+
+
+
+% Extracts specified entry (if any) from specified table, i.e. returns its
+% associated value and removes that entry from the returned table.
+%
+% Otherwise, i.e. if that entry does not exist, returns false.
+%
+-spec extract_entry_if_existing( key(), list_table() ) ->
+				  'false' | { value(), list_table() }.
+extract_entry_if_existing( Key, Table ) ->
+
+	case has_entry( Key, Table ) of
+
+		true ->
+			extract_entry( Key, Table );
+
+		false ->
+			false
 
 	end.
 
