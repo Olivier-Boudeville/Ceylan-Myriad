@@ -41,7 +41,7 @@
 -export_type([ application_name/0, supervisor_pid/0 ]).
 
 
--export([ prepare_app_context/2, prepare_myriad_context/1 ]).
+-export([ prepare_app_context/2, prepare_myriad_context/1, get_priv_root/1 ]).
 
 
 % Prepares a relevant context for specified OTP application: ensures that its
@@ -80,3 +80,41 @@ prepare_app_context( AppName,AppParentRootDir  ) ->
 prepare_myriad_context( AppParentRootDir ) ->
 	prepare_app_context( _AppName=myriad,
 						 file_utils:join( AppParentRootDir, "Ceylan-Myriad" ) ).
+
+
+
+% Returns the root directory of the application-private tree ('priv'), based on
+% specified module (expected to belong to that application).
+%
+% It may be useful to fetch data or NIF code for example.
+%
+% One may specified ?MODULE as argument, provided this module belongs to the
+% application of interest.
+%
+-spec get_priv_root( basic_utils:module_name() ) -> file_utils:directory_path().
+get_priv_root( ModuleName ) ->
+
+   case code:priv_dir( ModuleName ) of
+
+		{ error, PError } ->
+
+		   % PError=bad_name, not that useful:
+			trace_utils:warning_fmt( "Unable to determine 'priv' directory "
+				 "from module '~s': ~w.", [ ModuleName, PError ] ),
+
+			case code:which( ModuleName ) of
+
+				WError when is_atom( WError ) ->
+					throw( { priv_lookup_failed, WError } );
+
+				ObjectCodePath -> % when is_list( ObjectCodePath ) ->
+					EbinDir = filename:dirname( ObjectCodePath ),
+					AppPath = filename:dirname( EbinDir ),
+					file_utils:join( AppPath, "priv" )
+
+			end;
+
+		Path ->
+			Path
+
+	end.
