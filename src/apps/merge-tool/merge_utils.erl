@@ -2818,7 +2818,7 @@ spawn_data_analyzers( Count, _UserState ) ->
 
 
 % Terminates specified data analyzers.
--spec terminate_analyzer_ring( ring_utils:rin( analyzer_pid() ),
+-spec terminate_analyzer_ring( ring_utils:ring( analyzer_pid() ),
 							   user_state() ) -> void().
 terminate_analyzer_ring( AnalyzerRing, UserState ) ->
 

@@ -821,7 +821,8 @@ get_prefix_for_order( Order ) ->
 %
 % Note: could be predetermined at build time.
 %
--spec get_order_for_prefix( prefix_symbol() ) -> magnitude_order().
+-spec get_order_for_prefix( prefix_symbol() ) ->
+								  magnitude_order() | 'unknown_prefix'.
 get_order_for_prefix( _PrefixSymbol="" ) ->
 	% No prefix means order 0:
 	0;

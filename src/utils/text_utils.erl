@@ -1039,6 +1039,9 @@ duration_to_string( infinity ) ->
 % Unicode inputs resulting on crashes afterwards.
 %
 -spec format( format_string(), format_values() ) -> ustring().
+
+-ifdef(exec_target_is_production).
+
 format( FormatString, Values ) ->
 
 	String =
@@ -1056,8 +1059,44 @@ format( FormatString, Values ) ->
 				%throw( { badly_formatted, FormatString, Values } )
 
 				Msg = io_lib:format( "[error: badly formatted string output] "
-									 "Format string was '~p', values were '~p'.",
-									 [ FormatString, Values ] ),
+						"Format string was '~p', values were '~p'.",
+						[ FormatString, Values ] ),
+
+				% Not wanting to be extra verbose in this mode:
+				%io:format( Msg ++ "~n", [] ),
+
+				Msg
+
+		end,
+
+	% Using 'flatten' allows for example to have clearer string outputs in case
+	% of error (at a rather low cost):
+	%
+	lists:flatten( String ).
+
+
+-else. % exec_target_is_production
+
+
+format( FormatString, Values ) ->
+
+	String =
+		try
+
+			io_lib:format( FormatString, Values )
+
+		catch
+
+			_:_ ->
+
+				% Useful to obtain the stacktrace of a culprit or to check for
+				% silent errors:
+				%
+				%throw( { badly_formatted, FormatString, Values } )
+
+				Msg = io_lib:format( "[error: badly formatted string output] "
+						"Format string was '~p', values were '~p'.",
+						[ FormatString, Values ] ),
 
 				% If wanting to be extra verbose:
 				io:format( Msg ++ "~n", [] ),
@@ -1071,6 +1110,9 @@ format( FormatString, Values ) ->
 	%
 	lists:flatten( String ).
 
+-endif. % exec_target_is_production
+
+
 
 
 % Formats specified binary string as io_lib:format/2 would do, except it returns
@@ -1081,6 +1123,45 @@ format( FormatString, Values ) ->
 % Unicode inputs resulting on crashes afterwards.
 %
 -spec bin_format( format_string(), [ term() ] ) -> ustring().
+
+
+-ifdef(exec_target_is_production).
+
+
+bin_format( FormatString, Values ) ->
+
+	String =
+		try
+
+			io_lib:format( FormatString, Values )
+
+		catch
+
+		_:_ ->
+
+				% Useful to obtain the stacktrace of a culprit or to check for
+				% silent errors:
+				%
+				%throw( { badly_formatted, FormatString, Values } )
+
+				Msg = io_lib:format( "[error: badly formatted string output] "
+									 "Format: '~p', values: '~p'",
+									 [ FormatString, Values ] ),
+
+				% If wanting to be extra verbose:
+				%io:format( Msg ++ "~n", [] ),
+
+				Msg
+
+	end,
+
+	% No flattening needed here:
+	erlang:list_to_binary( String ).
+
+
+-else. % exec_target_is_production
+
+
 bin_format( FormatString, Values ) ->
 
 	String =
@@ -1110,6 +1191,8 @@ bin_format( FormatString, Values ) ->
 
 	% No flattening needed here:
 	erlang:list_to_binary( String ).
+
+-endif. % exec_target_is_production
 
 
 

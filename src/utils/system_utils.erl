@@ -686,12 +686,11 @@ get_line( Prompt, GetLineScriptPath ) ->
 	% We have to execute a real executable (ex: not a shell builtin):
 	Cmd = GetLineScriptPath ++ " 1>&4",
 
-	Env = system_utils:get_standard_environment(),
+	Env = get_standard_environment(),
 
 	PortOpts = [ stream, nouse_stdio, exit_status, eof ],
 
-	case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
-									  PortOpts ) of
+	case run_executable( Cmd, Env, _WorkingDir=undefined, PortOpts ) of
 
 		{ _ExitStatus=0, UserText } ->
 			UserText;
@@ -1077,7 +1076,7 @@ add_paths_for_library_lookup( _Paths=[], Acc ) ->
 
 	LibOptVarName = "LD_LIBRARY_PATH",
 
-	BaseLibOpt = case system_utils:get_environment_variable( LibOptVarName ) of
+	BaseLibOpt = case get_environment_variable( LibOptVarName ) of
 
 		false ->
 			[];
@@ -1091,7 +1090,7 @@ add_paths_for_library_lookup( _Paths=[], Acc ) ->
 
 	NewLibOpt = text_utils:join( _Sep=":", ToJoin ),
 
-	system_utils:set_environment_variable( LibOptVarName, NewLibOpt );
+	set_environment_variable( LibOptVarName, NewLibOpt );
 
 
 add_paths_for_library_lookup( [ Path | T ], Acc ) ->

@@ -977,24 +977,24 @@ is_batch() ->
 	case init:get_argument( '-batch' ) of
 
 		{ ok, _ } ->
-			trace_utils:debug( "Batch mode activated through command line." ),
+			%trace_utils:debug( "Batch mode activated through command line." ),
 			true;
 
 		_ ->
 			case application:get_env( is_batch ) of
 
 				{ ok, true } ->
-					trace_utils:debug(
-					  "Batch mode enabled through configuration." ),
+					%trace_utils:debug(
+					%  "Batch mode enabled through configuration." ),
 					true;
 
 				{ ok, false } ->
-					trace_utils:debug(
-					  "Batch mode disabled through configuration." ),
+					%trace_utils:debug(
+					%  "Batch mode disabled through configuration." ),
 					false;
 
 				undefined ->
-					trace_utils:debug("Batch mode disabled (default)." ),
+					%trace_utils:debug("Batch mode disabled (default)." ),
 					% Default then is:
 					false
 
