@@ -1141,8 +1141,9 @@ get_cookie_option() ->
 
 
 
-% Returns the default EPMD TCP port (not necesarily the one being currently
-% used).
+% Returns the default Erlang-level EPMD TCP port (not necessarily the one being
+% currently used, not necessarily the one in the default Myriad settings either;
+% refer to the EPMD_PORT variable in myriad/GNUmakevars.inc).
 %
 -spec get_default_epmd_port() -> tcp_port().
 get_default_epmd_port() ->
