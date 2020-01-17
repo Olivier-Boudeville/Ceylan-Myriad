@@ -40,6 +40,11 @@
 		  get_user_home_directory_string/0 ]).
 
 
+% Group-related functions.
+-export([ get_group_name/0 ]).
+
+
+
 % Lower-level services.
 -export([ await_output_completion/0, await_output_completion/1 ]).
 
@@ -243,10 +248,15 @@
 
 % Basic authentication information:
 
+% For example in UNIX terms:
 -type user_name() :: string().
+
 -type password() :: string().
 
 -type basic_credential() :: { user_name(), password() }.
+
+% For example in UNIX terms:
+-type group_name() :: string().
 
 
 
@@ -264,7 +274,7 @@
 			   env_variable_name/0, env_variable_value/0, environment/0,
 			   working_dir/0,
 
-			   user_name/0, password/0, basic_credential/0 ]).
+			   user_name/0, password/0, basic_credential/0, group_name/0 ]).
 
 
 % For myriad_spawn*:
@@ -361,6 +371,20 @@ get_user_home_directory_string() ->
 	end.
 
 
+
+% Returns the name of the current group, as a plain string.
+-spec get_group_name() -> string().
+get_group_name() ->
+
+	case run_executable( ?id "-gn" ) of
+
+		{ _ExitCode=0, Output } ->
+			Output;
+
+		{ ExitCode, ErrorOutput } ->
+			throw( { group_inquiry_failed, ExitCode, ErrorOutput } )
+
+	end.
 
 
 

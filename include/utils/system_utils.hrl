@@ -128,3 +128,5 @@
 
 % "/bin/sed" should be valid as well:
 -define( sed, " \\sed " ).
+
+-define( id, " \\id " ).
