@@ -407,7 +407,7 @@ info-install-content:
 # ('remove-rebar-conf' target not kept, as rebar.config shall not be deleted in
 # GIT)
 #
-rebar3-application: rebar3-real-clean clean rebar3-update set-rebar-conf \
+rebar3-application: rebar3-real-clean clean rebar3-update set-rebar-conf      \
 					rebar3-make-include-links rebar3-hide-unsupported-sources \
 					rebar3-create-app-file
 	@echo "  Triggering the overall creation by rebar3 of an OTP application corresponding to $(PROJECT_NAME)"
@@ -621,6 +621,9 @@ rebar3-populate-build-tree:
 # (otherwise nothing is built), a release (otherwise dependency not reachable),
 # and probably an hex package as well.
 #
+# Apparently, at least in some cases (ex: generating a standalone release), an
+# (updated) *.app.src file is looked-up in src (not in ebin - try to create
+# syntax error in it to check), so we add a symbolic link there as well.
 #
 rebar3-create-app-file:
 	@echo "  Generating rebar3 $(REBAR3_PROJECT_NAME).app file"
@@ -628,6 +631,7 @@ rebar3-create-app-file:
 	@mkdir -p $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ebin $(LAYER_TOP)/ebin
 	@all_modules=$$(find src -name '*.erl' -a ! -name '*_test.erl' $(REBAR3_FIND_SRC_OPT) -exec echo '{}' ';' | sed 's|.*/||1' | sed 's|.erl$$||1' | tr '\n' ','| sed 's|,|, |g' | sed 's|, $$||1' | sort ) ; cat conf/$(REBAR3_PROJECT_NAME).app.src | sed "s|VERSION_FOR_REBAR3|$(VERSION_FOR_REBAR3)|1" | sed "s|MODULES_FOR_REBAR3|$$all_modules|1" > $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ebin/$(REBAR3_PROJECT_NAME).app
 	@/bin/cp -f $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ebin/$(REBAR3_PROJECT_NAME).app $(LAYER_TOP)/ebin/
+	@cd $(LAYER_TOP)/src ; ln -sf ../ebin/$(REBAR3_PROJECT_NAME).app $(REBAR3_PROJECT_NAME).app.src
 
 
 # Currently excluding test BEAMs, for a smaller size:
