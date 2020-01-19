@@ -98,8 +98,10 @@
 
 -type string_node_name() :: nonempty_string().
 
+-type bin_node_name() :: text_utils:bin_string().
 
--type node_name() :: atom_node_name() | string_node_name().
+-type node_name() :: atom_node_name() | string_node_name() | bin_node_name().
+
 
 % See net_kernel:monitor_nodes/2 for more information:
 -type node_type() :: 'visible' | 'hidden' | 'all'.
@@ -175,7 +177,8 @@
 
 
 -export_type([ ip_v4_address/0, ip_v6_address/0, ip_address/0,
-			   atom_node_name/0, string_node_name/0, node_name/0, node_type/0,
+			   atom_node_name/0, string_node_name/0, bin_node_name/0,
+			   node_name/0, node_type/0,
 			   atom_host_name/0, string_host_name/0, bin_host_name/0,
 			   host_name/0, host_identifier/0,
 			   atom_fqdn/0, string_fqdn/0, bin_fqdn/0, fqdn/0,
