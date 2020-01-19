@@ -51,7 +51,8 @@
 -export([ join/1, join/2, convert_to_filename/1,
 		  get_extensions/1, get_extension/1, replace_extension/3,
 
-		  exists/1, get_type_of/1, is_file/1,
+		  exists/1, get_type_of/1, get_owner_of/1, get_group_of/1,
+		  is_file/1,
 		  is_existing_file/1, is_existing_link/1,
 		  is_existing_file_or_link/1,
 		  is_executable/1, is_directory/1, is_existing_directory/1,
@@ -242,6 +243,7 @@
 -type file_info() :: #file_info{}.
 
 
+
 % The various permissions that can be combined for file-like elements:
 -type permission() :: 'owner_read'  | 'owner_write' | 'owner_execute'
 					| 'group_read'  | 'group_write' | 'group_execute'
@@ -259,8 +261,7 @@
 			   directory_name/0, bin_directory_name/0,
 			   directory_path/0, bin_directory_path/0,
 			   extension/0,
-			   entry_type/0,
-			   permission/0,
+			   entry_type/0, permission/0,
 			   compression_format/0,
 			   file/0, file_info/0 ]).
 
@@ -481,7 +482,7 @@ replace_extension( Filename, SourceExtension, TargetExtension ) ->
 
 
 % Tells whether specified file entry exists, regardless of its type.
--spec exists( file_name() ) -> boolean().
+-spec exists( any_path() ) -> boolean().
 exists( EntryName ) ->
 
 	case file:read_file_info( EntryName ) of
@@ -497,7 +498,7 @@ exists( EntryName ) ->
 
 
 % Returns the type of the specified file entry.
--spec get_type_of( file_name() ) -> entry_type().
+-spec get_type_of( any_path() ) -> entry_type().
 get_type_of( EntryName ) ->
 
 	% We used to rely on file:read_file_info/1, but an existing symlink pointing
@@ -523,12 +524,44 @@ get_type_of( EntryName ) ->
 
 
 
+% Returns the user identifier (uid) of the owner of the specified file entry.
+-spec get_owner_of( any_path() ) -> system_utils:user_id().
+get_owner_of( EntryName ) ->
+
+	case file:read_file_info( EntryName ) of
+
+		{ ok, #file_info{ uid=UID } } ->
+			UID;
+
+		{ error, Reason } ->
+			throw( { file_info_failure, Reason, EntryName } )
+
+	end.
+
+
+
+% Returns the group identifier (gid) of the group of the specified file entry.
+-spec get_group_of( any_path() ) -> system_utils:group_id().
+get_group_of( EntryName ) ->
+
+	case file:read_file_info( EntryName ) of
+
+		{ ok, #file_info{ gid=GID } } ->
+			GID;
+
+		{ error, Reason } ->
+			throw( { file_info_failure, Reason, EntryName } )
+
+	end.
+
+
+
 % Returns whether the specified entry, supposedly existing, is a regular file.
 %
 % If the specified entry happens not to exist, a
 % '{ non_existing_entry, EntryName }' exception will be thrown.
 %
--spec is_file( file_name() ) -> boolean().
+-spec is_file( any_path() ) -> boolean().
 is_file( EntryName ) ->
 
 	case get_type_of( EntryName ) of
@@ -547,7 +580,7 @@ is_file( EntryName ) ->
 %
 % Returns true or false, and cannot trigger an exception.
 %
--spec is_existing_file( file_name() ) -> boolean().
+-spec is_existing_file( any_path() ) -> boolean().
 is_existing_file( EntryName ) ->
 
 	case exists( EntryName ) andalso get_type_of( EntryName ) of
@@ -566,7 +599,7 @@ is_existing_file( EntryName ) ->
 %
 % Returns true or false, and cannot trigger an exception.
 %
--spec is_existing_link( file_name() ) -> boolean().
+-spec is_existing_link( any_path() ) -> boolean().
 is_existing_link( EntryName ) ->
 
 	case exists( EntryName ) andalso get_type_of( EntryName ) of
@@ -586,7 +619,7 @@ is_existing_link( EntryName ) ->
 %
 % Returns true or false, and cannot trigger an exception.
 %
--spec is_existing_file_or_link( file_name() ) -> boolean().
+-spec is_existing_file_or_link( any_path() ) -> boolean().
 is_existing_file_or_link( EntryName ) ->
 
 	case exists( EntryName ) andalso get_type_of( EntryName ) of
@@ -609,7 +642,7 @@ is_existing_file_or_link( EntryName ) ->
 %
 % Returns true or false, and cannot trigger an exception.
 %
--spec is_executable( file_name() ) -> boolean().
+-spec is_executable( any_path() ) -> boolean().
 is_executable( ExecutableName ) ->
 
 	case file:read_file_info( ExecutableName ) of
@@ -653,7 +686,7 @@ is_executable( ExecutableName ) ->
 % If the specified entry happens not to exist, a
 % '{ non_existing_entry, EntryName }' exception will be thrown.
 %
--spec is_directory( directory_name() ) -> boolean().
+-spec is_directory( any_path() ) -> boolean().
 is_directory( EntryName ) ->
 
 	case get_type_of( EntryName ) of
@@ -672,7 +705,7 @@ is_directory( EntryName ) ->
 %
 % Returns true or false, and cannot trigger an exception.
 %
--spec is_existing_directory( directory_name() ) -> boolean().
+-spec is_existing_directory( any_path() ) -> boolean().
 is_existing_directory( EntryName ) ->
 
 	case exists( EntryName ) andalso get_type_of( EntryName ) of
@@ -692,7 +725,7 @@ is_existing_directory( EntryName ) ->
 %
 % Returns true or false, and cannot trigger an exception.
 %
--spec is_existing_directory_or_link( directory_name() ) -> boolean().
+-spec is_existing_directory_or_link( any_path() ) -> boolean().
 is_existing_directory_or_link( EntryName ) ->
 
 	case exists( EntryName ) andalso get_type_of( EntryName ) of
@@ -737,6 +770,7 @@ list_dir_elements( Dirname ) ->
 
 
 
+% Returns the size, in bytes, of the specified file entry.
 -spec get_size( file_name() ) -> system_utils:byte_size().
 get_size( Filename ) ->
 
@@ -752,13 +786,14 @@ get_size( Filename ) ->
 
 
 
-% Returns the last time at which the content of specified file was modified (not
-% counting attribute or permission changes), according to the filesystem.
+% Returns the last time at which the content of specified file entry was
+% modified (not counting attribute or permission changes), according to the
+% filesystem.
 %
 % Said time will be expressed as an integer number of seconds since (or before)
 % Unix time epoch, which is 1970-01-01 00:00 UTC.
 %
--spec get_last_modification_time( file_name() ) -> time_utils:posix_seconds().
+-spec get_last_modification_time(  any_path() ) -> time_utils:posix_seconds().
 get_last_modification_time( Filename ) ->
 
 	case file:read_file_info( Filename, [ { time, posix } ] ) of
@@ -774,36 +809,36 @@ get_last_modification_time( Filename ) ->
 
 
 % Updates the modification time (the last time at which its content was reported
-% as modified according to the filesystem) of the specified file, which must
-% already exist.
+% as modified according to the filesystem) of the specified file entry, which
+% must already exist.
 %
 % Note: leaves last access time unchanged, updates both modification and change
 % times.
 %
 % See also: create_empty_file/1
 %
--spec touch( file_name() ) -> void().
-touch( Filename ) ->
+-spec touch( any_path() ) -> void().
+touch( FileEntry ) ->
 
-	case is_existing_file( Filename ) of
+	case exists( FileEntry ) of
 
 		true ->
 			% -c: do not create any file
 			% -m: change only the modification time
 			%
 			case system_utils:run_executable( "/bin/touch -c -m '"
-												  ++ Filename ++ "'" ) of
+												  ++ FileEntry ++ "'" ) of
 
 				{ 0, _Output } ->
 					ok;
 
 				{ ErrorCode, Output } ->
-					throw( { touch_failed, Output, ErrorCode, Filename } )
+					throw( { touch_failed, Output, ErrorCode, FileEntry } )
 
 			end;
 
 		false ->
-			throw( { non_existing_file_to_touch, Filename } )
+			throw( { non_existing_file_element_to_touch, FileEntry } )
 
 	end.
 

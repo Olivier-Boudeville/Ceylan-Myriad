@@ -36,6 +36,7 @@
 
 % User-related functions.
 -export([ get_user_name/0, get_user_name_string/0,
+		  get_user_id/0, get_group_id/0,
 		  get_user_home_directory/0, get_user_home_directory/1,
 		  get_user_home_directory_string/0 ]).
 
@@ -152,8 +153,7 @@
 
 
 % All the known types of filesystems (atom, to capture even lacking ones):
--type filesystem_type() :: actual_filesystem_type()
-						 | pseudo_filesystem_type()
+-type filesystem_type() :: actual_filesystem_type() | pseudo_filesystem_type()
 						 | 'unknown' | atom().
 
 
@@ -259,6 +259,12 @@
 -type group_name() :: string().
 
 
+% The user identifier (uid) of a filesystem element:
+-type user_id() :: non_neg_integer().
+
+% The group identifier (gid) of a filesystem element:
+-type group_id() :: non_neg_integer().
+
 
 -export_type([ byte_size/0, cpu_usage_info/0, cpu_usage_percentages/0,
 			   host_static_info/0, host_dynamic_info/0,
@@ -274,7 +280,8 @@
 			   env_variable_name/0, env_variable_value/0, environment/0,
 			   working_dir/0,
 
-			   user_name/0, password/0, basic_credential/0, group_name/0 ]).
+			   user_name/0, password/0, basic_credential/0, group_name/0,
+			   user_id/0, group_id/0 ]).
 
 
 % For myriad_spawn*:
@@ -289,20 +296,31 @@
 -spec get_user_name() -> string().
 get_user_name() ->
 
-	case os:getenv( "USER" ) of
+	case run_executable( ?id "-un" ) of
 
-		false ->
+		{ _ExitCode=0, Output } ->
+			Output;
 
-			trace_utils:error( "The name of the user could not be "
-							   "obtained from the shell environment "
-							   "(no USER variable defined)." ),
-
-			throw( user_name_not_found_in_environment );
-
-		UserName ->
-			UserName
+		{ ExitCode, ErrorOutput } ->
+			throw( { user_name_inquiry_failed, ExitCode, ErrorOutput } )
 
 	end.
+
+    % Another option:
+	% case os:getenv( "USER" ) of
+
+	%	false ->
+
+	%		trace_utils:error( "The name of the user could not be "
+	%						   "obtained from the shell environment "
+	%						   "(no USER variable defined)." ),
+
+	%		throw( user_name_not_found_in_environment );
+
+	%	UserName ->
+	%		UserName
+
+	%end.
 
 
 
@@ -323,6 +341,39 @@ get_user_name_string() ->
 					   [ Exception ] )
 
 	end.
+
+
+
+% Returns the (system) identifier of the current user.
+-spec get_user_id() -> user_id().
+get_user_id() ->
+
+	case run_executable( ?id "-u" ) of
+
+		{ _ExitCode=0, Output } ->
+			Output;
+
+		{ ExitCode, ErrorOutput } ->
+			throw( { user_id_inquiry_failed, ExitCode, ErrorOutput } )
+
+	end.
+
+
+
+% Returns the (system) group identifier of the current user.
+-spec get_group_id() -> group_id().
+get_group_id() ->
+
+	case run_executable( ?id "-g" ) of
+
+		{ _ExitCode=0, Output } ->
+			Output;
+
+		{ ExitCode, ErrorOutput } ->
+			throw( { group_id_inquiry_failed, ExitCode, ErrorOutput } )
+
+	end.
+
 
 
 
