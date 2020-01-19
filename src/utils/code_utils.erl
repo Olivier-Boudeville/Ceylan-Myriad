@@ -719,7 +719,7 @@ interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
 
 				[] ->
 					text_utils:format( "module ~s found in code path, yet "
-									   "it does not export a ~s function "
+									   "it does not export a '~s' function "
 									   "(for any arity)",
 									   [ ModuleName, FunctionName ] );
 
