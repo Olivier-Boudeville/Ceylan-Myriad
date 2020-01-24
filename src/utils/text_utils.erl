@@ -564,7 +564,14 @@ strings_to_string( ListOfStrings, IndentationLevel )
 strings_to_string( ListOfStrings, Bullet ) when is_list( ListOfStrings )
 												andalso is_list( Bullet ) ->
 	% Leading '~n' had been removed for some unknown reason:
-	% Removing trailing '~n', inducing a too large final blank space:
+
+	% Trailing '~n' was removed (as was inducing a too large final blank space),
+	% yet proved necessary (otherwise text may continue just at the right of the
+	% last bullet; only drawback: indeed, many intermediary and final blank
+	% lines inserted when nesting lists):
+	%
+	% Finally we were not able to reproduce the continuing text on a simple
+	% test, so:
 	%Pattern = "~n~ts~n",
 	Pattern = "~n~ts",
 
@@ -1199,7 +1206,7 @@ bin_format( FormatString, Values ) ->
 % Useful to catch silly mistakes involving an extra comma in a format string:
 -spec format( term(), term(), term() ) -> no_return().
 format( A, B, C ) ->
-	throw( { faulty_format_string, { A, B, C } } ).
+	throw( { faulty_format_call, { A, B, C } } ).
 
 
 

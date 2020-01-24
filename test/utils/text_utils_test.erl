@@ -59,6 +59,23 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
+	IndentLevel = 0,
+
+	AStrings = [ "A1", "A2", "A3" ],
+
+	AString = "the As are: "
+		++ text_utils:strings_to_string( AStrings, IndentLevel + 1 ),
+
+	BStrings = [ "B1", "B2", "B3" ],
+
+	BString = "the Bs are: "
+		++ text_utils:strings_to_string( BStrings, IndentLevel + 1 ),
+
+	NestedStrings = text_utils:strings_to_string( [ AString, BString ] ),
+
+	test_facilities:display( "Test of nested strings: ~s and that's it!",
+							 [ NestedStrings ] ),
+
 	test_facilities:display( "Converting an integer to a string: ~s.",
 		[ text_utils:integer_to_string( 3245 ) ] ),
 
