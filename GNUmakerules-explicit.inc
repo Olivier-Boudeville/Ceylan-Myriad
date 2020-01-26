@@ -419,7 +419,9 @@ rebar3-application: rebar3-real-clean clean rebar3-update set-rebar-conf      \
 # If making a rebar application or release, a symlink suffices, yet not if
 # publishing an hex package (conf/ not included in the package, hence no symlink
 # shall point to it, hence an actual copy of rebar configuration file), so we
-# prefer to copy in all cases:
+# prefer to copy it in all cases (note that 'make rebar.config' in 'conf' will
+# generate a new file but will *not* update the one at the package root, hence
+# the purpose of this target):
 #
 set-rebar-conf:
 	@echo "  Setting rebar configuration"
