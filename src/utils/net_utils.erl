@@ -60,7 +60,8 @@
 
 
 % Net-related transfers:
--export([ send_file/2, receive_file/1, receive_file/2, receive_file/3 ]).
+-export([ send_file/2, receive_file/1, receive_file/2, receive_file/3,
+		  receive_file/4 ]).
 
 
 % Server-related functions:
@@ -1256,25 +1257,34 @@ get_basic_node_launching_command( NodeName, NodeNamingMode, EpmdSettings,
 
 % Net-related transfers.
 %
-% They are not through a dedicated TCP/IP socket pair, using sendfile.
+% They are done through a dedicated TCP/IP socket pair, using sendfile (hence
+% not using the base inter-node Erlang TCP connection).
 %
 % For proper operation, a sufficient number of async threads should be
 % available.
 %
-% The recipient acts as a server, while the emitter acts as a client.
+% The recipient acts as a server, while the emitter acts as a client; this may
+% matter for firewall settings.
 %
 % The sender is to use send_file/2 while the recipient is to use one of the
 % receive_file/{1,2,3}. As they synchronize through messages, no specific order
 % of these two calls matters (the first will wait for the second).
 
 
-% We use an ephemeral port number by default:
--define( default_send_file_port, 0 ).
+% We use an ephemeral TCP port number by default:
+%
+% Note that, because of that, no guarantee that the actually elected port will
+% be in any specified range of TCP ports, which may be problem with some
+% firewall settings.
+%
+-define( default_send_file_tcp_port, 0 ).
+
+-define( send_file_listen_opts, [ binary, { active, false }, { packet,0 } ] ).
 
 
-
-% Sends specified file (probably over the network) to specified recipient PID,
-% supposed to have already called on of the receive_file/{1,2,3}.
+% Sends specified file (probably over the network) to the specified recipient
+% PID, supposed to have already called one of the receive_file/{1,2,3}
+% functions.
 %
 -spec send_file( file_utils:file_name(), pid() ) -> void().
 send_file( Filename, RecipientPid ) ->
@@ -1299,11 +1309,11 @@ send_file( Filename, RecipientPid ) ->
 
 	end,
 
-	% Strip the directories, keeps only the filename:
+	% Strips the base directory, keeps only the filename:
 	BinFilename = text_utils:string_to_binary( filename:basename( Filename ) ),
 
 	% Notifies the recipient so that it can receive the content:
-	% (note: we mimic the WOOPER conventions here)
+	% (note: we mimic the WOOPER oneway conventions here)
 	%
 	RecipientPid ! { sendFile, [ BinFilename, Permissions, self() ] },
 
@@ -1360,7 +1370,6 @@ send_file( Filename, RecipientPid ) ->
 			% way (whereas the previous approach would fail with 'enomem',
 			% trying to load their full content in RAM before their sending), so
 			% it is definitively the best solution:
-			%
 
 			%trace_utils:debug_fmt( "~w performing sendfile, using data "
 			%                       "socket ~p.", [ self(), DataSocket ] ),
@@ -1408,7 +1417,7 @@ receive_file( EmitterPid ) ->
 %
 -spec receive_file( pid(), file_utils:directory_name() ) -> void().
 receive_file( EmitterPid, TargetDir ) ->
-	receive_file( EmitterPid, TargetDir, ?default_send_file_port ).
+	receive_file( EmitterPid, TargetDir, ?default_send_file_tcp_port ).
 
 
 
@@ -1416,11 +1425,11 @@ receive_file( EmitterPid, TargetDir ) ->
 % thanks to Erlang messages) into specified pre-existing directory, the emitter
 % being supposed to use send_file/2.
 %
-% The default TCP port will be used.
+% The specified TCP port will be used for that.
 %
 -spec receive_file( pid(), file_utils:directory_name(), tcp_port() ) ->
 						  file_utils:file_name().
-receive_file( EmitterPid, TargetDir, Port ) ->
+receive_file( EmitterPid, TargetDir, TCPPort ) ->
 
 	% We prefer relying on IP addresses rather than hostnames, as a surprisingly
 	% high number of systems have no usable DNS service:
@@ -1435,57 +1444,126 @@ receive_file( EmitterPid, TargetDir, Port ) ->
 
 		{ sendFile, [ BinFilename, Permissions, EmitterPid ] } ->
 
-			case gen_tcp:listen( Port, [ binary, { active, false },
-										 { packet,0 } ] ) of
+			case gen_tcp:listen( TCPPort, ?send_file_listen_opts ) of
 
 				{ ok, ListenSock } ->
 
 					% An ephemeral port (0) may have been specified:
-					{ ok, ActualPort } = inet:port( ListenSock ),
+					{ ok, ActualTCPPort } = inet:port( ListenSock ),
 
-					EmitterPid ! { sendFileAcknowledged,
-								  [ BinFilename, LocalIP, ActualPort ] },
-
-					Filename = file_utils:join( TargetDir,
-								 text_utils:binary_to_string( BinFilename ) ),
-
-					%trace_utils:debug_fmt( "Writing received file in '~s'.",
-					%						[ Filename ] ),
-
-					% Do not know the units for { delayed_write, Size, Delay }:
-					OutputFile = file_utils:open( Filename,
-									   [ write, raw, binary, delayed_write ] ),
-
-					% Mono-client, yet using a separate socket for actual
-					% sending:
-					%
-					case gen_tcp:accept( ListenSock ) of
-
-						{ ok, DataSocket } ->
-
-							receive_file_chunk( DataSocket, OutputFile ),
-							ok = gen_tcp:close( ListenSock );
-
-						Other ->
-							throw( { accept_failed, Other } )
-
-					end,
-
-					case file:write_file_info( Filename,
-									  #file_info{ mode=Permissions } ) of
-
-						ok ->
-							Filename;
-
-						{ error, WriteInfoReason } ->
-							throw( { write_file_info_failed, WriteInfoReason } )
-
-					end;
+					accept_remote_content( ListenSock, ActualTCPPort, LocalIP,
+						   TargetDir, BinFilename, Permissions, EmitterPid );
 
 				{ error, Reason } ->
 					throw( { listen_failed, Reason } )
 
 			end
+
+	end.
+
+
+% Receives specified file out of band (through a dedicated TCP socket, not
+% thanks to Erlang messages) into specified pre-existing directory, the emitter
+% being supposed to use send_file/2.
+%
+% A TCP port in the specified range (min included, max excluded) will be used
+% for that (useful to cmpply with some firewall rules).
+%
+-spec receive_file( pid(), file_utils:directory_name(), tcp_port(),
+					tcp_port() ) -> file_utils:file_name().
+receive_file( EmitterPid, TargetDir, MinTCPPort, MaxTCPPort )
+  when MinTCPPort < MaxTCPPort ->
+
+	% We prefer relying on IP addresses rather than hostnames, as a surprisingly
+	% high number of systems have no usable DNS service:
+	%
+	% BinHostname = text_utils:string_to_binary( localhost() ),
+	LocalIP = get_local_ip_address(),
+
+	%trace_utils:debug_fmt( "~w (on ~w) determined its local IP: ~w.",
+	%						[ self(), node(), LocalIP ] ),
+
+	receive
+
+		{ sendFile, [ BinFilename, Permissions, EmitterPid ] } ->
+
+			{ ListenSock, ActualTCPPort } = listen_to_next_available_port(
+									 MinTCPPort, MinTCPPort, MaxTCPPort ),
+
+			accept_remote_content( ListenSock, ActualTCPPort, LocalIP,
+				 TargetDir, BinFilename, Permissions, EmitterPid )
+
+	end.
+
+
+
+% Finds next available TCP port for listening in specified range.
+%
+% (helper)
+%
+listen_to_next_available_port( _CurrentTCPPort=MaxTCPPort, MinTCPPort,
+							   MaxTCPPort ) ->
+	throw( { no_available_listen_tcp_port, MinTCPPort, MaxTCPPort } );
+
+listen_to_next_available_port( CurrentTCPPort, MinTCPPort, MaxTCPPort ) ->
+
+	case gen_tcp:listen( CurrentTCPPort, ?send_file_listen_opts ) of
+
+		{ ok, ListenSock } ->
+			trace_utils:debug_fmt( "Elected TCP listen port: ~p.",
+								   [ CurrentTCPPort ] ),
+			{ ListenSock, CurrentTCPPort };
+
+		{ error, eaddrinuse } ->
+			trace_utils:debug_fmt( "(TCP listen port ~p already in use)",
+								   [ CurrentTCPPort ] ),
+			listen_to_next_available_port( CurrentTCPPort+1, MinTCPPort,
+										   MaxTCPPort );
+
+		{ error, OtherReason } ->
+			throw( { listen_failed, CurrentTCPPort, OtherReason } )
+
+	end.
+
+
+
+% (helper, for code sharing)
+accept_remote_content( ListenSock, ActualTCPPort, LocalIP, TargetDir,
+					   BinFilename, Permissions, EmitterPid ) ->
+
+	EmitterPid ! { sendFileAcknowledged,
+				   [ BinFilename, LocalIP, ActualTCPPort ] },
+
+	Filename = file_utils:join( TargetDir,
+								text_utils:binary_to_string( BinFilename ) ),
+
+	%trace_utils:debug_fmt( "Writing received file in '~s'.",
+	%						[ Filename ] ),
+
+	% Do not know the units for { delayed_write, Size, Delay }:
+	OutputFile = file_utils:open( Filename,
+								  [ write, raw, binary, delayed_write ] ),
+
+	% Mono-client, yet using a separate socket for actual sending:
+	case gen_tcp:accept( ListenSock ) of
+
+		{ ok, DataSocket } ->
+
+			receive_file_chunk( DataSocket, OutputFile ),
+			ok = gen_tcp:close( ListenSock );
+
+		Other ->
+			throw( { accept_failed, Other } )
+
+	end,
+
+	case file:write_file_info( Filename, #file_info{ mode=Permissions } ) of
+
+		ok ->
+			Filename;
+
+		{ error, WriteInfoReason } ->
+			throw( { write_file_info_failed, WriteInfoReason } )
 
 	end.
 
