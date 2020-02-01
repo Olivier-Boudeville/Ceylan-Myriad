@@ -1490,6 +1490,9 @@ receive_file( EmitterPid, TargetDir, MinTCPPort, MaxTCPPort )
 			{ ListenSock, ActualTCPPort } = listen_to_next_available_port(
 									 MinTCPPort, MinTCPPort, MaxTCPPort ),
 
+			%trace_utils:debug_fmt( "File '~s' will be received through "
+			%	"local TCP port ~p.", [ BinFilename, ActualTCPPort ] ),
+
 			accept_remote_content( ListenSock, ActualTCPPort, LocalIP,
 				 TargetDir, BinFilename, Permissions, EmitterPid )
 
@@ -1510,13 +1513,13 @@ listen_to_next_available_port( CurrentTCPPort, MinTCPPort, MaxTCPPort ) ->
 	case gen_tcp:listen( CurrentTCPPort, ?send_file_listen_opts ) of
 
 		{ ok, ListenSock } ->
-			trace_utils:debug_fmt( "Elected TCP listen port: ~p.",
-								   [ CurrentTCPPort ] ),
+			%trace_utils:debug_fmt( "Elected TCP listen port: ~p.",
+			%					   [ CurrentTCPPort ] ),
 			{ ListenSock, CurrentTCPPort };
 
 		{ error, eaddrinuse } ->
-			trace_utils:debug_fmt( "(TCP listen port ~p already in use)",
-								   [ CurrentTCPPort ] ),
+			%trace_utils:debug_fmt( "(TCP listen port ~p already in use)",
+			%					   [ CurrentTCPPort ] ),
 			listen_to_next_available_port( CurrentTCPPort+1, MinTCPPort,
 										   MaxTCPPort );
 
@@ -1537,8 +1540,7 @@ accept_remote_content( ListenSock, ActualTCPPort, LocalIP, TargetDir,
 	Filename = file_utils:join( TargetDir,
 								text_utils:binary_to_string( BinFilename ) ),
 
-	%trace_utils:debug_fmt( "Writing received file in '~s'.",
-	%						[ Filename ] ),
+	%trace_utils:debug_fmt( "Will write received file in '~s'.", [ Filename ] ),
 
 	% Do not know the units for { delayed_write, Size, Delay }:
 	OutputFile = file_utils:open( Filename,
@@ -1548,7 +1550,8 @@ accept_remote_content( ListenSock, ActualTCPPort, LocalIP, TargetDir,
 	case gen_tcp:accept( ListenSock ) of
 
 		{ ok, DataSocket } ->
-
+			%trace_utils:debug_fmt( "Connection to ~p:~p accepted",
+			%					   [ LocalIP, ActualTCPPort ] ),
 			receive_file_chunk( DataSocket, OutputFile ),
 			ok = gen_tcp:close( ListenSock );
 
