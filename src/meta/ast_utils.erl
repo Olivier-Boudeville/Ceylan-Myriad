@@ -804,8 +804,17 @@ raise_error( Message, Context, OriginLayer ) ->
 	% Used to rely on display_error/1, yet we want to respect the standard error
 	% report format, so:
 	%
-	io:format( "~s raised while performing ~s-level transformations:"
-			   "~n  ~p~n", [ Prefix, OriginLayer, Message ] ),
+	case text_utils:is_string( Message ) of
+
+		true->
+			io:format( "~s raised while performing ~s-level transformations: ~s~n",
+					   [ Prefix, OriginLayer, Message ] );
+
+		false ->
+			io:format( "~s raised while performing ~s-level transformations:"
+					   "~n  ~p~n", [ Prefix, OriginLayer, Message ] )
+
+	end,
 
 	DisplayStacktrace = true,
 	%DisplayStacktrace = false,
@@ -919,6 +928,7 @@ raise_usage_error( ErrorFormatString, ErrorValues, Filename, Line ) ->
 
 	% Almost the only way to stop the processing of the AST:
 	halt( 5 ).
+
 
 
 % Returns an AST form in order to raise a (compile-time, standard) error when

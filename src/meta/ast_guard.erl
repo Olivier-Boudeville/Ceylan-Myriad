@@ -148,7 +148,8 @@ transform_guard( GuardTests, Transforms )
 
 transform_guard( Other, Transforms )
   when is_record( Transforms, ast_transforms ) ->
-	ast_utils:raise_error( [ invalid_guard, Other ] ).
+	Msg = text_utils:format( "invalid guard '~p'.", [ Other ] ),
+	ast_utils:raise_error( Msg ).
 
 
 
@@ -333,15 +334,17 @@ direct_transform_guard_test( _GuardTest={ 'call', LineCall,
 	case erl_internal:guard_bif( FunctionName, FunctionArity ) of
 
 		true ->
-			{ NewSubGuardTests, NewTransforms } = direct_transform_guard_tests(
-													SubGuardTests, Transforms ),
+			{ NewSubGuardTests, NewTransforms } =
+				direct_transform_guard_tests( SubGuardTests, Transforms ),
 			NewExpr = { 'call', LineCall, FunASTAtom, NewSubGuardTests },
+
 
 			{ NewExpr, NewTransforms };
 
 		false ->
-			ast_utils:raise_error( [ invalid_local_guard_call,
-									 { FunctionName, FunctionArity } ] )
+			Msg = text_utils:format( "call to invalid guard ~s/~B.",
+									 [ FunctionName, FunctionArity ] ),
+			ast_utils:raise_error( Msg, LineCall )
 
 	end;
 
@@ -353,7 +356,7 @@ direct_transform_guard_test( _GuardTest={ 'call', LineCall,
 % {call,LINE,{remote,LINE,Rep(A_m),Rep(A)},[Rep(Gt_1), ..., Rep(Gt_k)]}.
 %
 direct_transform_guard_test( _GuardTest={ 'call', LineCall,
-			R={ remote, _LineRemote, { atom, _LineMod, _Module=erlang },
+			R={ remote, LineRemote, { atom, _LineMod, _Module=erlang },
 				{ atom, _LineAtom, FunctionName } }, SubGuardTests },
 							 Transforms ) ?rec_guard ->
 
@@ -387,8 +390,10 @@ direct_transform_guard_test( _GuardTest={ 'call', LineCall,
 			Res;
 
 		false ->
-			ast_utils:raise_error( [ invalid_remote_guard_call,
-									 { erlang, FunctionName, FunctionArity } ] )
+			Msg = text_utils:format(
+					"invalid remote call to an erlang:~s/~B guard.",
+					[ FunctionName, FunctionArity ] ),
+			ast_utils:raise_error( Msg, LineRemote )
 
 	end;
 
@@ -587,7 +592,9 @@ direct_transform_guard_test( _GuardTest={ 'op', Line, Operator, LeftOperand,
 			Res;
 
 		false ->
-			ast_utils:raise_error( [ invalid_binary_operator, Operator ] )
+			Msg = text_utils:format(
+					"call to invalid binary operator '~p' in guard.", [ Operator ] ),
+			ast_utils:raise_error( Msg, Line )
 
 	end;
 
@@ -618,7 +625,9 @@ direct_transform_guard_test( _GuardTest={ 'op', Line, Operator, Operand },
 			Res;
 
 		false ->
-			ast_utils:raise_error( [ invalid_unary_operator, Operator ] )
+			Msg = text_utils:format(
+					"call to invalid unary operator '~p' in guard.", [ Operator ] ),
+			ast_utils:raise_error( Msg, Line )
 
 	end;
 
@@ -749,14 +758,13 @@ direct_transform_guard_test( GuardTest={ 'var', _Line, VarName },
 
 
 % "If Gt is an atomic literal L, then Rep(Gt) = Rep(L)."
-%
 direct_transform_guard_test( E={ AtomicLiteralType, _Line, _Value },
 							 Transforms )
-  when ( AtomicLiteralType =:= 'atom' orelse
-		 AtomicLiteralType =:= 'char' orelse
-		 AtomicLiteralType =:= 'float' orelse
-		 AtomicLiteralType =:= 'integer' orelse
-		 AtomicLiteralType =:= 'string' ) ?andalso_rec_guard ->
+  when ( AtomicLiteralType =:= 'atom'
+		 orelse AtomicLiteralType =:= 'char'
+		 orelse AtomicLiteralType =:= 'float'
+		 orelse AtomicLiteralType =:= 'integer'
+		 orelse AtomicLiteralType =:= 'string' ) ?andalso_rec_guard ->
 
 	ast_value:transform_value( E, Transforms );
 
@@ -764,4 +772,5 @@ direct_transform_guard_test( E={ AtomicLiteralType, _Line, _Value },
 % Default, catch-all error clause:
 direct_transform_guard_test( Other, Transforms )
   when is_record( Transforms, ast_transforms ) ->
-	ast_utils:raise_error( [ invalid_guard_test, Other ] ).
+	Msg = text_utils:format( "call to invalid guard test '~p'.", [ Other ] ),
+	ast_utils:raise_error( Msg ).

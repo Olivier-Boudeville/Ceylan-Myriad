@@ -47,8 +47,8 @@ run() ->
 	test_facilities:display( "Testing CSV management, using the '~s' "
 							 "file for that.", [ CSVFilename ] ),
 
-	{ Content, RowCount, FieldCount } = csv_utils:read_file( CSVFilename,
-															 _Separator=$; ),
+	{ Content, RowCount, FieldCount } =
+		csv_utils:read_file( CSVFilename, _Separator=$; ),
 
 	test_facilities:display( "Read ~B rows, each with ~B fields, "
 							 "corresponding to a ~s",

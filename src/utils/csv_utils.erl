@@ -41,14 +41,15 @@
 -module(csv_utils).
 
 
-% Extension of CSV files:
+% Usual extension of CSV files:
 -define( csv_extension, ".csv" ).
 
 
-% The separator (delimiter) used between the values in a line (often comma,
-% sometimes semicolon or alike):
+% The field separator (delimiter) used between the values in a row (often
+% comma, sometimes semicolon or alike):
 %
 -type separator() :: char().
+
 
 % The default separator of CSV is, well, a comma:
 -define( default_separator, $, ).
@@ -58,33 +59,56 @@
 -type value() :: any().
 
 
-% A row of a CSV content, as an (ordered) list of values:
--type row() :: [ value() ].
+% A row of a CSV content, as a tuple of values:
+-type row() :: tuple().  % tuple( value() ).
 
-% A CSV content, as an (ordered) list of lines:
+
+% The line number of a row in a file.
+%-type row_number() :: basic_utils:count().
+
+
+% A CSV content, as an (ordered) list of rows:
 -type content() :: [ row() ].
+
+
+% A CSV content, as an (ordered) list of rows that match a row spec (ex:
+% expected number of fields) or not (then represented as a mere list of values):
+%
+-type mixed_content() :: [ row() | [ value() ] ].
 
 
 % Number of rows:
 -type row_count() :: basic_utils:count().
 
+
 % Number of fields:
 -type field_count() :: basic_utils:count().
 
 
--export_type([ separator/0, value/0, row/0, content/0,
-			   row_count/0, field_count/0 ]).
+-export_type([ separator/0, value/0, row/0, content/0, row_count/0,
+			   field_count/0 ]).
 
 
-% A CSV file is seen here as a series of lines ending with a newline, i.e. '\n'.
+
+% The default read-ahead size for CSV files:
+-define( ahead_size, 512*1024 ).
+
+-define( read_options, [ read, { read_ahead, ?ahead_size } ] ).
+
+
+
+
+% A CSV file is seen here as a series of rows ending with a newline, i.e. '\n'.
 %
-% Each line contains a series of values separated by separator (usually a comma,
-% i.e. ',').
+% Any empty row (either blank or containing only whitespaces) or corresponding
+% to a comment (i.e. whose first non-blank character is '#') will be dropped
+% (ignored).
+%
+% Each row contains a series of values (possibly non-defined, i.e. empty)
+% delimited by a separator character (usually a comma, i.e. ',').
 %
 % Each value can be enclosed with single (') or double quote ("), and should not
 % contain any newline.
-%
-% Each value can be empty.
 %
 % Any \r is ignored.
 %
@@ -106,63 +130,81 @@
 %
 % - larger CSV files (they are not read as a whole first, they are parsed line
 % by line)
-
+%
+% We used to represent rows as lists (a convenient datatype), now we prefer (at
+% least for fixed-sized ones) representing them, more logically, as tuples.
 
 
 % Future improvements:
 %
 % - performs an actual parsing, so that a field of type 'string' may contain the
-% separator (ex: if the separator is ',', a field could then be "hello, you!")
+% separator (ex: if the separator is ',', a field could then be "hello, you!"),
+% and be possibly defined over multiple lines
 %
 % - read from a compressed file
 %
 % - support character encoding
 
 
--export([ read_file/1, read_file/2,
-		  %write_file/2, write_file/3
-		  content_to_string/1 ]).
+-export([  % For regular, homogeneous CSV files:
+		   read_file/1, read_file/2,
+
+		   % For CSV files that shall be filtered before use (ex: with some rows
+		   % obeying different rules):
+		   %
+		   interpret_file/3,
+
+		   %write_file/2, write_file/3
+		   content_to_string/1 ]).
 
 
 
-% Reads specified file (expected to be in CSV format; using the default
-% separator), and returns the corresponding content.
+% Reads specified file, expected to be in CSV format and supposed to be
+% homogeneous (all non-dropping rows having the same number of fields -
+% otherwise an exception is raised), using the default separator.
 %
--spec read_file( file_utils:filename() ) ->
+% Returns:
+% - the corresponding content, as an ordered list of rows
+% - the number of rows found
+% - the number of fields they all have
+%
+-spec read_file( file_utils:any_file_path() ) ->
 					   { content(), row_count(), field_count() }.
 read_file( Filename ) ->
 	read_file( Filename, ?default_separator ).
 
 
 
-% Reads specified file (expected to be in CSV format; using the specified
-% separator), and returns the corresponding content.
+% Reads specified file, expected to be in CSV format and supposed to be
+% homogeneous (all non-dropping rows having the same number of fields -
+% otherwise an exception is raised), using the specified separator.
 %
--spec read_file( file_utils:filename(), separator() ) ->
+% Returns:
+% - the corresponding content, as an ordered list of rows
+% - the number of rows found
+% - the number of fields they all have
+%
+-spec read_file( file_utils:any_file_path(), separator() ) ->
 					   { content(), row_count(), field_count() }.
-read_file( Filename, Separator ) when is_list( Filename ) ->
-									  %andalso is_char( Separator ) ->
+read_file( FilePath, Separator ) when is_integer( Separator ) ->
 
-	case file_utils:is_existing_file_or_link( Filename ) of
+	case file_utils:is_existing_file_or_link( FilePath ) of
 
 		true ->
 			ok;
 
 		false ->
-			throw( { csv_file_not_found, Filename,
+			throw( { csv_file_not_found, FilePath,
 					 file_utils:get_current_directory() } )
 
 	end,
 
-	AheadSize = 512*1024,
-
-	File = file_utils:open( Filename,
-							_Options=[ read, { read_ahead, AheadSize } ] ),
+	File = file_utils:open( FilePath, ?read_options ),
 
 	Res = { _Content, _RowCount, _FieldCount } = read_rows( File, Separator ),
 
 	%trace_utils:debug_fmt( "Read content (~B rows, each having ~p fields): "
-	%           "~n~p", [ RowCount, FieldCount, Content ] ),
+	%           "~n ~p", [ RowCount, FieldCount, Content ] ),
 
 	file_utils:close( File ),
 
@@ -170,9 +212,59 @@ read_file( Filename, Separator ) when is_list( Filename ) ->
 
 
 
+% Interprets specified file; based on specified separator and number of fields
+% per row, returns:
+%
+% - a list (respecting the in-file order) whose elements are either a list of
+% the specified number of fields, or a pair whose first element is the
+% 'non_matching' atom, and whose second element is a list whose elements were
+% obtained based on the same separator - yet in a different number than the
+% expected one
+%
+% - the number of rows that match the row spec (i.e. the specified number of
+% fields), based on specified separator
+%
+% - the number of rows that do not match said constraints
+%
+-spec interpret_file( file_utils:any_file_path(), separator(), field_count() ) ->
+							{ mixed_content(), row_count(), row_count() }.
+interpret_file( FilePath, Separator, ExpectedFieldCount )
+  when is_integer( Separator ) ->
+
+
+	case file_utils:is_existing_file_or_link( FilePath ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { csv_file_not_found, FilePath,
+					 file_utils:get_current_directory() } )
+
+	end,
+
+	File = file_utils:open( FilePath, ?read_options ),
+
+	%{ MixedContent, MatchCount, UnmatchingCount, DropCount } =
+	Res = interpret_rows( File, Separator, ExpectedFieldCount ),
+
+	%trace_utils:debug_fmt( "Read mixed content (matching count: ~B, "
+	%        "unmatching count: ~B, drop count: ~B):~n ~p",
+	%        [ MixedContent, MatchCount, UnmatchingCount, DropCount ] ),
+
+	file_utils:close( File ),
+
+	Res.
+
+
+
+
+% Helper section.
+
+
 % Returns the context read from specified device/file.
 -spec read_rows( file_utils:file(), separator() ) ->
-						{ content(), row_count(), field_count() }.
+					   { content(), row_count(), field_count() }.
 read_rows( File, Separator ) ->
 	read_rows( _Device=File, Separator, _RowCount=0, _FieldCount=undefined,
 			   _Acc=[] ).
@@ -198,6 +290,9 @@ read_rows( Device, Separator, RowCount, FieldCount, Acc ) ->
 
 				{ Values, ThisFieldCount } ->
 
+					trace_utils:debug_fmt( "For line '~s', ~B field(s) found.",
+										   [ Line, ThisFieldCount ] ),
+
 					NewFieldCount = case FieldCount of
 
 						undefined ->
@@ -207,8 +302,9 @@ read_rows( Device, Separator, RowCount, FieldCount, Acc ) ->
 							ThisFieldCount;
 
 						_OtherFieldCount ->
-							trace_utils:error_fmt( "Non matching line: ~s",
-												   [ Line ] ),
+							trace_utils:error_fmt(
+							  "Non matching line (row #~B): '~s'.",
+							  [ RowCount, Line ] ),
 
 							throw( { non_uniform_field_count,
 									 { FieldCount, ThisFieldCount } } )
@@ -231,9 +327,69 @@ read_rows( Device, Separator, RowCount, FieldCount, Acc ) ->
 
 
 
+
+% Returns the context read from specified device/file.
+-spec interpret_rows( file_utils:file(), separator(), field_count() ) ->
+				{ mixed_content(), row_count(), row_count(), row_count() }.
+interpret_rows( File, Separator, ExpectedFieldCount ) ->
+	interpret_rows( _Device=File, Separator, ExpectedFieldCount, _MatchCount=0,
+					_UnmatchCount=0, _DropCount=0, _Acc=[] ).
+
+
+
+% (helper)
+interpret_rows( Device, Separator, ExpectedFieldCount, MatchCount, UnmatchCount,
+				DropCount, Acc ) ->
+
+	case io:get_line( Device, _Prompt="" ) of
+
+		eof  ->
+			file_utils:close( Device ),
+			MixedContent = lists:reverse( Acc ),
+			{ MixedContent, MatchCount, UnmatchCount, DropCount };
+
+		{ error, Error } ->
+			throw( { read_error, Error } );
+
+		Line ->
+
+			case parse_row( Line, Separator ) of
+
+
+				% Matching:
+				{ Values, ExpectedFieldCount } ->
+
+					%trace_utils:debug_fmt( "Read matching row: ~p.",
+					%					   [ Values ] ),
+
+					interpret_rows( Device, Separator, ExpectedFieldCount,
+					  MatchCount+1, UnmatchCount, DropCount, [ Values | Acc ] );
+
+
+				% Not matching:
+				{ Values, _OtherFieldCount } ->
+
+					%trace_utils:debug_fmt( "Read non-matching row: ~p.",
+					%					   [ Values ] ),
+
+					interpret_rows( Device, Separator, ExpectedFieldCount,
+									MatchCount, UnmatchCount+1, DropCount,
+									[ { non_matching, Values } | Acc ] );
+
+
+				dropped ->
+					interpret_rows( Device, Separator, ExpectedFieldCount,
+									MatchCount, UnmatchCount, DropCount+1, Acc )
+
+			end
+
+	end.
+
+
+
+
 % Parses specified line into a proper row.
--spec parse_row( text_utils:ustring(), char() ) ->
-					   basic_utils:maybe( { row(), field_count() } ).
+-spec parse_row( text_utils:ustring(), char() ) -> maybe( { row(), field_count() } ).
 parse_row( Line, Separator ) ->
 
 	% Useful also to remove ending newline:
@@ -241,15 +397,20 @@ parse_row( Line, Separator ) ->
 
 	case TrimmedLine of
 
+		[] ->
+			trace_utils:debug( "Dropped blank line" ),
+			dropped;
+
+
 		[ $# | _ ] ->
-			%trace_utils:debug_fmt( "Dropped following comment: '~s'.",
-			%					   [ Line ] ),
+			trace_utils:debug_fmt( "Dropped following comment: '~s'.",
+								   [ Line ] ),
 			dropped;
 
 		_ ->
 			Values = text_utils:split( TrimmedLine, [ Separator ] ),
 			FieldCount = length( Values ),
-			{ Values, FieldCount }
+			{ list_to_tuple( Values ), FieldCount }
 
 	end.
 
