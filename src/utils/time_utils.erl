@@ -76,7 +76,10 @@
 				  unit_utils:canonical_second() }.
 
 
-% Day/Hour/Minute/Second duration, for example used with MTTF:
+% Day/Hour/Minute/Second duration, for example used with MTTF (not necessarily
+% in a canonical form, for example more than 24 hours or 60 minutes can be
+% specified):
+%
 -type dhms_duration() :: { unit_utils:days(), unit_utils:hours(),
 						   unit_utils:minutes(), unit_utils:seconds() }.
 
@@ -90,11 +93,15 @@
 
 % For rough, averaged conversions:
 -export([ years_to_seconds/1, months_to_seconds/1, weeks_to_seconds/1,
-		  days_to_seconds/1, hours_to_seconds/1, dhms_to_seconds/1 ]).
+		  days_to_seconds/1, hours_to_seconds/1,
+		  dhms_to_seconds/1 ]).
 
 
-% Time-related section.
--export([ get_intertime_duration/2 ]).
+-export([ string_to_dhms/1 ]).
+
+
+% Duration-related section.
+-export([ get_intertime_duration/2, duration_to_string/1 ]).
 
 
 % Shall be a bit cheaper:
@@ -114,8 +121,8 @@
 		  get_time2_textual_timestamp/0, get_time2_textual_timestamp/1,
 		  get_textual_timestamp_for_path/0, get_textual_timestamp_for_path/1,
 		  get_textual_timestamp_with_dashes/1,
-		  timestamp_to_string/1, string_to_timestamp/1,
-		  dhms_to_string/1,
+		  timestamp_to_string/1, short_string_to_timestamp/1,
+		  string_to_timestamp/1, dhms_to_string/1,
 		  get_duration/1, get_duration/2,
 		  get_duration_since/1, get_textual_duration/2,
 		  get_precise_timestamp/0, get_precise_duration/2,
@@ -448,8 +455,81 @@ hours_to_seconds( HourDuration ) ->
 	HourDuration * 3600.
 
 
+
+% Converts specified string (ex: "113j0h10m3s" for a French version,
+% "1d12h0m0s" for an English one) to a DHMS duration.
+%
+-spec string_to_dhms( text_utils:string() ) -> dhms_duration().
+string_to_dhms( DurationString ) ->
+
+	TrimmedDurStr = text_utils:trim_whitespaces( DurationString ),
+
+	% For the days, try the French convention first:
+	{ D, DRest } = case text_utils:split_at_first( $j, TrimmedDurStr ) of
+
+		none_found ->
+			% Enlish one maybe?
+			case text_utils:split_at_first( $d, TrimmedDurStr ) of
+
+				none_found ->
+					{ 0, TrimmedDurStr };
+
+				% Ex: { "113", "0h10m3s" } (English version)
+				{ EnDStr, EnNonDStr } ->
+					{ text_utils:string_to_integer( EnDStr ), EnNonDStr }
+
+			end;
+
+		% Ex: { "113", "0h10m3s" } (French version)
+		{ FrDStr, FrNonDStr } ->
+			{ text_utils:string_to_integer( FrDStr ), FrNonDStr }
+
+	end,
+
+
+	{ H, HRest } = case text_utils:split_at_first( $h, DRest ) of
+
+		none_found ->
+			{ 0, DRest };
+
+		% Ex: { "0", "10m3s" }
+		{ HStr, NonHStr } ->
+			{ text_utils:string_to_integer( HStr ), NonHStr }
+
+	end,
+
+
+	{ M, MRest } = case text_utils:split_at_first( $m, HRest ) of
+
+		none_found ->
+			{ 0, HRest };
+
+		% Ex: { "10", "3s" }
+		{ MStr, NonMStr } ->
+			{ text_utils:string_to_integer( MStr ), NonMStr }
+
+	end,
+
+
+	S = case text_utils:split_at_first( $s, MRest ) of
+
+		none_found ->
+			0;
+
+		% Ex: { "3", "" }
+		{ SStr, _NonSStr="" } ->
+			text_utils:string_to_integer( SStr )
+
+	end,
+
+	{ D, H, M, S }.
+
+
+
+
+
 % Converts a duration in Days/Hours/Minutes/Seconds into a duration in seconds.
--spec dhms_to_seconds( time_utils:dhms_duration() ) -> unit_utils:seconds().
+-spec dhms_to_seconds( dhms_duration() ) -> unit_utils:seconds().
 dhms_to_seconds( { Days, Hours, Minutes, Seconds } ) ->
 	Seconds + 60 * ( Minutes + 60 * ( Hours + 24 * Days ) ).
 
@@ -616,6 +696,35 @@ timestamp_to_string( Timestamp ) ->
 
 
 
+
+
+% Parses back a timestamp in the form of "14/4/11 18:48" ("11" for 2011, and
+% with no seconds specified) into a timestamp(), i.e. { _Date={Year,Month,Day},
+% _Time={Hour,Minute,Second} }.
+%
+-spec short_string_to_timestamp( string() ) -> timestamp().
+short_string_to_timestamp( TimestampString ) ->
+
+	case string:tokens( TimestampString, _Sep=" :/" ) of
+
+		[ DayString, MonthString, YearString, HourString, MinuteString ] ->
+
+			Day   = text_utils:string_to_integer( DayString ),
+			Month = text_utils:string_to_integer( MonthString ),
+			Year  = text_utils:string_to_integer( YearString ) + 2000,
+
+			Hour   = text_utils:string_to_integer( HourString ),
+			Minute = text_utils:string_to_integer( MinuteString ),
+
+			 { { Year, Month, Day }, { Hour, Minute, _Second=0 } };
+
+		_ ->
+			throw( { timestamp_parsing_failed, TimestampString } )
+
+	end.
+
+
+
 % Parses back a timestamp in the form of "14/4/2011 18:48:51" into a
 % timestamp(), i.e. { _Date={Year,Month,Day}, _Time={Hour,Minute,Second} }.
 %
@@ -641,6 +750,7 @@ string_to_timestamp( TimestampString ) ->
 			throw( { timestamp_parsing_failed, TimestampString } )
 
 	end.
+
 
 
 
@@ -685,18 +795,133 @@ get_duration_since( StartTimestamp ) ->
 % Returns a textual description of the duration between the two specified
 % timestamps.
 %
-% See also: text_utils:duration_to_string/1, which is smarter.
+% See also duration_to_string/1, which is smarter.
 %
 -spec get_textual_duration( timestamp(), timestamp() ) -> string().
 get_textual_duration( FirstTimestamp, SecondTimestamp ) ->
 
-	{ Days, { Hour, Minute, Second } } = calendar:seconds_to_daystime(
-		get_duration( FirstTimestamp, SecondTimestamp ) ),
+	% As duration_to_string/1 is smarter:
+	%{ Days, { Hour, Minute, Second } } = calendar:seconds_to_daystime(
+	%	get_duration( FirstTimestamp, SecondTimestamp ) ),
 
-	lists:flatten( io_lib:format( "~B day(s), ~B hour(s), ~B minute(s) "
-								  "and ~B second(s)",
-								  [ Days, Hour, Minute, Second ] ) ).
+	%lists:flatten( io_lib:format( "~B day(s), ~B hour(s), ~B minute(s) "
+	%							  "and ~B second(s)",
+	%							  [ Days, Hour, Minute, Second ] ) ).
 
+	Duration = get_duration( FirstTimestamp, SecondTimestamp ),
+
+	% Milliseconds:
+	duration_to_string( 1000 * Duration ).
+
+
+
+% Returns an approximate textual description of the specified duration, expected
+% to be expressed as a number of milliseconds (integer otherwise, if being
+% floating-point, it will be rounded), or as the 'infinity' atom.
+%
+% Ex: for a duration of 150012 ms, returns:
+% "2 minutes, 30 seconds and 12 milliseconds".
+%
+% See also: basic_utils:get_textual_duration/2.
+%
+-spec duration_to_string( unit_utils:milliseconds() | float() | 'infinity' ) ->
+								string().
+duration_to_string( Milliseconds ) when is_float( Milliseconds )->
+	duration_to_string( erlang:round( Milliseconds ) );
+
+duration_to_string( Milliseconds ) when is_integer( Milliseconds )->
+
+	FullSeconds = Milliseconds div 1000,
+
+	{ Days, { Hours, Minutes, Seconds } } =
+		calendar:seconds_to_daystime( FullSeconds ),
+
+	ListWithDays = case Days of
+
+		0 ->
+			[];
+
+		1 ->
+			[ "1 day" ];
+
+		_ ->
+			[ io_lib:format( "~B days", [ Days ] ) ]
+
+	end,
+
+	ListWithHours = case Hours of
+
+		0 ->
+			ListWithDays;
+
+		1 ->
+			[ "1 hour" | ListWithDays ];
+
+		_ ->
+			[ io_lib:format( "~B hours", [ Hours ] )
+			  | ListWithDays ]
+
+	end,
+
+	ListWithMinutes = case Minutes of
+
+		0 ->
+		  ListWithHours;
+
+		1 ->
+		  [ "1 minute" | ListWithHours ];
+
+		_ ->
+		  [ io_lib:format( "~B minutes", [ Minutes ] ) | ListWithHours ]
+
+	end,
+
+	ListWithSeconds = case Seconds of
+
+		0 ->
+			ListWithMinutes;
+
+		1 ->
+			[ "1 second" | ListWithMinutes ];
+
+		_ ->
+			[ io_lib:format( "~B seconds", [ Seconds ] ) | ListWithMinutes ]
+
+	end,
+
+	ActualMilliseconds = Milliseconds rem 1000,
+
+	ListWithMilliseconds = case ActualMilliseconds of
+
+		0 ->
+			ListWithSeconds;
+
+		1 ->
+			[ "1 millisecond" | ListWithSeconds ];
+
+		_ ->
+			[ io_lib:format( "~B milliseconds", [ ActualMilliseconds ] )
+			  | ListWithSeconds ]
+
+	end,
+
+	% Preparing for final display:
+	case ListWithMilliseconds of
+
+		[] ->
+			"0 millisecond";
+
+		[ OneElement ] ->
+			OneElement;
+
+		[ Smaller | Bigger ] ->
+			text_utils:join( ", ",
+							 lists:reverse( Bigger ) ) ++ " and " ++ Smaller
+
+	end;
+
+duration_to_string( infinity ) ->
+	"infinity".
 
 
 

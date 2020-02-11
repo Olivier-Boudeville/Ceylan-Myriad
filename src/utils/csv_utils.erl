@@ -60,6 +60,10 @@
 
 
 % A row of a CSV content, as a tuple of values:
+%
+% (logically a tuple, often more convenient as a list, yet kept as a tuple as
+% more compact in memory)
+%
 -type row() :: tuple().  % tuple( value() ).
 
 
@@ -93,8 +97,19 @@
 % The default read-ahead size for CSV files:
 -define( ahead_size, 512*1024 ).
 
--define( read_options, [ read, { read_ahead, ?ahead_size } ] ).
 
+% For some reason, if relying on the '-noinput' option, using the following
+% options will result in {read_error,{no_translation,unicode,unicode},...},
+% whereas using io:setopts/1 afterwards will not fail and will allow reads to
+% return correctly-encoded lines:
+%
+% (additionally, even when forcing UTF8 encoding when exporting as CSV an Excel
+% spreadsheet, the same ISO-8859 content will be obtained)
+%
+%-define( read_options, [ read, { read_ahead, ?ahead_size },
+%						 { encoding, utf8 } ] ).
+
+-define( read_options, [ read, { read_ahead, ?ahead_size } ] ).
 
 
 
@@ -153,6 +168,8 @@
 		   % obeying different rules):
 		   %
 		   interpret_file/3,
+
+		   check_all_empty/1, are_all_empty/1,
 
 		   %write_file/2, write_file/3
 		   content_to_string/1 ]).
@@ -226,11 +243,11 @@ read_file( FilePath, Separator ) when is_integer( Separator ) ->
 %
 % - the number of rows that do not match said constraints
 %
--spec interpret_file( file_utils:any_file_path(), separator(), field_count() ) ->
-							{ mixed_content(), row_count(), row_count() }.
+-spec interpret_file( file_utils:any_file_path(), separator(),
+					  field_count() ) ->
+		{ mixed_content(), row_count(), row_count(), row_count() }.
 interpret_file( FilePath, Separator, ExpectedFieldCount )
   when is_integer( Separator ) ->
-
 
 	case file_utils:is_existing_file_or_link( FilePath ) of
 
@@ -243,7 +260,13 @@ interpret_file( FilePath, Separator, ExpectedFieldCount )
 
 	end,
 
+	%trace_utils:debug_fmt( "Opening '~s' with options ~w.",
+	%					  [ FilePath, ?read_options ] ),
+
 	File = file_utils:open( FilePath, ?read_options ),
+
+	% Refer to the note in file_utils:open/2 for explanation:
+	ok = io:setopts( [ { encoding, unicode } ] ),
 
 	%{ MixedContent, MatchCount, UnmatchingCount, DropCount } =
 	Res = interpret_rows( File, Separator, ExpectedFieldCount ),
@@ -343,7 +366,7 @@ interpret_rows( Device, Separator, ExpectedFieldCount, MatchCount, UnmatchCount,
 
 	case io:get_line( Device, _Prompt="" ) of
 
-		eof  ->
+		eof ->
 			file_utils:close( Device ),
 			MixedContent = lists:reverse( Acc ),
 			{ MixedContent, MatchCount, UnmatchCount, DropCount };
@@ -353,8 +376,9 @@ interpret_rows( Device, Separator, ExpectedFieldCount, MatchCount, UnmatchCount,
 
 		Line ->
 
-			case parse_row( Line, Separator ) of
+			%io:format( "Read line '~s'.", [ Line ] ),
 
+			case parse_row( Line, Separator ) of
 
 				% Matching:
 				{ Values, ExpectedFieldCount } ->
@@ -389,7 +413,8 @@ interpret_rows( Device, Separator, ExpectedFieldCount, MatchCount, UnmatchCount,
 
 
 % Parses specified line into a proper row.
--spec parse_row( text_utils:ustring(), char() ) -> maybe( { row(), field_count() } ).
+-spec parse_row( text_utils:ustring(), char() ) ->
+					   maybe( { row(), field_count() } ).
 parse_row( Line, Separator ) ->
 
 	% Useful also to remove ending newline:
@@ -398,13 +423,13 @@ parse_row( Line, Separator ) ->
 	case TrimmedLine of
 
 		[] ->
-			trace_utils:debug( "Dropped blank line" ),
+			%trace_utils:debug( "Dropped blank line" ),
 			dropped;
 
 
 		[ $# | _ ] ->
-			trace_utils:debug_fmt( "Dropped following comment: '~s'.",
-								   [ Line ] ),
+			%trace_utils:debug_fmt( "Dropped following comment: '~s'.",
+			%					   [ Line ] ),
 			dropped;
 
 		_ ->
@@ -413,6 +438,34 @@ parse_row( Line, Separator ) ->
 			{ list_to_tuple( Values ), FieldCount }
 
 	end.
+
+
+
+% Checks that specified list of values - typically coming from a row of
+% unspecified field count - contains only empty values (empty strings).
+%
+-spec check_all_empty( [ value() ] ) -> void().
+check_all_empty( _List=[] ) ->
+	ok;
+
+check_all_empty( _List=[ "" | T ] ) ->
+	check_all_empty( T );
+
+check_all_empty( _List=[ H | _T ] ) ->
+	throw( { non_empty_value, H } ).
+
+
+
+% Returns whether the specified list of values contains only empty ones.
+-spec are_all_empty( [ value() ] ) -> boolean().
+are_all_empty( [] ) ->
+	true;
+
+are_all_empty( [ "" | T ] ) ->
+	are_all_empty( T );
+
+are_all_empty( [ _H | _T ] ) ->
+	false.
 
 
 

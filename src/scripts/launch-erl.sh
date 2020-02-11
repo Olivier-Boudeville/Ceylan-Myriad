@@ -603,10 +603,15 @@ else
 fi
 
 
+# Note: in both of the next cases, having an (explicit or implied) '-noinput'
+# option is likely to affect negatively the Unicode support; refer to
+# io:setopts/1 and the note in file_utils:open/2 for further information.
+
 if [ $in_background -eq 0 ] ; then
 
 	# -detached used, and implies (among other things like being a
 	# non-blocking command), '-noinput -noshell':
+	#
 	background_opt="-detached"
 
 fi

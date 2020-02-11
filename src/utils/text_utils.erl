@@ -938,101 +938,8 @@ distance_to_short_string( Millimeters ) ->
 %
 -spec duration_to_string( unit_utils:milliseconds() | float() | 'infinity' ) ->
 								string().
-duration_to_string( Milliseconds ) when is_float( Milliseconds )->
-	duration_to_string( erlang:round( Milliseconds ) );
-
-duration_to_string( Milliseconds ) when is_integer( Milliseconds )->
-
-	FullSeconds = Milliseconds div 1000,
-
-	{ Days, { Hours, Minutes, Seconds } } =
-		calendar:seconds_to_daystime( FullSeconds ),
-
-	ListWithDays = case Days of
-
-		0 ->
-			[];
-
-		1 ->
-			[ "1 day" ];
-
-		_ ->
-			[ io_lib:format( "~B days", [ Days ] ) ]
-
-	end,
-
-	ListWithHours = case Hours of
-
-		0 ->
-			ListWithDays;
-
-		1 ->
-			[ "1 hour" | ListWithDays ];
-
-		_ ->
-			[ io_lib:format( "~B hours", [ Hours ] )
-			  | ListWithDays ]
-
-	end,
-
-	ListWithMinutes = case Minutes of
-
-		0 ->
-		  ListWithHours;
-
-		1 ->
-		  [ "1 minute" | ListWithHours ];
-
-		_ ->
-		  [ io_lib:format( "~B minutes", [ Minutes ] ) | ListWithHours ]
-
-	end,
-
-	ListWithSeconds = case Seconds of
-
-		0 ->
-			ListWithMinutes;
-
-		1 ->
-			[ "1 second" | ListWithMinutes ];
-
-		_ ->
-			[ io_lib:format( "~B seconds", [ Seconds ] ) | ListWithMinutes ]
-
-	end,
-
-	ActualMilliseconds = Milliseconds rem 1000,
-
-	ListWithMilliseconds = case ActualMilliseconds of
-
-		0 ->
-			ListWithSeconds;
-
-		1 ->
-			[ "1 millisecond" | ListWithSeconds ];
-
-		_ ->
-			[ io_lib:format( "~B milliseconds", [ ActualMilliseconds ] )
-			  | ListWithSeconds ]
-
-	end,
-
-	% Preparing for final display:
-	case ListWithMilliseconds of
-
-		[] ->
-			"0 millisecond";
-
-		[ OneElement ] ->
-			OneElement;
-
-		[ Smaller | Bigger ] ->
-			join( ", ", lists:reverse( Bigger ) ) ++ " and " ++ Smaller
-
-	end;
-
-duration_to_string( infinity ) ->
-	"infinity".
+duration_to_string( Duration ) ->
+	time_utils:duration_to_string( Duration ).
 
 
 
@@ -1746,7 +1653,13 @@ join( Separator, _ListToJoin=[ H | T ], Acc ) ->
 %
 -spec split( ustring(), [ uchar() ] ) -> [ ustring() ].
 split( String, Delimiters ) ->
-	string:tokens( String, Delimiters ).
+
+	% Note: string:tokens/2 is now deprecated in favor of string:lexemes/2, and
+	% and anyway both treat two or more adjacent separator graphemes clusters as
+	% only one, which is generally not what we want; so we now use:
+
+	%string:lexemes( String, Delimiters ).
+	string:split( String, Delimiters, _Where=all ).
 
 
 

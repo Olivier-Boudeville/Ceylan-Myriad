@@ -2718,6 +2718,15 @@ get_image_file_gif( Image ) ->
 % not seem a viable solution right now (risk of exhausting the descriptors,
 % making the VM fail for example when loading a new BEAM).
 %
+% Note: if an opened file fails to be correctly read encoding-wise (characters
+% like 'à' being not only displayed but also read garbled, and if setting
+% {encoding,unicode} returns an error such as
+% {read_error,{no_translation,unicode,unicode}}, then this may be an
+% (unfortunate) side-effect of having run the VM with the -noinput option; in
+% this case, the best option is to execute once:
+%
+% ok = io:setopts( _Opts=[ { encoding, unicode } ] )
+%
 -spec open( any_file_name(), [ file_open_mode() ] ) -> file().
 open( Filename, Options ) ->
 	open( Filename, Options, _Default=try_once ).
@@ -2750,6 +2759,15 @@ open( Filename, Options ) ->
 % This is done in order to support situations where potentially more Erlang
 % processes than available file descriptors try to access to files. An effort is
 % made to desynchronize these processes to smooth the use of descriptors.
+%
+% Note: if an opened file fails to be correctly read encoding-wise (characters
+% like 'à' being not only displayed but also read garbled, and if setting
+% {encoding,unicode} returns an error such as
+% {read_error,{no_translation,unicode,unicode}}, then this may be an
+% (unfortunate) side-effect of having run the VM with the -noinput option; in
+% this case, the best option is to execute once:
+%
+% ok = io:setopts( _Opts=[ { encoding, unicode } ] )
 %
 -spec open( any_file_name(), [ file_open_mode() ],
 		   'try_once' | 'try_endlessly' | 'try_endlessly_safer' ) -> file().
