@@ -51,7 +51,7 @@
 		  strings_to_enumerated_string/1, strings_to_enumerated_string/2,
 		  strings_to_listed_string/1,
 		  binaries_to_string/1, binaries_to_string/2,
-		  binaries_to_sorted_string/1,
+		  binaries_to_sorted_string/1, binaries_to_listed_string/1,
 		  atoms_to_string/1, atoms_to_sorted_string/1, atoms_to_listed_string/1,
 		  proplist_to_string/1, version_to_string/1,
 		  atom_to_binary/1,
@@ -62,7 +62,7 @@
 		  string_to_atom/1, strings_to_atoms/1,
 		  terms_to_string/1, terms_to_enumerated_string/1,
 		  terms_to_listed_string/1,
-		  binary_to_atom/1,
+		  binary_to_atom/1, float_to_string/1,
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
 		  duration_to_string/1,
@@ -327,8 +327,8 @@ term_to_string( Term, MaxDepthCount, MaxLength ) when MaxLength >= 3 ->
 -spec integer_to_string( integer() ) -> string().
 integer_to_string( IntegerValue ) ->
 	% Nonsensical: hd( io_lib:format( "~B", [ IntegerValue ] ) ).
-	io_lib:format( "~B", [ IntegerValue ] ).
-
+	%io_lib:format( "~B", [ IntegerValue ] ).
+	erlang:integer_to_list( IntegerValue ).
 
 
 % Returns a plain string corresponding to the specified atom.
@@ -631,6 +631,18 @@ binaries_to_sorted_string( ListOfBinaries ) ->
 
 
 
+% Returns a string that pretty-prints the specified list of binary strings,
+% listed directly along the text (not one item per line).
+%
+% Ex: binaries_to_listed_string( [ <<"red">>, <<"blue">>, <<"green">> ] )
+% returns "red, blue and green".
+%
+-spec binaries_to_listed_string( [ binary() ] ) -> ustring().
+binaries_to_listed_string( ListOfBinaries ) ->
+	strings_to_listed_string( [ binary_to_string( B )
+								|| B <- ListOfBinaries ] ).
+
+
 % Returns a string that pretty-prints specified list of atoms, with default
 % bullets.
 %
@@ -671,13 +683,16 @@ atoms_to_listed_string( ListOfAtoms ) ->
 
 
 % Returns a string that pretty-prints the specified list of strings, listed
-% directly in the text.
+% directly along the text (not one item per line).
 %
 % Ex: strings_to_listed_string( [ "red", "blue", "green" ] ) returns "red, blue
 % and green".
 %
+%strings_to_listed_string( _ListOfStrings=[] ) ->
+%	throw( empty_list_of_strings_to_list );
+% Probably more relevant:
 strings_to_listed_string( _ListOfStrings=[] ) ->
-	throw( empty_list_of_strings_to_list );
+	"";
 
 strings_to_listed_string( _ListOfStrings=[ SingleString ] ) ->
 	SingleString;
@@ -769,6 +784,14 @@ percent_to_string( Value, Precision ) ->
 	% Awful format string to determine:
 	io_lib:format( "~.*f%", [ Precision, Value * 100 ] ).
 
+
+
+% Returns a textual description of the specified (dot-based, not comma-based)
+% float.
+%
+-spec float_to_string( float() ) -> string().
+float_to_string( Float ) ->
+	erlang:float_to_list( Float ).
 
 
 % Returns an exact rounded textual description of the specified distance,
@@ -1402,7 +1425,8 @@ try_string_to_integer( String ) ->
 %
 % Returns the 'undefined' atom if the conversion failed.
 %
--spec try_string_to_integer( ustring(), 2..36 ) -> basic_utils:maybe( integer() ).
+-spec try_string_to_integer( ustring(), 2..36 ) ->
+								   basic_utils:maybe( integer() ).
 try_string_to_integer( String, Base ) ->
 	try list_to_integer( String, Base ) of
 

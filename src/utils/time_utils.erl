@@ -705,6 +705,9 @@ timestamp_to_string( Timestamp ) ->
 -spec short_string_to_timestamp( string() ) -> timestamp().
 short_string_to_timestamp( TimestampString ) ->
 
+	%trace_utils:debug_fmt( "Converting short string '~s' to timestamp.",
+	%					   [ TimestampString ] ),
+
 	case string:tokens( TimestampString, _Sep=" :/" ) of
 
 		[ DayString, MonthString, YearString, HourString, MinuteString ] ->
