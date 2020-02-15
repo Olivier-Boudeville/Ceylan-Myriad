@@ -299,8 +299,11 @@
 % See filename:split/1 for the reverse operation.
 %
 -spec join( [ any_path() ] ) -> path().
-join( ComponentList ) ->
-	lists:foldr( fun join/2, _Acc0="", _List=ComponentList ).
+join( ComponentList ) when is_list( ComponentList ) ->
+	lists:foldr( fun join/2, _Acc0="", _List=ComponentList );
+
+join( NonList ) ->
+	throw( { cannot_join, NonList } ).
 
 
 
