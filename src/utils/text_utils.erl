@@ -80,6 +80,7 @@
 		  tokenizable_to_camel_case/2,
 
 		  substitute/3, filter/2, split_after_prefix/2,
+		  update_with_keywords/2,
 
 		  list_whitespaces/0,
 
@@ -113,6 +114,11 @@
 % Miscellaneous functions.
 -export([ generate_text_name_from/1 ]).
 
+
+% This module being a bootstrap one, the 'table' pseudo-module is not available
+% (as this module is by design not processed by the 'Myriad' parse transform):
+%
+-define( table, map_hashtable ).
 
 
 % Type section.
@@ -152,7 +158,7 @@
 -type bin_string() :: binary().
 
 
-% Any kind of string:
+% Any kind of string (a.k.a chardata() :: charlist() | unicode_binary()):
 -type any_string() :: string() | bin_string().
 
 
@@ -186,6 +192,12 @@
 -type string_like() :: string() | unicode_string() | bin_string() | atom().
 
 
+% Like io_list(), with possibly binaries:
+-type string_list() :: [ string_like() ].
+
+% To convert keywords:
+-type translation_table() :: ?table:?table( any_string(), any_string() ).
+
 
 % The level of indentation (starts at zero, and the higher, the most nested).
 -type indentation_level() :: basic_utils:level().
@@ -209,14 +221,10 @@
 -export_type([ format_string/0, format_values/0,
 			   regex_string/0, title/0, label/0,
 			   bin_string/0, any_string/0, unicode_string/0, uchar/0, ustring/0,
-			   string_like/0, indentation_level/0, distance/0 ]).
+			   string_like/0, string_list/0,
+			   translation_table/0, indentation_level/0, distance/0 ]).
 
 
-
-% This module being a bootstrap one, the 'table' pseudo-module is not available
-% (as this module is not processed by the 'Myriad' parse transform):
-%
--define( table, map_hashtable ).
 
 
 % Maybe at least format/2 would be better inlined, however it is no cross-module
@@ -1866,6 +1874,33 @@ split_after_prefix( _Prefix=[ C | T ], _String=[ C | StringT ] ) ->
 
 split_after_prefix( _Prefix, _String ) ->
 	no_prefix.
+
+
+
+% Updates specified file with specified keywords, i.e. copies the original file
+% into a target, updated one (supposedly non-already existing) in which all the
+% specified keywords (the keys of the translation table) are replaced with their
+% associated value (the corresponding value in table).
+%
+% Ex: file_utils:update_with_keywords( "original.txt", "updated.txt", table:new(
+%  [ { "hello", "goodbye" }, { "Blue", "Red" } ] ).
+%
+% See also: file_utils:update_with_keywords/3.
+%
+-spec update_with_keywords( any_string(), translation_table() ) ->
+								  string_list().
+update_with_keywords( Content, TranslationTable ) ->
+
+	TransPairs = ?table:enumerate( TranslationTable ),
+
+	% As many passes as keyword pairs:
+	lists:foldl(
+
+		fun( { SearchP, Replacement }, Acc ) ->
+			string:replace( Acc, SearchP, Replacement, _Where=all )
+		end,
+		_Acc0=Content,
+		_List=TransPairs ).
 
 
 

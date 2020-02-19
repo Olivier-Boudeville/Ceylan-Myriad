@@ -220,6 +220,10 @@
 -type entry_type() :: 'device' | 'directory' | 'other' | 'regular' | 'symlink'.
 
 
+% Tells whether parent directories shall be created:
+-type parent_creation() :: 'create_no_parent' | 'create_parents'.
+
+
 % Relevant flags when opening a file (ex: read, write, append, exclusive, raw,
 % etc.).
 %
@@ -254,11 +258,6 @@
 					| 'set_user_id' | 'set_group_id'.
 
 
-% To convert keywords:
--type translation_table() ::
-		table( text_utils:any_string(), text_utils:any_string() ).
-
-
 -export_type([ path/0, bin_path/0, any_path/0,
 			   file_name/0, filename/0, file_path/0,
 			   bin_file_name/0, bin_file_path/0,
@@ -269,9 +268,9 @@
 			   directory_name/0, bin_directory_name/0,
 			   directory_path/0, bin_directory_path/0,
 			   extension/0,
-			   entry_type/0, permission/0,
+			   entry_type/0, parent_creation/0, permission/0,
 			   compression_format/0,
-			   file/0, file_info/0, translation_table/0 ]).
+			   file/0, file_info/0 ]).
 
 
 
@@ -1656,8 +1655,7 @@ create_directory( Dirname ) ->
 % Throws an exception if the operation fails, for example if the directory is
 % already existing ( { create_directory_failed, "foobar", eexist } ).
 %
--spec create_directory( directory_name(),
-						'create_no_parent' | 'create_parents' ) -> void().
+-spec create_directory( directory_name(), parent_creation() ) -> void().
 create_directory( Dirname, create_no_parent ) ->
 
 	case file:make_dir( Dirname ) of
@@ -1703,6 +1701,16 @@ create_dir_elem( _Elems=[ H | T ], Prefix ) ->
 %
 -spec create_directory_if_not_existing( directory_name() ) -> void().
 create_directory_if_not_existing( Dirname ) ->
+	create_directory_if_not_existing( Dirname, create_no_parent ).
+
+
+% Creates specified directory (and, if specified, any needed parent as well), if
+% not already existing.
+%
+% Throws an exception if the operation fails.
+%
+-spec create_directory_if_not_existing( directory_name(), parent_creation() ) -> void().
+create_directory_if_not_existing( Dirname, ParentCreation ) ->
 
 	case is_existing_directory( Dirname ) of
 
@@ -1710,7 +1718,7 @@ create_directory_if_not_existing( Dirname ) ->
 			ok;
 
 		false ->
-			create_directory( Dirname )
+			create_directory( Dirname, ParentCreation )
 
 	end.
 
@@ -2618,15 +2626,15 @@ is_leaf_among( LeafName, _PathList=[ Path | T ] ) ->
 
 
 % Updates specified file with specified keywords, i.e. copies the original file
-% into a target, updated one (supposedly non-already existing) in which all the
+% into a target, updated one (supposedly non-already existing), in which all the
 % specified keywords (the keys of the translation table) are replaced with their
-% associated value (the corresponding value in table).
+% associated value (i.e. the value in table corresponding to that key).
 %
 % Ex: file_utils:update_with_keywords( "original.txt", "updated.txt", table:new(
 %  [ { "hello", "goodbye" }, { "Blue", "Red" } ] ).
 %
 -spec update_with_keywords( any_file_path(), any_file_path(),
-							translation_table() ) -> void().
+							text_utils:translation_table() ) -> void().
 update_with_keywords( OriginalFilePath, TargetFilePath, TranslationTable ) ->
 
 	case exists( TargetFilePath ) of
@@ -2641,16 +2649,8 @@ update_with_keywords( OriginalFilePath, TargetFilePath, TranslationTable ) ->
 
 	BinOrigContent = read_whole( OriginalFilePath ),
 
-	TransPairs = table:enumerate( TranslationTable ),
-
-	% As many passes as keyword pairs:
-	BinUpdatedContent = lists:foldl(
-
-		fun( { SearchP, Replacement }, Acc ) ->
-			string:replace( Acc, SearchP, Replacement, _Where=all )
-		end,
-		_Acc0=BinOrigContent,
-		_List=TransPairs ),
+	BinUpdatedContent = text_utils:update_with_keywords( BinOrigContent,
+														 TranslationTable ),
 
 	write_whole( TargetFilePath, BinUpdatedContent ).
 
