@@ -44,6 +44,7 @@
 % Filename-related operations.
 %
 % See also: filename:dirname/1 and filename:basename/1.
+%
 % Ex:
 %  - filename:dirname("/aaa/bbb.txt") = "/aaa"
 %  - filename:basename("/aaa/bbb.txt") = "bbb.txt"
@@ -101,6 +102,8 @@
 		  get_longest_common_path/1,
 
 		  is_leaf_among/2,
+
+		  update_with_keywords/3,
 
 		  path_to_variable_name/1, path_to_variable_name/2,
 
@@ -251,6 +254,11 @@
 					| 'set_user_id' | 'set_group_id'.
 
 
+% To convert keywords:
+-type translation_table() ::
+		table( text_utils:any_string(), text_utils:any_string() ).
+
+
 -export_type([ path/0, bin_path/0, any_path/0,
 			   file_name/0, filename/0, file_path/0,
 			   bin_file_name/0, bin_file_path/0,
@@ -263,7 +271,7 @@
 			   extension/0,
 			   entry_type/0, permission/0,
 			   compression_format/0,
-			   file/0, file_info/0 ]).
+			   file/0, file_info/0, translation_table/0 ]).
 
 
 
@@ -2447,7 +2455,7 @@ filter_elems( _ElemList=[ E | T ], Acc ) ->
 % Returns a version of the specified path that is relative to the current
 % directory.
 %
--spec make_relative( file_utils:path() ) -> file_utils:directory_path().
+-spec make_relative( path() ) -> directory_path().
 make_relative( Path ) ->
 	make_relative( Path, _RefDir=get_current_directory() ).
 
@@ -2456,8 +2464,7 @@ make_relative( Path ) ->
 % Returns a version of the first specified path that is relative to the
 % specified second reference directory.
 %
--spec make_relative( file_utils:any_path(), file_utils:directory_path() ) ->
-							 file_utils:directory_path().
+-spec make_relative( any_path(), directory_path() ) -> directory_path().
 make_relative( Path, RefDir ) when is_list( Path ) andalso is_list( RefDir ) ->
 
 	AbsPath = ensure_path_is_absolute( Path ),
@@ -2607,6 +2614,45 @@ is_leaf_among( LeafName, _PathList=[ Path | T ] ) ->
 			is_leaf_among( LeafName, T )
 
 	end.
+
+
+
+% Updates specified file with specified keywords, i.e. copies the original file
+% into a target, updated one (supposedly non-already existing) in which all the
+% specified keywords (the keys of the translation table) are replaced with their
+% associated value (the corresponding value in table).
+%
+% Ex: file_utils:update_with_keywords( "original.txt", "updated.txt", table:new(
+%  [ { "hello", "goodbye" }, { "Blue", "Red" } ] ).
+%
+-spec update_with_keywords( any_file_path(), any_file_path(),
+							translation_table() ) -> void().
+update_with_keywords( OriginalFilePath, TargetFilePath, TranslationTable ) ->
+
+	case exists( TargetFilePath ) of
+
+		true ->
+			throw( { already_existing, TargetFilePath } );
+
+		false ->
+			ok
+
+	end,
+
+	BinOrigContent = read_whole( OriginalFilePath ),
+
+	TransPairs = table:enumerate( TranslationTable ),
+
+	% As many passes as keyword pairs:
+	BinUpdatedContent = lists:foldl(
+
+		fun( { SearchP, Replacement }, Acc ) ->
+			string:replace( Acc, SearchP, Replacement, _Where=all )
+		end,
+		_Acc0=BinOrigContent,
+		_List=TransPairs ),
+
+	write_whole( TargetFilePath, BinUpdatedContent ).
 
 
 
