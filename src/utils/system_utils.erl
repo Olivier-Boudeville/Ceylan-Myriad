@@ -306,7 +306,7 @@ get_user_name() ->
 
 	end.
 
-    % Another option:
+	% Another option:
 	% case os:getenv( "USER" ) of
 
 	%	false ->
@@ -523,7 +523,6 @@ await_output_completion( _TimeOut ) ->
 
 	% As for logger, a doubt remains about its synchronicity, see
 	% test_facilities:start/1 about that.
-	%
 
 	ok.
 
