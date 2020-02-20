@@ -974,8 +974,8 @@ display( Message ) ->
 	%
 	io:format( "~ts~n", [ Message ] ),
 
-	% Possibly to allow for a yield:
-	timer:sleep( 100 ),
+	% Possibly to allow for a yield (100 being far too high):
+	timer:sleep( 10 ),
 
 	system_utils:await_output_completion().
 
