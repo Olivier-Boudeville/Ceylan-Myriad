@@ -89,6 +89,7 @@
 		  remove_directory/1,
 
 		  copy_file/2, try_copy_file/2, copy_file_if_existing/2, copy_file_in/2,
+		  copy_tree/2,
 
 		  rename/2, move_file/2, create_link/2,
 
@@ -2015,7 +2016,7 @@ copy_file( SourceFilename, DestinationFilename ) ->
 %
 % Note: content is copied and permissions are preserved (ex: the copy of an
 % executable file will be itself executable, other permissions as well, unlike
-% /bin/cp which relies on umask).
+% /bin/cp that relies on umask).
 %
 -spec try_copy_file( file_name(), file_name() ) -> basic_utils:base_status().
 try_copy_file( SourceFilename, DestinationFilename ) ->
@@ -2090,6 +2091,45 @@ copy_file_if_existing( SourceFilename, DestinationFilename ) ->
 
 	end.
 
+
+
+% Copies specified source tree in specified target directory.
+-spec copy_tree( directory_path(), directory_path() ) -> void().
+copy_tree( SourceTreePath, TargetDirectory ) ->
+
+	case file_utils:is_existing_directory_or_link( SourceTreePath ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { non_existing_source_tree, SourceTreePath } )
+
+	end,
+
+	case file_utils:is_existing_directory_or_link( TargetDirectory ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { non_existing_target_directory, TargetDirectory } )
+
+	end,
+
+	Cmd = text_utils:format( "/bin/cp -r '~s' '~s'",
+							 [ SourceTreePath, TargetDirectory ] ),
+
+	case system_utils:run_executable( Cmd ) of
+
+		{ _ExitCode=0, _Output=[] } ->
+			ok;
+
+		{ ExitCode, ErrorOutput } ->
+			throw( { copy_tree_failed, { SourceTreePath, TargetDirectory },
+					 ExitCode, ErrorOutput } )
+
+	end.
 
 
 % Renames specified file.
