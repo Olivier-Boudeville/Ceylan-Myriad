@@ -271,14 +271,4 @@ run() ->
 
 	file_utils:remove_files( [ ZippedFile, Bzip2File, XzFile ] ),
 
-	TranslationTable = table:new( [ { "E350", "GT" },
-									{ "Ford", "Shelby" },
-									{ "Grand Cherokee", "Mustang" } ] ),
-
-	TargetFilename = "example-updated.csv",
-	file_utils:update_with_keywords( "example.csv", TargetFilename,
-									 TranslationTable ),
-
-	file_utils:remove_file( TargetFilename ),
-
 	test_facilities:stop().

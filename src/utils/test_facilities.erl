@@ -35,7 +35,8 @@
 -define( display_prefix, "  " ).
 
 
--export([ start/1, stop/0, display/1, display/2, fail/1, fail/2, finished/0 ] ).
+-export([ start/1, stop/0, display/1, display/2, display_fmt/2,
+		  fail/1, fail/2, finished/0 ] ).
 
 
 
@@ -97,6 +98,18 @@ display( Message ) ->
 %
 -spec display( string(), list() ) -> void().
 display( FormatString, ValueList ) ->
+	basic_utils:display( FormatString, ValueList ).
+
+
+% Displays a test message, once formatted.
+%
+% Defined for consistency.
+%
+% FormatString is an io:format-style format string, ValueList is the
+% corresponding list of field values.
+%
+-spec display_fmt( string(), list() ) -> void().
+display_fmt( FormatString, ValueList ) ->
 	basic_utils:display( FormatString, ValueList ).
 
 

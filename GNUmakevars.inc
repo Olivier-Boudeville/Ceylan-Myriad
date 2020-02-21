@@ -207,6 +207,10 @@ endif
 #USE_REST := false
 #USE_REST := true
 
+# To be able to handle JSON content:
+#USE_JSON := false
+#USE_JSON := true
+
 # For SQL database operations, based on SQLite 3 operations:
 #USE_SQLITE := false
 #USE_SQLITE := true
@@ -244,6 +248,7 @@ ifeq ($(USE_HDF5),true)
 endif
 
 
+
 # Deactivated by default, as requires specific prerequisites (the jsx JSON
 # parser, cf https://github.com/talentdeficit/jsx).
 #
@@ -255,6 +260,13 @@ endif
 
 
 ifeq ($(USE_REST),true)
+
+  USE_JSON := true
+
+endif
+
+
+ifeq ($(USE_JSON),true)
 
   JSX_BASE := $$HOME/Software/jsx/jsx-current-install
 
@@ -463,9 +475,11 @@ ifeq ($(USE_HDF5),false)
 endif
 
 
-ifeq ($(USE_REST),false)
+ifeq ($(USE_JSON),false)
 
-  EXCLUDED_SOURCES := $(EXCLUDED_SOURCES) rest_support.erl rest_support_test.erl
+  EXCLUDED_SOURCES := $(EXCLUDED_SOURCES) \
+					  json_support.erl json_support_test.erl \
+					  rest_support.erl rest_support_test.erl
 
 endif
 

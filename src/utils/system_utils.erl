@@ -2631,7 +2631,7 @@ get_dependency_code_directory( PackageName ) ->
 -spec is_json_support_available() -> boolean().
 is_json_support_available() ->
 	% This module can be built in all cases:
-	rest_utils:is_json_parser_available().
+	json_utils:is_parser_available().
 
 
 % Returns a string explaining what to do in order to have the JSON support
@@ -2639,7 +2639,7 @@ is_json_support_available() ->
 %
 -spec get_json_unavailability_hint() -> string().
 get_json_unavailability_hint() ->
-	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_REST and "
+	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_JSON and "
 	"JSX_BASE variables, knowing that the current code path is: "
 		++ code_utils:get_code_path_as_string().
 
@@ -2648,8 +2648,8 @@ get_json_unavailability_hint() ->
 -spec is_hdf5_support_available() -> boolean().
 is_hdf5_support_available() ->
 
-	% Unlike dependencies like jsx whose compilation (in rest_utils.erl) do not
-	% need any specific *.hrl header (therefore rest_utils:start/0 is available
+	% Unlike dependencies like jsx whose compilation (in json_utils.erl) do not
+	% need any specific *.hrl header (therefore json_utils:start/0 is available
 	% in all cases), hdf5_support needs one (erlhdf5.hrl), hence the
 	% hdf5_support module may not be built at all, and thus will not be
 	% available even in order to provide a means of telling whether HDF can be

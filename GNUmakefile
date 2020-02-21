@@ -94,11 +94,11 @@ add-erlhdf5-plt:
 
 # From the second, operating on the current PLT:
 add-jsx-plt:
-	@if [ "$(USE_REST)" == "true" ] ; then echo "   Generating PLT for prerequisite jsx" ; $(DIALYZER) --add_to_plt --output_plt $(PLT_FILE) -r $(JSX_BASE)/ebin --plt $(PLT_FILE); if [ $$? -eq 1 ] ; then exit 1 ; fi ; else echo "(no PLT determined for non-available jsx prerequisite; unknown functions in the jsx module will be found)" ; fi
+	@if [ "$(USE_JSON)" == "true" ] ; then echo "   Generating PLT for prerequisite jsx" ; $(DIALYZER) --add_to_plt --output_plt $(PLT_FILE) -r $(JSX_BASE)/ebin --plt $(PLT_FILE); if [ $$? -eq 1 ] ; then exit 1 ; fi ; else echo "(no PLT determined for non-available jsx prerequisite; unknown functions in the jsx module will be found)" ; fi
 
 
 add-sqlite3-plt:
-	@if [ "$(USE_REST)" == "true" ] ; then echo "   Generating PLT for prerequisite sqlite3" ; $(DIALYZER) --add_to_plt --output_plt $(PLT_FILE) -r $(SQLITE3_BASE)/ebin --plt $(PLT_FILE); if [ $$? -eq 1 ] ; then exit 1 ; fi ; else echo "(no PLT determined for non-available sqlite3 prerequisite; unknown functions in the sqlite3 module will be found)" ; fi
+	@if [ "$(USE_SQLITE)" == "true" ] ; then echo "   Generating PLT for prerequisite sqlite3" ; $(DIALYZER) --add_to_plt --output_plt $(PLT_FILE) -r $(SQLITE3_BASE)/ebin --plt $(PLT_FILE); if [ $$? -eq 1 ] ; then exit 1 ; fi ; else echo "(no PLT determined for non-available sqlite3 prerequisite; unknown functions in the sqlite3 module will be found)" ; fi
 
 
 # As upper layers may rely on the 'myriad' naming:
@@ -125,6 +125,7 @@ info-paths:
 
 info-settings:
 	@echo "USE_HDF5   = $(USE_HDF5)"
+	@echo "USE_JSON   = $(USE_JSON)"
 	@echo "USE_REST   = $(USE_REST)"
 	@echo "USE_SQLITE = $(USE_SQLITE)"
 

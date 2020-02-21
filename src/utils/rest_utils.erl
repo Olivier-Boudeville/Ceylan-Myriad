@@ -40,17 +40,13 @@
 
 % Implementation notes:
 %
-% We basically rely here on following prerequisites:
+% We rely here on following prerequisites:
 %
 % - an HTTP client, namely the built-in one, httpc
 % (http://erlang.org/doc/man/httpc.html), with some usage information
 % (http://erlang.org/doc/apps/inets/http_client.html)
 %
-% - a JSON parser, namely jsx (https://github.com/talentdeficit/jsx/), version
-% 2.8.0 at the time of this writing; we expect the BEAM files from jsx to be
-% available on the code path (we typically expect to find them in
-% ~/Software/jsx/jsx-current-install)
-
+% - the JSON services offered by our json_utils module
 
 
 -export([ start/0, start/1, stop/0,
@@ -58,9 +54,7 @@
 		  http_post/1, http_post/2, http_post/4,
 		  http_put/1, http_put/2, http_put/4,
 		  http_delete/1, http_delete/2, http_delete/4,
-		  http_request/1, http_request/2, http_request/3, http_request/5,
-		  is_json_parser_available/0, to_json/1,
-		  from_json/1, from_json_as_maps/1 ]).
+		  http_request/1, http_request/2, http_request/3, http_request/5 ]).
 
 
 % Defines the duration (in milliseconds) to wait before retrying, after a
@@ -73,22 +67,7 @@
 
 
 % Tells whether the SSL support is needed (typically for https):
-%
 -type ssl_opt() :: 'no_ssl' | 'ssl'.
-
-
-% JSON document:
--type json() :: binary() | string().
-
-
-
-% Options for the JSON parsing:
-%
-% (see https://github.com/talentdeficit/jsx#decode12 for more information; no
-% type is defined there yet)
-%
--type json_parsing_option() :: any().
-
 
 
 % HTTP/1.1 method:
@@ -134,22 +113,20 @@
 
 -type retries_count() :: basic_utils:count().
 
--export_type([ ssl_opt/0, json/0, json_parsing_option/0,
-			   method/0, content_type/0, field/0, value/0,
+-export_type([ ssl_opt/0, method/0, content_type/0, field/0, value/0,
 			   header/0, headers/0, body/0, status_code/0, status_line/0,
 			   request/0, http_option/0, http_options/0, option/0, options/0,
 			   result/0, context/0, retries_count/0 ]).
 
 
 
-%%
-%% Inets section.
-%%
+
+% Inets section.
+
 
 
 
 % Starts the REST service, with default settings.
-%
 -spec start() -> void().
 start() ->
 	start( no_ssl ).
@@ -157,7 +134,6 @@ start() ->
 
 
 % Starts the REST service.
-%
 -spec start( ssl_opt() ) -> void().
 start( Option ) ->
 
@@ -175,16 +151,15 @@ start( Option ) ->
 
 	end,
 
-	start_json_parser().
+	json_utils:start_json_parser().
 
 
 
 % Stops the REST service.
-%
 -spec stop() -> void().
 stop() ->
 
-	stop_json_parser(),
+	json_utils:stop_json_parser(),
 
 	% Maybe not launched, hence not pattern matched:
 	ssl:stop(),
@@ -193,10 +168,8 @@ stop() ->
 
 
 
-%%
-%% REST requests section.
-%%
 
+% REST requests section.
 
 
 % Lists all the possible request methods defined by the HTTP/1.1 standard,
@@ -230,7 +203,6 @@ get_body_allowing_http_methods() ->
 
 
 % Shorthands for sending GET HTTP requests:
-%
 -spec http_get( request() ) -> { status_code(), term() }.
 http_get( Request ) ->
 	http_get( Request, _HTTPOpts=[], _Opts=[], _Retries=0 ).
@@ -248,7 +220,6 @@ http_get( Request, HTTPOptions, Options, Retries ) ->
 
 
 % Shorthands for sending POST HTTP requests:
-%
 -spec http_post( request() ) -> { status_code(), term() }.
 http_post( Request ) ->
 	http_post( Request, _HTTPOpts=[], _Opts=[], _Retries=0 ).
@@ -267,7 +238,6 @@ http_post( Request, HTTPOptions, Options, Retries ) ->
 
 
 % Shorthands for sending PUT HTTP requests:
-%
 -spec http_put( request() ) -> { status_code(), term() }.
 http_put( Request ) ->
 	http_put( Request, _HTTPOpts=[], _Opts=[], _Retries=0 ).
@@ -286,7 +256,6 @@ http_put( Request, HTTPOptions, Options, Retries ) ->
 
 
 % Shorthands for sending DELETE HTTP requests:
-%
 -spec http_delete( request() ) -> { status_code(), term() }.
 http_delete( Request ) ->
 	http_delete( Request, _HTTPOpts=[], _Opts=[], _Retries=0 ).
@@ -416,7 +385,6 @@ format_body_error( ContentBody ) ->
 
 
 % Checks and returns the result of an HTTP request (or throws an exception).
-%
 -spec return_checked_result( result() ) -> { status_code(), term() }.
 return_checked_result( _Result={ StatusLine, _Headers, Body } ) ->
 
@@ -470,7 +438,6 @@ return_checked_result( Result ) ->
 
 
 % Checks the basic structure of an HTTP request, as needed by httpc.
-%
 -spec check_http_request( method(), request() ) -> void().
 check_http_request( Method, _Request={ URL, Headers } )
   when is_list( Headers ) ->
@@ -546,140 +513,3 @@ check_http_request( _Method, Request={ _URL, _Headers, _CType, _Body } ) ->
 
 check_http_request( _Method, Request ) ->
 	throw( { invalid_http_request, Request } ).
-
-
-
-%%
-%% JSON section.
-%%
-
-
-
-% Starts the JSON parser.
-%
--spec start_json_parser() -> void().
-start_json_parser() ->
-
-	% We use the 'jsx' parser, an external prerequisite.
-	%
-	case is_json_parser_available() of
-
-		true ->
-			ok;
-
-		false ->
-			trace_utils:error_fmt( "The jsx JSON parser is not available.~n~s",
-						   [ system_utils:get_json_unavailability_hint() ] ),
-			throw( { json_parser_not_found, jsx } )
-
-	end,
-
-	% This is a way to check its BEAMs are available and usable:
-	%
-	try jsx:is_json( <<"\"test\"">> ) of
-
-		true ->
-			ok
-
-	catch
-
-		error:undef ->
-			trace_utils:error_fmt(
-			  "The jsx JSON parser is not operational.~n~s",
-			  [ system_utils:get_json_unavailability_hint() ] ),
-			throw( { json_parser_not_operational, jsx } )
-
-	end.
-
-
-
-% Tells whether the JSON parser is available.
-%
--spec is_json_parser_available() -> boolean().
-is_json_parser_available() ->
-
-	case code_utils:is_beam_in_path( 'jsx' ) of
-
-		not_found ->
-			false;
-
-		[ _Path ] ->
-			true ;
-
-		Paths ->
-			throw( { multiple_jsx_found, Paths } )
-
-	end.
-
-
-
-% Converts (encodes) specified Erlang term into a JSON counterpart element.
-%
--spec to_json( term() ) -> json().
-to_json( Term ) ->
-	jsx:encode( Term ).
-
-
-
-% Returns the default options for the JSON decoding.
-%
--spec get_default_json_decoding_options() -> [ json_parsing_option() ].
-get_default_json_decoding_options() ->
-	% We prefer {state,<<"PUBLISHED">>} to {<<"state">>,<<"PUBLISHED">>}:
-	[ { labels, atom } ].
-
-
-
-% Converts (decodes) specified JSON element into an Erlang term counterpart.
-%
--spec from_json( json() ) -> term().
-from_json( Json ) ->
-	from_json( Json, get_default_json_decoding_options() ).
-
-
-
-% Converts (decodes) specified JSON element into an Erlang term counterpart,
-% with specified parsing options.
-%
--spec from_json( json(), [ json_parsing_option() ] ) -> term().
-from_json( BinJson, Opts ) when is_binary( BinJson ) ->
-
-	%trace_utils:debug_fmt( "Decoding '~p'.", [ BinJson ] ),
-
-	% Note that at least some errors in the JSON file (ex: missing comma) will
-	% lead only to an exception such as:
-	%
-	% ** exception error: bad argument
-	%  in function  jsx_decoder:maybe_done/4
-	%
-	% (not even returning a line number for the faulty part...)
-
-	jsx:decode( BinJson, Opts );
-
-from_json( StringJson, Opts ) when is_list( StringJson ) ->
-	BinJson = text_utils:string_to_binary( StringJson ),
-	from_json( BinJson, Opts ).
-
-
-
-% Converts (decodes) specified JSON element recursively so that it returns a
-% table containing tables, themselves containing potentially tables, etc.
-%
-% Note that if in a given scope a key is present more than once, only one of its
-% values will be retained (actually the lastly defined one).
-%
--spec from_json_as_maps( json() ) -> table:table().
-from_json_as_maps( BinJson ) when is_binary( BinJson ) ->
-
-	Opts = [ return_maps | get_default_json_decoding_options() ],
-
-	from_json( BinJson, Opts ).
-
-
-
-
-% Stops the JSON parser.
-%
--spec stop_json_parser() -> void().
-stop_json_parser() ->
-	ok.

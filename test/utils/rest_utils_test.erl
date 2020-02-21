@@ -41,7 +41,7 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	case rest_utils:is_json_parser_available() of
+	case json_utils:is_parser_available() of
 
 		true ->
 			test_facilities:display( "JSON parser is available." );
@@ -59,5 +59,6 @@ run() ->
 
 	test_facilities:display( "Stopping REST services." ),
 	rest_utils:stop(),
+
 
 	test_facilities:stop().

@@ -511,8 +511,12 @@ severe_display( Format, Values ) ->
 %
 -spec actual_display( trace_message() ) -> void().
 actual_display( Message ) ->
+
 	% Default-timeout may not be sufficient (30 seconds, in milliseconds)
-	basic_utils:display_timed( Message, _TimeOut=30000 ).
+	%basic_utils:display_timed( Message, _TimeOut=30000 ).
+
+	% If wanting a faster, less safe version:
+	io:format( "~s~n", [ Message ] ).
 
 
 
@@ -524,4 +528,8 @@ actual_display( Message ) ->
 %
 -spec actual_display( trace_format(), trace_values() ) -> void().
 actual_display( Format, Values ) ->
-	basic_utils:display( Format, Values ).
+
+	%basic_utils:display( Format, Values ).
+
+	% If wanting a faster, less safe version:
+	io:format( Format ++ "~n", Values ).
