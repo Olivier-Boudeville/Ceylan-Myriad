@@ -85,7 +85,7 @@
 		  list_whitespaces/0,
 
 		  escape_single_quotes/1, escape_double_quotes/1,
-		  escape_all_quotes/1,
+		  escape_all_quotes/1, escape_with/3,
 
 		  is_uppercase/1, is_figure/1,
 		  remove_ending_carriage_return/1, remove_last_characters/2,
@@ -1975,6 +1975,37 @@ escape_all_quotes_helper( _Text=[ C | T ], Acc ) ->
 
 
 
+% Escapes, in specified text, all characters in the specified list, with
+% specified escaping char.
+%
+% Ex: "baz\.foobar\.org" = text_utils:escape_with( "baz.foobar.org",
+%        [ $. ], $\\ ).
+%
+-spec escape_with( string(), [ char() ], char() ) -> string().
+escape_with( Text, CharsToEscape, EscapingChar ) ->
+	escape_with( Text, CharsToEscape, EscapingChar, _Acc=[] ).
+
+
+% (helper)
+escape_with( _Text=[], _CharsToEscape, _EscapingChar, Acc ) ->
+	lists:reverse( Acc );
+
+escape_with( _Text=[ C | T ], CharsToEscape, EscapingChar, Acc ) ->
+	NewAcc = case lists:member( C, CharsToEscape ) of
+
+		true ->
+			% As will be ultimately reversed:
+			[ C, EscapingChar | Acc ];
+
+		false ->
+			[ C | Acc ]
+
+	end,
+
+	escape_with( T, CharsToEscape, EscapingChar, NewAcc ).
+
+
+
 % Tells whether specified character is an uppercase one.
 -spec is_uppercase( uchar() ) -> boolean().
 is_uppercase( Char ) ->
@@ -2511,7 +2542,7 @@ encode_element_as_url( E ) ->
 % Escapes specified list of {Key,Value} pairs so that it can used into some URL.
 -spec escape( option_list:option_list() ) -> ustring().
 escape( OptionList ) ->
-	%io:format( "~n~nEscaping '~p'.~n", [ OptionList ] ),
+	%trace_utils:debug_fmt( "~n~nEscaping '~p'.~n", [ OptionList ] ),
 	escape( OptionList, _Acc=[] ).
 
 escape( _OptionList=[], Acc ) ->
