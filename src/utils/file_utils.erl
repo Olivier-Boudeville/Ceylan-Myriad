@@ -80,6 +80,7 @@
 
 		  create_directory/1, create_directory/2,
 		  create_directory_if_not_existing/1,
+		  create_directory_if_not_existing/2,
 		  create_temporary_directory/0,
 
 		  remove_file/1, remove_file_if_existing/1,
