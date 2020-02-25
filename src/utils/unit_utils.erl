@@ -882,8 +882,8 @@ parse_value_with_unit( InputString ) ->
 	InternalDelimiters = text_utils:list_whitespaces(),
 
 	% Two strings:
-	{ ValueString, UnitString } = case text_utils:split( TrimString,
-														 InternalDelimiters ) of
+	{ ValueString, UnitString } = case
+			 text_utils:split_per_element( TrimString, InternalDelimiters ) of
 
 		% A value and a unit:
 		[ V, U ] ->
@@ -1093,7 +1093,7 @@ parse_component( ComponentString ) ->
 	% Ex: ComponentString="km^-3"; let's see whether we have an exponent:
 
 	{ PrefixedUnitString, UnitExponent } = case text_utils:split(
-								ComponentString, _Delimiter="^" ) of
+								ComponentString, _Delimiters=[ $^ ] ) of
 
 		% Returns for example { "km", -3 }:
 		[ PfxUnit, ExponentString ] ->

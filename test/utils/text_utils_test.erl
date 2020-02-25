@@ -115,13 +115,13 @@ run() ->
 		[ ListOfStrings, text_utils:strings_to_string( ListOfStrings ) ] ),
 
 
-	NestedStrings = [ [ "A1" ] ],
-	%NestedStrings = [ [ "A1", "A2", "A3" ], [ "B1" ], [ "C1", "C2" ],
+	NestedStringsForIndent = [ [ "A1" ] ],
+	%NestedStringsForIndent = [ [ "A1", "A2", "A3" ], [ "B1" ], [ "C1", "C2" ],
 	%                  [ "D1" ] ],
 
 	Strings = [ text_utils:format( "blah: ~s",
 				 [ text_utils:strings_to_string( N, _IndentationLevel=1 ) ] )
-				|| N <- NestedStrings ],
+				|| N <- NestedStringsForIndent ],
 
 	% Emulating the way it is used in practice:
 	test_facilities:display( "Displaying nested strings: ~s and continuing.",

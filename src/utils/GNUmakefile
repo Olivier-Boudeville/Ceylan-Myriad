@@ -2,6 +2,7 @@ MYRIAD_TOP = ../..
 
 .PHONY: clean-local test-local
 
+
 # So that it remains the default target:
 all:
 
@@ -17,7 +18,7 @@ test: test-local
 
 
 test-local:
-	@$(MAKE) most_basic_example_exec
+	@$(MAKE) -s most_basic_example_exec
 
 
 include $(MYRIAD_TOP)/GNUmakesettings.inc

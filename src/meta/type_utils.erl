@@ -813,6 +813,14 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 	end;
 
 
+interpret_type_helper( _Term={ _A, _B }, _CurrentNestingLevel=MaxNestingLevel,
+					   MaxNestingLevel ) ->
+	"pair";
+
+interpret_type_helper(_Term={ _A, _B, _C },
+		  _CurrentNestingLevel=MaxNestingLevel, MaxNestingLevel ) ->
+	"triplet";
+
 interpret_type_helper( Term, _CurrentNestingLevel=MaxNestingLevel,
 					   MaxNestingLevel ) when is_tuple( Term ) ->
 	text_utils:format( "tuple of ~B elements", [ size( Term ) ] );
@@ -824,7 +832,10 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 									 MaxNestingLevel )
 			  || E <- tuple_to_list( Term ) ],
 
-	text_utils:format( "tuple of ~B elements: ~s", [ size( Term ),
+	BaseTupleDesc = interpret_type_helper( Term, MaxNestingLevel,
+										   MaxNestingLevel ),
+
+	text_utils:format( "~s made of: ~s", [ BaseTupleDesc,
 						  text_utils:strings_to_enumerated_string( Elems,
 											  CurrentNestingLevel ) ] );
 

@@ -401,8 +401,10 @@ get_last_element( _List=[ _H | T ] ) ->
 
 
 % Converts specified name to an acceptable filename, filesystem-wise.
--spec convert_to_filename( string() ) ->
-		file_name(). % none() in case of erlang:error/2
+-spec convert_to_filename( text_utils:any_string() ) -> file_name().
+convert_to_filename( Name ) when is_binary( Name ) ->
+	convert_to_filename( text_utils:binary_to_string( Name ) );
+
 convert_to_filename( Name ) ->
 
 	% Currently we use exactly the same translation rules both for node names

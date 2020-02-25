@@ -2190,7 +2190,7 @@ get_mount_points() ->
 
 		{ _FirstExitCode=0, ResAsOneString } ->
 			%io:format( "## using direct df~n" ),
-			text_utils:split( ResAsOneString, "\n" );
+			text_utils:split_per_element( ResAsOneString, "\n" );
 
 		{ _FirstExitCode, _FirstErrorOutput } ->
 
@@ -2203,7 +2203,7 @@ get_mount_points() ->
 
 				{ _SecondExitCode=0, ResAsOneString } ->
 					%io:format( "## using legacy df~n" ),
-					text_utils:split( ResAsOneString, "\n" );
+					text_utils:split_per_element( ResAsOneString, "\n" );
 
 				{ SecondExitCode, SecondErrorOutput } ->
 					throw( { mount_point_inquiry_failed, SecondExitCode,
@@ -2243,7 +2243,7 @@ get_filesystem_info( FilesystemPath ) ->
 			% Order of the columns: 'Filesystem / Mounted on / Type / Used /
 			% Avail / IUsed / IFree':
 			%
-			case text_utils:split( ResAsOneString, " " ) of
+			case text_utils:split_per_element( ResAsOneString, " " ) of
 
 				[ Fs, Mount, Type, USize, ASize, Uinodes, Ainodes ] ->
 
@@ -2281,17 +2281,17 @@ get_filesystem_info_alternate( FilesystemPath ) ->
 	% df must have failed, probably outdated and not understanding --output,
 	% defaulting to a less precise syntax:
 
-	%io:format( "## using alternate df~n" ),
-
 	Cmd = ?df "--block-size=1K --local "
 		++ get_exclude_pseudo_fs_opt() ++ " "
 		++ FilesystemPath ++ "|" ?grep "-v 'Mounted on'",
+
+	trace_utils:debug_fmt( "Using alternate df, with command '~s'.", [ Cmd ] ),
 
 	case run_executable( Cmd ) of
 
 		{ _ExitCode=0, ResAsOneString } ->
 
-			case text_utils:split( ResAsOneString, " " ) of
+			case text_utils:split_per_element( ResAsOneString, " " ) of
 
 				[ Fs, _1KBlocks,  USize, ASize, _UsedPercent, Mount ] ->
 
@@ -2307,7 +2307,9 @@ get_filesystem_info_alternate( FilesystemPath ) ->
 					  available_inodes = 0
 					};
 
-				_ ->
+				_Elems ->
+					%trace_utils:error_fmt( "~B alternate df elements: ~p.",
+					%					   [ length( Elems ), Elems ] ),
 					throw( { filesystem_inquiry_failed, FilesystemPath,
 							 ResAsOneString } )
 

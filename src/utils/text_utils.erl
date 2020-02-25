@@ -67,6 +67,7 @@
 		  distance_to_string/1, distance_to_short_string/1,
 		  duration_to_string/1,
 		  format/2, bin_format/2, format/3,
+		  format_as_comment/1, format_as_comment/2, format_as_comment/3,
 		  ensure_string/1, ensure_binary/1 ]).
 
 
@@ -76,8 +77,8 @@
 		  uppercase_initial_letter/1,
 		  to_lowercase/1, to_uppercase/1,
 		  join/2,
-		  split/2, split_at_whitespaces/1, split_at_first/2, split_camel_case/1,
-		  tokenizable_to_camel_case/2,
+		  split/2, split_per_element/2, split_at_whitespaces/1,
+		  split_at_first/2, split_camel_case/1, tokenizable_to_camel_case/2,
 
 		  substitute/3, filter/2, split_after_prefix/2,
 		  update_with_keywords/2,
@@ -199,6 +200,9 @@
 -type translation_table() :: ?table:?table( any_string(), any_string() ).
 
 
+% A width, typically in terms of number of characters:
+-type width() :: pos_integer().
+
 % The level of indentation (starts at zero, and the higher, the most nested).
 -type indentation_level() :: basic_utils:level().
 
@@ -222,7 +226,7 @@
 			   regex_string/0, title/0, label/0,
 			   bin_string/0, any_string/0, unicode_string/0, uchar/0, ustring/0,
 			   string_like/0, string_list/0,
-			   translation_table/0, indentation_level/0, distance/0 ]).
+			   translation_table/0, width/0, indentation_level/0, distance/0 ]).
 
 
 
@@ -1060,6 +1064,80 @@ format( FormatString, Values ) ->
 
 
 
+% Formats specified text as a comment, based on the default character denoting
+% comments (i.e. "%"), for a line width of 80 characters.
+%
+-spec format_as_comment( ustring() ) -> ustring().
+format_as_comment( Text ) ->
+	format_as_comment( Text, _CommentChar=$% ).
+
+
+% Formats specified text as a comment, based on specified character denoting
+% comments, for a line width of 80 characters.
+%
+-spec format_as_comment( ustring(), char() ) -> ustring().
+format_as_comment( Text, CommentChar ) ->
+	format_as_comment( Text, CommentChar, _LineWidth=80 ).
+
+
+% Formats specified text as a comment, based on specified character denoting
+% comments, for specified line width.
+%
+-spec format_as_comment( any_string(), char(), width() ) -> ustring().
+format_as_comment( Text, CommentChar, LineWidth ) when is_binary( Text ) ->
+	format_as_comment( binary_to_string( Text ), CommentChar, LineWidth );
+
+format_as_comment( Text, CommentChar, LineWidth ) when is_list( Text ) ->
+
+	% To account for the (for example) " % " prefix:
+	RemainWidth = LineWidth - 3,
+
+	Elems = split_at_whitespaces( Text ),
+
+	format_as_comment_helper( Elems, CommentChar, RemainWidth, _AccLines=[],
+							  _AccLine=[], RemainWidth ).
+
+
+
+% (helper)
+format_as_comment_helper( _Text=[], CommentChar, _LineWidth, AccLines, AccLine,
+						  _RemainWidth ) ->
+	join( _Separator=$\n, lists:reverse(
+			  [ get_formatted_line( CommentChar, AccLine ) | AccLines ] ) );
+
+format_as_comment_helper( _Text=[ Word | T ], CommentChar, LineWidth, AccLines,
+						  AccLine, RemainWidth ) ->
+
+	WordWidth = length( Word ),
+
+	case WordWidth > RemainWidth of
+
+		true ->
+			%trace_utils:debug_fmt( "Word '~s' too long, hence to be put on "
+			%					   "next line.", [ Word ] ),
+			NewAccLines =
+				[ get_formatted_line( CommentChar, AccLine ) | AccLines ],
+
+			format_as_comment_helper( T, CommentChar, LineWidth,
+				NewAccLines, _AccLine=[ Word ],
+				_RemainWidth=LineWidth-WordWidth );
+
+		false ->
+			%trace_utils:debug_fmt( "Word '~s' still fits on the current line.",
+			%					   [ Word ] ),
+			format_as_comment_helper( T, CommentChar, LineWidth,
+				% Decremented width to account for the space *before* this word:
+				AccLines, [ Word | AccLine ], RemainWidth - WordWidth - 1 )
+
+	end.
+
+
+% (helper)
+get_formatted_line( CommentChar, Line ) ->
+	[ $ , CommentChar, $ ] ++ join( _Separator=$ , lists:reverse( Line ) ).
+
+
+
 % Formats specified binary string as io_lib:format/2 would do, except it returns
 % a flattened version of it and cannot fail (so that for example a badly
 % formatted log cannot crash anymore its emitter process).
@@ -1679,19 +1757,64 @@ join( Separator, _ListToJoin=[ H | T ], Acc ) ->
 % Splits the specified string into a list of strings, based on the list of
 % specified characters to be interpreted as delimiters.
 %
-% Defined here not to chase anymore after string:tokens/2.
+% Note that a series of contiguous delimiters (ex: two spaces in a row) will
+% result in inserting empty strings (i.e. []) in the returned list. Use
+% split_per_element/2 if wanting to handle series of delimeters as if there was
+% only one of them (i.e. if not wanting the returned list to include empty
+% strings).
+%
+% Defined here not to chase anymore after string:tokens/2 and friends.
 %
 % See also: split_at_whitespaces/0.
 %
 -spec split( ustring(), [ uchar() ] ) -> [ ustring() ].
 split( String, Delimiters ) ->
 
+	%trace_utils:debug_fmt( "Splitting '~s' with '~s'.",
+	%					   [ String, Delimiters ] ),
+
 	% Note: string:tokens/2 is now deprecated in favor of string:lexemes/2, and
 	% and anyway both treat two or more adjacent separator graphemes clusters as
 	% only one, which is generally not what we want; so we now use:
 
+	% Would be quite different, as Delimiters here would be understood as a
+	% search pattern (i.e. a "word" as a whole) instead of a list of delimiters:
+	%
+	%string:split( String, _SearchPattern=Delimiters, _Where=all ).
+
+	% Would lead to a breach of contract (no empty string ever inserted):
 	%string:lexemes( String, Delimiters ).
-	string:split( String, Delimiters, _Where=all ).
+
+	% So we go for a multi-pass splitting (one pass per delimiter):
+	split_helper( Delimiters, _Acc=[ String ] ).
+
+
+
+% (helper)
+split_helper( _Delimiters=[], Acc ) ->
+	Acc;
+
+split_helper( _Delimiters=[ D | T ], Acc ) ->
+	SplitStrs = [ string:split( S, _SearchPattern=[ D ], _Where=all )
+				  || S <- Acc ],
+	NewAcc = list_utils:flatten_once( SplitStrs ),
+	split_helper( T, NewAcc ).
+
+
+
+% Splits the specified string into a list of strings, based on the list of
+% specified characters to be interpreted as delimiters.
+%
+% Note that a series of contiguous delimiters (ex: two spaces in a row) will be
+% handled as if there was only one of them (i.e. if the returned list should not
+% include empty strings).
+%
+% See also: split/2.
+%
+-spec split_per_element( ustring(), [ uchar() ] ) -> [ ustring() ].
+split_per_element( String, Delimiters ) ->
+	%[ Elem || Elem <- split( String, Delimiters ), Elem =/= [] ].
+	string:lexemes( String, Delimiters ).
 
 
 
@@ -2113,7 +2236,7 @@ trim_trailing_whitespaces( String ) ->
 %
 % Returns a list of strings, each of which having Width characters.
 %
--spec format_text_for_width( ustring(), pos_integer() ) -> [ ustring() ].
+-spec format_text_for_width( ustring(), width() ) -> [ ustring() ].
 format_text_for_width( Text, Width ) ->
 
 	% Whitespaces converted to spaces:
@@ -2542,7 +2665,7 @@ encode_element_as_url( E ) ->
 % Escapes specified list of {Key,Value} pairs so that it can used into some URL.
 -spec escape( option_list:option_list() ) -> ustring().
 escape( OptionList ) ->
-	%trace_utils:debug_fmt( "~n~nEscaping '~p'.~n", [ OptionList ] ),
+	%trace_utils:debug_fmt( "~n~nEscaping '~p'.", [ OptionList ] ),
 	escape( OptionList, _Acc=[] ).
 
 escape( _OptionList=[], Acc ) ->

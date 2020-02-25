@@ -715,7 +715,7 @@ get_current_gnuplot_version() ->
 
 			{ _ExitCode=0, Output } ->
 				GnuplotVersionInString = lists:nth( _IndexVersion=2,
-										  text_utils:split( Output, " " ) ),
+							  text_utils:split_per_element( Output, " " ) ),
 				basic_utils:parse_version( GnuplotVersionInString );
 
 			{ ExitCode, ErrorOutput } ->
@@ -884,7 +884,8 @@ get_argument_table( ArgStrings ) ->
 -spec generate_argument_table( string() ) -> argument_table().
 generate_argument_table( ArgString ) ->
 
-	CommandLineArgs = text_utils:split( ArgString, _Delimiters=[ $ ] ),
+	CommandLineArgs = text_utils:split_per_element( ArgString,
+													_Delimiters=[ $ ] ),
 
 	get_argument_table( CommandLineArgs ).
 
