@@ -441,10 +441,13 @@ parse_row( Line, Separator ) ->
 
 
 
-% Checks that specified list of values - typically coming from a row of
-% unspecified field count - contains only empty values (empty strings).
+% Checks that specified row or list of values (typically coming from a row of
+% unspecified field count) contains only empty values (empty strings).
 %
--spec check_all_empty( [ value() ] ) -> void().
+-spec check_all_empty( row() | [ value() ] ) -> void().
+check_all_empty( Row ) when is_tuple( Row ) ->
+	check_all_empty( tuple_to_list( Row ) );
+
 check_all_empty( _List=[] ) ->
 	ok;
 
@@ -457,7 +460,10 @@ check_all_empty( _List=[ H | _T ] ) ->
 
 
 % Returns whether the specified list of values contains only empty ones.
--spec are_all_empty( [ value() ] ) -> boolean().
+-spec are_all_empty( row() | [ value() ] ) -> boolean().
+are_all_empty( Row ) when is_tuple( Row ) ->
+	are_all_empty( tuple_to_list( Row ) );
+
 are_all_empty( [] ) ->
 	true;
 

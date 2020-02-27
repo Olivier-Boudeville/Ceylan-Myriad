@@ -50,7 +50,9 @@
 %  - filename:basename("/aaa/bbb.txt") = "bbb.txt"
 %
 -export([ join/1, join/2, convert_to_filename/1,
-		  get_extensions/1, get_extension/1, replace_extension/3,
+
+		  get_extensions/1, get_extension/1, remove_extension/1,
+		  replace_extension/3,
 
 		  exists/1, get_type_of/1, get_owner_of/1, get_group_of/1,
 		  is_file/1,
@@ -470,6 +472,29 @@ get_extension( Filename ) ->
 
 		Extensions ->
 			list_utils:get_last_element( Extensions )
+
+	end.
+
+
+
+% Removes the (last) extension of the specified filename.
+%
+% Ex: "/home/jack/rosie.tmp" = remove_extension( "/home/jack/rosie.tmp.ttf" )
+%
+-spec remove_extension( file_name() ) -> file_name().
+remove_extension( Filename ) ->
+
+	case text_utils:split( Filename, _Delimiters=[ $. ] ) of
+
+		% Returning an empty string for an empty string:
+		[] ->
+			Filename;
+
+		[ Filename ] ->
+			Filename;
+
+		[ Basename | Extensions ] ->
+			text_utils:join( $., [ Basename | list_utils:remove_last_element( Extensions ) ] )
 
 	end.
 
