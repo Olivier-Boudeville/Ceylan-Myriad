@@ -1786,10 +1786,15 @@ remove_file( Filename ) ->
 	%trace_utils:warning_fmt( "Removing file '~s'.", [ Filename ] ),
 
 	case file:delete( Filename ) of
-	%case ok of
 
 		ok ->
 			ok;
+
+		{ error, eaccess } ->
+			trace_utils:error_fmt( "Unable to remove '~s': access denied, "
+				"possibly due to improper file and/or directory permissions.",
+				[ Filename ] ),
+			throw( { remove_file_failed, Filename, eaccess } );
 
 		Error ->
 			throw( { remove_file_failed, Filename, Error } )
