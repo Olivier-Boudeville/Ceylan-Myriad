@@ -551,7 +551,7 @@ await_output_completion( _TimeOut ) ->
 % with command-line arguments; specified as a single, standalone string), with
 % no specific port option, with a standard environment, from the current working
 % directory, and returns its return code (exit status) and its outputs (both the
-% standard and the error ones).
+% standard and the error ones): {ReturnCode,CmdOutput}.
 %
 % This function will run a specific executable, not evaluate a shell expression
 % (that would possibly run executables).
@@ -570,7 +570,7 @@ run_executable( Command ) ->
 % followed with command-line arguments; specified as a single, standalone
 % string), with no specific port option, in specified shell environment and in
 % the current directory, and returns its return code (exit status) and its
-% outputs (both the standard and the error ones).
+% outputs (both the standard and the error ones): {ReturnCode,CmdOutput}.
 %
 % This function will run a specific executable, not evaluate a shell expression
 % (that would possibly run executables).
@@ -590,7 +590,7 @@ run_executable( Command, Environment ) ->
 % followed with command-line arguments; specified as a single, standalone
 % string), with no specific port option, in specified shell environment and
 % directory, and returns its return code (exit status) and its outputs (both the
-% standard and the error ones).
+% standard and the error ones): {ReturnCode,CmdOutput}.
 %
 % This function will run a specific executable, not evaluate a shell expression
 % (that would possibly run executables).
@@ -619,7 +619,7 @@ run_executable( Command, Environment, MaybeWorkingDir ) ->
 % http://erlang.org/doc/man/erlang.html#open_port-2).
 %
 % Returns its return code (exit status) and its outputs (both the standard and
-% the error ones).
+% the error ones): {ReturnCode,CmdOutput}.
 %
 -spec run_executable( command(), environment(), maybe( working_dir() ),
 					  [ port_option() ] ) -> execution_outcome().
@@ -2281,11 +2281,11 @@ get_filesystem_info_alternate( FilesystemPath ) ->
 	% df must have failed, probably outdated and not understanding --output,
 	% defaulting to a less precise syntax:
 
+	%trace_utils:debug_fmt( "## using alternate df~n" ),
+
 	Cmd = ?df "--block-size=1K --local "
 		++ get_exclude_pseudo_fs_opt() ++ " "
 		++ FilesystemPath ++ "|" ?grep "-v 'Mounted on'",
-
-	trace_utils:debug_fmt( "Using alternate df, with command '~s'.", [ Cmd ] ),
 
 	case run_executable( Cmd ) of
 
@@ -2307,9 +2307,7 @@ get_filesystem_info_alternate( FilesystemPath ) ->
 					  available_inodes = 0
 					};
 
-				_Elems ->
-					%trace_utils:error_fmt( "~B alternate df elements: ~p.",
-					%					   [ length( Elems ), Elems ] ),
+				_ ->
 					throw( { filesystem_inquiry_failed, FilesystemPath,
 							 ResAsOneString } )
 
