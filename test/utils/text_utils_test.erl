@@ -423,4 +423,25 @@ run() ->
 
 	true = text_utils:is_list_of_binaries( [ <<"Foo">>, <<"Bar">> ] ),
 
+	TestText = "This is a longer text, used notably to test how it could be "
+		"formatted as a comment. Word-wrapping and comment prefix shall be "
+		"correct hopefully, and the whole shall spread over three lines.",
+
+	TextAsComment = text_utils:format_as_comment( TestText ),
+
+	test_facilities:display( "Displaying test text as comment:~n~s",
+							 [ TextAsComment ] ),
+
+	TwoElemSeq = "aa ~w bb~n ~w cc",
+
+	test_facilities:display(
+	  "Testing the detection of faulty control sequences." ),
+
+	%FirstValues = [ first ],
+	FirstValues = [ first, second ],
+
+	test_facilities:display( "Feeding sequence '~p' with ~p: '~s'.",
+							 [ TwoElemSeq, FirstValues,
+							   text_utils:format( TwoElemSeq, FirstValues ) ] ),
+
 	test_facilities:stop().

@@ -49,7 +49,7 @@
 		  strings_to_string/1, strings_to_sorted_string/1,
 		  strings_to_string/2, strings_to_sorted_string/2,
 		  strings_to_enumerated_string/1, strings_to_enumerated_string/2,
-		  strings_to_listed_string/1,
+		  strings_to_listed_string/1, strings_to_listed_string/2,
 		  binaries_to_string/1, binaries_to_string/2,
 		  binaries_to_sorted_string/1, binaries_to_listed_string/1,
 		  atoms_to_string/1, atoms_to_sorted_string/1, atoms_to_listed_string/1,
@@ -67,7 +67,10 @@
 		  distance_to_string/1, distance_to_short_string/1,
 		  duration_to_string/1,
 		  format/2, bin_format/2, format/3,
+
 		  format_as_comment/1, format_as_comment/2, format_as_comment/3,
+		  format_as_comment/4,
+
 		  ensure_string/1, ensure_binary/1 ]).
 
 
@@ -693,7 +696,6 @@ atoms_to_listed_string( ListOfAtoms ) ->
 	strings_to_listed_string( ListOfStrings ).
 
 
-
 % Returns a string that pretty-prints the specified list of strings, listed
 % directly along the text (not one item per line).
 %
@@ -703,13 +705,31 @@ atoms_to_listed_string( ListOfAtoms ) ->
 %strings_to_listed_string( _ListOfStrings=[] ) ->
 %	throw( empty_list_of_strings_to_list );
 % Probably more relevant:
-strings_to_listed_string( _ListOfStrings=[] ) ->
+-spec strings_to_listed_string( [ ustring() ] ) -> ustring().
+strings_to_listed_string( ListOfStrings ) ->
+	strings_to_listed_string( ListOfStrings, _Lang=english ).
+
+
+
+% Returns a string that pretty-prints the specified list of strings, listed
+% directly along the text (not one item per line), according to specified
+% (human) language.
+%
+% Ex: strings_to_listed_string( [ "red", "blue", "green" ] ) returns "red, blue
+% and green".
+%
+%strings_to_listed_string( _ListOfStrings=[] ) ->
+%	throw( empty_list_of_strings_to_list );
+% Probably more relevant:
+-spec strings_to_listed_string( [ ustring() ],
+								language_utils:human_language() ) -> ustring().
+strings_to_listed_string( _ListOfStrings=[], _Lang ) ->
 	"";
 
-strings_to_listed_string( _ListOfStrings=[ SingleString ] ) ->
+strings_to_listed_string( _ListOfStrings=[ SingleString ], _Lang ) ->
 	SingleString;
 
-strings_to_listed_string( ListOfStrings ) ->
+strings_to_listed_string( ListOfStrings, Lang ) ->
 
 	% Here all strings shall be separated with commas, except the last, starting
 	% with "and":
@@ -728,7 +748,15 @@ strings_to_listed_string( ListOfStrings ) ->
 
 	OtherStringsString = join( ", ", OtherStrings ),
 
-	format( "~ts and ~ts", [ OtherStringsString, LastString ] ).
+	case Lang of
+
+		french ->
+			format( "~ts et ~ts", [ OtherStringsString, LastString ] );
+
+		english ->
+			format( "~ts and ~ts", [ OtherStringsString, LastString ] )
+
+	end.
 
 
 
@@ -1027,6 +1055,7 @@ format( FormatString, Values ) ->
 -else. % exec_target_is_production
 
 
+% In development mode here:
 format( FormatString, Values ) ->
 
 	String =
@@ -1043,11 +1072,50 @@ format( FormatString, Values ) ->
 				%
 				%throw( { badly_formatted, FormatString, Values } )
 
-				Msg = io_lib:format( "[error: badly formatted string output] "
-						"Format string was '~p', values were '~p'.",
-						[ FormatString, Values ] ),
+				BaseMsg = io_lib:format(
+							"[error: badly formatted string output] "
+							"Format: '~p', values: '~p'",
+							[ FormatString, Values ] ),
 
-				% If wanting to be extra verbose:
+				SpecifiedCount = length( Values ),
+
+				Delimited = split( FormatString, _Delimiters=[ $~ ] ),
+
+				%trace_utils:debug_fmt( "Delimited = ~p", [ Delimited ] ),
+
+				% Preferred to split/2, eliminates any '~~':
+				Msg = case Delimited of
+
+					% Not even one control sequence, strange:
+					[ _ ] ->
+						BaseMsg;
+
+					[ _ | Seqs ] ->
+						% We filter out "autonomous" control sequences, i.e. the
+						% ones that do not rely on any value:
+						%
+						VSeqs = [ S || S <- Seqs, requires_value( S ) ],
+
+						% Counting value-based control sequences:
+						BaseMsg ++ case length( VSeqs ) of
+
+							SpecifiedCount ->
+								" (apparently the correct number of values "
+								"has been specified, hence the types may "
+								"not all match)";
+
+							CtrSeqCount ->
+								io_lib:format(
+									 " (expecting ~B values, got ~B)",
+									 [ CtrSeqCount, SpecifiedCount ] )
+
+						end
+
+				end,
+
+				% If wanting to be extra verbose, duplicating message on the
+				% console:
+				%
 				io:format( Msg ++ "~n", [] ),
 
 				Msg
@@ -1059,7 +1127,20 @@ format( FormatString, Values ) ->
 	%
 	lists:flatten( String ).
 
+
+% Tells whether specified control sequence (without its ~ prefix) requires a
+% value (ex: ~B) or not (ex: ~n).
+%
+requires_value( "n" ++ _ ) ->
+	% ~n does not use a value:
+	false;
+
+requires_value( _ ) ->
+	true.
+
+
 -endif. % exec_target_is_production
+
 
 
 
@@ -1072,12 +1153,21 @@ format_as_comment( Text ) ->
 	format_as_comment( Text, _CommentChar=$% ).
 
 
+% Formats specified format string with values as a comment, based on the default
+% character denoting comments (i.e. "%"), for a line width of 80 characters.
+%
+-spec format_as_comment( format_string(), [ term() ] ) -> ustring();
+					   ( ustring(), char() ) -> ustring().
+format_as_comment( FormatString, Values ) when is_list( Values ) ->
+	Text = format( FormatString, Values ),
+	format_as_comment( Text );
+
 % Formats specified text as a comment, based on specified character denoting
 % comments, for a line width of 80 characters.
 %
--spec format_as_comment( ustring(), char() ) -> ustring().
 format_as_comment( Text, CommentChar ) ->
 	format_as_comment( Text, CommentChar, _LineWidth=80 ).
+
 
 
 % Formats specified text as a comment, based on specified character denoting
@@ -1089,13 +1179,25 @@ format_as_comment( Text, CommentChar, LineWidth ) when is_binary( Text ) ->
 
 format_as_comment( Text, CommentChar, LineWidth ) when is_list( Text ) ->
 
-	% To account for the (for example) " % " prefix:
-	RemainWidth = LineWidth - 3,
+	% To account for the (for example) "% " prefix:
+	RemainWidth = LineWidth - 2,
 
 	Elems = split_at_whitespaces( Text ),
 
 	format_as_comment_helper( Elems, CommentChar, RemainWidth, _AccLines=[],
 							  _AccLine=[], RemainWidth ).
+
+
+
+% Formats specified format string with values as a comment, based on specified
+% character denoting comments, for specified line width.
+%
+-spec format_as_comment( format_string(), [ term() ] , char(), width() ) ->
+							   ustring().
+format_as_comment( FormatString, Values, CommentChar, LineWidth ) ->
+	Text = format( FormatString, Values ),
+	format_as_comment( Text, CommentChar, LineWidth ).
+
 
 
 
@@ -1110,7 +1212,7 @@ format_as_comment_helper( _Text=[ Word | T ], CommentChar, LineWidth, AccLines,
 
 	WordWidth = length( Word ),
 
-	case WordWidth > RemainWidth of
+	case WordWidth >= RemainWidth of
 
 		true ->
 			%trace_utils:debug_fmt( "Word '~s' too long, hence to be put on "
@@ -1134,7 +1236,7 @@ format_as_comment_helper( _Text=[ Word | T ], CommentChar, LineWidth, AccLines,
 
 % (helper)
 get_formatted_line( CommentChar, Line ) ->
-	[ $ , CommentChar, $ ] ++ join( _Separator=$ , lists:reverse( Line ) ).
+	[ CommentChar, $ ] ++ join( _Separator=$ , lists:reverse( Line ) ).
 
 
 
@@ -1187,33 +1289,7 @@ bin_format( FormatString, Values ) ->
 
 bin_format( FormatString, Values ) ->
 
-	String =
-		try
-
-			io_lib:format( FormatString, Values )
-
-		catch
-
-		_:_ ->
-
-				% Useful to obtain the stacktrace of a culprit or to check for
-				% silent errors:
-				%
-				%throw( { badly_formatted, FormatString, Values } )
-
-				Msg = io_lib:format( "[error: badly formatted string output] "
-									 "Format: '~p', values: '~p'",
-									 [ FormatString, Values ] ),
-
-				% If wanting to be extra verbose:
-				io:format( Msg ++ "~n", [] ),
-
-				Msg
-
-	end,
-
-	% No flattening needed here:
-	erlang:list_to_binary( String ).
+	erlang:list_to_binary( format( FormatString, Values ) ).
 
 -endif. % exec_target_is_production
 

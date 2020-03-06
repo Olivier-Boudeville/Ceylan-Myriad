@@ -39,6 +39,10 @@
 -type language() :: 'erlang' | 'python' | 'java'.
 
 
+% Type to designate all supported human languages:
+-type human_language() :: 'english' | 'french' | 'spanish' | 'german'
+						| 'italian' | 'russian' | 'chinese' | 'japanese'.
+
 
 % Type to designate an (Erlang) process driving a runtime container (ex: a
 % Python interpreter or a Java virtual machine) of a given language runtime
@@ -58,7 +62,7 @@
 
 
 
--export_type([ language/0,
+-export_type([ language/0, human_language/0,
 			   runtime_container_pid/0, python_interpreter_container_pid/0,
 			   java_vm_container_pid/0 ]).
 

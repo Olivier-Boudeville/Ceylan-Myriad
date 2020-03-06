@@ -782,6 +782,8 @@ interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
   when is_reference( Term ) ->
 	text_utils:format( "reference of value '~p'", [ Term ] );
 
+interpret_type_helper( _Term=[], _CurrentNestingLevel, _MaxNestingLevel ) ->
+	"empty list/string";
 
 interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
   when is_list( Term ) ->
