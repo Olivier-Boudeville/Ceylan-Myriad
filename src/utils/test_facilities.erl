@@ -64,10 +64,14 @@ start_common() ->
 
 	erlang:process_flag( trap_exit, false ),
 
-	% We want to be ensure that the standard logger behaves synchronously (ex:
-	% not wanting an error trace to be lost because we crashed on purpose the VM
-	% just after an error was reported, yet happened not to be notified yet as a
-	% corresponding was not sent yet, or was received but not yet processed).
+	% To avoid that special characters are not displayed properly:
+	system_utils:force_unicode_support(),
+
+	% We want to ensure that the standard logger behaves synchronously (ex: not
+	% wanting an error trace to be lost because we crashed on purpose the VM
+	% just after an error was reported whereas it happened not to have been
+	% notified already - since a corresponding message was not sent yet, or was
+	% received but not yet processed).
 
 	ok = logger:set_handler_config( _HandlerId=default, _Key=sync_mode_qlen,
 									_Value=0 ).

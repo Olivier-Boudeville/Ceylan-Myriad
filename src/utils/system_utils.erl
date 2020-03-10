@@ -45,6 +45,9 @@
 -export([ get_group_name/0 ]).
 
 
+% Unicode-related support.
+-export([ force_unicode_support/0 ]).
+
 
 % Lower-level services.
 -export([ await_output_completion/0, await_output_completion/1 ]).
@@ -436,6 +439,23 @@ get_group_name() ->
 			throw( { group_inquiry_failed, ExitCode, ErrorOutput } )
 
 	end.
+
+
+
+
+% Unicode support.
+
+
+% Forces the enabling of Unicode (UTF-8) support.
+-spec force_unicode_support() -> void().
+force_unicode_support() ->
+
+	% One may have to explicitly force the use of the Unicode encoding, as
+	% apparently a side-effect of running the VM with the -noinput option (which
+	% is often the case) is to switch the current encoding to latin1 (then at
+	% least terminal outputs become scrambled):
+	%
+	ok = io:setopts( _Opts=[ { encoding, unicode } ] ).
 
 
 

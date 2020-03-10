@@ -249,7 +249,7 @@ get_myriad_base_directory() ->
 get_arguments( Args ) ->
 
 	% Useful side-effect, difficult to troubleshoot:
-	ok = io:setopts( [ { encoding, unicode } ] ),
+	system_utils:force_unicode_support(),
 
 	get_arguments( Args, _OptionTable=list_table:new() ).
 

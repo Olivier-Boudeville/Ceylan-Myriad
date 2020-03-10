@@ -100,8 +100,9 @@
 
 % For some reason, if relying on the '-noinput' option, using the following
 % options will result in {read_error,{no_translation,unicode,unicode},...},
-% whereas using io:setopts/1 afterwards will not fail and will allow reads to
-% return correctly-encoded lines:
+% whereas using io:setopts/1 (ex: possibly through
+% system_utils:force_unicode_support/0) afterwards will not fail and will allow
+% reads to return correctly-encoded lines:
 %
 % (additionally, even when forcing UTF8 encoding when exporting as CSV an Excel
 % spreadsheet, the same ISO-8859 content will be obtained)
@@ -266,7 +267,7 @@ interpret_file( FilePath, Separator, ExpectedFieldCount )
 	File = file_utils:open( FilePath, ?read_options ),
 
 	% Refer to the note in file_utils:open/2 for explanation:
-	ok = io:setopts( [ { encoding, unicode } ] ),
+	system_utils:force_unicode_support(),
 
 	%{ MixedContent, MatchCount, UnmatchingCount, DropCount } =
 	Res = interpret_rows( File, Separator, ExpectedFieldCount ),

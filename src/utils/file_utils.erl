@@ -2840,9 +2840,8 @@ get_image_file_gif( Image ) ->
 % {encoding,unicode} returns an error such as
 % {read_error,{no_translation,unicode,unicode}}, then this may be an
 % (unfortunate) side-effect of having run the VM with the -noinput option; in
-% this case, the best option is to execute once:
-%
-% ok = io:setopts( _Opts=[ { encoding, unicode } ] )
+% this case, the best option is to execute once, preferably early (ex: as first
+% statement) system_utils:force_unicode_support/0.
 %
 -spec open( any_file_name(), [ file_open_mode() ] ) -> file().
 open( Filename, Options ) ->
@@ -2882,9 +2881,8 @@ open( Filename, Options ) ->
 % {encoding,unicode} returns an error such as
 % {read_error,{no_translation,unicode,unicode}}, then this may be an
 % (unfortunate) side-effect of having run the VM with the -noinput option; in
-% this case, the best option is to execute once:
-%
-% ok = io:setopts( _Opts=[ { encoding, unicode } ] )
+% this case, the best option is to execute once, preferably early (ex: as first
+% statement) system_utils:force_unicode_support/0.
 %
 -spec open( any_file_name(), [ file_open_mode() ],
 		   'try_once' | 'try_endlessly' | 'try_endlessly_safer' ) -> file().
