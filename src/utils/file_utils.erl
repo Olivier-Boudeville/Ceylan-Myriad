@@ -107,7 +107,7 @@
 
 		  is_leaf_among/2,
 
-		  update_with_keywords/3,
+		  update_with_keywords/3, update_with_keywords/4,
 
 		  path_to_variable_name/1, path_to_variable_name/2,
 
@@ -118,9 +118,10 @@
 
 
 % I/O section.
--export([ open/2, open/3, close/1, close/2,
+-export([ get_default_encoding/0, get_default_encoding_option/0,
+		  open/2, open/3, close/1, close/2,
 		  read/2, write/2, write/3,
-		  read_whole/1, write_whole/2,
+		  read_whole/1, write_whole/2, write_whole/3,
 		  read_terms/1, write_terms/2, write_terms/4, write_direct_terms/2 ]).
 
 
@@ -136,6 +137,11 @@
 
 % For the file_info record:
 -include_lib("kernel/include/file.hrl").
+
+
+% For default_encoding*:
+-include("system_utils.hrl").
+
 
 
 % Type declarations:
@@ -240,6 +246,7 @@
 -type file_open_mode() :: tuple() | atom() | 'ram'.
 
 
+
 % The supported compression formats:
 -type compression_format() :: 'zip' | 'bzip2' | 'xz'.
 
@@ -275,6 +282,22 @@
 			   entry_type/0, parent_creation/0, permission/0,
 			   compression_format/0,
 			   file/0, file_info/0 ]).
+
+
+% Regarding encodings and Unicode:
+%
+% - their support shall be specified when opening a file, notably for writing
+%
+% - specifying then the 'raw' option may result in the requested encoding (ex:
+% utf8) not being respected (ex: having ISO-8859 instead)
+%
+% - the way the VM is started matters; see the comment about the "-noinput"
+% option, in open/{2,3}
+%
+% - the content itself may have to be encoded before writing; for example,
+% writing "éèôù" (interpreted to be latin1 or alike) in a file opened as utf8
+% will result in a garbled content, unless it has been converted beforehand, for
+% example thanks to unicode:characters_to_{list,binary}/*
 
 
 
@@ -801,8 +824,19 @@ list_dir_elements( Dirname ) ->
 	% filename <<"XXX">> ignored"), yet the returned names were mangled, leading
 	% to enoent whenever trying to open them (refer to
 	% http://erlang.org/doc/apps/stdlib/unicode_usage.html#notes-about-raw-filenames):
-	%
-	{ ok, LocalDirElements } = file:list_dir( Dirname ),
+
+	LocalDirElements = case file:list_dir( Dirname ) of
+
+		{ ok, LElems } ->
+			LElems;
+
+		{ error, enoent } ->
+			throw( { directory_not_found, Dirname } );
+
+		{ error, Other } ->
+			throw( { Other, Dirname } )
+
+	end,
 
 	classify_dir_elements( Dirname, LocalDirElements, _Devices=[],
 			_Directories=[], _Files=[], _Symlinks=[], _OtherFiles=[] ).
@@ -1008,8 +1042,8 @@ classify_dir_elements( Dirname, _Elements=[ H | T ], Devices, Directories,
 % ".PNG" are treated the same.
 
 
-% Returns a list containing all elements of Filenames list whose extension is
-% the specified one (ex: ".dat").
+% Returns a list containing all elements of the Filenames list whose extension
+% is the specified one (ex: ".dat").
 %
 -spec filter_by_extension( [ file_name() ], extension() ) -> [ file_name() ].
 filter_by_extension( Filenames, Extension ) ->
@@ -1738,7 +1772,8 @@ create_directory_if_not_existing( Dirname ) ->
 %
 % Throws an exception if the operation fails.
 %
--spec create_directory_if_not_existing( directory_name(), parent_creation() ) -> void().
+-spec create_directory_if_not_existing( directory_name(),
+										parent_creation() ) -> void().
 create_directory_if_not_existing( Dirname, ParentCreation ) ->
 
 	case is_existing_directory( Dirname ) of
@@ -2695,15 +2730,36 @@ is_leaf_among( LeafName, _PathList=[ Path | T ] ) ->
 
 % Updates specified file with specified keywords, i.e. copies the original file
 % into a target, updated one (supposedly non-already existing), in which all the
-% specified keywords (the keys of the translation table) are replaced with their
-% associated value (i.e. the value in table corresponding to that key).
+% specified keywords (the keys of the translation table) have been replaced with
+% their associated value (i.e. the value in table corresponding to that key).
+%
+% Ex: file_utils:update_with_keywords( "original.txt", "updated.txt", table:new(
+%  [ { "hello", "goodbye" }, { "Blue", "Red" } ] ).
+%
+% Note that the resulting file will be written with no additional encoding.
+%
+-spec update_with_keywords( any_file_path(), any_file_path(),
+							text_utils:translation_table() ) -> void().
+update_with_keywords( OriginalFilePath, TargetFilePath, TranslationTable ) ->
+	update_with_keywords( OriginalFilePath, TargetFilePath, TranslationTable,
+						  _EncodingOpts=[] ).
+
+
+
+% Updates specified file with specified keywords, i.e. copies the original file
+% into a target, updated one (supposedly non-already existing; and with the
+% specified encoding), in which all the specified keywords (the keys of the
+% translation table) have been replaced with their associated value (i.e. the
+% value in table corresponding to that key).
 %
 % Ex: file_utils:update_with_keywords( "original.txt", "updated.txt", table:new(
 %  [ { "hello", "goodbye" }, { "Blue", "Red" } ] ).
 %
 -spec update_with_keywords( any_file_path(), any_file_path(),
-							text_utils:translation_table() ) -> void().
-update_with_keywords( OriginalFilePath, TargetFilePath, TranslationTable ) ->
+		text_utils:translation_table(), system_utils:encoding_options() ) ->
+								  void().
+update_with_keywords( OriginalFilePath, TargetFilePath, TranslationTable,
+					  EncodingOpts ) ->
 
 	case exists( TargetFilePath ) of
 
@@ -2720,7 +2776,11 @@ update_with_keywords( OriginalFilePath, TargetFilePath, TranslationTable ) ->
 	BinUpdatedContent = text_utils:update_with_keywords( BinOrigContent,
 														 TranslationTable ),
 
-	write_whole( TargetFilePath, BinUpdatedContent ).
+	%trace_utils:debug_fmt( "Original content: ~ts;~n Translation table: ~p;~n"
+	%		" Updated content: ~ts.",
+	%		[ BinOrigContent, TranslationTable, BinUpdatedContent ] ),
+
+	write_whole( TargetFilePath, BinUpdatedContent, EncodingOpts ).
 
 
 
@@ -2819,12 +2879,30 @@ get_image_file_gif( Image ) ->
 % I/O section.
 
 
+% Returns our default, recommended encoding, typically when needing to open a
+% file for writing.
+%
+-spec get_default_encoding() -> system_utils:encoding().
+get_default_encoding() ->
+	system_utils:get_default_encoding().
+
+
+% Returns our default, recommended encoding option, typically when needing to
+% open a file for writing.
+%
+-spec get_default_encoding_option() -> system_utils:encoding_option().
+get_default_encoding_option() ->
+	system_utils:get_default_encoding_option().
+
+
+
+
 % Opens the file corresponding to the specified filename, with specified list of
 % options (as listed for file:open/2 in
 % http://erlang.org/doc/man/file.html#open-2, i.e. read, write, append,
 % exclusive, raw, etc.).
 %
-% Note that using 'raw' may cause problems with encodings.
+% Note that we thought that 'raw' may cause problems with encodings.
 %
 % See read_terms/1 if planning to read that content as terms later, notably with
 % regard to encoding.
@@ -2835,8 +2913,13 @@ get_image_file_gif( Image ) ->
 % not seem a viable solution right now (risk of exhausting the descriptors,
 % making the VM fail for example when loading a new BEAM).
 %
-% Note: if an opened file fails to be correctly read encoding-wise (characters
-% like 'à' being not only displayed but also read garbled, and if setting
+% Note:
+%
+% - we used to think that 'raw' may cause problems with encodings; consider
+% specifying system_utils:get_default_encoding_option/0
+%
+% - if an opened file fails to be correctly read encoding-wise (characters like
+% 'à' being not only displayed but also read garbled, and if setting
 % {encoding,unicode} returns an error such as
 % {read_error,{no_translation,unicode,unicode}}, then this may be an
 % (unfortunate) side-effect of having run the VM with the -noinput option; in
@@ -2888,6 +2971,9 @@ open( Filename, Options ) ->
 		   'try_once' | 'try_endlessly' | 'try_endlessly_safer' ) -> file().
 open( Filename, Options, _AttemptMode=try_endlessly_safer ) ->
 
+	%trace_utils:debug_fmt( "Opening '~s' endlessly yet safe, with options ~w.",
+	%					   [ Filename, Options ] ),
+
 	File = open( Filename, Options, try_endlessly ),
 
 	% We could check here that at least one descriptor remains, by adding a
@@ -2903,6 +2989,9 @@ open( Filename, Options, _AttemptMode=try_endlessly_safer ) ->
 
 
 open( Filename, Options, _AttemptMode=try_endlessly ) ->
+
+	%trace_utils:debug_fmt( "Opening '~s' endlessly, with options ~w.",
+	%					   [ Filename, Options ] ),
 
 	case file:open( Filename, Options ) of
 
@@ -2920,6 +3009,7 @@ open( Filename, Options, _AttemptMode=try_endlessly ) ->
 
 			% Attempt not to use timer:sleep (anyway will trigger errors
 			% afterwards when the system will try to look-up some BEAMs):
+			%
 			receive
 
 			after Duration ->
@@ -2935,6 +3025,9 @@ open( Filename, Options, _AttemptMode=try_endlessly ) ->
 
 
 open( Filename, Options, _AttemptMode=try_once ) ->
+
+	%trace_utils:debug_fmt( "Opening '~s' once, with options ~w.",
+	%					   [ Filename, Options ] ),
 
 	case file:open( Filename, Options ) of
 
@@ -3026,6 +3119,7 @@ read( File, Count ) ->
 -spec write( file(), iodata() ) -> void().
 write( File, Content ) ->
 
+	% Using current encoding (i.e. the one that file was opened with):
 	case file:write( File, Content ) of
 
 		ok ->
@@ -3047,6 +3141,7 @@ write( File, FormatString, Values ) ->
 
 	Text = text_utils:format( FormatString, Values ),
 
+	% Using current encoding:
 	case file:write( File, Text ) of
 
 		ok ->
@@ -3083,20 +3178,35 @@ read_whole( Filename ) ->
 
 
 % Writes the specified content in specified file, whose filename is specified as
-% any kind of string.
+% any kind of string, using the default encoding.
 %
 % Throws an exception on failure.
 %
 -spec write_whole( any_file_name(), string() | binary() ) -> void().
-write_whole( Filename, StringContent ) when is_list( StringContent ) ->
-	write_whole( Filename, text_utils:string_to_binary( StringContent ) );
+write_whole( Filename, Content ) ->
+	write_whole( Filename, Content,
+				 _Modes=[ system_utils:get_default_encoding_option() ] ).
 
-write_whole( Filename, BinaryContent ) ->
 
-	%trace_utils:debug_fmt( "Writing to '~s' following content:~n~s",
-	%					   [ Filename, BinaryContent ] ),
 
-	case file:write_file( Filename, BinaryContent ) of
+% Writes the specified content in specified file, whose filename is specified as
+% any kind of string, using the specified encoding for writing.
+%
+% Throws an exception on failure.
+%
+-spec write_whole( any_file_name(), string() | binary(), [ file:mode() ] ) ->
+						 void().
+write_whole( Filename, StringContent, Modes ) when is_list( StringContent ) ->
+	write_whole( Filename, text_utils:string_to_binary( StringContent ),
+				 Modes );
+
+write_whole( Filename, BinaryContent, Modes ) ->
+
+	trace_utils:debug_fmt( "Writing to '~s', with modes ~p, "
+		"following content:~n~ts", [ Filename, Modes, BinaryContent ] ),
+
+	% 'write' and 'binary' are implicit here:
+	case file:write_file( Filename, BinaryContent, Modes ) of
 
 		ok ->
 			% Useless, paranoid checking:
@@ -3169,7 +3279,8 @@ write_terms( Terms, Filename ) ->
 				   file_path() ) -> void().
 write_terms( Terms, Header, Footer, Filename ) ->
 
-	F = open( Filename, [ write, raw, delayed_write ] ),
+	F = open( Filename, _Opts=[ write, raw, delayed_write,
+								system_utils:get_default_encoding_option() ] ),
 
 	case Header of
 
@@ -3198,7 +3309,7 @@ write_terms( Terms, Header, Footer, Filename ) ->
 
 
 % Writes directly specified terms into specified already opened file.
-
+%
 % Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
 %
 -spec write_direct_terms( file(), [ term() ] ) -> void().

@@ -26,8 +26,7 @@
 
 
 
-% Shared records:
-
+% Shared records and defines.
 
 
 % This records stores static information about the host this Erlang node runs
@@ -74,6 +73,7 @@
 		% total RAM used by all other applications; both percentages are floats
 		% in the [0,100] range, and the difference between their sum and 100
 		% corresponds to the free RAM.
+		%
 		ram_use :: { float(), float() },
 
 
@@ -130,3 +130,14 @@
 -define( sed, " \\sed " ).
 
 -define( id, " \\id " ).
+
+
+
+% For proper Unicode support (see also the comments in file_utils.erl):
+%
+% (note: if ever setting a non-Unicode default encoding,
+% system_utils:force_unicode_support/0 shall be modified)
+
+-define( default_encoding, utf8 ).
+
+-define( default_encoding_opt, { encoding, ?default_encoding } ).

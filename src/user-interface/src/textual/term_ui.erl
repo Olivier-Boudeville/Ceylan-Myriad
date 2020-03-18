@@ -406,9 +406,14 @@ start_helper( _Options=[ log_file | T ], UIState ) ->
 	start_helper( [ { log_file, "ui.log" } | T ], UIState );
 
 start_helper( _Options=[ { log_file, Filename } | T ], UIState ) ->
-	LogFile = file_utils:open( Filename, [ write, exclusive ] ),
+
+	LogFile = file_utils:open( Filename, [ write, exclusive,
+					  file_utils:get_default_encoding_option() ] ),
+
 	file_utils:write( LogFile, "Starting term UI.\n" ),
+
 	NewUIState = UIState#term_ui_state{ log_file=LogFile },
+
 	start_helper( T, NewUIState );
 
 start_helper( _Options=[ log_console | T ], UIState ) ->

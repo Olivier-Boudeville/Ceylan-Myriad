@@ -65,7 +65,7 @@ all: all-pre-hook all-parse-transforms rebar3-make-include-links
 #
 clean:
 	-@/bin/rm -rf $(REBAR_BUILD_ROOT)
-
+	-@if [ -d doc ] ; then cd doc && $(MAKE) -s clean ; fi
 
 else
 

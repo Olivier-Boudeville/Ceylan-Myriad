@@ -35,7 +35,8 @@
 
 
 % Centralised:
--define( merge_file_options, [ write, { encoding, utf8 } ] ).
+-define( merge_file_options,
+		 [ write, file_utils:get_default_encoding_option() ] ).
 
 
 -define( default_log_filename, "merge-tree.log" ).
@@ -2382,7 +2383,8 @@ start_user_service( LogFilename ) ->
 	% We append to the log file (not resetting it), if it already exists:
 	% (no delayed_write, to avoid missing logs when halting on error)
 	%
-	LogFile = file_utils:open( LogFilename, _Opts=[ append, raw ] ),
+	LogFile = file_utils:open( LogFilename, _Opts=[ append, raw,
+					file_utils:get_default_encoding_option() ] ),
 
 	file_utils:write( LogFile, "~n~n~n###### Starting new merge session "
 		  "(merge tool version ~s) on ~s at ~s.~n~n",

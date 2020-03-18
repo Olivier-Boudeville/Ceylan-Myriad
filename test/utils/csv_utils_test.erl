@@ -47,12 +47,22 @@ run() ->
 	test_facilities:display( "Testing CSV management, using the '~s' "
 							 "file for that.", [ CSVFilename ] ),
 
+	Separator=$;,
+
 	{ Content, RowCount, FieldCount } =
-		csv_utils:read_file( CSVFilename, _Separator=$; ),
+		csv_utils:read_file( CSVFilename, Separator ),
 
 	test_facilities:display( "Read ~B rows, each with ~B fields, "
-							 "corresponding to a ~s",
-							 [ RowCount, FieldCount,
+		"corresponding to a ~s.", [ RowCount, FieldCount,
 							   csv_utils:content_to_string( Content ) ] ),
+
+	NewCSVFilename = "example-written.csv",
+
+	% The internal data (i.e. comments aside) shall match exactly the one of
+	% CSVFilename:
+	%
+	csv_utils:write_file( Content, NewCSVFilename, Separator ),
+
+	file_utils:remove_file( NewCSVFilename ),
 
 	test_facilities:stop().

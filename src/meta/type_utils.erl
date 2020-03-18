@@ -737,6 +737,7 @@ interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
   when is_binary( Term ) ->
+	% Text might be incorrectly encoded ('~ts' would be needed):
 	text_utils:format( "binary of value '~p'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )

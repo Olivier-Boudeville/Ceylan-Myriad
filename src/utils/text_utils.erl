@@ -196,9 +196,6 @@
 -type string_like() :: string() | unicode_string() | bin_string() | atom().
 
 
-% Like io_list(), with possibly binaries:
--type string_list() :: [ string_like() ].
-
 % To convert keywords:
 -type translation_table() :: ?table:?table( any_string(), any_string() ).
 
@@ -228,7 +225,7 @@
 -export_type([ format_string/0, format_values/0,
 			   regex_string/0, title/0, label/0,
 			   bin_string/0, any_string/0, unicode_string/0, uchar/0, ustring/0,
-			   string_like/0, string_list/0,
+			   string_like/0,
 			   translation_table/0, width/0, indentation_level/0, distance/0 ]).
 
 
@@ -1488,7 +1485,13 @@ are_all_starting_with( _C, _Strings, _Acc ) ->
 string_to_binary( String ) when is_list( String ) ->
 	try
 
-		erlang:list_to_binary( String )
+		% No specific encoding needed:
+		Bin = erlang:list_to_binary( String ),
+
+		%io:format( "String '~s' converted to binary '~s'.",
+		%		   [ String, Bin ] ),
+
+		Bin
 
 	catch Class:Exception ->
 
@@ -2076,18 +2079,17 @@ split_after_prefix( _Prefix, _String ) ->
 
 
 
-% Updates specified file with specified keywords, i.e. copies the original file
-% into a target, updated one (supposedly non-already existing) in which all the
-% specified keywords (the keys of the translation table) are replaced with their
-% associated value (the corresponding value in table).
+% Updates specified text with specified keywords, returning a version of which
+% where all the specified keywords (the keys of the translation table) have been
+% replaced with their associated value (the corresponding value in table).
 %
-% Ex: file_utils:update_with_keywords( "original.txt", "updated.txt", table:new(
-%  [ { "hello", "goodbye" }, { "Blue", "Red" } ] ).
+% Ex: text_utils:update_with_keywords( "Hello word!", table:new(
+%  [ { "foo", "bar" }, { "ord", "orld" } ] ) ).
 %
 % See also: file_utils:update_with_keywords/3.
 %
 -spec update_with_keywords( any_string(), translation_table() ) ->
-								  string_list().
+								  [ string_like() ].
 update_with_keywords( Content, TranslationTable ) ->
 
 	TransPairs = ?table:enumerate( TranslationTable ),

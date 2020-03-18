@@ -233,7 +233,8 @@ generate_key( KeyFilename, Transforms ) ->
 
 	end,
 
-	KeyFile = file_utils:open( KeyFilename, _Opts=[ write, raw ] ),
+	KeyFile = file_utils:open( KeyFilename, _Opts=[ write, raw,
+				  file_utils:get_default_encoding_option() ] ),
 
 	Header = text_utils:format( "% Key generated on ~s, by ~s, on ~s.~n",
 								[ time_utils:get_textual_timestamp(),

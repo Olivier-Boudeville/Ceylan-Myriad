@@ -43,6 +43,10 @@ all:
 
 
 full-doc: $(DOC_BASE_NAME).pdf $(HTML_TARGET)
+	@/bin/ln -s $(HTML_TARGET) myriad.html
+	@/bin/ln -s myriad.html index.html
+	@/bin/ln -s $(DOC_PDF_NAME) myriad.pdf
+
 
 html: clean-doc $(HTML_TARGET)
 
@@ -76,13 +80,16 @@ export-to-mirror: $(DOC_GENERATED_FILES)
 
 clean: clean-doc
 
+
 clean-doc:
 	@echo "     Cleaning documentation"
 	-@/bin/rm -f *.aux *.log *.maf *.mtc* *.stc* *.tex *.toc \
 	$(CURRENT_MYRIAD_DOC) $(DOC_GENERATED_FILES)
 
 
+# These three elements are symbolic links:
 real-clean: clean
+	-@/bin/rm -f index.html myriad.html myriad.pdf
 
 
 info-web:

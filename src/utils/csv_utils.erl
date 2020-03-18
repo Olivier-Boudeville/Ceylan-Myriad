@@ -55,6 +55,7 @@
 -define( default_separator, $, ).
 
 
+
 % The value V, in "CSV":
 -type value() :: any().
 
@@ -170,6 +171,8 @@
 		   %
 		   interpret_file/3,
 
+		   write_file/2, write_file/3,
+
 		   check_all_empty/1, are_all_empty/1,
 
 		   %write_file/2, write_file/3
@@ -231,7 +234,7 @@ read_file( FilePath, Separator ) when is_integer( Separator ) ->
 
 
 % Interprets specified file; based on specified separator and number of fields
-% per row, returns:
+% per row, returns{ MixedContent, MatchCount, UnmatchCount, DropCount }, i.e.:
 %
 % - a list (respecting the in-file order) whose elements are either a list of
 % the specified number of fields, or a pair whose first element is the
@@ -243,6 +246,9 @@ read_file( FilePath, Separator ) when is_integer( Separator ) ->
 % fields), based on specified separator
 %
 % - the number of rows that do not match said constraints
+%
+% - the number of rows that were dropped (typically because they were either
+% empty or containing a comment
 %
 -spec interpret_file( file_utils:any_file_path(), separator(),
 					  field_count() ) ->
@@ -473,6 +479,60 @@ are_all_empty( [ "" | T ] ) ->
 
 are_all_empty( [ _H | _T ] ) ->
 	false.
+
+
+
+% Writes specified content (i.e. a list of homogeneous row tuples) in specified
+% CSV file, using the default separator for that.
+%
+-spec write_file( content(), file_utils:any_file_path() ) -> void().
+write_file( Content, TargetFilePath ) ->
+	write_file( Content, TargetFilePath, ?default_separator ).
+
+
+
+% Writes specified content (i.e. a list of homogeneous row tuples) in specified
+% CSV file, using specified separator for that.
+%
+-spec write_file( content(), file_utils:any_file_path(), separator() ) ->
+						void().
+write_file( Content, TargetFilePath, Separator ) ->
+
+	case file_utils:exists( TargetFilePath ) of
+
+		true ->
+			throw( { already_existing, TargetFilePath } );
+
+		false ->
+			ok
+
+	end,
+
+	WriteOpts = [ write, raw, delayed_write,
+				  file_utils:get_default_encoding_option() ],
+
+	File = file_utils:open( TargetFilePath, WriteOpts ),
+
+	write_rows( Content, Separator, File ),
+
+	file_utils:close( File ).
+
+
+
+% (helper)
+write_rows( _Content=[], _Separator, _File ) ->
+	ok;
+
+write_rows( _Content=[ Row | T ], Separator, File ) ->
+
+	Elems = tuple_to_list( Row ),
+
+	Line = text_utils:join( Separator, Elems ),
+
+	file_utils:write( File, "~s~n", [ Line ] ),
+
+	write_rows( T, Separator, File ).
+
 
 
 

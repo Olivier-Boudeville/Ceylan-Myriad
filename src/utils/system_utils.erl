@@ -46,7 +46,8 @@
 
 
 % Unicode-related support.
--export([ force_unicode_support/0 ]).
+-export([ get_default_encoding/0, get_default_encoding_option/0,
+		  force_unicode_support/0 ]).
 
 
 % Lower-level services.
@@ -249,6 +250,14 @@
 							  | file_utils:bin_directory_name() ).
 
 
+-type encoding() :: atom() | pair:pair().
+
+% Subset of file:mode/0:
+-type encoding_option() :: { 'encoding', encoding() }.
+
+-type encoding_options() :: [ encoding_option() ].
+
+
 % Basic authentication information:
 
 % For example in UNIX terms:
@@ -283,12 +292,17 @@
 			   env_variable_name/0, env_variable_value/0, environment/0,
 			   working_dir/0,
 
+			   encoding/0, encoding_option/0, encoding_options/0,
+
 			   user_name/0, password/0, basic_credential/0, group_name/0,
 			   user_id/0, group_id/0 ]).
 
 
 % For myriad_spawn*:
 -include("spawn_utils.hrl").
+
+
+% Unicode defines are in system_utils.hrl.
 
 
 
@@ -446,16 +460,37 @@ get_group_name() ->
 % Unicode support.
 
 
-% Forces the enabling of Unicode (UTF-8) support.
+% Returns our default, recommended encoding, for example when needing to open a
+% file for writing.
+%
+-spec get_default_encoding() -> encoding().
+get_default_encoding() ->
+	?default_encoding.
+
+
+% Returns our default, recommended encoding option, for example when needing to
+% open a file for writing.
+%
+-spec get_default_encoding_option() -> encoding_option().
+get_default_encoding_option() ->
+	?default_encoding_opt.
+
+
+
+% Forces the enabling of Unicode support.
 -spec force_unicode_support() -> void().
 force_unicode_support() ->
+
+	EncodingOpt = ?default_encoding_opt,
+
+	%trace_utils:info_fmt( "Forcing ~p encoding option.", [ Encoding ] ),
 
 	% One may have to explicitly force the use of the Unicode encoding, as
 	% apparently a side-effect of running the VM with the -noinput option (which
 	% is often the case) is to switch the current encoding to latin1 (then at
 	% least terminal outputs become scrambled):
 	%
-	ok = io:setopts( _Opts=[ { encoding, unicode } ] ).
+	ok = io:setopts( _Opts=[ EncodingOpt ] ).
 
 
 
