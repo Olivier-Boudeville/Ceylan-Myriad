@@ -90,6 +90,7 @@
 
 		  escape_single_quotes/1, escape_double_quotes/1,
 		  escape_all_quotes/1, escape_with/3,
+		  remove_newlines/1,
 
 		  is_uppercase/1, is_figure/1,
 		  remove_ending_carriage_return/1, remove_last_characters/2,
@@ -2204,6 +2205,13 @@ escape_with( _Text=[ C | T ], CharsToEscape, EscapingChar, Acc ) ->
 	end,
 
 	escape_with( T, CharsToEscape, EscapingChar, NewAcc ).
+
+
+
+% Removes all newlines from specified string.
+-spec remove_newlines( string() ) -> string().
+remove_newlines( String ) ->
+	lists:flatten( string:replace( String, "\n", "", all ) ).
 
 
 

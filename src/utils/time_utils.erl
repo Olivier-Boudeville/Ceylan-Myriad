@@ -101,7 +101,8 @@
 
 
 % Duration-related section.
--export([ get_intertime_duration/2, duration_to_string/1 ]).
+-export([ get_intertime_duration/2,
+		  duration_to_string/1, duration_to_french_string/1 ]).
 
 
 % Shall be a bit cheaper:
@@ -124,7 +125,8 @@
 		  timestamp_to_string/1, short_string_to_timestamp/1,
 		  string_to_timestamp/1, dhms_to_string/1,
 		  get_duration/1, get_duration/2,
-		  get_duration_since/1, get_textual_duration/2,
+		  get_duration_since/1,
+		  get_textual_duration/2, get_french_textual_duration/2,
 		  get_precise_timestamp/0, get_precise_duration/2,
 		  get_precise_duration_since/1,
 		  get_date_after/2 ]).
@@ -760,7 +762,7 @@ string_to_timestamp( TimestampString ) ->
 % Returns a textual description of specified DHMS-based duration.
 -spec dhms_to_string( dhms_duration() ) -> text_utils:ustring().
 dhms_to_string( DHMS ) ->
-	text_utils:duration_to_string( 1000 * dhms_to_seconds( DHMS ) ).
+	duration_to_string( 1000 * dhms_to_seconds( DHMS ) ).
 
 
 
@@ -795,10 +797,8 @@ get_duration_since( StartTimestamp ) ->
 
 
 
-% Returns a textual description of the duration between the two specified
-% timestamps.
-%
-% See also duration_to_string/1, which is smarter.
+% Returns an (english) textual description of the duration between the two
+% specified timestamps.
 %
 -spec get_textual_duration( timestamp(), timestamp() ) -> string().
 get_textual_duration( FirstTimestamp, SecondTimestamp ) ->
@@ -818,9 +818,23 @@ get_textual_duration( FirstTimestamp, SecondTimestamp ) ->
 
 
 
-% Returns an approximate textual description of the specified duration, expected
-% to be expressed as a number of milliseconds (integer otherwise, if being
-% floating-point, it will be rounded), or as the 'infinity' atom.
+% Returns a textual description, in French, of the duration between the two
+% specified timestamps.
+%
+-spec get_french_textual_duration( timestamp(), timestamp() ) -> string().
+get_french_textual_duration( FirstTimestamp, SecondTimestamp ) ->
+
+	Duration = get_duration( FirstTimestamp, SecondTimestamp ),
+
+	% Milliseconds:
+	duration_to_french_string( 1000 * Duration ).
+
+
+
+% Returns an approximate textual (english) description of the specified
+% duration, expected to be expressed as a number of milliseconds (integer
+% otherwise, if being floating-point, it will be rounded), or as the 'infinity'
+% atom.
 %
 % Ex: for a duration of 150012 ms, returns:
 % "2 minutes, 30 seconds and 12 milliseconds".
@@ -925,6 +939,116 @@ duration_to_string( Milliseconds ) when is_integer( Milliseconds )->
 
 duration_to_string( infinity ) ->
 	"infinity".
+
+
+
+% Returns an approximate textual, french description of the specified duration,
+% expected to be expressed as a number of milliseconds (integer otherwise, if
+% being floating-point, it will be rounded), or as the 'infinity' atom.
+%
+% Ex: for a duration of 150012 ms, returns:
+% "2 minutes, 30 secondes et 12 millisecondes".
+%
+% See also: basic_utils:get_textual_duration/2.
+%
+-spec duration_to_french_string( unit_utils:milliseconds() | float() | 'infinity' ) ->
+								string().
+duration_to_french_string( Milliseconds ) when is_float( Milliseconds )->
+	duration_to_french_string( erlang:round( Milliseconds ) );
+
+duration_to_french_string( Milliseconds ) when is_integer( Milliseconds )->
+
+	FullSeconds = Milliseconds div 1000,
+
+	{ Days, { Hours, Minutes, Seconds } } =
+		calendar:seconds_to_daystime( FullSeconds ),
+
+	ListWithDays = case Days of
+
+		0 ->
+			[];
+
+		1 ->
+			[ "1 jour" ];
+
+		_ ->
+			[ io_lib:format( "~B jours", [ Days ] ) ]
+
+	end,
+
+	ListWithHours = case Hours of
+
+		0 ->
+			ListWithDays;
+
+		1 ->
+			[ "1 heure" | ListWithDays ];
+
+		_ ->
+			[ io_lib:format( "~B heures", [ Hours ] )
+			  | ListWithDays ]
+
+	end,
+
+	ListWithMinutes = case Minutes of
+
+		0 ->
+		  ListWithHours;
+
+		1 ->
+		  [ "1 minute" | ListWithHours ];
+
+		_ ->
+		  [ io_lib:format( "~B minutes", [ Minutes ] ) | ListWithHours ]
+
+	end,
+
+	ListWithSeconds = case Seconds of
+
+		0 ->
+			ListWithMinutes;
+
+		1 ->
+			[ "1 seconde" | ListWithMinutes ];
+
+		_ ->
+			[ io_lib:format( "~B secondes", [ Seconds ] ) | ListWithMinutes ]
+
+	end,
+
+	ActualMilliseconds = Milliseconds rem 1000,
+
+	ListWithMilliseconds = case ActualMilliseconds of
+
+		0 ->
+			ListWithSeconds;
+
+		1 ->
+			[ "1 milliseconde" | ListWithSeconds ];
+
+		_ ->
+			[ io_lib:format( "~B millisecondes", [ ActualMilliseconds ] )
+			  | ListWithSeconds ]
+
+	end,
+
+	% Preparing for final display:
+	case ListWithMilliseconds of
+
+		[] ->
+			"0 milliseconde";
+
+		[ OneElement ] ->
+			OneElement;
+
+		[ Smaller | Bigger ] ->
+			text_utils:join( ", ",
+							 lists:reverse( Bigger ) ) ++ " et " ++ Smaller
+
+	end;
+
+duration_to_french_string( infinity ) ->
+	"infini".
 
 
 

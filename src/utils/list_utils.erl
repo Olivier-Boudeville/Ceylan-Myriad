@@ -58,8 +58,8 @@
 		  get_last_element/1, extract_last_element/1,
 		  get_index_of/2, get_maybe_index_of/2, split_at/2, uniquify/1,
 		  ensure_is_once_in/2,
-		  has_duplicates/1, get_duplicates/1, union/2, intersection/2,
-		  difference/2, cartesian_product/1,
+		  has_duplicates/1, count_occurrences/1, get_duplicates/1,
+		  union/2, intersection/2, difference/2, cartesian_product/1,
 		  subtract_all_duplicates/2, delete_existing/2, delete_if_existing/2,
 		  delete_all_in/2, append_at_end/2, is_list_of_integers/1,
 		  unordered_compare/2, flatten_once/1, filter_out_undefined/1 ]).
@@ -481,10 +481,46 @@ has_duplicates( List ) ->
 
 
 
-% Returns the duplicates in the specified list: returns an (unordered) list of {
-% DuplicatedTerm, DuplicationCount } pairs, where each duplicated term (i.e. a
+% Counts the number of occurences of all elements in the specified list: returns
+% an (unordered) list of {Term,Count} pairs, where each term is associated to
+% the total number of its occurrences (1 or above) in the specified list.
+%
+-spec count_occurrences( list() ) -> [ { element(), basic_utils:count() } ].
+count_occurrences( List ) ->
+	count_occurrences( List, _Acc=[] ).
+
+count_occurrences( _List=[], Acc ) ->
+	Acc;
+
+count_occurrences( _List=[ Term | T ], Acc ) ->
+
+	% trace_utils:debug_fmt( "Inquiring about term '~p' into ~p.",
+	% [ Term, T ] ),
+
+	case count_and_filter_term( Term, _InitialList=T, _FilteredList=[],
+								_InitialCount=0 ) of
+
+		not_found ->
+			% No a duplicated element, just iterating on the next term:
+			count_occurrences( T, [ { Term, 1 } | Acc ] );
+
+		{ TermCount, FilteredList } ->
+			% We already extracted the first Term:
+			count_occurrences( FilteredList, [ { Term, TermCount + 1 } | Acc ] )
+
+   end.
+
+
+
+% Returns the duplicates in the specified list: returns an (unordered) list of
+% {DuplicatedTerm,DuplicationCount} pairs, where each duplicated term (i.e. a
 % term present more than once) is specified, alongside the total number of
-% occurrences of that terms in the specified list.
+% occurrences of that term in the specified list.
+%
+% Note: as a consequence, a term that is not in the specified list, or that is
+% present there only once, will not be referenced in the returned list; use
+% count_occurrences/1 if wanting to include the terms that are listed only once
+% each.
 %
 % Ex: list_utils:get_duplicates([a,a,b,b,b,c,d,d]) = [{b,3},{d,2},{a,2}]
 %

@@ -3202,8 +3202,8 @@ write_whole( Filename, StringContent, Modes ) when is_list( StringContent ) ->
 
 write_whole( Filename, BinaryContent, Modes ) ->
 
-	trace_utils:debug_fmt( "Writing to '~s', with modes ~p, "
-		"following content:~n~ts", [ Filename, Modes, BinaryContent ] ),
+	%trace_utils:debug_fmt( "Writing to '~s', with modes ~p, "
+	%	"following content:~n~ts", [ Filename, Modes, BinaryContent ] ),
 
 	% 'write' and 'binary' are implicit here:
 	case file:write_file( Filename, BinaryContent, Modes ) of

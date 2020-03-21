@@ -48,6 +48,7 @@ run() ->
 	GetIndex = 3,
 
 	GetValue = list_utils:get_element_at( L, GetIndex ),
+
 	test_facilities:display( "Getting item #~B of list ~w: ~B.",
 							 [ GetIndex, L, GetValue ] ),
 
@@ -59,7 +60,6 @@ run() ->
 	%test_facilities:display( "   Getting item #~B of list ~w: ~B.",
 	% [ OutOfBoundsIndex, L,
 	%	list_utils:get_element_at( L, OutOfBoundsIndex ) ] ),
-
 
 	{ a, [] } = list_utils:extract_element_at( [ a ], 1 ),
 
@@ -170,9 +170,11 @@ run() ->
 	Uniquified = list_utils:uniquify( L1 ),
 
 	test_facilities:display( "Displaying a uniquified version of ~w: ~w.",
-			   [ L1, Uniquified ] ),
+							 [ L1, Uniquified ] ),
 
-	% Supposedly the order will be consistent, although this is not requested:
+	% Supposedly the (meaningless) order will be consistent, although this is
+	% not requested:
+	%
 	[ 3, 2, 1, 4 ] = Uniquified,
 
 	false = list_utils:has_duplicates( [] ),
@@ -209,6 +211,16 @@ run() ->
 	[ {d,2}, {b,3}, {f,2}, {a,2} ] = Dup5,
 	true = list_utils:has_duplicates( DupList5 ),
 
+	DupList6 = [ a, b, c, b, a, a ],
+
+	Dup6 = list_utils:get_duplicates( DupList6 ),
+	io:format( "Duplicates in ~w are ~w.~n", [ DupList6, Dup6 ] ),
+	[ {b,2}, {a,3} ] = Dup6,
+	true = list_utils:has_duplicates( DupList6 ),
+
+	Occur6 = list_utils:count_occurrences( DupList6 ),
+	io:format( "Occurences in ~w are ~w.~n", [ DupList6, Occur6 ] ),
+	[ {c,1}, {b,2}, {a,3} ] = Occur6,
 
 	List1 = [ a, b, 1, c, 14 ],
 	List2 = [ 14, d, b ],
