@@ -49,6 +49,10 @@ run() ->
 							 [ text_utils:strings_to_string( Months ) ] ),
 
 	InitialTimestamp = time_utils:get_timestamp(),
+
+	true = time_utils:is_timestamp( InitialTimestamp ),
+	false = time_utils:is_timestamp( { {0,0,0}, true } ),
+
 	InitialPreciseTimestamp = time_utils:get_precise_timestamp(),
 
 	test_facilities:display( "Timestamp is ~s.", [
@@ -58,6 +62,7 @@ run() ->
 		time_utils:get_textual_timestamp_for_path( InitialTimestamp ) ] ),
 
 	SomeTimestamp = { {2017,5,20}, {12,00,17} },
+	true = time_utils:is_timestamp( SomeTimestamp ),
 
 	"2017-05-20 12:00:17" =
 		time_utils:get_textual_timestamp_with_dashes( SomeTimestamp ),

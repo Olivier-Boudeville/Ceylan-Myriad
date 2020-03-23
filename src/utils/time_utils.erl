@@ -97,7 +97,8 @@
 		  dhms_to_seconds/1 ]).
 
 
--export([ string_to_dhms/1 ]).
+% DHMS-related:
+-export([ is_dhms_duration/1, string_to_dhms/1 ]).
 
 
 % Duration-related section.
@@ -116,7 +117,7 @@
 % for example, if T1={{2019,8,26},{17,1,16}} and T2={{2019,8,26},{17,2,5}}, then
 % T1 < T2 ("T1 is before T2") is true.
 %
--export([ get_timestamp/0,
+-export([ get_timestamp/0, is_timestamp/1,
 		  get_textual_timestamp/0, get_textual_timestamp/1,
 		  get_french_textual_timestamp/1,
 		  get_time2_textual_timestamp/0, get_time2_textual_timestamp/1,
@@ -124,6 +125,7 @@
 		  get_textual_timestamp_with_dashes/1,
 		  timestamp_to_string/1, short_string_to_timestamp/1,
 		  string_to_timestamp/1, dhms_to_string/1,
+		  timestamp_to_seconds/0, timestamp_to_seconds/1,
 		  get_duration/1, get_duration/2,
 		  get_duration_since/1,
 		  get_textual_duration/2, get_french_textual_duration/2,
@@ -154,6 +156,10 @@
 -export_type([ timestamp/0, precise_timestamp/0, time_out/0, posix_seconds/0 ]).
 
 
+% Shorthands:
+
+-type seconds() :: unit_utils:seconds().
+
 
 % Returns a string corresponding to the specified date, like: "30/11/2009".
 -spec get_textual_date( date() ) -> string().
@@ -171,7 +177,7 @@ from_posix_timestamp( PosixTimestamp ) ->
 
 	% Relative to 1/1/1970 0:0:0:
 	{ _Date={ Post1970Year, Month, Day }, Time } =
-		calendar:gregorian_seconds_to_datetime( PosixTimestamp),
+		calendar:gregorian_seconds_to_datetime( PosixTimestamp ),
 
 	% For services (ex: filesystem) typically returning their timestamp in local
 	% time:
@@ -458,6 +464,22 @@ hours_to_seconds( HourDuration ) ->
 
 
 
+% Tells whether specified term is a DHMS duration.
+%
+% Note: does not check whether its components are in canonical form (ex: Hours
+% in [0,23]).
+%
+-spec is_dhms_duration( term() ) -> boolean().
+is_dhms_duration( { Days, Hours, Minutes, Seconds } ) when
+	  is_integer( Days ) andalso is_integer( Hours )
+	  andalso is_integer( Minutes ) andalso is_integer( Seconds ) ->
+	true;
+
+is_dhms_duration( _Other ) ->
+	false.
+
+
+
 % Converts specified string (ex: "113j0h10m3s" for a French version,
 % "1d12h0m0s" for an English one) to a DHMS duration.
 %
@@ -559,10 +581,10 @@ get_intertime_duration( { H1, M1, S1 }, { H2, M2, S2 } ) ->
 % Timestamp-related functions.
 
 
-% Returns a timestamp tuple describing the current time.
+% Returns a timestamp tuple describing now, i.e. the current time.
 %
 % Ex: { {Year,Month,Day}, {Hour,Minute,Second} } = time_utils:get_timestamp()
-% may return '{ {2007,9,6}, {15,9,14} }'.
+% may return { {2007,9,6}, {15,9,14} }.
 %
 -spec get_timestamp() -> timestamp().
 get_timestamp() ->
@@ -574,6 +596,23 @@ get_timestamp() ->
 	% (see also http://erlang.org/doc/apps/erts/time_correction.html)
 	%
 	erlang:localtime().
+
+
+
+% Returns whether specified term is a legit timestamp.
+%
+% Useful to vet user-specified timestamps.
+%
+-spec is_timestamp( term() ) -> boolean().
+is_timestamp( { Date={ Y, M, D }, _Time={ Hour, Min, Sec } } )
+  when is_integer( Y ) andalso is_integer( M ) andalso is_integer( D )
+	   andalso is_integer( Hour ) andalso is_integer( Min )
+	   andalso is_integer( Sec ) andalso Hour =< 24 andalso Min =< 60
+	   andalso Sec =< 60 ->
+	calendar:valid_date( Date );
+
+is_timestamp( _Other ) ->
+	false.
 
 
 
@@ -690,7 +729,6 @@ get_textual_timestamp_with_dashes( { { Year, Month, Day },
 
 
 
-
 % Alias of get_textual_timestamp/1, defined for clarity.
 -spec timestamp_to_string( timestamp() ) -> string().
 timestamp_to_string( Timestamp ) ->
@@ -763,6 +801,28 @@ string_to_timestamp( TimestampString ) ->
 -spec dhms_to_string( dhms_duration() ) -> text_utils:ustring().
 dhms_to_string( DHMS ) ->
 	duration_to_string( 1000 * dhms_to_seconds( DHMS ) ).
+
+
+
+
+% Returns the number of seconds elapsed since year 0 and now.
+%
+% Useful for example to define an absolute reference in seconds and then only
+% compare offsets to it.
+%
+-spec timestamp_to_seconds() -> seconds().
+timestamp_to_seconds() ->
+	timestamp_to_seconds( get_timestamp() ).
+
+
+% Returns the number of seconds elapsed since year 0 and specified timestamp.
+%
+% Useful for example to define an absolute reference in seconds and then only
+% compare offsets to it.
+%
+-spec timestamp_to_seconds( timestamp() ) -> seconds().
+timestamp_to_seconds( Timestamp ) ->
+	calendar:datetime_to_gregorian_seconds( Timestamp ).
 
 
 
@@ -951,8 +1011,8 @@ duration_to_string( infinity ) ->
 %
 % See also: basic_utils:get_textual_duration/2.
 %
--spec duration_to_french_string( unit_utils:milliseconds() | float() | 'infinity' ) ->
-								string().
+-spec duration_to_french_string(
+		unit_utils:milliseconds() | float() | 'infinity' ) -> string().
 duration_to_french_string( Milliseconds ) when is_float( Milliseconds )->
 	duration_to_french_string( erlang:round( Milliseconds ) );
 
