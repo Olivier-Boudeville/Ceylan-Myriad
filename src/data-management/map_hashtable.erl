@@ -68,7 +68,7 @@
 		  remove_entries/2, remove_existing_entries/2,
 		  lookup_entry/2, has_entry/2,
 		  extract_entry/2, extract_entry_with_defaults/3,
-		  extract_entry_if_existing/2,
+		  extract_entry_if_existing/2, extract_entries/2,
 		  get_value/2, get_values/2, get_value_with_defaults/3,
 		  get_all_values/2,
 		  add_to_entry/3, subtract_from_entry/3, toggle_entry/2,
@@ -585,6 +585,29 @@ extract_entry_if_existing( Key, MapHashtable ) ->
 	end.
 
 
+
+% Extracts specified entries from specified hashtable, i.e. returns their
+% associated values (in-order) and removes these entries from the returned table.
+%
+% Each key/value pair is expected to exist already, otherwise an exception is
+% raised (typically {badkey,KeyNotFound}).
+%
+% Ex: { [ RedValue, GreenValue, BlueValue ], ExtractedTable } =
+%         table:extract_entries( [ red, green, blue ], MyTable )
+%
+-spec extract_entries( [ key() ], map_hashtable() ) ->
+							 { [ value() ], map_hashtable() }.
+extract_entries( Keys, MapHashtable ) ->
+	{ RevValues, FinalTable } = lists:foldl(
+		fun( K, { AccValues, AccTable } ) ->
+
+			{ V, NewAccTable } = extract_entry( K, AccTable ),
+			{ [ V | AccValues ], NewAccTable }
+		end,
+		_Acc0={ [], MapHashtable },
+					 _List=Keys ),
+
+	{ lists:reverse( RevValues ), FinalTable }.
 
 
 

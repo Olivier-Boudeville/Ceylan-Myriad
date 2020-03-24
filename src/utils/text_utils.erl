@@ -43,6 +43,7 @@
 
 % Conversions between terms and strings (both ways).
 -export([ term_to_string/1, term_to_string/2, term_to_string/3,
+		  term_to_bounded_string/1, term_to_bounded_string/2,
 		  term_to_binary/1,
 		  integer_to_string/1, atom_to_string/1, pid_to_string/1,
 		  record_to_string/1,
@@ -62,7 +63,8 @@
 		  string_to_atom/1, strings_to_atoms/1,
 		  terms_to_string/1, terms_to_enumerated_string/1,
 		  terms_to_listed_string/1,
-		  binary_to_atom/1, float_to_string/1,
+		  binary_to_atom/1,
+		  float_to_string/1, float_to_string/2, number_to_string/1,
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
 		  duration_to_string/1,
@@ -97,7 +99,7 @@
 		  remove_whitespaces/1,
 
 		  trim_whitespaces/1, trim_leading_whitespaces/1,
-		  trim_trailing_whitespaces/1,
+		  trim_trailing_whitespaces/1, ellipse/1, ellipse/2,
 
 		  get_default_bullet/0, get_bullet_for_level/1,
 		  format_text_for_width/2,
@@ -222,6 +224,10 @@
 %
 -type distance() :: non_neg_integer().
 
+-type float_option() :: { 'decimals', 0..253 }
+					  | { 'scientific', 0..249 }
+					  | 'compact'.
+
 
 -export_type([ format_string/0, format_values/0,
 			   regex_string/0, title/0, label/0,
@@ -264,6 +270,46 @@ term_to_string( Term ) ->
 
 
 
+% Returns a human-readable string describing specified term, within a bounded,
+% default length.
+%
+-spec term_to_bounded_string( term() ) -> string().
+% Does not happen, as empty set is actually {0,nil}:
+%term_to_bounded_string( _AttrValue=[] ) ->
+%	% To avoid being it interpreted as a set:
+%	"(empty list or set)";
+term_to_bounded_string( Term ) ->
+	term_to_bounded_string( Term, _MaxLen=2000 ).
+
+
+
+% Returns a human-readable string describing specified term, within the
+% specified length.
+%
+% See also term_to_string/3.
+%
+-spec term_to_bounded_string( term(), basic_utils:count() | 'unlimited' ) ->
+									string().
+term_to_bounded_string( Term, _MaxLen=unlimited ) ->
+	Term;
+
+term_to_bounded_string( Term, MaxLen ) ->
+
+	FullString = case set_utils:is_set( Term ) of
+
+		true ->
+			format( "[as set] ~p", [ set_utils:to_list( Term ) ] );
+
+		false ->
+			format( "~p", [ Term ] )
+
+	end,
+
+	% To avoid that gigantic terms saturate the outputs:
+	ellipse( FullString, MaxLen ).
+
+
+
 % Returns a human-readable binary string describing specified term.
 -spec term_to_binary( term() ) -> bin_string().
 term_to_binary( Term ) ->
@@ -296,7 +342,9 @@ term_to_string( Term, MaxDepthCount ) ->
 
 % Returns a human-readable string describing specified term, up to the specified
 % nesting depth, and up to specified string length (at least 3, so that the
-% "..." marker can be inserted.
+% "..." marker can be inserted).
+%
+% See also term_to_bounded_string/{1,2}.
 %
 -spec term_to_string( term(), basic_utils:count(), basic_utils:count() )->
 							string().
@@ -832,6 +880,29 @@ float_to_string( Float ) ->
 	erlang:float_to_list( Float ).
 
 
+% Returns a textual description of the specified (dot-based, not comma-based)
+% float.
+%
+-spec float_to_string( float(), [ float_option() ] ) -> string().
+float_to_string( Float, Options ) ->
+	erlang:float_to_list( Float, Options ).
+
+
+% Returns a textual description of the specified (dot-based, not comma-based)
+% number.
+%
+-spec number_to_string( number() ) -> string().
+number_to_string( I ) when is_integer( I ) ->
+	erlang:integer_to_list( I );
+
+number_to_string( F ) when is_float( F ) ->
+	erlang:float_to_list( F );
+
+number_to_string( Other ) ->
+	throw( { not_a_number, Other } ).
+
+
+
 % Returns an exact rounded textual description of the specified distance,
 % expected to be expressed as a floating-point number of millimeters, which will
 % be first rounded to nearest integer.
@@ -1031,7 +1102,9 @@ format( FormatString, Values ) ->
 				% Useful to obtain the stacktrace of a culprit or to check for
 				% silent errors:
 				%
-				%throw( { badly_formatted, FormatString, Values } )
+				% (note: we are in production mode here)
+				%
+				%throw( { badly_formatted, FormatString, Values } ),
 
 				Msg = io_lib:format( "[error: badly formatted string output] "
 						"Format string was '~p', values were '~p'.",
@@ -1068,7 +1141,9 @@ format( FormatString, Values ) ->
 				% Useful to obtain the stacktrace of a culprit or to check for
 				% silent errors:
 				%
-				%throw( { badly_formatted, FormatString, Values } )
+				% (in development mode here)
+				%
+				throw( { badly_formatted, FormatString, Values } ),
 
 				BaseMsg = io_lib:format(
 							"[error: badly formatted string output] "
@@ -2315,6 +2390,40 @@ trim_trailing_whitespaces( String ) ->
 	re:replace( String, "\\s*$", "", [ unicode, { return, list } ] ).
 
 
+
+% Ellipses (shortens) specified string, so that its total length remains up to
+% the default threshold.
+%
+-spec ellipse( ustring() ) -> ustring().
+ellipse( String ) ->
+	ellipse( String, _DefaultMaxLen=100 ).
+
+
+
+% Ellipses (shortens) specified string, so that its total length remains up to
+% specified threshold.
+%
+-spec ellipse( ustring(), basic_utils:count() | 'unlimited' ) -> ustring().
+ellipse( String, _MaxLen=unlimited ) ->
+	String;
+
+ellipse( String, MaxLen ) ->
+
+	Suffix = " [...]",
+
+	% To avoid countless computations of a constant:
+	SuffixLen = 6,
+
+	case length( String ) of
+
+		L when L > MaxLen ->
+			TargetLen = MaxLen - SuffixLen,
+			string:slice( String, _Start=0, TargetLen ) ++ Suffix;
+
+		_ ->
+			String
+
+	end.
 
 
 

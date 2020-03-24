@@ -378,7 +378,7 @@ run() ->
 
 	UUIDText = "93171810-95a0-4382-ad73",
 
-	"I am a lonesome cowboy whose name is 93171810-95a0-4382-ad73" =
+	LongerText = "I am a lonesome cowboy whose name is 93171810-95a0-4382-ad73" =
 	  text_utils:join( _Sep=" ", [ WesternText, "whose name is", UUIDText ] ),
 
 
@@ -400,6 +400,12 @@ run() ->
 	"bar is baz." = text_utils:split_after_prefix( "Foo", "Foobar is baz." ),
 
 	no_prefix = text_utils:split_after_prefix( "ABC", "Foobar is baz." ),
+
+	"I am a lonesome cowboy" =
+		text_utils:ellipse( WesternText, _FirstMaxLen=22 ),
+
+	"I am a lonesome cowboy [...]" =
+		text_utils:ellipse( LongerText, _SecondMaxLen=28 ),
 
 
 	EscapeString = "I *am* to be \"escaped\", as 'I shall be escaped'",

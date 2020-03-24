@@ -106,6 +106,11 @@ run() ->
 	[ MySecondValue, MyFirstValue ] = map_hashtable:get_all_values(
 										[ ?MySecondKey, ?MyFirstKey ], MyH4 ),
 
+	EmptyTable = map_hashtable:new(),
+
+	{ [ MyFirstValue, MySecondValue ], EmptyTable } =
+		map_hashtable:extract_entries( [ ?MyFirstKey, ?MySecondKey ], MyH4 ),
+
 	% remove_entry can also be used if the specified key is not here, will return
 	% an identical table.
 
