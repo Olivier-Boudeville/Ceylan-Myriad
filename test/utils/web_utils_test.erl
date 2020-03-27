@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Tuesday, June 25, 2019
+% Creation date: Tuesday, June 25, 2019.
 
 
 
@@ -47,5 +47,17 @@ run() ->
 
 	test_facilities:display( "Generating an unordered list:~n~s~n",
 							 [ web_utils:get_unordered_list( ItemList ) ] ),
+
+	TestString = "I'm a \"test\" string & I am more (>) proud of it than <<<.",
+
+	EncodedString = "I&#39;m a &quot;test&quot; string &amp; I am more (&gt;) "
+		"proud of it than &lt;&lt;&lt;.",
+
+	% Check:
+	EncodedString = web_utils:escape_as_html_content( TestString ),
+
+	test_facilities:display( "Escaping for HTML \"~s\", getting: \"~s\" "
+							 "(outer quotes excluded in both cases).",
+							 [ TestString, EncodedString ] ),
 
 	test_facilities:stop().

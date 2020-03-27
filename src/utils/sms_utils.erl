@@ -203,8 +203,7 @@ create_sms( Message, Recipient, SenderDescription, ServiceClass )
 	% number of bytes once encoded in an URL, and the number of bytes once
 	% encoded for SMS. Not sure which rule to apply.
 
-	% case length( text_utils:encode_element_as_url( Message
-	% ) ) of
+	% case length( web_utils:encode_element_as_url( Message ) ) of
 
 	%%	L when L > 160 ->
 	%%		% In bytes, not characters:
@@ -255,20 +254,19 @@ send( #sms{ message=Message, recipient=Recipient,
 
 	{ NewCredits, NewSuccesses } = case Outcome of
 
-				success ->
-					NewC = Credits - get_credit_cost( Provider,
-													  ActualServiceClass ),
-					NewS = Successes + 1,
-					{ NewC, NewS };
+		success ->
+			NewC = Credits - get_credit_cost( Provider, ActualServiceClass ),
+			NewS = Successes + 1,
+			{ NewC, NewS };
 
-				_Failure ->
-					{ Credits, Successes }
+		_Failure ->
+			{ Credits, Successes }
 
 	end,
 
 	{ Outcome, Account#sms_account{ credits=NewCredits,
 									sent_count=SentCount + 1,
-									sent_success_count=NewSuccesses	} }.
+									sent_success_count=NewSuccesses } }.
 
 
 
@@ -301,11 +299,11 @@ send( _Provider=verysms, _ServiceClass=eco, Username, Password, Message,
 				 { 'msg', Message },
 				 { 'origine', SenderDescription } ],
 
-	% For this provider, text_utils:escape/1 must be used instead of
-	% text_utils:encode_as_url/1:
+	% For this provider, web_utils:escape_as_html_content/1 must be used instead
+	% of web_utils:encode_as_url/1:
 	%
 	Request = { EcoURL, _Headers=[], _ContentType=get_mime_type(),
-				_Body=text_utils:escape( FullData ) },
+				_Body=web_utils:escape_as_html_content( FullData ) },
 
 	execute_request( Request, Username, Password, Recipient );
 
@@ -338,11 +336,11 @@ send( _Provider=verysms, _ServiceClass=pro, Username, Password, Message,
 				 { 'origine', "ceylan" },
 				 { 'idSending', "1" } ],
 
-	% For this provider, text_utils:escape/1 must be used instead of
-	% text_utils:encode_as_url/1:
+	% For this provider, web_utils:escape_as_html_content/1 must be used instead
+	% of web_utils:encode_as_url/1:
 	%
 	Request = { ProURL, _Headers=[], _ContentType=get_mime_type(),
-				_Body=text_utils:escape( FullData ) },
+				_Body=web_utils:escape_as_html_content( FullData ) },
 
 	% In pro mode, if no sender description is specified, will be "38200":
 	%% FullData = case SenderDescription of
@@ -474,11 +472,11 @@ get_credits_for( _Account=#sms_account{ provider=verysms, user_name=Username,
 	FullData = [ { 'user', Username },
 				 { 'pass', Password } ],
 
-	% For this provider, text_utils:escape/1 must be used instead of
-	% text_utils:encode_as_url/1:
+	% For this provider, web_utils:escape_as_html_content/1 must be used instead
+	% of web_utils:encode_as_url/1:
 	%
 	Request = { CreditURL, _ReqHeaders=[], _ContentType=get_mime_type(),
-				_ReqBody=text_utils:escape( FullData ) },
+				_ReqBody=web_utils:escape_as_html_content( FullData ) },
 
 	case httpc:request( _Method=post, Request, _HTTPOptions=[], _Options=[] ) of
 

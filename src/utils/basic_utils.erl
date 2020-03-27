@@ -59,6 +59,7 @@
 		  get_execution_target/0,
 		  is_alive/1, is_alive/2,
 		  is_debug_mode_enabled/0,
+		  describe_term/1,
 		  create_uniform_tuple/2,
 		  stop/0, stop/1, stop_on_success/0, stop_on_failure/0,
 		  stop_on_failure/1,
@@ -574,7 +575,7 @@ wait_for( Message, Count, TimeOutDuration, TimeOutFormatString ) ->
 	after TimeOutDuration ->
 
 		io:format( TimeOutFormatString ++ " after ~s",
-				   [ Count, text_utils:duration_to_string( TimeOutDuration ) ] )
+				   [ Count, time_utils:duration_to_string( TimeOutDuration ) ] )
 
 	end.
 
@@ -1343,3 +1344,9 @@ is_debug_mode_enabled() ->
 	false.
 
 -endif. % myriad_debug_mode
+
+
+% Describes specified term in a controlled manner.
+-spec describe_term( term() ) -> text_utils:ustring().
+describe_term( T ) ->
+	text_utils:ellipse( io_lib:format( "~p", [ T ] ) ).

@@ -46,11 +46,35 @@
 
 %} ).
 
+% To comment-out more easily:
+-export([ test_format_error/0 ]).
 
 
 print_title( Title, Level ) ->
 	test_facilities:display( "Title level ~B:~n~s", [ Level,
 		text_utils:generate_title( Title, Level ) ] ).
+
+
+test_format_error() ->
+
+	% To test the error management and interpretation done by
+	% text_utils:format/2:
+
+	test_facilities:display(
+	  "~nTesting 5 mismatching text_utils:format/2 calls:" ),
+
+	% One too few:
+	_ = text_utils:format( "aaaa~sbbbb", [] ),
+
+	% One too many:
+	_ = text_utils:format( "aaaa~sbb~wbb", [ u, v, w ] ),
+
+	% Wrong types:
+	_ = text_utils:format( "~aaaa~sbbbb", [ 1.2 ] ),
+	_ = text_utils:format( "~Baaaa~sbbbb", [ 1.2, "hello" ] ),
+	_ = text_utils:format( "~Baaaa~sbb~sbb", [ 2, self(), "hello" ] ),
+
+	ok.
 
 
 
@@ -127,6 +151,7 @@ run() ->
 	test_facilities:display( "Displaying nested strings: ~s and continuing.",
 		[ text_utils:strings_to_string( Strings ) ] ),
 
+	test_format_error(),
 
 	LongLine = "This is a long line to test the paragraph formatting.",
 
@@ -365,7 +390,7 @@ run() ->
 
 	[ test_facilities:display(
 		" - an integer duration of ~w milliseconds is ~s",
-		[ D, text_utils:duration_to_string( D ) ] ) || D <- Durations ],
+		[ D, time_utils:duration_to_string( D ) ] ) || D <- Durations ],
 
 
 	test_facilities:display( "Testing the upper-casing of first letter:" ),

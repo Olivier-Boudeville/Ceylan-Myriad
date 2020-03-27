@@ -103,7 +103,8 @@
 
 % Duration-related section.
 -export([ get_intertime_duration/2,
-		  duration_to_string/1, duration_to_french_string/1 ]).
+		  duration_to_string/1, duration_to_string/2,
+		  duration_to_french_string/1 ]).
 
 
 % Shall be a bit cheaper:
@@ -888,6 +889,27 @@ get_french_textual_duration( FirstTimestamp, SecondTimestamp ) ->
 
 	% Milliseconds:
 	duration_to_french_string( 1000 * Duration ).
+
+
+
+% Returns an approximate textual description of the specified duration, expected
+% to be expressed, in the specified language, as a number of milliseconds
+% (integer otherwise, if being floating-point, it will be rounded), or as the
+% 'infinity' atom.
+%
+% Ex: for a duration of 150012 ms, returns in English:
+% "2 minutes, 30 seconds and 12 milliseconds".
+%
+% See also: basic_utils:get_textual_duration/2.
+%
+-spec duration_to_string( unit_utils:milliseconds() | float() | 'infinity',
+						  language_utils:human_language() ) -> string().
+duration_to_string( Duration, _Lang=french ) ->
+	duration_to_french_string( Duration );
+
+% Default language is English:
+duration_to_string( Duration, _Lang ) ->
+	duration_to_string( Duration ).
 
 
 

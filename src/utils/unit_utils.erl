@@ -620,7 +620,7 @@ meters_per_second_to_km_per_hour( M ) ->
 
 
 % Converts specified duration, expressed in a user-friendly time (for humans,
-% typically obtained from text_utils:duration_to_string/1) into an integer
+% typically obtained from time_utils:duration_to_string/1) into an integer
 % number of milliseconds.
 %
 % Ex: "1 day, 12 hours, 31 minutes, 9 seconds and 235 milliseconds" translates

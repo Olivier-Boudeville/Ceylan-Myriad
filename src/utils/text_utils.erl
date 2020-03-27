@@ -67,7 +67,6 @@
 		  float_to_string/1, float_to_string/2, number_to_string/1,
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
-		  duration_to_string/1,
 		  format/2, bin_format/2, format/3,
 
 		  format_as_comment/1, format_as_comment/2, format_as_comment/3,
@@ -113,13 +112,9 @@
 -export([ generate_title/2 ]).
 
 
-% HTTP-related operations.
--export([ encode_as_url/1, encode_element_as_url/1, escape/1 ]).
-
-
 
 % Miscellaneous functions.
--export([ generate_text_name_from/1 ]).
+-export([ generate_text_name_from/1, match_types/3 ]).
 
 
 % This module being a bootstrap one, the 'table' pseudo-module is not available
@@ -134,6 +129,10 @@
 % in "hello ~p!":
 %
 -type format_string() :: string().
+
+
+% In a format string (ex: "~n"):
+-type control_sequence() :: string().
 
 
 % Lists of terms corresponding to a format string:
@@ -1059,22 +1058,6 @@ distance_to_short_string( Millimeters ) ->
 
 
 
-% Returns an approximate textual description of the specified duration, expected
-% to be expressed as a number of milliseconds (integer otherwise, if being
-% floating-point, it will be rounded), or as the 'infinity' atom.
-%
-% Ex: for a duration of 150012 ms, returns:
-% "2 minutes, 30 seconds and 12 milliseconds".
-%
-% See also: basic_utils:get_textual_duration/2.
-%
--spec duration_to_string( unit_utils:milliseconds() | float() | 'infinity' ) ->
-								string().
-duration_to_string( Duration ) ->
-	time_utils:duration_to_string( Duration ).
-
-
-
 % Formats specified string as io_lib:format/2 would do, except it returns a
 % flattened version of it and cannot fail (so that for example a badly formatted
 % log cannot crash anymore its emitter process).
@@ -1099,6 +1082,13 @@ format( FormatString, Values ) ->
 
 			_:_ ->
 
+				Msg = io_lib:format( "[error: badly formatted string output] "
+						"Format string was '~p', values were '~s'.~n",
+						[ FormatString, basic_utils:describe_term( Values ) ] ),
+
+				% Not wanting to be extra verbose in this mode:
+				%io:format( Msg ++ "~n", [] ),
+
 				% Useful to obtain the stacktrace of a culprit or to check for
 				% silent errors:
 				%
@@ -1106,14 +1096,7 @@ format( FormatString, Values ) ->
 				%
 				%throw( { badly_formatted, FormatString, Values } ),
 
-				Msg = io_lib:format( "[error: badly formatted string output] "
-						"Format string was '~p', values were '~p'.",
-						[ FormatString, Values ] ),
-
-				% Not wanting to be extra verbose in this mode:
-				%io:format( Msg ++ "~n", [] ),
-
-				Msg
+			   ellipse( Msg, _HighThreshold=2500 )
 
 		end,
 
@@ -1138,74 +1121,135 @@ format( FormatString, Values ) ->
 
 			_:_ ->
 
+				VString = basic_utils:describe_term( Values ),
+
+				Msg = "[error: badly formatted string output] "
+					  ++ case is_string( FormatString ) of
+
+					true ->
+						case is_list( Values ) of
+
+							true ->
+								io_lib:format( "format specified as '~s', "
+									"values as ~s~s", [ FormatString, VString,
+									interpret_faulty_format( FormatString,
+															 Values ) ] );
+
+							false ->
+								io_lib:format(
+								  "values were not specified as a list "
+								  "(i.e. incorrectly as '~s'; format was '~s')",
+								  [ VString, FormatString ] )
+
+						end;
+
+					false ->
+						io_lib:format( "format was not specified as a string "
+							"(i.e. incorrectly as '~p'; values were '~s').",
+							[ FormatString, VString ] )
+
+				end,
+
+				EllipsedMsg = ellipse( Msg ),
+
+				% If wanting to be extra verbose, duplicating message on the
+				% console:
+				%
+				io:format( Msg ++ "~n~n", [] ),
+
 				% Useful to obtain the stacktrace of a culprit or to check for
 				% silent errors:
 				%
 				% (in development mode here)
 				%
-				throw( { badly_formatted, FormatString, Values } ),
+				%throw( { badly_formatted, FormatString, Values } ),
 
-				BaseMsg = io_lib:format(
-							"[error: badly formatted string output] "
-							"Format: '~p', values: '~p'",
-							[ FormatString, Values ] ),
+				EllipsedMsg
 
-				SpecifiedCount = length( Values ),
-
-				Delimited = split( FormatString, _Delimiters=[ $~ ] ),
-
-				%trace_utils:debug_fmt( "Delimited = ~p", [ Delimited ] ),
-
-				% Preferred to split/2, eliminates any '~~':
-				Msg = case Delimited of
-
-					% Not even one control sequence, strange:
-					[ _ ] ->
-						BaseMsg;
-
-					[ _ | Seqs ] ->
-						% We filter out "autonomous" control sequences, i.e. the
-						% ones that do not rely on any value:
-						%
-						VSeqs = [ S || S <- Seqs, requires_value( S ) ],
-
-						% Counting value-based control sequences:
-						BaseMsg ++ case length( VSeqs ) of
-
-							SpecifiedCount ->
-								" (apparently the correct number of values "
-								"has been specified, hence the types may "
-								"not all match)";
-
-							CtrSeqCount ->
-								io_lib:format(
-									 " (expecting ~B values, got ~B)",
-									 [ CtrSeqCount, SpecifiedCount ] )
-
-						end
-
-				end,
-
-				% If wanting to be extra verbose, duplicating message on the
-				% console:
-				%
-				io:format( Msg ++ "~n", [] ),
-
-				Msg
-
-		end,
+	end,
 
 	% Using 'flatten' allows for example to have clearer string outputs in case
-	% of error (at a rather low cost):
+	% of error (at an acceptable cost):
 	%
 	lists:flatten( String ).
 
 
+
+% Interprets a faulty format command, based on respectively a string and a list.
+-spec interpret_faulty_format( format_string(), format_values() ) -> ustring().
+interpret_faulty_format( FormatString, Values ) ->
+
+	ValueCount = length( Values ),
+
+	% The always-existing prefix before the first ~ is of no interest:
+	SplitSeqs = tl( split( FormatString, _Delimiters=[ $~ ] ) ),
+
+	%trace_utils:debug_fmt( "SplitSeqs = ~p.", [ SplitSeqs ] ),
+
+	% Rough (first character only), but sufficient for many cases:
+	Delimited = [ _AsStringWanted=[ hd( FullSeq ) ] || FullSeq <- SplitSeqs ],
+
+	%trace_utils:debug_fmt( "Delimited = ~p", [ Delimited ] ),
+
+	case Delimited of
+
+		% Not even one control sequence, strange:
+		[] ->
+			" (no control sequence detected)";
+
+		Seqs ->
+			% We filter out "autonomous" control sequences, i.e. the ones that
+			% require no specific value:
+			%
+			VSeqs = [ S || S <- Seqs, requires_value( S ) ],
+
+			SeqCount = length( VSeqs ),
+
+			% Counting value-based control sequences:
+			case ValueCount - SeqCount of
+
+				0 ->
+					"; apparently the correct number of values "
+					"has been specified, so the types may not all match: "
+					++ match_types( VSeqs, Values, _Count=1 ) ++ ".";
+
+				% Very common case:
+				1 ->
+					io_lib:format( " (expecting ~B values, got ~B, hence an "
+								   "extra value has been specified)",
+								   [ SeqCount, ValueCount ] );
+
+				TooMany when TooMany > 1 ->
+					io_lib:format( " (expecting ~B values, got ~B, hence ~B "
+						"extra values have been specified)",
+						[ SeqCount, ValueCount, TooMany ] );
+
+				% Very common case:
+				-1 ->
+					io_lib:format( " (expecting ~B values, got ~B, hence an "
+						"additional value ought to have been specified)",
+						[ SeqCount, ValueCount ] );
+
+				TooFew when TooFew < 1 ->
+					io_lib:format( " (expecting ~B values, got ~B, hence ~B "
+						"additional values ought to have been specified)",
+						[ SeqCount, ValueCount, -TooFew ] )
+
+			end
+
+	end.
+
+
+
 % Tells whether specified control sequence (without its ~ prefix) requires a
-% value (ex: ~B) or not (ex: ~n).
+% value (ex: ~B) or not (ex: ~n, ~i).
 %
 requires_value( "n" ++ _ ) ->
 	% ~n does not use a value:
+	false;
+
+% Ignore:
+requires_value( "i" ++ _ ) ->
 	false;
 
 requires_value( _ ) ->
@@ -1214,6 +1258,125 @@ requires_value( _ ) ->
 
 -endif. % exec_target_is_production
 
+
+
+% Compares the types specified through control sequences (typically emanating
+% from a format string) to the types of specified, numbered values (expected to
+% correspond), and detect some mismatches.
+%
+% Fancy sequences not taken into account: X, x, ts, etc.
+%
+% Note: beware to the output error messages comprising ~XXX not be afterwards
+% interpreted as control sequences; we finally gave up including a ~ character
+% in the output sequence, as it has to be escaped a number of times that
+% depended on how many io*:format/* it was to go through (fragile at best).
+%
+-spec match_types( [ control_sequence() ], format_values(),
+					 basic_utils:count() ) -> ustring().
+match_types( _Seqs=[], _Values=[], _Count ) ->
+	"yet no mismatch detected";
+
+% String-like:
+match_types( _Seqs=[ _Seq="s" | Ts ], _Values=[ V | Tv ], Count ) ->
+
+	VType = type_utils:get_type_of( V ),
+
+	VString = basic_utils:describe_term( V ),
+
+	% String-compliant primitive types:
+	CompliantTypes = [ 'boolean', 'atom', 'binary', 'string', '[string]' ],
+
+	case lists:member( VType, CompliantTypes ) of
+
+		true ->
+			%trace_utils:debug_fmt
+			%io:format( "[debug] For value #~B (i.e. '~s'), detected type "
+			%	%"is ~s, which is compliant with the control sequence '~~s'.",
+			%	"is ~s, which is compliant with the control sequence 's'.~n",
+			%	[ Count, VString, VType ] ),
+			match_types( Ts, Tv, Count+1 );
+
+		false ->
+			io_lib:format( "type mismatch for value #~B (i.e. '~s'); got ~s, "
+					"whereas expecting string-like, as the control "
+					% Correct, but commented-out for homogeneity with the other
+					% clauses:
+					% "sequence is ~~~~s)", [ Count, VString, VType ] )
+					"sequence is 's'", [ Count, VString, VType ] )
+
+	end;
+
+
+% Float:
+match_types( _Seqs=[ Seq | Ts ], _Values=[ V | Tv ], Count )
+  when Seq =:= "e" orelse Seq =:= "f" orelse Seq =:= "g" ->
+
+	VType = type_utils:get_type_of( V ),
+
+	VString = basic_utils:describe_term( V ),
+
+	case VType =:= float of
+
+		true ->
+			%trace_utils:debug_fmt
+			%io:format( "[debug] For value #~B (i.e. '~s'), detected type "
+			%	"is ~s, which is compliant with a control sequence "
+			%	%"for floats ('~~~s').", [ Count, VString, VType, Seq ] ),
+			%	"for floats ('~s').~n", [ Count, VString, VType, Seq ] ),
+			match_types( Ts, Tv, Count+1 );
+
+		false ->
+			io_lib:format( "type mismatch for value #~B (i.e. '~s'); got ~s, "
+					"whereas expecting float, as the control "
+					%"sequence is ~~~s)", [ Count, VString, VType, Seq ] )
+					"sequence is '~s'", [ Count, VString, VType, Seq ] )
+
+	end;
+
+
+% Integer:
+match_types( _Seqs=[ Seq | Ts ], _Values=[ V | Tv ], Count )
+  when Seq =:= "B" orelse Seq =:= "#"  orelse Seq =:= "b"->
+
+	VType = type_utils:get_type_of( V ),
+
+	VString = basic_utils:describe_term( V ),
+
+	case VType =:= integer of
+
+		true ->
+			%trace_utils:debug_fmt
+			%io:format( "[debug] For value #~B (i.e. '~s'), detected type "
+			%	"is ~s, which is compliant with the control sequence "
+			%	"for integers ('~s').~n", [ Count, VString, VType, Seq ] ),
+			match_types( Ts, Tv, Count+1 );
+
+		false ->
+			io_lib:format( "type mismatch for value #~B (i.e. '~s'): got ~s, "
+					"whereas expecting integer, as the control "
+					%"sequence is ~~~s)", [ Count, VString, VType, Seq ] )
+					"sequence is '~s'", [ Count, VString, VType, Seq ] )
+
+	end;
+
+
+% Always correct:
+match_types( _Seqs=[ Seq | Ts ], _Values=[ _V | Tv ], Count )
+  when Seq =:= "w" orelse Seq =:= "p" orelse Seq =:= "P" ->
+	match_types( Ts, Tv, Count+1 );
+
+
+% Not recognised:
+match_types( _Seqs=[ Seq | Ts ], _Values=[ V | Tv ], Count ) ->
+
+	VString = basic_utils:describe_term( V ),
+
+	%trace_utils:debug_fmt( "Control sequence '~~~p' (i.e. '~~~w') not "
+	%trace_utils:debug_fmt
+	io:format( "[warning] Control sequence '~p' (i.e. '~w') not "
+		"recognised, accepting value '~s'.~n", [ Seq, Seq, VString ] ),
+
+	match_types( Ts, Tv, Count+1 ).
 
 
 
@@ -1371,6 +1534,12 @@ bin_format( FormatString, Values ) ->
 % Useful to catch silly mistakes involving an extra comma in a format string:
 -spec format( term(), term(), term() ) -> no_return().
 format( A, B, C ) ->
+
+	trace_utils:error_fmt( "Call to non-existing function text_utils:format/3; "
+		"extra comma in format string? Parameters were: ~s",
+		[ strings_to_enumerated_string( [
+				  basic_utils:describe_term( T ) || T <- [ A, B, C ] ] ) ] ),
+
 	throw( { faulty_format_call, { A, B, C } } ).
 
 
@@ -2396,7 +2565,7 @@ trim_trailing_whitespaces( String ) ->
 %
 -spec ellipse( ustring() ) -> ustring().
 ellipse( String ) ->
-	ellipse( String, _DefaultMaxLen=100 ).
+	ellipse( String, _DefaultMaxLen=800 ).
 
 
 
@@ -2798,118 +2967,6 @@ get_title_rendering_for( 9 ) ->
 %
 get_line_of( Character, Length ) ->
 	lists:flatten( [ Character || _X <- lists:seq( 1, Length ) ] ).
-
-
-
-% HTTP-related operations.
-
-
-% About encoding.
-
-% The character "è" (e with a grave accent, hex code: xE8) might be for example
-% either translated as "%C3%A8" or as "%E8". It is apparently the difference
-% between encodeURI(chr) and escape(chr) in Javascript.
-%
-% The most adequate encoding in general seems the first (in which case
-% encode_as_url/1 and encode_element_as_url/1 shall be used), however some
-% webservers seem to insist on having the second (in which case
-% escape/1 and escape_element/1 shall be used).
-%
-% See also: http://www.javascripter.net/faq/accentedcharacters.htm
-
-
-
-% Encodes specified list of {Key,Value} pairs so that it can used into an URL.
-%
-% Full example:
-%
-% inets:start(),
-% httpc:request( post, { "http://localhost:3000/foo", [],
-%  "application/x-www-form-urlencoded",
-%  encode_as_url( [ {"username", "bob"}, {"password", "123456"} ] ) }, [], [] ).
-%
-% Directly inspired from:
-% http://stackoverflow.com/questions/114196/url-encode-in-erlang
-%
--spec encode_as_url( option_list:option_list() ) -> ustring().
-encode_as_url( OptionList ) ->
-   encode_as_url( OptionList, _Acc=[] ).
-
-encode_as_url( _OptionList=[], Acc ) ->
-	Acc;
-
-% First entry:
-encode_as_url( [ { Key, Value } | T ], _Acc=[] ) ->
-	encode_as_url( T, encode_element_as_url( Key ) ++ "="
-				   ++ encode_element_as_url( Value ) );
-
-encode_as_url( [ { Key, Value } | T ], Acc ) ->
-	encode_as_url( T, Acc ++ "&" ++ encode_element_as_url( Key ) ++ "="
-				   ++ encode_element_as_url( Value ) ).
-
-
-% Encodes specified element so that it can be used in an URL.
--spec encode_element_as_url( ustring() ) -> ustring().
-encode_element_as_url( E ) ->
-	% They seem to produce quite similar results in our few test cases:
-	edoc_lib:escape_uri( E ).
-	%encode_uri_rfc3986:encode( E ).
-
-
-
-% Escapes specified list of {Key,Value} pairs so that it can used into some URL.
--spec escape( option_list:option_list() ) -> ustring().
-escape( OptionList ) ->
-	%trace_utils:debug_fmt( "~n~nEscaping '~p'.", [ OptionList ] ),
-	escape( OptionList, _Acc=[] ).
-
-escape( _OptionList=[], Acc ) ->
-	Acc;
-
-% First entry:
-escape( [ { Key, Value } | T ], _Acc=[] ) ->
-	escape( T, escape_key( Key ) ++ "=" ++ escape_value( Value ) );
-
-escape( [ { Key, Value } | T ], Acc ) ->
-	escape( T, Acc ++ "&" ++ escape_key( Key ) ++ "="
-			++ escape_value( Value ) ).
-
-
-
-% Escapes specified element so that it can be used in some URL.
--spec escape_key( option_list:key() ) -> ustring().
-escape_key( Key ) when is_atom( Key ) ->
-	atom_to_string( Key ).
-
-
--spec escape_value( ustring() ) -> ustring().
-escape_value( String ) ->
-	R = lists:flatten( [ escape_char( C ) || C <- String ] ),
-	%io:format( "'~s' became '~s'.~n", [ String, R ] ),
-	R.
-
-
-
-% Escapes specified character.
-%
-% Alphanumerical characters left as are:
-escape_char( C ) when C >= 48 andalso C =< 57 ->
-	% 0..9 kept as is:
-	C;
-
-escape_char( C ) when C >= 65 andalso C =< 90 ->
-	% A..Z kept as is:
-	C;
-
-escape_char( C ) when C >= 97 andalso C =< 122 ->
-	% a..z kept as is:
-	C;
-
-escape_char( C ) ->
-	% Everything else is blindly encoded:
-	io_lib:format( "%~s", [ integer_to_list( C, _HexBase=16 ) ] ).
-
-
 
 
 
