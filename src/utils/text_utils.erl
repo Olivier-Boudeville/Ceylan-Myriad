@@ -699,8 +699,8 @@ binaries_to_sorted_string( ListOfBinaries ) ->
 %
 -spec binaries_to_listed_string( [ binary() ] ) -> ustring().
 binaries_to_listed_string( ListOfBinaries ) ->
-	strings_to_listed_string( [ binary_to_string( B )
-								|| B <- ListOfBinaries ] ).
+	strings_to_listed_string(
+	  [ binary_to_string( B ) || B <- ListOfBinaries ] ).
 
 
 % Returns a string that pretty-prints specified list of atoms, with default
