@@ -118,7 +118,9 @@
 % for example, if T1={{2019,8,26},{17,1,16}} and T2={{2019,8,26},{17,2,5}}, then
 % T1 < T2 ("T1 is before T2") is true.
 %
--export([ get_timestamp/0, is_timestamp/1,
+-export([ get_timestamp/0,
+		  get_epoch_timestamp/0, get_epoch_milliseconds_since_year_0/0,
+		  is_timestamp/1,
 		  get_textual_timestamp/0, get_textual_timestamp/1,
 		  get_french_textual_timestamp/1,
 		  get_time2_textual_timestamp/0, get_time2_textual_timestamp/1,
@@ -127,6 +129,8 @@
 		  timestamp_to_string/1, short_string_to_timestamp/1,
 		  string_to_timestamp/1, dhms_to_string/1,
 		  timestamp_to_seconds/0, timestamp_to_seconds/1,
+		  local_to_universal_time/1, universal_to_local_time/1,
+		  offset_timestamp/2,
 		  get_duration/1, get_duration/2,
 		  get_duration_since/1,
 		  get_textual_duration/2, get_french_textual_duration/2,
@@ -582,9 +586,10 @@ get_intertime_duration( { H1, M1, S1 }, { H2, M2, S2 } ) ->
 % Timestamp-related functions.
 
 
-% Returns a timestamp tuple describing now, i.e. the current time.
+% Returns a timestamp tuple describing now, i.e. the current time, the time zone
+% and Daylight Saving Time correction depending on the underlying OS.
 %
-% Ex: { {Year,Month,Day}, {Hour,Minute,Second} } = time_utils:get_timestamp()
+% Ex: { {Year,Month,Day}, {Hour,Minute,Second} } = get_timestamp()
 % may return { {2007,9,6}, {15,9,14} }.
 %
 -spec get_timestamp() -> timestamp().
@@ -597,6 +602,20 @@ get_timestamp() ->
 	% (see also http://erlang.org/doc/apps/erts/time_correction.html)
 	%
 	erlang:localtime().
+
+
+
+% Returns the timestamp of the (UNIX) Epoch, defined to be 00:00:00 UTC,
+% 1970-01-01.
+%
+-spec get_epoch_timestamp() -> timestamp().
+get_epoch_timestamp() ->
+	{ { 1970, 1, 1 }, { 0, 0, 0 } }.
+
+
+% Returns the number of milliseconds of the Epoch since year 0.
+get_epoch_milliseconds_since_year_0() ->
+	1000 * calendar:datetime_to_gregorian_seconds( get_epoch_timestamp() ).
 
 
 
@@ -816,6 +835,68 @@ timestamp_to_seconds() ->
 	timestamp_to_seconds( get_timestamp() ).
 
 
+
+% Converts specified timestamp expressed in local time (thus with time zone and
+% Daylight Saving Time) into a timestamp expressed in universal time (UTC).
+%
+% Note: designed to never fail, and performs a conversion as reasonably as
+% possible (ex: due to DST, some timestamp in local time shall not exist, like
+% when leaping forward of, say, an hour at spring; on the other way round, at
+% fall, a given local timestamp may exist twice: before and after, when going
+% back of, say, one hour).
+%
+-spec local_to_universal_time( timestamp() ) -> timestamp().
+local_to_universal_time( LocalTimestamp ) ->
+
+	case calendar:local_time_to_universal_time_dst( LocalTimestamp ) of
+
+		% Normal case:
+		[ UTCTimestamp ] ->
+			UTCTimestamp;
+
+		% Here due to DST we went back in time in that period (must be in Fall),
+		% resulting in the same local timestamp to happen twice; we return here
+		% (rather arbitrarily) the later, "newer" timestamp (i.e. the one
+		% obtained once the DST offset has been subtracted; it should be higher
+		% than the one with DST):
+		%
+		% (an average of the two could also have been considered)
+		%
+		[ UTCTimestampStillWithDST, UTCNoDSTTimestamp ] ->
+			trace_utils:warning_fmt( "UTC conversion returning post-DST "
+				"timestamp (~w) rather than the one still with DST (~w).",
+				[ UTCNoDSTTimestamp, UTCTimestampStillWithDST ] ),
+			UTCNoDSTTimestamp;
+
+		% Here this local timestamp never existed (the local time leapt forward,
+		% must be in Spring); we return an approximation thereof (as it is
+		% evaluated forward on time in a DST period, it should be smaller than
+		% if no DST had been applied):
+		%
+		[] ->
+			SixHours = 6 * 3600,
+			LaterLocalTimestamp =
+				offset_timestamp( LocalTimestamp, SixHours ),
+			LaterUTCTimestamp = local_to_universal_time( LaterLocalTimestamp ),
+			Res = offset_timestamp( LaterUTCTimestamp, -SixHours ),
+			trace_utils:error_fmt( "Non-existing local timestamp ~w converted "
+								   "to UTC ~w.", [ LocalTimestamp, Res ] ),
+			Res
+
+	end.
+
+
+
+% Converts specified timestamp expressed in universal time (UTC) into a
+% timestamp expressedin local time (thus with time zone and Daylight Saving
+% Time).
+%
+-spec universal_to_local_time( timestamp() ) -> timestamp().
+universal_to_local_time( UTCTimestamp ) ->
+	calendar:universal_time_to_local_time( UTCTimestamp ).
+
+
+
 % Returns the number of seconds elapsed since year 0 and specified timestamp.
 %
 % Useful for example to define an absolute reference in seconds and then only
@@ -827,8 +908,26 @@ timestamp_to_seconds( Timestamp ) ->
 
 
 
+% Offsets specified timestamp of specified (signed) duration: returns a
+% timestamp translated accordingly.
+%
+-spec offset_timestamp( timestamp(), dhms_duration() | seconds() ) ->
+							  timestamp().
+offset_timestamp( Timestamp, DHMS ) when is_tuple( DHMS ) ->
+	offset_timestamp( Timestamp, dhms_to_seconds( DHMS ) );
+
+offset_timestamp( Timestamp, Duration ) -> % when is_integer( Duration )
+
+	% We cannot exceed the usual bounds (ex: specifying Month=13), as next
+	% calendar function would throw a function_clause; so:
+
+	NewSecs = calendar:datetime_to_gregorian_seconds( Timestamp ) + Duration,
+	calendar:gregorian_seconds_to_datetime( NewSecs ).
+
+
+
 % Returns the (signed) duration in seconds corresponding to the specified time.
--spec get_duration( time_utils:time() ) -> unit_utils:seconds().
+-spec get_duration( time() ) -> unit_utils:seconds().
 get_duration( { Hours, Minutes, Seconds } ) ->
 	( Hours * 60 + Minutes ) * 60 + Seconds.
 
