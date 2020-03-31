@@ -1553,6 +1553,12 @@ list_files_in_subdirs_with_excluded_suffixes( [ H | T ], ExcludedSuffixes,
 		[ directory_name() ], [ string() ] ) -> [ file_name() ].
 find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirList,
 											ExcludedSuffixes ) ->
+
+	%trace_utils:debug_fmt( "find_files_with_excluded_dirs_and_suffixes: from "
+	%	"'~s': RootDir = '~s', ExcludedDirList = ~p, ExcludedSuffixes = ~p",
+	%	[ get_current_directory(), RootDir, ExcludedDirList,
+	%	  ExcludedSuffixes ] ),
+
 	find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirList,
 								ExcludedSuffixes, _IncludeSymlinks=true ).
 

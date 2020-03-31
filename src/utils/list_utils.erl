@@ -407,7 +407,7 @@ get_maybe_index_of( Element, _List=[ Element | _T ], Count  ) ->
 	Count;
 
 get_maybe_index_of( Element, _List=[ _H | T ], Count ) ->
-	get_maybe_index_of( Element, T, Count + 1 ).
+	get_maybe_index_of( Element, T, Count+1 ).
 
 
 
@@ -433,7 +433,7 @@ split_at( _InputList=[], _Count, _MaxLen, AccList ) ->
 
 
 split_at( _List=[ H | T ], Count, MaxLen, Acc ) ->
-	split_at( T, Count + 1, MaxLen, [ H | Acc ] ).
+	split_at( T, Count+1, MaxLen, [ H | Acc ] ).
 
 
 

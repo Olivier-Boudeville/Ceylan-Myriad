@@ -472,11 +472,12 @@ get_credits_for( _Account=#sms_account{ provider=verysms, user_name=Username,
 	FullData = [ { 'user', Username },
 				 { 'pass', Password } ],
 
-	% For this provider, web_utils:escape_as_html_content/1 must be used instead
-	% of web_utils:encode_as_url/1:
-	%
+
 	Request = { CreditURL, _ReqHeaders=[], _ContentType=get_mime_type(),
-				_ReqBody=web_utils:escape_as_html_content( FullData ) },
+				 % For this provider, web_utils:encode_as_url/1 apparently did
+				 % not work, web_utils:escape_as_url/1 shall be used instead:
+				 %
+				_ReqBody=web_utils:escape_as_url( FullData ) },
 
 	case httpc:request( _Method=post, Request, _HTTPOptions=[], _Options=[] ) of
 

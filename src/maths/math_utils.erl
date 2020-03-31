@@ -402,8 +402,8 @@ get_relative_difference( X, Y ) ->
 
 
 
-% Returns true iff the specified floating-point number is deemed close enough to
-% zero to be null.
+% Returns true iff the specified number (floating-point or even integer) is
+% deemed close enough to zero to be null.
 %
 -spec is_null( number() ) -> boolean().
 is_null( X ) ->

@@ -33,6 +33,10 @@
 -module(text_utils).
 
 
+% Note: this a boostrap module, so its build is only to be triggered from the
+% root of Myriad.
+
+
 
 % Note that string:tokens/1 can be used to split strings.
 
@@ -45,7 +49,9 @@
 -export([ term_to_string/1, term_to_string/2, term_to_string/3,
 		  term_to_bounded_string/1, term_to_bounded_string/2,
 		  term_to_binary/1,
-		  integer_to_string/1, atom_to_string/1, pid_to_string/1,
+		  integer_to_string/1, atom_to_string/1,
+		  pid_to_string/1, pids_to_string/1,
+		  pid_to_short_string/1, pids_to_short_string/1,
 		  record_to_string/1,
 		  strings_to_string/1, strings_to_sorted_string/1,
 		  strings_to_string/2, strings_to_sorted_string/2,
@@ -401,40 +407,86 @@ atom_to_string( Atom ) ->
 % Returns a plain string corresponding to the specified PID.
 -spec pid_to_string( pid() ) -> string().
 pid_to_string( Pid ) ->
+	io_lib:format( "~w", [ Pid ] ).
 
-	% PID are akin to <X.Y.Z>.
 
+% Returns a plain string corresponding to the specified list of PIDs
+-spec pids_to_string( [ pid() ] ) -> string().
+pids_to_string( PidList ) ->
+	io_lib:format( "~w", [ PidList ] ).
+
+
+% Returns a short, plain string corresponding to the specified PID.
+%
+% For example, <0.33.0> returned as "|33|" (half size).
+%
+-spec pid_to_short_string( pid() ) -> string().
+pid_to_short_string( Pid ) ->
+	% Could be used: list_utils:flatten_one/1:
+	%[ $< | pid_to_core_string( Pid ) ] ++ ">".
+	[ $| | pid_to_core_string( Pid ) ] ++ "|".
+
+
+% Returns a short, plain string corresponding to the specified PIDs:
+%
+% For example, [<0.33.0>,<0.35.0>] returned as "|33,35|" (7 characters instead
+% of 19, almost one-third).
+%
+-spec pids_to_short_string( [ pid() ] ) -> string().
+pids_to_short_string( PidList ) ->
+	% Could be used: list_utils:flatten_one/1:
+
+	% Preferring an extra character, as better allowing to break longer lines:
+	%Sep = ",",
+	Sep = ", ",
+
+	[ $| | join( Sep, [ pid_to_core_string( P ) || P <- PidList ] ) ] ++ "|".
+
+
+
+% (helper, to be shared)
+pid_to_core_string( Pid ) ->
+
+	% A PID is akin to <X.Y.Z>.
+
+	% Needed otherwise returans ["<0.78.0>"], not "<0.78.0>":
 	PidAsText = lists:flatten( io_lib:format( "~w", [ Pid ] ) ),
 
-	%io:format( "PID: ~w.~n", [ self() ] ) ,
-	% Ex: ["<0","33","0>"]:
+	%trace_utils:debug_fmt( "PidAsText = '~p'.", [ PidAsText ] ),
+
 	[ $< | Rest ] = PidAsText,
 
-	% Returns "X.Y.Z":
-	list_utils:remove_last_element( Rest ).
+	% PidCore is thus "X.Y.Z":
+	PidCore = list_utils:remove_last_element( Rest ),
 
-	% Automatic truncating if defaults currently deactivated:
-	% ActualFirst = case First of
+	%trace_utils:debug_fmt( "PidCore = '~w'.", [ PidCore ] ),
 
-	%		"0" ->
-	%			[];
+	% Ex: ["0","33","0"]:
+	[ First, Second, Third ] = split( PidCore, [ _Sep=$. ] ),
 
-	%		_ ->
-	%			First ++ "."
+	% Automatic truncating if defaults:
+	ActualFirst = case First of
 
-	% end,
+		"0" ->
+			[];
 
-	% ActualThird = case Third of
+		_ ->
+			First ++ "."
 
-	%		"0" ->
-	%			[];
+	 end,
 
-	%		_ ->
-	%			"." ++ Third
+	 ActualThird = case Third of
 
-	% end,
+		"0" ->
+			[];
 
-	% ActualFirst ++ Second ++ ActualThird.
+		_ ->
+			"." ++ Third
+
+	end,
+
+	% Ex: "33", "1.33", or "1.33.2":
+	ActualFirst ++ Second ++ ActualThird.
 
 
 

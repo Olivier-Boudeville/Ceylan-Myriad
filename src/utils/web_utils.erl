@@ -48,7 +48,7 @@
 
 
 % HTML-related section:
--export([ get_unordered_list/1,
+-export([ get_ordered_list/1, get_unordered_list/1,
 		  escape_as_html_content/1, escape_term_as_html_content/1 ]).
 
 
@@ -87,6 +87,8 @@
 % Directly inspired from:
 % http://stackoverflow.com/questions/114196/url-encode-in-erlang
 %
+% See also escape_as_url/1 for some more specific uses.
+%
 -spec encode_as_url( option_list:option_list() ) -> ustring().
 encode_as_url( OptionList ) ->
    encode_as_url( OptionList, _Acc=[] ).
@@ -114,6 +116,10 @@ encode_element_as_url( E ) ->
 
 
 % Escapes specified list of {Key,Value} pairs so that it can used into some URL.
+%
+% Note: apparently useful only for quite specific websites; encode_as_url/1
+% should be preferred in most cases.
+%
 -spec escape_as_url( option_list:option_list() ) -> ustring().
 escape_as_url( OptionList ) ->
 	%trace_utils:debug_fmt( "~n~nEscaping '~p'.", [ OptionList ] ),
@@ -167,6 +173,19 @@ escape_char( C ) ->
 
 
 
+% Returns the HTML code of an ordered (numbered bullets) list corresponding to
+% specified list of elements.
+%
+-spec get_ordered_list( [ html_element() ] ) -> html_element().
+get_ordered_list( Elements ) ->
+
+	HTMLElems = [ text_utils:format( "    <li>~s</li>~n", [ E ] )
+				  || E <- Elements ],
+
+	text_utils:format( "  <ol>~n~s  </ol>~n", [ lists:flatten( HTMLElems ) ] ).
+
+
+
 % Returns the HTML code of an unordered list corresponding to specified list of
 % elements.
 %
@@ -177,6 +196,7 @@ get_unordered_list( Elements ) ->
 				  || E <- Elements ],
 
 	text_utils:format( "  <ul>~n~s  </ul>~n", [ lists:flatten( HTMLElems ) ] ).
+
 
 
 % Escapes specified text, so that it can be included safely as an HTML content.

@@ -61,7 +61,7 @@ test_format_error() ->
 	% text_utils:format/2:
 
 	test_facilities:display(
-	  "~nTesting 5 mismatching text_utils:format/2 calls:" ),
+	  "~nTesting on purpose 5 mismatching text_utils:format/2 calls:" ),
 
 	% One too few:
 	_ = text_utils:format( "aaaa~sbbbb", [] ),
@@ -106,8 +106,21 @@ run() ->
 	test_facilities:display( "Converting an atom to a string: ~s.",
 		[ text_utils:atom_to_string( 'hello world' ) ] ),
 
+
 	test_facilities:display( "Converting a PID to a string: '~s'.",
-		[ text_utils:pid_to_string( self() ) ] ),
+							 [ text_utils:pid_to_string( self() ) ] ),
+
+	test_facilities:display( "Converting a PID to a short string: '~s'.",
+							 [ text_utils:pid_to_short_string( self() ) ] ),
+
+
+	PidList = [ self(), self(), self() ],
+
+	test_facilities:display( "Converting PIDs to a string: '~s'.",
+							 [ text_utils:pids_to_string( PidList ) ] ),
+
+	test_facilities:display( "Converting PIDs to a short string: '~s'.",
+							 [ text_utils:pids_to_short_string( PidList ) ] ),
 
 
 	%MyTestRecord = #my_test_record{},

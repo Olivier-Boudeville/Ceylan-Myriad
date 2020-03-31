@@ -94,6 +94,7 @@
 (setq erlang-electric-commands '(erlang-electric-comma
 								 erlang-electric-g))
 
+ (add-hook 'text-mode-hook 'turn-on-auto-fill)
 (require 'erlang-start)
 
 
@@ -136,7 +137,9 @@
 
 (add-hook 'erlang-mode-hook 'my-erlang-mode-hook)
 
-(defun my-erlang-mode-hook () )
+;; Allows to have Emacs automatically insert newlines to word-wrap:
+;; (see https://www.emacswiki.org/emacs/AutoFillMode)
+(defun my-erlang-mode-hook () (turn-on-auto-fill) )
 
 (message "<<<<<<######### init.el version 1.0 #########>>>>>>")
 
