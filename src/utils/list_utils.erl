@@ -61,7 +61,8 @@
 		  has_duplicates/1, count_occurrences/1, get_duplicates/1,
 		  union/2, intersection/2, difference/2, cartesian_product/1,
 		  subtract_all_duplicates/2, delete_existing/2, delete_if_existing/2,
-		  delete_all_in/2, append_at_end/2, is_list_of_integers/1,
+		  delete_all_in/2, append_at_end/2,
+		  is_list_of_integers/1, is_list_of_pids/1,
 		  unordered_compare/2, flatten_once/1, filter_out_undefined/1 ]).
 
 
@@ -742,6 +743,19 @@ is_list_of_integers( [ H | T ] ) when is_integer( H ) ->
 	is_list_of_integers( T );
 
 is_list_of_integers( _ ) ->
+	false.
+
+
+
+% Returns whether the specified list contains only PIDs.
+-spec is_list_of_pids( term() ) -> boolean().
+is_list_of_pids( [] ) ->
+	true;
+
+is_list_of_pids( [ H | T ] ) when is_pid( H ) ->
+	is_list_of_pids( T );
+
+is_list_of_pids( _ ) ->
 	false.
 
 

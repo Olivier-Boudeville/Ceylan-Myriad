@@ -272,10 +272,10 @@ report_error( { Context, Error } ) ->
 							   [ HeaderPath ] );
 
 		String when is_list( String ) ->
-			text_utils:format( "~s", [ String ] );
+			text_utils:format( "~s (raw error string reported)", [ String ] );
 
 		Other ->
-			text_utils:format( "~p", [ Other ] )
+			text_utils:format( "~p (raw error reported)", [ Other ] )
 
 	end,
 

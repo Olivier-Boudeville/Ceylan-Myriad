@@ -139,6 +139,11 @@ run() ->
 	false  = list_utils:is_list_of_integers( [ 1, 2, 3.0 ] ),
 	false  = list_utils:is_list_of_integers( a ),
 
+	true  = list_utils:is_list_of_pids( [ self(), self() ] ),
+	true  = list_utils:is_list_of_pids( [] ),
+
+	false  = list_utils:is_list_of_pids( [ self(), 2 ] ),
+
 
 	true = list_utils:unordered_compare( [], [] ),
 	true = list_utils:unordered_compare( [a,b], [a,b] ),

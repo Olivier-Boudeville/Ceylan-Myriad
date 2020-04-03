@@ -35,7 +35,6 @@
 
 
 
-
 % Section for the searching and checking of executables:
 -export([ lookup_executable/1, find_executable/1 ]).
 
@@ -134,11 +133,15 @@
 -type command_line_value() :: text_utils:ustring().
 
 
-% The association between an option and the various values associated to its
-% instances.
+% The association between a command-line option and the various values
+% associated to its instances.
 %
 % Ex: if arguments were "--color blue red [...] --color yellow", then the
 % corresponding argument is { '-color', [ [ "blue", "red" ]; [ "yellow" ] ] }.
+%
+% Note that keys are atoms (with one leading dash removed), and it is advisable
+% to use only the executable_utils module support rather than mixing and
+% matching it with the one of the 'init' module (different keys).
 %
 -type command_line_argument() ::
 		{ command_line_option(), [ command_line_value() ] }.
@@ -162,6 +165,7 @@
 
 % Command-line argument section:
 -export([ get_argument_table/0, get_argument_table/1, generate_argument_table/1,
+		  get_command_argument/1,
 		  extract_command_argument/1, extract_command_argument/2,
 		  argument_table_to_string/1 ]).
 
@@ -295,8 +299,8 @@ generate_png_from_graph_file( PNGFilename, GraphFilename,
 -spec display_png_file( file_utils:path() ) -> void().
 display_png_file( PNGFilename ) ->
 	% Viewer output is ignored:
-	system_utils:run_background_executable( get_default_image_viewer_path()
-											 ++ " " ++ PNGFilename  ).
+	system_utils:run_background_executable(
+	  get_default_image_viewer_path() ++ " " ++ PNGFilename  ).
 
 
 
@@ -309,8 +313,8 @@ display_png_file( PNGFilename ) ->
 %
 -spec browse_images_in( file_utils:path() ) -> void().
 browse_images_in( DirectoryName ) ->
-	system_utils:run_background_executable( get_default_image_browser_path()
-											++ " " ++ DirectoryName ).
+	system_utils:run_background_executable(
+	  get_default_image_browser_path() ++ " " ++ DirectoryName ).
 
 
 
@@ -323,8 +327,8 @@ browse_images_in( DirectoryName ) ->
 %
 -spec display_pdf_file( file_utils:path() ) -> void().
 display_pdf_file( PDFFilename ) ->
-	system_utils:run_background_executable( get_default_pdf_viewer_path()
-											 ++ " " ++ PDFFilename ).
+	system_utils:run_background_executable(
+	  get_default_pdf_viewer_path() ++ " " ++ PDFFilename ).
 
 
 
@@ -806,8 +810,8 @@ get_default_jinterface_path() ->
 	case file_utils:is_existing_directory_or_link( JInterfaceBase ) of
 
 		true ->
-			JInterfaceJar = file_utils:join( [ JInterfaceBase, "priv",
-											   "OtpErlang.jar" ] ),
+			JInterfaceJar = file_utils:join(
+							  [ JInterfaceBase, "priv", "OtpErlang.jar" ] ),
 
 			case file_utils:is_existing_file( JInterfaceJar ) of
 
@@ -821,10 +825,8 @@ get_default_jinterface_path() ->
 
 		false ->
 			trace_utils:error_fmt( "The JInterface base path (~s) does not "
-								   "exist; conventionally this is a symbolic "
-								   "link pointing to, typically, "
-								   "'lib/jinterface-x.y/'.",
-								   [ JInterfaceBase ] ),
+				"exist; conventionally this is a symbolic link pointing to, "
+				"typically, 'lib/jinterface-x.y/'.", [ JInterfaceBase ] ),
 			throw( { jinterface_base_path_not_found, JInterfaceBase } )
 
 	end.
@@ -842,7 +844,8 @@ get_default_jinterface_path() ->
 %
 % - only the arguments specified on the command-line after the '-extra' marker
 % will be taken into account; ex:
-%        make ui_run CMD_LINE_OPT="-extra --use-ui-backend text_ui"
+%        make ui_run CMD_LINE_OPT="-a -extra -b --use-ui-backend text_ui"
+% (here "-a" will be ignored)
 %
 % - to be called in the context of a standard erl execution (as opposed to
 % an escript one)
@@ -891,14 +894,35 @@ generate_argument_table( ArgString ) ->
 
 
 
+% Returns the various associated values (if any; otherwise returns 'undefined')
+% associated to the specified option.
+%
+% Note: generally the extract_command_argument/{1,2} function are more relevant
+% to use.
+%
+-spec get_command_argument( command_line_option() ) ->
+								  maybe( [ command_line_value() ] ).
+get_command_argument( Option ) ->
 
-% Extracts specified option, i.e. its various associated values (if any), from
-% the arguments specified to this executable.
+	ArgumentTable = get_argument_table(),
+
+	list_table:get_value_with_defaults( _K=Option, _DefaultValue=undefined,
+										ArgumentTable ).
+
+
+
+% Extracts specified option, i.e. its various associated values (if any;
+% otherwise returns 'undefined'), from the arguments specified to this
+% executable.
 %
 % Returns a pair made of these values and of the shrunk argument table.
 %
+% Note: a value set to 'undefined' means that the specified option is not in the
+% specified table, whereas a value set to an empty list means that this option
+% is in the table, yet that no parameter has been specified for it.
+%
 -spec extract_command_argument( command_line_option() ) ->
-			  { [ command_line_value() ], argument_table() }.
+		  { maybe( [ command_line_value() ] ), argument_table() }.
 extract_command_argument( Option ) ->
 
 	ArgumentTable = get_argument_table(),
@@ -907,16 +931,20 @@ extract_command_argument( Option ) ->
 
 
 
-% Extracts specified option, i.e. its various associated values (if any), from
-% the specified argument table.
+% Extracts specified option, i.e. its various associated values (if any;
+% otherwise returns 'undefined'), from the specified argument table.
 %
 % Returns a pair made of these values and of the shrunk argument table.
 %
+% Note: a value set to 'undefined' means that the specified option is not in the
+% specified table, whereas a value set to an empty list means that this option
+% is in the table, yet that no parameter has been specified for it.
+%
 -spec extract_command_argument( command_line_option(), argument_table() ) ->
-			  { [ command_line_value() ], argument_table() }.
+			  { maybe( [ command_line_value() ] ), argument_table() }.
 extract_command_argument( Option, ArgumentTable ) ->
-	list_table:extract_entry_with_defaults( _K=Option, _DefaultValue=[],
-										 ArgumentTable ).
+	list_table:extract_entry_with_defaults( _K=Option, _DefaultValue=undefined,
+											ArgumentTable ).
 
 
 
@@ -937,14 +965,13 @@ argument_table_to_string( ArgTable ) ->
 					text_utils:format( "option '-~s'", [ Option ] );
 
 				_ ->
-					text_utils:format( "option '-~s', with argument lists: ~p",
+					text_utils:format( "option '-~s', with argument list: ~p",
 									   [ Option, ArgumentLists ] )
 
 						   end || { Option, ArgumentLists } <- ArgPairs ],
 
 			text_utils:format( "~B command-line option(s) specified "
-							   "(listed alphabetically): ~s",
-							   [ length( ArgPairs ),
+				"(listed alphabetically): ~s", [ length( ArgPairs ),
 						 text_utils:strings_to_sorted_string( ArgStrings ) ] )
 
 	end.

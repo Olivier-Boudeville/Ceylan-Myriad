@@ -532,7 +532,11 @@ transform_pattern( E, Transforms )
 				%ast_utils:display_warning( "Letting unhandled pattern ~p as "
 				%  "is.", [ E ] ),
 				% E.
-				ast_utils:raise_error( [ unexpected_pattern, E ] )
+				ast_utils:display_error( "Illegal pattern found at line #~p "
+					"(not supported by the current version of the "
+					"Erlang syntax).~n",
+					[ element( 2, E ) ] ),
+				ast_utils:raise_error( [ unexpected_pattern_to_transform, E ] )
 
 	end.
 

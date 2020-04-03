@@ -104,7 +104,9 @@
 		  remove_whitespaces/1,
 
 		  trim_whitespaces/1, trim_leading_whitespaces/1,
-		  trim_trailing_whitespaces/1, ellipse/1, ellipse/2,
+		  trim_trailing_whitespaces/1,
+
+		  ellipse/1, ellipse/2,
 
 		  get_default_bullet/0, get_bullet_for_level/1,
 		  format_text_for_width/2,

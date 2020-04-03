@@ -517,7 +517,8 @@ remove_extension( Filename ) ->
 			Filename;
 
 		[ Basename | Extensions ] ->
-			text_utils:join( $., [ Basename | list_utils:remove_last_element( Extensions ) ] )
+			text_utils:join( $.,
+				[ Basename | list_utils:remove_last_element( Extensions ) ] )
 
 	end.
 

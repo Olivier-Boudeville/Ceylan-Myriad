@@ -33,8 +33,8 @@
 			  generate-list-of-erlang-types generate-list-of-local-types       \
 			  generate-local-plt self-check-against-plt write-debug-key-file   \
 			  check check-hook help-erl                                        \
-			  clean clean-erlang clean-python clean-database clean-recurse     \
-			  clean-outputs clean-ast-debug real-clean track                   \
+			  clean clean-erlang clean-layer-ebin clean-python clean-database  \
+			  clean-recurse clean-outputs clean-ast-debug real-clean track     \
 			  info info-files info-meta info-erlang info-python info-java
 
 
@@ -220,7 +220,7 @@ $(MYRIAD_TOP)/src/data-management/map_hashtable.beam: $(MYRIAD_TOP)/src/data-man
 
 
 test: all test-recurse
-	@for t in $(TEST_TARGETS); do if ! $(MAKE) -s $$(echo $$t|sed 's|_test$$|_run|1') CMD_LINE_OPT="${CMD_LINE_OPT} --batch"; then echo "Test failed." 1>&2 ; exit 1; fi ; done
+	@for t in $(TEST_TARGETS); do if ! $(MAKE) -s $$(echo $$t|sed 's|_test$$|_run|1') CMD_LINE_OPT="${CMD_LINE_OPT} --batch"; then echo "Test failed." 1>&2 ; exit 1; else echo ; fi ; done
 
 
 test-recurse:
@@ -866,6 +866,13 @@ clean: clean-erlang clean-python clean-java clean-database clean-override \
 clean-erlang:
 	@echo "   Cleaning all in "$(PWD) #$$(basename $(PWD))
 	-@/bin/rm -f *.beam *.jam erl_crash.dump erlang.log.*
+	@$(MAKE) -s clean-layer-ebin
+
+
+# Otherwise older BEAM files may linger and cause hard to debug errors:
+clean-layer-ebin:
+	@echo "   Cleaning $(PROJECT_NAME) top ebin directory"
+	-@/bin/rm -f $(LAYER_TOP)/ebin/*.beam
 
 
 # We can have a Python binding:

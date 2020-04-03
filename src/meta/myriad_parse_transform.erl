@@ -220,6 +220,8 @@ apply_myriad_transform( InputAST, Options ) ->
 	%ast_utils:write_ast_to_file( lists:sort( InputAST ),
 	%							 "Myriad-input-AST-sorted.txt" ),
 
+	%ast_utils:display_debug( "Code path: ~p", [ code:get_path() ] ),
+
 	BaseModuleInfo = ast_info:extract_module_info_from_ast( InputAST ),
 
 	WithOptsModuleInfo = ast_info:interpret_options( Options, BaseModuleInfo ),
