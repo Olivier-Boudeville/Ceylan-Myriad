@@ -670,7 +670,7 @@ map_on_entries( Fun, MapHashtable ) ->
 % keys.
 %
 -spec map_on_values( fun( ( value() ) -> value() ), map_hashtable() ) ->
-						 map_hashtable().
+						   map_hashtable().
 map_on_values( Fun, MapHashtable ) ->
 
 	% Still not maps:map/2, whose fun takes an entry, not just a value:
@@ -683,7 +683,7 @@ map_on_values( Fun, MapHashtable ) ->
 
 
 % Folds specified anonymous function on all key/value pairs of the specified
-% map hashtable, based on specified initial accumulator..
+% map hashtable, based on specified initial accumulator.
 %
 % The order of transformation for entries is not specified.
 %
@@ -708,16 +708,16 @@ fold( Fun, InitialAcc, Table ) ->
 % fold/3 may be preferred (being more efficient) to this version.
 %
 -spec fold_on_entries( fun( ( entry(), basic_utils:accumulator() ) ->
-								basic_utils:accumulator() ),
-					 basic_utils:accumulator(),
-					 map_hashtable() ) -> basic_utils:accumulator().
+								  basic_utils:accumulator() ),
+					   basic_utils:accumulator(),
+					   map_hashtable() ) -> basic_utils:accumulator().
 fold_on_entries( Fun, InitialAcc, MapHashtable ) ->
 
 	% Not exactly as maps:fold/3: we want f( { K, V }, Acc ), not
 	% f( K, V, Acc ).
 
 	ConversionFun = fun( K, V, Acc ) ->
-							Fun( { K, V }, Acc )
+						Fun( { K, V }, Acc )
 					end,
 
 	maps:fold( ConversionFun, InitialAcc, MapHashtable ).
