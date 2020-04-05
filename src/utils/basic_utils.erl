@@ -63,7 +63,7 @@
 		  create_uniform_tuple/2,
 		  stop/0, stop/1, stop_on_success/0, stop_on_failure/0,
 		  stop_on_failure/1,
-		  identity/1, ignore_unused/1,
+		  identity/1, check_undefined/1, ignore_unused/1,
 		  freeze/0, crash/0, enter_infinite_loop/0,
 		  trigger_oom/0 ]).
 
@@ -361,6 +361,17 @@ stop_on_failure( StatusCode ) ->
 -spec identity( term() ) -> term().
 identity( Term ) ->
 	Term.
+
+
+
+% Checks that specified term is 'undefined':
+-spec check_undefined( term() ) -> void().
+check_undefined( undefined ) ->
+	ok;
+
+check_undefined( Term ) ->
+	throw( { not_undefined, Term } ).
+
 
 
 
@@ -911,7 +922,7 @@ display_process_info( Pid ) when is_pid( Pid ) ->
 
 				PropList ->
 					Strings = [ io_lib:format( "~s: ~p", [ K, V ] )
-							   || { K, V } <- PropList ],
+								|| { K, V } <- PropList ],
 					io:format( "PID ~w refers to a local live process, "
 							   "whose information are: ~s",
 							   [ Pid,
