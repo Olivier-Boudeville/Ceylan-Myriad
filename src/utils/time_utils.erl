@@ -163,6 +163,7 @@
 
 % Shorthands:
 
+-type ustring() :: text_utils:ustring().
 -type seconds() :: unit_utils:seconds().
 
 
@@ -642,7 +643,7 @@ is_timestamp( _Other ) ->
 % Note that the display order here is YY-MM-DD (same as when specifying the
 % timestamp), as opposed to DD-MM-YY, which is maybe more usual.
 %
--spec get_textual_timestamp() -> text_utils:ustring().
+-spec get_textual_timestamp() -> ustring().
 get_textual_timestamp() ->
 	get_textual_timestamp( get_timestamp() ).
 
@@ -650,7 +651,7 @@ get_textual_timestamp() ->
 % Returns a string corresponding to the specified timestamp, like:
 % "2009/9/1 11:46:53".
 %
--spec get_textual_timestamp( timestamp() ) -> text_utils:ustring().
+-spec get_textual_timestamp( timestamp() ) -> ustring().
 get_textual_timestamp( { { Year, Month, Day }, { Hour, Minute, Second } } ) ->
 	io_lib:format( "~B/~B/~B ~B:~2..0B:~2..0B",
 				   [ Year, Month, Day, Hour, Minute, Second ] ).
@@ -659,7 +660,7 @@ get_textual_timestamp( { { Year, Month, Day }, { Hour, Minute, Second } } ) ->
 % Returns a string corresponding to the specified timestamp expressed in French,
 % like: "le 1/9/2009, à 11h46m53".
 %
--spec get_french_textual_timestamp( timestamp() ) -> text_utils:ustring().
+-spec get_french_textual_timestamp( timestamp() ) -> ustring().
 get_french_textual_timestamp( { { Year, Month, Day },
 								{ Hour, Minute, Second } } ) ->
 
@@ -697,7 +698,7 @@ get_french_textual_timestamp( { { Year, Month, Day },
 % https://awstats.sourceforge.io/docs/awstats_config.html#LogFormat and
 % https://awstats.sourceforge.io/docs/awstats_faq.html#PERSONALIZEDLOG).
 %
--spec get_time2_textual_timestamp() -> text_utils:ustring().
+-spec get_time2_textual_timestamp() -> ustring().
 get_time2_textual_timestamp() ->
 	get_time2_textual_timestamp( get_timestamp() ).
 
@@ -711,7 +712,7 @@ get_time2_textual_timestamp() ->
 % https://awstats.sourceforge.io/docs/awstats_config.html#LogFormat and
 % https://awstats.sourceforge.io/docs/awstats_faq.html#PERSONALIZEDLOG).
 %
--spec get_time2_textual_timestamp( timestamp() ) -> text_utils:ustring().
+-spec get_time2_textual_timestamp( timestamp() ) -> ustring().
 get_time2_textual_timestamp( { { Year, Month, Day },
 							   { Hour, Minute, Second } } ) ->
 	io_lib:format( "~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B",
@@ -818,7 +819,7 @@ string_to_timestamp( TimestampString ) ->
 
 
 % Returns a textual description of specified DHMS-based duration.
--spec dhms_to_string( dhms_duration() ) -> text_utils:ustring().
+-spec dhms_to_string( dhms_duration() ) -> ustring().
 dhms_to_string( DHMS ) ->
 	duration_to_string( 1000 * dhms_to_seconds( DHMS ) ).
 
