@@ -79,13 +79,13 @@
 
 %_exec: %_app.beam %.beam
 	@echo "		Executing application $^ (first form)"
-	$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
 
 
 %_exec: %_app.beam
 	@echo "		Executing application $^ (second form)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
-
+	@#echo $(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
 
 
 # To run in the background (somewhat like a daemon):
@@ -97,12 +97,12 @@
 
 %_exec_background: %_app.beam %.beam
 	@echo "		Executing application $^ in the background (first form)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_background$$||1')-$$USER --background --eval $$(echo $@|sed 's|_exec_background$$|_app:exec()|1') $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT) &
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_background$$||1')-$$USER --background --eval $$(echo $@|sed 's|_exec_background$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS) &
 
 
 %_exec_background: %_app.beam
 	@echo "		Executing application $^ in the background (second form)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_background$$||1')-$$USER --background --eval $$(echo $@|sed 's|_exec_background$$|_app:exec()|1') $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT) &
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_background$$||1')-$$USER --background --eval $$(echo $@|sed 's|_exec_background$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS) &
 
 
 # The two sets of rules below are functional, yet they use very different
@@ -121,12 +121,12 @@
 
 %_exec_service: %_app.beam %.beam
 	@echo "		Executing application $^ as a service (first form)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_exec_service$$||1') --daemon --eval $$(echo $@|sed 's|_exec_service$$|_app:exec()|1') $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_exec_service$$||1') --daemon --eval $$(echo $@|sed 's|_exec_service$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
 
 
 %_exec_service: %_app.beam
 	@echo "		Executing application $^ as a service (second form)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_exec_service$$||1') --daemon --eval $$(echo $@|sed 's|_exec_service$$|_app:exec()|1') $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_exec_service$$||1') --daemon --eval $$(echo $@|sed 's|_exec_service$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
 
 
 
@@ -145,12 +145,12 @@
 #
 %_exec_service_debug: %_app.beam %.beam
 	@echo "		Executing application $^ as a debugged service (first form)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_exec_service_debug$$||1') --eval $$(echo $@|sed 's|_exec_service_debug$$|_app:exec()|1') $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_exec_service_debug$$||1') --eval $$(echo $@|sed 's|_exec_service_debug$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
 
 
 %_exec_service_debug: %_app.beam
 	@echo "		Executing application $^ as a debugged service (second form)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_exec_service_debug$$||1') --eval $$(echo $@|sed 's|_exec_service_debug$$|_app:exec()|1') $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_exec_service_debug$$||1') --eval $$(echo $@|sed 's|_exec_service_debug$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
 
 
 
@@ -179,13 +179,13 @@
 %_interactive_test: %.beam %_interactive_test.beam
 	@echo "		Executing interactively test function "
 	"$(STARTUP_FUNCTION) in module $@"
-	@$(ERLANG_INTERPRETER) $(ERLANG_INTERPRETER_OPT) -run $@ $(STARTUP_FUNCTION) $(EXEC_INTERNAL_OPTIONS)
+	@$(ERLANG_INTERPRETER) $(ERLANG_INTERPRETER_OPT) -run $@ $(STARTUP_FUNCTION) $(ALL_CMD_LINE_OPTIONS)
 
 
 %_batch_test: %.beam %_batch_test.beam
 	@echo "		Executing non-interactively test function "
 	"$(STARTUP_FUNCTION) in module $@"
-	@$(ERLANG_INTERPRETER) $(ERLANG_INTERPRETER_OPT) -run $@ $(STARTUP_FUNCTION) $(EXEC_INTERNAL_OPTIONS)
+	@$(ERLANG_INTERPRETER) $(ERLANG_INTERPRETER_OPT) -run $@ $(STARTUP_FUNCTION) $(ALL_CMD_LINE_OPTIONS)
 
 
 
@@ -195,7 +195,7 @@
 %_integration_run: %_integration_test.beam %_integration_dependencies
 	@echo "		Running integration test $@ from $^ "
 	"with $(ERL_PARAMETERIZED_LAUNCHER)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(ALL_CMD_LINE_OPTIONS)
 
 
 
@@ -206,12 +206,12 @@
 
 %_cluster_run: %_test.beam %.beam
 	@echo "		Executing test $^ for the cluster (first form)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_cluster_run$$|_run|1')-$$USER --non-interactive --eval $$(echo $@|sed 's|_cluster_run$$|_test:run()|1') $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_cluster_run$$|_run|1')-$$USER --non-interactive --eval $$(echo $@|sed 's|_cluster_run$$|_test:run()|1') $(ALL_CMD_LINE_OPTIONS)
 
 
 %_cluster_run: %_test.beam
 	@echo "		Executing test $^ for the cluster (second form)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_cluster_run$$|_run|1')-$$USER --non-interactive --eval $$(echo $@|sed 's|_cluster_run$$|_test:run()|1') $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_cluster_run$$|_run|1')-$$USER --non-interactive --eval $$(echo $@|sed 's|_cluster_run$$|_test:run()|1') $(ALL_CMD_LINE_OPTIONS)
 
 
 
@@ -221,26 +221,28 @@
 
 %_run: %_test %_test_dependencies
 	@echo "		Running unitary test $@ (first form) from $^, with $(ERL_PARAMETERIZED_LAUNCHER)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(ALL_CMD_LINE_OPTIONS)
 
 
 %_run: %_test %.beam
 	@echo "		Running unitary test $@ (second form) from $^"
-	@#$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	@#$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(ALL_CMD_LINE_OPTIONS)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(ALL_CMD_LINE_OPTIONS)
 
 
 # Again and again one will remove the '@' to inspect the actual command-line:
 %_run: %_test
 	@echo "		Running unitary test $@ (third form) from $^"
-	@#$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	@#$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(ALL_CMD_LINE_OPTIONS)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(ALL_CMD_LINE_OPTIONS)
 
 
+
+# Not wanting here the options for standard executions (such as -noinput or alike):
 %_shell: %_test
 	@echo "		Launching a shell for test $@ from $^"
 	@echo "  (one may then enter: '$<:run().' to execute the test)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER  $(INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER $(INTERNAL_OPTIONS) -extra $(CMD_LINE_OPT)
 
 
 %.plt: %.beam

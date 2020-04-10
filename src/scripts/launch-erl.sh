@@ -302,6 +302,18 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ] ; do
 		token_eaten=0
 	fi
 
+	# Rather than catching options here and putting them back just to avoid the
+	# 'unknown argument' warning, consider inserting them after the
+	# '-start-verbatim-options' marker and before the '-extra' one (see
+	# ALL_CMD_LINE_OPTIONS for that).
+
+	# So this form is not recommended:
+	#if [ "$1" = "-XXX" ] ; then
+	#	verbatim_opt="${verbatim_opt} $1"
+	#	token_eaten=0
+	#fi
+
+
 	# Ignore options that have to be interpreted by the program itself:
 	if [ "$1" = "-start-verbatim-options" ] ; then
 		# We stop the parsing and add all remaining options remaining:
@@ -314,11 +326,6 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ] ; do
 
 		#echo "verbatim_opt = ${verbatim_opt}"
 
-		token_eaten=0
-	fi
-
-	if [ "$1" = "--batch" ] ; then
-		verbatim_opt="${verbatim_opt} $1"
 		token_eaten=0
 	fi
 
@@ -388,7 +395,6 @@ if [ $use_run_erl -eq 0 ] ; then
 		echo "  Error, read pipe (${read_pipe}) resisted deletion." 1>&2
 		exit 55
 	fi
-
 
 fi
 

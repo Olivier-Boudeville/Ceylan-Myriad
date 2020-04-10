@@ -1,4 +1,4 @@
-% Copyright (C) 2014-2020 Olivier Boudeville
+% Copyright (C) 2018-2020 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -36,6 +36,10 @@
 
 % Implementation notes:
 %
+% A large part of this module consists of stubs, i.e. on placeholder definitions
+% of the pseudo-functions (such as cond_utils:if_debug/1) meant to be replaced
+% at compile time by user-specified conditional code.
+%
 % About tokens
 %
 % There are to be specified as command-line build options, typically thanks to
@@ -50,7 +54,7 @@
 % and this option list would contain, among other elements:
 %         {d,my_test_token},
 %         {d,my_other_test_token,51}
-
+%
 % (the atom 'd' must mean 'define' in this compilation context)
 %
 % Then, in addition to the standard macros such as:
@@ -65,9 +69,10 @@
 %
 % the parse transform is also able to take into account these information.
 %
-% Tokens cannot be specified directly in the sources, like shown below, as such
-% a definition would not be appear per se in the AST, and thus the corresponding
-% tokens would not be known:
+% Tokens cannot be specified directly in the sources, like shown below, since
+% such a definition would not appear per se in the AST (it would result only in
+% macro actual substitutions), and thus the corresponding tokens would not be
+% known:
 %
 %-define( my_test_token, 200 ).
 %-define( my_other_test_token, some_text ).
@@ -143,17 +148,19 @@
 								  token_table().
 get_token_table_from( OptionTable ) ->
 
+	EmptyTable = ?table:new(),
+
 	% The 'd' compile option must correspond to the compilation defines:
 	case ?table:lookup_entry( _K='d', OptionTable ) of
 
 		% Ex: L=[my_test_token,{my_other_test_token,51}]
 		{ value, L } ->
 			% Returns a filled table:
-			register_tokens( L, ?table:new() );
+			register_tokens( L, EmptyTable );
 
 		key_not_found ->
-			%  Empty table then, no token available:
-			?table:new()
+			% Empty table then, no token available:
+			EmptyTable
 
 	end.
 
@@ -247,8 +254,8 @@ if_debug( Expressions ) ->
 % expressions are dismissed as a whole, which may lead variables only mentioned
 % in said expressions to be reported as unused.
 %
-% For example: 'A=1, cond_utils:if_defined( non_existing_token, [ A=1, ... ] )'
-% will report that variable 'A' is unused.
+% For example: 'A=1, cond_utils:if_defined(non_defined_token, [ A=1,...])' will
+% report that variable 'A' is unused.
 %
 -spec if_defined( token(), expressions() ) -> void().
 if_defined( Token, _Expressions ) ->

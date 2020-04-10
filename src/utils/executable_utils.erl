@@ -148,8 +148,9 @@
 
 
 
-% A table storing command-line user arguments conveniently (a bit like getopt),
-% in a format in the spirit of init:get_arguments/0.
+% A table storing command-line user (plain, i.e arguments specified after either
+% "--" or, perferably, "-extra) conveniently (a bit like getopt), in a format in
+% the spirit of init:get_arguments/0.
 %
 % Useful to manage arguments more easily, and also to handle uniformly the
 % arguments specified for erl-based executions and escript ones alike.
@@ -847,8 +848,8 @@ get_default_jinterface_path() ->
 %        make ui_run CMD_LINE_OPT="-a -extra -b --use-ui-backend text_ui"
 % (here "-a" will be ignored)
 %
-% - to be called in the context of a standard erl execution (as opposed to
-% an escript one)
+% - this function is to be called in the context of a standard erl execution (as
+% opposed to an escript one, which shall use get_argument_table/1)
 %
 -spec get_argument_table() -> argument_table().
 get_argument_table() ->
@@ -860,7 +861,8 @@ get_argument_table() ->
 	%Args = init:get_arguments(),
 	Args = init:get_plain_arguments(),
 
-	%trace_utils:debug_fmt( "Arguments obtained: ~p.", [ Args ] ),
+	%trace_utils:debug_fmt( "Arguments obtained by get_argument_table/0: ~p.",
+	%					   [ Args ] ),
 
 	% To convert a list of strings into per-option list of values:
 	get_argument_table( Args ).
@@ -871,7 +873,8 @@ get_argument_table() ->
 % arguments supplied to this escript.
 %
 % Note: to be called in the context of an escript (as opposed to a standard erl
-% execution), specifying the argument list that its main/1 function received.
+% execution, which shall use get_argument_table/0), specifying the argument list
+% that its main/1 function received.
 %
 -spec get_argument_table( [ string() ] ) -> argument_table().
 get_argument_table( ArgStrings ) ->
@@ -987,7 +990,8 @@ argument_table_to_string( ArgTable ) ->
 % meaning it might trigger graphical displays).
 %
 % The most prioritary setting is if the "--batch" command line argument has been
-% set.
+% specified, provided it has been set as a plain argument, i.e. one that it is
+% specified *after* either "--" or, preferably, "-extra".
 %
 % Otherwise, the application configuration will be read (typically set from any
 % conf/sys.config file defined by the application).
@@ -1001,14 +1005,24 @@ argument_table_to_string( ArgTable ) ->
 -spec is_batch() -> boolean().
 is_batch() ->
 
-	% Corresponds to the --batch command-line option:
-	case init:get_argument( '-batch' ) of
+	% Corresponds to the '--batch' command-line option (a *plain* argument,
+	% hence expected to be after a -extra command-line switch):
+	%
+	case get_command_argument( '-batch' ) of
 
-		{ ok, _ } ->
+		% Normal case if set on the command-line:
+		[] ->
 			%trace_utils:debug( "Batch mode activated through command line." ),
 			true;
 
-		_ ->
+		L when is_list( L ) ->
+			trace_utils:error_fmt( "The '--batch' option does not imply any "
+				"associated value, whereas the following was specified: '~p'.",
+				[ L ] ),
+			throw( { unexpected_batch_options, L } );
+
+		% Normal case if not set on the command-line:
+		undefined ->
 			case application:get_env( is_batch ) of
 
 				{ ok, true } ->

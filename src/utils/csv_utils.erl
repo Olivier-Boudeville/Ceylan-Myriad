@@ -168,8 +168,12 @@
 
 		   % For CSV files that shall be filtered before use (ex: with some rows
 		   % obeying different rules):
-		   %
+
+		   % If the number of fields to expect in known a priori:
 		   interpret_file/3,
+
+		   % If the number of fields to expect in not known a priori:
+		   interpret_file/2,
 
 		   write_file/2, write_file/3,
 
@@ -233,8 +237,8 @@ read_file( FilePath, Separator ) when is_integer( Separator ) ->
 
 
 
-% Interprets specified file; based on specified separator and number of fields
-% per row, returns{ MixedContent, MatchCount, UnmatchCount, DropCount }, i.e.:
+% Interprets specified file, based on specified separator and number of fields
+% per row; returns { MixedContent, MatchCount, UnmatchCount, DropCount }, i.e.:
 %
 % - a list (respecting the in-file order) whose elements are either a list of
 % the specified number of fields, or a pair whose first element is the
@@ -280,12 +284,72 @@ interpret_file( FilePath, Separator, ExpectedFieldCount )
 
 	%trace_utils:debug_fmt( "Read mixed content (matching count: ~B, "
 	%        "unmatching count: ~B, drop count: ~B):~n ~p",
-	%        [ MixedContent, MatchCount, UnmatchingCount, DropCount ] ),
+	%        [ MatchCount, UnmatchingCount, DropCount, MixedContent ] ),
 
 	file_utils:close( File ),
 
 	Res.
 
+
+
+% Interprets specified file, based on specified separator, with no prior
+% knowledge about the number of fields per row; returns { FieldCount,
+% MixedContent, MatchCount, UnmatchCount, DropCount }, i.e.:
+%
+% - the number of fields in each row, based on the first one
+%
+% - a list (respecting the in-file order) whose elements are either a list of
+% the specified number of fields, or a pair whose first element is the
+% 'non_matching' atom, and whose second element is a list whose elements were
+% obtained based on the same separator - yet in a different number than the
+% expected one
+%
+% - the number of rows that match the row spec (i.e. the specified number of
+% fields), based on specified separator
+%
+% - the number of rows that do not match said constraints
+%
+% - the number of rows that were dropped (typically because they were either
+% empty or containing a comment
+%
+-spec interpret_file( file_utils:any_file_path(), separator() ) ->
+		{ field_count(), mixed_content(), row_count(), row_count(), row_count() }.
+interpret_file( FilePath, Separator ) when is_integer( Separator ) ->
+
+	case file_utils:is_existing_file_or_link( FilePath ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { csv_file_not_found, FilePath,
+					 file_utils:get_current_directory() } )
+
+	end,
+
+	%trace_utils:debug_fmt( "Opening '~s' with options ~w.",
+	%					  [ FilePath, ?read_options ] ),
+
+	File = file_utils:open( FilePath, ?read_options ),
+
+	% Refer to the note in file_utils:open/2 for explanation:
+	system_utils:force_unicode_support(),
+
+	{ FirstRow, FieldCount, GuessDropCount } =
+		guess_field_count( File, Separator, _InitialDropCount=0 ),
+
+	% Branch to the helper with a correct initial state:
+	{ MixedContent, MatchCount, UnmatchingCount, DropCount } = interpret_rows(
+		_Device=File, Separator, FieldCount, _MatchCount=1, _UnmatchCount=0,
+		GuessDropCount, _Acc=[ FirstRow ] ),
+
+	%trace_utils:debug_fmt( "Read mixed content with detected field count ~B "
+	%	"(matching count: ~B, unmatching count: ~B, drop count: ~B):~n ~p",
+	%	[ FieldCount, MatchCount, UnmatchingCount, DropCount, MixedContent ] ),
+
+	file_utils:close( File ),
+
+	{ FieldCount, MixedContent, MatchCount, UnmatchingCount, DropCount }.
 
 
 
@@ -320,8 +384,8 @@ read_rows( Device, Separator, RowCount, FieldCount, Acc ) ->
 
 				{ Values, ThisFieldCount } ->
 
-					trace_utils:debug_fmt( "For line '~s', ~B field(s) found.",
-										   [ Line, ThisFieldCount ] ),
+					%trace_utils:debug_fmt( "For line '~s', ~B field(s) found.",
+					%					   [ Line, ThisFieldCount ] ),
 
 					NewFieldCount = case FieldCount of
 
@@ -355,6 +419,38 @@ read_rows( Device, Separator, RowCount, FieldCount, Acc ) ->
 
 	end.
 
+
+
+% Guesses the number of fields per row, and returns also the first read line so
+% that the rest of the file can be read in the same movement.
+%
+% (helper)
+%
+-spec guess_field_count( file_utils:file(), separator(), row_count() ) ->
+							   { row(), field_count(), row_count() }.
+guess_field_count( Device, Separator, DropCount ) ->
+
+	case io:get_line( Device, _Prompt="" ) of
+
+		eof ->
+			% Nothing can be determined in this case:
+			throw( empty_csv_file );
+
+		{ error, Error } ->
+			throw( { read_error, Error } );
+
+		Line ->
+			case parse_row( Line, Separator ) of
+
+				dropped ->
+					guess_field_count( Device, Separator, DropCount+1 );
+
+				{ Values, FieldCount } ->
+					{ Values, FieldCount, DropCount }
+
+			end
+
+	end.
 
 
 
@@ -415,7 +511,6 @@ interpret_rows( Device, Separator, ExpectedFieldCount, MatchCount, UnmatchCount,
 			end
 
 	end.
-
 
 
 

@@ -334,8 +334,9 @@ get_last_element( _List=[ _H | T ] ) ->
 	get_last_element( T ).
 
 
-% Extracts the last element of the specified list, returning a pair made of that
-% element and of the remainder of the list (in its original order).
+
+% Extracts the last element of the specified (non-empty) list, returning a pair
+% made of that element and of the remainder of the list (in its original order).
 %
 % Note: not computationnally efficient, usually having to retrieve the last
 % element suggests a bad code design.

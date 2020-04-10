@@ -1891,7 +1891,7 @@ try_string_to_integer( String ) ->
 %
 -spec try_string_to_integer( ustring(), 2..36 ) ->
 								   basic_utils:maybe( integer() ).
-try_string_to_integer( String, Base ) ->
+try_string_to_integer( String, Base ) when is_list( String ) ->
 	try list_to_integer( String, Base ) of
 
 		I ->
@@ -1902,7 +1902,10 @@ try_string_to_integer( String, Base ) ->
 		error:badarg ->
 			undefined
 
-	end.
+	end;
+
+try_string_to_integer( Other, _Base ) ->
+	throw( { not_a_string, Other } ).
 
 
 
@@ -1932,7 +1935,7 @@ string_to_float( String ) ->
 % Returns the 'undefined' atom if the conversion failed.
 %
 -spec try_string_to_float( ustring() ) -> basic_utils:maybe( float() ).
-try_string_to_float( String ) ->
+try_string_to_float( String ) when is_list( String ) ->
 
 	% Erlang is very picky (too much?) when interpreting floats-as-a-string: if
 	% there is an exponent, it shall be 'e' (preferably that 'E' which is
@@ -2005,8 +2008,11 @@ try_string_to_float( String ) ->
 
 			end
 
-	end.
+	end;
 
+% An error (not 'undefined'):
+try_string_to_float( Other ) ->
+	throw( { not_a_string, Other } ).
 
 
 

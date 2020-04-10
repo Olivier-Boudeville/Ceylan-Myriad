@@ -49,12 +49,29 @@ run() ->
 
 	Separator=$;,
 
+	FieldCount = 5,
+
+	% Let's suppose first that we want to interpret the content of that file and
+	% we do not know a priori the field count:
+	%
+	case csv_utils:interpret_file( CSVFilename, Separator ) of
+
+		{ FieldCount, MixedContent, MatchCount=5, _UnmatchCount=0, _DropCount=7 } ->
+			MatchCount = length( MixedContent ),
+			test_facilities:display( "Interpreted mixed content: ~p",
+									 [ MixedContent ] );
+
+		Other ->
+			throw( { incorrect_interpretation, Other } )
+
+	end,
+
 	{ Content, RowCount, FieldCount } =
 		csv_utils:read_file( CSVFilename, Separator ),
 
 	test_facilities:display( "Read ~B rows, each with ~B fields, "
-		"corresponding to a ~s.", [ RowCount, FieldCount,
-							   csv_utils:content_to_string( Content ) ] ),
+		"corresponding to a ~s",
+		[ RowCount, FieldCount, csv_utils:content_to_string( Content ) ] ),
 
 	NewCSVFilename = "example-written.csv",
 
