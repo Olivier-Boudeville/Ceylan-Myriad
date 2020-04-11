@@ -406,6 +406,9 @@ start_random_source( time_based_seed ) ->
 	% Each run will result in different random series (erlang:now/0 was
 	% previously used):
 	%
+	% (refer to:
+	% http://erlang.org/doc/apps/erts/time_correction.html#Erlang_System_Time)
+	%
 	{ A, B, C } = { erlang:monotonic_time(), erlang:unique_integer(),
 					erlang:time_offset() },
 
