@@ -76,6 +76,18 @@
 				  unit_utils:canonical_second() }.
 
 
+% Also known as Gregorian milliseconds:
+-type ms_since_year_0() :: unit_utils:milliseconds().
+
+% POSIX conventions:
+-type ms_since_epoch() :: unit_utils:milliseconds().
+
+% The internal, duration-friendly monotonic time:
+-type ms_monotonic() :: unit_utils:milliseconds().
+
+-type ms_duration() :: unit_utils:milliseconds().
+
+
 % Day/Hour/Minute/Second duration, for example used with MTTF (not necessarily
 % in a canonical form, for example more than 24 hours or 60 minutes can be
 % specified):
@@ -84,7 +96,10 @@
 						   unit_utils:minutes(), unit_utils:seconds() }.
 
 
--export_type([ day_index/0, week_day/0, date/0, time/0, dhms_duration/0 ]).
+-export_type([ day_index/0, week_day/0, date/0, time/0,
+			   ms_since_year_0/0, ms_since_epoch/0, ms_monotonic/0,
+			   ms_duration/0,
+			   dhms_duration/0 ]).
 
 
 % Basics:
@@ -111,6 +126,10 @@
 -compile( { inline, [ get_timestamp/0 ] } ).
 
 
+% Direct time-related section.
+
+-export([ get_monotonic_time/0, get_system_time/0 ]).
+
 
 % Timestamp-related section.
 %
@@ -127,6 +146,7 @@
 		  get_textual_timestamp_for_path/0, get_textual_timestamp_for_path/1,
 		  get_textual_timestamp_with_dashes/1,
 		  timestamp_to_string/1, short_string_to_timestamp/1,
+		  gregorian_ms_to_timestamp/1,
 		  string_to_timestamp/1, dhms_to_string/1,
 		  timestamp_to_seconds/0, timestamp_to_seconds/1,
 		  local_to_universal_time/1, universal_to_local_time/1,
@@ -580,11 +600,47 @@ get_intertime_duration( { H1, M1, S1 }, { H2, M2, S2 } ) ->
 
 
 
+% Direct time-related section.
+
+
+% Returns the current time, expressed in (absolute) internal time (logically
+% equivalent to a millisecond-based timestamp).
+%
+% This is a "cheap" yet monotonic (never going backward) time, thus used
+% internally, mostly useful to determine durations.
+%
+% Note: due to the VM time offset, this is probably a (large) negative number
+% (of milliseconds), and this is not a problem.
+%
+-spec get_monotonic_time() -> ms_monotonic().
+get_monotonic_time() ->
+
+	% Often the native precision is one nanosecond:
+	% erlang:convert_time_unit(1, second, native) = 1 000 000 000
+
+	% The starting point of that time does not matter here (used just to compute
+	% durations):
+	%
+	erlang:monotonic_time( millisecond ).
+
+
+
+% Returns the (VM) system time (i.e. monotonic + time offset), in milliseconds
+% since the Epoch.
+%
+-spec get_system_time() -> ms_since_epoch().
+get_system_time() ->
+	erlang:system_time( millisecond ).
+
+
+
 
 % Timestamp section.
 
 
+
 % Timestamp-related functions.
+
 
 
 % Returns a timestamp tuple describing now, i.e. the current time, the time zone
@@ -786,6 +842,19 @@ short_string_to_timestamp( TimestampString ) ->
 			throw( { timestamp_parsing_failed, TimestampString } )
 
 	end.
+
+
+
+% Converts (with a bit of approximation) the specified number of Gregorian
+% milliseconds into a proper, user-level (local, system) timestamp.
+%
+-spec gregorian_ms_to_timestamp( ms_since_year_0() ) -> timestamp().
+gregorian_ms_to_timestamp( GregorianMs ) ->
+
+	GregorianSecs = round( GregorianMs / 1000 ),
+
+	calendar:universal_time_to_local_time(
+	  calendar:gregorian_seconds_to_datetime( GregorianSecs ) ).
 
 
 
