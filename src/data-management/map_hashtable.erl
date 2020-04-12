@@ -1149,7 +1149,7 @@ to_string( MapHashtable, Bullet ) when is_list( Bullet ) ->
 		L ->
 
 			% Enforces a consistent order:
-			Strings = [ io_lib:format( "~p: ~p", [ K, V ] )
+			Strings = [ text_utils:format_ellipsed( "~p: ~p", [ K, V ] )
 						|| { K, V } <- lists:sort( L ) ],
 
 			% Flatten is needed, in order to use the result with ~s:
