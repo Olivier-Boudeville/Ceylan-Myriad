@@ -1257,8 +1257,8 @@ get_process_specific_value( Min, Max ) ->
 
 
 
-% Returns the execution target this module was compiled with, i.e. either the
-% atom 'development' or 'production'.
+% Returns the execution target this module (hence, probably, that layer as a
+% whole) was compiled with, i.e. either the atom 'development' or 'production'.
 
 % Dispatched in actual clauses, otherwise Dialyzer will detect an
 % underspecification:
