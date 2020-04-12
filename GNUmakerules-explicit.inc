@@ -313,6 +313,7 @@ install-bin:
 
 
 install-ebin:
+	@echo "  Installing BEAM files in $(EBIN_INSTALLATION_PREFIX)"
 	@if [ -n "$(BEAMS_TO_INSTALL)" ] ; then \
 	mkdir -p $(EBIN_INSTALLATION_PREFIX) ; \
 	/bin/cp -L $(BEAMS_TO_INSTALL) $(EBIN_INSTALLATION_PREFIX) ; fi
@@ -608,7 +609,7 @@ rebar3-populate-build-tree:
 
 # We generate a .app file and place it both in the OTP build tree (by default:
 # _build/lib/...) and in an ebin directory directly at the GIT root, as it is
-# expected when having specifyied a GIT dependency with rebar, such as: {myriad,
+# expected when having specified a GIT dependency with rebar, such as: {myriad,
 # {git, "git://github.com/Olivier-Boudeville/Ceylan-Myriad"} }
 #
 # For modules, remove paths, extension, replace newlines with commas, and remove
