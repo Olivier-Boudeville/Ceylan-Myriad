@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2020 Olivier Boudeville
+% Copyright (C) 2008-2020 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -2919,6 +2919,9 @@ get_default_encoding_option() ->
 % Will attempt to open the specified file only once, as looping endlessly does
 % not seem a viable solution right now (risk of exhausting the descriptors,
 % making the VM fail for example when loading a new BEAM).
+%
+% As soon as a file is opened for writing, a corresponding empty file appears in
+% the filesystem.
 %
 % Note:
 %
