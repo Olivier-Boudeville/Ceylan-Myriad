@@ -74,10 +74,9 @@
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
 		  format/2, bin_format/2, format/3,
-
+		  format_ellipsed/2, format_ellipsed/3,
 		  format_as_comment/1, format_as_comment/2, format_as_comment/3,
 		  format_as_comment/4,
-
 		  ensure_string/1, ensure_binary/1 ]).
 
 
@@ -210,11 +209,19 @@
 -type translation_table() :: ?table:?table( any_string(), any_string() ).
 
 
+% The length of a string, typically in terms of number of characters:
+-type length() :: pos_integer().
+
+
 % A width, typically in terms of number of characters:
 -type width() :: pos_integer().
 
+
 % The level of indentation (starts at zero, and the higher, the most nested).
 -type indentation_level() :: basic_utils:level().
+
+% A (nesting) depth, typically to keep track of indentation levels:
+-type depth() :: pos_integer().
 
 
 % A bullet, to denote the elements of a list.
@@ -240,7 +247,8 @@
 			   regex_string/0, title/0, label/0,
 			   bin_string/0, any_string/0, unicode_string/0, uchar/0, ustring/0,
 			   string_like/0,
-			   translation_table/0, width/0, indentation_level/0, distance/0 ]).
+			   translation_table/0, length/0, width/0, indentation_level/0,
+			   distance/0 ]).
 
 
 
@@ -295,8 +303,7 @@ term_to_bounded_string( Term ) ->
 %
 % See also term_to_string/3.
 %
--spec term_to_bounded_string( term(), basic_utils:count() | 'unlimited' ) ->
-									string().
+-spec term_to_bounded_string( term(), length() | 'unlimited' ) -> string().
 term_to_bounded_string( Term, _MaxLen=unlimited ) ->
 	Term;
 
@@ -328,7 +335,7 @@ term_to_binary( Term ) ->
 % Returns a human-readable string describing specified term, up to the specified
 % nesting depth.
 %
--spec term_to_string( term(), basic_utils:count() ) -> string().
+-spec term_to_string( term(), depth() ) -> string().
 term_to_string( _Term=[], _MaxDepthCount ) ->
 	% Otherwise would be an empty string:
 	"[]";
@@ -353,8 +360,7 @@ term_to_string( Term, MaxDepthCount ) ->
 %
 % See also term_to_bounded_string/{1,2}.
 %
--spec term_to_string( term(), basic_utils:count(), basic_utils:count() )->
-							string().
+-spec term_to_string( term(), depth(), basic_utils:count() )-> string().
 term_to_string( _Term=[], _MaxDepthCount, _MaxLength ) ->
 	% Otherwise would be an empty string:
 	"[]";
@@ -1228,6 +1234,8 @@ format( FormatString, Values ) ->
 	lists:flatten( String ).
 
 
+% (beware, still within an -ifdef...)
+
 
 % Interprets a faulty format command, based on respectively a string and a list.
 -spec interpret_faulty_format( format_string(), format_values() ) -> ustring().
@@ -1311,6 +1319,39 @@ requires_value( _ ) ->
 
 
 -endif. % exec_target_is_production
+
+
+
+
+% Formats specified string as io_lib:format/2 would do, except it returns a
+% flattened, ellipsed version of it and cannot fail (so that for example a badly
+% formatted log cannot crash anymore its emitter process).
+%
+% Tries to never crash.
+%
+% Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected
+% Unicode inputs resulting on crashes afterwards.
+%
+%-spec format_ellipsed( format_string(), format_values() ) -> ustring().
+format_ellipsed( FormatString, Values ) ->
+	ellipse( format( FormatString, Values ), _MaxLen=400 ).
+
+
+
+% Formats specified string as io_lib:format/2 would do, except it returns a
+% flattened, ellipsed (based on specified length) version of it, and cannot fail
+% (so that for example a badly formatted log cannot crash anymore its emitter
+% process).
+%
+% Tries to never crash.
+%
+% Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected
+% Unicode inputs resulting on crashes afterwards.
+%
+-spec format_ellipsed( format_string(), format_values(), length() ) ->
+							 ustring().
+format_ellipsed( FormatString, Values, MaxLen ) ->
+	ellipse( format( FormatString, Values ), MaxLen ).
 
 
 
@@ -2632,7 +2673,7 @@ ellipse( String ) ->
 % Ellipses (shortens) specified string, so that its total length remains up to
 % specified threshold.
 %
--spec ellipse( ustring(), basic_utils:count() | 'unlimited' ) -> ustring().
+-spec ellipse( ustring(), length() | 'unlimited' ) -> ustring().
 ellipse( String, _MaxLen=unlimited ) ->
 	String;
 
