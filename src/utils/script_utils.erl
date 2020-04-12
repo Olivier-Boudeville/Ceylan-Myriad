@@ -78,7 +78,7 @@ is_running_as_escript() ->
 
 			% Typically {badmatch,[]} from escript.erl:
 			catch error:_Error ->
-					false
+				false
 
 	end.
 
@@ -112,7 +112,7 @@ update_code_path_for_myriad() ->
 						  "user-interface/src/graphical", "utils" ],
 
 	MyriadBeamDirs = [ filename:join( MyriadSrcDir, D )
-					   || D <- MyriadBeamSubDirs ],
+						   || D <- MyriadBeamSubDirs ],
 
 	%trace_utils:debug_fmt( "'Myriad' beam dirs: ~p.", [ MyriadBeamDirs ] ),
 
@@ -232,83 +232,22 @@ get_myriad_base_directory() ->
 	filename:join( [ get_script_base_directory(), "..", ".." ] ).
 
 
-
-
-% Returns the specified arguments (simply a list of the corresponding strings,
-% typically obtained by the main/1 function of an escript) in the same
-% "canonical" form, similar to the one used by init:get_arguments/1 (not
-% available for escripts), for which options start with a start, may have any
-% number of arguments, and may be specified more than once in the command-line.
+% Returns the specified command-line arguments (simply transmitted as a list of
+% the corresponding strings, typically as directly obtained through the main/1
+% function of an escript) once transformed into our "canonical", more convenient
+% form, which is the same as the one used by
+% executable_utils:get_argument_table/0 and is itself similar to the one used by
+% Erlang for its user/system flags (i.e. for all its non-plain options).
+%
+% In this form, which by default is not available for escripts, options start
+% with a dash, may have any number of arguments, and may be specified more than
+% once in the command-line.
 %
 % Note: switches to the Unicode encoding (ex: use "~tp" then).
 %
 % Allows to write code that can be seamlessly triggered by a erl interpreter or
-% by an escript, by putting them in the latter case in this "canonical" form.
+% by an escript, by putting them in the latter case in our "canonical" form.
 %
 -spec get_arguments( [ string() ] ) -> executable_utils:argument_table().
 get_arguments( Args ) ->
-
-	% Useful side-effect, difficult to troubleshoot:
-	system_utils:force_unicode_support(),
-
-	get_arguments( Args, _OptionTable=list_table:new() ).
-
-
-% (helper)
-get_arguments( _Args=[], OptionTable ) ->
-	OptionTable;
-
-% The first option is detected, removing its initial dash:
-get_arguments( _Args=[ [ $- | Option ] | T ], OptionTable ) ->
-	manage_option( Option, _RemainingArgs=T, OptionTable );
-
-% Here an initial argument does not start with a dash, hence is dropped, like
-% done by init:get_arguments/0:
-%
-get_arguments( _Args=[ Dropped | T ], OptionTable ) ->
-
-	trace_utils:warning_fmt( "Dropping non-option initial argument '~s'.",
-							 [ Dropped ] ),
-
-	get_arguments( T, OptionTable ).
-
-
-
-% (helper)
-manage_option( Option, RemainingArgs, OptionTable ) ->
-
-	OptionAtom = text_utils:string_to_atom( Option ),
-
-	{ OptValues, NextOptionInfo } = collect_values_for_option( RemainingArgs,
-															_AccValues=[] ),
-
-	% This option may already be registered in the table:
-	NewOptionTable = list_table:append_list_to_entry( _K=OptionAtom, OptValues,
-												   OptionTable ),
-
-	case NextOptionInfo of
-
-		none ->
-			NewOptionTable;
-
-		{ NextOption, NextArgs } ->
-			manage_option( NextOption, NextArgs, NewOptionTable )
-
-	end.
-
-
-
-% (helper)
-%
-% All arguments processed here:
-%
-collect_values_for_option( _Args=[], AccValues ) ->
-	{ lists:reverse( AccValues ), _NextOption=none };
-
-% New option detected:
-collect_values_for_option( _Args=[ [ $- | Option ] | T ], AccValues ) ->
-	{ lists:reverse( AccValues ), _NextOption={ Option, T } };
-
-% Still accumulating arguments for the current option:
-collect_values_for_option( _Args=[ OptValue | T ], AccValues ) ->
-	collect_values_for_option( T, [ OptValue | AccValues ] ).
+	executable_utils:get_argument_table_from_strings( Args, _FailSafe=false ).

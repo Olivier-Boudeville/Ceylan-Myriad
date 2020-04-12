@@ -165,8 +165,10 @@
 
 
 % Command-line argument section:
--export([ get_argument_table/0, get_argument_table/1, generate_argument_table/1,
-		  get_command_argument/1,
+-export([ get_argument_table/0,
+		  get_argument_table_from_strings/1, get_argument_table_from_strings/2,
+		  generate_argument_table/1,
+		  get_command_argument/1, get_command_argument/2,
 		  extract_command_argument/1, extract_command_argument/2,
 		  argument_table_to_string/1 ]).
 
@@ -835,7 +837,7 @@ get_default_jinterface_path() ->
 
 
 
-% Command-line argument section:
+% Command-line argument section.
 
 
 % Returns a canonical argument table, obtained from the user command-line
@@ -848,11 +850,35 @@ get_default_jinterface_path() ->
 %        make ui_run CMD_LINE_OPT="-a -extra -b --use-ui-backend text_ui"
 % (here "-a" will be ignored)
 %
+% - abnormal arguments (ex: not starting with a dash) will be reported
+%
 % - this function is to be called in the context of a standard erl execution (as
-% opposed to an escript one, which shall use get_argument_table/1)
+% opposed to an escript one, which shall use script_utils:get_arguments/1)
 %
 -spec get_argument_table() -> argument_table().
 get_argument_table() ->
+	get_argument_table( _FailSafe=false ).
+
+
+
+% Returns a canonical argument table, obtained from the user command-line
+% arguments supplied to the interpreter.
+%
+% Note:
+%
+% - only the arguments specified on the command-line after the '-extra' marker
+% will be taken into account; ex:
+%        make ui_run CMD_LINE_OPT="-a -extra -b --use-ui-backend text_ui"
+% (here "-a" will be ignored)
+%
+% - abnormal arguments (ex: not starting with a dash) will be reported iff
+% FailSafe is false
+%
+% - this function is to be called in the context of a standard erl execution (as
+% opposed to an escript one, which shall use script_utils:get_arguments/1)
+%
+-spec get_argument_table( boolean() ) -> argument_table().
+get_argument_table( FailSafe ) ->
 
 	% We do not want to include the VM-specific arguments (such as -noshell,
 	% -pz, etc.); use, in the command-line, '-extra', before arguments to
@@ -865,20 +891,133 @@ get_argument_table() ->
 	%					   [ Args ] ),
 
 	% To convert a list of strings into per-option list of values:
-	get_argument_table( Args ).
+	get_argument_table_from_strings( Args, FailSafe ).
 
 
 
-% Returns a canonical argument table, obtained from the user command-line
-% arguments supplied to this escript.
+
+% Returns the specified command-line arguments (simply transmitted as a list of
+% the corresponding strings) once transformed into our "canonical", more
+% convenient form, which is similar to the one used by Erlang for its
+% user/system flags (i.e. for all its non-plain options).
 %
-% Note: to be called in the context of an escript (as opposed to a standard erl
-% execution, which shall use get_argument_table/0), specifying the argument list
-% that its main/1 function received.
+% In this form, options start with a dash, may have any number of arguments, and
+% may be specified more than once in the command-line.
 %
--spec get_argument_table( [ string() ] ) -> argument_table().
-get_argument_table( ArgStrings ) ->
-	script_utils:get_arguments( ArgStrings ).
+% Note: switches to the Unicode encoding (ex: use "~tp" then).
+%
+-spec get_argument_table_from_strings( [ string() ] ) -> argument_table().
+get_argument_table_from_strings( ArgStrings ) ->
+	% By default, report faulty arguments:
+	get_argument_table_from_strings( ArgStrings, _FailSafe=false ).
+
+
+
+% Returns the specified command-line arguments (simply transmitted as a list of
+% the corresponding strings) once transformed into our "canonical", more
+% convenient form, which is similar to the one used by Erlang for its
+% user/system flags (i.e. for all its non-plain options).
+%
+% In this form, options start with a dash, may have any number of arguments, and
+% may be specified more than once in the command-line.
+%
+% FailSafe tells whether abnormal arguments (typically not starting with a dash)
+% shall be reported (if false) or not (if true).
+%
+% Note: switches to the Unicode encoding (ex: use "~tp" then).
+%
+-spec get_argument_table_from_strings( [ string() ], boolean() ) ->
+											 argument_table().
+get_argument_table_from_strings( ArgStrings, FailSafe ) ->
+
+	%trace_utils:debug_fmt( "Creating argument table from: ~p, with fail-safe "
+	%					   "mode set to ~s.", [ ArgStrings, FailSafe ] ),
+
+	% Useful side-effect, difficult to troubleshoot:
+	system_utils:force_unicode_support(),
+
+	get_arguments_from_strings( ArgStrings, _OptionTable=list_table:new(),
+								FailSafe ).
+
+
+
+% (helper)
+get_arguments_from_strings( _Args=[], OptionTable, _FailSafe ) ->
+	OptionTable;
+
+% The first option is detected, removing its initial dash:
+get_arguments_from_strings( _Args=[ [ $- | Option ] | T ], OptionTable,
+							 _FailSafe ) ->
+	manage_option( Option, _RemainingArgs=T, OptionTable );
+
+% Apparently can happen (ex: with releases run with erlexec):
+get_arguments_from_strings( _Args=[ _Dropped="" | T ], OptionTable, FailSafe ) ->
+	get_arguments_from_strings( T, OptionTable, FailSafe );
+
+% Here an initial argument does not start with a dash, hence is dropped, like
+% done by init:get_arguments/0:
+%
+get_arguments_from_strings( _Args=[ Dropped | T ], OptionTable,
+							FailSafe=false ) ->
+
+	% This may happen in a legit manner if for example wanting to establish if
+	% in batch mode (hence by calling is_batch/0) from a release, thus run with
+	% erlexec [...] console [...]:
+	%
+	trace_utils:warning_fmt( "Dropping non-option initial argument '~s'.",
+							 [ Dropped ] ),
+
+	%code_utils:display_stacktrace(),
+	%throw( { dropped, Dropped } ),
+
+	get_arguments_from_strings( T, OptionTable, FailSafe );
+
+get_arguments_from_strings( _Args=[ _Dropped | T ], OptionTable,
+							 FailSafe=true ) ->
+	% Silently ignored:
+	get_arguments_from_strings( T, OptionTable, FailSafe ).
+
+
+
+% (helper)
+manage_option( Option, RemainingArgs, OptionTable ) ->
+
+	OptionAtom = text_utils:string_to_atom( Option ),
+
+	{ OptValues, NextOptionInfo } = collect_values_for_option( RemainingArgs,
+															   _AccValues=[] ),
+
+	% This option may already be registered in the table:
+	NewOptionTable = list_table:append_list_to_entry( _K=OptionAtom, OptValues,
+													  OptionTable ),
+
+	case NextOptionInfo of
+
+		none ->
+			NewOptionTable;
+
+		{ NextOption, NextArgs } ->
+			manage_option( NextOption, NextArgs, NewOptionTable )
+
+	end.
+
+
+
+% (helper)
+%
+% All arguments processed here:
+%
+collect_values_for_option( _Args=[], AccValues ) ->
+	{ lists:reverse( AccValues ), _NextOption=none };
+
+% New option detected:
+collect_values_for_option( _Args=[ [ $- | Option ] | T ], AccValues ) ->
+	{ lists:reverse( AccValues ), _NextOption={ Option, T } };
+
+% Still accumulating arguments for the current option:
+collect_values_for_option( _Args=[ OptValue | T ], AccValues ) ->
+	collect_values_for_option( T, [ OptValue | AccValues ] ).
+
 
 
 
@@ -893,7 +1032,24 @@ generate_argument_table( ArgString ) ->
 	CommandLineArgs = text_utils:split_per_element( ArgString,
 													_Delimiters=[ $ ] ),
 
-	get_argument_table( CommandLineArgs ).
+	get_argument_table_from_strings( CommandLineArgs, _FailSafe=false ).
+
+
+
+% Returns the various associated values (if any; otherwise returns 'undefined')
+% associated to the specified option.
+%
+% Note: the extract_command_argument/{1,2} function may be more relevant to
+% use, if wanting to ensure no extra, unexpected argument is specified.
+%
+-spec get_command_argument( command_line_option() ) ->
+								  maybe( [ command_line_value() ] ).
+get_command_argument( Option ) ->
+
+	% By default, not wanting to trigger errors or warnings here, hence
+	% FailSafe:
+	%
+	get_command_argument( Option, _FailSafe=true ).
 
 
 
@@ -903,11 +1059,11 @@ generate_argument_table( ArgString ) ->
 % Note: generally the extract_command_argument/{1,2} function are more relevant
 % to use.
 %
--spec get_command_argument( command_line_option() ) ->
+-spec get_command_argument( command_line_option(), boolean() ) ->
 								  maybe( [ command_line_value() ] ).
-get_command_argument( Option ) ->
+get_command_argument( Option, FailSafe ) ->
 
-	ArgumentTable = get_argument_table(),
+	ArgumentTable = get_argument_table( FailSafe ),
 
 	list_table:get_value_with_defaults( _K=Option, _DefaultValue=undefined,
 										ArgumentTable ).
