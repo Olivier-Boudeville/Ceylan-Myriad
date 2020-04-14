@@ -3259,6 +3259,10 @@ read_terms( Filename ) ->
 		{ ok, Terms } ->
 			Terms;
 
+		{ error, eacces }  ->
+			throw( { reading_failed, Filename, access_denied,
+					 system_utils:get_user_name_string() } );
+
 		{ error, Error } when is_atom( Error ) ->
 			throw( { reading_failed, Filename, Error } );
 
