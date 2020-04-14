@@ -54,7 +54,7 @@ ifeq ($(BASE_MAKEFILE),true)
 
 # CORE_COUNT defined in myriad/GNUmakevars.inc:
 all: all-pre-hook all-parse-transforms rebar3-make-include-links
-	@echo "   Building all, in parallel over $(CORE_COUNT) core(s), from $(PWD)"
+	@echo "  Building all, in parallel over $(CORE_COUNT) core(s), from $(PWD)"
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && \
 		$(MAKE) -s all-recurse -j $(CORE_COUNT) && cd .. ; else echo "     (directory $$m skipped)" ; \
 	fi ) ; then exit 1; fi ; done
@@ -80,7 +80,7 @@ bootstrap-modules: $(BOOTSTRAP_MODULES)
 
 
 make-all-parse-transforms:
-	@echo "   Building first all layer-specific parse transforms"
+	@echo "  Building first all layer-specific parse transforms"
 	@for d in $(PARSE_TRANSFORM_DIRS) ; do ( cd $$d && \
 	$(MAKE) -s local-parse-transforms ) ; done
 
@@ -116,7 +116,7 @@ all-recurse-pre-hook:
 # This rule is not used by default, as we use the -j option from the root
 # makefile, letting then 'make' use its job server for that task:
 all-parallel-recurse:
-	@echo "   Building all on parallel over $(CORE_COUNT) cores (in "$(PWD) #$$(basename $(PWD))
+	@echo "  Building all on parallel over $(CORE_COUNT) cores (in "$(PWD) #$$(basename $(PWD))
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s all -j $(CORE_COUNT) CMD_LINE_OPT="${CMD_LINE_OPT}" && cd .. ; else echo "    (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
 
 
@@ -129,7 +129,7 @@ all-parallel-recurse:
 # command is conditional.
 #
 all-recurse: $(BEAM_FILES)
-	@echo "   Building all in "$(PWD) #$$(basename $(PWD))
+	@echo "  Building all in "$(PWD) #$$(basename $(PWD))
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s all CMD_LINE_OPT="${CMD_LINE_OPT}" USE_HDF5=$(USE_HDF5) USE_JSON=$(USE_JSON) USE_REST=$(USE_REST) USE_SQLITE=$(USE_SQLITE) && cd .. ; else echo "  (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
 
 
