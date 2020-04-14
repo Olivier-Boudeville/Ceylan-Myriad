@@ -168,10 +168,11 @@ new_from_unique_entries( InitialEntries ) when is_list( InitialEntries ) ->
 		EntryCount ->
 			Table;
 
-		S ->
-			DupCount = EntryCount - S,
+		_Other ->
+			DupKeys = list_utils:get_duplicates(
+				[ K || { K, _V } <- InitialEntries ] ),
 			SortedEntries = lists:sort( InitialEntries ),
-			throw( { duplicate_keys_found, DupCount, SortedEntries } )
+			throw( { duplicate_keys_found, DupKeys, SortedEntries } )
 
 	end.
 
