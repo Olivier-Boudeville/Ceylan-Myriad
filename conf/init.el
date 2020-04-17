@@ -1,3 +1,7 @@
+;; This is an initialization script written in elisp.
+;; Refer to https://www.gnu.org/software/emacs/manual/html_node/elisp/
+
+
 ;; Use our 'update-emacs-modules.sh' script to update the *.el files of
 ;; interest.
 
@@ -94,7 +98,11 @@
 (setq erlang-electric-commands '(erlang-electric-comma
 								 erlang-electric-g))
 
- (add-hook 'text-mode-hook 'turn-on-auto-fill)
+
+;; Only in programmation modes, not all text modes:
+;;(add-hook 'text-mode-hook 'turn-on-auto-fill)
+(add-hook 'prog-mode-hook 'turn-on-auto-fill)
+
 (require 'erlang-start)
 
 
