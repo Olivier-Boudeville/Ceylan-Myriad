@@ -35,7 +35,7 @@
 
 
 % User-related functions.
--export([ get_user_name/0, get_user_name_string/0,
+-export([ get_user_name/0, get_user_name_safe/0, get_user_name_string/0,
 		  get_user_id/0, get_group_id/0,
 		  get_user_home_directory/0, get_user_home_directory/1,
 		  get_user_home_directory_string/0 ]).
@@ -338,6 +338,26 @@ get_user_name() ->
 	%		UserName
 
 	%end.
+
+
+
+% Returns the name of the current user, as a plain string.
+%
+% Not expected to fail.
+%
+-spec get_user_name_safe() -> string().
+get_user_name_safe() ->
+
+	try
+
+		get_user_name()
+
+	catch
+
+		_ ->
+			"(unknown user)"
+
+	end.
 
 
 
