@@ -612,8 +612,8 @@ rebar3-populate-build-tree:
 # expected when having specified a GIT dependency with rebar, such as: {myriad,
 # {git, "git://github.com/Olivier-Boudeville/Ceylan-Myriad"} }
 #
-# For modules, remove paths, extension, replace newlines with commas, and remove
-# the last one:
+# For the listed modules, this target removes paths, extension, replaces
+# newlines with commas, and removes the last one.
 #
 # Not specifically removing source files, each .app.src does that thanks its
 # 'exclude_files' entry, with MODULES_FOR_REBAR3:
@@ -627,6 +627,12 @@ rebar3-populate-build-tree:
 # Apparently, at least in some cases (ex: generating a standalone release), an
 # (updated) *.app.src file is looked-up in src (not in ebin - try to create
 # syntax error in it to check), so we add a symbolic link there as well.
+#
+# We have thus:
+# ./conf/FOOBAR.app.src [only real source]
+# ./_build/lib/FOOBAR/ebin.FOOBAR.app
+# ./ebin/FOOBAR.app
+# ./src/FOOBAR.app.src -> ../ebin/FOOBAR.app
 #
 rebar3-create-app-file:
 	@echo "  Generating rebar3 $(REBAR3_PROJECT_NAME).app file"
