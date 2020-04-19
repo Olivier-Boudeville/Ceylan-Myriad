@@ -99,9 +99,11 @@
 								 erlang-electric-g))
 
 
-;; Only in programmation modes, not all text modes:
+;; Only in some language modes, not all text modes nor even all programming
+;; modes where it is more of a nuisance:
 ;;(add-hook 'text-mode-hook 'turn-on-auto-fill)
-(add-hook 'prog-mode-hook 'turn-on-auto-fill)
+;;(add-hook 'prog-mode-hook 'turn-on-auto-fill)
+(add-hook 'erlang-mode-hook 'turn-on-auto-fill)
 
 (require 'erlang-start)
 
