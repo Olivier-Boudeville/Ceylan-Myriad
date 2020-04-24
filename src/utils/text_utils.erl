@@ -1571,14 +1571,14 @@ get_formatted_line( CommentChar, Line ) ->
 
 
 
-% Formats specified binary string as io_lib:format/2 would do, except it returns
-% a flattened version of it and cannot fail (so that for example a badly
-% formatted log cannot crash anymore its emitter process).
+% Formats specified string as a (flattened) binary, as io_lib:format/2 would do,
+% except it cannot fail (so that for example a badly formatted log cannot crash
+% anymore its emitter process).
 %
 % Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected
 % Unicode inputs resulting on crashes afterwards.
 %
--spec bin_format( format_string(), [ term() ] ) -> ustring().
+-spec bin_format( format_string(), [ term() ] ) -> bin_string().
 
 
 -ifdef(exec_target_is_production).
