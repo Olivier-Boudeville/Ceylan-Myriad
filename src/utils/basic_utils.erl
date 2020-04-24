@@ -600,10 +600,10 @@ wait_for( Message, Count, TimeOutDuration, TimeOutFormatString ) ->
 
 
 % Waits until receiving from all expected senders the specified acknowledgement
-% message, expected to be in the form of { AckReceiveAtom, WaitedSenderPid }.
+% message, expected to be in the form of {AckReceiveAtom,WaitedSenderPid}.
 %
-% Throws a { ThrowAtom, StillWaitedSenders } exception on time-out (if any, as
-% the time-out can be disabled if set to 'infinity').
+% Throws a {ThrowAtom,StillWaitedSenders} exception on time-out (if any, as the
+% time-out can be disabled if set to 'infinity').
 %
 % See wait_for_many_acks/{4,5} if having a large number of senders waited for.
 %
