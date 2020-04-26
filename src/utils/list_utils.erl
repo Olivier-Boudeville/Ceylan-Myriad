@@ -624,10 +624,10 @@ cartesian_product( [ List | OtherLists ] ) ->
 % Returns a list equal to L1 except that all elements found in L2 have been
 % removed, even if in L1 they were duplicated.
 %
-% Note: like lists:subtract, except that *all* occurences from L2 in L1 (not
-% only the first one) are removed.
+% Note: like lists:subtract/2, except that *all* occurences from L2 in L1 (not
+% only the first one) are removed. See also: the '--' operator.
 %
-% Example: [1,4] = basic_utils:subtract_all_duplicates( [1,2,3,4,2], [2,3] )
+% Example: [1,4] = list_utils:subtract_all_duplicates( [1,2,3,4,2], [2,3] )
 %
 % Taken from
 % http://www.trapexit.org/Finding_Elements_in_One_Array_but_Not_Another
