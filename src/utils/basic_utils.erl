@@ -63,7 +63,9 @@
 		  create_uniform_tuple/2,
 		  stop/0, stop/1, stop_on_success/0, stop_on_failure/0,
 		  stop_on_failure/1,
-		  identity/1, check_undefined/1, ignore_unused/1,
+		  identity/1,
+		  check_undefined/1, check_not_undefined/1, check_all_defined/1,
+		  ignore_unused/1,
 		  freeze/0, crash/0, enter_infinite_loop/0,
 		  trigger_oom/0 ]).
 
@@ -364,7 +366,7 @@ identity( Term ) ->
 
 
 
-% Checks that specified term is 'undefined':
+% Checks that specified term is 'undefined'.
 -spec check_undefined( term() ) -> void().
 check_undefined( undefined ) ->
 	ok;
@@ -372,6 +374,29 @@ check_undefined( undefined ) ->
 check_undefined( Term ) ->
 	throw( { not_undefined, Term } ).
 
+
+% Checks that specified term is not 'undefined'; returns that term.
+-spec check_not_undefined( term() ) -> term().
+check_not_undefined( undefined ) ->
+	throw( is_undefined );
+
+check_not_undefined( Term ) ->
+	Term.
+
+
+
+% Checks that specified term is "defined" (not 'undefined'); returns that term.
+-spec check_defined( term() ) -> term().
+check_defined( Term ) ->
+	check_not_undefined( Term ).
+
+
+% Checks that all elements of the specified list are "defined" (not
+% 'undefined'); returns that list.
+%
+-spec check_all_defined( [ term() ] ) -> [ term() ].
+check_all_defined( List ) ->
+	[ check_defined( Term ) || Term <- List ].
 
 
 
