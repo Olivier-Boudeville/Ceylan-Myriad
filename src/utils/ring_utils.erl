@@ -76,7 +76,7 @@ to_list( Ring={ _WorkingList, ReferenceList } ) ->
 	List.
 
 
-% Pops the head of specified ring: return { Head, UpdatedRing }.
+% Pops the head of specified ring: returns {Head,UpdatedRing}.
 -spec head( ring() ) -> { term(), ring() }.
 head( _Ring={ _WorkingList=[], ReferenceList } ) ->
 	% Replenish:
