@@ -63,7 +63,7 @@ all: all-pre-hook all-parse-transforms rebar3-make-include-links
 # Not removing rebar.config anymore, to avoid that GIT considers it deleted on
 # purpose:
 #
-clean:
+clean: clean-layer-ebin
 	-@/bin/rm -rf $(REBAR_BUILD_ROOT)
 	-@if [ -d doc ] ; then cd doc && $(MAKE) -s clean ; fi
 
@@ -870,10 +870,10 @@ clean: clean-erlang clean-python clean-java clean-database clean-override \
 	   clean-recurse
 
 
+# Not calling the 'clean-layer-ebin' target from here (too demanding):
 clean-erlang:
 	@echo "   Cleaning all in "$(PWD) #$$(basename $(PWD))
 	-@/bin/rm -f *.beam *.jam erl_crash.dump erlang.log.*
-	@$(MAKE) -s clean-layer-ebin
 
 
 # Otherwise older BEAM files may linger and cause hard to debug errors:
