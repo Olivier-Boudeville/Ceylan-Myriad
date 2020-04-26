@@ -24,8 +24,9 @@ help: help-intro help-myriad help-hints help-batch
 include $(MYRIAD_TOP)/GNUmakesettings.inc
 
 
-# The base PLT is not the predecessor one (i.e. the Erlang PLT) as prerequisites
-# may have to be taken into account, and have already started feeding PLT_FILE:
+# The base PLT is not the predecessor one (i.e. the Erlang PLT), as
+# prerequisites may have to be taken into account, and have already started
+# feeding PLT_FILE:
 #
 BASE_PLT := $(PLT_FILE)
 
@@ -104,7 +105,6 @@ add-sqlite3-plt:
 # As upper layers may rely on the 'myriad' naming:
 link-plt:
 	@if [ ! "$(PLT_FILE)" = "$(MYRIAD_PLT_FILE)" ]; then /bin/ln -s --force $(PLT_FILE) $(MYRIAD_PLT_FILE) ; fi
-
 
 
 # Removes the text files that may be spit by the myriad parse transform for
