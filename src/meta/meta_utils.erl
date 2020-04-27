@@ -482,9 +482,8 @@ list_exported_functions( ModuleName ) ->
 	catch error:undef ->
 
 		trace_utils:error_fmt( "Unable to get the exports for module '~s'; "
-							   "this may happen for example if this module "
-							   "was added to an OTP release that was not "
-							   "rebuilt since then.", [ ModuleName ] ),
+			"this may happen for example if this module was added to an OTP "
+			"release that was not rebuilt since then.", [ ModuleName ] ),
 
 		throw( { no_exports_for, ModuleName } )
 
