@@ -1,29 +1,18 @@
 # Listing path patterns that shall be ignored by git:
 *.beam
+include/*.hrl
 *.traces
 *.log
 *.plt
 *erlang.log.*
 declared-types-in-*.txt
 src/scripts/myriad-example-tree
+.eunit
+erl_crash.dump
+*~
 
 # Added in relation to rebar3:
+.rebar
+rebar3.crashdump
 .rebar3
 _*
-.eunit
-*.o
-*.beam
-*.plt
-*.swp
-*.swo
-.erlang.cookie
-log
-erl_crash.dump
-.rebar
-logs
-_build
-.idea
-*.iml
-rebar3.crashdump
-*~
-include/*.hrl

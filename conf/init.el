@@ -103,7 +103,8 @@
 ;; modes where it is more of a nuisance:
 ;;(add-hook 'text-mode-hook 'turn-on-auto-fill)
 ;;(add-hook 'prog-mode-hook 'turn-on-auto-fill)
-(add-hook 'erlang-mode-hook 'turn-on-auto-fill)
+;; Not so useful even here:
+;;(add-hook 'erlang-mode-hook 'turn-on-auto-fill)
 
 (require 'erlang-start)
 
@@ -618,6 +619,15 @@
 
 ;; Set mouse color
 (set-mouse-color "white")
+
+;; Do not consider underscores and dashes as word separators (otherwise
+;; mouse-based search changes its selection during search):
+;;
+;; (probably a bad idea, search patterns seem not to be found when having a
+;; prefix)
+;;
+;;(global-superword-mode 1)
+
 
 ;; For proper mouse search:
 (require 'acme-search)
