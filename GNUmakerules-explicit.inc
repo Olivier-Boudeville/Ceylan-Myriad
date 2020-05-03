@@ -685,7 +685,7 @@ rebar3-info:
 	@echo "REBAR3_FIND_SRC_EXCLUDES = $(REBAR3_FIND_SRC_EXCLUDES)"
 	@echo "REBAR3_FIND_SRC_OPT = $(REBAR3_FIND_SRC_OPT)"
 	@echo "REBAR_TEST_DIR = $(REBAR_TEST_DIR)"
-	@echo "REBAR_3_EXEC = $(REBAR_3_EXEC)"
+	@echo "REBAR3_EXEC = $(REBAR3_EXEC)"
 	@echo "VERSION_FOR_REBAR3 = $(VERSION_FOR_REBAR3)"
 	@echo "MYRIAD_REBAR_BUILD_BASE = $(MYRIAD_REBAR_BUILD_BASE)"
 	@echo "MYRIAD_OTP_BEAM_DIR_FROM_USUAL = $(MYRIAD_OTP_BEAM_DIR_FROM_USUAL)"
@@ -763,9 +763,9 @@ rebar3-local-update:
 
 
 test-hex-package: rebar-test-clean
-	@echo "  Testing $(PROJECT_NAME) hex package ('$(REBAR3_PROJECT_NAME)' package, version $(VERSION_FOR_REBAR3)) in $(REBAR_TEST_DIR) using $(REBAR_3_EXEC)"
+	@echo "  Testing $(PROJECT_NAME) hex package ('$(REBAR3_PROJECT_NAME)' package, version $(VERSION_FOR_REBAR3)) in $(REBAR_TEST_DIR) using $(REBAR3_EXEC)"
 	@cd conf && $(MAKE) -s rebar-for-testing.config && /bin/cp -f rebar-for-testing.config $(REBAR_TEST_DIR)/rebar.config
-	@cd $(REBAR_TEST_DIR) && $(REBAR_3_EXEC) update && $(REBAR_3_EXEC) compile
+	@cd $(REBAR_TEST_DIR) && $(REBAR3_EXEC) update && $(REBAR3_EXEC) compile
 
 
 # End of the longer rebar-related section.

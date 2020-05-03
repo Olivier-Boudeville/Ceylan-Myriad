@@ -418,7 +418,7 @@ pid_to_string( Pid ) ->
 	io_lib:format( "~w", [ Pid ] ).
 
 
-% Returns a plain string corresponding to the specified list of PIDs
+% Returns a plain string corresponding to the specified list of PIDs.
 -spec pids_to_string( [ pid() ] ) -> string().
 pids_to_string( PidList ) ->
 	io_lib:format( "~w", [ PidList ] ).
@@ -435,7 +435,7 @@ pid_to_short_string( Pid ) ->
 	[ $| | pid_to_core_string( Pid ) ] ++ "|".
 
 
-% Returns a short, plain string corresponding to the specified PIDs:
+% Returns a short, plain string corresponding to the specified PIDs.
 %
 % For example, [<0.33.0>,<0.35.0>] returned as "|33,35|" (7 characters instead
 % of 19, almost one-third).

@@ -1186,10 +1186,12 @@ REBAR_TEST_DIR := /tmp
 
 # To install rebar3: https://github.com/erlang/rebar3#getting-started
 #
-# Typically obtained thanks to : mkdir -p ~/Software && cd ~/Software && git
-# clone https://github.com/erlang/rebar3.git && cd rebar3 && ./bootstrap
+# Typically obtained thanks to:
 #
-REBAR_3_EXEC = $$(which rebar3 2>/dev/null)
+# mkdir -p ~/Software && cd ~/Software && git clone
+# https://github.com/erlang/rebar3.git && cd rebar3 && ./bootstrap
+#
+REBAR3_EXEC := $$(which rebar3 2>/dev/null)
 
 
 # Elements for the generation of rebar.config:
