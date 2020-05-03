@@ -1,7 +1,7 @@
 MYRIAD_TOP = ..
 
 
-.PHONY: all doc full-doc html clone-mirror                        \
+.PHONY: all doc full-doc html pdf clone-mirror                    \
 		export-doc export-to-official export-to-mirror            \
 		clean clean-doc real-clean info-web test uml-diagram-test
 
@@ -10,11 +10,18 @@ DOC_BASE_NAME := Ceylan-Myriad-Layer-technical-manual-english
 
 OVERALL_DOCUMENT_SOURCE = $(DOC_BASE_NAME).rst
 
-DOC_PDF_NAME := $(DOC_BASE_NAME).pdf
 
-HTML_TARGET = $(DOC_BASE_NAME).html
+CURRENT_MYRIAD_HTML := $(DOC_BASE_NAME).html
 
-DOC_GENERATED_FILES = $(DOC_PDF_NAME) $(HTML_TARGET)
+HTML_TARGET = $(CURRENT_MYRIAD_HTML)
+
+
+CURRENT_MYRIAD_PDF := $(DOC_BASE_NAME).pdf
+
+PDF_TARGET = $(CURRENT_MYRIAD_PDF)
+
+
+DOC_GENERATED_FILES = $(HTML_TARGET) $(PDF_TARGET)
 
 DOC_FILES = $(DOC_GENERATED_FILES)
 
@@ -42,13 +49,15 @@ all:
 	@echo "  Run 'make full-doc' to generate the manual of the 'Myriad' layer."
 
 
-full-doc: $(DOC_BASE_NAME).pdf $(HTML_TARGET)
-	@/bin/ln -s $(HTML_TARGET) myriad.html
-	@/bin/ln -s myriad.html index.html
-	@/bin/ln -s $(DOC_PDF_NAME) myriad.pdf
+full-doc: $(DOC_GENERATED_FILES)
+	@/bin/ln -sf $(CURRENT_MYRIAD_HTML) myriad.html
+	@/bin/ln -sf myriad.html index.html
+	@/bin/ln -sf $(CURRENT_MYRIAD_PDF) myriad.pdf
 
 
 html: clean-doc $(HTML_TARGET)
+
+pdf: clean-doc $(PDF_TARGET)
 
 
 # Creates a separate repository for the GitHub pages branch:
