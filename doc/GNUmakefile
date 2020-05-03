@@ -1,14 +1,9 @@
 MYRIAD_TOP = ..
 
 
-.PHONY: all doc full-doc html pdf clone-mirror                    \
-		export-doc export-to-official export-to-mirror            \
-		clean clean-doc real-clean info-web test uml-diagram-test
-
-
 DOC_BASE_NAME := Ceylan-Myriad-Layer-technical-manual-english
 
-OVERALL_DOCUMENT_SOURCE = $(DOC_BASE_NAME).rst
+OVERALL_DOCUMENT_SOURCE := $(DOC_BASE_NAME).rst
 
 
 CURRENT_MYRIAD_HTML := $(DOC_BASE_NAME).html
@@ -23,13 +18,7 @@ PDF_TARGET = $(CURRENT_MYRIAD_PDF)
 
 DOC_GENERATED_FILES = $(HTML_TARGET) $(PDF_TARGET)
 
-DOC_FILES = $(DOC_GENERATED_FILES)
 
-
-# The current, operational version of Myriad:
-CURRENT_VERSION := 1.0
-
-CURRENT_MYRIAD_DOC := $(DOC_BASE_NAME)-$(CURRENT_VERSION).pdf
 
 PROJECT_CSS := pygments-default.css,myriad.css
 
@@ -39,6 +28,13 @@ WEB_CONTENT = *.html *.css *.png *.pdf
 
 # Read from the user's environment:
 GITHUB_PAGES_BASE := $(shell basename "$(MYRIAD_WEB_MIRROR_BRANCH)")
+
+
+
+.PHONY: doc all full-doc html pdf clone-mirror                    \
+		export-doc export-to-official export-to-mirror            \
+		clean clean-doc real-clean info info-doc info-web         \
+		test uml-diagram-test
 
 
 
@@ -71,9 +67,9 @@ export-doc: clean-doc full-doc export-to-official export-to-mirror
 
 
 # Drawback: scp will not preserve symlinks, it will duplicate files instead.
-
+#
 # rsync would not, but requires a different source layout (copies a full tree,
-# not a set of files), so current not used:
+# not a set of files), so currently not used:
 # rsync -avze "ssh $(SP)" $(SOME_WEB_TREE) $(WEB_SRV):$(WEB_ROOT)/Myriad/
 #
 export-to-official: $(DOC_GENERATED_FILES)
@@ -92,14 +88,20 @@ clean: clean-doc
 
 clean-doc:
 	@echo "     Cleaning documentation"
-	-@/bin/rm -f *.aux *.log *.maf *.mtc* *.stc* *.tex *.toc \
-	$(CURRENT_MYRIAD_DOC) $(DOC_GENERATED_FILES)
+	-@/bin/rm -f *.aux *.log *.maf *.mtc* *.stc* *.tex *.toc $(DOC_GENERATED_FILES)
 
 
 # These three elements are symbolic links:
 real-clean: clean
 	-@/bin/rm -f index.html myriad.html myriad.pdf
 
+
+info: info-doc info-web
+
+
+info-doc:
+	@echo "OVERALL_DOCUMENT_SOURCE = $(OVERALL_DOCUMENT_SOURCE)"
+	@echo "DOC_TRACKER = $(DOC_TRACKER)"
 
 info-web:
 	@echo "HTML_TARGET = $(HTML_TARGET)"
