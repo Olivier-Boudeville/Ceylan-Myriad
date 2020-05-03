@@ -33,7 +33,7 @@ GITHUB_PAGES_BASE := $(shell basename "$(MYRIAD_WEB_MIRROR_BRANCH)")
 
 .PHONY: doc all full-doc html pdf clone-mirror                    \
 		export-doc export-to-official export-to-mirror            \
-		clean clean-doc real-clean info info-doc info-web         \
+		clean clean-doc info info-doc info-web                    \
 		test uml-diagram-test
 
 
@@ -89,11 +89,6 @@ clean: clean-doc
 clean-doc:
 	@echo "     Cleaning documentation"
 	-@/bin/rm -f *.aux *.log *.maf *.mtc* *.stc* *.tex *.toc $(DOC_GENERATED_FILES)
-
-
-# These three elements are symbolic links:
-real-clean: clean
-	-@/bin/rm -f index.html myriad.html myriad.pdf
 
 
 info: info-doc info-web
