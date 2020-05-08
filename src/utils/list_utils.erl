@@ -59,7 +59,9 @@
 		  get_index_of/2, get_maybe_index_of/2, split_at/2, uniquify/1,
 		  ensure_is_once_in/2,
 		  has_duplicates/1, count_occurrences/1, get_duplicates/1,
-		  union/2, intersection/2, difference/2, cartesian_product/1,
+		  union/2, intersection/2,
+		  difference/2, differences/2,
+		  cartesian_product/1,
 		  subtract_all_duplicates/2, delete_existing/2, delete_if_existing/2,
 		  delete_all_in/2, append_at_end/2,
 		  is_list_of_integers/1, is_list_of_pids/1,
@@ -602,6 +604,19 @@ intersection( L1, L2 ) ->
 difference( L1, L2 ) ->
 	set_utils:to_list( set_utils:difference( set_utils:from_list( L1 ),
 											 set_utils:from_list( L2 ) ) ).
+
+
+
+% Returns the differences between the first specified list and the second, as a
+% pair, whose first element corresponds to the elements of the first list that
+% are not in the second one, and whose second element corresponds to the
+% elements of the second list that are not in the first one.
+%
+-spec differences( list(), list() ) -> { list(), list() }.
+differences( L1, L2 ) ->
+	{ S1, S2 } = set_utils:differences( set_utils:from_list( L1 ),
+										set_utils:from_list( L2 ) ),
+	{ set_utils:to_list( S1 ), set_utils:to_list( S2 ) }.
 
 
 
