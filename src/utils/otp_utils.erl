@@ -109,9 +109,10 @@ get_local_ebin_path_for( AppName, BuildDir ) ->
 
 
 % Returns the path (if any) to the ebin directory of the specified prerequisite
-% OTP application of this test, namely the tested application itself or one of
-% its own prerequisites (supposing the 'default' rebar3 profile being used),
-% based on the specified root of the current build tree.
+% (user, i.e. non-native) OTP application of this test, namely the tested
+% application itself or one of its own prerequisites (supposing the 'default'
+% rebar3 profile being used), based on the specified root of the current build
+% tree.
 %
 % Following locations will be searched for that ebin directory, from the root of
 % its build directory, and in that order:
