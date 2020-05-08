@@ -68,7 +68,7 @@
 
 		  get_local_ebin_path_for/2, get_ebin_path_for/2,
 
-		  prepare_for_test/2,
+		  prepare_for_test/2, list_otp_native_applications/0,
 
 		  start_application/1, start_application/2,
 		  start_applications/1, start_applications/2,
@@ -113,13 +113,20 @@ get_local_ebin_path_for( AppName, BuildDir ) ->
 % its own prerequisites (supposing the 'default' rebar3 profile being used),
 % based on the specified root of the current build tree.
 %
+% Following locations will be searched for that ebin directory, from the root of
+% its build directory, and in that order:
+%  1. any local _build/default/lib/APP_NAME/ebin (for the tested application
+%     itself)
+%  2. any local _checkouts/APP_NAME/_build/default/lib/APP_NAME/ebin
+%  3. any sibling ../APP_NAME/_build/default/lib/APP_NAME/ebin
+%
 % Ex: MaybeEbinPath = otp_utils:get_ebin_path_for( foobar, ".." ).
 %
 -spec get_ebin_path_for( application_name(), directory_path() ) ->
 							maybe( directory_path() ).
 get_ebin_path_for( AppName, BuildDir ) ->
 
-	% If this application corresponds to the directly tested one:
+	% If this application corresponds to the directly tested one (1):
 	LocalEBinPath = get_local_ebin_path_for( AppName, BuildDir ),
 
 	case file_utils:is_existing_directory_or_link( LocalEBinPath ) of
@@ -127,28 +134,57 @@ get_ebin_path_for( AppName, BuildDir ) ->
 		true ->
 			trace_utils:trace_fmt( "Using, for the tested application '~s', "
 				"the '~s' local ebin path.", [ AppName, LocalEBinPath ] ),
+
 			LocalEBinPath;
 
-		% Then maybe this application is a prerequisite of the tested one, available
-		% in a sibling directory thereof (see module notes above):
-		%
+		% Then maybe a checkout (2):
 		false ->
-			PrereqBuildDir = file_utils:join(
-				[ BuildDir, "..", get_string_application_name( AppName ) ] ),
 
-			PrereqEBinPath = get_local_ebin_path_for( AppName, PrereqBuildDir ),
+			%trace_utils:debug_fmt( "No local '~s' found.", [ LocalEBinPath ] ),
 
-			case file_utils:is_existing_directory_or_link( PrereqEBinPath ) of
+			AppNameStr = get_string_application_name( AppName ),
+
+			% Not easily derived from LocalEBinPath:
+			CheckoutEbinPath = file_utils:join( [ BuildDir, "_checkouts",
+				AppNameStr, "_build", "default", "lib", AppNameStr, "ebin" ] ),
+
+			case file_utils:is_existing_directory_or_link( CheckoutEbinPath ) of
 
 				true ->
 					trace_utils:trace_fmt( "Using, for the prerequisite "
-						"application '~s', the '~s' sibling ebin path.",
-						[ AppName, PrereqEBinPath ] ),
-
-					PrereqEBinPath;
+						"application '~s', the '~s' checkout ebin path.",
+						[ AppName, CheckoutEbinPath ] ),
+					CheckoutEbinPath;
 
 				false ->
-					undefined
+					%trace_utils:debug_fmt( "No checkout '~s' found.",
+					%					   [ CheckoutEbinPath ] ),
+
+					% Then (3): maybe this application is a prerequisite of the
+					% tested one, available in a sibling directory thereof (see
+					% module notes above):
+					%
+					SiblingBuildDir =
+						file_utils:join( [ BuildDir, "..", AppNameStr ] ),
+
+					SiblingEBinPath =
+						get_local_ebin_path_for( AppName, SiblingBuildDir ),
+
+					case file_utils:is_existing_directory_or_link(
+						   SiblingEBinPath ) of
+
+						true ->
+							trace_utils:trace_fmt( "Using, for the prerequisite "
+								"application '~s', the '~s' sibling ebin path.",
+								[ AppName, SiblingEBinPath ] ),
+							SiblingEBinPath;
+
+						false ->
+							%trace_utils:debug_fmt( "No sibling '~s' found.",
+							%					   [ SiblingEBinPath ] ),
+							undefined
+
+					end
 
 			end
 
@@ -167,6 +203,37 @@ get_ebin_path_for( AppName, BuildDir ) ->
 -spec prepare_for_test( application_name() | [ application_name() ],
 		directory_path() ) -> 'ready' | { 'lacking_app', application_name() }.
 prepare_for_test( AppName, BuildDir ) when is_atom( AppName ) ->
+
+	case lists:member( AppName, list_otp_native_applications() ) of
+
+		true ->
+			trace_utils:trace_fmt( "Using defaults for the OTP-native "
+								   "application '~s'.", [ AppName ] ),
+			ready;
+
+		false ->
+			prepare_user_application_for_test( AppName, BuildDir )
+
+	end;
+
+prepare_for_test( _AppNames=[], _BuildDir ) ->
+	ready;
+
+prepare_for_test( _AppNames=[ AppName | T ], BuildDir ) ->
+	case prepare_for_test( AppName, BuildDir ) of
+
+		ready ->
+			prepare_for_test( T, BuildDir );
+
+		LackPair ->
+			LackPair
+
+	end.
+
+
+
+% (helper)
+prepare_user_application_for_test( AppName, BuildDir ) ->
 
 	% Specific checking, just for the sake of a (non-OTP) test, that the
 	% specified OTP application is already available, in the usual _build
@@ -208,22 +275,23 @@ prepare_for_test( AppName, BuildDir ) when is_atom( AppName ) ->
 
 			end
 
-	end;
-
-prepare_for_test( _AppNames=[], _BuildDir ) ->
-	ready;
-
-prepare_for_test( _AppNames=[ AppName | T ], BuildDir ) ->
-	case prepare_for_test( AppName, BuildDir ) of
-
-		ready ->
-			prepare_for_test( T, BuildDir );
-
-		LackPair ->
-			LackPair
-
 	end.
 
+
+
+% Returns a list of the applications known to belong to the OTP standard
+% distribution (and thus whose availability does not have to be checked).
+%
+% (simply obtained by listing the directories in the lib directory at the root
+% of an Erlang source tree)
+%
+-spec list_otp_native_applications() -> [ application_name() ].
+list_otp_native_applications() ->
+	[ asn1, common_test, compiler, crypto, debugger, dialyzer, diameter, edoc,
+	  eldap, erl_docgen, erl_interface, et, eunit, ftp, hipe, inets, jinterface,
+	  kernel, megaco, mnesia, observer, odbc, os_mon, parsetools, public_key,
+	  reltool, runtime_tools, sasl, snmp, ssh, ssl, stdlib, syntax_tools, tftp,
+	  tools, wx, xmerl ].
 
 
 
