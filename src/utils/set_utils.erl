@@ -223,7 +223,7 @@ difference( FirstSet, SecondSet ) ->
 	?set_impl:difference( FirstSet, SecondSet ).
 
 
-% Returns the differences between the first specified set and the second as a
+% Returns the differences between the first specified set and the second, as a
 % pair, whose first element corresponds to the elements of the first set that
 % are not in the second one, and whose second element corresponds to the
 % elements of the second set that are not in the first one.
