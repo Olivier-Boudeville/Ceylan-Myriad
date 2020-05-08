@@ -43,11 +43,13 @@ test_myriad_application() ->
 	test_facilities:display( "Starting the Myriad OTP library application." ),
 	otp_utils:start_application( myriad ),
 
+
 	test_facilities:display( "Myriad version: ~p.",
 				 [ system_utils:get_application_version( myriad ) ] ),
 
 	test_facilities:display( "Current user name: '~s'.",
 							 [ system_utils:get_user_name() ] ),
+
 
 	test_facilities:display( "Stopping the Myriad application." ),
 	otp_utils:stop_application( myriad ),
