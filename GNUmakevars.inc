@@ -226,7 +226,8 @@ endif
 
 
 # Deactivated by default, as requires specific prerequisites (the HDF5 library
-# and the erlhdf5 binding).
+# and the erlhdf5 binding) at runtime and also at compilation time (includes
+# needed).
 #
 ifndef USE_HDF5
 
@@ -250,7 +251,8 @@ endif
 
 
 # Deactivated by default, as requires specific prerequisites (the jsx JSON
-# parser, cf https://github.com/talentdeficit/jsx).
+# parser, cf https://github.com/talentdeficit/jsx) at runtime (not at
+# compilation time, as not needing any specific include).
 #
 ifndef USE_REST
 
@@ -1218,10 +1220,12 @@ REBAR_INCS := {i,\"`echo $(STABLE_INC)|sed 's| |\"}, {i,\"|g' | sed 's|-I\.\./||
 
 
 # Some source files cannot be compiled in all cases (typically because they
-# depend on prerequisites that may or may not be installed).
+# depend on the includes of prerequisites that may or may not be installed).
 #
 # As rebar will attempt blindly to compile them, we have to hide these files
-#  whenever necessary.
+# whenever necessary.
+#
+# (json_utils and related not listed here, as not needing specific includes)
 #
 UNSUPPORTED_SOURCES := src/data-management/sql_support.erl          \
 					   src/data-management/sql_support_test.erl     \
