@@ -52,7 +52,8 @@
 
 
 % Set-related operations are:
--export([ new/0, new/1, singleton/1, add/2, add_as_new/2, add_element_list/2,
+-export([ new/0, new/1, singleton/1, are_equal/2,
+		  add/2, add_as_new/2, add_element_list/2,
 		  union/2, union/1, intersection/2, intersection/1,
 		  difference/2, differences/2, is_set/1, check_set/1, is_subset/2,
 		  from_list/1, to_list/1,
@@ -126,6 +127,21 @@ singleton( Element ) ->
 	% Not defined for ordsets:
 	%?set_impl:singleton( Element ).
 	?set_impl:add_element( Element, ?set_impl:new() ).
+
+
+
+% Tells whether the two specified sets are equal (i.e. contain exactly the same
+% elements).
+%
+% Note: depending on set_impl, this function may or may not be useless, as
+% using the basic '==' term-level operator may be sufficient to compare some
+% types of sets (ex: ordsets).
+%
+-spec are_equal( set(), set() ) -> boolean().
+are_equal( Set1, Set2 ) ->
+	% Shall be correct (albeit expensive) in all cases:
+	?set_impl:is_subset( Set1, Set2 )
+		andalso ?set_impl:is_subset( Set2, Set1 ).
 
 
 
