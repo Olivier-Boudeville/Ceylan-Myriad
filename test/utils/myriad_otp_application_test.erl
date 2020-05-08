@@ -26,7 +26,10 @@
 % Creation date: Friday, July 19, 2019.
 
 
-% Testing of Myriad as an OTP library application.
+% Testing of Myriad as an OTP library application, directly from within its code
+% base (hence without needing to create a separate, mock-up test release for
+% that).
+%
 -module(myriad_otp_application_test).
 
 
@@ -35,12 +38,10 @@
 
 
 % Actual test:
-test_myriad_application( EBinPath ) ->
+test_myriad_application() ->
 
-	code_utils:declare_beam_directory( EBinPath ),
-
-	test_facilities:display( "Starting the Myriad application." ),
-	ok = application:start( myriad ),
+	test_facilities:display( "Starting the Myriad OTP library application." ),
+	otp_utils:start_application( myriad ),
 
 	test_facilities:display( "Myriad version: ~p.",
 				 [ system_utils:get_application_version( myriad ) ] ),
@@ -49,36 +50,35 @@ test_myriad_application( EBinPath ) ->
 							 [ system_utils:get_user_name() ] ),
 
 	test_facilities:display( "Stopping the Myriad application." ),
-	ok = application:stop( myriad ),
+	otp_utils:stop_application( myriad ),
 
 	test_facilities:display(
-	  "Successful end of test of the Myriad application." ).
+	  "Successful end of test of the Myriad OTP application." ).
 
 
 
-% Note that the ebin application directory must be in the code path for the
-% myriad.app file to be found and used, and for this test to succeed.
+% Note that the myriad.app file will have to be found and used for this test to
+% succeed: Myriad must be already available as a prerequisite, fully-built OTP
+% application.
 %
 -spec run() -> no_return().
 run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	% Supposing here that the application is built, in the usual _build
-	% directory, with the default rebar3 profile:
-	%
-	EBinPath = "../../_build/default/lib/myriad/ebin/",
+	% Build root directory from which prerequisite applications may be found:
+	BuildRootDir = file_utils:join( "..", ".." ),
 
-	case file_utils:is_existing_directory_or_link( EBinPath ) of
+	case otp_utils:prepare_for_test( _AppName=myriad, BuildRootDir ) of
 
-		true ->
-			test_myriad_application( EBinPath ) ;
+		ready ->
+			test_myriad_application() ;
 
-		false ->
-			trace_utils:warning_fmt( "No build directory found for the Myriad "
-				"application (searched for '~s'), stopping this test "
-				"(run beforehand 'make rebar3-compile' at the root of the "
-				"source tree for a more relevant testing).", [ EBinPath ] )
+		{ lacking_app, _App } ->
+			% (a detailed warning message has been issued by
+			% otp_utils:prepare_for_test/2)
+			%
+			ok
 
 	end,
 
