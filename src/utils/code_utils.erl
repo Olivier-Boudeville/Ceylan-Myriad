@@ -86,16 +86,30 @@
 -include_lib("kernel/include/file.hrl").
 
 
+% Shorthands:
+
+-type module_name() :: basic_utils:module_name().
+
+-type directory_name() :: file_utils:directory_name().
+-type file_name() :: file_utils:file_name().
+-type file_path() :: file_utils:file_path().
+
+-type atom_node_name() :: net_utils:atom_node_name().
+
+-type env_variable_name() :: system_utils:env_variable_name().
+
+-type time_out() :: time_utils:time_out().
+
+
 
 % Code-related functions.
 
 
 % Returns, by searching the code path, the in-file object code for specified
-% module, i.e. a { ModuleBinary, ModuleFilename } pair for the module specified
-% as an atom, or throws an exception.
+% module, i.e. a {ModuleBinary, ModuleFilename} pair for the module specified as
+% an atom, or throws an exception.
 %
--spec get_code_for( basic_utils:module_name() ) ->
-						  { binary(), file:filename() }.
+-spec get_code_for( module_name() ) -> { binary(), file_path() }.
 get_code_for( ModuleName ) ->
 
 	%trace_utils:debug_fmt( "Getting code for module '~s', "
@@ -114,12 +128,10 @@ get_code_for( ModuleName ) ->
 			ModString= text_utils:atoms_to_string( FoundBeams ),
 
 			trace_utils:error_fmt( "Unable to find object code for '~s' "
-								   "on '~s', knowing that the current "
-								   "directory is ~s and the ~s~n "
-								   "The corresponding found BEAM files are: ~s",
-								   [ ModuleName, node(),
-									 file_utils:get_current_directory(),
-									 get_code_path_as_string(), ModString ] ),
+				"on '~s', knowing that the current directory is ~s and "
+				"the ~s~n The corresponding found BEAM files are: ~s",
+				[ ModuleName, node(), file_utils:get_current_directory(),
+				  get_code_path_as_string(), ModString ] ),
 
 			throw( { module_code_lookup_failed, ModuleName } )
 
@@ -131,8 +143,7 @@ get_code_for( ModuleName ) ->
 %
 % Otherwise returns a undefined function exception (ModuleName:module_info/1).
 %
--spec get_md5_for_loaded_module( basic_utils:module_name() ) ->
-									   executable_utils:md5_sum().
+-spec get_md5_for_loaded_module( module_name() ) -> executable_utils:md5_sum().
 get_md5_for_loaded_module( ModuleName ) ->
 	ModuleName:module_info( md5 ).
 
@@ -141,8 +152,7 @@ get_md5_for_loaded_module( ModuleName ) ->
 % Returns the MD5 for the specified stored (on filesystem, found through the
 % code path) module.
 %
--spec get_md5_for_stored_module( basic_utils:module_name() ) ->
-									   executable_utils:md5_sum().
+-spec get_md5_for_stored_module( module_name() ) -> executable_utils:md5_sum().
 get_md5_for_stored_module( ModuleName ) ->
 	{ BinCode, _ModuleFilename } = get_code_for( ModuleName ),
 	{ ok, { ModuleName, MD5SumBin } } = beam_lib:md5( BinCode ),
@@ -153,8 +163,7 @@ get_md5_for_stored_module( ModuleName ) ->
 % Tells whether the specified (supposedly loaded) module is the same as the one
 % found through the code path.
 %
--spec is_loaded_module_same_on_filesystem( basic_utils:module_name() ) ->
-												 boolean().
+-spec is_loaded_module_same_on_filesystem( module_name() ) -> boolean().
 is_loaded_module_same_on_filesystem( ModuleName ) ->
 	LoadedMD5 = get_md5_for_loaded_module( ModuleName ),
 	StoredMD5 = get_md5_for_stored_module( ModuleName ),
@@ -177,7 +186,7 @@ is_loaded_module_same_on_filesystem( ModuleName ) ->
 % be caused by a version mistmatch between the Erlang environments in the source
 % and at least one of the remote target hosts (ex: ERTS 5.5.2 vs 5.8.2).
 %
--spec deploy_modules( [ module() ], [ net_utils:atom_node_name() ] ) -> void().
+-spec deploy_modules( [ module() ], [ atom_node_name() ] ) -> void().
 deploy_modules( Modules, Nodes ) ->
 	deploy_modules( Modules, Nodes, _Timeout=?rpc_timeout ).
 
@@ -194,8 +203,8 @@ deploy_modules( Modules, Nodes ) ->
 % be caused by a version mistmatch between the Erlang environments in the source
 % and at least one of the remote target hosts (ex: ERTS 5.5.2 vs 5.8.2).
 %
--spec deploy_modules( [ module() ], [ net_utils:atom_node_name() ],
-					  time_utils:time_out() ) -> void().
+-spec deploy_modules( [ module() ], [ atom_node_name() ], time_out() ) ->
+							void().
 deploy_modules( Modules, Nodes, Timeout ) ->
 
 	% At least until the next version to come after R14B02, there was a possible
@@ -225,8 +234,8 @@ deploy_modules( Modules, Nodes, Timeout ) ->
 
 
 % (helper function)
--spec deploy_module( module(), { binary(), file_utils:file_name() },
-		  [ net_utils:atom_node_name() ], time_utils:time_out() ) -> void().
+-spec deploy_module( module(), { binary(), file_path() }, [ atom_node_name() ],
+					 time_out() ) -> void().
 deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
 
 	%trace_utils:debug_fmt( "Deploying module '~s' (filename '~s') on nodes ~p "
@@ -300,7 +309,7 @@ deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
 %
 % Throws an exception if the directory does not exist.
 %
--spec declare_beam_directory( file_utils:directory_name() ) -> void().
+-spec declare_beam_directory( directory_name() ) -> void().
 declare_beam_directory( Dir ) ->
 	declare_beam_directory( Dir, first_position ).
 
@@ -311,7 +320,7 @@ declare_beam_directory( Dir ) ->
 %
 % Throws an exception if the directory does not exist.
 %
--spec declare_beam_directory( file_utils:directory_name(),
+-spec declare_beam_directory( directory_name(),
 							  'first_position' | 'last_position' ) -> void().
 declare_beam_directory( Dir, first_position ) ->
 
@@ -405,7 +414,7 @@ check_beam_dirs( _Dirs=[ D | T ] ) ->
 %
 % Ex: get_beam_dirs_for( "CEYLAN_MYRIAD" ).
 %
--spec get_beam_dirs_for( system_utils:env_variable_name() ) -> code_path().
+-spec get_beam_dirs_for( env_variable_name() ) -> code_path().
 get_beam_dirs_for( VariableName ) ->
 
 	case os:getenv( VariableName ) of
@@ -468,7 +477,7 @@ get_beam_dirs_for_myriad() ->
 % Note: the determined directories are not specifically checked for existence,
 % and are added at the end of the code path.
 %
--spec declare_beam_dirs_for( system_utils:env_variable_name() ) -> void().
+-spec declare_beam_dirs_for( env_variable_name() ) -> void().
 declare_beam_dirs_for( VariableName ) ->
 	code:add_pathsz( get_beam_dirs_for( VariableName ) ).
 
@@ -529,7 +538,7 @@ code_path_to_string( CodePath ) ->
 % Lists (in alphabetical order) all modules that exist in the current
 % code path, based on the BEAM files found.
 %
--spec list_beams_in_path() -> [ basic_utils:module_name() ].
+-spec list_beams_in_path() -> [ module_name() ].
 list_beams_in_path() ->
 
 	% Directly inspired from:
@@ -544,7 +553,7 @@ list_beams_in_path() ->
 
 
 % Returns the filename of the BEAM file corresponding to specified module.
--spec get_beam_filename( basic_utils:module_name() ) -> file_utils:file_name().
+-spec get_beam_filename( module_name() ) -> file_name().
 get_beam_filename( ModuleName ) when is_atom( ModuleName ) ->
 
 	ModuleNameString = text_utils:atom_to_string( ModuleName ),
@@ -562,8 +571,7 @@ get_beam_filename( ModuleName ) when is_atom( ModuleName ) ->
 % Note that a given module can be nevertheless found more than once, typically
 % if reachable from the current directory and an absolute one in the code path.
 %
--spec is_beam_in_path( basic_utils:module_name() ) ->
-							 'not_found' | [ file_utils:path() ].
+-spec is_beam_in_path( module_name() ) -> 'not_found' | [ file_utils:path() ].
 is_beam_in_path( ModuleName ) when is_atom( ModuleName ) ->
 
 	ModuleNameString = text_utils:atom_to_string( ModuleName ),
@@ -639,7 +647,6 @@ interpret_stacktrace( StackTrace, FullPathsWanted ) ->
 
 
 
-
 % Helper:
 interpret_stack_item( { Module, Function, Arity, [ { file, FilePath },
 												   { line, Line } ] },
@@ -698,7 +705,7 @@ display_stacktrace() ->
 
 
 % Interprets an undef exception, typically after it has been raised.
--spec interpret_undef_exception( basic_utils:module_name(),
+-spec interpret_undef_exception( module_name(),
 		 basic_utils:function_name(), arity() ) -> text_utils:ustring().
 interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
 
