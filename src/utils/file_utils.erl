@@ -218,11 +218,23 @@
 -type extension() :: string().
 
 
-% A leaf name, i.e. the final part of a path (possibly a file or directory).
+% A part of a path (ex: "local" in "/usr/local/share"):
+-type path_element() :: text_utils:ustring().
+
+
+% A part of a path (ex: <<"local">> in "/usr/local/share"):
+-type bin_path_element() :: text_utils:bin_string().
+
+
+% Any type of a part of a path (ex: <<"local">> in "/usr/local/share"):
+-type any_path_element() :: path_element() | bin_path_element().
+
+
+% A leaf name, i.e. the final element of a path (possibly a file or directory).
 %
 % Ex: in 'aaa/bbb/ccc', 'aaa' is the root, and 'ccc' is the leaf.
 %
--type leaf_name() :: string().
+-type leaf_name() :: path_element().
 
 
 
@@ -279,6 +291,8 @@
 			   directory_name/0, bin_directory_name/0,
 			   directory_path/0, bin_directory_path/0,
 			   extension/0,
+			   path_element/0, bin_path_element/0, any_path_element/0,
+			   leaf_name/0,
 			   entry_type/0, parent_creation/0, permission/0,
 			   compression_format/0,
 			   file/0, file_info/0 ]).
@@ -332,7 +346,7 @@
 %
 % See filename:split/1 for the reverse operation.
 %
--spec join( [ any_path() ] ) -> path().
+-spec join( [ any_path_element() ] ) -> path().
 join( ComponentList ) when is_list( ComponentList ) ->
 	lists:foldr( fun join/2, _Acc0="", _List=ComponentList );
 
