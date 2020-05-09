@@ -68,7 +68,7 @@
 
 		  get_local_ebin_path_for/2, get_ebin_path_for/2,
 
-		  prepare_for_test/2, list_otp_native_applications/0,
+		  prepare_for_test/2, list_otp_standard_applications/0,
 
 		  start_application/1, start_application/2,
 		  start_applications/1, start_applications/2,
@@ -109,7 +109,7 @@ get_local_ebin_path_for( AppName, BuildDir ) ->
 
 
 % Returns the path (if any) to the ebin directory of the specified prerequisite
-% (user, i.e. non-native) OTP application of this test, namely the tested
+% (user, i.e. not standard) OTP application of this test, namely the tested
 % application itself or one of its own prerequisites (supposing the 'default'
 % rebar3 profile being used), based on the specified root of the current build
 % tree.
@@ -205,10 +205,10 @@ get_ebin_path_for( AppName, BuildDir ) ->
 		directory_path() ) -> 'ready' | { 'lacking_app', application_name() }.
 prepare_for_test( AppName, BuildDir ) when is_atom( AppName ) ->
 
-	case lists:member( AppName, list_otp_native_applications() ) of
+	case lists:member( AppName, list_otp_standard_applications() ) of
 
 		true ->
-			trace_utils:trace_fmt( "Using defaults for the OTP-native "
+			trace_utils:trace_fmt( "Using defaults for the standard OTP "
 								   "application '~s'.", [ AppName ] ),
 			ready;
 
@@ -244,11 +244,14 @@ prepare_user_application_for_test( AppName, BuildDir ) ->
 
 		undefined ->
 			trace_utils:warning_fmt( "No build directory found for the '~s' "
-				"OTP application (searched from '~s', locally or through "
-				"siblings), this test cannot be performed "
+				"OTP application (not belonging to the known standard Erlang "
+				"applications, so searched through any local rebar _build "
+				"directory, in any _checkouts one, or through sibling "
+				"applications of '~s'); this test thus cannot be performed "
 				"(run beforehand 'make rebar3-compile' at the root of the "
 				"~s source tree for a more relevant testing).",
-				[ AppName, BuildDir, AppName ] ),
+				[ AppName, file_utils:ensure_path_is_absolute( BuildDir ),
+				  AppName ] ),
 			{ lacking_app, AppName };
 
 
@@ -286,8 +289,8 @@ prepare_user_application_for_test( AppName, BuildDir ) ->
 % (simply obtained by listing the directories in the lib directory at the root
 % of an Erlang source tree)
 %
--spec list_otp_native_applications() -> [ application_name() ].
-list_otp_native_applications() ->
+-spec list_otp_standard_applications() -> [ application_name() ].
+list_otp_standard_applications() ->
 	[ asn1, common_test, compiler, crypto, debugger, dialyzer, diameter, edoc,
 	  eldap, erl_docgen, erl_interface, et, eunit, ftp, hipe, inets, jinterface,
 	  kernel, megaco, mnesia, observer, odbc, os_mon, parsetools, public_key,
