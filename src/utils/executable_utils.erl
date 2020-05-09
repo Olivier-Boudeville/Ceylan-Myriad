@@ -1149,8 +1149,13 @@ argument_table_to_string( ArgTable ) ->
 % specified, provided it has been set as a plain argument, i.e. one that it is
 % specified *after* either "--" or, preferably, "-extra".
 %
-% Otherwise, the application configuration will be read (typically set from any
-% conf/sys.config file defined by the application).
+% Otherwise, the application configuration will be read for the is_batch key
+% (typically set from any conf/sys.config file defined by the application; see
+% also the "-config" command-line option in
+% https://erlang.org/doc/man/config.html).
+%
+% Finally, if not set elsewhere, the application resource file (*.app) will be
+% searched for such an is_batch key.
 %
 % Note that, if relying on application configuration, the result will depend on
 % the {application name, callsite} pair. Indeed, if application foo depends on
