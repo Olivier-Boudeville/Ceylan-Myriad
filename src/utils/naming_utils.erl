@@ -79,7 +79,8 @@
 % - a given PID cannot be registered globally under more than one name
 % - if a registered process terminates (for any of the two scopes), its name is
 % automatically unregistered (see
-% http://erlang.org/doc/reference_manual/processes.htmlhttp://erlang.org/doc/man/global.html)
+% http://erlang.org/doc/reference_manual/processes.html and
+% http://erlang.org/doc/man/global.html)
 
 
 
@@ -164,8 +165,13 @@ register_as( Pid, Name, local_and_global ) when is_atom( Name ) ->
 	register_as( Pid, Name, global_only );
 
 register_as( _Pid, _Name, none ) ->
-	ok.
+	ok;
 
+register_as( _Pid, Name, Other ) when is_atom( Name ) ->
+	throw( { invalid_registration_scope, Other } );
+
+register_as( _Pid, Name, _Other ) ->
+	throw( { invalid_type_for_name, Name } ).
 
 
 
