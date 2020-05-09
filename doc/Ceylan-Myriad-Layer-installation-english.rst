@@ -116,7 +116,7 @@ However, to better integrate with other Erlang developments (which are mostly OT
 OTP Application
 ---------------
 
-Myriad is not an *active* OTP application, and as such does not rely on, or provides, services running in the background; so no supervision tree or ``gen_server`` is involved here, just a library application ready for OTP integration [#]_.
+Myriad is not an *active* OTP application, and as such does not rely on, or provides, services running in the background; so no supervision tree or ``gen_server`` is involved here, just a *library* application ready for OTP integration [#]_.
 
 .. [#] Speaking of OTP, in development mode, ``proc_lib``-based spawns used to be enabled, yet this led to longer error messages that were not that useful; see ``spawn_utils.hrl`` if wanting to re-enable them.
 
@@ -218,9 +218,12 @@ For more details, one may have a look at:
 Other OTP-related Make Targets of Interest
 ------------------------------------------
 
-To populate the OTP build tree (by default, from the GIT root, ``_build/default/lib/myriad/``)::
+To populate/update the OTP build tree (by default, from the GIT root, ``_build/default/lib/myriad/``)::
 
  $ make rebar3-compile
+
+(this is especially useful in order to be able to use directly, from an OTP application, changes just performed in a Ceylan-based layer)
+
 
 To publish an Hex package (once the proper version number has been set in ``GNUmakevars.inc``, see ``MYRIAD_VERSION``)::
 
