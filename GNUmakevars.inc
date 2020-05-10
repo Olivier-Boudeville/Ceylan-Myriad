@@ -453,12 +453,15 @@ else
 endif
 
 
-# Allows to list the tokens used for the enabling of conditional code:
-#ERLANG_COMPILER_TOKEN_OPT :=
-
 # To test conditional checks:
-ERLANG_COMPILER_TOKEN_OPT := -Dmy_first_test_token -Dmy_second_test_token=200 \
-							 -Dmy_third_test_token=some_text
+ERLANG_COMPILER_TEST_TOKEN_OPT := -Dmy_first_test_token            \
+								  -Dmy_second_test_token=200       \
+								  -Dmy_third_test_token=some_text
+
+
+# Allows to list the tokens used for the enabling of conditional code:
+ERLANG_COMPILER_TOKEN_OPT := $(ERLANG_COMPILER_TEST_TOKEN_OPT)
+
 
 
 ALL_ERL_FILES = $(wildcard *.erl)
@@ -739,7 +742,7 @@ ifndef BOOTSTRAP_MODULES
 	META_SRC_FILES = $(wildcard $(MYRIAD_TOP)/src/meta/*.erl)
 
 	# As they do not need to be specifically bootstrapped:
-	EXCLUDED_FROM_BOOTSTRAPPED_META = \
+	EXCLUDED_FROM_BOOTSTRAPPED_META =                                    \
 				$(MYRIAD_TOP)/src/meta/myriad_parse_transform.erl        \
 				$(MYRIAD_TOP)/src/meta/myriad_parse_transform_test.erl   \
 				$(MYRIAD_TOP)/src/meta/example_parse_transform.erl       \
@@ -989,7 +992,6 @@ endif
 
 
 
-
 # 'BEAM_PATH_OPT = --beam-paths $(BEAM_DIRS)' would be shorter, but would
 # prevent adding other options to the launcher afterwards:
 # (now we use absolute directories - thanks to 'pwd' - instead of relative ones,
@@ -1178,8 +1180,8 @@ endif
 
 
 # Results of the filling of corresponding templates:
-REBAR_CONF_FILES := rebar.config             \
-					rebar-for-hex.config     \
+REBAR_CONF_FILES := rebar.config              \
+					rebar-for-hex.config      \
 					rebar-for-testing.config
 
 
