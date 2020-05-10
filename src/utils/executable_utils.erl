@@ -129,34 +129,42 @@
 -type command_line_option() :: atom().
 
 
-% The name of a command-line value (ex: "blue"):
+% An unitary value specified in link to a command-line option:
 -type command_line_value() :: text_utils:ustring().
+
+% The command-line values specified after an occurrence of a given option (ex:
+% ["blue", "red"]):
+%
+-type command_line_values() :: [ command_line_value() ].
 
 
 % The association between a command-line option and the various values
-% associated to its instances.
+% associated to its various occurrences.
 %
 % Ex: if arguments were "--color blue red [...] --color yellow", then the
-% corresponding argument is { '-color', [ [ "blue", "red" ]; [ "yellow" ] ] }.
+% corresponding argument entry is { '-color', [ [ "blue", "red" ], [ "yellow" ]
+% ] } (i.e. with, associated to a command-line option, a list whose elements are
+% *lists* of strings; in their order on the command-line).
 %
 % Note that keys are atoms (with one leading dash removed), and it is advisable
 % to use only the executable_utils module support rather than mixing and
 % matching it with the one of the 'init' module (different keys).
 %
 -type command_line_argument() ::
-		{ command_line_option(), [ command_line_value() ] }.
+		% Yes, a *list* of command-line valueS:
+		{ command_line_option(), [ command_line_values() ] }.
 
 
 
 % A table storing command-line user (plain, i.e arguments specified after either
-% "--" or, perferably, "-extra) conveniently (a bit like getopt), in a format in
-% the spirit of init:get_arguments/0.
+% "--" or, preferably, "-extra") arguments conveniently (a bit like getopt), in
+% a format in the spirit of init:get_arguments/0.
 %
 % Useful to manage arguments more easily, and also to handle uniformly the
 % arguments specified for erl-based executions and escript ones alike.
 %
--type argument_table() :: list_table:list_table( command_line_option(),
-												 [ command_line_value() ] ).
+-type argument_table() ::
+		list_table:list_table( command_line_option(), [ command_line_values() ] ).
 
 
 -export_type([ md5_sum/0, sha1_sum/0, sha_sum/0,
@@ -867,9 +875,9 @@ get_argument_table() ->
 % Note:
 %
 % - only the arguments specified on the command-line after the '-extra' marker
-% will be taken into account; ex:
+% will be taken into account; ex: with
 %        make ui_run CMD_LINE_OPT="-a -extra -b --use-ui-backend text_ui"
-% (here "-a" will be ignored)
+% "-a" will be ignored
 %
 % - abnormal arguments (ex: not starting with a dash) will be reported iff
 % FailSafe is false
@@ -984,12 +992,25 @@ manage_option( Option, RemainingArgs, OptionTable ) ->
 
 	OptionAtom = text_utils:string_to_atom( Option ),
 
-	{ OptValues, NextOptionInfo } = collect_values_for_option( RemainingArgs,
-															   _AccValues=[] ),
+	{ OptValues, NextOptionInfo } =
+		collect_values_for_option( RemainingArgs, _AccValues=[] ),
 
 	% This option may already be registered in the table:
-	NewOptionTable = list_table:append_list_to_entry( _K=OptionAtom, OptValues,
-													  OptionTable ),
+	%
+	% (like list_utils:append_to_entry/3 except values are added on the right,
+	% thus in-order, rather than at the head)
+	%
+	Key = OptionAtom,
+	NewOptionTable = case lists:keytake( Key, _N=1, OptionTable ) of
+
+		{ value, { _Key, ListValue }, ShrunkTable } ->
+			[ { Key, list_utils:append_at_end( OptValues, ListValue ) }
+			  | ShrunkTable ];
+
+		false ->
+			[ { Key, [ OptValues ] } | OptionTable ]
+
+	end,
 
 	case NextOptionInfo of
 
@@ -1006,7 +1027,6 @@ manage_option( Option, RemainingArgs, OptionTable ) ->
 % (helper)
 %
 % All arguments processed here:
-%
 collect_values_for_option( _Args=[], AccValues ) ->
 	{ lists:reverse( AccValues ), _NextOption=none };
 

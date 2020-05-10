@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Saturday, May 12, 2018
+% Creation date: Saturday, May 12, 2018.
 
 
 
@@ -56,12 +56,12 @@ run() ->
 	% Emulated as if they were obtained in the context of an escript:
 	CommandLineArgs = text_utils:split( ArgString, _Delimiters=[ $ ] ),
 
-	CanonicalArgTables = executable_utils:get_argument_table( CommandLineArgs ),
+	CanonicalArgTables =
+		executable_utils:get_argument_table_from_strings( CommandLineArgs ),
 
 	test_facilities:display( "Command-line interpretation follows, for "
 							 "command-line arguments '~s': ~s",
 		 [ ArgString,
 		   executable_utils:argument_table_to_string( CanonicalArgTables ) ] ),
-
 
 	test_facilities:stop().
