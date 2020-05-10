@@ -218,11 +218,18 @@ For more details, one may have a look at:
 Other OTP-related Make Targets of Interest
 ------------------------------------------
 
-To populate/update the OTP build tree (by default, from the GIT root, ``_build/default/lib/myriad/``)::
+To populate/update the OTP build tree (by default, from the GIT root, for example ``_build/default/lib/myriad/`` for Myriad) of the current Ceylan layer, one may use::
 
  $ make rebar3-compile
 
 (this is especially useful in order to be able to use directly, from an OTP application, changes just performed in a Ceylan-based layer)
+
+
+To update both the OTP build tree and the local ebin directory of each Ceylan layer on which the current layer depends, use::
+
+ $ make rebar3-local-update
+
+(note this will be a no-op from Myriad, as it does not depend on any Ceylan layer)
 
 
 To publish an Hex package (once the proper version number has been set in ``GNUmakevars.inc``, see ``MYRIAD_VERSION``)::
