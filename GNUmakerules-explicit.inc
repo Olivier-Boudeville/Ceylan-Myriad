@@ -225,7 +225,7 @@ test: all test-recurse
 
 test-recurse:
 	@echo "   Testing all in $$(basename $(PWD))"
-	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s test CMD_LINE_OPT="${CMD_LINE_OPT} --batch" && cd .. ; else echo "	  (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
+	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s test CMD_LINE_OPT="${CMD_LINE_OPT}" && cd .. ; else echo "	  (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
 
 
 # Best placed here rather than in GNUmakerules-docutils.inc:
