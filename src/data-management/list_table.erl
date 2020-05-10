@@ -586,7 +586,7 @@ merge_in_keys( _KeyAssoc=[ { K, AltKeys } | T ], Table ) ->
 % '[|]' operation will not complain if not.
 %
 -spec append_to_existing_entry( key(), term(), list_table() ) ->
-								   list_table().
+									  list_table().
 append_to_existing_entry( Key, Element, Table ) ->
 
 	case lists:keytake( Key, _N=1, Table ) of
@@ -607,7 +607,7 @@ append_to_existing_entry( Key, Element, Table ) ->
 % An exception is thrown if the key does not exist.
 %
 -spec append_list_to_existing_entry( key(), [ term() ], list_table() ) ->
-								   list_table().
+										   list_table().
 append_list_to_existing_entry( Key, Elements, Table ) ->
 
 	case lists:keytake( Key, _N=1, Table ) of
