@@ -87,6 +87,7 @@ run() ->
 							 B = A + 1,
 							 process_dictionary:put( process_test_key, 2 ) ] ),
 
+	% {badmatch,1} would imply that no -Dmy_first_test_token was specified:
 	2 = process_dictionary:get( process_test_key ),
 
 
