@@ -158,7 +158,8 @@
 
 % A table storing command-line user (plain, i.e arguments specified after either
 % "--" or, preferably, "-extra") arguments conveniently (a bit like getopt), in
-% a format in the spirit of init:get_arguments/0.
+% a format exactly in the spirit of init:get_arguments/0, allowing to record
+% repeated options, possibly each time specified with a series of values.
 %
 % Useful to manage arguments more easily, and also to handle uniformly the
 % arguments specified for erl-based executions and escript ones alike.
@@ -858,7 +859,8 @@ get_default_jinterface_path() ->
 %        make ui_run CMD_LINE_OPT="-a -extra -b --use-ui-backend text_ui"
 % (here "-a" will be ignored)
 %
-% - abnormal arguments (ex: not starting with a dash) will be reported
+% - abnormal arguments (ex: not starting with a dash) will be reported, through
+% a warning trace
 %
 % - this function is to be called in the context of a standard erl execution (as
 % opposed to an escript one, which shall use script_utils:get_arguments/1)
@@ -879,8 +881,8 @@ get_argument_table() ->
 %        make ui_run CMD_LINE_OPT="-a -extra -b --use-ui-backend text_ui"
 % "-a" will be ignored
 %
-% - abnormal arguments (ex: not starting with a dash) will be reported iff
-% FailSafe is false
+% - abnormal arguments (ex: not starting with a dash) will be reported (through
+% a warning trace) iff FailSafe is false
 %
 % - this function is to be called in the context of a standard erl execution (as
 % opposed to an escript one, which shall use script_utils:get_arguments/1)
@@ -938,8 +940,8 @@ get_argument_table_from_strings( ArgStrings ) ->
 											 argument_table().
 get_argument_table_from_strings( ArgStrings, FailSafe ) ->
 
-	%trace_utils:debug_fmt( "Creating argument table from: ~p, with fail-safe "
-	%					   "mode set to ~s.", [ ArgStrings, FailSafe ] ),
+	trace_utils:debug_fmt( "Creating argument table from: ~p, with fail-safe "
+						   "mode set to ~s.", [ ArgStrings, FailSafe ] ),
 
 	% Useful side-effect, difficult to troubleshoot:
 	system_utils:force_unicode_support(),
@@ -951,6 +953,7 @@ get_argument_table_from_strings( ArgStrings, FailSafe ) ->
 
 % (helper)
 get_arguments_from_strings( _Args=[], OptionTable, _FailSafe ) ->
+	%trace_utils:debug_fmt( "Option table returned: ~p.", [ OptionTable ] ),
 	OptionTable;
 
 % The first option is detected, removing its initial dash:
@@ -981,8 +984,8 @@ get_arguments_from_strings( _Args=[ Dropped | T ], OptionTable,
 	get_arguments_from_strings( T, OptionTable, FailSafe );
 
 get_arguments_from_strings( _Args=[ _Dropped | T ], OptionTable,
-							 FailSafe=true ) ->
-	% Silently ignored:
+							FailSafe=true ) ->
+	% Silently ignored, no warning issued:
 	get_arguments_from_strings( T, OptionTable, FailSafe ).
 
 
@@ -1056,14 +1059,16 @@ generate_argument_table( ArgString ) ->
 
 
 
-% Returns the various associated values (if any; otherwise returns 'undefined')
-% associated to the specified option.
+% Returns, if this option was specified on the command-line, the list of the
+% various (lists of) values (if any; no value at all being specified for an
+% option resulting thus in [ [] ]) associated to the specified option; if this
+% option was not specified on the command-line, returns 'undefined'.
 %
-% Note: the extract_command_argument/{1,2} function may be more relevant to
-% use, if wanting to ensure no extra, unexpected argument is specified.
+% Note: the extract_command_argument/{1,2} functions may be more relevant to
+% use, if wanting to ensure that no extra, unexpected argument is specified.
 %
 -spec get_command_argument( command_line_option() ) ->
-								  maybe( [ command_line_value() ] ).
+								  maybe( [ command_line_values() ] ).
 get_command_argument( Option ) ->
 
 	% By default, not wanting to trigger errors or warnings here, hence
@@ -1073,14 +1078,16 @@ get_command_argument( Option ) ->
 
 
 
-% Returns the various associated values (if any; otherwise returns 'undefined')
-% associated to the specified option.
+% Returns, if this option was specified on the command-line, the list of the
+% various (lists of) values (if any; no value at all being specified for an
+% option resulting thus in [ [] ]) associated to the specified option; if this
+% option was not specified on the command-line, returns 'undefined'.
 %
-% Note: generally the extract_command_argument/{1,2} function are more relevant
+% Note: generally the extract_command_argument/{1,2} functions are more relevant
 % to use.
 %
 -spec get_command_argument( command_line_option(), boolean() ) ->
-								  maybe( [ command_line_value() ] ).
+								  maybe( [ command_line_values() ] ).
 get_command_argument( Option, FailSafe ) ->
 
 	ArgumentTable = get_argument_table( FailSafe ),
@@ -1090,18 +1097,19 @@ get_command_argument( Option, FailSafe ) ->
 
 
 
-% Extracts specified option, i.e. its various associated values (if any;
-% otherwise returns 'undefined'), from the arguments specified to this
+% Extracts specified option (if any; otherwise returns 'undefined'), i.e. its
+% various lists of associated values, from the arguments specified to this
 % executable.
 %
-% Returns a pair made of these values and of the shrunk argument table.
+% Returns a pair made of these lists of (lists of) values and of the shrunk
+% argument table.
 %
 % Note: a value set to 'undefined' means that the specified option is not in the
-% specified table, whereas a value set to an empty list means that this option
-% is in the table, yet that no parameter has been specified for it.
+% specified table, whereas a value set to [ [] ] means that this option is in
+% the table, yet that no parameter has been specified for it.
 %
 -spec extract_command_argument( command_line_option() ) ->
-		  { maybe( [ command_line_value() ] ), argument_table() }.
+		  { maybe( [ command_line_values() ] ), argument_table() }.
 extract_command_argument( Option ) ->
 
 	ArgumentTable = get_argument_table(),
@@ -1110,17 +1118,18 @@ extract_command_argument( Option ) ->
 
 
 
-% Extracts specified option, i.e. its various associated values (if any;
-% otherwise returns 'undefined'), from the specified argument table.
+% Extracts specified option (if any; otherwise returns 'undefined'), i.e. its
+% various associated values , from the specified argument table.
 %
-% Returns a pair made of these values and of the shrunk argument table.
+% Returns a pair made of these lists of (lists of) values and of the shrunk
+% argument table.
 %
 % Note: a value set to 'undefined' means that the specified option is not in the
-% specified table, whereas a value set to an empty list means that this option
-% is in the table, yet that no parameter has been specified for it.
+% specified table, whereas a value set to [ [] ] means that this option is in
+% the table, yet that no parameter has been specified for it.
 %
 -spec extract_command_argument( command_line_option(), argument_table() ) ->
-			  { maybe( [ command_line_value() ] ), argument_table() }.
+			  { maybe( [ command_line_values() ] ), argument_table() }.
 extract_command_argument( Option, ArgumentTable ) ->
 	list_table:extract_entry_with_defaults( _K=Option, _DefaultValue=undefined,
 											ArgumentTable ).
@@ -1140,11 +1149,12 @@ argument_table_to_string( ArgTable ) ->
 		ArgPairs ->
 			ArgStrings = [ case ArgumentLists of
 
-				[] ->
+				% No value:
+				[ [] ] ->
 					text_utils:format( "option '-~s'", [ Option ] );
 
 				_ ->
-					text_utils:format( "option '-~s', with argument list: ~p",
+					text_utils:format( "option '-~s', with argument lists: ~p",
 									   [ Option, ArgumentLists ] )
 
 						   end || { Option, ArgumentLists } <- ArgPairs ],
@@ -1192,7 +1202,7 @@ is_batch() ->
 	case get_command_argument( '-batch' ) of
 
 		% Normal case if set on the command-line:
-		[] ->
+		[ [] ] ->
 			%trace_utils:debug( "Batch mode activated through command line." ),
 			true;
 
