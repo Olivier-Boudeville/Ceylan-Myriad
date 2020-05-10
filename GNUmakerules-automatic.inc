@@ -233,7 +233,7 @@
 # Again and again one will remove the '@' to inspect the actual command-line:
 %_run: %_test
 	@echo "		Running unitary test $@ (third form) from $^"
-	@#$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(ALL_CMD_LINE_OPTIONS)
+	@#echo $(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(ALL_CMD_LINE_OPTIONS)
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(ALL_CMD_LINE_OPTIONS)
 
 
