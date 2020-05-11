@@ -940,8 +940,8 @@ get_argument_table_from_strings( ArgStrings ) ->
 											 argument_table().
 get_argument_table_from_strings( ArgStrings, FailSafe ) ->
 
-	trace_utils:debug_fmt( "Creating argument table from: ~p, with fail-safe "
-						   "mode set to ~s.", [ ArgStrings, FailSafe ] ),
+	%trace_utils:debug_fmt( "Creating argument table from: ~p, with fail-safe "
+	%					   "mode set to ~s.", [ ArgStrings, FailSafe ] ),
 
 	% Useful side-effect, difficult to troubleshoot:
 	system_utils:force_unicode_support(),
