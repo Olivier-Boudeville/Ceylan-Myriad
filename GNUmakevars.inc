@@ -11,7 +11,6 @@ endif
 
 # Project section.
 
-
 # PROJECT_NAME should be defined on a per-project basis.
 ifndef PROJECT_NAME
 	PROJECT_NAME := Ceylan-Myriad
@@ -74,7 +73,7 @@ ARCHIVE_BRANCH_FILE := $(ARCHIVE_ROOT)/$$(date +'%Y%m%d')-$(PROJECT_NAME)-branch
 SNAPSHOT_ARCHIVE_FILE := $(ARCHIVE_ROOT)/$$(date +'%Y%m%d')-$(PROJECT_NAME)-snapshot.tar.xz
 
 
-PROJECT_RELEASE_BASE        := $(PROJECT_NAME)-$(PROJECT_VERSION)
+PROJECT_RELEASE_BASE := $(PROJECT_NAME)-$(PROJECT_VERSION)
 
 PROJECT_RELEASE_ARCHIVE_ZIP := $(PROJECT_RELEASE_BASE).zip
 PROJECT_RELEASE_ARCHIVE_BZ2 := $(PROJECT_RELEASE_BASE).tar.bz2
@@ -100,9 +99,7 @@ empty =
 # on the command line (ex: 'make install INSTALLATION_PREFIX=/tmp'):
 
 ifndef INSTALLATION_PREFIX
-
-  INSTALLATION_PREFIX := $$HOME/Software
-
+	INSTALLATION_PREFIX := $$HOME/Software
 endif
 
 
@@ -184,9 +181,7 @@ BOOTSTRAP_INCLUDES := -I$(MYRIAD_TOP)/../../include/meta
 # To know when the including makefile is the sole root one:
 #
 ifndef ROOT_MAKEFILE
-
-  ROOT_MAKEFILE := false
-
+	ROOT_MAKEFILE := false
 endif
 
 
@@ -230,21 +225,19 @@ endif
 # needed).
 #
 ifndef USE_HDF5
-
-  USE_HDF5 := false
-
+	USE_HDF5 := false
 endif
 
 
 ifeq ($(USE_HDF5),true)
 
-  # If using erlhdf5 (for the hdf5_support module):
+	# If using erlhdf5 (for the hdf5_support module):
 
-  ERLHDF5_BASE := $$HOME/Software/erlhdf5
+	ERLHDF5_BASE := $$HOME/Software/erlhdf5
 
-  INC += -I$(ERLHDF5_BASE)/include
+	INC += -I$(ERLHDF5_BASE)/include
 
-  # (ebin/erlhdf5.beam and priv/erlhdf5.so found at runtime)
+	# (ebin/erlhdf5.beam and priv/erlhdf5.so found at runtime)
 
 endif
 
@@ -255,28 +248,24 @@ endif
 # compilation time, as not needing any specific include).
 #
 ifndef USE_REST
-
-  USE_REST := false
-
+	USE_REST := false
 endif
 
 
 ifeq ($(USE_REST),true)
-
-  USE_JSON := true
-
+	USE_JSON := true
 endif
 
 
 ifeq ($(USE_JSON),true)
 
-  JSX_BASE := $$HOME/Software/jsx/jsx-current-install
+	JSX_BASE := $$HOME/Software/jsx/jsx-current-install
 
-  INC += -I$(JSX_BASE)/include
+	INC += -I$(JSX_BASE)/include
 
-  # ($(JSX_BASE)/ebin/*.beam found at runtime)
+	# ($(JSX_BASE)/ebin/*.beam found at runtime)
 
-  ABS_BEAM_DIRS += $(JSX_BASE)/ebin/
+	ABS_BEAM_DIRS += $(JSX_BASE)/ebin/
 
 endif
 
@@ -290,36 +279,30 @@ endif
 #    https://github.com/alexeyr/erlang-sqlite3.git)
 #
 ifndef USE_SQLITE
-
-  USE_SQLITE := false
-
+	USE_SQLITE := false
 endif
 
 
 ifeq ($(USE_SQLITE),true)
 
-  SQLITE3_BASE := $$HOME/Software/erlang-sqlite3
+	SQLITE3_BASE := $$HOME/Software/erlang-sqlite3
 
-  INC += -I$(SQLITE3_BASE)/include
+	INC += -I$(SQLITE3_BASE)/include
 
-  # ($(SQLITE3_BASE)/ebin/*.beam found at runtime)
+	# ($(SQLITE3_BASE)/ebin/*.beam found at runtime)
 
-  ABS_BEAM_DIRS += $(SQLITE3_BASE)/ebin/
+	ABS_BEAM_DIRS += $(SQLITE3_BASE)/ebin/
 
 endif
 
 
 
 # Deactivated by default, as requires specific prerequisites:
-#
 # - Python (binding tested with v3.6+ only)
 # - the ErlPort library (cf https://github.com/hdima/erlport)
 #
-#
 ifndef USE_PYTHON_BINDING
-
-  USE_PYTHON_BINDING := false
-
+	USE_PYTHON_BINDING := false
 endif
 
 ifeq ($(USE_PYTHON_BINDING),true)
@@ -337,36 +320,33 @@ endif
 
 
 # Deactivated by default, as requires specific prerequisites:
-#
 # - Java (binding tested with 8.0+ only)
 # - the JInterface library, bundled with the Erlang runtime (cf
 #   http://erlang.org/doc/man/jinterface.html)
 #
 ifndef USE_JAVA_BINDING
-
-  USE_JAVA_BINDING := false
-
+	USE_JAVA_BINDING := false
 endif
 
 ifeq ($(USE_JAVA_BINDING),true)
 
-  # The path pointing to the target JInterface JAR (OtpErlang.jar), only needed
-  # at compilation-time:
-  #
-  # Ex: cd [...]/Erlang-current-install/lib/erlang &&
-  #     ln -s lib/jinterface-1.8.1 jinterface-current-install
-  #
-  JINTERFACE_ROOT = $(ERLANG_ROOT)/lib/erlang/jinterface
+	# The path pointing to the target JInterface JAR (OtpErlang.jar), only needed
+	# at compilation-time:
+	#
+	# Ex: cd [...]/Erlang-current-install/lib/erlang &&
+	#     ln -s lib/jinterface-1.8.1 jinterface-current-install
+	#
+	JINTERFACE_ROOT = $(ERLANG_ROOT)/lib/erlang/jinterface
 
-  CLASSPATH_DIRS += $(JINTERFACE_ROOT)/priv/OtpErlang.jar .
+	CLASSPATH_DIRS += $(JINTERFACE_ROOT)/priv/OtpErlang.jar .
 
-  # We need to have all specified paths separated with ':':
-  CLASSPATH_OPT = -classpath $(subst $(space),:,$(strip $(CLASSPATH_DIRS)))
+	# We need to have all specified paths separated with ':':
+	CLASSPATH_OPT = -classpath $(subst $(space),:,$(strip $(CLASSPATH_DIRS)))
 
-  JAVAC_OPT = $(CLASSPATH_OPT)
+	JAVAC_OPT = $(CLASSPATH_OPT)
 
-  # Only useful for manual testing:
-  JAVA_OPT = $(CLASSPATH_OPT):.
+	# Only useful for manual testing:
+	JAVA_OPT = $(CLASSPATH_OPT):.
 
 endif
 
@@ -376,17 +356,13 @@ endif
 # parallel):
 #
 ifndef BASE_MAKEFILE
-
   BASE_MAKEFILE := false
-
 endif
 
 
 # Overriding BASE_PLT is useful to take into account third-party prerequisites:
 ifndef BASE_PLT
-
   BASE_PLT = $(PREDECESSOR_PLT)
-
 endif
 
 
@@ -397,58 +373,52 @@ endif
 
 ifndef EXECUTION_TARGET
 
-  # Other possible value: production
-  EXECUTION_TARGET := development
+	# Other possible value: production
+	EXECUTION_TARGET := development
 
 endif
 
 
 # We have to define a symbol specific to the 'production' execution target
-# (exec_target_is_production) instead of relying only on a execution_target
+# (exec_target_is_production) instead of relying only on an execution_target
 # variable that could be set either to 'development' or 'production', as the
 # Erlang preprocessor allows only to test whether a symbol is defined (with
 # -ifdef), we cannot test its value.
 #
 # So the code is to use '-ifdef(target_production_exec)' instead of something
 # like '-ifdef(execution_target,production)'.
-
+#
 ifeq ($(EXECUTION_TARGET),development)
 
+	#$(info Execution target is development)
 
-  #$(info Execution target is development)
+	ENABLE_DEBUG := true
+	ENABLE_NATIVE_COMPILATION := false
 
-  ENABLE_DEBUG := true
-  ENABLE_NATIVE_COMPILATION := false
+	# No exec_target_is_production shall be defined here:
+	ERLANG_COMPILER_EXEC_TARGET_OPT :=
 
-  # No exec_target_is_production shall be defined here:
-  ERLANG_COMPILER_EXEC_TARGET_OPT :=
-
-  ERLANG_COMPILER_DEBUG_OPT := -Dmyriad_debug_mode
-
+	ERLANG_COMPILER_DEBUG_OPT := -Dmyriad_debug_mode
 
 else ifeq ($(EXECUTION_TARGET),production)
 
+	#$(info Execution target is production)
 
-  #$(info Execution target is production)
+	ENABLE_DEBUG := false
 
-  ENABLE_DEBUG := false
+	# Native compilation may be enabled - with care; yet problems with
+	# orddict:erase/2, lists:fold/3, etc. made us switch it off for the moment:
+	#
+	#ENABLE_NATIVE_COMPILATION := true
+	ENABLE_NATIVE_COMPILATION := false
 
-  # Native compilation may be enabled - with care; yet problems with
-  # orddict:erase/2, lists:fold/3, etc. made us switch it off for the moment:
-  #
-  #ENABLE_NATIVE_COMPILATION := true
-  ENABLE_NATIVE_COMPILATION := false
+	ERLANG_COMPILER_EXEC_TARGET_OPT := -Dexec_target_is_production
 
-  ERLANG_COMPILER_EXEC_TARGET_OPT := -Dexec_target_is_production
-
-  ERLANG_COMPILER_DEBUG_OPT :=
-
+	ERLANG_COMPILER_DEBUG_OPT :=
 
 else
 
-
-  $(error Invalid execution target '$(EXECUTION_TARGET)'; expecting either 'development' or 'production')
-
+	$(error Invalid execution target '$(EXECUTION_TARGET)'; expecting either 'development' or 'production')
 
 endif
 
@@ -463,9 +433,7 @@ ERLANG_COMPILER_TEST_TOKEN_OPT := -Dmy_first_test_token            \
 ERLANG_COMPILER_TOKEN_OPT := $(ERLANG_COMPILER_TEST_TOKEN_OPT)
 
 
-
 ALL_ERL_FILES = $(wildcard *.erl)
-
 
 
 # Excluded sources, as depending on prerequisites:
@@ -473,28 +441,25 @@ ALL_ERL_FILES = $(wildcard *.erl)
 
 ifeq ($(USE_HDF5),false)
 
-  EXCLUDED_SOURCES := $(EXCLUDED_SOURCES) hdf5_support.erl      \
-										  hdf5_support_test.erl \
-										  raw_hdf5_test.erl
+	EXCLUDED_SOURCES := $(EXCLUDED_SOURCES) hdf5_support.erl      \
+											hdf5_support_test.erl \
+											raw_hdf5_test.erl
 
 endif
 
 
 ifeq ($(USE_JSON),false)
 
-  EXCLUDED_SOURCES := $(EXCLUDED_SOURCES) \
-					  json_support.erl json_support_test.erl \
-					  rest_support.erl rest_support_test.erl
+	EXCLUDED_SOURCES := $(EXCLUDED_SOURCES) \
+						json_support.erl json_support_test.erl \
+						rest_support.erl rest_support_test.erl
 
 endif
 
 
 ifeq ($(USE_SQLITE),false)
-
-  EXCLUDED_SOURCES := $(EXCLUDED_SOURCES) sql_support.erl sql_support_test.erl
-
+	EXCLUDED_SOURCES := $(EXCLUDED_SOURCES) sql_support.erl sql_support_test.erl
 endif
-
 
 
 ERL_FILES = $(filter-out $(EXCLUDED_SOURCES), $(ALL_ERL_FILES))
@@ -519,9 +484,7 @@ JAVA_FILES = $(wildcard *.java)
 
 # Java class (bytecode) files:
 ifeq ($(USE_JAVA_BINDING),true)
-
-	 JAVA_CLASS_FILES = $(patsubst %.java,%.class,$(JAVA_FILES))
-
+	JAVA_CLASS_FILES = $(patsubst %.java,%.class,$(JAVA_FILES))
 endif
 
 
@@ -568,16 +531,12 @@ endif
 
 
 ifndef ENABLE_DEBUG
-
-  ENABLE_DEBUG := true
-
+	ENABLE_DEBUG := true
 endif
 
 
 ifndef ENABLE_NATIVE_COMPILATION
-
-  ENABLE_NATIVE_COMPILATION := false
-
+	ENABLE_NATIVE_COMPILATION := false
 endif
 
 
@@ -589,16 +548,10 @@ endif
 #ERLANG_COMPILER_EXECUTION_TARGET_OPT += -Dexecution_target=$(EXECUTION_TARGET)
 
 ifeq ($(ENABLE_NATIVE_COMPILATION),true)
-
 	ERLANG_COMPILER_NATIVE_COMPILATION_OPT = +native
-
 else
-
 	ERLANG_COMPILER_NATIVE_COMPILATION_OPT =
-
 endif
-
-
 
 
 
@@ -653,38 +606,32 @@ ERLANG_INTERPRETER_OPT_DEBUG = -init_debug -smp
 
 ifdef FQDN
 
-  FQDN_OPT= "--fqdn $(FQDN)"
+	FQDN_OPT= "--fqdn $(FQDN)"
 
 else
 
-  #FQDN    := $$(host $(hostname) | awk '{ print $$1 }' | head -n 1)
-  FQDN    := $$(hostname -f)
+	#FQDN := $$(host $(hostname) | awk '{ print $$1 }' | head -n 1)
+	FQDN := $$(hostname -f)
 
   # Not useful in this case:
-  #FQDN_OPT= "--fqdn $(FQDN)"
+  #FQDN_OPT := "--fqdn $(FQDN)"
 
 endif
 
 
 
 ifndef VM_NAME
-
-  VM_NAME := ceylan_myriad_debug
-
+	VM_NAME := ceylan_myriad_debug
 endif
 
 
 ifndef VM_TEST_NAME
-
-  VM_TEST_NAME := ceylan_myriad_test
-
+	VM_TEST_NAME := ceylan_myriad_test
 endif
 
 
 ifndef COOKIE
-
-  COOKIE := "ceylan_myriad_cookie"
-
+	COOKIE := "ceylan_myriad_cookie"
 endif
 
 
@@ -796,9 +743,7 @@ endif
 # modules).
 #
 ifndef PARSE_TRANSFORM_DIRS
-
 	PARSE_TRANSFORM_DIRS = $(MYRIAD_TOP)/src/meta
-
 endif
 
 
@@ -857,8 +802,8 @@ ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD =                \
 
 ifndef ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_STANDARD_MODULES
 
-	   ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_STANDARD_MODULES = \
-			$(ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD)
+	ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_STANDARD_MODULES = \
+		$(ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD)
 
 endif
 
@@ -917,8 +862,8 @@ ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED = $(ERLANG_COMPILER_OPT_FOR_PT) \
 ifndef ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES
 
 	ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES =                          \
-			$(ERLANG_COMPILER_OPT_BASE)                                 \
-			$(ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_STANDARD_MODULES)
+		$(ERLANG_COMPILER_OPT_BASE)                                 \
+		$(ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_STANDARD_MODULES)
 
 endif
 
@@ -934,7 +879,6 @@ JAVA := $$(which java)
 
 
 # Runtime settings.
-
 
 
 # +v (verbose) option removed, as only active if the interpreter has been
@@ -991,7 +935,6 @@ endif
 
 
 
-
 # 'BEAM_PATH_OPT = --beam-paths $(BEAM_DIRS)' would be shorter, but would
 # prevent adding other options to the launcher afterwards:
 # (now we use absolute directories - thanks to 'pwd' - instead of relative ones,
@@ -1000,7 +943,7 @@ endif
 # first time, would fail).
 #
 BEAM_PATH_OPT = $(foreach dir,$(BEAM_DIRS),--beam-dir $$(pwd)/$(dir)) \
-				 $(foreach dir,$(ABS_BEAM_DIRS),--beam-dir $(dir))
+				$(foreach dir,$(ABS_BEAM_DIRS),--beam-dir $(dir))
 
 
 OVERALL_PZ_OPT = $(foreach dir,$(BEAM_DIRS),-pz $(dir))
@@ -1111,7 +1054,7 @@ DOC_TRACKER := $$(which track-make-automatic-source.sh)
 
 
 ifdef PROJECT_ICON
-  PROJECT_ICON_OPT := --icon-file $(PROJECT_ICON)
+	PROJECT_ICON_OPT := --icon-file $(PROJECT_ICON)
 endif
 
 
@@ -1132,7 +1075,7 @@ REBAR_DEBUG :=
 
 # Relative to the usual root of this layer:
 ifndef REBAR_BUILD_ROOT
-	   REBAR_BUILD_ROOT := _build
+	REBAR_BUILD_ROOT := _build
 endif
 
 
@@ -1143,11 +1086,11 @@ endif
 # rebar3's pre_hooks.
 #
 ifndef REBAR_PROFILE
-	   REBAR_PROFILE := default
+	REBAR_PROFILE := default
 endif
 
 ifndef REBAR_BUILD_DIR
-	   REBAR_BUILD_DIR := $(REBAR_BUILD_ROOT)/$(REBAR_PROFILE)
+	REBAR_BUILD_DIR := $(REBAR_BUILD_ROOT)/$(REBAR_PROFILE)
 endif
 
 
@@ -1155,7 +1098,7 @@ MYRIAD_REBAR_BUILD_BASE = $(REBAR_BUILD_DIR)/lib/myriad
 
 
 ifndef REBAR_BUILD_BASE
-	   REBAR_BUILD_BASE := $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)
+	REBAR_BUILD_BASE := $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)
 endif
 
 
@@ -1249,12 +1192,12 @@ DIALYZER_OPT := -Wrace_conditions
 
 # To use a generic rule to produce it (unless already defined):
 ifndef PLT_FILE
-  PLT_FILE := $(PACKAGE_TOP)/$(PACKAGE_NAME).plt
+	PLT_FILE := $(PACKAGE_TOP)/$(PACKAGE_NAME).plt
 endif
 
 # To use a generic rule to produce it (unless already defined):
 ifndef TYPE_LIST_FILE
-  TYPE_LIST_FILE := $(PACKAGE_TOP)/declared-types-in-$(PACKAGE_NAME).txt
+	TYPE_LIST_FILE := $(PACKAGE_TOP)/declared-types-in-$(PACKAGE_NAME).txt
 endif
 
 
@@ -1272,7 +1215,7 @@ BATCH_OPT = 'CMD_LINE_OPT="--batch"'
 # prerequisites):
 #
 ifndef PREDECESSOR_PLT
-  PREDECESSOR_PLT := $(ERLANG_PLT_FILE)
+	PREDECESSOR_PLT := $(ERLANG_PLT_FILE)
 endif
 
 
