@@ -1206,7 +1206,7 @@ MYRIAD_PLT_FILE := $(MYRIAD_TOP)/Ceylan-Myriad.plt
 
 
 # Shorthand:
-BATCH_OPT = 'CMD_LINE_OPT="--batch"'
+BATCH_OPT := 'CMD_LINE_OPT="--batch"'
 
 
 # This is the merged PLT of the level just below in the software stack.
