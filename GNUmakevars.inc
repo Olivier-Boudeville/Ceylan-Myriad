@@ -155,9 +155,6 @@ MYRIAD_SRC := $(MYRIAD_TOP)/src
 # BEAM path section.
 MYRIAD_BEAM := $(MYRIAD_TOP)/src
 
-# Include path section.
-MYRIAD_INC := -I$(MYRIAD_SRC)
-
 # Contributions path section:
 #MYRIAD_CONTRIB := $(MYRIAD_TOP)/contrib
 
