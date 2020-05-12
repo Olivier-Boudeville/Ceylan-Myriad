@@ -642,17 +642,23 @@ STARTUP_FUNCTION := run
 
 
 # So that they can be fetched from outside the make system:
-# (see the 'list-beam-dirs' target)
+# (see the 'list-beam-dirs' target and code_utils:get_beam_dirs_for/1)
 #
-MYRIAD_BEAM_DIRS = $(MYRIAD_BEAM)/data-management              \
-				   $(MYRIAD_BEAM)/maths                        \
-				   $(MYRIAD_BEAM)/meta                         \
-				   $(MYRIAD_BEAM)/user-interface/src           \
-				   $(MYRIAD_BEAM)/user-interface/src/textual   \
-				   $(MYRIAD_BEAM)/user-interface/src/graphical \
-				   $(MYRIAD_BEAM)/utils                        \
-				   $(MYRIAD_BEAM)/scripts                      \
-				   $(MYRIAD_BEAM)/apps/merge-tool
+# (listed in the alphabetical order)
+#
+# Not far from being candidate for deprecation (next: schedule for removal), as
+# top-level 'ebin' does the trick.
+#
+MYRIAD_BEAM_DIRS := $(MYRIAD_BEAM)/apps/generate-password       \
+					$(MYRIAD_BEAM)/apps/merge-tool              \
+					$(MYRIAD_BEAM)/data-management              \
+					$(MYRIAD_BEAM)/maths                        \
+					$(MYRIAD_BEAM)/meta                         \
+					$(MYRIAD_BEAM)/scripts                      \
+					$(MYRIAD_BEAM)/user-interface/src/graphical \
+					$(MYRIAD_BEAM)/user-interface/src/textual   \
+					$(MYRIAD_BEAM)/user-interface/src           \
+					$(MYRIAD_BEAM)/utils
 
 
 
