@@ -460,6 +460,9 @@ get_beam_dirs_for( VariableName ) ->
 % The CEYLAN_MYRIAD environment variable must be defined and must point to the
 % corresponding root directory.
 %
+% The layer top-level 'ebin' directory could be used for that now that OTP
+% conventions are used.
+%
 % Note: all code run from that function shall rely on plain Erlang, so that
 % Myriad itself can be made available with that module.
 %
