@@ -38,8 +38,8 @@
 		   % Host of the server (ex: 'www.foo.org'):
 		   host_identifier :: net_utils:host_identifier(),
 
-		   % Ex: 8081.
-		   port = 80 :: net_utils:net_port(),
+		   % Ex: 8081; possibly undefined.
+		   port = 80 :: maybe( net_utils:net_port() ),
 
 		   % Ex: 'access/login'.
 		   path :: net_utils:path()
