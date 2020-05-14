@@ -1708,35 +1708,32 @@ url_info_to_string( #url_info{ protocol=Protocol, host_identifier=Host,
 -spec string_to_url_info( string() ) -> url_info().
 string_to_url_info( String ) ->
 
-	#{ toto := X } = String,
-
-
 	% Deprecated http_uri:parse/1 was used previously, now relying on (available
 	% since Erlang 23.0):
 	%
 	#{ % fragment => unicode:chardata(),
 
-			   % host => unicode:chardata(),
-			   host := Host,
+	   % host => unicode:chardata(),
+	   host := Host,
 
-			   % path => unicode:chardata(),
-			   path := Path,
+	   % path => unicode:chardata(),
+	   path := Path,
 
-			   % port => integer() >= 0 | undefined,
-			   port := MaybePort,
+	   % port => integer() >= 0 | undefined,
+	   port := MaybePort,
 
-			   % query => unicode:chardata(),
+	   % query => unicode:chardata(),
 
-			   % scheme => unicode:chardata(),
-			   scheme := Scheme
+	   % scheme => unicode:chardata(),
+	   scheme := Scheme
 
-			   %userinfo => unicode:chardata()
+	   %userinfo => unicode:chardata()
 
 		 } = string_to_uri_map( String ),
 
 	#url_info{ protocol=Scheme,
 			   host_identifier=Host,
-			   port=Port,
+			   port=MaybePort,
 			   path=Path }.
 
 
