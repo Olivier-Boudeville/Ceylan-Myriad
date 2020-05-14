@@ -250,7 +250,6 @@ apply_myriad_transform( InputAST, Options ) ->
 		ast_info:recompose_ast_from_module_info( TransformedModuleInfo ),
 
 	%ast_utils:display_debug( "~n~nMyriad output AST:~n~p~n", [ OutputAST ] ),
-	%ast_utils:display_debug( "Myriad output AST:~n~p~n~n", [ OutputAST ] ),
 
 	%OutputASTFilename = text_utils:format(
 	%			"Myriad-output-AST-for-module-~s.txt",
