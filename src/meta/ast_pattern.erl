@@ -291,7 +291,7 @@ transform_pattern( _E={ 'map_field_exact', Line, Key, Value },
 	%ast_utils:display_debug( "Intercepting map exact association ~p...",
 	%						  [ E ] ),
 
-	{ NewKey, KeyTransforms } =
+	{ [ NewKey ], KeyTransforms } =
 		ast_expression:transform_expression( Key, Transforms ),
 
 	{ NewValue, ValueTransforms } = transform_pattern( Value, KeyTransforms ),
