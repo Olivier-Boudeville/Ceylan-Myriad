@@ -79,7 +79,7 @@
 
 
 % Destringifications:
--export([ string_to_url_info/1 ]).
+-export([ string_to_url_info/1, string_to_uri_map/1 ]).
 
 
 % Exported for convenience:
@@ -1695,29 +1695,67 @@ url_info_to_string( #url_info{ protocol=Protocol, host_identifier=Host,
 										  Port, Path ] ).
 
 
-
-% Decodes specified string in an url_info, by extracting protocol, host, port
-% and path information.
+% Decodes specified string into an url_info record, by extracting protocol
+% (scheme), host, port and path information.
 %
-% Note that other information (query, user) will be ignored and lost.
+% Note that other information (fragment, query, userinfo) will be ignored and
+% lost.
+%
+% Note: using string_to_uri_map/1  might be
+% a more complete option; this function remains mostly for backward
+% compatibility.
 %
 -spec string_to_url_info( string() ) -> url_info().
 string_to_url_info( String ) ->
-	case http_uri:parse( String ) of
 
-		{ ok, { Scheme, _UserInfo, Host, Port, Path, _Query } } ->
-			#url_info{ protocol=Scheme,
-					   host_identifier=Host,
-					   port=Port,
-					   path=Path };
+	#{ toto := X } = String,
 
-		{ ok, { Scheme, _UserInfo, Host, Port, Path, _Query, _Fragment } } ->
-			#url_info{ protocol=Scheme,
-					   host_identifier=Host,
-					   port=Port,
-					   path=Path };
 
-		{ error, Reason } ->
-			throw( { url_info_parsing_failed, String, Reason } )
+	% Deprecated http_uri:parse/1 was used previously, now relying on (available
+	% since Erlang 23.0):
+	%
+	#{ % fragment => unicode:chardata(),
+
+			   % host => unicode:chardata(),
+			   host := Host,
+
+			   % path => unicode:chardata(),
+			   path := Path,
+
+			   % port => integer() >= 0 | undefined,
+			   port := MaybePort,
+
+			   % query => unicode:chardata(),
+
+			   % scheme => unicode:chardata(),
+			   scheme := Scheme
+
+			   %userinfo => unicode:chardata()
+
+		 } = string_to_uri_map( String ),
+
+	#url_info{ protocol=Scheme,
+			   host_identifier=Host,
+			   port=Port,
+			   path=Path }.
+
+
+
+% Decodes specified string into an URI map, by extracting all relevant
+% information: protocol (scheme), user information, host, port, path and
+% fragment.
+%
+% Throws an exception on failure.
+%
+-spec string_to_uri_map( string() ) -> uri_string:uri_map().
+string_to_uri_map( String ) ->
+
+	case uri_string:parse( String ) of
+
+		{ error, ReasonAtom, ReasonTerm } ->
+			throw( { uri_parsing_failed, String, ReasonAtom, ReasonTerm } );
+
+		URIMap ->
+			URIMap
 
 	end.
