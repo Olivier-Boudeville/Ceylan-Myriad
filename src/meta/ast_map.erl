@@ -50,7 +50,6 @@
 
 
 % AST form corresponding to a map creation:
-%
 -type ast_map_creation_form() :: ast_map_creation_form( ast_element(),
 														ast_element() ).
 
@@ -127,8 +126,7 @@ transform_map_associations( Associations, Transforms,
 
 	% Closure, to capture TransformFun:
 	ActualFun = fun( A, AccTransforms ) ->
-						transform_map_association( A, AccTransforms,
-												   TransformFun )
+					transform_map_association( A, AccTransforms, TransformFun )
 				end,
 
 	lists:mapfoldl( ActualFun, _Acc0=Transforms, _List=Associations ).
