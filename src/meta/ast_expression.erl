@@ -120,15 +120,13 @@
 
 % Allows to designate any kind of AST expression.
 -type expression_kind() :: 'call' | 'if' | 'case' | 'match' | 'bin'
-						 | 'unary_op' | 'binary_op' | 'simple_receive'
-						 | 'receive_with_after' | 'try' | 'remote' | 'catch'
-						 | 'cons' | 'lc' | 'bc' | 'tuple' | 'map_creation'
-						 | 'map_field_assoc' | 'map_field_exact'
-						 | 'record_creation' | 'record_index'
-						 | 'record_field' | 'record_field_other'
-						 | 'record_update' | 'block' | 'fun_definition'
-						 | 'fun_local' | 'fun_mfa_old' | 'fun_mfa' | 'var'
-						 | 'nil' | 'named_fun' | 'atomic_literal'.
+		| 'unary_op' | 'binary_op' | 'simple_receive' | 'receive_with_after'
+		| 'try' | 'remote' | 'catch' | 'cons' | 'lc' | 'bc' | 'tuple'
+		| 'map_creation' | 'map_field_assoc' | 'map_field_exact'
+		| 'record_creation' | 'record_index' | 'record_field'
+		| 'record_field_other' | 'record_update' | 'block' | 'fun_definition'
+		| 'fun_local' | 'fun_mfa_old' | 'fun_mfa' | 'var' | 'nil' | 'named_fun'
+		| 'atomic_literal'.
 
 
 % Expression designating a reference to a function (local or remote):
