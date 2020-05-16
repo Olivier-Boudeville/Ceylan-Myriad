@@ -4,7 +4,8 @@
 Getting Myriad
 --------------
 
-.. _prerequisite:
+
+.. _prerequisites:
 
 Prerequisites
 =============
@@ -17,14 +18,27 @@ Whereas Erlang supports ``Windows`` and we tried to be as cross-platform as poss
 
 .. [#] For what it is worth, we prefer `Arch Linux <https://www.archlinux.org/>`_, but this does not really matter here.
 
-The main tool prerequisite is of course having the `Erlang <http://erlang.org>`_ environment available, in its ``22.0`` version or more recent.
 
-There are various ways of obtaining it (from your distribution, from prebuilt packages, directly from the sources), one of which being our `install-erlang.sh <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/install-erlang.sh>`_ script; see its ``--help`` option for more guidance.
+The main tool prerequisite is of course having the `Erlang <http://erlang.org>`_ environment available, in its ``23.0`` version [#]_ or more recent.
+
+.. [#] Most probably that older versions of Erlang would be more than sufficient in order to build Myriad (possibly at the expense of minor changes in a few calls to standard modules having been deprecated since then). It is just that in general we prefer to stick to the latest stable versions of software such as Erlang, and advise you to do so.
+
+
+There are various ways of obtaining it (from your distribution, from prebuilt packages, directly from the sources), one of which being the `install-erlang.sh <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/install-erlang.sh>`_ script that we devised.
+
+A simple use of it is:
+
+.. code:: bash
+
+ $ ./install-erlang.sh --doc-install --generate-plt
+
+
+One may execute ``./install-erlang.sh --help`` for more guidance about how to configure it, notably in order to enable all modules of interest (``crypto``, ``wx``, etc.).
 
 
 
-Getting the Sources
-===================
+Getting Myriad's Sources
+========================
 
 This is pretty straightforward, based on the `project repository <https://github.com/Olivier-Boudeville/Ceylan-Myriad>`_ hosted by Github:
 

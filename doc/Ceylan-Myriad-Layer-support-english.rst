@@ -5,7 +5,7 @@
 Support for ``Myriad``
 ======================
 
-So you respected the prerequisite_ and build_ sections, and something went wrong? Generally we made sure that any detected error is blocking and loudly reported, with as much context as possible.
+So you respected the prerequisites_ and build_ sections, and something went wrong? Generally we made sure that any detected error is blocking and loudly reported, with as much context as possible.
 
 The simpler solution is then to `create a relevant issue <https://github.com/Olivier-Boudeville/Ceylan-Myriad/issues>`_.
 

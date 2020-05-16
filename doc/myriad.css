@@ -9,7 +9,7 @@
 
 
 pre.code {
- background: #BBBBFF;
+ background: #DBDBFF;
 }
 
 
@@ -21,7 +21,7 @@ pre.code {
 
 /* For command printouts: */
 .literal-block {
-  background: #adc0ff;
+  background: #A0C0F0;
 }
 
 
@@ -43,7 +43,7 @@ div.centered {
 
 
 body {
-  color: #2222DD;
+  color: #122155;
   background: #FFFFFF;
   font-family: arial, helvetica, sans-serif;
   font-size: 15px;
@@ -350,7 +350,7 @@ td a {
 
 
 a:link {
-  color:#053ffa;
+  color:#053CCA;
   background: transparent;
   font-weight: bold;
   text-decoration: none;

@@ -37,7 +37,7 @@ Technical Manual of the ``Ceylan-Myriad`` Layer
 :Organisation: Copyright (C) 2008-2020 Olivier Boudeville
 :Contact: about (dash) myriad (at) esperide (dot) com
 :Creation date: Sunday, August 17, 2008
-:Lastly updated: Saturday, May 9, 2020
+:Lastly updated: Friday, May 15, 2020
 :Status: Stable
 :Version: 1.2.11
 :Dedication: Users and maintainers of the ``Myriad`` layer.
@@ -143,7 +143,7 @@ Thanks in advance, and have fun with Myriad!
 
 .. figure:: myriad-title.png
    :alt: Myriad logo
-   :width: 50 %
+   :width: 35 %
    :align: center
 
 :raw-html:`<a name="myriad_bottom"></a>`
