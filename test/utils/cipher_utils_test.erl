@@ -109,9 +109,21 @@ run() ->
 
 	EncryptedFilename = SourceFilename ++ ".encrypted",
 
-
 	test_facilities:display( "Encrypting '~s' into '~s', using key file '~s'.",
 					 [ SourceFilename, EncryptedFilename, KeyFilename ] ),
+
+	case file_utils:is_existing_file( EncryptedFilename ) of
+
+		true ->
+			% Otherwise generation will halt on error:
+			test_facilities:display( "(removing previously existing target "
+				"encrypted file '~s')~n", [ EncryptedFilename ] ),
+			file_utils:remove_file( EncryptedFilename );
+
+		false ->
+			ok
+
+	end,
 
 	cipher_utils:encrypt( SourceFilename, EncryptedFilename, KeyFilename ),
 
@@ -120,6 +132,19 @@ run() ->
 
 	test_facilities:display( "Decrypting '~s' into '~s', using the same key.",
 							 [ EncryptedFilename, DecryptedFilename ] ),
+
+	case file_utils:is_existing_file( DecryptedFilename ) of
+
+		true ->
+			% Otherwise generation will halt on error:
+			test_facilities:display( "(removing previously existing target "
+				"decrypted file '~s')~n", [ DecryptedFilename ] ),
+			file_utils:remove_file( DecryptedFilename );
+
+		false ->
+			ok
+
+	end,
 
 	cipher_utils:decrypt( EncryptedFilename, DecryptedFilename, KeyFilename ),
 
