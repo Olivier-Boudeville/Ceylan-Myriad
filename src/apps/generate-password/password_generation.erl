@@ -10,9 +10,6 @@
 -module(password_generation).
 
 
-% Implementation notes:
-%
-
 -define( exec_name, "generate-password.escript" ).
 
 
@@ -89,7 +86,6 @@ main( ArgTable ) ->
 	%trace_utils:debug_fmt( "Canonicalized script-specific arguments: ~s",
 	%	   [ executable_utils:argument_table_to_string( MergedTable ) ] ),
 
-
 	case list_table:has_entry( HelpRefKey, MergedTable ) of
 
 		true ->
@@ -113,10 +109,10 @@ main( ArgTable ) ->
 
 	%trace_utils:debug_fmt( "Interactive: ~s", [ IsInteractive ] ),
 
-	{ LengthStrings, LenTable } =
+	{ [ LengthStrings ], LenTable } =
 		list_table:extract_entry_with_defaults(
 		  LengthRefKey,
-		  _LenDefault=[ ?default_min_length, ?default_max_length ],
+		  _LenDefault=[ [ ?default_min_length, ?default_max_length ] ],
 		  %InterTable ),
 		  MergedTable ),
 
@@ -159,9 +155,9 @@ main( ArgTable ) ->
 	%trace_utils:debug_fmt( "Min length: ~B", [ MinLength ] ),
 	%trace_utils:debug_fmt( "Max length: ~B", [ MaxLength ] ),
 
-	{ [ AlphabetStringSpec ], AlphaTable } =
+	{ [ [ AlphabetStringSpec ] ], AlphaTable } =
 		list_table:extract_entry_with_defaults( AlphaRefKey,
-							_AlphaDefault=[ ?default_alphabet ], LenTable ),
+						_AlphaDefault=[ [ ?default_alphabet ] ], LenTable ),
 
 	AlphabetSpec = text_utils:string_to_atom( AlphabetStringSpec ),
 
@@ -176,9 +172,10 @@ main( ArgTable ) ->
 			ok;
 
 		UnexpectedOpts ->
-			trace_utils:error_fmt(
-			  "Unexpected command-line option(s) specified: ~s",
-			  [ text_utils:atoms_to_string( UnexpectedOpts ) ] )
+			trace_utils:error_fmt( "Unexpected user input: ~s~n~s",
+			  [ executable_utils:argument_table_to_string( AlphaTable ),
+				get_usage() ] ),
+			throw( { unexpected_command_line_options, UnexpectedOpts } )
 
 	end,
 
