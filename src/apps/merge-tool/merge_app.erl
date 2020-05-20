@@ -6,7 +6,7 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 %
 % Released as LGPL software.
-
+%
 -module(merge_app).
 
 
@@ -18,7 +18,6 @@
 
 
 % Runs the merge service, directly from a module.
-%
 -spec exec() -> void().
 exec() ->
 

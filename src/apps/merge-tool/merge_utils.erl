@@ -89,9 +89,7 @@
 		   timestamp :: time_utils:posix_seconds(),
 
 		   % SHA1 sum of the content of that file:
-		   sha1_sum :: sha1()
-
-}).
+		   sha1_sum :: sha1() }).
 
 -type file_data() :: #file_data{}.
 
@@ -137,9 +135,7 @@
 		   device_count = 0 :: count(),
 
 		   % Total count of the other elements found in this tree:
-		   other_count = 0 :: count()
-
-}).
+		   other_count = 0 :: count() }).
 
 -type tree_data() :: #tree_data{}.
 
@@ -157,9 +153,7 @@
 -record( user_state, {
 
 	% File handle (if any) to write logs:
-	log_file = undefined :: maybe( file() )
-
-}).
+	log_file = undefined :: maybe( file() ) }).
 
 
 % User-related state:
@@ -247,26 +241,30 @@ main( ArgTable ) ->
 	%	   [ executable_utils:argument_table_to_string( FilteredArgTable ) ] ),
 
 	case list_table:has_entry( 'h', FilteredArgTable )
-		orelse list_table:has_entry( '-help', FilteredArgTable ) of
+			orelse list_table:has_entry( '-help', FilteredArgTable ) of
 
 		true ->
 			display_usage();
 
 		false ->
 			{ BaseDir, BaseArgTable } = case
-				list_table:extract_entry_with_defaults(
-				   '-base-dir', file_utils:get_current_directory(),
-				   FilteredArgTable ) of
+					list_table:extract_entry_with_defaults( '-base-dir',
+						[ file_utils:get_current_directory() ],
+						FilteredArgTable ) of
 
-				{ [ InputBaseDir ], BaseDirArgTable } ->
+				{ [ [] ], _NewArgumentTable } ->
+					stop_on_option_error( "no parameter specified for "
+						"the --base-dir option", 28 );
+
+				{ [ [ InputBaseDir ] ], BaseDirArgTable } ->
 					% Implied normalisation for example removes any trailing /:
 					{ file_utils:ensure_path_is_absolute( InputBaseDir ),
 					  BaseDirArgTable };
 
 				{ UnexpectedBaseDirOpts, _BaseDirArgumentTable } ->
 					InputString = text_utils:format(
-							"unexpected --base-dir options: ~s",
-							[ UnexpectedBaseDirOpts ] ),
+						"unexpected --base-dir options: ~s",
+						[ UnexpectedBaseDirOpts ] ),
 
 					stop_on_option_error( InputString, 29 )
 
@@ -275,7 +273,11 @@ main( ArgTable ) ->
 			case list_table:extract_entry_with_defaults( '-reference',
 									 undefined, BaseArgTable ) of
 
-				{ [ RefTreePath ], NoRefArgTable }
+				{ [ [] ], _NoRefArgTable } ->
+					stop_on_option_error( "no parameter specified for "
+						"the --reference option", 25 );
+
+				{ [ [ RefTreePath ] ], NoRefArgTable }
 				  when is_list( RefTreePath ) ->
 					handle_reference_option( RefTreePath, NoRefArgTable,
 											 BaseDir );
@@ -318,16 +320,19 @@ handle_reference_option( RefTreePath, ArgumentTable, BaseDir ) ->
 				  NewArgumentTable ) ] ),
 			stop_on_option_error( InputString, 23 );
 
+		{ [ [] ], _NewArgumentTable } ->
+			stop_on_option_error(
+			  "no parameter specified for the --input option", 25 );
 
 		% Here, an input tree was specified as well:
-		{ [ InputTreePath ], NewArgumentTable } when is_list( InputTreePath ) ->
+		{ [ [ InputTreePath ] ], NewArgumentTable }
+		  when is_list( InputTreePath ) ->
 
 			%trace_utils:debug_fmt( "InputTreePath: ~p", [ InputTreePath ] ),
 
 			% RefTreePath is already vetted:
 			handle_merge_option( InputTreePath, RefTreePath, NewArgumentTable,
 								 BaseDir );
-
 
 		% Typically more than one input option specified:
 		{ UnexpectedInputTreeOpts, _NewArgumentTable } ->
@@ -359,8 +364,12 @@ handle_non_reference_option( ArgumentTable, BaseDir ) ->
 				{ undefined, NoRescanArgTable } ->
 					handle_neither_scan_options( NoRescanArgTable, BaseDir );
 
+				{ [ [] ], _NoRescanArgTable } ->
+					stop_on_option_error(
+					  "no parameter specified for the --rescan option", 28 );
+
 				% A rescan was requested:
-				{ [ RescanTreePath ], RescanArgTable }
+				{ [ [ RescanTreePath ] ], RescanArgTable }
 				  when is_list( RescanTreePath ) ->
 					handle_rescan_option( RescanTreePath, RescanArgTable,
 										  BaseDir );
@@ -371,11 +380,14 @@ handle_non_reference_option( ArgumentTable, BaseDir ) ->
 								   [ UnexpectedRescanTreeOpts ] ),
 					stop_on_option_error( ScanString, 29 )
 
-
 			end;
 
+		{ [ [] ], _ScanArgTable } ->
+			stop_on_option_error(
+				"no parameter specified for the --scan option", 22 );
+
 		% A scan was requested:
-		{ [ ScanTreePath ], ScanArgTable } when is_list( ScanTreePath ) ->
+		{ [ [ ScanTreePath ] ], ScanArgTable } when is_list( ScanTreePath ) ->
 
 			% Check no unknown option remains:
 			case list_table:is_empty( ScanArgTable ) of
@@ -417,13 +429,13 @@ handle_neither_scan_options( ArgTable, BaseDir ) ->
 
 					AddedString = case list_table:is_empty( NoUniqArgTable ) of
 
-									  true ->
-										  " (no command-line option specified)";
+						true ->
+							" (no command-line option specified)";
 
-									  false ->
-										  "; instead: "
-						   ++ executable_utils:argument_table_to_string(
-								NoUniqArgTable )
+						false ->
+							"; instead: " ++
+							executable_utils:argument_table_to_string(
+							  NoUniqArgTable )
 
 					end,
 
@@ -432,7 +444,11 @@ handle_neither_scan_options( ArgTable, BaseDir ) ->
 
 					stop_on_option_error( Msg, 20 );
 
-				{ [ UniqTreePath ], NoUniqArgTable }
+				{ [ [] ], _NoUniqArgTable } ->
+					stop_on_option_error( "no parameter specified for the "
+						"--uniquify option", 21 );
+
+				{ [ [ UniqTreePath ] ], NoUniqArgTable }
 				  when is_list( UniqTreePath ) ->
 					handle_uniquify_option( UniqTreePath, NoUniqArgTable,
 											BaseDir );
@@ -441,18 +457,21 @@ handle_neither_scan_options( ArgTable, BaseDir ) ->
 				{ UnexpectedUniqTreeOpts, _NoUniqArgTable } ->
 
 					UniqString = text_utils:format(
-								   "unexpected uniquify tree options: ~p",
-								   [ UnexpectedUniqTreeOpts ] ),
+						"unexpected uniquify tree options: ~p",
+						[ UnexpectedUniqTreeOpts ] ),
 
 					stop_on_option_error( UniqString, 22 )
 
 			end;
 
+		{ [ [] ], _NoResyncArgTable } ->
+			stop_on_option_error( "no parameter specified for the "
+				"--resync option", 23 );
 
-		{ [ ResyncTreePath ], NoResyncArgTable }
-				  when is_list( ResyncTreePath ) ->
-					handle_resync_option( ResyncTreePath, NoResyncArgTable,
-										  BaseDir );
+		{ [ [ ResyncTreePath ] ], NoResyncArgTable }
+					when is_list( ResyncTreePath ) ->
+				handle_resync_option( ResyncTreePath, NoResyncArgTable,
+									  BaseDir );
 
 		{ UnexpectedResyncTreeOpts, _NoResyncArgTable } ->
 
@@ -570,8 +589,7 @@ check_no_option_remains( ArgTable ) ->
 
 		false ->
 			Msg = text_utils:format( "unexpected extra options specified: ~s",
-							[ executable_utils:argument_table_to_string(
-								ArgTable ) ] ),
+					[ executable_utils:argument_table_to_string( ArgTable ) ] ),
 			stop_on_option_error( Msg, 20 )
 
 	end.
