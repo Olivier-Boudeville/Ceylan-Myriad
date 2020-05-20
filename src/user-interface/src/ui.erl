@@ -29,7 +29,6 @@
 % Aggregates all code transverse to the various actual UI backends.
 %
 % See:
-%
 % - text_ui_test.erl for the test of the most basic text interface
 % - term_ui.erl for a more advanced text interface (ncurses-based)
 % - gui.erl for a graphical counterpart thereof
@@ -159,6 +158,10 @@
 -type ui_state() :: any().
 
 
+% Shorthands:
+-type argument_table() :: executable_utils:argument_table().
+
+
 
 % Starts the UI with default settings.
 -spec start() -> void().
@@ -172,7 +175,7 @@ start() ->
 %
 % Stores the corresponding state in the process dictionary.
 %
--spec start( ui_options() ) -> executable_utils:argument_table().
+-spec start( ui_options() ) -> argument_table().
 start( Options ) ->
 
 	% Here, no argument table is specified, fetching it (thus supposedly not
@@ -188,9 +191,11 @@ start( Options ) ->
 %
 % Stores the corresponding state in the process dictionary.
 %
--spec start( ui_options(), executable_utils:argument_table() ) ->
-				   executable_utils:argument_table().
+-spec start( ui_options(), argument_table() ) -> argument_table().
 start( Options, ArgumentTable ) ->
+
+	%trace_utils:debug_fmt( "UI got following full argument(s): ~s",
+	%	   [ executable_utils:argument_table_to_string( ArgumentTable ) ] ),
 
 	% Just a check:
 	case process_dictionary:get( ?ui_name_key ) of
@@ -210,12 +215,12 @@ start( Options, ArgumentTable ) ->
 		case executable_utils:extract_command_argument( OptName,
 														ArgumentTable ) of
 
-		{ [], ArgTable } ->
+		{ undefined, ArgTable } ->
 			%trace_utils:debug( "No backend specified, determining it." ),
 			{ get_best_ui_backend(), ArgTable };
 
 
-		{ [ BackendName ], OtherArgTable } ->
+		{ [ [ BackendName ] ], OtherArgTable } ->
 
 			%trace_utils:debug_fmt( "Following backend was specified: '~s'.",
 			%					   [ BackendName ] ),
@@ -226,8 +231,8 @@ start( Options, ArgumentTable ) ->
 
 				not_found ->
 					trace_utils:error_fmt( "No BEAM file found in code path "
-						   "for user-specified UI backend module '~s'.",
-						   [ BackendModName ] ),
+						"for user-specified UI backend module '~s'.",
+						[ BackendModName ] ),
 					throw( { ui_backend_module_not_found, BackendModName } );
 
 				[ _SinglePath ] ->
@@ -243,7 +248,6 @@ start( Options, ArgumentTable ) ->
 
 		{ OtherValues, _OtherArgTable } ->
 			throw( { invalid_ui_options, OtherValues } )
-
 
 	end,
 
@@ -340,8 +344,8 @@ display_warning( Text ) ->
 
 
 % Displays specified formatted text, as a warning message.
--spec display_warning( text_utils:format_string(), text_utils:format_values() ) ->
-					 void().
+-spec display_warning( text_utils:format_string(),
+					   text_utils:format_values() ) -> void().
 display_warning( FormatString, Values ) ->
 
 	UIModule = get_backend_name(),
