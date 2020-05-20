@@ -28,10 +28,10 @@ exec() ->
 	update_code_path_for_myriad_from_module(),
 
 	% To force options for testing:
-	%ArgTable = executable_utils:generate_argument_table( "--interactive" ),
-	%ArgTable = executable_utils:generate_argument_table( "-i" ),
-	%ArgTable = executable_utils:generate_argument_table( "-i --unexpected" ),
-	%ArgTable = executable_utils:generate_argument_table( "" ),
-	ArgTable = executable_utils:get_argument_table(),
+	%ArgTable = shell_utils:generate_argument_table( "--interactive" ),
+	%ArgTable = shell_utils:generate_argument_table( "-i" ),
+	%ArgTable = shell_utils:generate_argument_table( "-i --unexpected" ),
+	%ArgTable = shell_utils:generate_argument_table( "" ),
+	ArgTable = shell_utils:get_argument_table(),
 
 	password_generation:main( ArgTable ).

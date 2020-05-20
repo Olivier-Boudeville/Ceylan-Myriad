@@ -159,7 +159,7 @@
 
 
 % Shorthands:
--type argument_table() :: executable_utils:argument_table().
+-type argument_table() :: shell_utils:argument_table().
 
 
 
@@ -181,7 +181,7 @@ start( Options ) ->
 	% Here, no argument table is specified, fetching it (thus supposedly not
 	% running as an escript):
 	%
-	start( Options, executable_utils:get_argument_table() ).
+	start( Options, shell_utils:get_argument_table() ).
 
 
 
@@ -195,7 +195,7 @@ start( Options ) ->
 start( Options, ArgumentTable ) ->
 
 	%trace_utils:debug_fmt( "UI got following full argument(s): ~s",
-	%	   [ executable_utils:argument_table_to_string( ArgumentTable ) ] ),
+	%	   [ shell_utils:argument_table_to_string( ArgumentTable ) ] ),
 
 	% Just a check:
 	case process_dictionary:get( ?ui_name_key ) of

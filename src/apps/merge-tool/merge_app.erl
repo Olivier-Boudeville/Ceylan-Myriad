@@ -25,8 +25,8 @@ exec() ->
 	update_code_path_for_myriad_from_module(),
 
 	% To force options for testing:
-	%ArgTable = executable_utils:generate_argument_table( "--help" ),
+	%ArgTable = shell_utils:generate_argument_table( "--help" ),
 
-	ArgTable = executable_utils:get_argument_table(),
+	ArgTable = shell_utils:get_argument_table(),
 
 	merge_utils:main( ArgTable ).

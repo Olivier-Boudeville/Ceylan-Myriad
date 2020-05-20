@@ -1,4 +1,4 @@
-% Copyright (C) 2016-2020 Olivier Boudeville
+% Copyright (C) 2020-2020 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,19 +23,19 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Saturday, May 12, 2018.
+% Creation date: Wednesday, May 20, 2020.
 
 
-
-% Unit tests for the script-related facilities.
+% Unit tests for the shell_utils toolbox.
 %
-% See the script_utils.erl tested module.
+% See the shell_utils.erl tested module.
 %
--module(script_utils_test).
+-module(shell_utils_test).
 
 
 % For run/0 export and al:
 -include("test_facilities.hrl").
+
 
 
 -spec run() -> no_return().
@@ -43,25 +43,14 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	false = script_utils:is_running_as_escript(),
+	TargetOption = 'pz',
 
-	test_facilities:display( "Root of Myriad is: ~s",
-							 [ script_utils:get_myriad_base_directory() ] ),
+	{ Values, RemainingArguments } =
+		shell_utils:extract_command_argument( TargetOption ),
 
-	test_facilities:display( "Script directory is: ~s",
-							 [ script_utils:get_script_base_directory() ] ),
-
-	ArgString = "foo -color red white -bar baz -boom -color blue",
-
-	% Emulated as if they were obtained in the context of an escript:
-	CommandLineArgs = text_utils:split( ArgString, _Delimiters=[ $ ] ),
-
-	CanonicalArgTables =
-		shell_utils:get_argument_table_from_strings( CommandLineArgs ),
-
-	test_facilities:display( "Command-line interpretation follows, for "
-							 "command-line arguments '~s': ~s",
-		 [ ArgString,
-		   shell_utils:argument_table_to_string( CanonicalArgTables ) ] ),
+	test_facilities:display( "Knowing the actual command-line arguments were:~n"
+		"~p~nbased on option '~s', we extracted following value(s):~n~p~nand "
+		"got the rest of the arguments:~n~p",
+		[ init:get_arguments(), TargetOption, Values, RemainingArguments ] ),
 
 	test_facilities:stop().

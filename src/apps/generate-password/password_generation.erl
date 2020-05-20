@@ -26,7 +26,7 @@
 % Typically for testing:
 -spec run() -> void().
 run() ->
-	ArgTable = executable_utils:get_argument_table(),
+	ArgTable = shell_utils:get_argument_table(),
 	main( ArgTable ).
 
 
@@ -65,11 +65,11 @@ get_usage() ->
 % Sole entry point for this generation service, either triggered by run/0 or by
 % the associated escript.
 %
--spec main( executable_utils:argument_table() ) -> void().
+-spec main( shell_utils:argument_table() ) -> void().
 main( ArgTable ) ->
 
 	%trace_utils:debug_fmt( "Original script-specific arguments: ~s",
-	%	[ executable_utils:argument_table_to_string( ArgTable ) ] ),
+	%	[ shell_utils:argument_table_to_string( ArgTable ) ] ),
 
 	[ %InteractiveRefKey,
 	  LengthRefKey, AlphaRefKey, HelpRefKey ] =
@@ -84,7 +84,7 @@ main( ArgTable ) ->
 			{ HelpRefKey, [ 'h' ] } ], ArgTable ),
 
 	%trace_utils:debug_fmt( "Canonicalized script-specific arguments: ~s",
-	%	   [ executable_utils:argument_table_to_string( MergedTable ) ] ),
+	%	   [ shell_utils:argument_table_to_string( MergedTable ) ] ),
 
 	case list_table:has_entry( HelpRefKey, MergedTable ) of
 
@@ -173,7 +173,7 @@ main( ArgTable ) ->
 
 		UnexpectedOpts ->
 			trace_utils:error_fmt( "Unexpected user input: ~s~n~s",
-			  [ executable_utils:argument_table_to_string( AlphaTable ),
+			  [ shell_utils:argument_table_to_string( AlphaTable ),
 				get_usage() ] ),
 			throw( { unexpected_command_line_options, UnexpectedOpts } )
 

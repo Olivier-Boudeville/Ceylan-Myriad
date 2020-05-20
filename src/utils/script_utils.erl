@@ -236,7 +236,7 @@ get_myriad_base_directory() ->
 % the corresponding strings, typically as directly obtained through the main/1
 % function of an escript) once transformed into our "canonical", more convenient
 % form, which is the same as the one used by
-% executable_utils:get_argument_table/0 and is itself similar to the one used by
+% shell_utils:get_argument_table/0 and is itself similar to the one used by
 % Erlang for its user/system flags (i.e. for all its non-plain options).
 %
 % In this form, which by default is not available for escripts, options start
@@ -248,6 +248,6 @@ get_myriad_base_directory() ->
 % Allows to write code that can be seamlessly triggered by a erl interpreter or
 % by an escript, by putting them in the latter case in our "canonical" form.
 %
--spec get_arguments( [ string() ] ) -> executable_utils:argument_table().
+-spec get_arguments( [ string() ] ) -> shell_utils:argument_table().
 get_arguments( Args ) ->
-	executable_utils:get_argument_table_from_strings( Args, _FailSafe=false ).
+	shell_utils:get_argument_table_from_strings( Args, _FailSafe=false ).

@@ -219,7 +219,7 @@ get_usage() ->
 % Typically for testing:
 -spec run() -> void().
 run() ->
-	ArgTable = executable_utils:get_argument_table(),
+	ArgTable = shell_utils:get_argument_table(),
 	main( ArgTable ).
 
 
@@ -227,7 +227,7 @@ run() ->
 % Sole entry point for this merge service, either triggered by run/0 or by the
 % associated escript.
 %
--spec main( executable_utils:argument_table() ) -> void().
+-spec main( shell_utils:argument_table() ) -> void().
 main( ArgTable ) ->
 
 	%trace_utils:info( "Running..." ),
@@ -238,7 +238,7 @@ main( ArgTable ) ->
 	FilteredArgTable = ui:start( UIOptions, ArgTable ),
 
 	%trace_utils:debug_fmt( "Script-specific argument(s): ~s",
-	%	   [ executable_utils:argument_table_to_string( FilteredArgTable ) ] ),
+	%	   [ shell_utils:argument_table_to_string( FilteredArgTable ) ] ),
 
 	case list_table:has_entry( 'h', FilteredArgTable )
 			orelse list_table:has_entry( '-help', FilteredArgTable ) of
@@ -316,7 +316,7 @@ handle_reference_option( RefTreePath, ArgumentTable, BaseDir ) ->
 		{ undefined, NewArgumentTable } ->
 			InputString = text_utils:format(
 			  "no input tree specified; options were: ~s",
-			  [ executable_utils:argument_table_to_string(
+			  [ shell_utils:argument_table_to_string(
 				  NewArgumentTable ) ] ),
 			stop_on_option_error( InputString, 23 );
 
@@ -398,7 +398,7 @@ handle_non_reference_option( ArgumentTable, BaseDir ) ->
 				false ->
 					Msg = text_utils:format(
 							"unexpected extra options specified: ~s",
-							[ executable_utils:argument_table_to_string(
+							[ shell_utils:argument_table_to_string(
 								ScanArgTable ) ] ),
 					stop_on_option_error( Msg, 23 )
 
@@ -434,7 +434,7 @@ handle_neither_scan_options( ArgTable, BaseDir ) ->
 
 						false ->
 							"; instead: " ++
-							executable_utils:argument_table_to_string(
+							shell_utils:argument_table_to_string(
 							  NoUniqArgTable )
 
 					end,
@@ -589,7 +589,7 @@ check_no_option_remains( ArgTable ) ->
 
 		false ->
 			Msg = text_utils:format( "unexpected extra options specified: ~s",
-					[ executable_utils:argument_table_to_string( ArgTable ) ] ),
+					[ shell_utils:argument_table_to_string( ArgTable ) ] ),
 			stop_on_option_error( Msg, 20 )
 
 	end.
