@@ -55,9 +55,9 @@ get_usage() ->
 		"    - MIN_LEN and MAX_LEN are the respective minimum and maximum "
 		"numbers of characters (bounds included) used to "
 		"generate this password [default: between ~s and ~s]~n",
-		[ ?exec_name, ?default_alphabet,
-		  get_alphabet( basic_punctuation ), get_alphabet( extra_punctuation ),
-		  ?default_min_length, ?default_max_length ] ).
+		[ ?exec_name, ?default_alphabet, get_alphabet( basic_punctuation ),
+		  get_alphabet( extra_punctuation ), ?default_min_length,
+		  ?default_max_length ] ).
 
 
 
@@ -69,7 +69,7 @@ get_usage() ->
 main( ArgTable ) ->
 
 	%trace_utils:debug_fmt( "Original script-specific arguments: ~s",
-	%	   [ executable_utils:argument_table_to_string( ArgTable ) ] ),
+	%	[ executable_utils:argument_table_to_string( ArgTable ) ] ),
 
 	[ %InteractiveRefKey,
 	  LengthRefKey, AlphaRefKey, HelpRefKey ] =
