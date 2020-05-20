@@ -25,7 +25,7 @@ These helpers (code and typing information) are thematically aggregated in modul
 
   - locate said executables
   - to execute functional services (ex: display a PDF) regardless of the actual executable involved
-  - to handle more easily command-line arguments (a bit like ``getopt``), regardless of the interpreter or escript context
+- services to handle more easily the (UNIX) shells and also the command-line arguments (a bit like ``getopt``), regardless of the interpreter or escript context (``shell_utils.erl``)
 
 - helpers for **file-based** I/O operations (``file_utils.erl``)
 - a very basic support of **Finite State Machines** (``fsm_utils.{e,h}rl``)
