@@ -509,7 +509,7 @@ is_dhms_duration( _Other ) ->
 % Converts specified string (ex: "113j0h10m3s" for a French version,
 % "1d12h0m0s" for an English one) to a DHMS duration.
 %
--spec string_to_dhms( text_utils:string() ) -> dhms_duration().
+-spec string_to_dhms( text_utils:ustring() ) -> dhms_duration().
 string_to_dhms( DurationString ) ->
 
 	TrimmedDurStr = text_utils:trim_whitespaces( DurationString ),
