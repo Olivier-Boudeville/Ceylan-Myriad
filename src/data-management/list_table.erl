@@ -536,10 +536,12 @@ merge( TableBase, TableAdd ) ->
 % associated to it).
 %
 % Useful for example to gather into a single entry the values associated to
-% aliases in terms of command-line options, like values associated to a
-% '--length' key and to a '-l' or '--len' shorthand key.
+% aliases in terms of command-line options, like the values associated to a
+% '--length' command-line option (hence associated to the '-length' key) and
+% also to the '-l' and '--len' alias command-line options (hence associated to
+% the 'l' and '-len' keys).
 %
-% Ex: MergedTable = merge_in_key( '--length', [ '-l', '--len' ], MyTable ).
+% Ex: MergedTable = merge_in_key( '-length', [ 'l', '-len' ], MyTable ).
 %
 -spec merge_in_key( key(), [ key() ], list_table() ) -> list_table().
 merge_in_key( _ReferenceKey, _AlternateKeys=[], Table ) ->
@@ -564,8 +566,8 @@ merge_in_key( ReferenceKey, _AlternateKeys=[ K | T ], Table ) ->
 % Performs a key merge, as merge_in_key/3, however not for a single reference
 % key / aliases entries, but for a set thereof.
 %
-% Ex: MergedTable = merge_in_keys( [ { '--length', [ '-l', '--len' ] },
-%       { '--help', [ '-h' ] } ], MyTable ).
+% Ex: MergedTable = merge_in_keys( [ { '-length', [ 'l', '-len' ] },
+%       { '-help', [ 'h' ] } ], MyTable ).
 %
 -spec merge_in_keys( list_table(), list_table() ) -> list_table().
 merge_in_keys( _KeyAssoc=[], Table ) ->
