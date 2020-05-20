@@ -857,7 +857,7 @@ get_default_jinterface_path() ->
 % - only the arguments specified on the command-line after the '-extra' marker
 % will be taken into account; ex:
 %        make ui_run CMD_LINE_OPT="-a -extra -b --use-ui-backend text_ui"
-% (here "-a" will be ignored)
+% (here "-a" and, of course, "-extra", will be ignored)
 %
 % - abnormal arguments (ex: not starting with a dash) will be reported, through
 % a warning trace
@@ -879,7 +879,7 @@ get_argument_table() ->
 % - only the arguments specified on the command-line after the '-extra' marker
 % will be taken into account; ex: with
 %        make ui_run CMD_LINE_OPT="-a -extra -b --use-ui-backend text_ui"
-% "-a" will be ignored
+% (here "-a" and, of course, "-extra", will be ignored)
 %
 % - abnormal arguments (ex: not starting with a dash) will be reported (through
 % a warning trace) iff FailSafe is false
@@ -897,7 +897,7 @@ get_argument_table( FailSafe ) ->
 	%Args = init:get_arguments(),
 	Args = init:get_plain_arguments(),
 
-	%trace_utils:debug_fmt( "Arguments obtained by get_argument_table/0: ~p.",
+	%trace_utils:debug_fmt( "Arguments obtained by get_argument_table/1: ~p.",
 	%					   [ Args ] ),
 
 	% To convert a list of strings into per-option list of values:
@@ -1119,7 +1119,7 @@ extract_command_argument( Option ) ->
 
 
 % Extracts specified option (if any; otherwise returns 'undefined'), i.e. its
-% various associated values , from the specified argument table.
+% various associated values, from the specified argument table.
 %
 % Returns a pair made of these lists of (lists of) values and of the shrunk
 % argument table.
