@@ -996,60 +996,65 @@ ERL_PARAMETERIZED_LAUNCHER = $(ERL_LAUNCHER) $(FQDN_OPT) $(FIREWALL_OPT)  \
 #
 ifndef NODE_NAMING
 
-  NODE_NAMING = "--ln"
-  #NODE_NAMING = "--sn"
-  #NODE_NAMING = "--nn"
+	NODE_NAMING = "--ln"
+	#NODE_NAMING = "--sn"
+	#NODE_NAMING = "--nn"
 
 endif
 
 
-# We used to rely on '-noshell' rather than on '-noinput', as no shell was
-# wanted by default for executions, since executables are supposed to interact
-# by themselves with the user.
-#
+# Regarding the VM-specific command-line options, we used to rely on '-noshell'
+# rather than on '-noinput', as no shell was wanted by default for executions,
+# since executables are supposed to interact by themselves with the user.
 # However, at least for some uses (ex: term_ui, relying on /bin/dialog), we
 # *need* to have -noinput and not to have -noshell, while others (ex: text_ui,
 # relying on io:get_line/1) require the opposite.
-
+#
 # So we finally designed a work-around (see system_utils:get_line/1) to stick
 # with the option needed by term_ui.
 #
 # Note that setting a -noinput option implies that, for example when running a
 # test, the user will not be able to use the Erlang shell afterwards (like done
 # in test_facilities:finished/0).
-
-
+#
 # Moreover, should the Erlang program abort (whether using text_ui or term_ui),
 # the initial (UNIX) shell from which the program was launched may malfunction a
 # lot (many key presses being then lost), and despite countermeasures (such as
-# Ceylan-Hull/reset-keyboard-mode.sh), we did not manage to restore it in these
-# cases, which is certainly a problem.
-
+# Ceylan-Hull/reset-keyboard-mode.sh), we did not manage to restore it correctly
+# in these cases, which is certainly a problem.
+#
 # Note that the '-start-verbatim-options' marker is used by the launch-erl.sh
 # script in order to delimit the options it is supposed to recognize (before
-# that marker) from the ones that shall be passed "as are" to the Erlan VM
+# that marker) from the ones that shall be passed "as are" to the Erlang VM
 # (after that marker), while the '-extra' marker delimits user/system Erlang
 # flags from the application-specific command line arguments (which are
 # specifically managed by executable_utils).
 #
 # So additional arguments FOO_ARGS to be passed to the VM while not being known
 # of launch-erl.sh shall be specified between -start-verbatim-options and
-# -extra, like in: -start-verbatim-options $(FOO_ARGS) -extra.
+# -extra, like in: '-start-verbatim-options $(FOO_ARGS) -extra'.
 
 
-# term_ui is ko (displays and terminates), text_ui is ok:
+# In this case term_ui is ko (displays and terminates), text_ui is ok:
 #EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noinput -noshell
 
 # The same:
 #EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS)
 
-# term_ui is ok, text_ui by default has no input but with our workaround is ok,
+# term_ui is ok, text_ui by default has no input but with our workaround is ok -
 # yet crashing may disrupt the hosting UNIX shell:
 #
 EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noinput
 
 # term_ui is ok, text_ui has no input:
 #EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noshell
+
+
+# EXEC_EXTERNAL_OPTIONS referenced so that upper layers may add their own
+# options (considered as belonging to the applicative realm rather than to the
+# Erlang one, yet to be managed transparently for the user):
+#
+ALL_CMD_LINE_OPTIONS := $(EXEC_INTERNAL_OPTIONS) -extra $(EXEC_EXTERNAL_OPTIONS) $(CMD_LINE_OPT)
 
 
 # Available in Ceylan-Hull:
@@ -1060,12 +1065,6 @@ ifdef PROJECT_ICON
 	PROJECT_ICON_OPT := --icon-file $(PROJECT_ICON)
 endif
 
-
-# EXEC_EXTERNAL_OPTIONS referenced so that upper layers may add their own
-# options (considered as belonging to the applicative realm rather than to the
-# Erlang one, yet to be managed transparently for the user):
-#
-ALL_CMD_LINE_OPTIONS := $(EXEC_INTERNAL_OPTIONS) -extra $(EXEC_EXTERNAL_OPTIONS) $(CMD_LINE_OPT)
 
 
 # Release settings.
