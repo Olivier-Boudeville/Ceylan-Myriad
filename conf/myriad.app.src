@@ -1,7 +1,17 @@
 % Description of the Myriad OTP library application, typically used by rebar3.
 
-% Note: if this file is named myriad.app, it is a *generated* file, whose source
-% is conf/myriad.app.src.
+% Note: if this file is named myriad.app, it is a *generated* file, whose real
+% source is conf/myriad.app.src, from which _build/lib/myriad/ebin/myriad.app is
+% obtained and copied to ebin/myriad.app; finally src/myriad.app.src is a mere
+% symlink to this last file, so we have:
+%
+% ./conf/myriad.app.src [only real source]
+% ./_build/lib/myriad/ebin/myriad.app
+% ./ebin/myriad.app
+% ./src/myriad.app.src -> ../ebin/myriad.app
+%
+% For more information see the 'rebar3-create-app-file' make target and its
+% associated comments.
 
 % See also:
 % - http://erlang.org/doc/man/app.html

@@ -638,7 +638,7 @@ rebar3-create-app-file:
 	@echo "  Generating rebar3 $(REBAR3_PROJECT_NAME).app file"
 	@# This target may be called for hex for example:
 	@mkdir -p $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ebin $(LAYER_TOP)/ebin
-	@all_modules=$$(find src -name '*.erl' -a ! -name '*_test.erl' $(REBAR3_FIND_SRC_OPT) -exec echo '{}' ';' | sed 's|.*/||1' | sed 's|.erl$$||1' | tr '\n' ','| sed 's|,|, |g' | sed 's|, $$||1' | sort ) ; cat conf/$(REBAR3_PROJECT_NAME).app.src | sed "s|VERSION_FOR_REBAR3|$(VERSION_FOR_REBAR3)|1" | sed "s|MODULES_FOR_REBAR3|$$all_modules|1" > $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ebin/$(REBAR3_PROJECT_NAME).app
+	@all_modules=$$(find src -name '*.erl' -a ! -name '*_test.erl' $(REBAR3_FIND_SRC_OPT) -exec echo '{}' ';' | sed 's|.*/||1' | sed 's|.erl$$||1' | sort | tr '\n' ','| sed 's|,|, |g' | sed 's|, $$||1' ) ; cat conf/$(REBAR3_PROJECT_NAME).app.src | sed "s|VERSION_FOR_REBAR3|$(VERSION_FOR_REBAR3)|1" | sed "s|MODULES_FOR_REBAR3|$$all_modules|1" > $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ebin/$(REBAR3_PROJECT_NAME).app
 	@/bin/cp -f $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ebin/$(REBAR3_PROJECT_NAME).app $(LAYER_TOP)/ebin/
 	@cd $(LAYER_TOP)/src ; ln -sf ../ebin/$(REBAR3_PROJECT_NAME).app $(REBAR3_PROJECT_NAME).app.src
 

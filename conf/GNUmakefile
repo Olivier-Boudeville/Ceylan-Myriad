@@ -1,7 +1,7 @@
 MYRIAD_TOP = ..
 
 
-.PHONY: info-rebar clean-local clean-rebar
+.PHONY: info-rebar info-replacements clean-local clean-rebar
 
 
 # Typically to generate various flavours (normal, for testing, etc.) of
@@ -24,6 +24,14 @@ info-rebar:
 	@echo "REBAR_INCS = $(REBAR_INCS)"
 
 
+info-replacements:
+	@echo "VERSION_FOR_REBAR3 = $(VERSION_FOR_REBAR3)"
+	@echo "REBAR_FIRST_FILES = $(REBAR_FIRST_FILES)"
+	@echo "DEBUG_INFO_KEY = $(DEBUG_INFO_KEY)"
+	@echo "REBAR_INCS = $(REBAR_INCS)"
+
+
+
 clean: clean-local
 
 
@@ -34,7 +42,6 @@ clean-local: clean-rebar
 clean-rebar:
 	-@/bin/rm -f rebar.config
 	-@/bin/rm -rf priv/
-
 
 
 include $(MYRIAD_TOP)/GNUmakesettings.inc
