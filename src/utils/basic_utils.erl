@@ -245,10 +245,10 @@
 
 
 % Compile-time execution target (not to be mixed up with execution_context/0):
--type execution_target() :: 'production' | 'development'.
+-type execution_target() :: 'development' | 'production'.
 
 % Runtime-time execution context (not to be mixed up with execution_target/0):
--type execution_context() :: 'production' | 'development'.
+-type execution_context() :: 'development' | 'production'.
 
 
 

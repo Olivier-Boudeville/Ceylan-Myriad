@@ -75,6 +75,8 @@
 
 		  stop_application/1, stop_applications/1,
 
+		  get_supervisor_settings/2,
+
 		  get_priv_root/1, get_priv_root/2 ]).
 
 
@@ -393,6 +395,38 @@ stop_application( AppName ) ->
 -spec stop_applications( [ application_name() ] ) -> void().
 stop_applications( AppNames ) ->
 	[ stop_application( App ) || App <- lists:reverse( AppNames ) ].
+
+
+
+% Returns the supervisor-level settings corresponding to the specified restart
+% strategy and to specified execution context.
+%
+% Note that the execution context must be specified, otherwise the one that
+% would apply is the one of Myriad, not the one of the calling layer.
+%
+% See https://erlang.org/doc/design_principles/sup_princ.html#supervisor-flags
+% for further information.
+%
+-spec get_supervisor_settings( supervisor:strategy(),
+				   basic_utils:execution_target() ) -> supervisor:sup_flags().
+get_supervisor_settings( RestartStrategy, _ExecutionTarget=development ) ->
+
+	% No restart wanted in development mode; we do not want the supervisor to
+	% hide crashes, and when an error occurs we want to see it logged once, not
+	% as a longer series of that same error:
+	%
+	#{ strategy  => RestartStrategy,
+	   intensity => _MaxRestarts=0,
+	   period    => _WithinSeconds=3600 };
+
+get_supervisor_settings( RestartStrategy, _ExecutionTarget=production ) ->
+
+	% In production mode, we apply here basic defaults (actually the same as
+	% used by the 'kernel' standard module in safe mode):
+	%:
+	#{ strategy  => RestartStrategy,
+	   intensity => _MaxRestarts=4,
+	   period    => _WithinSeconds=3600 }.
 
 
 
