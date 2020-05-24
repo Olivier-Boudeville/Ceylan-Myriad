@@ -178,7 +178,7 @@ rebuild: clean all
 
 # In 'utils':
 
-$(MYRIAD_TOP)/src/utils/basic_utils.beam: $(MYRIAD_TOP)/src/utils/basic_utils.erl
+$(MYRIAD_TOP)/src/utils/basic_utils.beam: $(MYRIAD_TOP)/src/utils/basic_utils.erl $(MYRIAD_TOP)/include/utils/basic_utils.hrl
 	@echo "		Compiling bootstrap module $<"
 	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
 

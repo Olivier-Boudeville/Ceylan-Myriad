@@ -171,7 +171,8 @@ INC += $(foreach dir,$(BEAM_DIRS),-I$$(echo $(dir)|sed 's|src|include|1'))
 # associated to a wrong directory prefix, as their MYRIAD_TOP variable points at
 # the Myriad root instead of their actual source directory:
 #
-BOOTSTRAP_INCLUDES := -I$(MYRIAD_TOP)/../../include/meta
+BOOTSTRAP_INCLUDES := -I$(MYRIAD_TOP)/../../include/meta      \
+					  -I$(MYRIAD_TOP)/../../include/utils
 
 
 

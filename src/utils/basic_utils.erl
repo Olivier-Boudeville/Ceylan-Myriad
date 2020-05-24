@@ -33,7 +33,6 @@
 -module(basic_utils).
 
 
-
 % Notification-related functions.
 -export([ speak/1, notify_user/1, notify_user/2 ]).
 
@@ -56,9 +55,8 @@
 		  parse_version/1, compare_versions/2,
 		  get_process_specific_value/0, get_process_specific_value/1,
 		  get_process_specific_value/2,
-		  get_execution_target/0,
 		  is_alive/1, is_alive/2,
-		  is_debug_mode_enabled/0,
+		  is_debug_mode_enabled/0, get_execution_target/0,
 		  describe_term/1,
 		  create_uniform_tuple/2,
 		  stop/0, stop/1, stop_on_success/0, stop_on_failure/0,
@@ -68,7 +66,6 @@
 		  ignore_unused/1,
 		  freeze/0, crash/0, enter_infinite_loop/0,
 		  trigger_oom/0 ]).
-
 
 
 % Hints about retrieving the name of the function being currently evaluated by a
@@ -283,6 +280,10 @@
 			   comparison_result/0, execution_target/0, execution_context/0,
 			   exception_class/0, status_code/0,
 			   fixme/0 ]).
+
+
+% To define get_execution_target/0:
+-include("basic_utils.hrl").
 
 
 % Creates a tuple of specified size, all elements having the same, specified,
@@ -1279,31 +1280,6 @@ get_process_specific_value( Min, Max ) ->
 	{ H, M, S } = erlang:time(),
 
 	( ( ( H + M + S + 1 ) * Value ) rem ( Max - Min ) ) + Min.
-
-
-
-% Returns the execution target this module (hence, probably, that layer as a
-% whole) was compiled with, i.e. either the atom 'development' or 'production'.
-
-% Dispatched in actual clauses, otherwise Dialyzer will detect an
-% underspecification:
-%
-% -spec get_execution_target() -> execution_target().
-
--ifdef(exec_target_is_production).
-
--spec get_execution_target() -> 'production'.
-get_execution_target() ->
-	production.
-
--else. % exec_target_is_production
-
--spec get_execution_target() -> 'development'.
-get_execution_target() ->
-	development.
-
--endif. % exec_target_is_production
-
 
 
 % Tells whether the specified process, designated by its PID, by a textual
