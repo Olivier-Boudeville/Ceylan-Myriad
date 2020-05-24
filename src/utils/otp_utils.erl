@@ -399,10 +399,12 @@ stop_applications( AppNames ) ->
 
 
 % Returns the supervisor-level settings corresponding to the specified restart
-% strategy and to specified execution context.
+% strategy and execution context.
 %
-% Note that the execution context must be specified, otherwise the one that
-% would apply is the one of Myriad, not the one of the calling layer.
+% Note that the execution context must be explicitly specified (typically by
+% calling a get_execution_target/0 function defined in a key module of that
+% layer, based on Myriad's basic_utils.hrl), otherwise the one that would apply
+% is the one of Myriad, not the one of the calling layer.
 %
 % See https://erlang.org/doc/design_principles/sup_princ.html#supervisor-flags
 % for further information.
