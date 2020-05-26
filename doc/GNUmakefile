@@ -33,7 +33,7 @@ GITHUB_PAGES_BASE := $(shell basename "$(MYRIAD_WEB_MIRROR_BRANCH)")
 
 .PHONY: doc all full-doc html pdf clone-mirror                    \
 		export-doc export-to-official export-to-mirror            \
-		clean clean-doc info info-doc info-web                    \
+		clean clean-doc clean-links info info-doc info-web        \
 		test uml-diagram-test
 
 
@@ -86,9 +86,13 @@ export-to-mirror: $(DOC_GENERATED_FILES)
 clean: clean-doc
 
 
-clean-doc:
+clean-doc: clean-links
 	@echo "     Cleaning documentation"
 	-@/bin/rm -f *.aux *.log *.maf *.mtc* *.stc* *.tex *.toc $(DOC_GENERATED_FILES)
+
+
+clean-links:
+	-@/bin/rm -f index.html myriad.html myriad.pdf
 
 
 info: info-doc info-web
@@ -97,6 +101,7 @@ info: info-doc info-web
 info-doc:
 	@echo "OVERALL_DOCUMENT_SOURCE = $(OVERALL_DOCUMENT_SOURCE)"
 	@echo "DOC_TRACKER = $(DOC_TRACKER)"
+
 
 info-web:
 	@echo "HTML_TARGET = $(HTML_TARGET)"
