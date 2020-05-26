@@ -1,6 +1,122 @@
 # Prerequisite: MYRIAD_TOP must be set.
 
 
+# On conditional variables depending on conditionals.
+#
+# The make conditionals (such as ifeq, ifndef, etc.) are evaluated statically
+# (immediately, and once for all) when the makefile is just read - not
+# dynamically.
+#
+# As a result, defining (especially at the very end of the included makefiles)
+# default settings for flag-like variables (such as ENABLE_DEBUG,
+# EXECUTION_TARGET, etc.) like:
+#
+# ifndef ENABLE_DEBUG
+#	ENABLE_DEBUG = true
+# endif
+#
+# is of no use for any past conditional in the same file or in any upper layer
+# (hence above in the expanded resulting makefile) that would rely on that
+# variable.
+#
+# For example, any prior:
+#
+# ifeq ($(ENABLE_DEBUG),true)
+#	ENABLE_FOOBAR_DEBUG_OPT = -Dfoobar_debug_mode
+# endif
+#
+# will not set ENABLE_FOOBAR_DEBUG_OPT, as ENABLE_DEBUG itself will not be set
+# yet: the conditional-based setting of a variable can only impact the
+# conditionals *below* - not above.
+#
+# And using simply expanded variables (based on ':=') or recursively expanded
+# ones (assigned with '=') does not matter here, as conditionals will be
+# evaluated all the same.
+#
+# An overly complex and inconvenient solution would be to resolve these flags
+# only when executing rules (hence through shell evaluation).
+#
+# This means that either each layer shall enforce its defaults first, or that
+# all GNUmakevars files shall be split in a flag file (for conditionals) and a
+# set files (for variables), included like:
+#   a.GNUmakevars-flags
+#   b.GNUmakevars-flags
+#   a.GNUmakevars-set
+#   b.GNUmakevars-set
+#
+# This is also an inconvenient solution, and a given variable being set may
+# become in turn a flag anyway, so such a split would be somewhat arbitrary.
+#
+
+# As a result: any conditional-based variable that may possibly impact other
+# conditional shall be set at the top of the GNUmakevars.inc of a given layer,
+# and such a setting shall be done that way by *each* layer making use of that
+# variable (no factoring in lower layers possible).
+#
+# This is notably the case for EXECUTION_TARGET, ENABLE_DEBUG, etc.
+
+
+# So:
+
+
+# Overall settings section.
+
+#EXECUTION_TARGET = production
+
+ifndef EXECUTION_TARGET
+
+	# Other possible value: production
+	EXECUTION_TARGET = development
+
+endif
+
+
+# We have to define a symbol specific to the 'production' execution target
+# (exec_target_is_production) instead of relying only on an execution_target
+# variable that could be set either to 'development' or 'production', as the
+# Erlang preprocessor allows only to test whether a symbol is defined (with
+# -ifdef), we cannot test its value.
+#
+# So the code is to use '-ifdef(target_production_exec)' instead of something
+# like '-ifdef(execution_target,production)'.
+#
+ifeq ($(EXECUTION_TARGET),development)
+
+	#$(info Execution target is development)
+
+	ENABLE_DEBUG = true
+	ENABLE_NATIVE_COMPILATION = false
+
+	# No exec_target_is_production shall be defined here:
+	ERLANG_COMPILER_EXEC_TARGET_OPT =
+
+	ERLANG_COMPILER_DEBUG_OPT = -Dmyriad_debug_mode
+
+else ifeq ($(EXECUTION_TARGET),production)
+
+	#$(info Execution target is production)
+
+	ENABLE_DEBUG = false
+
+	# Native compilation may be enabled - with care; yet problems with
+	# orddict:erase/2, lists:fold/3, etc. made us switch it off for the moment:
+	#
+	#ENABLE_NATIVE_COMPILATION = true
+	ENABLE_NATIVE_COMPILATION = false
+
+	ERLANG_COMPILER_EXEC_TARGET_OPT = -Dexec_target_is_production
+
+	ERLANG_COMPILER_DEBUG_OPT =
+
+else
+
+	$(error Invalid Myriad execution target '$(EXECUTION_TARGET)'; expecting either 'development' or 'production')
+
+endif
+
+
+
+
 # Useful to target for example the root of the current layer (ex: to locate the
 # relevant, layer-local '_build' directory):
 #
@@ -175,15 +291,6 @@ BOOTSTRAP_INCLUDES := -I$(MYRIAD_TOP)/../../include/meta      \
 					  -I$(MYRIAD_TOP)/../../include/utils
 
 
-
-# To know when the including makefile is the sole root one:
-#
-ifndef ROOT_MAKEFILE
-	ROOT_MAKEFILE := false
-endif
-
-
-
 # Extra prerequisite includes:
 
 # Optional services, relying on third-party prerequisites:
@@ -193,28 +300,28 @@ endif
 
 
 # For the reading and writing of large, often scientific-oriented data:
-#USE_HDF5 := false
-#USE_HDF5 := true
+#USE_HDF5 = false
+#USE_HDF5 = true
 
 # To gain the ability of acting as a client of a REST service:
-#USE_REST := false
-#USE_REST := true
+#USE_REST = false
+#USE_REST = true
 
 # To be able to handle JSON content:
-#USE_JSON := false
-#USE_JSON := true
+#USE_JSON = false
+#USE_JSON = true
 
 # For SQL database operations, based on SQLite 3 operations:
-#USE_SQLITE := false
-#USE_SQLITE := true
+#USE_SQLITE = false
+#USE_SQLITE = true
 
 # For using an Erlang/Python binding, based on the ErlPort library:
-#USE_PYTHON_BINDING := false
-#USE_PYTHON_BINDING := true
+#USE_PYTHON_BINDING = false
+#USE_PYTHON_BINDING = true
 
 # For using an Erlang/Java binding, based on the JInterface library:
-#USE_JAVA_BINDING := false
-#USE_JAVA_BINDING := true
+#USE_JAVA_BINDING = false
+#USE_JAVA_BINDING = true
 
 
 
@@ -223,7 +330,7 @@ endif
 # needed).
 #
 ifndef USE_HDF5
-	USE_HDF5 := false
+	USE_HDF5 = false
 endif
 
 
@@ -246,12 +353,12 @@ endif
 # compilation time, as not needing any specific include).
 #
 ifndef USE_REST
-	USE_REST := false
+	USE_REST = false
 endif
 
 
 ifeq ($(USE_REST),true)
-	USE_JSON := true
+	USE_JSON = true
 endif
 
 
@@ -277,7 +384,7 @@ endif
 #    https://github.com/alexeyr/erlang-sqlite3.git)
 #
 ifndef USE_SQLITE
-	USE_SQLITE := false
+	USE_SQLITE = false
 endif
 
 
@@ -300,7 +407,7 @@ endif
 # - the ErlPort library (cf https://github.com/hdima/erlport)
 #
 ifndef USE_PYTHON_BINDING
-	USE_PYTHON_BINDING := false
+	USE_PYTHON_BINDING = false
 endif
 
 ifeq ($(USE_PYTHON_BINDING),true)
@@ -323,7 +430,7 @@ endif
 #   http://erlang.org/doc/man/jinterface.html)
 #
 ifndef USE_JAVA_BINDING
-	USE_JAVA_BINDING := false
+	USE_JAVA_BINDING = false
 endif
 
 ifeq ($(USE_JAVA_BINDING),true)
@@ -349,12 +456,18 @@ ifeq ($(USE_JAVA_BINDING),true)
 endif
 
 
+
+# To know when the including makefile is the sole root one:
+ifndef ROOT_MAKEFILE
+	ROOT_MAKEFILE = false
+endif
+
 # Unless specified otherwise, the including makefile is not the one used as the
 # base of a given layer (hence, for example, it is not expected to build in
 # parallel):
 #
 ifndef BASE_MAKEFILE
-  BASE_MAKEFILE := false
+  BASE_MAKEFILE = false
 endif
 
 
@@ -363,62 +476,6 @@ ifndef BASE_PLT
   BASE_PLT = $(PREDECESSOR_PLT)
 endif
 
-
-
-# Overall settings section.
-
-#EXECUTION_TARGET := production
-
-ifndef EXECUTION_TARGET
-
-	# Other possible value: production
-	EXECUTION_TARGET := development
-
-endif
-
-
-# We have to define a symbol specific to the 'production' execution target
-# (exec_target_is_production) instead of relying only on an execution_target
-# variable that could be set either to 'development' or 'production', as the
-# Erlang preprocessor allows only to test whether a symbol is defined (with
-# -ifdef), we cannot test its value.
-#
-# So the code is to use '-ifdef(target_production_exec)' instead of something
-# like '-ifdef(execution_target,production)'.
-#
-ifeq ($(EXECUTION_TARGET),development)
-
-	#$(info Execution target is development)
-
-	ENABLE_DEBUG := true
-	ENABLE_NATIVE_COMPILATION := false
-
-	# No exec_target_is_production shall be defined here:
-	ERLANG_COMPILER_EXEC_TARGET_OPT :=
-
-	ERLANG_COMPILER_DEBUG_OPT := -Dmyriad_debug_mode
-
-else ifeq ($(EXECUTION_TARGET),production)
-
-	#$(info Execution target is production)
-
-	ENABLE_DEBUG := false
-
-	# Native compilation may be enabled - with care; yet problems with
-	# orddict:erase/2, lists:fold/3, etc. made us switch it off for the moment:
-	#
-	#ENABLE_NATIVE_COMPILATION := true
-	ENABLE_NATIVE_COMPILATION := false
-
-	ERLANG_COMPILER_EXEC_TARGET_OPT := -Dexec_target_is_production
-
-	ERLANG_COMPILER_DEBUG_OPT :=
-
-else
-
-	$(error Invalid execution target '$(EXECUTION_TARGET)'; expecting either 'development' or 'production')
-
-endif
 
 
 # To test conditional checks:
@@ -527,14 +584,14 @@ endif
 
 # Enforce default values:
 
-
+# Expected to be already set through EXECUTION_TARGET:
 ifndef ENABLE_DEBUG
-	ENABLE_DEBUG := true
+	ENABLE_DEBUG = true
 endif
 
 
 ifndef ENABLE_NATIVE_COMPILATION
-	ENABLE_NATIVE_COMPILATION := false
+	ENABLE_NATIVE_COMPILATION = false
 endif
 
 
@@ -604,7 +661,7 @@ ERLANG_INTERPRETER_OPT_DEBUG = -init_debug -smp
 
 ifdef FQDN
 
-	FQDN_OPT= "--fqdn $(FQDN)"
+	FQDN_OPT = "--fqdn $(FQDN)"
 
 else
 
@@ -612,7 +669,7 @@ else
 	FQDN := $$(hostname -f)
 
   # Not useful in this case:
-  #FQDN_OPT := "--fqdn $(FQDN)"
+  #FQDN_OPT = "--fqdn $(FQDN)"
 
 endif
 
@@ -1072,8 +1129,8 @@ endif
 
 
 # Toggle for additional logs:
-REBAR_DEBUG :=
-#REBAR_DEBUG := DEBUG=1
+REBAR_DEBUG =
+#REBAR_DEBUG = DEBUG=1
 
 
 # Relative to the usual root of this layer:
@@ -1218,7 +1275,7 @@ BATCH_OPT := 'CMD_LINE_OPT="--batch"'
 # prerequisites):
 #
 ifndef PREDECESSOR_PLT
-	PREDECESSOR_PLT := $(ERLANG_PLT_FILE)
+	PREDECESSOR_PLT = $(ERLANG_PLT_FILE)
 endif
 
 
