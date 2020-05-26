@@ -134,6 +134,7 @@ Myriad is not an *active* OTP application, and as such does not rely on, or prov
 
 .. [#] Speaking of OTP, in development mode, ``proc_lib``-based spawns used to be enabled, yet this led to longer error messages that were not that useful; see ``spawn_utils.hrl`` if wanting to re-enable them.
 
+.. _`getting-rebar3`:
 
 There are `various ways <https://www.rebar3.org/docs/getting-started>`_  for obtaining ``rebar3``; we prefer::
 
