@@ -4,7 +4,7 @@ MYRIAD_TOP = .
 .PHONY: help help-intro help-myriad help-hints help-batch                     \
 		register-version-in-header register-myriad list-beam-dirs             \
 		add-prerequisite-plts prepare-base-plt add-erlhdf5-plt add-jsx-plt    \
-		add-sqlite3-plt link-plt clean-rebar clean-ast-outputs stats          \
+		add-sqlite3-plt link-plt clean-ast-outputs clean-local stats          \
 		info-paths info-settings info-compile info-parse-transform info-check \
 		info-rebar3
 
@@ -113,6 +113,12 @@ link-plt:
 clean-ast-outputs:
 	@echo "  Removing AST output text files"
 	-@find . -name 'Output-AST-for-module-*.txt' -exec /bin/rm -f '{}' ';'
+
+
+clean: clean-local
+
+clean-local:
+	-@/bin/rm -rf .rebar3
 
 
 stats:
