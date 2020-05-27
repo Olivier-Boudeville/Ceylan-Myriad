@@ -16,7 +16,7 @@
 			  launch install-all install-announce install-ebin install-bin     \
 			  install-src install-include install-examples install-test        \
 			  install-doc info-install info-install-locations                  \
-			  info-install-content                                             \
+			  info-install-content create-myriad-checkout                      \
 			  rebar3-application set-rebar-conf set-rebar-conf-for-hex         \
 			  rebar3-make-include-links rebar3-clean-include-links             \
 			  rebar3-release rebar3-development-release                        \
@@ -390,6 +390,20 @@ info-install-content:
 
 
 # Section for the support of a rebar3+relx+hex compliant build.
+
+
+# Create a _checkouts directory in which all Ceylan dependencies for the current
+# layer are referenced through a symlink.
+#
+# Note that, in order for a layer to be listed as checkout, its root directory,
+# or at least a symlink pointing to it, shall already exist as a sibling of the
+# root of this layer.
+#
+# (no specific dependency here)
+#
+create-myriad-checkout:
+	@echo "  Creating a checkout directory for Myriad"
+	@mkdir -p _checkouts
 
 
 # The two main rebar-based targets for application and release are:
