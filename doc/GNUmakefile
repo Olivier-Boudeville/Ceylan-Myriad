@@ -45,6 +45,7 @@ all:
 	@echo "  Run 'make full-doc' to generate the manual of the 'Myriad' layer."
 
 
+# These links do not need to be in version control:
 full-doc: $(DOC_GENERATED_FILES)
 	@/bin/ln -sf $(CURRENT_MYRIAD_HTML) myriad.html
 	@/bin/ln -sf myriad.html index.html
