@@ -132,6 +132,9 @@
 % All lines (rows) are expected to contain the same number of values (fields).
 
 
+% Shorthands:
+
+-type line() :: text_utils:ustring().
 
 
 % Implementation notes:
@@ -163,19 +166,30 @@
 % - support character encoding
 
 
--export([  % For regular, homogeneous CSV files:
+-export([  % For regular, homogeneous CSV files, supposing the separator known a
+		   % priori, but not the number of fields to expect :
+		   %
 		   read_file/1, read_file/2,
 
 		   % For CSV files that shall be filtered before use (ex: with some rows
 		   % obeying different rules):
 
-		   % If the number of fields to expect in known a priori:
+		   % If the separator and number of fields to expect are known a priori:
 		   interpret_file/3,
 
-		   % If the number of fields to expect in not known a priori:
+		   % If the separator is known a priori, but not the number of fields to
+		   % expect:
+		   %
 		   interpret_file/2,
 
+		   % If neither the separator nor the number of fields to expect is
+		   % known a priori:
+		   %
+		   interpret_file/1,
+
 		   write_file/2, write_file/3,
+
+		   get_usual_separators/0,
 
 		   check_all_empty/1, are_all_empty/1,
 
@@ -201,8 +215,8 @@ read_file( Filename ) ->
 
 
 % Reads specified file, expected to be in CSV format and supposed to be
-% homogeneous (all non-dropping rows having the same number of fields -
-% otherwise an exception is raised), using the specified separator.
+% homogeneous (all non-dropped rows having the same number of fields - otherwise
+% an exception is raised), using the specified separator.
 %
 % Returns:
 % - the corresponding content, as an ordered list of rows
@@ -213,18 +227,7 @@ read_file( Filename ) ->
 					   { content(), row_count(), field_count() }.
 read_file( FilePath, Separator ) when is_integer( Separator ) ->
 
-	case file_utils:is_existing_file_or_link( FilePath ) of
-
-		true ->
-			ok;
-
-		false ->
-			throw( { csv_file_not_found, FilePath,
-					 file_utils:get_current_directory() } )
-
-	end,
-
-	File = file_utils:open( FilePath, ?read_options ),
+	File = get_file_for_reading( FilePath ),
 
 	Res = { _Content, _RowCount, _FieldCount } = read_rows( File, Separator ),
 
@@ -238,7 +241,7 @@ read_file( FilePath, Separator ) when is_integer( Separator ) ->
 
 
 % Interprets specified file, based on specified separator and number of fields
-% per row; returns { MixedContent, MatchCount, UnmatchCount, DropCount }, i.e.:
+% per row; returns {MixedContent, MatchCount, UnmatchCount, DropCount}, i.e.:
 %
 % - a list (respecting the in-file order) whose elements are either a list of
 % the specified number of fields, or a pair whose first element is the
@@ -252,7 +255,7 @@ read_file( FilePath, Separator ) when is_integer( Separator ) ->
 % - the number of rows that do not match said constraints
 %
 % - the number of rows that were dropped (typically because they were either
-% empty or containing a comment
+% empty or containing a comment)
 %
 -spec interpret_file( file_utils:any_file_path(), separator(),
 					  field_count() ) ->
@@ -260,24 +263,7 @@ read_file( FilePath, Separator ) when is_integer( Separator ) ->
 interpret_file( FilePath, Separator, ExpectedFieldCount )
   when is_integer( Separator ) ->
 
-	case file_utils:is_existing_file_or_link( FilePath ) of
-
-		true ->
-			ok;
-
-		false ->
-			throw( { csv_file_not_found, FilePath,
-					 file_utils:get_current_directory() } )
-
-	end,
-
-	%trace_utils:debug_fmt( "Opening '~s' with options ~w.",
-	%					  [ FilePath, ?read_options ] ),
-
-	File = file_utils:open( FilePath, ?read_options ),
-
-	% Refer to the note in file_utils:open/2 for explanation:
-	system_utils:force_unicode_support(),
+	File = get_file_for_reading( FilePath ),
 
 	%{ MixedContent, MatchCount, UnmatchingCount, DropCount } =
 	Res = interpret_rows( File, Separator, ExpectedFieldCount ),
@@ -293,8 +279,8 @@ interpret_file( FilePath, Separator, ExpectedFieldCount )
 
 
 % Interprets specified file, based on specified separator, with no prior
-% knowledge about the number of fields per row; returns { FieldCount,
-% MixedContent, MatchCount, UnmatchCount, DropCount }, i.e.:
+% knowledge about the number of fields per row; returns {FieldCount,
+% MixedContent, MatchCount, UnmatchCount, DropCount}, i.e.:
 %
 % - the number of fields in each row, based on the first one
 %
@@ -310,30 +296,13 @@ interpret_file( FilePath, Separator, ExpectedFieldCount )
 % - the number of rows that do not match said constraints
 %
 % - the number of rows that were dropped (typically because they were either
-% empty or containing a comment
+% empty or containing a comment)
 %
 -spec interpret_file( file_utils:any_file_path(), separator() ) ->
 		{ field_count(), mixed_content(), row_count(), row_count(), row_count() }.
 interpret_file( FilePath, Separator ) when is_integer( Separator ) ->
 
-	case file_utils:is_existing_file_or_link( FilePath ) of
-
-		true ->
-			ok;
-
-		false ->
-			throw( { csv_file_not_found, FilePath,
-					 file_utils:get_current_directory() } )
-
-	end,
-
-	%trace_utils:debug_fmt( "Opening '~s' with options ~w.",
-	%					  [ FilePath, ?read_options ] ),
-
-	File = file_utils:open( FilePath, ?read_options ),
-
-	% Refer to the note in file_utils:open/2 for explanation:
-	system_utils:force_unicode_support(),
+	File = get_file_for_reading( FilePath ),
 
 	{ FirstRow, FieldCount, GuessDropCount } =
 		guess_field_count( File, Separator, _InitialDropCount=0 ),
@@ -350,6 +319,67 @@ interpret_file( FilePath, Separator ) when is_integer( Separator ) ->
 	file_utils:close( File ),
 
 	{ FieldCount, MixedContent, MatchCount, UnmatchingCount, DropCount }.
+
+
+
+% Interprets specified file, with no prior knowledge about the separator or the
+% number of fields per row; returns {Separator, FieldCount, MixedContent,
+% MatchCount, UnmatchCount, DropCount}, i.e.:
+%
+% - the most likely separator in use
+%
+% - the number of fields in each row, based on the first one
+%
+% - a list (respecting the in-file order) whose elements are either a list of
+% the specified number of fields, or a pair whose first element is the
+% 'non_matching' atom, and whose second element is a list whose elements were
+% obtained based on the same separator - yet in a different number than the
+% expected one
+%
+% - the number of rows that match the row spec (i.e. the specified number of
+% fields), based on specified separator
+%
+% - the number of rows that do not match said constraints
+%
+% - the number of rows that were dropped (typically because they were either
+% empty or containing a comment)
+%
+-spec interpret_file( file_utils:any_file_path() ) ->
+		{ separator(), field_count(), mixed_content(), row_count(),
+		  row_count(), row_count() }.
+interpret_file( FilePath ) ->
+
+	File = get_file_for_reading( FilePath ),
+
+	{ FirstRow, Separator, FieldCount, FirstDropCount } =
+		guess_separator_and_field_count( File, _InitialDropCount=0 ),
+
+	trace_utils:debug_fmt( "First row: '~p', separator: '~s', field count: ~B, "
+		"first drop count: ~B.",
+		[ FirstRow, [Separator], FieldCount, FirstDropCount ] ),
+
+	% Branch to the helper with a correct initial state:
+	{ MixedContent, MatchCount, UnmatchingCount, DropCount } = interpret_rows(
+		_Device=File, Separator, FieldCount, _MatchCount=1, _UnmatchCount=0,
+		FirstDropCount, _Acc=[ FirstRow ] ),
+
+	% Full version with content:
+	%trace_utils:debug_fmt( "Read mixed content with detected separator '~s' "
+	%   "and field count ~B "
+	%	"(matching count: ~B, unmatching count: ~B, drop count: ~B):~n ~p",
+	%	[ [Separator], FieldCount, MatchCount, UnmatchingCount, DropCount,
+	%	  MixedContent ] ),
+
+	% Summary:
+	trace_utils:debug_fmt( "Read mixed content with detected separator '~s' "
+		"and field count ~B "
+		"(matching count: ~B, unmatching count: ~B, drop count: ~B).",
+		[ [Separator], FieldCount, MatchCount, UnmatchingCount, DropCount ] ),
+
+	file_utils:close( File ),
+
+	{ Separator, FieldCount, MixedContent, MatchCount, UnmatchingCount,
+	  DropCount }.
 
 
 
@@ -454,6 +484,39 @@ guess_field_count( Device, Separator, DropCount ) ->
 
 
 
+% Guesses the separator and number of fields per row, and returns also the first
+% read line so that the rest of the file can be read in the same movement.
+%
+% (helper)
+%
+-spec guess_separator_and_field_count( file_utils:file(), row_count() ) ->
+					   { row(), separator(), field_count(), row_count() }.
+guess_separator_and_field_count( Device, DropCount ) ->
+
+	case io:get_line( Device, _Prompt="" ) of
+
+		eof ->
+			% Nothing can be determined in this case:
+			throw( empty_csv_file );
+
+		{ error, Error } ->
+			throw( { read_error, Error } );
+
+		Line ->
+			case parse_row_no_separator( Line ) of
+
+				dropped ->
+					guess_separator_and_field_count( Device, DropCount+1 );
+
+				{ Values, Separator, FieldCount } ->
+					{ Values, Separator, FieldCount, DropCount }
+
+			end
+
+	end.
+
+
+
 % Returns the context read from specified device/file.
 -spec interpret_rows( file_utils:file(), separator(), field_count() ) ->
 				{ mixed_content(), row_count(), row_count(), row_count() }.
@@ -496,8 +559,8 @@ interpret_rows( Device, Separator, ExpectedFieldCount, MatchCount, UnmatchCount,
 				% Not matching:
 				{ Values, _OtherFieldCount } ->
 
-					%trace_utils:debug_fmt( "Read non-matching row: ~p.",
-					%					   [ Values ] ),
+					%trace_utils:debug_fmt( "Read non-matching row:~n~s",
+					%					   [ Line ] ),
 
 					interpret_rows( Device, Separator, ExpectedFieldCount,
 									MatchCount, UnmatchCount+1, DropCount,
@@ -513,10 +576,13 @@ interpret_rows( Device, Separator, ExpectedFieldCount, MatchCount, UnmatchCount,
 	end.
 
 
+% FIXME: a minimal parsing shall be made, in order not to exclude lines
+% containing string-like values that themselves contains at least one occurrence
+% of the separator.
 
-% Parses specified line into a proper row.
--spec parse_row( text_utils:ustring(), char() ) ->
-					   maybe( { row(), field_count() } ).
+
+% Parses the specified line into a proper row, based on the specified separator.
+-spec parse_row( line(), separator() ) -> maybe( { row(), field_count() } ).
 parse_row( Line, Separator ) ->
 
 	% Useful also to remove ending newline:
@@ -540,6 +606,43 @@ parse_row( Line, Separator ) ->
 			{ list_to_tuple( Values ), FieldCount }
 
 	end.
+
+
+
+% Parses the specified line into a proper row, guessing the most likely
+% separator.
+%
+-spec parse_row_no_separator( line() ) ->
+								'dropped' | { row(), separator(), field_count() }.
+parse_row_no_separator( Line ) ->
+
+	% Useful also to remove ending newline:
+	TrimmedLine = text_utils:trim_whitespaces( Line ),
+
+	case TrimmedLine of
+
+		[] ->
+			%trace_utils:debug( "Dropped blank line" ),
+			dropped;
+
+
+		[ $# | _ ] ->
+			%trace_utils:debug_fmt( "Dropped following comment: '~s'.",
+			%					   [ Line ] ),
+			dropped;
+
+		_ ->
+			GuessedSep = guess_separator_from( Line ),
+
+			%trace_utils:debug_fmt( "Guessed separator: '~s'.",
+			%					   [ [GuessedSep] ] ),
+
+			Values = text_utils:split( TrimmedLine, [ GuessedSep ] ),
+			FieldCount = length( Values ),
+			{ list_to_tuple( Values ), GuessedSep, FieldCount }
+
+	end.
+
 
 
 
@@ -574,6 +677,47 @@ are_all_empty( [ "" | T ] ) ->
 
 are_all_empty( [ _H | _T ] ) ->
 	false.
+
+
+
+% Returns the most usual separators used in CSV files.
+-spec get_usual_separators() -> [ separator() ].
+get_usual_separators() ->
+	[ $,, $; ].
+
+
+% Determines the separator used in specified line.
+-spec guess_separator_from( line() ) -> separator().
+guess_separator_from( Line ) ->
+	%trace_utils:debug_fmt( "Guessing separator used in '~s'...", [ Line ] ),
+	SepPairs = gather_potential_separators( Line ),
+	select_most_likely_separator( SepPairs ).
+
+
+gather_potential_separators( Line ) ->
+	evaluate_separators_on( _Seps=get_usual_separators(), Line, _SepAcc=[] ).
+
+
+% (helper)
+evaluate_separators_on( _Seps=[], _Line, SepAcc ) ->
+	SepAcc;
+
+evaluate_separators_on( _Seps=[ Sep | T ], Line, SepAcc ) ->
+	SubStrings = text_utils:split( Line, _Delimiters=[ Sep ] ),
+	NewSepAcc = [ { Sep, length( SubStrings ) - 1 } | SepAcc ],
+	evaluate_separators_on( T, Line, NewSepAcc ).
+
+
+% (helper)
+select_most_likely_separator( SepPairs ) ->
+
+	%trace_utils:debug_fmt( "Separator pairs: ~w.", [ SepPairs ] ),
+
+	% Returns the separator having the higher number of occurrences:
+	{ Sep, _Count } = list_utils:get_last_element(
+						lists:keysort( _CountIndex=2, SepPairs ) ),
+
+	Sep.
 
 
 
@@ -628,6 +772,32 @@ write_rows( _Content=[ Row | T ], Separator, File ) ->
 
 	write_rows( T, Separator, File ).
 
+
+
+% Returns a file handle to read specified file.
+-spec get_file_for_reading( file_utils:any_file_path() ) -> file_utils:file().
+get_file_for_reading( FilePath ) ->
+
+	%trace_utils:debug_fmt( "Opening '~s' with options ~w.",
+	%					  [ FilePath, ?read_options ] ),
+
+	case file_utils:is_existing_file_or_link( FilePath ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { csv_file_not_found, FilePath,
+					 file_utils:get_current_directory() } )
+
+	end,
+
+	File = file_utils:open( FilePath, ?read_options ),
+
+	% Refer to the note in file_utils:open/2 for explanation:
+	system_utils:force_unicode_support(),
+
+	File.
 
 
 
