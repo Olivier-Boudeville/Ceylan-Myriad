@@ -34,7 +34,8 @@
 
 
 % Note: this a boostrap module, so its build is only to be triggered from the
-% root of Myriad.
+% root of Myriad, and it should not depend at runtime on non-bootstrapped
+% modules.
 
 
 
@@ -97,6 +98,8 @@
 		  escape_single_quotes/1, escape_double_quotes/1,
 		  escape_all_quotes/1, escape_with/3,
 		  remove_newlines/1,
+
+		  parse_quoted/1, parse_quoted/3,
 
 		  is_uppercase/1, is_figure/1,
 		  remove_ending_carriage_return/1, remove_last_characters/2,
@@ -2557,6 +2560,305 @@ escape_with( _Text=[ C | T ], CharsToEscape, EscapingChar, Acc ) ->
 -spec remove_newlines( string() ) -> string().
 remove_newlines( String ) ->
 	lists:flatten( string:replace( String, "\n", "", all ) ).
+
+
+
+% Parses specified plain (non-iolist) string (i.e. a mere list of characters),
+% based on two quoting characters (single and double quotes) and one escaping
+% character (backslash), returning a specific kind of iolist containing either
+% characters or plain strings, the latter corresponding to the found quoted
+% texts, provided they were not escaped.
+%
+% For example, let's consider an input string such as (using from now @ to
+% delimit strings):
+%
+% @This is an "example \" 'convoluted" string' with various 'quoting elements'.@
+%
+% Once parsed with this function, it shall be translated to a list containing
+% the following series of characters:
+%
+% @This is an @, then: @example " 'convoluted@, then the series of characters
+% corresponding to: @ string' with various 'quoting elements'.@
+%
+% i.e.: "This is an " ++ [ "example \" 'convoluted" | "string' with
+% various 'quoting elements' ].
+%
+% Note: any escaping character is to escape any of the quoting characters, and
+% only them, if being in an unquoted context (i.e. otherwise both will be added
+% verbatim in the resulting string).
+%
+% See text_utils_test.erl for a full example with additional explanations.
+%
+parse_quoted( InputStr ) ->
+	parse_quoted( InputStr, _QuotingChars=[ $', $" ], _EscapingChars=[ $\\ ] ).
+
+
+
+% Parses specified plain (non-iolist) string (i.e. a mere list of characters),
+% returning a specific kind of iolist containing either characters or plain
+% strings, the latter corresponding to the found quoted texts, provided they
+% were not escaped.
+%
+% Supports user-specified quoting characters and escaping ones.
+%
+% For example, let's consider an input string such as (using from now @ to
+% delimit strings):
+%
+% @This is an "example \" 'convoluted" string' with various 'quoting elements'.@
+
+% Once parsed with this function when declaring a single quoting character that
+% is the double quote (i.e. $") and a single escaping character that is the
+% backslash (i.e. $\), it shall be translated to a list containing the following
+% series of characters:
+%
+% @This is an @, then: @example " 'convoluted@, then the series of characters
+% corresponding to: @ string' with various 'quoting elements'.@
+%
+% i.e.: "This is an " ++ [ "example \" 'convoluted" | "string' with
+% various 'quoting elements' ].
+%
+% Note: any escaping character is to escape any of the quoting characters, and
+% only them (i.e. otherwise both will be added verbatim in the resulting
+% string).
+%
+% See text_utils_test.erl for a full example with additional explanations.
+%
+parse_quoted( InputStr, QuotingChars, EscapingChars ) ->
+
+	%trace_utils:debug_fmt( "Parsing @~s@, with quoting @~s@ and escaping @~s@:",
+	%					   [ InputStr, QuotingChars, EscapingChars ] ),
+
+	parse_helper( InputStr, QuotingChars, EscapingChars,
+		_CurrentQuoteChar=undefined, _CurrentQuotedText=undefined,
+		_PreviousChar=undefined, _Acc=[] ).
+
+
+% In examples below, double quotes are a quoting character, and backslash an
+% escaping one.
+%
+% The general principal here is to read one character ahead and include the one
+% just before it iff relevant.
+
+% Normal endings:
+
+% Ending while a quoting sequence is still open, but here the last (previous)
+% character was a closing quoting one:
+%
+parse_helper( _InputStr=[], _QuotingChars, _EscapingChars, CurrentQuoteChar,
+			  CurrentQuotedText, _PreviousChar=CurrentQuoteChar, Acc ) ->
+
+	% Closing for good then:
+	RevQuoted = lists:reverse( CurrentQuotedText ),
+	lists:reverse( [ RevQuoted | Acc ] );
+
+% Never add 'undefined' chars:
+parse_helper( _InputStr=[], _QuotingChars, _EscapingChars,
+			  _CurrentQuoteChar=undefined, _CurrentQuotedText=undefined,
+			  _PreviousChar=undefined, Acc ) ->
+	lists:reverse( Acc );
+
+% Most usual (normal) ending (not in a quoted context):
+parse_helper( _InputStr=[], _QuotingChars, _EscapingChars,
+			  _CurrentQuoteChar=undefined, _CurrentQuotedText=undefined,
+			  PreviousChar, Acc ) ->
+	lists:reverse( [ PreviousChar | Acc ] );
+
+
+parse_helper( _InputStr=[], _QuotingChars, _EscapingChars, CurrentQuoteChar,
+			  CurrentQuotedText, PreviousChar, Acc ) ->
+
+	RevQuoted = case PreviousChar of
+
+		undefined ->
+			lists:reverse( CurrentQuotedText );
+
+		_ ->
+			lists:reverse( [ PreviousChar | CurrentQuotedText ] )
+
+	end,
+
+	CurrentStr = lists:reverse( [ RevQuoted | Acc ] ),
+
+	throw( { unmatched_quoting_char, CurrentQuoteChar,
+			 { still_in, RevQuoted },
+			 lists:flatten( CurrentStr ) } );
+
+
+% Still iterating below:
+
+% While not being in a quoted context and reading a character, possibly a
+% quoting one:
+%
+parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
+			  CurrentQuoteChar=undefined, CurrentQuotedText=undefined,
+			  _PreviousChar=PrevC, Acc ) ->
+
+	%trace_utils:debug_fmt( "Out of quoted context, read @~s@ (previous: @~p@), "
+	%	"while current, reversed accumulator is:~n  @~p@.",
+	%	[ [C], [PrevC], lists:reverse( Acc ) ] ),
+
+	% lists:member/2 not a valid guard, so:
+	%
+	% (note that having PreviousChar=undefined is nicely handled as well by this
+	% code)
+	%
+	case lists:member( C, QuotingChars ) of
+
+		true ->
+			% Read char is a quoting one (while not in a quoted text), so:
+			case lists:member( PrevC, EscapingChars ) of
+
+				% The quoting char is escaped, keep it (and only it).
+				%
+				% Ex: found @\"@; then just retaining @"@ verbatim (we used to
+				% drop PrevC=@\@ but it should not):
+				%
+				true ->
+
+					%trace_utils:debug_fmt( "Out of quoted context, read "
+					%	"quoting char @~s@ while previous was an escaping "
+					%	"one (@~p@), while current, reversed accumulator "
+					%	"is:~n  @~p@.", [ [C], [PrevC], lists:reverse( Acc ) ] ),
+
+					parse_helper( T, QuotingChars, EscapingChars,
+						CurrentQuoteChar, CurrentQuotedText, _PrevChar=C,
+						%Acc );
+						[ PrevC | Acc ] );
+
+				% Here, unescaped quoting char while not in quoted text, thus
+				% entering a quoting section:
+				%
+				% (PrevC possibly equal to 'undefined' here)
+				%
+				false ->
+					NewAcc = [ PrevC | Acc ],
+
+					%trace_utils:debug_fmt( "Entering a quoting section with "
+					%	"@~s@, while current, reversed accumulator is:~n  @~p@",
+					%	[ [C], lists:reverse( NewAcc ) ] ),
+
+					parse_helper( T, QuotingChars, EscapingChars,
+						_CurrentQuoteChar=C, _CurrentQuotedText=[],
+						_PrevChar=undefined, NewAcc )
+
+			end;
+
+		% The just-read char (C) is not a quoting one, still out of quoted
+		% context then:
+		%
+		false ->
+			case PrevC of
+
+				undefined ->
+					parse_helper( T, QuotingChars, EscapingChars,
+						CurrentQuoteChar, CurrentQuotedText, _PrevChar=C, Acc );
+
+				_ ->
+					parse_helper( T, QuotingChars, EscapingChars,
+						CurrentQuoteChar, CurrentQuotedText, _PrevChar=C,
+						[ PrevC | Acc ] )
+
+			end
+
+	end;
+
+
+% Here, we are already in a quoted context, and we found a matching quoting
+% char:
+%
+parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
+		CurrentQuoteChar=C, CurrentQuotedText, _PreviousChar=PrevC, Acc ) ->
+
+	%trace_utils:debug_fmt( "In quoted context, read @~s@ (previous: @~p@) "
+	%	"while current quoted text is @~s@",
+	%	[ [C], [PrevC], CurrentQuotedText ] ),
+
+	% Maybe found a closing quoting char - unless it is escaped:
+	case lists:member( C, QuotingChars ) of
+
+		true ->
+			case lists:member( PrevC, EscapingChars ) of
+
+				% For example @\"@.
+				%
+				% This quoting char is escaped, thus not counting as such:
+				% (quoting C kept in previous, escaping PrevC used to be
+				% dropped but should not)
+				true ->
+
+					%trace_utils:debug_fmt( "Adding quoting character '~s' as "
+					%	"such, as was escaped (by '~s').", [ [C], [PrevC] ] ),
+
+					parse_helper( T, QuotingChars, EscapingChars,
+								  %CurrentQuoteChar, CurrentQuotedText,
+								  CurrentQuoteChar, [ PrevC | CurrentQuotedText ],
+								  _PrevChar=C, Acc );
+
+				% For example @A"@.
+				% Here, unescaped quoting char while in quoted text, thus
+				% closing a quoting section:
+				%
+				% (PrevC possibly equal to 'undefined' here)
+				%
+				false ->
+					Quoted = case PrevC of
+
+						undefined ->
+							lists:reverse( CurrentQuotedText );
+
+						_ ->
+							lists:reverse( [ PrevC | CurrentQuotedText ] )
+
+					end,
+
+					%trace_utils:debug_fmt( "Closing a quoting section "
+					%	"(result:'~s') with '~s', while reversed accumulator "
+					%	"is:~n~p", [ Quoted, [C], lists:reverse( Acc ) ] ),
+
+					parse_helper( T, QuotingChars, EscapingChars,
+						_CurrentQuoteChar=undefined, _CurrentQuotedText=undefined,
+						_PrevChar=undefined, [ Quoted | Acc ] )
+
+			end;
+
+		% Is not a quoting char here, thus continuing in quoted:
+		false ->
+			case PrevC of
+
+				undefined ->
+					parse_helper( T, QuotingChars, EscapingChars,
+						CurrentQuoteChar, CurrentQuotedText, _PrevChar=C, Acc );
+
+				_ ->
+					parse_helper( T, QuotingChars, EscapingChars, CurrentQuoteChar,
+						[ PrevC | CurrentQuotedText ], _PrevChar=C, Acc )
+
+			end
+
+	end;
+
+
+% In quoted context, read char not being a matching quoting char, and not having
+% a previous char:
+%
+parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
+		CurrentQuoteChar, CurrentQuotedText, _PreviousChar=undefined, Acc ) ->
+
+	%trace_utils:debug_fmt( "Just recording, in quoted context, "
+	%	"current char: @~s@", [ [C] ] ),
+
+	parse_helper( T, QuotingChars, EscapingChars, CurrentQuoteChar,
+				  CurrentQuotedText, _PrevChar=C, Acc );
+
+% Same but with a previous char:
+parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
+			  CurrentQuoteChar, CurrentQuotedText, PreviousChar, Acc ) ->
+
+	%trace_utils:debug_fmt( "Recording, in quoted context, "
+	%	"current char: @~s@", [ [C] ] ),
+
+	parse_helper( T, QuotingChars, EscapingChars, CurrentQuoteChar,
+				  [ PreviousChar | CurrentQuotedText ], _PrevChar=C, Acc ).
 
 
 

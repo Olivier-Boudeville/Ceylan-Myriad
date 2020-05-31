@@ -446,6 +446,7 @@ run() ->
 		text_utils:ellipse( LongerText, _SecondMaxLen=28 ),
 
 
+
 	EscapeString = "I *am* to be \"escaped\", as 'I shall be escaped'",
 
 	test_facilities:display( "Single-quote escaping '~s' results in: '~s'.",
@@ -456,6 +457,41 @@ run() ->
 
 	test_facilities:display( "All-quote escaping '~s' results in: '~s'.",
 		[ EscapeString, text_utils:escape_all_quotes( EscapeString ) ] ),
+
+
+	% Note that an additional layer of obfuscation comes from that quoting
+	% characters may themselves have to be escaped in literal strings like here:
+
+	% Actual string taken into account is thus:
+	% @I *am* to be "escaped", as \'I shall be escaped as well.@
+	StringToParse = "I *am* to be \"escaped\", as \\'I shall be escaped as well.",
+
+	% In the character stream, we just want that the series of characters
+	% corresponding to @escaped@ is replaced by a single (non-char) element,
+	% which is a list of chars, i.e. "escaped", i.e. the input plain list is to
+	% become a specific iolist, precisely whose elements are all characters
+	% excepted one that is a list of chars.
+
+	ParsedString = text_utils:parse_quoted( StringToParse ),
+
+	test_facilities:display( "Parsing '~s' with defaults results in: '~s'.~n",
+		[ StringToParse, ParsedString ] ),
+
+	% Verbatim : [ $I, $\, $*, $a, ..., $b, $e, $\ , [ $e, $s, $c, ..., $d ], $,
+	% $\ , $a, $s, ..., $. ].
+
+	Expected = "I *am* to be " ++ [ "escaped" ]
+		++ ", as \\'I shall be escaped as well.",
+
+	test_facilities:display( "Read    : @~s@", [ StringToParse ] ),
+	test_facilities:display( "Expected: @~s@", [ Expected ] ),
+	test_facilities:display( "Got     : @~s@~n", [ ParsedString ] ),
+
+	test_facilities:display( "Read    : @~w@", [ StringToParse ] ),
+	test_facilities:display( "Expected: @~w@", [ Expected ] ),
+	test_facilities:display( "Got     : @~w@~n", [ ParsedString ] ),
+
+	Expected = ParsedString,
 
 
 	RemovalCount = 3,
