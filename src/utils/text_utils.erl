@@ -87,7 +87,7 @@
 		  uppercase_initial_letter/1,
 		  to_lowercase/1, to_uppercase/1,
 		  join/2,
-		  split/2, split_per_element/2, split_at_whitespaces/1,
+		  split/2, split_per_element/2, split_parsed/2, split_at_whitespaces/1,
 		  split_at_first/2, split_camel_case/1, tokenizable_to_camel_case/2,
 
 		  substitute/3, filter/2, split_after_prefix/2,
@@ -194,6 +194,10 @@
 -type uchar() :: integer().
 
 
+% A plain (Unicode) string:
+-type plain_string() :: [ uchar() ].
+
+
 % Now our default:
 %
 % (unfortunately we cannot define a text_utils:string/0 type, as "type string()
@@ -206,6 +210,10 @@
 % by ~s in format strings):
 %
 -type string_like() :: string() | unicode_string() | bin_string() | atom().
+
+
+% The specific type of iolist resulting from a parsing:
+-type parse_string() :: [ uchar() | plain_string() ].
 
 
 % To convert keywords:
@@ -248,8 +256,8 @@
 
 -export_type([ format_string/0, format_values/0,
 			   regex_string/0, title/0, label/0,
-			   bin_string/0, any_string/0, unicode_string/0, uchar/0, ustring/0,
-			   string_like/0,
+			   bin_string/0, any_string/0, unicode_string/0, uchar/0,
+			   plain_string/0, ustring/0, string_like/0, parse_string/0,
 			   translation_table/0, length/0, width/0, indentation_level/0,
 			   distance/0 ]).
 
@@ -2246,6 +2254,86 @@ split_per_element( String, Delimiters ) ->
 
 
 
+% Splits the specified parse string (typically returned by parse_quoted/{1,3})
+% into a list of plain strings, based on the list of specified characters to be
+% interpreted as delimiters.
+%
+% Note: implemented in an ad hoc way, so that any plain string found in the
+% input character stream is properly handled (i.e. not searched for any
+% delimiter).
+%
+% In this example, parsing is needed so that the comma just after the first
+% "Bond" is not considered as a delimiter (since it is in a quoted context):
+%
+% ParsedString = text_utils:parse_quoted( "Hello,'Mr Bond,James Bond',MI6",
+%                   _QuotingChars=[ $' ], _EscapingChars=[] ),
+%
+% ParsedString = "Hello," ++ [ "Mr Bond,James Bond" ] ++ ",MI6",
+%
+% text_utils:split_parsed( ParsedString, [ $, ] ) =
+%      [ "Hello", "Mr Bond, James Bond", "MI6" ]
+%
+% This allows extracting here three comma-separated fields, while taking into
+% account any quoting involved.
+%
+% See also: split/2, split_per_element/2.
+%
+-spec split_parsed( parse_string(), [ uchar() ] ) -> [ ustring() ].
+split_parsed( ParseString, Delimiters ) ->
+
+	%trace_utils:debug_fmt( "Splitting '~p' with delimiters '~p'...",
+	%					   [ ParseString, Delimiters ] ),
+
+	Res = split_parsed( ParseString, Delimiters, _AccElem=[], _AccStrs=[] ),
+
+	%trace_utils:debug_fmt( "... returned: ~p.", [ Res ] ),
+
+	Res.
+
+
+% Collecting chars in elements (AccElem), then elements in the overall
+% accumulator (AccStrs).
+%
+% We used to avoid adding any empty element, yet this may happen (typically in
+% CSV files), hence re-enabled (previous version left commented).
+%
+% (helper)
+%split_parsed( _ParseString=[], _Delimiters, _AccElem=[], AccStrs ) ->
+%	lists:reverse( AccStrs );
+
+split_parsed( _ParseString=[], _Delimiters, AccElem, AccStrs ) ->
+	lists:reverse( [ lists:reverse( AccElem ) | AccStrs ] );
+
+split_parsed( _ParseString=[ C | T ], Delimiters, AccElem, AccStrs )
+	   when is_integer( C ) ->
+	case lists:member( C, Delimiters ) of
+
+		true ->
+			split_parsed( T, Delimiters, _AccElem=[],
+						  [ lists:reverse( AccElem ) | AccStrs ] );
+
+			%case AccElem of
+			%
+			%	[] ->
+			%		split_parsed( T, Delimiters, _AccElem=[], AccStrs );
+			%
+			%	_ ->
+			%		split_parsed( T, Delimiters, _AccElem=[],
+			%					  [ lists:reverse( AccElem ) | AccStrs ] )
+			%
+			%end;
+
+		false ->
+			split_parsed( T, Delimiters, [ C | AccElem ], AccStrs )
+
+	end;
+
+split_parsed( _ParseString=[ Str | T ], Delimiters, AccElem, AccStrs )
+	   when is_list( Str ) ->
+	split_parsed( T, Delimiters, lists:reverse( Str ) ++ AccElem, AccStrs ).
+
+
+
 % Splits the specified string into a list of strings, using whitespaces as
 % delimiters.
 %
@@ -2589,6 +2677,7 @@ remove_newlines( String ) ->
 %
 % See text_utils_test.erl for a full example with additional explanations.
 %
+-spec parse_quoted( plain_string() ) -> parse_string().
 parse_quoted( InputStr ) ->
 	parse_quoted( InputStr, _QuotingChars=[ $', $" ], _EscapingChars=[ $\\ ] ).
 
@@ -2621,8 +2710,11 @@ parse_quoted( InputStr ) ->
 % only them (i.e. otherwise both will be added verbatim in the resulting
 % string).
 %
-% See text_utils_test.erl for a full example with additional explanations.
+% See text_utils_test.erl for a full example with additional explanations, and
+% also split_parsed/2..
 %
+-spec parse_quoted( plain_string(), [ uchar() ], [ uchar() ] ) ->
+						  parse_string().
 parse_quoted( InputStr, QuotingChars, EscapingChars ) ->
 
 	%trace_utils:debug_fmt( "Parsing @~s@, with quoting @~s@ and escaping @~s@:",

@@ -100,19 +100,35 @@
 
 
 % For some reason, if relying on the '-noinput' option, using the following
-% options will result in {read_error,{no_translation,unicode,unicode},...},
+% options used to result in {read_error,{no_translation,unicode,unicode},...},
 % whereas using io:setopts/1 (ex: possibly through
-% system_utils:force_unicode_support/0) afterwards will not fail and will allow
+% system_utils:force_unicode_support/0) afterwards did not fail and allowed
 % reads to return correctly-encoded lines:
 %
 % (additionally, even when forcing UTF8 encoding when exporting as CSV an Excel
 % spreadsheet, the same ISO-8859 content will be obtained)
 %
-%-define( read_options, [ read, { read_ahead, ?ahead_size },
-%						 { encoding, utf8 } ] ).
+-define( read_options, [ read, { read_ahead, ?ahead_size },
+						 { encoding, utf8 } ] ).
 
--define( read_options, [ read, { read_ahead, ?ahead_size } ] ).
+% This work-around is not necessary anymore apparently (since Erlang 23.0?):
+%-define( read_options, [ read, { read_ahead, ?ahead_size } ] ).
 
+
+% Defines what are the characters that denote a start/end of quoting in CVS
+% files:
+%
+% (currently, only double quotes; single ones could be added)
+%
+-define( quoting_characters, [ $" ] ).
+
+
+% Defines what are the characters that are used to escape quoting characters in
+% CVS files:
+%
+% (currently, only backslash)
+%
+-define( escaping_characters, [ $\\ ] ).
 
 
 % A CSV file is seen here as a series of rows ending with a newline, i.e. '\n'.
@@ -576,16 +592,15 @@ interpret_rows( Device, Separator, ExpectedFieldCount, MatchCount, UnmatchCount,
 	end.
 
 
-% FIXME: a minimal parsing shall be made, in order not to exclude lines
-% containing string-like values that themselves contains at least one occurrence
-% of the separator.
 
+% Parses the specified line into a proper row, guessing the most likely
+% separator (that is that not known).
+%
+-spec parse_row_no_separator( line() ) ->
+							'dropped' | { row(), separator(), field_count() }.
+parse_row_no_separator( Line ) ->
 
-% Parses the specified line into a proper row, based on the specified separator.
--spec parse_row( line(), separator() ) -> maybe( { row(), field_count() } ).
-parse_row( Line, Separator ) ->
-
-	% Useful also to remove ending newline:
+	% Useful also to remove the ending newline:
 	TrimmedLine = text_utils:trim_whitespaces( Line ),
 
 	case TrimmedLine of
@@ -601,7 +616,41 @@ parse_row( Line, Separator ) ->
 			dropped;
 
 		_ ->
-			Values = text_utils:split( TrimmedLine, [ Separator ] ),
+			GuessedSep = guess_separator_from( TrimmedLine ),
+
+			%trace_utils:debug_fmt( "Guessed separator: '~s'.",
+			%					   [ [GuessedSep] ] ),
+
+			Values = parse_line( TrimmedLine, GuessedSep ),
+
+			FieldCount = length( Values ),
+			{ list_to_tuple( Values ), GuessedSep, FieldCount }
+
+	end.
+
+
+
+% Parses the specified line into a proper row, based on the specified separator.
+-spec parse_row( line(), separator() ) -> maybe( { row(), field_count() } ).
+parse_row( Line, Separator ) ->
+
+	% Useful also to remove the ending newline:
+	TrimmedLine = text_utils:trim_whitespaces( Line ),
+
+	case TrimmedLine of
+
+		[] ->
+			%trace_utils:debug( "Dropped blank line" ),
+			dropped;
+
+
+		[ $# | _ ] ->
+			%trace_utils:debug_fmt( "Dropped following comment: '~s'.",
+			%					   [ Line ] ),
+			dropped;
+
+		_ ->
+			Values = parse_line( TrimmedLine, Separator ),
 			FieldCount = length( Values ),
 			{ list_to_tuple( Values ), FieldCount }
 
@@ -609,40 +658,22 @@ parse_row( Line, Separator ) ->
 
 
 
-% Parses the specified line into a proper row, guessing the most likely
-% separator.
+% Parsing allows to see quoted sequences as a single, opaque element in which
+% any presence of the separator is ignored.
 %
--spec parse_row_no_separator( line() ) ->
-								'dropped' | { row(), separator(), field_count() }.
-parse_row_no_separator( Line ) ->
+-spec parse_line( line(), separator() ) -> [ value() ].
+parse_line( Line, Separator ) ->
 
-	% Useful also to remove ending newline:
-	TrimmedLine = text_utils:trim_whitespaces( Line ),
+	% Allows not to consider as unmatched the lines that happen to have, in a
+	% quote, the separator in use (which, in this case, shall be considered as
+	% any other character):
 
-	case TrimmedLine of
+	% First consider each quoted sequence as a single element:
+	ParseLine = text_utils:parse_quoted( Line, ?quoting_characters,
+										 ?escaping_characters ),
 
-		[] ->
-			%trace_utils:debug( "Dropped blank line" ),
-			dropped;
-
-
-		[ $# | _ ] ->
-			%trace_utils:debug_fmt( "Dropped following comment: '~s'.",
-			%					   [ Line ] ),
-			dropped;
-
-		_ ->
-			GuessedSep = guess_separator_from( Line ),
-
-			%trace_utils:debug_fmt( "Guessed separator: '~s'.",
-			%					   [ [GuessedSep] ] ),
-
-			Values = text_utils:split( TrimmedLine, [ GuessedSep ] ),
-			FieldCount = length( Values ),
-			{ list_to_tuple( Values ), GuessedSep, FieldCount }
-
-	end.
-
+	% Now split with the separator, respecting quoted elements:
+	text_utils:split_parsed( ParseLine, [ Separator ] ).
 
 
 
@@ -779,7 +810,7 @@ write_rows( _Content=[ Row | T ], Separator, File ) ->
 get_file_for_reading( FilePath ) ->
 
 	%trace_utils:debug_fmt( "Opening '~s' with options ~w.",
-	%					  [ FilePath, ?read_options ] ),
+	%					   [ FilePath, ?read_options ] ),
 
 	case file_utils:is_existing_file_or_link( FilePath ) of
 
@@ -795,7 +826,9 @@ get_file_for_reading( FilePath ) ->
 	File = file_utils:open( FilePath, ?read_options ),
 
 	% Refer to the note in file_utils:open/2 for explanation:
-	system_utils:force_unicode_support(),
+	% (now useless)
+	%
+	%system_utils:force_unicode_support(),
 
 	File.
 

@@ -56,7 +56,7 @@ run() ->
 	%
 	case csv_utils:interpret_file( CSVFilename, Separator ) of
 
-		{ FieldCount, MixedContent, MatchCount=5, _UnmatchCount=0, _DropCount=7 } ->
+		{ FieldCount, MixedContent, MatchCount=5, _UnmatchCount=0, _DropCount=8 } ->
 			MatchCount = length( MixedContent ),
 			test_facilities:display( "Interpreted mixed content: ~p",
 									 [ MixedContent ] );
