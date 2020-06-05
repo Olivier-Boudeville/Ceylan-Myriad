@@ -47,7 +47,8 @@
 -export_type([ uuid/0 ]).
 
 
--export([ generate_uuid/0 ]).
+% Exported for testing:
+-export([ generate_uuid/0, uuidgen_internal/0 ]).
 
 
 
@@ -179,8 +180,8 @@ uuidgen_internal() ->
 
 		{ _ReturnCode=0, Output } ->
 			% We translate these bytes into hexadecimal values:
-			V = [ string:to_lower( hd(
-				  io_lib:format( "~.16B", [ B rem 16 ] ) ) ) || B <- Output ],
+			V = [ [ string:to_lower( hd(
+				  io_lib:format( "~.16B", [ B rem 16 ] ) ) ) ] || B <- Output ],
 
 			lists:flatten( io_lib:format(
 							 "~s~s~s~s~s~s~s~s-~s~s~s~s-~s~s~s~s-~s~s~s~s-~s"
