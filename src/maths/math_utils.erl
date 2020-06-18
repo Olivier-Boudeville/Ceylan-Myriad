@@ -73,7 +73,10 @@
 -type variance() :: float().
 
 
-% For percentages (1.0 corresponds to 100%):
+% For percentages (1.0 corresponding to 100%):
+%
+% See also: text_utils:percent_to_string/{1,2}.
+%
 -type percent() :: float().
 
 
