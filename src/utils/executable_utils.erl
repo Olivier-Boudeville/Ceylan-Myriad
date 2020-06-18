@@ -447,7 +447,7 @@ get_default_image_viewer_path() ->
 
 
 
-% Returns the name of the default, primary image browser tool.
+% Returns the name of the default image browser tool.
 %
 % Used to be: gqview (renamed since then).
 %
@@ -457,32 +457,10 @@ get_default_image_browser_name() ->
 	"geeqie".
 
 
-% Returns the name of the secondary image browser tool, should the default one
-% not be available.
-%
--spec get_secondary_image_browser_name() -> string().
-get_secondary_image_browser_name() ->
-	% Now able to deal with multiple images:
-	"eog".
-
-
-
-
-% Returns an absolute path to the default (primary, otherwise secondary) image
-% browser tool.
-%
+% Returns an absolute path to the default image browser tool.
 -spec get_default_image_browser_path() -> file_utils:file_name().
 get_default_image_browser_path() ->
-
-	case lookup_executable( get_default_image_browser_name() ) of
-
-		false ->
-			find_executable( get_secondary_image_browser_name() );
-
-		Path ->
-			Path
-
-	end.
+	find_executable( get_default_image_browser_name() ).
 
 
 
