@@ -108,11 +108,11 @@
 % (additionally, even when forcing UTF8 encoding when exporting as CSV an Excel
 % spreadsheet, the same ISO-8859 content will be obtained)
 %
--define( read_options, [ read, { read_ahead, ?ahead_size },
-						 { encoding, utf8 } ] ).
+%-define( read_options, [ read, { read_ahead, ?ahead_size },
+%						 { encoding, utf8 } ] ).
 
-% This work-around is not necessary anymore apparently (since Erlang 23.0?):
-%-define( read_options, [ read, { read_ahead, ?ahead_size } ] ).
+% This work-around is still necessary (still true with Erlang 23.0):
+-define( read_options, [ read, { read_ahead, ?ahead_size } ] ).
 
 
 % Defines what are the characters that denote a start/end of quoting in CVS
@@ -826,9 +826,9 @@ get_file_for_reading( FilePath ) ->
 	File = file_utils:open( FilePath, ?read_options ),
 
 	% Refer to the note in file_utils:open/2 for explanation:
-	% (now useless)
+	% (still needed)
 	%
-	%system_utils:force_unicode_support(),
+	system_utils:force_unicode_support(),
 
 	File.
 
