@@ -47,7 +47,7 @@
 -export_type([ uuid/0 ]).
 
 
-% Exported for testing:
+% uuidgen_internal/0 exported for testing:
 -export([ generate_uuid/0, uuidgen_internal/0 ]).
 
 
@@ -179,11 +179,19 @@ uuidgen_internal() ->
 		   "/bin/dd if=/dev/urandom bs=1 count=32 2>/dev/null" ) of
 
 		{ _ReturnCode=0, Output } ->
+
+			%trace_utils:debug_fmt( "UUID output length: ~B, for '~p'.",
+			%					   [ length( Output ), Output ] ),
+
 			% We translate these bytes into hexadecimal values:
-			V = [ [ string:to_lower( hd(
-				  io_lib:format( "~.16B", [ B rem 16 ] ) ) ) ] || B <- Output ],
+			V = [ string:to_lower( [ hd(
+				  io_lib:format( "~.16B", [ B rem 16 ] ) ) ] )  || B <- Output ],
+
+			%trace_utils:debug_fmt( "UUID hexa length: ~B, for '~s'.",
+			%					   [ length( V ), V ] ),
 
 			lists:flatten( io_lib:format(
+			% Pioneer moduler: text_utils:format(
 							 "~s~s~s~s~s~s~s~s-~s~s~s~s-~s~s~s~s-~s~s~s~s-~s"
 							 "~s~s~s~s~s~s~s~s~s~s~s", V ) );
 
