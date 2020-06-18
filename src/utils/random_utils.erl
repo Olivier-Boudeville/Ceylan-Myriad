@@ -35,7 +35,6 @@
 
 
 % Random-related functions.
-%
 -export([ start_random_source/3, start_random_source/1, can_be_seeded/0,
 		  reset_random_source/1, stop_random_source/0,
 		  get_random_value/0, get_random_value/1, get_random_value/2,
@@ -83,9 +82,9 @@
 % Functions for random management.
 
 
-% If use_crypto_module is defined, the crypto module will be used, otherwise
-% (which is the default now) the rand module will be used instead (the random
-% module being now deprecated).
+% If use_crypto_module is defined, the (now deprecated) crypto module will be
+% used, otherwise (which is the default now) the rand module will be used
+% instead (the random module being now deprecated).
 %
 % Currently the crypto module is not used by default, as:
 %
@@ -141,7 +140,7 @@
 -spec set_random_state( random_state() ) -> void().
 
 
-% Generates a list of Count elements uniformly drawn in [ 1, N ].
+% Generates a list of Count elements uniformly drawn in [1,N].
 -spec get_random_values( pos_integer(), basic_utils:count() ) ->
 							   [ pos_integer() ].
 get_random_values( N, Count ) ->
@@ -251,6 +250,18 @@ get_random_value( N ) ->
 get_random_value( Nmin, Nmax ) when Nmin =< Nmax ->
 	crypto:rand_uniform( Nmin, Nmax+1 ).
 
+
+% Returns a floating-point random value in [0.0;1.0[ generated from an uniform
+% distribution.
+%
+% Given a number (integer or float) N (positive or not), returns a random
+% floating-point value uniformly distributed between 0.0 (included) and N
+% (excluded), updating the random state in the process dictionary.
+%
+% Spec already specified, for all random settings.
+%
+get_uniform_floating_point_value( N ) ->
+	throw( not_available ).
 
 
 % Returns the name of the module managing the random generation.
