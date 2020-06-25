@@ -139,7 +139,7 @@
 %
 -export([ get_timestamp/0,
 		  get_epoch_timestamp/0, get_epoch_milliseconds_since_year_0/0,
-		  is_timestamp/1,
+		  is_timestamp/1, check_timestamp/1, check_maybe_timestamp/1,
 		  get_textual_timestamp/0, get_textual_timestamp/1,
 		  get_french_textual_timestamp/1,
 		  get_time2_textual_timestamp/0, get_time2_textual_timestamp/1,
@@ -690,6 +690,41 @@ is_timestamp( { Date={ Y, M, D }, _Time={ Hour, Min, Sec } } )
 
 is_timestamp( _Other ) ->
 	false.
+
+
+
+% Checks that specified term is a timestamp indeed.
+-spec check_timestamp( timestamp() ) -> void().
+check_timestamp( Term ) ->
+
+	case is_timestamp( Term ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { not_a_timestamp, Term } )
+
+	end.
+
+
+
+% Checks that specified term is a maybe-timestamp indeed.
+-spec check_maybe_timestamp( maybe( timestamp() ) ) -> void().
+check_maybe_timestamp( _Term=undefined ) ->
+	ok;
+
+check_maybe_timestamp( Term ) ->
+
+	case is_timestamp( Term ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { not_a_maybe_timestamp, Term } )
+
+	end.
 
 
 
