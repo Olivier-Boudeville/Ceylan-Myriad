@@ -485,7 +485,7 @@
 
 
 % Checking:
--export([ check_atom/1 ]).
+-export([ check_atom/1, check_pid/1 ]).
 
 
 % Work in progress:
@@ -1146,3 +1146,12 @@ check_atom( Atom ) when is_atom( Atom ) ->
 
 check_atom( Other ) ->
 	throw( { not_atom, Other } ).
+
+
+% Checks that specified term is an pid indeed.
+-spec check_pid( term() ) -> pid().
+check_pid( Pid ) when is_pid( Pid ) ->
+	Pid;
+
+check_pid( Other ) ->
+	throw( { not_pid, Other } ).
