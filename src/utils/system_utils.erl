@@ -1400,7 +1400,7 @@ get_size_of_vm_word_string() ->
 
 
 
-% Returns the size of specified term, in bytes, in the heap.
+% Returns the size of specified term, in bytes, on the heap.
 %
 % Note that off-heap data (such as binaries larger than 64 bytes) is not counted
 % here. The (flat) size is incremented to account for the top term word (which
@@ -1417,8 +1417,9 @@ get_size( Term ) ->
 
 
 % Returns a string containing a user-friendly description of the specified size
-% expressed in bytes, using GiB (Gibibytes, not Gigabytes), MiB (Mebibytes, not
-% Megabytes), KiB (Kibibytes, not Kilobytes) and bytes.
+% expressed in bytes, using multipliers of 2^10=1024 (hence not SI kilos,
+% i.e. 1000-based multipliers): GiB (Gibibytes, not Gigabytes), MiB (Mebibytes,
+% not Megabytes), KiB (Kibibytes, not Kilobytes) and bytes.
 %
 % See http://en.wikipedia.org/wiki/Kibibyte
 %
@@ -1435,7 +1436,7 @@ interpret_byte_size( SizeInBytes ) ->
 			[];
 
 		GigaNonNull->
-			[ io_lib:format( "~B GiB", [ GigaNonNull ] ) ]
+			[ text_utils:format( "~B GiB", [ GigaNonNull ] ) ]
 
 	end,
 
