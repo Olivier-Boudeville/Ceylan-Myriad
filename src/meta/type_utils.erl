@@ -485,7 +485,7 @@
 
 
 % Checking:
--export([ check_atom/1, check_pid/1 ]).
+-export([ check_atom/1, check_boolean/1, check_pid/1 ]).
 
 
 % Work in progress:
@@ -1148,7 +1148,21 @@ check_atom( Other ) ->
 	throw( { not_atom, Other } ).
 
 
-% Checks that specified term is an pid indeed.
+
+% Checks that specified term is a boolean indeed.
+-spec check_boolean( term() ) -> atom().
+check_boolean( true ) ->
+	true;
+
+check_boolean( false ) ->
+	false;
+
+check_boolean( Other ) ->
+	throw( { not_boolean, Other } ).
+
+
+
+% Checks that specified term is a PID indeed.
 -spec check_pid( term() ) -> pid().
 check_pid( Pid ) when is_pid( Pid ) ->
 	Pid;
