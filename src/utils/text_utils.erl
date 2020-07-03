@@ -1683,9 +1683,9 @@ ensure_string( U ) ->
 % Returns a binary string version of the specified text-like parameter.
 %
 % Note: using such functions may be a bad practice, as it may lead to losing the
-% awareness of the types of the variables that are handled. We may even decide
-% in the future to output warning traces whenever the specified element happens
-% not to be a binary.
+% awareness of the types of the variables that are handled. It is however
+% convenient to define functions whose string parameters may be of any possible
+% type (plain or binary).
 %
 -spec ensure_binary( any_string() ) -> binary().
 ensure_binary( BinString ) when is_binary( BinString ) ->
