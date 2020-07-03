@@ -926,14 +926,15 @@ clean-override:
 	-@/bin/rm -f $(FILES_TO_CLEAN)
 
 
+
 ifeq ($(ROOT_MAKEFILE),true)
 
-# More talkative:
+# Just more talkative:
 clean-recurse:
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then      \
-	echo "  Cleaning in '$$(basename $$m)' layer" ; cd $$m &&            \
-	$(MAKE) -s clean CMD_LINE_OPT="${CMD_LINE_OPT}" &&   \
-	cd .. ; else echo "    (directory $$m skipped)" ; fi ) ; then \
+	echo "  Cleaning in '$$(basename $$m)' layer" ; cd $$m &&      \
+	$(MAKE) -s clean CMD_LINE_OPT="${CMD_LINE_OPT}" &&             \
+	cd .. ; else echo "    (directory $$m skipped)" ; fi ) ; then  \
 	exit 1; fi ; done
 
 else
@@ -941,7 +942,7 @@ else
 clean-recurse:
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then      \
 	cd $$m && $(MAKE) -s clean CMD_LINE_OPT="${CMD_LINE_OPT}" &&   \
-	cd .. ; else echo "    (directory $$m skipped)" ; fi ) ; then \
+	cd .. ; else echo "    (directory $$m skipped)" ; fi ) ; then  \
 	exit 1; fi ; done
 
 endif
@@ -962,6 +963,8 @@ clean-outputs:
 # To be enriched by user layers:
 real-clean: clean clean-ast-debug real-clean-recurse
 
+
+#	@echo "real-clean-recurse in $$(pwd)"
 real-clean-recurse:
 	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then      \
 	cd $$m && $(MAKE) -s real-clean CMD_LINE_OPT="${CMD_LINE_OPT}" &&   \
