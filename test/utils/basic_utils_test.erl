@@ -157,6 +157,12 @@ run() ->
 	basic_utils:display_process_info( self() ),
 
 
+	PSize = basic_utils:get_process_size( self() ),
+
+	test_facilities:display( "Size of current process: ~B bytes, i.e. ~s.",
+		[ PSize, system_utils:interpret_byte_size( PSize ) ] ),
+
+
 	Self = self(),
 
 	test_facilities:display( "Testing myriad_spawn, based on a ~s.",

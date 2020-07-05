@@ -47,7 +47,8 @@
 
 
 % Miscellaneous functions.
--export([ size/1, display_process_info/1,
+-export([ size/1, get_process_info/1, get_process_info/2,
+		  display_process_info/1,
 		  checkpoint/1,
 		  display/1, display/2, display_timed/2, display_timed/3,
 		  display_error/1, display_error/2,
@@ -55,6 +56,7 @@
 		  parse_version/1, compare_versions/2,
 		  get_process_specific_value/0, get_process_specific_value/1,
 		  get_process_specific_value/2,
+		  get_process_size/1,
 		  is_alive/1, is_alive/2,
 		  is_debug_mode_enabled/0, get_execution_target/0,
 		  describe_term/1,
@@ -917,6 +919,7 @@ send_to_pid_set( Message, { Pid, NewIterator }, Count ) ->
 
 
 
+
 % Miscellaneous functions.
 
 
@@ -926,7 +929,85 @@ size( Term ) ->
 	system_utils:get_size( Term ).
 
 
-% Displays information about the process(es) identified by specified PID.
+
+
+% Returns all general information regarding specified process (which is local or
+% not), provided it is still alive (otherwise returns undefined).
+%
+-spec get_process_info( pid() ) ->
+		  maybe( [ erlang:process_info_result_item() ] ).
+get_process_info( Pid ) ->
+
+	LocalNode = node(),
+
+	% erlang:process_info/1 throws badarg if the process is not local:
+	case node( Pid ) of
+
+		LocalNode ->
+			erlang:process_info( Pid );
+
+		OtherNode ->
+
+			% The current module may not be on this node:
+			case rpc:call( OtherNode, _M=erlang, _F=process_info, _A=[ Pid ] )
+			   of
+
+				{ badrpc, Reason } ->
+					trace_utils:error_fmt( "No information found for "
+						"process ~w running on remote node ~p; reason: ~p.~n",
+						[ Pid, OtherNode, Reason ] ),
+					throw( { process_info_failed, Pid, Reason } );
+
+				% Either 'undefined' or proplist:
+				Res ->
+					Res
+
+			end
+
+	end.
+
+
+
+% Returns the specified information regarding specified process (which is local
+% or not), provided it is still alive (otherwise returns undefined).
+%
+-spec get_process_info( pid(), erlang:process_info_item() ) ->
+		  maybe( erlang:process_info_result_item() );
+					  ( pid(), [ erlang:process_info_item() ] ) ->
+		  maybe( [ erlang:process_info_result_item() ] ).
+get_process_info( Pid, ItemTerm ) ->
+
+	LocalNode = node(),
+
+	% erlang:process_info/1 throws badarg if the process is not local:
+	case node( Pid ) of
+
+		LocalNode ->
+			erlang:process_info( Pid, ItemTerm );
+
+		OtherNode ->
+
+			% The current module may not be on this node:
+			case rpc:call( OtherNode, _M=erlang, _F=process_info,
+						   _A=[ Pid, ItemTerm ] ) of
+
+				{ badrpc, Reason } ->
+					trace_utils:error_fmt( "No information found for "
+						"process ~w running on remote node ~p; reason: ~p.~n",
+						[ Pid, OtherNode, Reason ] ),
+					throw( { process_info_failed, Pid, Reason } );
+
+				% Either 'undefined' or proplist:
+				Res ->
+					Res
+
+			end
+
+	end.
+
+
+
+% Displays information about the process(es) identified by specified PID(s).
 -spec display_process_info( pid() | [ pid() ] ) -> void().
 display_process_info( PidList ) when is_list( PidList ) ->
 	[ display_process_info( Pid ) || Pid <- PidList ];
@@ -950,8 +1031,7 @@ display_process_info( Pid ) when is_pid( Pid ) ->
 					Strings = [ io_lib:format( "~s: ~p", [ K, V ] )
 								|| { K, V } <- PropList ],
 					io:format( "PID ~w refers to a local live process, "
-							   "whose information are: ~s",
-							   [ Pid,
+						"whose information is: ~s", [ Pid,
 								 text_utils:strings_to_string( Strings ) ] )
 
 			end;
@@ -1280,6 +1360,36 @@ get_process_specific_value( Min, Max ) ->
 	{ H, M, S } = erlang:time(),
 
 	( ( ( H + M + S + 1 ) * Value ) rem ( Max - Min ) ) + Min.
+
+
+
+% Returns the total size in (RAM) memory used by specified (local, alive)
+% process, in bytes: this includes call stack, heap, and internal structures.
+%
+% See https://erlang.org/doc/man/erlang.html#process_info-1 for more
+% information.
+%
+-spec get_process_size( pid() ) -> system_utils:byte_size().
+get_process_size( Pid ) ->
+
+	% 4 bytes is returned on a 32-bit architecture, and 8 is returned on a pure
+	% 64-bit architecture:
+	%
+	%WordSize = erlang:system_info( { wordsize, internal } ),
+
+	%ProcessPropList = erlang:process_info( Pid ),
+
+	%trace_utils:debug_fmt( "Process info for ~w:~n~p",
+	%					   [ Pid, ProcessPropList ] ),
+
+	% Includes call stack, heap, and internal structures:
+	% (apparentlyalready in bytes, not words:
+	%
+	%WordSize * list_table:get_value( memory, ProcessPropList ).
+	%list_table:get_value( memory, ProcessPropList ).
+	{ memory, Size } = get_process_info( Pid, memory ),
+	Size.
+
 
 
 % Tells whether the specified process, designated by its PID, by a textual
