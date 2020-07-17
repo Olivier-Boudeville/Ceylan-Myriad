@@ -34,6 +34,7 @@
 -module(time_utils).
 
 
+
 % Implementation notes:
 %
 % Native support in Erlang for time-related operations is mostly located in the
@@ -44,10 +45,17 @@
 % A month is a positive integer, a canonical month is in [1,12].
 
 
+% Day management support:
+-export([ is_bank_holiday/2 ]).
+
+
+% Week management support:
+-export([ get_week_day/1, week_day_to_string/1 ]).
+
 
 % Month management support:
 -export([ canonicalise_month/1, check_month_canonical/1, check_month_order/2,
-		  month_to_string/1, week_day_to_string/1 ]).
+		  month_to_string/1 ]).
 
 
 % Date support:
@@ -58,17 +66,19 @@
 %
 % (Monday is 1, Tuesday is 2, etc.)
 %
+% Such numerical values are useful to operate based on ranges.
+%
 -type day_index() :: 1..7.
 
 
-% User-friendly version of day_index/0:
--type week_day() :: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday'
-				  | 'Friday' | 'Saturday' | 'Sunday'.
+% User-friendly atom-based version of day_index/0:
+-type week_day() :: 'monday' | 'tuesday' | 'wednesday' | 'thursday'
+				  | 'friday' | 'saturday' | 'sunday'.
 
 
 % Calendar date; used to be less precise calendar:date():
--type date() ::  { unit_utils:year(), unit_utils:canonical_month(),
-				   unit_utils:canonical_day() }.
+-type date() :: { unit_utils:year(), unit_utils:canonical_month(),
+				  unit_utils:canonical_day() }.
 
 
 % Time in the day; used to be { hour(), minute(), second() } or calendar:time():
@@ -149,6 +159,7 @@
 		  gregorian_ms_to_timestamp/1,
 		  string_to_timestamp/1, dhms_to_string/1,
 		  timestamp_to_seconds/0, timestamp_to_seconds/1,
+		  timestamp_to_weekday/1, date_to_weekday/1,
 		  local_to_universal_time/1, universal_to_local_time/1,
 		  offset_timestamp/2,
 		  get_duration/1, get_duration/2,
@@ -313,11 +324,40 @@ month_to_string( MonthIndex ) ->
 
 
 
+% Tells whether, for specified country, the specified date is a bank holiday.
+-spec is_bank_holiday( date(), locale_utils:country() ) -> boolean().
+is_bank_holiday( _Date, _Country ) ->
+	throw( not_implemented ).
 
 
 
-% Returns the common name of a day (ex: "Tuesday") based on the specified date
-% or on the specified index in the week.
+% Returns the symbol (atom) corresponding to specified week day index.
+-spec get_week_day( day_index() ) -> week_day().
+get_week_day( _DayIndex=1 ) ->
+	monday;
+
+get_week_day( _DayIndex=2 ) ->
+	tuesday;
+
+get_week_day( _DayIndex=3 ) ->
+	wednesday;
+
+get_week_day( _DayIndex=4 ) ->
+	thursday;
+
+get_week_day( _DayIndex=5 ) ->
+	friday;
+
+get_week_day( _DayIndex=6 ) ->
+	saturday;
+
+get_week_day( _DayIndex=7 ) ->
+	sunday.
+
+
+
+% Returns the common name of a week day (ex: "Tuesday") based on the specified
+% date or on the specified index in the week.
 %
 -spec week_day_to_string( date() | day_index() ) -> string().
 week_day_to_string( Date={ _Y, _M, _D } ) ->
@@ -938,6 +978,21 @@ dhms_to_string( DHMS ) ->
 -spec timestamp_to_seconds() -> seconds().
 timestamp_to_seconds() ->
 	timestamp_to_seconds( get_timestamp() ).
+
+
+
+% Returns the week day (ex: 'Tuesday') corresponding to specified timestamp.
+-spec timestamp_to_weekday( timestamp() ) -> week_day().
+timestamp_to_weekday( _Timestamp={ Date, _Time } ) ->
+	date_to_weekday( Date ).
+
+
+
+% Returns the week day (ex: 'Tuesday') corresponding to specified date.
+-spec date_to_weekday( date() ) -> week_day().
+date_to_weekday( Date ) ->
+	DayNum = calendar:day_of_the_week( Date ),
+	get_week_day( DayNum ).
 
 
 
