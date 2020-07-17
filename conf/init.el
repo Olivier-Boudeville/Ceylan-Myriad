@@ -150,7 +150,7 @@
 
 ;; Allows to have Emacs automatically insert newlines to word-wrap:
 ;; (see https://www.emacswiki.org/emacs/AutoFillMode)
-(defun my-erlang-mode-hook () (turn-on-auto-fill) )
+;;(defun my-erlang-mode-hook () (turn-on-auto-fill) )
 
 (message "<<<<<<######### init.el version 1.0 #########>>>>>>")
 
