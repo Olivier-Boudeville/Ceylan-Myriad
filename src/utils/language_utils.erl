@@ -26,8 +26,8 @@
 % Creation date: Saturday, July 12, 2008.
 
 
-% Gathering of various convenient facilities regardingthe support of various
-% programming languages
+% Gathering of various convenient facilities regarding the support of various
+% programming languages.
 %
 % See language_utils_test.erl for the corresponding test.
 %
