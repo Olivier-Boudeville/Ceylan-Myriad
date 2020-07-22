@@ -239,6 +239,23 @@
 (add-hook 'rst-mode-hook 'fix-behaviours-for-rst-mode)
 
 
+(defun fix-behaviours-for-latex-mode ()
+  (message "############## Fixing behaviours for LateX mode ###########")
+
+  ;; Advanced automatic indentation not adapted to text modes:
+  (remove-hook 'find-file-hooks 'set-advanced-ret-behaviour)
+
+  ;; This basic indentation is fine with text modes:
+  (global-set-key (kbd "RET") 'newline-and-indent)
+
+  ;;Long lines are normal in text modes:
+  ;;(remove-hook 'find-file-hook 'highlight-80+-mode)
+  ;; Surely an hack, but works great:
+  (setq whitespace-line-column 9999)
+  )
+
+(add-hook 'latex-mode-hook 'fix-behaviours-for-latex-mode)
+
 
 ;; Indenting buffers as a whole:
 (defun indent-whole-buffer ()
