@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2008-2018 Olivier Boudeville
+# Copyright (C) 2008-2020 Olivier Boudeville
 #
 # Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 #
@@ -51,7 +51,7 @@ asynch_thread_count=128
 
 
 
-USAGE="
+usage="
 Usage: $(basename $0) [-v] [-c a_cookie] [--sn a_short_node_name | --ln a_long_node_name | --nn an_ignored_node_name ] [--tcp-range min_port max_port] [--epmd-port new_port] [--fqdn a_fqdn] [--max-process-count max_count] [--busy-limit kb_size] [--async-thread-count thread_count] [--background] [--non-interactive] [--eval an_expression] [--no-auto-start] [-h|--help] [--beam-dir a_path] [--beam-paths path_1 path_2] [-start-verbatim-options [...]]: launches the Erlang interpreter with specified settings.
 
 Detailed options:
@@ -75,7 +75,7 @@ Detailed options:
 	--beam-dir a_path: adds specified directory to the path searched for beam files (multiple --beam-dir options can be specified)
 	--beam-paths first_path second_path ...: adds specified directories to the path searched for beam files (multiple paths can be specified; must be the last option)
 
-Other options will be passed 'as are' to the interpreter with a warning, except if they are listed after a '-start-verbatim-options' option (in which case they will passed with no warning).
+Other options will be passed 'as are' to the interpreter with a warning, except if they are listed after a '-start-verbatim-options' option, in which case they will passed with no warning.
 
 If neither '--sn' nor '--ln' is specified, then the node will not be a distributed one.
 
@@ -94,6 +94,7 @@ reset_keyboard()
 
 	/bin/stty -brkint -ignpar icrnl -imaxbel opost icanon echo
 	echo
+
 }
 
 
@@ -102,19 +103,19 @@ reset_keyboard()
 #echo "launch-erl.sh received as parameters: $*"
 
 
-CMD_FILE="launch-erl-input-command.sh"
+cmd_file="launch-erl-input-command.sh"
 
-# Typically this CMD_FILE shall be edited so that quotes are added back to the
+# Typically this cmd_file shall be edited so that quotes are added back to the
 # -eval command (ex: '-eval foobar_test:run()'):
 #
-#echo "$0 $*" > ${CMD_FILE} && chmod +x ${CMD_FILE} && echo "(input launch command stored in ${CMD_FILE})"
+#echo "$0 $*" > ${cmd_file} && chmod +x ${cmd_file} && echo "(input launch command stored in ${cmd_file})"
 
 
-#ERL=/usr/bin/erl
-ERL=$(which erl)
+#erl=/usr/bin/erl
+erl=$(which erl)
 
-RUN_ERL=$(which run_erl)
-TO_ERL=$(which to_erl)
+run_erl=$(which run_erl)
+to_erl=$(which to_erl)
 
 
 #CEYLAN_MYRIAD_ROOT=$(dirname $0)/../..
@@ -143,44 +144,44 @@ warning_prefix="[launch-erl.sh] Warning:"
 do_stop=1
 
 
-while [ $# -gt 0 ] && [ $do_stop -eq 1 ] ; do
+while [ $# -gt 0 ] && [ $do_stop -eq 1 ]; do
 
 	token_eaten=1
 
 	#echo "Examining next argument: '$1'"
 
-	if [ "$1" = "-v" ] ; then
+	if [ "$1" = "-v" ]; then
 		be_verbose=0
 		echo "(verbose mode activated)"
 		token_eaten=0
 	fi
 
-	if [ "$1" = "-c" ] ; then
+	if [ "$1" = "-c" ]; then
 		shift
 		#echo "  + specified cookie: $cookie"
 		cookie="$1"
 		token_eaten=0
 	fi
 
-	if [ "$1" = "--sn" ] ; then
+	if [ "$1" = "--sn" ]; then
 		shift
 		short_name="$1"
 		token_eaten=0
 	fi
 
-	if [ "$1" = "--ln" ] ; then
+	if [ "$1" = "--ln" ]; then
 		shift
 		long_name="$1"
 		token_eaten=0
 	fi
 
-	if [ "$1" = "--nn" ] ; then
+	if [ "$1" = "--nn" ]; then
 		shift
 		# "$1" ignored.
 		token_eaten=0
 	fi
 
-	if [ "$1" = "--tcp-range" ] ; then
+	if [ "$1" = "--tcp-range" ]; then
 		shift
 		use_tcp_range=0
 		lower_tcp_port="$1"
@@ -191,7 +192,7 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ] ; do
 		token_eaten=0
 	fi
 
-	if [ "$1" = "--epmd-port" ] ; then
+	if [ "$1" = "--epmd-port" ]; then
 
 		shift
 		epmd_port="$1"
@@ -202,60 +203,60 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ] ; do
 		#echo "Setting EPMD port to $epmd_port"
 		export ERL_EPMD_PORT=$epmd_port
 
-		# This works both ways (to tell EPMD where to be launched, to tell ERL
+		# This works both ways (to tell EPMD where to be launched, to tell erl
 		# where to find EPMD).
 		token_eaten=0
 
 	fi
 
-	if [ "$1" = "--fqdn" ] ; then
+	if [ "$1" = "--fqdn" ]; then
 		shift
 		fqdn="$1"
 		token_eaten=0
 	fi
 
 
-	if [ "$1" = "--max-process-count" ] ; then
+	if [ "$1" = "--max-process-count" ]; then
 		shift
 		max_process_count="$1"
 		token_eaten=0
 	fi
 
 
-	if [ "$1" = "--busy-limit" ] ; then
+	if [ "$1" = "--busy-limit" ]; then
 		shift
 		busy_limit="$1"
 		token_eaten=0
 	fi
 
 
-	if [ "$1" = "--async-thread-count" ] ; then
+	if [ "$1" = "--async-thread-count" ]; then
 		shift
 		asynch_thread_count="$1"
 		token_eaten=0
 	fi
 
 
-	if [ "$1" = "--background" ] ; then
+	if [ "$1" = "--background" ]; then
 		in_background=0
 		token_eaten=0
 	fi
 
-	if [ "$1" = "--daemon" ] ; then
+	if [ "$1" = "--daemon" ]; then
 		#echo "(running in daemon mode)"
 		use_run_erl=0
 		#in_background=0
 		token_eaten=0
 	fi
 
-	if [ "$1" = "--non-interactive" ] ; then
+	if [ "$1" = "--non-interactive" ]; then
 		non_interactive=0
 		token_eaten=0
 	fi
 
-	if [ "$1" = "--beam-paths" ] ; then
+	if [ "$1" = "--beam-paths" ]; then
 		# Keep --beam-paths if first position, as will be shifted in end of loop
-		while [ ! $# -eq 1 ] ; do
+		while [ ! $# -eq 1 ]; do
 			#echo "  + adding beam path $2"
 			code_dirs="${code_dirs} $2"
 			shift
@@ -263,14 +264,16 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ] ; do
 		token_eaten=0
 	fi
 
-	if [ "$1" = "--eval" ] ; then
+	if [ "$1" = "--eval" ]; then
 		shift
 		# We can use -s instead, which would allow to send multiple commands
 		# in a row.
 
 		# Yes, these two versions *are* needed:
 
+		# Found finally needed:
 		to_eval="-eval $1"
+		#to_eval="-eval '$1'"
 
 		# Would not work if the module name contained a dash:
 		#to_eval="-eval '$1'"
@@ -283,19 +286,19 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ] ; do
 		token_eaten=0
 	fi
 
-	if [ "$1" = "--no-auto-start" ] ; then
+	if [ "$1" = "--no-auto-start" ]; then
 		#echo "Autostart deactivated"
 		autostart=1
 		token_eaten=0
 	fi
 
-	if [ "$1" = "-h" ] || [ "$1" = "--help" ] ; then
-		echo "$USAGE"
+	if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+		echo "${usage}"
 		exit
 		token_eaten=0
 	fi
 
-	if [ "$1" = "--beam-dir" ] ; then
+	if [ "$1" = "--beam-dir" ]; then
 		shift
 		#echo "  + adding beam dir $1"
 		code_dirs="${code_dirs} $1"
@@ -308,14 +311,14 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ] ; do
 	# ALL_CMD_LINE_OPTIONS for that).
 
 	# So this form is not recommended:
-	#if [ "$1" = "-XXX" ] ; then
+	#if [ "$1" = "-XXX" ]; then
 	#	verbatim_opt="${verbatim_opt} $1"
 	#	token_eaten=0
 	#fi
 
 
 	# Ignore options that have to be interpreted by the program itself:
-	if [ "$1" = "-start-verbatim-options" ] ; then
+	if [ "$1" = "-start-verbatim-options" ]; then
 		# We stop the parsing and add all remaining options remaining:
 		do_stop=0
 		shift
@@ -329,14 +332,14 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ] ; do
 		token_eaten=0
 	fi
 
-	if [ $token_eaten -eq 1 ] ; then
+	if [ $token_eaten -eq 1 ]; then
 		echo "${warning_prefix} unknown argument ('$1'), adding \
 it 'as is' to command-line." 1>&2
 		verbatim_opt="${verbatim_opt} $1"
 	fi
 
 	# Prevents an unwanted shift to be done if no verbatim option was specified:
-	if [ $do_stop -eq 1 ] ; then
+	if [ $do_stop -eq 1 ]; then
 		shift
 	fi
 
@@ -349,12 +352,12 @@ done
 filtered_verbatim_opt=""
 
 for opt in ${verbatim_opt}; do
-	if [ "$opt" != "-start-verbatim-options" ] ; then
+	if [ "$opt" != "-start-verbatim-options" ]; then
 		filtered_verbatim_opt="$filtered_verbatim_opt $opt"
 	fi
 done
 
-verbatim_opt="$filtered_verbatim_opt"
+verbatim_opt="${filtered_verbatim_opt}"
 
 #echo "Verbatim options: '${verbatim_opt}'."
 
@@ -363,7 +366,7 @@ verbatim_opt="$filtered_verbatim_opt"
 # The PID of this current UNIX process:
 shell_pid=$$
 
-if [ $use_run_erl -eq 0 ] ; then
+if [ $use_run_erl -eq 0 ]; then
 
 	# Suffixes the PID, for unicity (the / suffix does not seem relevant,
 	# despite http://www.erlang.org/doc/man/run_erl.html):
@@ -375,23 +378,23 @@ if [ $use_run_erl -eq 0 ] ; then
 	read_pipe="${run_pipe}.r"
 
 	# sh does not have '-p':
-	if [ -e "${write_pipe}" ] ; then
+	if [ -e "${write_pipe}" ]; then
 		#echo "(removing write pipe)"
 		/bin/rm -f "${write_pipe}"
 	fi
 
-	if [ -e "${read_pipe}" ] ; then
+	if [ -e "${read_pipe}" ]; then
 		#echo "(removing read pipe)"
 		/bin/rm -f "${read_pipe}"
 	fi
 
 
-	if [ -e "${write_pipe}" ] ; then
+	if [ -e "${write_pipe}" ]; then
 		echo "  Error, write pipe (${write_pipe}) resisted deletion." 1>&2
 		exit 50
 	fi
 
-	if [ -e "${read_pipe}" ] ; then
+	if [ -e "${read_pipe}" ]; then
 		echo "  Error, read pipe (${read_pipe}) resisted deletion." 1>&2
 		exit 55
 	fi
@@ -420,7 +423,7 @@ export ERL_EPMD_RELAXED_COMMAND_CHECK=1
 realpath_exec=$(which realpath 2>/dev/null)
 
 
-if [ -x "${realpath_exec}" ] ; then
+if [ -x "${realpath_exec}" ]; then
 
 	shortened_code_dirs=""
 
@@ -441,7 +444,7 @@ if [ -x "${realpath_exec}" ] ; then
 		# Side-effect: realpath by default checks that the directory exists.
 		new_dir=$(realpath $d 2>/dev/null)
 
-		if [ -d "$new_dir" ] ; then
+		if [ -d "$new_dir" ]; then
 			#echo "  + $new_dir"
 			shortened_code_dirs="$shortened_code_dirs $new_dir"
 		else
@@ -460,7 +463,7 @@ if [ -x "${realpath_exec}" ] ; then
 
 	done
 
-	code_dirs="$shortened_code_dirs"
+	code_dirs="${shortened_code_dirs}"
 
 else
 
@@ -473,25 +476,32 @@ fi
 # core if GUI (WxWindows) is to be used:
 #
 # +native not used here:
-code_opt="-pz ${code_dirs} -smp +K true +A ${asynch_thread_count} +zdbbl ${busy_limit}"
+
+if [ -z "${code_dirs}" ]; then
+	code_dirs_opt=""
+else
+	code_dirs_opt="-pz ${code_dirs}"
+fi
+
+code_opt="${code_dirs_opt} -smp +K true +A ${asynch_thread_count} +zdbbl ${busy_limit}"
 
 
 # Adding the executable last to be able to prefix options:
 command="${log_opt} ${code_opt} +P ${max_process_count}"
 
 # Adds a command-line cookie only if specified:
-if [ -n "${cookie}" ] ; then
+if [ -n "${cookie}" ]; then
 	cookie_opt="-setcookie ${cookie}"
 fi
 
 
-if [ ${autostart} -eq 1 ] ; then
+if [ ${autostart} -eq 1 ]; then
 	echo " ** No autostart wanted, but you can run manually: ${eval_content} **"
 	to_eval="-eval io:format(\"-->"${eval_content}".\")"
 fi
 
 
-if [ $use_tcp_range -eq 0 ] ; then
+if [ $use_tcp_range -eq 0 ]; then
 
 	tcp_port_opt="-kernel inet_dist_listen_min ${lower_tcp_port} inet_dist_listen_max ${higher_tcp_port}"
 
@@ -504,7 +514,7 @@ command="${command} ${cookie_opt} ${tcp_port_opt}"
 # nslookup could be used as well:
 # (some laptops timeout when using the 'host' command)
 #
-if [ -z "${fqdn}" ] ; then
+if [ -z "${fqdn}" ]; then
 
 	# Not used anymore:
 	#fqdn=$(host $(hostname) | awk '{ print $1 }' | head -n 1)
@@ -520,9 +530,9 @@ actual_name="(anonymous node)"
 # Tells whether the node will be a distributed one (default: false):
 is_distributed=1
 
-if [ -n "${short_name}" ] ; then
+if [ -n "${short_name}" ]; then
 
-	if [ -z "${long_name}" ] ; then
+	if [ -z "${long_name}" ]; then
 
 		command="${command} -sname ${short_name}"
 
@@ -540,7 +550,7 @@ if [ -n "${short_name}" ] ; then
 
 	# Distributed, with short names here:
 
-	if [ $be_verbose -eq 0 ] ; then
+	if [ $be_verbose -eq 0 ]; then
 
 		# Displayed later: echo "Launching: ${command}"
 		:
@@ -556,11 +566,11 @@ if [ -n "${short_name}" ] ; then
 
 else
 
-	if [ -z "${long_name}" ] ; then
+	if [ -z "${long_name}" ]; then
 
 		# Non-distributed node here:
 
-		if [ $be_verbose -eq 0 ] ; then
+		if [ $be_verbose -eq 0 ]; then
 
 			# Displayed later: echo "Launching: ${command}"
 			:
@@ -593,18 +603,19 @@ else
 
 	fi
 
-	if [ $be_verbose -eq 0 ] ; then
-
-		echo "Launching: ${command}"
-
-	else
+	# Useless (would be a duplicate)
+	#if [ $be_verbose -eq 0 ]; then
+	#
+	#	echo "Launching: ${command}"
+	#
+	#else
 
 		# No-op:
-		:
+	#	:
 
 		#echo "Launching the Erlang VM with long name ${long_name}"
 
-	fi
+	#fi
 
 fi
 
@@ -613,7 +624,7 @@ fi
 # option is likely to affect negatively the Unicode support; refer to
 # io:setopts/1 and the note in file_utils:open/2 for further information.
 
-if [ $in_background -eq 0 ] ; then
+if [ $in_background -eq 0 ]; then
 
 	# -detached used, and implies (among other things like being a
 	# non-blocking command), '-noinput -noshell':
@@ -623,7 +634,7 @@ if [ $in_background -eq 0 ] ; then
 fi
 
 
-if [ $non_interactive -eq 0 ] ; then
+if [ $non_interactive -eq 0 ]; then
 
 	# No -detached used here:
 	non_interactive_opt="-noinput -noshell"
@@ -642,11 +653,11 @@ fi
 command="${command} ${background_opt} ${non_interactive_opt} ${verbatim_opt}"
 
 
-if [ $use_run_erl -eq 0 ] ; then
+if [ $use_run_erl -eq 0 ]; then
 
 	log_dir=$(pwd)
 
-	if [ ! -x "${RUN_ERL}" ] ; then
+	if [ ! -x "${run_erl}" ]; then
 
 		echo "  Error, no 'run_erl' tool available." 1>&2
 		exit 80
@@ -655,17 +666,17 @@ if [ $use_run_erl -eq 0 ] ; then
 
 	#echo "Launching a VM, using run_erl and log_dir=$log_dir."
 
-	# The -daemon must be there (see
+	# The '-daemon' option must be included (see
 	# http://www.erlang.org/doc/man/run_erl.html):
 
-	# We could not include to_eval here (i.e. no 'exec ${ERL} ${to_eval}...')
+	# We could not include to_eval here (i.e. no 'exec ${erl} ${to_eval}...')
 	# and write it in the pipe afterwards:
 	#
-	final_command="${RUN_ERL} -daemon ${run_pipe} ${log_dir} \"exec ${ERL} ${to_eval_run_erl} ${command}\""
+	final_command="${run_erl} -daemon ${run_pipe} ${log_dir} \"exec ${erl} ${to_eval_run_erl} ${command}\""
 
 else
 
-	if [ ! -x "${ERL}" ] ; then
+	if [ ! -x "${erl}" ]; then
 
 		echo "  Error, no Erlang interpreter ('erl') available." 1>&2
 		exit 81
@@ -673,16 +684,10 @@ else
 	fi
 
 	#echo "Launching a VM, using direct command-line execution."
-	final_command="${ERL} ${to_eval} ${command}"
+	final_command="${erl} ${to_eval} ${command}"
 
 fi
 
-
-if [ $be_verbose -eq 0 ] ; then
-
-	echo "Launching: ${final_command}"
-
-fi
 
 
 # Uncomment to see the actual runtime settings:
@@ -694,9 +699,15 @@ fi
 #echo "$0 running final command: '${final_command}', with use_run_erl = $use_run_erl"
 
 
-if [ $use_run_erl -eq 0 ] ; then
+if [ $use_run_erl -eq 0 ]; then
 
 	#echo "run_erl command: ${final_command}"
+
+	if [ $be_verbose -eq 0 ]; then
+
+		echo "Launching with run_erl: ${final_command}"
+
+	fi
 
 	# eval is needed for nested expansion, otherwise:
 	# 'Syntax error: Unterminated quoted string'.
@@ -709,7 +720,7 @@ if [ $use_run_erl -eq 0 ] ; then
 	# have to find its PID.
 	#erl_pid=""
 
-	# while [ -z "$erl_pid" ] ; do
+	# while [ -z "$erl_pid" ]; do
 
 	# erl_pid=$(ps -edf -w -w | grep beam.smp | grep "launch-erl-pid" | awk '{print $2}')
 	# ps -edf | grep beam.smp
@@ -724,6 +735,13 @@ else
 	# Not using run_erl here, direct launch (the current default):
 
 	#echo "direct command: ${final_command}"
+
+	if [ $be_verbose -eq 0 ]; then
+
+		echo "Launching (directly): ${final_command}"
+
+	fi
+
 	${final_command}
 
 fi
@@ -732,11 +750,15 @@ fi
 res=$?
 
 # However run_erl may return 0 despite errors:
-if [ ! $res -eq 0 ] ; then
+if [ ! $res -eq 0 ]; then
 
 	reset_keyboard
 	echo "(command failed, with error result $res)" 1>&2
 	exit $res
+
+elif [ $use_run_erl -eq 1 ]; then
+
+	echo "(command success reported)"
 
 fi
 
@@ -744,12 +766,12 @@ fi
 #pid=$!
 
 # Commented out, as pid never set:
-#if [ $in_background -eq 0 ] ; then
+#if [ $in_background -eq 0 ]; then
 #	echo "(PID of launched interpreter is $pid)"
 #fi
 
 
-if [ $use_run_erl -eq 0 ] && [ $autostart -eq 0 ] ; then
+if [ $use_run_erl -eq 0 ] && [ $autostart -eq 0 ]; then
 
 	#echo "Waiting for the creation of write pipe '${write_pipe}'."
 
@@ -760,11 +782,11 @@ if [ $use_run_erl -eq 0 ] && [ $autostart -eq 0 ] ; then
 
 	wait_count=0
 
-	while [ ! -e "${write_pipe}" ] ; do
+	while [ ! -e "${write_pipe}" ]; do
 
 		wait_remain=$(($wait_max - $wait_count))
 
-		if [ $wait_remain -eq 0 ] ; then
+		if [ $wait_remain -eq 0 ]; then
 
 			echo  "Error, time-out while waiting for the creation of write pipe (${write_pipe})." 1>&2
 			echo "Check that there is no identically named Erlang VM running in the background that would block this launch." 1>&2
@@ -782,7 +804,7 @@ if [ $use_run_erl -eq 0 ] && [ $autostart -eq 0 ] ; then
 		# Do not start displaying the count-down before 5 seconds, then only
 		# every 5 seconds:
 		#
-		if [ $wait_count -gt 4 ] && [ $(expr $wait_count % 5) -eq 0 ] ; then
+		if [ $wait_count -gt 4 ] && [ $(expr $wait_count % 5) -eq 0 ]; then
 			echo " (launch time-out in $wait_remain seconds)"
 		fi
 
@@ -800,11 +822,11 @@ if [ $use_run_erl -eq 0 ] && [ $autostart -eq 0 ] ; then
 
 	echo "Write pipe '${write_pipe}' found, waiting $wait_max seconds to ensure start-up is successful indeed."
 
-	while [ $wait_count -lt $wait_max ] ; do
+	while [ $wait_count -lt $wait_max ]; do
 
 		sleep 1
 
-		if [ ! -e "${write_pipe}" ] ; then
+		if [ ! -e "${write_pipe}" ]; then
 
 			echo -e "\n  Error, launch failed, write pipe disappeared. Check that a node with the same name is not already existing, or that the launched code does not crash at start-up.\n" 1>&2
 
@@ -835,7 +857,7 @@ if [ $use_run_erl -eq 0 ] && [ $autostart -eq 0 ] ; then
 	# Then send the actual command:
 	#echo "${eval_content}." >> ${write_pipe}
 
-	#if [ ! -x "${TO_ERL}" ]; then
+	#if [ ! -x "${to_erl}" ]; then
 	#
 	#	echo "  Error, the 'to_erl' tool is not available." 1>&2
 	#
@@ -843,8 +865,8 @@ if [ $use_run_erl -eq 0 ] && [ $autostart -eq 0 ] ; then
 	#
 	#fi
 
-	#echo "Running '${TO_ERL} $run_pipe' now."
-	#${TO_ERL} $run_pipe
+	#echo "Running '${to_erl} $run_pipe' now."
+	#${to_erl} $run_pipe
 	#echo "(to_erl just finished)"
 
 	# Apparently, with run_erl/to_erl, in some cases some VMs linger, though
@@ -859,17 +881,20 @@ if [ $use_run_erl -eq 0 ] && [ $autostart -eq 0 ] ; then
 
 	# Clean-up:
 
-	#if [ -e "${write_pipe}" ] ; then
+	#if [ -e "${write_pipe}" ]; then
 
 	#	/bin/rm -f "${write_pipe}"
 
 	#fi
 
 
-	#if [ -e "${read_pipe}" ] ; then
+	#if [ -e "${read_pipe}" ]; then
 
 	#	/bin/rm -f "${read_pipe}"
 
 	#fi
 
 fi
+
+
+exit 0
