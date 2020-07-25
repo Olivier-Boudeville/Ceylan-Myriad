@@ -37,11 +37,23 @@
 -include("test_facilities.hrl").
 
 
+% Note:
+%
+% One can test the support of command-line arguments with, for example:
+%
+% make shell_utils_run CMD_LINE_OPT="aa -my-first-opt u v bb -my-other-opt cc"
+
+
 
 -spec run() -> no_return().
 run() ->
 
 	test_facilities:start( ?MODULE ),
+
+	ArgTable = shell_utils:get_argument_table(),
+
+	test_facilities:display( "Obtained following argument table: ~s",
+		[ shell_utils:argument_table_to_string( ArgTable ) ] ),
 
 	TargetOption = 'pz',
 
@@ -49,7 +61,7 @@ run() ->
 		shell_utils:extract_command_argument( TargetOption ),
 
 	test_facilities:display( "Knowing the actual command-line arguments were:~n"
-		"~p~nbased on option '~s', we extracted following value(s):~n~p~nand "
+		"~p~nfor option '~s', we extracted following value(s):~n~p~nand "
 		"got the rest of the arguments:~n~p",
 		[ init:get_arguments(), TargetOption, Values, RemainingArguments ] ),
 
