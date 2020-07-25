@@ -269,14 +269,17 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ]; do
 		# We can use -s instead, which would allow to send multiple commands
 		# in a row.
 
-		# Yes, these two versions *are* needed:
+		# Yes, these two versions (to_eval/to_eval_run_erl) *are* needed:
 
-		# Found finally needed:
+		# Not relevant for example for the automatic make rules regarding tests
+		# nor if the module name contained a dash (prefer acting upon the
+		# escaping on the input expression, like in "--eval
+		# foobar_app:start()"):
+		#
+		#to_eval="-eval '$1'"
+
+		# Found finally needed, with this form:
 		to_eval="-eval $1"
-		#to_eval="-eval '$1'"
-
-		# Would not work if the module name contained a dash:
-		#to_eval="-eval '$1'"
 
 		to_eval_run_erl="-eval '$1'"
 
