@@ -263,7 +263,7 @@ main( ArgTable ) ->
 
 				{ UnexpectedBaseDirOpts, _BaseDirArgumentTable } ->
 					InputString = text_utils:format(
-						"unexpected --base-dir options: ~s",
+						"unexpected --base-dir options: ~p",
 						[ UnexpectedBaseDirOpts ] ),
 
 					stop_on_option_error( InputString, 29 )
@@ -288,8 +288,8 @@ main( ArgTable ) ->
 				% Typically more than one reference option specified:
 				{ UnexpectedRefTreeOpts, _NoRefArgTable } ->
 					RefString = text_utils:format(
-								  "unexpected reference tree options: ~p",
-								  [ UnexpectedRefTreeOpts ] ),
+						"unexpected reference tree options: ~p",
+						[ UnexpectedRefTreeOpts ] ),
 					stop_on_option_error( RefString, 26 )
 
 			end
@@ -336,7 +336,7 @@ handle_reference_option( RefTreePath, ArgumentTable, BaseDir ) ->
 
 		% Typically more than one input option specified:
 		{ UnexpectedInputTreeOpts, _NewArgumentTable } ->
-			InputString = text_utils:format( "unexpected --input options: ~s",
+			InputString = text_utils:format( "unexpected --input options: ~p",
 											 [ UnexpectedInputTreeOpts ] ),
 			stop_on_option_error( InputString, 27 )
 
@@ -376,8 +376,8 @@ handle_non_reference_option( ArgumentTable, BaseDir ) ->
 
 				{ UnexpectedRescanTreeOpts, _RescanArgTable } ->
 					ScanString = text_utils:format(
-								   "unexpected rescan tree options: ~p",
-								   [ UnexpectedRescanTreeOpts ] ),
+						"unexpected rescan tree options: ~p",
+						[ UnexpectedRescanTreeOpts ] ),
 					stop_on_option_error( ScanString, 29 )
 
 			end;
@@ -397,9 +397,9 @@ handle_non_reference_option( ArgumentTable, BaseDir ) ->
 
 				false ->
 					Msg = text_utils:format(
-							"unexpected extra options specified: ~s",
-							[ shell_utils:argument_table_to_string(
-								ScanArgTable ) ] ),
+						"unexpected extra options specified: ~s",
+						[ shell_utils:argument_table_to_string(
+							ScanArgTable ) ] ),
 					stop_on_option_error( Msg, 23 )
 
 			end;
@@ -476,8 +476,8 @@ handle_neither_scan_options( ArgTable, BaseDir ) ->
 		{ UnexpectedResyncTreeOpts, _NoResyncArgTable } ->
 
 			ResyncString = text_utils:format(
-							 "unexpected resync tree options: ~p",
-							 [ UnexpectedResyncTreeOpts ] ),
+				"unexpected resync tree options: ~p",
+				[ UnexpectedResyncTreeOpts ] ),
 
 			stop_on_option_error( ResyncString, 24 )
 
@@ -510,8 +510,8 @@ handle_scan_option( UserScanTreePath, ScanArgTable, BaseDir ) ->
 
 handle_rescan_option( UserRescanTreePath, RescanArgTable, BaseDir ) ->
 
-	AbsRescanTreePath = file_utils:ensure_path_is_absolute( UserRescanTreePath,
-															BaseDir ),
+	AbsRescanTreePath =
+		file_utils:ensure_path_is_absolute( UserRescanTreePath,	BaseDir ),
 
 	check_no_option_remains( RescanArgTable ),
 
@@ -557,8 +557,8 @@ handle_resync_option( UserResyncTreePath, ResyncArgTable, BaseDir ) ->
 
 handle_uniquify_option( UserUniqTreePath, UniqArgTable, BaseDir ) ->
 
-	AbsUniqTreePath = file_utils:ensure_path_is_absolute( UserUniqTreePath,
-														  BaseDir ),
+	AbsUniqTreePath =
+		file_utils:ensure_path_is_absolute( UserUniqTreePath, BaseDir ),
 
 	check_no_option_remains( UniqArgTable ),
 
@@ -569,11 +569,11 @@ handle_uniquify_option( UserUniqTreePath, UniqArgTable, BaseDir ) ->
 handle_merge_option( UserInputTreePath, UserRefTreePath, MergeArgTable,
 					 BaseDir ) ->
 
-	AbsInputTreePath = file_utils:ensure_path_is_absolute( UserInputTreePath,
-														   BaseDir ),
+	AbsInputTreePath =
+		file_utils:ensure_path_is_absolute( UserInputTreePath, BaseDir ),
 
-	AbsRefTreePath = file_utils:ensure_path_is_absolute( UserRefTreePath,
-														 BaseDir ),
+	AbsRefTreePath =
+		file_utils:ensure_path_is_absolute( UserRefTreePath, BaseDir ),
 
 	check_no_option_remains( MergeArgTable ),
 
@@ -589,7 +589,7 @@ check_no_option_remains( ArgTable ) ->
 
 		false ->
 			Msg = text_utils:format( "unexpected extra options specified: ~s",
-					[ shell_utils:argument_table_to_string( ArgTable ) ] ),
+				[ shell_utils:argument_table_to_string( ArgTable ) ] ),
 			stop_on_option_error( Msg, 20 )
 
 	end.
@@ -615,7 +615,7 @@ stop_on_option_error( Message, ErrorCode ) ->
 
 % Scans specified tree, returning the corresponding datastructure.
 -spec scan( file_utils:directory_name(), analyzer_ring(), user_state() ) ->
-				  tree_data().
+				tree_data().
 scan( TreePath, AnalyzerRing, UserState ) ->
 
 	% TreePath expected to be already absolute and normalised.
@@ -632,8 +632,8 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 
 		true ->
 
-			Prompt = text_utils:format( "A cache file already exists for '~s'. "
-										"We can:", [ TreePath ] ),
+			Prompt = text_utils:format(
+				"A cache file already exists for '~s'. We can:", [ TreePath ] ),
 
 			% No 'strong_check' deemed useful (synonym of recreating from
 			% scratch, hence of 'ignore').
@@ -668,9 +668,8 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 
 
 				ignore ->
-					ui:display( "Ignoring existing cache file (~s), "
-								"performing now a full scan to recreate it.",
-								[ CacheFilename ] ),
+					ui:display( "Ignoring existing cache file (~s), performing "
+						"now a full scan to recreate it.", [ CacheFilename ] ),
 					perform_scan( TreePath, AnalyzerRing, UserState );
 
 				no_check ->
@@ -837,16 +836,14 @@ perform_rescan( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 
 		_ ->
 			UpdatePrompt = text_utils:format(
-							 "Root path in cache filename ('~s') does not "
-							 "match actual tree to rescan: read as '~s', "
-							 "whereas user-specified as '~s'.~n~n"
-							 "Shall it be automatically updated to the "
-							 "actual one?~n"
-							 "(otherwise the rescan will stop on failure)~n~n"
-							 "Such an update is typically relevant if this "
-							 "tree has been moved since the last inspection.",
-							 [ CacheFilename, BinCachedTreePath,
-							   BinUserTreePath ] ),
+				"Root path in cache filename ('~s') does not match "
+				"actual tree to rescan: read as '~s', whereas user-specified "
+				"as '~s'.~n~n"
+				"Shall it be automatically updated to the actual one?~n"
+				"(otherwise the rescan will stop on failure)~n~n"
+				"Such an update is typically relevant if this "
+				"tree has been moved since the last inspection.",
+				[ CacheFilename, BinCachedTreePath, BinUserTreePath ] ),
 
 			case ui:ask_yes_no( UpdatePrompt, _BinaryDefault=no ) of
 
@@ -911,9 +908,9 @@ rescan_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
 		ExtraFiles ->
 
 			trace_debug( "Found ~B extra files during rescan that will be "
-						 "checked now: ~s", [ length( ExtraFiles ),
-						   text_utils:binaries_to_string( ExtraFiles ) ],
-						 UserState ),
+				"checked now: ~s", [ length( ExtraFiles ),
+					text_utils:binaries_to_string( ExtraFiles ) ],
+				UserState ),
 			% Let's have the workers check these extra files (new ring not
 			% kept):
 			%
@@ -922,8 +919,8 @@ rescan_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
 					  { AnalyzerPid, NewAccRing } = ring_utils:head( AccRing ),
 					  trace_debug( "Checking new file ~s", [ Filename ],
 								   UserState ),
-					  AnalyzerPid ! { checkNewFile,
-									  [ BinTreePath, Filename ], self() },
+					  AnalyzerPid !
+						  { checkNewFile, [ BinTreePath, Filename ], self() },
 					  NewAccRing
 			  end,
 			  _Acc0=AnalyzerRing,
@@ -963,12 +960,10 @@ rescan_files( FileSet, _Entries=[ { SHA1, FileDatas } | T ], TreeData,
 	% Not using a ring for punctual updates:
 	{ NewFileSet, NewTreeData, ExtraNotifications } =
 		check_file_datas_for_scan( FileDatas, SHA1, FileSet, TreeData,
-				   BinTreePath, _NewFileDatas=[], _ExtraNotifications=[],
-				   UserState ),
+			BinTreePath, _NewFileDatas=[], _ExtraNotifications=[], UserState ),
 
 	rescan_files( NewFileSet, T, NewTreeData, BinTreePath, AnalyzerRing,
-				  CacheTimestamp, ExtraNotifications ++ Notifications,
-				  UserState ).
+		CacheTimestamp, ExtraNotifications ++ Notifications, UserState ).
 
 
 
@@ -993,8 +988,8 @@ integrate_extra_files(
 
 		{ value, FileDatas } ->
 			trace_debug( "Extra file '~s' is a duplicate of a content "
-						 "corresponding now to ~B files.",
-						 [ FilePath, length( FileDatas ) + 1 ], UserState ),
+				"corresponding now to ~B files.",
+				[ FilePath, length( FileDatas ) + 1 ], UserState ),
 			[ FileData | FileDatas ]
 
 	end,
@@ -1071,8 +1066,7 @@ check_file_datas_for_scan( _FileDatas=[
 
 			% Let's forget this file_data then:
 			check_file_datas_for_scan( T, SHA1, FileSet, TreeData, BinTreePath,
-							FileDatas, [ NewNotif | ExtraNotifications ],
-							UserState );
+				FileDatas, [ NewNotif | ExtraNotifications ], UserState );
 
 		% Here the iterated file still exists as a regular one, let's check
 		% whether the other information are still valid:
@@ -1120,8 +1114,7 @@ check_file_datas_for_scan( _FileDatas=[
 				OtherTimestamp ->
 
 					NewNotif = text_utils:format( "file '~s' had a different "
-						"timestamp, it has thus been reindexed.",
-						[ FullPath ] ),
+					  "timestamp, it has thus been reindexed.", [ FullPath ] ),
 
 					trace_debug( NewNotif, UserState ),
 
@@ -1220,8 +1213,7 @@ resync( TreePath, AnalyzerRing, UserState ) ->
 			display_tree_data( TreeData, ResyncPrompt, UserState ),
 
 			trace_debug( "Resynchronised tree: ~s",
-						 [ tree_data_to_string( TreeData, _Verbose=true ) ],
-						 UserState ),
+				[ tree_data_to_string( TreeData, _Verbose=true ) ], UserState ),
 
 			TreeData;
 
@@ -1259,16 +1251,14 @@ perform_resync( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 
 		_ ->
 			UpdatePrompt = text_utils:format(
-							 "Root path in cache filename ('~s') does not "
-							 "match actual tree to resync: read as '~s', "
-							 "whereas user-specified as '~s'.~n~n"
-							 "Shall it be automatically updated to the "
-							 "actual one?~n"
-							 "(otherwise the resync will stop on failure)~n~n"
-							 "Such an update is typically relevant if this "
-							 "tree has been moved since the last inspection.",
-							 [ CacheFilename, BinCachedTreePath,
-							   BinUserTreePath ] ),
+				"Root path in cache filename ('~s') does not match "
+				"actual tree to resync: read as '~s', "
+				"whereas user-specified as '~s'.~n~n"
+				"Shall it be automatically updated to the actual one?~n"
+				"(otherwise the resync will stop on failure)~n~n"
+				"Such an update is typically relevant if this "
+				"tree has been moved since the last inspection.",
+				[ CacheFilename, BinCachedTreePath, BinUserTreePath ] ),
 
 			case ui:ask_yes_no( UpdatePrompt, _BinaryDefault=no ) of
 
@@ -1332,9 +1322,9 @@ resync_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
 		ExtraFiles ->
 
 			trace_debug( "Found ~B extra files during resync that will be "
-						 "checked now: ~s", [ length( ExtraFiles ),
-						   text_utils:binaries_to_string( ExtraFiles ) ],
-						 UserState ),
+				"checked now: ~s", [ length( ExtraFiles ),
+					text_utils:binaries_to_string( ExtraFiles ) ],
+				UserState ),
 
 			% Let's have the workers check these extra files (new ring not
 			% kept):
@@ -1669,10 +1659,9 @@ merge_trees( InputTree=#tree_data{ root=BinInputRootDir,
 
 		0 ->
 			ui:display( "The content of the input tree path ('~s') is strictly "
-						"included into the one of the reference tree ('~s'), "
-						"hence nothing special is to merge, "
-						"removing directly the input tree.",
-						[ BinInputRootDir, BinReferenceRootDir ] ),
+			  "included into the one of the reference tree ('~s'), hence "
+			  "nothing special is to merge, removing directly the input tree.",
+			  [ BinInputRootDir, BinReferenceRootDir ] ),
 
 			trace_debug( "Removing recursively directory '~s'.",
 						 [ BinInputRootDir ], UserState ),
@@ -1761,10 +1750,10 @@ merge_trees( InputTree=#tree_data{ root=BinInputRootDir,
 			ToMerge = table:keys( RealInputEntries ),
 
 			Prompt = text_utils:format( "Exactly ~B contents are present in "
-						"the input tree ('~s') but are lacking in the "
-						"reference one ('~s').",
-						[ table:size( RealInputEntries ),
-						  BinInputRootDir, BinReferenceRootDir ] ),
+				"the input tree ('~s') but are lacking in the "
+				"reference one ('~s').",
+				[ table:size( RealInputEntries ), BinInputRootDir,
+				  BinReferenceRootDir ] ),
 
 			Choices = [ { move, "Move this content as a whole (one file per "
 						  "content) in the reference tree" },
@@ -1776,8 +1765,8 @@ merge_trees( InputTree=#tree_data{ root=BinInputRootDir,
 						{ abort, "Abort merge" } ],
 
 			NewReferenceEntries = case ui:choose_designated_item(
-					   text_utils:format( "~s~nChoices are:", [ Prompt ] ),
-					   Choices ) of
+					text_utils:format( "~s~nChoices are:", [ Prompt ] ),
+					Choices ) of
 
 				move ->
 					file_utils:create_directory_if_not_existing( TargetDir ),
@@ -1859,8 +1848,8 @@ purge_helper( _SHA1s=[ SHA1 | T ], Entries, BinRootDir, RemoveCount,
 							   || FD <- FileDatas ],
 
 	trace_debug( "Removing following files corresponding to non-original "
-				 "input content ~B: ~s", [ SHA1,
-				 text_utils:strings_to_string( FilesToRemove ) ], UserState ),
+		"input content ~B: ~s", [ SHA1,
+			text_utils:strings_to_string( FilesToRemove ) ], UserState ),
 
 	file_utils:remove_files( FilesToRemove ),
 
@@ -1878,8 +1867,8 @@ purge_helper( _SHA1s=[ SHA1 | T ], Entries, BinRootDir, RemoveCount,
 move_content_to_merge( ToMerge, InputRootDir, InputEntries,
 	   ReferenceRootDir, ReferenceEntries, TargetDir, TotalCount, UserState ) ->
 	move_content_to_merge( ToMerge, InputRootDir, InputEntries,
-						   ReferenceRootDir, ReferenceEntries, TargetDir,
-						   _Count=1, TotalCount, UserState ).
+		ReferenceRootDir, ReferenceEntries, TargetDir, _Count=1, TotalCount,
+		UserState ).
 
 
 
@@ -1890,8 +1879,8 @@ move_content_to_merge( ToMerge, InputRootDir, InputEntries,
 		directory_path(), sha1_table(), directory_path(), count(), count(),
 		user_state() ) -> sha1_table().
 move_content_to_merge( _ToMove=[], InputRootDir, InputEntries,
-					   _ReferenceRootDir, ReferenceEntries, TargetDir, _Count,
-					   _TotalCount, UserState ) ->
+		_ReferenceRootDir, ReferenceEntries, TargetDir, _Count, _TotalCount,
+		UserState ) ->
 
 	% Removing the content that has not been moved (hence shall be deleted):
 	file_utils:remove_files( list_utils:flatten_once( [
@@ -1973,7 +1962,7 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 			throw( { relative_path_not_found, ReferenceRootDir, NewPath } );
 
 		TrailingPath ->
-			% Not wanting the initial /:
+			% Not wanting the initial '/':
 			text_utils:string_to_binary( tl( TrailingPath ) )
 
 	end,
@@ -2483,7 +2472,7 @@ check_content_trees( InputTree, ReferenceTreePath ) ->
 
 		false ->
 			ui:display_error( "Specified input tree ('~s') "
-					   "does not exist, aborting now.", [ InputTree ] ),
+				"does not exist, aborting now.", [ InputTree ] ),
 			throw( { non_existing_input_tree, InputTree } )
 
 	end,
@@ -2495,7 +2484,7 @@ check_content_trees( InputTree, ReferenceTreePath ) ->
 
 		false ->
 			ui:display_error( "Specified reference tree ('~s') "
-					   "does not exist, aborting now.", [ ReferenceTreePath ] ),
+				"does not exist, aborting now.", [ ReferenceTreePath ] ),
 			throw( { non_existing_reference_tree, ReferenceTreePath } )
 
 	end.
@@ -2776,9 +2765,8 @@ write_cache_header( File ) ->
 							"% on host '~s', at ~s.~n~n"
 							"% Structure of file entries: SHA1, "
 							"relative path, size in bytes, timestamp~n~n" ,
-					  [ ScriptName, ?merge_script_version,
-						net_utils:localhost(),
-						time_utils:get_textual_timestamp() ] ).
+		[ ScriptName, ?merge_script_version, net_utils:localhost(),
+		  time_utils:get_textual_timestamp() ] ).
 
 
 
@@ -2865,8 +2853,8 @@ scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 	FilteredFiles = lists:delete( ?merge_cache_filename, AllFiles ),
 
 	trace_debug( "Found ~B files in filesystem: ~s",
-				 [ length( FilteredFiles ),
-				 text_utils:strings_to_string( FilteredFiles ) ], UserState ),
+		[ length( FilteredFiles ),
+		  text_utils:strings_to_string( FilteredFiles ) ], UserState ),
 
 	% For lighter message sendings and storage:
 	FilteredBinFiles = text_utils:strings_to_binaries( FilteredFiles ),
@@ -3016,8 +3004,8 @@ analyze_loop() ->
 
 			AbsTreePath = text_utils:binary_to_string( AbsTreeBinPath ),
 
-			RelativeFilename = text_utils:binary_to_string(
-								 RelativeBinFilename ),
+			RelativeFilename =
+				text_utils:binary_to_string( RelativeBinFilename ),
 
 			FilePath = file_utils:join( AbsTreePath, RelativeFilename ),
 
@@ -3344,8 +3332,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 		% No common prefix at all here:
 		{ _Prfx="", _Tails } ->
 			Lbl = text_utils:format( "Following ~B files have the exact same "
-									 "content (and thus size, of ~s)",
-									 [ Count, SizeString ] ),
+				"content (and thus size, of ~s)", [ Count, SizeString ] ),
 			{ Lbl, _Prefix="", PathStrings };
 
 		% We do not re-reuse the remaining, prefixless strings as they do not
@@ -3360,10 +3347,8 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 							 || P <- PathStrings ],
 
 			Lbl = text_utils:format( "Following ~B files have the exact same "
-									 "content (and thus size, of ~s) and "
-									 "all start with the same prefix, '~s' "
-									 "(omitted below)",
-									 [ Count, SizeString, Prfx ] ),
+				"content (and thus size, of ~s) and all start with the same "
+				"prefix, '~s' (omitted below)",	[ Count, SizeString, Prfx ] ),
 			{ Lbl, Prfx, TrimmedPaths }
 
 	end,
@@ -3428,8 +3413,8 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 			end,
 
 			trace_debug( "[~B/~B] Leaving as they are~s: ~s",
-						 [ DuplicationCaseCount, TotalDupCaseCount,
-						   PrefixString, DuplicateString ], UserState ),
+				[ DuplicationCaseCount, TotalDupCaseCount, PrefixString,
+				  DuplicateString ], UserState ),
 
 			FileEntries;
 
@@ -3510,10 +3495,9 @@ auto_dedup( _DuplicationCases=[ { Sha1Key, DuplicateList } | T ], AccTable,
 
 
 	trace_debug( "Transforming, in '~s', following files into symlinks "
-				 "pointing to the auto-elected reference version '~s': ~s",
-				 [ BinRootDir, RefPath,
-				   text_utils:strings_to_string( SymLnkPaths ) ],
-				 UserState ),
+		"pointing to the auto-elected reference version '~s': ~s",
+		[ BinRootDir, RefPath, text_utils:strings_to_string( SymLnkPaths ) ],
+		UserState ),
 
 	[ begin
 
@@ -3594,9 +3578,9 @@ keep_only_one( Prefix, TrimmedPaths, PathStrings, BinRootDir, UserState ) ->
 		list_utils:extract_element_at( PathStrings, KeptIndex ),
 
 	trace_debug( "Keeping '~s', removing (based on common prefix '~s' and "
-				 "root directory '~s'): ~s ",
-				 [ KeptFilePath, Prefix, BinRootDir,
-				   text_utils:strings_to_string( ToRemovePaths ) ], UserState ),
+		"root directory '~s'): ~s ",
+		[ KeptFilePath, Prefix, BinRootDir,
+		  text_utils:strings_to_string( ToRemovePaths ) ], UserState ),
 
 	ToRemoveFullPaths = [ file_utils:join( BinRootDir, P )
 						  || P <- ToRemovePaths ],
@@ -3651,10 +3635,9 @@ elect_and_link( Prefix, TrimmedPaths, PathStrings, BinRootDir, UserState ) ->
 		list_utils:extract_element_at( PathStrings, ElectedIndex ),
 
 	trace_debug( "Electing '~s', replacing by symlinks (based on common "
-				 "prefix '~s' and root directory '~s'): ~s ",
-				 [ ElectedFilePath, Prefix, BinRootDir,
-				   text_utils:strings_to_string( FutureLinkPaths ) ],
-				 UserState ),
+		"prefix '~s' and root directory '~s'): ~s ",
+		[ ElectedFilePath, Prefix, BinRootDir,
+		  text_utils:strings_to_string( FutureLinkPaths ) ], UserState ),
 
 	ToRemoveFullPaths = [ file_utils:join( BinRootDir, P )
 						  || P <- FutureLinkPaths ],
@@ -3731,12 +3714,11 @@ quick_cache_check_helper( ContentFiles, ActualTreePath, CachedTreePath,
 			ActualTreePath;
 
 		_ ->
-			NamePrompt = text_utils:format(
-						   "The actual tree path ('~s') does not match "
-						   "the one found in its cache file ('~s').~n~n"
-						   "Shall we override the one in the cache file with "
-						   "the actual one?",
-						   [ AbsActualTreePath, CachedTreePath ] ),
+			NamePrompt = text_utils:format( "The actual tree path ('~s') does "
+				"not match the one found in its cache file ('~s').~n~n"
+				"Shall we override the one in the cache file with the "
+				"actual one?",
+				[ AbsActualTreePath, CachedTreePath ] ),
 
 			case ui:ask_yes_no( NamePrompt ) of
 
@@ -3773,10 +3755,9 @@ quick_cache_check_helper( ContentFiles, ActualTreePath, CachedTreePath,
 
 		_ ->
 			% Does not fail immediately, for a better error report:
-			trace_debug( "The cached and actual file counts do not "
-						 "match: ~B are referenced in cache, ~B exist "
-						 "in the filesystem.",
-						 [ CachedFileCount, ActualFileCount ], UserState )
+			trace_debug( "The cached and actual file counts do not match: "
+				" ~B are referenced in cache, ~B exist in the filesystem.",
+				[ CachedFileCount, ActualFileCount ], UserState )
 
 	end,
 
@@ -3801,13 +3782,12 @@ quick_cache_check_helper( ContentFiles, ActualTreePath, CachedTreePath,
 			% Some content disappeared:
 			OnlyCacheList = set_utils:to_list( OnlyCachedSet ),
 			trace_debug( "Following ~B files are referenced in "
-						 "cache, yet do not exist on the filesystem: ~s",
-						 [ length( OnlyCacheList ),
-						   text_utils:strings_to_string( OnlyCacheList ) ],
-						 UserState )
+				"cache, yet do not exist on the filesystem: ~s",
+				[ length( OnlyCacheList ),
+				  text_utils:strings_to_string( OnlyCacheList ) ],
+				UserState )
 
 	end,
-
 
 	CacheIsComplete = set_utils:is_empty( OnlyActualSet ),
 
@@ -3821,10 +3801,10 @@ quick_cache_check_helper( ContentFiles, ActualTreePath, CachedTreePath,
 			% Some content appeared:
 			OnlyActualList = set_utils:to_list( OnlyActualSet ),
 			trace_debug( "Following ~B files exist on the "
-						 "filesystem, yet are not referenced in cache: ~s",
-						 [ length( OnlyActualList ),
-						   text_utils:strings_to_string( OnlyActualList ) ],
-						 UserState )
+				"filesystem, yet are not referenced in cache: ~s",
+				[ length( OnlyActualList ),
+				  text_utils:strings_to_string( OnlyActualList ) ],
+				UserState )
 
 	end,
 
@@ -3864,8 +3844,7 @@ quick_cache_check_helper( ContentFiles, ActualTreePath, CachedTreePath,
 
 				false ->
 					trace_debug( "At least one file size does not match "
-								 "in '~s', rescanning.",
-								 [ ActualTreePath ], UserState ),
+						"in '~s', rescanning.", [ ActualTreePath ], UserState ),
 					rescan( AbsActualTreePath, AnalyzerRing, UserState )
 
 			end
@@ -3952,8 +3931,7 @@ display_tree_data( TreeData=#tree_data{ entries=EntryTable,
 
 		FileCount ->
 			text_utils:format( "exactly ~B unique contents, and as many files, "
-							   "it is therefore uniquified",
-							   [ FileCount ] );
+				"it is therefore uniquified", [ FileCount ] );
 
 		ContentCount ->
 			DupCount = FileCount - ContentCount,
@@ -3961,13 +3939,14 @@ display_tree_data( TreeData=#tree_data{ entries=EntryTable,
 
 				true ->
 					text_utils:format( "~B unique contents and ~B files "
-									   "(hence with a total of ~B duplicates)",
-									   [ ContentCount, FileCount, DupCount ] );
+						"(hence with a total of ~B duplicates)",
+						[ ContentCount, FileCount, DupCount ] );
 
 				false ->
-					trace_utils:error_fmt( "~B files, ~B contents, abnormal: "
-						 "~s", [ FileCount, ContentCount,
-								 tree_data_to_string( TreeData ) ] ),
+					trace_utils:error_fmt(
+					  "~B files, ~B contents, abnormal: ~s",
+					  [ FileCount, ContentCount,
+						tree_data_to_string( TreeData ) ] ),
 					throw( { inconsistency_detected, FileCount, ContentCount } )
 
 			end
@@ -4056,5 +4035,5 @@ file_data_to_string( #file_data{ path=Path,
 	SizeString = system_utils:interpret_byte_size_with_unit( Size ),
 
 	text_utils:format( "file '~s' whose size is ~s, SHA1 sum is ~s and "
-					   "timestamp is ~p",
-					   [ Path, SizeString, Sum, Timestamp ] ).
+		"timestamp is ~p",
+		[ Path, SizeString, Sum, Timestamp ] ).
