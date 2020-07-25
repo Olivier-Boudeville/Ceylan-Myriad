@@ -27,8 +27,8 @@
 
 
 
-% Gathering helper for the development and use of all kinds of scripts (Erlang
-% escripts and shell scripts alike).
+% Gathering helper functions for the development and use of all kinds of scripts
+% (Erlang escripts and shell scripts alike).
 %
 % Intended use for escripts: add, in the script directory, a symbolic link to
 % this module so that the script can readily call it and thus bootstrap the use
@@ -250,4 +250,4 @@ get_myriad_base_directory() ->
 %
 -spec get_arguments( [ string() ] ) -> shell_utils:argument_table().
 get_arguments( Args ) ->
-	shell_utils:get_argument_table_from_strings( Args, _FailSafe=false ).
+	shell_utils:get_argument_table_from_strings( Args ).

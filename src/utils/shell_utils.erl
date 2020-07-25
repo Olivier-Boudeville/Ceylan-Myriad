@@ -39,19 +39,32 @@
 -export([ protect_from_shell/1 ]).
 
 
-% Command-line managed like init:get_argument/1:
+
+% The command-line is mostly managed like init:get_argument/1.
+
+
+% To designate command-line arguments that are specified directly, not in the
+% context of any specific command-line option.
+%
+% Note that such option-less arguments should thus come first on the
+% command-line, otherwise they would be included in the list associated to the
+% last processed option.
+%
+-define( no_option_key, '(none)' ).
 
 
 % The name of a command-line option (ex: '-color', for an actual option that is
-% "--color"):
+% "--color"); note the special value ?no_option_key that corresponds to
+% option-less arguments.
 %
-% (a flag, for the init standard module)
+% (a "flag", for the init standard module)
 %
--type command_line_option() :: atom().
+-type command_line_option() :: atom() | ?no_option_key.
 
 
 % An unitary value specified in link to a command-line option:
 -type command_line_value() :: text_utils:ustring().
+
 
 % The command-line values specified after an occurrence of a given option (ex:
 % ["blue", "red"]):
@@ -95,9 +108,9 @@
 
 % Command-line argument section:
 -export([ get_argument_table/0,
-		  get_argument_table_from_strings/1, get_argument_table_from_strings/2,
+		  get_argument_table_from_strings/1,
 		  generate_argument_table/1,
-		  get_command_argument/1, get_command_argument/2,
+		  get_command_argument/1,
 		  extract_command_argument/1, extract_command_argument/2,
 		  argument_table_to_string/1 ]).
 
@@ -143,39 +156,14 @@ protect_from_shell_helper( _Text=[ C | T ], Acc ) ->
 %
 % - only the arguments specified on the command-line after the '-extra' marker
 % will be taken into account; ex:
-%        make ui_run CMD_LINE_OPT="-a -extra -b --use-ui-backend text_ui"
+%    make ui_run CMD_LINE_OPT="-a -extra some_value -b --use-ui-backend text_ui"
 % (here "-a" and, of course, "-extra", will be ignored)
-%
-% - abnormal arguments (ex: not starting with a dash) will be reported, through
-% a warning trace
 %
 % - this function is to be called in the context of a standard erl execution (as
 % opposed to an escript one, which shall use script_utils:get_arguments/1)
 %
 -spec get_argument_table() -> argument_table().
 get_argument_table() ->
-	get_argument_table( _FailSafe=false ).
-
-
-
-% Returns a canonical argument table, obtained from the user command-line
-% arguments supplied to the interpreter.
-%
-% Note:
-%
-% - only the arguments specified on the command-line after the '-extra' marker
-% will be taken into account; ex: with
-%        make ui_run CMD_LINE_OPT="-a -extra -b --use-ui-backend text_ui"
-% (here "-a" and, of course, "-extra", will be ignored)
-%
-% - abnormal arguments (ex: not starting with a dash) will be reported (through
-% a warning trace) iff FailSafe is false
-%
-% - this function is to be called in the context of a standard erl execution (as
-% opposed to an escript one, which shall use script_utils:get_arguments/1)
-%
--spec get_argument_table( boolean() ) -> argument_table().
-get_argument_table( FailSafe ) ->
 
 	% We do not want to include the VM-specific arguments (such as -noshell,
 	% -pz, etc.); use, in the command-line, '-extra', before arguments to
@@ -184,103 +172,81 @@ get_argument_table( FailSafe ) ->
 	%Args = init:get_arguments(),
 	Args = init:get_plain_arguments(),
 
-	%trace_utils:debug_fmt( "Arguments obtained by get_argument_table/1: ~p.",
+	%trace_utils:debug_fmt( "Arguments obtained by get_argument_table/0: ~p.",
 	%					   [ Args ] ),
 
 	% To convert a list of strings into per-option list of values:
-	get_argument_table_from_strings( Args, FailSafe ).
-
-
-
-
-% Returns the specified command-line arguments (simply transmitted as a list of
-% the corresponding strings) once transformed into our "canonical", more
-% convenient form, which is similar to the one used by Erlang for its
-% user/system flags (i.e. for all its non-plain options).
-%
-% In this form, options start with a dash, may have any number of arguments, and
-% may be specified more than once in the command-line.
-%
-% Note: switches to the Unicode encoding (ex: use "~tp" then).
-%
--spec get_argument_table_from_strings( [ string() ] ) -> argument_table().
-get_argument_table_from_strings( ArgStrings ) ->
-	% By default, report faulty arguments:
-	get_argument_table_from_strings( ArgStrings, _FailSafe=false ).
+	get_argument_table_from_strings( Args ).
 
 
 
 % Returns the specified command-line arguments (simply transmitted as a list of
 % the corresponding strings) once transformed into our "canonical", more
-% convenient form, which is similar to the one used by Erlang for its
+% convenient form, which is quite similar to the one used by Erlang for its
 % user/system flags (i.e. for all its non-plain options).
 %
 % In this form, options start with a dash, may have any number of arguments, and
-% may be specified more than once in the command-line.
-%
-% FailSafe tells whether abnormal arguments (typically not starting with a dash)
-% shall be reported (if false) or not (if true).
+% may be specified more than once in the command-line; non-option arguments are
+% collected as well (refer to the no_option_key define).
 %
 % Note: switches to the Unicode encoding (ex: use "~tp" then).
 %
--spec get_argument_table_from_strings( [ string() ], boolean() ) ->
+-spec get_argument_table_from_strings( [ string() ] ) ->
 											 argument_table().
-get_argument_table_from_strings( ArgStrings, FailSafe ) ->
+get_argument_table_from_strings( ArgStrings ) ->
 
-	%trace_utils:debug_fmt( "Creating argument table from: ~p, with fail-safe "
-	%					   "mode set to ~s.", [ ArgStrings, FailSafe ] ),
+	%trace_utils:debug_fmt( "Creating argument table from: ~p.",
+	%                       [ ArgStrings ] ),
 
 	% Useful side-effect, difficult to troubleshoot:
 	system_utils:force_unicode_support(),
 
-	get_arguments_from_strings( ArgStrings, _OptionTable=list_table:new(),
-								FailSafe ).
+	get_arguments_from_strings( ArgStrings, _OptionTable=list_table:new() ).
 
 
 
 % (helper)
-get_arguments_from_strings( _Args=[], OptionTable, _FailSafe ) ->
+get_arguments_from_strings( _Args=[], OptionTable ) ->
 	%trace_utils:debug_fmt( "Option table returned: ~p.", [ OptionTable ] ),
 	OptionTable;
 
 % The first option is detected, removing its initial dash:
-get_arguments_from_strings( _Args=[ [ $- | Option ] | T ], OptionTable,
-							 _FailSafe ) ->
+get_arguments_from_strings( _Args=[ [ $- | Option ] | T ], OptionTable ) ->
 	manage_option( Option, _RemainingArgs=T, OptionTable );
 
 % Apparently can happen (ex: with releases run with erlexec):
-get_arguments_from_strings( _Args=[ _Dropped="" | T ], OptionTable, FailSafe ) ->
-	get_arguments_from_strings( T, OptionTable, FailSafe );
+get_arguments_from_strings( _Args=[ _Dropped="" | T ], OptionTable ) ->
+	trace_utils:warning( "Dropping an empty argument." ),
+	get_arguments_from_strings( T, OptionTable );
 
-% Here an initial argument does not start with a dash, hence is dropped, like
-% done by init:get_arguments/0:
+% Here an initial argument does not start with a dash, hence is collected as a
+% non-option argument (unlike done by init:get_arguments/0):
 %
-get_arguments_from_strings( _Args=[ Dropped | T ], OptionTable,
-							FailSafe=false ) ->
+get_arguments_from_strings( Args, OptionTable ) ->
 
 	% This may happen in a legit manner if for example wanting to establish if
 	% in batch mode (hence by calling is_batch/0) from a release, thus run with
 	% erlexec [...] console [...]:
 	%
-	trace_utils:warning_fmt( "Dropping non-option initial argument '~s'.",
-							 [ Dropped ] ),
+
+	% Used to be dropped:
+	%trace_utils:warning_fmt( "Dropping non-option initial argument '~s'.",
+	%						 [ Dropped ] ),
 
 	%code_utils:display_stacktrace(),
 	%throw( { dropped, Dropped } ),
 
-	get_arguments_from_strings( T, OptionTable, FailSafe );
-
-get_arguments_from_strings( _Args=[ _Dropped | T ], OptionTable,
-							FailSafe=true ) ->
-	% Silently ignored, no warning issued:
-	get_arguments_from_strings( T, OptionTable, FailSafe ).
+	% Now collected thanks to:
+	manage_option( _Option=?no_option_key, Args, OptionTable ).
 
 
 
 % (helper)
-manage_option( Option, RemainingArgs, OptionTable ) ->
-
-	OptionAtom = text_utils:string_to_atom( Option ),
+%
+% (no_option_key being already an atom)
+%
+manage_option( OptionAtom, RemainingArgs, OptionTable )
+  when is_atom( OptionAtom ) ->
 
 	{ OptValues, NextOptionInfo } =
 		collect_values_for_option( RemainingArgs, _AccValues=[] ),
@@ -310,7 +276,12 @@ manage_option( Option, RemainingArgs, OptionTable ) ->
 		{ NextOption, NextArgs } ->
 			manage_option( NextOption, NextArgs, NewOptionTable )
 
-	end.
+	end;
+
+% Normal options come as strings:
+manage_option( Option, RemainingArgs, OptionTable ) ->
+	OptionAtom = text_utils:string_to_atom( Option ),
+	manage_option( OptionAtom, RemainingArgs, OptionTable ).
 
 
 
@@ -342,26 +313,7 @@ generate_argument_table( ArgString ) ->
 	CommandLineArgs = text_utils:split_per_element( ArgString,
 													_Delimiters=[ $ ] ),
 
-	get_argument_table_from_strings( CommandLineArgs, _FailSafe=false ).
-
-
-
-% Returns, if this option was specified on the command-line, the list of the
-% various (lists of) values (if any; no value at all being specified for an
-% option resulting thus in [ [] ]) associated to the specified option; if this
-% option was not specified on the command-line, returns 'undefined'.
-%
-% Note: the extract_command_argument/{1,2} functions may be more relevant to
-% use, if wanting to ensure that no extra, unexpected argument is specified.
-%
--spec get_command_argument( command_line_option() ) ->
-								  maybe( [ command_line_values() ] ).
-get_command_argument( Option ) ->
-
-	% By default, not wanting to trigger errors or warnings here, hence
-	% FailSafe:
-	%
-	get_command_argument( Option, _FailSafe=true ).
+	get_argument_table_from_strings( CommandLineArgs ).
 
 
 
@@ -373,11 +325,11 @@ get_command_argument( Option ) ->
 % Note: generally the extract_command_argument/{1,2} functions are more relevant
 % to use.
 %
--spec get_command_argument( command_line_option(), boolean() ) ->
+-spec get_command_argument( command_line_option() ) ->
 								  maybe( [ command_line_values() ] ).
-get_command_argument( Option, FailSafe ) ->
+get_command_argument( Option ) ->
 
-	ArgumentTable = get_argument_table( FailSafe ),
+	ArgumentTable = get_argument_table(),
 
 	list_table:get_value_with_defaults( _K=Option, _DefaultValue=undefined,
 										ArgumentTable ).
@@ -431,23 +383,27 @@ argument_table_to_string( ArgTable ) ->
 	case list_table:enumerate( ArgTable ) of
 
 		[] ->
-			"no command-line option specified";
+			"no command-line argument specified";
 
 		ArgPairs ->
-			ArgStrings = [ case ArgumentLists of
+			ArgStrings = [ option_pair_to_string( Option, ArgumentLists )
+						   || { Option, ArgumentLists } <- ArgPairs ],
 
-				% No value:
-				[ [] ] ->
-					text_utils:format( "option '-~s'", [ Option ] );
-
-				_ ->
-					text_utils:format( "option '-~s', with argument lists: ~p",
-									   [ Option, ArgumentLists ] )
-
-						   end || { Option, ArgumentLists } <- ArgPairs ],
-
-			text_utils:format( "~B command-line option(s) specified "
+			text_utils:format( "~B command-line argument(s) specified "
 				"(listed alphabetically): ~s", [ length( ArgPairs ),
 						 text_utils:strings_to_sorted_string( ArgStrings ) ] )
 
 	end.
+
+
+% (helper)
+option_pair_to_string( _Option=?no_option_key, [ Arguments ] ) ->
+	text_utils:format( "option-less arguments: ~p", [ Arguments ] );
+
+option_pair_to_string( Option, _ArgumentLists=[ [] ] ) ->
+	% No value:
+	text_utils:format( "option '-~s'", [ Option ] );
+
+option_pair_to_string( Option, ArgumentLists ) ->
+	text_utils:format( "option '-~s', with argument lists: ~p",
+					   [ Option, ArgumentLists ] ).
