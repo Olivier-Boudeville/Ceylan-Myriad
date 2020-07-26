@@ -212,7 +212,8 @@ start( Options, ArgumentTable ) ->
 	OptName = ?ui_backend_opt,
 
 	{ BackendModuleName, RemainingArgTable } =
-		case shell_utils:extract_command_argument( OptName, ArgumentTable ) of
+		case shell_utils:extract_command_arguments_for_option( OptName,
+												ArgumentTable ) of
 
 		{ undefined, ArgTable } ->
 			%trace_utils:debug( "No backend specified, determining it." ),

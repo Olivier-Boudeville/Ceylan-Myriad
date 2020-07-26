@@ -41,7 +41,7 @@
 %
 % One can test the support of command-line arguments with, for example:
 %
-% make shell_utils_run CMD_LINE_OPT="aa -my-first-opt u v bb -my-other-opt cc"
+% make shell_utils_run CMD_LINE_OPT="a b -my-first-opt u v w -my-other-opt x"
 
 
 
@@ -55,10 +55,25 @@ run() ->
 	test_facilities:display( "Obtained following argument table: ~s",
 		[ shell_utils:argument_table_to_string( ArgTable ) ] ),
 
+	OptionLessArgs = shell_utils:get_optionless_command_arguments(),
+
+	test_facilities:display( "Optionless arguments are: ~p.",
+							 [ OptionLessArgs ] ),
+
+
+	{ OtherOptionLessArgs, ShrunkArgTable } =
+		shell_utils:extract_optionless_command_arguments(),
+
+	test_facilities:display(
+	  "Extracted optionless arguments are: ~p (remainder: ~s).",
+	  [ OtherOptionLessArgs,
+		shell_utils:argument_table_to_string( ShrunkArgTable) ] ),
+
+
 	TargetOption = 'pz',
 
 	{ Values, RemainingArguments } =
-		shell_utils:extract_command_argument( TargetOption ),
+		shell_utils:extract_command_arguments_for_option( TargetOption ),
 
 	test_facilities:display( "Knowing the actual command-line arguments were:~n"
 		"~p~nfor option '~s', we extracted following value(s):~n~p~nand "

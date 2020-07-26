@@ -110,8 +110,16 @@
 -export([ get_argument_table/0,
 		  get_argument_table_from_strings/1,
 		  generate_argument_table/1,
-		  get_command_argument/1,
-		  extract_command_argument/1, extract_command_argument/2,
+
+		  get_command_arguments_for_option/1,
+		  get_optionless_command_arguments/0,
+
+		  extract_command_arguments_for_option/1,
+		  extract_command_arguments_for_option/2,
+
+		  extract_optionless_command_arguments/0,
+		  extract_optionless_command_arguments/1,
+
 		  argument_table_to_string/1 ]).
 
 
@@ -317,17 +325,17 @@ generate_argument_table( ArgString ) ->
 
 
 
-% Returns, if this option was specified on the command-line, the list of the
-% various (lists of) values (if any; no value at all being specified for an
-% option resulting thus in [ [] ]) associated to the specified option; if this
-% option was not specified on the command-line, returns 'undefined'.
+% Returns, if this option was specified on the command-line, the in-order list
+% of the various (lists of) values (if any; no value at all being specified for
+% an option resulting thus in [ [] ]) associated to the specified option; if
+% this option was not specified on the command-line, returns 'undefined'.
 %
-% Note: generally the extract_command_argument/{1,2} functions are more relevant
+% Note: generally the extract_command_arguments_for_option/{1,2} functions are more relevant
 % to use.
 %
--spec get_command_argument( command_line_option() ) ->
+-spec get_command_arguments_for_option( command_line_option() ) ->
 								  maybe( [ command_line_values() ] ).
-get_command_argument( Option ) ->
+get_command_arguments_for_option( Option ) ->
 
 	ArgumentTable = get_argument_table(),
 
@@ -336,42 +344,108 @@ get_command_argument( Option ) ->
 
 
 
-% Extracts specified option (if any; otherwise returns 'undefined'), i.e. its
-% various lists of associated values, from the arguments specified to this
-% executable.
+% Returns the in-order list of the arguments that were directly (i.e. not in the
+% context of an option) specified on the command-line.
 %
-% Returns a pair made of these lists of (lists of) values and of the shrunk
-% argument table.
+% Note: generally the extract_non_option_command_argument/{0,1} functions are
+% more relevant to use.
 %
-% Note: a value set to 'undefined' means that the specified option is not in the
-% specified table, whereas a value set to [ [] ] means that this option is in
-% the table, yet that no parameter has been specified for it.
-%
--spec extract_command_argument( command_line_option() ) ->
-		  { maybe( [ command_line_values() ] ), argument_table() }.
-extract_command_argument( Option ) ->
+-spec get_optionless_command_arguments() -> command_line_values().
+get_optionless_command_arguments() ->
 
 	ArgumentTable = get_argument_table(),
 
-	extract_command_argument( Option, ArgumentTable ).
+	% Not wanting here a list of lists of strings:
+	[ Args ] = list_table:get_value_with_defaults( _K=?no_option_key,
+			_DefaultValue=[ [] ], ArgumentTable ),
+
+	Args.
 
 
 
-% Extracts specified option (if any; otherwise returns 'undefined'), i.e. its
-% various associated values, from the specified argument table.
+% Extracts, for specified command-line option (if any was specified; otherwise
+% returns 'undefined') its various in-order lists of associated values, from the
+% arguments specified to this executable.
 %
 % Returns a pair made of these lists of (lists of) values and of the shrunk
-% argument table.
+% corresponding argument table.
 %
 % Note: a value set to 'undefined' means that the specified option is not in the
 % specified table, whereas a value set to [ [] ] means that this option is in
 % the table, yet that no parameter has been specified for it.
 %
--spec extract_command_argument( command_line_option(), argument_table() ) ->
+-spec extract_command_arguments_for_option( command_line_option() ) ->
+		  { maybe( [ command_line_values() ] ), argument_table() }.
+extract_command_arguments_for_option( Option ) ->
+
+	ArgumentTable = get_argument_table(),
+
+	extract_command_arguments_for_option( Option, ArgumentTable ).
+
+
+
+% Extracts, for specified command-line option (if any was specified; otherwise
+% returns 'undefined') its various in-order lists of associated values, from the
+% specified argument table.
+%
+% Returns a pair made of these lists of (lists of) values and of the shrunk
+% corresponding argument table.
+%
+% Note: a value set to 'undefined' means that the specified option is not in the
+% specified table, whereas a value set to [ [] ] means that this option is in
+% the table, yet that no parameter has been specified for it.
+%
+-spec extract_command_arguments_for_option( command_line_option(), argument_table() ) ->
 			  { maybe( [ command_line_values() ] ), argument_table() }.
-extract_command_argument( Option, ArgumentTable ) ->
+extract_command_arguments_for_option( Option, ArgumentTable ) ->
 	list_table:extract_entry_with_defaults( _K=Option, _DefaultValue=undefined,
 											ArgumentTable ).
+
+
+
+% Extracts the in-order list of the arguments that were directly (i.e. not in
+% the context of an option) specified on the command-line for this executable.
+%
+% Returns a pair made of these lists of values and of the shrunk corresponding
+% argument table.
+%
+-spec extract_optionless_command_arguments() ->
+		  { maybe( [ command_line_values() ] ), argument_table() }.
+extract_optionless_command_arguments() ->
+
+	ArgumentTable = get_argument_table(),
+
+	extract_optionless_command_arguments( ArgumentTable ).
+
+
+
+% Extracts, for specified command-line option (if any was specified; otherwise
+% returns 'undefined') its various in-order lists of associated values, from the
+% specified argument table.
+%
+% Returns a pair made of these lists of (lists of) values and of the shrunk
+% corresponding argument table.
+%
+% Note: a value set to 'undefined' means that the specified option is not in the
+% specified table, whereas a value set to [ [] ] means that this option is in
+% the table, yet that no parameter has been specified for it.
+%
+-spec extract_optionless_command_arguments( argument_table() ) ->
+			  { maybe( [ command_line_values() ] ), argument_table() }.
+extract_optionless_command_arguments( ArgumentTable ) ->
+
+	% Not wanting here a list of lists of strings:
+	case list_table:extract_entry_with_defaults( _K=?no_option_key,
+							_DefaultValue=undefined, ArgumentTable ) of
+
+		undefined ->
+			{ undefined, ArgumentTable };
+
+		{ [ Args ], ShrunkArgTable } ->
+			% Not wanting here a list of lists of strings:
+			{ Args, ShrunkArgTable }
+
+	end.
 
 
 

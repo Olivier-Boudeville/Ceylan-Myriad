@@ -784,7 +784,7 @@ is_batch() ->
 	% Corresponds to the '--batch' command-line option (a *plain* argument,
 	% hence expected to be after a -extra command-line switch):
 	%
-	case shell_utils:get_command_argument( '-batch' ) of
+	case shell_utils:get_command_arguments_for_option( '-batch' ) of
 
 		% Normal case if set on the command-line:
 		[ [] ] ->
