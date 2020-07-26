@@ -434,12 +434,14 @@ extract_optionless_command_arguments() ->
 			  { maybe( [ command_line_values() ] ), argument_table() }.
 extract_optionless_command_arguments( ArgumentTable ) ->
 
+	%trace_utils:debug_fmt( "ArgumentTable: ~p.", [ ArgumentTable ] ),
+
 	% Not wanting here a list of lists of strings:
 	case list_table:extract_entry_with_defaults( _K=?no_option_key,
 							_DefaultValue=undefined, ArgumentTable ) of
 
-		undefined ->
-			{ undefined, ArgumentTable };
+		P={ undefined, _ArgTable } ->
+			P;
 
 		{ [ Args ], ShrunkArgTable } ->
 			% Not wanting here a list of lists of strings:
@@ -463,8 +465,8 @@ argument_table_to_string( ArgTable ) ->
 			ArgStrings = [ option_pair_to_string( Option, ArgumentLists )
 						   || { Option, ArgumentLists } <- ArgPairs ],
 
-			text_utils:format( "~B command-line argument(s) specified "
-				"(listed alphabetically): ~s", [ length( ArgPairs ),
+			text_utils:format( "~B command-line element(s) specified "
+				"(ordered alphabetically): ~s", [ length( ArgPairs ),
 						 text_utils:strings_to_sorted_string( ArgStrings ) ] )
 
 	end.

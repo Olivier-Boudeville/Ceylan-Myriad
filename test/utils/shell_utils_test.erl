@@ -57,7 +57,7 @@ run() ->
 
 	OptionLessArgs = shell_utils:get_optionless_command_arguments(),
 
-	test_facilities:display( "Optionless arguments are: ~p.",
+	test_facilities:display( "Option-less arguments are: ~p.",
 							 [ OptionLessArgs ] ),
 
 
@@ -65,19 +65,34 @@ run() ->
 		shell_utils:extract_optionless_command_arguments(),
 
 	test_facilities:display(
-	  "Extracted optionless arguments are: ~p (remainder: ~s).",
+	  "Extracted option-less arguments are: ~p (remainder: ~s).",
 	  [ OtherOptionLessArgs,
 		shell_utils:argument_table_to_string( ShrunkArgTable) ] ),
 
 
-	TargetOption = 'pz',
+	% Not a user-level option (VM-level), hence no supposed to be defined at
+	% all:
+	%
+	PzOption = 'pz',
 
-	{ Values, RemainingArguments } =
-		shell_utils:extract_command_arguments_for_option( TargetOption ),
+	{ PzValues=undefined, PzRemainingArguments } =
+		shell_utils:extract_command_arguments_for_option( PzOption ),
 
 	test_facilities:display( "Knowing the actual command-line arguments were:~n"
-		"~p~nfor option '~s', we extracted following value(s):~n~p~nand "
-		"got the rest of the arguments:~n~p",
-		[ init:get_arguments(), TargetOption, Values, RemainingArguments ] ),
+		"~p~nfor (VM, not user) option '~s', we extracted following value(s):"
+		"~n~p~nand got the rest of the arguments:~n~p",
+		[ init:get_arguments(), PzOption, PzValues, PzRemainingArguments ] ),
+
+
+	RealOption = 'my-first-opt',
+
+	{ RealOptValues, RealOptRemainingArguments } =
+		shell_utils:extract_command_arguments_for_option( RealOption,
+													  PzRemainingArguments ),
+
+	test_facilities:display( "For (user) option '~s', we extracted following "
+		"value(s):~n~p~nand got the rest of the arguments: ~s",
+		[ RealOption, RealOptValues,
+		  shell_utils:argument_table_to_string( RealOptRemainingArguments ) ] ),
 
 	test_facilities:stop().
