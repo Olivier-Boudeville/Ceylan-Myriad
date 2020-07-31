@@ -576,7 +576,7 @@ get_command_line_arguments( OptionlessSpec, OptionSpecs ) ->
 % Should, for a given option, less values be found than declared, an error will
 % be raised; should more values be found, the extra ones will be considered as
 % option-less arguments, and stored as such. Should a non-declared option be
-% found, raises an error as well.
+% found, an error is raised.
 %
 % Note: the order of the declared options spec does not matter.
 %
@@ -604,6 +604,10 @@ sort_arguments( OptionlessSpec, _OptionSpecs=[], UniqArgTable, AccTable ) ->
 		?arg_table:extract_entry_with_defaults( ?no_option_key, _Default=[],
 												UniqArgTable ),
 
+	%trace_utils:debug_fmt( "OptionLessValues = ~p, ShrunkArgTable = ~p.",
+	%					   [ OptionLessValues, ShrunkArgTable ] ),
+
+	% Checking option-less count:
 	case OptionlessSpec of
 
 		any ->
@@ -618,25 +622,25 @@ sort_arguments( OptionlessSpec, _OptionSpecs=[], UniqArgTable, AccTable ) ->
 					ok;
 
 				{ MinCount, MaxCount } when MinCount =< OptionLessCount
-							andalso OptionLessCount =< MaxCount ->
-							ok;
+										andalso OptionLessCount =< MaxCount ->
+					ok;
 
 				{ MinCount, _MaxCount } when OptionLessCount < MinCount ->
 					trace_utils:error_fmt( "Not enough option-less arguments "
-						"specified: at least ~B were expected, got ~B "
-						"(i.e. ~p).",
+						"specified: at least ~B were expected, "
+						"got ~B (i.e. ~p).",
 						[ MinCount, OptionLessCount, OptionLessValues ] ),
 
 					throw( { not_enough_optionless_arguments, { min, MinCount },
 						{ got, OptionLessCount, OptionLessValues } } );
 
-				% Just as an extra check:
+				% Just as an extra (normally useless) check:
 				{ _MinCount, MaxCount } when OptionLessCount > MaxCount ->
 					trace_utils:error_fmt( "Too many option-less arguments "
 						"specified: at most ~B were expected, "
 						"got ~B (i.e. ~p).",
 						[ MaxCount, OptionLessCount, OptionLessValues ] ),
-					throw( { not_enough_optionless_arguments, { max, MaxCount },
+					throw( { too_many_optionless_arguments, { max, MaxCount },
 						{ got, OptionLessCount, OptionLessValues } } )
 
 			end
@@ -646,14 +650,14 @@ sort_arguments( OptionlessSpec, _OptionSpecs=[], UniqArgTable, AccTable ) ->
 	case ?arg_table:is_empty( ShrunkArgTable ) of
 
 		true ->
-			?arg_table:add_new_entry( ?no_option_key, OptionLessValues,
-									  AccTable );
+			?arg_table:append_list_to_entry( ?no_option_key, OptionLessValues,
+											 AccTable );
 
 		false ->
 			trace_utils:error_fmt( "Unexpected argument(s), with extra ~s",
-				[ argument_table_to_string( UniqArgTable ) ] ),
+				[ argument_table_to_string( ShrunkArgTable ) ] ),
 			throw( { unexpected_command_line_arguments,
-					 ?arg_table:enumerate( UniqArgTable ) } )
+					 ?arg_table:enumerate( ShrunkArgTable ) } )
 
 	end;
 
@@ -663,7 +667,7 @@ sort_arguments( OptionlessSpec, _OptionSpecs=[ { Opt, _ExactCount=any } | T ],
 				UniqArgTable, AccTable ) ->
 
 	{ NewAccTable, NewUniqArgTable } =
-			case ?arg_table:hasEntry( Opt, UniqArgTable ) of
+			case ?arg_table:has_entry( Opt, UniqArgTable ) of
 
 		true ->
 			{ ValueList, ShrunkArgTable } =
@@ -672,6 +676,7 @@ sort_arguments( OptionlessSpec, _OptionSpecs=[ { Opt, _ExactCount=any } | T ],
 			{ ?arg_table:add_new_entry( Opt, ValueList, AccTable ),
 			  ShrunkArgTable };
 
+		% Having no argument for that 'any' option is legit:
 		false ->
 			{ AccTable, UniqArgTable }
 
@@ -686,10 +691,10 @@ sort_arguments( OptionlessSpec,
 				UniqArgTable, AccTable ) ->
 
 	{ NewAccTable, NewUniqArgTable } =
-			case ?arg_table:hasEntry( Opt, UniqArgTable ) of
+			case ?arg_table:has_entry( Opt, UniqArgTable ) of
 
 		true ->
-			{ ValueList, ShrunkArgTable } =
+			{ ValueList, ShrunkUniqArgTable } =
 				?arg_table:extract_entry( Opt, UniqArgTable ),
 
 			VCount = length( ValueList ),
@@ -705,7 +710,7 @@ sort_arguments( OptionlessSpec,
 
 						false ->
 							trace_utils:error_fmt( "For command-line option "
-								"'~s', at least ~B values were expected, "
+								"'-~s', at least ~B values were expected, "
 								"whereas only ~B (i.e. ~p) were specified.",
 								[ Opt, MinCount, VCount, ValueList ] ),
 							throw( { not_enough_values_for_option, Opt,
@@ -718,9 +723,9 @@ sort_arguments( OptionlessSpec,
 
 					% Rather than failing, we consider that the extra arguments
 					% (beyond MaxCount; hopefully we kept exactly the right
-					% ones) are actually option-less ones:
+					% ones) are actually unrelated, option-less ones:
 
-					%trace_utils:error_fmt( "For command-line option '~s', "
+					%trace_utils:error_fmt( "For command-line option '-~s', "
 					%	"at most ~B values were expected, whereas ~B "
 					%	"(i.e. ~p) were specified.",
 					%	[ Opt, MaxCount, VCount, ValueList ] ),
@@ -734,7 +739,7 @@ sort_arguments( OptionlessSpec,
 
 					% No need to extract, will just be overwritten:
 					NewOptionlessArgs = ?arg_table:get_value_with_defaults(
-						_K=?no_option_key, UniqArgTable, [] )
+						_K=?no_option_key, _Default=[], AccTable )
 									  ++ OptionlessValues,
 
 					?arg_table:add_entries( [ { Opt, NewValueList },
@@ -742,7 +747,7 @@ sort_arguments( OptionlessSpec,
 
 			end,
 
-			{ AddAccTable, ShrunkArgTable };
+			{ AddAccTable, ShrunkUniqArgTable };
 
 		false ->
 			case MinCount of
@@ -751,7 +756,7 @@ sort_arguments( OptionlessSpec,
 					{ AccTable, UniqArgTable };
 
 				_ ->
-					trace_utils:error_fmt( "For command-line option '~s', "
+					trace_utils:error_fmt( "For command-line option '-~s', "
 						"at least ~B values were expected, whereas none was "
 						"specified.", [ Opt, MinCount ] ),
 
@@ -773,7 +778,7 @@ sort_arguments( OptionlessSpec, _OptionSpecs=[ { Opt, ExactCount } | T ],
 			case ?arg_table:has_entry( Opt, UniqArgTable ) of
 
 		true ->
-			{ ValueList, ShrunkArgTable } =
+			{ ValueList, ShrunkUniqArgTable } =
 				?arg_table:extract_entry( Opt, UniqArgTable ),
 
 			UpdateAccTable = case length( ValueList ) of
@@ -782,13 +787,17 @@ sort_arguments( OptionlessSpec, _OptionSpecs=[ { Opt, ExactCount } | T ],
 					?arg_table:add_new_entry( Opt, ValueList, AccTable );
 
 				OtherCount when OtherCount > ExactCount ->
-					%trace_utils:error_fmt( "For command-line option '~s', "
+					%trace_utils:error_fmt( "For command-line option '-~s', "
 					%	"exactly ~B values were expected, whereas ~B "
 					%	"(i.e. ~p) were specified.",
 					%	[ Opt, ExactCount, OtherCount, ValueList ] ),
 					%throw( { mismatching_value_count_for_option, Opt,
 					%		 { expected, ExactCount },
 					%		 { got, OtherCount, ValueList } } )
+
+					% Too many arguments, considering the extra ones as
+					% option-less ones:
+					%
 					{ RevOptValues, OptionlessValues } =
 						list_utils:split_at( ExactCount, ValueList ),
 
@@ -796,7 +805,7 @@ sort_arguments( OptionlessSpec, _OptionSpecs=[ { Opt, ExactCount } | T ],
 
 					% No need to extract, will just be overwritten:
 					NewOptionlessArgs = ?arg_table:get_value_with_defaults(
-						_Key=?no_option_key, _Default=[], UniqArgTable )
+						_Key=?no_option_key, _Default=[], AccTable )
 									  ++ OptionlessValues,
 
 					?arg_table:add_entries( [ { Opt, NewValueList },
@@ -804,7 +813,7 @@ sort_arguments( OptionlessSpec, _OptionSpecs=[ { Opt, ExactCount } | T ],
 
 
 				OtherCount -> % when OtherCount < ExactCount ->
-					trace_utils:error_fmt( "For command-line option '~s', "
+					trace_utils:error_fmt( "For command-line option '-~s', "
 						"exactly ~B values were expected, whereas only ~B "
 						"(i.e. ~p) were specified.",
 						[ Opt, ExactCount, OtherCount, ValueList ] ),
@@ -814,7 +823,7 @@ sort_arguments( OptionlessSpec, _OptionSpecs=[ { Opt, ExactCount } | T ],
 
 			end,
 
-			{ UpdateAccTable, ShrunkArgTable };
+			{ UpdateAccTable, ShrunkUniqArgTable };
 
 		false ->
 			case ExactCount of
@@ -824,7 +833,7 @@ sort_arguments( OptionlessSpec, _OptionSpecs=[ { Opt, ExactCount } | T ],
 					{ AccTable, UniqArgTable };
 
 				_ ->
-					trace_utils:error_fmt( "For command-line option '~s', "
+					trace_utils:error_fmt( "For command-line option '-~s', "
 						"exactly ~B values were expected, whereas none was "
 						"specified.", [ Opt, ExactCount ] ),
 					throw( { no_value_for_option, Opt,

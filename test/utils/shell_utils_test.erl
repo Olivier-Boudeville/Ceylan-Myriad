@@ -115,7 +115,12 @@ run() ->
 	% an option-less one (this is the case of 'c' and 'a_third_optionless_arg'):
 
 	OptionSpecs = [ { '-my-first-opt', 2 }, { 'my-other-opt', 1 } ],
-	shell_utils:get_command_line_arguments( OptionLessSpec, OptionSpecs,
-											AdHocArgTable ),
+
+	UniqArgTable = shell_utils:get_command_line_arguments( OptionLessSpec,
+										OptionSpecs, AdHocArgTable ),
+
+	test_facilities:display( "Resulting argument table, based on option "
+		"specs ~p:~n~s", [ OptionSpecs,
+			shell_utils:argument_table_to_string( UniqArgTable ) ] ),
 
 	test_facilities:stop().
