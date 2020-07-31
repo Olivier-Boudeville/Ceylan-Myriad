@@ -119,7 +119,7 @@
 % For rough, averaged conversions:
 -export([ years_to_seconds/1, months_to_seconds/1, weeks_to_seconds/1,
 		  days_to_seconds/1, hours_to_seconds/1,
-		  dhms_to_seconds/1 ]).
+		  dhms_to_seconds/1, time_to_seconds/1 ]).
 
 
 % DHMS-related:
@@ -512,19 +512,19 @@ months_to_seconds( MonthDuration ) ->
 
 
 % Converts a duration in weeks into a duration in seconds.
--spec weeks_to_seconds( unit_utils:weeks() ) -> unit_utils:seconds().
+-spec weeks_to_seconds( unit_utils:weeks() ) -> seconds().
 weeks_to_seconds( WeekDuration ) ->
 	WeekDuration * 7 * 24 * 3600.
 
 
 % Converts a duration in days into a duration in seconds.
--spec days_to_seconds( unit_utils:days() ) -> unit_utils:seconds().
+-spec days_to_seconds( unit_utils:days() ) -> seconds().
 days_to_seconds( DayDuration ) ->
 	DayDuration * 24 * 3600.
 
 
 % Converts a duration in hours into a duration in seconds.
--spec hours_to_seconds( unit_utils:hours() ) -> unit_utils:seconds().
+-spec hours_to_seconds( unit_utils:hours() ) -> seconds().
 hours_to_seconds( HourDuration ) ->
 	HourDuration * 3600.
 
@@ -549,7 +549,7 @@ is_dhms_duration( _Other ) ->
 % Converts specified string (ex: "113j0h10m3s" for a French version,
 % "1d12h0m0s" for an English one) to a DHMS duration.
 %
--spec string_to_dhms( text_utils:ustring() ) -> dhms_duration().
+-spec string_to_dhms( ustring() ) -> dhms_duration().
 string_to_dhms( DurationString ) ->
 
 	TrimmedDurStr = text_utils:trim_whitespaces( DurationString ),
@@ -618,10 +618,18 @@ string_to_dhms( DurationString ) ->
 
 
 
-% Converts a duration in Days/Hours/Minutes/Seconds into a duration in seconds.
--spec dhms_to_seconds( dhms_duration() ) -> unit_utils:seconds().
+% Converts a DHMS duration (in Days/Hours/Minutes/Seconds) into a duration in
+% seconds.
+%
+-spec dhms_to_seconds( dhms_duration() ) -> seconds().
 dhms_to_seconds( { Days, Hours, Minutes, Seconds } ) ->
 	Seconds + 60 * ( Minutes + 60 * ( Hours + 24 * Days ) ).
+
+
+% Converts a HMS duration (in Hours/Minutes/Seconds) into a duration in seconds.
+-spec time_to_seconds( time() ) -> seconds().
+time_to_seconds( { Hours, Minutes, Seconds } ) ->
+	Seconds + 60 * ( Minutes + 60 * Hours ).
 
 
 
@@ -634,7 +642,7 @@ dhms_to_seconds( { Days, Hours, Minutes, Seconds } ) ->
 % A positive duration will be returned iff the first specified time is before
 % the second one.
 %
--spec get_intertime_duration( time(), time() ) -> unit_utils:seconds().
+-spec get_intertime_duration( time(), time() ) -> seconds().
 get_intertime_duration( { H1, M1, S1 }, { H2, M2, S2 } ) ->
 	( ( H2 - H1 ) * 60 + ( M2 - M1 ) ) * 60 + ( S2 - S1 ).
 
@@ -1087,7 +1095,7 @@ offset_timestamp( Timestamp, Duration ) -> % when is_integer( Duration )
 
 
 % Returns the (signed) duration in seconds corresponding to the specified time.
--spec get_duration( time() ) -> unit_utils:seconds().
+-spec get_duration( time() ) -> seconds().
 get_duration( { Hours, Minutes, Seconds } ) ->
 	( Hours * 60 + Minutes ) * 60 + Seconds.
 
@@ -1096,7 +1104,7 @@ get_duration( { Hours, Minutes, Seconds } ) ->
 % Returns the (signed) duration in seconds between the two specified timestamps,
 % using the first one as starting time and the second one as stopping time.
 %
--spec get_duration( timestamp(), timestamp() ) -> unit_utils:seconds().
+-spec get_duration( timestamp(), timestamp() ) -> seconds().
 get_duration( FirstTimestamp, SecondTimestamp ) ->
 
 	First  = calendar:datetime_to_gregorian_seconds( FirstTimestamp ),
@@ -1111,7 +1119,7 @@ get_duration( FirstTimestamp, SecondTimestamp ) ->
 % Returns the (signed) duration in seconds between the specified start timestamp
 % and the current time.
 %
--spec get_duration_since( timestamp() ) -> unit_utils:seconds().
+-spec get_duration_since( timestamp() ) -> seconds().
 get_duration_since( StartTimestamp ) ->
 	get_duration( StartTimestamp, get_timestamp() ).
 
