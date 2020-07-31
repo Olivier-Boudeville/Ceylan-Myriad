@@ -416,8 +416,8 @@ get_maybe_index_of( Element, _List=[ _H | T ], Count ) ->
 
 
 % Splits the specified (plain) list in two parts (two plain lists, that are
-% returned): the first contains the first elements, up to MaxLen (in reverse
-% order), and the second the others (if any).
+% returned): the first contains the first elements, up to MaxLen included (in
+% reverse order), and the second the others (if any).
 %
 % Ex: split_at( 3, [ a, b, c, d, e ] ) = { [ c, b, a ], [ d, e] }
 %
