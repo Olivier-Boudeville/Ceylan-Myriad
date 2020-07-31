@@ -250,10 +250,8 @@ add_new_entry( Key, Value, MapHashtable ) ->
 
 
 % Adds specified list of key/value pairs into the specified map table, expecting
-% that none of these keys is already defined in this table.
-%
-% If there is already a pair with this key, then its previous value will be
-% replaced by the specified one.
+% that none of these keys is already defined in this table (otherwise an
+% exception is thrown).
 %
 -spec add_new_entries( hashtable:entries(), map_hashtable() ) ->
 							 map_hashtable().
