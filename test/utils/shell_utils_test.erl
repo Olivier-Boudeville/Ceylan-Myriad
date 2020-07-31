@@ -79,8 +79,9 @@ run() ->
 		shell_utils:extract_command_arguments_for_option( PzOption ),
 
 	test_facilities:display( "Knowing the actual command-line arguments were:~n"
-		"~p~nfor (VM, not user) option '~s', we extracted following value(s):"
-		"~n~p~nand got the rest of the arguments:~n~p",
+		"~p~nfor (VM, not user) option '~s', we extracted following value(s), "
+		"expected not to be defined:~n~p~n"
+		"and got the rest of the arguments:~n~p",
 		[ init:get_arguments(), PzOption, PzValues, PzRemainingArguments ] ),
 
 
@@ -94,5 +95,27 @@ run() ->
 		"value(s):~n~p~nand got the rest of the arguments: ~s",
 		[ RealOption, RealOptValues,
 		  shell_utils:argument_table_to_string( RealOptRemainingArguments ) ] ),
+
+
+	AdHocCommandLine = "an_optionless_arg another_optionless_arg "
+		"--my-first-opt a b c a_third_optionless_arg -my-other-opt e "
+		"--my-first-opt d",
+
+	AdHocArgTable = shell_utils:generate_argument_table( AdHocCommandLine ),
+
+	test_facilities:display( "Ad hoc argument table from '~s':~n~s",
+		[ AdHocCommandLine,
+		  shell_utils:argument_table_to_string( AdHocArgTable ) ] ),
+
+
+	OptionLessSpec = { _Min=1, _Max=3 },
+
+	% Here we specify that the first option is to take only 2 (exactly; not 3)
+	% arguments, hence any argument found after the second will be considered as
+	% an option-less one (this is the case of 'c' and 'a_third_optionless_arg'):
+
+	OptionSpecs = [ { '-my-first-opt', 2 }, { 'my-other-opt', 1 } ],
+	shell_utils:get_command_line_arguments( OptionLessSpec, OptionSpecs,
+											AdHocArgTable ),
 
 	test_facilities:stop().
