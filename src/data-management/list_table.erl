@@ -55,7 +55,8 @@
 
 
 % The standard table API:
--export([ new/0, new/1, add_entry/3, add_entries/2,
+-export([ new/0, new/1,
+		  add_entry/3, add_entries/2, add_new_entry/3, add_new_entries/2,
 		  remove_entry/2, remove_entries/2,
 		  lookup_entry/2, has_entry/2,
 		  extract_entry/2, extract_entry_with_defaults/3,
@@ -160,6 +161,42 @@ add_entries( [ { EntryName, EntryValue } | Rest ], Table ) ->
 
 add_entries( [ Other | _Rest ], _Table ) ->
 	throw( { invalid_entry, Other } ).
+
+
+
+% Adds specified key/value pair into the specified table, expecting this key not
+% to be already defined in this table.
+%
+-spec add_new_entry( key(), value(), list_table() ) -> list_table().
+add_new_entry( Key, Value, Table ) ->
+
+	% A tad expensive, could be replaced by an inlined add_entry/3 in non-debug
+	% mode:
+	%
+	case has_entry( Key, Table ) of
+
+		false ->
+			add_entry( Key, Value, Table );
+
+		true ->
+			throw( { key_already_existing, Key } )
+
+	end.
+
+
+
+% Adds specified list of key/value pairs into the specified table, expecting
+% that none of these keys is already defined in this table (otherwise an
+% exception is thrown).
+%
+-spec add_new_entries( hashtable:entries(), list_table() ) -> list_table().
+add_new_entries( EntryList, Table ) ->
+
+	lists:foldl( fun( { K, V }, Map ) ->
+					add_new_entry( K, V, Map )
+				 end,
+				 _Acc0=Table,
+				 _List=EntryList ).
 
 
 
