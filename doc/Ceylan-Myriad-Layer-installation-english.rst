@@ -18,6 +18,7 @@ Whereas Erlang supports ``Windows`` and we tried to be as cross-platform as poss
 
 .. [#] For what it is worth, we prefer `Arch Linux <https://www.archlinux.org/>`_, but this does not really matter here.
 
+.. _getting-erlang:
 
 The main tool prerequisite is of course having the `Erlang <http://erlang.org>`_ environment available, in its ``23.0`` version [#]_ or more recent.
 
@@ -134,21 +135,41 @@ Myriad is not an *active* OTP application, and as such does not rely on, or prov
 
 .. [#] Speaking of OTP, in development mode, ``proc_lib``-based spawns used to be enabled, yet this led to longer error messages that were not that useful; see ``spawn_utils.hrl`` if wanting to re-enable them.
 
+
 .. _`getting-rebar3`:
+
+Getting rebar3
+..............
 
 There are `various ways <https://www.rebar3.org/docs/getting-started>`_  for obtaining ``rebar3``; we prefer::
 
   $ cd ~/Software && git clone https://github.com/erlang/rebar3.git
 	  && cd rebar3 && ./bootstrap
 
+Alternatively, should you just want to update a (pre-existing) rebar3 install, first get the current version (``rebar3 -v``) to check it afterwards, then issue ``rebar3 local upgrade``; however this would involve running rebar from ``.cache/rebar3/bin``, so instead we prefer using (typically from ``~/Software/rebar3``)::
 
-From the root of a Myriad clone, to obtain the Ceylan-Myriad library *application*, one just has to enter::
+ $ git pull && ./bootstrap
+
+Another option is to download a prebuilt version of rebar3.
+
+Finally, one may prefer using the `install-rebar3.sh <https://github.com/Olivier-Boudeville/Ceylan-Hull/blob/master/install-rebar3.sh>`_ script that we devised, which automates and enforces our conventions while letting the choice between an installation from sources or from a prebuilt version thereof (just un ``install-rebar3.sh --help`` for guidance).
+
+
+
+Generating Ceylan-Myriad
+........................
+
+Then, from the root of a Myriad clone, to obtain the Ceylan-Myriad library *application*, one just has to enter::
 
  $ make rebar3-application
 
 It will trigger ``rebar3``, resulting [#]_ in a full, OTP-compliant build tree created in ``_build`` (including a properly-generated ``_build/default/lib/myriad/ebin/myriad.app`` file), and more generally in a proper OTP application.
 
 .. [#] The operation was previously done through a rebar pre-compile hook, so that the our native build system could be relied upon before injecting the produced BEAMs into rebar's ``_build`` tree. Because of extraneous, failing recompilations being triggered by rebar, now we rely on a build system parallel to - and directly inspired by - our native one, directly done from within rebar (once properly triggered by our user-oriented Make targets).
+
+
+Testing Ceylan-Myriad
+.....................
 
 As a result, the OTP application support can be tested from the root of an (already-built, with ``make rebar3-application``) Myriad source tree::
 
