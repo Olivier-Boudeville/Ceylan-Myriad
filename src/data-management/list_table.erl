@@ -111,6 +111,8 @@
 -compile( { inline, [ has_entry/2, add_entry/3, extract_entry/2 ] } ).
 
 
+-define( default_bullet, " + " ).
+
 
 % Returns a new empty table dimensioned for the default number of entries.
 -spec new() -> list_table().
@@ -850,11 +852,13 @@ to_string( Table ) ->
 
 
 
-% Returned string is either quite raw (if using 'internal') or a bit more
-% elaborate (if using 'user_friendly').
+% Returns a textual description of the specified table.
 %
--spec to_string( list_table(), 'internal' | 'user_friendly' ) -> string().
-to_string( Table, _Displaytype ) ->
+% Either a bullet is specified, or the returned string is either quite raw and
+% non-ellipsed (if using 'full').
+%
+-spec to_string( list_table(), string() | 'full' ) -> string().
+to_string( Table, DescriptionType ) ->
 
 	case enumerate( Table ) of
 
@@ -862,19 +866,45 @@ to_string( Table, _Displaytype ) ->
 			"empty table";
 
 		[ { K, V } ] ->
-			text_utils:format( "table with a single entry, key being ~p, "
-							   "value being ~p", [ K, V ] );
+			case DescriptionType of
+
+				full ->
+					text_utils:format( "table with a single entry, "
+						"key being ~p, value being ~p", [ K, V ] );
+
+				_Bullet ->
+					text_utils:format_ellipsed( "table with a single entry, "
+						"key being ~p, value being ~p", [ K, V ] )
+
+			end;
+
 
 		L ->
 
-			% Enforces a consistent order:
-			Strings = [ io_lib:format( "~p: ~p", [ K, V ] )
-						|| { K, V } <- lists:sort( L ) ],
+			%  Enforces a consistent order; flatten below is needed, in order to
+			%  use the result with ~s:
+			%
+			case DescriptionType of
 
-			% Flatten is needed, in order to use the result with ~s:
-			lists:flatten( io_lib:format( "table with ~B entries: ~s",
-				[ length( L ),
-				  text_utils:strings_to_string( Strings ) ] ) )
+				full ->
+					Strs = [ text_utils:format( "~p: ~p", [ K, V ] )
+							 || { K, V } <- lists:sort( L ) ],
+
+					lists:flatten( io_lib:format( "table with ~B entries: ~s",
+						[ map_size( Table ),
+						  text_utils:strings_to_string( Strs,
+														?default_bullet ) ] ) );
+
+				% Here, ellipsed and with specified bullet:
+				Bullet ->
+					Strs = [ text_utils:format_ellipsed( "~p: ~p", [ K, V ] )
+							 || { K, V } <- lists:sort( L ) ],
+
+					lists:flatten( io_lib:format( "table with ~B entries: ~s",
+						[ map_size( Table ),
+						  text_utils:strings_to_string( Strs, Bullet ) ] ) )
+
+			end
 
 	end.
 

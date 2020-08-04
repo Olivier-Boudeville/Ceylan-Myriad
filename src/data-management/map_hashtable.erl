@@ -124,6 +124,8 @@
 -compile( { inline, [ has_entry/2, add_entry/3, extract_entry/2 ] } ).
 
 
+-define( default_bullet, " + " ).
+
 
 % Returns a new, empty, map-based hashtable.
 -spec new() -> map_hashtable().
@@ -1122,19 +1124,18 @@ size( MapHashtable ) ->
 % Returns a textual description of the specified map hashtable.
 -spec to_string( map_hashtable() ) -> string().
 to_string( MapHashtable ) ->
-	to_string( MapHashtable, _DefaultBullet=" + " ).
+	to_string( MapHashtable, ?default_bullet ).
+
 
 
 % Returns a textual description of the specified hashtable.
 %
-% Either a bullet is specified, or the returned string is either quite raw (if
-% using 'internal') or a bit more elaborate (if using 'user_friendly').
+% Either a bullet is specified, or the returned string is either quite raw and
+% non-ellipsed (if using 'full').
 %
-% For this implementation, the requested description type does not matter.
-%
--spec to_string( map_hashtable(), string() | 'internal' | 'user_friendly' ) ->
-					  string().
-to_string( MapHashtable, Bullet ) when is_list( Bullet ) ->
+-spec to_string( map_hashtable(), string() | 'full' ) ->
+					   string().
+to_string( MapHashtable, DescriptionType ) ->
 
 	case maps:to_list( MapHashtable ) of
 
@@ -1142,24 +1143,47 @@ to_string( MapHashtable, Bullet ) when is_list( Bullet ) ->
 			"empty table";
 
 		[ { K, V } ] ->
-			text_utils:format( "table with a single entry, key being ~p, "
-							   "value being ~p", [ K, V ] );
+			case DescriptionType of
+
+				full ->
+					text_utils:format( "table with a single entry, "
+						"key being ~p, value being ~p", [ K, V ] );
+
+				_Bullet ->
+					text_utils:format_ellipsed( "table with a single entry, "
+						"key being ~p, value being ~p", [ K, V ] )
+
+			end;
+
 
 		L ->
 
-			% Enforces a consistent order:
-			Strings = [ text_utils:format_ellipsed( "~p: ~p", [ K, V ] )
-						|| { K, V } <- lists:sort( L ) ],
+			%  Enforces a consistent order; flatten below is needed, in order to
+			%  use the result with ~s:
+			%
+			case DescriptionType of
 
-			% Flatten is needed, in order to use the result with ~s:
-			lists:flatten( io_lib:format( "table with ~B entries: ~s",
-				[ map_size( MapHashtable ),
-				  text_utils:strings_to_string( Strings, Bullet ) ] ) )
+				full ->
+					Strs = [ text_utils:format( "~p: ~p", [ K, V ] )
+							 || { K, V } <- lists:sort( L ) ],
 
-	end;
+					lists:flatten( io_lib:format( "table with ~B entries: ~s",
+						[ map_size( MapHashtable ),
+						  text_utils:strings_to_string( Strs,
+														?default_bullet ) ] ) );
 
-to_string( MapHashtable, _DescriptionType ) ->
-	to_string( MapHashtable ).
+				% Here, ellipsed and with specified bullet:
+				Bullet ->
+					Strs = [ text_utils:format_ellipsed( "~p: ~p", [ K, V ] )
+							 || { K, V } <- lists:sort( L ) ],
+
+					lists:flatten( io_lib:format( "table with ~B entries: ~s",
+						[ map_size( MapHashtable ),
+						  text_utils:strings_to_string( Strs, Bullet ) ] ) )
+
+			end
+
+	end.
 
 
 

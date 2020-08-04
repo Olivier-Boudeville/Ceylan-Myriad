@@ -116,8 +116,10 @@
 		  must_optimise/2, optimise_unconditionally/4 ]).
 
 
+-define( default_bullet, " + " ).
+
 % The default expected number of entries:
--define(DefaultNumberOfEntries,32).
+-define(default_entry_count,32).
 
 
 % Not necessarily an atom, but surely not a string (as lists are interpreted as
@@ -161,7 +163,7 @@
 % Returns a new empty hashtable dimensioned for the default number of entries.
 -spec new() -> hashtable().
 new() ->
-	new( ?DefaultNumberOfEntries ).
+	new( ?default_entry_count ).
 
 
 
@@ -949,46 +951,77 @@ to_string( Hashtable ) ->
 
 
 
-% Returned string is either quite raw (if using 'internal') or a bit more
-% elaborate (if using 'user_friendly').
+% Returns a textual description of the specified table.
 %
--spec to_string( hashtable(), 'internal' | 'user_friendly' ) -> string().
-to_string( Hashtable, user_friendly ) ->
+% Either a bullet is specified, or the returned string is either quite raw and
+% non-ellipsed (if using 'full'), or even completly raw ('internal').
+%
+-spec to_string( hashtable(), string() | 'full' | 'internal' ) -> string().
+to_string( Hashtable, DescriptionType ) ->
 
 	case enumerate( Hashtable ) of
 
 		[] ->
-			"Empty hashtable";
+			"empty table";
+
+		[ { K, V } ] ->
+			case DescriptionType of
+
+				full ->
+					text_utils:format( "table with a single entry, "
+						"key being ~p, value being ~p", [ K, V ] );
+
+				_Bullet ->
+					text_utils:format_ellipsed( "table with a single entry, "
+						"key being ~p, value being ~p", [ K, V ] )
+
+			end;
+
 
 		L ->
 
-			% Enforces a consistent order:
-			Strings = [ io_lib:format( "~p: ~p", [ K, V ] )
-						|| { K, V } <- lists:sort( L ) ],
+			%  Enforces a consistent order; flatten below is needed, in order to
+			%  use the result with ~s:
+			%
+			case DescriptionType of
 
-			% Flatten is needed, in order to use the result with ~s:
-			lists:flatten( io_lib:format( "Hashtable with ~B entry(ies): ~s~n",
-				[ length( L ),
-				  text_utils:strings_to_string( Strings ) ] ) )
+				full ->
+					Strs = [ text_utils:format( "~p: ~p", [ K, V ] )
+							 || { K, V } <- lists:sort( L ) ],
 
-	end;
+					lists:flatten( io_lib:format( "table with ~B entries: ~s",
+						[ map_size( Hashtable ),
+						  text_utils:strings_to_string( Strs,
+														?default_bullet ) ] ) );
 
-to_string( Hashtable, internal ) when tuple_size( Hashtable ) > 0 ->
 
-	lists:foldl(
+				internal ->
+					lists:foldl(
 
-		fun( Bucket, Acc ) ->
-			Acc ++ io_lib:format( "  + ~s~n", [ bucket_to_string( Bucket ) ] )
-		end,
+					  fun( Bucket, Acc ) ->
+						Acc ++ io_lib:format( "  + ~s~n",
+											  [ bucket_to_string( Bucket ) ] )
+					  end,
 
-		io_lib:format( "Hashtable with ~B bucket(s) and ~B entry(ies): ~n",
-			[ tuple_size( Hashtable ), size( Hashtable ) ] ),
+					  _Acc0=io_lib:format( "table with ~B bucket(s) and ~B "
+						  "entry(ies): ~n",
+						  [ tuple_size( Hashtable ), size( Hashtable ) ] ),
 
-		tuple_to_list( Hashtable ) );
+					  _List=tuple_to_list( Hashtable ) );
 
-to_string( _Hashtable, internal ) ->
-	io_lib:format( "Empty hashtable~n", [] ).
 
+				% Here, ellipsed and with specified bullet:
+				Bullet ->
+					Strs = [ text_utils:format_ellipsed( "~p: ~p", [ K, V ] )
+							 || { K, V } <- lists:sort( L ) ],
+
+					lists:flatten( io_lib:format( "table with ~B entries: ~s",
+						[ map_size( Hashtable ),
+						  text_utils:strings_to_string( Strs, Bullet ) ] ) )
+
+			end
+
+	end.
 
 
 
@@ -1071,15 +1104,15 @@ delete_bucket( _Key, [], Acc ) ->
 %
 -spec delete_bucket_verbose( key(), entries(), entries() ) ->
 				{ 'deleted', entries() } | 'unchanged'.
-delete_bucket_verbose( Key, [ { Key, _Value } | T ], Acc ) ->
+delete_bucket_verbose( Key, _Entries=[ { Key, _Value } | T ], Acc ) ->
 	% Forget the pair if the key if matching, and stops:
 	{ deleted, lists:append( T, Acc ) };
 
-delete_bucket_verbose( Key, [ H | T ], Acc ) ->
+delete_bucket_verbose( Key, _Entries=[ H | T ], Acc ) ->
 	% Keeps everything else (non-matching entries):
 	delete_bucket_verbose( Key, T, [ H | Acc ] );
 
-delete_bucket_verbose( _Key, [], _Acc ) ->
+delete_bucket_verbose( _Key, _Entries=[], _Acc ) ->
 	% Nothing was deleted in this call:
 	unchanged.
 
@@ -1093,15 +1126,15 @@ delete_bucket_verbose( _Key, [], _Acc ) ->
 % Note: order does not matter.
 %
 -spec replace_bucket( key(), value(), entries(), entries() ) -> entries().
-replace_bucket( Key, Value, [], Acc ) ->
+replace_bucket( Key, Value, _Entries=[], Acc ) ->
 	% Key was not there previously, just adding it:
 	[ { Key, Value } | Acc ];
 
-replace_bucket( Key, Value, [ { Key, _ } | T ], Acc ) ->
+replace_bucket( Key, Value, _Entries=[ { Key, _ } | T ], Acc ) ->
 	% Add the key, join the two parts of the list and return it:
 	[ { Key, Value } | lists:append( T, Acc ) ];
 
-replace_bucket( Key, Value, [ H | T ], Acc ) ->
+replace_bucket( Key, Value, _Entries=[ H | T ], Acc ) ->
 	% Another key, continue iterating:
 	replace_bucket( Key, Value, T, [ H | Acc ] ).
 
@@ -1147,7 +1180,7 @@ get_bucket_count( Hashtable ) ->
 
 
 % Returns a string describing a hashtable bucket (list of key/value pairs):
-bucket_to_string( Bucket ) when length(Bucket) > 0 ->
+bucket_to_string( Bucket ) when length( Bucket ) > 0 ->
 	lists:foldl(
 
 		fun( { Key, Value }, Acc ) ->
@@ -1156,13 +1189,13 @@ bucket_to_string( Bucket ) when length(Bucket) > 0 ->
 				  text_utils:term_to_string( Value ) ] )
 		end,
 
-		io_lib:format( "Bucket with ~B element(s):~n",
-			[ length(Bucket) ] ),
+		io_lib:format( "bucket with ~B element(s):~n",
+					   [ length(Bucket) ] ),
 
 		Bucket );
 
 bucket_to_string( _EmptyBucket ) ->
-	"Empty bucket".
+	"empty bucket".
 
 
 
