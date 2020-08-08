@@ -724,8 +724,11 @@ notify_warning( Elements, Context ) ->
 %     called as erl_lint:'-compiler_options/1-lc$^0/1-0-'({
 % table_type_defined_more_than_once,{line,12},foo_hashtable,bar_hashtable})
 %
-% Note: this function is used to report errors detected by Myriad itself (not by
-% the Erlang toolchain).
+% Note:
+% - this function is used to report errors detected by Myriad itself (not by the
+% Erlang toolchain)
+% - prefer using raise_usage_error/* to report errors in a more standard,
+% convenient way
 %
 -spec raise_error( term() ) -> no_return().
 raise_error( ErrorTerm ) ->
@@ -751,8 +754,11 @@ raise_error( ErrorTerm ) ->
 % Ex: raise_error( [ invalid_module_name, Other ], _Context=112 ) shall
 % result in throwing { invalid_module_name, Other, { line, 112 } }.
 %
-% Note: this function is used to report errors detected by Myriad itself (not by
-% the Erlang toolchain).
+% Note:
+% - this function is used to report errors detected by Myriad itself (not by the
+% Erlang toolchain)
+% - prefer using raise_usage_error/* to report errors in a more standard,
+% convenient way
 %
 -spec raise_error( term(), basic_utils:maybe( form_context() ) ) -> no_return().
 raise_error( ErrorTerm, Context ) ->
@@ -766,6 +772,12 @@ raise_error( ErrorTerm, Context ) ->
 % Ex: raise_error( [ invalid_module_name, Other ], _Context=112,
 % _OriginLayer="FooLayer" ) shall result in throwing { invalid_module_name,
 % Other, { line, 112 } }.
+%
+% Note:
+% - this function is used to report errors detected by Myriad itself (not by the
+% Erlang toolchain)
+% - prefer using raise_usage_error/* to report errors in a more standard,
+% convenient way
 %
 -spec raise_error( term(), basic_utils:maybe( ast_base:source_context() ),
 				   basic_utils:layer_name() ) -> no_return();
@@ -893,9 +905,9 @@ interpret_stack_trace( _StackTrace=[ H | T ], Acc, Count ) ->
 
 
 
-% Raises a (compile-time, rather ad hoc) user-related error, with specified
-% source context, to stop the build on failure and report adequately the actual
-% error to the user.
+% Raises a (compile-time, relatively standard) user-related error, with
+% specified source context, to stop the build on failure and report adequately
+% the actual error to the user.
 %
 -spec raise_usage_error( text_utils:format_string(), text_utils:format_values(),
 						 file_utils:filename() ) -> no_return().
@@ -904,9 +916,9 @@ raise_usage_error( ErrorFormatString, ErrorValues, Filename ) ->
 
 
 
-% Raises a (compile-time, rather ad hoc) user-related error, with specified
-% source context, to stop the build on failure and report adequately the actual
-% error to the user.
+% Raises a (compile-time, relatively standard) user-related error, with
+% specified source context, to stop the build on failure and report adequately
+% the actual error to the user.
 %
 -spec raise_usage_error( text_utils:format_string(), text_utils:format_values(),
 					 file_utils:filename(), ast_base:line() ) -> no_return().
