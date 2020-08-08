@@ -1084,7 +1084,9 @@ keys( MapHashtable ) ->
 	maps:keys( MapHashtable ).
 
 
-% Returns a list containing all the values of this hashtable.
+
+% Returns a list (in no particular order) containing all the values of this
+% hashtable.
 %
 % Ex: useful if the key was used as an index to generate this table first.
 %
