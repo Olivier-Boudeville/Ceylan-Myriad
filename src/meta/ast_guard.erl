@@ -148,8 +148,8 @@ transform_guard( GuardTests, Transforms )
 
 transform_guard( Other, Transforms )
   when is_record( Transforms, ast_transforms ) ->
-	Msg = text_utils:format( "invalid guard '~p'.", [ Other ] ),
-	ast_utils:raise_error( Msg ).
+	ast_utils:raise_usage_error( "invalid guard '~p'.", [ Other ],
+		Transforms#ast_transforms.transformed_module_name ).
 
 
 
@@ -276,8 +276,8 @@ direct_transform_guard_test( _GuardTest={ 'bin', Line, BinElements },
 	%NewBinElements = ast_bitstring:transform_bin_elements( BinElements,
 	%					   Transforms, fun direct_transform_guard_test/2 ),
 
-	{ NewBinElements, NewTransforms } = ast_bitstring:transform_bin_elements(
-										  BinElements, Transforms ),
+	{ NewBinElements, NewTransforms } =
+		ast_bitstring:transform_bin_elements( BinElements, Transforms ),
 
 	NewExpr = { 'bin', Line, NewBinElements },
 
@@ -342,9 +342,10 @@ direct_transform_guard_test( _GuardTest={ 'call', LineCall,
 			{ NewExpr, NewTransforms };
 
 		false ->
-			Msg = text_utils:format( "call to invalid guard ~s/~B.",
-									 [ FunctionName, FunctionArity ] ),
-			ast_utils:raise_error( Msg, LineCall )
+			ast_utils:raise_usage_error( "call to invalid guard ~s/~B.",
+				[ FunctionName, FunctionArity ],
+				Transforms#ast_transforms.transformed_module_name,
+				LineCall )
 
 	end;
 
@@ -390,10 +391,11 @@ direct_transform_guard_test( _GuardTest={ 'call', LineCall,
 			Res;
 
 		false ->
-			Msg = text_utils:format(
-					"invalid remote call to an erlang:~s/~B guard.",
-					[ FunctionName, FunctionArity ] ),
-			ast_utils:raise_error( Msg, LineRemote )
+			ast_utils:raise_usage_error(
+				"invalid remote call to an erlang:~s/~B guard.",
+				[ FunctionName, FunctionArity ],
+				Transforms#ast_transforms.transformed_module_name,
+				LineRemote )
 
 	end;
 
@@ -592,9 +594,9 @@ direct_transform_guard_test( _GuardTest={ 'op', Line, Operator, LeftOperand,
 			Res;
 
 		false ->
-			Msg = text_utils:format(
-					"call to invalid binary operator '~p' in guard.", [ Operator ] ),
-			ast_utils:raise_error( Msg, Line )
+			ast_utils:raise_usage_error(
+				"call to invalid binary operator '~p' in guard.", [ Operator ],
+				Transforms#ast_transforms.transformed_module_name, Line )
 
 	end;
 
@@ -625,9 +627,9 @@ direct_transform_guard_test( _GuardTest={ 'op', Line, Operator, Operand },
 			Res;
 
 		false ->
-			Msg = text_utils:format(
-					"call to invalid unary operator '~p' in guard.", [ Operator ] ),
-			ast_utils:raise_error( Msg, Line )
+			ast_utils:raise_usage_error(
+				"call to invalid unary operator '~p' in guard.", [ Operator ],
+				Transforms#ast_transforms.transformed_module_name, Line )
 
 	end;
 
@@ -772,5 +774,5 @@ direct_transform_guard_test( E={ AtomicLiteralType, _Line, _Value },
 % Default, catch-all error clause:
 direct_transform_guard_test( Other, Transforms )
   when is_record( Transforms, ast_transforms ) ->
-	Msg = text_utils:format( "call to invalid guard test '~p'.", [ Other ] ),
-	ast_utils:raise_error( Msg ).
+	ast_utils:raise_usage_error( "call to invalid guard test '~p'.", [ Other ],
+		Transforms#ast_transforms.transformed_module_name ).
