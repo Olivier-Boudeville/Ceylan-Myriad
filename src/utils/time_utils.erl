@@ -119,7 +119,7 @@
 % For rough, averaged conversions:
 -export([ years_to_seconds/1, months_to_seconds/1, weeks_to_seconds/1,
 		  days_to_seconds/1, hours_to_seconds/1,
-		  dhms_to_seconds/1, time_to_seconds/1 ]).
+		  dhms_to_seconds/1, seconds_to_dhms/1, time_to_seconds/1 ]).
 
 
 % DHMS-related:
@@ -624,6 +624,27 @@ string_to_dhms( DurationString ) ->
 -spec dhms_to_seconds( dhms_duration() ) -> seconds().
 dhms_to_seconds( { Days, Hours, Minutes, Seconds } ) ->
 	Seconds + 60 * ( Minutes + 60 * ( Hours + 24 * Days ) ).
+
+
+
+% Converts a duration in seconds into a DHMS duration (in
+% Days/Hours/Minutes/Seconds) into.
+%
+seconds_to_dhms( FullSeconds ) ->
+	SecsPerDay= 24 * 3600,
+	DayCount = FullSeconds div SecsPerDay,
+	SecsAfterDays = FullSeconds rem SecsPerDay,
+
+	SecsPerHour = 3600,
+	HourCount = SecsAfterDays div SecsPerHour,
+	SecsAfterHours = SecsAfterDays rem SecsPerHour,
+
+	SecsPerMin = 60,
+	MinCount = SecsAfterHours div SecsPerMin,
+	SecsAfterMin = SecsAfterHours rem SecsPerMin,
+
+	{ DayCount, HourCount, MinCount, SecsAfterMin }.
+
 
 
 % Converts a HMS duration (in Hours/Minutes/Seconds) into a duration in seconds.
