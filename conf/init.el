@@ -585,7 +585,14 @@
 
 (setq ispell-dictionary "english")
 (setq ispell-program-name "aspell")
-(add-hook 'text-mode-hook 'flyspell-mode)
+
+;; new error: failed to define function flyspell-mode
+
+;;(add-hook 'text-mode-hook 'flyspell-mode)
+(dolist (hook '(text-mode-hook))
+(add-hook hook (lambda () (flyspell-mode 1))))
+(dolist (hook '(change-log-mode-hook log-edit-mode-hook))
+ (add-hook hook (lambda () (flyspell-mode -1))))
 
 (defun fd-switch-dictionary()
 	  (interactive)
