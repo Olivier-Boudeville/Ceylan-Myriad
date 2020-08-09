@@ -474,8 +474,8 @@ get_priv_root( ModuleName, BeSilent ) ->
 
 			   false ->
 					trace_utils:warning_fmt( "Unable to determine 'priv' "
-											 "directory from module '~s': ~w.",
-											 [ ModuleName, PError ] )
+						"directory from module '~s': ~w.",
+						[ ModuleName, PError ] )
 
 		   end,
 
