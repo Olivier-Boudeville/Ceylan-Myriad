@@ -49,8 +49,8 @@ run() ->
 	BeamExtension = ".beam",
 
 	test_facilities:display(
-			  "File elements in the current directory (~s):~n~p",
-			  [ CurrentDir, Elements ] ),
+		"File elements in the current directory (~s):~n~p",
+		[ CurrentDir, Elements ] ),
 
 	% Too many outputs:
 	%test_facilities:display( "Regular BEAM files in the current directory: "
@@ -107,11 +107,11 @@ run() ->
 		file_utils:ensure_path_is_absolute( RelativePath, BasePath ) ] ),
 
 
-	"/home/lisa/tube" = file_utils:normalise_path(
-						  "/home/garfield/../lisa/./src/.././tube" ),
+	"/home/lisa/tube" =
+		file_utils:normalise_path( "/home/garfield/../lisa/./src/.././tube" ),
 
-	"../homer/bart.beam" = file_utils:normalise_path(
-							 "../src/../homer/./bart.beam" ),
+	"../homer/bart.beam" =
+		file_utils:normalise_path( "../src/../homer/./bart.beam" ),
 
 	% Define suitable paths for testing:
 
@@ -156,8 +156,8 @@ run() ->
 	SecondFilename = "./mnt/zadok/44_12.oaf",
 
 	test_facilities:display( "Path '~s', once transformed into a variable name,"
-		" results in: ~s", [ SecondFilename,
-						file_utils:path_to_variable_name( SecondFilename ) ] ),
+	  " results in: ~s",
+	  [ SecondFilename, file_utils:path_to_variable_name( SecondFilename ) ] ),
 
 
 	FirstString = "My name is Bond",
@@ -268,6 +268,30 @@ run() ->
 			throw( unxz_content_differs )
 
 	end,
+
+	InfoPath = UnxzFile,
+
+	test_facilities:display( "Information about '~s': owner_id=~B, "
+		"group_id=~B, permissions=~w.",
+		[ InfoPath, file_utils:get_owner_of( InfoPath ),
+		  file_utils:get_group_of( InfoPath ),
+		  file_utils:get_permissions_of( InfoPath ) ] ),
+
+	% Shall fail with eacces:
+	Caught = try
+
+		file_utils:open( "/foo", _Opts=[ write ] ),
+		false
+
+	catch _:E ->
+		test_facilities:display( "Error intercepted as expected:~n ~p.",
+								 [ E ] ),
+		true
+
+	end,
+
+	% Check:
+	Caught = true,
 
 	file_utils:remove_files( [ ZippedFile, Bzip2File, XzFile ] ),
 

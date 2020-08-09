@@ -98,7 +98,11 @@
 
 		  get_non_clashing_entry_name_from/1,
 
-		  append_file/2, change_permissions/2,
+		  append_file/2,
+
+		  list_permission_pairs/0, to_permission_mask/1, from_permission_mask/1,
+
+		  get_permissions_of/1, change_permissions/2,
 
 		  is_absolute_path/1,
 		  ensure_path_is_absolute/1, ensure_path_is_absolute/2,
@@ -258,7 +262,6 @@
 -type file_open_mode() :: tuple() | atom() | 'ram'.
 
 
-
 % The supported compression formats:
 -type compression_format() :: 'zip' | 'bzip2' | 'xz'.
 
@@ -281,6 +284,10 @@
 					| 'set_user_id' | 'set_group_id'.
 
 
+% The binary mask corresponding to a filesystem permission:
+-type permission_mask() :: non_neg_integer().
+
+
 -export_type([ path/0, bin_path/0, any_path/0,
 			   file_name/0, filename/0, file_path/0,
 			   bin_file_name/0, bin_file_path/0,
@@ -293,7 +300,8 @@
 			   extension/0,
 			   path_element/0, bin_path_element/0, any_path_element/0,
 			   leaf_name/0,
-			   entry_type/0, parent_creation/0, permission/0,
+			   entry_type/0, parent_creation/0,
+			   permission/0, permission_mask/0,
 			   compression_format/0,
 			   file/0, file_info/0 ]).
 
@@ -732,7 +740,7 @@ is_executable( ExecutableName ) ->
 
 				regular ->
 
-					OwnerExecMask = 8#00100,
+					OwnerExecMask = to_permission_mask( owner_execute ),
 					case Mode band OwnerExecMask of
 
 						0 ->
@@ -2351,47 +2359,100 @@ append_file( TargetFilename, ToAppendFilename ) ->
 
 
 
-% Returns the low-level permission associated to specified one.
--spec get_permission_for( permission() | [ permission() ] ) -> integer().
-get_permission_for( owner_read ) ->
-	8#00400;
+% Lists all known permission types, as {Perm,Mask} pairs.
+-spec list_permission_pairs() -> [ { permission(), permission_mask() } ].
+list_permission_pairs() ->
+	[ { owner_read,    8#00400 },
+	  { owner_write,   8#00200 },
+	  { owner_execute, 8#00100 },
 
-get_permission_for( owner_write ) ->
-	8#00200;
+	  { group_read,    8#00040 },
+	  { group_write,   8#00020 },
+	  { group_execute, 8#00010 },
 
-get_permission_for( owner_execute ) ->
-	8#00100;
+	  { other_read,    8#00004 },
+	  { other_write,   8#00002 },
+	  { other_execute, 8#00001 },
 
-get_permission_for( group_read ) ->
-	8#00040;
+	  { set_user_id,  16#800 },
+	  { set_group_id, 16#400 } ].
 
-get_permission_for( group_write ) ->
-	8#00020;
 
-get_permission_for( group_execute ) ->
-	8#00010;
 
-get_permission_for( other_read ) ->
-	8#00004;
-
-get_permission_for( other_write ) ->
-	8#00002;
-
-get_permission_for( other_execute ) ->
-	8#00001;
-
-get_permission_for( set_user_id ) ->
-	16#800;
-
-get_permission_for( set_group_id ) ->
-	16#400;
-
-get_permission_for( PermissionList ) when is_list( PermissionList ) ->
+% Encodes the specified symbolic permission(s) into its/their low-level
+% counterpart mask(s).
+%
+-spec to_permission_mask( permission() | [ permission() ] ) ->
+		  permission_mask().
+to_permission_mask( PermissionList ) when is_list( PermissionList ) ->
+	PermPairs = list_permission_pairs(),
 	lists:foldl( fun( P, Acc ) ->
-					 get_permission_for( P ) + Acc
+					 to_permission_mask( P, PermPairs ) + Acc
 				 end,
 				 _Acc0=0,
-				 PermissionList ).
+				 PermissionList );
+
+to_permission_mask( PermAtom ) ->
+	to_permission_mask( PermAtom, _PermPairs=list_permission_pairs() ).
+
+
+% (helper)
+to_permission_mask( PermAtom, PermPairs ) ->
+	case lists:keyfind( _K=PermAtom, _Index=1, PermPairs ) of
+
+		false ->
+			throw( { invalid_permission, PermAtom } );
+
+		{ _PermAtom, PermMask } ->
+			PermMask
+
+	end.
+
+
+
+% Decodes the specified permission mask into a list of the corresponding
+% permissions.
+%
+-spec from_permission_mask( permission_mask() ) -> [ permission() ].
+from_permission_mask( Mask ) ->
+	PermPairs = list_permission_pairs(),
+	from_permission_mask( PermPairs, Mask, _AccPerms=[] ).
+
+
+% (helper)
+from_permission_mask( _PermPairs=[], _Mask, AccPerms ) ->
+	% In-order preferred:
+	lists:reverse( AccPerms );
+
+from_permission_mask( _PermPairs=[ { Perm, PermMask } | T ], Mask, AccPerms ) ->
+
+	NewAccPerms = case Mask band PermMask of
+
+		0 ->
+			AccPerms;
+
+		_ ->
+			[ Perm | AccPerms ]
+
+	end,
+
+	from_permission_mask( T, Mask, NewAccPerms ).
+
+
+
+% Returns the (UNIX) permissions associated to specified filesystem entry.
+-spec get_permissions_of( any_path() ) -> [ permission() ].
+get_permissions_of( EntryPath ) ->
+
+	case file:read_file_info( EntryPath ) of
+
+		{ ok, #file_info{ mode=Mode } } ->
+			from_permission_mask( Mode );
+
+		{ error, Reason } ->
+			throw( { get_permissions_of_failed, EntryPath, Reason } )
+
+	end.
 
 
 
@@ -2400,7 +2461,7 @@ get_permission_for( PermissionList ) when is_list( PermissionList ) ->
 								void().
 change_permissions( Path, NewPermissions ) ->
 
-	ActualPerms = get_permission_for( NewPermissions ),
+	ActualPerms = from_permission_mask( NewPermissions ),
 
 	case file:change_mode( Path, ActualPerms ) of
 
@@ -3042,6 +3103,9 @@ open( Filename, Options, _AttemptMode=try_endlessly ) ->
 
 			end;
 
+		{ error, eacces } ->
+			handle_eacces_error( Filename, Options );
+
 		{ error, OtherFileError } ->
 			throw( { open_failed, { Filename, Options }, OtherFileError } )
 
@@ -3058,6 +3122,9 @@ open( Filename, Options, _AttemptMode=try_once ) ->
 		{ ok, File } ->
 			 File;
 
+		{ error, eacces } ->
+			handle_eacces_error( Filename, Options );
+
 		{ error, emfile } ->
 			throw( { too_many_open_files, { Filename, Options } } );
 
@@ -3068,6 +3135,44 @@ open( Filename, Options, _AttemptMode=try_once ) ->
 
 		{ error, OtherError } ->
 			throw( { open_failed, { Filename, Options }, OtherError } )
+
+	end.
+
+
+% (helper)
+handle_eacces_error( Filename, Options ) ->
+	Dir = filename:dirname( Filename ),
+	case is_existing_directory( Dir ) of
+
+		true ->
+			UserInfo = { actual_user, system_utils:get_user_name_safe(),
+						 { user_id, system_utils:get_user_id() } },
+
+			FileInfo = case is_existing_file_or_link( Filename ) of
+
+				true ->
+					{ existing_file, { owner_id, get_owner_of( Filename ) },
+					  { group_id, get_group_of( Filename ) },
+					  { permissions, get_permissions_of( Filename ) } };
+
+				false ->
+					non_existing_file
+
+			end,
+
+			DirOwnerInfo = { owner_id, get_owner_of( Dir ) },
+			DirGroupInfo = { group_id, get_group_of( Dir ) },
+			DirPerms = { permissions, get_permissions_of( Dir ) },
+
+			DirInfo = { existing_directory, Dir, DirOwnerInfo,
+						DirGroupInfo, DirPerms },
+
+			throw( { open_failed, { Filename, Options }, eacces, UserInfo,
+					 FileInfo, DirInfo } );
+
+		false ->
+			throw( { open_failed, { Filename, Options }, eacces,
+					 { non_existing_directory, Dir } } )
 
 	end.
 
