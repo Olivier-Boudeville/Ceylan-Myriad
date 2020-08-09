@@ -388,7 +388,7 @@ get_user_id() ->
 	case run_executable( ?id "-u" ) of
 
 		{ _ExitCode=0, Output } ->
-			Output;
+			text_utils:string_to_integer( Output );
 
 		{ ExitCode, ErrorOutput } ->
 			throw( { user_id_inquiry_failed, ExitCode, ErrorOutput } )
@@ -404,7 +404,7 @@ get_group_id() ->
 	case run_executable( ?id "-g" ) of
 
 		{ _ExitCode=0, Output } ->
-			Output;
+			text_utils:string_to_integer( Output );
 
 		{ ExitCode, ErrorOutput } ->
 			throw( { group_id_inquiry_failed, ExitCode, ErrorOutput } )
