@@ -175,6 +175,7 @@ get_random_values_helper( Nmin, Nmax, Count, Acc ) ->
 %-define(use_crypto_module,).
 
 
+% Now crypto is hardly used anymore:
 -ifdef(use_crypto_module).
 
 
@@ -301,10 +302,8 @@ set_random_state( _NewState ) ->
 -else. % use_crypto_module not defined below:
 
 
-
-
 % Here we do not use the 'crypto' module; we use the 'rand' one (replacing the
-% deprecated 'random' module), and this is the default setting now.
+% deprecated 'random' module), and this is the default, most common setting now.
 
 
 % For the 'random' module, according to
@@ -451,8 +450,8 @@ stop_random_source() ->
 
 
 
-% Returns a random float uniformly distributed between 0.0 and 1.0, updating the
-% random state in the process dictionary.
+% Returns a random float uniformly distributed between 0.0 (included) and 1.0
+% (excluded), updating the random state in the process dictionary.
 %
 % Spec already specified, for all random settings.
 %
