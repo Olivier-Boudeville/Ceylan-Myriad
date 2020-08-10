@@ -95,6 +95,10 @@
 -export_type([ maybe_list/1 ]).
 
 
+% Shorthand:
+-type count() :: basic_utils:count().
+
+
 
 % Section for the checking of lists.
 
@@ -377,7 +381,7 @@ extract_last_element( List ) ->
 %
 % Ex: 3 = get_index_of( bar, [ foo, ugh, bar, baz ] )
 %
--spec get_index_of( element(), list() ) -> basic_utils:count().
+-spec get_index_of( element(), list() ) -> count().
 get_index_of( Element, List ) ->
 	case get_maybe_index_of( Element, List ) of
 
@@ -399,7 +403,7 @@ get_index_of( Element, List ) ->
 %   3 = get_maybe_index_of( bar, [ foo, ugh, bar, baz ] )
 %   undefined = get_maybe_index_of( xxx, [ foo, ugh, bar, baz ] )
 %
--spec get_maybe_index_of( element(), list() ) -> maybe( basic_utils:count() ).
+-spec get_maybe_index_of( element(), list() ) -> maybe( count() ).
 get_maybe_index_of( Element, List ) ->
 	get_maybe_index_of( Element, List, _Count=1 ).
 
@@ -421,7 +425,7 @@ get_maybe_index_of( Element, _List=[ _H | T ], Count ) ->
 %
 % Ex: split_at( 3, [ a, b, c, d, e ] ) = { [ c, b, a ], [ d, e] }
 %
--spec split_at( basic_utils:count(), list() ) -> { list(), list() }.
+-spec split_at( count(), list() ) -> { list(), list() }.
 split_at( MaxLen, List ) ->
 	split_at( List, _Count=0, MaxLen, _Acc=[] ).
 
@@ -489,7 +493,7 @@ has_duplicates( List ) ->
 % an (unordered) list of {Term,Count} pairs, where each term is associated to
 % the total number of its occurrences (1 or above) in the specified list.
 %
--spec count_occurrences( list() ) -> [ { element(), basic_utils:count() } ].
+-spec count_occurrences( list() ) -> [ { element(), count() } ].
 count_occurrences( List ) ->
 	count_occurrences( List, _Acc=[] ).
 
@@ -528,7 +532,7 @@ count_occurrences( _List=[ Term | T ], Acc ) ->
 %
 % Ex: list_utils:get_duplicates([a,a,b,b,b,c,d,d]) = [{b,3},{d,2},{a,2}]
 %
--spec get_duplicates( list() ) -> [ { element(), basic_utils:count() } ].
+-spec get_duplicates( list() ) -> [ { element(), count() } ].
 get_duplicates( List ) ->
 	get_duplicates( List, _Acc=[] ).
 
@@ -816,7 +820,7 @@ flatten_once( [ Unexpected | _T ], _Acc ) ->
 
 
 
-% Filters out all elements equal to 'undefined'; preserves order.
+% Removes (filters out) all elements equal to 'undefined'; preserves order.
 -spec filter_out_undefined( list() ) -> list().
 filter_out_undefined( L ) ->
 	% Or: delete_all_in( undefined, L ).
@@ -829,7 +833,7 @@ filter_out_undefined( L ) ->
 % sizes.
 %
 -spec determine_tuple_info( [ tuple() ] ) ->
-								  { basic_utils:count(), basic_utils:count() }.
+								  { count(), count() }.
 determine_tuple_info( _TupleList=[] ) ->
 	throw( empty_list );
 
@@ -883,7 +887,7 @@ flatten_tuples( [ H | T ], Acc ) ->
 % Ex: reconstruct_tuples( [ 1, 2, 3, 4, 5, 6 ], 3 ) =
 %                                     [ { 1, 2, 3 }, { 4, 5, 6 } ]
 %
--spec reconstruct_tuples( list(), basic_utils:count() ) -> [ tuple() ].
+-spec reconstruct_tuples( list(), count() ) -> [ tuple() ].
 reconstruct_tuples( List, _TupleSize=1 ) ->
 	% Atomic elements do not need to be wrapped in a single-element tuple:
 	List;
@@ -995,7 +999,7 @@ draw_element( ElementList ) ->
 % specified one (allows to precompute it once for multiple drawings), knowing
 % all elements have the same probability of being drawn (uniform probability).
 %
--spec draw_element( list(), basic_utils:count() ) -> element().
+-spec draw_element( list(), count() ) -> element().
 draw_element( ElementList, Length ) ->
 
 	DrawnIndex = random_utils:get_random_value( Length ),
@@ -1069,7 +1073,7 @@ select_element( [ { _Element, Probability } | T ], DrawnValue, CurrentSum ) ->
 % an element is drawn, it is removed from the candidate list so that the next
 % drawing operates on the resulting shorten list.
 %
--spec draw_elements_from( list(), basic_utils:count() ) -> [ element() ].
+-spec draw_elements_from( list(), count() ) -> [ element() ].
 draw_elements_from( ElementList, Count ) ->
 	draw_elements_from( ElementList, Count, _Acc=[] ).
 
