@@ -322,6 +322,12 @@
 % example thanks to unicode:characters_to_{list,binary}/*
 
 
+% Regarding identifiers (ex: user_id), they can be converted in actual names,
+% yet apparently with nothing simpler than:
+
+% awk -v val=USER_ID -F ":" '$3==val{print $1}' /etc/passwd
+
+
 
 % Filename-related operations.
 
@@ -2048,7 +2054,7 @@ remove_directory( DirectoryName ) ->
 
 		_ ->
 			trace_utils:error_fmt( "Interrupting removal of directory '~s', as "
-						   "device entries have been found: ~p.", [ Devices ] ),
+				"device entries have been found: ~p.", [ Devices ] ),
 
 			throw( { device_entries_found, Devices } )
 
@@ -2061,8 +2067,8 @@ remove_directory( DirectoryName ) ->
 
 		_ ->
 			trace_utils:error_fmt( "Interrupting removal of directory '~s', as "
-						"unexpected filesystem entries have been found: ~p.",
-						[ OtherFiles ] ),
+				"unexpected filesystem entries have been found: ~p.",
+				[ OtherFiles ] ),
 
 			throw( { unexpected_entries_found, OtherFiles } )
 
@@ -2426,6 +2432,9 @@ from_permission_mask( _PermPairs=[], _Mask, AccPerms ) ->
 
 from_permission_mask( _PermPairs=[ { Perm, PermMask } | T ], Mask, AccPerms ) ->
 
+	%trace_utils:debug_fmt( "From permission mask '~p': testing ~p (i.e. ~p).",
+	%					   [ Mask, Perm, PermMask ] ),
+
 	NewAccPerms = case Mask band PermMask of
 
 		0 ->
@@ -2457,13 +2466,20 @@ get_permissions_of( EntryPath ) ->
 
 
 % Changes the permissions ("chmod") of specified filesystem element.
+%
+% Note: erases any prior permissions, i.e. if specifying [other_read] then a
+% corresponding file will end up with (exactly) a -------r-- permission.
+%
 -spec change_permissions( any_path(), permission() | [ permission() ] ) ->
 								void().
 change_permissions( Path, NewPermissions ) ->
 
-	ActualPerms = from_permission_mask( NewPermissions ),
+	NewPermMask = to_permission_mask( NewPermissions ),
 
-	case file:change_mode( Path, ActualPerms ) of
+	%trace_utils:debug_fmt( "Permissions to be changed to ~p, i.e. ~p.",
+	%					   [ NewPermissions, NewPermMask ] ),
+
+	case file:change_mode( Path, NewPermMask ) of
 
 		ok ->
 			ok;
