@@ -69,6 +69,8 @@ The parallel build of the whole layer (services and tests alike) shall complete 
 
 One may just run ``make`` by itself in order to list the main available options.
 
+One may run ``make create-myriad-checkout`` in order to create, based on our conventions, a suitable ``_checkouts`` directory so that rebar3 can directly take into account local, directly available (in-development) dependencies (although Myriad does not have any, beside Erlang itself).
+
 
 
 .. _testing:
