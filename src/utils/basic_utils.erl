@@ -249,7 +249,9 @@
 % Compile-time execution target (not to be mixed up with execution_context/0):
 -type execution_target() :: 'development' | 'production'.
 
-% Runtime-time execution context (not to be mixed up with execution_target/0):
+% Runtime-time execution context (not to be mixed up with execution_target/0,
+% although gathering the same values - but conveying a different meaning):
+%
 -type execution_context() :: 'development' | 'production'.
 
 
@@ -815,7 +817,6 @@ wait_for_summable_acks_helper( WaitedSenders, CurrentValue, InitialTimestamp,
 						  atom(), atom() ) -> void().
 wait_for_many_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 					ThrowAtom ) ->
-
 	wait_for_many_acks( WaitedSenders, MaxDurationInSeconds,
 						_DefaultPeriod=1000, AckReceiveAtom, ThrowAtom ).
 
@@ -843,8 +844,7 @@ wait_for_many_acks( WaitedSenders, MaxDurationInSeconds, Period,
 % (helper)
 %
 wait_for_many_acks_helper( WaitedSenders, InitialTimestamp,
-						   MaxDurationInSeconds, Period, AckReceiveAtom,
-						   ThrowAtom ) ->
+		MaxDurationInSeconds, Period, AckReceiveAtom, ThrowAtom ) ->
 
 	case set_utils:is_empty( WaitedSenders ) of
 
@@ -1031,8 +1031,8 @@ display_process_info( Pid ) when is_pid( Pid ) ->
 					Strings = [ io_lib:format( "~s: ~p", [ K, V ] )
 								|| { K, V } <- PropList ],
 					io:format( "PID ~w refers to a local live process, "
-						"whose information is: ~s", [ Pid,
-								 text_utils:strings_to_string( Strings ) ] )
+						"whose information is: ~s",
+						[ Pid, text_utils:strings_to_string( Strings ) ] )
 
 			end;
 
@@ -1058,9 +1058,9 @@ display_process_info( Pid ) when is_pid( Pid ) ->
 								|| { K, V } <- PropList ],
 
 					io:format( "PID ~w refers to a live process on "
-							   "remote node ~s, whose information are: ~s",
-							   [ Pid, OtherNode,
-								 text_utils:strings_to_string( Strings ) ] )
+						"remote node ~s, whose information are: ~s",
+						[ Pid, OtherNode,
+						  text_utils:strings_to_string( Strings ) ] )
 
 			end
 
