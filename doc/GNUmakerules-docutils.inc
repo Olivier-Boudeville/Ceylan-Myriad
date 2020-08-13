@@ -168,7 +168,7 @@ VIEW_PDF := yes
 
 %.pdf: %.rst
 	@echo "     Generating PDF documentation $@"
-	@if $(RST_GENERATOR) $< --pdf ; then if [ "$(VIEW_PDF)" != "no" ] ; then $(PDF_VIEWER) $@ & fi; fi
+	@if $(RST_GENERATOR) $< --pdf ; then if [ "$(VIEW_PDF)" != "no" ] ; then $(PDF_VIEWER) $@ & fi; else exit 5 ; fi
 
 
 %.html: %.rst
@@ -178,7 +178,7 @@ VIEW_PDF := yes
 
 %.pdf: %.traces
 	@echo "     Generating PDF report $@ from $<"
-	@if $(RST_GENERATOR) $< --pdf ; then if [ "$(VIEW_PDF)" != "no" ] ; then $(PDF_VIEWER) $@ & fi; fi
+	@if $(RST_GENERATOR) $< --pdf ; then if [ "$(VIEW_PDF)" != "no" ] ; then $(PDF_VIEWER) $@ & fi; else exit 15 ; fi
 
 
 
