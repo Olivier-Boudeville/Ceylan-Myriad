@@ -1224,6 +1224,10 @@ STABLE_INC := $(INC)
 REBAR_INCS := {i,\"`echo $(STABLE_INC)|sed 's| |\"}, {i,\"|g' | sed 's|-I\.\./||g'`\"}
 
 
+# Useful to notify the user whenever a longer operation terminates:
+NOTIFIER_TOOL := $$(which bong.sh 2>/dev/null || true)
+
+
 # Some source files cannot be compiled in all cases (typically because they
 # depend on the includes of prerequisites that may or may not be installed).
 #
