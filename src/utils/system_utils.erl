@@ -1307,8 +1307,8 @@ environment_to_string( Environment ) ->
 
 
 
-% Returns the version informations of the current Erlang interpreter (actually
-% the environment one, including the VM) being used.
+% Returns the version information of the current Erlang interpreter (actually
+% the one of the whole environment, including the VM) being used.
 %
 % Returns a full version name (ex: "R13B04") or, if not available, a shorter one
 % (ex: "R11B").
