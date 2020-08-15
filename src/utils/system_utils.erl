@@ -363,6 +363,8 @@ get_user_name_safe() ->
 
 % Returns a textual description of the name of the current user.
 %
+% Note: to be flattened caller-side.
+%
 % Cannot crash.
 %
 -spec get_user_name_string() -> text_utils:ustring().
