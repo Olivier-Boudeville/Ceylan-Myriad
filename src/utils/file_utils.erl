@@ -371,12 +371,12 @@ join( NonList ) ->
 
 % Joins the two specified path elements.
 %
-% This function has been added back to this module; filename:join( Name1, Name2
-% ) could be used instead (at least to some extent); however filename:join( "",
-% "my_dir" ) results in "/my_dir", whereas often we would want "my_dir" - which
-% is returned by our function; moreover filename:join( SomePath, AbsPath= [
-% ?directory_separator | _ ] ) returns AbsPath, dropping SomePath for some
-% reason (which does not seem desirable); here we throw an exception instead.
+% This function has been added back to this module; filename:join(Name1, Name2)
+% could be used instead (at least to some extent); however filename:join("",
+% "my_dir") results in "/my_dir", whereas often we would want "my_dir" - which
+% is returned by our function; moreover filename:join(SomePath, AbsPath=[
+% ?directory_separator | _ ]) returns AbsPath, dropping SomePath for some reason
+% (which does not seem desirable); here we throw an exception instead.
 %
 % So we deem our version simpler and less prone to surprise (least
 % astonishment).
@@ -3120,7 +3120,8 @@ open( Filename, Options, _AttemptMode=try_endlessly ) ->
 			end;
 
 		{ error, eacces } ->
-			handle_eacces_error( Filename, Options );
+			throw( { open_failed, { Filename, Options }, access_denied,
+					 get_access_denied_info( Filename ) } );
 
 		{ error, OtherFileError } ->
 			throw( { open_failed, { Filename, Options }, OtherFileError } )
@@ -3139,7 +3140,7 @@ open( Filename, Options, _AttemptMode=try_once ) ->
 			 File;
 
 		{ error, eacces } ->
-			handle_eacces_error( Filename, Options );
+			get_access_denied_info( Filename );
 
 		{ error, emfile } ->
 			throw( { too_many_open_files, { Filename, Options } } );
@@ -3156,8 +3157,10 @@ open( Filename, Options, _AttemptMode=try_once ) ->
 
 
 % (helper)
-handle_eacces_error( Filename, Options ) ->
+get_access_denied_info( Filename ) ->
+
 	Dir = filename:dirname( Filename ),
+
 	case is_existing_directory( Dir ) of
 
 		true ->
@@ -3180,15 +3183,13 @@ handle_eacces_error( Filename, Options ) ->
 			DirGroupInfo = { group_id, get_group_of( Dir ) },
 			DirPerms = { permissions, get_permissions_of( Dir ) },
 
-			DirInfo = { existing_directory, Dir, DirOwnerInfo,
-						DirGroupInfo, DirPerms },
+			DirInfo = { existing_directory, Dir, DirOwnerInfo, DirGroupInfo,
+						DirPerms },
 
-			throw( { open_failed, { Filename, Options }, eacces, UserInfo,
-					 FileInfo, DirInfo } );
+			{ UserInfo, FileInfo, DirInfo };
 
 		false ->
-			throw( { open_failed, { Filename, Options }, eacces,
-					 { non_existing_directory, Dir } } )
+			{ non_existing_directory, Dir }
 
 	end.
 
@@ -3396,7 +3397,7 @@ read_terms( Filename ) ->
 
 		{ error, eacces }  ->
 			throw( { reading_failed, Filename, access_denied,
-					 system_utils:get_user_name_string() } );
+					 get_access_denied_info( Filename ) } );
 
 		{ error, Error } when is_atom( Error ) ->
 			throw( { reading_failed, Filename, Error } );
