@@ -920,6 +920,7 @@ version_to_string( { V1, V2, V3 } ) ->
 % Returns a binary string corresponding to the specified atom.
 -spec atom_to_binary( atom() ) -> bin_string().
 atom_to_binary( Atom ) ->
+	% Note: options may apply, like in: erlang:atom_to_binary( X, utf8 ).
 	string_to_binary( atom_to_string( Atom ) ).
 
 
