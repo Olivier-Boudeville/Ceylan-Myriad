@@ -25,7 +25,14 @@
   % No process registered:
   {registered, []},
 
-  {applications, [kernel,stdlib]},
+  {applications, [ kernel,
+				   stdlib
+
+				   % If enabling a JSON parser, select a backend:
+				   %,jsx
+				   %,jiffy
+
+				 ]},
 
   {env,[]},
 

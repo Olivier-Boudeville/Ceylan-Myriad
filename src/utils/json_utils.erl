@@ -42,18 +42,30 @@
 % writing; we expect the BEAM files from jsx to be available on the code path
 % (we typically expect to find them in ~/Software/jsx/jsx-current-install)
 
+% Using jiffy (https://github.com/davisp/jiffy) could have been another option.
+
 % Comments are not supported in JSON; for them we rely on (non-duplicated)
 % "_comment" entries.
 
 
--export([ start_parser/0, is_parser_available/0, to_json/1,
-		  stop_parser/0,
+
+-export([ start_parser/0, stop_parser/0,
+
+		  get_parser_backend_name/0, is_parser_available/0,
+
+		  to_json/1,
 		  from_json/1, from_json/2, from_json_as_maps/1,
 		  from_json_file/1, from_json_file/2, from_json_file_as_maps/1 ]).
 
 
 % JSON document:
 -type json() :: binary() | string().
+
+
+% Shorthands;
+
+-type any_file_path() :: file_utils:any_file_path().
+
 
 
 
@@ -74,18 +86,82 @@
 -spec start_parser() -> void().
 start_parser() ->
 
-	% We use the 'jsx' parser, an external prerequisite.
 	case is_parser_available() of
 
 		true ->
 			ok;
 
 		false ->
-			trace_utils:error_fmt( "The jsx JSON parser is not available.~n~s",
-						   [ system_utils:get_json_unavailability_hint() ] ),
-			throw( { json_parser_not_found, jsx } )
+			JSONBackend = get_parser_backend_name(),
+			trace_utils:error_fmt( "The ~s JSON parser is not available.~n~s",
+				[ JSONBackend,
+				  system_utils:get_json_unavailability_hint( JSONBackend ) ] ),
+
+			throw( { json_parser_backend_not_found, JSONBackend } )
 
 	end,
+
+	check_parser_operational().
+
+
+
+% Returns (as an atom) the JSON parser (as an OTP application name) currently used.
+-spec get_parser_backend_name() -> 'jsx' | 'jiffy' | otp_utils:application_name().
+
+-ifdef( use_jsx_json_backend ).
+
+get_parser_backend_name() ->
+	% We currently use the 'jsx' parser, an external prerequisite.
+	jsx.
+
+-else. % use_jsx_json_backend
+
+-ifdef( use_jiffy_json_backend ).
+
+get_parser_backend_name() ->
+	% Another external prerequisite can be used, Jiffy:
+	jiffy.
+
+-else. % use_jiffy_json_backend
+
+get_parser_backend_name() ->
+	throw( no_json_backend_enabled ).
+
+-endif. % use_jiffy_json_backend
+
+-endif. % use_jsx_json_backend
+
+
+
+% Tells whether the JSON parser is available.
+-spec is_parser_available() -> boolean().
+is_parser_available() ->
+
+	% The backend is supposed to define a module of the same name:
+	BackendMainModule = get_parser_backend_name(),
+
+	case code_utils:is_beam_in_path( BackendMainModule ) of
+
+		not_found ->
+			false;
+
+		[ _Path ] ->
+			%trace_utils:debug_fmt( "JSON parser found as '~s'.", [ Path ] ),
+			true ;
+
+		Paths ->
+			throw( { multiple_json_backends_found, Paths } )
+
+	end.
+
+
+
+% Checks whether the JSON parser is operational; throws an exception if not.
+-spec check_parser_operational() -> void().
+
+-ifdef( use_jsx_json_backend ).
+
+check_parser_operational() ->
 
 	% This is a way to check its BEAMs are available and fully usable:
 	try jsx:is_json( <<"\"test\"">> ) of
@@ -103,39 +179,74 @@ start_parser() ->
 
 	end.
 
+-else. % use_jsx_json_backend
 
+-ifdef( use_jiffy_json_backend ).
 
-% Tells whether the JSON parser is available.
--spec is_parser_available() -> boolean().
-is_parser_available() ->
+check_parser_operational() ->
+	trace_utils:warning( "Jiffy supposed to be operational." ).
 
-	case code_utils:is_beam_in_path( 'jsx' ) of
+-else. % use_jiffy_json_backend
 
-		not_found ->
-			false;
+check_parser_operational() ->
+	throw( no_json_backend_enabled ).
 
-		[ _Path ] ->
-			true ;
+-endif. % use_jiffy_json_backend
 
-		Paths ->
-			throw( { multiple_jsx_found, Paths } )
-
-	end.
+-endif. % use_jsx_json_backend
 
 
 
 % Converts (encodes) specified Erlang term into a JSON counterpart element.
 -spec to_json( term() ) -> json().
+
+-ifdef( use_jsx_json_backend ).
+
 to_json( Term ) ->
 	jsx:encode( Term ).
+
+-else. % use_jsx_json_backend
+
+-ifdef( use_jiffy_json_backend ).
+
+to_json( Term ) ->
+	jiffy:encode( Term ).
+
+-else. % use_jiffy_json_backend
+
+to_json( _Term ) ->
+	throw( no_json_backend_enabled ).
+
+-endif. % use_jiffy_json_backend
+
+-endif. % use_jsx_json_backend
 
 
 
 % Returns the default options for the JSON decoding.
 -spec get_default_json_decoding_options() -> [ json_parsing_option() ].
+
+-ifdef( use_jsx_json_backend ).
+
 get_default_json_decoding_options() ->
 	% We prefer {state,<<"PUBLISHED">>} to {<<"state">>,<<"PUBLISHED">>}:
 	[ { labels, atom } ].
+
+-else. % use_jsx_json_backend
+
+-ifdef( use_jiffy_json_backend ).
+
+get_default_json_decoding_options() ->
+	[].
+
+-else. % use_jiffy_json_backend
+
+get_default_json_decoding_options() ->
+	throw( no_json_backend_enabled ).
+
+-endif. % use_jiffy_json_backend
+
+-endif. % use_jsx_json_backend
 
 
 
@@ -150,6 +261,9 @@ from_json( Json ) ->
 % with specified parsing options.
 %
 -spec from_json( json(), [ json_parsing_option() ] ) -> term().
+
+-ifdef( use_jsx_json_backend ).
+
 from_json( BinJson, Opts ) when is_binary( BinJson ) ->
 
 	%trace_utils:debug_fmt( "Decoding '~p'.", [ BinJson ] ),
@@ -160,13 +274,31 @@ from_json( BinJson, Opts ) when is_binary( BinJson ) ->
 	% ** exception error: bad argument
 	%  in function  jsx_decoder:maybe_done/4
 	%
-	% (not even returning a line number for the faulty part...)
+	% (not even returning a line number for the faulty JSON part...)
 
 	jsx:decode( BinJson, Opts );
 
+% This clause cannot be even factorised:
 from_json( StringJson, Opts ) when is_list( StringJson ) ->
 	BinJson = text_utils:string_to_binary( StringJson ),
 	from_json( BinJson, Opts ).
+
+-else. % use_jsx_json_backend
+
+-ifdef( use_jiffy_json_backend ).
+
+from_json( BinJson, _Opts ) when is_binary( BinJson ) ->
+	throw( not_implemented ).
+
+-else. % use_jiffy_json_backend
+
+from_json( BinJson, _Opts ) when is_binary( BinJson ) ->
+	throw( no_json_backend_enabled ).
+
+-endif. % use_jiffy_json_backend
+
+-endif. % use_jsx_json_backend
+
 
 
 
@@ -176,31 +308,48 @@ from_json( StringJson, Opts ) when is_list( StringJson ) ->
 % Note that if in a given scope a key is present more than once, only one of its
 % values will be retained (actually the lastly defined one).
 %
--spec from_json_as_maps( json() ) -> table:table().
+-spec from_json_as_maps( json() ) -> table().
+
+-ifdef( use_jsx_json_backend ).
+
 from_json_as_maps( BinJson ) when is_binary( BinJson ) ->
-
 	Opts = [ return_maps | get_default_json_decoding_options() ],
-
 	from_json( BinJson, Opts ).
+
+-else. % use_jsx_json_backend
+
+-ifdef( use_jiffy_json_backend ).
+
+from_json_as_maps( BinJson ) when is_binary( BinJson ) ->
+	throw( not_implemented ).
+
+-else. % use_jiffy_json_backend
+
+from_json_as_maps( BinJson ) when is_binary( BinJson ) ->
+	throw( no_json_backend_enabled ).
+
+-endif. % use_jiffy_json_backend
+
+-endif. % use_jsx_json_backend
 
 
 
 % Converts (decodes) specified JSON file into an Erlang term counterpart.
--spec from_json_file( file_utils:any_file_path() ) -> term().
+-spec from_json_file( any_file_path() ) -> term().
 from_json_file( JsonFilePath ) ->
-	Json = file_utils:read_whole( JsonFilePath ),
-	from_json( Json ).
+	BinJson = file_utils:read_whole( JsonFilePath ),
+	from_json( BinJson ).
 
 
 
 % Converts (decodes) specified JSON file into an Erlang term counterpart, with
 % specified parsing options.
 %
--spec from_json_file( file_utils:any_file_path(),
+-spec from_json_file( any_file_path(),
 					  [ json_parsing_option() ] ) -> term().
 from_json_file( JsonFilePath, Opts ) ->
-	Json = file_utils:read_whole( JsonFilePath ),
-	from_json( Json, Opts ).
+	BinJson = file_utils:read_whole( JsonFilePath ),
+	from_json( BinJson, Opts ).
 
 
 
@@ -210,14 +359,33 @@ from_json_file( JsonFilePath, Opts ) ->
 % Note that if in a given scope a key is present more than once, only one of its
 % values will be retained (actually the lastly defined one).
 %
--spec from_json_file_as_maps( file_utils:any_file_path() ) -> table:table().
+-spec from_json_file_as_maps( any_file_path() ) -> table().
 from_json_file_as_maps( JsonFilePath ) ->
-	Json = file_utils:read_whole( JsonFilePath ),
-	from_json_as_maps( Json ).
+	BinJson = file_utils:read_whole( JsonFilePath ),
+	from_json_as_maps( BinJson ).
 
 
 
 % Stops the JSON parser.
 -spec stop_parser() -> void().
+
+-ifdef( use_jsx_json_backend ).
+
 stop_parser() ->
 	ok.
+
+-else. % use_jsx_json_backend
+
+-ifdef( use_jiffy_json_backend ).
+
+stop_parser() ->
+	ok.
+
+-else. % use_jiffy_json_backend
+
+stop_parser() ->
+	ok.
+
+-endif. % use_jiffy_json_backend
+
+-endif. % use_jsx_json_backend

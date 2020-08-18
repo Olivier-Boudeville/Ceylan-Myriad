@@ -348,9 +348,9 @@ endif
 
 
 
-# Deactivated by default, as requires specific prerequisites (the jsx JSON
-# parser, cf https://github.com/talentdeficit/jsx) at runtime (not at
-# compilation time, as not needing any specific include).
+# Deactivated by default, as requires specific prerequisites (the selected
+# third-party JSON parser backend) at runtime (not at compilation time, as not
+# needing any specific include).
 #
 ifndef USE_REST
 	USE_REST = false
@@ -364,13 +364,50 @@ endif
 
 ifeq ($(USE_JSON),true)
 
-	JSX_BASE := $$HOME/Software/jsx/jsx-current-install
+	 # Exactly one backend shall then be selected:
 
-	INC += -I$(JSX_BASE)/include
+	# Default choice:
+	USE_JSX = true
+	#USE_JSX = false
 
-	# ($(JSX_BASE)/ebin/*.beam found at runtime)
+	#USE_JIFFY = true
+	USE_JIFFY = false
 
-	ABS_BEAM_DIRS += $(JSX_BASE)/ebin/
+	ifeq ($(USE_JSX),true)
+
+		JSON_OPT = -Duse_jsx_json_backend
+
+		# The JSX JSON parser is available at https://github.com/talentdeficit/jsx.
+		JSX_BASE := $$HOME/Software/jsx/jsx-current-install
+
+		INC += -I$(JSX_BASE)/include
+
+		# ($(JSX_BASE)/ebin/*.beam found at runtime)
+
+		ABS_BEAM_DIRS += $(JSX_BASE)/ebin
+
+	else
+
+		ifeq ($(USE_JIFFY),true)
+
+			JSON_OPT = -Duse_jiffy_json_backend
+
+			# The Jiffy JSON parser is available at https://github.com/davisp/jiffy.
+			JIFFY_BASE := $$HOME/Software/jiffy/jiffy-current-install
+
+			INC += -I$(JIFFY_BASE)/include
+
+			# ($(JIFFY_BASE)/ebin/*.beam found at runtime)
+
+			ABS_BEAM_DIRS += $(JIFFY_BASE)/ebin
+
+		else
+
+			$(error JSON use enabled yet no corresponding backend selected.)
+
+		endif
+
+	endif
 
 endif
 
@@ -872,9 +909,18 @@ endif
 # Warning-related options (may or may not be included):
 # "+{warn_format,2}" would trigger unwanted useless warnings about format
 # strings
-ERLANG_COMPILER_WARNING_OPT += -W$(WARNING_LEVEL) +warn_export_all \
-	+warn_export_vars +warn_shadow_vars +warn_obsolete_guards      \
-	+warn_unused_import +warnings_as_errors
+
+# So that this can be overridden:
+ifndef ERLANG_COMPILER_BASE_WARNING_OPT
+
+	ERLANG_COMPILER_BASE_WARNING_OPT = -W$(WARNING_LEVEL) +warn_export_all \
+		   +warn_export_vars +warn_shaadow_vars +warn_obsolete_guards      \
+		   +warn_unused_import +warnings_as_errors
+
+endif
+
+ERLANG_COMPILER_WARNING_OPT += $(ERLANG_COMPILER_BASE_WARNING_OPT)
+
 
 # Once type specs will have been added: +warn_untyped_record +warn_missing_spec
 
