@@ -1823,14 +1823,16 @@ create_directory_if_not_existing( Dirname, ParentCreation ) ->
 
 
 
-% Creates a non previously existing temporary directory, and returns its full
+% Creates a non-previously existing temporary directory, and returns its full
 % path.
+%
+% See also: system_utils:get_default_temporary_directory/0
 %
 -spec create_temporary_directory() -> directory_name().
 create_temporary_directory() ->
 
-	TmpDir = join( [ "/tmp", system_utils:get_user_name(),
-					 id_utils:generate_uuid() ] ),
+	TmpDir = join( [ system_utils:get_default_temporary_directory(),
+					 system_utils:get_user_name(), id_utils:generate_uuid() ] ),
 
 	case exists( TmpDir ) of
 
