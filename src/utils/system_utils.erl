@@ -99,7 +99,7 @@
 		  get_known_pseudo_filesystems/0, get_filesystem_info/1,
 		  filesystem_info_to_string/1,
 
-		  get_current_directory_string/0,
+		  get_default_temporary_directory/0, get_current_directory_string/0,
 
 		  get_operating_system_description/0,
 		  get_operating_system_description_string/0,
@@ -117,7 +117,10 @@
 
 
 -export([ get_dependency_base_directory/1, get_dependency_code_directory/1,
-		  is_json_support_available/0, get_json_unavailability_hint/0,
+
+		  is_json_support_available/0,
+		  get_json_unavailability_hint/0, get_json_unavailability_hint/1,
+
 		  is_hdf5_support_available/0, get_hdf5_unavailability_hint/0  ]).
 
 
@@ -302,6 +305,10 @@
 -include("spawn_utils.hrl").
 
 
+% Shorthands:
+-type ustring() :: text_utils:ustring().
+
+
 % Unicode defines are in system_utils.hrl.
 
 
@@ -367,7 +374,7 @@ get_user_name_safe() ->
 %
 % Cannot crash.
 %
--spec get_user_name_string() -> text_utils:ustring().
+-spec get_user_name_string() -> ustring().
 get_user_name_string() ->
 
 	try
@@ -445,7 +452,7 @@ get_user_home_directory( Username ) ->
 %
 % Cannot crash.
 %
--spec get_user_home_directory_string() -> text_utils:ustring().
+-spec get_user_home_directory_string() -> ustring().
 get_user_home_directory_string() ->
 
 	try
@@ -812,7 +819,7 @@ read_port( Port, Data ) ->
 % with -noinput (and thus so that {text,term}_ui can be used with the same VM
 % settings).
 %
--spec get_line( text_utils:ustring() ) -> text_utils:ustring().
+-spec get_line( ustring() ) -> ustring().
 get_line( Prompt ) ->
 	get_line( Prompt, get_line_helper_script() ).
 
@@ -822,8 +829,8 @@ get_line( Prompt ) ->
 % with -noinput (and thus so that {text,term}_ui can be used with the same VM
 % settings).
 %
--spec get_line( text_utils:ustring(), file_utils:executable_path() ) ->
-					  text_utils:ustring().
+-spec get_line( ustring(), file_utils:executable_path() ) ->
+					  ustring().
 get_line( Prompt, GetLineScriptPath ) ->
 
 	% Having the script display the prompt would not work, as that script would
@@ -992,8 +999,7 @@ evaluate_shell_expression( Expression, Environment ) ->
 	FullExpression = get_actual_expression( Expression, Environment ),
 
 	%trace_utils:debug_fmt( "Evaluation shell expression '~s' "
-	%						"in ~s", [ FullExpression,
-	%						   environment_to_string( Environment ) ] ),
+	%  "in ~s", [ FullExpression, environment_to_string( Environment ) ] ),
 
 	% No return code available, success supposed:
 	text_utils:remove_ending_carriage_return( os:cmd( FullExpression ) ).
@@ -1385,7 +1391,7 @@ get_size_of_vm_word() ->
 %
 % Cannot crash.
 %
--spec get_size_of_vm_word_string() -> text_utils:ustring().
+-spec get_size_of_vm_word_string() -> ustring().
 get_size_of_vm_word_string() ->
 
 	try
@@ -1672,7 +1678,7 @@ get_total_physical_memory() ->
 %
 % Cannot crash.
 %
--spec get_total_physical_memory_string() -> text_utils:ustring().
+-spec get_total_physical_memory_string() -> ustring().
 get_total_physical_memory_string() ->
 
 	try
@@ -1725,7 +1731,7 @@ get_memory_used_by_vm() ->
 
 
 
-% Returns { UsedRAM, TotalRAM } where UsedRAM is the actual total memory used on
+% Returns {UsedRAM, TotalRAM} where UsedRAM is the actual total memory used on
 % the current host by all applications, in bytes, and TotalRAM is the total
 % installed RAM, in bytes.
 %
@@ -1867,7 +1873,7 @@ get_total_memory_used() ->
 %
 % Cannot crash.
 %
--spec get_ram_status_string() -> text_utils:ustring().
+-spec get_ram_status_string() -> ustring().
 get_ram_status_string() ->
 
 	try
@@ -1948,7 +1954,7 @@ get_swap_status() ->
 %
 % Cannot crash.
 %
--spec get_swap_status_string() -> text_utils:ustring().
+-spec get_swap_status_string() -> ustring().
 get_swap_status_string() ->
 
 	try
@@ -1960,10 +1966,9 @@ get_swap_status_string() ->
 
 			{ UsedSwap, TotalSwap } ->
 				io_lib:format( "swap used: ~s over a total of ~s (~s)",
-							   [ interpret_byte_size( UsedSwap ),
-								 interpret_byte_size( TotalSwap ),
-								 text_utils:percent_to_string(
-								   UsedSwap / TotalSwap ) ] )
+					[ interpret_byte_size( UsedSwap ),
+					  interpret_byte_size( TotalSwap ),
+					  text_utils:percent_to_string( UsedSwap / TotalSwap ) ] )
 
 		end
 
@@ -2012,7 +2017,7 @@ get_core_count() ->
 %
 % Cannot crash.
 %
--spec get_core_count_string() -> text_utils:ustring().
+-spec get_core_count_string() -> ustring().
 get_core_count_string() ->
 
 	try
@@ -2041,7 +2046,7 @@ get_process_count() ->
 %
 % Cannot crash.
 %
--spec get_process_count_string() -> text_utils:ustring().
+-spec get_process_count_string() -> ustring().
 get_process_count_string() ->
 
 	try
@@ -2209,7 +2214,7 @@ get_cpu_usage_counters() ->
 
 
 % Returns the current usage of disks, as a human-readable string.
--spec get_disk_usage() -> text_utils:ustring().
+-spec get_disk_usage() -> ustring().
 get_disk_usage() ->
 
 	case run_executable( ?df "-h" ) of
@@ -2229,7 +2234,7 @@ get_disk_usage() ->
 %
 % Cannot crash.
 %
--spec get_disk_usage_string() -> text_utils:ustring().
+-spec get_disk_usage_string() -> ustring().
 get_disk_usage_string() ->
 
 	try
@@ -2400,7 +2405,7 @@ get_filesystem_info_alternate( FilesystemPath ) ->
 
 
 % Returns a textual description of the specified filesystem information.
--spec filesystem_info_to_string( fs_info() ) -> text_utils:ustring().
+-spec filesystem_info_to_string( fs_info() ) -> ustring().
 filesystem_info_to_string( #fs_info{ filesystem=Fs, mount_point=Mount,
 									 type=Type,
 									 used_size=USize, available_size=ASize,
@@ -2420,23 +2425,28 @@ filesystem_info_to_string( #fs_info{ filesystem=Fs, mount_point=Mount,
 	end,
 
 	text_utils:format( "filesystem ~s mounted on ~s (type: ~s). "
-					   "Used size: ~B bytes (i.e. ~s), available size: "
-					   "~B bytes (i.e. ~s) hence used at ~.1f% "
-					   "(total size: ~s), "
-					   "using ~B inodes and having ~B of them available~s",
-					   [ Fs, Mount, Type, USize,
-						 interpret_byte_size_with_unit( USize ), ASize,
-						 interpret_byte_size_with_unit( ASize ),
-						 100 * USize / ( USize + ASize ),
-						 interpret_byte_size_with_unit( USize + ASize ),
-						 Uinodes, Ainodes, InodeString ] ).
+		"Used size: ~B bytes (i.e. ~s), available size: "
+		"~B bytes (i.e. ~s) hence used at ~.1f% (total size: ~s), "
+		"using ~B inodes and having ~B of them available~s",
+		[ Fs, Mount, Type, USize, interpret_byte_size_with_unit( USize ),
+		  ASize, interpret_byte_size_with_unit( ASize ),
+		  100 * USize / ( USize + ASize ),
+		  interpret_byte_size_with_unit( USize + ASize ),
+		  Uinodes, Ainodes, InodeString ] ).
 
 
 
--spec get_filesystem_type( text_utils:ustring() ) -> filesystem_type().
+-spec get_filesystem_type( ustring() ) -> filesystem_type().
 get_filesystem_type( TypeString ) ->
 	% Better for now than relying on an uncomplete list:
 	text_utils:string_to_atom( TypeString ).
+
+
+
+% Returns a (probably system-dependent) base temporary directory.
+-spec get_default_temporary_directory() -> file_utils:directory_path().
+get_default_temporary_directory() ->
+	"/tmp".
 
 
 
@@ -2444,7 +2454,7 @@ get_filesystem_type( TypeString ) ->
 %
 % Cannot crash.
 %
--spec get_current_directory_string() -> text_utils:ustring().
+-spec get_current_directory_string() -> ustring().
 get_current_directory_string() ->
 
 	try
@@ -2462,7 +2472,7 @@ get_current_directory_string() ->
 
 
 % Returns a string describing the current operating system.
--spec get_operating_system_description() -> text_utils:ustring().
+-spec get_operating_system_description() -> ustring().
 get_operating_system_description() ->
 
 	OSfile = "/etc/os-release",
@@ -2511,7 +2521,7 @@ get_operating_system_description_alternate() ->
 %
 % Cannot crash.
 %
--spec get_operating_system_description_string() -> text_utils:ustring().
+-spec get_operating_system_description_string() -> ustring().
 get_operating_system_description_string() ->
 
 	try
@@ -2668,9 +2678,9 @@ get_dependency_base_directory( PackageName="ErlPort" ) ->
 
 				_ ->
 					trace_utils:error_fmt( "The Erlport directory "
-								"specified in the ERLPORT_BASE_DIR environment "
-								"variable ('~s') does not end with 'erlport'.",
-								[ EnvDir ] ),
+						"specified in the ERLPORT_BASE_DIR environment "
+						"variable ('~s') does not end with 'erlport'.",
+						[ EnvDir ] ),
 					throw( { invalid_erlport_specified_directory, EnvDir } )
 
 			end
@@ -2712,14 +2722,35 @@ is_json_support_available() ->
 	json_utils:is_parser_available().
 
 
+
 % Returns a string explaining what to do in order to have the JSON support
 % available.
 %
 -spec get_json_unavailability_hint() -> string().
 get_json_unavailability_hint() ->
+	get_json_unavailability_hint( _Backend=undefined ).
+
+
+% Returns a string explaining what to do in order to have the JSON support with
+% the specified backend available.
+%
+-spec get_json_unavailability_hint( maybe( otp_utils:application_name() ) ) ->
+		  string().
+get_json_unavailability_hint( _Backend=undefined ) ->
+	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_JSON and "
+	"*_BASE variables, knowing that the current code path is: "
+		++ code_utils:get_code_path_as_string();
+
+get_json_unavailability_hint( _Backend=jsx ) ->
 	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_JSON and "
 	"JSX_BASE variables, knowing that the current code path is: "
+		++ code_utils:get_code_path_as_string();
+
+get_json_unavailability_hint( _Backend=jiffy ) ->
+	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_JSON and "
+	"JIFFY_BASE variables, knowing that the current code path is: "
 		++ code_utils:get_code_path_as_string().
+
 
 
 % Tells whether an HDF5 support is available.
