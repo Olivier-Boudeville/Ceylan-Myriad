@@ -157,7 +157,7 @@
 -type tcp_port_restriction() :: 'no_restriction' | tcp_port_range().
 
 
-% The possible protocols for an URL:
+% The possible protocols (schemes) for an URL:
 -type protocol_type() :: 'http' | 'https' | 'ftp'.
 
 
