@@ -70,7 +70,8 @@ Technical Manual of the ``Ceylan-Myriad`` Layer
 
 .. include:: Ceylan-Myriad-Layer-installation-english.rst
 
-.. include:: Ceylan-Myriad-Layer-builder-english.rst
+.. comment
+  .. include:: Ceylan-Myriad-Layer-builder-english.rst
 
 
 :raw-latex:`\pagebreak`
