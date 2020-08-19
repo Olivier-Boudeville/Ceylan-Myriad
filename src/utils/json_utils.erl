@@ -37,12 +37,16 @@
 
 % Implementation notes:
 %
-% We rely here on a JSON parser, namely jsx
-% (https://github.com/talentdeficit/jsx/), version 2.8.0 at the time of this
+% We rely here on a JSON parser, namely by default jsx
+% (https://github.com/talentdeficit/jsx/), version 3.0.0 at the time of this
 % writing; we expect the BEAM files from jsx to be available on the code path
-% (we typically expect to find them in ~/Software/jsx/jsx-current-install)
+% (out of a rebar3 context, we typically expect to find them in
+% ~/Software/jsx/jsx-current-install).
+%
+% Using jiffy (https://github.com/davisp/jiffy) is the second support backend.
 
-% Using jiffy (https://github.com/davisp/jiffy) could have been another option.
+% The typical type of (Erlang) terms to be encoded in JSON is a map whose keys
+% are binaries.
 
 % Comments are not supported in JSON; for them we rely on (non-duplicated)
 % "_comment" entries.
@@ -198,6 +202,11 @@ check_parser_operational() ->
 
 
 % Converts (encodes) specified Erlang term into a JSON counterpart element.
+%
+% Ex: json_utils:to_json( #{ <<"protected">> => Protected,
+%							 <<"payload">> => Payload,
+%							 <<"signature">> => EncSigned } ).
+%
 -spec to_json( term() ) -> json().
 
 -ifdef( use_jsx_json_backend ).
@@ -229,15 +238,20 @@ to_json( _Term ) ->
 -ifdef( use_jsx_json_backend ).
 
 get_default_json_decoding_options() ->
-	% We prefer {state,<<"PUBLISHED">>} to {<<"state">>,<<"PUBLISHED">>}:
-	[ { labels, atom } ].
+	% We used to prefer {state,<<"PUBLISHED">>} to
+	% {<<"state">>,<<"PUBLISHED">>}, yet for compatibility with jiffy we stick
+	% to binaries now, so:
+	%
+	%[ { labels, atom } ].
+	[].
 
 -else. % use_jsx_json_backend
 
 -ifdef( use_jiffy_json_backend ).
 
 get_default_json_decoding_options() ->
-	[].
+	% Jiffy only understands UTF-8 in binaries.
+	[ use_nil, force_utf8 ].
 
 -else. % use_jiffy_json_backend
 
@@ -321,7 +335,9 @@ from_json_as_maps( BinJson ) when is_binary( BinJson ) ->
 -ifdef( use_jiffy_json_backend ).
 
 from_json_as_maps( BinJson ) when is_binary( BinJson ) ->
-	throw( not_implemented ).
+
+	Opts = [ return_maps | get_default_json_decoding_options() ],
+	from_json( BinJson, Opts ).
 
 -else. % use_jiffy_json_backend
 
