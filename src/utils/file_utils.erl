@@ -42,14 +42,11 @@
 
 
 % Filename-related operations.
-%
-% See also: filename:dirname/1 and filename:basename/1.
-%
-% Ex:
-%  - filename:dirname("/aaa/bbb.txt") = "/aaa"
-%  - filename:basename("/aaa/bbb.txt") = "bbb.txt"
-%
--export([ join/1, join/2, convert_to_filename/1,
+-export([ join/1, join/2,
+
+		  get_base_path/1, get_last_path_element/1,
+
+		  convert_to_filename/1,
 
 		  get_extensions/1, get_extension/1, remove_extension/1,
 		  replace_extension/3,
@@ -341,6 +338,10 @@
 %-define( directory_separator, $\ ).
 
 
+% No cross-module inlining unfortunately (parse-transforms...):
+-compile( { inline, [ get_base_path/1, get_last_path_element/1 ] } ).
+
+
 
 % Joins the specified list of path elements.
 %
@@ -450,6 +451,41 @@ get_last_element( _List=[ SingleElement ] ) ->
 
 get_last_element( _List=[ _H | T ] ) ->
 	get_last_element( T ).
+
+
+
+% Returns the complete leading, "directory" part of specified path,
+% i.e. the one with all its element but the last one.
+%
+% Ex: "/aaa/bbb/ccc" =
+%          file_utils:get_base_path("/aaa/bbb/ccc/foobar.txt").
+%
+% Note that the return type is the same of the input path, i.e. plain string or
+% binary string.
+%
+% Alias name for filename:dirname/1 (in file_utils, and hopefully clearer).
+%
+-spec get_base_path( any_path() ) -> any_path().
+get_base_path( AnyPath ) ->
+	filename:dirname( AnyPath ).
+
+
+
+% Returns the final, "file" part of specified path, i.e. its last element, as a
+% one-element path, corresponding either to a file or a directory.
+%
+% Ex: <<"foobar.txt">> =
+%          file_utils:get_last_path_element(<<"/aaa/bbb/ccc/foobar.txt">>).
+%
+% Note that the return type is the same of the input path, i.e. plain string or
+% binary string.
+%
+% Replacement name for filename:basename/1 (in file_utils, and hopefully clearer).
+%
+-spec get_last_path_element( any_path() ) -> any_path().
+get_last_path_element( AnyPath ) ->
+	filename:basename( AnyPath ).
+
 
 
 
