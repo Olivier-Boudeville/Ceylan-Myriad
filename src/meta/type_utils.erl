@@ -688,6 +688,9 @@ get_type_of( Term ) when is_list( Term ) ->
 
 	end;
 
+get_type_of( Term ) when is_map( Term ) ->
+	'map';
+
 get_type_of( Term ) when is_port( Term ) ->
 	'port';
 
@@ -698,7 +701,11 @@ get_type_of( Term ) when is_tuple( Term ) ->
 	'tuple';
 
 get_type_of( Term ) when is_reference( Term ) ->
-	'reference'.
+	'reference';
+
+get_type_of( Term ) ->
+	throw( { unknown_type_for, Term } ).
+
 
 
 
