@@ -317,7 +317,7 @@
 
 
 % Returns the name of the current user, as a plain string.
--spec get_user_name() -> string().
+-spec get_user_name() -> ustring().
 get_user_name() ->
 
 	case run_executable( ?id "-un" ) of
@@ -352,7 +352,7 @@ get_user_name() ->
 %
 % Not expected to fail.
 %
--spec get_user_name_safe() -> string().
+-spec get_user_name_safe() -> ustring().
 get_user_name_safe() ->
 
 	try
@@ -470,7 +470,7 @@ get_user_home_directory_string() ->
 
 
 % Returns the name of the current group, as a plain string.
--spec get_group_name() -> string().
+-spec get_group_name() -> ustring().
 get_group_name() ->
 
 	case run_executable( ?id "-gn" ) of
@@ -1144,7 +1144,7 @@ evaluate_background_shell_expression( Expression, Environment ) ->
 % Returns a string that can be used as a shell prefix for commands, based on
 % specified environment.
 %
--spec get_environment_prefix( environment() ) -> string().
+-spec get_environment_prefix( environment() ) -> ustring().
 get_environment_prefix( Environment ) ->
 
 	% We do not specifically *unset* a variable whose value is false, we set it
@@ -1269,14 +1269,14 @@ get_environment() ->
 
 
 % Returns a textual description of the current shell environment.
--spec environment_to_string() -> string().
+-spec environment_to_string() -> ustring().
 environment_to_string() ->
 	environment_to_string( get_environment() ).
 
 
 
 % Returns a textual description of the specified shell environment.
--spec environment_to_string( environment() ) -> string().
+-spec environment_to_string( environment() ) -> ustring().
 environment_to_string( _Environment=[] ) ->
 	"an empty shell environment";
 
@@ -1321,7 +1321,7 @@ environment_to_string( Environment ) ->
 % Returns a full version name (ex: "R13B04") or, if not available, a shorter one
 % (ex: "R11B").
 %
--spec get_interpreter_version() -> string().
+-spec get_interpreter_version() -> ustring().
 get_interpreter_version() ->
 
 	% Older versions (pre-R13A?) did not support the otp_release tag:
@@ -1431,7 +1431,7 @@ get_size( Term ) ->
 %
 % See http://en.wikipedia.org/wiki/Kibibyte
 %
--spec interpret_byte_size( byte_size() ) -> string().
+-spec interpret_byte_size( byte_size() ) -> ustring().
 interpret_byte_size( SizeInBytes ) ->
 
 	Kilo = 1024,
@@ -1516,7 +1516,7 @@ interpret_byte_size( SizeInBytes ) ->
 %
 % See http://en.wikipedia.org/wiki/Kibibyte
 %
--spec interpret_byte_size_with_unit( byte_size() ) -> string().
+-spec interpret_byte_size_with_unit( byte_size() ) -> ustring().
 interpret_byte_size_with_unit( Size ) ->
 
 	{ Unit, Value } = convert_byte_size_with_unit( Size ),
@@ -2542,7 +2542,7 @@ get_operating_system_description_string() ->
 %
 % Will not crash, even if some information could not be retrieved.
 %
--spec get_system_description() -> string().
+-spec get_system_description() -> ustring().
 get_system_description() ->
 
 	% We use ~ts instead of ~s as in some cases, Unicode strings might be
@@ -2718,7 +2718,7 @@ get_dependency_code_directory( PackageName ) ->
 % Tells whether a JSON support is available.
 -spec is_json_support_available() -> boolean().
 is_json_support_available() ->
-	% This module can be built in all cases:
+	% This module can be built and executed in all cases:
 	json_utils:is_parser_available().
 
 
@@ -2726,7 +2726,7 @@ is_json_support_available() ->
 % Returns a string explaining what to do in order to have the JSON support
 % available.
 %
--spec get_json_unavailability_hint() -> string().
+-spec get_json_unavailability_hint() -> ustring().
 get_json_unavailability_hint() ->
 	get_json_unavailability_hint( _Backend=undefined ).
 
@@ -2734,8 +2734,8 @@ get_json_unavailability_hint() ->
 % Returns a string explaining what to do in order to have the JSON support with
 % the specified backend available.
 %
--spec get_json_unavailability_hint( maybe( otp_utils:application_name() ) ) ->
-		  string().
+-spec get_json_unavailability_hint( json_utils:parser_backend_name() ) ->
+										ustring().
 get_json_unavailability_hint( _Backend=undefined ) ->
 	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_JSON and "
 	"*_BASE variables, knowing that the current code path is: "
@@ -2781,7 +2781,7 @@ is_hdf5_support_available() ->
 % Returns a string explaining what to do in order to have the HDF5 support
 % available.
 %
--spec get_hdf5_unavailability_hint() -> string().
+-spec get_hdf5_unavailability_hint() -> ustring().
 get_hdf5_unavailability_hint() ->
 	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_HDF5 and "
 	"ERLHDF5_BASE variables.".

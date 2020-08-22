@@ -132,13 +132,17 @@ info-paths:
 info-settings:
 	@echo "USE_HDF5   = $(USE_HDF5)"
 	@echo "USE_JSON   = $(USE_JSON)"
+	@echo "USE_JSX    = $(USE_JSX)"
+	@echo "USE_JIFFY  = $(USE_JIFFY)"
 	@echo "USE_REST   = $(USE_REST)"
 	@echo "USE_SQLITE = $(USE_SQLITE)"
 
 
 info-compile:
 	@echo "ERLANG_COMPILER_BASE_OPT = $(ERLANG_COMPILER_BASE_OPT)"
+	@echo "ABS_BEAM_DIRS = $(ABS_BEAM_DIRS)"
 	@echo "BEAM_DIRS = $(BEAM_DIRS)"
+	@echo "BEAM_PATH_OPT = $(BEAM_PATH_OPT)"
 	@echo "INC = $(INC)"
 	@echo "ERLANG_COMPILER_EXEC_TARGET_OPT = $(ERLANG_COMPILER_EXEC_TARGET_OPT)"
 	@echo "ERLANG_COMPILER_DEBUG_OPT = $(ERLANG_COMPILER_DEBUG_OPT)"

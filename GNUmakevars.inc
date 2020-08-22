@@ -361,52 +361,85 @@ ifeq ($(USE_REST),true)
 	USE_JSON = true
 endif
 
+USE_JSON := true
 
 ifeq ($(USE_JSON),true)
 
-	 # Exactly one backend shall then be selected:
+	 # At least one parser backend shall then be selected:
 
 	# Default choice:
-	USE_JSX = true
-	#USE_JSX = false
+	USE_JSX := true
+	#USE_JSX := false
 
-	#USE_JIFFY = true
-	USE_JIFFY = false
+	USE_JIFFY := true
+	#USE_JIFFY := false
 
 	ifeq ($(USE_JSX),true)
 
-		JSON_OPT = -Duse_jsx_json_backend
+		# The JSX JSON parser is available at
+		# https://github.com/talentdeficit/jsx.
 
-		# The JSX JSON parser is available at https://github.com/talentdeficit/jsx.
+		# Install obtained thanks to:
+		#
+		# $ mkdir -p ~/Software/jsx
+		# $ cd ~/Software/jsx
+		# $ git clone git@github.com:talentdeficit/jsx.git
+		# $ ln -s jsx jsx-current-install
+		# $ cd jsx/
+		# $ rebar3 compile && rebar3 eunit
+
+		# Actually not used, as decided at runtime rather than at compile time:
+		#JSON_OPT = -Duse_jsx_json_backend
+
 		JSX_BASE := $$HOME/Software/jsx/jsx-current-install
 
-		INC += -I$(JSX_BASE)/include
+		JSX_INSTALL_BASE := $(JSX_BASE)/_build/default/lib/jsx
 
-		# ($(JSX_BASE)/ebin/*.beam found at runtime)
+		# No includes for JSX:
+		#INC += -I$(JSX_INSTALL_BASE)/include
 
-		ABS_BEAM_DIRS += $(JSX_BASE)/ebin
+		# ($(JSX_INSTALL_BASE)/ebin/*.beam found at runtime)
 
-	else
+		ABS_BEAM_DIRS += $(JSX_INSTALL_BASE)/ebin
 
-		ifeq ($(USE_JIFFY),true)
+	endif
 
-			JSON_OPT = -Duse_jiffy_json_backend
+	ifeq ($(USE_JIFFY),true)
 
-			# The Jiffy JSON parser is available at https://github.com/davisp/jiffy.
-			JIFFY_BASE := $$HOME/Software/jiffy/jiffy-current-install
+		# The Jiffy JSON parser is available at
+		# https://github.com/davisp/jiffy.
 
-			INC += -I$(JIFFY_BASE)/include
+		# Install obtained thanks to:
+		#
+		# $ mkdir -p ~/Software/jiffy
+		# $ cd ~/Software/jiffy
+		# $ git clone git@github.com:davisp/jiffy.git
+		# $ ln -s jiffy jiffy-current-install
+		# $ cd jiffy/
+		# $ rebar3 compile && rebar3 eunit
 
-			# ($(JIFFY_BASE)/ebin/*.beam found at runtime)
+		# Actually not used, as decided at runtime rather than at compile
+		# time:
+		#
+		#JSON_OPT = -Duse_jiffy_json_backend
 
-			ABS_BEAM_DIRS += $(JIFFY_BASE)/ebin
+		JIFFY_BASE := $$HOME/Software/jiffy/jiffy-current-install
 
-		else
+		JIFFY_INSTALL_BASE := $(JIFFY_BASE)/_build/default/lib/jiffy
 
-			$(error JSON use enabled yet no corresponding backend selected.)
+		# No includes for Jiffy:
+		#INC += -I$(JIFFY_BASE)/include
 
+		# ($(JIFFY_BASE)/ebin/*.beam found at runtime)
+
+		ABS_BEAM_DIRS += $(JIFFY_INSTALL_BASE)/ebin
+
+	endif
+
+	ifeq ($(USE_JSX),false)
+		 ifeq ($(USE_JIFFY),false)
+			$(error JSON use enabled, yet no corresponding backend selected.)
 		endif
-
 	endif
 
 endif

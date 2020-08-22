@@ -45,9 +45,8 @@
 
 % Include directories found in INC:
 %
-% To select a JSON backend, add either:
-%  - use_jsx_json_backend
-%  - use_jiffy_json_backend
+% No need to select here a JSON backend (i.e. neither use_jsx_json_backend nor
+% use_jiffy_json_backend is useful), as their look-up is now done at runtime.
 %
 {erl_opts, [ {d,myriad_debug_mode}, debug_info, {debug_info_key,"DEBUG_KEY_FOR_REBAR"}, report_warnings, warn_export_all, warn_export_vars, warn_shadow_vars, warn_obsolete_guards, warn_unused_import, warnings_as_errors, {parse_transform,myriad_parse_transform}, INCS_FOR_REBAR ]}.
 
@@ -120,9 +119,9 @@
 	% Test profile, like the production one except for the three, final,
 	% token-related defines:
 	%
-	% To select a JSON backend, add either:
-	%  - use_jsx_json_backend
-	%  - use_jiffy_json_backend
+	% No need to select here a JSON backend (i.e. neither use_jsx_json_backend
+	% nor use_jiffy_json_backend is useful), as their look-up is now done at
+	% runtime.
 	%
 	{erl_opts, [ {d,exec_target_is_production}, debug_info, {debug_info_key,"DEBUG_KEY_FOR_REBAR"}, report_warnings, warn_export_all, warn_export_vars, warn_shadow_vars, warn_obsolete_guards, warn_unused_import, warnings_as_errors, {parse_transform,myriad_parse_transform}, INCS_FOR_REBAR, {d,my_first_test_token}, {d,my_second_test_token,200}, {d,my_third_test_token,some_text} ]}
 
