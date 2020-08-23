@@ -129,8 +129,16 @@
 -export([ write_ast_to_file/2 ]).
 
 
-
 % Shorthands:
+
+-type void() :: basic_utils:void().
+-type module_name() :: basic_utils:module_name()
+
+-type ustring() :: text_utils:ustring().
+-type format_string() :: text_utils:format_string().
+-type format_values() :: text_utils:format_values().
+
+-type file_name() :: file_utils:file_name().
 
 -type ast() :: ast_base:ast().
 -type form() :: ast_base:form().
@@ -143,7 +151,7 @@
 
 
 % Checks whether specified AST is legit: lints it.
--spec check_ast( ast() ) -> basic_utils:void().
+-spec check_ast( ast() ) -> void().
 check_ast( AST ) ->
 
 	%display_debug( "~p", [ AST ] ),
@@ -198,7 +206,7 @@ check_ast( AST ) ->
 
 
 % Interprets specified list of issue reports.
--spec interpret_issue_reports( [ issue_report() ] ) -> basic_utils:void().
+-spec interpret_issue_reports( [ issue_report() ] ) -> void().
 interpret_issue_reports( _IssueReports=[] ) ->
 	% Should never happen:
 	display_trace( "(no remark emitted)" );
@@ -218,7 +226,7 @@ interpret_issue_reports( IssueReports ) ->
 
 
 % Interprets specific issue report.
--spec interpret_issue_report( issue_report() ) -> basic_utils:void().
+-spec interpret_issue_report( issue_report() ) -> void().
 interpret_issue_report( _IssueReport={ Filename, IssueInfos } ) ->
 
 	% We could normalise it instead, yet file_utils would become a dependency:
@@ -232,8 +240,8 @@ interpret_issue_report( _IssueReport={ Filename, IssueInfos } ) ->
 
 
 % Interprets specific error description.
--spec interpret_issue_info( file_utils:file_name(), issue_info() ) ->
-								  basic_utils:void().
+-spec interpret_issue_info( file_name(), issue_info() ) ->
+								  void().
 interpret_issue_info( Filename,
 					  _IssueInfo={ Line, DetectorModule, IssueDesc } ) ->
 
@@ -253,8 +261,8 @@ interpret_issue_info( Filename,
 %
 % Note: full control is offered here to enrich this function at will, if wanted.
 %
--spec interpret_issue_description( issue_description(),
-								   basic_utils:module_name() ) -> string().
+-spec interpret_issue_description( issue_description(), module_name() ) ->
+										 ustring().
 interpret_issue_description( IssueDescription, DectectorModule ) ->
 	%For example, the detector module may be erl_lint:
 	DectectorModule:format_error( IssueDescription ).
@@ -274,7 +282,7 @@ check_line( Other, Context ) ->
 
 
 % Checks that specified module name is legit.
--spec check_module_name( term() ) -> basic_utils:module_name().
+-spec check_module_name( term() ) -> module_name().
 check_module_name( Name ) ->
 	check_module_name( Name, _Context=undefined ).
 
@@ -282,7 +290,7 @@ check_module_name( Name ) ->
 
 
 % Checks that specified module name is legit.
--spec check_module_name( term(), form_context() ) -> basic_utils:module_name().
+-spec check_module_name( term(), form_context() ) -> module_name().
 check_module_name( Name, _Context ) when is_atom( Name ) ->
 	Name;
 
@@ -336,7 +344,7 @@ check_arity( Other, Context ) ->
 % instead of having little informative messages like: 'undefined parse transform
 % 'foobar'' as soon as a call to a non-existing module:function/arity is made.
 %
--spec erl_to_ast( file_utils:file_name() ) -> ast().
+-spec erl_to_ast( file_name() ) -> ast().
 erl_to_ast( ErlSourceFilename ) ->
 	erl_to_ast( ErlSourceFilename, _PreprocessorOptions=[] ).
 
@@ -350,7 +358,7 @@ erl_to_ast( ErlSourceFilename ) ->
 % instead of having little informative messages like: 'undefined parse transform
 % 'foobar'' as soon as a call to a non-existing module:function/arity is made.
 %
--spec erl_to_ast( file_utils:file_name(), [ preprocessor_option() ] ) -> ast().
+-spec erl_to_ast( file_name(), [ preprocessor_option() ] ) -> ast().
 erl_to_ast( ErlSourceFilename, PreprocessorOptions ) ->
 
 	case epp:parse_file( ErlSourceFilename, PreprocessorOptions ) of
@@ -371,7 +379,7 @@ erl_to_ast( ErlSourceFilename, PreprocessorOptions ) ->
 % Note that the filename must be a relative or absolute path pointing directly
 % to the BEAM file (it is not searched through the code path).
 %
--spec beam_to_ast( file:filename() ) -> ast().
+-spec beam_to_ast( file_name() ) -> ast().
 beam_to_ast( BeamFilename ) ->
 
 	% We do not use functions from other Myriad modules here (ex: file_utils) as
@@ -475,7 +483,7 @@ term_to_form( Term ) ->
 % [ "V1", "Alpha", "A" ], _Line=0 ) = [ {cons,0, {var,0,'V1'},
 % {cons,0,{var,0,'Alpha'}, {cons,0,{var,0,'A'}, {nil,0} } } } ]
 %
--spec variable_names_to_ast( [ string() ], line() ) -> ast().
+-spec variable_names_to_ast( [ ustring() ], line() ) -> ast().
 variable_names_to_ast( VariableNames, Line ) ->
 
 	% Could be done directly recursively by incrementally 'consing' reversed
@@ -493,7 +501,7 @@ variable_names_to_ast( VariableNames, Line ) ->
 % Ex: string_to_form( "f() -> hello_world." ) returns
 %   { function, 1, f, 0, [ { clause, 1, [], [], [ {atom,1,hello_world} ] } ] }
 %
--spec string_to_form( string() ) -> form().
+-spec string_to_form( ustring() ) -> form().
 string_to_form( FormString ) ->
 	string_to_form( FormString, _Loc=1 ).
 
@@ -505,7 +513,7 @@ string_to_form( FormString ) ->
 % Ex: string_to_form( "f() -> hello_world.", 42 ) returns
 %   { function, 1, f, 0, [ { clause, 42, [], [], [ {atom,1,hello_world} ] } ] }
 %
--spec string_to_form( string(), ast_base:file_loc() ) -> form().
+-spec string_to_form( ustring(), ast_base:file_loc() ) -> form().
 string_to_form( FormString, Location ) ->
 
 	% First get Erlang tokens from that string:
@@ -542,7 +550,7 @@ string_to_form( FormString, Location ) ->
 %   [ { cons, 1, { tuple, 1, [ {atom,1,a}, {integer,1,1} ] },
 %     { cons, 1, {atom,1,foobar}, {nil,1} } } ]
 %
--spec string_to_expressions( string() ) -> ast().
+-spec string_to_expressions( ustring() ) -> ast().
 string_to_expressions( ExpressionString ) ->
 	string_to_expressions( ExpressionString, _Loc=1 ).
 
@@ -555,7 +563,7 @@ string_to_expressions( ExpressionString ) ->
 %   [ { cons, 42, { tuple, 42, [ {atom,42,a}, {integer,42,1} ] },
 %     { cons, 42, {atom,42,foobar}, {nil,42} } } ]
 %
--spec string_to_expressions( string(), ast_base:file_loc() ) -> ast().
+-spec string_to_expressions( ustring(), ast_base:file_loc() ) -> ast().
 string_to_expressions( ExpressionString, Location ) ->
 
 	% First get Erlang tokens from that string:
@@ -592,7 +600,7 @@ string_to_expressions( ExpressionString, Location ) ->
 % Ex: string_to_value( "[ {tiger,[lion,leopard]} ]" ) returns the
 % [{tiger,[lion,leopard]}] term.
 %
--spec string_to_value( string() ) -> term().
+-spec string_to_value( ustring() ) -> term().
 string_to_value( ExpressionString ) ->
 
 	% We automatically add the necessary final dot:
@@ -609,83 +617,78 @@ string_to_value( ExpressionString ) ->
 
 
 % Displays specified text as debug.
--spec display_debug( text_utils:ustring() ) -> basic_utils:void().
+-spec display_debug( ustring() ) -> void().
 display_debug( String ) ->
 	io:format( "[debug] ~s~n", [ String ] ).
 
 
 % Displays specified formatted text as debug.
--spec display_debug( text_utils:format_string(), [ term() ] ) ->
-						  basic_utils:void().
+-spec display_debug( format_string(), [ term() ] ) ->
+						  void().
 display_debug( FormatString, Values ) ->
 	display_debug( io_lib:format( FormatString, Values ) ).
 
 
 
 % Displays specified text as trace.
--spec display_trace( text_utils:ustring() ) -> basic_utils:void().
+-spec display_trace( ustring() ) -> void().
 display_trace( String ) ->
 	io:format( "[trace] ~s~n", [ String ] ).
 
 
 % Displays specified formatted text as trace.
--spec display_trace( text_utils:format_string(), [ term() ] ) ->
-						  basic_utils:void().
+-spec display_trace( format_string(), [ term() ] ) -> void().
 display_trace( FormatString, Values ) ->
 	display_trace( io_lib:format( FormatString, Values ) ).
 
 
 
 % Displays specified text as info.
--spec display_info( text_utils:ustring() ) -> basic_utils:void().
+-spec display_info( ustring() ) -> void().
 display_info( String ) ->
 	io:format( "[info] ~s~n", [ String ] ).
 
 
 % Displays specified formatted text as info.
--spec display_info( text_utils:format_string(), [ term() ] ) ->
-						  basic_utils:void().
+-spec display_info( format_string(), [ term() ] ) -> void().
 display_info( FormatString, Values ) ->
 	display_info( io_lib:format( FormatString, Values ) ).
 
 
 % Displays specified text as warning.
--spec display_warning( text_utils:ustring() ) -> basic_utils:void().
+-spec display_warning( ustring() ) -> void().
 display_warning( String ) ->
 	io:format( "[warning] ~s~n", [ String ] ).
 
 
 % Displays specified formatted text as warning.
--spec display_warning( text_utils:format_string(), [ term() ] ) ->
-						  basic_utils:void().
+-spec display_warning( format_string(), [ term() ] ) -> void().
 display_warning( FormatString, Values ) ->
 	display_warning( io_lib:format( FormatString, Values ) ).
 
 
 
 % Displays specified text as error.
--spec display_error( text_utils:ustring() ) -> basic_utils:void().
+-spec display_error( ustring() ) -> void().
 display_error( String ) ->
 	io:format( "~n[error] ~s~n", [ String ] ).
 
 
 % Displays specified formatted text as error.
--spec display_error( text_utils:format_string(), [ term() ] ) ->
-						  basic_utils:void().
+-spec display_error( format_string(), [ term() ] ) -> void().
 display_error( FormatString, Values ) ->
 	display_error( io_lib:format( FormatString, Values ) ).
 
 
 
 % Displays specified text as fatal.
--spec display_fatal( text_utils:ustring() ) -> basic_utils:void().
+-spec display_fatal( ustring() ) -> void().
 display_fatal( String ) ->
 	io:format( "[fatal] ~s~n", [ String ] ).
 
 
 % Displays specified formatted text as fatal.
--spec display_fatal( text_utils:format_string(), [ term() ] ) ->
-						  basic_utils:void().
+-spec display_fatal( format_string(), [ term() ] ) -> void().
 display_fatal( FormatString, Values ) ->
 	display_fatal( io_lib:format( FormatString, Values ) ).
 
@@ -693,7 +696,7 @@ display_fatal( FormatString, Values ) ->
 
 
 % Notifies a warning, with specified context.
--spec notify_warning( [ term() ], form_context() ) -> basic_utils:void().
+-spec notify_warning( [ term() ], form_context() ) -> void().
 notify_warning( Elements, Context ) ->
 
 	case get_elements_with_context( Elements, Context ) of
@@ -781,8 +784,7 @@ raise_error( ErrorTerm, Context ) ->
 %
 -spec raise_error( term(), basic_utils:maybe( ast_base:source_context() ),
 				   basic_utils:layer_name() ) -> no_return();
-				 ( text_utils:ustring(), ast_transforms(), line() ) ->
-						 no_return().
+				 ( ustring(), ast_transforms(), line() ) -> no_return().
 raise_error( Message, #ast_transforms{ transformed_module_name=ModName },
 			 Line ) ->
 	io:format( "~s.erl:~B: ~s~n", [ ModName, Line, Message ] ),
@@ -909,8 +911,8 @@ interpret_stack_trace( _StackTrace=[ H | T ], Acc, Count ) ->
 % specified source context, to stop the build on failure and report adequately
 % the actual error to the user.
 %
--spec raise_usage_error( text_utils:format_string(), text_utils:format_values(),
-						 file_utils:filename() ) -> no_return().
+-spec raise_usage_error( format_string(), format_values(),
+						 file_name() ) -> no_return().
 raise_usage_error( ErrorFormatString, ErrorValues, Filename ) ->
 	raise_usage_error( ErrorFormatString, ErrorValues, Filename, _Line=0 ).
 
@@ -920,8 +922,8 @@ raise_usage_error( ErrorFormatString, ErrorValues, Filename ) ->
 % specified source context, to stop the build on failure and report adequately
 % the actual error to the user.
 %
--spec raise_usage_error( text_utils:format_string(), text_utils:format_values(),
-					 file_utils:filename(), ast_base:line() ) -> no_return().
+-spec raise_usage_error( format_string(), format_values(), file_name(),
+						 ast_base:line() ) -> no_return().
 raise_usage_error( ErrorFormatString, ErrorValues, Filename,
 				   _Line=undefined ) ->
 	raise_usage_error( ErrorFormatString, ErrorValues, Filename,
@@ -952,7 +954,7 @@ raise_usage_error( ErrorFormatString, ErrorValues, Filename, Line ) ->
 % originating from the specified line in the source file of the module being
 % compiled.
 %
--spec get_error_form( basic_utils:error_reason(), basic_utils:module_name(),
+-spec get_error_form( basic_utils:error_reason(), module_name(),
 					  line() ) -> form().
 get_error_form( ErrorTerm, FormatErrorModule, Line ) ->
 
@@ -1026,7 +1028,7 @@ get_elements_with_context( Elements, Context ) ->
 %
 % Useful for example to determine differences between ASTs.
 %
--spec write_ast_to_file( ast(), file_utils:file_name() ) -> basic_utils:void().
+-spec write_ast_to_file( ast(), file_name() ) -> void().
 write_ast_to_file( AST, Filename ) ->
 
 	% Note: we cannot actually use file_utils, which is not a prerequisite of

@@ -445,7 +445,7 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'import',
 	ast_function:check_function_ids( FunIds, Context ),
 
 	NewImportTable = ?table:append_list_to_entry( ModuleName, FunIds,
-											   ImportTable ),
+												  ImportTable ),
 
 	NewImportDefs = [ { NextLocation, Form } | ImportDefs ],
 
@@ -458,7 +458,7 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'import',
 
 		false ->
 			?table:add_entry( import_functions_marker, NextLocation,
-							 MarkerTable )
+							  MarkerTable )
 
 	end,
 
@@ -493,7 +493,7 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'module', ModuleName } | T ],
 	LocForm = { NextLocation, Form },
 
 	NewMarkerTable = ?table:add_new_entry( module_marker, NextLocation,
-										 MarkerTable ),
+										   MarkerTable ),
 
 	scan_forms( T, M#module_info{ module={ ModuleName, LocForm },
 								  markers=NewMarkerTable },
@@ -670,7 +670,7 @@ scan_forms(
 	NewFunctionTable = ?table:add_entry( _K=FunId, _V=FunInfo, FunctionTable ),
 
 	NewMarkerTable = case ?table:has_entry( definition_functions_marker,
-										   MarkerTable ) of
+											MarkerTable ) of
 
 		true ->
 			% Already found, nothing to do.
@@ -904,7 +904,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
 	NewRecordTable = ?table:add_entry( RecordName, NewRecordDef, RecordTable ),
 
 	NewMarkerTable = case ?table:has_entry( definition_records_marker,
-										   MarkerTable ) of
+											MarkerTable ) of
 
 		true ->
 			% Already found, nothing to do.
@@ -912,7 +912,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
 
 		false ->
 			?table:add_entry( definition_records_marker, NextLocation,
-							 MarkerTable )
+							  MarkerTable )
 
 	end,
 
@@ -1009,7 +1009,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 	NewTypeTable = ?table:add_entry( TypeId, NewTypeInfo, TypeTable ),
 
 	NewMarkerTable = case ?table:has_entry( definition_types_marker,
-										   MarkerTable ) of
+											MarkerTable ) of
 
 		true ->
 			% Already found, nothing to do.
@@ -1088,7 +1088,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export_type', TypeIds } | T ],
 
 	% Initially, exactly one export entry per location:
 	NewExportTable = ?table:add_new_entry( NextLocation, { Line, TypeIds },
-										 ExportTable ),
+										   ExportTable ),
 
 	NewMarkerTable = case ?table:has_entry( export_types_marker, MarkerTable ) of
 
@@ -1358,7 +1358,7 @@ scan_forms( _AST=[ Form={ 'eof', _Line } ],
 	ExportLoc = ast_info:get_default_export_function_location(),
 
 	NewExportTable = ?table:add_entry( ExportLoc, { _FirstLine=0, _Empty=[] },
-									  ExportTable ),
+									   ExportTable ),
 
 	% We just do not want to have the filename of the currently processed module
 	% among the includes:
