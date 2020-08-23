@@ -485,8 +485,8 @@ get_priv_root( ModuleName, BeSilent ) ->
 					throw( { priv_lookup_failed, WError } );
 
 				ObjectCodePath -> % when is_list( ObjectCodePath ) ->
-					EbinDir = filename:dirname( ObjectCodePath ),
-					AppPath = filename:dirname( EbinDir ),
+					EbinDir = file_utils:get_base_path( ObjectCodePath ),
+					AppPath = file_utils:get_base_path( EbinDir ),
 					file_utils:join( AppPath, "priv" )
 
 			end;

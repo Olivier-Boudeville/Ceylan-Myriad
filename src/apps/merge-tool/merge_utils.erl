@@ -89,7 +89,7 @@
 		   timestamp :: time_utils:posix_seconds(),
 
 		   % SHA1 sum of the content of that file:
-		   sha1_sum :: sha1() }).
+		   sha1_sum :: sha1() } ).
 
 -type file_data() :: #file_data{}.
 
@@ -135,7 +135,7 @@
 		   device_count = 0 :: count(),
 
 		   % Total count of the other elements found in this tree:
-		   other_count = 0 :: count() }).
+		   other_count = 0 :: count() } ).
 
 -type tree_data() :: #tree_data{}.
 
@@ -2041,11 +2041,11 @@ smart_move_to( SourceDir, SourceRelPath, TargetRootDir, UserState ) ->
 	% clashes).
 
 	FullTargetDir =
-		file_utils:join( TargetRootDir, filename:dirname( SourceRelPath ) ),
+		file_utils:join( TargetRootDir, file_utils:get_base_path( SourceRelPath ) ),
 
 	file_utils:create_directory( FullTargetDir, create_parents ),
 
-	Filename = filename:basename( SrcFullPath ),
+	Filename = file_utils:get_last_path_element( SrcFullPath ),
 
 	TgtPath = file_utils:join( FullTargetDir, Filename ),
 
@@ -2339,7 +2339,7 @@ safe_move( SourceFilePath, TargetFilePath ) ->
 	end,
 
 	% Ensures subdirectories exist in the target tree:
-	file_utils:create_directory( filename:dirname( AckTargetPath ),
+	file_utils:create_directory( file_utils:get_base_path( AckTargetPath ),
 								 create_parents ),
 
 	file_utils:move_file( SourceFilePath, AckTargetPath ).
@@ -2658,7 +2658,7 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 					  { maybe( time_utils:posix_seconds() ), [ file_path() ] }.
 find_newest_timestamp_from( RootPath, CacheFilePath ) ->
 
-	CacheFilename = filename:basename( CacheFilePath ),
+	CacheFilename = file_utils:get_last_path_element( CacheFilePath ),
 
 	ActualFileRelPaths = list_utils:delete_existing( CacheFilename,
 		 file_utils:find_regular_files_from( RootPath ) ),
@@ -2753,7 +2753,7 @@ write_cache_file( TreeData=#tree_data{ root=BinRootDir }, UserState ) ->
 -spec write_cache_header( file() ) -> void().
 write_cache_header( File ) ->
 
-	%ScriptName = filename:basename( escript:script_name() ),
+	%ScriptName = file_utils:get_last_path_element( escript:script_name() ),
 	ScriptName = ?MODULE,
 
 	% UTF-8 must be specified there so that this file can be read by
@@ -2761,10 +2761,10 @@ write_cache_header( File ) ->
 	% filenames:
 	%
 	file_utils:write( File, "%% -*- coding: utf-8 -*-~n"
-							"% Merge cache file written by '~s' (version ~s),~n"
-							"% on host '~s', at ~s.~n~n"
-							"% Structure of file entries: SHA1, "
-							"relative path, size in bytes, timestamp~n~n" ,
+		"% Merge cache file written by '~s' (version ~s),~n"
+		"% on host '~s', at ~s.~n~n"
+		"% Structure of file entries: SHA1, "
+		"relative path, size in bytes, timestamp~n~n" ,
 		[ ScriptName, ?merge_script_version, net_utils:localhost(),
 		  time_utils:get_textual_timestamp() ] ).
 
@@ -3053,8 +3053,8 @@ analyze_loop() ->
 
 			AbsTreePath = text_utils:binary_to_string( AbsTreeBinPath ),
 
-			RelativeFilename = text_utils:binary_to_string(
-								 RelativeBinFilename ),
+			RelativeFilename =
+				text_utils:binary_to_string( RelativeBinFilename ),
 
 			FilePath = file_utils:join( AbsTreePath, RelativeFilename ),
 
@@ -3313,7 +3313,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 	%trace_utils:debug_fmt( "PathStrings = ~p", [ PathStrings ] ),
 
 	% As we do not want a common prefix to include any basename:
-	Dirnames = [ filename:dirname( P ) || P <- PathStrings ],
+	Dirnames = [ file_utils:get_base_path( P ) || P <- PathStrings ],
 
 	Title = text_utils:format( "Examining duplication case ~B/~B",
 							   [ DuplicationCaseCount, TotalDupCaseCount ] ),
@@ -3348,7 +3348,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 			Lbl = text_utils:format( "Following ~B files have the exact same "
 				"content (and thus size, of ~s) and all start with the same "
-				"prefix, '~s' (omitted below)",	[ Count, SizeString, Prfx ] ),
+				"prefix, '~s' (omitted below)", [ Count, SizeString, Prfx ] ),
 			{ Lbl, Prfx, TrimmedPaths }
 
 	end,
@@ -3506,7 +3506,7 @@ auto_dedup( _DuplicationCases=[ { Sha1Key, DuplicateList } | T ], AccTable,
 		  file_utils:remove_file( AbsLnkPath ),
 
 		  RelTargetPath = file_utils:make_relative( AbsRefPath,
-										filename:dirname( AbsLnkPath ) ),
+										file_utils:get_base_path( AbsLnkPath ) ),
 
 		  file_utils:create_link( RelTargetPath, AbsLnkPath )
 
@@ -3658,7 +3658,7 @@ create_links_to( TargetFilePath, _LinkPaths= [ Link | T ], BinRootDir ) ->
 
 	% We want to create the (shortest) relative link, from source to target:
 
-	LinkDir = filename:dirname( Link ),
+	LinkDir = file_utils:get_base_path( Link ),
 
 	RelativeTargetFilePath =
 		file_utils:make_relative( TargetFilePath, LinkDir ),
@@ -3717,8 +3717,7 @@ quick_cache_check_helper( ContentFiles, ActualTreePath, CachedTreePath,
 			NamePrompt = text_utils:format( "The actual tree path ('~s') does "
 				"not match the one found in its cache file ('~s').~n~n"
 				"Shall we override the one in the cache file with the "
-				"actual one?",
-				[ AbsActualTreePath, CachedTreePath ] ),
+				"actual one?", [ AbsActualTreePath, CachedTreePath ] ),
 
 			case ui:ask_yes_no( NamePrompt ) of
 
@@ -4035,5 +4034,4 @@ file_data_to_string( #file_data{ path=Path,
 	SizeString = system_utils:interpret_byte_size_with_unit( Size ),
 
 	text_utils:format( "file '~s' whose size is ~s, SHA1 sum is ~s and "
-		"timestamp is ~p",
-		[ Path, SizeString, Sum, Timestamp ] ).
+		"timestamp is ~p", [ Path, SizeString, Sum, Timestamp ] ).

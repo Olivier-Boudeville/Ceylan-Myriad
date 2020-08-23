@@ -148,7 +148,7 @@ get_script_base_directory() ->
 
 			end,
 
-			filename:dirname( FullPath );
+			file_utils:get_base_path( FullPath );
 
 
 		false ->
