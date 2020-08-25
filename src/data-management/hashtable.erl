@@ -151,10 +151,15 @@
 % Since 18.0, type tuple/1 does not seem to exist anymore:
 %-opaque hashtable( K, V ) :: tuple( bucket( K, V ) ).
 
+% A type of bullet (ex: " * "):
+-type bullet() :: string().
+
+-type description_type() :: bullet() | 'user_friendly' | 'full' | 'internal'.
+
 
 -export_type([ key/0, value/0, entry/0, entry/2, entries/0, entries/2,
 			   entry_count/0, bucket/0, bucket/2, bucket_count/0,
-			   hashtable/0 ]).
+			   hashtable/0, bullet/0, description_type/0 ]).
 
 
 
@@ -370,7 +375,7 @@ has_entry( Key, Hashtable ) ->
 get_value( Key, Hashtable ) ->
 
 	case lookup_in_list( Key, element( get_bucket_index( Key, Hashtable ),
-									 Hashtable ) ) of
+									   Hashtable ) ) of
 
 		% Most likely case first:
 		{ value, Value } ->
@@ -953,10 +958,11 @@ to_string( Hashtable ) ->
 
 % Returns a textual description of the specified table.
 %
-% Either a bullet is specified, or the returned string is either quite raw and
-% non-ellipsed (if using 'full'), or even completly raw ('internal').
+% Either a bullet is specified, or the returned string is ellipsed if needed (if
+% using 'user_friendly'), or quite raw and non-ellipsed (if using 'full'), or
+% even completly raw ('internal').
 %
--spec to_string( hashtable(), string() | 'full' | 'internal' ) -> string().
+-spec to_string( hashtable(), description_type() ) -> string().
 to_string( Hashtable, DescriptionType ) ->
 
 	case enumerate( Hashtable ) of
@@ -967,12 +973,12 @@ to_string( Hashtable, DescriptionType ) ->
 		[ { K, V } ] ->
 			case DescriptionType of
 
-				full ->
-					text_utils:format( "table with a single entry, "
+				user_friendly ->
+					text_utils:format_ellipsed( "table with a single entry, "
 						"key being ~p, value being ~p", [ K, V ] );
 
-				_Bullet ->
-					text_utils:format_ellipsed( "table with a single entry, "
+				_ ->
+					text_utils:format( "table with a single entry, "
 						"key being ~p, value being ~p", [ K, V ] )
 
 			end;
@@ -985,22 +991,29 @@ to_string( Hashtable, DescriptionType ) ->
 			%
 			case DescriptionType of
 
+				user_friendly ->
+					Strs = [ text_utils:format_ellipsed( "~p: ~p", [ K, V ] )
+							 || { K, V } <- lists:sort( L ) ],
+
+					lists:flatten( io_lib:format( "table with ~B entries: ~s",
+						[ length( L ), text_utils:strings_to_string( Strs,
+												   ?default_bullet ) ] ) );
+
 				full ->
 					Strs = [ text_utils:format( "~p: ~p", [ K, V ] )
 							 || { K, V } <- lists:sort( L ) ],
 
 					lists:flatten( io_lib:format( "table with ~B entries: ~s",
-						[ map_size( Hashtable ),
+						[ length( L ),
 						  text_utils:strings_to_string( Strs,
 														?default_bullet ) ] ) );
-
 
 				internal ->
 					lists:foldl(
 
 					  fun( Bucket, Acc ) ->
-						Acc ++ io_lib:format( "  + ~s~n",
-											  [ bucket_to_string( Bucket ) ] )
+							Acc ++ io_lib:format( "  + ~s~n",
+								[ bucket_to_string( Bucket ) ] )
 					  end,
 
 					  _Acc0=io_lib:format( "table with ~B bucket(s) and ~B "
@@ -1016,7 +1029,7 @@ to_string( Hashtable, DescriptionType ) ->
 							 || { K, V } <- lists:sort( L ) ],
 
 					lists:flatten( io_lib:format( "table with ~B entries: ~s",
-						[ map_size( Hashtable ),
+						[ length( L ),
 						  text_utils:strings_to_string( Strs, Bullet ) ] ) )
 
 			end

@@ -1126,17 +1126,17 @@ size( MapHashtable ) ->
 % Returns a textual description of the specified map hashtable.
 -spec to_string( map_hashtable() ) -> string().
 to_string( MapHashtable ) ->
-	to_string( MapHashtable, ?default_bullet ).
+	to_string( MapHashtable, user_friendly ).
 
 
 
 % Returns a textual description of the specified hashtable.
 %
-% Either a bullet is specified, or the returned string is either quite raw and
-% non-ellipsed (if using 'full').
+% Either a bullet is specified, or the returned string is ellipsed if needed (if
+% using 'user_friendly'), or quite raw and non-ellipsed (if using 'full'), or
+% even completly raw ('internal').
 %
--spec to_string( map_hashtable(), string() | 'full' ) ->
-					   string().
+-spec to_string( map_hashtable(), hashtable:description_type() ) -> string().
 to_string( MapHashtable, DescriptionType ) ->
 
 	case maps:to_list( MapHashtable ) of
@@ -1147,12 +1147,12 @@ to_string( MapHashtable, DescriptionType ) ->
 		[ { K, V } ] ->
 			case DescriptionType of
 
-				full ->
-					text_utils:format( "table with a single entry, "
+				user_friendly ->
+					text_utils:format_ellipsed( "table with a single entry, "
 						"key being ~p, value being ~p", [ K, V ] );
 
-				_Bullet ->
-					text_utils:format_ellipsed( "table with a single entry, "
+				_ ->
+					text_utils:format( "table with a single entry, "
 						"key being ~p, value being ~p", [ K, V ] )
 
 			end;
@@ -1165,7 +1165,16 @@ to_string( MapHashtable, DescriptionType ) ->
 			%
 			case DescriptionType of
 
-				full ->
+				user_friendly ->
+					Strs = [ text_utils:format_ellipsed( "~p: ~p", [ K, V ] )
+							 || { K, V } <- lists:sort( L ) ],
+
+					lists:flatten( io_lib:format( "table with ~B entries: ~s",
+						[ map_size( MapHashtable ),
+						  text_utils:strings_to_string( Strs,
+														?default_bullet ) ] ) );
+
+				DescType when DescType =:= full orelse DescType =:= internal ->
 					Strs = [ text_utils:format( "~p: ~p", [ K, V ] )
 							 || { K, V } <- lists:sort( L ) ],
 

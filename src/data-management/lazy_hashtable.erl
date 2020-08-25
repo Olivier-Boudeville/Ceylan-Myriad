@@ -36,7 +36,7 @@
 % See hashtable.erl
 
 
-% A lazy_hashtable is a { Hashtable, NumberOfOperations } pair where:
+% A lazy_hashtable is a {Hashtable, NumberOfOperations} pair where:
 %
 % - Hashtable is an hashtable, refer to hashtable.erl for more detail
 %
@@ -677,24 +677,25 @@ size( _LazyTable={ Hashtable, _CurrentOpCount } ) ->
 
 
 % Returns a textual description of the specified hashtable.
-%
 -spec to_string( lazy_hashtable() ) -> string().
 to_string( _LazyHashtable={ Hashtable, _OpCount } ) ->
 	hashtable:to_string( Hashtable ).
 
 
 
-% Returned string is either quite raw (if using 'internal') or a bit more
-% elaborate (if using 'user_friendly').
+% Returns a textual description of the specified table.
 %
--spec to_string( lazy_hashtable(), 'internal' | 'user_friendly' ) -> string().
+% Either a bullet is specified, or the returned string is ellipsed if needed (if
+% using 'user_friendly'), or quite raw and non-ellipsed (if using 'full'), or
+% even completly raw ('internal').
+%
+-spec to_string( lazy_hashtable(), hashtable:description_type() ) -> string().
 to_string( _LazyHashtable={ Hashtable, _OpCount }, DescriptionType ) ->
 	hashtable:to_string( Hashtable, DescriptionType ).
 
 
 
 % Displays the specified hashtable on the standard output.
-%
 -spec display( lazy_hashtable() ) -> void().
 display( _LazyHashtable={ Hashtable, OpCount } ) ->
 
