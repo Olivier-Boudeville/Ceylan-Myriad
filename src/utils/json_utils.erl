@@ -109,6 +109,7 @@
 
 		  % General services:
 
+		  is_parser_available/0, is_parser_available/1,
 		  is_parser_backend_available/1,
 
 		  get_base_json_encoding_options/1,
@@ -244,6 +245,35 @@ get_parser_backend_name() ->
 			throw( { multiple_jsx_json_backends_found, JsxPaths } )
 
 	end.
+
+
+
+% Tells whether a suitable JSON parser is available.
+-spec is_parser_available() -> boolean().
+is_parser_available() ->
+
+	case get_parser_backend_name() of
+
+		undefined ->
+			false;
+
+		_ ->
+			true
+
+	end.
+
+
+
+% Tells whether a suitable JSON parser is available, based on the specified
+% (maybe) parser state.
+%
+-spec is_parser_available( maybe( parser_state() ) ) -> boolean().
+is_parser_available( undefined ) ->
+	false;
+
+% A bit of implicit checking:
+is_parser_available( { _ParserBackendName, _MaybeInternalState } ) ->
+	true.
 
 
 
