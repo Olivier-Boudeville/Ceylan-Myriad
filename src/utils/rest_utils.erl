@@ -134,7 +134,7 @@ start() ->
 
 
 % Starts the REST service.
--spec start( ssl_opt() ) -> void().
+-spec start( ssl_opt() ) -> json_utils:parser_state().
 start( Option ) ->
 
 	% Starts the (built-in) HTTP client:
@@ -151,7 +151,7 @@ start( Option ) ->
 
 	end,
 
-	json_utils:start_json_parser().
+	json_utils:start_parser().
 
 
 
@@ -159,7 +159,7 @@ start( Option ) ->
 -spec stop() -> void().
 stop() ->
 
-	json_utils:stop_json_parser(),
+	json_utils:stop_parser(),
 
 	% Maybe not launched, hence not pattern matched:
 	ssl:stop(),
