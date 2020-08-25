@@ -132,7 +132,7 @@
 % Shorthands:
 
 -type void() :: basic_utils:void().
--type module_name() :: basic_utils:module_name()
+-type module_name() :: basic_utils:module_name().
 
 -type ustring() :: text_utils:ustring().
 -type format_string() :: text_utils:format_string().
