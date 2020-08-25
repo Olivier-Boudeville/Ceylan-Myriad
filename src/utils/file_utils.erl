@@ -3178,7 +3178,8 @@ open( Filename, Options, _AttemptMode=try_once ) ->
 			 File;
 
 		{ error, eacces } ->
-			get_access_denied_info( Filename );
+			throw( { open_failed, { Filename, Options }, access_denied,
+					 get_access_denied_info( Filename ) } );
 
 		{ error, emfile } ->
 			throw( { too_many_open_files, { Filename, Options } } );
