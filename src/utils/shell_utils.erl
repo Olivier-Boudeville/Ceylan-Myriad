@@ -400,8 +400,8 @@ generate_argument_table( ArgString ) ->
 % an option resulting thus in [ [] ]) associated to the specified option; if
 % this option was not specified on the command-line, returns 'undefined'.
 %
-% Note: generally the extract_command_arguments_for_option/{1,2} functions are more relevant
-% to use.
+% Note: generally the extract_command_arguments_for_option/{1,2} functions are
+% more relevant to use.
 %
 -spec get_command_arguments_for_option( command_line_option() ) ->
 								  maybe( [ command_line_values() ] ).
