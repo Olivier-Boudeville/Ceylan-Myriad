@@ -249,8 +249,7 @@
 
 
 % Working directory of an executed command:
--type working_dir() :: maybe( file_utils:directory_name()
-							  | file_utils:bin_directory_name() ).
+-type working_dir() :: maybe( any_directory_path() ).
 
 
 -type encoding() :: atom() | pair:pair().
@@ -306,7 +305,12 @@
 
 
 % Shorthands:
+
+-type count() :: basic_utils:count().
 -type ustring() :: text_utils:ustring().
+
+-type directory_path() :: file_utils:directory_path().
+-type any_directory_path() :: file_utils:any_directory_path().
 
 
 % Unicode defines are in system_utils.hrl.
@@ -424,25 +428,35 @@ get_group_id() ->
 
 
 % Returns the home directory of the current user, as a plain string.
--spec get_user_home_directory() -> file_utils:directory_path().
+-spec get_user_home_directory() -> directory_path() .
 get_user_home_directory() ->
 
-	% Was: os:getenv( "HOME" )
-	case init:get_argument( home ) of
+	case os:getenv( "HOME" ) of
 
-		{ ok, [ [ Home ] ] } ->
-			Home;
+		false ->
+			% Thus expecting "XXXX -home a/path/to/home":
+			case shell_utils:get_command_arguments_for_option( 'home' ) of
 
-		Error ->
-			throw( { home_directory_not_found, Error } )
+				undefined ->
+					throw( home_directory_not_found );
+
+				[ [ Home ] ] when is_list( Home ) ->
+					Home;
+
+				OtherHomeArg ->
+					throw( { invalid_home_directory_specified, OtherHomeArg } )
+
+			end;
+
+		Home ->
+			Home
 
 	end.
 
 
 
 % Returns the home directory of the specified user, as a plain string.
--spec get_user_home_directory( basic_utils:user_name() ) ->
-									 file_utils:directory_path().
+-spec get_user_home_directory( basic_utils:user_name() ) -> directory_path().
 get_user_home_directory( Username ) ->
 	text_utils:format( "/home/~s", [ Username ] ).
 
@@ -1381,7 +1395,7 @@ get_application_version( Application ) ->
 
 
 % Returns the size, in bytes, of a word of this Virtual Machine.
--spec get_size_of_vm_word() -> basic_utils:count().
+-spec get_size_of_vm_word() -> count().
 get_size_of_vm_word() ->
 	erlang:system_info( wordsize ).
 
@@ -2035,7 +2049,7 @@ get_core_count_string() ->
 
 
 % Returns the number of live Erlang processes on the current node.
--spec get_process_count() -> basic_utils:count().
+-spec get_process_count() -> count().
 get_process_count() ->
 	erlang:system_info( process_count ).
 
@@ -2444,7 +2458,7 @@ get_filesystem_type( TypeString ) ->
 
 
 % Returns a (probably system-dependent) base temporary directory.
--spec get_default_temporary_directory() -> file_utils:directory_path().
+-spec get_default_temporary_directory() -> directory_path() .
 get_default_temporary_directory() ->
 	"/tmp".
 
@@ -2607,8 +2621,7 @@ has_graphical_output() ->
 % Returns the (expected, conventional) base installation directory of the
 % specified third-party, prerequisite package (ex: "Foobar").
 %
--spec get_dependency_base_directory( package_name() ) ->
-										   file_utils:directory_name().
+-spec get_dependency_base_directory( package_name() ) -> directory_path().
 get_dependency_base_directory( PackageName="ErlPort" ) ->
 
 	% ErlPort must be special-cased, as its actual base installation directory
@@ -2705,7 +2718,7 @@ get_dependency_base_directory( PackageName ) ->
 % specified third-party, prerequisite, Erlang package (ex: "Foobar").
 %
 -spec get_dependency_code_directory( package_name() ) ->
-										   file_utils:directory_name().
+										   directory_path().
 get_dependency_code_directory( PackageName ) ->
 
 	% We would expect here
