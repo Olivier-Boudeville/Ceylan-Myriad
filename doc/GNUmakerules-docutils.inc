@@ -78,7 +78,7 @@ VIEW_GRAPH := no
 %.png: %.graph
 	@echo "     Generating $@ from graph $<"
 	@$(MAKE) -s check-dot
-	@if $(DOT) $(DOT_OPT) -o$@ -Tpng $< ; then if [ "$(VIEW_GRAPH)" != "no" ] ; then $(IMG_VIEWER) $@; fi ; fi
+	@if $(DOT) $(DOT_OPT) -o$@ -Tpng $< ; then if [ "$(VIEW_GRAPH)" != "no" ]; then $(IMG_VIEWER) $@; fi ; fi
 
 
 GRAPH_SRC = $(wildcard *.graph)
@@ -102,27 +102,27 @@ GNUPLOT := $$(which gnuplot)
 %.png: %.plot %.dat
 	@echo "     Generating plot $@"
 	@$(GNUPLOT) $<
-	@if [ "$(VIEW_PLOT)" != "no" ] ; then $(IMG_VIEWER) $@ & fi
+	@if [ "$(VIEW_PLOT)" != "no" ]; then $(IMG_VIEWER) $@ & fi
 
 
 # Some plots do not need data files:
 %.png: %.plot
 	@echo "     Generating plot $@"
 	@$(GNUPLOT) $<
-	@if [ "$(VIEW_PLOT)" != "no" ] ; then $(IMG_VIEWER) $@ & fi
+	@if [ "$(VIEW_PLOT)" != "no" ]; then $(IMG_VIEWER) $@ & fi
 
 
 %.png: %.py
 	@echo "     Generating image $@ from $<"
 	@$(PYTHON) $<
-	@if [ "$(VIEW_PLOT)" != "no" ] ; then $(IMG_VIEWER) $@ & fi
+	@if [ "$(VIEW_PLOT)" != "no" ]; then $(IMG_VIEWER) $@ & fi
 
 
 # Probably deprecated:
 %-generated.png: %.pdoc %.plotdoc
 	@echo "     Generating plot $@"
 	@$(GNUPLOT) $<
-	@if [ "$(VIEW_PLOT)" != "no" ] ; then $(IMG_VIEWER) $@ & fi
+	@if [ "$(VIEW_PLOT)" != "no" ]; then $(IMG_VIEWER) $@ & fi
 
 
 
@@ -168,7 +168,7 @@ VIEW_PDF := yes
 
 %.pdf: %.rst
 	@echo "     Generating PDF documentation $@"
-	@if $(RST_GENERATOR) $< --pdf ; then if [ "$(VIEW_PDF)" != "no" ] ; then $(PDF_VIEWER) $@ & fi; else exit 5 ; fi
+	@if $(RST_GENERATOR) $< --pdf ; then if [ "$(VIEW_PDF)" != "no" ]; then $(PDF_VIEWER) $@ & fi; else exit 5 ; fi
 
 
 %.html: %.rst
@@ -178,7 +178,7 @@ VIEW_PDF := yes
 
 %.pdf: %.traces
 	@echo "     Generating PDF report $@ from $<"
-	@if $(RST_GENERATOR) $< --pdf ; then if [ "$(VIEW_PDF)" != "no" ] ; then $(PDF_VIEWER) $@ & fi; else exit 15 ; fi
+	@if $(RST_GENERATOR) $< --pdf ; then if [ "$(VIEW_PDF)" != "no" ]; then $(PDF_VIEWER) $@ & fi; else exit 15 ; fi
 
 
 
@@ -252,7 +252,7 @@ to-print: create-doc
 
 
 check-dot:
-		@if [ ! -x "$(DOT)" ] ; then echo "  Error, 'dot' tool, from graphviz, not found." 1>&2 ; exit 5 ; fi
+		@if [ ! -x "$(DOT)" ]; then echo "  Error, 'dot' tool, from graphviz, not found." 1>&2 ; exit 5 ; fi
 
 
 clean: clean-doc-repository clean-generated clean-dot clean-doc-logs \
@@ -295,4 +295,4 @@ clean-png:
 
 clean-rst:
 	-@/bin/rm -f $(RST_GENERATED_FILES)
-	@if [ -d "$(TMP_RST_REPOSITORY)" ] ; then $(MAKE) clean-doc-repository; fi
+	@if [ -d "$(TMP_RST_REPOSITORY)" ]; then $(MAKE) clean-doc-repository; fi
