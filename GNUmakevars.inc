@@ -142,7 +142,7 @@ endif
 # The uniquely-defined version of this layer, for all uses (including rebar and
 # hex):
 #
-MYRIAD_VERSION := 1.0.15
+MYRIAD_VERSION := 1.0.16
 
 
 # PROJECT_VERSION should be defined on a per-project basis.
@@ -177,10 +177,18 @@ space +=
 ARCHIVE_ROOT := $$HOME/Archives/$(PROJECT_NAME)
 
 
+# For full archives (including untracked files and VCS state):
 ARCHIVE_FILE := $(ARCHIVE_ROOT)/$$(date +'%Y%m%d')-$(PROJECT_NAME).tar.xz
 
-
+# For archives as considered by the VCS system (ex: non-staged files are not
+# archived here):
+#
 VCS_ARCHIVE_FILE := $(ARCHIVE_ROOT)/$$(date +'%Y%m%d')-$(PROJECT_NAME).git-bundle
+
+# For very light archives, just the bleeding edge of the current sources, with
+# no VCS state:
+#
+LIGHT_ARCHIVE_FILE := $(ARCHIVE_ROOT)/$$(date +'%Y%m%d')-$(PROJECT_NAME)-light-archive.tar.xz
 
 
 ARCHIVE_BRANCH_FILE := $(ARCHIVE_ROOT)/$$(date +'%Y%m%d')-$(PROJECT_NAME)-branch-$(shell basename $$(pwd)).tar.xz
@@ -361,8 +369,6 @@ ifeq ($(USE_REST),true)
 	USE_JSON = true
 endif
 
-USE_JSON := true
-
 ifeq ($(USE_JSON),true)
 
 	 # At least one parser backend shall then be selected:
@@ -371,8 +377,8 @@ ifeq ($(USE_JSON),true)
 	USE_JSX := true
 	#USE_JSX := false
 
-	USE_JIFFY := true
-	#USE_JIFFY := false
+	#USE_JIFFY := true
+	USE_JIFFY := false
 
 	ifeq ($(USE_JSX),true)
 
