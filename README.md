@@ -1,3 +1,5 @@
+![Erlang CI](https://github.com/Olivier-Boudeville/Ceylan-Myriad/workflows/Erlang%20CI/badge.svg?event=push)
+
 # Ceylan-Myriad
 
 ![](/doc/myriad-title.png)
