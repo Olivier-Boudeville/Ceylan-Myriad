@@ -506,6 +506,10 @@ get_group_name() ->
 % Returns our default, recommended encoding, for example when needing to open a
 % file for writing.
 %
+% Note that if the 'raw' flag is included among opening flags, any specified
+% encoding might be ignored (ex: UTF8 being specified, whereas ISO/IEC 8859
+% being written).
+%
 -spec get_default_encoding() -> encoding().
 get_default_encoding() ->
 	?default_encoding.
@@ -513,6 +517,10 @@ get_default_encoding() ->
 
 % Returns our default, recommended encoding option, for example when needing to
 % open a file for writing.
+%
+% Note that if the 'raw' flag is included among opening flags, any specified
+% encoding might be ignored (ex: UTF8 being specified, whereas ISO/IEC 8859
+% being written).
 %
 -spec get_default_encoding_option() -> encoding_option().
 get_default_encoding_option() ->

@@ -3018,6 +3018,10 @@ get_image_file_gif( Image ) ->
 % Returns our default, recommended encoding, typically when needing to open a
 % file for writing.
 %
+% Note that if the 'raw' flag is included among opening flags, any specified
+% encoding might be ignored (ex: UTF8 being specified, whereas ISO/IEC 8859
+% being written).
+%
 -spec get_default_encoding() -> system_utils:encoding().
 get_default_encoding() ->
 	system_utils:get_default_encoding().
@@ -3025,6 +3029,10 @@ get_default_encoding() ->
 
 % Returns our default, recommended encoding option, typically when needing to
 % open a file for writing.
+%
+% Note that if the 'raw' flag is included among opening flags, any specified
+% encoding might be ignored (ex: UTF8 being specified, whereas ISO/IEC 8859
+% being written).
 %
 -spec get_default_encoding_option() -> system_utils:encoding_option().
 get_default_encoding_option() ->
@@ -3064,6 +3072,10 @@ get_default_encoding_option() ->
 % (unfortunate) side-effect of having run the VM with the -noinput option; in
 % this case, the best option is to execute once, preferably early (ex: as first
 % statement) system_utils:force_unicode_support/0.
+%
+% Note also that if the 'raw' flag is included among opening flags, any
+% specified encoding might be ignored (ex: UTF8 being specified, whereas ISO/IEC
+% 8859 being written).
 %
 -spec open( any_file_name(), [ file_open_mode() ] ) -> file().
 open( Filename, Options ) ->
@@ -3105,6 +3117,10 @@ open( Filename, Options ) ->
 % (unfortunate) side-effect of having run the VM with the -noinput option; in
 % this case, the best option is to execute once, preferably early (ex: as first
 % statement) system_utils:force_unicode_support/0.
+%
+% Note also that if the 'raw' flag is included among opening flags, any
+% specified encoding might be ignored (ex: UTF8 being specified, whereas ISO/IEC
+% 8859 being written).
 %
 -spec open( any_file_name(), [ file_open_mode() ],
 		   'try_once' | 'try_endlessly' | 'try_endlessly_safer' ) -> file().

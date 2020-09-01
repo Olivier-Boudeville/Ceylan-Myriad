@@ -135,9 +135,15 @@
 
 % For proper Unicode support (see also the comments in file_utils.erl):
 %
-% (note: if ever setting a non-Unicode default encoding,
-% system_utils:force_unicode_support/0 shall be modified)
-
+% Note:
+%
+% - if ever setting a non-Unicode default encoding,
+% system_utils:force_unicode_support/0 shall be modified
+%
+% - if the 'raw' flag is included among opening flags, any specified encoding
+% might be ignored (ex: UTF8 being specified, whereas ISO/IEC 8859 being
+% written)
+%
 -define( default_encoding, utf8 ).
 
 -define( default_encoding_opt, { encoding, ?default_encoding } ).
