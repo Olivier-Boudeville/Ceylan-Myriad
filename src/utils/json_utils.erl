@@ -80,6 +80,10 @@
 % Comments are not supported in JSON; for them we rely on (non-duplicated)
 % "_comment" entries.
 
+% As the JSX mapping hardcodes the 'null' atom for the JSON null value, we
+% enforce the same setting with Jiffy (that can set it).
+
+
 
 -export([ % Stateless versions:
 
@@ -455,9 +459,12 @@ get_base_json_encoding_options( _BackendName=jsx ) ->
 	[];
 
 get_base_json_encoding_options( _BackendName=jiffy ) ->
+
 	% Jiffy only understands UTF-8 in binaries; force strings to encode as UTF-8
 	% by fixing broken surrogate pairs and/or using the replacement character to
 	% remove broken UTF-8 sequences in data:
+	%
+	% We do not specify here 'use_nil' as we want to use 'null' as JSX does.
 	%
 	[ force_utf8 ].
 
