@@ -2333,8 +2333,11 @@ create_link( TargetPath, LinkName ) ->
 
 
 
-% Returns a path deriving from specified one so that it does not clash with any
-% pre-existing entry.
+% Returns a path deriving from specified one so that it is unique, i.e. that it
+% does not clash with any pre-existing entry.
+%
+% Note: of course multiple, parallel calls to this function with the same base
+% path will result in potential race conditions and risks of collisions.
 %
 -spec get_non_clashing_entry_name_from( path() ) -> path().
 get_non_clashing_entry_name_from( Path ) ->
@@ -2343,10 +2346,19 @@ get_non_clashing_entry_name_from( Path ) ->
 	% - if "aaa/bbb/foobar.txt" is specified, returns "aaa/bbb/foobar.txt-1"
 	% - if "aaa/bbb/foobar.txt-4" is specified, returns "aaa/bbb/foobar.txt-5"
 
+	% More reliable than looping over random names forged from for example:
+	%Uniq = basic_utils:get_process_specific_value()
+	%	+ random_utils:get_random_value( _Min=0, _Max=10000 ),
+	% until no collision occurs.
+
+	%trace_utils:debug_fmt( "Testing whether path '~s' already exists...",
+	%					   [ Path ] ),
+
 	case exists( Path ) of
 
 		true ->
-			case string:split( Path, _SearchPattern="-", _Where=trailing ) of
+			PathToTest = case string:split( Path, _SearchPattern="-",
+											_Where=trailing ) of
 
 				[ _Path ] ->
 					text_utils:format( "~s-1", [ Path ] );
@@ -2354,20 +2366,19 @@ get_non_clashing_entry_name_from( Path ) ->
 				[ BasePath, FinalPart ] ->
 					case text_utils:try_string_to_integer( FinalPart ) of
 
+						% Not already ending with a dash plus a number:
 						undefined ->
 							text_utils:format( "~s-1", [ Path ] );
 
 						Count ->
-							TestedPath = text_utils:format( "~s-~B",
-														[ BasePath, Count+1 ] ),
+							text_utils:format( "~s-~B", [ BasePath, Count+1 ] )
 
-							% As clashes may happen for any name:
-							get_non_clashing_entry_name_from( TestedPath )
+					end
 
+			end,
 
-				end
-
-			end;
+			 % As clashes may happen for any name:
+			get_non_clashing_entry_name_from( PathToTest );
 
 		false ->
 			Path
