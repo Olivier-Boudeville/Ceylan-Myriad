@@ -46,7 +46,8 @@
 
 
 % Day management support:
--export([ is_bank_holiday/2 ]).
+-export([ is_bank_holiday/2, get_bank_holidays_for/2,
+		  find_common_bank_holidays/3 ]).
 
 
 % Week management support:
@@ -77,13 +78,15 @@
 
 
 % Calendar date; used to be less precise calendar:date():
--type date() :: { unit_utils:year(), unit_utils:canonical_month(),
-				  unit_utils:canonical_day() }.
+-type date() :: { year(), canonical_month(), canonical_day() }.
 
 
-% Time in the day; used to be { hour(), minute(), second() } or calendar:time():
--type time() :: { unit_utils:canonical_hour(), unit_utils:canonical_minute(),
-				  unit_utils:canonical_second() }.
+% Calendar date within a year:
+-type date_in_year() :: { canonical_month(), canonical_day() }.
+
+
+% Time in the day; used to be {hour(), minute(), second()} or calendar:time():
+-type time() :: { canonical_hour(), canonical_minute(), canonical_second() }.
 
 
 % Also known as Gregorian milliseconds:
@@ -102,11 +105,10 @@
 % in a canonical form, for example more than 24 hours or 60 minutes can be
 % specified):
 %
--type dhms_duration() :: { unit_utils:days(), unit_utils:hours(),
-						   unit_utils:minutes(), unit_utils:seconds() }.
+-type dhms_duration() :: { days(), hours(), minutes(), seconds() }.
 
 
--export_type([ day_index/0, week_day/0, date/0, time/0,
+-export_type([ day_index/0, week_day/0, date/0, date_in_year/0, time/0,
 			   ms_since_year_0/0, ms_since_epoch/0, ms_monotonic/0,
 			   ms_duration/0,
 			   dhms_duration/0 ]).
@@ -175,12 +177,11 @@
 -type timestamp() :: { date(), time() }.
 
 
--type precise_timestamp() :: { unit_utils:megaseconds(), unit_utils:seconds(),
-							   unit_utils:microseconds() }.
+-type precise_timestamp() :: { megaseconds(), seconds(), microseconds() }.
 
 
 % Cannot find the definition of the built-in timeout() type:
--type time_out() :: 'infinity' | unit_utils:milliseconds().
+-type time_out() :: 'infinity' | milliseconds().
 
 
 % Designates an integer number of seconds since or before Unix time epoch, which
@@ -195,7 +196,39 @@
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
+
+-type microseconds() :: unit_utils:microseconds().
+-type milliseconds() :: unit_utils:milliseconds().
 -type seconds() :: unit_utils:seconds().
+-type float_seconds() :: unit_utils:float_seconds().
+-type megaseconds() :: unit_utils:megaseconds().
+
+
+-type minutes() :: unit_utils:minutes().
+-type hours() :: unit_utils:hours().
+-type days() :: unit_utils:days().
+-type weeks() :: unit_utils:weeks().
+
+-type month() :: unit_utils:month().
+-type months() :: unit_utils:months().
+-type absolute_month() :: unit_utils:absolute_month().
+
+-type year() :: unit_utils:year().
+-type years() :: unit_utils:years().
+
+-type canonical_second() :: unit_utils:canonical_second().
+-type canonical_minute() :: unit_utils:canonical_minute().
+-type canonical_hour() :: unit_utils:canonical_hour().
+-type canonical_day() :: unit_utils:canonical_day().
+-type canonical_month() :: unit_utils:canonical_month().
+
+-type country() :: locale_utils:country().
+
+
+
+% Time in the day; used to be {hour(), minute(), second()} or calendar:time():
+-type time() :: { canonical_hour(), canonical_minute(), canonical_second() }.
+
 
 
 % Returns a string corresponding to the specified date, like: "30/11/2009".
@@ -228,7 +261,7 @@ from_posix_timestamp( PosixTimestamp ) ->
 
 
 % Canonicalises specified month.
--spec canonicalise_month( unit_utils:month() ) -> unit_utils:canonical_month().
+-spec canonicalise_month( month() ) -> canonical_month().
 canonicalise_month( M ) when is_integer( M ) andalso M >= 0 ->
 
 	% Positive guard useful, as -1 rem 12 = -1 (hence not in [0,11]).
@@ -247,7 +280,7 @@ canonicalise_month( M ) when is_integer( M ) andalso M >= 0 ->
 
 
 % Checks that specified month is a canonical one.
--spec check_month_canonical( unit_utils:month() ) -> void().
+-spec check_month_canonical( month() ) -> void().
 check_month_canonical( Month ) when is_integer( Month ) andalso Month >= 1
 									andalso Month =< 12 ->
 	ok;
@@ -258,8 +291,7 @@ check_month_canonical( Month ) ->
 
 
 % Ensures that the starting canonical month is strictly before the stopping one.
--spec check_month_order( unit_utils:absolute_month(),
-						 unit_utils:absolute_month() ) -> void().
+-spec check_month_order( absolute_month(), absolute_month() ) -> void().
 check_month_order( Start={ StartYear, StartMonth },
 				   Stop= { StopYear, StopMonth } ) ->
 
@@ -282,7 +314,7 @@ check_month_order( Start={ StartYear, StartMonth },
 % Converts a month (an integer in [1,12] or a 12-multiple thereof, like 23) into
 % its common name.
 %
--spec month_to_string( unit_utils:month() ) -> string().
+-spec month_to_string( month() ) -> string().
 month_to_string( _MonthIndex=1 ) ->
 	"January";
 
@@ -325,9 +357,78 @@ month_to_string( MonthIndex ) ->
 
 
 % Tells whether, for specified country, the specified date is a bank holiday.
--spec is_bank_holiday( date(), locale_utils:country() ) -> boolean().
-is_bank_holiday( _Date, _Country ) ->
-	throw( not_implemented ).
+-spec is_bank_holiday( date(), country() ) -> boolean().
+is_bank_holiday( Date={ _D, _M, Y }, Country ) ->
+	lists:member( Date, get_bank_holidays_for( Y, Country ) ).
+
+
+
+% Returns a (non chronologically-ordered) list of the dates of the bank
+% holidays, for specified year and country.
+%
+% Sources for France: https://kalendrier.ouest-france.fr/jours-feries/2020.html
+% ("fixed" days have then been factored).
+%
+-spec get_bank_holidays_for( year(), country() ) -> [ date_in_year() ].
+get_bank_holidays_for( _Year=2020, Country=france ) ->
+	get_fixed_bank_holidays_for( Country )
+		++ [ {1,6}, {12,4}, {13,4}, {21,5}, {31,5} ];
+
+get_bank_holidays_for( _Year=2021, Country=france ) ->
+	get_fixed_bank_holidays_for( Country )
+		++ [ {4,4}, {5,4}, {13,5}, {23,5}, {24,5} ];
+
+get_bank_holidays_for( _Year=2022, Country=france ) ->
+	get_fixed_bank_holidays_for( Country )
+		++ [ {5,6}, {6,6}, {17,4}, {18,4}, {26,5} ];
+
+get_bank_holidays_for( _Year=2023, Country=france ) ->
+	get_fixed_bank_holidays_for( Country )
+		++ [ {9,4}, {10,4}, {18,5}, {28,5}, {29,5} ];
+
+get_bank_holidays_for( _Year=2024, Country=france ) ->
+	get_fixed_bank_holidays_for( Country )
+		++ [ {1,4}, {9,5}, {19,5}, {20,5}, {31,3} ];
+
+get_bank_holidays_for( _Year=2025, Country=france ) ->
+	get_fixed_bank_holidays_for( Country )
+		++ [ {8,6}, {9,6}, {20,4}, {21,4}, {29,5} ];
+
+get_bank_holidays_for( Year, Country ) ->
+	throw( { no_info_for, Year, Country } ).
+
+
+
+% Returns the fixed bank holidays (whose date is constant from one year to
+% another) for specified country.
+%
+-spec get_fixed_bank_holidays_for( country() ) -> [ date_in_year() ].
+get_fixed_bank_holidays_for( _Country=france ) ->
+	% Computed thanks to:
+	% time_utils:find_common_bank_holidays( 2020, 2026, france ).
+	% (prior to factoring them of course)
+	%
+	[ {1,1}, {1,5}, {1,11}, {8,5}, {11,11}, {14,7}, {15,8}, {25,12} ].
+
+
+
+% Returns the days-of-the-year that are common to the whole year range (start
+% year included, stop one excluded).
+%
+-spec find_common_bank_holidays( year(), year(), country() ) -> [ date_in_year() ].
+find_common_bank_holidays( StartYear, StopYear, Country ) ->
+	AccSet = set_utils:new( get_bank_holidays_for( StartYear, Country ) ),
+	find_common_bank_holidays_helper( StartYear+1, StopYear, Country, AccSet ).
+
+
+% (helper)
+find_common_bank_holidays_helper( StopYear, StopYear, _Country, AccSet ) ->
+	set_utils:to_list( AccSet );
+
+find_common_bank_holidays_helper( CurrentYear, StopYear, Country, AccSet ) ->
+	YearSet = set_utils:new( get_bank_holidays_for( CurrentYear, Country ) ),
+	NewAccSet = set_utils:intersection( AccSet, YearSet ),
+	find_common_bank_holidays_helper( CurrentYear+1, StopYear, Country, NewAccSet ).
 
 
 
@@ -479,7 +580,7 @@ check_date_order( StartDate, StopDate ) ->
 
 
 % Returns the signed duration, in days, between the two specified dates.
--spec get_date_difference( date(), date() ) -> unit_utils:days().
+-spec get_date_difference( date(), date() ) -> days().
 get_date_difference( FirstDate, SecondDate ) ->
 
 	FirstDayCount = calendar:date_to_gregorian_days( FirstDate ),
@@ -497,7 +598,7 @@ get_date_difference( FirstDate, SecondDate ) ->
 % Converts a duration in years into a duration in seconds, supposing a year has
 % 365 days and 6 hours (i.e. a quarter of one day, to account for leap years).
 %
--spec years_to_seconds( unit_utils:years() ) -> unit_utils:float_seconds().
+-spec years_to_seconds( years() ) -> float_seconds().
 years_to_seconds( YearDuration ) ->
 	% 365.25 days per year one average here:
 	YearDuration * 365.25 * 24 * 3600.
@@ -506,19 +607,19 @@ years_to_seconds( YearDuration ) ->
 % Converts a duration in months into a duration in seconds, supposing a month is
 % 1/12 of an average year.
 %
--spec months_to_seconds( unit_utils:months() ) -> unit_utils:float_seconds().
+-spec months_to_seconds( months() ) -> float_seconds().
 months_to_seconds( MonthDuration ) ->
 	MonthDuration * 365.25 / 12 * 24 * 3600.
 
 
 % Converts a duration in weeks into a duration in seconds.
--spec weeks_to_seconds( unit_utils:weeks() ) -> seconds().
+-spec weeks_to_seconds( weeks() ) -> seconds().
 weeks_to_seconds( WeekDuration ) ->
 	WeekDuration * 7 * 24 * 3600.
 
 
 % Converts a duration in days into a duration in seconds.
--spec days_to_seconds( unit_utils:days() ) -> seconds().
+-spec days_to_seconds( days() ) -> seconds().
 days_to_seconds( DayDuration ) ->
 	DayDuration * 24 * 3600.
 
@@ -715,7 +816,7 @@ get_system_time() ->
 % Returns a timestamp tuple describing now, i.e. the current time, the time zone
 % and Daylight Saving Time correction depending on the underlying OS.
 %
-% Ex: { {Year,Month,Day}, {Hour,Minute,Second} } = get_timestamp()
+% Ex: { {Year, Month, Day}, {Hour, Minute, Second} } = get_timestamp()
 % may return { {2007,9,6}, {15,9,14} }.
 %
 -spec get_timestamp() -> timestamp().
@@ -1190,7 +1291,7 @@ get_french_textual_duration( FirstTimestamp, SecondTimestamp ) ->
 %
 % See also: basic_utils:get_textual_duration/2.
 %
--spec duration_to_string( unit_utils:milliseconds() | float() | 'infinity',
+-spec duration_to_string( milliseconds() | float() | 'infinity',
 						  language_utils:human_language() ) -> string().
 duration_to_string( Duration, _Lang=french ) ->
 	duration_to_french_string( Duration );
@@ -1211,7 +1312,7 @@ duration_to_string( Duration, _Lang ) ->
 %
 % See also: basic_utils:get_textual_duration/2.
 %
--spec duration_to_string( unit_utils:milliseconds() | float() | 'infinity' ) ->
+-spec duration_to_string( milliseconds() | float() | 'infinity' ) ->
 								string().
 duration_to_string( Milliseconds ) when is_float( Milliseconds )->
 	duration_to_string( erlang:round( Milliseconds ) );
@@ -1322,7 +1423,7 @@ duration_to_string( infinity ) ->
 % See also: basic_utils:get_textual_duration/2.
 %
 -spec duration_to_french_string(
-		unit_utils:milliseconds() | float() | 'infinity' ) -> string().
+		milliseconds() | float() | 'infinity' ) -> string().
 duration_to_french_string( Milliseconds ) when is_float( Milliseconds )->
 	duration_to_french_string( erlang:round( Milliseconds ) );
 
@@ -1447,7 +1548,7 @@ get_precise_timestamp() ->
 % first one as starting time and the second one as stopping time.
 %
 -spec get_precise_duration( precise_timestamp(), precise_timestamp() ) ->
-								  unit_utils:milliseconds().
+								  milliseconds().
 get_precise_duration( _FirstTimestamp={ A1, A2, A3 },
 					  _SecondTimestamp={ B1, B2, B3 } ) ->
 
@@ -1459,8 +1560,7 @@ get_precise_duration( _FirstTimestamp={ A1, A2, A3 },
 % Returns the (signed) duration in milliseconds between the specified precise
 % timestamp (as obtained thanks to get_precise_duration/0) and the current time.
 %
--spec get_precise_duration_since( precise_timestamp() ) ->
-								  unit_utils:milliseconds().
+-spec get_precise_duration_since( precise_timestamp() ) -> milliseconds().
 get_precise_duration_since( StartTimestamp ) ->
 	get_precise_duration( StartTimestamp, get_precise_timestamp() ).
 
@@ -1469,7 +1569,7 @@ get_precise_duration_since( StartTimestamp ) ->
 % Returns the date corresponding to the specified one augmented of the specified
 % number of days (possibly a negative number).
 %
--spec get_date_after( date(), unit_utils:days() ) -> date().
+-spec get_date_after( date(), days() ) -> date().
 get_date_after( BaseDate, Days ) ->
 
 	DayCount = calendar:date_to_gregorian_days( BaseDate ) + Days,
