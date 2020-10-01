@@ -238,6 +238,9 @@ report_error( { Context, Error } ) ->
 		{ unexpected_pattern, Pattern } ->
 			text_utils:format( "unexpected pattern: ~p", [ Pattern ] );
 
+		{ scan_error, _ScanError={ string, _L, Text } } when is_list( Text ) ->
+			text_utils:format( "syntax error near \"~s\"", [ Text ] );
+
 		{ scan_error, ScanError } ->
 			text_utils:format( "scan error: ~p", [ ScanError ] );
 
