@@ -53,7 +53,7 @@
 		  display/1, display/2, display_timed/2, display_timed/3,
 		  display_error/1, display_error/2,
 		  debug/1, debug/2,
-		  parse_version/1, compare_versions/2,
+		  parse_version/1, check_version/1, compare_versions/2,
 		  get_process_specific_value/0, get_process_specific_value/1,
 		  get_process_specific_value/2,
 		  get_process_size/1,
@@ -191,7 +191,7 @@
 %
 -type accumulator() :: any().
 
--type version_number() :: integer().
+-type version_number() :: non_neg_integer().
 
 % By default we consider a version is a triplet of numbers:
 -type version() :: { version_number(), version_number(), version_number() }.
@@ -1237,6 +1237,17 @@ parse_version( VersionString ) ->
 
 	% Then simply switch to {4,22,1}:
 	list_to_tuple( [ text_utils:string_to_integer( E ) || E <- Elems ] ).
+
+
+
+% Checks that specified term is a triplet-based version.
+-spec check_version( term() ) -> void().
+check_version( { A, B, C } ) when is_integer( A ) andalso is_integer( B )
+								  andalso is_integer( C )->
+	ok;
+
+check_version( T ) ->
+	throw( { invalid_triplet_version, T } ).
 
 
 
