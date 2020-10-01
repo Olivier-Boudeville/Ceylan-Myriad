@@ -592,7 +592,10 @@ is_beam_in_path( ModuleName ) when is_atom( ModuleName ) ->
 		Paths ->
 			Paths
 
-	end.
+	end;
+
+is_beam_in_path( Other ) ->
+	throw( { non_atom_module_name, Other } ).
 
 
 
@@ -715,11 +718,10 @@ interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
 	case code_utils:is_beam_in_path( ModuleName ) of
 
 		not_found ->
-			text_utils:format( "no module ~s found in code path, "
-							   "explaining why its ~s/~B function is "
-							   "reported as being undefined; ~s",
-							   [ ModuleName, FunctionName, Arity,
-								 code_utils:get_code_path_as_string() ] );
+			text_utils:format( "no module ~s found in code path, explaining "
+				"why its ~s/~B function is reported as being undefined; ~s",
+				[ ModuleName, FunctionName, Arity,
+				  code_utils:get_code_path_as_string() ] );
 
 
 		_ModulePath ->
@@ -729,33 +731,48 @@ interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
 
 				[] ->
 					text_utils:format( "module ~s found in code path, yet "
-									   "it does not export a '~s' function "
-									   "(for any arity)",
-									   [ ModuleName, FunctionName ] );
+						"it does not export a '~s' function (for any arity)",
+						[ ModuleName, FunctionName ] );
 
 				Arities ->
-					case lists:member( Arity, Arities ) of
-
-						true ->
-							% Should never happen?
-							text_utils:format(
-							  "module ~s found in code path, and "
-							  "it exports the ~s/~B function indeed",
-							  [ ModuleName, FunctionName, Arity ] );
-
-						false ->
-							text_utils:format(
-							  "module ~s found in code path, yet "
-							  "it does export a ~s/~B function; "
-							  "as it exports this function for "
-							  "other arities (i.e. ~w), maybe the call to "
-							  "that function was made with a wrong number "
-							  "of parameters",
-							  [ ModuleName, FunctionName, Arity,
-								lists:sort( Arities ) ] )
-
-					end
+					interpret_arities( ModuleName, FunctionName, Arity,
+									   Arities )
 
 			end
+
+	end.
+
+
+% (helper)
+interpret_arities( ModuleName, FunctionName, Arity, Arities ) ->
+
+	case lists:member( Arity, Arities ) of
+
+		true ->
+			% Should never happen?
+			text_utils:format( "module ~s found in code path, and it exports "
+							   "the ~s/~B function indeed",
+							   [ ModuleName, FunctionName, Arity ] );
+
+		false ->
+			ArStr = case Arities of
+
+				[ A ] ->
+					text_utils:format( "another arity (~B)", [ A ] );
+
+				_ ->
+					Ars = [ text_utils:integer_to_string( I )
+							|| I <- lists:sort( Arities ) ],
+
+					ArsStr = text_utils:strings_to_listed_string( Ars ),
+
+					text_utils:format( "other arities (i.e. ~s)", [ ArsStr ] )
+
+			end,
+
+			text_utils:format( "module ~s found in code path, yet it does "
+				"export a ~s/~B function; as it exports this function for ~s, "
+				"maybe the call to that function was made with a wrong number "
+				"of parameters", [ ModuleName, FunctionName, Arity, ArStr ] )
 
 	end.
