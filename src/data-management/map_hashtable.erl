@@ -591,22 +591,21 @@ extract_entry_if_existing( Key, MapHashtable ) ->
 % associated values (in-order) and removes these entries from the returned table.
 %
 % Each key/value pair is expected to exist already, otherwise an exception is
-% raised (typically {badkey,KeyNotFound}).
+% raised (typically {badkey, KeyNotFound}).
 %
-% Ex: { [ RedValue, GreenValue, BlueValue ], ExtractedTable } =
-%         table:extract_entries( [ red, green, blue ], MyTable )
+% Ex: {[RedValue, GreenValue, BlueValue], ExtractedTable} =
+%         table:extract_entries([red, green, blue], MyTable)
 %
 -spec extract_entries( [ key() ], map_hashtable() ) ->
 							 { [ value() ], map_hashtable() }.
 extract_entries( Keys, MapHashtable ) ->
 	{ RevValues, FinalTable } = lists:foldl(
 		fun( K, { AccValues, AccTable } ) ->
-
 			{ V, NewAccTable } = extract_entry( K, AccTable ),
 			{ [ V | AccValues ], NewAccTable }
 		end,
 		_Acc0={ [], MapHashtable },
-					 _List=Keys ),
+		_List=Keys ),
 
 	{ lists:reverse( RevValues ), FinalTable }.
 
