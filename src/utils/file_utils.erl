@@ -3382,6 +3382,10 @@ read_whole( Filename ) ->
 		{ ok, Binary } ->
 			Binary;
 
+		{ error, eacces } ->
+			throw( { read_whole_failed, Filename, access_denied,
+					 get_access_denied_info( Filename ) } );
+
 		{ error, Error } ->
 			throw( { read_whole_failed, Filename, Error } )
 
@@ -3435,8 +3439,12 @@ write_whole( Filename, BinaryContent, Modes ) ->
 			%end;
 			ok;
 
+		{ error, eacces } ->
+			throw( { write_whole_failed, { Filename, Modes }, access_denied,
+					 get_access_denied_info( Filename ) } );
+
 		{ error, Error } ->
-			throw( { write_whole_failed, Filename, Error } )
+			throw( { write_whole_failed, { Filename, Modes }, Error } )
 
 	end.
 
