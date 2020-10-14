@@ -439,7 +439,11 @@ to_json( Term, _ParserState={ jsx, _UndefinedInternalBackendState } ) ->
 	%trace_utils:debug_fmt( "JSX is to encode, with options ~p:~n ~p",
 	%					   [ Opts, Term ] ),
 
-	jsx:encode( Term, Opts );
+	R = jsx:encode( Term, Opts ),
+
+	%trace_utils:debug_fmt( "JSX returned encoded term:~n ~p", [ R ] ),
+
+	R;
 
 to_json( Term, _ParserState={ jiffy, _UndefinedInternalBackendState } ) ->
 
@@ -526,6 +530,7 @@ from_json( Json, _ParserState={ jsx, _UndefinedInternalBackendState } ) ->
 
 
 from_json( Json, _ParserState={ jiffy, _UndefinedInternalBackendState } ) ->
+	%trace_utils:debug_fmt( "Decoding '~p' with Jiffy.", [ Json ] ),
 	jiffy:decode( Json, get_base_json_decoding_options( jiffy ) ).
 
 
