@@ -23,26 +23,27 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Monday, April 30, 2018
+% Creation date: Monday, April 30, 2018.
 
 
 
 % Process dictionary-related support.
 %
 % While using the process dictionary is usually regarded with contempt for good
-% reasons (impure, prone to unwanted side-effects), there are a few specific
-% cases (ex: the state of a user interfaces being made implicit) where it might
-% be nevertheless useful.
+% reasons (impure, prone to unwanted side-effects, etc.), there are a few
+% specific cases where it might be nevertheless useful/relevant (ex: to make the
+% state of a user interfaces implicit, rather than adding a parameter to
+% virtually all functions of views, in the sense of the MVC pattern).
 %
-% We provide basic encapsulation of the ways of interacting with the process
+% We provide a basic encapsulation for the ways of interacting with the process
 % dictionary, notably so that it is easier to locate (ex: thanks to 'grep') the
 % places where the process dictionary is used.
 %
-% This module could have been need 'impure_table' as well, and could have obeyed
-% a table-like APIaplying only to a singleton.
+% This module could have been named 'impure_table' as well, and could have
+% obeyed a table-like API applying only to a singleton.
 %
 % Note: associating to a key the 'undefined' value is, here, semantically the
-% same as not defining such an entry.
+% same as not defining at all such an entry.
 %
 -module(process_dictionary).
 
@@ -68,7 +69,7 @@
 
 
 
--export([ put/2, putAsNew/2, get/1, getExisting/1, remove/1, removeExisting/1,
+-export([ put/2, put_as_new/2, get/1, get_existing/1, remove/1, remove_existing/1,
 		  get_dictionary/0, get_keys/0, get_keys_for/1,
 		  blank/0, to_string/0 ]).
 
@@ -85,8 +86,8 @@ put( Key, Value ) ->
 % Puts specified entry in the process dictionary; raises an exception if ever
 % the specified key was already registered in the process dictionary.
 %
--spec putAsNew( key(), value() ) -> void().
-putAsNew( Key, Value ) ->
+-spec put_as_new( key(), value() ) -> void().
+put_as_new( Key, Value ) ->
 
 	case erlang:get( Key ) of
 
@@ -113,8 +114,8 @@ get( Key ) ->
 % Returns the value expected to be associated to the specified key in the
 % process dictionary, otherwise throws an exception.
 %
--spec getExisting( key() ) -> value().
-getExisting( Key ) ->
+-spec get_existing( key() ) -> value().
+get_existing( Key ) ->
 
 	case erlang:get( Key ) of
 
@@ -130,7 +131,7 @@ getExisting( Key ) ->
 
 
 % Removes any entry in the process dictionary corresponding to specified key,
-% returning any value that was associated with it.
+% returning any value that was associated to it.
 %
 -spec remove( key() ) -> maybe( value() ).
 remove( Key ) ->
@@ -139,11 +140,11 @@ remove( Key ) ->
 
 
 % Removes the entry in the process dictionary expected to correspond to the
-% specified key and returning it, otherwise throwing an exception, should no
-% value be associated to specified key.
+% specified key and returns, otherwise throws an exception, should no value be
+% associated to specified key.
 %
--spec removeExisting( key() ) -> value().
-removeExisting( Key ) ->
+-spec remove_existing( key() ) -> value().
+remove_existing( Key ) ->
 
 	case erlang:erase( Key ) of
 
@@ -171,7 +172,7 @@ get_keys() ->
 
 
 
-% Returns a list of keys that are associated with the specified value in the
+% Returns a list of keys that are associated to the specified value in the
 % process dictionary.
 %
 -spec get_keys_for( value() ) -> [ key() ].
@@ -205,8 +206,7 @@ to_string() ->
 									  [ K, V ] ) || { K, V } <- Pairs ] ),
 
 			text_utils:format( "the process dictionary of ~p contains "
-							   "~B pair(s): ~s",
-							   [ self(), length( Pairs ),
-								 text_utils:strings_to_string( Strings ) ] )
+				"~B pair(s): ~s", [ self(), length( Pairs ),
+									text_utils:strings_to_string( Strings ) ] )
 
 	end.
