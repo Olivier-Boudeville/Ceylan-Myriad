@@ -729,7 +729,7 @@ dhms_to_seconds( { Days, Hours, Minutes, Seconds } ) ->
 
 
 % Converts a duration in seconds into a DHMS duration (in
-% Days/Hours/Minutes/Seconds) into.
+% Days/Hours/Minutes/Seconds).
 %
 seconds_to_dhms( FullSeconds ) ->
 	SecsPerDay= 24 * 3600,
@@ -1254,12 +1254,11 @@ get_duration_since( StartTimestamp ) ->
 get_textual_duration( FirstTimestamp, SecondTimestamp ) ->
 
 	% As duration_to_string/1 is smarter:
-	%{ Days, { Hour, Minute, Second } } = calendar:seconds_to_daystime(
+	% { Days, { Hour, Minute, Second } } = calendar:seconds_to_daystime(
 	%	get_duration( FirstTimestamp, SecondTimestamp ) ),
 
 	%lists:flatten( io_lib:format( "~B day(s), ~B hour(s), ~B minute(s) "
-	%							  "and ~B second(s)",
-	%							  [ Days, Hour, Minute, Second ] ) ).
+	%  "and ~B second(s)", [ Days, Hour, Minute, Second ] ) ).
 
 	Duration = get_duration( FirstTimestamp, SecondTimestamp ),
 
