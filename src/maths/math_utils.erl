@@ -69,7 +69,10 @@
 -type non_zero_integer() :: pos_integer() | neg_integer().
 
 
-% Variance, as used to describe a Gaussian curve:
+% Standard deviation, as used to describe a Gaussian curve:
+-type standard_deviation() :: float().
+
+% Variance, the square of a standard deviation:
 -type variance() :: float().
 
 
@@ -96,7 +99,7 @@
 						 | 'relative' | { 'relative', float() }.
 
 
--export_type([ non_zero_integer/0, variance/0,
+-export_type([ non_zero_integer/0, standard_deviation/0, variance/0,
 			   percent/0, integer_percent/0, probability/0 ]).
 
 
