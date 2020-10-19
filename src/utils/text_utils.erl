@@ -61,6 +61,7 @@
 		  binaries_to_string/1, binaries_to_string/2,
 		  binaries_to_sorted_string/1, binaries_to_listed_string/1,
 		  atoms_to_string/1, atoms_to_sorted_string/1, atoms_to_listed_string/1,
+		  integers_to_listed_string/1,
 		  proplist_to_string/1, version_to_string/1,
 		  atom_to_binary/1,
 		  string_to_binary/1, binary_to_string/1,
@@ -249,6 +250,10 @@
 %
 -type distance() :: non_neg_integer().
 
+
+% See https://erlang.org/doc/man/erlang.html#float_to_list-2 for more
+% information.
+%
 -type float_option() :: { 'decimals', 0..253 }
 					  | { 'scientific', 0..249 }
 					  | 'compact'.
@@ -801,7 +806,7 @@ atoms_to_sorted_string( ListOfAtoms ) ->
 
 
 % Returns a string that pretty-prints the specified list of atoms, listed
-% directly in the text.
+% directly in the returned text.
 %
 % Ex: atoms_to_listed_string( [ red, blue, green ] ) returns "red, blue and
 % green".
@@ -810,6 +815,19 @@ atoms_to_sorted_string( ListOfAtoms ) ->
 atoms_to_listed_string( ListOfAtoms ) ->
 	ListOfStrings = [ atom_to_string( A ) || A <- ListOfAtoms ],
 	strings_to_listed_string( ListOfStrings ).
+
+
+% Returns a string that pretty-prints the specified list of integers, listed
+% directly in the returned text.
+%
+% Ex: integers_to_listed_string( [ 1, 13, 8 ] ) returns "1, 13 and 8".
+%
+-spec integers_to_listed_string( [ integer() ] ) -> ustring().
+integers_to_listed_string( ListOfIntegers ) ->
+	ListOfStrings = [ integer_to_string( A ) || A <- ListOfIntegers ],
+	strings_to_listed_string( ListOfStrings ).
+
+
 
 
 % Returns a string that pretty-prints the specified list of strings, listed
