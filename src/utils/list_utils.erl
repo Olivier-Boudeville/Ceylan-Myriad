@@ -78,7 +78,7 @@
 % Random operations on lists:
 -export([ random_permute/1, random_permute_reciprocal/1,
 		  draw_element/1, draw_element/2, draw_element_weighted/1,
-		  draw_elements_from/2 ]).
+		  draw_elements_from/2, extract_elements_from/2 ]).
 
 
 % An element of a list:
@@ -264,7 +264,7 @@ extract_element_at( _List=[], Index, Acc ) ->
 			 lists:reverse( Acc ) } );
 
 extract_element_at( _List=[ H | T ], Index, Acc ) ->
-	extract_element_at( T, Index - 1, [ H | Acc ] ).
+	extract_element_at( T, Index-1, [ H | Acc ] ).
 
 
 
@@ -272,12 +272,12 @@ extract_element_at( _List=[ H | T ], Index, Acc ) ->
 % specified index removed.
 %
 % If the index is out of bounds, a function_clause like
-% '[{list_utils,remove_element_at,...}]' is triggered.
+% '[{list_utils, remove_element_at, ...}]' is triggered.
 %
 % Note: usually these kinds of functions should not be used, recursive
 % algorithms are a lot more effective, when applicable.
 %
-% Signature: remove_element_at( List, Index ).
+% Signature: remove_element_at(List, Index).
 %
 % Curiously lists:nth exists, but no function to remove an element specified by
 % its index seems to be available in the lists module.
@@ -514,7 +514,7 @@ count_occurrences( _List=[ Term | T ], Acc ) ->
 
 		{ TermCount, FilteredList } ->
 			% We already extracted the first Term:
-			count_occurrences( FilteredList, [ { Term, TermCount + 1 } | Acc ] )
+			count_occurrences( FilteredList, [ { Term, TermCount+1 } | Acc ] )
 
    end.
 
@@ -553,7 +553,7 @@ get_duplicates( _List=[ Term | T ], Acc ) ->
 
 		{ TermCount, FilteredList } ->
 			% We already extracted the first Term:
-			get_duplicates( FilteredList, [ { Term, TermCount + 1 } | Acc ] )
+			get_duplicates( FilteredList, [ { Term, TermCount+1 } | Acc ] )
 
    end.
 
@@ -567,7 +567,7 @@ count_and_filter_term( _Term, _List=[], FilteredList, CurrentCount ) ->
 
 % Term found:
 count_and_filter_term( Term, _List=[ Term | H ], FilteredList, CurrentCount ) ->
-	count_and_filter_term( Term, H, FilteredList, CurrentCount + 1 );
+	count_and_filter_term( Term, H, FilteredList, CurrentCount+1 );
 
 % Other term:
 count_and_filter_term( Term, _List=[ OtherTerm | H ], FilteredList,
@@ -853,7 +853,7 @@ check_tuple_length( _TupleList=[ Tuple | T ], TupleSize, AccCount ) ->
 	case size( Tuple ) of
 
 		TupleSize ->
-			check_tuple_length( T, TupleSize, AccCount + 1 );
+			check_tuple_length( T, TupleSize, AccCount+1 );
 
 		OtherSize ->
 			throw( { heterogeneous_tuple_size, { Tuple, OtherSize },
@@ -957,7 +957,7 @@ random_permute( List, RemainingLen ) ->
 random_permute_reciprocal( List ) ->
 
 	% This is a little trickier than random_permute/1; we have to reverse
-	% operations for latest to first, hence we must start with the latest drawn
+	% operations from latest to first, hence we must start with the latest drawn
 	% value. So we draw them all first, and start by the end of that list,
 	% taking into account that the range is decremented at each draw:
 	%
@@ -1069,19 +1069,47 @@ select_element( [ { _Element, Probability } | T ], DrawnValue, CurrentSum ) ->
 
 
 % Draws the specified number of elements at random of the specified list,
-% knowing they all have the same probability of being drawn initially, but when
-% an element is drawn, it is removed from the candidate list so that the next
-% drawing operates on the resulting shorten list.
+% knowing that they all have the same probability of being drawn initially, but
+% when an element is drawn, it is removed from the candidate list so that the
+% next drawing operates on the resulting shortened list, so that any element is
+% drawn up to once.
 %
--spec draw_elements_from( list(), count() ) -> [ element() ].
+% Note that the specified list must contain at least the specified count of
+% elements.
+%
+-spec draw_elements_from( list(), count() ) -> list().
 draw_elements_from( ElementList, Count ) ->
-	draw_elements_from( ElementList, Count, _Acc=[] ).
+
+	{ DrawnElems, _RemainingElems } =
+		extract_elements_from( ElementList, Count ),
+
+	DrawnElems.
 
 
-draw_elements_from( _ElementList, _Count=0, Acc ) ->
-	Acc;
 
-draw_elements_from( ElementList, Count, Acc ) ->
-	Drawn = draw_element( ElementList ),
-	ShortenList = lists:delete( Drawn, ElementList ),
-	draw_elements_from( ShortenList, Count - 1, [ Drawn | Acc ] ).
+% Extracts the specified number of elements at random from the specified list,
+% knowing that they all have the same probability of being extracted initially,
+% but when an element is extracted, it is removed from the candidate list so
+% that the next extracting operates on the resulting shortened list (i.e. a
+% subset with no duplicates is returned).
+%
+% Returns the list of extracted elements, and the list of the remaining
+% elements.
+%
+% Note that the specified list must contain at least the specified count of
+% elements.
+%
+-spec extract_elements_from( list(), count() ) ->
+				{ ExtractedElems :: list(), RemainingElems :: list() }.
+extract_elements_from( ElementList, Count ) ->
+	extract_elements_from( ElementList, Count, _AccExtract=[] ).
+
+
+extract_elements_from( RemainingElems, _Count=0, AccExtract ) ->
+	{ AccExtract, RemainingElems };
+
+extract_elements_from( RemainingElems, Count, AccExtract ) ->
+	DrawnElem = draw_element( RemainingElems ),
+	ShrunkRemainingElems = lists:delete( DrawnElem, RemainingElems ),
+	extract_elements_from( ShrunkRemainingElems, Count-1,
+						   [ DrawnElem | AccExtract ] ).
