@@ -72,10 +72,11 @@
 % An applicative timestamp for a trace:
 -type trace_timestamp() :: string().
 
+-type trace_priority() :: 1..6.
 
 -export_type([ trace_message/0, trace_severity/0,
 			   trace_format/0, trace_values/0, trace_message_categorization/0,
-			   trace_timestamp/0 ]).
+			   trace_timestamp/0, trace_priority/0 ]).
 
 
 
@@ -94,9 +95,9 @@
 
 		  void/1, void_fmt/2, void_categorized/2, void_categorized_timed/3,
 
-		  echo/2, echo/3, echo/4
+		  echo/2, echo/3, echo/4,
 
-		]).
+		  get_priority_for/1 ]).
 
 
 
@@ -467,6 +468,35 @@ echo( _TraceMessage, _TraceSeverity=void, _MessageCategorization,
 	  _Timestamp ) ->
 	ok.
 
+
+
+% Returns the priority of specified trace type (i.e. fatal, error, etc.).
+-spec get_priority_for( trace_severity() ) -> trace_priority().
+% Corresponds to stack/error:
+get_priority_for( fatal ) ->
+	1;
+
+% Corresponds to stack/error:
+get_priority_for( error ) ->
+	2;
+
+% Corresponds to warning/warn:
+get_priority_for( warning ) ->
+	3;
+
+% Corresponds to info:
+get_priority_for( info ) ->
+	4;
+
+% Corresponds to fine:
+get_priority_for( trace ) ->
+	5;
+
+% Corresponds to finest/debug:
+get_priority_for( debug ) ->
+	6.
+
+% 'void' not expected here.
 
 
 
