@@ -43,7 +43,8 @@
 
 
 % Node-related functions:
--export([ localnode/0, get_all_connected_nodes/0,
+-export([ localnode/0, localnode_as_binary/0,
+		  get_all_connected_nodes/0,
 		  check_node_availability/1, check_node_availability/2,
 		  get_node_naming_mode/0, get_naming_compliant_hostname/2,
 		  generate_valid_node_name_from/1, get_fully_qualified_node_name/3,
@@ -583,6 +584,15 @@ localnode() ->
 			OtherNodeName
 
 	end.
+
+
+% Returns the name of the local node, as a binary string.
+%
+% It is either a specific node name, or <<"local_node">>.
+%
+-spec localnode_as_binary() -> bin_node_name().
+localnode_as_binary() ->
+	erlang:atom_to_binary( localnode(), _Encoding=latin1 ).
 
 
 
