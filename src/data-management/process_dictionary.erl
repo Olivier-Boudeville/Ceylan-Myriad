@@ -102,7 +102,7 @@ put_as_new( Key, Value ) ->
 
 
 % Returns the value (if any) associated to the specified key in the process
-% dictionary.
+% dictionary, otherwise the 'undefined' atom.
 %
 -spec get( key() ) -> maybe( value() ).
 get( Key ) ->
