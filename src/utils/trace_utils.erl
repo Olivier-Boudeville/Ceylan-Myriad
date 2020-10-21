@@ -69,8 +69,12 @@
 % Categorization of a trace message:
 -type trace_message_categorization() :: string().
 
-% An applicative timestamp for a trace:
--type trace_timestamp() :: string().
+% An applicative timestamp for a trace; it can be anything (ex: integer() |
+% 'none'), no constraint applies on purpose, so that any kind of
+% application-specific timestamps can be elected.
+%
+-type trace_timestamp() :: any().
+
 
 -type trace_priority() :: 1..6.
 

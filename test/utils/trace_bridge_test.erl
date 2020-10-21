@@ -46,8 +46,11 @@
 
 % Defined for external re-use:
 emit_traces() ->
+
 	trace_bridge:debug( "I am a debug simple message." ),
 	trace_bridge:debug_fmt( "I am a debug ~s message.", [ "formatted" ] ),
+
+	trace_bridge:set_application_timestamp( "My applicative timestamp" ),
 
 	trace_bridge:trace( "I am a trace simple message." ),
 	trace_bridge:trace_fmt( "I am a trace ~s message.", [ "formatted" ] ),

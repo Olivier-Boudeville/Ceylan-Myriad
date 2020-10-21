@@ -55,7 +55,7 @@
 -export_type([ bridge_pid/0 ]).
 
 
--export([ register/3, unregister/0,
+-export([ register/3, set_application_timestamp/1, unregister/0,
 		  debug/1, debug_fmt/2, trace/1, trace_fmt/2,
 		  info/1, info_fmt/2, warning/1, warning_fmt/2,
 		  error/1, error_fmt/2, fatal/1, fatal_fmt/2,
@@ -70,11 +70,14 @@
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
+-type bin_string() :: text_utils:bin_string().
 
 -type format_string() :: text_utils:format_string().
 -type format_values() :: text_utils:format_values().
 
 -type trace_severity() :: trace_utils:trace_severity().
+-type trace_timestamp() :: trace_utils:trace_timestamp().
+
 
 
 % Implementation notes:
@@ -83,6 +86,16 @@
 % parameters.
 %
 % Note special-casing the 'void' severity, as not used frequently enough.
+
+
+-type bridge_info() :: { TraceEmitterName :: bin_string(),
+						 TraceCategory :: bin_string(),
+						 Location :: bin_string(),
+						 ApplicationTimestamp :: trace_timestamp() }.
+
+
+% To silence warning:
+-export_type([ bridge_info/0 ]).
 
 
 
@@ -95,8 +108,10 @@ register( TraceEmitterName, TraceCategory, BridgePid ) ->
 	BinName = text_utils:string_to_binary( TraceEmitterName ),
 	BinCateg = text_utils:string_to_binary( TraceCategory ),
 	Location = net_utils:localnode_as_binary(),
+	DefaultApplicationTimestamp = undefined,
 
-	BridgeInfo = { BinName, BinCateg, Location, BridgePid },
+	BridgeInfo = { BinName, BinCateg, Location, BridgePid,
+				   DefaultApplicationTimestamp },
 
 	case process_dictionary:get( BridgeKey ) of
 
@@ -107,6 +122,30 @@ register( TraceEmitterName, TraceCategory, BridgePid ) ->
 		UnexpectedInfo ->
 			throw( { myriad_trace_bridge_already_registered, UnexpectedInfo,
 					 BridgeInfo } )
+
+	end.
+
+
+
+% Sets the current application timestamp.
+%
+% Note: if no trace bridge is registered, does nothing.
+%
+-spec set_application_timestamp( trace_timestamp() ) -> void().
+set_application_timestamp( NewAppTimestamp ) ->
+
+	BridgeKey = ?myriad_trace_bridge_key,
+
+	case process_dictionary:get( BridgeKey ) of
+
+		undefined ->
+			ok;
+
+		BridgeInfo ->
+			NewBridgeInfo = setelement( _AppTmspIndex=5, BridgeInfo,
+										NewAppTimestamp ),
+
+			process_dictionary:put( BridgeKey, NewBridgeInfo )
 
 	end.
 
@@ -257,7 +296,9 @@ send( SeverityType, MessageFormat, MessageValues ) ->
 % (helper)
 send_bridge( SeverityType, Message,
 			 _BridgeInfo={ TraceEmitterName, TraceEmitterCategorization,
-						   BinLocation, BridgePid } ) ->
+						   BinLocation, BridgePid, AppTimestamp } ) ->
+
+	AppTimestampString = text_utils:term_to_binary( AppTimestamp ),
 
 	TimestampText = text_utils:string_to_binary(
 					  time_utils:get_textual_timestamp() ),
@@ -266,10 +307,10 @@ send_bridge( SeverityType, Message,
 		[ _TraceEmitterPid=self(),
 		  TraceEmitterName,
 		  TraceEmitterCategorization,
-		  _AppTimestampString= <<"(no applicative timestamp)">>,
+		  AppTimestampString,
 		  _Time=TimestampText,
 		  _Location=BinLocation,
-		  _MessageCategorization=bridge_emitted,
+		  _MessageCategorization='Trace Bridge',
 		  %_MessageCategorization=uncategorized,
 		  _Priority=trace_utils:get_priority_for( SeverityType ),
 		  _Message=text_utils:string_to_binary( Message ) ] }.
