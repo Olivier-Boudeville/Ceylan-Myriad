@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Monday, September 19, 2016
+% Creation date: Monday, September 19, 2016.
 
 
 
@@ -32,7 +32,6 @@
 % Description Framework'.
 %
 % See also:
-%
 % - https://en.wikipedia.org/wiki/Resource_Description_Framework
 % - https://www.w3.org/TR/rdf11-primer/
 %
@@ -42,12 +41,9 @@
 
 
 % See also:
-%
 % - a RDF N-Triples reader: https://github.com/tim/erlang-rdf-ntriples
-%
 % - a distributed framework for large scale graph processing:
 % https://github.com/xslogic/phoebus
-
 % - bindings for the Raptor RDF Parser Library:
 % https://github.com/jonasp/erlang-raptor
 
