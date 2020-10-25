@@ -685,8 +685,8 @@ get_group_of( EntryName ) ->
 
 % Returns whether the specified entry, supposedly existing, is a regular file.
 %
-% If the specified entry happens not to exist, a
-% '{ non_existing_entry, EntryName }' exception will be thrown.
+% If the specified entry happens not to exist, a {non_existing_entry, EntryName}
+% exception will be thrown.
 %
 -spec is_file( any_path() ) -> boolean().
 is_file( EntryName ) ->
@@ -810,8 +810,8 @@ is_executable( ExecutableName ) ->
 
 % Returns whether the specified entry, supposedly existing, is a directory.
 %
-% If the specified entry happens not to exist, a
-% '{ non_existing_entry, EntryName }' exception will be thrown.
+% If the specified entry happens not to exist, a {non_existing_entry, EntryName}
+% exception will be thrown.
 %
 -spec is_directory( any_path() ) -> boolean().
 is_directory( EntryName ) ->
