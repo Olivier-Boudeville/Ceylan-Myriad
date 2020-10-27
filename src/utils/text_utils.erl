@@ -42,7 +42,6 @@
 % Note that string:tokens/1 can be used to split strings.
 
 
-
 % String management functions.
 
 
@@ -50,9 +49,9 @@
 -export([ term_to_string/1, term_to_string/2, term_to_string/3,
 		  term_to_bounded_string/1, term_to_bounded_string/2,
 		  term_to_binary/1,
-		  integer_to_string/1, atom_to_string/1,
+		  integer_to_string/1, integer_to_hexastring/1, atom_to_string/1,
 		  pid_to_string/1, pids_to_string/1,
-		  pid_to_short_string/1, pids_to_short_string/1,
+		  pid_to_short_string/1, pids_to_short_string/1, pid_to_core_string/1,
 		  record_to_string/1,
 		  strings_to_string/1, strings_to_sorted_string/1,
 		  strings_to_string/2, strings_to_sorted_string/2,
@@ -421,6 +420,14 @@ integer_to_string( IntegerValue ) ->
 	erlang:integer_to_list( IntegerValue ).
 
 
+% Returns a plain string corresponding to the specified integer, in hexadecimal
+% form.
+%
+-spec integer_to_hexastring( integer() ) -> string().
+integer_to_hexastring( IntegerValue ) ->
+	erlang:integer_to_list( IntegerValue, _Base=16 ).
+
+
 % Returns a plain string corresponding to the specified atom.
 -spec atom_to_string( atom() ) -> string().
 atom_to_string( Atom ) ->
@@ -444,9 +451,12 @@ pids_to_string( PidList ) ->
 %
 % For example, <0.33.0> returned as "|33|" (half size).
 %
+% Note though that the pipe character may be better avoided on some systems (ex:
+% trace ones).
+%
 -spec pid_to_short_string( pid() ) -> string().
 pid_to_short_string( Pid ) ->
-	% Could be used: list_utils:flatten_one/1:
+	% Could be used: list_utils:flatten_once/1:
 	%[ $< | pid_to_core_string( Pid ) ] ++ ">".
 	[ $| | pid_to_core_string( Pid ) ] ++ "|".
 
@@ -458,7 +468,7 @@ pid_to_short_string( Pid ) ->
 %
 -spec pids_to_short_string( [ pid() ] ) -> string().
 pids_to_short_string( PidList ) ->
-	% Could be used: list_utils:flatten_one/1:
+	% Could be used: list_utils:flatten_once/1:
 
 	% Preferring an extra character, as better allowing to break longer lines:
 	%Sep = ",",
@@ -468,7 +478,12 @@ pids_to_short_string( PidList ) ->
 
 
 
-% (helper, to be shared)
+
+% Returns a very short plain string corresponding to the specified PID.
+%
+% For example, for <0.33.0>, will return "33".
+%
+-spec pid_to_core_string( pid() ) -> string().
 pid_to_core_string( Pid ) ->
 
 	% A PID is akin to <X.Y.Z>.
