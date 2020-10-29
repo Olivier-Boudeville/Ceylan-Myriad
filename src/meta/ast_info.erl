@@ -173,6 +173,7 @@
 % Tables to be found in the module_info record:
 
 
+% Ex: inline, export_all, etc.
 -type compile_option_name() :: atom().
 
 % In some cases (at least when it is specified from the command-line), a
@@ -287,12 +288,11 @@
 % of the functions to declare exported there.
 %
 % Note:
-%
 % - this table must be explicitly updated whenever adding or removing a function
 % in a module_info 'functions' field; see: meta_utils:add_function/2 and
 % meta_utils:remove_function/2
-%
 % - a list of function_id() is used, not a set, to better preserve order
+% - the 'export_all' compile attribute may also have been set in compile options
 %
 -type function_export_table() :: ?table:?table( location(),
 						   { ast_base:line(), [ function_id() ] } ).

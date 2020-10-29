@@ -1424,6 +1424,12 @@ register_compile_attribute( _CompileInfo='inline', CompileTable, _Context ) ->
 	?table:add_entry( inline, all, CompileTable );
 
 
+register_compile_attribute( _CompileInfo='export_all', CompileTable, _Context ) ->
+
+	% Not currently specifically managed:
+	?table:add_entry( export_all, undefined, CompileTable );
+
+
 % Regular inlining:
 register_compile_attribute( _CompileInfo={ 'inline', InlineValues },
 		CompileTable, Context ) when is_list( InlineValues ) ->
@@ -1471,8 +1477,10 @@ register_compile_attribute( _CompileInfo=[ CpInfo | T ], CompileTable,
 	NewCompileTable = register_compile_attribute( CpInfo, CompileTable,
 												  Context ),
 
-	register_compile_attribute( T, NewCompileTable, Context ).
+	register_compile_attribute( T, NewCompileTable, Context );
 
+register_compile_attribute( Unexpected, _CompileTable, _Context ) ->
+	throw( { unexpected_ast_compile_attribute, Unexpected } ).
 
 
 
