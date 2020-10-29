@@ -68,7 +68,7 @@
 
 		  get_local_ebin_path_for/2, get_ebin_path_for/2,
 
-		  prepare_for_test/2, list_otp_standard_applications/0,
+		  prepare_for_execution/2, list_otp_standard_applications/0,
 
 		  start_application/1, start_application/2,
 		  start_applications/1, start_applications/2,
@@ -195,17 +195,18 @@ get_ebin_path_for( AppName, BuildDir ) ->
 
 
 
-% Prepares the specified application(s) to be involved in a test, based on the
-% specified current build tree: ensures that their .app can be found (supposing
-% thus that they are available and built), including afterwards by OTP when
-% starting them (thanks to updates to the current code path).
+% Prepares the specified application(s) to be involved in an execution (ex: a
+% test run), based on the specified current build tree: ensures that their .app
+% can be found (supposing thus that they are available and built), including
+% afterwards by OTP when starting them (thanks to updates to the current code
+% path).
 %
-% Returns whether a corresponding test can be run: either ready or lacking (at
-% least) one application.
+% Returns whether a corresponding execution can be triggered: either ready or
+% lacking (at least) one application.
 %
--spec prepare_for_test( application_name() | [ application_name() ],
+-spec prepare_for_execution( application_name() | [ application_name() ],
 		directory_path() ) -> 'ready' | { 'lacking_app', application_name() }.
-prepare_for_test( AppName, BuildDir ) when is_atom( AppName ) ->
+prepare_for_execution( AppName, BuildDir ) when is_atom( AppName ) ->
 
 	case lists:member( AppName, list_otp_standard_applications() ) of
 
@@ -215,18 +216,18 @@ prepare_for_test( AppName, BuildDir ) when is_atom( AppName ) ->
 			ready;
 
 		false ->
-			prepare_user_application_for_test( AppName, BuildDir )
+			prepare_user_application_for_exec( AppName, BuildDir )
 
 	end;
 
-prepare_for_test( _AppNames=[], _BuildDir ) ->
+prepare_for_execution( _AppNames=[], _BuildDir ) ->
 	ready;
 
-prepare_for_test( _AppNames=[ AppName | T ], BuildDir ) ->
-	case prepare_for_test( AppName, BuildDir ) of
+prepare_for_execution( _AppNames=[ AppName | T ], BuildDir ) ->
+	case prepare_for_execution( AppName, BuildDir ) of
 
 		ready ->
-			prepare_for_test( T, BuildDir );
+			prepare_for_execution( T, BuildDir );
 
 		LackPair ->
 			LackPair
@@ -236,7 +237,7 @@ prepare_for_test( _AppNames=[ AppName | T ], BuildDir ) ->
 
 
 % (helper)
-prepare_user_application_for_test( AppName, BuildDir ) ->
+prepare_user_application_for_exec( AppName, BuildDir ) ->
 
 	% Specific checking, just for the sake of a (non-OTP) test, that the
 	% specified OTP application is already available, in the usual _build
@@ -425,7 +426,7 @@ get_supervisor_settings( RestartStrategy, _ExecutionTarget=production ) ->
 
 	% In production mode, we apply here basic defaults (actually the same as
 	% used by the 'kernel' standard module in safe mode):
-	%:
+	%
 	#{ strategy  => RestartStrategy,
 	   intensity => _MaxRestarts=4,
 	   period    => _WithinSeconds=3600 }.
@@ -437,7 +438,7 @@ get_supervisor_settings( RestartStrategy, _ExecutionTarget=production ) ->
 %
 % It may be useful to fetch data or NIF code for example.
 %
-% One may specified ?MODULE as argument, provided this module belongs to the
+% One may specify ?MODULE as argument, provided that this module belongs to the
 % application of interest.
 %
 -spec get_priv_root( basic_utils:module_name() ) -> directory_path().
@@ -452,7 +453,7 @@ get_priv_root( ModuleName ) ->
 %
 % It may be useful to fetch data or NIF code for example.
 %
-% One may specified ?MODULE as argument, provided this module belongs to the
+% One may specify ?MODULE as argument, provided that this module belongs to the
 % application of interest.
 %
 -spec get_priv_root( basic_utils:module_name(), boolean() ) ->

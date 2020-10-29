@@ -71,14 +71,14 @@ run() ->
 	% Build root directory from which prerequisite applications may be found:
 	BuildRootDir = file_utils:join( "..", ".." ),
 
-	case otp_utils:prepare_for_test( _AppName=myriad, BuildRootDir ) of
+	case otp_utils:prepare_for_execution( _AppName=myriad, BuildRootDir ) of
 
 		ready ->
 			test_myriad_application() ;
 
 		{ lacking_app, _App } ->
 			% (a detailed warning message has been issued by
-			% otp_utils:prepare_for_test/2)
+			% otp_utils:prepare_for_execution/2)
 			%
 			ok
 
