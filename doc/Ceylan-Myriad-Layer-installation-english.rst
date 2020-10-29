@@ -123,11 +123,28 @@ Finally, to trigger in one go a full rebuild, testing and type-checking, one may
 OTP Build
 =========
 
+These build considerations apply to Myriad but also, more generally, to most if not all our Erlang developments.
+
+
+Why providing two different build systems
+-----------------------------------------
+
 We felt that OTP build tools and Emakefiles were not expressive enough for our needs: as mentioned in `Building Myriad`_, a full, rather complete/complex/powerful build system based on `GNU make <https://www.gnu.org/software/make/manual/make.html>`_ is used by Ceylan-Myriad natively instead.
 
 It allows to introduce all the generic rules we wanted, to define many conditional settings, to walk through an arbitrarily nested source tree, to integrate within a layered stack (notably alongside some other ``Ceylan-*`` libraries that depend on Ceylan-Myriad) and to perform a multi-stage build to accommodate the compilation and use of parse-transforms, with their own set of prerequisites.
 
 However, to better integrate with other Erlang developments (which are mostly OTP-compliant), we added the (optional) possibility of generating a Myriad *OTP library application* out of the build tree, ready to be integrated into an (OTP) *release* and to be available as an Hex *package*. For that we rely on `rebar3 <https://www.rebar3.org/>`_, `relx <https://github.com/erlware/relx>`_ and `hex <https://hex.pm/>`_.
+
+
+Rebar3-related Issues
+---------------------
+
+Yet, after much struggle and full days spent on build issues, after a last regression that we could not track down to a change that we made, and despite the obvious qualities of rebar3, we are not as sure as before that we should rely on this tool for our own builds.
+
+It is difficult for us to tell whether rebar3 and/or hex and/or relx and/or even the OTP release system are overly complex and possibly fragile for the services they provide, and maybe we did not understood them enough or had too specific build procedures to implement, however we felt that the time spent over the years on mere build issues has been unacceptably high.
+
+So we now mainly switched back and relied on our own, native build system instead, and can concentrate on the code itself. The rebar3 support remains as it is (a priori at least mostly functional); maybe in the future we will reintroduce it as a native, possibly main, build option - but not today.
+
 
 
 OTP Application
