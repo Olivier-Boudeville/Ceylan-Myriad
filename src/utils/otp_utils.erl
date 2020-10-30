@@ -195,14 +195,17 @@ get_ebin_path_for( AppName, BuildDir ) ->
 
 
 
-% Prepares the specified application(s) to be involved in an execution (ex: a
-% test run), based on the specified current build tree: ensures that their .app
-% can be found (supposing thus that they are available and built), including
-% afterwards by OTP when starting them (thanks to updates to the current code
-% path).
+% Prepares the VM environment so that the specified application(s) to be
+% involved in a non-OTP execution (ex: a test) can be run, based on the
+% specified current build tree: ensures that their .app can be found (supposing
+% thus that they are available and built), including afterwards by OTP when
+% starting them (thanks to updates to the current code path).
 %
-% Returns whether a corresponding execution can be triggered: either ready or
-% lacking (at least) one application.
+% An ordered application list is somehow semantically similar to the 'deps'
+% entry of a rebar.config file.
+%
+% Returns whether a corresponding execution can be triggered: either ready now,
+% or lacking (at least) one application.
 %
 -spec prepare_for_execution( application_name() | [ application_name() ],
 		directory_path() ) -> 'ready' | { 'lacking_app', application_name() }.
