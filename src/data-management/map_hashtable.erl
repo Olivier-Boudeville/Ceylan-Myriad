@@ -64,6 +64,7 @@
 -export([ new/0, new/1, new_from_unique_entries/1,
 		  add_entry/3, add_entries/2, add_new_entry/3, add_new_entries/2,
 		  update_entry/3, update_entries/2,
+		  swap_value/3,
 		  remove_entry/2, remove_existing_entry/2,
 		  remove_entries/2, remove_existing_entries/2,
 		  lookup_entry/2, has_entry/2,
@@ -306,6 +307,23 @@ update_entries( EntryList, MapHashtable ) ->
 				 end,
 				 _Acc0=MapHashtable,
 				 _List=EntryList ).
+
+
+
+% Swaps in specified table the current value associated to the specified key
+% with the specified new value.
+%
+% Returns the previous value associated to that key and an updated table.
+%
+% The entry designated by specified key is expected to exist already, otherwise
+% an exception ({bad_key,Key}) is triggered.
+%
+-spec swap_value( key(), value(), map_hashtable() ) ->
+						{ value(), map_hashtable() }.
+swap_value( Key, NewValue, MapHashtable ) ->
+	PreviousValue = maps:get( Key, MapHashtable ),
+	NewMapHashtable = maps:put( Key, NewValue, MapHashtable ),
+	{ PreviousValue, NewMapHashtable }.
 
 
 
