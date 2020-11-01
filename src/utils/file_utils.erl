@@ -2646,13 +2646,18 @@ normalise_path( _Path="." ) ->
 
 normalise_path( Path ) when is_list( Path ) ->
 
-	%trace_utils:debug_fmt( "Normalising path '~s'.", [ Path ] ),
 
 	ElemList = filename:split( Path ),
 
 	%trace_utils:debug_fmt( "ElemList: ~p", [ ElemList ] ),
 
-	join( filter_elems( ElemList, _Acc=[] ) );
+	ResPath = join( filter_elems( ElemList, _Acc=[] ) ),
+
+	%trace_utils:debug_fmt( "Normalising path '~s' as '~s'.",
+	%					   [ Path, ResPath ] ),
+
+	ResPath;
+
 
 normalise_path( BinPath ) when is_binary( BinPath ) ->
 
