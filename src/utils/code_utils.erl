@@ -90,7 +90,7 @@
 
 -type module_name() :: basic_utils:module_name().
 
--type directory_name() :: file_utils:directory_name().
+-type directory_path() :: file_utils:directory_path().
 -type file_name() :: file_utils:file_name().
 -type file_path() :: file_utils:file_path().
 
@@ -309,7 +309,7 @@ deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
 %
 % Throws an exception if the directory does not exist.
 %
--spec declare_beam_directory( directory_name() ) -> void().
+-spec declare_beam_directory( directory_path() ) -> void().
 declare_beam_directory( Dir ) ->
 	declare_beam_directory( Dir, first_position ).
 
@@ -320,7 +320,7 @@ declare_beam_directory( Dir ) ->
 %
 % Throws an exception if the directory does not exist.
 %
--spec declare_beam_directory( directory_name(),
+-spec declare_beam_directory( directory_path(),
 							  'first_position' | 'last_position' ) -> void().
 declare_beam_directory( Dir, first_position ) ->
 
