@@ -58,7 +58,8 @@
 % impact it (otherwise each would have to return a new state).
 %
 % As a result, the current module is not cluttered by (rigid) preprocessor
-% directives.
+% directives, but the user may have to pass along a parser state. Another option
+% could be to use the process dictionary to store such a state.
 
 % Note that:
 %
@@ -219,6 +220,11 @@ start_parser( BackendName ) when BackendName =:= jsx
 %
 -spec get_parser_backend_name() -> maybe( parser_backend_name() ).
 get_parser_backend_name() ->
+
+	% Useful to detect repeated initializations that may be unwanted (then rely
+	% on the stateful mode of operation):
+	%
+	%trace_utils:trace( "Determining the JSON backend to use." ),
 
 	% We prioritize JSX over Jiffy:
 	case is_parser_backend_available( jsx ) of
