@@ -178,9 +178,9 @@ get_ebin_path_for( AppName, BuildDir ) ->
 						   SiblingEBinPath ) of
 
 						true ->
-							trace_utils:trace_fmt( "Using, for the prerequisite "
-								"application '~s', the '~s' sibling ebin path.",
-								[ AppName, SiblingEBinPath ] ),
+							trace_utils:trace_fmt( "Using, for the prerequisite"
+							  " application '~s', the '~s' sibling ebin path.",
+							  [ AppName, SiblingEBinPath ] ),
 							SiblingEBinPath;
 
 						false ->
