@@ -136,14 +136,26 @@ It allows to introduce all the generic rules we wanted, to define many condition
 However, to better integrate with other Erlang developments (which are mostly OTP-compliant), we added the (optional) possibility of generating a Myriad *OTP library application* out of the build tree, ready to be integrated into an (OTP) *release* and to be available as an Hex *package*. For that we rely on `rebar3 <https://www.rebar3.org/>`_, `relx <https://github.com/erlware/relx>`_ and `hex <https://hex.pm/>`_.
 
 
-Rebar3-related Issues
----------------------
+Relying on Rebar3
+-----------------
 
-Yet, after much struggle and full days spent on build issues, after a last regression that we could not track down to a change that we made, and despite the obvious qualities of rebar3, we are not as sure as before that we should rely on this tool for our own builds.
+Despite the kind support of the rebar3 authors and much time spent on its integration, sometimes our build based on it - for Myriad and the layers we built on top of it - is broken, or lagging behind our native one.
 
-It is difficult for us to tell whether rebar3 and/or hex and/or relx and/or even the OTP release system are overly complex and possibly fragile for the services they provide, and maybe we did not understood them enough or had too specific build procedures to implement, however we felt that the time spent over the years on mere build issues has been unacceptably high.
+Ultimately we expect all pending issues to be solved (rebar3 is a neat tool), yet being able to switch back to another lighter, ad-hoc, more controlled build system is sometimes a relief - at least a welcome security.
 
-So we now mainly switched back and relied on our own, native build system instead, and can concentrate on the code itself. The rebar3 support remains as it is (a priori at least mostly functional); maybe in the future we will reintroduce it as a native, possibly main, build option - but not today.
+So most of the time one may choose between these two build machineries.
+
+..
+  commented-out for the moment:
+
+  Rebar3-related Issues
+  ---------------------
+
+  Yet, after much struggle and full days spent on build issues, after a last regression that we could not track down to a change that we made, and despite the obvious qualities of rebar3, we are not as sure as before that we should rely on this tool for our own builds.
+
+  It is difficult for us to tell whether rebar3 and/or hex and/or relx and/or even the OTP release system are overly complex and possibly fragile for the services they provide, and maybe we did not understood them enough or had too specific build procedures to implement, however we felt that the time spent over the years on mere build issues has been unacceptably high.
+
+  So we now mainly switched back and relied on our own, native build system instead, and can concentrate on the code itself. The rebar3 support remains as it is (a priori at least mostly functional); maybe in the future we will reintroduce it as a native, possibly main, build option - but not today.
 
 
 
