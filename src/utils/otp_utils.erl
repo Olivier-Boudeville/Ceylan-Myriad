@@ -60,8 +60,15 @@
 -type supervisor_pid() :: pid().
 
 
+% Designates how an (OTP) application is run:
+-type application_run_context() ::
+		'as_native' % if using Ceylan native build/run system
+	  | 'as_otp_release'. % if using OTP release
+
+
 -export_type([ application_name/0, string_application_name/0,
-			   any_application_name/0, restart_type/0, supervisor_pid/0 ]).
+			   any_application_name/0, restart_type/0, supervisor_pid/0,
+			   application_run_context/0 ]).
 
 
 -export([ get_string_application_name/1,
@@ -77,6 +84,8 @@
 
 		  get_supervisor_settings/2,
 
+		  check_application_run_context/1, application_run_context_to_string/1,
+
 		  get_priv_root/1, get_priv_root/2 ]).
 
 
@@ -84,6 +93,8 @@
 
 -type file_path() :: file_utils:file_path().
 -type directory_path() :: file_utils:directory_path().
+
+-type ustring() :: text_utils:ustring().
 
 
 
@@ -197,10 +208,11 @@ get_ebin_path_for( AppName, BuildDir ) ->
 
 
 % Prepares the VM environment so that the specified application(s) to be
-% involved in a non-OTP execution (ex: a test) can be run, based on the
-% specified current build tree: ensures that their .app can be found (supposing
-% thus that they are available and built), including afterwards by OTP when
-% starting them (thanks to updates to the current code path).
+% involved in a non-OTP execution (ex: a test), and also their own
+% prerequisites, can be run, based on the specified current build tree: ensures
+% that their .app can be found (supposing thus that they are available and
+% built), including afterwards by OTP, when starting them (thanks to updates to
+% the current code path).
 %
 % An ordered application list is somehow semantically similar to the 'deps'
 % entry of a rebar.config file.
@@ -209,7 +221,7 @@ get_ebin_path_for( AppName, BuildDir ) ->
 % or lacking (at least) one application.
 %
 -spec prepare_for_execution( application_name() | [ application_name() ],
-		directory_path() ) -> 'ready' | { 'lacking_app', application_name() }.
+							 directory_path() ) -> void().
 prepare_for_execution( AppName, BuildDir ) when is_atom( AppName ) ->
 
 	case lists:member( AppName, list_otp_standard_applications() ) of
@@ -224,23 +236,17 @@ prepare_for_execution( AppName, BuildDir ) when is_atom( AppName ) ->
 
 	end;
 
-prepare_for_execution( _AppNames=[], _BuildDir ) ->
-	ready;
-
-prepare_for_execution( _AppNames=[ AppName | T ], BuildDir ) ->
-	case prepare_for_execution( AppName, BuildDir ) of
-
-		ready ->
-			prepare_for_execution( T, BuildDir );
-
-		LackPair ->
-			LackPair
-
-	end.
+prepare_for_execution( AppNames, BuildDir ) ->
+	[ prepare_for_execution( A, BuildDir ) || A <- AppNames ].
 
 
 
+% Manages specified application (not expected to be a standard one) and its
+% prerequisites, if any: checks that their .app specification can be found, that
+% they are built, and updates the code path accordingly.
+%
 % (helper)
+%
 prepare_user_application_for_exec( AppName, BuildDir ) ->
 
 	% Specific checking, just for the sake of a (non-OTP) test, that the
@@ -250,16 +256,16 @@ prepare_user_application_for_exec( AppName, BuildDir ) ->
 	case get_ebin_path_for( AppName, BuildDir ) of
 
 		undefined ->
-			trace_utils:warning_fmt( "No build directory found for the '~s' "
+			AbsBuildDir = file_utils:ensure_path_is_absolute( BuildDir ),
+			trace_utils:error_fmt( "No build directory found for the '~s' "
 				"OTP application (not belonging to the known standard Erlang "
 				"applications, so searched through any local rebar _build "
-				"directory, in any _checkouts one, or through sibling "
-				"applications of '~s'); this test thus cannot be performed "
+				"directory, in any _checkouts one, or through its sibling "
+				"applications); this execution thus cannot be performed "
 				"(run beforehand 'make rebar3-compile' at the root of the "
 				"~s source tree for a more relevant testing).",
-				[ AppName, file_utils:ensure_path_is_absolute( BuildDir ),
-				  AppName ] ),
-			{ lacking_app, AppName };
+				[ AppName, AbsBuildDir ] ),
+			throw( { lacking_app, no_ebin_path, AppName, AbsBuildDir } );
 
 
 		EBinPath ->
@@ -272,16 +278,19 @@ prepare_user_application_for_exec( AppName, BuildDir ) ->
 					% So that this .app file can be found by OTP when starting
 					% said application:
 					%
-					code_utils:declare_beam_directory( EBinPath ),
 					% At least an extra step is taken: checking the application
 					% has a chance to run (ex: has it been compiled?) by
 					% searching for its main module, as defined in its .app
 					% file:
 
-					case check_app_built( AppFilePath, EBinPath ) of
+					case parse_app_spec( AppFilePath, EBinPath, BuildDir ) of
 
 						true ->
-							ready;
+							% Adds this ebin path to the VM code paths so that
+							% the corresponding BEAM files can be found also:
+							%
+							code_utils:declare_beam_directory( EBinPath,
+															   last_position );
 
 						{ false, LackingModPath } ->
 							trace_utils:error_fmt( "The application '~s' does "
@@ -297,13 +306,13 @@ prepare_user_application_for_exec( AppName, BuildDir ) ->
 
 
 				false ->
-					trace_utils:warning_fmt( "No '~s' file found for the '~s' "
+					trace_utils:error_fmt( "No '~s' file found for the '~s' "
 						"OTP application (searched in '~s'), this execution "
 						"cannot be performed "
 						"(run beforehand 'make rebar3-compile' at the root of "
 						"the ~s source tree for a more relevant testing).",
 						[ AppFilename, AppName, EBinPath, AppName ] ),
-					{ lacking_app, AppName }
+					throw( { lacking_app, no_app_file, AppName, AppFilePath } )
 
 			end
 
@@ -311,20 +320,31 @@ prepare_user_application_for_exec( AppName, BuildDir ) ->
 
 
 
-% Checks that specified applications seems indeed built.
+% Manages the specified .app specification: checks that the specified
+% application seems indeed built, and prepares also the execution of its
+% dependencies.
+%
+% Returns either true or false, then accompanied by the path of any lacking BEAM
+% file.
 %
 % (helper)
 %
--spec check_app_built( file_path(), directory_path() ) ->
+-spec parse_app_spec( file_path(), directory_path(), directory_path() ) ->
 							 'true' | { 'false', file_path() }.
-check_app_built( AppFilePath, EBinPath ) ->
+parse_app_spec( AppFilePath, EBinPath, BuildDir ) ->
+
+	trace_utils:debug_fmt( "Examining .app specification '~s'.",
+						   [ AppFilePath ] ),
 
 	case file_utils:read_terms( AppFilePath ) of
 
 		[ { application, AppName, Entries } ] ->
-			% We cannot rely on 'mod', defined only for active applications, so:
-			case list_table:lookup_entry( modules, Entries ) of
+			% We cannot rely on the 'mod' entry, which is defined only for
+			% active applications, so:
+			%
+			Compiled = case list_table:lookup_entry( modules, Entries ) of
 
+				% Abnormal, as mandatory:
 				key_not_found ->
 					throw( { no_modules_entry, AppName, AppFilePath } );
 
@@ -345,6 +365,24 @@ check_app_built( AppFilePath, EBinPath ) ->
 							{ false, ExpectedModPath }
 
 					end
+
+			end,
+
+			case Compiled of
+
+				true ->
+
+					% Compile check performed, now let's take care of the
+					% dependencies as well:
+					%
+					AppDeps = list_table:get_value( applications, Entries ),
+
+					[ prepare_for_execution( A, BuildDir ) || A <- AppDeps ],
+					true;
+
+				% i.e. { false, ExpectedModPath }:
+				FalsePair ->
+					FalsePair
 
 			end;
 
@@ -499,6 +537,29 @@ get_supervisor_settings( RestartStrategy, _ExecutionTarget=production ) ->
 	#{ strategy  => RestartStrategy,
 	   intensity => _MaxRestarts=4,
 	   period    => _WithinSeconds=3600 }.
+
+
+
+% Checks that the specified application run context is legit.
+-spec check_application_run_context( application_run_context() ) -> void().
+check_application_run_context( _AppRunContext=as_native ) ->
+	ok;
+
+check_application_run_context( _AppRunContext=as_otp_release ) ->
+	ok;
+
+check_application_run_context( OtherAppRunContext ) ->
+	throw( { invalid_application_run_context, OtherAppRunContext } ).
+
+
+% Returns a textual representation of specified application run context.
+-spec application_run_context_to_string( application_run_context() ) ->
+											   ustring().
+application_run_context_to_string( _AppRunContext=as_native ) ->
+	"based on the Ceylan native native build/run system";
+
+application_run_context_to_string( _AppRunContext=as_otp_release ) ->
+	"as an OTP release".
 
 
 
