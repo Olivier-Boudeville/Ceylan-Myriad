@@ -239,7 +239,7 @@ remove_entries( Keys, Table ) ->
 % value, Value }, with Value being the value associated to the specified key.
 %
 -spec lookup_entry( key(), list_table() ) ->
-				 'key_not_found' | { 'value', value() }.
+						  'key_not_found' | { 'value', value() }.
 lookup_entry( Key, Table ) ->
 
 	case lists:keyfind( Key, _N=1, Table ) of
