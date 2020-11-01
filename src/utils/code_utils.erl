@@ -568,23 +568,33 @@ get_beam_filename( ModuleName ) when is_atom( ModuleName ) ->
 
 % Tells whether specified module has its BEAM file in the current code path.
 %
-% Returns either a list of its paths (if being available at least once), or
-% 'not_found' (hence: this is not a boolean return!).
-%
-% Note that a given module can be nevertheless found more than once, typically
-% if reachable from the current directory and an absolute one in the code path.
+% Returns either a list of its absolute, canonicalised, unordered paths (if
+% being available at least once), or 'not_found' (hence: this is not a boolean
+% return!).
 %
 -spec is_beam_in_path( module_name() ) -> 'not_found' | [ file_utils:path() ].
 is_beam_in_path( ModuleName ) when is_atom( ModuleName ) ->
 
-	ModuleNameString = text_utils:atom_to_string( ModuleName ),
+	ModuleFilename = text_utils:atom_to_string( ModuleName ) ++ ?beam_extension,
 
-	case list_utils:uniquify(
-		   [ file_utils:normalise_path( file_utils:join( Path, File ) )
-			 || Path <- code:get_path(),
-				File <- filelib:wildcard( "*.beam", Path ),
-				filename:basename( File, ?beam_extension ) =:=
-					ModuleNameString ] ) of
+	%trace_utils:trace_fmt( "Paths for module filename '~s':~n  ~p",
+	%					   [ ModuleFilename, code:get_path() ] ),
+
+	% We have to ensure that all paths are absolute and normalised, so that we
+	% can eliminate any duplicates among them (otherwise some module files could
+	% be erroneously reported as being themselves duplicated):
+
+	CurDirPath = file_utils:get_current_directory(),
+
+	% Includes normalisation:
+	VetPaths = list_utils:uniquify( [ file_utils:ensure_path_is_absolute(
+		file_utils:join( P, ModuleFilename ), _BasePath=CurDirPath )
+									  || P <- code:get_path() ] ),
+
+	ExistingFilePaths = [ P || P <- VetPaths,
+							   file_utils:is_existing_file_or_link( P ) ],
+
+	case ExistingFilePaths of
 
 		[] ->
 			not_found;
