@@ -82,6 +82,7 @@
 
 % Shorthands:
 
+-type file_path() :: file_utils:file_path().
 -type directory_path() :: file_utils:directory_path().
 
 
@@ -135,7 +136,7 @@ get_ebin_path_for( AppName, BuildDir ) ->
 	case file_utils:is_existing_directory_or_link( LocalEBinPath ) of
 
 		true ->
-			trace_utils:trace_fmt( "Using, for the tested application '~s', "
+			trace_utils:trace_fmt( "Using, for OTP application '~s', "
 				"the '~s' local ebin path.", [ AppName, LocalEBinPath ] ),
 
 			LocalEBinPath;
@@ -272,18 +273,83 @@ prepare_user_application_for_exec( AppName, BuildDir ) ->
 					% said application:
 					%
 					code_utils:declare_beam_directory( EBinPath ),
-					ready;
+					% At least an extra step is taken: checking the application
+					% has a chance to run (ex: has it been compiled?) by
+					% searching for its main module, as defined in its .app
+					% file:
+
+					case check_app_built( AppFilePath, EBinPath ) of
+
+						true ->
+							ready;
+
+						{ false, LackingModPath } ->
+							trace_utils:error_fmt( "The application '~s' does "
+							  "not seem to be built: its app file ('~s') "
+							  "mentions at least a module whose BEAM file "
+							  "('~s') could not be found.",
+							  [ AppName, AppFilePath, LackingModPath ] ),
+
+							throw( { application_not_built, AppName,
+									 LackingModPath } )
+
+					end;
+
 
 				false ->
 					trace_utils:warning_fmt( "No '~s' file found for the '~s' "
-						"OTP application (searched in '~s'), this test cannot "
-						"be performed"
+						"OTP application (searched in '~s'), this execution "
+						"cannot be performed "
 						"(run beforehand 'make rebar3-compile' at the root of "
 						"the ~s source tree for a more relevant testing).",
 						[ AppFilename, AppName, EBinPath, AppName ] ),
 					{ lacking_app, AppName }
 
 			end
+
+	end.
+
+
+
+% Checks that specified applications seems indeed built.
+%
+% (helper)
+%
+-spec check_app_built( file_path(), directory_path() ) ->
+							 'true' | { 'false', file_path() }.
+check_app_built( AppFilePath, EBinPath ) ->
+
+	case file_utils:read_terms( AppFilePath ) of
+
+		[ { application, AppName, Entries } ] ->
+			% We cannot rely on 'mod', defined only for active applications, so:
+			case list_table:lookup_entry( modules, Entries ) of
+
+				key_not_found ->
+					throw( { no_modules_entry, AppName, AppFilePath } );
+
+				{ value, [] } ->
+					% No module declared, supposing that alles gut:
+					true;
+
+				% Testing just the first module found:
+				{ value, [ FirstModName | _ ] } ->
+					ExpectedModPath = file_utils:join( EBinPath,
+							code_utils:get_beam_filename( FirstModName ) ),
+					case file_utils:is_existing_file( ExpectedModPath ) of
+
+						true ->
+							true;
+
+						false ->
+							{ false, ExpectedModPath }
+
+					end
+
+			end;
+
+		_ ->
+			throw( { unexpected_app_spec, AppFilePath } )
 
 	end.
 
