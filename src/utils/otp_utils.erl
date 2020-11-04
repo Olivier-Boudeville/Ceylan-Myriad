@@ -109,7 +109,7 @@ get_string_application_name( AppName ) ->
 % Returns the path, local to the current build tree, that should correspond to
 % the ebin directory of the specified prerequisite OTP application.
 %
-% Ex: otp_utils:get_local_ebin_path_for( myriad, ".." ) if run from a "test"
+% Ex: otp_utils:get_local_ebin_path_for(myriad, "..") if run from a "test"
 % direct subdirectory of the current build tree.
 %
 % Note: the returned path is not checked for existence.
@@ -122,35 +122,40 @@ get_local_ebin_path_for( AppName, BuildDir ) ->
 
 
 
-% Returns the path (if any) to the ebin directory of the specified prerequisite
-% (user, i.e. not standard) OTP application of this test, namely the tested
-% application itself or one of its own prerequisites (supposing the 'default'
-% rebar3 profile being used), based on the specified root of the current build
-% tree.
+% Returns the paths (if any) to the ebin directory and build directory of the
+% specified prerequisite (user, i.e. not standard) OTP application of this
+% application, namely the tested application itself or one of its own
+% prerequisites (supposing the 'default' rebar3 profile being used), based on
+% the specified root of the current build tree.
 %
-% Following locations will be searched for that ebin directory, from the root of
-% its build directory, and in that order:
+% Following locations will be searched for the ebin directory, from the root of
+% its specified build directory, and in that order:
 %  1. any local _build/default/lib/APP_NAME/ebin (for the tested application
 %     itself)
 %  2. any local _checkouts/APP_NAME/_build/default/lib/APP_NAME/ebin
 %  3. any sibling ../APP_NAME/_build/default/lib/APP_NAME/ebin
 %
-% Ex: MaybeEbinPath = otp_utils:get_ebin_path_for( foobar, ".." ).
+% Ex: MaybeEbinPathPair = otp_utils:get_ebin_path_for(foobar, "..").
 %
 -spec get_ebin_path_for( application_name(), directory_path() ) ->
-							maybe( directory_path() ).
+							maybe( { directory_path(), directory_path() } ).
 get_ebin_path_for( AppName, BuildDir ) ->
 
 	% If this application corresponds to the directly tested one (1):
-	LocalEBinPath = get_local_ebin_path_for( AppName, BuildDir ),
+	LocalEBinPath = file_utils:ensure_path_is_absolute(
+					  get_local_ebin_path_for( AppName, BuildDir ) ),
+
+	%trace_utils:debug_fmt( "Searching for application '~s' from '~s', trying "
+	%	"first '~s'.", [ AppName, file_utils:ensure_path_is_absolute( BuildDir ),
+	%					 LocalEBinPath ] ),
 
 	case file_utils:is_existing_directory_or_link( LocalEBinPath ) of
 
 		true ->
-			trace_utils:trace_fmt( "Using, for OTP application '~s', "
-				"the '~s' local ebin path.", [ AppName, LocalEBinPath ] ),
-
-			LocalEBinPath;
+			% Most useful trace for execution preparation:
+			%trace_utils:trace_fmt( "Using, for OTP application '~s', "
+			%	"the '~s' local ebin path.", [ AppName, LocalEBinPath ] ),
+			{ LocalEBinPath, _AppBuildDir=BuildDir };
 
 		% Then maybe a checkout (2):
 		false ->
@@ -169,7 +174,7 @@ get_ebin_path_for( AppName, BuildDir ) ->
 					trace_utils:trace_fmt( "Using, for the prerequisite "
 						"application '~s', the '~s' checkout ebin path.",
 						[ AppName, CheckoutEbinPath ] ),
-					CheckoutEbinPath;
+					{ CheckoutEbinPath, _AppBuildDir=BuildDir };
 
 				false ->
 					%trace_utils:debug_fmt( "No checkout '~s' found.",
@@ -192,7 +197,7 @@ get_ebin_path_for( AppName, BuildDir ) ->
 							trace_utils:trace_fmt( "Using, for the prerequisite"
 							  " application '~s', the '~s' sibling ebin path.",
 							  [ AppName, SiblingEBinPath ] ),
-							SiblingEBinPath;
+							{ SiblingEBinPath, _AppBuildDir=SiblingBuildDir };
 
 						false ->
 							%trace_utils:debug_fmt( "No sibling '~s' found.",
@@ -224,20 +229,29 @@ get_ebin_path_for( AppName, BuildDir ) ->
 							 directory_path() ) -> void().
 prepare_for_execution( AppName, BuildDir ) when is_atom( AppName ) ->
 
+	%trace_utils:debug_fmt( "Preparing for the execution of application '~s'.",
+	%					   [ AppName ] ),
+
 	case lists:member( AppName, list_otp_standard_applications() ) of
 
 		true ->
-			trace_utils:trace_fmt( "Using defaults for the standard OTP "
-								   "application '~s'.", [ AppName ] ),
+			%trace_utils:trace_fmt( "Using defaults for the standard OTP "
+			%					   "application '~s'.", [ AppName ] ),
 			ready;
 
 		false ->
-			prepare_user_application_for_exec( AppName, BuildDir )
+			AbsBuildDir = file_utils:ensure_path_is_absolute( BuildDir ),
+			prepare_user_application_for_exec( AppName, AbsBuildDir )
 
 	end;
 
 prepare_for_execution( AppNames, BuildDir ) ->
-	[ prepare_for_execution( A, BuildDir ) || A <- AppNames ].
+
+	AbsBuildDir = file_utils:ensure_path_is_absolute( BuildDir ),
+
+	%trace_utils:debug_fmt( "Preparing for the execution of applications ~p, "
+	%	"from '~s'.",[ AppNames, AbsBuildDir ) ] ),
+	[ prepare_for_execution( A, AbsBuildDir ) || A <- AppNames ].
 
 
 
@@ -247,16 +261,16 @@ prepare_for_execution( AppNames, BuildDir ) ->
 %
 % (helper)
 %
-prepare_user_application_for_exec( AppName, BuildDir ) ->
+prepare_user_application_for_exec( AppName, AbsBuildDir ) ->
+
 
 	% Specific checking, just for the sake of a (non-OTP) test, that the
 	% specified OTP application is already available, in the usual _build
 	% directory, through the default rebar3 profile:
 	%
-	case get_ebin_path_for( AppName, BuildDir ) of
+	case get_ebin_path_for( AppName, AbsBuildDir ) of
 
 		undefined ->
-			AbsBuildDir = file_utils:ensure_path_is_absolute( BuildDir ),
 			trace_utils:error_fmt( "No build directory found for the '~s' "
 				"OTP application (not belonging to the known standard Erlang "
 				"applications, so searched through any local rebar _build "
@@ -268,7 +282,7 @@ prepare_user_application_for_exec( AppName, BuildDir ) ->
 			throw( { lacking_app, no_ebin_path, AppName, AbsBuildDir } );
 
 
-		EBinPath ->
+		{ EBinPath, AppBuildDir } ->
 			% Extra checking:
 			AppFilename = text_utils:format( "~s.app", [ AppName ] ),
 			AppFilePath = file_utils:join( EBinPath, AppFilename ),
@@ -283,7 +297,7 @@ prepare_user_application_for_exec( AppName, BuildDir ) ->
 					% searching for its main module, as defined in its .app
 					% file:
 
-					case parse_app_spec( AppFilePath, EBinPath, BuildDir ) of
+					case parse_app_spec( AppFilePath, EBinPath, AppBuildDir ) of
 
 						true ->
 							% Adds this ebin path to the VM code paths so that
@@ -333,8 +347,8 @@ prepare_user_application_for_exec( AppName, BuildDir ) ->
 							 'true' | { 'false', file_path() }.
 parse_app_spec( AppFilePath, EBinPath, BuildDir ) ->
 
-	trace_utils:debug_fmt( "Examining .app specification '~s'.",
-						   [ AppFilePath ] ),
+	%trace_utils:debug_fmt( "Examining .app specification '~s'.",
+	%					   [ AppFilePath ] ),
 
 	case file_utils:read_terms( AppFilePath ) of
 
@@ -371,16 +385,19 @@ parse_app_spec( AppFilePath, EBinPath, BuildDir ) ->
 			case Compiled of
 
 				true ->
-
 					% Compile check performed, now let's take care of the
 					% dependencies as well:
 					%
 					AppDeps = list_table:get_value( applications, Entries ),
 
-					[ prepare_for_execution( A, BuildDir ) || A <- AppDeps ],
+					%trace_utils:debug_fmt( "Dependencies found for '~s': ~p; "
+					%	"using build directory '~s'.", [ AppName, AppDeps,
+					%		file_utils:ensure_path_is_absolute( BuildDir ) ] ),
+
+					prepare_for_execution( AppDeps, BuildDir ),
 					true;
 
-				% i.e. { false, ExpectedModPath }:
+				% i.e. {false, ExpectedModPath}:
 				FalsePair ->
 					FalsePair
 
