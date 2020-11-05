@@ -56,7 +56,8 @@
 -export([ get_element_at/2, insert_element_at/3, extract_element_at/2,
 		  remove_element_at/2, remove_last_element/1,
 		  get_last_element/1, extract_last_element/1,
-		  get_index_of/2, get_maybe_index_of/2, split_at/2, uniquify/1,
+		  get_index_of/2, get_maybe_index_of/2, split_at/2,
+		  uniquify/1, uniquify_ordered/1,
 		  ensure_is_once_in/2,
 		  has_duplicates/1, count_occurrences/1, get_duplicates/1,
 		  union/2, intersection/2,
@@ -451,13 +452,43 @@ split_at( _List=[ H | T ], Count, MaxLen, Acc ) ->
 %
 % No specific order is respected in the returned list.
 %
-% Ex: if L = [1,2,3,2,2,4,5,5,4,6,6,5], then basic_utils:uniquify(L) is:
+% Ex: if L = [1,2,3,2,2,4,5,5,4,6,6,5], then uniquify(L) is:
 % [3,6,2,5,1,4].
 %
 -spec uniquify( list() ) -> list().
 uniquify( List ) ->
 	% There is probably a more efficient way of doing the same:
 	sets:to_list( sets:from_list( List ) ).
+
+
+% Returns a list whose elements are the ones of the specified list, except that
+% they are unique (all their duplicates have been removed), while the order in
+% the kept elements is preserved.
+%
+% Expected to be a bit slower than uniquify/1.
+%
+% Ex: if L = [1,3,2,3,2,2,4,5,5,4,6,6,5], then uniquify_ordered(L) is:
+% [1,3,2,4,5,6].
+%
+-spec uniquify_ordered( list() ) -> list().
+uniquify_ordered( List ) ->
+	uniquify_ordered( List, _Acc=[], _KnownSet=set_utils:new() ).
+
+
+% (helper)
+uniquify_ordered( [], Acc, _KnownSet ) ->
+	lists:reverse( Acc );
+
+uniquify_ordered( [ H | T ], Acc, KnownSet ) ->
+	case set_utils:member( H, KnownSet ) of
+
+		true ->
+			uniquify_ordered( T, Acc, KnownSet );
+
+		false ->
+			uniquify_ordered( T, [ H | Acc ], set_utils:add( H, KnownSet ) )
+
+	end.
 
 
 
