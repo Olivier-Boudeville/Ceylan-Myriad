@@ -73,9 +73,9 @@
 
 -export([ get_string_application_name/1,
 
-		  get_local_ebin_path_for/2, get_ebin_path_for/2,
+		  get_local_ebin_path_for/2, get_otp_paths_of/2,
 
-		  prepare_for_execution/2, list_otp_standard_applications/0,
+		  prepare_for_execution/2,
 
 		  start_application/1, start_application/2,
 		  start_applications/1, start_applications/2,
@@ -89,222 +89,138 @@
 		  get_priv_root/1, get_priv_root/2 ]).
 
 
+% Information about how an OTP application shall be started (the function to
+% call being implicitly 'start'):
+%
+-type app_start_info() :: { module_name(), start_args() }.
+
+-type start_args() :: basic_utils:arguments().
+
+
 % Shorthands:
+
+-type module_name() :: basic_utils:module_name().
 
 -type file_path() :: file_utils:file_path().
 -type directory_path() :: file_utils:directory_path().
+-type abs_directory_path() :: file_utils:abs_directory_path().
 
 -type ustring() :: text_utils:ustring().
 
 
 
-% Returns a string version of specified application name.
--spec get_string_application_name( application_name() ) ->
-										string_application_name().
-get_string_application_name( AppName ) ->
-	text_utils:atom_to_string( AppName ).
 
-
-
-% Returns the path, local to the current build tree, that should correspond to
-% the ebin directory of the specified prerequisite OTP application.
+% Prepares the VM environment so that the specified top-level prerequisite
+% application(s) to be involved in a non-OTP execution, and also all their own
+% prerequisites in turn, can be run, based on the specified current build tree:
+% ensures that their .app can be found (supposing thus that they are available
+% and built), including afterwards by OTP, when starting them (thanks to updates
+% to the current code path).
 %
-% Ex: otp_utils:get_local_ebin_path_for(myriad, "..") if run from a "test"
-% direct subdirectory of the current build tree.
+% The specified, ordered, application list is somehow semantically similar to
+% the 'deps' entry of a rebar.config file.
 %
-% Note: the returned path is not checked for existence.
+% Returns an ordered list of app_start_info that shall be applied in
+% turn, or a {cannot_execute, Reason} pair.
 %
--spec get_local_ebin_path_for( application_name(), directory_path() ) ->
-									directory_path().
-get_local_ebin_path_for( AppName, BuildDir ) ->
-	file_utils:join( [ BuildDir, "_build", "default", "lib",
-					   get_string_application_name( AppName ), "ebin" ] ).
+% Note that it is not strictly necessary to discriminate between applications
+% that are active or not and to collect their start module/arguments, as
+% application:start/1 seems able to support non-active applications and will
+% trigger by itself the right start call.
 
-
-
-% Returns the paths (if any) to the ebin directory and build directory of the
-% specified prerequisite (user, i.e. not standard) OTP application of this
-% application, namely the tested application itself or one of its own
-% prerequisites (supposing the 'default' rebar3 profile being used), based on
-% the specified root of the current build tree.
-%
-% Following locations will be searched for the ebin directory, from the root of
-% its specified build directory, and in that order:
-%  1. any local _build/default/lib/APP_NAME/ebin (for the tested application
-%     itself)
-%  2. any local _checkouts/APP_NAME/_build/default/lib/APP_NAME/ebin
-%  3. any sibling ../APP_NAME/_build/default/lib/APP_NAME/ebin
-%
-% Ex: MaybeEbinPathPair = otp_utils:get_ebin_path_for(foobar, "..").
-%
--spec get_ebin_path_for( application_name(), directory_path() ) ->
-							maybe( { directory_path(), directory_path() } ).
-get_ebin_path_for( AppName, BuildDir ) ->
-
-	% If this application corresponds to the directly tested one (1):
-	LocalEBinPath = file_utils:ensure_path_is_absolute(
-					  get_local_ebin_path_for( AppName, BuildDir ) ),
-
-	%trace_utils:debug_fmt( "Searching for application '~s' from '~s', trying "
-	%	"first '~s'.", [ AppName, file_utils:ensure_path_is_absolute( BuildDir ),
-	%					 LocalEBinPath ] ),
-
-	case file_utils:is_existing_directory_or_link( LocalEBinPath ) of
-
-		true ->
-			% Most useful trace for execution preparation:
-			%trace_utils:trace_fmt( "Using, for OTP application '~s', "
-			%	"the '~s' local ebin path.", [ AppName, LocalEBinPath ] ),
-			{ LocalEBinPath, _AppBuildDir=BuildDir };
-
-		% Then maybe a checkout (2):
-		false ->
-
-			%trace_utils:debug_fmt( "No local '~s' found.", [ LocalEBinPath ] ),
-
-			AppNameStr = get_string_application_name( AppName ),
-
-			% Not easily derived from LocalEBinPath:
-			CheckoutEbinPath = file_utils:join( [ BuildDir, "_checkouts",
-				AppNameStr, "_build", "default", "lib", AppNameStr, "ebin" ] ),
-
-			case file_utils:is_existing_directory_or_link( CheckoutEbinPath ) of
-
-				true ->
-					trace_utils:trace_fmt( "Using, for the prerequisite "
-						"application '~s', the '~s' checkout ebin path.",
-						[ AppName, CheckoutEbinPath ] ),
-					{ CheckoutEbinPath, _AppBuildDir=BuildDir };
-
-				false ->
-					%trace_utils:debug_fmt( "No checkout '~s' found.",
-					%					   [ CheckoutEbinPath ] ),
-
-					% Then (3): maybe this application is a prerequisite of the
-					% tested one, available in a sibling directory thereof (see
-					% module notes above):
-					%
-					SiblingBuildDir =
-						file_utils:join( [ BuildDir, "..", AppNameStr ] ),
-
-					SiblingEBinPath =
-						get_local_ebin_path_for( AppName, SiblingBuildDir ),
-
-					case file_utils:is_existing_directory_or_link(
-						   SiblingEBinPath ) of
-
-						true ->
-							trace_utils:trace_fmt( "Using, for the prerequisite"
-							  " application '~s', the '~s' sibling ebin path.",
-							  [ AppName, SiblingEBinPath ] ),
-							{ SiblingEBinPath, _AppBuildDir=SiblingBuildDir };
-
-						false ->
-							%trace_utils:debug_fmt( "No sibling '~s' found.",
-							%					   [ SiblingEBinPath ] ),
-							undefined
-
-					end
-
-			end
-
-	end.
-
-
-
-% Prepares the VM environment so that the specified application(s) to be
-% involved in a non-OTP execution (ex: a test), and also their own
-% prerequisites, can be run, based on the specified current build tree: ensures
-% that their .app can be found (supposing thus that they are available and
-% built), including afterwards by OTP, when starting them (thanks to updates to
-% the current code path).
-%
-% An ordered application list is somehow semantically similar to the 'deps'
-% entry of a rebar.config file.
-%
-% Returns whether a corresponding execution can be triggered: either ready now,
-% or lacking (at least) one application.
-%
 -spec prepare_for_execution( application_name() | [ application_name() ],
-							 directory_path() ) -> void().
+			 directory_path() ) -> [ app_start_info() ].
 prepare_for_execution( AppName, BuildDir ) when is_atom( AppName ) ->
+	prepare_for_execution( [ AppName ], BuildDir );
 
-	%trace_utils:debug_fmt( "Preparing for the execution of application '~s'.",
-	%					   [ AppName ] ),
+prepare_for_execution( AppNames, BuildDir ) when is_list( AppNames ) ->
 
-	case lists:member( AppName, list_otp_standard_applications() ) of
-
-		true ->
-			%trace_utils:trace_fmt( "Using defaults for the standard OTP "
-			%					   "application '~s'.", [ AppName ] ),
-			ready;
-
-		false ->
-			AbsBuildDir = file_utils:ensure_path_is_absolute( BuildDir ),
-			prepare_user_application_for_exec( AppName, AbsBuildDir )
-
-	end;
-
-prepare_for_execution( AppNames, BuildDir ) ->
-
+	% From this entry point, we prefer to deal with absolute, normalised paths:
 	AbsBuildDir = file_utils:ensure_path_is_absolute( BuildDir ),
 
-	%trace_utils:debug_fmt( "Preparing for the execution of applications ~p, "
-	%	"from '~s'.",[ AppNames, AbsBuildDir ) ] ),
-	[ prepare_for_execution( A, AbsBuildDir ) || A <- AppNames ].
+	trace_utils:debug_fmt( "Preparing for the execution of applications ~p, "
+						   "from '~s'.", [ AppNames, AbsBuildDir ] ),
+
+	% After a depth-first traversal resulting in listing paths from leaves to
+	% roots, we reserve to be top to bottom (still with duplicates):
+	%
+	PreparedStartInfoLists = lists:reverse(
+			prepare_for_exec( AppNames, AbsBuildDir, _Acc=[] ) ),
+
+	%trace_utils:debug_fmt( "Pre-deduplication start lists:~n  ~p",
+	%					   [ PreparedStartInfoLists ] ),
+
+	FinalStartInfos = list_utils:uniquify_ordered( PreparedStartInfoLists ),
+
+	trace_utils:debug_fmt( "Final start information list:~n  ~p",
+						   [ FinalStartInfos ] ),
+
+	FinalStartInfos.
 
 
 
-% Manages specified application (not expected to be a standard one) and its
-% prerequisites, if any: checks that their .app specification can be found, that
-% they are built, and updates the code path accordingly.
+% Manages specified application (not expected to be a standard one) and,
+% recursively, all its prerequisites (direct or not), if any: checks that their
+% .app specification can be found, that they are built, and updates the code
+% path accordingly.
+%
+% Called recursively (through parse_app_spec/3).
 %
 % (helper)
 %
-prepare_user_application_for_exec( AppName, AbsBuildDir ) ->
-
-
-	% Specific checking, just for the sake of a (non-OTP) test, that the
-	% specified OTP application is already available, in the usual _build
-	% directory, through the default rebar3 profile:
+-spec prepare_for_exec( application_name(), abs_directory_path(),
+						[ app_start_info() ] ) -> [ app_start_info() ].
+prepare_for_exec( _AppNames=[], _AbsBuildDir, Acc ) ->
+	% Merges all prerequisites, in their (bottom-up) order (duplicates taken
+	% care of later):
 	%
-	case get_ebin_path_for( AppName, AbsBuildDir ) of
+	list_utils:flatten_once( Acc );
+
+prepare_for_exec( [ AppName | T ], AbsBuildDir, Acc ) ->
+
+	case get_otp_paths_of( AppName, AbsBuildDir ) of
 
 		undefined ->
-			trace_utils:error_fmt( "No build directory found for the '~s' "
-				"OTP application (not belonging to the known standard Erlang "
-				"applications, so searched through any local rebar _build "
-				"directory, in any _checkouts one, or through its sibling "
-				"applications); this execution thus cannot be performed "
-				"(run beforehand 'make rebar3-compile' at the root of the "
-				"~s source tree for a more relevant testing).",
-				[ AppName, AbsBuildDir ] ),
-			throw( { lacking_app, no_ebin_path, AppName, AbsBuildDir } );
+			trace_utils:error_fmt( "No ebin/build directories found "
+				"for the '~s' OTP application (searched in turn in any "
+				"rebar3 _checkouts or local _build directory, "
+				"through any sibling applications; not belonging either "
+				"to the known standard Erlang applications); "
+				"this execution thus cannot be performed "
+				"(one may run beforehand, if available, 'make rebar3-compile' "
+				"at the root of the ~s source tree for a more relevant "
+				" testing).", [ AppName, AbsBuildDir ] ),
+			throw( { lacking_app, no_relevant_directory_found, AppName,
+					 AbsBuildDir } );
 
 
-		{ EBinPath, AppBuildDir } ->
-			% Extra checking:
+		{ AbsEBinPath, AbsAppBuildDir } ->
+			% Preparing the recursive lookup of prerequisites:
 			AppFilename = text_utils:format( "~s.app", [ AppName ] ),
-			AppFilePath = file_utils:join( EBinPath, AppFilename ),
+			AppFilePath = file_utils:join( AbsEBinPath, AppFilename ),
+
 			case file_utils:is_existing_file_or_link( AppFilePath ) of
 
 				true ->
-					% So that this .app file can be found by OTP when starting
-					% said application:
+					% We need to include this ebin path in the VM code path, so
+					% the corresponding .app file and also the BEAM files of
+					% that application can be found by OTP when starting it.
 					%
-					% At least an extra step is taken: checking the application
-					% has a chance to run (ex: has it been compiled?) by
-					% searching for its main module, as defined in its .app
-					% file:
-
-					case parse_app_spec( AppFilePath, EBinPath, AppBuildDir ) of
-
-						true ->
-							% Adds this ebin path to the VM code paths so that
-							% the corresponding BEAM files can be found also:
-							%
-							code_utils:declare_beam_directory( EBinPath,
-															   last_position );
+					% We need also, in addition to recursing in prerequisite
+					% applications, to handle the fact that the current
+					% application might be an active one, and as such will
+					% require to be specifically started, thanks to the function
+					% of a module that it declared entry in its .app file (as
+					% '{mod, {ModName, StartArgs}}'.
+					%
+					% At least an extra step is taken: checking that the
+					% application has a chance to run (ex: has it been
+					% compiled?) by searching for one of its modules (even if
+					% not being an active application), as obtained from its
+					% .app file as well.
+					%
+					case parse_app_spec( AppFilePath, AbsEBinPath,
+										 AbsAppBuildDir ) of
 
 						{ false, LackingModPath } ->
 							trace_utils:error_fmt( "The application '~s' does "
@@ -314,7 +230,19 @@ prepare_user_application_for_exec( AppName, AbsBuildDir ) ->
 							  [ AppName, AppFilePath, LackingModPath ] ),
 
 							throw( { application_not_built, AppName,
-									 LackingModPath } )
+									 LackingModPath } );
+
+						% Possibly obtained after having recursed through
+						% dependencies as much as needed:
+						%
+						AppStartInfos ->
+							% Adds this ebin path to the VM code paths so that
+							% the corresponding BEAM files can be found also:
+							%
+							code_utils:declare_beam_directory( AbsEBinPath,
+															   last_position ),
+							prepare_for_exec( T, AbsBuildDir,
+											  [ AppStartInfos | Acc ] )
 
 					end;
 
@@ -325,7 +253,7 @@ prepare_user_application_for_exec( AppName, AbsBuildDir ) ->
 						"cannot be performed "
 						"(run beforehand 'make rebar3-compile' at the root of "
 						"the ~s source tree for a more relevant testing).",
-						[ AppFilename, AppName, EBinPath, AppName ] ),
+						[ AppFilename, AppName, AbsEBinPath, AppName ] ),
 					throw( { lacking_app, no_app_file, AppName, AppFilePath } )
 
 			end
@@ -334,29 +262,170 @@ prepare_user_application_for_exec( AppName, AbsBuildDir ) ->
 
 
 
+% Returns the {AbsEbinPath, AbsBuildPath} paths (if any) to the ebin directory
+% and build directory of the specified prerequisite OTP application, namely the
+% executed application itself or one of its own prerequisites (supposing the
+% 'default' rebar3 profile being used), based on the specified root of the
+% current build tree.
+%
+% Following locations will be searched for the relevant directories, from the
+% root of the specified build directory, and in that order:
+%  1. any local _checkouts/APP_NAME/_build/default/lib/APP_NAME/ebin (a priori
+%  more relevant than any _checkouts/APP_NAME/ebin)
+%  2. any local _build/default/lib/APP_NAME/ebin (for the executed application
+%     itself or for its dependencies)
+%  3. any sibling ../APP_NAME/_build/default/lib/APP_NAME/ebin
+%  4. the OTP system tree itself, where standard applications are available
+%  (i.e. ${ERLANG_ROOT}/lib/erlang/lib)
+%
+% Returning the application build directory of this application allows to locate
+% in turn any prerequisite it would have (typically through checkouts and
+% siblings).
+%
+-spec get_otp_paths_of( application_name(), abs_directory_path() ) ->
+			maybe( { abs_directory_path(), abs_directory_path() } ).
+get_otp_paths_of( AppName, AbsBuildDir ) ->
+
+	AppNameStr = get_string_application_name( AppName ),
+
+	% Trying location #1:
+	AbsCheckoutEbinPath = file_utils:join( [ AbsBuildDir, "_checkouts",
+		AppNameStr, "_build", "default", "lib", AppNameStr, "ebin" ] ),
+
+	case file_utils:is_existing_directory_or_link( AbsCheckoutEbinPath ) of
+
+		true ->
+			trace_utils:trace_fmt( "Using, for the prerequisite application "
+				"'~s', the '~s' checkout ebin path.",
+				[ AppName, AbsCheckoutEbinPath ] ),
+
+			{ AbsCheckoutEbinPath, _AppBuildDir=AbsBuildDir };
+
+		false ->
+			%trace_utils:debug_fmt( "Application '~s' not found in _checkouts "
+			%	"ebin path '~s', trying in _build.",
+			%	[ AppName, AbsCheckoutEbinPath ] ),
+
+			% Trying location #2, if this application corresponds to the
+			% directly tested one:
+			%
+			AbsLocalEBinPath = get_local_ebin_path_for( AppName, AbsBuildDir ),
+
+			case file_utils:is_existing_directory_or_link( AbsLocalEBinPath ) of
+
+				true ->
+					% Most useful trace for execution preparation:
+					trace_utils:trace_fmt( "Using, for the prerequisite "
+						"application '~s', the '~s' build-local ebin path.",
+						[ AppName, AbsLocalEBinPath ] ),
+
+					{ AbsLocalEBinPath, _AppBuildDir=AbsBuildDir };
+
+				% Then trying location #3, maybe this application is a
+				% prerequisite of the executed one, available in a sibling
+				% directory thereof:
+				%
+				false ->
+					%trace_utils:debug_fmt( "Application '~s' not found in "
+					%	"build-local ebin path '~s', trying as sibling.",
+					%	[ AppName, AbsLocalEBinPath ] ),
+
+					% Still absolute (../APP_NAME), and normalised:
+					AbsSiblingBuildDir = file_utils:normalise_path(
+					  file_utils:join( file_utils:get_base_path( AbsBuildDir ),
+									   AppNameStr ) ),
+
+					AbsSiblingEBinPath =
+						get_local_ebin_path_for( AppName, AbsSiblingBuildDir ),
+
+					case file_utils:is_existing_directory_or_link(
+						   AbsSiblingEBinPath ) of
+
+						true ->
+							trace_utils:trace_fmt( "Using, for the prerequisite"
+							  " application '~s', the '~s' sibling ebin path.",
+							  [ AppName, AbsSiblingEBinPath ] ),
+							{ AbsSiblingEBinPath,
+							  _AppBuildDir=AbsSiblingBuildDir };
+
+						false ->
+							%trace_utils:debug_fmt( "Application '~s' not found"
+							%  " in sibling path '~s', trying as standard OTP.",
+							%  [ AppName, AbsSiblingEBinPath ] ),
+							case code:lib_dir( AppName ) of
+
+								{ error, bad_name } ->
+									%trace_utils:debug( "Not found either "
+									%		   "as an OTP application." ),
+									undefined;
+
+								AbsStdPath ->
+									% We reuse the original build dir, only
+									% sensible option remaining for next
+									% lookups:
+									%
+									{ file_utils:join( AbsStdPath, "ebin" ),
+									  AbsBuildDir }
+
+							end
+
+					end
+
+			end
+
+	end.
+
+
+
+% Returns the (absolute) path, located in the specified (absolute) build tree,
+% that should correspond to the ebin directory of the specified prerequisite OTP
+% application.
+%
+% Ex: get_local_ebin_path_for(myriad, "..") if run from a "test" direct
+% subdirectory of the current build tree.
+%
+% Note: the returned path is not checked for existence.
+%
+-spec get_local_ebin_path_for( application_name(), abs_directory_path() ) ->
+									abs_directory_path().
+get_local_ebin_path_for( AppName, AbsBuildDir ) ->
+	file_utils:join( [ AbsBuildDir, "_build", "default", "lib",
+					   get_string_application_name( AppName ), "ebin" ] ).
+
+
+% Returns a string version of specified application name.
+-spec get_string_application_name( application_name() ) ->
+										string_application_name().
+get_string_application_name( AppName ) ->
+	text_utils:atom_to_string( AppName ).
+
+
+
 % Manages the specified .app specification: checks that the specified
 % application seems indeed built, and prepares also the execution of its
 % dependencies.
 %
-% Returns either true or false, then accompanied by the path of any lacking BEAM
-% file.
-%
+% Returns either {parsed, AppStartInfos} for this application and all its
+% dependencies (if any; direct or not), or {failed, ModNotFoundPath} where
+% ModNotFoundPath is the path of an application-defined module found lacking.
+
 % (helper)
 %
--spec parse_app_spec( file_path(), directory_path(), directory_path() ) ->
-							 'true' | { 'false', file_path() }.
-parse_app_spec( AppFilePath, EBinPath, BuildDir ) ->
+-spec parse_app_spec( file_path(), abs_directory_path(),
+  abs_directory_path() ) -> [ app_start_info() ] | { 'failed', file_path() }.
+parse_app_spec( AppFilePath, AbsEBinPath, AbsBuildDir ) ->
 
-	%trace_utils:debug_fmt( "Examining .app specification '~s'.",
+	%trace_utils:debug_fmt( "Examining .app specification in '~s'.",
 	%					   [ AppFilePath ] ),
 
 	case file_utils:read_terms( AppFilePath ) of
 
 		[ { application, AppName, Entries } ] ->
-			% We cannot rely on the 'mod' entry, which is defined only for
-			% active applications, so:
+			% To check whether this application is compiled, we cannot rely on
+			% the 'mod' entry, which is defined only for active applications,
+			% so:
 			%
-			Compiled = case list_table:lookup_entry( modules, Entries ) of
+			CompileInfo = case list_table:lookup_entry( modules, Entries ) of
 
 				% Abnormal, as mandatory:
 				key_not_found ->
@@ -364,38 +433,55 @@ parse_app_spec( AppFilePath, EBinPath, BuildDir ) ->
 
 				{ value, [] } ->
 					% No module declared, supposing that alles gut:
-					true;
+					ok;
 
 				% Testing just the first module found:
 				{ value, [ FirstModName | _ ] } ->
-					ExpectedModPath = file_utils:join( EBinPath,
+					ExpectedModPath = file_utils:join( AbsEBinPath,
 							code_utils:get_beam_filename( FirstModName ) ),
 					case file_utils:is_existing_file( ExpectedModPath ) of
 
 						true ->
-							true;
+							ok;
 
 						false ->
-							{ false, ExpectedModPath }
+							{ failed, ExpectedModPath }
 
 					end
 
 			end,
 
-			case Compiled of
+			case CompileInfo of
 
-				true ->
+				ok ->
+
 					% Compile check performed, now let's take care of the
 					% dependencies as well:
 					%
-					AppDeps = list_table:get_value( applications, Entries ),
+					AppDeps = list_table:get_value_with_defaults( applications,
+									_DefNoDep=[], Entries ),
 
-					%trace_utils:debug_fmt( "Dependencies found for '~s': ~p; "
-					%	"using build directory '~s'.", [ AppName, AppDeps,
-					%		file_utils:ensure_path_is_absolute( BuildDir ) ] ),
+					trace_utils:debug_fmt( "Dependencies found for '~s': ~p; "
+						"using build directory '~s'.",
+						[ AppName, AppDeps, AbsBuildDir ] ),
 
-					prepare_for_execution( AppDeps, BuildDir ),
-					true;
+					DepStartInfos = prepare_for_exec( AppDeps, AbsBuildDir,
+													  _DepAcc=[] ),
+
+					% Add our own info if needed, i.e. if being an active
+					% application:
+					%
+					case list_table:get_value_with_defaults( mod,
+									_DefNotActive=undefined, Entries ) of
+
+						undefined ->
+							% Not an active application then:
+							DepStartInfos;
+
+						StartPair={ _StartModule, _StartArgs } ->
+							[ StartPair | DepStartInfos ]
+
+					end;
 
 				% i.e. {false, ExpectedModPath}:
 				FalsePair ->
@@ -404,26 +490,9 @@ parse_app_spec( AppFilePath, EBinPath, BuildDir ) ->
 			end;
 
 		_ ->
-			throw( { unexpected_app_spec, AppFilePath } )
+			throw( { invalid_app_spec, AppFilePath } )
 
 	end.
-
-
-
-% Returns a list of the applications known to belong to the OTP standard
-% distribution (and thus whose availability does not have to be checked).
-%
-% (simply obtained by listing the directories in the lib directory at the root
-% of an Erlang source tree)
-%
--spec list_otp_standard_applications() -> [ application_name() ].
-list_otp_standard_applications() ->
-	[ asn1, common_test, compiler, crypto, debugger, dialyzer, diameter, edoc,
-	  eldap, erl_docgen, erl_interface, et, eunit, ftp, hipe, inets, jinterface,
-	  kernel, megaco, mnesia, observer, odbc, os_mon, parsetools, public_key,
-	  reltool, runtime_tools, sasl, snmp, ssh, ssl, stdlib, syntax_tools, tftp,
-	  tools, wx, xmerl ].
-
 
 
 
