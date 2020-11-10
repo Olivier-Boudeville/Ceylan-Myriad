@@ -50,7 +50,7 @@
 		  interpret_stacktrace/2,
 		  interpret_stack_item/2,
 		  display_stacktrace/0,
-		  interpret_undef_exception/3 ]).
+		  interpret_undef_exception/3, stack_location_to_string/1 ]).
 
 
 
@@ -91,6 +91,8 @@
 
 -type module_name() :: basic_utils:module_name().
 
+-type ustring() :: text_utils:ustring().
+
 -type directory_path() :: file_utils:directory_path().
 -type file_name() :: file_utils:file_name().
 -type file_path() :: file_utils:file_path().
@@ -101,6 +103,7 @@
 
 -type time_out() :: time_utils:time_out().
 
+-type md5_sum() :: executable_utils:md5_sum().
 
 
 % Code-related functions.
@@ -144,7 +147,7 @@ get_code_for( ModuleName ) ->
 %
 % Otherwise returns a undefined function exception (ModuleName:module_info/1).
 %
--spec get_md5_for_loaded_module( module_name() ) -> executable_utils:md5_sum().
+-spec get_md5_for_loaded_module( module_name() ) -> md5_sum().
 get_md5_for_loaded_module( ModuleName ) ->
 	ModuleName:module_info( md5 ).
 
@@ -153,7 +156,7 @@ get_md5_for_loaded_module( ModuleName ) ->
 % Returns the MD5 for the specified stored (on filesystem, found through the
 % code path) module.
 %
--spec get_md5_for_stored_module( module_name() ) -> executable_utils:md5_sum().
+-spec get_md5_for_stored_module( module_name() ) -> md5_sum().
 get_md5_for_stored_module( ModuleName ) ->
 	{ BinCode, _ModuleFilename } = get_code_for( ModuleName ),
 	{ ok, { ModuleName, MD5SumBin } } = beam_lib:md5( BinCode ),
@@ -518,7 +521,7 @@ get_code_path() ->
 
 
 % Returns a textual representation of the current code path.
--spec get_code_path_as_string() -> string().
+-spec get_code_path_as_string() -> ustring().
 get_code_path_as_string() ->
 
 	CodePath = get_code_path(),
@@ -529,7 +532,7 @@ get_code_path_as_string() ->
 
 
 % Returns a textual description of the specified code path.
--spec code_path_to_string( code_path() ) -> string().
+-spec code_path_to_string( code_path() ) -> ustring().
 code_path_to_string( _CodePath=[] ) ->
 	% Initial space intended for caller-side consistency:
 	" empty code path";
@@ -573,7 +576,7 @@ get_beam_filename( ModuleName ) when is_atom( ModuleName ) ->
 % being available at least once), or 'not_found' (hence: this is not a boolean
 % return!).
 %
--spec is_beam_in_path( module_name() ) -> 'not_found' | [ file_utils:path() ].
+-spec is_beam_in_path( module_name() ) -> 'not_found' | [ directory_path() ].
 is_beam_in_path( ModuleName ) when is_atom( ModuleName ) ->
 
 	ModuleFilename = text_utils:atom_to_string( ModuleName ) ++ ?beam_extension,
@@ -615,9 +618,9 @@ is_beam_in_path( Other ) ->
 % Ex: "/home/joe/Software/Erlang/Erlang-23.1/lib/erlang" or
 % "/usr/local/otp/lib".
 %
--spec get_erlang_root_path() -> file_utils:directory_path().
+-spec get_erlang_root_path() -> directory_path().
 get_erlang_root_path() ->
-	code:root_dir().
+   code:root_dir().
 
 
 
@@ -644,7 +647,7 @@ get_stacktrace() ->
 
 
 % Returns a "smart" textual representation of the current stacktrace.
--spec interpret_stacktrace() -> string().
+-spec interpret_stacktrace() -> ustring().
 interpret_stacktrace() ->
 
 	% We do not want to include interpret_stacktrace/0 in the stack:
@@ -654,7 +657,7 @@ interpret_stacktrace() ->
 
 
 % Returns a "smart" textual representation of specified stacktrace.
--spec interpret_stacktrace( stack_trace() ) -> string().
+-spec interpret_stacktrace( stack_trace() ) -> ustring().
 interpret_stacktrace( StackTrace ) ->
 	interpret_stacktrace( StackTrace, _FullPathsWanted=false ).
 
@@ -663,7 +666,7 @@ interpret_stacktrace( StackTrace ) ->
 % either the full path of the corresponding source files, or just their
 % filename.
 %
--spec interpret_stacktrace( stack_trace(), boolean() ) -> string().
+-spec interpret_stacktrace( stack_trace(), boolean() ) -> ustring().
 interpret_stacktrace( StackTrace, FullPathsWanted ) ->
 
 	%io:format( "Interpreting stack trace:~n~p~n", [ StackTrace ] ),
@@ -734,7 +737,7 @@ display_stacktrace() ->
 
 % Interprets an undef exception, typically after it has been raised.
 -spec interpret_undef_exception( module_name(),
-		 basic_utils:function_name(), arity() ) -> text_utils:ustring().
+		 basic_utils:function_name(), arity() ) -> ustring().
 interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
 
 	case code_utils:is_beam_in_path( ModuleName ) of
@@ -798,3 +801,13 @@ interpret_arities( ModuleName, FunctionName, Arity, Arities ) ->
 				"of parameters", [ ModuleName, FunctionName, Arity, ArStr ] )
 
 	end.
+
+
+% Returns a textual description of specified stack location.
+-spec stack_location_to_string( stack_location() ) -> ustring().
+stack_location_to_string( [ { file, Filename }, { line, Line } ] ) ->
+	text_utils:format( "in file ~s, at line ~B", [ Filename, Line ] );
+
+% Catch-all:
+stack_location_to_string( OtherLoc ) ->
+	text_utils:format( "~p", [ OtherLoc ] ).
