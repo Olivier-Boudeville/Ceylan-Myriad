@@ -213,6 +213,8 @@
 
 -type any_directory_path() :: directory_path() | bin_directory_path().
 
+% Sometimes useful:
+-type abs_directory_path() :: directory_path().
 
 
 % An extension in a filename (ex: "baz", in "foobar.baz.json"):
@@ -289,7 +291,7 @@
 			   file_name/0, filename/0, file_path/0,
 			   bin_file_name/0, bin_file_path/0,
 			   any_file_name/0, any_file_path/0,
-			   any_directory_name/0, any_directory_path/0,
+			   any_directory_name/0, any_directory_path/0, abs_directory_path/0,
 			   executable_name/0, executable_path/0, bin_executable_path/0,
 			   script_path/0, bin_script_path/0,
 			   directory_name/0, bin_directory_name/0,
@@ -463,7 +465,8 @@ get_last_element( _List=[ _H | T ] ) ->
 % Note that the return type is the same of the input path, i.e. plain string or
 % binary string.
 %
-% Alias name for filename:dirname/1 (in file_utils, and hopefully clearer).
+% Alias name for filename:dirname/1 (better in file_utils, and hopefully
+% clearer).
 %
 -spec get_base_path( any_path() ) -> any_path().
 get_base_path( AnyPath ) ->
