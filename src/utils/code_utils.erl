@@ -43,6 +43,7 @@
 		  declare_beam_dirs_for/1, declare_beam_dirs_for_myriad/0,
 		  get_code_path/0, get_code_path_as_string/0, code_path_to_string/1,
 		  list_beams_in_path/0, get_beam_filename/1, is_beam_in_path/1,
+		  get_erlang_root_path/0,
 		  get_stacktrace/0,
 		  interpret_stacktrace/0,
 		  interpret_stacktrace/1,
@@ -606,6 +607,17 @@ is_beam_in_path( ModuleName ) when is_atom( ModuleName ) ->
 
 is_beam_in_path( Other ) ->
 	throw( { non_atom_module_name, Other } ).
+
+
+
+% Returns the root directory of Erlang/OTP, where it is installed.
+%
+% Ex: "/home/joe/Software/Erlang/Erlang-23.1/lib/erlang" or
+% "/usr/local/otp/lib".
+%
+-spec get_erlang_root_path() -> file_utils:directory_path().
+get_erlang_root_path() ->
+	code:root_dir().
 
 
 
