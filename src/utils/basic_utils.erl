@@ -213,6 +213,8 @@
 
 -type argument() :: any().
 
+-type arguments() :: [ argument() ].
+
 
 % Shorthand for Module, Function, Arity:
 %
@@ -222,7 +224,7 @@
 
 
 % A command (module-function-arguments):
--type command_spec() :: { module_name(), function_name(), [ argument() ] }.
+-type command_spec() :: { module_name(), function_name(), arguments() }.
 
 
 % The name of a layer (ex: "Myriad"):
@@ -278,7 +280,7 @@
 			   accumulator/0,
 			   version_number/0, version/0, two_digit_version/0, any_version/0,
 			   positive_index/0,
-			   module_name/0, function_name/0, argument/0,
+			   module_name/0, function_name/0, argument/0, arguments/0,
 			   command_spec/0, layer_name/0, record_name/0, field_name/0,
 			   user_name/0, atom_user_name/0,
 			   comparison_result/0, execution_target/0, execution_context/0,
