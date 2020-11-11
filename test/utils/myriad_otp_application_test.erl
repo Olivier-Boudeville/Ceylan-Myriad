@@ -38,10 +38,10 @@
 
 
 % Actual test:
-test_myriad_application() ->
+test_myriad_application( OrderedAppNames ) ->
 
 	test_facilities:display( "Starting the Myriad OTP library application." ),
-	otp_utils:start_application( myriad ),
+	otp_utils:start_applications( OrderedAppNames ),
 
 
 	test_facilities:display( "Myriad version: ~p.",
@@ -68,20 +68,17 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	% Build root directory from which prerequisite applications may be found:
+	% Build root directory from which prerequisite sibling applications may be
+	% found:
+	%
 	BuildRootDir = file_utils:join( "..", ".." ),
 
-	case otp_utils:prepare_for_execution( _AppName=myriad, BuildRootDir ) of
+	OrderedAppNames = otp_utils:prepare_for_execution( _ThisAppName=myriad,
+													   BuildRootDir ),
 
-		ready ->
-			test_myriad_application() ;
+	trace_utils:info_fmt( "Resulting applications to start, in order: ~w.",
+						  [ OrderedAppNames ] ),
 
-		{ lacking_app, _App } ->
-			% (a detailed warning message has been issued by
-			% otp_utils:prepare_for_execution/2)
-			%
-			ok
-
-	end,
+	test_myriad_application( OrderedAppNames ),
 
 	test_facilities:stop().
