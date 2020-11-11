@@ -78,7 +78,7 @@
 		  start_application/1, start_application/2,
 		  start_applications/1, start_applications/2,
 
-		  stop_application/1, stop_applications/1,
+		  stop_application/1, stop_applications/1, stop_user_applications/1,
 
 		  get_supervisor_settings/2,
 
@@ -763,6 +763,24 @@ stop_application( AppName ) ->
 -spec stop_applications( [ application_name() ] ) -> void().
 stop_applications( AppNames ) ->
 	[ stop_application( App ) || App <- lists:reverse( AppNames ) ].
+
+
+
+% Stops the specified user (non-VM essential) OTP applications, sequentially and
+% in their *reversed* specified order (so that the same list of prerequisite
+% applications can be used both for start and stop).
+%
+% Not stopping the base Erlang applications allows to remain with a functional
+% VM (ex: able to finish a test, to perform consol outputs, etc.).
+%
+% Note: not relying on OTP here, hence dependencies shall be explicitly stopped,
+% in the reverse order of the starting of these applications.
+%
+-spec stop_user_applications( [ application_name() ] ) -> void().
+stop_user_applications( AppNames ) ->
+	BaseVMApps = [ kernel, stdlib ],
+	[ stop_application( App ) || App <- lists:reverse( AppNames ),
+								 not lists:member( App, BaseVMApps ) ].
 
 
 
