@@ -27,7 +27,7 @@
 
 
 % Testing of Myriad as an OTP library application, directly from within its code
-% base (hence without needing to create a separate, mock-up test release for
+% base (hence without needing to create a separate, mock-up test OTP release for
 % that).
 %
 -module(myriad_otp_application_test).
@@ -51,8 +51,9 @@ test_myriad_application( OrderedAppNames ) ->
 							 [ system_utils:get_user_name() ] ),
 
 
-	test_facilities:display( "Stopping the Myriad application." ),
-	otp_utils:stop_application( myriad ),
+	% Including Myriad:
+	test_facilities:display( "Stopping all user applications." ),
+	otp_utils:stop_user_applications( OrderedAppNames ),
 
 	test_facilities:display(
 	  "Successful end of test of the Myriad OTP application." ).
@@ -73,6 +74,7 @@ run() ->
 	%
 	BuildRootDir = file_utils:join( "..", ".." ),
 
+	% No dependency specified in this test, yet they are managed:
 	OrderedAppNames = otp_utils:prepare_for_execution( _ThisAppName=myriad,
 													   BuildRootDir ),
 
