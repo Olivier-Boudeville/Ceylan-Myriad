@@ -139,18 +139,18 @@
 
 % To easily activate/deactivate a type of traces as a whole:
 
-%-define( debug( M ), trace_disabled ).
-%-define( debug_fmt( F, V ), trace_disabled ).
+-define( debug( M ), trace_disabled ).
+-define( debug_fmt( F, V ), trace_disabled ).
 
--define( debug( M ), trace_utils:debug( M ) ).
--define( debug_fmt( F, V ), trace_utils:debug_fmt( F, V ) ).
+%-define( debug( M ), trace_utils:debug( M ) ).
+%-define( debug_fmt( F, V ), trace_utils:debug_fmt( F, V ) ).
 
 
-%-define( trace( M ), trace_disabled ).
-%-define( trace_fmt( F, V ), trace_disabled ).
+-define( trace( M ), trace_disabled ).
+-define( trace_fmt( F, V ), trace_disabled ).
 
--define( trace( M ), trace_utils:trace( M ) ).
--define( trace_fmt( F, V ), trace_utils:trace_fmt( F, V ) ).
+%-define( trace( M ), trace_utils:trace( M ) ).
+%-define( trace_fmt( F, V ), trace_utils:trace_fmt( F, V ) ).
 
 
 
@@ -782,8 +782,8 @@ start_applications( _AppNames=[], _RestartType ) ->
 
 start_applications( [ AppName | T ], RestartType ) ->
 
-	?debug_fmt( "Starting application '~s' with restart type '~s'.",
-				[ AppName, RestartType ] ),
+	%?debug_fmt( "Starting application '~s' with restart type '~s'.",
+	%			[ AppName, RestartType ] ),
 
 	% Not needing to use our knowledge about this application being active or
 	% not:
