@@ -1104,6 +1104,12 @@ BUSY_LIMIT_OPT := --busy-limit 1048576
 SCALE_OPT := $(BUSY_LIMIT_OPT)
 
 
+# To tell run_erl where the VM log files shall be written;
+ifdef VM_LOG_DIR
+	  LOG_DIR_OPT := --log-dir $(VM_LOG_DIR)
+endif
+
+
 # Removed:
 #
 #  --ln $(VM_TEST_NAME)
@@ -1118,7 +1124,7 @@ SCALE_OPT := $(BUSY_LIMIT_OPT)
 ERL_PARAMETERIZED_LAUNCHER = $(ERL_LAUNCHER) $(FQDN_OPT) $(FIREWALL_OPT)  \
 							 $(MAX_PROCESS_OPT) $(ASYNC_THREAD_OPT)       \
 							 $(BEAM_PATH_OPT) $(SCALE_OPT) $(COOKIE_OPT)  \
-							 $(OVERRIDDEN_OPT)
+							 $(LOG_DIR_OPT) $(OVERRIDDEN_OPT)
 
 
 # Previously the short names were preferred, as they seemed to resist to

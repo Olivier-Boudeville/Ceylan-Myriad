@@ -70,10 +70,11 @@ Detailed options:
 	--daemon: run the node as a daemon (relies on run_erl and implies --background)
 	--non-interactive: run the launched interpreter with no shell nor input reading (ideal to run through a job manager, ex: on a cluster)
 	--eval 'an Erlang expression': start by evaluating this expression
-	--no-auto-start: disables the automatic execution at VM start-up
+	--no-auto-start: disable the automatic execution at VM start-up
 	-h or --help: display this help
 	--beam-dir a_path: adds specified directory to the path searched for beam files (multiple --beam-dir options can be specified)
 	--beam-paths first_path second_path ...: adds specified directories to the path searched for beam files (multiple paths can be specified; must be the last option)
+	--log-dir: specify the directory in which the VM logs (if using run_erl) shall be written
 
 Other options will be passed 'as are' to the interpreter with a warning, except if they are listed after a '-start-verbatim-options' option, in which case they will passed with no warning.
 
@@ -99,7 +100,7 @@ reset_keyboard()
 
 
 
-
+# Uncomment to inspect input parameters:
 #echo "launch-erl.sh received as parameters: $*"
 
 
@@ -123,7 +124,10 @@ to_erl=$(which to_erl)
 
 
 # If logs are redirected to file:
-DEFAULT_LOG_FILE="Ceylan-Myriad-run.log"
+default_log_file="Ceylan-Myriad-run.log"
+
+log_dir=$(pwd)
+
 
 # Defaults:
 be_verbose=1
@@ -261,6 +265,24 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ]; do
 			code_dirs="${code_dirs} $2"
 			shift
 		done
+		token_eaten=0
+	fi
+
+	if [ "$1" = "--log-dir" ]; then
+		shift
+		log_dir="$1"
+		if [ ! -d "${log_dir}" ]; then
+			echo "Creating specified yet non-existing log directory '${log_dir}'."
+			# No parent created:
+			mkdir "${log_dir}"
+			if [ ! $? -eq 0 ]; then
+
+				echo " Error, creating of specified log directory '${log_dir}' failed." 1>&2
+				exit 15
+
+			fi
+
+		fi
 		token_eaten=0
 	fi
 
@@ -407,7 +429,7 @@ fi
 
 
 #+W w : log warnings as warnings.
-#log_opt="+W w -kernel error_logger "{file,\"$DEFAULT_LOG_FILE\"}
+#log_opt="+W w -kernel error_logger "{file,\"${default_log_file}\"}
 log_opt="+W w"
 
 
@@ -658,8 +680,6 @@ command="${command} ${background_opt} ${non_interactive_opt} ${verbatim_opt}"
 
 if [ $use_run_erl -eq 0 ]; then
 
-	log_dir=$(pwd)
-
 	if [ ! -x "${run_erl}" ]; then
 
 		echo "  Error, no 'run_erl' tool available." 1>&2
@@ -792,7 +812,7 @@ if [ $use_run_erl -eq 0 ] && [ $autostart -eq 0 ]; then
 		if [ $wait_remain -eq 0 ]; then
 
 			echo  "Error, time-out while waiting for the creation of write pipe (${write_pipe})." 1>&2
-			echo "Check that there is no identically named Erlang VM running in the background that would block this launch." 1>&2
+			echo "Please check that there is no identically-named Erlang VM running in the background that would block this launch." 1>&2
 
 			# On at least some cases, the name is never found (too long
 			# command-line truncated; or the node may not be a distributed one),
