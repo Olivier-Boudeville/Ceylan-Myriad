@@ -141,7 +141,7 @@
 #
 # One may get rid in all cases of that '&', and the --background option may or
 # may not be added. Its main drawback is that no output or activity is then
-#  shown on the console.
+# shown on the console.
 #
 %_exec_service_debug: %_app.beam %.beam
 	@echo "		Executing application $^ as a debugged service (first form)"
