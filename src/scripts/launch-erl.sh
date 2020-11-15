@@ -22,10 +22,10 @@
 # restores the resistance to exceptions (ex: relying on pipes).
 
 # Using run_erl allows to have the VM be able to resist to the crash of others;
-# however then some tests may fail while either returning success or may
-# terminate in an open shell). So the default is still not using run_erl, unless
-# the --daemon option is specified (in which case the log directory will be the
-# one from which this script is run):
+# however then some tests may either actually fail whereas returning success, or
+# may terminate in an open shell. So the default is still not using run_erl,
+# unless the --daemon option is specified (in which case the log directory will
+# be the one from which this script is run):
 
 # Default is false (1):
 use_run_erl=1
