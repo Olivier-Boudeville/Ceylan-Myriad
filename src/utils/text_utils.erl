@@ -74,7 +74,7 @@
 		  float_to_string/1, float_to_string/2, number_to_string/1,
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
-		  format/2, bin_format/2, format/3,
+		  format/2, bin_format/2, atom_format/2, format/3,
 		  format_ellipsed/2, format_ellipsed/3,
 		  format_as_comment/1, format_as_comment/2, format_as_comment/3,
 		  format_as_comment/4,
@@ -1668,6 +1668,18 @@ bin_format( FormatString, Values ) ->
 	erlang:list_to_binary( format( FormatString, Values ) ).
 
 -endif. % exec_target_is_production
+
+
+
+% Formats specified string as an atom; cannot fail (so that for example a badly
+% formatted log cannot crash anymore its emitter process).
+%
+% Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected
+% Unicode inputs resulting on crashes afterwards.
+%
+-spec atom_format( format_string(), [ term() ] ) -> atom().
+atom_format( FormatSt, FormatValues ) ->
+	string_to_atom( format( FormatSt, FormatValues ) ).
 
 
 
