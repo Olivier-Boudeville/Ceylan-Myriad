@@ -5,8 +5,8 @@ MYRIAD_TOP = .
 		register-version-in-header register-myriad list-beam-dirs             \
 		add-prerequisite-plts prepare-base-plt add-erlhdf5-plt add-jsx-plt    \
 		add-sqlite3-plt link-plt clean-ast-outputs clean-local stats          \
-		info-paths info-settings info-compile info-parse-transform info-check \
-		info-rebar3
+		info-paths info-settings info-compile info-parse-transform info-sync  \
+		info-check info-rebar3
 
 
 #MODULES_DIRS = contrib src doc conf
@@ -161,6 +161,15 @@ info-parse-transform:
 	@echo "ERLANG_COMPILER_OPT_FOR_PT = $(ERLANG_COMPILER_OPT_FOR_PT)"
 	@echo "META_BEAM_FILES = $(META_BEAM_FILES)"
 	@echo "ERLANG_COMPILER_PARSE_TRANSFORM_OPT = $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT)"
+
+
+info-sync:
+	@echo "SYNC_TOOL = $(SYNC_TOOL)"
+	@echo "SSH_PORT = $(SSH_PORT)"
+	@echo "SSH_OPT = $(SSH_OPT)"
+	@echo "SYNC_OPT = $(SYNC_OPT)"
+	@echo "WEB_SRV = $(WEB_SRV)"
+	@echo "CEYLAN_SYNC_TARGET_ROOT = $(CEYLAN_SYNC_TARGET_ROOT)"
 
 
 info-check:

@@ -1334,6 +1334,25 @@ UNSUPPORTED_SOURCES := src/data-management/sql_support.erl          \
 					   src/data-management/raw_hdf5_test.erl
 
 
+# For the sync-* targets:
+ifndef SYNC_TOOL
+
+	SYNC_TOOL := $$(which rsync 2>/dev/null)
+
+	ifdef SSH_PORT
+		SSH_OPT := -e "ssh -p $(SSH_PORT)"
+	endif
+
+	# Not -a, as it implies -o and -g (to preserve owner and groups), which is
+	# not desirable here; not -t either, as having not enough permissions to
+	# update time metadata:
+	#
+	SYNC_OPT :=  -rlpD -vz $(SSH_OPT)
+
+endif
+
+
+
 # Verification settings.
 
 
