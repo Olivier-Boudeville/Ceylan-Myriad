@@ -139,18 +139,26 @@
 
 % To easily activate/deactivate a type of traces as a whole:
 
+% Uncomment to enable:
+-define( enable_otp_traces, ).
+
+-ifdef( enable_otp_traces ).
+
+-define( debug( M ), trace_utils:debug( M ) ).
+-define( debug_fmt( F, V ), trace_utils:debug_fmt( F, V ) ).
+
+-define( trace( M ), trace_utils:trace( M ) ).
+-define( trace_fmt( F, V ), trace_utils:trace_fmt( F, V ) ).
+
+-else.
+
 -define( debug( M ), trace_disabled ).
 -define( debug_fmt( F, V ), trace_disabled ).
-
-%-define( debug( M ), trace_utils:debug( M ) ).
-%-define( debug_fmt( F, V ), trace_utils:debug_fmt( F, V ) ).
-
 
 -define( trace( M ), trace_disabled ).
 -define( trace_fmt( F, V ), trace_disabled ).
 
-%-define( trace( M ), trace_utils:trace( M ) ).
-%-define( trace_fmt( F, V ), trace_utils:trace_fmt( F, V ) ).
+-endif.
 
 
 
@@ -495,9 +503,9 @@ try_next_locations( AppName, AppNameStr, AppFilename, DepEBinDir, DepAppPath,
 							case code:lib_dir( AppName ) of
 
 								{ error, bad_name } ->
-									trace_utils:error_fmt( "Application '~s' not"
-									  "found in any of the supported locations.",
-									  [ AppName ] ),
+									trace_utils:error_fmt( "Application '~s' "
+									  "not found in any of the supported "
+									  "locations.", [ AppName ] ),
 									throw( { application_not_found, AppName,
 											 AbsBaseDir } );
 
