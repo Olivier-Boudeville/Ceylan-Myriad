@@ -796,8 +796,14 @@ test-hex-package: rebar-test-clean
 # End of the longer rebar-related section.
 
 
-# Synchronises the sources of the current layer to the specified server location:
-sync-to-server:
+# Synchronises the sources of the current layer to the specified server location.
+#
+
+# A rebuild is triggered just before, as the BEAM files are transferred as well:
+# at arrival timestamps may not be respected and we want the right BEAMs to be
+# executed.
+#
+sync-to-server: all
 	@echo " Synchronising the $$(basename $$(pwd)) layer to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)"
 	@if [ -n "$(WEB_SRV)" ]; then if [ -n "$(CEYLAN_SYNC_TARGET_ROOT)" ]; then $(SYNC_TOOL) $(SYNC_OPT) src include $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)/$$(basename $$(pwd)); else echo "Error, no CEYLAN_SYNC_TARGET_ROOT variable set." 1>&2 ; exit 4 ; fi ; else echo "Error, no WEB_SRV variable set." 1>&2 ; exit 5 ; fi
 
