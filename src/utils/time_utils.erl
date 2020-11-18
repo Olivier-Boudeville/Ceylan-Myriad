@@ -232,7 +232,7 @@
 
 
 % Returns a string corresponding to the specified date, like: "30/11/2009".
--spec get_textual_date( date() ) -> string().
+-spec get_textual_date( date() ) -> ustring().
 get_textual_date( { Year, Month, Day } ) ->
 	io_lib:format( "~B/~B/~B", [ Day, Month, Year ] ).
 
@@ -314,7 +314,7 @@ check_month_order( Start={ StartYear, StartMonth },
 % Converts a month (an integer in [1,12] or a 12-multiple thereof, like 23) into
 % its common name.
 %
--spec month_to_string( month() ) -> string().
+-spec month_to_string( month() ) -> ustring().
 month_to_string( _MonthIndex=1 ) ->
 	"January";
 
@@ -460,7 +460,7 @@ get_week_day( _DayIndex=7 ) ->
 % Returns the common name of a week day (ex: "Tuesday") based on the specified
 % date or on the specified index in the week.
 %
--spec week_day_to_string( date() | day_index() ) -> string().
+-spec week_day_to_string( date() | day_index() ) -> ustring().
 week_day_to_string( Date={ _Y, _M, _D } ) ->
 	Day = calendar:day_of_the_week( Date ),
 	week_day_to_string( Day ) ;
@@ -984,7 +984,7 @@ get_time2_textual_timestamp( { { Year, Month, Day },
 % Returns a string corresponding to the current timestamp and able to be a part
 % of a path, like: "2010-11-18-at-13h-30m-35s".
 %
--spec get_textual_timestamp_for_path() -> string().
+-spec get_textual_timestamp_for_path() -> ustring().
 get_textual_timestamp_for_path() ->
 	get_textual_timestamp_for_path( get_timestamp() ).
 
@@ -993,7 +993,7 @@ get_textual_timestamp_for_path() ->
 % Returns a string corresponding to the specified timestamp and able to be a
 % part of a path, like: "2010-11-18-at-13h-30m-35s".
 %
--spec get_textual_timestamp_for_path( timestamp() ) -> string().
+-spec get_textual_timestamp_for_path( timestamp() ) -> ustring().
 get_textual_timestamp_for_path( { { Year, Month, Day },
 								  { Hour, Minute, Second } } ) ->
 	io_lib:format( "~p-~p-~p-at-~Bh-~2..0Bm-~2..0Bs",
@@ -1003,7 +1003,7 @@ get_textual_timestamp_for_path( { { Year, Month, Day },
 % Returns a string corresponding to the specified timestamp, with "dash"
 % conventions (ex: used by jsgantt), like: "2017-05-20 12:00:17".
 %
--spec get_textual_timestamp_with_dashes( timestamp() ) -> string().
+-spec get_textual_timestamp_with_dashes( timestamp() ) -> ustring().
 get_textual_timestamp_with_dashes( { { Year, Month, Day },
 									 { Hour, Minute, Second } } ) ->
 	io_lib:format( "~B-~2..0B-~2..0B ~B:~2..0B:~2..0B",
@@ -1012,7 +1012,7 @@ get_textual_timestamp_with_dashes( { { Year, Month, Day },
 
 
 % Alias of get_textual_timestamp/1, defined for clarity.
--spec timestamp_to_string( timestamp() ) -> string().
+-spec timestamp_to_string( timestamp() ) -> ustring().
 timestamp_to_string( Timestamp ) ->
 	get_textual_timestamp( Timestamp ).
 
@@ -1024,7 +1024,7 @@ timestamp_to_string( Timestamp ) ->
 % with no seconds specified) into a timestamp(), i.e. { _Date={Year,Month,Day},
 % _Time={Hour,Minute,Second} }.
 %
--spec short_string_to_timestamp( string() ) -> timestamp().
+-spec short_string_to_timestamp( ustring() ) -> timestamp().
 short_string_to_timestamp( TimestampString ) ->
 
 	%trace_utils:debug_fmt( "Converting short string '~s' to timestamp.",
@@ -1066,7 +1066,7 @@ gregorian_ms_to_timestamp( GregorianMs ) ->
 % Parses back a timestamp in the form of "14/4/2011 18:48:51" into a
 % timestamp(), i.e. { _Date={Year,Month,Day}, _Time={Hour,Minute,Second} }.
 %
--spec string_to_timestamp( string() ) -> timestamp().
+-spec string_to_timestamp( ustring() ) -> timestamp().
 string_to_timestamp( TimestampString ) ->
 
 	case string:tokens( TimestampString, _Sep=" :/" ) of
@@ -1250,7 +1250,7 @@ get_duration_since( StartTimestamp ) ->
 % Returns an (english) textual description of the duration between the two
 % specified timestamps.
 %
--spec get_textual_duration( timestamp(), timestamp() ) -> string().
+-spec get_textual_duration( timestamp(), timestamp() ) -> ustring().
 get_textual_duration( FirstTimestamp, SecondTimestamp ) ->
 
 	% As duration_to_string/1 is smarter:
@@ -1270,7 +1270,7 @@ get_textual_duration( FirstTimestamp, SecondTimestamp ) ->
 % Returns a textual description, in French, of the duration between the two
 % specified timestamps.
 %
--spec get_french_textual_duration( timestamp(), timestamp() ) -> string().
+-spec get_french_textual_duration( timestamp(), timestamp() ) -> ustring().
 get_french_textual_duration( FirstTimestamp, SecondTimestamp ) ->
 
 	Duration = get_duration( FirstTimestamp, SecondTimestamp ),
@@ -1291,7 +1291,7 @@ get_french_textual_duration( FirstTimestamp, SecondTimestamp ) ->
 % See also: basic_utils:get_textual_duration/2.
 %
 -spec duration_to_string( milliseconds() | float() | 'infinity',
-						  language_utils:human_language() ) -> string().
+						  language_utils:human_language() ) -> ustring().
 duration_to_string( Duration, _Lang=french ) ->
 	duration_to_french_string( Duration );
 
@@ -1302,7 +1302,7 @@ duration_to_string( Duration, _Lang ) ->
 
 
 % Returns an approximate textual (english) description of the specified
-% duration, expected to be expressed as a number of milliseconds (integer
+% duration, expected to be expressed as a signed number of milliseconds (integer
 % otherwise, if being floating-point, it will be rounded), or as the 'infinity'
 % atom.
 %
@@ -1311,10 +1311,13 @@ duration_to_string( Duration, _Lang ) ->
 %
 % See also: basic_utils:get_textual_duration/2.
 %
--spec duration_to_string( milliseconds() | float() | 'infinity' ) ->
-								string().
+-spec duration_to_string( milliseconds() | float() | 'infinity' ) -> ustring().
 duration_to_string( Milliseconds ) when is_float( Milliseconds )->
 	duration_to_string( erlang:round( Milliseconds ) );
+
+duration_to_string( Milliseconds )
+  when is_integer( Milliseconds ) andalso Milliseconds < 0 ->
+	"minus " ++ duration_to_string( -Milliseconds );
 
 duration_to_string( Milliseconds ) when is_integer( Milliseconds )->
 
@@ -1421,8 +1424,8 @@ duration_to_string( infinity ) ->
 %
 % See also: basic_utils:get_textual_duration/2.
 %
--spec duration_to_french_string(
-		milliseconds() | float() | 'infinity' ) -> string().
+-spec duration_to_french_string( milliseconds() | float() | 'infinity' ) ->
+									   ustring().
 duration_to_french_string( Milliseconds ) when is_float( Milliseconds )->
 	duration_to_french_string( erlang:round( Milliseconds ) );
 
@@ -1547,7 +1550,7 @@ get_precise_timestamp() ->
 % first one as starting time and the second one as stopping time.
 %
 -spec get_precise_duration( precise_timestamp(), precise_timestamp() ) ->
-								  milliseconds().
+								milliseconds().
 get_precise_duration( _FirstTimestamp={ A1, A2, A3 },
 					  _SecondTimestamp={ B1, B2, B3 } ) ->
 
