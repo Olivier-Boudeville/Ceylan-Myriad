@@ -67,8 +67,15 @@ all: all-pre-hook all-parse-transforms rebar3-make-include-links
 # Not removing rebar.config anymore, to avoid that GIT considers it deleted on
 # purpose:
 #
+
+# Also deactivated, as any dependency in _build would then be lost, whereas we
+# might use on our native build system while still relyong on them (ex: for
+# LEEC): -@/bin/rm -rf $(REBAR_BUILD_ROOT)
+#
+# (thus use the rebar3-real-clean target instead, if wanting to remove
+#  _build-like directories)
+#
 clean: clean-layer-ebin
-	-@/bin/rm -rf $(REBAR_BUILD_ROOT)
 	-@if [ -d doc ] ; then cd doc && $(MAKE) -s clean ; fi
 
 else
@@ -789,7 +796,7 @@ test-hex-package: rebar-test-clean
 # End of the longer rebar-related section.
 
 
-# Synchronises the source of the current layer to the specified server location:
+# Synchronises the sources of the current layer to the specified server location:
 sync-to-server:
 	@echo " Synchronising the $$(basename $$(pwd)) layer to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)"
 	@if [ -n "$(WEB_SRV)" ]; then if [ -n "$(CEYLAN_SYNC_TARGET_ROOT)" ]; then $(SYNC_TOOL) $(SYNC_OPT) src include $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)/$$(basename $$(pwd)); else echo "Error, no CEYLAN_SYNC_TARGET_ROOT variable set." 1>&2 ; exit 4 ; fi ; else echo "Error, no WEB_SRV variable set." 1>&2 ; exit 5 ; fi
