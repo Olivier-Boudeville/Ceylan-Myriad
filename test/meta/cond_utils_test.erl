@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Tuesday, December 25, 2018.
+% Creation date: Tuesday, December 25, 2018
 
 
 % Unit tests for the cond_utils services.
