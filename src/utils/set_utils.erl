@@ -52,7 +52,7 @@
 
 
 % Set-related operations are:
--export([ new/0, new/1, singleton/1, are_equal/2,
+-export([ new/0, singleton/1, new/1, are_equal/2,
 		  add/2, add_as_new/2, add_element_list/2,
 		  union/2, union/1, intersection/2, intersection/1,
 		  difference/2, differences/2, is_set/1, check_set/1, is_subset/2,
@@ -92,13 +92,17 @@
 -export_type([ set/0, set/1, element/0, iterator/0 ]).
 
 
+% Shorthand:
+-type ustring() :: text_utils:ustring().
+
+
 
 % Design notes:
 %
-% The purpose is to provide a set-like container, iterable yet *not preserving
-% order*, able to perform some operations (typically: element look-up) more
-% efficiently than plain lists, especially when the number of elements becomes
-% significant.
+% The purpose of this module is to provide a set-like container, iterable yet
+% *not preserving order*, able to perform some operations (typically: element
+% look-up) more efficiently than plain lists, especially when the number of
+% elements becomes significant.
 
 
 
@@ -106,16 +110,6 @@
 -spec new() -> set().
 new() ->
 	?set_impl:new().
-
-
-
-% Returns a new set, containing the elements of specified list (possibly
-% unordered and containing duplicates).
-%
--spec new( [ element() ] ) -> set().
-new( ElementList ) ->
-	?set_impl:from_list( ElementList ).
-
 
 
 % Returns a set comprising only specified element.
@@ -127,6 +121,17 @@ singleton( Element ) ->
 	% Not defined for ordsets:
 	%?set_impl:singleton( Element ).
 	?set_impl:add_element( Element, ?set_impl:new() ).
+
+
+% Returns a new set, containing the elements of specified list (possibly
+% unordered and containing duplicates).
+%
+% See singleton/1 if wanting to create a set with one element.
+%
+-spec new( [ element() ] ) -> set().
+new( ElementList ) ->
+	?set_impl:from_list( ElementList ).
+
 
 
 
@@ -384,7 +389,7 @@ delete_existing( Element, Set ) ->
 
 
 % Returns a textual representation of the specified set.
--spec to_string( set() ) -> string().
+-spec to_string( set() ) -> ustring().
 to_string( Set ) ->
 
 	case ?set_impl:size( Set ) of
