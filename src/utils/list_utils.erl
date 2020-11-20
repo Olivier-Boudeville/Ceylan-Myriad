@@ -47,8 +47,8 @@
 
 
 % Checks regarding lists:
--export([ ensure_list/1, ensure_list_of_atoms/1, ensure_list_of_tuples/1,
-		  ensure_list_of_pids/1 ]).
+-export([ ensure_list/1, ensure_list_of_atoms/1,
+		  ensure_list_of_tuples/1, ensure_list_of_pids/1 ]).
 
 
 
@@ -96,9 +96,9 @@
 -export_type([ maybe_list/1 ]).
 
 
-% Shorthand:
+% Shorthands:
 -type count() :: basic_utils:count().
-
+-type positive_index() :: basic_utils:positive_index().
 
 
 % Section for the checking of lists.
@@ -115,6 +115,7 @@ ensure_list( List ) when is_list( List ) ->
 
 ensure_list( Term ) ->
 	[ Term ].
+
 
 
 % Ensures that the specified argument is a list of atoms: encloses any atom in
@@ -206,7 +207,7 @@ ensure_list_of_pids( Other ) ->
 %% get_element_at( [ _H | T ], Index ) ->
 %%	get_element_at( T, Index-1 ).
 %
--spec get_element_at( list(), basic_utils:positive_index() ) -> element().
+-spec get_element_at( list(), positive_index() ) -> element().
 get_element_at( List, Index ) ->
 	%io:format( " - getting element #~B of ~w~n", [ Index, List ] ),
 	lists:nth( Index, List ).
@@ -218,8 +219,7 @@ get_element_at( List, Index ) ->
 % For example, insert_element_at( foo, [ a, b, c, d ], 3 ) will return
 % [ a, b, foo, c, d ].
 %
--spec insert_element_at( element(), list(), basic_utils:positive_index() ) ->
-							   list().
+-spec insert_element_at( element(), list(), positive_index() ) -> list().
 insert_element_at( Element, List, Index ) ->
 
 	%io:format( " - inserting element ~p at #~B in ~w~n",
@@ -249,8 +249,7 @@ insert_element_at( Element, _List=[ H | T ], Index, Acc ) ->
 %
 % Ex: { b, [ a, c ] } = extract_element_at( [ a, b, c ], 2 ).
 %
--spec extract_element_at( list(), basic_utils:positive_index() ) ->
-								{ element(), list() }.
+-spec extract_element_at( list(), positive_index() ) -> { element(), list() }.
 extract_element_at( List, Index ) ->
 	% Nothing relevant found in the lists module, so:
 	extract_element_at( List, Index, _Acc=[] ).
@@ -292,7 +291,7 @@ extract_element_at( _List=[ H | T ], Index, Acc ) ->
 %
 % Tail recursive version:
 %
--spec remove_element_at( list(), basic_utils:positive_index()) -> list().
+-spec remove_element_at( list(), positive_index() ) -> list().
 remove_element_at( List, Index ) ->
 	remove_element_at( List, Index, _Result=[] ).
 
