@@ -47,9 +47,10 @@
 
 
 % Checks regarding lists:
--export([ ensure_list/1, ensure_list_of_atoms/1,
-		  ensure_list_of_tuples/1, ensure_list_of_pids/1 ]).
-
+-export([ ensure_list/1, ensure_list_of_atoms/1, ensure_list_of_tuples/1,
+		  ensure_list_of_pids/1,
+		  is_list_of_integers/1, check_list_of_integers/1,
+		  is_list_of_pids/1 ]).
 
 
 % Basic list operations:
@@ -65,7 +66,6 @@
 		  cartesian_product/1,
 		  subtract_all_duplicates/2, delete_existing/2, delete_if_existing/2,
 		  delete_all_in/2, append_at_end/2,
-		  is_list_of_integers/1, is_list_of_pids/1,
 		  unordered_compare/2, flatten_once/1, filter_out_undefined/1 ]).
 
 
@@ -795,6 +795,11 @@ is_list_of_integers( [ H | T ] ) when is_integer( H ) ->
 is_list_of_integers( _ ) ->
 	false.
 
+
+% Checks that specified argument is a list of integers.
+-spec check_list_of_integers( term() ) -> void().
+check_list_of_integers( Any ) ->
+	true = is_list_of_integers( Any ).
 
 
 % Returns whether the specified list contains only PIDs.
