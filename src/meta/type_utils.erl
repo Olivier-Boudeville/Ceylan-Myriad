@@ -27,7 +27,6 @@
 
 
 
-
 % Management of datatypes.
 %
 % See type_utils_test.erl for the corresponding test.
@@ -341,7 +340,7 @@
 %
 % For example: "[{float,boolean}]".
 %
--type type_description() :: string().
+-type type_description() :: ustring().
 
 
 
@@ -492,6 +491,12 @@
 -export([ tokenise_per_union/1 ]).
 
 
+% Shorthands:
+
+-type ustring() :: text_utils:ustring().
+-type level() :: basic_utils:level().
+
+
 % Returns the actual type corresponding to specified type description: parses
 % the specified string to determine the type described therein.
 %
@@ -509,7 +514,7 @@ description_to_type( TypeDescription ) ->
 
 
 
-% To perfom its parsing, we must split the full description recursively.
+% To perform its parsing, we must split the full description recursively.
 %
 % The worst (and thus first) top-level construct to detect is the union. We
 % consider that we are always in an union (possibly including only one term, in
@@ -629,7 +634,7 @@ type_to_description( Type ) ->
 
 
 % Returns a textual representation of the specified type.
--spec type_to_string( type() ) -> string().
+-spec type_to_string( type() ) -> ustring().
 type_to_string( Type ) ->
 	type_to_description( Type ).
 
@@ -712,7 +717,7 @@ get_type_of( Term ) ->
 % Returns a string describing, in a user-friendly manner, the type of the
 % specified term (up to one level of nesting detailed).
 %
--spec interpret_type_of( term() ) -> text_utils:ustring().
+-spec interpret_type_of( term() ) -> ustring().
 interpret_type_of( Term ) ->
 	interpret_type_helper( Term, _CurrentNestingLevel=0,
 						   _MaxNestingLevel=1 ).
@@ -722,8 +727,7 @@ interpret_type_of( Term ) ->
 % specified term, up to the specified nesting level (either a positive integer
 % or the 'infinite' atom, to go as deep as possible in the term structure).
 %
--spec interpret_type_of( term(), basic_utils:level() | 'infinite' ) ->
-							   text_utils:ustring().
+-spec interpret_type_of( term(), level() | 'infinite' ) -> ustring().
 interpret_type_of( Term, MaxNestingLevel ) when MaxNestingLevel >= 0 ->
 	interpret_type_helper( Term, _CurrentNestingLevel=0, MaxNestingLevel ).
 
@@ -732,8 +736,7 @@ interpret_type_of( Term, MaxNestingLevel ) when MaxNestingLevel >= 0 ->
 % Returns a string describing, in a user-friendly manner, the type of the
 % specified term, describing any nested subterms up to the specified level.
 %
--spec interpret_type_helper( term(), basic_utils:level(),
-							 basic_utils:level() ) -> text_utils:ustring().
+-spec interpret_type_helper( term(), level(), level() ) -> ustring().
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
   when is_boolean( Term ) ->
 	text_utils:format( "boolean of value '~s'", [ Term ] );
@@ -1133,14 +1136,14 @@ ensure_boolean( B ) ->
 
 
 % Ensures that specified term is a string, and returns it.
--spec ensure_string( term() ) -> string().
+-spec ensure_string( term() ) -> ustring().
 ensure_string( S ) ->
 	text_utils:ensure_string( S ).
 
 
 
 % Ensures that specified term is a binary string, and returns it.
--spec ensure_binary( term() ) -> string().
+-spec ensure_binary( term() ) -> ustring().
 ensure_binary( S ) ->
 	text_utils:ensure_binary( S ).
 
