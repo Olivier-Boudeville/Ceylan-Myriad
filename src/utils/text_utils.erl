@@ -425,7 +425,7 @@ integer_to_string( IntegerValue ) ->
 %
 -spec integer_to_hexastring( integer() ) -> string().
 integer_to_hexastring( IntegerValue ) ->
-	erlang:integer_to_list( IntegerValue, _Base=16 ).
+	"0x" ++ erlang:integer_to_list( IntegerValue, _Base=16 ).
 
 
 % Returns a plain string corresponding to the specified atom.
