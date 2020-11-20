@@ -230,8 +230,8 @@ register_tokens( _L=[ Token | T ], TokenTable ) when is_atom( Token ) ->
 % defined through the command-line).
 %
 -spec if_debug( expressions() ) -> void().
-if_debug( Expressions ) ->
-	if_defined( _Token=myriad_debug_mode, Expressions ).
+if_debug( ExpressionsIfDebug ) ->
+	if_defined( _Token=myriad_debug_mode, ExpressionsIfDebug ).
 
 
 
@@ -258,7 +258,7 @@ if_debug( Expressions ) ->
 % report that variable 'A' is unused.
 %
 -spec if_defined( token(), expressions() ) -> void().
-if_defined( Token, _Expressions ) ->
+if_defined( Token, _ExpressionsIfDefined ) ->
 
 	% Never expected to be called, as replaced by the Myriad parse transform
 	% either by the actual expressions, or by nothing at all:
@@ -302,7 +302,7 @@ if_defined( Token, _ExpressionsIfDefined, _ExpressionsIfNotDefined ) ->
 % See if_defined/2 for use and caveats.
 %
 -spec if_set_to( token(), value(), expressions() ) -> void().
-if_set_to( Token, _Value, _Expressions ) ->
+if_set_to( Token, _Value, _ExpressionsIfSetTo ) ->
 
 	% Never expected to be called, as replaced by the Myriad parse transform
 	% either by the actual expressions, or by nothing at all:
