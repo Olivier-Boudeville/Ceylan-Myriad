@@ -947,16 +947,39 @@ endif
 
 # Warning-related options (may or may not be included):
 # "+{warn_format,2}" would trigger unwanted useless warnings about format
-# strings
+# strings. So the default "+{warn_format,1}" verbosty applies.
+
+# Refer to https://erlang.org/doc/man/compile.html#file-2 for the complete list
+# of warnings.
 
 # So that this can be overridden:
+#
+# warn_unused_vars not listed here, yet disabled in production mode due to
+# conditional sections being removed and resulting in variables being then
+# reported as unused.
+#
 ifndef ERLANG_COMPILER_BASE_WARNING_OPT
 
 	ERLANG_COMPILER_BASE_WARNING_OPT = -W$(WARNING_LEVEL) +warn_export_all \
-		   +warn_export_vars +warn_shaadow_vars +warn_obsolete_guards      \
-		   +warn_unused_import +warnings_as_errors
+		   +warn_export_vars +warn_shadow_vars +warn_unused_function       \
+		   +warn_deprecated_function +warn_deprecated_type +warn_removed   \
+		   +warn_obsolete_guards +warn_unused_import +warn_unused_record   \
+		   +warn_nif_inline +warnings_as_errors
 
 endif
+
+
+ # See comment above about conditionals:
+ifeq ($(EXECUTION_TARGET),production)
+
+	 ERLANG_COMPILER_BASE_WARNING_OPT += +nowarn_unused_vars
+
+else
+
+	ERLANG_COMPILER_BASE_WARNING_OPT += +warn_unused_vars
+
+endif
+
 
 ERLANG_COMPILER_WARNING_OPT += $(ERLANG_COMPILER_BASE_WARNING_OPT)
 
