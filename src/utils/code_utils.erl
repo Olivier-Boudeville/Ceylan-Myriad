@@ -39,6 +39,7 @@
 		  deploy_modules/2, deploy_modules/3,
 		  declare_beam_directory/1, declare_beam_directory/2,
 		  declare_beam_directories/1, declare_beam_directories/2,
+		  remove_beam_directory/1,
 		  get_beam_dirs_for/1, get_beam_dirs_for_myriad/0,
 		  declare_beam_dirs_for/1, declare_beam_dirs_for_myriad/0,
 		  get_code_path/0, get_code_path_as_string/0, code_path_to_string/1,
@@ -60,6 +61,7 @@
 %
 -type code_path() :: [ file_utils:directory_path() ].
 
+-type code_path_position() :: 'first_position' | 'last_position'.
 
 %-type stack_location() :: [ { file, file_utils:path() },
 %							 { line, meta_utils:line() } ].
@@ -76,7 +78,8 @@
 -type stack_trace() :: [ stack_item() ].
 
 
--export_type([ code_path/0, stack_location/0, stack_item/0, stack_trace/0 ]).
+-export_type([ code_path/0, code_path_position/0,
+			   stack_location/0, stack_item/0, stack_trace/0 ]).
 
 
 % The file extension of a BEAM file:
@@ -226,11 +229,9 @@ deploy_modules( Modules, Nodes, Timeout ) ->
 	naming_utils:wait_for_remote_local_registrations_of( code_server, Nodes ),
 
 	%trace_utils:debug_fmt( "Getting code for modules ~p, on ~s, "
-	%					   "whereas code path (evaluated from ~s) "
-	%					   "is:~n  ~p",
-	%					   [ Modules, node(),
-	%						 file_utils:get_current_directory(),
-	%						 code:get_path() ] ),
+	%	"whereas code path (evaluated from ~s) is:~n  ~p",
+	%	[ Modules, node(), file_utils:get_current_directory(),
+	%     code:get_path() ] ),
 
 	% Then for each module in turn, contact each and every node, in parallel:
 	[ deploy_module( M, get_code_for( M ), Nodes, Timeout ) || M <- Modules ].
@@ -243,8 +244,7 @@ deploy_modules( Modules, Nodes, Timeout ) ->
 deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
 
 	%trace_utils:debug_fmt( "Deploying module '~s' (filename '~s') on nodes ~p "
-	%						"with time-out ~p.",
-	%						[ ModuleName, ModuleFilename, Nodes, Timeout ] ),
+	%	"with time-out ~p.", [ ModuleName, ModuleFilename, Nodes, Timeout ] ),
 
 	{ ResList, BadNodes } = rpc:multicall( Nodes, code, load_binary,
 				[ ModuleName, ModuleFilename, ModuleBinary ], Timeout ),
@@ -262,13 +262,13 @@ deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
 
 				[] ->
 					%trace_utils:debug_fmt( "Module '~s' successfully "
-					%                       "deployed on ~p.~n",
-					%						[ ModuleName, Nodes ] ),
+					%    "deployed on ~p.~n", [ ModuleName, Nodes ] ),
 					ok;
 
 				_ ->
 					% Preferring returning the full list, rather than
 					% ReportedErrors:
+					%
 					throw( { module_deployment_failed, ModuleName, ResList } )
 
 			end;
@@ -311,6 +311,9 @@ deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
 % Declares specified directory as an additional code path where BEAM files will
 % be looked up by the VM, adding it at first position in the code path.
 %
+% If this directory is already present in the code path, it is removed from its
+% old position and put first.
+%
 % Throws an exception if the directory does not exist.
 %
 -spec declare_beam_directory( directory_path() ) -> void().
@@ -320,14 +323,28 @@ declare_beam_directory( Dir ) ->
 
 
 % Declares specified directory as an additional code path where BEAM files will
-% be looked up by the VM, adding it at first position in the code path.
+% be looked up by the VM, adding it as specified, at either first or last
+% position in the code path.
+%
+% These functions ensure not to offset any given directory that was already in
+% the code path further in the code path.
+%
+% Indeed, if this directory is already present in the code path:
+% - if first_position is specified, it is removed from its old position and put
+% first
+% - if last_position is specified, code path is not changed
 %
 % Throws an exception if the directory does not exist.
 %
--spec declare_beam_directory( directory_path(),
-							  'first_position' | 'last_position' ) -> void().
+-spec declare_beam_directory( directory_path(), code_path_position() ) ->
+									void().
 declare_beam_directory( Dir, first_position ) ->
 
+	cond_utils:if_defined( myriad_debug_code_path,
+		trace_utils:debug_fmt( "Declaring in first position BEAM directory '~s' "
+							   "in VM code path.", [ Dir ] ) ),
+
+	% No need to check directory for existence, code:add_patha/1 will do it:
 	case code:add_patha( Dir ) of
 
 		true ->
@@ -340,6 +357,11 @@ declare_beam_directory( Dir, first_position ) ->
 
 declare_beam_directory( Dir, last_position ) ->
 
+	cond_utils:if_defined( myriad_debug_code_path,
+	  trace_utils:debug_fmt( "Declaring in last position BEAM directory '~s' "
+							 "in VM code path.", [ Dir ] ),
+
+	% No need to check directory for existence, code:add_pathz/1 will do it:
 	case code:add_pathz( Dir ) of
 
 		true ->
@@ -369,14 +391,28 @@ declare_beam_directories( Dirs ) ->
 %
 % Throws an exception if at least one of the directories does not exist.
 %
--spec declare_beam_directories( code_path(),
-					'first_position' | 'last_position' ) -> void().
+-spec declare_beam_directories( code_path(), code_path_position() ) -> void().
 declare_beam_directories( Dirs, first_position ) ->
+
+	cond_utils:if_defined( myriad_debug_code_path,
+	  trace_utils:debug_fmt( "Declaring in first position BEAM directories ~s "
+		"in VM code path.", [ text_utils:strings_to_listed_string( Dirs ) ] ) ),
+
+	% As code:add_pathsa/1 does not report non-existing directories:
 	check_beam_dirs( Dirs ),
+
 	code:add_pathsa( Dirs );
 
+
 declare_beam_directories( Dirs, last_position ) ->
+
+	cond_utils:if_defined( myriad_debug_code_path,
+	  trace_utils:debug_fmt( "Declaring in last position BEAM directories ~s "
+		"in VM code path.", [ text_utils:strings_to_listed_string( Dirs ) ] ) ),
+
+	% As code:add_pathsz/1 does not report non-existing directories:
 	check_beam_dirs( Dirs ),
+
 	code:add_pathsz( Dirs ).
 
 
@@ -398,6 +434,34 @@ check_beam_dirs( _Dirs=[ D | T ] ) ->
 
 		false ->
 			throw( { non_existing_beam_directory, D } )
+
+	end.
+
+
+
+% Removes specified directory (either specified verbatim or designated as the
+% ebin directory of a specified application) from the current code path.
+%
+% Throws an exception if the operation failed.
+%
+-spec remove_beam_directory(
+		directory_path() | otp_utils:application_name() ) -> void().
+remove_beam_directory( NameOrDir ) ->
+
+	cond_utils:if_defined( myriad_debug_code_path,
+	  trace_utils:debug_fmt( "Removing directory designated by '~s' "
+							 "from VM code path.", [ NameOrDir ] ) ),
+
+	case code:del_path( NameOrDir ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { directory_not_found_in_code_path, NameOrDir } );
+
+		{ error, bad_name }  ->
+			throw( { invalid_app_name_for_code_path_removal, NameOrDir } )
 
 	end.
 
