@@ -163,6 +163,11 @@ info-parse-transform:
 	@echo "ERLANG_COMPILER_PARSE_TRANSFORM_OPT = $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT)"
 
 
+info-conditionals:
+	@echo "MYRIAD_DEBUG_FLAGS = $(MYRIAD_DEBUG_FLAGS)"
+	@echo "MYRIAD_CHECK_FLAGS = $(MYRIAD_CHECK_FLAGS)"
+
+
 info-sync:
 	@echo "SYNC_TOOL = $(SYNC_TOOL)"
 	@echo "SSH_PORT = $(SSH_PORT)"
@@ -175,11 +180,6 @@ info-sync:
 info-check:
 	@echo "DIALYZER = $(DIALYZER)"
 	@echo "DIALYZER_OPT = $(DIALYZER_OPT)"
-
-
-info-conditionals:
-	@echo "MYRIAD_DEBUG_FLAGS = $(MYRIAD_DEBUG_FLAGS)"
-	@echo "MYRIAD_CHECK_FLAGS = $(MYRIAD_CHECK_FLAGS)"
 
 
 # Useful to extract information to be specified in a parallel rebar.config:
