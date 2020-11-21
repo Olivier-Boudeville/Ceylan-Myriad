@@ -359,7 +359,7 @@ declare_beam_directory( Dir, last_position ) ->
 
 	cond_utils:if_defined( myriad_debug_code_path,
 	  trace_utils:debug_fmt( "Declaring in last position BEAM directory '~s' "
-							 "in VM code path.", [ Dir ] ),
+							 "in VM code path.", [ Dir ] ) ),
 
 	% No need to check directory for existence, code:add_pathz/1 will do it:
 	case code:add_pathz( Dir ) of
