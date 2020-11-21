@@ -144,19 +144,19 @@
 
 -ifdef( enable_otp_traces ).
 
--define( debug( M ), trace_utils:debug( M ) ).
--define( debug_fmt( F, V ), trace_utils:debug_fmt( F, V ) ).
+  -define( debug( M ), trace_utils:debug( M ) ).
+  -define( debug_fmt( F, V ), trace_utils:debug_fmt( F, V ) ).
 
--define( trace( M ), trace_utils:trace( M ) ).
--define( trace_fmt( F, V ), trace_utils:trace_fmt( F, V ) ).
+  -define( trace( M ), trace_utils:trace( M ) ).
+  -define( trace_fmt( F, V ), trace_utils:trace_fmt( F, V ) ).
 
 -else.
 
--define( debug( M ), trace_disabled ).
--define( debug_fmt( F, V ), trace_disabled ).
+  -define( debug( M ), trace_disabled ).
+  -define( debug_fmt( F, V ), trace_disabled ).
 
--define( trace( M ), trace_disabled ).
--define( trace_fmt( F, V ), trace_disabled ).
+  -define( trace( M ), trace_disabled ).
+  -define( trace_fmt( F, V ), trace_disabled ).
 
 -endif.
 
@@ -366,7 +366,8 @@ generate_app_info( AppName, AbsBaseDir, AppTable ) ->
 
 			CheckLocalEBinDir = file_utils:join( CheckBaseDir, "ebin" ),
 
-			CheckLocalAppPath = file_utils:join( CheckLocalEBinDir, AppFilename ),
+			CheckLocalAppPath = file_utils:join( CheckLocalEBinDir,
+												 AppFilename ),
 
 			?debug_fmt( "[2.1] Application '~s' not found directly "
 				"in local ebin, trying in local checkout, based on '~s'.",
@@ -392,7 +393,8 @@ generate_app_info( AppName, AbsBaseDir, AppTable ) ->
 						"in local checkout, trying in _build checkout, based "
 						"on '~s'.", [ AppName, CheckBuildAppPath ] ),
 
-					case file_utils:is_existing_file_or_link( CheckBuildAppPath ) of
+					case file_utils:is_existing_file_or_link(
+						   CheckBuildAppPath ) of
 
 						true ->
 							?trace_fmt( "Using, for the application '~s', "
@@ -432,8 +434,10 @@ generate_app_info( AppName, AbsBaseDir, AppTable ) ->
 
 	% We take advantage that, for each application needed, this code is executed
 	% exactly once to update the VM code path for it (so that, on start-up, the
-	% OTP procedure finds its .app file and andalso its BEAM files):
+	% OTP procedure finds its .app file and also its BEAM files):
 	%
+	?debug_fmt( "Expanding the code path with '~s' for application "
+				"information.", [ EBinDir ] ),
 	code_utils:declare_beam_directory( EBinDir, last_position ),
 
 	{ AppInfo, NewAppTable }.
@@ -479,7 +483,8 @@ try_next_locations( AppName, AppNameStr, AppFilename, DepEBinDir, DepAppPath,
 					SibBuildEbinDir = get_build_ebin_from( SibBaseDir,
 														   AppNameStr ),
 
-					SibBuildAppPath= file_utils:join( SibBuildEbinDir, AppFilename ),
+					SibBuildAppPath= file_utils:join( SibBuildEbinDir,
+													  AppFilename ),
 
 					?debug_fmt( "[4.2] Application '~s' not found as a local "
 						"ebin sibling, trying as a _build sibling, "
@@ -589,9 +594,17 @@ look_up_beam( ModuleName, EBinPath, BaseDir, AppFilePath, AppName ) ->
 				not_found ->
 					% Last chance: at least with some applications such as
 					% cowboy, the .app is in the local ebin, with most but not
-					% all BEAM files : namely then cowboy.beam is only in
-					% _build/default/lib/cowboy/ebin, so we test that and, if
-					% found, add that directory in the code path:
+					% all BEAM files - namely then cowboy.beam is only in
+					% _build/default/lib/cowboy/ebin; so we test that case and,
+					% if found, add that _build directory in the code path.
+					%
+					% As actually the local ebin is then a strict subset of the
+					% _build one (notably the .app file is also in the _build
+					% one), the best approach is also to remove the local ebin
+					% from the code path, otherwise some BEAM files could be
+					% found twice, which is not desirable (and detected as an
+					% error in some cases, like json_utils check with
+					% 'multiple_jsx_json_backends_found').
 					%
 					BuildEbinDir = get_build_ebin_from( BaseDir,
 								text_utils:atom_to_string( AppName ) ),
@@ -602,12 +615,17 @@ look_up_beam( ModuleName, EBinPath, BaseDir, AppFilePath, AppName ) ->
 					case file_utils:is_existing_file( BuildModPath ) of
 
 						true ->
-							?debug_fmt( "Adding for '~s' build "
-								"ebin directory '~s'.",
-								[ AppName, BuildEbinDir ] ),
+							?debug_fmt( "Replacing in code path local ebin "
+								"'~s' with the _build one '~s' for '~s'.",
+								[ EBinPath, BuildEbinDir, AppName ] ),
 
+							% First removing local ebin:
+							code_utils:remove_beam_directory( EBinPath ),
+
+							% Then adding the more complete _build one:
 							code_utils:declare_beam_directory( BuildEbinDir,
 															   last_position );
+
 
 						false ->
 							trace_utils:error_fmt( "The application '~s' whose "
@@ -662,8 +680,8 @@ interpret_app_file( AppFilePath, AppName, EBinPath, BaseDir ) ->
 
 				{ value, [] } ->
 					% No module declared (weird); supposing that alles gut:
-					%trace_utils:warning_fmt( "Application '~s' did not declare "
-					%	"any module; supposing that it is fully built.",
+					%trace_utils:warning_fmt( "Application '~s' did not declare"
+					%	" any module; supposing that it is fully built.",
 					%	[ AppName ] ),
 					ok;
 
