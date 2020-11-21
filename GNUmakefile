@@ -6,7 +6,7 @@ MYRIAD_TOP = .
 		add-prerequisite-plts prepare-base-plt add-erlhdf5-plt add-jsx-plt    \
 		add-sqlite3-plt link-plt clean-ast-outputs clean-local stats          \
 		info-paths info-settings info-compile info-parse-transform info-sync  \
-		info-check info-rebar3
+		info-check info-conditionals info-rebar3
 
 
 #MODULES_DIRS = contrib src doc conf
@@ -175,6 +175,11 @@ info-sync:
 info-check:
 	@echo "DIALYZER = $(DIALYZER)"
 	@echo "DIALYZER_OPT = $(DIALYZER_OPT)"
+
+
+info-conditionals:
+	@echo "MYRIAD_DEBUG_FLAGS = $(MYRIAD_DEBUG_FLAGS)"
+	@echo "MYRIAD_CHECK_FLAGS = $(MYRIAD_CHECK_FLAGS)"
 
 
 # Useful to extract information to be specified in a parallel rebar.config:

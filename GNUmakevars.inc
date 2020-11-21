@@ -116,6 +116,27 @@ endif
 
 
 
+# Defining (optional) layer-specific flags, typically used by in-code
+# conditional compilation primitives (see cond_utils for their management):
+
+# Topics covered by flags:
+#  - myriad_debug_code_path: how the VM code path is managed
+
+# Defining debug flags (at least the most verbose are by default commented-out):
+ifeq ($(ENABLE_DEBUG),true)
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_code_path
+endif
+
+# Defining check flags:
+ifeq ($(EXECUTION_TARGET),development)
+	# Does not exist: MYRIAD_CHECK_FLAGS += -Dmyriad_check_code_path
+endif
+
+ERLANG_COMPILER_OPT_BASE += $(MYRIAD_DEBUG_FLAGS) \
+							$(MYRIAD_CHECK_FLAGS)
+
+
+
 
 # Useful to target for example the root of the current layer (ex: to locate the
 # relevant, layer-local '_build' directory):
@@ -971,13 +992,9 @@ endif
 
  # See comment above about conditionals:
 ifeq ($(EXECUTION_TARGET),production)
-
 	 ERLANG_COMPILER_BASE_WARNING_OPT += +nowarn_unused_vars
-
 else
-
 	ERLANG_COMPILER_BASE_WARNING_OPT += +warn_unused_vars
-
 endif
 
 
