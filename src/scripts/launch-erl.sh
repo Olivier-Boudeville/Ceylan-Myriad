@@ -83,6 +83,14 @@ If neither '--sn' nor '--ln' is specified, then the node will not be a distribut
 Example: $(basename $0) -v --ln ceylan --eval 'class_TimeManager_test:run()'"
 
 
+# Note that the BEAM dirs/paths are realpath'ed by this script, which may result
+# some checks (ex: for the JSON backend) to wrongly conclude that some BEAM
+# files can be found in more than one location in the code path.
+#
+# Moreover the specified paths shall preferably match the one otp_utils would
+# elect, for a better homogeneity.
+
+
 # Should the Erlang VM crash, the terminal (console) may not recover well (ex:
 # no more echoing of the typed characters)
 #
@@ -461,7 +469,7 @@ if [ -x "${realpath_exec}" ]; then
 	# them wrongly if they are relative and if it switches its current
 	# directory. So:
 
-	for d in ${code_dirs} ; do
+	for d in ${code_dirs}; do
 
 		#echo "  - $d"
 		#new_dir=$(realpath --relative-to=$current_dir $d)
