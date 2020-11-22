@@ -140,7 +140,7 @@
 % To easily activate/deactivate a type of traces as a whole:
 
 % Uncomment to enable:
-%-define( enable_otp_traces, ).
+%-define(enable_otp_traces,).
 
 -ifdef( enable_otp_traces ).
 
