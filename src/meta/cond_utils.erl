@@ -40,7 +40,20 @@
 % of the pseudo-functions (such as cond_utils:if_debug/1) meant to be replaced
 % at compile time by user-specified conditional code.
 %
-% About tokens
+% Note that the if_* conditions (ex: if_debug/1) are not fulfilled, the
+% specified conditional code is dismissed as a whole, it is not even replaced
+% for example by an 'ok' atom (this may matter if this conditional is the single
+% expression in a case clause for example, in which case a compilation failure
+% like "internal error in core; crash reason: function_clause in function
+% v3_core:cexprs/3 called as v3_core:cexprs[...]".
+%
+% Note also that switching conditional flags may lead to variables being
+% declared as unused by the compiler; no better solution to mute them then (yet
+% this requires to change the code), or to use nowarn_unused_vars in at least
+% some modules.
+
+%
+% About tokens:
 %
 % There are to be specified as command-line build options, typically thanks to
 % the ERLANG_COMPILER_TOKEN_OPT make variable, defined in GNUmakevars.inc.
@@ -78,7 +91,6 @@
 %-define( my_other_test_token, some_text ).
 %
 % As a result, tokens are solely to be defined through command-line options.
-
 
 % More precisely: we used to believe that a token could be defined either
 % through a -D command-line option or through an in-source compile attribute.
