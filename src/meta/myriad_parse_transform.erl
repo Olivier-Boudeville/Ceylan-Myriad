@@ -37,7 +37,6 @@
 
 % PRELIMINARY IMPORTANT NOTES REGARDING THE ART OF WRITING PARSE TRANSFORMS
 %
-%
 % - they are by nature difficult to debug; instead of running them "as are"
 % (then with little information returned in case of error), run them explicitly,
 % typically from a test case; for that, one may refer to:
@@ -91,11 +90,19 @@
 % Local shorthands:
 
 -type ast() :: ast_base:ast().
+-type line() :: ast_base:line().
+
 -type module_info() :: ast_info:module_info().
 -type module_name() :: basic_utils:module_name().
 -type ast_expression() :: ast_expression:ast_expression().
 -type ast_transforms() :: ast_transform:ast_transforms().
 
+-type ast_transform_table() :: ast_transform:ast_transform_table().
+-type local_call_transform_table() ::
+		ast_transform:local_call_transform_table().
+-type remote_call_transform_table() ::
+		ast_transform:remote_call_transform_table().
+-type parse_transform_options() :: meta_utils:parse_transform_options().
 
 
 % Implementation notes:
@@ -113,7 +120,6 @@
 %     As a result, one's code source may include 'MyTable = table:new(), ...' or
 %     '-type my_type() :: [ { float(), table() } ].' and have them correctly
 %     translated
-%
 %
 % - replacing, in type specifications, any mention to a pseudo-builtin,
 % pseudo-type void() by its actual definition, which is basic_utils:void()
@@ -182,7 +188,7 @@ run_standalone( FileToTransform ) ->
 % code for: foo/baz.beam; Recompile with +debug_info or analyze starting from
 % source code').
 %
--spec parse_transform( ast(), meta_utils:parse_transform_options() ) -> ast().
+-spec parse_transform( ast(), parse_transform_options() ) -> ast().
 parse_transform( InputAST, Options ) ->
 
 	%ast_utils:display_debug( "Options: ~p~n", [ Options ] ),
@@ -198,8 +204,7 @@ parse_transform( InputAST, Options ) ->
 
 
 % Defined to be reused in multiple contexts.
-%
--spec apply_myriad_transform( ast(), meta_utils:parse_transform_options() ) ->
+-spec apply_myriad_transform( ast(), parse_transform_options() ) ->
 									{ ast(), module_info() }.
 apply_myriad_transform( InputAST, Options ) ->
 
@@ -265,9 +270,8 @@ apply_myriad_transform( InputAST, Options ) ->
 
 
 % Transforms (at the Myriad level) specified module information.
-%
 -spec transform_module_info( module_info() ) ->
-					   { module_info(), ast_transform:ast_transforms() }.
+								   { module_info(), ast_transforms() }.
 transform_module_info( ModuleInfo ) when is_record( ModuleInfo, module_info ) ->
 
 	?display_trace( "[Myriad] Transforming module information." ),
@@ -290,8 +294,7 @@ transform_module_info( ModuleInfo ) when is_record( ModuleInfo, module_info ) ->
 %
 % (helper)
 %
--spec get_myriad_ast_transforms_for( module_info() ) ->
-										   ast_transform:ast_transforms().
+-spec get_myriad_ast_transforms_for( module_info() ) -> ast_transforms().
 get_myriad_ast_transforms_for(
   #module_info{ module=ModuleEntry,
 				compilation_options=CompileOptTable,
@@ -382,13 +385,12 @@ get_myriad_ast_transforms_for(
 
 
 % Returns the name of the actual module to use for tables.
-%
 -spec get_actual_table_type( ast_info:attribute_table() ) -> module_name().
 get_actual_table_type( ParseAttributeTable ) ->
 
 	% Let's see whether a specific table_type has been specified:
 	DesiredTableType = case ?table:lookup_entry( table_type,
-												ParseAttributeTable ) of
+												 ParseAttributeTable ) of
 
 		{ value, { TableType, _LocForm } } when is_atom( TableType ) ->
 			ast_utils:display_info( "Default table type ('~s') overridden "
@@ -483,9 +485,7 @@ get_remote_type_transforms( DesiredTableType ) ->
 
 
 % None currently used here:
-%
--spec get_local_call_transforms() ->
-								   ast_transform:local_call_transform_table().
+-spec get_local_call_transforms() -> local_call_transform_table().
 get_local_call_transforms() ->
 	%meta_utils:get_local_call_transform_table( [] ),
 	undefined.
@@ -493,9 +493,7 @@ get_local_call_transforms() ->
 
 
 % None used anymore, superseded by a more powerful AST transform table.
-%
--spec get_remote_call_transforms() ->
-								   ast_transform:remote_call_transform_table().
+-spec get_remote_call_transforms() -> remote_call_transform_table().
 get_remote_call_transforms() ->
 	undefined.
 
@@ -509,8 +507,7 @@ get_remote_call_transforms() ->
 % the value of arguments (ex: the specified token), since being just being
 % parametrised by an arity.
 %
--spec get_ast_global_transforms( module_name() ) ->
-								   ast_transform:ast_transform_table().
+-spec get_ast_global_transforms( module_name() ) -> ast_transform_table() .
 get_ast_global_transforms( DesiredTableType ) ->
 
 	% Anonymous mute variables corresponding to line numbers:
@@ -519,10 +516,12 @@ get_ast_global_transforms( DesiredTableType ) ->
 		%%%%%%% Section for cond_utils:if_debug/1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 		% Calls to cond_utils:if_debug( Exprs ) shall be replaced either by the
-		% corresponding specified expressions or by nothing:
+		% corresponding specified expressions or by nothing at all (not even
+		% 'ok'):
 		%
 		( _LineCall,
-		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,LineFun,if_debug} },
+		  _FunctionRef={ remote, _, {atom,_,cond_utils},
+						 {atom,LineFun,if_debug} },
 		  _Params=[ ExprFormList ],
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
@@ -553,7 +552,8 @@ get_ast_global_transforms( DesiredTableType ) ->
 		%%%%%%% Subsection for cond_utils:if_defined/2 %%%%%%%%%%%%%%%%%%%%%%%%%
 
 		% Calls to cond_utils:if_defined( Token, Exprs ) shall be replaced
-		% either by the corresponding specified expressions or by nothing:
+		% either by the corresponding specified expressions or by nothing at all
+		% (not even 'ok'):
 		%
 		( _LineCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,if_defined} },
@@ -667,13 +667,14 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 
 
-		%%%%%%% Section for cond_utils:if_set_to %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		%%%%%%% Section for cond_utils:if_set_to %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-		%%%%%%% Subsection for cond_utils:if_set_to/3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		%%%%%%% Subsection for cond_utils:if_set_to/3 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
 		% Calls to cond_utils:if_set_to( Token, Value, Exprs ) shall be replaced
-		% either by the corresponding specified expressions or by nothing:
+		% either by the corresponding specified expressions or by nothing at all
+		% (not even 'ok'):
 		%
 		( _LineCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,if_set_to} },
@@ -741,7 +742,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 
 
-		%%%%%%% Subsection for cond_utils:if_set_to/4 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		%%%%%%% Subsection for cond_utils:if_set_to/4 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 		% Calls to cond_utils:if_set_to( Token, Value, ExprFormListIfMatching,
@@ -824,7 +825,8 @@ get_ast_global_transforms( DesiredTableType ) ->
 		%%%%%%% Subsection for cond_utils:assert/1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 		( _LineCall,
-		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,LineAssert,assert} },
+		  _FunctionRef={ remote, _, {atom,_,cond_utils},
+						 {atom,LineAssert,assert} },
 		  _Params=[ ExpressionForm ],
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
@@ -979,9 +981,8 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 
 % (helper)
-%
--spec inject_expressions( ast_expression(), ast_transforms(),
-			  ast_base:line() ) -> { [ ast_expression() ], ast_transforms() }.
+-spec inject_expressions( ast_expression(), ast_transforms(), line() ) ->
+								{ [ ast_expression() ], ast_transforms() }.
 % Nothing to inject here (empty conditional expression list):
 inject_expressions( _ExprFormList={ nil, _ }, Transforms, _Line ) ->
 	{ _NewExprs=[], Transforms };
@@ -1011,9 +1012,8 @@ inject_expressions( ExprFormList={ cons, _, _Head, _Tail }, Transforms,
 %
 inject_expressions( ExprForm, Transforms, _Line ) ->
 
-	% ast_utils:display_error( "Unsupported expression specified at line ~B for "
-	%						 "a conditional injection (:~n~p",
-	%						 [ Line, OtherExprForm ] ),
+	% ast_utils:display_error( "Unsupported expression specified at line ~B "
+	%     "for a conditional injection (:~n~p", [ Line, OtherExprForm ] ),
 
 	% ast_utils:raise_error( { unsupported_expression_for_conditional_injection,
 	%						 {line,Line} } ).
@@ -1024,11 +1024,11 @@ inject_expressions( ExprForm, Transforms, _Line ) ->
 
 % Injects an expression checking whether once evaluated the corresponding form
 % matches the 'true' atom.
-
+%
 % (helper)
 %
--spec inject_match_expression( ast_expression(), ast_transforms(),
-		   ast_base:line() ) -> { [ ast_expression() ], ast_transforms() }.
+-spec inject_match_expression( ast_expression(), ast_transforms(), line() ) ->
+									 { [ ast_expression() ], ast_transforms() }.
 inject_match_expression( ExpressionForm, Transforms, Line ) ->
 
 	% Was initially:
