@@ -1359,8 +1359,12 @@ get_process_specific_value( Pid ) ->
 	X = F+1,
 	Y = S,
 	Z = T+1,
-	%io:format( "Res = ~w.~n", [X*Y*Z] ),
-	X*Y*Z.
+
+	% Hash part probably a bit overkill:
+	Res = X*Y*Z + erlang:phash2( erlang:make_ref() ),
+
+	trace_utils:debug_fmt( "Process-specific value: ~B.", [ Res ] ),
+	Res.
 
 
 
