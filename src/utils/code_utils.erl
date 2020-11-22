@@ -599,7 +599,7 @@ get_code_path_as_string() ->
 -spec code_path_to_string( code_path() ) -> ustring().
 code_path_to_string( _CodePath=[] ) ->
 	% Initial space intended for caller-side consistency:
-	" empty code path";
+	"empty code path";
 
 code_path_to_string( CodePath ) ->
 	text_utils:strings_to_enumerated_string( CodePath ).
