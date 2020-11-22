@@ -305,6 +305,10 @@
 			   file/0, file_info/0 ]).
 
 
+% Shorthand:
+-type ustring() :: text_utils:ustring().
+
+
 % Regarding encodings and Unicode:
 %
 % - their support shall be specified when opening a file, notably for writing
@@ -431,7 +435,7 @@ join( FirstPath, SecondPath ) ->
 
 		_ ->
 			text_utils:format( "~s~c~s",
-					   [ FirstPath, ?directory_separator, SecondPath ] )
+					[ FirstPath, ?directory_separator, SecondPath ] )
 
 	end.
 
@@ -483,7 +487,8 @@ get_base_path( AnyPath ) ->
 % Note that the return type is the same of the input path, i.e. plain string or
 % binary string.
 %
-% Replacement name for filename:basename/1 (in file_utils, and hopefully clearer).
+% Replacement name for filename:basename/1 (in file_utils, and hopefully
+% clearer).
 %
 -spec get_last_path_element( any_path() ) -> any_path().
 get_last_path_element( AnyPath ) ->
@@ -525,7 +530,7 @@ convert_to_filename( Name ) ->
 
 % Returns the (ordered) extension(s) of the specified filename.
 %
-% Ex: [ "baz", "json" ] = get_extensions( "foobar.baz.json" )
+% Ex: ["baz", "json"] = get_extensions( "foobar.baz.json" )
 %
 -spec get_extensions( file_name() ) -> [ extension() ] | 'no_extension'.
 get_extensions( Filename ) ->
@@ -593,7 +598,7 @@ remove_extension( Filename ) ->
 
 % Returns a new filename whose extension has been updated.
 %
-% Ex: replace_extension( "/home/jack/rosie.ttf", ".ttf", ".wav" ) should return
+% Ex: replace_extension("/home/jack/rosie.ttf", ".ttf", ".wav") should return
 % "/home/jack/rosie.wav".
 %
 -spec replace_extension( file_name(), extension(), extension() ) -> file_name().
@@ -1065,8 +1070,8 @@ set_current_directory( DirName ) ->
 % (helper)
 %
 % Returns a tuple containing five lists corresponding to the sorting of all
-% filesystem elements, namely { RegularFiles, Symlinks, Directories, OtherFiles,
-% Devices }.
+% filesystem elements, namely {RegularFiles, Symlinks, Directories, OtherFiles,
+% Devices}.
 %
 % Note that Files include symbolic links (dead or not).
 %
@@ -1164,7 +1169,7 @@ filter_by_extensions( _Filenames=[ F | T ], Extensions, Acc ) ->
 % Returns a list containing all elements of the Filenames list which match any
 % of the specified suffixes.
 %
--spec filter_by_included_suffixes( [ file_name() ], [ string() ] ) ->
+-spec filter_by_included_suffixes( [ file_name() ], [ ustring() ] ) ->
 										 [ file_name() ].
 filter_by_included_suffixes( Filenames, IncludedSuffixes ) ->
 	[ F || F <- Filenames, has_matching_suffix( F, IncludedSuffixes ) ].
@@ -1173,7 +1178,7 @@ filter_by_included_suffixes( Filenames, IncludedSuffixes ) ->
 % Returns a list containing all elements of the Filenames list which do not
 % match any of the specified suffixes.
 %
--spec filter_by_excluded_suffixes( [ file_name() ], [ string() ] ) ->
+-spec filter_by_excluded_suffixes( [ file_name() ], [ ustring() ] ) ->
 										 [ file_name() ].
 filter_by_excluded_suffixes( Filenames, ExcludedSuffixes ) ->
 	[ F || F <- Filenames, not has_matching_suffix( F, ExcludedSuffixes ) ].
@@ -1181,7 +1186,7 @@ filter_by_excluded_suffixes( Filenames, ExcludedSuffixes ) ->
 
 
 % (helper)
--spec has_matching_suffix( file_name(), [ string() ] ) -> boolean().
+-spec has_matching_suffix( file_name(), [ ustring() ] ) -> boolean().
 has_matching_suffix( _Filename, _ExcludedSuffixes=[] ) ->
 	false;
 
@@ -1437,7 +1442,7 @@ list_files_in_subdirs_with_extension( _Dirs=[ H | T ], Extension, RootDir,
 % All extensions accepted.
 %
 % All returned pathnames are relative to this root.
-% Ex: [ "./a.txt", "./tmp/b.txt" ].
+% Ex: ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_excluded_dirs( any_directory_name(),
 									 [ directory_name() ] ) -> [ file_name() ].
@@ -1529,8 +1534,8 @@ list_files_in_subdirs_excluded_dirs( _Dirs=[ H | T ], RootDir,
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
 %
--spec find_files_with_excluded_suffixes( any_directory_name(), [ string() ] ) ->
-											   [ file_name() ].
+-spec find_files_with_excluded_suffixes( any_directory_name(),
+										 [ ustring() ] ) -> [ file_name() ].
 find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes ) ->
 	find_files_with_excluded_suffixes( RootDir, _CurrentRelativeDir="",
 				ExcludedSuffixes, _IncludeSymlinks=true, _Acc=[] ).
@@ -1544,7 +1549,7 @@ find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes ) ->
 % All returned pathnames are relative to this root.
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
 %
--spec find_files_with_excluded_suffixes( any_directory_name(), [ string() ],
+-spec find_files_with_excluded_suffixes( any_directory_name(), [ ustring() ],
 										 boolean() ) -> [ file_name() ].
 find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes,
 								   IncludeSymlinks ) ->
@@ -1582,7 +1587,7 @@ find_files_with_excluded_suffixes( RootDir, CurrentRelativeDir,
 
 
 % Helper for find_files_with_excluded_suffixes/4:
--spec list_files_in_subdirs_with_excluded_suffixes( list(), [ string() ],
+-spec list_files_in_subdirs_with_excluded_suffixes( list(), [ ustring() ],
 		directory_name(), directory_name(), boolean(), [ file_name() ] ) ->
 														  [ file_name() ].
 list_files_in_subdirs_with_excluded_suffixes( [], _ExcludedSuffixes, _RootDir,
@@ -1618,7 +1623,7 @@ list_files_in_subdirs_with_excluded_suffixes( [ H | T ], ExcludedSuffixes,
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
 %
 -spec find_files_with_excluded_dirs_and_suffixes( any_directory_name(),
-		[ directory_name() ], [ string() ] ) -> [ file_name() ].
+		[ directory_name() ], [ ustring() ] ) -> [ file_name() ].
 find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirList,
 											ExcludedSuffixes ) ->
 
@@ -1650,7 +1655,7 @@ find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirList,
 % Ex: [ "./a.txt", "./tmp/b.txt" ].
 %
 -spec find_files_with_excluded_dirs_and_suffixes( any_directory_name(),
-		[ directory_name() ], [ string() ], boolean() ) -> [ file_name() ].
+		[ directory_name() ], [ ustring() ], boolean() ) -> [ file_name() ].
 find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirList,
 							ExcludedSuffixes, IncludeSymlinks ) ->
 
@@ -2848,10 +2853,12 @@ try_behead_with( Elem, _Others=[ [ Elem | R ] | T ], Acc ) ->
 	try_behead_with( Elem, T, [ R | Acc ] );
 
 % A bad Other:
-% Corresponds to: try_behead_with( Elem, Others=[ [ OtherElem | _R ] | _T ], _Acc ) ->
+% Corresponds to: try_behead_with( Elem, Others=[ [ OtherElem | _R ] | _T ],
+%                                  _Acc ) ->
 % or to:          try_behead_with( Elem, Others=[ [] | _T ], _Acc ) ->
 try_behead_with( _Elem, _Others, _Acc ) ->
-	%trace_utils:debug_fmt( "'~s' could not be removed from ~p", [ Elem, Others ] ),
+	%trace_utils:debug_fmt( "'~s' could not be removed from ~p",
+	%                      [ Elem, Others ] ),
 	non_matching.
 
 
@@ -2950,14 +2957,14 @@ update_with_keywords( OriginalFilePath, TargetFilePath, TranslationTable,
 %  - '.' becomes '_'
 %  - '/' becomes '_'
 %
--spec path_to_variable_name( path() ) -> string().
+-spec path_to_variable_name( path() ) -> ustring().
 path_to_variable_name( Filename ) ->
 	path_to_variable_name( Filename, "File_" ).
 
 
 % (helper)
 % Removes any leading './'.
--spec path_to_variable_name( path(), string() ) -> string().
+-spec path_to_variable_name( path(), ustring() ) -> ustring().
 path_to_variable_name( [ $.,$/ | T ], Prefix ) ->
 	convert( T, Prefix );
 
@@ -3283,8 +3290,7 @@ close( File ) ->
 %
 % Throws an exception on failure or not, depending on specified failure mode.
 %
--spec close( file(), 'overcome_failure' | 'throw_if_failed' ) ->
-				   void().
+-spec close( file(), 'overcome_failure' | 'throw_if_failed' ) -> void().
 close( File, _FailureMode=throw_if_failed ) ->
 
 	case file:close( File ) of
@@ -3311,7 +3317,7 @@ close( File, _FailureMode=overcome_failure ) ->
 % Throws an exception on failure.
 %
 -spec read( file(), basic_utils:count() ) ->
-				  { 'ok', string() | binary() } | 'eof'.
+				  { 'ok', ustring() | binary() } | 'eof'.
 read( File, Count ) ->
 
 	case file:read( File, Count ) of
@@ -3406,7 +3412,7 @@ read_whole( Filename ) ->
 %
 % Throws an exception on failure.
 %
--spec write_whole( any_file_name(), string() | binary() ) -> void().
+-spec write_whole( any_file_name(), ustring() | binary() ) -> void().
 write_whole( Filename, Content ) ->
 	write_whole( Filename, Content,
 				 _Modes=[ system_utils:get_default_encoding_option() ] ).
@@ -3418,7 +3424,7 @@ write_whole( Filename, Content ) ->
 %
 % Throws an exception on failure.
 %
--spec write_whole( any_file_name(), string() | binary(), [ file:mode() ] ) ->
+-spec write_whole( any_file_name(), ustring() | binary(), [ file:mode() ] ) ->
 						 void().
 write_whole( Filename, StringContent, Modes ) when is_list( StringContent ) ->
 	write_whole( Filename, text_utils:string_to_binary( StringContent ),
@@ -3507,7 +3513,7 @@ write_terms( Terms, Filename ) ->
 %
 % Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
 %
--spec write_terms( [ term() ], maybe( string() ), maybe( string() ),
+-spec write_terms( [ term() ], maybe( ustring() ), maybe( ustring() ),
 				   file_path() ) -> void().
 write_terms( Terms, Header, Footer, Filename ) ->
 
@@ -3953,8 +3959,8 @@ zipped_term_to_unzipped_files( ZippedTerm ) ->
 %
 % Returns the list of filenames corresponding to the unzipped files.
 %
--spec zipped_term_to_unzipped_files( binary(), directory_name() )
-		-> [ file_name() ].
+-spec zipped_term_to_unzipped_files( binary(), directory_name() ) ->
+										   [ file_name() ].
 zipped_term_to_unzipped_files( ZippedTerm, TargetDirectory ) ->
 
 	%{ ok, FileNames } = zip:unzip( ZippedTerm, [ verbose ] ),
