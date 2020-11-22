@@ -31,12 +31,23 @@
 % yet to be able (optionally) to be using another piece of software (possibly
 % the Ceylan-Traces layer, refer to http://traces.esperide.org/) at runtime for
 % its logging, so that in all cases exactly one (and the most appropriate)
-% logging system is used, even when lower-level libraries are involved.
+% logging system is used, even when lower-level libraries are involved, and with
+% no change of source code to be operated on that software.
 %
 % It is useful to provide native, integrated, higher-level logging to basic
 % libraries (ex: LEEC, see
 % https://github.com/Olivier-Boudeville/letsencrypt-erlang), should their user
-% require it - while being able to remain lean and mean if wanted.
+% require it - while being able to remain lean and mean if wanted (e.g while
+% keeping the dependency to Ceylan-Traces optional).
+%
+% Switching to a more advanced trace system (typically Ceylan-Traces) is just a
+% matter of having the process of interest call the register/3 function below.
+%
+% For usage examples, refer to:
+%  - Ceylan-Myriad: trace_bridge_test.erl (directly tracing through basic
+%  trace_utils)
+%  - Ceylan-Traces: trace_bridging_test.erl (using then our advanced trace
+%  system)
 %
 -module(trace_bridge).
 
@@ -55,7 +66,9 @@
 -export_type([ bridge_pid/0 ]).
 
 
--export([ register/3, set_application_timestamp/1, unregister/0,
+-export([ get_bridge_spec/3, register/1, set_application_timestamp/1,
+		  unregister/0,
+
 		  debug/1, debug_fmt/2, trace/1, trace_fmt/2,
 		  info/1, info_fmt/2, warning/1, warning_fmt/2,
 		  error/1, error_fmt/2, fatal/1, fatal_fmt/2,
@@ -71,6 +84,7 @@
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
+-type any_string() :: text_utils:any_string().
 
 -type format_string() :: text_utils:format_string().
 -type format_values() :: text_utils:format_values().
@@ -85,32 +99,57 @@
 % The process dictionary is used in order to avoid carrying along too many
 % parameters.
 %
-% Note special-casing the 'void' severity, as not used frequently enough.
+% No special-casing the 'void' severity, as not used frequently enough.
 
 
--type bridge_info() :: { TraceEmitterName :: bin_string(),
-						 TraceCategory :: bin_string(),
-						 Location :: bin_string(),
-						 ApplicationTimestamp :: trace_timestamp() }.
+% Typically the information transmitted by a trace emitter when creating a
+% lower-level process that may or may not use fancy tracing:
+%
+-opaque bridge_spec() :: { TraceEmitterName :: bin_string(),
+						   TraceCategory :: bin_string(),
+						   BridgePid :: bridge_pid() }.
 
+-export_type([ bridge_spec/0 ]).
+
+
+
+% The bridging information stored in the target process dictionary:
+-opaque bridge_info() :: { TraceEmitterName :: bin_string(),
+						   TraceCategory :: bin_string(),
+						   Location :: bin_string(),
+						   BridgePid :: bridge_pid(),
+						   ApplicationTimestamp :: maybe( trace_timestamp() ) }.
 
 % To silence warning:
 -export_type([ bridge_info/0 ]).
 
 
 
-% Registers the current process as a trace bridge.
--spec register( ustring(), ustring(), bridge_pid() ) -> void().
-register( TraceEmitterName, TraceCategory, BridgePid ) ->
+% Returns the information to pass to a process so that it can register to the
+% corresponding trace bridge and use it automatically from then.
+%
+-spec get_bridge_spec( any_string(), any_string(), bridge_pid() ) ->
+							bridge_spec().
+get_bridge_spec( TraceEmitterName, TraceCategory, BridgePid ) ->
+	{ text_utils:ensure_binary( TraceEmitterName ),
+	  text_utils:ensure_binary( TraceCategory ), BridgePid }.
+
+
+
+% Registers the current process to specified trace bridge.
+%
+% To be called by the process wanting to use such a trace bridge.
+%
+-spec register( bridge_spec() ) -> void().
+register( _BridgeSpec={ BinTraceEmitterName, BinTraceCategory, BridgePid } )
+  when is_pid( BridgePid ) ->
 
 	BridgeKey = ?myriad_trace_bridge_key,
 
-	BinName = text_utils:string_to_binary( TraceEmitterName ),
-	BinCateg = text_utils:string_to_binary( TraceCategory ),
 	Location = net_utils:localnode_as_binary(),
 	DefaultApplicationTimestamp = undefined,
 
-	BridgeInfo = { BinName, BinCateg, Location, BridgePid,
+	BridgeInfo = { BinTraceEmitterName, BinTraceCategory, Location, BridgePid,
 				   DefaultApplicationTimestamp },
 
 	case process_dictionary:get( BridgeKey ) of
@@ -123,7 +162,10 @@ register( TraceEmitterName, TraceCategory, BridgePid ) ->
 			throw( { myriad_trace_bridge_already_registered, UnexpectedInfo,
 					 BridgeInfo } )
 
-	end.
+	end;
+
+register( OtherBridgeSpec ) ->
+	throw( { invalid_bridge_spec, OtherBridgeSpec } ).
 
 
 
@@ -301,7 +343,7 @@ send_bridge( SeverityType, Message,
 	AppTimestampString = text_utils:term_to_binary( AppTimestamp ),
 
 	TimestampText = text_utils:string_to_binary(
-					  time_utils:get_textual_timestamp() ),
+					time_utils:get_textual_timestamp() ),
 
 	BridgePid ! { send,
 		[ _TraceEmitterPid=self(),

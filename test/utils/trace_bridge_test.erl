@@ -47,6 +47,8 @@
 % Defined for external re-use:
 emit_traces() ->
 
+	% No bridge spec defined or used, no bridging registration here:
+
 	trace_bridge:debug( "I am a debug simple message." ),
 	trace_bridge:debug_fmt( "I am a debug ~s message.", [ "formatted" ] ),
 
