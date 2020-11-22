@@ -47,12 +47,22 @@
 % like "internal error in core; crash reason: function_clause in function
 % v3_core:cexprs/3 called as v3_core:cexprs[...]".
 %
-% Note also that switching conditional flags may lead to variables being
-% declared as unused by the compiler; no better solution to mute them then (yet
-% this requires to change the code), or to use nowarn_unused_vars in at least
-% some modules.
-
+% Note also that switching conditional flags will select/deselect in-code
+% expressions and may lead to variables being declared as unused by the
+% compiler; no better solution to mute them then (yet this requires to change
+% the code when toggling such flags - not desirable), to use nowarn_unused_vars
+% in at least some modules, or to introduce once for all (at the expense of a
+% small runtime penalty cost) an alternate branch to this conditional silencing
+% these unused warnings, like in:
 %
+% [...]
+% % Should A, B or C be reported as unused if some_token was not set:
+% cond_utils:if_defined( some_token,
+%                        f( A, B C ),
+%                        basic_utils:ignore_unused( [ A, B, C ] ) ),
+% [...]
+
+
 % About tokens:
 %
 % There are to be specified as command-line build options, typically thanks to
