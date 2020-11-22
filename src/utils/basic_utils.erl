@@ -1363,7 +1363,7 @@ get_process_specific_value( Pid ) ->
 	% Hash part probably a bit overkill:
 	Res = X*Y*Z + erlang:phash2( erlang:make_ref() ),
 
-	trace_utils:debug_fmt( "Process-specific value: ~B.", [ Res ] ),
+	%trace_utils:debug_fmt( "Process-specific value: ~B.", [ Res ] ),
 	Res.
 
 
