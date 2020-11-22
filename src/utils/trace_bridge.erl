@@ -136,11 +136,11 @@ get_bridge_spec( TraceEmitterName, TraceCategory, BridgePid ) ->
 
 
 
-% Registers the current process to specified trace bridge.
+% Registers the current process to specified trace bridge (if any).
 %
 % To be called by the process wanting to use such a trace bridge.
 %
--spec register( bridge_spec() ) -> void().
+-spec register( maybe( bridge_spec() ) ) -> void().
 register( _BridgeSpec={ BinTraceEmitterName, BinTraceCategory, BridgePid } )
   when is_pid( BridgePid ) ->
 
@@ -156,13 +156,17 @@ register( _BridgeSpec={ BinTraceEmitterName, BinTraceCategory, BridgePid } )
 
 		% Normal case:
 		undefined ->
-			process_dictionary:put( BridgeKey, BridgeInfo );
+			process_dictionary:put( BridgeKey, BridgeInfo ),
+			trace( "Trace bridge registered." );
 
 		UnexpectedInfo ->
 			throw( { myriad_trace_bridge_already_registered, UnexpectedInfo,
 					 BridgeInfo } )
 
 	end;
+
+register( _MaybeBridgeSpec=undefined ) ->
+	ok;
 
 register( OtherBridgeSpec ) ->
 	throw( { invalid_bridge_spec, OtherBridgeSpec } ).
