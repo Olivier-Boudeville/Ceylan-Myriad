@@ -826,20 +826,21 @@ toggle_entry( Key, MapHashtable )->
 
 
 
-% Returns a new map hashtable, which started from MapHashtableBase and was
-% enriched with the MapHashtableAdd entries whose keys where not already in
-% MapHashtableBase (if a key is in both tables, the one from MapHashtableBase
-% will be kept).
+% Returns a new map hashtable, which started from MapHashtableRef and was
+% enriched with the entries from MapHashtableOnlyForAdditions whose keys were
+% *not* already in MapHashtableRef (if a key is in both tables, the one from
+% MapHashtableRef is the one kept).
 %
-% Said differently: if a key exists in both tables, the value in MapHashtableAdd
-% will be superseded by the value in MapHashtableBase.
+% Said differently: if a key exists in both tables, the value in
+% MapHashtableOnlyForAdditions will be dropped (will *not* supersede the value
+% in MapHashtableRef, which is the "prioritary" one).
 %
 % Note: not the standard merge that one would expect, should values be lists.
 %
 -spec merge( map_hashtable(), map_hashtable() ) -> map_hashtable().
-merge( MapHashtableBase, MapHashtableAdd ) ->
-	% Order matters:
-	maps:merge( MapHashtableAdd, MapHashtableBase ).
+merge( MapHashtableRef, MapHashtableOnlyForAdditions ) ->
+	% Order matters (note the swap of variables):
+	maps:merge( MapHashtableOnlyForAdditions, MapHashtableRef ).
 
 
 
@@ -852,7 +853,7 @@ merge( MapHashtableBase, MapHashtableAdd ) ->
 -spec merge_unique( map_hashtable(), map_hashtable() ) -> map_hashtable().
 merge_unique( FirstHashtable, SecondHashtable ) ->
 	FirstEntries = enumerate( FirstHashtable ),
-	add_new_entries( FirstEntries, SecondHashtable ).
+	add_new_entries( _ToAdd=FirstEntries, SecondHashtable ).
 
 
 % Merges the all specified tables into one, expecting that their keys are unique
