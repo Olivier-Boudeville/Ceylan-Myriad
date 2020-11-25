@@ -66,8 +66,9 @@
 -export_type([ bridge_pid/0 ]).
 
 
--export([ get_bridge_spec/3, register/1, set_application_timestamp/1,
-		  unregister/0,
+-export([ get_bridge_spec/3, register/1,
+		  get_bridge_info/0, set_bridge_info/1,
+		  set_application_timestamp/1, unregister/0,
 
 		  debug/1, debug_fmt/2, trace/1, trace_fmt/2,
 		  info/1, info_fmt/2, warning/1, warning_fmt/2,
@@ -141,7 +142,7 @@ get_bridge_spec( TraceEmitterName, TraceCategory, BridgePid ) ->
 % To be called by the process wanting to use such a trace bridge.
 %
 -spec register( maybe( bridge_spec() ) ) -> void().
-register( _BridgeSpec={ BinTraceEmitterName, BinTraceCategory, BridgePid } )
+register( BridgeSpec={ BinTraceEmitterName, BinTraceCategory, BridgePid } )
   when is_pid( BridgePid ) ->
 
 	BridgeKey = ?myriad_trace_bridge_key,
@@ -157,7 +158,8 @@ register( _BridgeSpec={ BinTraceEmitterName, BinTraceCategory, BridgePid } )
 		% Normal case:
 		undefined ->
 			process_dictionary:put( BridgeKey, BridgeInfo ),
-			trace( "Trace bridge registered." );
+			trace_fmt( "Trace bridge registered (spec: ~p).",
+					   [ BridgeSpec ] );
 
 		UnexpectedInfo ->
 			throw( { myriad_trace_bridge_already_registered, UnexpectedInfo,
@@ -170,6 +172,29 @@ register( _MaybeBridgeSpec=undefined ) ->
 
 register( OtherBridgeSpec ) ->
 	throw( { invalid_bridge_spec, OtherBridgeSpec } ).
+
+
+
+% Returns the bridge information of the current process.
+%
+% May be useful for example if spawning processes and wanting that they use the
+% same bridge.
+%
+-spec get_bridge_info() -> maybe( bridge_info() ).
+get_bridge_info() ->
+	process_dictionary:get( ?myriad_trace_bridge_key ).
+
+
+% Sets the specified bridge information for the current process.
+%
+% May be useful for example for a spawned process to adopt the same bridge as
+% the one of its caller (obtained thanks to get_bridge_info/0).
+%
+% Any local pre-existing bridge information will be overwritten.
+%
+-spec set_bridge_info( maybe( bridge_info() ) ) -> void().
+set_bridge_info( MaybeBridgeInfo ) ->
+	process_dictionary:put( ?myriad_trace_bridge_key, MaybeBridgeInfo ).
 
 
 
