@@ -158,8 +158,7 @@ register( BridgeSpec={ BinTraceEmitterName, BinTraceCategory, BridgePid } )
 		% Normal case:
 		undefined ->
 			process_dictionary:put( BridgeKey, BridgeInfo ),
-			trace_fmt( "Trace bridge registered (spec: ~p).",
-					   [ BridgeSpec ] );
+			trace_fmt( "Trace bridge registered (spec: ~p).", [ BridgeSpec ] );
 
 		UnexpectedInfo ->
 			throw( { myriad_trace_bridge_already_registered, UnexpectedInfo,
