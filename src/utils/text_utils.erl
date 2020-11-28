@@ -1900,6 +1900,10 @@ string_to_binary( String ) when is_list( String ) ->
 	end;
 
 string_to_binary( Other ) ->
+
+	%trace_utils:debug_fmt( "Stack trace: ~s",
+	%					   [ code_utils:interpret_stacktrace() ] ),
+
 	throw( { not_a_string, Other } ).
 
 
@@ -2580,8 +2584,9 @@ update_with_keywords( Content, TranslationTable ) ->
 	% As many passes as keyword pairs:
 	lists:foldl(
 
-		fun( { SearchP, Replacement }, Acc ) ->
-			string:replace( Acc, SearchP, Replacement, _Where=all )
+		fun( { SearchP, Replacement }, ContentAcc ) ->
+			string:replace( ContentAcc, SearchP, Replacement, _Where=all )
+
 		end,
 		_Acc0=Content,
 		_List=TransPairs ).
