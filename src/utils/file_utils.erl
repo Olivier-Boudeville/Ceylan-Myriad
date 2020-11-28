@@ -2558,7 +2558,10 @@ is_absolute_path( _Path=[ $/ | _Rest ] ) ->
 
 % Not wanting to let for example atoms slip through:
 is_absolute_path( Path ) when is_list( Path )->
-	false.
+	false;
+
+is_absolute_path( Other ) ->
+	throw( { not_a_string_path, Other } ).
 
 
 
@@ -2593,7 +2596,8 @@ ensure_path_is_absolute( BinPath ) ->
 
 
 % Returns an absolute, normalised path corresponding to the specified target
-% path, using base path as root directory (this must be an absolute path).
+% path, using base path as root directory (this must be an absolute path) if the
+% target path is not absolute.
 %
 % Ex: ensure_path_is_absolute( "tmp/foo", "/home/dalton" ) will return
 % "/home/dalton/tmp/foo".
