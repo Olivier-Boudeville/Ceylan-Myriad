@@ -197,6 +197,17 @@
 -include_lib("kernel/include/file.hrl").
 
 
+% Shorthands:
+
+-type ustring() :: text_utils:ustring().
+
+-type file_name() :: file_utils:file_name().
+-type directory_name() :: file_utils:directory_name().
+
+-type command() :: system_utils:command().
+-type environment() :: system_utils:environment().
+
+
 
 % Host-related functions.
 
@@ -669,7 +680,7 @@ check_node_availability( Nodename ) when is_atom( Nodename ) ->
 % waited for while returning as soon as possible.
 %
 -spec check_node_availability( node_name(), check_node_timing() ) ->
-									 { boolean(), check_duration() }.
+									{ boolean(), check_duration() }.
 check_node_availability( Nodename, Timing ) when is_list( Nodename ) ->
 	check_node_availability( list_to_atom( Nodename ), Timing ) ;
 
@@ -711,8 +722,7 @@ check_node_availability( Nodename, Duration )  ->
 			% Hopefully too early, let's retry later:
 			check_node_availability( Nodename,
 				_CurrentDurationStep=?check_node_first_waiting_step,
-				_ElapsedDuration=0,
-				_SpecifiedMaxDuration=Duration )
+				_ElapsedDuration=0, _SpecifiedMaxDuration=Duration )
 
 	end.
 
@@ -801,8 +811,8 @@ get_node_naming_mode() ->
 % For example, if the short_name convention is specified, then a "bar.baz.org"
 % hostname will result into "bar".
 %
--spec get_naming_compliant_hostname( string_host_name(), node_naming_mode() )
-								   -> string_host_name().
+-spec get_naming_compliant_hostname( string_host_name(),
+									 node_naming_mode() ) -> string_host_name().
 get_naming_compliant_hostname( Hostname, short_name ) ->
 	hd( string:tokens( Hostname, "." ) );
 
@@ -1141,7 +1151,7 @@ wait_unavailable( Nodename, AttemptCount, Duration ) ->
 % Erlang node with the same cookie as the current node, whether or not it is
 % alive.
 %
--spec get_cookie_option() -> string().
+-spec get_cookie_option() -> ustring().
 get_cookie_option() ->
 	case erlang:get_cookie() of
 
@@ -1175,7 +1185,7 @@ get_default_epmd_port() ->
 % otherwise available nodes will not be found.
 %
 -spec get_epmd_environment( maybe( tcp_port() ) ) ->
-								  system_utils:environment().
+								environment().
 get_epmd_environment( undefined ) ->
 	[];
 
@@ -1192,7 +1202,7 @@ get_epmd_environment( EpmdPort ) when is_integer( EpmdPort ) ->
 % Erlang node with the node name (specified as a string) and node naming mode
 % (short or long name, specified thanks to atoms).
 -spec get_node_name_option( string_node_name(), node_naming_mode() ) ->
-								  string().
+								ustring().
 get_node_name_option( NodeName, NodeNamingMode ) ->
 
 	NodeNameOption = case NodeNamingMode of
@@ -1218,7 +1228,7 @@ get_node_name_option( NodeName, NodeNamingMode ) ->
 % myriad/GNUmakevars.inc), otherwise inter-node communication could fail.
 %
 -spec get_tcp_port_range_option( 'no_restriction' | tcp_port_range() ) ->
-									   string().
+									ustring().
 get_tcp_port_range_option( no_restriction ) ->
 	"";
 
@@ -1236,8 +1246,8 @@ get_tcp_port_range_option( { MinTCPPort, MaxTCPPort } )
 % in order to launch an Erlang node (interpreter) with the specified settings.
 %
 -spec get_basic_node_launching_command( string_node_name(), node_naming_mode(),
-	   maybe( tcp_port() ), 'no_restriction' | tcp_port_range(), string() ) ->
-					  { system_utils:command(), system_utils:environment() }.
+	   maybe( tcp_port() ), 'no_restriction' | tcp_port_range(), ustring() ) ->
+					{ command(), environment() }.
 get_basic_node_launching_command( NodeName, NodeNamingMode, EpmdSettings,
 								  TCPSettings, AdditionalOptions ) ->
 
@@ -1296,7 +1306,7 @@ get_basic_node_launching_command( NodeName, NodeNamingMode, EpmdSettings,
 % PID, supposed to have already called one of the receive_file/{1,2,3}
 % functions.
 %
--spec send_file( file_utils:file_name(), pid() ) -> void().
+-spec send_file( file_name(), pid() ) -> void().
 send_file( Filename, RecipientPid ) ->
 
 	case file_utils:is_existing_file( Filename ) of
@@ -1411,7 +1421,7 @@ send_file( Filename, RecipientPid ) ->
 %
 % Returns the full path to the received file.
 %
--spec receive_file( pid() ) -> file_utils:file_name().
+-spec receive_file( pid() ) -> file_name().
 receive_file( EmitterPid ) ->
 	receive_file( EmitterPid, file_utils:get_current_directory() ).
 
@@ -1425,7 +1435,7 @@ receive_file( EmitterPid ) ->
 %
 % Returns the full path to the received file.
 %
--spec receive_file( pid(), file_utils:directory_name() ) -> void().
+-spec receive_file( pid(), directory_name() ) -> void().
 receive_file( EmitterPid, TargetDir ) ->
 	receive_file( EmitterPid, TargetDir, ?default_send_file_tcp_port ).
 
@@ -1437,8 +1447,7 @@ receive_file( EmitterPid, TargetDir ) ->
 %
 % The specified TCP port will be used for that.
 %
--spec receive_file( pid(), file_utils:directory_name(), tcp_port() ) ->
-						  file_utils:file_name().
+-spec receive_file( pid(), directory_name(), tcp_port() ) -> file_name().
 receive_file( EmitterPid, TargetDir, TCPPort ) ->
 
 	% We prefer relying on IP addresses rather than hostnames, as a surprisingly
@@ -1462,7 +1471,7 @@ receive_file( EmitterPid, TargetDir, TCPPort ) ->
 					{ ok, ActualTCPPort } = inet:port( ListenSock ),
 
 					accept_remote_content( ListenSock, ActualTCPPort, LocalIP,
-						   TargetDir, BinFilename, Permissions, EmitterPid );
+						TargetDir, BinFilename, Permissions, EmitterPid );
 
 				{ error, Reason } ->
 					throw( { listen_failed, Reason } )
@@ -1479,8 +1488,8 @@ receive_file( EmitterPid, TargetDir, TCPPort ) ->
 % A TCP port in the specified range (min included, max excluded) will be used
 % for that (useful to cmpply with some firewall rules).
 %
--spec receive_file( pid(), file_utils:directory_name(), tcp_port(),
-					tcp_port() ) -> file_utils:file_name().
+-spec receive_file( pid(), directory_name(), tcp_port(), tcp_port() ) ->
+						file_name().
 receive_file( EmitterPid, TargetDir, MinTCPPort, MaxTCPPort )
   when MinTCPPort < MaxTCPPort ->
 
@@ -1658,26 +1667,26 @@ is_routable( _ ) ->
 
 
 % Returns a string describing the specified IPv4 address.
--spec ipv4_to_string( ip_v4_address() ) -> string().
+-spec ipv4_to_string( ip_v4_address() ) -> ustring().
 ipv4_to_string( { N1, N2, N3, N4 } ) ->
 	text_utils:format( "~B.~B.~B.~B", [ N1, N2, N3, N4 ] ).
 
 
 % Returns a string describing the specified IPv4 address and port.
--spec ipv4_to_string( ip_v4_address(), net_port() ) -> string().
+-spec ipv4_to_string( ip_v4_address(), net_port() ) -> ustring().
 ipv4_to_string( { N1, N2, N3, N4 }, Port ) ->
 	text_utils:format( "~B.~B.~B.~B:~B", [ N1, N2, N3, N4, Port ] ).
 
 
 
 % Returns a string describing the specified IPv6 address.
--spec ipv6_to_string( ip_v6_address() ) -> string().
+-spec ipv6_to_string( ip_v6_address() ) -> ustring().
 ipv6_to_string( { N1, N2, N3, N4, N5, N6 } ) ->
 	text_utils:format( "~B.~B.~B.~B", [ N1, N2, N3, N4, N5, N6 ] ).
 
 
 % Returns a string describing the specified IPv6 address and port.
--spec ipv6_to_string( ip_v6_address(), net_port() ) -> string().
+-spec ipv6_to_string( ip_v6_address(), net_port() ) -> ustring().
 ipv6_to_string( Ipv6={ _N1, _N2, _N3, _N4, _N5, _N6 }, Port ) ->
 	text_utils:format( "~s:~B", [ ipv6_to_string( Ipv6 ), Port ] ).
 
@@ -1685,7 +1694,7 @@ ipv6_to_string( Ipv6={ _N1, _N2, _N3, _N4, _N5, _N6 }, Port ) ->
 
 
 % Returns a string describing the specified host.
--spec host_to_string( host_identifier() ) -> string().
+-spec host_to_string( host_identifier() ) -> ustring().
 host_to_string( IPv4={ _N1, _N2, _N3, _N4 } ) ->
 	ipv4_to_string( IPv4 );
 
@@ -1697,12 +1706,12 @@ host_to_string( Address ) ->
 
 
 % Returns a string describing the specified URL information.
--spec url_info_to_string( url_info() ) -> string().
+-spec url_info_to_string( url_info() ) -> ustring().
 url_info_to_string( #url_info{ protocol=Protocol, host_identifier=Host,
 							   port=Port, path=Path } ) ->
 
-	text_utils:format( "~s://~s:~B/~s", [ Protocol, host_to_string( Host ),
-										  Port, Path ] ).
+	text_utils:format( "~s://~s:~B/~s",
+					   [ Protocol, host_to_string( Host ), Port, Path ] ).
 
 
 % Decodes specified string into an url_info record, by extracting protocol
@@ -1715,7 +1724,7 @@ url_info_to_string( #url_info{ protocol=Protocol, host_identifier=Host,
 % a more complete option; this function remains mostly for backward
 % compatibility.
 %
--spec string_to_url_info( string() ) -> url_info().
+-spec string_to_url_info( ustring() ) -> url_info().
 string_to_url_info( String ) ->
 
 	% Deprecated http_uri:parse/1 was used previously, now relying on (available
@@ -1741,9 +1750,7 @@ string_to_url_info( String ) ->
 
 		 } = string_to_uri_map( String ),
 
-	#url_info{ protocol=Scheme,
-			   host_identifier=Host,
-			   port=MaybePort,
+	#url_info{ protocol=Scheme, host_identifier=Host, port=MaybePort,
 			   path=Path }.
 
 
@@ -1754,7 +1761,7 @@ string_to_url_info( String ) ->
 %
 % Throws an exception on failure.
 %
--spec string_to_uri_map( string() ) -> uri_string:uri_map().
+-spec string_to_uri_map( ustring() ) -> uri_string:uri_map().
 string_to_uri_map( String ) ->
 
 	case uri_string:parse( String ) of
