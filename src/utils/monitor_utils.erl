@@ -38,7 +38,7 @@
 % Monitoring section.
 
 
-% Not allowed to be shorten into a local reference/0:
+% Not allowed to be shortened into a local reference/0 type:
 -type monitor_reference() :: reference().
 
 
