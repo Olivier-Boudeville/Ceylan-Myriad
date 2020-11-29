@@ -49,18 +49,26 @@
 %
 % Note also that switching conditional flags will select/deselect in-code
 % expressions and may lead to variables being declared as unused by the
-% compiler; no better solution to mute them then (yet this requires to change
-% the code when toggling such flags - not desirable), to use nowarn_unused_vars
-% in at least some modules, or to introduce once for all (at the expense of a
-% small runtime penalty cost) an alternate branch to this conditional silencing
-% these unused warnings, like in:
-%
+% compiler; no better solution than:
+% - to mute them then (yet this requires to change the code when toggling such
+% flags - not desirable),
+% - to use nowarn_unused_vars in at least some modules,
+% - or to introduce once for all (at the expense of a small runtime penalty
+% cost) an alternate branch to this conditional silencing these unused warnings,
+% like in:
 % [...]
 % % Should A, B or C be reported as unused if some_token was not set:
 % cond_utils:if_defined( some_token,
 %                        f( A, B C ),
 %                        basic_utils:ignore_unused( [ A, B, C ] ) ),
 % [...]
+%
+% Some function may also become unused, in which case the best solution is to
+% rely on:
+% -compile( { nowarn_unused_function, my_func/3} ).
+%    OR
+% -compile( { nowarn_unused_function, [ my_func/3, my_other_func/0 ] } ).
+
 
 
 % About tokens:
