@@ -510,6 +510,7 @@ void_categorized_timed( _Message, _MessageCategorization, _Timestamp ) ->
 	ok.
 
 
+-define( echo_prefix, "[echoed]" ++ ).
 
 % Echoes specified trace in specified trace channel.
 %
@@ -521,28 +522,28 @@ void_categorized_timed( _Message, _MessageCategorization, _Timestamp ) ->
 %
 -spec echo( trace_message(), trace_severity() ) -> void().
 echo( TraceMessage, _TraceSeverity=debug ) ->
-	debug( TraceMessage );
+	debug( ?echo_prefix TraceMessage );
 
 echo( TraceMessage, _TraceSeverity=info ) ->
-	info( TraceMessage );
+	info( ?echo_prefix TraceMessage );
 
 echo( TraceMessage, _TraceSeverity=notice ) ->
-	notice( TraceMessage );
+	notice( ?echo_prefix TraceMessage );
 
 echo( TraceMessage, _TraceSeverity=warning ) ->
-	warning( TraceMessage );
+	warning( ?echo_prefix TraceMessage );
 
 echo( TraceMessage, _TraceSeverity=error ) ->
-	error( TraceMessage );
+	error( ?echo_prefix TraceMessage );
 
 echo( TraceMessage, _TraceSeverity=critical ) ->
-	critical( TraceMessage );
+	critical( ?echo_prefix TraceMessage );
 
 echo( TraceMessage, _TraceSeverity=alert ) ->
-	alert( TraceMessage );
+	alert( ?echo_prefix TraceMessage );
 
 echo( TraceMessage, _TraceSeverity=emergency ) ->
-	emergency( TraceMessage );
+	emergency( ?echo_prefix TraceMessage );
 
 echo( _TraceMessage, _TraceSeverity=void ) ->
 	ok.
@@ -615,6 +616,12 @@ echo( TraceMessage, _TraceSeverity=warning, MessageCategorization,
 
 echo( TraceMessage, _TraceSeverity=error, MessageCategorization, Timestamp ) ->
 	error_categorized_timed( TraceMessage, MessageCategorization, Timestamp );
+
+echo( TraceMessage, _TraceSeverity=critical, MessageCategorization, Timestamp ) ->
+	critical_categorized_timed( TraceMessage, MessageCategorization, Timestamp );
+
+echo( TraceMessage, _TraceSeverity=alert, MessageCategorization, Timestamp ) ->
+	alert_categorized_timed( TraceMessage, MessageCategorization, Timestamp );
 
 echo( TraceMessage, _TraceSeverity=emergency, MessageCategorization,
 	  Timestamp ) ->
