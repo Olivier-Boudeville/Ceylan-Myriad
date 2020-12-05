@@ -70,7 +70,7 @@
 
 -ifdef( log_random ).
 
--define( trace_random(FS,FV), trace_utils:trace_fmt( FS, FV ) ).
+-define( trace_random(FS,FV), trace_utils:info_fmt( FS, FV ) ).
 
 -else. % log_random
 

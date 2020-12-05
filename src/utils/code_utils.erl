@@ -645,7 +645,7 @@ is_beam_in_path( ModuleName ) when is_atom( ModuleName ) ->
 
 	ModuleFilename = text_utils:atom_to_string( ModuleName ) ++ ?beam_extension,
 
-	%trace_utils:trace_fmt( "Paths for module filename '~s':~n  ~p",
+	%trace_utils:info_fmt( "Paths for module filename '~s':~n  ~p",
 	%					   [ ModuleFilename, code:get_path() ] ),
 
 	% We have to ensure that all paths are absolute and normalised, so that we
@@ -794,8 +794,8 @@ display_stacktrace() ->
 	% We do not want to include display_stacktrace/0 in the stack:
 	StackTrace = tl( get_stacktrace() ),
 
-	trace_utils:trace_fmt( "Current stacktrace is (latest calls first): ~s~n",
-						   [ interpret_stacktrace( StackTrace ) ] ).
+	trace_utils:info_fmt( "Current stacktrace is (latest calls first): ~s~n",
+						  [ interpret_stacktrace( StackTrace ) ] ).
 
 
 

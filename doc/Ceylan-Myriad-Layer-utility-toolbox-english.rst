@@ -44,7 +44,7 @@ These helpers (code and typing information) are thematically aggregated in modul
 - services addressed to the use of OTP, in ``otp_utils.erl``
 - services about all kinds of **units** (``unit_utils.erl``); refer to the `Management of Units`_ section below for more information
 - support for **CSV** (Comma-Separated Values) files (``csv_utils.erl``) and **JSON** information (``json_utils.erl``)
-- basic services for **trace emission** (a.k.a logging), either directly through ``trace_utils.erl``, or thanks to ``trace_bridge.erl`` - typically to rely on more advanced trace systems such as `Ceylan-Traces <http://traces.esperide.org/>`_
+- basic services for **trace emission** (a.k.a logging - not related to Erlang tracing), either directly through ``trace_utils.erl``, or thanks to ``trace_bridge.erl`` - typically to rely on more advanced trace systems such as `Ceylan-Traces <http://traces.esperide.org/>`_; now compliant with newer OTP logger and Syslog protocol as defined in `RFC 5424 <https://www.ietf.org/rfc/rfc5424.txt>`_, collecting bother userland traces and VM-level logs
 - very basic facilities for **applications** (not in the sense of OTP ones), in ``app_facilities.{e,h}rl`` with an example (``most_basic_example_app.erl``)
 - a bit of **locale management**, in ``locale_utils.erl``
 - minor services about the **monitoring of Erlang processes**, in ``monitor_utils.erl`` and their **registering** in naming services, in ``naming_utils.erl``

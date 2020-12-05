@@ -383,7 +383,7 @@ start_main_event_loop( WxServer, WxEnv ) ->
 -spec process_event_messages( loop_state() ) -> no_return().
 process_event_messages( LoopState ) ->
 
-	%trace_utils:trace( "Waiting for event messages..." ),
+	%trace_utils:info( "Waiting for event messages..." ),
 
 	NewLoopState = receive
 
@@ -748,17 +748,17 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 	ActualGUIObject = case table:lookup_entry( GUIObject, ReassignTable ) of
 
 		key_not_found ->
-			trace_utils:trace_fmt( "Wx event received about '~s':~n~p.",
-						   [ gui:object_to_string( GUIObject ), WxEventInfo ] ),
+			trace_utils:info_fmt( "Wx event received about '~s':~n~p.",
+				[ gui:object_to_string( GUIObject ), WxEventInfo ] ),
 			GUIObject;
 
 
 		{ value, TargetGUIObject } ->
-			trace_utils:trace_fmt( "Wx event received about '~s', "
-								   "reassigned to '~s':~n~p.",
-								   [ gui:object_to_string( GUIObject ),
-									 gui:object_to_string( TargetGUIObject ),
-									 WxEventInfo ] ),
+			trace_utils:info_fmt( "Wx event received about '~s', "
+								  "reassigned to '~s':~n~p.",
+								  [ gui:object_to_string( GUIObject ),
+									gui:object_to_string( TargetGUIObject ),
+									WxEventInfo ] ),
 
 			TargetGUIObject
 
@@ -898,9 +898,8 @@ process_myriad_creation( ObjectType, ConstructionParams, CallerPid,
 		 myriad_type_table() ) -> { myriad_object_ref(), myriad_type_table() }.
 register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 
-	trace_utils:trace_fmt( "Registering a MyriadGUI instance of type '~s', "
-						   "of following state:~n~p.",
-						   [ ObjectType, ObjectInitialState ] ),
+	trace_utils:info_fmt( "Registering a MyriadGUI instance of type '~s', "
+		"of following state:~n~p.", [ ObjectType, ObjectInitialState ] ),
 
 	{ NewInstanceId, NewInstanceReferential } = case table:lookup_entry(
 													ObjectType, TypeTable ) of

@@ -68,7 +68,7 @@ run_test_gui() ->
 
 	FourthFrame = gui:create_frame( "This is the fourth frame" ),
 
-	trace_utils:info( "Please close the fourth frame to end this test." ),
+	trace_utils:notice( "Please close the fourth frame to end this test." ),
 
 	Frames = [ FirstFrame, SecondFrame, ThirdFrame, FourthFrame ],
 
@@ -91,16 +91,16 @@ run_test_gui() ->
 -spec test_main_loop( my_test_state() ) -> no_return().
 test_main_loop( CloseFrame ) ->
 
-	trace_utils:trace( "Test main loop running..." ),
+	trace_utils:info( "Test main loop running..." ),
 
 	receive
 
 		{ onWindowClosed, [ CloseFrame, Context ] } ->
 
-			trace_utils:trace_fmt( "Closing frame ~s has been, well, closed "
-								   "(~s), test success.",
-								   [ gui:object_to_string( CloseFrame ),
-									 gui:context_to_string( Context ) ] ),
+			trace_utils:info_fmt( "Closing frame ~s has been, well, closed "
+				"(~s), test success.",
+				[ gui:object_to_string( CloseFrame ),
+				  gui:context_to_string( Context ) ] ),
 
 			gui:destruct_window( CloseFrame ),
 
@@ -108,7 +108,7 @@ test_main_loop( CloseFrame ) ->
 
 
 		{ onWindowClosed, [ AnyFrame, Context ] } ->
-			trace_utils:trace_fmt( "Frame ~s closed (~s).",
+			trace_utils:info_fmt( "Frame ~s closed (~s).",
 				[ gui:object_to_string( AnyFrame ),
 				  gui:context_to_string( Context ) ] ),
 

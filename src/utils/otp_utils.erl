@@ -54,7 +54,11 @@
 % Name of an OTP application as any legit type.
 -type any_application_name() :: application_name() | string_application_name().
 
--type restart_type() :: application:restart_type().
+
+% Not exported by the standard module:
+%-type restart_type() :: application:restart_type().
+-type restart_type() = 'permanent' | 'transient' | 'temporary'.
+
 
 % The PID of an OTP supervisor:
 -type supervisor_pid() :: pid().
@@ -147,8 +151,8 @@
   -define( debug( M ), trace_utils:debug( M ) ).
   -define( debug_fmt( F, V ), trace_utils:debug_fmt( F, V ) ).
 
-  -define( trace( M ), trace_utils:trace( M ) ).
-  -define( trace_fmt( F, V ), trace_utils:trace_fmt( F, V ) ).
+  -define( trace( M ), trace_utils:info( M ) ).
+  -define( trace_fmt( F, V ), trace_utils:info_fmt( F, V ) ).
 
 -else.
 

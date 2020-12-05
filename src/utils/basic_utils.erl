@@ -973,9 +973,9 @@ get_process_info( Pid ) ->
 % Returns the specified information regarding specified process (which is local
 % or not), provided it is still alive (otherwise returns undefined).
 %
--spec get_process_info( pid(), erlang:process_info_item() ) ->
+-spec get_process_info( pid(), erlang:process_info_result_item() ) ->
 		  maybe( erlang:process_info_result_item() );
-					  ( pid(), [ erlang:process_info_item() ] ) ->
+					  ( pid(), [ erlang:process_info_result_item() ] ) ->
 		  maybe( [ erlang:process_info_result_item() ] ).
 get_process_info( Pid, ItemTerm ) ->
 

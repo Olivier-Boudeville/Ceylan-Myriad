@@ -77,7 +77,7 @@ run_test_gui() ->
 
 		{ onWindowClosed, [ MainFrame, _Id, _UserData, _WxEvent ] } ->
 			gui:destruct_window( MainFrame ),
-			trace_utils:trace( "Main frame closed, test success." ),
+			trace_utils:info( "Main frame closed, test success." ),
 			gui:stop( LoopState )
 
 	end.

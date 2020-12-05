@@ -73,7 +73,7 @@ run() ->
 	test_facilities:display( "Testing cond_utils:if_defined/2." ),
 
 	cond_utils:if_debug( [ io:format( "We are in debug mode!~n" ),
-						   trace_utils:info( "And we like it!" ) ] ),
+						   trace_utils:notice( "And we like it!" ) ] ),
 
 	test_facilities:display( "Testing cond_utils:if_defined/2." ),
 
@@ -105,7 +105,7 @@ run() ->
 	test_facilities:display( "Testing cond_utils:if_set_to/3." ),
 
 	cond_utils:if_set_to( my_second_test_token, 200,
-		[ trace_utils:info(
+		[ trace_utils:notice(
 			"Test token detected and set as expected (5)." ),
 		  process_dictionary:put( process_test_key, 5 ) ] ),
 
@@ -118,14 +118,14 @@ run() ->
 		[ trace_utils:error( "Wrong branch selected (6)." ),
 		  process_dictionary:put( process_test_key, 6 ) ],
 		[ process_dictionary:put( process_test_key, 7 ),
-		  trace_utils:info(
+		  trace_utils:notice(
 			"Other test token detected and managed as expected (7)." ) ] ),
 
 	7 = process_dictionary:get( process_test_key ),
 
 	cond_utils:if_set_to( my_third_test_token, some_text,
 		[ process_dictionary:put( process_test_key, 8 ),
-		  trace_utils:info(
+		  trace_utils:notice(
 			"Other test token detected and managed as expected (8)." ) ],
 		[ process_dictionary:put( process_test_key, 9 ),
 		  trace_utils:error( "Wrong branch selected (9)." ) ] ),
@@ -136,7 +136,7 @@ run() ->
 		[ trace_utils:error( "Wrong branch selected (10)." ),
 		  process_dictionary:put( process_test_key, 10 ) ],
 		[ process_dictionary:put( process_test_key, 11 ),
-		  trace_utils:info(
+		  trace_utils:notice(
 			"Other test token detected and managed as expected (11)." ) ] ),
 
 	11 = process_dictionary:get( process_test_key ),

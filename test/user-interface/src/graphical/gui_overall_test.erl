@@ -216,18 +216,18 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 										  point_count=PointCount,
 										  render_mode=RenderMode } ) ->
 
-	trace_utils:trace_fmt( "Test main loop running, render mode is ~p, "
-						   "render count is ~B, point count is ~B.",
-						   [ RenderMode, RenderCount, PointCount ] ),
+	trace_utils:info_fmt( "Test main loop running, render mode is ~p, "
+		"render count is ~B, point count is ~B.",
+		[ RenderMode, RenderCount, PointCount ] ),
 
 	receive
 
 		{ onWindowClosed, [ MainFrame, Context ] } ->
 
-			trace_utils:trace_fmt( "Main frame ~s has been closed "
-								   "(~s), test success.",
-								   [ gui:object_to_string( MainFrame ),
-									 gui:context_to_string( Context ) ] ),
+			trace_utils:info_fmt( "Main frame ~s has been closed "
+				"(~s), test success.",
+				[ gui:object_to_string( MainFrame ),
+				  gui:context_to_string( Context ) ] ),
 
 			gui:destruct_window( MainFrame ),
 
@@ -236,60 +236,60 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 		{ onButtonClicked, [ RenderShapeButton, Context ] } ->
 
-			trace_utils:trace_fmt( "Render shape button ~s has been clicked "
-								   "(~s).",
-								   [ gui:object_to_string( QuitButton ),
-									 gui:context_to_string( Context ) ] ),
+			trace_utils:info_fmt(
+			  "Render shape button ~s has been clicked (~s).",
+			  [ gui:object_to_string( QuitButton ),
+				gui:context_to_string( Context ) ] ),
 
 			test_main_loop( TestState );
 
 
 		{ onButtonClicked, [ RenderMECButton, Context ] } ->
 
-			trace_utils:trace_fmt( "Render MEC button ~s has been clicked "
-								   "(~s).",
-								   [ gui:object_to_string( QuitButton ),
-									 gui:context_to_string( Context ) ] ),
+			trace_utils:info_fmt(
+			  "Render MEC button ~s has been clicked (~s).",
+			  [ gui:object_to_string( QuitButton ),
+				gui:context_to_string( Context ) ] ),
 
 			test_main_loop( TestState );
 
 
 		{ onButtonClicked, [ AddButton, Context ] } ->
 
-			trace_utils:trace_fmt( "Add point button ~s has been clicked "
-								   "(~s).",
-								   [ gui:object_to_string( QuitButton ),
-									 gui:context_to_string( Context ) ] ),
+			trace_utils:info_fmt(
+			  "Add point button ~s has been clicked (~s).",
+			  [ gui:object_to_string( QuitButton ),
+				gui:context_to_string( Context ) ] ),
 
 			test_main_loop( TestState );
 
 
 		{ onButtonClicked, [ LoadImageButton, Context ] } ->
 
-			trace_utils:trace_fmt( "Load image button ~s has been clicked "
-								   "(~s).",
-								   [ gui:object_to_string( QuitButton ),
-									 gui:context_to_string( Context ) ] ),
+			trace_utils:info_fmt(
+			  "Load image button ~s has been clicked (~s).",
+			  [ gui:object_to_string( QuitButton ),
+				gui:context_to_string( Context ) ] ),
 
 			test_main_loop( TestState );
 
 
 		{ onButtonClicked, [ ClearCanvasButton, Context ] } ->
 
-			trace_utils:trace_fmt( "Clear canvas button ~s has been clicked "
-								   "(~s).",
-								   [ gui:object_to_string( QuitButton ),
-									 gui:context_to_string( Context ) ] ),
+			trace_utils:info_fmt(
+			  "Clear canvas button ~s has been clicked (~s).",
+			  [ gui:object_to_string( QuitButton ),
+				gui:context_to_string( Context ) ] ),
 
 			test_main_loop( TestState );
 
 
 		{ onButtonClicked, [ QuitButton, _Context ] } ->
 
-			%trace_utils:trace_fmt( "Quit button ~s has been clicked "
-			%					   "(~s), test success.",
-			%					   [ gui:object_to_string( QuitButton ),
-			%						 gui:context_to_string( Context ) ] ),
+			%trace_utils:info_fmt( "Quit button ~s has been clicked "
+			%	"(~s), test success.",
+			%	[ gui:object_to_string( QuitButton ),
+			%	  gui:context_to_string( Context ) ] ),
 
 			gui:destruct_window( MainFrame ),
 
@@ -298,9 +298,9 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 		{ onRepaintNeeded, [ Canvas, Context ] } ->
 
-			trace_utils:trace_fmt( "Canvas '~s' needing repaint (~s).",
-								   [ gui:object_to_string( Canvas ),
-									 gui:context_to_string( Context ) ] ),
+			trace_utils:info_fmt( "Canvas '~s' needing repaint (~s).",
+				[ gui:object_to_string( Canvas ),
+				  gui:context_to_string( Context ) ] ),
 
 			case RenderMode of
 
@@ -318,9 +318,9 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 		{ onResized, [ Canvas, NewSize, Context ] } ->
 
-			trace_utils:trace_fmt( "Canvas ~s resized to ~w (~s).",
-								   [ gui:object_to_string( Canvas ), NewSize,
-									 gui:context_to_string( Context ) ] ),
+			trace_utils:info_fmt( "Canvas ~s resized to ~w (~s).",
+				[ gui:object_to_string( Canvas ), NewSize,
+				  gui:context_to_string( Context ) ] ),
 
 			case RenderMode of
 
@@ -351,9 +351,9 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 -spec render_shapes( gui:canvas() ) -> gui:canvas().
 render_shapes( Canvas ) ->
 
-	trace_utils:trace_fmt( "Rendering shapes, redrawing canvas ~w, "
-						   "of size ~w.",
-						   [ Canvas, gui:get_size( Canvas ) ] ),
+	trace_utils:info_fmt(
+	  "Rendering shapes, redrawing canvas ~w, of size ~w.",
+	  [ Canvas, gui:get_size( Canvas ) ] ),
 
 	gui:set_background_color( Canvas, yellow ),
 
@@ -419,7 +419,7 @@ render_shapes( Canvas ) ->
 						gui:canvas().
 render_mec( Canvas, PointCount ) ->
 
-	trace_utils:trace_fmt( "Rendering MEC with ~B points.", [ PointCount ] ),
+	trace_utils:info_fmt( "Rendering MEC with ~B points.", [ PointCount ] ),
 
 	gui:set_background_color( Canvas, blue ),
 

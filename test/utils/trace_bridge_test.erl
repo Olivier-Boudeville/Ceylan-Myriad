@@ -54,11 +54,11 @@ emit_traces() ->
 
 	trace_bridge:set_application_timestamp( "My applicative timestamp" ),
 
-	trace_bridge:trace( "I am a trace simple message." ),
-	trace_bridge:trace_fmt( "I am a trace ~s message.", [ "formatted" ] ),
-
 	trace_bridge:info( "I am an info simple message." ),
 	trace_bridge:info_fmt( "I am an info ~s message.", [ "formatted" ] ),
+
+	trace_bridge:notice( "I am a notice simple message." ),
+	trace_bridge:notice_fmt( "I am a notice ~s message.", [ "formatted" ] ),
 
 	trace_bridge:warning( "I am a warning simple message." ),
 	trace_bridge:warning_fmt( "I am a warning ~s message.", [ "formatted" ] ),
@@ -66,8 +66,14 @@ emit_traces() ->
 	trace_bridge:error( "I am an error simple message." ),
 	trace_bridge:error_fmt( "I am an error ~s message.", [ "formatted" ] ),
 
-	trace_bridge:fatal( "I am a fatal simple message." ),
-	trace_bridge:fatal_fmt( "I am a fatal ~s message.", [ "formatted" ] ),
+	trace_bridge:critical( "I am a critical simple message." ),
+	trace_bridge:critical_fmt( "I am a critical ~s message.", [ "formatted" ] ),
+
+	trace_bridge:alert( "I am an alert simple message." ),
+	trace_bridge:alert_fmt( "I am an alert ~s message.", [ "formatted" ] ),
+
+	trace_bridge:emergency( "I am an emergency simple message." ),
+	trace_bridge:emergency_fmt( "I am an emergency  ~s message.", [ "formatted" ] ),
 
 	trace_bridge:void( "I am a void simple message." ),
 	trace_bridge:void_fmt( "I am a void ~s message.", [ "formatted" ] ).

@@ -368,7 +368,7 @@ compute_md5_sum( Filename ) ->
 -spec compute_sha1_sum( file_path() ) -> sha1_sum().
 compute_sha1_sum( Filename ) ->
 
-	%trace_utils:trace_fmt( "Computing SHA1 sum of '~s'.", [ Filename ] ),
+	%trace_utils:info_fmt( "Computing SHA1 sum of '~s'.", [ Filename ] ),
 
 	compute_sha_sum( Filename, _SizeOfSHAAlgorithm=1 ).
 
@@ -392,7 +392,7 @@ compute_sha_sum( Filename, SizeOfSHAAlgorithm )
 
 	end,
 
-	%trace_utils:trace_fmt( "Computing SHA~B sum of '~s'.",
+	%trace_utils:info_fmt( "Computing SHA~B sum of '~s'.",
 	%					   [ SizeOfSHAAlgorithm, Filename ] ),
 
 	% Removes the filename after the SHA code:

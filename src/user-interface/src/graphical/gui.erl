@@ -556,8 +556,8 @@ start() ->
 	LoopPid = ?myriad_spawn_link( gui_event, start_main_event_loop,
 								  [ WxServer, WxEnv ] ),
 
-	trace_utils:trace_fmt( "Main loop running on ~w (created from ~w).",
-						   [ LoopPid, self() ] ),
+	trace_utils:info_fmt( "Main loop running on ~w (created from ~w).",
+						  [ LoopPid, self() ] ),
 
 	GUIEnv = #gui_env{ wx_server=WxServer, loop_pid=LoopPid },
 
@@ -598,8 +598,8 @@ set_debug_level( DebugLevel ) ->
 -spec subscribe_to_events( gui_event:event_subscription_spec() ) -> void().
 subscribe_to_events( SubscribedEvents ) when is_list( SubscribedEvents ) ->
 
-	trace_utils:trace_fmt( "Subscribing to following events: ~p.",
-						   [ SubscribedEvents ] ),
+	trace_utils:info_fmt( "Subscribing to following events: ~p.",
+						  [ SubscribedEvents ] ),
 
 	GUIEnv = get_gui_env(),
 
@@ -1252,8 +1252,8 @@ create_button( Label, Parent ) ->
 
 	Options = [ { label, Label } ],
 
-	%trace_utils:trace_fmt( "Button options (for any ID): ~p.",
-	%                       [ Id, Options ] ),
+	%trace_utils:info_fmt( "Button options (for any ID): ~p.",
+	%                      [ Id, Options ] ),
 
 	wxButton:new( Parent, Id, Options ).
 
@@ -1287,7 +1287,7 @@ create_button( Label, Position, Size, Style, Id, Parent ) ->
 				to_wx_size( Size ),
 				{ style, gui_wx_backend:button_style_to_bitmask( Style ) } ],
 
-	%trace_utils:trace_fmt( "Button options for ID #~B: ~p.", [ Id, Options ] ),
+	%trace_utils:info_fmt( "Button options for ID #~B: ~p.", [ Id, Options ] ),
 
 	wxButton:new( Parent, Id, Options ).
 

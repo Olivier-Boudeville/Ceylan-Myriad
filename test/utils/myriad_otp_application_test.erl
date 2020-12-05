@@ -78,8 +78,8 @@ run() ->
 	OrderedAppNames = otp_utils:prepare_for_execution( _ThisAppName=myriad,
 													   BuildRootDir ),
 
-	trace_utils:info_fmt( "Resulting applications to start, in order: ~w.",
-						  [ OrderedAppNames ] ),
+	trace_utils:notice_fmt( "Resulting applications to start, in order: ~w.",
+							[ OrderedAppNames ] ),
 
 	test_myriad_application( OrderedAppNames ),
 

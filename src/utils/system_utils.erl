@@ -534,7 +534,7 @@ force_unicode_support() ->
 
 	EncodingOpt = ?default_encoding_opt,
 
-	%trace_utils:info_fmt( "Forcing ~p encoding option.", [ Encoding ] ),
+	%trace_utils:notice_fmt( "Forcing ~p encoding option.", [ Encoding ] ),
 
 	% One may have to explicitly force the use of the Unicode encoding, as
 	% apparently a side-effect of running the VM with the -noinput option (which

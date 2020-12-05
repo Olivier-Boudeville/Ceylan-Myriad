@@ -107,7 +107,7 @@ main( ArgTable ) ->
 
 	end,
 
-	trace_utils:info( "Stopping now." ),
+	trace_utils:notice( "Stopping now." ),
 
 	basic_utils:stop( _ErrorCode=0 ).
 

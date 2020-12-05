@@ -2306,7 +2306,7 @@ move_file( SourceFilename, DestinationFilename ) ->
 			DestinationFilename;
 
 		{ error, exdev } ->
-			%trace_utils:trace_fmt( "Moving across filesystems '~s' to '~s'.",
+			%trace_utils:info_fmt( "Moving across filesystems '~s' to '~s'.",
 			%					   [ SourceFilename, DestinationFilename ] ),
 			copy_file( SourceFilename, DestinationFilename ),
 			remove_file( SourceFilename );
@@ -3909,10 +3909,10 @@ files_to_zipped_term( FilenameList, BaseDirectory ) ->
 
 	DummyFileName = "dummy",
 
-	%trace_utils:info_fmt( "files_to_zipped_term operating, from '~s', "
-	%					  "on following ~B file(s): ~s",
-	%					  [ BaseDirectory, length( FilenameList ),
-	%						text_utils:terms_to_string( FilenameList ) ] ),
+	%trace_utils:notice_fmt( "files_to_zipped_term operating, from '~s', "
+	%						 "on following ~B file(s): ~s",
+	%						 [ BaseDirectory, length( FilenameList ),
+	%						   text_utils:terms_to_string( FilenameList ) ] ),
 
 	 case zip:zip( DummyFileName, FilenameList,
 				   [ memory, { cwd, BaseDirectory } ] ) of

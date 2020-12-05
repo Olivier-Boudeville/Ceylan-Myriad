@@ -111,11 +111,13 @@
 
 % Displaying:
 -export([ display_debug/1, display_debug/2,
-		  display_trace/1, display_trace/2,
 		  display_info/1, display_info/2,
+		  display_notice/1, display_notice/2,
 		  display_warning/1, display_warning/2,
 		  display_error/1, display_error/2,
-		  display_fatal/1, display_fatal/2 ]).
+		  display_critical/1, display_critical/2,
+		  display_alert/1, display_alert/2,
+		  display_emergency/1, display_emergency/2 ]).
 
 
 % Signaling:
@@ -209,7 +211,7 @@ check_ast( AST ) ->
 -spec interpret_issue_reports( [ issue_report() ] ) -> void().
 interpret_issue_reports( _IssueReports=[] ) ->
 	% Should never happen:
-	display_trace( "(no remark emitted)" );
+	display_info( "(no remark emitted)" );
 
 % No need to further special-case the number of issue reports, as it is not
 % meaningful (one may include an arbitrary long list):
@@ -630,19 +632,6 @@ display_debug( FormatString, Values ) ->
 
 
 
-% Displays specified text as trace.
--spec display_trace( ustring() ) -> void().
-display_trace( String ) ->
-	io:format( "[trace] ~s~n", [ String ] ).
-
-
-% Displays specified formatted text as trace.
--spec display_trace( format_string(), [ term() ] ) -> void().
-display_trace( FormatString, Values ) ->
-	display_trace( io_lib:format( FormatString, Values ) ).
-
-
-
 % Displays specified text as info.
 -spec display_info( ustring() ) -> void().
 display_info( String ) ->
@@ -653,6 +642,20 @@ display_info( String ) ->
 -spec display_info( format_string(), [ term() ] ) -> void().
 display_info( FormatString, Values ) ->
 	display_info( io_lib:format( FormatString, Values ) ).
+
+
+
+% Displays specified text as notice.
+-spec display_notice( ustring() ) -> void().
+display_notice( String ) ->
+	io:format( "[notice] ~s~n", [ String ] ).
+
+
+% Displays specified formatted text as notice.
+-spec display_notice( format_string(), [ term() ] ) -> void().
+display_notice( FormatString, Values ) ->
+	display_notice( io_lib:format( FormatString, Values ) ).
+
 
 
 % Displays specified text as warning.
@@ -681,16 +684,42 @@ display_error( FormatString, Values ) ->
 
 
 
-% Displays specified text as fatal.
--spec display_fatal( ustring() ) -> void().
-display_fatal( String ) ->
-	io:format( "[fatal] ~s~n", [ String ] ).
+% Displays specified text as critical.
+-spec display_critical( ustring() ) -> void().
+display_critical( String ) ->
+	io:format( "[critical] ~s~n", [ String ] ).
 
 
-% Displays specified formatted text as fatal.
--spec display_fatal( format_string(), [ term() ] ) -> void().
-display_fatal( FormatString, Values ) ->
-	display_fatal( io_lib:format( FormatString, Values ) ).
+% Displays specified formatted text as critical.
+-spec display_critical( format_string(), [ term() ] ) -> void().
+display_critical( FormatString, Values ) ->
+	display_critical( io_lib:format( FormatString, Values ) ).
+
+
+
+% Displays specified text as alert.
+-spec display_alert( ustring() ) -> void().
+display_alert( String ) ->
+	io:format( "[alert] ~s~n", [ String ] ).
+
+
+% Displays specified formatted text as alert.
+-spec display_alert( format_string(), [ term() ] ) -> void().
+display_alert( FormatString, Values ) ->
+	display_alert( io_lib:format( FormatString, Values ) ).
+
+
+
+% Displays specified text as emergency.
+-spec display_emergency( ustring() ) -> void().
+display_emergency( String ) ->
+	io:format( "[emergency] ~s~n", [ String ] ).
+
+
+% Displays specified formatted text as emergency.
+-spec display_emergency( format_string(), [ term() ] ) -> void().
+display_emergency( FormatString, Values ) ->
+	display_emergency( io_lib:format( FormatString, Values ) ).
 
 
 

@@ -70,9 +70,14 @@
 		  get_bridge_info/0, set_bridge_info/1,
 		  set_application_timestamp/1, unregister/0,
 
-		  debug/1, debug_fmt/2, trace/1, trace_fmt/2,
-		  info/1, info_fmt/2, warning/1, warning_fmt/2,
-		  error/1, error_fmt/2, fatal/1, fatal_fmt/2,
+		  debug/1, debug_fmt/2,
+		  info/1, info_fmt/2,
+		  notice/1, notice_fmt/2,
+		  warning/1, warning_fmt/2,
+		  error/1, error_fmt/2,
+		  critical/1, critical_fmt/2,
+		  alert/1, alert_fmt/2,
+		  emergency/1, emergency_fmt/2,
 		  void/1, void_fmt/2 ]).
 
 
@@ -158,7 +163,7 @@ register( BridgeSpec={ BinTraceEmitterName, BinTraceCategory, BridgePid } )
 		% Normal case:
 		undefined ->
 			process_dictionary:put( BridgeKey, BridgeInfo ),
-			trace_fmt( "Trace bridge registered (spec: ~p).", [ BridgeSpec ] );
+			info_fmt( "Trace bridge registered (spec: ~p).", [ BridgeSpec ] );
 
 		UnexpectedInfo ->
 			throw( { myriad_trace_bridge_already_registered, UnexpectedInfo,
@@ -245,19 +250,6 @@ debug_fmt( MessageFormat, MessageValues ) ->
 
 
 
-% Outputs specified trace message.
--spec trace( trace_message() ) -> void().
-trace( Message ) ->
-	send( trace, Message ).
-
-
-% Outputs specified trace message to format.
--spec trace_fmt( format_string(), format_values() ) -> void().
-trace_fmt( MessageFormat, MessageValues ) ->
-	send( trace, MessageFormat, MessageValues ).
-
-
-
 % Outputs specified info message.
 -spec info( trace_message() ) -> void().
 info( Message ) ->
@@ -268,6 +260,19 @@ info( Message ) ->
 -spec info_fmt( format_string(), format_values() ) -> void().
 info_fmt( MessageFormat, MessageValues ) ->
 	send( info, MessageFormat, MessageValues ).
+
+
+
+% Outputs specified notice message.
+-spec notice( trace_message() ) -> void().
+notice( Message ) ->
+	send( notice, Message ).
+
+
+% Outputs specified notice message to format.
+-spec notice_fmt( format_string(), format_values() ) -> void().
+notice_fmt( MessageFormat, MessageValues ) ->
+	send( notice, MessageFormat, MessageValues ).
 
 
 
@@ -297,16 +302,42 @@ error_fmt( MessageFormat, MessageValues ) ->
 
 
 
-% Outputs specified fatal message.
--spec fatal( trace_message() ) -> void().
-fatal( Message ) ->
-	send( fatal, Message ).
+% Outputs specified critical message.
+-spec critical( trace_message() ) -> void().
+critical( Message ) ->
+	send( critical, Message ).
 
 
-% Outputs specified fatal message to format.
--spec fatal_fmt( format_string(), format_values() ) -> void().
-fatal_fmt( MessageFormat, MessageValues ) ->
-	send( fatal, MessageFormat, MessageValues ).
+% Outputs specified critical message to format.
+-spec critical_fmt( format_string(), format_values() ) -> void().
+critical_fmt( MessageFormat, MessageValues ) ->
+	send( critical, MessageFormat, MessageValues ).
+
+
+
+% Outputs specified critical message.
+-spec alert( trace_message() ) -> void().
+alert( Message ) ->
+	send( alert, Message ).
+
+
+% Outputs specified alert message to format.
+-spec alert_fmt( format_string(), format_values() ) -> void().
+alert_fmt( MessageFormat, MessageValues ) ->
+	send( alert, MessageFormat, MessageValues ).
+
+
+
+% Outputs specified emergency message.
+-spec emergency( trace_message() ) -> void().
+emergency( Message ) ->
+	send( emergency, Message ).
+
+
+% Outputs specified emergency message to format.
+-spec emergency_fmt( format_string(), format_values() ) -> void().
+emergency_fmt( MessageFormat, MessageValues ) ->
+	send( emergency, MessageFormat, MessageValues ).
 
 
 

@@ -1444,7 +1444,7 @@ trace( Message, UIState ) when is_record( UIState, term_ui_state ) ->
 	case UIState#term_ui_state.log_console of
 
 		true ->
-			trace_utils:trace( TraceMessage );
+			trace_utils:info( TraceMessage );
 
 		false ->
 			ok

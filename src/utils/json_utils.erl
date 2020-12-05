@@ -187,7 +187,7 @@ start_parser() ->
 
 	ParserName = get_available_parser_backend_name(),
 
-	%trace_utils:trace_fmt( "Selected JSON parser: '~s'.", [ ParserName ] ),
+	%trace_utils:info_fmt( "Selected JSON parser: '~s'.", [ ParserName ] ),
 
 	start_parser( ParserName ).
 
@@ -224,7 +224,7 @@ get_parser_backend_name() ->
 	% Useful to detect repeated initializations that may be unwanted (then rely
 	% on the stateful mode of operation):
 	%
-	%trace_utils:trace( "Determining the JSON backend to use." ),
+	%trace_utils:info( "Determining the JSON backend to use." ),
 
 	% We prioritize JSX over Jiffy:
 	case is_parser_backend_available( jsx ) of
@@ -333,7 +333,7 @@ get_available_parser_backend_name() ->
 			throw( no_json_parser_backend_found );
 
 		ParserName ->
-			%trace_utils:trace_fmt( "Selected JSON parser: ~s.",
+			%trace_utils:info_fmt( "Selected JSON parser: ~s.",
 			%					   ParserName ] ),
 			ParserName
 

@@ -230,7 +230,7 @@ run() ->
 -spec main( shell_utils:argument_table() ) -> void().
 main( ArgTable ) ->
 
-	%trace_utils:info( "Running..." ),
+	%trace_utils:notice( "Running..." ),
 
 	UIOptions = [ log_console ],
 	%UIOptions = [],
@@ -2879,12 +2879,12 @@ scan_files( Files, AbsTreePath, AnalyzerRing, UserState ) ->
 
 scan_files( _Files=[], TreeData, _AnalyzerRing, _WaitedCount=0, _UserState ) ->
 	% In final state (none waited), hence directly returned:
-	%trace_info( "All file entries retrieved." ),
+	%trace_notice( "All file entries retrieved." ),
 	TreeData;
 
 scan_files( _Files=[], TreeData, _AnalyzerRing, WaitedCount, _UserState ) ->
 	% Will return an updated tree data, once all answers are received:
-	%trace_info( "Final waiting for ~B entries.", [ WaitedCount ] ),
+	%trace_notice( "Final waiting for ~B entries.", [ WaitedCount ] ),
 	wait_entries( TreeData, WaitedCount );
 
 scan_files( _Files=[ Filename | T ], TreeData=#tree_data{ root=BinAbsTreePath },
@@ -3032,12 +3032,12 @@ analyze_loop() ->
 
 						true ->
 							Type = file_utils:get_type_of( FilePath ),
-							trace_utils:info_fmt( "The type of entry '~s' "
+							trace_utils:notice_fmt( "The type of entry '~s' "
 								"switched from regular (file) to ~s.",
 								[ FilePath, Type ] );
 
 						false ->
-							trace_utils:info_fmt( "The file '~s' does not "
+							trace_utils:notice_fmt( "The file '~s' does not "
 								"exist anymore.", [ FilePath ] )
 
 					end,

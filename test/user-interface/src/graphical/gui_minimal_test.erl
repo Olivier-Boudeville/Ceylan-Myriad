@@ -53,7 +53,7 @@ run_test_gui() ->
 	gui:subscribe_to_events( EventOfInterest ),
 
 
-	trace_utils:info( "Please close the frame to end this test." ),
+	trace_utils:notice( "Please close the frame to end this test." ),
 
 	gui:show( TestFrame ),
 
@@ -63,14 +63,14 @@ run_test_gui() ->
 
 		{ onWindowClosed, [ TestFrame, Context ] } ->
 
-			trace_utils:trace_fmt( "Frame '~s' closed (~s).",
+			trace_utils:info_fmt( "Frame '~s' closed (~s).",
 				[ gui:object_to_string( TestFrame ),
 				  gui:context_to_string( Context ) ] ),
 
 			% A frame is a window:
 			gui:destruct_window( TestFrame ),
 
-			trace_utils:trace( "Test frame closed, test success." ),
+			trace_utils:info( "Test frame closed, test success." ),
 
 			gui:stop()
 
