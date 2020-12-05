@@ -57,7 +57,7 @@
 
 % Not exported by the standard module:
 %-type restart_type() :: application:restart_type().
--type restart_type() = 'permanent' | 'transient' | 'temporary'.
+-type restart_type() :: 'permanent' | 'transient' | 'temporary'.
 
 
 % The PID of an OTP supervisor:
