@@ -451,7 +451,8 @@ freeze() ->
 -spec crash() -> any().
 crash() ->
 
-	io:format( "*** Crashing on purpose process ~w ***~n", [ self() ] ),
+	trace_bridge:warning_fmt( "*** Crashing on purpose process ~w ***",
+							  [ self() ] ),
 
 	% Must outsmart the compiler; there should be simpler solutions:
 	A = system_utils:get_core_count(),
