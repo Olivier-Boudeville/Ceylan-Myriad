@@ -152,7 +152,7 @@
 
 		  echo/2, echo/3, echo/4,
 
-		  get_priority_for/1, get_severity_for/1 ]).
+		  get_priority_for/1, get_severity_for/1, is_error_like/1 ]).
 
 
 % Logger-related API (see
@@ -510,7 +510,7 @@ void_categorized_timed( _Message, _MessageCategorization, _Timestamp ) ->
 	ok.
 
 
--define( echo_prefix, "[echoed]" ++ ).
+-define( echo_prefix, "[echoed] " ++ ).
 
 % Echoes specified trace in specified trace channel.
 %
@@ -711,6 +711,15 @@ get_severity_for( Other ) ->
 
 
 
+% Tells whether specified severity belongs to the error-like ones (typically the
+% ones that must never be missed).
+%
+-spec is_error_like( trace_severity() ) -> boolean().
+is_error_like( Severity ) ->
+	lists:member( Severity, [ warning, error, critical, alert, emergency ] ).
+
+
+
 % Handler section for the integration of Erlang (newer) logger.
 %
 % Refer to https://erlang.org/doc/man/logger.html.
@@ -748,7 +757,10 @@ set_handler() ->
 	end.
 
 
-% Registers this Myriad logger handler as an additional one.
+
+% Registers this Myriad logger handler as an additional one (not replacing the
+% default one).
+%
 -spec add_handler() -> void().
 add_handler() ->
 
@@ -764,22 +776,22 @@ add_handler() ->
 	end.
 
 
+
 % Returns the (initial) configuration of the Myriad logger handler.
 -spec get_handler_config() -> logger:handler_config().
 get_handler_config() ->
-	#{
-	  % No configuration needed here by our handler:
-	  config => undefined
-	  % Defaults:
-	  % level => all,
-	  % filter_default => log | stop,
-	  % filters => [],
-	  % formatter => {logger_formatter, DefaultFormatterConfig}
 
-	  % Set by logger:
-	  %id => HandlerId
-	  %module => Module
+	#{ % No configuration needed here by our handler:
+	   config => undefined
+	   % Defaults:
+	   % level => all,
+	   % filter_default => log | stop,
+	   % filters => [],
+	   % formatter => {logger_formatter, DefaultFormatterConfig}
 
+	   % Set by logger:
+	   %id => HandlerId
+	   %module => Module
 	 }.
 
 
