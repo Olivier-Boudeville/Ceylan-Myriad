@@ -36,23 +36,23 @@
 
 % Implementation notes:
 %
-% A large part of this module consists of stubs, i.e. on placeholder definitions
+% A large part of this module consists of stubs, i.e. of placeholder definitions
 % of the pseudo-functions (such as cond_utils:if_debug/1) meant to be replaced
 % at compile time by user-specified conditional code.
 %
-% Note that the if_* conditions (ex: if_debug/1) are not fulfilled, the
+% Note that if the if_* conditions (ex: if_debug/1) are not fulfilled, the
 % specified conditional code is dismissed as a whole, it is not even replaced
-% for example by an 'ok' atom (this may matter if this conditional is the single
+% for example by an 'ok' atom (this may matter if this conditional is the only
 % expression in a case clause for example, in which case a compilation failure
 % like "internal error in core; crash reason: function_clause in function
-% v3_core:cexprs/3 called as v3_core:cexprs[...]".
+% v3_core:cexprs/3 called as v3_core:cexprs[...]" will be reported.
 %
 % Note also that switching conditional flags will select/deselect in-code
 % expressions and may lead to variables being declared as unused by the
 % compiler; no better solution than:
 % - to mute them then (yet this requires to change the code when toggling such
-% flags - not desirable),
-% - to use nowarn_unused_vars in at least some modules,
+% flags - not desirable)
+% - to use nowarn_unused_vars in at least some modules
 % - or to introduce once for all (at the expense of a small runtime penalty
 % cost) an alternate branch to this conditional silencing these unused warnings,
 % like in:
