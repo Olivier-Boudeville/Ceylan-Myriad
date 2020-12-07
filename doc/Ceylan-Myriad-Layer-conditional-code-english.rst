@@ -115,6 +115,36 @@ Note that, in this case, a given level of checking should include the one just b
 
 
 
+Usage Hints
+-----------
+
+Note that if the ``if_*`` conditions (ex: ``if_debug/1``) are not fulfilled, the specified conditional code is dismissed as a whole, it is not even replaced for example by an ``ok`` atom; this may matter if this conditional is the only expression in a case clause for example, in which case a compilation failure like "*internal error in core; crash reason: function_clause in function v3_core:cexprs/3 called as v3_core:cexprs[...]*" will be reported.
+
+Note also that switching conditional flags will select/deselect in-code expressions at compile time, and may lead functions and/or variables to become unused, and thus may trigger warnings [#]_.
+
+.. [#] Warnings that we prefer promoting to errors, as they constitute a *very* convenient safety net.
+
+For functions that could become unused to the conditional setting of a token, the compiler could certainly be silenced by exporting them, yet a better approach is surely to prefer using::
+
+ -compile({nowarn_unused_function,my_func/3}).
+
+or::
+
+ -compile({nowarn_unused_function,[my_func/3, my_other_func/0]}).
+
+
+As for variables, should A, B or C be reported as unused if ``some_token`` was not set, then ``basic_utils:ignore_unused/1`` (mostly a no-op) could be of use::
+
+ [...]
+ cond_utils:if_defined( some_token,
+						f(A, B, C),
+						basic_utils:ignore_unused([A, B, C])),
+ [...]
+
+
+Alternatively, ``nowarn_unused_vars`` could be used instead, at least in some modules.
+
+
 
 For more information
 --------------------
