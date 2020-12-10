@@ -319,10 +319,10 @@ update_entries( EntryList, MapHashtable ) ->
 % Swaps in specified table the current value associated to the specified key
 % with the specified new value.
 %
-% Returns the previous value associated to that key and an updated table.
+% Returns the value previously associated to that key and an updated table.
 %
-% The entry designated by specified key is expected to exist already, otherwise
-% an exception ({bad_key,Key}) is triggered.
+% The entry designated by the specified key is expected to exist already,
+% otherwise a {bad_key,Key} exception is triggered.
 %
 -spec swap_value( key(), value(), map_hashtable() ) ->
 						{ value(), map_hashtable() }.
