@@ -64,7 +64,8 @@
 		  stop/0, stop/1, stop_on_success/0, stop_on_failure/0,
 		  stop_on_failure/1,
 		  identity/1,
-		  check_undefined/1, check_not_undefined/1, check_all_defined/1,
+		  check_undefined/1, check_all_undefined/1,
+		  check_defined/1, check_not_undefined/1, check_all_defined/1,
 		  ignore_unused/1,
 		  freeze/0, crash/0, enter_infinite_loop/0,
 		  trigger_oom/0 ]).
@@ -380,6 +381,15 @@ check_undefined( undefined ) ->
 
 check_undefined( Term ) ->
 	throw( { not_undefined, Term } ).
+
+
+
+% Checks that all elements of the specified list are equal to 'undefined';
+% returns that list.
+%
+-spec check_all_undefined( term() ) -> void().
+check_all_undefined( List ) ->
+	[ check_undefined( Term ) || Term <- List ].
 
 
 % Checks that specified term is not 'undefined'; returns that term.
