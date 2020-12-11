@@ -171,7 +171,7 @@ register( BridgeSpec ) ->
 			error_fmt( "Myriad trace bridge already registered (as ~p), "
 				%"ignoring newer registration (as ~p).",
 				"whereas a newer registration (as ~p) was requested.",
-				[ BridgeInfo, UnexpectedInfo ] )
+				[ BridgeInfo, UnexpectedInfo ] ),
 			throw( { myriad_trace_bridge_already_registered, UnexpectedInfo,
 					 BridgeInfo } )
 
