@@ -73,7 +73,8 @@ emit_traces() ->
 	trace_bridge:alert_fmt( "I am an alert ~s message.", [ "formatted" ] ),
 
 	trace_bridge:emergency( "I am an emergency simple message." ),
-	trace_bridge:emergency_fmt( "I am an emergency  ~s message.", [ "formatted" ] ),
+	trace_bridge:emergency_fmt( "I am an emergency  ~s message.",
+								[ "formatted" ] ),
 
 	trace_bridge:void( "I am a void simple message." ),
 	trace_bridge:void_fmt( "I am a void ~s message.", [ "formatted" ] ).

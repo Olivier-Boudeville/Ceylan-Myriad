@@ -66,7 +66,7 @@
 -export_type([ bridge_pid/0 ]).
 
 
--export([ get_bridge_spec/3, register/1,
+-export([ get_bridge_spec/3, register/1, register_if_not_already/1,
 		  get_bridge_info/0, set_bridge_info/1,
 		  set_application_timestamp/1, unregister/0,
 
@@ -142,21 +142,23 @@ get_bridge_spec( TraceEmitterName, TraceCategory, BridgePid ) ->
 
 
 
-% Registers the current process to specified trace bridge (if any).
+% Registers the current process to the specified trace bridge (if any).
 %
 % To be called by the process wanting to use such a trace bridge.
 %
+% Throws an exception of a bridge is already set.
+%
+% See also: register_if_not_already/1.
+%
 -spec register( maybe( bridge_spec() ) ) -> void().
-register( BridgeSpec={ BinTraceEmitterName, BinTraceCategory, BridgePid } )
-  when is_pid( BridgePid ) ->
+register( _MaybeBridgeSpec=undefined ) ->
+	ok;
+
+register( BridgeSpec ) ->
 
 	BridgeKey = ?myriad_trace_bridge_key,
 
-	Location = net_utils:localnode_as_binary(),
-	DefaultApplicationTimestamp = undefined,
-
-	BridgeInfo = { BinTraceEmitterName, BinTraceCategory, Location, BridgePid,
-				   DefaultApplicationTimestamp },
+	BridgeInfo = bridge_spec_to_info( BridgeSpec ),
 
 	case process_dictionary:get( BridgeKey ) of
 
@@ -166,15 +168,64 @@ register( BridgeSpec={ BinTraceEmitterName, BinTraceCategory, BridgePid } )
 			info_fmt( "Trace bridge registered (spec: ~p).", [ BridgeSpec ] );
 
 		UnexpectedInfo ->
+			error_fmt( "Myriad trace bridge already registered (as ~p), "
+				%"ignoring newer registration (as ~p).",
+				"whereas a newer registration (as ~p) was requested.",
+				[ BridgeInfo, UnexpectedInfo ] )
 			throw( { myriad_trace_bridge_already_registered, UnexpectedInfo,
 					 BridgeInfo } )
 
-	end;
+	end.
 
-register( _MaybeBridgeSpec=undefined ) ->
+
+
+% Registers the current process to the specified trace bridge (if any), and
+% provided that no bridge was already registered (otherwise maintains the
+% previous bridge and ignores silently that extraneous call).
+%
+% To be called by the process wanting to use such a trace bridge.
+%
+% Useful to have a bridge yet accept that the caller may have already set its
+% bridge.
+%
+-spec register_if_not_already( maybe( bridge_spec() ) ) -> void().
+register_if_not_already( _MaybeBridgeSpec=undefined ) ->
 	ok;
 
-register( OtherBridgeSpec ) ->
+register_if_not_already( BridgeSpec ) ->
+
+	BridgeKey = ?myriad_trace_bridge_key,
+
+	case process_dictionary:get( BridgeKey ) of
+
+		undefined ->
+
+			BridgeInfo = bridge_spec_to_info( BridgeSpec ),
+
+			process_dictionary:put( BridgeKey, BridgeInfo ),
+			info_fmt( "Trace bridge registered (spec: ~p).", [ BridgeSpec ] );
+
+		_ ->
+			ok
+
+	end.
+
+
+
+% (helper)
+%
+-spec bridge_spec_to_info( bridge_spec() ) -> bridge_info().
+bridge_spec_to_info( _BridgeSpec={ BinTraceEmitterName, BinTraceCategory,
+								   BridgePid } ) when is_pid( BridgePid ) ->
+
+	Location = net_utils:localnode_as_binary(),
+	DefaultApplicationTimestamp = undefined,
+
+	% BridgeInfo:
+	{ BinTraceEmitterName, BinTraceCategory, Location, BridgePid,
+	  DefaultApplicationTimestamp };
+
+bridge_spec_to_info( OtherBridgeSpec ) ->
 	throw( { invalid_bridge_spec, OtherBridgeSpec } ).
 
 
