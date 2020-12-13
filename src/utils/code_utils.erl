@@ -39,7 +39,7 @@
 		  deploy_modules/2, deploy_modules/3,
 		  declare_beam_directory/1, declare_beam_directory/2,
 		  declare_beam_directories/1, declare_beam_directories/2,
-		  remove_beam_directory/1,
+		  remove_beam_directory/1, remove_beam_directory_if_set/1,
 		  get_beam_dirs_for/1, get_beam_dirs_for_myriad/0,
 		  declare_beam_dirs_for/1, declare_beam_dirs_for_myriad/0,
 		  get_code_path/0, get_code_path_as_string/0, code_path_to_string/1,
@@ -442,7 +442,7 @@ check_beam_dirs( _Dirs=[ D | T ] ) ->
 % Removes specified directory (either specified verbatim or designated as the
 % ebin directory of a specified application) from the current code path.
 %
-% Throws an exception if the operation failed.
+% Throws an exception if the operation failed, including if it was not already set.
 %
 -spec remove_beam_directory(
 		directory_path() | otp_utils:application_name() ) -> void().
@@ -459,6 +459,35 @@ remove_beam_directory( NameOrDir ) ->
 
 		false ->
 			throw( { directory_not_found_in_code_path, NameOrDir } );
+
+		{ error, bad_name }  ->
+			throw( { invalid_app_name_for_code_path_removal, NameOrDir } )
+
+	end.
+
+
+
+% Removes specified directory (either specified verbatim or designated as the
+% ebin directory of a specified application) from the current code path, if it
+% was already set (otherwise does nothing).
+%
+% Throws an exception if the operation failed otherwise.
+%
+-spec remove_beam_directory_if_set(
+		directory_path() | otp_utils:application_name() ) -> void().
+remove_beam_directory_if_set( NameOrDir ) ->
+
+	cond_utils:if_defined( myriad_debug_code_path,
+	  trace_utils:debug_fmt( "Removing directory designated by '~s' "
+							 "from VM code path (if set).", [ NameOrDir ] ) ),
+
+	case code:del_path( NameOrDir ) of
+
+		true ->
+			ok;
+
+		false ->
+			ok;
 
 		{ error, bad_name }  ->
 			throw( { invalid_app_name_for_code_path_removal, NameOrDir } )
