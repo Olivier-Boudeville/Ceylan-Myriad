@@ -623,8 +623,8 @@ look_up_beam( ModuleName, EBinPath, BaseDir, AppFilePath, AppName ) ->
 								"'~s' with the _build one '~s' for '~s'.",
 								[ EBinPath, BuildEbinDir, AppName ] ),
 
-							% First removing local ebin:
-							code_utils:remove_beam_directory( EBinPath ),
+							% First removing local ebin (if set):
+							code_utils:remove_beam_directory_if_set( EBinPath ),
 
 							% Then adding the more complete _build one:
 							code_utils:declare_beam_directory( BuildEbinDir,
