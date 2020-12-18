@@ -447,7 +447,7 @@ has_entry( Key, MapHashtable ) ->
 % directly.
 %
 % The key/value pair is expected to exist already, otherwise an exception
-% ({bad_key,Key}) is triggered.
+% ({bad_key, Key}) is triggered.
 %
 -spec get_value( key(), map_hashtable() ) -> value().
 %get_value( Key,  #{ Key := Value } ) ->
@@ -571,7 +571,7 @@ extract_entry( Key, MapHashtable ) ->
 % original table.
 %
 -spec extract_entry_with_defaults( key(), value(), map_hashtable() ) ->
-									  { value(), map_hashtable() }.
+										{ value(), map_hashtable() }.
 extract_entry_with_defaults( Key, DefaultValue, Table ) ->
 
 	case has_entry( Key, Table ) of
@@ -692,7 +692,7 @@ map_on_entries( Fun, MapHashtable ) ->
 % keys.
 %
 -spec map_on_values( fun( ( value() ) -> value() ), map_hashtable() ) ->
-						   map_hashtable().
+							map_hashtable().
 map_on_values( Fun, MapHashtable ) ->
 
 	% Still not maps:map/2, whose fun takes an entry, not just a value:
@@ -1144,7 +1144,8 @@ size( MapHashtable ) ->
 % Returns a textual description of the specified map hashtable.
 -spec to_string( map_hashtable() ) -> ustring().
 to_string( MapHashtable ) ->
-	to_string( MapHashtable, user_friendly ).
+	% Newer, better default (was: 'user_friendly'):
+	to_string( MapHashtable, full ).
 
 
 
@@ -1178,8 +1179,8 @@ to_string( MapHashtable, DescriptionType ) ->
 
 		L ->
 
-			%  Enforces a consistent order; flatten below is needed, in order to
-			%  use the result with ~s:
+			% Enforces a consistent order; flatten below is needed, in order to
+			% use the result with ~s:
 			%
 			case DescriptionType of
 
