@@ -391,7 +391,7 @@ is_registered( Name ) ->
 
 
 -spec is_registered( registration_name(), look_up_scope() ) ->
-						   pid() | 'not_registered'.
+						pid() | 'not_registered'.
 is_registered( Name, _LookUpScope=global ) ->
 
 	case global:whereis_name( Name ) of
@@ -491,8 +491,8 @@ wait_for_registration_of( Name, _LookUpScope=local_only ) ->
 
 % Waits (up to 10 seconds) until specified name is globally registered.
 %
-% Returns the resolved PID, or throws
-% { global_registration_waiting_timeout, Name }.
+% Returns the resolved PID, or throws a {registration_waiting_timeout, Scope,
+% Name} exception.
 %
 -spec wait_for_global_registration_of( registration_name() ) -> pid().
 wait_for_global_registration_of( Name ) ->
@@ -500,7 +500,7 @@ wait_for_global_registration_of( Name ) ->
 
 
 wait_for_global_registration_of( Name, _Seconds=0 ) ->
-	throw( { global_registration_waiting_timeout, Name } );
+	throw( { registration_waiting_timeout, Name, global } );
 
 wait_for_global_registration_of( Name, SecondsToWait ) ->
 	case global:whereis_name( Name ) of
@@ -519,7 +519,8 @@ wait_for_global_registration_of( Name, SecondsToWait ) ->
 
 % Waits (up to 5 seconds) until specified name is locally registered.
 %
-% Returns the resolved PID, or throws {local_registration_waiting_timeout,Name}.
+% Returns the resolved PID, or throws {registration_waiting_timeout, Scope,
+% Name}.
 %
 -spec wait_for_local_registration_of( registration_name() ) -> pid() | port().
 wait_for_local_registration_of( Name ) ->
@@ -527,7 +528,7 @@ wait_for_local_registration_of( Name ) ->
 
 
 wait_for_local_registration_of( Name, _Seconds=0 ) ->
-	throw( { local_registration_waiting_timeout, Name } );
+	throw( { registration_waiting_timeout, Name, local } );
 
 wait_for_local_registration_of( Name, SecondsToWait ) ->
 
@@ -550,7 +551,7 @@ wait_for_local_registration_of( Name, SecondsToWait ) ->
 % A time-out is triggered if the waited duration exceeds 10 seconds.
 %
 -spec wait_for_remote_local_registrations_of( registration_name(),
-				 [ net_utils:atom_node_name() ] ) -> void().
+				[ net_utils:atom_node_name() ] ) -> void().
 wait_for_remote_local_registrations_of( RegisteredName, Nodes ) ->
 
 	% Up to 10 seconds, 0.5 seconds of waiting between two, thus 20 attempts:
@@ -563,7 +564,7 @@ wait_for_remote_local_registrations_of( RegisteredName, Nodes ) ->
 % Helper function.
 wait_for_remote_local_registrations_of( RegisteredName, Nodes,
 										_RemainingAttempts=0 ) ->
-	throw( { time_out_while_waiting_remote_local_registration, RegisteredName,
+	throw( { time_out_while_waiting_remote_registration, local, RegisteredName,
 			 Nodes } );
 
 wait_for_remote_local_registrations_of( RegisteredName, Nodes,
@@ -578,7 +579,7 @@ wait_for_remote_local_registrations_of( RegisteredName, Nodes,
 			ok;
 
 		_ ->
-			throw( { bad_nodes_while_waiting_remote_local_registration,
+			throw( { bad_nodes_while_waiting_remote_registration, local,
 					 RegisteredName, BadNodes } )
 
 	end,
