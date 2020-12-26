@@ -47,11 +47,12 @@
 
   % Currently disabled as leading to way too verbose error reports (ex: detailed
   % state of all neighbours):
-
+  %
   %-define( myriad_spawn_info, "proc_lib spawn" ).
   %-define( myriad_spawn, proc_lib:spawn ).
   %-define( myriad_spawn_link, proc_lib:spawn_link ).
 
+  % So currently basic as well:
   -define( myriad_spawn_info, "basic spawn" ).
   -define( myriad_spawn, spawn ).
   -define( myriad_spawn_link, spawn_link ).
