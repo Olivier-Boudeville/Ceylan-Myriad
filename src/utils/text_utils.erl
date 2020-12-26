@@ -108,7 +108,7 @@
 		  trim_whitespaces/1, trim_leading_whitespaces/1,
 		  trim_trailing_whitespaces/1,
 
-		  ellipse/1, ellipse/2,
+		  ellipse/1, ellipse/2, ellipse_fmt/2,
 
 		  get_default_bullet/0, get_bullet_for_level/1,
 		  format_text_for_width/2,
@@ -138,11 +138,11 @@
 % These strings are supposed to contain Erlang-fashioned format characters, like
 % in "hello ~p!":
 %
--type format_string() :: string().
+-type format_string() :: ustring().
 
 
 % In a format string (ex: "~n"):
--type control_sequence() :: string().
+-type control_sequence() :: ustring().
 
 
 % Lists of terms corresponding to a format string:
@@ -159,15 +159,15 @@
 %
 % See also: http://erlang.org/doc/man/re.html
 %
--type regex_string() :: string().
+-type regex_string() :: ustring().
 
 
 % A string that describes a title:
--type title() :: string().
+-type title() :: ustring().
 
 
 % A string that describes a label:
--type label() :: string().
+-type label() :: ustring().
 
 
 % A binary corresponding to a string:
@@ -175,7 +175,7 @@
 
 
 % Any kind of string (a.k.a chardata() :: charlist() | unicode_binary()):
--type any_string() :: string() | bin_string().
+-type any_string() :: ustring() | bin_string().
 
 
 
@@ -200,7 +200,7 @@
 
 % Now our default:
 %
-% (unfortunately we cannot define a text_utils:string/0 type, as "type string()
+% (unfortunately we cannot define a text_utils:string/0 type, as "type ustring()
 % is a builtin type; it cannot be redefined").
 %
 -type ustring() :: unicode_string().
@@ -209,7 +209,7 @@
 % Any kind of terms that can be directly mapped to a string (typically accepted
 % by ~s in format strings):
 %
--type string_like() :: string() | unicode_string() | bin_string() | atom().
+-type string_like() :: ustring() | unicode_string() | bin_string() | atom().
 
 
 % The specific type of iolist resulting from a parsing:
@@ -281,7 +281,7 @@
 
 
 % Returns a human-readable string describing specified term.
--spec term_to_string( term() ) -> string().
+-spec term_to_string( term() ) -> ustring().
 term_to_string( _Term=[] ) ->
 	% Otherwise would be an empty string:
 	"[]";
@@ -303,7 +303,7 @@ term_to_string( Term ) ->
 % Returns a human-readable string describing specified term, within a bounded,
 % default length.
 %
--spec term_to_bounded_string( term() ) -> string().
+-spec term_to_bounded_string( term() ) -> ustring().
 % Does not happen, as empty set is actually {0,nil}:
 %term_to_bounded_string( _AttrValue=[] ) ->
 %	% To avoid being it interpreted as a set:
@@ -318,7 +318,7 @@ term_to_bounded_string( Term ) ->
 %
 % See also term_to_string/3.
 %
--spec term_to_bounded_string( term(), length() | 'unlimited' ) -> string().
+-spec term_to_bounded_string( term(), length() | 'unlimited' ) -> ustring().
 term_to_bounded_string( Term, _MaxLen=unlimited ) ->
 	Term;
 
@@ -350,7 +350,7 @@ term_to_binary( Term ) ->
 % Returns a human-readable string describing specified term, up to the specified
 % nesting depth.
 %
--spec term_to_string( term(), depth() ) -> string().
+-spec term_to_string( term(), depth() ) -> ustring().
 term_to_string( _Term=[], _MaxDepthCount ) ->
 	% Otherwise would be an empty string:
 	"[]";
@@ -375,7 +375,7 @@ term_to_string( Term, MaxDepthCount ) ->
 %
 % See also term_to_bounded_string/{1,2}.
 %
--spec term_to_string( term(), depth(), basic_utils:count() )-> string().
+-spec term_to_string( term(), depth(), basic_utils:count() )-> ustring().
 term_to_string( _Term=[], _MaxDepthCount, _MaxLength ) ->
 	% Otherwise would be an empty string:
 	"[]";
@@ -413,7 +413,7 @@ term_to_string( Term, MaxDepthCount, MaxLength ) when MaxLength >= 3 ->
 % Useless when using functions like io:format, that accept iolists as
 % parameters.
 %
--spec integer_to_string( integer() ) -> string().
+-spec integer_to_string( integer() ) -> ustring().
 integer_to_string( IntegerValue ) ->
 	% Nonsensical: hd( io_lib:format( "~B", [ IntegerValue ] ) ).
 	%io_lib:format( "~B", [ IntegerValue ] ).
@@ -423,26 +423,26 @@ integer_to_string( IntegerValue ) ->
 % Returns a plain string corresponding to the specified integer, in hexadecimal
 % form.
 %
--spec integer_to_hexastring( integer() ) -> string().
+-spec integer_to_hexastring( integer() ) -> ustring().
 integer_to_hexastring( IntegerValue ) ->
 	"0x" ++ erlang:integer_to_list( IntegerValue, _Base=16 ).
 
 
 % Returns a plain string corresponding to the specified atom.
--spec atom_to_string( atom() ) -> string().
+-spec atom_to_string( atom() ) -> ustring().
 atom_to_string( Atom ) ->
 	atom_to_list( Atom ).
 
 
 
 % Returns a plain string corresponding to the specified PID.
--spec pid_to_string( pid() ) -> string().
+-spec pid_to_string( pid() ) -> ustring().
 pid_to_string( Pid ) ->
 	io_lib:format( "~w", [ Pid ] ).
 
 
 % Returns a plain string corresponding to the specified list of PIDs.
--spec pids_to_string( [ pid() ] ) -> string().
+-spec pids_to_string( [ pid() ] ) -> ustring().
 pids_to_string( PidList ) ->
 	io_lib:format( "~w", [ PidList ] ).
 
@@ -454,7 +454,7 @@ pids_to_string( PidList ) ->
 % Note though that the pipe character may be better avoided on some systems (ex:
 % trace ones).
 %
--spec pid_to_short_string( pid() ) -> string().
+-spec pid_to_short_string( pid() ) -> ustring().
 pid_to_short_string( Pid ) ->
 	% Could be used: list_utils:flatten_once/1:
 	%[ $< | pid_to_core_string( Pid ) ] ++ ">".
@@ -466,7 +466,7 @@ pid_to_short_string( Pid ) ->
 % For example, [<0.33.0>,<0.35.0>] returned as "|33,35|" (7 characters instead
 % of 19, almost one-third).
 %
--spec pids_to_short_string( [ pid() ] ) -> string().
+-spec pids_to_short_string( [ pid() ] ) -> ustring().
 pids_to_short_string( PidList ) ->
 	% Could be used: list_utils:flatten_once/1:
 
@@ -483,7 +483,7 @@ pids_to_short_string( PidList ) ->
 %
 % For example, for <0.33.0>, will return "33".
 %
--spec pid_to_core_string( pid() ) -> string().
+-spec pid_to_core_string( pid() ) -> ustring().
 pid_to_core_string( Pid ) ->
 
 	% A PID is akin to <X.Y.Z>.
@@ -944,7 +944,7 @@ proplist_to_string( Proplist ) ->
 
 
 % Returns a string describing the specified three-element version.
--spec version_to_string( basic_utils:version() ) -> string().
+-spec version_to_string( basic_utils:version() ) -> ustring().
 version_to_string( { V1, V2, V3 } ) ->
 	io_lib:format( "~B.~B.~B", [ V1, V2, V3 ] ).
 
@@ -961,7 +961,7 @@ atom_to_binary( Atom ) ->
 % Returns a textual description of the specified percentage, expected to be a
 % float in [0,1], with the default number of digits after the decimal point.
 %
--spec percent_to_string( math_utils:percent() ) -> string().
+-spec percent_to_string( math_utils:percent() ) -> ustring().
 percent_to_string( Value ) ->
 	percent_to_string( Value, _DefaultPrecision=1 ).
 
@@ -969,7 +969,7 @@ percent_to_string( Value ) ->
 % Returns a textual description of the specified percentage, expected to be a
 % float in [0,1], with the specified number of digits after the decimal point.
 %
--spec percent_to_string( math_utils:percent(), integer() ) -> string().
+-spec percent_to_string( math_utils:percent(), integer() ) -> ustring().
 percent_to_string( Value, Precision ) ->
 	% Awful format string to determine:
 	io_lib:format( "~.*f%", [ Precision, Value * 100 ] ).
@@ -979,7 +979,7 @@ percent_to_string( Value, Precision ) ->
 % Returns a textual description of the specified (dot-based, not comma-based)
 % float.
 %
--spec float_to_string( float() ) -> string().
+-spec float_to_string( float() ) -> ustring().
 float_to_string( Float ) ->
 	erlang:float_to_list( Float ).
 
@@ -987,7 +987,7 @@ float_to_string( Float ) ->
 % Returns a textual description of the specified (dot-based, not comma-based)
 % float.
 %
--spec float_to_string( float(), [ float_option() ] ) -> string().
+-spec float_to_string( float(), [ float_option() ] ) -> ustring().
 float_to_string( Float, Options ) ->
 	erlang:float_to_list( Float, Options ).
 
@@ -995,7 +995,7 @@ float_to_string( Float, Options ) ->
 % Returns a textual description of the specified (dot-based, not comma-based)
 % number.
 %
--spec number_to_string( number() ) -> string().
+-spec number_to_string( number() ) -> ustring().
 number_to_string( I ) when is_integer( I ) ->
 	erlang:integer_to_list( I );
 
@@ -1014,7 +1014,7 @@ number_to_string( Other ) ->
 % Ex: for a distance of 1001.5 millimeters, returns "1m and 2mm".
 %
 -spec distance_to_string( unit_utils:millimeters()
-						 | unit_utils:int_millimeters() ) -> string().
+						 | unit_utils:int_millimeters() ) -> ustring().
 distance_to_string( Millimeters ) when is_float( Millimeters ) ->
 	distance_to_string( round( Millimeters ) );
 
@@ -1107,7 +1107,7 @@ distance_to_string( Millimeters ) ->
 % Ex: for a distance of 1000.5 millimeters, returns "1.0m".
 %
 -spec distance_to_short_string( unit_utils:millimeters()
-							   | unit_utils:int_millimeters() ) -> string().
+							   | unit_utils:int_millimeters() ) -> ustring().
 distance_to_short_string( Millimeters ) when is_float( Millimeters ) ->
 	distance_to_short_string( round( Millimeters ) );
 
@@ -1708,7 +1708,7 @@ format( A, B, C ) ->
 % in the future to output warning traces whenever the specified element happens
 % not to be a string.
 %
--spec ensure_string( term() ) -> string().
+-spec ensure_string( term() ) -> ustring().
 ensure_string( String ) when is_list( String ) ->
 	String;
 
@@ -1757,7 +1757,7 @@ ensure_binary( String ) ->
 %
 % See also: https://en.wikipedia.org/wiki/Levenshtein_distance
 %
-%-spec get_lexicographic_distance_variant( string(), string() ) -> distance().
+%-spec get_lexicographic_distance_variant( ustring(), ustring() ) -> distance().
 
 % This basic implementation is correct, yet way too inefficient:
 %get_lexicographic_distance_variant( FirstString, _SecondString=[] ) ->
@@ -1778,7 +1778,7 @@ ensure_binary( String ) ->
 
 
 % Significantly more efficient version, using memoization:
--spec get_lexicographic_distance( string(), string() ) -> distance().
+-spec get_lexicographic_distance( ustring(), ustring() ) -> distance().
 get_lexicographic_distance( FirstString, SecondString ) ->
 	{ Distance, _NewAccTable } = get_lexicographic_distance( FirstString,
 										 SecondString, _AccTable=?table:new() ),
@@ -1825,7 +1825,7 @@ get_lexicographic_distance( FirstString=[ _H1 | T1 ], SecondString=[ _H2 | T2 ],
 %
 % See also: file_utils:get_longest_common_path/1.
 %
--spec get_longest_common_prefix( [ string() ] ) -> { string(), [ string() ] }.
+-spec get_longest_common_prefix( [ ustring() ] ) -> { ustring(), [ ustring() ] }.
 get_longest_common_prefix( _Strings=[] ) ->
 	throw( empty_string_list );
 
@@ -2141,7 +2141,7 @@ string_to_atom( String ) ->
 % Returns a textual representation of the specified terms, as a list of their
 % user-friendly (i.e. based on ~p) default representation.
 %
--spec terms_to_string( [ term() ] ) -> string().
+-spec terms_to_string( [ term() ] ) -> ustring().
 terms_to_string( Terms ) ->
 	strings_to_string( [ format( "~p", [ T ] ) || T <- Terms ] ).
 
@@ -2150,7 +2150,7 @@ terms_to_string( Terms ) ->
 % Returns a textual representation of the specified terms, as an enumerated list
 % of their user-friendly (i.e. based on ~p) default representation.
 %
--spec terms_to_enumerated_string( [ term() ] ) -> string().
+-spec terms_to_enumerated_string( [ term() ] ) -> ustring().
 terms_to_enumerated_string( Terms ) ->
 	strings_to_enumerated_string( [ format( "~p", [ T ] ) || T <- Terms ] ).
 
@@ -2160,7 +2160,7 @@ terms_to_enumerated_string( Terms ) ->
 % representation of their user-friendly (i.e. based on ~p) default
 % representation.
 %
--spec terms_to_listed_string( [ term() ] ) -> string().
+-spec terms_to_listed_string( [ term() ] ) -> ustring().
 terms_to_listed_string( Terms ) ->
 	strings_to_listed_string( [ format( "~p", [ T ] ) || T <- Terms ] ).
 
@@ -2191,13 +2191,13 @@ uppercase_initial_letter( _Letters=[ First | Others ] ) ->
 
 
 % Sets the specified string to lowercase, i.e. downcase it (as a whole).
--spec to_lowercase( string() ) -> string().
+-spec to_lowercase( ustring() ) -> ustring().
 to_lowercase( String ) ->
 	string:to_lower( String ).
 
 
 % Sets the specified string to uppercase.
--spec to_uppercase( string() ) -> string().
+-spec to_uppercase( ustring() ) -> ustring().
 to_uppercase( String ) ->
 	string:to_upper( String ).
 
@@ -2554,7 +2554,7 @@ filter( CharToRemove, _String=[ OtherChar | T ], Acc ) ->
 % Ex: split_after_prefix( "Foo", "Foobar is baz." ) returns "bar is baz.";
 % split_after_prefix( "ABC", "Foobar is baz." ) return 'no_prefix'.
 %
--spec split_after_prefix( string(), string() ) -> string() | 'no_prefix'.
+-spec split_after_prefix( ustring(), ustring() ) -> ustring() | 'no_prefix'.
 split_after_prefix( _Prefix=[], String ) ->
 	String;
 
@@ -2603,7 +2603,7 @@ list_whitespaces() ->
 % Returns specified text, in which single quotes have been escaped (i.e. "'" has
 % been replaced with "\'" - ignore the double quotes in this example).
 %
--spec escape_single_quotes( string() ) -> string().
+-spec escape_single_quotes( ustring() ) -> ustring().
 escape_single_quotes( Text ) ->
 	escape_single_quotes_helper( Text, _Acc=[] ).
 
@@ -2623,7 +2623,7 @@ escape_single_quotes_helper( _Text=[ C | T ], Acc ) ->
 % Returns specified text, in which double quotes have been escaped (i.e. '"' has
 % been replaced with '\"' - ignore the single quotes in this example).
 %
--spec escape_double_quotes( string() ) -> string().
+-spec escape_double_quotes( ustring() ) -> ustring().
 escape_double_quotes( Text ) ->
 	escape_double_quotes_helper( Text, _Acc=[] ).
 
@@ -2643,7 +2643,7 @@ escape_double_quotes_helper( _Text=[ C | T ], Acc ) ->
 % Returns specified text, in which all quotes have been escaped (i.e. ' and "
 % have been replaced respectively with \' and \").
 %
--spec escape_all_quotes( string() ) -> string().
+-spec escape_all_quotes( ustring() ) -> ustring().
 escape_all_quotes( Text ) ->
 	escape_all_quotes_helper( Text, _Acc=[] ).
 
@@ -2670,7 +2670,7 @@ escape_all_quotes_helper( _Text=[ C | T ], Acc ) ->
 % Ex: "baz\.foobar\.org" = text_utils:escape_with( "baz.foobar.org",
 %        [ $. ], $\\ ).
 %
--spec escape_with( string(), [ char() ], char() ) -> string().
+-spec escape_with( ustring(), [ char() ], char() ) -> ustring().
 escape_with( Text, CharsToEscape, EscapingChar ) ->
 	escape_with( Text, CharsToEscape, EscapingChar, _Acc=[] ).
 
@@ -2696,7 +2696,7 @@ escape_with( _Text=[ C | T ], CharsToEscape, EscapingChar, Acc ) ->
 
 
 % Removes all newlines from specified string.
--spec remove_newlines( string() ) -> string().
+-spec remove_newlines( ustring() ) -> ustring().
 remove_newlines( String ) ->
 	lists:flatten( string:replace( String, "\n", "", all ) ).
 
@@ -3139,6 +3139,15 @@ ellipse( String, MaxLen ) ->
 			String
 
 	end.
+
+
+
+% Ellipses (shortens) specified string to format, so that its total length
+% remains up to specified threshold.
+%
+-spec ellipse_fmt( format_string(), format_values() ) -> ustring().
+ellipse_fmt( FormatString, Values ) ->
+	ellipse( format( FormatString, Values ) ).
 
 
 
