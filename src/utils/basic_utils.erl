@@ -293,6 +293,19 @@
 -include("basic_utils.hrl").
 
 
+% Shorthands:
+
+-type time_out() :: time_utils:time_out().
+
+-type milliseconds() :: unit_utils:milliseconds().
+
+-type set( T ) :: set_utils:set( T ).
+
+-type format_string() :: text_utils:format_string().
+-type format_values() :: text_utils: format_values().
+-type ustring() :: text_utils:ustring().
+
+
 % Creates a tuple of specified size, all elements having the same, specified,
 % value.
 %
@@ -422,7 +435,7 @@ check_all_defined( List ) ->
 % Useful to define, for debugging purposes, terms that will be (temporarily)
 % unused without blocking the compilation.
 %
-% Ex: basic_utils:ignore_unused( [ A, B, C ] )
+% Ex: basic_utils:ignore_unused([A, B, C])
 %
 -spec ignore_unused( any() ) -> void().
 ignore_unused( _Term ) ->
@@ -513,7 +526,7 @@ trigger_oom() ->
 
 
 % Speaks the specified message, using espeak.
--spec speak( string() ) -> void().
+-spec speak( ustring() ) -> void().
 speak( Message ) ->
 	system_utils:run_background_executable(
 	  "espeak -s 140 \"" ++ Message ++ "\"" ).
@@ -523,7 +536,7 @@ speak( Message ) ->
 % Notifies the user of the specified message, with log output and synthetic
 % voice.
 %
--spec notify_user( string() ) -> void().
+-spec notify_user( ustring() ) -> void().
 notify_user( Message ) ->
 	io:format( Message ),
 	speak( Message ).
@@ -533,9 +546,9 @@ notify_user( Message ) ->
 % Notifies the user of the specified message, with log output and synthetic
 % voice.
 %
-% Example: 'basic_utils:notify_user( "Hello ~w", [ Name ]).'
+% Example: 'basic_utils:notify_user("Hello ~w", [ Name ]).'
 %
--spec notify_user( string(), list() ) -> void().
+-spec notify_user( format_string(), format_values() ) -> void().
 notify_user( Message, FormatList ) ->
 
 	ActualMessage = io_lib:format( Message, FormatList ),
@@ -565,8 +578,8 @@ flush_pending_messages() ->
 
 
 
-% Flushes all the messages still in the mailbox of this process that match the
-% specified one.
+% Flushes all the messages still in the mailbox of this process that (exactly)
+% match the specified one.
 %
 -spec flush_pending_messages( any() ) -> void().
 flush_pending_messages( Message ) ->
@@ -588,13 +601,14 @@ flush_pending_messages( Message ) ->
 % Waits (indefinitively) for the specified count of the specified message to be
 % received.
 %
--spec wait_for( any(), count() ) -> void().
+-spec wait_for( term(), count() ) -> void().
 wait_for( _Message, _Count=0 ) ->
 	ok;
 
 wait_for( Message, Count ) ->
 
-	%io:format( "Waiting for ~B messages '~p'.~n", [ Count, Message ] ),
+	%trace_utils:debug_fmt( "Waiting for ~B messages '~p'.",
+	%                      [ Count, Message ] ),
 	receive
 
 		Message ->
@@ -608,17 +622,17 @@ wait_for( Message, Count ) ->
 % received, displaying repeatedly on the console a notification should the
 % duration between two receivings exceed the specified time-out.
 %
-% Typical usage: basic_utils:wait_for( { foobar_result, done }, _Count=5,
-% _Duration=2000, "Still waiting for ~B task(s) to complete" ).
+% Typical usage: basic_utils:wait_for( {foobar_result, done}, _Count=5,
+% _Duration=2000, "Still waiting for ~B task(s) to complete").
 %
--spec wait_for( any(), count(), unit_utils:milliseconds(),
-				text_utils:format_string() ) -> void().
+-spec wait_for( term(), count(), milliseconds(), format_string() ) -> void().
 wait_for( _Message, _Count=0, _TimeOutDuration, _TimeOutFormatString ) ->
 	ok;
 
 wait_for( Message, Count, TimeOutDuration, TimeOutFormatString ) ->
 
-	%io:format( "Waiting for ~B messages '~p'.~n", [ Count, Message ] ),
+	%trace_utils:debug_fmt( "Waiting for ~B messages '~p'.",
+	%                       [ Count, Message ] ),
 
 	receive
 
@@ -643,15 +657,14 @@ wait_for( Message, Count, TimeOutDuration, TimeOutFormatString ) ->
 
 
 % Waits until receiving from all expected senders the specified acknowledgement
-% message, expected to be in the form of {AckReceiveAtom,WaitedSenderPid}.
+% message, expected to be in the form of {AckReceiveAtom, WaitedSenderPid}.
 %
-% Throws a {ThrowAtom,StillWaitedSenders} exception on time-out (if any, as the
+% Throws a {ThrowAtom, StillWaitedSenders} exception on time-out (if any, as the
 % time-out can be disabled if set to 'infinity').
 %
 % See wait_for_many_acks/{4,5} if having a large number of senders waited for.
 %
--spec wait_for_acks( [ pid() ], time_utils:time_out(), atom(), atom() ) ->
-						   void().
+-spec wait_for_acks( [ pid() ], time_out(), atom(), atom() ) -> void().
 wait_for_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 			   ThrowAtom ) ->
 
@@ -661,15 +674,15 @@ wait_for_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 
 
 % Waits until receiving from all expected senders the specified acknowledgement
-% message, expected to be in the form of { AckReceiveAtom, WaitedSenderPid },
+% message, expected to be in the form of {AckReceiveAtom, WaitedSenderPid},
 % ensuring a check is performed at least at specified period.
 %
-% Throws a { ThrowAtom, StillWaitedSenders } exception on time-out.
+% Throws a {ThrowAtom, StillWaitedSenders} exception on time-out.
 %
 % See wait_for_many_acks/{4,5} if having a large number of senders waited for.
 %
--spec wait_for_acks( [ pid() ], time_utils:time_out(),
-					 unit_utils:milliseconds(), atom(), atom() ) -> void().
+-spec wait_for_acks( [ pid() ], time_out(), milliseconds(), atom(), atom() ) ->
+			void().
 wait_for_acks( WaitedSenders, MaxDurationInSeconds, Period,
 			   AckReceiveAtom, ThrowAtom ) ->
 
@@ -728,16 +741,16 @@ wait_for_acks_helper( WaitedSenders, InitialTimestamp, MaxDurationInSeconds,
 
 % Waits until receiving from all expected senders the specified acknowledgement
 % message, expected to be in the form of:
-% { AckReceiveAtom, ToAdd, WaitedSenderPid }.
+% {AckReceiveAtom, ToAdd, WaitedSenderPid}.
 %
 % Returns the sum of the specified initial value with all the ToAdd received
 % values.
 %
-% Throws a { ThrowAtom, StillWaitedSenders } exception on time-out (if any, as
-% the time-out can be disabled if set to 'infinity').
+% Throws a {ThrowAtom, StillWaitedSenders} exception on time-out (if any, as the
+% time-out can be disabled if set to 'infinity').
 %
--spec wait_for_summable_acks( [ pid() ], number(), time_utils:time_out(),
-							  atom(), atom() ) -> number().
+-spec wait_for_summable_acks( [ pid() ], number(), time_out(), atom(), atom() )
+									-> number().
 wait_for_summable_acks( WaitedSenders, InitialValue, MaxDurationInSeconds,
 						AckReceiveAtom, ThrowAtom ) ->
 
@@ -748,30 +761,30 @@ wait_for_summable_acks( WaitedSenders, InitialValue, MaxDurationInSeconds,
 
 % Waits until receiving from all expected senders the specified acknowledgement
 % message, expected to be in the form of:
-% { AckReceiveAtom, ToAdd, WaitedSenderPid }
+% {AckReceiveAtom, ToAdd, WaitedSenderPid}.
 %
 % ensuring a check is performed at least at specified period and summing all
 % ToAdd values with the specified initial one
 %
-% Throws a { ThrowAtom, StillWaitedSenders } exception on time-out.
+% Throws a {ThrowAtom, StillWaitedSenders} exception on time-out.
 %
--spec wait_for_summable_acks( [ pid() ], number(), time_utils:time_out(),
-		   unit_utils:milliseconds(), atom(), atom() ) -> number().
+-spec wait_for_summable_acks( [ pid() ], number(), time_out(),
+							  milliseconds(), atom(), atom() ) -> number().
 wait_for_summable_acks( WaitedSenders, CurrentValue, MaxDurationInSeconds,
 						Period, AckReceiveAtom, ThrowAtom ) ->
 
 	InitialTimestamp = time_utils:get_timestamp(),
 
 	wait_for_summable_acks_helper( WaitedSenders, CurrentValue,
-								   InitialTimestamp, MaxDurationInSeconds,
-								   Period, AckReceiveAtom, ThrowAtom ).
+		InitialTimestamp, MaxDurationInSeconds, Period, AckReceiveAtom,
+		ThrowAtom ).
 
 
 
 % (helper)
 wait_for_summable_acks_helper( _WaitedSenders=[], CurrentValue,
-							   _InitialTimestamp, _MaxDurationInSeconds,
-							   _Period, _AckReceiveAtom, _ThrowAtom ) ->
+		_InitialTimestamp, _MaxDurationInSeconds,  _Period, _AckReceiveAtom,
+		 _ThrowAtom ) ->
 	CurrentValue;
 
 wait_for_summable_acks_helper( WaitedSenders, CurrentValue, InitialTimestamp,
@@ -808,7 +821,7 @@ wait_for_summable_acks_helper( WaitedSenders, CurrentValue, InitialTimestamp,
 
 					wait_for_summable_acks_helper( WaitedSenders, CurrentValue,
 						InitialTimestamp, MaxDurationInSeconds, Period,
-						AckReceiveAtom,	ThrowAtom )
+						AckReceiveAtom, ThrowAtom )
 
 			end
 
@@ -826,8 +839,8 @@ wait_for_summable_acks_helper( WaitedSenders, CurrentValue, InitialTimestamp,
 % Note: each sender shall be unique (as they will be gathered in a set, that
 % does not keep duplicates)
 %
--spec wait_for_many_acks( set_utils:set( pid() ), unit_utils:milliseconds(),
-						  atom(), atom() ) -> void().
+-spec wait_for_many_acks( set( pid() ), milliseconds(), atom(), atom() ) ->
+											void().
 wait_for_many_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 					ThrowAtom ) ->
 	wait_for_many_acks( WaitedSenders, MaxDurationInSeconds,
@@ -840,8 +853,8 @@ wait_for_many_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 %
 % Throws specified exception on time-out, checking at the specified period.
 %
--spec wait_for_many_acks( set_utils:set( pid() ), unit_utils:milliseconds(),
-						  unit_utils:milliseconds(), atom(), atom() ) -> void().
+-spec wait_for_many_acks( set( pid() ), milliseconds(), milliseconds(), atom(),
+						  atom() ) -> void().
 wait_for_many_acks( WaitedSenders, MaxDurationInSeconds, Period,
 					AckReceiveAtom, ThrowAtom ) ->
 
@@ -905,7 +918,7 @@ wait_for_many_acks_helper( WaitedSenders, InitialTimestamp,
 %
 % (helper)
 %
--spec send_to_pid_set( term(), set_utils:set( pid() ) ) -> count().
+-spec send_to_pid_set( term(), set( pid() ) ) -> count().
 send_to_pid_set( Message, PidSet ) ->
 
 	% Conceptually (not a basic list, though):
@@ -948,7 +961,7 @@ size( Term ) ->
 % not), provided it is still alive (otherwise returns undefined).
 %
 -spec get_process_info( pid() ) ->
-		  maybe( [ erlang:process_info_result_item() ] ).
+			maybe( [ erlang:process_info_result_item() ] ).
 get_process_info( Pid ) ->
 
 	LocalNode = node(),
@@ -1095,7 +1108,7 @@ checkpoint( Number ) ->
 % much as possible this message is output synchronously, so that it can be
 % output on the console even if the virtual machine is to crash just after.
 %
--spec display( string() ) -> void().
+-spec display( ustring() ) -> void().
 display( Message ) ->
 
 	% Finally io:format has been preferred to erlang:display, as the latter one
@@ -1124,7 +1137,7 @@ display( Message ) ->
 % output synchronously, so that it can be output on the console even if the
 % virtual machine is to crash just after.
 %
--spec display( text_utils:format_string(), [ any() ] ) -> void().
+-spec display( format_string(), format_values() ) -> void().
 display( Format, Values ) ->
 
 	%io:format( "Displaying format '~p' and values '~p'.~n",
@@ -1141,7 +1154,7 @@ display( Format, Values ) ->
 % much as possible this message is output synchronously, so that it can be
 % output on the console even if the virtual machine is to crash just after.
 %
--spec display_timed( string(), time_utils:time_out() ) -> void().
+-spec display_timed( ustring(), time_out() ) -> void().
 display_timed( Message, TimeOut ) ->
 
 	% Finally io:format has been preferred to erlang:display, as the latter one
@@ -1163,8 +1176,7 @@ display_timed( Message, TimeOut ) ->
 % output synchronously, so that it can be output on the console even if the
 % virtual machine is to crash just after.
 %
--spec display_timed( text_utils:format_string(), [ any() ],
-					 time_utils:time_out() ) -> void().
+-spec display_timed( format_string(), format_values(), time_out() ) -> void().
 display_timed( Format, Values, TimeOut ) ->
 
 	%trace_utils:debug_fmt( "Displaying format '~p' and values '~p'.",
@@ -1183,7 +1195,7 @@ display_timed( Format, Values, TimeOut ) ->
 % can be output on the console even if the virtual machine is to crash just
 % after.
 %
--spec display_error( string() ) -> void().
+-spec display_error( ustring() ) -> void().
 display_error( Message ) ->
 
 	% At least once, following call resulted in no output at all (standard_error
@@ -1205,7 +1217,7 @@ display_error( Message ) ->
 % message is output synchronously, so that it can be output on the console even
 % if the virtual machine is to crash just after.
 %
--spec display_error( text_utils:format_string(), [ any() ] ) -> void().
+-spec display_error( format_string(), format_values() ) -> void().
 display_error( Format, Values ) ->
 	Message = text_utils:format( Format ++ "~n", Values ),
 	display_error( Message ).
@@ -1217,7 +1229,7 @@ display_error( Format, Values ) ->
 % possible this message is output synchronously, so that it can be output on the
 % console even if the virtual machine is to crash just after.
 %
--spec debug( string() ) -> void().
+-spec debug( ustring() ) -> void().
 debug( Message ) ->
 	trace_utils:debug( Message ).
 	%system_utils:await_output_completion().
@@ -1230,7 +1242,7 @@ debug( Message ) ->
 % synchronously, so that it can be output on the console even if the virtual
 % machine is to crash just after.
 %
--spec debug( text_utils:format_string(), [ any() ] ) -> void().
+-spec debug( format_string(), format_values() ) -> void().
 debug( Format, Values ) ->
 	debug( text_utils:format( Format, Values ) ).
 
@@ -1242,7 +1254,7 @@ debug( Format, Values ) ->
 %
 % Ex: "4.2.1" should become {4,2,1}, and "2.3" should become {2,3}.
 %
--spec parse_version( string() ) -> any_version().
+-spec parse_version( ustring() ) -> any_version().
 parse_version( VersionString ) ->
 
 	% First transform "4.22.1" into ["4","22","1"]:
@@ -1272,7 +1284,7 @@ check_version( T ) ->
 % Note: the default term order is already what we needed.
 %
 -spec compare_versions( any_version(), any_version() ) ->
-							  'equal' | 'first_bigger' | 'second_bigger'.
+								'equal' | 'first_bigger' | 'second_bigger'.
 compare_versions( {A1,A2,A3}, {B1,B2,B3} ) ->
 
 	case {A1,A2,A3} > {B1,B2,B3} of
@@ -1314,7 +1326,6 @@ compare_versions( {A1,A2}, {B1,B2} ) ->
 			end
 
 	end.
-
 
 
 
@@ -1429,8 +1440,8 @@ get_process_size( Pid ) ->
 % - the process may run on the local node or not
 % - generally not to be used when relying on a good design
 %
--spec is_alive( pid() | string() | naming_utils:registration_name() )
-			  -> boolean().
+-spec is_alive( pid() | ustring() | naming_utils:registration_name() ) ->
+		  boolean().
 is_alive( TargetPid ) when is_pid( TargetPid ) ->
 	is_alive( TargetPid, node( TargetPid ) );
 
@@ -1497,6 +1508,6 @@ is_debug_mode_enabled() ->
 
 
 % Describes specified term in a controlled manner.
--spec describe_term( term() ) -> text_utils:ustring().
+-spec describe_term( term() ) -> ustring().
 describe_term( T ) ->
-	text_utils:ellipse( io_lib:format( "~p", [ T ] ) ).
+	text_utils:ellipse_fmt( "~p", [ T ] ).
