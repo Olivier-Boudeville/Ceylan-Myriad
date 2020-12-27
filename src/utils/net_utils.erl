@@ -100,7 +100,7 @@
 
 -type string_node_name() :: nonempty_string().
 
--type bin_node_name() :: text_utils:bin_string().
+-type bin_node_name() :: bin_string().
 
 -type node_name() :: atom_node_name() | string_node_name() | bin_node_name().
 
@@ -111,7 +111,7 @@
 
 -type atom_host_name() :: atom().
 -type string_host_name() :: nonempty_string().
--type bin_host_name() :: text_utils:bin_string().
+-type bin_host_name() :: bin_string().
 
 -type host_name() :: atom_host_name() | string_host_name() | bin_host_name().
 
@@ -122,7 +122,7 @@
 
 -type atom_fqdn() :: atom().
 -type string_fqdn() :: nonempty_string().
--type bin_fqdn() :: text_utils:bin_string().
+-type bin_fqdn() :: bin_string().
 
 -type fqdn() :: atom_fqdn() | string_fqdn() | bin_fqdn().
 
@@ -130,14 +130,14 @@
 % A domain name (ex: "foo.baz.org"):
 -type domain_name() :: nonempty_string().
 
--type bin_domain_name() :: text_utils:bin_string().
+-type bin_domain_name() :: bin_string().
 
 
 
 % An element of a domain name (ex: "foo" in "bar.foo.baz.org"):
 -type subdomain() :: nonempty_string().
 
--type bin_subdomain() :: text_utils:bin_string().
+-type bin_subdomain() :: bin_string().
 
 
 -type check_duration() :: non_neg_integer().
@@ -159,12 +159,15 @@
 
 
 % The possible protocols (schemes) for an URL:
+%
+% (use uri_string:parse/1 to extract it)
+%
 -type protocol_type() :: 'http' | 'https' | 'ftp'.
 
 
 
 % Path of an URL (ex: 'access/login'):
--type path() :: string().
+-type path() :: ustring().
 
 
 -include("net_utils.hrl").
@@ -175,7 +178,7 @@
 
 
 % An URL:
--type url() :: string().
+-type url() :: ustring().
 
 
 -export_type([ ip_v4_address/0, ip_v6_address/0, ip_address/0,
@@ -200,6 +203,8 @@
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
+
+-type bin_string() :: text_utils:bin_string().
 
 -type file_name() :: file_utils:file_name().
 -type directory_name() :: file_utils:directory_name().
@@ -1637,7 +1642,7 @@ is_service_running_at( TCPPort ) ->
 
 		{ error, Error } ->
 			trace_utils:error_fmt( "Error when testing service availability "
-								   "at local TCP port #~B: ~p", [ TCPPort, Error ] ),
+				"at local TCP port #~B: ~p", [ TCPPort, Error ] ),
 			throw( { unexpected_error, Error, TCPPort } )
 
 	end.
