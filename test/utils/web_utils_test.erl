@@ -38,6 +38,22 @@
 -include("test_facilities.hrl").
 
 
+
+-compile( { nowarn_unused_function, test_online/0 } ).
+
+
+test_online() ->
+
+	%TargetUrl = "http://nonexisting.com/test/foo.html",
+	TargetUrl = "https://en.wikipedia.org/wiki/Main_Page",
+
+	FilePath = web_utils:download_file( TargetUrl, _TargetDir="/tmp" ),
+
+	test_facilities:display( "Reading from URL '~s': wrote file '~s'.",
+							 [ TargetUrl, FilePath ] ).
+
+
+
 -spec run() -> no_return().
 run() ->
 
@@ -57,7 +73,10 @@ run() ->
 	EncodedString = web_utils:escape_as_html_content( TestString ),
 
 	test_facilities:display( "Escaping for HTML \"~s\", getting: \"~s\" "
-							 "(outer quotes excluded in both cases).",
-							 [ TestString, EncodedString ] ),
+		"(outer quotes excluded in both cases).",
+		[ TestString, EncodedString ] ),
+
+	% Disabled by default, not wanting a test to fail if no Internet access:
+	% test_online(),
 
 	test_facilities:stop().
