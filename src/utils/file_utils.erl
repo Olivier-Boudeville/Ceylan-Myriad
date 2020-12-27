@@ -1934,9 +1934,13 @@ remove_file_if_existing( Filename ) ->
 	case is_existing_file( Filename ) of
 
 		true ->
+			%trace_bridge:debug_fmt( "Removing existing file '~s'.",
+			%						[ Filename ] ),
 			remove_file( Filename );
 
 		false ->
+			%trace_bridge:debug_fmt( "No existing file '~s' to remove.",
+			%						[ Filename ] ),
 			ok
 
 	end.
