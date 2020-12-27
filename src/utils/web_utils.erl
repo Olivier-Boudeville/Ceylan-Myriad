@@ -32,6 +32,8 @@
 %
 % See web_utils_test.erl for the corresponding test.
 %
+% See also: rest_utils.erl.
+%
 -module(web_utils).
 
 
@@ -64,14 +66,19 @@
 
 -type http_status_code() :: non_neg_integer().
 
+% Tells whether the SSL support is needed (typically for https):
+-type ssl_opt() :: 'no_ssl' | 'ssl'.
 
--export_type([ html_element/0, http_status_class/0, http_status_code/0 ]).
+
+-export_type([ html_element/0, http_status_class/0, http_status_code/0,
+			   ssl_opt/0 ]).
 
 
 % HTTP-related section:
 
 % URL subsection:
--export([ encode_as_url/1, encode_element_as_url/1, escape_as_url/1 ]).
+-export([ encode_as_url/1, encode_element_as_url/1, escape_as_url/1,
+		  get_last_path_element/1 ]).
 
 
 % HTML-related section:
@@ -83,10 +90,22 @@
 		  interpret_http_status_code/1 ]).
 
 
+% http-related operations:
+-export([ start/0, start/1, download_file/2, stop/0 ]).
+
+
 % Shorthands:
 
 -type option_list() :: option_list:option_list().
+
 -type ustring() :: text_utils:ustring().
+
+-type any_directory_path() :: file_utils:any_directory_path().
+-type file_path() :: file_utils:file_path().
+-type file_name() :: file_utils:file_name().
+
+-type url() :: net_utils:url().
+
 
 
 % HTTP-related operations.
@@ -107,7 +126,7 @@
 
 
 
-% Encodes specified list of {Key,Value} pairs so that it can used into an URL.
+% Encodes specified list of {Key, Value} pairs so that it can used into an URL.
 %
 % Full example:
 %
@@ -203,6 +222,17 @@ escape_char( C ) ->
 	% Everything else is blindly encoded:
 	io_lib:format( "%~s", [ integer_to_list( C, _HexBase=16 ) ] ).
 
+
+
+% Returns the last element, the final path "filename" pointed by specified URL.
+%
+% Ex: "hello.txt" = web_utils:get_last_path_element(
+%                         "http://www.foobar.org/baz/hello.txt" )
+%
+-spec get_last_path_element( url() ) -> file_name().
+get_last_path_element( Url ) ->
+	% Hackish yet working perfectly:
+	filename:basename( Url ).
 
 
 % Returns the HTML code of an ordered (numbered bullets) list corresponding to
@@ -551,3 +581,113 @@ interpret_http_status_code_helper( _StatusCode=511 ) ->
 % Unexpected class:
 interpret_http_status_code_helper( _StatusCode ) ->
 	"unknown HTTP status class".
+
+
+
+
+% http-related operations.
+
+
+% Starts the HTTP support, with default settings.
+-spec start() -> void().
+start() ->
+	start( no_ssl ).
+
+
+
+% Starts the HTTP support, with specified settings.
+-spec start( ssl_opt() ) -> void().
+start( Option ) ->
+
+	% Starts the (built-in) HTTP client:
+	ok = inets:start( _DefaultInetsType=temporary ),
+
+	% Starts the SSL support if requested:
+	case Option of
+
+		no_ssl ->
+			ok;
+
+		ssl ->
+			ok = ssl:start( _DefaultSSLType=temporary )
+
+	end.
+
+
+
+% Stops the HTTP support.
+stop() ->
+
+	% Maybe not launched, hence not pattern matched:
+	ssl:stop(),
+
+	ok = inets:stop().
+
+
+
+
+% Downloads the file designated by specified URL, in the specified directory
+% (under its name in URL), and returns the corresponding full path of that
+% file.
+%
+% Ex: web_utils:download_file( _Url="https://foobar.org/baz.txt",
+%                    _TargetDir="/tmp" ) shall result in a "/tmp/baz.txt" file.
+%
+% Starts the HTTP support as a side effect.
+%
+-spec download_file( url(), any_directory_path() ) -> file_path().
+download_file( Url, TargetDir ) ->
+
+	% Using only built-in modules:
+
+	#{ scheme := Scheme, path := UrlPath } = case uri_string:parse( Url ) of
+
+		{ error, Error } ->
+			throw( { invalid_url, Url, Error } );
+
+		M ->
+			M
+
+	end,
+
+	StartOpt = case Scheme of
+
+		"http" ->
+			no_ssl;
+
+		"https" ->
+			ssl;
+
+		OtherScheme ->
+			throw( { unexpected_scheme, OtherScheme } )
+
+	end,
+
+	start( StartOpt ),
+
+	Filename = file_utils:get_last_path_element( UrlPath ),
+
+	FilePath = file_utils:join( TargetDir, Filename ),
+
+	%trace_bridge:debug_fmt( "Downloading '~s' from '~s'.",
+	%						[ FilePath, Url ] ),
+
+	case httpc:request( get, { Url, _Headers=[] }, _HTTPOptions=[],
+						_Opts=[ { stream, FilePath } ] ) of
+
+		{ ok, saved_to_file } ->
+			FilePath;
+
+		% Ex: {ok, { {"HTTP/1.1", 404, "Not Found" } } }
+		{ ok, { { _HTTTP, ErrorCode, Msg }, _RecHeaders, _Body } } ->
+
+			%trace_bridge:error_fmt( "Downloading from '~s' failed; "
+			%	"reason: ~s, '~s'.",
+			%	[ Url, interpret_http_status_code( ErrorCode ), Msg ] ),
+
+			throw( { download_failed, ErrorCode, Msg, Url } );
+
+		{ error, Reason } ->
+			throw( { download_failed, Reason, Url } )
+
+	end.
