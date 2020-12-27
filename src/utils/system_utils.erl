@@ -2758,18 +2758,19 @@ get_json_unavailability_hint() ->
 -spec get_json_unavailability_hint( json_utils:parser_backend_name() ) ->
 										ustring().
 get_json_unavailability_hint( _Backend=undefined ) ->
+	% Note: the hints are *not* truncated here, this is normal:
 	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_JSON and "
-	"*_BASE variables, knowing that the current code path is: "
+	"*_BASE variables, knowing that the "
 		++ code_utils:get_code_path_as_string();
 
 get_json_unavailability_hint( _Backend=jsx ) ->
 	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_JSON and "
-	"JSX_BASE variables, knowing that the current code path is: "
+	"JSX_BASE variables, knowing that the "
 		++ code_utils:get_code_path_as_string();
 
 get_json_unavailability_hint( _Backend=jiffy ) ->
 	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_JSON and "
-	"JIFFY_BASE variables, knowing that the current code path is: "
+	"JIFFY_BASE variables, knowing that the "
 		++ code_utils:get_code_path_as_string().
 
 
