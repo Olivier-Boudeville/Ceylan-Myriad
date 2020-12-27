@@ -58,14 +58,14 @@
 ;; Corresponds to conventions in demo-for-css-testing.rst:
 ;; (not correctly applied apparently, though)
 (setq rst-preferred-adornments'( (?= over-and-under 0)
-								   (?- over-and-under 0)
-								   (?= simple 0)
-								   (?- simple 0)
-								   (?. simple 0)
-								   (?_ simple 0)
-								   (?* simple 0)
-								   (?: simple 0)
-								   (?+ simple 0) ))
+								 (?- over-and-under 0)
+								 (?= simple 0)
+								 (?- simple 0)
+								 (?. simple 0)
+								 (?_ simple 0)
+								 (?* simple 0)
+								 (?: simple 0)
+								 (?+ simple 0) ))
 
 
 
@@ -119,6 +119,7 @@
 ;;
 (windmove-default-keybindings)
 
+;; No limit:
 (setq buffers-menu-max-size nil)
 
 
@@ -146,7 +147,7 @@
 (setq auto-mode-alist
 	  (append '(("\\.escript$"  . erlang-mode)) auto-mode-alist))
 
-(add-hook 'erlang-mode-hook 'my-erlang-mode-hook)
+;;(add-hook 'erlang-mode-hook 'my-erlang-mode-hook)
 
 ;; Allows to have Emacs automatically insert newlines to word-wrap:
 ;; (see https://www.emacswiki.org/emacs/AutoFillMode)
@@ -233,7 +234,13 @@
   ;;Long lines are normal in text modes:
   ;;(remove-hook 'find-file-hook 'highlight-80+-mode)
   ;; Surely an hack, but works great:
-  (setq whitespace-line-column 9999)
+  ;;(setq-local whitespace-line-column 9999)
+
+  ;; No 'lines' or 'empty':
+  (setq-local whitespace-style '(face
+	tabs trailing space-before-tab newline
+	indentation space-after-tab))
+
   )
 
 (add-hook 'rst-mode-hook 'fix-behaviours-for-rst-mode)
@@ -251,7 +258,13 @@
   ;;Long lines are normal in text modes:
   ;;(remove-hook 'find-file-hook 'highlight-80+-mode)
   ;; Surely an hack, but works great:
-  (setq whitespace-line-column 9999)
+  ;;(setq-local whitespace-line-column 9999)
+
+  ;; No 'lines' or 'empty':
+  (setq-local whitespace-style '(face
+	tabs trailing space-before-tab newline
+	indentation space-after-tab))
+
   )
 
 (add-hook 'latex-mode-hook 'fix-behaviours-for-latex-mode)
@@ -293,6 +306,7 @@
 
 (require 'whitespace)
 (global-whitespace-mode 1)
+
 ;;(setq-default show-trailing-whitespace nil)
 ;;(setq whitespace-style '(space tabs lines-tail trailing empty indentation space-before-tab space-after-tab))
 ;; Removed: spaces space-mark tab-mark newline-mark
@@ -726,7 +740,7 @@
 ;; Taken from http://snarfed.org/space/gnu%20emacs%20backup%20files:
 
 ;; Put autosave files (ie #foo#) in one place, *not*
-;; scattered all over the file system!
+;; scattered all over the filesystem!
 (defvar autosave-dir
   (concat "/tmp/emacs_autosaves/" (user-login-name) "/"))
 
