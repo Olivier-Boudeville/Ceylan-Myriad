@@ -34,6 +34,8 @@
 %
 % See rest_utils_test.erl for the corresponding test.
 %
+% See also: web_utils.erl.
+%
 -module(rest_utils).
 
 
@@ -65,9 +67,6 @@
 -define( retry_delay_min, 500 ).
 -define( retry_delay_max, 5000 ).
 
-
-% Tells whether the SSL support is needed (typically for https):
--type ssl_opt() :: 'no_ssl' | 'ssl'.
 
 
 % HTTP/1.1 method:
@@ -119,10 +118,9 @@
 			   result/0, context/0, retries_count/0 ]).
 
 
+% Shorthands:
 
-
-% Inets section.
-
+-type ssl_opt() :: web_utils:ssl_opt().
 
 
 
@@ -136,21 +134,7 @@ start() ->
 % Starts the REST service.
 -spec start( ssl_opt() ) -> json_utils:parser_state().
 start( Option ) ->
-
-	% Starts the (built-in) HTTP client:
-	ok = inets:start( _DefaultInetsType=temporary ),
-
-	% Starts the SSL support if requested:
-	case Option of
-
-		no_ssl ->
-			ok;
-
-		ssl ->
-			ok = ssl:start( _DefaultSSLType=temporary )
-
-	end,
-
+	web_utils:start( Option ),
 	json_utils:start_parser().
 
 
@@ -158,13 +142,8 @@ start( Option ) ->
 % Stops the REST service.
 -spec stop() -> void().
 stop() ->
-
 	json_utils:stop_parser(),
-
-	% Maybe not launched, hence not pattern matched:
-	ssl:stop(),
-
-	ok = inets:stop().
+	web_utils:stop().
 
 
 
@@ -182,9 +161,9 @@ get_supported_http_methods() ->
 
 
 
-% Lists all the supported HTTP/1.1 standard methods which implementation in
+% Lists all the supported HTTP/1.1 standard methods whose implementation in
 % httpc:request does not allow the Body and (thus) ContentType arguments: they
-% must be associated with requests of the form {URL,Headers}.
+% must be associated with requests of the form {URL, Headers}.
 %
 -spec get_no_body_http_methods() -> [ method() ].
 get_no_body_http_methods() ->
@@ -192,9 +171,9 @@ get_no_body_http_methods() ->
 
 
 
-% Lists all the supported HTTP/1.1 standard methods which implementation in
+% Lists all the supported HTTP/1.1 standard methods whose implementation in
 % httpc:request expects the Body and (thus) ContentType arguments: they must be
-% associated with requests of the form {URL,Headers,ContentType,Body}.
+% associated with requests of the form {URL, Headers, ContentType, Body}.
 %
 -spec get_body_allowing_http_methods() -> [ method() ].
 get_body_allowing_http_methods() ->
@@ -338,10 +317,8 @@ http_request( Method, Request, HTTPOptions, Options, Retries ) ->
 
 		{ { error, Reason }, _NoMoreRetries=0 } ->
 			trace_utils:error_fmt( "Retries exhausted, HTTP ~p request ~p "
-								   "(HTTP options: ~p, options: ~p) failed, "
-								   "reason being: ~p.",
-								   [ Method, Request, HTTPOptions, Options,
-									 Reason ] ),
+				"(HTTP options: ~p, options: ~p) failed, reason being: ~p.",
+				[ Method, Request, HTTPOptions, Options, Reason ] ),
 			throw( { http_request_failed, Method, Request, Reason } );
 
 		{ { error, Reason }, _StillRetries } ->
@@ -353,8 +330,8 @@ http_request( Method, Request, HTTPOptions, Options, Retries ) ->
 												   ?retry_delay_max ),
 
 			trace_utils:warning_fmt( "HTTP ~p request ~p failed (cause: ~p), "
-							 "retrying after a delay of ~w milliseconds.",
-							 [ Method, Request, Reason, Delay ] ),
+				"retrying after a delay of ~w milliseconds.",
+				[ Method, Request, Reason, Delay ] ),
 
 			timer:sleep( Delay ),
 
