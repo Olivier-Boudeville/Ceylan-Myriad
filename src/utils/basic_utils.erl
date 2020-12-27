@@ -667,7 +667,6 @@ wait_for( Message, Count, TimeOutDuration, TimeOutFormatString ) ->
 -spec wait_for_acks( [ pid() ], time_out(), atom(), atom() ) -> void().
 wait_for_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 			   ThrowAtom ) ->
-
 	wait_for_acks( WaitedSenders, MaxDurationInSeconds, _DefaultPeriod=1000,
 				   AckReceiveAtom, ThrowAtom ).
 
@@ -685,6 +684,12 @@ wait_for_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 			void().
 wait_for_acks( WaitedSenders, MaxDurationInSeconds, Period,
 			   AckReceiveAtom, ThrowAtom ) ->
+
+	%trace_bridge:debug_fmt( "Waiting for ~p (period: ~s, max duration: ~s, "
+	%	"ack atom: '~s', throw atom: '~s').",
+	%	[ WaitedSenders, time_utils:duration_to_string( Period ),
+	%	  time_utils:duration_to_string( MaxDurationInSeconds ),
+	%	  AckReceiveAtom, ThrowAtom ] ),
 
 	InitialTimestamp = time_utils:get_timestamp(),
 
@@ -707,8 +712,8 @@ wait_for_acks_helper( WaitedSenders, InitialTimestamp, MaxDurationInSeconds,
 
 			NewWaited = list_utils:delete_existing( WaitedPid, WaitedSenders ),
 
-			%io:format( "(received ~p, still waiting for instances ~p)~n",
-			%		   [ WaitedPid, NewWaited ] ),
+			%trace_bridge:debug_fmt( "(received ~p, still waiting for "
+			%						"instances ~p)", [ WaitedPid, NewWaited ] ),
 
 			wait_for_acks_helper( NewWaited, InitialTimestamp,
 				  MaxDurationInSeconds, Period, AckReceiveAtom, ThrowAtom )
@@ -725,9 +730,8 @@ wait_for_acks_helper( WaitedSenders, InitialTimestamp, MaxDurationInSeconds,
 
 				false ->
 					% Still waiting then:
-
-					%io:format( "(still waiting for instances ~p)~n",
-					%          [ WaitedSenders ] ),
+					%trace_bridge:debug_fmt( "(still waiting for instances ~p)",
+					%						[ WaitedSenders ] ),
 
 					wait_for_acks_helper( WaitedSenders, InitialTimestamp,
 						MaxDurationInSeconds, Period, AckReceiveAtom,
@@ -749,8 +753,8 @@ wait_for_acks_helper( WaitedSenders, InitialTimestamp, MaxDurationInSeconds,
 % Throws a {ThrowAtom, StillWaitedSenders} exception on time-out (if any, as the
 % time-out can be disabled if set to 'infinity').
 %
--spec wait_for_summable_acks( [ pid() ], number(), time_out(), atom(), atom() )
-									-> number().
+-spec wait_for_summable_acks( [ pid() ], number(), time_out(), atom(),
+							  atom() ) -> number().
 wait_for_summable_acks( WaitedSenders, InitialValue, MaxDurationInSeconds,
 						AckReceiveAtom, ThrowAtom ) ->
 
@@ -784,7 +788,7 @@ wait_for_summable_acks( WaitedSenders, CurrentValue, MaxDurationInSeconds,
 % (helper)
 wait_for_summable_acks_helper( _WaitedSenders=[], CurrentValue,
 		_InitialTimestamp, _MaxDurationInSeconds,  _Period, _AckReceiveAtom,
-		 _ThrowAtom ) ->
+		_ThrowAtom ) ->
 	CurrentValue;
 
 wait_for_summable_acks_helper( WaitedSenders, CurrentValue, InitialTimestamp,
