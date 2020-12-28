@@ -101,6 +101,8 @@
 
 		  get_default_temporary_directory/0, get_current_directory_string/0,
 
+		  get_resource_limits/0,
+
 		  get_operating_system_description/0,
 		  get_operating_system_description_string/0,
 		  get_system_description/0,
@@ -111,7 +113,7 @@
 % Prerequisite-related section.
 
 % Name of a (third-party) prerequisite package (ex: "ErlPort", "jsx", etc.).
--type package_name() :: string().
+-type package_name() :: ustring().
 
 -export_type([ package_name/0 ]).
 
@@ -133,9 +135,8 @@
 							  integer() }.
 
 
--type cpu_usage_percentages() :: { math_utils:percent(), math_utils:percent(),
-								   math_utils:percent(), math_utils:percent(),
-								   math_utils:percent() }.
+-type cpu_usage_percentages() :: { percent(), percent(), percent(), percent(),
+								   percent() }.
 
 
 % For record declarations and shell commands:
@@ -197,7 +198,7 @@
 % Describes a command to be run (i.e. path to an executable, with possibly
 % command-line arguments):
 %
--type command() :: text_utils:ustring().
+-type command() :: ustring().
 
 
 % An option used to spawn a port (others managed through specific parameters):
@@ -215,7 +216,7 @@
 
 
 % Output of the run of an executable:
--type command_output() :: text_utils:ustring().
+-type command_output() :: ustring().
 
 
 % All information returned by a shell command:
@@ -224,24 +225,24 @@
 
 
 % Describes a shell expression:
--type shell_expression() :: text_utils:ustring().
+-type shell_expression() :: ustring().
 
 
 % Output of the evaluation of a shell expression (at least currently, only its
 % standard output; no exit status):
 %
--type expression_outcome() :: text_utils:ustring().
+-type expression_outcome() :: ustring().
 
 
 
 % Name of a shell environment variable:
--type env_variable_name() :: string().
+-type env_variable_name() :: ustring().
 
 
 % Value of a shell environment variable ('false' meaning that the corresponding
 % variable is not set)
 %
--type env_variable_value() :: string() | 'false'.
+-type env_variable_value() :: ustring() | 'false'.
 
 
 % Represents a shell environment (a set of variables):
@@ -263,14 +264,14 @@
 % Basic authentication information:
 
 % For example in UNIX terms:
--type user_name() :: string().
+-type user_name() :: ustring().
 
--type password() :: string().
+-type password() :: ustring().
 
 -type basic_credential() :: { user_name(), password() }.
 
 % For example in UNIX terms:
--type group_name() :: string().
+-type group_name() :: ustring().
 
 
 % The user identifier (uid) of a filesystem element:
@@ -311,6 +312,9 @@
 
 -type directory_path() :: file_utils:directory_path().
 -type any_directory_path() :: file_utils:any_directory_path().
+-type executable_path() :: file_utils:executable_path().
+
+-type percent() :: math_utils:percent().
 
 
 % Unicode defines are in system_utils.hrl.
@@ -851,8 +855,7 @@ get_line( Prompt ) ->
 % with -noinput (and thus so that {text,term}_ui can be used with the same VM
 % settings).
 %
--spec get_line( ustring(), file_utils:executable_path() ) ->
-					  ustring().
+-spec get_line( ustring(), executable_path() ) -> ustring().
 get_line( Prompt, GetLineScriptPath ) ->
 
 	% Having the script display the prompt would not work, as that script would
@@ -884,7 +887,7 @@ get_line( Prompt, GetLineScriptPath ) ->
 
 
 % Returns the path to the Myriad helper script for get_line/1 operations.
--spec get_line_helper_script() -> file_utils:executable_path().
+-spec get_line_helper_script() -> executable_path().
 get_line_helper_script() ->
 
 	GetLineScript = file_utils:join( script_utils:get_script_base_directory(),
@@ -957,7 +960,7 @@ monitor_port( Port, Data ) ->
 					% always "\n":
 					%
 					Output = text_utils:remove_ending_carriage_return(
-							   lists:flatten( lists:reverse( Data ) ) ),
+								lists:flatten( lists:reverse( Data ) ) ),
 
 					{ ExitStatus, Output }
 
@@ -977,7 +980,7 @@ monitor_port( Port, Data ) ->
 					port_close( Port ),
 
 					Output = text_utils:remove_ending_carriage_return(
-							   lists:flatten( lists:reverse( Data ) ) ),
+								lists:flatten( lists:reverse( Data ) ) ),
 
 					{ ExitStatus, Output }
 
@@ -1015,7 +1018,7 @@ evaluate_shell_expression( Expression ) ->
 % expression.
 %
 -spec evaluate_shell_expression( shell_expression(), environment() ) ->
-									   expression_outcome().
+										expression_outcome().
 evaluate_shell_expression( Expression, Environment ) ->
 
 	FullExpression = get_actual_expression( Expression, Environment ),
@@ -1064,8 +1067,7 @@ run_background_executable( ExecPath ) ->
 % leak, one should consider using evaluate_background_shell_expression/2
 % instead.
 %
--spec run_background_executable( command(),
-								 environment() ) -> void().
+-spec run_background_executable( command(), environment() ) -> void().
 run_background_executable( ExecPath, Environment ) ->
 	run_background_executable( ExecPath, Environment, _WorkingDir=undefined ).
 
@@ -1107,7 +1109,7 @@ run_background_executable( ExecPath, Environment, MaybeWorkingDir ) ->
 % instead.
 %
 -spec run_background_executable( command(), environment(),
-				 maybe( working_dir() ), [ port_option() ] ) -> void().
+					maybe( working_dir() ), [ port_option() ] ) -> void().
 run_background_executable( Command, Environment, MaybeWorkingDir,
 						   PortOptions ) ->
 
@@ -1121,12 +1123,11 @@ run_background_executable( Command, Environment, MaybeWorkingDir,
 	%
 	?myriad_spawn_link( fun() ->
 
-					ExecOutcome = run_executable( Command, Environment,
-											MaybeWorkingDir, PortOptions ),
+		ExecOutcome = run_executable( Command, Environment, MaybeWorkingDir,
+									  PortOptions ),
 
-					% Does not seem to be ever executed:
-					trace_utils:debug_fmt( "Execution outcome: ~p.",
-										   [ ExecOutcome ] )
+		% Does not seem to be ever executed:
+		trace_utils:debug_fmt( "Execution outcome: ~p.", [ ExecOutcome ] )
 
 						end ).
 
@@ -1196,7 +1197,7 @@ get_environment_prefix( Environment ) ->
 % expression and environment.
 %
 -spec get_actual_expression( shell_expression(), environment() ) ->
-								   expression_outcome().
+									expression_outcome().
 get_actual_expression( Expression, _Environment=[] ) ->
 	% Allows to avoid starting the command with a space:
 	Expression;
@@ -1219,7 +1220,7 @@ get_environment_variable( VarName ) ->
 % overwriting a past value.
 %
 -spec set_environment_variable( env_variable_name(), env_variable_value() ) ->
-									  void().
+										void().
 set_environment_variable( VarName, VarValue ) ->
 
 	% Hopefully a string or 'false':
@@ -1230,23 +1231,23 @@ set_environment_variable( VarName, VarValue ) ->
 
 
 
-% Adds specified path to the system's library search path (typically
+% Adds specified directory to the system's library search paths (typically
 % LD_LIBRARY_PATH), in first position.
 %
 % A relative path will be transformed into an absolute one first.
 %
--spec add_path_for_library_lookup( file_utils:path() ) -> void().
+-spec add_path_for_library_lookup( directory_path() ) -> void().
 add_path_for_library_lookup( PathName ) ->
 	add_paths_for_library_lookup( [ PathName ] ).
 
 
 
-% Adds specified paths to the system's library search path (typically
+% Adds specified directories to the system's library search paths (typically
 % LD_LIBRARY_PATH), in first position, respecting the specified path order.
 %
 % Any relative path will be transformed into an absolute one first.
 %
--spec add_paths_for_library_lookup( [ file_utils:path() ] ) -> void().
+-spec add_paths_for_library_lookup( [ directory_path() ] ) -> void().
 add_paths_for_library_lookup( Paths ) ->
 	add_paths_for_library_lookup( Paths, _Acc=[] ).
 
@@ -2101,7 +2102,7 @@ get_process_count_string() ->
 %   SecondMeasure )
 %
 -spec compute_cpu_usage_between( cpu_usage_info(), cpu_usage_info() ) ->
-									   math_utils:percent().
+										percent().
 compute_cpu_usage_between( StartCounters, EndCounters ) ->
 
 	Percentages = compute_detailed_cpu_usage( StartCounters, EndCounters ),
@@ -2118,7 +2119,7 @@ compute_cpu_usage_between( StartCounters, EndCounters ) ->
 % Returns 'undefined' iff the specified usage is itself undefined.
 %
 -spec compute_cpu_usage_for( maybe( cpu_usage_percentages() ) ) ->
-								   maybe( math_utils:percent() ).
+										maybe( percent() ).
 compute_cpu_usage_for( undefined ) ->
 	undefined;
 
@@ -2493,6 +2494,21 @@ get_current_directory_string() ->
 
 
 
+% Returns a textual description of the current limits in terms of local system.
+%
+% Cannot crash.
+%
+-spec get_resource_limits() -> ustring().
+get_resource_limits() ->
+
+	% 'cat /proc/sys/fs/file-max' would report the overall kernel limit over all
+	% processes.
+
+	% As ulimit is actually a shell builtin:
+	evaluate_shell_expression( ?ulimit ++ " -a" ).
+
+
+
 % Returns a string describing the current operating system.
 -spec get_operating_system_description() -> ustring().
 get_operating_system_description() ->
@@ -2580,7 +2596,8 @@ get_system_description() ->
 				 get_user_name_string(),
 				 get_user_home_directory_string(),
 				 get_current_directory_string(),
-				 get_disk_usage_string() ],
+				 get_disk_usage_string(),
+				 get_resource_limits() ],
 
 	text_utils:strings_to_string( Subjects ).
 
