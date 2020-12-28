@@ -131,6 +131,7 @@
 
 -define( id, " \\id " ).
 
+-define( ulimit, " \\ulimit " ).
 
 
 % For proper Unicode support (see also the comments in file_utils.erl):
