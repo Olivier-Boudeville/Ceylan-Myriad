@@ -122,6 +122,9 @@
 -export([ generate_title/2 ]).
 
 
+% To report properly (i.e. with a location) at runtime type errors:
+-export([ report_not_a_string/1, report_not_a_binary_string/1,
+		  report_not_a_list/1, report_not_a_number/1 ]).
 
 % Miscellaneous functions.
 -export([ generate_text_name_from/1, match_types/3 ]).
@@ -174,7 +177,7 @@
 -type bin_string() :: binary().
 
 
-% Any kind of string (a.k.a chardata() :: charlist() | unicode_binary()):
+% Any kind of string (a.k.a chardata() :: charlist() | unicode_string()):
 -type any_string() :: ustring() | bin_string().
 
 
@@ -595,22 +598,22 @@ strings_to_string( _ListOfStrings=[], Acc, _Bullet ) ->
 
 % We do not want an extra newline at the end:
 strings_to_string( _ListOfStrings=[ LastString ], Acc, Bullet )
-  when is_list( LastString ) ->
+  when is_list( LastString ) orelse is_binary( LastString ) ->
 	%Pattern="~ts~n",
 	% Added back, as makes sense?
 	% Nope:
 	Pattern="~ts",
 	Acc ++ Bullet ++ io_lib:format( Pattern, [ LastString ] );
 
+% We allow also for bin_string():
 strings_to_string( _ListOfStrings=[ H | T ], Acc, Bullet )
-  when is_list( H ) ->
+  when is_list( H ) orelse is_binary( H ) ->
 	% Byproduct of the trailing newline: an empty line at the end if nested.
 	strings_to_string( T, Acc ++ Bullet ++ io_lib:format( "~ts~n", [ H ] ),
 					   Bullet );
 
 strings_to_string( _ListOfStrings=[ H | _T ], _Acc, _Bullet ) ->
-	throw( { not_a_string, H } ).
-
+	report_not_a_string( H ).
 
 
 
@@ -645,15 +648,15 @@ strings_to_enumerated_string( ListOfStrings, IndentationLevel ) ->
 
 
 
-% Returns a string that pretty-prints specified list of strings (actually, any
-% element that can be processed with ~s will do; ex: atoms), with default
-% bullets.
+% Returns a string that pretty-prints specified list of strings (actually the
+% list may contain also binary strings), with default bullets.
 %
 -spec strings_to_string( [ ustring() ] ) -> ustring().
 strings_to_string( [] ) ->
 	"(empty list)";
 
-strings_to_string( L=[ SingleString ] ) when is_list( SingleString ) ->
+strings_to_string( L=[ SingleString ] )
+  when is_list( SingleString ) orelse is_binary( SingleString ) ->
 
 	% Not retained, as the single string may itself correspond to a full, nested
 	% list and no dangling final quote is desirable:
@@ -674,7 +677,7 @@ strings_to_string( ListOfStrings ) when is_list( ListOfStrings ) ->
 					   ListOfStrings, _Acc=[], get_default_bullet() ) ] );
 
 strings_to_string( ErrorTerm ) ->
-	throw( { not_a_list, ErrorTerm } ).
+	report_not_a_list( ErrorTerm ).
 
 
 
@@ -687,7 +690,7 @@ strings_to_sorted_string( ListOfStrings ) when is_list( ListOfStrings ) ->
 	strings_to_string( lists:sort( ListOfStrings ) );
 
 strings_to_sorted_string( ErrorTerm ) ->
-	throw( { not_a_list, ErrorTerm } ).
+	report_not_a_list( ErrorTerm ).
 
 
 
@@ -699,21 +702,22 @@ strings_to_sorted_string( ErrorTerm ) ->
 % offset, such as " * ".
 %
 -spec strings_to_string( [ ustring() ], indentation_level_or_bullet() ) ->
-							   ustring().
+								ustring().
 strings_to_string( _ListOfStrings=[ SingleString ], _LevelOrBullet )
   when is_list( SingleString ) ->
 	% For a single string, no need for leading and trailing newlines, but it
 	% used to be separated (with single quotes) from the surrounding text
 	% (not done anymore, as the single may be itself a bullet list)
-	io_lib:format( "~ts", [ SingleString ]);
+	%
+	io_lib:format( "~ts", [ SingleString ] );
 
 strings_to_string( ListOfStrings, IndentationLevel )
   when is_integer( IndentationLevel ) ->
 	Bullet = get_bullet_for_level( IndentationLevel ),
 	strings_to_string( ListOfStrings, Bullet );
 
-strings_to_string( ListOfStrings, Bullet ) when is_list( ListOfStrings )
-												andalso is_list( Bullet ) ->
+strings_to_string( ListOfStrings, Bullet )
+			when is_list( ListOfStrings ) andalso is_list( Bullet ) ->
 	% Leading '~n' had been removed for some unknown reason:
 
 	% Trailing '~n' was removed (as was inducing a too large final blank space),
@@ -730,7 +734,7 @@ strings_to_string( ListOfStrings, Bullet ) when is_list( ListOfStrings )
 												 Bullet ) ] );
 
 strings_to_string( ListOfStrings, Bullet ) when is_list( Bullet ) ->
-	throw( { not_a_list, ListOfStrings } );
+	report_not_a_list( ListOfStrings );
 
 strings_to_string( _ListOfStrings, ErrorTerm ) ->
 	throw( { bullet_not_a_string, ErrorTerm } ).
@@ -748,14 +752,14 @@ strings_to_sorted_string( ListOfStrings, IndentationOrBullet )
 	strings_to_string( lists:sort( ListOfStrings ), IndentationOrBullet );
 
 strings_to_sorted_string( ErrorTerm, _IndentationOrBullet ) ->
-	throw( { not_a_list, ErrorTerm } ).
+	report_not_a_list( ErrorTerm ).
 
 
 
 % Returns a string that pretty-prints specified list of binary strings, with
 % default bullets.
 %
--spec binaries_to_string( [ binary() ] ) -> ustring().
+-spec binaries_to_string( [ bin_string() ] ) -> ustring().
 binaries_to_string( ListOfBinaries ) ->
 	binaries_to_string( ListOfBinaries, _IndentationLevel=0 ).
 
@@ -764,7 +768,7 @@ binaries_to_string( ListOfBinaries ) ->
 % Returns a string that pretty-prints specified list of binary strings, with
 % specified indentation level or bullet.
 %
--spec binaries_to_string( [ binary() ], indentation_level_or_bullet() ) ->
+-spec binaries_to_string( [ bin_string() ], indentation_level_or_bullet() ) ->
 								ustring().
 binaries_to_string( ListOfBinaries, IndentationOrBullet ) ->
 	Strings = binaries_to_strings( ListOfBinaries ),
@@ -775,7 +779,7 @@ binaries_to_string( ListOfBinaries, IndentationOrBullet ) ->
 % Returns a string that pretty-prints specified list of sorted binary strings,
 % with default bullets.
 %
--spec binaries_to_sorted_string( [ binary() ] ) -> ustring().
+-spec binaries_to_sorted_string( [ bin_string() ] ) -> ustring().
 binaries_to_sorted_string( ListOfBinaries ) ->
 	Strings = binaries_to_strings( ListOfBinaries ),
 	strings_to_string( lists:sort( Strings ) ).
@@ -788,7 +792,7 @@ binaries_to_sorted_string( ListOfBinaries ) ->
 % Ex: binaries_to_listed_string( [ <<"red">>, <<"blue">>, <<"green">> ] )
 % returns "red, blue and green".
 %
--spec binaries_to_listed_string( [ binary() ] ) -> ustring().
+-spec binaries_to_listed_string( [ bin_string() ] ) -> ustring().
 binaries_to_listed_string( ListOfBinaries ) ->
 	strings_to_listed_string(
 	  [ binary_to_string( B ) || B <- ListOfBinaries ] ).
@@ -1003,7 +1007,7 @@ number_to_string( F ) when is_float( F ) ->
 	erlang:float_to_list( F );
 
 number_to_string( Other ) ->
-	throw( { not_a_number, Other } ).
+	report_not_a_number( Other ).
 
 
 
@@ -1733,7 +1737,7 @@ ensure_string( U ) ->
 % convenient to define functions whose string parameters may be of any possible
 % type (plain or binary).
 %
--spec ensure_binary( any_string() ) -> binary().
+-spec ensure_binary( any_string() ) -> bin_string().
 ensure_binary( BinString ) when is_binary( BinString ) ->
 	BinString;
 
@@ -1878,7 +1882,7 @@ are_all_starting_with( _C, _Strings, _Acc ) ->
 
 
 % Converts a plain (list-based) string into a binary.
--spec string_to_binary( ustring() ) -> binary().
+-spec string_to_binary( ustring() ) -> bin_string().
 string_to_binary( String ) when is_list( String ) ->
 	try
 
@@ -1900,22 +1904,17 @@ string_to_binary( String ) when is_list( String ) ->
 	end;
 
 string_to_binary( Other ) ->
-
-	%trace_utils:debug_fmt( "Stack trace: ~s",
-	%					   [ code_utils:interpret_stacktrace() ] ),
-
-	throw( { not_a_string, Other } ).
+	report_not_a_string( Other ).
 
 
 
 % Converts a binary into a plain (list-based) string.
--spec binary_to_string( binary() ) -> ustring().
+-spec binary_to_string( bin_string() ) -> ustring().
 binary_to_string( Binary ) when is_binary( Binary ) ->
 	erlang:binary_to_list( Binary );
 
 binary_to_string( Other ) ->
-	throw( { not_a_binary_string, Other } ).
-
+	report_not_a_binary_string( Other ).
 
 
 
@@ -1924,7 +1923,7 @@ binary_to_string( Other ) ->
 %
 % Order of items remains unaffected.
 %
--spec strings_to_binaries( [ ustring() ] ) -> [ binary() ].
+-spec strings_to_binaries( [ ustring() ] ) -> [ bin_string() ].
 strings_to_binaries( StringList ) ->
 	% Order must be preserved:
 	[ string_to_binary( S ) || S <- StringList ].
@@ -2007,7 +2006,7 @@ try_string_to_integer( String, Base ) when is_list( String ) ->
 	end;
 
 try_string_to_integer( Other, _Base ) ->
-	throw( { not_a_string, Other } ).
+	report_not_a_string( Other ).
 
 
 
@@ -2114,7 +2113,7 @@ try_string_to_float( String ) when is_list( String ) ->
 
 % An error (not 'undefined'):
 try_string_to_float( Other ) ->
-	throw( { not_a_string, Other } ).
+	report_not_a_string( Other ).
 
 
 
@@ -2132,7 +2131,7 @@ string_to_atom( String ) ->
 	catch
 
 		error:badarg ->
-			throw( { not_string, String } )
+			report_not_a_string( String )
 
 	end.
 
@@ -2171,7 +2170,7 @@ terms_to_listed_string( Terms ) ->
 % Note that a bounded number of atoms should be created that way, lest the atom
 % table gets saturated.
 %
--spec binary_to_atom( binary() ) -> atom().
+-spec binary_to_atom( bin_string() ) -> atom().
 binary_to_atom( Binary ) ->
 	String = binary_to_string( Binary ),
 	string_to_atom( String ).
@@ -2576,7 +2575,7 @@ split_after_prefix( _Prefix, _String ) ->
 % See also: file_utils:update_with_keywords/3.
 %
 -spec update_with_keywords( any_string(), translation_table() ) ->
-								  [ string_like() ].
+									[ string_like() ].
 update_with_keywords( Content, TranslationTable ) ->
 
 	TransPairs = ?table:enumerate( TranslationTable ),
@@ -3559,3 +3558,49 @@ fix_characters( [ $' | T ], Acc ) ->
 
 fix_characters( [ H | T ], Acc ) ->
 	fix_characters( T, [ H | Acc ] ).
+
+
+
+
+% As too often (ex: with gen_statem) no relevant origin location is specified:
+
+-spec report_not_a_string( any() ) -> no_return().
+report_not_a_string( Term ) ->
+	report_wrong_type( not_a_string, Term ).
+
+
+-spec report_not_a_binary_string( any() ) -> no_return().
+report_not_a_binary_string( Term ) ->
+	report_wrong_type( not_a_binary_string, Term ).
+
+
+-spec report_not_a_list( any() ) -> no_return().
+report_not_a_list( Term ) ->
+	report_wrong_type( not_a_list, Term ).
+
+
+-spec report_not_a_number( any() ) -> no_return().
+report_not_a_number( Term ) ->
+	report_wrong_type( not_a_number, Term ).
+
+
+% Allows to report at runtime a wrong type, with or without a stacktrace.
+-spec report_wrong_type( atom(), term() ) -> no_return().
+
+-ifdef(myriad_add_stacktraces).
+
+report_wrong_type( NotThisType, Term ) ->
+
+	% Not wanting the stacktrace to include these last error-reporting
+	% functions:
+	%
+	Stacktrace = code_utils:get_stacktrace( _SkipLastElemCount=2 ),
+
+	throw( { NotThisType, Term, { stacktrace, Stacktrace } } ).
+
+-else. % myriad_add_stacktraces
+
+report_wrong_type( NotThisType, Term ) ->
+	throw( { NotThisType, Term } ).
+
+-endif. % myriad_add_stacktraces

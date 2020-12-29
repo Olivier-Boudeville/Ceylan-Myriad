@@ -132,6 +132,15 @@ ifeq ($(EXECUTION_TARGET),development)
 	# Does not exist: MYRIAD_CHECK_FLAGS += -Dmyriad_check_code_path
 endif
 
+
+# Allows to add stacktraces to the most commonly exceptions raised (ex:
+# {not_a_string, Term}), independently of debug settings:
+#
+# (useful in contexts where stacktraces tend to vanish)
+#
+MYRIAD_DEBUG_FLAGS += -Dmyriad_add_stacktraces
+
+
 ERLANG_COMPILER_OPT_BASE += $(MYRIAD_DEBUG_FLAGS) \
 							$(MYRIAD_CHECK_FLAGS)
 
@@ -532,8 +541,8 @@ endif
 
 ifeq ($(USE_JAVA_BINDING),true)
 
-	# The path pointing to the target JInterface JAR (OtpErlang.jar), only needed
-	# at compilation-time:
+	# The path pointing to the target JInterface JAR (OtpErlang.jar), only
+	# needed at compilation-time:
 	#
 	# Ex: cd [...]/Erlang-current-install/lib/erlang &&
 	#     ln -s lib/jinterface-1.8.1 jinterface-current-install
