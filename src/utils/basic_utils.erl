@@ -435,7 +435,7 @@ check_all_defined( List ) ->
 % Useful to define, for debugging purposes, terms that will be (temporarily)
 % unused without blocking the compilation.
 %
-% Ex: basic_utils:ignore_unused([A, B, C])
+% Ex: basic_utils:ignore_unused(A) or basic_utils:ignore_unused([A, B, C]).
 %
 -spec ignore_unused( any() ) -> void().
 ignore_unused( _Term ) ->
