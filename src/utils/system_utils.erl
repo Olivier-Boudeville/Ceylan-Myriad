@@ -101,7 +101,7 @@
 
 		  get_default_temporary_directory/0, get_current_directory_string/0,
 
-		  get_resource_limits/0,
+		  get_resource_limits/0, get_resource_limits_string/0,
 
 		  get_operating_system_description/0,
 		  get_operating_system_description_string/0,
@@ -2494,9 +2494,8 @@ get_current_directory_string() ->
 
 
 
-% Returns a textual description of the current limits in terms of local system.
-%
-% Cannot crash.
+% Returns a textual description of the current limits (ulimit) in terms of local
+% system resources.
 %
 -spec get_resource_limits() -> ustring().
 get_resource_limits() ->
@@ -2506,6 +2505,27 @@ get_resource_limits() ->
 
 	% As ulimit is actually a shell builtin:
 	evaluate_shell_expression( ?ulimit ++ " -a" ).
+
+
+
+% Returns a textual description of the current limits (ulimit) in terms of local
+% system resources.
+%
+% Cannot crash.
+%
+-spec get_resource_limits_string() -> ustring().
+get_resource_limits_string() ->
+
+	try
+
+		io_lib:format( "ulimit information:~n~ts", [ get_resource_limits() ] )
+
+	catch _AnyClass:Exception ->
+
+			io_lib:format( "no information about the current ulimit settings "
+						   "could be obtained (~p)", [ Exception ] )
+
+	end.
 
 
 
@@ -2597,7 +2617,7 @@ get_system_description() ->
 				 get_user_home_directory_string(),
 				 get_current_directory_string(),
 				 get_disk_usage_string(),
-				 get_resource_limits() ],
+				 get_resource_limits_string() ],
 
 	text_utils:strings_to_string( Subjects ).
 
