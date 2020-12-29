@@ -803,6 +803,9 @@ test-hex-package: rebar-test-clean
 # at arrival timestamps may not be respected and we want the right BEAMs to be
 # executed.
 #
+# Note that only the source files are synchronised (ex: not the makefiles, not
+# the configuration files, etc.).
+#
 sync-to-server: all
 	@echo " Synchronising the $$(basename $$(pwd)) layer to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)"
 	@if [ -n "$(WEB_SRV)" ]; then if [ -n "$(CEYLAN_SYNC_TARGET_ROOT)" ]; then $(SYNC_TOOL) $(SYNC_OPT) src include $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)/$$(basename $$(pwd)); else echo "Error, no CEYLAN_SYNC_TARGET_ROOT variable set." 1>&2 ; exit 4 ; fi ; else echo "Error, no WEB_SRV variable set." 1>&2 ; exit 5 ; fi
