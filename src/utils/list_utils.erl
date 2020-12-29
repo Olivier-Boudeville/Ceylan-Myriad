@@ -55,7 +55,7 @@
 
 % Basic list operations:
 -export([ get_element_at/2, insert_element_at/3, extract_element_at/2,
-		  remove_element_at/2, remove_last_element/1,
+		  remove_first_elements/2, remove_element_at/2, remove_last_element/1,
 		  get_last_element/1, extract_last_element/1,
 		  get_index_of/2, get_maybe_index_of/2, split_at/2,
 		  uniquify/1, uniquify_ordered/1,
@@ -268,6 +268,19 @@ extract_element_at( _List=[ H | T ], Index, Acc ) ->
 
 
 
+% Removes the specified number first elements.
+%
+% Ex: [ c, d , e ] = list_utils:remove_first_elements( [ a, b, c, d, e ], 2 ).
+%
+-spec remove_first_elements( list(), count() ) -> list().
+remove_first_elements( List, _Count=0 ) ->
+	List;
+
+remove_first_elements( List, Count ) ->
+	remove_first_elements( tl( List ), Count-1 ).
+
+
+
 % Returns a list corresponding to the specified one with the element at
 % specified index removed.
 %
@@ -276,8 +289,6 @@ extract_element_at( _List=[ H | T ], Index, Acc ) ->
 %
 % Note: usually these kinds of functions should not be used, recursive
 % algorithms are a lot more effective, when applicable.
-%
-% Signature: remove_element_at(List, Index).
 %
 % Curiously lists:nth exists, but no function to remove an element specified by
 % its index seems to be available in the lists module.
