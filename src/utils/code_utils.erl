@@ -45,11 +45,12 @@
 		  get_code_path/0, get_code_path_as_string/0, code_path_to_string/1,
 		  list_beams_in_path/0, get_beam_filename/1, is_beam_in_path/1,
 		  get_erlang_root_path/0,
-		  get_stacktrace/0,
+		  get_stacktrace/0, get_stacktrace/1,
 		  interpret_stacktrace/0,
 		  interpret_stacktrace/1,
 		  interpret_stacktrace/2,
 		  interpret_stack_item/2,
+		  interpret_shortened_stacktrace/1,
 		  display_stacktrace/0,
 		  interpret_undef_exception/3, stack_location_to_string/1 ]).
 
@@ -59,19 +60,17 @@
 % runtime elements (Erlang -pa/-pz, Python sys.path with PYTHONPATH, Java
 % classpath, etc.)
 %
--type code_path() :: [ file_utils:directory_path() ].
+-type code_path() :: [ directory_path() ].
 
 -type code_path_position() :: 'first_position' | 'last_position'.
 
-%-type stack_location() :: [ { file, file_utils:path() },
+%-type stack_location() :: [ { file, file_path() },
 %							 { line, meta_utils:line() } ].
 
 -type stack_location() :: [ { atom(), any() } ].
 
 
--type stack_item() :: { basic_utils:module_name(),
-						basic_utils:function_name(),
-						arity(),
+-type stack_item() :: { module_name(), function_name(), arity(),
 						stack_location() }.
 
 
@@ -93,6 +92,8 @@
 % Shorthands:
 
 -type module_name() :: basic_utils:module_name().
+-type function_name() :: basic_utils:function_name().
+-type count() :: basic_utils:count().
 
 -type ustring() :: text_utils:ustring().
 
@@ -275,7 +276,7 @@ deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
 
 		_ ->
 			throw( { module_deployment_failed, ModuleName,
-					 { ResList, BadNodes } } )
+						{ ResList, BadNodes } } )
 
 	end.
 
@@ -341,8 +342,8 @@ declare_beam_directory( Dir ) ->
 declare_beam_directory( Dir, first_position ) ->
 
 	cond_utils:if_defined( myriad_debug_code_path,
-		trace_utils:debug_fmt( "Declaring in first position BEAM directory '~s' "
-							   "in VM code path.", [ Dir ] ) ),
+		trace_utils:debug_fmt( "Declaring in first position BEAM directory "
+			"'~s' in VM code path.", [ Dir ] ) ),
 
 	% No need to check directory for existence, code:add_patha/1 will do it:
 	case code:add_patha( Dir ) of
@@ -442,7 +443,8 @@ check_beam_dirs( _Dirs=[ D | T ] ) ->
 % Removes specified directory (either specified verbatim or designated as the
 % ebin directory of a specified application) from the current code path.
 %
-% Throws an exception if the operation failed, including if it was not already set.
+% Throws an exception if the operation failed, including if it was not already
+% set.
 %
 -spec remove_beam_directory(
 		directory_path() | otp_utils:application_name() ) -> void().
@@ -474,7 +476,7 @@ remove_beam_directory( NameOrDir ) ->
 % Throws an exception if the operation failed otherwise.
 %
 -spec remove_beam_directory_if_set(
-		directory_path() | otp_utils:application_name() ) -> void().
+			directory_path() | otp_utils:application_name() ) -> void().
 remove_beam_directory_if_set( NameOrDir ) ->
 
 	cond_utils:if_defined( myriad_debug_code_path,
@@ -723,7 +725,16 @@ get_erlang_root_path() ->
 %
 -spec get_stacktrace() -> stack_trace().
 get_stacktrace() ->
+	get_stacktrace( _SkipLastElemCount=0 ).
 
+
+
+% Returns (without crashing the program) the current stack trace, whose
+% SkipLastElemCount first elements have been dropped (to output a cleaner, more
+% relevant stacktrace).
+%
+-spec get_stacktrace( count() ) -> stack_trace().
+get_stacktrace( SkipLastElemCount ) ->
 	try
 
 		throw( generate_stacktrace )
@@ -733,7 +744,7 @@ get_stacktrace() ->
 		% To remove the initial code_utils:get_stacktrace/0, by design at the
 		% top of the stack:
 		%
-		tl( StackTrace )
+		list_utils:remove_first_elements( StackTrace, SkipLastElemCount+1 )
 
 	end.
 
@@ -744,7 +755,7 @@ get_stacktrace() ->
 interpret_stacktrace() ->
 
 	% We do not want to include interpret_stacktrace/0 in the stack:
-	StackTrace = tl( get_stacktrace() ),
+	StackTrace = get_stacktrace( _SkipLastElemCount=1 ),
 
 	interpret_stacktrace( StackTrace ).
 
@@ -771,30 +782,38 @@ interpret_stacktrace( StackTrace, FullPathsWanted ) ->
 
 
 
+% Returns a "smart" textual representation of the current stacktrace, once
+% specified extra depth has been skipped (not counting this call).
+%
+% Removing the specified number of last calls allows to skip unwanted
+% error-reporting functions and to return only a relevant stacktrace.
+%
+-spec interpret_shortened_stacktrace( basic_utils:count() ) -> ustring().
+interpret_shortened_stacktrace( SkipLastElemCount ) ->
+	interpret_stacktrace( get_stacktrace( SkipLastElemCount ) ).
+
+
+
 % Helper:
-interpret_stack_item( { Module, Function, Arity, [ { file, FilePath },
-												   { line, Line } ] },
+interpret_stack_item( { Module, Function, Arity,
+						[ { file, FilePath }, { line, Line } ] },
 					  _FullPathsWanted=true ) when is_integer( Arity ) ->
 	text_utils:format( "~s:~s/~B   [defined in ~s (line ~B)]",
-					   [ Module, Function, Arity,
-						 file_utils:normalise_path( FilePath ),
-						 Line ] );
+		[ Module, Function, Arity, file_utils:normalise_path( FilePath ),
+		  Line ] );
 
-interpret_stack_item( { Module, Function, Arity, [ { file, FilePath },
-												   { line, Line } ] },
+interpret_stack_item( { Module, Function, Arity,
+						[ { file, FilePath }, { line, Line } ] },
 					  _FullPathsWanted=false ) when is_integer( Arity ) ->
 	text_utils:format( "~s:~s/~B   [defined in ~s (line ~B)]",
-					   [ Module, Function, Arity,
-						 filename:basename( FilePath ),
-						 Line ] );
+		[ Module, Function, Arity, filename:basename( FilePath ), Line ] );
 
-interpret_stack_item( { Module, Function, Args, [ { file, FilePath },
-												  { line, Line } ] },
+interpret_stack_item( { Module, Function, Args,
+						[ { file, FilePath }, { line, Line } ] },
 					  _FullPathsWanted=false ) when is_list( Args ) ->
 	text_utils:format( "~s:~s/~B   [defined in ~s (line ~B)]",
-					   [ Module, Function, length( Args ),
-						 filename:basename( FilePath ),
-						 Line ] );
+		[ Module, Function, length( Args ), filename:basename( FilePath ),
+		  Line ] );
 
 interpret_stack_item( { Module, Function, Arity, Location },
 					  _FullPathsWanted ) when is_integer( Arity ) ->
@@ -821,7 +840,7 @@ interpret_stack_item( I, _FullPathsWanted ) ->
 display_stacktrace() ->
 
 	% We do not want to include display_stacktrace/0 in the stack:
-	StackTrace = tl( get_stacktrace() ),
+	StackTrace = get_stacktrace( _SkipLastElemCount=1 ),
 
 	trace_utils:info_fmt( "Current stacktrace is (latest calls first): ~s~n",
 						  [ interpret_stacktrace( StackTrace ) ] ).
@@ -830,7 +849,7 @@ display_stacktrace() ->
 
 % Interprets an undef exception, typically after it has been raised.
 -spec interpret_undef_exception( module_name(),
-		 basic_utils:function_name(), arity() ) -> ustring().
+			basic_utils:function_name(), arity() ) -> ustring().
 interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
 
 	case code_utils:is_beam_in_path( ModuleName ) of
@@ -869,8 +888,8 @@ interpret_arities( ModuleName, FunctionName, Arity, Arities ) ->
 		true ->
 			% Should never happen?
 			text_utils:format( "module ~s found in code path, and it exports "
-							   "the ~s/~B function indeed",
-							   [ ModuleName, FunctionName, Arity ] );
+				"the ~s/~B function indeed",
+				[ ModuleName, FunctionName, Arity ] );
 
 		false ->
 			ArStr = case Arities of
