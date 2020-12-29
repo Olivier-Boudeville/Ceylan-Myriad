@@ -66,15 +66,15 @@
 
 
 % Uncomment to enable the logging of random operations:
-%-define( log_random,).
+%-define(log_random,).
 
--ifdef( log_random ).
+-ifdef(log_random).
 
--define( trace_random(FS,FV), trace_utils:info_fmt( FS, FV ) ).
+  -define( trace_random(FS,FV), trace_utils:info_fmt( FS, FV ) ).
 
 -else. % log_random
 
--define( trace_random(FS,FV), no_trace ).
+  -define( trace_random(FS,FV), no_trace ).
 
 -endif. % log_random
 
