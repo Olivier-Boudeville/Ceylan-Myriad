@@ -1396,7 +1396,7 @@ ifndef SYNC_TOOL
 	# not desirable here; not -t either, as having not enough permissions to
 	# update time metadata:
 	#
-	SYNC_OPT :=  -rlpD -vz $(SSH_OPT)
+	SYNC_OPT := -rlpD -vz $(SSH_OPT)
 
 endif
 
