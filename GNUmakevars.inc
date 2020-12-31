@@ -133,6 +133,18 @@ ifeq ($(EXECUTION_TARGET),development)
 endif
 
 
+# As, with Myriad, traces rely on console output, the default here is to ellipse
+# emitted traces of lesser severity; uncomment next line to disable any
+# ellipsing of them (in order to have all traces in full):
+#
+# (note that, for such a make variable to be assigned by an upper layer and to
+# be taken into account here, Myriad must be built from an overall, integrated
+# Make context - not as a series of separate builds)
+#
+#MYRIAD_UNELLIPSED_TRACES_OPT = -Dmyriad_unellipsed_traces
+
+
+
 # Allows to add stacktraces to the most commonly exceptions raised (ex:
 # {not_a_string, Term}), independently of debug settings:
 #
@@ -141,8 +153,9 @@ endif
 MYRIAD_DEBUG_FLAGS += -Dmyriad_add_stacktraces
 
 
-ERLANG_COMPILER_OPT_BASE += $(MYRIAD_DEBUG_FLAGS) \
-							$(MYRIAD_CHECK_FLAGS)
+ERLANG_COMPILER_OPT_BASE += $(MYRIAD_DEBUG_FLAGS)             \
+							$(MYRIAD_CHECK_FLAGS)             \
+							$(MYRIAD_UNELLIPSED_TRACES_OPT)
 
 
 

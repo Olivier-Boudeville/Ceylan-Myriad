@@ -165,6 +165,23 @@
 -define( myriad_logger_id, ceylan_myriad_logger_handler_id ).
 
 
+% At least for error cases, ellipsing traces is not a good idea; as we are
+% relying here on mere console outputs, the ellipsing of other traces may be
+% relevant (this is the default here):
+%
+-ifdef(myriad_unellipsed_traces).
+
+ % Disables the ellipsing of traces:
+ -define( ellipse_length, unlimited ).
+
+-else.
+
+ % Default:
+ -define( ellipse_length, 2000 ).
+
+-endif.
+
+
 
 % Implementation notes:
 %
@@ -172,7 +189,9 @@
 % automatically the trace type (ex: "[debug] ") at the beginning of the message,
 % finish it with a carriage-return/line-feed, and for the most important trace
 % types, try to ensure that they are synchronous (blocking).
-
+%
+% Traces of lesser importance are ellipsed, as the console output does not allow
+% to browse them conveniently.
 
 
 % Outputs specified debug message.
