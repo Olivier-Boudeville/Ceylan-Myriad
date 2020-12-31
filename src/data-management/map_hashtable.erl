@@ -263,7 +263,7 @@ add_new_entry( Key, Value, MapHashtable ) ->
 % exception is thrown).
 %
 -spec add_new_entries( entries(), map_hashtable() ) ->
-							 map_hashtable().
+							map_hashtable().
 add_new_entries( EntryList, MapHashtable ) ->
 
 	lists:foldl( fun( { K, V }, Map ) ->
@@ -514,8 +514,8 @@ get_value_with_defaults( Key, DefaultValue, MapHashtable ) ->
 
 
 % Returns the (ordered) list of values that correspond to the specified
-% (ordered) list of keys of this table, ensuring all entries in the specified
-% table have been read, otherwise throwing an exception.
+% (ordered) list of keys of this table, ensuring that all entries in the
+% specified table have been read, otherwise throwing an exception.
 %
 % The key/value pairs are expected to exist already, otherwise an exception is
 % raised.
@@ -552,7 +552,7 @@ get_all_values( Keys, Hashtable ) ->
 % value and removes that entry from the returned table.
 %
 % The key/value pair is expected to exist already, otherwise an exception is
-% raised (typically {badkey,KeyNotFound}).
+% raised (typically {badkey, KeyNotFound}).
 %
 -spec extract_entry( key(), map_hashtable() ) -> { value(), map_hashtable() }.
 %extract_entry( Key, MapHashtable=#{ Key := Value} ) ->
@@ -591,8 +591,11 @@ extract_entry_with_defaults( Key, DefaultValue, Table ) ->
 %
 % Otherwise, i.e. if that entry does not exist, returns false.
 %
+% Typically useful to iterate over options stored as a table and extracting them
+% in turn, then to check that the resulting final table is empty as expected.
+%
 -spec extract_entry_if_existing( key(), map_hashtable() ) ->
-									   'false' | { value(), map_hashtable() }.
+										'false' | { value(), map_hashtable() }.
 extract_entry_if_existing( Key, MapHashtable ) ->
 
 	case maps:is_key( Key, MapHashtable ) of
@@ -870,7 +873,7 @@ merge_unique( _Tables=[ Table ] ) ->
 % To avoid recreating from scratch the first table:
 merge_unique( _Tables=[ HTable | T ] ) ->
 	lists:foldl( fun( Table, AccTable ) ->
-						 merge_unique( Table, AccTable )
+						merge_unique( Table, AccTable )
 				 end,
 				 _Acc0=HTable,
 				 _List=T ).
@@ -955,7 +958,7 @@ append_to_entry( Key, Element, MapHashtable ) ->
 % list containing only the specified elements.
 %
 -spec append_list_to_entry( key(), [ term() ], map_hashtable() ) ->
-							   map_hashtable().
+								map_hashtable().
 append_list_to_entry( Key, Elements, MapHashtable ) ->
 
 	case lookup_entry( Key, MapHashtable ) of
@@ -1135,7 +1138,7 @@ is_empty( _MapHashtable ) ->
 % Returns the size (number of entries, i.e. of key/value pairs) of the specified
 % table.
 %
--spec size( map_hashtable() ) -> hashtable:entry_count().
+-spec size( map_hashtable() ) -> entry_count().
 size( MapHashtable ) ->
 	map_size( MapHashtable ).
 
