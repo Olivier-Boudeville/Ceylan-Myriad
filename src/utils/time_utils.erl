@@ -131,7 +131,8 @@
 % Duration-related section.
 -export([ get_intertime_duration/2,
 		  duration_to_string/1, duration_to_string/2,
-		  duration_to_french_string/1 ]).
+		  duration_to_french_string/1,
+		  time_out_to_string/1, time_out_to_string/2 ]).
 
 
 % Shall be a bit cheaper:
@@ -1092,7 +1093,7 @@ string_to_timestamp( TimestampString ) ->
 
 
 
-% Returns a textual description of specified DHMS-based duration.
+% Returns a textual description of the specified DHMS-based duration.
 -spec dhms_to_string( dhms_duration() ) -> ustring().
 dhms_to_string( DHMS ) ->
 	duration_to_string( 1000 * dhms_to_seconds( DHMS ) ).
@@ -1237,7 +1238,6 @@ get_duration( FirstTimestamp, SecondTimestamp ) ->
 
 
 
-
 % Returns the (signed) duration in seconds between the specified start timestamp
 % and the current time.
 %
@@ -1280,13 +1280,15 @@ get_french_textual_duration( FirstTimestamp, SecondTimestamp ) ->
 
 
 
-% Returns an approximate textual description of the specified duration, expected
-% to be expressed, in the specified language, as a number of milliseconds
-% (integer otherwise, if being floating-point, it will be rounded), or as the
+% Returns an approximate textual description, in the specified language, of the
+% specified duration, expected to be expressed as a number of milliseconds
+% (integer; otherwise, if being floating-point, it will be rounded), or as the
 % 'infinity' atom.
 %
-% Ex: for a duration of 150012 ms, returns in English:
+% Ex: for a duration of 150 012 ms, returns for English:
 % "2 minutes, 30 seconds and 12 milliseconds".
+%
+% Can be fed directly with a time_out() value.
 %
 % See also: basic_utils:get_textual_duration/2.
 %
@@ -1301,12 +1303,12 @@ duration_to_string( Duration, _Lang ) ->
 
 
 
-% Returns an approximate textual (english) description of the specified
-% duration, expected to be expressed as a signed number of milliseconds (integer
-% otherwise, if being floating-point, it will be rounded), or as the 'infinity'
-% atom.
+% Returns an approximate textual (English) description of the specified
+% duration, expected to be expressed as a signed number of milliseconds
+% (integer; otherwise, if being floating-point, it will be rounded), or as the
+% 'infinity' atom.
 %
-% Ex: for a duration of 150012 ms, returns:
+% Ex: for a duration of 150 012 ms, returns:
 % "2 minutes, 30 seconds and 12 milliseconds".
 %
 % See also: basic_utils:get_textual_duration/2.
@@ -1415,17 +1417,17 @@ duration_to_string( infinity ) ->
 
 
 
-% Returns an approximate textual, french description of the specified duration,
-% expected to be expressed as a number of milliseconds (integer otherwise, if
+% Returns an approximate textual, French description of the specified duration,
+% expected to be expressed as a number of milliseconds (integer; otherwise, if
 % being floating-point, it will be rounded), or as the 'infinity' atom.
 %
-% Ex: for a duration of 150012 ms, returns:
+% Ex: for a duration of 150 012 ms, returns:
 % "2 minutes, 30 secondes et 12 millisecondes".
 %
 % See also: basic_utils:get_textual_duration/2.
 %
 -spec duration_to_french_string( milliseconds() | float() | 'infinity' ) ->
-									   ustring().
+										ustring().
 duration_to_french_string( Milliseconds ) when is_float( Milliseconds )->
 	duration_to_french_string( erlang:round( Milliseconds ) );
 
@@ -1525,13 +1527,45 @@ duration_to_french_string( infinity ) ->
 
 
 
-% Returns a timestamp that is as precise as possible: {MegaSecs,Secs,MicroSecs},
-% where:
+% Returns an approximate textual description of the specified time-out, in the
+% specified language, expected to be expressed as a number of milliseconds
+% (integer; otherwise, if being floating-point, it will be rounded), or as the
+% 'infinity' atom.
+%
+% Ex: for a time-out of 150 012 ms, returns for English:
+% "time-out of 2 minutes, 30 seconds and 12 milliseconds".
+%
+-spec time_out_to_string( time_out(),
+						  language_utils:human_language() ) -> ustring().
+time_out_to_string( Duration, Lang=french ) ->
+	"délai d'attente maximal de " ++ duration_to_string( Duration, Lang );
+
+% Default language is English:
+time_out_to_string( Duration, _Lang ) ->
+	time_out_to_string( Duration ).
+
+
+
+% Returns an approximate textual (English) description of the specified
+% time-out, expected to be expressed as a signed number of milliseconds
+% (integer; otherwise, if being floating-point, it will be rounded), or as the
+% 'infinity' atom.
+%
+% Ex: for a time-out of 150 012 ms, returns:
+% "time-out of 2 minutes, 30 seconds and 12 milliseconds".
+%
+% See also: basic_utils:get_textual_duration/2.
+%
+-spec time_out_to_string( time_out() ) -> ustring().
+time_out_to_string( Duration ) ->
+	"time-out of " ++ duration_to_string( Duration ).
+
+
+% Returns a timestamp that is as precise as possible:
+% {MegaSecs, Secs, MicroSecs}, where:
 %
 % - MegaSecs is an integer number of millions of seconds
-%
-% - Secs is an integer number of second which is less than one million
-%
+% - Secs is an integer number of seconds that is less than one million
 % - MicroSecs is an integer number of microseconds
 %
 -spec get_precise_timestamp() -> precise_timestamp().
