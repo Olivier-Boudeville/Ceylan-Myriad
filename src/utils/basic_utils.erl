@@ -662,12 +662,13 @@ wait_for( Message, Count, TimeOutDuration, TimeOutFormatString ) ->
 % Throws a {ThrowAtom, StillWaitedSenders} exception on time-out (if any, as the
 % time-out can be disabled if set to 'infinity').
 %
-% See wait_for_many_acks/{4,5} if having a large number of senders waited for.
+% See wait_for_many_acks/{4,5} if having a large number of senders that are
+% waited for.
 %
 -spec wait_for_acks( [ pid() ], time_out(), atom(), atom() ) -> void().
 wait_for_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 			   ThrowAtom ) ->
-	wait_for_acks( WaitedSenders, MaxDurationInSeconds, _DefaultPeriod=1000,
+	wait_for_acks( WaitedSenders, MaxDurationInSeconds, _DefaultPeriodMs=1000,
 				   AckReceiveAtom, ThrowAtom ).
 
 
