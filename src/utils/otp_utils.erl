@@ -146,15 +146,15 @@
 % Uncomment to enable:
 %-define(enable_otp_traces,).
 
--ifdef( enable_otp_traces ).
+-ifdef(enable_otp_traces).
 
-  -define( debug( M ), trace_utils:debug( M ) ).
-  -define( debug_fmt( F, V ), trace_utils:debug_fmt( F, V ) ).
+  -define( debug( M ), trace_bridge:debug( M ) ).
+  -define( debug_fmt( F, V ), trace_bridge:debug_fmt( F, V ) ).
 
-  -define( trace( M ), trace_utils:info( M ) ).
-  -define( trace_fmt( F, V ), trace_utils:info_fmt( F, V ) ).
+  -define( trace( M ), trace_bridge:info( M ) ).
+  -define( trace_fmt( F, V ), trace_bridge:info_fmt( F, V ) ).
 
--else.
+-else. % enable_otp_traces
 
   -define( debug( M ), trace_disabled ).
   -define( debug_fmt( F, V ), trace_disabled ).
@@ -162,7 +162,7 @@
   -define( trace( M ), trace_disabled ).
   -define( trace_fmt( F, V ), trace_disabled ).
 
--endif.
+-endif. % enable_otp_traces
 
 
 
@@ -203,12 +203,11 @@ prepare_for_execution( AppNames, BaseDir ) when is_list( AppNames ) ->
 	% From this entry point, we prefer to deal with absolute, normalised paths:
 	AbsBaseDir = file_utils:ensure_path_is_absolute( BaseDir ),
 
-	?debug_fmt( "Preparing for the execution from '~s' "
-		"of following top-level applications:~n  ~p",
-		[ AbsBaseDir, AppNames ] ),
+	?debug_fmt( "Preparing for the execution from '~s' of following top-level "
+				"applications:~n  ~p", [ AbsBaseDir, AppNames ] ),
 
 	{ FullDeps, _FinalAppTable } = prepare_for_exec( AppNames, AbsBaseDir,
-										 _AccDeps=[], _AppTable=table:new() ),
+										_AccDeps=[], _AppTable=table:new() ),
 
 	% After a depth-first traversal resulting in listing paths from leaves to
 	% roots, we reverse the results in order to enforce a top to bottom order
@@ -216,8 +215,7 @@ prepare_for_execution( AppNames, BaseDir ) when is_list( AppNames ) ->
 	%
 	PreparedApps = lists:reverse( FullDeps ),
 
-	?debug_fmt( "Pre-deduplication start lists:~n  ~p",
-				[ PreparedApps ] ),
+	?debug_fmt( "Pre-deduplication start lists:~n  ~p", [ PreparedApps ] ),
 
 	% Now each prerequisite shall be started once, the first time it is useful:
 	FinalApps = list_utils:uniquify_ordered( PreparedApps ),
@@ -253,7 +251,7 @@ prepare_for_exec( [ AppName | T ], AbsBaseDir, AccDeps, AppTable ) ->
 	case get_app_info( AppName, AbsBaseDir, AppTable ) of
 
 		undefined ->
-			trace_utils:error_fmt( "No application information found "
+			trace_bridge:error_fmt( "No application information found "
 				"for the '~s' OTP application (searched in turn in local ebin, "
 				"rebar3 _checkouts or _build directory, through any sibling "
 				"applications or as a standard application; "
@@ -274,11 +272,10 @@ prepare_for_exec( [ AppName | T ], AbsBaseDir, AccDeps, AppTable ) ->
 			% application can be found by OTP when starting it).
 			%
 			DepAppNames = list_table:get_value_with_defaults( applications,
-												  _DefNoDep=[], AppEntries ),
+												_DefNoDep=[], AppEntries ),
 
-			?debug_fmt( "Preparing for the execution of application "
-				"'~s', whose direct dependencies are: ~w.",
-				[ AppName, DepAppNames ] ),
+			?debug_fmt( "Preparing for the execution of application '~s', "
+			  "whose direct dependencies are: ~w.", [ AppName, DepAppNames ] ),
 
 			{ CompleteDepApps, DepAppTable } = prepare_for_exec( DepAppNames,
 				BinAppBaseDir, _NestedAppDeps=[], DirectAppTable ),
@@ -401,7 +398,7 @@ generate_app_info( AppName, AbsBaseDir, AppTable ) ->
 						   CheckBuildAppPath ) of
 
 						true ->
-							?trace_fmt( "Using, for the application '~s', "
+							?trace_fmt( "Using, for the application '~s', the "
 										"the _build checkout '~s' file.",
 										[ AppName, CheckBuildAppPath ] ),
 							{ CheckBuildAppPath, CheckBuildEBinDir,
@@ -418,7 +415,7 @@ generate_app_info( AppName, AbsBaseDir, AppTable ) ->
 							?debug_fmt( "[3] Application '~s' not found in "
 								"local checkout, trying as a local build "
 								"dependency, based on '~s'.",
-										[ AppName, DepAppPath ] ),
+								[ AppName, DepAppPath ] ),
 
 							% To avoid insane nesting:
 							try_next_locations( AppName, AppNameStr,
@@ -512,7 +509,7 @@ try_next_locations( AppName, AppNameStr, AppFilename, DepEBinDir, DepAppPath,
 							case code:lib_dir( AppName ) of
 
 								{ error, bad_name } ->
-									trace_utils:error_fmt( "Application '~s' "
+									trace_bridge:error_fmt( "Application '~s' "
 									  "not found in any of the supported "
 									  "locations.", [ AppName ] ),
 									throw( { application_not_found, AppName,
@@ -521,8 +518,8 @@ try_next_locations( AppName, AppNameStr, AppFilename, DepEBinDir, DepAppPath,
 								AbsStdPath ->
 									StdEbinDir = file_utils:join( AbsStdPath,
 																  "ebin" ),
-									StdAppPath= file_utils:join( StdEbinDir,
-																 AppFilename ),
+									StdAppPath = file_utils:join( StdEbinDir,
+																  AppFilename ),
 									case file_utils:is_existing_file(
 										   StdAppPath ) of
 
@@ -564,7 +561,7 @@ get_string_application_name( AppName ) ->
 % specified application.
 %
 -spec get_build_ebin_from( directory_path(), string_application_name() ) ->
-								 directory_path().
+									directory_path().
 get_build_ebin_from( BaseDir, AppNameStr ) ->
 	file_utils:join( [ BaseDir, "_build", "default", "lib", AppNameStr,
 					   "ebin" ] ).
@@ -575,7 +572,7 @@ get_build_ebin_from( BaseDir, AppNameStr ) ->
 % specified ebin directory, otherwise through current code path.
 %
 -spec look_up_beam( module_name(), abs_directory_path(),
-	abs_directory_path(), file_path(), application_name() ) -> void().
+			abs_directory_path(), file_path(), application_name() ) -> void().
 look_up_beam( ModuleName, EBinPath, BaseDir, AppFilePath, AppName ) ->
 
 	TestedBeamFilename = code_utils:get_beam_filename( ModuleName ),
@@ -632,8 +629,8 @@ look_up_beam( ModuleName, EBinPath, BaseDir, AppFilePath, AppName ) ->
 
 
 						false ->
-							trace_utils:error_fmt( "The application '~s' whose "
-							  "information is in '~s' does not seem compiled "
+							trace_bridge:error_fmt( "The application '~s' whose"
+							  " information is in '~s' does not seem compiled "
 							  "(neither found as '~s' or '~s', nor through "
 							  "the code path).",
 							  [ AppName, AppFilePath, ExpectedModPath,
@@ -659,7 +656,7 @@ look_up_beam( ModuleName, EBinPath, BaseDir, AppFilePath, AppName ) ->
 % (helper)
 %
 -spec interpret_app_file( file_path(), application_name(),
-	abs_directory_path(), abs_directory_path() ) -> app_spec().
+				abs_directory_path(), abs_directory_path() ) -> app_spec().
 interpret_app_file( AppFilePath, AppName, EBinPath, BaseDir ) ->
 
 	?debug_fmt( "Examining application specification in '~s'.",
@@ -670,7 +667,7 @@ interpret_app_file( AppFilePath, AppName, EBinPath, BaseDir ) ->
 		[ { application, AppName, Entries } ] ->
 
 			ActiveInfo = list_table:get_value_with_defaults( mod,
-												 _Def=undefined, Entries ),
+												_Def=undefined, Entries ),
 
 			% To check whether this application is compiled, we cannot rely on
 			% the 'mod' entry, which is defined only for *active* applications,
@@ -684,8 +681,8 @@ interpret_app_file( AppFilePath, AppName, EBinPath, BaseDir ) ->
 
 				{ value, [] } ->
 					% No module declared (weird); supposing that alles gut:
-					%trace_utils:warning_fmt( "Application '~s' did not declare"
-					%	" any module; supposing that it is fully built.",
+					%trace_bridge:warning_fmt( "Application '~s' did not "
+					%	"declare any module; supposing that it is fully built.",
 					%	[ AppName ] ),
 					ok;
 
@@ -779,8 +776,8 @@ start_application( AppName, RestartType ) ->
 			ok;
 
 		{ error, Reason } ->
-			trace_utils:error_fmt( "Application '~s' failed to start: ~p",
-								   [ AppName, Reason ] ),
+			trace_bridge:error_fmt( "Application '~s' failed to start: ~p",
+									[ AppName, Reason ] ),
 			throw( { app_start_failed, AppName, RestartType, Reason } )
 
 	end.
@@ -855,8 +852,8 @@ stop_application( AppName ) ->
 			ok;
 
 		{ error, Reason } ->
-			trace_utils:error_fmt( "Application '~s' failed to stop: ~p",
-								   [ AppName, Reason ] ),
+			trace_bridge:error_fmt( "Application '~s' failed to stop: ~p",
+									[ AppName, Reason ] ),
 			throw( { app_stop_failed, AppName, Reason } )
 
 	end.
@@ -905,7 +902,7 @@ stop_user_applications( AppNames ) ->
 % for further information.
 %
 -spec get_supervisor_settings( supervisor:strategy(),
-				   basic_utils:execution_target() ) -> supervisor:sup_flags().
+					basic_utils:execution_target() ) -> supervisor:sup_flags().
 get_supervisor_settings( RestartStrategy, _ExecutionTarget=development ) ->
 
 	% No restart wanted in development mode; we do not want the supervisor to
@@ -990,7 +987,7 @@ get_priv_root( ModuleName, BeSilent ) ->
 				   ok;
 
 			   false ->
-					trace_utils:warning_fmt( "Unable to determine 'priv' "
+					trace_bridge:warning_fmt( "Unable to determine 'priv' "
 						"directory from module '~s': ~w.",
 						[ ModuleName, PError ] )
 
