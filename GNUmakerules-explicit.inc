@@ -69,7 +69,7 @@ all: all-pre-hook all-parse-transforms rebar3-make-include-links
 #
 
 # Also deactivated, as any dependency in _build would then be lost, whereas we
-# might use on our native build system while still relyong on them (ex: for
+# might use on our native build system while still relying on them (ex: for
 # LEEC): -@/bin/rm -rf $(REBAR_BUILD_ROOT)
 #
 # (thus use the rebar3-real-clean target instead, if wanting to remove

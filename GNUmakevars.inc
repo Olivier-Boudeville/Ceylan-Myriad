@@ -133,9 +133,9 @@ ifeq ($(EXECUTION_TARGET),development)
 endif
 
 
-# As, with Myriad, traces rely on console output, the default here is to ellipse
-# emitted traces of lesser severity; uncomment next line to disable any
-# ellipsing of them (in order to have all traces in full):
+# As, with Myriad, the trace system relies on console output, the default here
+# is to ellipse emitted traces of lesser severity; uncomment next line to
+# disable any ellipsing of them (in order to always have all traces in full):
 #
 # (note that, for such a make variable to be assigned by an upper layer and to
 # be taken into account here, Myriad must be built from an overall, integrated
