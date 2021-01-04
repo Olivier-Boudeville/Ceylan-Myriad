@@ -1,4 +1,4 @@
-% Copyright (C) 2015-2020 Olivier Boudeville
+% Copyright (C) 2015-2021 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -24,24 +24,5 @@
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
-
 % The default, Erlang-level, EPMD TCP port:
 -define( default_epmd_port, 4369 ).
-
-
-% Describes fully an URL, like: 'https://www.foo.org:8081/access/login'.
--record( url_info, {
-
-		   % Protocol of the URL (ex: 'https'):
-		   protocol = http :: net_utils:protocol_type(),
-
-		   % Host of the server (ex: 'www.foo.org'):
-		   host_identifier :: net_utils:host_identifier(),
-
-		   % Ex: 8081; possibly undefined.
-		   port = 80 :: maybe( net_utils:net_port() ),
-
-		   % Ex: 'access/login'.
-		   path :: net_utils:path()
-
-} ).

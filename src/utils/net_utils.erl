@@ -1,4 +1,4 @@
-% Copyright (C) 2007-2020 Olivier Boudeville
+% Copyright (C) 2007-2021 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -76,11 +76,8 @@
 % Stringifications:
 -export([ ipv4_to_string/1, ipv4_to_string/2,
 		  ipv6_to_string/1, ipv6_to_string/2,
-		  host_to_string/1, url_info_to_string/1 ]).
+		  host_to_string/1 ]).
 
-
-% Destringifications:
--export([ string_to_url_info/1, string_to_uri_map/1 ]).
 
 
 % Exported for convenience:
@@ -158,29 +155,6 @@
 -type tcp_port_restriction() :: 'no_restriction' | tcp_port_range().
 
 
-% The possible protocols (schemes) for an URL:
-%
-% (use uri_string:parse/1 to extract it)
-%
--type protocol_type() :: 'http' | 'https' | 'ftp'.
-
-
-
-% Path of an URL (ex: 'access/login'):
--type path() :: ustring().
-
-
--include("net_utils.hrl").
-
-
-% Full information about an URL:
--type url_info() :: #url_info{}.
-
-
-% An URL:
--type url() :: ustring().
-
-
 -export_type([ ip_v4_address/0, ip_v6_address/0, ip_address/0,
 			   atom_node_name/0, string_node_name/0, bin_node_name/0,
 			   node_name/0, node_type/0,
@@ -192,8 +166,11 @@
 			   node_naming_mode/0, cookie/0,
 			   net_port/0, tcp_port/0, udp_port/0,
 			   tcp_port_range/0, udp_port_range/0,
-			   tcp_port_restriction/0,
-			   protocol_type/0, path/0, url_info/0, url/0 ]).
+			   tcp_port_restriction/0 ]).
+
+
+% For the default_epmd_port define:
+-include("net_utils.hrl").
 
 
 % For the file_info record:
@@ -211,7 +188,6 @@
 
 -type command() :: system_utils:command().
 -type environment() :: system_utils:environment().
-
 
 
 % Host-related functions.
@@ -1708,73 +1684,3 @@ host_to_string( IPv6={ _N1, _N2, _N3, _N4, _N5, _N6 } ) ->
 
 host_to_string( Address ) ->
 	Address.
-
-
-% Returns a string describing the specified URL information.
--spec url_info_to_string( url_info() ) -> ustring().
-url_info_to_string( #url_info{ protocol=Protocol, host_identifier=Host,
-							   port=Port, path=Path } ) ->
-
-	text_utils:format( "~s://~s:~B/~s",
-					   [ Protocol, host_to_string( Host ), Port, Path ] ).
-
-
-% Decodes specified string into an url_info record, by extracting protocol
-% (scheme), host, port and path information.
-%
-% Note that other information (fragment, query, userinfo) will be ignored and
-% lost.
-%
-% Note: using string_to_uri_map/1  might be
-% a more complete option; this function remains mostly for backward
-% compatibility.
-%
--spec string_to_url_info( ustring() ) -> url_info().
-string_to_url_info( String ) ->
-
-	% Deprecated http_uri:parse/1 was used previously, now relying on (available
-	% since Erlang 23.0):
-	%
-	#{ % fragment => unicode:chardata(),
-
-	   % host => unicode:chardata(),
-	   host := Host,
-
-	   % path => unicode:chardata(),
-	   path := Path,
-
-	   % port => integer() >= 0 | undefined,
-	   port := MaybePort,
-
-	   % query => unicode:chardata(),
-
-	   % scheme => unicode:chardata(),
-	   scheme := Scheme
-
-	   %userinfo => unicode:chardata()
-
-		 } = string_to_uri_map( String ),
-
-	#url_info{ protocol=Scheme, host_identifier=Host, port=MaybePort,
-			   path=Path }.
-
-
-
-% Decodes specified string into an URI map, by extracting all relevant
-% information: protocol (scheme), user information, host, port, path and
-% fragment.
-%
-% Throws an exception on failure.
-%
--spec string_to_uri_map( ustring() ) -> uri_string:uri_map().
-string_to_uri_map( String ) ->
-
-	case uri_string:parse( String ) of
-
-		{ error, ReasonAtom, ReasonTerm } ->
-			throw( { uri_parsing_failed, String, ReasonAtom, ReasonTerm } );
-
-		URIMap ->
-			URIMap
-
-	end.

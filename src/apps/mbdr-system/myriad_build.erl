@@ -1,4 +1,4 @@
-% Copyright (C) 2020-2020 Olivier Boudeville
+% Copyright (C) 2020-2021 Olivier Boudeville
 %
 % Better here than in myriad-build.escript to benefit from a more user-friendly
 % debugging.

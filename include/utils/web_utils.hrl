@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2021 Olivier Boudeville
+% Copyright (C) 2015-2021 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -25,35 +25,23 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-
-% Unit tests for the ring management utilities.
+% Describes fully an URL, like: 'https://www.foo.org:8081/access/login'.
 %
-% See the ring_utils.erl tested module.
+% Note: not to be used anymore, the Erlang-native uri_string module shall be
+% preferred now.
 %
--module(ring_utils_test).
+-record( url_info, {
 
+		   % Protocol (scheme) of the URL (ex: 'https'):
+		   protocol = 'http' :: web_utils:protocol_type(),
 
-% For run/0 export and al:
--include("test_facilities.hrl").
+		   % Host of the server (ex: 'www.foo.org'):
+		   host_identifier :: net_utils:host_identifier(),
 
+		   % Ex: 8081; possibly undefined.
+		   port = 80 :: maybe( net_utils:net_port() ),
 
--spec run() -> no_return().
-run() ->
+		   % Ex: 'access/login'.
+		   path :: web_utils:path()
 
-	test_facilities:start( ?MODULE ),
-
-	Ring = ring_utils:from_list( [ a, b, c, d, e, f, g ] ),
-
-	{ a, FirstRing } = ring_utils:head( Ring ),
-
-	{ b, SecondRing } = ring_utils:head( FirstRing ),
-
-	{ [ c, d, e, f, g, a, b, c ], _ThirdRing } = ring_utils:get_next(
-													_RingCount=8, SecondRing ),
-
-	[ c, d, e, f, g, a, b ] = ring_utils:to_list( SecondRing ),
-
-	test_facilities:display( "Second ring: ~s",
-							 [ ring_utils:to_string( SecondRing ) ] ),
-
-	test_facilities:stop().
+} ).
