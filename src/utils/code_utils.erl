@@ -855,21 +855,21 @@ interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
 	case code_utils:is_beam_in_path( ModuleName ) of
 
 		not_found ->
-			text_utils:format( "no module ~s found in code path, explaining "
-				"why its ~s/~B function is reported as being undefined; ~s",
+			text_utils:format( "no module ~s found in code path, which explains"
+				" why its ~s/~B function is reported as being undefined; ~s",
 				[ ModuleName, FunctionName, Arity,
 				  code_utils:get_code_path_as_string() ] );
 
 
-		_ModulePath ->
+		ModulePath ->
 
 			case meta_utils:get_arities_for( ModuleName,
 											 FunctionName ) of
 
 				[] ->
-					text_utils:format( "module ~s found in code path, yet "
-						"it does not export a '~s' function (for any arity)",
-						[ ModuleName, FunctionName ] );
+					text_utils:format( "module ~s found in code path (as '~s'),"
+					  " yet it does not export a '~s' function (for any arity)",
+					  [ ModuleName, ModulePath, FunctionName ] );
 
 				Arities ->
 					interpret_arities( ModuleName, FunctionName, Arity,
