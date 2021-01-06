@@ -1,4 +1,4 @@
-% Copyright (C) 2019-2020 Olivier Boudeville
+% Copyright (C) 2019-2021 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -37,6 +37,93 @@
 -module(web_utils).
 
 
+% Tells whether the SSL support is needed (typically for https):
+-type ssl_opt() :: 'no_ssl' | 'ssl'.
+
+-type url() :: ustring().
+
+-type bin_url() :: bin_string().
+
+-type any_url() :: url() | bin_url().
+
+
+-type uri() :: ustring().
+
+-type bin_uri() :: bin_string().
+
+-type any_uri() :: uri() | bin_uri().
+
+
+% The possible protocols (schemes) for an URL:
+%
+% (use uri_string:parse/1 to extract it)
+%
+-type protocol_type() :: 'http' | 'https' | 'ftp'.
+
+
+% Path of an URL (ex: 'access/login'):
+-type path() :: ustring().
+
+
+% For the (deprecated) url_info record:
+-include("web_utils.hrl").
+
+
+% Full information about an URL:
+%
+% (prefer uri_string:uri_map() now)
+%
+-type url_info() :: #url_info{}.
+
+
+-type body() :: string() | binary().
+
+% Encoded in JSON:
+-type json_body() :: body().
+
+-type content_type() :: string().
+
+
+% [ {field() :: string(), value() :: string()} ]:
+-type old_style_options() :: [ { string(), string() } ].
+
+-type new_style_options() :: maps:map( bin_string(), bin_string() ).
+
+
+% Example: {"content-type", "application/jose+json"}.
+-type headers_as_list() :: old_style_options().
+
+-type headers_for_httpc() :: headers_as_list().
+
+
+-type headers_as_maps() :: new_style_options().
+
+-type headers() :: headers_as_list() | headers_as_maps().
+
+
+-type http_option() :: httpc:http_option().
+
+-type options_for_httpc() :: [ http_option() ].
+
+-type http_options() :: options_for_httpc()
+					  | maps:map( atom(), term() ).
+
+
+% Keys:
+% - body :: body()
+% - headers :: headers()
+% - status_code: http_status_code()
+%
+%-type _result() :: maps:map( atom(), term() ).
+-type request_result() :: { http_status_code(), headers_as_list(), body() }
+						| { 'error', basic_utils:error_reason() }.
+
+-type location() :: atom().
+
+-type nonce() :: bin_string().
+
+
+
 % Ex: "<p>Hello!</p>":
 -type html_element() :: text_utils:any_string().
 
@@ -66,19 +153,27 @@
 
 -type http_status_code() :: non_neg_integer().
 
-% Tells whether the SSL support is needed (typically for https):
--type ssl_opt() :: 'no_ssl' | 'ssl'.
 
 
--export_type([ html_element/0, http_status_class/0, http_status_code/0,
-			   ssl_opt/0 ]).
+-export_type([ ssl_opt/0,
+			   url/0, bin_url/0, any_url/0,
+			   uri/0, bin_uri/0, any_uri/0,
+			   protocol_type/0, path/0, url_info/0,
+
+			   body/0, json_body/0, headers/0, http_option/0, location/0,
+			   nonce/0,
+
+			   html_element/0, http_status_class/0, http_status_code/0 ]).
 
 
 % HTTP-related section:
 
 % URL subsection:
 -export([ encode_as_url/1, encode_element_as_url/1, escape_as_url/1,
-		  get_last_path_element/1 ]).
+		  get_last_path_element/1,
+
+		  % Deprecated in favor ofthe standard uri_string module:
+		  url_info_to_string/1, string_to_url_info/1, string_to_uri_map/1 ]).
 
 
 % HTML-related section:
@@ -91,7 +186,12 @@
 
 
 % http-related operations:
--export([ start/0, start/1, download_file/2, stop/0 ]).
+-export([ start/0, start/1,
+		  request/4, get/3, post/3, post/4, post/5,
+		  download_file/2,
+		  stop/0 ]).
+
+-define( default_content_type, "text/html; charset=UTF-8" ).
 
 
 % Shorthands:
@@ -99,17 +199,22 @@
 -type option_list() :: option_list:option_list().
 
 -type ustring() :: text_utils:ustring().
+-type bin_string() :: text_utils:bin_string().
 
 -type any_directory_path() :: file_utils:any_directory_path().
 -type file_path() :: file_utils:file_path().
 -type file_name() :: file_utils:file_name().
 
--type url() :: net_utils:url().
+%-type time_out() :: time_utils:time_out().
+
+-type method() :: rest_utils:method().
 
 
 
 % HTTP-related operations.
 
+
+% URL subsection.
 
 % About encoding.
 
@@ -233,6 +338,83 @@ escape_char( C ) ->
 get_last_path_element( Url ) ->
 	% Hackish yet working perfectly:
 	filename:basename( Url ).
+
+
+
+% Returns a string describing the specified URL information.
+-spec url_info_to_string( url_info() ) -> ustring().
+url_info_to_string( #url_info{ protocol=Protocol, host_identifier=Host,
+							   port=Port, path=Path } ) ->
+
+	text_utils:format( "~s://~s:~B/~s",
+		[ Protocol, net_utils:host_to_string( Host ), Port, Path ] ).
+
+
+
+% Decodes specified string into an url_info record, by extracting protocol
+% (scheme), host, port and path information.
+%
+% Note that other information (fragment, query, userinfo) will be ignored and
+% lost.
+%
+% Note: using string_to_uri_map/1  might be
+% a more complete option; this function remains mostly for backward
+% compatibility.
+%
+-spec string_to_url_info( ustring() ) -> url_info().
+string_to_url_info( String ) ->
+
+	% Deprecated http_uri:parse/1 was used previously, now relying on (available
+	% since Erlang 23.0):
+	%
+	#{ % fragment => unicode:chardata(),
+
+	   % host => unicode:chardata(),
+	   host := Host,
+
+	   % path => unicode:chardata(),
+	   path := Path,
+
+	   % port => integer() >= 0 | undefined,
+	   port := MaybePort,
+
+	   % query => unicode:chardata(),
+
+	   % scheme => unicode:chardata(),
+	   scheme := Scheme
+
+	   %userinfo => unicode:chardata()
+
+		 } = string_to_uri_map( String ),
+
+	#url_info{ protocol=Scheme, host_identifier=Host, port=MaybePort,
+			   path=Path }.
+
+
+
+% Decodes specified string into an URI map, by extracting all relevant
+% information: protocol (scheme), user information, host, port, path and
+% fragment.
+%
+% Throws an exception on failure.
+%
+-spec string_to_uri_map( ustring() ) -> uri_string:uri_map().
+string_to_uri_map( String ) ->
+
+	case uri_string:parse( String ) of
+
+		{ error, ReasonAtom, ReasonTerm } ->
+			throw( { uri_parsing_failed, String, ReasonAtom, ReasonTerm } );
+
+		URIMap ->
+			URIMap
+
+	end.
+
+
+
+
+% HTML-related section.
 
 
 % Returns the HTML code of an ordered (numbered bullets) list corresponding to
@@ -599,6 +781,10 @@ start() ->
 -spec start( ssl_opt() ) -> void().
 start( Option ) ->
 
+	cond_utils:if_defined( myriad_debug_web_exchanges,
+		trace_bridge:debug_fmt( "[~w] Starting web support with option ~p.",
+								[ self(), Option ] ) ),
+
 	% Starts the (built-in) HTTP client:
 	ok = inets:start( _DefaultInetsType=temporary ),
 
@@ -615,13 +801,204 @@ start( Option ) ->
 
 
 
-% Stops the HTTP support.
-stop() ->
+% Sends a (synchronous) HTTP/1.1 client request (GET or POST).
+%
+% The HTTP support (possibly with SSL if needed) must be started.
+%
+% For more advanced uses (ex: re-using of permanent connections, HTTP/2, etc.),
+% consider relying on Gun or Shotgun.
+%
+-spec request( method(), uri(), headers(), http_options() ) -> request_result().
+request( _Method=get, Uri, Headers, HttpOptions ) ->
+	get( Uri, Headers, HttpOptions );
 
-	% Maybe not launched, hence not pattern matched:
-	ssl:stop(),
+request( _Method=post, Uri, Headers, HttpOptions ) ->
+	post( Uri, Headers, HttpOptions ).
 
-	ok = inets:stop().
+
+
+% Sends a (synchronous) HTTP/1.1 client GET request.
+%
+% The HTTP support (possibly with SSL if needed) must be started.
+%
+% For more advanced uses (ex: re-using of permanent connections, HTTP/2, etc.),
+% consider relying on Gun or Shotgun.
+%
+-spec get( uri(), headers(), http_options() ) -> request_result().
+get( Uri, Headers, HttpOptions ) ->
+
+	cond_utils:if_defined( myriad_debug_web_exchanges,
+		trace_bridge:debug_fmt( "[~w] GET request to URI "
+			"'~s', with following headers:~n  ~p~n and "
+			"http options:~n  ~p.", [ self(), Uri, Headers, HttpOptions ] ) ),
+
+	HeadersForHttpc = to_httpc_headers( Headers ),
+
+	% Any content-type expected in headers, and no specific body for GET:
+	Req = { Uri, HeadersForHttpc },
+
+	HttpOptionsForHttpc = to_httpc_options( HttpOptions ),
+
+	% Wanting the resulting body, headers, and the entire status line:
+	Options = [ { full_result, true } ],
+
+	cond_utils:if_defined( myriad_debug_web_exchanges,
+		trace_bridge:debug_fmt( "[~w] Actual parameters of the httpc GET "
+			"request:~n - request: ~p~n - HTTP options: ~p~n - options: ~p~n",
+			[ self(), Req, HttpOptionsForHttpc, Options ] ) ),
+
+	case httpc:request( _Method=get, Req, HttpOptionsForHttpc, Options ) of
+
+		% Ex: HttpVersion="HTTP/1.1", StatusCode=200, ReqReason="OK".
+		{ ok, { _StatusLine={ ReqHttpVersion, ReqStatusCode, ReqReason },
+				ReqHeaders, ReqBody } } ->
+
+			cond_utils:if_defined( myriad_debug_web_exchanges,
+				trace_bridge:debug_fmt( "[~w] Received HTTP version: ~s, "
+					"status code: ~B, reason: ~s; headers are:~n  ~p"
+					"Returned body is ~p", [ self(), ReqHttpVersion,
+						ReqStatusCode, ReqReason, ReqHeaders, ReqBody ] ),
+				basic_utils:ignore_unused( [ ReqHttpVersion, ReqReason ] ) ),
+
+			{ ReqStatusCode, ReqHeaders, ReqBody };
+
+		Err={ error, ErrorReason } ->
+			cond_utils:if_defined( myriad_debug_web_exchanges,
+				trace_bridge:error_fmt( "[~w] GET failed: ~p ",
+										[ self(), ErrorReason ] ),
+			basic_utils:ignore_unused( ErrorReason ) ),
+			Err
+
+	end.
+
+
+
+
+% Sends a (synchronous, body-less) HTTP/1.1 client POST request.
+%
+% The HTTP support (possibly with SSL if needed) must be started.
+%
+% For more advanced uses (ex: re-using of permanent connections, HTTP/2, etc.),
+% consider relying on Gun or Shotgun.
+%
+-spec post( uri(), headers(), http_options() ) -> request_result().
+post( Uri, Headers, HttpOptions ) ->
+	post( Uri, Headers, HttpOptions, _MaybeBody=undefined ).
+
+
+
+% Sends a (synchronous) HTTP/1.1 client POST request.
+%
+% If a body is specified, ?default_content_type will be used.
+%
+% The HTTP support (possibly with SSL if needed) must be started.
+%
+% For more advanced uses (ex: re-using of permanent connections, HTTP/2, etc.),
+% consider relying on Gun or Shotgun.
+%
+-spec post( uri(), headers(), http_options(), maybe( body() ) ) ->
+								request_result().
+post( Uri, Headers, HttpOptions, MaybeBody ) ->
+	post( Uri, Headers, HttpOptions, MaybeBody, _MaybeContentType=undefined ).
+
+
+
+% Sends a (synchronous) HTTP/1.1 client POST request.
+%
+% If a body is specified yet no content-type is set, ?default_content_type will
+% be used.
+%
+% The HTTP support (possibly with SSL if needed) must be started.
+%
+% For more advanced uses (ex: re-using of permanent connections, HTTP/2, etc.),
+% consider relying on Gun or Shotgun.
+%
+-spec post( uri(), headers(), http_options(), maybe( body() ),
+			maybe( content_type() ) ) -> request_result().
+post( Uri, Headers, HttpOptions, MaybeBody, MaybeContentType ) ->
+
+	cond_utils:if_defined( myriad_debug_web_exchanges,
+		trace_bridge:debug_fmt( "[~w] POST request to URI "
+			"'~s', with following headers:~n  ~p~nHTTP options:~n  ~p~n"
+			"Body: ~p~nContent-type: ~s", [ self(), Uri, Headers, HttpOptions,
+											MaybeBody, MaybeContentType ] ) ),
+
+	HeadersForHttpc = to_httpc_headers( Headers ),
+
+	% Any content-type expected in headers, and no specific body for POST:
+	Req = case MaybeBody of
+
+		undefined ->
+			% Then no content-type applies:
+			{ Uri, HeadersForHttpc };
+
+		Body ->
+			ContentType = case MaybeContentType of
+
+				undefined ->
+					?default_content_type;
+
+				_ ->
+					MaybeContentType
+
+			end,
+			{ Uri, HeadersForHttpc, ContentType, Body }
+
+	end,
+
+	HttpOptionsForHttpc = to_httpc_options( HttpOptions ),
+
+	% Wanting the resulting body, headers, and the entire status line:
+	Options = [ { full_result, true } ],
+
+	cond_utils:if_defined( myriad_debug_web_exchanges,
+		trace_bridge:debug_fmt( "[~w] Actual parameters of the httpc POST "
+			"request:~n - request: ~p~n - HTTP options: ~p~n - options: ~p~n",
+			[ self(), Req, HttpOptionsForHttpc, Options ] ) ),
+
+	case httpc:request( _Method=post, Req, HttpOptionsForHttpc, Options ) of
+
+		% Ex: HttpVersion="HTTP/1.1", StatusCode=200, ReqReason="OK".
+		{ ok, { _StatusLine={ ReqHttpVersion, ReqStatusCode, ReqReason },
+				ReqHeaders, ReqBody } } ->
+
+			cond_utils:if_defined( myriad_debug_web_exchanges,
+				trace_bridge:debug_fmt( "[~w] Received HTTP version: ~s, "
+					"status code: ~B, reason: ~s; headers are:~n  ~p"
+					"Returned body is ~p", [ self(), ReqHttpVersion,
+						ReqStatusCode, ReqReason, ReqHeaders, ReqBody ] ),
+				basic_utils:ignore_unused( [ ReqHttpVersion, ReqReason ] ) ),
+
+			{ ReqStatusCode, ReqHeaders, ReqBody };
+
+		Err={ error, ErrorReason } ->
+			cond_utils:if_defined( myriad_debug_web_exchanges,
+				trace_bridge:error_fmt( "[~w] POST failed: ~p ",
+										[ self(), ErrorReason ] ),
+			basic_utils:ignore_unused( ErrorReason ) ),
+			Err
+
+	end.
+
+
+% Returns headers suitable for httpc.
+-spec to_httpc_headers( headers() ) -> headers_for_httpc().
+to_httpc_headers( Headers ) when is_list( Headers ) ->
+	Headers;
+
+to_httpc_headers( Headers ) when is_map( Headers ) ->
+	[ { text_utils:binary_to_string( K ), text_utils:binary_to_string( V ) }
+	  || { K, V } <- maps:to_list( Headers ) ].
+
+
+
+% Returns http options suitable for httpc.
+-spec to_httpc_options( http_options() ) -> options_for_httpc().
+to_httpc_options( HttpOptions ) when is_list( HttpOptions ) ->
+	HttpOptions;
+
+to_httpc_options( HttpOptionMap ) when is_map( HttpOptionMap ) ->
+	maps:to_list( HttpOptionMap ).
 
 
 
@@ -691,3 +1068,14 @@ download_file( Url, TargetDir ) ->
 			throw( { download_failed, Reason, Url } )
 
 	end.
+
+
+
+
+% Stops the HTTP support.
+stop() ->
+
+	% Maybe not launched, hence not pattern matched:
+	ssl:stop(),
+
+	ok = inets:stop().
