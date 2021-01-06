@@ -140,7 +140,6 @@
 
 
 % Direct time-related section.
-
 -export([ get_monotonic_time/0, get_system_time/0 ]).
 
 
@@ -154,13 +153,14 @@
 		  get_epoch_timestamp/0, get_epoch_milliseconds_since_year_0/0,
 		  is_timestamp/1, check_timestamp/1, check_maybe_timestamp/1,
 		  get_textual_timestamp/0, get_textual_timestamp/1,
+		  get_user_friendly_textual_timestamp/1,
 		  get_french_textual_timestamp/1,
 		  get_time2_textual_timestamp/0, get_time2_textual_timestamp/1,
 		  get_textual_timestamp_for_path/0, get_textual_timestamp_for_path/1,
 		  get_textual_timestamp_with_dashes/1,
 		  timestamp_to_string/1, short_string_to_timestamp/1,
 		  gregorian_ms_to_timestamp/1,
-		  string_to_timestamp/1, dhms_to_string/1,
+		  string_to_timestamp/1, dhms_to_string/1, time_of_day_to_string/1,
 		  timestamp_to_seconds/0, timestamp_to_seconds/1,
 		  timestamp_to_weekday/1, date_to_weekday/1,
 		  local_to_universal_time/1, universal_to_local_time/1,
@@ -416,7 +416,8 @@ get_fixed_bank_holidays_for( _Country=france ) ->
 % Returns the days-of-the-year that are common to the whole year range (start
 % year included, stop one excluded).
 %
--spec find_common_bank_holidays( year(), year(), country() ) -> [ date_in_year() ].
+-spec find_common_bank_holidays( year(), year(), country() ) ->
+									   [ date_in_year() ].
 find_common_bank_holidays( StartYear, StopYear, Country ) ->
 	AccSet = set_utils:new( get_bank_holidays_for( StartYear, Country ) ),
 	find_common_bank_holidays_helper( StartYear+1, StopYear, Country, AccSet ).
@@ -428,8 +429,11 @@ find_common_bank_holidays_helper( StopYear, StopYear, _Country, AccSet ) ->
 
 find_common_bank_holidays_helper( CurrentYear, StopYear, Country, AccSet ) ->
 	YearSet = set_utils:new( get_bank_holidays_for( CurrentYear, Country ) ),
+
 	NewAccSet = set_utils:intersection( AccSet, YearSet ),
-	find_common_bank_holidays_helper( CurrentYear+1, StopYear, Country, NewAccSet ).
+
+	find_common_bank_holidays_helper( CurrentYear+1, StopYear, Country,
+									  NewAccSet ).
 
 
 
@@ -489,6 +493,7 @@ week_day_to_string( _DayIndex=7 ) ->
 
 week_day_to_string( DayIndex ) ->
 	week_day_to_string( ( DayIndex rem 7 ) + 1 ).
+
 
 
 
@@ -910,13 +915,22 @@ get_textual_timestamp() ->
 	get_textual_timestamp( get_timestamp() ).
 
 
-% Returns a string corresponding to the specified timestamp, like:
-% "2009/9/1 11:46:53".
+% Returns a (clear, non-ambiguous) string corresponding to the specified
+% timestamp, like: "2009/9/1 11:46:53".
 %
 -spec get_textual_timestamp( timestamp() ) -> ustring().
 get_textual_timestamp( { { Year, Month, Day }, { Hour, Minute, Second } } ) ->
 	io_lib:format( "~B/~B/~B ~B:~2..0B:~2..0B",
 				   [ Year, Month, Day, Hour, Minute, Second ] ).
+
+
+% Returns a string corresponding to the specified timestamp in a user-friendly
+% manner, like: "Wednesday, January 6, 2021 at 11:46:53".
+%
+get_user_friendly_textual_timestamp( { Date={ Year, Month, Day }, Time } ) ->
+	io_lib:format( "~s, ~s ~B, ~B, at ~s",
+		[ week_day_to_string( Date ), month_to_string( Month ), Day,
+		  Year, time_of_day_to_string( Time ) ] ).
 
 
 % Returns a string corresponding to the specified timestamp expressed in French,
@@ -1098,6 +1112,25 @@ string_to_timestamp( TimestampString ) ->
 dhms_to_string( DHMS ) ->
 	duration_to_string( 1000 * dhms_to_seconds( DHMS ) ).
 
+
+
+% Returns a textual description of the specified time of day.
+-spec time_of_day_to_string( time() ) -> ustring().
+time_of_day_to_string( _Time={ 0, 0, 0 } ) ->
+	% To be understood as very beginning of day, as opposed to very end of it:
+	"midnight";
+
+time_of_day_to_string( _Time={ 12, 0, 0 } ) ->
+	"noon";
+
+time_of_day_to_string( _Time={ H, 0, 0 } ) ->
+	io_lib:format( "~B", [ H ] );
+
+time_of_day_to_string( _Time={ H, M, 0 } ) ->
+	io_lib:format( "~B:~2..0B", [ H, M ] );
+
+time_of_day_to_string( _Time={ H, M, S } ) ->
+	io_lib:format( "~B:~2..0B:~2..0B", [ H, M, S ] ).
 
 
 
