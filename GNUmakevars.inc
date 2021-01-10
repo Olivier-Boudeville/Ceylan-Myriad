@@ -120,11 +120,13 @@ endif
 # conditional compilation primitives (see cond_utils for their management):
 
 # Topics covered by flags:
-#  - myriad_debug_code_path: how the VM code path is managed
-
+#  - code_path: how the VM code path is managed
+#  - web_exchanges: http/https exchanges
+#
 # Defining debug flags (at least the most verbose are by default commented-out):
 ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_code_path
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_web_exchanges
 endif
 
 # Defining check flags:
@@ -990,7 +992,7 @@ endif
 
 # Warning-related options (may or may not be included):
 # "+{warn_format,2}" would trigger unwanted useless warnings about format
-# strings. So the default "+{warn_format,1}" verbosty applies.
+# strings. So the default "+{warn_format,1}" verbosity applies.
 
 # Refer to https://erlang.org/doc/man/compile.html#file-2 for the complete list
 # of warnings.
