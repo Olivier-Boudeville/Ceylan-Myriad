@@ -77,10 +77,10 @@
 
 -export([ get_string_application_name/1,
 
-		  prepare_for_execution/2,
+		  prepare_for_execution/2, prepare_for_execution/3,
 
-		  start_application/1, start_application/2,
-		  start_applications/1, start_applications/2,
+		  start_application/1, start_application/2, start_application/3,
+		  start_applications/1, start_applications/2, start_applications/3,
 
 		  stop_application/1, stop_applications/1, stop_user_applications/1,
 
@@ -143,10 +143,9 @@
 
 % To easily activate/deactivate a type of traces as a whole:
 
-% Uncomment to enable:
-%-define(enable_otp_traces,).
+% See GNUmakevars.inc to enable:
 
--ifdef(enable_otp_traces).
+-ifdef(myriad_debug_otp_integration).
 
   -define( debug( M ), trace_bridge:debug( M ) ).
   -define( debug_fmt( F, V ), trace_bridge:debug_fmt( F, V ) ).
@@ -154,7 +153,7 @@
   -define( trace( M ), trace_bridge:info( M ) ).
   -define( trace_fmt( F, V ), trace_bridge:info_fmt( F, V ) ).
 
--else. % enable_otp_traces
+-else. % myriad_debug_otp_integration
 
   -define( debug( M ), trace_disabled ).
   -define( debug_fmt( F, V ), trace_disabled ).
@@ -162,16 +161,63 @@
   -define( trace( M ), trace_disabled ).
   -define( trace_fmt( F, V ), trace_disabled ).
 
--endif. % enable_otp_traces
+-endif. % myriad_debug_otp_integration
 
+
+
+% Implementation notes
+
+% We found very useful to be able to stick to pure Erlang and, at least for some
+% use cases, to escape from rebar3 and even OTP releases. Updating and testing
+% an application was then a lot easier and quicker, with shortened fix/run
+% iterations.
+
+
+% About the blacklisting of applications.
+%
+% Although doing so allows not to search, load, initialise for and start such
+% applications, as long as a blacklisted application is listed in the
+% 'applications' key of the .app file of a parent application, it will not be
+% possible to start this last application with OTP (using, in the 'application'
+% module, start/{1,2} or the ensure_* functions) without starting in turn the
+% blacklisted ones.
+%
+% In these cases we rely on the workaround of not listing such applications in
+% the 'applications' key of the .app file of that parent application, and to
+% start by ourselves (explicitly) these applications only if/when needed.
+%
+% For an example of use of that workaround, one may refer to US-Web using LEEC
+% whereas shotgun was not wanted (as inducing a clash in cowlib versions when
+% cowboy was needed): LEEC does not list shotgun anymore among its prerequisite
+% applications, and starts it iff not relying on an alternate implementation in
+% terms of http client.
+%
+% In a nutshell, we currently see little use in blacklisting applications, it is
+% often better not to include them in the prerequisites at the first place and
+% to start them explicitly only if needed.
+
+
+-spec prepare_for_execution( application_name() | [ application_name() ],
+							 directory_path() ) -> [ application_name() ].
+prepare_for_execution( AppName, BaseDir ) ->
+	prepare_for_execution( AppName, BaseDir, _BlacklistedApps=[] ).
 
 
 % Prepares the VM environment so that the specified top-level prerequisite
 % application(s) to be involved in a non-OTP execution - and also all their own
 % prerequisites recursively in turn - can be run, based on the specified current
-% base tree: ensures that their .app can be found (supposing thus that they are
-% available and built, checks being performed), including afterwards by OTP,
-% when starting them (thanks to updates to the current code path).
+% base tree: provided that they are not blacklisted, ensures that their .app can
+% be found (supposing thus that they are available and built, checks being
+% performed), including afterwards by OTP, when starting them (thanks to updates
+% to the current code path).
+%
+% The possibility of blacklisting an application is useful whenever a .app file
+% lists applications that are actually not useful for the current application,
+% or that even may induce clashes among prerequisites. Blacklisting them allows
+% not searching for them, not modifying the overall code path accordingly, and
+% ignoring their own dependencies. They shall then be blacklisted with
+% start_applications/3 as well (otherwise an attempt of starting them will be
+% done and will fail).
 %
 % Returns an ordered, complete list (with no duplicates) of applications names
 % that shall be started in turn (otherwise throws an exception), so that each
@@ -194,20 +240,23 @@
 % are not repeatedly searched, but just once.
 %
 -spec prepare_for_execution( application_name() | [ application_name() ],
-							 directory_path() ) -> [ application_name() ].
-prepare_for_execution( AppName, BaseDir ) when is_atom( AppName ) ->
-	prepare_for_execution( [ AppName ], BaseDir );
+		directory_path(), [ application_name() ] ) -> [ application_name() ].
+prepare_for_execution( AppName, BaseDir, BlacklistedApps )
+  when is_atom( AppName ) ->
+	prepare_for_execution( [ AppName ], BaseDir, BlacklistedApps );
 
-prepare_for_execution( AppNames, BaseDir ) when is_list( AppNames ) ->
+prepare_for_execution( AppNames, BaseDir, BlacklistedApps )
+  when is_list( AppNames ) andalso is_list( BlacklistedApps ) ->
 
 	% From this entry point, we prefer to deal with absolute, normalised paths:
 	AbsBaseDir = file_utils:ensure_path_is_absolute( BaseDir ),
 
 	?debug_fmt( "Preparing for the execution from '~s' of following top-level "
-				"applications:~n  ~p", [ AbsBaseDir, AppNames ] ),
+		"applications:~n  ~p, blacklisted ones being: ~p.",
+		[ AbsBaseDir, AppNames, BlacklistedApps ] ),
 
 	{ FullDeps, _FinalAppTable } = prepare_for_exec( AppNames, AbsBaseDir,
-										_AccDeps=[], _AppTable=table:new() ),
+				BlacklistedApps, _AccDeps=[], _AppTable=table:new() ),
 
 	% After a depth-first traversal resulting in listing paths from leaves to
 	% roots, we reverse the results in order to enforce a top to bottom order
@@ -237,51 +286,69 @@ prepare_for_execution( AppNames, BaseDir ) when is_list( AppNames ) ->
 % (helper)
 %
 -spec prepare_for_exec( application_name(), abs_directory_path(),
-			[ application_name() ], app_table() ) ->
+			[ application_name() ], app_table(), [ application_name() ] ) ->
 							  { [ application_name() ], app_table() }.
-prepare_for_exec( _AppNames=[], _AbsBaseDir, AccDeps, AppTable ) ->
+prepare_for_exec( _AppNames=[], _AbsBaseDir, _BlacklistedApps,
+				  AccDeps, AppTable ) ->
 	% Merges all prerequisites, in their (currently bottom-up) order (duplicates
 	% taken care of later):
 	%
 	{ AccDeps, AppTable };
 
 
-prepare_for_exec( [ AppName | T ], AbsBaseDir, AccDeps, AppTable ) ->
+prepare_for_exec( [ AppName | T ], AbsBaseDir, BlacklistedApps, AccDeps,
+				  AppTable ) ->
 
-	case get_app_info( AppName, AbsBaseDir, AppTable ) of
+	case lists:member( AppName, BlacklistedApps ) of
 
-		undefined ->
-			trace_bridge:error_fmt( "No application information found "
-				"for the '~s' OTP application (searched in turn in local ebin, "
-				"rebar3 _checkouts or _build directory, through any sibling "
-				"applications or as a standard application; "
-				"this execution thus cannot be performed "
-				"(one may run beforehand, if relevant, 'make rebar3-compile' "
-				"at the root of the ~s source tree for a more relevant "
-				"testing).", [ AppName, AbsBaseDir ] ),
-			throw( { lacking_app, no_relevant_directory_found, AppName,
-					 AbsBaseDir } );
+		false ->
+			case get_app_info( AppName, AbsBaseDir, AppTable ) of
 
-		{ #app_info{ root_dir=BinAppBaseDir, spec=AppEntries },
-		  DirectAppTable } ->
+				undefined ->
 
-			% All checks already performed, ebin directory already added in the
-			% code path when generating application information (we need to
-			% include this ebin path in the VM code path so that the
-			% corresponding .app file and also the BEAM files of that
-			% application can be found by OTP when starting it).
-			%
-			DepAppNames = list_table:get_value_with_defaults( applications,
-												_DefNoDep=[], AppEntries ),
+					trace_bridge:error_fmt( "No application information found "
+						"for the '~s' OTP application (searched in turn in "
+						"local ebin, rebar3 _checkouts or _build directory, "
+						"through any sibling applications or as a standard "
+						"application; this execution thus cannot be performed "
+						"(one may run beforehand, if relevant, "
+						"'make rebar3-compile' at the root of the ~s source "
+						"tree for a more relevant testing).",
+						[ AppName, AbsBaseDir ] ),
 
-			?debug_fmt( "Preparing for the execution of application '~s', "
-			  "whose direct dependencies are: ~w.", [ AppName, DepAppNames ] ),
+					throw( { lacking_app, no_relevant_directory_found, AppName,
+							 AbsBaseDir } );
 
-			{ CompleteDepApps, DepAppTable } = prepare_for_exec( DepAppNames,
-				BinAppBaseDir, _NestedAppDeps=[], DirectAppTable ),
+				{ #app_info{ root_dir=BinAppBaseDir, spec=AppEntries },
+				  DirectAppTable } ->
 
-			prepare_for_exec( T, AbsBaseDir,
-				[ AppName | CompleteDepApps ] ++ AccDeps, DepAppTable )
+					% All checks already performed, ebin directory already added
+					% in the code path when generating application information
+					% (we need to include this ebin path in the VM code path so
+					% that the corresponding .app file and also the BEAM files
+					% of that application can be found by OTP when starting it).
+					%
+					DepAppNames = list_table:get_value_with_defaults(
+						applications, _DefNoDep=[], AppEntries ),
+
+					?debug_fmt( "Preparing for the execution of application "
+						"'~s', whose direct dependencies are: ~w.",
+						[ AppName, DepAppNames ] ),
+
+					{ CompleteDepApps, DepAppTable } = prepare_for_exec(
+						DepAppNames, BinAppBaseDir, BlacklistedApps,
+						_NestedAppDeps=[], DirectAppTable ),
+
+					prepare_for_exec( T, AbsBaseDir, BlacklistedApps,
+						[ AppName | CompleteDepApps ] ++ AccDeps, DepAppTable )
+
+			end;
+
+		true ->
+			?debug_fmt( "Ignoring application '~s', as it is blacklisted.",
+						[ AppName ] ),
+			prepare_for_exec( T, AbsBaseDir, BlacklistedApps, AccDeps,
+							  AppTable )
 
 	end.
 
@@ -764,21 +831,45 @@ start_application( AppName ) ->
 %
 -spec start_application( application_name(), restart_type() ) -> void().
 start_application( AppName, RestartType ) ->
+	start_application( AppName, RestartType, _BlacklistedApps=[] ).
+
+
+% Starts the specified OTP application, with the specified restart type,
+% blacklisting specified applications.
+%
+% Note: all prerequisite applications shall have been started beforehand
+% (not relying on OTP here, hence no automatic start of dependencies).
+%
+-spec start_application( application_name(), restart_type(),
+						 [ application_name() ] ) -> void().
+start_application( AppName, RestartType, BlacklistedApps ) ->
 
 	?trace_fmt( "Starting the '~s' application, with restart "
-				"type '~s'.", [ AppName, RestartType ] ),
+		"type '~s', whereas blacklisted applications are: ~p.",
+		[ AppName, RestartType, BlacklistedApps ] ),
 
-	case application:start( AppName, RestartType ) of
+	case lists:member( AppName, BlacklistedApps ) of
 
-		ok ->
-			?trace_fmt( "Application '~s' successfully started.",
-						[ AppName ] ),
-			ok;
+		false ->
 
-		{ error, Reason } ->
-			trace_bridge:error_fmt( "Application '~s' failed to start: ~p",
-									[ AppName, Reason ] ),
-			throw( { app_start_failed, AppName, RestartType, Reason } )
+			case application:start( AppName, RestartType ) of
+
+				ok ->
+					?trace_fmt( "Application '~s' successfully started.",
+								[ AppName ] ),
+					ok;
+
+				{ error, Reason } ->
+					trace_bridge:error_fmt( "Application '~s' failed to "
+						"start: ~p", [ AppName, Reason ] ),
+
+					throw( { app_start_failed, AppName, RestartType, Reason } )
+
+			end;
+
+		true ->
+			?debug_fmt( "Not starting application '~s', as it is blacklisted.",
+						[ AppName ] )
 
 	end.
 
@@ -796,6 +887,7 @@ start_applications( AppNames ) ->
 	start_applications( AppNames, _RestartType=temporary ).
 
 
+
 % Starts the specified OTP applications (if not started yet), sequentially and
 % in the specified order, all with the specified restart type.
 %
@@ -804,24 +896,49 @@ start_applications( AppNames ) ->
 % dependencies).
 %
 -spec start_applications( [ application_name() ], restart_type() ) -> void().
-start_applications( _AppNames=[], _RestartType ) ->
+start_applications( AppNames, RestartType ) ->
+	start_applications( AppNames, RestartType, _BlacklistedApps=[] ).
+
+
+
+% Starts the specified OTP applications (if not started yet), sequentially and
+% in the specified order, all with the specified restart type.
+%
+% Note: any non-included prerequisite application shall have been started
+% beforehand (not relying on OTP here, hence no automatic start of
+% dependencies).
+%
+-spec start_applications( [ application_name() ], restart_type(),
+						  [ application_name() ] ) -> void().
+start_applications( _AppNames=[], _RestartType, _BlacklistedApps ) ->
 	ok;
 
-start_applications( [ AppName | T ], RestartType ) ->
+start_applications( [ AppName | T ], RestartType, BlacklistedApps ) ->
 
-	%?debug_fmt( "Starting application '~s' with restart type '~s'.",
-	%			[ AppName, RestartType ] ),
+	%?debug_fmt( "Starting application '~s' with restart type '~s', "
+	%   "whereas blacklisted applications are: ~p.",
+	%	[ AppName, RestartType, BlacklistedApps ] ),
 
-	% Not needing to use our knowledge about this application being active or
-	% not:
-	%
-	case application:ensure_started( AppName, RestartType ) of
+	case lists:member( AppName, BlacklistedApps ) of
 
-		ok ->
-			start_applications( T, RestartType );
+		false ->
+			% Not needing to use our knowledge about this application being
+			% active or not:
+			%
+			case application:ensure_started( AppName, RestartType ) of
 
-		{ error, Reason } ->
-			throw( { start_failed, AppName, Reason } )
+				ok ->
+					start_applications( T, RestartType, BlacklistedApps );
+
+				{ error, Reason } ->
+					throw( { start_failed, AppName, Reason } )
+
+			end;
+
+		true ->
+			?debug_fmt( "Not starting application '~s', as it is blacklisted.",
+						[ AppName ] ),
+			start_applications( T, RestartType, BlacklistedApps )
 
 	end.
 
