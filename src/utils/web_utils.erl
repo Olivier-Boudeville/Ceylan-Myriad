@@ -790,15 +790,34 @@ start() ->
 
 
 % Starts the HTTP support, with specified settings.
+%
+% Does not fail if already started, throws an exception in case of unrecoverable
+% error.
+%
 -spec start( ssl_opt() ) -> void().
 start( Option ) ->
 
 	cond_utils:if_defined( myriad_debug_web_exchanges,
-		trace_bridge:debug_fmt( "[~w] Starting web support with option ~p.",
-								[ self(), Option ] ) ),
+		trace_bridge:debug_fmt( "[~w] Starting httpc-based web support "
+			"with option ~p.", [ self(), Option ] ) ),
 
 	% Starts the (built-in) HTTP client:
-	ok = inets:start( _DefaultInetsType=temporary ),
+	case inets:start( _DefaultInetsType=temporary ) of
+
+		ok ->
+			ok;
+
+		{ error, { already_started, Module } } ->
+			trace_bridge:info_fmt( "Starting web_utils reported that module "
+				"'~s' was already started.", [ Module ] ),
+			ok;
+
+		{ error, InetsReason } ->
+			trace_bridge:error_fmt( "Starting web_utils reported following "
+				"error: ~p.", [ InetsReason ] ),
+			throw( { start_failed, inets, InetsReason } )
+
+	end,
 
 	% Starts the SSL support if requested:
 	case Option of
@@ -807,7 +826,17 @@ start( Option ) ->
 			ok;
 
 		ssl ->
-			ok = ssl:start( _DefaultSSLType=temporary )
+			case ssl:start( _DefaultSSLType=temporary ) of
+
+				ok ->
+					ok;
+
+				{ error, SSLReason } ->
+					trace_bridge:error_fmt( "Starting web_utils reported "
+						"following error: ~p.", [ SSLReason ] ),
+					throw( { start_failed, ssl, SSLReason } )
+
+			end
 
 	end.
 
@@ -852,8 +881,8 @@ get( Uri, Headers, HttpOptions ) ->
 
 	cond_utils:if_defined( myriad_debug_web_exchanges,
 		trace_bridge:debug_fmt( "[~w] GET request to URI "
-			"'~s', with following headers:~n  ~p~n and "
-			"http options:~n  ~p.", [ self(), Uri, Headers, HttpOptions ] ) ),
+			"'~s', with following headers:~n  ~p~nand "
+			"HTTP options:~n  ~p.", [ self(), Uri, Headers, HttpOptions ] ) ),
 
 	HeadersForHttpc = to_httpc_headers( Headers ),
 
