@@ -121,17 +121,20 @@ endif
 
 # Topics covered by flags:
 #  - code_path: how the VM code path is managed
+# - otp_integration: how OTP conventions (notably regarding applications) are
+#	 handled
 #  - web_exchanges: http/https exchanges
 #
 # Defining debug flags (at least the most verbose are by default commented-out):
 ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_code_path
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_web_exchanges
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_otp_integration
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_web_exchanges
 endif
 
 # Defining check flags:
 ifeq ($(EXECUTION_TARGET),development)
-	# Does not exist: MYRIAD_CHECK_FLAGS += -Dmyriad_check_code_path
+	# MYRIAD_CHECK_FLAGS += -Dmyriad_check_xxxx
 endif
 
 
