@@ -37,6 +37,18 @@
 -module(web_utils).
 
 
+% Implementation notes:
+%
+% The functions based on an HTTP client (ex: request/6, get/3, post/3, post/4,
+% post/5, download_file/2) rely here on the Erlang-native 'httpc' module, a
+% fairly low-level, basic HTTP/1.1.
+%
+% More advanced needs may rely instead on Gun or Shotgun. Refer to LEEC
+% (https://github.com/Olivier-Boudeville/letsencrypt-erlang in
+% letsencrypt_api.erl) for an example thereof.
+
+
+
 % Tells whether the SSL support is needed (typically for https):
 -type ssl_opt() :: 'no_ssl' | 'ssl'.
 
@@ -93,7 +105,7 @@
 % Example: {"content-type", "application/jose+json"}.
 -type headers_as_list() :: old_style_options().
 
--type headers_for_httpc() :: headers_as_list().
+-type headers_httpc_style() :: headers_as_list().
 
 
 -type headers_as_maps() :: new_style_options().
@@ -115,7 +127,7 @@
 % - status_code: http_status_code()
 %
 %-type _result() :: maps:map( atom(), term() ).
--type request_result() :: { http_status_code(), headers_as_list(), body() }
+-type request_result() :: { http_status_code(), headers_as_maps(), body() }
 						| { 'error', basic_utils:error_reason() }.
 
 -type location() :: atom().
@@ -187,7 +199,7 @@
 
 % http-related operations:
 -export([ start/0, start/1,
-		  request/4, get/3, post/3, post/4, post/5,
+		  request/6, get/3, post/3, post/4, post/5,
 		  download_file/2,
 		  stop/0 ]).
 
@@ -808,12 +820,23 @@ start( Option ) ->
 % For more advanced uses (ex: re-using of permanent connections, HTTP/2, etc.),
 % consider relying on Gun or Shotgun.
 %
--spec request( method(), uri(), headers(), http_options() ) -> request_result().
-request( _Method=get, Uri, Headers, HttpOptions ) ->
+-spec request( method(), uri(), headers(), http_options(), maybe( body() ),
+			   maybe( content_type() ) ) -> request_result().
+request( _Method=get, Uri, Headers, HttpOptions, _MaybeBody=undefined,
+		 _MaybeContentType=undefined ) ->
 	get( Uri, Headers, HttpOptions );
 
-request( _Method=post, Uri, Headers, HttpOptions ) ->
-	post( Uri, Headers, HttpOptions ).
+request( _Method=get, _Uri, _Headers, _HttpOptions, MaybeBody,
+		 MaybeContentType ) ->
+	throw( { invalid_get_request, { body, MaybeBody },
+			 { content_type, MaybeContentType } } );
+
+request( _Method=post, Uri, Headers, HttpOptions, MaybeBody,
+		 MaybeContentType ) ->
+	post( Uri, Headers, HttpOptions, MaybeBody, MaybeContentType );
+
+request( Method, Uri, _Headers, _HttpOptions, _MaybeBody, _MaybeContentType ) ->
+	throw( { invalid_method, Method, Uri } ).
 
 
 
@@ -860,7 +883,9 @@ get( Uri, Headers, HttpOptions ) ->
 						ReqStatusCode, ReqReason, ReqHeaders, ReqBody ] ),
 				basic_utils:ignore_unused( [ ReqHttpVersion, ReqReason ] ) ),
 
-			{ ReqStatusCode, ReqHeaders, ReqBody };
+			MapHeaders = from_httpc_headers( ReqHeaders ),
+
+			{ ReqStatusCode, MapHeaders, ReqBody };
 
 		Err={ error, ErrorReason } ->
 			cond_utils:if_defined( myriad_debug_web_exchanges,
@@ -969,7 +994,10 @@ post( Uri, Headers, HttpOptions, MaybeBody, MaybeContentType ) ->
 						ReqStatusCode, ReqReason, ReqHeaders, ReqBody ] ),
 				basic_utils:ignore_unused( [ ReqHttpVersion, ReqReason ] ) ),
 
-			{ ReqStatusCode, ReqHeaders, ReqBody };
+			MapHeaders = from_httpc_headers( ReqHeaders ),
+
+			{ ReqStatusCode, MapHeaders, ReqBody };
+
 
 		Err={ error, ErrorReason } ->
 			cond_utils:if_defined( myriad_debug_web_exchanges,
@@ -981,8 +1009,8 @@ post( Uri, Headers, HttpOptions, MaybeBody, MaybeContentType ) ->
 	end.
 
 
-% Returns headers suitable for httpc.
--spec to_httpc_headers( headers() ) -> headers_for_httpc().
+% Converts headers into suitable ones for httpc.
+-spec to_httpc_headers( headers() ) -> headers_httpc_style().
 to_httpc_headers( Headers ) when is_list( Headers ) ->
 	Headers;
 
@@ -990,6 +1018,14 @@ to_httpc_headers( Headers ) when is_map( Headers ) ->
 	[ { text_utils:binary_to_string( K ), text_utils:binary_to_string( V ) }
 	  || { K, V } <- maps:to_list( Headers ) ].
 
+
+
+% Converts httpc headers into map-based ones.
+-spec from_httpc_headers( headers_httpc_style() ) -> headers_as_maps().
+from_httpc_headers( Headers ) ->
+	maps:from_list( [ { text_utils:string_to_binary( K ),
+						text_utils:string_to_binary( V ) }
+					  || { K, V } <- Headers ] ).
 
 
 % Returns http options suitable for httpc.
