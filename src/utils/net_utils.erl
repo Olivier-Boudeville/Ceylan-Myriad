@@ -38,7 +38,7 @@
 
 
 % Host-related functions:
--export([ ping/1, localhost/0, localhost/1,
+-export([ ping/1, localhost/0, localhost/1, split_fqdn/1,
 		  get_local_ip_addresses/0, get_local_ip_address/0, reverse_lookup/1 ]).
 
 
@@ -299,6 +299,17 @@ localhost_last_resort() ->
 			throw( { could_not_determine_localhost, ExitCode, Output } )
 
 	end.
+
+
+
+% Returns, from specified FQDN, the corresponding actual host and its full
+% domain.
+%
+% Ex: split_fqdn("garfield.baz.foobar.org") = {"garfield", "baz.foobar.org"}
+%
+-spec split_fqdn( string_fqdn() ) -> { host_name(), domain_name() }.
+split_fqdn( FQDNStr ) ->
+	text_utils:split_at_first( _Marker=$., FQDNStr ).
 
 
 
