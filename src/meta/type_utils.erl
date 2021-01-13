@@ -56,8 +56,8 @@
 % (therefore relying only on built-in types and type constructs); for example,
 % supposing that the type foo is an alias for float, and that the type bar is
 % specified as "'hello'|'goodbye'", the same example translates to the following
-% explicit type: { union, [ float, {union,[ {atom,hello}, {atom,goodbye} ]},
-% {list,[integer]} ] }
+% explicit type: {union, [float, {union,[ {atom,hello}, {atom,goodbye}]},
+% {list,[integer]}]}
 
 % Going from:
 %  - form F1 to form F2 is named (here) type parsing
@@ -142,18 +142,17 @@
 %
 % So, for example:
 %
-% - let A be a type corresponding to an immediate value of type atom; D(A) = {
-% atom, A }; for example, D(foo) = { atom, 'foo' }
+% - let A be a type corresponding to an immediate value of type atom; D(A) =
+% {atom, A}; for example, D(foo) = {atom, 'foo'}
 %
 % - let I be a type corresponding to an immediate value of type integer; D(I) =
-% { integer, I }; for example, D(4) = { integer, 4 }
+% {integer, I}; for example, D(4) = {integer, 4}
 %
-% - let F be a type corresponding to an immediate value of type float; D(F) = {
-% float, F }; for example, D(3.14) = { float, 3.14 }
+% - let F be a type corresponding to an immediate value of type float; D(F) =
+% {float, F}; for example, D(3.14) = {float, 3.14}
 %
-% - let S be a type corresponding to an immediate value of type string; D(S) = {
-% string, S }; for example, D("Yellow submarine") = { string, "Yellow submarine"
-% }
+% - let S be a type corresponding to an immediate value of type string; D(S) =
+% {string, S}; for example, D("Yellow submarine") = {string, "Yellow submarine"}
 
 
 
@@ -174,12 +173,12 @@
 % Let L be a type corresponding to an (homogeneous, ordered) list (variable-size
 % container) whose all elements are of type T.
 %
-% L is written "[T]" and defined as D([T]) = { list, D(T) }.
+% L is written "[T]" and defined as D([T]) = {list, D(T)}.
 %
 % For example, if my_integer_list_type is defined as "[integer]", then
-% D(my_integer_list_type) = D([integer]) = { list, integer }
+% D(my_integer_list_type) = D([integer]) = {list, integer}
 %
-% A value of that type may be [] or [ 4, 9, 147, 5, 9 ].
+% A value of that type may be [] or [4, 9, 147, 5, 9].
 
 
 % On unions:
@@ -191,7 +190,7 @@
 % [D(T1),D(T2),...,D(Tk)] }.
 %
 % For example, if my_type is defined as "foo|'kazoo'|[integer]", then D(my_type)
-% = { union, [ foo, {atom,'kazoo'}, {list,integer} ] }.
+% = {union, [foo, {atom,'kazoo'}, {list,integer}]}.
 %
 % Values of that types may be 'kazoo', [3,3] of any value of type foo (whatever
 % it may be).
@@ -209,12 +208,13 @@
 % Let T be a type corresponding to a fixed-size, ordered container whose
 % elements are respectively of type T1, T2, Tk.
 %
-% D(T) = { tuple, [D(T1),D(T2),...,D(Tk)] }.
+% D(T) = {tuple, [D(T1), D(T2), ..., D(Tk)]}.
 %
 % For example, if my_tuple_type is defined as "{integer,boolean|float,[atom]}"
-% then D(my_tuple_type)= {list,[integer,{union,[boolean,float]},{list,atom}]}.
+% then D(my_tuple_type)= {list, [integer, {union, [boolean, float]},
+% {list,atom}]}.
 %
-% Values of that type may be {1,true,[]} or {42,8.9,[joe,dalton]}.
+% Values of that type may be {1, true, []} or {42,8.9,[joe,dalton]}.
 
 
 % On (associative) tables:
@@ -222,18 +222,18 @@
 % Let T be an associative table whose keys are of type Tk and values are of type
 % Tv.
 %
-% D(T) = { table, [D(Tk),D(Tv)] }.
+% D(T) = {table, [D(Tk),D(Tv)]}.
 %
-% For example, if my_table_type is defined as "table(integer,string)" then
-% D(my_table_type)= {table,[integer,string]}.
+% For example, if my_table_type is defined as "table(integer, string)" then
+% D(my_table_type)= {table, [integer, string]}.
 %
 % Values of that type are opaque (their translation as terms should remain
 % unbeknownst to the user, as if they were black boxes); such terms are to be
 % solely created and handled as a whole by the 'table' pseudo-module.
 %
 % For example, MyEmptyTable = table:table(), MyTable =
-% table:add_new_entry(42,"This is the answer"), MyOtherTable = table:new([ {1,
-% "One"}, {2, "Two"}, {5, "Five"} ]).
+% table:add_new_entry(42,"This is the answer"), MyOtherTable = table:new([{1,
+% "One"}, {2, "Two"}, {5, "Five"}]).
 %
 % Note: tables are not yet supported.
 
@@ -288,7 +288,7 @@
 % Number of types a (possibly polymorphic) type depends on (possibly zero for
 % plain types).
 %
--type type_arity() :: basic_utils:count().
+-type type_arity() :: count().
 
 
 % Analoguous to function_id/0:
@@ -338,7 +338,7 @@
 % (ex: "integer", not "integer()") and atoms are always surrounded by simple
 % quotes (ex: "'an_atom'|'another_one'").
 %
-% For example: "[{float,boolean}]".
+% For example: "[{float, boolean}]".
 %
 -type type_description() :: ustring().
 
@@ -350,7 +350,7 @@
 % number of the parentheses that have been opened and not closed yet) and B is
 % the bracket depth (i.e. the same principle, for "[]" instead of for "()"):
 %
--type nesting_depth() :: { basic_utils:count(), basic_utils:count() }.
+-type nesting_depth() :: { count(), count() }.
 
 
 % Internal, "formal", actual programmatic description of a type according to our
@@ -381,7 +381,7 @@
 % ambiguous forms)
 %
 % So, as an example, the type-as-a-term corresponding to "[{float,boolean}]"
-% is: { list, [ { tuple, [ {float,[]}, {boolean,[]} ] } ] }
+% is: {list, [{tuple, [{float,[]}, {boolean,[]} ]}]}
 %
 % Note that an alternate type language (sticking more closely to its textual
 % counterpart) could have been a more direct [{float,boolean}] term (hence
@@ -396,10 +396,11 @@
 %  '{attribute,1,type, {a,{type,1,list, [{type,1,tuple,[{type,1,float,[]},
 %  {type,1,boolean,[]}]}]}'
 %
-% As a result the counterpart to the aforementioned "[{float(),boolean()}]" type
-% string is translated in ASTs as:
+% As a result the counterpart to the aforementioned "[{float(), boolean()}]"
+% type string is translated in ASTs as:
 %
-% { type, 1, list, [{type,1,tuple,[{type,1,float,[]}, {type,1,boolean,[]}]} ] }
+% {type, 1, list, [{type, 1, tuple, [{type, 1, float, []}, {type, 1, boolean,
+% []}]}]}
 %
 % Then one can remove:
 %
@@ -410,7 +411,7 @@
 % - the line numbers (the '1's here), not useful in that context, hence stripped
 %
 % Then we obtain our aforementioned term-as-a-type:
-%    { list, [ { tuple, [ {float,[]}, {boolean,[]} ] } ] }
+%    {list, [{tuple, [{float,[]}, {boolean,[]}]}]}
 %
 % We can therefore describe this way arbitrary types as valid terms.
 %
@@ -431,17 +432,17 @@
 % See also: http://erlang.org/doc/apps/erts/absform.html
 %
 % Finally, a direct string representation can be converted into a type(); maybe
-% writing a parser may not mandatory, as "{ float(), atom() }" may be a string
+% writing a parser may not mandatory, as "{float(), atom()}" may be a string
 % expression evaluated with functions that we can bind to obtain a closer term,
-% such as: float() -> { float, [] }.
+% such as: float() -> {float, []}.
 %
 % Of course, on a related note, if TextualType = "{ list, [
 % {tuple,[float,boolean]} ] }", then meta_utils:string_to_value( TextualType )
-% will return the expected: {list,[{tuple,[{float,[]},{boolean,[]}]}]}
+% will return the expected: {list, [{tuple, [{float, []}, {boolean, []}]}]}
 %
 % Note that such a type may not be fully explicit, as it may contain unresolved
-% references to other types; for example: { list, [ {count,[] } ] } does not
-% specify what the count() type is.
+% references to other types; for example: {list, [{count, []}]} does not specify
+% what the count() type is.
 %
 -type type() :: term().
 
@@ -493,8 +494,11 @@
 
 % Shorthands:
 
--type ustring() :: text_utils:ustring().
+-type count() :: basic_utils:count().
 -type level() :: basic_utils:level().
+
+-type ustring() :: text_utils:ustring().
+
 
 
 % Returns the actual type corresponding to specified type description: parses
@@ -558,7 +562,7 @@ tokenise_per_union( TypeDescription ) ->
 % sub-expressions that may be recursively parsed.
 %
 -spec parse_nesting( type_description(), nesting_depth() ) ->
-						   [ type_description() ].
+						    [ type_description() ].
 parse_nesting( _TypeDescription, _NestingDepth ) ->
 
 	% A goal is to detect atoms delimited with single quotes (which are

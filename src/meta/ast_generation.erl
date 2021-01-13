@@ -23,12 +23,11 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Sunday, February 4, 2018
+% Creation date: Sunday, February 4, 2018.
 
 
 
 % Module in charge of generating parts of an AST (ex: elements of forms).
-%
 -module(ast_generation).
 
 
@@ -39,14 +38,17 @@
 
 
 % Shorthands:
+
+-type count() :: basic_utils:count().
 -type form_element() :: ast_base:form_element().
+
 
 
 % Transforms specified list (whose elements are typically themselves form
 % elements already) into the AST version of a list.
 %
-% Ex: list_to_form( [ {atom,Line,a}, {atom,Line,b} ] ) =
-% { cons,Line,{atom,Line,a}, {cons,Line,{atom,Line,b}, {nil,Line} } }.
+% Ex: list_to_form( [{atom,Line,a}, {atom,Line,b}]) =
+% {cons,Line,{atom,Line,a}, {cons,Line,{atom,Line,b}, {nil,Line} }}.
 %
 % See form_to_list/1 for the reciprocal function.
 %
@@ -62,8 +64,8 @@ list_to_form( _List=[ E | T ] ) ->
 
 % Transforms specified AST list into the corresponding plain list.
 %
-% Ex: form_to_list( { cons,Line,{atom,Line,a}, {cons,Line,{atom,Line,b},
-% {nil,Line} } } ) = [ {atom,Line,a}, {atom,Line,b} ].
+% Ex: form_to_list( {cons,Line,{atom,Line,a}, {cons,Line,{atom,Line,b},
+% {nil,Line} } }) = [{atom,Line,a}, {atom,Line,b}].
 %
 % See list_to_form/1 for the reciprocal function.
 %
@@ -78,8 +80,8 @@ form_to_list( { cons, _Line, E, NestedForm } ) ->
 
 % Returns the form element corresponding to the specified list of atoms.
 %
-% Ex: { cons,Line,{atom,Line,a}, {cons,Line,{atom,Line,b}, {nil,Line} } } =
-%         atoms_to_form( [ 'a', 'b' ] ).
+% Ex: {cons,Line,{atom,Line,a}, {cons,Line,{atom,Line,b}, {nil,Line} }} =
+%         atoms_to_form(['a', 'b']).
 %
 -spec atoms_to_form( [ atom() ] ) -> form_element().
 atoms_to_form( _AtomList=[] ) ->
@@ -93,8 +95,8 @@ atoms_to_form( _AtomList=[ Atom | H ] ) ->
 
 % Returns the list of atoms corresponding to the specified form element.
 %
-% Ex: [ 'a', 'b' ] = atoms_to_form( { cons,Line,{atom,Line,a},
-% {cons,Line,{atom,Line,b}, {nil,Line} } } ).
+% Ex: ['a', 'b'] = atoms_to_form( {cons,Line,{atom,Line,a},
+% {cons,Line,{atom,Line,b}, {nil,Line} } }).
 %
 -spec form_to_atoms( form_element() ) -> [ atom() ].
 form_to_atoms( { nil, _Line } ) ->
@@ -107,12 +109,12 @@ form_to_atoms( { cons, _Line, {atom,_,Atom}, NestedForm } ) ->
 
 % Returns the form element corresponding a list of variables.
 %
-% Ex: { cons, Line, {var,Line,'A'}, { cons,Line,{var,Line,'B'}, {nil,Line}} } =
-%         enumerated_variables_to_form( 2 ).
+% Ex: {cons, Line, {var,Line,'A'}, { cons,Line,{var,Line,'B'}, {nil,Line}}} =
+%         enumerated_variables_to_form(2).
 %
 % See also: get_header_params/1.
 %
--spec enumerated_variables_to_form( basic_utils:count() ) -> form_element().
+-spec enumerated_variables_to_form( count() ) -> form_element().
 enumerated_variables_to_form( Count ) ->
 	enumerated_variables_to_form( Count, _Index=1 ).
 
@@ -130,7 +132,7 @@ enumerated_variables_to_form( Count, Index ) ->
 %
 % Ex: 'Myriad_Param_4' = get_iterated_param_name( 4 ).
 %
--spec get_iterated_param_name( basic_utils:count() ) -> atom().
+-spec get_iterated_param_name( count() ) -> atom().
 get_iterated_param_name( Count ) ->
 	String = text_utils:format( "Myriad_Param_~B", [ Count ] ),
 	text_utils:string_to_atom( String ).
@@ -144,7 +146,7 @@ get_iterated_param_name( Count ) ->
 % This is typically useful when generating a function form, to define its
 % header, like in 'f(A,B)->...'.
 %
-% Ex: [ {var,Line,'A'}, {var,Line,'B'} ] = get_header_params( 2 ).
+% Ex: [{var,Line,'A'}, {var,Line,'B'}] = get_header_params(2).
 %
 % See also: enumerated_variables_to_form/1.
 %

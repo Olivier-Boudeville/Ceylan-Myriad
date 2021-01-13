@@ -56,7 +56,6 @@
 %
 % Ex: nil, in {nil,33} for [] at line #33.
 %
-%
 -type ast_atomic_literal() :: { 'atom',    line(), atom() }
 							| { 'char',    line(), char() }
 							| { 'float',   line(), float() }
@@ -159,7 +158,7 @@ get_immediate_value( Other ) ->
 % Returns an AST-compliant value designating specified boolean, defined at line
 % #0 of the current source file.
 %
-% Ex: forge_boolean_value( true ) returns: {boolean,0,true}.
+% Ex: forge_boolean_value(true) returns: {boolean,0,true}.
 %
 -spec forge_boolean_value( boolean() ) -> ast_element().
 forge_boolean_value( BooleanValue ) ->
@@ -169,7 +168,7 @@ forge_boolean_value( BooleanValue ) ->
 % Returns an AST-compliant value designating specified boolean, defined at
 % specified line of the current source file.
 %
-% Ex: forge_boolean_value( false, 43 ) returns: {boolean,43,false}.
+% Ex: forge_boolean_value(false, 43) returns: {boolean,43,false}.
 %
 -spec forge_boolean_value( boolean(), line() ) -> ast_element().
 forge_boolean_value( BooleanValue, Line ) ->
@@ -180,7 +179,7 @@ forge_boolean_value( BooleanValue, Line ) ->
 % Returns an AST-compliant value designating specified atom, defined at line #0
 % of the current source file.
 %
-% Ex: forge_atom_value( basic_utils ) returns: {atom,0,basic_utils}.
+% Ex: forge_atom_value(basic_utils) returns: {atom,0,basic_utils}.
 %
 -spec forge_atom_value( atom() ) -> ast_element().
 forge_atom_value( AtomValue ) ->

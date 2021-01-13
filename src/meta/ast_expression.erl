@@ -146,7 +146,7 @@
 % See section "7.4 Expressions" in http://erlang.org/doc/apps/erts/absform.html.
 %
 -spec transform_expression( ast_expression(), ast_transforms() ) ->
-								 { [ ast_expression() ], ast_transforms() }.
+									{ [ ast_expression() ], ast_transforms() }.
 
 
 
@@ -161,35 +161,31 @@
 
 -ifdef(log_traversal).
 
+ % To manage unused expressions:
+ -define( e, E ).
 
-% To manage unused expressions:
--define( e, E ).
-
--define( log_enter(S,V), ast_utils:display_debug( S, V ) ).
+ -define( log_enter(S,V), ast_utils:display_debug( S, V ) ).
 
 
-%-define( log_exit(S,V), ast_utils:display_debug( S, V ) ).
--define( log_exit(S,V),
-		 (Transforms#ast_transforms.transform_formatter)( S, V ) ).
-
+ %-define( log_exit(S,V), ast_utils:display_debug( S, V ) ).
+ -define( log_exit(S,V),
+		  (Transforms#ast_transforms.transform_formatter)( S, V ) ).
 
 -else. % log_traversal
 
+ % Syntax error because of final comma:
+ %-define( log_enter(S,V), ).
 
-% Syntax error because of final comma:
-%-define( log_enter(S,V), ).
+ % Terms unused:
+ %-define( log_enter(S,V), ).
 
-% Terms unused:
-%-define( log_enter(S,V), ).
+ % A term is constructed, but never used:
+ %-define( log_enter(S,V), {S,V} ).
 
-% A term is constructed, but never used:
-%-define( log_enter(S,V), {S,V} ).
+ -define( e, _E ).
 
--define( e, _E ).
-
--define( log_enter(S,V), no_log ).
--define( log_exit(S,V), no_log ).
-
+ -define( log_enter(S,V), no_log ).
+ -define( log_exit(S,V), no_log ).
 
 -endif. % log_traversal
 
@@ -1367,7 +1363,7 @@ transform_case( Line, TestExpression, CaseClauses, Transforms ) ?rec_guard ->
 % (default traversal implementation)
 %
 -spec transform_match( line(), ast_pattern:ast_pattern(), ast_expression(),
-		  ast_transforms() ) -> { [ ast_expression() ], ast_transforms() }.
+			ast_transforms() ) -> { [ ast_expression() ], ast_transforms() }.
 transform_match( Line, MatchPattern, MatchExpression, Transforms ) ?rec_guard ->
 
 	{ NewMatchPattern, PatternTransforms } =
@@ -1394,7 +1390,7 @@ transform_match( Line, MatchPattern, MatchExpression, Transforms ) ?rec_guard ->
 % (default traversal implementation)
 %
 -spec transform_simple_receive( line(), [ ast_case_clause() ],
-		  ast_transforms() ) -> { [ ast_expression() ], ast_transforms() }.
+			ast_transforms() ) -> { [ ast_expression() ], ast_transforms() }.
 transform_simple_receive( Line, ReceiveClauses, Transforms ) ?rec_guard ->
 
 	% 'case' clauses relevant here:
@@ -1475,7 +1471,7 @@ transform_try( Line, TryBody, TryClauses, CatchClauses, AfterBody,
 % (default traversal implementation)
 %
 -spec transform_catch( line(), ast_expression(), ast_transforms() ) ->
-							 { [ ast_expression() ], ast_transforms() }.
+							{ [ ast_expression() ], ast_transforms() }.
 transform_catch( Line, Expression, Transforms ) ?rec_guard ->
 
 	{ [ NewExpression ], NewTransforms } =
@@ -1492,7 +1488,7 @@ transform_catch( Line, Expression, Transforms ) ?rec_guard ->
 
 % For convenience:
 -spec transform_expressions( [ ast_expression() ], ast_transforms() ) ->
-								  { [ ast_expression() ], ast_transforms() }.
+									{ [ ast_expression() ], ast_transforms() }.
 transform_expressions( Expressions, Transforms ) ?rec_guard ->
 
 	% An expression is transformed into a *list* of expressions: (probably
@@ -1545,7 +1541,7 @@ merge_expression_lists( [ Unexpected | _T ], _Acc ) ->
 % See also: lc_bc_quals/1 in erl_id_trans
 %
 -spec transform_qualifiers( [ ast_qualifier() ], ast_transforms() ) ->
-								  { [ ast_qualifier() ], ast_transforms() }.
+									{ [ ast_qualifier() ], ast_transforms() }.
 transform_qualifiers( Qualifiers, Transforms ) ?rec_guard ->
 	lists:mapfoldl( fun transform_qualifier/2, _Acc0=Transforms,
 					_List=Qualifiers ).
@@ -1554,7 +1550,7 @@ transform_qualifiers( Qualifiers, Transforms ) ?rec_guard ->
 
 % Transforms specificied qualifier.
 -spec transform_qualifier( ast_qualifier(), ast_transforms() ) ->
-								 { ast_qualifier(), ast_transforms() }.
+									{ ast_qualifier(), ast_transforms() }.
 
 % "If Q is a (lc) generator P <- E, where P is a pattern and E is an expression,
 % then Rep(Q) = {generate,LINE,Rep(P),Rep(E)}."
