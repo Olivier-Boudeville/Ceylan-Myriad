@@ -271,7 +271,7 @@ apply_myriad_transform( InputAST, Options ) ->
 
 % Transforms (at the Myriad level) specified module information.
 -spec transform_module_info( module_info() ) ->
-								   { module_info(), ast_transforms() }.
+								{ module_info(), ast_transforms() }.
 transform_module_info( ModuleInfo ) when is_record( ModuleInfo, module_info ) ->
 
 	?display_trace( "[Myriad] Transforming module information." ),
@@ -342,7 +342,7 @@ get_myriad_ast_transforms_for(
 	% '{remote_type,Line, [ {atom,Line,basic_utils}, {atom,Line,void}, [] ] }'
 
 	% We also manage maybe/1 here: if used as 'maybe(T)', translated as
-	% 'basic_utils:maybe(T)'.
+	% 'basic_utils:maybe(T)'; the same applies to fallible/1.
 
 	% Determines the target table type that we want to rely on ultimately:
 	DesiredTableType = get_actual_table_type( ParseAttributes ),
@@ -394,8 +394,8 @@ get_actual_table_type( ParseAttributeTable ) ->
 
 		{ value, { TableType, _LocForm } } when is_atom( TableType ) ->
 			ast_utils:display_info( "Default table type ('~s') overridden "
-									"for this module to '~s'.~n",
-									[ ?default_table_type, TableType ] ),
+				"for this module to '~s'.~n",
+				[ ?default_table_type, TableType ] ),
 			TableType;
 
 		{ value, { InvalidTableType, _LocForm } } ->
@@ -425,19 +425,22 @@ get_actual_table_type( ParseAttributeTable ) ->
 %
 % - maybe(T) with basic_utils:maybe(T)
 %
+% - fallible(T) with basic_utils:fallible(T)
+%
 % - table/N (ex: table() or table(K,V)) with DesiredTableType/N (ex:
 % DesiredTableType:DesiredTableType() or DesiredTableType:DesiredTableType(K,V))
 % (as if table() was a local, hence builtin, type)
 %
 -spec get_local_type_transforms( module_name() ) ->
-								   ast_transform:local_type_transform_table().
+									ast_transform:local_type_transform_table().
 get_local_type_transforms( DesiredTableType ) ->
 
 	ast_transform:get_local_type_transform_table( [
 
 		% Replacements to be done only for specified arities:
-		{ { void,  0 }, basic_utils },
-		{ { maybe, 1 }, basic_utils },
+		{ { void,  0 },    basic_utils },
+		{ { maybe, 1 },    basic_utils },
+		{ { fallible, 1 }, basic_utils },
 
 		% A transformation function is needed to discriminate correctly between
 		% the cases: the first clause is defined as we do not want to obtain
@@ -459,15 +462,13 @@ get_local_type_transforms( DesiredTableType ) ->
 
 
 % Regarding remote types, we want to replace:
-%
 %  - table:table/N with DesiredTableType:DesiredTableType/N (N=0 or N=2)
-%
-%  - table:T with DesiredTableType:T (ex: table:value() )
+%  - table:T with DesiredTableType:T (ex: table:value())
 %
 % (as these substitutions overlap, a lambda function is provided)
 %
 -spec get_remote_type_transforms( module_name() ) ->
-								   ast_transform:remote_type_transform_table().
+									ast_transform:remote_type_transform_table().
 get_remote_type_transforms( DesiredTableType ) ->
 	ast_transform:get_remote_type_transform_table( [
 		{ { table, '_', '_' },
@@ -551,7 +552,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 		%%%%%%% Subsection for cond_utils:if_defined/2 %%%%%%%%%%%%%%%%%%%%%%%%%
 
-		% Calls to cond_utils:if_defined( Token, Exprs ) shall be replaced
+		% Calls to cond_utils:if_defined(Token, Exprs) shall be replaced
 		% either by the corresponding specified expressions or by nothing at all
 		% (not even 'ok'):
 		%
@@ -606,8 +607,8 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 		%%%%%%% Subsection for cond_utils:if_defined/3 %%%%%%%%%%%%%%%%%%%%%%%%%
 
-		% Calls to cond_utils:if_defined( Token, ExprFormListIfDef,
-		% ExprsIfNotDef ) shall be replaced by either of the corresponding
+		% Calls to cond_utils:if_defined(Token, ExprFormListIfDef,
+		% ExprsIfNotDef) shall be replaced by either of the corresponding
 		% specified expressions, depending on whether the specified token has
 		% been defined:
 		%
@@ -627,15 +628,15 @@ get_ast_global_transforms( DesiredTableType ) ->
 				%
 				{ value, _Any } ->
 					%ast_utils:display_debug( "Token '~p' defined, hence "
-					%						 "injecting the expressions ~p",
-					%						 [ Token, ExprFormListIfDef ] ),
+					%	 "injecting the expressions ~p",
+					%	 [ Token, ExprFormListIfDef ] ),
 					inject_expressions( ExprFormListIfDef, Transforms,
 										LineToken );
 
 				key_not_found ->
 					%ast_utils:display_debug( "Token '~p' not defined, hence "
-					%						 "injecting the expressions ~p",
-					%						 [ Token, ExprFormListIfNotDef ] ),
+					%	 "injecting the expressions ~p",
+					%	 [ Token, ExprFormListIfNotDef ] ),
 					inject_expressions( ExprFormListIfNotDef, Transforms,
 										LineToken )
 
@@ -672,7 +673,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 		%%%%%%% Subsection for cond_utils:if_set_to/3 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-		% Calls to cond_utils:if_set_to( Token, Value, Exprs ) shall be replaced
+		% Calls to cond_utils:if_set_to(Token, Value, Exprs) shall be replaced
 		% either by the corresponding specified expressions or by nothing at all
 		% (not even 'ok'):
 		%
@@ -682,8 +683,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
 			%ast_utils:display_debug( "Call to cond_utils:if_set_to/3 found, "
-			%						 "for token '~p' and value '~p'.",
-			%						 [ Token, ValueForm ] ),
+			%   "for token '~p' and value '~p'.", [ Token, ValueForm ] ),
 
 			RequestedValue = ast_value:get_immediate_value( ValueForm ),
 
@@ -696,7 +696,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 					%			 "injecting the expressions ~p",
 					%			 [ Token, RequestedValue, ExprFormList ] ),
 
-					% So we will (attempt to) inject expressions.
+					% So we will (attempt to) inject these expressions:
 					inject_expressions( ExprFormList, Transforms, LineToken );
 
 				% Another value found:
@@ -818,6 +818,115 @@ get_ast_global_transforms( DesiredTableType ) ->
 			  "value (precisely an atom), not a runtime construct like the one "
 			  "at line ~B.", [ Line ] ),
 			ast_utils:raise_error( { non_immediate_token, {line,Line} } );
+
+
+
+		%%%%%%% Section for cond_utils:switch_set_to %%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+		%%%%%%% Subsection for cond_utils:switch_set_to/2 %%%%%%%%%%%%%%%%%%%%%%
+
+		% Calls to cond_utils:switch_set_to(Token, TokenExprTable) shall either
+		% be replaced by the specified expressions associated to the specified
+		% value for that token, or shall trigger a compilation-time error.
+		%
+		( _LineCall,
+		  _FunctionRef={ remote, _, {atom,_,cond_utils},
+						 {atom,_,switch_set_to} },
+		  _Params=[ {atom,LineToken,Token}, TokenExprTableAsForm ],
+		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
+
+			%ast_utils:display_debug( "Call to cond_utils:switch_set_to/2 "
+			%	"found, for token '~p' and token-expression table "
+			%	"(as form):~n  ~p.",
+			%	[ Token, TokenExprTableAsForm ] ),
+
+			TokenValue = case ?table:lookup_entry( Token, TokenTable ) of
+
+				{ value, Value } ->
+					Value;
+
+				key_not_found ->
+					ast_utils:display_error( "Token '~p' not set, whereas "
+						"cond_utils:switch_set_to/2 (at line ~B) requires it.",
+						[ Token, LineToken ] ),
+					ast_utils:raise_error(
+					  { token_not_set, Token, {line,LineToken} } )
+
+			end,
+
+			%ast_utils:display_debug( "Value associated to token '~p': ~p "
+			%	"(type: ~s).",
+			%	[ Token, TokenValue, type_utils:get_type_of( TokenValue ) ] ),
+
+			% We have to see whether TokenValue can be found among the keys of
+			% the (proplist in AST form) TokenExprTableAsForm:
+
+			% Obtaining a list of {ValueForm, ExprsForm}:
+			TokenExprTableAsList =
+						ast_generation:form_to_list( TokenExprTableAsForm ),
+
+			%ast_utils:display_debug( "Token table as list: ~p.",
+			%						 [ TokenExprTableAsList ] ),
+
+			ExprFormList = find_expressions_for( TokenValue, Token, LineToken,
+												 TokenExprTableAsList ),
+
+			%ast_utils:display_debug( "Resulting expression(s):~n  ~p",
+			%						 [ ExprFormList ] ),
+
+			% So we will (attempt to) inject these expressions:
+			inject_expressions( ExprFormList, Transforms, LineToken );
+
+
+		%%%%%%% Subsection for cond_utils:switch_set_to/3 %%%%%%%%%%%%%%%%%%%%%%
+
+		% Calls to cond_utils:switch_set_to(Token, TokenExprTable,
+		% DefaultTokenValue) shall either be replaced by the specified
+		% expressions associated to the specified value for that token, or, if
+		% that token is either not defined or set to a value that does not
+		% belong to said table, the call-specified default value will be used
+		% instead, as the token value is charge of selecting which expressions
+		% shall be injected.
+		%
+		( _LineCall,
+		  _FunctionRef={ remote, _, {atom,_,cond_utils},
+						 {atom,_,switch_set_to} },
+		  _Params=[ {atom,LineToken,Token}, TokenExprTableAsForm,
+					DefaultValueForm ],
+		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
+
+			DefaultValue = ast_value:get_immediate_value( DefaultValueForm ),
+
+			% Obtaining a list of {ValueForm, ExprsForm}:
+			TokenExprTableAsList =
+						ast_generation:form_to_list( TokenExprTableAsForm ),
+
+			%ast_utils:display_debug( "Call to cond_utils:switch_set_to/3 "
+			%	"found, for token '~p', default value '~p' and "
+			%   "token-expression table (as form):~n  ~p.",
+			%	[ Token, DefaultValue, TokenExprTableAsForm ] ),
+
+			ExprFormList = case ?table:lookup_entry( Token, TokenTable ) of
+
+				{ value, TokenValue } ->
+					% This value may or may not be referenced:
+					find_expressions_for( TokenValue, DefaultValue, Token,
+										  LineToken, TokenExprTableAsList );
+
+				key_not_found ->
+					% Like switch_set_to/2:
+					find_expressions_for( DefaultValue, Token, LineToken,
+										  TokenExprTableAsList )
+
+			end,
+
+			%ast_utils:display_debug( "Resulting expression(s):~n  ~p",
+			%						 [ ExprFormList ] ),
+
+			% So we will (attempt to) inject these expressions:
+			inject_expressions( ExprFormList, Transforms, LineToken );
+
 
 
 		%%%%%%% Section for cond_utils:assert %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1028,7 +1137,7 @@ inject_expressions( ExprForm, Transforms, _Line ) ->
 % (helper)
 %
 -spec inject_match_expression( ast_expression(), ast_transforms(), line() ) ->
-									 { [ ast_expression() ], ast_transforms() }.
+									{ [ ast_expression() ], ast_transforms() }.
 inject_match_expression( ExpressionForm, Transforms, Line ) ->
 
 	% Was initially:
@@ -1065,3 +1174,120 @@ inject_match_expression( ExpressionForm, Transforms, Line ) ->
 											{var,Line,VarName} ] } ] }]}] },
 
 	ast_expression:transform_expression( NewExpr, Transforms ).
+
+
+
+% Finds in specified token-expression table the expressions associated to
+% specified token value, and returns them.
+%
+find_expressions_for( TokenValue, Token, LineToken,
+					  _TokenExprTableAsList=[] ) ->
+	ast_utils:display_error( "The current value '~p' of token '~p' could not "
+		"be found in the switch_set_to/2 table specified at line ~B.",
+		[ TokenValue, Token, LineToken ] ),
+
+	ast_utils:raise_error( { token_value_not_referenced, {value,TokenValue},
+		{token,Token}, {line,LineToken} } );
+
+% Target value found, regardless of its type in form:
+find_expressions_for( TokenValue, _Token, _LineToken,
+		_TokenExprTableAsList=[ { tuple, _LTuple,
+			[ {_ValueType,_L,TokenValue}, Exprs ] } | _T ] ) ->
+	Exprs;
+
+% Another value:
+find_expressions_for( TokenValue, Token, LineToken,
+	  _TokenExprTableAsList=[ { tuple, _LTuple,
+			[ {_ValueType,_L,_OtherTokenValue}, _Exprs ] } | T ] ) ->
+	find_expressions_for( TokenValue, Token, LineToken, T );
+
+find_expressions_for( _TokenValue, Token, _LineToken,
+		_TokenExprTableAsList=[ { tuple, LTuple,
+			[ UnexpectedValue, _Exprs ] } | _T ] ) ->
+
+	ast_utils:display_error( "Unexpected non-immediate value ('~p') "
+		"for token '~p' in cond_utils:switch_set_to table/2 (at line ~B).",
+		[ UnexpectedValue, Token, LTuple ] ),
+
+	ast_utils:raise_error( { non_immediate_token_value, {value,UnexpectedValue},
+							 {token,Token}, {line,LTuple} } );
+
+find_expressions_for( _TokenValue, Token, LineToken,
+		_TokenExprTableAsList=[ UnexpectedEntryForm | _T ] ) ->
+
+	ast_utils:raise_error( { unexpected_entry_form, {form,UnexpectedEntryForm},
+		{token,Token}, {line,LineToken} } ).
+
+
+
+% Finds in specified token-expression table the expressions associated to
+% specified token value (if referenced, otherwise tries with the specified
+% default value), and returns them.
+%
+find_expressions_for( TokenValue, DefaultValue, Token, LineToken,
+					  TokenExprTableAsList ) ->
+	find_expressions_for( TokenValue, DefaultValue, Token, LineToken,
+					  TokenExprTableAsList, _MaybeDefExprs=undefined ).
+
+
+% (helper)
+%
+% Here we neither found the specified token value or the default one in the
+% table:
+%
+find_expressions_for( TokenValue, DefaultValue, Token, LineToken,
+		_TokenExprTableAsList=[], _MaybeDefExprs=undefined ) ->
+
+	ast_utils:display_error( "For token '~p' in cond_utils:switch_set_to/3 "
+		"(line ~B): neither its value (~p) nor the specified default one (~p) "
+		"are referenced in specified table.",
+		[ Token, LineToken, TokenValue, DefaultValue ] ),
+
+	ast_utils:raise_error( { unreferenced_values, {token_value,TokenValue},
+		{default_value,DefaultValue}, {token,Token}, {line,LineToken} } );
+
+% Here the token value was not found yet the default one was, so injecting the
+% expressions of this last one:
+%
+find_expressions_for( _TokenValue, _DefaultValue, _Token, _LineToken,
+					  _TokenExprTableAsList=[], DefExprs ) ->
+	DefExprs;
+
+% Here the token value is directly found:
+find_expressions_for( TokenValue, _DefaultValue, _Token, _LineToken,
+		_TokenExprTableAsList=[ { tuple, _LTuple,
+			[ {_ValueType,_L,TokenValue}, Exprs ] } | _T ], _MaybeDefExprs ) ->
+	Exprs;
+
+% Storing the expressions for this default value:
+find_expressions_for( TokenValue, DefaultValue, Token, LineToken,
+	  _TokenExprTableAsList=[ { tuple, _LTuple,
+			[ {_ValueType,_L,DefaultValue}, Exprs ] } | T ],
+					  _MaybeDefExprs=undefined ) ->
+	find_expressions_for( TokenValue, DefaultValue, Token, LineToken, T,
+						  Exprs );
+
+% Another value (i.e. not the token or default one):
+find_expressions_for( TokenValue, DefaultValue, Token, LineToken,
+	  _TokenExprTableAsList=[ { tuple, _LTuple,
+			[ {_ValueType,_L,_OtherTokenValue}, _Exprs ] } | T ],
+	  MaybeDefExprs ) ->
+	find_expressions_for( TokenValue, DefaultValue, Token, LineToken, T,
+						  MaybeDefExprs );
+
+find_expressions_for( _TokenValue, _DefaultValue, Token, _LineToken,
+		_TokenExprTableAsList=[ { tuple, LTuple,
+			[ UnexpectedValue, _Exprs ] } | _T ], _MaybeDefExprs ) ->
+
+	ast_utils:display_error( "Unexpected non-immediate value ('~p') "
+		"for token '~p' in cond_utils:switch_set_to table/3 (at line ~B).",
+		[ UnexpectedValue, Token, LTuple ] ),
+
+	ast_utils:raise_error( { non_immediate_token_value, {value,UnexpectedValue},
+							 {token,Token}, {line,LTuple} } );
+
+find_expressions_for( _TokenValue, _DefaultValue, Token, LineToken,
+		_TokenExprTableAsList=[ UnexpectedEntryForm | _T ], _MaybeDefExprs ) ->
+
+	ast_utils:raise_error( { unexpected_entry_form, {form,UnexpectedEntryForm},
+		{token,Token}, {line,LineToken} } ).
