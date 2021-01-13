@@ -37,8 +37,8 @@
 -include("test_facilities.hrl").
 
 
-% Tokens may only be defined on the command-line (ex: see ERLANG_COMPILER_TOKEN_OPT
-% in GNUmakevars.inc for that).
+% Tokens may only be defined on the command-line (ex: see
+% ERLANG_COMPILER_TOKEN_OPT in GNUmakevars.inc for that).
 %
 % Based on the settings specified in GNUmakevars.inc, we expect:
 % - my_first_test_token to be defined, yet with no associated value
@@ -140,6 +140,64 @@ run() ->
 			"Other test token detected and managed as expected (11)." ) ] ),
 
 	11 = process_dictionary:get( process_test_key ),
+
+
+	test_facilities:display( "Testing cond_utils:switch_set_to/2." ),
+
+	% Returns the value (here, an integer) associated to specified value (here
+	% translated by the compiler in an integer) of specified token:
+	%
+	cond_utils:switch_set_to( my_second_test_token, [
+
+		% Would return 'ok':
+		{ 100, [ process_dictionary:put( process_test_key, 20 ),
+				 io:format( "Hello from 100!~n" ) ] },
+
+		{ 200, [ trace_utils:notice( "Hello from 200!" ),
+				 process_dictionary:put( process_test_key, 22 ) ] },
+
+		{ 300, an_immediate_atom } ] ),
+
+	22 = process_dictionary:get( process_test_key ),
+
+
+	test_facilities:display( "Testing cond_utils:switch_set_to/3: "
+							 "token not set." ),
+
+	% So here the default token value is 100:
+	cond_utils:switch_set_to( non_existing_token, [
+
+		{ 100, [ process_dictionary:put( process_test_key, 25 ),
+				 io:format( "Hello from 100!~n" ) ] },
+
+		{ 200, [ trace_utils:notice( "Hello from 200!" ),
+				 process_dictionary:put( process_test_key, 26 ) ] },
+
+		{ 300, an_immediate_atom } ],
+
+		100 ),
+
+	25 = process_dictionary:get( process_test_key ),
+
+
+	test_facilities:display( "Testing cond_utils:switch_set_to/3: "
+							 "token value not in table." ),
+
+   % Token value is actually 200, nowhere to be found here:
+	cond_utils:switch_set_to( my_second_test_token, [
+
+		{ 100, [ process_dictionary:put( process_test_key, 27 ),
+				 io:format( "Hello from 100!~n" ) ] },
+
+		{ 201, [ trace_utils:notice( "Hello from 201!" ),
+				 process_dictionary:put( process_test_key, 28 ) ] },
+
+		{ 300, an_immediate_atom } ],
+
+		201 ),
+
+	28 = process_dictionary:get( process_test_key ),
+
 
 
 	test_facilities:display( "Testing cond_utils:assert/1." ),

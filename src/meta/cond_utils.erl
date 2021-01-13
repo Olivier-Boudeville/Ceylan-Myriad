@@ -26,7 +26,6 @@
 % Creation date: Tuesday, December 25, 2018.
 
 
-
 % Management of conditional compilation - like generalized, limitation-less
 % macros.
 %
@@ -49,9 +48,9 @@
 %
 % Note also that switching conditional flags will select/deselect in-code
 % expressions and may lead to variables being declared as unused by the
-% compiler; no better solution than:
-% - to mute them then (yet this requires to change the code when toggling such
-% flags - not desirable)
+% compiler; then no better solution than:
+% - to mute them (yet this requires to change the code when toggling such flags
+% - not desirable)
 % - to use nowarn_unused_vars in at least some modules
 % - or to introduce once for all (at the expense of a small runtime penalty
 % cost) an alternate branch to this conditional silencing these unused warnings,
@@ -60,14 +59,15 @@
 % % Should A, B or C be reported as unused if some_token was not set:
 % cond_utils:if_defined( some_token,
 %                        f( A, B C ),
-%                        basic_utils:ignore_unused( [ A, B, C ] ) ),
+%                        basic_utils:ignore_unused([A, B, C])),
 % [...]
 %
-% Some function may also become unused, in which case the best solution is to
-% rely on:
-% -compile( { nowarn_unused_function, my_func/3} ).
+% Some function may also become unused in turn, in which case the best solution
+% is to rely on:
+%
+% -compile( { nowarn_unused_function, {my_func,3} } ).
 %    OR
-% -compile( { nowarn_unused_function, [ my_func/3, my_other_func/0 ] } ).
+% -compile( { nowarn_unused_function, [ {my_func,3}, {my_other_func,0} ] } ).
 
 
 
@@ -130,6 +130,7 @@
 -export([ get_token_table_from/1,
 		  if_debug/1, if_defined/2, if_defined/3,
 		  if_set_to/3, if_set_to/4,
+		  switch_set_to/2, switch_set_to/3,
 		  assert/1, assert/2, assert/3 ]).
 
 
@@ -142,12 +143,13 @@
 % conditional execution of associated code.
 %
 % Ex: a 'debug_gui' token would enable, if defined, associated code, like in:
-% cond_utils:if_defined( debug_gui, [ f(), A = B, g( C ) ] )
+% cond_utils:if_defined(debug_gui, [f(), A=B, g(C)])
 %
 -type token() :: atom().
 
 
-% A value associated to a token:
+% An (immediate) value associated to a token can actually of various types
+% (ex: atom, integer; as a form of course), as translated by the compiler:
 %
 -type value() :: term().
 
@@ -158,6 +160,9 @@
 % The conditional code injected is either a single expression or a list thereof:
 -type expressions() :: expression() | [ expression() ].
 
+% A table used to associate expression(s) to token values:
+-type token_expr_table() :: [ { token(), expressions() } ].
+
 
 % Table to establish easily whether a token has been defined and, if yes, a
 % value (if any; otherwise it is set to 'undefined') that has been associated to
@@ -165,7 +170,8 @@
 %
 -type token_table() :: ?table:?table( token(), basic_utils:maybe( term() ) ).
 
--export_type([ token/0, expression/0, expressions/0, token_table/0 ]).
+-export_type([ token/0, expression/0, expressions/0, token_expr_table/0,
+			   token_table/0 ]).
 
 
 % Shorthand:
@@ -175,7 +181,7 @@
 
 % Returns the tokens declared among the compile options.
 -spec get_token_table_from( ast_info:compile_option_table() ) ->
-								  token_table().
+									token_table().
 get_token_table_from( OptionTable ) ->
 
 	EmptyTable = ?table:new(),
@@ -183,7 +189,7 @@ get_token_table_from( OptionTable ) ->
 	% The 'd' compile option must correspond to the compilation defines:
 	case ?table:lookup_entry( _K='d', OptionTable ) of
 
-		% Ex: L=[my_test_token,{my_other_test_token,51}]
+		% Ex: L=[my_test_token, {my_other_test_token,51}]
 		{ value, L } ->
 			% Returns a filled table:
 			register_tokens( L, EmptyTable );
@@ -348,7 +354,7 @@ if_set_to( Token, _Value, _ExpressionsIfSetTo ) ->
 % If the token has been defined and set to the specified value, the first list
 % of expressions is injected, otherwise (different value or not defined) the
 % second is.
-
+%
 % See if_defined/2 for use and caveats.
 %
 -spec if_set_to( token(), value(), expressions(), expressions() ) -> void().
@@ -358,6 +364,52 @@ if_set_to( Token, _Value, _ExpressionsIfMatching, _ExpressionsOtherwise ) ->
 	% either of the actual expressions:
 	%
 	throw( { untransformed_conditional, {if_set_to,4}, Token } ).
+
+
+
+% Conditional execution of one of the specified expressions or lists thereof
+% listed in the token-expression table, depending on whether the specified token
+% has been defined through the command-line *and* has been set to one of the
+% specified (immediate) values.
+%
+% If the token has been defined and set to one the values specified in the
+% table, the expression(s) associated to this value are injected.
+%
+% Otherwise (token not set, or set to a value not listed), a compilation-time
+% error is raised.
+%
+% See if_defined/2 for use and caveats.
+%
+-spec switch_set_to( token(), token_expr_table() ) -> void().
+switch_set_to( Token, _TokenExprTable ) ->
+
+	% Never expected to be called, as replaced by the Myriad parse transform by
+	% either of the actual expressions:
+	%
+	throw( { untransformed_conditional, {switch_set_to,2}, Token } ).
+
+
+
+% Conditional execution of one of the specified expressions or lists thereof
+% listed in the token-expression table, depending on whether the specified token
+% has been defined through the command-line *and* has been set to one of the
+% specified (immediate) values.
+%
+% If the token has been defined and set to one the values specified in the
+% table, the expression(s) associated to this value are injected.
+%
+% Otherwise (token not set, or set to a value not listed), the specified default
+% token value (expected to be referenced in the table) applies.
+%
+% See if_defined/2 for use and caveats.
+%
+-spec switch_set_to( token(), token_expr_table(), value() ) -> void().
+switch_set_to( Token, _TokenExprTable, _DefaultTokenValue ) ->
+
+	% Never expected to be called, as replaced by the Myriad parse transform by
+	% either of the actual expressions:
+	%
+	throw( { untransformed_conditional, {switch_set_to,3}, Token } ).
 
 
 
