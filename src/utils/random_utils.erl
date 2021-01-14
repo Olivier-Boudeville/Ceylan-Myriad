@@ -40,6 +40,7 @@
 		  get_random_value/0, get_random_value/1, get_random_value/2,
 		  get_random_values/2, get_random_values/3,
 		  get_uniform_floating_point_value/1,
+		  get_uniform_floating_point_value/2,
 		  get_random_subset/2,
 		  get_random_module_name/0,
 		  get_random_state/0, set_random_state/1,
@@ -79,8 +80,13 @@
 -endif. % log_random
 
 
+
 % Functions for random management.
 
+% General rule of thumb: if generating random values in an interval that are:
+%  - integer: then both bounds are included
+%  - floating point: then the lower bound is included and the uppoer one is
+%  excluded
 
 % If use_crypto_module is defined, the (now deprecated) crypto module will be
 % used, otherwise (which is the default now) the rand module will be used
@@ -112,18 +118,24 @@
 %-define(use_crypto_module,).
 
 
+% Shorthands:
+
+-type count() :: basic_utils:count().
+
+
+
 % Specs gathered here, because of macro guards.
 -spec start_random_source( seed_element(), seed_element(), seed_element() ) ->
-								 random_state().
+								random_state().
 
 -spec start_random_source( 'default_seed' | 'time_based_seed' | seed() ) ->
-								 void().
+								void().
 
 
 -spec can_be_seeded() -> boolean().
 
 -spec reset_random_source( 'default_seed' | 'time_based_seed' | seed() ) ->
-								 void().
+								void().
 
 -spec stop_random_source() -> void().
 
@@ -135,14 +147,15 @@
 -spec get_random_value( integer(), integer() ) -> integer().
 
 -spec get_uniform_floating_point_value( number() ) -> float().
+-spec get_uniform_floating_point_value( number(), number() ) -> float().
 
 -spec get_random_state() -> maybe( random_state() ).
 -spec set_random_state( random_state() ) -> void().
 
 
 % Generates a list of Count elements uniformly drawn in [1,N].
--spec get_random_values( pos_integer(), basic_utils:count() ) ->
-							   [ pos_integer() ].
+-spec get_random_values( pos_integer(), count() ) ->
+								[ pos_integer() ].
 get_random_values( N, Count ) ->
 	get_random_values_helper( N, Count, _Acc=[] ).
 
@@ -156,8 +169,8 @@ get_random_values_helper( N, Count, Acc ) ->
 
 
 % Generates a list of Count elements uniformly drawn in [Nmin;Nmax].
--spec get_random_values( integer(), integer(), basic_utils:count() ) ->
-							   [ integer() ].
+-spec get_random_values( integer(), integer(), count() ) ->
+								[ integer() ].
 get_random_values( Nmin, Nmax, Count ) ->
 	get_random_values_helper( Nmin, Nmax, Count, _Acc=[] ).
 
@@ -252,7 +265,7 @@ get_random_value( Nmin, Nmax ) when Nmin =< Nmax ->
 	crypto:rand_uniform( Nmin, Nmax+1 ).
 
 
-% Returns a floating-point random value in [0.0;1.0[ generated from an uniform
+% Returns a floating-point random value in [0.0;N[ generated from an uniform
 % distribution.
 %
 % Given a number (integer or float) N (positive or not), returns a random
@@ -263,6 +276,21 @@ get_random_value( Nmin, Nmax ) when Nmin =< Nmax ->
 %
 get_uniform_floating_point_value( N ) ->
 	throw( not_available ).
+
+
+% Returns a floating-point random value in [Nmin, Nmax[ generated from an
+% uniform distribution.
+%
+% Given two numbers (integer or float) Nmin and Nmax (each being positive or
+% not), returns a random floating-point value uniformly distributed between Nmin
+% (included) and Nmax (excluded), updating the random state in the process
+% dictionary.
+%
+% Spec already specified, for all random settings.
+%
+get_uniform_floating_point_value( Nmin, Nmax ) ->
+	throw( not_available ).
+
 
 
 % Returns the name of the module managing the random generation.
@@ -390,7 +418,7 @@ start_random_source( A, B, C ) ->
 % non-constant seed will be assigned. For reproducibility, start explicitly your
 % random sources.
 %
-start_random_source( { A, B, C } ) ->
+start_random_source( _Seed={ A, B, C } ) ->
 	start_random_source( A, B, C );
 
 
@@ -405,8 +433,8 @@ start_random_source( default_seed ) ->
 	ConstantSeed = { _A=17, _B=79, _C=1111 },
 
 	?trace_random( "~w starting random source with rand (~p), "
-				   "using default constant seed ~w.",
-				   [ self(), ?rand_algorithm, ConstantSeed ] ),
+		"using default constant seed ~w.",
+		[ self(), ?rand_algorithm, ConstantSeed ] ),
 
 	rand:seed( ?rand_algorithm, ConstantSeed );
 
@@ -469,9 +497,12 @@ get_random_value() ->
 %
 % Spec already specified, for all random settings.
 %
-get_random_value( N ) ->
+get_random_value( N ) when is_integer( N ) ->
 	%random:uniform( N ).
-	rand:uniform( N ).
+	rand:uniform( N );
+
+get_random_value( N ) ->
+	throw( { not_integer, N } ).
 
 
 
@@ -481,20 +512,25 @@ get_random_value( N ) ->
 %
 % Spec already specified, for all random settings.
 %
-get_random_value( Nmin, Nmax ) when Nmin =< Nmax ->
+get_random_value( Nmin, Nmax ) when is_integer( Nmin )
+					andalso is_integer( Nmax ) andalso Nmin =< Nmax ->
 
-	% Ex: if Nmin = 3, Nmax = 5, we can draw value in [ 3, 4, 5 ], hence:
+	% Ex: if Nmin = 3, Nmax = 5, we can draw value in [3, 4, 5], hence:
 	%
 	% N = 5 - 3 + 1 = 3.
 	%
 	N = Nmax - Nmin + 1,
 
 	% Drawn in [1;N]:
-	get_random_value( N ) + Nmin - 1.
+	get_random_value( N ) + Nmin - 1;
+
+get_random_value( Nmin, Nmax ) ->
+	throw( { not_integer_bounds, { Nmin, Nmax } } ).
 
 
 
-% Returns a floating-point random value in [0.0;1.0[ generated from an uniform
+
+% Returns a floating-point random value in [0.0;N[ generated from an uniform
 % distribution.
 %
 % Given a number (integer or float) N (positive or not), returns a random
@@ -506,6 +542,22 @@ get_random_value( Nmin, Nmax ) when Nmin =< Nmax ->
 get_uniform_floating_point_value( N ) ->
 	% Generated float in [0.0,1.0[:
 	N * rand:uniform().
+
+
+% Returns a floating-point random value in [Nmin, Nmax[ generated from an
+% uniform distribution.
+%
+% Given two numbers (integer or float) Nmin and Nmax (each being positive or
+% not), returns a random floating-point value uniformly distributed between Nmin
+% (included) and Nmax (excluded), updating the random state in the process
+% dictionary.
+%
+% Spec already specified, for all random settings.
+%
+get_uniform_floating_point_value( Nmin, Nmax ) ->
+	% Generated float in [0.0,1.0[:
+	Nmin + ( Nmax - Nmin ) * rand:uniform().
+
 
 
 % Returns the name of the module managing the random generation.
@@ -575,14 +627,14 @@ set_random_state( RandomState ) ->
 % Note: defined to ease interface look-up, use directly
 % list_utils:draw_elements_from/2 instead.
 %
--spec get_random_subset( basic_utils:count(), list() ) -> list().
+-spec get_random_subset( count(), list() ) -> list().
 get_random_subset( ValueCount, InputList ) ->
 	list_utils:draw_elements_from( InputList, ValueCount ).
 
 
 
 % The upper bound for a seed element.
--define(seed_upper_bound,65500).
+-define( seed_upper_bound, 65500 ).
 
 
 % Returns a seed obtained from the random source in use.
@@ -600,7 +652,7 @@ get_random_seed() ->
 
 % Checks that the specified seed is valid.
 %
-% Ex: at least with some algorithms, { 0, 0, 0 } does not yield a correct random
+% Ex: at least with some algorithms, {0, 0, 0} does not yield a correct random
 % series.
 %
 -spec check_random_seed( seed() ) -> void().
