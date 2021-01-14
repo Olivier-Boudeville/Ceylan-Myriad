@@ -50,10 +50,6 @@
 		  compute_md5_sum/1, compute_sha1_sum/1, compute_sha_sum/2 ]).
 
 
-% Shorthands:
--type ustring() :: text_utils:ustring().
-
-
 % Section about default tools:
 -export([
 
@@ -130,8 +126,14 @@
 -export([ is_batch/0 ]).
 
 
+% Shorthands:
+
+-type ustring() :: text_utils:ustring().
+
 -type file_name() :: file_utils:file_name().
 -type file_path() :: file_utils:file_path().
+-type directory_path() :: file_utils:directory_path().
+
 
 
 % Looks-up specified executable program, whose name is specified as a string
@@ -193,7 +195,7 @@ generate_png_from_graph_file( PNGFilename, GraphFilename ) ->
 % Returns the (possibly empty) string output by dot, or throws an exception.
 %
 -spec generate_png_from_graph_file( file_path(), file_path(), boolean() ) ->
-		  ustring().
+			ustring().
 generate_png_from_graph_file( PNGFilename, GraphFilename,
 							  _HaltOnDotOutput=true ) ->
 
@@ -467,8 +469,16 @@ get_default_image_browser_name() ->
 % Returns an absolute path to the default image browser tool.
 -spec get_default_image_browser_path() -> file_name().
 get_default_image_browser_path() ->
-	find_executable( get_default_image_browser_name() ).
+	case get_default_image_browser_name() of
 
+		% Workaround for some distributions:
+		Tool="geeqie" ->
+			find_executable( Tool ) ++ " --disable-clutter";
+
+		OtherTool ->
+			find_executable( OtherTool )
+
+	end.
 
 
 % Returns the name of the default web browser.
@@ -520,8 +530,7 @@ get_default_wide_text_viewer_name( _CharacterWidth ) ->
 
 
 % Returns an absolute path to the default viewer tool for wider texts.
--spec get_default_wide_text_viewer_path( non_neg_integer() )
-								  -> file_name().
+-spec get_default_wide_text_viewer_path( non_neg_integer() ) -> file_name().
 get_default_wide_text_viewer_path( CharacterWidth ) ->
 	% Could be: io_lib:format( "nedit -column ~B", [ CharacterWidth ] )
 	find_executable( get_default_wide_text_viewer_name( CharacterWidth ) ).
@@ -566,7 +575,7 @@ get_default_trace_viewer_path() ->
 % ~/Software/Erlang/Erlang-current-install/bin/erl, will return:
 % ~/Software/Erlang/Erlang-current-install.
 %
--spec get_default_erlang_root() -> file_utils:directory_name().
+-spec get_default_erlang_root() -> directory_path().
 get_default_erlang_root() ->
 	file_utils:normalise_path( file_utils:join( [
 		get_default_erlang_interpreter_path(), "..", "..", "..", "..", ".." ]
