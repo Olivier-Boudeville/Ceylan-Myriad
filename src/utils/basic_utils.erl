@@ -167,6 +167,12 @@
 -type wildcardable( T ) :: T | 'any'.
 
 
+% Return for operations that may fail (with a sufficient likelyhood that no
+% exception is to be raised then):
+%
+-type fallible( T ) :: { 'ok', T } | error_term().
+
+
 % To denote that a piece of data comes from the program boundaries (interfaces)
 % and thus may or may not be of the expected type (as long as it has not been
 % checked):
@@ -276,7 +282,7 @@
 			   bit_mask/0, message/0, pid_or_port/0, atom_key/0,
 			   reason/0, exit_reason/0,
 			   error_reason/0, error_term/0, error_type/0,
-			   base_status/0, maybe/1, wildcardable/1,
+			   base_status/0, maybe/1, wildcardable/1, fallible/1,
 			   external_data/0, unchecked_data/0, user_data/0,
 			   accumulator/0,
 			   version_number/0, version/0, two_digit_version/0, any_version/0,
