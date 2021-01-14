@@ -25,4 +25,4 @@ Some generic **data-structures**, in addition to the ones provided built-in with
 - a specific support for **other datatypes** (``pair.erl``, ``option_list.erl``, ``preferences.erl``, ``tree.erl``; also: ``set_utils.erl`` and ``ring_utils.erl``)
 - a first-level, optional support of the `HDF5 <https://www.hdfgroup.org/HDF5/>`_ file format (based on, and thus requiring, the `enhanced fork <https://github.com/Olivier-Boudeville-EDF/erlhdf5>`_ we made of `erlhdf5 <https://github.com/RomanShestakov/erlhdf5>`_); the same applies for CSV and JSON, and also for RDF
 
-Finally, the ``void/0`` and ``maybe/1`` types are supported (thanks to the Myriad parse-transform).
+Finally, the ``void/0``, ``maybe/1`` and ``fallible/1`` types are supported (thanks to the Myriad parse-transform).

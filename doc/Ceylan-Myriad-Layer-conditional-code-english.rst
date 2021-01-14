@@ -7,7 +7,8 @@
 Support for Code Injection
 ==========================
 
-It may be useful to decide, at compile-time, based on tokens specified on the command-line, whether some code should be enabled.
+It may be useful to decide, at compile-time, whether some code should be added / removed / transformed / generated based on tokens defined by the user through compilation flags (typically specified in makefiles).
+
 
 
 Defining a token
@@ -73,6 +74,40 @@ As for ``if_set_to/4``, in:
  cond_utils:if_set_to(a_token,a_symbol,FIRST_EXPR_LIST,SECOND_EXPR_LIST)
 
 ``FIRST_EXPR_LIST`` will be injected iff ``a_token`` has been defined and set to ``a_symbol``, otherwise ``SECOND_EXPR_LIST`` will be.
+
+
+Finally, the ``switch_set_to/{2,3}`` primitives allow to generalise these ``if``-like constructs, with any number of code branches (expression or list of expressions to be injected) selected based on the build-time value of a token, possibly with defaults (should the token not be defined at all, or defined to a value that is not among the ones associated to a code branch).
+
+For example:
+
+.. code:: erlang
+
+  cond_utils:switch_set_to(my_token, [
+	   {my_first_value, io:format("Hello!")},
+	   {my_second_value, [f(), g(debug), h()]},
+	   {some_third_value, a()}])
+
+A compilation-time error will be raised if ``my_token`` is not set, or set to none of the declared values (i.e. not in ``[my_first_value, my_second_value, some_third_value]``).
+
+
+A variation of this primitive exists that provides a default token value, if none was, or if it was defined to a value that is not listed among the ones designating a code branch.
+
+For example:
+
+.. code:: erlang
+
+  Value = cond_utils:switch_set_to(some_token,
+		[{1, foo },
+		 {14, bar},
+		 {20, hello}],
+		14)
+
+
+Here, if ``some_token`` is not defined, or defined to a value that is neither ``1``, ``14`` or ``20``, then the ``14`` default value applies, and thus ``Value`` is set to ``bar``.
+
+
+Refer to ``cond_utils_test.erl`` for further usage examples.
+
 
 
 
