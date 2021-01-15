@@ -32,13 +32,13 @@ For that, following changes are operated:
 
  - ``void()`` becomes ``basic_utils:void()``, a type alias of ``any()``, made to denote returned terms that are not expected to be used by the caller (as if that function's only purpose was its side-effects)
  - ``maybe(T)`` becomes the type union ``'undefined'|T``
- - ``fallible(T)`` becomes ultimately type union ``{'ok',T}|{'error',term()}``
+ - ``fallible(T)`` becomes ultimately the type union ``{'ok',T}|{'error',term()}``
 
 - both in type specifications and actual code, ``table/2``, the Myriad-specific associative table pseudo-type, is translated into an actual `table type`_:
  - by default, ``map_hashtable`` (the generally most efficient one)
  - unless it is overridden on a per-module basis with the ``table_type`` define, like in: ``-table_type(list_table).``
 
-- the ``cond_utils`` services drive conditional code injection: based on the build-time tokens defined, their values can be used to perform compilation-time operations such as **if** (see in this module ``if_debug/1``, ``if_defined/{2,3}``, ``if_set_to/{3,4}``), **switch** (see ``switch_set_to/{2,3}``, possibly with a default clause) or **assert** (``assert/{1,2,3}``); if useful, it should be fairly easy (infrastructure mostly ready) to transform the (currently constant) user-defined build tokens into mutable variables and to add for example compile-time loops (**for**, **while**, etc.) if not going for a Turing-complete language if ever that makes sense for some uses; see the `Support for Code Injection`_ for additional details
+- the ``cond_utils`` services drive conditional code injection: based on the build-time tokens defined, their values can be used to perform compilation-time operations such as **if** (see in this module ``if_debug/1``, ``if_defined/{2,3}``, ``if_set_to/{3,4}``), **switch** (see ``switch_set_to/{2,3}``, possibly with a default clause) or **assert** (``assert/{1,2,3}``); if useful, it should be fairly easy (infrastructure mostly ready) to transform the (currently constant) user-defined build tokens into mutable variables and to add for example compile-time assignments of these variables and loops (**for**, **while**, etc.) if not going for a Turing-complete language, if ever that made sense for some uses; see the `Support for Code Injection`_ for additional details
 
 
 

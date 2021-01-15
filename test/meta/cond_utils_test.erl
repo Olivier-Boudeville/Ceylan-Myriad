@@ -42,8 +42,8 @@
 %
 % Based on the settings specified in GNUmakevars.inc, we expect:
 % - my_first_test_token to be defined, yet with no associated value
-% - my_second_test_token to be defined, set to 200
-% - my_third_test_token to be defined, set to some_text
+% - my_second_test_token to be defined, set to 200 (hence an integer)
+% - my_third_test_token to be defined, set to some_text (hence an atom)
 % (and no other token to be defined)
 
 
@@ -64,40 +64,51 @@ run() ->
 	A = 1,
 	B = 2,
 
-	% To silence a warning about A and B being unused should the token not be
+	% To silence a warning about A and B being unused, should the token not be
 	% defined:
 	%
 	basic_utils:ignore_unused( [ A, B ] ),
 
 
+	test_facilities:display( "Testing cond_utils:if_debug/1." ),
+
+	cond_utils:if_debug( begin
+							 io:format( "We are in debug mode!~n" ),
+							 trace_utils:notice( "And we like it!" )
+						 end ),
+
+	cond_utils:if_debug( io:format( "Of course specifying directly a single, "
+									"standalone expression is allowed too." ) ),
+
+
+
 	test_facilities:display( "Testing cond_utils:if_defined/2." ),
-
-	cond_utils:if_debug( [ io:format( "We are in debug mode!~n" ),
-						   trace_utils:notice( "And we like it!" ) ] ),
-
-	test_facilities:display( "Testing cond_utils:if_defined/2." ),
-
 
 	process_dictionary:put( process_test_key, 1 ),
 
+	% Swap comment to test:
 	%cond_utils:if_defined( non_existing_token,
 	cond_utils:if_defined( my_first_test_token,
-						   [ A = 1,
-							 io:format( "Conditional code executed!~n" ),
-							 B = A + 1,
-							 process_dictionary:put( process_test_key, 2 ) ] ),
+		begin
+			A = 1,
+			io:format( "Conditional code executed!~n" ),
+			B = A + 1,
+			process_dictionary:put( process_test_key, B )
+		end ),
 
 	% {badmatch,1} would imply that no -Dmy_first_test_token was specified:
 	2 = process_dictionary:get( process_test_key ),
 
 
+
 	test_facilities:display( "Testing cond_utils:if_defined/3." ),
 
-	% A single expression is used here:
 	cond_utils:if_defined( my_first_test_token,
-			   process_dictionary:put( process_test_key, 3 ),
-			   [ process_dictionary:put( process_test_key, 4 ),
-				 trace_utils:error( "Wrong branch selected (4)." ) ] ),
+		process_dictionary:put( process_test_key, 3 ),
+		begin
+			process_dictionary:put( process_test_key, 4 ),
+			trace_utils:error( "Wrong branch selected (4)." )
+		end ),
 
 	3 = process_dictionary:get( process_test_key ),
 
@@ -105,9 +116,11 @@ run() ->
 	test_facilities:display( "Testing cond_utils:if_set_to/3." ),
 
 	cond_utils:if_set_to( my_second_test_token, 200,
-		[ trace_utils:notice(
-			"Test token detected and set as expected (5)." ),
-		  process_dictionary:put( process_test_key, 5 ) ] ),
+		begin
+			trace_utils:notice(
+				"Test token detected and set as expected (5)." ),
+			process_dictionary:put( process_test_key, 5 )
+		end ),
 
 	5 = process_dictionary:get( process_test_key ),
 
@@ -115,31 +128,46 @@ run() ->
 	test_facilities:display( "Testing cond_utils:if_set_to/4." ),
 
 	cond_utils:if_set_to( another_non_existing_token, some_different_text,
-		[ trace_utils:error( "Wrong branch selected (6)." ),
-		  process_dictionary:put( process_test_key, 6 ) ],
-		[ process_dictionary:put( process_test_key, 7 ),
+		begin
+			trace_utils:error( "Wrong branch selected (6)." ),
+			process_dictionary:put( process_test_key, 6 )
+		end,
+		begin
+		  process_dictionary:put( process_test_key, 7 ),
 		  trace_utils:notice(
-			"Other test token detected and managed as expected (7)." ) ] ),
+			"Other test token detected and managed as expected (7)." )
+		end ),
 
 	7 = process_dictionary:get( process_test_key ),
 
+
 	cond_utils:if_set_to( my_third_test_token, some_text,
-		[ process_dictionary:put( process_test_key, 8 ),
-		  trace_utils:notice(
-			"Other test token detected and managed as expected (8)." ) ],
-		[ process_dictionary:put( process_test_key, 9 ),
-		  trace_utils:error( "Wrong branch selected (9)." ) ] ),
+		begin
+			process_dictionary:put( process_test_key, 8 ),
+			trace_utils:notice(
+			  "Other test token detected and managed as expected (8)." )
+		end,
+		begin
+			process_dictionary:put( process_test_key, 9 ),
+			trace_utils:error( "Wrong branch selected (9)." )
+		end ),
 
 	8 = process_dictionary:get( process_test_key ),
 
+
 	cond_utils:if_set_to( my_third_test_token, some_different_text,
-		[ trace_utils:error( "Wrong branch selected (10)." ),
-		  process_dictionary:put( process_test_key, 10 ) ],
-		[ process_dictionary:put( process_test_key, 11 ),
-		  trace_utils:notice(
-			"Other test token detected and managed as expected (11)." ) ] ),
+		begin
+			trace_utils:error( "Wrong branch selected (10)." ),
+			process_dictionary:put( process_test_key, 10 )
+		end,
+		begin
+			process_dictionary:put( process_test_key, 11 ),
+			trace_utils:notice(
+				"Other test token detected and managed as expected (11)." )
+		end ),
 
 	11 = process_dictionary:get( process_test_key ),
+
 
 
 	test_facilities:display( "Testing cond_utils:switch_set_to/2." ),
@@ -147,18 +175,24 @@ run() ->
 	% Returns the value (here, an integer) associated to specified value (here
 	% translated by the compiler in an integer) of specified token:
 	%
-	cond_utils:switch_set_to( my_second_test_token, [
+	SwitchValue = cond_utils:switch_set_to( my_second_test_token, [
 
 		% Would return 'ok':
-		{ 100, [ process_dictionary:put( process_test_key, 20 ),
-				 io:format( "Hello from 100!~n" ) ] },
+		{ 100, begin
+				   process_dictionary:put( process_test_key, 20 ),
+				   io:format( "Hello from 100!~n" )
+				end },
 
-		{ 200, [ trace_utils:notice( "Hello from 200!" ),
-				 process_dictionary:put( process_test_key, 22 ) ] },
+		{ 200, begin
+				   trace_utils:notice( "Hello from 200!" ),
+				   process_dictionary:put( process_test_key, 22 ),
+				   my_target_clause
+			   end },
 
 		{ 300, an_immediate_atom } ] ),
 
 	22 = process_dictionary:get( process_test_key ),
+	SwitchValue = my_target_clause,
 
 
 	test_facilities:display( "Testing cond_utils:switch_set_to/3: "
@@ -167,11 +201,15 @@ run() ->
 	% So here the default token value is 100:
 	cond_utils:switch_set_to( non_existing_token, [
 
-		{ 100, [ process_dictionary:put( process_test_key, 25 ),
-				 io:format( "Hello from 100!~n" ) ] },
+		{ 100, begin
+				   process_dictionary:put( process_test_key, 25 ),
+				   io:format( "Hello from 100!~n" )
+			   end },
 
-		{ 200, [ trace_utils:notice( "Hello from 200!" ),
-				 process_dictionary:put( process_test_key, 26 ) ] },
+		{ 200, begin
+				   trace_utils:notice( "Hello from 200!" ),
+				   process_dictionary:put( process_test_key, 26 )
+			   end },
 
 		{ 300, an_immediate_atom } ],
 
@@ -183,14 +221,20 @@ run() ->
 	test_facilities:display( "Testing cond_utils:switch_set_to/3: "
 							 "token value not in table." ),
 
-   % Token value is actually 200, nowhere to be found here:
+   % Token value is actually 200, nowhere to be found here, the default (201)
+   % applies then:
+	%
 	cond_utils:switch_set_to( my_second_test_token, [
 
-		{ 100, [ process_dictionary:put( process_test_key, 27 ),
-				 io:format( "Hello from 100!~n" ) ] },
+		{ 100, begin
+				   process_dictionary:put( process_test_key, 27 ),
+				   io:format( "Hello from 100!~n" )
+			   end },
 
-		{ 201, [ trace_utils:notice( "Hello from 201!" ),
-				 process_dictionary:put( process_test_key, 28 ) ] },
+		{ 201, begin
+				   trace_utils:notice( "Hello from 201!" ),
+				   process_dictionary:put( process_test_key, 28 )
+			   end },
 
 		{ 300, an_immediate_atom } ],
 
