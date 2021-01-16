@@ -44,9 +44,9 @@ We recommend that layers built on top of Myriad define their own token for debug
 Defining the code to inject
 ---------------------------
 
-Based on the defined tokens, code may be injected; this code can be any Erlang expression, and the value to which it will evaluate can be used as any other value in the program.
+Based on the defined tokens, code may be injected; this code can be any Erlang expression, and the value to which it will evaluate (at runtime) can be used as any other value in the program.
 
-Injecting a *single* expression (i.e. not multiple ones) is not a limitation: not only this only expression can be a function call (thus corresponding to arbitrarily many expressions), but more significantly a series of expressions can be nested in a ``begin`` / ``end`` block, making them a single expression [#]_.
+Injecting a *single* expression (i.e. not multiple ones) is not a limitation: not only this single expression can be a function call (thus corresponding to arbitrarily many expressions), but more significantly a series of expressions can be nested in a ``begin`` / ``end`` block, making them a single expression [#]_.
 
 
 .. [#] A previous implementation of ``cond_utils`` allowed to specify the code to inject either as an expression or as a *list* of expressions. It was actually a mistake, as a single expression to return can be itself a list (ex: ``["red", "blue"]``), which bears a different semantics and should not be interpreted as a list of expressions to evaluate. For example, the result from the code to inject may be bound to a variable, in which case we expect ``A=["red", "blue"]`` rather than ``A="red", "blue"`` (this latter term being constructed but not used).
@@ -60,11 +60,18 @@ Various primitives for *code injection* are available in the ``cond_utils`` (mos
 
 .. [#] Their actual implementation lies in `Myriad's parse transform <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/meta/myriad_parse_transform.erl>`_.
 
-There is first ``if_debug/1``, for example used as:
+There is first ``if_debug/1``, to be used as:
 
 .. code:: erlang
 
- cond_utils:if_debug(io:format("Hello ~p!",[A]))
+ cond_utils:if_debug(EXPR_IF_IN_DEBUG_MODE)
+
+Like in:
+
+.. code:: erlang
+
+ A = "Joe",
+ cond_utils:if_debug(io:format("Hello ~s!",[A]))
 
 
 or, to illustrate expression blocks:
@@ -77,15 +84,15 @@ or, to illustrate expression blocks:
 					   end)
 
 
-These constructs will be replaced by the expression they specify for injection, at their location in the program, iff the ``myriad_debug_mode`` token has been defined, otherwise they will be replaced by nothing at all (hence with exactly *no* runtime penalty).
+These constructs will be replaced by the expression they specify for injection, at their location in the program, iff the ``myriad_debug_mode`` token has been defined, otherwise they will be replaced by nothing at all (hence with exactly *no* runtime penalty; and the result of the evaluation of ``if_debug/1`` is then not an expression).
 
 Similarly, ``if_defined/2``, used as:
 
 .. code:: erlang
 
- cond_utils:if_defined(my_token,EXPR)
+ cond_utils:if_defined(TOKEN, EXPR_IF_DEFINED)
 
-will inject ``EXPR`` if ``my_token`` has been defined (regardless of any value associated to this token), otherwise the ``if_defined/2`` call will be removed as a whole [#]_.
+will inject ``EXPR_IF_DEFINED`` if ``TOKEN`` has been defined (regardless of any value associated to this token), otherwise the ``if_defined/2`` call will be removed as a whole [#]_.
 
 .. [#] So ``if_debug(EXPR)`` behaves exactly as: ``if_defined(myriad_debug_mode,EXPR)``.
 
@@ -94,57 +101,104 @@ As for ``if_defined/3``, it supports two expressions:
 
 .. code:: erlang
 
- cond_utils:if_defined(a_token,FIRST_EXPR,SECOND_EXPR])
-
-
-If ``a_token`` has been defined, the first expression will be injected, otherwise the second will.
-
-Finally, with ``if_set_to/{3,4}``, the injection will depend not only of a token being defined or not, but also onto the value (if any) to which it is set.
-
-An example with ``if_set_to/3``:
-
-.. code:: erlang
-
- cond_utils:if_set_to(some_token,42,EXPR)
-
-will inject ``EXPR`` iff ``some_token`` has been defined and set to ``42`` (i.e. ``-Dsome_token=42``). As a result, the specified expression will not be injected if ``some_token`` has been set to another value, or not been defined at all.
-
-As for ``if_set_to/4``, in:
-
-.. code:: erlang
-
- cond_utils:if_set_to(a_token,a_symbol,FIRST_EXPR,SECOND_EXPR)
-
-``FIRST_EXPR`` will be injected iff ``a_token`` has been defined and set to ``a_symbol``, otherwise (not set or set to a different value) ``SECOND_EXPR`` will be.
-
-
-Finally, the ``switch_set_to/{2,3}`` primitives allow to generalise these ``if``-like constructs, with any number of code branches selected based on the build-time value of a token, possibly with defaults (should the token not be defined at all, or defined to a value that is not among the ones associated to a code branch).
-
-For that we specify a list of pairs, each made of a value and of the corresponding expression to be injected in the actual token matches that value; for example:
-
-.. code:: erlang
-
-  cond_utils:switch_set_to(my_token, [
-	   {my_first_value, io:format("Hello!")},
-	   {my_second_value, begin f(), g(debug), h(), end},
-	   {some_third_value, a()}])
-
-A compilation-time error will be raised if ``my_token`` is not set, or if it is set to none of the declared values (i.e. not in ``[my_first_value, my_second_value, some_third_value]``).
-
-A variation of this primitive exists that applies a default token value if none was, or if the token was set to a value that is not listed among any of the ones designating a code branch.
+ cond_utils:if_defined(TOKEN, EXPR_IF_DEFINED, EXPR_OTHERWISE)
 
 For example:
 
 .. code:: erlang
 
-  Value = cond_utils:switch_set_to(some_token,
-		[{1, foo },
-		 {14, bar},
-		 {20, hello}],
-		14)
+   % Older versions being less secure:
+   TLSSupportedVersions = cond_utils:if_defined(us_web_relaxed_security,
+				['tlsv1.3', 'tlsv1.2', 'tlsv1.1', 'tlsv1'],
+				['tlsv1.3'])
+
+If ``us_web_relaxed_security`` has been defined, the first list will be injected, otherwise the second will.
+
+Note that a call to ``if_defined/3`` results thus in an expression.
+
+Finally, with ``if_set_to/{3,4}``, the injection will depend not only of a token being defined or not, but also onto the value (if any) to which it is set.
+
+For ``if_set_to/3``:
+
+.. code:: erlang
+
+ cond_utils:if_defined(TOKEN, VALUE, EXPR_IF_SET_TO_THIS_VALUE)
+
+will inject ``EXPR_IF_SET_TO_THIS_VALUE`` iff ``TOKEN`` has been defined and set to ``VALUE``. As a result, the specified expression will not be injected if ``some_token`` has been set to another value, or not been defined at all.
 
 
-Here, if ``some_token`` is not defined, or defined to a value that is neither ``1``, ``14`` or ``20``, then the ``14`` default value applies, and thus ``Value`` is set to ``bar``.
+Usage example, ``-Dsome_token=42`` having possibly been defined beforehand:
+
+.. code:: erlang
+
+ cond_utils:if_set_to(some_token,42, SomePid ! hello)])
+
+
+
+As for ``if_set_to/4``, in:
+
+.. code:: erlang
+
+ cond_utils:if_set_to(TOKEN, VALUE, EXPR_IF_SET_TO_THIS_VALUE, EXPR_OTHERWISE)
+
+``EXPR_IF_SET_TO_THIS_VALUE`` will be injected iff ``TOKEN`` has been defined and set to ``VALUE``, otherwise (not set or set to a different value) ``EXPR_OTHERWISE`` will be.
+
+Example:
+
+.. code:: erlang
+
+  Level = cond_utils:if_set_to(my_token, foobar_enabled, 1.0, 0.0) + 4.5
+
+
+
+Finally, the ``switch_set_to/{2,3}`` primitives allow to generalise these ``if``-like constructs, with one among any number of code branches selected based on the build-time value of a token, possibly with defaults (should the token not be defined at all, or defined to a value that is not among the ones associated to a code branch).
+
+For that we specify a list of pairs, each made of a value and of the corresponding expression to be injected if the actual token matches that value, like in:
+
+.. code:: erlang
+
+  cond_utils:switch_set_to(TOKEN, [
+		 {VALUE_1, EXPR_1},
+		 {VALUE_2, EXPR_2},
+		 % [...]
+		 {VALUE_N, EXPR_N}])
+
+
+For example:
+
+.. code:: erlang
+
+  cond_utils:switch_set_to(my_token, [
+	   {my_first_value, io:format("Hello!")},
+	   {my_second_value, begin f(), g(X,debug), h() end},
+	   {some_third_value, a(X,Y)}])
+
+A compilation-time error will be raised if ``my_token`` is not set, or if it is set to none of the declared values (i.e. not in ``[my_first_value, my_second_value, some_third_value]``).
+
+
+A variation of this primitive exists that applies a default token value if none was, or if the token was set to a value that is not listed among any of the ones designating a code branch, like in:
+
+.. code:: erlang
+
+  cond_utils:switch_set_to(TOKEN,
+							 [ {VALUE_1, EXPR_1},
+							   {VALUE_2, EXPR_2},
+							   % [...]
+							   {VALUE_N, EXPR_N}],
+							 DEFAULT_VALUE)
+
+
+As always with primitives that define a default, alternate branch, they always inject an expression and thus can be considered as such.
+
+For example:
+
+.. code:: erlang
+
+  ModuleFilename = atom_to_list( cond_utils:switch_set_to(some_token,
+				[{1, foo}, {14, bar}, {20, hello}], 14) ++ ".erl"
+
+
+Here, if ``some_token`` is not defined, or defined to a value that is neither ``1``, ``14`` or ``20``, then the ``14`` default value applies, and thus ``ModuleFilename`` is set to ``"bar.erl"``.
 
 
 Refer to `cond_utils_test.erl <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/test/meta/cond_utils_test.erl>`_ for further usage examples.
@@ -154,7 +208,7 @@ Refer to `cond_utils_test.erl <https://github.com/Olivier-Boudeville/Ceylan-Myri
 Controlling assertions
 ----------------------
 
-It may be convenient that, depending on a compile-time token (ex: in debug mode, typically triggered thanks to the ``-Dmyriad_debug_mode`` compilation option), *assertions* (expressions expected to evaluate to the atom ``true``) are enabled, whereas they shall be dismissed as a whole should that token not be defined.
+It may be convenient that, depending on a compile-time token (ex: in debug mode, typically triggered thanks to the ``-Dmyriad_debug_mode`` compilation flag), *assertions* (expressions expected to evaluate to the atom ``true``) are enabled, whereas they shall be dismissed as a whole should that token not be defined.
 
 To define an assertion enabled in debug mode, use ``assert/1``, like in:
 
@@ -183,8 +237,8 @@ This may be useful for example to control, on a per-theme basis, the level of ch
 .. code:: erlang
 
  cond_utils:assert(debug_gui,1,basic_testing()),
- cond_utils:assert(debug_gui,2,more_involved_testing()),
- cond_utils:assert(debug_gui,3,paranoid_testing()),
+   cond_utils:assert(debug_gui,2,more_involved_testing()),
+   cond_utils:assert(debug_gui,3,paranoid_testing()),
 
 Note that, in this case, a given level of checking should include the one just below it (ex: ``more_involved_testing()`` should call ``basic_testing()``).
 
@@ -193,15 +247,15 @@ Note that, in this case, a given level of checking should include the one just b
 Usage Hints
 -----------
 
-For tokens, at least currently they must be defined as immediate values (atoms); even using a mute variable, like for the ``_Default=my_token`` expression, is not allowed.
+For tokens, at least currently they must be defined as immediate values (atoms); even using a mute variable, like for the ``_Default=my_token`` expression, or a variable, is not supported (at least yet).
 
-Note that, for primitives that may not inject code at all (ex: ``if_debug/1``), if their conditions are not fulfilled, the specified conditional code is dismissed as a whole, it is not even replaced for example by an ``ok`` atom; this may matter if this conditional is the only expression in a case clause for example, in which case a compilation failure like "*internal error in core; crash reason: function_clause in function v3_core:cexprs/3 called as v3_core:cexprs[...]*" will be reported (the compiler sees unexpectedly a clause with no expression).
+Note that, for primitives that may not inject code at all (ex: ``if_debug/1``), if their conditions are not fulfilled, the specified conditional code is dismissed as a whole, it is not even replaced for example by an ``ok`` atom; this may matter if this conditional is the only expression in a case clause for example, in which case a compilation failure like "*internal error in core; crash reason: function_clause in function v3_core:cexprs/3 called as v3_core:cexprs[...]*" will be reported (the compiler sees unexpectedly a clause not having even a single expression).
 
 A related issue may happen when switching conditional flags: it will select/deselect in-code expressions at compile time, and may lead functions and/or variables to become unused, and thus may trigger at least warnings [#]_.
 
 .. [#] Warnings that we prefer promoting to errors, as they constitute a *very* convenient safety net.
 
-For functions that could become unused due to the conditional setting of a token, the compiler could certainly be silenced by exporting them; yet a better approach is surely to use:
+For **functions** that could become unused due to the conditional setting of a token, the compiler could certainly be silenced by exporting them; yet a better approach is surely to use:
 
 .. code:: erlang
 
@@ -214,7 +268,7 @@ or:
  -compile({nowarn_unused_function,[my_func/3, my_other_func/0]}).
 
 
-As for variables, should A, B or C be reported as unused if ``some_token`` was not set, then ``basic_utils:ignore_unused/1`` function (mostly a no-op) could be of use:
+As for **variables**, should A, B or C be reported as unused if ``some_token`` was not set, then the ``basic_utils:ignore_unused/1`` function (mostly a no-op) could be of use:
 
 .. code:: erlang
 
