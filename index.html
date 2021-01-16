@@ -34,13 +34,13 @@
 <tr class="field"><th class="field-name">Creation date:</th><td class="field-body"><p class="first">Sunday, August 17, 2008</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Lastly updated:</th><td class="field-body"><p class="first">Thursday, January 14, 2021</p>
+<tr class="field"><th class="field-name">Lastly updated:</th><td class="field-body"><p class="first">Saturday, January 16, 2021</p>
 </td>
 </tr>
 <tr class="field"><th class="field-name">Status:</th><td class="field-body"><p class="first">Stable</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Version:</th><td class="field-body"><p class="first">1.2.17</p>
+<tr class="field"><th class="field-name">Version:</th><td class="field-body"><p class="first">1.2.18</p>
 </td>
 </tr>
 <tr class="field"><th class="field-name">Dedication:</th><td class="field-body"><p class="first">Users and maintainers of the <tt class="docutils literal">Myriad</tt> layer.</p>
@@ -573,8 +573,8 @@ various implementations thereof, tests and benchmarks, in:</li>
 </div>
 <div class="section" id="defining-the-code-to-inject">
 <h4><a class="toc-backref" href="#id71">Defining the code to inject</a></h4>
-<p>Based on the defined tokens, code may be injected; this code can be any Erlang expression, and the value to which it will evaluate can be used as any other value in the program.</p>
-<p>Injecting a <em>single</em> expression (i.e. not multiple ones) is not a limitation: not only this only expression can be a function call (thus corresponding to arbitrarily many expressions), but more significantly a series of expressions can be nested in a <tt class="docutils literal">begin</tt> / <tt class="docutils literal">end</tt> block, making them a single expression <a class="footnote-reference" href="#id28" id="id27">[8]</a>.</p>
+<p>Based on the defined tokens, code may be injected; this code can be any Erlang expression, and the value to which it will evaluate (at runtime) can be used as any other value in the program.</p>
+<p>Injecting a <em>single</em> expression (i.e. not multiple ones) is not a limitation: not only this single expression can be a function call (thus corresponding to arbitrarily many expressions), but more significantly a series of expressions can be nested in a <tt class="docutils literal">begin</tt> / <tt class="docutils literal">end</tt> block, making them a single expression <a class="footnote-reference" href="#id28" id="id27">[8]</a>.</p>
 <table class="docutils footnote" frame="void" id="id28" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
@@ -591,9 +591,14 @@ various implementations thereof, tests and benchmarks, in:</li>
 <tr><td class="label"><a class="fn-backref" href="#id29">[9]</a></td><td>Their actual implementation lies in <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/meta/myriad_parse_transform.erl">Myriad's parse transform</a>.</td></tr>
 </tbody>
 </table>
-<p>There is first <tt class="docutils literal">if_debug/1</tt>, for example used as:</p>
+<p>There is first <tt class="docutils literal">if_debug/1</tt>, to be used as:</p>
 <pre class="code erlang literal-block">
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_debug</span><span class="p">(</span><span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&quot;Hello </span><span class="si">~p</span><span class="s">!&quot;</span><span class="p">,[</span><span class="nv">A</span><span class="p">]))</span>
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_debug</span><span class="p">(</span><span class="nv">EXPR_IF_IN_DEBUG_MODE</span><span class="p">)</span>
+</pre>
+<p>Like in:</p>
+<pre class="code erlang literal-block">
+<span class="nv">A</span> <span class="o">=</span> <span class="s">&quot;Joe&quot;</span><span class="p">,</span>
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_debug</span><span class="p">(</span><span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&quot;Hello </span><span class="si">~s</span><span class="s">!&quot;</span><span class="p">,[</span><span class="nv">A</span><span class="p">]))</span>
 </pre>
 <p>or, to illustrate expression blocks:</p>
 <pre class="code erlang literal-block">
@@ -602,12 +607,12 @@ various implementations thereof, tests and benchmarks, in:</li>
                         <span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&quot;Goodbye </span><span class="si">~p</span><span class="s">&quot;</span><span class="p">,[</span><span class="nv">C</span><span class="p">])</span>
                       <span class="k">end</span><span class="p">)</span>
 </pre>
-<p>These constructs will be replaced by the expression they specify for injection, at their location in the program, iff the <tt class="docutils literal">myriad_debug_mode</tt> token has been defined, otherwise they will be replaced by nothing at all (hence with exactly <em>no</em> runtime penalty).</p>
+<p>These constructs will be replaced by the expression they specify for injection, at their location in the program, iff the <tt class="docutils literal">myriad_debug_mode</tt> token has been defined, otherwise they will be replaced by nothing at all (hence with exactly <em>no</em> runtime penalty; and the result of the evaluation of <tt class="docutils literal">if_debug/1</tt> is then not an expression).</p>
 <p>Similarly, <tt class="docutils literal">if_defined/2</tt>, used as:</p>
 <pre class="code erlang literal-block">
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="n">my_token</span><span class="p">,</span><span class="nv">EXPR</span><span class="p">)</span>
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="nv">TOKEN</span><span class="p">,</span> <span class="nv">EXPR_IF_DEFINED</span><span class="p">)</span>
 </pre>
-<p>will inject <tt class="docutils literal">EXPR</tt> if <tt class="docutils literal">my_token</tt> has been defined (regardless of any value associated to this token), otherwise the <tt class="docutils literal">if_defined/2</tt> call will be removed as a whole <a class="footnote-reference" href="#id32" id="id31">[10]</a>.</p>
+<p>will inject <tt class="docutils literal">EXPR_IF_DEFINED</tt> if <tt class="docutils literal">TOKEN</tt> has been defined (regardless of any value associated to this token), otherwise the <tt class="docutils literal">if_defined/2</tt> call will be removed as a whole <a class="footnote-reference" href="#id32" id="id31">[10]</a>.</p>
 <table class="docutils footnote" frame="void" id="id32" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
@@ -616,44 +621,74 @@ various implementations thereof, tests and benchmarks, in:</li>
 </table>
 <p>As for <tt class="docutils literal">if_defined/3</tt>, it supports two expressions:</p>
 <pre class="code erlang literal-block">
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="n">a_token</span><span class="p">,</span><span class="nv">FIRST_EXPR</span><span class="p">,</span><span class="nv">SECOND_EXPR</span><span class="p">])</span>
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="nv">TOKEN</span><span class="p">,</span> <span class="nv">EXPR_IF_DEFINED</span><span class="p">,</span> <span class="nv">EXPR_OTHERWISE</span><span class="p">)</span>
 </pre>
-<p>If <tt class="docutils literal">a_token</tt> has been defined, the first expression will be injected, otherwise the second will.</p>
-<p>Finally, with <tt class="docutils literal"><span class="pre">if_set_to/{3,4}</span></tt>, the injection will depend not only of a token being defined or not, but also onto the value (if any) to which it is set.</p>
-<p>An example with <tt class="docutils literal">if_set_to/3</tt>:</p>
+<p>For example:</p>
 <pre class="code erlang literal-block">
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_set_to</span><span class="p">(</span><span class="n">some_token</span><span class="p">,</span><span class="mi">42</span><span class="p">,</span><span class="nv">EXPR</span><span class="p">)</span>
+<span class="c">% Older versions being less secure:
+</span><span class="nv">TLSSupportedVersions</span> <span class="o">=</span> <span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="n">us_web_relaxed_security</span><span class="p">,</span>
+             <span class="p">[</span><span class="n">'tlsv1.3'</span><span class="p">,</span> <span class="n">'tlsv1.2'</span><span class="p">,</span> <span class="n">'tlsv1.1'</span><span class="p">,</span> <span class="n">'tlsv1'</span><span class="p">],</span>
+             <span class="p">[</span><span class="n">'tlsv1.3'</span><span class="p">])</span>
 </pre>
-<p>will inject <tt class="docutils literal">EXPR</tt> iff <tt class="docutils literal">some_token</tt> has been defined and set to <tt class="docutils literal">42</tt> (i.e. <tt class="docutils literal"><span class="pre">-Dsome_token=42</span></tt>). As a result, the specified expression will not be injected if <tt class="docutils literal">some_token</tt> has been set to another value, or not been defined at all.</p>
+<p>If <tt class="docutils literal">us_web_relaxed_security</tt> has been defined, the first list will be injected, otherwise the second will.</p>
+<p>Note that a call to <tt class="docutils literal">if_defined/3</tt> results thus in an expression.</p>
+<p>Finally, with <tt class="docutils literal"><span class="pre">if_set_to/{3,4}</span></tt>, the injection will depend not only of a token being defined or not, but also onto the value (if any) to which it is set.</p>
+<p>For <tt class="docutils literal">if_set_to/3</tt>:</p>
+<pre class="code erlang literal-block">
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="nv">TOKEN</span><span class="p">,</span> <span class="nv">VALUE</span><span class="p">,</span> <span class="nv">EXPR_IF_SET_TO_THIS_VALUE</span><span class="p">)</span>
+</pre>
+<p>will inject <tt class="docutils literal">EXPR_IF_SET_TO_THIS_VALUE</tt> iff <tt class="docutils literal">TOKEN</tt> has been defined and set to <tt class="docutils literal">VALUE</tt>. As a result, the specified expression will not be injected if <tt class="docutils literal">some_token</tt> has been set to another value, or not been defined at all.</p>
+<p>Usage example, <tt class="docutils literal"><span class="pre">-Dsome_token=42</span></tt> having possibly been defined beforehand:</p>
+<pre class="code erlang literal-block">
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_set_to</span><span class="p">(</span><span class="n">some_token</span><span class="p">,</span><span class="mi">42</span><span class="p">,</span> <span class="nv">SomePid</span> <span class="o">!</span> <span class="n">hello</span><span class="p">)])</span>
+</pre>
 <p>As for <tt class="docutils literal">if_set_to/4</tt>, in:</p>
 <pre class="code erlang literal-block">
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_set_to</span><span class="p">(</span><span class="n">a_token</span><span class="p">,</span><span class="n">a_symbol</span><span class="p">,</span><span class="nv">FIRST_EXPR</span><span class="p">,</span><span class="nv">SECOND_EXPR</span><span class="p">)</span>
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_set_to</span><span class="p">(</span><span class="nv">TOKEN</span><span class="p">,</span> <span class="nv">VALUE</span><span class="p">,</span> <span class="nv">EXPR_IF_SET_TO_THIS_VALUE</span><span class="p">,</span> <span class="nv">EXPR_OTHERWISE</span><span class="p">)</span>
 </pre>
-<p><tt class="docutils literal">FIRST_EXPR</tt> will be injected iff <tt class="docutils literal">a_token</tt> has been defined and set to <tt class="docutils literal">a_symbol</tt>, otherwise (not set or set to a different value) <tt class="docutils literal">SECOND_EXPR</tt> will be.</p>
-<p>Finally, the <tt class="docutils literal"><span class="pre">switch_set_to/{2,3}</span></tt> primitives allow to generalise these <tt class="docutils literal">if</tt>-like constructs, with any number of code branches selected based on the build-time value of a token, possibly with defaults (should the token not be defined at all, or defined to a value that is not among the ones associated to a code branch).</p>
-<p>For that we specify a list of pairs, each made of a value and of the corresponding expression to be injected in the actual token matches that value; for example:</p>
+<p><tt class="docutils literal">EXPR_IF_SET_TO_THIS_VALUE</tt> will be injected iff <tt class="docutils literal">TOKEN</tt> has been defined and set to <tt class="docutils literal">VALUE</tt>, otherwise (not set or set to a different value) <tt class="docutils literal">EXPR_OTHERWISE</tt> will be.</p>
+<p>Example:</p>
+<pre class="code erlang literal-block">
+<span class="nv">Level</span> <span class="o">=</span> <span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_set_to</span><span class="p">(</span><span class="n">my_token</span><span class="p">,</span> <span class="n">foobar_enabled</span><span class="p">,</span> <span class="mi">1</span><span class="p">.</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">.</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">4</span><span class="p">.</span><span class="mi">5</span>
+</pre>
+<p>Finally, the <tt class="docutils literal"><span class="pre">switch_set_to/{2,3}</span></tt> primitives allow to generalise these <tt class="docutils literal">if</tt>-like constructs, with one among any number of code branches selected based on the build-time value of a token, possibly with defaults (should the token not be defined at all, or defined to a value that is not among the ones associated to a code branch).</p>
+<p>For that we specify a list of pairs, each made of a value and of the corresponding expression to be injected if the actual token matches that value, like in:</p>
+<pre class="code erlang literal-block">
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">switch_set_to</span><span class="p">(</span><span class="nv">TOKEN</span><span class="p">,</span> <span class="p">[</span>
+       <span class="p">{</span><span class="nv">VALUE_1</span><span class="p">,</span> <span class="nv">EXPR_1</span><span class="p">},</span>
+       <span class="p">{</span><span class="nv">VALUE_2</span><span class="p">,</span> <span class="nv">EXPR_2</span><span class="p">},</span>
+       <span class="c">% [...]
+</span>       <span class="p">{</span><span class="nv">VALUE_N</span><span class="p">,</span> <span class="nv">EXPR_N</span><span class="p">}])</span>
+</pre>
+<p>For example:</p>
 <pre class="code erlang literal-block">
 <span class="nn">cond_utils</span><span class="p">:</span><span class="nf">switch_set_to</span><span class="p">(</span><span class="n">my_token</span><span class="p">,</span> <span class="p">[</span>
      <span class="p">{</span><span class="n">my_first_value</span><span class="p">,</span> <span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&quot;Hello!&quot;</span><span class="p">)},</span>
-     <span class="p">{</span><span class="n">my_second_value</span><span class="p">,</span> <span class="k">begin</span> <span class="n">f</span><span class="p">(),</span> <span class="n">g</span><span class="p">(</span><span class="n">debug</span><span class="p">),</span> <span class="n">h</span><span class="p">(),</span> <span class="k">end</span><span class="p">},</span>
-     <span class="p">{</span><span class="n">some_third_value</span><span class="p">,</span> <span class="n">a</span><span class="p">()}])</span>
+     <span class="p">{</span><span class="n">my_second_value</span><span class="p">,</span> <span class="k">begin</span> <span class="n">f</span><span class="p">(),</span> <span class="n">g</span><span class="p">(</span><span class="nv">X</span><span class="p">,</span><span class="n">debug</span><span class="p">),</span> <span class="n">h</span><span class="p">()</span> <span class="k">end</span><span class="p">},</span>
+     <span class="p">{</span><span class="n">some_third_value</span><span class="p">,</span> <span class="n">a</span><span class="p">(</span><span class="nv">X</span><span class="p">,</span><span class="nv">Y</span><span class="p">)}])</span>
 </pre>
 <p>A compilation-time error will be raised if <tt class="docutils literal">my_token</tt> is not set, or if it is set to none of the declared values (i.e. not in <tt class="docutils literal">[my_first_value, my_second_value, some_third_value]</tt>).</p>
-<p>A variation of this primitive exists that applies a default token value if none was, or if the token was set to a value that is not listed among any of the ones designating a code branch.</p>
+<p>A variation of this primitive exists that applies a default token value if none was, or if the token was set to a value that is not listed among any of the ones designating a code branch, like in:</p>
+<pre class="code erlang literal-block">
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">switch_set_to</span><span class="p">(</span><span class="nv">TOKEN</span><span class="p">,</span>
+                           <span class="p">[</span> <span class="p">{</span><span class="nv">VALUE_1</span><span class="p">,</span> <span class="nv">EXPR_1</span><span class="p">},</span>
+                             <span class="p">{</span><span class="nv">VALUE_2</span><span class="p">,</span> <span class="nv">EXPR_2</span><span class="p">},</span>
+                             <span class="c">% [...]
+</span>                             <span class="p">{</span><span class="nv">VALUE_N</span><span class="p">,</span> <span class="nv">EXPR_N</span><span class="p">}],</span>
+                           <span class="nv">DEFAULT_VALUE</span><span class="p">)</span>
+</pre>
+<p>As always with primitives that define a default, alternate branch, they always inject an expression and thus can be considered as such.</p>
 <p>For example:</p>
 <pre class="code erlang literal-block">
-<span class="nv">Value</span> <span class="o">=</span> <span class="nn">cond_utils</span><span class="p">:</span><span class="nf">switch_set_to</span><span class="p">(</span><span class="n">some_token</span><span class="p">,</span>
-      <span class="p">[{</span><span class="mi">1</span><span class="p">,</span> <span class="n">foo</span> <span class="p">},</span>
-       <span class="p">{</span><span class="mi">14</span><span class="p">,</span> <span class="n">bar</span><span class="p">},</span>
-       <span class="p">{</span><span class="mi">20</span><span class="p">,</span> <span class="n">hello</span><span class="p">}],</span>
-      <span class="mi">14</span><span class="p">)</span>
+<span class="nv">ModuleFilename</span> <span class="o">=</span> <span class="nb">atom_to_list</span><span class="p">(</span> <span class="nn">cond_utils</span><span class="p">:</span><span class="nf">switch_set_to</span><span class="p">(</span><span class="n">some_token</span><span class="p">,</span>
+              <span class="p">[{</span><span class="mi">1</span><span class="p">,</span> <span class="n">foo</span><span class="p">},</span> <span class="p">{</span><span class="mi">14</span><span class="p">,</span> <span class="n">bar</span><span class="p">},</span> <span class="p">{</span><span class="mi">20</span><span class="p">,</span> <span class="n">hello</span><span class="p">}],</span> <span class="mi">14</span><span class="p">)</span> <span class="o">++</span> <span class="s">&quot;.erl&quot;</span>
 </pre>
-<p>Here, if <tt class="docutils literal">some_token</tt> is not defined, or defined to a value that is neither <tt class="docutils literal">1</tt>, <tt class="docutils literal">14</tt> or <tt class="docutils literal">20</tt>, then the <tt class="docutils literal">14</tt> default value applies, and thus <tt class="docutils literal">Value</tt> is set to <tt class="docutils literal">bar</tt>.</p>
+<p>Here, if <tt class="docutils literal">some_token</tt> is not defined, or defined to a value that is neither <tt class="docutils literal">1</tt>, <tt class="docutils literal">14</tt> or <tt class="docutils literal">20</tt>, then the <tt class="docutils literal">14</tt> default value applies, and thus <tt class="docutils literal">ModuleFilename</tt> is set to <tt class="docutils literal">&quot;bar.erl&quot;</tt>.</p>
 <p>Refer to <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/test/meta/cond_utils_test.erl">cond_utils_test.erl</a> for further usage examples.</p>
 </div>
 <div class="section" id="controlling-assertions">
 <h4><a class="toc-backref" href="#id73">Controlling assertions</a></h4>
-<p>It may be convenient that, depending on a compile-time token (ex: in debug mode, typically triggered thanks to the <tt class="docutils literal"><span class="pre">-Dmyriad_debug_mode</span></tt> compilation option), <em>assertions</em> (expressions expected to evaluate to the atom <tt class="docutils literal">true</tt>) are enabled, whereas they shall be dismissed as a whole should that token not be defined.</p>
+<p>It may be convenient that, depending on a compile-time token (ex: in debug mode, typically triggered thanks to the <tt class="docutils literal"><span class="pre">-Dmyriad_debug_mode</span></tt> compilation flag), <em>assertions</em> (expressions expected to evaluate to the atom <tt class="docutils literal">true</tt>) are enabled, whereas they shall be dismissed as a whole should that token not be defined.</p>
 <p>To define an assertion enabled in debug mode, use <tt class="docutils literal">assert/1</tt>, like in:</p>
 <pre class="code erlang literal-block">
 <span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">foo</span><span class="p">(</span><span class="nv">A</span><span class="p">,</span><span class="nv">B</span><span class="p">)</span><span class="o">=:=</span><span class="mi">10</span><span class="p">)</span>
@@ -670,15 +705,15 @@ various implementations thereof, tests and benchmarks, in:</li>
 <p>This may be useful for example to control, on a per-theme basis, the level of checking performed, like in:</p>
 <pre class="code erlang literal-block">
 <span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">debug_gui</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">basic_testing</span><span class="p">()),</span>
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">debug_gui</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">more_involved_testing</span><span class="p">()),</span>
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">debug_gui</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="n">paranoid_testing</span><span class="p">()),</span>
+  <span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">debug_gui</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">more_involved_testing</span><span class="p">()),</span>
+  <span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">debug_gui</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="n">paranoid_testing</span><span class="p">()),</span>
 </pre>
 <p>Note that, in this case, a given level of checking should include the one just below it (ex: <tt class="docutils literal">more_involved_testing()</tt> should call <tt class="docutils literal">basic_testing()</tt>).</p>
 </div>
 <div class="section" id="usage-hints">
 <h4><a class="toc-backref" href="#id74">Usage Hints</a></h4>
-<p>For tokens, at least currently they must be defined as immediate values (atoms); even using a mute variable, like for the <tt class="docutils literal">_Default=my_token</tt> expression, is not allowed.</p>
-<p>Note that, for primitives that may not inject code at all (ex: <tt class="docutils literal">if_debug/1</tt>), if their conditions are not fulfilled, the specified conditional code is dismissed as a whole, it is not even replaced for example by an <tt class="docutils literal">ok</tt> atom; this may matter if this conditional is the only expression in a case clause for example, in which case a compilation failure like &quot;<em>internal error in core; crash reason: function_clause in function v3_core:cexprs/3 called as v3_core:cexprs[...]</em>&quot; will be reported (the compiler sees unexpectedly a clause with no expression).</p>
+<p>For tokens, at least currently they must be defined as immediate values (atoms); even using a mute variable, like for the <tt class="docutils literal">_Default=my_token</tt> expression, or a variable, is not supported (at least yet).</p>
+<p>Note that, for primitives that may not inject code at all (ex: <tt class="docutils literal">if_debug/1</tt>), if their conditions are not fulfilled, the specified conditional code is dismissed as a whole, it is not even replaced for example by an <tt class="docutils literal">ok</tt> atom; this may matter if this conditional is the only expression in a case clause for example, in which case a compilation failure like &quot;<em>internal error in core; crash reason: function_clause in function v3_core:cexprs/3 called as v3_core:cexprs[...]</em>&quot; will be reported (the compiler sees unexpectedly a clause not having even a single expression).</p>
 <p>A related issue may happen when switching conditional flags: it will select/deselect in-code expressions at compile time, and may lead functions and/or variables to become unused, and thus may trigger at least warnings <a class="footnote-reference" href="#id34" id="id33">[11]</a>.</p>
 <table class="docutils footnote" frame="void" id="id34" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
@@ -686,7 +721,7 @@ various implementations thereof, tests and benchmarks, in:</li>
 <tr><td class="label"><a class="fn-backref" href="#id33">[11]</a></td><td>Warnings that we prefer promoting to errors, as they constitute a <em>very</em> convenient safety net.</td></tr>
 </tbody>
 </table>
-<p>For functions that could become unused due to the conditional setting of a token, the compiler could certainly be silenced by exporting them; yet a better approach is surely to use:</p>
+<p>For <strong>functions</strong> that could become unused due to the conditional setting of a token, the compiler could certainly be silenced by exporting them; yet a better approach is surely to use:</p>
 <pre class="code erlang literal-block">
 <span class="p">-</span><span class="ni">compile</span><span class="p">({</span><span class="n">nowarn_unused_function</span><span class="p">,</span><span class="n">my_func</span><span class="o">/</span><span class="mi">3</span><span class="p">}).</span>
 </pre>
@@ -694,7 +729,7 @@ various implementations thereof, tests and benchmarks, in:</li>
 <pre class="code erlang literal-block">
 <span class="p">-</span><span class="ni">compile</span><span class="p">({</span><span class="n">nowarn_unused_function</span><span class="p">,[</span><span class="n">my_func</span><span class="o">/</span><span class="mi">3</span><span class="p">,</span> <span class="n">my_other_func</span><span class="o">/</span><span class="mi">0</span><span class="p">]}).</span>
 </pre>
-<p>As for variables, should A, B or C be reported as unused if <tt class="docutils literal">some_token</tt> was not set, then <tt class="docutils literal">basic_utils:ignore_unused/1</tt> function (mostly a no-op) could be of use:</p>
+<p>As for <strong>variables</strong>, should A, B or C be reported as unused if <tt class="docutils literal">some_token</tt> was not set, then the <tt class="docutils literal">basic_utils:ignore_unused/1</tt> function (mostly a no-op) could be of use:</p>
 <pre class="code erlang literal-block">
 <span class="p">[...]</span>
 <span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="n">some_token</span><span class="p">,</span>
@@ -882,7 +917,7 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 </ul>
 </blockquote>
 <ul class="simple">
-<li>the <tt class="docutils literal">cond_utils</tt> services drive conditional code injection: based on the build-time tokens defined, their values can be used to perform compilation-time operations such as <strong>if</strong> (see in this module <tt class="docutils literal">if_debug/1</tt>, <tt class="docutils literal"><span class="pre">if_defined/{2,3}</span></tt>, <tt class="docutils literal"><span class="pre">if_set_to/{3,4}</span></tt>), <strong>switch</strong> (see <tt class="docutils literal"><span class="pre">switch_set_to/{2,3}</span></tt>, possibly with a default clause) or <strong>assert</strong> (<tt class="docutils literal"><span class="pre">assert/{1,2,3}</span></tt>); if useful, it should be fairly easy (infrastructure mostly ready) to transform the (currently constant) user-defined build tokens into mutable variables and to add for example compile-time assignments of these variables and loops (<strong>for</strong>, <strong>while</strong>, etc.) if not going for a Turing-complete language, if ever that made sense for some uses; see the <a class="reference internal" href="#support-for-code-injection">Support for Code Injection</a> for additional details</li>
+<li>the <tt class="docutils literal">cond_utils</tt> services drive conditional code injection: based on the build-time tokens defined, their values can be used to perform compilation-time operations such as <strong>if</strong> (see in this module <tt class="docutils literal">if_debug/1</tt>, <tt class="docutils literal"><span class="pre">if_defined/{2,3}</span></tt>, <tt class="docutils literal"><span class="pre">if_set_to/{3,4}</span></tt>), <strong>switch</strong> (see <tt class="docutils literal"><span class="pre">switch_set_to/{2,3}</span></tt>, possibly with a default clause) or <strong>assert</strong> (<tt class="docutils literal"><span class="pre">assert/{1,2,3}</span></tt>); if useful, it should be fairly easy (infrastructure mostly ready) to transform the (currently constant) user-defined build tokens into mutable variables and to add for example compile-time assignments (<tt class="docutils literal">cond_utils:create_token(TOKEN, MAYBE_INITIAL_VALUE)</tt>, <tt class="docutils literal">cond_utils:set_token_value(TOKEN, VALUE)</tt> and <tt class="docutils literal">cond_utils:remove_token(TOKEN, MAYBE_INITIAL_VALUE)</tt>) of these variables and loops (<strong>for</strong>, <strong>while</strong>, etc.) if not going for a Turing-complete language, if ever that made sense for some uses; see the <a class="reference internal" href="#support-for-code-injection">Support for Code Injection</a> for additional usage details regarding the supported primitives</li>
 </ul>
 <p>More generally, Myriad offers the support to traverse <em>any</em> AST (the whole Erlang grammar is supported, in its abstract form) and to <strong>transform</strong> it (ex: an expression being removed, transformed or replaced by other expressions), with the ability for the user to define his own type/call replacement mappings, or more general transformation functions to be triggered when specified elements are found in the AST (ex: remote calls with relevant MFA).</p>
 <p>The traversal may be done in a stateful manner, i.e. any user-defined transformation will be able to access (read/write) any state of its own in the course of the traversal.</p>
