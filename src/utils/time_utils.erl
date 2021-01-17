@@ -1570,7 +1570,7 @@ duration_to_french_string( infinity ) ->
 %
 -spec time_out_to_string( time_out(),
 						  language_utils:human_language() ) -> ustring().
-time_out_to_string( _Duration=infinity, Lang=french ) ->
+time_out_to_string( _Duration=infinity, _Lang=french ) ->
 	"délai d'attente maximal illimité";
 
 time_out_to_string( Duration, Lang=french ) ->
