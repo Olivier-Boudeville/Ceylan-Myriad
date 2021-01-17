@@ -170,6 +170,10 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ]; do
 
 	if [ "$1" = "-c" ]; then
 		shift
+		if [ -z "$1" ]; then
+			echo "  Error, no cookie specified after -c." 1>&2
+			exit 12
+		fi
 		#echo "  + specified cookie: $cookie"
 		cookie="$1"
 		token_eaten=0
@@ -177,12 +181,20 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ]; do
 
 	if [ "$1" = "--sn" ]; then
 		shift
+		if [ -z "$1" ]; then
+			echo "  Error, no short name specified after --sn." 1>&2
+			exit 12
+		fi
 		short_name="$1"
 		token_eaten=0
 	fi
 
 	if [ "$1" = "--ln" ]; then
 		shift
+		if [ -z "$1" ]; then
+			echo "  Error, no long name specified after --ln." 1>&2
+			exit 12
+		fi
 		long_name="$1"
 		token_eaten=0
 	fi
@@ -196,6 +208,14 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ]; do
 	if [ "$1" = "--tcp-range" ]; then
 		shift
 		use_tcp_range=0
+		if [ -z "$1" ]; then
+			echo "  Error, no lower bound for TCP range after --tcp-range." 1>&2
+			exit 12
+		fi
+		if [ -z "$2" ]; then
+			echo "  Error, no higher bound for TCP range after --tcp-range." 1>&2
+			exit 12
+		fi
 		lower_tcp_port="$1"
 		higher_tcp_port="$2"
 		shift
@@ -207,13 +227,17 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ]; do
 	if [ "$1" = "--epmd-port" ]; then
 
 		shift
+		if [ -z "$1" ]; then
+			echo "  Error, no EPMD port specified after --epmd-port." 1>&2
+			exit 12
+		fi
 		epmd_port="$1"
 		# This is apparently the way to notify a VM of the EPMD port, and
 		# appending the epmd_port_opt before the command apparently will not
 		# work ('ERL_EPMD_PORT=4269: not found'), thus exporting it instead:
 		#epmd_port_opt="ERL_EPMD_PORT=$epmd_port"
 		#echo "Setting EPMD port to $epmd_port"
-		export ERL_EPMD_PORT=$epmd_port
+		export ERL_EPMD_PORT="${epmd_port}"
 
 		# This works both ways (to tell EPMD where to be launched, to tell erl
 		# where to find EPMD).
@@ -223,6 +247,10 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ]; do
 
 	if [ "$1" = "--fqdn" ]; then
 		shift
+		if [ -z "$1" ]; then
+			echo "  Error, no FQDN specified after --fqdn." 1>&2
+			exit 12
+		fi
 		fqdn="$1"
 		token_eaten=0
 	fi
@@ -230,6 +258,10 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ]; do
 
 	if [ "$1" = "--max-process-count" ]; then
 		shift
+		if [ -z "$1" ]; then
+			echo "  Error, no count specified after --max-process-count." 1>&2
+			exit 12
+		fi
 		max_process_count="$1"
 		token_eaten=0
 	fi
@@ -237,6 +269,10 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ]; do
 
 	if [ "$1" = "--busy-limit" ]; then
 		shift
+		if [ -z "$1" ]; then
+			echo "  Error, no busy limit specified after --busy-limit." 1>&2
+			exit 12
+		fi
 		busy_limit="$1"
 		token_eaten=0
 	fi
@@ -244,6 +280,10 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ]; do
 
 	if [ "$1" = "--async-thread-count" ]; then
 		shift
+		if [ -z "$1" ]; then
+			echo "  Error, no count specified after --async-thread-count." 1>&2
+			exit 12
+		fi
 		asynch_thread_count="$1"
 		token_eaten=0
 	fi
@@ -278,6 +318,10 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ]; do
 
 	if [ "$1" = "--log-dir" ]; then
 		shift
+		if [ -z "$1" ]; then
+			echo "  Error, no directory specified after --log-dir." 1>&2
+			exit 12
+		fi
 		log_dir="$1"
 		if [ ! -d "${log_dir}" ]; then
 			echo "Creating specified yet non-existing log directory '${log_dir}'."
@@ -298,6 +342,11 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ]; do
 		shift
 		# We can use -s instead, which would allow to send multiple commands
 		# in a row.
+
+		if [ -z "$1" ]; then
+			echo "  Error, no expression specified after --eval." 1>&2
+			exit 12
+		fi
 
 		# Yes, these two versions (to_eval/to_eval_run_erl) *are* needed:
 
