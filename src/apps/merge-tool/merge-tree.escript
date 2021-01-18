@@ -8,7 +8,7 @@
 % Commented out: -pa ../utils
 
 
-% Copyright (C) 2016-2019 Olivier Boudeville
+% Copyright (C) 2016-2021 Olivier Boudeville
 % [olivier (dot) boudeville (at) esperide (dot) com]
 
 
