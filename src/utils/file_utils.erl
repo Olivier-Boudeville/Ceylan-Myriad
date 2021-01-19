@@ -917,7 +917,7 @@ list_dir_elements( Dirname ) ->
 
 
 % Returns the size, in bytes, of the specified file entry.
--spec get_size( file_name() ) -> system_utils:byte_size().
+-spec get_size( any_file_name() ) -> system_utils:byte_size().
 get_size( Filename ) ->
 
 	case file:read_file_info( Filename ) of
@@ -939,7 +939,7 @@ get_size( Filename ) ->
 % Said time will be expressed as an integer number of seconds since (or before)
 % Unix time epoch, which is 1970-01-01 00:00 UTC.
 %
--spec get_last_modification_time(  any_path() ) -> time_utils:posix_seconds().
+-spec get_last_modification_time( any_path() ) -> time_utils:posix_seconds().
 get_last_modification_time( Filename ) ->
 
 	case file:read_file_info( Filename, [ { time, posix } ] ) of
