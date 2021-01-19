@@ -97,6 +97,7 @@
 
 
 % Shorthands:
+
 -type count() :: basic_utils:count().
 -type positive_index() :: basic_utils:positive_index().
 
