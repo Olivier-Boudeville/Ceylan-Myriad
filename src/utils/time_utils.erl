@@ -1446,7 +1446,10 @@ duration_to_string( Milliseconds ) when is_integer( Milliseconds )->
 	end;
 
 duration_to_string( infinity ) ->
-	"infinity".
+	"infinity";
+
+duration_to_string( Other ) ->
+	throw( { invalid_duration, Other } ).
 
 
 
