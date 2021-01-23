@@ -3307,7 +3307,7 @@ close( File, _FailureMode=throw_if_failed ) ->
 			ok;
 
 		{ error, Reason } ->
-			throw( { file_closing_failed, Reason } )
+			throw( { file_closing_failed, Reason, File } )
 
 	end;
 
