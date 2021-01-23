@@ -204,7 +204,9 @@ It will trigger ``rebar3``, resulting [#]_ in a full, OTP-compliant build tree c
 Testing Ceylan-Myriad
 .....................
 
-As a result, the OTP application support can be tested from the root of an (already-built, with ``make rebar3-application``) Myriad source tree::
+As a result, the OTP application support can be tested from the root of an (already-built, with ``make rebar3-application``) Myriad source tree:
+
+.. code:: bash
 
  $ cd src/utils
  $ make myriad_otp_application_run
@@ -228,7 +230,9 @@ As a result, the OTP application support can be tested from the root of an (alre
  (test finished, interpreter halted)
 
 
-This support can be also tested manually, directly through the build tree used by rebar3; from the root of Myriad, after having run ``make rebar3-application``::
+This support can be also tested manually, directly through the build tree used by rebar3; from the root of Myriad, after having run ``make rebar3-application``:
+
+.. code:: bash
 
  $ erl -pz _build/default/lib/myriad/ebin/
  Erlang/OTP 22 [erts-10.4] [source] [64-bit] [smp:8:8] [...]
