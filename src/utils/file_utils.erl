@@ -56,7 +56,7 @@
 		  is_existing_file/1, is_existing_link/1,
 		  is_existing_file_or_link/1,
 		  is_owner_readable/1, is_owner_writable/1, is_owner_executable/1,
-		  is_user_readable/1, is_user_writable/1,
+		  is_user_readable/1, is_user_writable/1, is_user_executable/1,
 
 		  is_directory/1, is_existing_directory/1,
 		  is_existing_directory_or_link/1,
@@ -875,6 +875,8 @@ is_owner_writable( EntryPath ) ->
 %
 % Returns true or false, and cannot trigger an exception.
 %
+% See also: is_owner_writable/1.
+%
 -spec is_owner_executable( any_path() ) -> boolean().
 is_owner_executable( EntryPath ) ->
 
@@ -962,6 +964,20 @@ is_user_writable( EntryPath ) ->
 
 	end.
 
+
+
+% Returns whether the specified entry exists and is executable for the current
+% user (can be either a regular file or a symbolic link).
+%
+% Returns true or false, and cannot trigger an exception.
+%
+% See also: is_owner_executable/1.
+%
+-spec is_user_executable( any_path() ) -> boolean().
+is_user_executable( EntryPath ) ->
+
+	% WARNING: not properly implemented yet.
+	is_owner_executable( EntryPath ).
 
 
 % Returns whether the specified entry, supposedly existing, is a directory.
