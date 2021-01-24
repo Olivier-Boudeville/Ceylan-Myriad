@@ -897,13 +897,13 @@ get_line_helper_script() ->
 
 		true ->
 
-			case file_utils:is_executable( GetLineScript ) of
+			case file_utils:is_user_executable( GetLineScript ) of
 
 				true ->
 					GetLineScript;
 
 				false ->
-					throw( { script_not_executable, GetLineScript } )
+					throw( { script_not_user_executable, GetLineScript } )
 
 			end;
 

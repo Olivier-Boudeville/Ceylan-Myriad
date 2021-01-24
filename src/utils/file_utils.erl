@@ -55,7 +55,10 @@
 		  is_file/1,
 		  is_existing_file/1, is_existing_link/1,
 		  is_existing_file_or_link/1,
-		  is_executable/1, is_directory/1, is_existing_directory/1,
+		  is_owner_readable/1, is_owner_writable/1, is_owner_executable/1,
+		  is_user_readable/1, is_user_writable/1,
+
+		  is_directory/1, is_existing_directory/1,
 		  is_existing_directory_or_link/1,
 		  list_dir_elements/1,
 
@@ -772,15 +775,110 @@ is_existing_file_or_link( EntryName ) ->
 
 
 
-% Returns whether the specified entry exists and is executable for its current
-% owner (can be either a regular file or a symbolic link).
+% Returns whether the specified entry exists and is readable for its current
+% owner (can be either a regular file or a symbolic link) - not telling anything
+% about whether the current user can read it.
 %
 % Returns true or false, and cannot trigger an exception.
 %
--spec is_executable( any_path() ) -> boolean().
-is_executable( ExecutableName ) ->
+% See also: is_user_readable/1.
+%
+-spec is_owner_readable( any_path() ) -> boolean().
+is_owner_readable( EntryPath ) ->
 
-	case file:read_file_info( ExecutableName ) of
+	case file:read_file_info( EntryPath ) of
+
+		{ ok, FileInfo } ->
+
+			#file_info{ type=FileType, mode=Mode } = FileInfo,
+
+			case FileType of
+
+				regular ->
+
+					OwnerReadMask = to_permission_mask( owner_read ),
+					case Mode band OwnerReadMask of
+
+						0 ->
+							% Not readable:
+							false;
+
+						_ ->
+							% One positive case:
+							true
+
+					end;
+
+				_ ->
+
+					false
+
+			end;
+
+		_ ->
+			false
+
+	end.
+
+
+
+% Returns whether the specified entry exists and is writable for its current
+% owner (can be either a regular file or a symbolic link) - not telling anything
+% about whether the current user can write it.
+%
+% Returns true or false, and cannot trigger an exception.
+%
+% See also: is_user_writable/1.
+%
+-spec is_owner_writable( any_path() ) -> boolean().
+is_owner_writable( EntryPath ) ->
+
+	case file:read_file_info( EntryPath ) of
+
+		{ ok, FileInfo } ->
+
+			#file_info{ type=FileType, mode=Mode } = FileInfo,
+
+			case FileType of
+
+				regular ->
+
+					OwnerWriteMask = to_permission_mask( owner_write ),
+					case Mode band OwnerWriteMask of
+
+						0 ->
+							% Not writable:
+							false;
+
+						_ ->
+							% One positive case:
+							true
+
+					end;
+
+				_ ->
+
+					false
+
+			end;
+
+		_ ->
+			false
+
+	end.
+
+
+
+% Returns whether the specified entry exists and is executable for its current
+% owner (can be either a regular file or a symbolic link) - not telling anything
+% about whether the current user can execute it.
+%
+% Returns true or false, and cannot trigger an exception.
+%
+-spec is_owner_executable( any_path() ) -> boolean().
+is_owner_executable( EntryPath ) ->
+
+	case file:read_file_info( EntryPath ) of
 
 		{ ok, FileInfo } ->
 
@@ -810,6 +908,56 @@ is_executable( ExecutableName ) ->
 			end;
 
 		_ ->
+			false
+
+	end.
+
+
+
+% Returns whether the specified entry exists and is readable for the current
+% user (can be either a regular file or a symbolic link).
+%
+% Returns true or false, and cannot trigger an exception.
+%
+-spec is_user_readable( any_path() ) -> boolean().
+is_user_readable( EntryPath ) ->
+
+	% Rather than using file:read_file_info/1 and having to try to fetch and
+	% filter user/group information, it is easier, maybe more efficient and
+	% reliable to try to open it for reading:
+
+	case file:open( _File=EntryPath, _Mode=[ read ] ) of
+
+		{ ok, File } ->
+			file:close( File ),
+			true;
+
+		{ error, _Reason } ->
+			false
+
+	end.
+
+
+
+% Returns whether the specified entry exists and is writable for the current
+% user (can be either a regular file or a symbolic link).
+%
+% Returns true or false, and cannot trigger an exception.
+%
+-spec is_user_writable( any_path() ) -> boolean().
+is_user_writable( EntryPath ) ->
+
+	% Rather than using file:read_file_info/1 and having to try to fetch and
+	% filter user/group information, it is easier, maybe more efficient and
+	% reliable to try to open it for writing:
+
+	case file:open( _File=EntryPath, _Mode=[ write ] ) of
+
+		{ ok, File } ->
+			file:close( File ),
+			true;
+
+		{ error, _Reason } ->
 			false
 
 	end.

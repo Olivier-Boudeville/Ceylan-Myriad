@@ -210,11 +210,11 @@ run() ->
 	%
 	%LsPath = "/bin/ls" = executable_utils:find_executable( "ls" ),
 	LsPath = executable_utils:find_executable( "ls" ),
-	true = file_utils:is_executable( LsPath ),
+	true = file_utils:is_owner_executable( LsPath ),
 
 	NonExistingPath = "ls-non-existing-exec",
 	false = executable_utils:lookup_executable( NonExistingPath ),
-	false = file_utils:is_executable( NonExistingPath ),
+	false = file_utils:is_owner_executable( NonExistingPath ),
 
 
 	test_facilities:display( "Testing compression support." ),
