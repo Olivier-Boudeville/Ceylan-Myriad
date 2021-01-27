@@ -725,14 +725,19 @@ fi
 
 
 
+# Impacts the heuristics used by the shell but also by some output functions
+# (such as io:format("~ts", ...):
+#
+language_opt="+pc unicode"
+
+
 # Note: the EPMD port cannot be set that way, apparently. It can be set thanks
 # to an export, though (see ERL_EPMD_PORT above).
 #
-#command="$epmd_port_opt ${command} ${background_opt} ${non_interactive_opt} ${verbatim_opt}"
-
+#command="${epmd_port_opt} ${command} ${background_opt} ${language_opt} ${non_interactive_opt} ${verbatim_opt}"
 
 # We removed '--launch-erl-pid=${shell_pid}', not used anymore:
-command="${command} ${background_opt} ${non_interactive_opt} ${verbatim_opt}"
+command="${command} ${background_opt} ${language_opt} ${non_interactive_opt} ${verbatim_opt}"
 
 
 if [ $use_run_erl -eq 0 ]; then
