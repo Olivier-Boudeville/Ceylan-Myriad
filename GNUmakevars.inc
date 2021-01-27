@@ -121,7 +121,7 @@ endif
 
 # Topics covered by flags:
 #  - code_path: how the VM code path is managed
-# - otp_integration: how OTP conventions (notably regarding applications) are
+#  - otp_integration: how OTP conventions (notably regarding applications) are
 #	 handled
 #  - web_exchanges: http/https exchanges
 #
@@ -764,6 +764,7 @@ WARNING_LEVEL := 2
 ERLANG_COMPILER_OPT_DEBUG := +debug_info
 
 
+
 # The number of available cores on this computer:
 #
 # (set it to 1 in order to restore a sequential build)
@@ -777,7 +778,9 @@ ERLANG_INTERPRETER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which erl 2>/dev/n
 # Not using '-smp auto' anymore, as the SMP mode is needed even with a single
 # core if GUI (WxWindows) is to be used:
 #
-ERLANG_INTERPRETER_OPT_DEBUG = -init_debug -smp
+# (currently not used)
+#
+#ERLANG_INTERPRETER_OPT_DEBUG = -init_debug -smp
 
 
 # Force your FQDN, if ever relevant in your setting:
@@ -1092,6 +1095,10 @@ JAVA := $$(which java)
 
 
 # Runtime settings.
+
+# Note that some runtime-related (interpreter/VM) defines are unused as we rely
+# on the src/scripts/launch-erl.sh script instead (refer
+# to the ERL_PARAMETERIZED_LAUNCHER variable).
 
 
 # +v (verbose) option removed, as only active if the interpreter has been
