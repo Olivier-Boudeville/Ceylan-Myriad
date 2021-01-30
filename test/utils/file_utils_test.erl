@@ -277,15 +277,26 @@ run() ->
 		  file_utils:get_group_of( InfoPath ),
 		  file_utils:get_permissions_of( InfoPath ) ] ),
 
+	TargetPath = "/foo",
+
 	% Shall fail with eacces:
 	Caught = try
 
-		file_utils:open( "/foo", _Opts=[ write ] ),
+		F = file_utils:open( TargetPath, _Opts=[ write ] ),
+
+		test_facilities:display( "Unexpectedly able to open '~s' (as '~s').",
+			[ TargetPath, system_utils:get_user_name_safe() ] ),
+
+		file_utils:write( F, "I should not be able to write there." ),
+
+		file_utils:close( F ),
+
 		false
 
 	catch _:E ->
-		test_facilities:display( "Error intercepted as expected:~n ~p.",
-								 [ E ] ),
+
+		test_facilities:display( "Error intercepted as expected when writing "
+								 "'~s':~n ~p.", [ TargetPath, E ] ),
 		true
 
 	end,
