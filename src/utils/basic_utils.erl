@@ -92,7 +92,7 @@
 %
 % Nevertheless, should, for any reason, a value of the void/0 type have to be
 % specified, the 'void' atom shall be preferred, knowing that any value can be
-% returned and comply with this type.
+% returned and complies with this type.
 %
 % Opaque types currently not always well managed by the Erlang standard
 % toolchain:
@@ -167,15 +167,15 @@
 -type wildcardable( T ) :: T | 'any'.
 
 
-% Return for operations that may fail (with a sufficient likelyhood that no
+% Return type for operations that may fail (with a sufficient likelihood that no
 % exception is to be raised then):
 %
 -type fallible( T ) :: { 'ok', T } | error_term().
 
 
-% To denote that a piece of data comes from the program boundaries (interfaces)
-% and thus may or may not be of the expected type (as long as it has not been
-% checked):
+% To denote that a piece of data comes from the program boundaries (interfaces
+% with the outside word, possibly in link with the user) and thus may or may not
+% be of the expected type (as long as it has not been checked):
 %
 % (opaque, unspecified type - yet not declared as 'opaque' to avoid a
 % compilation warning telling it is "underspecified and therefore meaningless").
@@ -183,7 +183,7 @@
 -type external_data() :: term().
 
 
-% Designates data whose type and value has not been checked yet.
+% Designates data whose type and value have not been checked yet.
 -type unchecked_data() :: term().
 
 
@@ -200,7 +200,7 @@
 
 -type version_number() :: non_neg_integer().
 
-% By default we consider a version is a triplet of numbers:
+% By default we consider that a version is a triplet of integer numbers:
 -type version() :: { version_number(), version_number(), version_number() }.
 
 
@@ -221,6 +221,7 @@
 -type argument() :: any().
 
 -type arguments() :: [ argument() ].
+
 
 
 % Shorthand for Module, Function, Arity:
@@ -272,8 +273,8 @@
 -type status_code() :: 0..255. % i.e. byte()
 
 
-% Useful as a temporary type placeholder, during development (easy to grep
-% afterwards):
+% Useful as a temporary type placeholder, during development (easy to grep and
+% eliminate afterwards):
 %
 -type fixme() :: any().
 
@@ -312,10 +313,11 @@
 -type ustring() :: text_utils:ustring().
 
 
+
 % Creates a tuple of specified size, all elements having the same, specified,
 % value.
 %
--spec create_uniform_tuple( Size::count(), Value::any() ) -> tuple().
+-spec create_uniform_tuple( Size :: count(), Value :: any() ) -> tuple().
 create_uniform_tuple( Size, Value ) ->
 
 	List = lists:duplicate( Size, Value ),
@@ -707,7 +709,7 @@ wait_for_acks( WaitedSenders, MaxDurationInSeconds, Period,
 
 % (helper)
 wait_for_acks_helper( _WaitedSenders=[], _InitialTimestamp,
-			  _MaxDurationInSeconds, _Period, _AckReceiveAtom, _ThrowAtom ) ->
+			_MaxDurationInSeconds, _Period, _AckReceiveAtom, _ThrowAtom ) ->
 	ok;
 
 wait_for_acks_helper( WaitedSenders, InitialTimestamp, MaxDurationInSeconds,
@@ -1452,7 +1454,7 @@ get_process_size( Pid ) ->
 % - generally not to be used, when relying on a good design
 %
 -spec is_alive( pid() | ustring() | naming_utils:registration_name() ) ->
-		  boolean().
+			boolean().
 is_alive( TargetPid ) when is_pid( TargetPid ) ->
 	is_alive( TargetPid, node( TargetPid ) );
 
