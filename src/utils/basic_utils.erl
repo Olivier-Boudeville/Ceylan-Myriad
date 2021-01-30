@@ -57,7 +57,7 @@
 		  get_process_specific_value/0, get_process_specific_value/1,
 		  get_process_specific_value/2,
 		  get_process_size/1,
-		  is_alive/1, is_alive/2,
+		  is_alive/1, is_alive/2, is_alive/3,
 		  is_debug_mode_enabled/0, get_execution_target/0,
 		  describe_term/1,
 		  create_uniform_tuple/2,
@@ -1443,13 +1443,13 @@ get_process_size( Pid ) ->
 
 
 % Tells whether the specified process, designated by its PID, by a textual
-% representation of it (like "<9092.61.0>") or by a registred name (local
-% otherwise global) like 'foobar_service') was still existing at the moment of
+% representation of it (like "<9092.61.0>") or by a registered name (local
+% otherwise global) like 'foobar_service' is still existing at the moment of
 % this call.
 %
 % Note:
 % - the process may run on the local node or not
-% - generally not to be used when relying on a good design
+% - generally not to be used, when relying on a good design
 %
 -spec is_alive( pid() | ustring() | naming_utils:registration_name() ) ->
 		  boolean().
@@ -1475,8 +1475,21 @@ is_alive( TargetPidName ) when is_atom( TargetPidName ) ->
 % should be preferred.
 %
 -spec is_alive( pid(), net_utils:atom_node_name() ) -> boolean().
-is_alive( TargetPid, Node ) when is_pid( TargetPid ) ->
+is_alive( TargetPid, Node )  ->
+	is_alive( TargetPid, Node, _Verbose=true ).
 
+
+% Tells whether the specified process (designated by its PID) supposed to run on
+% specified node (specified as an atom) was still existing at the moment of this
+% call.
+%
+% May emit trace warnings if told to be verbose.
+%
+% Note: generally not to be used when relying on a good design; and is_alive/1
+% should be preferred.
+%
+-spec is_alive( pid(), net_utils:atom_node_name(), boolean() ) -> boolean().
+is_alive( TargetPid, Node, Verbose ) when is_pid( TargetPid ) ->
 	% erlang:is_process_alive/1 is more intended for debugging purposes...
 
 	case node() of
@@ -1488,8 +1501,30 @@ is_alive( TargetPid, Node ) when is_pid( TargetPid ) ->
 		_OtherNode ->
 			%trace_utils:debug_fmt( "Testing liveliness of process ~p "
 			%  "on node ~p.", [ TargetPid, Node ] ),
-			rpc:call( Node, _Mod=erlang, _Fun=is_process_alive,
-					  _Args=[ TargetPid ] )
+			case rpc:call( Node, _Mod=erlang, _Fun=is_process_alive,
+					  _Args=[ TargetPid ] ) of
+
+				Res when is_boolean( Res ) ->
+					Res;
+
+				{ badrpc, nodedown } ->
+					case Verbose of
+
+						true ->
+							trace_utils:warning_fmt( "Reporting that process "
+								"of PID ~w is not alive as its node ('~s') "
+								"is reported as down.", [ TargetPid, Node ] );
+
+						false ->
+							ok
+
+					end,
+					false;
+
+				Other ->
+					throw( { unexpected_liveliness_report, Other } )
+
+			end
 
 	end.
 
