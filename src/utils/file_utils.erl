@@ -3321,7 +3321,7 @@ open( Filename, Options ) ->
 % 8859 being written).
 %
 -spec open( any_file_name(), [ file_open_mode() ],
-		   'try_once' | 'try_endlessly' | 'try_endlessly_safer' ) -> file().
+			'try_once' | 'try_endlessly' | 'try_endlessly_safer' ) -> file().
 open( Filename, Options, _AttemptMode=try_endlessly_safer ) ->
 
 	%trace_utils:debug_fmt( "Opening '~s' endlessly yet safe, with options ~w.",

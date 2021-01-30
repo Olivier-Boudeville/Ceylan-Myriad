@@ -261,8 +261,8 @@ run() ->
 	case UnxzContent =:= OriginalContent of
 
 		true ->
-			test_facilities:display( "Original file and unxz-ed one "
-									 "(~s) match.", [ UnxzFile ] );
+			test_facilities:display(
+			  "Original file and unxz-ed one (~s) match.", [ UnxzFile ] );
 
 		false ->
 			throw( unxz_content_differs )
@@ -306,7 +306,7 @@ run() ->
 
 	catch _:E ->
 
-		test_facilities:display( "Error intercepted as expected when writing "
+		test_facilities:display( "Error intercepted as expected, when writing "
 								 "'~s':~n ~p.", [ TargetPath, E ] ),
 		true
 
