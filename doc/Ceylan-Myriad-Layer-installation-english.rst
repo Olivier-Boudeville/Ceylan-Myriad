@@ -115,6 +115,34 @@ Finally, to trigger in one go a full rebuild, testing and type-checking, one may
 
 
 
+Maintaining Myriad and Deriving Projects with regard to rebar3
+==============================================================
+
+For Myriad as for all developments built on top of it (ex: specialisation layers or applications), any dependency may be specified in their ``rebar.config`` [#]_ through a branch of a GIT repository corresponding to that dependency.
+
+.. [#] For example, with the conventions we rely on, ``rebar.config`` is generated from the ``conf/rebar.config.template`` file of the project of interest.
+
+For example, Myriad itself does not require any specific dependency, but projects making use of Myriad (ex: `WOOPER <https://wooper.esperide.org>`_) may specify in their ``rebar.config``:
+
+.. code:: erlang
+
+  {deps, [{myriad, {git, "git://github.com/Olivier-Boudeville/Ceylan-Myriad",
+										{branch, "master"}}}]}.
+
+However, when having to build a dependency, rebar3 will not refer to the tip of the branch specified for it, but to any commit it may read from any pre-existing ``rebar.lock`` file at the root of the current project (the underlying goal being to allow for more reproducible builds).
+
+As the `rebar3 recommandation <https://www.rebar3.org/docs/workflow/#setting-up-dependencies>`_ is to store a version of that lock file in source version control, **it shall be regularly updated** otherwise the dependencies of a given project will stick, for the worst, to an older version of their branch, designated by an obsolete reference (this can be detected for example when continuous integration breaks after a nevertheless legit commit of the project).
+
+The solution is thus, for a project of interest, to regularly force an update of its dependencies referenced in its own lock file, and to commit the resulting version.
+
+For example, one would issue from the root of the project of interest:
+
+.. code:: bash
+
+ $ rebar3 upgrade
+
+This may update the ``ref`` entry of its dependencies (including Myriad) in its ``rebar.lock`` file, which shall then be committed for posterity.
+
 
 :raw-html:`<a name="otp"></a>`
 
