@@ -279,19 +279,30 @@ run() ->
 
 	TargetPath = "/foo",
 
-	% Shall fail with eacces:
+	% Shall fail with eacces (of not root of course):
 	Caught = try
 
 		F = file_utils:open( TargetPath, _Opts=[ write ] ),
 
+		UserName = system_utils:get_user_name_safe(),
+
 		test_facilities:display( "Unexpectedly able to open '~s' (as '~s').",
-			[ TargetPath, system_utils:get_user_name_safe() ] ),
+			[ TargetPath, UserName ] ),
 
 		file_utils:write( F, "I should not be able to write there." ),
 
 		file_utils:close( F ),
 
-		false
+		case UserName of
+
+			% This happens with Github CI:
+			"root" ->
+				true;
+
+			_ ->
+				false
+
+		end
 
 	catch _:E ->
 
