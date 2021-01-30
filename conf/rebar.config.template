@@ -36,6 +36,10 @@
 % - https://learnyousomeerlang.com/release-is-the-word
 
 
+% We try to stick close to the latest stable OTP version:
+{minimum_otp_vsn, "23.2"}.
+
+
 % Settings for the 'default' profile follow.
 
 
