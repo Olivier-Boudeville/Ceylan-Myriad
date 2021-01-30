@@ -114,9 +114,13 @@ info-web:
 	@echo "GITHUB_PAGES_BASE = $(GITHUB_PAGES_BASE)"
 
 
-# As a side-effect, early checking that the 'dot' tool will be available:
-test: uml-diagram-test
-
+# As a side-effect, early checking that the 'dot' tool will be available.
+#
+# Finally disabled, as continuous integration does not have such tools by
+# default.
+#
+#test: uml-diagram-test
+test:
 
 uml-diagram-test:
 	@$(MAKE) uml_class_diagram_example.png
