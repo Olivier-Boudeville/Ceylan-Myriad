@@ -42,7 +42,21 @@
 	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $@ $<
 
 
+
 # Standard general rules:
+
+
+%_test.beam: %_test.erl %_test.hrl
+	@echo "		Compiling test module with header $<"
+	@#echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) $(ERLANG_COMPILER_OPT_FOR_TESTS) -o $@ $<
+	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) $(ERLANG_COMPILER_OPT_FOR_TESTS) -o $@ $<
+
+
+%_test.beam: %_test.erl
+	@echo "		Compiling test module $<"
+	@#echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) $(ERLANG_COMPILER_OPT_FOR_TESTS) -o $@ $<
+	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) $(ERLANG_COMPILER_OPT_FOR_TESTS) -o $@ $<
+
 
 
 %.beam: %.erl %.hrl

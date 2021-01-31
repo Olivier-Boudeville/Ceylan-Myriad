@@ -70,7 +70,7 @@ all: all-pre-hook all-parse-transforms rebar3-make-include-links
 
 # Also deactivated, as any dependency in _build would then be lost, whereas we
 # might use on our native build system while still relying on them (ex: for
-# LEEC): -@/bin/rm -rf $(REBAR_BUILD_ROOT)
+# LEEC): -@/bin/rm -rf $(MYRIAD_REBAR_BUILD_ROOT)
 #
 # (thus use the rebar3-real-clean target instead, if wanting to remove
 #  _build-like directories)
@@ -576,10 +576,10 @@ rebar3-update:
 # that rebar3 would not try to recompile modules by itself)
 #
 rebar3-compile:
-	@echo "  Preparing $(PROJECT_NAME) for a rebar3-compliant build (in $(REBAR_BUILD_DIR))"
+	@echo "  Preparing $(PROJECT_NAME) for a rebar3-compliant build (in $(MYRIAD_REBAR_BUILD_DIR))"
 	@$(MAKE) -s set-rebar-conf rebar3-clean rebar3-create-tree \
 	rebar3-populate-build-tree rebar3-create-app-file all rebar3-copy-beams \
-	REBAR_PROFILE=$(REBAR_PROFILE) REBAR_BUILD_DIR=$(REBAR_BUILD_DIR)
+	MYRIAD_REBAR_PROFILE=$(MYRIAD_REBAR_PROFILE) MYRIAD_REBAR_BUILD_DIR=$(MYRIAD_REBAR_BUILD_DIR)
 
 
 # See for more information:
@@ -597,9 +597,9 @@ rebar3-compile:
 # See https://www.rebar3.org/discuss/5d1c82951e0cbe00121f12db for more details.
 #
 rebar3-create-tree:
-	@echo "  Creating rebar3 build tree in $(REBAR_BUILD_DIR)"
-	@mkdir -p $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/{priv/examples,include,doc,test,ebin}
-	@cd $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ && ln -sf ../../../../src
+	@echo "  Creating rebar3 build tree in $(MYRIAD_REBAR_BUILD_DIR)"
+	@mkdir -p $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_REBAR)/{priv/examples,include,doc,test,ebin}
+	@cd $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_REBAR)/ && ln -sf ../../../../src
 
 
 # Currently, 'priv' is not specifically populated, and all header files
@@ -624,12 +624,12 @@ rebar3-create-tree:
 #
 rebar3-populate-build-tree:
 	@echo "  Copying sources in rebar3 build tree"
-	@true "Using a src symlink, hence disabled: find src -name '*.erl' -a ! -name '*_test.erl' -a ! -name sql_support.erl -a ! -name hdf5_support.erl -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/src/ ';'"
+	@true "Using a src symlink, hence disabled: find src -name '*.erl' -a ! -name '*_test.erl' -a ! -name sql_support.erl -a ! -name hdf5_support.erl -exec /bin/cp '{}' $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_REBAR)/src/ ';'"
 	@# As tests may be in a separate 'tests' directory for example, and we do not want to select the content of _build once copied, in order to be idempotent:
-	@find src tests -name '*_test.erl' -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/test/ ';' 1>/dev/null 2>&1 | true
-	@find src -name '*.hrl' -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/include/ ';'
-	@find examples -name '*rl' -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/priv/examples ';' 1>/dev/null 2>&1 | true
-	@/bin/cp LICENSE README.md $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/doc
+	@find src tests -name '*_test.erl' -exec /bin/cp '{}' $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_REBAR)/test/ ';' 1>/dev/null 2>&1 | true
+	@find src -name '*.hrl' -exec /bin/cp '{}' $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_REBAR)/include/ ';'
+	@find examples -name '*rl' -exec /bin/cp '{}' $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_REBAR)/priv/examples ';' 1>/dev/null 2>&1 | true
+	@/bin/cp LICENSE README.md $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_REBAR)/doc
 
 
 # We generate a .app file and place it both in the OTP build tree (by default:
@@ -641,7 +641,7 @@ rebar3-populate-build-tree:
 # newlines with commas, and removes the last one.
 #
 # Not specifically removing source files, each .app.src does that thanks its
-# 'exclude_files' entry, with MODULES_FOR_REBAR3:
+# 'exclude_files' entry, with MODULES_FOR_REBAR:
 #
 # -a ! -name sql_support.erl -a ! -name hdf5_support.erl
 #
@@ -660,36 +660,36 @@ rebar3-populate-build-tree:
 # ./src/FOOBAR.app.src -> ../ebin/FOOBAR.app
 #
 rebar3-create-app-file:
-	@echo "  Generating rebar3 $(REBAR3_PROJECT_NAME).app file"
+	@echo "  Generating rebar3 $(PROJECT_NAME_FOR_REBAR).app file"
 	@# This target may be called for hex for example:
-	@mkdir -p $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ebin $(LAYER_TOP)/ebin
-	@all_modules=$$(find src -name '*.erl' -a ! -name '*_test.erl' $(REBAR3_FIND_SRC_OPT) -exec echo '{}' ';' | sed 's|.*/||1' | sed 's|.erl$$||1' | sort | tr '\n' ','| sed 's|,|, |g' | sed 's|, $$||1' ) ; cat conf/$(REBAR3_PROJECT_NAME).app.src | sed "s|VERSION_FOR_REBAR3|$(VERSION_FOR_REBAR3)|1" | sed "s|MODULES_FOR_REBAR3|$$all_modules|1" > $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ebin/$(REBAR3_PROJECT_NAME).app
-	@/bin/cp -f $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ebin/$(REBAR3_PROJECT_NAME).app $(LAYER_TOP)/ebin/
-	@cd $(LAYER_TOP)/src ; ln -sf ../ebin/$(REBAR3_PROJECT_NAME).app $(REBAR3_PROJECT_NAME).app.src
+	@mkdir -p $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_REBAR)/ebin $(LAYER_TOP)/ebin
+	@all_modules=$$(find src -name '*.erl' -a ! -name '*_test.erl' $(MYRIAD_REBAR_FIND_SRC_OPT) -exec echo '{}' ';' | sed 's|.*/||1' | sed 's|.erl$$||1' | sort | tr '\n' ','| sed 's|,|, |g' | sed 's|, $$||1' ) ; cat conf/$(PROJECT_NAME_FOR_REBAR).app.src | sed "s|VERSION_FOR_REBAR|$(VERSION_FOR_REBAR)|1" | sed "s|MODULES_FOR_REBAR|$$all_modules|1" > $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_REBAR)/ebin/$(PROJECT_NAME_FOR_REBAR).app
+	@/bin/cp -f $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_REBAR)/ebin/$(PROJECT_NAME_FOR_REBAR).app $(LAYER_TOP)/ebin/
+	@cd $(LAYER_TOP)/src ; ln -sf ../ebin/$(PROJECT_NAME_FOR_REBAR).app $(PROJECT_NAME_FOR_REBAR).app.src
 
 
 # Currently excluding test BEAMs, for a smaller size:
 rebar3-copy-beams:
 	@echo "  Copying non-test BEAM modules in rebar3 build tree"
-	@find src -name '*.beam' -a ! -name '*_test.beam' -exec /bin/cp '{}' $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)/ebin/ ';'
+	@find src -name '*.beam' -a ! -name '*_test.beam' -exec /bin/cp '{}' $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_REBAR)/ebin/ ';'
 
 
 rebar3-clean: rebar3-clean-include-links rebar3-restore-unsupported-sources
-	@echo "  Removing any prior rebar3 build tree for this project ($(REBAR_BUILD_BASE))"
-	-@/bin/rm -rf $(REBAR_BUILD_BASE) 2>/dev/null
-	-@/bin/rm -f ebin/$(REBAR3_PROJECT_NAME).app
+	@echo "  Removing any prior rebar3 build tree for this project ($(MYRIAD_REBAR_BUILD_BASE))"
+	-@/bin/rm -rf $(MYRIAD_REBAR_BUILD_BASE) 2>/dev/null
+	-@/bin/rm -f ebin/$(PROJECT_NAME_FOR_REBAR).app
 
 
 # Adding _build for increased safety:
 rebar3-real-clean: rebar3-clean rebar-test-clean rebar3-cache-clean
-	@echo "  Removing any prior rebar3 build root ($(REBAR_BUILD_ROOT)), hence for all profiles"
-	-@/bin/rm -rf $(REBAR_BUILD_ROOT) _build
+	@echo "  Removing any prior rebar3 build root ($(MYRIAD_REBAR_BUILD_ROOT)), hence for all profiles"
+	-@/bin/rm -rf $(MYRIAD_REBAR_BUILD_ROOT) _build
 
 
 rebar-test-clean:
-	@echo  "  Cleaning rebar3+hex test directory $(REBAR_TEST_DIR)"
-	-@/bin/rm -rf $(REBAR_TEST_DIR)/_build
-	-@/bin/rm -f $(REBAR_TEST_DIR)/rebar.lock
+	@echo  "  Cleaning rebar3+hex test directory $(MYRIAD_REBAR_TEST_DIR)"
+	-@/bin/rm -rf $(MYRIAD_REBAR_TEST_DIR)/_build
+	-@/bin/rm -f $(MYRIAD_REBAR_TEST_DIR)/rebar.lock
 
 
 # Otherwise could reuse wrong cached versions (ex: 1.O.6.tar instead of
@@ -697,21 +697,21 @@ rebar-test-clean:
 # (actually triggering the rebar3-update target should suffice)
 #
 rebar3-cache-clean:
-	@echo "  Removing rebar3 cache for $(REBAR3_PROJECT_NAME)"
-	@# Wiping dependencies and all as well: @/bin/rm -f $$HOME/.cache/rebar3/hex/hexpm/packages/$(REBAR3_PROJECT_NAME)-*
+	@echo "  Removing rebar3 cache for $(PROJECT_NAME_FOR_REBAR)"
+	@# Wiping dependencies and all as well: @/bin/rm -f $$HOME/.cache/rebar3/hex/hexpm/packages/$(PROJECT_NAME_FOR_REBAR)-*
 	-@/bin/rm -f $$HOME/.cache/rebar3/hex/hexpm/packages/*
 
 
 rebar3-info:
 	@echo "REBAR_DEBUG = $(REBAR_DEBUG)"
-	@echo "REBAR_PROFILE = $(REBAR_PROFILE)"
-	@echo "REBAR_BUILD_ROOT = $(REBAR_BUILD_ROOT)"
-	@echo "REBAR_BUILD_DIR = $(REBAR_BUILD_DIR)"
-	@echo "REBAR3_FIND_SRC_EXCLUDES = $(REBAR3_FIND_SRC_EXCLUDES)"
-	@echo "REBAR3_FIND_SRC_OPT = $(REBAR3_FIND_SRC_OPT)"
-	@echo "REBAR_TEST_DIR = $(REBAR_TEST_DIR)"
-	@echo "REBAR3_EXEC = $(REBAR3_EXEC)"
-	@echo "VERSION_FOR_REBAR3 = $(VERSION_FOR_REBAR3)"
+	@echo "MYRIAD_REBAR_PROFILE = $(MYRIAD_REBAR_PROFILE)"
+	@echo "MYRIAD_REBAR_BUILD_ROOT = $(MYRIAD_REBAR_BUILD_ROOT)"
+	@echo "MYRIAD_REBAR_BUILD_DIR = $(MYRIAD_REBAR_BUILD_DIR)"
+	@echo "MYRIAD_REBAR_FIND_SRC_EXCLUDES = $(MYRIAD_REBAR_FIND_SRC_EXCLUDES)"
+	@echo "MYRIAD_REBAR_FIND_SRC_OPT = $(MYRIAD_REBAR_FIND_SRC_OPT)"
+	@echo "MYRIAD_REBAR_TEST_DIR = $(MYRIAD_REBAR_TEST_DIR)"
+	@echo "MYRIAD_REBAR_EXEC = $(MYRIAD_REBAR_EXEC)"
+	@echo "VERSION_FOR_REBAR = $(VERSION_FOR_REBAR)"
 	@echo "MYRIAD_REBAR_BUILD_BASE = $(MYRIAD_REBAR_BUILD_BASE)"
 	@echo "MYRIAD_OTP_BEAM_DIR_FROM_USUAL = $(MYRIAD_OTP_BEAM_DIR_FROM_USUAL)"
 
@@ -743,7 +743,7 @@ rebar3-info:
 # - BEAMs shall not be included in the archive, as hex packages are source
 #   containers, not binary ones
 #
-# - a correct, non-template, src/$(REBAR3_PROJECT_NAME).app.src is needed
+# - a correct, non-template, src/$(PROJECT_NAME_FOR_REBAR).app.src is needed
 #
 # To publish a package, 'rebar3 hex user auth' is expected to have been executed
 # at least once on the publishing computer.
@@ -768,7 +768,7 @@ rebar3-info:
 # releases, in order to avoid having them considered as deleted by GIT
 #
 rebar3-hex-publish: rebar3-clean clean set-rebar-conf-for-hex rebar3-create-app-file
-	@/bin/cp -f $(REBAR_BUILD_BASE)/ebin/$(REBAR3_PROJECT_NAME).app src/$(REBAR3_PROJECT_NAME).app.src
+	@/bin/cp -f $(MYRIAD_REBAR_BUILD_BASE)/ebin/$(PROJECT_NAME_FOR_REBAR).app src/$(PROJECT_NAME_FOR_REBAR).app.src
 	@cd include && find * -mindepth 1 -a -name '*.hrl' -exec ln -sf '{}' ';'
 	@cd src && for f in $(EXCLUDED_SOURCES); do find . -name "$$f" -exec /bin/mv -f '{}' "{}-hidden" ';' ; done
 	@#mkdir -p priv/hex-packaging/{root,doc}
@@ -779,7 +779,7 @@ rebar3-hex-publish: rebar3-clean clean set-rebar-conf-for-hex rebar3-create-app-
 	@$(REBAR_DEBUG) rebar3 hex publish
 	@cd src && to_rename=$$(for f in $(EXCLUDED_SOURCES); do find . -name "$$f-hidden" ; done) && for f in $$to_rename ; do /bin/mv -f $$f $$(echo $$f | sed 's|-hidden||1')  ; done
 	@#/bin/rm -rf priv/
-	@/bin/rm -f src/$(REBAR3_PROJECT_NAME).app.src
+	@/bin/rm -f src/$(PROJECT_NAME_FOR_REBAR).app.src
 	@$(MAKE) -s rebar3-clean rebar3-create-app-file set-rebar-conf
 
 
@@ -788,9 +788,9 @@ rebar3-local-update:
 
 
 test-hex-package: rebar-test-clean
-	@echo "  Testing $(PROJECT_NAME) hex package ('$(REBAR3_PROJECT_NAME)' package, version $(VERSION_FOR_REBAR3)) in $(REBAR_TEST_DIR) using $(REBAR3_EXEC)"
-	@cd conf && $(MAKE) -s rebar-for-testing.config && /bin/cp -f rebar-for-testing.config $(REBAR_TEST_DIR)/rebar.config
-	@cd $(REBAR_TEST_DIR) && $(REBAR3_EXEC) update && $(REBAR3_EXEC) compile
+	@echo "  Testing $(PROJECT_NAME) hex package ('$(PROJECT_NAME_FOR_REBAR)' package, version $(VERSION_FOR_REBAR)) in $(MYRIAD_REBAR_TEST_DIR) using $(MYRIAD_REBAR_EXEC)"
+	@cd conf && $(MAKE) -s rebar-for-testing.config && /bin/cp -f rebar-for-testing.config $(MYRIAD_REBAR_TEST_DIR)/rebar.config
+	@cd $(MYRIAD_REBAR_TEST_DIR) && $(MYRIAD_REBAR_EXEC) update && $(MYRIAD_REBAR_EXEC) compile
 
 
 # End of the longer rebar-related section.
@@ -820,7 +820,7 @@ generate-list-of-erlang-types:
 	@if [ -z "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, no ERLANG_SOURCE_ROOT variable specified." ; exit 15 ; fi ; if [ ! -d "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, specified directory (ERLANG_SOURCE_ROOT=$$ERLANG_SOURCE_ROOT) does not exist." ; exit 16 ; fi ; target_file="declared-types-in-Erlang.txt" ; erl="$(ERLANG_INTERPRETER)" ; target_path=$$(echo $$erl|sed "s|/bin/erl$$|/$$target_file|1") ; echo "  Generating the list of types declared in the Erlang runtime..." &&  $(MYRIAD_TOP)/src/scripts/list-available-types.sh "$$ERLANG_SOURCE_ROOT" > $$target_path && echo "  Types have been collected in '$$target_path'."
 
 
-FAKE_OTP_ROOT := /tmp/ceylan-fake-otp-projects/$(REBAR3_PROJECT_NAME)
+FAKE_OTP_ROOT := /tmp/ceylan-fake-otp-projects/$(PROJECT_NAME_FOR_REBAR)
 
 # Section for newer OTP management: we create now automatically from our actual
 # source tree (in GIT) a simpler, fake one that respects the conventions that
@@ -831,7 +831,7 @@ FAKE_OTP_ROOT := /tmp/ceylan-fake-otp-projects/$(REBAR3_PROJECT_NAME)
 # to recompile these BEAMs... (and fail; sigh).
 #
 create-fake-otp-project: all
-	@echo "  Creating a fake OTP project for $(REBAR3_PROJECT_NAME) in $(FAKE_OTP_ROOT)"
+	@echo "  Creating a fake OTP project for $(PROJECT_NAME_FOR_REBAR) in $(FAKE_OTP_ROOT)"
 	-@/bin/rm -rf $(FAKE_OTP_ROOT)
 	@mkdir -p $(FAKE_OTP_ROOT)/{src,include,priv,ebin}
 	@find . -name '*.erl' -a ! -name '*_test.*' -exec /bin/cp -f '{}' $(FAKE_OTP_ROOT)/src/ ';'

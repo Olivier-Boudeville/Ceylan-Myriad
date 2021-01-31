@@ -181,9 +181,9 @@ ifndef PROJECT_NAME
 endif
 
 
-# REBAR3_PROJECT_NAME should be defined on a per-project basis.
-ifndef REBAR3_PROJECT_NAME
-	REBAR3_PROJECT_NAME := myriad
+# PROJECT_NAME_FOR_REBAR should be defined on a per-project basis.
+ifndef PROJECT_NAME_FOR_REBAR
+	PROJECT_NAME_FOR_REBAR := myriad
 endif
 
 
@@ -202,8 +202,8 @@ endif
 # Variable name intentionally not including the current layer, for more generic
 # rules:
 
-ifndef VERSION_FOR_REBAR3
-	VERSION_FOR_REBAR3 := $(PROJECT_VERSION)
+ifndef VERSION_FOR_REBAR
+	VERSION_FOR_REBAR := $(PROJECT_VERSION)
 endif
 
 
@@ -952,10 +952,16 @@ ERLANG_COMPILER_GENERAL_OPT += -b beam $(DEBUG_INFO_KEY_OPT)
 # Variable defined to be re-usable by upper layers, so that compiling their own
 # parse transforms can take advantage of the Myriad one:
 #
+# (the 'ebin' directory is listed here as, for projects built with rebar3 and
+# depending on Myriad, the Myriad BEAMs exist only in the
+# _build/default/lib/myriad/ebin directory, not anymore within the
+# _build/default/lib/myriad/src tree)
+#
 ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD =                \
 					-pz $(MYRIAD_TOP)/src/utils                 \
 					-pz $(MYRIAD_TOP)/src/meta                  \
 					-pz $(MYRIAD_TOP)/src/data-management       \
+					-pz $(MYRIAD_TOP)/ebin                      \
 					'+{parse_transform,myriad_parse_transform}'
 
 
@@ -1058,8 +1064,7 @@ ERLANG_COMPILER_OPT_BASE +=                \
  $(ERLANG_COMPILER_DEBUG_OPT)              \
  $(ERLANG_COMPILER_NATIVE_COMPILATION_OPT) \
  $(ERLANG_COMPILER_WARNING_OPT)            \
- $(ERLANG_COMPILER_OPT_DEBUG)              \
- $(ERLANG_COMPILER_TOKEN_OPT)
+ $(ERLANG_COMPILER_OPT_DEBUG)
 
 
 # Base options to compile parse transforms themselves (and their helper
@@ -1072,14 +1077,22 @@ ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED = $(ERLANG_COMPILER_OPT_FOR_PT) \
 
 
 
-# Conditionally defined so that upper layer may update these settings (ex:
+# Conditionally defined so that upper layers may update these settings (ex:
 # adding pz directories):
 #
 ifndef ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES
 
 	ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES =                          \
-		$(ERLANG_COMPILER_OPT_BASE)                                 \
+		$(ERLANG_COMPILER_OPT_BASE)                                     \
 		$(ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_STANDARD_MODULES)
+
+endif
+
+
+# Conditionally defined so that upper layers may update these settings:
+ifndef ERLANG_COMPILER_OPT_FOR_TESTS
+
+	ERLANG_COMPILER_OPT_FOR_TESTS = $(ERLANG_COMPILER_TOKEN_OPT)
 
 endif
 
@@ -1293,54 +1306,61 @@ endif
 # Release settings.
 
 
-# Toggle for additional logs:
+# Note: an awful gotcha with rebar3 is that it defines environment variables
+# such as REBAR_BUILD_DIR, which can thus be used by default (and by mistake)
+# typically by such make-based system running through rebar hooks.
+#
+# As a result: we should *never* define anymore any make variable prefixed with
+# "REBAR"; we rely on the "MYRIAD_REBAR" prefix instead, unless we refer to a
+# variable known to be set/used by rebar.
+#
+# Note: for clarity (typically for variables to be defined by upper layers),
+# some variables are instead suffixed by "_FOR_REBAR" (ex: VERSION_FOR_REBAR).
+
+# Toggle for additional logs (this is a rebar-specific variable):
 REBAR_DEBUG =
 #REBAR_DEBUG = DEBUG=1
 
 
 # Relative to the usual root of this layer:
-ifndef REBAR_BUILD_ROOT
-	REBAR_BUILD_ROOT := _build
+ifndef MYRIAD_REBAR_BUILD_ROOT
+	MYRIAD_REBAR_BUILD_ROOT := _build
 endif
 
 
 # Default profile:
 
-# Note: not always honored, refer to 'make rebar3-info' to see that
-# REBAR_BUILD_DIR is set in some cases regardless of this variable when run in
-# rebar3's pre_hooks.
-#
-ifndef REBAR_PROFILE
-	REBAR_PROFILE := default
+ifndef MYRIAD_REBAR_PROFILE
+	MYRIAD_REBAR_PROFILE := default
 endif
 
-ifndef REBAR_BUILD_DIR
-	REBAR_BUILD_DIR := $(REBAR_BUILD_ROOT)/$(REBAR_PROFILE)
+ifndef MYRIAD_REBAR_BUILD_DIR
+	MYRIAD_REBAR_BUILD_DIR := $(MYRIAD_REBAR_BUILD_ROOT)/$(MYRIAD_REBAR_PROFILE)
 endif
 
 
-MYRIAD_REBAR_BUILD_BASE = $(REBAR_BUILD_DIR)/lib/myriad
+MYRIAD_REBAR_BUILD_BASE = $(MYRIAD_REBAR_BUILD_DIR)/lib/myriad
 
 
-ifndef REBAR_BUILD_BASE
-	REBAR_BUILD_BASE := $(REBAR_BUILD_DIR)/lib/$(REBAR3_PROJECT_NAME)
+ifndef MYRIAD_REBAR_BUILD_BASE
+	MYRIAD_REBAR_BUILD_BASE := $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_REBAR)
 endif
 
 
-ifndef REBAR3_FIND_SRC_OPT
+ifndef MYRIAD_REBAR_FIND_SRC_OPT
 
-	ifndef REBAR3_FIND_SRC_EXCLUDES
+	ifndef MYRIAD_REBAR_FIND_SRC_EXCLUDES
 
 		# Do not insert spaces here:
 		ifeq ($(PROJECT_NAME),Ceylan-Myriad)
 
 			# For Myriad then:
-			REBAR3_FIND_SRC_EXCLUDES := sql_support.erl hdf5_support.erl
+			MYRIAD_REBAR_FIND_SRC_EXCLUDES := sql_support.erl hdf5_support.erl
 
 		endif
 
 		# Generated a relevant GNU find option for excluded sources:
-		REBAR3_FIND_SRC_OPT := $(patsubst %,-a ! -name %,$(REBAR3_FIND_SRC_EXCLUDES))
+		MYRIAD_REBAR_FIND_SRC_OPT := $(patsubst %,-a ! -name %,$(MYRIAD_REBAR_FIND_SRC_EXCLUDES))
 
 	endif
 
@@ -1348,12 +1368,12 @@ endif
 
 
 # Results of the filling of corresponding templates:
-REBAR_CONF_FILES := rebar.config              \
-					rebar-for-hex.config      \
-					rebar-for-testing.config
+MYRIAD_REBAR_CONF_FILES := rebar.config                     \
+						   rebar-for-hex.config             \
+						   rebar-for-testing.config
 
 
-REBAR_TEST_DIR := /tmp
+MYRIAD_REBAR_TEST_DIR := /tmp
 
 
 # To install rebar3: https://github.com/erlang/rebar3#getting-started
@@ -1363,7 +1383,7 @@ REBAR_TEST_DIR := /tmp
 # mkdir -p ~/Software && cd ~/Software && git clone
 # https://github.com/erlang/rebar3.git && cd rebar3 && ./bootstrap
 #
-REBAR3_EXEC := $$(which rebar3 2>/dev/null)
+MYRIAD_REBAR_EXEC := $$(which rebar3 2>/dev/null)
 
 
 # Elements for the generation of rebar.config:
@@ -1373,7 +1393,7 @@ REBAR3_EXEC := $$(which rebar3 2>/dev/null)
 # (the initial '../'s are removed, as this variable will be evaluated from the
 # 'conf' directory)
 #
-REBAR_FIRST_FILES = \"`echo $(patsubst ../%.beam,\"%.erl\",$(BOOTSTRAP_MODULES))|sed 's| |", "|g'`\"
+MYRIAD_REBAR_FIRST_FILES = \"`echo $(patsubst ../%.beam,\"%.erl\",$(BOOTSTRAP_MODULES))|sed 's| |", "|g'`\"
 
 
 # Transforming a recursively expanded variable into a simply expanded, otherwise
@@ -1386,7 +1406,7 @@ STABLE_INC := $(INC)
 
 
 # Far from being straightforward (patsubst would fail due to nesting):
-REBAR_INCS := {i,\"`echo $(STABLE_INC)|sed 's| |\"}, {i,\"|g' | sed 's|-I\.\./||g'`\"}
+MYRIAD_REBAR_INCS := {i,\"`echo $(STABLE_INC)|sed 's| |\"}, {i,\"|g' | sed 's|-I\.\./||g'`\"}
 
 
 # Useful to notify the user whenever a longer operation terminates:

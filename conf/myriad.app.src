@@ -20,7 +20,7 @@
 
 {application, myriad,
  [{description, "Ceylan-Myriad, a generic-purpose Erlang toolbox, as an OTP application library here (see http://myriad.esperide.org)"},
-  {vsn, "VERSION_FOR_REBAR3"},
+  {vsn, "VERSION_FOR_REBAR"},
 
   % No process registered:
   {registered, []},
@@ -51,7 +51,7 @@
   {env,[]},
 
   % Flat hierarchy in ebin here:
-  {modules, [MODULES_FOR_REBAR3]},
+  {modules, [MODULES_FOR_REBAR]},
 
   {licenses, ["Ceylan-Myriad is licensed by its author (Olivier Boudeville) under a disjunctive tri-license, giving you the choice of one of the three following sets of free software/open source licensing terms:
 	- the Mozilla Public License (MPL), version 1.1 or later (very close to the former Erlang Public License, except aspects regarding Ericsson and/or the Swedish law)
