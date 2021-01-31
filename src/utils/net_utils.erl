@@ -39,7 +39,8 @@
 
 % Host-related functions:
 -export([ ping/1, localhost/0, localhost/1, split_fqdn/1,
-		  get_local_ip_addresses/0, get_local_ip_address/0, reverse_lookup/1 ]).
+		  get_local_ip_addresses/0, get_local_ip_address/0, 
+		  get_reverse_lookup_info/0, reverse_lookup/1, reverse_lookup/2 ]).
 
 
 % Node-related functions:
@@ -155,6 +156,14 @@
 -type tcp_port_restriction() :: 'no_restriction' | tcp_port_range().
 
 
+-type lookup_tool() :: 'dig' | 'drill' | 'host'.
+
+-type lookup_info() :: { lookup_tool(), file_utils:executable_path() }.
+
+-type lookup_outcome() :: string_host_name()
+						 | 'unknown_dns' | 'no_dns_lookup_executable_found'.
+
+
 -export_type([ ip_v4_address/0, ip_v6_address/0, ip_address/0,
 			   atom_node_name/0, string_node_name/0, bin_node_name/0,
 			   node_name/0, node_type/0,
@@ -166,7 +175,8 @@
 			   node_naming_mode/0, cookie/0,
 			   net_port/0, tcp_port/0, udp_port/0,
 			   tcp_port_range/0, udp_port_range/0,
-			   tcp_port_restriction/0 ]).
+			   tcp_port_restriction/0,
+			   lookup_tool/0, lookup_info/0, lookup_outcome/0 ]).
 
 
 % For the default_epmd_port define:
@@ -401,7 +411,7 @@ filter_routable_first( IfList ) ->
 filter_routable_first( _IfList=[], RoutableAddrs, NonRoutableAddrs ) ->
 	RoutableAddrs ++ NonRoutableAddrs;
 
-filter_routable_first( _IfList= [ If | T ], RoutableAddrs, NonRoutableAddrs ) ->
+filter_routable_first( _IfList=[ If | T ], RoutableAddrs, NonRoutableAddrs ) ->
 
 	case is_routable( If ) of
 
@@ -435,17 +445,15 @@ get_local_ip_address() ->
 		%       SecondAddr;
 
 		[ Addr | _T ] ->
-				Addr
+			Addr
 
 	end.
 
 
 
-% Returns a string specifying the DNS name corresponding to the specified IPv4
-% address { N1, N2, N3, N4 }.
-%
--spec reverse_lookup( ip_v4_address() ) -> string_host_name() | 'unknown_dns'.
-reverse_lookup( IPAddress ) ->
+% Returns information to perform a reverse DNS lookup.
+-spec get_reverse_lookup_info() -> maybe( lookup_info() ).
+get_reverse_lookup_info() ->
 
 	% Note that the 'host' command is not available on all systems ('dig',
 	% 'drill', 'nslookup') might be:
@@ -458,39 +466,54 @@ reverse_lookup( IPAddress ) ->
 				false ->
 					case executable_utils:lookup_executable( "dig" ) of
 						false ->
-							throw( { executables_not_found,
-									 [ "host", "drill", "dig" ] } );
+							undefined;
+							%throw( { no_look_up_executable_found,
+							%		 [ "host", "drill", "dig" ] } );
 
 						DigPath ->
-							reverse_lookup_with_dig_like( IPAddress, DigPath )
+							{ dig, DigPath }
 
 					end;
 
 				DrillPath ->
-					reverse_lookup_with_dig_like( IPAddress, DrillPath )
+					{ drill, DrillPath }
 
 			end;
 
 		HostPath ->
-			reverse_lookup_with_host( IPAddress, HostPath )
+			{ host, HostPath }
 
 	end.
 
 
 
-% (helper using dig-like commands, i.e. the 'drill'/'dig' ones)
-reverse_lookup_with_dig_like( IPAddress, DigLikeCmd ) ->
+% Returns a string telling the DNS name corresponding to the specified IPv4
+% address {N1, N2, N3, N4}, or an atom describing why it failed.
+%
+-spec reverse_lookup( ip_v4_address() ) -> lookup_outcome().
+reverse_lookup( IPAddress ) ->
+	reverse_lookup( IPAddress, get_reverse_lookup_info() ).
+
+
+% Returns a string telling the DNS name corresponding to the specified IPv4
+% address {N1, N2, N3, N4}, or an atom describing why it failed.
+%
+-spec reverse_lookup( ip_v4_address(), lookup_info() ) -> lookup_outcome().
+reverse_lookup( _IPAddress, _LookupInfo=undefined ) ->
+	no_dns_lookup_executable_found;
+
+reverse_lookup( IPAddress, _LookupInfo={ dig, DigExecPath } ) ->
 
 	% We remove empty lines and comments (lines starting with ';;') and extract
 	% the host name:
 	%
-	Cmd = DigLikeCmd ++ " -x " ++ ipv4_to_string( IPAddress )
+	Cmd = DigExecPath ++ " -x " ++ ipv4_to_string( IPAddress )
 		++ " | grep -v '^;;' | grep PTR | sed 's|.*PTR\t||1'"
 		++ " | sed 's|\.$||1' 2>/dev/null",
 
 	% Following could let non-PTR answers with '900 IN SOA' slip through:
 	%
-	%Cmd = DigLikeCmd ++ " -x " ++ ipv4_to_string( IPAddress )
+	%Cmd = DigExecPath ++ " -x " ++ ipv4_to_string( IPAddress )
 	%	++ " | grep . | grep -v '^;;' | sed 's|.*PTR\t||1' | "
 	%	++ "sed 's|\.$||1' 2>/dev/null",
 
@@ -528,14 +551,16 @@ reverse_lookup_with_dig_like( IPAddress, DigLikeCmd ) ->
 			%		   ErrorOutput } )
 			unknown_dns
 
-	end.
+	end;
 
+reverse_lookup( IPAddress, _LookupInfo={ drill, DrillExecPath } ) ->
+	% Compliant syntax:
+	reverse_lookup( IPAddress, { dig, DrillExecPath } );
 
+reverse_lookup( IPAddress, _LookupInfo={ host, HostExecPath } ) ->
 
-% (helper using the 'host' command)
-reverse_lookup_with_host( IPAddress, HostCmd ) ->
-
-	Cmd = HostCmd ++ " -W 1 " ++ ipv4_to_string( IPAddress ) ++ " 2>/dev/null",
+	Cmd = HostExecPath ++ " -W 1 " ++ ipv4_to_string( IPAddress )
+		++ " 2>/dev/null",
 
 	case system_utils:run_executable( Cmd ) of
 

@@ -46,8 +46,7 @@ run() ->
 	Localhost = net_utils:localhost(),
 
 	test_facilities:display( "Pinging now localhost, whose FQDN is '~s' "
-							 "(short name: '~s').",
-							 [ Localhost, net_utils:localhost( short ) ] ),
+		 "(short name: '~s').", [ Localhost, net_utils:localhost( short ) ] ),
 
 	case net_utils:ping( Localhost ) of
 
@@ -95,8 +94,7 @@ run() ->
 
 	NamingMode = net_utils:get_node_naming_mode(),
 
-	test_facilities:display( "Naming mode for this node: ~w.",
-							 [ NamingMode ] ),
+	test_facilities:display( "Naming mode for this node: ~w.", [ NamingMode ] ),
 
 	test_facilities:display( "Naming-compliant hostname for '~s' is '~s'.",
 		[ Localhost,
@@ -117,41 +115,48 @@ run() ->
 	AdditionalOptions = "-noshell -smp auto +K true +A 8 +P 400000",
 
 	{ Command, Environment } = net_utils:get_basic_node_launching_command(
-								 NodeName, NodeNamingMode, EpmdSettings,
-								 TCPSettings, AdditionalOptions ),
+		NodeName, NodeNamingMode, EpmdSettings, TCPSettings,
+		AdditionalOptions ),
 
 	test_facilities:display( "Example of node launching command:~n'~s', "
-							 "with following environment: ~s",
-							 [ Command,
-							   system_utils:environment_to_string( Environment )
-							 ] ),
+		"with following environment: ~s",
+		[ Command, system_utils:environment_to_string( Environment ) ] ),
 
 
-	FirstIP = {74,125,127,100},
-	test_facilities:display( "Reverse look-up of ~p is '~s'.",
-		[ net_utils:ipv4_to_string( FirstIP ),
-		  net_utils:reverse_lookup( FirstIP ) ] ),
+	case net_utils:get_reverse_lookup_info() of
+
+		undefined ->
+			test_facilities:display( "No DNS lookup tool found, "
+									 "no related test performed." );
+
+		LookupInfo ->
+
+			FirstIP = {74,125,127,100},
+			test_facilities:display( "Reverse look-up of ~p is '~s'.",
+				[ net_utils:ipv4_to_string( FirstIP ),
+				  net_utils:reverse_lookup( FirstIP, LookupInfo ) ] ),
 
 
-	SecondIP = {82,225,152,215},
-	test_facilities:display( "Reverse look-up of ~p is '~s'.",
-		[ net_utils:ipv4_to_string( SecondIP ),
-		  net_utils:reverse_lookup( SecondIP ) ] ),
+			SecondIP = {82,225,152,215},
+			test_facilities:display( "Reverse look-up of ~p is '~s'.",
+				[ net_utils:ipv4_to_string( SecondIP ),
+				  net_utils:reverse_lookup( SecondIP, LookupInfo ) ] ),
 
 
-	ThirdIP = {90,59,94,64},
-	test_facilities:display( "Reverse look-up of ~p is '~s'.",
-		[ net_utils:ipv4_to_string( ThirdIP ),
-		  net_utils:reverse_lookup( ThirdIP ) ] ),
+			ThirdIP = {90,59,94,64},
+			test_facilities:display( "Reverse look-up of ~p is '~s'.",
+				[ net_utils:ipv4_to_string( ThirdIP ),
+				  net_utils:reverse_lookup( ThirdIP, LookupInfo ) ] ),
 
-	FourthIP = {10,22,22,22},
-	test_facilities:display( "Reverse look-up of ~p is '~s'.",
-		[ net_utils:ipv4_to_string( FourthIP ),
-		  net_utils:reverse_lookup( FourthIP ) ] ),
+			FourthIP = {10,22,22,22},
+			test_facilities:display( "Reverse look-up of ~p is '~s'.",
+				[ net_utils:ipv4_to_string( FourthIP ),
+				  net_utils:reverse_lookup( FourthIP, LookupInfo ) ] )
 
+	end,
 
 	test_facilities:display( "All connected nodes are: ~w.",
-			  [ net_utils:get_all_connected_nodes() ] ),
+							 [ net_utils:get_all_connected_nodes() ] ),
 
 
 	test_facilities:display( "Testing node availability (various forms):" ),
