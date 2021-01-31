@@ -59,10 +59,11 @@
 {erl_first_files, [ FIRST_FILES_FOR_REBAR ]}.
 
 
-% Could not set REBAR_PROFILE=$(REBAR_PROFILE):
-% (hooks needed, for example to create the include symlinks)
-{pre_hooks,  [ {compile, "make -s rebar3-compile-pre-hook"} ]}.
-{post_hooks, [ {compile, "make -s rebar3-compile-post-hook"} ]}.
+% (hooks needed, for example to create the include symlinks and for the build
+% itself)
+%
+{pre_hooks,  [ {compile, "make -s rebar3-compile-pre-hook MYRIAD_REBAR_PROFILE=$(REBAR_PROFILE)"} ]}.
+{post_hooks, [ {compile, "make -s rebar3-compile-post-hook MYRIAD_REBAR_PROFILE=$(REBAR_PROFILE)"} ]}.
 
 
 
@@ -75,7 +76,7 @@
 %
 {relx, [
 
-  {release, {myriad_release, "VERSION_FOR_REBAR3"},
+  {release, {myriad_release, "VERSION_FOR_REBAR"},
 			[sasl, myriad]},
 
   %{sys_config, "./config/sys.config"},
