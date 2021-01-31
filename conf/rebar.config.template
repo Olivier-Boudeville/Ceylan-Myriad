@@ -62,8 +62,8 @@
 % (hooks needed, for example to create the include symlinks and for the build
 % itself)
 %
-{pre_hooks,  [ {compile, "make -s rebar3-compile-pre-hook MYRIAD_REBAR_PROFILE=$(REBAR_PROFILE)"} ]}.
-{post_hooks, [ {compile, "make -s rebar3-compile-post-hook MYRIAD_REBAR_PROFILE=$(REBAR_PROFILE)"} ]}.
+{pre_hooks,  [ {compile, "make -s rebar3-compile-pre-hook MYRIAD_REBAR_PROFILE=${REBAR_PROFILE}"} ]}.
+{post_hooks, [ {compile, "make -s rebar3-compile-post-hook MYRIAD_REBAR_PROFILE=${REBAR_PROFILE}"} ]}.
 
 
 

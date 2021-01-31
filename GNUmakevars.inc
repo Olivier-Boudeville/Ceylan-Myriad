@@ -334,7 +334,8 @@ MYRIAD_BEAM := $(MYRIAD_TOP)/src
 # BEAM_DIRS are relative paths of BEAM files, ABS_BEAM_DIRS are the
 # corresponding absolute paths.
 #
-# As the 'include' structure matches the one of 'src':
+# As the 'include' structure matches the one of 'src' (only drawback: includes a
+# non-necessary 'ebin' directory):
 #
 INC += $(foreach dir,$(BEAM_DIRS),-I$$(echo $(dir)|sed 's|src|include|1'))
 

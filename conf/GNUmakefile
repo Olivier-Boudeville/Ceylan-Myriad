@@ -15,27 +15,25 @@ MYRIAD_TOP = ..
 # the root of this package has not been affected
 #
 %: %.template $(MYRIAD_TOP)/GNUmakevars.inc
-	@echo "  Generating $@ from $< (VERSION_FOR_REBAR3 being $(VERSION_FOR_REBAR3))"
-	@cat $< | sed "s|\"VERSION_FOR_REBAR3\"|\"$(VERSION_FOR_REBAR3)\"|g" | sed "s|FIRST_FILES_FOR_REBAR|$(REBAR_FIRST_FILES)|g" | sed "s|DEBUG_KEY_FOR_REBAR|$(DEBUG_INFO_KEY)|g"| sed "s|INCS_FOR_REBAR|$(REBAR_INCS)|g" > $@
+	@echo "  Generating $@ from $< (VERSION_FOR_REBAR being $(VERSION_FOR_REBAR))"
+	@cat $< | sed "s|\"VERSION_FOR_REBAR\"|\"$(VERSION_FOR_REBAR)\"|g" | sed "s|FIRST_FILES_FOR_REBAR|$(MYRIAD_REBAR_FIRST_FILES)|g" | sed "s|DEBUG_KEY_FOR_REBAR|$(DEBUG_INFO_KEY)|g"| sed "s|INCS_FOR_REBAR|$(MYRIAD_REBAR_INCS)|g" > $@
 
 
 info-rebar:
-	@echo "REBAR_FIRST_FILES = $(REBAR_FIRST_FILES)"
-	@echo "REBAR_INCS = $(REBAR_INCS)"
+	@echo "MYRIAD_REBAR_FIRST_FILES = $(MYRIAD_REBAR_FIRST_FILES)"
+	@echo "MYRIAD_REBAR_INCS = $(MYRIAD_REBAR_INCS)"
 
 
-info-replacements:
-	@echo "VERSION_FOR_REBAR3 = $(VERSION_FOR_REBAR3)"
-	@echo "REBAR_FIRST_FILES = $(REBAR_FIRST_FILES)"
+info-replacements: info-rebar
+	@echo "VERSION_FOR_REBAR = $(VERSION_FOR_REBAR)"
 	@echo "DEBUG_INFO_KEY = $(DEBUG_INFO_KEY)"
-	@echo "REBAR_INCS = $(REBAR_INCS)"
 
 
 clean: clean-local
 
 
 clean-local: clean-rebar
-	-@/bin/rm -f $(REBAR_CONF_FILES)
+	-@/bin/rm -f $(MYRIAD_REBAR_CONF_FILES)
 
 
 # Removed: -@/bin/rm -rf priv/
