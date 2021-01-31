@@ -42,7 +42,7 @@
 
 
 % A string UUID (ex: "ed64ffd4-74ee-43dc-adba-be37ed8735aa"):
--type uuid() :: string().
+-type uuid() :: text_utils:ustring().
 
 -export_type([ uuid/0 ]).
 
@@ -130,7 +130,8 @@
 		  identifier_table_to_string/1 ]).
 
 
-
+% Shorthand:
+-type ustring() :: text_utils:ustring().
 
 
 % UUID section.
@@ -173,25 +174,34 @@ generate_uuid() ->
 uuidgen_internal() ->
 
 	% Using /dev/random instead would incur waiting of a few seconds that were
-	% deemed too long for this use:
+	% deemed too long for this use.
+	%
+	% And using just count=32 would not be sufficient, as regularly only 31
+	% bytes would be read. Instead we read twice the target size, and chop it at
+	% 32:
 	%
 	case system_utils:run_executable(
-		   "/bin/dd if=/dev/urandom bs=1 count=32 2>/dev/null" ) of
+		   "/bin/dd if=/dev/urandom ibs=1 obs=1 count=64 2>/dev/null" ) of
 
 		{ _ReturnCode=0, Output } ->
 
+			{ TrimmedOutput, _Rest } = lists:split( _N=32, Output ),
+
 			%trace_utils:debug_fmt( "UUID output length: ~B, for '~p'.",
-			%					   [ length( Output ), Output ] ),
+			%	[ length( TrimmedOutput ), TrimmedOutput ] ),
 
 			% We translate these bytes into hexadecimal values:
-			V = [ string:to_lower( [ hd(
-				  io_lib:format( "~.16B", [ B rem 16 ] ) ) ] )  || B <- Output ],
+			V = [ string:to_lower(
+					[ hd( io_lib:format( "~.16B", [ B rem 16 ] ) ) ] )
+				  || B <- TrimmedOutput ],
 
 			%trace_utils:debug_fmt( "UUID hexa length: ~B, for '~s'.",
 			%					   [ length( V ), V ] ),
 
+			%32 = length( V ),
+
 			lists:flatten( io_lib:format(
-			% Pioneer moduler: text_utils:format(
+			% Pioneer module: text_utils:format(
 							 "~s~s~s~s~s~s~s~s-~s~s~s~s-~s~s~s~s-~s~s~s~s-~s"
 							 "~s~s~s~s~s~s~s~s~s~s~s", V ) );
 
@@ -284,14 +294,17 @@ get_sortable_id_between( Lower=[ Hl | _Tl ], Higher=[ Hh | _Th ], Acc )
 get_sortable_id_between( _Lower=[ Hl ], _Higher, Acc ) ->
 	% By design higher than LowerId, lower than HigherId, and not the immediate
 	% next element to LowerId:
+	%
 	% (ex: if Lower = [1,4,5,8,2] and Higher = [1,4,5,8,3,...], returning:
 	% [1,4,5,8,2,1]
+	%
 	lists:reverse( [ 1, Hl | Acc ] );
 
 % Here Hl < Hh, and we are not at the end of Lower:
 get_sortable_id_between( _Lower=[ Hl, Hlnext | _Tl ], _Higher, Acc ) ->
 	% Ex: if Lower = [1,4,5,8,2,X,...] and Higher = [1,4,5,8,3,...], returning:
 	% [1,4,5,8,2,X+1] (which is at least as short as both)
+	%
 	lists:reverse( [ Hlnext+1, Hl | Acc ] );
 
 % Here we are not at the end of Lower, and Higher finishes with 0, abnormal
@@ -476,21 +489,21 @@ assign_sorted_identifiers( _ElementsToIdentify=[ E | T ], IdentifierTable ) ->
 					% None found, hence the default lower bound will do:
 					ResId = get_initial_sortable_id(),
 					trace_utils:debug_fmt( "- managing element ~p, "
-						   "not having already an identifier, with no next "
-						   "identifier found, hence identified as ~s",
-						   [ E, sortable_id_to_string( ResId ) ] ),
+						"not having already an identifier, with no next "
+						"identifier found, hence identified as ~s",
+						[ E, sortable_id_to_string( ResId ) ] ),
 					ResId;
 
 				LowestId ->
 					% Then the new identifier shall be even lower:
 					ResId = get_sortable_id_between(
-							  get_sortable_id_lower_bound(), LowestId ),
+								get_sortable_id_lower_bound(), LowestId ),
 
 					trace_utils:debug_fmt( "- managing element ~p, "
-						   "not having already an identifier, with next "
-						   "identifier found as ~s, hence identified as ~s",
-						   [ E, sortable_id_to_string( LowestId ),
-							 sortable_id_to_string( ResId ) ] ),
+						"not having already an identifier, with next "
+						"identifier found as ~s, hence identified as ~s",
+						[ E, sortable_id_to_string( LowestId ),
+						  sortable_id_to_string( ResId ) ] ),
 
 					ResId
 
@@ -500,8 +513,7 @@ assign_sorted_identifiers( _ElementsToIdentify=[ E | T ], IdentifierTable ) ->
 
 		{ value, FoundId } ->
 			trace_utils:debug_fmt( "- managing element ~p, already having "
-								   "an identifier, ~s",
-								   [ E, sortable_id_to_string( FoundId ) ] ),
+				"an identifier, ~s", [ E, sortable_id_to_string( FoundId ) ] ),
 			{ FoundId, IdentifierTable }
 
 	end,
@@ -562,7 +574,7 @@ find_lowest_identifier_in( _Elements=[ E | T ], IdentifierTable, LowestId ) ->
 %
 -spec assign_ranged_identifiers( [ identifiable_element() ],
 		 [ identifiable_element() ], sortable_id(), identifier_table() ) ->
-									   identifier_table().
+										identifier_table().
 assign_ranged_identifiers( _RemainingElems=[], _ToIdentifyRev=[], _LowerId,
 						   IdentifierTable ) ->
 	% Last element was identified, nothing pending, already ready:
@@ -620,9 +632,9 @@ assign_in_turn_ids( LowerId, HigherId, _ElemsToIdentify=[ E | T ],
 	NewId = get_sortable_id_between( LowerId, HigherId ),
 
 	trace_utils:debug_fmt( "- assigning to element ~p, between ~s and ~s: ~s",
-						   [ E, sortable_id_to_string( LowerId ),
-							 sortable_id_to_string( HigherId ),
-							 sortable_id_to_string( NewId ) ] ),
+		[ E, sortable_id_to_string( LowerId ),
+		  sortable_id_to_string( HigherId ),
+		  sortable_id_to_string( NewId ) ] ),
 
 	NewIdtable = ?table:add_new_entry( E, NewId, IdentifierTable ),
 
@@ -631,7 +643,7 @@ assign_in_turn_ids( LowerId, HigherId, _ElemsToIdentify=[ E | T ],
 
 
 % Returns a textual representation of specified sortable identifier.
--spec sortable_id_to_string( sortable_id() ) -> text_utils:ustring().
+-spec sortable_id_to_string( sortable_id() ) -> ustring().
 sortable_id_to_string( _Id=?lower_bound_id ) ->
 	"lower bound";
 
@@ -645,7 +657,7 @@ sortable_id_to_string( Id ) ->
 
 
 % Returns a textual representation of specified sortable identifiers.
--spec sortable_ids_to_string( [ sortable_id() ] ) -> text_utils:ustring().
+-spec sortable_ids_to_string( [ sortable_id() ] ) -> ustring().
 sortable_ids_to_string( _Ids=[] ) ->
 	"(no sortable id)";
 
@@ -656,7 +668,7 @@ sortable_ids_to_string( Ids ) ->
 
 
 % Returns a textual representation of specified table of sortable identifiers.
--spec identifier_table_to_string( identifier_table() ) -> text_utils:ustring().
+-spec identifier_table_to_string( identifier_table() ) -> ustring().
 identifier_table_to_string( IdentifierTable ) ->
 
 	case ?table:enumerate( IdentifierTable ) of
@@ -667,12 +679,11 @@ identifier_table_to_string( IdentifierTable ) ->
 		ElemIdPairs ->
 
 			Strings = [ text_utils:format( "element '~p' associated to "
-										   "identifier ~s",
-										   [ E, sortable_id_to_string( Id ) ] )
+				"identifier ~s", [ E, sortable_id_to_string( Id ) ] )
 						|| { E, Id } <- ElemIdPairs ],
 
 			text_utils:format( "identifier table having ~B entries: ~s",
-							   [ length( ElemIdPairs ),
-								 text_utils:strings_to_string( Strings ) ] )
+				[ length( ElemIdPairs ),
+				  text_utils:strings_to_string( Strings ) ] )
 
 	end.
