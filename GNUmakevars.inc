@@ -851,9 +851,13 @@ MYRIAD_BEAM_DIRS := $(MYRIAD_BEAM)/apps/generate-password       \
 # Myriad is expected to reference its (public) headers thanks to, for example,
 # '-include_lib("myriad/include/ast_info.hrl").'; knowing that -include_lib
 # relies on the code path, not the header file path, we thus add Myriad's
-# include directory to the code path:
+# include directory to the code path.
 #
-BEAM_DIRS += $(MYRIAD_BEAM_DIRS) $(MYRIAD_TOP)/..
+# We also add the ebin directory, typically so that tests run with our make
+# system yet from a rebar3 context can nevertheless find the Myriad BEAMs they
+# rely on.
+#
+BEAM_DIRS += $(MYRIAD_BEAM_DIRS) $(MYRIAD_TOP)/.. $(MYRIAD_TOP)/ebin
 
 
 ERL_LAUNCHER = $(MYRIAD_SRC)/scripts/launch-erl.sh

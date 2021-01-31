@@ -514,11 +514,12 @@ rebar3-restore-unsupported-sources:
 #
 rebar3-compile-pre-hook: rebar3-hide-unsupported-sources \
 						 rebar3-make-include-links
-	@echo "  rebar3 pre-compile hook executed in $$(pwd), with profile $(MYRIAD_REBAR_PROFILE)"
+	@echo "  rebar3 pre-compile hook executed in $$(pwd), with the '$(MYRIAD_REBAR_PROFILE)' profile"
+	@$(MAKE) -s all
 
 
 rebar3-compile-post-hook:
-	@echo "  rebar3 post-compile hook executed in $$(pwd), with profile $(MYRIAD_REBAR_PROFILE)"
+	@echo "  rebar3 post-compile hook executed in $$(pwd), with the '$(MYRIAD_REBAR_PROFILE)' profile"
 
 
 # By default, development releases, not production ones:
