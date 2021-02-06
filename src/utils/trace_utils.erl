@@ -750,6 +750,8 @@ is_error_like( Severity ) ->
 -spec set_handler() -> void().
 set_handler() ->
 
+	%debug( "Setting trace_utils logger handler." ),
+
 	TargetHandler = default,
 
 	case logger:remove_handler( TargetHandler ) of
