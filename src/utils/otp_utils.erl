@@ -964,6 +964,9 @@ stop_application( AppName ) ->
 	case application:stop( AppName ) of
 
 		ok ->
+			%trace_utils:debug_fmt( "Application '~s' successfully stopped.",
+			%					   [ AppName ] ),
+
 			?trace_fmt( "Application '~s' successfully stopped.",
 						[ AppName ] ),
 			ok;
