@@ -37,7 +37,7 @@
 
 
 % Section for the searching and checking of executables:
--export([ lookup_executable/1, find_executable/1 ]).
+-export([ lookup_executable/1, lookup_executable/2, find_executable/1 ]).
 
 
 
@@ -144,8 +144,39 @@
 %
 -spec lookup_executable( file_name() ) -> file_path() | 'false'.
 lookup_executable( ExecutableName ) ->
-	% Similar to a call to 'type':
+	% Similar to a call to 'type' / 'which':
 	os:find_executable( ExecutableName ).
+
+
+
+% Looks-up specified executable program, whose name is specified as a string
+% (ex: "gcc") in the current user PATH, augmented of the specified list of
+% directories (whose existence is not checked), placed at first position.
+%
+% Returns an absolute filename of the executable program (ex: "/usr/bin/gcc"),
+% or the 'false' atom if it was not found.
+%
+% Ex: lookup_executable("my-foo-program", [".", "/tmp"])
+%
+-spec lookup_executable( file_name(), [ directory_path() ] ) ->
+								file_path() | 'false'.
+lookup_executable( ExecutableName, ExtraDirs ) ->
+
+	% Let's reconstruct a proper PATH-like string:
+	ExtraStr = text_utils:join( $:, ExtraDirs ),
+
+	FullStr = case system_utils:get_environment_variable( "PATH" ) of
+
+		false ->
+			ExtraStr;
+
+		PathValue ->
+			text_utils:join( $:, [ ExtraStr, PathValue ] )
+
+	end,
+
+	% Similar to a call to 'type' / 'which':
+	os:find_executable( ExecutableName, FullStr ).
 
 
 
