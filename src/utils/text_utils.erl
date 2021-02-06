@@ -2202,8 +2202,8 @@ to_uppercase( String ) ->
 
 
 
-% join( Separator, StringsToJoin ), to be used like in:
-%   join( $-, [ "Barbara", "Ann" ] ) = "Barbara-Ann".
+% join(Separator, StringsToJoin), to be used like in:
+%      join($-, ["Barbara", "Ann"]) = "Barbara-Ann".
 %
 % Separator can be a character, like $a, or a string, like ", ".
 %
