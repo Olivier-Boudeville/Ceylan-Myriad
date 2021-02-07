@@ -60,14 +60,14 @@
 
 
 %.beam: %.erl %.hrl
-	@echo "		Compiling module with header $<"
+	@echo "		Compiling standard module with header $<"
 	@#echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
 	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
 
 
 # The main, most usual rule:
 %.beam: %.erl
-	@echo "		Compiling module $<"
+	@echo "		Compiling standard module $<"
 	@#echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
 	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
 
