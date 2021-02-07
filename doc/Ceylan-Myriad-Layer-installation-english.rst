@@ -71,6 +71,7 @@ One may just run ``make`` by itself in order to list the main available options.
 
 One may run ``make create-myriad-checkout`` in order to create, based on our conventions, a suitable ``_checkouts`` directory so that rebar3 can directly take into account local, directly available (in-development) dependencies (although Myriad does not have any, beside Erlang itself).
 
+Alternatively to using ``make`` directly, one may execute ``rebar3 compile`` instead.
 
 
 .. _testing:
@@ -78,13 +79,17 @@ One may run ``make create-myriad-checkout`` in order to create, based on our con
 Testing Myriad
 ==============
 
-Just run, still from the ``myriad`` directory:
+As Myriad has no prerequisite (besides Erlang itself of course), just run (possibly simply thanks to ``rebar3 compile`` after a ``git clone https://github.com/Olivier-Boudeville/Ceylan-Myriad.git``), still from the root directory of Myriad:
 
 .. code:: bash
 
  $ make test
 
 The testing shall complete successfully (if it is not the case, see our support_ section).
+
+.. Note:: Myriad is built and tested at each commit through `continuous integration <https://github.com/Olivier-Boudeville/Ceylan-Myriad/actions?query=workflow%3A%22Erlang+CI%22>`_. The same holds for the projects based on it, directly (ex: `WOOPER <https://wooper.esperide.org>`_, `Seaplus <https://seaplus.esperide.org>`_) or not (ex: `Traces <https://traces.esperide.org/>`_, `Mobile <https://mobile.esperide.org/>`_, `US-Web <https://us-web.esperide.org/>`_), so in terms of usability, confidence should be high.
+
+
 
 
 
@@ -154,26 +159,38 @@ OTP Build
 These build considerations apply to Myriad but also, more generally, to most if not all our Erlang developments.
 
 
-Why providing two different build systems
------------------------------------------
+Why Providing Two Different Build/Deploy/Run Systems
+----------------------------------------------------
 
 We felt that OTP build tools and Emakefiles were not expressive enough for our needs: as mentioned in `Building Myriad`_, a full, rather complete/complex/powerful build system based on `GNU make <https://www.gnu.org/software/make/manual/make.html>`_ is used by Ceylan-Myriad natively instead, and has been fully satisfactory for years (simple, lightweight, reliable, controllable, flexible, fast, etc.).
 
 It allows to introduce all the generic rules we wanted, to define many conditional settings, to walk through an arbitrarily nested source tree, to integrate within a layered stack (notably alongside some other ``Ceylan-*`` libraries that depend on Ceylan-Myriad) and to perform a multi-stage build to accommodate the compilation and use of parse-transforms, with their own set of prerequisites.
 
+More precisely we routinely (see `WOOPER <https://wooper.esperide.org>`_ or `Seaplus <https://seaplus.esperide.org>`_) rely on layers built on top of Myriad, which define their own parse transforms that are themselves parse-transformed by Myriad's one - and it works great.
+
 However, to better integrate with other Erlang developments (which are mostly OTP-compliant), we added the (optional) possibility of generating a Myriad *OTP library application* out of the build tree, ready to be integrated into an (OTP) *release* and to be available as an Hex *package*. For that we rely on `rebar3 <https://www.rebar3.org/>`_, `relx <https://github.com/erlware/relx>`_ and `hex <https://hex.pm/>`_.
+
+So currently all our Erlang-based developments can also be built and tested through rebar3, and this support is checked at each commit thanks to continuous integration.
+
+We use less frequently releases (we rely on a basic deployment procedure of our own) and even less hex, yet they were supported once, so we believe that their integration should be at least fairly close to be operational (if not, patches welcome!).
+
 
 
 Relying on Rebar3
 -----------------
 
-Despite the kind support of the rebar3 authors and much time spent on its integration, sometimes our build based on it - for Myriad and the layers based on it - is broken, or lagging behind our native one.
+Despite the kind support of the rebar3 authors and much time spent on its integration, sometimes our build based on it - for Myriad and the layers based on it - has encountered issues or has been lagging behind our native one.
 
-Ultimately we expect all pending issues to be solved (rebar3 is a neat tool), yet being able to switch back to another lighter, ad-hoc, more controlled build system is sometimes a relief - at least a welcome security. So most of the time one could choose between these two build machineries.
 
-Nevertheless, as of end of 2020, after insisting a lot on using rebar3, we mainly switched back and relied on our own, native build system instead, so that we could concentrate on the code itself rather than on the build.
+.. comment Ultimately we expect all pending issues to be solved
 
-Since then the rebar3 support remains as it is (a priori at least mostly functional); maybe in the future we will reintroduce it as a native, possibly main, build option - but not today.
+Now we believe that all pending issues have been solved (rebar3 is a neat tool), yet being able to switch back to another lighter, ad-hoc, more controlled build system is sometimes a relief - at least a welcome security. Anyway the user can choose between these two (native vs rebar3) build machineries. As for us, we still prefer our native build system, even if it leaves to the developer the task of installing the needed prerequisites by him/herself.
+
+.. So most of the time one can choose between these two build machineries.
+
+.. Nevertheless, as of end of 2020, after insisting a lot on using rebar3, we mainly switched back and relied on our own, native build system instead, so that we could concentrate on the code itself rather than on the build.
+
+.. Since then the rebar3 support remains as it is (a priori at least mostly functional); maybe in the future we will reintroduce it as a native, possibly main, build option - but not today.
 
 
 ..
@@ -295,6 +312,7 @@ Quite similarly, to obtain a Ceylan-Myriad OTP *release* (`relx <https://github.
  $ make rebar3-release
 
 
+
 Hex Package
 -----------
 
@@ -307,6 +325,9 @@ Thanks to the rebar3 integration with the ``rebar3_hex`` plugin specified in Myr
 By following the publishing guidelines (`[1] <https://hex.pm/docs/rebar3_publish>`_, `[2] <https://www.rebar3.org/docs/publishing-packages>`_), we were able to publish `Hex packages for Myriad <https://hex.pm/packages/myriad>`_ that can be freely used. And there was much rejoicing!
 
 One just has to specify for example ``{deps,[myriad]}.`` in one's ``rebar.config``, and that's it.
+
+
+.. Note:: Finally our workflow does not rely on Hex, so we do not update the Hex packages anymore. Just drop us an email if needing a recent one.
 
 
 For more details, one may have a look at:
