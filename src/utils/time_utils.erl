@@ -164,7 +164,7 @@
 		  timestamp_to_seconds/0, timestamp_to_seconds/1,
 		  timestamp_to_weekday/1, date_to_weekday/1,
 		  local_to_universal_time/1, universal_to_local_time/1,
-		  offset_timestamp/2,
+		  offset_timestamp/2, next_month/1,
 		  get_duration/1, get_duration/2,
 		  get_duration_since/1,
 		  get_textual_duration/2, get_french_textual_duration/2,
@@ -417,7 +417,7 @@ get_fixed_bank_holidays_for( _Country=france ) ->
 % year included, stop one excluded).
 %
 -spec find_common_bank_holidays( year(), year(), country() ) ->
-									   [ date_in_year() ].
+										[ date_in_year() ].
 find_common_bank_holidays( StartYear, StopYear, Country ) ->
 	AccSet = set_utils:new( get_bank_holidays_for( StartYear, Country ) ),
 	find_common_bank_holidays_helper( StartYear+1, StopYear, Country, AccSet ).
@@ -1236,7 +1236,7 @@ timestamp_to_seconds( Timestamp ) ->
 % timestamp translated accordingly.
 %
 -spec offset_timestamp( timestamp(), dhms_duration() | seconds() ) ->
-							  timestamp().
+								timestamp().
 offset_timestamp( Timestamp, DHMS ) when is_tuple( DHMS ) ->
 	offset_timestamp( Timestamp, dhms_to_seconds( DHMS ) );
 
@@ -1248,6 +1248,20 @@ offset_timestamp( Timestamp, Duration ) -> % when is_integer( Duration )
 	NewSecs = calendar:datetime_to_gregorian_seconds( Timestamp ) + Duration,
 	calendar:gregorian_seconds_to_datetime( NewSecs ).
 
+
+
+% Returns the same timestamp as specified, except exactly one month later (hence
+% not translated of a fixed duration).
+%
+% Note that this may still lead to invalid date, if the specified month has more
+% days than the next (ex: January, 31 becoming then a nonsensical February, 31).
+%
+-spec next_month( timestamp() ) -> timestamp().
+next_month( _Timestamp={ { Y, _M=12, D }, Time } ) ->
+	{ { Y+1, 1, D }, Time };
+
+next_month( _Timestamp={ { Y, M, D }, Time } ) ->
+	{ { Y, M+1, D }, Time }.
 
 
 % Returns the (signed) duration in seconds corresponding to the specified time.
