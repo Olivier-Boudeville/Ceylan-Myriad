@@ -179,7 +179,7 @@ We use less frequently releases (we rely on a basic deployment procedure of our 
 Relying on Rebar3
 -----------------
 
-Despite the kind support of the rebar3 authors and much time spent on its integration, sometimes our build based on it - for Myriad and the layers based on it - has encountered issues or has been lagging behind our native one.
+Despite the kind support of the rebar3 authors and much time spent on its integration, sometimes our build based on it (for Myriad and the projects built on top of it) has encountered issues or has been lagging behind our native one.
 
 
 .. comment Ultimately we expect all pending issues to be solved
@@ -327,7 +327,7 @@ By following the publishing guidelines (`[1] <https://hex.pm/docs/rebar3_publish
 One just has to specify for example ``{deps,[myriad]}.`` in one's ``rebar.config``, and that's it.
 
 
-.. Note:: Finally our workflow does not rely on Hex, so we do not update the Hex packages anymore. Just drop us an email if needing a recent one.
+.. Note:: Finally our workflow does not rely on Hex, so we do not update the Hex packages anymore. Just drop us an email if needing an updated one.
 
 
 For more details, one may have a look at:
