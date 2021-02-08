@@ -20,5 +20,7 @@ These services tend to stay away from introducing any new dependency. Should a k
 
 As a consequence, for the `Ceylan <https://github.com/Olivier-Boudeville/Ceylan>`_ project, the first level of the Erlang-based software stack that we use relies on this ``Myriad`` layer - whose official, more specific name is the ``Ceylan-Myriad`` [#]_ layer.
 
+The project repository is located `here <https://github.com/Olivier-Boudeville/Ceylan-Myriad>`_.
+
 
 .. [#] It was formerly known as the ``Common`` layer.
