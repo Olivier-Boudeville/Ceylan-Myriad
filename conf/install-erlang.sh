@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2009-2019 Olivier Boudeville
+# Copyright (C) 2009-2021 Olivier Boudeville
 #
 # Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 #
@@ -43,18 +43,18 @@ erlang_version_candidate="23.1"
 erlang_md5_candidate="${erlang_md5_for_23_1}"
 
 
-plt_file="Erlang-$erlang_version.plt"
+plt_file="Erlang-${erlang_version}.plt"
 plt_link="Erlang.plt"
 
 
-MV=/bin/mv
-TAR=/bin/tar
-RM=/bin/rm
-LN=/bin/ln
-MKDIR=/bin/mkdir
+mv=/bin/mv
+tar=/bin/tar
+rm=/bin/rm
+ln=/bin/ln
+mkdir=/bin/mkdir
 
 
-usage="Usage: $(basename $0) [-h|--help] [-d|--doc-install] [-g|--generate-plt] [-n|--no-download] [-np|--no-patch] [-p|--previous] [<base install directory>]: downloads, patches, builds and installs a fresh $erlang_version Erlang version in specified base directory (if any), or in default directory, and in this case adds a symbolic link pointing to it from its parent directory so that Erlang-current-install always points to the latest installed version.
+usage="Usage: $(basename $0) [-h|--help] [-d|--doc-install] [-g|--generate-plt] [-n|--no-download] [-np|--no-patch] [-p|--previous] [<base install directory>]: downloads, patches, builds and installs a fresh ${erlang_version} Erlang version in specified base directory (if any), or in default directory, and in this case adds a symbolic link pointing to it from its parent directory so that Erlang-current-install always points to the latest installed version.
 
 Note that, if relevant archives are found in the current directory, they will be used, even if the user did not specify a 'no download' option.
 
@@ -77,10 +77,10 @@ Example:
 	will install latest available version of Erlang, with its documentation, in the ~/Software/Erlang directory, without downloading anything,
 	  - or -
   install-erlang.sh --doc-install ~/my-directory
-	will install current official stable version of Erlang ($erlang_version), with its documentation, in the ~/my-directory/Erlang/Erlang-${erlang_version} base directory, by downloading Erlang archives from the Internet
+	will install current official stable version of Erlang (${erlang_version}), with its documentation, in the ~/my-directory/Erlang/Erlang-${erlang_version} base directory, by downloading Erlang archives from the Internet
 	  - or -
   sudo install-erlang.sh
-	will install current official stable version of Erlang ($erlang_version) in /usr/local/ (i.e. system-wide)
+	will install current official stable version of Erlang (${erlang_version}) in /usr/local/ (i.e. system-wide)
 
 For Debian-based distributions, you should preferably run beforehand, as root: 'apt-get update && apt-get build-dep erlang && apt-get install g++ make libncurses5-dev openssl libssl-dev libwxgtk2.8-dev libgl1-mesa-dev libglu1-mesa-dev libpng3', otherwise for example the crypto, wx or observer modules might not be available or usable.
 "
@@ -136,11 +136,11 @@ build_user=$(id -un)
 set_wget()
 {
 
-	if [ -z "${wget}" ] ; then
+	if [ -z "${wget}" ]; then
 
 		wget=$(which wget)
 
-		if [ ! -x "${wget}" ] ; then
+		if [ ! -x "${wget}" ]; then
 
 			echo "  Error, no wget tool found, exiting." 1>&2
 			exit 10
@@ -157,27 +157,27 @@ set_wget()
 
 token_eaten=0
 
-while [ $token_eaten -eq 0 ] ; do
+while [ $token_eaten -eq 0 ]; do
 
 	read_parameter="$1"
 	#echo "read_parameter = $read_parameter"
 
 	token_eaten=1
 
-	if [ "$1" = "-h" -o "$1" = "--help" ] ; then
 
-		echo "$usage"
+	if [ "$1" = "-h" -o "$1" = "--help" ]; then
+
+		echo "${usage}"
 		exit
 
 	fi
 
 
-
-	if [ "$1" = "-p" -o "$1" = "--previous" ] ; then
+	if [ "$1" = "-p" -o "$1" = "--previous" ]; then
 
 		erlang_version="${erlang_version_candidate}"
 		erlang_md5="${erlang_md5_candidate}"
-		plt_file="Erlang-$erlang_version_candidate"
+		plt_file="Erlang-${erlang_version}_candidate"
 
 		echo "Warning: not installing the default version of Erlang currently supported, using candidate one, i.e. version ${erlang_version}." 1>&2
 
@@ -186,8 +186,7 @@ while [ $token_eaten -eq 0 ] ; do
 	fi
 
 
-
-	if [ "$1" = "-d" -o "$1" = "--doc-install" ] ; then
+	if [ "$1" = "-d" -o "$1" = "--doc-install" ]; then
 
 		echo "Will manage the corresponding documentation."
 		do_manage_doc=0
@@ -195,7 +194,8 @@ while [ $token_eaten -eq 0 ] ; do
 
 	fi
 
-	if [ "$1" = "-g" -o "$1" = "--generate-plt" ] ; then
+
+	if [ "$1" = "-g" -o "$1" = "--generate-plt" ]; then
 
 		echo "Will generate the PLT file $plt_file for Dialyzer."
 		do_generate_plt=0
@@ -203,7 +203,8 @@ while [ $token_eaten -eq 0 ] ; do
 
 	fi
 
-	if [ "$1" = "-n" -o "$1" = "--no-download" ] ; then
+
+	if [ "$1" = "-n" -o "$1" = "--no-download" ]; then
 
 		echo "No file will be downloaded."
 		do_download=1
@@ -212,7 +213,7 @@ while [ $token_eaten -eq 0 ] ; do
 	fi
 
 
-	if [ "$1" = "-np" -o "$1" = "--no-patch" ] ; then
+	if [ "$1" = "-np" -o "$1" = "--no-patch" ]; then
 
 		echo "No patch will be applied to the Erlang sources."
 		do_patch=1
@@ -220,7 +221,7 @@ while [ $token_eaten -eq 0 ] ; do
 
 	fi
 
-	if [ -n "$read_parameter" ] ; then
+	if [ -n "${read_parameter}" ]; then
 		shift
 	fi
 
@@ -232,7 +233,7 @@ done
 # user U is not allowed to execute 'XXX' as U on H."), so now we
 # execute sudo iff strictly necessary:
 #
-SUDO_CMD=""
+sudo_cmd=""
 
 
 # By default, the Erlang build tree will be removed:
@@ -241,13 +242,13 @@ do_remove_build_tree=0
 
 # Then check whether one parameter remains:
 
-if [ -z "$read_parameter" ] ; then
+if [ -z "${read_parameter}" ]; then
 
    # Here no base installation directory was specified:
 
-   if [ $(id -u) -eq 0 ] ; then
+   if [ $(id -u) -eq 0 ]; then
 
-	   if [ -z "${SUDO_USER}" ] ; then
+	   if [ -z "${SUDO_USER}" ]; then
 
 		   echo "Error, if this script is to be run as root, 'sudo' shall be used, so that build operations can be performed as a normal user (not with root privileges)." 1>&2
 		   exit 55
@@ -262,12 +263,12 @@ if [ -z "$read_parameter" ] ; then
 	   echo "Run as sudo root, thus using default system installation directory, falling back to user '${build_user}' for the operations that permit it."
 
 	   # So here sudo is a way to decrease, not increase, privileges:
-	   SUDO_CMD="sudo -u ${build_user}"
+	   sudo_cmd="sudo -u ${build_user}"
 
    else
 
 	   prefix="$HOME/Software/Erlang/Erlang-${erlang_version}"
-	   echo "Not run as root, thus using default installation directory '$prefix' (and user '${build_user}')."
+	   echo "Not run as root, thus using default installation directory '${prefix}' (and user '${build_user}')."
 
 	   # In this case the Erlang build tree will *not* be removed (as it is more
 	   # convenient for "more advanced" usage):
@@ -278,8 +279,8 @@ if [ -z "$read_parameter" ] ; then
 
 else
 
-	prefix="$read_parameter/Erlang/Erlang-${erlang_version}"
-	echo "Using '$prefix' as installation directory."
+	prefix="${read_parameter}/Erlang/Erlang-${erlang_version}"
+	echo "Using '${prefix}' as installation directory."
 
 fi
 
@@ -288,7 +289,7 @@ fi
 #echo "do_manage_doc = $do_manage_doc"
 #echo "do_generate_plt = $do_generate_plt"
 
-#echo "build_user=$build_user"
+#echo "build_user=${build_user}"
 
 
 erlang_src_prefix="otp_src_${erlang_version}"
@@ -304,7 +305,7 @@ erlang_doc_archive="${erlang_doc_prefix}.tar.gz"
 
 # Some early checkings:
 
-if [ ! -e "/usr/include/ncurses.h" ] ; then
+if [ ! -e "/usr/include/ncurses.h" ]; then
 
 	echo "  Error, the libncurses headers cannot be found, whereas they are needed for the build.
 Use for instance 'apt-get install libncurses5-dev' (other packages should preferably be also installed beforehand, refer to the help message displayed thanks to the -h option)." 1>&2
@@ -314,11 +315,11 @@ Use for instance 'apt-get install libncurses5-dev' (other packages should prefer
 fi
 
 
-if [ $do_patch -eq 0 ] ; then
+if [ $do_patch -eq 0 ]; then
 
 	patch_tool=$(which patch)
 
-	if [ ! -x "$patch_tool" ] ; then
+	if [ ! -x "${patch_tool}" ]; then
 
 		echo "  Error, the patching of the Erlang sources was requested, but the 'patch' utility cannot be found on this system. Either install it (ex: 'apt-get install patch') or use the --no-patch option." 1>&2
 
@@ -336,18 +337,18 @@ src_available=1
 doc_available=1
 
 
-if [ $do_download -eq 0 ] ; then
+if [ $do_download -eq 0 ]; then
 
 	# However we check it is not already available in the current directory:
-	if [ -f "$erlang_src_archive" ] ; then
+	if [ -f "${erlang_src_archive}" ]; then
 
-		if [ -x "${md5sum}" ] ; then
+		if [ -x "${md5sum}" ]; then
 
 			md5_res=$( ${md5sum} ${erlang_src_archive} )
 
 			computed_md5=$( echo ${md5_res}| awk '{printf $1}' )
 
-			if [ "${computed_md5}" = "${erlang_md5}" ] ; then
+			if [ "${computed_md5}" = "${erlang_md5}" ]; then
 
 				echo "MD5 sum for the Erlang source archive already locally available validated, not downloading the archive, using that version."
 				src_available=0
@@ -358,23 +359,23 @@ if [ $do_download -eq 0 ] ; then
 
 	fi
 
-	if [ -f "$erlang_doc_archive" ] ; then
+	if [ -f "${erlang_doc_archive}" ]; then
 
 		# MD5 checking fo doc not deemed useful:
 		doc_available=0
 
 	fi
 
-	if [ $src_available -eq 1 ] ; then
+	if [ $src_available -eq 1 ]; then
 
 		erlang_target_src_url="${erlang_download_location}/${erlang_src_archive}"
 
 
 		echo "Downloading now ${erlang_target_src_url}"
 		set_wget
-		${SUDO_CMD} ${wget} ${erlang_target_src_url} 1>/dev/null 2>&1
+		${sudo_cmd} ${wget} ${erlang_target_src_url} 1>/dev/null 2>&1
 
-		if [ ! $? -eq 0 ] ; then
+		if [ ! $? -eq 0 ]; then
 			echo "  Error while downloading ${erlang_target_src_url}, quitting." 1>&2
 			exit 15
 		fi
@@ -383,15 +384,15 @@ if [ $do_download -eq 0 ] ; then
 
 	erlang_target_doc_url="${erlang_download_location}/${erlang_doc_archive}"
 
-	if [ $do_manage_doc -eq 0 ] ; then
+	if [ $do_manage_doc -eq 0 ]; then
 
-		if [ $doc_available -eq 1 ] ; then
+		if [ $doc_available -eq 1 ]; then
 
 			echo "Downloading now ${erlang_target_doc_url}"
 			set_wget
-			${SUDO_CMD} ${wget} ${erlang_target_doc_url} 1>/dev/null 2>&1
+			${sudo_cmd} ${wget} ${erlang_target_doc_url} 1>/dev/null 2>&1
 
-			if [ ! $? -eq 0 ] ; then
+			if [ ! $? -eq 0 ]; then
 				echo "  Error while downloading ${erlang_target_doc_url}, quitting." 1>&2
 				exit 16
 			fi
@@ -402,7 +403,7 @@ if [ $do_download -eq 0 ] ; then
 
 else
 
-	if [ ! -f "${erlang_src_archive}" ] ; then
+	if [ ! -f "${erlang_src_archive}" ]; then
 
 		echo "  Error, Erlang source archive (${erlang_src_archive}) could not be found from current directory ($(pwd)), and no download was requested." 1>&2
 		exit 20
@@ -410,9 +411,9 @@ else
 	fi
 
 
-	if [ $do_manage_doc -eq 0 ] ; then
+	if [ $do_manage_doc -eq 0 ]; then
 
-		if [ ! -f "${erlang_doc_archive}" ] ; then
+		if [ ! -f "${erlang_doc_archive}" ]; then
 
 			echo "  Error, Erlang documentation archive (${erlang_doc_archive}) could not be found, and no download was requested." 1>&2
 			exit 21
@@ -424,8 +425,7 @@ fi
 
 
 
-
-if [ ! -x "${md5sum}" ] ; then
+if [ ! -x "${md5sum}" ]; then
 
 	echo "  Warning: no md5sum tool found, therefore MD5 code will not be checked."
 
@@ -435,7 +435,7 @@ else
 
 	computed_md5=$( echo ${md5_res}| awk '{printf $1}' )
 
-	if [ "${computed_md5}" = "${erlang_md5}" ] ; then
+	if [ "${computed_md5}" = "${erlang_md5}" ]; then
 		echo "MD5 sum for Erlang source archive matches."
 	else
 		echo "Error, MD5 sums not matching for Erlang source archive: expected '${erlang_md5}', computed '${computed_md5}'." 1>&2
@@ -455,22 +455,22 @@ fi
 #
 erlang_extracted_prefix=$( echo "${erlang_src_prefix}" | sed 's|-[0-9]*$||' | sed 's|\.[0-9]*-rc[0-9]*$||' )
 
-if [ $use_prefix -eq 0 ] ; then
+if [ $use_prefix -eq 0 ]; then
 
 	echo "Erlang version ${erlang_version} will be installed in ${prefix}."
 
-	${SUDO_CMD} ${MKDIR} -p ${prefix}
+	${sudo_cmd} ${mkdir} -p ${prefix}
 
 	# Removes any previous extracted directory, renamed or not:
-	if [ -e "${erlang_extracted_prefix}" ] ; then
+	if [ -e "${erlang_extracted_prefix}" ]; then
 
-		${SUDO_CMD} ${RM} -rf "${erlang_extracted_prefix}"
+		${sudo_cmd} ${rm} -rf "${erlang_extracted_prefix}"
 
 	fi
 
-	if [ -e "${erlang_src_prefix}" ] ; then
+	if [ -e "${erlang_src_prefix}" ]; then
 
-		${SUDO_CMD} ${RM} -rf "${erlang_src_prefix}"
+		${sudo_cmd} ${rm} -rf "${erlang_src_prefix}"
 
 	fi
 
@@ -481,26 +481,26 @@ else
 	# Nevertheless some cleaning is to be performed, otherwise Dialyzer may
 	# catch multiple versions of the same BEAM:
 	#
-	${RM} -rf /usr/local/lib/erlang
+	${rm} -rf /usr/local/lib/erlang
 
 fi
 
 
-${SUDO_CMD} ${TAR} xvzf ${erlang_src_archive}
+${sudo_cmd} ${tar} xvzf ${erlang_src_archive}
 
-if [ ! $? -eq 0 ] ; then
+if [ ! $? -eq 0 ]; then
 	echo "  Error while extracting ${erlang_src_archive}, quitting." 1>&2
 	exit 50
 fi
 
-initial_path=$( pwd )
+initial_path=$(pwd)
 
 # Corrects any extracted root directory, like 'R15B03' instead of 'R15B03-1':
-if [ ! -d "${erlang_src_prefix}" ] ; then
+if [ ! -d "${erlang_src_prefix}" ]; then
 
-	if [ -d "${erlang_extracted_prefix}" ] ; then
+	if [ -d "${erlang_extracted_prefix}" ]; then
 
-		${SUDO_CMD} ${MV} -f ${erlang_extracted_prefix} ${erlang_src_prefix}
+		${sudo_cmd} ${mv} -f ${erlang_extracted_prefix} ${erlang_src_prefix}
 
 	else
 
@@ -519,7 +519,7 @@ cd ${erlang_src_prefix}
 # Apparently not needed since Erlang 21.0, where 'infinity' is specified in
 # terms of time-out:
 #
-if [ $do_patch -eq 0 ] ; then
+if [ $do_patch -eq 0 ]; then
 
 	echo "Patching first the Erlang sources."
 
@@ -550,9 +550,9 @@ End-of-script
 
 	) > ceylan-auth.patch
 
-	${SUDO_CMD} $patch_tool -p0 < ceylan-auth.patch
+	${sudo_cmd} ${patch_tool} -p0 < ceylan-auth.patch
 
-	if [ ! $? -eq 0 ] ; then
+	if [ ! $? -eq 0 ]; then
 
 		echo "Error, the patching of Erlang sources (auth.erl) failed." 1>&2
 
@@ -560,7 +560,7 @@ End-of-script
 
 	fi
 
-	${SUDO_CMD} ${RM} -f ceylan-auth.patch
+	${sudo_cmd} ${rm} -f ceylan-auth.patch
 
 	cd ../../..
 
@@ -579,15 +579,15 @@ fi
 configure_opt="--enable-threads --enable-smp-support --enable-kernel-poll --enable-hipe"
 
 # Uncomment if building from a pre-Pentium4 computer:
-#configure_opt="$configure_opt --enable-ethread-pre-pentium4-compatibility enable_ethread_pre_pentium4_compatibilit=yes"
+#configure_opt="${configure_opt} --enable-ethread-pre-pentium4-compatibility enable_ethread_pre_pentium4_compatibilit=yes"
 
-if [ $use_prefix -eq 0 ] ; then
+if [ $use_prefix -eq 0 ]; then
 	prefix_opt="--prefix=${prefix}"
 fi
 
 echo "  Building Erlang environment..."
 
-if ! ${SUDO_CMD} ./configure ${configure_opt} ${prefix_opt} ; then
+if ! ${sudo_cmd} ./configure ${configure_opt} ${prefix_opt} ; then
 
 	echo "Configuration failed, exiting." 1>&2
 	exit 60
@@ -595,7 +595,7 @@ if ! ${SUDO_CMD} ./configure ${configure_opt} ${prefix_opt} ; then
 fi
 
 
-if ! ${SUDO_CMD} make ; then
+if ! ${sudo_cmd} make; then
 
 	echo "Build failed, exiting." 1>&2
 	exit 61
@@ -604,7 +604,7 @@ fi
 
 
 # No sudo here:
-if ! make install ; then
+if ! make install; then
 
 	echo "Installation failed, exiting." 1>&2
 	exit 62
@@ -615,10 +615,10 @@ fi
 echo "  Erlang successfully built and installed in ${prefix}."
 
 
-# More global than 'if [ $use_prefix -eq 0 ] ; then' so that most installs
+# More global than 'if [ $use_prefix -eq 0 ]; then' so that most installs
 # include these links:
 #
-if [ -n $prefix ] ; then
+if [ -n ${prefix} ]; then
 
 	# First, let's create a symbolic link so that this new version can be
 	# transparently used by emacs:
@@ -629,15 +629,15 @@ if [ -n $prefix ] ; then
 	# avoid having to update our ~/.emacs.d/init.el file whenever the 'tools'
 	# version changes:
 	#
-	${LN} -sf lib/tools-*/emacs
+	${ln} -sf lib/tools-*/emacs
 
 	# Same story so that the crashdump viewer can be found irrespective of the
 	# Erlang version:
 	#
-	${LN} -sf lib/observer-*/priv/bin/cdv
+	${ln} -sf lib/observer-*/priv/bin/cdv
 
 	# The same for JInterface:
-	${LN} -sf lib/jinterface-* jinterface
+	${ln} -sf lib/jinterface-* jinterface
 
 	# Then go again in the install (not source) tree to create the base link:
 	cd ${prefix}/..
@@ -645,22 +645,22 @@ if [ -n $prefix ] ; then
 	# Ex: we are in $HOME/Software/Erlang now.
 
 	# Sets as current:
-	if [ -e Erlang-current-install ] ; then
+	if [ -e "Erlang-current-install" ]; then
 
-		${RM} -f Erlang-current-install
+		${rm} -f Erlang-current-install
 
 	fi
 
-	${LN} -sf Erlang-${erlang_version} Erlang-current-install
+	${ln} -sf Erlang-${erlang_version} Erlang-current-install
 
 fi
 
 
-if [ $do_manage_doc -eq 0 ] ; then
+if [ $do_manage_doc -eq 0 ]; then
 
-	if [ $use_prefix -eq 0 ] ; then
+	if [ $use_prefix -eq 0 ]; then
 
-		cd $prefix/..
+		cd ${prefix}/..
 
 	else
 
@@ -673,20 +673,20 @@ if [ $do_manage_doc -eq 0 ] ; then
 
 	erlang_doc_root="Erlang-${erlang_version}-documentation"
 
-	if [ -e "${erlang_doc_root}" ] ; then
+	if [ -e "${erlang_doc_root}" ]; then
 
-		${RM} -rf "${erlang_doc_root}"
+		${rm} -rf "${erlang_doc_root}"
 
 	fi
 
-	${MKDIR} "${erlang_doc_root}"
+	${mkdir} "${erlang_doc_root}"
 
 	cd "${erlang_doc_root}"
 
-	${TAR} xvzf ${initial_path}/${erlang_doc_archive}
+	${tar} xvzf ${initial_path}/${erlang_doc_archive}
 
 
-	if [ ! $? -eq 0 ] ; then
+	if [ ! $? -eq 0 ]; then
 		echo "  Error while extracting ${erlang_doc_archive}, quitting." 1>&2
 		exit 70
 	fi
@@ -694,13 +694,13 @@ if [ $do_manage_doc -eq 0 ] ; then
 	cd ..
 
 	# Sets as current:
-	if [ -e Erlang-current-install ] ; then
+	if [ -e "Erlang-current-install" ]; then
 
-		${RM} -f Erlang-current-documentation
+		${rm} -f Erlang-current-documentation
 
 	fi
 
-	${LN} -sf ${erlang_doc_root} Erlang-current-documentation
+	${ln} -sf ${erlang_doc_root} Erlang-current-documentation
 
 	echo "Erlang documentation successfully installed."
 
@@ -708,9 +708,9 @@ fi
 
 
 
-if [ $do_remove_build_tree -eq 0 ] ; then
+if [ $do_remove_build_tree -eq 0 ]; then
 
-	${RM} -rf ${initial_path}/${erlang_src_prefix}
+	${rm} -rf ${initial_path}/${erlang_src_prefix}
 
 else
 
@@ -723,12 +723,12 @@ echo
 echo "The Erlang environment was successfully installed in ${prefix}."
 
 
-if [ $do_generate_plt -eq 0 ] ; then
+if [ $do_generate_plt -eq 0 ]; then
 
 	actual_plt_file="${prefix}/$plt_file"
 	actual_plt_link="${prefix}/$plt_link"
 
-	if [ $use_prefix -eq 1 ] ; then
+	if [ $use_prefix -eq 1 ]; then
 
 		prefix="/usr/local"
 
@@ -737,20 +737,20 @@ if [ $do_generate_plt -eq 0 ] ; then
 	dialyzer_exec="${prefix}/bin/dialyzer"
 	erlang_beam_root="${prefix}/lib/erlang"
 
-	cd $prefix
+	cd ${prefix}
 
 
-	if [ ! -x "$dialyzer_exec" ] ; then
+	if [ ! -x "${dialyzer_exec}" ]; then
 
-		echo "  Error, no executable dialyzer found (tried '$dialyzer_exec'), quitting." 1>&2
+		echo "  Error, no executable dialyzer found (tried '${dialyzer_exec}'), quitting." 1>&2
 		exit 75
 
 	fi
 
 
-	if [ ! -d "$erlang_beam_root" ] ; then
+	if [ ! -d "${erlang_beam_root}" ]; then
 
-		echo "  Error, root of Erlang BEAMs not found (tried '$erlang_beam_root'), quitting." 1>&2
+		echo "  Error, root of Erlang BEAMs not found (tried '${erlang_beam_root}'), quitting." 1>&2
 		exit 80
 
 	fi
@@ -758,22 +758,22 @@ if [ $do_generate_plt -eq 0 ] ; then
 
 	echo
 
-	#echo "Generating now a PLT file for that Erlang install (from $erlang_beam_root), in $actual_plt_file (using $dialyzer_exec). Note that this operation is generally quite long (ex: about one hour and a half)."
+	#echo "Generating now a PLT file for that Erlang install (from ${erlang_beam_root}), in ${actual_plt_file} (using ${dialyzer_exec}). Note that this operation is generally quite long (ex: about one hour and a half)."
 
 	# Less detailed:
-	echo "Generating now a PLT file for that Erlang install in $actual_plt_file. Note that this operation is generally quite long (ex: about one hour and a half)."
+	echo "Generating now a PLT file for that Erlang install in ${actual_plt_file}. Note that this operation is generally quite long (ex: about one hour and a half)."
 
 	# In R17.1, dialyzer is not able to dereference symlinks, so instead of
-	# generating with '--output_plt $actual_plt_file' and doing '${LN} -s
-	# $actual_plt_file $actual_plt_link' we proceed the other way round:
+	# generating with '--output_plt ${actual_plt_file}' and doing '${ln} -s
+	# ${actual_plt_file} ${actual_plt_link}' we proceed the other way round:
 
 	# No sudo, as PLT file might be in system tree:
-	$dialyzer_exec --build_plt -r $erlang_beam_root --output_plt $actual_plt_link
+	${dialyzer_exec} --build_plt -r ${erlang_beam_root} --output_plt ${actual_plt_link}
 	res=$?
 
-	if [ $res -eq 0 ] ; then
+	if [ $res -eq 0 ]; then
 		echo "The Erlang PLT file was successfully generated."
-	elif [ $res -eq 2 ] ; then
+	elif [ $res -eq 2 ]; then
 		echo "The Erlang PLT file was generated, but warnings were issued."
 	else
 		echo "  Error, the PLT generation failed (error code: $res)." 1>&2
@@ -782,7 +782,7 @@ if [ $do_generate_plt -eq 0 ] ; then
 
 	# To include a PLT without knowing the current Erlang version:
 	# (reversed symlink better than a copy)
-	${LN} -s $actual_plt_link $actual_plt_file
+	${ln} -s ${actual_plt_link} ${actual_plt_file}
 
 fi
 
