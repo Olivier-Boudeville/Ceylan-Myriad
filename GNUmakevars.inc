@@ -1398,7 +1398,7 @@ MYRIAD_REBAR_EXEC := $$(which rebar3 2>/dev/null)
 # (the initial '../'s are removed, as this variable will be evaluated from the
 # 'conf' directory)
 #
-MYRIAD_REBAR_FIRST_FILES = \"`echo $(patsubst ../%.beam,\"%.erl\",$(BOOTSTRAP_MODULES))|sed 's| |", "|g'`\"
+MYRIAD_REBAR_FIRST_FILES := \"`echo $(patsubst ../%.beam,\"%.erl\",$(BOOTSTRAP_MODULES))|sed 's| |", "|g'`\"
 
 
 # Transforming a recursively expanded variable into a simply expanded, otherwise

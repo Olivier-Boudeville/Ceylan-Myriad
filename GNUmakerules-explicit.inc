@@ -23,6 +23,8 @@
 			  rebar3-production-release rebar3-hide-unsupported-sources        \
 			  rebar3-restore-unsupported-sources                               \
 			  rebar3-compile-pre-hook rebar3-compile-post-hook                 \
+			  rebar3-bulletproof-compile-pre-hook                              \
+			  rebar3-bulletproof-compile-post-hook                             \
 			  rebar3-update rebar3-compile rebar3-create-tree                  \
 			  rebar3-populate-build-tree rebar3-create-app-file                \
 			  rebar3-copy-beams rebar3-clean rebar3-real-clean                 \
@@ -522,6 +524,21 @@ rebar3-compile-post-hook:
 	@echo "  rebar3 post-compile hook executed in $$(pwd), with the '$(MYRIAD_REBAR_PROFILE)' profile"
 
 
+
+# In some cases, notably when parse transforms are involved, reasonable, lighter
+# hooks will not suffice, and we have to opt for stronger solutions in order to
+# bypass the rebar3 logic as a whole (as much as possible):
+#
+rebar3-bulletproof-compile-pre-hook:
+	@echo "  rebar3 bullet-proof pre-compile hook executed in $$(pwd), with the '$(MYRIAD_REBAR_PROFILE)' profile, for $(PROJECT_NAME_FOR_REBAR)"
+	@$(MYRIAD_TOP)/conf/fix-rebar-compile-pre-hook.sh $(PROJECT_NAME_FOR_REBAR)
+
+
+rebar3-bulletproof-compile-post-hook:
+	@echo "  rebar3 bullet-proof post-compile hook executed in $$(pwd), with the '$(MYRIAD_REBAR_PROFILE)' profile, for $(PROJECT_NAME_FOR_REBAR)"
+	@$(MYRIAD_TOP)/conf/fix-rebar-compile-post-hook.sh $(PROJECT_NAME_FOR_REBAR)
+
+
 # By default, development releases, not production ones:
 rebar3-release: rebar3-development-release
 
@@ -586,7 +603,6 @@ rebar3-compile:
 # See for more information:
 # http://erlang.org/doc/design_principles/applications.html#directory-structure
 #
-
 # Note: we now create a symlink directly pointing to the real 'src' tree (most
 # probably useless, as rebar creates it by itself), instead of copying the
 # source files as a whole in the build tree. It is almost mandatory, as the URL
