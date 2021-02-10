@@ -72,6 +72,7 @@
 
 		  get_environment_prefix/1, get_actual_expression/2,
 		  get_environment_variable/1, set_environment_variable/2,
+		  add_path_for_executable_lookup/1, add_paths_for_executable_lookup/1,
 		  add_path_for_library_lookup/1, add_paths_for_library_lookup/1,
 		  get_environment/0, environment_to_string/0, environment_to_string/1,
 
@@ -1231,21 +1232,75 @@ set_environment_variable( VarName, VarValue ) ->
 
 
 
-% Adds specified directory to the system's library search paths (typically
-% LD_LIBRARY_PATH), in first position.
+% Adds the specified directory to the system's executable search paths
+% (typically the PATH environment variable), in first position.
 %
-% A relative path will be transformed into an absolute one first.
+% A relative path will be transformed into an absolute one (based on current
+% directory) first.
+%
+-spec add_path_for_executable_lookup( directory_path() ) -> void().
+add_path_for_executable_lookup( PathName ) ->
+	add_paths_for_executable_lookup( [ PathName ] ).
+
+
+% Adds the specified directories to the system's executable search paths
+% (typically (typically the PATH environment variable), in first position,
+% respecting the specified path order.
+%
+% Any relative path will be transformed into an absolute one (based on current
+% directory) first.
+%
+-spec add_paths_for_executable_lookup( [ directory_path() ] ) -> void().
+add_paths_for_executable_lookup( Paths ) ->
+	add_paths_for_executable_lookup( Paths, _Acc=[] ).
+
+
+add_paths_for_executable_lookup( _Paths=[], Acc ) ->
+
+	ExecOptVarName = "PATH",
+
+	BaseExecOpt = case get_environment_variable( ExecOptVarName ) of
+
+		false ->
+			[];
+
+		VarValue ->
+			[ VarValue ]
+
+	end,
+
+	ToJoin = lists:reverse( BaseExecOpt ++ Acc ),
+
+	NewExecOpt = text_utils:join( _Sep=":", ToJoin ),
+
+	set_environment_variable( ExecOptVarName, NewExecOpt );
+
+
+add_paths_for_executable_lookup( [ Path | T ], Acc ) ->
+
+	AbsPath = file_utils:ensure_path_is_absolute( Path ),
+
+	add_paths_for_executable_lookup( T, [ AbsPath | Acc ] ).
+
+
+
+% Adds the specified directory to the system's library search paths (typically
+% the LD_LIBRARY_PATH environment variable), in first position.
+%
+% A relative path will be transformed into an absolute one (based on current
+% directory) first.
 %
 -spec add_path_for_library_lookup( directory_path() ) -> void().
 add_path_for_library_lookup( PathName ) ->
 	add_paths_for_library_lookup( [ PathName ] ).
 
 
-
-% Adds specified directories to the system's library search paths (typically
-% LD_LIBRARY_PATH), in first position, respecting the specified path order.
+% Adds the specified directories to the system's library search paths (typically
+% the LD_LIBRARY_PATH environment variable), in first position, respecting the
+% specified path order.
 %
-% Any relative path will be transformed into an absolute one first.
+% Any relative path will be transformed into an absolute one (based on current
+% directory) first.
 %
 -spec add_paths_for_library_lookup( [ directory_path() ] ) -> void().
 add_paths_for_library_lookup( Paths ) ->
