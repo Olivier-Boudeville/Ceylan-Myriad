@@ -360,6 +360,7 @@ get_myriad_ast_transforms_for(
 	%
 	TokenTable = cond_utils:get_token_table_from( CompileOptTable ),
 
+	% Uncomment to see all known tokens:
 	%ast_utils:display_debug( "Token table:~n~s",
 	%						 [ ?table:to_string( TokenTable ) ] ),
 
