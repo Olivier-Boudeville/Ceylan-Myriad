@@ -1,5 +1,7 @@
 #!/bin/sh
 
+usage="Usage: $(basename $0) PROJECT_NAME [VERBOSE_MODE:0|1]"
+
 # Script defined for convenience and reliability.
 
 # Recreates a proper rebar3 landscape, based on our build, so that rebar3 will
@@ -14,6 +16,15 @@
 
 project_name="$1"
 
+# Not verbose by default (1):
+verbose=1
+#verbose=0
+
+if [ -n "$2" ]; then
+	verbose="$2"
+fi
+
+
 if [ -z "${project_name}" ]; then
 
 	echo "  Error, project name not set." 1>&2
@@ -23,7 +34,10 @@ if [ -z "${project_name}" ]; then
 fi
 
 echo "Fixing rebar pre-build for ${project_name}: building all first, from $(pwd)."
-#tree
+
+# 'tree' may not be available:
+[ $verbose -eq 1 ] || tree
+
 
 make -s all 2>/dev/null
 
@@ -123,7 +137,11 @@ if [ $fix_hdr -eq 0 ]; then
 
 	all_hdrs=$(find src test include -name '*.hrl' 2>/dev/null)
 
-	echo "  Copying all headers to ${target_hdr_dir}: ${all_hdrs}"
+	if [ $verbose -eq 0 ]; then
+		echo "  Copying all headers to ${target_hdr_dir}: ${all_hdrs}"
+	else
+		echo "  Copying all headers to ${target_hdr_dir}"
+	fi
 
 	for f in ${all_hdrs}; do
 		# We do not care if it is a copy of a file onto itself, a touch-like
@@ -159,7 +177,11 @@ if [ $fix_src -eq 0 ]; then
 
 	all_srcs=$(find src test -name '*.erl' 2>/dev/null)
 
-	echo "  Copying all sources to ${target_src_dir} then hiding the original ones: ${all_srcs}"
+	if [ $verbose -eq 0 ]; then
+		echo "  Copying all sources to ${target_src_dir} then hiding the original ones: ${all_srcs}"
+	else
+		echo "  Copying all sources to ${target_src_dir} then hiding the original ones"
+	fi
 
 	for f in ${all_srcs}; do
 		# We do not care if it is a copy of a file onto itself, a touch-like
@@ -195,7 +217,11 @@ if [ $fix_beam -eq 0 ]; then
 
 	all_beams=$(find src test -name '*.beam' 2>/dev/null)
 
-	echo "  Copying all BEAM files to ${target_beam_dir}: ${all_beams}"
+	if [ $verbose -eq 0 ]; then
+		echo "  Copying all BEAM files to ${target_beam_dir}: ${all_beams}"
+	else
+		echo "  Copying all BEAM files to ${target_beam_dir}"
+	fi
 
 	for f in ${all_beams}; do
 		/bin/cp -f $f ${target_beam_dir}
@@ -208,8 +234,7 @@ else
 fi
 
 
-echo "Final content for ${project_name} from $(pwd):"
-tree ${target_base_dir}
+[ $verbose -eq 1 ] || (echo "Final content for ${project_name} from $(pwd):" ; tree ${target_base_dir})
 
 
 echo "Rebar pre-build fixed for ${project_name}."
