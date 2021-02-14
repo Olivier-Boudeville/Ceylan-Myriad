@@ -18,11 +18,11 @@
 %
 % - at least currently we only focus on (regular) files, hence the counts for
 % directories and all other elements remain null
-%
+
 
 % Note that transferring a uniquified tree with scp may reintroduce duplicates
-% if the previous uniquification resulted in the then duplicates be replaced by
-% symlinks: scp will create a regular file for each symlink.
+% if the previous uniquification resulted in the then duplicates to be replaced
+% by symlinks: scp will create a regular file for each symlink.
 %
 % So prefer using rsync:
 % rsync --links
@@ -33,7 +33,7 @@
 
 
 % Version of this tool:
--define( merge_script_version, "0.0.5" ).
+-define( merge_script_version, "0.0.7" ).
 
 
 % Centralised:
@@ -53,11 +53,17 @@
 
 
 % Shorthands:
+
 -type count() :: basic_utils:count().
+
+-type ustring() :: text_utils:ustring().
+-type format_string() :: text_utils:format_string().
 
 -type sha1() :: executable_utils:sha1_sum().
 
 -type byte_size() :: system_utils:byte_size().
+
+-type set( T ) :: set_utils:set( T ).
 
 -type file_path() :: file_utils:file_path().
 -type bin_file_path() :: file_utils:bin_file_path().
@@ -107,7 +113,7 @@
 %
 -type sha1_table() :: table( sha1(), [ file_data() ] ).
 
-%-type sha1_set() :: set_utils:set( sha1() ).
+%-type sha1_set() :: set( sha1() ).
 
 % Pair entries of a sha1_table/0:
 -type sha1_entry() :: { sha1(), [ file_data() ] }.
@@ -149,10 +155,8 @@
 
 
 % As read from merge cache files:
-%
-% { file_entry, SHA1, Path, Size, Timestamp }
-%
--type file_info() :: { 'file_entry', pos_integer(), string(), pos_integer() }.
+-type file_info() :: { 'file_entry', SHA1 :: sha1(), Path :: file_path(),
+					   Size :: byte_size(), Timestamp :: posix_seconds() }.
 
 
 -record( user_state, {
@@ -198,6 +202,7 @@
 -include("spawn_utils.hrl").
 
 
+% Returns the usage help message.
 -spec get_usage() -> void().
 get_usage() ->
 	" Usage: following operations can be triggered: \n"
@@ -209,15 +214,15 @@ get_usage() ->
 	"  - '"?exec_name" -h' or '"?exec_name" --help'\n\n"
 	"   Ensures, for the first form, that all the changes in a possibly more up-to-date, \"newer\" tree (INPUT_TREE) are merged back to the reference tree (REFERENCE_TREE), from which the first tree may have derived. Once executed, only a refreshed, complemented reference tree will exist, as the input tree will have been removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
 	"   In the reference tree, in-tree duplicated content will be either kept as it is, or removed as a whole (to keep only one copy thereof), or replaced by symbolic links in order to keep only a single reference version of each actual content.\n"
-	"   At the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they have not changed. As a result, once a merge is done, the reference tree may contain an uniquified version of the union of the two specified trees, and the tree to scan will not exist anymore.\n\n"
+	"   At the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they have not changed. As a result, once a merge is done, the reference tree may contain an uniquified version of the union of the two specified trees, and the input tree will not exist anymore after the merge.\n\n"
 	"   For the second form (--scan option), the specified tree will simply be inspected for duplicates, and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
-	"   For the third form (--rescan option), an attempt to rebuild an updated '" ?merge_cache_filename "' file will be performed, computing only the checksum of the files that were not already referenced or whose timestamp or size changed.\n\n"
-	"   For the fourth form (--resync option), a rebuild even lighter than rescan of '" ?merge_cache_filename "' will be done, checking only sizes, and updating timestamps.\n\n"
-	"   For the fifth form (--uniquify option), the specified tree will be scanned first (see previous operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links), and once done a corresponding up-to-date '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
+	"   For the third form (--rescan option), an attempt to rebuild an updated '" ?merge_cache_filename "' file will be performed, computing only the checksum of the files that were not already referenced, or whose timestamp or size changed.\n\n"
+	"   For the fourth form (--resync option), a rebuild even lighter than the previous rescan of '" ?merge_cache_filename "' will be done, checking only sizes (not timestamps), and updating these timestamps.\n\n"
+	"   For the fifth form (--uniquify option), the specified tree will be scanned first (see the corresponding operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links), and once done a corresponding up-to-date '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
 	"   For the sixth form (-h or --help option), displays this help.\n\n"
 
 	"   Note that the --base-dir A_BASE_DIR option can be specified by the user to designate the base directory of all relative paths mentioned."
-	"   When a cache file is found, it can be either ignored (and thus recreated) or re-used, either as it is or after a weak check, where only file existence, sizes and timestamps are then verified.".
+	"   When a cache file is found, it can be either ignored (and thus recreated) or re-used, either as it is or after a weak check, where only file existence, sizes and timestamps are then verified (not checksums).".
 
 
 
@@ -235,14 +240,14 @@ run() ->
 -spec main( shell_utils:argument_table() ) -> void().
 main( ArgTable ) ->
 
-	%trace_utils:notice( "Running..." ),
+	%trace_bridge:notice( "Running..." ),
 
 	UIOptions = [ log_console ],
 	%UIOptions = [],
 
 	FilteredArgTable = ui:start( UIOptions, ArgTable ),
 
-	%trace_utils:debug_fmt( "Script-specific argument(s): ~s",
+	%trace_bridge:debug_fmt( "Script-specific argument(s): ~s",
 	%	   [ shell_utils:argument_table_to_string( FilteredArgTable ) ] ),
 
 	case list_table:has_entry( 'h', FilteredArgTable )
@@ -321,8 +326,7 @@ handle_reference_option( RefTreePath, ArgumentTable, BaseDir ) ->
 		{ undefined, NewArgumentTable } ->
 			InputString = text_utils:format(
 			  "no input tree specified; options were: ~s",
-			  [ shell_utils:argument_table_to_string(
-				  NewArgumentTable ) ] ),
+			  [ shell_utils:argument_table_to_string( NewArgumentTable ) ] ),
 			stop_on_option_error( InputString, 23 );
 
 		{ [ [] ], _NewArgumentTable } ->
@@ -333,7 +337,7 @@ handle_reference_option( RefTreePath, ArgumentTable, BaseDir ) ->
 		{ [ [ InputTreePath ] ], NewArgumentTable }
 		  when is_list( InputTreePath ) ->
 
-			%trace_utils:debug_fmt( "InputTreePath: ~p", [ InputTreePath ] ),
+			%trace_bridge:debug_fmt( "InputTreePath: ~p", [ InputTreePath ] ),
 
 			% RefTreePath is already vetted:
 			handle_merge_option( InputTreePath, RefTreePath, NewArgumentTable,
@@ -460,7 +464,6 @@ handle_neither_scan_options( ArgTable, BaseDir ) ->
 
 
 				{ UnexpectedUniqTreeOpts, _NoUniqArgTable } ->
-
 					UniqString = text_utils:format(
 						"unexpected uniquify tree options: ~p",
 						[ UnexpectedUniqTreeOpts ] ),
@@ -516,7 +519,7 @@ handle_scan_option( UserScanTreePath, ScanArgTable, BaseDir ) ->
 handle_rescan_option( UserRescanTreePath, RescanArgTable, BaseDir ) ->
 
 	AbsRescanTreePath =
-		file_utils:ensure_path_is_absolute( UserRescanTreePath,	BaseDir ),
+		file_utils:ensure_path_is_absolute( UserRescanTreePath, BaseDir ),
 
 	check_no_option_remains( RescanArgTable ),
 
@@ -883,18 +886,18 @@ perform_rescan( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 	FilteredBinFiles = text_utils:strings_to_binaries( FilteredFiles ),
 
 	rescan_files( _FileSet=set_utils:from_list( FilteredBinFiles ),
-				  table:enumerate( ReadTreeData#tree_data.entries ),
-				  ReadTreeData, BinTreePath, AnalyzerRing, CacheTimestamp,
-				  _Notifications=[], UserState ).
+		table:enumerate( ReadTreeData#tree_data.entries ), ReadTreeData,
+		BinTreePath, AnalyzerRing, CacheTimestamp, _Notifications=[],
+		UserState ).
 
 
 
 % Rescans specified content files, using for that the specified analyzers,
 % returning the corresponding tree data.
 %
--spec rescan_files( set_utils:set( bin_file_path() ), [ sha1_entry() ],
+-spec rescan_files( set( bin_file_path() ), [ sha1_entry() ],
 		tree_data(), bin_directory_path(), analyzer_ring(), posix_seconds(),
-		[ string() ], user_state() ) -> { tree_data(), [ string() ] }.
+		[ ustring() ], user_state() ) -> { tree_data(), [ ustring() ] }.
 % All known entries exhausted; maybe extra files were in the filesystem:
 rescan_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
 			  _CacheTimestamp, Notifications, UserState ) ->
@@ -956,8 +959,7 @@ rescan_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
 
 % Extracting next recorded file_data elements:
 rescan_files( FileSet, _Entries=[ { SHA1, FileDatas } | T ], TreeData,
-			  BinTreePath, AnalyzerRing, CacheTimestamp, Notifications,
-			  UserState ) ->
+		BinTreePath, AnalyzerRing, CacheTimestamp, Notifications, UserState ) ->
 
 	% Not using a ring for punctual updates:
 	{ NewFileSet, NewTreeData, ExtraNotifications } =
@@ -1009,10 +1011,9 @@ integrate_extra_files(
 % more recent than cache filename, and of the same size as referenced.
 %
 check_file_datas_for_scan( _FileDatas=[], SHA1, FileSet,
-						   TreeData=#tree_data{ entries=PrevEntries,
-												file_count=PrevFileCount },
-						   _BinTreePath, FileDatas, ExtraNotifications,
-						   _UserState ) ->
+		TreeData=#tree_data{ entries=PrevEntries,
+							 file_count=PrevFileCount },
+		_BinTreePath, FileDatas, ExtraNotifications, _UserState ) ->
 
 	NewEntryCount = length( FileDatas ),
 
@@ -1028,7 +1029,7 @@ check_file_datas_for_scan( _FileDatas=[], SHA1, FileSet,
 
 	NewEntries = lists:foldl(
 		fun( FD=#file_data{ sha1_sum=ThisSHA1 }, AccEntries ) ->
-				table:append_to_entry( ThisSHA1, FD, AccEntries )
+			table:append_to_entry( ThisSHA1, FD, AccEntries )
 		end,
 		_Acc0=WipedEntries,
 		_List=FileDatas ),
@@ -1145,8 +1146,7 @@ check_file_datas_for_scan( _FileDatas=[
 % Resyncs specified tree (as an absolution directory), returning the
 % corresponding datastructure.
 %
--spec resync( file_utils:directory_name(), analyzer_ring(), user_state() ) ->
-					tree_data().
+-spec resync( directory_path(), analyzer_ring(), user_state() ) -> tree_data().
 resync( TreePath, AnalyzerRing, UserState ) ->
 
 	% TreePath expected to be already absolute and normalised.
@@ -1299,18 +1299,17 @@ perform_resync( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 	FilteredBinFiles = text_utils:strings_to_binaries( FilteredFiles ),
 
 	resync_files( _FileSet=set_utils:from_list( FilteredBinFiles ),
-				  table:enumerate( ReadTreeData#tree_data.entries ),
-				  ReadTreeData, BinTreePath, AnalyzerRing, _Notifications=[],
-				  UserState ).
+		table:enumerate( ReadTreeData#tree_data.entries ), ReadTreeData,
+		BinTreePath, AnalyzerRing, _Notifications=[], UserState ).
 
 
 
 % Resyncs specified content files, using for that the specified analyzers,
 % returning the corresponding tree data.
 %
--spec resync_files( set_utils:set( bin_file_path() ), [ sha1_entry() ],
-		tree_data(), bin_directory_path(), analyzer_ring(),
-		[ string() ], user_state() ) -> { tree_data(), [ string() ] }.
+-spec resync_files( set( bin_file_path() ), [ sha1_entry() ],
+		tree_data(), bin_directory_path(), analyzer_ring(), [ ustring() ],
+		user_state() ) -> { tree_data(), [ ustring() ] }.
 % All known entries exhausted; maybe extra files were in the filesystem:
 resync_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
 			  Notifications, UserState ) ->
@@ -1376,8 +1375,7 @@ resync_files( FileSet, _Entries=[ { SHA1, FileDatas } | T ], TreeData,
 	% Not using a ring for punctual updates:
 	{ NewFileSet, NewTreeData, ExtraNotifications } =
 		check_file_datas_for_sync( FileDatas, SHA1, FileSet, TreeData,
-				BinTreePath, _NewFileDatas=[], _ExtraNotifications=[],
-				UserState ),
+			BinTreePath, _NewFileDatas=[], _ExtraNotifications=[], UserState ),
 
 	resync_files( NewFileSet, T, NewTreeData, BinTreePath, AnalyzerRing,
 				  ExtraNotifications ++ Notifications, UserState ).
@@ -1447,8 +1445,7 @@ check_file_datas_for_sync( _FileDatas=[
 
 			% Let's forget this file_data then:
 			check_file_datas_for_sync( T, SHA1, FileSet, TreeData, BinTreePath,
-							FileDatas, [ NewNotif | ExtraNotifications ],
-							UserState );
+				FileDatas, [ NewNotif | ExtraNotifications ], UserState );
 
 		% Here the iterated file still exists as a regular one, let's check
 		% whether the size information is still valid (timestamp not taken into
@@ -1484,7 +1481,7 @@ check_file_datas_for_sync( _FileDatas=[
 						timestamp=file_utils:get_last_modification_time(
 									FullPath ),
 						sha1_sum=executable_utils:compute_sha1_sum(
-								   FullPath ) },
+									FullPath ) },
 
 							{ NewFileData, [ NewNotif | ExtraNotifications ] }
 
@@ -1592,8 +1589,8 @@ uniquify( TreePath ) ->
 -spec merge( directory_path(), directory_path() ) -> void().
 merge( InputTreePath, ReferenceTreePath ) ->
 
-	%trace_utils:debug_fmt( "Requested to merge '~s' into '~s'.",
-	%					   [ InputTreePath, ReferenceTreePath ] ),
+	%trace_bridge:debug_fmt( "Requested to merge '~s' into '~s'.",
+	%						[ InputTreePath, ReferenceTreePath ] ),
 
 	% Prepare for various outputs:
 	UserState = start_user_service( ?default_log_filename ),
@@ -1832,7 +1829,7 @@ merge_trees( InputTree=#tree_data{ root=BinInputRootDir,
 % Purges specified tree from specified content, removing it from the filesystem
 % and returning the corresponding, updated, tree data.
 %
--spec purge_tree_from( tree_data(), set_utils:set( sha1() ), user_state() ) ->
+-spec purge_tree_from( tree_data(), set( sha1() ), user_state() ) ->
 								tree_data().
 purge_tree_from( Tree=#tree_data{ root=BinRootDir,
 								  entries=Entries,
@@ -2105,7 +2102,7 @@ smart_move_to( SourceDir, SourceRelPath, TargetRootDir, UserState ) ->
 % merged in the reference content, and how.
 %
 -spec cherry_pick_content_to_merge( [ sha1() ], directory_path(), sha1_table(),
-		   directory_path(), sha1_table(), directory_path(), user_state() ) ->
+			directory_path(), sha1_table(), directory_path(), user_state() ) ->
 											sha1_table().
 cherry_pick_content_to_merge( ToPick, InputRootDir, InputEntries,
 				  ReferenceRootDir, ReferenceEntries, TargetDir, UserState ) ->
@@ -2118,8 +2115,8 @@ cherry_pick_content_to_merge( ToPick, InputRootDir, InputEntries,
 					{ abort, "Abort merge" } ],
 
 	cherry_pick_files( ToPick, InputRootDir, InputEntries, ReferenceRootDir,
-					   ReferenceEntries, TargetDir, PickChoices, _Count=1,
-					   TotalContentCount, UserState ).
+		ReferenceEntries, TargetDir, PickChoices, _Count=1, TotalContentCount,
+		UserState ).
 
 
 
@@ -2142,8 +2139,8 @@ cherry_pick_files( _ToPick=[], InputRootDir, _InputEntries, _ReferenceRootDir,
 
 
 cherry_pick_files( ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
-				   ReferenceRootDir, ReferenceEntries, TargetDir, PickChoices,
-				   Count, TotalContentCount, UserState ) ->
+		ReferenceRootDir, ReferenceEntries, TargetDir, PickChoices,
+		Count, TotalContentCount, UserState ) ->
 
 	% In all cases all files for this SHA1 shall be removed from input tree:
 
@@ -2234,7 +2231,7 @@ cherry_pick_files( ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 					safe_move( Source, Target ),
 
 					ToRemoveFullPaths = [ file_utils:join( InputRootDir, P )
-										  || P <- ToRemovePaths ],
+											|| P <- ToRemovePaths ],
 
 					file_utils:remove_files( ToRemoveFullPaths ),
 
@@ -2253,7 +2250,7 @@ cherry_pick_files( ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 					DelPrompt = text_utils:format( "Really delete following "
 						"files from input directory '~s', losing their (unique)"
 						" corresponding content? ~s", [ InputRootDir,
-							 text_utils:binaries_to_string( ContentPaths ) ] ),
+							text_utils:binaries_to_string( ContentPaths ) ] ),
 
 					case ui:ask_yes_no( DelPrompt ) of
 
@@ -2284,8 +2281,8 @@ cherry_pick_files( ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 	end,
 
 	cherry_pick_files( T, InputRootDir, InputEntries,
-					   ReferenceRootDir, NewReferenceEntries, TargetDir,
-					   PickChoices, Count + 1, TotalContentCount, UserState ).
+		ReferenceRootDir, NewReferenceEntries, TargetDir, PickChoices, Count+1,
+		TotalContentCount, UserState ).
 
 
 
@@ -2400,7 +2397,7 @@ get_file_count_from( SHA1Table ) ->
 -spec start_user_service( file_path() ) -> user_state().
 start_user_service( LogFilename ) ->
 
-	%trace_utils:debug_fmt( "Logs will be written to '~s'.", [ LogFilename ] ),
+	%trace_bridge:debug_fmt( "Logs will be written to '~s'.", [ LogFilename ] ),
 
 	% We append to the log file (not resetting it), if it already exists:
 	% (no delayed_write, to avoid missing logs when halting on error)
@@ -2418,7 +2415,7 @@ start_user_service( LogFilename ) ->
 
 
 % Displays (if set so) and logs specified text.
--spec trace( string(), user_state() ) -> user_state().
+-spec trace( ustring(), user_state() ) -> user_state().
 trace( Message, UserState=#user_state{ log_file=LogFile } ) ->
 	file_utils:write( LogFile, Message ++ "\n" ),
 	ui:trace( Message ),
@@ -2427,7 +2424,7 @@ trace( Message, UserState=#user_state{ log_file=LogFile } ) ->
 
 
 % Displays (if set so) and logs specified formatted text.
--spec trace( text_utils:format_string(), [ term() ], user_state() ) ->
+-spec trace( format_string(), [ term() ], user_state() ) ->
 				   user_state().
 trace( FormatString, Values, UserState=#user_state{ log_file=LogFile } ) ->
 	Msg = text_utils:format( FormatString, Values ),
@@ -2438,15 +2435,14 @@ trace( FormatString, Values, UserState=#user_state{ log_file=LogFile } ) ->
 
 
 % Logs specified debug text.
--spec trace_debug( string(), user_state() ) -> user_state().
+-spec trace_debug( ustring(), user_state() ) -> user_state().
 trace_debug( Message, UserState=#user_state{ log_file=LogFile } ) ->
 	file_utils:write( LogFile, Message ++ "\n" ),
 	UserState.
 
 
 % Logs specified debug formatted text.
--spec trace_debug( text_utils:format_string(), [ term() ], user_state() ) ->
-				   user_state().
+-spec trace_debug( format_string(), [ term() ], user_state() ) -> user_state().
 trace_debug( FormatString, Values,
 			 UserState=#user_state{ log_file=LogFile } ) ->
 	Msg = text_utils:format( FormatString, Values ),
@@ -2456,7 +2452,7 @@ trace_debug( FormatString, Values,
 
 
 % Stops user-related services.
--spec stop_user_service( user_state() ) -> basic_utils:void().
+-spec stop_user_service( user_state() ) -> void().
 stop_user_service( UserState=#user_state{ log_file=LogFile } ) ->
 
 	trace_debug( "Stopping user service.", UserState ),
@@ -2649,8 +2645,8 @@ update_content_tree( TreePath, AnalyzerRing, UserState ) ->
 
 	end,
 
-	%trace_utils:debug_fmt( "MaybeTreeData: ~s",
-	%					   [ type_utils:interpret_type_of( MaybeTreeData ) ] ),
+	%trace_bridge:debug_fmt( "MaybeTreeData: ~s",
+	%						[ type_utils:interpret_type_of( MaybeTreeData ) ] ),
 
 	case MaybeTreeData of
 
@@ -2677,7 +2673,7 @@ find_newest_timestamp_from( RootPath, CacheFilePath ) ->
 	ActualFileRelPaths = list_utils:delete_existing( CacheFilename,
 		 file_utils:find_regular_files_from( RootPath ) ),
 
-	%trace_utils:debug_fmt( "ActualFileRelPaths = ~p", [ ActualFileRelPaths ] ),
+	%trace_bridge:debug_fmt( "ActualFileRelPaths: ~p", [ ActualFileRelPaths ] ),
 
 	MaybeTimestamp = case ActualFileRelPaths of
 
@@ -2998,8 +2994,8 @@ wait_entries( TreeData, WaitedCount ) ->
 			wait_entries( NewTreeData, WaitedCount-1 );
 
 		{ file_disappeared, _BinFilePath } ->
-			%trace_utils:debug_fmt( "File '~s' reported as having disappeared.",
-			%					   [ BinFilePath ] ),
+			%trace_bridge:debug_fmt( "File '~s' reported as having "
+			%   "disappeared.", [ BinFilePath ] ),
 			wait_entries( TreeData, WaitedCount-1 )
 
 	end.
@@ -3010,7 +3006,7 @@ wait_entries( TreeData, WaitedCount ) ->
 -spec analyze_loop() -> void().
 analyze_loop() ->
 
-	%trace_utils:debug_fmt( "Analyzer ~w waiting...", [ self() ] ),
+	%trace_bridge:debug_fmt( "Analyzer ~w waiting...", [ self() ] ),
 
 	receive
 
@@ -3023,7 +3019,7 @@ analyze_loop() ->
 
 			FilePath = file_utils:join( AbsTreePath, RelativeFilename ),
 
-			%trace_utils:debug_fmt( "Analyzer ~w taking in charge '~s'...",
+			%trace_bridge:debug_fmt( "Analyzer ~w taking in charge '~s'...",
 			%						[ self(), FilePath ] ),
 
 			case file_utils:is_existing_file( FilePath ) of
@@ -3035,7 +3031,7 @@ analyze_loop() ->
 					   type=file_utils:get_type_of( FilePath ),
 					   size=file_utils:get_size( FilePath ),
 					   timestamp=file_utils:get_last_modification_time(
-								   FilePath ),
+									FilePath ),
 					   sha1_sum=executable_utils:compute_sha1_sum( FilePath ) },
 
 					SenderPid ! { file_analyzed, FileData },
@@ -3046,12 +3042,12 @@ analyze_loop() ->
 
 						true ->
 							Type = file_utils:get_type_of( FilePath ),
-							trace_utils:notice_fmt( "The type of entry '~s' "
+							trace_bridge:notice_fmt( "The type of entry '~s' "
 								"switched from regular (file) to ~s.",
 								[ FilePath, Type ] );
 
 						false ->
-							trace_utils:notice_fmt( "The file '~s' does not "
+							trace_bridge:notice_fmt( "The file '~s' does not "
 								"exist anymore.", [ FilePath ] )
 
 					end,
@@ -3072,7 +3068,7 @@ analyze_loop() ->
 
 			FilePath = file_utils:join( AbsTreePath, RelativeFilename ),
 
-			%trace_utils:debug_fmt( "Analyzer ~w checking '~s'...",
+			%trace_bridge:debug_fmt( "Analyzer ~w checking '~s'...",
 			%					   [ self(), FilePath ] ),
 
 			FileData = #file_data{
@@ -3089,7 +3085,7 @@ analyze_loop() ->
 
 
 		terminate ->
-			%trace_utils:debug_fmt( "Analyzer ~w terminated.", [ self() ] ),
+			%trace_bridge:debug_fmt( "Analyzer ~w terminated.", [ self() ] ),
 			ok
 
 	end.
@@ -3225,7 +3221,7 @@ filter_duplications( _SHA1Entries=[ SHA1Entry | T ],
 
 % Processes the spotted duplications by asking the user.
 -spec process_duplications( [ sha1_entry() ], count(), sha1_table(),
-	bin_directory_path(), user_state() ) -> { sha1_table(), count() }.
+			bin_directory_path(), user_state() ) -> { sha1_table(), count() }.
 process_duplications( DuplicationCases, TotalDupCaseCount, UniqueTable,
 					  BinRootDir, UserState ) ->
 
@@ -3250,16 +3246,15 @@ process_duplications_helper( _DupCases=[], _TotalDupCount,
 	{ AccTable, AccRemoveCount };
 
 process_duplications_helper( _DupCases=[ { Sha1Key, DuplicateList } | T ],
-							 TotalDupCount,
-							 _Acc={ AccTable, AccDupCount, AccRemoveCount },
-							 BinRootDir, UserState ) ->
+		TotalDupCount, _Acc={ AccTable, AccDupCount, AccRemoveCount },
+		BinRootDir, UserState ) ->
 
 	Size = check_duplicates( Sha1Key, DuplicateList ),
 
 	% Returns an updated table and a list of the files containing that content:
 	{ NewAccTable, RemainingFileEntries } = case manage_duplication_case(
-						DuplicateList, AccDupCount, TotalDupCount, Size,
-						BinRootDir, UserState ) of
+			DuplicateList, AccDupCount, TotalDupCount, Size, BinRootDir,
+			UserState ) of
 
 		[] ->
 			{ table:remove_entry( Sha1Key, AccTable ), [] };
@@ -3315,7 +3310,7 @@ check_duplicates( SHA1Sum, FirstPath, Size, _DuplicateList=[
 % Returns the (regular) files that remain for that content.
 %
 -spec manage_duplication_case( [ file_data() ], count(), count(),
-	byte_size(), bin_directory_path(), user_state() ) -> [ file_data() ].
+		byte_size(), bin_directory_path(), user_state() ) -> [ file_data() ].
 manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 						 Size, BinRootDir, UserState ) ->
 
@@ -3324,7 +3319,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 	PathStrings = lists:sort( [ text_utils:binary_to_string( E#file_data.path )
 								|| E <- FileEntries ] ),
 
-	%trace_utils:debug_fmt( "PathStrings = ~p", [ PathStrings ] ),
+	%trace_bridge:debug_fmt( "PathStrings = ~p", [ PathStrings ] ),
 
 	% As we do not want a common prefix to include any basename:
 	Dirnames = [ file_utils:get_base_path( P ) || P <- PathStrings ],
@@ -3367,12 +3362,12 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 	end,
 
-	%trace_utils:debug_fmt( "ShortenPaths = ~p", [ ShortenPaths ] ),
+	%trace_bridge:debug_fmt( "ShortenPaths = ~p", [ ShortenPaths ] ),
 
 	DuplicateString = text_utils:format( ": ~s",
 		[ text_utils:strings_to_string( ShortenPaths, ?bullet_point ) ] ),
 
-	%trace_utils:debug_fmt( "DuplicateString = ~p", [ DuplicateString ] ),
+	%trace_bridge:debug_fmt( "DuplicateString = ~p", [ DuplicateString ] ),
 
 	FullPrompt = Prompt ++ DuplicateString,
 
@@ -3409,7 +3404,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 			trace_debug( "Kept only reference file '~s'", [ KeptFilePath ],
 						 UserState ),
 
-			%trace_utils:debug_fmt( "Entries to scan: ~p", [ FileEntries ] ),
+			%trace_bridge:debug_fmt( "Entries to scan: ~p", [ FileEntries ] ),
 
 			% As this is a list of file_data:
 			[ find_data_entry_for( KeptFilePath, FileEntries ) ];
@@ -3491,7 +3486,7 @@ auto_dedup( _DuplicationCases=[], AccTable, AccRemoveCount, _BinRootDir,
 auto_dedup( _DuplicationCases=[ { Sha1Key, DuplicateList } | T ], AccTable,
 			AccRemoveCount, BinRootDir, UserState ) ->
 
-	% [ { count(), file_path(), file_data() } ] (ties are broken by second
+	% [ {count(), file_path(), file_data()} ] (ties are broken by second
 	% element of each triplet, the string path):
 	%
 	SortedTriplets = lists:sort( [
@@ -3553,7 +3548,7 @@ find_data_entry_for( FilePath, _FileEntries=[ _FD | T ] ) ->
 % Selects among the specified files the single one that shall be kept while the
 % others are removed, and returns its filename as a binary.
 %
--spec keep_only_one( string(), [ file_path() ], [ file_path() ],
+-spec keep_only_one( ustring(), [ file_path() ], [ file_path() ],
 					 bin_directory_path(), user_state() ) -> bin_file_path().
 keep_only_one( Prefix, TrimmedPaths, PathStrings, BinRootDir, UserState ) ->
 
@@ -3609,7 +3604,7 @@ keep_only_one( Prefix, TrimmedPaths, PathStrings, BinRootDir, UserState ) ->
 % kept, while the others are removed and replaced by symlinks pointing to that
 % file, and returns it as a binary.
 %
--spec elect_and_link( string(), [ file_path() ], [ file_path() ],
+-spec elect_and_link( ustring(), [ file_path() ], [ file_path() ],
 					  bin_directory_path(), user_state() ) -> bin_file_path().
 elect_and_link( Prefix, TrimmedPaths, PathStrings, BinRootDir, UserState ) ->
 
@@ -3716,7 +3711,7 @@ quick_cache_check( CacheFilename, ContentFiles, TreePath, AnalyzerRing,
 quick_cache_check_helper( ContentFiles, ActualTreePath, CachedTreePath,
 						  FileInfos, AnalyzerRing, UserState ) ->
 
-	%trace_utils:debug_fmt( "ActualTreePath = ~s, CachedTreePath = ~s.",
+	%trace_bridge:debug_fmt( "ActualTreePath = ~s, CachedTreePath = ~s.",
 	%					   [ ActualTreePath, CachedTreePath ] ),
 
 	AbsActualTreePath =
@@ -3956,7 +3951,7 @@ display_tree_data( TreeData=#tree_data{ entries=EntryTable,
 						[ ContentCount, FileCount, DupCount ] );
 
 				false ->
-					trace_utils:error_fmt(
+					trace_bridge:error_fmt(
 					  "~B files, ~B contents, abnormal: ~s",
 					  [ FileCount, ContentCount,
 						tree_data_to_string( TreeData ) ] ),
@@ -3975,7 +3970,7 @@ display_tree_data( TreeData=#tree_data{ entries=EntryTable,
 
 
 % Returns a textual description of specified tree data.
--spec tree_data_to_string( tree_data() ) -> string().
+-spec tree_data_to_string( tree_data() ) -> ustring().
 tree_data_to_string( TreeData ) ->
 	tree_data_to_string( TreeData, _Verbose=false ).
 
@@ -3984,7 +3979,7 @@ tree_data_to_string( TreeData ) ->
 % Returns a textual description of specified tree data, with specified
 % verbosity.
 %
--spec tree_data_to_string( tree_data(), boolean() ) -> string().
+-spec tree_data_to_string( tree_data(), boolean() ) -> ustring().
 tree_data_to_string( #tree_data{ root=BinRootDir,
 								 entries=Table,
 								 file_count=FileCount,
@@ -3996,9 +3991,8 @@ tree_data_to_string( #tree_data{ root=BinRootDir,
 
 	% Only looking for files:
 	%text_utils:format( "tree '~s' having ~B entries (~B files, ~B directories,"
-	%				   " ~B symbolic links)",
-	%				   [ BinRootDir, table:size( Table ), FileCount, DirCount,
-	%					 SymlinkCount ] ).
+	%  " ~B symbolic links)",
+	%  [ BinRootDir, table:size( Table ), FileCount, DirCount, SymlinkCount ] ).
 
 	case table:size( Table ) of
 
@@ -4036,7 +4030,7 @@ tree_data_to_string( TreeData, _Verbose=true ) ->
 
 
 % Returns a textual description of specified file data.
--spec file_data_to_string( file_data() ) -> string().
+-spec file_data_to_string( file_data() ) -> ustring().
 file_data_to_string( #file_data{ path=Path,
 								 size=Size,
 								 timestamp=Timestamp,
