@@ -753,7 +753,7 @@ run_executable( Command, Environment, MaybeWorkingDir, PortOptions ) ->
 
 	end,
 
-	% Not spawn_executable, so command may include arguments:
+	% Not spawn_executable, so that command may include arguments:
 	Port = open_port( { spawn, Command }, PortOptsWithPath ),
 
 	%trace_utils:debug_fmt( "Spawned port ~p for command '~s'.",
