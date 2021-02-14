@@ -580,7 +580,8 @@ try_next_locations( AppName, AppNameStr, AppFilename, DepEBinDir, DepAppPath,
 									  "not found in any of the supported "
 									  "locations.", [ AppName ] ),
 									throw( { application_not_found, AppName,
-											 AbsBaseDir } );
+										text_utils:ensure_string( AbsBaseDir )
+										   } );
 
 								AbsStdPath ->
 									StdEbinDir = file_utils:join( AbsStdPath,
