@@ -35,10 +35,9 @@
 % no change of source code to be operated on that software.
 %
 % It is useful to provide native, integrated, higher-level logging to basic
-% libraries (ex: LEEC, see
-% https://github.com/Olivier-Boudeville/letsencrypt-erlang), should their user
-% require it - while being able to remain lean and mean if wanted (e.g while
-% keeping the dependency to Ceylan-Traces optional).
+% libraries (ex: LEEC, see https://github.com/Olivier-Boudeville/Ceylan-LEEC),
+% should their user require it - while being able to remain lean and mean if
+% wanted (e.g while keeping the dependency to Ceylan-Traces optional).
 %
 % Switching to a more advanced trace system (typically Ceylan-Traces) is just a
 % matter of having the process of interest call the register/3 function below.
