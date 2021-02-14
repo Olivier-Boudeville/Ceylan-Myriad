@@ -44,8 +44,8 @@
 % fairly low-level, basic HTTP/1.1.
 %
 % More advanced needs may rely instead on Gun or Shotgun. Refer to LEEC
-% (https://github.com/Olivier-Boudeville/letsencrypt-erlang in
-% letsencrypt_api.erl) for an example thereof.
+% (https://github.com/Olivier-Boudeville/Ceylan-LEEC in leec_api.erl) for an
+% example thereof.
 
 
 
