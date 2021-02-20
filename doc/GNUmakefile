@@ -45,7 +45,7 @@ all:
 	@echo "  Run 'make full-doc' to generate the manual of the 'Myriad' layer."
 
 
-# These links do not need to be in version control:
+# These links do not need to be in version control, but it may be more reliable:
 full-doc: $(DOC_GENERATED_FILES)
 	@/bin/ln -sf $(CURRENT_MYRIAD_HTML) myriad.html
 	@/bin/ln -sf myriad.html index.html
@@ -87,7 +87,8 @@ export-to-mirror: $(DOC_GENERATED_FILES)
 clean: clean-doc
 
 
-clean-doc: clean-links
+# No clean-links here, these symlinks are now in VCS.
+clean-doc:
 	@echo "     Cleaning documentation"
 	-@/bin/rm -f *.aux *.log *.maf *.mtc* *.stc* *.tex *.toc $(DOC_GENERATED_FILES)
 
