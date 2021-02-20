@@ -1,27 +1,24 @@
 #!/bin/sh
 
-# Copyright (C) 2011-2018 Olivier Boudeville
+# Copyright (C) 2011-2021 Olivier Boudeville
 #
 # This file is part of the Ceylan-Myriad library.
 
 
-USAGE="  Usage: $(basename $0) [-h|--help] [ROOT_DIR]
-
-  Determines the list of all types (according to Erlang type specifications) defined from the ROOT_DIR directory (if specified) or from the current directory."
+usage="Usage: $(basename $0) [-h|--help] [ROOT_DIR]: lists all types (according to Erlang type specifications) defined from the ROOT_DIR directory (if specified) or from the current directory."
 
 
-target_dir=$(pwd)
+target_dir="$(pwd)"
 
-if [ "$1" = "-h" ] || [ "$1" = "--help" ] ; then
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
 
-	echo
-	echo "$USAGE"
+	echo "${usage}"
 	exit 0
 
 fi
 
 
-if [ -n "$1" ] ; then
+if [ -n "$1" ]; then
 
 	target_dir="$1"
 	shift
@@ -29,36 +26,37 @@ if [ -n "$1" ] ; then
 fi
 
 
-if [ ! $# -eq 0 ] ; then
-	echo "  Error, up to one parameter allowed." 1>&2
+if [ ! $# -eq 0 ]; then
+	echo "  Error, up to one parameter allowed.
+${usage}" 1>&2
 	exit 10
 fi
 
 
-if [ ! -d "$target_dir" ] ;  then
-	echo "  Error, '$target_dir' is not an existing directory.
-$USAGE" 1>&2
+if [ ! -d "${target_dir}" ];  then
+	echo "  Error, '${target_dir}' is not an existing directory.
+${usage}" 1>&2
 	exit 15
 fi
 
 echo "
 
-  Searching for all Erlang types being defined from '$target_dir':
+  Searching for all Erlang types being defined from '${target_dir}':
 "
 
-cd $target_dir
+cd ${target_dir}
 
 target_files=$(find . -name '*.hrl' -o -name '*.erl')
 
-#echo "target_files = $target_files"
+#echo "target_files = ${target_files}"
 
-if [ -z "$target_files" ] ; then
+if [ -z "${target_files}" ]; then
 	echo "No Erlang source file found."
 	exit 0
 fi
 
 
-for f in $target_files ; do
+for f in ${target_files}; do
 
 	#echo " + examining $f"
 
@@ -77,7 +75,7 @@ for f in $target_files ; do
 	#
 	res=$(/bin/cat "$f" | tr '\n' ' ' | grep -o -E '[[:space:]]+\-(type|opaque)([^.]|\.\.|\.\.\.)*\.' | sed -r 's|\s+| |g')
 
-	if [ -n "$res" ] ; then
+	if [ -n "$res" ]; then
 		echo "
    - specifications in $f:
 $res"

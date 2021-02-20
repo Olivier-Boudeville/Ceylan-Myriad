@@ -1,6 +1,6 @@
 #!/usr/bin/env escript
 
-% Copyright (C) 2010-2018 Olivier Boudeville
+% Copyright (C) 2010-2021 Olivier Boudeville
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 %
@@ -30,7 +30,6 @@ parse_result( StringRes ) ->
 
 
 % Parses a time atom like: '0:01.00', returns a number of milliseconds:
-%
 parse_time( TimeAtom ) ->
 
 	%io:format( "Parsing time '~s'.~n", [ TimeAtom ] ),
@@ -73,7 +72,9 @@ run_command( Command, Count ) ->
 run_command( _Command, _Count=0, Count, { WTotal, STotal, MTotal, UTotal } ) ->
 	{ WTotal/Count, STotal/Count, MTotal/Count, UTotal/Count };
 
-run_command( Command, CurrentCount, Count, { WTotal, STotal, MTotal, UTotal } ) ->
+run_command( Command, CurrentCount, Count,
+			 { WTotal, STotal, MTotal, UTotal } ) ->
+
 	RawRes = os:cmd( Command ),
 	%io:format( "Raw intermediary result: ~p.~n", [ RawRes ] ),
 	{ W, S, M, U } = interpret_result( parse_result( RawRes ) ),
@@ -110,7 +111,7 @@ main( _ ) ->
 
 
 usage( ) ->
-	io:format( "Usage: benchmark-command.escript <COMMAND>: "
-			 "returns a mean resource consumption for the specified command.\n"
-			 "Example: benchmark-command.escript \"my_script.sh 1 2\"" ),
+	io:format( "  Usage: benchmark-command.escript COMMAND: "
+		"returns a mean resource consumption for the specified shell command.\n"
+		"  Example: benchmark-command.escript \"my_script.sh 1 2\"" ),
 	halt( 5 ).

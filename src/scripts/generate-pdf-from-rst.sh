@@ -1,33 +1,36 @@
 #!/bin/sh
 
-# Copyright (C) 2009-2019 Olivier Boudeville
+# Copyright (C) 2009-2021 Olivier Boudeville
 #
 # Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 #
 # This file is part of the Ceylan-Myriad library (not Ceylan-Hull), as it
-# depends on a GNUmakerules-docutils.inc file provided by Myriad.
+# depends on the GNUmakerules-docutils.inc file that is provided by Myriad.
+#
+# The generate-docutils.sh script is generally preferred to this one (which
+# anyway ultimately uses it).
 
 
-USAGE="  Usage: $(basename $0) <RST FILE>
-  Generates a PDF file from the specified RST file, overwriting any past file with that name.
+usage="Usage: $(basename $0) RST_FILE: generates a PDF file from the specified RST file, overwriting any past file with that name.
+
   Ex: '$(basename $0) my_file.rst' will attempt to generate a new 'my_file.pdf' file."
 
 
 # Arch packages: do not forget 'pacman -S rubber python-pygments'.
 
 
-if [ "$1" = "-h" ] || [ -z "$1" ] ; then
+if [ "$1" = "-h" ] || [ -z "$1" ]; then
 
-	echo "$USAGE"
+	echo "  ${usage}"
 	exit
 fi
 
 
 source_file="$1"
 
-if [ ! -f "${source_file}" ] ; then
+if [ ! -f "${source_file}" ]; then
 
-	echo "  Error, source file ${source_file} not found." 1>&2
+	echo "  Error, source file '${source_file}' not found." 1>&2
 	exit 10
 
 fi
@@ -38,7 +41,7 @@ rule_file="$(dirname $0)/../../doc/GNUmakerules-docutils.inc"
 
 #echo "rule_file = ${rule_file}"
 
-if [ ! -f "${rule_file}" ] ; then
+if [ ! -f "${rule_file}" ]; then
 
 	echo "  Error, rule file to generate PDF ${rule_file} not found." 1>&2
 	exit 11
@@ -50,7 +53,7 @@ file_prefix=$(echo ${source_file}|sed 's|.rst$||1')
 
 target_file="${file_prefix}.pdf"
 
-if [ -f "${target_file}" ] ; then
+if [ -f "${target_file}" ]; then
 
 	echo "(removing pre-existing ${target_file})"
 	/bin/rm -f "${target_file}"

@@ -1,10 +1,13 @@
 #!/bin/sh
 
-# Copyright (C) 2010-2019 Olivier Boudeville
+# Copyright (C) 2010-2021 Olivier Boudeville
 #
 # Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
-# This file is part of the Ceylan-Myriad library.
+# This file is part of the Ceylan-Myriad library (although it does not depend on
+# any of our own prerequisites), as it is used by this Myriad layer and the
+# layers upward, and we do not want to introduce an extra dependency to
+# Ceylan-Hull.
 
 
 # Notes:
@@ -18,9 +21,10 @@
 
 
 
-USAGE="Usage: $(basename $0) <target rst file> [ --pdf | --all | <comma-separated path(s) to CSS file to be used, ex: common/css/XXX.css,other.css> ] [--icon-file ICON_FILENAME]
+usage="Usage: $(basename $0) <target rst file> [--pdf|--all|<comma-separated path(s) to CSS file to be used, ex: common/css/XXX.css,other.css>] [--icon-file ICON_FILENAME]
 
-Updates specified file from more recent docutils source (*.rst).
+Generates a final document from  specified docutils source file (*.rst).
+
 If '--pdf' is specified, a PDF will be created, if '--all' is specified, all output formats (i.e. HTML and PDF) will be created, otherwise HTML files only will be generated, using any specified CSS file.
 "
 
@@ -58,24 +62,34 @@ docutils_opt="${docutils_html_opt}"
 docutils_html=$(which rst2html 2>/dev/null)
 
 
-if [ -z "$1" ] ; then
-	echo "Error: no parameter given. $USAGE" 1>&2
+if [ -z "$1" ]; then
+	echo "Error: no parameter given.
+${usage}" 1>&2
 	exit 1
 fi
 
+
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+
+	echo "${usage}"
+	exit 0
+
+fi
+
+
 rst_file="$1"
 
-if [ -e "${rst_file}" ] ; then
+if [ -e "${rst_file}" ]; then
 
 	shift
 
-	if [ "$1" = "--pdf" ] ; then
+	if [ "$1" = "--pdf" ]; then
 
 		do_generate_html=1
 		do_generate_pdf=0
 		shift
 
-	elif [ "$1" = "--all" ] ; then
+	elif [ "$1" = "--all" ]; then
 
 		do_generate_html=0
 		do_generate_pdf=0
@@ -84,7 +98,7 @@ if [ -e "${rst_file}" ] ; then
 		css_file="$1"
 		shift
 
-		if [ -n "${css_file}" ] ; then
+		if [ -n "${css_file}" ]; then
 			#echo "Using CSS file ${css_file}."
 			css_opt="--stylesheet-path=${css_file} --link-stylesheet"
 		fi
@@ -95,7 +109,7 @@ if [ -e "${rst_file}" ] ; then
 
 		css_file="$1"
 
-		if [ -n "${css_file}" ] ; then
+		if [ -n "${css_file}" ]; then
 
 			shift
 
@@ -111,20 +125,21 @@ if [ -e "${rst_file}" ] ; then
 
 else
 
-	echo "${begin_marker} Error: file '$1' not found. $USAGE" 1>&2
+	echo "${begin_marker} Error: file '$1' not found.
+${usage}" 1>&2
 	exit 2
 
 fi
 
 
-if [ "$1" = "--icon-file" ] ; then
+if [ "$1" = "--icon-file" ]; then
 
 	shift
 
 	icon_file="$1"
 	shift
 
-	if [ ! -f "${icon_file}" ] ; then
+	if [ ! -f "${icon_file}" ]; then
 
 		echo "  Error, specified icon file (${icon_file}) does not exist." 1>&2
 		exit 55
@@ -137,7 +152,7 @@ if [ "$1" = "--icon-file" ] ; then
 
 else
 
-	if [ -n "$1" ] ; then
+	if [ -n "$1" ]; then
 
 		echo "  Error, unexpected parameter ($1)." 1>&2
 		exit 60
@@ -148,10 +163,10 @@ fi
 
 
 
-if [ $do_generate_html -eq 0 ] ; then
+if [ $do_generate_html -eq 0 ]; then
 
 	docutils_html=$(which rst2html 2>/dev/null)
-	if [ -z "${docutils_html}" ] ; then
+	if [ -z "${docutils_html}" ]; then
 
 		echo "${begin_marker} Error: unable to find an executable tool to convert docutils files to HTML (rst2html)." 1>&2
 		exit 10
@@ -160,10 +175,10 @@ if [ $do_generate_html -eq 0 ] ; then
 
 fi
 
-if [ $do_generate_pdf -eq 0 ] ; then
+if [ $do_generate_pdf -eq 0 ]; then
 
 	docutils_latex=$(which rst2latex 2>/dev/null)
-	if [ -z "${docutils_latex}" ] ; then
+	if [ -z "${docutils_latex}" ]; then
 
 		echo "${begin_marker} Error: unable to find an executable tool to convert docutils files to LateX (rst2latex)." 1>&2
 		exit 11
@@ -171,7 +186,7 @@ if [ $do_generate_pdf -eq 0 ] ; then
 	fi
 
 	latex_to_pdf=$(which pdflatex 2>/dev/null)
-	if [ -z "${latex_to_pdf}" ] ; then
+	if [ -z "${latex_to_pdf}" ]; then
 
 		echo "${begin_marker} Error: unable to find an executable tool to convert LateX files to PDF (pdflatex)." 1>&2
 		exit 12
@@ -198,12 +213,12 @@ manage_rst_to_html()
 	${docutils_html} ${docutils_html_opt} "${source}" "${target}"
 
 
-	if [ ! $? -eq 0 ] ; then
+	if [ ! $? -eq 0 ]; then
 		echo "${begin_marker} Error: HTML generation with ${docutils_html} failed for ${source}." 1>&2
 		exit 5
 	fi
 
-	if [ ! -f "${target}" ] ; then
+	if [ ! -f "${target}" ]; then
 
 		echo "  Error, no target file '${target}' generated." 1>&2
 		exit 60
@@ -212,13 +227,13 @@ manage_rst_to_html()
 
 	tmp_file=".tmp-${target}"
 
-	if [ -n "${icon_file}" ] ; then
+	if [ -n "${icon_file}" ]; then
 
 		echo "  Referencing the icon"
 
 		/bin/cat "${target}" | sed "s|</head>$|<link href=\"${icon_file}\" rel=\"icon\">\n</head>|1" > "${tmp_file}"
 
-		if [ ! -f "${tmp_file}" ] ; then
+		if [ ! -f "${tmp_file}" ]; then
 
 			echo "  Error, no temporary file '${tmp_file}' obtained." 1>&2
 			exit 61
@@ -236,7 +251,7 @@ manage_rst_to_html()
 	#
 	/bin/cat "${target}" | sed 's|</head>$|<meta name="viewport" content="width=device-width, initial-scale=1.0">\n</head>|1' > "${tmp_file}"
 
-	if [ ! -f "${tmp_file}" ] ; then
+	if [ ! -f "${tmp_file}" ]; then
 
 		echo "  Error, no temporary file '${tmp_file}' obtained." 1>&2
 		exit 62
@@ -280,9 +295,9 @@ manage_rst_to_pdf()
 	${docutils_latex} ${docutils_pdf_opt} ${source} ${tex_file}
 	res=$?
 
-	if [ ! ${res} -eq 0 ] ; then
+	if [ ! ${res} -eq 0 ]; then
 
-		if [ ${res} -eq 1 ] ; then
+		if [ ${res} -eq 1 ]; then
 			echo "${begin_marker} Warning: LateX generation returned code 1 for ${source}." 1>&2
 		else
 			echo "${begin_marker} Error: LateX generation failed for ${source}." 1>&2
@@ -291,7 +306,7 @@ manage_rst_to_pdf()
 
 	fi
 
-	if [ ! -e "${tex_file}" ] ; then
+	if [ ! -e "${tex_file}" ]; then
 		echo "${begin_marker} Error: generated TeX file '${tex_file}' could not be found, probably due to RST errors." 1>&2
 		exit 8
 
@@ -299,7 +314,7 @@ manage_rst_to_pdf()
 
 	rubber=$(which rubber)
 
-	if [ ! -x "${rubber}" ] ; then
+	if [ ! -x "${rubber}" ]; then
 
 		echo "Warning: 'rubber' not found, using pdflatex directly." 1>&2
 
@@ -321,9 +336,9 @@ manage_rst_to_pdf()
 
 	res=$?
 
-	if [ ! ${res} -eq 0 ] ; then
+	if [ ! ${res} -eq 0 ]; then
 
-		if [ ${res} -eq 1 ] ; then
+		if [ ${res} -eq 1 ]; then
 
 			echo "${begin_marker} Warning: PDF generation returned code 1 for ${source}." 1>&2
 
@@ -352,7 +367,7 @@ manage_rst_to_pdf()
 
 
 
-if [ ${do_generate_html} -eq 0 ] ; then
+if [ ${do_generate_html} -eq 0 ]; then
 
 	target_html_file=$( echo ${rst_file} | sed 's|.rst$|.html|1' )
 	#echo "target_html_file = ${target_html_file}"
@@ -362,7 +377,7 @@ if [ ${do_generate_html} -eq 0 ] ; then
 fi
 
 
-if [ ${do_generate_pdf} -eq 0 ] ; then
+if [ ${do_generate_pdf} -eq 0 ]; then
 
 	target_pdf_file=$( echo ${rst_file} | sed 's|.rst$|.pdf|1' )
 	#echo "target_pdf_file = ${target_pdf_file}"

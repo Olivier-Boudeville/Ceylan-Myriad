@@ -2,9 +2,11 @@
 %% -*- erlang -*-
 %%! -smp enable
 
-% Copyright (C) 2010-2018 Olivier Boudeville
+% Copyright (C) 2010-2021 Olivier Boudeville
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+%
+% Deriving from unknown prior work.
 %
 % This file is part of the Ceylan-Myriad library.
 
@@ -47,17 +49,18 @@
 
 
 get_usage() ->
-	"   Usage: add-deduced-type-specs.escript ELEMENT\n\n"
+	"   Usage: add-deduced-type-specs.escript FS_ELEMENT\n\n"
 	"   Adds, for each selected BEAM file (either specified directly "
 	"as a file, "
 	"or found recursively from a specified directory), "
 	"in the corresponding source file(s), for each function, "
 	"the type specification that could be deduced "
 	"from its current implementation.\n\n"
-	"   ELEMENT is either the path of a BEAM file or a directory "
+	"   FS_ELEMENT is either the path of a BEAM file or a directory "
 	"that will be scanned recursively for BEAM files.\n"
 	"   Note that BEAM files must be already compiled, and "
-	"with debug information (see the '+debug_info' compile flag)."
+	"with debug information (see the '+debug_info' compile flag).\n"
+	"   Note also that generating type specs this way may not a good practice."
 	"\n".
 
 
@@ -270,9 +273,9 @@ manage_file( BeamPath ) ->
 			% a key matching the beam_key defined in this file.
 
 			io:format( "~nError, dialyzer run failed for ~s: ~s (or is it the "
-					   "debug key in this script that does not match the "
-					   "BEAM one, or a BEAM not compiled "
-					   "with debug information?)~n~n", [ BeamPath, Thrown ] ),
+				"debug key in this script that does not match the "
+				"BEAM one, or a BEAM not compiled "
+				"with debug information?)~n~n", [ BeamPath, Thrown ] ),
 
 			throw( { dialyzer_run_failed, BeamPath, Thrown } )
 
@@ -287,7 +290,7 @@ interpret_dialyzer_message( [], _BeamFile ) ->
 	ok;
 
 interpret_dialyzer_message( [ W={ warn_callgraph, { File, Index },
-								  { call_to_missing, [ Module, delete, 1 ] } } | T ],
+					  { call_to_missing, [ Module, delete, 1 ] } } | T ],
 							BeamFile ) ->
 
 	% With WOOPER, delete/1 is used if defined in the class, otherwise WOOPER
@@ -302,11 +305,10 @@ interpret_dialyzer_message( [ W={ warn_callgraph, { File, Index },
 
 		0 ->
 			notify( io_lib:format( "~n#### Warning when processing ~s: "
-								   "~s:delete/1 called from ~p (line ~B), "
-								   "whereas was never defined; dialyzer says: "
-								   "'~s'~n",
-								   [ BeamFile, Module, File, Index,
-									 dialyzer:format_warning( W ) ] ) );
+				"~s:delete/1 called from ~p (line ~B), "
+				"whereas was never defined; dialyzer says: '~s'~n",
+				[ BeamFile, Module, File, Index,
+				  dialyzer:format_warning( W ) ] ) );
 
 		_ ->
 			notify( io_lib:format(
@@ -321,10 +323,9 @@ interpret_dialyzer_message( [ W={ warn_callgraph, { File, Index },
 interpret_dialyzer_message( [ { warn_callgraph, { File, Index },
 				{ call_to_missing, [ Module, Function, Arity ] } } | T ],
 							BeamFile ) ->
-	io:format( "~n#### Warning when processing ~s: "
-			   "~s:~s/~B called from ~s (line ~B), "
-			   "whereas was never defined.~n~n",
-			   [ BeamFile, Module, Function, Arity, File, Index ] ),
+	io:format( "~n#### Warning when processing ~s: ~s:~s/~B called "
+		"from ~s (line ~B), whereas was never defined.~n~n",
+		[ BeamFile, Module, Function, Arity, File, Index ] ),
 
 	interpret_dialyzer_message( T, BeamFile );
 
@@ -442,7 +443,7 @@ write_specs( AllSpecs, Dir ) ->
 	% For that, we will make two lists:
 	%
 	%  - based on these specs returned by dialyzer, a list of
-	%  {FunctionName,Arity,Spec} entries, SpecEntries
+	%  {FunctionName, Arity, Spec} entries, SpecEntries
 	%
 	%  - based on the parsed source file, a list of {FunctionName,Arity,Index}
 	%  entries where Index is the byte count (in the whole source file)
@@ -503,7 +504,8 @@ build_spec_entries( [ Spec | T ], Acc ) ->
 			%io:format( "   + function name: ~s~n", [ FunctionName ] ),
 			Arity = get_arity( StrippedFunctionHead ),
 			%io:format( "   + function arity: ~B~n", [ Arity ] ),
-			build_spec_entries( T, [ { FunctionName, Arity, Spec ++ "." } | Acc ] )
+			build_spec_entries( T,
+								[ { FunctionName, Arity, Spec ++ "." } | Acc ] )
 
 	end.
 
@@ -869,28 +871,28 @@ compute_first_level_element_count( [ $} | T ], BraceLevel, ParenLevel,
 	compute_first_level_element_count( T, BraceLevel-1, ParenLevel,
 									   BrackLevel, Count );
 
-compute_first_level_element_count( [ $[ | T ], BraceLevel, ParenLevel, BrackLevel,
-								   Count ) ->
+compute_first_level_element_count( [ $[ | T ], BraceLevel, ParenLevel,
+								   BrackLevel, Count ) ->
 	compute_first_level_element_count( T, BraceLevel, ParenLevel,
 									   BrackLevel+1, Count );
 
-compute_first_level_element_count( [ $] | T ], BraceLevel, ParenLevel, BrackLevel,
-								   Count ) ->
+compute_first_level_element_count( [ $] | T ], BraceLevel, ParenLevel,
+								   BrackLevel, Count ) ->
 	compute_first_level_element_count( T, BraceLevel, ParenLevel, BrackLevel-1,
 									   Count );
 
-compute_first_level_element_count( [ $( | T ], BraceLevel, ParenLevel, BrackLevel,
-								   Count ) ->
+compute_first_level_element_count( [ $( | T ], BraceLevel, ParenLevel,
+								   BrackLevel, Count ) ->
 	compute_first_level_element_count( T, BraceLevel, ParenLevel+1,
 									   BrackLevel, Count );
 
-compute_first_level_element_count( [ $) | T ], BraceLevel, ParenLevel, BrackLevel,
-								   Count ) ->
+compute_first_level_element_count( [ $) | T ], BraceLevel, ParenLevel,
+								   BrackLevel, Count ) ->
 	compute_first_level_element_count( T, BraceLevel, ParenLevel-1, BrackLevel,
 									   Count );
 
-compute_first_level_element_count( [ _H | T ], BraceLevel, ParenLevel, BrackLevel,
-								   Count ) ->
+compute_first_level_element_count( [ _H | T ], BraceLevel, ParenLevel,
+								   BrackLevel, Count ) ->
 	% All other characters:
 	compute_first_level_element_count( T, BraceLevel, ParenLevel, BrackLevel,
 									   Count ).

@@ -2,42 +2,25 @@
 %% -*- erlang -*-
 %%! -smp enable -sname show_xml_file
 
-%
-%
-% show-xml-file.escript:
-% ----------------------
-%
-% This script shows clearly how to use xmerl and is intended to be used as a
-% very powerful help to understand the structure of an XML file. With a good
-% text editor, we recommend redirecting its output to a .erl file, in which it
-% is then possible to navigate freely.
+% This script shows how to use xmerl and is intended to be used as an help to
+% understand the structure of an XML file. With a good text editor, we recommend
+% redirecting its output to a .erl file, in which it is then possible to
+% navigate freely.
 %
 % The algorithm is mostly taken from Dave Kuhlman's personal page and credits go
-% to him:
-%
-% http://www.davekuhlman.org/notes-on-xml-and-xmerl.html
-%
-%
-% Usage:
-% ------
-%
-% $ show_xml_file.escript filename.xml
-%
-%
-
+% to him: http://www.davekuhlman.org/notes-on-xml-and-xmerl.html
 
 
 % Includes the xmerl tools:
 -include_lib("xmerl/include/xmerl.hrl").
 
 
-
 % Message to display as usage information:
 display_usage() ->
-	io:format( "~cUsage: show_xml_file.escript XmlFileName~n~n"
-			   "~cDisplays sequentially in a {name,Value} tree the structure of"
-			   " an XML file (XML elements along with their XML attributes).~n",
-			   [ 9, 9 ] ).
+	io:format( "~cUsage: show_xml_file.escript XML_FILE_PATH~n~n"
+		"~cDisplays sequentially in a {name,Value} tree the structure of"
+		" specified XML file (XML elements along with their XML attributes).~n",
+		[ 9, 9 ] ).
 
 
 
@@ -45,10 +28,8 @@ display_usage() ->
 main( [ "-h" ] ) ->
 	display_usage();
 
-
 main( [ "--help" ] ) ->
 	display_usage();
-
 
 main( [ FileName ] ) ->
 
@@ -81,7 +62,6 @@ main( _FileName ) ->
 
 
 % Shows a node/element and then the children of that node.
-%
 show_node( Level, Node) ->
 
 	case Node of
@@ -111,7 +91,6 @@ show_node( Level, Node) ->
 
 
 % Shows all direct children of a node.
-%
 show_children( _Level, [] ) ->
 	ok;
 
@@ -122,7 +101,6 @@ show_children( Level, [ Node | MoreNodes ] ) ->
 
 
 % Shows the attributes of a node.
-%
 show_attributes( _Level, [] ) ->
 	ok;
 
@@ -142,11 +120,10 @@ show_indent( Level ) ->
 
 
 
-%% Verbatim duplication sections.
-%%
-%% Maybe using myriad/src/utils/script_utils.erl would be better than
-%% duplicating code here.
-%%
+% Verbatim duplication section.
+%
+% Probably that using myriad/src/utils/script_utils.erl would be better than
+% duplicating code here.
 
 
 % We want this escript to be standalone, thus we copy here "verbatim" (module

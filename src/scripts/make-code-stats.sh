@@ -7,9 +7,15 @@
 # This file is part of the Ceylan-Myriad library.
 
 
-usage="Usage: $(basename $0) SOURCE_DIRECTORY
-Evaluates various simple metrics of the Erlang code found from specified root directory.
+usage="Usage: $(basename $0) [-h|--help] [SOURCE_DIRECTORY]: evaluates various simple metrics of the Erlang code found from any specified root directory, otherwise from the current one.
 "
+
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+
+	echo "  ${usage}"
+	exit
+
+fi
 
 bc=$(which bc 2>/dev/null)
 
@@ -21,7 +27,16 @@ if [ ! -x "${bc}" ]; then
 
 fi
 
-root_dir="$(realpath $1)"
+if [ -z "$1" ]; then
+
+	source_dir=$(pwd)
+
+else
+
+	source_dir="$1"
+fi
+
+root_dir="$(realpath ${source_dir})"
 
 if [ -z "${root_dir}" ]; then
 
@@ -72,9 +87,7 @@ erl_count=$(echo ${erl_files} | ${wc} -w)
 tmp_file=".tmp-code-stats.txt"
 
 if [ -f "${tmp_file}" ]; then
-
 	/bin/rm -f "${tmp_file}"
-
 fi
 
 
@@ -127,7 +140,5 @@ echo "    - $code_line_count of which (${code_percentage}%) are code"
 
 
 if [ -f "${tmp_file}" ]; then
-
 	/bin/rm -f "${tmp_file}"
-
 fi
