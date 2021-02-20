@@ -153,7 +153,7 @@ RST_GENERATED_FILES =  $(AUX_GENERATED_FILES) $(TEX_GENERATED_FILES)      \
 	$(HTML_GENERATED_FILES) $(PDF_GENERATED_FILES) $(GENERATOR_LOG_FILE)
 
 
-#RST_GENERATOR = update-docutils.sh
+#RST_GENERATOR = generate-docutils.sh
 RST_GENERATOR := $$(PATH=$(MYRIAD_TOP)/src/scripts:$$PATH which generate-docutils.sh)
 
 
