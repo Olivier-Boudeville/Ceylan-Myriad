@@ -20,7 +20,7 @@
 
 :raw-html:`<a name="myriad_top"></a>`
 
-:raw-html:`<div class="banner"><p><em>Myriad documentation</em> <a href="http://myriad.esperide.org">browse latest</a> <a href="https://olivier-boudeville.github.io/Ceylan-Myriad/index.html">browse mirror</a> <a href="myriad.pdf">get PDF</a> <a href="#myriad_top">go to top</a> <a href="#myriad_bottom">go to bottom</a> <a href="https://github.com/Olivier-Boudeville/Ceylan-Myriad">go to project</a> <a href="mailto:about(dash)myriad(at)esperide(dot)com?subject=[Ceylan-Myriad]%20Remark">email us</a></p></div>`
+:raw-html:`<div class="banner"><p><em>Myriad documentation</em> <a href="http://myriad.esperide.org">browse latest</a> <a href="https://olivier-boudeville.github.io/Ceylan-Myriad/index.html">browse mirror</a> <a href="Ceylan-Myriad-technical-manual-english.pdf">get PDF</a> <a href="#myriad_top">go to top</a> <a href="#myriad_bottom">go to bottom</a> <a href="https://github.com/Olivier-Boudeville/Ceylan-Myriad">go to project</a> <a href="mailto:about(dash)myriad(at)esperide(dot)com?subject=[Ceylan-Myriad]%20Remark">email us</a></p></div>`
 
 
 
@@ -37,9 +37,9 @@ Technical Manual of the ``Ceylan-Myriad`` Layer
 :Organisation: Copyright (C) 2008-2021 Olivier Boudeville
 :Contact: about (dash) myriad (at) esperide (dot) com
 :Creation date: Sunday, August 17, 2008
-:Lastly updated: Monday, February 8, 2021
+:Lastly updated: Saturday, February 20, 2021
 :Status: Stable
-:Version: 1.2.19
+:Version: 1.2.20
 :Dedication: Users and maintainers of the ``Myriad`` layer.
 :Abstract:
 
@@ -51,6 +51,14 @@ Technical Manual of the ``Ceylan-Myriad`` Layer
 
 .. meta::
    :keywords: Myriad, generic, general-purpose, helper code, library, layer
+
+
+
+The latest version of this documentation is to be found at the `official Ceylan-Myriad website <http://myriad.esperide.org>`_ (``http://myriad.esperide.org``).
+
+:raw-html:`This Myriad documentation is also available in the PDF format (see <a href="Ceylan-Myriad-technical-manual-english.pdf">Ceylan-Myriad-technical-manual-english.pdf</a>), and mirrored <a href="http://olivier-boudeville.github.io/Ceylan-Myriad/myriad.html">here</a>.`
+
+:raw-latex:`The documentation is also mirrored \href{https://olivier-boudeville.github.io/Ceylan-Myriad/myriad.html}{here}.`
 
 
 
@@ -128,16 +136,12 @@ Each time that you need a basic service that:
 - seems neither provided by the Erlang `built-in modules <http://erlang.org/doc/man_index.html>`_ nor by this ``Myriad`` layer
 - is generic-enough, simple and requires no special prerequisite
 
-please either enrich our ``*_utils.erl`` helpers, or add new general services!
+please either enrich our ``*_utils.erl`` `helpers <https://github.com/Olivier-Boudeville/Ceylan-Myriad/tree/master/src/utils>`_, or add new general services!
 
 
 .. _contribution:
 
-In such a case, we would prefer that, in contributed code:
-
-- Myriad code style is, as much as possible, respected (regarding naming, spacing, code/comments/blank line ratios, etc.)
-- lines stop no later than their 80th character
-- whitespaces be removed (ex: one may use the ``whitespace.el`` Emacs mode)
+In such a case, we would prefer that, in contributed code, the Myriad `Text Conventions`_ and `Coding Practices`_ are respected.
 
 Thanks in advance, and have fun with Myriad!
 
