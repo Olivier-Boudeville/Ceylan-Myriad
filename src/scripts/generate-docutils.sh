@@ -35,12 +35,10 @@ docutils_common_opt="--report=error --tab-width=4 --no-generator --no-datestamp 
 
 
 # Obtained from 'rst2html -h':
-#
 docutils_html_opt="${docutils_common_opt} --cloak-email-addresses --link-stylesheet --no-section-numbering"
 
 
 # Obtained from 'rst2latex -h':
-#
 
 doc_class=article
 #doc_class=report
@@ -61,6 +59,8 @@ docutils_opt="${docutils_html_opt}"
 
 docutils_html=$(which rst2html 2>/dev/null)
 
+
+#echo "arguments received: $*"
 
 if [ -z "$1" ]; then
 	echo "Error: no parameter given.
@@ -95,27 +95,29 @@ if [ -e "${rst_file}" ]; then
 		do_generate_pdf=0
 		shift
 
-		css_file="$1"
+		css_file_spec="$1"
 		shift
 
-		if [ -n "${css_file}" ]; then
-			#echo "Using CSS file ${css_file}."
-			css_opt="--stylesheet-path=${css_file} --link-stylesheet"
+		# Might be for example "pygments-default.css,foobar.css":
+		if [ -n "${css_file_spec}" ]; then
+			#echo "  Using CSS file spec ${css_file_spec}."
+			#css_opt="--stylesheet-path=${css_file_spec} --link-stylesheet"
+			css_opt="--stylesheet=${css_file_spec} --link-stylesheet"
 		fi
 
 		docutils_html_opt="${docutils_html_opt} ${css_opt}"
 
 	else
 
-		css_file="$1"
+		css_file_spec="$1"
 
-		if [ -n "${css_file}" ]; then
+		if [ -n "${css_file_spec}" ]; then
 
 			shift
 
-			#echo "Using CSS file ${css_file}."
-			css_opt="--stylesheet-path=${css_file}"
-
+			echo "  Using CSS file spec ${css_file_spec}."
+			#css_opt="--stylesheet-path=${css_file_spec}"
+			css_opt="--stylesheet=${css_file_spec}"
 
 		fi
 
@@ -154,7 +156,8 @@ else
 
 	if [ -n "$1" ]; then
 
-		echo "  Error, unexpected parameter ($1)." 1>&2
+		echo "  Error, unexpected parameter ($1).
+${usage}" 1>&2
 		exit 60
 
 	fi
@@ -225,7 +228,8 @@ manage_rst_to_html()
 
 	fi
 
-	tmp_file=".tmp-${target}"
+	# Better suffixed than prefixed as there may be a leading directory:
+	tmp_file="${target}.tmp"
 
 	if [ -n "${icon_file}" ]; then
 
@@ -244,7 +248,8 @@ manage_rst_to_html()
 
 	fi
 
-	echo "  Adding the viewport settings"
+	#echo "  Adding the viewport settings"
+	echo "  Adding the viewport settings (from '${target}' to '${tmp_file}')."
 
 	# Apparently the viewport settings are strongly recommended in all cases,
 	# for mobile support:
@@ -287,6 +292,7 @@ manage_rst_to_pdf()
 
 	# Input extension is generally '.rst' (allows to remove only the final
 	# extension, even if there were dots in the base name):
+	#
 	tex_file=$( echo ${source} | sed 's|\.[^\.]*$|.tex|1' )
 
 
