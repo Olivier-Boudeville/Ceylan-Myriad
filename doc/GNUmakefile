@@ -3,20 +3,21 @@ MYRIAD_TOP = ..
 
 DOC_BASE_NAME := Ceylan-Myriad-Layer-technical-manual-english
 
+
 OVERALL_DOCUMENT_SOURCE := $(DOC_BASE_NAME).rst
 
 
 CURRENT_MYRIAD_HTML := $(DOC_BASE_NAME).html
 
-HTML_TARGET = $(CURRENT_MYRIAD_HTML)
+HTML_TARGET := $(CURRENT_MYRIAD_HTML)
 
 
 CURRENT_MYRIAD_PDF := $(DOC_BASE_NAME).pdf
 
-PDF_TARGET = $(CURRENT_MYRIAD_PDF)
+PDF_TARGET := $(CURRENT_MYRIAD_PDF)
 
 
-DOC_GENERATED_FILES = $(HTML_TARGET) $(PDF_TARGET)
+DOC_GENERATED_FILES := $(HTML_TARGET) $(PDF_TARGET)
 
 
 
@@ -31,15 +32,16 @@ GITHUB_PAGES_BASE := $(shell basename "$(MYRIAD_WEB_MIRROR_BRANCH)")
 
 
 
-.PHONY: doc all full-doc create-links html pdf clone-mirror       \
-		export-doc export-to-official export-to-mirror            \
-		clean clean-doc clean-links info info-doc info-web        \
+.PHONY: doc all full-doc create-links html pdf clone-mirror         \
+		export-doc export-to-official export-to-mirror              \
+		clean clean-doc clean-links info info-web                   \
 		test uml-diagram-test
 
 
 
 # Default do-nothing target:
 doc:
+
 
 all:
 	@echo "  Run 'make full-doc' to generate the manual of the 'Myriad' layer."
@@ -48,12 +50,9 @@ all:
 full-doc: $(DOC_GENERATED_FILES)
 
 
-# These links do not need to be in version control:
+# This link does not need to be in version control:
 create-links:
 	@/bin/ln -sf $(CURRENT_MYRIAD_HTML) index.html
-
-#@/bin/ln -sf $(CURRENT_MYRIAD_HTML) myriad.html
-#@/bin/ln -sf $(CURRENT_MYRIAD_PDF) myriad.pdf
 
 
 html: clean-doc $(HTML_TARGET)
@@ -91,23 +90,16 @@ export-to-mirror: create-links $(DOC_GENERATED_FILES)
 clean: clean-doc
 
 
-# No clean-links here, these symlinks are now in VCS.
-clean-doc:
+clean-doc: clean-links
 	@echo "     Cleaning documentation"
 	-@/bin/rm -f *.aux *.log *.maf *.mtc* *.stc* *.tex *.toc $(DOC_GENERATED_FILES)
 
 
-# No more myriad.html myriad.pdf:
 clean-links:
 	-@/bin/rm -f index.html
 
 
-info: info-doc info-web
-
-
-info-doc:
-	@echo "OVERALL_DOCUMENT_SOURCE = $(OVERALL_DOCUMENT_SOURCE)"
-	@echo "DOC_TRACKER = $(DOC_TRACKER)"
+info: info-web
 
 
 info-web:
