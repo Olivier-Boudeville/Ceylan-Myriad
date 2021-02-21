@@ -3,7 +3,8 @@
 
 
 
-.PHONY: doc doc-recurse info info-doc-local full-doc create-doc regenerate-doc \
+.PHONY: doc doc-recurse info info-doc-local full-doc                           \
+ create-doc create-html-doc create-pdf-doc full-html full-pdf regenerate-doc   \
  make-doc-repository view-doc to-print check-dot                               \
  info-doc-local info-doc-tools                                                 \
  clean clean-doc-repository clean-generated clean-dot clean-doc-logs           \
@@ -135,7 +136,9 @@ TMP_RST_REPOSITORY := "tmp-rst"
 
 
 # OVERALL_DOCUMENT_SOURCE defined in per-project GNUmakefile:
-OVERALL_DOCUMENT_TARGET = $(patsubst %.rst,%.pdf,$(OVERALL_DOCUMENT_SOURCE))
+OVERALL_DOCUMENT_HTML_TARGET = $(patsubst %.rst,%.html,$(OVERALL_DOCUMENT_SOURCE))
+OVERALL_DOCUMENT_PDF_TARGET = $(patsubst %.rst,%.pdf,$(OVERALL_DOCUMENT_SOURCE))
+
 
 RST_FILES = $(wildcard *.rst)
 
@@ -153,7 +156,7 @@ RST_GENERATED_FILES =  $(AUX_GENERATED_FILES) $(TEX_GENERATED_FILES)      \
 	$(HTML_GENERATED_FILES) $(PDF_GENERATED_FILES) $(GENERATOR_LOG_FILE)
 
 
-#RST_GENERATOR = generate-docutils.sh
+#RST_GENERATOR = update-docutils.sh
 RST_GENERATOR := $$(PATH=$(MYRIAD_TOP)/src/scripts:$$PATH which generate-docutils.sh)
 
 
@@ -197,7 +200,8 @@ info: info-doc-local info-doc-tools
 
 info-doc-local:
 	@echo "OVERALL_DOCUMENT_SOURCE = $(OVERALL_DOCUMENT_SOURCE)"
-	@echo "OVERALL_DOCUMENT_TARGET = $(OVERALL_DOCUMENT_TARGET)"
+	@echo "OVERALL_DOCUMENT_HTML_TARGET = $(OVERALL_DOCUMENT_HTML_TARGET)"
+	@echo "OVERALL_DOCUMENT_PDF_TARGET = $(OVERALL_DOCUMENT_PDF_TARGET)"
 	@echo "PRINT_SERVER = $(PRINT_SERVER)"
 
 
@@ -211,8 +215,7 @@ info-doc-tools:
 
 
 
-
-# Centralization of documentation sources is necessary, as the LateX generator
+# Centralization of documentation sources is necessary, as the LaTeX generator
 # from docutils will not find images in directories otherwise.
 #
 # Note: cannot use a 'doc' target, as it would result in an infinite recursion.
@@ -221,11 +224,36 @@ full-doc: create-doc
 
 
 create-doc: regenerate-doc clean-doc-repository make-doc-repository
-	@echo "     Generating full (PDF) documentation from \
+	@echo "     Generating full documentation from \
 	$(OVERALL_DOCUMENT_SOURCE) in $(TMP_RST_REPOSITORY)  \
 	(log in $(GENERATOR_LOG_FILE))"
-	@$(MAKE) -s $(TMP_RST_REPOSITORY)/$(OVERALL_DOCUMENT_TARGET) 2>&1 | \
+	@$(MAKE) -s create-html-doc create-pdf-doc
+
+
+# As no Makefile in TMP_RST_REPOSITORY:
+
+create-html-doc:
+	@$(MAKE) -s $(TMP_RST_REPOSITORY)/$(OVERALL_DOCUMENT_HTML_TARGET) 2>&1 | \
 	tee $(GENERATOR_LOG_FILE)
+
+
+create-pdf-doc:
+	@$(MAKE) -s $(TMP_RST_REPOSITORY)/$(OVERALL_DOCUMENT_PDF_TARGET) 2>&1 | \
+	tee $(GENERATOR_LOG_FILE)
+
+
+
+# Quick rule to generate the HTML documentation whereas the overall
+# 'regenerate-doc' target has already been issued.
+#
+full-html: clean-doc-repository make-doc-repository create-html-doc
+
+
+# Quick rule to generate the PDF documentation whereas the overall
+# 'regenerate-doc' target has already been issued.
+#
+full-pdf: clean-doc-repository make-doc-repository create-pdf-doc
+
 
 
 regenerate-doc:
@@ -240,15 +268,15 @@ make-doc-repository:
 
 
 view-doc:
-	@[ ! -e "$(TMP_RST_REPOSITORY)/$(OVERALL_DOCUMENT_TARGET)" ] || \
-	$(PDF_VIEWER) $(TMP_RST_REPOSITORY)/$(OVERALL_DOCUMENT_TARGET) \
+	@[ ! -e "$(TMP_RST_REPOSITORY)/$(OVERALL_DOCUMENT_PDF_TARGET)" ] || \
+	$(PDF_VIEWER) $(TMP_RST_REPOSITORY)/$(OVERALL_DOCUMENT_PDF_TARGET) \
 	 1>/dev/null 2>&1
 
 
 to-print: create-doc
-	@echo "    Transferring document $(OVERALL_DOCUMENT_TARGET) \
+	@echo "    Transferring document $(OVERALL_DOCUMENT_PDF_TARGET) \
 	to $(PRINT_SERVER)"
-	@scp $(TMP_RST_REPOSITORY)/$(OVERALL_DOCUMENT_TARGET) $(PRINT_LOCATION)
+	@scp $(TMP_RST_REPOSITORY)/$(OVERALL_DOCUMENT_PDF_TARGET) $(PRINT_LOCATION)
 
 
 check-dot:
