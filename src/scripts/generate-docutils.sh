@@ -248,8 +248,8 @@ manage_rst_to_html()
 
 	fi
 
-	#echo "  Adding the viewport settings"
-	echo "  Adding the viewport settings (from '${target}' to '${tmp_file}')."
+	echo "  Adding the viewport settings"
+	#echo "  Adding the viewport settings (from '${target}' to '${tmp_file}')."
 
 	# Apparently the viewport settings are strongly recommended in all cases,
 	# for mobile support:
