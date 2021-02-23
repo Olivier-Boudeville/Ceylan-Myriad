@@ -173,6 +173,26 @@
 % iterations.
 
 
+% About the reporting of application failures.
+%
+% When the top-level user initial process has started the applications (ex: with
+% start_application{,s}/{1,2,3}) and one of them fails, this process will
+% apparently not be notified of that crash (and by default it will not even know
+% the PID of the root supervisors involved).
+%
+% While it is certainly relevant in a production context (where that process
+% shall resist application-level issues, and where separation of concerns is
+% useful), this is typically a problem when this process is a test one: this
+% process is then unaware of any failure (even if linking all launched processes
+% and if setting all restart types to 'temporary') and the test succeeds whereas
+% it should not.
+%
+% A solution may be, from the test, to link to the root supervisors - provided
+% that some way exists to determine their PID, i.e., often, provided that these
+% supervisors and/or their children are registered.
+
+
+
 % About the blacklisting of applications.
 %
 % Although doing so allows not to search, load, initialise for and start such
