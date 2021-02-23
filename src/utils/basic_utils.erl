@@ -40,6 +40,7 @@
 
 % Message-related functions.
 -export([ flush_pending_messages/0, flush_pending_messages/1,
+		  notify_pending_messages/0, check_no_pending_message/0,
 		  wait_for/2, wait_for/4, wait_for_acks/4, wait_for_acks/5,
 		  wait_for_summable_acks/5,
 		  wait_for_many_acks/4, wait_for_many_acks/5,
@@ -603,6 +604,51 @@ flush_pending_messages( Message ) ->
 	end.
 
 
+
+% Reads all pending messages in the mailbox of this process and notifies about
+% them on the console.
+%
+% Does not block.
+%
+% Useful for tests.
+%
+-spec notify_pending_messages() -> void().
+notify_pending_messages() ->
+
+	receive
+
+		Message ->
+			trace_utils:warning_fmt( "Following message was pending: ~p.",
+									 [ Message ] ),
+			notify_pending_messages()
+
+	after 0 ->
+		ok
+
+	end.
+
+
+
+% Ensures that no message is pending in the mailbox of this process
+%
+% Does not block.
+%
+% Useful for tests.
+%
+-spec check_no_pending_message() -> void().
+check_no_pending_message() ->
+
+	receive
+
+		Message ->
+			trace_utils:error_fmt( "Following message was pending in the "
+				"mailbox of ~w:~n  ~p", [ self(), Message ] ),
+			throw( { pending_message_in_mailbox, Message, self() } )
+
+	after 0 ->
+		ok
+
+	end.
 
 
 
