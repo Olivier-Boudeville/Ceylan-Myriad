@@ -479,13 +479,32 @@ is_registered( Name, _LookUpScope=global_only ) ->
 % Returns the resolved PID, or throws an exception.
 %
 -spec wait_for_registration_of( registration_name(), look_up_scope() ) -> pid().
-wait_for_registration_of( Name, _LookUpScope=global_only ) ->
+wait_for_registration_of( Name, _LookUpScope=global ) ->
 	wait_for_global_registration_of( Name );
 
-wait_for_registration_of( Name, _LookUpScope=local_only ) ->
-	wait_for_local_registration_of( Name ).
+wait_for_registration_of( Name, _LookUpScope=local ) ->
+	wait_for_local_registration_of( Name );
 
-% (other scopes not managed)
+wait_for_registration_of( Name, _LookUpScope=local_and_global ) ->
+	% Then we go for the cheapest, the local one:
+	wait_for_local_registration_of( Name );
+
+wait_for_registration_of( Name, _LookUpScope=local_otherwise_global ) ->
+	try
+		wait_for_local_registration_of( Name )
+	catch _ ->
+			trace_utils:debug_fmt( "Time-out when waiting for a local "
+				"registration of '~s', switching to a global look-up.",
+				[ Name ] ),
+			wait_for_global_registration_of( Name )
+	end;
+
+wait_for_registration_of( Name, _LookUpScope=none ) ->
+	throw( { no_look_up_scope_for, Name } );
+
+wait_for_registration_of( Name, InvalidLookUpScope ) ->
+	% Probably a registration one:
+	throw( { invalid_lookup_scope, InvalidLookUpScope, Name } ).
 
 
 
@@ -499,6 +518,7 @@ wait_for_global_registration_of( Name ) ->
 	wait_for_global_registration_of( Name, _Seconds=10 ).
 
 
+% (helper)
 wait_for_global_registration_of( Name, _Seconds=0 ) ->
 	throw( { registration_waiting_timeout, Name, global } );
 
