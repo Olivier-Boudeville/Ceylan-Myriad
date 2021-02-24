@@ -62,6 +62,11 @@ start( Modules ) when is_list( Modules ) ->
 % (helper)
 start_common() ->
 
+	% We prefer tests to fail (i.e. that they crash through the link(s) that
+	% they create with their tested elements), rather than resisting silently to
+	% any failure (with EXIT messages sitting in their mailboxes and probably be
+	% never read):
+	%
 	erlang:process_flag( trap_exit, false ),
 
 	% To avoid that special characters are not displayed properly:
@@ -151,10 +156,10 @@ finished() ->
 finished() ->
 
 	basic_utils:display( "(test finished, interpreter still running)~n"
-						 "(if the Erlang shell is not available, ensure that "
-						 "no '-noinput' VM command-line option is used;~n"
-						 " see EXEC_INTERNAL_OPTIONS in Ceylan-Myriad's "
-						 "GNUmakevars.inc for that)", _Necessary=[] ),
+		"(if the Erlang shell is not available, ensure that "
+		"no '-noinput' VM command-line option is used;~n"
+		" see EXEC_INTERNAL_OPTIONS in Ceylan-Myriad's "
+		"GNUmakevars.inc for that)", _Necessary=[] ),
 
 	%system_utils:await_output_completion(),
 
@@ -187,6 +192,7 @@ fail( Reason ) ->
 
 	% Useless, but otherwise Dialyzer will complain that this function has no
 	% local return:
+	%
 	test_failed.
 
 
