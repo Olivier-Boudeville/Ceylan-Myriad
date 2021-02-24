@@ -169,9 +169,17 @@
 
 
 % Return type for operations that may fail (with a sufficient likelihood that no
-% exception is to be raised then):
+% exception is to be raised then, thus the choice is left to the caller):
 %
 -type fallible( T ) :: { 'ok', T } | error_term().
+
+
+% Return type for operations that may fail (with a sufficient likelihood that no
+% exception is to be raised then, thus the choice is left to the caller), when
+% wanting to specify the error type as well:
+%
+-type fallible( Tok, Terror ) :: { 'ok', Tok } | {'error', Terror }.
+
 
 
 % To denote that a piece of data comes from the program boundaries (interfaces
@@ -284,7 +292,7 @@
 			   bit_mask/0, message/0, pid_or_port/0, atom_key/0,
 			   reason/0, exit_reason/0,
 			   error_reason/0, error_term/0, error_type/0,
-			   base_status/0, maybe/1, wildcardable/1, fallible/1,
+			   base_status/0, maybe/1, wildcardable/1, fallible/1, fallible/2,
 			   external_data/0, unchecked_data/0, user_data/0,
 			   accumulator/0,
 			   version_number/0, version/0, two_digit_version/0, any_version/0,

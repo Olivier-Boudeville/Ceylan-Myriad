@@ -342,7 +342,7 @@ get_myriad_ast_transforms_for(
 	% '{remote_type,Line, [ {atom,Line,basic_utils}, {atom,Line,void}, [] ] }'
 
 	% We also manage maybe/1 here: if used as 'maybe(T)', translated as
-	% 'basic_utils:maybe(T)'; the same applies to fallible/1.
+	% 'basic_utils:maybe(T)'; the same applies to fallible/{1,2}.
 
 	% Determines the target table type that we want to rely on ultimately:
 	DesiredTableType = get_actual_table_type( ParseAttributes ),
@@ -428,6 +428,8 @@ get_actual_table_type( ParseAttributeTable ) ->
 %
 % - fallible(T) with basic_utils:fallible(T)
 %
+% - fallible(Tok, Terror) with basic_utils:fallible(Tok, Terror)
+%
 % - table/N (ex: table() or table(K,V)) with DesiredTableType/N (ex:
 % DesiredTableType:DesiredTableType() or DesiredTableType:DesiredTableType(K,V))
 % (as if table() was a local, hence builtin, type)
@@ -442,6 +444,7 @@ get_local_type_transforms( DesiredTableType ) ->
 		{ { void,  0 },    basic_utils },
 		{ { maybe, 1 },    basic_utils },
 		{ { fallible, 1 }, basic_utils },
+		{ { fallible, 2 }, basic_utils },
 
 		% A transformation function is needed to discriminate correctly between
 		% the cases: the first clause is defined as we do not want to obtain
