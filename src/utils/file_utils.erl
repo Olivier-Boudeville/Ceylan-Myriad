@@ -68,6 +68,8 @@
 		  get_current_directory/0, get_bin_current_directory/0,
 		  set_current_directory/1,
 
+		  get_first_existing_directory_in/1,
+
 		  filter_by_extension/2, filter_by_extensions/2,
 		  filter_by_included_suffixes/2, filter_by_excluded_suffixes/2,
 
@@ -1226,6 +1228,38 @@ set_current_directory( DirName ) ->
 
 		{ error, Error } ->
 			throw( { set_current_directory_failed, DirName, Error } )
+
+	end.
+
+
+
+% Returns the first (if any) existing directory found in specified list, or
+% throws an exception if none is found.
+%
+% Typically useful when having multiple possible paths depending on settings,
+% one of them being relevant.
+%
+-spec get_first_existing_directory_in( [ any_directory_path() ] ) ->
+												any_directory_path().
+get_first_existing_directory_in( DirPaths ) ->
+	get_first_existing_dir( DirPaths, _Acc=[] ).
+
+
+% (helper)
+get_first_existing_dir( _DirPaths=[], Acc ) ->
+	throw( { no_existing_directory_found_in, lists:reverse( Acc ),
+			 get_current_directory() } );
+
+
+get_first_existing_dir( _DirPaths=[ Dir | T ], Acc ) ->
+
+	case is_existing_directory( Dir ) of
+
+		true ->
+			Dir;
+
+		false ->
+			get_first_existing_dir( T, [ Dir | Acc ] )
 
 	end.
 
