@@ -716,10 +716,12 @@
 ;; Back-up and autosave section.
 ;; Taken from http://snarfed.org/space/gnu%20emacs%20backup%20files:
 
-;; Put autosave files (ie #foo#) in one place, *not*
-;; scattered all over the filesystem!
+;; Put autosave files (ie #foo#) in one (yet per-user, with no common root, to
+;; prevent user-related permission issues) place, *not* scattered all over the
+;; filesystem!
+;;
 (defvar autosave-dir
-  (concat "/tmp/emacs_autosaves/" (user-login-name) "/"))
+  (concat "/tmp/emacs-myriad-autosaves-" (user-login-name) "/"))
 
 (make-directory autosave-dir t)
 
