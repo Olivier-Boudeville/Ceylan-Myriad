@@ -34,13 +34,13 @@
 <tr class="field"><th class="field-name">Creation date:</th><td class="field-body"><p class="first">Sunday, August 17, 2008</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Lastly updated:</th><td class="field-body"><p class="first">Saturday, February 20, 2021</p>
+<tr class="field"><th class="field-name">Lastly updated:</th><td class="field-body"><p class="first">Wednesday, February 24, 2021</p>
 </td>
 </tr>
 <tr class="field"><th class="field-name">Status:</th><td class="field-body"><p class="first">Stable</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Version:</th><td class="field-body"><p class="first">1.2.20</p>
+<tr class="field"><th class="field-name">Version:</th><td class="field-body"><p class="first">1.2.21</p>
 </td>
 </tr>
 <tr class="field"><th class="field-name">Dedication:</th><td class="field-body"><p class="first">Users and maintainers of the <tt class="docutils literal">Myriad</tt> layer.</p>
@@ -599,7 +599,7 @@ various implementations thereof, tests and benchmarks, in:</li>
 <li>a specific support for <strong>other datatypes</strong> (<tt class="docutils literal">pair.erl</tt>, <tt class="docutils literal">option_list.erl</tt>, <tt class="docutils literal">preferences.erl</tt>, <tt class="docutils literal">tree.erl</tt>; also: <tt class="docutils literal">set_utils.erl</tt> and <tt class="docutils literal">ring_utils.erl</tt>)</li>
 <li>a first-level, optional support of the <a class="reference external" href="https://www.hdfgroup.org/HDF5/">HDF5</a> file format (based on, and thus requiring, the <a class="reference external" href="https://github.com/Olivier-Boudeville-EDF/erlhdf5">enhanced fork</a> we made of <a class="reference external" href="https://github.com/RomanShestakov/erlhdf5">erlhdf5</a>); the same applies for CSV and JSON, and also for RDF</li>
 </ul>
-<p>Finally, the <tt class="docutils literal">void/0</tt>, <tt class="docutils literal">maybe/1</tt> and <tt class="docutils literal">fallible/1</tt> types are supported (thanks to the Myriad parse-transform).</p>
+<p>Finally, the <tt class="docutils literal">void/0</tt>, <tt class="docutils literal">maybe/1</tt> and <tt class="docutils literal"><span class="pre">fallible/{1,2}</span></tt> types are supported (thanks to the Myriad parse-transform).</p>
 <p></p>
 </div>
 <div class="section" id="support-for-code-injection">
@@ -1208,13 +1208,13 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <p>So the purpose of this parse transform is to <strong>convert ASTs that are Myriad-compliant into ASTs that are directly Erlang compliant</strong>.</p>
 <p id="table-transformations">For that, following changes are operated:</p>
 <ul class="simple">
-<li>in type specifications, the Myriad-specific <tt class="docutils literal">void/0</tt>, <tt class="docutils literal">maybe/1</tt> and <tt class="docutils literal">fallible/1</tt> types are adequately translated:</li>
+<li>in type specifications, the Myriad-specific <tt class="docutils literal">void/0</tt>, <tt class="docutils literal">maybe/1</tt> and <tt class="docutils literal"><span class="pre">fallible/{1,2}</span></tt> types are adequately translated:</li>
 </ul>
 <blockquote>
 <ul class="simple">
 <li><tt class="docutils literal">void()</tt> becomes <tt class="docutils literal">basic_utils:void()</tt>, a type alias of <tt class="docutils literal">any()</tt>, made to denote returned terms that are not expected to be used by the caller (as if that function's only purpose was its side-effects)</li>
 <li><tt class="docutils literal">maybe(T)</tt> becomes the type union <tt class="docutils literal"><span class="pre">'undefined'|T</span></tt></li>
-<li><tt class="docutils literal">fallible(T)</tt> becomes ultimately the type union <tt class="docutils literal"><span class="pre">{'ok',T}|{'error',term()}</span></tt></li>
+<li><tt class="docutils literal">fallible(T)</tt> becomes ultimately the type union <tt class="docutils literal"><span class="pre">{'ok',T}|{'error',term()}</span></tt>, while <tt class="docutils literal">fallible(Tok, Terror)</tt> becomes <tt class="docutils literal"><span class="pre">{'ok',Tok}|{'error',Terror}</span></tt></li>
 </ul>
 </blockquote>
 <ul class="simple">
