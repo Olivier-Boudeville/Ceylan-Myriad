@@ -449,9 +449,9 @@ get_local_type_transforms( DesiredTableType ) ->
 						{ fallible, 1 }, { fallible, 2 },
 						{ diagnosed_fallible, 1 }, { diagnosed_fallible, 2 } ],
 
-	ast_transform:get_local_type_transform_table( [
+	BasicUtilsReplacements = [ { T, basic_utils } || T <- BasicUtilsTypes ],
 
-		[ { T, basic_utils } || T <- BasicUtilsTypes ],
+	ast_transform:get_local_type_transform_table( BasicUtilsReplacements ++ [
 
 		% A transformation function is needed to discriminate correctly between
 		% the cases: the first clause is defined as we do not want to obtain
