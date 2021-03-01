@@ -342,7 +342,8 @@ get_myriad_ast_transforms_for(
 	% '{remote_type,Line, [ {atom,Line,basic_utils}, {atom,Line,void}, [] ] }'
 
 	% We also manage maybe/1 here: if used as 'maybe(T)', translated as
-	% 'basic_utils:maybe(T)'; the same applies to fallible/{1,2}.
+	% 'basic_utils:maybe(T)'; the same applies to fallible/{1,2} and
+	% diagnosed_fallible/{1,2}.
 
 	% Determines the target table type that we want to rely on ultimately:
 	DesiredTableType = get_actual_table_type( ParseAttributes ),
@@ -428,7 +429,10 @@ get_actual_table_type( ParseAttributeTable ) ->
 %
 % - fallible(T) with basic_utils:fallible(T)
 %
-% - fallible(Tok, Terror) with basic_utils:fallible(Tok, Terror)
+% - fallible(TSuccess, TFailure) with basic_utils:fallible(TSuccess, TFailure)
+%
+% - diagnosed_fallible(TSuccess, TFailure) with
+%     basic_utils:diagnosed_fallible(TSuccess, TFailure)
 %
 % - table/N (ex: table() or table(K,V)) with DesiredTableType/N (ex:
 % DesiredTableType:DesiredTableType() or DesiredTableType:DesiredTableType(K,V))
@@ -438,13 +442,16 @@ get_actual_table_type( ParseAttributeTable ) ->
 									ast_transform:local_type_transform_table().
 get_local_type_transforms( DesiredTableType ) ->
 
+	% Replacements to be done only for specified arities, here to be found in
+	% the basic_utils module:
+	%
+	BasicUtilsTypes = [ { void, 0 }, { maybe, 1 },
+						{ fallible, 1 }, { fallible, 2 },
+						{ diagnosed_fallible, 1 }, { diagnosed_fallible, 2 } ],
+
 	ast_transform:get_local_type_transform_table( [
 
-		% Replacements to be done only for specified arities:
-		{ { void,  0 },    basic_utils },
-		{ { maybe, 1 },    basic_utils },
-		{ { fallible, 1 }, basic_utils },
-		{ { fallible, 2 }, basic_utils },
+		[ { T, basic_utils } || T <- BasicUtilsTypes ],
 
 		% A transformation function is needed to discriminate correctly between
 		% the cases: the first clause is defined as we do not want to obtain

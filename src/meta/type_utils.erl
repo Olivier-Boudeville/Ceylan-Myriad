@@ -87,7 +87,7 @@
 % the types they depend upon, enclosed in parentheses.
 %
 % For example, a polymorphic type T that depends on types T1, T2, ..., Tk may
-% have for signature "T( T1, T2, ..., Tk )".
+% have for signature "T(T1, T2, ..., Tk)".
 
 
 % Let D( type_signature() ) -> type() be a pseudo-function returning the
@@ -454,9 +454,26 @@
 -type explicit_type() :: type().
 
 
+
+% Tuploids. See also augment_tuploid/2.
+
+% We name tuploid a pseudo-tuple, i.e. a value that is either an actual tuple or
+% a single, standalone term, designated as a "basic tuploid".
+%
+% That is, a tuploid is a tuple of any size, except that the tuploid of size 1
+% is MyTerm, not {MYterm}.
+%
+-type tuploid() :: tuploid( term() ).
+
+
+% Probably that such a tuple would contain at least an element of type T:
+-type tuploid( T ) :: tuple() | T.
+
+
 -export_type([ type_name/0, type_arity/0, type_id/0,
 			   primitive_type_description/0,
-			   type_description/0, nesting_depth/0, type/0, explicit_type/0 ]).
+			   type_description/0, nesting_depth/0, type/0, explicit_type/0,
+			   tuploid/0, tuploid/1 ]).
 
 
 % Note: currently, only a very basic, ad hoc type support ("hand-made look-up
@@ -486,6 +503,10 @@
 
 % Checking:
 -export([ check_atom/1, check_boolean/1, check_pid/1 ]).
+
+
+% Specials for datatypes:
+-export([ augment_tuploid/2 ]).
 
 
 % Work in progress:
@@ -562,7 +583,7 @@ tokenise_per_union( TypeDescription ) ->
 % sub-expressions that may be recursively parsed.
 %
 -spec parse_nesting( type_description(), nesting_depth() ) ->
-						    [ type_description() ].
+							[ type_description() ].
 parse_nesting( _TypeDescription, _NestingDepth ) ->
 
 	% A goal is to detect atoms delimited with single quotes (which are
@@ -1183,3 +1204,23 @@ check_pid( Pid ) when is_pid( Pid ) ->
 
 check_pid( Other ) ->
 	throw( { not_pid, Other } ).
+
+
+
+% Augments the specified tuploid with specified term.
+%
+% Ex: augment_tuploid(a, 2.0) = {a, 2.0}
+%     augment_tuploid({foo, 42}, 2.0) = {foo, 42, 2.0}
+%
+% Useful typically to augment returned error tuploids (either a single error
+% term such as 'invalid_name', or a tuple like '{invalid_name,"Arnold"}' with
+% caller-local information, to obtain in all cases a tuploid (a tuple here) with
+% that extra information.
+%
+-spec augment_tuploid( tuploid(), term() ) -> tuploid().
+augment_tuploid( Tuploid, ExtraTerm ) when is_tuple( Tuploid ) ->
+	List = list_utils:append_at_end( ExtraTerm, tuple_to_list( Tuploid ) ),
+	list_to_tuple( List );
+
+augment_tuploid( BasicTuploid, ExtraTerm ) ->
+	{ BasicTuploid, ExtraTerm }.

@@ -53,6 +53,7 @@
 		  checkpoint/1,
 		  display/1, display/2, display_timed/2, display_timed/3,
 		  display_error/1, display_error/2,
+		  throw_diagnosed/1, throw_diagnosed/2,
 		  debug/1, debug/2,
 		  parse_version/1, check_version/1, compare_versions/2,
 		  get_process_specific_value/0, get_process_specific_value/1,
@@ -131,7 +132,11 @@
 -type atom_key() :: atom().
 
 
-% Term designated a reason (which may be any term):
+
+% Error-related types.
+
+
+% Term designating a reason (which may be any term):
 %
 % Note: useful to have self-describing types.
 %
@@ -142,14 +147,43 @@
 
 -type error_reason() :: reason().
 
-
-% When we know it is an atom:
+% Designates an error type (a specific, simple error reason), when we know it is
+% an atom (often the first element of an error tuple), like 'invalid_name'.
+%
 -type error_type() :: atom().
 
 
+% An error pseudo-tuple, i.e. an error tuple (ex: {invalid_name,1.0}) or a
+% single error term (instead of a tuple with a single element), preferably an
+% atom (like 'invalid_password').
+%
+% See also: throw_diagnosed/{1,2}.
+%
+-type error_tuploid() :: error_tuploid( error_reason() ).
 
-% Error term:
+% To specify at least some information about the error type:
+-type error_tuploid( T ) :: type_utils:tuploid( T ).
+
+
+% A textual description associated to an error (typically for richer traces):
+-type error_message() :: ustring().
+
+% An error with its diagnosis:
+-type diagnosed_error_reason() :: { error_tuploid(), error_message() }.
+
+% An error with its diagnosis:
+-type diagnosed_error_reason( T ) :: { error_tuploid( T ), error_message() }.
+
+
+% A (tagged) error term:
 -type error_term() :: { 'error', error_reason() }.
+
+
+% A (tagged) error term with a diagnosis:
+-type diagnosed_error_term() :: { 'error', diagnosed_error_reason() }.
+
+% A (tagged) error term with a diagnosis:
+-type diagnosed_error_term( T ) :: { 'error', diagnosed_error_reason( T ) }.
 
 
 % Tells whether an operation succeeded; if not, an error reason is specified (as
@@ -178,7 +212,17 @@
 % exception is to be raised then, thus the choice is left to the caller), when
 % wanting to specify the error type as well:
 %
--type fallible( Tok, Terror ) :: { 'ok', Tok } | {'error', Terror }.
+-type fallible( TSuccess, TFailure ) ::
+		{ 'ok', TSuccess } | { 'error', TFailure }.
+
+
+% Thus either {ok,T} or {error,{ErrorTuploid,ErrorMsg}}:
+-type diagnosed_fallible( T ) :: fallible( T, diagnosed_error_term() ).
+
+
+% Thus either {ok,T} or {error,{ErrorTuploid,ErrorMsg}}:
+-type diagnosed_fallible( TSuccess, TFailure ) ::
+		fallible( TSuccess, diagnosed_error_term( TFailure ) ).
 
 
 
@@ -245,7 +289,7 @@
 
 
 % The name of a layer (ex: "Myriad"):
--type layer_name() :: text_utils:ustring().
+-type layer_name() :: ustring().
 
 
 % The name of a record:
@@ -291,8 +335,11 @@
 -export_type([ void/0, count/0, non_null_count/0, level/0,
 			   bit_mask/0, message/0, pid_or_port/0, atom_key/0,
 			   reason/0, exit_reason/0,
-			   error_reason/0, error_term/0, error_type/0,
-			   base_status/0, maybe/1, wildcardable/1, fallible/1, fallible/2,
+			   error_reason/0, error_type/0, error_tuploid/0, error_message/0,
+			   diagnosed_error_reason/0, error_term/0, diagnosed_error_term/0,
+			   base_status/0, maybe/1, wildcardable/1,
+			   fallible/1, fallible/2,
+			   diagnosed_fallible/1, diagnosed_fallible/2,
 			   external_data/0, unchecked_data/0, user_data/0,
 			   accumulator/0,
 			   version_number/0, version/0, two_digit_version/0, any_version/0,
@@ -1276,6 +1323,27 @@ display_error( Message ) ->
 	%io:format( "~s~n", [ Message ] ),
 
 	system_utils:await_output_completion().
+
+
+
+% Triggers specified diagnosed error: reports first its embedded diagnosis, then
+% throws this error as an exception.
+%
+-spec throw_diagnosed( diagnosed_error_reason() ) -> no_return().
+throw_diagnosed( _DiagnosedReason={ ErrorTuploid, ErrorMsg } ) ->
+	trace_bridge:error( ErrorMsg ),
+	throw( ErrorTuploid ).
+
+
+% Triggers specified diagnosed error, augmented by specified term: reports first
+% its embedded diagnosis, then throws this error, as an augmented tuploid, as an
+% exception.
+%
+-spec throw_diagnosed( diagnosed_error_reason(), term() ) -> no_return().
+throw_diagnosed( _DiagnosedReason={ ErrorTuploid, ErrorMsg },
+				 ExtraErrorTerm ) ->
+	trace_bridge:error( ErrorMsg ),
+	throw( type_utils:augment_tuploid( ErrorTuploid, ExtraErrorTerm ) ).
 
 
 
