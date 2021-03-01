@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2021 Olivier Boudeville
+% Copyright (C) 2007-2021 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -217,8 +217,8 @@ get_element_at( List, Index ) ->
 
 % Inserts specified element at specified position in specified list.
 %
-% For example, insert_element_at( foo, [ a, b, c, d ], 3 ) will return
-% [ a, b, foo, c, d ].
+% For example, insert_element_at(foo, [a,b,c,d], 3) will return
+% [a, b, foo, c, d].
 %
 -spec insert_element_at( element(), list(), positive_index() ) -> list().
 insert_element_at( Element, List, Index ) ->
@@ -248,7 +248,7 @@ insert_element_at( Element, _List=[ H | T ], Index, Acc ) ->
 %
 % Returns that element and the resulting, shrunk list.
 %
-% Ex: { b, [ a, c ] } = extract_element_at( [ a, b, c ], 2 ).
+% Ex: {b, [a, c]} = extract_element_at([ a, b, c], 2).
 %
 -spec extract_element_at( list(), positive_index() ) -> { element(), list() }.
 extract_element_at( List, Index ) ->
@@ -271,7 +271,7 @@ extract_element_at( _List=[ H | T ], Index, Acc ) ->
 
 % Removes the specified number first elements.
 %
-% Ex: [ c, d , e ] = list_utils:remove_first_elements( [ a, b, c, d, e ], 2 ).
+% Ex: [c, d , e  = list_utils:remove_first_elements([a, b, c, d, e], 2).
 %
 -spec remove_first_elements( list(), count() ) -> list().
 remove_first_elements( List, _Count=0 ) ->
@@ -435,7 +435,7 @@ get_maybe_index_of( Element, _List=[ _H | T ], Count ) ->
 % returned): the first contains the first elements, up to MaxLen included (in
 % reverse order), and the second the others (if any).
 %
-% Ex: split_at( 3, [ a, b, c, d, e ] ) = { [ c, b, a ], [ d, e] }
+% Ex: split_at(3, [a, b, c, d, e]) = {[c, b, a], [d, e]}
 %
 -spec split_at( count(), list() ) -> { list(), list() }.
 split_at( MaxLen, List ) ->
@@ -601,6 +601,7 @@ get_duplicates( _List=[ Term | T ], Acc ) ->
 
 
 
+% (helper)
 count_and_filter_term( _Term, _List=[], _FilteredList, _CurrentCount=0 ) ->
 	not_found;
 
@@ -677,8 +678,8 @@ cartesian_product( [ SingleList ] ) ->
 	[ [ E ] || E <- SingleList ];
 
 cartesian_product( [ List | OtherLists ] ) ->
-	[ [ E | SubList ] || E <- List,
-						 SubList <- cartesian_product( OtherLists ) ].
+	[ [ E | SubList ]
+	  || E <- List, SubList <- cartesian_product( OtherLists ) ].
 
 
 
@@ -776,7 +777,7 @@ delete_all_in( Elem, _List=[ H | T ], Acc ) ->
 % Appends specified element at the end of specified list, without changing the
 % order of the list.
 %
-% Ex: append_at_end( d, [a,b,c] ) returns [a,b,c,d].
+% Ex: append_at_end(d, [a,b,c]) returns [a,b,c,d].
 %
 % Note: usually adding elements at the end of a list should be avoided, as it is
 % costlier than adding them at head.
@@ -875,12 +876,11 @@ filter_out_undefined( L ) ->
 
 
 
-% Determines tuple-related information about specified datastructure: returns {
-% TupleCount, TupleSize }, supposing the list is made of tuples of uniform
+% Determines tuple-related information about specified datastructure: returns
+% {TupleCount, TupleSize}, supposing the list is made of tuples of uniform
 % sizes.
 %
--spec determine_tuple_info( [ tuple() ] ) ->
-								  { count(), count() }.
+-spec determine_tuple_info( [ tuple() ] ) -> { count(), count() }.
 determine_tuple_info( _TupleList=[] ) ->
 	throw( empty_list );
 
@@ -904,7 +904,7 @@ check_tuple_length( _TupleList=[ Tuple | T ], TupleSize, AccCount ) ->
 
 		OtherSize ->
 			throw( { heterogeneous_tuple_size, { Tuple, OtherSize },
-					 { expected, TupleSize } } )
+						{ expected, TupleSize } } )
 
 	end.
 
@@ -913,7 +913,7 @@ check_tuple_length( _TupleList=[ Tuple | T ], TupleSize, AccCount ) ->
 % Flattens a list of tuples into a simple list of their elements, without
 % tuples and in the same order.
 %
-% Ex: flatten_tuples( [ { 1, 2, 3 }, { 4, 5, 6 } ] ) = [ 1, 2, 3, 4, 5, 6 ] )
+% Ex: flatten_tuples([{1, 2, 3}, {4, 5, 6}]) = [1, 2, 3, 4, 5, 6])
 %
 -spec flatten_tuples( [ tuple() ] ) -> list().
 flatten_tuples( List ) ->
@@ -931,8 +931,7 @@ flatten_tuples( [ H | T ], Acc ) ->
 
 % Reconstructs a list of tuples of specified size from the specified flat list.
 %
-% Ex: reconstruct_tuples( [ 1, 2, 3, 4, 5, 6 ], 3 ) =
-%                                     [ { 1, 2, 3 }, { 4, 5, 6 } ]
+% Ex: reconstruct_tuples([ 1, 2, 3, 4, 5, 6 ], 3) = [{1, 2, 3}, {4, 5, 6}]
 %
 -spec reconstruct_tuples( list(), count() ) -> [ tuple() ].
 reconstruct_tuples( List, _TupleSize=1 ) ->
@@ -953,7 +952,6 @@ reconstruct_tuples( List, TupleSize, Acc ) ->
 
 
 % Section to perform random operations on lists.
-
 
 
 % Returns a random uniform permutation of the specified list.
