@@ -39,7 +39,35 @@
 
 
 
--compile( { nowarn_unused_function, test_online/0 } ).
+-compile( { nowarn_unused_function, test_local/0, test_online/0 } ).
+
+
+% Just an example. A webserver is expected to run at the specified location (see
+% US-Web from an example thereof).
+%
+test_local() ->
+
+	TargetPort = 8080,
+	TargetUrl = "index.html",
+
+	test_facilities:display( "As a test, fetching page '~s' from a webserver "
+		"supposedly running on localhost, at TCP port #~B.",
+		[ TargetUrl, TargetPort ] ),
+
+	URI = text_utils:format( "http://localhost:~B/~s",
+							 [ TargetPort, TargetUrl ] ),
+
+	web_utils:start(),
+
+	{ _StatusCode=200, _HeaderMap, Body } =
+		web_utils:get( URI, _Headers=[], _HttpOptions=[] ),
+
+	trace_bridge:debug_fmt( "Body: '~s'.", [ Body ] ),
+
+	"This is static website D. This is the one you should see if pointing to the default virtual host corresponding to the local host. This shows that the US-Web server is up and running.\n" = Body,
+
+	web_utils:stop().
+
 
 
 test_online() ->
@@ -78,5 +106,8 @@ run() ->
 
 	% Disabled by default, not wanting a test to fail if no Internet access:
 	% test_online(),
+
+	% Disabled by default, no webserver expected to be running locally:
+	%test_local(),
 
 	test_facilities:stop().
