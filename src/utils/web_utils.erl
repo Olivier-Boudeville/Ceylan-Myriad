@@ -505,7 +505,7 @@ escape_term_as_html_content( Term ) ->
 	escape_as_html_content( text_utils:term_to_string( Term ) ).
 
 
-% Retruns the status class (if any) corresponding to the specified HTTP status
+% Returns the status class (if any) corresponding to the specified HTTP status
 % code.
 %
 -spec get_http_status_class( http_status_code() ) ->
