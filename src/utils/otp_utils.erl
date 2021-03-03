@@ -99,6 +99,7 @@
 
 -type module_name() :: basic_utils:module_name().
 
+-type file_name() :: file_utils:file_name().
 -type file_path() :: file_utils:file_path().
 -type directory_path() :: file_utils:directory_path().
 -type bin_directory_path() :: file_utils:bin_directory_path().
@@ -471,10 +472,10 @@ generate_app_info( AppName, AbsBaseDir, AppTable ) ->
 						[ AppName, CheckLocalAppPath ] ),
 					{ CheckLocalAppPath, CheckLocalEBinDir, CheckBaseDir };
 
-				% Then trying #2.2, i.e. as a _build checkouty:
+				% Then trying #2.2, i.e. as a _build checkout:
 				false ->
-					CheckBuildEBinDir = get_build_ebin_from( CheckBaseDir,
-															 AppNameStr ),
+					CheckBuildEBinDir = get_build_ebin_from_lib( CheckBaseDir,
+																 AppNameStr ),
 
 					CheckBuildAppPath = file_utils:join( CheckBuildEBinDir,
 														 AppFilename ),
@@ -495,8 +496,8 @@ generate_app_info( AppName, AbsBaseDir, AppTable ) ->
 
 						% Then trying #3, i.e. as a local build dependency:
 						false ->
-							DepEBinDir = get_build_ebin_from( AbsBaseDir,
-															  AppNameStr ),
+							DepEBinDir = get_build_ebin_from_lib( AbsBaseDir,
+																  AppNameStr ),
 
 							DepAppPath = file_utils:join( DepEBinDir,
 														  AppFilename ),
@@ -570,8 +571,8 @@ try_next_locations( AppName, AppNameStr, AppFilename, DepEBinDir, DepAppPath,
 
 				% Trying #4.2: in the _build tree of a sibling:
 				false ->
-					SibBuildEbinDir = get_build_ebin_from( SibBaseDir,
-														   AppNameStr ),
+					SibBuildEbinDir = get_build_ebin_from_lib( SibBaseDir,
+															   AppNameStr ),
 
 					SibBuildAppPath= file_utils:join( SibBuildEbinDir,
 													  AppFilename ),
@@ -647,19 +648,29 @@ get_string_application_name( AppName ) ->
 
 
 
-% Returns the ebin directory in _build tree from specified base directory, for
-% specified application.
+% Returns the ebin in 'lib' subdirectory in the _build tree from specified base
+% directory, for specified application.
 %
--spec get_build_ebin_from( directory_path(), string_application_name() ) ->
+-spec get_build_ebin_from_lib( directory_path(), string_application_name() ) ->
 									directory_path().
-get_build_ebin_from( BaseDir, AppNameStr ) ->
+get_build_ebin_from_lib( BaseDir, AppNameStr ) ->
 	file_utils:join( [ BaseDir, "_build", "default", "lib", AppNameStr,
+					   "ebin" ] ).
+
+
+% Returns the ebin in 'checkouts' directory in the _build tree from specified
+% base directory, for specified application.
+%
+-spec get_build_ebin_from_checkouts( directory_path(),
+							 string_application_name() ) -> directory_path().
+get_build_ebin_from_checkouts( BaseDir, AppNameStr ) ->
+	file_utils:join( [ BaseDir, "_build", "default", "checkouts", AppNameStr,
 					   "ebin" ] ).
 
 
 
 % Searches for the BEAM file corresponding to the specified module in the
-% specified ebin directory, otherwise through current code path.
+% specified ebin or build directory, otherwise through current code path.
 %
 -spec look_up_beam( module_name(), abs_directory_path(),
 			abs_directory_path(), file_path(), application_name() ) -> void().
@@ -683,52 +694,8 @@ look_up_beam( ModuleName, EBinPath, BaseDir, AppFilePath, AppName ) ->
 			case code_utils:is_beam_in_path( ModuleName ) of
 
 				not_found ->
-					% Last chance: at least with some applications such as
-					% cowboy, the .app is in the local ebin, with most but not
-					% all BEAM files - namely then cowboy.beam is only in
-					% _build/default/lib/cowboy/ebin; so we test that case and,
-					% if found, add that _build directory in the code path.
-					%
-					% As actually the local ebin is then a strict subset of the
-					% _build one (notably the .app file is also in the _build
-					% one), the best approach is also to remove the local ebin
-					% from the code path, otherwise some BEAM files could be
-					% found twice, which is not desirable (and detected as an
-					% error in some cases, like json_utils check with
-					% 'multiple_jsx_json_backends_found').
-					%
-					BuildEbinDir = get_build_ebin_from( BaseDir,
-								text_utils:atom_to_string( AppName ) ),
-
-					BuildModPath = file_utils:join( BuildEbinDir,
-													TestedBeamFilename ),
-
-					case file_utils:is_existing_file( BuildModPath ) of
-
-						true ->
-							?debug_fmt( "Replacing in code path local ebin "
-								"'~s' with the _build one '~s' for '~s'.",
-								[ EBinPath, BuildEbinDir, AppName ] ),
-
-							% First removing local ebin (if set):
-							code_utils:remove_beam_directory_if_set( EBinPath ),
-
-							% Then adding the more complete _build one:
-							code_utils:declare_beam_directory( BuildEbinDir,
-															   last_position );
-
-
-						false ->
-							trace_bridge:error_fmt( "The application '~s' whose"
-							  " information is in '~s' does not seem compiled "
-							  "(neither found as '~s' or '~s', nor through "
-							  "the code path).",
-							  [ AppName, AppFilePath, ExpectedModPath,
-								BuildModPath ] ),
-							throw( { not_compiled, AppName,
-									 TestedBeamFilename } )
-
-					end;
+					look_up_beam_last_chance( EBinPath, BaseDir, AppFilePath,
+						AppName, TestedBeamFilename, ExpectedModPath );
 
 				_DirPaths ->
 					ok
@@ -736,6 +703,91 @@ look_up_beam( ModuleName, EBinPath, BaseDir, AppFilePath, AppName ) ->
 			end
 
 	end.
+
+
+% Last chance to find a right BEAM path.
+-spec look_up_beam_last_chance( file_path(), abs_directory_path(), file_path(),
+					application_name(), file_name(), file_path() ) -> void().
+look_up_beam_last_chance( EBinPath, BaseDir, AppFilePath, AppName,
+						  TestedBeamFilename, ExpectedModPath ) ->
+
+	% Last chance: at least with some applications such as cowboy (taken as an
+	% example here), the .app is in the local ebin, with most but not all BEAM
+	% files - namely then cowboy.beam is only in _build/default/lib/cowboy/ebin;
+	% so we test that case and, if found, add that _build directory in the code
+	% path.
+	%
+	% As actually the local ebin is then a strict subset of the _build one
+	% (notably the .app file is also in the _build one), the best approach is
+	% also to remove the local ebin from the code path, otherwise some BEAM
+	% files could be found twice, which is not desirable (and detected as an
+	% error in some cases, like in the case of the json_utils check, with
+	% 'multiple_jsx_json_backends_found').
+	%
+	% Note also that :
+	%
+	% - a dependency may be found not (only) in 'lib' but in 'checkouts'
+	% instead; for example: _build/default/checkouts/cowboy/ebin/cowboy.beam...
+	%
+	% - ExpectedModPath and BuildModPath may be the same path, as EBinPath and
+	% BuildEbinDir may be the same apparently
+
+	AppNameStr = text_utils:atom_to_string( AppName ),
+
+	EbinBuildLibDir = get_build_ebin_from_lib( BaseDir, AppNameStr ),
+	BuildLibModPath = file_utils:join( EbinBuildLibDir, TestedBeamFilename ),
+
+	EbinBuildCoDir = get_build_ebin_from_checkouts( BaseDir, AppNameStr ),
+	BuildCoModPath = file_utils:join( EbinBuildCoDir, TestedBeamFilename ),
+
+	% So, maybe in _build/default/lib/cowboy/ebin?
+	MaybeEbinBuildDir = case file_utils:is_existing_file( BuildLibModPath ) of
+
+		true ->
+			EbinBuildLibDir;
+
+		% No, then maybe in _build/default/checkouts/cowboy/ebin?
+		false ->
+
+			case file_utils:is_existing_file( BuildCoModPath ) of
+
+				true ->
+					EbinBuildCoDir;
+
+				false ->
+					undefined
+
+			end
+
+	end,
+
+
+	case MaybeEbinBuildDir of
+
+		undefined ->
+			trace_bridge:error_fmt( "The application '~s' whose information "
+				"is in '~s' does not seem compiled, as its tested '~s' module "
+				"cannot be found as '~s', '~s' or '~s', "
+				"nor through the code path, which is: ~s",
+				[ AppName, AppFilePath, TestedBeamFilename,
+				  ExpectedModPath, BuildLibModPath, BuildCoModPath,
+				  code_utils:code_path_to_string() ] ),
+
+			throw( { app_not_compiled, AppName, TestedBeamFilename } );
+
+
+		EbinBuildDir ->
+			?debug_fmt( "Replacing in code path local ebin '~s' with the _build"
+				" one '~s' for '~s'.", [ EBinPath, EbinBuildDir, AppName ] ),
+
+			% First removing local ebin (if set):
+			code_utils:remove_beam_directory_if_set( EBinPath ),
+
+			% Then adding the more complete _build one:
+			code_utils:declare_beam_directory( EbinBuildDir, last_position )
+
+	end.
+
 
 
 % Interprets the specification of the application whose .app file is specified.
