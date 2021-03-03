@@ -19,7 +19,7 @@
 % Settings for the 'default' profile follow.
 
 % As an hex-package dependency:
-{deps, [ {myriad, "VERSION_FOR_REBAR3"} ]}.
+{deps, [ {myriad, "VERSION_FOR_REBAR"} ]}.
 
 
 
@@ -47,7 +47,7 @@
 %
 {relx, [
 
-  {release, {myriad_test_release, "VERSION_FOR_REBAR3"},
+  {release, {myriad_test_release, "VERSION_FOR_REBAR"},
 			[sasl, myriad]},
 
   %{sys_config, "./config/sys.config"},
