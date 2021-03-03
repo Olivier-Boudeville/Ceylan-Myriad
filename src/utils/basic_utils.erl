@@ -1329,15 +1329,46 @@ display_error( Message ) ->
 % Triggers specified diagnosed error: reports first its embedded diagnosis, then
 % throws this error as an exception.
 %
+% Typical use:
+%
+% case Expr of
+%
+%  { ok, X } ->
+%    [...];
+%
+%  { ok, Y } ->
+%    [...];
+%
+%  { error, DiagnosedReason } ->
+%     basic_utils:throw_diagnosed( DiagnosedReason )
+%
+% end
+%
 -spec throw_diagnosed( diagnosed_error_reason() ) -> no_return().
 throw_diagnosed( _DiagnosedReason={ ErrorTuploid, ErrorMsg } ) ->
 	trace_bridge:error( ErrorMsg ),
 	throw( ErrorTuploid ).
 
 
+
 % Triggers specified diagnosed error, augmented by specified term: reports first
 % its embedded diagnosis, then throws this error, as an augmented tuploid, as an
 % exception.
+%
+% Typical use:
+%
+% case Expr of
+%
+%  { ok, X } ->
+%    [...];
+%
+%  { ok, Y } ->
+%    [...];
+%
+%  { error, DiagnosedReason } ->
+%     basic_utils:throw_diagnosed( DiagnosedReason, Z )
+%
+% end
 %
 -spec throw_diagnosed( diagnosed_error_reason(), term() ) -> no_return().
 throw_diagnosed( _DiagnosedReason={ ErrorTuploid, ErrorMsg },
