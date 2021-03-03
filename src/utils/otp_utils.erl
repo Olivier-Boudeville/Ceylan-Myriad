@@ -272,8 +272,10 @@ prepare_for_execution( AppNames, BaseDir, BlacklistedApps )
 	AbsBaseDir = file_utils:ensure_path_is_absolute( BaseDir ),
 
 	?debug_fmt( "Preparing for the execution from '~s' of following top-level "
-		"applications:~n  ~p, blacklisted ones being: ~p.",
-		[ AbsBaseDir, AppNames, BlacklistedApps ] ),
+		"applications:~n  ~p, blacklisted ones being: ~p "
+		"(from base directory '~s').",
+		[ AbsBaseDir, AppNames, BlacklistedApps,
+		  file_utils:ensure_path_is_absolute( BaseDir ) ] ),
 
 	{ FullDeps, _FinalAppTable } = prepare_for_exec( AppNames, AbsBaseDir,
 				BlacklistedApps, _AccDeps=[], _AppTable=table:new() ),
