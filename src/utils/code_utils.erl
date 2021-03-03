@@ -42,7 +42,8 @@
 		  remove_beam_directory/1, remove_beam_directory_if_set/1,
 		  get_beam_dirs_for/1, get_beam_dirs_for_myriad/0,
 		  declare_beam_dirs_for/1, declare_beam_dirs_for_myriad/0,
-		  get_code_path/0, get_code_path_as_string/0, code_path_to_string/1,
+		  get_code_path/0, get_code_path_as_string/0,
+		  code_path_to_string/0, code_path_to_string/1,
 		  list_beams_in_path/0, get_beam_filename/1, is_beam_in_path/1,
 		  get_erlang_root_path/0,
 		  get_stacktrace/0, get_stacktrace/1,
@@ -618,12 +619,15 @@ get_code_path() ->
 % Returns a textual representation of the current code path.
 -spec get_code_path_as_string() -> ustring().
 get_code_path_as_string() ->
-
-	CodePath = get_code_path(),
-
 	text_utils:format( "current code path is: ~s",
-					   [ text_utils:strings_to_string( CodePath ) ] ).
+					   [ text_utils:strings_to_string( get_code_path() ) ] ).
 
+
+
+% Returns a textual description of the current code path.
+-spec code_path_to_string() -> ustring().
+code_path_to_string() ->
+	code_path_to_string( get_code_path() ).
 
 
 % Returns a textual description of the specified code path.
