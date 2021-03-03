@@ -39,7 +39,7 @@
 
 
 
--compile( { nowarn_unused_function, test_local/0, test_online/0 } ).
+-compile( { nowarn_unused_function, [ test_local/0, test_online/0 ] } ).
 
 
 % Just an example. A webserver is expected to run at the specified location (see
@@ -64,7 +64,9 @@ test_local() ->
 
 	trace_bridge:debug_fmt( "Body: '~s'.", [ Body ] ),
 
-	"This is static website D. This is the one you should see if pointing to the default virtual host corresponding to the local host. This shows that the US-Web server is up and running.\n" = Body,
+	"This is static website D. This is the one you should see if pointing to "
+	"the default virtual host corresponding to the local host. "
+	"This shows that the US-Web server is up and running.\n" = Body,
 
 	web_utils:stop().
 
