@@ -1342,7 +1342,7 @@ filter_by_extension( _Filenames=[ H | T ], Extension, Acc ) ->
 % corresponds to one of the specified extensions (ex: [ ".dat", ".png" ]).
 %
 -spec filter_by_extensions( [ file_name() ], [ extension() ] ) ->
-								 [ file_name() ].
+									[ file_name() ].
 filter_by_extensions( Filenames, Extensions ) ->
 	filter_by_extensions( Filenames, Extensions, _Acc=[] ).
 
@@ -1368,7 +1368,7 @@ filter_by_extensions( _Filenames=[ F | T ], Extensions, Acc ) ->
 % of the specified suffixes.
 %
 -spec filter_by_included_suffixes( [ file_name() ], [ ustring() ] ) ->
-										 [ file_name() ].
+											[ file_name() ].
 filter_by_included_suffixes( Filenames, IncludedSuffixes ) ->
 	[ F || F <- Filenames, has_matching_suffix( F, IncludedSuffixes ) ].
 
@@ -1377,7 +1377,7 @@ filter_by_included_suffixes( Filenames, IncludedSuffixes ) ->
 % match any of the specified suffixes.
 %
 -spec filter_by_excluded_suffixes( [ file_name() ], [ ustring() ] ) ->
-										 [ file_name() ].
+											[ file_name() ].
 filter_by_excluded_suffixes( Filenames, ExcludedSuffixes ) ->
 	[ F || F <- Filenames, not has_matching_suffix( F, ExcludedSuffixes ) ].
 
@@ -1787,7 +1787,7 @@ find_files_with_excluded_suffixes( RootDir, CurrentRelativeDir,
 % Helper for find_files_with_excluded_suffixes/4:
 -spec list_files_in_subdirs_with_excluded_suffixes( list(), [ ustring() ],
 		directory_name(), directory_name(), boolean(), [ file_name() ] ) ->
-														  [ file_name() ].
+															[ file_name() ].
 list_files_in_subdirs_with_excluded_suffixes( [], _ExcludedSuffixes, _RootDir,
 							  _CurrentRelativeDir, _IncludeSymlinks, Acc ) ->
 	Acc;
@@ -2648,7 +2648,7 @@ list_permission_pairs() ->
 % counterpart mask(s).
 %
 -spec to_permission_mask( permission() | [ permission() ] ) ->
-		  permission_mask().
+			permission_mask().
 to_permission_mask( PermissionList ) when is_list( PermissionList ) ->
 	PermPairs = list_permission_pairs(),
 	lists:foldl( fun( P, Acc ) ->
@@ -3125,7 +3125,7 @@ update_with_keywords( OriginalFilePath, TargetFilePath, TranslationTable ) ->
 %
 -spec update_with_keywords( any_file_path(), any_file_path(),
 		text_utils:translation_table(), system_utils:encoding_options() ) ->
-								  void().
+									void().
 update_with_keywords( OriginalFilePath, TargetFilePath, TranslationTable,
 					  EncodingOpts ) ->
 
@@ -3391,8 +3391,9 @@ open( Filename, Options, _AttemptMode=try_endlessly ) ->
 			% File descriptors exhausted for this OS process.
 			% Kludge to desynchronize file opening in order to remain below 1024
 			% file descriptor opened:
-			Duration = basic_utils:get_process_specific_value(
-										_Min=50, _Max=200 ),
+			%
+			Duration =
+				basic_utils:get_process_specific_value( _Min=50, _Max=200 ),
 
 			% Attempt not to use timer:sleep (anyway will trigger errors
 			% afterwards when the system will try to look-up some BEAMs):
@@ -3523,7 +3524,7 @@ close( File, _FailureMode=overcome_failure ) ->
 % Throws an exception on failure.
 %
 -spec read( file(), basic_utils:count() ) ->
-				  { 'ok', ustring() | binary() } | 'eof'.
+					{ 'ok', ustring() | binary() } | 'eof'.
 read( File, Count ) ->
 
 	case file:read( File, Count ) of
@@ -3631,7 +3632,7 @@ write_whole( Filename, Content ) ->
 % Throws an exception on failure.
 %
 -spec write_whole( any_file_name(), ustring() | binary(), [ file:mode() ] ) ->
-						 void().
+							void().
 write_whole( Filename, StringContent, Modes ) when is_list( StringContent ) ->
 	write_whole( Filename, text_utils:string_to_binary( StringContent ),
 				 Modes );
@@ -3690,15 +3691,17 @@ read_terms( Filename ) ->
 			Terms;
 
 		{ error, eacces }  ->
-			throw( { reading_failed, Filename, access_denied,
-					 get_access_denied_info( Filename ) } );
+			throw( { reading_failed, text_utils:ensure_string( Filename ),
+					 access_denied, get_access_denied_info( Filename ) } );
 
 		{ error, Error } when is_atom( Error ) ->
-			throw( { reading_failed, Filename, Error } );
+			throw( { reading_failed, text_utils:ensure_string( Filename ),
+					 Error } );
 
 		{ error, Error={ Line, Module, Term } } ->
 			Reason = file:format_error( Error ),
-			throw( { interpretation_failed, Filename, { line, Line },
+			throw( { interpretation_failed,
+					 text_utils:ensure_string( Filename ), { line, Line },
 					 { module, Module }, { term, Term }, Reason } )
 
 	end.
@@ -4166,7 +4169,7 @@ zipped_term_to_unzipped_files( ZippedTerm ) ->
 % Returns the list of filenames corresponding to the unzipped files.
 %
 -spec zipped_term_to_unzipped_files( binary(), directory_name() ) ->
-										   [ file_name() ].
+											[ file_name() ].
 zipped_term_to_unzipped_files( ZippedTerm, TargetDirectory ) ->
 
 	%{ ok, FileNames } = zip:unzip( ZippedTerm, [ verbose ] ),
@@ -4174,8 +4177,8 @@ zipped_term_to_unzipped_files( ZippedTerm, TargetDirectory ) ->
 	case is_existing_directory( TargetDirectory ) of
 
 		true ->
-			{ ok, FileNames } = zip:unzip( ZippedTerm,
-										   [ { cwd, TargetDirectory } ] ),
+			{ ok, FileNames } =
+				zip:unzip( ZippedTerm, [ { cwd, TargetDirectory } ] ),
 			FileNames;
 
 		false ->
