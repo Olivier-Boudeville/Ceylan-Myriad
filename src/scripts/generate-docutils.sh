@@ -2,6 +2,7 @@
 
 # Copyright (C) 2010-2021 Olivier Boudeville
 #
+# This file is part of the Ceylan-Myriad library.
 # Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 # This file is part of the Ceylan-Myriad library (although it does not depend on
@@ -20,12 +21,11 @@
 # errors...
 
 
-
 usage="Usage: $(basename $0) <target rst file> [--pdf|--all|<comma-separated path(s) to CSS file to be used, ex: common/css/XXX.css,other.css>] [--icon-file ICON_FILENAME]
 
-Generates a final document from  specified docutils source file (*.rst).
-
-If '--pdf' is specified, a PDF will be created, if '--all' is specified, all output formats (i.e. HTML and PDF) will be created, otherwise HTML files only will be generated, using any specified CSS file.
+Generates a final document from specified docutils source file (*.rst).
+By default, only the HTML output will be enabled (using any specified CSS file).
+If the '--pdf' command-line option is specified, a PDF will be created instead (and thus no HTML output will be generated), whereas, if '--all' is specified, all output formats (i.e. HTML and PDF) will be created.
 "
 
 
@@ -39,11 +39,11 @@ docutils_html_opt="${docutils_common_opt} --cloak-email-addresses --link-stylesh
 
 
 # Obtained from 'rst2latex -h':
-
 doc_class=article
 #doc_class=report
 
-docutils_pdf_opt="${docutils_common_opt} --documentclass=${doc_class} --compound-enumerators"
+# Allows to directly add inlined graphics:
+docutils_pdf_opt="${docutils_common_opt} --documentclass=${doc_class} --compound-enumerators --latex-preamble=\\usepackage{graphicx}"
 
 
 latex_to_pdf_opt="-interaction nonstopmode"
@@ -57,13 +57,12 @@ do_generate_pdf=1
 
 docutils_opt="${docutils_html_opt}"
 
-docutils_html=$(which rst2html 2>/dev/null)
-
+docutils_html="$(which rst2html 2>/dev/null)"
 
 #echo "arguments received: $*"
 
 if [ -z "$1" ]; then
-	echo "Error: no parameter given.
+	echo "${begin_marker} Error: no parameter given.
 ${usage}" 1>&2
 	exit 1
 fi
@@ -71,8 +70,8 @@ fi
 
 if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
 
-	echo "${usage}"
-	exit 0
+   echo "${usage}"
+   exit 0
 
 fi
 
@@ -96,13 +95,16 @@ if [ -e "${rst_file}" ]; then
 		shift
 
 		css_file_spec="$1"
-		shift
 
 		# Might be for example "pygments-default.css,foobar.css":
-		if [ -n "${css_file_spec}" ]; then
-			#echo "  Using CSS file spec ${css_file_spec}."
-			#css_opt="--stylesheet-path=${css_file_spec} --link-stylesheet"
-			css_opt="--stylesheet=${css_file_spec} --link-stylesheet"
+	   if [ -n "${css_file_spec}" ]; then
+
+		   shift
+
+		   echo "  Using CSS file spec ${css_file_spec}."
+		   #css_opt="--stylesheet-path=${css_file_spec}"
+		   css_opt="--stylesheet=${css_file_spec}"
+
 		fi
 
 		docutils_html_opt="${docutils_html_opt} ${css_opt}"
@@ -113,11 +115,11 @@ if [ -e "${rst_file}" ]; then
 
 		if [ -n "${css_file_spec}" ]; then
 
-			shift
+		   shift
 
-			echo "  Using CSS file spec ${css_file_spec}."
-			#css_opt="--stylesheet-path=${css_file_spec}"
-			css_opt="--stylesheet=${css_file_spec}"
+		   #echo "Using CSS file spec ${css_file_spec}."
+		   #css_opt="--stylesheet-path=${css_file_spec}"
+		   css_opt="--stylesheet=${css_file_spec}"
 
 		fi
 
@@ -136,31 +138,31 @@ fi
 
 if [ "$1" = "--icon-file" ]; then
 
-	shift
+   shift
 
-	icon_file="$1"
-	shift
+   icon_file="$1"
+   shift
 
-	if [ ! -f "${icon_file}" ]; then
+   if [ ! -f "${icon_file}" ]; then
 
-		echo "  Error, specified icon file (${icon_file}) does not exist." 1>&2
-		exit 55
+	   echo "${begin_marker} Error, specified icon file (${icon_file}) does not exist." 1>&2
+	   exit 55
 
-	else
+   else
 
-		echo "  Using icon file '${icon_file}'."
+	   echo "  Using icon file '${icon_file}'."
 
-	fi
+   fi
 
 else
 
-	if [ -n "$1" ]; then
+   if [ -n "$1" ]; then
 
-		echo "  Error, unexpected parameter ($1).
+	   echo "${begin_marker} Error, unexpected parameter ($1).
 ${usage}" 1>&2
-		exit 60
+	   exit 60
 
-	fi
+   fi
 
 fi
 
@@ -168,7 +170,8 @@ fi
 
 if [ $do_generate_html -eq 0 ]; then
 
-	docutils_html=$(which rst2html 2>/dev/null)
+	docutils_html="$(which rst2html 2>/dev/null)"
+
 	if [ -z "${docutils_html}" ]; then
 
 		echo "${begin_marker} Error: unable to find an executable tool to convert docutils files to HTML (rst2html)." 1>&2
@@ -180,18 +183,19 @@ fi
 
 if [ $do_generate_pdf -eq 0 ]; then
 
-	docutils_latex=$(which rst2latex 2>/dev/null)
+	docutils_latex="$(which rst2latex 2>/dev/null)"
+
 	if [ -z "${docutils_latex}" ]; then
 
-		echo "${begin_marker} Error: unable to find an executable tool to convert docutils files to LateX (rst2latex)." 1>&2
+		echo "${begin_marker} Error: unable to find an executable tool to convert docutils files to LaTeX (rst2latex)." 1>&2
 		exit 11
 
 	fi
 
-	latex_to_pdf=$(which pdflatex 2>/dev/null)
+	latex_to_pdf="$(which pdflatex 2>/dev/null)"
 	if [ -z "${latex_to_pdf}" ]; then
 
-		echo "${begin_marker} Error: unable to find an executable tool to convert LateX files to PDF (pdflatex)." 1>&2
+		echo "${begin_marker} Error: unable to find an executable tool to convert LaTeX files to PDF (pdflatex)." 1>&2
 		exit 12
 
 	fi
@@ -212,7 +216,7 @@ manage_rst_to_html()
 	echo "${begin_marker} building HTML target ${target} from source"
 
 
-	#echo ${docutils_html} ${docutils_html_opt} ${source} ${target}
+	#echo ${docutils_html} ${docutils_html_opt} "${source}" "${target}"
 	${docutils_html} ${docutils_html_opt} "${source}" "${target}"
 
 
@@ -289,11 +293,9 @@ manage_rst_to_pdf()
 
 	fi
 
-
 	# Input extension is generally '.rst' (allows to remove only the final
 	# extension, even if there were dots in the base name):
-	#
-	tex_file=$( echo ${source} | sed 's|\.[^\.]*$|.tex|1' )
+	tex_file=$(echo ${source} | sed 's|\.[^\.]*$|.tex|1')
 
 
 	#echo "Docutils command: ${docutils_latex} ${docutils_pdf_opt} ${source} ${tex_file}"
@@ -304,9 +306,9 @@ manage_rst_to_pdf()
 	if [ ! ${res} -eq 0 ]; then
 
 		if [ ${res} -eq 1 ]; then
-			echo "${begin_marker} Warning: LateX generation returned code 1 for ${source}." 1>&2
+			echo "${begin_marker} Warning: LaTeX generation returned code 1 for ${source}." 1>&2
 		else
-			echo "${begin_marker} Error: LateX generation failed for ${source}." 1>&2
+			echo "${begin_marker} Error: LaTeX generation failed for ${source}." 1>&2
 			exit 6
 		fi
 
@@ -318,50 +320,54 @@ manage_rst_to_pdf()
 
 	fi
 
-	rubber=$(which rubber)
+	rubber="$(which rubber 2>/dev/null)"
 
-	if [ ! -x "${rubber}" ]; then
+	#prefer_rubber=0
+	prefer_rubber=1
 
-		echo "Warning: 'rubber' not found, using pdflatex directly." 1>&2
+	if [ ${prefer_rubber} -eq 0 ] && [ -x "${rubber}" ]; then
 
-		# Run thrice on purpose, to fix links:
-		#echo "LateX command: ${latex_to_pdf} ${latex_to_pdf_opt} ${tex_file}"
+		# Our preferred build method; however it may enter infinite loops and/or
+		# output spurious errors like: '[depend] while making XX.pdf: file
+		# contents does not seem to settle':
+		#
+		echo "Using rubber for PDF generation"
 
-		${latex_to_pdf} ${latex_to_pdf_opt} ${tex_file} && \
-		${latex_to_pdf} ${latex_to_pdf_opt} ${tex_file} && \
-		${latex_to_pdf} ${latex_to_pdf_opt} ${tex_file}
+		${rubber} --pdf -v "${tex_file}"
+
+		res=$?
+
+		if [ ! ${res} -eq 0 ]; then
+
+			if [ ${res} -eq 1 ] || [ ${res} -eq 2 ]; then
+				echo "${begin_marker} Warning: PDF generation returned code ${res} for ${source}." 1>&2
+			else
+				echo "${begin_marker} Error: PDF generation failed for ${source} (error code: ${res})." 1>&2
+				exit 7
+			fi
+
+		fi
 
 	else
 
-		# Our preferred build method:
-		echo "Using rubber for PDF generation"
+		echo "Warning: using 'pdflatex' directly, instead of 'rubber'." 1>&2
 
-		${rubber} --pdf -v ${tex_file}
+		# Run thrice on purpose, to fix links:
+		echo "LaTeX command: ${latex_to_pdf} ${latex_to_pdf_opt} ${tex_file}"
 
-	fi
+		${latex_to_pdf} ${latex_to_pdf_opt} "${tex_file}" && \
+		${latex_to_pdf} ${latex_to_pdf_opt} "${tex_file}" && \
+		${latex_to_pdf} ${latex_to_pdf_opt} "${tex_file}"
 
-	res=$?
+		res=$?
 
-	if [ ! ${res} -eq 0 ]; then
+		if [ ! ${res} -eq 0 ]; then
 
-		if [ ${res} -eq 1 ]; then
-
-			echo "${begin_marker} Warning: PDF generation returned code 1 for ${source}." 1>&2
-
-		else
-
-			# We might receive exit statuses greater than 1, yet have the right
-			# PDF produced:
-
-			if [ -f "${target}" ]; then
-
-				echo "${begin_marker} Error reported (code: ${res}), yet the PDF file ($(pwd)/${target}) could be nevertheless generated."
-
+			if [ ${res} -eq 1 ]; then
+				echo "${begin_marker} Warning: PDF generation returned code 1 for ${source}." 1>&2
 			else
-
 				echo "${begin_marker} Error: PDF generation failed for ${source} (error code: ${res})." 1>&2
 				exit 7
-
 			fi
 
 		fi
@@ -372,32 +378,32 @@ manage_rst_to_pdf()
 
 
 
-
 if [ ${do_generate_html} -eq 0 ]; then
 
-	target_html_file=$( echo ${rst_file} | sed 's|.rst$|.html|1' )
+	target_html_file="$(echo ${rst_file}|sed 's|.rst$|.html|1')"
 	#echo "target_html_file = ${target_html_file}"
 
-	manage_rst_to_html ${rst_file} ${target_html_file}
+	manage_rst_to_html "${rst_file}" "${target_html_file}"
 
 fi
 
 
 if [ ${do_generate_pdf} -eq 0 ]; then
 
-	target_pdf_file=$( echo ${rst_file} | sed 's|.rst$|.pdf|1' )
+	target_pdf_file="$(echo ${rst_file}|sed 's|.rst$|.pdf|1')"
 	#echo "target_pdf_file = ${target_pdf_file}"
 
 	# PDF generator will not find includes (ex: images) if not already
 	# in target dir:
-	current_dir=$(pwd)
-	target_dir=$(dirname ${target_pdf_file})
+	#
+	current_dir="$(pwd)"
+	target_dir="$(dirname ${target_pdf_file})"
 
-	source_file=$(basename ${rst_file})
-	target_file=$(basename ${target_pdf_file})
+	source_file="$(basename ${rst_file})"
+	target_file="$(basename ${target_pdf_file})"
 
-	cd ${target_dir}
-	manage_rst_to_pdf ${source_file} ${target_file}
-	cd ${current_dir}
+	cd "${target_dir}"
+	manage_rst_to_pdf "${source_file}" "${target_file}"
+	cd "${current_dir}"
 
 fi
