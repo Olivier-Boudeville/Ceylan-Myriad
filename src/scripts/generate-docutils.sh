@@ -380,7 +380,7 @@ manage_rst_to_pdf()
 
 if [ ${do_generate_html} -eq 0 ]; then
 
-	target_html_file="$(echo ${rst_file}|sed 's|.rst$|.html|1')"
+	target_html_file="$(echo ${rst_file} | sed 's|.rst$|.html|1')"
 	#echo "target_html_file = ${target_html_file}"
 
 	manage_rst_to_html "${rst_file}" "${target_html_file}"
@@ -390,7 +390,7 @@ fi
 
 if [ ${do_generate_pdf} -eq 0 ]; then
 
-	target_pdf_file="$(echo ${rst_file}|sed 's|.rst$|.pdf|1')"
+	target_pdf_file="$(echo ${rst_file} | sed 's|.rst$|.pdf|1')"
 	#echo "target_pdf_file = ${target_pdf_file}"
 
 	# PDF generator will not find includes (ex: images) if not already
