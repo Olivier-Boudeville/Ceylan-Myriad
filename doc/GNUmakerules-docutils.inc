@@ -165,8 +165,8 @@ PDF_VIEWER := $$(which evince)
 
 # To trigger the automatic rendering of a created PDF, add 'VIEW_PDF='
 # at the end of the command line (ex : 'make MyDoc.pdf VIEW_PDF=')
-VIEW_PDF := yes
-#VIEW_PDF := no
+#VIEW_PDF := yes
+VIEW_PDF := no
 
 
 %.pdf: %.rst
