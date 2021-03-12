@@ -12,11 +12,6 @@
 .. role:: raw-latex(raw)
    :format: latex
 
-.. comment Would appear too late, can only be an be used only in preamble:
-.. comment :raw-latex:`\usepackage{graphicx}`
-.. comment As a result, in this document at least a '.. figure:: XXXX' must
-.. exist, otherwise: 'Undefined control sequence \includegraphics.'.
-
 
 :raw-html:`<a name="myriad_top"></a>`
 
@@ -24,8 +19,8 @@
 
 
 
-:raw-html:`<center><img src="myriad-title.png" width="70%"></img></center>`
-:raw-latex:`\includegraphics[scale=0.25]{myriad-title.png}`
+:raw-html:`<center><img src="myriad-title.png" width="40%"></img></center>`
+:raw-latex:`\centering \includegraphics[scale=0.15]{myriad-title.png}`
 
 
 
@@ -37,9 +32,9 @@ Technical Manual of the ``Ceylan-Myriad`` Layer
 :Organisation: Copyright (C) 2008-2021 Olivier Boudeville
 :Contact: about (dash) myriad (at) esperide (dot) com
 :Creation date: Sunday, August 17, 2008
-:Lastly updated: Wednesday, February 24, 2021
+:Lastly updated: Friday, March 12, 2021
 :Status: Stable
-:Version: 1.2.21
+:Version: 1.2.22
 :Dedication: Users and maintainers of the ``Myriad`` layer.
 :Abstract:
 
@@ -143,14 +138,10 @@ please either enrich our ``*_utils.erl`` `helpers <https://github.com/Olivier-Bo
 
 In such a case, we would prefer that, in contributed code, the Myriad `Text Conventions`_ and `Coding Practices`_ are respected.
 
-Thanks in advance, and have fun with Myriad!
+Thanks in advance, and have fun with Ceylan-Myriad!
 
-.. comment Mostly added to ensure there is at least one figure directive,
-.. otherwise the LateX graphic support will not be included:
+:raw-html:`<center><img src="myriad-title.png" width="35%"></img></center>`
+:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.1]{myriad-title.png} \end{figure}`
 
-.. figure:: myriad-title.png
-   :alt: Myriad logo
-   :width: 35 %
-   :align: center
 
 :raw-html:`<a name="myriad_bottom"></a>`
