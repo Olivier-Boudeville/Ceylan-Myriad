@@ -55,6 +55,8 @@ do_generate_html=0
 do_generate_pdf=1
 
 
+css_base_opt="--link-stylesheet"
+
 docutils_opt="${docutils_html_opt}"
 
 docutils_html="$(which rst2html 2>/dev/null)"
@@ -103,7 +105,7 @@ if [ -e "${rst_file}" ]; then
 
 		   echo "  Using CSS file spec ${css_file_spec}."
 		   #css_opt="--stylesheet-path=${css_file_spec}"
-		   css_opt="--stylesheet=${css_file_spec}"
+		   css_opt="--stylesheet=${css_file_spec} ${css_base_opt}"
 
 		fi
 
@@ -119,7 +121,7 @@ if [ -e "${rst_file}" ]; then
 
 		   #echo "Using CSS file spec ${css_file_spec}."
 		   #css_opt="--stylesheet-path=${css_file_spec}"
-		   css_opt="--stylesheet=${css_file_spec}"
+		   css_opt="--stylesheet=${css_file_spec} ${css_base_opt}"
 
 		fi
 
