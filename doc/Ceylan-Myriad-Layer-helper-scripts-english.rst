@@ -33,7 +33,6 @@ Searching for Erlang elements
   |  Example: ergrep -i 'list_to_form(' /tmp
 
 
-
 `find-type-definition.sh <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/scripts/find-type-definition.sh>`_
   To search for the definition of a type of interest.
 
@@ -201,6 +200,7 @@ These shell scripts are actually user-facing shell interfaces that plug directly
   | - MIN_LEN and MAX_LEN are the respective minimum and maximum numbers of characters
   | (bounds included) used to generate this password [default: between 15 and 20]
 
+  See also: the `security section <https://hull.esperide.org/#for-security>`_ of Ceylan-Hull, for more general guidelines and tooling regarding the proper management of credentials.
 
 
 `merge.sh <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/apps/merge-tool/merge.sh>`_
