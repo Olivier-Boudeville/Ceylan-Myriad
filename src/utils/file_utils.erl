@@ -3438,8 +3438,8 @@ open( Filename, Options, _AttemptMode=try_endlessly ) ->
 % By far the most commonly-used clause:
 open( Filename, Options, _AttemptMode=try_once ) ->
 
-	trace_utils:debug_fmt( "Opening '~ts' once, with the ~w options, "
-		"from '~ts'.", [ Filename, Options, get_current_directory() ] ),
+	%trace_utils:debug_fmt( "Opening '~ts' once, with the ~w options, "
+	%	"from '~ts'.", [ Filename, Options, get_current_directory() ] ),
 
 	case file:open( Filename, Options ) of
 
