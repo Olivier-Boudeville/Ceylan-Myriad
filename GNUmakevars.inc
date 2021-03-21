@@ -820,6 +820,10 @@ endif
 
 COOKIE_OPT = -c $(COOKIE)
 
+
+# One may switch to short names if network configuration does not allow for long
+# ones:
+#
 #DISTRIBUTED_NODE_OPT := -sname $(VM_NAME) -setcookie $(COOKIE)
 DISTRIBUTED_NODE_OPT := -name $(VM_NAME)@$(FQDN) -setcookie $(COOKIE)
 
@@ -1202,6 +1206,12 @@ ifdef VM_LOG_DIR
 endif
 
 
+# If wanting to force UTF-8 for filename encoding on a launched VM:
+# (generally not useful)
+#
+#ENCODING_OPT := +fnu
+
+
 # Removed:
 #
 #  --ln $(VM_TEST_NAME)
@@ -1216,7 +1226,7 @@ endif
 ERL_PARAMETERIZED_LAUNCHER = $(ERL_LAUNCHER) $(FQDN_OPT) $(FIREWALL_OPT)  \
 							 $(MAX_PROCESS_OPT) $(ASYNC_THREAD_OPT)       \
 							 $(BEAM_PATH_OPT) $(SCALE_OPT) $(COOKIE_OPT)  \
-							 $(LOG_DIR_OPT) $(OVERRIDDEN_OPT)
+							 $(LOG_DIR_OPT) $(ENCODING_OPT) $(OVERRIDDEN_OPT)
 
 
 # Previously the short names were preferred, as they seemed to resist to
