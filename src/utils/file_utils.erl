@@ -3574,7 +3574,7 @@ read( File, Count ) ->
 -spec write( file(), iodata() ) -> void().
 write( File, Content ) ->
 
-	trace_utils:debug_fmt( "Writing '~w' to ~p.", [ Content, File ] ),
+	%trace_utils:debug_fmt( "Writing '~w' to ~p.", [ Content, File ] ),
 
 	case file:write( File, Content ) of
 
