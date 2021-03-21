@@ -63,8 +63,15 @@
 
 % Shorthands:
 
+-type ustring() :: text_utils:ustring().
+
+-type function_name() :: basic_utils:function_name().
+
 -type function_arity() :: meta_utils:function_arity().
 -type function_spec() :: meta_utils:function_spec().
+-type function_id() :: meta_utils:function_id().
+-type function_type() :: meta_utils:function_type().
+
 
 %-type line() :: ast_base:line().
 -type form_context() :: ast_base:form_context().
@@ -72,7 +79,7 @@
 -type located_form() :: ast_info:located_form().
 -type function_info() :: ast_info:function_info().
 -type function_table() :: ast_info:function_table().
--type function_pair() :: { meta_utils:function_id(), function_info() }.
+-type function_pair() :: { function_id(), function_info() }.
 
 -type function_export_table() :: ast_info:function_export_table().
 
@@ -93,16 +100,16 @@
 -include("ast_utils.hrl").
 
 
+
 % Checks that specified function name is legit.
--spec check_function_name( term() ) -> basic_utils:function_name().
+-spec check_function_name( term() ) -> function_name().
 check_function_name( Name ) ->
 	check_function_name( Name, _Context=undefined ).
 
 
 
 % Checks that specified function name is legit.
--spec check_function_name( term(), form_context() ) ->
-								 basic_utils:function_name().
+-spec check_function_name( term(), form_context() ) -> function_name().
 check_function_name( Name, _Context ) when is_atom( Name ) ->
 	Name;
 
@@ -115,13 +122,13 @@ check_function_name( Other, Context ) ->
 
 
 % Checks that specified function identifier is legit.
--spec check_function_id( term() ) -> meta_utils:function_id().
+-spec check_function_id( term() ) -> function_id().
 check_function_id( Id ) ->
 	check_function_id( Id, _Context=undefined ).
 
 
 % Checks that specified function identifier is legit.
--spec check_function_id( term(), form_context() ) -> meta_utils:function_id().
+-spec check_function_id( term(), form_context() ) -> function_id().
 check_function_id( FunctionId={ FunctionName, FunctionArity }, Context ) ->
 	check_function_name( FunctionName, Context ),
 	ast_utils:check_arity( FunctionArity, Context ),
@@ -133,14 +140,13 @@ check_function_id( Other, Context ) ->
 
 
 % Checks that specified function identifiers are legit.
--spec check_function_ids( term() ) -> [ meta_utils:function_id() ].
+-spec check_function_ids( term() ) -> [ function_id() ].
 check_function_ids( Ids ) ->
 	check_function_ids( Ids, _Context=undefined ).
 
 
 % Checks that specified function identifiers are legit.
--spec check_function_ids( term(), form_context() ) ->
-								[ meta_utils:function_id() ].
+-spec check_function_ids( term(), form_context() ) -> [ function_id() ].
 check_function_ids( List, Context ) when is_list( List ) ->
 	[ check_function_id( Id, Context ) || Id <- List ];
 
@@ -151,15 +157,14 @@ check_function_ids( Other, Context ) ->
 
 
 % Checks that specified function type is legit.
--spec check_function_type( term(), function_arity() ) ->
-								 meta_utils:function_type().
+-spec check_function_type( term(), function_arity() ) -> function_type().
 check_function_type( Type, FunctionArity ) ->
 	check_function_type( Type, FunctionArity, _Context=undefined ).
 
 
 % Checks that specified function type is legit.
 -spec check_function_type( term(), function_arity(), form_context() ) ->
-								 meta_utils:function_type().
+									function_type().
 check_function_type( _FunctionType, _FunctionArity, _Context ) ->
 	%display_warning( "Function type ~p not checked (context: ~p).",
 	%				 [ FunctionType, Context ] ).
@@ -172,15 +177,14 @@ check_function_type( _FunctionType, _FunctionArity, _Context ) ->
 
 
 % Checks that specified function types are legit.
--spec check_function_types( term(), function_arity() ) ->
-								  [ meta_utils:function_type() ].
+-spec check_function_types( term(), function_arity() ) -> [ function_type() ].
 check_function_types( Types, FunctionArity ) ->
 	check_function_types( Types, FunctionArity, _Context=undefined ).
 
 
 % Checks that specified function types are legit.
 -spec check_function_types( term(), function_arity(), form_context() ) ->
-								[ meta_utils:function_type() ].
+								[ function_type() ].
 check_function_types( List, FunctionArity, Context ) when is_list( List ) ->
 	[ check_function_type( Type, FunctionArity, Context ) || Type <- List ];
 
@@ -190,7 +194,7 @@ check_function_types( Other, _FunctionArity, Context ) ->
 
 % Transforms the functions in specified table, based on specified transforms.
 -spec transform_functions( function_table(), ast_transforms() ) ->
-								 { function_table(), ast_transforms() }.
+									{ function_table(), ast_transforms() }.
 transform_functions( FunctionTable, Transforms ) ?rec_guard ->
 
 	%?display_trace( "Transforming all functions" ),
@@ -207,13 +211,13 @@ transform_functions( FunctionTable, Transforms ) ?rec_guard ->
 
 
 
-% Transforms specified function pair: { FunId, FunInfo }.
+% Transforms specified function pair: {FunId, FunInfo}.
 %
 % Allows to keep around the function identifier, to recreate the function table
 % more easily.
 %
 -spec transform_function_pair( function_pair(), ast_transforms() ) ->
-									 { function_pair(), ast_transforms() }.
+										{ function_pair(), ast_transforms() }.
 transform_function_pair( { FunId, FunctionInfo }, Transforms ) ?rec_guard ->
 
 	?display_trace( "Transforming function ~p.", [ FunId ] ),
@@ -270,7 +274,7 @@ transform_function( FunctionInfo=#function_info{ clauses=ClauseDefs,
 % Rep(Ft_k)]}}.
 %
 -spec transform_function_spec( function_spec(), ast_transforms() ) ->
-									 { function_spec(), ast_transforms() }.
+										{ function_spec(), ast_transforms() }.
 transform_function_spec( { 'attribute', Line, SpecType, { FunId, SpecList } },
 						 Transforms ) ?rec_guard ->
 
@@ -303,7 +307,7 @@ transform_function_spec( { 'attribute', Line, SpecType, { FunId, SpecList } },
 % {type,LINE,bounded_fun,[Rep(Ft_1),Rep(Fc)]}."
 %
 transform_spec( { 'type', Line, 'bounded_fun',
-		  [ FunctionType, FunctionConstraint ] }, Transforms ) ?rec_guard ->
+			[ FunctionType, FunctionConstraint ] }, Transforms ) ?rec_guard ->
 
 	{ NewFunctionType, TypeTransforms } =
 		transform_function_type( FunctionType, Transforms ),
@@ -384,8 +388,7 @@ transform_function_constraint( { 'type', Line, 'constraint',
 % - all the function definitions and specs that are described in the specified
 % function table
 %
--spec get_located_forms_for( ast_info:function_export_table(),
-							 ast_info:function_table() ) ->
+-spec get_located_forms_for( function_export_table(), function_table() ) ->
 								   { [ located_form() ], [ located_form() ] }.
 get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 
@@ -500,9 +503,8 @@ get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 % Ensures that the specified function is as expected exported in the specified
 % (supposedly export) locations.
 %
--spec update_export_table( meta_utils:function_name(), arity(),
-						   [ ast_info:location() ], function_export_table() ) ->
-								 function_export_table().
+-spec update_export_table( function_name(), arity(), [ ast_info:location() ],
+						   function_export_table() ) -> function_export_table().
 update_export_table( _FunctionName, _Arity, _ExportLocs=[], ExportTable ) ->
 	ExportTable;
 
@@ -543,8 +545,8 @@ update_export_table( FunctionName, Arity, _ExportLocs=[ Loc | H ],
 % Returns located forms corresponding to known function exports, generated from
 % specified table.
 %
--spec get_function_export_forms( ast_info:function_export_table() ) ->
-									   [ ast_info:located_form() ].
+-spec get_function_export_forms( function_export_table() ) ->
+									   [ located_form() ].
 get_function_export_forms( FunctionExportTable ) ->
 
 	FunExportInfos = ?table:enumerate( FunctionExportTable ),
@@ -561,12 +563,12 @@ get_function_export_forms( FunctionExportTable ) ->
 % specified indentation level.
 %
 -spec clauses_to_string( meta_utils:clause_def(),
-					 text_utils:indentation_level() ) -> text_utils:ustring().
+						 text_utils:indentation_level() ) -> ustring().
 clauses_to_string( _Clauses=[], _IndentationLevel ) ->
 	"no function clause defined";
 
 clauses_to_string( Clauses, IndentationLevel ) ->
-	text_utils:format( "~B function clauses defined: ~s", [ length( Clauses ),
+	text_utils:format( "~B function clauses defined: ~ts", [ length( Clauses ),
 		text_utils:strings_to_string(
 				 [ text_utils:format( "~p", [ C ] ) || C <- Clauses ],
 				 IndentationLevel ) ] ).

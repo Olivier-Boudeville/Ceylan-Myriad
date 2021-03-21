@@ -325,7 +325,7 @@ update_entries( EntryList, MapHashtable ) ->
 % otherwise a {bad_key,Key} exception is triggered.
 %
 -spec swap_value( key(), value(), map_hashtable() ) ->
-						{ value(), map_hashtable() }.
+							{ value(), map_hashtable() }.
 swap_value( Key, NewValue, MapHashtable ) ->
 	PreviousValue = maps:get( Key, MapHashtable ),
 	NewMapHashtable = maps:put( Key, NewValue, MapHashtable ),
@@ -460,7 +460,7 @@ get_value( Key, MapHashtable ) ->
 	catch
 
 		error:{ badkey, _K } ->
-			trace_utils:error_fmt( "No key '~p' found in following table: ~s",
+			trace_utils:error_fmt( "No key '~p' found in following table: ~ts",
 								   [ Key, to_string( MapHashtable ) ] ),
 			throw( { key_not_found, Key } )
 
@@ -668,7 +668,7 @@ map( Fun, MapHashtable ) ->
 % structure, number of entries because of collisions, etc. of the table).
 %
 -spec map_on_entries( fun( ( entry() ) -> entry() ), map_hashtable() ) ->
-						map_hashtable().
+							map_hashtable().
 map_on_entries( Fun, MapHashtable ) ->
 
 	% maps:map/2 keeps the same keys, not relevant here.
@@ -899,7 +899,7 @@ optimise( Hashtable ) ->
 % '[|]' operation will not complain if not.
 %
 -spec append_to_existing_entry( key(), term(), map_hashtable() ) ->
-								map_hashtable().
+									map_hashtable().
 %append_to_existing_entry( Key, Element, MapHashtable=#{ Key => ListValue } ) ->
 %	MapHashtable#{ Key => [Element | ListValue] };
 %
@@ -1183,7 +1183,7 @@ to_string( MapHashtable, DescriptionType ) ->
 		L ->
 
 			% Enforces a consistent order; flatten below is needed, in order to
-			% use the result with ~s:
+			% use the result with ~ts:
 			%
 			case DescriptionType of
 
@@ -1191,7 +1191,7 @@ to_string( MapHashtable, DescriptionType ) ->
 					Strs = [ text_utils:format_ellipsed( "~p: ~p", [ K, V ] )
 							 || { K, V } <- lists:sort( L ) ],
 
-					lists:flatten( io_lib:format( "table with ~B entries: ~s",
+					lists:flatten( io_lib:format( "table with ~B entries: ~ts",
 						[ map_size( MapHashtable ),
 						  text_utils:strings_to_string( Strs,
 														?default_bullet ) ] ) );
@@ -1200,7 +1200,7 @@ to_string( MapHashtable, DescriptionType ) ->
 					Strs = [ text_utils:format( "~p: ~p", [ K, V ] )
 							 || { K, V } <- lists:sort( L ) ],
 
-					lists:flatten( io_lib:format( "table with ~B entries: ~s",
+					lists:flatten( io_lib:format( "table with ~B entries: ~ts",
 						[ map_size( MapHashtable ),
 						  text_utils:strings_to_string( Strs,
 														?default_bullet ) ] ) );
@@ -1210,7 +1210,7 @@ to_string( MapHashtable, DescriptionType ) ->
 					Strs = [ text_utils:format_ellipsed( "~p: ~p", [ K, V ] )
 							 || { K, V } <- lists:sort( L ) ],
 
-					lists:flatten( io_lib:format( "table with ~B entries: ~s",
+					lists:flatten( io_lib:format( "table with ~B entries: ~ts",
 						[ map_size( MapHashtable ),
 						  text_utils:strings_to_string( Strs, Bullet ) ] ) )
 
@@ -1223,7 +1223,7 @@ to_string( MapHashtable, DescriptionType ) ->
 % Displays the specified map hashtable on the standard output.
 -spec display( map_hashtable() ) -> void().
 display( MapHashtable ) ->
-	io:format( "~s~n", [ to_string( MapHashtable ) ] ).
+	io:format( "~ts~n", [ to_string( MapHashtable ) ] ).
 
 
 
@@ -1232,4 +1232,4 @@ display( MapHashtable ) ->
 %
 -spec display( ustring(), map_hashtable() ) -> void().
 display( Title, MapHashtable ) ->
-	io:format( "~s:~n~s~n", [ Title, to_string( MapHashtable ) ] ).
+	io:format( "~ts:~n~ts~n", [ Title, to_string( MapHashtable ) ] ).

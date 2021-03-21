@@ -121,8 +121,8 @@
 -spec get_code_for( module_name() ) -> { binary(), file_path() }.
 get_code_for( ModuleName ) ->
 
-	%trace_utils:debug_fmt( "Getting code for module '~s', "
-	%					   "from current working directory '~s'.",
+	%trace_utils:debug_fmt( "Getting code for module '~ts', "
+	%					   "from current working directory '~ts'.",
 	%					   [ ModuleName, file_utils:get_current_directory() ] ),
 
 	case code:get_object_code( ModuleName ) of
@@ -136,9 +136,9 @@ get_code_for( ModuleName ) ->
 
 			ModString= text_utils:atoms_to_string( FoundBeams ),
 
-			trace_utils:error_fmt( "Unable to find object code for '~s' "
-				"on '~s', knowing that the current directory is ~s and "
-				"the ~s~n The corresponding found BEAM files are: ~s",
+			trace_utils:error_fmt( "Unable to find object code for '~ts' "
+				"on '~ts', knowing that the current directory is ~ts and "
+				"the ~ts~n The corresponding found BEAM files are: ~ts",
 				[ ModuleName, node(), file_utils:get_current_directory(),
 				  get_code_path_as_string(), ModString ] ),
 
@@ -230,8 +230,8 @@ deploy_modules( Modules, Nodes, Timeout ) ->
 	%
 	naming_utils:wait_for_remote_local_registrations_of( code_server, Nodes ),
 
-	%trace_utils:debug_fmt( "Getting code for modules ~p, on ~s, "
-	%	"whereas code path (evaluated from ~s) is:~n  ~p",
+	%trace_utils:debug_fmt( "Getting code for modules ~p, on ~ts, "
+	%	"whereas code path (evaluated from ~ts) is:~n  ~p",
 	%	[ Modules, node(), file_utils:get_current_directory(),
 	%     code:get_path() ] ),
 
@@ -245,8 +245,9 @@ deploy_modules( Modules, Nodes, Timeout ) ->
 					 time_out() ) -> void().
 deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
 
-	%trace_utils:debug_fmt( "Deploying module '~s' (filename '~s') on nodes ~p "
-	%	"with time-out ~p.", [ ModuleName, ModuleFilename, Nodes, Timeout ] ),
+	%trace_utils:debug_fmt( "Deploying module '~ts' (filename '~ts') "
+	%   "'on nodes ~p with time-out ~p.",
+	%   [ ModuleName, ModuleFilename, Nodes, Timeout ] ),
 
 	{ ResList, BadNodes } = rpc:multicall( Nodes, code, load_binary,
 				[ ModuleName, ModuleFilename, ModuleBinary ], Timeout ),
@@ -263,7 +264,7 @@ deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
 			case ReportedErrors of
 
 				[] ->
-					%trace_utils:debug_fmt( "Module '~s' successfully "
+					%trace_utils:debug_fmt( "Module '~ts' successfully "
 					%    "deployed on ~p.~n", [ ModuleName, Nodes ] ),
 					ok;
 
@@ -344,7 +345,7 @@ declare_beam_directory( Dir, first_position ) ->
 
 	cond_utils:if_defined( myriad_debug_code_path,
 		trace_utils:debug_fmt( "Declaring in first position BEAM directory "
-			"'~s' in VM code path.", [ Dir ] ) ),
+			"'~ts' in VM code path.", [ Dir ] ) ),
 
 	% No need to check directory for existence, code:add_patha/1 will do it:
 	case code:add_patha( Dir ) of
@@ -360,7 +361,7 @@ declare_beam_directory( Dir, first_position ) ->
 declare_beam_directory( Dir, last_position ) ->
 
 	cond_utils:if_defined( myriad_debug_code_path,
-	  trace_utils:debug_fmt( "Declaring in last position BEAM directory '~s' "
+	  trace_utils:debug_fmt( "Declaring in last position BEAM directory '~ts' "
 							 "in VM code path.", [ Dir ] ) ),
 
 	% No need to check directory for existence, code:add_pathz/1 will do it:
@@ -397,7 +398,7 @@ declare_beam_directories( Dirs ) ->
 declare_beam_directories( Dirs, first_position ) ->
 
 	cond_utils:if_defined( myriad_debug_code_path,
-	  trace_utils:debug_fmt( "Declaring in first position BEAM directories ~s "
+	  trace_utils:debug_fmt( "Declaring in first position BEAM directories ~ts "
 		"in VM code path.", [ text_utils:strings_to_listed_string( Dirs ) ] ) ),
 
 	% As code:add_pathsa/1 does not report non-existing directories:
@@ -409,7 +410,7 @@ declare_beam_directories( Dirs, first_position ) ->
 declare_beam_directories( Dirs, last_position ) ->
 
 	cond_utils:if_defined( myriad_debug_code_path,
-	  trace_utils:debug_fmt( "Declaring in last position BEAM directories ~s "
+	  trace_utils:debug_fmt( "Declaring in last position BEAM directories ~ts "
 		"in VM code path.", [ text_utils:strings_to_listed_string( Dirs ) ] ) ),
 
 	% As code:add_pathsz/1 does not report non-existing directories:
@@ -452,7 +453,7 @@ check_beam_dirs( _Dirs=[ D | T ] ) ->
 remove_beam_directory( NameOrDir ) ->
 
 	cond_utils:if_defined( myriad_debug_code_path,
-	  trace_utils:debug_fmt( "Removing directory designated by '~s' "
+	  trace_utils:debug_fmt( "Removing directory designated by '~ts' "
 							 "from VM code path.", [ NameOrDir ] ) ),
 
 	case code:del_path( NameOrDir ) of
@@ -481,7 +482,7 @@ remove_beam_directory( NameOrDir ) ->
 remove_beam_directory_if_set( NameOrDir ) ->
 
 	cond_utils:if_defined( myriad_debug_code_path,
-	  trace_utils:debug_fmt( "Removing directory designated by '~s' "
+	  trace_utils:debug_fmt( "Removing directory designated by '~ts' "
 							 "from VM code path (if set).", [ NameOrDir ] ) ),
 
 	case code:del_path( NameOrDir ) of
@@ -540,7 +541,7 @@ get_beam_dirs_for( VariableName ) ->
 			end,
 
 			Command = io_lib:format(
-						"cd ~s && make list-beam-dirs 2>/dev/null",
+						"cd ~ts && make list-beam-dirs 2>/dev/null",
 						[ BaseDir ] ),
 
 			Dirs = string:tokens( os:cmd( Command ), _Sep="\n" ),
@@ -619,7 +620,7 @@ get_code_path() ->
 % Returns a textual representation of the current code path.
 -spec get_code_path_as_string() -> ustring().
 get_code_path_as_string() ->
-	text_utils:format( "current code path is: ~s",
+	text_utils:format( "current code path is: ~ts",
 					   [ text_utils:strings_to_string( get_code_path() ) ] ).
 
 
@@ -680,7 +681,7 @@ is_beam_in_path( ModuleName ) when is_atom( ModuleName ) ->
 
 	ModuleFilename = text_utils:atom_to_string( ModuleName ) ++ ?beam_extension,
 
-	%trace_utils:info_fmt( "Paths for module filename '~s':~n  ~p",
+	%trace_utils:info_fmt( "Paths for module filename '~ts':~n  ~p",
 	%					   [ ModuleFilename, code:get_path() ] ),
 
 	% We have to ensure that all paths are absolute and normalised, so that we
@@ -802,35 +803,36 @@ interpret_shortened_stacktrace( SkipLastElemCount ) ->
 interpret_stack_item( { Module, Function, Arity,
 						[ { file, FilePath }, { line, Line } ] },
 					  _FullPathsWanted=true ) when is_integer( Arity ) ->
-	text_utils:format( "~s:~s/~B   [defined in ~s (line ~B)]",
+	text_utils:format( "~ts:~ts/~B   [defined in ~ts (line ~B)]",
 		[ Module, Function, Arity, file_utils:normalise_path( FilePath ),
 		  Line ] );
 
 interpret_stack_item( { Module, Function, Arity,
 						[ { file, FilePath }, { line, Line } ] },
 					  _FullPathsWanted=false ) when is_integer( Arity ) ->
-	text_utils:format( "~s:~s/~B   [defined in ~s (line ~B)]",
+	text_utils:format( "~ts:~ts/~B   [defined in ~ts (line ~B)]",
 		[ Module, Function, Arity, filename:basename( FilePath ), Line ] );
 
 interpret_stack_item( { Module, Function, Args,
 						[ { file, FilePath }, { line, Line } ] },
 					  _FullPathsWanted=false ) when is_list( Args ) ->
-	text_utils:format( "~s:~s/~B   [defined in ~s (line ~B)]",
+	text_utils:format( "~ts:~ts/~B   [defined in ~ts (line ~B)]",
 		[ Module, Function, length( Args ), filename:basename( FilePath ),
 		  Line ] );
 
 interpret_stack_item( { Module, Function, Arity, Location },
 					  _FullPathsWanted ) when is_integer( Arity ) ->
-	text_utils:format( "~s:~s/~B located in ~p",
+	text_utils:format( "~ts:~ts/~B located in ~p",
 					   [ Module, Function, Arity, Location ] );
 
 interpret_stack_item( { Module, Function, Arguments, _Location=[] },
 					  _FullPathsWanted ) when is_list( Arguments ) ->
-	text_utils:format( "~s:~s/~B", [ Module, Function, length( Arguments ) ] );
+	text_utils:format( "~ts:~ts/~B",
+					   [ Module, Function, length( Arguments ) ] );
 
 interpret_stack_item( { Module, Function, Arguments, Location },
 					  _FullPathsWanted ) when is_list( Arguments ) ->
-	text_utils:format( "~s:~s/~B located in ~p",
+	text_utils:format( "~ts:~ts/~B located in ~p",
 					   [ Module, Function, length( Arguments ), Location ] );
 
 % Never fail:
@@ -846,7 +848,7 @@ display_stacktrace() ->
 	% We do not want to include display_stacktrace/0 in the stack:
 	StackTrace = get_stacktrace( _SkipLastElemCount=1 ),
 
-	trace_utils:info_fmt( "Current stacktrace is (latest calls first): ~s~n",
+	trace_utils:info_fmt( "Current stacktrace is (latest calls first): ~ts~n",
 						  [ interpret_stacktrace( StackTrace ) ] ).
 
 
@@ -859,8 +861,9 @@ interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
 	case code_utils:is_beam_in_path( ModuleName ) of
 
 		not_found ->
-			text_utils:format( "no module ~s found in code path, which explains"
-				" why its ~s/~B function is reported as being undefined; ~s",
+			text_utils:format( "no module ~ts found in code path, "
+				"which explains why its ~ts/~B function is reported "
+				"as being undefined; ~ts",
 				[ ModuleName, FunctionName, Arity,
 				  code_utils:get_code_path_as_string() ] );
 
@@ -871,9 +874,10 @@ interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
 											 FunctionName ) of
 
 				[] ->
-					text_utils:format( "module ~s found in code path (as '~s'),"
-					  " yet it does not export a '~s' function (for any arity)",
-					  [ ModuleName, ModulePath, FunctionName ] );
+					text_utils:format( "module ~ts found in code path "
+						"(as '~ts'), yet it does not export a '~ts' function "
+						"(for any arity)",
+						[ ModuleName, ModulePath, FunctionName ] );
 
 				Arities ->
 					interpret_arities( ModuleName, FunctionName, Arity,
@@ -891,8 +895,8 @@ interpret_arities( ModuleName, FunctionName, Arity, Arities ) ->
 
 		true ->
 			% Should never happen?
-			text_utils:format( "module ~s found in code path, and it exports "
-				"the ~s/~B function indeed",
+			text_utils:format( "module ~ts found in code path, and it exports "
+				"the ~ts/~B function indeed",
 				[ ModuleName, FunctionName, Arity ] );
 
 		false ->
@@ -907,14 +911,15 @@ interpret_arities( ModuleName, FunctionName, Arity, Arities ) ->
 
 					ArsStr = text_utils:strings_to_listed_string( Ars ),
 
-					text_utils:format( "other arities (i.e. ~s)", [ ArsStr ] )
+					text_utils:format( "other arities (i.e. ~ts)", [ ArsStr ] )
 
 			end,
 
-			text_utils:format( "module ~s found in code path, yet it does "
-				"export a ~s/~B function; as it exports this function for ~s, "
-				"maybe the call to that function was made with a wrong number "
-				"of parameters", [ ModuleName, FunctionName, Arity, ArStr ] )
+			text_utils:format( "module ~ts found in code path, yet it does "
+				"export a ~ts/~B function; as it exports this function "
+				"for ~ts, maybe the call to that function was made with "
+				"a wrong number of parameters",
+				[ ModuleName, FunctionName, Arity, ArStr ] )
 
 	end.
 
@@ -922,7 +927,7 @@ interpret_arities( ModuleName, FunctionName, Arity, Arities ) ->
 % Returns a textual description of specified stack location.
 -spec stack_location_to_string( stack_location() ) -> ustring().
 stack_location_to_string( [ { file, Filename }, { line, Line } ] ) ->
-	text_utils:format( "in file ~s, at line ~B", [ Filename, Line ] );
+	text_utils:format( "in file ~ts, at line ~B", [ Filename, Line ] );
 
 % Catch-all:
 stack_location_to_string( OtherLoc ) ->

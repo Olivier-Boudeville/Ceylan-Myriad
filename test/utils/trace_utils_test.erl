@@ -49,41 +49,41 @@ run() ->
 		"subsystem, emitting our own traces." ),
 
 	trace_utils:debug( "I am a debug simple message." ),
-	trace_utils:debug_fmt( "I am a debug ~s message.", [ "formatted" ] ),
+	trace_utils:debug_fmt( "I am a debug ~ts message.", [ "formatted" ] ),
 
 	trace_utils:info( "I am an info simple message." ),
-	trace_utils:info_fmt( "I am an info ~s message.", [ "formatted" ] ),
+	trace_utils:info_fmt( "I am an info ~ts message.", [ "formatted" ] ),
 
 	trace_utils:notice( "I am a notice simple message." ),
-	trace_utils:notice_fmt( "I am a notice ~s message.", [ "formatted" ] ),
+	trace_utils:notice_fmt( "I am a notice ~ts message.", [ "formatted" ] ),
 
 	trace_utils:warning( "I am a warning simple message." ),
-	trace_utils:warning_fmt( "I am a warning ~s message.", [ "formatted" ] ),
+	trace_utils:warning_fmt( "I am a warning ~ts message.", [ "formatted" ] ),
 
 	trace_utils:error( "I am an error simple message." ),
-	trace_utils:error_fmt( "I am an error ~s message.", [ "formatted" ] ),
+	trace_utils:error_fmt( "I am an error ~ts message.", [ "formatted" ] ),
 
 	trace_utils:critical( "I am a critical simple message." ),
-	trace_utils:critical_fmt( "I am a critical ~s message.", [ "formatted" ] ),
+	trace_utils:critical_fmt( "I am a critical ~ts message.", [ "formatted" ] ),
 
 	trace_utils:alert( "I am an alert simple message." ),
-	trace_utils:alert_fmt( "I am an alert ~s message.", [ "formatted" ] ),
+	trace_utils:alert_fmt( "I am an alert ~ts message.", [ "formatted" ] ),
 
 	trace_utils:emergency( "I am an emergency simple message." ),
-	trace_utils:emergency_fmt( "I am an emergency ~s message.",
+	trace_utils:emergency_fmt( "I am an emergency ~ts message.",
 							   [ "formatted" ] ),
 
 	_NonCrasherPid = spawn(
 		fun() ->
 			trace_utils:notice_fmt( "Hello from non-crasher test process ~w.",
-								  [ self() ] )
+									[ self() ] )
 		end ),
 
 	_CrasherPid = spawn(
 
 		fun() ->
 			trace_utils:notice_fmt( "Hello from crasher test process ~w.",
-								  [ self() ] ),
+									[ self() ] ),
 			basic_utils:crash()
 		end ),
 

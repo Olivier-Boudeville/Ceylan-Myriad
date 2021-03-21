@@ -90,11 +90,11 @@
 
 
 % Message to be sent as SMS (up to 160 bytes):
--type message() :: string().
+-type message() :: ustring().
 
 
 % International mobile phone number of the recipient (ex: "+330616XXXXXX").
--type recipient() :: string().
+-type recipient() :: ustring().
 
 
 % Any (short) alphanumerical string describing the sender, if this service is
@@ -103,21 +103,21 @@
 % (with verysms, supposedly only taken into account in the 'pro' class; but
 % actually SMS always shown as sent by the number "38200")
 %
--type sender_description() :: string().
+-type sender_description() :: ustring().
 
 
 % Many steps may fo wrong:
 -type failure_reason() ::
-		{ 'invalid_content', string() }
-	  | { 'invalid_phone_number', string() }
+		{ 'invalid_content', ustring() }
+	  | { 'invalid_phone_number', ustring() }
 	  |   'credits_exhausted'
 	  |   'insufficient_credits'
-	  | { 'invalid_password', string() }
-	  | { 'invalid_user', string() }
-	  | { 'invalid_content', string() }
-	  | { 'invalid_request', string() }
-	  | { 'error', string() }
-	  | { 'request_failed', string() }.
+	  | { 'invalid_password', ustring() }
+	  | { 'invalid_user', ustring() }
+	  | { 'invalid_content', ustring() }
+	  | { 'invalid_request', ustring() }
+	  | { 'error', ustring() }
+	  | { 'request_failed', ustring() }.
 
 
 -type diagnosis() :: any().
@@ -176,6 +176,12 @@
 			   sending_outcome/0 ]).
 
 
+% Shorthands:
+
+-type ustring() :: text_utils:ustring().
+
+
+
 % Creates a SMS record instance from specified information, the service class
 % being not defined, so that the default class of the account will prevail.
 %
@@ -194,7 +200,7 @@ create_sms( Message, Recipient, SenderDescription, ServiceClass )
   when is_list( Message ) andalso is_list( Recipient )
 	   andalso is_list( SenderDescription ) andalso is_atom( ServiceClass )->
 
-	%trace_utils:debug_fmt( "created '~s' ~B.",
+	%trace_utils:debug_fmt( "created '~ts' ~B.",
 	%                       [ Message, length( Message ) ] ),
 
 	% More checking should be done:
@@ -397,22 +403,21 @@ update_credits( Account=#sms_account{ credits=Credits } ) ->
 
 
 % Returns a textual description of the specified SMS account.
--spec account_to_string( sms_account() ) -> string().
+-spec account_to_string( sms_account() ) -> ustring().
 account_to_string( #sms_account{ provider=Provider, user_name=Username,
 								 password=Password, default_class=DefaultClass,
 								 credits=Credits, sent_count=SentCount,
 								 sent_success_count=SentSuccessCount } ) ->
-	text_utils:format( "SMS account on provider '~s': user name is '~s', "
-				   "password is '~s', relying on default sending class '~s', "
-				   "with stored credits: ~p; ~B success sendings over a total "
-				   "of ~B",
-				   [ Provider, Username, Password, DefaultClass, Credits,
-					 SentSuccessCount, SentCount ] ).
+	text_utils:format( "SMS account on provider '~ts': user name is '~ts', "
+		"password is '~ts', relying on default sending class '~ts', "
+		"with stored credits: ~p; ~B success sendings over a total of ~B",
+		[ Provider, Username, Password, DefaultClass, Credits,
+		  SentSuccessCount, SentCount ] ).
 
 
 
 % Returns a textual description of the specified SMS.
--spec sms_to_string( sms() ) -> string().
+-spec sms_to_string( sms() ) -> ustring().
 sms_to_string( #sms{ message=Message, recipient=Recipient,
 					 sender_description=SenderDesc,
 					 service_class=ServiceClass } ) ->
@@ -420,10 +425,10 @@ sms_to_string( #sms{ message=Message, recipient=Recipient,
 	% Encoding (ex: of accentuated characters) changes the byte size:
 	Len = length( Message ),
 
-	text_utils:format( "SMS whose message is '~s' (character length: ~B bytes), "
-					   "sent to recipient number '~s' from sender '~p' "
-					   "with service class ~p",
-					   [ Message, Len, Recipient, SenderDesc, ServiceClass ] ).
+	text_utils:format( "SMS whose message is '~ts' (character length: "
+		"~B bytes), sent to recipient number '~ts' from sender '~p' "
+		"with service class ~p",
+		[ Message, Len, Recipient, SenderDesc, ServiceClass ] ).
 
 
 

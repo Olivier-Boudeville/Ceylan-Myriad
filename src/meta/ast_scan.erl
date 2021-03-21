@@ -50,7 +50,7 @@
 
 -type scan_context() :: { ast_base:file_reference(), ast_base:line() }.
 
--type error_report() :: text_utils:ustring().
+-type error_report() :: ustring().
 
 -export_type([ parse_attribute_name/0, scan_context/0, error_report/0 ]).
 
@@ -68,8 +68,9 @@
 -type compile_option_table() :: ast_info:compile_option_table().
 -type located_form() :: ast_info:located_form().
 -type marker_table() :: ast_info:section_marker_table().
+-type location() :: ast_info:location().
 
-
+-type ustring() :: text_utils:ustring().
 
 
 % Implementation notes:
@@ -126,9 +127,9 @@
 % measure for debuggability.
 %
 % So, instead of storing forms in an AST, we store located forms in a located
-% AST: instead of having [ F1, F2, ..., Fn ], we may have for example [ { Loc2,
-% F2 }, { Loc1, F1 }, ..., { Locn, Fn } ], where Loc are (stable, immutable)
-% locations, i.e. form_location() - which are themselves id_utils:sortable_id().
+% AST: instead of having [F1, F2, ..., Fn], we may have for example [{Loc2,F2},
+% {Loc1,F1}, ..., {Locn,Fn} ], where Loc are (stable, immutable) locations,
+% i.e. form_location() - which are themselves id_utils:sortable_id().
 %
 % It allows to store, in a located AST, (located) forms in an arbitrary order:
 % sorting them according to their location reorders them as intended (note that
@@ -215,8 +216,8 @@ scan( AST ) ->
 %
 % Ex: foo.erl:102: can't find include file "bar.hrl"
 %
--spec report_error( { ast_scan:scan_context(), basic_utils:error_reason() } ) ->
-						  basic_utils:void().
+-spec report_error( { scan_context(), basic_utils:error_reason() } ) ->
+							basic_utils:void().
 report_error( { Context, Error } ) ->
 
 	% No trace_utils yet here:
@@ -226,12 +227,12 @@ report_error( { Context, Error } ) ->
 
 		% Ex: Msg="head mismatch"
 		{ parse_error, Msg } when is_list( Msg ) ->
-			%text_utils:format( "parse error: ~s", [ Msg ] );
-			text_utils:format( "~s", [ Msg ] );
+			%text_utils:format( "parse error: ~ts", [ Msg ] );
+			text_utils:format( "~ts", [ Msg ] );
 
 		{ undefined_macro_variable, VariableName }
 						when is_atom( VariableName ) ->
-			text_utils:format( "undefined macro variable '~s'",
+			text_utils:format( "undefined macro variable '~ts'",
 							   [ VariableName ] );
 
 		% Ex: a wrong use of a record, such as R#my_rec instead of R=#myrec:
@@ -239,44 +240,44 @@ report_error( { Context, Error } ) ->
 			text_utils:format( "unexpected pattern: ~p", [ Pattern ] );
 
 		{ scan_error, _ScanError={ string, _L, Text } } when is_list( Text ) ->
-			text_utils:format( "syntax error near \"~s\"", [ Text ] );
+			text_utils:format( "syntax error near \"~ts\"", [ Text ] );
 
 		{ scan_error, ScanError } ->
 			text_utils:format( "scan error: ~p", [ ScanError ] );
 
 		{ epp_error, { undefined, MacroName, Arity } }
 				when is_atom( MacroName ) andalso is_integer( Arity ) ->
-			text_utils:format( "undefined macro ~s/~B", [ MacroName, Arity ] );
+			text_utils:format( "undefined macro ~ts/~B", [ MacroName, Arity ] );
 
 		% Ex: DirectiveName=ifdef
 		{ epp_error, { bad, DirectiveName } } when is_atom( DirectiveName )  ->
-			text_utils:format( "invalid '~s' preprocessor directive",
+			text_utils:format( "invalid '~ts' preprocessor directive",
 							   [ DirectiveName ] );
 
 		% Ex: Problem="unbalanced"
 		{ epp_error, { illegal, Problem, DirectiveName } }
 						when is_atom( DirectiveName )  ->
-			text_utils:format( "illegal ~s '~s' preprocessor directive",
+			text_utils:format( "illegal ~ts '~ts' preprocessor directive",
 							   [ Problem, DirectiveName ] );
 
 		% Ex: MacroName=debug
 		{ epp_error, { mismatch, MacroName } } ->
-			text_utils:format( "mismatch regarding macro '~s' (wrong arity?)",
+			text_utils:format( "mismatch regarding macro '~ts' (wrong arity?)",
 							   [ MacroName ] );
 
 		% Ex: MacroName=send_info_fmt
 		{ epp_error, { arg_error, MacroName } } ->
-			text_utils:format( "argument error in macro '~s' "
+			text_utils:format( "argument error in macro '~ts' "
 							   "(ex: non-closed parenthesis?)", [ MacroName ] );
 
 		% Ex: HeaderPath="myriad/include/ast_info.hrl"
 		{ epp_error, { include, lib, HeaderPath } } ->
-			text_utils:format( "could not find include_lib header file '~s'",
+			text_utils:format( "could not find include_lib header file '~ts'",
 							   [ HeaderPath ] );
 
 		String when is_list( String ) ->
-			%text_utils:format( "~s (raw error string reported)", [ String ] );
-			text_utils:format( "~s", [ String ] );
+			%text_utils:format( "~ts (raw error string reported)", [ String ] );
+			text_utils:format( "~ts", [ String ] );
 
 		Other ->
 			%text_utils:format( "~p (raw error reported)", [ Other ] )
@@ -286,12 +287,12 @@ report_error( { Context, Error } ) ->
 
 	%trace_utils:debug_fmt( "Full error was: ~p", [ Error ] ),
 
-	io:format( "~s: ~s~n", [ context_to_string( Context ), ErrorString ] ).
+	io:format( "~ts: ~ts~n", [ context_to_string( Context ), ErrorString ] ).
 
 
 
 % Returns a textual representation of specified compilation context.
--spec context_to_string( ast_scan:scan_context() ) -> string().
+-spec context_to_string( scan_context() ) -> ustring().
 context_to_string( { Filename, Line } ) ->
 
 	% Respects the standard formatting:
@@ -299,7 +300,7 @@ context_to_string( { Filename, Line } ) ->
 	% (note: using file_utils:normalise_path/1 would suppose file_utils is
 	% already built...)
 	%
-	text_utils:format( "~s:~B", [ Filename, Line ] ).
+	text_utils:format( "~ts:~B", [ Filename, Line ] ).
 
 
 
@@ -405,10 +406,10 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export', FunctionIds } | T ],
 
 	% At least initially, exactly one export entry per location:
 	NewExportTable = ?table:add_new_entry( NextLocation, { Line, FunctionIds },
-										 ExportTable ),
+										   ExportTable ),
 
 	NewMarkerTable = case ?table:has_entry( export_functions_marker,
-										   MarkerTable ) of
+											MarkerTable ) of
 
 		true ->
 			% Already found, nothing to do.
@@ -453,7 +454,7 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'import',
 	NewImportDefs = [ { NextLocation, Form } | ImportDefs ],
 
 	NewMarkerTable = case ?table:has_entry( import_functions_marker,
-										   MarkerTable ) of
+											MarkerTable ) of
 
 		true ->
 			% Already found, nothing to do.
@@ -479,11 +480,11 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'import',
 % {attribute,LINE,module,Mod}."
 %
 scan_forms( _AST=[ Form={ 'attribute', Line, 'module', ModuleName } | T ],
-			 M=#module_info{ module=undefined,
-							 markers=MarkerTable },
-			 NextLocation, CurrentFileReference ) ->
+			M=#module_info{ module=undefined,
+							markers=MarkerTable },
+			NextLocation, CurrentFileReference ) ->
 
-	%ast_utils:display_debug( "module declaration for ~s", [ ModuleName ] ),
+	%ast_utils:display_debug( "module declaration for ~ts", [ ModuleName ] ),
 
 	Context = { CurrentFileReference, Line },
 
@@ -528,7 +529,7 @@ scan_forms( _AST=[ Form={ 'attribute', _Line, 'file',
 			 M=#module_info{ includes=Inc, include_defs=IncDefs }, NextLocation,
 			_CurrentFileReference ) ->
 
-	%ast_utils:display_debug( "file declaration with ~s at #~B",
+	%ast_utils:display_debug( "file declaration with ~ts at #~B",
 	% [ FilePath, FileLine ] ),
 
 	% We used to normalise paths, however then 'file_utils' would have to be
@@ -655,10 +656,9 @@ scan_forms(
 			% (this information could be determined thanks to the located forms,
 			% yet you require quite a lot of development)
 
-			Report = text_utils:format( "multiple definitions for ~s/~B "
-										"(past definition at line ~B)",
-										[ FunctionName, FunctionArity,
-										  SomeLine ] ),
+			Report = text_utils:format( "multiple definitions for ~ts/~B "
+				"(past definition at line ~B)",
+				[ FunctionName, FunctionArity, SomeLine ] ),
 
 			Error = { Context, Report },
 			%UnhandledLocForm = { NextLocation, Form },
@@ -681,7 +681,7 @@ scan_forms(
 
 		false ->
 			?table:add_entry( definition_functions_marker, NextLocation,
-							 MarkerTable )
+							  MarkerTable )
 
 	end,
 
@@ -695,8 +695,8 @@ scan_forms(
 
 	end,
 
-	%ast_utils:display_debug( "function ~s/~B with ~B clauses registered.",
-	%			   [ FunctionName, FunctionArity, length( Clauses ) ] ),
+	%ast_utils:display_debug( "function ~ts/~B with ~B clauses registered.",
+	%			[ FunctionName, FunctionArity, length( Clauses ) ] ),
 
 	scan_forms( T, M#module_info{ functions=NewFunctionTable,
 								  markers=NewMarkerTable,
@@ -728,7 +728,7 @@ scan_forms( [ Form={ 'attribute', Line, SpecType,
 
 	ast_function:check_function_types( FunctionTypes, FunctionArity, Context ),
 
-	%ast_utils:display_debug( "~s definition for ~p/~p",
+	%ast_utils:display_debug( "~ts definition for ~p/~p",
 	% [ SpecType, FunctionName, FunctionArity ] ),
 
 	LocatedSpec = { NextLocation, Form },
@@ -759,8 +759,7 @@ scan_forms( [ Form={ 'attribute', Line, SpecType,
 
 		{ value, F=#function_info{ spec=undefined } } ->
 			% Just add that spec form and callback status then:
-			F#function_info{ spec=LocatedSpec,
-							 callback=IsCallback };
+			F#function_info{ spec=LocatedSpec, callback=IsCallback };
 
 		% Here a spec was already set:
 		%_ ->
@@ -776,7 +775,7 @@ scan_forms( [ Form={ 'attribute', Line, SpecType,
 
 	NewFunctionTable = ?table:add_entry( _K=FunId, _V=FunInfo, FunctionTable ),
 
-	%ast_utils:display_debug( "spec for function ~s/~B registered.",
+	%ast_utils:display_debug( "spec for function ~ts/~B registered.",
 	%		   [ FunctionName, FunctionArity ] ),
 
 	scan_forms( T, M#module_info{ functions=NewFunctionTable },
@@ -859,7 +858,7 @@ scan_forms( [ Form={ 'attribute', Line, 'spec',
 
 	NewRemoteSpecDefs = [ LocatedSpec | RemoteSpecDefs ],
 
-	%ast_utils:display_debug( "remote spec for function ~s/~B registered.",
+	%ast_utils:display_debug( "remote spec for function ~ts/~B registered.",
 	%		   [ FunctionName, FunctionArity ] ),
 
 	scan_forms( T, M#module_info{ remote_spec_defs=NewRemoteSpecDefs },
@@ -876,8 +875,7 @@ scan_forms( [ Form={ 'attribute', Line, 'spec',
 %
 scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
 						   { RecordName, DescFields } } | T ],
-			M=#module_info{ records=RecordTable,
-							markers=MarkerTable },
+			M=#module_info{ records=RecordTable, markers=MarkerTable },
 			NextLocation, CurrentFileReference ) ->
 
 	Context = { CurrentFileReference, Line },
@@ -935,8 +933,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
 %
 scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 						   { TypeName, TypeDef, TypeVariables } } | T ],
-			 M=#module_info{ types=TypeTable,
-							 markers=MarkerTable },
+			 M=#module_info{ types=TypeTable, markers=MarkerTable },
 			 NextLocation, CurrentFileReference )
   when TypeDesignator == 'type' orelse TypeDesignator == 'opaque' ->
 
@@ -968,8 +965,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 		% If a TypeInfo is found for that type name, it must be only because it
 		% has already been exported (not expected to be already defined):
 
-		{ value, #type_info{ line=LineDef,
-							 exported=[] } } ->
+		{ value, #type_info{ line=LineDef, exported=[] } } ->
 
 			% We have to report this multiple definition, otherwise it will not
 			% be seen by the compiler afterwards (the extra type definition
@@ -978,7 +974,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 			% "some line" as we do not know here to which source files this
 			% corresponds:
 			%
-			ast_utils:raise_usage_error( "type ~s/~B defined here, whereas "
+			ast_utils:raise_usage_error( "type ~ts/~B defined here, whereas "
 			  "it had already been defined at (some) line #~B.",
 			  [ TypeName, TypeArity, LineDef ], CurrentFileReference, Line );
 
@@ -996,7 +992,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 
 		% Usual case:
 		key_not_found ->
-			%ast_utils:display_debug( "New type '~s' defined (at line #~p) "
+			%ast_utils:display_debug( "New type '~ts' defined (at line #~p) "
 			%						  "as:~n~p", [ TypeName, Line, TypeDef ] ),
 			#type_info{ name=TypeName,
 						variables=TypeVariables,
@@ -1020,7 +1016,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 
 		false ->
 			?table:add_entry( definition_types_marker, NextLocation,
-							 MarkerTable )
+							  MarkerTable )
 
 	end,
 
@@ -1093,7 +1089,8 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export_type', TypeIds } | T ],
 	NewExportTable = ?table:add_new_entry( NextLocation, { Line, TypeIds },
 										   ExportTable ),
 
-	NewMarkerTable = case ?table:has_entry( export_types_marker, MarkerTable ) of
+	NewMarkerTable = case ?table:has_entry( export_types_marker,
+											MarkerTable ) of
 
 		true ->
 			% Already found, nothing to do.
@@ -1211,7 +1208,7 @@ scan_forms( _AST=[ _Form={ 'error',
 			_NextLocation, CurrentFileReference ) ->
 
 	% Better error message if managed directly:
-	ast_utils:raise_usage_error( "include file not found: '~s'.",
+	ast_utils:raise_usage_error( "include file not found: '~ts'.",
 								 [ FileName ], CurrentFileReference, Line );
 
 	%NewError = { Context, { include_file_not_found, FileName } },
@@ -1231,7 +1228,7 @@ scan_forms( _AST=[ _Form={ 'error',
 	Context = { CurrentFileReference, Line },
 
 	%ast_utils:raise_error( [ undefined_macro_variable, VariableName ],
-	%					   Context );
+	%						Context );
 
 	NewError = { Context, { undefined_macro_variable, VariableName } },
 
@@ -1269,8 +1266,7 @@ scan_forms( _AST=[ _Form={ 'error', { Line, 'erl_scan', Reason } } | T ],
 	NewError = { Context, { scan_error, Reason } },
 
 	scan_forms( T, M#module_info{ errors=[ NewError | Errors ] },
-				id_utils:get_next_sortable_id( NextLocation ),
-				CurrentFileReference );
+		id_utils:get_next_sortable_id( NextLocation ), CurrentFileReference );
 
 
 % Parser (erl_parse) errors:
@@ -1287,8 +1283,7 @@ scan_forms( _AST=[ _Form={ 'error', { Line, 'erl_parse', Reason } } | T ],
 	NewError = { Context, { parse_error, Reason } },
 
 	scan_forms( T, M#module_info{ errors=[ NewError | Errors ] },
-				id_utils:get_next_sortable_id( NextLocation ),
-				CurrentFileReference );
+		id_utils:get_next_sortable_id( NextLocation ), CurrentFileReference );
 
 % Any kind of other error:
 scan_forms( _AST=[ _Form={ 'error', ErrorTerm } | _T ],
@@ -1319,8 +1314,7 @@ scan_forms( _AST=[ _Form={ 'warning', WarningTerm } | T ],
 %
 % Here, no module found:
 scan_forms( _AST=[ _Form={ 'eof', Line } ],
-			M=#module_info{ module=undefined,
-							errors=Errors }, _NextLocation,
+			M=#module_info{ module=undefined, errors=Errors }, _NextLocation,
 			CurrentFileReference ) ->
 	Context = { CurrentFileReference, Line },
 
@@ -1368,7 +1362,7 @@ scan_forms( _AST=[ Form={ 'eof', _Line } ],
 
 	% Reconstructs the supposedly deduced module filename:
 	BinModFilename = text_utils:string_to_binary(
-					   atom_to_list( ModuleName ) ++ ".erl" ),
+						atom_to_list( ModuleName ) ++ ".erl" ),
 
 	% Due to the removal of include duplicates, can be listed only up to once:
 	NoModInc = lists:delete( BinModFilename, Inc ),
@@ -1415,8 +1409,7 @@ scan_forms( Unexpected, _ModuleInfo, _NextLocation, CurrentFileReference ) ->
 
 % Registers specified parse attribute regarding compilation.
 -spec register_compile_attribute( term(), compile_option_table(),
-								  scan_context() ) ->
-			   { compile_option_table(), [ located_form() ] }.
+			scan_context() ) -> { compile_option_table(), [ located_form() ] }.
 % Full inlining requested:
 register_compile_attribute( _CompileInfo='inline', CompileTable, _Context ) ->
 
@@ -1424,7 +1417,8 @@ register_compile_attribute( _CompileInfo='inline', CompileTable, _Context ) ->
 	?table:add_entry( inline, all, CompileTable );
 
 
-register_compile_attribute( _CompileInfo='export_all', CompileTable, _Context ) ->
+register_compile_attribute( _CompileInfo='export_all', CompileTable,
+							_Context ) ->
 
 	% Not currently specifically managed:
 	?table:add_entry( export_all, undefined, CompileTable );
@@ -1490,7 +1484,7 @@ register_compile_attribute( Unexpected, _CompileTable, _Context ) ->
 % by the parser (dixit the erl_id_trans parse transform).
 %
 -spec scan_field_descriptions( [ ast_base:ast_element() ],
-					   ast_base:file_reference() ) -> ast_info:field_table().
+					ast_base:file_reference() ) -> ast_info:field_table().
 scan_field_descriptions( FieldDescriptions, CurrentFileReference ) ->
 	scan_field_descriptions( FieldDescriptions, CurrentFileReference,
 							 _FieldTable=[] ).
@@ -1587,8 +1581,7 @@ check_parse_attribute_name( Name ) ->
 % markers are (adequately) defined (even if no clause in the AST triggered their
 % specific setting).
 %
--spec finalize_marker_table( ast_info:location(), marker_table() ) ->
-								   marker_table().
+-spec finalize_marker_table( location(), marker_table() ) -> marker_table().
 finalize_marker_table( EndMarkerLoc, MarkerTable ) ->
 
 	% Useful for a later stack-based placement; we obtain a list of
@@ -1615,7 +1608,7 @@ finalize_marker_table( EndMarkerLoc, MarkerTable ) ->
 	% will be registered now:
 	%
 	EndMarkerTable = ?table:add_new_entry( end_marker, EndMarkerLoc,
-										 MarkerTable ),
+										   MarkerTable ),
 
 
 	% We have now to handle all cases about whether each of the other,
@@ -1656,6 +1649,7 @@ finalize_marker_table( EndMarkerLoc, MarkerTable ) ->
 		key_not_found ->
 			% An AST without a module definition will probably be a problem;
 			% trying to mitigate it as we can:
+			%
 			BeginMarkerLoc;
 
 		{ value, ModLoc } ->
@@ -1744,6 +1738,6 @@ add_missing_markers( _Markers=[ M | T ], DefaultLoc, MarkerTable ) ->
 % (helper)
 %
 -spec get_ordered_marker_location_pairs( marker_table() ) ->
-				   [ { ast_info:section_marker(), ast_info:location() } ].
+					[ { ast_info:section_marker(), location() } ].
 get_ordered_marker_location_pairs( MarkerTable ) ->
 	lists:keysort( _Index=2, ?table:enumerate( MarkerTable ) ).

@@ -226,6 +226,7 @@
 
 
 
+
 % Parse-transform related functions:
 -export([ apply_ast_transforms/2,
 		  add_function/3, add_function/4, remove_function/2,
@@ -247,7 +248,7 @@
 % module.
 %
 -spec add_function( function_id(), [ clause_def() ], module_info() ) ->
-						  module_info().
+							module_info().
 add_function( _FunId={ FunctionName, FunctionArity }, Clauses, ModuleInfo ) ->
 	add_function( FunctionName, FunctionArity, Clauses, ModuleInfo ).
 
@@ -272,7 +273,7 @@ add_function( FunctionName, FunctionArity, Clauses,
 			CurrentFunString = ast_info:function_info_to_string(
 								 CurrentFunInfo ),
 
-			ast_utils:display_error( "Function ~p already defined, as ~s.",
+			ast_utils:display_error( "Function ~p already defined, as ~ts.",
 									 [ FunId, CurrentFunString ] ),
 
 			throw( { function_already_defined, FunId } );
@@ -346,9 +347,8 @@ remove_function( FunInfo=#function_info{ exported=ExportLocs },
 
 % Registers the specified, fully-described type in specified module.
 -spec add_type( type_info(), module_info() ) -> module_info().
-add_type( TypeInfo=#type_info{
-					  variables=TypeVariables,
-					  exported=ExportLocs },
+add_type( TypeInfo=#type_info{ variables=TypeVariables,
+							   exported=ExportLocs },
 		  ModuleInfo=#module_info{ type_exports=ExportTable,
 								   types=TypeTable } ) ->
 
@@ -365,9 +365,9 @@ add_type( TypeInfo=#type_info{
 
 			AddedTypeString = ast_info:type_info_to_string( TypeInfo ),
 
-			ast_utils:display_error( "Type ~p already defined, as ~s, "
-						   "whereas to be added, as ~s.",
-						   [ TypeId, CurrentTypeString, AddedTypeString ] ),
+			ast_utils:display_error( "Type ~p already defined, as ~ts, "
+				"whereas to be added, as ~ts.",
+				[ TypeId, CurrentTypeString, AddedTypeString ] ),
 
 			throw( { type_already_defined, TypeId } );
 
@@ -425,7 +425,7 @@ remove_type( TypeInfo=#type_info{ variables=TypeVariables,
 % (helper)
 %
 -spec apply_ast_transforms( module_info(), ast_transform:ast_transforms() ) ->
-							  { module_info(), ast_transform:ast_transforms() }.
+						{ module_info(), ast_transform:ast_transforms() }.
 apply_ast_transforms( ModuleInfo=#module_info{ types=TypeTable,
 											   records=RecordTable,
 											   functions=FunctionTable },
@@ -460,8 +460,7 @@ apply_ast_transforms( ModuleInfo=#module_info{ types=TypeTable,
 % Lists (in the order of their definition) all the functions ({Name,Arity}) that
 % are exported by the specified module, expected to be found in the code path.
 %
--spec list_exported_functions( basic_utils:module_name() ) ->
-									 [ function_id() ].
+-spec list_exported_functions( module_name() ) -> [ function_id() ].
 list_exported_functions( ModuleName ) ->
 
 	% To avoid a unclear message like 'undefined function XXX:module_info/1':
@@ -481,7 +480,7 @@ list_exported_functions( ModuleName ) ->
 
 	catch error:undef ->
 
-		trace_utils:error_fmt( "Unable to get the exports for module '~s'; "
+		trace_utils:error_fmt( "Unable to get the exports for module '~ts'; "
 			"this may happen for example if this module was added to an OTP "
 			"release that was not rebuilt since then.", [ ModuleName ] ),
 
@@ -494,8 +493,7 @@ list_exported_functions( ModuleName ) ->
 % Returns a list of the arities for which the specified function of the
 % specified module is exported.
 %
--spec get_arities_for( basic_utils:module_name(), function_name() ) ->
-							 [ arity() ].
+-spec get_arities_for( module_name(), function_name() ) -> [ arity() ].
 get_arities_for( ModuleName, FunctionName ) ->
 
 	ExportedFuns = list_exported_functions( ModuleName ),
@@ -508,8 +506,8 @@ get_arities_for( ModuleName, FunctionName ) ->
 % Tells whether the specified function (name with arity) is exported by the
 % specified module.
 %
--spec is_function_exported( basic_utils:module_name(), function_name(),
-							arity() ) -> boolean().
+-spec is_function_exported( module_name(), function_name(), arity() ) ->
+								  boolean().
 is_function_exported( ModuleName, FunctionName, Arity ) ->
 	lists:member( { FunctionName, Arity },
 				  list_exported_functions( ModuleName ) ).
@@ -519,7 +517,7 @@ is_function_exported( ModuleName, FunctionName, Arity ) ->
 % Checks whether a potential upcoming call to the specified MFA
 % (Module,Function,Arguments) has a chance of succeeding.
 %
--spec check_potential_call( basic_utils:module_name(), function_name(),
+-spec check_potential_call( module_name(), function_name(),
 		[ basic_utils:argument() ] ) ->
 				'ok' | 'module_not_found' | 'function_not_exported'.
 check_potential_call( ModuleName, FunctionName, Arguments )

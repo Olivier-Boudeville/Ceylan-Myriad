@@ -75,10 +75,10 @@ run() ->
 	table:display( MyH4 ),
 
 	MyH4Size = table:size( MyH4 ),
-	test_facilities:display( "Size of table '~s': ~B entries",
+	test_facilities:display( "Size of table '~ts': ~B entries",
 							 [ table:to_string( MyH4 ), MyH4Size ] ),
 
-	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
+	test_facilities:display( "Looking up for ~ts: ~p", [ ?MyFirstKey,
 		table:lookup_entry( ?MyFirstKey, MyH4 ) ] ),
 	{ value, MyFirstValue } = table:lookup_entry( ?MyFirstKey, MyH4 ),
 
@@ -90,16 +90,17 @@ run() ->
 							 "the same initial table." ),
 	{ MyFirstValue, MyH5 } = table:extract_entry( ?MyFirstKey, MyH4 ),
 
-	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
-		table:lookup_entry( ?MyFirstKey, MyH5 ) ] ),
+	test_facilities:display( "Looking up for ~ts: ~p",
+		[ ?MyFirstKey, table:lookup_entry( ?MyFirstKey, MyH5 ) ] ),
 
 	key_not_found  = table:lookup_entry( ?MyFirstKey, MyH5 ),
 
 	[ MySecondValue, MyFirstValue ] = table:get_all_values(
 										[ ?MySecondKey, ?MyFirstKey ], MyH4 ),
 
-	% remove_entry can also be used if the specified key is not here, will return
-	% an identical table.
+	% remove_entry can also be used if the specified key is not here, will
+	% return an identical table.
+
 	table:display( MyH5 ),
 	test_facilities:display( "Testing double key registering." ),
 	MyH6 = table:add_entry( ?MySecondKey, anything, MyH5 ),
@@ -156,10 +157,9 @@ run() ->
 
 	MyH7 = table:add_entry( ?MyThirdKey, 3, MyH6 ),
 
-	% MyH8 should have { MySecondKey, [1,2,3] } and { ?MyThirdKey, 3 }:
+	% MyH8 should have {MySecondKey, [1,2,3]} and {?MyThirdKey, 3}:
 	MyH8 = table:merge( MyH4, MyH7 ),
-	test_facilities:display( "Merged table: ~s",
-							 [ table:to_string( MyH8 ) ] ),
+	test_facilities:display( "Merged table: ~ts", [ table:to_string( MyH8 ) ] ),
 
 	MyH9 = table:optimise( MyH8 ),
 	table:display( "Optimised merged table", MyH9 ),

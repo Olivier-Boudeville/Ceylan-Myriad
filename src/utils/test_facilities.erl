@@ -39,6 +39,13 @@
 		  fail/1, fail/2, finished/0 ] ).
 
 
+% Shorthands:
+
+-type ustring() :: text_utils:ustring().
+-type format_string() :: text_utils:format_string().
+-type format_values() :: text_utils:format_values().
+
+
 
 % Starts a test; expected to be the first test statement.
 %
@@ -52,7 +59,7 @@
 -spec start( module() | [ module() ] ) -> void().
 start( Module ) when is_atom( Module ) ->
 	start_common(),
-	basic_utils:display( "~n~n--> Testing module ~s.~n", [ Module ] );
+	basic_utils:display( "~n~n--> Testing module ~ts.~n", [ Module ] );
 
 start( Modules ) when is_list( Modules ) ->
 	start_common(),
@@ -92,11 +99,11 @@ stop() ->
 
 
 % Displays a test message.
--spec display( string() ) -> void().
+-spec display( ustring() ) -> void().
 display( Message ) ->
 	% Carriage return already added in basic_utils:display/1:
 	% (empty list added so that ~n are automatically converted)
-	basic_utils:display( lists:flatten( Message ), [] ).
+	basic_utils:display( lists:flatten( Message ), _ValueList=[] ).
 
 
 
@@ -105,7 +112,7 @@ display( Message ) ->
 % FormatString is an io:format-style format string, ValueList is the
 % corresponding list of field values.
 %
--spec display( string(), list() ) -> void().
+-spec display( format_string(), format_values() ) -> void().
 display( FormatString, ValueList ) ->
 	basic_utils:display( FormatString, ValueList ).
 
@@ -117,7 +124,7 @@ display( FormatString, ValueList ) ->
 % FormatString is an io:format-style format string, ValueList is the
 % corresponding list of field values.
 %
--spec display_fmt( string(), list() ) -> void().
+-spec display_fmt( format_string(), format_values() ) -> void().
 display_fmt( FormatString, ValueList ) ->
 	basic_utils:display( FormatString, ValueList ).
 
@@ -174,13 +181,13 @@ finished() ->
 %
 % Ex: test_facilities:fail( "server on strike" )
 %
--spec fail( string() ) -> no_return().
+-spec fail( ustring() ) -> no_return().
 fail( Reason ) ->
 
 	% For some reason erlang:error is unable to interpret strings as strings,
 	% they are always output as unreadable lists.
 
-	basic_utils:display( "~n!!!! Test failed, reason: ~s~n", [ Reason ] ),
+	basic_utils:display( "~n!!!! Test failed, reason: ~ts~n", [ Reason ] ),
 
 	% Never returns:
 	erlang:error( "Test failed" ),
@@ -202,9 +209,9 @@ fail( Reason ) ->
 % FormatString is an io:format-style format string, ValueList is the
 % corresponding list of field values.
 %
-% Ex: test_facilities:fail( "server ~s on strike", [ "foobar.org" ] )
+% Ex: test_facilities:fail( "server ~ts on strike", [ "foobar.org" ] )
 %
--spec fail( string(), list() ) -> no_return().
+-spec fail( format_string(), format_values() ) -> no_return().
 fail( FormatString, ValueList ) ->
 
 	% For some reason, erlang:error is unable to interpret strings as strings,

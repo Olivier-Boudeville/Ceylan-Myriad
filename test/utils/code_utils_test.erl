@@ -42,15 +42,15 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	test_facilities:display( "The ~s.",
+	test_facilities:display( "The ~ts.",
 							 [ code_utils:get_code_path_as_string() ] ),
 
 	ModuleName = hashtable,
 
-	test_facilities:display( "Determining whether '~s' is in code path: ~p.",
-				 [ ModuleName, code_utils:is_beam_in_path( ModuleName ) ] ),
+	test_facilities:display( "Determining whether '~ts' is in code path: ~p.",
+				[ ModuleName, code_utils:is_beam_in_path( ModuleName ) ] ),
 
-	test_facilities:display( "Current stack trace: ~s",
+	test_facilities:display( "Current stack trace: ~ts",
 							 [ code_utils:interpret_stacktrace() ] ),
 
 	test_facilities:stop().

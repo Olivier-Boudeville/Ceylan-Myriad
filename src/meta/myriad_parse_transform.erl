@@ -234,7 +234,7 @@ apply_myriad_transform( InputAST, Options ) ->
 	%ast_info:write_module_info_to_file( WithOptsModuleInfo,
 	%									  "Input-module_info.txt" ),
 
-	%ast_utils:display_debug( "Input module info: ~s~n~n",
+	%ast_utils:display_debug( "Input module info: ~ts~n~n",
 	%		   [ ast_info:module_info_to_string( WithOptsModuleInfo ) ] ),
 
 	% Currently the resulting transforms are not kept:
@@ -246,9 +246,9 @@ apply_myriad_transform( InputAST, Options ) ->
 	%									"Output-module_info.txt" ),
 
 	%ast_utils:display_debug( "~n## OUTPUT #################################" ),
-	%ast_utils:display_debug( "Output module info: ~s",
+	%ast_utils:display_debug( "Output module info: ~ts",
 	%		   [ ast_info:module_info_to_string( TransformedModuleInfo ) ] ),
-	%ast_utils:display_debug( "Output module info: ~s~n~n",
+	%ast_utils:display_debug( "Output module info: ~ts~n~n",
 	%		   [ ast_info:module_info_to_string( TransformedModuleInfo ) ] ),
 
 	OutputAST =
@@ -257,7 +257,7 @@ apply_myriad_transform( InputAST, Options ) ->
 	%ast_utils:display_debug( "~n~nMyriad output AST:~n~p~n", [ OutputAST ] ),
 
 	%OutputASTFilename = text_utils:format(
-	%			"Myriad-output-AST-for-module-~s.txt",
+	%			"Myriad-output-AST-for-module-~ts.txt",
 	%			[ element( 1, TransformedModuleInfo#module_info.module ) ] ),
 
 	%ast_utils:write_ast_to_file( OutputAST, OutputASTFilename ),
@@ -281,7 +281,7 @@ transform_module_info( ModuleInfo ) when is_record( ModuleInfo, module_info ) ->
 
 	% Then apply them:
 
-	%ast_utils:display_debug( "~nApplying following ~s",
+	%ast_utils:display_debug( "~nApplying following ~ts",
 	%		   [ ast_transform:ast_transforms_to_string( Transforms ) ] ),
 
 	% Returns updated transforms and module information:
@@ -362,7 +362,7 @@ get_myriad_ast_transforms_for(
 	TokenTable = cond_utils:get_token_table_from( CompileOptTable ),
 
 	% Uncomment to see all known tokens:
-	%ast_utils:display_debug( "Token table:~n~s",
+	%ast_utils:display_debug( "Token table:~n~ts",
 	%						 [ ?table:to_string( TokenTable ) ] ),
 
 	TargetModuleName = case ModuleEntry of
@@ -395,8 +395,8 @@ get_actual_table_type( ParseAttributeTable ) ->
 												 ParseAttributeTable ) of
 
 		{ value, { TableType, _LocForm } } when is_atom( TableType ) ->
-			ast_utils:display_info( "Default table type ('~s') overridden "
-				"for this module to '~s'.~n",
+			ast_utils:display_info( "Default table type ('~ts') overridden "
+				"for this module to '~ts'.~n",
 				[ ?default_table_type, TableType ] ),
 			TableType;
 
@@ -413,7 +413,7 @@ get_actual_table_type( ParseAttributeTable ) ->
 	end,
 
 	%ast_utils:display_debug( "Will replace references to the 'table' module "
-	%						  "and datatypes by references to '~s'.",
+	%						  "and datatypes by references to '~ts'.",
 	%						  [ DesiredTableType ] ),
 
 	DesiredTableType.
@@ -599,7 +599,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 		  _Transforms ) ->
 			ast_utils:display_error(
 			  "A token used with cond_utils:if_defined/2 must be an immediate "
-			  "value (precisely an atom), not a (runtime) variable like '~s' "
+			  "value (precisely an atom), not a (runtime) variable like '~ts' "
 			  "(at line ~B).", [ VarName, Line ] ),
 			ast_utils:raise_error( { non_immediate_token, VarName,
 									 {line,Line} } );
@@ -657,7 +657,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 		  _Transforms ) ->
 			ast_utils:display_error(
 			  "A token used with cond_utils:if_defined/3 must be an immediate "
-			  "value (precisely an atom), not a (runtime) variable like '~s' "
+			  "value (precisely an atom), not a (runtime) variable like '~ts' "
 			  "(at line ~B).", [ VarName, Line ] ),
 			ast_utils:raise_error( { non_immediate_token, VarName,
 									 {line,Line} } );
@@ -710,7 +710,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 				% Another value found:
 				{ value, _OtherValue } ->
 					%ast_utils:display_debug( "Token '~p' defined but not set "
-					%	"to the right value (set to '~s' instead of '~s'), "
+					%	"to the right value (set to '~ts' instead of '~ts'), "
 					%	"hence skipping as a whole expression~n~p",
 					%	[ Token, OtherValue, RequestedValue, ExprForm ] ),
 					{ _Expr=[], Transforms };
@@ -730,7 +730,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 		  _Transforms ) ->
 			ast_utils:display_error(
 			  "A token used with cond_utils:if_set_to/3 must be an immediate "
-			  "value (precisely an atom), not a (runtime) variable like '~s' "
+			  "value (precisely an atom), not a (runtime) variable like '~ts' "
 			  "(at line ~B).", [ VarName, Line ] ),
 			ast_utils:raise_error( { non_immediate_token, VarName,
 									 {line,Line} } );
@@ -784,7 +784,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 				% Another value found:
 				{ value, _OtherValue } ->
 					%ast_utils:display_debug( "Token '~p' defined but not set "
-					%	"to the right value (set to '~s' instead of '~s'), "
+					%	"to the right value (set to '~ts' instead of '~ts'), "
 					%	"hence injecting the expression~n~p",
 					%	[ Token, OtherValue, RequestedValue,
 					%     ExprFormIfNotMatching ] ),
@@ -809,7 +809,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 					_ExprFormIfNotMatching ], _Transforms ) ->
 			ast_utils:display_error(
 			  "A token used with cond_utils:if_set_to/4 must be an immediate "
-			  "value (precisely an atom), not a (runtime) variable like '~s' "
+			  "value (precisely an atom), not a (runtime) variable like '~ts' "
 			  "(at line ~B).", [ VarName, Line ] ),
 			ast_utils:raise_error( { non_immediate_token, VarName,
 									 {line,Line} } );
@@ -862,7 +862,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 			end,
 
 			%ast_utils:display_debug( "Value associated to token '~p': ~p "
-			%	"(type: ~s).",
+			%	"(type: ~ts).",
 			%	[ Token, TokenValue, type_utils:get_type_of( TokenValue ) ] ),
 
 			% We have to see whether TokenValue can be found among the keys of
@@ -1029,7 +1029,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 				% Another value found:
 				{ value, _OtherValue } ->
 					%ast_utils:display_debug( "Token '~p' defined but not set "
-					%	"to the right value (set to '~s' instead of '~s'), "
+					%	"to the right value (set to '~ts' instead of '~ts'), "
 					%	"hence skipping as a whole expressions ~n~p",
 					%	[ Token, OtherValue, RequestedValue, ExpressionForm ] ),
 					{ _Expr=[], Transforms };

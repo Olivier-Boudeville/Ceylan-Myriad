@@ -45,7 +45,7 @@ run() ->
 
 	Months = [ time_utils:month_to_string( M ) || M <- lists:seq( 0, 13 ) ],
 
-	test_facilities:display( "Months: ~s",
+	test_facilities:display( "Months: ~ts",
 							 [ text_utils:strings_to_string( Months ) ] ),
 
 	InitialTimestamp = time_utils:get_timestamp(),
@@ -55,10 +55,10 @@ run() ->
 
 	InitialPreciseTimestamp = time_utils:get_precise_timestamp(),
 
-	test_facilities:display( "Timestamp is ~s.", [
+	test_facilities:display( "Timestamp is ~ts.", [
 		time_utils:get_textual_timestamp( InitialTimestamp ) ] ),
 
-	test_facilities:display( "Timestamp for path is ~s.", [
+	test_facilities:display( "Timestamp for path is ~ts.", [
 		time_utils:get_textual_timestamp_for_path( InitialTimestamp ) ] ),
 
 	SomeTimestamp = { {2017,5,20}, {12,00,17} },
@@ -68,7 +68,7 @@ run() ->
 		time_utils:get_textual_timestamp_with_dashes( SomeTimestamp ),
 
 	TextualTimeStamp = "14/4/2011 18:48:51",
-	test_facilities:display( "Parsed timestamp for '~s' is ~p.", [
+	test_facilities:display( "Parsed timestamp for '~ts' is ~p.", [
 		TextualTimeStamp,
 		time_utils:string_to_timestamp( TextualTimeStamp ) ] ),
 

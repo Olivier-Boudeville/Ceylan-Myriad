@@ -74,7 +74,7 @@ run_test_ui() ->
 
 	text_ui:trace( "My UI trace" ),
 
-	text_ui:display( "Text UI state: ~s", [ text_ui:to_string() ] ),
+	text_ui:display( "Text UI state: ~ts", [ text_ui:to_string() ] ),
 
 	text_ui:stop().
 
@@ -88,8 +88,8 @@ run() ->
 	case executable_utils:is_batch() of
 
 		true ->
-			test_facilities:display( "(not running the text_ui test, "
-									 "being in batch mode)" );
+			test_facilities:display(
+			  "(not running the text_ui test, being in batch mode)" );
 
 		false ->
 			run_test_ui()

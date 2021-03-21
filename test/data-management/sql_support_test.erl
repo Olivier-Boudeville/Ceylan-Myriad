@@ -61,7 +61,7 @@ run() ->
 	DatabaseFilename = DatabaseName ++ ".sqlite3",
 
 	test_facilities:display( "We will first create a new SQLite3 database, "
-							 "in '~s'.", [ DatabaseFilename ] ),
+							 "in '~ts'.", [ DatabaseFilename ] ),
 
 	% Prior tests may have left it:
 	file_utils:remove_file_if_existing( DatabaseFilename ),
@@ -92,7 +92,7 @@ run() ->
 
 	% First writing:
 	{ rowid, 1 } = sqlite3:write( DbPid, my_table,
-					   [ {name,"abby"}, {age, 20}, {<<"wage">>, 2000} ] ),
+						[ {name,"abby"}, {age, 20}, {<<"wage">>, 2000} ] ),
 
 	% Second one:
 	MargeEntry = [ {name, "marge"}, {age, 30}, {wage, 2000} ],
@@ -109,8 +109,7 @@ run() ->
 	test_facilities:display( "Checking the content table now." ),
 	ExpectedContent = [ {columns,Columns}, {rows,AllRows} ],
 
-	ExpectedContent = sqlite3:sql_exec( DbPid,
-										"select * from my_table;" ),
+	ExpectedContent = sqlite3:sql_exec( DbPid, "select * from my_table;" ),
 
 	ExpectedContent = sqlite3:read_all( DbPid, my_table ),
 

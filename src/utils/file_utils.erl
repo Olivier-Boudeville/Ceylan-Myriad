@@ -126,7 +126,7 @@
 % I/O section.
 -export([ get_default_encoding/0, get_default_encoding_option/0,
 		  open/2, open/3, close/1, close/2,
-		  read/2, write/2, write/3,
+		  read/2, write/2, write_ustring/2, write_ustring/3,
 		  read_whole/1, write_whole/2, write_whole/3,
 		  read_terms/1, write_terms/2, write_terms/4, write_direct_terms/2 ]).
 
@@ -155,7 +155,7 @@
 % A path may designate either a file or a directory (in both case with leading,
 % root directories possibly specified).
 %
--type path() :: string().
+-type path() :: ustring().
 -type bin_path() :: binary().
 
 % We do not believe that atoms shall be legit paths:
@@ -186,7 +186,7 @@
 
 
 % The name of a (symbolic) link:
--type link_name() :: string().
+-type link_name() :: ustring().
 
 
 % Designates an executable, generally without a path (ex: "foobar"):
@@ -223,7 +223,7 @@
 
 
 % An extension in a filename (ex: "baz", in "foobar.baz.json"):
--type extension() :: string().
+-type extension() :: ustring().
 
 
 % A part of a path (ex: "local" in "/usr/local/share"):
@@ -310,24 +310,45 @@
 			   file/0, file_info/0 ]).
 
 
-% Shorthand:
+% Shorthands:
+
 -type ustring() :: text_utils:ustring().
+-type format_string() :: text_utils:format_string().
+
 
 
 % Regarding encodings and Unicode:
 %
-% - their support shall be specified when opening a file, notably for writing
+% - their support may be specified when opening a file, notably for writing
 %
-% - specifying then the 'raw' option may result in the requested encoding (ex:
-% utf8) not being respected (ex: having ISO-8859 instead)
+% - it seems possible that in some cases specifying the 'raw' option result in
+% the requested encoding (ex: utf8) not being respected (ex: having ISO-8859
+% instead)
 %
-% - the way the VM is started matters; see the comment about the "-noinput"
-% option, in open/{2,3}
+% - specifying an encoding like {encoding, utf8} at file opening was troublesome
+% in our test cases, as we were not able to properly write strings like "cœur"
+% afterwards (no matter any encoding or lack thereof was experimented); it
+% proved useful to open such a file for writing without specifying any encoding,
+% and then only to write it directly with pre-encoded content (a "~ts" formatter
+% then sufficed); so the 'encoding' options, at least for writing, may not be
+% that convenient
 %
 % - the content itself may have to be encoded before writing; for example,
 % writing "éèôù" (interpreted to be latin1 or alike) in a file opened as utf8
 % will result in a garbled content, unless it has been converted beforehand, for
 % example thanks to unicode:characters_to_{list,binary}/*
+%
+% - the way the VM is started matters; see the comment about the "-noinput"
+% option, in open/{2,3}; one may use the following to check the current settings
+% of the VM:
+%
+% trace_utils:info_fmt( "Encoding: ~p.",
+%					  [ lists:keyfind(encoding, 1, io:getopts()) ] ),
+%
+% See also:
+% https://erlang.org/doc/apps/stdlib/unicode_usage.html#unicode-data-in-files
+% Summary: use the 'file' module only for files opened for bytewise access
+% ({encoding,latin1}) - otherwise use the 'io' module.
 
 
 % Regarding identifiers (ex: user_id), they can be converted in actual names,
@@ -358,7 +379,7 @@
 %
 % This function has been added back to this module; filename:join( Components )
 % could be used instead (at least to some extent), however filename:join( [ "",
-% "my_dir" ] ) results in "/my_dir", whereas often we would want "my_dir"
+% "my_dir"] ) results in "/my_dir", whereas often we would want "my_dir"
 % instead - which is returned by our function; moreover, if one of the
 % components includes an absolute path (such as "/xxx" with Unix conventions),
 % the preceding components, if any, were removed from the result (which does not
@@ -436,10 +457,10 @@ join( FirstPath, SecondPath ) ->
 	case get_last_element( FirstPath ) of
 
 		?directory_separator ->
-			text_utils:format( "~s~s", [ FirstPath, SecondPath ] );
+			text_utils:format( "~ts~ts", [ FirstPath, SecondPath ] );
 
 		_ ->
-			text_utils:format( "~s~c~s",
+			text_utils:format( "~ts~c~ts",
 					[ FirstPath, ?directory_separator, SecondPath ] )
 
 	end.
@@ -581,17 +602,17 @@ get_extension( Filename ) ->
 %
 % Ex: "/home/jack/rosie.tmp" = remove_extension( "/home/jack/rosie.tmp.ttf" )
 %
--spec remove_extension( file_name() ) -> file_name().
-remove_extension( Filename ) ->
+-spec remove_extension( file_path() ) -> file_path().
+remove_extension( FilePath ) ->
 
-	case text_utils:split( Filename, _Delimiters=[ $. ] ) of
+	case text_utils:split( FilePath, _Delimiters=[ $. ] ) of
 
 		% Returning an empty string for an empty string:
 		[] ->
-			Filename;
+			FilePath;
 
-		[ Filename ] ->
-			Filename;
+		[ FilePath ] ->
+			FilePath;
 
 		[ Basename | Extensions ] ->
 			text_utils:join( $.,
@@ -606,16 +627,16 @@ remove_extension( Filename ) ->
 % Ex: replace_extension("/home/jack/rosie.ttf", ".ttf", ".wav") should return
 % "/home/jack/rosie.wav".
 %
--spec replace_extension( file_name(), extension(), extension() ) -> file_name().
-replace_extension( Filename, SourceExtension, TargetExtension ) ->
+-spec replace_extension( file_path(), extension(), extension() ) -> file_path().
+replace_extension( FilePath, SourceExtension, TargetExtension ) ->
 
-	case string:rstr( Filename, SourceExtension ) of
+	case string:rstr( FilePath, SourceExtension ) of
 
 		0 ->
-			throw( { extension_not_found, SourceExtension, Filename } );
+			throw( { extension_not_found, SourceExtension, FilePath } );
 
 		Index ->
-			string:substr( Filename, 1, Index-1 ) ++ TargetExtension
+			string:substr( FilePath, 1, Index-1 ) ++ TargetExtension
 
 	end.
 
@@ -1047,16 +1068,16 @@ is_existing_directory_or_link( EntryName ) ->
 % Returns a tuple containing five lists corresponding to the per-type
 % dispatching of all filesystem elements local to specified directory (hence not
 % recursively traversed), namely:
-% { RegularFiles, Symlinks, Directories, OtherFiles, Devices }.
+% {RegularFiles, Symlinks, Directories, OtherFiles, Devices}.
 %
 % Note that symbolic links may or may not be dead.
 %
 -spec list_dir_elements( directory_name() ) ->
-			 { [ file_name() ], [ file_name() ], [ directory_name() ],
-			   [ file_name() ], [ file_name() ] }.
+			{ [ file_name() ], [ file_name() ], [ directory_name() ],
+			  [ file_name() ], [ file_name() ] }.
 list_dir_elements( Dirname ) ->
 
-	%io:format( "list_dir_elements for '~s'.~n", [ Dirname ] ),
+	%trace_utils:debug_fmt( "list_dir_elements for '~ts'.", [ Dirname ] ),
 
 	% Previously file:list_dir_all/1 was tested in order to collect raw
 	% filenames as well (hoping to avoid warning reports such as "Non-unicode
@@ -1167,16 +1188,16 @@ touch( FileEntry ) ->
 %
 % See also: touch/1.
 %
--spec create_empty_file( file_name() ) -> void().
-create_empty_file( Filename ) ->
+-spec create_empty_file( file_path() ) -> void().
+create_empty_file( FilePath ) ->
 
-	case system_utils:run_executable( "/bin/touch '" ++ Filename ++ "'" ) of
+	case system_utils:run_executable( "/bin/touch '" ++ FilePath ++ "'" ) of
 
 		{ 0, _Output } ->
 			ok;
 
 		{ ErrorCode, Output } ->
-			throw( { empty_file_creation_failed, Output, ErrorCode, Filename } )
+			throw( { empty_file_creation_failed, Output, ErrorCode, FilePath } )
 
 	end.
 
@@ -1339,7 +1360,7 @@ filter_by_extension( _Filenames=[ H | T ], Extension, Acc ) ->
 
 
 % Returns a list containing all elements of Filenames list whose extension
-% corresponds to one of the specified extensions (ex: [ ".dat", ".png" ]).
+% corresponds to one of the specified extensions (ex: [".dat", ".png"]).
 %
 -spec filter_by_extensions( [ file_name() ], [ extension() ] ) ->
 									[ file_name() ].
@@ -1429,13 +1450,13 @@ has_matching_suffix( Filename, [ S | OtherS ] ) ->
 % All extensions and suffixes accepted, no excluded directories.
 %
 % All returned pathnames are relative to this root.
-% Ex: [ "./a.txt", "./tmp/b.txt" ].
+% Ex: ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_from( any_directory_name() ) -> [ file_name() ].
 find_files_from( RootDir ) ->
 	Res = find_files_from( RootDir, _CurrentRelativeDir="",
 						   _IncludeSymlinks=true, _Acc=[] ),
-	%trace_utils:debug_fmt( "Files found from '~s':~n~p", [ RootDir, Res ] ),
+	%trace_utils:debug_fmt( "Files found from '~ts':~n~p", [ RootDir, Res ] ),
 	Res.
 
 
@@ -1446,7 +1467,7 @@ find_files_from( RootDir ) ->
 % All extensions and suffixes accepted, no excluded directories.
 %
 % All returned pathnames are relative to this root.
-% Ex: [ "./a.txt", "./tmp/b.txt" ].
+% Ex: ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_regular_files_from( any_directory_name() ) -> [ file_name() ].
 find_regular_files_from( RootDir ) ->
@@ -1460,13 +1481,13 @@ find_regular_files_from( RootDir ) ->
 % All extensions and suffixes accepted, no excluded directories.
 %
 % All returned pathnames are relative to this root.
-% Ex: [ "./a.txt", "./tmp/b.txt" ].
+% Ex: ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_from( any_directory_name(), boolean() ) -> [ file_name() ].
 find_files_from( RootDir, IncludeSymlinks ) ->
 	Res = find_files_from( RootDir, _CurrentRelativeDir="", IncludeSymlinks,
 						   _Acc=[] ),
-	%trace_utils:debug_fmt( "Files found from '~s':~n~p", [ RootDir, Res ] ),
+	%trace_utils:debug_fmt( "Files found from '~ts':~n~p", [ RootDir, Res ] ),
 	Res.
 
 
@@ -1474,8 +1495,8 @@ find_files_from( RootDir, IncludeSymlinks ) ->
 % (helper)
 find_files_from( RootDir, CurrentRelativeDir, IncludeSymlinks, Acc ) ->
 
-	%trace_utils:debug_fmt( "find_files_from with root = '~s', current = '~s'.",
-	%						[ RootDir, CurrentRelativeDir ] ),
+	%trace_utils:debug_fmt( "find_files_from with root = '~ts', "
+	%    "current = '~ts'.", [ RootDir, CurrentRelativeDir ] ),
 
 	{ RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
 		list_dir_elements( join( RootDir, CurrentRelativeDir ) ),
@@ -1503,8 +1524,8 @@ list_files_in_subdirs( _Dirs=[], _RootDir, _CurrentRelativeDir,
 list_files_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir,
 					   IncludeSymlinks, Acc ) ->
 
-	%io:format( "list_files_in_subdirs with root = '~s', current = '~s' "
-	%	"and H='~s'.~n", [ RootDir, CurrentRelativeDir, H ] ),
+	%io:format( "list_files_in_subdirs with root = '~ts', current = '~ts' "
+	%	"and H='~ts'.~n", [ RootDir, CurrentRelativeDir, H ] ),
 
 	list_files_in_subdirs( T, RootDir, CurrentRelativeDir, IncludeSymlinks,
 		find_files_from( RootDir, join( CurrentRelativeDir, H ),
@@ -1518,7 +1539,7 @@ list_files_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir,
 % All extensions and suffixes accepted, no excluded directories.
 %
 % All returned pathnames are relative to this root.
-% Ex: [ "./a.txt", "./tmp/b.txt" ].
+% Ex: ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_links_from( any_directory_name() ) -> [ file_name() ].
 find_links_from( RootDir ) ->
@@ -1528,8 +1549,8 @@ find_links_from( RootDir ) ->
 % (helper)
 find_links_from( RootDir, CurrentRelativeDir, Acc ) ->
 
-	%trace_utils:debug_fmt( "find_links_from with root = '~s', current = '~s'.",
-	%						[ RootDir, CurrentRelativeDir ] ),
+	%trace_utils:debug_fmt( "find_links_from with root = '~ts', "
+	%  "current = '~ts'.", [ RootDir, CurrentRelativeDir ] ),
 
 	{ _RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
 		list_dir_elements( join( RootDir, CurrentRelativeDir ) ),
@@ -1546,8 +1567,8 @@ list_links_in_subdirs( _Dirs=[], _RootDir, _CurrentRelativeDir, Acc ) ->
 
 list_links_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir, Acc ) ->
 
-	%io:format( "list_links_in_subdirs with root = '~s', current = '~s' "
-	%	"and H='~s'.~n", [ RootDir, CurrentRelativeDir, H ] ),
+	%io:format( "list_links_in_subdirs with root = '~ts', current = '~ts' "
+	%	"and H='~ts'.~n", [ RootDir, CurrentRelativeDir, H ] ),
 
 	list_links_in_subdirs( T, RootDir, CurrentRelativeDir,
 		find_links_from( RootDir, join( CurrentRelativeDir, H ),
@@ -1559,7 +1580,7 @@ list_links_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir, Acc ) ->
 % with specified extension, in the whole subtree (i.e. recursively).
 %
 % All returned pathnames are relative to this root.
-% Ex: [ "./a.txt", "./tmp/b.txt" ].
+% Ex: ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_extension_from( any_directory_name(), extension() ) ->
 											[ file_name() ].
@@ -1574,7 +1595,7 @@ find_files_with_extension_from( RootDir, Extension ) ->
 % (i.e. recursively).
 %
 % All returned pathnames are relative to this root.
-% Ex: [ "./a.txt", "./tmp/b.txt" ].
+% Ex: ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_extension_from( any_directory_name(), extension(),
 									  boolean() ) -> [ file_name() ].
@@ -1588,7 +1609,7 @@ find_files_with_extension_from( RootDir, Extension, IncludeSymlinks ) ->
 find_files_with_extension_from( RootDir, CurrentRelativeDir, IncludeSymlinks,
 								Extension, Acc ) ->
 
-	%io:format( "find_files_with_extension_from in ~s.~n",
+	%io:format( "find_files_with_extension_from in ~ts.~n",
 	%           [ CurrentRelativeDir ] ),
 
 	{ RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
@@ -1667,7 +1688,7 @@ find_files_with_excluded_dirs( RootDir, ExcludedDirList ) ->
 % All extensions accepted.
 %
 % All returned pathnames are relative to this root.
-% Ex: [ "./a.txt", "./tmp/b.txt" ].
+% Ex: ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_excluded_dirs( any_directory_name(), [ directory_name() ],
 									 boolean() ) -> [ file_name() ].
@@ -1680,7 +1701,7 @@ find_files_with_excluded_dirs( RootDir, ExcludedDirList, IncludeSymlinks ) ->
 find_files_with_excluded_dirs( RootDir, CurrentRelativeDir, ExcludedDirList,
 							   IncludeSymlinks, Acc ) ->
 
-	%io:format( "find_files_with_excluded_dirs in ~s.~n",
+	%io:format( "find_files_with_excluded_dirs in ~ts.~n",
 	% [ CurrentRelativeDir ] ),
 
 	{ RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
@@ -1696,7 +1717,7 @@ find_files_with_excluded_dirs( RootDir, CurrentRelativeDir, ExcludedDirList,
 
 	end,
 
-	% If for example ExcludedDirList=[ ".svn" ], we want to eliminate not only
+	% If for example ExcludedDirList=[".svn"], we want to eliminate not only
 	% ".svn" but also all "foo/bar/.svn", i.e. all directories having the same
 	% (last) name:
 	%
@@ -1730,7 +1751,7 @@ list_files_in_subdirs_excluded_dirs( _Dirs=[ H | T ], RootDir,
 % (i.e. recursively).
 %
 % All returned pathnames are relative to this root.
-% Ex: [ "./a.txt", "./tmp/b.txt" ].
+% Ex: ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_excluded_suffixes( any_directory_name(),
 										 [ ustring() ] ) -> [ file_name() ].
@@ -1745,7 +1766,7 @@ find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes ) ->
 % subtree (i.e. recursively).
 %
 % All returned pathnames are relative to this root.
-% Ex: [ "./a.txt", "./tmp/b.txt" ].
+% Ex: ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_excluded_suffixes( any_directory_name(), [ ustring() ],
 										 boolean() ) -> [ file_name() ].
@@ -1760,7 +1781,7 @@ find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes,
 find_files_with_excluded_suffixes( RootDir, CurrentRelativeDir,
 								   ExcludedSuffixes, IncludeSymlinks, Acc ) ->
 
-	%io:format( "find_files_with_excluded_suffixes in ~s.~n",
+	%io:format( "find_files_with_excluded_suffixes in ~ts.~n",
 	% [ CurrentRelativeDir ] ),
 
 	{ RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
@@ -1789,7 +1810,7 @@ find_files_with_excluded_suffixes( RootDir, CurrentRelativeDir,
 		directory_name(), directory_name(), boolean(), [ file_name() ] ) ->
 															[ file_name() ].
 list_files_in_subdirs_with_excluded_suffixes( [], _ExcludedSuffixes, _RootDir,
-							  _CurrentRelativeDir, _IncludeSymlinks, Acc ) ->
+							_CurrentRelativeDir, _IncludeSymlinks, Acc ) ->
 	Acc;
 
 list_files_in_subdirs_with_excluded_suffixes( [ H | T ], ExcludedSuffixes,
@@ -1818,7 +1839,7 @@ list_files_in_subdirs_with_excluded_suffixes( [ H | T ], ExcludedSuffixes,
 % matches, T will be excluded.
 %
 % All returned pathnames are relative to this root.
-% Ex: [ "./a.txt", "./tmp/b.txt" ].
+% Ex: ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_excluded_dirs_and_suffixes( any_directory_name(),
 		[ directory_name() ], [ ustring() ] ) -> [ file_name() ].
@@ -1826,7 +1847,7 @@ find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirList,
 											ExcludedSuffixes ) ->
 
 	%trace_utils:debug_fmt( "find_files_with_excluded_dirs_and_suffixes: from "
-	%	"'~s': RootDir = '~s', ExcludedDirList = ~p, ExcludedSuffixes = ~p",
+	%	"'~ts': RootDir = '~ts', ExcludedDirList = ~p, ExcludedSuffixes = ~p",
 	%	[ get_current_directory(), RootDir, ExcludedDirList,
 	%	  ExcludedSuffixes ] ),
 
@@ -1850,7 +1871,7 @@ find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirList,
 % matches, T will be excluded.
 %
 % All returned pathnames are relative to this root.
-% Ex: [ "./a.txt", "./tmp/b.txt" ].
+% Ex: ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_excluded_dirs_and_suffixes( any_directory_name(),
 		[ directory_name() ], [ ustring() ], boolean() ) -> [ file_name() ].
@@ -1858,8 +1879,8 @@ find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirList,
 							ExcludedSuffixes, IncludeSymlinks ) ->
 
 	%{ ok, CurrentDir } = file:get_cwd(),
-	%io:format( "find_files_with_excluded_dirs_and_suffixes: current is ~s, "
-	%			"root is ~s.~n", [ CurrentDir, RootDir ] ),
+	%io:format( "find_files_with_excluded_dirs_and_suffixes: current is ~ts, "
+	%			"root is ~ts.~n", [ CurrentDir, RootDir ] ),
 
 	find_files_with_excluded_dirs_and_suffixes( RootDir,
 			_CurrentRelativeDir="", ExcludedDirList, ExcludedSuffixes,
@@ -1870,7 +1891,7 @@ find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirList,
 find_files_with_excluded_dirs_and_suffixes( RootDir, CurrentRelativeDir,
 		ExcludedDirList, ExcludedSuffixes, IncludeSymlinks, Acc ) ->
 
-	%io:format( "find_files_with_excluded_dirs_and_suffixes in ~s / ~s.~n",
+	%io:format( "find_files_with_excluded_dirs_and_suffixes in ~ts / ~ts.~n",
 	%           [ RootDir, CurrentRelativeDir ] ),
 
 	{ RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
@@ -1886,7 +1907,7 @@ find_files_with_excluded_dirs_and_suffixes( RootDir, CurrentRelativeDir,
 
 	end,
 
-	% If for example ExcludedDirList=[ ".svn" ], we want to eliminate not only
+	% If for example ExcludedDirList=[".svn"], we want to eliminate not only
 	% ".svn" but also all "foo/bar/.svn", i.e. all directories having the same
 	% (last) name:
 	%
@@ -1922,7 +1943,7 @@ list_files_in_subdirs_excluded_dirs_and_suffixes( _Dirs=[ H | T ], RootDir,
 % Prefixes specified paths with specified root directory.
 -spec prefix_files_with( directory_name(), [ file_name() ] ) -> [ file_name() ].
 prefix_files_with( RootDir, Files ) ->
-	%io:format( "Prefixing ~p with '~s'.~n", [ Files, RootDir ] ),
+	%io:format( "Prefixing ~p with '~ts'.~n", [ Files, RootDir ] ),
 	prefix_files_with( RootDir, Files, _Acc=[] ).
 
 
@@ -1940,7 +1961,7 @@ prefix_files_with( RootDir, [ H| T ], Acc ) ->
 % (i.e. recursively).
 %
 % All returned pathnames are relative to this root.
-% Ex: [ "./my-dir", "./tmp/other-dir" ].
+% Ex: ["./my-dir", "./tmp/other-dir"].
 %
 -spec find_directories_from( any_directory_name() ) -> [ directory_name() ].
 find_directories_from( RootDir ) ->
@@ -1950,7 +1971,7 @@ find_directories_from( RootDir ) ->
 % (helper)
 find_directories_from( RootDir, CurrentRelativeDir, Acc ) ->
 
-	%io:format( "find_directories_from in ~s.~n", [ CurrentRelativeDir ] ),
+	%io:format( "find_directories_from in ~ts.~n", [ CurrentRelativeDir ] ),
 
 	{ _RegularFiles, _Symlinks, Directories, _OtherFiles, _Devices } =
 		list_dir_elements( join( RootDir, CurrentRelativeDir ) ),
@@ -1993,7 +2014,7 @@ create_directory( Dirname ) ->
 % directory will be created.
 %
 % Throws an exception if the operation fails, for example if the directory is
-% already existing ( { create_directory_failed, "foobar", eexist } ).
+% already existing ({create_directory_failed, "foobar", eexist}).
 %
 -spec create_directory( directory_name(), parent_creation() ) -> void().
 create_directory( Dirname, create_no_parent ) ->
@@ -2097,7 +2118,7 @@ create_temporary_directory() ->
 -spec remove_file( any_file_path() ) -> void().
 remove_file( Filename ) ->
 
-	%trace_utils:warning_fmt( "Removing file '~s'.", [ Filename ] ),
+	%trace_utils:warning_fmt( "Removing file '~ts'.", [ Filename ] ),
 
 	case file:delete( Filename ) of
 	%case ok of
@@ -2116,7 +2137,7 @@ remove_file( Filename ) ->
 -spec remove_files( [ any_file_path() ] ) -> void().
 remove_files( FilenameList ) ->
 
-	%trace_utils:warning_fmt( "Removing following files: ~s",
+	%trace_utils:warning_fmt( "Removing following files: ~ts",
 	%						 [ text_utils:strings_to_string( FilenameList ) ] ),
 
 	[ remove_file( Filename ) || Filename <- FilenameList ].
@@ -2132,12 +2153,12 @@ remove_file_if_existing( Filename ) ->
 	case is_existing_file( Filename ) of
 
 		true ->
-			%trace_bridge:debug_fmt( "Removing existing file '~s'.",
+			%trace_bridge:debug_fmt( "Removing existing file '~ts'.",
 			%						[ Filename ] ),
 			remove_file( Filename );
 
 		false ->
-			%trace_bridge:debug_fmt( "No existing file '~s' to remove.",
+			%trace_bridge:debug_fmt( "No existing file '~ts' to remove.",
 			%						[ Filename ] ),
 			ok
 
@@ -2160,7 +2181,7 @@ remove_files_if_existing( FilenameList ) ->
 -spec remove_empty_directory( any_directory_path() ) -> void().
 remove_empty_directory( DirectoryPath ) ->
 
-	%trace_utils:warning_fmt( "## Removing empty directory '~s'.",
+	%trace_utils:warning_fmt( "## Removing empty directory '~ts'.",
 	%                         [ DirectoryPath ] ),
 
 	case file:del_dir( DirectoryPath ) of
@@ -2188,7 +2209,7 @@ remove_empty_directory( DirectoryPath ) ->
 -spec remove_empty_path( any_directory_path() ) -> void().
 remove_empty_path( DirectoryPath ) ->
 
-	%trace_utils:warning_fmt( "## Removing empty directory '~s'.",
+	%trace_utils:warning_fmt( "## Removing empty directory '~ts'.",
 	%                         [ DirectoryPath ] ),
 
 	remove_empty_path_helper( DirectoryPath ).
@@ -2211,7 +2232,7 @@ remove_empty_path_helper( DirectoryPath ) ->
 -spec remove_empty_tree( any_directory_path() ) -> void().
 remove_empty_tree( DirectoryPath ) ->
 
-	%trace_utils:warning_fmt( "## Removing empty tree '~s'.",
+	%trace_utils:warning_fmt( "## Removing empty tree '~ts'.",
 	%						 [ DirectoryPath ] ),
 
 	% For clarity:
@@ -2285,7 +2306,7 @@ remove_empty_tree( DirectoryPath ) ->
 -spec remove_directory( any_directory_name() ) -> void().
 remove_directory( DirectoryName ) ->
 
-	%trace_utils:warning_fmt( "## Removing recursively directory '~s'.",
+	%trace_utils:warning_fmt( "## Removing recursively directory '~ts'.",
 	%                         [ DirectoryName ] ),
 
 	% We do it programmatically, rather than running a command like '/bin/rm -rf
@@ -2301,8 +2322,8 @@ remove_directory( DirectoryName ) ->
 			ok;
 
 		_ ->
-			trace_utils:error_fmt( "Interrupting removal of directory '~s', as "
-				"device entries have been found: ~p.", [ Devices ] ),
+			trace_utils:error_fmt( "Interrupting removal of directory '~ts', "
+				"as device entries have been found: ~p.", [ Devices ] ),
 
 			throw( { device_entries_found, Devices } )
 
@@ -2314,8 +2335,8 @@ remove_directory( DirectoryName ) ->
 			ok;
 
 		_ ->
-			trace_utils:error_fmt( "Interrupting removal of directory '~s', as "
-				"unexpected filesystem entries have been found: ~p.",
+			trace_utils:error_fmt( "Interrupting removal of directory '~ts', "
+				"as unexpected filesystem entries have been found: ~p.",
 				[ OtherFiles ] ),
 
 			throw( { unexpected_entries_found, OtherFiles } )
@@ -2463,7 +2484,7 @@ copy_tree( SourceTreePath, TargetDirectory ) ->
 
 	end,
 
-	Cmd = text_utils:format( "/bin/cp -r '~s' '~s'",
+	Cmd = text_utils:format( "/bin/cp -r '~ts' '~ts'",
 							 [ SourceTreePath, TargetDirectory ] ),
 
 	case system_utils:run_executable( Cmd ) of
@@ -2495,7 +2516,7 @@ rename( SourceFilename, DestinationFilename ) ->
 -spec move_file( file_name(), file_name() ) -> file_name().
 move_file( SourceFilename, DestinationFilename ) ->
 
-	%trace_utils:warning_fmt( "## Moving file '~s' to '~s'.",
+	%trace_utils:warning_fmt( "## Moving file '~ts' to '~ts'.",
 	%						  [ SourceFilename, DestinationFilename ] ),
 
 	%copy_file( SourceFilename, DestinationFilename ),
@@ -2508,7 +2529,7 @@ move_file( SourceFilename, DestinationFilename ) ->
 			DestinationFilename;
 
 		{ error, exdev } ->
-			%trace_utils:info_fmt( "Moving across filesystems '~s' to '~s'.",
+			%trace_utils:info_fmt( "Moving across filesystems '~ts' to '~ts'.",
 			%					   [ SourceFilename, DestinationFilename ] ),
 			copy_file( SourceFilename, DestinationFilename ),
 			remove_file( SourceFilename );
@@ -2527,7 +2548,7 @@ move_file( SourceFilename, DestinationFilename ) ->
 -spec create_link( path(), link_name() ) -> void().
 create_link( TargetPath, LinkName ) ->
 
-	%trace_utils:debug_fmt( "Creating a link '~s' to '~s', while in '~s'.",
+	%trace_utils:debug_fmt( "Creating a link '~ts' to '~ts', while in '~ts'.",
 	%					   [ LinkName, TargetPath, get_current_directory() ] ),
 
 	case file:make_symlink( TargetPath, LinkName ) of
@@ -2561,7 +2582,7 @@ get_non_clashing_entry_name_from( Path ) ->
 	%	+ random_utils:get_random_value( _Min=0, _Max=10000 ),
 	% until no collision occurs.
 
-	%trace_utils:debug_fmt( "Testing whether path '~s' already exists...",
+	%trace_utils:debug_fmt( "Testing whether path '~ts' already exists...",
 	%					   [ Path ] ),
 
 	case exists( Path ) of
@@ -2571,17 +2592,17 @@ get_non_clashing_entry_name_from( Path ) ->
 											_Where=trailing ) of
 
 				[ _Path ] ->
-					text_utils:format( "~s-1", [ Path ] );
+					text_utils:format( "~ts-1", [ Path ] );
 
 				[ BasePath, FinalPart ] ->
 					case text_utils:try_string_to_integer( FinalPart ) of
 
 						% Not already ending with a dash plus a number:
 						undefined ->
-							text_utils:format( "~s-1", [ Path ] );
+							text_utils:format( "~ts-1", [ Path ] );
 
 						Count ->
-							text_utils:format( "~s-~B", [ BasePath, Count+1 ] )
+							text_utils:format( "~ts-~B", [ BasePath, Count+1 ] )
 
 					end
 
@@ -2867,7 +2888,7 @@ normalise_path( Path ) when is_list( Path ) ->
 
 	ResPath = join( filter_elems( ElemList, _Acc=[] ) ),
 
-	%trace_utils:debug_fmt( "Normalising path '~s' as '~s'.",
+	%trace_utils:debug_fmt( "Normalising path '~ts' as '~ts'.",
 	%					   [ Path, ResPath ] ),
 
 	ResPath;
@@ -2948,9 +2969,9 @@ make_relative( Path, RefDir ) when is_list( Path ) andalso is_list( RefDir ) ->
 
 	AbsRefDir = ensure_path_is_absolute( RefDir ),
 
-	%trace_utils:debug_fmt( "Making path '~s' (absolute form: '~s') relative "
-	%					   "to reference directory '~s' (absolute form: '~s').",
-	%					   [ Path, AbsPath, RefDir, AbsRefDir ] ),
+	%trace_utils:debug_fmt( "Making path '~ts' (absolute form: '~ts') relative "
+	%   "to reference directory '~ts' (absolute form: '~ts').",
+	%   [ Path, AbsPath, RefDir, AbsRefDir ] ),
 
 	TargetPathElems = filename:split( AbsPath ),
 	RefPathElems = filename:split( AbsRefDir ),
@@ -2980,7 +3001,7 @@ make_relative_helper( PathElems, RefPathElems ) ->
 
 	Res = join( FromRef ++ PathElems ),
 
-	%trace_utils:debug_fmt( "Returned path: '~s'.", [ Res ] ),
+	%trace_utils:debug_fmt( "Returned path: '~ts'.", [ Res ] ),
 
 	Res.
 
@@ -2995,7 +3016,7 @@ make_relative_helper( PathElems, RefPathElems ) ->
 % elements, not characters.
 %
 -spec get_longest_common_path( [ directory_path() ] ) ->
-					 { directory_path(), [ directory_path() ] }.
+						{ directory_path(), [ directory_path() ] }.
 get_longest_common_path( DirPaths ) ->
 	DirElems = [ filename:split( D ) || D <- DirPaths ],
 	get_longest_common_path_helper( DirElems, _AccCommon=[] ).
@@ -3010,7 +3031,7 @@ get_longest_common_path_helper( DirElems, AccCommon ) ->
 	case get_common_head_of( DirElems, _Acc=[] ) of
 
 		{ none, Tails } ->
-			%trace_utils:debug_fmt( "Finished, with common path ~s and "
+			%trace_utils:debug_fmt( "Finished, with common path ~ts and "
 			%                       "tails: ~p.", [ AccCommon, Tails ] ),
 			{ join( lists:reverse( AccCommon ) ), Tails };
 
@@ -3046,7 +3067,7 @@ get_common_head_of( _DirElemsTails=[ _First=[ Elem | T ] | Others ], Acc ) ->
 
 % (sub-sub-helper)
 try_behead_with( Elem, Others ) ->
-	%trace_utils:debug_fmt( "Beheading of ~p from '~s'", [ Others, Elem ] ),
+	%trace_utils:debug_fmt( "Beheading of ~p from '~ts'", [ Others, Elem ] ),
 	try_behead_with( Elem, Others, _Acc=[] ).
 
 
@@ -3063,7 +3084,7 @@ try_behead_with( Elem, _Others=[ [ Elem | R ] | T ], Acc ) ->
 %                                  _Acc ) ->
 % or to:          try_behead_with( Elem, Others=[ [] | _T ], _Acc ) ->
 try_behead_with( _Elem, _Others, _Acc ) ->
-	%trace_utils:debug_fmt( "'~s' could not be removed from ~p",
+	%trace_utils:debug_fmt( "'~ts' could not be removed from ~p",
 	%                      [ Elem, Others ] ),
 	non_matching.
 
@@ -3075,8 +3096,8 @@ try_behead_with( _Elem, _Others, _Acc ) ->
 % found corresponding to that leaf element.
 %
 % Ex:
-%  false = file_utils:is_leaf_among( "xx", [ "a/b/c/yy", "d/e/zz" ] )
-%  "a/b/c/xx"  = file_utils:is_leaf_among( "xx", [ "a/b/c/xx", "d/e/zz" ] )
+%  false = file_utils:is_leaf_among( "xx", [ "a/b/c/yy", "d/e/zz"] )
+%  "a/b/c/xx"  = file_utils:is_leaf_among( "xx", [ "a/b/c/xx", "d/e/zz"] )
 %
 -spec is_leaf_among( leaf_name(), [ path() ] ) -> { 'false' | path() }.
 is_leaf_among( _LeafName, _PathList=[] ) ->
@@ -3102,7 +3123,7 @@ is_leaf_among( LeafName, _PathList=[ Path | T ] ) ->
 % their associated value (i.e. the value in table corresponding to that key).
 %
 % Ex: file_utils:update_with_keywords( "original.txt", "updated.txt", table:new(
-%  [ { "hello", "goodbye" }, { "Blue", "Red" } ] ).
+%  [ {"hello", "goodbye"}, {"Blue", "Red"} ] ).
 %
 % Note that the resulting file will be written with no additional encoding.
 %
@@ -3222,7 +3243,7 @@ remove_upper_levels_and_extension( FilePath ) ->
 -spec get_image_extensions() -> [ extension() ].
 get_image_extensions() ->
 	% TIFF, TGA and al deemed deprecated:
-	[ ".png", ".jpg", ".jpeg", ".bmp" ].
+	[ ".png", ".jpg", ".jpeg", ".bmp"].
 
 
 
@@ -3232,14 +3253,14 @@ get_image_extensions() ->
 % Returns the image path corresponding to the specified file.
 -spec get_image_file_png( file_name() ) -> path().
 get_image_file_png( Image ) ->
-  filename:join( [ ?ResourceDir, "images", Image ++ ".png" ] ).
+  filename:join( [ ?ResourceDir, "images", Image ++ ".png"] ).
 
 
 
 % Returns the image path corresponding to the specified file.
 -spec get_image_file_gif( file_name() ) -> path().
 get_image_file_gif( Image ) ->
-  filename:join( [ ?ResourceDir, "images", Image ++ ".gif" ] ).
+  filename:join( [ ?ResourceDir, "images", Image ++ ".gif"] ).
 
 
 
@@ -3250,9 +3271,8 @@ get_image_file_gif( Image ) ->
 % Returns our default, recommended encoding, typically when needing to open a
 % file for writing.
 %
-% Note that if the 'raw' flag is included among opening flags, any specified
-% encoding might be ignored (ex: UTF8 being specified, whereas ISO/IEC 8859
-% being written).
+% See the notes above in the 'Regarding encodings and Unicode' section, notably
+% about the consequences of using the 'raw' flag and/or specifying an encoding
 %
 -spec get_default_encoding() -> system_utils:encoding().
 get_default_encoding() ->
@@ -3278,8 +3298,6 @@ get_default_encoding_option() ->
 % http://erlang.org/doc/man/file.html#open-2, i.e. read, write, append,
 % exclusive, raw, etc.).
 %
-% Note that we thought that 'raw' may cause problems with encodings.
-%
 % See read_terms/1 if planning to read that content as terms later, notably with
 % regard to encoding.
 %
@@ -3295,7 +3313,8 @@ get_default_encoding_option() ->
 % Note:
 %
 % - we used to think that 'raw' may cause problems with encodings; consider
-% specifying system_utils:get_default_encoding_option/0
+% specifying system_utils:get_default_encoding_option/0; refer to the 'Regarding
+% encodings and Unicode' section at the top of this file for further information
 %
 % - if an opened file fails to be correctly read encoding-wise (characters like
 % 'à' being not only displayed but also read garbled, and if setting
@@ -3358,8 +3377,8 @@ open( Filename, Options ) ->
 			'try_once' | 'try_endlessly' | 'try_endlessly_safer' ) -> file().
 open( Filename, Options, _AttemptMode=try_endlessly_safer ) ->
 
-	%trace_utils:debug_fmt( "Opening '~s' endlessly yet safe, with options ~w.",
-	%					   [ Filename, Options ] ),
+	%trace_utils:debug_fmt( "Opening '~ts' endlessly yet safe, "
+	%   "with options ~w.", [ Filename, Options ] ),
 
 	File = open( Filename, Options, try_endlessly ),
 
@@ -3377,7 +3396,7 @@ open( Filename, Options, _AttemptMode=try_endlessly_safer ) ->
 
 open( Filename, Options, _AttemptMode=try_endlessly ) ->
 
-	%trace_utils:debug_fmt( "Opening '~s' endlessly, with options ~w.",
+	%trace_utils:debug_fmt( "Opening '~ts' endlessly, with options ~w.",
 	%					   [ Filename, Options ] ),
 
 	case file:open( Filename, Options ) of
@@ -3416,10 +3435,11 @@ open( Filename, Options, _AttemptMode=try_endlessly ) ->
 	end;
 
 
+% By far the most commonly-used clause:
 open( Filename, Options, _AttemptMode=try_once ) ->
 
-	%trace_utils:debug_fmt( "Opening '~s' once, with options ~w.",
-	%					   [ Filename, Options ] ),
+	trace_utils:debug_fmt( "Opening '~ts' once, with the ~w options, "
+		"from '~ts'.", [ Filename, Options, get_current_directory() ] ),
 
 	case file:open( Filename, Options ) of
 
@@ -3542,48 +3562,77 @@ read( File, Count ) ->
 
 
 
-% Writes specified content into specified file.
+% Writes specified byte-oriented content in the specified file.
 %
 % Operates on files opened in raw mode (only way to do so), or not (works for
 % normal mode as well).
 %
 % Throws an exception on failure.
 %
+% See write_ustring/{2,3} to write Unicode text.
+%
 -spec write( file(), iodata() ) -> void().
 write( File, Content ) ->
 
-	% Using current encoding (i.e. the one that file was opened with):
+	trace_utils:debug_fmt( "Writing '~w' to ~p.", [ Content, File ] ),
+
 	case file:write( File, Content ) of
 
 		ok ->
 			ok;
 
+		% If Reason is badarg, possibly an encoding issue (ex: having used '~ts'
+		% instead of '~ts'):
+		%
 		{ error, Reason } ->
-			throw( { write_failed, Reason } )
+			throw( { write_failed, Reason, Content, File } )
 
 	end.
 
 
 
-% Writes specified formatted content into specified file.
+% Writes specified Unicode string in the specified file.
+%
+% Operates on files opened in raw mode (only way to do so), or not (works for
+% normal mode as well).
 %
 % Throws an exception on failure.
 %
--spec write( file(), text_utils:format_string(), [ term() ] ) -> void().
-write( File, FormatString, Values ) ->
+-spec write_ustring( file(), ustring() ) -> void().
+write_ustring( File, Str ) ->
 
-	Text = text_utils:format( FormatString, Values ),
+	%trace_utils:debug_fmt( "Writing '~ts' to ~p.", [ Str, File ] ),
 
-	% Using current encoding:
-	case file:write( File, Text ) of
+	Bin = unicode:characters_to_binary( Str ),
+	%trace_utils:debug_fmt( " - Bin: ~p.", [ Bin ] ),
+
+	%BinStr = io_lib:format("~ts", [ Bin ] ),
+	%trace_utils:debug_fmt( " - BinStr: ~p.", [ BinStr ] ),
+
+	% Using current encoding (i.e. the one that file was opened with):
+	case file:write( File, Bin ) of
 
 		ok ->
 			ok;
 
+		% If Reason is badarg, possibly an encoding issue (ex: having used '~ts'
+		% instead of '~ts'):
+		%
 		{ error, Reason } ->
-			throw( { write_failed, Reason } )
+			throw( { write_ustring_failed, Reason, Str, File } )
 
 	end.
+
+
+
+% Writes specified formatted content in the specified file.
+%
+% Throws an exception on failure.
+%
+-spec write_ustring( file(), format_string(), [ term() ] ) -> void().
+write_ustring( File, FormatString, Values ) ->
+	Text = text_utils:format( FormatString, Values ),
+	write_ustring( File, Text ).
 
 
 
@@ -3596,7 +3645,7 @@ write( File, FormatString, Values ) ->
 -spec read_whole( any_file_name() ) -> binary().
 read_whole( Filename ) ->
 
-	%trace_utils:debug_fmt( "Reading as a whole '~s'.", [ Filename ] ),
+	%trace_utils:debug_fmt( "Reading as a whole '~ts'.", [ Filename ] ),
 
 	case file:read_file( Filename ) of
 
@@ -3639,7 +3688,7 @@ write_whole( Filename, StringContent, Modes ) when is_list( StringContent ) ->
 
 write_whole( Filename, BinaryContent, Modes ) ->
 
-	%trace_utils:debug_fmt( "Writing to '~s', with modes ~p, "
+	%trace_utils:debug_fmt( "Writing to '~ts', with modes ~p, "
 	%	"following content:~n~ts", [ Filename, Modes, BinaryContent ] ),
 
 	% 'write' and 'binary' are implicit here:
@@ -3650,7 +3699,7 @@ write_whole( Filename, BinaryContent, Modes ) ->
 			%case is_existing_file( Filename ) of
 			%
 			%	true ->
-			%		trace_utils:debug_fmt( "'~s' written as a whole.",
+			%		trace_utils:debug_fmt( "'~ts' written as a whole.",
 			%							   [ Filename ] ),
 			%		ok;
 			%
@@ -3671,12 +3720,14 @@ write_whole( Filename, BinaryContent, Modes ) ->
 
 
 
-% Reads specified file, tries to parse a list of terms from it, and returns it.
+% Reads specified file, tries to parse a list of terms from it (as
+% file:consult/1 does), and returns it.
 %
-% If expecting to read UTF-8 content for a file, it should:
+% If expecting to read UTF-8 content from a file, it should:
 %
-%  - have been opened for writing typically while including the { encoding, utf8
-%  } option
+%  - have been then opened for writing typically while including the {encoding,
+%  utf8} option, or have been written with content already properly encoded
+%  (maybe more reliable that way)
 %
 %  - start with a '%% -*- coding: utf-8 -*-' header
 %
@@ -3747,7 +3798,7 @@ write_terms( Terms, Header, Footer, Filename ) ->
 			ok;
 
 		_ ->
-			write( F, text_utils:format( "~n~n% ~s~n", [ Footer ] ) )
+			write( F, text_utils:format( "~n~n% ~ts~n", [ Footer ] ) )
 
 	end,
 
@@ -3761,7 +3812,8 @@ write_terms( Terms, Header, Footer, Filename ) ->
 %
 -spec write_direct_terms( file(), [ term() ] ) -> void().
 write_direct_terms( File, Terms ) ->
-	[ write( File, text_utils:format( "~p.~n", [ T ] ) ) || T <- Terms ].
+	[ write_ustring( File, text_utils:format( "~p.~n", [ T ] ) )
+	  || T <- Terms ].
 
 
 
@@ -4071,8 +4123,8 @@ zipped_term_to_unzipped_file( ZippedTerm, TargetFilename ) ->
 	{ ok, [ { _AFilename, Binary } ] } = zip:unzip( ZippedTerm, [ memory ] ),
 
 	% { ok, File } = file:open( TargetFilename, [ write ] ),
-	% ok = io:format( File, "~s", [ binary_to_list(Binary) ] ),
-	% ok = file:write_file( File, "~s", [ binary_to_list(Binary) ] ),
+	% ok = io:format( File, "~ts", [ binary_to_list(Binary) ] ),
+	% ok = file:write_file( File, "~ts", [ binary_to_list(Binary) ] ),
 	% ok = file:close( File ).
 	write_whole( TargetFilename, Binary ).
 
@@ -4114,8 +4166,8 @@ files_to_zipped_term( FilenameList, BaseDirectory ) ->
 
 	DummyFileName = "dummy",
 
-	%trace_utils:notice_fmt( "files_to_zipped_term operating, from '~s', "
-	%						 "on following ~B file(s): ~s",
+	%trace_utils:notice_fmt( "files_to_zipped_term operating, from '~ts', "
+	%						 "on following ~B file(s): ~ts",
 	%						 [ BaseDirectory, length( FilenameList ),
 	%						   text_utils:terms_to_string( FilenameList ) ] ),
 
@@ -4131,7 +4183,7 @@ files_to_zipped_term( FilenameList, BaseDirectory ) ->
 			 % Such a short error might be difficult to diagnose:
 
 			 %trace_utils:warning_fmt( "files_to_zipped_term/2 failed "
-			 %  "from '~s':~n~n - directory '~p' exists? ~p",
+			 %  "from '~ts':~n~n - directory '~p' exists? ~p",
 			 %		[ get_current_directory(), BaseDirectory,
 			 %		  is_existing_directory( BaseDirectory ) ] ),
 

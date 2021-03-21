@@ -224,8 +224,8 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 		{ onWindowClosed, [ MainFrame, Context ] } ->
 
-			trace_utils:info_fmt( "Main frame ~s has been closed "
-				"(~s), test success.",
+			trace_utils:info_fmt( "Main frame ~ts has been closed "
+				"(~ts), test success.",
 				[ gui:object_to_string( MainFrame ),
 				  gui:context_to_string( Context ) ] ),
 
@@ -237,7 +237,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 		{ onButtonClicked, [ RenderShapeButton, Context ] } ->
 
 			trace_utils:info_fmt(
-			  "Render shape button ~s has been clicked (~s).",
+			  "Render shape button ~ts has been clicked (~ts).",
 			  [ gui:object_to_string( QuitButton ),
 				gui:context_to_string( Context ) ] ),
 
@@ -247,7 +247,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 		{ onButtonClicked, [ RenderMECButton, Context ] } ->
 
 			trace_utils:info_fmt(
-			  "Render MEC button ~s has been clicked (~s).",
+			  "Render MEC button ~ts has been clicked (~ts).",
 			  [ gui:object_to_string( QuitButton ),
 				gui:context_to_string( Context ) ] ),
 
@@ -257,7 +257,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 		{ onButtonClicked, [ AddButton, Context ] } ->
 
 			trace_utils:info_fmt(
-			  "Add point button ~s has been clicked (~s).",
+			  "Add point button ~ts has been clicked (~ts).",
 			  [ gui:object_to_string( QuitButton ),
 				gui:context_to_string( Context ) ] ),
 
@@ -267,7 +267,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 		{ onButtonClicked, [ LoadImageButton, Context ] } ->
 
 			trace_utils:info_fmt(
-			  "Load image button ~s has been clicked (~s).",
+			  "Load image button ~ts has been clicked (~ts).",
 			  [ gui:object_to_string( QuitButton ),
 				gui:context_to_string( Context ) ] ),
 
@@ -277,7 +277,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 		{ onButtonClicked, [ ClearCanvasButton, Context ] } ->
 
 			trace_utils:info_fmt(
-			  "Clear canvas button ~s has been clicked (~s).",
+			  "Clear canvas button ~ts has been clicked (~ts).",
 			  [ gui:object_to_string( QuitButton ),
 				gui:context_to_string( Context ) ] ),
 
@@ -286,8 +286,8 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 		{ onButtonClicked, [ QuitButton, _Context ] } ->
 
-			%trace_utils:info_fmt( "Quit button ~s has been clicked "
-			%	"(~s), test success.",
+			%trace_utils:info_fmt( "Quit button ~ts has been clicked "
+			%	"(~ts), test success.",
 			%	[ gui:object_to_string( QuitButton ),
 			%	  gui:context_to_string( Context ) ] ),
 
@@ -298,7 +298,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 		{ onRepaintNeeded, [ Canvas, Context ] } ->
 
-			trace_utils:info_fmt( "Canvas '~s' needing repaint (~s).",
+			trace_utils:info_fmt( "Canvas '~ts' needing repaint (~ts).",
 				[ gui:object_to_string( Canvas ),
 				  gui:context_to_string( Context ) ] ),
 
@@ -318,7 +318,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 		{ onResized, [ Canvas, NewSize, Context ] } ->
 
-			trace_utils:info_fmt( "Canvas ~s resized to ~w (~s).",
+			trace_utils:info_fmt( "Canvas ~ts resized to ~w (~ts).",
 				[ gui:object_to_string( Canvas ), NewSize,
 				  gui:context_to_string( Context ) ] ),
 
@@ -345,9 +345,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 
 
-
 % Renders the shape examples onto the specified canvas.
-%
 -spec render_shapes( gui:canvas() ) -> gui:canvas().
 render_shapes( Canvas ) ->
 
@@ -385,15 +383,14 @@ render_shapes( Canvas ) ->
 	gui:draw_cross( Canvas, LabelPosition ),
 
 	gui:draw_labelled_cross( Canvas, {36,86}, _SecondEdgeLength=4,
-									"Cross label" ),
+							 "Cross label" ),
 
 	gui:set_draw_color( Canvas, firebrick ),
 	gui:set_fill_color( Canvas, chartreuse ),
 	gui:draw_circle( Canvas, _CircleCenter={80,80}, _Radius=80 ),
 
 	gui:set_fill_color( Canvas, none ),
-	gui:draw_circle( Canvas, _OtherCircleCenter={180,180},
-							_OtherRadius=180 ),
+	gui:draw_circle( Canvas, _OtherCircleCenter={180,180}, _OtherRadius=180 ),
 
 	% Taken from polygon_test.erl:
 	MyTriangle = polygon:update_bounding_box( lazy_circle,
@@ -402,8 +399,8 @@ render_shapes( Canvas ) ->
 
 	MyUprightSquare = polygon:update_bounding_box( lazy_circle,
 	   polygon:set_edge_color( steelblue,
-			  polygon:get_upright_square( _Center={250,250},
-										  _EdgeLength=50 ) ) ),
+				polygon:get_upright_square( _Center={250,250},
+											_EdgeLength=50 ) ) ),
 
 	polygon:render( MyTriangle, Canvas ),
 	polygon:render( MyUprightSquare, Canvas ),
@@ -415,8 +412,7 @@ render_shapes( Canvas ) ->
 % Renders the MEC (Minimal Enclosing Circle) view, for a polygon of specified
 % number of vertices, whose coordinates are randomly determined.
 %
--spec render_mec( gui:canvas(), basic_utils:count() ) ->
-						gui:canvas().
+-spec render_mec( gui:canvas(), basic_utils:count() ) -> gui:canvas().
 render_mec( Canvas, PointCount ) ->
 
 	trace_utils:info_fmt( "Rendering MEC with ~B points.", [ PointCount ] ),
@@ -429,7 +425,7 @@ render_mec( Canvas, PointCount ) ->
 
 	RandomPoints = [ { random_utils:get_random_value( 200 ) + 300,
 					   random_utils:get_random_value( 300 ) + 100 }
-					|| _Count <- lists:seq( 1, PointCount ) ],
+					 || _Count <- lists:seq( 1, PointCount ) ],
 
 	%trace_utils:debug_fmt( "Random points: ~w.", [ RandomPoints ] ),
 
@@ -442,8 +438,7 @@ render_mec( Canvas, PointCount ) ->
 
 	%trace_utils:debug_fmt( "Sorted points: ~w.", [ SortedPoints ] ),
 
-	gui:draw_lines( Canvas, [ Pivot | SortedPoints ] ++ [ Pivot ],
-						   green ),
+	gui:draw_lines( Canvas, [ Pivot | SortedPoints ] ++ [ Pivot ], green ),
 
 	HullPoints = linear_2D:compute_convex_hull( RandomPoints ),
 
@@ -470,7 +465,7 @@ render_mec( Canvas, PointCount ) ->
 
 	% Draws the crosses last, to have them on top:
 	gui:draw_labelled_cross( Canvas, Pivot, _OtherEdgeLength=10, black,
-									"Pivot" ),
+							 "Pivot" ),
 
 	gui:set_draw_color( Canvas, white ),
 
@@ -482,7 +477,6 @@ render_mec( Canvas, PointCount ) ->
 
 
 % Runs the test.
-%
 -spec run() -> no_return().
 run() ->
 
@@ -491,8 +485,8 @@ run() ->
 	case executable_utils:is_batch() of
 
 		true ->
-			test_facilities:display( "(not running the MyriadGUI test, "
-									 "being in batch mode)" );
+			test_facilities:display(
+			  "(not running the MyriadGUI test, being in batch mode)" );
 
 		false ->
 			run_test_gui()

@@ -80,7 +80,7 @@ run_stateless_testing() ->
 
 	BackendName = json_utils:get_parser_backend_name(),
 
-	test_facilities:display( "Parser backend name (if any): '~s'.",
+	test_facilities:display( "Parser backend name (if any): '~ts'.",
 							 [ BackendName ] ),
 
 	case BackendName of
@@ -91,7 +91,7 @@ run_stateless_testing() ->
 			undefined;
 
 		_ ->
-			test_facilities:display( "Available parser backend name: '~s'.",
+			test_facilities:display( "Available parser backend name: '~ts'.",
 				[ json_utils:get_available_parser_backend_name() ] ),
 
 			json_utils:start_parser(),
@@ -107,7 +107,8 @@ run_stateless_testing() ->
 
 				OtherJsonEncoded ->
 					throw( { unexpected_encoding_of, TermToEncode,
-						{ expected, ExpectedJsonEncoded }, { got, OtherJsonEncoded } } )
+							 { expected, ExpectedJsonEncoded },
+							 { got, OtherJsonEncoded } } )
 
 			end,
 
@@ -118,14 +119,14 @@ run_stateless_testing() ->
 
 				OtherTerm ->
 					throw( { unexpected_decoding_of, ExpectedJsonEncoded,
-						{ expected, TermToEncode }, { got, OtherTerm } } )
+							 { expected, TermToEncode }, { got, OtherTerm } } )
 
 
 			end,
 
 			TestFilePath = get_test_file_path(),
 
-			test_facilities:display( "Reading test file '~s'.",
+			test_facilities:display( "Reading test file '~ts'.",
 									 [ TestFilePath ] ),
 
 			ReadTestTerm = json_utils:from_json_file( TestFilePath ),
@@ -133,13 +134,13 @@ run_stateless_testing() ->
 			Type = type_utils:get_type_of( ReadTestTerm ),
 
 			test_facilities:display(
-			  "Test file read, type of corresponding term is: '~s'.",
+			  "Test file read, type of corresponding term is: '~ts'.",
 			  [ Type ] ),
 
 			test_facilities:display( "The read term is:~n ~p",
 									 [ ReadTestTerm ] ),
 
-			test_facilities:display( "Interpreted type: '~s'.",
+			test_facilities:display( "Interpreted type: '~ts'.",
 				[ type_utils:interpret_type_of( ReadTestTerm,
 												_Level=infinite ) ] ),
 
@@ -158,7 +159,7 @@ run_stateful_testing( ParserState ) ->
 
 	BackendName = json_utils:get_parser_backend_name( ParserState ),
 
-	test_facilities:display( "Parser backend name: '~s'.", [ BackendName ] ),
+	test_facilities:display( "Parser backend name: '~ts'.", [ BackendName ] ),
 
 	JsonDecodedTerm = case BackendName of
 
@@ -185,8 +186,8 @@ run_stateful_testing( ParserState ) ->
 					%   { got, OtherJsonEncoded } } )
 
 					test_facilities:display_fmt( "Note that the encoding of ~p "
-						"with '~s' is different from the one obtained with the "
-						"default parser (~s): former one returned ~p, "
+						"with '~ts' is different from the one obtained with "
+						"the default parser (~ts): former one returned ~p, "
 						"latter one ~p.",
 						[ TermToEncode, BackendName,
 						  json_utils:get_parser_backend_name(),
@@ -213,7 +214,7 @@ run_stateful_testing( ParserState ) ->
 
 			TestFilePath = get_test_file_path(),
 
-			test_facilities:display( "Reading test file '~s'.",
+			test_facilities:display( "Reading test file '~ts'.",
 									 [ TestFilePath ] ),
 
 			ReadTestTerm =
@@ -222,13 +223,13 @@ run_stateful_testing( ParserState ) ->
 			Type = type_utils:get_type_of( ReadTestTerm ),
 
 			test_facilities:display(
-			  "Test file read, type of corresponding term is: '~s'.",
+			  "Test file read, type of corresponding term is: '~ts'.",
 			  [ Type ] ),
 
 			test_facilities:display( "The read term is:~n ~p",
 									 [ ReadTestTerm ] ),
 
-			test_facilities:display( "Interpreted type: '~s'.",
+			test_facilities:display( "Interpreted type: '~ts'.",
 				[ type_utils:interpret_type_of( ReadTestTerm,
 												_Level=infinite ) ] ),
 
@@ -251,7 +252,7 @@ compare_with_if_available( JsonDecodedTerm, BackendName ) ->
 
 			false ->
 				test_facilities:display_fmt( "No comparison done with backend "
-					"'~s' (not found available).", [ BackendName ] ),
+					"'~ts' (not found available).", [ BackendName ] ),
 				ok;
 
 			_ ->
@@ -267,7 +268,7 @@ compare_with_if_available( JsonDecodedTerm, BackendName ) ->
 					% one:
 					%
 					test_facilities:display_fmt( "Comparison success with "
-						"backend '~s' (not found available).",
+						"backend '~ts' (not found available).",
 						[ BackendName ] ),
 
 					ok;
@@ -307,7 +308,7 @@ run() ->
 
 		_ ->
 			test_facilities:display( "Default available parser backend "
-				"name: '~s'.",
+				"name: '~ts'.",
 				[ json_utils:get_available_parser_backend_name() ] ),
 
 			% Could have been named 'InitialState', yet is supposed const:

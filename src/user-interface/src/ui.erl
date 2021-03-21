@@ -159,7 +159,11 @@
 
 
 % Shorthands:
+
 -type argument_table() :: shell_utils:argument_table().
+
+-type format_string() :: text_utils:format_string().
+-type format_values() :: text_utils:format_values().
 
 
 
@@ -194,7 +198,7 @@ start( Options ) ->
 -spec start( ui_options(), argument_table() ) -> argument_table().
 start( Options, ArgumentTable ) ->
 
-	%trace_utils:debug_fmt( "UI got following full argument(s): ~s",
+	%trace_utils:debug_fmt( "UI got following full argument(s): ~ts",
 	%	   [ shell_utils:argument_table_to_string( ArgumentTable ) ] ),
 
 	% Just a check:
@@ -222,7 +226,7 @@ start( Options, ArgumentTable ) ->
 
 		{ [ [ BackendName ] ], OtherArgTable } ->
 
-			%trace_utils:debug_fmt( "Following backend was specified: '~s'.",
+			%trace_utils:debug_fmt( "Following backend was specified: '~ts'.",
 			%					   [ BackendName ] ),
 
 			BackendModName = text_utils:string_to_atom( BackendName ),
@@ -231,12 +235,12 @@ start( Options, ArgumentTable ) ->
 
 				not_found ->
 					trace_utils:error_fmt( "No BEAM file found in code path "
-						"for user-specified UI backend module '~s'.",
+						"for user-specified UI backend module '~ts'.",
 						[ BackendModName ] ),
 					throw( { ui_backend_module_not_found, BackendModName } );
 
 				[ _SinglePath ] ->
-					%trace_utils:debug_fmt( "UI backend module found as '~s'.",
+					%trace_utils:debug_fmt( "UI backend module found as '~ts'.",
 					%					   [ SinglePath ] ),
 					{ BackendModName, OtherArgTable };
 
@@ -251,7 +255,7 @@ start( Options, ArgumentTable ) ->
 
 	end,
 
-	%trace_utils:debug_fmt( "The '~s' backend module has been selected.",
+	%trace_utils:debug_fmt( "The '~ts' backend module has been selected.",
 	%					   [ BackendModuleName ] ),
 
 	% Expects this backend to register its name and state in the process
@@ -312,8 +316,7 @@ display( Text ) ->
 
 
 % Displays specified formatted text, as a normal message.
--spec display( text_utils:format_string(), text_utils:format_values() ) ->
-					 void().
+-spec display( format_string(), format_values() ) -> void().
 display( FormatString, Values ) ->
 
 	UIModule = get_backend_name(),
@@ -344,8 +347,7 @@ display_warning( Text ) ->
 
 
 % Displays specified formatted text, as a warning message.
--spec display_warning( text_utils:format_string(),
-					   text_utils:format_values() ) -> void().
+-spec display_warning( format_string(), format_values() ) -> void().
 display_warning( FormatString, Values ) ->
 
 	UIModule = get_backend_name(),
@@ -365,8 +367,7 @@ display_error( Text ) ->
 
 
 % Displays specified formatted text, as an error message.
--spec display_error( text_utils:format_string(), text_utils:format_values() ) ->
-						   void().
+-spec display_error( format_string(), format_values() ) -> void().
 display_error( FormatString, Values ) ->
 
 	UIModule = get_backend_name(),
@@ -700,7 +701,7 @@ choose_numbered_item( Choices ) ->
 % atom, should the user prefer to cancel that operation.
 %
 -spec choose_numbered_item( [ choice_element() ], ui_state() ) ->
-								  choice_index();
+									choice_index();
 						  ( prompt(), [ choice_element() ] ) -> choice_index().
 choose_numbered_item( Choices, UIState ) ->
 
@@ -718,7 +719,7 @@ choose_numbered_item( Choices, UIState ) ->
 % atom, should the user prefer to cancel that operation.
 %
 -spec choose_numbered_item( prompt(), [ choice_element() ], ui_state() ) ->
-								  choice_index().
+									choice_index().
 choose_numbered_item( Prompt, Choices, UIState ) ->
 
 	UIModule = get_backend_name(),
@@ -758,7 +759,7 @@ choose_numbered_item_with_default( Choices, DefaultChoiceIndex ) ->
 										 ui_state() ) -> choice_index();
 									   ( prompt(), [ choice_element() ],
 										 maybe( choice_index() ) ) ->
-											   choice_index().
+												choice_index().
 choose_numbered_item_with_default( Choices, DefaultChoiceIndex, UIState ) ->
 
 	UIModule = get_backend_name(),
@@ -799,7 +800,7 @@ set_setting( SettingKey, SettingValue ) ->
 
 % Sets the specified setting to the specified value, in the specified UI state.
 -spec set_setting( ui_setting_key(), ui_setting_value(), ui_state() ) ->
-						 ui_state().
+							ui_state().
 set_setting( SettingKey, SettingValue, UIState ) ->
 
 	UIModule = get_backend_name(),
@@ -900,7 +901,7 @@ trace( Message ) ->
 
 
 % Displays and logs specified formatted text.
--spec trace( text_utils:format_string(), [ term() ] ) -> void().
+-spec trace( format_string(), [ term() ] ) -> void().
 trace( FormatString, Values ) ->
 
 	UIModule = get_backend_name(),
@@ -975,9 +976,8 @@ get_best_ui_backend() ->
 	%RiggedResult = text_ui,
 	RiggedResult = term_ui,
 
-	%trace_utils:warning_fmt( "Selecting '~s', as currently hardcoded "
-	%						 "(should have been '~s').",
-	%						 [ RiggedResult, RightResult ] ),
+	%trace_utils:warning_fmt( "Selecting '~ts', as currently hardcoded "
+	%	"(should have been '~ts').", [ RiggedResult, RightResult ] ),
 
 	RiggedResult.
 
@@ -995,10 +995,10 @@ settings_to_string( SettingTable ) ->
 
 			SetPairs = lists:sort( ?ui_table:enumerate( SettingTable ) ),
 
-			SetStrings = [ text_utils:format( "'~s' set to ~p",
+			SetStrings = [ text_utils:format( "'~ts' set to ~p",
 									  [ K, V ] ) || { K, V } <- SetPairs ],
 
-			text_utils:format( "with ~B settings recorded: ~s",
+			text_utils:format( "with ~B settings recorded: ~ts",
 					   [ Count, text_utils:strings_to_string( SetStrings ) ] )
 
 	end.

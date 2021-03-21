@@ -317,6 +317,11 @@
 -export_type([ ui_state/0 ]).
 
 
+% Shorthands:
+
+-type ustring() :: text_utils:ustring().
+
+
 
 % The key used by this module to store its state in the process dictionaty:
 -define( state_key, term_ui_state ).
@@ -386,7 +391,7 @@ start_helper( _Options=[], UIState ) ->
 
 	end,
 
-	%trace_utils:debug_fmt( "Storing following initial UI state: ~s",
+	%trace_utils:debug_fmt( "Storing following initial UI state: ~ts",
 	%					   [ to_string( UIState ) ] ),
 
 	% No prior state expected:
@@ -433,10 +438,10 @@ start_helper( SingleElem, UIState ) ->
 										ui_state().
 init_state_with_dimensions( Tool=dialog, DialogPath ) ->
 
-	Cmd = text_utils:join( _Sep=" ", [ DialogPath, "--print-maxsize",
-									   get_redirect_string_for_code() ] ),
+	Cmd = text_utils:join( _Sep=" ",
+		[ DialogPath, "--print-maxsize", get_redirect_string_for_code() ] ),
 
-	%trace_utils:debug_fmt( "Command: '~s'.", [ Cmd ] ),
+	%trace_utils:debug_fmt( "Command: '~ts'.", [ Cmd ] ),
 
 	{ Env, PortOpts } = get_execution_settings(),
 
@@ -518,28 +523,28 @@ display( Text ) ->
 	% Single quotes induce no specific issues (as are enclosed in double ones)
 	EscapedText = text_utils:escape_double_quotes( Text ),
 
-	%trace_utils:debug_fmt( "Original text: '~s'; once escaped: '~s'.",
+	%trace_utils:debug_fmt( "Original text: '~ts'; once escaped: '~ts'.",
 	%					   [ Text, EscapedText ] ),
 
 	#term_ui_state{ dialog_tool_path=ToolPath,
 					settings=SettingTable } = get_state(),
 
-	%trace_utils:debug_fmt( "Dialog path: '~s'.", [ ToolPath ] ),
+	%trace_utils:debug_fmt( "Dialog path: '~ts'.", [ ToolPath ] ),
 
 
 	{ SettingString, SuffixString } =
 		get_dialog_settings_for_return_code( SettingTable ),
 
-	%trace_utils:debug_fmt( "Setting string: '~s'.", [ SettingString ] ),
-	%trace_utils:debug_fmt( "Suffix string: '~s'.", [ SuffixString ] ),
+	%trace_utils:debug_fmt( "Setting string: '~ts'.", [ SettingString ] ),
+	%trace_utils:debug_fmt( "Suffix string: '~ts'.", [ SuffixString ] ),
 
-	DialogString = text_utils:format( "--msgbox \"~s\" ~s",
+	DialogString = text_utils:format( "--msgbox \"~ts\" ~ts",
 									  [ EscapedText, SuffixString ] ),
 
 	Cmd = text_utils:join( _Sep=" ",
 						   [ ToolPath, SettingString, DialogString ] ),
 
-	%trace_utils:debug_fmt( "term_ui display command: '~s'.", [ Cmd ] ),
+	%trace_utils:debug_fmt( "term_ui display command: '~ts'.", [ Cmd ] ),
 
 	{ Env, PortOpts } = get_execution_settings(),
 
@@ -550,7 +555,7 @@ display( Text ) ->
 			ok;
 
 		{ _ExitStatus=0, Output } ->
-			trace_utils:warning_fmt( "Unexpected output: '~s'.", [ Output ] );
+			trace_utils:warning_fmt( "Unexpected output: '~ts'.", [ Output ] );
 
 		{ ExitStatus, Output } ->
 			throw( { display_error_reported, ExitStatus, Output } )
@@ -584,13 +589,13 @@ display_warning( Text ) ->
 	% Single quotes induce no specific issues (as are enclosed in double ones)
 	EscapedText = text_utils:escape_double_quotes( Text ),
 
-	%trace_utils:debug_fmt( "Original text: '~s'; once escaped: '~s'.",
+	%trace_utils:debug_fmt( "Original text: '~ts'; once escaped: '~ts'.",
 	%					   [ Text, EscapedText ] ),
 
 	#term_ui_state{ dialog_tool_path=ToolPath,
 					settings=SettingTable } = get_state(),
 
-	%trace_utils:debug_fmt( "Dialog path: '~s'.", [ ToolPath ] ),
+	%trace_utils:debug_fmt( "Dialog path: '~ts'.", [ ToolPath ] ),
 
 	WarningSettingTable = ?ui_table:add_entry( 'title', ?yellow"Warning"?normal,
 											   SettingTable ),
@@ -598,21 +603,21 @@ display_warning( Text ) ->
 	{ SettingString, SuffixString } =
 		get_dialog_settings_for_return_code( WarningSettingTable ),
 
-	%trace_utils:debug_fmt( "Setting string: '~s'.", [ SettingString ] ),
-	%trace_utils:debug_fmt( "Suffix string: '~s'.", [ SuffixString ] ),
+	%trace_utils:debug_fmt( "Setting string: '~ts'.", [ SettingString ] ),
+	%trace_utils:debug_fmt( "Suffix string: '~ts'.", [ SuffixString ] ),
 
 	% Apparently button colors are ignored:
 	%OKLabel = "--ok-label '"?red" Abort "?normal"'",
 	OKLabel = "--ok-label 'Abort'",
 
 	DialogString = "--colors " ++ OKLabel
-		++ text_utils:format( " --msgbox \"~s\" ~s",
+		++ text_utils:format( " --msgbox \"~ts\" ~ts",
 							  [ EscapedText, SuffixString ] ),
 
 	Cmd = text_utils:join( _Sep=" ",
 						   [ ToolPath, SettingString, DialogString ] ),
 
-	%trace_utils:debug_fmt( "term_ui display command: '~s'.", [ Cmd ] ),
+	%trace_utils:debug_fmt( "term_ui display command: '~ts'.", [ Cmd ] ),
 
 	{ Env, PortOpts } = get_execution_settings(),
 
@@ -623,7 +628,7 @@ display_warning( Text ) ->
 			ok;
 
 		%{ _ExitStatus=0, Output } ->
-			%trace_utils:debug_fmt( "Display output: '~s'.", [ Output ] );
+			%trace_utils:debug_fmt( "Display output: '~ts'.", [ Output ] );
 
 		{ ExitStatus, Output } ->
 			throw( { display_warning_reported, ExitStatus, Output } )
@@ -649,13 +654,13 @@ display_error( Text ) ->
 	% Single quotes induce no specific issues (as are enclosed in double ones)
 	EscapedText = text_utils:escape_double_quotes( Text ),
 
-	%trace_utils:debug_fmt( "Original text: '~s'; once escaped: '~s'.",
+	%trace_utils:debug_fmt( "Original text: '~ts'; once escaped: '~ts'.",
 	%					   [ Text, EscapedText ] ),
 
 	#term_ui_state{ dialog_tool_path=ToolPath,
 					settings=SettingTable } = get_state(),
 
-	%trace_utils:debug_fmt( "Dialog path: '~s'.", [ ToolPath ] ),
+	%trace_utils:debug_fmt( "Dialog path: '~ts'.", [ ToolPath ] ),
 
 	ErrorSettingTable = ?ui_table:add_entry( 'title', ?red"Error"?normal,
 											 SettingTable ),
@@ -663,21 +668,21 @@ display_error( Text ) ->
 	{ SettingString, SuffixString } =
 		get_dialog_settings_for_return_code( ErrorSettingTable ),
 
-	%trace_utils:debug_fmt( "Setting string: '~s'.", [ SettingString ] ),
-	%trace_utils:debug_fmt( "Suffix string: '~s'.", [ SuffixString ] ),
+	%trace_utils:debug_fmt( "Setting string: '~ts'.", [ SettingString ] ),
+	%trace_utils:debug_fmt( "Suffix string: '~ts'.", [ SuffixString ] ),
 
 	% Apparently button colors are ignored:
 	%OKLabel = "--ok-label '"?red" Abort "?normal"'",
 	OKLabel = "--ok-label 'Abort'",
 
 	DialogString = "--colors " ++ OKLabel
-		++ text_utils:format( " --msgbox \"~s\" ~s",
+		++ text_utils:format( " --msgbox \"~ts\" ~ts",
 							  [ EscapedText, SuffixString ] ),
 
 	Cmd = text_utils:join( _Sep=" ",
 						   [ ToolPath, SettingString, DialogString ] ),
 
-	%trace_utils:debug_fmt( "term_ui display command: '~s'.", [ Cmd ] ),
+	%trace_utils:debug_fmt( "term_ui display command: '~ts'.", [ Cmd ] ),
 
 	{ Env, PortOpts } = get_execution_settings(),
 
@@ -688,7 +693,7 @@ display_error( Text ) ->
 			ok;
 
 		%{ _ExitStatus=0, Output } ->
-			%trace_utils:debug_fmt( "Display output: '~s'.", [ Output ] );
+			%trace_utils:debug_fmt( "Display output: '~ts'.", [ Output ] );
 
 		{ ExitStatus, Output } ->
 			throw( { display_error_reported, ExitStatus, Output } )
@@ -750,7 +755,7 @@ get_text( Prompt,
 	{ SettingString, SuffixString } =
 		get_dialog_settings_for_file_return( SettingTable ),
 
-	DialogString = text_utils:format( "--inputbox \"~s\" ~s",
+	DialogString = text_utils:format( "--inputbox \"~ts\" ~ts",
 									  [ EscapedPrompt, SuffixString ] ),
 
 	CmdStrings = [ ToolPath, SettingString, DialogString ],
@@ -843,7 +848,7 @@ read_text_as_integer( Prompt, UIState ) ->
 	case text_utils:try_string_to_integer( Text ) of
 
 		undefined ->
-			%trace_utils:debug_fmt( "(rejected: '~s')", [ Text ] ),
+			%trace_utils:debug_fmt( "(rejected: '~ts')", [ Text ] ),
 			display_error( "Invalid value specified (~p).", [ Text ] ),
 			read_text_as_integer( Prompt, UIState );
 
@@ -961,7 +966,7 @@ ask_yes_no( Prompt, BinaryDefault, #term_ui_state{ dialog_tool_path=ToolPath,
 	{ SettingString, SuffixString } =
 		get_dialog_settings_for_return_code( SettingTable ),
 
-	DialogString = text_utils:format( "~s --yesno \"~s\" ~s",
+	DialogString = text_utils:format( "~ts --yesno \"~ts\" ~ts",
 						  [ DefaultChoiceOpt, EscapedPrompt, SuffixString ] ),
 
 	CmdStrings = [ ToolPath, SettingString, DialogString ],
@@ -1063,7 +1068,7 @@ choose_designated_item( Prompt, Choices,
 	NumChoices = lists:zip( lists:seq( 1, ChoiceCount ), Texts ),
 
 	NumStrings = lists:foldl( fun( { Num, Text }, AccStrings ) ->
-									 [ text_utils:format( " ~B \"~s\"",
+									 [ text_utils:format( " ~B \"~ts\"",
 												[ Num, Text ] ) | AccStrings ]
 							  end,
 							  _Acc0=[],
@@ -1210,11 +1215,11 @@ choose_designated_item_with_default( Prompt, Choices, DefaultChoiceDesignator,
 				case Num of
 
 					DefaultChoiceIndex ->
-						[ text_utils:format( " ~B \"~s\" on",
+						[ text_utils:format( " ~B \"~ts\" on",
 							[ DefaultChoiceIndex, Text ] ) | AccStrings ];
 
 					_ ->
-						[ text_utils:format( " ~B \"~s\" off",
+						[ text_utils:format( " ~B \"~ts\" off",
 							[ Num, Text ] ) | AccStrings ]
 
 				end
@@ -1279,7 +1284,7 @@ choose_numbered_item( Choices ) ->
 % atom, should the user prefer to cancel that operation.
 %
 -spec choose_numbered_item( [ choice_text() ], ui_state() ) ->
-								  choice_index();
+									choice_index();
 						  ( prompt(), [ choice_element() ] ) -> choice_index().
 choose_numbered_item( Choices, UIState )
   when is_record( UIState, term_ui_state ) ->
@@ -1302,10 +1307,10 @@ choose_numbered_item( Prompt, Choices ) ->
 % atom, should the user prefer to cancel that operation.
 %
 -spec choose_numbered_item( prompt(), [ choice_text() ], ui_state() ) ->
-								  choice_index().
+									choice_index().
 choose_numbered_item( Prompt, Choices, UIState ) ->
 
-	%trace_utils:debug_fmt( "Prompt = ~s, Choices = ~p", [ Prompt, Choices ] ),
+	%trace_utils:debug_fmt( "Prompt = ~ts, Choices = ~p", [ Prompt, Choices ] ),
 
 	% We could as well have used a radio list, yet a menu is probably a tad
 	% clearer (and selecting the default, initial entry would have no real use
@@ -1337,7 +1342,7 @@ choose_numbered_item( Prompt, Choices, UIState ) ->
 % atom, should the user prefer to cancel that operation.
 %
 -spec choose_numbered_item_with_default( [ choice_text() ], choice_index() ) ->
-											   choice_index().
+												choice_index().
 choose_numbered_item_with_default( Choices, DefaultChoiceText ) ->
 	choose_numbered_item_with_default( Choices, DefaultChoiceText,
 									   get_state() ).
@@ -1407,7 +1412,7 @@ choose_numbered_item_with_default( Prompt, Choices, DefaultChoiceText,
 
 	% Choice designators are simply integers here:
 	case choose_designated_item_with_default( Prompt, ChoiceElements,
-									  DefaultChoiceIndex, UIState ) of
+										DefaultChoiceIndex, UIState ) of
 
 		ui_cancel ->
 			0;
@@ -1493,7 +1498,7 @@ clear( #term_ui_state{ dialog_tool_path=ToolPath } ) ->
 			ok;
 
 		{ _ExitStatus=0, Output } ->
-			trace_utils:debug_fmt( "Display output: '~s'.", [ Output ] );
+			trace_utils:debug_fmt( "Display output: '~ts'.", [ Output ] );
 
 		{ ExitStatus, Output } ->
 			throw( { display_error_reported, ExitStatus, Output } )
@@ -1560,7 +1565,7 @@ lookup_dialog_tool() ->
 			end;
 
 		DPath ->
-			%trace_utils:debug_fmt( "Dialog path: '~s'.", [ DPath ] ),
+			%trace_utils:debug_fmt( "Dialog path: '~ts'.", [ DPath ] ),
 			{ dialog, DPath }
 
 	end.
@@ -1574,7 +1579,7 @@ lookup_dialog_tool() ->
 -spec set_state( ui_state() ) -> void().
 set_state( UIState ) ->
 
-	%trace_utils:debug_fmt( "Setting as '~s': ~s.",
+	%trace_utils:debug_fmt( "Setting as '~ts': ~ts.",
 	%					   [ ?ui_state_key, to_string( UIState ) ] ),
 
 	process_dictionary:put( ?ui_state_key, UIState ).
@@ -1604,12 +1609,12 @@ get_state() ->
 % returned as a return code).
 %
 -spec get_dialog_settings_for_return_code( setting_table() ) ->
-				  { text_utils:ustring(), text_utils:ustring() }.
+												{ ustring(), ustring() }.
 get_dialog_settings_for_return_code( SettingTable ) ->
 
 	{ SettingsString, SuffixString } = get_dialog_base_settings( SettingTable ),
 
-	{ SettingsString, text_utils:format( "~s ~s",
+	{ SettingsString, text_utils:format( "~ts ~ts",
 					   [ SuffixString, get_redirect_string_for_code() ] ) }.
 
 
@@ -1619,12 +1624,12 @@ get_dialog_settings_for_return_code( SettingTable ) ->
 % returned as a temporary file).
 %
 -spec get_dialog_settings_for_file_return( setting_table() ) ->
-				  { text_utils:ustring(), text_utils:ustring() }.
+					{ ustring(), ustring() }.
 get_dialog_settings_for_file_return( SettingTable ) ->
 
 	{ SettingsString, SuffixString } = get_dialog_base_settings( SettingTable ),
 
-	{ SettingsString, text_utils:format( "~s ~s",
+	{ SettingsString, text_utils:format( "~ts ~ts",
 					   [ SuffixString, get_redirect_string_for_file() ] ) }.
 
 
@@ -1633,14 +1638,14 @@ get_dialog_settings_for_file_return( SettingTable ) ->
 get_dialog_base_settings( SettingTable ) ->
 
 	TitleOpt = case ?ui_table:get_value_with_defaults( 'title',
-								   _Default=undefined, SettingTable ) of
+								_Default=undefined, SettingTable ) of
 
 		undefined ->
 			"";
 
 		Title ->
 			% We prefer having the title surrounded by spaces:
-			text_utils:format( "--title ' ~s '", [ Title ] )
+			text_utils:format( "--title ' ~ts '", [ Title ] )
 
 	end,
 
@@ -1651,7 +1656,7 @@ get_dialog_base_settings( SettingTable ) ->
 			"";
 
 		Backtitle ->
-			text_utils:format( "--backtitle '~s'", [ Backtitle ] )
+			text_utils:format( "--backtitle '~ts'", [ Backtitle ] )
 
 	end,
 
@@ -1679,7 +1684,7 @@ get_dialog_base_settings( SettingTable ) ->
 % Returns a string to be used for I/O redirection in an execution command
 % relying on exit statuses (hence only for a single positive integer output).
 %
--spec get_redirect_string_for_code() -> text_utils:ustring().
+-spec get_redirect_string_for_code() -> ustring().
 get_redirect_string_for_code() ->
 	% As 'nouse_stdio' will be needed:
 	"2>&4".
@@ -1695,7 +1700,7 @@ get_redirect_string_for_file() ->
 
 % Returns the settings suitable for an execution of the backend.
 -spec get_execution_settings() ->
-		  { system_utils:environment(), [ system_utils:port_option() ] }.
+			{ system_utils:environment(), [ system_utils:port_option() ] }.
 get_execution_settings() ->
 
 	% Results in having LANG=C:
@@ -1720,7 +1725,7 @@ set_setting( SettingKey, SettingValue ) ->
 
 % Sets the specified setting to specified value, in the specified UI state.
 -spec set_setting( ui_setting_key(), ui_setting_value(), ui_state() ) ->
-						 ui_state().
+							ui_state().
 set_setting( SettingKey, SettingValue,
 			 UIState=#term_ui_state{ settings=SettingTable } ) ->
 
@@ -1800,7 +1805,7 @@ get_setting( SettingKey ) ->
 % specified setting.
 %
 -spec get_setting( ui_setting_key(), ui_state() ) ->
-						 maybe( ui_setting_value() ).
+							maybe( ui_setting_value() ).
 get_setting( SettingKey, #term_ui_state{ settings=SettingTable } ) ->
 	?ui_table:get_value_with_defaults( SettingKey, _Default=undefined,
 									SettingTable ).
@@ -1810,13 +1815,13 @@ get_setting( SettingKey, #term_ui_state{ settings=SettingTable } ) ->
 
 
 % Returns a textual description of the (implicit) UI state.
--spec to_string() -> string().
+-spec to_string() -> ustring().
 to_string() ->
 	to_string( get_state() ).
 
 
 % Returns a textual description of the specified UI state.
--spec to_string( ui_state() ) -> string().
+-spec to_string( ui_state() ) -> ustring().
 to_string( #term_ui_state{ %state_filename=StateFilename,
 						   dialog_tool=DialogTool,
 						   dialog_tool_path=DialogToolPath,
@@ -1825,10 +1830,10 @@ to_string( #term_ui_state{ %state_filename=StateFilename,
 						   log_file=LogFile,
 						   settings=SettingTable } ) ->
 
-	DialogString = text_utils:format( "~s (found in '~s')",
+	DialogString = text_utils:format( "~ts (found in '~ts')",
 									  [ DialogTool, DialogToolPath ] ),
 
-	LocaleString = text_utils:format( "using the ~s locale", [ Locale ] ),
+	LocaleString = text_utils:format( "using the ~ts locale", [ Locale ] ),
 
 	ConsoleString = case LogConsole of
 
@@ -1846,15 +1851,15 @@ to_string( #term_ui_state{ %state_filename=StateFilename,
 			"not using a log file";
 
 		_ ->
-			text_utils:format( "using log file '~s'", [ LogFile ] )
+			text_utils:format( "using log file '~ts'", [ LogFile ] )
 
 	end,
 
 	SettingString = ui:settings_to_string( SettingTable ),
 
-	%text_utils:format( "term_ui interface, using state file '~s' for tool ~s, "
-	%				   "~s, ~s writing logs on console, ~s and ~s",
-	text_utils:format( "term_ui interface, using tool ~s, "
-					   "~s, ~s writing logs on console, ~s and ~s",
-					   [ DialogString, LocaleString,
-						 ConsoleString, FileString, SettingString ] ).
+	%text_utils:format( "term_ui interface, using state file '~ts' "
+	%    "for tool ~ts, ~ts, ~ts writing logs on console, ~ts and ~ts",
+	text_utils:format( "term_ui interface, using tool ~ts, "
+		"~ts, ~ts writing logs on console, ~ts and ~ts",
+		[ DialogString, LocaleString, ConsoleString, FileString,
+		  SettingString ] ).

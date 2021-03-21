@@ -53,22 +53,20 @@ run() ->
 
 	FirstTree = tree:new(),
 
-	test_facilities:display( "First tree: ~s",
+	test_facilities:display( "First tree: ~ts",
 							 [ tree:to_string( FirstTree ) ] ),
 
 	0 = tree:height( FirstTree ),
 	1 = tree:size( FirstTree ),
 
-	AlphaTree = tree:set_content( "Content of my alpha tree",
-										 FirstTree ),
+	AlphaTree = tree:set_content( "Content of my alpha tree", FirstTree ),
 
-	test_facilities:display( "Alpha tree: ~s",
+	test_facilities:display( "Alpha tree: ~ts",
 							 [ tree:to_string( AlphaTree ) ] ),
 
 	BetaTree = tree:new( "Content of my beta tree" ),
 
-	test_facilities:display( "Beta tree: ~s",
-							 [ tree:to_string( BetaTree ) ] ),
+	test_facilities:display( "Beta tree: ~ts", [ tree:to_string( BetaTree ) ] ),
 
 
 	SecondTree = tree:append_child( AlphaTree, BetaTree ),
@@ -90,7 +88,7 @@ run() ->
 	FinalTree = tree:append_child( tree:append_child( DeltaTree, FifthTree ),
 								   IotaTree ),
 
-	test_facilities:display( "Final tree: ~n~s",
+	test_facilities:display( "Final tree: ~n~ts",
 							 [ tree:to_string( FinalTree ) ] ),
 
 	3 = tree:height( FinalTree ),
@@ -98,23 +96,23 @@ run() ->
 
 	% Map operates on content directly, not on nodes:
 	MapFun = fun( Content ) ->
-					 "Mapped " ++ Content
+				"Mapped " ++ Content
 			 end,
 
 	%MapFun = fun( _Tree={ Content, Subtrees } ) ->
-	%				 NewContent = "Mapped " ++ Content,
-	%				 % Better than { NewContent, Subtrees }:
-	%				 tree:new( NewContent, Subtrees )
-	%		 end,
+	%			 NewContent = "Mapped " ++ Content,
+	%			 % Better than { NewContent, Subtrees }:
+	%			 tree:new( NewContent, Subtrees )
+	%		  end,
 
 	MappedTree = tree:map( MapFun, FinalTree ),
 
-	test_facilities:display( "Mapped tree: ~n~s",
+	test_facilities:display( "Mapped tree: ~n~ts",
 							 [ tree:to_string( MappedTree ) ] ),
 
 	FoldFun = fun( Node, Acc ) ->
-					  io:format( " - examining node '~s'~n", [ Node ] ),
-					  Acc + 1
+				io:format( " - examining node '~ts'~n", [ Node ] ),
+				Acc + 1
 			  end,
 
 	test_facilities:display( "Breadth-first walk:" ),

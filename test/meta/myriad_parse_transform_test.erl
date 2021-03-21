@@ -46,7 +46,7 @@
 run_parse_transform( TargetSourceFile ) ->
 
 	test_facilities:display( "Applying the Myriad parse transform to the "
-							 "'~s' source file.~n", [ TargetSourceFile ] ),
+							 "'~ts' source file.~n", [ TargetSourceFile ] ),
 
 	TransformedAST = myriad_parse_transform:run_standalone( TargetSourceFile ),
 
@@ -78,13 +78,13 @@ run_ast_level_operations( TargetSourceFile ) ->
 
 	BaseModuleInfo = ast_info:extract_module_info_from_ast( BaseAST ),
 
-	test_facilities:display( "Base module info: ~s~n",
-					 [ ast_info:module_info_to_string( BaseModuleInfo ) ] ),
+	test_facilities:display( "Base module info: ~ts~n",
+					[ ast_info:module_info_to_string( BaseModuleInfo ) ] ),
 
 	FinalModuleInfo = BaseModuleInfo,
 
-	test_facilities:display( "Final module info: ~s~n",
-					 [ ast_info:module_info_to_string( FinalModuleInfo ) ] ),
+	test_facilities:display( "Final module info: ~ts~n",
+					[ ast_info:module_info_to_string( FinalModuleInfo ) ] ),
 
 	FinalAST = ast_info:recompose_ast_from_module_info( FinalModuleInfo ),
 

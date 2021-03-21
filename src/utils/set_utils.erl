@@ -92,7 +92,9 @@
 -export_type([ set/0, set/1, element/0, iterator/0 ]).
 
 
-% Shorthand:
+% Shorthands:
+
+-type count() :: basic_utils:count().
 -type ustring() :: text_utils:ustring().
 
 
@@ -302,7 +304,7 @@ is_empty( Set ) ->
 
 
 % Returns the number of elements in specified set.
--spec size( set() ) -> basic_utils:count().
+-spec size( set() ) -> count().
 size( Set ) ->
 	?set_impl:size( Set ).
 
@@ -406,7 +408,7 @@ to_string( Set ) ->
 			ElemStrings = [ text_utils:format( "~p", [ E ] )
 							|| E <- ?set_impl:to_list( Set ) ],
 
-			text_utils:format( "set containing following ~B elements: ~s",
+			text_utils:format( "set containing following ~B elements: ~ts",
 					[ S, text_utils:strings_to_string( ElemStrings ) ] )
 
 	end.

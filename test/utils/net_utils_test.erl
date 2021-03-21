@@ -45,8 +45,8 @@ run() ->
 
 	Localhost = net_utils:localhost(),
 
-	test_facilities:display( "Pinging now localhost, whose FQDN is '~s' "
-		 "(short name: '~s').", [ Localhost, net_utils:localhost( short ) ] ),
+	test_facilities:display( "Pinging now localhost, whose FQDN is '~ts' "
+		"(short name: '~ts').", [ Localhost, net_utils:localhost( short ) ] ),
 
 	case net_utils:ping( Localhost ) of
 
@@ -57,8 +57,8 @@ run() ->
 			% Deactivated as a laptop using DHCP may not be able to resolve its
 			% own name:
 			% throw( could_not_ping_localhost )
-			test_facilities:display( "Warning: the local host is not able to "
-									 "ping itself.")
+			test_facilities:display(
+			  "Warning: the local host is not able to ping itself.")
 
 	end,
 
@@ -73,7 +73,7 @@ run() ->
 			% May happen in badly configured systems:
 			%throw( could_ping_non_existing_host );
 			trace_utils:warning_fmt(
-			  "Could ping a non-existing hostname (~s), abnormal.",
+			  "Could ping a non-existing hostname (~ts), abnormal.",
 			  [ NonExistingHostname ] );
 
 		false ->
@@ -96,7 +96,7 @@ run() ->
 
 	test_facilities:display( "Naming mode for this node: ~w.", [ NamingMode ] ),
 
-	test_facilities:display( "Naming-compliant hostname for '~s' is '~s'.",
+	test_facilities:display( "Naming-compliant hostname for '~ts' is '~ts'.",
 		[ Localhost,
 		  net_utils:get_naming_compliant_hostname( Localhost, NamingMode ) ] ),
 
@@ -104,7 +104,7 @@ run() ->
 	TestName = "I have \"<spaces>\" / \ & ~ # @ { } [ ] | $ * ? ! + , . ; :"
 		"(and also 'I have quotes')",
 
-	test_facilities:display( "Node name generated from '~s' is '~s'.",
+	test_facilities:display( "Node name generated from '~ts' is '~ts'.",
 		[ TestName, net_utils:generate_valid_node_name_from( TestName ) ] ),
 
 
@@ -118,38 +118,38 @@ run() ->
 		NodeName, NodeNamingMode, EpmdSettings, TCPSettings,
 		AdditionalOptions ),
 
-	test_facilities:display( "Example of node launching command:~n'~s', "
-		"with following environment: ~s",
+	test_facilities:display( "Example of node launching command:~n'~ts', "
+		"with following environment: ~ts",
 		[ Command, system_utils:environment_to_string( Environment ) ] ),
 
 
 	case net_utils:get_reverse_lookup_info() of
 
 		undefined ->
-			test_facilities:display( "No DNS lookup tool found, "
-									 "no related test performed." );
+			test_facilities:display(
+			  "No DNS lookup tool found, no related test performed." );
 
 		LookupInfo ->
 
 			FirstIP = {74,125,127,100},
-			test_facilities:display( "Reverse look-up of ~p is '~s'.",
+			test_facilities:display( "Reverse look-up of ~p is '~ts'.",
 				[ net_utils:ipv4_to_string( FirstIP ),
 				  net_utils:reverse_lookup( FirstIP, LookupInfo ) ] ),
 
 
 			SecondIP = {82,225,152,215},
-			test_facilities:display( "Reverse look-up of ~p is '~s'.",
+			test_facilities:display( "Reverse look-up of ~p is '~ts'.",
 				[ net_utils:ipv4_to_string( SecondIP ),
 				  net_utils:reverse_lookup( SecondIP, LookupInfo ) ] ),
 
 
 			ThirdIP = {90,59,94,64},
-			test_facilities:display( "Reverse look-up of ~p is '~s'.",
+			test_facilities:display( "Reverse look-up of ~p is '~ts'.",
 				[ net_utils:ipv4_to_string( ThirdIP ),
 				  net_utils:reverse_lookup( ThirdIP, LookupInfo ) ] ),
 
 			FourthIP = {10,22,22,22},
-			test_facilities:display( "Reverse look-up of ~p is '~s'.",
+			test_facilities:display( "Reverse look-up of ~p is '~ts'.",
 				[ net_utils:ipv4_to_string( FourthIP ),
 				  net_utils:reverse_lookup( FourthIP, LookupInfo ) ] )
 
@@ -195,30 +195,29 @@ run() ->
 		|| N <- CandidateNodeNames ] || D <- Durations ],
 
 	test_facilities:display( "To test send_file/2, receive_file/1, "
-							 "receive_file/2 and receive_file/3, two "
-							 "nodes are needed, and two shells, A and B." ),
+		"receive_file/2 and receive_file/3, two "
+		"nodes are needed, and two shells, A and B." ),
 
 	test_facilities:display( "On A, launched by: "
-							 "'erl -name node_a -setcookie abc', enter: "
-							 "'naming_utils:register_as( self(), shell_a, "
-							 "global_only ).'" ),
+		"'erl -name node_a -setcookie abc', enter: "
+		 "'naming_utils:register_as( self(), shell_a, global_only ).'" ),
 
 	% Sleep needed for the synchronization of the atom table:
 	test_facilities:display( "On B, launched by: "
-							 "'erl -name node_b -setcookie abc', enter: "
-							 "pong = net_adm:ping( 'node_a@foobar.org' ), "
-							 "timer:sleep(500), "
-							 "naming_utils:register_as( self(), shell_b, "
-							 "global_only ), "
-							 "ShellA = naming_utils:get_registered_pid_for( "
-							 "shell_a, global ), "
-							 "net_utils:receive_file( ShellA, \"/tmp\" ).'" ),
+		"'erl -name node_b -setcookie abc', enter: "
+		"pong = net_adm:ping( 'node_a@foobar.org' ), "
+		"timer:sleep(500), "
+		"naming_utils:register_as( self(), shell_b, "
+		"global_only ), "
+		"ShellA = naming_utils:get_registered_pid_for( "
+		"shell_a, global ), "
+		"net_utils:receive_file( ShellA, \"/tmp\" ).'" ),
 
 	test_facilities:display( "Back on A: "
-							 "'ShellB = naming_utils:get_registered_pid_for( "
-							 "shell_b, global ), "
-							 "net_utils:send_file( \"/home/joe/test-file.txt\","
-							 " ShellB ).'" ),
+		"'ShellB = naming_utils:get_registered_pid_for( "
+		"shell_b, global ), "
+		"net_utils:send_file( \"/home/joe/test-file.txt\","
+		" ShellB ).'" ),
 
 
 	test_facilities:stop().

@@ -66,7 +66,7 @@
 		swap_used :: basic_utils:count(),
 
 
-		% { PercentRamUsedByApplication, PercentRamUsedByOthers } where
+		% {PercentRamUsedByApplication, PercentRamUsedByOthers} where
 		% PercentRamUsedByApplication is the percentage of the total physical
 		% RAM of the local computer used by this Erlang VM (including all its
 		% processes) and PercentRamUsedByOthers corresponds to the percentage of
@@ -134,16 +134,16 @@
 -define( ulimit, " \\ulimit " ).
 
 
-% For proper Unicode support (see also the comments in file_utils.erl):
+% For proper Unicode support (see also the comments in file_utils.erl).
 %
 % Note:
 %
 % - if ever setting a non-Unicode default encoding,
 % system_utils:force_unicode_support/0 shall be modified
 %
-% - if the 'raw' flag is included among opening flags, any specified encoding
-% might be ignored (ex: UTF8 being specified, whereas ISO/IEC 8859 being
-% written)
+% - see the notes in the 'Regarding encodings and Unicode' section of the
+% file_utils module, notably about the consequences of using the 'raw' flag
+% and/or specifying an encoding at file opening
 %
 -define( default_encoding, utf8 ).
 

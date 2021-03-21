@@ -47,13 +47,14 @@
 
 
 % Shorthands:
+
 -type coordinate() :: linear:coordinate().
 -type factor() :: linear:factor().
 
 
 % A 4D vector, with floating-point coordinates.
 %
-% They are typically referenced as [ X, Y, Z, W ].
+% They are typically referenced as [X, Y, Z, W].
 %
 -type vector() :: { coordinate(), coordinate(), coordinate(), coordinate() }.
 
@@ -78,17 +79,14 @@
 
 
 % Operations common to vectors and matrices:
-%
 -export([ scale/2 ]).
 
 
 % Vector-related operations:
-%
 -export([ null_vector/0, add/2, add/1 ]).
 
 
 % Matrix-related operations:
-%
 -export([ null_matrix/0, identity/0, from_columns/4, from_rows/4,
 		  from_coordinates/16, from_coordinates/12, from_3D/2,
 		  to_canonical/1, to_compact/1, mult/2, are_equal/2,
@@ -104,7 +102,6 @@
 
 
 % Returns the null (4D) vector.
-%
 -spec null_vector() -> vector().
 null_vector() ->
 	{ 0.0, 0.0, 0.0, 0.0 }.
@@ -112,7 +109,6 @@ null_vector() ->
 
 
 % Adds the two specified (4D) vectors.
-%
 -spec add( vector(), vector() ) -> vector().
 add( _Va={Xa,Ya,Za,Wa}, _Vb={Xb,Yb,Zb,Wb} ) ->
 	{ Xa+Xb, Ya+Yb, Za+Zb, Wa+Wb }.
@@ -120,7 +116,6 @@ add( _Va={Xa,Ya,Za,Wa}, _Vb={Xb,Yb,Zb,Wb} ) ->
 
 
 % Adds the specified (non-empty) list of (4D) vectors.
-%
 -spec add( [ vector() ] ) -> vector().
 add( _Vectors=[ V | T ] ) ->
 	add_vec_list( T, _Acc=V );
@@ -143,7 +138,6 @@ add_vec_list( _Vec=[ V | T ], AccV ) ->
 
 
 % Returns the null (4x4) matrix.
-%
 -spec null_matrix() -> canonical_matrix().
 null_matrix() ->
 	#mat4{ m11=0.0, m12=0.0, m13=0.0, m14=0.0,
@@ -154,8 +148,6 @@ null_matrix() ->
 
 
 % Returns the identity (4x4) matrix.
-%
-%
 -spec identity() -> matrix().
 identity() ->
 	identity_4.
@@ -163,7 +155,6 @@ identity() ->
 
 
 % Scales specified (4D) vector or matrix of specified factor.
-%
 -spec scale( vector(), factor() ) -> vector();
 		   ( matrix(), factor() ) -> matrix().
 scale( _V={X,Y,Z,W}, Factor ) ->
@@ -191,15 +182,14 @@ scale( identity_4, Factor ) ->
 
 
 
-
 % Returns the (4x4) matrix whose columns correspond to the specified 4 vectors:
 %  [ Va Vb Vc Vd ]
 %  [ |  |  |  |  ]
 %  [ |  |  |  |  ]
 %  [ |  |  |  |  ]
 %
--spec from_columns( vector(), vector(), vector(), vector() ) ->
-						  canonical_matrix().
+-spec from_columns( vector(), vector(), vector(), vector() ) -> 
+						    canonical_matrix().
 from_columns( _Va={Xa,Ya,Za,Wa}, _Vb={Xb,Yb,Zb,Wb},
 			  _Vc={Xc,Yc,Zc,Wc}, _Vd={Xd,Yd,Zd,Wd} ) ->
 	#mat4{ m11=Xa, m12=Xb, m13=Xc, m14=Xd,
@@ -222,6 +212,7 @@ from_rows( _Va={Xa,Ya,Za,Wa}, _Vb={Xb,Yb,Zb,Wb},
 		   m21=Xb, m22=Yb, m23=Zb, m24=Wb,
 		   m31=Xc, m32=Yc, m33=Zc, m34=Wc,
 		   m41=Xd, m42=Yd, m43=Zd, m44=Wd }.
+
 
 
 % Returns the (4x4, canonical) matrix whose (16) coordinates are the specified
@@ -255,7 +246,8 @@ from_coordinates( A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12 ) ->
 
 
 
-% Returns the (4x4) compact matrix obtained from specified 3x3 matrix and vector.
+% Returns the (4x4) compact matrix obtained from specified 3x3 matrix and
+% vector.
 %
 -spec from_3D( linear_3D:matrix(), linear_3D:vector() ) -> compact_matrix().
 from_3D( #mat3{ m11=M11, m12=M12, m13=M13,
@@ -268,7 +260,6 @@ from_3D( #mat3{ m11=M11, m12=M12, m13=M13,
 
 
 % Returns the canonical form of specified (4x4) matrix.
-%
 -spec to_canonical( matrix() ) -> canonical_matrix().
 to_canonical( #cpt_mat4{ m11=M11, m12=M12, m13=M13, tx=Tx,
 						 m21=M21, m22=M22, m23=M23, ty=Ty,
@@ -310,7 +301,7 @@ to_compact( M=#mat4{ m11=M11, m12=M12, m13=M13, m14=M14,
 					   m31=M31, m32=M32, m33=M33, tz=M34 };
 
 		false ->
-			trace_utils:error_fmt( "Canonical matrix~n~s~ncannot be expressed "
+			trace_utils:error_fmt( "Canonical matrix~n~ts~ncannot be expressed "
 								   "as a compact one.", [ to_string( M ) ] ),
 
 			throw( { not_compactable, M } )
@@ -330,7 +321,6 @@ to_compact( M ) when is_record( M, cpt_mat4 ) ->
 
 
 % Multiplies the first matrix by the second one: returns Mc = Ma.Mb.
-%
 -spec mult( matrix(), matrix() ) -> matrix().
 mult( identity_4, M ) ->
 	M;
@@ -470,7 +460,6 @@ mult( _Ma=#cpt_mat4{ m11=A11, m12=A12, m13=A13, tx=Ax,
 
 
 % Tells whether the two specified (4x4) matrices are equal.
-%
 -spec are_equal( matrix(), matrix() ) -> boolean().
 are_equal( _Ma=identity_4, _Mb=identity_4 ) ->
 	true;
@@ -534,10 +523,9 @@ are_equal( _Ma=identity_4, Mb ) ->
 
 
 % Returns a textual representation of specified (4x4) vector or matrix.
-%
--spec to_string( vector() | matrix() ) -> string().
+-spec to_string( vector() | matrix() ) -> text_utils:ustring().
 to_string( _Vector={X,Y,Z,W} ) ->
-	text_utils:format( "[ ~s, ~s, ~s, ~s ]",
+	text_utils:format( "[ ~ts, ~ts, ~ts, ~ts ]",
 					   [ coord_to_string( X ), coord_to_string( Y ),
 						 coord_to_string( Z ), coord_to_string( W ) ] );
 
@@ -555,10 +543,10 @@ to_string( _Matrix=#mat4{ m11=M11, m12=M12, m13=M13, m14=M14,
 
 	ElemStrings = [ coord_to_string( E ) || E <- Elements ],
 
-	text_utils:format( "[ ~s, ~s, ~s, ~s ]~n"
-					   "[ ~s, ~s, ~s, ~s ]~n"
-					   "[ ~s, ~s, ~s, ~s ]~n"
-					   "[ ~s, ~s, ~s, ~s ]~n",
+	text_utils:format( "[ ~ts, ~ts, ~ts, ~ts ]~n"
+					   "[ ~ts, ~ts, ~ts, ~ts ]~n"
+					   "[ ~ts, ~ts, ~ts, ~ts ]~n"
+					   "[ ~ts, ~ts, ~ts, ~ts ]~n",
 					   ElemStrings );
 
 to_string( _Matrix=#cpt_mat4{ m11=M11, m12=M12, m13=M13, tx=Tx,
@@ -570,7 +558,7 @@ to_string( _Matrix=#cpt_mat4{ m11=M11, m12=M12, m13=M13, tx=Tx,
 
 	ElemStrings = [ coord_to_string( E ) || E <- Elements ],
 
-	text_utils:format( "[ ~s, ~s, ~s, ~s ]~n"
-					   "[ ~s, ~s, ~s, ~s ]~n"
-					   "[ ~s, ~s, ~s, ~s ]~n",
+	text_utils:format( "[ ~ts, ~ts, ~ts, ~ts ]~n"
+					   "[ ~ts, ~ts, ~ts, ~ts ]~n"
+					   "[ ~ts, ~ts, ~ts, ~ts ]~n",
 					   ElemStrings ).

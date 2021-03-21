@@ -45,9 +45,9 @@ test_myriad_application( OrderedAppNames ) ->
 
 
 	test_facilities:display( "Myriad version: ~p.",
-				 [ system_utils:get_application_version( myriad ) ] ),
+		[ system_utils:get_application_version( myriad ) ] ),
 
-	test_facilities:display( "Current user name: '~s'.",
+	test_facilities:display( "Current user name: '~ts'.",
 							 [ system_utils:get_user_name() ] ),
 
 
@@ -75,8 +75,8 @@ run() ->
 	BuildRootDir = file_utils:join( "..", ".." ),
 
 	% No dependency specified in this test, yet they are managed:
-	OrderedAppNames = otp_utils:prepare_for_execution( _ThisAppName=myriad,
-													   BuildRootDir ),
+	OrderedAppNames =
+		otp_utils:prepare_for_execution( _ThisAppName=myriad, BuildRootDir ),
 
 	trace_utils:notice_fmt( "Resulting applications to start, in order: ~w.",
 							[ OrderedAppNames ] ),

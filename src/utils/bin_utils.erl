@@ -43,14 +43,12 @@
 
 
 % Erlang pointers about bit-related operations:
-%
 % - http://erlang.org/doc/programming_examples/bit_syntax.html
 % - http://erlang.org/doc/reference_manual/expressions.html#bit_syntax
 % - http://learnyousomeerlang.com/starting-out-for-real#bit-syntax
 
 
 % Returns the table used to compute CRC8.
-%
 -spec get_crc8_table() -> tuple().
 get_crc8_table() ->
 
@@ -100,10 +98,12 @@ get_crc8_table() ->
 
 
 % Returns the CRC8 checksum corresponding to specified binary.
-%
 -spec compute_crc8_checksum( binary() ) -> crc8_checksum().
 compute_crc8_checksum( Binary ) ->
+
 	CRCTable = get_crc8_table(),
+
+	% Byte-level here (no encoding to be considered):
 	compute_crc8_checksum( binary_to_list( Binary ), CRCTable, _InitialCRC=0 ).
 
 
@@ -123,7 +123,7 @@ compute_crc8_checksum( _BinList=[ Byte | T ], CRCTable, CurrentCRC ) ->
 	NewCRC = element( Index + 1, CRCTable ),
 
 	%trace_utils:debug_fmt( "With current CRC of ~p, read byte ~p: "
-	%					   "new index is ~p, new CRC is ~p.",
-	%					   [ CurrentCRC, Byte, Index, NewCRC ] ),
+	%	"new index is ~p, new CRC is ~p.",
+	%	[ CurrentCRC, Byte, Index, NewCRC ] ),
 
 	compute_crc8_checksum( T, CRCTable, NewCRC ).

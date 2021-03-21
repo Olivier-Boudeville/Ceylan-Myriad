@@ -16,8 +16,6 @@
 -export([ run/0, main/1 ]).
 
 
--export([  ]).
-
 
 % Typically for testing:
 -spec run() -> void().
@@ -28,18 +26,13 @@ run() ->
 
 % Defaults:
 
-
-
--spec get_usage() -> basic_utils:void().
+-spec get_usage() -> void().
 get_usage() ->
-	text_utils:format( "Usage: ~s MBDR_PROJECT_FILE.mbdr"
+	text_utils:format( "Usage: ~ts MBDR_PROJECT_FILE.mbdr"
 		"[-h|--help]~n"
 		"  Builds specified MBDR project, where:~n"
 		" - MBDR_PROJECT_FILE.mbdr is a MBDR file corresponding to the project "
-		"that shall be built"
-		"~n",
-		[ ?exec_name ] ).
-
+		"that shall be built~n", [ ?exec_name ] ).
 
 
 
@@ -49,7 +42,7 @@ get_usage() ->
 -spec main( shell_utils:argument_table() ) -> void().
 main( ArgTable ) ->
 
-	%trace_utils:debug_fmt( "Original script-specific arguments: ~s",
+	%trace_utils:debug_fmt( "Original script-specific arguments: ~ts",
 	%	[ shell_utils:argument_table_to_string( ArgTable ) ] ),
 
 	[ %InteractiveRefKey,
@@ -62,7 +55,7 @@ main( ArgTable ) ->
 			%{ InteractiveRefKey, [ 'i' ] },
 			{ HelpRefKey, [ 'h' ] } ], ArgTable ),
 
-	%trace_utils:debug_fmt( "Canonicalized script-specific arguments: ~s",
+	%trace_utils:debug_fmt( "Canonicalized script-specific arguments: ~ts",
 	%	   [ shell_utils:argument_table_to_string( MergedTable ) ] ),
 
 	case list_table:has_entry( HelpRefKey, MergedTable ) of
@@ -77,8 +70,9 @@ main( ArgTable ) ->
 
 
 
-	%{ IsInteractive, InterTable } = case list_table:extract_entry_with_defaults(
-	%			 InteractiveRefKey, _DefaultInter=false, MergedTable ) of
+	%{ IsInteractive, InterTable } = case
+	% list_table:extract_entry_with_defaults( InteractiveRefKey,
+	% _DefaultInter=false, MergedTable ) of
 	%
 	%	{ [], ShrunkTable } ->
 	%		{ true, ShrunkTable };
@@ -88,7 +82,7 @@ main( ArgTable ) ->
 	%
 	%end,
 
-	%trace_utils:debug_fmt( "Interactive: ~s", [ IsInteractive ] ),
+	%trace_utils:debug_fmt( "Interactive: ~ts", [ IsInteractive ] ),
 
 	%ProjectFileValue = case list_table:lookup_entry( _Key=fixme, fixme ) of
 
@@ -100,7 +94,7 @@ main( ArgTable ) ->
 			ok;
 
 		UnexpectedOpts ->
-			trace_utils:error_fmt( "Unexpected user input: ~s~n~s",
+			trace_utils:error_fmt( "Unexpected user input: ~ts~n~ts",
 			  [ shell_utils:argument_table_to_string( ResultingTable ),
 				get_usage() ] ),
 			throw( { unexpected_command_line_options, UnexpectedOpts } )

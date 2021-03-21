@@ -67,17 +67,20 @@
 -export([ update_bounding_box/2 ]).
 
 
+% Shorthands:
+
+-type point() :: linear_2D:point().
+-type color() :: gui_color:color().
+
 
 
 % Construction-related section.
 
 
-
 % Returns a triangle (defined as a polygon) corresponding to the specified three
 % vertices.
 %
--spec get_triangle( linear_2D:point(), linear_2D:point(), linear_2D:point() ) ->
-		polygon().
+-spec get_triangle( point(), point(), point() ) -> polygon().
 get_triangle( V1, V2, V3 ) ->
 	#polygon{ vertices=[ V1, V2, V3 ] }.
 
@@ -86,7 +89,7 @@ get_triangle( V1, V2, V3 ) ->
 % Returns an upright square corresponding to the specified center and edge
 % length.
 %
--spec get_upright_square( linear_2D:point(), linear:distance() ) -> polygon().
+-spec get_upright_square( point(), linear:distance() ) -> polygon().
 get_upright_square( _Center={Xc,Yc}, EdgeLength ) ->
 	Offset = erlang:round( EdgeLength / 2 ),
 	X1 = Xc - Offset,
@@ -98,8 +101,7 @@ get_upright_square( _Center={Xc,Yc}, EdgeLength ) ->
 
 
 % Returns a new polygon whose vertices are the specified ones.
-%
--spec get_polygon( [ linear_2D:point() ] ) -> polygon().
+-spec get_polygon( [ point() ] ) -> polygon().
 get_polygon( Vertices ) ->
 	#polygon{ vertices=Vertices }.
 
@@ -115,7 +117,7 @@ get_polygon( Vertices ) ->
 % square length: D = square_distance( V1, V2 ).
 %
 -spec get_diameter( polygon() ) ->
-			 { linear_2D:point(), linear_2D:point(), linear:square_distance() }.
+						  { point(), point(), linear:square_distance() }.
 get_diameter( Polygon ) ->
 
 	case Polygon#polygon.vertices of
@@ -137,11 +139,10 @@ get_diameter( Polygon ) ->
 % Returns the smallest upright rectangle which encompasses the specified
 % polygon.
 %
-% More precisely, {TopLeftCorner,BottomRightCorner} is returned, which defines
+% More precisely, {TopLeftCorner, BottomRightCorner} is returned, which defines
 % the rectangle from two opposite points.
 %
--spec get_smallest_enclosing_rectangle( polygon() )
-		-> { linear_2D:point(), linear_2D:point() }.
+-spec get_smallest_enclosing_rectangle( polygon() ) -> { point(), point() }.
 get_smallest_enclosing_rectangle( Polygon ) ->
 
 	case Polygon#polygon.vertices of
@@ -154,7 +155,7 @@ get_smallest_enclosing_rectangle( Polygon ) ->
 
 		ListWithAtLeastTwoVertices ->
 			linear_2D:compute_smallest_enclosing_rectangle(
-			  ListWithAtLeastTwoVertices )
+				ListWithAtLeastTwoVertices )
 
 	end.
 
@@ -248,7 +249,8 @@ is_convex( [ P={X,Y} | T ], _Previous={Xp,Yp}, Sign ) ->
 
 			  end,
 
-	%trace_utils:debug_fmt( "Current sign: ~s, new one: ~s.~n", [ Sign, NewSign ] ),
+	%trace_utils:debug_fmt( "Current sign: ~ts, new one: ~ts.~n",
+	%    [ Sign, NewSign ] ),
 
 	case NewSign of
 
@@ -269,8 +271,7 @@ is_convex( [ P={X,Y} | T ], _Previous={Xp,Yp}, Sign ) ->
 
 
 % Sets the edge color of specified polygon.
-%
--spec set_edge_color( gui_color:color(), polygon() ) -> polygon().
+-spec set_edge_color( color(), polygon() ) -> polygon().
 set_edge_color( Color, Polygon ) ->
 	Polygon#polygon{ rendering=option_list:set(
 			{ edge_color, gui_color:get_color( Color ) },
@@ -281,7 +282,7 @@ set_edge_color( Color, Polygon ) ->
 % Returns the current edge color of the specified polygon, if specified,
 % otherwise 'undefined'.
 %
--spec get_edge_color( polygon() ) -> maybe( gui_color:color() ).
+-spec get_edge_color( polygon() ) -> maybe( color() ).
 get_edge_color( Polygon ) ->
 	option_list:lookup( edge_color, Polygon#polygon.rendering ).
 
@@ -291,7 +292,7 @@ get_edge_color( Polygon ) ->
 %
 % Use 'none' to disable filling.
 %
--spec set_fill_color( gui_color:color(), polygon() ) -> polygon().
+-spec set_fill_color( color(), polygon() ) -> polygon().
 set_fill_color( Color, Polygon ) ->
 	Polygon#polygon{ rendering=option_list:set(
 			{ fill_color, gui_color:get_color( Color ) },
@@ -302,7 +303,7 @@ set_fill_color( Color, Polygon ) ->
 % Returns the current fill color of the specified polygon, if specified,
 % otherwise 'undefined'.
 %
--spec get_fill_color( polygon() ) -> maybe( gui_color:color() ).
+-spec get_fill_color( polygon() ) -> maybe( color() ).
 get_fill_color( Polygon ) ->
 	option_list:lookup( fill, Polygon#polygon.rendering ).
 
@@ -324,7 +325,7 @@ get_rendering_options( Polygon ) ->
 -spec render( polygon(), gui:canvas() ) -> void().
 render( Polygon, Canvas ) ->
 
-	%trace_utils:debug_fmt( "Rendering polygon:~n~s.",
+	%trace_utils:debug_fmt( "Rendering polygon:~n~ts.",
 	% [ to_string( Polygon ) ] ),
 
 	case Polygon#polygon.vertices of
@@ -379,9 +380,8 @@ render( Polygon, Canvas ) ->
 
 
 
-
 % Returns a textual description of the specified polygon.
--spec to_string( polygon() ) -> string().
+-spec to_string( polygon() ) -> text_utils:ustring().
 to_string( Polygon ) ->
 
 	BBText = case Polygon#polygon.bounding_box of
@@ -399,7 +399,7 @@ to_string( Polygon ) ->
 						  [ get_edge_color( Polygon ) ] )
 		++ io_lib:format( "  + fill color: ~w~n",
 						  [ get_fill_color( Polygon ) ] )
-		++ io_lib:format( "  + bounding-box: ~s~n", [ BBText ] ).
+		++ io_lib:format( "  + bounding-box: ~ts~n", [ BBText ] ).
 
 
 
@@ -433,7 +433,7 @@ update_bounding_box( lazy_circle, Polygon ) ->
 %
 % Vertices can be listed clockwise or counter-clockwise.
 %
--spec get_signed_area( [ linear_2D:point() ] ) -> linear:area().
+-spec get_signed_area( [ point() ] ) -> linear:area().
 get_signed_area( _Vertices=[ First | T ] ) ->
 
 	% We will start from the second point, as we always deal with the current
@@ -456,7 +456,5 @@ get_signed_area( _Vertices=[ _Last={X,Y} ], _FirstOfAll={Xf,Yf},
 
 
 get_signed_area( [ P={X,Y} | T ], FirstOfAll, _Previous={Xp,Yp}, Area ) ->
-
 	% Here we are not managing the last point:
-
 	get_signed_area( T, FirstOfAll, _NewPrevious=P, Area + Xp*Y-X*Yp ).

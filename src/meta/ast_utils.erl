@@ -78,13 +78,13 @@
 %
 % The module is the one emitting that issue (ex: erl_lint)
 %
--type issue_info() :: { ast_base:line(), module(), issue_description() }.
+-type issue_info() :: { line(), module(), issue_description() }.
 
 
 % A warning regarding a source file, corresponding to a list of error
 % informations.
 %
--type issue_report() :: { file_utils:file_name(), [ issue_info() ] }.
+-type issue_report() :: { file_name(), [ issue_info() ] }.
 
 
 
@@ -223,7 +223,7 @@ interpret_issue_reports( IssueReports ) ->
 
 	[ interpret_issue_report( R ) || R <- IssueReports ].
 
-	%text_utils:format( "~B remarks: ~s", [ length( IssueReports ),
+	%text_utils:format( "~B remarks: ~ts", [ length( IssueReports ),
 	%					text_utils:strings_to_string( ReportStrings ) ] ).
 
 
@@ -236,25 +236,24 @@ interpret_issue_report( _IssueReport={ Filename, IssueInfos } ) ->
 
 	[ interpret_issue_info( CanonicFilename, E ) || E <- IssueInfos ].
 
-	%text_utils:format( "in file '~s': ~s", [ CanonicFilename,
+	%text_utils:format( "in file '~ts': ~ts", [ CanonicFilename,
 	%		   text_utils:strings_to_string( IssueStrings ) ] ).
 
 
 
 % Interprets specific error description.
--spec interpret_issue_info( file_name(), issue_info() ) ->
-								  void().
+-spec interpret_issue_info( file_name(), issue_info() ) -> void().
 interpret_issue_info( Filename,
 					  _IssueInfo={ Line, DetectorModule, IssueDesc } ) ->
 
 	% Module is the detecting one, typically erl_lint:
-	%text_utils:format( "line #~B, module '~p', ~s", [ Line, Module,
+	%text_utils:format( "line #~B, module '~p', ~ts", [ Line, Module,
 	%						interpret_issue_description( IssueDesc ) ] ).
 
-	%text_utils:format( "line #~B: ~s", [ Line,
+	%text_utils:format( "line #~B: ~ts", [ Line,
 	%		interpret_issue_description( IssueDesc, DetectorModule ) ] ).
 
-	io:format( "~s:~B: ~s~n", [ Filename, Line,
+	io:format( "~ts:~B: ~ts~n", [ Filename, Line,
 			interpret_issue_description( IssueDesc, DetectorModule ) ] ).
 
 
@@ -264,7 +263,7 @@ interpret_issue_info( Filename,
 % Note: full control is offered here to enrich this function at will, if wanted.
 %
 -spec interpret_issue_description( issue_description(), module_name() ) ->
-										 ustring().
+										ustring().
 interpret_issue_description( IssueDescription, DectectorModule ) ->
 	%For example, the detector module may be erl_lint:
 	DectectorModule:format_error( IssueDescription ).
@@ -309,7 +308,7 @@ check_inline_options( FunIds ) ->
 
 % Checks that specified inline options are legit.
 -spec check_inline_options( term(), form_context() ) ->
-								  [ meta_utils:function_id() ].
+									[ meta_utils:function_id() ].
 check_inline_options( FunIds, Context ) when is_list( FunIds ) ->
 	ast_function:check_function_ids( FunIds, Context );
 
@@ -481,8 +480,8 @@ term_to_form( Term ) ->
 
 % Converts a list of names of variables into the corresponding AST.
 %
-% Ex: if wanting to specify '[ V1, Alpha, A ]', we have: variable_names_to_ast(
-% [ "V1", "Alpha", "A" ], _Line=0 ) = [ {cons,0, {var,0,'V1'},
+% Ex: if wanting to specify '[V1, Alpha, A]', we have: variable_names_to_ast(
+% ["V1", "Alpha", "A"], _Line=0) = [ {cons,0, {var,0,'V1'},
 % {cons,0,{var,0,'Alpha'}, {cons,0,{var,0,'A'}, {nil,0} } } } ]
 %
 -spec variable_names_to_ast( [ ustring() ], line() ) -> ast().
@@ -548,9 +547,9 @@ string_to_form( FormString, Location ) ->
 % Converts the specified source code of a list of expressions (i.e., a string)
 % into its corresponding AST (assuming being in line #1).
 %
-% Ex: string_to_expressions( "[ { a, 1 }, foobar ]" ) returns
-%   [ { cons, 1, { tuple, 1, [ {atom,1,a}, {integer,1,1} ] },
-%     { cons, 1, {atom,1,foobar}, {nil,1} } } ]
+% Ex: string_to_expressions( "[{a, 1}, foobar ]" ) returns
+%   [ {cons, 1, {tuple, 1, [ {atom,1,a}, {integer,1,1} ]},
+%     {cons, 1, {atom,1,foobar}, {nil,1}} } ]
 %
 -spec string_to_expressions( ustring() ) -> ast().
 string_to_expressions( ExpressionString ) ->
@@ -561,9 +560,9 @@ string_to_expressions( ExpressionString ) ->
 % Converts the specified source code of a term (i.e., a string) and a location
 % into the corresponding abstract form.
 %
-% Ex: string_to_expressions( "[ { a, 1 }, foobar ]", _Loc=42 ) returns
-%   [ { cons, 42, { tuple, 42, [ {atom,42,a}, {integer,42,1} ] },
-%     { cons, 42, {atom,42,foobar}, {nil,42} } } ]
+% Ex: string_to_expressions( "[{a, 1}, foobar]", _Loc=42 ) returns
+%   [ {cons, 42, {tuple, 42, [ {atom,42,a}, {integer,42,1} ]},
+%     {cons, 42, {atom,42,foobar}, {nil,42} }} ]
 %
 -spec string_to_expressions( ustring(), ast_base:file_loc() ) -> ast().
 string_to_expressions( ExpressionString, Location ) ->
@@ -621,7 +620,7 @@ string_to_value( ExpressionString ) ->
 % Displays specified text as debug.
 -spec display_debug( ustring() ) -> void().
 display_debug( String ) ->
-	io:format( "[debug] ~s~n", [ String ] ).
+	io:format( "[debug] ~ts~n", [ String ] ).
 
 
 % Displays specified formatted text as debug.
@@ -635,7 +634,7 @@ display_debug( FormatString, Values ) ->
 % Displays specified text as info.
 -spec display_info( ustring() ) -> void().
 display_info( String ) ->
-	io:format( "[info] ~s~n", [ String ] ).
+	io:format( "[info] ~ts~n", [ String ] ).
 
 
 % Displays specified formatted text as info.
@@ -648,7 +647,7 @@ display_info( FormatString, Values ) ->
 % Displays specified text as notice.
 -spec display_notice( ustring() ) -> void().
 display_notice( String ) ->
-	io:format( "[notice] ~s~n", [ String ] ).
+	io:format( "[notice] ~ts~n", [ String ] ).
 
 
 % Displays specified formatted text as notice.
@@ -661,7 +660,7 @@ display_notice( FormatString, Values ) ->
 % Displays specified text as warning.
 -spec display_warning( ustring() ) -> void().
 display_warning( String ) ->
-	io:format( "[warning] ~s~n", [ String ] ).
+	io:format( "[warning] ~ts~n", [ String ] ).
 
 
 % Displays specified formatted text as warning.
@@ -674,7 +673,7 @@ display_warning( FormatString, Values ) ->
 % Displays specified text as error.
 -spec display_error( ustring() ) -> void().
 display_error( String ) ->
-	io:format( "~n[error] ~s~n", [ String ] ).
+	io:format( "~n[error] ~ts~n", [ String ] ).
 
 
 % Displays specified formatted text as error.
@@ -687,7 +686,7 @@ display_error( FormatString, Values ) ->
 % Displays specified text as critical.
 -spec display_critical( ustring() ) -> void().
 display_critical( String ) ->
-	io:format( "[critical] ~s~n", [ String ] ).
+	io:format( "[critical] ~ts~n", [ String ] ).
 
 
 % Displays specified formatted text as critical.
@@ -700,7 +699,7 @@ display_critical( FormatString, Values ) ->
 % Displays specified text as alert.
 -spec display_alert( ustring() ) -> void().
 display_alert( String ) ->
-	io:format( "[alert] ~s~n", [ String ] ).
+	io:format( "[alert] ~ts~n", [ String ] ).
 
 
 % Displays specified formatted text as alert.
@@ -713,7 +712,7 @@ display_alert( FormatString, Values ) ->
 % Displays specified text as emergency.
 -spec display_emergency( ustring() ) -> void().
 display_emergency( String ) ->
-	io:format( "[emergency] ~s~n", [ String ] ).
+	io:format( "[emergency] ~ts~n", [ String ] ).
 
 
 % Displays specified formatted text as emergency.
@@ -732,7 +731,7 @@ notify_warning( Elements, Context ) ->
 
 		% Supposedly a string:
 		[ SingleElement ] when is_list( SingleElement ) ->
-			display_warning( "~s", [ SingleElement ] );
+			display_warning( "~ts", [ SingleElement ] );
 
 		AllElements ->
 			display_warning( "~p", [ AllElements ] )
@@ -816,7 +815,7 @@ raise_error( ErrorTerm, Context ) ->
 				 ( ustring(), ast_transforms(), line() ) -> no_return().
 raise_error( Message, #ast_transforms{ transformed_module_name=ModName },
 			 Line ) ->
-	io:format( "~s.erl:~B: ~s~n", [ ModName, Line, Message ] ),
+	io:format( "~ts.erl:~B: ~ts~n", [ ModName, Line, Message ] ),
 	halt( 5 );
 
 raise_error( Message, Context, OriginLayer ) ->
@@ -830,10 +829,10 @@ raise_error( Message, Context, OriginLayer ) ->
 			"Error";
 
 		{ Filename, Line } ->
-			io_lib:format( "~s:~B: error", [ Filename, Line ] );
+			io_lib:format( "~ts:~B: error", [ Filename, Line ] );
 
 		Filename when is_binary( Filename ) ->
-			io_lib:format( "Error in ~s", [ Filename ] );
+			io_lib:format( "Error in ~ts", [ Filename ] );
 
 		Line when is_integer( Line ) ->
 			io_lib:format( "Error at line ~B", [ Line ] );
@@ -850,11 +849,11 @@ raise_error( Message, Context, OriginLayer ) ->
 	case text_utils:is_string( Message ) of
 
 		true->
-			io:format( "~s raised while performing ~s-level transformations: ~s~n",
-					   [ Prefix, OriginLayer, Message ] );
+			io:format( "~ts raised while performing ~ts-level transformations: "
+				"~ts~n", [ Prefix, OriginLayer, Message ] );
 
 		false ->
-			io:format( "~s raised while performing ~s-level transformations:"
+			io:format( "~ts raised while performing ~ts-level transformations:"
 					   "~n  ~p~n", [ Prefix, OriginLayer, Message ] )
 
 	end,
@@ -904,7 +903,7 @@ raise_error( Message, Context, OriginLayer ) ->
 			% understand the problem regarding the code being compiled:
 			%
 			display_debug( "Transformation error happened in "
-						   "(latest calls first):~n~s", [ StackElements ] )
+						   "(latest calls first):~n~ts", [ StackElements ] )
 
 
 	end,
@@ -924,7 +923,7 @@ interpret_stack_trace( _StackTrace=[ { Module, FunName, Arity,
 						 _FileLoc=[ { file, Path }, { line, Line } ] } | T ],
 					   Acc, Count ) ->
 
-	Text = io_lib:format( " [~B] ~s:~s/~B    [~s, line ~B]~n",
+	Text = io_lib:format( " [~B] ~ts:~ts/~B    [~ts, line ~B]~n",
 						  [ Count, Module, FunName, Arity, Path, Line ] ),
 
 	interpret_stack_trace( T, [ Text | Acc ], Count+1 );
@@ -940,8 +939,8 @@ interpret_stack_trace( _StackTrace=[ H | T ], Acc, Count ) ->
 % specified source context, to stop the build on failure and report adequately
 % the actual error to the user.
 %
--spec raise_usage_error( format_string(), format_values(),
-						 file_name() ) -> no_return().
+-spec raise_usage_error( format_string(), format_values(), file_name() ) ->
+								no_return().
 raise_usage_error( ErrorFormatString, ErrorValues, Filename ) ->
 	raise_usage_error( ErrorFormatString, ErrorValues, Filename, _Line=0 ).
 
@@ -960,14 +959,14 @@ raise_usage_error( ErrorFormatString, ErrorValues, Filename,
 
 raise_usage_error( ErrorFormatString, ErrorValues, ModuleName, Line )
   when is_atom( ModuleName ) ->
-	Filename = io_lib:format( "~s.erl", [ ModuleName ] ),
+	Filename = io_lib:format( "~ts.erl", [ ModuleName ] ),
 	raise_usage_error( ErrorFormatString, ErrorValues, Filename, Line );
 
 raise_usage_error( ErrorFormatString, ErrorValues, Filename, Line ) ->
 
 	ErrorString = io_lib:format( ErrorFormatString, ErrorValues ),
 
-	io:format( "~s:~B: ~s~n", [ Filename, Line, ErrorString ] ),
+	io:format( "~ts:~B: ~ts~n", [ Filename, Line, ErrorString ] ),
 
 	% Almost the only way to stop the processing of the AST:
 	halt( 5 ).
@@ -983,8 +982,8 @@ raise_usage_error( ErrorFormatString, ErrorValues, Filename, Line ) ->
 % originating from the specified line in the source file of the module being
 % compiled.
 %
--spec get_error_form( basic_utils:error_reason(), module_name(),
-					  line() ) -> form().
+-spec get_error_form( basic_utils:error_reason(), module_name(), line() ) ->
+							form().
 get_error_form( ErrorTerm, FormatErrorModule, Line ) ->
 
 	% Actually the most standard way of reporting an error seems to insert a
@@ -1011,9 +1010,8 @@ get_error_form( ErrorTerm, FormatErrorModule, Line ) ->
 %
 -spec format_error( basic_utils:error_reason() ) -> string().
 format_error( ErrorTerm ) ->
-
 	% Of course this is just an example:
-	text_utils:format( "my ast_utils error reported: ~s", [ ErrorTerm ] ).
+	text_utils:format( "my ast_utils error reported: ~ts", [ ErrorTerm ] ).
 
 
 
@@ -1022,7 +1020,7 @@ format_error( ErrorTerm ) ->
 % (helper)
 %
 -spec get_elements_with_context( [ term() ], ast_base:form_context() ) ->
-									   [ term() ].
+										[ term() ].
 get_elements_with_context( Elements, _Context=undefined ) ->
 	Elements;
 
@@ -1034,7 +1032,7 @@ get_elements_with_context( Elements, _Context={ FilePath, Line } )
 	% We mimic the default error formatting so that tools (like IDE) have a
 	% chance to automatically point to the right location in the sources:
 	%
-	Prefix = io_lib:format( "~s:~B: ",
+	Prefix = io_lib:format( "~ts:~B: ",
 							[ text_utils:binary_to_string( FilePath ), Line ] ),
 	[ Prefix | Elements ];
 
@@ -1043,7 +1041,7 @@ get_elements_with_context( Elements, _Context=Line ) when is_integer( Line ) ->
 
 get_elements_with_context( Elements, _Context=FilePath )
   when is_binary( FilePath ) ->
-	Prefix = io_lib:format( "~s:0: ",
+	Prefix = io_lib:format( "~ts:0: ",
 							[ text_utils:binary_to_string( FilePath ) ] ),
 	[ Prefix | Elements ];
 

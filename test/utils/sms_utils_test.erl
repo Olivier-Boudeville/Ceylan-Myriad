@@ -74,7 +74,7 @@ run( EnableSMSSending ) ->
 
 	end,
 
-	test_facilities:display( "Using account: ~s.",
+	test_facilities:display( "Using account: ~ts.",
 							 [ sms_utils:account_to_string( SMSAccount ) ] ),
 
 	Recipient = case preferences:get( mobile_number ) of
@@ -82,8 +82,7 @@ run( EnableSMSSending ) ->
 		undefined ->
 
 			test_facilities:display( "(no target mobile number found "
-									 "in preferences, not trying to "
-									 "send any SMS)" ),
+				"in preferences, not trying to send any SMS)" ),
 
 			test_facilities:stop();
 
@@ -94,9 +93,9 @@ run( EnableSMSSending ) ->
 
 	{ CreditRes, UpdatedSMSAccount } = sms_utils:update_credits( SMSAccount ),
 
-	test_facilities:display( "Updated account (credit request answered: '~s'):"
-							 " ~s.", [ CreditRes, sms_utils:account_to_string(
-												   UpdatedSMSAccount ) ] ),
+	test_facilities:display( "Updated account (credit request answered: '~ts'):"
+		" ~ts.",
+		[ CreditRes, sms_utils:account_to_string( UpdatedSMSAccount ) ] ),
 
 	% â becomes a, ~ disappears, {} and [] become (), etc.
 	Message = "Le château d'Hélène est un bien beau château ! "
@@ -106,8 +105,7 @@ run( EnableSMSSending ) ->
 	ServiceClass = pro,
 
 	FirstSMS = sms_utils:create_sms( Message, Recipient,
-									 _SenderDescription="33616833333",
-									 ServiceClass ),
+					 _SenderDescription="33616833333", ServiceClass ),
 
 	% Not wanting using all credits because of testings:
 	SendRes = case EnableSMSSending of
@@ -123,7 +121,7 @@ run( EnableSMSSending ) ->
 
 	end,
 
-	test_facilities:display( "Result of the sending of ~s:~p.",
+	test_facilities:display( "Result of the sending of ~ts:~p.",
 							 [ sms_utils:sms_to_string( FirstSMS ), SendRes ] ),
 
 	test_facilities:stop().

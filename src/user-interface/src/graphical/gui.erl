@@ -89,7 +89,7 @@
 % - a mandatory, generic, MyriadGUI-internal one (defined in the gui_event
 % module), looping over process_event_messages/1 that relies on an (opaque)
 % gui_event:loop_state(), running on a dedicated process spawned by the
-% gui:start/n functions
+% start/n functions
 %
 % - a user-defined, application-specific one, fed by the former internal loop
 % (ex: with onWindowClosed messages), possibly using any client-side state of
@@ -110,9 +110,7 @@
 	wx_server :: wx:wx_object(),
 
 	% PID of the main loop:
-	loop_pid :: pid()
-
-}).
+	loop_pid :: pid() }).
 
 
 % Stores the current, user-side (client) state (merely references) of the GUI.
@@ -269,7 +267,7 @@
 						| 'server'.
 
 
-% The additional widget types introduced by MyriadGUI:
+% The additional widget types introduced by Myriad
 -type myriad_object_type() :: 'canvas'.
 
 
@@ -339,8 +337,15 @@
 
 % Type shorthands:
 
--type text() :: text_utils:unicode_string().
+-type ustring() :: text_utils:ustring().
+
+-type text() :: ustring().
+
 -type wx_id() :: gui_wx_backend:wx_id().
+
+-type integer_distance() :: linear:integer_distance().
+
+-type color() :: gui_color:color().
 
 
 % Aliases:
@@ -670,7 +675,7 @@ set_tooltip( _Canvas={ myriad_object_ref, canvas, CanvasId }, Label ) ->
 
 set_tooltip( Window, Label ) ->
 
-	%trace_utils:debug_fmt( "Setting tooltip '~s' to ~s.",
+	%trace_utils:debug_fmt( "Setting tooltip '~ts' to ~ts.",
 	%					   [ Label, object_to_string( Window ) ] ),
 
 	% For an unknown reason, works on panels but never on buttons:
@@ -715,7 +720,7 @@ create_window( Size ) ->
 
 % (internal use only)
 -spec create_window( position(), size(), window_style(), wx_id(), window() ) ->
-						   window().
+							window().
 create_window( Position, Size, Style, Id, Parent ) ->
 
 	Options = [ to_wx_position( Position ), to_wx_size( Size ),
@@ -742,21 +747,21 @@ create_canvas( Parent ) ->
 
 
 % Sets the color to be used for the drawing of the outline of shapes.
--spec set_draw_color( canvas(), gui_color:color() ) -> void().
+-spec set_draw_color( canvas(), color() ) -> void().
 set_draw_color( _Canvas={ myriad_object_ref, canvas, CanvasId }, Color ) ->
 	get_main_loop_pid() ! { setCanvasDrawColor, [ CanvasId, Color ] }.
 
 
 
 % Sets the color to be using for filling surfaces.
--spec set_fill_color( canvas(), gui_color:color() ) -> void().
+-spec set_fill_color( canvas(), color() ) -> void().
 set_fill_color( _Canvas={ myriad_object_ref, canvas, CanvasId }, Color ) ->
 	get_main_loop_pid() ! { setCanvasFillColor, [ CanvasId, Color ] }.
 
 
 
 % Sets the background color of the specified window.
--spec set_background_color( window(), gui_color:color() ) -> void().
+-spec set_background_color( window(), color() ) -> void().
 set_background_color( _Canvas={ myriad_object_ref, canvas, CanvasId },
 					  Color ) ->
 
@@ -774,8 +779,8 @@ set_background_color( Window, Color ) ->
 
 
 % Returns the RGB value of the pixel at specified position.
--spec get_rgb( canvas(), linear_2D:point() ) ->
-					 gui_color:color_by_decimal_with_alpha().
+-spec get_rgb( canvas(), point() ) ->
+						gui_color:color_by_decimal_with_alpha().
 get_rgb( _Canvas={ myriad_object_ref, canvas, CanvasId }, Point ) ->
 
 	get_main_loop_pid() ! { getCanvasRGB, [ CanvasId, Point ], self() },
@@ -790,7 +795,7 @@ get_rgb( _Canvas={ myriad_object_ref, canvas, CanvasId }, Point ) ->
 
 
 % Sets the pixel at specified position to the current RGB point value.
--spec set_rgb( canvas(), linear_2D:point() ) -> void().
+-spec set_rgb( canvas(), point() ) -> void().
 set_rgb( _Canvas={ myriad_object_ref, canvas, CanvasId }, Point ) ->
 	get_main_loop_pid() ! { setCanvasRGB, [ CanvasId, Point ] }.
 
@@ -799,7 +804,7 @@ set_rgb( _Canvas={ myriad_object_ref, canvas, CanvasId }, Point ) ->
 % Draws a line between the specified two points in the back-buffer of the
 % specified canvas, using current draw color.
 %
--spec draw_line( canvas(), linear_2D:point(), linear_2D:point() ) -> void().
+-spec draw_line( canvas(), point(), point() ) -> void().
 draw_line( _Canvas={ myriad_object_ref, canvas, CanvasId }, P1, P2 ) ->
 	get_main_loop_pid() ! { drawCanvasLine, [ CanvasId, P1, P2 ] }.
 
@@ -808,8 +813,8 @@ draw_line( _Canvas={ myriad_object_ref, canvas, CanvasId }, P1, P2 ) ->
 % Draws a line between the specified two points in specified canvas, with
 % specified color.
 %
--spec draw_line( canvas(), linear_2D:point(), linear_2D:point(),
-				 gui_color:color() ) -> void().
+-spec draw_line( canvas(), point(), point(),
+				 color() ) -> void().
 draw_line( _Canvas={ myriad_object_ref, canvas, CanvasId }, P1, P2, Color ) ->
 	get_main_loop_pid() ! { drawCanvasLine, [ CanvasId, P1, P2, Color ] }.
 
@@ -818,7 +823,7 @@ draw_line( _Canvas={ myriad_object_ref, canvas, CanvasId }, P1, P2, Color ) ->
 % Draws lines between the specified list of points, in specified canvas, using
 % current draw color.
 %
--spec draw_lines( canvas(), [ linear_2D:point() ] ) -> void().
+-spec draw_lines( canvas(), [ point() ] ) -> void().
 draw_lines( _Canvas={ myriad_object_ref, canvas, CanvasId }, Points ) ->
 	get_main_loop_pid() ! { drawCanvasLines, [ CanvasId, Points ] }.
 
@@ -827,7 +832,7 @@ draw_lines( _Canvas={ myriad_object_ref, canvas, CanvasId }, Points ) ->
 % Draws lines between specified list of points in specified canvas, with
 % specified color.
 %
--spec draw_lines( canvas(), [ linear_2D:point() ], gui_color:color() ) ->
+-spec draw_lines( canvas(), [ point() ], color() ) ->
 						void().
 draw_lines( _Canvas={ myriad_object_ref, canvas, CanvasId }, Points, Color ) ->
 	get_main_loop_pid() ! { drawCanvasLines, [ CanvasId, Points, Color ] }.
@@ -839,15 +844,15 @@ draw_lines( _Canvas={ myriad_object_ref, canvas, CanvasId }, Points, Color ) ->
 % Line L must not have for equation Y=constant (i.e. its A parameter must not be
 % null).
 %
--spec draw_segment( canvas(), linear_2D:line(), linear:coordinate(),
-					linear:coordinate() ) -> void().
+-spec draw_segment( canvas(), linear_2D:line(), coordinate(), coordinate() ) ->
+							void().
 draw_segment( _Canvas={ myriad_object_ref, canvas, CanvasId }, L, Y1, Y2 ) ->
 	get_main_loop_pid() ! { drawCanvasSegment, [ CanvasId, L, Y1, Y2 ] }.
 
 
 
 % Draws the specified polygon, closing the lines and filling them.
--spec draw_polygon( canvas(), [ linear_2D:point() ] ) -> void().
+-spec draw_polygon( canvas(), [ point() ] ) -> void().
 draw_polygon( _Canvas={ myriad_object_ref, canvas, CanvasId }, Points ) ->
 	get_main_loop_pid() ! { drawCanvasPolygon, [ CanvasId, Points ] }.
 
@@ -856,7 +861,7 @@ draw_polygon( _Canvas={ myriad_object_ref, canvas, CanvasId }, Points ) ->
 % Draws the specified label (a plain string) at specified position, on specified
 % canvas, using the current draw color.
 %
--spec draw_label( canvas(), linear_2D:point(), gui:label() ) -> void().
+-spec draw_label( canvas(), point(), label() ) -> void().
 draw_label( _Canvas={ myriad_object_ref, canvas, CanvasId }, Point, Label ) ->
 	get_main_loop_pid() ! { drawCanvasLabel, [ CanvasId, Point, Label  ] }.
 
@@ -865,7 +870,7 @@ draw_label( _Canvas={ myriad_object_ref, canvas, CanvasId }, Point, Label ) ->
 % Draws an upright cross at specified location (2D point), with default edge
 % length.
 %
--spec draw_cross( canvas(), linear_2D:point() ) -> void().
+-spec draw_cross( canvas(), point() ) -> void().
 draw_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location ) ->
 	get_main_loop_pid() ! { drawCanvasCross, [ CanvasId, Location ] }.
 
@@ -874,8 +879,7 @@ draw_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location ) ->
 % Draws an upright cross at specified location (2D point), with specified edge
 % length.
 %
--spec draw_cross( canvas(), linear_2D:point(), linear:integer_distance() ) ->
-						void().
+-spec draw_cross( canvas(), point(), integer_distance() ) -> void().
 draw_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 			EdgeLength ) ->
 	get_main_loop_pid() ! { drawCanvasCross,
@@ -886,8 +890,7 @@ draw_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 % Draws an upright cross at specified location (2D point), with specified edge
 % length and color.
 %
--spec draw_cross( canvas(), linear_2D:point(), linear:integer_distance(),
-				  gui_color:color() ) -> void().
+-spec draw_cross( canvas(), point(), integer_distance(), color() ) -> void().
 draw_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 			EdgeLength, Color ) ->
 	get_main_loop_pid() ! { drawCanvasCross,
@@ -898,8 +901,8 @@ draw_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 % Draws an upright cross at specified location (2D point), with specified edge
 % length and companion label.
 %
--spec draw_labelled_cross( canvas(), linear_2D:point(),
-	   linear:integer_distance(), label()  ) -> void().
+-spec draw_labelled_cross( canvas(), point(), integer_distance(), label()  ) ->
+								 void().
 draw_labelled_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 					 EdgeLength, LabelText ) ->
 	get_main_loop_pid() ! { drawCanvasLabelledCross,
@@ -910,8 +913,8 @@ draw_labelled_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 % Draws an upright cross at specified location (2D point), with specified edge
 % length and companion label, and with specified color.
 %
--spec draw_labelled_cross( canvas(), linear_2D:point(),
-	   linear:integer_distance(), gui_color:color(), label() ) -> void().
+-spec draw_labelled_cross( canvas(), point(), integer_distance(), color(),
+						   label() ) -> void().
 draw_labelled_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 					 EdgeLength, Color, LabelText ) ->
 	get_main_loop_pid() ! { drawCanvasLabelledCross,
@@ -922,8 +925,7 @@ draw_labelled_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 % Renders specified circle (actually, depending on the fill color, it may be a
 % disc) in specified canvas.
 %
--spec draw_circle( canvas(), linear_2D:point(), linear:integer_distance() ) ->
-						 void().
+-spec draw_circle( canvas(), point(), integer_distance() ) -> void().
 draw_circle( _Canvas={ myriad_object_ref, canvas, CanvasId }, Center,
 			 Radius ) ->
 	get_main_loop_pid() ! { drawCanvasCircle, [ CanvasId, Center, Radius ] }.
@@ -933,8 +935,7 @@ draw_circle( _Canvas={ myriad_object_ref, canvas, CanvasId }, Center,
 % Renders specified circle (actually, depending on the fill color, it may be a
 % disc) in specified canvas.
 %
--spec draw_circle( canvas(), linear_2D:point(), linear:integer_distance(),
-				   gui_color:color() ) -> void().
+-spec draw_circle( canvas(), point(), integer_distance(), color() ) -> void().
 draw_circle( _Canvas={ myriad_object_ref, canvas, CanvasId }, Center, Radius,
 			 Color ) ->
 	get_main_loop_pid() ! { drawCanvasCircle,
@@ -946,7 +947,7 @@ draw_circle( _Canvas={ myriad_object_ref, canvas, CanvasId }, Center, Radius,
 % cross and a label, at the same rank order (L1 for the first point of the list,
 % L2 for the next, etc.).
 %
--spec draw_numbered_points( canvas(), [ linear_2D:point() ] ) ->  void().
+-spec draw_numbered_points( canvas(), [ point() ] ) ->  void().
 draw_numbered_points( _Canvas={ myriad_object_ref, canvas, CanvasId },
 					  Points ) ->
 	get_main_loop_pid() ! { drawCanvasNumberedPoints, [ CanvasId, Points ] }.
@@ -965,11 +966,11 @@ load_image( _Canvas={ myriad_object_ref, canvas, CanvasId }, Filename ) ->
 % Loads image from specified path into specified canvas, pasting it at specified
 % location.
 %
--spec load_image( canvas(), linear_2D:point(), file_utils:file_name() ) ->
+-spec load_image( canvas(), point(), file_utils:file_path() ) ->
 						void().
 load_image( _Canvas={ myriad_object_ref, canvas, CanvasId }, Position,
-			Filename ) ->
-	get_main_loop_pid() ! { loadCanvasImage, [ CanvasId, Position, Filename ] }.
+			FilePath ) ->
+	get_main_loop_pid() ! { loadCanvasImage, [ CanvasId, Position, FilePath ] }.
 
 
 
@@ -982,12 +983,10 @@ blit( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
 	get_main_loop_pid() ! { blitCanvas, CanvasId }.
 
 
-
 % Clears the specified canvas.
 -spec clear( canvas() ) -> void().
 clear( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
 	get_main_loop_pid() ! { clearCanvas, CanvasId }.
-
 
 
 
@@ -1098,8 +1097,7 @@ create_frame() ->
 % Creates a new frame, with default position, size, style, ID and parent.
 -spec create_frame( title() ) -> frame().
 create_frame( Title ) ->
-	wxFrame:new( to_wx_parent( undefined ),
-				 to_wx_id( undefined ), Title ).
+	wxFrame:new( to_wx_parent( undefined ), to_wx_id( undefined ), Title ).
 
 
 
@@ -1111,8 +1109,8 @@ create_frame( Title, Size ) ->
 
 	%trace_utils:debug_fmt( "create_frame options: ~p.", [ Options ] ),
 
-	wxFrame:new( to_wx_parent( undefined ),
-				 to_wx_id( undefined ), Title, Options ).
+	wxFrame:new( to_wx_parent( undefined ), to_wx_id( undefined ), Title,
+				 Options ).
 
 
 
@@ -1122,16 +1120,14 @@ create_frame( Title, Size ) ->
 %
 -spec create_frame( title(), wx_id(), window() ) -> frame().
 create_frame( Title, Id, Parent ) ->
-	wxFrame:new( to_wx_parent( Parent ),
-				 to_wx_id( Id ), Title ).
+	wxFrame:new( to_wx_parent( Parent ), to_wx_id( Id ), Title ).
 
 
 % Creates a new frame, with default parent.
 -spec create_frame( title(), position(), size(), frame_style() ) -> frame().
 create_frame( Title, Position, Size, Style ) ->
 
-	Options =  [ to_wx_position( Position ),
-				 to_wx_size( Size ),
+	Options =  [ to_wx_position( Position ), to_wx_size( Size ),
 				 { style, frame_style_to_bitmask( Style ) } ],
 
 	%trace_utils:debug_fmt( "create_frame options: ~p.", [ Options ] ),
@@ -1193,8 +1189,8 @@ create_panel( Parent, Options ) ->
 % Creates a new panel, associated to specified parent and with specified
 % position and dimensions.
 %
--spec create_panel( window(), coordinate(), coordinate(),
-					length(), length() ) -> panel().
+-spec create_panel( window(), coordinate(), coordinate(), length(),
+					length() ) -> panel().
 create_panel( Parent, X, Y, Width, Height ) ->
 	create_panel( Parent, _Pos={ X, Y }, _Size={ Width, Height } ).
 
@@ -1334,8 +1330,7 @@ create_sizer_with_labelled_box( Orientation, Parent, Label ) ->
 
 % Adds specified element, or elements with options, to the specified sizer.
 -spec add_to_sizer( sizer(), sizer_child() ) -> sizer_item();
-				  (  sizer(), [ { sizer_child(), sizer_options() } ] ) ->
-						  void().
+				  ( sizer(), [ { sizer_child(), sizer_options() } ] ) -> void().
 add_to_sizer( Sizer, _Element={ myriad_object_ref, canvas, CanvasId } ) ->
 	get_main_loop_pid() ! { getPanelForCanvas, CanvasId, self() },
 	io:format( "SEND"),
@@ -1364,10 +1359,8 @@ add_to_sizer( Sizer, Element ) ->
 % Adds specified element (or elements), with (common) options, to the specified
 % sizer.
 %
--spec add_to_sizer( sizer(), sizer_child(), sizer_options() ) ->
-						  sizer_item();
-				  ( sizer(), [ sizer_child() ], sizer_options() ) ->
-						  void().
+-spec add_to_sizer( sizer(), sizer_child(), sizer_options() ) -> sizer_item();
+				  ( sizer(), [ sizer_child() ], sizer_options() ) -> void().
 add_to_sizer( Sizer, _Element={ myriad_object_ref, canvas, CanvasId },
 			  Options ) ->
 	get_main_loop_pid() ! { getPanelForCanvas, CanvasId, self() },
@@ -1438,12 +1431,12 @@ push_status_text( Text, StatusBar ) ->
 % main loop), and returns the corresponding GUI object reference.
 %
 -spec execute_instance_creation( myriad_object_type(),
-						 construction_parameters() ) -> myriad_object_ref().
+						construction_parameters() ) -> myriad_object_ref().
 execute_instance_creation( ObjectType, ConstructionParams ) ->
 
-	trace_utils:debug_fmt( "Requesting the creation of a '~s' instance, "
-						   "based on following construction parameters:~n~w.",
-						   [ ObjectType, ConstructionParams ] ),
+	trace_utils:debug_fmt( "Requesting the creation of a '~ts' instance, "
+		"based on following construction parameters:~n~w.",
+		[ ObjectType, ConstructionParams ] ),
 
 	LoopPid = get_main_loop_pid(),
 
@@ -1454,8 +1447,8 @@ execute_instance_creation( ObjectType, ConstructionParams ) ->
 		% Match on the object type:
 		{ instance_created, ObjectType, ObjectRef } ->
 
-			trace_utils:debug_fmt( "'~s' instance created, now referenced "
-								   "as ~w.", [ ObjectType, ObjectRef ] ),
+			trace_utils:debug_fmt( "'~ts' instance created, now referenced "
+				"as ~w.", [ ObjectType, ObjectRef ] ),
 
 			ObjectRef
 
@@ -1483,7 +1476,7 @@ get_gui_env() ->
 
 		undefined ->
 			trace_utils:error_fmt( "No MyriadGUI environment available for "
-								   "process ~w.", [ self() ] ),
+				"process ~w.", [ self() ] ),
 			throw( { no_myriad_gui_env, self() } );
 
 		Env ->
@@ -1501,24 +1494,24 @@ get_gui_env() ->
 
 
 % Returns a textual representation of the specified GUI object.
--spec object_to_string( gui_object() ) -> string().
+-spec object_to_string( gui_object() ) -> ustring().
 object_to_string( #myriad_object_ref{ object_type=ObjectType,
 									  myriad_instance_pid=InstancePid } ) ->
-	text_utils:format( "~s-~B", [ ObjectType, InstancePid ] );
+	text_utils:format( "~ts-~B", [ ObjectType, InstancePid ] );
 
 object_to_string( { wx_ref, InstanceRef, WxObjectType, _State=[] } ) ->
 	% Ex: {wx_ref,35,wxFrame,[]}
 	ObjectType = gui_wx_backend:from_wx_object_type( WxObjectType ),
-	text_utils:format( "~s-~B", [ ObjectType, InstanceRef ] );
+	text_utils:format( "~ts-~B", [ ObjectType, InstanceRef ] );
 
 object_to_string( { wx_ref, InstanceRef, WxObjectType, State } ) ->
 	ObjectType = gui_wx_backend:from_wx_object_type( WxObjectType ),
-	text_utils:format( "~s-~B whose state is ~p",
+	text_utils:format( "~ts-~B whose state is ~p",
 					   [ ObjectType, InstanceRef, State ] ).
 
 
 % Returns a textual representation of the specified GUI event context.
--spec context_to_string( gui_event_context() ) -> string().
+-spec context_to_string( gui_event_context() ) -> ustring().
 context_to_string( #gui_event_context{ id=Id, user_data=UserData,
 									   backend_event=WxEvent } ) ->
 
@@ -1536,5 +1529,5 @@ context_to_string( #gui_event_context{ id=Id, user_data=UserData,
 
 	EventString = text_utils:format( "~p", [ WxEvent ] ),
 
-	text_utils:format( "context for event ~s: ~s and ~s",
+	text_utils:format( "context for event ~ts: ~ts and ~ts",
 					   [ EventString, IdString, UserDataString ] ).

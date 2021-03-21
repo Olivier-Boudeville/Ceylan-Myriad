@@ -51,8 +51,8 @@
 
 
 print_title( Title, Level ) ->
-	test_facilities:display( "Title level ~B:~n~s", [ Level,
-		text_utils:generate_title( Title, Level ) ] ).
+	test_facilities:display( "Title level ~B:~n~ts",
+		[ Level, text_utils:generate_title( Title, Level ) ] ).
 
 
 test_format_error() ->
@@ -64,15 +64,15 @@ test_format_error() ->
 	  "~nTesting on purpose 5 mismatching text_utils:format/2 calls:" ),
 
 	% One too few:
-	_ = text_utils:format( "aaaa~sbbbb", [] ),
+	_ = text_utils:format( "aaaa~tsbbbb", [] ),
 
 	% One too many:
-	_ = text_utils:format( "aaaa~sbb~wbb", [ u, v, w ] ),
+	_ = text_utils:format( "aaaa~tsbb~wbb", [ u, v, w ] ),
 
 	% Wrong types:
-	_ = text_utils:format( "~aaaa~sbbbb", [ 1.2 ] ),
-	_ = text_utils:format( "~Baaaa~sbbbb", [ 1.2, "hello" ] ),
-	_ = text_utils:format( "~Baaaa~sbb~sbb", [ 2, self(), "hello" ] ),
+	_ = text_utils:format( "~aaaa~tsbbbb", [ 1.2 ] ),
+	_ = text_utils:format( "~Baaaa~tsbbbb", [ 1.2, "hello" ] ),
+	_ = text_utils:format( "~Baaaa~tsbb~tsbb", [ 2, self(), "hello" ] ),
 
 	ok.
 
@@ -97,39 +97,39 @@ run() ->
 
 	NestedStrings = text_utils:strings_to_string( [ AString, BString ] ),
 
-	test_facilities:display( "Test of nested strings: ~s and that's it!",
+	test_facilities:display( "Test of nested strings: ~ts and that's it!",
 							 [ NestedStrings ] ),
 
-	test_facilities:display( "Converting an integer to a string: ~s.",
+	test_facilities:display( "Converting an integer to a string: ~ts.",
 		[ text_utils:integer_to_string( 3245 ) ] ),
 
-	test_facilities:display( "Converting an atom to a string: ~s.",
+	test_facilities:display( "Converting an atom to a string: ~ts.",
 		[ text_utils:atom_to_string( 'hello world' ) ] ),
 
 
-	test_facilities:display( "Converting a PID to a string: '~s'.",
+	test_facilities:display( "Converting a PID to a string: '~ts'.",
 							 [ text_utils:pid_to_string( self() ) ] ),
 
-	test_facilities:display( "Converting a PID to a short string: '~s'.",
+	test_facilities:display( "Converting a PID to a short string: '~ts'.",
 							 [ text_utils:pid_to_short_string( self() ) ] ),
 
 
 	PidList = [ self(), self(), self() ],
 
-	test_facilities:display( "Converting PIDs to a string: '~s'.",
+	test_facilities:display( "Converting PIDs to a string: '~ts'.",
 							 [ text_utils:pids_to_string( PidList ) ] ),
 
-	test_facilities:display( "Converting PIDs to a short string: '~s'.",
+	test_facilities:display( "Converting PIDs to a short string: '~ts'.",
 							 [ text_utils:pids_to_short_string( PidList ) ] ),
 
 
 	%MyTestRecord = #my_test_record{},
 
 	%test_facilities:display( "Converting a record instance to a string: "
-	% "~s.", [ text_utils:record_to_string( MyTestRecord ) ] ),
+	% "~ts.", [ text_utils:record_to_string( MyTestRecord ) ] ),
 
 
-	test_facilities:display( "Output with term_to_string : ~s, ~s and ~s.",
+	test_facilities:display( "Output with term_to_string : ~ts, ~ts and ~ts.",
 		[ text_utils:term_to_string( an_atom ),
 		  text_utils:term_to_string( [ 1, 2 ] ),
 		  text_utils:term_to_string( "A string" ) ] ),
@@ -139,7 +139,7 @@ run() ->
 	MaxLen = 5,
 
 	test_facilities:display( "More output with term_to_string "
-		"with max depth ~B and max length ~B: ~s, ~s and ~s.",
+		"with max depth ~B and max length ~B: ~ts, ~ts and ~ts.",
 		[ MaxDepth, MaxLen,
 		  text_utils:term_to_string( an_atom, MaxDepth, MaxLen ),
 		  text_utils:term_to_string( [ 1, 2 ], MaxDepth, MaxLen ),
@@ -148,20 +148,20 @@ run() ->
 
 	ListOfStrings = [ "Hello", "World", "Vampire" ],
 
-	test_facilities:display( "Displaying list ~p as a string: ~s",
+	test_facilities:display( "Displaying list ~p as a string: ~ts",
 		[ ListOfStrings, text_utils:strings_to_string( ListOfStrings ) ] ),
 
 
 	NestedStringsForIndent = [ [ "A1" ] ],
 	%NestedStringsForIndent = [ [ "A1", "A2", "A3" ], [ "B1" ], [ "C1", "C2" ],
-	%                  [ "D1" ] ],
+	%                           [ "D1" ] ],
 
-	Strings = [ text_utils:format( "blah: ~s",
+	Strings = [ text_utils:format( "blah: ~ts",
 				 [ text_utils:strings_to_string( N, _IndentationLevel=1 ) ] )
 				|| N <- NestedStringsForIndent ],
 
 	% Emulating the way it is used in practice:
-	test_facilities:display( "Displaying nested strings: ~s and continuing.",
+	test_facilities:display( "Displaying nested strings: ~ts and continuing.",
 		[ text_utils:strings_to_string( Strings ) ] ),
 
 	test_format_error(),
@@ -171,7 +171,7 @@ run() ->
 	% So that "formatting." has a chance to fit:
 	TargetWidth = 10,
 
-	test_facilities:display( "Displaying text '~s' once formatted "
+	test_facilities:display( "Displaying text '~ts' once formatted "
 		"for a width of ~B:~n~p", [ LongLine, TargetWidth,
 			text_utils:format_text_for_width( LongLine, TargetWidth ) ] ),
 
@@ -181,16 +181,15 @@ run() ->
 	% So that "formatting." has a chance to fit:
 	NewTargetWidth = 8,
 
-	test_facilities:display( "Displaying text '~s' once formatted "
-							 "for a width of ~B:~n~p",
-							 [ JustWideEnoughLine, NewTargetWidth,
-							   text_utils:format_text_for_width(
+	test_facilities:display( "Displaying text '~ts' once formatted "
+		"for a width of ~B:~n~p",
+		[ JustWideEnoughLine, NewTargetWidth, text_utils:format_text_for_width(
 								 JustWideEnoughLine, NewTargetWidth ) ] ),
 
 
 	test_facilities:display( "Displaying atom list, obtained from string "
-							 "list ~p: ~p.", [ ListOfStrings,
-							   text_utils:strings_to_atoms( ListOfStrings ) ] ),
+		"list ~p: ~p.",
+		[ ListOfStrings, text_utils:strings_to_atoms( ListOfStrings ) ] ),
 
 
 	FirstTestString = "Hello world!",
@@ -281,7 +280,7 @@ run() ->
 
 	Percent = 0.1234,
 
-	test_facilities:display( " Displaying ~p as a percentage: ~s.",
+	test_facilities:display( " Displaying ~p as a percentage: ~ts.",
 			  [ Percent, text_utils:percent_to_string( Percent ) ] ),
 
 
@@ -324,7 +323,7 @@ run() ->
 
 	OtherStringList = [ "The", "little red", "wolf" ],
 	test_facilities:display(
-		"When strings: ~s are converted into atoms, we have: ~w.",
+		"When strings: ~ts are converted into atoms, we have: ~w.",
 		[ text_utils:strings_to_string( OtherStringList ),
 		  text_utils:strings_to_atoms( OtherStringList ) ] ),
 
@@ -333,27 +332,27 @@ run() ->
 	ListedColors = "red, blue and green" =
 		text_utils:atoms_to_listed_string( Colors ),
 
-	test_facilities:display( "Listing ~p: '~s'.", [ Colors, ListedColors ] ),
+	test_facilities:display( "Listing ~p: '~ts'.", [ Colors, ListedColors ] ),
 
 	RefString = "Hello world",
 
 	CompareStrings = [ RefString, "Hello", "HELLO WORLD", "Hello Walter",
 					   "Little red rooster", RefString ++ " foobar" ],
 
-	ResultStrings = [ text_utils:format( "'~s': ~B", [ S,
+	ResultStrings = [ text_utils:format( "'~ts': ~B", [ S,
 			text_utils:get_lexicographic_distance( RefString, S ) ] )
 					  || S <- CompareStrings ],
 
-	test_facilities:display( "Lexicographic distance between '~s' and: ~s",
+	test_facilities:display( "Lexicographic distance between '~ts' and: ~ts",
 		[ RefString, text_utils:strings_to_string( ResultStrings ) ] ),
 
 	% Variant tested yet way too slow, hence fully disabled:
-	%VariantResultStrings = [ text_utils:format( "'~s': ~B", [ S,
+	%VariantResultStrings = [ text_utils:format( "'~ts': ~B", [ S,
 	%		text_utils:get_lexicographic_distance_variant( RefString, S )
 	%					] ) || S <- CompareStrings ],
 
-	%test_facilities:display( "Lexicographic distance between '~s' "
-	%						 "and (variant): ~s",
+	%test_facilities:display( "Lexicographic distance between '~ts' "
+	%						 "and (variant): ~ts",
 	%	[ RefString, text_utils:strings_to_string( VariantResultStrings ) ] ),
 
 
@@ -365,18 +364,18 @@ run() ->
 
 	{ "ab", [ "" ] } = text_utils:get_longest_common_prefix( [ "ab" ] ),
 
-	{ "abc", [ "a", "b" ] } = text_utils:get_longest_common_prefix(
-								[ "abca", "abcb" ] ),
+	{ "abc", [ "a", "b" ] } =
+		text_utils:get_longest_common_prefix( [ "abca", "abcb" ] ),
 
-	{ "abc", [ "", "b" ] } = text_utils:get_longest_common_prefix(
-							   [ "abc", "abcb" ] ),
+	{ "abc", [ "", "b" ] } =
+		text_utils:get_longest_common_prefix( [ "abc", "abcb" ] ),
 
 
 	IndentationLevel = 3,
 	NumberedString = text_utils:strings_to_enumerated_string( CompareStrings,
 														  IndentationLevel ),
 
-	test_facilities:display( "Numbered list with indentation level ~B: ~s",
+	test_facilities:display( "Numbered list with indentation level ~B: ~ts",
 							 [ IndentationLevel, NumberedString ] ),
 
 
@@ -388,7 +387,7 @@ run() ->
 				  1, 0.9, 2, 999, 1000, 1001, 999999, 1000000, 1000001 ],
 
 	[ test_facilities:display( " - an integer distance of ~w millimeters "
-		"is ~s, and roughly ~s",
+		"is ~ts, and roughly ~ts",
 		[ D, text_utils:distance_to_string( D ),
 		  text_utils:distance_to_short_string( D ) ] ) || D <- Distances ],
 
@@ -402,13 +401,13 @@ run() ->
 				  12345678, 1234567890123 ],
 
 	[ test_facilities:display(
-		" - an integer duration of ~w milliseconds is ~s",
+		" - an integer duration of ~w milliseconds is ~ts",
 		[ D, time_utils:duration_to_string( D ) ] ) || D <- Durations ],
 
 
 	test_facilities:display( "Testing the upper-casing of first letter:" ),
 
-	[ test_facilities:display( " - '~s' becomes '~s'",
+	[ test_facilities:display( " - '~ts' becomes '~ts'",
 				[ T, text_utils:uppercase_initial_letter( T ) ] )
 	  || T <- [ [], "a", "A", "Hello", "hello" ] ],
 
@@ -416,12 +415,13 @@ run() ->
 
 	UUIDText = "93171810-95a0-4382-ad73",
 
-	LongerText = "I am a lonesome cowboy whose name is 93171810-95a0-4382-ad73" =
-	  text_utils:join( _Sep=" ", [ WesternText, "whose name is", UUIDText ] ),
+	LongerText =
+		"I am a lonesome cowboy whose name is 93171810-95a0-4382-ad73" =
+		text_utils:join( _Sep=" ", [ WesternText, "whose name is", UUIDText ] ),
 
 
-	[ "93171810", "95a0", "4382", "ad73" ] = text_utils:split( UUIDText,
-															   _OtherSep="-" ),
+	[ "93171810", "95a0", "4382", "ad73" ] =
+		text_utils:split( UUIDText, _OtherSep="-" ),
 
 	TestSplit = "  abcxdefxgh ",
 
@@ -449,13 +449,13 @@ run() ->
 
 	EscapeString = "I *am* to be \"escaped\", as 'I shall be escaped'",
 
-	test_facilities:display( "Single-quote escaping '~s' results in: '~s'.",
+	test_facilities:display( "Single-quote escaping '~ts' results in: '~ts'.",
 		[ EscapeString, text_utils:escape_single_quotes( EscapeString ) ] ),
 
-	test_facilities:display( "Double-quote escaping '~s' results in: '~s'.",
+	test_facilities:display( "Double-quote escaping '~ts' results in: '~ts'.",
 		[ EscapeString, text_utils:escape_double_quotes( EscapeString ) ] ),
 
-	test_facilities:display( "All-quote escaping '~s' results in: '~s'.",
+	test_facilities:display( "All-quote escaping '~ts' results in: '~ts'.",
 		[ EscapeString, text_utils:escape_all_quotes( EscapeString ) ] ),
 
 
@@ -464,7 +464,9 @@ run() ->
 
 	% Actual string taken into account is thus:
 	% @I *am* to be "escaped", as \'I shall be escaped as well.@
-	StringToParse = "I *am* to be \"escaped\", as \\'I shall be escaped as well.",
+	%
+	StringToParse =
+		"I *am* to be \"escaped\", as \\'I shall be escaped as well.",
 
 	% In the character stream, we just want that the series of characters
 	% corresponding to @escaped@ is replaced by a single (non-char) element,
@@ -474,8 +476,8 @@ run() ->
 
 	ParsedString = text_utils:parse_quoted( StringToParse ),
 
-	test_facilities:display( "Parsing '~s' with defaults results in: '~s'.~n",
-		[ StringToParse, ParsedString ] ),
+	test_facilities:display( "Parsing '~ts' with defaults results in: '~ts'.~n",
+							 [ StringToParse, ParsedString ] ),
 
 	% Verbatim : [ $I, $\, $*, $a, ..., $b, $e, $\ , [ $e, $s, $c, ..., $d ], $,
 	% $\ , $a, $s, ..., $. ].
@@ -483,9 +485,9 @@ run() ->
 	Expected = "I *am* to be " ++ [ "escaped" ]
 		++ ", as \\'I shall be escaped as well.",
 
-	test_facilities:display( "Read    : @~s@", [ StringToParse ] ),
-	test_facilities:display( "Expected: @~s@", [ Expected ] ),
-	test_facilities:display( "Got     : @~s@~n", [ ParsedString ] ),
+	test_facilities:display( "Read    : @~ts@", [ StringToParse ] ),
+	test_facilities:display( "Expected: @~ts@", [ Expected ] ),
+	test_facilities:display( "Got     : @~ts@~n", [ ParsedString ] ),
 
 	test_facilities:display( "Read    : @~w@", [ StringToParse ] ),
 	test_facilities:display( "Expected: @~w@", [ Expected ] ),
@@ -509,7 +511,7 @@ run() ->
 
 	TextAsComment = text_utils:format_as_comment( TestText ),
 
-	test_facilities:display( "Displaying test text as comment:~n~s",
+	test_facilities:display( "Displaying test text as comment:~n~ts",
 							 [ TextAsComment ] ),
 
 	TwoElemSeq = "aa ~w bb~n ~w cc",
@@ -520,8 +522,8 @@ run() ->
 	%FirstValues = [ first ],
 	FirstValues = [ first, second ],
 
-	test_facilities:display( "Feeding sequence '~p' with ~p: '~s'.",
-							 [ TwoElemSeq, FirstValues,
-							   text_utils:format( TwoElemSeq, FirstValues ) ] ),
+	test_facilities:display( "Feeding sequence '~p' with ~p: '~ts'.",
+		[ TwoElemSeq, FirstValues,
+		  text_utils:format( TwoElemSeq, FirstValues ) ] ),
 
 	test_facilities:stop().

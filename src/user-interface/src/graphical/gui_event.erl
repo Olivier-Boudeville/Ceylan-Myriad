@@ -319,8 +319,13 @@
 
 % Shorthands:
 
+-type ustring() :: text_utils:ustring().
+
 -type gui_object() :: gui:gui_object().
+
 -type wx_id() :: gui_wx_backend:wx_id().
+
+-type wx_object() :: wx:wx_object().
 
 
 
@@ -440,7 +445,7 @@ process_event_message( { setCanvasDrawColor, [ CanvasId, Color ] },
 process_event_message( { setCanvasFillColor, [ CanvasId, Color ] },
 					   LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			gui_canvas:set_fill_color( CanvasState, Color ),
 			LoopState;
 
@@ -448,7 +453,7 @@ process_event_message( { setCanvasBackgroundColor, [ CanvasId, Color ] },
 					   LoopState ) ->
 			%trace_utils:debug_fmt( "Canvas: ~p", [ Canvas ] ),
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			%trace_utils:debug_fmt( "CanvasState: ~p", [ CanvasState ] ),
 			gui_canvas:set_background_color( CanvasState, Color ),
 			LoopState;
@@ -456,75 +461,75 @@ process_event_message( { setCanvasBackgroundColor, [ CanvasId, Color ] },
 process_event_message( { getCanvasRGB, [ CanvasId, Point ], CallerPid },
 					   LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			Color = gui_canvas:get_rgb( CanvasState, Point ),
 			CallerPid ! { notifyCanvasRGB, Color },
 			LoopState;
 
 process_event_message( { setCanvasRGB, [ CanvasId, Point ] }, LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			gui_canvas:set_rgb( CanvasState, Point ),
 			LoopState;
 
 process_event_message( { drawCanvasLine, [ CanvasId, P1, P2 ] }, LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			gui_canvas:draw_line( CanvasState, P1, P2 ),
 			LoopState;
 
 process_event_message( { drawCanvasLine, [ CanvasId, P1, P2, Color ] },
 					   LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			gui_canvas:draw_line( CanvasState, P1, P2, Color ),
 			LoopState;
 
 process_event_message( { drawCanvasLines, [ CanvasId, Points ] }, LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			gui_canvas:draw_lines( CanvasState, Points ),
 			LoopState;
 
 process_event_message( { drawCanvasLines, [ CanvasId, Points, Color ] },
 					   LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			gui_canvas:draw_lines( CanvasState, Points, Color ),
 			LoopState;
 
 process_event_message( { drawCanvasSegment, [ CanvasId, Points ] },
 					   LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			gui_canvas:draw_segment( CanvasState, Points ),
 			LoopState;
 
 process_event_message( { drawCanvasPolygon, [ CanvasId, Points ] },
 					   LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			gui_canvas:draw_polygon( CanvasState, Points ),
 			LoopState;
 
 process_event_message( { drawCanvasLabel, [ CanvasId, Point, Label ] },
 					   LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			gui_canvas:draw_label( CanvasState, Point, Label ),
 			LoopState;
 
 process_event_message( { drawCanvasCross, [ CanvasId, Location ] },
 					   LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			gui_canvas:draw_cross( CanvasState, Location ),
 			LoopState;
 
 process_event_message( { drawCanvasCross, [ CanvasId, Location, EdgeLength ] },
 					   LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			gui_canvas:draw_cross( CanvasState, Location, EdgeLength ),
 			LoopState;
 
@@ -532,7 +537,7 @@ process_event_message( { drawCanvasCross,
 						 [ CanvasId, Location, EdgeLength, Color ] },
 					   LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			gui_canvas:draw_cross( CanvasState, Location, EdgeLength, Color ),
 			LoopState;
 
@@ -540,17 +545,16 @@ process_event_message( { drawCanvasLabelledCross,
 						 [ CanvasId, Location, EdgeLength, LabelText ] },
 					   LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			gui_canvas:draw_labelled_cross( CanvasState, Location, EdgeLength,
 											LabelText ),
 			LoopState;
 
 process_event_message( { drawCanvasLabelledCross,
-						 [ CanvasId, Location, EdgeLength, Color,
-									 LabelText ] },
+						 [ CanvasId, Location, EdgeLength, Color, LabelText ] },
 					   LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			gui_canvas:draw_labelled_cross( CanvasState, Location, EdgeLength,
 											Color, LabelText ),
 			LoopState;
@@ -558,7 +562,7 @@ process_event_message( { drawCanvasLabelledCross,
 process_event_message( { drawCanvasCircle, [ CanvasId, Center, Radius ] },
 					   LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			gui_canvas:draw_circle( CanvasState, Center, Radius ),
 			LoopState;
 
@@ -572,52 +576,52 @@ process_event_message( { drawCanvasCircle,
 process_event_message( { drawCanvasNumberedPoints, [ CanvasId, Points ] },
 					   LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			gui_canvas:draw_numbered_points( CanvasState, Points ),
 			LoopState;
 
 process_event_message( { loadCanvasImage, [ CanvasId, Filename ] },
 					   LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			gui_canvas:load_image( CanvasState, Filename ),
 			LoopState;
 
 process_event_message( { loadCanvasImage, [ CanvasId, Position, Filename ] },
 					   LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			gui_canvas:load_image( CanvasState, Position, Filename ),
 			LoopState;
 
 process_event_message( { blitCanvas, CanvasId }, LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			gui_canvas:blit( CanvasState ),
 			LoopState;
 
 process_event_message( { clearCanvas, CanvasId }, LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			gui_canvas:clear( CanvasState ),
 			LoopState;
 
 process_event_message( { setTooltip, [ CanvasId, Label ] }, LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			gui:set_tooltip( CanvasState#canvas_state.panel, Label ),
 			LoopState;
 
 process_event_message( { getPanelForCanvas, CanvasId, CallerPid },
 					   LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			CallerPid ! { notifyCanvasPanel, CanvasState#canvas_state.panel },
 			LoopState;
 
 process_event_message( { getCanvasSize, CanvasId, CallerPid }, LoopState ) ->
 			CanvasState = get_canvas_instance_state( CanvasId,
-									   LoopState#loop_state.type_table ),
+									LoopState#loop_state.type_table ),
 			Size = gui_canvas:get_size( CanvasState ),
 			CallerPid ! { notifyCanvasSize, Size },
 			LoopState;
@@ -684,7 +688,7 @@ process_event_message( UnmatchedEvent, LoopState ) ->
 % Drops all intermediate repaint events, and processes the last one, and the
 % next non-repaint event.
 %
--spec process_only_latest_repaint_event( wx_event(), wx:wx_object(),
+-spec process_only_latest_repaint_event( wx_event(), wx_object(),
 										 loop_state() ) -> loop_state().
 process_only_latest_repaint_event( CurrentWxRepaintEvent, SourceObject,
 								   LoopState ) ->
@@ -738,9 +742,8 @@ process_only_latest_repaint_event( CurrentWxRepaintEvent, SourceObject,
 
 
 % Processes specified wx event message.
--spec process_wx_event( wx_id(), wx:wx_object(),
-						gui:user_data(), wx_event_info(), wx_event(),
-						loop_state() ) -> loop_state().
+-spec process_wx_event( wx_id(), wx_object(), gui:user_data(),
+					wx_event_info(), wx_event(), loop_state() ) -> loop_state().
 process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 				  LoopState=#loop_state{ event_table=EventTable,
 										 reassign_table=ReassignTable } ) ->
@@ -748,17 +751,16 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 	ActualGUIObject = case table:lookup_entry( GUIObject, ReassignTable ) of
 
 		key_not_found ->
-			trace_utils:info_fmt( "Wx event received about '~s':~n~p.",
+			trace_utils:info_fmt( "Wx event received about '~ts':~n~p.",
 				[ gui:object_to_string( GUIObject ), WxEventInfo ] ),
 			GUIObject;
 
 
 		{ value, TargetGUIObject } ->
-			trace_utils:info_fmt( "Wx event received about '~s', "
-								  "reassigned to '~s':~n~p.",
-								  [ gui:object_to_string( GUIObject ),
-									gui:object_to_string( TargetGUIObject ),
-									WxEventInfo ] ),
+			trace_utils:info_fmt( "Wx event received about '~ts', "
+				"reassigned to '~ts':~n~p.",
+				[ gui:object_to_string( GUIObject ),
+				  gui:object_to_string( TargetGUIObject ), WxEventInfo ] ),
 
 			TargetGUIObject
 
@@ -774,8 +776,8 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 		key_not_found ->
 			% At least one subscriber would be expected:
 			trace_utils:warning_fmt( "No event subscription for GUI "
-							 "object '~s', hence ignoring event.",
-							 [ gui:object_to_string( ActualGUIObject ) ] ),
+				"object '~ts', hence ignoring event.",
+				[ gui:object_to_string( ActualGUIObject ) ] ),
 			LoopState;
 
 		{ value, DispatchTable } ->
@@ -790,8 +792,8 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 			case list_table:lookup_entry( EventType, DispatchTable ) of
 
 				{ value, _Subscribers=[] } ->
-					trace_utils:error_fmt( "For GUI object '~s', event type "
-					   "'~s' not registered whereas notified (abnormal).",
+					trace_utils:error_fmt( "For GUI object '~ts', event type "
+					   "'~ts' not registered whereas notified (abnormal).",
 					   [ gui:object_to_string( ActualGUIObject ), EventType ] );
 
 				{ value, Subscribers } ->
@@ -814,7 +816,7 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 % specified event type.
 %
 -spec get_subscribers_for( gui_object(), event_type(), event_table() ) ->
-								 [ event_subscriber_pid() ].
+									[ event_subscriber_pid() ].
 get_subscribers_for( GUIObject, EventType, EventTable ) ->
 
 	case table:lookup_entry( GUIObject, EventTable ) of
@@ -840,25 +842,24 @@ get_subscribers_for( GUIObject, EventType, EventTable ) ->
 
 % Creates specified MyriadGUI object.
 -spec process_myriad_creation( gui:myriad_object_type(),
-							   gui:construction_parameters(), user_pid(),
-							   loop_state() ) -> loop_state().
+	gui:construction_parameters(), user_pid(), loop_state() ) -> loop_state().
 process_myriad_creation( ObjectType, ConstructionParams, CallerPid,
 						 LoopState=#loop_state{ reassign_table=ReassignTable,
 												type_table=TypeTable } ) ->
 
 	trace_utils:debug_fmt( "Myriad instance creation request received from ~w, "
-						   "for type '~s', with construction parameters ~w.",
-						   [ CallerPid, ObjectType, ConstructionParams ] ),
+		"for type '~ts', with construction parameters ~w.",
+		[ CallerPid, ObjectType, ConstructionParams ] ),
 
 	case ObjectType of
 
 		canvas ->
 
-			{ CanvasInitialState, PanelRef } = gui_canvas:create_instance(
-												 ConstructionParams ),
+			{ CanvasInitialState, PanelRef } =
+				gui_canvas:create_instance( ConstructionParams ),
 
-			{ CanvasRef, NewTypeTable } = register_instance( ObjectType,
-											  CanvasInitialState, TypeTable ),
+			{ CanvasRef, NewTypeTable } =
+				register_instance( ObjectType, CanvasInitialState, TypeTable ),
 
 			CallerPid ! { instance_created, ObjectType, CanvasRef },
 
@@ -866,7 +867,7 @@ process_myriad_creation( ObjectType, ConstructionParams, CallerPid,
 			% owner:
 			%
 			NewReassignTable = table:add_new_entry( PanelRef, CanvasRef,
-												  ReassignTable ),
+													ReassignTable ),
 
 			% After this canvas is created, its panel, when finally shown, will
 			% be sized, with no specific notification; to adapt that canvas
@@ -881,7 +882,7 @@ process_myriad_creation( ObjectType, ConstructionParams, CallerPid,
 
 
 		UnexpectedType ->
-			trace_utils:error_fmt( "'~s' is not a known MyriadGUI type.",
+			trace_utils:error_fmt( "'~ts' is not a known MyriadGUI type.",
 								   [ UnexpectedType ] ),
 
 			throw( { unexpected_myriad_type, UnexpectedType } )
@@ -898,11 +899,11 @@ process_myriad_creation( ObjectType, ConstructionParams, CallerPid,
 		 myriad_type_table() ) -> { myriad_object_ref(), myriad_type_table() }.
 register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 
-	trace_utils:info_fmt( "Registering a MyriadGUI instance of type '~s', "
+	trace_utils:info_fmt( "Registering a MyriadGUI instance of type '~ts', "
 		"of following state:~n~p.", [ ObjectType, ObjectInitialState ] ),
 
-	{ NewInstanceId, NewInstanceReferential } = case table:lookup_entry(
-													ObjectType, TypeTable ) of
+	{ NewInstanceId, NewInstanceReferential } =
+		case table:lookup_entry( ObjectType, TypeTable ) of
 
 		key_not_found ->
 
@@ -974,8 +975,7 @@ send_event( Subscribers, _EventType=onResized, EventSourceId, GUIObject,
 
 	Msg = { onResized, [ GUIObject, NewSize, Context ] },
 
-	trace_utils:debug_fmt( "Sending event '~p' to ~w.",
-						   [ Msg, Subscribers ] ),
+	trace_utils:debug_fmt( "Sending event '~p' to ~w.", [ Msg, Subscribers ] ),
 
 	[ SubPid ! Msg || SubPid <- Subscribers ];
 
@@ -987,8 +987,7 @@ send_event( Subscribers, EventType, Id, GUIObject, UserData, Event ) ->
 
 	Msg = { EventType, [ GUIObject, Context ] },
 
-	trace_utils:debug_fmt( "Sending event '~p' to ~w.",
-						   [ Msg, Subscribers ] ),
+	trace_utils:debug_fmt( "Sending event '~p' to ~w.", [ Msg, Subscribers ] ),
 
 	[ SubPid ! Msg || SubPid <- Subscribers ].
 
@@ -1038,7 +1037,7 @@ register_event_types_for( Canvas={ myriad_object_ref, canvas, CanvasId },
 											type_table=TypeTable } ) ->
 
 	%trace_utils:debug_fmt( "Registering subscribers ~w for event types ~p "
-	%					   "regarding canvas '~s'.", [ Subscribers, EventTypes,
+	%					   "regarding canvas '~ts'.", [ Subscribers, EventTypes,
 	%						   gui:object_to_string( Canvas ) ] ),
 
 	NewEventTable = record_subscriptions( Canvas, EventTypes, Subscribers,
@@ -1063,8 +1062,8 @@ register_event_types_for( GUIObject, EventTypes, Subscribers,
 						  LoopState=#loop_state{ event_table=EventTable } ) ->
 
 	trace_utils:debug_fmt( "Registering subscribers ~w for event types ~p "
-						   "regarding object '~s'.", [ Subscribers, EventTypes,
-							 gui:object_to_string( GUIObject ) ] ),
+		"regarding object '~ts'.",
+		[ Subscribers, EventTypes, gui:object_to_string( GUIObject ) ] ),
 
 	% Auto-connection to the current PID (i.e. the one of the internal, main
 	% event loop), so that it receives these events for their upcoming
@@ -1128,7 +1127,7 @@ update_event_table( _EventTypes=[ EventType | T ], Subscribers,
 	end,
 
 	NewDispatchTable = list_table:add_entry( EventType, NewSubscribers,
-											DispatchTable ),
+											 DispatchTable ),
 
 	update_event_table( T, Subscribers, NewDispatchTable ).
 
@@ -1175,7 +1174,7 @@ adjust_objects( _ObjectsToAdjust=[ CanvasRef=#myriad_object_ref{
 
 % Returns the internal state of the specified canvas instance.
 -spec get_canvas_instance_state( gui:myriad_instance_pid(),
-						 myriad_type_table() ) -> gui:myriad_object_state().
+						myriad_type_table() ) -> gui:myriad_object_state().
 get_canvas_instance_state( CanvasId, TypeTable ) ->
 	get_instance_state( _MyriadObjectType=canvas, CanvasId, TypeTable ).
 
@@ -1195,7 +1194,7 @@ get_instance_state( { myriad_object_ref, MyriadObjectType, InstanceId },
 						  myriad_type_table() ) -> gui:myriad_object_state().
 get_instance_state( MyriadObjectType, InstanceId, TypeTable ) ->
 
-	%trace_utils:debug_fmt( "~s", [ type_table_to_string( TypeTable ) ] ),
+	%trace_utils:debug_fmt( "~ts", [ type_table_to_string( TypeTable ) ] ),
 
 	case table:lookup_entry( MyriadObjectType, TypeTable ) of
 
@@ -1208,7 +1207,7 @@ get_instance_state( MyriadObjectType, InstanceId, TypeTable ) ->
 
 				key_not_found ->
 					trace_utils:error_fmt( "Non-existing instance ~w "
-							"of type ~s; ~s",
+							"of type ~ts; ~ts",
 							[ InstanceId, MyriadObjectType,
 							  type_table_to_string( TypeTable ) ] ),
 
@@ -1251,7 +1250,7 @@ set_instance_state( { myriad_object_ref, MyriadObjectType, InstanceId },
 								myriad_type_table().
 set_instance_state( MyriadObjectType, InstanceId, InstanceState, TypeTable ) ->
 
-	%trace_utils:debug_fmt( "~s", [ type_table_to_string( TypeTable ) ] ),
+	%trace_utils:debug_fmt( "~ts", [ type_table_to_string( TypeTable ) ] ),
 
 	case table:lookup_entry( MyriadObjectType, TypeTable ) of
 
@@ -1320,7 +1319,7 @@ propagate_event( #gui_event_context{ backend_event=WxEvent } ) ->
 
 
 % Returns a textual representation of specified event table.
--spec event_table_to_string( event_table() ) -> string().
+-spec event_table_to_string( event_table() ) -> ustring().
 event_table_to_string( EventTable ) ->
 
 	case table:enumerate( EventTable ) of
@@ -1335,33 +1334,33 @@ event_table_to_string( EventTable ) ->
 
 			DispatchString = text_utils:strings_to_string( DispatchStrings ),
 
-			text_utils:format( "event table with ~B GUI objects registered: ~s",
-							   [ length( DispatchPairs ), DispatchString ] )
+			text_utils:format( "event table with ~B GUI objects registered: "
+				"~ts", [ length( DispatchPairs ), DispatchString ] )
 
 	end.
 
 
 % (helper)
 -spec dispatch_table_to_string( gui_object(), event_dispatch_table() ) ->
-									  string().
+										ustring().
 dispatch_table_to_string( GUIObject, DispatchTable ) ->
 
 	EventPairs = list_table:enumerate( DispatchTable ),
 
-	EventStrings = [ text_utils:format( "subscribers for event '~s': ~w",
+	EventStrings = [ text_utils:format( "subscribers for event '~ts': ~w",
 										[ EvType, EvSubscribers ] )
 					 || { EvType, EvSubscribers } <- EventPairs ],
 
 	EventString = text_utils:strings_to_string( EventStrings,
 												_IndentationLevel=1 ),
 
-	text_utils:format( "for GUI object '~s': ~s",
+	text_utils:format( "for GUI object '~ts': ~ts",
 					   [ gui:object_to_string( GUIObject ), EventString ] ).
 
 
 
 % Returns a textual representation of the specified reassign table.
--spec reassign_table_to_string( reassign_table() ) -> string().
+-spec reassign_table_to_string( reassign_table() ) -> ustring().
 reassign_table_to_string( ReassignTable ) ->
 
 	case table:enumerate( ReassignTable ) of
@@ -1370,21 +1369,19 @@ reassign_table_to_string( ReassignTable ) ->
 			"no GUI object reassignment defined";
 
 		ObjectPairs ->
-			Strings = [ text_utils:format( "events sent to '~s' will be "
-										   "reassigned to '~s'",
-										   [ gui:object_to_string( From ),
-											 gui:object_to_string( To ) ] )
+			Strings = [ text_utils:format( "events sent to '~ts' will be "
+				"reassigned to '~ts'", [ gui:object_to_string( From ),
+										 gui:object_to_string( To ) ] )
 						|| { From, To } <- ObjectPairs ],
-			text_utils:format( "~B GUI object reassignments defined: ~s",
-							   [ length( Strings),
-								 text_utils:strings_to_string( Strings ) ] )
+			text_utils:format( "~B GUI object reassignments defined: ~ts",
+				[ length( Strings), text_utils:strings_to_string( Strings ) ] )
 
 	end.
 
 
 
 % Returns a textual representation of the specified type table.
--spec type_table_to_string( myriad_type_table() ) -> string().
+-spec type_table_to_string( myriad_type_table() ) -> ustring().
 type_table_to_string( Table ) ->
 
 	case table:enumerate( Table ) of
@@ -1393,22 +1390,21 @@ type_table_to_string( Table ) ->
 			"empty type table";
 
 		Pairs ->
-			Strings = [ text_utils:format( "for type '~s', ~s", [ Type,
+			Strings = [ text_utils:format( "for type '~ts', ~ts", [ Type,
 				  instance_referential_to_string( Referential ) ] )
 						|| { Type, Referential } <- Pairs ],
-			text_utils:format( "Type table with ~B object types registered: ~s",
-							   [ length( Strings ),
-								 text_utils:strings_to_string( Strings ) ] )
+			text_utils:format( "Type table with ~B object types registered: "
+				"~ts",
+				[ length( Strings ), text_utils:strings_to_string( Strings ) ] )
 
 	end.
 
 
 
 % Returns a textual representation of the specified type table.
--spec instance_referential_to_string( instance_referential() ) -> string().
-instance_referential_to_string( #instance_referential{
-		instance_count=Count,
-		instance_table=InstanceTable } ) ->
+-spec instance_referential_to_string( instance_referential() ) -> ustring().
+instance_referential_to_string( #instance_referential{ instance_count=Count,
+										instance_table=InstanceTable } ) ->
 
 	case table:enumerate( InstanceTable ) of
 

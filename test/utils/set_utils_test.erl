@@ -48,7 +48,8 @@ run() ->
 	true = set_utils:is_empty( EmptySet ),
 	0 = set_utils:size( EmptySet ),
 
-	test_facilities:display( "Empty: ~s", [ set_utils:to_string( EmptySet ) ] ),
+	test_facilities:display( "Empty: ~ts", 
+							 [ set_utils:to_string( EmptySet ) ] ),
 
 
 	Singleton = set_utils:singleton( first ),
@@ -56,7 +57,7 @@ run() ->
 	false = set_utils:is_empty( Singleton ),
 	1 = set_utils:size( Singleton ),
 
-	test_facilities:display( "Singleton: ~s",
+	test_facilities:display( "Singleton: ~ts",
 							 [ set_utils:to_string( Singleton ) ] ),
 
 
@@ -65,7 +66,7 @@ run() ->
 	false = set_utils:is_empty( TwoElements ),
 	2 = set_utils:size( TwoElements ),
 
-	test_facilities:display( "Two elements: ~s",
+	test_facilities:display( "Two elements: ~ts",
 							 [ set_utils:to_string( TwoElements ) ] ),
 
 
@@ -77,7 +78,7 @@ run() ->
 	false = set_utils:is_empty( FourElements ),
 	4 = set_utils:size( FourElements ),
 
-	test_facilities:display( "Four elements: ~s",
+	test_facilities:display( "Four elements: ~ts",
 							 [ set_utils:to_string( FourElements ) ] ),
 
 	ThreeElements = set_utils:delete_existing( third, FourElements ),
@@ -85,7 +86,7 @@ run() ->
 	false = set_utils:is_empty( ThreeElements ),
 	3 = set_utils:size( ThreeElements ),
 
-	test_facilities:display( "Three elements: ~s",
+	test_facilities:display( "Three elements: ~ts",
 							 [ set_utils:to_string( ThreeElements ) ] ),
 
 	OtherTwoElements = set_utils:delete_existing( first, ThreeElements ),
@@ -93,7 +94,7 @@ run() ->
 	false = set_utils:is_empty( OtherTwoElements ),
 	2 = set_utils:size( OtherTwoElements ),
 
-	test_facilities:display( "Other two elements: ~s",
+	test_facilities:display( "Other two elements: ~ts",
 							 [ set_utils:to_string( OtherTwoElements ) ] ),
 
 	test_facilities:stop().

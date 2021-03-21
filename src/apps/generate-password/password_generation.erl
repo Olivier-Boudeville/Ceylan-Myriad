@@ -38,27 +38,26 @@ run() ->
 -define( default_alphabet, "extended" ).
 
 
--spec get_usage() -> basic_utils:void().
+-spec get_usage() -> void().
 get_usage() ->
-	text_utils:format( "Usage: ~s "
-	%text_utils:format( "Usage: ~s [-i|--interactive] "
+	text_utils:format( "Usage: ~ts "
+	%text_utils:format( "Usage: ~ts [-i|--interactive] "
 		"[-a ALPHABET|--alphabet ALPHABET] "
 		"[-l MIN_LEN MAX_LEN|--length MIN_LEN MAX_LEN] "
 		"[-h|--help]~n"
 		"  Generates a suitable password, where:~n"
 		"    - ALPHABET designates the set of characters to draw from "
-		"(default one being '~s'), among:~n"
+		"(default one being '~ts'), among:~n"
 		"       * 'base': alphanumeric letters, all cases [A-Za-z0-9]~n"
-		"       * 'extended': 'base' + basic punctuation (i.e. '~s')~n"
+		"       * 'extended': 'base' + basic punctuation (i.e. '~ts')~n"
 		"       * 'full': 'base' + all punctuation "
-		"(i.e. basic + '~s')~n"
+		"(i.e. basic + '~ts')~n"
 		"    - MIN_LEN and MAX_LEN are the respective minimum and maximum "
 		"numbers of characters (bounds included) used to "
-		"generate this password [default: between ~s and ~s]~n",
+		"generate this password [default: between ~ts and ~ts]~n",
 		[ ?exec_name, ?default_alphabet, get_alphabet( basic_punctuation ),
 		  get_alphabet( extra_punctuation ), ?default_min_length,
 		  ?default_max_length ] ).
-
 
 
 
@@ -68,7 +67,7 @@ get_usage() ->
 -spec main( shell_utils:argument_table() ) -> void().
 main( ArgTable ) ->
 
-	%trace_utils:debug_fmt( "Original script-specific arguments: ~s",
+	%trace_utils:debug_fmt( "Original script-specific arguments: ~ts",
 	%	[ shell_utils:argument_table_to_string( ArgTable ) ] ),
 
 	[ %InteractiveRefKey,
@@ -83,7 +82,7 @@ main( ArgTable ) ->
 			{ AlphaRefKey, [ 'a' ] },
 			{ HelpRefKey, [ 'h' ] } ], ArgTable ),
 
-	%trace_utils:debug_fmt( "Canonicalized script-specific arguments: ~s",
+	%trace_utils:debug_fmt( "Canonicalized script-specific arguments: ~ts",
 	%	   [ shell_utils:argument_table_to_string( MergedTable ) ] ),
 
 	case list_table:has_entry( HelpRefKey, MergedTable ) of
@@ -96,8 +95,9 @@ main( ArgTable ) ->
 
 	end,
 
-	%{ IsInteractive, InterTable } = case list_table:extract_entry_with_defaults(
-	%			 InteractiveRefKey, _DefaultInter=false, MergedTable ) of
+	%{ IsInteractive, InterTable } =
+	%  case list_table:extract_entry_with_defaults( InteractiveRefKey,
+	%    _DefaultInter=false, MergedTable ) of
 	%
 	%	{ [], ShrunkTable } ->
 	%		{ true, ShrunkTable };
@@ -107,7 +107,7 @@ main( ArgTable ) ->
 	%
 	%end,
 
-	%trace_utils:debug_fmt( "Interactive: ~s", [ IsInteractive ] ),
+	%trace_utils:debug_fmt( "Interactive: ~ts", [ IsInteractive ] ),
 
 	{ [ LengthStrings ], LenTable } =
 		list_table:extract_entry_with_defaults(
@@ -151,7 +151,6 @@ main( ArgTable ) ->
 
 	end,
 
-
 	%trace_utils:debug_fmt( "Min length: ~B", [ MinLength ] ),
 	%trace_utils:debug_fmt( "Max length: ~B", [ MaxLength ] ),
 
@@ -161,7 +160,7 @@ main( ArgTable ) ->
 
 	AlphabetSpec = text_utils:string_to_atom( AlphabetStringSpec ),
 
-	%trace_utils:debug_fmt( "Alphabet spec: ~s", [ AlphabetSpec ] ),
+	%trace_utils:debug_fmt( "Alphabet spec: ~ts", [ AlphabetSpec ] ),
 
 	[ Length ] =
 		random_utils:get_random_values( MinLength, MaxLength, _Count=1 ),
@@ -172,7 +171,7 @@ main( ArgTable ) ->
 			ok;
 
 		UnexpectedOpts ->
-			trace_utils:error_fmt( "Unexpected user input: ~s~n~s",
+			trace_utils:error_fmt( "Unexpected user input: ~ts~n~ts",
 			  [ shell_utils:argument_table_to_string( AlphaTable ),
 				get_usage() ] ),
 			throw( { unexpected_command_line_options, UnexpectedOpts } )
@@ -182,21 +181,23 @@ main( ArgTable ) ->
 	Alphabet = get_alphabet( AlphabetSpec ),
 
 	%trace_utils:debug_fmt( "Input alphabet corresponding to spec ~p: "
-	%					   "'~w' (i.e. '~s').",
+	%					   "'~w' (i.e. '~ts').",
 	%					   [ AlphabetSpec, Alphabet, Alphabet ] ),
 
 	Password = generate_password( Alphabet, Length ),
 
-	io:format( "Generated password (alphabet spec: ~s, length: ~B) is:    "
-			   "~s    ~n", [ AlphabetSpec, Length, Password ] ),
+	io:format( "Generated password (alphabet spec: ~ts, length: ~B) is:    "
+			   "~ts    ~n", [ AlphabetSpec, Length, Password ] ),
 
 	basic_utils:stop( _ErrorCode=0 ).
+
 
 
 % Displays the usage of this service, and stops (with no error).
 display_usage() ->
 	io:format( get_usage(), [] ),
 	basic_utils:stop( _ErrorCode=0 ).
+
 
 
 % Returns the corresponding alphabet, based on its spec, expressed as an atom
@@ -231,6 +232,7 @@ get_alphabet( _AlphabetSpec=extra_punctuation ) ->
 	[ $", $', $@, $ , $/, $&, $$, $*, $\\, $^, $%, $=, $+, $| ].
 
 
+
 % Generates a password of specified exact length, from specified alphabet.
 -spec generate_password( alphabet(), basic_utils:count() ) -> password().
 generate_password( Alphabet, CharCount ) ->
@@ -254,7 +256,7 @@ generate_helper( _CharCount=0, _Alphabet, _AlphaSize, Acc ) ->
 generate_helper( CharCount, Alphabet, AlphaSize, Acc ) ->
 	NewCharIndex = random_utils:get_random_value( AlphaSize ),
 	NewChar = list_utils:get_element_at( Alphabet, NewCharIndex ),
-	%trace_utils:debug_fmt( "Drawn '~B' (~s), at index #~B",
+	%trace_utils:debug_fmt( "Drawn '~B' (~ts), at index #~B",
 	%					   [ NewChar, [ NewChar ], NewCharIndex ] ),
 
 	generate_helper( CharCount-1, Alphabet, AlphaSize, [ NewChar | Acc ] ).

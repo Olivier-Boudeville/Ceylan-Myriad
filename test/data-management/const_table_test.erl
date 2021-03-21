@@ -60,14 +60,14 @@ run() ->
 	NestedTerm = { "semper fidelis", true, [ 1, 1.0, ?MODULE ] },
 
 	TargetTable = table:add_entries( [ { 'foo', 42.0 },
-									  { 'baz', "hello" },
-									  { 'composite', NestedTerm } ],
-									table:new() ),
+									   { 'baz', "hello" },
+									   { 'composite', NestedTerm } ],
+									 table:new() ),
 
 	ModuleName = 'foobar',
 
 	test_facilities:display(
-	  "Generating pseudo-module '~s' from following table:~n~s",
+	  "Generating pseudo-module '~ts' from following table:~n~ts",
 	  [ ModuleName, table:to_string( TargetTable ) ] ),
 
 	const_table:generate( ModuleName, TargetTable ),

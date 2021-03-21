@@ -47,13 +47,18 @@
 
 
 % Ring-related operations:
-%
 -export([ from_list/1, to_list/1, head/1, get_next/2, get_reference_list/1,
 		  size/1, to_string/1 ]).
 
 
 
 -export_type([ ring/0, ring/1 ]).
+
+
+% Shorthands:
+
+-type count() :: basic_utils:count().
+-type ustring() :: text_utils:ustring().
 
 
 
@@ -93,10 +98,10 @@ head( _Ring={ _WorkingList=[ H | T ], ReferenceList } ) ->
 % Returns a list of the Count popped elements (in their order in the ring), and
 % the corresponding updated ring.
 %
-% Ex: for a new ring based on [ a, b, c, d ], if Count=6 then
-% [ a, b, c, d, a, b ] will be returned.
+% Ex: for a new ring based on [a, b, c, d], if Count=6 then
+% [a, b, c, d, a, b] will be returned.
 %
--spec get_next( basic_utils:count(), ring() ) -> { [ term() ], ring() }.
+-spec get_next( count(), ring() ) -> { [ term() ], ring() }.
 get_next( Count, Ring ) ->
 	% Quite similar to a map:foldl/3:
 	get_next_helper( Count, Ring, _Acc=[] ).
@@ -110,22 +115,22 @@ get_next_helper( Count, Ring, Acc ) ->
 	get_next_helper( Count-1, NewRing, [ H | Acc ] ).
 
 
+
 % Returns the list from which the ring was created (in its original order).
 -spec get_reference_list( ring() ) -> [ term() ].
 get_reference_list( _Ring={ _WorkingList, ReferenceList } ) ->
 	ReferenceList.
 
 
-
 % Returns the number of elements in the specified ring.
--spec size( ring() ) -> basic_utils:count().
+-spec size( ring() ) -> count().
 size( _Ring={ _WorkingList, ReferenceList } ) ->
 	length( ReferenceList ).
 
 
 
 % Returns a textual representation of the specified ring.
--spec to_string( ring() ) -> string().
+-spec to_string( ring() ) -> ustring().
 to_string( Ring ) ->
 
 	case to_list( Ring ) of
@@ -142,7 +147,7 @@ to_string( Ring ) ->
 			ElemString = text_utils:strings_to_string( [
 				   text_utils:format( "~p", [ E ] ) || E <- Elements ] ),
 
-			text_utils:format( "ring with following ~B elements: ~s",
+			text_utils:format( "ring with following ~B elements: ~ts",
 							   [ length( Elements ), ElemString ] )
 
 	end.

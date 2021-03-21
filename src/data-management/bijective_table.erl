@@ -29,7 +29,7 @@
 
 % Datastructure allowing to perform a bidirectional conversion between two sets.
 %
-% One can see as [ { first_type(), second_type() } ] associative table allowing
+% One can see as [ {first_type(), second_type()} ] associative table allowing
 % to transform an element of a type into an element of the second one.
 %
 -module(bijective_table).
@@ -71,14 +71,16 @@ new( InitialEntries ) -> % list type tested by table:new/1:
 	SecondToFirstTable = table:new( Reversed ),
 
 	% Detect any unexpected duplicate:
-	case { table:size( FirstToSecondTable ), table:size( SecondToFirstTable ) } of
+	case { table:size( FirstToSecondTable ),
+		   table:size( SecondToFirstTable ) } of
 
 		{ S, S } ->
 			{ FirstToSecondTable, SecondToFirstTable };
 
 		%P={ S1, S2 } ->
 		P ->
-			throw( { non_bijective_sets, P, table:enumerate( FirstToSecondTable ),
+			throw( { non_bijective_sets, P,
+					 table:enumerate( FirstToSecondTable ),
 					 table:enumerate( SecondToFirstTable ) } )
 
 	end.
@@ -89,7 +91,8 @@ new( InitialEntries ) -> % list type tested by table:new/1:
 % element of the second type.
 %
 -spec get_first_for( second_type(), bijective_table() ) -> first_type().
-get_first_for( Second, _BijTable={ _FirstToSecondTable, SecondToFirstTable } ) ->
+get_first_for( Second,
+			   _BijTable={ _FirstToSecondTable, SecondToFirstTable } ) ->
 	table:get_value( Second, SecondToFirstTable ).
 
 
@@ -98,7 +101,8 @@ get_first_for( Second, _BijTable={ _FirstToSecondTable, SecondToFirstTable } ) -
 % element of the first type.
 %
 -spec get_second_for( first_type(), bijective_table() ) -> second_type().
-get_second_for( First, _BijTable={ FirstToSecondTable, _SecondToFirstTable } ) ->
+get_second_for( First,
+				_BijTable={ FirstToSecondTable, _SecondToFirstTable } ) ->
 	table:get_value( First, FirstToSecondTable ).
 
 
@@ -113,11 +117,11 @@ to_string( _BijTable={ FirstToSecondTable, _SecondToFirstTable } ) ->
 			"empty bijective table";
 
 		Elems ->
-			text_utils:format( "bijective table containing ~B element(s): ~s",
-							   [ table:size( FirstToSecondTable ),
-								 text_utils:strings_to_string( [
-									text_utils:format( "~p <-> ~p", [ F, S ] )
-											   || { F, S } <- Elems ] ) ] )
+			text_utils:format( "bijective table containing ~B element(s): ~ts",
+				[ table:size( FirstToSecondTable ),
+				  text_utils:strings_to_string(
+					[ text_utils:format( "~p <-> ~p", [ F, S ] )
+					  || { F, S } <- Elems ] ) ] )
 
 
 	end.

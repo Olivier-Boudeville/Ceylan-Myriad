@@ -39,13 +39,13 @@
 
 test_parse( InputString, ExpectedString ) ->
 
-	%test_facilities:display( "### Parsing '~s'...", [ InputString ] ),
+	%test_facilities:display( "### Parsing '~ts'...", [ InputString ] ),
 
 	{ Value, Unit } = unit_utils:parse_value_with_unit( InputString ),
 
 	ResultString = unit_utils:value_with_unit_to_string( Value, Unit ),
 
-	test_facilities:display( " + '~s' translated as '~s'.",
+	test_facilities:display( " + '~ts' translated as '~ts'.",
 							 [ InputString, ResultString ] ),
 
 

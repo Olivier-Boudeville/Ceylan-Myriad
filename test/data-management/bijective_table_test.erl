@@ -43,8 +43,8 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	TestTable = bijective_table:new( [ { "one", 1 }, { "two", 2 }, { "three", 3 },
-									   { "four", 4 }, { "five", 5 } ] ),
+	TestTable = bijective_table:new( [ { "one", 1 }, { "two", 2 },
+						{ "three", 3 }, { "four", 4 }, { "five", 5 } ] ),
 
 	"four" = bijective_table:get_first_for( 4, TestTable ),
 
@@ -52,14 +52,13 @@ run() ->
 
 	% Failure tests:
 	%FailingTable = bijective_table:new([ { "one", 1 }, { "two", 1 } ] ),
-	_Table = bijective_table:new([ { "one", 1 }, { "two", 2 } ] ),
+	_Table = bijective_table:new( [ { "one", 1 }, { "two", 2 } ] ),
 
 	%bijective_table:get_first_for( 42, FailingTable ),
 
 	%bijective_table:get_second_for( "unexpected", FailingTable ),
 
-
-	test_facilities:display( "Test table: ~s",
+	test_facilities:display( "Test table: ~ts",
 							 [ bijective_table:to_string( TestTable ) ] ),
 
 	test_facilities:stop().

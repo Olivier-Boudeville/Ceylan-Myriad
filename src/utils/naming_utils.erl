@@ -83,6 +83,10 @@
 % http://erlang.org/doc/man/global.html)
 
 
+% Shorthands:
+
+-type atom_node_name() :: net_utils:atom_node_name().
+
 
 % Registers the current process under specified name, which must be an atom.
 %
@@ -346,8 +350,8 @@ get_registered_pid_for( Name, _RegistrationScope=local_and_global ) ->
 %
 % Throws an exception on failure.
 %
--spec get_locally_registered_pid_for( registration_name(),
-									 net_utils:atom_node_name() ) -> pid().
+-spec get_locally_registered_pid_for( registration_name(), atom_node_name() ) ->
+											pid().
 get_locally_registered_pid_for( Name, TargetNode ) ->
 
 	case rpc:call( TargetNode, _Mod=erlang, _Fun=whereis, _Args=[ Name ] ) of
@@ -494,7 +498,7 @@ wait_for_registration_of( Name, _LookUpScope=local_otherwise_global ) ->
 		wait_for_local_registration_of( Name )
 	catch _ ->
 			trace_utils:debug_fmt( "Time-out when waiting for a local "
-				"registration of '~s', switching to a global look-up.",
+				"registration of '~ts', switching to a global look-up.",
 				[ Name ] ),
 			wait_for_global_registration_of( Name )
 	end;
@@ -571,7 +575,7 @@ wait_for_local_registration_of( Name, SecondsToWait ) ->
 % A time-out is triggered if the waited duration exceeds 10 seconds.
 %
 -spec wait_for_remote_local_registrations_of( registration_name(),
-				[ net_utils:atom_node_name() ] ) -> void().
+											  [ atom_node_name() ] ) -> void().
 wait_for_remote_local_registrations_of( RegisteredName, Nodes ) ->
 
 	% Up to 10 seconds, 0.5 seconds of waiting between two, thus 20 attempts:
@@ -630,7 +634,7 @@ wait_for_remote_local_registrations_of( RegisteredName, Nodes,
 -spec display_registered() -> void().
 display_registered() ->
 
-	io:format( "On a total of ~B existing processes on node '~s':~n",
+	io:format( "On a total of ~B existing processes on node '~ts':~n",
 			   [ length( processes() ), node() ] ),
 
 	case global:registered_names() of

@@ -370,8 +370,8 @@ interpret_file( FilePath ) ->
 	{ FirstRow, Separator, FieldCount, FirstDropCount } =
 		guess_separator_and_field_count( File, _InitialDropCount=0 ),
 
-	trace_utils:debug_fmt( "First row: '~p', separator: '~s', field count: ~B, "
-		"first drop count: ~B.",
+	trace_utils:debug_fmt( "First row: '~p', separator: '~ts', "
+		"field count: ~B, first drop count: ~B.",
 		[ FirstRow, [Separator], FieldCount, FirstDropCount ] ),
 
 	% Branch to the helper with a correct initial state:
@@ -380,14 +380,14 @@ interpret_file( FilePath ) ->
 		FirstDropCount, _Acc=[ FirstRow ] ),
 
 	% Full version with content:
-	%trace_utils:debug_fmt( "Read mixed content with detected separator '~s' "
+	%trace_utils:debug_fmt( "Read mixed content with detected separator '~ts' "
 	%   "and field count ~B "
 	%	"(matching count: ~B, unmatching count: ~B, drop count: ~B):~n ~p",
 	%	[ [Separator], FieldCount, MatchCount, UnmatchingCount, DropCount,
 	%	  MixedContent ] ),
 
 	% Summary:
-	trace_utils:debug_fmt( "Read mixed content with detected separator '~s' "
+	trace_utils:debug_fmt( "Read mixed content with detected separator '~ts' "
 		"and field count ~B "
 		"(matching count: ~B, unmatching count: ~B, drop count: ~B).",
 		[ [Separator], FieldCount, MatchCount, UnmatchingCount, DropCount ] ),
@@ -430,8 +430,8 @@ read_rows( Device, Separator, RowCount, FieldCount, Acc ) ->
 
 				{ Values, ThisFieldCount } ->
 
-					%trace_utils:debug_fmt( "For line '~s', ~B field(s) found.",
-					%					   [ Line, ThisFieldCount ] ),
+					%trace_utils:debug_fmt( "For line '~ts', "
+					%     "~B field(s) found.", [ Line, ThisFieldCount ] ),
 
 					NewFieldCount = case FieldCount of
 
@@ -443,7 +443,7 @@ read_rows( Device, Separator, RowCount, FieldCount, Acc ) ->
 
 						_OtherFieldCount ->
 							trace_utils:error_fmt(
-							  "Non matching line (row #~B): '~s'.",
+							  "Non matching line (row #~B): '~ts'.",
 							  [ RowCount, Line ] ),
 
 							throw( { non_uniform_field_count,
@@ -558,7 +558,7 @@ interpret_rows( Device, Separator, ExpectedFieldCount, MatchCount, UnmatchCount,
 
 		Line ->
 
-			%io:format( "Read line '~s'.", [ Line ] ),
+			%io:format( "Read line '~ts'.", [ Line ] ),
 
 			case parse_row( Line, Separator ) of
 
@@ -575,7 +575,7 @@ interpret_rows( Device, Separator, ExpectedFieldCount, MatchCount, UnmatchCount,
 				% Not matching:
 				{ Values, _OtherFieldCount } ->
 
-					%trace_utils:debug_fmt( "Read non-matching row:~n~s",
+					%trace_utils:debug_fmt( "Read non-matching row:~n~ts",
 					%					   [ Line ] ),
 
 					interpret_rows( Device, Separator, ExpectedFieldCount,
@@ -611,14 +611,14 @@ parse_row_no_separator( Line ) ->
 
 
 		[ $# | _ ] ->
-			%trace_utils:debug_fmt( "Dropped following comment: '~s'.",
+			%trace_utils:debug_fmt( "Dropped following comment: '~ts'.",
 			%					   [ Line ] ),
 			dropped;
 
 		_ ->
 			GuessedSep = guess_separator_from( TrimmedLine ),
 
-			%trace_utils:debug_fmt( "Guessed separator: '~s'.",
+			%trace_utils:debug_fmt( "Guessed separator: '~ts'.",
 			%					   [ [GuessedSep] ] ),
 
 			Values = parse_line( TrimmedLine, GuessedSep ),
@@ -645,7 +645,7 @@ parse_row( Line, Separator ) ->
 
 
 		[ $# | _ ] ->
-			%trace_utils:debug_fmt( "Dropped following comment: '~s'.",
+			%trace_utils:debug_fmt( "Dropped following comment: '~ts'.",
 			%					   [ Line ] ),
 			dropped;
 
@@ -720,7 +720,7 @@ get_usual_separators() ->
 % Determines the separator used in specified line.
 -spec guess_separator_from( line() ) -> separator().
 guess_separator_from( Line ) ->
-	%trace_utils:debug_fmt( "Guessing separator used in '~s'...", [ Line ] ),
+	%trace_utils:debug_fmt( "Guessing separator used in '~ts'...", [ Line ] ),
 	SepPairs = gather_potential_separators( Line ),
 	select_most_likely_separator( SepPairs ).
 
@@ -799,7 +799,7 @@ write_rows( _Content=[ Row | T ], Separator, File ) ->
 
 	Line = text_utils:join( Separator, Elems ),
 
-	file_utils:write( File, "~s~n", [ Line ] ),
+	file_utils:write_ustring( File, "~ts~n", [ Line ] ),
 
 	write_rows( T, Separator, File ).
 
@@ -809,7 +809,7 @@ write_rows( _Content=[ Row | T ], Separator, File ) ->
 -spec get_file_for_reading( file_utils:any_file_path() ) -> file_utils:file().
 get_file_for_reading( FilePath ) ->
 
-	%trace_utils:debug_fmt( "Opening '~s' with options ~w.",
+	%trace_utils:debug_fmt( "Opening '~ts' with options ~w.",
 	%					   [ FilePath, ?read_options ] ),
 
 	case file_utils:is_existing_file_or_link( FilePath ) of
@@ -837,5 +837,5 @@ get_file_for_reading( FilePath ) ->
 % Returns a textual representation of specified content.
 -spec content_to_string( content() ) -> text_utils:ustring().
 content_to_string( Content ) ->
-	text_utils:format( "content of ~B rows: ~s", [ length( Content ),
+	text_utils:format( "content of ~B rows: ~ts", [ length( Content ),
 					   text_utils:terms_to_enumerated_string( Content ) ] ).

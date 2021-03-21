@@ -42,7 +42,7 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	test_facilities:display( "SSH mute option: '~s'.",
+	test_facilities:display( "SSH mute option: '~ts'.",
 							 [ executable_utils:get_ssh_mute_option() ] ),
 
 	test_facilities:stop().

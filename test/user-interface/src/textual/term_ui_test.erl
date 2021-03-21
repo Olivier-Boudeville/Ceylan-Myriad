@@ -90,9 +90,7 @@ run_test_ui() ->
 
 	end,
 
-
-
-	trace_utils:debug_fmt( "UI state: ~s", [ term_ui:to_string() ] ),
+	trace_utils:debug_fmt( "UI state: ~ts", [ term_ui:to_string() ] ),
 
 	term_ui:stop().
 

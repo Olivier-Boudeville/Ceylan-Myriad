@@ -132,8 +132,8 @@
 -type byte_size() :: integer().
 
 
--opaque cpu_usage_info() :: { integer(), integer(), integer(), integer(),
-							  integer() }.
+-opaque cpu_usage_info() ::
+		  { integer(), integer(), integer(), integer(), integer() }.
 
 
 -type cpu_usage_percentages() :: { percent(), percent(), percent(), percent(),
@@ -170,10 +170,10 @@
 -record( fs_info, {
 
 		   % Device name (ex: /dev/sda5):
-		   filesystem :: file_utils:path(),
+		   filesystem :: directory_path(),
 
 		   % Mount point (ex: /boot):
-		   mount_point :: file_utils:path(),
+		   mount_point :: directory_path(),
 
 		   % Filesystem type (ex: 'ext4'):
 		   type :: filesystem_type(),
@@ -185,10 +185,10 @@
 		   available_size :: byte_size(),
 
 		   % Number of used inodes:
-		   used_inodes :: basic_utils:count(),
+		   used_inodes :: count(),
 
 		   % Number of available inodes:
-		   available_inodes :: basic_utils:count()
+		   available_inodes :: count()
 
 } ).
 
@@ -205,7 +205,7 @@
 % An option used to spawn a port (others managed through specific parameters):
 -type port_option() :: { 'packet', 1 | 2 | 4 }
 					 | 'stream'
-					 | { 'line', basic_utils:count() }.
+					 | { 'line', count() }.
 
 
 % Return the (positive integer) return code of an executable being run
@@ -213,7 +213,7 @@
 %
 % (0 means success, while a strictly positive value means error)
 %
--type return_code() :: basic_utils:count().
+-type return_code() :: count().
 
 
 % Output of the run of an executable:
@@ -463,7 +463,7 @@ get_user_home_directory() ->
 % Returns the home directory of the specified user, as a plain string.
 -spec get_user_home_directory( basic_utils:user_name() ) -> directory_path().
 get_user_home_directory( Username ) ->
-	text_utils:format( "/home/~s", [ Username ] ).
+	text_utils:format( "/home/~ts", [ Username ] ).
 
 
 
@@ -511,9 +511,9 @@ get_group_name() ->
 % Returns our default, recommended encoding, for example when needing to open a
 % file for writing.
 %
-% Note that if the 'raw' flag is included among opening flags, any specified
-% encoding might be ignored (ex: UTF8 being specified, whereas ISO/IEC 8859
-% being written).
+% See the notes in the 'Regarding encodings and Unicode' section of the
+% file_utils module, notably about the consequences of using the 'raw' flag
+% and/or specifying an encoding at file opening.
 %
 -spec get_default_encoding() -> encoding().
 get_default_encoding() ->
@@ -523,9 +523,9 @@ get_default_encoding() ->
 % Returns our default, recommended encoding option, for example when needing to
 % open a file for writing.
 %
-% Note that if the 'raw' flag is included among opening flags, any specified
-% encoding might be ignored (ex: UTF8 being specified, whereas ISO/IEC 8859
-% being written).
+% See the notes in the 'Regarding encodings and Unicode' section of the
+% file_utils module, notably about the consequences of using the 'raw' flag
+% and/or specifying an encoding at file opening.
 %
 -spec get_default_encoding_option() -> encoding_option().
 get_default_encoding_option() ->
@@ -736,8 +736,8 @@ run_executable( Command, Environment, MaybeWorkingDir ) ->
 					  [ port_option() ] ) -> execution_outcome().
 run_executable( Command, Environment, MaybeWorkingDir, PortOptions ) ->
 
-	%trace_utils:debug_fmt( "Running executable: '~s' with "
-	%	"~s from working directory '~s', with options ~w.",
+	%trace_utils:debug_fmt( "Running executable: '~ts' with "
+	%	"~ts from working directory '~ts', with options ~w.",
 	%	[ Command, environment_to_string( Environment ), MaybeWorkingDir,
 	%	  PortOptions ] ),
 
@@ -756,7 +756,7 @@ run_executable( Command, Environment, MaybeWorkingDir, PortOptions ) ->
 	% Not spawn_executable, so that command may include arguments:
 	Port = open_port( { spawn, Command }, PortOptsWithPath ),
 
-	%trace_utils:debug_fmt( "Spawned port ~p for command '~s'.",
+	%trace_utils:debug_fmt( "Spawned port ~p for command '~ts'.",
 	%					   [ Port, Command ] ),
 
 	read_port( Port, _Data=[] ).
@@ -862,7 +862,7 @@ get_line( Prompt, GetLineScriptPath ) ->
 	% Having the script display the prompt would not work, as that script would
 	% not be able to write to the standard input (1):
 	%
-	%Cmd = text_utils:format( "get-line-as-external-program.sh \"~s\" 1>&4",
+	%Cmd = text_utils:format( "get-line-as-external-program.sh \"~ts\" 1>&4",
 	%						 [ Prompt ] ),
 
 	io:format( Prompt ),
@@ -1024,8 +1024,8 @@ evaluate_shell_expression( Expression, Environment ) ->
 
 	FullExpression = get_actual_expression( Expression, Environment ),
 
-	%trace_utils:debug_fmt( "Evaluation shell expression '~s' "
-	%  "in ~s", [ FullExpression, environment_to_string( Environment ) ] ),
+	%trace_utils:debug_fmt( "Evaluation shell expression '~ts' "
+	%  "in ~ts", [ FullExpression, environment_to_string( Environment ) ] ),
 
 	% No return code available, success supposed:
 	text_utils:remove_ending_carriage_return( os:cmd( FullExpression ) ).
@@ -1114,8 +1114,8 @@ run_background_executable( ExecPath, Environment, MaybeWorkingDir ) ->
 run_background_executable( Command, Environment, MaybeWorkingDir,
 						   PortOptions ) ->
 
-	%trace_utils:debug_fmt( "Running executable '~s' with ~s "
-	%   "from working directory '~s', with options ~p.",
+	%trace_utils:debug_fmt( "Running executable '~ts' with ~ts "
+	%   "from working directory '~ts', with options ~p.",
 	%   [ ExecPath, environment_to_string( Environment ), MaybeWorkingDir,
 	%     PortOptions ] ),
 
@@ -1158,7 +1158,7 @@ evaluate_background_shell_expression( Expression, Environment ) ->
 	FullExpression = get_actual_expression( Expression, Environment ),
 
 	%trace_utils:debug_fmt(
-	%  "Evaluating in the background following shell expression: '~s'.",
+	%  "Evaluating in the background following shell expression: '~ts'.",
 	%  [ FullExpression ] ),
 
 	os:cmd( FullExpression ++ " &" ).
@@ -1186,7 +1186,7 @@ get_environment_prefix( Environment ) ->
 
 							end,
 
-							io_lib:format( "~s=~s", [ Name, ActualValue ] )
+							io_lib:format( "~ts=~ts", [ Name, ActualValue ] )
 
 						end || { Name, Value } <- Environment ],
 
@@ -1225,7 +1225,7 @@ get_environment_variable( VarName ) ->
 set_environment_variable( VarName, VarValue ) ->
 
 	% Hopefully a string or 'false':
-	%trace_utils:debug_fmt( "Setting environment variable '~s' to '~s'.",
+	%trace_utils:debug_fmt( "Setting environment variable '~ts' to '~ts'.",
 	%					   [ VarName, VarValue ] ),
 
 	os:putenv( VarName, VarValue ).
@@ -1370,7 +1370,7 @@ environment_to_string( Environment ) ->
 							   end,
 							   Environment ),
 
-	VariableStrings = [ text_utils:format( "~s = ~s", [ Name, Value ] )
+	VariableStrings = [ text_utils:format( "~ts = ~ts", [ Name, Value ] )
 						|| { Name, Value } <- SetVars ],
 
 	FinalVariableStrings = case UnsetVars of
@@ -1650,7 +1650,7 @@ interpret_byte_size_with_unit( Size ) ->
 %
 -spec convert_byte_size_with_unit( byte_size() ) ->
 	{ 'byte', integer() } | { 'kib', float() } | { 'mib', float() }
-											 | { 'gib', float() }.
+  | { 'gib', float() }.
 convert_byte_size_with_unit( SizeInBytes ) ->
 
 	Kilo = 1024,
@@ -1699,11 +1699,11 @@ display_memory_summary() ->
 
 	Sum = SysSize + ProcSize,
 
-	io:format( "  - system size: ~s (~s)~n",
+	io:format( "  - system size: ~ts (~ts)~n",
 			  [ interpret_byte_size_with_unit( SysSize ),
 				text_utils:percent_to_string( SysSize / Sum ) ] ),
 
-	io:format( "  - process size: ~s (~s)~n",
+	io:format( "  - process size: ~ts (~ts)~n",
 			  [ interpret_byte_size_with_unit( ProcSize ),
 				text_utils:percent_to_string( ProcSize / Sum ) ] ).
 
@@ -1962,7 +1962,8 @@ get_ram_status_string() ->
 				"total RAM size could not be obtained (found null)";
 
 			{ UsedRAM, TotalRAM } ->
-				io_lib:format( "RAM memory used: ~s, over a total of ~s (~s)",
+				io_lib:format( "RAM memory used: ~ts, "
+					"over a total of ~ts (~ts)",
 					[ interpret_byte_size( UsedRAM ),
 					  interpret_byte_size( TotalRAM ),
 					  text_utils:percent_to_string( UsedRAM / TotalRAM ) ] )
@@ -2043,7 +2044,7 @@ get_swap_status_string() ->
 				"no swap found";
 
 			{ UsedSwap, TotalSwap } ->
-				io_lib:format( "swap used: ~s over a total of ~s (~s)",
+				io_lib:format( "swap used: ~ts over a total of ~ts (~ts)",
 					[ interpret_byte_size( UsedSwap ),
 					  interpret_byte_size( TotalSwap ),
 					  text_utils:percent_to_string( UsedSwap / TotalSwap ) ] )
@@ -2064,7 +2065,7 @@ get_swap_status_string() ->
 %
 % Throws an exception on failure.
 %
--spec get_core_count() -> integer().
+-spec get_core_count() -> count().
 get_core_count() ->
 
 	CoreString = case run_executable(
@@ -2341,7 +2342,7 @@ get_known_pseudo_filesystems() ->
 % Returns a list of the current, local mount points (excluding the
 % pseudo-filesystems).
 %
--spec get_mount_points() -> [ file_utils:path() ].
+-spec get_mount_points() -> [ directory_path() ].
 get_mount_points() ->
 
 	FirstCmd = ?df "-h --local --output=target"
@@ -2387,8 +2388,7 @@ get_exclude_pseudo_fs_opt() ->
 
 
 % Returns information about the specified filesystem.
--spec get_filesystem_info( file_utils:bin_path() | file_utils:path() ) ->
-								 fs_info().
+-spec get_filesystem_info( any_directory_path() ) -> fs_info().
 get_filesystem_info( BinFilesystemPath ) when is_binary( BinFilesystemPath ) ->
 	get_filesystem_info( text_utils:binary_to_string( BinFilesystemPath ) );
 
@@ -2502,10 +2502,10 @@ filesystem_info_to_string( #fs_info{ filesystem=Fs, mount_point=Mount,
 
 	end,
 
-	text_utils:format( "filesystem ~s mounted on ~s (type: ~s). "
-		"Used size: ~B bytes (i.e. ~s), available size: "
-		"~B bytes (i.e. ~s) hence used at ~.1f% (total size: ~s), "
-		"using ~B inodes and having ~B of them available~s",
+	text_utils:format( "filesystem ~ts mounted on ~ts (type: ~ts). "
+		"Used size: ~B bytes (i.e. ~ts), available size: "
+		"~B bytes (i.e. ~ts) hence used at ~.1f% (total size: ~ts), "
+		"using ~B inodes and having ~B of them available~ts",
 		[ Fs, Mount, Type, USize, interpret_byte_size_with_unit( USize ),
 		  ASize, interpret_byte_size_with_unit( ASize ),
 		  100 * USize / ( USize + ASize ),
@@ -2658,7 +2658,7 @@ get_operating_system_description_string() ->
 -spec get_system_description() -> ustring().
 get_system_description() ->
 
-	% We use ~ts instead of ~s as in some cases, Unicode strings might be
+	% We use ~ts instead of ~ts as in some cases, Unicode strings might be
 	% returned:
 	%
 	Subjects = [ get_core_count_string(),
@@ -2753,13 +2753,13 @@ get_dependency_base_directory( PackageName="ErlPort" ) ->
 
 				true ->
 					trace_utils:debug_fmt( "Using default Erlport directory "
-										   "'~s'.", [ DefaultDir ] ),
+										   "'~ts'.", [ DefaultDir ] ),
 					DefaultDir;
 
 				false ->
 					trace_utils:error_fmt( "No Erlport installation found: the "
 						"ERLPORT_BASE_DIR environment variable is not defined, "
-						"and the default directory ('~s') does not exist.",
+						"and the default directory ('~ts') does not exist.",
 						[ DefaultDir ] ),
 
 					throw( { erlport_default_directory_not_found, DefaultDir } )
@@ -2776,13 +2776,14 @@ get_dependency_base_directory( PackageName="ErlPort" ) ->
 						true ->
 							trace_utils:debug_fmt( "Using the Erlport "
 								"directory specified in the ERLPORT_BASE_DIR "
-								"environment variable: '~s'.", [ EnvDir ] ),
+								"environment variable: '~ts'.", [ EnvDir ] ),
 							EnvDir;
 
 						false ->
 							trace_utils:error_fmt( "The Erlport directory "
 								"specified in the ERLPORT_BASE_DIR environment "
-								"variable ('~s') does not exist.", [ EnvDir ] ),
+								"variable ('~ts') does not exist.",
+								[ EnvDir ] ),
 
 							throw( { erlport_specified_directory_not_found,
 									 EnvDir } )
@@ -2792,7 +2793,7 @@ get_dependency_base_directory( PackageName="ErlPort" ) ->
 				_ ->
 					trace_utils:error_fmt( "The Erlport directory "
 						"specified in the ERLPORT_BASE_DIR environment "
-						"variable ('~s') does not end with 'erlport'.",
+						"variable ('~ts') does not end with 'erlport'.",
 						[ EnvDir ] ),
 					throw( { invalid_erlport_specified_directory, EnvDir } )
 
@@ -2817,8 +2818,7 @@ get_dependency_base_directory( PackageName ) ->
 % Returns the (expected, conventional) code installation directory of the
 % specified third-party, prerequisite, Erlang package (ex: "Foobar").
 %
--spec get_dependency_code_directory( package_name() ) ->
-										   directory_path().
+-spec get_dependency_code_directory( package_name() ) -> directory_path().
 get_dependency_code_directory( PackageName ) ->
 
 	% We would expect here

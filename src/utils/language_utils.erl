@@ -74,6 +74,11 @@
 
 
 
+% Shorthands:
+-type ustring() :: text_utils:ustring().
+-type directory_path() :: file_utils:directory_path().
+
+
 % Returns a list of the supported foreign (non-native, i.e. non-Erlang)
 % programming languages.
 %
@@ -91,14 +96,14 @@ get_supported_languages() ->
 
 
 % Returns a string describing the specified language.
--spec language_to_string( language() ) -> string().
+-spec language_to_string( language() ) -> ustring().
 language_to_string( Language ) ->
 	language_to_string( Language, _IndentationLevel=0 ).
 
 
 % Returns a string describing the specified language.
 -spec language_to_string( language(), text_utils:indentation_level() ) ->
-								string().
+								ustring().
 language_to_string( erlang, _IndentationLevel ) ->
 	"Erlang";
 
@@ -113,9 +118,9 @@ language_to_string( Language, _IndentationLevel ) when is_atom( Language ) ->
 
 language_to_string( { Language, CodePath }, IndentationLevel )
   when is_atom( Language ) andalso is_list( CodePath ) ->
-	text_utils:format( "~s, with following code path: ~s",
-		   [ language_to_string( Language ),
-			 text_utils:strings_to_string( CodePath, IndentationLevel+1 ) ] );
+	text_utils:format( "~ts, with following code path: ~ts",
+		[ language_to_string( Language ),
+		  text_utils:strings_to_string( CodePath, IndentationLevel+1 ) ] );
 
 language_to_string( LanguageInvalidArg, _IndentationLevel ) ->
 	throw( { invalid_language_specification, LanguageInvalidArg } ).
@@ -126,7 +131,7 @@ language_to_string( LanguageInvalidArg, _IndentationLevel ) ->
 % language bindings.
 %
 -spec get_additional_beam_directories_for( [ language() ] ) ->
-											 [ file_utils:directory_name() ].
+												[ directory_path() ].
 get_additional_beam_directories_for( Languages ) ->
 	get_additional_beam_directories_for( Languages, _Acc=[] ).
 

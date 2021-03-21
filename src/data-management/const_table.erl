@@ -86,7 +86,7 @@
 -spec generate( basic_utils:module_name(), table:table() ) -> void().
 generate( ModuleName, Table ) ->
 
-	%io:format( "Generating pseudo-module '~s' from following table:~n~s~n",
+	%io:format( "Generating pseudo-module '~ts' from following table:~n~ts~n",
 	%		   [ ModuleName, table:to_string( Table ) ] ),
 
 	% Just a name, not any actual file:
@@ -124,7 +124,6 @@ generate( ModuleName, Table ) ->
 
 
 % Generates the forms corresponding to specified entries and module.
-%
 generate_forms( ModuleName, Entries ) ->
 
 	Line = 0,
@@ -137,7 +136,6 @@ generate_forms( ModuleName, Entries ) ->
 
 
 % Generates the forms corresponding to 'foo() -> 42.0':
-%
 generate_fun_forms( _Entries=[], _Line, AccForms ) ->
 	AccForms;
 

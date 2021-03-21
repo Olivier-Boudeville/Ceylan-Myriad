@@ -51,7 +51,7 @@ test_basic_message_display() ->
 
 	Message = "It has been a long time, dear master.",
 
-	ui:display( "The UI service greets you.~n~s", [ Message ] ),
+	ui:display( "The UI service greets you.~n~ts", [ Message ] ),
 
 	ui:unset_settings( [ title, backtitle ] ).
 
@@ -114,8 +114,8 @@ run() ->
 	case executable_utils:is_batch() of
 
 		true ->
-			test_facilities:display( "(not running the ui test, "
-									 "being in batch mode)" );
+			test_facilities:display(
+			  "(not running the ui test, being in batch mode)" );
 
 		false ->
 			run_test_ui()

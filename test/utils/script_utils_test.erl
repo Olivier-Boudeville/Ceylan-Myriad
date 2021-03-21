@@ -45,10 +45,10 @@ run() ->
 
 	false = script_utils:is_running_as_escript(),
 
-	test_facilities:display( "Root of Myriad is: ~s",
+	test_facilities:display( "Root of Myriad is: ~ts",
 							 [ script_utils:get_myriad_base_directory() ] ),
 
-	test_facilities:display( "Script directory is: ~s",
+	test_facilities:display( "Script directory is: ~ts",
 							 [ script_utils:get_script_base_directory() ] ),
 
 	ArgString = "foo -color red white -bar baz -boom -color blue",
@@ -60,7 +60,7 @@ run() ->
 		shell_utils:get_argument_table_from_strings( CommandLineArgs ),
 
 	test_facilities:display( "Command-line interpretation follows, for "
-							 "command-line arguments '~s': ~s",
+							 "command-line arguments '~ts': ~ts",
 		 [ ArgString,
 		   shell_utils:argument_table_to_string( CanonicalArgTables ) ] ),
 

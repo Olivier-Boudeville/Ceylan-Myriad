@@ -72,7 +72,7 @@
 
 
 % A unitary value specified in link to a command-line option:
--type command_line_value() :: text_utils:ustring().
+-type command_line_value() :: text_utils:uustring().
 
 
 % The command-line values specified after an occurrence of a given option (ex:
@@ -121,7 +121,7 @@
 %     ?no_option_key -> [ "some_value" ]
 %
 -type argument_table() ::
-		?arg_table:?arg_table( command_line_option(), [ command_line_values() ] ).
+	?arg_table:?arg_table( command_line_option(), [ command_line_values() ] ).
 
 
 % A table associating to a given option a (single) list of values (thus not
@@ -142,7 +142,7 @@
 
 
 % Non-null expected (otherwise meaningless):
--type actual_value_count() :: basic_utils:count().
+-type actual_value_count() :: count().
 
 
 % How many values (possibly any number thereof - possibly none) are expected
@@ -193,6 +193,11 @@
 		  argument_table_to_string/1 ]).
 
 
+% Shorthands:
+-type count() :: basic_utils:count().
+-type ustring() :: text_utils:ustring().
+
+
 
 % Section for command-line facilities.
 
@@ -200,7 +205,7 @@
 % Protects specified argument from shell parsing, typically if specifying a
 % filename including a single quote.
 %
--spec protect_from_shell( text_utils:ustring() ) -> text_utils:ustring().
+-spec protect_from_shell( ustring() ) -> ustring().
 protect_from_shell( ArgumentString ) ->
 
 	% Not sufficient (ex: "echo 'aaa\'bbb'"):
@@ -269,8 +274,7 @@ get_argument_table() ->
 %
 % Note: switches to the Unicode encoding (ex: use "~tp" then).
 %
--spec get_argument_table_from_strings( [ string() ] ) ->
-											 argument_table().
+-spec get_argument_table_from_strings( [ ustring() ] ) -> argument_table().
 get_argument_table_from_strings( ArgStrings ) ->
 
 	%trace_utils:debug_fmt( "Creating argument table from: ~p.",
@@ -308,7 +312,7 @@ get_arguments_from_strings( Args, OptionTable ) ->
 	%
 
 	% Used to be dropped:
-	%trace_utils:warning_fmt( "Dropping non-option initial argument '~s'.",
+	%trace_utils:warning_fmt( "Dropping non-option initial argument '~ts'.",
 	%						 [ Dropped ] ),
 
 	%code_utils:display_stacktrace(),
@@ -385,7 +389,7 @@ collect_values_for_option( _Args=[ OptValue | T ], AccValues ) ->
 %
 % Note: useful for testing, to introduce specific command lines.
 %
--spec generate_argument_table( string() ) -> argument_table().
+-spec generate_argument_table( ustring() ) -> argument_table().
 generate_argument_table( ArgString ) ->
 
 	CommandLineArgs =
@@ -404,7 +408,7 @@ generate_argument_table( ArgString ) ->
 % more relevant to use.
 %
 -spec get_command_arguments_for_option( command_line_option() ) ->
-								  maybe( [ command_line_values() ] ).
+									maybe( [ command_line_values() ] ).
 get_command_arguments_for_option( Option ) ->
 
 	ArgumentTable = get_argument_table(),
@@ -465,8 +469,9 @@ extract_command_arguments_for_option( Option ) ->
 % specified table, whereas a value set to [ [] ] means that this option is in
 % the table, yet that no parameter has been specified for it.
 %
--spec extract_command_arguments_for_option( command_line_option(), argument_table() ) ->
-			  { maybe( [ command_line_values() ] ), argument_table() }.
+-spec extract_command_arguments_for_option( command_line_option(),
+											argument_table() ) ->
+				{ maybe( [ command_line_values() ] ), argument_table() }.
 extract_command_arguments_for_option( Option, ArgumentTable ) ->
 	?arg_table:extract_entry_with_defaults( _K=Option, _DefaultValue=undefined,
 											ArgumentTable ).
@@ -501,7 +506,7 @@ extract_optionless_command_arguments() ->
 % the table, yet that no parameter has been specified for it.
 %
 -spec extract_optionless_command_arguments( argument_table() ) ->
-			  { maybe( [ command_line_values() ] ), argument_table() }.
+				{ maybe( [ command_line_values() ] ), argument_table() }.
 extract_optionless_command_arguments( ArgumentTable ) ->
 
 	%trace_utils:debug_fmt( "ArgumentTable: ~p.", [ ArgumentTable ] ),
@@ -654,7 +659,7 @@ sort_arguments( OptionlessSpec, _OptionSpecs=[], UniqArgTable, AccTable ) ->
 											 AccTable );
 
 		false ->
-			trace_utils:error_fmt( "Unexpected argument(s), with extra ~s",
+			trace_utils:error_fmt( "Unexpected argument(s), with extra ~ts",
 				[ argument_table_to_string( ShrunkArgTable ) ] ),
 			throw( { unexpected_command_line_arguments,
 					 ?arg_table:enumerate( ShrunkArgTable ) } )
@@ -709,10 +714,12 @@ sort_arguments( OptionlessSpec,
 													  AccTable );
 
 						false ->
+
 							trace_utils:error_fmt( "For command-line option "
-								"'-~s', at least ~B values were expected, "
+								"'-~ts', at least ~B values were expected, "
 								"whereas only ~B (i.e. ~p) were specified.",
 								[ Opt, MinCount, VCount, ValueList ] ),
+
 							throw( { not_enough_values_for_option, Opt,
 							  { min, MinCount }, { got, VCount, ValueList } } )
 
@@ -725,7 +732,7 @@ sort_arguments( OptionlessSpec,
 					% (beyond MaxCount; hopefully we kept exactly the right
 					% ones) are actually unrelated, option-less ones:
 
-					%trace_utils:error_fmt( "For command-line option '-~s', "
+					%trace_utils:error_fmt( "For command-line option '-~ts', "
 					%	"at most ~B values were expected, whereas ~B "
 					%	"(i.e. ~p) were specified.",
 					%	[ Opt, MaxCount, VCount, ValueList ] ),
@@ -756,7 +763,7 @@ sort_arguments( OptionlessSpec,
 					{ AccTable, UniqArgTable };
 
 				_ ->
-					trace_utils:error_fmt( "For command-line option '-~s', "
+					trace_utils:error_fmt( "For command-line option '-~ts', "
 						"at least ~B values were expected, whereas none was "
 						"specified.", [ Opt, MinCount ] ),
 
@@ -787,7 +794,7 @@ sort_arguments( OptionlessSpec, _OptionSpecs=[ { Opt, ExactCount } | T ],
 					?arg_table:add_new_entry( Opt, ValueList, AccTable );
 
 				OtherCount when OtherCount > ExactCount ->
-					%trace_utils:error_fmt( "For command-line option '-~s', "
+					%trace_utils:error_fmt( "For command-line option '-~ts', "
 					%	"exactly ~B values were expected, whereas ~B "
 					%	"(i.e. ~p) were specified.",
 					%	[ Opt, ExactCount, OtherCount, ValueList ] ),
@@ -813,7 +820,7 @@ sort_arguments( OptionlessSpec, _OptionSpecs=[ { Opt, ExactCount } | T ],
 
 
 				OtherCount -> % when OtherCount < ExactCount ->
-					trace_utils:error_fmt( "For command-line option '-~s', "
+					trace_utils:error_fmt( "For command-line option '-~ts', "
 						"exactly ~B values were expected, whereas only ~B "
 						"(i.e. ~p) were specified.",
 						[ Opt, ExactCount, OtherCount, ValueList ] ),
@@ -833,7 +840,7 @@ sort_arguments( OptionlessSpec, _OptionSpecs=[ { Opt, ExactCount } | T ],
 					{ AccTable, UniqArgTable };
 
 				_ ->
-					trace_utils:error_fmt( "For command-line option '-~s', "
+					trace_utils:error_fmt( "For command-line option '-~ts', "
 						"exactly ~B values were expected, whereas none was "
 						"specified.", [ Opt, ExactCount ] ),
 					throw( { no_value_for_option, Opt,
@@ -853,7 +860,7 @@ sort_arguments( _OptionlessSpec, _OptionSpecs=[ { Opt, VCount } | _T ],
 
 
 % Returns a textual representation of the specified argument table.
--spec argument_table_to_string( argument_table() ) -> string().
+-spec argument_table_to_string( argument_table() ) -> ustring().
 argument_table_to_string( ArgTable ) ->
 
 	% No-op:
@@ -867,7 +874,7 @@ argument_table_to_string( ArgTable ) ->
 						   || { Option, ArgumentLists } <- ArgPairs ],
 
 			text_utils:format( "~B command-line element(s) specified "
-				"(ordered alphabetically): ~s", [ length( ArgPairs ),
+				"(ordered alphabetically): ~ts", [ length( ArgPairs ),
 						 text_utils:strings_to_sorted_string( ArgStrings ) ] )
 
 	end.
@@ -879,8 +886,8 @@ option_pair_to_string( _Option=?no_option_key, [ Arguments ] ) ->
 
 option_pair_to_string( Option, _ArgumentLists=[ [] ] ) ->
 	% No value:
-	text_utils:format( "option '-~s'", [ Option ] );
+	text_utils:format( "option '-~ts'", [ Option ] );
 
 option_pair_to_string( Option, ArgumentLists ) ->
-	text_utils:format( "option '-~s', with argument lists: ~p",
+	text_utils:format( "option '-~ts', with argument lists: ~p",
 					   [ Option, ArgumentLists ] ).

@@ -69,23 +69,26 @@ run() ->
 	MyH3 = map_hashtable:add_entry( ?MyFirstKey, MyFirstValue, MyH2 ),
 	false = map_hashtable:is_empty( MyH3 ),
 
-	_MyUpdatedH3 = map_hashtable:update_entry( ?MyFirstKey, MyFirstValue, MyH3 ),
+	_MyUpdatedH3 = 
+		map_hashtable:update_entry( ?MyFirstKey, MyFirstValue, MyH3 ),
 
 	MySecondValue = [ 1, 2, 3 ],
 	MyH4 = map_hashtable:add_entry( ?MySecondKey, MySecondValue, MyH3 ),
 	false = map_hashtable:is_empty( MyH4 ),
 
-	MyUpdatedH4 = map_hashtable:update_entry( ?MySecondKey, MyFirstValue, MyH4 ),
+	MyUpdatedH4 = map_hashtable:update_entry( ?MySecondKey, MyFirstValue, 
+											  MyH4 ),
+
 	MyFirstValue = map_hashtable:get_value( ?MySecondKey, MyUpdatedH4 ),
 
 
 	map_hashtable:display( "The map hashtable", MyH4 ),
 
 	MyH4Size = map_hashtable:size( MyH4 ),
-	test_facilities:display( "Size of table '~s': ~B entries",
+	test_facilities:display( "Size of table '~ts': ~B entries",
 							 [ map_hashtable:to_string( MyH4 ), MyH4Size ] ),
 
-	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
+	test_facilities:display( "Looking up for ~ts: ~p", [ ?MyFirstKey,
 			map_hashtable:lookup_entry( ?MyFirstKey, MyH4 ) ] ),
 
 	{ value, MyFirstValue } = map_hashtable:lookup_entry( ?MyFirstKey, MyH4 ),
@@ -98,7 +101,7 @@ run() ->
 							 "the same initial table." ),
 	{ MyFirstValue, MyH5 } = map_hashtable:extract_entry( ?MyFirstKey, MyH4 ),
 
-	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
+	test_facilities:display( "Looking up for ~ts: ~p", [ ?MyFirstKey,
 		map_hashtable:lookup_entry( ?MyFirstKey, MyH5 ) ] ),
 
 	key_not_found = map_hashtable:lookup_entry( ?MyFirstKey, MyH5 ),
@@ -111,17 +114,16 @@ run() ->
 	{ [ MyFirstValue, MySecondValue ], EmptyTable } =
 		map_hashtable:extract_entries( [ ?MyFirstKey, ?MySecondKey ], MyH4 ),
 
-	% remove_entry can also be used if the specified key is not here, will return
-	% an identical table.
+	% remove_entry can also be used if the specified key is not here, will
+	% return an identical table.
 
 	MyHRemoved = map_hashtable:remove_existing_entries(
-				   [ ?MyFirstKey, ?MySecondKey ], MyH4 ),
+				    [ ?MyFirstKey, ?MySecondKey ], MyH4 ),
 
 	true = map_hashtable:is_empty( MyHRemoved ),
 
 	% Should not fail:
-	_ = map_hashtable:remove_entries(
-				   [ ?MyFirstKey, ?MyThirdKey ], MyH4 ),
+	_ = map_hashtable:remove_entries( [ ?MyFirstKey, ?MyThirdKey ], MyH4 ),
 
 	map_hashtable:display( MyH5 ),
 	test_facilities:display( "Testing double key registering." ),
@@ -145,10 +147,10 @@ run() ->
 	MyH7 = map_hashtable:append_to_entry( ?MyFourthKey, first_element, MyH5 ),
 
 	MyH8 = map_hashtable:append_to_existing_entry( ?MyFourthKey, second_element,
-												 MyH7 ),
+												   MyH7 ),
 
 	MyH9 = map_hashtable:append_list_to_existing_entry( ?MyFourthKey,
-								 [ third_element, fourth_element ], MyH8 ),
+								[ third_element, fourth_element ], MyH8 ),
 
 	map_hashtable:display( MyH9 ),
 
@@ -157,7 +159,7 @@ run() ->
 				[ { ?MyFourthKey, [ last_element ] },
 				  { ?MyFifthKey, [ some_element ] } ], MyH9 ),
 
-	test_facilities:display( "Listing a concatenated table: ~s",
+	test_facilities:display( "Listing a concatenated table: ~ts",
 							 [ map_hashtable:to_string( MyH10 ) ] ),
 
 	test_facilities:display( "Applying a fun to all values of "
@@ -189,7 +191,7 @@ run() ->
 							 "count the number of entries." ),
 
 	FunCount = fun( _Entry, AccCount ) ->
-					   AccCount + 1
+					AccCount + 1
 			   end,
 
 	2 = map_hashtable:fold_on_entries( FunCount, _InitialCount=0, MyH4 ),
@@ -202,11 +204,11 @@ run() ->
 
 	MyH11 = map_hashtable:add_entry( ?MyThirdKey, 3, MyH6 ),
 
-	% MyH8 should have { AnotherKey, [1,2,3] } and { ?MyThirdKey, 3 }:
+	% MyH8 should have {AnotherKey, [1,2,3]} and {?MyThirdKey, 3}:
 	MyH12 = map_hashtable:merge( MyH4, MyH11 ),
 
 	% Any optimisation would be automatic:
-	test_facilities:display( "Merged table: ~s.",
+	test_facilities:display( "Merged table: ~ts.",
 							 [ map_hashtable:to_string( MyH12 ) ] ),
 
 	MyH13 = map_hashtable:new(),

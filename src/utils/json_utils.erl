@@ -175,6 +175,7 @@
 
 -type ustring() :: text_utils:ustring().
 -type any_file_path() :: file_utils:any_file_path().
+-type directory_path() :: file_utils:directory_path().
 
 
 
@@ -187,7 +188,7 @@ start_parser() ->
 
 	ParserName = get_available_parser_backend_name(),
 
-	%trace_utils:info_fmt( "Selected JSON parser: '~s'.", [ ParserName ] ),
+	%trace_utils:info_fmt( "Selected JSON parser: '~ts'.", [ ParserName ] ),
 
 	start_parser( ParserName ).
 
@@ -237,7 +238,7 @@ get_parser_backend_name() ->
 
 					[ _JiffyPath ] ->
 						%trace_utils:debug_fmt( "Selected JSON parser is "
-						%	"Jiffy, in '~s'.", [ JiffyPath ] ),
+						%	"Jiffy, in '~ts'.", [ JiffyPath ] ),
 						jiffy ;
 
 					JiffyPaths ->
@@ -247,7 +248,7 @@ get_parser_backend_name() ->
 				end;
 
 		[ _JsxPath ] ->
-			%trace_utils:debug_fmt( "Selected JSON parser is JSX, in '~s'.",
+			%trace_utils:debug_fmt( "Selected JSON parser is JSX, in '~ts'.",
 			%					   [ JsxPath ] ),
 			jsx ;
 
@@ -292,7 +293,7 @@ is_parser_available( { _ParserBackendName, _MaybeInternalState } ) ->
 % Useful for testing for example.
 %
 -spec is_parser_backend_available( parser_backend_name() ) ->
-										 'false' | [ file_utils:path() ].
+										'false' | [ directory_path() ].
 is_parser_backend_available( BackendName ) ->
 
 	case code_utils:is_beam_in_path( BackendName ) of
@@ -333,7 +334,7 @@ get_available_parser_backend_name() ->
 			throw( no_json_parser_backend_found );
 
 		ParserName ->
-			%trace_utils:info_fmt( "Selected JSON parser: ~s.",
+			%trace_utils:info_fmt( "Selected JSON parser: ~ts.",
 			%					   ParserName ] ),
 			ParserName
 
@@ -370,7 +371,7 @@ check_parser_operational( ParserState={ jsx, _InternalBackendState } ) ->
 
 		error:undef ->
 			trace_utils:error_fmt(
-			  "The JSX JSON parser is not operational.~n~s",
+			  "The JSX JSON parser is not operational.~n~ts",
 			  [ system_utils:get_json_unavailability_hint( jsx ) ] ),
 			throw( { json_parser_not_operational, jsx } );
 
@@ -395,7 +396,7 @@ check_parser_operational( ParserState={ jiffy, _InternalBackendState } ) ->
 
 		error:undef ->
 			trace_utils:error_fmt(
-			  "The Jiffy JSON parser is not operational.~n~s",
+			  "The Jiffy JSON parser is not operational.~n~ts",
 			  [ system_utils:get_json_unavailability_hint( jiffy ) ] ),
 			throw( { json_parser_not_operational, jiffy } );
 
@@ -464,7 +465,7 @@ to_json( Term, _ParserState={ jiffy, _UndefinedInternalBackendState } ) ->
 
 % Returns the default options for the JSON encoding.
 -spec get_base_json_encoding_options( parser_backend_name() ) ->
-											   [ json_encoding_option() ].
+												[ json_encoding_option() ].
 get_base_json_encoding_options( _BackendName=jsx ) ->
 	[];
 
@@ -543,7 +544,7 @@ from_json( Json, _ParserState={ jiffy, _UndefinedInternalBackendState } ) ->
 
 % Returns the default options for the JSON decoding.
 -spec get_base_json_decoding_options( parser_backend_name() ) ->
-											   [ json_decoding_option() ].
+												[ json_decoding_option() ].
 get_base_json_decoding_options( _BackendName=jsx ) ->
 	% We used to prefer {state,<<"PUBLISHED">>} to
 	% {<<"state">>,<<"PUBLISHED">>}, yet for compatibility with jiffy we stick

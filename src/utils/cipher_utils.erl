@@ -112,28 +112,24 @@
 -type offset_transform() :: { 'offset', integer() }.
 
 
--type compress_transform() :: { 'compress', file_utils:compression_format() }.
+-type compress_transform() :: { 'compress', compression_format() }.
 
--type decompress_transform() :: { 'decompress',
-								  file_utils:compression_format() }.
+-type decompress_transform() :: { 'decompress', compression_format() }.
 
 
--type insert_random_transform() :: { 'insert_random', random_utils:seed(),
-									 basic_utils:count() }.
+-type insert_random_transform() :: { 'insert_random', seed(), count() }.
 
--type extract_random_transform() :: { 'extract_random', random_utils:seed(),
-									  basic_utils:count() }.
+-type extract_random_transform() :: { 'extract_random', seed(), count() }.
 
 
 -type delta_combine_transform() :: 'delta_combine'.
 -type delta_combine_reverse_transform() :: 'delta_combine_reverse'.
 
 
--type shuffle_transform() :: { 'shuffle', random_utils:seed(),
-							   basic_utils:count() }.
+-type shuffle_transform() :: { 'shuffle', seed(), count() }.
 
--type reciprocal_shuffle_transform() :: { 'reciprocal_shuffle',
-					   random_utils:seed(), basic_utils:count() }.
+-type reciprocal_shuffle_transform() ::
+		{ 'reciprocal_shuffle', seed(), count() }.
 
 
 -type xor_transform() :: { 'xor', [ integer() ] }.
@@ -143,7 +139,7 @@
 % Mealy transform section.
 
 % Designates a state of the Mealy machine, starting from 1:
--type state() :: integer().
+-type state() :: pos_integer().
 
 
 % A letter (of both alphabets, i.e. input and output):
@@ -166,7 +162,7 @@
 % the states of the Machine (in [1,StateCount]) and second is the input alphabet
 % (here letters are bytes, in [0,255]).
 %
-% Each cell is a { NextState, OutputLetter } pair.
+% Each cell is a {NextState, OutputLetter} pair.
 %
 % The Mealy table is implemented (easier to build) as a fixed-size array, one
 % element per possible state (corresponding to a column of the 2D array).
@@ -180,30 +176,28 @@
 
 
 % A state is defined by a strictly positive integer:
--type mealy_state() :: integer().
+-type mealy_state() :: pos_integer().
 
 
 -type mealy_transform() :: { 'mealy', mealy_state(), mealy_table() }.
 
 
 
--type cipher_transform() ::
-					 id_transform()
-				   | offset_transform()
-				   | compress_transform()
-				   | insert_random_transform()
-				   | delta_combine_transform()
-				   | shuffle_transform()
-				   | xor_transform()
-				   | mealy_transform().
+-type cipher_transform() :: id_transform()
+						  | offset_transform()
+						  | compress_transform()
+						  | insert_random_transform()
+						  | delta_combine_transform()
+						  | shuffle_transform()
+						  | xor_transform()
+						  | mealy_transform().
 
 
 % For ciphers which require specific reverse transformations:
--type decipher_transform() ::
-					 decompress_transform()
-				   | extract_random_transform()
-				   | delta_combine_reverse_transform()
-				   | reciprocal_shuffle_transform().
+-type decipher_transform() :: decompress_transform()
+							| extract_random_transform()
+							| delta_combine_reverse_transform()
+							| reciprocal_shuffle_transform().
 
 
 -type any_transform() :: cipher_transform() | decipher_transform().
@@ -220,32 +214,45 @@
 
 
 
--spec generate_key( file_utils:file_name(), [ cipher_transform() ] ) -> void().
-generate_key( KeyFilename, Transforms ) ->
+% Shorthands:
 
-	case file_utils:exists( KeyFilename ) of
+-type count() :: basic_utils:count().
+
+-type ustring() :: text_utils:ustring().
+
+-type seed() :: random_utils:seed().
+
+-type compression_format() :: file_utils:compression_format().
+-type file_path() :: file_utils:file_path().
+
+
+
+% Generates a key file.
+-spec generate_key( file_path(), [ cipher_transform() ] ) -> void().
+generate_key( KeyFilePath, Transforms ) ->
+
+	case file_utils:exists( KeyFilePath ) of
 
 		true ->
-			throw( { already_existing_key_file, KeyFilename } );
+			throw( { already_existing_key_file, KeyFilePath } );
 
 		false ->
 			ok
 
 	end,
 
-	KeyFile = file_utils:open( KeyFilename, _Opts=[ write, raw,
-				  file_utils:get_default_encoding_option() ] ),
+	KeyFile = file_utils:open( KeyFilePath,
+			_Opts=[ write, raw, file_utils:get_default_encoding_option() ] ),
 
-	Header = text_utils:format( "% Key generated on ~s, by ~s, on ~s.~n",
-								[ time_utils:get_textual_timestamp(),
-								  system_utils:get_user_name(),
-								  net_utils:localhost() ] ),
+	Header = text_utils:format( "% Key generated on ~ts, by ~ts, on ~ts.~n",
+		[ time_utils:get_textual_timestamp(), system_utils:get_user_name(),
+		  net_utils:localhost() ] ),
 
 	file_utils:write( KeyFile, Header ),
 
-	file_utils:write( KeyFile, "~n~w.~n~n", [ Transforms ] ),
+	file_utils:write_ustring( KeyFile, "~n~w.~n~n", [ Transforms ] ),
 
-	file_utils:write( KeyFile, "% End of key file.~n", [] ),
+	file_utils:write_ustring( KeyFile, "% End of key file.~n", [] ),
 
 	file_utils:close( KeyFile ).
 
@@ -253,26 +260,24 @@ generate_key( KeyFilename, Transforms ) ->
 
 
 % Returns a description of the specified key.
-%
--spec key_to_string( key() ) -> string().
+-spec key_to_string( key() ) -> ustring().
 key_to_string( Key ) ->
-	text_utils:format( "Key composed of following ~B cipher(s): ~s",
-					   [ length( Key ),
-						 text_utils:strings_to_string( key_to_string(
-								   lists:reverse( Key ), _Acc=[] ) ) ] ).
+	text_utils:format( "Key composed of following ~B cipher(s): ~ts",
+		[ length( Key ), text_utils:strings_to_string(
+						   key_to_strings( Key, _Acc=[] ) ) ] ).
 
 
+% (helper)
+key_to_strings( _Ciphers=[], Acc ) ->
+	lists:reverse( Acc );
 
-key_to_string( [], Acc ) ->
-	Acc;
 
-
-key_to_string( [ _Cipher={ mealy, InitialState, Table } | T ], Acc ) ->
+key_to_strings( [ _Cipher={ mealy, InitialState, Table } | T ], Acc ) ->
 
 	% Much info:
 	%CipherString = text_utils:format(
-	%				 "Mealy cipher with initial state S~B and a ~s",
-	%				 [ InitialState, mealy_table_to_string( Table ) ] ),
+	%	"Mealy cipher with initial state S~B and a ~ts",
+	%	[ InitialState, mealy_table_to_string( Table ) ] ),
 
 	% Shorter:
 
@@ -280,18 +285,16 @@ key_to_string( [ _Cipher={ mealy, InitialState, Table } | T ], Acc ) ->
 	AlphabetSize = array:size( array:get( 0, Table ) ),
 
 	CipherString = text_utils:format(
-					 "Mealy cipher with initial state S~B for a table of "
-					 "~B states and an alphabet of ~B letters",
-					 [ InitialState, StateCount, AlphabetSize ] ),
+		"Mealy cipher with initial state S~B for a table of "
+		"~B states and an alphabet of ~B letters",
+		[ InitialState, StateCount, AlphabetSize ] ),
 
-	key_to_string( T, [ CipherString | Acc ] );
+	key_to_strings( T, [ CipherString | Acc ] );
 
 
-key_to_string( [ Cipher | T ], Acc ) ->
-
+key_to_strings( [ Cipher | T ], Acc ) ->
 	CipherString = text_utils:format( "~p", [ Cipher ] ),
-
-	key_to_string( T, [ CipherString | Acc ] ).
+	key_to_strings( T, [ CipherString | Acc ] ).
 
 
 
@@ -301,44 +304,43 @@ key_to_string( [ Cipher | T ], Acc ) ->
 %
 % The original file is kept as is.
 %
--spec encrypt( file_utils:file_name(), file_utils:file_name(),
-			   file_utils:file_name() ) -> void().
-encrypt( SourceFilename, TargetFilename, KeyFilename ) ->
+-spec encrypt( file_path(), file_path(), file_path() ) -> void().
+encrypt( SourceFilePath, TargetFilePath, KeyFilePath ) ->
 
-	_SourceFile = case file_utils:is_existing_file_or_link( SourceFilename ) of
+	case file_utils:is_existing_file_or_link( SourceFilePath ) of
 
 		true ->
-			file_utils:open( SourceFilename, _Opts=[ read, raw, read_ahead ] );
+			ok;
 
 		false ->
-			throw( { non_existing_source_file, SourceFilename } )
+			throw( { non_existing_source_file, SourceFilePath } )
 
 	end,
 
 
-	_TargetFile = case file_utils:exists( TargetFilename ) of
+	case file_utils:exists( TargetFilePath ) of
 
 		true ->
-			throw( { already_existing_target_file, TargetFilename } );
+			throw( { already_existing_target_file, TargetFilePath } );
 
 		false ->
 			ok
 
 	end,
 
-	KeyInfos = read_key( KeyFilename ),
+	KeyInfos = read_key( KeyFilePath ),
 
-	io:format( "Encrypting source file '~s' with key file '~s', "
-			   "storing the result in '~s'.~n~s~n",
-			   [ SourceFilename, KeyFilename, TargetFilename,
-				 key_to_string( KeyInfos ) ] ),
+	io:format( "Encrypting source file '~ts' with key file '~ts', "
+		"storing the result in '~ts'.~n~ts~n",
+		[ SourceFilePath, KeyFilePath, TargetFilePath,
+		  key_to_string( KeyInfos ) ] ),
 
 	% We may use randomised ciphers:
 	random_utils:start_random_source( default_seed ),
 
-	TempFilename = apply_key( KeyInfos, SourceFilename ),
+	TempFilePath = apply_key( KeyInfos, SourceFilePath ),
 
-	file_utils:rename( TempFilename, TargetFilename ).
+	file_utils:rename( TempFilePath, TargetFilePath ).
 
 
 
@@ -349,25 +351,24 @@ encrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 %
 % The ciphered file is kept as is.
 %
--spec decrypt( file_utils:file_name(), file_utils:file_name(),
-			   file_utils:file_name() ) -> void().
-decrypt( SourceFilename, TargetFilename, KeyFilename ) ->
+-spec decrypt( file_path(), file_path(), file_path() ) -> void().
+decrypt( SourceFilePath, TargetFilePath, KeyFilePath ) ->
 
-	_SourceFile = case file_utils:is_existing_file_or_link( SourceFilename ) of
+	case file_utils:is_existing_file_or_link( SourceFilePath ) of
 
 		true ->
-			file_utils:open( SourceFilename, _Opts=[ read, raw, read_ahead ] );
+			ok;
 
 		false ->
-			throw( { non_existing_source_file, SourceFilename } )
+			throw( { non_existing_source_file, SourceFilePath } )
 
 	end,
 
 
-	_TargetFile = case file_utils:exists( TargetFilename ) of
+	case file_utils:exists( TargetFilePath ) of
 
 		true ->
-			throw( { already_existing_target_file, TargetFilename } );
+			throw( { already_existing_target_file, TargetFilePath } );
 
 		false ->
 			ok
@@ -375,24 +376,24 @@ decrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 	end,
 
 
-	KeyInfos = read_key( KeyFilename ),
+	KeyInfos = read_key( KeyFilePath ),
 
-	io:format( "Decrypting source file '~s' with key file '~s', "
-			   "storing the result in '~s'.~n~s~n",
-			   [ SourceFilename, KeyFilename, TargetFilename,
-				 key_to_string( KeyInfos ) ] ),
+	io:format( "Decrypting source file '~ts' with key file '~ts', "
+		"storing the result in '~ts'.~n~ts~n",
+		[ SourceFilePath, KeyFilePath, TargetFilePath,
+		  key_to_string( KeyInfos ) ] ),
 
 	% We may use randomised ciphers:
 	random_utils:start_random_source( default_seed ),
 
 	ReverseKey = get_reverse_key_from( KeyInfos ),
 
-	io:format( "Determined reverse key:~n~s~n",
+	io:format( "Determined reverse key:~n~ts~n",
 			   [ key_to_string( ReverseKey ) ] ),
 
-	TempFilename = apply_key( ReverseKey, SourceFilename ),
+	TempFilePath = apply_key( ReverseKey, SourceFilePath ),
 
-	file_utils:rename( TempFilename, TargetFilename ).
+	file_utils:rename( TempFilePath, TargetFilePath ).
 
 
 
@@ -404,16 +405,16 @@ decrypt( SourceFilename, TargetFilename, KeyFilename ) ->
 %
 % (helper)
 %
--spec read_key( file_utils:file_name() ) -> [ user_specified_transform() ].
-read_key( KeyFilename ) ->
+-spec read_key( file_path() ) -> [ user_specified_transform() ].
+read_key( KeyFilePath ) ->
 
-	case file_utils:is_existing_file_or_link( KeyFilename ) of
+	case file_utils:is_existing_file_or_link( KeyFilePath ) of
 
 		true ->
-			case file_utils:read_terms( KeyFilename ) of
+			case file_utils:read_terms( KeyFilePath ) of
 
 				[] ->
-					throw( { empty_key, KeyFilename } );
+					throw( { empty_key, KeyFilePath } );
 
 				[ Key ] when is_list( Key ) ->
 					Key;
@@ -424,7 +425,7 @@ read_key( KeyFilename ) ->
 			end;
 
 		false ->
-			throw( { non_existing_key_file, KeyFilename } )
+			throw( { non_existing_key_file, KeyFilePath } )
 
 	end.
 
@@ -435,7 +436,7 @@ read_key( KeyFilename ) ->
 % (helper)
 %
 -spec get_reverse_key_from( [ user_specified_transform() ] ) ->
-								  [ any_transform() ].
+									[ any_transform() ].
 get_reverse_key_from( KeyInfos ) ->
 	get_reverse_key_from( KeyInfos, _Acc=[] ).
 
@@ -457,24 +458,23 @@ get_reverse_key_from( _KeyInfos=[ K | H ], Acc ) ->
 %
 % Returns the filename of the resulting file.
 %
-%
-apply_key( KeyInfos, SourceFilename ) ->
-	apply_key( KeyInfos, SourceFilename, _CipherCount=1 ).
+apply_key( KeyInfos, SourceFilePath ) ->
+	apply_key( KeyInfos, SourceFilePath, _CipherCount=1 ).
 
 
-apply_key( _KeyInfos=[], SourceFilename, _CipherCount ) ->
-	SourceFilename;
+apply_key( _KeyInfos=[], SourceFilePath, _CipherCount ) ->
+	SourceFilePath;
 
-apply_key( _KeyInfos=[ C | H ], SourceFilename, CipherCount ) ->
+apply_key( _KeyInfos=[ C | H ], SourceFilePath, CipherCount ) ->
 
 
 	io:format( " - applying cipher #~B: '~p'~n",
 			   [ CipherCount, get_cipher_description( C ) ] ),
 
-	% Filename of the ciphered version:
-	CipheredFilename = generate_filename(),
+	% FilePath of the ciphered version:
+	CipheredFilePath = generate_filename(),
 
-	apply_cipher( C, SourceFilename, CipheredFilename ),
+	apply_cipher( C, SourceFilePath, CipheredFilePath ),
 
 	case CipherCount of
 
@@ -483,11 +483,11 @@ apply_key( _KeyInfos=[ C | H ], SourceFilename, CipherCount ) ->
 
 		_ ->
 			% Not wanting to saturate the storage space with intermediate files:
-			file_utils:remove_file( SourceFilename )
+			file_utils:remove_file( SourceFilePath )
 
 	end,
 
-	apply_key( H, CipheredFilename, CipherCount + 1 ).
+	apply_key( H, CipheredFilePath, CipherCount + 1 ).
 
 
 
@@ -507,13 +507,12 @@ get_cipher_description( OtherCipher ) ->
 % Some ciphers are better managed if special-cased, whereas others can rely on
 % base (yet generic) mechanisms.
 %
--spec apply_cipher( any(), file_utils:file_name(), file_utils:file_name() ) ->
-						  void().
-apply_cipher( id, SourceFilename, CipheredFilename ) ->
-	id_cipher( SourceFilename, CipheredFilename );
+-spec apply_cipher( any(), file_path(), file_path() ) -> void().
+apply_cipher( id, SourceFilePath, CipheredFilePath ) ->
+	id_cipher( SourceFilePath, CipheredFilePath );
 
 
-apply_cipher( { offset, Offset }, SourceFilename, CipheredFilename ) ->
+apply_cipher( { offset, Offset }, SourceFilePath, CipheredFilePath ) ->
 
 	% CypherState is simply the constant offset used:
 
@@ -522,37 +521,37 @@ apply_cipher( { offset, Offset }, SourceFilename, CipheredFilename ) ->
 						{ OutputByte, CypherState }
 				end,
 
-	apply_byte_level_cipher( SourceFilename, CipheredFilename,
+	apply_byte_level_cipher( SourceFilePath, CipheredFilePath,
 							 _Transform=OffsetFun, _InitialCipherState=Offset );
 
 
-apply_cipher( { compress, CompressFormat }, SourceFilename,
-			  CipheredFilename ) ->
-	compress_cipher( SourceFilename, CipheredFilename, CompressFormat );
+apply_cipher( { compress, CompressFormat }, SourceFilePath,
+			  CipheredFilePath ) ->
+	compress_cipher( SourceFilePath, CipheredFilePath, CompressFormat );
 
 
-apply_cipher( { decompress, CompressFormat }, SourceFilename,
-			  CipheredFilename ) ->
-	decompress_cipher( SourceFilename, CipheredFilename, CompressFormat );
+apply_cipher( { decompress, CompressFormat }, SourceFilePath,
+			  CipheredFilePath ) ->
+	decompress_cipher( SourceFilePath, CipheredFilePath, CompressFormat );
 
 
-apply_cipher( { insert_random, Seed, Range }, SourceFilename,
-			  CipheredFilename ) ->
-
-	random_utils:reset_random_source( Seed ),
-
-	insert_random_cipher( SourceFilename, CipheredFilename, Range );
-
-
-apply_cipher( { extract_random, Seed, Range }, SourceFilename,
-			  CipheredFilename ) ->
+apply_cipher( { insert_random, Seed, Range }, SourceFilePath,
+			  CipheredFilePath ) ->
 
 	random_utils:reset_random_source( Seed ),
 
-	extract_random_cipher( SourceFilename, CipheredFilename, Range );
+	insert_random_cipher( SourceFilePath, CipheredFilePath, Range );
 
 
-apply_cipher( delta_combine, SourceFilename, CipheredFilename ) ->
+apply_cipher( { extract_random, Seed, Range }, SourceFilePath,
+			  CipheredFilePath ) ->
+
+	random_utils:reset_random_source( Seed ),
+
+	extract_random_cipher( SourceFilePath, CipheredFilePath, Range );
+
+
+apply_cipher( delta_combine, SourceFilePath, CipheredFilePath ) ->
 
 	% CypherState is simply the last value read:
 
@@ -561,11 +560,11 @@ apply_cipher( delta_combine, SourceFilename, CipheredFilename ) ->
 						{ OutputByte, InputByte }
 				end,
 
-	apply_byte_level_cipher( SourceFilename, CipheredFilename,
+	apply_byte_level_cipher( SourceFilePath, CipheredFilePath,
 							 _Transform=DeltaFun, _InitialCipherState=100 );
 
 
-apply_cipher( delta_combine_reverse, SourceFilename, CipheredFilename ) ->
+apply_cipher( delta_combine_reverse, SourceFilePath, CipheredFilePath ) ->
 
 	% CypherState is simply the last value read:
 
@@ -574,43 +573,42 @@ apply_cipher( delta_combine_reverse, SourceFilename, CipheredFilename ) ->
 						{ OutputByte, OutputByte }
 				end,
 
-	apply_byte_level_cipher( SourceFilename, CipheredFilename,
-					 _Transform=ReverseDeltaFun, _InitialCipherState=100 );
+	apply_byte_level_cipher( SourceFilePath, CipheredFilePath,
+					_Transform=ReverseDeltaFun, _InitialCipherState=100 );
 
 
-apply_cipher( { shuffle, Seed, Length }, SourceFilename, CipheredFilename ) ->
-
-	random_utils:reset_random_source( Seed ),
-
-	shuffle_cipher( SourceFilename, CipheredFilename, Length, direct );
-
-
-apply_cipher( { reciprocal_shuffle, Seed, Length }, SourceFilename,
-			  CipheredFilename ) ->
+apply_cipher( { shuffle, Seed, Length }, SourceFilePath, CipheredFilePath ) ->
 
 	random_utils:reset_random_source( Seed ),
 
-	shuffle_cipher( SourceFilename, CipheredFilename, Length, reciprocal );
+	shuffle_cipher( SourceFilePath, CipheredFilePath, Length, direct );
 
 
-apply_cipher( { 'xor', XORList }, SourceFilename, CipheredFilename ) ->
+apply_cipher( { reciprocal_shuffle, Seed, Length }, SourceFilePath,
+			  CipheredFilePath ) ->
 
-	xor_cipher( SourceFilename, CipheredFilename, XORList );
+	random_utils:reset_random_source( Seed ),
+
+	shuffle_cipher( SourceFilePath, CipheredFilePath, Length, reciprocal );
 
 
-apply_cipher( { mealy, InitialMealyState, MealyTable }, SourceFilename,
-			  CipheredFilename ) ->
+apply_cipher( { 'xor', XORList }, SourceFilePath, CipheredFilePath ) ->
 
-	mealy_cipher( SourceFilename, CipheredFilename, InitialMealyState,
+	xor_cipher( SourceFilePath, CipheredFilePath, XORList );
+
+
+apply_cipher( { mealy, InitialMealyState, MealyTable }, SourceFilePath,
+			  CipheredFilePath ) ->
+
+	mealy_cipher( SourceFilePath, CipheredFilePath, InitialMealyState,
 				  MealyTable );
 
-apply_cipher( C, _SourceFilename, _CipheredFilename ) ->
+apply_cipher( C, _SourceFilePath, _CipheredFilePath ) ->
 	throw( { unknown_cipher_to_apply, C } ).
 
 
 
 % Returns the reverse cipher of the specified one.
-%
 reverse_cipher( C=id ) ->
 	C;
 
@@ -649,16 +647,16 @@ reverse_cipher( C ) ->
 % For all ciphers that can be expressed by a byte-level, stateful transformation
 % fun.
 %
-apply_byte_level_cipher( SourceFilename, CipheredFilename, CipherFun,
-					   CipherInitialState ) ->
+apply_byte_level_cipher( SourceFilePath, CipheredFilePath, CipherFun,
+						 CipherInitialState ) ->
 
 	% No need for intermediate buffering, thanks to read_ahead and
 	% delayed_write;
 
-	SourceFile = file_utils:open( SourceFilename,
+	SourceFile = file_utils:open( SourceFilePath,
 								  _ReadOpts=[ read, raw, binary, read_ahead ] ),
 
-	TargetFile = file_utils:open( CipheredFilename,
+	TargetFile = file_utils:open( CipheredFilePath,
 								  _WriteOpts=[ write, raw, delayed_write ] ),
 
 	apply_byte_level_helper( SourceFile, TargetFile, CipherFun,
@@ -667,7 +665,6 @@ apply_byte_level_cipher( SourceFilename, CipheredFilename, CipherFun,
 
 
 % Actual application of a byte-level transform.
-%
 apply_byte_level_helper( SourceFile, TargetFile, CipherFun,
 						 CipherInitialState ) ->
 
@@ -716,20 +713,20 @@ transform_bytes( _A = << InputByte:8, T/binary >>, CipherFun,
 % We must though create a new file, as the semantics is to create an additional
 % file in all cases.
 %
-id_cipher( SourceFilename, CipheredFilename ) ->
-	file_utils:copy_file( SourceFilename, CipheredFilename ).
+id_cipher( SourceFilePath, CipheredFilePath ) ->
+	file_utils:copy_file( SourceFilePath, CipheredFilePath ).
 
 
 
-compress_cipher( SourceFilename, CipheredFilename, CompressFormat ) ->
+compress_cipher( SourceFilePath, CipheredFilePath, CompressFormat ) ->
 
-	CompressedFilename = file_utils:compress( SourceFilename, CompressFormat ),
+	CompressedFilePath = file_utils:compress( SourceFilePath, CompressFormat ),
 
 	% Preserves the caller-naming convention:
-	file_utils:rename( CompressedFilename, CipheredFilename ).
+	file_utils:rename( CompressedFilePath, CipheredFilePath ).
 
 
-decompress_cipher( CipheredFilename, TargetFilename, CompressFormat ) ->
+decompress_cipher( CipheredFilePath, TargetFilePath, CompressFormat ) ->
 
 	% The decompressing function will check for the relevant extension:
 
@@ -737,29 +734,29 @@ decompress_cipher( CipheredFilename, TargetFilename, CompressFormat ) ->
 	% decompress it, as this would produce a new decompressed file named X,
 	% overwriting the initial one.
 
-	%NewCipheredFilename = CipheredFilename
-	NewCipheredFilename = generate_filename()
+	%NewCipheredFilePath = CipheredFilePath
+	NewCipheredFilePath = generate_filename()
 		++ file_utils:get_extension_for( CompressFormat ),
 
-	file_utils:rename( CipheredFilename, NewCipheredFilename ),
+	file_utils:rename( CipheredFilePath, NewCipheredFilePath ),
 
-	DecompressedFilename = file_utils:decompress( NewCipheredFilename,
+	DecompressedFilePath = file_utils:decompress( NewCipheredFilePath,
 												  CompressFormat ),
 
-	file_utils:rename( NewCipheredFilename, CipheredFilename ),
+	file_utils:rename( NewCipheredFilePath, CipheredFilePath ),
 
 	% Preserves the caller-naming convention:
-	file_utils:rename( DecompressedFilename, TargetFilename ).
+	file_utils:rename( DecompressedFilePath, TargetFilePath ).
 
 
 
-insert_random_cipher( SourceFilename, CipheredFilename, Range )
+insert_random_cipher( SourceFilePath, CipheredFilePath, Range )
   when Range > 1 ->
 
-	SourceFile = file_utils:open( SourceFilename,
+	SourceFile = file_utils:open( SourceFilePath,
 								  _ReadOpts=[ read, raw, binary, read_ahead ] ),
 
-	TargetFile = file_utils:open( CipheredFilename,
+	TargetFile = file_utils:open( CipheredFilePath,
 								  _WriteOpts=[ write, raw, delayed_write ] ),
 
 	_InsertedCount = insert_helper( SourceFile, TargetFile, Range, _Count=0 ).
@@ -780,7 +777,6 @@ insert_helper( SourceFile, TargetFile, Range, Count ) ->
 			file_utils:close( TargetFile ),
 			Count;
 
-
 		{ ok, DataBin } when size( DataBin ) =:= NextInsertionOffset ->
 
 			RandomByte = random_utils:get_random_value( 255 ),
@@ -791,11 +787,9 @@ insert_helper( SourceFile, TargetFile, Range, Count ) ->
 
 			insert_helper( SourceFile, TargetFile, Range, Count + 1 );
 
-
 		{ ok, PartialDataBin } ->
 
 			% Drawn offset not reachable, just finished then:
-
 			file_utils:write( TargetFile, PartialDataBin ),
 			file_utils:close( SourceFile ),
 			file_utils:close( TargetFile ),
@@ -805,19 +799,19 @@ insert_helper( SourceFile, TargetFile, Range, Count ) ->
 
 
 
-extract_random_cipher( CipheredFilename, TargetFilename, Range )
+extract_random_cipher( CipheredFilePath, TargetFilePath, Range )
   when Range > 1 ->
 
-	CipheredFile = file_utils:open( CipheredFilename,
+	CipheredFile = file_utils:open( CipheredFilePath,
 							  _ReadOpts=[ read, raw, binary, read_ahead ] ),
 
-	TargetFile = file_utils:open( TargetFilename,
+	TargetFile = file_utils:open( TargetFilePath,
 								  _WriteOpts=[ write, raw, delayed_write ] ),
 
 	_ExtractedCount = extract_helper( CipheredFile, TargetFile, Range,
 									 _Count=0 ).
 
-	%io:format( "extract_random_cipher: extracted ~B bytes.~n",
+	%trace_utils:debug_fmt( "extract_random_cipher: extracted ~B bytes.~n",
 	%		   [ ExtractedCount ] ).
 
 
@@ -867,13 +861,13 @@ extract_helper( CipheredFile, TargetFile, Range, Count ) ->
 
 
 % Direction is either 'direct' or 'reciprocal':
-shuffle_cipher( SourceFilename, CipheredFilename, Length, Direction ) ->
+shuffle_cipher( SourceFilePath, CipheredFilePath, Length, Direction ) ->
 
 	% Wanting to read lists, not binaries:
-	SourceFile = file_utils:open( SourceFilename,
+	SourceFile = file_utils:open( SourceFilePath,
 								  _ReadOpts=[ read, raw, read_ahead ] ),
 
-	TargetFile = file_utils:open( CipheredFilename,
+	TargetFile = file_utils:open( CipheredFilePath,
 								  _WriteOpts=[ write, raw, delayed_write ] ),
 
 	shuffle_helper( SourceFile, TargetFile, Length, Direction ).
@@ -909,13 +903,13 @@ shuffle_helper( SourceFile, TargetFile, Length, Direction ) ->
 
 
 
-xor_cipher( SourceFilename, CipheredFilename, XORList ) ->
+xor_cipher( SourceFilePath, CipheredFilePath, XORList ) ->
 
 	% Wanting to read lists, not binaries:
-	SourceFile = file_utils:open( SourceFilename,
+	SourceFile = file_utils:open( SourceFilePath,
 								  _ReadOpts=[ read, raw, read_ahead ] ),
 
-	TargetFile = file_utils:open( CipheredFilename,
+	TargetFile = file_utils:open( CipheredFilePath,
 								  _WriteOpts=[ write, raw, delayed_write ] ),
 
 	XORRing = ring_utils:from_list( XORList ),
@@ -947,14 +941,14 @@ xor_helper( SourceFile, TargetFile, XORRing ) ->
 
 
 
-mealy_cipher( SourceFilename, CipheredFilename, InitialMealyState,
+mealy_cipher( SourceFilePath, CipheredFilePath, InitialMealyState,
 			  MealyTable ) ->
 
 	% Wanting to read lists, not binaries:
-	SourceFile = file_utils:open( SourceFilename,
+	SourceFile = file_utils:open( SourceFilePath,
 								  _ReadOpts=[ read, raw, read_ahead ] ),
 
-	TargetFile = file_utils:open( CipheredFilename,
+	TargetFile = file_utils:open( CipheredFilePath,
 								  _WriteOpts=[ write, raw, delayed_write ] ),
 
 	mealy_helper( SourceFile, TargetFile, InitialMealyState, MealyTable ).
@@ -983,7 +977,7 @@ mealy_helper( SourceFile, TargetFile, CurrentMealyState, MealyTable ) ->
 
 % Applies the Mealy machine to new input, while in specified state.
 %
-% Returns { NextMealyState, OutputByte }.
+% Returns {NextMealyState, OutputByte}.
 %
 apply_mealy( InputByte, CurrentMealyState, MealyTable ) ->
 
@@ -998,23 +992,22 @@ apply_mealy( InputByte, CurrentMealyState, MealyTable ) ->
 
 generate_filename() ->
 
-	Filename = ".cipher-" ++ id_utils:generate_uuid(),
+	FilePath = ".cipher-" ++ id_utils:generate_uuid(),
 
-	case file_utils:is_existing_file( Filename ) of
+	case file_utils:is_existing_file( FilePath ) of
 
 		% Rather unlikely:
 		true ->
 			generate_filename();
 
 		false ->
-			Filename
+			FilePath
 
 	end.
 
 
 
 % Mealy section.
-
 
 
 % We can represent a Mealy table that way:
@@ -1191,8 +1184,7 @@ inverse_cells( _Cells=[ { NextState, OutputLetter } | T ], Index, AccArray ) ->
 
 
 % Returns a textual representation of this mealy table.
-%
--spec mealy_table_to_string( mealy_table() ) -> string().
+-spec mealy_table_to_string( mealy_table() ) -> ustring().
 mealy_table_to_string( Table ) ->
 
 	StateCount = array:size( Table ),
@@ -1203,7 +1195,7 @@ mealy_table_to_string( Table ) ->
 	AlphabetSize = array:size( array:get( 0, Table ) ),
 
 	text_utils:format( "Mealy table with ~B states and an alphabet of "
-					   "~B letters: ~s",
+					   "~B letters: ~ts",
 					   [ StateCount, AlphabetSize,
 						 text_utils:strings_to_string( StateStrings ) ] ).
 
@@ -1216,7 +1208,7 @@ get_inner_info( Table, Index, FinalIndex, Acc ) ->
 	% List of cells:
 	InnerList = array:to_list( array:get( Index, Table ) ),
 
-	S = text_utils:format( "for state S~B:~n~s",
+	S = text_utils:format( "for state S~B:~n~ts",
 						   [ Index + 1, get_cells_info( InnerList ) ] ),
 
 	get_inner_info( Table, Index + 1, FinalIndex, [ S | Acc ] ).

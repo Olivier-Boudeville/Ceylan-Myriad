@@ -48,6 +48,11 @@
 		  get_arguments/1 ]).
 
 
+% Shorthands:
+-type ustring() :: text_utils:ustring().
+-type directory_path() :: file_utils:directory_path().
+
+
 
 % Tells whether the currently running Erlang code is executed as an escript or
 % as a regular Erlang program.
@@ -103,7 +108,7 @@ update_code_path_for_myriad() ->
 
 	MyriadRootDir = get_myriad_base_directory(),
 
-	%trace_utils:debug_fmt( "Root of 'Myriad': ~s.", [ MyriadRootDir ] ),
+	%trace_utils:debug_fmt( "Root of 'Myriad': ~ts.", [ MyriadRootDir ] ),
 
 	MyriadSrcDir = filename:join( MyriadRootDir, "src" ),
 
@@ -126,7 +131,7 @@ update_code_path_for_myriad() ->
 % Note: useful to locate resources (ex: other modules) defined in link to that
 % script and needed by it.
 %
--spec get_script_base_directory() -> file_utils:path().
+-spec get_script_base_directory() -> directory_path().
 get_script_base_directory() ->
 
 	case is_running_as_escript() of
@@ -184,14 +189,14 @@ get_myriad_path_from( CodePath ) ->
 					throw( unable_to_determine_myriad_root );
 
 				Path ->
-					%trace_utils:debug_fmt( "Found from myriad: '~s'.",
+					%trace_utils:debug_fmt( "Found from myriad: '~ts'.",
 					%					   [ Path ] ),
 					Path
 
 			end;
 
 		Path ->
-			%trace_utils:debug_fmt( "Found from Ceylan-Myriad: '~s'.",
+			%trace_utils:debug_fmt( "Found from Ceylan-Myriad: '~ts'.",
 			%					   [ Path ] ),
 			Path
 
@@ -223,7 +228,7 @@ get_myriad_path_from( [ Path | T ], BaseDirName ) ->
 % (note that a double path conversion between root and script directories can
 % hardly be avoided)
 %
--spec get_myriad_base_directory() -> file_utils:path().
+-spec get_myriad_base_directory() -> directory_path().
 get_myriad_base_directory() ->
 
 	% We cannot use file_utils:normalise_path/1 here: Myriad not usable from
@@ -248,6 +253,6 @@ get_myriad_base_directory() ->
 % Allows to write code that can be seamlessly triggered by a erl interpreter or
 % by an escript, by putting them in the latter case in our "canonical" form.
 %
--spec get_arguments( [ string() ] ) -> shell_utils:argument_table().
+-spec get_arguments( [ ustring() ] ) -> shell_utils:argument_table().
 get_arguments( Args ) ->
 	shell_utils:get_argument_table_from_strings( Args ).

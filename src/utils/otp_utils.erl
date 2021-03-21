@@ -272,9 +272,9 @@ prepare_for_execution( AppNames, BaseDir, BlacklistedApps )
 	% From this entry point, we prefer to deal with absolute, normalised paths:
 	AbsBaseDir = file_utils:ensure_path_is_absolute( BaseDir ),
 
-	?debug_fmt( "Preparing for the execution from '~s' of following top-level "
+	?debug_fmt( "Preparing for the execution from '~ts' of following top-level "
 		"applications:~n  ~p, blacklisted ones being: ~p "
-		"(from base directory '~s').",
+		"(from base directory '~ts').",
 		[ AbsBaseDir, AppNames, BlacklistedApps,
 		  file_utils:ensure_path_is_absolute( BaseDir ) ] ),
 
@@ -310,7 +310,7 @@ prepare_for_execution( AppNames, BaseDir, BlacklistedApps )
 %
 -spec prepare_for_exec( application_name(), abs_directory_path(),
 			[ application_name() ], app_table(), [ application_name() ] ) ->
-							  { [ application_name() ], app_table() }.
+								{ [ application_name() ], app_table() }.
 prepare_for_exec( _AppNames=[], _AbsBaseDir, _BlacklistedApps,
 				  AccDeps, AppTable ) ->
 	% Merges all prerequisites, in their (currently bottom-up) order (duplicates
@@ -330,12 +330,12 @@ prepare_for_exec( [ AppName | T ], AbsBaseDir, BlacklistedApps, AccDeps,
 				undefined ->
 
 					trace_bridge:error_fmt( "No application information found "
-						"for the '~s' OTP application (searched in turn in "
+						"for the '~ts' OTP application (searched in turn in "
 						"local ebin, rebar3 _checkouts or _build directory, "
 						"through any sibling applications or as a standard "
 						"application; this execution thus cannot be performed "
 						"(one may run beforehand, if relevant, "
-						"'make rebar3-compile' at the root of the ~s source "
+						"'make rebar3-compile' at the root of the ~ts source "
 						"tree for a more relevant testing).",
 						[ AppName, AbsBaseDir ] ),
 
@@ -355,7 +355,7 @@ prepare_for_exec( [ AppName | T ], AbsBaseDir, BlacklistedApps, AccDeps,
 						applications, _DefNoDep=[], AppEntries ),
 
 					?debug_fmt( "Preparing for the execution of application "
-						"'~s', whose direct dependencies are: ~w.",
+						"'~ts', whose direct dependencies are: ~w.",
 						[ AppName, DepAppNames ] ),
 
 					{ CompleteDepApps, DepAppTable } = prepare_for_exec(
@@ -368,7 +368,7 @@ prepare_for_exec( [ AppName | T ], AbsBaseDir, BlacklistedApps, AccDeps,
 			end;
 
 		true ->
-			?debug_fmt( "Ignoring application '~s', as it is blacklisted.",
+			?debug_fmt( "Ignoring application '~ts', as it is blacklisted.",
 						[ AppName ] ),
 			prepare_for_exec( T, AbsBaseDir, BlacklistedApps, AccDeps,
 							  AppTable )
@@ -400,7 +400,7 @@ prepare_for_exec( [ AppName | T ], AbsBaseDir, BlacklistedApps, AccDeps,
 % local _build or siblings).
 %
 -spec get_app_info( application_name(), abs_directory_path(), app_table() ) ->
-						  { app_info(), app_table() }.
+							{ app_info(), app_table() }.
 get_app_info( AppName, AbsBaseDir, AppTable ) ->
 
 	case table:lookup_entry( AppName, AppTable ) of
@@ -423,8 +423,8 @@ get_app_info( AppName, AbsBaseDir, AppTable ) ->
 						 app_table() ) -> { app_info(), app_table() }.
 generate_app_info( AppName, AbsBaseDir, AppTable ) ->
 
-	?trace_fmt( "Generating information for application '~s' "
-				"from '~s'.", [ AppName, AbsBaseDir ] ),
+	?trace_fmt( "Generating information for application '~ts' "
+				"from '~ts'.", [ AppName, AbsBaseDir ] ),
 
 	% We used to search only for an 'ebin' path, yet, for example in the case of
 	% sibling directories, a wrong ebin directory could be selected. Now, to
@@ -439,15 +439,15 @@ generate_app_info( AppName, AbsBaseDir, AppTable ) ->
 
 	ThisAppFilePath = file_utils:join( ThisEBinDir, AppFilename ),
 
-	?debug_fmt( "[1] Application '~s' looked up locally based "
-				"on '~s'.", [ AppName, ThisAppFilePath ] ),
+	?debug_fmt( "[1] Application '~ts' looked up locally based "
+				"on '~ts'.", [ AppName, ThisAppFilePath ] ),
 
 	{ AppFilePath, EBinDir, NewBaseDir } =
 		case file_utils:is_existing_file_or_link( ThisAppFilePath ) of
 
 		true ->
-			?trace_fmt( "Using, for the application '~s', "
-				"the directly local '~s' file.", [ AppName, ThisAppFilePath ] ),
+			?trace_fmt( "Using, for the application '~ts', the directly "
+				"local '~ts' file.", [ AppName, ThisAppFilePath ] ),
 			{ ThisAppFilePath, ThisEBinDir, AbsBaseDir };
 
 		% Trying location #2.1, if this application is in a local checkout:
@@ -460,15 +460,15 @@ generate_app_info( AppName, AbsBaseDir, AppTable ) ->
 			CheckLocalAppPath = file_utils:join( CheckLocalEBinDir,
 												 AppFilename ),
 
-			?debug_fmt( "[2.1] Application '~s' not found directly "
-				"in local ebin, trying in local checkout, based on '~s'.",
+			?debug_fmt( "[2.1] Application '~ts' not found directly "
+				"in local ebin, trying in local checkout, based on '~ts'.",
 				[ AppName, CheckLocalAppPath ] ),
 
 			case file_utils:is_existing_file_or_link( CheckLocalAppPath ) of
 
 				true ->
-					?trace_fmt( "Using, for the application '~s', "
-						"the local checkout '~s' file.",
+					?trace_fmt( "Using, for the application '~ts', "
+						"the local checkout '~ts' file.",
 						[ AppName, CheckLocalAppPath ] ),
 					{ CheckLocalAppPath, CheckLocalEBinDir, CheckBaseDir };
 
@@ -480,16 +480,16 @@ generate_app_info( AppName, AbsBaseDir, AppTable ) ->
 					CheckBuildAppPath = file_utils:join( CheckBuildEBinDir,
 														 AppFilename ),
 
-					?debug_fmt( "[2.2] Application '~s' not found directly "
+					?debug_fmt( "[2.2] Application '~ts' not found directly "
 						"in local checkout, trying in _build checkout, based "
-						"on '~s'.", [ AppName, CheckBuildAppPath ] ),
+						"on '~ts'.", [ AppName, CheckBuildAppPath ] ),
 
 					case file_utils:is_existing_file_or_link(
 						   CheckBuildAppPath ) of
 
 						true ->
-							?trace_fmt( "Using, for the application '~s', the "
-										"the _build checkout '~s' file.",
+							?trace_fmt( "Using, for the application '~ts', the "
+										"the _build checkout '~ts' file.",
 										[ AppName, CheckBuildAppPath ] ),
 							{ CheckBuildAppPath, CheckBuildEBinDir,
 							  CheckBaseDir };
@@ -502,9 +502,9 @@ generate_app_info( AppName, AbsBaseDir, AppTable ) ->
 							DepAppPath = file_utils:join( DepEBinDir,
 														  AppFilename ),
 
-							?debug_fmt( "[3] Application '~s' not found in "
+							?debug_fmt( "[3] Application '~ts' not found in "
 								"local checkout, trying as a local build "
-								"dependency, based on '~s'.",
+								"dependency, based on '~ts'.",
 								[ AppName, DepAppPath ] ),
 
 							% To avoid insane nesting:
@@ -527,7 +527,7 @@ generate_app_info( AppName, AbsBaseDir, AppTable ) ->
 	% exactly once to update the VM code path for it (so that, on start-up, the
 	% OTP procedure finds its .app file and also its BEAM files):
 	%
-	?debug_fmt( "Expanding the code path with '~s' for application "
+	?debug_fmt( "Expanding the code path with '~ts' for application "
 				"information.", [ EBinDir ] ),
 	code_utils:declare_beam_directory( EBinDir, last_position ),
 
@@ -542,8 +542,8 @@ try_next_locations( AppName, AppNameStr, AppFilename, DepEBinDir, DepAppPath,
 	case file_utils:is_existing_file_or_link( DepAppPath ) of
 
 		true ->
-			?trace_fmt( "Using, for the application '~s', the "
-				"local build dependency '~s' file.", [ AppName, DepAppPath ] ),
+			?trace_fmt( "Using, for the application '~ts', the "
+				"local build dependency '~ts' file.", [ AppName, DepAppPath ] ),
 			{ DepAppPath, DepEBinDir, AbsBaseDir };
 
 		% Trying #4, i.e. as a sibling application:
@@ -557,15 +557,15 @@ try_next_locations( AppName, AppNameStr, AppFilename, DepEBinDir, DepAppPath,
 
 			SibLocalAppPath= file_utils:join( SibLocalEbinDir, AppFilename ),
 
-			?debug_fmt( "[4.1] Application '~s' not found as a local "
+			?debug_fmt( "[4.1] Application '~ts' not found as a local "
 				"build dependency, trying first as local ebin sibling, "
-				"based on '~s'.", [ AppName, SibLocalAppPath ] ),
+				"based on '~ts'.", [ AppName, SibLocalAppPath ] ),
 
 			case file_utils:is_existing_file_or_link( SibLocalAppPath ) of
 
 				true ->
-					?trace_fmt( "Using, for the application '~s', "
-								"the local ebin sibling '~s' file.",
+					?trace_fmt( "Using, for the application '~ts', "
+								"the local ebin sibling '~ts' file.",
 								[ AppName, SibLocalAppPath ] ),
 					{ SibLocalAppPath, SibLocalEbinDir, SibBaseDir };
 
@@ -577,29 +577,29 @@ try_next_locations( AppName, AppNameStr, AppFilename, DepEBinDir, DepAppPath,
 					SibBuildAppPath= file_utils:join( SibBuildEbinDir,
 													  AppFilename ),
 
-					?debug_fmt( "[4.2] Application '~s' not found as a local "
+					?debug_fmt( "[4.2] Application '~ts' not found as a local "
 						"ebin sibling, trying as a _build sibling, "
-						"based on '~s'.", [ AppName, SibBuildAppPath ] ),
+						"based on '~ts'.", [ AppName, SibBuildAppPath ] ),
 
 					case file_utils:is_existing_file_or_link(
 						   SibBuildAppPath ) of
 
 						true ->
-							?trace_fmt( "Using, for the application '~s', "
-										"the _build sibling '~s' file.",
+							?trace_fmt( "Using, for the application '~ts', "
+										"the _build sibling '~ts' file.",
 										[ AppName, SibBuildAppPath ] ),
 							{ SibBuildAppPath, SibBuildEbinDir, SibBaseDir };
 
 						% Trying #5, i.e. as a standard OTP application:
 						false ->
-							?debug_fmt( "[5] Application '~s' not found as a "
+							?debug_fmt( "[5] Application '~ts' not found as a "
 							  "sibling, trying as a standard OTP application.",
 							  [ AppName ] ),
 
 							case code:lib_dir( AppName ) of
 
 								{ error, bad_name } ->
-									trace_bridge:error_fmt( "Application '~s' "
+									trace_bridge:error_fmt( "Application '~ts' "
 									  "not found in any of the supported "
 									  "locations.", [ AppName ] ),
 									throw( { application_not_found, AppName,
@@ -616,8 +616,8 @@ try_next_locations( AppName, AppNameStr, AppFilename, DepEBinDir, DepAppPath,
 
 										true ->
 											?trace_fmt( "Using, for the "
-												"application '~s', "
-												"the OTP '~s' file.",
+												"application '~ts', "
+												"the OTP '~ts' file.",
 												[ AppName, StdAppPath ] ),
 
 											{ StdAppPath, StdEbinDir,
@@ -662,7 +662,7 @@ get_build_ebin_from_lib( BaseDir, AppNameStr ) ->
 % base directory, for specified application.
 %
 -spec get_build_ebin_from_checkouts( directory_path(),
-							 string_application_name() ) -> directory_path().
+							string_application_name() ) -> directory_path().
 get_build_ebin_from_checkouts( BaseDir, AppNameStr ) ->
 	file_utils:join( [ BaseDir, "_build", "default", "checkouts", AppNameStr,
 					   "ebin" ] ).
@@ -765,10 +765,10 @@ look_up_beam_last_chance( EBinPath, BaseDir, AppFilePath, AppName,
 	case MaybeEbinBuildDir of
 
 		undefined ->
-			trace_bridge:error_fmt( "The application '~s' whose information "
-				"is in '~s' does not seem compiled, as its tested '~s' module "
-				"cannot be found as '~s', '~s' or '~s', "
-				"nor through the code path, which is: ~s",
+			trace_bridge:error_fmt( "The application '~ts' whose information "
+				"is in '~ts' does not seem compiled, as its tested '~ts' "
+				"module cannot be found as '~ts', '~ts' or '~ts', "
+				"nor through the code path, which is: ~ts",
 				[ AppName, AppFilePath, TestedBeamFilename,
 				  ExpectedModPath, BuildLibModPath, BuildCoModPath,
 				  code_utils:code_path_to_string() ] ),
@@ -777,8 +777,9 @@ look_up_beam_last_chance( EBinPath, BaseDir, AppFilePath, AppName,
 
 
 		EbinBuildDir ->
-			?debug_fmt( "Replacing in code path local ebin '~s' with the _build"
-				" one '~s' for '~s'.", [ EBinPath, EbinBuildDir, AppName ] ),
+			?debug_fmt( "Replacing in code path local ebin '~ts' with the "
+				"_build one '~ts' for '~ts'.",
+				[ EBinPath, EbinBuildDir, AppName ] ),
 
 			% First removing local ebin (if set):
 			code_utils:remove_beam_directory_if_set( EBinPath ),
@@ -801,7 +802,7 @@ look_up_beam_last_chance( EBinPath, BaseDir, AppFilePath, AppName,
 				abs_directory_path(), abs_directory_path() ) -> app_spec().
 interpret_app_file( AppFilePath, AppName, EBinPath, BaseDir ) ->
 
-	?debug_fmt( "Examining application specification in '~s'.",
+	?debug_fmt( "Examining application specification in '~ts'.",
 				[ AppFilePath ] ),
 
 	case file_utils:read_terms( AppFilePath ) of
@@ -823,7 +824,7 @@ interpret_app_file( AppFilePath, AppName, EBinPath, BaseDir ) ->
 
 				{ value, [] } ->
 					% No module declared (weird); supposing that alles gut:
-					%trace_bridge:warning_fmt( "Application '~s' did not "
+					%trace_bridge:warning_fmt( "Application '~ts' did not "
 					%	"declare any module; supposing that it is fully built.",
 					%	[ AppName ] ),
 					ok;
@@ -865,7 +866,7 @@ app_info_to_string( #app_info{ app_name=AppName,
 
 		{ ModName, Args } ->
 			text_utils:format( "active application (to be run as "
-				"~s:start(~p))", [ ModName, Args ] )
+				"~ts:start(~p))", [ ModName, Args ] )
 
 	end,
 
@@ -875,13 +876,14 @@ app_info_to_string( #app_info{ app_name=AppName,
 	case Longer of
 
 		true ->
-			text_utils:format( "Application information for '~s': root "
-				"directory is '~s', ebin one is '~s', ~s, and spec is:~n  ~p",
+			text_utils:format( "Application information for '~ts': root "
+				"directory is '~ts', ebin one is '~ts', ~ts, "
+				"and spec is:~n  ~p",
 				[ AppName, RootDir, EBinDir, ActStr, Entries ] );
 
 		false ->
-			text_utils:format( "Application information for '~s': root "
-				"directory is '~s', ebin one is '~s', ~s, spec having "
+			text_utils:format( "Application information for '~ts': root "
+				"directory is '~ts', ebin one is '~ts', ~ts, spec having "
 				"~B entries",
 				[ AppName, RootDir, EBinDir, ActStr, length( Entries ) ] )
 
@@ -919,8 +921,8 @@ start_application( AppName, RestartType ) ->
 						 [ application_name() ] ) -> void().
 start_application( AppName, RestartType, BlacklistedApps ) ->
 
-	?trace_fmt( "Starting the '~s' application, with restart "
-		"type '~s', whereas blacklisted applications are: ~p.",
+	?trace_fmt( "Starting the '~ts' application, with restart "
+		"type '~ts', whereas blacklisted applications are: ~p.",
 		[ AppName, RestartType, BlacklistedApps ] ),
 
 	case lists:member( AppName, BlacklistedApps ) of
@@ -930,12 +932,12 @@ start_application( AppName, RestartType, BlacklistedApps ) ->
 			case application:start( AppName, RestartType ) of
 
 				ok ->
-					?trace_fmt( "Application '~s' successfully started.",
+					?trace_fmt( "Application '~ts' successfully started.",
 								[ AppName ] ),
 					ok;
 
 				{ error, Reason } ->
-					trace_bridge:error_fmt( "Application '~s' failed to "
+					trace_bridge:error_fmt( "Application '~ts' failed to "
 						"start: ~p", [ AppName, Reason ] ),
 
 					throw( { app_start_failed, AppName, RestartType, Reason } )
@@ -943,7 +945,7 @@ start_application( AppName, RestartType, BlacklistedApps ) ->
 			end;
 
 		true ->
-			?debug_fmt( "Not starting application '~s', as it is blacklisted.",
+			?debug_fmt( "Not starting application '~ts', as it is blacklisted.",
 						[ AppName ] )
 
 	end.
@@ -990,7 +992,7 @@ start_applications( _AppNames=[], _RestartType, _BlacklistedApps ) ->
 
 start_applications( [ AppName | T ], RestartType, BlacklistedApps ) ->
 
-	%?debug_fmt( "Starting application '~s' with restart type '~s', "
+	%?debug_fmt( "Starting application '~ts' with restart type '~ts', "
 	%   "whereas blacklisted applications are: ~p.",
 	%	[ AppName, RestartType, BlacklistedApps ] ),
 
@@ -1011,7 +1013,7 @@ start_applications( [ AppName | T ], RestartType, BlacklistedApps ) ->
 			end;
 
 		true ->
-			?debug_fmt( "Not starting application '~s', as it is blacklisted.",
+			?debug_fmt( "Not starting application '~ts', as it is blacklisted.",
 						[ AppName ] ),
 			start_applications( T, RestartType, BlacklistedApps )
 
@@ -1034,20 +1036,20 @@ stop_application( _AppName=kernel ) ->
 
 stop_application( AppName ) ->
 
-	?trace_fmt( "Stopping the '~s' application.", [ AppName ] ),
+	?trace_fmt( "Stopping the '~ts' application.", [ AppName ] ),
 
 	case application:stop( AppName ) of
 
 		ok ->
-			%trace_utils:debug_fmt( "Application '~s' successfully stopped.",
+			%trace_utils:debug_fmt( "Application '~ts' successfully stopped.",
 			%					   [ AppName ] ),
 
-			?trace_fmt( "Application '~s' successfully stopped.",
+			?trace_fmt( "Application '~ts' successfully stopped.",
 						[ AppName ] ),
 			ok;
 
 		{ error, Reason } ->
-			trace_bridge:error_fmt( "Application '~s' failed to stop: ~p",
+			trace_bridge:error_fmt( "Application '~ts' failed to stop: ~p",
 									[ AppName, Reason ] ),
 			throw( { app_stop_failed, AppName, Reason } )
 
@@ -1133,7 +1135,7 @@ check_application_run_context( OtherAppRunContext ) ->
 
 % Returns a textual representation of specified application run context.
 -spec application_run_context_to_string( application_run_context() ) ->
-											   ustring().
+												ustring().
 application_run_context_to_string( _AppRunContext=as_native ) ->
 	"based on the Ceylan native native build/run system";
 
@@ -1183,7 +1185,7 @@ get_priv_root( ModuleName, BeSilent ) ->
 
 			   false ->
 					trace_bridge:warning_fmt( "Unable to determine 'priv' "
-						"directory from module '~s': ~w.",
+						"directory from module '~ts': ~w.",
 						[ ModuleName, PError ] )
 
 		   end,

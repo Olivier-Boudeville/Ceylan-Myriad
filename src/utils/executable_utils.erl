@@ -129,10 +129,16 @@
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
+-type width() :: text_utils:width().
 
 -type file_name() :: file_utils:file_name().
 -type file_path() :: file_utils:file_path().
+-type executable_name() :: ustring().
+-type executable_path() :: file_utils:executable_path().
+
 -type directory_path() :: file_utils:directory_path().
+
+-type command_output() :: system_utils:command_output().
 
 
 
@@ -142,7 +148,7 @@
 % Returns an absolute filename of the executable program (ex: "/usr/bin/gcc"),
 % or the 'false' atom if it was not found.
 %
--spec lookup_executable( file_name() ) -> file_path() | 'false'.
+-spec lookup_executable( executable_name() ) -> executable_path() | 'false'.
 lookup_executable( ExecutableName ) ->
 	% Similar to a call to 'type' / 'which':
 	os:find_executable( ExecutableName ).
@@ -158,8 +164,8 @@ lookup_executable( ExecutableName ) ->
 %
 % Ex: lookup_executable("my-foo-program", [".", "/tmp"])
 %
--spec lookup_executable( file_name(), [ directory_path() ] ) ->
-								file_path() | 'false'.
+-spec lookup_executable( executable_name(), [ directory_path() ] ) ->
+								executable_path() | 'false'.
 lookup_executable( ExecutableName, ExtraDirs ) ->
 
 	% Let's reconstruct a proper PATH-like string:
@@ -186,7 +192,7 @@ lookup_executable( ExecutableName, ExtraDirs ) ->
 % Returns an absolute filename of the executable program (ex: "/usr/bin/gcc") or
 % throws an exception {executable_not_found,ExecutableName} if it was not found.
 %
--spec find_executable( file_name() ) -> file_path().
+-spec find_executable( executable_name() ) -> executable_path().
 find_executable( ExecutableName ) ->
 
 	case lookup_executable( ExecutableName) of
@@ -200,13 +206,15 @@ find_executable( ExecutableName ) ->
 	end.
 
 
+
 % Section for most usual commands.
 
 
 % By default does not crash if dot outputs some warnings but does not yield an
 % error exit status.
 %
--spec generate_png_from_graph_file( file_path(), file_path() ) -> ustring().
+-spec generate_png_from_graph_file( file_path(), file_path() ) ->
+											command_output().
 generate_png_from_graph_file( PNGFilename, GraphFilename ) ->
 	generate_png_from_graph_file( PNGFilename, GraphFilename,
 								  _HaltOnDotOutput=false ).
@@ -226,7 +234,7 @@ generate_png_from_graph_file( PNGFilename, GraphFilename ) ->
 % Returns the (possibly empty) string output by dot, or throws an exception.
 %
 -spec generate_png_from_graph_file( file_path(), file_path(), boolean() ) ->
-			ustring().
+			command_output().
 generate_png_from_graph_file( PNGFilename, GraphFilename,
 							  _HaltOnDotOutput=true ) ->
 
@@ -298,7 +306,7 @@ display_pdf_file( PDFFilename ) ->
 %
 % Throws an exception if an error occurs.
 %
--spec display_text_file( file_path() ) -> ustring().
+-spec display_text_file( file_path() ) -> command_output().
 display_text_file( TextFilename ) ->
 
 	case system_utils:run_executable( get_default_text_viewer_path()
@@ -320,7 +328,7 @@ display_text_file( TextFilename ) ->
 %
 % Throws an exception if an error occurs.
 %
--spec display_wide_text_file( file_path(), pos_integer() ) -> ustring().
+-spec display_wide_text_file( file_path(), width() ) -> command_output().
 display_wide_text_file( TextFilename, CharacterWidth ) ->
 
 	case system_utils:run_executable(
@@ -401,7 +409,7 @@ compute_md5_sum( Filename ) ->
 -spec compute_sha1_sum( file_path() ) -> sha1_sum().
 compute_sha1_sum( Filename ) ->
 
-	%trace_utils:info_fmt( "Computing SHA1 sum of '~s'.", [ Filename ] ),
+	%trace_utils:info_fmt( "Computing SHA1 sum of '~ts'.", [ Filename ] ),
 
 	compute_sha_sum( Filename, _SizeOfSHAAlgorithm=1 ).
 
@@ -425,7 +433,7 @@ compute_sha_sum( Filename, SizeOfSHAAlgorithm )
 
 	end,
 
-	%trace_utils:info_fmt( "Computing SHA~B sum of '~s'.",
+	%trace_utils:info_fmt( "Computing SHA~B sum of '~ts'.",
 	%					   [ SizeOfSHAAlgorithm, Filename ] ),
 
 	% Removes the filename after the SHA code:
@@ -465,7 +473,7 @@ compute_sha_sum( Filename, SizeOfSHAAlgorithm )
 %  - get_default_X_name() -> ustring() that returns the name of the tool (useful
 %  for error messages)
 %
-%  - get_default_X_path() -> file_name() that returns the full path
+%  - get_default_X_path() -> executable_path() that returns the full path
 %  to the corresponding executable
 
 
@@ -474,14 +482,14 @@ compute_sha_sum( Filename, SizeOfSHAAlgorithm )
 %
 % Could be also: xv, firefox, etc.
 %
--spec get_default_image_viewer_name() -> ustring().
+-spec get_default_image_viewer_name() -> executable_name().
 get_default_image_viewer_name() ->
 	% Viewer is 'eye of gnome' here:
 	"eog".
 
 
 % Returns an absolute path to the default image viewer tool.
--spec get_default_image_viewer_path() -> file_path().
+-spec get_default_image_viewer_path() -> executable_path().
 get_default_image_viewer_path() ->
 	find_executable( get_default_image_viewer_name() ).
 
@@ -491,14 +499,14 @@ get_default_image_viewer_path() ->
 %
 % Used to be: gqview (renamed since then).
 %
--spec get_default_image_browser_name() -> ustring().
+-spec get_default_image_browser_name() -> executable_name().
 get_default_image_browser_name() ->
 	% Was a mere compatibility alias for gqview:
 	"geeqie".
 
 
 % Returns an absolute path to the default image browser tool.
--spec get_default_image_browser_path() -> file_name().
+-spec get_default_image_browser_path() -> executable_path().
 get_default_image_browser_path() ->
 	case get_default_image_browser_name() of
 
@@ -513,13 +521,13 @@ get_default_image_browser_path() ->
 
 
 % Returns the name of the default web browser.
--spec get_default_web_browser_name() -> ustring().
+-spec get_default_web_browser_name() -> executable_name().
 get_default_web_browser_name() ->
 	"firefox".
 
 
 % Returns an absolute path to the default web browser tool.
--spec get_default_web_browser_path() -> file_name().
+-spec get_default_web_browser_path() -> executable_path().
 get_default_web_browser_path() ->
 	find_executable( get_default_web_browser_name() ).
 
@@ -527,13 +535,13 @@ get_default_web_browser_path() ->
 
 % Returns the name of the default PDF viewer tool.
 % Could be also: xpdf, acroread, etc.
--spec get_default_pdf_viewer_name() -> ustring().
+-spec get_default_pdf_viewer_name() -> executable_name().
 get_default_pdf_viewer_name() ->
 	"evince".
 
 
 % Returns an absolute path to the default PDF viewer tool.
--spec get_default_pdf_viewer_path() -> file_name().
+-spec get_default_pdf_viewer_path() -> executable_path().
 get_default_pdf_viewer_path() ->
 	find_executable( get_default_pdf_viewer_name() ).
 
@@ -541,27 +549,27 @@ get_default_pdf_viewer_path() ->
 
 % Returns the name of the default text viewer tool.
 % Could be also: nedit, emacs, etc.
--spec get_default_text_viewer_name() -> ustring().
+-spec get_default_text_viewer_name() -> executable_name().
 get_default_text_viewer_name() ->
 	"gedit".
 
 
 % Returns an absolute path to the default text viewer tool.
--spec get_default_text_viewer_path() -> file_name().
+-spec get_default_text_viewer_path() -> executable_path().
 get_default_text_viewer_path() ->
 	find_executable( get_default_text_viewer_name() ).
 
 
 
 % Returns the name of the default viewer tool for wider texts.
--spec get_default_wide_text_viewer_name( non_neg_integer() ) -> ustring().
+-spec get_default_wide_text_viewer_name( width() ) -> executable_name().
 get_default_wide_text_viewer_name( _CharacterWidth ) ->
 	% Could be: "nedit":
 	"gedit".
 
 
 % Returns an absolute path to the default viewer tool for wider texts.
--spec get_default_wide_text_viewer_path( non_neg_integer() ) -> file_name().
+-spec get_default_wide_text_viewer_path( width() ) -> executable_path().
 get_default_wide_text_viewer_path( CharacterWidth ) ->
 	% Could be: io_lib:format( "nedit -column ~B", [ CharacterWidth ] )
 	find_executable( get_default_wide_text_viewer_name( CharacterWidth ) ).
@@ -572,7 +580,7 @@ get_default_wide_text_viewer_path( CharacterWidth ) ->
 %
 % Could be also: nedit, gedit, etc.
 %
--spec get_default_trace_viewer_name() -> ustring().
+-spec get_default_trace_viewer_name() -> executable_name().
 get_default_trace_viewer_name() ->
 
 	case system_utils:has_graphical_output() of
@@ -592,7 +600,7 @@ get_default_trace_viewer_name() ->
 %
 % Could be also: nedit, gedit, etc.
 %
--spec get_default_trace_viewer_path() -> file_name().
+-spec get_default_trace_viewer_path() -> executable_path().
 get_default_trace_viewer_path() ->
 	% Note: expected to be on the PATH:
 	find_executable( get_default_trace_viewer_name() ).
@@ -615,13 +623,13 @@ get_default_erlang_root() ->
 
 
 % Returns the name of the default Erlang interpreter.
--spec get_default_erlang_interpreter_name() -> ustring().
+-spec get_default_erlang_interpreter_name() -> executable_name().
 get_default_erlang_interpreter_name() ->
 	"erl".
 
 
 % Returns an absolute path to the default Erlang interpreter.
--spec get_default_erlang_interpreter_path() -> file_name().
+-spec get_default_erlang_interpreter_path() -> executable_path().
 get_default_erlang_interpreter_path() ->
 	% Note: expected to be on the PATH:
 	find_executable( get_default_erlang_interpreter_name() ).
@@ -629,13 +637,13 @@ get_default_erlang_interpreter_path() ->
 
 
 % Returns the name of the default SSH client.
--spec get_default_ssh_client_name() -> ustring().
+-spec get_default_ssh_client_name() -> executable_name().
 get_default_ssh_client_name() ->
 	"ssh".
 
 
 % Returns an absolute path to the default SSH client.
--spec get_default_ssh_client_path() -> file_name().
+-spec get_default_ssh_client_path() -> executable_path().
 get_default_ssh_client_path() ->
 	% Note: expected to be on the PATH:
 	find_executable( get_default_ssh_client_name() ).
@@ -643,13 +651,13 @@ get_default_ssh_client_path() ->
 
 
 % Returns the name default SSH-based scp executable.
--spec get_default_scp_executable_name() -> ustring().
+-spec get_default_scp_executable_name() -> executable_name().
 get_default_scp_executable_name() ->
 	"scp".
 
 
 % Returns an absolute path to the default SSH-based scp executable.
--spec get_default_scp_executable_path() -> file_name().
+-spec get_default_scp_executable_path() -> executable_path().
 get_default_scp_executable_path() ->
 	% Note: expected to be on the PATH:
 	find_executable( get_default_scp_executable_name() ).
@@ -657,13 +665,13 @@ get_default_scp_executable_path() ->
 
 
 % Returns the name default openssl-based executable.
--spec get_default_openssl_executable_name() -> ustring().
+-spec get_default_openssl_executable_name() -> executable_name().
 get_default_openssl_executable_name() ->
 	"openssl".
 
 
 % Returns an absolute path to the default openssl-based executable.
--spec get_default_openssl_executable_path() -> file_name().
+-spec get_default_openssl_executable_path() -> executable_path().
 get_default_openssl_executable_path() ->
 	% Note: expected to be on the PATH:
 	find_executable( get_default_openssl_executable_name() ).
@@ -671,7 +679,7 @@ get_default_openssl_executable_path() ->
 
 
 % Returns an absolute path to a gnuplot executable.
--spec get_gnuplot_path() -> file_name().
+-spec get_gnuplot_path() -> executable_path().
 get_gnuplot_path() ->
 	% Note: expected to be on the PATH:
 	find_executable( "gnuplot" ).
@@ -700,7 +708,7 @@ get_current_gnuplot_version() ->
 
 			{ _ExitCode=0, Output } ->
 				GnuplotVersionInString = lists:nth( _IndexVersion=2,
-							  text_utils:split_per_element( Output, " " ) ),
+								text_utils:split_per_element( Output, " " ) ),
 				basic_utils:parse_version( GnuplotVersionInString );
 
 			{ ExitCode, ErrorOutput } ->
@@ -712,56 +720,56 @@ get_current_gnuplot_version() ->
 
 
 % Returns the default tool to use to compress in the ZIP format.
--spec get_default_zip_compress_tool() -> file_name().
+-spec get_default_zip_compress_tool() -> executable_path().
 get_default_zip_compress_tool() ->
 	find_executable( "zip" ).
 
 
 % Returns the default tool to use to decompress in the ZIP format.
--spec get_default_zip_decompress_tool() -> file_name().
+-spec get_default_zip_decompress_tool() -> executable_path().
 get_default_zip_decompress_tool() ->
 	find_executable( "unzip" ).
 
 
 % Returns the default tool to use to decompress in the BZIP2 format.
--spec get_default_bzip2_compress_tool() -> file_name().
+-spec get_default_bzip2_compress_tool() -> executable_path().
 get_default_bzip2_compress_tool() ->
 	find_executable( "bzip2" ).
 
 
 % Returns the default tool to use to decompress in the BZIP2 format.
--spec get_default_bzip2_decompress_tool() -> file_name().
+-spec get_default_bzip2_decompress_tool() -> executable_path().
 get_default_bzip2_decompress_tool() ->
 	find_executable( "bunzip2" ).
 
 
 % Returns the default tool to use to compress in the XZ format.
--spec get_default_xz_compress_tool() -> file_name().
+-spec get_default_xz_compress_tool() -> executable_path().
 get_default_xz_compress_tool() ->
 	find_executable( "xz" ).
 
 
 % Returns the default tool to use to decompress in the XZ format.
--spec get_default_xz_decompress_tool() -> file_name().
+-spec get_default_xz_decompress_tool() -> executable_path().
 get_default_xz_decompress_tool() ->
 	find_executable( "unxz" ).
 
 
 % Returns the default tool to compute MD5 sums.
--spec get_default_md5_tool() -> file_name().
+-spec get_default_md5_tool() -> executable_path().
 get_default_md5_tool() ->
 	find_executable( "md5sum" ).
 
 
 % Returns the default tool to compute SHA sums.
--spec get_default_sha_tool() -> file_name().
+-spec get_default_sha_tool() -> executable_path().
 get_default_sha_tool() ->
 	find_executable( "shasum" ).
 
 
 
 % Returns the default tool to execute Java programs.
--spec get_default_java_runtime() -> file_name().
+-spec get_default_java_runtime() -> executable_path().
 get_default_java_runtime() ->
 	find_executable( "java" ).
 
@@ -781,7 +789,7 @@ get_default_java_runtime() ->
 % of the corresponding version of JInterface (ex: lib/jinterface-1.8/); our
 % install-erlang.sh script automatically enforces that convention.
 %
--spec get_default_jinterface_path() -> file_name().
+-spec get_default_jinterface_path() -> file_path().
 get_default_jinterface_path() ->
 
 	JInterfaceBase = file_utils:join(
@@ -792,7 +800,7 @@ get_default_jinterface_path() ->
 
 		true ->
 			JInterfaceJar = file_utils:join(
-							  [ JInterfaceBase, "priv", "OtpErlang.jar" ] ),
+							[ JInterfaceBase, "priv", "OtpErlang.jar" ] ),
 
 			case file_utils:is_existing_file( JInterfaceJar ) of
 
@@ -805,7 +813,7 @@ get_default_jinterface_path() ->
 			end;
 
 		false ->
-			trace_utils:error_fmt( "The JInterface base path (~s) does not "
+			trace_utils:error_fmt( "The JInterface base path (~ts) does not "
 				"exist; conventionally this is a symbolic link pointing to, "
 				"typically, 'lib/jinterface-x.y/'.", [ JInterfaceBase ] ),
 			throw( { jinterface_base_path_not_found, JInterfaceBase } )
@@ -886,7 +894,7 @@ is_batch() ->
 
 % Helper functions.
 
--spec execute_dot( file_name(), file_name() ) -> ustring().
+-spec execute_dot( file_name(), file_name() ) -> command_output().
 execute_dot( PNGFilename, GraphFilename ) ->
 
 	DotExec = find_executable( "dot" ),

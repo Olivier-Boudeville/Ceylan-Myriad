@@ -50,11 +50,11 @@ test_local() ->
 	TargetPort = 8080,
 	TargetUrl = "index.html",
 
-	test_facilities:display( "As a test, fetching page '~s' from a webserver "
+	test_facilities:display( "As a test, fetching page '~ts' from a webserver "
 		"supposedly running on localhost, at TCP port #~B.",
 		[ TargetUrl, TargetPort ] ),
 
-	URI = text_utils:format( "http://localhost:~B/~s",
+	URI = text_utils:format( "http://localhost:~B/~ts",
 							 [ TargetPort, TargetUrl ] ),
 
 	web_utils:start(),
@@ -62,7 +62,7 @@ test_local() ->
 	{ _StatusCode=200, _HeaderMap, Body } =
 		web_utils:get( URI, _Headers=[], _HttpOptions=[] ),
 
-	trace_bridge:debug_fmt( "Body: '~s'.", [ Body ] ),
+	trace_bridge:debug_fmt( "Body: '~ts'.", [ Body ] ),
 
 	"This is static website D. This is the one you should see if pointing to "
 	"the default virtual host corresponding to the local host. "
@@ -79,7 +79,7 @@ test_online() ->
 
 	FilePath = web_utils:download_file( TargetUrl, _TargetDir="/tmp" ),
 
-	test_facilities:display( "Reading from URL '~s': wrote file '~s'.",
+	test_facilities:display( "Reading from URL '~ts': wrote file '~ts'.",
 							 [ TargetUrl, FilePath ] ).
 
 
@@ -91,7 +91,7 @@ run() ->
 
 	ItemList = [ "hello <b>world</b>!", "Once upon a time...", "Goodbye!" ],
 
-	test_facilities:display( "Generating an unordered list:~n~s~n",
+	test_facilities:display( "Generating an unordered list:~n~ts~n",
 							 [ web_utils:get_unordered_list( ItemList ) ] ),
 
 	TestString = "I'm a \"test\" string & I am more (>) proud of it than <<<.",
@@ -102,7 +102,7 @@ run() ->
 	% Check:
 	EncodedString = web_utils:escape_as_html_content( TestString ),
 
-	test_facilities:display( "Escaping for HTML \"~s\", getting: \"~s\" "
+	test_facilities:display( "Escaping for HTML \"~ts\", getting: \"~ts\" "
 		"(outer quotes excluded in both cases).",
 		[ TestString, EncodedString ] ),
 

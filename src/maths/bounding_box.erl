@@ -66,6 +66,10 @@
 -export_type([ circle/0, right_cuboid/0, bounding_box/0 ]).
 
 
+% Shorthands:
+
+-type point() :: linear_2D:point().
+
 
 % Returns a disc which is a bounding-box for the specified list of points, which
 % must not be empty.
@@ -73,14 +77,14 @@
 % Note: this bounding box is not the smallest one, but is very lightweight to
 % compute.
 %
-% Returns the disc information: { Center, SquareRadius }.
+% Returns the disc information: {Center, SquareRadius}.
 %
--spec get_lazy_circle_box( [ linear_2D:point() ] ) ->
+-spec get_lazy_circle_box( [ point() ] ) ->
 		{ linear_2D:integer_point(), linear:square_distance() }.
 get_lazy_circle_box( PointList ) ->
 
-	{ TopLeft, BottomRight } = linear_2D:compute_smallest_enclosing_rectangle(
-							  PointList ),
+	{ TopLeft, BottomRight } =
+		linear_2D:compute_smallest_enclosing_rectangle( PointList ),
 
 	Center = linear_2D:get_integer_center( TopLeft, BottomRight ),
 
@@ -91,7 +95,7 @@ get_lazy_circle_box( PointList ) ->
 
 
 
-% Returns { Center, SquareRadius } which defines a bounding-box consisting on
+% Returns {Center, SquareRadius} which defines a bounding-box consisting on
 % the minimal enclosing circle (MEC) for the specified list of points.
 %
 % Note: this bounding box is the smallest possible circle, but requires quite a
@@ -101,8 +105,8 @@ get_lazy_circle_box( PointList ) ->
 % recomputing everything from scratch. So we do not rely on an 'updateMEC'
 % function.
 
--spec get_minimal_enclosing_circle_box( [ linear_2D:point() ] ) ->
-		{ linear_2D:point(), linear:square_distance() }.
+-spec get_minimal_enclosing_circle_box( [ point() ] ) ->
+		{ point(), linear:square_distance() }.
 get_minimal_enclosing_circle_box( _PointList=[] ) ->
 	throw( no_point_to_enclose );
 
@@ -141,6 +145,7 @@ get_minimal_enclosing_circle_box( _PointList=[ P1, P2, P3 ] ) ->
 		no_point ->
 			% Here the three vertices must be aligned, we could find the two
 			% most distant points and use them as a MEC diameter.
+			%
 			throw( flat_triangle );
 
 		Center ->
@@ -170,12 +175,11 @@ get_minimal_enclosing_circle_box( PointList ) ->
 
 
 
-% Returns { MinAngle, MinVertex }, the minimum angle subtended by the segment
-% [ P1, P2 ] among points in the Points list.
+% Returns {MinAngle, MinVertex}, the minimum angle subtended by the segment [P1,
+% P2] among points in the Points list.
 %
--spec find_minimal_angle( linear_2D:point(), linear_2D:point(),
-						 [ linear_2D:point() ] ) ->
-		{ number(), 'undefined' } | { integer(), linear_2D:point() }.
+-spec find_minimal_angle( point(), point(), [ point() ] ) ->
+		{ number(), 'undefined' } | { integer(), point() }.
 find_minimal_angle( _P1, _P2, _Points=[] ) ->
 	throw( { find_minimal_angle, not_enough_points } );
 
@@ -187,7 +191,7 @@ find_minimal_angle( P1, P2, _Points=[ Pfirst | OtherPoints ] ) ->
 	BootstrapAngle = linear_2D:abs_angle_deg( Pfirst, P1, P2 ),
 
 	find_minimal_angle( P1, P2, OtherPoints, _MinAngle=BootstrapAngle,
-					_MinVertex=Pfirst ).
+						_MinVertex=Pfirst ).
 
 
 % Points was not empty, thus not 'undefined' in the returned pair:
@@ -239,7 +243,7 @@ try_side( P1, P2, H ) ->
 						false ->
 							% MEC determined by P1, P2 and MinVertex:
 							get_minimal_enclosing_circle_box(
-							  [ P1, P2, MinVertex ] );
+								[ P1, P2, MinVertex ] );
 
 						true ->
 							% Here we try the new S, defined by the opposite
@@ -247,6 +251,7 @@ try_side( P1, P2, H ) ->
 
 							% We must however reconstruct beforehand the list of
 							% remaining points. H contains MinVertex but not P2:
+							%
 							NewH = [ P2 | lists:delete( MinVertex, H ) ],
 							try_side( MinVertex, P1, NewH )
 
@@ -258,6 +263,7 @@ try_side( P1, P2, H ) ->
 
 					% We must however reconstruct beforehand the list of
 					% remaining points. H contains MinVertex but not P1:
+					%
 					NewH = [ P1 | lists:delete( MinVertex, H ) ],
 					try_side( MinVertex, P2, NewH )
 
@@ -268,17 +274,15 @@ try_side( P1, P2, H ) ->
 
 
 % Returns a textual description of the specified bounding box.
-%
--spec to_string( bounding_box() ) -> string().
+-spec to_string( bounding_box() ) -> text_utils:ustring().
 to_string( #circle{ center=Center, square_radius=SquareRadius } ) ->
-
 	io_lib:format( "circle whose center is ~w and square radius is ~w",
-				[ Center, SquareRadius ] );
+				   [ Center, SquareRadius ] );
 
 
 to_string( #right_cuboid{ base_vertex=BaseVertex, abscissa_length=XLen,
 						 ordinate_length=YLen, elevation_length=ZLen } ) ->
 
-	io_lib:format( "right cuboid whose base vertex is ~s, and lengths along "
-				   "the X, Y and Z axes are respectively ~w, ~w and ~w",
-				   [ linear_3D:to_string( BaseVertex ), XLen, YLen, ZLen ] ).
+	io_lib:format( "right cuboid whose base vertex is ~ts, and lengths along "
+		"the X, Y and Z axes are respectively ~w, ~w and ~w",
+		[ linear_3D:to_string( BaseVertex ), XLen, YLen, ZLen ] ).

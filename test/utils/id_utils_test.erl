@@ -41,7 +41,7 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	test_facilities:display( "Generating a new UUID: '~s'.",
+	test_facilities:display( "Generating a new UUID: '~ts'.",
 							 [ id_utils:generate_uuid() ] ),
 
 
@@ -51,16 +51,15 @@ run() ->
 
 	ThirdId = id_utils:get_next_sortable_id( SecondId ),
 
-	BetweenTwoAndThirdId = id_utils:get_sortable_id_between( SecondId,
-															 ThirdId ),
+	BetweenTwoAndThirdId =
+		id_utils:get_sortable_id_between( SecondId, ThirdId ),
 
 	Ids = [ FirstId, SecondId, BetweenTwoAndThirdId, ThirdId ],
 
-	FirstSortStrings = [ id_utils:sortable_id_to_string( Id )
-						 || Id <- Ids ],
+	FirstSortStrings = [ id_utils:sortable_id_to_string( Id ) || Id <- Ids ],
 
-	test_facilities:display( "Test first sortable identifiers are: ~s",
-			 [ text_utils:strings_to_enumerated_string( FirstSortStrings ) ] ),
+	test_facilities:display( "Test first sortable identifiers are: ~ts",
+			[ text_utils:strings_to_enumerated_string( FirstSortStrings ) ] ),
 
 	LowerBound = id_utils:get_sortable_id_lower_bound(),
 	UpperBound = id_utils:get_sortable_id_upper_bound(),
@@ -68,7 +67,7 @@ run() ->
 	BoundString = id_utils:sortable_ids_to_string( [ LowerBound, UpperBound ] ),
 
 	test_facilities:display( "Lower and upper bounds in terms of sortable "
-							 "identifiers are: ~s.", [ BoundString ] ),
+							 "identifiers are: ~ts.", [ BoundString ] ),
 
 	ElementsToIdentify=[ 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i' ],
 
@@ -81,8 +80,8 @@ run() ->
 	NewIdentifierTable = id_utils:assign_sorted_identifiers( ElementsToIdentify,
 															 IdentifierTable ),
 
-	test_facilities:display( "Identifier table ~s, once updated for elements ~w, "
-							 "with known identifiers ~w, is: ~s",
+	test_facilities:display( "Identifier table ~ts, once updated for elements "
+		"~w, with known identifiers ~w, is: ~ts",
 	  [ id_utils:identifier_table_to_string( IdentifierTable ),
 		ElementsToIdentify, KnownIds,
 		id_utils:identifier_table_to_string( NewIdentifierTable ) ] ),

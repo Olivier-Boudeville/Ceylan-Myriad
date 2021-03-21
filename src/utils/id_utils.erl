@@ -42,7 +42,7 @@
 
 
 % A string UUID (ex: "ed64ffd4-74ee-43dc-adba-be37ed8735aa"):
--type uuid() :: text_utils:ustring().
+-type uuid() :: text_utils:uustring().
 
 -export_type([ uuid/0 ]).
 
@@ -104,7 +104,7 @@
 %     [ non_neg_integer() ] | ?lower_bound_id | ?upper_bound_id.
 %
 % To include bounds as well:
--type sortable_id() :: [ integer() ] | bitstring().
+-type sortable_id() :: [ integer() ] | text_utils:bin_string().
 
 
 % Any type of element to which an identifier could be associated:
@@ -112,8 +112,8 @@
 
 
 % A table associating, to an element, its sortable identifier.
--type identifier_table() :: ?table:?table( identifiable_element(),
-										   sortable_id() ).
+-type identifier_table() ::
+		?table:?table( identifiable_element(), sortable_id() ).
 
 
 -export_type([ sortable_id/0, identifiable_element/0, identifier_table/0 ]).
@@ -195,15 +195,15 @@ uuidgen_internal() ->
 					[ hd( io_lib:format( "~.16B", [ B rem 16 ] ) ) ] )
 				  || B <- TrimmedOutput ],
 
-			%trace_utils:debug_fmt( "UUID hexa length: ~B, for '~s'.",
+			%trace_utils:debug_fmt( "UUID hexa length: ~B, for '~ts'.",
 			%					   [ length( V ), V ] ),
 
 			%32 = length( V ),
 
 			lists:flatten( io_lib:format(
-			% Pioneer module: text_utils:format(
-							 "~s~s~s~s~s~s~s~s-~s~s~s~s-~s~s~s~s-~s~s~s~s-~s"
-							 "~s~s~s~s~s~s~s~s~s~s~s", V ) );
+			  % Pioneer module: text_utils:format(
+			  "~ts~ts~ts~ts~ts~ts~ts~ts-~ts~ts~ts~ts-~ts~ts~ts~ts-~ts~ts"
+			  "~ts~ts-~ts~ts~ts~ts~ts~ts~ts~ts~ts~ts~ts~ts", V ) );
 
 		{ ErrorCode, ErrorOutput } ->
 			throw( { uuidgen_internal_failed, ErrorCode, ErrorOutput } )
@@ -238,7 +238,7 @@ get_next_sortable_id( Id ) ->
 % Note: most probably the most useful function in order to create new sortable
 % identifiers.
 %
-% Ex: get_sortable_id_between( [1,7,1], [1,7,2] ) may return [1,7,1,1].
+% Ex: get_sortable_id_between([1,7,1], [1,7,2]) may return [1,7,1,1].
 %
 -spec get_sortable_id_between( sortable_id(), sortable_id() ) -> sortable_id().
 get_sortable_id_between( Id, Id ) ->
@@ -490,7 +490,7 @@ assign_sorted_identifiers( _ElementsToIdentify=[ E | T ], IdentifierTable ) ->
 					ResId = get_initial_sortable_id(),
 					trace_utils:debug_fmt( "- managing element ~p, "
 						"not having already an identifier, with no next "
-						"identifier found, hence identified as ~s",
+						"identifier found, hence identified as ~ts",
 						[ E, sortable_id_to_string( ResId ) ] ),
 					ResId;
 
@@ -501,7 +501,7 @@ assign_sorted_identifiers( _ElementsToIdentify=[ E | T ], IdentifierTable ) ->
 
 					trace_utils:debug_fmt( "- managing element ~p, "
 						"not having already an identifier, with next "
-						"identifier found as ~s, hence identified as ~s",
+						"identifier found as ~ts, hence identified as ~ts",
 						[ E, sortable_id_to_string( LowestId ),
 						  sortable_id_to_string( ResId ) ] ),
 
@@ -513,7 +513,7 @@ assign_sorted_identifiers( _ElementsToIdentify=[ E | T ], IdentifierTable ) ->
 
 		{ value, FoundId } ->
 			trace_utils:debug_fmt( "- managing element ~p, already having "
-				"an identifier, ~s", [ E, sortable_id_to_string( FoundId ) ] ),
+				"an identifier, ~ts", [ E, sortable_id_to_string( FoundId ) ] ),
 			{ FoundId, IdentifierTable }
 
 	end,
@@ -532,7 +532,7 @@ assign_sorted_identifiers( _ElementsToIdentify=[ E | T ], IdentifierTable ) ->
 find_lowest_identifier_in( Elements, IdentifierTable ) ->
 	LowestId = find_lowest_identifier_in( Elements, IdentifierTable,
 										  _LowestId=undefined ),
-	trace_utils:debug_fmt( "- lowest identifier found in ~s is: ~s",
+	trace_utils:debug_fmt( "- lowest identifier found in ~ts is: ~ts",
 						   [ identifier_table_to_string( IdentifierTable ),
 							 sortable_id_to_string( LowestId ) ] ),
 	LowestId.
@@ -573,7 +573,7 @@ find_lowest_identifier_in( _Elements=[ E | T ], IdentifierTable, LowestId ) ->
 % (helper)
 %
 -spec assign_ranged_identifiers( [ identifiable_element() ],
-		 [ identifiable_element() ], sortable_id(), identifier_table() ) ->
+		[ identifiable_element() ], sortable_id(), identifier_table() ) ->
 										identifier_table().
 assign_ranged_identifiers( _RemainingElems=[], _ToIdentifyRev=[], _LowerId,
 						   IdentifierTable ) ->
@@ -631,7 +631,8 @@ assign_in_turn_ids( LowerId, HigherId, _ElemsToIdentify=[ E | T ],
 
 	NewId = get_sortable_id_between( LowerId, HigherId ),
 
-	trace_utils:debug_fmt( "- assigning to element ~p, between ~s and ~s: ~s",
+	trace_utils:debug_fmt( "- assigning to element ~p, "
+		"between ~ts and ~ts: ~ts",
 		[ E, sortable_id_to_string( LowerId ),
 		  sortable_id_to_string( HigherId ),
 		  sortable_id_to_string( NewId ) ] ),
@@ -679,10 +680,10 @@ identifier_table_to_string( IdentifierTable ) ->
 		ElemIdPairs ->
 
 			Strings = [ text_utils:format( "element '~p' associated to "
-				"identifier ~s", [ E, sortable_id_to_string( Id ) ] )
+				"identifier ~ts", [ E, sortable_id_to_string( Id ) ] )
 						|| { E, Id } <- ElemIdPairs ],
 
-			text_utils:format( "identifier table having ~B entries: ~s",
+			text_utils:format( "identifier table having ~B entries: ~ts",
 				[ length( ElemIdPairs ),
 				  text_utils:strings_to_string( Strings ) ] )
 

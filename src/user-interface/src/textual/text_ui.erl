@@ -136,6 +136,11 @@
 -define( error_suffix, "~n" ).
 
 
+% Shorthands:
+
+-type format_string() :: text_utils:format_string().
+
+
 
 % Starts the UI with default settings.
 %
@@ -186,7 +191,7 @@ start( _Options=[ log_file | T ], UIState ) ->
 start( _Options=[ { log_file, Filename } | T ], UIState ) ->
 
 	LogFile = file_utils:open( Filename, [ write, exclusive,
-				  file_utils:get_default_encoding_option() ] ),
+					file_utils:get_default_encoding_option() ] ),
 
 	file_utils:write( LogFile, "Starting text UI.\n" ),
 	NewUIState = UIState#text_ui_state{ log_file=LogFile },
@@ -248,7 +253,7 @@ display( Text ) ->
 
 
 % Displays specified formatted text, as a normal message.
--spec display( text_utils:format_string(), [ term() ] ) -> void().
+-spec display( format_string(), [ term() ] ) -> void().
 display( FormatString, Values ) ->
 	display_helper( _Channel=standard_io, FormatString, Values ).
 
@@ -257,21 +262,22 @@ display( FormatString, Values ) ->
 -spec display_numbered_list( label(), [ text() ] ) -> void().
 display_numbered_list( Label, Lines ) ->
 	LineStrings = text_utils:strings_to_enumerated_string( Lines ),
-	display_helper( _Channel=standard_io, "~s~s", [ Label, LineStrings ] ).
+	display_helper( _Channel=standard_io, "~ts~ts", [ Label, LineStrings ] ).
 
 
 
 % Displays specified text, as a warning message.
 -spec display_warning( text() ) -> void().
 display_warning( Text ) ->
-	display_helper( standard_error, ?warning_prefix ++ Text ++ ?warning_suffix ).
+	display_helper( standard_error,
+					?warning_prefix ++ Text ++ ?warning_suffix ).
 
 
 % Displays specified formatted text, as a warning message.
--spec display_warning( text_utils:format_string(), [ term() ] ) -> void().
+-spec display_warning( format_string(), [ term() ] ) -> void().
 display_warning( FormatString, Values ) ->
 	display_helper( standard_error,
-					?warning_prefix ++ FormatString ++ ?warning_suffix, Values ).
+		?warning_prefix ++ FormatString ++ ?warning_suffix, Values ).
 
 
 
@@ -282,7 +288,7 @@ display_error( Text ) ->
 
 
 % Displays specified formatted text, as an error message.
--spec display_error( text_utils:format_string(), [ term() ] ) -> void().
+-spec display_error( format_string(), [ term() ] ) -> void().
 display_error( FormatString, Values ) ->
 	display_helper( standard_error,
 					?error_prefix ++ FormatString ++ ?error_suffix, Values ).
@@ -294,7 +300,7 @@ display_error( FormatString, Values ) ->
 display_error_numbered_list( Label, Lines ) ->
 	LineStrings = text_utils:strings_to_enumerated_string( Lines ),
 	display_helper( _Channel=standard_error,
-					?error_prefix ++ "~s~s" ++ ?error_suffix,
+					?error_prefix ++ "~ts~ts" ++ ?error_suffix,
 					[ Label, LineStrings ] ).
 
 
@@ -389,7 +395,7 @@ read_text_as_integer( Prompt, UIState ) ->
 	case text_utils:try_string_to_integer( Text ) of
 
 		undefined ->
-			%trace_utils:debug_fmt( "(rejected: '~s')", [ Text ] ),
+			%trace_utils:debug_fmt( "(rejected: '~ts')", [ Text ] ),
 			read_text_as_integer( Prompt, UIState );
 
 		I ->
@@ -533,7 +539,7 @@ choose_designated_item( Label, Choices, UIState ) ->
 	{ _FinalCount, NumberedText } = lists:foldl(
 					 fun( Text, { Count, AccText } ) ->
 
-						NewText = text_utils:format( "[~B] ~s",
+						NewText = text_utils:format( "[~B] ~ts",
 													 [ Count, Text ] ),
 
 						NewAccText = [ NewText | AccText ],
@@ -547,12 +553,12 @@ choose_designated_item( Label, Choices, UIState ) ->
 	Text = text_utils:strings_to_string(
 			 lists:reverse( NumberedText ), _Bullet=" " ),
 
-	FullLabel = text_utils:format( "~s~s~nChoice> ", [ Label, Text ] ),
+	FullLabel = text_utils:format( "~ts~ts~nChoice> ", [ Label, Text ] ),
 
 	case read_text_as_integer( FullLabel, UIState ) of
 
 		{ parsing_failed, Input } ->
-			display_error( "Input shall be an integer (not ~s).",
+			display_error( "Input shall be an integer (not ~ts).",
 						   [ Input ] ),
 			choose_designated_item( Label, Choices, UIState );
 
@@ -598,7 +604,7 @@ choose_numbered_item( Choices ) ->
 % cancel that operation.
 %
 -spec choose_numbered_item( [ choice_element() ], ui_state() ) ->
-								  choice_index();
+									choice_index();
 						  ( label(), [ choice_element() ] ) -> choice_index().
 choose_numbered_item( Choices, UIState )
   when is_record( UIState, text_ui_state ) ->
@@ -620,7 +626,7 @@ choose_numbered_item( Label, Choices ) ->
 % cancel that operation.
 %
 -spec choose_numbered_item( label(), [ choice_element() ], ui_state() ) ->
-								  choice_index().
+									choice_index().
 choose_numbered_item( Label, Choices, UIState ) ->
 
 	ChoiceCount = length( Choices ),
@@ -628,7 +634,7 @@ choose_numbered_item( Label, Choices, UIState ) ->
 	{ _FinalCount, NumberedText } = lists:foldl(
 					 fun( Text, { Count, AccText } ) ->
 
-						NewText = text_utils:format( "[~B] ~s",
+						NewText = text_utils:format( "[~B] ~ts",
 													 [ Count, Text ] ),
 
 						NewAccText = [ NewText | AccText ],
@@ -642,7 +648,7 @@ choose_numbered_item( Label, Choices, UIState ) ->
 	Text = text_utils:strings_to_string(
 			 lists:reverse( NumberedText ), _Bullet=" " ),
 
-	FullLabel = text_utils:format( "~s~s~nChoice> ", [ Label, Text ] ),
+	FullLabel = text_utils:format( "~ts~ts~nChoice> ", [ Label, Text ] ),
 
 	SelectedNumber = get_text_as_integer( FullLabel, UIState ),
 
@@ -740,7 +746,7 @@ choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
 	{ _FinalCount, NumberedText } = lists:foldl(
 					 fun( Text, { Count, AccText } ) ->
 
-						NewText = text_utils:format( "[~B] ~s",
+						NewText = text_utils:format( "[~B] ~ts",
 													 [ Count, Text ] ),
 
 						NewAccText = [ NewText | AccText ],
@@ -754,7 +760,7 @@ choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
 	Text = text_utils:strings_to_string(
 			 lists:reverse( NumberedText ), _Bullet=" " ),
 
-	FullLabel = text_utils:format( "~s~s~nChoice [default: ~B]> ",
+	FullLabel = text_utils:format( "~ts~ts~nChoice [default: ~B]> ",
 								   [ Label, Text, DefaultChoiceIndex ] ),
 
 	case read_text_as_maybe_integer( FullLabel, UIState ) of
@@ -795,7 +801,7 @@ trace( Message ) ->
 
 % Traces specified message, by displaying it, and possibly logging it.
 -spec trace( message(), ui_state() ) -> void();
-		   ( text_utils:format_string(), [ term() ] ) -> void().
+		   ( format_string(), [ term() ] ) -> void().
 trace( Message, UIState ) when is_record( UIState, text_ui_state ) ->
 
 	%trace_utils:debug_fmt( "UIState: ~p", [ UIState ] ),
@@ -831,7 +837,6 @@ trace( FormatString, Values ) ->
 % Stops the UI.
 -spec stop() -> void().
 stop() ->
-
 	stop( get_state() ).
 
 
@@ -855,7 +860,6 @@ stop_helper() ->
 
 
 % Helper section.
-
 
 
 % Sets the current UI state.
@@ -898,8 +902,7 @@ display_helper( Channel, Text ) ->
 
 
 % Displays specified formatted text, on specified channel.
--spec display_helper( channel(), text_utils:format_string(), [ term() ] ) ->
-							void().
+-spec display_helper( channel(), format_string(), [ term() ] ) -> void().
 display_helper( Channel, FormatString, Values ) ->
 
 	%trace_utils:debug_fmt( "Displaying, on channel '~p', '~p', with '~p'.",
@@ -913,7 +916,7 @@ display_helper( Channel, FormatString, Values ) ->
 			ok;
 
 		Backtitle ->
-			io:format( Channel, "~n~n [Backtitle: ~s]~n", [ Backtitle ] )
+			io:format( Channel, "~n~n [Backtitle: ~ts]~n", [ Backtitle ] )
 
 	end,
 
@@ -923,7 +926,7 @@ display_helper( Channel, FormatString, Values ) ->
 			ok;
 
 		Title ->
-			io:format( Channel, "Title:     ~s~n", [ Title ] )
+			io:format( Channel, "Title:     ~ts~n", [ Title ] )
 
 	end,
 
@@ -1026,7 +1029,7 @@ get_setting( SettingKey ) ->
 % specified setting.
 %
 -spec get_setting( ui_setting_key(), ui_state() ) ->
-						 maybe( ui_setting_value() ).
+							maybe( ui_setting_value() ).
 get_setting( SettingKey, #text_ui_state{ settings=SettingTable } ) ->
 	?ui_table:get_value_with_defaults( SettingKey, _Default=undefined,
 									SettingTable ).
@@ -1046,7 +1049,7 @@ to_string( #text_ui_state{ get_line_script=GetLineScript,
 						   log_file=LogFile,
 						   settings=SettingTable }) ->
 
-	ScriptString = text_utils:format( "relying on helper script '~s'",
+	ScriptString = text_utils:format( "relying on helper script '~ts'",
 									  [ GetLineScript ] ),
 
 	ConsoleString = case LogConsole of
@@ -1065,13 +1068,12 @@ to_string( #text_ui_state{ get_line_script=GetLineScript,
 			"not using a log file";
 
 		_ ->
-			text_utils:format( "using log file '~s'", [ LogFile ] )
+			text_utils:format( "using log file '~ts'", [ LogFile ] )
 
 	end,
 
 	SettingString = ui:settings_to_string( SettingTable ),
 
-	text_utils:format( "text_ui interface, ~s, ~s writing logs on console, "
-					   "~s and ~s",
-					   [ ScriptString, ConsoleString, FileString,
-						 SettingString ] ).
+	text_utils:format( "text_ui interface, ~ts, ~ts writing logs on console, "
+		"~ts and ~ts",
+		[ ScriptString, ConsoleString, FileString, SettingString ] ).

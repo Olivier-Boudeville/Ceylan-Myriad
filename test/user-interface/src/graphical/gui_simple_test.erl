@@ -63,8 +63,7 @@ run_test_gui() ->
 	SecondFrame = gui:create_frame( "This is the second frame" ),
 
 	ThirdFrame = gui:create_frame( "This is the third frame",
-					   _Position={ 50, 10 }, _Size={ 150, 200 },
-					   _Style=[ default ] ),
+			_Position={ 50, 10 }, _Size={ 150, 200 }, _Style=[ default ] ),
 
 	FourthFrame = gui:create_frame( "This is the fourth frame" ),
 
@@ -97,8 +96,8 @@ test_main_loop( CloseFrame ) ->
 
 		{ onWindowClosed, [ CloseFrame, Context ] } ->
 
-			trace_utils:info_fmt( "Closing frame ~s has been, well, closed "
-				"(~s), test success.",
+			trace_utils:info_fmt( "Closing frame ~ts has been, well, closed "
+				"(~ts), test success.",
 				[ gui:object_to_string( CloseFrame ),
 				  gui:context_to_string( Context ) ] ),
 
@@ -108,7 +107,7 @@ test_main_loop( CloseFrame ) ->
 
 
 		{ onWindowClosed, [ AnyFrame, Context ] } ->
-			trace_utils:info_fmt( "Frame ~s closed (~s).",
+			trace_utils:info_fmt( "Frame ~ts closed (~ts).",
 				[ gui:object_to_string( AnyFrame ),
 				  gui:context_to_string( Context ) ] ),
 
@@ -126,7 +125,6 @@ test_main_loop( CloseFrame ) ->
 
 
 % Runs the test.
-%
 -spec run() -> no_return().
 run() ->
 
@@ -135,8 +133,8 @@ run() ->
 	case executable_utils:is_batch() of
 
 		true ->
-			test_facilities:display( "(not running the MyriadGUI test, "
-									 "being in batch mode)" );
+			test_facilities:display(
+			  "(not running the MyriadGUI test, being in batch mode)" );
 
 		false ->
 			run_test_gui()

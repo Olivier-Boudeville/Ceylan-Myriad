@@ -63,8 +63,7 @@ run() ->
 	%TransformList = [ { mealy, _InitialState=2, MyMealyTable } ],
 
 	% A rather complete key (compression is better be done among the first):
-	TransformList = [
-					  delta_combine,
+	TransformList = [ delta_combine,
 					  { compress, xz },
 					  { offset, 41 },
 					  { insert_random, _FirstInsertSeed={ 412, 1418, 2565 },
@@ -76,21 +75,20 @@ run() ->
 					  { mealy, _InitialMealyState=50, MyMealyTable },
 					  { insert_random, _SecondInsertSeed={ 432, 4118, 255 },
 						_SecondRange=11 },
-					  delta_combine
-					],
+					  delta_combine ],
 
 	KeyFilename = "my-test-key-file.cipher",
 
 
 	test_facilities:display( "Generating a key from specified transform list, "
-							 "to be stored in file '~s'.", [ KeyFilename ] ),
+							 "to be stored in file '~ts'.", [ KeyFilename ] ),
 
 	case file_utils:is_existing_file( KeyFilename ) of
 
 		true ->
 			% Otherwise generation will halt on error:
 			test_facilities:display( "(removing previously existing "
-									 "key file '~s')~n", [ KeyFilename ] ),
+									 "key file '~ts')~n", [ KeyFilename ] ),
 			file_utils:remove_file( KeyFilename );
 
 		false ->
@@ -109,15 +107,16 @@ run() ->
 
 	EncryptedFilename = SourceFilename ++ ".encrypted",
 
-	test_facilities:display( "Encrypting '~s' into '~s', using key file '~s'.",
-					 [ SourceFilename, EncryptedFilename, KeyFilename ] ),
+	test_facilities:display( "Encrypting '~ts' into '~ts', "
+		"using key file '~ts'.",
+		[ SourceFilename, EncryptedFilename, KeyFilename ] ),
 
 	case file_utils:is_existing_file( EncryptedFilename ) of
 
 		true ->
 			% Otherwise generation will halt on error:
 			test_facilities:display( "(removing previously existing target "
-				"encrypted file '~s')~n", [ EncryptedFilename ] ),
+				"encrypted file '~ts')~n", [ EncryptedFilename ] ),
 			file_utils:remove_file( EncryptedFilename );
 
 		false ->
@@ -130,7 +129,7 @@ run() ->
 
 	DecryptedFilename = SourceFilename ++ ".decrypted",
 
-	test_facilities:display( "Decrypting '~s' into '~s', using the same key.",
+	test_facilities:display( "Decrypting '~ts' into '~ts', using the same key.",
 							 [ EncryptedFilename, DecryptedFilename ] ),
 
 	case file_utils:is_existing_file( DecryptedFilename ) of
@@ -138,7 +137,7 @@ run() ->
 		true ->
 			% Otherwise generation will halt on error:
 			test_facilities:display( "(removing previously existing target "
-				"decrypted file '~s')~n", [ DecryptedFilename ] ),
+				"decrypted file '~ts')~n", [ DecryptedFilename ] ),
 			file_utils:remove_file( DecryptedFilename );
 
 		false ->

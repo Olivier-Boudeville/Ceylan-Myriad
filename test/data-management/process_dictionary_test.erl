@@ -45,12 +45,12 @@ run() ->
 
 	test_facilities:display( "Testing the support of the process dictionary." ),
 
-	test_facilities:display( "Initial state: ~s",
+	test_facilities:display( "Initial state: ~ts",
 							 [ process_dictionary:to_string() ] ),
 
 	InitTable = process_dictionary:get_dictionary(),
 
-	test_facilities:display( "Initial content: ~s",
+	test_facilities:display( "Initial content: ~ts",
 							 [ list_table:to_string( InitTable ) ] ),
 
 	FirstKey = hello,
@@ -83,10 +83,10 @@ run() ->
 
 	FinalTable = process_dictionary:get_dictionary(),
 
-	test_facilities:display( "Final content: ~s",
+	test_facilities:display( "Final content: ~ts",
 							 [ list_table:to_string( FinalTable ) ] ),
 
-	test_facilities:display( "Final state: ~s",
+	test_facilities:display( "Final state: ~ts",
 							 [ process_dictionary:to_string() ] ),
 
 	test_facilities:stop().

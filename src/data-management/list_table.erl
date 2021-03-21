@@ -99,6 +99,11 @@
 			   list_table/0, list_table/2, table/0, table/2 ]).
 
 
+% Shorthands:
+
+-type accumulator() :: basic_utils:accumulator().
+
+
 
 % Implementation notes:
 %
@@ -334,7 +339,7 @@ extract_entry_with_defaults( Key, DefaultValue, Table ) ->
 % Otherwise, i.e. if that entry does not exist, returns false.
 %
 -spec extract_entry_if_existing( key(), list_table() ) ->
-				  'false' | { value(), list_table() }.
+					'false' | { value(), list_table() }.
 extract_entry_if_existing( Key, Table ) ->
 
 	case has_entry( Key, Table ) of
@@ -401,8 +406,8 @@ get_values( Keys, Table ) ->
 % The key/value pairs are expected to exist already, otherwise an exception is
 % thrown.
 %
-% Ex: [ Color=red, Age=23, Mass=51 ] = list_table:get_all_values( [ color, age,
-% mass ], [ { color, red }, { mass, 51 }, { age, 23 } ] )
+% Ex: [Color=red, Age=23, Mass=51] = list_table:get_all_values( [color, age,
+% mass], [ {color, red}, {mass, 51}, {age, 23} ] )
 %
 -spec get_all_values( [ key() ], list_table() ) -> [ value() ].
 get_all_values( Keys, Table ) ->
@@ -442,7 +447,7 @@ get_all_values( Keys, Table ) ->
 % One may request the returned table to be optimised after this call.
 %
 -spec map_on_entries( fun( ( entry() ) -> entry() ), list_table() ) ->
-						  list_table().
+							list_table().
 map_on_entries( Fun, Table ) ->
 	[ Fun( E ) || E <- Table ].
 
@@ -460,7 +465,7 @@ map_on_entries( Fun, Table ) ->
 % change.
 %
 -spec map_on_values( fun( ( value() ) -> value() ), list_table() ) ->
-						 list_table().
+							list_table().
 map_on_values( Fun, Table ) ->
 	lists:keymap( Fun, _N=2, Table ).
 
@@ -472,10 +477,8 @@ map_on_values( Fun, Table ) ->
 %
 % Returns the final accumulator.
 %
--spec fold_on_entries( fun( ( entry(), basic_utils:accumulator() )
-						  -> basic_utils:accumulator() ),
-					 basic_utils:accumulator(), list_table() ) ->
-						   basic_utils:accumulator().
+-spec fold_on_entries( fun( ( entry(), accumulator() ) -> accumulator() ),
+					   accumulator(), list_table() ) -> accumulator().
 fold_on_entries( Fun, InitialAcc, Table ) ->
 	lists:foldl( Fun, InitialAcc, Table ).
 
@@ -510,7 +513,7 @@ add_to_entry( Key, Number, Table ) ->
 % no subtraction can be performed on the associated value.
 %
 -spec subtract_from_entry( key(), number(), list_table() ) ->
-							   list_table().
+								list_table().
 subtract_from_entry( Key, Number, Table ) ->
 
 	case lists:keytake( Key, _N=1, Table ) of
@@ -606,8 +609,8 @@ merge_in_key( ReferenceKey, _AlternateKeys=[ K | T ], Table ) ->
 % Performs a key merge, as merge_in_key/3, however not for a single reference
 % key / aliases entries, but for a set thereof.
 %
-% Ex: MergedTable = merge_in_keys( [ { '-length', [ 'l', '-len' ] },
-%       { '-help', [ 'h' ] } ], MyTable ).
+% Ex: MergedTable = merge_in_keys( [ {'-length', [ 'l', '-len' ]},
+%       {'-help', [ 'h' ]} ], MyTable ).
 %
 -spec merge_in_keys( list_table(), list_table() ) -> list_table().
 merge_in_keys( _KeyAssoc=[], Table ) ->
@@ -628,7 +631,7 @@ merge_in_keys( _KeyAssoc=[ { K, AltKeys } | T ], Table ) ->
 % '[|]' operation will not complain if not.
 %
 -spec append_to_existing_entry( key(), term(), list_table() ) ->
-									  list_table().
+										list_table().
 append_to_existing_entry( Key, Element, Table ) ->
 
 	case lists:keytake( Key, _N=1, Table ) of
@@ -649,7 +652,7 @@ append_to_existing_entry( Key, Element, Table ) ->
 % An exception is thrown if the key does not exist.
 %
 -spec append_list_to_existing_entry( key(), [ term() ], list_table() ) ->
-										   list_table().
+											list_table().
 append_list_to_existing_entry( Key, Elements, Table ) ->
 
 	case lists:keytake( Key, _N=1, Table ) of
@@ -883,7 +886,7 @@ to_string( Table, DescriptionType ) ->
 		L ->
 
 			%  Enforces a consistent order; flatten below is needed, in order to
-			%  use the result with ~s:
+			%  use the result with ~ts:
 			%
 			case DescriptionType of
 
@@ -891,7 +894,7 @@ to_string( Table, DescriptionType ) ->
 					Strs = [ text_utils:format_ellipsed( "~p: ~p", [ K, V ] )
 							 || { K, V } <- lists:sort( L ) ],
 
-					lists:flatten( io_lib:format( "table with ~B entries: ~s",
+					lists:flatten( io_lib:format( "table with ~B entries: ~ts",
 						[ length( L ), text_utils:strings_to_string( Strs,
 												   ?default_bullet ) ] ) );
 
@@ -899,7 +902,7 @@ to_string( Table, DescriptionType ) ->
 					Strs = [ text_utils:format( "~p: ~p", [ K, V ] )
 							 || { K, V } <- lists:sort( L ) ],
 
-					lists:flatten( io_lib:format( "table with ~B entries: ~s",
+					lists:flatten( io_lib:format( "table with ~B entries: ~ts",
 						[ length( L ),
 						  text_utils:strings_to_string( Strs,
 														?default_bullet ) ] ) );
@@ -909,7 +912,7 @@ to_string( Table, DescriptionType ) ->
 					Strs = [ text_utils:format_ellipsed( "~p: ~p", [ K, V ] )
 							 || { K, V } <- lists:sort( L ) ],
 
-					lists:flatten( io_lib:format( "table with ~B entries: ~s",
+					lists:flatten( io_lib:format( "table with ~B entries: ~ts",
 						[ length( L ),
 						  text_utils:strings_to_string( Strs, Bullet ) ] ) )
 
@@ -922,7 +925,7 @@ to_string( Table, DescriptionType ) ->
 % Displays the specified table on the standard output.
 -spec display( list_table() ) -> void().
 display( Table ) ->
-	io:format( "~s~n", [ to_string( Table ) ] ).
+	io:format( "~ts~n", [ to_string( Table ) ] ).
 
 
 
@@ -931,4 +934,4 @@ display( Table ) ->
 %
 -spec display( string(), list_table() ) -> void().
 display( Title, Table ) ->
-	io:format( "~s:~n~s~n", [ Title, to_string( Table ) ] ).
+	io:format( "~ts:~n~ts~n", [ Title, to_string( Table ) ] ).

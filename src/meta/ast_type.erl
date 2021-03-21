@@ -37,9 +37,7 @@
 
 
 
-
 % Section for types about types.
-
 
 
 % An in-AST definition of a type:
@@ -65,9 +63,7 @@
 		   name :: type_name(),
 
 		   % Type variables, i.e. types on which this type depends:
-		   variables = [] :: [ ast_type() ]
-
-}).
+		   variables = [] :: [ ast_type() ] }).
 
 -type ast_builtin_type() :: #type{}.
 
@@ -89,9 +85,7 @@
 		   name :: type_name(),
 
 		   % Type variables, i.e. types on which this type depends:
-		   variables = [] :: [ ast_type() ]
-
-}).
+		   variables = [] :: [ ast_type() ] }).
 
 -type ast_user_type() :: #user_type{}.
 
@@ -123,14 +117,12 @@
 
 
 % Any kind of reference onto a type:
-%
 -type ast_type() :: ast_builtin_type() | ast_user_type() | ast_remote_type().
 
 -type maybe_ast_type() :: basic_utils:maybe( ast_type() ).
 
 
 % May be constrained or not (see http://erlang.org/doc/apps/erts/absform.html):
-%
 %-type function_type().
 
 
@@ -228,8 +220,9 @@
 -type located_form() :: ast_info:located_form().
 
 -type type_table() :: ast_info:type_table().
--type type_name() :: type_utils:type_name().
 
+-type type_name() :: type_utils:type_name().
+-type type_id() :: type_utils:type_id().
 
 -type record_table() :: ast_info:record_table().
 
@@ -237,7 +230,7 @@
 -type field_pair() :: ast_record:field_pair().
 
 -type type_info() :: ast_info:type_info().
--type type_pair() :: { type_utils:type_id(), type_info() }.
+-type type_pair() :: { type_id(), type_info() }.
 
 -type record_definition() :: ast_info:record_definition().
 -type record_pair() :: ast_record:record_pair().
@@ -265,6 +258,7 @@
 % ?table:map_on_values/2.
 
 
+
 % Transformation section.
 
 
@@ -272,7 +266,7 @@
 % transforms.
 %
 -spec transform_type_table( type_table(), ast_transforms() ) ->
-								  { type_table(), ast_transforms() }.
+									{ type_table(), ast_transforms() }.
 transform_type_table( TypeTable, Transforms ) ?rec_guard ->
 
 	% { type_id(), type_info() } pairs:
@@ -294,7 +288,7 @@ transform_type_table( TypeTable, Transforms ) ?rec_guard ->
 % more easily.
 %
 -spec transform_type_info_pair( type_pair(), ast_transforms() ) ->
-									 { type_pair(), ast_transforms() }.
+										{ type_pair(), ast_transforms() }.
 transform_type_info_pair( { TypeId, _TypeInfo=#type_info{ line=Line,
 														  definition=undefined,
 														  exported=Export } },
@@ -307,7 +301,7 @@ transform_type_info_pair( { TypeId, _TypeInfo=#type_info{ line=Line,
 	% the error, yet, at least for types, it is not unlikely they are exported
 	% in an header file and thus we would possibly be pointing to a wrong place.
 
-	ErrorMessage = text_utils:format( "type ~s/~B is exported, yet has never "
+	ErrorMessage = text_utils:format( "type ~ts/~B is exported, yet has never "
 									  "been defined.", pair:to_list( TypeId ) ),
 
 	UsedLine = case Line of
@@ -335,7 +329,7 @@ transform_type_info_pair( { TypeId, TypeInfo }, Transforms ) ?rec_guard ->
 
 % (helper)
 -spec transform_type_info( type_info(), ast_transforms() ) ->
-								 { type_info(), ast_transforms() }.
+									{ type_info(), ast_transforms() }.
 transform_type_info( TypeInfo=#type_info{ definition=TypeDef },
 					 Transforms ) ?rec_guard ->
 
@@ -373,16 +367,16 @@ transform_types_in_record_table( RecordTable, Transforms ) ?rec_guard ->
 % easily.
 %
 -spec transform_record_pair( record_pair(), ast_transforms() ) ->
-									 { record_pair(), ast_transforms() }.
+										{ record_pair(), ast_transforms() }.
 transform_record_pair( { RecordName, RecordDef }, Transforms ) ?rec_guard ->
 
-	%ast_utils:display_trace( "transforming definition of record '~s'.",
+	%ast_utils:display_trace( "transforming definition of record '~ts'.",
 	%						 [ RecordName ] ),
 
 	{ NewRecordDef, NewTransforms } =
 		transform_record_definition( RecordDef, Transforms ),
 
-	%ast_utils:display_trace( "transformed definition of record '~s' to:~n~p.",
+	%ast_utils:display_trace( "transformed definition of record '~ts' to:~n~p.",
 	%						 [ RecordName, NewRecordDef ] ),
 
 	{ { RecordName, NewRecordDef }, NewTransforms }.
@@ -406,7 +400,7 @@ transform_record_definition( _RecordDef={ FieldTable, Loc, Line },
 
 % (helper)
 -spec transform_field_table( field_table(), ast_transforms() ) ->
-								   { field_table(), ast_transforms() }.
+									{ field_table(), ast_transforms() }.
 transform_field_table( FieldTable, Transforms ) ?rec_guard ->
 
 	% Is already a list directly (no key/value pairs to preserve here):
@@ -420,7 +414,7 @@ transform_field_table( FieldTable, Transforms ) ?rec_guard ->
 % Allows to keep around the field name, to recreate the field table more easily.
 %
 -spec transform_field_pair( field_pair(), ast_transforms() ) ->
-								  { field_pair(), ast_transforms() }.
+									{ field_pair(), ast_transforms() }.
 transform_field_pair( { FieldName, FieldDef }, Transforms ) ?rec_guard ->
 
 	{ NewFieldDef, NewTransforms } =
@@ -487,9 +481,8 @@ transform_field_definition(
 
 
 % Transforms specified list of types.
-%
 -spec transform_types( [ ast_type() ], ast_transforms() ) ->
-							 { [ ast_type() ], ast_transforms() }.
+								{ [ ast_type() ], ast_transforms() }.
 transform_types( Types, Transforms ) ->
 	% Is already a list directly (no key/value pairs to preserve here):
 	lists:mapfoldl( fun transform_type/2, _Acc0=Transforms, _List=Types ).
@@ -748,7 +741,7 @@ transform_type( TypeDef={ 'type', Line, BuiltinType, _TypeVars=[] },
 					halt( 5 );
 
 				_ ->
-					ast_utils:display_warning( "Not expecting type '~s' "
+					ast_utils:display_warning( "Not expecting type '~ts' "
 						"(in ast_type:transform_type/3), assuming simple "
 						"builtin type, in:~n  ~p", [ BuiltinType, TypeDef ] ),
 					{ TypeDef, Transforms }
@@ -782,9 +775,8 @@ transform_type( _TypeDef={ 'type', Line, 'record',
 transform_type( TypeDef={ 'type', Line, BuiltinType, TypeVars },
 				Transforms ) when is_list( TypeVars ) ->
 
-	ast_utils:display_warning( "Not expecting type '~s', assuming unknown "
-							   "parametrized builtin type, in:~n  ~p",
-							   [ BuiltinType, TypeDef ] ),
+	ast_utils:display_warning( "Not expecting type '~ts', assuming unknown "
+		"parametrized builtin type, in:~n  ~p", [ BuiltinType, TypeDef ] ),
 
 	% Is already a list directly (no key/value pairs to preserve here):
 	{ NewTypeVars, NewTransforms } = lists:mapfoldl(
@@ -804,7 +796,7 @@ transform_type( _TypeDef={ 'user_type', Line, TypeName, TypeVars },
 
 	% Is already a list directly (no key/value pairs to preserve here):
 	{ NewTypeVars, NewTransforms } = lists:mapfoldl( fun transform_type/2,
-					 _Acc0=Transforms, _List=TypeVars ),
+						_Acc0=Transforms, _List=TypeVars ),
 
 	TypeArity = length( TypeVars ),
 
@@ -910,7 +902,7 @@ transform_type( _TypeDef={ 'remote_type', Line,
 		_ ->
 
 			case ?table:lookup_entry( { ModuleName, TypeName, TypeArity },
-									 RemoteTransformTable ) of
+									  RemoteTransformTable ) of
 
 				 % Module *and* type overridden:
 				{ value, E={ _NewModuleName, _NewTypeName } } ->
@@ -930,8 +922,9 @@ transform_type( _TypeDef={ 'remote_type', Line,
 
 					AnyArity = '_',
 
-					case ?table:lookup_entry( { ModuleName, TypeName, AnyArity },
-											 RemoteTransformTable ) of
+					case ?table:lookup_entry(
+							{ ModuleName, TypeName, AnyArity },
+							RemoteTransformTable ) of
 
 						{ value, E={ _NewModuleName, _NewTypeName } } ->
 							{ E, NewTransforms };
@@ -1046,8 +1039,7 @@ transform_type( TypeDef={ 'var', _Line, _TypeName }, Transforms ) ->
 %
 transform_type( _TypeDef={ 'ann_type', Line,
 					  [ Var={ 'var', _Line2, _VariableName },
-						InternalTypeDef ] },
-				Transforms ) ->
+						InternalTypeDef ] }, Transforms ) ->
 
 	%NewVar = transform_type_variable( VariableName, Line2, _SomeTransform ),
 	NewVar = Var,
@@ -1131,8 +1123,7 @@ transform_type( TypeDef, _Transforms ) ->
 
 % (helper)
 transform_local_type_with_fun( TransformFun, TypeName, TypeArity,
-							   Transforms=#ast_transforms{
-									 transformation_state=TransfoState } ) ->
+		Transforms=#ast_transforms{ transformation_state=TransfoState } ) ->
 
 	{ TypeReplacement, NewTransfoState } =
 		TransformFun( TypeName, TypeArity, TransfoState ),
@@ -1146,8 +1137,7 @@ transform_local_type_with_fun( TransformFun, TypeName, TypeArity,
 
 % (helper)
 transform_remote_type_with_fun( TransformFun, ModuleName, TypeName, TypeArity,
-								Transforms=#ast_transforms{
-									 transformation_state=TransfoState } ) ->
+		Transforms=#ast_transforms{ transformation_state=TransfoState } ) ->
 
 	{ TypeReplacement, NewTransfoState } =
 		TransformFun( ModuleName, TypeName, TypeArity, TransfoState ),
@@ -1411,7 +1401,6 @@ forge_builtin_type( TypeName, TypeVars, Line ) ->
 
 
 
-
 % Returns an AST-compliant representation of specified local, user-defined type
 % definition.
 %
@@ -1456,7 +1445,6 @@ forge_remote_type( ModuleName, TypeName, TypeVars, Line1, Line2, Line3 ) ->
 
 
 % Returns an AST-compliant representation of specified variable pattern.
-%
 -spec forge_type_variable( variable_name(), line() ) -> ast_variable_pattern().
 forge_type_variable( VariableName, Line ) when is_atom( VariableName ) ->
 	{ var, Line, VariableName }.
@@ -1467,14 +1455,12 @@ forge_type_variable( VariableName, Line ) when is_atom( VariableName ) ->
 
 
 % Checks that specified type name is legit.
-%
 -spec check_type_name( term() ) -> type_name().
 check_type_name( Name ) ->
 	check_type_name( Name, _Context=undefined ).
 
 
 % Checks that specified type name is legit.
-%
 -spec check_type_name( term(), form_context() ) -> type_name().
 check_type_name( Name, _Context ) when is_atom( Name ) ->
 	Name;
@@ -1485,14 +1471,12 @@ check_type_name( Other, Context ) ->
 
 
 % Checks that specified type definition is legit.
-%
 -spec check_type_definition( term() ) -> ast_type_definition().
 check_type_definition( TypeDef ) ->
 	check_type_definition( TypeDef, _Context=undefined ).
 
 
 % Checks that specified type definition is legit.
-%
 -spec check_type_definition( term(), form_context() ) -> ast_type_definition().
 check_type_definition( TypeDef, _Context ) when is_tuple( TypeDef ) ->
 	TypeDef;
@@ -1503,14 +1487,12 @@ check_type_definition( Other, Context ) ->
 
 
 % Checks that specified record name is legit.
-%
 -spec check_record_name( term() ) -> basic_utils:record_name().
 check_record_name( Name ) ->
 	check_record_name( Name, _Context=undefined ).
 
 
 % Checks that specified record name is legit.
-%
 -spec check_record_name( term(), form_context() ) -> basic_utils:record_name().
 check_record_name( Name, _Context ) when is_atom( Name ) ->
 	Name;
@@ -1522,15 +1504,13 @@ check_record_name( Other, Context ) ->
 
 
 % Checks that specified type identifier is legit.
-%
--spec check_type_id( term() ) -> type_utils:type_id().
+-spec check_type_id( term() ) -> type_id().
 check_type_id( Id ) ->
 	check_type_id( Id, _Context=undefined ).
 
 
 % Checks that specified type identifier is legit.
-%
--spec check_type_id( term(), form_context() ) -> type_utils:type_id().
+-spec check_type_id( term(), form_context() ) -> type_id().
 check_type_id( TypeId={ TypeName, TypeArity }, Context ) ->
 	check_type_name( TypeName, Context ),
 	ast_utils:check_arity( TypeArity, Context ),
@@ -1542,15 +1522,13 @@ check_type_id( Other, Context ) ->
 
 
 % Checks that specified type identifiers are legit.
-%
--spec check_type_ids( term() ) -> [ type_utils:type_id() ].
+-spec check_type_ids( term() ) -> [ type_id() ].
 check_type_ids( Ids ) ->
 	check_type_ids( Ids, _Context=undefined ).
 
 
 % Checks that specified type identifiers are legit.
-%
--spec check_type_ids( term(), form_context() ) -> [ type_utils:type_id() ].
+-spec check_type_ids( term(), form_context() ) -> [ type_id() ].
 check_type_ids( List, Context ) when is_list( List ) ->
 	[ check_type_id( Id, Context ) || Id <- List ];
 
@@ -1559,16 +1537,13 @@ check_type_ids( Other, Context ) ->
 
 
 % Checks that specified variable is legit.
-%
 -spec check_type_variable( term() ) -> ast_variable_pattern().
 check_type_variable( ASTVariable ) ->
 	check_type_variable( ASTVariable, _Context=undefined ).
 
 
 % Checks that specified variable is legit.
-%
--spec check_type_variable( term(), form_context() ) ->
-								 ast_variable_pattern().
+-spec check_type_variable( term(), form_context() ) -> ast_variable_pattern().
 check_type_variable( ASTVariable={ 'var', Line, VariableName }, Context )
   when is_atom( VariableName ) ->
 	ast_utils:check_line( Line, Context ),
@@ -1580,16 +1555,14 @@ check_type_variable( Other, Context ) ->
 
 
 % Checks that specified variables are legit.
-%
 -spec check_type_variables( term() ) -> [ ast_variable_pattern() ].
 check_type_variables( ASTVariables ) ->
 	check_type_variables( ASTVariables, _Context=undefined ).
 
 
 % Checks that specified variables are legit.
-%
 -spec check_type_variables( term(), form_context() ) ->
-								  [ ast_variable_pattern() ].
+									[ ast_variable_pattern() ].
 check_type_variables( List, Context ) when is_list( List ) ->
 	[ check_type_variable( ASTVariable, Context ) || ASTVariable <- List ];
 
@@ -1599,14 +1572,12 @@ check_type_variables( Other, Context ) ->
 
 
 % Checks that specified term is the AST version of an atom.
-%
 -spec check_ast_atom( term() ) -> ast_base:ast_atom().
 check_ast_atom( ASTAtom ) ->
 	check_ast_atom( ASTAtom, _Context=undefined ).
 
 
 % Checks that specified term is the AST version of an atom.
-%
 -spec check_ast_atom( term(), form_context() ) -> ast_base:ast_atom().
 check_ast_atom( ASTAtom={ atom, _Line, Atom }, _Context )
   when is_atom( Atom ) ->
@@ -1626,7 +1597,7 @@ check_ast_atom( Other, Context ) ->
 % - all the types definitions that are described in the specified type table
 %
 -spec get_located_forms_for( ast_info:type_export_table(), type_table() ) ->
-								   { [ located_form() ], [ located_form() ] }.
+									{ [ located_form() ], [ located_form() ] }.
 get_located_forms_for( TypeExportTable, TypeTable ) ->
 
 	TypeExportInfos = ?table:enumerate( TypeExportTable ),

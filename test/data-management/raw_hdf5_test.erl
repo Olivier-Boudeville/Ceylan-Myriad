@@ -53,13 +53,13 @@
 
 % Returns the initial, the full and the partial updates, and the corresponding
 % final data and element size for the specified test case.
-%
+
 
 
 get_data( one_dim_integer ) ->
 
-	InitialData = [ 500, 501, 502, 503, 504, 505, 506, 507, 508, 509, 510, 511
-				  ],
+	InitialData =
+		[ 500, 501, 502, 503, 504, 505, 506, 507, 508, 509, 510, 511 ],
 
 	FullUpdateData = [ 1, 2, 3 , 4, 5, 6, 7, 8, 9, 10, 11, 12 ],
 
@@ -84,8 +84,8 @@ get_data( one_dim_long_float ) ->
 	InitialData = [ nan, 501.7, 502.7, 503.7, 504.7, 505.7, 506.7, 507.7,
 					508.7, 509.7, 510.7, 511.7 ],
 
-	FullUpdateData = [ 1.8, nan, 3.8, 4.8, 5.8, 6.8, 7.8, 8.8, 9.8, 10.8, 11.8,
-					   12.8 ],
+	FullUpdateData =
+		[ 1.8, nan, 3.8, 4.8, 5.8, 6.8, 7.8, 8.8, 9.8, 10.8, 11.8, 12.8 ],
 
 	PartialUpdateData = [ 100.9, inf, 102.9 ],
 
@@ -105,28 +105,22 @@ get_data( one_dim_long_float ) ->
 
 get_data( two_dim_integer ) ->
 
-	InitialData = [
-				 { 500, 501, 502 },
-				 { 503, 504, 505 },
-				 { 506, 507, 508 },
-				 { 509, 510, 511 }
-				],
+	InitialData = [ { 500, 501, 502 },
+					{ 503, 504, 505 },
+					{ 506, 507, 508 },
+					{ 509, 510, 511 } ],
 
-	FullUpdateData = [
-					   { 1,   2,  3 },
+	FullUpdateData = [ { 1,   2,  3 },
 					   { 4  , 5,  6 },
 					   { 7,   8,  9 },
-					   { 10, 11, 12 }
-					 ],
+					   { 10, 11, 12 } ],
 
 	PartialUpdateData = [ { 100, 101, 102 } ],
 
-	FinalExpectedData = [
-						   {   1,   2,   3 } ] ++
+	FinalExpectedData = [ {   1,   2,   3 } ] ++
 						   PartialUpdateData ++ [
 						   {   7,   8,   9 },
-						   {  10,  11,  12 }
-						 ],
+						   {  10,  11,  12 } ],
 
 	% A priori, the size of a small integer (ex: 500) is 4 bytes according to
 	% HDF, yet Erlang (on 64 bit) may see it as 8 bytes. Here we compare with
@@ -141,28 +135,22 @@ get_data( two_dim_integer ) ->
 
 get_data( two_dim_long_float ) ->
 
-	InitialData = [
-				 { 500.1, inf, 502.1 },
-				 { 503.1, 504.1, 505.1 },
-				 { nan,   507.1, 508.1 },
-				 { 509.1, 510.1, 511.1 }
-				],
+	InitialData = [ { 500.1, inf, 502.1 },
+					{ 503.1, 504.1, 505.1 },
+					{ nan,   507.1, 508.1 },
+					{ 509.1, 510.1, 511.1 } ],
 
-	FullUpdateData = [
-					   { 1.2,   2.2, 3.2 },
+	FullUpdateData = [ { 1.2,   2.2, 3.2 },
 					   { 4.2,   5.2, 6.2 },
 					   { 7.2,   8.2, 9.2 },
-					   { 10.2,  nan, inf }
-					 ],
+					   { 10.2,  nan, inf } ],
 
 	PartialUpdateData = [ { 100.3, 101.3, 102.3 } ],
 
-	FinalExpectedData = [
-						   {   1.2,   2.2,  3.2 } ] ++
+	FinalExpectedData = [ {   1.2,   2.2,  3.2 } ] ++
 						   PartialUpdateData ++ [
 						   {   7.2,   8.2,  9.2 },
-						   {  10.2,   nan,  inf }
-						 ],
+						   {  10.2,   nan,  inf } ],
 
 	% A priori, the size of a float (ex: 500.2) is 4 bytes according to HDF, yet
 	% Erlang (on 64 bit) may see it as 24 bytes (!). Here we compare with the
@@ -180,7 +168,7 @@ get_data( two_dim_long_float ) ->
 % Returns the hyperslab settings corresponding to the specified fixture.
 %
 get_hyperslab_settings( S, _TupleSize=1 ) when S =:= one_dim_integer
-								  orelse S =:= one_dim_long_float->
+									orelse S =:= one_dim_long_float->
 
 	% From element #4:
 	Offset = 3,
@@ -196,16 +184,14 @@ get_hyperslab_settings( S, _TupleSize=1 ) when S =:= one_dim_integer
 
 
 get_hyperslab_settings( S, TupleSize ) when S =:= two_dim_integer
-								 orelse S =:= two_dim_long_float ->
+									orelse S =:= two_dim_long_float ->
 
 	% With the two_dim_int example, we now target:
 	%
-	%       [
-	%		 {   1,   2,   3 },
-	%		 { 100, 101, 102 },
-	%		 {   7,   8,   9 },
-	%		 {  10,  11,  12 }
-	%	   ],
+	%       [ {   1,   2,   3 },
+	%		  { 100, 101, 102 },
+	%		  {   7,   8,   9 },
+	%		  {  10,  11,  12 } ],
 	%
 	% thus we want to replace the second line (tuple) by { 100, 101, 102 }; this
 	% corresponds to the following in-file hyperslab:
@@ -223,7 +209,6 @@ get_hyperslab_settings( S, TupleSize ) when S =:= two_dim_integer
 	Block = { 1, 1 },
 
 	{ Offset, Stride, Count, Block }.
-
 
 
 
@@ -258,9 +243,8 @@ run( TestFixture ) ->
 	FileName = text_utils:format( "raw_hdf5_test-fixture-~p.hdf5",
 								  [ TestFixture ] ),
 
-	test_facilities:display( "~nStarting by writing a new '~s' HDF5 file "
-							 "for test fixture ~p.",
-							 [ FileName, TestFixture ] ),
+	test_facilities:display( "~nStarting by writing a new '~ts' HDF5 file "
+		"for test fixture ~p.", [ FileName, TestFixture ] ),
 
 	{ ok, WriteFile } = erlhdf5:h5fcreate( FileName, 'H5F_ACC_TRUNC' ),
 
@@ -268,18 +252,16 @@ run( TestFixture ) ->
 	  ElemSize } = get_data( TestFixture ),
 
 	% Dimensions is typically either ElementCount (with mono-dimensional data)
-	% or {TupleCount, TupleSize } (for bidimensional one):
-	{ MetaDatatype, Dimensions } = hdf5_support:check_data(
-												InitialData ),
+	% or {TupleCount, TupleSize} (for bidimensional one):
+	%
+	{ MetaDatatype, Dimensions } = hdf5_support:check_data( InitialData ),
 
 	% Guesses from the data the datatype to be used:
 	BindingDatatype = hdf5_support:convert_datatype( MetaDatatype ),
 
 	test_facilities:display( "Initial data of type ~p (binding: ~p), "
-							 "with dimensions of ~w elements "
-							 "of unitary size ~B.",
-							 [ MetaDatatype, BindingDatatype, Dimensions,
-							   ElemSize ] ),
+		"with dimensions of ~w elements of unitary size ~B.",
+		[ MetaDatatype, BindingDatatype, Dimensions, ElemSize ] ),
 
 	% For example, BindingDatatype may be 'H5T_NATIVE_INT':
 	{ ok, CellType } = erlhdf5:h5tcopy( BindingDatatype ),
@@ -287,13 +269,14 @@ run( TestFixture ) ->
 
 	% We have for this test to "deconvert" hdf5_support to feed the lower-level
 	% binding:
+	%
 	{ BindingDims, TupleSize } = case Dimensions of
 
-					Pair={ _TupleCount, TupleElemCount } ->
-						{ Pair, TupleElemCount };
+		Pair={ _TupleCount, TupleElemCount } ->
+			{ Pair, TupleElemCount };
 
-					ElementCount ->
-						{ { ElementCount }, 1 }
+		ElementCount ->
+			{ { ElementCount }, 1 }
 
 	end,
 
@@ -324,7 +307,6 @@ run( TestFixture ) ->
 
 	'H5D_SPACE_STATUS_NOT_ALLOCATED' = AllocStatus,
 	0 = Size,
-
 
 
 	% Writes these data into this dataset:
@@ -393,8 +375,7 @@ run( TestFixture ) ->
 	%			 { 500, 501, 502 },
 	%			 { 503, 504, 505 },
 	%			 { 506, 507, 508 },
-	%			 { 509, 510, 511 }
-	%			],
+	%			 { 509, 510, 511 } ],
 
 
 	% First let's get the target dataset (from the already opened file) that
@@ -407,8 +388,7 @@ run( TestFixture ) ->
 	%				   { 1,   2,  3 },
 	%				   { 4  , 5,  6 },
 	%				   { 7,   8,  9 },
-	%				   { 10, 11, 12 }
-	%				 ],
+	%				   { 10, 11, 12 } ],
 
 	% Then fully overwrites it with different data:
 	ok = erlhdf5:h5dwrite( ReadDataset, FullUpdateData ),
@@ -422,8 +402,8 @@ run( TestFixture ) ->
 	%
 	{ ok, TargetDataspace } = erlhdf5:h5dget_space( ReadDataset ),
 
-	{ Offset, Stride, Count, Block } = get_hyperslab_settings( TestFixture,
-															   TupleSize ),
+	{ Offset, Stride, Count, Block } =
+		get_hyperslab_settings( TestFixture, TupleSize ),
 
 	% Then just updates a part of the data (ex: in two dimensions, the second
 	% row, i.e. tuple), thanks to an hyperslab: this is done thanks to
@@ -462,11 +442,11 @@ run( TestFixture ) ->
 	% Reads dataset again:
 	{ ok, FinalRawReadData } = case MetaDatatype of
 
-			native_integer ->
-				erlhdf5:h5lt_read_dataset_int( ReadFile, DatasetName );
+		native_integer ->
+			erlhdf5:h5lt_read_dataset_int( ReadFile, DatasetName );
 
-			native_long_float ->
-				erlhdf5:h5lt_read_dataset_double( ReadFile, DatasetName )
+		native_long_float ->
+			erlhdf5:h5lt_read_dataset_double( ReadFile, DatasetName )
 
 	end,
 

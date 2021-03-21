@@ -72,10 +72,10 @@ run() ->
 	hashtable:display( MyH4 ),
 
 	MyH4Size = hashtable:size( MyH4 ),
-	test_facilities:display( "Size of table '~s': ~B entries",
+	test_facilities:display( "Size of table '~ts': ~B entries",
 							 [ hashtable:to_string( MyH4 ), MyH4Size ] ),
 
-	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
+	test_facilities:display( "Looking up for ~ts: ~p", [ ?MyFirstKey,
 		hashtable:lookup_entry( ?MyFirstKey, MyH4 ) ] ),
 	{ value, MyFirstValue } = hashtable:lookup_entry( ?MyFirstKey, MyH4 ),
 
@@ -87,16 +87,17 @@ run() ->
 							 "the same initial table." ),
 	{ MyFirstValue, MyH5 } = hashtable:extract_entry( ?MyFirstKey, MyH4 ),
 
-	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
+	test_facilities:display( "Looking up for ~ts: ~p", [ ?MyFirstKey,
 		hashtable:lookup_entry( ?MyFirstKey, MyH5 ) ] ),
 
 	key_not_found  = hashtable:lookup_entry( ?MyFirstKey, MyH5 ),
 
-	[ MySecondValue, MyFirstValue ] = hashtable:get_all_values(
-										[ ?MySecondKey, ?MyFirstKey ], MyH4 ),
+	[ MySecondValue, MyFirstValue ] =
+		hashtable:get_all_values( [ ?MySecondKey, ?MyFirstKey ], MyH4 ),
 
-	% remove_entry can also be used if the specified key is not here, will return
-	% an identical table.
+	% remove_entry can also be used if the specified key is not here, will
+	% return an identical table.
+
 	hashtable:display( MyH5 ),
 	test_facilities:display( "Testing double key registering." ),
 	MyH6 = hashtable:add_entry( ?MySecondKey, anything, MyH5 ),
@@ -154,7 +155,7 @@ run() ->
 
 	% MyH8 should have { MySecondKey, [1,2,3] } and { ?MyThirdKey, 3 }:
 	MyH8 = hashtable:merge( MyH4, MyH7 ),
-	test_facilities:display( "Merged table: ~s",
+	test_facilities:display( "Merged table: ~ts",
 							[ hashtable:to_string( MyH8 ) ] ),
 
 	MyH9 = hashtable:optimise( MyH8 ),

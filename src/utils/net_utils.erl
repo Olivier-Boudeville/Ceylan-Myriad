@@ -39,7 +39,7 @@
 
 % Host-related functions:
 -export([ ping/1, localhost/0, localhost/1, split_fqdn/1,
-		  get_local_ip_addresses/0, get_local_ip_address/0, 
+		  get_local_ip_addresses/0, get_local_ip_address/0,
 		  get_reverse_lookup_info/0, reverse_lookup/1, reverse_lookup/2 ]).
 
 
@@ -193,11 +193,12 @@
 
 -type bin_string() :: text_utils:bin_string().
 
--type file_name() :: file_utils:file_name().
--type directory_name() :: file_utils:directory_name().
+-type file_path() :: file_utils:file_path().
+-type directory_path() :: file_utils:directory_path().
 
 -type command() :: system_utils:command().
 -type environment() :: system_utils:environment().
+
 
 
 % Host-related functions.
@@ -214,7 +215,7 @@ ping( Hostname ) when is_list( Hostname ) ->
 
 	Command = "/bin/ping " ++ Hostname ++ " -q -c 1 ",
 
-	%trace_utils:debug_fmt( "Ping command: ~s.", [ Command ] ),
+	%trace_utils:debug_fmt( "Ping command: ~ts.", [ Command ] ),
 
 	case system_utils:run_executable( Command ) of
 
@@ -566,7 +567,7 @@ reverse_lookup( IPAddress, _LookupInfo={ host, HostExecPath } ) ->
 
 		{ _ExitCode=0, Output } ->
 
-			%trace_utils:debug_fmt( "'host' command: ~s, result: ~s.",
+			%trace_utils:debug_fmt( "'host' command: ~ts, result: ~ts.",
 			%                       [ Cmd, Output ] ),
 
 			case string:tokens( Output, " " ) of
@@ -645,19 +646,19 @@ check_node_availability( Nodename ) when is_atom( Nodename ) ->
 
 	% Useful to troubleshoot longer ping durations:
 	% (apparently this may come from badly configured DNS)
-	%trace_utils:debug_fmt( "Pinging node '~s'...", [ Nodename ] ),
+	%trace_utils:debug_fmt( "Pinging node '~ts'...", [ Nodename ] ),
 
 	case net_adm:ping( Nodename ) of
 
 		pong ->
 			%trace_utils:debug_fmt(
-			%   "... node '~s' found available from node '~s'.",
+			%   "... node '~ts' found available from node '~ts'.",
 			%	[ Nodename, node() ] ),
 			true ;
 
 		pang ->
 			%trace_utils:debug_fmt(
-			%   "... node '~s' found NOT available from node '~s'.",
+			%   "... node '~ts' found NOT available from node '~ts'.",
 			%	[ Nodename, node() ] ),
 			false
 
@@ -711,7 +712,7 @@ check_node_availability( Nodename, _Timing=immediate ) ->
 check_node_availability( Nodename, _Timing=with_waiting )
   when is_atom( Nodename ) ->
 
-	%trace_utils:debug_fmt( "check_node_availability of node '~s' with "
+	%trace_utils:debug_fmt( "check_node_availability of node '~ts' with "
 	%                       "default waiting.", [ Nodename ] ),
 
 	% 3 seconds is a good default:
@@ -721,19 +722,19 @@ check_node_availability( Nodename, _Timing=with_waiting )
 check_node_availability( Nodename, Duration )  ->
 
 	% In all cases, start with one immediate look-up:
-	%trace_utils:debug_fmt( "Pinging '~s' (case A) now...", [ Nodename ] ),
+	%trace_utils:debug_fmt( "Pinging '~ts' (case A) now...", [ Nodename ] ),
 	case net_adm:ping( Nodename ) of
 
 		pong ->
 
-			%trace_utils:debug_fmt( " - node '~s' found directly available.",
+			%trace_utils:debug_fmt( " - node '~ts' found directly available.",
 			%						[ Nodename ] ),
 
 			{ true, 0 } ;
 
 		pang ->
 
-			%trace_utils:debug_fmt( " - node '~s' not yet found available.",
+			%trace_utils:debug_fmt( " - node '~ts' not yet found available.",
 			%						[ Nodename ] ),
 
 			% Hopefully too early, let's retry later:
@@ -766,18 +767,18 @@ check_node_availability( Nodename, CurrentDurationStep, ElapsedDuration,
 
 	NewElapsedDuration = ElapsedDuration + ActualDurationStep,
 
-	%trace_utils:debug_fmt( "Pinging '~s' (case B) now...", [ Nodename ] ),
+	%trace_utils:debug_fmt( "Pinging '~ts' (case B) now...", [ Nodename ] ),
 	case net_adm:ping( Nodename ) of
 
 		pong ->
-			%trace_utils:debug_fmt( " - node '~s' found available after ~B ms.",
-			%						[ Nodename, NewElapsedDuration ] ),
+			%trace_utils:debug_fmt( " - node '~ts' found available '
+			%    "after ~B ms.", [ Nodename, NewElapsedDuration ] ),
 
 			{ true, NewElapsedDuration } ;
 
 		pang ->
 
-			%trace_utils:debug_fmt( " - node '~s' NOT found available after "
+			%trace_utils:debug_fmt( " - node '~ts' NOT found available after "
 			%                     "~B ms.", [ Nodename, NewElapsedDuration ] ),
 
 			% Too early, let's retry later:
@@ -794,7 +795,7 @@ check_node_availability( Nodename, CurrentDurationStep, ElapsedDuration,
 check_node_availability( _Nodename, _CurrentDurationStep, ElapsedDuration,
 						 _SpecifiedMaxDuration ) ->
 
-	%trace_utils:debug_fmt( " - node '~s' found NOT available, after ~B ms.",
+	%trace_utils:debug_fmt( " - node '~ts' found NOT available, after ~B ms.",
 	%						[ Nodename, ElapsedDuration ] ),
 
 	{ false, ElapsedDuration }.
@@ -909,8 +910,8 @@ launch_epmd( Port ) when is_integer( Port ) ->
 		EPMDPath ->
 			% Better through command line than using the environment to specify
 			% the port:
-			EpmdCmd = text_utils:format( "~s -port ~B", [ EPMDPath, Port ] ),
-			%trace_utils:debug_fmt( "Launching EPMD thanks to '~s'.",
+			EpmdCmd = text_utils:format( "~ts -port ~B", [ EPMDPath, Port ] ),
+			%trace_utils:debug_fmt( "Launching EPMD thanks to '~ts'.",
 			%                       [ EpmdCmd ] ),
 			system_utils:run_background_executable( EpmdCmd )
 
@@ -968,7 +969,7 @@ enable_distribution( NodeName, NamingMode=short_name )
 enable_distribution_helper( NodeName, NameType, NamingMode,
 							RemainingAttempts ) ->
 
-	%trace_utils:debug_fmt( "Starting distribution for node name ~s, as '~w'.",
+	%trace_utils:debug_fmt( "Starting distribution for node name ~ts, as '~w'.",
 	%						[ NodeName, NameType ] ),
 
 	case net_kernel:start( [ NodeName, NameType ] ) of
@@ -997,7 +998,7 @@ enable_distribution_helper( NodeName, NameType, NamingMode,
 				N ->
 					trace_utils:warning_fmt(
 					  "(attempt of enabling ~p distribution "
-					  "for node '~s' failed, retrying...)",
+					  "for node '~ts' failed, retrying...)",
 					  [ NamingMode, NodeName ] ),
 					timer:sleep( 300 ),
 					enable_distribution_helper( NodeName, NameType, NamingMode,
@@ -1074,7 +1075,7 @@ shutdown_node( Nodename ) when is_list( Nodename ) ->
 
 shutdown_node( Nodename ) when is_atom( Nodename ) ->
 
-	%trace_utils:debug_fmt( "Request to shut down node '~s' from node '~s'.",
+	%trace_utils:debug_fmt( "Request to shut down node '~ts' from node '~ts'.",
 	%						[ Nodename, node() ] ),
 
 	case lists:member( Nodename, nodes() ) of
@@ -1083,7 +1084,7 @@ shutdown_node( Nodename ) when is_atom( Nodename ) ->
 
 			try
 
-				%trace_utils:debug_fmt( "Sending shutdown command for '~s'.",
+				%trace_utils:debug_fmt( "Sending shutdown command for '~ts'.",
 				%                       [ Nodename ] )
 
 				%rpc:cast( Nodename, erlang, halt, [] )
@@ -1095,7 +1096,7 @@ shutdown_node( Nodename ) when is_atom( Nodename ) ->
 
 				_T:E ->
 					trace_utils:error_fmt(
-					  "Error while shutting down node '~s': ~p.",
+					  "Error while shutting down node '~ts': ~p.",
 					  [ Nodename, E ] )
 
 			end,
@@ -1104,7 +1105,7 @@ shutdown_node( Nodename ) when is_atom( Nodename ) ->
 			%ok;
 
 		false ->
-			%trace_utils:debug_fmt( "Node '~s' apparently not connected.",
+			%trace_utils:debug_fmt( "Node '~ts' apparently not connected.",
 			%                       [ Nodename ] ),
 			ok
 
@@ -1153,7 +1154,7 @@ wait_unavailable( Nodename, AttemptCount, Duration ) ->
 
 	%	_T:E ->
 
-	%		trace_utils:debug_fmt( "Error while pinging node '~s': "
+	%		trace_utils:debug_fmt( "Error while pinging node '~ts': "
 	%           "exception '~p'.", [ Nodename, E ] )
 
 	%end.
@@ -1323,20 +1324,20 @@ get_basic_node_launching_command( NodeName, NodeNamingMode, EpmdSettings,
 % PID, supposed to have already called one of the receive_file/{1,2,3}
 % functions.
 %
--spec send_file( file_name(), pid() ) -> void().
-send_file( Filename, RecipientPid ) ->
+-spec send_file( file_path(), pid() ) -> void().
+send_file( FilePath, RecipientPid ) ->
 
-	case file_utils:is_existing_file( Filename ) of
+	case file_utils:is_existing_file( FilePath ) of
 
 		true ->
 			ok;
 
 		false ->
-			throw( { file_to_send_not_found, Filename } )
+			throw( { file_to_send_not_found, FilePath } )
 
 	end,
 
-	Permissions = case file:read_file_info( Filename ) of
+	Permissions = case file:read_file_info( FilePath ) of
 
 		{ ok, #file_info{ mode=Mode } } ->
 			  Mode;
@@ -1347,22 +1348,22 @@ send_file( Filename, RecipientPid ) ->
 	end,
 
 	% Strips the base directory, keeps only the filename:
-	BinFilename = text_utils:string_to_binary( filename:basename( Filename ) ),
+	BinFilePath = text_utils:string_to_binary( filename:basename( FilePath ) ),
 
 	% Notifies the recipient so that it can receive the content:
 	% (note: we mimic the WOOPER oneway conventions here)
 	%
-	RecipientPid ! { sendFile, [ BinFilename, Permissions, self() ] },
+	RecipientPid ! { sendFile, [ BinFilePath, Permissions, self() ] },
 
 	receive
 
-		{ sendFileAcknowledged, [ BinFilename, RemoteIP, Port ] } ->
+		{ sendFileAcknowledged, [ BinFilePath, RemoteIP, Port ] } ->
 
 			% We used to rely on hostnames:
 			% Hostname = text_utils:binary_to_string( BinHostname ),
 
-			%trace_utils:debug_fmt( "~w connecting to ~s:~B to send '~s'.",
-			%		   [ self(), ipv4_to_string( RemoteIP ), Port, Filename ] ),
+			%trace_utils:debug_fmt( "~w connecting to ~ts:~B to send '~ts'.",
+			%		   [ self(), ipv4_to_string( RemoteIP ), Port, FilePath ] ),
 
 			DataSocket = case gen_tcp:connect( RemoteIP, Port,
 						[ binary, { packet, 0 }, { active, false } ] ) of
@@ -1380,7 +1381,7 @@ send_file( Filename, RecipientPid ) ->
 			% Two possibilities:
 
 			% First, basic reading and sending:
-			% case file:read_file( Filename ) of
+			% case file:read_file( FilePath ) of
 
 			%	{ ok, BinFileContent } ->
 
@@ -1411,7 +1412,7 @@ send_file( Filename, RecipientPid ) ->
 			%trace_utils:debug_fmt( "~w performing sendfile, using data "
 			%                       "socket ~p.", [ self(), DataSocket ] ),
 
-			case file:sendfile( Filename, DataSocket ) of
+			case file:sendfile( FilePath, DataSocket ) of
 
 				{ ok, _SentByteCount } ->
 					%trace_utils:debug_fmt( "~w sent file.", [ self() ] ),
@@ -1438,7 +1439,7 @@ send_file( Filename, RecipientPid ) ->
 %
 % Returns the full path to the received file.
 %
--spec receive_file( pid() ) -> file_name().
+-spec receive_file( pid() ) -> file_path().
 receive_file( EmitterPid ) ->
 	receive_file( EmitterPid, file_utils:get_current_directory() ).
 
@@ -1452,7 +1453,7 @@ receive_file( EmitterPid ) ->
 %
 % Returns the full path to the received file.
 %
--spec receive_file( pid(), directory_name() ) -> void().
+-spec receive_file( pid(), directory_path() ) -> file_path().
 receive_file( EmitterPid, TargetDir ) ->
 	receive_file( EmitterPid, TargetDir, ?default_send_file_tcp_port ).
 
@@ -1464,7 +1465,7 @@ receive_file( EmitterPid, TargetDir ) ->
 %
 % The specified TCP port will be used for that.
 %
--spec receive_file( pid(), directory_name(), tcp_port() ) -> file_name().
+-spec receive_file( pid(), directory_path(), tcp_port() ) -> file_path().
 receive_file( EmitterPid, TargetDir, TCPPort ) ->
 
 	% We prefer relying on IP addresses rather than hostnames, as a surprisingly
@@ -1498,15 +1499,16 @@ receive_file( EmitterPid, TargetDir, TCPPort ) ->
 	end.
 
 
-% Receives specified file out of band (through a dedicated TCP socket, not
+
+% Receives specified file out of band (through a dedicated TCP socket - not
 % thanks to Erlang messages) into specified pre-existing directory, the emitter
 % being supposed to use send_file/2.
 %
 % A TCP port in the specified range (min included, max excluded) will be used
-% for that (useful to cmpply with some firewall rules).
+% for that (useful to comply with some firewall rules).
 %
--spec receive_file( pid(), directory_name(), tcp_port(), tcp_port() ) ->
-						file_name().
+-spec receive_file( pid(), directory_path(), tcp_port(), tcp_port() ) ->
+						file_path().
 receive_file( EmitterPid, TargetDir, MinTCPPort, MaxTCPPort )
   when MinTCPPort < MaxTCPPort ->
 
@@ -1526,11 +1528,11 @@ receive_file( EmitterPid, TargetDir, MinTCPPort, MaxTCPPort )
 			{ ListenSock, ActualTCPPort } = listen_to_next_available_port(
 									 MinTCPPort, MinTCPPort, MaxTCPPort ),
 
-			%trace_utils:debug_fmt( "File '~s' will be received through "
+			%trace_utils:debug_fmt( "File '~ts' will be received through "
 			%	"local TCP port ~p.", [ BinFilename, ActualTCPPort ] ),
 
 			accept_remote_content( ListenSock, ActualTCPPort, LocalIP,
-				 TargetDir, BinFilename, Permissions, EmitterPid )
+					TargetDir, BinFilename, Permissions, EmitterPid )
 
 	end.
 
@@ -1568,18 +1570,19 @@ listen_to_next_available_port( CurrentTCPPort, MinTCPPort, MaxTCPPort ) ->
 
 % (helper, for code sharing)
 accept_remote_content( ListenSock, ActualTCPPort, LocalIP, TargetDir,
-					   BinFilename, Permissions, EmitterPid ) ->
+					   BinFilePath, Permissions, EmitterPid ) ->
 
 	EmitterPid ! { sendFileAcknowledged,
-				   [ BinFilename, LocalIP, ActualTCPPort ] },
+				   [ BinFilePath, LocalIP, ActualTCPPort ] },
 
-	Filename = file_utils:join( TargetDir,
-								text_utils:binary_to_string( BinFilename ) ),
+	FilePath = file_utils:join( TargetDir,
+								text_utils:binary_to_string( BinFilePath ) ),
 
-	%trace_utils:debug_fmt( "Will write received file in '~s'.", [ Filename ] ),
+	%trace_utils:debug_fmt( "Will write received file in '~ts'.",
+	%    [ FilePath ] ),
 
 	% Do not know the units for { delayed_write, Size, Delay }:
-	OutputFile = file_utils:open( Filename,
+	OutputFile = file_utils:open( FilePath,
 								  [ write, raw, binary, delayed_write ] ),
 
 	% Mono-client, yet using a separate socket for actual sending:
@@ -1596,10 +1599,10 @@ accept_remote_content( ListenSock, ActualTCPPort, LocalIP, TargetDir,
 
 	end,
 
-	case file:write_file_info( Filename, #file_info{ mode=Permissions } ) of
+	case file:write_file_info( FilePath, #file_info{ mode=Permissions } ) of
 
 		ok ->
-			Filename;
+			FilePath;
 
 		{ error, WriteInfoReason } ->
 			throw( { write_file_info_failed, WriteInfoReason } )
@@ -1705,7 +1708,7 @@ ipv6_to_string( { N1, N2, N3, N4, N5, N6 } ) ->
 % Returns a string describing the specified IPv6 address and port.
 -spec ipv6_to_string( ip_v6_address(), net_port() ) -> ustring().
 ipv6_to_string( Ipv6={ _N1, _N2, _N3, _N4, _N5, _N6 }, Port ) ->
-	text_utils:format( "~s:~B", [ ipv6_to_string( Ipv6 ), Port ] ).
+	text_utils:format( "~ts:~B", [ ipv6_to_string( Ipv6 ), Port ] ).
 
 
 

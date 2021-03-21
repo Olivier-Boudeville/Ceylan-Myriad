@@ -52,7 +52,7 @@ run() ->
 
 	ArgTable = shell_utils:get_argument_table(),
 
-	test_facilities:display( "Obtained following argument table: ~s",
+	test_facilities:display( "Obtained following argument table: ~ts",
 		[ shell_utils:argument_table_to_string( ArgTable ) ] ),
 
 	OptionLessArgs = shell_utils:get_optionless_command_arguments(),
@@ -65,7 +65,7 @@ run() ->
 		shell_utils:extract_optionless_command_arguments(),
 
 	test_facilities:display(
-	  "Extracted option-less arguments are: ~p (remainder: ~s).",
+	  "Extracted option-less arguments are: ~p (remainder: ~ts).",
 	  [ OtherOptionLessArgs,
 		shell_utils:argument_table_to_string( ShrunkArgTable) ] ),
 
@@ -79,7 +79,7 @@ run() ->
 		shell_utils:extract_command_arguments_for_option( PzOption ),
 
 	test_facilities:display( "Knowing the actual command-line arguments were:~n"
-		"~p~nfor (VM, not user) option '~s', we extracted following value(s), "
+		"~p~nfor (VM, not user) option '~ts', we extracted following value(s), "
 		"expected not to be defined:~n~p~n"
 		"and got the rest of the arguments:~n~p",
 		[ init:get_arguments(), PzOption, PzValues, PzRemainingArguments ] ),
@@ -89,10 +89,10 @@ run() ->
 
 	{ RealOptValues, RealOptRemainingArguments } =
 		shell_utils:extract_command_arguments_for_option( RealOption,
-													  PzRemainingArguments ),
+													PzRemainingArguments ),
 
-	test_facilities:display( "For (user) option '~s', we extracted following "
-		"value(s):~n~p~nand got the rest of the arguments: ~s",
+	test_facilities:display( "For (user) option '~ts', we extracted following "
+		"value(s):~n~p~nand got the rest of the arguments: ~ts",
 		[ RealOption, RealOptValues,
 		  shell_utils:argument_table_to_string( RealOptRemainingArguments ) ] ),
 
@@ -103,7 +103,7 @@ run() ->
 
 	AdHocArgTable = shell_utils:generate_argument_table( AdHocCommandLine ),
 
-	test_facilities:display( "Ad hoc argument table from '~s':~n~s",
+	test_facilities:display( "Ad hoc argument table from '~ts':~n~ts",
 		[ AdHocCommandLine,
 		  shell_utils:argument_table_to_string( AdHocArgTable ) ] ),
 
@@ -120,7 +120,7 @@ run() ->
 										OptionSpecs, AdHocArgTable ),
 
 	test_facilities:display( "Resulting argument table, based on option "
-		"specs ~p:~n~s", [ OptionSpecs,
+		"specs ~p:~n~ts", [ OptionSpecs,
 			shell_utils:argument_table_to_string( UniqArgTable ) ] ),
 
 	test_facilities:stop().

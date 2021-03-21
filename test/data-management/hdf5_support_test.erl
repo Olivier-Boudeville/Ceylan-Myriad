@@ -45,19 +45,17 @@
 
 
 
-% Creates and fills a test HDF5 file, returns { BindingDatatype, Dimensions }.
-%
+% Creates and fills a test HDF5 file, returns {BindingDatatype, Dimensions}.
 create_test_file( HDFFilename, DatasetName, Data ) ->
 
-	test_facilities:display( "Creating an HDF5 file named '~s'.",
+	test_facilities:display( "Creating an HDF5 file named '~ts'.",
 							 [ HDFFilename ] ),
 
 	% For a test, better determining it at runtime than hardcoding:
 	{ BindingDatatype, Dimensions } = hdf5_support:check_data( Data ),
 
 	test_facilities:display( "Specified data is ~p, i.e. dimensions ~p "
-							 "of type ~p.",
-							 [ Data, Dimensions, BindingDatatype ] ),
+		"of type ~p.", [ Data, Dimensions, BindingDatatype ] ),
 
 	Datatype = hdf5_support:create_datatype( BindingDatatype ),
 
@@ -67,9 +65,8 @@ create_test_file( HDFFilename, DatasetName, Data ) ->
 
 	DataSize = hdf5_support:get_size( Datatype ),
 
-	test_facilities:display( "Created a datatype, of class: ~p, "
-							 "byte order: ~p, size: ~B bytes.",
-							 [ DatatypeClass, ByteOrder, DataSize ] ),
+	test_facilities:display( "Created a datatype, of class: ~p, byte order: ~p,"
+		" size: ~B bytes.", [ DatatypeClass, ByteOrder, DataSize ] ),
 
 
 	% Up to 20 triplets:
@@ -85,8 +82,7 @@ create_test_file( HDFFilename, DatasetName, Data ) ->
 	DimExtensions = hdf5_support:get_dimension_extensions( FirstDataspace ),
 
 	test_facilities:display( "Created a dataspace of rank ~B and "
-							 "dimension extensions ~p.",
-							 [ Rank, DimExtensions ] ),
+		"dimension extensions ~p.", [ Rank, DimExtensions ] ),
 
 	DatasetCreationList = hdf5_support:create_property_list_for(
 							dataset_creation ),
@@ -97,16 +93,16 @@ create_test_file( HDFFilename, DatasetName, Data ) ->
 
 	TestFile = hdf5_support:create_file( HDFFilename ),
 
-	test_facilities:display( "Creating a dataset named '~s'.",
+	test_facilities:display( "Creating a dataset named '~ts'.",
 							 [ DatasetName ] ),
 
 	Dataset = hdf5_support:create_dataset( DatasetName, Datatype,
 						FirstDataspace, DatasetCreationList, TestFile ),
 
 	test_facilities:display( "Allocation status of the newly created dataset: "
-							 "~s; size: ~B bytes.",
-							 [ hdf5_support:get_allocation_status( Dataset ),
-							   hdf5_support:get_storage_size( Dataset ) ] ),
+		"~ts; size: ~B bytes.",
+		[ hdf5_support:get_allocation_status( Dataset ),
+		  hdf5_support:get_storage_size( Dataset ) ] ),
 
 	test_facilities:display( "Writing following data into this "
 							 "empty dataset: ~p", [ Data ] ),
@@ -114,9 +110,9 @@ create_test_file( HDFFilename, DatasetName, Data ) ->
 	hdf5_support:write( Data, Dataset ),
 
 	test_facilities:display( "Allocation status of the dataset once filled: "
-							 "~s; size: ~B bytes.",
-							 [ hdf5_support:get_allocation_status( Dataset ),
-							   hdf5_support:get_storage_size( Dataset ) ] ),
+		"~ts; size: ~B bytes.",
+		[ hdf5_support:get_allocation_status( Dataset ),
+		  hdf5_support:get_storage_size( Dataset ) ] ),
 
 	% Closing in reverse order:
 
@@ -140,21 +136,21 @@ create_test_file( HDFFilename, DatasetName, Data ) ->
 check_test_file( HDFFilename, DatasetName, ExpectedData, BindingDatatype,
 				 Dimensions ) ->
 
-	test_facilities:display( "Reading now an HDF5 file named '~s'.",
+	test_facilities:display( "Reading now an HDF5 file named '~ts'.",
 							 [ HDFFilename ] ),
 
-	test_facilities:display( "Reading a dataset named '~s'.",
+	test_facilities:display( "Reading a dataset named '~ts'.",
 							 [ DatasetName ] ),
 
 	TestFile = hdf5_support:open_file( HDFFilename ),
 
 	TupleSize = case Dimensions of
 
-					{ _TupleCount, TupleElemSize } ->
-						TupleElemSize;
+		{ _TupleCount, TupleElemSize } ->
+			TupleElemSize;
 
-					_ ->
-						1
+		_ ->
+			1
 
 	end,
 
@@ -211,8 +207,8 @@ run() ->
 
 		  test_facilities:display( "~nTesting for data ~p.", [ Data ] ),
 
-		  { BindingDatatype, Dimensions } = create_test_file( HDFFilename,
-													  DatasetName, Data ),
+		  { BindingDatatype, Dimensions } =
+			  create_test_file( HDFFilename, DatasetName, Data ),
 
 		  check_test_file( HDFFilename, DatasetName, Data, BindingDatatype,
 						   Dimensions )

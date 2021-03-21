@@ -39,42 +39,35 @@
 
 
 % Operations on points:
-%
 -export([ get_origin/0, are_close/2, is_within/3, is_within_square/3,
 		  square_distance/2, distance/2, cross_product/2, roundify/1,
 		  get_integer_center/2, get_center/2, translate/2 ]).
 
 
 % Operations on vectors:
-%
 -export([ vectorize/2, square_magnitude/1, magnitude/1, scale/2, make_unit/1,
 		  normal_left/1, normal_right/1, dot_product/2 ]).
 
 
 % Operations on lines:
-%
 -export([ get_line/2, intersect/2, get_abscissa_for_ordinate/2 ]).
 
 
 % Operations related to angles:
-%
 -export([ is_strictly_on_the_right/3, is_obtuse/1, abs_angle_rad/3, angle_rad/3,
 		  abs_angle_deg/3, angle_deg/3 ]).
 
 
-% Operations on set of points:
-%
+% Operations on sets of points:
 -export([ compute_smallest_enclosing_rectangle/1,
 		  compute_max_overall_distance/1, compute_convex_hull/1 ]).
 
 
 % Textual conversions:
-%
 -export([ to_string/1, to_string/2 ]).
 
 
 % Only useful for tests:
-%
 -export([ find_pivot/1, sort_by_angle/2 ]).
 
 
@@ -85,8 +78,13 @@
 
 % Shorthands:
 
+-type ustring() :: text_utils:ustring().
+
 -type coordinate() :: linear:coordinate().
+-type integer_coordinate() :: linear:integer_coordinate().
 -type factor() :: linear:factor().
+-type distance() :: linear:distance().
+-type square_distance() :: linear:square_distance().
 
 
 % Implementation notes:
@@ -96,23 +94,19 @@
 
 
 % 2D point, with floating-point coordinates:
-%
 -type point() :: { coordinate(), coordinate() }.
 
 
 % 2D point, with integer coordinates:
 %
--type integer_point() :: { linear:integer_coordinate(),
-						   linear:integer_coordinate() }.
+-type integer_point() :: { integer_coordinate(), integer_coordinate() }.
 
 
 % { Width, Height }:
--type dimensions() :: { linear:coordinate(),
-						linear:coordinate() }.
+-type dimensions() :: { coordinate(), coordinate() }.
 
 
--type integer_dimensions() :: { linear:integer_coordinate(),
-								linear:integer_coordinate() }.
+-type integer_dimensions() :: { integer_coordinate(), integer_coordinate() }.
 
 
 % A 2D vector, with floating-point coordinates.
@@ -122,8 +116,7 @@
 -type vector() :: { coordinate(), coordinate() }.
 
 
--type integer_vector() :: { linear:integer_coordinate(),
-							linear:integer_coordinate() }.
+-type integer_vector() :: { integer_coordinate(), integer_coordinate() }.
 
 
 
@@ -146,7 +139,6 @@
 
 
 % Returns the origin of this referential.
-%
 -spec get_origin() -> point().
 get_origin() ->
 	{ 0, 0 }.
@@ -172,7 +164,6 @@ is_within( P, C, D ) ->
 
 
 % Tells whether point P is within a square distance SquareD from point C.
-%
 -spec is_within_square( point(), point(), number() ) -> boolean().
 is_within_square( P, C, SquareD ) ->
 	square_distance( P, C ) < SquareD.
@@ -185,7 +176,7 @@ is_within_square( P, C, SquareD ) ->
 %
 % Could rely on vectorize and square_magnitude as well.
 %
--spec square_distance( point(), point() ) -> linear:square_distance().
+-spec square_distance( point(), point() ) -> square_distance().
 square_distance( {X1,Y1}, {X2,Y2} ) ->
 	XDiff = X2-X1,
 	YDiff = Y2-Y1,
@@ -199,7 +190,7 @@ square_distance( {X1,Y1}, {X2,Y2} ) ->
 %
 % Could rely on vectorize and magnitude as well.
 %
--spec distance( point(), point() ) -> linear:distance().
+-spec distance( point(), point() ) -> distance().
 distance( P1, P2 ) ->
 	math:sqrt( square_distance( P1, P2 ) ).
 
@@ -208,13 +199,14 @@ distance( P1, P2 ) ->
 % Returns the cross-product of the two specified 2D points, i.e. the magnitude
 % of the vector that would result from a regular 3D cross product of the input
 % vectors, taking their Z values implicitly as 0.
+%
 -spec cross_product( point(), point() ) -> number().
 cross_product( {X1,Y1}, {X2,Y2} ) ->
 	X1*Y2 - Y1*X2.
 
 
 
-% Returns a point (or vector) whose coordinates have been rounded to nearest
+% Returns a point (or vector) whose coordinates have been rounded to the nearest
 % integer.
 %
 -spec roundify( point() ) -> integer_point().
@@ -256,10 +248,10 @@ translate( _P={X,Y}, _V={Vx,Vy} ) ->
 
 % Computes the smallest rectangle that encloses the specified list of points.
 %
-% Returns { TopLeft, BottomRight }.
+% Returns {TopLeft, BottomRight}.
 %
 -spec compute_smallest_enclosing_rectangle( [ point() ] ) ->
-												  { point(), point() }.
+													{ point(), point() }.
 compute_smallest_enclosing_rectangle( Points ) ->
 	compute_smallest_enclosing_rectangle( Points, undefined, undefined ).
 
@@ -297,7 +289,7 @@ compute_smallest_enclosing_rectangle( [ _Points={ X, Y } | Others ], { Xt, Yt },
 % Here there is only one vertex left:
 %
 -spec compute_max_overall_distance( [ point() ] ) ->
-							  { point(), point(), linear:square_distance() }.
+							{ point(), point(), square_distance() }.
 compute_max_overall_distance( Points ) when length( Points ) < 2 ->
 	throw( { no_computable_overall_distance, Points } );
 
@@ -335,14 +327,14 @@ compute_max_overall_distance( _Points=[ H | Others ],
 
 % Computes the maximum distance between a point (P) and a list of other points.
 %
-% Returns {P,Pmax,LongestSquareDistance} with LongestSquareDistance being the
+% Returns {P, Pmax, LongestSquareDistance} with LongestSquareDistance being the
 % distance between P and Pmax, Pmax being chosen so that LongestSquareDistance
 % is maximal.
 %
 % As there must have been at least one point in the list, Pmax exists here
 % (never undefined):
 -spec compute_max_distance_between( point(), [ point() ] )->
-						{ point(), point(), linear:square_distance() }.
+						{ point(), point(), square_distance() }.
 compute_max_distance_between( _P, [] ) ->
 	throw( no_computable_max_distance );
 
@@ -356,7 +348,7 @@ compute_max_distance_between( P, _Points=[], {Pmax,LongestSquareDistance} ) ->
 compute_max_distance_between( P, _Points=[ Pnew | OtherPoints ], undefined ) ->
 	% First point examined is at first by construction the first best:
 	compute_max_distance_between( P, OtherPoints,
-						  { Pnew, linear_2D:square_distance( P, Pnew ) } );
+							{ Pnew, linear_2D:square_distance( P, Pnew ) } );
 
 compute_max_distance_between( P, _Points=[ Pnew | OtherPoints ],
 							  Best={ _Pmax, LongestSquareDistance } ) ->
@@ -384,7 +376,7 @@ compute_max_distance_between( P, _Points=[ Pnew | OtherPoints ],
 %
 % The point list is supposed not having duplicates.
 %
-% Returns {Pivot,PivotLessList} where PivotLessList is the (unordered) input
+% Returns {Pivot, PivotLessList} where PivotLessList is the (unordered) input
 % list, without the Pivot.
 %
 -spec find_pivot( [ point() ] ) -> { point(), [ point() ] }.
@@ -441,9 +433,9 @@ sort_by_angle( Pivot, Points ) ->
 % LeftPoints and RightPoints are lists of {Angle,Point} pairs.
 %
 -spec sort_by_angle( point(), [ point() ], [ { number(), point() } ],
-					  'undefined', [ { number(), point() } ] ) -> [ point() ];
+						'undefined', [ { number(), point() } ] ) -> [ point() ];
 				   ( point(), [ point() ], [ { number(), point() } ], point(),
-					  [ { number(), point() } ] ) ->  [ point() ].
+						[ { number(), point() } ] ) ->  [ point() ].
 sort_by_angle( _Pivot, _Points=[], LeftPoints, undefined, RightPoints ) ->
 
 	%trace_utils:debug_fmt( "sort_by_angle: no middle point found." ),
@@ -481,12 +473,14 @@ sort_by_angle( Pivot={Xp,Yp}, [ Point={X,Y} | T ], LeftPoints, MiddlePoint,
 							% This point is above the previous highest middle
 							% point, previous middle point can be dropped on the
 							% floor:
+							%
 							sort_by_angle( Pivot, T, LeftPoints, Point,
 										   RightPoints );
 
 						false ->
 							% The current point can be dropped on the floor, as
 							% it is below the highest middle point:
+							%
 							sort_by_angle( Pivot, T, LeftPoints, MiddlePoint,
 										   RightPoints )
 
@@ -497,6 +491,7 @@ sort_by_angle( Pivot={Xp,Yp}, [ Point={X,Y} | T ], LeftPoints, MiddlePoint,
 			% This is a point on the right of the pivot, stores the tangent of
 			% the angle the vector defined by the pivot and that point makes
 			% with the abscissa axis:
+			%
 			sort_by_angle( Pivot, T, LeftPoints, MiddlePoint,
 						   [ { (Y-Yp) / DeltaX, Point } | RightPoints ] );
 
@@ -522,36 +517,29 @@ reverse_and_drop_angle( [ {_Tangent,Point} | T ], Acc ) ->
 
 
 
-
-
 % Vector section.
 
 
-
 % Returns a vector V made from the specified two points: V=P2-P1.
-%
 -spec vectorize( point(), point() ) -> vector().
 vectorize( _P1={X1,Y1}, _P2={X2,Y2} ) ->
 	{ X2-X1, Y2-Y1 }.
 
 
 % Returns the square of the magnitude of the specified vector.
-%
--spec square_magnitude( vector() ) -> linear:square_distance().
+-spec square_magnitude( vector() ) -> square_distance().
 square_magnitude( _V={X,Y} ) ->
 	X*X + Y*Y.
 
 
 % Returns the magnitude of the specified vector.
-%
--spec magnitude( vector() ) -> linear:distance().
+-spec magnitude( vector() ) -> distance().
 magnitude( V ) ->
 	math:sqrt( square_magnitude(V) ).
 
 
 
 % Scales specified vector of specified factor.
-%
 -spec scale( vector(), number() ) -> vector().
 scale( _V={X,Y}, Factor ) ->
 	{ Factor*X, Factor*Y }.
@@ -731,7 +719,6 @@ is_strictly_on_the_right( P, P1, P2 ) ->
 
 
 % Returns whether specified angle (in degrees, canonical form) is obtuse.
-%
 -spec is_obtuse( unit_utils:int_degrees() ) -> boolean().
 is_obtuse( AngleInDegrees ) ->
 	AngleInDegrees > 90 andalso AngleInDegrees < 180.
@@ -803,8 +790,8 @@ angle_rad( A, B, C ) ->
 %
 -spec abs_angle_deg( point(), point(), point() ) -> unit_utils:int_degrees().
 abs_angle_deg( A, B, C ) ->
-	 math_utils:canonify( math_utils:radian_to_degree(
-							abs_angle_rad( A, B, C ) ) ).
+	 math_utils:canonify(
+	   math_utils:radian_to_degree(	abs_angle_rad( A, B, C ) ) ).
 
 
 
@@ -816,8 +803,8 @@ abs_angle_deg( A, B, C ) ->
 %
 -spec angle_deg( point(), point(), point() ) -> unit_utils:int_degrees().
 angle_deg( A, B, C ) ->
-	 math_utils:canonify( math_utils:radian_to_degree(
-							angle_rad( A, B, C ) ) ).
+	 math_utils:canonify(
+	   math_utils:radian_to_degree(	angle_rad( A, B, C ) ) ).
 
 
 
@@ -826,12 +813,11 @@ angle_deg( A, B, C ) ->
 % Convex hull section.
 
 
-
 % Computes the convex hull corresponding to the specified list of points.
 %
 % Returns the list of points that defines the hull.
 %
--spec compute_convex_hull( [point()] ) -> [point()].
+-spec compute_convex_hull( [ point() ] ) -> [ point() ].
 compute_convex_hull( Points ) ->
 
 	{ Pivot, RemainingPoints } = find_pivot( Points ),
@@ -871,7 +857,7 @@ compute_convex_hull( Points ) ->
 % Returns the corresponding convex hull, in clock-wise order.
 %
 -spec compute_graham_scan_hull( [ point() ], point(), [ point() ] ) ->
-									  [ point() ].
+										[ point() ].
 compute_graham_scan_hull( ToValidate, _Pivot, _NextPoints=[] ) ->
 	% Last new point is by construction always to pivot.
 
@@ -949,8 +935,7 @@ compute_graham_scan_hull( L, NewPoint, [ Next | OtherNext ] ) ->
 
 
 % Returns a precise textual representation of specified point.
-%
--spec to_string( point() ) -> string().
+-spec to_string( point() ) -> ustring().
 to_string( { X, Y } ) ->
 	text_utils:format( "[ ~w, ~w ]", [ X, Y ] ).
 
@@ -960,7 +945,7 @@ to_string( { X, Y } ) ->
 % point, based on specified print-out precision (number of digits after the
 % comma).
 %
--spec to_string( point(), basic_utils:count() ) -> string().
+-spec to_string( point(), basic_utils:count() ) -> ustring().
 to_string( { X, Y }, DigitCountAfterComma ) ->
 
 	% We want to avoid displaying larger texts for coordinates, like
@@ -994,4 +979,4 @@ to_string( { X, Y }, DigitCountAfterComma ) ->
 
 	end,
 
-	text_utils:format( "[ ~s, ~s ]", [ XString, YString ] ).
+	text_utils:format( "[ ~ts, ~ts ]", [ XString, YString ] ).

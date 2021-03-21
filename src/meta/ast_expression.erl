@@ -105,7 +105,7 @@
 
 % Bitstring generator.
 -type bitstring_generator_qualifier() ::
-		{ 'b_generate', line(),	ast_pattern:ast_pattern(), ast_expression() }.
+		{ 'b_generate', line(), ast_pattern:ast_pattern(), ast_expression() }.
 
 
 
@@ -1123,9 +1123,7 @@ transform_expression( E={ 'fun', _Line, { 'function', _Name, _Arity } },
 transform_expression( E={ 'fun', _Line,
 						  _F={ 'function', Module, Name, Arity } },
 					  Transforms ) when is_atom( Module )
-										andalso is_atom( Name )
-										andalso is_integer( Arity )
-										?andalso_rec_guard ->
+	  andalso is_atom( Name ) andalso is_integer( Arity ) ?andalso_rec_guard ->
 
 	ast_utils:display_warning( "Pre-R15 fun expression '~p' detected, "
 							   "this warning should be silenced.", [ E ] ),
@@ -1246,11 +1244,9 @@ transform_expression( ?e={ 'named_fun', Line, Name, FunctionClauses },
 %
 transform_expression( E={ AtomicLiteralType, _Line, _Value },
 					  Transforms ) when ( AtomicLiteralType =:= 'atom' orelse
-										  AtomicLiteralType =:= 'char' orelse
-										  AtomicLiteralType =:= 'float' orelse
-										  AtomicLiteralType =:= 'integer' orelse
-										  AtomicLiteralType =:= 'string' )
-										?andalso_rec_guard ->
+		AtomicLiteralType =:= 'char' orelse AtomicLiteralType =:= 'float' orelse
+		AtomicLiteralType =:= 'integer' orelse AtomicLiteralType =:= 'string' )
+		?andalso_rec_guard ->
 
 	% TO-DO: add a 'atomic_literal' transform trigger.
 
@@ -1292,7 +1288,7 @@ transform_expression( Expression, Transforms ) ->
 % (default traversal implementation)
 %
 -spec transform_call( line(), function_ref_expression(), params_expression(),
-		  ast_transforms() ) -> { [ ast_expression() ], ast_transforms() }.
+			ast_transforms() ) -> { [ ast_expression() ], ast_transforms() }.
 transform_call( Line, FunctionRef, Params, Transforms ) ?rec_guard ->
 
 	?log_enter( "Transforming 'call', to function reference ~p",
@@ -1324,7 +1320,7 @@ transform_call( Line, FunctionRef, Params, Transforms ) ?rec_guard ->
 % (default traversal implementation)
 %
 -spec transform_if( line(), [ ast_if_clause() ], ast_transforms() ) ->
-						  { [ ast_expression() ], ast_transforms() }.
+							{ [ ast_expression() ], ast_transforms() }.
 transform_if( Line, Clauses, Transforms ) ?rec_guard ->
 
 	{ NewClauses, NewTransforms } =
@@ -1341,7 +1337,7 @@ transform_if( Line, Clauses, Transforms ) ?rec_guard ->
 % (default traversal implementation)
 %
 -spec transform_case( line(), ast_expression(), [ ast_case_clause() ],
-		  ast_transforms() ) -> { [ ast_expression() ], ast_transforms() }.
+			ast_transforms() ) -> { [ ast_expression() ], ast_transforms() }.
 transform_case( Line, TestExpression, CaseClauses, Transforms ) ?rec_guard ->
 
 	{ [ NewTestExpression ], TestTransforms } =
@@ -1442,7 +1438,7 @@ transform_receive_with_after( Line, ReceiveClauses, AfterTest,
 %
 -spec transform_try( line(), ast_body(), [ ast_case_clause() ],
 					 [ ast_case_clause() ], ast_body(), ast_transforms() ) ->
-						   { [ ast_expression() ], ast_transforms() }.
+							{ [ ast_expression() ], ast_transforms() }.
 transform_try( Line, TryBody, TryClauses, CatchClauses, AfterBody,
 			   Transforms ) ?rec_guard ->
 
@@ -1480,7 +1476,6 @@ transform_catch( Line, Expression, Transforms ) ?rec_guard ->
 	NewExpr = { 'catch', Line, NewExpression },
 
 	{ [ NewExpr ], NewTransforms }.
-
 
 
 
@@ -1692,7 +1687,7 @@ transform_call_expression( OriginalExpr={ 'remote', LineRemote,
 										  _F={ atom, LineFun, FunctionName } },
 						   Arity, Transforms ) ?rec_guard ->
 
-	?log_enter( "Transforming remote call expression to ~s:~s/~B...",
+	?log_enter( "Transforming remote call expression to ~ts:~ts/~B...",
 				[ ModuleName, FunctionName, Arity ] ),
 
 	Outcome = case Transforms#ast_transforms.remote_calls of

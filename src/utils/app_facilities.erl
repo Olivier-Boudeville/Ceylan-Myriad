@@ -34,6 +34,14 @@
 -export([ start/1, stop/0, display/1, display/2, fail/1, fail/2, finished/0 ] ).
 
 
+% Shorthands:
+
+-type ustring() :: text_utils:ustring().
+-type format_string() :: text_utils:format_string().
+-type format_values() :: text_utils:format_values().
+
+
+
 % Starts an application; expected to be the first application statement.
 %
 % Here we disable explicitly the trapping of EXIT events, as a function run
@@ -46,7 +54,7 @@
 -spec start( module() | [ module() ] ) -> void().
 start( Module ) when is_atom( Module ) ->
 	erlang:process_flag( trap_exit, false ),
-	basic_utils:display( "~n~n--> Starting application ~s.~n", [ Module ] );
+	basic_utils:display( "~n~n--> Starting application ~ts.~n", [ Module ] );
 
 start( Modules ) when is_list( Modules ) ->
 	erlang:process_flag( trap_exit, false ),
@@ -65,7 +73,7 @@ stop() ->
 
 
 % Displays an application message.
--spec display( string() ) -> void().
+-spec display( ustring() ) -> void().
 display( Message ) ->
 	% Carriage return already added in basic_utils:display/1:
 	%
@@ -80,18 +88,18 @@ display( Message ) ->
 % FormatString is an io:format-style format string, ValueList is the
 % corresponding list of field values.
 %
--spec display( string(), list() ) -> void().
+-spec display( format_string(), format_values() ) -> void().
 display( FormatString, ValueList ) ->
 	basic_utils:display( FormatString, ValueList ).
 
 
 % Comment out to be able to use the interpreter after the app:
--define(ExitAfterApp,).
+-define(exit_after_app,).
 
 -spec finished() -> no_return().
 
 
--ifdef(ExitAfterApp).
+-ifdef(exit_after_app).
 
 finished() ->
 
@@ -107,7 +115,7 @@ finished() ->
 	% local return:
 	app_success.
 
--else. % ExitAfterApp
+-else. % exit_after_app
 
 
 finished() ->
@@ -119,7 +127,7 @@ finished() ->
 
 	app_success.
 
--endif. % ExitAfterApp
+-endif. % exit_after_app
 
 
 
@@ -128,13 +136,13 @@ finished() ->
 %
 % Ex: app_facilities:fail( "server on strike" )
 %
--spec fail( string() ) -> no_return().
+-spec fail( ustring() ) -> no_return().
 fail( Reason ) ->
 
 	% For some reason erlang:error is unable to interpret strings as strings,
 	% they are always output as unreadable lists.
 
-	basic_utils:display( "~n!!!! Application failed, reason: ~s.~n~n",
+	basic_utils:display( "~n!!!! Application failed, reason: ~ts.~n~n",
 						 [ Reason ] ),
 
 	% Never returns:
@@ -156,18 +164,18 @@ fail( Reason ) ->
 % FormatString is an io:format-style format string, ValueList is the
 % corresponding list of field values.
 %
-% Ex: app_facilities:fail( "server ~s on strike", [ "foobar.org" ] )
+% Ex: app_facilities:fail( "server ~ts on strike", [ "foobar.org" ] )
 %
--spec fail( string(), list() ) -> no_return().
+-spec fail( format_string(), format_values() ) -> no_return().
 fail( FormatString, ValueList ) ->
 
 	% For some reason, erlang:error is unable to interpret strings as strings,
 	% they are always output as unreadable lists.
 
-	ErrorMessage = io_lib:format( "~n!!!! Application failed, reason: ~s.~n~n",
+	ErrorMessage = io_lib:format( "~n!!!! Application failed, reason: ~ts.~n~n",
 								[ io_lib:format( FormatString, ValueList ) ] ),
 
-	basic_utils:display( "~n!!!! Application failed, reason: ~s.~n~n",
+	basic_utils:display( "~n!!!! Application failed, reason: ~ts.~n~n",
 						 [ ErrorMessage ] ),
 
 	% Never returns:

@@ -49,12 +49,12 @@ perform_direct_ast_operations( TargetSourceFile ) ->
 
 	BaseModuleInfo = ast_info:extract_module_info_from_ast( BaseAST ),
 
-	io:format( "Base module info: ~s~n~n",
+	io:format( "Base module info: ~ts~n~n",
 			   [ ast_info:module_info_to_string( BaseModuleInfo ) ] ),
 
 	FinalModuleInfo = BaseModuleInfo,
 
-	io:format( "Final module info: ~s~n~n",
+	io:format( "Final module info: ~ts~n~n",
 			   [ ast_info:module_info_to_string( FinalModuleInfo ) ] ),
 
 	FinalAST = ast_info:recompose_ast_from_module_info( FinalModuleInfo ),
@@ -71,7 +71,7 @@ run() ->
 	%TargetSourceFile = "../../src/data-management/preferences.erl",
 
 	io:format( "Applying the Myriad parse transform to the "
-			   "'~s' source file.~n~n", [ TargetSourceFile ] ),
+			   "'~ts' source file.~n~n", [ TargetSourceFile ] ),
 
 	TransformedAST = myriad_parse_transform:run_standalone( TargetSourceFile ),
 

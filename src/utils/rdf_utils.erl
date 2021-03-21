@@ -121,6 +121,10 @@
 		  vocabulary_to_string/1, vocabulary_to_string/2 ]).
 
 
+% Shorthands:
+-type ustring() :: text_utils:ustring().
+
+
 
 % Tells whether specified term is an IRI.
 -spec is_iri( term() ) -> boolean().
@@ -180,7 +184,7 @@ implies( FirstVocabulary, SecondVocabulary ) ->
 
 
 % Returns a textual representation of specified vocabulary.
--spec vocabulary_to_string( vocabulary() ) -> string().
+-spec vocabulary_to_string( vocabulary() ) -> ustring().
 vocabulary_to_string( Vocabulary ) ->
 	vocabulary_to_string( Vocabulary, _IndentationLevel=0 ).
 
@@ -190,7 +194,7 @@ vocabulary_to_string( Vocabulary ) ->
 % indentation level.
 %
 -spec vocabulary_to_string( vocabulary(), text_utils:indentation_level() ) ->
-								  string().
+									ustring().
 vocabulary_to_string( Vocabulary, IndentationLevel ) ->
 
 	case set_utils:to_list( Vocabulary ) of
@@ -199,7 +203,7 @@ vocabulary_to_string( Vocabulary, IndentationLevel ) ->
 			"an empty vocabulary";
 
 		[ Elem ] ->
-			text_utils:format( "a vocabulary comprising a single term, '~s'",
+			text_utils:format( "a vocabulary comprising a single term, '~ts'",
 							   [ Elem ] );
 
 		SemList ->
@@ -207,7 +211,7 @@ vocabulary_to_string( Vocabulary, IndentationLevel ) ->
 			SemString = text_utils:binaries_to_string( SemList,
 													   IndentationLevel ),
 
-			text_utils:format( "a vocabulary comprising ~B terms: ~s",
+			text_utils:format( "a vocabulary comprising ~B terms: ~ts",
 							   [ length( SemList ), SemString ] )
 
 	end.

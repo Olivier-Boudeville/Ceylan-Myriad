@@ -38,14 +38,14 @@
 % in a transverse way compared to programs and versions thereof, and of sharing
 % them conveniently (ex: for passwords, settings).
 %
-% The format of preferences is a series of Erlang terms as strings, separated by
-% dots (i.e. the format understood by file:consult/1).
+% The format of preferences is a series of Erlang terms as strings, each ended
+% with a dot (i.e. the format understood by file:consult/1).
 %
 % Example of content of a preferences file:
 % """
-% { my_first_color, red }.
-% { myheight, 1.80 }.
-% { myName, "Sylvester the cat" }.
+% {my_first_color, red}.
+% {myheight, 1.80}.
+% {myName, "Sylvester the cat"}.
 % """
 %
 % (of course without the quotes and the leading percent sign)
@@ -85,6 +85,13 @@
 
 % For myriad_spawn*:
 -include("spawn_utils.hrl").
+
+
+% Shorthands:
+
+-type file_path() :: file_utils:file_path().
+-type ustring() :: text_utils:ustring().
+
 
 
 % Implementation notes:
@@ -143,7 +150,7 @@ start_link() ->
 %
 % Returns in any case the PID of the corresponding preferences server.
 %
--spec start( file_utils:file_name() ) -> preferences_pid().
+-spec start( file_path() ) -> preferences_pid().
 start( FileName ) ->
 
 	RegistrationName = get_registration_name( FileName ),
@@ -183,7 +190,7 @@ start( FileName ) ->
 %
 % Returns in any case the PID of the corresponding preferences server.
 %
--spec start_link( file_utils:file_name() ) -> preferences_pid().
+-spec start_link( file_path() ) -> preferences_pid().
 start_link( FileName ) ->
 
 	RegistrationName = get_registration_name( FileName ),
@@ -232,7 +239,7 @@ get( Key ) ->
 % otherwise 'undefined', based on the specified preferences file, and possibly
 % launching a corresponding preferences server if needed.
 %
--spec get( key(), file_utils:file_name() ) -> maybe( value() ).
+-spec get( key(), file_path() ) -> maybe( value() ).
 get( Key, FileName ) ->
 
 	ServerPid = start( FileName ),
@@ -248,32 +255,44 @@ get( Key, FileName ) ->
 
 
 
-% Associates, in current preferences, specified value to specified key (possibly
+% Associates, in default preferences, specified value to specified key (possibly
 % overwriting any previous value).
 %
 -spec set( key(), value() ) -> void().
 set( Key, Value ) ->
 	set( Key, Value, get_default_preferences_path() ).
 
--spec set( key(), value(), file_utils:file_name() ) -> void().
-set( Key, Value, FileName ) ->
 
-	ServerPid = start( FileName ),
+
+% Associates, in specified preferences, specified value to specified key
+% (possibly overwriting any previous value).
+%
+-spec set( key(), value(), file_path() ) -> void().
+set( Key, Value, FilePath ) ->
+
+	ServerPid = start( FilePath ),
 
 	ServerPid ! { set_preference, Key, Value }.
 
 
 
 
-% Returns a textual description of the preferences server (if any).
--spec to_string() -> string().
+% Returns a textual description of the preferences server (if any), for
+% the default preferences file.
+%
+-spec to_string() -> ustring().
 to_string() ->
 	to_string( get_default_preferences_path() ).
 
--spec to_string( file_utils:file_name() ) -> string().
-to_string( FileName ) ->
 
-	RegistrationName = get_registration_name( FileName ),
+
+% Returns a textual description of the preferences server (if any), for
+% specified preferences file.
+%
+-spec to_string( file_path() ) -> ustring().
+to_string( FilePath ) ->
+
+	RegistrationName = get_registration_name( FilePath ),
 
 	case naming_utils:is_registered( RegistrationName, global ) of
 
@@ -305,17 +324,16 @@ get_default_preferences_path() ->
 % Returns the automatic naming used for registering the process (deduced from
 % the preferences filename).
 %
--spec get_registration_name( file_utils:file_name() ) -> registration_name().
+-spec get_registration_name( file_path() ) -> registration_name().
 get_registration_name( FilePath ) ->
-	CoreFileName = file_utils:remove_upper_levels_and_extension( FilePath ),
-	RegistrationName = file_utils:path_to_variable_name( CoreFileName, "" ),
+	CoreFilePath = file_utils:remove_upper_levels_and_extension( FilePath ),
+	RegistrationName = file_utils:path_to_variable_name( CoreFilePath, "" ),
 	text_utils:string_to_atom( RegistrationName ).
 
 
 
 % Returns whether the default preferences file is available and its full path.
--spec is_preferences_default_file_available() ->
-			{ boolean(), file_utils:path() }.
+-spec is_preferences_default_file_available() -> { boolean(), file_path() }.
 is_preferences_default_file_available() ->
 
 	PrefFile = get_default_preferences_path(),
@@ -353,10 +371,10 @@ stop() ->
 	stop( get_default_preferences_path() ).
 
 
--spec stop( file_utils:file_name() ) -> void().
-stop( FileName ) ->
+-spec stop( file_path() ) -> void().
+stop( FilePath ) ->
 
-	RegistrationName = get_registration_name( FileName ),
+	RegistrationName = get_registration_name( FilePath ),
 
 	case naming_utils:is_registered( RegistrationName, global ) of
 
@@ -374,24 +392,24 @@ stop( FileName ) ->
 
 
 % Launcher of the preferences server.
-server_main_run( SpawnerPid, RegistrationName, FileName ) ->
+server_main_run( SpawnerPid, RegistrationName, FilePath ) ->
 
 	case naming_utils:register_or_return_registered( RegistrationName,
-													global_only ) of
+													 global_only ) of
 
 		registered ->
 
 			% We gain the shared name, we are the one and only server:
 			EmptyTable = table:new(),
 
-			FinalTable = case file_utils:is_existing_file_or_link( FileName ) of
+			FinalTable = case file_utils:is_existing_file_or_link( FilePath ) of
 
 				true ->
-					add_preferences_from( FileName, EmptyTable );
+					add_preferences_from( FilePath, EmptyTable );
 
 				false ->
 					io:format( "No preferences file found "
-							   "(searched for '~s').~n", [ FileName ] ),
+							   "(searched for '~ts').~n", [ FilePath ] ),
 					EmptyTable
 
 			end,
@@ -415,8 +433,7 @@ server_main_run( SpawnerPid, RegistrationName, FileName ) ->
 server_main_loop( Table ) ->
 
 	%trace_utils:debug_fmt( "Waiting for preferences-related request, "
-	%						"having ~B recorded preferences.",
-	%						[ table:size( Table ) ] ),
+	%    "having ~B recorded preferences.",[ table:size( Table ) ] ),
 
 	receive
 
@@ -457,9 +474,9 @@ server_main_loop( Table ) ->
 					Strings = [ text_utils:format( "~p: ~p", [ K, V ] )
 								|| { K, V } <- lists:sort( L ) ],
 
-					text_utils:format( "~B preferences recorded: ~s~n",
-								   [ length( L ),
-									 text_utils:strings_to_string( Strings ) ] )
+					text_utils:format( "~B preferences recorded: ~ts~n",
+						[ length( L ),
+						  text_utils:strings_to_string( Strings ) ] )
 
 			end,
 
@@ -482,9 +499,9 @@ server_main_loop( Table ) ->
 %
 % (helper)
 %
-add_preferences_from( Filename, Table ) ->
+add_preferences_from( FilePath, Table ) ->
 
-	case file:consult( Filename ) of
+	case file:consult( FilePath ) of
 
 		{ ok, Entries } ->
 
@@ -493,19 +510,19 @@ add_preferences_from( Filename, Table ) ->
 				ok ->
 					NewTable = table:add_entries( Entries, Table ),
 
-					%io:format( "Loaded from preferences file '~s' "
-					%           "following entries: ~s",
-					% [ PrefFilename, table:to_string( NewTable ) ] ),
+					%io:format( "Loaded from preferences file '~ts' "
+					%           "following entries: ~ts",
+					% [ PrefFilePath, table:to_string( NewTable ) ] ),
 
-				   %io:format( "Preferences file '~s' loaded.~n",
-				   %	[ Filename ] ),
+				   %io:format( "Preferences file '~ts' loaded.~n",
+				   %	[ FilePath ] ),
 
 				   NewTable;
 
 				ErrorString ->
-					io:format( "Error when reading preferences file '~s' (~s), "
-							   "no preferences read.~n",
-							   [ Filename, ErrorString ] ),
+					trace_utils:error_fmt( "Error when reading preferences "
+						"file '~ts' (~ts), no preferences read.",
+						[ FilePath, ErrorString ] ),
 					Table
 
 			end;
@@ -513,15 +530,15 @@ add_preferences_from( Filename, Table ) ->
 
 		{ error, { Line, _Mod, Term } } ->
 			FlattenError = text_utils:format( "~p", [ Term ] ),
-			io:format( "Error in preferences file '~s' at line ~B (~s), "
-					   "no preferences read.~n",
-					   [ Filename, Line, FlattenError ] ),
+			trace_utils:error_fmt( "Error in preferences file '~ts' "
+				"at line ~B (~ts), no preferences read.",
+					   [ FilePath, Line, FlattenError ] ),
 			Table;
 
 
 		{ error, Reason } ->
-			io:format( "Error when reading preferences file '~s' (~p), "
-					   "no preferences read.~n", [ Filename, Reason ] ),
+			trace_utils:error_fmt( "Error when reading preferences file "
+				"'~ts' (~p), no preferences read.", [ FilePath, Reason ] ),
 			Table
 
 	end.

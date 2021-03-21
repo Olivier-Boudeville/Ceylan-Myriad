@@ -45,7 +45,7 @@ print_sizes( [ H | T ] ) ->
 
 	Size = system_utils:get_size( H ),
 
-	test_facilities:display( "     - exact size of ~p is ~s",
+	test_facilities:display( "     - exact size of ~p is ~ts",
 							 [ H, system_utils:interpret_byte_size( Size ) ] ),
 
 	print_sizes( T ).
@@ -62,40 +62,40 @@ run() ->
 	% User-related functions.
 
 	test_facilities:display( "Determining what is the name of the current user:"
-							 " ~s.", [ system_utils:get_user_name() ] ),
+							 " ~ts.", [ system_utils:get_user_name() ] ),
 
 	test_facilities:display( "Determining what is the home directory "
-							 "of the current user: ~s.",
-							 [ system_utils:get_user_home_directory() ] ),
+		"of the current user: ~ts.",
+		[ system_utils:get_user_home_directory() ] ),
 
 	TotalRAM = system_utils:get_total_physical_memory(),
 
 	test_facilities:display( "Determining the total physical volatile memory "
-							 "on this computer: ~B bytes, which is ~s.",
-			  [ TotalRAM, system_utils:interpret_byte_size( TotalRAM ) ] ),
+		"on this computer: ~B bytes, which is ~ts.",
+		[ TotalRAM, system_utils:interpret_byte_size( TotalRAM ) ] ),
 
 
 	UsedMemory = system_utils:get_memory_used_by_vm(),
 
 	test_facilities:display( "Determining the total memory used "
-							 "by this Erlang VM: ~B bytes, which is ~s.",
+							 "by this Erlang VM: ~B bytes, which is ~ts.",
 			[ UsedMemory, system_utils:interpret_byte_size( UsedMemory ) ] ),
 
 
 	{ UsedRAM, _TotalRAM } = system_utils:get_total_memory_used(),
 
 	test_facilities:display( "Determining the total memory used "
-							 "by all applications: ~B bytes, which is ~s.",
-			[ UsedRAM, system_utils:interpret_byte_size( UsedRAM ) ] ),
+		"by all applications: ~B bytes, which is ~ts.",
+		[ UsedRAM, system_utils:interpret_byte_size( UsedRAM ) ] ),
 
 
 	{ UsedSwap, TotalSwap } = system_utils:get_swap_status(),
 
 	test_facilities:display( "Determining the total swap memory "
-							 "on this computer: ~B bytes, which is ~s.~n"
-							 "Swap use amounts to ~B byte(s), which is ~s.",
-				[ TotalSwap, system_utils:interpret_byte_size( TotalSwap ),
-				  UsedSwap, system_utils:interpret_byte_size( UsedSwap ) ] ),
+		"on this computer: ~B bytes, which is ~ts.~n"
+		"Swap use amounts to ~B byte(s), which is ~ts.",
+		[ TotalSwap, system_utils:interpret_byte_size( TotalSwap ),
+		  UsedSwap, system_utils:interpret_byte_size( UsedSwap ) ] ),
 
 
 	% Lower-level services tested as well:
@@ -104,19 +104,19 @@ run() ->
 	% System-related functions.
 
 	test_facilities:display(
-		"Determining a description of the current operating system: ~s.",
+		"Determining a description of the current operating system: ~ts.",
 		[ system_utils:get_operating_system_description() ] ),
 
 
 	test_facilities:display(
-		"Determining the current version of the interpreter (VM): ~s.",
+		"Determining the current version of the interpreter (VM): ~ts.",
 		[ system_utils:get_interpreter_version() ] ),
 
 	Application = kernel,
 
 	test_facilities:display( "Determining the current version of "
-							 "the '~s' application: ~w.", [ Application,
-					system_utils:get_application_version( Application ) ] ),
+		"the '~ts' application: ~w.", [ Application,
+		system_utils:get_application_version( Application ) ] ),
 
 	test_facilities:display( "Determining the size of a VM word: ~B bytes.",
 							 [ system_utils:get_size_of_vm_word() ] ),
@@ -130,16 +130,15 @@ run() ->
 						 10000000, Giga - 1, Giga, Giga + 1,
 						 1140328500,
 						 Giga + Kilo, Giga + Mega, Giga + Mega + Kilo,
-						 2* Giga,
-						 1234567890123],
+						 2* Giga, 1234567890123],
 
 	test_facilities:display( "Testing size-describing facilities:" ),
 
-	[ test_facilities:display( "    + '~B bytes' translates to: '~s', or "
-							   "'~s', in terms of units",
-	  [ X, system_utils:interpret_byte_size( X ),
-	   system_utils:interpret_byte_size_with_unit( X ) ] )
-	 || X <- SizesToInterpret ],
+	[ test_facilities:display( "    + '~B bytes' translates to: '~ts', or "
+		"'~ts', in terms of units",
+		[ X, system_utils:interpret_byte_size( X ),
+		  system_utils:interpret_byte_size_with_unit( X ) ] )
+	  || X <- SizesToInterpret ],
 
 	test_facilities:display(
 	  "Evaluating the size in memory of a few terms:" ),
@@ -151,15 +150,15 @@ run() ->
 	BinaryVersion = text_utils:string_to_binary( AFullSentence ),
 
 	TermsForSize = [ an_atom, 5, "aaa", "aaaa", [], [1], [1,2], {}, {1}, {1,2},
-					 self(), dict:new(), orddict:new(), table:new(),
-					 AFullSentence, BinaryVersion ],
+		self(), dict:new(), orddict:new(), table:new(), AFullSentence,
+		BinaryVersion ],
 
 	print_sizes( TermsForSize ),
 
 	test_facilities:display(
-			  "Plain string-binary size ratio for sentence '~s': factor x~f.",
-			  [ AFullSentence, system_utils:get_size( AFullSentence )
-				  / system_utils:get_size( BinaryVersion ) ] ),
+		"Plain string-binary size ratio for sentence '~ts': factor x~f.",
+		[ AFullSentence, system_utils:get_size( AFullSentence ) /
+			  system_utils:get_size( BinaryVersion ) ] ),
 
 
 	test_facilities:display( "Getting memory summary:" ),
@@ -169,33 +168,30 @@ run() ->
 							 [ system_utils:get_core_count() ] ),
 
 	test_facilities:display( "The number of Erlang processes "
-							 "currently existing on the local node is ~B.",
-							 [ system_utils:get_process_count() ] ),
+		"currently existing on the local node is ~B.",
+		[ system_utils:get_process_count() ] ),
 
 	FinalCounters = system_utils:get_cpu_usage_counters(),
 
 	test_facilities:display( "The aggregated CPU usage during this test: ~f%.",
-							 [ system_utils:compute_cpu_usage_between(
-								 InitialCounters, FinalCounters ) ] ),
+		[ system_utils:compute_cpu_usage_between( InitialCounters,
+												  FinalCounters ) ] ),
 
 	 { UserPercent, NicePercent, SystemPercent, IdlePercent, OtherPercent } =
 	  system_utils:compute_detailed_cpu_usage( InitialCounters, FinalCounters ),
 
 	test_facilities:display( "The detailed CPU usage: user = ~f%, "
-							 "nice = ~f%, system = ~f%, idle = ~f%, "
-							 "other = ~f%.",
-							 [ UserPercent, NicePercent, SystemPercent,
-							   IdlePercent, OtherPercent ] ),
+		"nice = ~f%, system = ~f%, idle = ~f%, other = ~f%.",
+		[ UserPercent, NicePercent, SystemPercent, IdlePercent,
+		  OtherPercent ] ),
 
 	MountPoints = system_utils:get_mount_points(),
 	test_facilities:display( "Displaying information about the local, "
-							 "actual (non-pseudo) mount points ~p:",
-							 [ MountPoints ] ),
+		"actual (non-pseudo) mount points ~p:", [ MountPoints ] ),
 
-	[ test_facilities:display( " - information for filesystem '~s': ~s~n",
-							   [ M, system_utils:filesystem_info_to_string(
-								  system_utils:get_filesystem_info( M ) ) ] )
-								 || M <- MountPoints ],
+	[ test_facilities:display( " - information for filesystem '~ts': ~ts~n",
+		[ M, system_utils:filesystem_info_to_string(
+		   system_utils:get_filesystem_info( M ) ) ] ) || M <- MountPoints ],
 
 	test_facilities:display( "Full system information: ~ts",
 							 [ system_utils:get_system_description() ] ),

@@ -94,7 +94,7 @@
 -type java_classname() :: atom().
 
 % The name of a Java class, as a string (ex: "Foobar"):
--type java_string_classname() :: text_utils:ustring().
+-type java_string_classname() :: ustring().
 
 
 % Designates as precisely as possible a Java class:
@@ -118,6 +118,11 @@
 			   java_classname/0, java_string_classname/0,
 			   java_fully_qualified_classname/0,
 			   java_source_filename/0, java_bytecode_filename/0 ]).
+
+
+% Shorthands:
+
+-type ustring() :: text_utils:ustring().
 
 
 
@@ -154,7 +159,7 @@ get_beam_directories_for_binding() ->
 % Sends the specified oneway to the specified Java pseudo-process.
 %
 -spec send_oneway( java_mbox_pid(), oneway_name(), oneway_parameters() ) ->
-						 void().
+							void().
 send_oneway( MailboxPid, OnewayName, OnewayParameters )
   when is_atom( OnewayName ) andalso is_list( OnewayParameters ) ->
 
@@ -170,7 +175,7 @@ send_oneway( MailboxPid, OnewayName, OnewayParameters )
 % Sends the specified request to the specified Java pseudo-process.
 %
 -spec send_request( java_mbox_pid(), request_name(), request_parameters() ) ->
-						 void().
+							void().
 send_request( MailboxPid, RequestName, RequestParameters )
   when is_atom( RequestName ) andalso is_list( RequestParameters ) ->
 	% PID sent, as a reply is wanted:
@@ -240,9 +245,9 @@ wait_for_request_result( MailboxPid, MethodName )
 		% Catch-all clause for message receiving:
 		OtherMessage ->
 			trace_utils:error_fmt( "A message received from a Java (Jinterface)"
-								   " OtpMbox driven by ~w, in answer to '~p', "
-								   "does not respect the expected format: ~p~n",
-								   [ MailboxPid, MethodName, OtherMessage ] ),
+				" OtpMbox driven by ~w, in answer to '~p', "
+				"does not respect the expected format: ~p~n",
+				[ MailboxPid, MethodName, OtherMessage ] ),
 			throw( { invalid_java_message_received, OtherMessage } )
 
 	end.
@@ -256,7 +261,7 @@ wait_for_request_result( MailboxPid, MethodName )
 % if the name looks CamelCased, i.e. if at least its first letter is in upper
 % case.
 %
--spec classname_to_bytecode_filename( java_classname() | string() ) ->
+-spec classname_to_bytecode_filename( java_classname() | ustring() ) ->
 											java_bytecode_filename().
 classname_to_bytecode_filename( Classname ) when is_atom( Classname ) ->
 	classname_to_bytecode_filename( text_utils:atom_to_string( Classname ) );
@@ -278,10 +283,10 @@ classname_to_bytecode_filename( ClassnameString )
 % Returns a textual description of specified fully qualified classname.
 %
 -spec fully_qualified_classname_to_string( java_fully_qualified_classname() ) ->
-												 string().
+													ustring().
 fully_qualified_classname_to_string( { PackageName, Classname } ) ->
-	text_utils:format( "class '~s' of package '~s'",
+	text_utils:format( "class '~ts' of package '~ts'",
 					   [ Classname, PackageName ] );
 
 fully_qualified_classname_to_string( Classname ) ->
-	text_utils:format( "class '~s'", [ Classname ] ).
+	text_utils:format( "class '~ts'", [ Classname ] ).

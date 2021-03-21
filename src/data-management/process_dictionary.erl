@@ -69,7 +69,8 @@
 
 
 
--export([ put/2, put_as_new/2, get/1, get_existing/1, remove/1, remove_existing/1,
+-export([ put/2, put_as_new/2, get/1, get_existing/1,
+		  remove/1, remove_existing/1,
 		  get_dictionary/0, get_keys/0, get_keys_for/1,
 		  blank/0, to_string/0 ]).
 
@@ -106,7 +107,7 @@ put_as_new( Key, Value ) ->
 %
 -spec get( key() ) -> maybe( value() ).
 get( Key ) ->
-	%trace_utils:debug_fmt( "Getting key '~s' (as ~p).", [ Key, self() ] ),
+	%trace_utils:debug_fmt( "Getting key '~ts' (as ~p).", [ Key, self() ] ),
 	erlang:get( Key ).
 
 
@@ -202,11 +203,11 @@ to_string() ->
 
 		Pairs ->
 			Strings = lists:sort( [ text_utils:format(
-									  "key '~s' associated to value '~p'",
+									  "key '~ts' associated to value '~p'",
 									  [ K, V ] ) || { K, V } <- Pairs ] ),
 
 			text_utils:format( "the process dictionary of ~p contains "
-				"~B pair(s): ~s", [ self(), length( Pairs ),
+				"~B pair(s): ~ts", [ self(), length( Pairs ),
 									text_utils:strings_to_string( Strings ) ] )
 
 	end.

@@ -34,7 +34,6 @@
 
 
 % Triggers the call to the specified parse transform:
-%
 -compile( { parse_transform, example_parse_transform } ).
 
 
@@ -54,7 +53,7 @@ run() ->
 
 	atom = type_utils:get_type_of( 'an atom' ),
 
-	binary = type_utils:get_type_of( list_to_binary( "1" ) ),
+	binary = type_utils:get_type_of( <<1>> ),
 
 	float = type_utils:get_type_of( 1.0 ),
 
@@ -75,8 +74,8 @@ run() ->
 	reference = type_utils:get_type_of( make_ref() ),
 
 
-	{ false, { boolean, float } } = type_utils:is_homogeneous(
-									  { true, 1.0, false } ),
+	{ false, { boolean, float } } =
+		type_utils:is_homogeneous( { true, 1.0, false } ),
 
 	{ true, integer } = type_utils:is_homogeneous( [ 0, -4, 47, 12 ] ),
 
@@ -88,8 +87,8 @@ run() ->
 	%
 	IdTermTransformer = fun( Term, UserData ) ->
 
-		NewUserData = [
-					io_lib:format( "Inspected '~p', ", [ Term ] ) | UserData ],
+		NewUserData =
+			[ io_lib:format( "Inspected '~p', ", [ Term ] ) | UserData ],
 
 		{ Term, NewUserData }
 
@@ -98,32 +97,29 @@ run() ->
 	TermToTraverse = { pseudo_record, [], { a, 1.0 },
 					   [ { b, 42 }, "hello", [ <<"foo">> ] ], self() },
 
-	{ TraversedTerm, InspectData } = ast_transform:transform_term( TermToTraverse,
-						_Type=atom, IdTermTransformer, _UserData=[] ),
+	{ TraversedTerm, InspectData } = ast_transform:transform_term(
+		   TermToTraverse, _Type=atom, IdTermTransformer, _UserData=[] ),
 
 	test_facilities:display( "Traversal of term:~n'~p' with "
-							 "id term transformer "
-							 "yielded:~n'~p', producing user data '~s'",
-							 [ TermToTraverse, TraversedTerm,
-							   lists:reverse( InspectData ) ] ),
+		"id term transformer yielded:~n'~p', producing user data '~ts'",
+		[ TermToTraverse, TraversedTerm, lists:reverse( InspectData ) ] ),
 
 
 	% This term transformer changes a term into a textual representation, and
 	% does not do anything with user data:
+	%
 	TextTermTransformer = fun( Term, UserData ) ->
-
-		{ io_lib:format( "~w", [ Term ] ), UserData }
-
+							  { io_lib:format( "~w", [ Term ] ), UserData }
 						  end,
 
 	% Requested to operate only on PIDs:
 	{ NewTraversedTerm, _UselessData } = ast_transform:transform_term(
-				TermToTraverse, _OtherType=pid, TextTermTransformer,
-				_OtherUserData=undefined ),
+		TermToTraverse, _OtherType=pid, TextTermTransformer,
+		_OtherUserData=undefined ),
 
 	test_facilities:display( "Traversal of term:~n'~p' with "
-							 "text term transformer yielded:~n'~p'.",
-							 [ TermToTraverse, NewTraversedTerm ] ),
+		"text term transformer yielded:~n'~p'.",
+		[ TermToTraverse, NewTraversedTerm ] ),
 
 	% For the fun of being very meta:
 	%BeamFilename = "meta_utils_test.beam",

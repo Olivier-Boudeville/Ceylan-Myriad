@@ -68,10 +68,10 @@ run() ->
 	lazy_hashtable:display( "The lazy hashtable", MyH4 ),
 
 	MyH4Size = lazy_hashtable:size( MyH4 ),
-	test_facilities:display( "Size of table '~s': ~B entries",
+	test_facilities:display( "Size of table '~ts': ~B entries",
 							 [ lazy_hashtable:to_string( MyH4 ), MyH4Size ] ),
 
-	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
+	test_facilities:display( "Looking up for ~ts: ~p", [ ?MyFirstKey,
 			lazy_hashtable:lookup_entry( ?MyFirstKey, MyH4 ) ] ),
 
 	{ value, MyFirstValue } = lazy_hashtable:lookup_entry( ?MyFirstKey, MyH4 ),
@@ -84,7 +84,7 @@ run() ->
 							 "the same initial table." ),
 	{ MyFirstValue, MyH5 } = lazy_hashtable:extract_entry( ?MyFirstKey, MyH4 ),
 
-	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
+	test_facilities:display( "Looking up for ~ts: ~p", [ ?MyFirstKey,
 		lazy_hashtable:lookup_entry( ?MyFirstKey, MyH5 ) ] ),
 
 	key_not_found = lazy_hashtable:lookup_entry( ?MyFirstKey, MyH5 ),
@@ -92,8 +92,9 @@ run() ->
 	[ MySecondValue, MyFirstValue ] = lazy_hashtable:get_all_values(
 										[ ?MySecondKey, ?MyFirstKey ], MyH4 ),
 
-	% remove_entry can also be used if the specified key is not here, will return
-	% an identical table.
+	% remove_entry can also be used if the specified key is not here, will
+	% return an identical table.
+
 	lazy_hashtable:display( MyH5 ),
 	test_facilities:display( "Testing double key registering." ),
 
@@ -114,9 +115,9 @@ run() ->
 
 
 	FunValue = fun( V ) ->
-				io:format( " - hello value '~p'!~n", [ V ] ),
-				% Unchanged here:
-				V
+		io:format( " - hello value '~p'!~n", [ V ] ),
+		% Unchanged here:
+		V
 	end,
 
 	lazy_hashtable:map_on_values( FunValue, MyH4 ),
@@ -126,10 +127,10 @@ run() ->
 							 "previous hashtable:" ),
 
 	FunEntry = fun( E={ K, V } ) ->
-				io:format( " - hello, key '~p' associated to value '~p'!~n",
-						   [ K, V ] ),
-				% Unchanged here:
-				E
+		io:format( " - hello, key '~p' associated to value '~p'!~n",
+				   [ K, V ] ),
+		% Unchanged here:
+		E
 	end,
 
 	lazy_hashtable:map_on_entries( FunEntry, MyH4 ),
@@ -139,7 +140,7 @@ run() ->
 							 "count the number of entries." ),
 
 	FunCount = fun( _Entry, AccCount ) ->
-					   AccCount + 1
+				AccCount + 1
 			   end,
 
 	2 = lazy_hashtable:fold_on_entries( FunCount, _InitialCount=0, MyH4 ),
@@ -152,11 +153,11 @@ run() ->
 
 	MyH7 = lazy_hashtable:add_entry( ?MyThirdKey, 3, MyH6 ),
 
-	% MyH8 should have { AnotherKey, [1,2,3] } and { ?MyThirdKey, 3 }:
+	% MyH8 should have {AnotherKey, [1,2,3]} and {?MyThirdKey, 3}:
 	MyH8 = lazy_hashtable:merge( MyH4, MyH7 ),
 
 	% Any optimisation would be automatic:
-	test_facilities:display( "Merged table: ~s.",
+	test_facilities:display( "Merged table: ~ts.",
 							 [ lazy_hashtable:to_string( MyH8 ) ] ),
 
 	Keys = [ ?MyFirstKey, ?MyThirdKey ],

@@ -39,8 +39,8 @@
 
 run_test_gui() ->
 
-	test_facilities:display( "~nStarting the actual minimal test of MyriadGUI, "
-							 "from ~w.", [ self() ] ),
+	test_facilities:display(
+	  "~nStarting the actual minimal test of MyriadGUI, from ~w.", [ self() ] ),
 
 	gui:start(),
 
@@ -63,7 +63,7 @@ run_test_gui() ->
 
 		{ onWindowClosed, [ TestFrame, Context ] } ->
 
-			trace_utils:info_fmt( "Frame '~s' closed (~s).",
+			trace_utils:info_fmt( "Frame '~ts' closed (~ts).",
 				[ gui:object_to_string( TestFrame ),
 				  gui:context_to_string( Context ) ] ),
 
@@ -79,7 +79,6 @@ run_test_gui() ->
 
 
 % Runs the test.
-%
 -spec run() -> no_return().
 run() ->
 
@@ -88,8 +87,8 @@ run() ->
 	case executable_utils:is_batch() of
 
 		true ->
-			test_facilities:display( "(not running the MyriadGUI test, "
-									 "being in batch mode)" );
+			test_facilities:display(
+			  "(not running the MyriadGUI test, being in batch mode)" );
 
 		false ->
 			run_test_gui()

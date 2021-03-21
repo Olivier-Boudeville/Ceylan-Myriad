@@ -315,7 +315,7 @@ escape_key( Key ) when is_atom( Key ) ->
 -spec escape_value( ustring() ) -> ustring().
 escape_value( String ) ->
 	R = lists:flatten( [ escape_char( C ) || C <- String ] ),
-	%io:format( "'~s' became '~s'.~n", [ String, R ] ),
+	%io:format( "'~ts' became '~ts'.~n", [ String, R ] ),
 	R.
 
 
@@ -337,7 +337,7 @@ escape_char( C ) when C >= 97 andalso C =< 122 ->
 
 escape_char( C ) ->
 	% Everything else is blindly encoded:
-	io_lib:format( "%~s", [ integer_to_list( C, _HexBase=16 ) ] ).
+	io_lib:format( "%~ts", [ integer_to_list( C, _HexBase=16 ) ] ).
 
 
 
@@ -358,7 +358,7 @@ get_last_path_element( Url ) ->
 url_info_to_string( #url_info{ protocol=Protocol, host_identifier=Host,
 							   port=Port, path=Path } ) ->
 
-	text_utils:format( "~s://~s:~B/~s",
+	text_utils:format( "~ts://~ts:~B/~ts",
 		[ Protocol, net_utils:host_to_string( Host ), Port, Path ] ).
 
 
@@ -435,10 +435,10 @@ string_to_uri_map( String ) ->
 -spec get_ordered_list( [ html_element() ] ) -> html_element().
 get_ordered_list( Elements ) ->
 
-	HTMLElems = [ text_utils:format( "    <li>~s</li>~n", [ E ] )
+	HTMLElems = [ text_utils:format( "    <li>~ts</li>~n", [ E ] )
 				  || E <- Elements ],
 
-	text_utils:format( "  <ol>~n~s  </ol>~n", [ lists:flatten( HTMLElems ) ] ).
+	text_utils:format( "  <ol>~n~ts  </ol>~n", [ lists:flatten( HTMLElems ) ] ).
 
 
 
@@ -448,10 +448,10 @@ get_ordered_list( Elements ) ->
 -spec get_unordered_list( [ html_element() ] ) -> html_element().
 get_unordered_list( Elements ) ->
 
-	HTMLElems = [ text_utils:format( "    <li>~s</li>~n", [ E ] )
+	HTMLElems = [ text_utils:format( "    <li>~ts</li>~n", [ E ] )
 				  || E <- Elements ],
 
-	text_utils:format( "  <ul>~n~s  </ul>~n", [ lists:flatten( HTMLElems ) ] ).
+	text_utils:format( "  <ul>~n~ts  </ul>~n", [ lists:flatten( HTMLElems ) ] ).
 
 
 
@@ -568,7 +568,7 @@ http_status_class_to_string( Other ) ->
 %
 -spec interpret_http_status_code( http_status_code() ) -> ustring().
 interpret_http_status_code( StatusCode ) ->
-	text_utils:format( "~s (code ~B: ~s)", [
+	text_utils:format( "~ts (code ~B: ~ts)", [
 		interpret_http_status_code_helper( StatusCode ), StatusCode,
 		http_status_class_to_string( get_http_status_class( StatusCode ) ) ] ).
 
@@ -809,7 +809,7 @@ start( Option ) ->
 
 		{ error, { already_started, Module } } ->
 			trace_bridge:info_fmt( "Starting web_utils reported that module "
-				"'~s' was already started.", [ Module ] ),
+				"'~ts' was already started.", [ Module ] ),
 			ok;
 
 		{ error, InetsReason } ->
@@ -881,7 +881,7 @@ get( Uri, Headers, HttpOptions ) ->
 
 	cond_utils:if_defined( myriad_debug_web_exchanges,
 		trace_bridge:debug_fmt( "[~w] GET request to URI "
-			"'~s', with following headers:~n  ~p~nand "
+			"'~ts', with following headers:~n  ~p~nand "
 			"HTTP options:~n  ~p.", [ self(), Uri, Headers, HttpOptions ] ) ),
 
 	HeadersForHttpc = to_httpc_headers( Headers ),
@@ -906,8 +906,8 @@ get( Uri, Headers, HttpOptions ) ->
 				ReqHeaders, ReqBody } } ->
 
 			cond_utils:if_defined( myriad_debug_web_exchanges,
-				trace_bridge:debug_fmt( "[~w] Received HTTP version: ~s, "
-					"status code: ~B, reason: ~s; headers are:~n  ~p"
+				trace_bridge:debug_fmt( "[~w] Received HTTP version: ~ts, "
+					"status code: ~B, reason: ~ts; headers are:~n  ~p"
 					"Returned body is ~p", [ self(), ReqHttpVersion,
 						ReqStatusCode, ReqReason, ReqHeaders, ReqBody ] ),
 				basic_utils:ignore_unused( [ ReqHttpVersion, ReqReason ] ) ),
@@ -973,8 +973,8 @@ post( Uri, Headers, HttpOptions, MaybeBody, MaybeContentType ) ->
 
 	cond_utils:if_defined( myriad_debug_web_exchanges,
 		trace_bridge:debug_fmt( "[~w] POST request to URI "
-			"'~s', with following headers:~n  ~p~nHTTP options:~n  ~p~n"
-			"Body: ~p~nContent-type: ~s", [ self(), Uri, Headers, HttpOptions,
+			"'~ts', with following headers:~n  ~p~nHTTP options:~n  ~p~n"
+			"Body: ~p~nContent-type: ~ts", [ self(), Uri, Headers, HttpOptions,
 											MaybeBody, MaybeContentType ] ) ),
 
 	HeadersForHttpc = to_httpc_headers( Headers ),
@@ -1017,8 +1017,8 @@ post( Uri, Headers, HttpOptions, MaybeBody, MaybeContentType ) ->
 				ReqHeaders, ReqBody } } ->
 
 			cond_utils:if_defined( myriad_debug_web_exchanges,
-				trace_bridge:debug_fmt( "[~w] Received HTTP version: ~s, "
-					"status code: ~B, reason: ~s; headers are:~n  ~p"
+				trace_bridge:debug_fmt( "[~w] Received HTTP version: ~ts, "
+					"status code: ~B, reason: ~ts; headers are:~n  ~p"
 					"Returned body is ~p", [ self(), ReqHttpVersion,
 						ReqStatusCode, ReqReason, ReqHeaders, ReqBody ] ),
 				basic_utils:ignore_unused( [ ReqHttpVersion, ReqReason ] ) ),
@@ -1111,7 +1111,7 @@ download_file( Url, TargetDir ) ->
 
 	FilePath = file_utils:join( TargetDir, Filename ),
 
-	%trace_bridge:debug_fmt( "Downloading '~s' from '~s'.",
+	%trace_bridge:debug_fmt( "Downloading '~ts' from '~ts'.",
 	%						[ FilePath, Url ] ),
 
 	case httpc:request( get, { Url, _Headers=[] }, _HTTPOptions=[],
@@ -1123,8 +1123,8 @@ download_file( Url, TargetDir ) ->
 		% Ex: {ok, { {"HTTP/1.1", 404, "Not Found" } } }
 		{ ok, { { _HTTTP, ErrorCode, Msg }, _RecHeaders, _Body } } ->
 
-			%trace_bridge:error_fmt( "Downloading from '~s' failed; "
-			%	"reason: ~s, '~s'.",
+			%trace_bridge:error_fmt( "Downloading from '~ts' failed; "
+			%	"reason: ~ts, '~ts'.",
 			%	[ Url, interpret_http_status_code( ErrorCode ), Msg ] ),
 
 			throw( { download_failed, ErrorCode, Msg, Url } );

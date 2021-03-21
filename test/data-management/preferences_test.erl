@@ -43,27 +43,25 @@ run() ->
 	test_facilities:start( ?MODULE ),
 
 	test_facilities:display( "Preferences while the service is not running: "
-							 "~s", [ preferences:to_string() ] ),
+							 "~ts", [ preferences:to_string() ] ),
 
 	% May not be called (automatic launching of the service whenever needed):
 	preferences:start(),
 
 	test_facilities:display( "Preferences after the service is just started: "
-							 "~s", [ preferences:to_string() ] ),
+							 "~ts", [ preferences:to_string() ] ),
 
 	TargetKey = test_key,
 
-	test_facilities:display( "Value associated to ~s before it is set "
-							 "from test: ~p",
-							 [ TargetKey, preferences:get( TargetKey ) ] ),
+	test_facilities:display( "Value associated to ~ts before it is set "
+		"from test: ~p", [ TargetKey, preferences:get( TargetKey ) ] ),
 
 	Target_value = "This is a test value!",
 
 	preferences:set( TargetKey, Target_value ),
 
-	test_facilities:display( "Value associated to ~s after it is set "
-							 "from test: ~p",
-							 [ TargetKey, preferences:get( TargetKey ) ] ),
+	test_facilities:display( "Value associated to ~ts after it is set "
+		"from test: ~p", [ TargetKey, preferences:get( TargetKey ) ] ),
 
 	Target_value = preferences:get( TargetKey ),
 

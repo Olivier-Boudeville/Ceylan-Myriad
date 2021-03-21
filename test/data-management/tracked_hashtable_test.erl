@@ -67,14 +67,14 @@ run() ->
 	tracked_hashtable:display( "The tracked hashtable", MyH4 ),
 
 	MyH4Size = tracked_hashtable:size( MyH4 ),
-	test_facilities:display( "Size of table '~s': ~B entries",
-							 [ tracked_hashtable:to_string( MyH4 ), MyH4Size ] ),
+	test_facilities:display( "Size of table '~ts': ~B entries",
+		[ tracked_hashtable:to_string( MyH4 ), MyH4Size ] ),
 
-	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
+	test_facilities:display( "Looking up for ~ts: ~p", [ ?MyFirstKey,
 		tracked_hashtable:lookup_entry( ?MyFirstKey, MyH4 ) ] ),
 
-	{ value, "MyFirstValue" } = tracked_hashtable:lookup_entry( ?MyFirstKey,
-															   MyH4 ),
+	{ value, "MyFirstValue" } =
+		tracked_hashtable:lookup_entry( ?MyFirstKey, MyH4 ),
 
 	test_facilities:display( "Removing that entry." ),
 
@@ -83,10 +83,11 @@ run() ->
 
 	test_facilities:display( "Extracting the same entry from "
 							 "the same initial table." ),
-	{ "MyFirstValue", MyH5 } = tracked_hashtable:extract_entry( ?MyFirstKey,
-															   MyH4 ),
 
-	test_facilities:display( "Looking up for ~s: ~p", [ ?MySecondKey,
+	{ "MyFirstValue", MyH5 } =
+		tracked_hashtable:extract_entry( ?MyFirstKey, MyH4 ),
+
+	test_facilities:display( "Looking up for ~ts: ~p", [ ?MySecondKey,
 			tracked_hashtable:lookup_entry( ?MySecondKey, MyH5 ) ] ),
 
 	{ value, [1,2,3] } = tracked_hashtable:lookup_entry( ?MySecondKey, MyH5 ),
@@ -96,16 +97,17 @@ run() ->
 	true = tracked_hashtable:is_empty( MyH55 ),
 	tracked_hashtable:display("The tracked hashtable ", MyH55 ),
 
-	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
+	test_facilities:display( "Looking up for ~ts: ~p", [ ?MyFirstKey,
 		tracked_hashtable:lookup_entry( ?MyFirstKey, MyH5 ) ] ),
 
-	key_not_found = tracked_hashtable:lookup_entry( ?MyFirstKey,	MyH5 ),
+	key_not_found = tracked_hashtable:lookup_entry( ?MyFirstKey, MyH5 ),
 
-	[ MySecondValue, MyFirstValue ] = tracked_hashtable:get_all_values(
-										[ ?MySecondKey, ?MyFirstKey ], MyH4 ),
+	[ MySecondValue, MyFirstValue ] =
+		tracked_hashtable:get_all_values( [ ?MySecondKey, ?MyFirstKey ], MyH4 ),
 
-	% remove_entry can also be used if the specified key is not here, will return
-	% an identical table.
+	% remove_entry can also be used if the specified key is not here, will
+	% return an identical table.
+
 	tracked_hashtable:display( "The tracked hashtable ", MyH5 ),
 
 	test_facilities:display( "Testing double key registering." ),
@@ -166,8 +168,8 @@ run() ->
 	% MyH8 should have { AnotherKey, [1,2,3] } and { ?MyThirdKey, 3 }:
 	MyH8 = tracked_hashtable:merge( MyH4, MyH7 ),
 
-	test_facilities:display( "Merged table: ~s~n",
-	   [ tracked_hashtable:to_string( MyH8 ) ] ),
+	test_facilities:display( "Merged table: ~ts~n",
+		[ tracked_hashtable:to_string( MyH8 ) ] ),
 
 	tracked_hashtable:display( "The Merged Hashtable of tracked hashtable",
 							MyH8 ),

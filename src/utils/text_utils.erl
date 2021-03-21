@@ -599,10 +599,11 @@ strings_to_string( _ListOfStrings=[], Acc, _Bullet ) ->
 % We do not want an extra newline at the end:
 strings_to_string( _ListOfStrings=[ LastString ], Acc, Bullet )
   when is_list( LastString ) orelse is_binary( LastString ) ->
-	%Pattern="~ts~n",
+	io:format( "- examining '~ts'", [ LastString ] ),
+	%Pattern = "~ts~n",
 	% Added back, as makes sense?
 	% Nope:
-	Pattern="~ts",
+	Pattern = "~ts",
 	Acc ++ Bullet ++ io_lib:format( Pattern, [ LastString ] );
 
 % We allow also for bin_string():
@@ -634,7 +635,7 @@ strings_to_enumerated_string( ListOfStrings, IndentationLevel ) ->
 	{ _FinalCount, ReversedStrings } = lists:foldl(
 				 fun( String, _Acc={ Count, Strings } ) ->
 
-					 NewStrings = [ format( "~s~B. ~ts~n",
+					 NewStrings = [ format( "~ts~B. ~ts~n",
 									   [ Prefix, Count, String ] ) | Strings ],
 					 { Count + 1, NewStrings }
 
@@ -663,7 +664,7 @@ strings_to_string( L=[ SingleString ] )
 	%io_lib:format( " '~ts'", L );
 
 	% No leading space, the caller is expected to have it specified by himself,
-	% like in: "foo: ~s", not as "foo:~s":
+	% like in: "foo: ~ts", not as "foo:~ts":
 
 	%io_lib:format( " ~ts", L );
 	io_lib:format( "~ts", L );
@@ -682,7 +683,7 @@ strings_to_string( ErrorTerm ) ->
 
 
 % Returns a string that pretty-prints specified list of strings (actually, any
-% element that can be processed with ~s will do; ex: atoms) once reordered (and
+% element that can be processed with ~ts will do; ex: atoms) once reordered (and
 % with default bullets).
 %
 -spec strings_to_sorted_string( [ ustring() ] ) -> ustring().
@@ -695,8 +696,8 @@ strings_to_sorted_string( ErrorTerm ) ->
 
 
 % Returns a string that pretty-prints specified list of strings (actually, any
-% element that can be processed with ~s will do; ex: atoms), with user-specified
-% bullets.
+% element that can be processed with ~ts will do; ex: atoms), with
+% user-specified bullets.
 %
 % This can be a solution to nest bullet lists, by specifying a bullet with an
 % offset, such as " * ".
@@ -742,8 +743,8 @@ strings_to_string( _ListOfStrings, ErrorTerm ) ->
 
 
 % Returns a string that pretty-prints specified list of strings (actually, any
-% element that can be processed with ~s will do; ex: atoms) once reordered, with
-% user-specified indentation level or bullet.
+% element that can be processed with ~ts will do; ex: atoms) once reordered,
+% with user-specified indentation level or bullet.
 %
 -spec strings_to_sorted_string( [ ustring() ],
 								indentation_level_or_bullet() ) -> ustring().
@@ -1192,7 +1193,7 @@ format( FormatString, Values ) ->
 			_:_ ->
 
 				Msg = io_lib:format( "[error: badly formatted string output] "
-						"Format string was '~p', values were '~s'.~n",
+						"Format string was '~p', values were '~ts'.~n",
 						[ FormatString, basic_utils:describe_term( Values ) ] ),
 
 				% Not wanting to be extra verbose in this mode:
@@ -1239,22 +1240,23 @@ format( FormatString, Values ) ->
 						case is_list( Values ) of
 
 							true ->
-								io_lib:format( "format specified as '~s', "
-									"values as ~s~s", [ FormatString, VString,
+								io_lib:format( "format specified as '~ts', "
+									"values as ~ts~ts", [ FormatString, VString,
 									interpret_faulty_format( FormatString,
 															 Values ) ] );
 
 							false ->
 								io_lib:format(
 								  "values were not specified as a list "
-								  "(i.e. incorrectly as '~s'; format was '~s')",
+								  "(i.e. incorrectly as '~ts'; "
+								  "format was '~ts')",
 								  [ VString, FormatString ] )
 
 						end;
 
 					false ->
 						io_lib:format( "format was not specified as a string "
-							"(i.e. incorrectly as '~p'; values were '~s').",
+							"(i.e. incorrectly as '~p'; values were '~ts').",
 							[ FormatString, VString ] )
 
 				end,
@@ -1434,18 +1436,18 @@ match_types( _Seqs=[ _Seq="s" | Ts ], _Values=[ V | Tv ], Count ) ->
 
 		true ->
 			%trace_utils:debug_fmt
-			%io:format( "[debug] For value #~B (i.e. '~s'), detected type "
-			%	%"is ~s, which is compliant with the control sequence '~~s'.",
-			%	"is ~s, which is compliant with the control sequence 's'.~n",
+			%io:format( "[debug] For value #~B (i.e. '~ts'), detected type "
+			%	%"is ~ts, which is compliant with the control sequence '~~s'.",
+			%	"is ~ts, which is compliant with the control sequence 'ts'.~n",
 			%	[ Count, VString, VType ] ),
 			match_types( Ts, Tv, Count+1 );
 
 		false ->
-			io_lib:format( "type mismatch for value #~B (i.e. '~s'); got ~s, "
+			io_lib:format( "type mismatch for value #~B (i.e. '~ts'); got ~ts, "
 					"whereas expecting string-like, as the control "
 					% Correct, but commented-out for homogeneity with the other
 					% clauses:
-					% "sequence is ~~~~s)", [ Count, VString, VType ] )
+					% "sequence is ~~~~ts)", [ Count, VString, VType ] )
 					"sequence is 's'", [ Count, VString, VType ] )
 
 	end;
@@ -1463,24 +1465,24 @@ match_types( _Seqs=[ Seq | Ts ], _Values=[ V | Tv ], Count )
 
 		true ->
 			%trace_utils:debug_fmt
-			%io:format( "[debug] For value #~B (i.e. '~s'), detected type "
-			%	"is ~s, which is compliant with a control sequence "
-			%	%"for floats ('~~~s').", [ Count, VString, VType, Seq ] ),
-			%	"for floats ('~s').~n", [ Count, VString, VType, Seq ] ),
+			%io:format( "[debug] For value #~B (i.e. '~ts'), detected type "
+			%	"is ~ts, which is compliant with a control sequence "
+			%	%"for floats ('~~~ts').", [ Count, VString, VType, Seq ] ),
+			%	"for floats ('~ts').~n", [ Count, VString, VType, Seq ] ),
 			match_types( Ts, Tv, Count+1 );
 
 		false ->
-			io_lib:format( "type mismatch for value #~B (i.e. '~s'); got ~s, "
+			io_lib:format( "type mismatch for value #~B (i.e. '~ts'); got ~ts, "
 					"whereas expecting float, as the control "
-					%"sequence is ~~~s)", [ Count, VString, VType, Seq ] )
-					"sequence is '~s'", [ Count, VString, VType, Seq ] )
+					%"sequence is ~~~ts)", [ Count, VString, VType, Seq ] )
+					"sequence is '~ts'", [ Count, VString, VType, Seq ] )
 
 	end;
 
 
 % Integer:
 match_types( _Seqs=[ Seq | Ts ], _Values=[ V | Tv ], Count )
-  when Seq =:= "B" orelse Seq =:= "#"  orelse Seq =:= "b"->
+  when Seq =:= "B" orelse Seq =:= "#"  orelse Seq =:= "b" ->
 
 	VType = type_utils:get_type_of( V ),
 
@@ -1490,16 +1492,42 @@ match_types( _Seqs=[ Seq | Ts ], _Values=[ V | Tv ], Count )
 
 		true ->
 			%trace_utils:debug_fmt
-			%io:format( "[debug] For value #~B (i.e. '~s'), detected type "
-			%	"is ~s, which is compliant with the control sequence "
-			%	"for integers ('~s').~n", [ Count, VString, VType, Seq ] ),
+			%io:format( "[debug] For value #~B (i.e. '~ts'), detected type "
+			%	"is ~ts, which is compliant with the control sequence "
+			%	"for integers ('~B or # or b').~n",
+			%   [ Count, VString, VType, Seq ] ),
 			match_types( Ts, Tv, Count+1 );
 
 		false ->
-			io_lib:format( "type mismatch for value #~B (i.e. '~s'): got ~s, "
+			io_lib:format( "type mismatch for value #~B (i.e. '~ts'): got ~ts, "
 					"whereas expecting integer, as the control "
-					%"sequence is ~~~s)", [ Count, VString, VType, Seq ] )
-					"sequence is '~s'", [ Count, VString, VType, Seq ] )
+					%"sequence is ~~~ts)", [ Count, VString, VType, Seq ] )
+					"sequence is '~ts'", [ Count, VString, VType, Seq ] )
+
+	end;
+
+
+% Char:
+match_types( _Seqs=[ Seq="c" | Ts ], _Values=[ V | Tv ], Count ) ->
+
+	VType = type_utils:get_type_of( V ),
+
+	VString = basic_utils:describe_term( V ),
+
+	case VType =:= integer of
+
+		true ->
+			%trace_utils:debug_fmt
+			%io:format( "[debug] For value #~B (i.e. '~ts'), detected type "
+			%	"is ~ts, which is compliant with the control sequence "
+			%	"for chars ('~c').~n", [ Count, VString, VType, Seq ] ),
+			match_types( Ts, Tv, Count+1 );
+
+		false ->
+			io_lib:format( "type mismatch for value #~B (i.e. '~ts'): got ~ts, "
+					"whereas expecting char, as the control "
+					%"sequence is ~~~c)", [ Count, VString, VType, Seq ] )
+					"sequence is '~ts'", [ Count, VString, VType, Seq ] )
 
 	end;
 
@@ -1518,7 +1546,7 @@ match_types( _Seqs=[ Seq | Ts ], _Values=[ V | Tv ], Count ) ->
 	%trace_utils:debug_fmt( "Control sequence '~~~p' (i.e. '~~~w') not "
 	%trace_utils:debug_fmt
 	io:format( "[warning] Control sequence '~p' (i.e. '~w') not "
-		"recognised, accepting value '~s'.~n", [ Seq, Seq, VString ] ),
+		"recognised, accepting value '~ts'.~n", [ Seq, Seq, VString ] ),
 
 	match_types( Ts, Tv, Count+1 ).
 
@@ -1595,7 +1623,7 @@ format_as_comment_helper( _Text=[ Word | T ], CommentChar, LineWidth, AccLines,
 	case WordWidth >= RemainWidth of
 
 		true ->
-			%trace_utils:debug_fmt( "Word '~s' too long, hence to be put on "
+			%trace_utils:debug_fmt( "Word '~ts' too long, hence to be put on "
 			%					   "next line.", [ Word ] ),
 			NewAccLines =
 				[ get_formatted_line( CommentChar, AccLine ) | AccLines ],
@@ -1605,8 +1633,8 @@ format_as_comment_helper( _Text=[ Word | T ], CommentChar, LineWidth, AccLines,
 				_RemainWidth=LineWidth-WordWidth );
 
 		false ->
-			%trace_utils:debug_fmt( "Word '~s' still fits on the current line.",
-			%					   [ Word ] ),
+			%trace_utils:debug_fmt( "Word '~ts' still fits on the current "
+			%   "line.", [ Word ] ),
 			format_as_comment_helper( T, CommentChar, LineWidth,
 				% Decremented width to account for the space *before* this word:
 				AccLines, [ Word | AccLine ], RemainWidth - WordWidth - 1 )
@@ -1650,8 +1678,7 @@ bin_format( FormatString, Values ) ->
 				%throw( { badly_formatted, FormatString, Values } )
 
 				Msg = io_lib:format( "[error: badly formatted string output] "
-									 "Format: '~p', values: '~p'",
-									 [ FormatString, Values ] ),
+					"Format: '~p', values: '~p'", [ FormatString, Values ] ),
 
 				% If wanting to be extra verbose:
 				%io:format( Msg ++ "~n", [] ),
@@ -1661,15 +1688,18 @@ bin_format( FormatString, Values ) ->
 	end,
 
 	% No flattening needed here:
-	erlang:list_to_binary( String ).
-
+	%erlang:list_to_binary( String ).
+	unicode:characters_to_binary( String ).
 
 -else. % exec_target_is_production
 
 
 bin_format( FormatString, Values ) ->
 
-	erlang:list_to_binary( format( FormatString, Values ) ).
+	Str = format( FormatString, Values ),
+
+	%erlang:list_to_binary( Str ).
+	unicode:characters_to_binary( Str ).
 
 -endif. % exec_target_is_production
 
@@ -1692,9 +1722,9 @@ atom_format( FormatSt, FormatValues ) ->
 format( A, B, C ) ->
 
 	trace_utils:error_fmt( "Call to non-existing function text_utils:format/3; "
-		"extra comma in format string? Parameters were: ~s",
+		"extra comma in format string? Parameters were: ~ts",
 		[ strings_to_enumerated_string( [
-				  basic_utils:describe_term( T ) || T <- [ A, B, C ] ] ) ] ),
+				basic_utils:describe_term( T ) || T <- [ A, B, C ] ] ) ] ),
 
 	throw( { faulty_format_call, { A, B, C } } ).
 
@@ -1887,9 +1917,12 @@ string_to_binary( String ) when is_list( String ) ->
 	try
 
 		% No specific encoding needed:
-		Bin = erlang:list_to_binary( String ),
+		%Bin = erlang:list_to_binary( String ),
 
-		%io:format( "String '~s' converted to binary '~s'.",
+		% Yes, encodings must be managed:
+		Bin = unicode:characters_to_binary( String ),
+
+		%io:format( "String '~ts' converted to binary '~ts'.",
 		%		   [ String, Bin ] ),
 
 		Bin
@@ -1911,7 +1944,8 @@ string_to_binary( Other ) ->
 % Converts a binary into a plain (list-based) string.
 -spec binary_to_string( bin_string() ) -> ustring().
 binary_to_string( Binary ) when is_binary( Binary ) ->
-	erlang:binary_to_list( Binary );
+	%erlang:binary_to_list( Binary );
+	unicode:characters_to_list( Binary );
 
 binary_to_string( Other ) ->
 	report_not_a_binary_string( Other ).
@@ -1943,7 +1977,8 @@ binaries_to_strings( BinaryList ) ->
 	%[ erlang:binary_to_list( B ) || B <- BinaryList ].
 	[ try
 
-		  erlang:binary_to_list( B )
+		  %erlang:binary_to_list( B )
+		  unicode:characters_to_list( B )
 
 	  catch _:E ->
 
@@ -2255,7 +2290,7 @@ join( Separator, _ListToJoin=[ H | T ], Acc ) ->
 -spec split( ustring(), [ uchar() ] ) -> [ ustring() ].
 split( String, Delimiters ) ->
 
-	%trace_utils:debug_fmt( "Splitting '~s' with '~s'.",
+	%trace_utils:debug_fmt( "Splitting '~ts' with '~ts'.",
 	%					   [ String, Delimiters ] ),
 
 	% Note: string:tokens/2 is now deprecated in favor of string:lexemes/2, and
@@ -2767,8 +2802,8 @@ parse_quoted( InputStr ) ->
 						  parse_string().
 parse_quoted( InputStr, QuotingChars, EscapingChars ) ->
 
-	%trace_utils:debug_fmt( "Parsing @~s@, with quoting @~s@ and escaping @~s@:",
-	%					   [ InputStr, QuotingChars, EscapingChars ] ),
+	%trace_utils:debug_fmt( "Parsing @~ts@, with quoting @~ts@ and "
+	%    "escaping @~ts@:", [ InputStr, QuotingChars, EscapingChars ] ),
 
 	parse_helper( InputStr, QuotingChars, EscapingChars,
 		_CurrentQuoteChar=undefined, _CurrentQuotedText=undefined,
@@ -2835,8 +2870,8 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 			  CurrentQuoteChar=undefined, CurrentQuotedText=undefined,
 			  _PreviousChar=PrevC, Acc ) ->
 
-	%trace_utils:debug_fmt( "Out of quoted context, read @~s@ (previous: @~p@), "
-	%	"while current, reversed accumulator is:~n  @~p@.",
+	%trace_utils:debug_fmt( "Out of quoted context, read @~ts@ "
+	%    "(previous: @~p@), while current, reversed accumulator is:~n  @~p@.",
 	%	[ [C], [PrevC], lists:reverse( Acc ) ] ),
 
 	% lists:member/2 not a valid guard, so:
@@ -2858,9 +2893,10 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 				true ->
 
 					%trace_utils:debug_fmt( "Out of quoted context, read "
-					%	"quoting char @~s@ while previous was an escaping "
-					%	"one (@~p@), while current, reversed accumulator "
-					%	"is:~n  @~p@.", [ [C], [PrevC], lists:reverse( Acc ) ] ),
+					%	 "quoting char @~ts@ while previous was an escaping "
+					%	 "one (@~p@), while current, reversed accumulator "
+					%	 "is:~n  @~p@.",
+					%    [ [C], [PrevC], lists:reverse( Acc ) ] ),
 
 					parse_helper( T, QuotingChars, EscapingChars,
 						CurrentQuoteChar, CurrentQuotedText, _PrevChar=C,
@@ -2876,8 +2912,8 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 					NewAcc = [ PrevC | Acc ],
 
 					%trace_utils:debug_fmt( "Entering a quoting section with "
-					%	"@~s@, while current, reversed accumulator is:~n  @~p@",
-					%	[ [C], lists:reverse( NewAcc ) ] ),
+					%	"@~ts@, while current, reversed accumulator is:~n  "
+					%   "@~p@", [ [C], lists:reverse( NewAcc ) ] ),
 
 					parse_helper( T, QuotingChars, EscapingChars,
 						_CurrentQuoteChar=C, _CurrentQuotedText=[],
@@ -2911,8 +2947,8 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 		CurrentQuoteChar=C, CurrentQuotedText, _PreviousChar=PrevC, Acc ) ->
 
-	%trace_utils:debug_fmt( "In quoted context, read @~s@ (previous: @~p@) "
-	%	"while current quoted text is @~s@",
+	%trace_utils:debug_fmt( "In quoted context, read @~ts@ (previous: @~p@) "
+	%	"while current quoted text is @~ts@",
 	%	[ [C], [PrevC], CurrentQuotedText ] ),
 
 	% Maybe found a closing quoting char - unless it is escaped:
@@ -2928,13 +2964,13 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 				% dropped but should not)
 				true ->
 
-					%trace_utils:debug_fmt( "Adding quoting character '~s' as "
-					%	"such, as was escaped (by '~s').", [ [C], [PrevC] ] ),
+					%trace_utils:debug_fmt( "Adding quoting character '~ts' as "
+					%	"such, as was escaped (by '~ts').", [ [C], [PrevC] ] ),
 
 					parse_helper( T, QuotingChars, EscapingChars,
-								  %CurrentQuoteChar, CurrentQuotedText,
-								  CurrentQuoteChar, [ PrevC | CurrentQuotedText ],
-								  _PrevChar=C, Acc );
+						%CurrentQuoteChar, CurrentQuotedText,
+						CurrentQuoteChar, [ PrevC | CurrentQuotedText ],
+						_PrevChar=C, Acc );
 
 				% For example @A"@.
 				% Here, unescaped quoting char while in quoted text, thus
@@ -2954,11 +2990,12 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 					end,
 
 					%trace_utils:debug_fmt( "Closing a quoting section "
-					%	"(result:'~s') with '~s', while reversed accumulator "
+					%	"(result:'~ts') with '~ts', while reversed accumulator "
 					%	"is:~n~p", [ Quoted, [C], lists:reverse( Acc ) ] ),
 
 					parse_helper( T, QuotingChars, EscapingChars,
-						_CurrentQuoteChar=undefined, _CurrentQuotedText=undefined,
+						_CurrentQuoteChar=undefined,
+						_CurrentQuotedText=undefined,
 						_PrevChar=undefined, [ Quoted | Acc ] )
 
 			end;
@@ -2972,8 +3009,9 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 						CurrentQuoteChar, CurrentQuotedText, _PrevChar=C, Acc );
 
 				_ ->
-					parse_helper( T, QuotingChars, EscapingChars, CurrentQuoteChar,
-						[ PrevC | CurrentQuotedText ], _PrevChar=C, Acc )
+					parse_helper( T, QuotingChars, EscapingChars,
+						CurrentQuoteChar, [ PrevC | CurrentQuotedText ],
+						_PrevChar=C, Acc )
 
 			end
 
@@ -2987,7 +3025,7 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 		CurrentQuoteChar, CurrentQuotedText, _PreviousChar=undefined, Acc ) ->
 
 	%trace_utils:debug_fmt( "Just recording, in quoted context, "
-	%	"current char: @~s@", [ [C] ] ),
+	%	"current char: @~ts@", [ [C] ] ),
 
 	parse_helper( T, QuotingChars, EscapingChars, CurrentQuoteChar,
 				  CurrentQuotedText, _PrevChar=C, Acc );
@@ -2997,7 +3035,7 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 			  CurrentQuoteChar, CurrentQuotedText, PreviousChar, Acc ) ->
 
 	%trace_utils:debug_fmt( "Recording, in quoted context, "
-	%	"current char: @~s@", [ [C] ] ),
+	%	"current char: @~ts@", [ [C] ] ),
 
 	parse_helper( T, QuotingChars, EscapingChars, CurrentQuoteChar,
 				  [ PreviousChar | CurrentQuotedText ], _PrevChar=C, Acc ).
@@ -3185,7 +3223,7 @@ join_words( [], Width, AccLines, CurrentLine, _CurrentLineLen ) ->
 join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 			CurrentLineLen ) ->
 
-	%io:format( "Managing word '~s' (len=~B), current line is '~s' (len=~B), "
+	%io:format( "Managing word '~ts' (len=~B), current line is '~ts' (len=~B), "
 	%	"width = ~B.~n", [ Word, length( Word ), CurrentLine, CurrentLineLen,
 	% Width ] ),
 
@@ -3227,7 +3265,8 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 
 					end,
 
-					%io:format("Current line is now '~s'.~n", [NewCurrentLine]),
+					%io:format("Current line is now '~ts'.~n",
+					%  [NewCurrentLine]),
 					join_words( RemainingWords, Width, AccLines, NewCurrentLine,
 								NewLineLen );
 
@@ -3235,10 +3274,10 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 					% No, with this word the current line would be too wide,
 					% inserting it on new line instead:
 					PaddedCurrentLine = pad_string( CurrentLine, Width ),
-					%io:format( "Inserting line '~s'.~n", [PaddedCurrentLine] ),
+					%io:format( "Inserting line '~ts'.~n",
+					%    [ PaddedCurrentLine ] ),
 					join_words( RemainingWords, Width,
-								[ PaddedCurrentLine | AccLines ], Word,
-								CompatibleWidth )
+					  [ PaddedCurrentLine | AccLines ], Word, CompatibleWidth )
 
 			end;
 
@@ -3246,7 +3285,7 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 		_TooLargeWidth ->
 
 			% Will break words as many times as needed:
-			%io:format( "Word '~s' is too large (len=~B), breaking it.~n",
+			%io:format( "Word '~ts' is too large (len=~B), breaking it.~n",
 			%	[ Word, length( Word ) ] ),
 			Subwords = break_word( Word, Width ),
 
@@ -3431,7 +3470,7 @@ cut_into_chunks( String, ChunkSize, Acc ) ->
 	{ FirstPart, Remaining } = aggregate_word( String, ChunkSize-1, [] ),
 
 	% Each underscore will result into another character (\) being added:
-	%io:format( "FirstPart = '~s' (~B), Remaining = '~s'.~n",
+	%io:format( "FirstPart = '~ts' (~B), Remaining = '~ts'.~n",
 	%	[ FirstPart, length( FirstPart ), Remaining ] ),
 	cut_into_chunks( Remaining, ChunkSize, [ FirstPart ++ "-" | Acc ] ).
 

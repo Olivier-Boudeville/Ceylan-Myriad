@@ -420,7 +420,6 @@
 
 
 % All unit symbols (actually not used as such):
-%
 -type unit_symbol() :: base_unit_symbol()
 					 | derived_unit_symbol()
 					 | widely_used_unit_symbol()
@@ -431,7 +430,7 @@
 % The string counterparts of unit symbols (ex: "eV" instead of 'eV'), used for
 % parsing:
 %
--type unit_string_symbol() :: string().
+-type unit_string_symbol() :: ustring().
 
 
 -export_type([ base_unit_symbol/0, derived_unit_symbol/0,
@@ -440,7 +439,6 @@
 
 
 % Metric prefix (like 'kilo', to specify kilograms from grams):
-%
 -type metric_prefix() :: 'yotta'
 					   | 'zetta'
 					   | 'exa'
@@ -465,22 +463,18 @@
 
 
 % Symbol of metric prefix (ex: "da" for 'deca'):
-%
--type prefix_symbol() :: string().
+-type prefix_symbol() :: ustring().
 
 
 % Order of magnitude (exponent of 10):
-%
 -type magnitude_order() :: integer().
 
 
 % Multiplying factor:
-%
 -type multiplying_factor() :: float().
 
 
 % Exponentiation of a unit (ex: 2 for square meters, m^2).
-%
 -type exponent() :: integer().
 
 
@@ -493,7 +487,6 @@
 
 
 % Binary counterpart of a unit string:
-%
 -type unit_bin_string() :: text_utils:bin_string().
 
 
@@ -521,9 +514,7 @@
 	% Multiplying factor, introduced so that special units like hours can
 	% nevertheless be managed:
 	%
-	factor = 1.0 :: multiplying_factor()
-
-} ).
+	factor = 1.0 :: multiplying_factor() } ).
 
 
 -type canonical_unit() :: #canonical_unit{}.
@@ -553,8 +544,7 @@
 
 
 
-% The actual value whose a unit may be associated to.
-%
+% The actual value whose unit may be associated to.
 -type numerical_value() :: float().
 
 
@@ -593,12 +583,16 @@
 
 
 % Unit component:
-%
 -type unit_component() :: string().
 
 % The various supported kinds of component operators:
 %
 -type operator_kind() :: 'multiply' | 'divide'.
+
+
+% Shorthands:
+
+-type ustring() :: text_utils:ustring().
 
 
 
@@ -650,33 +644,29 @@ human_time_to_milliseconds( Day, Hour, Minute, Second, Millisecond ) ->
 % even use non-ASCII characters (ex: "µ").
 %
 -spec get_prefix_information() ->
-			   [ { metric_prefix(), prefix_symbol(), magnitude_order() } ].
+			[ { metric_prefix(), prefix_symbol(), magnitude_order() } ].
 get_prefix_information() ->
-	[
-
-	 { 'yotta', "Y",  24  },
-	 { 'zetta', "Z",  21  },
-	 { 'exa',   "E",  18  },
-	 { 'peta',  "P",  15  },
-	 { 'tera',  "T",  12  },
-	 { 'giga',  "G",  9   },
-	 { 'mega',  "M",  6   },
-	 { 'kilo',  "k",  3   },
-	 { 'hecto', "h",  2   },
-	 { 'deca',  "da", 1   },
-	 % None for 0
-	 { 'deci',  "d",  -1  },
-	 { 'centi', "c",  -2  },
-	 { 'milli', "m",  -3  },
-	 { 'micro', "µ",  -6  },
-	 { 'nano',  "n",  -9  },
-	 { 'pico',  "p",  -12 },
-	 { 'femto', "f",  -15 },
-	 { 'atto',  "a",  -18 },
-	 { 'zepto', "z",  -21 },
-	 { 'yocto', "y",  -24 }
-
-	].
+	[ { 'yotta', "Y",  24  },
+	  { 'zetta', "Z",  21  },
+	  { 'exa',   "E",  18  },
+	  { 'peta',  "P",  15  },
+	  { 'tera',  "T",  12  },
+	  { 'giga',  "G",  9   },
+	  { 'mega',  "M",  6   },
+	  { 'kilo',  "k",  3   },
+	  { 'hecto', "h",  2   },
+	  { 'deca',  "da", 1   },
+	  % None for 0
+	  { 'deci',  "d",  -1  },
+	  { 'centi', "c",  -2  },
+	  { 'milli', "m",  -3  },
+	  { 'micro', "µ",  -6  },
+	  { 'nano',  "n",  -9  },
+	  { 'pico',  "p",  -12 },
+	  { 'femto', "f",  -15 },
+	  { 'atto',  "a",  -18 },
+	  { 'zepto', "z",  -21 },
+	  { 'yocto', "y",  -24 } ].
 
 
 
@@ -686,7 +676,7 @@ get_prefix_information() ->
 % electric charge or quantity of electricity); we retain here only the most
 % usual one.
 %
--type unit_measure() :: string().
+-type unit_measure() :: ustring().
 
 
 % Information about a unit, i.e. its name, symbol and associated measure.
@@ -695,8 +685,8 @@ get_prefix_information() ->
 							  unit_measure() }.
 
 
-% Returns a list of information about all units, i.e. their name, symbol and
-% corresponding measure.
+% Returns information about all units, i.e. their name, symbol and corresponding
+% measure.
 %
 -spec get_unit_information() -> [ unit_information() ].
 get_unit_information() ->
@@ -704,25 +694,23 @@ get_unit_information() ->
 		++ get_widely_used_unit_information() ++ get_special_unit_information().
 
 
-% Returns informations about a base unit.
+% Returns information about a base unit.
 %
 % More info: https://en.wikipedia.org/wiki/SI_base_unit
 %
 -spec get_base_unit_information() -> [ unit_information() ].
 get_base_unit_information() ->
-	[
-	 { 'meter',   "m",   "length"                    },
-	 { 'gram',    "g",   "mass"                      },
-	 { 'second',  "s",   "time"                      },
-	 { 'ampere',  "A",   "electric current"          },
-	 { 'kelvin',  "K",   "thermodynamic temperature" },
-	 { 'mole',    "mol", "amount of substance"       },
-	 { 'candela', "cd",  "luminous intensity"        }
-	].
+	[ { 'meter',   "m",   "length"                    },
+	  { 'gram',    "g",   "mass"                      },
+	  { 'second',  "s",   "time"                      },
+	  { 'ampere',  "A",   "electric current"          },
+	  { 'kelvin',  "K",   "thermodynamic temperature" },
+	  { 'mole',    "mol", "amount of substance"       },
+	  { 'candela', "cd",  "luminous intensity"        }	].
 
 
 
-% Returns informations about a derived unit.
+% Returns information about a derived unit.
 %
 % More info: https://en.wikipedia.org/wiki/SI_derived_unit
 %
@@ -759,38 +747,28 @@ get_derived_unit_information() ->
 	 { 'becquerel',      "Bq",  "radioactive decays per unit time"      },
 	 { 'gray',           "Gy",  "absorbed dose of ionizing radiation"   },
 	 { 'sievert',        "Sv",  "equivalent dose of ionizing radiation" },
-	 { 'katal',          "kat", "catalytic activity"                    }
-
-	].
+	 { 'katal',          "kat", "catalytic activity"                    } ].
 
 
-% Returns informations about a widely used unit.
-%
+
+% Returns information about a widely used unit.
 -spec get_widely_used_unit_information() -> [ unit_information() ].
 get_widely_used_unit_information() ->
-	[
-
-	 { 'minute',       "min", "time"   },
-	 { 'hour',         "h",   "time"   },
-	 { 'litre',        "L",   "volume" },
-	 { 'tonne',        "t",   "mass"   },
-	 { 'electronvolt', "eV",  "energy" }
-
-	].
+	[ { 'minute',       "min", "time"   },
+	  { 'hour',         "h",   "time"   },
+	  { 'litre',        "L",   "volume" },
+	  { 'tonne',        "t",   "mass"   },
+	  { 'electronvolt', "eV",  "energy" } ].
 
 
-% Returns informations about a special unit.
-%
+
+% Returns information about a special unit.
 -spec get_special_unit_information() -> [ unit_information() ].
 get_special_unit_information() ->
-	[
-
-	 { 'dimensionless',    "dimensionless",      "none"     },
-	 { 'dollar',           "$",                  "currency" },
-	 { 'euro',             "euros",              "currency" },
-	 { 'unspecified_unit', "",                   "unknown"  }
-
-	].
+	[ { 'dimensionless',    "dimensionless",      "none"     },
+	  { 'dollar',           "$",                  "currency" },
+	  { 'euro',             "euros",              "currency" },
+	  { 'unspecified_unit', "",                   "unknown"  } ].
 
 
 
@@ -822,14 +800,14 @@ get_prefix_for_order( Order ) ->
 % Note: could be predetermined at build time.
 %
 -spec get_order_for_prefix( prefix_symbol() ) ->
-								  magnitude_order() | 'unknown_prefix'.
+								magnitude_order() | 'unknown_prefix'.
 get_order_for_prefix( _PrefixSymbol="" ) ->
 	% No prefix means order 0:
 	0;
 
 get_order_for_prefix( PrefixSymbol ) ->
 
-	% Tuple example: { 'milli', "m",  -3  }.
+	% Tuple example: {'milli', "m",  -3}.
 	case lists:keyfind( _K=PrefixSymbol, _Index=2, get_prefix_information() ) of
 
 		{ _Prefix, _PrefixSymbol, Order } ->
@@ -871,11 +849,11 @@ get_order_for_prefix( PrefixSymbol ) ->
 % unit operator intercalated between two successive components (no whitespace
 % allowed).
 %
--spec parse_value_with_unit( string() ) ->
-								   { numerical_value(), canonical_unit() }.
+-spec parse_value_with_unit( ustring() ) ->
+								{ numerical_value(), canonical_unit() }.
 parse_value_with_unit( InputString ) ->
 
-	%trace_utils:debug_fmt( "Parsing value with unit '~s'.", [ InputString ] ),
+	%trace_utils:debug_fmt( "Parsing value with unit '~ts'.", [ InputString ] ),
 
 	TrimString = text_utils:trim_whitespaces( InputString ),
 
@@ -902,7 +880,7 @@ parse_value_with_unit( InputString ) ->
 
 	end,
 
-	%trace_utils:debug_fmt( "As strings, value is '~s', unit is '~s'.",
+	%trace_utils:debug_fmt( "As strings, value is '~ts', unit is '~ts'.",
 	%					   [ ValueString, UnitString ] ),
 
 	Value = parse_as_float( ValueString ),
@@ -917,7 +895,7 @@ parse_value_with_unit( InputString ) ->
 % Parses specified string, expected to contain a number (either an integer or a
 % float), as a float, which is returned.
 %
--spec parse_as_float( string() ) -> float().
+-spec parse_as_float( ustring() ) -> float().
 parse_as_float( StringValue ) ->
 
 	try
@@ -946,10 +924,10 @@ parse_as_float( StringValue ) ->
 % Parses specified string, expected to contain a unit (ex: "kW.m/h^2"), and
 % returns a canonical unit.
 %
--spec parse_unit( string() ) -> canonical_unit().
+-spec parse_unit( ustring() ) -> canonical_unit().
 parse_unit( UnitString ) ->
 
-	%trace_utils:debug_fmt( "Parsing unit '~s'.", [ UnitString ] ),
+	%trace_utils:debug_fmt( "Parsing unit '~ts'.", [ UnitString ] ),
 
 	% We have two lists of components like "km^3":
 	{ MultComponents, DivComponents } = split_unit_components( UnitString ),
@@ -966,7 +944,7 @@ parse_unit( UnitString ) ->
 	DivUnit = interpret_components( DivComponents, divide, MultUnit ),
 	%trace_utils:debug_fmt( "DivUnit = ~p", [ DivUnit ] ),
 
-	%trace_utils:debug_fmt( "Final unit: '~s'", [ unit_to_string( DivUnit ) ] ),
+	%trace_utils:debug_fmt( "Final unit: '~ts'", [ unit_to_string( DivUnit ) ] ),
 
 	DivUnit.
 
@@ -976,8 +954,8 @@ parse_unit( UnitString ) ->
 % list of strings corresponding to multiplying unit components (ex: [ "kw", "m"
 % ]) and dividing ones (ex: [ "h^2" ]), and returns both lists.
 %
--spec split_unit_components( string() ) ->
-				   { [ unit_component() ], [ unit_component() ] }.
+-spec split_unit_components( ustring() ) ->
+					{ [ unit_component() ], [ unit_component() ] }.
 split_unit_components( UnitString ) ->
 	% AccString will accumulate the characters of the current component:
 	parse_components( UnitString, _MultList=[], _DivList=[], _AccString=[],
@@ -985,8 +963,8 @@ split_unit_components( UnitString ) ->
 
 
 % (helper)
--spec parse_components( string(), [ unit_component() ], [ unit_component() ],
-						string(), operator_kind() ) ->
+-spec parse_components( ustring(), [ unit_component() ], [ unit_component() ],
+						ustring(), operator_kind() ) ->
 							  { [ unit_component() ], [ unit_component() ] }.
 parse_components( _UnitString=[], MultList, DivList, AccString, AccKind ) ->
 	% All characters of (last) component parsed:
@@ -1024,7 +1002,7 @@ parse_components( _UnitString=[ H | T ], MultList, DivList,
 %
 -spec store_component_acc( unit_component(), operator_kind(),
 						   [ unit_component() ], [ unit_component() ] ) ->
-								 { [ unit_component() ], [ unit_component() ] }.
+								{ [ unit_component() ], [ unit_component() ] }.
 store_component_acc( ComponentString, _Kind=multiply, MultList, DivList ) ->
 	Component = lists:reverse( ComponentString ),
 	{ [ Component | MultList ], DivList };
@@ -1054,7 +1032,7 @@ interpret_components( _Components=[ C | T ], Kind, CanonicalUnit ) ->
 %
 integrate_component( ComponentString, Kind, CanonicalUnit ) ->
 
-	%trace_utils:debug_fmt( "Integrating ~s component '~s' in unit '~s'.",
+	%trace_utils:debug_fmt( "Integrating ~ts component '~ts' in unit '~ts'.",
 	%			   [ Kind, ComponentString, unit_to_string( CanonicalUnit ) ] ),
 
 	% Respectively, for 'km^2': 3, 'meter', 2:
@@ -1074,7 +1052,7 @@ integrate_component( ComponentString, Kind, CanonicalUnit ) ->
 
 	ActualOrder = BaseOrder * NormalisedUnitExponent,
 
-	%trace_utils:debug_fmt( "~n- for component '~s': unit_symbol '~s', "
+	%trace_utils:debug_fmt( "~n- for component '~ts': unit_symbol '~ts', "
 	%					   "actual_order=~B, normalised_unit_exponent=~B.",
 	%					   [ ComponentString, UnitAtomName, ActualOrder,
 	%						 NormalisedUnitExponent ] ),
@@ -1084,10 +1062,9 @@ integrate_component( ComponentString, Kind, CanonicalUnit ) ->
 
 
 
-% Returns { ActualOrder, UnitName, Exponent }:
-%
--spec parse_component( string() ) ->
-							 { magnitude_order(), unit_name(), exponent() }.
+% Returns {ActualOrder, UnitName, Exponent}:
+-spec parse_component( ustring() ) ->
+							{ magnitude_order(), unit_name(), exponent() }.
 parse_component( ComponentString ) ->
 
 	% Ex: ComponentString="km^-3"; let's see whether we have an exponent:
@@ -1115,7 +1092,7 @@ parse_component( ComponentString ) ->
 
 	end,
 
-	%trace_utils:debug_fmt( "PrefixedUnit='~s', unit exponent=~B.",
+	%trace_utils:debug_fmt( "PrefixedUnit='~ts', unit exponent=~B.",
 	%					   [ PrefixedUnitString, UnitExponent ] ),
 
 	% The "k" of "km" to be transformed into 'kilo' then into 3:
@@ -1134,7 +1111,8 @@ parse_component( ComponentString ) ->
 % (ex: "mol"): a forward scan may interpret "m" for 'milli', whereas it was just
 % the beginning of "mol".
 %
--spec extract_prefix_and_unit( string() ) -> { magnitude_order(), unit_name() }.
+-spec extract_prefix_and_unit( ustring() ) ->
+									{ magnitude_order(), unit_name() }.
 extract_prefix_and_unit( _PrefixedUnitString="" ) ->
 	{ _Order=0, _UnitName=dimensionless };
 
@@ -1173,8 +1151,8 @@ extract_prefix_and_unit( PrefixedUnitString ) ->
 
 
 
--spec scan_for_unit_symbol( string(), [ string() ] ) ->
-							 { string(), unit_name() }.
+-spec scan_for_unit_symbol( ustring(), [ ustring() ] ) ->
+								{ ustring(), unit_name() }.
 scan_for_unit_symbol( RevPrefixedUnitString, _RevUnitSymbols=[] ) ->
 	% No unit symbol found, so dimension-less, hence the whole is a prefix:
 	{ RevPrefixedUnitString, dimensionless };
@@ -1210,10 +1188,8 @@ get_reversed_ordered_symbols_of_units() ->
 	  || { _UnitAtom, UnitSymbolString, _Measure } <- get_unit_information() ],
 
 	LongerFun = fun( AString, BString ) ->
-
 						length( AString ) > length( BString )
-
-	end,
+				end,
 
 	lists:sort( LongerFun, UnsortedList ).
 
@@ -1223,9 +1199,7 @@ get_reversed_ordered_symbols_of_units() ->
 %
 % To support a new unit, simply add its dedicated clause.
 %
-%
 % First, the 7 base SI units:
-%
 -spec integrate_to_canonical_unit( unit_name(), magnitude_order(), exponent(),
 								   canonical_unit() ) -> canonical_unit().
 integrate_to_canonical_unit( _UnitName=meter, ActualOrder, NormalisedExponent,
@@ -1268,8 +1242,8 @@ integrate_to_canonical_unit( _UnitName=candela, ActualOrder, NormalisedExponent,
 % Then the derived units:
 
 integrate_to_canonical_unit( _UnitName=hertz, ActualOrder, NormalisedExponent,
-				 CanonicalUnit=#canonical_unit{ second=SecondExp,
-												order=Order } ) ->
+				CanonicalUnit=#canonical_unit{ second=SecondExp,
+											   order=Order } ) ->
 
 	% A Hertz is s^-1:
 	CanonicalUnit#canonical_unit{ second= SecondExp + NormalisedExponent * -1,
@@ -1305,7 +1279,7 @@ integrate_to_canonical_unit( _UnitName=pascal, ActualOrder, NormalisedExponent,
 								  second= SecondExp + NormalisedExponent * -2,
 								  % 3 is because we manage grams internally:
 								  order= Order + ActualOrder
-									 + NormalisedExponent * 3 };
+										+ NormalisedExponent * 3 };
 
 
 integrate_to_canonical_unit( _UnitName=joule, ActualOrder, NormalisedExponent,
@@ -1363,7 +1337,7 @@ integrate_to_canonical_unit( _UnitName=volt, ActualOrder, NormalisedExponent,
 								  ampere= AmpereExp + NormalisedExponent * -1,
 								  % 3 is because we manage grams internally:
 								  order= Order + ActualOrder
-									 + NormalisedExponent * 3 };
+										+ NormalisedExponent * 3 };
 
 
 integrate_to_canonical_unit( _UnitName=farad, ActualOrder, NormalisedExponent,
@@ -1380,7 +1354,7 @@ integrate_to_canonical_unit( _UnitName=farad, ActualOrder, NormalisedExponent,
 								  ampere= AmpereExp + NormalisedExponent * 2,
 								  % -3 is because we manage grams internally:
 								  order= Order + ActualOrder
-									 + NormalisedExponent * -3 };
+										+ NormalisedExponent * -3 };
 
 
 integrate_to_canonical_unit( _UnitName=ohm, ActualOrder, NormalisedExponent,
@@ -1397,7 +1371,7 @@ integrate_to_canonical_unit( _UnitName=ohm, ActualOrder, NormalisedExponent,
 								  ampere= AmpereExp + NormalisedExponent * -2,
 								  % 3 is because we manage grams internally:
 								  order= Order + ActualOrder
-									 + NormalisedExponent * 3 };
+										+ NormalisedExponent * 3 };
 
 
 integrate_to_canonical_unit( _UnitName=siemens, ActualOrder, NormalisedExponent,
@@ -1414,7 +1388,7 @@ integrate_to_canonical_unit( _UnitName=siemens, ActualOrder, NormalisedExponent,
 								  ampere= AmpereExp + NormalisedExponent * 2,
 								  % -3 is because we manage grams internally:
 								  order= Order + ActualOrder
-									 + NormalisedExponent * -3 };
+										+ NormalisedExponent * -3 };
 
 
 integrate_to_canonical_unit( _UnitName=weber, ActualOrder, NormalisedExponent,
@@ -1431,7 +1405,7 @@ integrate_to_canonical_unit( _UnitName=weber, ActualOrder, NormalisedExponent,
 								  ampere= AmpereExp + NormalisedExponent * -1,
 								  % 3 is because we manage grams internally:
 								  order= Order + ActualOrder
-									 + NormalisedExponent * 3 };
+										+ NormalisedExponent * 3 };
 
 
 integrate_to_canonical_unit( _UnitName=tesla, ActualOrder, NormalisedExponent,
@@ -1439,8 +1413,7 @@ integrate_to_canonical_unit( _UnitName=tesla, ActualOrder, NormalisedExponent,
 											  gram=GramExp,
 											  second=SecondExp,
 											  ampere=AmpereExp,
-											  order=Order
-											 } ) ->
+											  order=Order } ) ->
 
 	% A Tesla is kg.s^2.A^-1:
 	CanonicalUnit#canonical_unit{ gram= GramExp + NormalisedExponent * 1,
@@ -1448,7 +1421,7 @@ integrate_to_canonical_unit( _UnitName=tesla, ActualOrder, NormalisedExponent,
 								  ampere= AmpereExp + NormalisedExponent * -1,
 								  % 3 is because we manage grams internally:
 								  order= Order + ActualOrder
-									 + NormalisedExponent * 3 };
+										+ NormalisedExponent * 3 };
 
 
 integrate_to_canonical_unit( _UnitName=henry, ActualOrder, NormalisedExponent,
@@ -1465,7 +1438,7 @@ integrate_to_canonical_unit( _UnitName=henry, ActualOrder, NormalisedExponent,
 								  ampere= AmpereExp + NormalisedExponent * -2,
 								  % 3 is because we manage grams internally:
 								  order= Order + ActualOrder
-									 + NormalisedExponent * 3 };
+										+ NormalisedExponent * 3 };
 
 
 % Not supported yet: degree Celsius; problem is that it is not a multiple of the
@@ -1538,7 +1511,7 @@ integrate_to_canonical_unit( _UnitName=katal, ActualOrder,
 							 NormalisedExponent,
 							 CanonicalUnit=#canonical_unit{ mole=MoleExp,
 															second=SecondExp,
-															order=Order	 } ) ->
+															order=Order } ) ->
 
 	% A Katal is s^-1.mol:
 	CanonicalUnit#canonical_unit{ mole= MoleExp + NormalisedExponent * 1,
@@ -1558,7 +1531,7 @@ integrate_to_canonical_unit( _UnitName=minute, ActualOrder, NormalisedExponent,
 	CanonicalUnit#canonical_unit{ second= SecondExp + NormalisedExponent,
 								  order= Order + ActualOrder,
 								  factor= Factor *
-									  math:pow( 60, NormalisedExponent ) };
+										math:pow( 60, NormalisedExponent ) };
 
 
 integrate_to_canonical_unit( _UnitName=hour, ActualOrder, NormalisedExponent,
@@ -1570,7 +1543,7 @@ integrate_to_canonical_unit( _UnitName=hour, ActualOrder, NormalisedExponent,
 								  order= Order + ActualOrder
 									 + NormalisedExponent * 3,
 								  factor= Factor *
-									  math:pow( 3.6, NormalisedExponent ) };
+										math:pow( 3.6, NormalisedExponent ) };
 
 
 integrate_to_canonical_unit( _UnitName=litre, ActualOrder, NormalisedExponent,
@@ -1579,7 +1552,7 @@ integrate_to_canonical_unit( _UnitName=litre, ActualOrder, NormalisedExponent,
 	% A litre is 10^-3 m^3:
 	CanonicalUnit#canonical_unit{ meter= MeterExp + NormalisedExponent * 3,
 								  order= Order + ActualOrder
-									 + NormalisedExponent * -3 };
+										+ NormalisedExponent * -3 };
 
 
 integrate_to_canonical_unit( _UnitName=tonne, ActualOrder, NormalisedExponent,
@@ -1588,7 +1561,7 @@ integrate_to_canonical_unit( _UnitName=tonne, ActualOrder, NormalisedExponent,
 	% A tonne is 10^6 g:
 	CanonicalUnit#canonical_unit{ gram= GramExp + NormalisedExponent * 1,
 								  order= Order + ActualOrder
-									 + NormalisedExponent * 6 };
+										+ NormalisedExponent * 6 };
 
 
 integrate_to_canonical_unit( _UnitName=electronvolt, ActualOrder,
@@ -1623,10 +1596,10 @@ integrate_to_canonical_unit( _UnitName=dimensionless, ActualOrder,
 
 integrate_to_canonical_unit( UnitName, _ActualOrder, NormalisedExponent,
 							 CanonicalUnit=#canonical_unit{
-											  other_units=Others} ) ->
+												other_units=Others} ) ->
 
-	%trace_utils:warning_fmt( "Integrating unknown unit '~s' of order ~p, "
-	%						 "normalised exponent ~p to ~s.",
+	%trace_utils:warning_fmt( "Integrating unknown unit '~ts' of order ~p, "
+	%						 "normalised exponent ~p to ~ts.",
 	%						 [  UnitName, ActualOrder, NormalisedExponent,
 	%							unit_to_string( CanonicalUnit ) ] ),
 
@@ -1640,7 +1613,6 @@ integrate_to_canonical_unit( UnitName, _ActualOrder, NormalisedExponent,
 
 
 % Tells whether specified term is an actual, canonical unit.
-%
 -spec is_canonical_unit( canonical_unit() ) -> boolean().
 is_canonical_unit( Term ) when is_record( Term, canonical_unit ) ->
 	true;
@@ -1675,7 +1647,7 @@ unit_symbol_to_name( UnitSymbol ) ->
 %
 % Note: unit_to_string/1 shall be the relevant function for most uses.
 %
--spec pure_unit_to_string( canonical_unit() ) -> string().
+-spec pure_unit_to_string( canonical_unit() ) -> ustring().
 pure_unit_to_string( Unit ) ->
 
 	% We filter out units with exponent zero, and add exponents in the pair for
@@ -1758,7 +1730,7 @@ pure_unit_to_string( Unit ) ->
 			[];
 
 		UnitExponentList ->
-			[ { text_utils:format( "~s^~B", [ OtherUnit, Exp ] ), Exp }
+			[ { text_utils:format( "~ts^~B", [ OtherUnit, Exp ] ), Exp }
 			  || { OtherUnit, Exp } <- UnitExponentList ]
 
 	end,
@@ -1799,7 +1771,6 @@ pure_unit_to_string( Unit ) ->
 
 
 % Returns the magnitude order of the specified unit.
-%
 -spec get_order( canonical_unit() ) -> magnitude_order().
 get_order( _Unit=#canonical_unit{ order=Order } ) ->
 	Order.
@@ -1807,7 +1778,6 @@ get_order( _Unit=#canonical_unit{ order=Order } ) ->
 
 
 % Returns the multiplying factor of the specified unit.
-%
 -spec get_factor( canonical_unit() ) -> multiplying_factor().
 get_factor( _Unit=#canonical_unit{ factor=Factor } ) ->
 	Factor.
@@ -1815,7 +1785,6 @@ get_factor( _Unit=#canonical_unit{ factor=Factor } ) ->
 
 
 % Tells whether the two specified units are strictly the same.
-%
 -spec are_units_identical( canonical_unit(), canonical_unit() ) -> boolean().
 are_units_identical( Unit, Unit ) ->
 	% Relying on a canonical form simplifies much the comparisons:
@@ -1827,8 +1796,7 @@ are_units_identical( _FirstUnit, _SecondUnit ) ->
 
 
 % Returns a textual representation of the specified canonical unit.
-%
--spec unit_to_string( canonical_unit() ) -> string().
+-spec unit_to_string( canonical_unit() ) -> ustring().
 unit_to_string( Unit ) ->
 
 	UnitString = pure_unit_to_string( Unit ),
@@ -1855,7 +1823,7 @@ unit_to_string( Unit ) ->
 	end,
 
 	% At least to flatten:
-	case text_utils:format( "~s~s~s",
+	case text_utils:format( "~ts~ts~ts",
 							[ UnitString, FactorString, OrderString ] ) of
 
 		"" ->
@@ -1869,9 +1837,8 @@ unit_to_string( Unit ) ->
 
 
 % Returns a textual description of specified unit with a value.
-%
 -spec value_with_unit_to_string( numerical_value(), canonical_unit() ) ->
-									   string().
+										ustring().
 value_with_unit_to_string( Value, Unit ) ->
 
 	Order = unit_utils:get_order( Unit ),
@@ -1886,6 +1853,6 @@ value_with_unit_to_string( Value, Unit ) ->
 			text_utils:format( "~p", [ ActualValue ] );
 
 		PString ->
-			text_utils:format( "~p ~s", [ ActualValue, PString ] )
+			text_utils:format( "~p ~ts", [ ActualValue, PString ] )
 
 	end.

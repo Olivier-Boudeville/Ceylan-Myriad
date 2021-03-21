@@ -147,6 +147,7 @@
 
 -type error_reason() :: reason().
 
+
 % Designates an error type (a specific, simple error reason), when we know it is
 % an atom (often the first element of an error tuple), like 'invalid_name'.
 %
@@ -368,6 +369,7 @@
 -type format_values() :: text_utils: format_values().
 -type ustring() :: text_utils:ustring().
 
+-type atom_node_name() :: net_utils:atom_node_name().
 
 
 % Creates a tuple of specified size, all elements having the same, specified,
@@ -751,7 +753,7 @@ wait_for( Message, Count, TimeOutDuration, TimeOutFormatString ) ->
 
 	after TimeOutDuration ->
 
-		io:format( TimeOutFormatString ++ " after ~s",
+		io:format( TimeOutFormatString ++ " after ~ts",
 				   [ Count, time_utils:duration_to_string( TimeOutDuration ) ] )
 
 	end.
@@ -795,8 +797,8 @@ wait_for_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 wait_for_acks( WaitedSenders, MaxDurationInSeconds, Period,
 			   AckReceiveAtom, ThrowAtom ) ->
 
-	%trace_bridge:debug_fmt( "Waiting for ~p (period: ~s, max duration: ~s, "
-	%	"ack atom: '~s', throw atom: '~s').",
+	%trace_bridge:debug_fmt( "Waiting for ~p (period: ~ts, max duration: ~ts, "
+	%	"ack atom: '~ts', throw atom: '~ts').",
 	%	[ WaitedSenders, time_utils:duration_to_string( Period ),
 	%	  time_utils:duration_to_string( MaxDurationInSeconds ),
 	%	  AckReceiveAtom, ThrowAtom ] ),
@@ -1168,10 +1170,10 @@ display_process_info( Pid ) when is_pid( Pid ) ->
 							   [ Pid ] );
 
 				PropList ->
-					Strings = [ io_lib:format( "~s: ~p", [ K, V ] )
+					Strings = [ io_lib:format( "~ts: ~p", [ K, V ] )
 								|| { K, V } <- PropList ],
 					io:format( "PID ~w refers to a local live process, "
-						"whose information is: ~s",
+						"whose information is: ~ts",
 						[ Pid, text_utils:strings_to_string( Strings ) ] )
 
 			end;
@@ -1185,20 +1187,20 @@ display_process_info( Pid ) when is_pid( Pid ) ->
 
 				{ badrpc, Reason } ->
 					io:format( "No information found for process ~w "
-							   "running on remote node ~p; reason: ~p.~n",
-							   [ Pid, OtherNode, Reason ] );
+						"running on remote node ~p; reason: ~p.~n",
+						[ Pid, OtherNode, Reason ] );
 
 				undefined ->
 					io:format( "PID ~w refers to a dead process on "
-							   "remote node ~s.~n", [ Pid, OtherNode ] );
+							   "remote node ~ts.~n", [ Pid, OtherNode ] );
 
 				PropList ->
 
-					Strings = [ io_lib:format( "~s: ~p", [ K, V ] )
+					Strings = [ io_lib:format( "~ts: ~p", [ K, V ] )
 								|| { K, V } <- PropList ],
 
 					io:format( "PID ~w refers to a live process on "
-						"remote node ~s, whose information are: ~s",
+						"remote node ~ts, whose information are: ~ts",
 						[ Pid, OtherNode,
 						  text_utils:strings_to_string( Strings ) ] )
 
@@ -1228,7 +1230,7 @@ display( Message ) ->
 	% Finally io:format has been preferred to erlang:display, as the latter one
 	% displays quotes around the strings.
 	%
-	% ~ts, not ~s, as we want to properly output Unicode characters:
+	% ~ts, not ~ts, as we want to properly output Unicode characters:
 	%
 	io:format( "~ts~n", [ Message ] ),
 
@@ -1274,7 +1276,7 @@ display_timed( Message, TimeOut ) ->
 	% Finally io:format has been preferred to erlang:display, as the latter one
 	% displays quotes around the strings.
 
-	io:format( "~s~n", [ Message ] ),
+	io:format( "~ts~n", [ Message ] ),
 	system_utils:await_output_completion( TimeOut ).
 
 	% May not go through group leader (like io:format), thus less likely to
@@ -1317,10 +1319,10 @@ display_error( Message ) ->
 	%
 	% Reintroduced for testing after 21.0:
 	%
-	io:format( standard_error, "~s~n", [ Message ] ),
+	io:format( standard_error, "~ts~n", [ Message ] ),
 
 	% So:
-	%io:format( "~s~n", [ Message ] ),
+	%io:format( "~ts~n", [ Message ] ),
 
 	system_utils:await_output_completion().
 
@@ -1411,7 +1413,6 @@ debug( Message ) ->
 -spec debug( format_string(), format_values() ) -> void().
 debug( Format, Values ) ->
 	debug( text_utils:format( Format, Values ) ).
-
 
 
 
@@ -1629,7 +1630,7 @@ is_alive( TargetPidName ) when is_atom( TargetPidName ) ->
 % Note: generally not to be used when relying on a good design; and is_alive/1
 % should be preferred.
 %
--spec is_alive( pid(), net_utils:atom_node_name() ) -> boolean().
+-spec is_alive( pid(), atom_node_name() ) -> boolean().
 is_alive( TargetPid, Node )  ->
 	is_alive( TargetPid, Node, _Verbose=true ).
 
@@ -1643,7 +1644,7 @@ is_alive( TargetPid, Node )  ->
 % Note: generally not to be used when relying on a good design; and is_alive/1
 % should be preferred.
 %
--spec is_alive( pid(), net_utils:atom_node_name(), boolean() ) -> boolean().
+-spec is_alive( pid(), atom_node_name(), boolean() ) -> boolean().
 is_alive( TargetPid, Node, Verbose ) when is_pid( TargetPid ) ->
 	% erlang:is_process_alive/1 is more intended for debugging purposes...
 
@@ -1667,7 +1668,7 @@ is_alive( TargetPid, Node, Verbose ) when is_pid( TargetPid ) ->
 
 						true ->
 							trace_utils:warning_fmt( "Reporting that process "
-								"of PID ~w is not alive as its node ('~s') "
+								"of PID ~w is not alive as its node ('~ts') "
 								"is reported as down.", [ TargetPid, Node ] );
 
 						false ->

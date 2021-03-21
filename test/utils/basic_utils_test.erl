@@ -71,7 +71,7 @@ run() ->
 
 	test_facilities:display( "Testing the display of a static test message." ),
 
-	test_facilities:display( "Testing the display of a ~s test message.",
+	test_facilities:display( "Testing the display of a ~ts test message.",
 							 [ dynamic ] ),
 
 	basic_utils:checkpoint( 1 ),
@@ -80,11 +80,12 @@ run() ->
 
 	basic_utils:display( "standalone normal display" ),
 
-	basic_utils:display( "normal display ~s", [ "with a format string" ] ),
+	basic_utils:display( "normal display ~ts", [ "with a format string" ] ),
 
 	basic_utils:display_error( "standalone error display" ),
 
-	basic_utils:display_error( "error display ~s", [ "with a format string" ] ),
+	basic_utils:display_error( "error display ~ts",
+							   [ "with a format string" ] ),
 
 	FirstVersion  = { 0, 0, 0 },
 	SecondVersion = { 0, 0, 1 },
@@ -104,8 +105,8 @@ run() ->
 	equal = basic_utils:compare_versions( ThirdVersion, ThirdVersion ),
 	equal = basic_utils:compare_versions( FifthVersion, FifthVersion ),
 
-	test_facilities:display( "Comparisons of versions like ~s succeeded.",
-		[ text_utils:version_to_string(ThirdVersion) ] ),
+	test_facilities:display( "Comparisons of versions like ~ts succeeded.",
+							 [ text_utils:version_to_string( ThirdVersion ) ] ),
 
 
 	FirstShortVersion  = { 0, 0 },
@@ -142,7 +143,7 @@ run() ->
 										  ThirdShortVersion ),
 
 
-	test_facilities:display( "Comparisons of versions like ~s succeeded.",
+	test_facilities:display( "Comparisons of versions like ~ts succeeded.",
 		[ text_utils:version_to_string( ThirdVersion ) ] ),
 
 
@@ -159,13 +160,13 @@ run() ->
 
 	PSize = basic_utils:get_process_size( self() ),
 
-	test_facilities:display( "Size of current process: ~B bytes, i.e. ~s.",
+	test_facilities:display( "Size of current process: ~B bytes, i.e. ~ts.",
 		[ PSize, system_utils:interpret_byte_size( PSize ) ] ),
 
 
 	Self = self(),
 
-	test_facilities:display( "Testing myriad_spawn, based on a ~s.",
+	test_facilities:display( "Testing myriad_spawn, based on a ~ts.",
 							 [ ?myriad_spawn_info ] ),
 
 	?myriad_spawn( fun() ->
@@ -183,7 +184,7 @@ run() ->
 	end,
 
 
-	test_facilities:display( "Testing myriad_spawn_link, based on a ~s.",
+	test_facilities:display( "Testing myriad_spawn_link, based on a ~ts.",
 							 [ ?myriad_spawn_info ] ),
 
 	?myriad_spawn_link( fun() ->
@@ -202,8 +203,8 @@ run() ->
 
 
 	test_facilities:display( "This test was compiled with the execution target "
-							 "set to '~s', and debug mode is ~s.",
-							[ basic_utils:get_execution_target(),
-							  basic_utils:is_debug_mode_enabled() ] ),
+		"set to '~ts', and debug mode is ~ts.",
+		[ basic_utils:get_execution_target(),
+		  basic_utils:is_debug_mode_enabled() ] ),
 
 	test_facilities:stop().

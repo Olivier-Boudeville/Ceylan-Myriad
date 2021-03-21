@@ -73,10 +73,10 @@ run() ->
 	list_table:display( "The map table", MyH4 ),
 
 	MyH4Size = list_table:size( MyH4 ),
-	test_facilities:display( "Size of table '~s': ~B entries",
+	test_facilities:display( "Size of table '~ts': ~B entries",
 							 [ list_table:to_string( MyH4 ), MyH4Size ] ),
 
-	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
+	test_facilities:display( "Looking up for ~ts: ~p", [ ?MyFirstKey,
 			list_table:lookup_entry( ?MyFirstKey, MyH4 ) ] ),
 
 	{ value, MyFirstValue } = list_table:lookup_entry( ?MyFirstKey, MyH4 ),
@@ -89,7 +89,7 @@ run() ->
 							 "the same initial table." ),
 	{ MyFirstValue, MyH5 } = list_table:extract_entry( ?MyFirstKey, MyH4 ),
 
-	test_facilities:display( "Looking up for ~s: ~p", [ ?MyFirstKey,
+	test_facilities:display( "Looking up for ~ts: ~p", [ ?MyFirstKey,
 		list_table:lookup_entry( ?MyFirstKey, MyH5 ) ] ),
 
 	key_not_found = list_table:lookup_entry( ?MyFirstKey, MyH5 ),
@@ -97,8 +97,9 @@ run() ->
 	[ MySecondValue, MyFirstValue ] = list_table:get_all_values(
 										[ ?MySecondKey, ?MyFirstKey ], MyH4 ),
 
-	% remove_entry can also be used if the specified key is not here, will return
-	% an identical table.
+	% remove_entry can also be used if the specified key is not here, will
+	% return an identical table.
+
 	list_table:display( MyH5 ),
 	test_facilities:display( "Testing double key registering." ),
 
@@ -121,13 +122,12 @@ run() ->
 	MyH7 = list_table:append_to_entry( ?MyFourthKey, first_element, MyH5 ),
 
 	MyH8 = list_table:append_to_existing_entry( ?MyFourthKey, second_element,
-											 MyH7 ),
+												MyH7 ),
 
 	MyH9 = list_table:append_list_to_existing_entry( ?MyFourthKey,
 								 [ third_element, fourth_element ], MyH8 ),
 
 	list_table:display( MyH9 ),
-
 
 
 	test_facilities:display( "Applying a fun to all values of "
@@ -172,11 +172,11 @@ run() ->
 
 	MyH10 = list_table:add_entry( ?MyThirdKey, 3, MyH6 ),
 
-	% MyH8 should have { AnotherKey, [1,2,3] } and { ?MyThirdKey, 3 }:
+	% MyH8 should have {AnotherKey, [1,2,3]} and {?MyThirdKey, 3}:
 	MyH11 = list_table:merge( MyH4, MyH10 ),
 
 	% Any optimisation would be automatic:
-	test_facilities:display( "Merged table: ~s.",
+	test_facilities:display( "Merged table: ~ts.",
 							 [ list_table:to_string( MyH11 ) ] ),
 
 	Keys = [ ?MyFirstKey, ?MyThirdKey ],

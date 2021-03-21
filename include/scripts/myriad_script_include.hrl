@@ -63,17 +63,18 @@ get_myriad_base_directory() ->
 	% We cannot use file_utils:normalise_path/1 here: Myriad not usable from
 	% that point yet.
 	%
-	% Two main possibilites here: the current escript is located in src/scripts
+	% Two main possibilities here: the current escript is located in src/scripts
 	% or in src/apps/SOME_APP; trying them in turn, using src/meta as an
 	% indicator:
 	%
 	% So, maybe script is in src/scripts:
-	FirstBaseCandidate = filename:join(
-						   [ get_script_base_directory(), "..", ".." ] ),
+	FirstBaseCandidate =
+		filename:join( [ get_script_base_directory(), "..", ".." ] ),
 
 	FirstMetaPath = filename:join( [ FirstBaseCandidate, "src", "meta" ] ),
 
 	case file:read_file_info( FirstMetaPath ) of
+
 		{ ok, #file_info{ type=directory } } ->
 			FirstBaseCandidate;
 
@@ -81,7 +82,7 @@ get_myriad_base_directory() ->
 			% Maybe in src/apps/SOME_APP then:
 			SecondBaseCandidate = filename:join( FirstBaseCandidate, ".." ),
 			SecondMetaPath = filename:join(
-							   [ SecondBaseCandidate, "src", "meta" ] ),
+								[ SecondBaseCandidate, "src", "meta" ] ),
 			case file:read_file_info( SecondMetaPath ) of
 				{ ok, #file_info{ type=directory } } ->
 					SecondBaseCandidate;
@@ -132,12 +133,12 @@ update_code_path_for_myriad_from_module() ->
 %
 % (original version located in script_utils.erl, copied verbatim here)
 %
--spec update_code_path_for_myriad( file_utils:directory_name() ) ->
-										 basic_utils:void().
+-spec update_code_path_for_myriad( file_utils:directory_path() ) ->
+											basic_utils:void().
 update_code_path_for_myriad( MyriadRootDir ) ->
 
 	% Should not use trace_utils for that, as Myriad not found yet here:
-	%io:format( "Root of 'Myriad': '~s'.~n", [ MyriadRootDir ] ),
+	%io:format( "Root of 'Myriad': '~ts'.~n", [ MyriadRootDir ] ),
 
 	MyriadSrcDir = filename:join( MyriadRootDir, "src" ),
 

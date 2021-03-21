@@ -47,18 +47,18 @@ run() ->
 
 	FirstTerm = "Hello",
 
-	test_facilities:display( "Interpreting '~s': ~s",
-				 [ FirstTerm, type_utils:interpret_type_of( FirstTerm ) ] ),
+	test_facilities:display( "Interpreting '~ts': ~ts",
+				[ FirstTerm, type_utils:interpret_type_of( FirstTerm ) ] ),
 
-	SecondTerm = [ my_atom, 4, { a_tag, 2.0,
-						 maps:from_list( [ { self(), [ FirstTerm ] } ] ) } ],
+	SecondTerm = [ my_atom, 4,
+		{ a_tag, 2.0, maps:from_list( [ { self(), [ FirstTerm ] } ] ) } ],
 
 	%MaxLevel = 0,
 	%MaxLevel = 1,
 	%MaxLevel = 2,
 	MaxLevel = infinite,
 
-	test_facilities:display( "Interpreting '~p': ~s",
-		 [ SecondTerm, type_utils:interpret_type_of( SecondTerm, MaxLevel ) ] ),
+	test_facilities:display( "Interpreting '~p': ~ts",
+		[ SecondTerm, type_utils:interpret_type_of( SecondTerm, MaxLevel ) ] ),
 
 	test_facilities:stop().

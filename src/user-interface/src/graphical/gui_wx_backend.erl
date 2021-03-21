@@ -213,8 +213,12 @@
 
 
 % Shorthands:
+
 -type event_type() :: gui_event:event_type().
 -type event_source() :: gui_event:event_source().
+
+-type wx_object_type() :: gui:wx_object_type().
+-type myriad_object_type() :: gui:myriad_object_type().
 
 
 % To avoid unused warnings:
@@ -238,7 +242,7 @@
 
 
 % Converts a MyriadGUI type of object into a wx one.
--spec to_wx_object_type( gui:myriad_object_type() ) -> gui:wx_object_type().
+-spec to_wx_object_type( myriad_object_type() ) -> wx_object_type().
 to_wx_object_type( object ) ->
 	wxObject;
 
@@ -285,7 +289,7 @@ to_wx_object_type( Other ) ->
 
 
 % Converts a wx type of object into a MyriadGUI one.
--spec from_wx_object_type( gui:wx_object_type() ) -> gui:myriad_object_type().
+-spec from_wx_object_type( wx_object_type() ) -> myriad_object_type().
 from_wx_object_type( wxObject ) ->
 	object;
 
@@ -815,8 +819,7 @@ connect( EventSource, EventType ) ->
 %
 % Note: only useful internally or when bypasssing the default main loop.
 %
--spec connect( gui_event:event_source(), event_type(),
-			   gui:connect_options() ) -> void().
+-spec connect( event_source(), event_type(), gui:connect_options() ) -> void().
 connect( #canvas_state{ panel=Panel }, EventType, Options ) ->
 	connect( Panel, EventType, Options );
 
@@ -825,16 +828,15 @@ connect( SourceObject, EventType, Options ) ->
 	% Events to be processed through messages, not callbacks:
 	WxEventType = to_wx_event_type( EventType ),
 
-	trace_utils:debug_fmt( "Connecting event source '~s' to ~w for ~p.",
-						   [ gui:object_to_string( SourceObject ), self(),
-							 EventType ] ),
+	trace_utils:debug_fmt( "Connecting event source '~ts' to ~w for ~p.",
+		[ gui:object_to_string( SourceObject ), self(), EventType ] ),
 
 	wxEvtHandler:connect( SourceObject, WxEventType, Options ).
 
 
 
 % Unsubscribes the event source, for all event types.
--spec disconnect( gui_event:event_source() ) -> boolean().
+-spec disconnect( event_source() ) -> boolean().
 disconnect( #canvas_state{ panel=Panel } ) ->
 	disconnect( Panel );
 

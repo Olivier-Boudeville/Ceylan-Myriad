@@ -533,7 +533,7 @@ description_to_type( TypeDescription ) ->
 
 	CanonicalDesc = text_utils:remove_whitespaces( TypeDescription ),
 
-	%io:format( "CanonicalDesc = '~s'~n", [ CanonicalDesc ] ),
+	%io:format( "CanonicalDesc = '~ts'~n", [ CanonicalDesc ] ),
 
 	scan_type( CanonicalDesc ).
 
@@ -764,11 +764,11 @@ interpret_type_of( Term, MaxNestingLevel ) when MaxNestingLevel >= 0 ->
 -spec interpret_type_helper( term(), level(), level() ) -> ustring().
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
   when is_boolean( Term ) ->
-	text_utils:format( "boolean of value '~s'", [ Term ] );
+	text_utils:format( "boolean of value '~ts'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
   when is_atom( Term ) ->
-	text_utils:format( "atom of value '~s'", [ Term ] );
+	text_utils:format( "atom of value '~ts'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
   when is_binary( Term ) ->
@@ -799,15 +799,15 @@ interpret_type_helper( Term, _CurrentNestingLevel=MaxNestingLevel,
 interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
   when is_map( Term ) ->
 
-	Elems = [ text_utils:format( "key ~s associated to value ~s",
+	Elems = [ text_utils:format( "key ~ts associated to value ~ts",
 				   [ interpret_type_helper( K, CurrentNestingLevel + 1,
 											MaxNestingLevel ),
 					 interpret_type_helper( V, CurrentNestingLevel + 1,
 											MaxNestingLevel ) ] )
 			  || { K, V } <- maps:to_list( Term ) ],
 
-	text_utils:format( "map of ~B elements: ~s", [ maps:size( Term ),
-		  text_utils:strings_to_string( Elems, CurrentNestingLevel ) ] );
+	text_utils:format( "map of ~B elements: ~ts", [ maps:size( Term ),
+			text_utils:strings_to_string( Elems, CurrentNestingLevel ) ] );
 
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
@@ -827,7 +827,7 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 	case text_utils:is_string( Term ) of
 
 		true ->
-			text_utils:format( "plain string '~s'", [ Term ] );
+			text_utils:format( "plain string '~ts'", [ Term ] );
 
 		false ->
 			case CurrentNestingLevel of
@@ -841,7 +841,7 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 								CurrentNestingLevel + 1, MaxNestingLevel )
 							  || E <- Term ],
 
-					text_utils:format( "list of ~B elements: ~s",
+					text_utils:format( "list of ~B elements: ~ts",
 						[ length( Term ),
 						  text_utils:strings_to_enumerated_string( Elems,
 												   CurrentNestingLevel ) ] )
@@ -873,9 +873,9 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 	BaseTupleDesc = interpret_type_helper( Term, MaxNestingLevel,
 										   MaxNestingLevel ),
 
-	text_utils:format( "~s made of: ~s", [ BaseTupleDesc,
-						  text_utils:strings_to_enumerated_string( Elems,
-											  CurrentNestingLevel ) ] );
+	text_utils:format( "~ts made of: ~ts", [ BaseTupleDesc,
+		text_utils:strings_to_enumerated_string( Elems,
+												 CurrentNestingLevel ) ] );
 
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
@@ -926,13 +926,14 @@ get_ast_simple_builtin_types() ->
 
 	% See http://erlang.org/doc/reference_manual/typespec.html for a complete
 	% list:
-
+	%
 	[ 'term', 'binary', 'bitstring', 'boolean', 'byte', 'char', 'nil', 'number',
 	  'list', 'maybe_improper_list', 'nonempty_list', 'string',
 	  'nonempty_string', 'iodata', 'iolist', 'function', 'module', 'mfa',
 	  'arity', 'identifier', 'node', 'timeout', 'no_return',
 	  'any', 'integer', 'float', 'atom', 'pos_integer', 'neg_integer',
 	  'non_neg_integer', 'pid', 'reference', 'port' ].
+
 
 
 % Returns a list of the elementary, "atomic" types.
@@ -1022,7 +1023,7 @@ is_of_described_type( _Term, _TypeDescription ) ->
 %
 -spec is_homogeneous( list() | tuple() ) ->
 		{ 'true', primitive_type_description() } | { 'false',
-			 { primitive_type_description(), primitive_type_description() } }.
+			{ primitive_type_description(), primitive_type_description() } }.
 is_homogeneous( _List=[] ) ->
 	% We want to return types:
 	throw( empty_container );

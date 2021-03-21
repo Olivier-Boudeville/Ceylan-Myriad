@@ -928,7 +928,7 @@ get_textual_timestamp( { { Year, Month, Day }, { Hour, Minute, Second } } ) ->
 % manner, like: "Wednesday, January 6, 2021 at 11:46:53".
 %
 get_user_friendly_textual_timestamp( { Date={ Year, Month, Day }, Time } ) ->
-	io_lib:format( "~s, ~s ~B, ~B, at ~s",
+	io_lib:format( "~ts, ~ts ~B, ~B, at ~ts",
 		[ week_day_to_string( Date ), month_to_string( Month ), Day,
 		  Year, time_of_day_to_string( Time ) ] ).
 
@@ -1042,7 +1042,7 @@ timestamp_to_string( Timestamp ) ->
 -spec short_string_to_timestamp( ustring() ) -> timestamp().
 short_string_to_timestamp( TimestampString ) ->
 
-	%trace_utils:debug_fmt( "Converting short string '~s' to timestamp.",
+	%trace_utils:debug_fmt( "Converting short string '~ts' to timestamp.",
 	%					   [ TimestampString ] ),
 
 	case string:tokens( TimestampString, _Sep=" :/" ) of

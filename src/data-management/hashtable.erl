@@ -101,7 +101,8 @@
 		  is_empty/1, size/1,
 		  map_on_entries/2, map_on_values/2,
 		  fold_on_entries/3,
-		  merge/2, optimise/1, to_string/1, to_string/2, display/1, display/2 ]).
+		  merge/2, optimise/1, to_string/1, to_string/2,
+		  display/1, display/2 ]).
 
 
 
@@ -152,7 +153,7 @@
 %-opaque hashtable( K, V ) :: tuple( bucket( K, V ) ).
 
 % A type of bullet (ex: " * "):
--type bullet() :: string().
+-type bullet() :: ustring().
 
 -type description_type() :: bullet() | 'user_friendly' | 'full' | 'internal'.
 
@@ -162,6 +163,8 @@
 			   hashtable/0, bullet/0, description_type/0 ]).
 
 
+% Shorthands:
+-type ustring() :: text_utils:ustring().
 
 
 
@@ -229,7 +232,7 @@ add_entry( Key, Value, Hashtable ) ->
 % replaced by the specified one.
 %
 -spec add_diagnosed_entry( key(), value(), hashtable() ) ->
-							   { hashtable(), 'added' | 'updated' }.
+								{ hashtable(), 'added' | 'updated' }.
 add_diagnosed_entry( Key, Value, Hashtable ) ->
 
 	KeyIndex = get_bucket_index( Key, Hashtable ),
@@ -267,7 +270,7 @@ add_entries( [ { EntryName, EntryValue } | Rest ], Hashtable ) ->
 % replaced by the specified one.
 %
 -spec add_diagnosed_entries( entries(), hashtable() ) ->
-								 { hashtable(), 'added' | 'updated' }.
+									{ hashtable(), 'added' | 'updated' }.
 add_diagnosed_entries( Entries, Hashtable ) ->
 	lists:foldl( fun( _Entry={K,V}, _Acc={ Table, _Diag='added' } ) ->
 						 NewTable = add_entry( K, V, Table ),
@@ -312,7 +315,7 @@ remove_entry( Key, Hashtable ) ->
 % Returns a diagnosis and an updated table.
 %
 -spec remove_diagnosed_entry( key(), hashtable() ) ->
-					  { 'deleted', hashtable() } | 'unchanged'.
+						{ 'deleted', hashtable() } | 'unchanged'.
 remove_diagnosed_entry( Key, Hashtable ) ->
 
 	KeyIndex = get_bucket_index( Key, Hashtable ),
@@ -340,7 +343,7 @@ remove_diagnosed_entry( Key, Hashtable ) ->
 % specified key.
 %
 -spec lookup_entry( key(), hashtable() ) ->
-				 'key_not_found' | { 'value', value() }.
+						'key_not_found' | { 'value', value() }.
 lookup_entry( Key, Hashtable ) ->
 	lookup_in_list( Key, element( get_bucket_index( Key, Hashtable ),
 		Hashtable ) ).
@@ -476,7 +479,7 @@ get_values( Keys, Hashtable ) ->
 % raised.
 %
 % Ex: [ Color=red, Age=23, Mass=51 ] = hashtable:get_all_values( [ color, age,
-%   mass ], [ { color, red }, { mass, 51 }, { age, 23 } ] )
+%         mass ], [ {color, red}, {mass, 51}, {age, 23} ] )
 %
 -spec get_all_values( [ key() ], hashtable() ) -> [ value() ].
 get_all_values( Keys, Hashtable ) ->
@@ -484,8 +487,8 @@ get_all_values( Keys, Hashtable ) ->
 	{ RevValues, FinalTable } = lists:foldl(
 		   fun( _Elem=Key, _Acc={ Values, Table } ) ->
 
-				   { Value, ShrunkTable } = extract_entry( Key, Table ),
-				   { [ Value | Values ], ShrunkTable }
+				{ Value, ShrunkTable } = extract_entry( Key, Table ),
+				{ [ Value | Values ], ShrunkTable }
 
 		   end,
 		   _Acc0={ [], Hashtable },
@@ -516,7 +519,8 @@ get_all_values( Keys, Hashtable ) ->
 %
 % One may request the returned hashtable to be optimised after this call.
 %
--spec map_on_entries( fun( ( entry() ) -> entry() ), hashtable() ) -> hashtable().
+-spec map_on_entries( fun( ( entry() ) -> entry() ), hashtable() ) ->
+							hashtable().
 map_on_entries( Fun, Hashtable ) ->
 
 	BucketList = tuple_to_list( Hashtable ),
@@ -543,10 +547,10 @@ map_on_entries( Fun, _BucketList=[ Bucket | T ], Hashtable ) ->
 	NewHashtable = lists:foldl(
 		fun( Entry, AccTable ) ->
 
-				{ NewKey, NewValue } = Fun( Entry ),
+			{ NewKey, NewValue } = Fun( Entry ),
 
-				% NewKey may not be in the same bucket as Key:
-				add_entry( NewKey, NewValue, AccTable )
+			% NewKey may not be in the same bucket as Key:
+			add_entry( NewKey, NewValue, AccTable )
 
 		end,
 		_InitialAcc=Hashtable,
@@ -566,7 +570,8 @@ map_on_entries( Fun, _BucketList=[ Bucket | T ], Hashtable ) ->
 % Note: the keys are left as are, hence the structure of the hashtable does not
 % change.
 %
--spec map_on_values( fun( ( value() ) -> value() ), hashtable() ) -> hashtable().
+-spec map_on_values( fun( ( value() ) -> value() ), hashtable() ) ->
+						   hashtable().
 map_on_values( Fun, Hashtable ) ->
 
 	BucketList = tuple_to_list( Hashtable ),
@@ -790,7 +795,7 @@ pop_from_entry( Key, Hashtable ) ->
 % Returns a flat list whose elements are all the key/value pairs of the
 % hashtable, in no particular order.
 %
-% Ex: [ {K1,V1}, {K2,V2}, ... ].
+% Ex: [{K1,V1}, {K2,V2}, ...].
 %
 -spec enumerate( hashtable() ) -> entries().
 enumerate( Hashtable ) ->
@@ -931,7 +936,7 @@ must_optimise( EntryCount, BucketCount ) ->
 -spec optimise_unconditionally( entry_count(), bucket_count(), entries(),
 								hashtable() ) -> hashtable().
 optimise_unconditionally( EntryCount, CurrentBucketCount, Entries,
-						 Hashtable ) ->
+						  Hashtable ) ->
 
 	IdealBucketCount = get_ideal_bucket_count( EntryCount ),
 
@@ -950,7 +955,7 @@ optimise_unconditionally( EntryCount, CurrentBucketCount, Entries,
 
 
 % Returns a textual description of the specified hashtable.
--spec to_string( hashtable() ) -> string().
+-spec to_string( hashtable() ) -> ustring().
 to_string( Hashtable ) ->
 	to_string( Hashtable, user_friendly ).
 
@@ -962,7 +967,7 @@ to_string( Hashtable ) ->
 % using 'user_friendly'), or quite raw and non-ellipsed (if using 'full'), or
 % even completly raw ('internal').
 %
--spec to_string( hashtable(), description_type() ) -> string().
+-spec to_string( hashtable(), description_type() ) -> ustring().
 to_string( Hashtable, DescriptionType ) ->
 
 	case enumerate( Hashtable ) of
@@ -986,8 +991,8 @@ to_string( Hashtable, DescriptionType ) ->
 
 		L ->
 
-			%  Enforces a consistent order; flatten below is needed, in order to
-			%  use the result with ~s:
+			% Enforces a consistent order; flatten below is needed, in order to
+			% use the result with ~ts:
 			%
 			case DescriptionType of
 
@@ -995,7 +1000,7 @@ to_string( Hashtable, DescriptionType ) ->
 					Strs = [ text_utils:format_ellipsed( "~p: ~p", [ K, V ] )
 							 || { K, V } <- lists:sort( L ) ],
 
-					lists:flatten( io_lib:format( "table with ~B entries: ~s",
+					lists:flatten( io_lib:format( "table with ~B entries: ~ts",
 						[ length( L ), text_utils:strings_to_string( Strs,
 												   ?default_bullet ) ] ) );
 
@@ -1003,7 +1008,7 @@ to_string( Hashtable, DescriptionType ) ->
 					Strs = [ text_utils:format( "~p: ~p", [ K, V ] )
 							 || { K, V } <- lists:sort( L ) ],
 
-					lists:flatten( io_lib:format( "table with ~B entries: ~s",
+					lists:flatten( io_lib:format( "table with ~B entries: ~ts",
 						[ length( L ),
 						  text_utils:strings_to_string( Strs,
 														?default_bullet ) ] ) );
@@ -1012,7 +1017,7 @@ to_string( Hashtable, DescriptionType ) ->
 					lists:foldl(
 
 					  fun( Bucket, Acc ) ->
-							Acc ++ io_lib:format( "  + ~s~n",
+							Acc ++ io_lib:format( "  + ~ts~n",
 								[ bucket_to_string( Bucket ) ] )
 					  end,
 
@@ -1028,7 +1033,7 @@ to_string( Hashtable, DescriptionType ) ->
 					Strs = [ text_utils:format_ellipsed( "~p: ~p", [ K, V ] )
 							 || { K, V } <- lists:sort( L ) ],
 
-					lists:flatten( io_lib:format( "table with ~B entries: ~s",
+					lists:flatten( io_lib:format( "table with ~B entries: ~ts",
 						[ length( L ),
 						  text_utils:strings_to_string( Strs, Bullet ) ] ) )
 
@@ -1041,16 +1046,16 @@ to_string( Hashtable, DescriptionType ) ->
 % Displays the specified hashtable on the standard output.
 -spec display( hashtable() ) -> void().
 display( Hashtable ) ->
-	io:format( "~s~n", [ to_string( Hashtable ) ] ).
+	io:format( "~ts~n", [ to_string( Hashtable ) ] ).
 
 
 
 % Displays the specified hashtable on the standard output, with the specified
 % title on top.
 %
--spec display( string(), hashtable() ) -> void().
+-spec display( ustring(), hashtable() ) -> void().
 display( Title, Hashtable ) ->
-	io:format( "~s:~n~s~n", [ Title, to_string( Hashtable ) ] ).
+	io:format( "~ts:~n~ts~n", [ Title, to_string( Hashtable ) ] ).
 
 
 
@@ -1060,7 +1065,7 @@ display( Title, Hashtable ) ->
 
 
 % Returns the ideal number of buckets needed for specified number of entries.
--spec get_ideal_bucket_count( entry_count() ) -> basic_utils:count().
+-spec get_ideal_bucket_count( entry_count() ) -> bucket_count().
 get_ideal_bucket_count( EntryCount ) ->
 
 	IdealLoadFactor = 0.65,
@@ -1193,22 +1198,21 @@ get_bucket_count( Hashtable ) ->
 
 
 % Returns a string describing a hashtable bucket (list of key/value pairs):
-bucket_to_string( Bucket ) when length( Bucket ) > 0 ->
+bucket_to_string( _EmptyBucket=[] ) ->
+	"empty bucket";
+
+bucket_to_string( Bucket ) ->
 	lists:foldl(
 
 		fun( { Key, Value }, Acc ) ->
-			Acc ++ io_lib:format( "     * ~w -> ~s~n",
+			Acc ++ io_lib:format( "     * ~w -> ~ts~n",
 				[ text_utils:term_to_string( Key ),
 				  text_utils:term_to_string( Value ) ] )
 		end,
 
-		io_lib:format( "bucket with ~B element(s):~n",
-					   [ length(Bucket) ] ),
+		io_lib:format( "bucket with ~B element(s):~n", [ length( Bucket ) ] ),
 
-		Bucket );
-
-bucket_to_string( _EmptyBucket ) ->
-	"empty bucket".
+		Bucket ).
 
 
 
@@ -1222,7 +1226,7 @@ lookup_in_list( _Key, _TargetList=[] ) ->
 	%
 	% However now get_value/2 throws an exception and should be used instead.
 
-	%{ key_not_found, Key };
+	%{key_not_found, Key};
 	key_not_found;
 
 lookup_in_list( Key, _TargetList=[ { Key, Value } | _T ] ) ->
@@ -1254,7 +1258,6 @@ extractFromList( Key, _TargetList=[ H | T ], AccList ) ->
 
 
 
-
 % Iterates over buckets and fetches the keys.
 get_keys_from_buckets( _Buckets=[], Acc ) ->
 	Acc;
@@ -1268,7 +1271,7 @@ get_keys_from_buckets(  _Buckets=[ H | T ], Acc ) ->
 get_values_from_buckets( _Buckets=[], Acc ) ->
 	Acc;
 
-get_values_from_buckets(  _Buckets=[ H | T ], Acc ) ->
+get_values_from_buckets( _Buckets=[ H | T ], Acc ) ->
 	get_values_from_buckets( T, [ Value || { _Key, Value } <- H ] ++ Acc ).
 
 

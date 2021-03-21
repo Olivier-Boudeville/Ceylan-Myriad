@@ -71,7 +71,7 @@
 
 -type ast_transforms() :: ast_transform:ast_transforms().
 -type ast_element() :: ast_base:ast_element().
-
+-type ast_pattern_field() :: ast_record:ast_pattern_field().
 
 
 % For the ast_transforms record:
@@ -110,7 +110,7 @@
 % "Such sequences occur as the list of arguments to a function or fun."
 %
 -spec transform_pattern( ast_pattern(), ast_transforms() ) ->
-							   { ast_pattern(), ast_transforms() }.
+								{ ast_pattern(), ast_transforms() }.
 % A list of patterns should have already been iterated over upstream:
 %transform_pattern( PatternList, Transforms ) when is_list( PatternList ) ->
 
@@ -420,7 +420,7 @@ transform_pattern( Clause={ LiteralType, _Line, _Value }, Transforms )
 transform_pattern( _Clause={ 'record', Line, RecordName, PatternFields },
 				   Transforms ) ?rec_guard ->
 
-	%ast_utils:display_debug( "Transforming record '~s' at line #~B, "
+	%ast_utils:display_debug( "Transforming record '~ts' at line #~B, "
 	%	"fields being described as following patterns: ~p",
 	%	[ RecordName, Line, PatternFields ] ),
 
@@ -547,7 +547,7 @@ transform_pattern( E, Transforms )
 % Note: the case where the sequence is empty is managed here as well.
 %
 -spec transform_pattern_sequence( ast_pattern_sequence(), ast_transforms() ) ->
-								   { ast_pattern_sequence(), ast_transforms() }.
+							{ ast_pattern_sequence(), ast_transforms() }.
 transform_pattern_sequence( Patterns, Transforms ) ?rec_guard ->
 	lists:mapfoldl( fun transform_pattern/2, _Acc0=Transforms,
 					_List=Patterns ).
@@ -558,7 +558,7 @@ transform_pattern_sequence( Patterns, Transforms ) ?rec_guard ->
 % relevant AST transformations.
 %
 -spec transform_variable( meta_utils:variable_name(), line(),
-				  ast_transforms() ) -> { ast_element(), ast_transforms() }.
+				ast_transforms() ) -> { ast_element(), ast_transforms() }.
 transform_variable( VariableName, _Line, Transforms ) ?rec_guard ->
 	% Currently no transformation done:
 	{ VariableName, Transforms }.
@@ -568,7 +568,7 @@ transform_variable( VariableName, _Line, Transforms ) ?rec_guard ->
 %
 % (note: better here than in ast_record)
 %
--spec transform_pattern_fields( [ ast_record:ast_pattern_field() ],
+-spec transform_pattern_fields( [ ast_pattern_field() ],
 				ast_transforms() ) -> { [ ast_element() ], ast_transforms() }.
 transform_pattern_fields( PatternFields, Transforms ) ?rec_guard ->
 	lists:mapfoldl( fun transform_pattern_field/2, _Acc0=Transforms,
@@ -581,8 +581,8 @@ transform_pattern_fields( PatternFields, Transforms ) ?rec_guard ->
 % Note: according to erl_id_trans, field names are full expressions here, but
 % only atoms are allowed by the linter.
 %
--spec transform_pattern_field( ast_record:ast_pattern_field(),
-				  ast_transforms() ) -> { ast_element(), ast_transforms() }.
+-spec transform_pattern_field( ast_pattern_field(), ast_transforms() ) ->
+									{ ast_element(), ast_transforms() }.
 transform_pattern_field( { 'record_field', Line1,
 		   N={ atom, _Line2, _FieldName }, Pattern }, Transforms ) ?rec_guard ->
 

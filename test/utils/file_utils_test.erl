@@ -49,8 +49,8 @@ run() ->
 	BeamExtension = ".beam",
 
 	test_facilities:display(
-		"File elements in the current directory (~s):~n~p",
-		[ CurrentDir, Elements ] ),
+	  "File elements in the current directory (~ts):~n~p",
+	  [ CurrentDir, Elements ] ),
 
 	% Too many outputs:
 	%test_facilities:display( "Regular BEAM files in the current directory: "
@@ -64,14 +64,14 @@ run() ->
 	test_facilities:display( "All BEAM files found recursively "
 		"from the current directory:~n~p",
 		[ file_utils:find_files_with_extension_from( CurrentDir,
-													BeamExtension ) ] ),
+													 BeamExtension ) ] ),
 
 	ExcludedDirs = [ ".svn", "non-existing-dir" ],
 
 	test_facilities:display( "All files found recursively "
 		"from the current directory, with directories ~p excluded:~n~p",
-		[ ExcludedDirs, file_utils:find_files_with_excluded_dirs(
-						CurrentDir, ExcludedDirs ) ] ),
+		[ ExcludedDirs, file_utils:find_files_with_excluded_dirs( CurrentDir,
+															ExcludedDirs ) ] ),
 
 
 	ExcludedSuffixes = [ ".erl", ".beam", "non-existing-suffix" ],
@@ -83,8 +83,8 @@ run() ->
 
 
 	test_facilities:display( "All files found recursively "
-			  "from the current directory, with directories ~p and suffixes ~p "
-			  "excluded:~n~p",
+		"from the current directory, with directories ~p and suffixes ~p "
+		"excluded:~n~p",
 		[ ExcludedDirs, ExcludedSuffixes,
 		  file_utils:find_files_with_excluded_dirs_and_suffixes(
 						CurrentDir, ExcludedDirs, ExcludedSuffixes ) ] ),
@@ -96,13 +96,13 @@ run() ->
 
 	RelativePath = "my-local-dir/a-file",
 
-	test_facilities:display( "Ensuring '~s' is absolute: ~s", [ RelativePath,
+	test_facilities:display( "Ensuring '~ts' is absolute: ~ts", [ RelativePath,
 					file_utils:ensure_path_is_absolute( RelativePath ) ] ),
 
 	BasePath ="/etc",
 
 	test_facilities:display(
-	  "Ensuring '~s' is absolute with base path '~s': '~s'",
+	  "Ensuring '~ts' is absolute with base path '~ts': '~ts'",
 	  [ RelativePath, BasePath,
 		file_utils:ensure_path_is_absolute( RelativePath, BasePath ) ] ),
 
@@ -147,28 +147,28 @@ run() ->
 
 	FirstFilename = "media/frame/1-23-2-98.oaf",
 
-	test_facilities:display( "Path '~s', once transformed into a variable name,"
-		" results in: ~s",
-		[ FirstFilename, file_utils:path_to_variable_name( FirstFilename ) ] ),
+	test_facilities:display(
+	  "Path '~ts', once transformed into a variable name, results in: ~ts",
+	  [ FirstFilename, file_utils:path_to_variable_name( FirstFilename ) ] ),
 
 
 
 	SecondFilename = "./mnt/zadok/44_12.oaf",
 
-	test_facilities:display( "Path '~s', once transformed into a variable name,"
-	  " results in: ~s",
-	  [ SecondFilename, file_utils:path_to_variable_name( SecondFilename ) ] ),
+	test_facilities:display( "Path '~ts', once transformed into a variable "
+		"name, results in: ~ts", [ SecondFilename,
+						file_utils:path_to_variable_name( SecondFilename ) ] ),
 
 
 	FirstString = "My name is Bond",
-	test_facilities:display( "String '~s', "
-		"once transformed into a file name, results in: '~s'",
+	test_facilities:display( "String '~ts', "
+		"once transformed into a file name, results in: '~ts'",
 		[ FirstString, file_utils:convert_to_filename( FirstString ) ] ),
 
 
 	SecondString = "James,  James <Bond> ('Special' \"Agent\"), Sir",
-	test_facilities:display( "String '~s', once transformed into a file name,"
-		"results in: '~s'",
+	test_facilities:display( "String '~ts', once transformed into a file name,"
+		"results in: '~ts'",
 		[ SecondString, file_utils:convert_to_filename( SecondString ) ] ),
 
 
@@ -189,10 +189,10 @@ run() ->
 	TargetExtension = ".wav",
 
 	NewFilename = file_utils:replace_extension( SourceFilename, SourceExtension,
-		TargetExtension ),
+												TargetExtension ),
 
-	test_facilities:display( "Replacing extension '~s' by '~s' in '~s' "
-		"results in: '~s'.",
+	test_facilities:display( "Replacing extension '~ts' by '~ts' in '~ts' "
+		"results in: '~ts'.",
 		[ SourceExtension, TargetExtension, SourceFilename, NewFilename ] ),
 
 
@@ -231,7 +231,7 @@ run() ->
 
 		true ->
 			test_facilities:display( "Original file and unzipped one "
-									 "(~s) match.", [ UnzippedFile ] );
+									 "(~ts) match.", [ UnzippedFile ] );
 
 		false ->
 			throw( unzipped_content_differs )
@@ -247,7 +247,7 @@ run() ->
 
 		true ->
 			test_facilities:display( "Original file and unbzip2-ed one "
-									 "(~s) match.", [ Unbzip2File ] );
+									 "(~ts) match.", [ Unbzip2File ] );
 
 		false ->
 			throw( unbzip2ed_content_differs )
@@ -262,7 +262,7 @@ run() ->
 
 		true ->
 			test_facilities:display(
-			  "Original file and unxz-ed one (~s) match.", [ UnxzFile ] );
+			  "Original file and unxz-ed one (~ts) match.", [ UnxzFile ] );
 
 		false ->
 			throw( unxz_content_differs )
@@ -271,7 +271,7 @@ run() ->
 
 	InfoPath = UnxzFile,
 
-	test_facilities:display( "Information about '~s': owner_id=~B, "
+	test_facilities:display( "Information about '~ts': owner_id=~B, "
 		"group_id=~B, permissions=~w.",
 		[ InfoPath, file_utils:get_owner_of( InfoPath ),
 		  file_utils:get_group_of( InfoPath ),
@@ -286,7 +286,7 @@ run() ->
 
 		UserName = system_utils:get_user_name_safe(),
 
-		test_facilities:display( "Unexpectedly able to open '~s' (as '~s').",
+		test_facilities:display( "Unexpectedly able to open '~ts' (as '~ts').",
 			[ TargetPath, UserName ] ),
 
 		file_utils:write( F, "I should not be able to write there." ),
@@ -307,7 +307,7 @@ run() ->
 	catch _:E ->
 
 		test_facilities:display( "Error intercepted as expected, when writing "
-								 "'~s':~n ~p.", [ TargetPath, E ] ),
+								 "'~ts':~n ~p.", [ TargetPath, E ] ),
 		true
 
 	end,

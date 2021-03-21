@@ -88,8 +88,8 @@
 
 
 % Defined in the context of a guard:
--type ast_bitstring_bin_element() :: ast_bitstring:bin_element(
-									   ast_guard_test() ).
+-type ast_bitstring_bin_element() ::
+		ast_bitstring:bin_element( ast_guard_test() ).
 
 
 
@@ -137,7 +137,7 @@ transform_guard_sequence( Guards, Transforms ) ?rec_guard ->
 % = [Rep(Gt_1), ..., Rep(Gt_k)]."
 %
 -spec transform_guard( ast_guard(), ast_transforms() ) ->
-							 { ast_guard(), ast_transforms() }.
+								{ ast_guard(), ast_transforms() }.
 transform_guard( _GuardTests=[], _Transforms ) ->
 	throw( invalid_empty_guard );
 
@@ -184,7 +184,7 @@ transform_record_field_inits( RecordFieldInits, Transforms ) ?rec_guard ->
 % Note: includes the case where FieldName is '_'.
 %
 transform_record_field_init( { 'record_field', LineField,
-		   FieldNameASTAtom={ atom, _LineAtom, _FieldName }, FieldValue },
+		FieldNameASTAtom={ atom, _LineAtom, _FieldName }, FieldValue },
 							 Transforms ) ?rec_guard ->
 
 	{ NewFieldValue, NewTransforms } =
@@ -225,8 +225,9 @@ transform_guard_test( GuardTest={ 'call', Line, FunctionASTName, GuardTests },
 	case erl_internal:type_test( FunctionName, FunctionArity ) of
 
 		true ->
-			{ NewGuardTests, NewTransforms } = direct_transform_guard_tests(
-												 GuardTests, Transforms ),
+			{ NewGuardTests, NewTransforms } =
+				direct_transform_guard_tests( GuardTests, Transforms ),
+
 			NewExpr = { 'call', Line, FunctionASTName, NewGuardTests },
 
 			{ NewExpr, NewTransforms };
@@ -235,7 +236,6 @@ transform_guard_test( GuardTest={ 'call', Line, FunctionASTName, GuardTests },
 			direct_transform_guard_test( GuardTest, Transforms )
 
 	end;
-
 
 transform_guard_test( AnyOtherGuardTest, Transforms ) ?rec_guard ->
 	direct_transform_guard_test( AnyOtherGuardTest, Transforms ).
@@ -293,7 +293,7 @@ direct_transform_guard_test( _GuardTest={ 'bin', Line, BinElements },
 % {cons,LINE,Rep(Gt_h),Rep(Gt_t)}."
 %
 direct_transform_guard_test( _GuardTest={ 'cons', Line, HeadGuardTest,
-										 TailGuardTest },
+										  TailGuardTest },
 							 Transforms ) ?rec_guard ->
 
 	%ast_utils:display_debug( "Intercepting guard test cons skeleton ~p...",
@@ -342,7 +342,7 @@ direct_transform_guard_test( _GuardTest={ 'call', LineCall,
 			{ NewExpr, NewTransforms };
 
 		false ->
-			ast_utils:raise_usage_error( "call to invalid guard ~s/~B.",
+			ast_utils:raise_usage_error( "call to invalid guard ~ts/~B.",
 				[ FunctionName, FunctionArity ],
 				Transforms#ast_transforms.transformed_module_name,
 				LineCall )
@@ -392,7 +392,7 @@ direct_transform_guard_test( _GuardTest={ 'call', LineCall,
 
 		false ->
 			ast_utils:raise_usage_error(
-				"invalid remote call to an erlang:~s/~B guard.",
+				"invalid remote call to an erlang:~ts/~B guard.",
 				[ FunctionName, FunctionArity ],
 				Transforms#ast_transforms.transformed_module_name,
 				LineRemote )
@@ -540,7 +540,7 @@ direct_transform_guard_test( GuardTest={ 'nil', _Line },
 %										 RightOperand },
 %							 Transforms ) when Operator =/= '=' ->
 direct_transform_guard_test( _GuardTest={ 'op', Line, Operator, LeftOperand,
-										 RightOperand },
+										  RightOperand },
 							 Transforms )
   when ( Operator =:= 'andalso' orelse Operator =:= 'orelse' )
 	   ?andalso_rec_guard ->

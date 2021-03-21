@@ -248,8 +248,8 @@
 % expression transformation (ex: when exiting an
 % ast_expression:transform_expression/2 clause).
 %
--type transform_formatter() :: fun( ( text_utils:format_string(),
-				  text_utils:format_values() ) -> text_utils:ustring() ).
+-type transform_formatter() :: fun( ( format_string(), format_values() ) ->
+										  ustring() ).
 
 
 
@@ -302,8 +302,8 @@
 % Note: apparently we cannot use the 'when' notation here (InputTerm ... when
 % InputTerm :: term()).
 %
--type term_transformer() :: fun( ( term(), basic_utils:user_data() ) ->
-									   { term(), basic_utils:user_data() } ).
+-type term_transformer() :: fun( ( term(), user_data() ) ->
+										{ term(), user_data() } ).
 
 
 % Designates the transformation functions that are used to transform differently
@@ -330,6 +330,12 @@
 
 
 % Shorthands:
+
+-type user_data() :: basic_utils:user_data().
+
+-type ustring() :: text_utils:ustring().
+-type format_string() :: text_utils:format_string().
+-type format_values() :: text_utils:format_values().
 
 -type type_arity() :: type_utils:type_arity().
 -type type_name() :: type_utils:type_name().
@@ -640,9 +646,9 @@ get_remote_call_repl_helper( _Replacements=[
 %
 % Returns an updated term, with these replacements made.
 %
-% Ex: the input term could be T={ a, [ "foo", { c, [ 2.0, 45 ] } ] } and the
+% Ex: the input term could be T={ a, [ "foo", {c, [2.0, 45]} ] } and the
 % function might replace, for example, floats by <<bar>>; then T'={ a, [ "foo",
-% { c, [ <<bar>>, 45 ] } ] } would be returned.
+% { c, [<<bar>>, 45] } ] } would be returned.
 %
 % Note: the transformed terms are themselves recursively transformed, to ensure
 % nesting is managed. Of course this implies that the term transform should not
@@ -654,8 +660,7 @@ get_remote_call_repl_helper( _Replacements=[
 % one, then that content will be shown as analysed twice.
 %
 -spec transform_term( term(), type_utils:primitive_type_description(),
-				 term_transformer(), basic_utils:user_data() ) ->
-						   { term(), basic_utils:user_data() }.
+				term_transformer(), user_data() ) -> { term(), user_data() }.
 
 % Here the term is a list and this is the type we want to intercept:
 transform_term( TargetTerm, _TypeDescription=list, TermTransformer, UserData )
@@ -664,7 +669,7 @@ transform_term( TargetTerm, _TypeDescription=list, TermTransformer, UserData )
 	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
 
 	transform_transformed_term( TransformedTerm, _TypeDescription=list,
-						   TermTransformer, NewUserData );
+							TermTransformer, NewUserData );
 
 
 % Here the term is a list and we are not interested in them:
@@ -744,8 +749,8 @@ transform_tuple( TargetTuple, TypeDescription, TermTransformer, UserData ) ->
 
 
 
-% Helper to traverse a transformed term (ex: if looking for a { user_id, String
-% } pair, we must recurse in nested tuples like: { 3, { user_id, "Hello" }, 1 }.
+% Helper to traverse a transformed term (ex: if looking for a {user_id, String}
+% pair, we must recurse in nested tuples like: {3, {user_id, "Hello"}, 1}.
 %
 transform_transformed_term( TargetTerm, TypeDescription, TermTransformer,
 							UserData ) ->
@@ -769,7 +774,7 @@ transform_transformed_term( TargetTerm, TypeDescription, TermTransformer,
 
 
 % Returns a textual description of specified AST transforms.
--spec ast_transforms_to_string( ast_transforms() ) -> text_utils:ustring().
+-spec ast_transforms_to_string( ast_transforms() ) -> ustring().
 ast_transforms_to_string( #ast_transforms{
 							 local_types=MaybeLocalTypeTable,
 							 remote_types=MaybeRemoteTypeTable,
@@ -788,7 +793,7 @@ ast_transforms_to_string( #ast_transforms{
 			"no transformation regarding local types";
 
 		_ ->
-			text_utils:format( "local types transformed based on ~s",
+			text_utils:format( "local types transformed based on ~ts",
 				   [ ?table:to_string( MaybeLocalTypeTable, Bullet ) ] )
 
 	end,
@@ -799,7 +804,7 @@ ast_transforms_to_string( #ast_transforms{
 			"no transformation regarding remote types";
 
 		_ ->
-			text_utils:format( "remote types transformed based on ~s",
+			text_utils:format( "remote types transformed based on ~ts",
 				   [ ?table:to_string( MaybeRemoteTypeTable, Bullet ) ] )
 
 	end,
@@ -810,7 +815,7 @@ ast_transforms_to_string( #ast_transforms{
 			"no transformation regarding local calls";
 
 		_ ->
-			text_utils:format( "local calls transformed based on ~s",
+			text_utils:format( "local calls transformed based on ~ts",
 				   [ ?table:to_string( MaybeLocalCallTable, Bullet ) ] )
 
 	end,
@@ -821,7 +826,7 @@ ast_transforms_to_string( #ast_transforms{
 			"no transformation regarding remote calls";
 
 		_ ->
-			text_utils:format( "remote calls transformed based on ~s",
+			text_utils:format( "remote calls transformed based on ~ts",
 				   [ ?table:to_string( MaybeRemoteCallTable, Bullet ) ] )
 
 	end,
@@ -832,7 +837,7 @@ ast_transforms_to_string( #ast_transforms{
 			"no target module specified";
 
 		_ ->
-			text_utils:format( "being applied to module '~s'",
+			text_utils:format( "being applied to module '~ts'",
 							   [ ModuleName ] )
 
 	end,
@@ -843,7 +848,7 @@ ast_transforms_to_string( #ast_transforms{
 			"no transformed function specified";
 
 		{ FunName, Arity } ->
-			text_utils:format( "applied to function ~s/~B",
+			text_utils:format( "applied to function ~ts/~B",
 							   [ FunName, Arity ] )
 
 	end,
@@ -867,13 +872,12 @@ ast_transforms_to_string( #ast_transforms{
 			LocalCallStr, RemoteCallStr, ModuleString, FunIdString,
 			TransfoTableStr ] ),
 
-	text_utils:format( "AST transformations: ~s", [ TableString ] ).
+	text_utils:format( "AST transformations: ~ts", [ TableString ] ).
 
 
 
 % The default transform_formatter() to be used:
--spec default_formatter( text_utils:format_string(),
-						 text_utils:format_values() ) -> text_utils:ustring().
+-spec default_formatter( format_string(), format_values() ) -> ustring().
 default_formatter( _FormatString, _FormatValue ) ->
 	%text_utils:format( "[Myriad-Transforms] " ++ FormatString, FormatValue ).
 	ok.

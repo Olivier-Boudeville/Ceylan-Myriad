@@ -26,6 +26,7 @@
 % Creation date: Friday, November 1, 2013.
 
 
+
 % Gathering of various very low-level trace-related facilities on the console.
 % These are runtime logs; they are not related to the Erlang tracing subsystem.
 %
@@ -210,10 +211,10 @@ debug_fmt( Format, Values ) ->
 -spec debug_categorized( trace_message(), trace_message_categorization() ) ->
 							void().
 debug_categorized( Message, _MessageCategorization=uncategorized ) ->
-	actual_display( "[debug] ~s", [ Message ] );
+	actual_display( "[debug] ~ts", [ Message ] );
 
 debug_categorized( Message, MessageCategorization ) ->
-	actual_display( "[debug][~s] ~s", [ MessageCategorization, Message ] ).
+	actual_display( "[debug][~ts] ~ts", [ MessageCategorization, Message ] ).
 
 
 % Outputs specified debug message, with specified message categorization and
@@ -223,10 +224,10 @@ debug_categorized( Message, MessageCategorization ) ->
 							   trace_timestamp() ) -> void().
 debug_categorized_timed( Message, _MessageCategorization=uncategorized,
 						 Timestamp ) ->
-	actual_display( "[debug][at ~s] ~s", [ Timestamp, Message ] );
+	actual_display( "[debug][at ~ts] ~ts", [ Timestamp, Message ] );
 
 debug_categorized_timed( Message, MessageCategorization, Timestamp ) ->
-	actual_display( "[debug][~s][at ~s] ~s",
+	actual_display( "[debug][~ts][at ~ts] ~ts",
 					[ MessageCategorization, Timestamp, Message ] ).
 
 
@@ -247,10 +248,10 @@ info_fmt( Format, Values ) ->
 -spec info_categorized( trace_message(), trace_message_categorization() ) ->
 							void().
 info_categorized( Message, _MessageCategorization=uncategorized ) ->
-	actual_display( "[info] ~s", [ Message ] );
+	actual_display( "[info] ~ts", [ Message ] );
 
 info_categorized( Message, MessageCategorization ) ->
-	actual_display( "[info][~s] ~s", [ MessageCategorization, Message ] ).
+	actual_display( "[info][~ts] ~ts", [ MessageCategorization, Message ] ).
 
 
 % Outputs specified info message, with specified message categorization and
@@ -260,10 +261,10 @@ info_categorized( Message, MessageCategorization ) ->
 							  trace_timestamp() ) -> void().
 info_categorized_timed( Message, _MessageCategorization=uncategorized,
 						 Timestamp ) ->
-	actual_display( "[info][at ~s] ~s", [ Timestamp, Message ] );
+	actual_display( "[info][at ~ts] ~ts", [ Timestamp, Message ] );
 
 info_categorized_timed( Message, MessageCategorization, Timestamp ) ->
-	actual_display( "[info][~s][at ~s] ~s",
+	actual_display( "[info][~ts][at ~ts] ~ts",
 					[ MessageCategorization, Timestamp, Message ] ).
 
 
@@ -284,10 +285,10 @@ notice_fmt( Format, Values ) ->
 -spec notice_categorized( trace_message(), trace_message_categorization() ) ->
 							void().
 notice_categorized( Message, _MessageCategorization=uncategorized ) ->
-	actual_display( "[notice] ~s", [ Message ] );
+	actual_display( "[notice] ~ts", [ Message ] );
 
 notice_categorized( Message, MessageCategorization ) ->
-	actual_display( "[notice][~s] ~s", [ MessageCategorization, Message ] ).
+	actual_display( "[notice][~ts] ~ts", [ MessageCategorization, Message ] ).
 
 
 % Outputs specified notice message, with specified message categorization and
@@ -297,10 +298,10 @@ notice_categorized( Message, MessageCategorization ) ->
 								trace_timestamp() ) -> void().
 notice_categorized_timed( Message, _MessageCategorization=uncategorized,
 						Timestamp ) ->
-	actual_display( "[notice][at ~s] ~s", [ Timestamp, Message ] );
+	actual_display( "[notice][at ~ts] ~ts", [ Timestamp, Message ] );
 
 notice_categorized_timed( Message, MessageCategorization, Timestamp ) ->
-	actual_display( "[notice][~s][at ~s] ~s",
+	actual_display( "[notice][~ts][at ~ts] ~ts",
 					[ MessageCategorization, Timestamp, Message ] ).
 
 
@@ -323,10 +324,10 @@ warning_fmt( Format, Values ) ->
 -spec warning_categorized( trace_message(), trace_message_categorization() ) ->
 								void().
 warning_categorized( Message, _MessageCategorization=uncategorized ) ->
-	severe_display( "[warning] ~s", [ Message ] );
+	severe_display( "[warning] ~ts", [ Message ] );
 
 warning_categorized( Message, MessageCategorization ) ->
-	severe_display( "[warning][~s] ~s", [ MessageCategorization, Message ] ).
+	severe_display( "[warning][~ts] ~ts", [ MessageCategorization, Message ] ).
 
 
 % Outputs specified warning message, with specified message categorization and
@@ -336,10 +337,10 @@ warning_categorized( Message, MessageCategorization ) ->
 		trace_message_categorization(), trace_timestamp() ) -> void().
 warning_categorized_timed( Message, _MessageCategorization=uncategorized,
 						   Timestamp ) ->
-	severe_display( "[warning][at ~s] ~s", [ Timestamp, Message ] );
+	severe_display( "[warning][at ~ts] ~ts", [ Timestamp, Message ] );
 
 warning_categorized_timed( Message, MessageCategorization, Timestamp ) ->
-	severe_display( "[warning][~s][at ~s] ~s",
+	severe_display( "[warning][~ts][at ~ts] ~ts",
 					[ MessageCategorization, Timestamp, Message ] ).
 
 
@@ -362,10 +363,10 @@ error_fmt( Format, Values ) ->
 -spec error_categorized( trace_message(), trace_message_categorization() ) ->
 							void().
 error_categorized( Message, _MessageCategorization=uncategorized ) ->
-	severe_display( "[error] ~s", [ Message ] );
+	severe_display( "[error] ~ts", [ Message ] );
 
 error_categorized( Message, MessageCategorization ) ->
-	severe_display( "[error][~s] ~s", [ MessageCategorization, Message ] ).
+	severe_display( "[error][~ts] ~ts", [ MessageCategorization, Message ] ).
 
 
 % Outputs specified error message, with specified message categorization and
@@ -375,10 +376,10 @@ error_categorized( Message, MessageCategorization ) ->
 							   trace_timestamp() ) -> void().
 error_categorized_timed( Message, _MessageCategorization=uncategorized,
 						 Timestamp ) ->
-	severe_display( "[error][at ~s] ~s", [ Timestamp, Message ] );
+	severe_display( "[error][at ~ts] ~ts", [ Timestamp, Message ] );
 
 error_categorized_timed( Message, MessageCategorization, Timestamp ) ->
-	severe_display( "[error][~s][at ~s] ~s",
+	severe_display( "[error][~ts][at ~ts] ~ts",
 					[ MessageCategorization, Timestamp, Message ] ).
 
 
@@ -401,10 +402,10 @@ critical_fmt( Format, Values ) ->
 -spec critical_categorized( trace_message(), trace_message_categorization() ) ->
 							void().
 critical_categorized( Message, _MessageCategorization=uncategorized ) ->
-	severe_display( "[critical] ~s", [ Message ] );
+	severe_display( "[critical] ~ts", [ Message ] );
 
 critical_categorized( Message, MessageCategorization ) ->
-	severe_display( "[critical][~s] ~s", [ MessageCategorization, Message ] ).
+	severe_display( "[critical][~ts] ~ts", [ MessageCategorization, Message ] ).
 
 
 % Outputs specified critical message, with specified message categorization and
@@ -414,10 +415,10 @@ critical_categorized( Message, MessageCategorization ) ->
 		trace_message_categorization(), trace_timestamp() ) -> void().
 critical_categorized_timed( Message, _MessageCategorization=uncategorized,
 						 Timestamp ) ->
-	severe_display( "[critical][at ~s] ~s", [ Timestamp, Message ] );
+	severe_display( "[critical][at ~ts] ~ts", [ Timestamp, Message ] );
 
 critical_categorized_timed( Message, MessageCategorization, Timestamp ) ->
-	severe_display( "[critical][~s][at ~s] ~s",
+	severe_display( "[critical][~ts][at ~ts] ~ts",
 					[ MessageCategorization, Timestamp, Message ] ).
 
 
@@ -440,10 +441,10 @@ alert_fmt( Format, Values ) ->
 -spec alert_categorized( trace_message(), trace_message_categorization() ) ->
 							void().
 alert_categorized( Message, _MessageCategorization=uncategorized ) ->
-	severe_display( "[alert] ~s", [ Message ] );
+	severe_display( "[alert] ~ts", [ Message ] );
 
 alert_categorized( Message, MessageCategorization ) ->
-	severe_display( "[alert][~s] ~s", [ MessageCategorization, Message ] ).
+	severe_display( "[alert][~ts] ~ts", [ MessageCategorization, Message ] ).
 
 
 % Outputs specified alert message, with specified message categorization and
@@ -453,10 +454,10 @@ alert_categorized( Message, MessageCategorization ) ->
 							   trace_timestamp() ) -> void().
 alert_categorized_timed( Message, _MessageCategorization=uncategorized,
 						 Timestamp ) ->
-	severe_display( "[alert][at ~s] ~s", [ Timestamp, Message ] );
+	severe_display( "[alert][at ~ts] ~ts", [ Timestamp, Message ] );
 
 alert_categorized_timed( Message, MessageCategorization, Timestamp ) ->
-	severe_display( "[alert][~s][at ~s] ~s",
+	severe_display( "[alert][~ts][at ~ts] ~ts",
 					[ MessageCategorization, Timestamp, Message ] ).
 
 
@@ -479,10 +480,11 @@ emergency_fmt( Format, Values ) ->
 -spec emergency_categorized( trace_message(),
 							 trace_message_categorization() ) -> void().
 emergency_categorized( Message, _MessageCategorization=uncategorized ) ->
-	severe_display( "[emergency] ~s", [ Message ] );
+	severe_display( "[emergency] ~ts", [ Message ] );
 
 emergency_categorized( Message, MessageCategorization ) ->
-	severe_display( "[emergency][~s] ~s", [ MessageCategorization, Message ] ).
+	severe_display( "[emergency][~ts] ~ts",
+					[ MessageCategorization, Message ] ).
 
 
 % Outputs specified emergency message, with specified message categorization and
@@ -492,10 +494,10 @@ emergency_categorized( Message, MessageCategorization ) ->
 			   trace_message_categorization(), trace_timestamp() ) -> void().
 emergency_categorized_timed( Message, _MessageCategorization=uncategorized,
 							 Timestamp ) ->
-	severe_display( "[emergency][at ~s] ~s", [ Timestamp, Message ] );
+	severe_display( "[emergency][at ~ts] ~ts", [ Timestamp, Message ] );
 
 emergency_categorized_timed( Message, MessageCategorization, Timestamp ) ->
-	severe_display( "[emergency][~s][at ~s] ~s",
+	severe_display( "[emergency][~ts][at ~ts] ~ts",
 					[ MessageCategorization, Timestamp, Message ] ).
 
 
@@ -636,8 +638,10 @@ echo( TraceMessage, _TraceSeverity=warning, MessageCategorization,
 echo( TraceMessage, _TraceSeverity=error, MessageCategorization, Timestamp ) ->
 	error_categorized_timed( TraceMessage, MessageCategorization, Timestamp );
 
-echo( TraceMessage, _TraceSeverity=critical, MessageCategorization, Timestamp ) ->
-	critical_categorized_timed( TraceMessage, MessageCategorization, Timestamp );
+echo( TraceMessage, _TraceSeverity=critical, MessageCategorization,
+	  Timestamp ) ->
+	critical_categorized_timed( TraceMessage, MessageCategorization,
+								Timestamp );
 
 echo( TraceMessage, _TraceSeverity=alert, MessageCategorization, Timestamp ) ->
 	alert_categorized_timed( TraceMessage, MessageCategorization, Timestamp );
@@ -848,7 +852,7 @@ log( _LogEvent=#{ level := Level,
 
 
 	%io:format( "### Logging following event:~n ~p~n(with config: ~p)~n "
-	%  "resulting in: '~s' (severity: ~p).",
+	%  "resulting in: '~ts' (severity: ~p).",
 	%  [ LogEvent, Config, TraceMsg, Severity ] ),
 
 	% No the standard level corresponds directly to our severity:
@@ -909,7 +913,7 @@ actual_display( Message ) ->
 	%basic_utils:display_timed( Message, _TimeOut=30000 ).
 
 	% If wanting a faster, less safe version:
-	io:format( "~s~n", [ Message ] ).
+	io:format( "~ts~n", [ Message ] ).
 
 
 
