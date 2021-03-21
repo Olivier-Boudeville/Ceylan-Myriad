@@ -599,7 +599,6 @@ strings_to_string( _ListOfStrings=[], Acc, _Bullet ) ->
 % We do not want an extra newline at the end:
 strings_to_string( _ListOfStrings=[ LastString ], Acc, Bullet )
   when is_list( LastString ) orelse is_binary( LastString ) ->
-	io:format( "- examining '~ts'", [ LastString ] ),
 	%Pattern = "~ts~n",
 	% Added back, as makes sense?
 	% Nope:
