@@ -894,12 +894,17 @@ is_batch() ->
 
 % Helper functions.
 
--spec execute_dot( file_name(), file_name() ) -> command_output().
-execute_dot( PNGFilename, GraphFilename ) ->
+
+% Runs 'dot'.
+%
+% If lacking, install the package named 'graphviz' in most distributions.
+%
+-spec execute_dot( file_path(), file_path() ) -> command_output().
+execute_dot( PNGFilePath, GraphFilePath ) ->
 
 	DotExec = find_executable( "dot" ),
 
-	Cmd = DotExec ++ " -o" ++ PNGFilename ++ " -Tpng " ++ GraphFilename,
+	Cmd = DotExec ++ " -o" ++ PNGFilePath ++ " -Tpng " ++ GraphFilePath,
 
 	% Dot might issue non-serious warnings:
 	case system_utils:run_executable( Cmd ) of
@@ -908,7 +913,7 @@ execute_dot( PNGFilename, GraphFilename ) ->
 			Output;
 
 		{ ExitCode, ErrorOutput } ->
-			throw( { rendering_failed, GraphFilename, PNGFilename, ExitCode,
+			throw( { rendering_failed, GraphFilePath, PNGFilePath, ExitCode,
 					 ErrorOutput } )
 
 	end.
