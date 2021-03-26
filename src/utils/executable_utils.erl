@@ -131,7 +131,6 @@
 -type ustring() :: text_utils:ustring().
 -type width() :: text_utils:width().
 
--type file_name() :: file_utils:file_name().
 -type file_path() :: file_utils:file_path().
 -type executable_name() :: ustring().
 -type executable_path() :: file_utils:executable_path().
