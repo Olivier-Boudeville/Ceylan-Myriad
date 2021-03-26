@@ -18,7 +18,7 @@ LANG=C; export LANG
 # Now we keep the MD5 sums of the sources of former Erlang/OTP versions, in
 # order to be able to switch back and forth more easily:
 
-erlang_md5_for_23_3="df34eaf1182faf4a8751a17e76fecc33"
+erlang_md5_for_23_3="d6660705f01afbe3466c0a5de21ab361"
 erlang_md5_for_23_2="e315f59eb9e420a0e469c09649f4303f"
 erlang_md5_for_23_1="3dba61234519884664e032616a61353d"
 erlang_md5_for_23_0="ab781ffd75cf4ae3ddb4ed6dc3cc31b8"
@@ -316,6 +316,32 @@ Use for instance 'apt-get install libncurses5-dev' (other packages should prefer
 fi
 
 
+# Necessary for crypto, generally wanted:
+check_ssl=0
+
+if [ $check_ssl -eq 0 ]; then
+
+	ssl_header="/usr/include/openssl/ssl.h"
+
+	if [ ! -f "${ssl_header}" ]; then
+
+		echo "Warning: no SSL header found (no '${ssl_header}'). Continue the build nevertheless? (y/n) [n]" 1>&2
+
+		read res
+
+		if [ ! "$res" = "y" ]; then
+
+			echo "  Build stopped. Consider installing the SSL headers (typically a 'libssl-dev' package)." 1>&2
+
+			exit 15
+
+		fi
+
+	fi
+
+fi
+
+
 if [ $do_patch -eq 0 ]; then
 
 	patch_tool=$(which patch)
@@ -370,7 +396,6 @@ if [ $do_download -eq 0 ]; then
 	if [ $src_available -eq 1 ]; then
 
 		erlang_target_src_url="${erlang_download_location}/${erlang_src_archive}"
-
 
 		echo "Downloading now ${erlang_target_src_url}"
 		set_wget
