@@ -462,12 +462,12 @@ escape_as_html_content( BinString ) when is_binary( BinString ) ->
 
 escape_as_html_content( String ) ->
 	% Flatten needed if having an IO list as input:
-	escape_as_html_content( unicode:characters_to_list( String ), _Acc=[] ).
+	escape_as_html_content( text_utils:to_unicode_list( String ), _Acc=[] ).
 
 
 % (helper)
 escape_as_html_content( _String=[], Acc ) ->
-	lists:reverse( unicode:characters_to_list( Acc ) );
+	lists:reverse( text_utils:to_unicode_list( Acc ) );
 
 % Replacements are pre-reversed:
 escape_as_html_content( _String=[ $& | T ], Acc ) ->
