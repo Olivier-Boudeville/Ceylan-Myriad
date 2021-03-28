@@ -289,7 +289,7 @@ run() ->
 		test_facilities:display( "Unexpectedly able to open '~ts' (as '~ts').",
 			[ TargetPath, UserName ] ),
 
-		file_utils:write( F, "I should not be able to write there." ),
+		file_utils:write_ustring( F, "I should not be able to write there." ),
 
 		file_utils:close( F ),
 

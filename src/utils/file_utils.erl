@@ -42,7 +42,7 @@
 
 
 % Filename-related operations.
--export([ join/1, join/2,
+-export([ join/1, join/2, bin_join/2,
 
 		  get_base_path/1, get_last_path_element/1,
 
@@ -170,7 +170,7 @@
 
 
 % Designates a path to a file (including its filename); ex:
-% "../my_dir/other/foobar.txt").
+% "../my_dir/other/foobar.txt".
 %
 -type file_path() :: path().
 
@@ -225,6 +225,8 @@
 % An extension in a filename (ex: "baz", in "foobar.baz.json"):
 -type extension() :: ustring().
 
+% The suffix (final part) in a file element:
+-type suffix() :: ustring().
 
 % A part of a path (ex: "local" in "/usr/local/share"):
 -type path_element() :: text_utils:ustring().
@@ -292,6 +294,32 @@
 -type permission_mask() :: non_neg_integer().
 
 
+% Action to be trigger whenever a file element has not a proper Unicode
+% filename:
+%
+% (refer to
+%https://erlang.org/doc/apps/stdlib/unicode_usage.html#notes-about-raw-filenames
+% for further information)
+%
+-type improper_encoding_action() ::
+
+		'throw'    % Throw an exception as soon as a raw filename is found
+
+	  | 'warn'     % Emit a warning trace if a raw filename is found, and do
+				   % not consider the corresponding file element
+
+	  | 'ignore'   % Ignore as a whole such a file element (do not even emit
+				   % a trace)
+
+	  | 'include'. % Return such raw filenames (thus as binaries) among the
+				   % other ones (which are plain strings)
+
+% We previously considered also (was not satisfactory, as introducing a
+% different return type):
+%	  | 'list'.    % List separately (as a returned pair) the raw filenames
+%                  % (regardless of their actual filesystem-level type)
+
+
 -export_type([ path/0, bin_path/0, any_path/0,
 			   file_name/0, filename/0, file_path/0,
 			   bin_file_name/0, bin_file_path/0,
@@ -301,11 +329,11 @@
 			   script_path/0, bin_script_path/0,
 			   directory_name/0, bin_directory_name/0,
 			   directory_path/0, bin_directory_path/0,
-			   extension/0,
+			   extension/0, suffix/0,
 			   path_element/0, bin_path_element/0, any_path_element/0,
 			   leaf_name/0,
 			   entry_type/0, parent_creation/0,
-			   permission/0, permission_mask/0,
+			   permission/0, permission_mask/0, improper_encoding_action/0,
 			   compression_format/0,
 			   file/0, file_info/0 ]).
 
@@ -333,11 +361,13 @@
 % then sufficed); so the 'encoding' options, at least for writing, may not be
 % that convenient
 %
-% - the content itself may have to be encoded before writing; for example,
+% - so the content itself may have to be encoded before writing; for example,
 % writing "éèôù" (interpreted to be latin1 or alike) in a file opened as utf8
-% will result in a garbled content, unless it has been converted beforehand, for
-% example thanks to unicode:characters_to_{list,binary}/*
+% will result in a garbled content, unless it has been converted beforehand,
+% typically thanks to our to_unicode_{list,binary}/{1,2}
 %
+% - some file elements may be improperly named regarding Unicode encoding; this is a problem for list_dir_elements/1
+
 % - the way the VM is started matters; see the comment about the "-noinput"
 % option, in open/{2,3}; one may use the following to check the current settings
 % of the VM:
@@ -402,20 +432,20 @@ join( NonList ) ->
 
 
 
-% Joins the two specified path elements.
+% Joins the two specified path elements, returns a corresponding plain string.
 %
 % This function has been added back to this module; filename:join(Name1, Name2)
 % could be used instead (at least to some extent); however filename:join("",
 % "my_dir") results in "/my_dir", whereas often we would want "my_dir" - which
-% is returned by our function; moreover filename:join(SomePath, AbsPath=[
+% is returned by our function ; moreover filename:join(SomePath, AbsPath=[
 % ?directory_separator | _ ]) returns AbsPath, dropping SomePath for some reason
 % (which does not seem desirable); here we throw an exception instead.
 %
 % So we deem our version simpler and less prone to surprise (least
 % astonishment).
 %
-% Plain and binary strings can be freely used as arguments, and returns a plain
-% string in all cases.
+% Plain and binary strings can be freely used as arguments; a plain string is
+% returned in all cases.
 %
 % See filename:split/1 for the reverse operation.
 %
@@ -441,7 +471,7 @@ join( FirstPath, SecondPath ) when is_binary( SecondPath ) ->
 
 % Both are strings from this point:
 join( FirstPath, _SecondPath="" ) ->
-	% We do not want to add a trailing separator (ex: "/home/lisa", not
+	% We do not want to add a trailing separator (ex: we want "/home/lisa", not
 	% "/home/lisa/"):
 	%
 	FirstPath;
@@ -464,6 +494,27 @@ join( FirstPath, SecondPath ) ->
 					[ FirstPath, ?directory_separator, SecondPath ] )
 
 	end.
+
+
+
+% Joins the two specified path elements, returns a corresponding binary string.
+%
+% Introduced to support the case where at least one argument is an
+% improperly-encoded Unicode binary path: any operation implying a conversion to
+% string of it will fail, so the operation must take place exclusively among
+% binaries.
+%
+-spec bin_join( any_path(), any_path() ) -> bin_path().
+bin_join( FirstPath, SecondPath ) when is_binary( FirstPath )
+									   orelse is_binary( SecondPath ) ->
+	% As soon as at least one argument of filename:join/2 is a binary, returns a
+	% binary, which is what we want:
+	%
+	filename:join( FirstPath, SecondPath );
+
+% Here both are expected to be plain strings, cannot be a problem:
+bin_join( FirstPath, SecondPath ) ->
+	filename:join( text_utils:to_unicode_binary( FirstPath ), SecondPath ).
 
 
 
@@ -998,7 +1049,6 @@ is_user_writable( EntryPath ) ->
 %
 -spec is_user_executable( any_path() ) -> boolean().
 is_user_executable( EntryPath ) ->
-
 	% WARNING: not properly implemented yet.
 	is_owner_executable( EntryPath ).
 
@@ -1067,39 +1117,82 @@ is_existing_directory_or_link( EntryName ) ->
 
 % Returns a tuple containing five lists corresponding to the per-type
 % dispatching of all filesystem elements local to specified directory (hence not
-% recursively traversed), namely:
-% {RegularFiles, Symlinks, Directories, OtherFiles, Devices}.
+% recursively traversed), namely: {RegularFiles, Symlinks, Directories,
+% OtherFiles, Devices}.
 %
-% Note that symbolic links may or may not be dead.
+% If a raw filename is found (i.e. a file element whose name is not properly
+% Unicode-encoded), a warning trace is emitted and the corresponding file
+% elemen
+%
+% Note that:
+% - symbolic links may or may not be dead
+% - only plain strings are returned (any raw filename found will trigger a
+% warning trace and then will be ignored)
 %
 -spec list_dir_elements( directory_name() ) ->
 			{ [ file_name() ], [ file_name() ], [ directory_name() ],
 			  [ file_name() ], [ file_name() ] }.
-list_dir_elements( Dirname ) ->
+list_dir_elements( DirName ) ->
+	list_dir_elements( DirName, _ImproperEncodingAction=warn ).
 
-	%trace_utils:debug_fmt( "list_dir_elements for '~ts'.", [ Dirname ] ),
+
+
+% Returns a tuple containing five lists corresponding to the per-type
+% dispatching of all filesystem elements local to specified directory (hence not
+% recursively traversed), namely: {RegularFiles, Symlinks, Directories,
+% OtherFiles, Devices}.
+%
+% If a raw filename is found (i.e. a file element whose name is not properly
+% Unicode-encoded), ImproperEncodingAction will determine how it will be
+% handled.
+%
+% Note that:
+% - symbolic links may or may not be dead
+% - generally the returned elements are strings, yet, if ImproperEncodingAction
+% is 'include', binaries may also returned, should raw ("incorrectly-encoded")
+% filenames be found (they are then returned verbatim, short of being able to
+% stringify them)
+%
+-spec list_dir_elements( directory_name(), improper_encoding_action() ) ->
+		{ [ any_file_name() ], [ any_file_name() ], [ any_directory_name() ],
+		  [ any_file_name() ], [ any_file_name() ] }.
+list_dir_elements( DirName, ImproperEncodingAction ) ->
+
+	%trace_utils:debug_fmt( "list_dir_elements for '~ts'.", [ DirName ] ),
 
 	% Previously file:list_dir_all/1 was tested in order to collect raw
 	% filenames as well (hoping to avoid warning reports such as "Non-unicode
 	% filename <<"XXX">> ignored"), yet the returned names were mangled, leading
-	% to enoent whenever trying to open them (refer to
-	% http://erlang.org/doc/apps/stdlib/unicode_usage.html#notes-about-raw-filenames):
+	% to enoent whenever trying to open them :
 
-	LocalDirElements = case file:list_dir( Dirname ) of
+	% Sometimes filenames are "wrongly encoded" (ex: 'foo'$'\200\246''bar'); if
+	% using file:list_dir/1 instead of file:list_dir_all/1, warnings are
+	% then issued (only on the console) like:
+	%
+	% =WARNING REPORT==== 25-Mar-2021::22:41:11.577989 ===
+	% Non-unicode filename <<XXX>> ignored
+	%
+	% Now such elements are listed as binaries (refer to the implementation
+	% notes at top, for further detail)
+
+	LocalDirElements = case file:list_dir_all( DirName ) of
 
 		{ ok, LElems } ->
 			LElems;
 
 		{ error, enoent } ->
-			throw( { directory_not_found, Dirname } );
+			throw( { directory_not_found, DirName } );
 
 		{ error, Other } ->
-			throw( { Other, Dirname } )
+			throw( { Other, DirName } )
 
 	end,
 
-	classify_dir_elements( Dirname, LocalDirElements, _Devices=[],
-			_Directories=[], _Files=[], _Symlinks=[], _OtherFiles=[] ).
+	trace_utils:debug_fmt( "LocalDirElements: ~p", [ LocalDirElements ] ),
+
+	classify_dir_elements( DirName, LocalDirElements, _Devices=[],
+		_Directories=[], _Files=[], _Symlinks=[], _OtherFiles=[],
+		ImproperEncodingAction ).
 
 
 
@@ -1290,43 +1383,94 @@ get_first_existing_dir( _DirPaths=[ Dir | T ], Acc ) ->
 %
 % Returns a tuple containing five lists corresponding to the sorting of all
 % filesystem elements, namely {RegularFiles, Symlinks, Directories, OtherFiles,
-% Devices}.
+% Devices}, depending on ImproperEncodingAction.
 %
-% Note that Files include symbolic links (dead or not).
-%
-classify_dir_elements( _Dirname, _Elements=[], Devices, Directories, Files,
-					   Symlinks, OtherFiles ) ->
+classify_dir_elements( _DirName, _Elements=[], Devices, Directories, Files,
+					   Symlinks, OtherFiles, _ImproperEncodingAction ) ->
 	% Note the reordering:
 	{ Files, Symlinks, Directories, OtherFiles, Devices };
 
-classify_dir_elements( Dirname, _Elements=[ H | T ], Devices, Directories,
-					   Files, Symlinks, OtherFiles ) ->
+classify_dir_elements( DirName, _Elements=[ Str | T ], Devices, Directories,
+					   Files, Symlinks, OtherFiles, ImproperEncodingAction )
+						   when is_list( Str ) ->
 
-	 case get_type_of( filename:join( Dirname, H ) ) of
+	case get_type_of( filename:join( DirName, Str ) ) of
 
 		device ->
-			classify_dir_elements( Dirname, T, [ H | Devices ], Directories,
-								   Files, Symlinks, OtherFiles );
+			classify_dir_elements( DirName, T, [ Str | Devices ], Directories,
+				Files, Symlinks, OtherFiles, ImproperEncodingAction );
 
 		directory ->
-			classify_dir_elements( Dirname, T, Devices, [ H | Directories ],
-								   Files, Symlinks, OtherFiles );
+			classify_dir_elements( DirName, T, Devices, [ Str | Directories ],
+				Files, Symlinks, OtherFiles, ImproperEncodingAction );
 
 		regular ->
-			classify_dir_elements( Dirname, T, Devices, Directories,
-								   [ H | Files ], Symlinks, OtherFiles );
+			classify_dir_elements( DirName, T, Devices, Directories,
+				[ Str | Files ], Symlinks, OtherFiles, ImproperEncodingAction );
 
 		% Used to be managed as regular files:
 		symlink ->
-			classify_dir_elements( Dirname, T, Devices, Directories, Files,
-								   [ H | Symlinks ], OtherFiles );
+			classify_dir_elements( DirName, T, Devices, Directories, Files,
+				[ Str | Symlinks ], OtherFiles, ImproperEncodingAction );
 
 		other ->
-			classify_dir_elements( Dirname, T, Devices, Directories,
-								   Files, Symlinks, [ H | OtherFiles ] )
+			classify_dir_elements( DirName, T, Devices, Directories,
+				Files, Symlinks, [ Str | OtherFiles ], ImproperEncodingAction )
+
+	end;
+
+% Implicit: when is_binary( Bin ) ->
+classify_dir_elements( DirName, _Elements=[ Bin | _T ], _Devices, _Directories,
+		_Files, _Symlinks, _OtherFiles, _ImproperEncodingAction=throw ) ->
+	throw( { improperly_encoded_file_element, Bin, DirName } );
+
+
+classify_dir_elements( DirName, _Elements=[ Bin | T ], Devices, Directories,
+		Files, Symlinks, OtherFiles, ImproperEncodingAction=warn ) ->
+
+	trace_bridge:warning_fmt( "Ignoring improperly-encoded "
+		"file element found in directory '~s': '~s'.", [ DirName, Bin ] ),
+
+	% Then ignore:
+	classify_dir_elements( DirName, T, Devices, Directories, Files, Symlinks,
+						   OtherFiles, ImproperEncodingAction );
+
+
+classify_dir_elements( DirName, _Elements=[ _Bin | T ], Devices, Directories,
+		Files, Symlinks, OtherFiles, ImproperEncodingAction=ignore ) ->
+	classify_dir_elements( DirName, T, Devices, Directories, Files, Symlinks,
+						   OtherFiles, ImproperEncodingAction );
+
+
+classify_dir_elements( DirName, _Elements=[ Bin | T ], Devices, Directories,
+		Files, Symlinks, OtherFiles, ImproperEncodingAction=include ) ->
+	% We cannot re-use the clause for plain string (Bin cannot be converted), we
+	% have to remain in the world of binaries instead, so:
+	%
+	case get_type_of( filename:join( DirName, Bin ) ) of
+
+		device ->
+			classify_dir_elements( DirName, T, [ Bin | Devices ], Directories,
+				Files, Symlinks, OtherFiles, ImproperEncodingAction );
+
+		directory ->
+			classify_dir_elements( DirName, T, Devices, [ Bin | Directories ],
+				Files, Symlinks, OtherFiles, ImproperEncodingAction );
+
+		regular ->
+			classify_dir_elements( DirName, T, Devices, Directories,
+				[ Bin | Files ], Symlinks, OtherFiles, ImproperEncodingAction );
+
+		% Used to be managed as regular files:
+		symlink ->
+			classify_dir_elements( DirName, T, Devices, Directories, Files,
+				[ Bin | Symlinks ], OtherFiles, ImproperEncodingAction );
+
+		other ->
+			classify_dir_elements( DirName, T, Devices, Directories,
+				Files, Symlinks, [ Bin | OtherFiles ], ImproperEncodingAction )
 
 	end.
-
 
 
 
@@ -1337,7 +1481,7 @@ classify_dir_elements( Dirname, _Elements=[ H | T ], Devices, Directories,
 % Returns a list containing all elements of the Filenames list whose extension
 % is the specified one (ex: ".dat").
 %
--spec filter_by_extension( [ file_name() ], extension() ) -> [ file_name() ].
+-spec filter_by_extension( [ file_path() ], extension() ) -> [ file_path() ].
 filter_by_extension( Filenames, Extension ) ->
 	filter_by_extension( Filenames, Extension, _Acc=[] ).
 
@@ -1362,8 +1506,8 @@ filter_by_extension( _Filenames=[ H | T ], Extension, Acc ) ->
 % Returns a list containing all elements of Filenames list whose extension
 % corresponds to one of the specified extensions (ex: [".dat", ".png"]).
 %
--spec filter_by_extensions( [ file_name() ], [ extension() ] ) ->
-									[ file_name() ].
+-spec filter_by_extensions( [ file_path() ], [ extension() ] ) ->
+								  [ file_path() ].
 filter_by_extensions( Filenames, Extensions ) ->
 	filter_by_extensions( Filenames, Extensions, _Acc=[] ).
 
@@ -1385,27 +1529,27 @@ filter_by_extensions( _Filenames=[ F | T ], Extensions, Acc ) ->
 
 
 
-% Returns a list containing all elements of the Filenames list which match any
-% of the specified suffixes.
+% Returns a list containing all elements of the Filenames list that match any of
+% the specified suffixes.
 %
--spec filter_by_included_suffixes( [ file_name() ], [ ustring() ] ) ->
-											[ file_name() ].
+-spec filter_by_included_suffixes( [ file_path() ], [ suffix() ] ) ->
+											[ file_path() ].
 filter_by_included_suffixes( Filenames, IncludedSuffixes ) ->
 	[ F || F <- Filenames, has_matching_suffix( F, IncludedSuffixes ) ].
 
 
-% Returns a list containing all elements of the Filenames list which do not
+% Returns a list containing all elements of the Filenames list that do not
 % match any of the specified suffixes.
 %
--spec filter_by_excluded_suffixes( [ file_name() ], [ ustring() ] ) ->
-											[ file_name() ].
+-spec filter_by_excluded_suffixes( [ file_path() ], [ suffix() ] ) ->
+											[ file_path() ].
 filter_by_excluded_suffixes( Filenames, ExcludedSuffixes ) ->
 	[ F || F <- Filenames, not has_matching_suffix( F, ExcludedSuffixes ) ].
 
 
 
 % (helper)
--spec has_matching_suffix( file_name(), [ ustring() ] ) -> boolean().
+-spec has_matching_suffix( file_name(), [ suffix() ] ) -> boolean().
 has_matching_suffix( _Filename, _ExcludedSuffixes=[] ) ->
 	false;
 
@@ -1444,62 +1588,89 @@ has_matching_suffix( Filename, [ S | OtherS ] ) ->
 
 
 
-% Returns the list of all files (regular ones and symlinks) found from the root,
+% Returns a list of all files (regular ones and symlinks) found from the root,
 % in the whole subtree (i.e. recursively).
 %
-% All extensions and suffixes accepted, no excluded directories.
+% All extensions and suffixes accepted, no excluded directories. Elements whose
+% name is improperly encoded are notified thanks to a warning trace, and then
+% are ignored.
 %
 % All returned pathnames are relative to this root.
 % Ex: ["./a.txt", "./tmp/b.txt"].
 %
--spec find_files_from( any_directory_name() ) -> [ file_name() ].
+-spec find_files_from( any_directory_path() ) -> [ file_path() ].
 find_files_from( RootDir ) ->
-	Res = find_files_from( RootDir, _CurrentRelativeDir="",
-						   _IncludeSymlinks=true, _Acc=[] ),
-	%trace_utils:debug_fmt( "Files found from '~ts':~n~p", [ RootDir, Res ] ),
+	Res = find_files_from( RootDir, _IncludeSymlinks=true ),
+	%trace_utils:debug_fmt( "All files found from '~ts':~n~p",
+	%                       [ RootDir, Res ] ),
 	Res.
 
 
 
-% Returns the list of all regular files found from the root, in the whole
-% subtree (i.e. recursively).
+% Returns a list of all regular files (hence not including symlinks) found from
+% the root, in the whole subtree (i.e. recursively).
 %
-% All extensions and suffixes accepted, no excluded directories.
+% All extensions and suffixes accepted, no excluded directories. Elements whose
+% name is improperly encoded are notified thanks to a warning trace, and then
+% are ignored.
 %
 % All returned pathnames are relative to this root.
 % Ex: ["./a.txt", "./tmp/b.txt"].
 %
--spec find_regular_files_from( any_directory_name() ) -> [ file_name() ].
+-spec find_regular_files_from( any_directory_path() ) -> [ file_path() ].
 find_regular_files_from( RootDir ) ->
 	find_files_from( RootDir, _IncludeSymlinks=false ).
 
 
 
-% Returns the list of all files (regular ones and, if requested, symlinks) found
+% Returns a list of all files (regular ones and, if requested, symlinks) found
 % from the root, in the whole subtree (i.e. recursively).
 %
-% All extensions and suffixes accepted, no excluded directories.
+% All extensions and suffixes accepted, no excluded directories. Elements whose
+% name is improperly encoded are notified thanks to a warning trace, and then
+% are ignored.
 %
 % All returned pathnames are relative to this root.
 % Ex: ["./a.txt", "./tmp/b.txt"].
 %
--spec find_files_from( any_directory_name(), boolean() ) -> [ file_name() ].
+-spec find_files_from( any_directory_path(), boolean() ) -> [ file_path() ].
 find_files_from( RootDir, IncludeSymlinks ) ->
+	find_files_from( RootDir, IncludeSymlinks, _IfImproperEncoding=warn ).
+
+
+
+% Returns a list of all files (regular ones and, if requested, symlinks) found
+% from the root, in the whole subtree (i.e. recursively).
+%
+% All extensions and suffixes accepted, no excluded directories. Elements whose
+% name is improperly encoded are managed according to the IfImproperEncoding
+% parameter; if set to 'include', the return type of this function is the more
+% general [any_file_path()], otherwise it is [file_path()].
+%
+% All returned pathnames are relative to this root.
+% Ex: ["./a.txt", "./tmp/b.txt"].
+%
+-spec find_files_from( any_directory_path(), boolean(),
+					   improper_encoding_action() ) -> [ any_file_path() ].
+find_files_from( RootDir, IncludeSymlinks, IfImproperEncoding ) ->
 	Res = find_files_from( RootDir, _CurrentRelativeDir="", IncludeSymlinks,
-						   _Acc=[] ),
+						   IfImproperEncoding, _Acc=[] ),
 	%trace_utils:debug_fmt( "Files found from '~ts':~n~p", [ RootDir, Res ] ),
 	Res.
 
 
 
 % (helper)
-find_files_from( RootDir, CurrentRelativeDir, IncludeSymlinks, Acc ) ->
+find_files_from( RootDir, CurrentRelativeDir, IncludeSymlinks,
+				 IfImproperEncoding, Acc ) ->
 
 	%trace_utils:debug_fmt( "find_files_from with root = '~ts', "
 	%    "current = '~ts'.", [ RootDir, CurrentRelativeDir ] ),
 
+	CurrentDir = join( RootDir, CurrentRelativeDir ),
+
 	{ RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
-		list_dir_elements( join( RootDir, CurrentRelativeDir ) ),
+		list_dir_elements( CurrentDir, IfImproperEncoding ),
 
 	Files = case IncludeSymlinks of
 
@@ -1512,108 +1683,167 @@ find_files_from( RootDir, CurrentRelativeDir, IncludeSymlinks, Acc ) ->
 	end,
 
 	Acc ++ list_files_in_subdirs( Directories, RootDir, CurrentRelativeDir,
-								  IncludeSymlinks, _NextAcc=[] )
+							IncludeSymlinks, IfImproperEncoding, _NextAcc=[] )
 		++ prefix_files_with( CurrentRelativeDir, Files ).
 
 
-% Specific helper for find_files_from/4 above:
+
+% Specific helper for find_files_from/5 above:
 list_files_in_subdirs( _Dirs=[], _RootDir, _CurrentRelativeDir,
-					   _IncludeSymlinks, Acc ) ->
+					   _IncludeSymlinks, _IfImproperEncoding, Acc ) ->
 	Acc;
 
-list_files_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir,
-					   IncludeSymlinks, Acc ) ->
+list_files_in_subdirs( _Dirs=[ D | T ], RootDir, CurrentRelativeDir,
+					   IncludeSymlinks, IfImproperEncoding, Acc ) ->
 
-	%io:format( "list_files_in_subdirs with root = '~ts', current = '~ts' "
-	%	"and H='~ts'.~n", [ RootDir, CurrentRelativeDir, H ] ),
+	%trace_utils:debug_fmt( "list_files_in_subdirs with root = '~ts', "
+	% "current = '~ts' and D='~ts'.", [ RootDir, CurrentRelativeDir, D ] ),
+
+	NewAcc = find_files_from( RootDir, join( CurrentRelativeDir, D ),
+					IncludeSymlinks, IfImproperEncoding, _NextAcc=[] ) ++ Acc,
 
 	list_files_in_subdirs( T, RootDir, CurrentRelativeDir, IncludeSymlinks,
-		find_files_from( RootDir, join( CurrentRelativeDir, H ),
-						 IncludeSymlinks, _NextAcc=[] ) ++ Acc ).
+						   IfImproperEncoding, NewAcc ).
 
 
 
-% Returns the list of all symlinks found from the root, in the whole subtree
+% Returns a list of all symlinks found from the root, in the whole subtree
 % (i.e. recursively).
 %
-% All extensions and suffixes accepted, no excluded directories.
+% All extensions and suffixes accepted, no excluded directories. Elements whose
+% name is improperly encoded are notified thanks to a warning trace, and then
+% are ignored.
 %
 % All returned pathnames are relative to this root.
 % Ex: ["./a.txt", "./tmp/b.txt"].
 %
--spec find_links_from( any_directory_name() ) -> [ file_name() ].
+-spec find_links_from( any_directory_path() ) -> [ file_path() ].
 find_links_from( RootDir ) ->
-	find_links_from( RootDir, _CurrentRelativeDir="", _Acc=[] ).
+	find_links_from( RootDir, _IfImproperEncoding=warn ).
+
+
+
+% Returns a list of all symlinks found from the root, in the whole subtree
+% (i.e. recursively).
+%
+% All extensions and suffixes accepted, no excluded directories. Elements whose
+% name is improperly encoded are managed according to the IfImproperEncoding
+% parameter; if set to 'include', the return type of this function is the more
+% general [any_file_path()], otherwise it is [file_path()].
+%
+% All returned pathnames are relative to this root.
+% Ex: ["./a.txt", "./tmp/b.txt"].
+%
+-spec find_links_from( any_directory_path(), improper_encoding_action() ) ->
+								[ file_path() ].
+find_links_from( RootDir, IfImproperEncoding ) ->
+	find_links_from( RootDir, _CurrentRelativeDir="", IfImproperEncoding,
+					 _Acc=[] ).
 
 
 % (helper)
-find_links_from( RootDir, CurrentRelativeDir, Acc ) ->
+find_links_from( RootDir, CurrentRelativeDir, IfImproperEncoding, Acc ) ->
 
 	%trace_utils:debug_fmt( "find_links_from with root = '~ts', "
 	%  "current = '~ts'.", [ RootDir, CurrentRelativeDir ] ),
 
+	CurrentDir = join( RootDir, CurrentRelativeDir ),
+
 	{ _RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
-		list_dir_elements( join( RootDir, CurrentRelativeDir ) ),
+		list_dir_elements( CurrentDir, IfImproperEncoding ),
 
 	Acc ++ list_links_in_subdirs( Directories, RootDir, CurrentRelativeDir,
-								  _NextAcc=[] )
+								  IfImproperEncoding, _NextAcc=[] )
 		++ prefix_files_with( CurrentRelativeDir, Symlinks ).
 
 
 
-% Specific helper for find_links_from/3 above:
-list_links_in_subdirs( _Dirs=[], _RootDir, _CurrentRelativeDir, Acc ) ->
+% Specific helper for find_links_from/4 above:
+list_links_in_subdirs( _Dirs=[], _RootDir, _CurrentRelativeDir,
+					   _IfImproperEncoding, Acc ) ->
 	Acc;
 
-list_links_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir, Acc ) ->
+list_links_in_subdirs( _Dirs=[ D | T ], RootDir, CurrentRelativeDir,
+					   IfImproperEncoding, Acc ) ->
 
-	%io:format( "list_links_in_subdirs with root = '~ts', current = '~ts' "
-	%	"and H='~ts'.~n", [ RootDir, CurrentRelativeDir, H ] ),
+	%trace_utils:debug_fmt( "list_links_in_subdirs with root = '~ts', "
+	%   "current = '~ts' and D='~ts'.", [ RootDir, CurrentRelativeDir, D ] ),
 
-	list_links_in_subdirs( T, RootDir, CurrentRelativeDir,
-		find_links_from( RootDir, join( CurrentRelativeDir, H ),
-						 _NextAcc=[] ) ++ Acc ).
+	NewAcc = find_links_from( RootDir, join( CurrentRelativeDir, D ),
+							  IfImproperEncoding, _NextAcc=[] ) ++ Acc,
+
+	list_links_in_subdirs( T, RootDir, CurrentRelativeDir, IfImproperEncoding,
+						   NewAcc ).
 
 
 
-% Returns the list of all files (regular ones and symlinks) found from the root
+% Returns a list of all files (regular ones and symlinks) found from the root
 % with specified extension, in the whole subtree (i.e. recursively).
+%
+% All suffixes accepted, no excluded directories. Elements whose name is
+% improperly encoded are notified thanks to a warning trace, and then are
+% ignored.
 %
 % All returned pathnames are relative to this root.
 % Ex: ["./a.txt", "./tmp/b.txt"].
 %
--spec find_files_with_extension_from( any_directory_name(), extension() ) ->
-											[ file_name() ].
+-spec find_files_with_extension_from( any_directory_path(), extension() ) ->
+											[ file_path() ].
 find_files_with_extension_from( RootDir, Extension ) ->
-	find_files_with_extension_from( RootDir, _CurrentRelativeDir="",
-			_IncludeSymlinks=true, Extension, _Acc=[] ).
+	find_files_with_extension_from( RootDir, Extension,
+									_IfImproperEncoding=warn ).
+
+
+% Returns a list of all files (regular ones and symlinks) found from the root
+% with specified extension, in the whole subtree (i.e. recursively).
+%
+% All suffixes accepted, no excluded directories. Elements whose name is
+% improperly encoded are managed according to the IfImproperEncoding parameter;
+% if set to 'include', the return type of this function is the more general
+% [any_file_path()], otherwise it is [file_path()].
+%
+% All returned pathnames are relative to this root.
+% Ex: ["./a.txt", "./tmp/b.txt"].
+%
+-spec find_files_with_extension_from( any_directory_path(), extension(),
+							improper_encoding_action() ) -> [ file_path() ].
+find_files_with_extension_from( RootDir, Extension, IfImproperEncoding ) ->
+	find_files_with_extension_from( RootDir, Extension, _IncludeSymlinks=true,
+									IfImproperEncoding ).
 
 
 
-% Returns the list of all files (regular ones and, if requested, symlinks) found
+% Returns a list of all files (regular ones and, if requested, symlinks) found
 % from the root with specified extension, in the whole subtree
 % (i.e. recursively).
 %
+% All suffixes accepted, no excluded directories. Elements whose name is
+% improperly encoded are managed according to the IfImproperEncoding parameter;
+% if set to 'include', the return type of this function is the more general
+% [any_file_path()], otherwise it is [file_path()].
+%
 % All returned pathnames are relative to this root.
 % Ex: ["./a.txt", "./tmp/b.txt"].
 %
--spec find_files_with_extension_from( any_directory_name(), extension(),
-									  boolean() ) -> [ file_name() ].
-find_files_with_extension_from( RootDir, Extension, IncludeSymlinks ) ->
+-spec find_files_with_extension_from( any_directory_path(), extension(),
+			boolean(), improper_encoding_action() ) -> [ file_path() ].
+find_files_with_extension_from( RootDir, Extension, IncludeSymlinks,
+								IfImproperEncoding ) ->
 	find_files_with_extension_from( RootDir, _CurrentRelativeDir="",
-									IncludeSymlinks, Extension, _Acc=[] ).
-
+			Extension, IncludeSymlinks, IfImproperEncoding, _Acc=[] ).
 
 
 % (helper)
-find_files_with_extension_from( RootDir, CurrentRelativeDir, IncludeSymlinks,
-								Extension, Acc ) ->
+find_files_with_extension_from( RootDir, CurrentRelativeDir, Extension,
+								IncludeSymlinks, IfImproperEncoding, Acc ) ->
 
-	%io:format( "find_files_with_extension_from in ~ts.~n",
+	%trace_utils:debug_fmt( "find_files_with_extension_from in '~ts'.",
 	%           [ CurrentRelativeDir ] ),
 
+	CurrentDir = join( RootDir, CurrentRelativeDir ),
+
 	{ RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
-		list_dir_elements( join( RootDir, CurrentRelativeDir ) ),
+		list_dir_elements( CurrentDir, IfImproperEncoding ),
 
 	Files = case IncludeSymlinks of
 
@@ -1626,86 +1856,125 @@ find_files_with_extension_from( RootDir, CurrentRelativeDir, IncludeSymlinks,
 	end,
 
 	Acc ++ list_files_in_subdirs_with_extension( Directories, Extension,
-				RootDir, CurrentRelativeDir, IncludeSymlinks, _NextAcc=[] )
+			RootDir, CurrentRelativeDir, IncludeSymlinks, IfImproperEncoding,
+			_NextAcc=[] )
 		++ prefix_files_with( CurrentRelativeDir,
 							  filter_by_extension( Files, Extension ) ).
 
 
-% Helper for find_files_with_extension_from/4:
+
+% Helper for find_files_with_extension_from/6:
 list_files_in_subdirs_with_extension( _Dirs=[], _Extension, _RootDir,
-				_CurrentRelativeDir, _IncludeSymlinks, Acc ) ->
+		_CurrentRelativeDir, _IncludeSymlinks, _IfImproperEncoding, Acc ) ->
 	Acc;
 
 list_files_in_subdirs_with_extension( _Dirs=[ H | T ], Extension, RootDir,
-				CurrentRelativeDir, IncludeSymlinks, Acc ) ->
+		CurrentRelativeDir, IncludeSymlinks, IfImproperEncoding, Acc ) ->
+
+	NewAcc = find_files_with_extension_from( RootDir,
+		join( CurrentRelativeDir, H ), Extension, IncludeSymlinks,
+		IfImproperEncoding, _NextAcc=[] ) ++ Acc,
+
 	list_files_in_subdirs_with_extension( T, Extension, RootDir,
-		CurrentRelativeDir, IncludeSymlinks,
-		find_files_with_extension_from( RootDir, join( CurrentRelativeDir, H ),
-			IncludeSymlinks, Extension, _NextAcc=[] ) ++ Acc ).
+		CurrentRelativeDir, IncludeSymlinks, IfImproperEncoding, NewAcc ).
 
 
 
-% Returns the list of all files (regular ones and symlinks) found from the root,
+% Returns a list of all files (regular ones and symlinks) found from the root,
 % in the whole subtree (i.e. recursively), with specified directories excluded.
 %
-% Note that the excluded directories can be specified as a full path (ex:
-% "foo/bar/not-wanted"), or just as a final directory name (ex:
+% Note that an excluded directory can be specified as a full (relative) path
+% (ex: "foo/bar/not-wanted"), or just as a final directory name (ex:
 % "my-excluded-name"). In the latter case, all directories bearing that name
-% (ex: "foo/bar/my-excluded-name") will be excluded as well.
+% (ex: "foo/bar/any/my-excluded-name") will be excluded as well.
 %
 % Thus when a directory D is specified in the excluded list, each traversed
 % directory T will be compared twice to D: T will be matched against D, and
 % against filename:basename(T), i.e. its final name, as well. As soon as one
 % matches, T will be excluded.
 %
-% All extensions accepted.
+% All extensions and suffixes accepted. Elements whose name is improperly
+% encoded are notified thanks to a warning trace, and then are ignored.
 %
 % All returned pathnames are relative to this root.
 % Ex: ["./a.txt", "./tmp/b.txt"].
 %
--spec find_files_with_excluded_dirs( any_directory_name(),
-									 [ directory_name() ] ) -> [ file_name() ].
-find_files_with_excluded_dirs( RootDir, ExcludedDirList ) ->
-	find_files_with_excluded_dirs( RootDir, ExcludedDirList,
+-spec find_files_with_excluded_dirs( any_directory_path(),
+									 [ directory_path() ] ) -> [ file_path() ].
+find_files_with_excluded_dirs( RootDir, ExcludedDirs ) ->
+	find_files_with_excluded_dirs( RootDir, ExcludedDirs,
 								   _IncludeSymlinks=true ).
 
 
 
-% Returns the list of all files (regular ones and, if requested, symlinks) found
+% Returns a list of all files (regular ones and, if requested, symlinks) found
 % from the root, in the whole subtree (i.e. recursively), with specified
 % directories excluded.
 %
-% Note that the excluded directories can be specified as a full path (ex:
-% "foo/bar/not-wanted"), for just as a final directory name (ex:
+% Note that an excluded directory can be specified as a full (relative) path
+% (ex: "foo/bar/not-wanted"), or just as a final directory name (ex:
 % "my-excluded-name"). In the latter case, all directories bearing that name
-% (ex: "foo/bar/my-excluded-name") will be excluded as well.
+% (ex: "foo/bar/any/my-excluded-name") will be excluded as well.
 %
 % Thus when a directory D is specified in the excluded list, each traversed
 % directory T will be compared twice to D: T will be matched against D, and
 % against filename:basename(T), i.e. its final name, as well. As soon as one
 % matches, T will be excluded.
 %
-% All extensions accepted.
+% All extensions and suffixes accepted. Elements whose name is improperly
+% encoded are notified thanks to a warning trace, and then are ignored.
 %
 % All returned pathnames are relative to this root.
 % Ex: ["./a.txt", "./tmp/b.txt"].
 %
--spec find_files_with_excluded_dirs( any_directory_name(), [ directory_name() ],
-									 boolean() ) -> [ file_name() ].
-find_files_with_excluded_dirs( RootDir, ExcludedDirList, IncludeSymlinks ) ->
+-spec find_files_with_excluded_dirs( any_directory_path(), [ directory_path() ],
+									 boolean() ) -> [ file_path() ].
+find_files_with_excluded_dirs( RootDir, ExcludedDirs, IncludeSymlinks ) ->
+	find_files_with_excluded_dirs( RootDir, ExcludedDirs, IncludeSymlinks,
+								   _IfImproperEncoding=warn ).
+
+
+% Returns a list of all files (regular ones and, if requested, symlinks) found
+% from the root, in the whole subtree (i.e. recursively), with specified
+% directories excluded.
+%
+% Note that an excluded directory can be specified as a full (relative) path
+% (ex: "foo/bar/not-wanted"), or just as a final directory name (ex:
+% "my-excluded-name"). In the latter case, all directories bearing that name
+% (ex: "foo/bar/any/my-excluded-name") will be excluded as well.
+%
+% Thus when a directory D is specified in the excluded list, each traversed
+% directory T will be compared twice to D: T will be matched against D, and
+% against filename:basename(T), i.e. its final name, as well. As soon as one
+% matches, T will be excluded.
+%
+% All extensions and suffixes accepted. Elements whose name is improperly
+% encoded are managed according to the IfImproperEncoding parameter; if set to
+% 'include', the return type of this function is the more general
+% [any_file_path()], otherwise it is [file_path()].
+%
+% All returned pathnames are relative to this root.
+% Ex: ["./a.txt", "./tmp/b.txt"].
+%
+-spec find_files_with_excluded_dirs( any_directory_path(), [ directory_path() ],
+			boolean(), improper_encoding_action() ) -> [ file_path() ].
+find_files_with_excluded_dirs( RootDir, ExcludedDirs, IncludeSymlinks,
+							   IfImproperEncoding ) ->
 	find_files_with_excluded_dirs( RootDir, _CurrentRelativeDir="",
-								   ExcludedDirList, IncludeSymlinks, _Acc=[] ).
+		ExcludedDirs, IncludeSymlinks, IfImproperEncoding, _Acc=[] ).
 
 
 % (helper)
-find_files_with_excluded_dirs( RootDir, CurrentRelativeDir, ExcludedDirList,
-							   IncludeSymlinks, Acc ) ->
+find_files_with_excluded_dirs( RootDir, CurrentRelativeDir, ExcludedDirs,
+							   IncludeSymlinks, IfImproperEncoding, Acc ) ->
 
-	%io:format( "find_files_with_excluded_dirs in ~ts.~n",
-	% [ CurrentRelativeDir ] ),
+	%trace_utils:debug_fmt( "find_files_with_excluded_dirs in '~ts'.",
+	%       [ CurrentRelativeDir ] ),
+
+	CurrentDir = join( RootDir, CurrentRelativeDir ),
 
 	{ RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
-		list_dir_elements( join( RootDir, CurrentRelativeDir ) ),
+		list_dir_elements( CurrentDir, IfImproperEncoding ),
 
 	Files = case IncludeSymlinks of
 
@@ -1717,75 +1986,112 @@ find_files_with_excluded_dirs( RootDir, CurrentRelativeDir, ExcludedDirList,
 
 	end,
 
-	% If for example ExcludedDirList=[".svn"], we want to eliminate not only
+	% If for example ExcludedDirs=[".svn"], we want to eliminate not only
 	% ".svn" but also all "foo/bar/.svn", i.e. all directories having the same
 	% (last) name:
 	%
 	FilteredDirectories = [ D || D <- Directories,
-		not ( lists:member( join( CurrentRelativeDir, D ), ExcludedDirList )
-			  orelse lists:member( D, ExcludedDirList ) ) ],
+		not ( lists:member( join( CurrentRelativeDir, D ), ExcludedDirs )
+			  orelse lists:member( D, ExcludedDirs ) ) ],
 
 	Acc ++ list_files_in_subdirs_excluded_dirs( FilteredDirectories, RootDir,
-				CurrentRelativeDir, ExcludedDirList, IncludeSymlinks, _Acc=[] )
+				CurrentRelativeDir, ExcludedDirs, IncludeSymlinks,
+				IfImproperEncoding, _Acc=[] )
 		++ prefix_files_with( CurrentRelativeDir, Files ).
 
 
-% Specific helper for find_files_with_excluded_dirs/4 above:
+
+% Specific helper for find_files_with_excluded_dirs/6 above:
 list_files_in_subdirs_excluded_dirs( _Dirs=[], _RootDir,
-		_CurrentRelativeDir, _ExcludedDirList, _IncludeSymlinks, Acc ) ->
+		_CurrentRelativeDir, _ExcludedDirs, _IncludeSymlinks,
+		_IfImproperEncoding, Acc ) ->
 	Acc;
 
-list_files_in_subdirs_excluded_dirs( _Dirs=[ H | T ], RootDir,
-		CurrentRelativeDir, ExcludedDirList, IncludeSymlinks, Acc ) ->
+list_files_in_subdirs_excluded_dirs( _Dirs=[ D | T ], RootDir,
+		CurrentRelativeDir, ExcludedDirs, IncludeSymlinks, IfImproperEncoding,
+		Acc ) ->
+
+	NewAcc = find_files_with_excluded_dirs( RootDir,
+		join( CurrentRelativeDir, D ), ExcludedDirs, IncludeSymlinks,
+		IfImproperEncoding, _NextAcc=[] ) ++ Acc,
+
 	list_files_in_subdirs_excluded_dirs( T, RootDir, CurrentRelativeDir,
-		ExcludedDirList, IncludeSymlinks,
-		find_files_with_excluded_dirs( RootDir, join( CurrentRelativeDir, H ),
-			ExcludedDirList, IncludeSymlinks, _NextAcc=[] ) ++ Acc ).
+		ExcludedDirs, IncludeSymlinks, IfImproperEncoding, NewAcc ).
 
 
 
 
 
-% Returns the list of all files (regular ones or symlinks) found from the root
+% Returns a list of all files (regular ones and symlinks) found from the root
 % which do not match any of the specified suffixes, in the whole subtree
 % (i.e. recursively).
 %
+% No excluded directories. Elements whose name is improperly encoded are
+% notified thanks to a warning trace, and then are ignored.
+%
 % All returned pathnames are relative to this root.
 % Ex: ["./a.txt", "./tmp/b.txt"].
 %
--spec find_files_with_excluded_suffixes( any_directory_name(),
-										 [ ustring() ] ) -> [ file_name() ].
+-spec find_files_with_excluded_suffixes( any_directory_path(),
+										 [ suffix() ] ) -> [ file_path() ].
 find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes ) ->
-	find_files_with_excluded_suffixes( RootDir, _CurrentRelativeDir="",
-				ExcludedSuffixes, _IncludeSymlinks=true, _Acc=[] ).
+	find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes,
+									   _IfImproperEncoding=warn ).
+
+
+% Returns a list of all files (regular ones and symlinks) found from the root
+% which do not match any of the specified suffixes, in the whole subtree
+% (i.e. recursively).
+%
+% No excluded directories. Elements whose name is
+% improperly encoded are managed according to the IfImproperEncoding parameter;
+% if set to 'include', the return type of this function is the more general
+% [any_file_path()], otherwise it is [file_path()].
+%
+% All returned pathnames are relative to this root.
+% Ex: ["./a.txt", "./tmp/b.txt"].
+%
+-spec find_files_with_excluded_suffixes( any_directory_path(),
+				[ suffix() ], improper_encoding_action() ) -> [ file_path() ].
+find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes,
+								   IfImproperEncoding  ) ->
+	find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes,
+								   _IncludeSymlinks=true, IfImproperEncoding ).
 
 
 
-% Returns the list of all files (regular ones or, if requested, symlinks) found
+% Returns a list of all files (regular ones and, if requested, symlinks) found
 % from the root which do not match any of the specified suffixes, in the whole
 % subtree (i.e. recursively).
 %
+% No excluded directories. Elements whose name is
+% improperly encoded are managed according to the IfImproperEncoding parameter;
+% if set to 'include', the return type of this function is the more general
+% [any_file_path()], otherwise it is [file_path()].
+%
 % All returned pathnames are relative to this root.
 % Ex: ["./a.txt", "./tmp/b.txt"].
 %
--spec find_files_with_excluded_suffixes( any_directory_name(), [ ustring() ],
-										 boolean() ) -> [ file_name() ].
-find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes,
-								   IncludeSymlinks ) ->
+-spec find_files_with_excluded_suffixes( any_directory_path(), [ suffix() ],
+					boolean(), improper_encoding_action() ) -> [ file_path() ].
+find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes, IncludeSymlinks,
+								   IfImproperEncoding ) ->
 	find_files_with_excluded_suffixes( RootDir, _CurrentRelativeDir="",
-				ExcludedSuffixes, IncludeSymlinks, _Acc=[] ).
+		ExcludedSuffixes, IncludeSymlinks, IfImproperEncoding, _Acc=[] ).
 
 
 
 % (helper)
 find_files_with_excluded_suffixes( RootDir, CurrentRelativeDir,
-								   ExcludedSuffixes, IncludeSymlinks, Acc ) ->
+			ExcludedSuffixes, IncludeSymlinks, IfImproperEncoding, Acc ) ->
 
-	%io:format( "find_files_with_excluded_suffixes in ~ts.~n",
-	% [ CurrentRelativeDir ] ),
+	%trace_utils:debug_fmt( "find_files_with_excluded_suffixes in '~ts'.",
+	%     [ CurrentRelativeDir ] ),
+
+	CurrentDir = join( RootDir, CurrentRelativeDir ),
 
 	{ RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
-		list_dir_elements( join( RootDir, CurrentRelativeDir ) ),
+		list_dir_elements( CurrentDir, IfImproperEncoding ),
 
 	Files = case IncludeSymlinks of
 
@@ -1799,103 +2105,143 @@ find_files_with_excluded_suffixes( RootDir, CurrentRelativeDir,
 
 	Acc ++ list_files_in_subdirs_with_excluded_suffixes( Directories,
 			ExcludedSuffixes, RootDir, CurrentRelativeDir, IncludeSymlinks,
-			_NextAcc=[] ) ++ prefix_files_with( CurrentRelativeDir,
-			  filter_by_excluded_suffixes( Files, ExcludedSuffixes ) ).
+			IfImproperEncoding, _NextAcc=[] )
+		++ prefix_files_with( CurrentRelativeDir,
+					filter_by_excluded_suffixes( Files, ExcludedSuffixes ) ).
 
 
 
 
-% Helper for find_files_with_excluded_suffixes/4:
--spec list_files_in_subdirs_with_excluded_suffixes( list(), [ ustring() ],
-		directory_name(), directory_name(), boolean(), [ file_name() ] ) ->
-															[ file_name() ].
-list_files_in_subdirs_with_excluded_suffixes( [], _ExcludedSuffixes, _RootDir,
-							_CurrentRelativeDir, _IncludeSymlinks, Acc ) ->
+% Helper for find_files_with_excluded_suffixes/6:
+-spec list_files_in_subdirs_with_excluded_suffixes( [ directory_name() ],
+		[ suffix() ], directory_path(), directory_path(), boolean(),
+		improper_encoding_action(), [ file_path() ] ) -> [ file_path() ].
+list_files_in_subdirs_with_excluded_suffixes( _Dirs=[], _ExcludedSuffixes,
+		_RootDir, _CurrentRelativeDir, _IncludeSymlinks, _IfImproperEncoding,
+		Acc ) ->
 	Acc;
 
-list_files_in_subdirs_with_excluded_suffixes( [ H | T ], ExcludedSuffixes,
-					  RootDir, CurrentRelativeDir, IncludeSymlinks, Acc ) ->
+list_files_in_subdirs_with_excluded_suffixes( _Dirs=[ D | T ], ExcludedSuffixes,
+		RootDir, CurrentRelativeDir, IncludeSymlinks, IfImproperEncoding,
+		Acc ) ->
+
+	NewAcc = find_files_with_excluded_suffixes( RootDir,
+		join( CurrentRelativeDir, D ), ExcludedSuffixes, IncludeSymlinks,
+		IfImproperEncoding, _NextAcc=[] ) ++ Acc,
+
 	list_files_in_subdirs_with_excluded_suffixes( T, ExcludedSuffixes, RootDir,
-		CurrentRelativeDir, IncludeSymlinks,
-		find_files_with_excluded_suffixes( RootDir,
-			join( CurrentRelativeDir, H ), ExcludedSuffixes, IncludeSymlinks,
-			_NextAcc=[] ) ++ Acc ).
+		CurrentRelativeDir, IncludeSymlinks, IfImproperEncoding, NewAcc ).
 
 
 
 
-% Returns the list of all files (regular ones and symlinks) found from the root
-% with specified suffix, in the whole subtree (i.e. recursively), with specified
-% directories excluded.
+% Returns a list of all files (regular ones and symlinks) found from the root,
+% in the whole subtree (i.e. recursively), with specified directories and
+% suffixes excluded.
 %
-% Note that the excluded directories can be specified as a full path (ex:
-% "foo/bar/not-wanted"), for just as a final directory name (ex:
+% Note that an excluded directory can be specified as a full (relative) path
+% (ex: "foo/bar/not-wanted"), or just as a final directory name (ex:
 % "my-excluded-name"). In the latter case, all directories bearing that name
-% (ex: "foo/bar/my-excluded-name") will be excluded as well.
+% (ex: "foo/bar/any/my-excluded-name") will be excluded as well.
 %
 % Thus when a directory D is specified in the excluded list, each traversed
 % directory T will be compared twice to D: T will be matched against D, and
 % against filename:basename(T), i.e. its final name, as well. As soon as one
 % matches, T will be excluded.
 %
+% Elements whose name is improperly encoded are notified thanks to a warning
+% trace, and then are ignored.
+%
 % All returned pathnames are relative to this root.
 % Ex: ["./a.txt", "./tmp/b.txt"].
 %
--spec find_files_with_excluded_dirs_and_suffixes( any_directory_name(),
-		[ directory_name() ], [ ustring() ] ) -> [ file_name() ].
-find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirList,
+-spec find_files_with_excluded_dirs_and_suffixes( any_directory_path(),
+		[ directory_path() ], [ suffix() ] ) -> [ file_path() ].
+find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirs,
 											ExcludedSuffixes ) ->
-
-	%trace_utils:debug_fmt( "find_files_with_excluded_dirs_and_suffixes: from "
-	%	"'~ts': RootDir = '~ts', ExcludedDirList = ~p, ExcludedSuffixes = ~p",
-	%	[ get_current_directory(), RootDir, ExcludedDirList,
-	%	  ExcludedSuffixes ] ),
-
-	find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirList,
+	find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirs,
 								ExcludedSuffixes, _IncludeSymlinks=true ).
 
 
 
-% Returns the list of all files (regular ones and, if requested, symlinks) found
-% from the root with specified suffix, in the whole subtree (i.e. recursively),
-% with specified directories excluded.
+% Returns a list of all files (regular ones and, if requested, symlinks) found
+% from the root, in the whole subtree (i.e. recursively), with specified
+% directories and suffixes excluded.
 %
-% Note that the excluded directories can be specified as a full path (ex:
-% "foo/bar/not-wanted"), for just as a final directory name (ex:
+% Note that an excluded directory can be specified as a full (relative) path
+% (ex: "foo/bar/not-wanted"), or just as a final directory name (ex:
 % "my-excluded-name"). In the latter case, all directories bearing that name
-% (ex: "foo/bar/my-excluded-name") will be excluded as well.
+% (ex: "foo/bar/any/my-excluded-name") will be excluded as well.
 %
 % Thus when a directory D is specified in the excluded list, each traversed
 % directory T will be compared twice to D: T will be matched against D, and
 % against filename:basename(T), i.e. its final name, as well. As soon as one
 % matches, T will be excluded.
 %
+% Elements whose name is improperly encoded are notified thanks to a warning
+% trace, and then are ignored.
+%
 % All returned pathnames are relative to this root.
 % Ex: ["./a.txt", "./tmp/b.txt"].
 %
--spec find_files_with_excluded_dirs_and_suffixes( any_directory_name(),
-		[ directory_name() ], [ ustring() ], boolean() ) -> [ file_name() ].
-find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirList,
-							ExcludedSuffixes, IncludeSymlinks ) ->
+-spec find_files_with_excluded_dirs_and_suffixes( any_directory_path(),
+		[ directory_path() ], [ suffix() ], boolean() ) -> [ file_path() ].
+find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirs,
+									ExcludedSuffixes, IncludeSymlinks ) ->
+	find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirs,
+		ExcludedSuffixes, IncludeSymlinks, _IfImproperEncoding=warn ).
 
-	%{ ok, CurrentDir } = file:get_cwd(),
-	%io:format( "find_files_with_excluded_dirs_and_suffixes: current is ~ts, "
-	%			"root is ~ts.~n", [ CurrentDir, RootDir ] ),
+
+% Returns a list of all files (regular ones and, if requested, symlinks) found
+% from the root, in the whole subtree (i.e. recursively), with specified
+% directories and suffixes excluded.
+%
+% Note that an excluded directory can be specified as a full (relative) path
+% (ex: "foo/bar/not-wanted"), or just as a final directory name (ex:
+% "my-excluded-name"). In the latter case, all directories bearing that name
+% (ex: "foo/bar/any/my-excluded-name") will be excluded as well.
+%
+% Thus when a directory D is specified in the excluded list, each traversed
+% directory T will be compared twice to D: T will be matched against D, and
+% against filename:basename(T), i.e. its final name, as well. As soon as one
+% matches, T will be excluded.
+%
+% Elements whose name is improperly encoded are managed according to the
+% IfImproperEncoding parameter; if set to 'include', the return type of this
+% function is the more general [any_file_path()], otherwise it is [file_path()].
+%
+% All returned pathnames are relative to this root.
+% Ex: ["./a.txt", "./tmp/b.txt"].
+%
+-spec find_files_with_excluded_dirs_and_suffixes( any_directory_path(),
+			[ directory_path() ], [ suffix() ], boolean(),
+			improper_encoding_action() ) -> [ file_path() ].
+find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirs,
+					ExcludedSuffixes, IncludeSymlinks, IfImproperEncoding ) ->
+
+	%trace_utils:debug_fmt( "find_files_with_excluded_dirs_and_suffixes: from "
+	%	"'~ts': RootDir = '~ts', ExcludedDirs = ~p, ExcludedSuffixes = ~p",
+	%	[ get_current_directory(), RootDir, ExcludedDirs,
+	%	  ExcludedSuffixes ] ),
 
 	find_files_with_excluded_dirs_and_suffixes( RootDir,
-			_CurrentRelativeDir="", ExcludedDirList, ExcludedSuffixes,
-			IncludeSymlinks, _Acc=[] ).
+			_CurrentRelativeDir="", ExcludedDirs, ExcludedSuffixes,
+			IncludeSymlinks, IfImproperEncoding, _Acc=[] ).
+
 
 
 % (helper)
 find_files_with_excluded_dirs_and_suffixes( RootDir, CurrentRelativeDir,
-		ExcludedDirList, ExcludedSuffixes, IncludeSymlinks, Acc ) ->
+		ExcludedDirs, ExcludedSuffixes, IncludeSymlinks, IfImproperEncoding,
+		Acc ) ->
 
-	%io:format( "find_files_with_excluded_dirs_and_suffixes in ~ts / ~ts.~n",
-	%           [ RootDir, CurrentRelativeDir ] ),
+	%trace_utils:debug_fmt( "find_files_with_excluded_dirs_and_suffixes in "
+	%   "~ts / ~ts.", [ RootDir, CurrentRelativeDir ] ),
+
+	CurrentDir = join( RootDir, CurrentRelativeDir ),
 
 	{ RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
-		list_dir_elements( join( RootDir, CurrentRelativeDir ) ),
+		list_dir_elements( CurrentDir, IfImproperEncoding ),
 
 	Files = case IncludeSymlinks of
 
@@ -1907,41 +2253,46 @@ find_files_with_excluded_dirs_and_suffixes( RootDir, CurrentRelativeDir,
 
 	end,
 
-	% If for example ExcludedDirList=[".svn"], we want to eliminate not only
+	% If for example ExcludedDirs=[".svn"], we want to eliminate not only
 	% ".svn" but also all "foo/bar/.svn", i.e. all directories having the same
 	% (last) name:
 	%
 	FilteredDirectories = [ D || D <- Directories,
-		not ( lists:member( join( CurrentRelativeDir, D ), ExcludedDirList )
-			 orelse lists:member( D, ExcludedDirList ) ) ],
+		not ( lists:member( join( CurrentRelativeDir, D ), ExcludedDirs )
+			 orelse lists:member( D, ExcludedDirs ) ) ],
 
 	Acc ++ list_files_in_subdirs_excluded_dirs_and_suffixes(
 			FilteredDirectories, RootDir, CurrentRelativeDir,
-			ExcludedDirList, ExcludedSuffixes, IncludeSymlinks, _Acc=[] )
+			ExcludedDirs, ExcludedSuffixes, IncludeSymlinks, IfImproperEncoding,
+			_Acc=[] )
 		++ prefix_files_with( CurrentRelativeDir,
 			filter_by_excluded_suffixes( Files, ExcludedSuffixes ) ).
 
 
 
 
-% Specific helper for find_files_with_excluded_dirs_and_suffixes/5 above:
+% Specific helper for find_files_with_excluded_dirs_and_suffixes/7 above:
 list_files_in_subdirs_excluded_dirs_and_suffixes( _Dirs=[], _RootDir,
-		_CurrentRelativeDir, _ExcludedDirList, _ExcludedSuffixes,
-		_IncludeSymlinks, Acc ) ->
+		_CurrentRelativeDir, _ExcludedDirs, _ExcludedSuffixes,
+		_IncludeSymlinks, _IfImproperEncoding, Acc ) ->
 	Acc;
 
-list_files_in_subdirs_excluded_dirs_and_suffixes( _Dirs=[ H | T ], RootDir,
-		CurrentRelativeDir, ExcludedDirList, ExcludedSuffixes, IncludeSymlinks,
-		Acc ) ->
+list_files_in_subdirs_excluded_dirs_and_suffixes( _Dirs=[ D | T ], RootDir,
+		CurrentRelativeDir, ExcludedDirs, ExcludedSuffixes, IncludeSymlinks,
+		IfImproperEncoding, Acc ) ->
+
+	NewAcc = find_files_with_excluded_dirs_and_suffixes( RootDir,
+			join( CurrentRelativeDir, D ), ExcludedDirs, ExcludedSuffixes,
+			IncludeSymlinks, IfImproperEncoding, _NextAcc=[] ) ++ Acc,
+
 	list_files_in_subdirs_excluded_dirs_and_suffixes( T, RootDir,
-		CurrentRelativeDir, ExcludedDirList, ExcludedSuffixes, IncludeSymlinks,
-		find_files_with_excluded_dirs_and_suffixes( RootDir,
-			join( CurrentRelativeDir, H ), ExcludedDirList, ExcludedSuffixes,
-			IncludeSymlinks, _NextAcc=[] ) ++ Acc ).
+		CurrentRelativeDir, ExcludedDirs, ExcludedSuffixes, IncludeSymlinks,
+		IfImproperEncoding, NewAcc ).
+
 
 
 % Prefixes specified paths with specified root directory.
--spec prefix_files_with( directory_name(), [ file_name() ] ) -> [ file_name() ].
+-spec prefix_files_with( directory_path(), [ file_name() ] ) -> [ file_path() ].
 prefix_files_with( RootDir, Files ) ->
 	%io:format( "Prefixing ~p with '~ts'.~n", [ Files, RootDir ] ),
 	prefix_files_with( RootDir, Files, _Acc=[] ).
@@ -1951,13 +2302,21 @@ prefix_files_with( RootDir, Files ) ->
 prefix_files_with( _RootDir, _Files=[], Acc ) ->
 	Acc;
 
-prefix_files_with( RootDir, [ H| T ], Acc ) ->
-	prefix_files_with( RootDir, T, [ join( RootDir, H ) | Acc ] ).
+prefix_files_with( RootDir, [ Str | T ], Acc ) when is_list( Str ) ->
+	prefix_files_with( RootDir, T, [ join( RootDir, Str ) | Acc ] );
+
+% Trying to overcome weirdly-named files:
+prefix_files_with( RootDir, [ BinStr | T ], Acc ) when is_binary( BinStr ) ->
+	prefix_files_with( RootDir, T, [ join( RootDir, BinStr ) | Acc ] );
+
+% Probably a binary due to a faulty Unicode filename encoding:
+prefix_files_with( RootDir, [ Other | T ], Acc ) ->
+	trace_utils:warning_fmt( "Ignoring improper filename '~p'.", [ Other ] ),
+	prefix_files_with( RootDir, T, Acc ).
 
 
 
-
-% Returns the list of all directories found from the root, in the whole subtree
+% Returns a list of all directories found from the root, in the whole subtree
 % (i.e. recursively).
 %
 % All returned pathnames are relative to this root.
@@ -2000,8 +2359,8 @@ list_directories_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir,
 % Throws an exception if the operation failed.
 %
 -spec create_directory( directory_name() ) -> void().
-create_directory( Dirname ) ->
-	create_directory( Dirname, create_no_parent ).
+create_directory( DirName ) ->
+	create_directory( DirName, create_no_parent ).
 
 
 
@@ -2017,20 +2376,20 @@ create_directory( Dirname ) ->
 % already existing ({create_directory_failed, "foobar", eexist}).
 %
 -spec create_directory( directory_name(), parent_creation() ) -> void().
-create_directory( Dirname, create_no_parent ) ->
+create_directory( DirName, create_no_parent ) ->
 
-	case file:make_dir( Dirname ) of
+	case file:make_dir( DirName ) of
 
 		ok ->
 			ok;
 
 		{ error, Reason } ->
-			throw( { create_directory_failed, Dirname, Reason } )
+			throw( { create_directory_failed, DirName, Reason } )
 
 	end;
 
-create_directory( Dirname, create_parents ) ->
-	create_dir_elem( filename:split( Dirname ), "" ).
+create_directory( DirName, create_parents ) ->
+	create_dir_elem( filename:split( DirName ), "" ).
 
 
 
@@ -2061,8 +2420,8 @@ create_dir_elem( _Elems=[ H | T ], Prefix ) ->
 % Throws an exception if the operation fails.
 %
 -spec create_directory_if_not_existing( directory_name() ) -> void().
-create_directory_if_not_existing( Dirname ) ->
-	create_directory_if_not_existing( Dirname, create_no_parent ).
+create_directory_if_not_existing( DirName ) ->
+	create_directory_if_not_existing( DirName, create_no_parent ).
 
 
 % Creates specified directory (and, if specified, any needed parent as well), if
@@ -2072,15 +2431,15 @@ create_directory_if_not_existing( Dirname ) ->
 %
 -spec create_directory_if_not_existing( directory_name(),
 										parent_creation() ) -> void().
-create_directory_if_not_existing( Dirname, ParentCreation ) ->
+create_directory_if_not_existing( DirName, ParentCreation ) ->
 
-	case is_existing_directory( Dirname ) of
+	case is_existing_directory( DirName ) of
 
 		true ->
 			ok;
 
 		false ->
-			create_directory( Dirname, ParentCreation )
+			create_directory( DirName, ParentCreation )
 
 	end.
 
