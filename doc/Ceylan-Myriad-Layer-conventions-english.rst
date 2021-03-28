@@ -19,9 +19,9 @@ The use of syntax highlighting is encouraged.
 Recommended text editors are:
 
 - emacs / xemacs
-- nedit
 - ErlIDE (based on Eclipse)
 - gedit
+- nedit
 
 Source files should be formatted for a 80-character width: no character should be present after the 79th column of a line.
 
