@@ -348,26 +348,36 @@
 % Regarding encodings and Unicode:
 %
 % - their support may be specified when opening a file, notably for writing
+% (then a transparent encoding will be done), yet we found it safer and offering
+% more control not to request such an automatic encoding, and to secure it by
+% ourselves, either by relying write_ustring/{2,3} or by calling write/2 with
+% content that is already properly encoded (see
+% text_utils:to_unicode_{list,binary}/{1,2}); otherwise for example a double
+% encoding could easily happen or, possibly, the encoding may fail with little
+% control; so we tend now to stay away from get_default_encoding_option/0 for
+% example and use the previous functions instead
 %
-% - it seems possible that in some cases specifying the 'raw' option result in
-% the requested encoding (ex: utf8) not being respected (ex: having ISO-8859
-% instead)
-%
-% - specifying an encoding like {encoding, utf8} at file opening was troublesome
-% in our test cases, as we were not able to properly write strings like "cœur"
-% afterwards (no matter any encoding or lack thereof was experimented); it
-% proved useful to open such a file for writing without specifying any encoding,
-% and then only to write it directly with pre-encoded content (a "~ts" formatter
-% then sufficed); so the 'encoding' options, at least for writing, may not be
-% that convenient
+% - more precisely, specifying an encoding like {encoding, utf8} at file opening
+% was troublesome in our test cases, as we were not able to properly write
+% strings like "cœur" afterwards (no matter any encoding or lack thereof was
+% experimented); as mentioned, it proved useful to open such a file for writing
+% without specifying any encoding, and then only to write it directly with
+% pre-encoded content (a "~ts" formatter then sufficed); so the 'encoding'
+% options, at least for writing, may not be that convenient
 %
 % - so the content itself may have to be encoded before writing; for example,
 % writing "éèôù" (interpreted to be latin1 or alike) in a file opened as utf8
 % will result in a garbled content, unless it has been converted beforehand,
 % typically thanks to our to_unicode_{list,binary}/{1,2}
 %
-% - some file elements may be improperly named regarding Unicode encoding; this is a problem for list_dir_elements/1
-
+% - it seems possible that in some cases specifying the 'raw' option result in
+% the requested encoding (ex: utf8) not being respected (ex: having ISO-8859
+% instead); with newer versions of Myriad and of Erlang, we believe this issue
+% does not exist anymore
+%
+% - some file elements may be improperly named regarding Unicode encoding ("raw
+% filenames"); use list_dir_elements/2 to decide how they should be handled
+%
 % - the way the VM is started matters; see the comment about the "-noinput"
 % option, in open/{2,3}; one may use the following to check the current settings
 % of the VM:
@@ -3627,23 +3637,24 @@ get_image_file_gif( Image ) ->
 % I/O section.
 
 
-% Returns our default, recommended encoding, typically when needing to open a
+% Returns the default recommended encoding, for example when needing to open a
 % file for writing.
 %
 % See the notes above in the 'Regarding encodings and Unicode' section, notably
-% about the consequences of using the 'raw' flag and/or specifying an encoding
+% about the consequences of specifying an encoding at file opening (generally
+% directly writing encoded content is safer and offers more control).
 %
 -spec get_default_encoding() -> system_utils:encoding().
 get_default_encoding() ->
 	system_utils:get_default_encoding().
 
 
-% Returns our default, recommended encoding option, typically when needing to
-% open a file for writing.
+% Returns the default recommended option encoding option, for example when
+% needing to open a file for writing - should such an option be used.
 %
-% Note that if the 'raw' flag is included among opening flags, any specified
-% encoding might be ignored (ex: UTF8 being specified, whereas ISO/IEC 8859
-% being written).
+% See the notes above in the 'Regarding encodings and Unicode' section, notably
+% about the consequences of specifying an encoding at file opening (generally
+% directly writing encoded content is safer and offers more control).
 %
 -spec get_default_encoding_option() -> system_utils:encoding_option().
 get_default_encoding_option() ->
@@ -4029,13 +4040,23 @@ read_whole( Filename ) ->
 %
 -spec write_whole( any_file_name(), ustring() | binary() ) -> void().
 write_whole( Filename, Content ) ->
-	write_whole( Filename, Content,
-				 _Modes=[ system_utils:get_default_encoding_option() ] ).
+
+	% Now we prefer no automatic encoding, and ensure it has been done
+	% beforehand:
+	%
+	%Mode = [ system_utils:get_default_encoding_option() ],
+	Mode = [],
+
+	write_whole( Filename, Content, Mode ).
 
 
 
 % Writes the specified content in specified file, whose filename is specified as
 % any kind of string, using the specified encoding for writing.
+%
+% Note that no transparent encoding is expected to be specified through modes,
+% as this function performs (through text_utils:string_to_binary/1) such
+% encoding on plain strings.
 %
 % Throws an exception on failure.
 %
@@ -4050,7 +4071,9 @@ write_whole( Filename, BinaryContent, Modes ) ->
 	%trace_utils:debug_fmt( "Writing to '~ts', with modes ~p, "
 	%	"following content:~n~ts", [ Filename, Modes, BinaryContent ] ),
 
-	% 'write' and 'binary' are implicit here:
+	% 'write' and 'binary' are implicit here; if relevant BinaryContent must be
+	% correctly Unicode-encoded:
+	%
 	case file:write_file( Filename, BinaryContent, Modes ) of
 
 		ok ->
@@ -4136,8 +4159,7 @@ write_terms( Terms, Filename ) ->
 				   file_path() ) -> void().
 write_terms( Terms, Header, Footer, Filename ) ->
 
-	F = open( Filename, _Opts=[ write, raw, delayed_write,
-								system_utils:get_default_encoding_option() ] ),
+	F = open( Filename, _Opts=[ write, raw, delayed_write ] ),
 
 	case Header of
 
@@ -4145,7 +4167,7 @@ write_terms( Terms, Header, Footer, Filename ) ->
 			ok;
 
 		_ ->
-			write( F, text_utils:format( "% ~n~n~n", [ Header ] ) )
+			write_ustring( F, "% ~ts~n~n~n", [ Header ] )
 
 	end,
 
@@ -4157,7 +4179,7 @@ write_terms( Terms, Header, Footer, Filename ) ->
 			ok;
 
 		_ ->
-			write( F, text_utils:format( "~n~n% ~ts~n", [ Footer ] ) )
+			write_ustring( F, "~n~n% ~ts~n", [ Footer ] )
 
 	end,
 
@@ -4171,8 +4193,7 @@ write_terms( Terms, Header, Footer, Filename ) ->
 %
 -spec write_direct_terms( file(), [ term() ] ) -> void().
 write_direct_terms( File, Terms ) ->
-	[ write_ustring( File, text_utils:format( "~p.~n", [ T ] ) )
-	  || T <- Terms ].
+	[ write_ustring( File, "~p.~n", [ T ] ) || T <- Terms ].
 
 
 

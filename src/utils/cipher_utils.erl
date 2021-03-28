@@ -241,8 +241,7 @@ generate_key( KeyFilePath, Transforms ) ->
 
 	end,
 
-	KeyFile = file_utils:open( KeyFilePath,
-			_Opts=[ write, raw, file_utils:get_default_encoding_option() ] ),
+	KeyFile = file_utils:open( KeyFilePath, _Opts=[ write, raw ] ),
 
 	Header = text_utils:format( "% Key generated on ~ts, by ~ts, on ~ts.~n",
 		[ time_utils:get_textual_timestamp(), system_utils:get_user_name(),

@@ -142,9 +142,12 @@
 % system_utils:force_unicode_support/0 shall be modified
 %
 % - see the notes in the 'Regarding encodings and Unicode' section of the
-% file_utils module, notably about the consequences of using the 'raw' flag
-% and/or specifying an encoding at file opening
+% file_utils module, notably about the consequences of specifying an encoding at
+% file opening
 %
 -define( default_encoding, utf8 ).
 
+% Generally not to be used, as directly writing encoded content is safer and
+% offers more control:
+%
 -define( default_encoding_opt, { encoding, ?default_encoding } ).

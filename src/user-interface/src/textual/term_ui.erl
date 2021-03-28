@@ -414,8 +414,7 @@ start_helper( _Options=[ log_file | T ], UIState ) ->
 
 start_helper( _Options=[ { log_file, Filename } | T ], UIState ) ->
 
-	LogFile = file_utils:open( Filename, [ write, exclusive,
-					  file_utils:get_default_encoding_option() ] ),
+	LogFile = file_utils:open( Filename, [ write, exclusive, raw ] ),
 
 	file_utils:write_ustring( LogFile, "Starting term UI.\n" ),
 

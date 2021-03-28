@@ -508,24 +508,26 @@ get_group_name() ->
 % Unicode support.
 
 
-% Returns our default, recommended encoding, for example when needing to open a
+% Returns the default recommended encoding, for example when needing to open a
 % file for writing.
 %
 % See the notes in the 'Regarding encodings and Unicode' section of the
-% file_utils module, notably about the consequences of using the 'raw' flag
-% and/or specifying an encoding at file opening.
+% file_utils module, notably about the consequences of specifying an encoding at
+% file opening (generally directly writing encoded content is safer and offers
+% more control).
 %
 -spec get_default_encoding() -> encoding().
 get_default_encoding() ->
 	?default_encoding.
 
 
-% Returns our default, recommended encoding option, for example when needing to
-% open a file for writing.
+% Returns the default recommended option encoding option, for example when
+% needing to open a file for writing - should such an option be used.
 %
 % See the notes in the 'Regarding encodings and Unicode' section of the
-% file_utils module, notably about the consequences of using the 'raw' flag
-% and/or specifying an encoding at file opening.
+% file_utils module, notably about the consequences of specifying an encoding at
+% file opening (generally directly writing encoded content is safer and offers
+% more control).
 %
 -spec get_default_encoding_option() -> encoding_option().
 get_default_encoding_option() ->
@@ -543,7 +545,7 @@ force_unicode_support() ->
 
 	% One may have to explicitly force the use of the Unicode encoding, as
 	% apparently a side-effect of running the VM with the -noinput option (which
-	% is often the case) is to switch the current encoding to latin1 (then at
+	% is often the case) is to switch the current encoding to Latin1 (then at
 	% least terminal outputs become scrambled):
 	%
 	ok = io:setopts( _Opts=[ EncodingOpt ] ).

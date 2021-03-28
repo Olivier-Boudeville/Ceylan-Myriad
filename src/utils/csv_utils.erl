@@ -778,8 +778,7 @@ write_file( Content, TargetFilePath, Separator ) ->
 
 	end,
 
-	WriteOpts = [ write, raw, delayed_write,
-				  file_utils:get_default_encoding_option() ],
+	WriteOpts = [ write, raw, delayed_write ],
 
 	File = file_utils:open( TargetFilePath, WriteOpts ),
 

@@ -191,8 +191,7 @@ start( _Options=[ log_file | T ], UIState ) ->
 
 start( _Options=[ { log_file, Filename } | T ], UIState ) ->
 
-	LogFile = file_utils:open( Filename, [ write, exclusive,
-					file_utils:get_default_encoding_option() ] ),
+	LogFile = file_utils:open( Filename, [ write, exclusive, raw ] ),
 
 	file_utils:write_ustring( LogFile, "Starting text UI.\n" ),
 	NewUIState = UIState#text_ui_state{ log_file=LogFile },
