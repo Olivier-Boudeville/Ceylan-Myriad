@@ -325,7 +325,7 @@ if [ $check_ssl -eq 0 ]; then
 
 	if [ ! -f "${ssl_header}" ]; then
 
-		echo "Warning: no SSL header found (no '${ssl_header}'). Continue the build nevertheless? (y/n) [n]" 1>&2
+		echo "Warning: no SSL header found (no '${ssl_header}'), probably that the crypto module will be lacking. Continue the build anyway? (y/n) [n]" 1>&2
 
 		read res
 
