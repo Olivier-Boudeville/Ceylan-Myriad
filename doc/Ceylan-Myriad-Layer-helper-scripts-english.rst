@@ -3,11 +3,11 @@
 .. _`helper scripts`:
 
 
-Myriad's Helper Scripts
-=======================
+Myriad's Helper Shell Scripts
+=============================
 
 
-A small set of scripts has been defined, in ``myriad/src/scripts``, to provide generic facilities useful in the context of Myriad [#]_.
+A small set of shell scripts has been defined, in ``myriad/src/scripts``, to provide generic facilities useful in the context of Myriad [#]_.
 
 .. [#] For a more general collection of (different) scripts, one may refer to `Ceylan-Hull <http://hull.esperide.org>`_, notably the `ones to facilitate development <http://hull.esperide.org/#for-development>`_.
 
