@@ -13,7 +13,8 @@
 .PHONY-myriad-explicit:  all all-pre-hook all-parallel-recurse all-recurse     \
 			  all-parse-transforms bootstrap-modules make-all-parse-transforms \
 			  build-debug rebuild test test-recurse doc-recurse build-tests    \
-			  launch install-all install-announce install-ebin install-bin     \
+			  launch shell                                                     \
+			  install-all install-announce install-ebin install-bin            \
 			  install-src install-include install-examples install-test        \
 			  install-doc info-install info-install-locations                  \
 			  info-install-content create-myriad-checkout                      \
@@ -259,6 +260,13 @@ launch: Emakefile
 	@echo "		Launching interpreter with default Ceylan settings"
 	@${ERL_PARAMETERIZED_LAUNCHER} $(NODE_NAMING) test_shell-$$USER $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
 
+
+# To have an Erlang shell with the right configuration to rely on Myriad (ex:
+# with regard to code path):
+#
+shell:
+	@echo "		Launching an Erlang shell enabled for $(PROJECT_NAME)"
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) shell-for-$$USER $(INTERNAL_OPTIONS)
 
 
 
