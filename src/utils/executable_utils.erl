@@ -43,7 +43,7 @@
 
 
 % Section for most usual commands:
--export([ generate_png_from_graph_file/2,
+-export([ can_generate_png_from_graph/0, generate_png_from_graph_file/2,
 		  generate_png_from_graph_file/3, display_png_file/1,
 		  browse_images_in/1, display_pdf_file/1, display_text_file/1,
 		  display_wide_text_file/2, get_ssh_mute_option/0,
@@ -126,11 +126,15 @@
 -export([ is_batch/0 ]).
 
 
+-define( dot_tool, "dot" ).
+
+
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
 -type width() :: text_utils:width().
 
+-type file_name() :: file_utils:file_name().
 -type file_path() :: file_utils:file_path().
 -type executable_name() :: ustring().
 -type executable_path() :: file_utils:executable_path().
@@ -206,7 +210,29 @@ find_executable( ExecutableName ) ->
 
 
 
+
 % Section for most usual commands.
+
+
+% Returns whether a PNG file can be generated from a graph file: either confirms
+% it, or returns an hint why not.
+%
+-spec can_generate_png_from_graph() -> 'true' | ustring().
+can_generate_png_from_graph() ->
+
+	Tool = ?dot_tool,
+
+	case lookup_executable( Tool ) of
+
+		false ->
+			text_utils:format( "no '~s' tool found (to be installed on many "
+				"distributions with the 'graphviz' package)", [ Tool ] );
+
+		_Path ->
+			true
+
+	end.
+
 
 
 % By default does not crash if dot outputs some warnings but does not yield an
@@ -223,9 +249,9 @@ generate_png_from_graph_file( PNGFilename, GraphFilename ) ->
 % Generates a PNG image file from specified graph file, that must respect the
 % dot (graphviz) syntax:
 %
-%  - PNGFilename the filename of the PNG to generate
+%  - PNGFilePath the filename of the PNG to generate
 %
-%  - GraphFilename the filename corresponding to the source graph
+%  - GraphFilePath the filename corresponding to the source graph
 %
 %  - HaltOnDotOutput tells whether the process should throw an exception should
 %  dot output an error or a warning
@@ -234,25 +260,25 @@ generate_png_from_graph_file( PNGFilename, GraphFilename ) ->
 %
 -spec generate_png_from_graph_file( file_path(), file_path(), boolean() ) ->
 			command_output().
-generate_png_from_graph_file( PNGFilename, GraphFilename,
+generate_png_from_graph_file( PNGFilePath, GraphFilePath,
 							  _HaltOnDotOutput=true ) ->
 
-	case execute_dot( PNGFilename, GraphFilename ) of
+	case execute_dot( PNGFilePath, GraphFilePath ) of
 
 		[] ->
 			% Most correct case:
 			[];
 
 		ErrorMessage ->
-			throw( { graph_generation_failed, PNGFilename, GraphFilename,
+			throw( { graph_generation_failed, PNGFilePath, GraphFilePath,
 					 ErrorMessage } )
 
 	end;
 
 % Any output remains available to the caller.
-generate_png_from_graph_file( PNGFilename, GraphFilename,
+generate_png_from_graph_file( PNGFilePath, GraphFilePath,
 							  _HaltOnDotOutput=false ) ->
-	execute_dot( PNGFilename, GraphFilename ).
+	execute_dot( PNGFilePath, GraphFilePath ).
 
 
 
@@ -893,17 +919,12 @@ is_batch() ->
 
 % Helper functions.
 
+-spec execute_dot( file_name(), file_name() ) -> command_output().
+execute_dot( PNGFilename, GraphFilename ) ->
 
-% Runs 'dot'.
-%
-% If lacking, install the package named 'graphviz' in most distributions.
-%
--spec execute_dot( file_path(), file_path() ) -> command_output().
-execute_dot( PNGFilePath, GraphFilePath ) ->
+	DotExec = find_executable( ?dot_tool ),
 
-	DotExec = find_executable( "dot" ),
-
-	Cmd = DotExec ++ " -o" ++ PNGFilePath ++ " -Tpng " ++ GraphFilePath,
+	Cmd = DotExec ++ " -o" ++ PNGFilename ++ " -Tpng " ++ GraphFilename,
 
 	% Dot might issue non-serious warnings:
 	case system_utils:run_executable( Cmd ) of
@@ -912,7 +933,7 @@ execute_dot( PNGFilePath, GraphFilePath ) ->
 			Output;
 
 		{ ExitCode, ErrorOutput } ->
-			throw( { rendering_failed, GraphFilePath, PNGFilePath, ExitCode,
+			throw( { rendering_failed, GraphFilename, PNGFilename, ExitCode,
 					 ErrorOutput } )
 
 	end.
