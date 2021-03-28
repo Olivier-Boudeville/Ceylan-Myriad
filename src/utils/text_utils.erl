@@ -115,7 +115,9 @@
 		  pad_string/2, pad_string_left/2, pad_string_right/2,
 		  is_string/1, is_non_empty_string/1, is_list_of_strings/1,
 		  is_bin_string/1,
-		  is_list_of_binaries/1 ]).
+		  is_list_of_binaries/1,
+		  to_unicode_list/1, to_unicode_list/2,
+		  to_unicode_binary/1, to_unicode_binary/2 ]).
 
 
 % Restructured-Text (RST) related functions.
@@ -186,6 +188,7 @@
 %
 % This is our new default.
 %
+% We mean [char()] where char() must be 0..16#10ffff:
 -type unicode_string() :: unicode:chardata().
 
 
@@ -772,6 +775,7 @@ binaries_to_string( ListOfBinaries ) ->
 								ustring().
 binaries_to_string( ListOfBinaries, IndentationOrBullet ) ->
 	Strings = binaries_to_strings( ListOfBinaries ),
+	%trace_utils:debug_fmt( "Obtained strings: ~p", [ Strings ] ),
 	strings_to_string( Strings, IndentationOrBullet ).
 
 
@@ -1171,8 +1175,6 @@ distance_to_short_string( Millimeters ) ->
 % flattened version of it and cannot fail (so that for example a badly formatted
 % log cannot crash anymore its emitter process).
 %
-% Tries to never crash.
-%
 % Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected
 % Unicode inputs resulting on crashes afterwards.
 %
@@ -1298,16 +1300,19 @@ interpret_faulty_format( FormatString, Values ) ->
 
 	%trace_utils:debug_fmt( "SplitSeqs = ~p.", [ SplitSeqs ] ),
 
-	% Rough (first character only), but sufficient for many cases:
-	Delimited = [ _AsStringWanted=[ hd( FullSeq ) ] || FullSeq <- SplitSeqs ],
+	% Rough, but sufficient for at least many cases:
+	Delimited = [ _AsStringWanted=[ strip_modifiers( FullSeq ) ]
+				  || FullSeq <- SplitSeqs ],
 
 	%trace_utils:debug_fmt( "Delimited = ~p", [ Delimited ] ),
 
-	case Delimited of
+	Diagnosis = case Delimited of
 
 		% Not even one control sequence, strange:
 		[] ->
-			" (no control sequence detected)";
+			% Avoid any infinite recursion:
+			io_lib:format( " (no control sequence detected in format "
+						   "string '~s')", [ FormatString ] );
 
 		Seqs ->
 			% We filter out "autonomous" control sequences, i.e. the ones that
@@ -1323,13 +1328,13 @@ interpret_faulty_format( FormatString, Values ) ->
 				0 ->
 					"; apparently the correct number of values "
 					"has been specified, so the types may not all match: "
-					++ match_types( VSeqs, Values, _Count=1 ) ++ ".";
+					++ match_types( VSeqs, Values, _Count=1 ); % ++ ".";
 
 				% Very common case:
 				1 ->
 					io_lib:format( " (expecting ~B values, got ~B, hence an "
-								   "extra value has been specified)",
-								   [ SeqCount, ValueCount ] );
+						"extra value has been specified)",
+						[ SeqCount, ValueCount ] );
 
 				TooMany when TooMany > 1 ->
 					io_lib:format( " (expecting ~B values, got ~B, hence ~B "
@@ -1349,8 +1354,22 @@ interpret_faulty_format( FormatString, Values ) ->
 
 			end
 
-	end.
+	end,
 
+	% To track origin (not always obvious):
+	Diagnosis ++ "; corresponding stack trace was: "
+		++ code_utils:interpret_shortened_stacktrace( _SkipLastElemCount=2 ).
+
+
+
+% Removes any leading modifier from a format sequence (ex: remove 't' from "ts",
+% as if having '~ts' specified, we want to retain only 's').
+%
+strip_modifiers( [ $t, Next | _T ] ) ->
+	Next;
+
+strip_modifiers( [ H | _T ] ) ->
+	H.
 
 
 % Tells whether specified control sequence (without its ~ prefix) requires a
@@ -1450,6 +1469,10 @@ match_types( _Seqs=[ _Seq="s" | Ts ], _Values=[ V | Tv ], Count ) ->
 					"sequence is 's'", [ Count, VString, VType ] )
 
 	end;
+
+% With an Unicode prefix that can be dropped here:
+match_types( _Seqs=[ _Seq="ts" | Ts ], Values, Count ) ->
+	match_types( [ "s" | Ts ], Values, Count );
 
 
 % Float:
@@ -1655,52 +1678,13 @@ get_formatted_line( CommentChar, Line ) ->
 % Unicode inputs resulting on crashes afterwards.
 %
 -spec bin_format( format_string(), [ term() ] ) -> bin_string().
-
-
--ifdef(exec_target_is_production).
-
-
 bin_format( FormatString, Values ) ->
 
-	String =
-		try
-
-			io_lib:format( FormatString, Values )
-
-		catch
-
-		_:_ ->
-
-				% Useful to obtain the stacktrace of a culprit or to check for
-				% silent errors:
-				%
-				%throw( { badly_formatted, FormatString, Values } )
-
-				Msg = io_lib:format( "[error: badly formatted string output] "
-					"Format: '~p', values: '~p'", [ FormatString, Values ] ),
-
-				% If wanting to be extra verbose:
-				%io:format( Msg ++ "~n", [] ),
-
-				Msg
-
-	end,
+	String = format( FormatString, Values ),
 
 	% No flattening needed here:
 	%erlang:list_to_binary( String ).
-	unicode:characters_to_binary( String ).
-
--else. % exec_target_is_production
-
-
-bin_format( FormatString, Values ) ->
-
-	Str = format( FormatString, Values ),
-
-	%erlang:list_to_binary( Str ).
-	unicode:characters_to_binary( Str ).
-
--endif. % exec_target_is_production
+	to_unicode_binary( String ).
 
 
 
@@ -1913,27 +1897,27 @@ are_all_starting_with( _C, _Strings, _Acc ) ->
 % Converts a plain (list-based) string into a binary.
 -spec string_to_binary( ustring() ) -> bin_string().
 string_to_binary( String ) when is_list( String ) ->
-	try
+	%try
+	%
+	%	% No specific encoding needed:
+	%	%Bin = erlang:list_to_binary( String ),
+	%
+	%	%io:format( "String '~ts' converted to binary '~ts'.",
+	%	%		   [ String, Bin ] ),
+	%
+	%	Bin
+	%
+	%catch Class:Exception ->
+	%
+	%	% Ex: might be triggered if String=[8364] ('euro' character), possibly
+	%	% if being fed with Unicode string.
+	%	%
+	%	throw( { invalid_string, String, Class, Exception } )
+	%
+	%end;
 
-		% No specific encoding needed:
-		%Bin = erlang:list_to_binary( String ),
-
-		% Yes, encodings must be managed:
-		Bin = unicode:characters_to_binary( String ),
-
-		%io:format( "String '~ts' converted to binary '~ts'.",
-		%		   [ String, Bin ] ),
-
-		Bin
-
-	catch Class:Exception ->
-
-		% Ex: might be triggered if String=[8364] ('euro' character), possibly
-		% if being fed with Unicode string.
-		%
-		throw( { invalid_string, String, Class, Exception } )
-
-	end;
+	% Yes, encodings must be managed:
+	to_unicode_binary( String );
 
 string_to_binary( Other ) ->
 	report_not_a_string( Other ).
@@ -1944,11 +1928,10 @@ string_to_binary( Other ) ->
 -spec binary_to_string( bin_string() ) -> ustring().
 binary_to_string( Binary ) when is_binary( Binary ) ->
 	%erlang:binary_to_list( Binary );
-	unicode:characters_to_list( Binary );
+	to_unicode_list( Binary );
 
 binary_to_string( Other ) ->
 	report_not_a_binary_string( Other ).
-
 
 
 
@@ -1974,16 +1957,17 @@ binaries_to_strings( BinaryList ) ->
 
 	% Order must be preserved:
 	%[ erlang:binary_to_list( B ) || B <- BinaryList ].
-	[ try
+	[ %try
+	  %
+	  %    erlang:binary_to_list( B )
+	  %
+	  %catch _:E ->
+	  %
+	  %   throw( { binary_conversion_failed, E, B } )
+	  %
+	  %end
 
-		  %erlang:binary_to_list( B )
-		  unicode:characters_to_list( B )
-
-	  catch _:E ->
-
-		  throw( { binary_conversion_failed, E, B } )
-
-	  end || B <- BinaryList ].
+	  to_unicode_list( B ) || B <- BinaryList ].
 
 
 
@@ -2487,6 +2471,7 @@ split_camel_case( _String=[ HeadChar | MoreChars ], Acc ) ->
 
 			% is_uppercase rertuns 'true' if a char is unchanged by 'to_upper',
 			% hence non-letter characters will be let in the second string:
+			%
 			IsLowercase = fun( C ) ->
 							  not is_uppercase( C )
 						  end,
@@ -2584,8 +2569,8 @@ filter( CharToRemove, _String=[ OtherChar | T ], Acc ) ->
 % Splits the specified string after specified prefix and returns the remaining
 % part, otherwise returns that the prefix was not found.
 %
-% Ex: split_after_prefix( "Foo", "Foobar is baz." ) returns "bar is baz.";
-% split_after_prefix( "ABC", "Foobar is baz." ) return 'no_prefix'.
+% Ex: split_after_prefix("Foo", "Foobar is baz.") returns "bar is baz.";
+% split_after_prefix("ABC", "Foobar is baz.") returns 'no_prefix'.
 %
 -spec split_after_prefix( ustring(), ustring() ) -> ustring() | 'no_prefix'.
 split_after_prefix( _Prefix=[], String ) ->
@@ -2603,8 +2588,8 @@ split_after_prefix( _Prefix, _String ) ->
 % where all the specified keywords (the keys of the translation table) have been
 % replaced with their associated value (the corresponding value in table).
 %
-% Ex: text_utils:update_with_keywords( "Hello word!", table:new(
-%  [ { "foo", "bar" }, { "ord", "orld" } ] ) ).
+% Ex: text_utils:update_with_keywords("Hello word!", table:new(
+%  [{"foo", "bar"}, {"ord", "orld"}])).
 %
 % See also: file_utils:update_with_keywords/3.
 %
@@ -3493,6 +3478,120 @@ aggregate_word( [ $_ | T ], Count, Acc ) ->
 aggregate_word( [ H | T ], Count, Acc ) ->
 	aggregate_word( T, Count-1, [ H | Acc ] ).
 
+
+
+
+
+% (exported helper, for re-use)
+-spec to_unicode_list( unicode:latin1_chardata() | unicode:chardata()
+					   | unicode:external_chardata() ) -> ustring().
+to_unicode_list( Data ) ->
+	to_unicode_list( Data, _CanFail=false ).
+
+
+% (exported helper, for re-use)
+-spec to_unicode_list( unicode:latin1_chardata() | unicode:chardata()
+					   | unicode:external_chardata(), boolean() ) -> ustring().
+to_unicode_list( Data, CanFail ) ->
+
+	% A binary_to_list/1 would not be sufficient here.
+
+	% Possibly a deep list:
+	case unicode:characters_to_list( Data ) of
+
+		Str when is_list( Str ) ->
+			Str;
+
+		{ error, Prefix, Remaining } ->
+			trace_bridge:error_fmt( "Cannot transform data '~p' into "
+				"a proper Unicode string:~nafter prefix '~s', "
+				"cannot convert '~p'.", [ Data, Prefix, Remaining ] ),
+			case CanFail of
+
+				true ->
+					throw( { improper_data_for_string, Data, Prefix,
+							 Remaining } );
+
+				false ->
+					% Best effort:
+					io_lib:format( "~ts## SUFFIX COULD NOT BE CONVERTED",
+								   [ Prefix ] )
+
+			end;
+
+		{ incomplete, Prefix, Bin } ->
+			trace_bridge:error_fmt( "Cannot transform data '~p' into "
+				"a proper Unicode string:~nafter prefix '~s', "
+				"'~p' is incomplete.", [ Data, Prefix, Bin ] ),
+			case CanFail of
+
+				true ->
+					throw( { incomplete_data_for_string, Data, Prefix, Bin } );
+
+				false ->
+					% Best effort:
+					io_lib:format( "~ts## A SUFFIX WAS LACKING", [ Prefix ] )
+
+			end
+
+	end.
+
+
+
+% (exported helper, for re-use)
+-spec to_unicode_binary( unicode:latin1_chardata() | unicode:chardata()
+						 | unicode:external_chardata() ) -> bin_string().
+to_unicode_binary( Data ) ->
+	to_unicode_binary( Data, _CanFail=false ).
+
+
+% (exported helper, for re-use)
+-spec to_unicode_binary( unicode:latin1_chardata() | unicode:chardata()
+			| unicode:external_chardata(), boolean() ) -> bin_string().
+to_unicode_binary( Data, CanFail ) ->
+
+	% A list_to_binary/1 would not be sufficient here.
+
+	% Possibly a deep list:
+	case unicode:characters_to_binary( Data ) of
+
+		Bin when is_binary( Bin ) ->
+			Bin;
+
+		{ error, Prefix, Remaining } ->
+			trace_bridge:error_fmt( "Cannot transform data '~p' into "
+				"a proper Unicode binary:~nafter prefix '~s', "
+				"cannot convert '~p'.", [ Data, Prefix, Remaining ] ),
+			case CanFail of
+
+				true ->
+					throw( { improper_data_for_binary, Data, Prefix,
+							 Remaining } );
+
+				false ->
+					% Best effort; hopefully relevant:
+					list_to_binary( io_lib:format(
+						"~ts## SUFFIX COULD NOT BE CONVERTED", [ Prefix ] ) )
+
+			end;
+
+		{ incomplete, Prefix, Bin } ->
+			trace_bridge:error_fmt( "Cannot transform data '~p' into "
+				"a proper Unicode binary:~nafter prefix '~s', "
+				"'~p' is incomplete.", [ Data, Prefix, Bin ] ),
+			case CanFail of
+
+				true ->
+					throw( { incomplete_data_for_binary, Data, Prefix, Bin } );
+
+				false ->
+					% Best effort; hopefully relevant:
+					list_to_binary( io_lib:format(
+						"~ts## A SUFFIX WAS LACKING", [ Prefix ] ) )
+
+			end
+
+	end.
 
 
 
