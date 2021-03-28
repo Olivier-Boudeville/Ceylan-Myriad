@@ -27,7 +27,6 @@
 
 
 % Gathering of various facilities for linear operations.
-%
 -module(linear).
 
 
@@ -56,49 +55,40 @@
 
 
 % Cartesian (floating-point) coordinates in a referential:
-%
 -type coordinate() :: float().
 
 
 % Cartesian integer coordinates in a referential:
-%
 -type integer_coordinate() :: integer().
 
 
 % Cartesian coordinates in a referential:
-%
 -type any_coordinate() :: number().
 
 
 
 % Usually multipliers involved in equations:
-%
 -type factor() :: float().
 
 
 % Usually multipliers involved in equations:
-%
 -type integer_factor() :: integer().
 
 
 % Usually multipliers involved in equations:
-%
 -type any_factor() :: number().
 
 
 
 % Distance (as floating-point) between two points (ex: to express lengths):
-%
 -type distance() :: float().
 
 
 % Integer distance between two points (ex: to express lengths):
-%
 -type integer_distance() :: integer().
 
 
 % Distance between two points (ex: to express lengths):
-%
 -type any_distance() :: number().
 
 
@@ -137,11 +127,8 @@
 -type any_square_distance() :: number().
 
 
-
 % Area of a surface:
-%
 -type area() :: float().
-
 
 
 -export_type([ coordinate/0, integer_coordinate/0, any_coordinate/0,
@@ -156,9 +143,12 @@
 -export([ coord_to_string/1 ] ).
 
 
+% Shorthands:
+-type ustring() :: text_utils:ustring().
+
+
 % Returns a textual representation of a coordinate.
-%
--spec coord_to_string( any_coordinate() ) -> string().
+-spec coord_to_string( any_coordinate() ) -> ustring().
 coord_to_string( Coord ) when is_float( Coord ) ->
 
 	% For testing:

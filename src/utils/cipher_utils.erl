@@ -101,7 +101,7 @@
 % modified accordingly; the input and output alphabet are the same, B, the set
 % of all bytes (i.e. integers in [0,255]), while the states are strictly
 % positive integers; the transition and output function are coalesced into a
-% single function: f( { CurrentState, InputByte } ) -> { NewState, OutputByte };
+% single function: f({ CurrentState, InputByte }) -> {NewState, OutputByte};
 % for more information: https://en.wikipedia.org/wiki/Mealy_machine
 
 
@@ -248,7 +248,7 @@ generate_key( KeyFilePath, Transforms ) ->
 		[ time_utils:get_textual_timestamp(), system_utils:get_user_name(),
 		  net_utils:localhost() ] ),
 
-	file_utils:write( KeyFile, Header ),
+	file_utils:write_ustring( KeyFile, Header ),
 
 	file_utils:write_ustring( KeyFile, "~n~w.~n~n", [ Transforms ] ),
 
@@ -264,7 +264,7 @@ generate_key( KeyFilePath, Transforms ) ->
 key_to_string( Key ) ->
 	text_utils:format( "Key composed of following ~B cipher(s): ~ts",
 		[ length( Key ), text_utils:strings_to_string(
-						   key_to_strings( Key, _Acc=[] ) ) ] ).
+							key_to_strings( Key, _Acc=[] ) ) ] ).
 
 
 % (helper)
@@ -803,7 +803,7 @@ extract_random_cipher( CipheredFilePath, TargetFilePath, Range )
   when Range > 1 ->
 
 	CipheredFile = file_utils:open( CipheredFilePath,
-							  _ReadOpts=[ read, raw, binary, read_ahead ] ),
+								_ReadOpts=[ read, raw, binary, read_ahead ] ),
 
 	TargetFile = file_utils:open( TargetFilePath,
 								  _WriteOpts=[ write, raw, delayed_write ] ),
@@ -1117,7 +1117,6 @@ fill_inner_array( Array, Index, FinalIndex, _Letters=[ L | T ], StateCount ) ->
 
 
 % Returns the inverse Mealy table of the specified one.
-%
 -spec compute_inverse_mealy_table( mealy_table() ) -> mealy_table().
 compute_inverse_mealy_table( Table ) ->
 
@@ -1195,9 +1194,8 @@ mealy_table_to_string( Table ) ->
 	AlphabetSize = array:size( array:get( 0, Table ) ),
 
 	text_utils:format( "Mealy table with ~B states and an alphabet of "
-					   "~B letters: ~ts",
-					   [ StateCount, AlphabetSize,
-						 text_utils:strings_to_string( StateStrings ) ] ).
+		"~B letters: ~ts", [ StateCount, AlphabetSize,
+							 text_utils:strings_to_string( StateStrings ) ] ).
 
 
 get_inner_info( _Table, _Index=FinalIndex, FinalIndex, Acc ) ->

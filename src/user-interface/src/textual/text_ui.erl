@@ -138,6 +138,7 @@
 
 % Shorthands:
 
+-type ustring() :: text_utils:ustring().
 -type format_string() :: text_utils:format_string().
 
 
@@ -193,7 +194,7 @@ start( _Options=[ { log_file, Filename } | T ], UIState ) ->
 	LogFile = file_utils:open( Filename, [ write, exclusive,
 					file_utils:get_default_encoding_option() ] ),
 
-	file_utils:write( LogFile, "Starting text UI.\n" ),
+	file_utils:write_ustring( LogFile, "Starting text UI.\n" ),
 	NewUIState = UIState#text_ui_state{ log_file=LogFile },
 	start( T, NewUIState );
 
@@ -848,7 +849,7 @@ stop( #text_ui_state{ log_file=undefined } ) ->
 
 
 stop( #text_ui_state{ log_file=LogFile } ) ->
-	file_utils:write( LogFile, "Stopping UI.\n" ),
+	file_utils:write_ustring( LogFile, "Stopping UI.\n" ),
 	file_utils:close( LogFile ),
 	stop_helper().
 
@@ -1037,13 +1038,13 @@ get_setting( SettingKey, #text_ui_state{ settings=SettingTable } ) ->
 
 
 % Returns a textual description of the (implicit) UI state.
--spec to_string() -> string().
+-spec to_string() -> ustring().
 to_string() ->
 	to_string( get_state() ).
 
 
 % Returns a textual description of the specified UI state.
--spec to_string( ui_state() ) -> string().
+-spec to_string( ui_state() ) -> ustring().
 to_string( #text_ui_state{ get_line_script=GetLineScript,
 						   log_console=LogConsole,
 						   log_file=LogFile,

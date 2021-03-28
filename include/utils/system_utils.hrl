@@ -46,7 +46,7 @@
 		core_count :: basic_utils:count(),
 
 		% The version string of this Erlang VM:
-		erlang_version :: string()
+		erlang_version :: text_utils:ustring()
 
 } ).
 

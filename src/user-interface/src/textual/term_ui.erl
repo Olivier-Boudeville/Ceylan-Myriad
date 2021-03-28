@@ -286,14 +286,14 @@
 % - none: no locale (defaulting to C)
 % - a user-specified one
 %
--type dialog_locale() :: 'default' | 'none' | string().
+-type dialog_locale() :: 'default' | 'none' | ustring().
 
 
 -record( term_ui_state, {
 
-		   %state_filename = ?default_state_path :: file_utils:file_path(),
+		   %state_filename = ?default_state_path :: file_path(),
 		   dialog_tool :: dialog_tool(),
-		   dialog_tool_path :: file_utils:file_name(),
+		   dialog_tool_path :: file_path(),
 		   locale = default :: dialog_locale(),
 
 		   % Generally little use of console outputs for this backend:
@@ -320,7 +320,9 @@
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
+-type format_string() :: text_utils:format_string().
 
+-type file_path() :: file_utils:file_path().
 
 
 % The key used by this module to store its state in the process dictionaty:
@@ -415,7 +417,7 @@ start_helper( _Options=[ { log_file, Filename } | T ], UIState ) ->
 	LogFile = file_utils:open( Filename, [ write, exclusive,
 					  file_utils:get_default_encoding_option() ] ),
 
-	file_utils:write( LogFile, "Starting term UI.\n" ),
+	file_utils:write_ustring( LogFile, "Starting term UI.\n" ),
 
 	NewUIState = UIState#term_ui_state{ log_file=LogFile },
 
@@ -434,8 +436,7 @@ start_helper( SingleElem, UIState ) ->
 
 
 % (helper)
--spec init_state_with_dimensions( dialog_tool(), file_utils:file_path() ) ->
-										ui_state().
+-spec init_state_with_dimensions( dialog_tool(), file_path() ) -> ui_state().
 init_state_with_dimensions( Tool=dialog, DialogPath ) ->
 
 	Cmd = text_utils:join( _Sep=" ",
@@ -565,7 +566,7 @@ display( Text ) ->
 
 
 % Displays specified formatted text, as a normal message.
--spec display( text_utils:format_string(), [ term() ] ) -> void().
+-spec display( format_string(), [ term() ] ) -> void().
 display( FormatString, Values ) ->
 	display( text_utils:format( FormatString, Values ) ).
 
@@ -638,7 +639,7 @@ display_warning( Text ) ->
 
 
 % Displays specified formatted text, as a warning message.
--spec display_warning( text_utils:format_string(), [ term() ] ) -> void().
+-spec display_warning( format_string(), [ term() ] ) -> void().
 display_warning( FormatString, Values ) ->
 	display_warning( text_utils:format( FormatString, Values ) ).
 
@@ -703,7 +704,7 @@ display_error( Text ) ->
 
 
 % Displays specified formatted text, as an error message.
--spec display_error( text_utils:format_string(), [ term() ] ) -> void().
+-spec display_error( format_string(), [ term() ] ) -> void().
 display_error( FormatString, Values ) ->
 	display_error( text_utils:format( FormatString, Values ) ).
 
@@ -967,7 +968,7 @@ ask_yes_no( Prompt, BinaryDefault, #term_ui_state{ dialog_tool_path=ToolPath,
 		get_dialog_settings_for_return_code( SettingTable ),
 
 	DialogString = text_utils:format( "~ts --yesno \"~ts\" ~ts",
-						  [ DefaultChoiceOpt, EscapedPrompt, SuffixString ] ),
+						[ DefaultChoiceOpt, EscapedPrompt, SuffixString ] ),
 
 	CmdStrings = [ ToolPath, SettingString, DialogString ],
 
@@ -1441,7 +1442,7 @@ trace( Message ) ->
 
 % Traces specified message, by displaying it, and possibly logging it.
 -spec trace( message(), ui_state() ) -> void();
-		   ( text_utils:format_string(), [ term() ] ) -> void().
+		   ( format_string(), [ term() ] ) -> void().
 trace( Message, UIState ) when is_record( UIState, term_ui_state ) ->
 
 	TraceMessage = "[trace] " ++ Message ++ "\n",
@@ -1520,7 +1521,7 @@ stop( UIState=#term_ui_state{ log_file=undefined } ) ->
 	stop_helper( UIState );
 
 stop( UIState=#term_ui_state{ log_file=LogFile } ) ->
-	file_utils:write( LogFile, "Stopping UI.\n" ),
+	file_utils:write_ustring( LogFile, "Stopping UI.\n" ),
 	file_utils:close( LogFile ),
 	stop_helper( UIState ).
 
@@ -1542,8 +1543,7 @@ stop_helper( _UIState ) ->
 
 
 % Tries to find a suitable dialog tool.
--spec lookup_dialog_tool() ->
-					maybe( { dialog_tool(), file_utils:file_path() } ).
+-spec lookup_dialog_tool() -> maybe( { dialog_tool(), file_path() } ).
 lookup_dialog_tool() ->
 
 	case executable_utils:lookup_executable( "dialog" ) of

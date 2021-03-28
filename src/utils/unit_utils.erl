@@ -317,7 +317,6 @@
 
 
 % The seven SI base units are:
-%
 % - meter, for length [m]
 % - kilogram, for mass [kg]; we use gram ([g]) instead, as no prefix is wanted
 % here
@@ -328,17 +327,16 @@
 % - candela, for luminous intensity [cd]
 %
 -type base_unit_symbol() :: 'm'
-						  |	'g'
-						  |	's'
-						  |	'A'
-						  |	'K'
-						  |	'mol'
-						  |	'cd'.
+						  | 'g'
+						  | 's'
+						  | 'A'
+						  | 'K'
+						  | 'mol'
+						  | 'cd'.
 
 
 
 % The derived base units currently supported:
-%
 % - hertz, for frequency [Hz]
 % - radian, for angle [rad]
 % - steradian, for solid angle [sr]
@@ -385,7 +383,6 @@
 
 
 % The units widely used in conjunction with SI units:
-%
 % - minute, for 60-second durations [min]
 % - hour, for 60-minute durations [h]
 % - litre, for 10^-3 m^3 volumes [L]
@@ -401,7 +398,6 @@
 
 
 % The special units, designating:
-%
 % - dimension-less quantities (ex: a count), [dimensionless] (most probably
 % clearer than m/m)
 % - currencies, either [$] (US Dollar) or [euros] (Euro)
@@ -483,7 +479,7 @@
 % Read the 'Management of Units' section of the technical manual of the Myriad
 % Layer for more information.
 %
--type unit_string() :: string().
+-type unit_string() :: ustring().
 
 
 % Binary counterpart of a unit string:
@@ -583,7 +579,7 @@
 
 
 % Unit component:
--type unit_component() :: string().
+-type unit_component() :: ustring().
 
 % The various supported kinds of component operators:
 %
@@ -618,8 +614,7 @@ meters_per_second_to_km_per_hour( M ) ->
 % number of milliseconds.
 %
 % Ex: "1 day, 12 hours, 31 minutes, 9 seconds and 235 milliseconds" translates
-% to { 1, 12, 31, 9, 235 } which, applied to this function, returns
-% milliseconds.
+% to {1, 12, 31, 9, 235} which, applied to this function, returns milliseconds.
 %
 -spec human_time_to_milliseconds( days(), hours(), minutes(), seconds(),
 								  milliseconds() ) -> milliseconds().
@@ -637,7 +632,7 @@ human_time_to_milliseconds( Day, Hour, Minute, Second, Millisecond ) ->
 % Returns a list of all metric prefixes, together with their symbol and order of
 % magnitude.
 %
-% For example: { 'kilo', "k", 3 } means that there are 10^3 grams in a kilogram,
+% For example: {'kilo', "k", 3} means that there are 10^3 grams in a kilogram,
 % and that this prefix is represented as "k".
 %
 % We can see that a symbol may span over multiple characters (ex : "da") and
@@ -681,8 +676,8 @@ get_prefix_information() ->
 
 % Information about a unit, i.e. its name, symbol and associated measure.
 %
--type unit_information() :: { unit_name(), unit_string_symbol(),
-							  unit_measure() }.
+-type unit_information() ::
+		{ unit_name(), unit_string_symbol(), unit_measure() }.
 
 
 % Returns information about all units, i.e. their name, symbol and corresponding
@@ -706,7 +701,7 @@ get_base_unit_information() ->
 	  { 'ampere',  "A",   "electric current"          },
 	  { 'kelvin',  "K",   "thermodynamic temperature" },
 	  { 'mole',    "mol", "amount of substance"       },
-	  { 'candela', "cd",  "luminous intensity"        }	].
+	  { 'candela', "cd",  "luminous intensity"        } ].
 
 
 
@@ -780,7 +775,7 @@ get_special_unit_information() ->
 -spec get_prefix_for_order( magnitude_order() ) -> metric_prefix().
 get_prefix_for_order( Order ) ->
 
-	% Tuple example: { 'milli', "m",  -3  }.
+	% Tuple example: {'milli', "m",  -3}.
 	case lists:keyfind( _K=Order, _Index=3, get_prefix_information() ) of
 
 		{ Prefix, _Symbol, Order } ->
@@ -839,7 +834,6 @@ get_order_for_prefix( PrefixSymbol ) ->
 % - a unit (ex: "kW.m/h^2")
 %
 % Knowing that:
-%
 % - a built-in unit is a base, derived, widely used, or special unit (ex: 'W')
 % - a prefixed unit is a built-in unit with a prefix (ex: 'kW')
 % - a unit component is a prefixed unit with an exponent (ex: 'km^-2')
@@ -944,7 +938,8 @@ parse_unit( UnitString ) ->
 	DivUnit = interpret_components( DivComponents, divide, MultUnit ),
 	%trace_utils:debug_fmt( "DivUnit = ~p", [ DivUnit ] ),
 
-	%trace_utils:debug_fmt( "Final unit: '~ts'", [ unit_to_string( DivUnit ) ] ),
+	%trace_utils:debug_fmt( "Final unit: '~ts'",
+	%                       [ unit_to_string( DivUnit ) ] ),
 
 	DivUnit.
 
@@ -983,8 +978,8 @@ parse_components( _UnitString=[ $/ | T ], MultList, DivList, AccString,
 				  AccKind ) ->
 
 	% Divide detected component fully accumulated:
-	{ NewMultList, NewDivList } = store_component_acc( AccString, AccKind,
-													   MultList, DivList ),
+	{ NewMultList, NewDivList } =
+		store_component_acc( AccString, AccKind, MultList, DivList ),
 
 	parse_components( T, NewMultList, NewDivList, _NewAccString="",
 					  _NewAccKind=divide );
@@ -1053,9 +1048,9 @@ integrate_component( ComponentString, Kind, CanonicalUnit ) ->
 	ActualOrder = BaseOrder * NormalisedUnitExponent,
 
 	%trace_utils:debug_fmt( "~n- for component '~ts': unit_symbol '~ts', "
-	%					   "actual_order=~B, normalised_unit_exponent=~B.",
-	%					   [ ComponentString, UnitAtomName, ActualOrder,
-	%						 NormalisedUnitExponent ] ),
+	%    "actual_order=~B, normalised_unit_exponent=~B.",
+	%    [ ComponentString, UnitAtomName, ActualOrder,
+	%      NormalisedUnitExponent ] ),
 
 	integrate_to_canonical_unit( UnitAtomName, ActualOrder,
 								 NormalisedUnitExponent, CanonicalUnit ).
@@ -1079,7 +1074,6 @@ parse_component( ComponentString ) ->
 
 
 		% Having no unit exponent set means 1:
-		%
 		[ PfxUnit ] ->
 			{ PfxUnit, _Exp=1 };
 
@@ -1128,8 +1122,8 @@ extract_prefix_and_unit( PrefixedUnitString ) ->
 	%
 	RevUnitSymbols = get_reversed_ordered_symbols_of_units(),
 
-	{ RevPrefixString, UnitName } = scan_for_unit_symbol( RevPrefixedUnitString,
-														  RevUnitSymbols ),
+	{ RevPrefixString, UnitName } =
+		scan_for_unit_symbol( RevPrefixedUnitString, RevUnitSymbols ),
 
 	PrefixString = lists:reverse( RevPrefixString ),
 
@@ -1188,7 +1182,7 @@ get_reversed_ordered_symbols_of_units() ->
 	  || { _UnitAtom, UnitSymbolString, _Measure } <- get_unit_information() ],
 
 	LongerFun = fun( AString, BString ) ->
-						length( AString ) > length( BString )
+					length( AString ) > length( BString )
 				end,
 
 	lists:sort( LongerFun, UnsortedList ).
@@ -1242,8 +1236,7 @@ integrate_to_canonical_unit( _UnitName=candela, ActualOrder, NormalisedExponent,
 % Then the derived units:
 
 integrate_to_canonical_unit( _UnitName=hertz, ActualOrder, NormalisedExponent,
-				CanonicalUnit=#canonical_unit{ second=SecondExp,
-											   order=Order } ) ->
+			CanonicalUnit=#canonical_unit{ second=SecondExp, order=Order } ) ->
 
 	% A Hertz is s^-1:
 	CanonicalUnit#canonical_unit{ second= SecondExp + NormalisedExponent * -1,
@@ -1541,7 +1534,7 @@ integrate_to_canonical_unit( _UnitName=hour, ActualOrder, NormalisedExponent,
 	% An hour is 3600 s:
 	CanonicalUnit#canonical_unit{ second= SecondExp + NormalisedExponent,
 								  order= Order + ActualOrder
-									 + NormalisedExponent * 3,
+									  + NormalisedExponent * 3,
 								  factor= Factor *
 										math:pow( 3.6, NormalisedExponent ) };
 

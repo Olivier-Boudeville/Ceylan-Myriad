@@ -214,6 +214,10 @@
 
 % Shorthands:
 
+-type bit_mask() :: basic_utils:bit_mask().
+
+-type ustring() :: text_utils:ustring().
+
 -type event_type() :: gui_event:event_type().
 -type event_source() :: gui_event:event_source().
 
@@ -413,7 +417,7 @@ to_wx_debug_level( _DebugLevel=life_cycle ) ->
 %
 % (helper)
 %
--spec window_style_to_bitmask( gui:window_style() ) -> basic_utils:bit_mask().
+-spec window_style_to_bitmask( gui:window_style() ) -> bit_mask().
 window_style_to_bitmask( StyleList ) when is_list( StyleList ) ->
 
 	lists:foldl( fun( S, Acc ) -> window_style_to_bitmask( S ) bor Acc end,
@@ -499,7 +503,7 @@ get_window_options( _Options=[ H | T ], Acc ) ->
 %
 % (helper)
 %
--spec frame_style_to_bitmask( gui:frame_style() ) -> basic_utils:bit_mask().
+-spec frame_style_to_bitmask( gui:frame_style() ) -> bit_mask().
 frame_style_to_bitmask( StyleList ) when is_list( StyleList ) ->
 
 	lists:foldl( fun( S, Acc ) -> frame_style_to_bitmask( S ) bor Acc end,
@@ -566,7 +570,7 @@ get_panel_options( Options ) ->
 %
 % (helper)
 %
--spec button_style_to_bitmask( gui:button_style() ) -> basic_utils:bit_mask().
+-spec button_style_to_bitmask( gui:button_style() ) -> bit_mask().
 button_style_to_bitmask( StyleList ) when is_list( StyleList ) ->
 
 	lists:foldl( fun( S, Acc ) -> button_style_to_bitmask( S ) bor Acc end,
@@ -626,7 +630,7 @@ to_wx_sizer_options(_Options=[ H | T ], Acc ) ->
 %
 % (helper)
 %
--spec sizer_flag_to_bitmask( gui:sizer_flag() ) -> basic_utils:bit_mask().
+-spec sizer_flag_to_bitmask( gui:sizer_flag() ) -> bit_mask().
 sizer_flag_to_bitmask( FlagList ) when is_list( FlagList ) ->
 
 	lists:foldl( fun( F, Acc ) -> sizer_flag_to_bitmask( F ) bor Acc end,
@@ -763,8 +767,6 @@ to_wx_orientation( horizontal ) ->
 
 
 
-
-
 %
 % Section for wx-related facilities.
 %
@@ -780,7 +782,7 @@ wx_id_to_window( Id ) ->
 
 
 % Returns a textual representation of the specified GUI object wx identifier.
--spec wx_id_to_string( wx_id() ) -> string().
+-spec wx_id_to_string( wx_id() ) -> ustring().
 wx_id_to_string( _Id=undefined ) ->
 	"no id defined";
 

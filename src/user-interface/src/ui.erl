@@ -39,7 +39,6 @@
 
 
 
-
 % Usage notes:
 %
 % By default, this module will do its best to select the most suitable backend,
@@ -162,6 +161,7 @@
 
 -type argument_table() :: shell_utils:argument_table().
 
+-type ustring() :: text_utils:ustring().
 -type format_string() :: text_utils:format_string().
 -type format_values() :: text_utils:format_values().
 
@@ -276,18 +276,14 @@ start( Options, ArgumentTable ) ->
 % Sets specified UI setting.
 -spec set( ui_setting_key(), ui_setting_value() ) -> void().
 set( SettingKey, SettingValue ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:set( SettingKey, SettingValue ).
 
 
 % Sets specified UI settings.
 -spec set( [ ui_setting_entry() ] ) -> void().
 set( SettingEntries ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:set( SettingEntries ).
 
 
@@ -295,9 +291,7 @@ set( SettingEntries ) ->
 % Unsets specified UI setting(s).
 -spec unset( [ ui_setting_key() ] | ui_setting_key() ) -> void().
 unset( SettingElement ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:unset( SettingElement ).
 
 
@@ -308,9 +302,7 @@ unset( SettingElement ) ->
 %
 -spec display( text() ) -> void().
 display( Text ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:display( Text ).
 
 
@@ -318,18 +310,14 @@ display( Text ) ->
 % Displays specified formatted text, as a normal message.
 -spec display( format_string(), format_values() ) -> void().
 display( FormatString, Values ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:display( FormatString, Values ).
 
 
 % Displays in-order the items of the specified list, as a normal message.
 -spec display_numbered_list( label(), [ text() ] ) -> void().
 display_numbered_list( Label, Lines ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:display_numbered_list( Label, Lines ).
 
 
@@ -340,18 +328,14 @@ display_numbered_list( Label, Lines ) ->
 %
 -spec display_warning( text() ) -> void().
 display_warning( Text ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:display( "Warning: " ++ Text ).
 
 
 % Displays specified formatted text, as a warning message.
 -spec display_warning( format_string(), format_values() ) -> void().
 display_warning( FormatString, Values ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:display( "Warning: " ++ FormatString, Values ).
 
 
@@ -359,9 +343,7 @@ display_warning( FormatString, Values ) ->
 % Displays specified text, as an error message.
 -spec display_error( text() ) -> void().
 display_error( Text ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:display_error( Text ).
 
 
@@ -369,9 +351,7 @@ display_error( Text ) ->
 % Displays specified formatted text, as an error message.
 -spec display_error( format_string(), format_values() ) -> void().
 display_error( FormatString, Values ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:display_error( FormatString, Values ).
 
 
@@ -379,9 +359,7 @@ display_error( FormatString, Values ) ->
 % Displays in-order the items of the specified list, as an error message.
 -spec display_error_numbered_list( label(), [ text() ] ) -> void().
 display_error_numbered_list( Label, Lines ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:display_error_numbered_list( Label, Lines ).
 
 
@@ -389,9 +367,7 @@ display_error_numbered_list( Label, Lines ) ->
 % Adds a default separation between previous and next content.
 -spec add_separation() -> void().
 add_separation() ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:add_separation().
 
 
@@ -403,9 +379,7 @@ add_separation() ->
 %
 -spec get_text( prompt() ) -> text().
 get_text( Prompt ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:get_text( Prompt ).
 
 
@@ -416,9 +390,7 @@ get_text( Prompt ) ->
 %
 -spec get_text( prompt(), ui_state() ) -> text().
 get_text( Prompt, UIState ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:get_text( Prompt, UIState ).
 
 
@@ -430,9 +402,7 @@ get_text( Prompt, UIState ) ->
 %
 -spec get_text_as_integer( prompt() ) -> text().
 get_text_as_integer( Prompt ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:get_text_as_integer( Prompt ).
 
 
@@ -443,9 +413,7 @@ get_text_as_integer( Prompt ) ->
 %
 -spec get_text_as_integer( prompt(), ui_state() ) -> text().
 get_text_as_integer( Prompt, UIState ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:get_text_as_integer( Prompt, UIState ).
 
 
@@ -458,9 +426,7 @@ get_text_as_integer( Prompt, UIState ) ->
 %
 -spec read_text_as_integer( prompt() ) -> text().
 read_text_as_integer( Prompt ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:read_text_as_integer( Prompt ).
 
 
@@ -472,9 +438,7 @@ read_text_as_integer( Prompt ) ->
 %
 -spec read_text_as_integer( prompt(), ui_state() ) -> text().
 read_text_as_integer( Prompt, UIState ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:read_text_as_integer( Prompt, UIState ).
 
 
@@ -486,9 +450,7 @@ read_text_as_integer( Prompt, UIState ) ->
 %
 -spec get_text_as_maybe_integer( prompt() ) -> maybe( text() ).
 get_text_as_maybe_integer( Prompt ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:get_text_as_maybe_integer( Prompt ).
 
 
@@ -500,9 +462,7 @@ get_text_as_maybe_integer( Prompt ) ->
 %
 -spec get_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( text() ).
 get_text_as_maybe_integer( Prompt, UIState ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:get_text_as_maybe_integer( Prompt, UIState ).
 
 
@@ -516,9 +476,7 @@ get_text_as_maybe_integer( Prompt, UIState ) ->
 %
 -spec read_text_as_maybe_integer( prompt() ) -> maybe( text() ).
 read_text_as_maybe_integer( Prompt ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:read_text_as_maybe_integer( Prompt ).
 
 
@@ -531,9 +489,7 @@ read_text_as_maybe_integer( Prompt ) ->
 %
 -spec read_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( text() ).
 read_text_as_maybe_integer( Prompt, UIState ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:read_text_as_maybe_integer( Prompt, UIState ).
 
 
@@ -551,9 +507,7 @@ ask_yes_no( Prompt ) ->
 %
 -spec ask_yes_no( prompt(), binary_choice() ) -> binary_choice().
 ask_yes_no( Prompt, BinaryDefault ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:ask_yes_no( Prompt, BinaryDefault ).
 
 
@@ -568,9 +522,7 @@ ask_yes_no( Prompt, BinaryDefault ) ->
 %
 -spec choose_designated_item( [ choice_element() ] ) -> choice_designator().
 choose_designated_item( Choices ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:choose_designated_item( Choices ).
 
 
@@ -586,9 +538,7 @@ choose_designated_item( Choices ) ->
 -spec choose_designated_item( prompt(), [ choice_element() ] ) ->
 									choice_designator().
 choose_designated_item( Prompt, Choices ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:choose_designated_item( Prompt, Choices ).
 
 
@@ -605,9 +555,7 @@ choose_designated_item( Prompt, Choices ) ->
 -spec choose_designated_item( prompt(), [ choice_element() ], ui_state() ) ->
 									choice_designator().
 choose_designated_item( Prompt, Choices, UIState ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:choose_designated_item( Prompt, Choices, UIState ).
 
 
@@ -625,9 +573,7 @@ choose_designated_item( Prompt, Choices, UIState ) ->
 -spec choose_designated_item_with_default( [ choice_element() ],
 				choice_designator() ) -> choice_designator().
 choose_designated_item_with_default( Choices, DefaultChoiceDesignator ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:choose_designated_item( Choices, DefaultChoiceDesignator ).
 
 
@@ -646,9 +592,7 @@ choose_designated_item_with_default( Choices, DefaultChoiceDesignator ) ->
 				choice_designator() ) -> choice_designator().
 choose_designated_item_with_default( Prompt, Choices,
 									 DefaultChoiceDesignator ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:choose_designated_item_with_default( Prompt, Choices,
 												  DefaultChoiceDesignator ).
 
@@ -667,10 +611,8 @@ choose_designated_item_with_default( Prompt, Choices,
 -spec choose_designated_item_with_default( prompt(), [ choice_element() ],
 				choice_designator(), ui_state() ) -> choice_designator().
 choose_designated_item_with_default( Prompt, Choices,
-							 DefaultChoiceDesignator, UIState ) ->
-
+								DefaultChoiceDesignator, UIState ) ->
 	UIModule = get_backend_name(),
-
 	UIModule:choose_designated_item_with_default( Prompt, Choices,
 								DefaultChoiceDesignator, UIState ).
 
@@ -686,9 +628,7 @@ choose_designated_item_with_default( Prompt, Choices,
 %
 -spec choose_numbered_item( [ choice_element() ] ) -> choice_index().
 choose_numbered_item( Choices ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:choose_numbered_item( Choices ).
 
 
@@ -704,9 +644,7 @@ choose_numbered_item( Choices ) ->
 									choice_index();
 						  ( prompt(), [ choice_element() ] ) -> choice_index().
 choose_numbered_item( Choices, UIState ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:choose_numbered_item( Choices, UIState ).
 
 
@@ -721,9 +659,7 @@ choose_numbered_item( Choices, UIState ) ->
 -spec choose_numbered_item( prompt(), [ choice_element() ], ui_state() ) ->
 									choice_index().
 choose_numbered_item( Prompt, Choices, UIState ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:choose_numbered_item( Prompt, Choices, UIState ).
 
 
@@ -738,9 +674,7 @@ choose_numbered_item( Prompt, Choices, UIState ) ->
 -spec choose_numbered_item_with_default( [ choice_element() ],
 										 choice_index() ) -> choice_index().
 choose_numbered_item_with_default( Choices, DefaultChoiceIndex ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:choose_numbered_item_with_default( Choices, DefaultChoiceIndex ).
 
 
@@ -761,9 +695,7 @@ choose_numbered_item_with_default( Choices, DefaultChoiceIndex ) ->
 										 maybe( choice_index() ) ) ->
 												choice_index().
 choose_numbered_item_with_default( Choices, DefaultChoiceIndex, UIState ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:choose_numbered_item_with_default( Choices, DefaultChoiceIndex,
 												UIState ).
 
@@ -780,7 +712,6 @@ choose_numbered_item_with_default( Choices, DefaultChoiceIndex, UIState ) ->
 			maybe( choice_index() ), ui_state() ) -> choice_index().
 choose_numbered_item_with_default( Prompt, Choices, DefaultChoiceIndex,
 								   UIState ) ->
-
 	UIModule = get_backend_name(),
 
 	UIModule:choose_numbered_item_with_default( Prompt, Choices,
@@ -791,9 +722,7 @@ choose_numbered_item_with_default( Prompt, Choices, DefaultChoiceIndex,
 % Sets the specified setting to the specified value, in the (implicit) UI state.
 -spec set_setting( ui_setting_key(), ui_setting_value() ) -> void().
 set_setting( SettingKey, SettingValue ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:set_setting( SettingKey, SettingValue ).
 
 
@@ -802,9 +731,7 @@ set_setting( SettingKey, SettingValue ) ->
 -spec set_setting( ui_setting_key(), ui_setting_value(), ui_state() ) ->
 							ui_state().
 set_setting( SettingKey, SettingValue, UIState ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:set_setting( SettingKey, SettingValue, UIState ).
 
 
@@ -814,9 +741,7 @@ set_setting( SettingKey, SettingValue, UIState ) ->
 %
 -spec set_settings( [ ui_setting_entry() ] ) -> void().
 set_settings( SettingEntries ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:set_settings( SettingEntries ).
 
 
@@ -826,9 +751,7 @@ set_settings( SettingEntries ) ->
 %
 -spec set_settings( [ ui_setting_entry() ], ui_state() ) -> ui_state().
 set_settings( SettingEntries, UIState ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:set_settings( SettingEntries, UIState ).
 
 
@@ -836,9 +759,7 @@ set_settings( SettingEntries, UIState ) ->
 % Unsets the specified setting, in the (implicit) UI state.
 -spec unset_setting( ui_setting_key() ) -> void().
 unset_setting( SettingKey ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:unset_setting( SettingKey ).
 
 
@@ -846,9 +767,7 @@ unset_setting( SettingKey ) ->
 % Unsets the specified settings, in the (implicit) UI state.
 -spec unset_settings( [ ui_setting_key() ] ) -> void().
 unset_settings( SettingKeys ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:unset_settings( SettingKeys ).
 
 
@@ -856,22 +775,15 @@ unset_settings( SettingKeys ) ->
 % Unsets the specified setting, in the specified UI state.
 -spec unset_setting( ui_setting_key(), ui_state() ) -> void().
 unset_setting( SettingKey, UIState ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:unset_setting( SettingKey, UIState ).
 
 
 % Unsets the specified settings, in the specified UI state.
 -spec unset_settings( [ ui_setting_key() ], ui_state() ) -> void().
 unset_settings( SettingKeys, UIState ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:unset_settings( SettingKeys, UIState ).
-
-
-
 
 
 % Returns the value (if any) associated, in the (implicit) UI state, to the
@@ -879,9 +791,7 @@ unset_settings( SettingKeys, UIState ) ->
 %
 -spec get_setting( ui_setting_key() ) -> maybe( ui_setting_value() ).
 get_setting( SettingKey ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:get_setting( SettingKey ).
 
 
@@ -891,11 +801,9 @@ get_setting( SettingKey ) ->
 
 
 % Traces specified status string, by displaying it, and possibly logging it.
--spec trace( string() ) -> void().
+-spec trace( ustring() ) -> void().
 trace( Message ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:trace( Message ).
 
 
@@ -903,9 +811,7 @@ trace( Message ) ->
 % Displays and logs specified formatted text.
 -spec trace( format_string(), [ term() ] ) -> void().
 trace( FormatString, Values ) ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:trace( FormatString, Values ).
 
 
@@ -913,9 +819,7 @@ trace( FormatString, Values ) ->
 % Clears the interface.
 -spec clear() -> void().
 clear() ->
-
 	UIModule = get_backend_name(),
-
 	UIModule:clear().
 
 
@@ -984,7 +888,7 @@ get_best_ui_backend() ->
 
 
 % Returns a textual description of the specified setting table.
--spec settings_to_string( setting_table() ) -> text_utils:ustring().
+-spec settings_to_string( setting_table() ) -> ustring().
 settings_to_string( SettingTable ) ->
 	case ?ui_table:size( SettingTable ) of
 

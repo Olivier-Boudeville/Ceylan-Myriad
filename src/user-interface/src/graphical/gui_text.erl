@@ -27,7 +27,6 @@
 
 
 % Gathering of various facilities for text rendering.
-%
 -module(gui_text).
 
 
@@ -64,18 +63,20 @@
 -include("gui_internal_defines.hrl").
 
 
+% Shorthands:
+-type ustring() :: text_utils:ustring().
+
+
 
 % Creates a static text, based on specified identifier and plain string.
-%
--spec create_static( gui:window(), string() ) -> static_text().
+-spec create_static( gui:window(), ustring() ) -> static_text().
 create_static( Parent, Label ) ->
 	create_static( _DefaultId=-1, Parent, Label ).
 
 
 
 % Creates a static text, based on specified identifier and plain string.
-%
--spec create_static( gui:id(), gui:window(), string() ) -> static_text().
+-spec create_static( gui:id(), gui:window(), ustring() ) -> static_text().
 create_static( Id, Parent, Label ) ->
 	create_static( Id, Parent, Label, _Options=[] ).
 
@@ -84,8 +85,8 @@ create_static( Id, Parent, Label ) ->
 % Creates a static text, based on specified identifier, plain string and
 % options.
 %
--spec create_static( gui:id(), gui:window(), string(), text_options() ) ->
-						   static_text().
+-spec create_static( gui:id(), gui:window(), ustring(), text_options() ) ->
+							static_text().
 create_static( Id, Parent, Label, Options ) ->
 
 	ActualOpts = get_text_options( Options ),
@@ -120,7 +121,7 @@ get_text_options( [ H | T ], Acc ) ->
 % (helper)
 %
 -spec style_option_to_bitmask( style_option() | [ style_option() ] ) ->
-									 basic_utils:bit_mask().
+										basic_utils:bit_mask().
 style_option_to_bitmask( StyleList ) when is_list( StyleList ) ->
 
 	lists:foldl( fun( S, Acc ) -> style_option_to_bitmask( S ) bor Acc end,

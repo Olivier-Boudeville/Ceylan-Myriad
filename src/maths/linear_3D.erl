@@ -43,29 +43,22 @@
 
 
 % Operations on points:
-%
 -export([ get_origin/0, are_close/2, is_within/3, is_within_square/3,
 		  square_distance/2, distance/2, cross_product/2, roundify/1,
 		  get_integer_center/2, get_center/2, translate/2 ]).
 
 
 % Operations on vectors:
-%
 -export([ vectorize/2, square_magnitude/1, magnitude/1, scale/2, make_unit/1,
 		  dot_product/2 ]).
 
 
-
 % Operations common to points and vectors:
-%
 -export([ add/1, add/2 ]).
 
 
-
 % Textual conversions:
-%
 -export([ to_string/1 ]).
-
 
 
 % For epsilon:
@@ -75,7 +68,11 @@
 % Shorthands:
 
 -type coordinate() :: linear:coordinate().
+-type integer_coordinate() :: linear:integer_coordinate().
 -type factor() :: linear:factor().
+-type distance() :: linear:distance().
+-type square_distance() :: linear:square_distance().
+-type ustring() :: text_utils:ustring().
 
 
 
@@ -91,16 +88,14 @@
 
 % A 3D point, with integer coordinates.
 %
--type integer_point() :: { linear:integer_coordinate(),
-						   linear:integer_coordinate(),
-						   linear:integer_coordinate() }.
+-type integer_point() ::
+		{ integer_coordinate(), integer_coordinate(), integer_coordinate() }.
 
 
 % Vectors could/should be aliased to points.
 
 
 % A 3D vector, with floating-point coordinates:
-%
 -type vector() :: { coordinate(), coordinate(), coordinate() }.
 
 
@@ -125,12 +120,10 @@
 -type unit_normal() :: unit_vector().
 
 
-
 % 3D vector, with integer coordinates:
-%
--type integer_vector() :: { linear:integer_coordinate(),
-							linear:integer_coordinate(),
-							linear:integer_coordinate() }.
+-type integer_vector() ::
+		{ integer_coordinate(),	integer_coordinate(), integer_coordinate() }.
+
 
 -export_type([ point/0, integer_point/0,
 			   vector/0, unit_vector/0, normal/0, unit_normal/0,
@@ -191,8 +184,7 @@
 
 
 -export_type([ mat3/0, canonical_matrix/0,
-			   cpt_mat3/0, compact_matrix/0,
-			   matrix/0 ]).
+			   cpt_mat3/0, compact_matrix/0, matrix/0 ]).
 
 
 
@@ -200,7 +192,6 @@
 
 
 % Various types of known 3D shapes (basic geometries):
-%
 -type shape() :: 'sphere' | 'right_cuboid'.
 
 
@@ -216,7 +207,6 @@
 
 
 % Returns the origin of this referential.
-%
 -spec get_origin() -> point().
 get_origin() ->
 	{ 0, 0, 0 }.
@@ -236,7 +226,7 @@ are_close( _P1={X1,Y1,Z1}, _P2={X2,Y2,Z2} ) ->
 % Tells whether point P is within a distance D from point C, using some margin
 % to overcome numerical errors.
 %
--spec is_within( point(), point(), linear:distance() ) -> boolean().
+-spec is_within( point(), point(), distance() ) -> boolean().
 is_within( P, C, D ) ->
 	% "Taylor series", square(epsilon) is negligible here:
 	square_distance( P, C ) < D * ( D + ?epsilon ).
@@ -244,9 +234,7 @@ is_within( P, C, D ) ->
 
 
 % Tells whether point P is within a square distance SquareD from point C.
-%
--spec is_within_square( point(), point(),
-						linear:square_distance() ) -> boolean().
+-spec is_within_square( point(), point(), square_distance() ) -> boolean().
 is_within_square( P, C, SquareD ) ->
 	square_distance( P, C ) < SquareD.
 
@@ -258,7 +246,7 @@ is_within_square( P, C, SquareD ) ->
 %
 % Could rely on vectorize and square_magnitude as well.
 %
--spec square_distance( point(), point() ) -> linear:square_distance().
+-spec square_distance( point(), point() ) -> square_distance().
 square_distance( {X1,Y1,Z1}, {X2,Y2,Z2} ) ->
 
 	XDiff = X2 - X1,
@@ -275,7 +263,7 @@ square_distance( {X1,Y1,Z1}, {X2,Y2,Z2} ) ->
 %
 % Could rely on vectorize and magnitude as well.
 %
--spec distance( point(), point() ) -> linear:distance().
+-spec distance( point(), point() ) -> distance().
 distance( P1, P2 ) ->
 	math:sqrt( square_distance( P1, P2 ) ).
 
@@ -301,7 +289,6 @@ roundify( {X,Y,Z} ) ->
 
 
 % Returns a vertex corresponding the middle of the two specified vertices.
-%
 -spec get_center( point(), point() ) -> point().
 get_center( {X1,Y1,Z1}, {X2,Y2,Z2} ) ->
 	{ (X1+X2)/2, (Y1+Y2)/2, (Z1+Z2)/2 }.
@@ -327,16 +314,13 @@ translate( _P={X,Y,Z}, _V={Vx,Vy,Vz} ) ->
 
 
 
-
 % Section for sets of points.
-
 
 
 % Vector section.
 
 
 % Returns a vector V made from the specified two points: V=P2-P1.
-%
 -spec vectorize( point(), point() ) -> vector().
 vectorize( _P1={X1,Y1,Z1}, _P2={X2,Y2,Z2} ) ->
 	{ X2-X1, Y2-Y1, Z2-Z1 }.
@@ -344,19 +328,15 @@ vectorize( _P1={X1,Y1,Z1}, _P2={X2,Y2,Z2} ) ->
 
 
 % Returns the square of the magnitude of the specified vector.
-%
--spec square_magnitude( vector() ) -> linear:square_distance().
+-spec square_magnitude( vector() ) -> square_distance().
 square_magnitude( _V={X,Y,Z} ) ->
 	X*X + Y*Y + Z*Z.
 
 
-
 % Returns the magnitude of the specified vector.
-%
--spec magnitude( vector() ) -> linear:distance().
+-spec magnitude( vector() ) -> distance().
 magnitude( V ) ->
 	math:sqrt( square_magnitude( V ) ).
-
 
 
 % Scales specified vector of specified factor.
@@ -367,11 +347,7 @@ scale( _V={X,Y,Z}, Factor ) ->
 
 
 
-
-
-
 % Returns the specified vector with an unit length (whose magnitude is thus 1).
-%
 -spec make_unit( vector() ) -> vector().
 make_unit( V ) ->
 	case magnitude( V ) of
@@ -387,7 +363,6 @@ make_unit( V ) ->
 
 
 % Returns the dot product of the two specified vectors: D = V1.V2.
-%
 -spec dot_product( vector(), vector() ) -> float().
 dot_product( _V1={X1,Y1,Z1}, _V2={X2,Y2,Z2} ) ->
 	X1*X2 + Y1*Y2 + Z1*Z2.
@@ -395,7 +370,6 @@ dot_product( _V1={X1,Y1,Z1}, _V2={X2,Y2,Z2} ) ->
 
 
 % Returns the sum of the two specified vectors: C = A + B.
-%
 -spec add( vector(), vector() ) -> vector().
 add( { X1, Y1, Z1 }, { X2, Y2, Z2 } ) ->
 	{ X1 + X2, Y1 + Y2, Z1 + Z2 }.
@@ -403,12 +377,11 @@ add( { X1, Y1, Z1 }, { X2, Y2, Z2 } ) ->
 
 
 % Returns the sum of all vectors in the specified list.
-%
 -spec add( [ vector() ] ) -> vector().
 add( Vectors ) ->
 
 	lists:foldl( fun( { X, Y, Z }, _AccVec={ Xa, Ya, Za } ) ->
-						 { X + Xa, Y + Ya, Z + Za }
+					{ X + Xa, Y + Ya, Z + Za }
 				 end,
 				 _InitialAcc={ 0, 0, 0 },
 				 _List=Vectors ).
@@ -421,7 +394,6 @@ add( Vectors ) ->
 
 
 % Returns a stringified representation of specified point or vector.
-%
--spec to_string( point() | vector() ) -> string().
+-spec to_string( point() | vector() ) -> ustring().
 to_string( { X, Y, Z } ) ->
 	io_lib:format( "{ ~w, ~w, ~w }", [ X, Y, Z ] ).

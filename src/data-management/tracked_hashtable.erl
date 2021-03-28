@@ -79,14 +79,16 @@
 % Same as hashtable:
 -export([ new/0, new/1, new_with_buckets/1, add_entry/3, add_entries/2,
 		  remove_entry/2, lookup_entry/2, has_entry/2, get_value/2,
-		  extract_entry/2, get_value_with_defaults/3, get_values/2, get_all_values/2,
+		  extract_entry/2, get_value_with_defaults/3, get_values/2,
+		  get_all_values/2,
 		  add_to_entry/3, subtract_from_entry/3, toggle_entry/2,
 		  append_to_entry/3, delete_from_entry/3, pop_from_entry/2,
 		  enumerate/1, select_entries/2, keys/1, values/1,
 		  is_empty/1, size/1,
 		  map_on_entries/2, map_on_values/2,
 		  fold_on_entries/3,
-		  merge/2, optimise/1, to_string/1, to_string/2, display/1, display/2 ]).
+		  merge/2, optimise/1, to_string/1, to_string/2,
+		  display/1, display/2 ]).
 
 
 -type key() :: hashtable:key().
@@ -118,10 +120,18 @@
 -compile( { no_auto_import, [ size/1 ] } ).
 
 
+% Shorthands:
+
+-type accumulator() :: basic_utils:accumulator().
+
+-type ustring() :: text_utils:ustring().
+-type entries() :: hashtable:entries().
+
+
 
 % Implementation notes:
 %
-% - each time the content of the internal hashtable is modified, the meta-data
+% Each time the content of the internal hashtable is modified, the meta-data
 % must be updated; if the number of entries stored in the table changed, the
 % load factor of this hashtable is updated; if it is not anymore between the
 % accepted bounds, the hashtable is then be optimised
@@ -164,8 +174,7 @@ new_with_buckets( _NumberOfBuckets ) ->
 % As the load factor of the tracked hashtable is verified at each additional
 % entry, the tracked hashtable is optimised as soon as possible.
 %
--spec add_entry( key(), value(), tracked_hashtable() )
-		-> tracked_hashtable().
+-spec add_entry( key(), value(), tracked_hashtable() ) -> tracked_hashtable().
 add_entry( Key, Value,
 		 _TrackedHashtable={ Hashtable, EntryCount, NumberOfBuckets } ) ->
 
@@ -217,8 +226,7 @@ add_entry( Key, Value,
 % If there is already a pair with this key, then its previous value will be
 % replaced by the specified one.
 %
--spec add_entries( hashtable:entries(), tracked_hashtable() )
-	-> tracked_hashtable().
+-spec add_entries( entries(), tracked_hashtable() )	-> tracked_hashtable().
 add_entries( EntryList,
 		_TrackedHashtable={ Hashtable, _EntryCount, NumberOfBuckets } ) ->
 
@@ -255,8 +263,7 @@ add_entries( EntryList,
 %
 % Does nothing if the key is not found.
 %
--spec remove_entry( key(), tracked_hashtable() ) ->
-						 tracked_hashtable().
+-spec remove_entry( key(), tracked_hashtable() ) -> tracked_hashtable().
 remove_entry( Key, TrackedHashtable={ Hashtable, EntryCount, BucketCount } ) ->
 
 	case hashtable:remove_diagnosed_entry( Key, Hashtable ) of
@@ -273,7 +280,7 @@ remove_entry( Key, TrackedHashtable={ Hashtable, EntryCount, BucketCount } ) ->
 					Entries = hashtable:enumerate( NewTable ),
 
 					OptimisedTable = hashtable:optimise_unconditionally(
-						 NewEntryCount, BucketCount, Entries, NewTable ),
+							NewEntryCount, BucketCount, Entries, NewTable ),
 
 					{ OptimisedTable, NewEntryCount,
 					  hashtable:get_bucket_count( OptimisedTable ) };
@@ -298,7 +305,7 @@ remove_entry( Key, TrackedHashtable={ Hashtable, EntryCount, BucketCount } ) ->
 % specified key.
 %
 -spec lookup_entry( key(), tracked_hashtable() ) ->
-	'key_not_found' | { 'value', value() }.
+							'key_not_found' | { 'value', value() }.
 lookup_entry( Key, _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 	hashtable:lookup_entry( Key, Hashtable ).
 
@@ -331,7 +338,7 @@ get_value( Key, _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 % raised.
 %
 -spec extract_entry( key(), tracked_hashtable() ) ->
-						  { value(), tracked_hashtable() }.
+							{ value(), tracked_hashtable() }.
 extract_entry( Key, _TrackedHashtable={ Hashtable, NEnt, NBuck } ) ->
 
 	{ Value, NewHashtable } = hashtable:extract_entry( Key, Hashtable ),
@@ -358,8 +365,8 @@ get_value_with_defaults( Key, DefaultValue,
 % The key/value pairs are expected to exist already, otherwise an exception is
 % raised.
 %
-% Ex: [ Color, Age, Mass ] = tracked_hashtable:get_values( [ color, age, mass ],
-%   MyTable ] )
+% Ex: [Color, Age, Mass] = tracked_hashtable:get_values([color, age, mass],
+% MyTable])
 %
 -spec get_values( [ key() ], tracked_hashtable() ) -> [ value() ].
 get_values( Keys, Hashtable ) ->
@@ -386,8 +393,8 @@ get_values( Keys, Hashtable ) ->
 % The key/value pairs are expected to exist already, otherwise an exception is
 % raised.
 %
-% Ex: [ Color=red, Age=23, Mass=51 ] = tracked_hashtable:get_all_values( [ color,
-%   age, mass ], [ { color, red }, { mass, 51 }, { age, 23 } ] )
+% Ex: [Color=red, Age=23, Mass=51 ] = tracked_hashtable:get_all_values(
+%                 [color, age, mass], [{color, red}, {mass, 51}, {age, 23}])
 %
 -spec get_all_values( [ key() ], tracked_hashtable() ) -> [ value() ].
 get_all_values( Keys, Hashtable ) ->
@@ -395,8 +402,8 @@ get_all_values( Keys, Hashtable ) ->
 	{ RevValues, FinalTable } = lists:foldl(
 		   fun( _Elem=Key, _Acc={ Values, Table } ) ->
 
-				   { Value, ShrunkTable } = extract_entry( Key, Table ),
-				   { [ Value | Values ], ShrunkTable }
+				{ Value, ShrunkTable } = extract_entry( Key, Table ),
+				{ [ Value | Values ], ShrunkTable }
 
 		   end,
 		   _Acc0={ [], Hashtable },
@@ -452,7 +459,7 @@ map_on_entries( Fun, _TrackedHashtable={ Hashtable, _NEnt, _NBuck }  ) ->
 % change.
 %
 -spec map_on_values( fun( ( value() ) -> value() ), tracked_hashtable() ) ->
-						  tracked_hashtable().
+							tracked_hashtable().
 map_on_values( Fun, _TrackedHashtable={ Hashtable, NEnt, NBuck }  ) ->
 
 	NewHashtable = hashtable:map_on_values( Fun, Hashtable ),
@@ -468,11 +475,8 @@ map_on_values( Fun, _TrackedHashtable={ Hashtable, NEnt, NBuck }  ) ->
 %
 % Returns the final accumulator.
 %
--spec fold_on_entries( fun( ( entry(), basic_utils:accumulator() )
-						  -> basic_utils:accumulator() ),
-					 basic_utils:accumulator(),
-					 tracked_hashtable() ) ->
-						   basic_utils:accumulator().
+-spec fold_on_entries( fun( ( entry(), accumulator() ) -> accumulator() ),
+					   accumulator(), tracked_hashtable() ) -> accumulator().
 fold_on_entries( Fun, InitialAcc, _TrackedHashtable={ Hashtable, _NEnt, _NBuck }
 			 ) ->
 	hashtable:fold_on_entries( Fun, InitialAcc, Hashtable ).
@@ -529,8 +533,8 @@ optimise( Hashtable ) ->
 % A case clause is triggered if the key did not exist; a bad arithm is triggered
 % if no addition can be performed on the associated value.
 %
--spec add_to_entry( key(), number(), tracked_hashtable() )
-	-> tracked_hashtable().
+-spec add_to_entry( key(), number(), tracked_hashtable() ) ->
+							tracked_hashtable().
 add_to_entry( Key, Value, TrackedHashtable ) ->
 	{ value, Number } = lookup_entry( Key, TrackedHashtable ),
 	add_entry( Key, Number+Value, TrackedHashtable ).
@@ -543,8 +547,8 @@ add_to_entry( Key, Value, TrackedHashtable ) ->
 % A case clause is triggered if the key did not exist, a bad arithm is triggered
 % if no subtraction can be performed on the associated value.
 %
--spec subtract_from_entry( key(), number(), tracked_hashtable() )
-	-> tracked_hashtable().
+-spec subtract_from_entry( key(), number(), tracked_hashtable() ) ->
+									tracked_hashtable().
 subtract_from_entry( Key, Value, TrackedHashtable ) ->
 	{ value, Number } = lookup_entry( Key, TrackedHashtable ),
 	add_entry( Key, Number-Value, TrackedHashtable ).
@@ -557,10 +561,9 @@ subtract_from_entry( Key, Value, TrackedHashtable ) ->
 % A case clause is triggered if the entry does not exist or it is not a boolean
 % value.
 %
--spec toggle_entry( key(), tracked_hashtable() )
-	-> tracked_hashtable().
-toggle_entry( Key, _TrackedHashtable={ Hashtable, EntryCount, NumberOfBuckets } )
-		->
+-spec toggle_entry( key(), tracked_hashtable() ) -> tracked_hashtable().
+toggle_entry( Key,
+			  _TrackedHashtable={ Hashtable, EntryCount, NumberOfBuckets } ) ->
 
 	{ hashtable:toggle_entry( Key, Hashtable ), EntryCount, NumberOfBuckets }.
 
@@ -574,8 +577,8 @@ toggle_entry( Key, _TrackedHashtable={ Hashtable, EntryCount, NumberOfBuckets } 
 % Note: no check is performed to ensure the value is a list indeed, and the
 % '[|]' operation will not complain if not.
 %
--spec append_to_entry( key(), term(), tracked_hashtable() )
-				   -> tracked_hashtable().
+-spec append_to_entry( key(), term(), tracked_hashtable() ) ->
+								tracked_hashtable().
 append_to_entry( Key, Element, TrackedHashtable ) ->
 	{ value, List } = lookup_entry( Key, TrackedHashtable ),
 	add_entry( Key, [ Element | List ], TrackedHashtable ).
@@ -588,8 +591,8 @@ append_to_entry( Key, Element, TrackedHashtable ) ->
 % A case clause is triggered if the entry did not exist.
 % If the element is not in the specified list, the list will not be modified.
 %
--spec delete_from_entry( key(), term(), tracked_hashtable() )
-	-> tracked_hashtable().
+-spec delete_from_entry( key(), term(), tracked_hashtable() ) ->
+								tracked_hashtable().
 delete_from_entry( Key, Element, TrackedHashtable ) ->
 	{ value, List } = lookup_entry( Key, TrackedHashtable ),
 	add_entry( Key, lists:delete( Element, List ), TrackedHashtable ).
@@ -600,7 +603,7 @@ delete_from_entry( Key, Element, TrackedHashtable ) ->
 % key, and returns a pair made of the popped head and the new hashtable.
 %
 -spec pop_from_entry( key(), tracked_hashtable() ) ->
-						  { term(), tracked_hashtable() }.
+							{ term(), tracked_hashtable() }.
 pop_from_entry( Key, TrackedHashtable ) ->
 	{ value, [ H | T ] } = lookup_entry( Key, TrackedHashtable ),
 	{ H, add_entry( Key, T, TrackedHashtable ) }.
@@ -611,7 +614,8 @@ pop_from_entry( Key, TrackedHashtable ) ->
 % hashtable.
 %
 % Ex: [ {K1,V1}, {K2,V2}, ... ].
--spec enumerate( tracked_hashtable() ) -> hashtable:entries().
+%
+-spec enumerate( tracked_hashtable() ) -> entries().
 enumerate( _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 	lists:flatten( tuple_to_list( Hashtable ) ).
 
@@ -620,14 +624,13 @@ enumerate( _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 % Returns a list of key/value pairs corresponding to the list of specified keys,
 % or throws a badmatch is at least one key is not found.
 %
--spec select_entries( [ key() ], tracked_hashtable() ) -> hashtable:entries().
+-spec select_entries( [ key() ], tracked_hashtable() ) -> entries().
 select_entries( Keys, _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 
 	hashtable:select_entries( Keys, Hashtable ).
 
 
 % Returns a list containing all the keys of this hashtable.
-%
 -spec keys( tracked_hashtable() ) -> [ key() ].
 keys( _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 	hashtable:keys( Hashtable ).
@@ -645,6 +648,7 @@ values( _TrackedHashtable={ Hashtable, _NEnt, _NBuck }  ) ->
 
 % Returns whether the specified hashtable is empty (not storing any key/value
 % pair).
+%
 -spec is_empty( tracked_hashtable() ) -> boolean().
 is_empty( _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 	hashtable:is_empty( Hashtable ).
@@ -661,7 +665,7 @@ size( _TrackedHashTable={ _Hashtable, NEntries, _NBuckets } ) ->
 
 
 % Returns a textual description of the specified hashtable.
--spec to_string( tracked_hashtable() ) -> string().
+-spec to_string( tracked_hashtable() ) -> ustring().
 to_string( _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 	hashtable:to_string( Hashtable ).
 
@@ -670,13 +674,13 @@ to_string( _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 % Returns a textual description of the specified hashtable, with specified
 % display setting.
 %
--spec to_string( tracked_hashtable(), 'internal' | 'user_friendly' ) -> string().
+-spec to_string( tracked_hashtable(), 'internal' | 'user_friendly' ) ->
+						ustring().
 to_string( _TrackedHashtable={ Hashtable, _NEnt, _NBuck }, DescriptionType ) ->
 	hashtable:to_string( Hashtable, DescriptionType ).
 
 
 % Displays the specified hashtable on the standard output.
-%
 -spec display( tracked_hashtable() ) -> void().
 display( _TrackedHashtable={ Hashtable, _ElementCount, NumberOfBuckets } ) ->
 
@@ -688,7 +692,7 @@ display( _TrackedHashtable={ Hashtable, _ElementCount, NumberOfBuckets } ) ->
 % Displays the specified hashtable on the standard output, with the specified
 % title on top.
 %
--spec display( string(), tracked_hashtable() ) -> void().
+-spec display( ustring(), tracked_hashtable() ) -> void().
 display( Title,
 		 _TrackedHashtable={ Hashtable, _ElementCount, NumberOfBuckets } ) ->
 

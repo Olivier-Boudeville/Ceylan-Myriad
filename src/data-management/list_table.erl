@@ -100,8 +100,8 @@
 
 
 % Shorthands:
-
 -type accumulator() :: basic_utils:accumulator().
+-type ustring() :: text_utils:ustring().
 
 
 
@@ -244,7 +244,7 @@ remove_entries( Keys, Table ) ->
 % value, Value }, with Value being the value associated to the specified key.
 %
 -spec lookup_entry( key(), list_table() ) ->
-						  'key_not_found' | { 'value', value() }.
+							'key_not_found' | { 'value', value() }.
 lookup_entry( Key, Table ) ->
 
 	case lists:keyfind( Key, _N=1, Table ) of
@@ -318,7 +318,7 @@ extract_entry( Key, Table ) ->
 % original table.
 %
 -spec extract_entry_with_defaults( key(), value(), list_table() ) ->
-									  { value(), list_table() }.
+										{ value(), list_table() }.
 extract_entry_with_defaults( Key, DefaultValue, Table ) ->
 
 	case has_entry( Key, Table ) of
@@ -378,8 +378,8 @@ get_value_with_defaults( Key, DefaultValue, Table ) ->
 % The key/value pairs are expected to exist already, otherwise an exception is
 % thrown.
 %
-% Ex: [ Color=red, Age=23, Mass=51 ] = list_table:get_values( [ color, age, mass
-% ], [ { color, red }, { mass, 51 }, { age, 23 } ] )
+% Ex: [Color=red, Age=23, Mass=51] = list_table:get_values([color, age, mass],
+%    [{color, red}, {mass,51}, {age, 23}])
 %
 -spec get_values( [ key() ], list_table() ) -> [ value() ].
 get_values( Keys, Table ) ->
@@ -388,8 +388,8 @@ get_values( Keys, Table ) ->
 
 				fun( _Elem=Key, _Acc={ Values, AccTable } ) ->
 
-					   { Value, ShrunkTable } = extract_entry( Key, AccTable ),
-					   { [ Value | Values ], ShrunkTable }
+					{ Value, ShrunkTable } = extract_entry( Key, AccTable ),
+					{ [ Value | Values ], ShrunkTable }
 
 				end,
 				_Acc0={ [], Table },
@@ -406,8 +406,8 @@ get_values( Keys, Table ) ->
 % The key/value pairs are expected to exist already, otherwise an exception is
 % thrown.
 %
-% Ex: [Color=red, Age=23, Mass=51] = list_table:get_all_values( [color, age,
-% mass], [ {color, red}, {mass, 51}, {age, 23} ] )
+% Ex: [Color=red, Age=23, Mass=51] = list_table:get_all_values(
+%    [color, age, mass], [{color, red}, {mass, 51}, {age, 23}])
 %
 -spec get_all_values( [ key() ], list_table() ) -> [ value() ].
 get_all_values( Keys, Table ) ->
@@ -512,8 +512,7 @@ add_to_entry( Key, Number, Table ) ->
 % An exception is thrown if the key does not exist, a bad arithm is triggered if
 % no subtraction can be performed on the associated value.
 %
--spec subtract_from_entry( key(), number(), list_table() ) ->
-								list_table().
+-spec subtract_from_entry( key(), number(), list_table() ) -> list_table().
 subtract_from_entry( Key, Number, Table ) ->
 
 	case lists:keytake( Key, _N=1, Table ) of
@@ -584,7 +583,7 @@ merge( TableBase, TableAdd ) ->
 % also to the '-l' and '--len' alias command-line options (hence associated to
 % the 'l' and '-len' keys).
 %
-% Ex: MergedTable = merge_in_key( '-length', [ 'l', '-len' ], MyTable ).
+% Ex: MergedTable = merge_in_key('-length', ['l', '-len'], MyTable).
 %
 -spec merge_in_key( key(), [ key() ], list_table() ) -> list_table().
 merge_in_key( _ReferenceKey, _AlternateKeys=[], Table ) ->
@@ -609,8 +608,8 @@ merge_in_key( ReferenceKey, _AlternateKeys=[ K | T ], Table ) ->
 % Performs a key merge, as merge_in_key/3, however not for a single reference
 % key / aliases entries, but for a set thereof.
 %
-% Ex: MergedTable = merge_in_keys( [ {'-length', [ 'l', '-len' ]},
-%       {'-help', [ 'h' ]} ], MyTable ).
+% Ex: MergedTable = merge_in_keys([{'-length', [ 'l', '-len' ]},
+%       {'-help', [ 'h' ]} ], MyTable).
 %
 -spec merge_in_keys( list_table(), list_table() ) -> list_table().
 merge_in_keys( _KeyAssoc=[], Table ) ->
@@ -630,8 +629,7 @@ merge_in_keys( _KeyAssoc=[ { K, AltKeys } | T ], Table ) ->
 % Note: no check is performed to ensure the value is a list indeed, and the
 % '[|]' operation will not complain if not.
 %
--spec append_to_existing_entry( key(), term(), list_table() ) ->
-										list_table().
+-spec append_to_existing_entry( key(), term(), list_table() ) -> list_table().
 append_to_existing_entry( Key, Element, Table ) ->
 
 	case lists:keytake( Key, _N=1, Table ) of
@@ -697,8 +695,7 @@ append_to_entry( Key, Element, Table ) ->
 % If that key does not already exist, it will be created and associated to a
 % list containing only the specified elements.
 %
--spec append_list_to_entry( key(), [ term() ], list_table() ) ->
-							   list_table().
+-spec append_list_to_entry( key(), [ term() ], list_table() ) -> list_table().
 append_list_to_entry( Key, Elements, Table ) ->
 
 	case lists:keytake( Key, _N=1, Table ) of
@@ -757,7 +754,7 @@ pop_from_entry( Key, Table ) ->
 % Returns a flat list whose elements are all the key/value pairs of the table,
 % in no particular order.
 %
-% Ex: [ {K1,V1}, {K2,V2}, ... ].
+% Ex: [{K1,V1}, {K2,V2}, ...].
 %
 -spec enumerate( list_table() ) -> entries().
 enumerate( Table ) ->
@@ -849,7 +846,7 @@ optimise( Table ) ->
 
 
 % Returns a textual description of the specified table.
--spec to_string( list_table() ) -> string().
+-spec to_string( list_table() ) -> ustring().
 to_string( Table ) ->
 	to_string( Table, user_friendly ).
 
@@ -861,7 +858,7 @@ to_string( Table ) ->
 % using 'user_friendly'), or quite raw and non-ellipsed (if using 'full'), or
 % even completly raw ('internal').
 %
--spec to_string( list_table(), hashtable:description_type() ) -> string().
+-spec to_string( list_table(), hashtable:description_type() ) -> ustring().
 to_string( Table, DescriptionType ) ->
 
 	case enumerate( Table ) of
@@ -896,7 +893,7 @@ to_string( Table, DescriptionType ) ->
 
 					lists:flatten( io_lib:format( "table with ~B entries: ~ts",
 						[ length( L ), text_utils:strings_to_string( Strs,
-												   ?default_bullet ) ] ) );
+													?default_bullet ) ] ) );
 
 				DescType when DescType =:= full orelse DescType =:= internal ->
 					Strs = [ text_utils:format( "~p: ~p", [ K, V ] )
@@ -932,6 +929,6 @@ display( Table ) ->
 % Displays the specified table on the standard output, with the specified title
 % on top.
 %
--spec display( string(), list_table() ) -> void().
+-spec display( ustring(), list_table() ) -> void().
 display( Title, Table ) ->
 	io:format( "~ts:~n~ts~n", [ Title, to_string( Table ) ] ).

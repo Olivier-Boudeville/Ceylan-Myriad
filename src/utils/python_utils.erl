@@ -74,6 +74,10 @@
 			   pep8_classname/0, pep8_class_module/0 ]).
 
 
+% Shorthands:
+-type ustring() :: text_utils:ustring().
+
+
 
 % Implementation notes:
 %
@@ -107,7 +111,6 @@ get_beam_directories_for_binding() ->
 
 
 % Requests specified interpreter to execute specified oneway.
-%
 -spec send_oneway( interpreter_pid(), title(), body() ) -> void().
 send_oneway( InterpreterPid, MessageTitle, MessageBody )
   when is_atom( MessageTitle ) ->
@@ -156,10 +159,9 @@ wait_for_request_result( InterpreterPid, MessageTitle )
 		% Catch-all clause for message receiving:
 		OtherMessage ->
 			trace_utils:error_fmt( "A message received from the Python "
-								   "interpreter driven by ~w, in answer "
-								   "to '~p', does not respect the expected "
-								   "format: ~p~n", [ InterpreterPid,
-											 MessageTitle, OtherMessage ] ),
+				"interpreter driven by ~w, in answer to '~p', does not "
+				"respect the expected format: ~p~n",
+				[ InterpreterPid, MessageTitle, OtherMessage ] ),
 			throw( { invalid_python_message_received, OtherMessage } )
 
 	end.
@@ -173,8 +175,8 @@ wait_for_request_result( InterpreterPid, MessageTitle )
 % Ex: 'Partner__TransportModel__MyFoobarExample' resulting in
 % 'partner.transport_model.my_foobar_example'.
 %
--spec pep8_class_to_pep8_module( pep8_classname() | string() ) ->
-									   pep8_class_module().
+-spec pep8_class_to_pep8_module( pep8_classname() | ustring() ) ->
+										pep8_class_module().
 pep8_class_to_pep8_module( Classname ) when is_atom( Classname ) ->
 	pep8_class_to_pep8_module( text_utils:atom_to_string( Classname ) );
 

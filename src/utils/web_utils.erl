@@ -88,16 +88,16 @@
 -type url_info() :: #url_info{}.
 
 
--type body() :: string() | binary().
+-type body() :: ustring() | binary().
 
 % Encoded in JSON:
 -type json_body() :: body().
 
--type content_type() :: string().
+-type content_type() :: ustring().
 
 
-% [ {field() :: string(), value() :: string()} ]:
--type old_style_options() :: [ { string(), string() } ].
+% [ {field() :: ustring(), value() :: ustring()} ]:
+-type old_style_options() :: [ { ustring(), ustring() } ].
 
 -type new_style_options() :: maps:map( bin_string(), bin_string() ).
 
@@ -137,7 +137,7 @@
 
 
 % Ex: "<p>Hello!</p>":
--type html_element() :: text_utils:any_string().
+-type html_element() :: any_string().
 
 
 % There are five classes defined by the standard for HTTP status codes:
@@ -212,6 +212,7 @@
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
+-type any_string() :: text_utils:any_string().
 
 -type any_directory_path() :: file_utils:any_directory_path().
 -type file_path() :: file_utils:file_path().
@@ -456,7 +457,7 @@ get_unordered_list( Elements ) ->
 
 
 % Escapes specified text, so that it can be included safely as an HTML content.
--spec escape_as_html_content( text_utils:any_string() ) -> html_element().
+-spec escape_as_html_content( any_string() ) -> html_element().
 escape_as_html_content( BinString ) when is_binary( BinString ) ->
 	escape_as_html_content( text_utils:binary_to_string( BinString ) );
 

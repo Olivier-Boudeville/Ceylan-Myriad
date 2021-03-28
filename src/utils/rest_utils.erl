@@ -74,21 +74,21 @@
 				| 'put' | 'patch' | 'delete'.
 
 % Content type (ex: "text/html;charset=utf-8", "application/json"):
--type content_type() :: string().
+-type content_type() :: ustring().
 
--type field() :: string().
+-type field() :: ustring().
 
--type value() :: string().
+-type value() :: ustring().
 
 -type header() :: { field(), value() }.
 
 -type headers() :: [ header() ].
 
--type body() :: binary() | string().
+-type body() :: binary() | ustring().
 
 -type status_code() :: pos_integer().
 
--type status_line() :: { string(), status_code(), string() }.
+-type status_line() :: { ustring(), status_code(), ustring() }.
 
 % Type of a request for httpc:request, see http://erlang.org/doc/man/httpc.html:
 -type request() :: { net_utils:url(), headers(), content_type(), body() }
@@ -120,6 +120,7 @@
 
 % Shorthands:
 
+-type ustring() :: text_utils:ustring().
 -type ssl_opt() :: web_utils:ssl_opt().
 
 
@@ -130,13 +131,11 @@ start() ->
 	start( no_ssl ).
 
 
-
 % Starts the REST service.
 -spec start( ssl_opt() ) -> json_utils:parser_state().
 start( Option ) ->
 	web_utils:start( Option ),
 	json_utils:start_parser().
-
 
 
 % Stops the REST service.
@@ -193,7 +192,7 @@ http_get( Request, Retries ) ->
 
 
 -spec http_get( request(), http_options(), options(), retries_count() ) ->
-					  term().
+						term().
 http_get( Request, HTTPOptions, Options, Retries ) ->
 	http_request( get, Request, HTTPOptions, Options, Retries ).
 
@@ -210,7 +209,7 @@ http_post( Request, Retries ) ->
 
 
 -spec http_post( request(), http_options(), options(), retries_count() ) ->
-					   term().
+						term().
 http_post( Request, HTTPOptions, Options, Retries ) ->
 	http_request( post, Request, HTTPOptions, Options, Retries ).
 
@@ -228,7 +227,7 @@ http_put( Request, Retries ) ->
 
 
 -spec http_put( request(), http_options(), options(), retries_count() ) ->
-					  term().
+						term().
 http_put( Request, HTTPOptions, Options, Retries ) ->
 	http_request( put, Request, HTTPOptions, Options, Retries ).
 
@@ -246,7 +245,7 @@ http_delete( Request, Retries ) ->
 
 
 -spec http_delete( request(), http_options(), options(), retries_count() ) ->
-						 term().
+							term().
 http_delete( Request, HTTPOptions, Options, Retries ) ->
 	http_request( delete, Request, HTTPOptions, Options, Retries ).
 
@@ -271,7 +270,7 @@ http_request( Method, Request ) ->
 
 
 -spec http_request( method(), request(), retries_count() ) ->
-						  { status_code(), term() }.
+							{ status_code(), term() }.
 http_request( Method, Request, Retries ) ->
 	http_request( Method, Request, _HTTPOpts=[], _Opts=[], Retries ).
 
@@ -344,7 +343,7 @@ http_request( Method, Request, HTTPOptions, Options, Retries ) ->
 % Converts the Body string of an error message, possibly with a stack trace, to
 % a text that is easier to understand, with actual carriage returns.
 %
--spec format_body_error( string() ) -> string().
+-spec format_body_error( ustring() ) -> ustring().
 format_body_error( ContentBody ) ->
 
 	%re:replace( ContentBody, "\\\\n", "\\n", [ global, {return, list} ] ).
@@ -395,8 +394,8 @@ return_checked_result( _Result={ StatusCode, Body } ) ->
 			throw( { http_redirection_error, RedirectionErrorCode,
 					 ReasonPhrase, RealBody } );
 
-		ClientErrorCode when ClientErrorCode >= 400 andalso
-							 ClientErrorCode < 500 ->
+		ClientErrorCode when ClientErrorCode >= 400
+							 andalso ClientErrorCode < 500 ->
 			throw( { http_client_error, ClientErrorCode, ReasonPhrase,
 					 RealBody } );
 

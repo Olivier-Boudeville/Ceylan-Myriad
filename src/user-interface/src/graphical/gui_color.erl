@@ -67,6 +67,9 @@
 				color/0 ]).
 
 
+% Shorthands:
+-type ustring() :: text_utils:ustring().
+
 
 
 % Color section.
@@ -78,8 +81,7 @@
 
 
 
-
-% Returns the list of known {color_name, ColorDefinition} associations.
+% Returns a list of known {color_name, ColorDefinition} associations.
 -spec get_colors() -> [ { color_by_name(), color_by_decimal() } ].
 get_colors() ->
 
@@ -244,7 +246,6 @@ get_color( none ) ->
 
 
 get_color( ColorName ) when is_atom( ColorName ) ->
-
 	case proplists:get_value( ColorName, get_colors() ) of
 
 		undefined ->
@@ -258,7 +259,7 @@ get_color( ColorName ) when is_atom( ColorName ) ->
 
 
 % Returns a stringified representation for gnuplot of the specified color.
--spec get_color_for_gnuplot( color() ) -> string().
+-spec get_color_for_gnuplot( color() ) -> ustring().
 get_color_for_gnuplot( _Color={ _R, _G, _B } ) ->
 	throw( hexadecimal_conversion_not_implemented );
 
@@ -274,6 +275,5 @@ get_random_colors( ColorCount ) ->
 	AllColors = get_colors(),
 
 	% Only keep RBG values, not the atom-based name:
-	%
 	[ RGB || { _Name, RGB } <-
 				list_utils:draw_elements_from( AllColors, ColorCount ) ].

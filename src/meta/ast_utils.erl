@@ -1008,7 +1008,7 @@ get_error_form( ErrorTerm, FormatErrorModule, Line ) ->
 % applied) and allows to convert error terms (that are, here, related to
 % parse-transforms) into textual messages that can be output by the build chain.
 %
--spec format_error( basic_utils:error_reason() ) -> string().
+-spec format_error( basic_utils:error_reason() ) -> ustring().
 format_error( ErrorTerm ) ->
 	% Of course this is just an example:
 	text_utils:format( "my ast_utils error reported: ~ts", [ ErrorTerm ] ).
