@@ -60,7 +60,7 @@
 
 		  is_directory/1, is_existing_directory/1,
 		  is_existing_directory_or_link/1,
-		  list_dir_elements/1,
+		  list_dir_elements/1, list_dir_elements/2,
 
 		  get_size/1, get_last_modification_time/1, touch/1,
 		  create_empty_file/1,
@@ -1198,7 +1198,7 @@ list_dir_elements( DirName, ImproperEncodingAction ) ->
 
 	end,
 
-	trace_utils:debug_fmt( "LocalDirElements: ~p", [ LocalDirElements ] ),
+	%trace_utils:debug_fmt( "LocalDirElements: ~p", [ LocalDirElements ] ),
 
 	classify_dir_elements( DirName, LocalDirElements, _Devices=[],
 		_Directories=[], _Files=[], _Symlinks=[], _OtherFiles=[],
@@ -3973,7 +3973,7 @@ write_ustring( File, Str ) ->
 
 	%trace_utils:debug_fmt( "Writing '~ts' to ~p.", [ Str, File ] ),
 
-	Bin = unicode:characters_to_binary( Str ),
+	Bin = text_utils:to_unicode_binary( Str ),
 	%trace_utils:debug_fmt( " - Bin: ~p.", [ Bin ] ),
 
 	%BinStr = io_lib:format("~ts", [ Bin ] ),
