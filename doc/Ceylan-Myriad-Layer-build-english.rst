@@ -23,6 +23,8 @@ This includes:
 
 - **examples** of minimal Make files, which mostly specify the relative base path and only refer to the generic variables and rules; see ``myriad/src/GNUmakefile`` as an example
 
+An example of this stacked structure is the ``Ceylan-WOOPER`` layer (see `official site <http://wooper.esperide.org>`_), which is directly built on top of ``Ceylan-Myriad`` (and itself a base layer for other layers and applications).
+
 These build facilities are designed to be enriched in turn by all layers above, which may add or override variables and rules.
 
-An example of this stacked structure is the ``Ceylan-WOOPER`` layer (see `official site <http://wooper.esperide.org>`_), which is directly built on top of ``Ceylan-Myriad`` (and itself a base layer for other layers and applications).
+As an example, the ``shell`` make target allows to spawn an Erlang shell that is readily able to use the current layer and all the ones below (including thus Myriad); this way direct, hassle-free interactive testing can be performed - which may prove quite convenient.
