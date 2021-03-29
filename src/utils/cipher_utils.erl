@@ -213,6 +213,13 @@
 -export_type([ cipher_transform/0, decipher_transform/0 ]).
 
 
+-define( bin_read_opts, [ read, raw, binary, read_ahead ] ).
+-define( bin_write_opts, [ write, raw, delayed_write ] ).
+
+
+-define( list_read_opts, [ read, raw, read_ahead ] ).
+-define( list_write_opts, [ write, raw, delayed_write ] ).
+
 
 % Shorthands:
 
@@ -241,6 +248,7 @@ generate_key( KeyFilePath, Transforms ) ->
 
 	end,
 
+	% No delayed_write wanted:
 	KeyFile = file_utils:open( KeyFilePath, _Opts=[ write, raw ] ),
 
 	Header = text_utils:format( "% Key generated on ~ts, by ~ts, on ~ts.~n",
@@ -652,11 +660,9 @@ apply_byte_level_cipher( SourceFilePath, CipheredFilePath, CipherFun,
 	% No need for intermediate buffering, thanks to read_ahead and
 	% delayed_write;
 
-	SourceFile = file_utils:open( SourceFilePath,
-								  _ReadOpts=[ read, raw, binary, read_ahead ] ),
+	SourceFile = file_utils:open( SourceFilePath, ?bin_read_opts ),
 
-	TargetFile = file_utils:open( CipheredFilePath,
-								  _WriteOpts=[ write, raw, delayed_write ] ),
+	TargetFile = file_utils:open( CipheredFilePath, ?bin_write_opts ),
 
 	apply_byte_level_helper( SourceFile, TargetFile, CipherFun,
 							 CipherInitialState ).
@@ -752,11 +758,9 @@ decompress_cipher( CipheredFilePath, TargetFilePath, CompressFormat ) ->
 insert_random_cipher( SourceFilePath, CipheredFilePath, Range )
   when Range > 1 ->
 
-	SourceFile = file_utils:open( SourceFilePath,
-								  _ReadOpts=[ read, raw, binary, read_ahead ] ),
+	SourceFile = file_utils:open( SourceFilePath, ?bin_read_opts ),
 
-	TargetFile = file_utils:open( CipheredFilePath,
-								  _WriteOpts=[ write, raw, delayed_write ] ),
+	TargetFile = file_utils:open( CipheredFilePath, ?bin_write_opts ),
 
 	_InsertedCount = insert_helper( SourceFile, TargetFile, Range, _Count=0 ).
 
@@ -801,14 +805,12 @@ insert_helper( SourceFile, TargetFile, Range, Count ) ->
 extract_random_cipher( CipheredFilePath, TargetFilePath, Range )
   when Range > 1 ->
 
-	CipheredFile = file_utils:open( CipheredFilePath,
-								_ReadOpts=[ read, raw, binary, read_ahead ] ),
+	CipheredFile = file_utils:open( CipheredFilePath, ?bin_read_opts ),
 
-	TargetFile = file_utils:open( TargetFilePath,
-								  _WriteOpts=[ write, raw, delayed_write ] ),
+	TargetFile = file_utils:open( TargetFilePath, ?bin_write_opts ),
 
-	_ExtractedCount = extract_helper( CipheredFile, TargetFile, Range,
-									 _Count=0 ).
+	_ExtractedCount =
+		extract_helper( CipheredFile, TargetFile, Range, _Count=0 ).
 
 	%trace_utils:debug_fmt( "extract_random_cipher: extracted ~B bytes.~n",
 	%		   [ ExtractedCount ] ).
@@ -863,11 +865,9 @@ extract_helper( CipheredFile, TargetFile, Range, Count ) ->
 shuffle_cipher( SourceFilePath, CipheredFilePath, Length, Direction ) ->
 
 	% Wanting to read lists, not binaries:
-	SourceFile = file_utils:open( SourceFilePath,
-								  _ReadOpts=[ read, raw, read_ahead ] ),
+	SourceFile = file_utils:open( SourceFilePath, ?list_read_opts ),
 
-	TargetFile = file_utils:open( CipheredFilePath,
-								  _WriteOpts=[ write, raw, delayed_write ] ),
+	TargetFile = file_utils:open( CipheredFilePath, ?list_write_opts ),
 
 	shuffle_helper( SourceFile, TargetFile, Length, Direction ).
 
@@ -905,11 +905,9 @@ shuffle_helper( SourceFile, TargetFile, Length, Direction ) ->
 xor_cipher( SourceFilePath, CipheredFilePath, XORList ) ->
 
 	% Wanting to read lists, not binaries:
-	SourceFile = file_utils:open( SourceFilePath,
-								  _ReadOpts=[ read, raw, read_ahead ] ),
+	SourceFile = file_utils:open( SourceFilePath, ?list_read_opts ),
 
-	TargetFile = file_utils:open( CipheredFilePath,
-								  _WriteOpts=[ write, raw, delayed_write ] ),
+	TargetFile = file_utils:open( CipheredFilePath, ?list_write_opts ),
 
 	XORRing = ring_utils:from_list( XORList ),
 
@@ -944,11 +942,9 @@ mealy_cipher( SourceFilePath, CipheredFilePath, InitialMealyState,
 			  MealyTable ) ->
 
 	% Wanting to read lists, not binaries:
-	SourceFile = file_utils:open( SourceFilePath,
-								  _ReadOpts=[ read, raw, read_ahead ] ),
+	SourceFile = file_utils:open( SourceFilePath, ?list_read_opts ),
 
-	TargetFile = file_utils:open( CipheredFilePath,
-								  _WriteOpts=[ write, raw, delayed_write ] ),
+	TargetFile = file_utils:open( CipheredFilePath, ?list_write_opts ),
 
 	mealy_helper( SourceFile, TargetFile, InitialMealyState, MealyTable ).
 
