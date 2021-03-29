@@ -46,7 +46,6 @@
 		 % issue.
 		 %
 		 % So now we write directly our own Unicode content:
-		 %[ write, raw, file_utils:get_default_encoding_option() ] ).
 		 [ write, raw ] ).
 
 
@@ -2422,7 +2421,6 @@ start_user_service( LogFilename ) ->
 	% No more file_utils:get_default_encoding_option(), refer to the
 	% merge_file_options define for an explanation:
 	%
-	%FileOpts = [ append, raw, file_utils:get_default_encoding_option() ],
 	FileOpts =  [ append, raw ],
 
 	LogFile = file_utils:open( LogFilename, FileOpts ),
