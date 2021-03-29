@@ -26,7 +26,7 @@ These helpers (code and typing information) are thematically aggregated in modul
 - a few **test-related facilities**, in ``test_facilities.erl``
 - services to handle more easily the (UNIX) shells and also the command-line arguments (a bit like ``getopt``), regardless of the interpreter or escript context (``shell_utils.erl``)
 
-- helpers for **file-based** I/O operations (``file_utils.erl``)
+- helpers for **file-based** I/O operations (``file_utils.erl``); note that we now recommend not to open files with a specific encoding being set, but instead to encode the content before any writing thereof; refer to the ``Regarding encodings and Unicode`` section in ``file_utils.erl`` for further information
 - services to manage identifiers of various sorts, including sortable ones (``id_utils.erl``)
 - a very basic support of **Finite State Machines** (``fsm_utils.{e,h}rl``)
 - a few operations defined on **graphs** (``graph_utils.erl``, with ``find_breadth_first/{3,4}``)
