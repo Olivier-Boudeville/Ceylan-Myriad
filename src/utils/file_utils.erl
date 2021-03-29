@@ -350,8 +350,8 @@
 % - their support may be specified when opening a file, notably for writing
 % (then a transparent encoding will be done), yet we found it safer and offering
 % more control not to request such an automatic encoding, and to secure it by
-% ourselves, either by relying write_ustring/{2,3} or by calling write/2 with
-% content that is already properly encoded (see
+% ourselves, either by relying on write_ustring/{2,3} or by calling write/2 with
+% a content that is already properly encoded (see
 % text_utils:to_unicode_{list,binary}/{1,2}); otherwise for example a double
 % encoding could easily happen or, possibly, the encoding may fail with little
 % control; so we tend now to stay away from get_default_encoding_option/0 for
