@@ -1581,7 +1581,7 @@ accept_remote_content( ListenSock, ActualTCPPort, LocalIP, TargetDir,
 	%trace_utils:debug_fmt( "Will write received file in '~ts'.",
 	%    [ FilePath ] ),
 
-	% Do not know the units for { delayed_write, Size, Delay }:
+	% Do not know the units for {delayed_write, Size, Delay}:
 	OutputFile = file_utils:open( FilePath,
 								  [ write, raw, binary, delayed_write ] ),
 
