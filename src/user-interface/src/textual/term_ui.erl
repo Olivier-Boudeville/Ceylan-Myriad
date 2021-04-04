@@ -281,9 +281,8 @@
 
 
 % The locale to be used by dialogs:
-%
 % - default: the current user one
-% - none: no locale (defaulting to C)
+% - none: no locale (defaulting to "C")
 % - a user-specified one
 %
 -type dialog_locale() :: 'default' | 'none' | ustring().
@@ -1069,7 +1068,7 @@ choose_designated_item( Prompt, Choices,
 
 	NumStrings = lists:foldl( fun( { Num, Text }, AccStrings ) ->
 									 [ text_utils:format( " ~B \"~ts\"",
-												[ Num, Text ] ) | AccStrings ]
+											[ Num, Text ] ) | AccStrings ]
 							  end,
 							  _Acc0=[],
 							  _List=NumChoices ),
@@ -1162,8 +1161,8 @@ choose_designated_item_with_default( Prompt, Choices,
 -spec choose_designated_item_with_default( prompt(), [ choice_element() ],
 				choice_designator(), ui_state() ) -> choice_designator().
 choose_designated_item_with_default( Prompt, Choices, DefaultChoiceDesignator,
-								 #term_ui_state{ dialog_tool_path=ToolPath,
-												 settings=SettingTable } ) ->
+								#term_ui_state{ dialog_tool_path=ToolPath,
+												settings=SettingTable } ) ->
 
 	% Using 'radio list' rather than 'menu', for the selectable initial, default
 	% choice.
