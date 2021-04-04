@@ -49,7 +49,10 @@
 -export([ term_to_string/1, term_to_string/2, term_to_string/3,
 		  term_to_bounded_string/1, term_to_bounded_string/2,
 		  term_to_binary/1,
-		  integer_to_string/1, integer_to_hexastring/1, atom_to_string/1,
+		  integer_to_string/1,
+		  integer_to_hexastring/1, integer_to_hexastring/2,
+		  hexastring_to_integer/1, hexastring_to_integer/2,
+		  atom_to_string/1,
 		  pid_to_string/1, pids_to_string/1,
 		  pid_to_short_string/1, pids_to_short_string/1, pid_to_core_string/1,
 		  record_to_string/1,
@@ -136,6 +139,8 @@
 % (as this module is by design not processed by the 'Myriad' parse transform):
 %
 -define( table, map_hashtable ).
+
+-define( hexa_prefix, "0x" ).
 
 
 % Type section.
@@ -427,11 +432,44 @@ integer_to_string( IntegerValue ) ->
 
 
 % Returns a plain string corresponding to the specified integer, in hexadecimal
-% form.
+% form, with a "0x" prefix.
 %
 -spec integer_to_hexastring( integer() ) -> ustring().
 integer_to_hexastring( IntegerValue ) ->
-	"0x" ++ erlang:integer_to_list( IntegerValue, _Base=16 ).
+	integer_to_hexastring( IntegerValue, _AddPrefix=true ).
+
+
+% Returns a plain string corresponding to the specified integer, in hexadecimal
+% form, with a "0x" prefix if requested.
+%
+-spec integer_to_hexastring( integer(), boolean() ) -> ustring().
+integer_to_hexastring( IntegerValue, _AddPrefix=true ) ->
+	?hexa_prefix ++ integer_to_hexastring( IntegerValue, _Prefix=false );
+
+integer_to_hexastring( IntegerValue, _AddPrefix=false ) ->
+	erlang:integer_to_list( IntegerValue, _Base=16 ).
+
+
+
+% Returns an integer corresponding to the specified string containing an
+% hexadecimal number as a text, and expected to start with a "0x" prefix.
+%
+-spec hexastring_to_integer( ustring() ) -> integer().
+hexastring_to_integer( HexaString ) ->
+	hexastring_to_integer( HexaString, _ExpectPrefix=true ).
+
+
+% Returns an integer corresponding to the specified string containing an
+% hexadecimal number as a text, expected to start with a "0x" prefix if
+% specified.
+%
+-spec hexastring_to_integer( ustring(), boolean() ) -> integer().
+hexastring_to_integer( ?hexa_prefix ++ HexaString, _ExpectPrefix=true ) ->
+	hexastring_to_integer( HexaString, _HasPrefix=false );
+
+hexastring_to_integer( HexaString, _ExpectPrefix=false ) ->
+	list_to_integer( HexaString, _Base=16).
+
 
 
 % Returns a plain string corresponding to the specified atom.
@@ -3285,7 +3323,7 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 % Returns the specified string, padded with spaces to specified width,
 % left-justified (i.e. with spaces added to the right).
 %
--spec pad_string( ustring(), integer() ) -> ustring().
+-spec pad_string( ustring(), width() ) -> ustring().
 pad_string( String, Width ) when length( String ) =< Width ->
 	pad_string_left( String, Width ).
 
@@ -3294,7 +3332,7 @@ pad_string( String, Width ) when length( String ) =< Width ->
 % Returns the specified string, padded with spaces to specified width,
 % left-justified (i.e. with spaces added to the right).
 %
--spec pad_string_left( ustring(), integer() ) -> ustring().
+-spec pad_string_left( ustring(), width() ) -> ustring().
 pad_string_left( String, Width ) when length( String ) =< Width ->
 
 	% Note that the settings listed in
@@ -3303,15 +3341,35 @@ pad_string_left( String, Width ) when length( String ) =< Width ->
 	% characters such as "e" with an accent are considered as two characters
 	% instead of one, leading to incorrect (insufficient) padding:
 	%
-	lists:flatten( io_lib:format( "~*.ts", [ -Width, String ] ) ).
+	lists:flatten( io_lib:format( "~*.ts", [ -Width, String ] ) );
+
+pad_string_left( String, Width ) ->
+
+	Len = length( String ),
+
+	trace_utils:error_fmt( "String '~s' already too long (~B characters) to be "
+		"padded (left) to width ~B.", [ String, Len, Width ] ),
+
+	throw( { string_to_pad_left_too_long, String, Len, Width } ).
+
 
 
 % Returns the specified string, padded with spaces to specified width,
 % right-justified (i.e. with spaces added to the left).
 %
--spec pad_string_right( ustring(), integer() ) -> ustring().
+-spec pad_string_right( ustring(), width() ) -> ustring().
 pad_string_right( String, Width ) when length( String ) =< Width ->
-	lists:flatten( io_lib:format( "~*.ts", [ Width, String ] ) ).
+	lists:flatten( io_lib:format( "~*.ts", [ Width, String ] ) );
+
+pad_string_right( String, Width ) ->
+
+	Len = length( String ),
+
+	trace_utils:error_fmt( "String '~s' already too long (~B characters) to be "
+		"padded (right) to width ~B.", [ String, Len, Width ] ),
+
+	throw( { string_to_pad_right_too_long, String, Len, Width } ).
+
 
 
 % Returns true iff the parameter is a (non-nested) string (actually a plain list
