@@ -33,7 +33,7 @@
 
 
 % Version of this tool:
--define( merge_script_version, "0.0.8" ).
+-define( merge_script_version, "0.0.9" ).
 
 
 % Centralised:
@@ -456,8 +456,8 @@ handle_neither_scan_options( ArgTable, BaseDir ) ->
 
 					end,
 
-					Msg = text_utils:format( "no operation specified~ts",
-											 [ AddedString ] ),
+					Msg = text_utils:format( "no sensible operation "
+						"specified~ts", [ AddedString ] ),
 
 					stop_on_option_error( Msg, 20 );
 
@@ -518,9 +518,7 @@ handle_scan_option( UserScanTreePath, ScanArgTable, BaseDir ) ->
 
 	terminate_analyzer_ring( AnalyzerRing, UserState ),
 
-	stop_user_service( UserState ),
-
-	basic_utils:stop( _ErrorCode=0 ).
+	stop_user_service( UserState ).
 
 
 
@@ -542,9 +540,7 @@ handle_rescan_option( UserRescanTreePath, RescanArgTable, BaseDir ) ->
 
 	terminate_analyzer_ring( AnalyzerRing, UserState ),
 
-	stop_user_service( UserState ),
-
-	basic_utils:stop( _ErrorCode=0 ).
+	stop_user_service( UserState ).
 
 
 handle_resync_option( UserResyncTreePath, ResyncArgTable, BaseDir ) ->
@@ -565,9 +561,7 @@ handle_resync_option( UserResyncTreePath, ResyncArgTable, BaseDir ) ->
 
 	terminate_analyzer_ring( AnalyzerRing, UserState ),
 
-	stop_user_service( UserState ),
-
-	basic_utils:stop( _ErrorCode=0 ).
+	stop_user_service( UserState ).
 
 
 
@@ -615,7 +609,7 @@ check_no_option_remains( ArgTable ) ->
 % Displays the usage of this service, and stops (with no error).
 display_usage() ->
 	ui:display( "~ts", [ get_usage() ] ),
-	basic_utils:stop( _ErrorCode=0 ).
+	stop( _StatusCode=0 ).
 
 
 
@@ -624,7 +618,18 @@ display_usage() ->
 %
 stop_on_option_error( Message, ErrorCode ) ->
 	ui:display_error( "Error, ~ts.~n~n~ts", [ Message, get_usage() ] ),
-	basic_utils:stop( ErrorCode ).
+	stop( ErrorCode ).
+
+
+
+% Stops whereas no user state is available.
+%
+% (helper)
+-spec stop( basic_utils:status_code() ) -> no_return().
+stop( StatusCode ) ->
+	%trace_utils:debug( "Direct stop." ),
+	ui:stop(),
+	basic_utils:stop( StatusCode ).
 
 
 
@@ -661,7 +666,7 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 				{ ignore, "Ignore this version, and recreate this file "
 				  "unconditionally" },
 				{ no_check, "Re-use this file as it is, with no specific "
-				  "check involved (not recommanded)" },
+				  "check involved (not recommended)" },
 				{ abort, "Abort scan" } ],
 
 			ReadTreeData = case ui:choose_designated_item( Prompt, Choices ) of
@@ -698,7 +703,7 @@ scan( TreePath, AnalyzerRing, UserState ) ->
 					ui:display( "Scan aborted, cache file (~ts) left "
 						"as it was.", [ CacheFilename ] ),
 					%trace_debug( "(requested to abort the scan)", UserState ),
-					basic_utils:stop( 0 )
+					stop_user_service( UserState )
 
 			end,
 
@@ -1509,7 +1514,7 @@ check_file_datas_for_sync( _FileDatas=[
 %
 % Note that the cache file is expected to exist.
 %
--spec read_cache_file( file_utils:file_path() ) -> tree_data().
+-spec read_cache_file( file_path() ) -> tree_data().
 read_cache_file( CacheFilename ) ->
 
 	[ _RootInfo={ root_dir, CachedTreePath } | FileInfos ] =
@@ -1587,9 +1592,7 @@ uniquify( TreePath ) ->
 	% We leave an up-to-date cache file:
 	write_cache_file( NewTreeData, UserState ),
 
-	stop_user_service( UserState ),
-
-	basic_utils:stop( 0 ).
+	stop_user_service( UserState ).
 
 
 
@@ -1768,11 +1771,21 @@ merge_trees( InputTree=#tree_data{ root=BinInputRootDir,
 			% As whole contents may have been removed (by design non-empty):
 			ToMerge = table:keys( RealInputEntries ),
 
-			Prompt = text_utils:format( "Exactly ~B contents are present in "
-				"the input tree ('~ts') but are lacking in the "
-				"reference one ('~ts').",
-				[ table:size( RealInputEntries ), BinInputRootDir,
-				  BinReferenceRootDir ] ),
+			Prompt = case table:size( RealInputEntries ) of
+
+				1 ->
+					text_utils:format( "A single content is present in the "
+						"input tree ('~ts') but not in the reference one "
+						"('~ts').", [ BinInputRootDir, BinReferenceRootDir ] );
+
+				ContentCount ->
+					text_utils:format( "Exactly ~B contents are present in "
+						"the input tree ('~ts') but are lacking in the "
+						"reference one ('~ts').",
+						[ ContentCount, BinInputRootDir,
+						  BinReferenceRootDir ] )
+
+			end,
 
 			Choices = [ { move, "Move this content as a whole (one file per "
 						  "content) in the reference tree" },
@@ -1805,9 +1818,10 @@ merge_trees( InputTree=#tree_data{ root=BinInputRootDir,
 							ReferenceEntries, TargetDir, UserState );
 
 				delete ->
+					% Would be surprising in a merge, and blindly:
 					DelPrompt = text_utils:format( "Really delete the ~B "
 						"unique content elements found in the input tree "
-						"('~ts')? ", [ LackingCount, BinInputRootDir ] ),
+						"('~ts')?", [ LackingCount, BinInputRootDir ] ),
 
 					case ui:ask_yes_no( DelPrompt ) of
 
@@ -1824,7 +1838,7 @@ merge_trees( InputTree=#tree_data{ root=BinInputRootDir,
 
 				C when C =:= abort orelse C =:= ui_cancel ->
 					trace_debug( "(requested to abort the merge)", UserState ),
-					basic_utils:stop( 0 )
+					stop( 0 )
 
 			end,
 
@@ -1868,7 +1882,7 @@ purge_helper( _SHA1s=[ SHA1 | T ], Entries, BinRootDir, RemoveCount,
 							   || FD <- FileDatas ],
 
 	trace_debug( "Removing following files corresponding to non-original "
-		"input content ~B: ~ts", [ SHA1,
+		"input content of SHA1 ~ts: ~ts", [ sha1_to_string( SHA1 ),
 			text_utils:strings_to_string( FilesToRemove ) ], UserState ),
 
 	file_utils:remove_files( FilesToRemove ),
@@ -2124,7 +2138,8 @@ cherry_pick_content_to_merge( ToPick, InputRootDir, InputEntries,
 	TotalContentCount = length( ToPick ),
 
 	PickChoices = [ { move, text_utils:format( "Move this content "
-						   "in reference tree (in '~ts')", [ ?merge_dir ] ) },
+								"in reference tree (in its '~ts' directory)",
+								[ ?merge_dir ] ) },
 					{ delete, "Delete this content" },
 					{ abort, "Abort merge" } ],
 
@@ -2166,7 +2181,7 @@ cherry_pick_files( ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 		[ SingleFileData=#file_data{ path=ContentPath } ] ->
 			FullContentPath = file_utils:join( InputRootDir, ContentPath ),
 			Prompt = text_utils:format( "Regarding the input content (solely) "
-				"in '~ts', shall we:", [ FullContentPath ] ),
+				"in the content tree '~ts', shall we:", [ FullContentPath ] ),
 
 			case ui:choose_designated_item_with_default( Prompt, PickChoices,
 					_DefaultChoiceDesignator=move ) of
@@ -2192,7 +2207,7 @@ cherry_pick_files( ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 					ui:display( "Merge (single) cherry-pick aborted." ),
 					%trace_debug( "(requested to abort the cherry-pick)",
 					%             UserState ),
-					basic_utils:stop( 0 )
+					stop_user_service( UserState )
 
 			end;
 
@@ -2225,7 +2240,7 @@ cherry_pick_files( ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 						0 ->
 							ui:display( "Merge cherry-pick aborted when "
 										"selecting the content to move." ),
-							basic_utils:stop( 0 );
+							stop_user_service( UserState );
 
 						I ->
 							I
@@ -2289,7 +2304,7 @@ cherry_pick_files( ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 					ui:display( "Merge (multiple) cherry-pick aborted." ),
 					%trace_debug( "(requested to abort the cherry-pick)",
 					%             UserState ),
-					basic_utils:stop( 0 )
+					stop_user_service( UserState )
 
 			end
 
@@ -2471,7 +2486,7 @@ trace_debug( FormatString, Values,
 
 
 
-% Stops user-related services.
+% Stops user-related services (normal exit).
 -spec stop_user_service( user_state() ) -> void().
 stop_user_service( UserState=#user_state{ log_file=LogFile } ) ->
 
@@ -2795,7 +2810,7 @@ write_cache_header( File ) ->
 		"% Structure of the cached file entries (sorted according to their "
 		"path):~n"
 		"% first the 'file_info' tag, then the SHA1 of the file of interest,~n"
-		"% its path (relative to the root entry), its size (in bytes) and ~n"
+		"% its path (relative to the root entry), its size (in bytes) and~n"
 		"% finally its POSIX timestamp.~n~n" ,
 		[ ScriptName, ?merge_script_version, net_utils:localhost(),
 		  time_utils:get_textual_timestamp() ] ).
@@ -2828,12 +2843,13 @@ write_tree_data( MergeFile, #tree_data{ root=BinRootDir,
 
 	% We do not write terms directly ("unconsult") anymore, as the Unicode paths
 	% would be translated as lists of numbers, which would not be convenient. So
-	% we write this content by ourselves instead:
+	% we write this content by ourselves instead now:
 	%
 	%file_utils:write_direct_terms( MergeFile, lists:reverse( EntryContent ) ).
 	file_utils:write_ustring( MergeFile, "{root_dir, \"~ts\"}.~n~n",
 							  [ RootDir ] ),
-	write_entries( MergeFile, lists:keysort( _Index=3, EntryContent ) ).
+
+	write_entries( MergeFile, lists:keysort( _PathIndex=2, EntryContent ) ).
 
 
 
@@ -2846,9 +2862,20 @@ write_entries( File,
 	% To check Unicode:
 	%io:format("Writing '~ts'.~n", [ RelativePath ] ),
 
+	% For easier interpretation, we now store SHA1 as hexadecimal in strings
+	% instead of direct integers:
+
+	% If ever some SHA1 were shorter than 40 (+3 for the quotes and the comma)
+	% characters (alignment for readability):
+	%
+	TargetSHA1Width = 43,
+
+	SHA1Str = text_utils:pad_string_left( text_utils:format( "\"~ts\",",
+				[ sha1_to_string( SHA1 ) ] ), TargetSHA1Width ),
+
 	% 'file_info', to better separate from 'file_data':
-	file_utils:write_ustring( File, "{file_info, ~B, \"~ts\", ~B, ~B}.~n",
-							  [ SHA1, RelativePath, Size, Timestamp ] ),
+	file_utils:write_ustring( File, "{file_info, ~ts \"~ts\", ~B, ~B}.~n",
+		[ SHA1Str, RelativePath, Size, Timestamp ] ),
 
 	write_entries( File, T ).
 
@@ -2904,7 +2931,7 @@ scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 	% Not wanting to index our own files (if any already exists):
 	FilteredFiles = lists:delete( ?merge_cache_filename, AllFiles ),
 
-	trace_debug( "Found ~B files in filesystem: ~ts",
+	trace_debug( "Found ~B regular files in filesystem: ~ts",
 		[ length( FilteredFiles ),
 		  text_utils:strings_to_string( FilteredFiles ) ], UserState ),
 
@@ -2923,7 +2950,7 @@ scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 scan_files( Files, AbsTreePath, AnalyzerRing, UserState ) ->
 
 	InitialTreeData = #tree_data{
-			 root=text_utils:string_to_binary( AbsTreePath ) },
+				root=text_utils:string_to_binary( AbsTreePath ) },
 
 	scan_files( Files, InitialTreeData, AnalyzerRing, _WaitedCount=0,
 				UserState ).
@@ -3199,14 +3226,14 @@ manage_duplicates( EntryTable, BinRootDir, UserState ) ->
 		TotalDupCaseCount ->
 
 			Prompt = text_utils:format( "~B case(s) of content duplication "
-				"detected in '~ts'.~nShall we:~n",
+				"detected in tree '~ts'.~n~nShall we:~n",
 				[ TotalDupCaseCount, BinRootDir ] ),
 
 			Choices = [
-				{ resolve, "Resolve them one by one" },
-				{ auto, "Elect automatically a single reference file for "
-				  "each of these contents, and transform its duplicates "
-				  "into symlinks pointing to it" },
+				{ resolve, "Resolve duplication cases one by one" },
+				{ auto, "Elect automatically (based on shortest path) "
+				  "for each case a reference file to which the other "
+				  "duplicates are symlinked" },
 				{ abort, "Abort deduplication" } ],
 
 			case ui:choose_designated_item( Prompt, Choices ) of
@@ -3223,7 +3250,7 @@ manage_duplicates( EntryTable, BinRootDir, UserState ) ->
 					ui:display( "Deduplication aborted." ),
 					trace_debug( "(requested to abort the deduplication)",
 								 UserState ),
-					basic_utils:stop( 0 )
+					stop_user_service( UserState )
 
 			end
 
@@ -3400,6 +3427,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 			Lbl = text_utils:format( "Following ~B files have the exact same "
 				"content (and thus size, of ~ts) and all start with the same "
 				"prefix, '~ts' (omitted below)", [ Count, SizeString, Prfx ] ),
+
 			{ Lbl, Prfx, TrimmedPaths }
 
 	end,
@@ -3413,22 +3441,52 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 	FullPrompt = Prompt ++ DuplicateString,
 
-	Choices = [ { elect, "Elect a reference file, replacing each other by "
-				  "a symbolic link pointing to it" },
-				{ keep, "Keep only one of these files" },
+	Choices = [ { auto_symlink, "Auto-select shortest path as "
+				  "reference, replace other duplicates by symlinks" },
+				{ auto_remove, "Auto-select, and just remove duplicates "
+				  "(no symlink created)" },
+				{ elect, "Elect a reference file, replace other duplicates "
+				  "by symlinks" },
+				{ keep, "Elect a reference file, remove other duplicates" },
 				{ leave, "Leave them as they are" },
 				{ delete, "Delete them as a whole" },
 				{ abort, "Abort" } ],
 
 	SelectedChoice = ui:choose_designated_item(
-					   text_utils:format( "~ts~nChoices are:", [ FullPrompt ] ),
-					   Choices ),
+		text_utils:format( "~ts~n~nDeduplication choices are:",
+						   [ FullPrompt ] ),
+		Choices ),
 
 	ui:unset_setting( 'title' ),
 
 	%trace_debug( "Selected choice: ~p", [ SelectedChoice ], UserState ),
 
 	case SelectedChoice of
+
+		auto_symlink ->
+			KeptFilePath = keep_shortest_path( Prefix, ShortenPaths, BinRootDir,
+										   _CreateSymlinks=true, UserState ),
+
+			trace_debug( "Kept only auto-selected reference file '~ts', "
+				"symlinks created.", [ KeptFilePath ], UserState ),
+
+			%trace_bridge:debug_fmt( "Entries to scan: ~p", [ FileEntries ] ),
+
+			% As this is a list of file_data:
+			[ find_data_entry_for( KeptFilePath, FileEntries ) ];
+
+
+		auto_remove ->
+			KeptFilePath = keep_shortest_path( Prefix, ShortenPaths, BinRootDir,
+										   _CreateSymlinks=false, UserState ),
+
+			trace_debug( "Kept only auto-selected reference file '~ts', "
+				"no symlink created.", [ KeptFilePath ], UserState ),
+
+			%trace_bridge:debug_fmt( "Entries to scan: ~p", [ FileEntries ] ),
+
+			% As this is a list of file_data:
+			[ find_data_entry_for( KeptFilePath, FileEntries ) ];
 
 		elect ->
 			% Symlinks ignored:
@@ -3443,8 +3501,8 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 			KeptFilePath = keep_only_one( Prefix, ShortenPaths, PathStrings,
 										  BinRootDir, UserState ),
 
-			trace_debug( "Kept only reference file '~ts'", [ KeptFilePath ],
-						 UserState ),
+			trace_debug( "Kept only selected reference file '~ts'",
+						 [ KeptFilePath ], UserState ),
 
 			%trace_bridge:debug_fmt( "Entries to scan: ~p", [ FileEntries ] ),
 
@@ -3472,7 +3530,8 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 		delete ->
 			DelPrompt = text_utils:format( "Really delete all ~B "
-				"elements found in '~ts' corresponding to that same content? "
+				"elements found in '~ts' corresponding to that same content?~n"
+				"(this content would thus be lost by that tree)"
 				"~n~nFollowing files would then be removed~ts" ,
 				[ Count, BinRootDir, DuplicateString ] ),
 
@@ -3497,7 +3556,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 		C when C =:= abort orelse C =:= ui_cancel ->
 			ui:display( "Uniquification aborted, stopping now." ),
 			%trace_debug( "(requested to abort the merge)", UserState ),
-			basic_utils:stop( 0 )
+			stop_user_service( UserState )
 
 	end.
 
@@ -3506,7 +3565,8 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 % Deduplicates automatically the specified cases.
 %
 % Here we resolve automatically all cases, by selecting the shortest of the
-% duplicate filenames and by transforming the others in symlinks pointing to it.
+% duplicate filenames and by transforming the others into symlinks pointing to
+% it.
 %
 -spec auto_deduplicate( [ sha1_entry() ], count(), sha1_table(),
 			bin_directory_path(), user_state() ) -> { sha1_table(), count() }.
@@ -3528,8 +3588,8 @@ auto_dedup( _DuplicationCases=[], AccTable, AccRemoveCount, _BinRootDir,
 auto_dedup( _DuplicationCases=[ { Sha1Key, DuplicateList } | T ], AccTable,
 			AccRemoveCount, BinRootDir, UserState ) ->
 
-	% [ {count(), file_path(), file_data()} ] (ties are broken by second
-	% element of each triplet, the string path):
+	% [{count(), file_path(), file_data()}] (ties are broken by second element
+	% of each triplet, the string path):
 	%
 	SortedTriplets = lists:sort( [
 		begin
@@ -3537,13 +3597,12 @@ auto_dedup( _DuplicationCases=[ { Sha1Key, DuplicateList } | T ], AccTable,
 			{ length( PathString ), PathString, FD }
 		end || FD <- DuplicateList ] ),
 
-	% Shortest to become the reference:
+	% Shortest (due to Erlang term ordering) to become the reference:
 	[ { _RefLen, RefPath, RefFD } | OtherFDTriplets ] = SortedTriplets,
 
 	AbsRefPath = file_utils:join( BinRootDir, RefPath ),
 
 	SymLnkPaths = [ P || { _L, P, _FD } <- OtherFDTriplets ],
-
 
 	trace_debug( "Transforming, in '~ts', following files into symlinks "
 		"pointing to the auto-elected reference version '~ts': ~ts",
@@ -3584,6 +3643,48 @@ find_data_entry_for( FilePath,
 
 find_data_entry_for( FilePath, _FileEntries=[ _FD | T ] ) ->
 	find_data_entry_for( FilePath, T ).
+
+
+
+% Selects among the specified files the one with the shortest path, which is
+% kept as is, while, if requested, the others are replaced by symlinks pointing
+% to it, and returns its filename as a binary.
+%
+-spec keep_shortest_path( ustring(), [ file_path() ], bin_directory_path(),
+						  boolean(), user_state() ) -> bin_file_path().
+keep_shortest_path( Prefix, TrimmedPaths, BinRootDir, CreateSymlinks,
+					UserState ) ->
+
+	% They all have the same predix:
+	_AscendingPairs = [ _H={ _SmallestLen, KeptFilePath } | LongerPairs ] =
+		lists:sort( [ { length( P ), P } || P <- TrimmedPaths ] ),
+
+	ToRemovePaths = [ P || { _Len, P } <- LongerPairs ],
+
+	trace_debug( "Keeping auto-selected '~ts', removing longer ones "
+		"(based on common prefix '~ts' and root directory '~ts'): ~ts ",
+		[ KeptFilePath, Prefix, BinRootDir,
+		  text_utils:strings_to_string( ToRemovePaths ) ], UserState ),
+
+	FutureLinkPaths = [ file_utils:join( Prefix, P ) || P <- ToRemovePaths ],
+
+	ToRemoveFullPaths =
+		[ file_utils:join( BinRootDir, P ) || P <- FutureLinkPaths ],
+
+	file_utils:remove_files( ToRemoveFullPaths ),
+
+	case CreateSymlinks of
+
+		true ->
+			create_links_to( KeptFilePath, FutureLinkPaths, BinRootDir );
+
+		false ->
+			ok
+
+	end,
+
+	text_utils:string_to_binary( file_utils:join( [ Prefix, KeptFilePath ] ) ).
+
 
 
 
@@ -3628,13 +3729,13 @@ keep_only_one( Prefix, TrimmedPaths, PathStrings, BinRootDir, UserState ) ->
 	{ KeptFilePath, ToRemovePaths } =
 		list_utils:extract_element_at( PathStrings, KeptIndex ),
 
-	trace_debug( "Keeping '~ts', removing (based on common prefix '~ts' and "
-		"root directory '~ts'): ~ts ",
+	trace_debug( "Keeping selected '~ts', removing (based on common "
+		"prefix '~ts' and root directory '~ts'): ~ts ",
 		[ KeptFilePath, Prefix, BinRootDir,
 		  text_utils:strings_to_string( ToRemovePaths ) ], UserState ),
 
-	ToRemoveFullPaths = [ file_utils:join( BinRootDir, P )
-						  || P <- ToRemovePaths ],
+	ToRemoveFullPaths =
+		[ file_utils:join( BinRootDir, P ) || P <- ToRemovePaths ],
 
 	file_utils:remove_files( ToRemoveFullPaths ),
 
@@ -3921,11 +4022,13 @@ build_entry_table(
   _FileInfos=[ { file_info, SHA1, RelativePath, Size, Timestamp } | T  ],
   EntryTable ) ->
 
+	SHA1Str = text_utils:hexastring_to_integer( SHA1, _ExpectPrefix=false ),
+
 	FileData = #file_data{ path=text_utils:string_to_binary( RelativePath ),
 						   type=regular,
 						   size=Size,
 						   timestamp=Timestamp,
-						   sha1_sum=SHA1 },
+						   sha1_sum=SHA1Str },
 
 	NewEntryTable = table:append_to_entry( SHA1, FileData, EntryTable ),
 
@@ -3994,13 +4097,17 @@ display_tree_data( TreeData=#tree_data{ entries=EntryTable,
 			case DupCount > 0 of
 
 				true ->
-					text_utils:format( "~B unique contents and ~B files "
-						"(hence with a total of ~B duplicates)",
-						[ ContentCount, FileCount, DupCount ] );
+					text_utils:format( "~B unique contents and ~B regular files"
+						" (hence with ~s)",
+						[ ContentCount, FileCount, case DupCount of
+							1 -> "a single duplicate";
+							_ -> text_utils:format( "a total of ~B duplicates",
+													[ DupCount ] )
+												   end ] );
 
 				false ->
 					trace_bridge:error_fmt(
-					  "~B files, ~B contents, abnormal: ~ts",
+					  "~B regular files, ~B contents, abnormal: ~ts",
 					  [ FileCount, ContentCount,
 						tree_data_to_string( TreeData ) ] ),
 					throw( { inconsistency_detected, FileCount, ContentCount } )
@@ -4067,7 +4174,8 @@ tree_data_to_string( TreeData, _Verbose=true ) ->
 	SHA1Strings = [
 		begin
 			Bins = [ FD#file_data.path || FD <- FDs ],
-			text_utils:format( "for SHA1 ~B: ~ts", [ SHA1,
+			text_utils:format( "for SHA1 ~ts: ~ts", [
+				sha1_to_string( SHA1 ),
 				text_utils:binaries_to_string( Bins, _Indent=1 ) ] )
 		end || { SHA1, FDs } <- Entries ],
 
@@ -4088,3 +4196,11 @@ file_data_to_string( #file_data{ path=Path,
 
 	text_utils:format( "file '~ts' whose size is ~ts, SHA1 sum is ~ts and "
 		"timestamp is ~p", [ Path, SizeString, Sum, Timestamp ] ).
+
+
+% Returns a textual description of specified SHA1.
+-spec sha1_to_string( sha1() ) -> ustring().
+sha1_to_string( SHA1 ) ->
+	% Mimics the output of the sha1sum executable:
+	text_utils:to_lowercase(
+	  text_utils:integer_to_hexastring( SHA1, _AddPrefix=false ) ).
