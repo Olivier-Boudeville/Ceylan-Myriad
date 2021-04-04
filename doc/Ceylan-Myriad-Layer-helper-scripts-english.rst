@@ -247,5 +247,7 @@ These shell scripts are actually user-facing shell interfaces that plug directly
   | paths mentioned. When a cache file is found, it can be either ignored (and thus recreated) or re-used, either as it is or
   | after a weak check, where only file existence, sizes and timestamps are then verified (not checksums).
 
+  See also: the ``test-all`` target of the merge-related `makefile <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/apps/merge-tool/GNUmakefile>`_, to give it a try before applying such procedure to your data of interest.
+
 
 
