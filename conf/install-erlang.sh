@@ -260,7 +260,10 @@ if [ -z "${read_parameter}" ]; then
 
 	   # Run as root, no prefix specified, thus:
 	   use_prefix=1
-	   prefix="/usr/local"
+
+	   # Thus not relevant:
+	   #prefix="/usr/local"
+
 	   echo "Run as sudo root, thus using default system installation directory, falling back to user '${build_user}' for the operations that permit it."
 
 	   # So here sudo is a way to decrease, not increase, privileges:
@@ -746,19 +749,24 @@ fi
 
 
 echo
-echo "The Erlang environment was successfully installed in ${prefix}."
+
+if [ -n "${prefix}" ]; then
+	echo "The Erlang environment was successfully installed in ${prefix}."
+else
+	echo "The Erlang environment was successfully installed in its standard location."
+fi
 
 
 if [ $do_generate_plt -eq 0 ]; then
-
-	actual_plt_file="${prefix}/$plt_file"
-	actual_plt_link="${prefix}/$plt_link"
 
 	if [ $use_prefix -eq 1 ]; then
 
 		prefix="/usr/local"
 
 	fi
+
+	actual_plt_file="${prefix}/${plt_file}"
+	actual_plt_link="${prefix}/${plt_link}"
 
 	dialyzer_exec="${prefix}/bin/dialyzer"
 	erlang_beam_root="${prefix}/lib/erlang"
