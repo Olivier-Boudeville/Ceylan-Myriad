@@ -81,7 +81,8 @@
 		  format_ellipsed/2, format_ellipsed/3,
 		  format_as_comment/1, format_as_comment/2, format_as_comment/3,
 		  format_as_comment/4,
-		  ensure_string/1, ensure_binary/1 ]).
+		  ensure_string/1, ensure_strings/1,
+		  ensure_binary/1, ensure_binaries/1 ]).
 
 
 
@@ -140,6 +141,8 @@
 %
 -define( table, map_hashtable ).
 
+
+% Prefix for text corresponding to hexadecimal values:
 -define( hexa_prefix, "0x" ).
 
 
@@ -434,6 +437,8 @@ integer_to_string( IntegerValue ) ->
 % Returns a plain string corresponding to the specified integer, in hexadecimal
 % form, with a "0x" prefix.
 %
+% Ex: "0x75BCD15".
+%
 -spec integer_to_hexastring( integer() ) -> ustring().
 integer_to_hexastring( IntegerValue ) ->
 	integer_to_hexastring( IntegerValue, _AddPrefix=true ).
@@ -441,6 +446,8 @@ integer_to_hexastring( IntegerValue ) ->
 
 % Returns a plain string corresponding to the specified integer, in hexadecimal
 % form, with a "0x" prefix if requested.
+%
+% Ex: "0x75BCD15".
 %
 -spec integer_to_hexastring( integer(), boolean() ) -> ustring().
 integer_to_hexastring( IntegerValue, _AddPrefix=true ) ->
@@ -454,6 +461,8 @@ integer_to_hexastring( IntegerValue, _AddPrefix=false ) ->
 % Returns an integer corresponding to the specified string containing an
 % hexadecimal number as a text, and expected to start with a "0x" prefix.
 %
+% Note: both uppercase and lowercase letters are supported.
+%
 -spec hexastring_to_integer( ustring() ) -> integer().
 hexastring_to_integer( HexaString ) ->
 	hexastring_to_integer( HexaString, _ExpectPrefix=true ).
@@ -462,6 +471,8 @@ hexastring_to_integer( HexaString ) ->
 % Returns an integer corresponding to the specified string containing an
 % hexadecimal number as a text, expected to start with a "0x" prefix if
 % specified.
+%
+% Note: both uppercase and lowercase letters are supported.
 %
 -spec hexastring_to_integer( ustring(), boolean() ) -> integer().
 hexastring_to_integer( ?hexa_prefix ++ HexaString, _ExpectPrefix=true ) ->
@@ -634,11 +645,11 @@ get_indentation_offset_for_level( N ) ->
 %
 % Note: the caller should have already vetted the specified arguments.
 %
-strings_to_string( _ListOfStrings=[], Acc, _Bullet ) ->
-	 Acc;
+strings_to_string_helper( _ListOfStrings=[], Acc, _Bullet ) ->
+	Acc;
 
 % We do not want an extra newline at the end:
-strings_to_string( _ListOfStrings=[ LastString ], Acc, Bullet )
+strings_to_string_helper( _ListOfStrings=[ LastString ], Acc, Bullet )
   when is_list( LastString ) orelse is_binary( LastString ) ->
 	%Pattern = "~ts~n",
 	% Added back, as makes sense?
@@ -647,14 +658,15 @@ strings_to_string( _ListOfStrings=[ LastString ], Acc, Bullet )
 	Acc ++ Bullet ++ io_lib:format( Pattern, [ LastString ] );
 
 % We allow also for bin_string():
-strings_to_string( _ListOfStrings=[ H | T ], Acc, Bullet )
+strings_to_string_helper( _ListOfStrings=[ H | T ], Acc, Bullet )
   when is_list( H ) orelse is_binary( H ) ->
 	% Byproduct of the trailing newline: an empty line at the end if nested.
-	strings_to_string( T, Acc ++ Bullet ++ io_lib:format( "~ts~n", [ H ] ),
-					   Bullet );
+	strings_to_string_helper( T,
+		Acc ++ Bullet ++ io_lib:format( "~ts~n", [ H ] ), Bullet );
 
-strings_to_string( _ListOfStrings=[ H | _T ], _Acc, _Bullet ) ->
+strings_to_string_helper( _ListOfStrings=[ H | _T ], _Acc, _Bullet ) ->
 	report_not_a_string( H ).
+
 
 
 
@@ -714,8 +726,8 @@ strings_to_string( ListOfStrings ) when is_list( ListOfStrings ) ->
 	%trace_utils:debug_fmt( "Stringifying ~p.", [ ListOfStrings ] ),
 
 	% Leading '~n' had been removed for some unknown reason:
-	io_lib:format( "~n~ts~n", [ strings_to_string(
-					   ListOfStrings, _Acc=[], get_default_bullet() ) ] );
+	io_lib:format( "~n~ts~n", [ strings_to_string_helper( ListOfStrings,
+										  _Acc=[], get_default_bullet() ) ] );
 
 strings_to_string( ErrorTerm ) ->
 	report_not_a_list( ErrorTerm ).
@@ -744,16 +756,17 @@ strings_to_sorted_string( ErrorTerm ) ->
 %
 -spec strings_to_string( [ ustring() ], indentation_level_or_bullet() ) ->
 								ustring().
-strings_to_string( _ListOfStrings=[ SingleString ], _LevelOrBullet )
-  when is_list( SingleString ) ->
+strings_to_string( _ListOfStrings=[ SingleString ], _IndentationOrBullet )
+									when is_list( SingleString ) ->
 	% For a single string, no need for leading and trailing newlines, but it
 	% used to be separated (with single quotes) from the surrounding text
 	% (not done anymore, as the single may be itself a bullet list)
 	%
-	io_lib:format( "~ts", [ SingleString ] );
+	%io_lib:format( "~ts", [ SingleString ] );
+	SingleString;
 
 strings_to_string( ListOfStrings, IndentationLevel )
-  when is_integer( IndentationLevel ) ->
+									when is_integer( IndentationLevel ) ->
 	Bullet = get_bullet_for_level( IndentationLevel ),
 	strings_to_string( ListOfStrings, Bullet );
 
@@ -771,14 +784,14 @@ strings_to_string( ListOfStrings, Bullet )
 	%Pattern = "~n~ts~n",
 	Pattern = "~n~ts",
 
-	io_lib:format( Pattern, [ strings_to_string( ListOfStrings, _Acc=[],
-												 Bullet ) ] );
+	io_lib:format( Pattern,
+		[ strings_to_string_helper( ListOfStrings, _Acc=[], Bullet ) ] );
 
 strings_to_string( ListOfStrings, Bullet ) when is_list( Bullet ) ->
 	report_not_a_list( ListOfStrings );
 
-strings_to_string( _ListOfStrings, ErrorTerm ) ->
-	throw( { bullet_not_a_string, ErrorTerm } ).
+strings_to_string( _ListOfStrings, IncorrectBullet ) ->
+	throw( { bullet_not_a_string, IncorrectBullet } ).
 
 
 
@@ -797,8 +810,8 @@ strings_to_sorted_string( ErrorTerm, _IndentationOrBullet ) ->
 
 
 
-% Returns a string that pretty-prints specified list of binary strings, with
-% default bullets.
+% Returns a plain string that pretty-prints specified list of binary strings,
+% with default bullets.
 %
 -spec binaries_to_string( [ bin_string() ] ) -> ustring().
 binaries_to_string( ListOfBinaries ) ->
@@ -806,15 +819,41 @@ binaries_to_string( ListOfBinaries ) ->
 
 
 
-% Returns a string that pretty-prints specified list of binary strings, with
-% specified indentation level or bullet.
+% Returns a binary string that pretty-prints specified list of binary strings,
+% with specified indentation level or bullet.
 %
 -spec binaries_to_string( [ bin_string() ], indentation_level_or_bullet() ) ->
 								ustring().
-binaries_to_string( ListOfBinaries, IndentationOrBullet ) ->
-	Strings = binaries_to_strings( ListOfBinaries ),
-	%trace_utils:debug_fmt( "Obtained strings: ~p", [ Strings ] ),
-	strings_to_string( Strings, IndentationOrBullet ).
+% See strings_to_string/2 for a counterpart implementation.
+%
+% A conversion to strings followed by the use of strings_to_string/2 is not the
+% way to go as some binary strings (ex: "raw filenames") cannot be converted to
+% plain strings, due to a mismatching encoding. strings_to_string/2 cannot be
+% used directly either, because of its guards (which should be kept, as it is
+% not supposed to support binaries). So we have to mimic it here.
+%
+binaries_to_string( _ListOfBinaries=[ SingleBinString ],
+					_IndentationOrBullet ) when is_binary( SingleBinString ) ->
+	%binary_to_string( SingleBinString );
+	io_lib:format( "~ts", [ SingleBinString ] );
+
+binaries_to_string( ListOfBinaries, IndentationLevel )
+								when is_integer( IndentationLevel ) ->
+	Bullet = get_bullet_for_level( IndentationLevel ),
+	binaries_to_string( ListOfBinaries, Bullet );
+
+binaries_to_string( ListOfBinaries, Bullet )
+			when is_list( ListOfBinaries ) andalso is_list( Bullet ) ->
+	Pattern = "~n~ts",
+	% Actually no need for a dedicated binaries_to_string_helper/3:
+	io_lib:format( Pattern,
+		[ strings_to_string_helper( ListOfBinaries, _Acc=[], Bullet ) ] );
+
+binaries_to_string( ListOfBinaries, Bullet ) when is_list( Bullet ) ->
+	report_not_a_list( ListOfBinaries );
+
+binaries_to_string( _ListOfBinaries, IncorrectBullet ) ->
+	throw( { bullet_not_a_string, IncorrectBullet } ).
 
 
 
@@ -1756,12 +1795,13 @@ format( A, B, C ) ->
 
 
 
-% Returns a string version of the specified text-like parameter.
+% Returns a (plain) string version of the specified text-like parameter.
 %
 % Note: using such functions may be a bad practice, as it may lead to losing the
-% awareness of the types of the variables that are handled. We may even decide
-% in the future to output warning traces whenever the specified element happens
-% not to be a string.
+% awareness of the types of the variables that are handled. We now output
+% warning traces whenever the specified element happens not to be a string-like
+% element. It is however convenient to define functions whose string parameters
+% may be of any possible type (plain or binary).
 %
 -spec ensure_string( term() ) -> ustring().
 ensure_string( String ) when is_list( String ) ->
@@ -1771,9 +1811,15 @@ ensure_string( BinString ) when is_binary( BinString ) ->
 	binary_to_string( BinString );
 
 ensure_string( Int ) when is_integer( Int ) ->
+	trace_utils:warning_fmt( "Implicit conversion of integer (here '~B') "
+		"to plain string is now discouraged. "
+		"Use text_utils:integer_to_string/1 instead.", [ Int ] ),
 	integer_to_list( Int );
 
 ensure_string( F ) when is_float( F ) ->
+	trace_utils:warning_fmt( "Implicit conversion of float (here '~f') "
+		"to plain string is now discouraged. "
+		"Use text_utils:float_to_string/1 instead.", [ F ] ),
 	float_to_list( F );
 
 ensure_string( U ) ->
@@ -1781,7 +1827,23 @@ ensure_string( U ) ->
 
 
 
-% Returns a binary string version of the specified text-like parameter.
+% Returns a list of (plain) string versions of the string-like elements of the
+% specified list.
+%
+% Note: using such functions may be a bad practice, as it may lead to losing the
+% awareness of the types of the variables that are handled. We now output
+% warning traces whenever the specified element happens not to be a string-like
+% element. It is however convenient to define functions whose string parameters
+% may be of any possible type (plain or binary).
+%
+-spec ensure_strings( [ term() ] ) -> [ ustring() ].
+ensure_strings( Elems ) ->
+	[ ensure_string( E ) || E <- Elems ].
+
+
+
+% Returns a binary string version of the specified text-like parameter (binary
+% or plain string).
 %
 % Note: using such functions may be a bad practice, as it may lead to losing the
 % awareness of the types of the variables that are handled. It is however
@@ -1797,6 +1859,21 @@ ensure_binary( String ) when is_list( String ) ->
 
 ensure_binary( String ) ->
 	throw( { invalid_value, String } ).
+
+
+
+% Returns a list of binary string versions of the string-like elements of the
+% specified list.
+%
+% Note: using such functions may be a bad practice, as it may lead to losing the
+% awareness of the types of the variables that are handled. It is however
+% convenient to define functions whose string parameters may be of any possible
+% type (plain or binary).
+%
+-spec ensure_binaries( [ term() ] ) -> [ ustring() ].
+ensure_binaries( Elems ) ->
+	[ ensure_binary( E ) || E <- Elems ].
+
 
 
 % Returns the lexicographic distance between the two specified strings, i.e. the
@@ -1880,7 +1957,8 @@ get_lexicographic_distance( FirstString=[ _H1 | T1 ], SecondString=[ _H2 | T2 ],
 %
 % See also: file_utils:get_longest_common_path/1.
 %
--spec get_longest_common_prefix( [ ustring() ] ) -> { ustring(), [ ustring() ] }.
+-spec get_longest_common_prefix( [ ustring() ] ) ->
+										{ ustring(), [ ustring() ] }.
 get_longest_common_prefix( _Strings=[] ) ->
 	throw( empty_string_list );
 
@@ -2006,6 +2084,8 @@ binaries_to_strings( BinaryList ) ->
 	  %end
 
 	  to_unicode_list( B ) || B <- BinaryList ].
+	  %lists:flatten( io_lib:format( "~ts", [ BinStr ] ) )
+	  %    || BinStr <- BinaryList ].
 
 
 
@@ -3554,6 +3634,9 @@ to_unicode_list( Data, CanFail ) ->
 
 	% A binary_to_list/1 would not be sufficient here.
 
+	% It seems that using io_lib:format( "~ts", [ Data ] ) could still be an
+	% option.
+
 	% Possibly a deep list:
 	case unicode:characters_to_list( Data ) of
 
@@ -3563,7 +3646,9 @@ to_unicode_list( Data, CanFail ) ->
 		{ error, Prefix, Remaining } ->
 			trace_bridge:error_fmt( "Cannot transform data '~p' into "
 				"a proper Unicode string:~nafter prefix '~s', "
-				"cannot convert '~p'.", [ Data, Prefix, Remaining ] ),
+				"cannot convert '~w'.~nStacktrace was: ~s",
+				[ Data, Prefix, Remaining,
+				  code_utils:interpret_shortened_stacktrace( 1 ) ] ),
 			case CanFail of
 
 				true ->
