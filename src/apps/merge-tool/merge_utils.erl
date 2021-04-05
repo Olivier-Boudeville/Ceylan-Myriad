@@ -29,7 +29,7 @@
 %    or
 % rsync -avz -e "ssh -p MY_PORT" SRC HOST:DEST
 
--define( merge_cache_filename, ".merge-tree.cache" ).
+-define( merge_cache_filename, <<".merge-tree.cache">> ).
 
 
 % Version of this tool:
@@ -67,6 +67,8 @@
 -type ustring() :: text_utils:ustring().
 -type format_string() :: text_utils:format_string().
 
+
+% Thus a (large) integer:
 -type sha1() :: executable_utils:sha1_sum().
 
 -type byte_size() :: system_utils:byte_size().
@@ -211,27 +213,34 @@
 
 
 % Returns the usage help message.
--spec get_usage() -> void().
+-spec get_usage() -> ustring().
 get_usage() ->
-	" Usage: following operations can be triggered: \n"
-	"  - '"?exec_name" --input INPUT_TREE --reference REFERENCE_TREE'\n"
-	"  - '"?exec_name" --scan A_TREE'\n"
-	"  - '"?exec_name" --rescan A_TREE'\n"
-	"  - '"?exec_name" --resync A_TREE'\n"
-	"  - '"?exec_name" --uniquify A_TREE'\n"
-	"  - '"?exec_name" -h' or '"?exec_name" --help'\n\n"
-	"   Ensures, for the first form, that all the changes in a possibly more up-to-date, \"newer\" tree (INPUT_TREE) are merged back to the reference tree (REFERENCE_TREE), from which the first tree may have derived. Once executed, only a refreshed, complemented reference tree will exist, as the input tree will have been removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
-	"   In the reference tree, in-tree duplicated content will be either kept as it is, or removed as a whole (to keep only one copy thereof), or replaced by symbolic links in order to keep only a single reference version of each actual content.\n"
-	"   At the root of the reference tree, a '" ?merge_cache_filename "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they have not changed. As a result, once a merge is done, the reference tree may contain an uniquified version of the union of the two specified trees, and the input tree will not exist anymore after the merge.\n\n"
-	"   For the second form (--scan option), the specified tree will simply be inspected for duplicates, and a corresponding '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
-	"   For the third form (--rescan option), an attempt to rebuild an updated '" ?merge_cache_filename "' file will be performed, computing only the checksum of the files that were not already referenced, or whose timestamp or size changed.\n\n"
-	"   For the fourth form (--resync option), a rebuild even lighter than the previous rescan of '" ?merge_cache_filename "' will be done, checking only sizes (not timestamps), and updating these timestamps.\n\n"
-	"   For the fifth form (--uniquify option), the specified tree will be scanned first (see the corresponding operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links), and once done a corresponding up-to-date '" ?merge_cache_filename "' file will be created at its root (to be potentially reused by a later operation).\n\n"
-	"   For the sixth form (-h or --help option), displays this help.\n\n"
+	[ " Usage: following operations can be triggered: \n"
+	  "  - '"?exec_name" --input INPUT_TREE --reference REFERENCE_TREE'\n"
+	  "  - '"?exec_name" --scan A_TREE'\n"
+	  "  - '"?exec_name" --rescan A_TREE'\n"
+	  "  - '"?exec_name" --resync A_TREE'\n"
+	  "  - '"?exec_name" --uniquify A_TREE'\n"
+	  "  - '"?exec_name" -h' or '"?exec_name" --help'\n\n"
+	  "   Ensures, for the first form, that all the changes in a possibly more up-to-date, \"newer\" tree (INPUT_TREE) are merged back to the reference tree (REFERENCE_TREE), from which the first tree may have derived. Once executed, only a refreshed, complemented reference tree will exist, as the input tree will have been removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
+	  "   In the reference tree, in-tree duplicated content will be either kept as it is, or removed as a whole (to keep only one copy thereof), or replaced by symbolic links in order to keep only a single reference version of each actual content.\n"
+	  "   At the root of the reference tree, a '", ?merge_cache_filename, "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they have not changed. As a result, once a merge is done, the reference tree may contain an uniquified version of the union of the two specified trees, and the input tree will not exist anymore after the merge.\n\n"
+	  "   For the second form (--scan option), the specified tree will simply be inspected for duplicates, and a corresponding '", ?merge_cache_filename, "' file will be created at its root (to be potentially reused by a later operation).\n\n"
+	  "   For the third form (--rescan option), an attempt to rebuild an updated '", ?merge_cache_filename, "' file will be performed, computing only the checksum of the files that were not already referenced, or whose timestamp or size changed.\n\n"
+	  "   For the fourth form (--resync option), a rebuild even lighter than the previous rescan of '", ?merge_cache_filename, "' will be done, checking only sizes (not timestamps), and updating these timestamps.\n\n"
+	  "   For the fifth form (--uniquify option), the specified tree will be scanned first (see the corresponding operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links), and once done a corresponding up-to-date '", ?merge_cache_filename, "' file will be created at its root (to be potentially reused by a later operation).\n\n"
+	  "   For the sixth form (-h or --help option), displays this help.\n\n"
 
-	"   Note that the --base-dir A_BASE_DIR option can be specified by the user to designate the base directory of all relative paths mentioned."
-	"   When a cache file is found, it can be either ignored (and thus recreated) or re-used, either as it is or after a weak check, where only file existence, sizes and timestamps are then verified (not checksums).".
+	  "   Note that the --base-dir A_BASE_DIR option can be specified by the user to designate the base directory of all relative paths mentioned."
+	  "   When a cache file is found, it can be either ignored (and thus recreated) or re-used, either as it is or after a weak check, where only file existence, sizes and timestamps are then verified (not checksums)." ].
 
+
+% Implementation notes:
+%
+% We use everywhere here file_utils:bin_join/n instead file_utils:join/n as we
+% may have to deal with so-called "raw filenames" that are obtained as binaries
+% and shall never be (attempted to be) converted to plain strings (as the
+% operation is bound to fail or to result in incorrect, unusable paths).
 
 
 % Typically for testing:
@@ -855,15 +864,19 @@ perform_rescan( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 			BinUserTreePath;
 
 		_ ->
-			UpdatePrompt = text_utils:format(
+
+			Diagnosis = text_utils:format(
 				"Root path in cache filename ('~ts') does not match "
 				"actual tree to rescan: read as '~ts', whereas user-specified "
-				"as '~ts'.~n~n"
-				"Shall it be automatically updated to the actual one?~n"
+				"as '~ts'.",
+				[ CacheFilename, BinCachedTreePath, BinUserTreePath ] ),
+
+			% text_utils:format/2 necessary for newlines:
+			UpdatePrompt = Diagnosis ++ text_utils:format(
+				"~n~nShall it be automatically updated to the actual one?~n"
 				"(otherwise the rescan will stop on failure)~n~n"
 				"Such an update is typically relevant if this "
-				"tree has been moved since the last inspection.",
-				[ CacheFilename, BinCachedTreePath, BinUserTreePath ] ),
+				"tree has been moved since the last inspection.", [] ),
 
 			case ui:ask_yes_no( UpdatePrompt, _BinaryDefault=no ) of
 
@@ -871,8 +884,12 @@ perform_rescan( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 					BinUserTreePath;
 
 				no ->
-					throw( { mismatching_paths, BinCachedTreePath,
-							 BinUserTreePath } )
+					trace_utils:error( Diagnosis
+						++ ", and no automatic renaming was accepted." ),
+
+					throw( { mismatching_paths,
+							 text_utils:binary_to_string( BinCachedTreePath ),
+							 text_utils:binary_to_string( BinUserTreePath ) } )
 
 			end
 
@@ -887,7 +904,7 @@ perform_rescan( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 	trace_debug( "Rescanning tree '~ts'...", [ BinTreePath ], UserState ),
 
 	% Relative to specified path:
-	AllFiles = file_utils:find_regular_files_from( BinTreePath ),
+	AllFiles = find_regular_files_from( BinTreePath ),
 
 	% Not wanting to index our own files (if any already exists):
 	FilteredFiles = lists:delete( ?merge_cache_filename, AllFiles ),
@@ -896,8 +913,10 @@ perform_rescan( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 				 [ length( FilteredFiles ),
 				   text_utils:strings_to_string( FilteredFiles ) ], UserState ),
 
-	% For lighter message sendings and storage:
-	FilteredBinFiles = text_utils:strings_to_binaries( FilteredFiles ),
+	% For lighter message sendings and storage (raw filenames are already
+	% binaries):
+	%
+	FilteredBinFiles = text_utils:ensure_binaries( FilteredFiles ),
 
 	rescan_files( _FileSet=set_utils:from_list( FilteredBinFiles ),
 		table:enumerate( ReadTreeData#tree_data.entries ), ReadTreeData,
@@ -986,7 +1005,7 @@ rescan_files( FileSet, _Entries=[ { SHA1, FileDatas } | T ], TreeData,
 
 
 
-% Integrates specfied file entries into specified tree data.
+% Integrates specified file entries into specified tree data.
 -spec integrate_extra_files( [ file_data() ], tree_data(), user_state() ) ->
 									tree_data().
 integrate_extra_files( _ExtraFileDatas=[], TreeData, _UserState ) ->
@@ -1064,7 +1083,7 @@ check_file_datas_for_scan( _FileDatas=[
 						   SHA1, FileSet, TreeData, BinTreePath, FileDatas,
 						   ExtraNotifications, UserState ) ->
 
-	FullPath = file_utils:join( BinTreePath, RelativeBinFilename ),
+	FullPath = file_utils:bin_join( BinTreePath, RelativeBinFilename ),
 
 	case set_utils:extract_if_existing( RelativeBinFilename, FileSet ) of
 
@@ -1122,8 +1141,7 @@ check_file_datas_for_scan( _FileDatas=[
 						type=regular,
 						size=OtherSize,
 						timestamp=RecordedTimestamp,
-						sha1_sum=
-							executable_utils:compute_sha1_sum( FullPath ) },
+						sha1_sum=executable_utils:compute_sha1_sum( FullPath ) },
 
 							{ NewFileData, [ NewNotif | ExtraNotifications ] }
 
@@ -1268,15 +1286,21 @@ perform_resync( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 			BinUserTreePath;
 
 		_ ->
-			UpdatePrompt = text_utils:format(
+
+			% Same as for 'rescan' except for the operation name:
+
+			Diagnosis = text_utils:format(
 				"Root path in cache filename ('~ts') does not match "
-				"actual tree to resync: read as '~ts', "
-				"whereas user-specified as '~ts'.~n~n"
-				"Shall it be automatically updated to the actual one?~n"
+				"actual tree to resync: read as '~ts', whereas user-specified "
+				"as '~ts'",
+				[ CacheFilename, BinCachedTreePath, BinUserTreePath ] ),
+
+			% text_utils:format/2 necessary for newlines:
+			UpdatePrompt = Diagnosis ++ text_utils:format(
+				".~n~nShall it be automatically updated to the actual one?~n"
 				"(otherwise the resync will stop on failure)~n~n"
 				"Such an update is typically relevant if this "
-				"tree has been moved since the last inspection.",
-				[ CacheFilename, BinCachedTreePath, BinUserTreePath ] ),
+				"tree has been moved since the last inspection.", [] ),
 
 			case ui:ask_yes_no( UpdatePrompt, _BinaryDefault=no ) of
 
@@ -1284,8 +1308,12 @@ perform_resync( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 					BinUserTreePath;
 
 				no ->
-					throw( { mismatching_paths, BinCachedTreePath,
-							 BinUserTreePath } )
+					trace_utils:error( Diagnosis
+						++ ", and no automatic renaming was accepted." ),
+
+					throw( { mismatching_paths,
+							 text_utils:binary_to_string( BinCachedTreePath ),
+							 text_utils:binary_to_string( BinUserTreePath ) } )
 
 			end
 
@@ -1300,7 +1328,7 @@ perform_resync( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 	trace_debug( "Resynchronising tree '~ts'...", [ BinTreePath ], UserState ),
 
 	% Relative to specified path:
-	AllFiles = file_utils:find_regular_files_from( BinTreePath ),
+	AllFiles = find_regular_files_from( BinTreePath ),
 
 	% Not wanting to index our own files (if any already exists):
 	FilteredFiles = lists:delete( ?merge_cache_filename, AllFiles ),
@@ -1309,8 +1337,10 @@ perform_resync( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 				 [ length( FilteredFiles ),
 				   text_utils:strings_to_string( FilteredFiles ) ], UserState ),
 
-	% For lighter message sendings and storage:
-	FilteredBinFiles = text_utils:strings_to_binaries( FilteredFiles ),
+	% For lighter message sendings and storage (raw filenames are already
+	% binaries):
+	%
+	FilteredBinFiles = text_utils:ensure_binaries( FilteredFiles ),
 
 	resync_files( _FileSet=set_utils:from_list( FilteredBinFiles ),
 		table:enumerate( ReadTreeData#tree_data.entries ), ReadTreeData,
@@ -1337,7 +1367,6 @@ resync_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
 
 
 		ExtraFiles ->
-
 			trace_debug( "Found ~B extra files during resync that will be "
 				"checked now: ~ts", [ length( ExtraFiles ),
 					text_utils:binaries_to_string( ExtraFiles ) ],
@@ -1403,10 +1432,10 @@ resync_files( FileSet, _Entries=[ { SHA1, FileDatas } | T ], TreeData,
 check_file_datas_for_sync( _FileDatas=[], SHA1, FileSet,
 						   TreeData=#tree_data{ entries=PrevEntries,
 												file_count=PrevFileCount },
-						   _BinTreePath, FileDatas, ExtraNotifications,
+						   _BinTreePath, NewFileDatas, ExtraNotifications,
 						   _UserState ) ->
 
-	NewEntryCount = length( FileDatas ),
+	NewEntryCount = length( NewFileDatas ),
 
 	OldEntryCount = length( table:get_value( SHA1, PrevEntries ) ),
 
@@ -1415,7 +1444,7 @@ check_file_datas_for_sync( _FileDatas=[], SHA1, FileSet,
 	% To be replenished through FileDatas:
 	WipedEntries = table:remove_entry( SHA1, PrevEntries ),
 
-	% We should not assign the elements in FileDatas to SHA1 - their checksum
+	% We should not assign the elements in NewFileDatas to SHA1 - their checksum
 	% might differ now! So:
 
 	NewEntries = lists:foldl(
@@ -1423,7 +1452,7 @@ check_file_datas_for_sync( _FileDatas=[], SHA1, FileSet,
 				table:append_to_entry( ThisSHA1, FD, AccEntries )
 		end,
 		_Acc0=WipedEntries,
-		_List=FileDatas ),
+		_List=NewFileDatas ),
 
 	NewTreeData = TreeData#tree_data{ entries=NewEntries,
 									  file_count=PrevFileCount+DiffEntryCount },
@@ -1436,10 +1465,10 @@ check_file_datas_for_sync( _FileDatas=[
 										 type=regular,
 										 size=RecordedSize,
 										 sha1_sum=SHA1 } | T ],
-						   SHA1, FileSet, TreeData, BinTreePath, FileDatas,
+						   SHA1, FileSet, TreeData, BinTreePath, NewFileDatas,
 						   ExtraNotifications, UserState ) ->
 
-	FullPath = file_utils:join( BinTreePath, RelativeBinFilename ),
+	FullPath = file_utils:bin_join( BinTreePath, RelativeBinFilename ),
 
 	case set_utils:extract_if_existing( RelativeBinFilename, FileSet ) of
 
@@ -1459,7 +1488,7 @@ check_file_datas_for_sync( _FileDatas=[
 
 			% Let's forget this file_data then:
 			check_file_datas_for_sync( T, SHA1, FileSet, TreeData, BinTreePath,
-				FileDatas, [ NewNotif | ExtraNotifications ], UserState );
+				NewFileDatas, [ NewNotif | ExtraNotifications ], UserState );
 
 		% Here the iterated file still exists as a regular one, let's check
 		% whether the size information is still valid (timestamp not taken into
@@ -1493,20 +1522,26 @@ check_file_datas_for_sync( _FileDatas=[
 						path=RelativeBinFilename,
 						type=regular,
 						size=OtherSize,
-						timestamp=file_utils:get_last_modification_time(
-									FullPath ),
-						sha1_sum=executable_utils:compute_sha1_sum(
-									FullPath ) },
+						timestamp=
+							file_utils:get_last_modification_time( FullPath ),
+						sha1_sum=executable_utils:compute_sha1_sum( FullPath ) },
 
 							{ NewFileData, [ NewNotif | ExtraNotifications ] }
 
 				end,
 
 			check_file_datas_for_sync( T, SHA1, ShrunkFileSet, TreeData,
-				BinTreePath, [ UpdatedFileData | FileDatas ], UpdatedNotifs,
+				BinTreePath, [ UpdatedFileData | NewFileDatas ], UpdatedNotifs,
 				UserState )
 
-	end.
+	end;
+
+check_file_datas_for_sync( _FileDatas=[ #file_data{ path=RelativeBinFilename,
+													sha1_sum=SHA1 } | _T ],
+						   OtherSHA1, _FileSet, _TreeData, _BinTreePath,
+						   _NewFileDatas, _ExtraNotifications, _UserState ) ->
+	throw( { unmatching_sha1, SHA1, OtherSHA1, RelativeBinFilename } ).
+
 
 
 
@@ -1667,7 +1702,7 @@ merge_trees( InputTree=#tree_data{ root=BinInputRootDir,
 	ui:set_setting( 'backtitle',
 			text_utils:format( "Merging in ~ts", [ BinReferenceRootDir ] ) ),
 
-	TargetDir = file_utils:join( BinReferenceRootDir, ?merge_dir ),
+	BinTargetDir = file_utils:bin_join( BinReferenceRootDir, ?merge_dir ),
 
 	case set_utils:size( LackingInRefSet ) of
 
@@ -1801,7 +1836,7 @@ merge_trees( InputTree=#tree_data{ root=BinInputRootDir,
 					Choices ) of
 
 				move ->
-					file_utils:create_directory_if_not_existing( TargetDir ),
+					file_utils:create_directory_if_not_existing( BinTargetDir ),
 
 					% If uniquification was chosen beforehand, no choice shall
 					% be left, and thus the unique remaining version will be
@@ -1809,13 +1844,13 @@ merge_trees( InputTree=#tree_data{ root=BinInputRootDir,
 					%
 					move_content_to_merge( ToMerge, BinInputRootDir,
 						RealInputEntries, BinReferenceRootDir, ReferenceEntries,
-						TargetDir, _TotalCount=LackingCount, UserState );
+						BinTargetDir, _TotalCount=LackingCount, UserState );
 
 				cherry_pick ->
-					file_utils:create_directory_if_not_existing( TargetDir ),
+					file_utils:create_directory_if_not_existing( BinTargetDir ),
 					cherry_pick_content_to_merge( ToMerge, BinInputRootDir,
-							RealInputEntries, BinReferenceRootDir,
-							ReferenceEntries, TargetDir, UserState );
+						RealInputEntries, BinReferenceRootDir,
+						ReferenceEntries, BinTargetDir, UserState );
 
 				delete ->
 					% Would be surprising in a merge, and blindly:
@@ -1878,7 +1913,7 @@ purge_helper( _SHA1s=[ SHA1 | T ], Entries, BinRootDir, RemoveCount,
 
 	{ FileDatas, PurgedEntries } = table:extract_entry( SHA1, Entries ),
 
-	FilesToRemove = [ file_utils:join( BinRootDir, FD#file_data.path )
+	FilesToRemove = [ file_utils:bin_join( BinRootDir, FD#file_data.path )
 							   || FD <- FileDatas ],
 
 	trace_debug( "Removing following files corresponding to non-original "
@@ -1918,7 +1953,7 @@ move_content_to_merge( _ToMove=[], InputRootDir, InputEntries,
 
 	% Removing the content that has not been moved (hence shall be deleted):
 	file_utils:remove_files( list_utils:flatten_once( [
-		  [ file_utils:join( InputRootDir, FD#file_data.path ) || FD <- FDL ]
+	  [ file_utils:bin_join( InputRootDir, FD#file_data.path ) || FD <- FDL ]
 							  || FDL <- table:values( InputEntries ) ] ) ),
 
 	preserve_symlinks( InputRootDir, TargetDir, UserState ),
@@ -1967,7 +2002,7 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 			{ Selected, Others } =
 					list_utils:extract_element_at( FileDatas, Index ),
 
-			ToRemove = [ file_utils:join( InputRootDir, FD#file_data.path )
+			ToRemove = [ file_utils:bin_join( InputRootDir, FD#file_data.path )
 						 || FD <- Others ],
 
 			file_utils:remove_files( ToRemove ),
@@ -1991,14 +2026,15 @@ move_content_to_merge( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 	% Make the new path relative to the root of the reference tree (TargetDir
 	% being itself relative to it):
 	%
-	NewRelPath = case string:prefix( NewPath, _Prefix=ReferenceRootDir ) of
+	% Not wanting an initial '/' in TrailingPath:
+	NewRelPath = case string:prefix( NewPath,
+									 _Prefix=[ ReferenceRootDir, "/" ] ) of
 
 		nomatch ->
 			throw( { relative_path_not_found, ReferenceRootDir, NewPath } );
 
 		TrailingPath ->
-			% Not wanting the initial '/':
-			text_utils:string_to_binary( tl( TrailingPath ) )
+			TrailingPath
 
 	end,
 
@@ -2032,7 +2068,8 @@ preserve_symlinks( InputRootDir, TargetDir, UserState ) ->
 	% in the process, should they be relative to a moved or removed element, or
 	% to content outside of the input tree):
 	%
-	case file_utils:find_links_from( InputRootDir ) of
+	case file_utils:find_links_from( InputRootDir,
+									 _IfImproperEncoding=include ) of
 
 		[] ->
 			trace_debug( "No symlink to move from '~ts'.", [ InputRootDir ],
@@ -2072,20 +2109,20 @@ preserve_symlinks( InputRootDir, TargetDir, UserState ) ->
 					 user_state() ) -> file_path().
 smart_move_to( SourceDir, SourceRelPath, TargetRootDir, UserState ) ->
 
-	SrcFullPath = file_utils:join( SourceDir, SourceRelPath ),
+	SrcFullPath = file_utils:bin_join( SourceDir, SourceRelPath ),
 
 	% We do our best to preserve the directory structure of the source tree in
 	% the target one (clearer for the user and reducing the likeliness of
 	% clashes).
 
-	FullTargetDir = file_utils:join( TargetRootDir,
+	FullTargetDir = file_utils:bin_join( TargetRootDir,
 								file_utils:get_base_path( SourceRelPath ) ),
 
 	file_utils:create_directory( FullTargetDir, create_parents ),
 
 	Filename = file_utils:get_last_path_element( SrcFullPath ),
 
-	TgtPath = file_utils:join( FullTargetDir, Filename ),
+	TgtPath = file_utils:bin_join( FullTargetDir, Filename ),
 
 	% As clashes could happen in the elected target subdirectory:
 	NewPath = case file_utils:exists( TgtPath ) of
@@ -2179,7 +2216,7 @@ cherry_pick_files( ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 	NewReferenceEntries = case table:get_value( SHA1, InputEntries ) of
 
 		[ SingleFileData=#file_data{ path=ContentPath } ] ->
-			FullContentPath = file_utils:join( InputRootDir, ContentPath ),
+			FullContentPath = file_utils:bin_join( InputRootDir, ContentPath ),
 			Prompt = text_utils:format( "Regarding the input content (solely) "
 				"in the content tree '~ts', shall we:", [ FullContentPath ] ),
 
@@ -2187,12 +2224,12 @@ cherry_pick_files( ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 					_DefaultChoiceDesignator=move ) of
 
 				move ->
-					Target = file_utils:join( TargetDir, ContentPath ),
+					Target = file_utils:bin_join( TargetDir, ContentPath ),
 					safe_move( FullContentPath, Target ),
 
 					% Relative to reference directory:
-					MoveRelPath = text_utils:string_to_binary(
-							file_utils:join( ?merge_dir, ContentPath ) ),
+					MoveRelPath =
+						file_utils:bin_join( ?merge_dir, ContentPath ),
 
 					table:add_new_entry( SHA1, [ SingleFileData#file_data{
 								path=MoveRelPath } ], ReferenceEntries );
@@ -2256,18 +2293,18 @@ cherry_pick_files( ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 						  text_utils:binaries_to_string( ToRemovePaths ) ],
 						UserState ),
 
-					Source = file_utils:join( InputRootDir, MovedFilePath ),
-					Target = file_utils:join( TargetDir, MovedFilePath ),
+					Source = file_utils:bin_join( InputRootDir, MovedFilePath ),
+					Target = file_utils:bin_join( TargetDir, MovedFilePath ),
 					safe_move( Source, Target ),
 
-					ToRemoveFullPaths = [ file_utils:join( InputRootDir, P )
+					ToRemoveFullPaths = [ file_utils:bin_join( InputRootDir, P )
 											|| P <- ToRemovePaths ],
 
 					file_utils:remove_files( ToRemoveFullPaths ),
 
 					% Relative to reference directory:
-					MoveRelPath = text_utils:string_to_binary(
-						   file_utils:join( ?merge_dir, MovedFilePath ) ),
+					MoveRelPath = file_utils:bin_join( ?merge_dir,
+MovedFilePath ),
 
 					% Any would do, head exists by design:
 					FileData = hd( MultipleFileData ),
@@ -2285,8 +2322,9 @@ cherry_pick_files( ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 					case ui:ask_yes_no( DelPrompt ) of
 
 						yes ->
-							ToDelFiles = [ file_utils:join( InputRootDir, P )
-										   || P <- ContentPaths ],
+							ToDelFiles =
+								[ file_utils:bin_join( InputRootDir, P )
+								  || P <- ContentPaths ],
 
 							file_utils:remove_files( ToDelFiles );
 
@@ -2329,7 +2367,7 @@ delete_content_to_merge( SHA1sToDelete, InputRootDir, InputEntries,
 
 	Paths = [ begin
 				  FileDatas = table:get_value( SHA1, InputEntries ),
-				  [ file_utils:join( InputRootDir, P )
+				  [ file_utils:bin_join( InputRootDir, P )
 					|| #file_data{ path=P } <- FileDatas ]
 			  end || SHA1 <- SHA1sToDelete ],
 
@@ -2337,7 +2375,8 @@ delete_content_to_merge( SHA1sToDelete, InputRootDir, InputEntries,
 							   | list_utils:flatten_once( Paths ) ] ),
 
 	% Removing also any symlink left over:
-	case file_utils:find_links_from( InputRootDir ) of
+	case file_utils:find_links_from( InputRootDir,
+									 _IfImproperEncoding=include ) of
 
 		[] ->
 			trace_debug( "No symlink to move from '~ts'.", [ InputRootDir ],
@@ -2346,7 +2385,7 @@ delete_content_to_merge( SHA1sToDelete, InputRootDir, InputEntries,
 
 		SymlinksToRemove ->
 			[ begin
-				  LnkFullPath = file_utils:join( InputRootDir, LnkPath ),
+				  LnkFullPath = file_utils:bin_join( InputRootDir, LnkPath ),
 				  file_utils:remove_file( LnkFullPath )
 			  end || LnkPath <- SymlinksToRemove ],
 			trace_debug( "Removed ~B extraneous symlinks from '~ts': ~ts",
@@ -2540,7 +2579,7 @@ check_content_trees( InputTree, ReferenceTreePath ) ->
 % Returns the path of the cache file corresponding to the specified tree path.
 -spec get_cache_path_for( directory_path() ) -> file_path().
 get_cache_path_for( TreePath ) ->
-	file_utils:join( TreePath, ?merge_cache_filename ).
+	file_utils:bin_join( TreePath, ?merge_cache_filename ).
 
 
 
@@ -2625,7 +2664,7 @@ find_newest_timestamp_from( RootPath, CacheFilePath ) ->
 	CacheFilename = file_utils:get_last_path_element( CacheFilePath ),
 
 	ActualFileRelPaths = list_utils:delete_existing( CacheFilename,
-		 file_utils:find_regular_files_from( RootPath ) ),
+										find_regular_files_from( RootPath ) ),
 
 	%trace_bridge:debug_fmt( "ActualFileRelPaths: ~p", [ ActualFileRelPaths ] ),
 
@@ -2656,7 +2695,7 @@ get_newest_timestamp( _ContentFiles=[], _RootPath, MostRecentTimestamp ) ->
 get_newest_timestamp( _ContentFiles=[ F | T ], RootPath,
 					  MostRecentTimestamp ) ->
 
-	FilePath = file_utils:join( RootPath, F ),
+	FilePath = file_utils:bin_join( RootPath, F ),
 
 	case file_utils:get_last_modification_time( FilePath ) of
 
@@ -2925,8 +2964,10 @@ scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 
 	trace_debug( "Scanning tree '~ts'...", [ AbsTreePath ], UserState ),
 
-	% Regular ones and symlinks:
-	AllFiles = file_utils:find_regular_files_from( AbsTreePath ),
+	% Regular ones (symlinks not of interest), even if their filename has a
+	% faulty Unicode encoding ("raw filename"):
+	%
+	AllFiles = find_regular_files_from( AbsTreePath ),
 
 	% Not wanting to index our own files (if any already exists):
 	FilteredFiles = lists:delete( ?merge_cache_filename, AllFiles ),
@@ -2935,8 +2976,10 @@ scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 		[ length( FilteredFiles ),
 		  text_utils:strings_to_string( FilteredFiles ) ], UserState ),
 
-	% For lighter message sendings and storage:
-	FilteredBinFiles = text_utils:strings_to_binaries( FilteredFiles ),
+	% For lighter message sendings and storage, and because any raw filename is
+	% already a binary:
+	%
+	FilteredBinFiles = text_utils:ensure_binaries( FilteredFiles ),
 
 	scan_files( FilteredBinFiles, AbsTreePath, AnalyzerRing, UserState ).
 
@@ -3083,45 +3126,43 @@ analyze_loop() ->
 
 			AbsTreePath = text_utils:binary_to_string( AbsTreeBinPath ),
 
-			RelativeFilename =
-				text_utils:binary_to_string( RelativeBinFilename ),
-
-			FilePath = file_utils:join( AbsTreePath, RelativeFilename ),
+			BinFilePath = file_utils:bin_join( AbsTreePath,
+											   RelativeBinFilename ),
 
 			%trace_bridge:debug_fmt( "Analyzer ~w taking in charge '~ts'...",
-			%						[ self(), FilePath ] ),
+			%						[ self(), BinFilePath ] ),
 
-			case file_utils:is_existing_file( FilePath ) of
+			case file_utils:is_existing_file( BinFilePath ) of
 
 				true ->
 					FileData = #file_data{
 					   % We prefer storing relative filenames:
 					   path=RelativeBinFilename,
-					   type=file_utils:get_type_of( FilePath ),
-					   size=file_utils:get_size( FilePath ),
-					   timestamp=file_utils:get_last_modification_time(
-									FilePath ),
-					   sha1_sum=executable_utils:compute_sha1_sum( FilePath ) },
+					   type=file_utils:get_type_of( BinFilePath ),
+					   size=file_utils:get_size( BinFilePath ),
+					   timestamp=
+						 file_utils:get_last_modification_time( BinFilePath ),
+					   sha1_sum=
+						 executable_utils:compute_sha1_sum( BinFilePath ) },
 
 					SenderPid ! { file_analyzed, FileData },
 					analyze_loop();
 
 				false ->
-					case file_utils:exists( FilePath ) of
+					case file_utils:exists( BinFilePath ) of
 
 						true ->
-							Type = file_utils:get_type_of( FilePath ),
+							Type = file_utils:get_type_of( BinFilePath ),
 							trace_bridge:notice_fmt( "The type of entry '~ts' "
 								"switched from regular (file) to ~ts.",
-								[ FilePath, Type ] );
+								[ BinFilePath, Type ] );
 
 						false ->
 							trace_bridge:notice_fmt( "The file '~ts' does not "
-								"exist anymore.", [ FilePath ] )
+								"exist anymore.", [ BinFilePath ] )
 
 					end,
 
-					BinFilePath = text_utils:string_to_binary( FilePath ),
 					SenderPid ! { file_disappeared, BinFilePath },
 					analyze_loop()
 
@@ -3130,24 +3171,24 @@ analyze_loop() ->
 
 		{ checkNewFile, [ AbsTreeBinPath, RelativeBinFilename ], SenderPid } ->
 
-			AbsTreePath = text_utils:binary_to_string( AbsTreeBinPath ),
+			% We stay in binary world as raw filenames could not be converted to
+			% plain strings:
 
-			RelativeFilename =
-				text_utils:binary_to_string( RelativeBinFilename ),
+			BinFilePath = file_utils:bin_join( AbsTreeBinPath,
+											   RelativeBinFilename ),
 
-			FilePath = file_utils:join( AbsTreePath, RelativeFilename ),
-
-			%trace_bridge:debug_fmt( "Analyzer ~w checking '~ts'...",
-			%					   [ self(), FilePath ] ),
+			%trace_bridge:debug_fmt( "Analyzer ~w checking '~ts' "
+			%						[ self(), BinFilePath ] ),
 
 			FileData = #file_data{
 					   % We prefer storing relative filenames:
 					   path=RelativeBinFilename,
-					   type=file_utils:get_type_of( FilePath ),
-					   size=file_utils:get_size( FilePath ),
-					   timestamp=file_utils:get_last_modification_time(
-								   FilePath ),
-					   sha1_sum=executable_utils:compute_sha1_sum( FilePath ) },
+					   type=file_utils:get_type_of( BinFilePath ),
+					   size=file_utils:get_size( BinFilePath ),
+					   timestamp=
+						 file_utils:get_last_modification_time( BinFilePath ),
+					   sha1_sum=
+						 executable_utils:compute_sha1_sum( BinFilePath ) },
 
 			SenderPid ! { file_checked, FileData },
 			analyze_loop();
@@ -3538,7 +3579,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 			case ui:ask_yes_no( DelPrompt ) of
 
 				yes ->
-					Paths = [ file_utils:join( BinRootDir, P )
+					Paths = [ file_utils:bin_join( BinRootDir, P )
 							  || P <- PathStrings ],
 
 					file_utils:remove_files( Paths ),
@@ -3600,7 +3641,7 @@ auto_dedup( _DuplicationCases=[ { Sha1Key, DuplicateList } | T ], AccTable,
 	% Shortest (due to Erlang term ordering) to become the reference:
 	[ { _RefLen, RefPath, RefFD } | OtherFDTriplets ] = SortedTriplets,
 
-	AbsRefPath = file_utils:join( BinRootDir, RefPath ),
+	AbsRefPath = file_utils:bin_join( BinRootDir, RefPath ),
 
 	SymLnkPaths = [ P || { _L, P, _FD } <- OtherFDTriplets ],
 
@@ -3611,7 +3652,7 @@ auto_dedup( _DuplicationCases=[ { Sha1Key, DuplicateList } | T ], AccTable,
 
 	[ begin
 
-		  AbsLnkPath = file_utils:join( BinRootDir, LnkPath ),
+		  AbsLnkPath = file_utils:bin_join( BinRootDir, LnkPath ),
 
 		  file_utils:remove_file( AbsLnkPath ),
 
@@ -3666,10 +3707,11 @@ keep_shortest_path( Prefix, TrimmedPaths, BinRootDir, CreateSymlinks,
 		[ KeptFilePath, Prefix, BinRootDir,
 		  text_utils:strings_to_string( ToRemovePaths ) ], UserState ),
 
-	FutureLinkPaths = [ file_utils:join( Prefix, P ) || P <- ToRemovePaths ],
+	FutureLinkPaths = [ file_utils:bin_join( Prefix, P )
+						|| P <- ToRemovePaths ],
 
 	ToRemoveFullPaths =
-		[ file_utils:join( BinRootDir, P ) || P <- FutureLinkPaths ],
+		[ file_utils:bin_join( BinRootDir, P ) || P <- FutureLinkPaths ],
 
 	file_utils:remove_files( ToRemoveFullPaths ),
 
@@ -3683,7 +3725,7 @@ keep_shortest_path( Prefix, TrimmedPaths, BinRootDir, CreateSymlinks,
 
 	end,
 
-	text_utils:string_to_binary( file_utils:join( [ Prefix, KeptFilePath ] ) ).
+	file_utils:bin_join( [ Prefix, KeptFilePath ] ).
 
 
 
@@ -3735,7 +3777,7 @@ keep_only_one( Prefix, TrimmedPaths, PathStrings, BinRootDir, UserState ) ->
 		  text_utils:strings_to_string( ToRemovePaths ) ], UserState ),
 
 	ToRemoveFullPaths =
-		[ file_utils:join( BinRootDir, P ) || P <- ToRemovePaths ],
+		[ file_utils:bin_join( BinRootDir, P ) || P <- ToRemovePaths ],
 
 	file_utils:remove_files( ToRemoveFullPaths ),
 
@@ -3791,8 +3833,8 @@ elect_and_link( Prefix, TrimmedPaths, PathStrings, BinRootDir, UserState ) ->
 		[ ElectedFilePath, Prefix, BinRootDir,
 		  text_utils:strings_to_string( FutureLinkPaths ) ], UserState ),
 
-	ToRemoveFullPaths = [ file_utils:join( BinRootDir, P )
-						  || P <- FutureLinkPaths ],
+	ToRemoveFullPaths = [ file_utils:bin_join( BinRootDir, P )
+							  || P <- FutureLinkPaths ],
 
 	file_utils:remove_files( ToRemoveFullPaths ),
 
@@ -3816,7 +3858,7 @@ create_links_to( TargetFilePath, _LinkPaths= [ Link | T ], BinRootDir ) ->
 		file_utils:make_relative( TargetFilePath, LinkDir ),
 
 	file_utils:create_link( RelativeTargetFilePath,
-							file_utils:join( BinRootDir, Link ) ),
+								file_utils:bin_join( BinRootDir, Link ) ),
 
 	create_links_to( TargetFilePath, T, BinRootDir ).
 
@@ -4019,16 +4061,16 @@ build_entry_table( _FileInfos=[], EntryTable ) ->
 	EntryTable;
 
 build_entry_table(
-  _FileInfos=[ { file_info, SHA1, RelativePath, Size, Timestamp } | T  ],
+  _FileInfos=[ { file_info, SHA1Str, RelativePath, Size, Timestamp } | T  ],
   EntryTable ) ->
 
-	SHA1Str = text_utils:hexastring_to_integer( SHA1, _ExpectPrefix=false ),
+	SHA1 = text_utils:hexastring_to_integer( SHA1Str, _ExpectPrefix=false ),
 
 	FileData = #file_data{ path=text_utils:string_to_binary( RelativePath ),
 						   type=regular,
 						   size=Size,
 						   timestamp=Timestamp,
-						   sha1_sum=SHA1Str },
+						   sha1_sum=SHA1 },
 
 	NewEntryTable = table:append_to_entry( SHA1, FileData, EntryTable ),
 
@@ -4050,7 +4092,7 @@ check_file_sizes_match( _FilePairs=[], _TreePath, _UserState ) ->
 check_file_sizes_match( _FilePairs=[ { FilePath, FileSize } | T ], TreePath,
 						UserState ) ->
 
-	FileFullPath = file_utils:join( TreePath, FilePath ),
+	FileFullPath = file_utils:bin_join( TreePath, FilePath ),
 
 	case file_utils:get_size( FileFullPath ) of
 
@@ -4067,6 +4109,18 @@ check_file_sizes_match( _FilePairs=[ { FilePath, FileSize } | T ], TreePath,
 			false
 
 	end.
+
+
+
+% (centralising helper)
+-spec find_regular_files_from( directory_path() ) -> [ bin_file_path() ].
+find_regular_files_from( TreePath ) ->
+
+	AllFiles = file_utils:find_files_from( TreePath, _IncludeSymlinks=false,
+										   _IfImproperEncoding=include ),
+
+	% Raw filenames are already binaries:
+	text_utils:ensure_binaries( AllFiles ).
 
 
 
