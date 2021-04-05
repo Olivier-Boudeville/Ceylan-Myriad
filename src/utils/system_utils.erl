@@ -55,8 +55,13 @@
 
 
 % System-related functions.
--export([ run_executable/1, run_executable/2, run_executable/3,
-		  run_executable/4,
+-export([ run_command/1, run_command/2, run_command/3,
+		  run_command/4,
+
+		  run_executable/1, run_executable/2, run_executable/3,
+		  run_executable/4, run_executable/5,
+
+		  get_default_port_options/0,
 
 		  get_line/1, get_line/2, get_line_helper_script/0,
 
@@ -64,8 +69,8 @@
 		  monitor_port/2,
 		  evaluate_shell_expression/1, evaluate_shell_expression/2,
 
-		  run_background_executable/1, run_background_executable/2,
-		  run_background_executable/3,
+		  run_background_command/1, run_background_command/2,
+		  run_background_command/3,
 
 		  evaluate_background_shell_expression/1,
 		  evaluate_background_shell_expression/2,
@@ -133,7 +138,7 @@
 
 
 -opaque cpu_usage_info() ::
-		  { integer(), integer(), integer(), integer(), integer() }.
+			{ integer(), integer(), integer(), integer(), integer() }.
 
 
 -type cpu_usage_percentages() :: { percent(), percent(), percent(), percent(),
@@ -199,13 +204,16 @@
 % Describes a command to be run (i.e. path to an executable, with possibly
 % command-line arguments):
 %
--type command() :: ustring().
+-type command() :: text_utils:any_string().
 
+-type command_line_argument() :: text_utils:any_string().
 
 % An option used to spawn a port (others managed through specific parameters):
 -type port_option() :: { 'packet', 1 | 2 | 4 }
 					 | 'stream'
-					 | { 'line', count() }.
+					 | { 'line', count() }
+					 | atom()
+					 | { atom(), term() }.
 
 
 % Return the (positive integer) return code of an executable being run
@@ -288,8 +296,8 @@
 			   actual_filesystem_type/0, pseudo_filesystem_type/0,
 			   filesystem_type/0, fs_info/0,
 
-			   command/0, port_option/0, return_code/0, command_output/0,
-			   execution_outcome/0,
+			   command/0, command_line_argument/0, port_option/0,
+			   return_code/0, command_output/0, execution_outcome/0,
 
 			   shell_expression/0, expression_outcome/0,
 
@@ -309,6 +317,7 @@
 % Shorthands:
 
 -type count() :: basic_utils:count().
+
 -type ustring() :: text_utils:ustring().
 
 -type directory_path() :: file_utils:directory_path().
@@ -329,7 +338,7 @@
 -spec get_user_name() -> ustring().
 get_user_name() ->
 
-	case run_executable( ?id "-un" ) of
+	case run_command( ?id "-un" ) of
 
 		{ _ExitCode=0, Output } ->
 			Output;
@@ -403,7 +412,7 @@ get_user_name_string() ->
 -spec get_user_id() -> user_id().
 get_user_id() ->
 
-	case run_executable( ?id "-u" ) of
+	case run_command( ?id "-u" ) of
 
 		{ _ExitCode=0, Output } ->
 			text_utils:string_to_integer( Output );
@@ -419,7 +428,7 @@ get_user_id() ->
 -spec get_group_id() -> group_id().
 get_group_id() ->
 
-	case run_executable( ?id "-g" ) of
+	case run_command( ?id "-g" ) of
 
 		{ _ExitCode=0, Output } ->
 			text_utils:string_to_integer( Output );
@@ -492,7 +501,7 @@ get_user_home_directory_string() ->
 -spec get_group_name() -> ustring().
 get_group_name() ->
 
-	case run_executable( ?id "-gn" ) of
+	case run_command( ?id "-gn" ) of
 
 		{ _ExitCode=0, Output } ->
 			Output;
@@ -658,6 +667,13 @@ await_output_completion( _TimeOut ) ->
 % of command elements, but the lack of a string type prevents it (as the
 % parameter of the called functions would be a list in both cases).
 
+% Note also that the run_command/n variations rely on open_port/2 being called
+% with 'spawn', and thus executable name and arguments may not necessarily be
+% properly translated to Unicode, whereas the run_executable/n variations rely
+% on 'spawn_executable', which offers a full proper Unicode support (typically
+% if an argument is a raw filename). So the run_executable/n variations shall be
+% preferred.
+
 
 
 % Runs (synchronously) specified command (an executable path possibly followed
@@ -667,81 +683,76 @@ await_output_completion( _TimeOut ) ->
 % standard and the error ones): {ReturnCode,CmdOutput}.
 %
 % This function will run a specific executable, not evaluate a shell expression
-% (that would possibly run executables).
+% (that would possibly run executables); see evaluate_shell_expression/{1,2} for
+% that.
 %
 % So one should not try to abuse this function by adding '&' at the end to
 % trigger a background launch - this would just be interpreted as a last
-% argument. Use run_background_executable/{1,2,3} in this module instead.
+% argument. Use run_background_command/{1,2,3} in this module instead.
 %
--spec run_executable( command() ) -> execution_outcome().
-run_executable( Command ) ->
-	run_executable( Command, get_standard_environment() ).
+-spec run_command( command() ) -> execution_outcome().
+run_command( Command ) ->
+	run_command( Command, get_standard_environment() ).
 
 
 
 % Executes (synchronously) specified command (an executable path possibly
 % followed with command-line arguments; specified as a single, standalone
-% string), with no specific port option, in specified shell environment and in
-% the current directory, and returns its return code (exit status) and its
-% outputs (both the standard and the error ones): {ReturnCode,CmdOutput}.
+% string), with no specific port option, in specified shell environment and from
+% the current working directory, and returns its return code (exit status) and
+% its outputs (both the standard and the error ones): {ReturnCode,CmdOutput}.
 %
 % This function will run a specific executable, not evaluate a shell expression
 % (that would possibly run executables).
 %
 % So one should not try to abuse this function by adding '&' at the end to
 % trigger a background launch - this would just be interpreted as a last
-% argument. Use run_background_executable/{1,2,3} in this module instead.
+% argument. Use run_background_command/{1,2,3} in this module instead.
 %
--spec run_executable( command(), environment() ) ->
-							execution_outcome().
-run_executable( Command, Environment ) ->
-	run_executable( Command, Environment, _WorkingDir=undefined ).
+-spec run_command( command(), environment() ) -> execution_outcome().
+run_command( Command, Environment ) ->
+	run_command( Command, Environment, _WorkingDir=undefined ).
 
 
 
 % Executes (synchronously) specified command (an executable path possibly
 % followed with command-line arguments; specified as a single, standalone
 % string), with no specific port option, in specified shell environment and
-% directory, and returns its return code (exit status) and its outputs (both the
-% standard and the error ones): {ReturnCode,CmdOutput}.
+% working directory, and returns its return code (exit status) and its outputs
+% (both the standard and the error ones): {ReturnCode,CmdOutput}.
 %
 % This function will run a specific executable, not evaluate a shell expression
 % (that would possibly run executables).
 %
 % So one should not try to abuse this function by adding '&' at the end to
 % trigger a background launch - this would just be interpreted as a last
-% argument. Use run_background_executable/{1,2,3} in this module instead.
+% argument. Use run_background_command/{1,2,3} in this module instead.
 %
--spec run_executable( command(), environment(),
-					  maybe( working_dir() ) ) -> execution_outcome().
-run_executable( Command, Environment, MaybeWorkingDir ) ->
-
-	% Removed: 'in'
-	DefaultBasePortOpts =
-		[ stream, exit_status, use_stdio, stderr_to_stdout, eof ],
-
-	run_executable( Command, Environment, MaybeWorkingDir,
-					DefaultBasePortOpts ).
+-spec run_command( command(), environment(), maybe( working_dir() ) ) ->
+							execution_outcome().
+run_command( Command, Environment, MaybeWorkingDir ) ->
+	run_command( Command, Environment, MaybeWorkingDir,
+				 get_default_port_options() ).
 
 
 
 % Executes (synchronously) specified executable (an executable path possibly
 % followed with command-line arguments; specified as a single, standalone
-% string), in specified shell environment and directory, with specified port
-% options (possibly containing any relevant command-line arguments; see
-% http://erlang.org/doc/man/erlang.html#open_port-2).
+% string), in specified shell environment and working directory, with specified
+% extra port options (possibly containing any relevant command-line arguments;
+% see http://erlang.org/doc/man/erlang.html#open_port-2).
 %
 % Returns its return code (exit status) and its outputs (both the standard and
 % the error ones): {ReturnCode,CmdOutput}.
 %
--spec run_executable( command(), environment(), maybe( working_dir() ),
-					  [ port_option() ] ) -> execution_outcome().
-run_executable( Command, Environment, MaybeWorkingDir, PortOptions ) ->
+-spec run_command( command(), environment(), maybe( working_dir() ),
+				   [ port_option() ] ) -> execution_outcome().
+run_command( Command, Environment, MaybeWorkingDir, PortOptions ) ->
 
-	%trace_utils:debug_fmt( "Running executable: '~ts' with "
+	%trace_utils:debug_fmt( "Running command: '~ts' with "
 	%	"~ts from working directory '~ts', with options ~w.",
 	%	[ Command, environment_to_string( Environment ), MaybeWorkingDir,
-	%	  PortOptions ] ),
+	%	  PortOptions ] ), timer:sleep( 200 ),
 
 	PortOptsWithEnv = [ { env, Environment } | PortOptions ],
 
@@ -755,13 +766,136 @@ run_executable( Command, Environment, MaybeWorkingDir, PortOptions ) ->
 
 	end,
 
-	% Not spawn_executable, so that command may include arguments:
+	% Not spawn_executable, so that the command may directly include arguments:
 	Port = open_port( { spawn, Command }, PortOptsWithPath ),
 
 	%trace_utils:debug_fmt( "Spawned port ~p for command '~ts'.",
 	%					   [ Port, Command ] ),
 
 	read_port( Port, _Data=[] ).
+
+
+
+% Executes (synchronously) specified executable, whose path is exactly the
+% specified one (i.e. taken verbatim, not looked-up through any PATH environment
+% variable; use, in the executable_utils module, lookup_executable/{1,2} or
+% find_executable/1 for that; not using any intermediary shell either) with no
+% specific command-line argument, with a standard environment, from the current
+% working directory, using the default port options.
+%
+% Returns its return code (exit status) and its outputs (both the standard and
+% the error ones): {ReturnCode,CmdOutput}.
+%
+-spec run_executable( executable_path() ) -> execution_outcome().
+run_executable( ExecPath ) ->
+	run_executable( ExecPath, _Arguments=[], get_standard_environment(),
+					_MaybeWorkingDir=undefined, get_default_port_options() ).
+
+
+
+% Executes (synchronously) specified executable, whose path is exactly the
+% specified one (i.e. taken verbatim, not looked-up through any PATH environment
+% variable; use, in the executable_utils module, lookup_executable/{1,2} or
+% find_executable/1 for that; not using any intermediary shell either) with
+% specified command-line arguments, with a standard environment, from the
+% current working directory, using the default port options.
+%
+% Returns its return code (exit status) and its outputs (both the standard and
+% the error ones): {ReturnCode,CmdOutput}.
+%
+-spec run_executable( executable_path(), [ command_line_argument() ] ) ->
+							execution_outcome().
+run_executable( ExecPath, Arguments ) ->
+	run_executable( ExecPath, Arguments, get_standard_environment(),
+					_MaybeWorkingDir=undefined, get_default_port_options() ).
+
+
+
+% Executes (synchronously) specified executable, whose path is exactly the
+% specified one (i.e. taken verbatim, not looked-up through any PATH environment
+% variable; use, in the executable_utils module, lookup_executable/{1,2} or
+% find_executable/1 for that; not using any intermediary shell either) with
+% specified command-line arguments and environment variable, from the current
+% working directory, using the default port options.
+%
+% Returns its return code (exit status) and its outputs (both the standard and
+% the error ones): {ReturnCode,CmdOutput}.
+%
+-spec run_executable( executable_path(), [ command_line_argument() ],
+					  environment() ) -> execution_outcome().
+run_executable( ExecPath, Arguments, Environment ) ->
+	run_executable( ExecPath, Arguments, Environment,
+					_MaybeWorkingDir=undefined, get_default_port_options() ).
+
+
+
+% Executes (synchronously) specified executable, whose path is exactly the
+% specified one (i.e. taken verbatim, not looked-up through any PATH environment
+% variable; use, in the executable_utils module, lookup_executable/{1,2} or
+% find_executable/1 for that; not using any intermediary shell either) with
+% specified command-line arguments and environment variable, from any specified
+% working directory, using the default port options.
+%
+% Returns its return code (exit status) and its outputs (both the standard and
+% the error ones): {ReturnCode,CmdOutput}.
+%
+-spec run_executable( executable_path(), [ command_line_argument() ],
+		environment(), maybe( working_dir() ) ) -> execution_outcome().
+run_executable( ExecPath, Arguments, Environment, MaybeWorkingDir ) ->
+	run_executable( ExecPath, Arguments, Environment, MaybeWorkingDir,
+					get_default_port_options() ).
+
+
+
+% Executes (synchronously) specified executable, whose path is exactly the
+% specified one (i.e. taken verbatim, not looked-up through any PATH environment
+% variable; use, in the executable_utils module, lookup_executable/{1,2} or
+% find_executable/1 for that; not using any intermediary shell either) with
+% specified command-line arguments and environment variable, from any specified
+% working directory and any extra port options.
+%
+% Returns its return code (exit status) and its outputs (both the standard and
+% the error ones): {ReturnCode,CmdOutput}.
+%
+-spec run_executable( executable_path(), [ command_line_argument() ],
+		environment(), maybe( working_dir() ), [ port_option() ] ) ->
+							execution_outcome().
+run_executable( ExecPath, Arguments, Environment, MaybeWorkingDir,
+				PortOptions ) ->
+
+	%trace_utils:debug_fmt( "Running executable: '~ts' with arguments ~p "
+	%   "and with ~ts from working directory '~ts', with options ~w.",
+	%	[ ExecPath, Arguments, environment_to_string( Environment ),
+	%     MaybeWorkingDir, PortOptions ] ), timer:sleep( 200 ),
+
+	PortOptsWithEnv =
+		[ { args, Arguments }, { env, Environment } | PortOptions ],
+
+	PortOptsWithPath = case MaybeWorkingDir of
+
+		undefined ->
+			PortOptsWithEnv;
+
+		WorkingDir ->
+			[ { cd, WorkingDir } | PortOptsWithEnv ]
+
+	end,
+
+	Port = open_port( { spawn_executable, ExecPath }, PortOptsWithPath ),
+
+	%trace_utils:debug_fmt( "Spawned port ~p for executable '~ts'.",
+	%					   [ Port, ExecPath ] ),
+
+	read_port( Port, _Data=[] ).
+
+
+
+
+% Returns the default options to be used for open_port/2.
+-spec get_default_port_options() -> [ port_option() ].
+get_default_port_options() ->
+	% Removed: 'in'
+	[ stream, exit_status, use_stdio, stderr_to_stdout, eof ].
 
 
 
@@ -876,7 +1010,7 @@ get_line( Prompt, GetLineScriptPath ) ->
 
 	PortOpts = [ stream, nouse_stdio, exit_status, eof ],
 
-	case run_executable( Cmd, Env, _WorkingDir=undefined, PortOpts ) of
+	case run_command( Cmd, Env, _WorkingDir=undefined, PortOpts ) of
 
 		{ _ExitStatus=0, UserText } ->
 			UserText;
@@ -921,11 +1055,25 @@ get_line_helper_script() ->
 % i.e. executions that are, as much as possible, reproducible in various runtime
 % contexts (typically: with locale-independent outputs).
 %
-% To be used with run_executable/{2,3}.
+% To be used with run_{command,executable}/n.
 %
 -spec get_standard_environment() -> environment().
 get_standard_environment() ->
-	[ { "LANG", "C" } ].
+
+	% Locales can be selected from the first column of /etc/locale.gen.
+
+	%BaseLocale = "C",
+
+	% Preferring now a Unicode variant:
+	BaseLocale = "en_US.UTF-8",
+	%BaseLocale = "en_GB.UTF-8",
+
+	% The locale set for LANG will be used for all the LC_* variables that are
+	% not explicitly set (see
+	% https://wiki.archlinux.org/index.php/locale#LANG:_default_locale); so:
+	%
+	%[ { "LANG", BaseLocale }, { "LC_ALL", BaseLocale } ].
+	[ { "LANG", BaseLocale } ].
 
 
 
@@ -1051,9 +1199,9 @@ evaluate_shell_expression( Expression, Environment ) ->
 % leak, one should consider using evaluate_background_shell_expression/1
 % instead.
 %
--spec run_background_executable( command() ) -> void().
-run_background_executable( ExecPath ) ->
-	run_background_executable( ExecPath, get_standard_environment() ).
+-spec run_background_command( command() ) -> void().
+run_background_command( ExecPath ) ->
+	run_background_command( ExecPath, get_standard_environment() ).
 
 
 
@@ -1070,9 +1218,9 @@ run_background_executable( ExecPath ) ->
 % leak, one should consider using evaluate_background_shell_expression/2
 % instead.
 %
--spec run_background_executable( command(), environment() ) -> void().
-run_background_executable( ExecPath, Environment ) ->
-	run_background_executable( ExecPath, Environment, _WorkingDir=undefined ).
+-spec run_background_command( command(), environment() ) -> void().
+run_background_command( ExecPath, Environment ) ->
+	run_background_command( ExecPath, Environment, _WorkingDir=undefined ).
 
 
 
@@ -1089,11 +1237,11 @@ run_background_executable( ExecPath, Environment ) ->
 % leak, one should consider using evaluate_background_shell_expression/2
 % instead.
 %
--spec run_background_executable( command(), environment(),
-								 maybe( working_dir() ) ) -> void().
-run_background_executable( ExecPath, Environment, MaybeWorkingDir ) ->
-	run_background_executable( ExecPath, Environment, MaybeWorkingDir,
-							   _PortOptions=[] ).
+-spec run_background_command( command(), environment(),
+							  maybe( working_dir() ) ) -> void().
+run_background_command( ExecPath, Environment, MaybeWorkingDir ) ->
+	run_background_command( ExecPath, Environment, MaybeWorkingDir,
+							_PortOptions=[] ).
 
 
 
@@ -1111,10 +1259,10 @@ run_background_executable( ExecPath, Environment, MaybeWorkingDir ) ->
 % leak, one should consider using evaluate_background_shell_expression/2
 % instead.
 %
--spec run_background_executable( command(), environment(),
-					maybe( working_dir() ), [ port_option() ] ) -> void().
-run_background_executable( Command, Environment, MaybeWorkingDir,
-						   PortOptions ) ->
+-spec run_background_command( command(), environment(),
+						  maybe( working_dir() ), [ port_option() ] ) -> void().
+run_background_command( Command, Environment, MaybeWorkingDir,
+						PortOptions ) ->
 
 	%trace_utils:debug_fmt( "Running executable '~ts' with ~ts "
 	%   "from working directory '~ts', with options ~p.",
@@ -1126,8 +1274,8 @@ run_background_executable( Command, Environment, MaybeWorkingDir,
 	%
 	?myriad_spawn_link( fun() ->
 
-		ExecOutcome = run_executable( Command, Environment, MaybeWorkingDir,
-									  PortOptions ),
+		ExecOutcome = run_command( Command, Environment, MaybeWorkingDir,
+								   PortOptions ),
 
 		% Does not seem to be ever executed:
 		trace_utils:debug_fmt( "Execution outcome: ~p.", [ ExecOutcome ] )
@@ -1148,7 +1296,7 @@ evaluate_background_shell_expression( Expression ) ->
 
 
 
-% Executes asynchronously, in the background, specified shell command with
+% Executes asynchronously, in the background, specified shell expression with
 % specified environment, in current directory.
 %
 % As a consequence it returns no return code (exit status) nor output.
@@ -1178,17 +1326,17 @@ get_environment_prefix( Environment ) ->
 	%
 	VariableStrings = [ begin
 
-							ActualValue = case Value of
+		ActualValue = case Value of
 
-								false ->
-									"";
+			false ->
+				"";
 
-								_ ->
-									Value
+			_ ->
+				Value
 
-							end,
+					  end,
 
-							io_lib:format( "~ts=~ts", [ Name, ActualValue ] )
+		text_utils:format( "~ts=~ts", [ Name, ActualValue ] )
 
 						end || { Name, Value } <- Environment ],
 
@@ -1721,7 +1869,7 @@ get_total_physical_memory() ->
 	UnitCommand = ?cat "/proc/meminfo |" ?grep "'MemTotal:' |"
 		?awk "'{print $3}'",
 
-	case run_executable( UnitCommand ) of
+	case run_command( UnitCommand ) of
 
 		 { _ExitCode=0, _Output="kB" } ->
 
@@ -1733,7 +1881,7 @@ get_total_physical_memory() ->
 			% The returned value of following command is like "12345\n", in
 			% bytes:
 			%
-			case run_executable( ValueCommand ) of
+			case run_command( ValueCommand ) of
 
 				{ _ExitCode=0, MemSizeString } ->
 
@@ -1863,8 +2011,8 @@ get_total_memory_used() ->
 
 	% So finally we preferred /proc/meminfo, used first to get MemTotal:
 	%
-	TotalString = case run_executable( ?cat "/proc/meminfo |"
-					 ?grep "'^MemTotal:' |" ?awk "'{print $2,$3}'" ) of
+	TotalString = case run_command( ?cat "/proc/meminfo |"
+						?grep "'^MemTotal:' |" ?awk "'{print $2,$3}'" ) of
 
 		{ _TotalExitCode=0, TotalOutput } ->
 			%io:format( "TotalOutput: '~p'~n", [ TotalOutput ] ),
@@ -1882,7 +2030,7 @@ get_total_memory_used() ->
 
 	% MemAvailable does not seem always available:
 	%
-	FreeString = case run_executable(
+	FreeString = case run_command(
 			?cat "/proc/meminfo |" ?grep "'^MemAvailable:' |"
 						?awk "'{print $2,$3}'" )  of
 
@@ -1897,8 +2045,8 @@ get_total_memory_used() ->
 
 			%io:format( "## using MemFree~n" ),
 
-			case run_executable( ?cat "/proc/meminfo |" ?grep "'^MemFree:' |"
-								 ?awk "'{print $2,$3}'" ) of
+			case run_command( ?cat "/proc/meminfo |" ?grep "'^MemFree:' |"
+							  ?awk "'{print $2,$3}'" ) of
 
 				{ _FreeExitCode=0, MemFreeOutput } ->
 					MemFreeOutput;
@@ -1922,7 +2070,7 @@ get_total_memory_used() ->
 
 			%io:format( "## using free~n" ),
 
-			case run_executable(
+			case run_command(
 				?free "-b |" ?grep "'/cache' |" ?awk "'{print $3}'" ) of
 
 				{ _ExitCode=0, FreeOutput } ->
@@ -1992,8 +2140,8 @@ get_swap_status() ->
 
 	% Same reason as for get_total_memory_used/0:
 	%SwapInfos = os:cmd( "free -b | grep 'Swap:' | awk '{print $2, $3}'" ),
-	SwapTotalString = case run_executable( ?cat "/proc/meminfo |"
-		?grep "'^SwapTotal:' |" ?awk "'{print $2,$3}'" ) of
+	SwapTotalString = case run_command( ?cat "/proc/meminfo |"
+			?grep "'^SwapTotal:' |" ?awk "'{print $2,$3}'" ) of
 
 		{ _TotalExitCode=0, TotalOutput } ->
 			TotalOutput;
@@ -2008,7 +2156,7 @@ get_swap_status() ->
 	TotalByte = text_utils:string_to_integer( TotalString ) * 1024,
 
 
-	SwapFreeString = case run_executable(
+	SwapFreeString = case run_command(
 							?cat "/proc/meminfo |" ?grep "'^SwapFree:' |"
 							?awk "'{print $2,$3}'" ) of
 
@@ -2070,7 +2218,7 @@ get_swap_status_string() ->
 -spec get_core_count() -> count().
 get_core_count() ->
 
-	CoreString = case run_executable(
+	CoreString = case run_command(
 						?cat "/proc/cpuinfo |" ?grep "-c processor" ) of
 
 		{ _ExitCode=0, Output } ->
@@ -2259,7 +2407,7 @@ compute_detailed_cpu_usage( _StartCounters={ U1, N1, S1, I1, O1 },
 get_cpu_usage_counters() ->
 
 	% grep more versatile than: '| head -n 1':
-	StatString = case run_executable(
+	StatString = case run_command(
 						?cat "/proc/stat |" ?grep "'cpu '" ) of
 
 		{ _ExitCode=0, Output } ->
@@ -2298,7 +2446,7 @@ get_cpu_usage_counters() ->
 -spec get_disk_usage() -> ustring().
 get_disk_usage() ->
 
-	case run_executable( ?df "-h" ) of
+	case run_command( ?df "-h" ) of
 
 		{ _ExitCode=0, Output } ->
 			Output;
@@ -2350,7 +2498,7 @@ get_mount_points() ->
 	FirstCmd = ?df "-h --local --output=target"
 		++ get_exclude_pseudo_fs_opt() ++ " |" ?grep "-v 'Mounted on'",
 
-	case run_executable( FirstCmd ) of
+	case run_command( FirstCmd ) of
 
 		{ _FirstExitCode=0, ResAsOneString } ->
 			%io:format( "## using direct df~n" ),
@@ -2363,7 +2511,7 @@ get_mount_points() ->
 				++ get_exclude_pseudo_fs_opt()
 				++ "| " ?grep "-v 'Mounted on' |" ?awk "'{print $6}'",
 
-			case run_executable( SecondCmd ) of
+			case run_command( SecondCmd ) of
 
 				{ _SecondExitCode=0, ResAsOneString } ->
 					%io:format( "## using legacy df~n" ),
@@ -2400,7 +2548,7 @@ get_filesystem_info( FilesystemPath ) ->
 		++ " --output=source,target,fstype,used,avail,iused,iavail '"
 		++ FilesystemPath ++ "' |" ?grep "-v 'Mounted on'",
 
-	case run_executable( Cmd ) of
+	case run_command( Cmd ) of
 
 		{ _ExitCode=0, ResAsOneString } ->
 			% Order of the columns: 'Filesystem / Mounted on / Type / Used /
@@ -2450,7 +2598,7 @@ get_filesystem_info_alternate( FilesystemPath ) ->
 		++ get_exclude_pseudo_fs_opt() ++ " "
 		++ FilesystemPath ++ "|" ?grep "-v 'Mounted on'",
 
-	case run_executable( Cmd ) of
+	case run_command( Cmd ) of
 
 		{ _ExitCode=0, ResAsOneString } ->
 
@@ -2596,7 +2744,7 @@ get_operating_system_description() ->
 
 		true ->
 
-			case run_executable( ?cat ++ OSfile ++ " |" ?grep "PRETTY_NAME |"
+			case run_command( ?cat ++ OSfile ++ " |" ?grep "PRETTY_NAME |"
 					?sed "'s|^PRETTY_NAME=\"||1' |"
 					?sed "'s|\"$||1' 2>/dev/null" ) of
 
