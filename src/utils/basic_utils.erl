@@ -594,8 +594,8 @@ trigger_oom() ->
 % Speaks the specified message, using espeak.
 -spec speak( ustring() ) -> void().
 speak( Message ) ->
-	system_utils:run_background_executable(
-	  "espeak -s 140 \"" ++ Message ++ "\"" ).
+	system_utils:run_background_command(
+		"espeak -s 140 \"" ++ Message ++ "\"" ).
 
 
 
