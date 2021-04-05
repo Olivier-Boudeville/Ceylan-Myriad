@@ -5,7 +5,7 @@ MYRIAD_TOP = ../../..
 		test-uniquify test-merge uniquify                                    \
 		create-test-trees create-content-tree create-reference-tree          \
 		scan-test-tree clean-test-trees                                      \
-		post-test process-test-log reset-keyboard-mode
+		post-test kill-epmd process-test-log reset-keyboard-mode
 
 
 # Previously run as an escript, but due to an issue with term_ui (i.e. dialog),
@@ -57,9 +57,9 @@ test-uniquify: pre-test create-test-trees
 	@$(MERGE_SCRIPT) --uniquify $(TEST_CONTENT_TREE) --use-ui-backend $(UI_BACKEND) ; $(MAKE) -s post-test
 
 
-#@#killall epmd 2>/dev/null
 test-merge: pre-test create-test-trees
 	@$(MERGE_SCRIPT) --input $(TEST_CONTENT_TREE) --reference $(TEST_REFERENCE_TREE) --use-ui-backend $(UI_BACKEND) ; $(MAKE) -s post-test
+
 
 
 # The input test tree will thus have 3 different contents in 6 regular files
@@ -131,8 +131,13 @@ run-direct: merge_exec
 
 
 # Not useful anymore:
-# post-test: process-test-log reset-keyboard-mode
+# post-test: process-test-log reset-keyboard-mode kill-epmd
 post-test:
+
+
+# Should it prevent new test launches:
+kill-epmd:
+	@killall epmd 2>/dev/null
 
 
 process-test-log:
