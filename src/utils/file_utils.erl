@@ -42,7 +42,7 @@
 
 
 % Filename-related operations.
--export([ join/1, join/2, bin_join/2,
+-export([ join/1, join/2, bin_join/1, bin_join/2,
 
 		  get_base_path/1, get_last_path_element/1,
 
@@ -73,8 +73,8 @@
 		  filter_by_extension/2, filter_by_extensions/2,
 		  filter_by_included_suffixes/2, filter_by_excluded_suffixes/2,
 
-		  find_files_from/1, find_files_from/2,
-		  find_regular_files_from/1, find_links_from/1,
+		  find_files_from/1, find_files_from/2, find_files_from/3,
+		  find_regular_files_from/1, find_links_from/1, find_links_from/2,
 		  find_files_with_extension_from/2, find_files_with_extension_from/3,
 		  find_files_with_excluded_dirs/2,
 		  find_files_with_excluded_suffixes/2,
@@ -459,6 +459,8 @@ join( NonList ) ->
 %
 % See filename:split/1 for the reverse operation.
 %
+% Prefer bin_join/2 if having to possibly deal with so-called "raw filenames".
+%
 -spec join( any_path(), any_path() ) -> path().
 % Skips only initial empty paths of all sorts:
 join( _FirstPath="", SecondPath ) ->
@@ -491,7 +493,7 @@ join( FirstPath, SecondPath ) ->
 	% First as at least one element by design; avoid adding an extra separator:
 	%
 	% (we do not use list_utils:get_last_element/1 here as we do not want this
-	% very common function of the file_utils module to depend on a list_utils
+	% very common function of this file_utils module to depend on a list_utils
 	% one):
 	%
 	case get_last_element( FirstPath ) of
@@ -507,7 +509,29 @@ join( FirstPath, SecondPath ) ->
 
 
 
+
+% Joins the specified list of path elements, returns a corresponding binary
+% string.
+%
+% See join/1 for API details.
+%
+% Plain and binary strings can be freely used as arguments, and a binary string
+% is returned in all cases.
+%
+% See filename:split/1 for the reverse operation.
+%
+-spec bin_join( [ any_path_element() ] ) -> bin_path().
+bin_join( ComponentList ) when is_list( ComponentList ) ->
+	lists:foldr( fun bin_join/2, _Acc0="", _List=ComponentList );
+
+bin_join( NonList ) ->
+	throw( { cannot_join, NonList } ).
+
+
+
 % Joins the two specified path elements, returns a corresponding binary string.
+%
+% Never attempts a binary-to-string conversion.
 %
 % Introduced to support the case where at least one argument is an
 % improperly-encoded Unicode binary path: any operation implying a conversion to
@@ -515,6 +539,13 @@ join( FirstPath, SecondPath ) ->
 % binaries.
 %
 -spec bin_join( any_path(), any_path() ) -> bin_path().
+% Use the same semantics as join/2:
+bin_join( _FirstPath="", SecondPath ) ->
+	text_utils:ensure_binary( SecondPath );
+
+bin_join( _FirstPath= <<"">>, SecondPath ) ->
+	text_utils:ensure_binary( SecondPath ) ;
+
 bin_join( FirstPath, SecondPath ) when is_binary( FirstPath )
 									   orelse is_binary( SecondPath ) ->
 	% As soon as at least one argument of filename:join/2 is a binary, returns a
@@ -1262,8 +1293,8 @@ touch( FileEntry ) ->
 			% -c: do not create any file
 			% -m: change only the modification time
 			%
-			case system_utils:run_executable( "/bin/touch -c -m '"
-												  ++ FileEntry ++ "'" ) of
+			case system_utils:run_command(
+				   "/bin/touch -c -m '" ++ FileEntry ++ "'" ) of
 
 				{ 0, _Output } ->
 					ok;
@@ -1294,7 +1325,7 @@ touch( FileEntry ) ->
 -spec create_empty_file( file_path() ) -> void().
 create_empty_file( FilePath ) ->
 
-	case system_utils:run_executable( "/bin/touch '" ++ FilePath ++ "'" ) of
+	case system_utils:run_command( "/bin/touch '" ++ FilePath ++ "'" ) of
 
 		{ 0, _Output } ->
 			ok;
@@ -2856,7 +2887,7 @@ copy_tree( SourceTreePath, TargetDirectory ) ->
 	Cmd = text_utils:format( "/bin/cp -r '~ts' '~ts'",
 							 [ SourceTreePath, TargetDirectory ] ),
 
-	case system_utils:run_executable( Cmd ) of
+	case system_utils:run_command( Cmd ) of
 
 		{ _ExitCode=0, _Output=[] } ->
 			ok;
@@ -3320,18 +3351,20 @@ filter_elems( _ElemList=[ E | T ], Acc ) ->
 
 
 % Returns a version of the specified path that is relative to the current
-% directory.
+% directory; returns the same type (plain or binary string) as the one of the
+% specified path.
 %
--spec make_relative( path() ) -> directory_path().
+-spec make_relative( any_path() ) -> any_path().
 make_relative( Path ) ->
 	make_relative( Path, _RefDir=get_current_directory() ).
 
 
 
 % Returns a version of the first specified path that is relative to the
-% specified second reference directory.
+% specified second reference directory; returns the same type (plain or binary
+% string) as the one of the first specified path.
 %
--spec make_relative( any_path(), directory_path() ) -> directory_path().
+-spec make_relative( any_path(), any_directory_path() ) -> any_path().
 make_relative( Path, RefDir ) when is_list( Path ) andalso is_list( RefDir ) ->
 
 	AbsPath = ensure_path_is_absolute( Path ),
@@ -3345,11 +3378,15 @@ make_relative( Path, RefDir ) when is_list( Path ) andalso is_list( RefDir ) ->
 	TargetPathElems = filename:split( AbsPath ),
 	RefPathElems = filename:split( AbsRefDir ),
 
+	% Requires both arguments to be plain strings:
 	make_relative_helper( TargetPathElems, RefPathElems );
 
 
 make_relative( BinPath, RefDir ) when is_binary( BinPath ) ->
 	make_relative( text_utils:binary_to_string( BinPath ), RefDir );
+
+make_relative( Path, BinRefDir ) when is_binary( BinRefDir ) ->
+	make_relative( Path, text_utils:binary_to_string( BinRefDir ) );
 
 make_relative( Path, RefDir ) ->
 	throw( { invalid_parameters, Path, RefDir } ).
@@ -4275,8 +4312,8 @@ compress( Filename, _CompressionFormat=bzip2 ) ->
 	Bzip2Exec = executable_utils:get_default_bzip2_compress_tool(),
 
 	% --keep allows to avoid that bzip2 removes the original file:
-	case system_utils:run_executable( Bzip2Exec ++ " --keep --force --quiet "
-									  ++ Filename ) of
+	case system_utils:run_command(
+			Bzip2Exec ++ " --keep --force --quiet " ++ Filename ) of
 
 		{ _ExitCode=0, _Output=[] } ->
 			% Check:
@@ -4298,8 +4335,8 @@ compress( Filename, _CompressionFormat=xz ) ->
 	XZExec = executable_utils:get_default_xz_compress_tool(),
 
 	% --keep allows to avoid that bzip2 removes the original file:
-	case system_utils:run_executable( XZExec ++ " --keep --force --quiet "
-									   ++ Filename ) of
+	case system_utils:run_command(
+			XZExec ++ " --keep --force --quiet " ++ Filename ) of
 
 		{ _ExitCode=0, _Output=[] } ->
 			% Check:
@@ -4405,8 +4442,8 @@ decompress( Bzip2Filename, _CompressionFormat=bzip2 ) ->
 
 	% The result will be named Filename by bunzip2:
 
-	case system_utils:run_executable( Bzip2Exec ++ " --keep --force --quiet "
-									   ++ Bzip2Filename ) of
+	case system_utils:run_command(
+			Bzip2Exec ++ " --keep --force --quiet " ++ Bzip2Filename ) of
 
 		{ _ExitCode=0, _Output=[] } ->
 			% Check:
@@ -4430,8 +4467,8 @@ decompress( XzFilename, _CompressionFormat=xz ) ->
 	% Checks and removes extension:
 	Filename = replace_extension( XzFilename, get_extension_for( xz ), "" ),
 
-	case system_utils:run_executable( XZExec ++ " --keep --force --quiet "
-									   ++ XzFilename ) of
+	case system_utils:run_command(
+			XZExec ++ " --keep --force --quiet " ++ XzFilename ) of
 
 		{ _ExitCode=0, _Output=[] } ->
 			% Check:
