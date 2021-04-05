@@ -195,7 +195,9 @@
 
 % Shorthands:
 -type count() :: basic_utils:count().
+
 -type ustring() :: text_utils:ustring().
+-type any_string() :: text_utils:any_string().
 
 
 
@@ -205,13 +207,25 @@
 % Protects specified argument from shell parsing, typically if specifying a
 % filename including a single quote.
 %
--spec protect_from_shell( ustring() ) -> ustring().
-protect_from_shell( ArgumentString ) ->
+% Note: currently does not transform binary arguments (double conversion with
+% improperly encoded strings might be tricky).
+%
+% When executing third-party programs, in order to avoid any need of protecting
+% their arguments, a system_utils:run_executable/n variation ought to be used.
+%
+-spec protect_from_shell( any_string() ) -> any_string().
+protect_from_shell( ArgString ) when is_list( ArgString ) ->
+	% Simple approaches not sufficient (ex: "echo 'aaa\'bbb'"):
+	protect_from_shell_helper( ArgString, _Acc=[] );
 
-	% Not sufficient (ex: "echo 'aaa\'bbb'"):
-	%text_utils:protect_from_shell( ArgumentString ).
+protect_from_shell( ArgBinString ) when is_binary( ArgBinString ) ->
 
-	protect_from_shell_helper( ArgumentString, _Acc=[] ).
+	% text_utils:binary_to_string/1 may fail:
+	%text_utils:string_to_binary( protect_from_shell(
+	%			   text_utils:binary_to_string( ArgBinString ) ) ).
+
+	ArgBinString.
+
 
 
 % (helper)
