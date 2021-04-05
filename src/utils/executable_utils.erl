@@ -106,6 +106,8 @@
 		 get_default_jinterface_path/0 ]).
 
 
+% A name, not a path:
+-type executable_name() :: ustring().
 
 % MD5 sum, a 128-bit hash value:
 -type md5_sum() :: non_neg_integer().
@@ -119,7 +121,8 @@
 -type sha_sum() :: non_neg_integer().
 
 
--export_type([ md5_sum/0, sha1_sum/0, sha_sum/0 ]).
+-export_type([ executable_name/0, md5_sum/0, sha1_sum/0, sha_sum/0 ]).
+
 
 
 % Miscellaneous section:
@@ -136,9 +139,8 @@
 
 -type file_name() :: file_utils:file_name().
 -type file_path() :: file_utils:file_path().
--type executable_name() :: ustring().
+-type any_file_path() :: file_utils:any_file_path().
 -type executable_path() :: file_utils:executable_path().
-
 -type directory_path() :: file_utils:directory_path().
 
 -type command_output() :: system_utils:command_output().
@@ -292,8 +294,8 @@ generate_png_from_graph_file( PNGFilePath, GraphFilePath,
 -spec display_png_file( file_path() ) -> void().
 display_png_file( PNGFilename ) ->
 	% Viewer output is ignored:
-	system_utils:run_background_executable(
-	  get_default_image_viewer_path() ++ " " ++ PNGFilename  ).
+	system_utils:run_background_command(
+		get_default_image_viewer_path() ++ " " ++ PNGFilename  ).
 
 
 
@@ -306,8 +308,8 @@ display_png_file( PNGFilename ) ->
 %
 -spec browse_images_in( file_path() ) -> void().
 browse_images_in( DirectoryName ) ->
-	system_utils:run_background_executable(
-	  get_default_image_browser_path() ++ " " ++ DirectoryName ).
+	system_utils:run_background_command(
+		get_default_image_browser_path() ++ " " ++ DirectoryName ).
 
 
 
@@ -320,8 +322,8 @@ browse_images_in( DirectoryName ) ->
 %
 -spec display_pdf_file( file_path() ) -> void().
 display_pdf_file( PDFFilename ) ->
-	system_utils:run_background_executable(
-	  get_default_pdf_viewer_path() ++ " " ++ PDFFilename ).
+	system_utils:run_background_command(
+		get_default_pdf_viewer_path() ++ " " ++ PDFFilename ).
 
 
 
@@ -334,8 +336,8 @@ display_pdf_file( PDFFilename ) ->
 -spec display_text_file( file_path() ) -> command_output().
 display_text_file( TextFilename ) ->
 
-	case system_utils:run_executable( get_default_text_viewer_path()
-									  ++ " " ++ TextFilename ) of
+	case system_utils:run_command(
+			get_default_text_viewer_path() ++ " " ++ TextFilename ) of
 
 		{ _ExitCode=0, Output } ->
 			Output;
@@ -356,7 +358,7 @@ display_text_file( TextFilename ) ->
 -spec display_wide_text_file( file_path(), width() ) -> command_output().
 display_wide_text_file( TextFilename, CharacterWidth ) ->
 
-	case system_utils:run_executable(
+	case system_utils:run_command(
 		   get_default_wide_text_viewer_path( CharacterWidth )
 		   ++ " " ++ TextFilename ) of
 
@@ -411,13 +413,14 @@ compute_md5_sum( Filename ) ->
 	% erlang:md5/1 not used here, would be probably slower:
 
 	% Removes the filename after the MD5 code:
-	Cmd = system_utils:run_executable( get_default_md5_tool() ++ " '"
+	Cmd = system_utils:run_command( get_default_md5_tool() ++ " '"
 	  ++ shell_utils:protect_from_shell( Filename ) ++ "' | sed 's|  .*$||1'" ),
 
 	case Cmd of
 
 		{ _ExitCode=0, OutputString } ->
-			list_to_integer( OutputString, _Base=16 );
+			text_utils:hexastring_to_integer( OutputString,
+											  _ExpectPrefix=false );
 
 		{ ExitCode, ErrorOutput } ->
 			throw( { md5_computation_failed, ExitCode, ErrorOutput, Filename } )
@@ -444,7 +447,7 @@ compute_sha1_sum( Filename ) ->
 % unsigned integer, whose size depends on the specified algorithm: 1, 224, 256,
 % 384, 512, 512224, 512256 (see 'man shasum' for more details).
 %
--spec compute_sha_sum( file_path(), basic_utils:count() ) -> sha_sum().
+-spec compute_sha_sum( any_file_path(), basic_utils:count() ) -> sha_sum().
 compute_sha_sum( Filename, SizeOfSHAAlgorithm )
   when is_integer( SizeOfSHAAlgorithm ) ->
 
@@ -458,24 +461,44 @@ compute_sha_sum( Filename, SizeOfSHAAlgorithm )
 
 	end,
 
-	%trace_utils:info_fmt( "Computing SHA~B sum of '~ts'.",
-	%					   [ SizeOfSHAAlgorithm, Filename ] ),
+	%trace_utils:debug_fmt( "Computing SHA~B sum of '~ts'.",
+	%					  [ SizeOfSHAAlgorithm, Filename ] ),
 
-	% Removes the filename after the SHA code:
-	Cmd = system_utils:run_executable( get_default_sha_tool()
-					 ++ " --algorithm "
-					 ++ text_utils:format( "~B '", [ SizeOfSHAAlgorithm ] )
-					 ++ shell_utils:protect_from_shell( Filename )
-					 ++ "' | sed 's|  .*$||1'" ),
+	% 'utf8' expected as terminal default:
+	%trace_utils:debug_fmt( "Filename encoding mode: ~ts",
+	%					   [ file:native_name_encoding() ] ),
 
-	case Cmd of
+	% We used to rely on run_command/n, yet correct Unicode arguments ("raw
+	% filenames") could not then be properly passed to the executable. So now we
+	% rely on run_executable/n.
+
+	% Already a full, resolved executable path:
+	ExecPath = get_default_sha_tool(),
+
+	% (not using '++' anymore, as (raw) filenames might have to be binaries;
+	% using bin_format/2 to follow Unicode hint in open_port/2:
+	%
+	Args = [ "--algorithm", text_utils:integer_to_string( SizeOfSHAAlgorithm ),
+			 % No need for quoting here:
+			 shell_utils:protect_from_shell( Filename ) ],
+
+	%trace_utils:debug_fmt( "SHA executable is: '~ts', arguments are ~p.",
+	%					   [ ExecPath, Args ] ),
+
+	case system_utils:run_executable( ExecPath, Args ) of
 
 		{ _ExitCode=0, OutputString } ->
-			case text_utils:try_string_to_integer( OutputString, _Base=16 ) of
+			% Removes the filename after the SHA code:
+			{ SHAStr, _Rest } = text_utils:split_at_first( $ , OutputString ),
+
+			case text_utils:try_string_to_integer( SHAStr, _Base=16 ) of
 
 				undefined ->
+					trace_utils:error_fmt(
+					  "SHA interpretation failed for '~ts', based on:~n~ts.",
+					  [ Filename, SHAStr ] ),
 					throw( { sha_computation_failed, invalid_result,
-							 OutputString } );
+							 Filename, SHAStr } );
 
 				Sum ->
 					Sum
@@ -483,6 +506,8 @@ compute_sha_sum( Filename, SizeOfSHAAlgorithm )
 			end;
 
 		{ ExitCode, ErrorOutput } ->
+			trace_utils:error_fmt( "SHA computation failed for '~ts': ~ts.",
+								   [ Filename, ErrorOutput ] ),
 			throw( { sha_computation_failed, ExitCode, ErrorOutput, Filename } )
 
 	end.
@@ -729,7 +754,7 @@ get_current_gnuplot_version() ->
 
 	% The returned value of following command is like "4.2":
 	%
-	case system_utils:run_executable( Cmd ) of
+	case system_utils:run_command( Cmd ) of
 
 			{ _ExitCode=0, Output } ->
 				GnuplotVersionInString = lists:nth( _IndexVersion=2,
@@ -927,7 +952,7 @@ execute_dot( PNGFilename, GraphFilename ) ->
 	Cmd = DotExec ++ " -o" ++ PNGFilename ++ " -Tpng " ++ GraphFilename,
 
 	% Dot might issue non-serious warnings:
-	case system_utils:run_executable( Cmd ) of
+	case system_utils:run_command( Cmd ) of
 
 		{ _ExitCode=0, Output } ->
 			Output;

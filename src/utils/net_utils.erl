@@ -217,7 +217,7 @@ ping( Hostname ) when is_list( Hostname ) ->
 
 	%trace_utils:debug_fmt( "Ping command: ~ts.", [ Command ] ),
 
-	case system_utils:run_executable( Command ) of
+	case system_utils:run_command( Command ) of
 
 		{ _ExitCode=0, _Output } ->
 			true;
@@ -259,7 +259,7 @@ localhost( fqdn ) ->
 	% name resolution.
 
 	% Most reliable:
-	case system_utils:run_executable( "hostname -f" ) of
+	case system_utils:run_command( "hostname -f" ) of
 
 		{ _ExitCode=0, _Output="localhost" } ->
 			localhost_last_resort();
@@ -292,7 +292,7 @@ localhost( short ) ->
 -spec localhost_last_resort() -> string_host_name().
 localhost_last_resort() ->
 
-	case system_utils:run_executable( "hostname" ) of
+	case system_utils:run_command( "hostname" ) of
 
 		{ _ExitCode=0, _Output="localhost" } ->
 			throw( could_not_determine_localhost );
@@ -520,7 +520,7 @@ reverse_lookup( IPAddress, _LookupInfo={ dig, DigExecPath } ) ->
 
 	% Alternatively, could have along the lines of:
 	%
-	% case system_utils:run_executable( Cmd ) of
+	% case system_utils:run_command( Cmd ) of
 	%
 	%           CleanedResult = text_utils:remove_whitespaces( Output ),
 	%
@@ -539,7 +539,7 @@ reverse_lookup( IPAddress, _LookupInfo={ dig, DigExecPath } ) ->
 	% (however was not really elegant and a leading tabulation was remaining at
 	% least in some cases)
 
-	case system_utils:run_executable( Cmd ) of
+	case system_utils:run_command( Cmd ) of
 
 		{ _ExitCode=0, _Output="" } ->
 			unknown_dns;
@@ -563,7 +563,7 @@ reverse_lookup( IPAddress, _LookupInfo={ host, HostExecPath } ) ->
 	Cmd = HostExecPath ++ " -W 1 " ++ ipv4_to_string( IPAddress )
 		++ " 2>/dev/null",
 
-	case system_utils:run_executable( Cmd ) of
+	case system_utils:run_command( Cmd ) of
 
 		{ _ExitCode=0, Output } ->
 
@@ -913,7 +913,7 @@ launch_epmd( Port ) when is_integer( Port ) ->
 			EpmdCmd = text_utils:format( "~ts -port ~B", [ EPMDPath, Port ] ),
 			%trace_utils:debug_fmt( "Launching EPMD thanks to '~ts'.",
 			%                       [ EpmdCmd ] ),
-			system_utils:run_background_executable( EpmdCmd )
+			system_utils:run_background_command( EpmdCmd )
 
 	end.
 

@@ -445,8 +445,8 @@ init_state_with_dimensions( Tool=dialog, DialogPath ) ->
 	{ Env, PortOpts } = get_execution_settings(),
 
 	% By default we will be using the full terminal space:
-	case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
-									  PortOpts ) of
+	case system_utils:run_command( Cmd, Env, _WorkingDir=undefined,
+								   PortOpts ) of
 
 		% Ex: Result="MaxSize: 28, 107"
 		{ _ExitStatus=0, _Result="MaxSize: " ++ SizeString } ->
@@ -547,8 +547,8 @@ display( Text ) ->
 
 	{ Env, PortOpts } = get_execution_settings(),
 
-	case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
-									  PortOpts ) of
+	case system_utils:run_command( Cmd, Env, _WorkingDir=undefined,
+								   PortOpts ) of
 
 		{ _ExitStatus=0, _Output="" } ->
 			ok;
@@ -620,8 +620,8 @@ display_warning( Text ) ->
 
 	{ Env, PortOpts } = get_execution_settings(),
 
-	case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
-									  PortOpts ) of
+	case system_utils:run_command( Cmd, Env, _WorkingDir=undefined,
+								   PortOpts ) of
 
 		{ _ExitStatus=0, _Output="" } ->
 			ok;
@@ -685,8 +685,8 @@ display_error( Text ) ->
 
 	{ Env, PortOpts } = get_execution_settings(),
 
-	case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
-									  PortOpts ) of
+	case system_utils:run_command( Cmd, Env, _WorkingDir=undefined,
+								   PortOpts ) of
 
 		{ _ExitStatus=0, _Output="" } ->
 			ok;
@@ -765,8 +765,8 @@ get_text( Prompt,
 
 	{ Env, PortOpts } = get_execution_settings(),
 
-	Read = case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
-											 PortOpts ) of
+	Read = case system_utils:run_command( Cmd, Env, _WorkingDir=undefined,
+										  PortOpts ) of
 
 		{ _ExitStatus=0, _Result="" } ->
 			TmpFilename = ?temp_file,
@@ -976,8 +976,8 @@ ask_yes_no( Prompt, BinaryDefault, #term_ui_state{ dialog_tool_path=ToolPath,
 
 	{ Env, PortOpts } = get_execution_settings(),
 
-	case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
-									  PortOpts ) of
+	case system_utils:run_command( Cmd, Env, _WorkingDir=undefined,
+								   PortOpts ) of
 
 		{ _ExitStatus=0, _Result=[] } ->
 			yes;
@@ -1090,8 +1090,8 @@ choose_designated_item( Prompt, Choices,
 
 	{ Env, PortOpts } = get_execution_settings(),
 
-	case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
-									  PortOpts ) of
+	case system_utils:run_command( Cmd, Env, _WorkingDir=undefined,
+								   PortOpts ) of
 
 		{ _ExitStatus=0, Result } ->
 			ChosenNum = text_utils:string_to_integer( Result ),
@@ -1243,8 +1243,8 @@ choose_designated_item_with_default( Prompt, Choices, DefaultChoiceDesignator,
 
 	{ Env, PortOpts } = get_execution_settings(),
 
-	case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
-									  PortOpts ) of
+	case system_utils:run_command( Cmd, Env, _WorkingDir=undefined,
+								   PortOpts ) of
 
 		{ _ExitStatus=0, Result } ->
 			ChosenNum = text_utils:string_to_integer( Result ),
@@ -1489,8 +1489,8 @@ clear( #term_ui_state{ dialog_tool_path=ToolPath } ) ->
 
 	{ Env, PortOpts } = get_execution_settings(),
 
-	case system_utils:run_executable( Cmd, Env, _WorkingDir=undefined,
-									  PortOpts ) of
+	case system_utils:run_command( Cmd, Env, _WorkingDir=undefined,
+								   PortOpts ) of
 
 		{ _ExitStatus=0, _Output="" } ->
 			%trace_utils:debug( "Cleared." ),

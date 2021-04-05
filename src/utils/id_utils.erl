@@ -156,7 +156,7 @@ generate_uuid() ->
 			% Random-based, rather than time-based (otherwise we end up
 			% collecting a rather constant suffix):
 			%
-			case system_utils:run_executable( Exec ++ " -r" ) of
+			case system_utils:run_command( Exec ++ " -r" ) of
 
 				{ _ExitCode=0, Res } ->
 					Res;
@@ -180,8 +180,8 @@ uuidgen_internal() ->
 	% bytes would be read. Instead we read twice the target size, and chop it at
 	% 32:
 	%
-	case system_utils:run_executable(
-		   "/bin/dd if=/dev/urandom ibs=1 obs=1 count=64 2>/dev/null" ) of
+	case system_utils:run_command(
+			"/bin/dd if=/dev/urandom ibs=1 obs=1 count=64 2>/dev/null" ) of
 
 		{ _ReturnCode=0, Output } ->
 
