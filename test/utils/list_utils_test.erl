@@ -93,7 +93,6 @@ run() ->
 		throw( { test_failed, get_index_of, 42 } )
 
 	catch { non_existing_element, 42 } ->
-
 			ok
 
 	end,
@@ -132,17 +131,17 @@ run() ->
 	[ 1, 3, 4 ] = list_utils:delete_all_in( 2, L1 ),
 
 
-	true  = list_utils:is_list_of_integers( [ 1, 2, 3 ] ),
-	true  = list_utils:is_list_of_integers( [] ),
-	true  = list_utils:is_list_of_integers( "This is a trap!" ),
+	true  = list_utils:are_integers( [ 1, 2, 3 ] ),
+	true  = list_utils:are_integers( [] ),
+	true  = list_utils:are_integers( "This is a trap!" ),
 
-	false  = list_utils:is_list_of_integers( [ 1, 2, 3.0 ] ),
-	false  = list_utils:is_list_of_integers( a ),
+	false  = list_utils:are_integers( [ 1, 2, 3.0 ] ),
+	false  = list_utils:are_integers( a ),
 
-	true  = list_utils:is_list_of_pids( [ self(), self() ] ),
-	true  = list_utils:is_list_of_pids( [] ),
+	true  = list_utils:are_pids( [ self(), self() ] ),
+	true  = list_utils:are_pids( [] ),
 
-	false  = list_utils:is_list_of_pids( [ self(), 2 ] ),
+	false  = list_utils:are_pids( [ self(), 2 ] ),
 
 
 	true = list_utils:unordered_compare( [], [] ),
@@ -160,10 +159,9 @@ run() ->
 					[ undefined, a, b, undefined, c, undefined ] ),
 
 	{ 3, 2 } = list_utils:determine_tuple_info(
-				 [ { a, 1 }, { b, 1 }, { c, 2 } ] ),
+					[ { a, 1 }, { b, 1 }, { c, 2 } ] ),
 
-	{ 2, 3 } = list_utils:determine_tuple_info(
-				 [ { a, 1, 3 }, { b, 1, 0 } ] ),
+	{ 2, 3 } = list_utils:determine_tuple_info( [ { a, 1, 3 }, { b, 1, 0 } ] ),
 
 
 	{ [], [  a, b, c, d, e ] } = list_utils:split_at( 0, [ a, b, c, d, e ] ),
@@ -270,9 +268,8 @@ run() ->
 	Lreciprocal = list_utils:random_permute_reciprocal( Lpermuted ),
 
 	test_facilities:display( "List obtained after having restored the random "
-							 "state and performed a reciprocal permutation on "
-							 "~w: ~w.",
-							 [ Lpermuted, Lreciprocal ] ),
+		"state and performed a reciprocal permutation on ~w: ~w.",
+		[ Lpermuted, Lreciprocal ] ),
 
 	% Must match:
 	L = Lreciprocal,
@@ -295,7 +292,7 @@ run() ->
 	FirstProbabilityList = [ {first,1}, {second,0}, {third,1} ],
 
 	NoSecondList = [ list_utils:draw_element_weighted( FirstProbabilityList )
-					 || _X <- lists:seq( 1, ProbabilityCount ) ],
+						|| _X <- lists:seq( 1, ProbabilityCount ) ],
 
 	test_facilities:display(
 		"List obtained after ~B drawings in following probability table: ~w "
@@ -307,7 +304,7 @@ run() ->
 	SecondProbabilityList = [ {first,1}, {second,2}, {third,1} ],
 
 	SecondTwiceList = [ list_utils:draw_element_weighted(
-		  SecondProbabilityList ) || _X <- lists:seq( 1, ProbabilityCount ) ],
+			SecondProbabilityList ) || _X <- lists:seq( 1, ProbabilityCount ) ],
 
 	test_facilities:display(
 		"List obtained after ~B drawings in following probability table: ~w "
