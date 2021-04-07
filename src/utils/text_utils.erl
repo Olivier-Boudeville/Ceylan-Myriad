@@ -94,6 +94,8 @@
 		  split/2, split_per_element/2, split_parsed/2, split_at_whitespaces/1,
 		  split_at_first/2, split_camel_case/1, tokenizable_to_camel_case/2,
 
+		  find_substring_index/2, find_substring_index/3,
+
 		  substitute/3, filter/2, split_after_prefix/2,
 		  update_with_keywords/2,
 
@@ -117,9 +119,9 @@
 		  get_default_bullet/0, get_bullet_for_level/1,
 		  format_text_for_width/2,
 		  pad_string/2, pad_string_left/2, pad_string_right/2,
-		  is_string/1, is_non_empty_string/1, is_list_of_strings/1,
-		  is_bin_string/1,
-		  is_list_of_binaries/1,
+		  is_string/1, is_non_empty_string/1, are_strings/1,
+		  is_bin_string/1, are_binaries/1,
+		  are_of_same_string_type/2,
 		  to_unicode_list/1, to_unicode_list/2,
 		  to_unicode_binary/1, to_unicode_binary/2 ]).
 
@@ -206,6 +208,12 @@
 % is a builtin type; it cannot be redefined").
 %
 -type uchar() :: integer().
+
+
+% Index in a Unicode string, in terms of grapheme clusters (ex: not codepoints,
+% not bytes).
+%
+-type gc_index() :: non_neg_integer().
 
 
 % A plain (Unicode) string:
@@ -2661,6 +2669,50 @@ substitute( SourceChar, TargetChar, _String=[ OtherChar | T ], Acc ) ->
 	substitute( SourceChar, TargetChar, T, [ OtherChar | Acc ] ).
 
 
+% Returns the index, in terms of grapheme clusters, of the first occurrence of
+% the specified pattern substring (if any) in the specified string.
+%
+% An (attempt of) Unicode-aware replacement of string:str/2 and string:rstr/2.
+%
+-spec find_substring_index( unicode:chardata(), unicode:chardata() ) ->
+									gc_index() | 'nomatch'.
+find_substring_index( String, SearchPattern ) ->
+	find_substring_index( String, SearchPattern, _Direction=leading ).
+
+
+% Returns the index, in terms of grapheme clusters, of the first or last
+% occurrence (depending on the specified direction) of the specified pattern
+% substring (if any) in the specified string.
+%
+% An (attempt of) Unicode-aware replacement of string:str/2 and string:rstr/2.
+%
+-spec find_substring_index( unicode:chardata(), unicode:chardata(),
+							string:direction() ) -> gc_index() | 'nomatch'.
+find_substring_index( String, SearchPattern, Direction ) ->
+	GCString = string:to_graphemes( String ),
+	GCSearchPattern = string:to_graphemes( SearchPattern ),
+	PseudoIndex = case Direction of
+
+		leading ->
+			string:str( GCString, GCSearchPattern );
+
+		trailing ->
+			string:rstr( GCString, GCSearchPattern )
+
+	end,
+
+	case PseudoIndex of
+
+		0 ->
+			nomatch;
+
+		% Indexes of grapheme clusters are to start at 0, not 1:
+		I ->
+			I-1
+
+	end.
+
+
 
 % Filters out in specified string the specified character, so that it does not
 % occur anymore on the returned string.
@@ -3500,30 +3552,30 @@ is_non_empty_string( _Other ) ->
 
 
 % Returns true iff the specified parameter is a list whose all elements are
-% strings.
+% (all) plain strings.
 %
 % Note: especially useful knowing that a string is itself a list, hence a string
 % can easily be mistaken for a list of strings, in which case each of these
 % strings would actually be found being an integer instead (corresponding to
 % each of the characters of the overall string).
 %
--spec is_list_of_strings( list() ) -> boolean().
-is_list_of_strings( [] ) ->
+-spec are_strings( list() ) -> boolean().
+are_strings( [] ) ->
 	true;
 
-is_list_of_strings( [ H | T ] ) ->
+are_strings( [ H | T ] ) ->
 
 	case is_string( H ) of
 
 		true ->
-			is_list_of_strings( T );
+			are_strings( T );
 
 		false ->
 			false
 
 	end;
 
-is_list_of_strings( _Other ) ->
+are_strings( _Other ) ->
 	false.
 
 
@@ -3540,14 +3592,29 @@ is_bin_string( _Term ) ->
 
 
 
-% Tells whether specified term is a list of binaries.
--spec is_list_of_binaries( term() ) -> boolean().
-is_list_of_binaries( List ) when is_list( List ) ->
+% Tells whether specified term is a list of binary strings.
+-spec are_binaries( term() ) -> boolean().
+are_binaries( List ) when is_list( List ) ->
 	lists:all( fun is_bin_string/1, List );
 
-is_list_of_binaries( _NotList ) ->
+are_binaries( _NotList ) ->
 	false.
 
+
+
+% Returns whether the two specified strings are of the same type (both plain or
+% both binary ones).
+%
+-spec are_of_same_string_type( any_string(), any_string() ) -> boolean().
+are_of_same_string_type( S1, S2 ) when is_list( S1 ) andalso is_list( S2 ) ->
+	true;
+
+are_of_same_string_type( S1, S2 ) when is_binary( S1 )
+									   andalso is_binary( S2 ) ->
+	true;
+
+are_of_same_string_type( _S1, _S2 ) ->
+	false.
 
 
 
