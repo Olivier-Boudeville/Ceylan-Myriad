@@ -40,9 +40,8 @@
 % often prim_file is used instead.
 
 
-
 % Filename-related operations.
--export([ join/1, join/2, bin_join/1, bin_join/2,
+-export([ join/1, join/2, bin_join/1, bin_join/2, any_join/1, any_join/2,
 
 		  get_base_path/1, get_last_path_element/1,
 
@@ -72,6 +71,7 @@
 
 		  filter_by_extension/2, filter_by_extensions/2,
 		  filter_by_included_suffixes/2, filter_by_excluded_suffixes/2,
+		  has_matching_suffix/2,
 
 		  find_files_from/1, find_files_from/2, find_files_from/3,
 		  find_regular_files_from/1, find_links_from/1, find_links_from/2,
@@ -225,11 +225,11 @@
 % An extension in a filename (ex: "baz", in "foobar.baz.json"):
 -type extension() :: ustring().
 
-% The suffix (final part) in a file element:
--type suffix() :: ustring().
+% The suffix (final part) in a path element:
+-type any_suffix() :: text_utils:any_string().
 
 % A part of a path (ex: "local" in "/usr/local/share"):
--type path_element() :: text_utils:ustring().
+-type path_element() :: ustring().
 
 
 % A part of a path (ex: <<"local">> in "/usr/local/share"):
@@ -329,7 +329,7 @@
 			   script_path/0, bin_script_path/0,
 			   directory_name/0, bin_directory_name/0,
 			   directory_path/0, bin_directory_path/0,
-			   extension/0, suffix/0,
+			   extension/0, any_suffix/0,
 			   path_element/0, bin_path_element/0, any_path_element/0,
 			   leaf_name/0,
 			   entry_type/0, parent_creation/0,
@@ -509,7 +509,6 @@ join( FirstPath, SecondPath ) ->
 
 
 
-
 % Joins the specified list of path elements, returns a corresponding binary
 % string.
 %
@@ -556,6 +555,49 @@ bin_join( FirstPath, SecondPath ) when is_binary( FirstPath )
 % Here both are expected to be plain strings, cannot be a problem:
 bin_join( FirstPath, SecondPath ) ->
 	filename:join( text_utils:to_unicode_binary( FirstPath ), SecondPath ).
+
+
+
+% Joins the specified list of path elements, returns a corresponding binary
+% string if at least one element is a binary string itself, otherwise returns a
+% plain string.
+%
+% See join/1 for API details.
+%
+% Plain and binary strings can be freely used as arguments.
+%
+% See filename:split/1 for the reverse operation.
+%
+-spec any_join( [ any_path_element() ] ) -> any_path().
+any_join( ComponentList ) when is_list( ComponentList ) ->
+	lists:foldr( fun any_join/2, _Acc0="", _List=ComponentList );
+
+any_join( NonList ) ->
+	throw( { cannot_join, NonList } ).
+
+
+
+% Joins the two specified path elements, returns a corresponding binary
+% string if at least one element is a binary string itself, otherwise returns a
+% plain string.
+%
+% Never attempts a binary-to-string conversion.
+%
+% Introduced to promote to binary string only when necessary.
+%
+-spec any_join( any_path(), any_path() ) -> any_path().
+% Use the same semantics as join/2:
+any_join( _FirstPath="", SecondPath ) ->
+	SecondPath;
+
+any_join( _FirstPath= <<"">>, SecondPath ) ->
+	text_utils:ensure_binary( SecondPath ) ;
+
+% As soon as at least one argument of filename:join/2 is a binary, returns a
+% binary, otherwise returns a plain string:
+%
+any_join( FirstPath, SecondPath )  ->
+	filename:join( FirstPath, SecondPath ).
 
 
 
@@ -1570,54 +1612,138 @@ filter_by_extensions( _Filenames=[ F | T ], Extensions, Acc ) ->
 
 
 
-% Returns a list containing all elements of the Filenames list that match any of
-% the specified suffixes.
+% Returns a list containing all paths in the specified list (in an unspecified
+% order) that match any of the specified suffixes.
 %
--spec filter_by_included_suffixes( [ file_path() ], [ suffix() ] ) ->
-											[ file_path() ].
-filter_by_included_suffixes( Filenames, IncludedSuffixes ) ->
-	[ F || F <- Filenames, has_matching_suffix( F, IncludedSuffixes ) ].
-
-
-% Returns a list containing all elements of the Filenames list that do not
-% match any of the specified suffixes.
-%
--spec filter_by_excluded_suffixes( [ file_path() ], [ suffix() ] ) ->
-											[ file_path() ].
-filter_by_excluded_suffixes( Filenames, ExcludedSuffixes ) ->
-	[ F || F <- Filenames, not has_matching_suffix( F, ExcludedSuffixes ) ].
-
+-spec filter_by_included_suffixes( [ any_path() ], [ any_suffix() ] ) ->
+											[ any_path() ].
+filter_by_included_suffixes( Paths, IncludedSuffixes ) ->
+	% Not a list comprehension to better detect any non-matching element:
+	Res = filter_by_included_suffixes( Paths, IncludedSuffixes, _Acc=[] ),
+	%trace_utils:debug_fmt( "Filtering by included suffixes ~p~n  * input: ~p"
+	%	"~n * output: ~p", [ IncludedSuffixes, Paths, Res ] ),
+	Res.
 
 
 % (helper)
--spec has_matching_suffix( file_name(), [ suffix() ] ) -> boolean().
-has_matching_suffix( _Filename, _ExcludedSuffixes=[] ) ->
+filter_by_included_suffixes( _Paths=[], _IncludedSuffixes, Acc ) ->
+	% Order does not matter:
+	Acc;
+
+filter_by_included_suffixes( _Paths=[ P | T ], IncludedSuffixes, Acc ) ->
+
+	NewAcc = case has_matching_suffix( P, IncludedSuffixes ) of
+
+		true ->
+			[ P | Acc ];
+
+		false ->
+			Acc
+
+	end,
+
+	filter_by_included_suffixes( T, IncludedSuffixes, NewAcc ).
+
+
+
+
+% Returns a list containing all paths in the specified list (in an unspecified
+% order) that do not match any of the specified suffixes.
+%
+-spec filter_by_excluded_suffixes( [ any_path() ], [ any_suffix() ] ) ->
+											[ any_path() ].
+% Below there is at least one excluded suffix:
+filter_by_excluded_suffixes( Paths, ExcludedSuffixes ) ->
+	% Not a list comprehension to better detect any non-matching element:
+	filter_by_excluded_suffixes( Paths, ExcludedSuffixes, _Acc=[] ).
+
+
+% (helper)
+filter_by_excluded_suffixes( _Paths=[], _ExcludedSuffixes, Acc ) ->
+	% Order does not matter:
+	Acc;
+
+filter_by_excluded_suffixes( _Paths=[ P | T ], ExcludedSuffixes, Acc ) ->
+
+	NewAcc = case has_matching_suffix( P, ExcludedSuffixes ) of
+
+		true ->
+			Acc;
+
+		false ->
+			[ P | Acc ]
+
+	end,
+
+	filter_by_excluded_suffixes( T, ExcludedSuffixes, NewAcc ).
+
+
+
+
+% (exported helper)
+-spec has_matching_suffix( any_path(), [ any_suffix() ] ) -> boolean().
+has_matching_suffix( _Path, _Suffixes=[] ) ->
 	false;
 
-has_matching_suffix( Filename, [ S | OtherS ] ) ->
+has_matching_suffix( Path, [ Suffix | T ] ) ->
 
-	% We have to avoid feeding string:substr/2 with a start position that is not
-	% strictly positive, otherwise we would trigger a function clause error:
+	% Deadly bugs may happen if plain and binary strings are mixed:
+	%cond_utils:assert( myriad_check_strings,
+	%				   text_utils:are_of_same_string_type( Path, Suffix ) ),
 
-	LenFile = length( Filename ),
-	LenSuffix = length( S ),
+	% Path and Suffix must be of the same type of strings (either plain or
+	% binary). If not, as a conversion from binary to plain may fail (raw
+	% filenames), we promote the plain to binary instead:
+	%
+	{ ActualPath, ActualSuffix } = case text_utils:is_string( Path ) of
 
-	case LenFile - LenSuffix + 1 of
+		true ->
+			case text_utils:is_string( Suffix ) of
 
-		StartPos when StartPos > 0 ->
+				true ->
+					{ Path, Suffix };
 
-			case string:substr( Filename, StartPos ) of
+				false ->
+					{ text_utils:string_to_binary( Path ), Suffix }
 
-				S ->
+			end;
+
+		false ->
+			case text_utils:is_string( Suffix ) of
+
+				true ->
+					{ Path, text_utils:string_to_binary( Suffix ) };
+
+				false ->
+					{ Path , Suffix }
+
+			end
+
+	end,
+
+	% To work both for plain and binary strings:
+	LenPath = string:length( ActualPath ),
+	LenSuffix = string:length( ActualSuffix ),
+
+	case LenPath - LenSuffix  of
+
+		StartPos when StartPos >= 0 ->
+
+			case string:slice( ActualPath, StartPos ) of
+
+				% Thus Suffix must be of the same type of string as Path:
+				ActualSuffix ->
 					true;
 
 				_ ->
-					has_matching_suffix( Filename, OtherS )
+					% Not specifically ActualPath:
+					has_matching_suffix( Path, T )
 
 			end;
 
 		_ ->
-			has_matching_suffix( Filename, OtherS )
+			% Not specifically ActualPath:
+			has_matching_suffix( Path, T )
 
 	end.
 
@@ -1626,6 +1752,10 @@ has_matching_suffix( Filename, [ S | OtherS ] ) ->
 
 % Section dedicated to the look-up of files, with various variations (with or
 % without extensions, with or without excluded directories, etc.)
+
+% Excluded directories are all promoted to binary strings at first, so that no
+% upcoming lists:member( D, ExcludedDirs ) can fail if ever D happens to be a
+% binary (because of a 'raw directory').
 
 
 
@@ -1708,7 +1838,7 @@ find_files_from( RootDir, CurrentRelativeDir, IncludeSymlinks,
 	%trace_utils:debug_fmt( "find_files_from with root = '~ts', "
 	%    "current = '~ts'.", [ RootDir, CurrentRelativeDir ] ),
 
-	CurrentDir = join( RootDir, CurrentRelativeDir ),
+	CurrentDir = any_join( RootDir, CurrentRelativeDir ),
 
 	{ RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
 		list_dir_elements( CurrentDir, IfImproperEncoding ),
@@ -1740,7 +1870,7 @@ list_files_in_subdirs( _Dirs=[ D | T ], RootDir, CurrentRelativeDir,
 	%trace_utils:debug_fmt( "list_files_in_subdirs with root = '~ts', "
 	% "current = '~ts' and D='~ts'.", [ RootDir, CurrentRelativeDir, D ] ),
 
-	NewAcc = find_files_from( RootDir, join( CurrentRelativeDir, D ),
+	NewAcc = find_files_from( RootDir, any_join( CurrentRelativeDir, D ),
 					IncludeSymlinks, IfImproperEncoding, _NextAcc=[] ) ++ Acc,
 
 	list_files_in_subdirs( T, RootDir, CurrentRelativeDir, IncludeSymlinks,
@@ -1788,7 +1918,7 @@ find_links_from( RootDir, CurrentRelativeDir, IfImproperEncoding, Acc ) ->
 	%trace_utils:debug_fmt( "find_links_from with root = '~ts', "
 	%  "current = '~ts'.", [ RootDir, CurrentRelativeDir ] ),
 
-	CurrentDir = join( RootDir, CurrentRelativeDir ),
+	CurrentDir = any_join( RootDir, CurrentRelativeDir ),
 
 	{ _RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
 		list_dir_elements( CurrentDir, IfImproperEncoding ),
@@ -1810,7 +1940,7 @@ list_links_in_subdirs( _Dirs=[ D | T ], RootDir, CurrentRelativeDir,
 	%trace_utils:debug_fmt( "list_links_in_subdirs with root = '~ts', "
 	%   "current = '~ts' and D='~ts'.", [ RootDir, CurrentRelativeDir, D ] ),
 
-	NewAcc = find_links_from( RootDir, join( CurrentRelativeDir, D ),
+	NewAcc = find_links_from( RootDir, any_join( CurrentRelativeDir, D ),
 							  IfImproperEncoding, _NextAcc=[] ) ++ Acc,
 
 	list_links_in_subdirs( T, RootDir, CurrentRelativeDir, IfImproperEncoding,
@@ -1881,7 +2011,7 @@ find_files_with_extension_from( RootDir, CurrentRelativeDir, Extension,
 	%trace_utils:debug_fmt( "find_files_with_extension_from in '~ts'.",
 	%           [ CurrentRelativeDir ] ),
 
-	CurrentDir = join( RootDir, CurrentRelativeDir ),
+	CurrentDir = any_join( RootDir, CurrentRelativeDir ),
 
 	{ RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
 		list_dir_elements( CurrentDir, IfImproperEncoding ),
@@ -1913,7 +2043,7 @@ list_files_in_subdirs_with_extension( _Dirs=[ H | T ], Extension, RootDir,
 		CurrentRelativeDir, IncludeSymlinks, IfImproperEncoding, Acc ) ->
 
 	NewAcc = find_files_with_extension_from( RootDir,
-		join( CurrentRelativeDir, H ), Extension, IncludeSymlinks,
+		any_join( CurrentRelativeDir, H ), Extension, IncludeSymlinks,
 		IfImproperEncoding, _NextAcc=[] ) ++ Acc,
 
 	list_files_in_subdirs_with_extension( T, Extension, RootDir,
@@ -2001,18 +2131,22 @@ find_files_with_excluded_dirs( RootDir, ExcludedDirs, IncludeSymlinks ) ->
 			boolean(), improper_encoding_action() ) -> [ file_path() ].
 find_files_with_excluded_dirs( RootDir, ExcludedDirs, IncludeSymlinks,
 							   IfImproperEncoding ) ->
+
+	% Not wanting a lists:member/1 to fail because of a wrong string type:
+	BinExcludedDirs = text_utils:ensure_binaries( ExcludedDirs ),
+
 	find_files_with_excluded_dirs( RootDir, _CurrentRelativeDir="",
-		ExcludedDirs, IncludeSymlinks, IfImproperEncoding, _Acc=[] ).
+		BinExcludedDirs, IncludeSymlinks, IfImproperEncoding, _Acc=[] ).
 
 
 % (helper)
-find_files_with_excluded_dirs( RootDir, CurrentRelativeDir, ExcludedDirs,
+find_files_with_excluded_dirs( RootDir, CurrentRelativeDir, BinExcludedDirs,
 							   IncludeSymlinks, IfImproperEncoding, Acc ) ->
 
 	%trace_utils:debug_fmt( "find_files_with_excluded_dirs in '~ts'.",
 	%       [ CurrentRelativeDir ] ),
 
-	CurrentDir = join( RootDir, CurrentRelativeDir ),
+	CurrentDir = any_join( RootDir, CurrentRelativeDir ),
 
 	{ RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
 		list_dir_elements( CurrentDir, IfImproperEncoding ),
@@ -2032,11 +2166,12 @@ find_files_with_excluded_dirs( RootDir, CurrentRelativeDir, ExcludedDirs,
 	% (last) name:
 	%
 	FilteredDirectories = [ D || D <- Directories,
-		not ( lists:member( join( CurrentRelativeDir, D ), ExcludedDirs )
-			  orelse lists:member( D, ExcludedDirs ) ) ],
+		not ( lists:member( bin_join( CurrentRelativeDir, D ), BinExcludedDirs )
+			  orelse lists:member( text_utils:ensure_binary( D ),
+								   BinExcludedDirs ) ) ],
 
 	Acc ++ list_files_in_subdirs_excluded_dirs( FilteredDirectories, RootDir,
-				CurrentRelativeDir, ExcludedDirs, IncludeSymlinks,
+				CurrentRelativeDir, BinExcludedDirs, IncludeSymlinks,
 				IfImproperEncoding, _Acc=[] )
 		++ prefix_files_with( CurrentRelativeDir, Files ).
 
@@ -2044,20 +2179,20 @@ find_files_with_excluded_dirs( RootDir, CurrentRelativeDir, ExcludedDirs,
 
 % Specific helper for find_files_with_excluded_dirs/6 above:
 list_files_in_subdirs_excluded_dirs( _Dirs=[], _RootDir,
-		_CurrentRelativeDir, _ExcludedDirs, _IncludeSymlinks,
+		_CurrentRelativeDir, _BinExcludedDirs, _IncludeSymlinks,
 		_IfImproperEncoding, Acc ) ->
 	Acc;
 
 list_files_in_subdirs_excluded_dirs( _Dirs=[ D | T ], RootDir,
-		CurrentRelativeDir, ExcludedDirs, IncludeSymlinks, IfImproperEncoding,
-		Acc ) ->
+		CurrentRelativeDir, BinExcludedDirs, IncludeSymlinks,
+		IfImproperEncoding, Acc ) ->
 
 	NewAcc = find_files_with_excluded_dirs( RootDir,
-		join( CurrentRelativeDir, D ), ExcludedDirs, IncludeSymlinks,
+		any_join( CurrentRelativeDir, D ), BinExcludedDirs, IncludeSymlinks,
 		IfImproperEncoding, _NextAcc=[] ) ++ Acc,
 
 	list_files_in_subdirs_excluded_dirs( T, RootDir, CurrentRelativeDir,
-		ExcludedDirs, IncludeSymlinks, IfImproperEncoding, NewAcc ).
+		BinExcludedDirs, IncludeSymlinks, IfImproperEncoding, NewAcc ).
 
 
 
@@ -2074,7 +2209,7 @@ list_files_in_subdirs_excluded_dirs( _Dirs=[ D | T ], RootDir,
 % Ex: ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_excluded_suffixes( any_directory_path(),
-										 [ suffix() ] ) -> [ file_path() ].
+										 [ any_suffix() ] ) -> [ file_path() ].
 find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes ) ->
 	find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes,
 									   _IfImproperEncoding=warn ).
@@ -2093,11 +2228,11 @@ find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes ) ->
 % Ex: ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_excluded_suffixes( any_directory_path(),
-				[ suffix() ], improper_encoding_action() ) -> [ file_path() ].
+			[ any_suffix() ], improper_encoding_action() ) -> [ file_path() ].
 find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes,
 								   IfImproperEncoding  ) ->
 	find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes,
-								   _IncludeSymlinks=true, IfImproperEncoding ).
+								_IncludeSymlinks=true, IfImproperEncoding ).
 
 
 
@@ -2113,7 +2248,7 @@ find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes,
 % All returned pathnames are relative to this root.
 % Ex: ["./a.txt", "./tmp/b.txt"].
 %
--spec find_files_with_excluded_suffixes( any_directory_path(), [ suffix() ],
+-spec find_files_with_excluded_suffixes( any_directory_path(), [ any_suffix() ],
 					boolean(), improper_encoding_action() ) -> [ file_path() ].
 find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes, IncludeSymlinks,
 								   IfImproperEncoding ) ->
@@ -2129,7 +2264,7 @@ find_files_with_excluded_suffixes( RootDir, CurrentRelativeDir,
 	%trace_utils:debug_fmt( "find_files_with_excluded_suffixes in '~ts'.",
 	%     [ CurrentRelativeDir ] ),
 
-	CurrentDir = join( RootDir, CurrentRelativeDir ),
+	CurrentDir = any_join( RootDir, CurrentRelativeDir ),
 
 	{ RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
 		list_dir_elements( CurrentDir, IfImproperEncoding ),
@@ -2155,7 +2290,7 @@ find_files_with_excluded_suffixes( RootDir, CurrentRelativeDir,
 
 % Helper for find_files_with_excluded_suffixes/6:
 -spec list_files_in_subdirs_with_excluded_suffixes( [ directory_name() ],
-		[ suffix() ], directory_path(), directory_path(), boolean(),
+		[ any_suffix() ], directory_path(), directory_path(), boolean(),
 		improper_encoding_action(), [ file_path() ] ) -> [ file_path() ].
 list_files_in_subdirs_with_excluded_suffixes( _Dirs=[], _ExcludedSuffixes,
 		_RootDir, _CurrentRelativeDir, _IncludeSymlinks, _IfImproperEncoding,
@@ -2167,7 +2302,7 @@ list_files_in_subdirs_with_excluded_suffixes( _Dirs=[ D | T ], ExcludedSuffixes,
 		Acc ) ->
 
 	NewAcc = find_files_with_excluded_suffixes( RootDir,
-		join( CurrentRelativeDir, D ), ExcludedSuffixes, IncludeSymlinks,
+		any_join( CurrentRelativeDir, D ), ExcludedSuffixes, IncludeSymlinks,
 		IfImproperEncoding, _NextAcc=[] ) ++ Acc,
 
 	list_files_in_subdirs_with_excluded_suffixes( T, ExcludedSuffixes, RootDir,
@@ -2197,7 +2332,7 @@ list_files_in_subdirs_with_excluded_suffixes( _Dirs=[ D | T ], ExcludedSuffixes,
 % Ex: ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_excluded_dirs_and_suffixes( any_directory_path(),
-		[ directory_path() ], [ suffix() ] ) -> [ file_path() ].
+		[ directory_path() ], [ any_suffix() ] ) -> [ file_path() ].
 find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirs,
 											ExcludedSuffixes ) ->
 	find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirs,
@@ -2226,7 +2361,7 @@ find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirs,
 % Ex: ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_excluded_dirs_and_suffixes( any_directory_path(),
-		[ directory_path() ], [ suffix() ], boolean() ) -> [ file_path() ].
+		[ directory_path() ], [ any_suffix() ], boolean() ) -> [ file_path() ].
 find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirs,
 									ExcludedSuffixes, IncludeSymlinks ) ->
 	find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirs,
@@ -2255,7 +2390,7 @@ find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirs,
 % Ex: ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_excluded_dirs_and_suffixes( any_directory_path(),
-			[ directory_path() ], [ suffix() ], boolean(),
+			[ directory_path() ], [ any_suffix() ], boolean(),
 			improper_encoding_action() ) -> [ file_path() ].
 find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirs,
 					ExcludedSuffixes, IncludeSymlinks, IfImproperEncoding ) ->
@@ -2265,8 +2400,11 @@ find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirs,
 	%	[ get_current_directory(), RootDir, ExcludedDirs,
 	%	  ExcludedSuffixes ] ),
 
+	% Not wanting a lists:member/1 to fail because of a wrong string type:
+	BinExcludedDirs = text_utils:ensure_binaries( ExcludedDirs ),
+
 	find_files_with_excluded_dirs_and_suffixes( RootDir,
-			_CurrentRelativeDir="", ExcludedDirs, ExcludedSuffixes,
+			_CurrentRelativeDir="", BinExcludedDirs, ExcludedSuffixes,
 			IncludeSymlinks, IfImproperEncoding, _Acc=[] ).
 
 
@@ -2279,7 +2417,7 @@ find_files_with_excluded_dirs_and_suffixes( RootDir, CurrentRelativeDir,
 	%trace_utils:debug_fmt( "find_files_with_excluded_dirs_and_suffixes in "
 	%   "~ts / ~ts.", [ RootDir, CurrentRelativeDir ] ),
 
-	CurrentDir = join( RootDir, CurrentRelativeDir ),
+	CurrentDir = any_join( RootDir, CurrentRelativeDir ),
 
 	{ RegularFiles, Symlinks, Directories, _OtherFiles, _Devices } =
 		list_dir_elements( CurrentDir, IfImproperEncoding ),
@@ -2299,15 +2437,16 @@ find_files_with_excluded_dirs_and_suffixes( RootDir, CurrentRelativeDir,
 	% (last) name:
 	%
 	FilteredDirectories = [ D || D <- Directories,
-		not ( lists:member( join( CurrentRelativeDir, D ), ExcludedDirs )
-			 orelse lists:member( D, ExcludedDirs ) ) ],
+		not ( lists:member( bin_join( CurrentRelativeDir, D ), ExcludedDirs )
+			  orelse lists:member( text_utils:ensure_binary( D ),
+								   ExcludedDirs ) ) ],
 
 	Acc ++ list_files_in_subdirs_excluded_dirs_and_suffixes(
 			FilteredDirectories, RootDir, CurrentRelativeDir,
 			ExcludedDirs, ExcludedSuffixes, IncludeSymlinks, IfImproperEncoding,
 			_Acc=[] )
 		++ prefix_files_with( CurrentRelativeDir,
-			filter_by_excluded_suffixes( Files, ExcludedSuffixes ) ).
+				filter_by_excluded_suffixes( Files, ExcludedSuffixes ) ).
 
 
 
@@ -2323,7 +2462,7 @@ list_files_in_subdirs_excluded_dirs_and_suffixes( _Dirs=[ D | T ], RootDir,
 		IfImproperEncoding, Acc ) ->
 
 	NewAcc = find_files_with_excluded_dirs_and_suffixes( RootDir,
-			join( CurrentRelativeDir, D ), ExcludedDirs, ExcludedSuffixes,
+			any_join( CurrentRelativeDir, D ), ExcludedDirs, ExcludedSuffixes,
 			IncludeSymlinks, IfImproperEncoding, _NextAcc=[] ) ++ Acc,
 
 	list_files_in_subdirs_excluded_dirs_and_suffixes( T, RootDir,
@@ -2335,7 +2474,7 @@ list_files_in_subdirs_excluded_dirs_and_suffixes( _Dirs=[ D | T ], RootDir,
 % Prefixes specified paths with specified root directory.
 -spec prefix_files_with( directory_path(), [ file_name() ] ) -> [ file_path() ].
 prefix_files_with( RootDir, Files ) ->
-	%io:format( "Prefixing ~p with '~ts'.~n", [ Files, RootDir ] ),
+	%trace_utils:debug_fmt( "Prefixing ~p with '~ts'.", [ Files, RootDir ] ),
 	prefix_files_with( RootDir, Files, _Acc=[] ).
 
 
@@ -2344,16 +2483,11 @@ prefix_files_with( _RootDir, _Files=[], Acc ) ->
 	Acc;
 
 prefix_files_with( RootDir, [ Str | T ], Acc ) when is_list( Str ) ->
-	prefix_files_with( RootDir, T, [ join( RootDir, Str ) | Acc ] );
+	prefix_files_with( RootDir, T, [ any_join( RootDir, Str ) | Acc ] );
 
 % Trying to overcome weirdly-named files:
 prefix_files_with( RootDir, [ BinStr | T ], Acc ) when is_binary( BinStr ) ->
-	prefix_files_with( RootDir, T, [ join( RootDir, BinStr ) | Acc ] );
-
-% Probably a binary due to a faulty Unicode filename encoding:
-prefix_files_with( RootDir, [ Other | T ], Acc ) ->
-	trace_utils:warning_fmt( "Ignoring improper filename '~p'.", [ Other ] ),
-	prefix_files_with( RootDir, T, Acc ).
+	prefix_files_with( RootDir, T, [ any_join( RootDir, BinStr ) | Acc ] ).
 
 
 
@@ -2371,13 +2505,14 @@ find_directories_from( RootDir ) ->
 % (helper)
 find_directories_from( RootDir, CurrentRelativeDir, Acc ) ->
 
-	%io:format( "find_directories_from in ~ts.~n", [ CurrentRelativeDir ] ),
+	%trace_utils:debug_fmt( "find_directories_from in ~ts.",
+	%                      [ CurrentRelativeDir ] ),
 
 	{ _RegularFiles, _Symlinks, Directories, _OtherFiles, _Devices } =
-		list_dir_elements( join( RootDir, CurrentRelativeDir ) ),
+		list_dir_elements( any_join( RootDir, CurrentRelativeDir ) ),
 
-	Acc ++ list_directories_in_subdirs( Directories,
-			RootDir, CurrentRelativeDir, _Acc=[] )
+	Acc ++ list_directories_in_subdirs( Directories, RootDir,
+										CurrentRelativeDir, _Acc=[] )
 		++ prefix_files_with( CurrentRelativeDir, Directories ).
 
 
@@ -2389,7 +2524,8 @@ list_directories_in_subdirs( _Dirs=[], _RootDir, _CurrentRelativeDir, Acc ) ->
 list_directories_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir,
 							 Acc ) ->
 	list_directories_in_subdirs( T, RootDir, CurrentRelativeDir,
-		find_directories_from( RootDir, join( CurrentRelativeDir, H ), _Acc=[] )
+		find_directories_from( RootDir, any_join( CurrentRelativeDir, H ),
+							   _Acc=[] )
 		++ Acc ).
 
 
