@@ -47,10 +47,8 @@
 
 
 % Checks regarding lists:
--export([ ensure_list/1, ensure_list_of_atoms/1, ensure_list_of_tuples/1,
-		  ensure_list_of_pids/1,
-		  is_list_of_integers/1, check_list_of_integers/1,
-		  is_list_of_pids/1 ]).
+-export([ ensure_list/1, ensure_atoms/1, ensure_tuples/1, ensure_pids/1,
+		  are_integers/1, check_integers/1, are_pids/1 ]).
 
 
 % Basic list operations:
@@ -123,10 +121,10 @@ ensure_list( Term ) ->
 % a list of its own if not already a list, or check that this list is only
 % populated of atoms.
 %
-ensure_list_of_atoms( Atom ) when is_atom( Atom ) ->
+ensure_atoms( Atom ) when is_atom( Atom ) ->
 	[ Atom ];
 
-ensure_list_of_atoms( List ) when is_list( List ) ->
+ensure_atoms( List ) when is_list( List ) ->
 	case type_utils:is_homogeneous( List, _CommonType=atom ) of
 
 		true ->
@@ -137,7 +135,7 @@ ensure_list_of_atoms( List ) when is_list( List ) ->
 
 	end;
 
-ensure_list_of_atoms( Other ) ->
+ensure_atoms( Other ) ->
 	throw( { neither_list_nor_atom, Other } ).
 
 
@@ -146,10 +144,10 @@ ensure_list_of_atoms( Other ) ->
 % a list of its own if not already a list, or check that this list is only
 % populated of tuples.
 %
-ensure_list_of_tuples( Tuple ) when is_tuple( Tuple ) ->
+ensure_tuples( Tuple ) when is_tuple( Tuple ) ->
 	[ Tuple ];
 
-ensure_list_of_tuples( List ) when is_list( List ) ->
+ensure_tuples( List ) when is_list( List ) ->
 	case type_utils:is_homogeneous( List, _CommonType=tuple ) of
 
 		true ->
@@ -160,7 +158,7 @@ ensure_list_of_tuples( List ) when is_list( List ) ->
 
 	end;
 
-ensure_list_of_tuples( Other ) ->
+ensure_tuples( Other ) ->
 	throw( { neither_list_nor_tuple, Other } ).
 
 
@@ -169,10 +167,10 @@ ensure_list_of_tuples( Other ) ->
 % list of its own if not already a list, or check that this list is only
 % populated of PIDs.
 %
-ensure_list_of_pids( Pid ) when is_pid( Pid ) ->
+ensure_pids( Pid ) when is_pid( Pid ) ->
 	[ Pid ];
 
-ensure_list_of_pids( List ) when is_list( List ) ->
+ensure_pids( List ) when is_list( List ) ->
 	case type_utils:is_homogeneous( List, _CommonType=pid ) of
 
 		true ->
@@ -183,7 +181,7 @@ ensure_list_of_pids( List ) when is_list( List ) ->
 
 	end;
 
-ensure_list_of_pids( Other ) ->
+ensure_pids( Other ) ->
 	throw( { neither_list_nor_pid, Other } ).
 
 
@@ -798,32 +796,32 @@ append_at_end( Elem, L ) when is_list( L ) ->
 
 
 % Returns whether the specified list contains only integers.
--spec is_list_of_integers( term() ) -> boolean().
-is_list_of_integers( [] ) ->
+-spec are_integers( term() ) -> boolean().
+are_integers( [] ) ->
 	true;
 
-is_list_of_integers( [ H | T ] ) when is_integer( H ) ->
-	is_list_of_integers( T );
+are_integers( [ H | T ] ) when is_integer( H ) ->
+	are_integers( T );
 
-is_list_of_integers( _ ) ->
+are_integers( _ ) ->
 	false.
 
 
 % Checks that specified argument is a list of integers.
--spec check_list_of_integers( term() ) -> void().
-check_list_of_integers( Any ) ->
-	true = is_list_of_integers( Any ).
+-spec check_integers( term() ) -> void().
+check_integers( Any ) ->
+	true = are_integers( Any ).
 
 
 % Returns whether the specified list contains only PIDs.
--spec is_list_of_pids( term() ) -> boolean().
-is_list_of_pids( [] ) ->
+-spec are_pids( term() ) -> boolean().
+are_pids( [] ) ->
 	true;
 
-is_list_of_pids( [ H | T ] ) when is_pid( H ) ->
-	is_list_of_pids( T );
+are_pids( [ H | T ] ) when is_pid( H ) ->
+	are_pids( T );
 
-is_list_of_pids( _ ) ->
+are_pids( _ ) ->
 	false.
 
 
