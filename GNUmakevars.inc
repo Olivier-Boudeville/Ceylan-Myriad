@@ -124,6 +124,7 @@ endif
 #  - otp_integration: how OTP conventions (notably regarding applications) are
 #	 handled
 #  - web_exchanges: http/https exchanges
+#  - strings: notably for mismatches between plain and binary ones
 #
 # Defining debug flags (at least the most verbose are by default commented-out):
 ifeq ($(ENABLE_DEBUG),true)
@@ -134,7 +135,7 @@ endif
 
 # Defining check flags:
 ifeq ($(EXECUTION_TARGET),development)
-	# MYRIAD_CHECK_FLAGS += -Dmyriad_check_xxxx
+	# MYRIAD_CHECK_FLAGS += -Dmyriad_check_strings
 endif
 
 
