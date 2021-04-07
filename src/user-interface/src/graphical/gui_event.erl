@@ -1007,16 +1007,17 @@ update_event_loop_tables( _SubscribedEvents=[
 	   { EventTypeMaybeList, GUIObjectMaybeList, SubscriberMaybeList } | T ],
 	   DefaultSubscriberPid, LoopState ) ->
 
-	EventTypeList = list_utils:ensure_list_of_atoms( EventTypeMaybeList ),
-	GUIObjectList = list_utils:ensure_list_of_tuples( GUIObjectMaybeList ),
-	SubscriberList= list_utils:ensure_list_of_pids( SubscriberMaybeList ),
+	EventTypeList = list_utils:ensure_atoms( EventTypeMaybeList ),
+	GUIObjectList = list_utils:ensure_tuples( GUIObjectMaybeList ),
+	SubscriberList= list_utils:ensure_pids( SubscriberMaybeList ),
 
-	NewLoopState = lists:foldl( fun( Obj, AccState ) ->
-								   register_event_types_for( Obj, EventTypeList,
-											SubscriberList, AccState )
-							end,
-							_Acc0=LoopState,
-							_List=GUIObjectList ),
+	NewLoopState = lists:foldl(
+					 fun( Obj, AccState ) ->
+						register_event_types_for( Obj, EventTypeList,
+												  SubscriberList, AccState )
+					 end,
+					 _Acc0=LoopState,
+					 _List=GUIObjectList ),
 
 	update_event_loop_tables( T, DefaultSubscriberPid, NewLoopState );
 
@@ -1024,8 +1025,7 @@ update_event_loop_tables( _SubscribedEvents=[
 	   { EventTypeMaybeList, GUIObjectMaybeList } | T ],
 	   DefaultSubscriberPid, LoopState ) ->
 	update_event_loop_tables( [ { EventTypeMaybeList, GUIObjectMaybeList,
-							  [ DefaultSubscriberPid ] } | T ],
-							DefaultSubscriberPid, LoopState ).
+		[ DefaultSubscriberPid ] } | T ], DefaultSubscriberPid, LoopState ).
 
 
 % (helper)
