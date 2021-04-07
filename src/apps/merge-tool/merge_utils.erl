@@ -1566,12 +1566,14 @@ read_cache_file( CacheFilename ) ->
 -spec create_analyzer_ring( user_state() ) -> ring_utils:ring( analyzer_pid() ).
 create_analyzer_ring( UserState ) ->
 
-	% Best, reasonable CPU usage:
-	Analyzers = spawn_data_analyzers( system_utils:get_core_count() + 1,
-									  UserState ),
+	% Best, reasonable CPU usage (no CPU melting):
+	%SpawnCount = system_utils:get_core_count() + 1,
+	SpawnCount = max( 1, system_utils:get_core_count() - 1 ),
+
+	Analyzers = spawn_data_analyzers( SpawnCount, UserState ),
 
 	trace_debug( "Spawned ~B data analyzers: ~w.",
-				 [ length( Analyzers ), Analyzers ], UserState ),
+				 [ SpawnCount, Analyzers ], UserState ),
 
 	% Returns the ring:
 	ring_utils:from_list( Analyzers ).
@@ -2886,7 +2888,7 @@ write_tree_data( MergeFile, #tree_data{ root=BinRootDir,
 	%
 	%file_utils:write_direct_terms( MergeFile, lists:reverse( EntryContent ) ).
 	file_utils:write_ustring( MergeFile, "{root_dir, \"~ts\"}.~n~n",
-							  [ RootDir ] ),
+							  [ escape_if_plain( RootDir ) ] ),
 
 	write_entries( MergeFile, lists:keysort( _PathIndex=2, EntryContent ) ).
 
@@ -2914,7 +2916,7 @@ write_entries( File,
 
 	% 'file_info', to better separate from 'file_data':
 	file_utils:write_ustring( File, "{file_info, ~ts \"~ts\", ~B, ~B}.~n",
-		[ SHA1Str, RelativePath, Size, Timestamp ] ),
+		[ SHA1Str, escape_if_plain( RelativePath ), Size, Timestamp ] ),
 
 	write_entries( File, T ).
 
@@ -3874,19 +3876,28 @@ create_links_to( TargetFilePath, _LinkPaths= [ Link | T ], BinRootDir ) ->
 quick_cache_check( CacheFilename, ContentFiles, TreePath, AnalyzerRing,
 				   UserState ) ->
 
-	case file_utils:read_terms( CacheFilename ) of
+	try file_utils:read_terms( CacheFilename ) of
 
 		[ _RootInfo={ root_dir, CachedTreePath } | FileInfos ] ->
 			quick_cache_check_helper( ContentFiles, TreePath, CachedTreePath,
 									  FileInfos, AnalyzerRing, UserState );
 
 		_Other ->
-			trace_debug( "Invalid cache file '~ts', removing it "
-						 "and recreating it.", [ CacheFilename ], UserState ),
+			trace_debug( "Invalid cache file '~ts', removing it and "
+						 "recreating it.", [ CacheFilename ], UserState ),
 			file_utils:remove_file( CacheFilename ),
 			undefined
 
+	catch throw:{ interpretation_failed, _Filename, _Line, _Mod, _Term,
+				  Reason } ->
+
+		ui:display( "Error while reading '~ts': \"~ts\", removing it, "
+					"and recreating it.", [ CacheFilename, Reason ] ),
+
+		undefined
+
 	end.
+
 
 
 % (helper)
@@ -4121,6 +4132,14 @@ find_regular_files_from( TreePath ) ->
 
 	% Raw filenames are already binaries:
 	text_utils:ensure_binaries( AllFiles ).
+
+
+% We do not even try to escape binaries, as they are likely to be raw filenames.
+escape_if_plain( Path ) when is_list( Path ) ->
+	text_utils:escape_double_quotes( Path );
+
+escape_if_plain( BinPath ) ->
+	BinPath.
 
 
 
