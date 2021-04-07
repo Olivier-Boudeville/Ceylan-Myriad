@@ -72,7 +72,7 @@
 
 
 % A unitary value specified in link to a command-line option:
--type command_line_value() :: text_utils:uustring().
+-type command_line_value() :: text_utils:ustring().
 
 
 % The command-line values specified after an occurrence of a given option (ex:

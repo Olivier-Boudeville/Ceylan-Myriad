@@ -99,7 +99,7 @@
 % [ {field() :: ustring(), value() :: ustring()} ]:
 -type old_style_options() :: [ { ustring(), ustring() } ].
 
--type new_style_options() :: maps:map( bin_string(), bin_string() ).
+-type new_style_options() :: maps:maps( bin_string(), bin_string() ).
 
 
 % Example: {"content-type", "application/jose+json"}.
@@ -113,12 +113,12 @@
 -type headers() :: headers_as_list() | headers_as_maps().
 
 
+% Even if httpc:http_option/0 is not exported:
 -type http_option() :: httpc:http_option().
 
 -type options_for_httpc() :: [ http_option() ].
 
--type http_options() :: options_for_httpc()
-					  | maps:map( atom(), term() ).
+-type http_options() :: options_for_httpc() | maps:maps( atom(), term() ).
 
 
 % Keys:

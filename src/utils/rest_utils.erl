@@ -91,8 +91,8 @@
 -type status_line() :: { ustring(), status_code(), ustring() }.
 
 % Type of a request for httpc:request, see http://erlang.org/doc/man/httpc.html:
--type request() :: { net_utils:url(), headers(), content_type(), body() }
-				 | { net_utils:url(), headers() }.
+-type request() :: { web_utils:url(), headers(), content_type(), body() }
+				 | { web_utils:url(), headers() }.
 
 -type http_option() :: { atom(), term() }.
 -type http_options() :: [ http_option() ].
@@ -108,7 +108,7 @@
 
 
 % Context of a REST exchange:
--type context() :: { net_utils:url_info(), headers() }.
+-type context() :: { web_utils:url_info(), headers() }.
 
 -type retries_count() :: basic_utils:count().
 
@@ -254,7 +254,7 @@ http_delete( Request, HTTPOptions, Options, Retries ) ->
 % Another shorthand for sending GET HTTP requests, as suggested by the standard
 % 'httpc' module of Erlang:
 %
--spec http_request( net_utils:url() ) -> { status_code(), term() }.
+-spec http_request( web_utils:url() ) -> { status_code(), term() }.
 http_request( URL ) ->
 	http_request( get, { URL, [] }, _HTTPOpts=[], _Opts=[], _Retries=0 ).
 

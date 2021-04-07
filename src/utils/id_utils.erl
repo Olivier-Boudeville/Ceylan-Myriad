@@ -42,7 +42,7 @@
 
 
 % A string UUID (ex: "ed64ffd4-74ee-43dc-adba-be37ed8735aa"):
--type uuid() :: text_utils:uustring().
+-type uuid() :: text_utils:ustring().
 
 -export_type([ uuid/0 ]).
 

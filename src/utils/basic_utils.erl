@@ -372,6 +372,11 @@
 -type atom_node_name() :: net_utils:atom_node_name().
 
 
+% Even if not exported:
+-type process_info_result_item() :: erlang:process_info_result_item().
+
+
+
 % Creates a tuple of specified size, all elements having the same, specified,
 % value.
 %
@@ -1076,8 +1081,7 @@ size( Term ) ->
 % Returns all general information regarding specified process (which is local or
 % not), provided it is still alive (otherwise returns undefined).
 %
--spec get_process_info( pid() ) ->
-			maybe( [ erlang:process_info_result_item() ] ).
+-spec get_process_info( pid() ) -> maybe( [ process_info_result_item() ] ).
 get_process_info( Pid ) ->
 
 	LocalNode = node(),
@@ -1113,10 +1117,10 @@ get_process_info( Pid ) ->
 % Returns the specified information regarding specified process (which is local
 % or not), provided it is still alive (otherwise returns undefined).
 %
--spec get_process_info( pid(), erlang:process_info_result_item() ) ->
-		  maybe( erlang:process_info_result_item() );
-					  ( pid(), [ erlang:process_info_result_item() ] ) ->
-		  maybe( [ erlang:process_info_result_item() ] ).
+-spec get_process_info( pid(), process_info_result_item() ) ->
+								maybe( process_info_result_item() );
+					  ( pid(), [ process_info_result_item() ] ) ->
+								maybe( [ process_info_result_item() ] ).
 get_process_info( Pid, ItemTerm ) ->
 
 	LocalNode = node(),

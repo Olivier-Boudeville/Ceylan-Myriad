@@ -216,6 +216,9 @@
 -type gc_index() :: non_neg_integer().
 
 
+-type direction() :: 'leading' | 'trailing'.
+
+
 % A plain (Unicode) string:
 -type plain_string() :: [ uchar() ].
 
@@ -2687,7 +2690,7 @@ find_substring_index( String, SearchPattern ) ->
 % An (attempt of) Unicode-aware replacement of string:str/2 and string:rstr/2.
 %
 -spec find_substring_index( unicode:chardata(), unicode:chardata(),
-							string:direction() ) -> gc_index() | 'nomatch'.
+							direction() ) -> gc_index() | 'nomatch'.
 find_substring_index( String, SearchPattern, Direction ) ->
 	GCString = string:to_graphemes( String ),
 	GCSearchPattern = string:to_graphemes( SearchPattern ),
