@@ -706,7 +706,7 @@ get_type_of( Term ) when is_list( Term ) ->
 			'string';
 
 		false ->
-			case text_utils:is_list_of_strings( Term ) of
+			case text_utils:are_strings( Term ) of
 
 				true ->
 					'[string]';

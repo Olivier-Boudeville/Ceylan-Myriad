@@ -250,28 +250,28 @@ run() ->
 	FirstList = [],
 	test_facilities:display(
 		"Determining whether '~p' is a list of strings: ~w.",
-		[ FirstList, text_utils:is_list_of_strings( FirstList ) ] ),
-	true = text_utils:is_list_of_strings( FirstList ),
+		[ FirstList, text_utils:are_strings( FirstList ) ] ),
+	true = text_utils:are_strings( FirstList ),
 
 	SecondList = [ FirstTestString ],
 	test_facilities:display( "Determining whether '~p' is "
 		"a list of strings: ~w.", [ SecondList,
-		text_utils:is_list_of_strings( SecondList ) ] ),
+		text_utils:are_strings( SecondList ) ] ),
 
-	true = text_utils:is_list_of_strings( SecondList ),
+	true = text_utils:are_strings( SecondList ),
 
 	ThirdList = [ FirstTestString, ThirdTestString ],
 
 	test_facilities:display(
 		"Determining whether '~p' is a list of strings: ~w.",
-		[ ThirdList, text_utils:is_list_of_strings( ThirdList ) ] ),
-	true = text_utils:is_list_of_strings( ThirdList ),
+		[ ThirdList, text_utils:are_strings( ThirdList ) ] ),
+	true = text_utils:are_strings( ThirdList ),
 
 	FourthList = [ FirstTestString, SecondTestString ],
 	test_facilities:display(
 		"Determining whether '~p' is a list of strings: ~w.",
-		[ FourthList, text_utils:is_list_of_strings( FourthList ) ] ),
-	false = text_utils:is_list_of_strings( FourthList ),
+		[ FourthList, text_utils:are_strings( FourthList ) ] ),
+	false = text_utils:are_strings( FourthList ),
 
 
 	Title = "Alien creatures invaded Ireland!",
@@ -501,9 +501,9 @@ run() ->
 	"I am a lonesome cow" =
 		text_utils:remove_last_characters( WesternText, RemovalCount ),
 
-	false = text_utils:is_list_of_binaries( [ "Foo", "Bar" ] ),
+	false = text_utils:are_binaries( [ "Foo", "Bar" ] ),
 
-	true = text_utils:is_list_of_binaries( [ <<"Foo">>, <<"Bar">> ] ),
+	true = text_utils:are_binaries( [ <<"Foo">>, <<"Bar">> ] ),
 
 	TestText = "This is a longer text, used notably to test how it could be "
 		"formatted as a comment. Word-wrapping and comment prefix shall be "
