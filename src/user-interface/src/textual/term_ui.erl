@@ -557,7 +557,9 @@ display( Text ) ->
 			trace_utils:warning_fmt( "Unexpected output: '~ts'.", [ Output ] );
 
 		{ ExitStatus, Output } ->
-			throw( { display_error_reported, ExitStatus, Output } )
+			trace_utils:error_fmt( "Display error reported for '~ts' "
+				"(exit status: ~B):~n~ts", [ EscapedText, ExitStatus, Output ] )
+			%throw( { display_error_reported, ExitStatus, Output } )
 
 	end.
 
