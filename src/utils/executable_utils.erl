@@ -489,7 +489,22 @@ compute_sha_sum( Filename, SizeOfSHAAlgorithm )
 
 		{ _ExitCode=0, OutputString } ->
 			% Removes the filename after the SHA code:
-			{ SHAStr, _Rest } = text_utils:split_at_first( $ , OutputString ),
+			{ SHAFullStr, _Rest } =
+				text_utils:split_at_first( $ , OutputString ),
+
+			% Workaround for the *sum tools that for some reason (most probably
+			% a bug) add a \ before the sum of a file named for example
+			% foobar\\.text:
+			%
+			SHAStr = case SHAFullStr of
+
+				[ $\\ | T ] ->
+					T;
+
+				_ ->
+					SHAFullStr
+
+			end,
 
 			case text_utils:try_string_to_integer( SHAStr, _Base=16 ) of
 
