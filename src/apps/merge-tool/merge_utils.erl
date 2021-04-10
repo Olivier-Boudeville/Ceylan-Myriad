@@ -1141,7 +1141,8 @@ check_file_datas_for_scan( _FileDatas=[
 						type=regular,
 						size=OtherSize,
 						timestamp=RecordedTimestamp,
-						sha1_sum=executable_utils:compute_sha1_sum( FullPath ) },
+						sha1_sum=
+								executable_utils:compute_sha1_sum( FullPath ) },
 
 							{ NewFileData, [ NewNotif | ExtraNotifications ] }
 
@@ -1388,12 +1389,12 @@ resync_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
 			% Waiting for all corresponding file_data elements:
 			ExtraFileDatas = lists:foldl(
 			  fun( _Count, AccFileDatas ) ->
-					  receive
+						receive
 
-						  { file_checked, FileData } ->
-							  [ FileData | AccFileDatas ]
+							{ file_checked, FileData } ->
+								[ FileData | AccFileDatas ]
 
-					  end
+						end
 			  end,
 			  _SecondAcc0=[],
 			  _SecondList=lists:seq( 1, length( ExtraFiles ) ) ),
@@ -2888,7 +2889,7 @@ write_tree_data( MergeFile, #tree_data{ root=BinRootDir,
 	%
 	%file_utils:write_direct_terms( MergeFile, lists:reverse( EntryContent ) ).
 	file_utils:write_ustring( MergeFile, "{root_dir, \"~ts\"}.~n~n",
-							  [ escape_if_plain( RootDir ) ] ),
+							  [ file_utils:escape_path( RootDir ) ] ),
 
 	write_entries( MergeFile, lists:keysort( _PathIndex=2, EntryContent ) ).
 
@@ -2915,8 +2916,11 @@ write_entries( File,
 				[ sha1_to_string( SHA1 ) ] ), TargetSHA1Width ),
 
 	% 'file_info', to better separate from 'file_data':
-	file_utils:write_ustring( File, "{file_info, ~ts \"~ts\", ~B, ~B}.~n",
-		[ SHA1Str, escape_if_plain( RelativePath ), Size, Timestamp ] ),
+	% (we write explicit binaries, so that re-reading them will result in the
+	% proper content to be referenced)
+	%
+	file_utils:write_ustring( File, "{file_info, ~ts <<\"~ts\">>, ~B, ~B}.~n",
+		[ SHA1Str, file_utils:escape_path( RelativePath ), Size, Timestamp ] ),
 
 	write_entries( File, T ).
 
@@ -3173,24 +3177,22 @@ analyze_loop() ->
 
 		{ checkNewFile, [ AbsTreeBinPath, RelativeBinFilename ], SenderPid } ->
 
-			% We stay in binary world as raw filenames could not be converted to
-			% plain strings:
+			% We stay within binary world, as raw filenames could not be
+			% converted to plain strings:
 
-			BinFilePath = file_utils:bin_join( AbsTreeBinPath,
-											   RelativeBinFilename ),
+			BinFilePath =
+				file_utils:bin_join( AbsTreeBinPath, RelativeBinFilename ),
 
 			%trace_bridge:debug_fmt( "Analyzer ~w checking '~ts' "
 			%						[ self(), BinFilePath ] ),
 
 			FileData = #file_data{
-					   % We prefer storing relative filenames:
-					   path=RelativeBinFilename,
-					   type=file_utils:get_type_of( BinFilePath ),
-					   size=file_utils:get_size( BinFilePath ),
-					   timestamp=
-						 file_utils:get_last_modification_time( BinFilePath ),
-					   sha1_sum=
-						 executable_utils:compute_sha1_sum( BinFilePath ) },
+				% We prefer storing relative filenames:
+				path=RelativeBinFilename,
+				type=file_utils:get_type_of( BinFilePath ),
+				size=file_utils:get_size( BinFilePath ),
+				timestamp=file_utils:get_last_modification_time( BinFilePath ),
+				sha1_sum=executable_utils:compute_sha1_sum( BinFilePath ) },
 
 			SenderPid ! { file_checked, FileData },
 			analyze_loop();
@@ -4072,12 +4074,12 @@ build_entry_table( _FileInfos=[], EntryTable ) ->
 	EntryTable;
 
 build_entry_table(
-  _FileInfos=[ { file_info, SHA1Str, RelativePath, Size, Timestamp } | T  ],
+  _FileInfos=[ { file_info, SHA1Str, BinRelativePath, Size, Timestamp } | T  ],
   EntryTable ) ->
 
 	SHA1 = text_utils:hexastring_to_integer( SHA1Str, _ExpectPrefix=false ),
 
-	FileData = #file_data{ path=text_utils:string_to_binary( RelativePath ),
+	FileData = #file_data{ path=BinRelativePath,
 						   type=regular,
 						   size=Size,
 						   timestamp=Timestamp,
@@ -4132,14 +4134,6 @@ find_regular_files_from( TreePath ) ->
 
 	% Raw filenames are already binaries:
 	text_utils:ensure_binaries( AllFiles ).
-
-
-% We do not even try to escape binaries, as they are likely to be raw filenames.
-escape_if_plain( Path ) when is_list( Path ) ->
-	text_utils:escape_double_quotes( Path );
-
-escape_if_plain( BinPath ) ->
-	BinPath.
 
 
 
