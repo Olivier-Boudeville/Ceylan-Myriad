@@ -45,7 +45,7 @@
 
 		  get_base_path/1, get_last_path_element/1,
 
-		  convert_to_filename/1,
+		  convert_to_filename/1, escape_path/1,
 
 		  get_extensions/1, get_extension/1, remove_extension/1,
 		  replace_extension/3,
@@ -226,7 +226,7 @@
 -type extension() :: ustring().
 
 % The suffix (final part) in a path element:
--type any_suffix() :: text_utils:any_string().
+-type any_suffix() :: any_string().
 
 % A part of a path (ex: "local" in "/usr/local/share"):
 -type path_element() :: ustring().
@@ -341,6 +341,7 @@
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
+-type any_string() :: text_utils:any_string().
 -type format_string() :: text_utils:format_string().
 
 
@@ -658,7 +659,7 @@ get_last_path_element( AnyPath ) ->
 
 
 % Converts specified name to an acceptable filename, filesystem-wise.
--spec convert_to_filename( text_utils:any_string() ) -> file_name().
+-spec convert_to_filename( any_string() ) -> file_name().
 convert_to_filename( Name ) when is_binary( Name ) ->
 	convert_to_filename( text_utils:binary_to_string( Name ) );
 
@@ -682,15 +683,26 @@ convert_to_filename( Name ) ->
 	% (see also: net_utils:generate_valid_node_name_from/1)
 	%
 	re:replace( lists:flatten( Name ),
-				"( |<|>|,|\\(|\\)|'|\"|/|\\\\|\&|~|"
-				"#|@|{|}|\\[|\\]|\\||\\$|\\*|\\?|!|\\+|;|:)+", "_",
-				[ global, { return, list } ] ).
+		"( |<|>|,|\\(|\\)|'|\"|/|\\\\|\&|~|"
+		"#|@|{|}|\\[|\\]|\\||\\$|\\*|\\?|!|\\+|;|:)+", "_",
+		[ global, { return, list } ] ).
+
+
+
+% Escapes specified path so that it can safely be included as string content.
+%
+% Returns the same type of string as the specified one.
+%
+-spec escape_path( any_path() ) -> any_string().
+escape_path( Path ) ->
+	string:replace( Path, _SearchPattern="\"", _Replacement="\\\"",
+					_Direction=all).
 
 
 
 % Returns the (ordered) extension(s) of the specified filename.
 %
-% Ex: ["baz", "json"] = get_extensions( "foobar.baz.json" )
+% Ex: ["baz", "json"] = get_extensions("foobar.baz.json")
 %
 -spec get_extensions( file_name() ) -> [ extension() ] | 'no_extension'.
 get_extensions( Filename ) ->
@@ -1335,8 +1347,8 @@ touch( FileEntry ) ->
 			% -c: do not create any file
 			% -m: change only the modification time
 			%
-			case system_utils:run_command(
-				   "/bin/touch -c -m '" ++ FileEntry ++ "'" ) of
+			case system_utils:run_executable( _ExecPath="/bin/touch",
+					_Args=[ "-c", "-m", FileEntry ] ) of
 
 				{ 0, _Output } ->
 					ok;
