@@ -881,10 +881,20 @@ generate-list-of-local-types:
 $(PLT_FILE): generate-local-plt
 
 
-# We do not want to issue an error if only warnings (code: 2) were emitted:
+# We do not want to issue an error if only warnings (code: 2) were emitted.
+#
+# Previously, the -r option was only aimed at the $(PACKAGE_TOP)/src directory,
+# yet for some reason the same rule once applied to other packages, such as
+# Traces, resulted in their tests, in $(PACKAGE_TOP)/test, to be type-checked as
+# well. As some of these tests rely on functions exported by Myriad tests (which
+# were not included in the PLT), their type-checking reported these functions as
+# unknown. Now we include $(PACKAGE_TOP)/test as well (not the full package to
+# avoid that Dialyzer potentially recurses in rebar3 trees such as _build or
+# _checkouts)
+#
 generate-local-plt: add-prerequisite-plts
 	@echo "    Generating PLT for $(PACKAGE_NAME) ($(PLT_FILE)), based on $(BASE_PLT)"
-	@$(DIALYZER) --add_to_plt --output_plt $(PLT_FILE) -r $(PACKAGE_TOP)/src --plt $(BASE_PLT); if [ $$? -eq 1 ] ; then exit 1 ; else exit 0 ; fi
+	@$(DIALYZER) --add_to_plt --output_plt $(PLT_FILE) -r $(PACKAGE_TOP)/src $(PACKAGE_TOP)/test --plt $(BASE_PLT); if [ $$? -eq 1 ] ; then exit 1 ; else exit 0 ; fi
 
 
 # Made to be enriched (with child targets) on a per-layer basis:
