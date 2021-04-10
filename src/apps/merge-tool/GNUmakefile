@@ -54,11 +54,11 @@ test-rescan: pre-test rescan-test-tree post-test
 test-resync: pre-test resync-test-tree post-test
 
 test-uniquify: pre-test create-test-trees
-	@$(MERGE_SCRIPT) --uniquify $(TEST_CONTENT_TREE) --use-ui-backend $(UI_BACKEND) ; $(MAKE) -s post-test
+	@$(MERGE_SCRIPT) --uniquify $(TEST_CONTENT_TREE) --use-ui-backend $(UI_BACKEND) # ; $(MAKE) -s post-test
 
 
 test-merge: pre-test create-test-trees
-	@$(MERGE_SCRIPT) --input $(TEST_CONTENT_TREE) --reference $(TEST_REFERENCE_TREE) --use-ui-backend $(UI_BACKEND) ; $(MAKE) -s post-test
+	@$(MERGE_SCRIPT) --input $(TEST_CONTENT_TREE) --reference $(TEST_REFERENCE_TREE) --use-ui-backend $(UI_BACKEND) # ; $(MAKE) -s post-test
 
 
 
@@ -123,7 +123,7 @@ resync-test-tree:
 
 
 debug:
-	@/bin/rm -f "$(TEST_LOG_FILE)" ; $(MAKE) -s test post-test
+	@/bin/rm -f "$(TEST_LOG_FILE)" # ; $(MAKE) -s test post-test
 
 
 
