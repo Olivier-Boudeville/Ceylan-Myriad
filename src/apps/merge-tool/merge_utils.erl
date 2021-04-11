@@ -573,10 +573,6 @@ handle_resync_option( UserResyncTreePath, ResyncArgTable, BinBaseDir ) ->
 
 	BinUserResyncTreePath = text_utils:ensure_binary( UserResyncTreePath ),
 
-	trace_utils:debug_fmt(
-	  "AAA UserResyncTreePath = ~p; BinUserResyncTreePath = ~p.",
-	  [ UserResyncTreePath, BinUserResyncTreePath ] ),
-
 	BinAbsResyncTreePath =
 		file_utils:ensure_path_is_absolute( BinUserResyncTreePath, BinBaseDir ),
 
@@ -1341,9 +1337,9 @@ perform_resync( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 					trace_utils:error( Diagnosis
 						++ ", and no automatic renaming was accepted." ),
 
-					throw( { mismatching_paths,
-							 text_utils:binary_to_string( BinCachedTreePath ),
-							 text_utils:binary_to_string( BinUserTreePath ) } )
+					% String conversion could fail:
+					throw( { mismatching_paths, BinCachedTreePath,
+							 BinUserTreePath } )
 
 			end
 
@@ -2920,7 +2916,7 @@ write_tree_data( MergeFile, #tree_data{ root=BinRootDir,
 	% we write this content by ourselves instead now:
 	%
 	%file_utils:write_direct_terms( MergeFile, lists:reverse( EntryContent ) ).
-	file_utils:write_ustring( MergeFile, "{root_dir, <<\"~ts\">>}.~n~n",
+	file_utils:write_ustring( MergeFile, "{root_dir, <<\"~ts\"/utf8>>}.~n~n",
 							  [ file_utils:escape_path( RootDir ) ] ),
 
 	write_entries( MergeFile, lists:keysort( _PathIndex=2, EntryContent ) ).
@@ -2948,11 +2944,44 @@ write_entries( File,
 				[ sha1_to_string( SHA1 ) ] ), TargetSHA1Width ),
 
 	% 'file_info', to better separate from 'file_data':
-	% (we write explicit binaries, so that re-reading them will result in the
-	% proper content to be referenced)
 	%
-	file_utils:write_ustring( File, "{file_info, ~ts <<\"~ts\">>, ~B, ~B}.~n",
-		[ SHA1Str, file_utils:escape_path( RelativePath ), Size, Timestamp ] ),
+	% (we wanted to write human-readable paths, yet some of them, due to raw
+	% filenames, cannot be serialised as such strings; so we write the ones that
+	% can, and the other are serialised as explicit binaries, containing lists
+	% of Unicode codepoints, so that re-reading them will result in the
+	% proper content to be obtained)
+	%
+	{ MaybeComment, PathToWrite } =
+			case text_utils:try_convert_to_unicode_binary( RelativePath ) of
+
+		undefined ->
+			% Cannot do better to store a list of Unicode codepoints:
+			Comment = text_utils:format( "~n% Corresponds to '~ts' "
+				"(not encoded in Unicode):~n", [ RelativePath ] ),
+			{ Comment, io_lib:format( "~w", [ RelativePath ] ) };
+
+		UnicodeStr ->
+			% Will be readable and usable afterwards:
+			PathDesc = io_lib:format( "<<\"~ts\"/utf8>>",
+								[ file_utils:escape_path( UnicodeStr ) ] ),
+			{ undefined, PathDesc }
+
+	end,
+
+	EntryToWrite = text_utils:format( "{file_info, ~ts ~s, ~B, ~B}.~n",
+								[ SHA1Str, PathToWrite, Size, Timestamp ] ),
+
+	ToWrite = case MaybeComment of
+
+		undefined ->
+			EntryToWrite;
+
+		Comm ->
+			[ Comm, EntryToWrite, text_utils:format( "~n", [] ) ]
+
+	end,
+
+	file_utils:write_ustring( File, ToWrite ),
 
 	write_entries( File, T ).
 
