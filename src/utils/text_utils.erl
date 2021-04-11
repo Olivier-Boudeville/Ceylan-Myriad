@@ -103,8 +103,8 @@
 
 % Other string operations:
 -export([ get_lexicographic_distance/2, get_longest_common_prefix/1,
-		  uppercase_initial_letter/1,
-		  to_lowercase/1, to_uppercase/1,
+		  safe_length/1,
+		  uppercase_initial_letter/1, to_lowercase/1, to_uppercase/1,
 		  join/2,
 		  split/2, split_per_element/2, split_parsed/2, split_at_whitespaces/1,
 		  split_at_first/2, split_camel_case/1, tokenizable_to_camel_case/2,
@@ -265,7 +265,9 @@
 -type translation_table() :: ?table:?table( any_string(), any_string() ).
 
 
-% The length of a string, typically in terms of number of characters:
+% The length of a string, typically in terms of number of characters / graphene
+% clusters:
+%
 -type length() :: pos_integer().
 
 
@@ -2172,6 +2174,26 @@ are_all_starting_with( C, _Strings=[ [ C | Rest ] | T ], Acc ) ->
 % Either _Strings=[ [] | T ] or _Strings=[ [ NonC | Rest ] | T ]:
 are_all_starting_with( _C, _Strings, _Acc ) ->
 	false.
+
+
+
+% Returns, if possible, the length of the specified string-like argument,
+% otherwise returns 'undefined'.
+%
+% Never fails, but thus may report only indicative lengths (where
+% string:length/1 would have thrown a badarg exception).
+%
+-spec safe_length( unicode_data() ) -> basic_utils:maybe( length() ).
+safe_length( PseudoStr ) ->
+	try string:length( PseudoStr ) of
+
+		L ->
+			L
+
+	catch _:_ ->
+		undefined
+
+	end.
 
 
 
