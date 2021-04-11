@@ -1106,6 +1106,10 @@ choose_designated_item( Prompt, Choices,
 			ui_cancel;
 
 		{ ExitStatus, Output } ->
+			trace_utils:error_fmt( "Exit code ~B and error output '~s' "
+				"for prompt '~s' and choices:~n~p "
+				"corresponding to command:~n~s",
+				[ ExitStatus, Output, Prompt, Choices, Cmd ] ),
 			throw( { choice_failed, ExitStatus, Output } )
 
 	end.
