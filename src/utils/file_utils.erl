@@ -716,10 +716,19 @@ escape_path( Path ) when is_list( Path ) ->
 					  _Direction=all), _CanFail=true );
 
 escape_path( BinPath ) ->
+
+	Direction = all,
+
+	DoubleQuoteEscapedBin =
+		string:replace( BinPath, _DQSearchPattern="\.", _DQReplacement="\\.",
+						Direction ),
+
+	AntiSlashesEscapedBin =
+		string:replace( DoubleQuoteEscapedBin, _ASSearchPattern="\"",
+						_ASReplacement="\\\"", Direction ),
+
 	% Not wanting for example [<<XX>>, 92, 34, <<YY>>]:
-	text_utils:to_unicode_binary(
-		string:replace( BinPath, _SearchPattern="\"", _Replacement="\\\"",
-						_Direction=all), _CanFail=true ).
+	text_utils:to_unicode_binary( AntiSlashesEscapedBin, _CanFail=true ).
 
 
 
@@ -3659,23 +3668,28 @@ make_relative_binary( PathElems, RefPathElems ) ->
 
 
 % Returns a pair made of the longest path common to all specified directory
-% paths, and the corresponding suffixes, i.e. an (underordered) list of the
-% input paths (as binaries) once the common prefix elements have been removed.
+% paths, and the corresponding suffixes, i.e. an (unordered) list of the input
+% paths (as binaries) once the common prefix elements have been removed.
 %
 % Note: operates per-directory (as a whole), not per-character.
 %
 % Ex: get_longest_common_path(["/tmp/aa/bb/c1/foobar.txt",
 %                              "/tmp/aa/bb/c2/foobar.txt"])
 %      returns:
-% {"/tmp/aa/bb",["c1","foobar.txt"],["c2","foobar.txt"]]}
+% {"/tmp/aa/bb", ["c1","foobar.txt"], ["c2","foobar.txt"]]}
 %
-% Like text_utils:get_longest_common_prefix/1, except that operates on path
-% elements, not characters.
+% Like text_utils:get_longest_common_prefix/1, except that operates on whole
+% path elements, not individual characters.
 %
 -spec get_longest_common_path( [ any_path() ] ) ->
 										{ any_path(), [ any_path() ] }.
 get_longest_common_path( DirPaths ) ->
+
+	%trace_utils:debug_fmt( "Getting longest common path for:~n~p",
+	%					   [ DirPaths ] ),
+
 	DirElems = [ filename:split( D ) || D <- DirPaths ],
+
 	get_longest_common_path_helper( DirElems, _AccCommon=[] ).
 
 
@@ -3685,7 +3699,7 @@ get_longest_common_path_helper( DirElems, AccCommon ) ->
 	%trace_utils:debug_fmt( "get_longest_common_path_helper from ~p "
 	%						"(acc being ~p).", [ DirElems, AccCommon ] ),
 
-	case get_common_head_of( DirElems, _Acc=[] ) of
+	case get_common_head_of( DirElems ) of
 
 		{ none, Tails } ->
 			%trace_utils:debug_fmt( "Finished, with common path ~ts and "
@@ -3706,7 +3720,9 @@ get_longest_common_path_helper( DirElems, AccCommon ) ->
 
 			{ LongestPath, JoinedTails };
 
+
 		{ Elem, DirElemsTails } ->
+			%trace_utils:debug_fmt( "Adding prefix '~w'.", [ Elem ] ),
 			get_longest_common_path_helper( DirElemsTails,
 											[ Elem | AccCommon ] )
 
@@ -3714,29 +3730,32 @@ get_longest_common_path_helper( DirElems, AccCommon ) ->
 
 
 
-% Returns {none, RevHeads} or {CommonElem, Tails}.
+% Returns {none, Tails} or {CommonElem, RemainingTails}.
 %
 % (sub-helper)
-get_common_head_of( _DirElemsTails=[], Acc ) ->
-	{ none, Acc };
+%
+% Degenerate case where a first list does not exist:
+get_common_head_of( _DirElemsTails=[] ) ->
+	{ none, _Tails=[] };
 
 % We use the head (if any) of the first list as the one to check at the level of
 % the head of all others:
 %
-get_common_head_of( _DirElemsTails=[ _First=[] | _Others ], Acc ) ->
-	% No head here for first list, common path ended:
-	{ none, Acc };
+get_common_head_of( DirElemsTails=[ _First=[] | _Others ] ) ->
+	% No head here for first list; common path ended:
+	{ none, DirElemsTails };
 
-get_common_head_of( DirElemsTails=[ _First=[ Elem | T ] | Others ], Acc ) ->
+get_common_head_of( DirElemsTails=[ _First=[ Elem | T ] | Others ] ) ->
 	% See whether the non-first tails also start with Elem:
 	case try_behead_with( Elem, Others ) of
 
 		non_matching ->
+			% Leave lists as they are:
 			{ none, DirElemsTails };
 
 		NewOthers ->
 			% Do not drop the tail of the first element:
-			{ [ Elem | Acc ], [ T | NewOthers ] }
+			{ Elem, [ T | NewOthers ] }
 
 	end.
 
@@ -3747,9 +3766,10 @@ try_behead_with( Elem, Others ) ->
 	try_behead_with( Elem, Others, _Acc=[] ).
 
 
-% Others depleted:
+% Others depleted, success:
 try_behead_with( _Elem, _Others=[], Acc ) ->
-	 Acc;
+	% Order does not matter, no need to reverse:
+	Acc;
 
 % A good Other:
 try_behead_with( Elem, _Others=[ [ Elem | R ] | T ], Acc ) ->
