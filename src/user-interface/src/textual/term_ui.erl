@@ -516,6 +516,9 @@ unset( SettingKey ) ->
 -spec display( text() ) -> void().
 display( Text ) ->
 
+	% Note: 'dialog' will eat the leading spaces of a line; this will be visible
+	% typically in bullet lists.
+
 	% Simplified example:
 	%Cmd = "dialog --msgbox 'Hello!' 8 40",
 
