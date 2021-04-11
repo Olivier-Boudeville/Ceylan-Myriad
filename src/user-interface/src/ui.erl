@@ -302,6 +302,7 @@ unset( SettingElement ) ->
 %
 -spec display( text() ) -> void().
 display( Text ) ->
+	%trace_utils:debug_fmt( "Displaying '~ts'.", [ Text ] ),
 	UIModule = get_backend_name(),
 	UIModule:display( Text ).
 
