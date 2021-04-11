@@ -502,7 +502,8 @@
 
 
 % Checking:
--export([ check_atom/1, check_boolean/1, check_pid/1 ]).
+-export([ check_atom/1, check_boolean/1, check_pid/1, check_list/1,
+		  check_binary/1, check_binaries/1, check_tuple/1 ]).
 
 
 % Specials for datatypes:
@@ -1175,7 +1176,7 @@ ensure_binary( S ) ->
 
 
 
-% Checks that specified term is an atom indeed.
+% Checks that specified term is an atom indeed, and returns it.
 -spec check_atom( term() ) -> atom().
 check_atom( Atom ) when is_atom( Atom ) ->
 	Atom;
@@ -1185,7 +1186,7 @@ check_atom( Other ) ->
 
 
 
-% Checks that specified term is a boolean indeed.
+% Checks that specified term is a boolean indeed, and returns it.
 -spec check_boolean( term() ) -> atom().
 check_boolean( true ) ->
 	true;
@@ -1198,13 +1199,51 @@ check_boolean( Other ) ->
 
 
 
-% Checks that specified term is a PID indeed.
+% Checks that specified term is a PID indeed, and returns it.
 -spec check_pid( term() ) -> pid().
 check_pid( Pid ) when is_pid( Pid ) ->
 	Pid;
 
 check_pid( Other ) ->
 	throw( { not_pid, Other } ).
+
+
+
+% Checks that specified term is a list indeed, and returns it.
+-spec check_list( term() ) -> list().
+check_list( List ) when is_list( List ) ->
+	List;
+
+check_list( Other ) ->
+	throw( { not_list, Other } ).
+
+
+
+% Checks that specified term is a binary indeed, and returns it.
+-spec check_binary( term() ) -> binary().
+check_binary( Binary ) when is_binary( Binary ) ->
+	Binary;
+
+check_binary( Other ) ->
+	throw( { not_binary, Other } ).
+
+
+% Checks that specified term is a list of binaries indeed, and returns it.
+-spec check_binaries( term() ) -> [ binary() ].
+check_binaries( Binaries ) ->
+	[ check_binary( B ) || B <- Binaries ].
+
+
+
+
+% Checks that specified term is a tuple indeed, and returns it.
+-spec check_tuple( term() ) -> tuple().
+check_tuple( Tuple ) when is_tuple( Tuple ) ->
+	Tuple;
+
+check_tuple( Other ) ->
+	throw( { not_tuple, Other } ).
+
 
 
 
