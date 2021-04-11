@@ -379,6 +379,10 @@
 % - some file elements may be improperly named regarding Unicode encoding ("raw
 % filenames"); use list_dir_elements/2 to decide how they should be handled
 %
+% - notably in this module, calls akin to text_utils:binary_to_string/1 shall be
+% carefully studied, as conversions from binaries to strings shall be avoided
+% whenever possible due to their limitations
+
 % - the way the VM is started matters; see the comment about the "-noinput"
 % option, in open/{2,3}; one may use the following to check the current settings
 % of the VM:
@@ -409,6 +413,24 @@
 
 % Windows conventions:
 %-define( directory_separator, $\ ).
+
+
+% For proper naming in filesystems:
+
+% Replaces each series of spaces (' '), lower than ('<'), greater than ('>'),
+% comma (','), left ('(') and right (')') parentheses, single (''') and double
+% ('"') quotes, forward ('/') and backward ('\') slashes, ampersand ('&'), tilde
+% ('~'), sharp ('#'), at sign ('@'), all other kinds of brackets ('{', '}', '[',
+% ']'), pipe ('|'), dollar ('$'), star ('*'), marks ('?' and '!'), plus ('+'),
+% other punctation signs (';' and ':') by exactly one underscore:
+%
+% (see also: net_utils:generate_valid_node_name_from/1)
+%
+-define( patterns_to_replace_for_paths, "( |<|>|,|\\(|\\)|'|\"|/|\\\\|\&|~|"
+		 "#|@|{|}|\\[|\\]|\\||\\$|\\*|\\?|!|\\+|;|:)+" ).
+
+-define( replacement_for_paths, "_" ).
+
 
 
 % No cross-module inlining unfortunately (parse-transforms...):
@@ -504,7 +526,7 @@ join( FirstPath, SecondPath ) ->
 
 		_ ->
 			text_utils:format( "~ts~c~ts",
-					[ FirstPath, ?directory_separator, SecondPath ] )
+				[ FirstPath, ?directory_separator, SecondPath ] )
 
 	end.
 
@@ -546,8 +568,8 @@ bin_join( _FirstPath="", SecondPath ) ->
 bin_join( _FirstPath= <<"">>, SecondPath ) ->
 	text_utils:ensure_binary( SecondPath ) ;
 
-bin_join( FirstPath, SecondPath ) when is_binary( FirstPath )
-									   orelse is_binary( SecondPath ) ->
+bin_join( FirstPath, SecondPath )
+			when is_binary( FirstPath ) orelse is_binary( SecondPath ) ->
 	% As soon as at least one argument of filename:join/2 is a binary, returns a
 	% binary, which is what we want:
 	%
@@ -559,9 +581,12 @@ bin_join( FirstPath, SecondPath ) ->
 
 
 
-% Joins the specified list of path elements, returns a corresponding binary
+% Joins the specified list of path elements; returns a corresponding binary
 % string if at least one element is a binary string itself, otherwise returns a
 % plain string.
+%
+% Never attempts a binary-to-string conversion; introduced to promote to binary
+% string only when necessary.
 %
 % See join/1 for API details.
 %
@@ -578,13 +603,12 @@ any_join( NonList ) ->
 
 
 
-% Joins the two specified path elements, returns a corresponding binary
-% string if at least one element is a binary string itself, otherwise returns a
-% plain string.
+% Joins the two specified path elements; returns a corresponding binary string
+% if at least one element is a binary string itself, otherwise returns a plain
+% string.
 %
-% Never attempts a binary-to-string conversion.
-%
-% Introduced to promote to binary string only when necessary.
+% Never attempts a binary-to-string conversion; introduced to promote to binary
+% string only when necessary.
 %
 -spec any_join( any_path(), any_path() ) -> any_path().
 % Use the same semantics as join/2:
@@ -659,9 +683,12 @@ get_last_path_element( AnyPath ) ->
 
 
 % Converts specified name to an acceptable filename, filesystem-wise.
--spec convert_to_filename( any_string() ) -> file_name().
-convert_to_filename( Name ) when is_binary( Name ) ->
-	convert_to_filename( text_utils:binary_to_string( Name ) );
+% Returns the same string type as the parameter.
+%
+-spec convert_to_filename( any_string() ) -> any_file_name().
+convert_to_filename( BinName ) when is_binary( BinName ) ->
+	re:replace( BinName, ?patterns_to_replace_for_paths, ?replacement_for_paths,
+				[ global, { return, binary } ] );
 
 convert_to_filename( Name ) ->
 
@@ -672,20 +699,8 @@ convert_to_filename( Name ) ->
 	% net_utils module from here, as otherwise there would be one more module
 	% to deploy under some circumstances.
 
-	% Replaces each series of spaces (' '), lower than ('<'), greater than
-	% ('>'), comma (','), left ('(') and right (')') parentheses, single (''')
-	% and double ('"') quotes, forward ('/') and backward ('\') slashes,
-	% ampersand ('&'), tilde ('~'), sharp ('#'), at sign ('@'), all other kinds
-	% of brackets ('{', '}', '[', ']'), pipe ('|'), dollar ('$'), star ('*'),
-	% marks ('?' and '!'), plus ('+'), other punctation signs (';' and ':') by
-	% exactly one underscore:
-	%
-	% (see also: net_utils:generate_valid_node_name_from/1)
-	%
-	re:replace( lists:flatten( Name ),
-		"( |<|>|,|\\(|\\)|'|\"|/|\\\\|\&|~|"
-		"#|@|{|}|\\[|\\]|\\||\\$|\\*|\\?|!|\\+|;|:)+", "_",
-		[ global, { return, list } ] ).
+	re:replace( lists:flatten( Name ), ?patterns_to_replace_for_paths,
+				?replacement_for_paths, [ global, { return, list } ] ).
 
 
 
@@ -694,9 +709,17 @@ convert_to_filename( Name ) ->
 % Returns the same type of string as the specified one.
 %
 -spec escape_path( any_path() ) -> any_string().
-escape_path( Path ) ->
-	string:replace( Path, _SearchPattern="\"", _Replacement="\\\"",
-					_Direction=all).
+escape_path( Path ) when is_list( Path ) ->
+	% To properly flatten:
+	text_utils:to_unicode_list(
+	  string:replace( Path, _SearchPattern="\"", _Replacement="\\\"",
+					  _Direction=all), _CanFail=true );
+
+escape_path( BinPath ) ->
+	% Not wanting for example [<<XX>>, 92, 34, <<YY>>]:
+	text_utils:to_unicode_binary(
+		string:replace( BinPath, _SearchPattern="\"", _Replacement="\\\"",
+						_Direction=all), _CanFail=true ).
 
 
 
@@ -3323,27 +3346,42 @@ change_permissions( Path, NewPermissions ) ->
 %
 % A path is deemed absolute iff it starts with "/".
 %
--spec is_absolute_path( path() ) -> boolean().
-is_absolute_path( _Path=[ $/ | _Rest ] ) ->
-	true;
+-spec is_absolute_path( any_path() ) -> boolean().
+%is_absolute_path( _Path=[ $/ | _Rest ] ) ->
+%	true;
 
 % Not wanting to let for example atoms slip through:
-is_absolute_path( Path ) when is_list( Path )->
-	false;
+%is_absolute_path( Path ) when is_list( Path )->
+%	false;
 
-is_absolute_path( Other ) ->
-	throw( { not_a_string_path, Other } ).
+%is_absolute_path( Other ) ->
+%	throw( { not_a_string_path, Other } ).
+is_absolute_path( AnyPath ) ->
+	% To support also binary (and even atom) paths:
+	case filename:pathtype( AnyPath ) of
+
+		absolute ->
+			true;
+
+		relative ->
+			false
+
+		%volumerelative -> intentional case_clause
+
+	end.
 
 
 
 % Returns an absolute, normalised path corresponding to specified path.
+%
+% Returns a string of the same type as the specified one.
 %
 % If it is not already absolute, it will made so by using the current working
 % directory.
 %
 -spec ensure_path_is_absolute( path() ) -> path();
 							 ( bin_path() ) -> bin_path().
-ensure_path_is_absolute( Path ) when is_list( Path ) ->
+ensure_path_is_absolute( Path ) ->
 
 	AbsPath = case is_absolute_path( Path ) of
 
@@ -3352,17 +3390,14 @@ ensure_path_is_absolute( Path ) when is_list( Path ) ->
 			Path;
 
 		false ->
-			% Relative, using current directory as base:
-			join( get_current_directory(), Path )
+			% Relative, using current directory as base, and returning the same
+			% string type as Path:
+			%
+			any_join( get_current_directory(), Path )
 
 	end,
 
-	normalise_path( AbsPath );
-
-ensure_path_is_absolute( BinPath ) ->
-	Path = text_utils:binary_to_string( BinPath ),
-	text_utils:string_to_binary( ensure_path_is_absolute( Path ) ).
-
+	normalise_path( AbsPath ).
 
 
 
@@ -3370,48 +3405,47 @@ ensure_path_is_absolute( BinPath ) ->
 % path, using base path as root directory (this must be an absolute path) if the
 % target path is not absolute.
 %
-% Ex: ensure_path_is_absolute( "tmp/foo", "/home/dalton" ) will return
+% Returns a plain string iff both specified ones are plain, otherwise returns a
+% binary.
+%
+% Ex: ensure_path_is_absolute("tmp/foo", "/home/dalton") will return
 % "/home/dalton/tmp/foo".
 %
--spec ensure_path_is_absolute( path(), path() ) -> path();
-							 ( bin_path(), bin_path() ) -> bin_path().
-ensure_path_is_absolute( TargetPath, BasePath ) when is_list( TargetPath ) ->
+-spec ensure_path_is_absolute( any_path(), any_path() ) -> any_path().
+ensure_path_is_absolute( TargetPath, BasePath ) ->
 
 	case is_absolute_path( TargetPath ) of
 
 		true ->
 			% Already absolute:
-			normalise_path( TargetPath );
+			NormTargetPath = normalise_path( TargetPath ),
+
+			% Ensure correct string type:
+			case is_list( BasePath ) of
+
+				true ->
+					NormTargetPath;
+
+				% BasePath expected to be a binary then, so returning such type:
+				false ->
+					text_utils:ensure_binary( NormTargetPath )
+
+			end;
+
 
 		false ->
-			PlainBasePath = case is_list( BasePath ) of
+			% Relative, using specified base directory (types follow):
+			case is_absolute_path( BasePath ) of
 
 				true ->
-					BasePath;
+					normalise_path( any_join( BasePath, TargetPath ) );
 
 				false ->
-					text_utils:binary_to_string( BasePath )
+					throw( { base_path_not_absolute, BasePath } )
 
-			end,
-
-			% Relative, using specified base directory:
-			case is_absolute_path( PlainBasePath ) of
-
-				true ->
-					normalise_path( join( PlainBasePath, TargetPath ) );
-
-				false ->
-					throw( { base_path_not_absolute, PlainBasePath } )
 			end
 
-	end;
-
-% Here at least TargetPath is a binary:
-ensure_path_is_absolute( BinTargetPath, BasePath ) ->
-	PlainTargetPath = text_utils:binary_to_string( BinTargetPath ),
-	AbsPath = ensure_path_is_absolute( PlainTargetPath, BasePath ),
-	text_utils:string_to_binary( AbsPath ).
-
+	end.
 
 
 
@@ -3421,6 +3455,8 @@ ensure_path_is_absolute( BinTargetPath, BasePath ) ->
 % For example, "/home/garfield/../lisa/./src/.././tube" shall be normalised in
 % "/home/lisa/tube".
 %
+% Returns a path of the same string type as the specified parameter.
+%
 -spec normalise_path( path() ) -> path();
 					( bin_path() ) -> bin_path().
 normalise_path( _Path="." ) ->
@@ -3429,12 +3465,11 @@ normalise_path( _Path="." ) ->
 
 normalise_path( Path ) when is_list( Path ) ->
 
-
 	ElemList = filename:split( Path ),
 
 	%trace_utils:debug_fmt( "ElemList: ~p", [ ElemList ] ),
 
-	ResPath = join( filter_elems( ElemList, _Acc=[] ) ),
+	ResPath = join( filter_elems_plain( ElemList, _Acc=[] ) ),
 
 	%trace_utils:debug_fmt( "Normalising path '~ts' as '~ts'.",
 	%					   [ Path, ResPath ] ),
@@ -3444,34 +3479,40 @@ normalise_path( Path ) when is_list( Path ) ->
 
 normalise_path( BinPath ) when is_binary( BinPath ) ->
 
-	Path = text_utils:binary_to_string( BinPath ),
+	ElemList = filename:split( BinPath ),
 
-	text_utils:string_to_binary( normalise_path( Path ) ).
+	%trace_utils:debug_fmt( "ElemList: ~p", [ ElemList ] ),
+
+	ResPath = bin_join( filter_elems_bin( ElemList, _Acc=[] ) ),
+
+	%trace_utils:debug_fmt( "Normalising path '~ts' as '~ts'.",
+	%					   [ BinPath, ResPath ] ),
+
+	ResPath.
 
 
 
 % (helper)
-filter_elems( _ElemList=[], Acc ) ->
+filter_elems_plain( _ElemList=[], Acc ) ->
 	lists:reverse( Acc );
 
-filter_elems( _ElemList=[ "." | T ], Acc ) ->
-	filter_elems( T, Acc );
+filter_elems_plain( _ElemList=[ "." | T ], Acc ) ->
+	filter_elems_plain( T, Acc );
 
 % We can remove one level iff there is at least one:
-filter_elems( _ElemList=[ ".." | T ], _Acc=[ _ | AccT ] ) ->
-	filter_elems( T, AccT );
+filter_elems_plain( _ElemList=[ ".." | T ], _Acc=[ _ | AccT ] ) ->
+	filter_elems_plain( T, AccT );
 
 % No level left, so this ".." should not be filtered out:
 %
 % (however this clause is a special case of the next, hence can be commented
 % out)
 %
-%filter_elems( _ElemList=[ PathElement=".." | T ], Acc ) ->
-%	filter_elems( T, [ PathElement | Acc ] );
+%filter_elems_plain( _ElemList=[ PathElement=".." | T ], Acc ) ->
+%	filter_elems_plain( T, [ PathElement | Acc ] );
 
-filter_elems( _ElemList=[ E | T ], Acc ) ->
-	filter_elems( T, [ E | Acc ] ).
-
+filter_elems_plain( _ElemList=[ E | T ], Acc ) ->
+	filter_elems_plain( T, [ E | Acc ] ).
 
 
 % The approach below would not work with, for example, "X/Y/Z/../../A":
@@ -3479,21 +3520,44 @@ filter_elems( _ElemList=[ E | T ], Acc ) ->
 %	RevElemList = lists:reverse( filename:split( Path ) ),
 
 %	% Returns in the right order:
-%	join( filter_elems( RevElemList, _Acc=[] ) ).
+%	join( filter_elems_plain( RevElemList, _Acc=[] ) ).
 
 
-% filter_elems( _Elems=[], Acc ) ->
+% filter_elems_plain( _Elems=[], Acc ) ->
 %	Acc;
 
-% filter_elems( _Elems=[ "." | T ], Acc ) ->
-%	filter_elems( T, Acc );
+% filter_elems_plain( _Elems=[ "." | T ], Acc ) ->
+%	filter_elems_plain( T, Acc );
 
-% filter_elems( _Elems=[ "..", _E | T ], Acc ) ->
-%	filter_elems( T, Acc );
+% filter_elems_plain( _Elems=[ "..", _E | T ], Acc ) ->
+%	filter_elems_plain( T, Acc );
 
-% filter_elems( _Elems=[ E | T ], Acc ) ->
-%	filter_elems( T, [ E | Acc ] ).
+% filter_elems_plain( _Elems=[ E | T ], Acc ) ->
+%	filter_elems_plain( T, [ E | Acc ] ).
 
+
+
+% (helper)
+filter_elems_bin( _ElemList=[], Acc ) ->
+	lists:reverse( Acc );
+
+filter_elems_bin( _ElemList=[ <<".">> | T ], Acc ) ->
+	filter_elems_bin( T, Acc );
+
+% We can remove one level iff there is at least one:
+filter_elems_bin( _ElemList=[ <<"..">> | T ], _Acc=[ _ | AccT ] ) ->
+	filter_elems_bin( T, AccT );
+
+% No level left, so this <<"..">> should not be filtered out:
+%
+% (however this clause is a special case of the next, hence can be commented
+% out)
+%
+%filter_elems_bin( _ElemList=[ PathElement=<<"..">> | T ], Acc ) ->
+%	filter_elems_bin( T, [ PathElement | Acc ] );
+
+filter_elems_bin( _ElemList=[ E | T ], Acc ) ->
+	filter_elems_bin( T, [ E | Acc ] ).
 
 
 
@@ -3515,6 +3579,12 @@ make_relative( Path ) ->
 -spec make_relative( any_path(), any_directory_path() ) -> any_path().
 make_relative( Path, RefDir ) when is_list( Path ) andalso is_list( RefDir ) ->
 
+	% Different from filename:absname/2:
+	% file_utils:make_relative("/aa/bb/cc","/aa/bb").
+	% "cc"
+	% filename:absname("/aa/bb/cc","/aa/bb").
+	% "/aa/bb/cc"
+
 	AbsPath = ensure_path_is_absolute( Path ),
 
 	AbsRefDir = ensure_path_is_absolute( RefDir ),
@@ -3527,28 +3597,36 @@ make_relative( Path, RefDir ) when is_list( Path ) andalso is_list( RefDir ) ->
 	RefPathElems = filename:split( AbsRefDir ),
 
 	% Requires both arguments to be plain strings:
-	make_relative_helper( TargetPathElems, RefPathElems );
+	make_relative_plain( TargetPathElems, RefPathElems );
 
 
-make_relative( BinPath, RefDir ) when is_binary( BinPath ) ->
-	make_relative( text_utils:binary_to_string( BinPath ), RefDir );
-
-make_relative( Path, BinRefDir ) when is_binary( BinRefDir ) ->
-	make_relative( Path, text_utils:binary_to_string( BinRefDir ) );
-
+% At least one of them expected to be a binary, so switching to binary:
 make_relative( Path, RefDir ) ->
-	throw( { invalid_parameters, Path, RefDir } ).
+
+	BinAbsPath = ensure_path_is_absolute( text_utils:ensure_binary( Path ) ),
+
+	BinAbsRefDir =
+		ensure_path_is_absolute( text_utils:ensure_binary( RefDir ) ),
+
+	%trace_utils:debug_fmt( "Making path '~ts' (absolute form: '~ts') relative "
+	%   "to reference directory '~ts' (absolute form: '~ts').",
+	%   [ Path, BinAbsPath, RefDir, BinAbsRefDir ] ),
+
+	TargetPathElems = filename:split( BinAbsPath ),
+	RefPathElems = filename:split( BinAbsRefDir ),
+
+	make_relative_binary( TargetPathElems, RefPathElems ).
 
 
 
 % First, drop any common path prefix:
-make_relative_helper( [ E | TPathElems ], [ E | TRefPathElems ] ) ->
-	make_relative_helper( TPathElems, TRefPathElems );
+make_relative_plain( [ E | TPathElems ], [ E | TRefPathElems ] ) ->
+	make_relative_plain( TPathElems, TRefPathElems );
 
 % Found first non-matching directory element:
-make_relative_helper( PathElems, RefPathElems ) ->
+make_relative_plain( PathElems, RefPathElems ) ->
 
-	%trace_utils:debug_fmt( "Paths split at : ~p vs ~p.",
+	%trace_utils:debug_fmt( "Paths split at: ~p vs ~p.",
 	%					   [ PathElems, RefPathElems ] ),
 
 	FromRef = [ ".." || _ <- lists:seq( 1, length( RefPathElems ) ) ],
@@ -3560,17 +3638,42 @@ make_relative_helper( PathElems, RefPathElems ) ->
 	Res.
 
 
+% First, drop any common path prefix:
+make_relative_binary( [ E | TPathElems ], [ E | TRefPathElems ] ) ->
+	make_relative_binary( TPathElems, TRefPathElems );
+
+% Found first non-matching directory element:
+make_relative_binary( PathElems, RefPathElems ) ->
+
+	%trace_utils:debug_fmt( "Paths split at: ~p vs ~p.",
+	%					   [ PathElems, RefPathElems ] ),
+
+	FromRef = [ <<"..">> || _ <- lists:seq( 1, length( RefPathElems ) ) ],
+
+	Res = bin_join( FromRef ++ PathElems ),
+
+	%trace_utils:debug_fmt( "Returned path: '~ts'.", [ Res ] ),
+
+	Res.
+
+
 
 % Returns a pair made of the longest path common to all specified directory
 % paths, and the corresponding suffixes, i.e. an (underordered) list of the
-% input paths (as lists of path elements) once the common prefix elements have
-% been removed.
+% input paths (as binaries) once the common prefix elements have been removed.
+%
+% Note: operates per-directory (as a whole), not per-character.
+%
+% Ex: get_longest_common_path(["/tmp/aa/bb/c1/foobar.txt",
+%                              "/tmp/aa/bb/c2/foobar.txt"])
+%      returns:
+% {"/tmp/aa/bb",["c1","foobar.txt"],["c2","foobar.txt"]]}
 %
 % Like text_utils:get_longest_common_prefix/1, except that operates on path
 % elements, not characters.
 %
--spec get_longest_common_path( [ directory_path() ] ) ->
-						{ directory_path(), [ directory_path() ] }.
+-spec get_longest_common_path( [ any_path() ] ) ->
+										{ any_path(), [ any_path() ] }.
 get_longest_common_path( DirPaths ) ->
 	DirElems = [ filename:split( D ) || D <- DirPaths ],
 	get_longest_common_path_helper( DirElems, _AccCommon=[] ).
@@ -3587,7 +3690,21 @@ get_longest_common_path_helper( DirElems, AccCommon ) ->
 		{ none, Tails } ->
 			%trace_utils:debug_fmt( "Finished, with common path ~ts and "
 			%                       "tails: ~p.", [ AccCommon, Tails ] ),
-			{ join( lists:reverse( AccCommon ) ), Tails };
+
+			% As filename:join/1 requires a non-empty list:
+			LongestPath = case AccCommon of
+
+				[] ->
+					<<"">>;
+
+				_ ->
+					filename:join( lists:reverse( AccCommon ) )
+
+			end,
+
+			JoinedTails = [ filename:join( T ) || T <- Tails ],
+
+			{ LongestPath, JoinedTails };
 
 		{ Elem, DirElemsTails } ->
 			get_longest_common_path_helper( DirElemsTails,
@@ -3597,24 +3714,29 @@ get_longest_common_path_helper( DirElems, AccCommon ) ->
 
 
 
+% Returns {none, RevHeads} or {CommonElem, Tails}.
+%
 % (sub-helper)
 get_common_head_of( _DirElemsTails=[], Acc ) ->
 	{ none, Acc };
 
-% We use the head (if any) of the first list as the one to check in the head of
-% all others:
+% We use the head (if any) of the first list as the one to check at the level of
+% the head of all others:
 %
 get_common_head_of( _DirElemsTails=[ _First=[] | _Others ], Acc ) ->
+	% No head here for first list, common path ended:
 	{ none, Acc };
 
-get_common_head_of( _DirElemsTails=[ _First=[ Elem | T ] | Others ], Acc ) ->
+get_common_head_of( DirElemsTails=[ _First=[ Elem | T ] | Others ], Acc ) ->
+	% See whether the non-first tails also start with Elem:
 	case try_behead_with( Elem, Others ) of
 
 		non_matching ->
-			{ none, Acc };
+			{ none, DirElemsTails };
 
 		NewOthers ->
-			{ Elem, [ T | NewOthers ] }
+			% Do not drop the tail of the first element:
+			{ [ Elem | Acc ], [ T | NewOthers ] }
 
 	end.
 
@@ -3639,7 +3761,7 @@ try_behead_with( Elem, _Others=[ [ Elem | R ] | T ], Acc ) ->
 % or to:          try_behead_with( Elem, Others=[ [] | _T ], _Acc ) ->
 try_behead_with( _Elem, _Others, _Acc ) ->
 	%trace_utils:debug_fmt( "'~ts' could not be removed from ~p",
-	%                      [ Elem, Others ] ),
+	%					  [ Elem, Others ] ),
 	non_matching.
 
 
