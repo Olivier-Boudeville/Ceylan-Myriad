@@ -49,24 +49,34 @@
 -export([ term_to_string/1, term_to_string/2, term_to_string/3,
 		  term_to_bounded_string/1, term_to_bounded_string/2,
 		  term_to_binary/1,
+
 		  integer_to_string/1,
 		  integer_to_hexastring/1, integer_to_hexastring/2,
 		  hexastring_to_integer/1, hexastring_to_integer/2,
+
 		  atom_to_string/1,
+
 		  pid_to_string/1, pids_to_string/1,
 		  pid_to_short_string/1, pids_to_short_string/1, pid_to_core_string/1,
+
 		  record_to_string/1,
+
 		  strings_to_string/1, strings_to_sorted_string/1,
 		  strings_to_string/2, strings_to_sorted_string/2,
 		  strings_to_enumerated_string/1, strings_to_enumerated_string/2,
 		  strings_to_listed_string/1, strings_to_listed_string/2,
+
 		  binaries_to_string/1, binaries_to_string/2,
 		  binaries_to_sorted_string/1, binaries_to_listed_string/1,
+		  binaries_to_binary/1, binaries_to_binary/2,
+
 		  atoms_to_string/1, atoms_to_sorted_string/1, atoms_to_listed_string/1,
 		  integers_to_listed_string/1,
 		  proplist_to_string/1, version_to_string/1,
 		  atom_to_binary/1,
-		  string_to_binary/1, binary_to_string/1,
+
+		  string_to_binary/1, string_to_binary/2,
+		  binary_to_string/1, binary_to_string/2,
 		  strings_to_binaries/1, binaries_to_strings/1,
 		  string_to_integer/1, try_string_to_integer/1, try_string_to_integer/2,
 		  string_to_float/1, try_string_to_float/1,
@@ -77,12 +87,17 @@
 		  float_to_string/1, float_to_string/2, number_to_string/1,
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
+
 		  format/2, bin_format/2, atom_format/2, format/3,
 		  format_ellipsed/2, format_ellipsed/3,
 		  format_as_comment/1, format_as_comment/2, format_as_comment/3,
 		  format_as_comment/4,
-		  ensure_string/1, ensure_strings/1,
-		  ensure_binary/1, ensure_binaries/1 ]).
+
+		  ensure_string/1, ensure_string/2,
+		  ensure_strings/1, ensure_strings/2,
+
+		  ensure_binary/1, ensure_binary/2,
+		  ensure_binaries/1, ensure_binaries/2 ]).
 
 
 
@@ -122,8 +137,9 @@
 		  is_string/1, is_non_empty_string/1, are_strings/1,
 		  is_bin_string/1, are_binaries/1,
 		  are_of_same_string_type/2,
-		  to_unicode_list/1, to_unicode_list/2,
-		  to_unicode_binary/1, to_unicode_binary/2 ]).
+		  try_convert_to_unicode_list/1, to_unicode_list/1, to_unicode_list/2,
+		  try_convert_to_unicode_binary/1, to_unicode_binary/1,
+		  to_unicode_binary/2 ]).
 
 
 % Restructured-Text (RST) related functions.
@@ -200,6 +216,10 @@
 %
 % We mean [char()] where char() must be 0..16#10ffff:
 -type unicode_string() :: unicode:chardata().
+
+
+-type unicode_data() :: unicode:latin1_chardata()
+					  | unicode:chardata() | unicode:external_chardata().
 
 
 % A Unicode codepoint for a character.
@@ -285,8 +305,9 @@
 
 -export_type([ format_string/0, format_values/0,
 			   regex_string/0, title/0, label/0,
-			   bin_string/0, any_string/0, unicode_string/0, uchar/0,
-			   plain_string/0, ustring/0, string_like/0, parse_string/0,
+			   bin_string/0, any_string/0, unicode_string/0, unicode_data/0,
+			   uchar/0, plain_string/0, ustring/0, string_like/0,
+			   parse_string/0,
 			   translation_table/0, length/0, width/0, indentation_level/0,
 			   distance/0 ]).
 
@@ -639,7 +660,7 @@ get_bullet_for_level( 2 ) ->
 
 get_bullet_for_level( N ) when is_integer( N ) andalso N > 0 ->
 	Base = get_bullet_for_level( N rem 3 ),
-	string:copies( "   ", N div 3 ) ++ Base.
+	string:copies( "   ", ( N div 3 ) + 1 ) ++ Base.
 
 
 
@@ -656,11 +677,11 @@ get_indentation_offset_for_level( N ) ->
 %
 % Note: the caller should have already vetted the specified arguments.
 %
-strings_to_string_helper( _ListOfStrings=[], Acc, _Bullet ) ->
+strings_to_string_helper( _Strings=[], Acc, _Bullet ) ->
 	Acc;
 
 % We do not want an extra newline at the end:
-strings_to_string_helper( _ListOfStrings=[ LastString ], Acc, Bullet )
+strings_to_string_helper( _Strings=[ LastString ], Acc, Bullet )
   when is_list( LastString ) orelse is_binary( LastString ) ->
 	%Pattern = "~ts~n",
 	% Added back, as makes sense?
@@ -669,13 +690,13 @@ strings_to_string_helper( _ListOfStrings=[ LastString ], Acc, Bullet )
 	Acc ++ Bullet ++ io_lib:format( Pattern, [ LastString ] );
 
 % We allow also for bin_string():
-strings_to_string_helper( _ListOfStrings=[ H | T ], Acc, Bullet )
+strings_to_string_helper( _Strings=[ H | T ], Acc, Bullet )
   when is_list( H ) orelse is_binary( H ) ->
 	% Byproduct of the trailing newline: an empty line at the end if nested.
 	strings_to_string_helper( T,
 		Acc ++ Bullet ++ io_lib:format( "~ts~n", [ H ] ), Bullet );
 
-strings_to_string_helper( _ListOfStrings=[ H | _T ], _Acc, _Bullet ) ->
+strings_to_string_helper( _Strings=[ H | _T ], _Acc, _Bullet ) ->
 	report_not_a_string( H ).
 
 
@@ -685,26 +706,26 @@ strings_to_string_helper( _ListOfStrings=[ H | _T ], _Acc, _Bullet ) ->
 % enumerated (i.e. 1, 2, 3) bullets.
 %
 -spec strings_to_enumerated_string( [ ustring() ] ) -> ustring().
-strings_to_enumerated_string( ListOfStrings ) ->
-	strings_to_enumerated_string( ListOfStrings, _DefaultIndentationLevel=0 ).
+strings_to_enumerated_string( Strings ) ->
+	strings_to_enumerated_string( Strings, _DefaultIndentationLevel=0 ).
 
 
 -spec strings_to_enumerated_string( [ ustring() ], indentation_level() ) ->
-										  ustring().
-strings_to_enumerated_string( ListOfStrings, IndentationLevel ) ->
+											ustring().
+strings_to_enumerated_string( Strings, IndentationLevel ) ->
 
 	Prefix = get_indentation_offset_for_level( IndentationLevel ),
 
 	{ _FinalCount, ReversedStrings } = lists:foldl(
-				 fun( String, _Acc={ Count, Strings } ) ->
+				fun( String, _Acc={ Count, Strs } ) ->
 
-					 NewStrings = [ format( "~ts~B. ~ts~n",
-									   [ Prefix, Count, String ] ) | Strings ],
-					 { Count + 1, NewStrings }
+					NewStrs = [ format( "~ts~B. ~ts~n",
+										[ Prefix, Count, String ] ) | Strs ],
+					{ Count+1, NewStrs }
 
-				 end,
-				 _Acc0={ 1, "" },
-				 _List=ListOfStrings ),
+				end,
+				_Acc0={ 1, "" },
+				_List=Strings ),
 
 	OrderedStrings = lists:reverse( ReversedStrings ),
 
@@ -712,33 +733,34 @@ strings_to_enumerated_string( ListOfStrings, IndentationLevel ) ->
 
 
 
-% Returns a string that pretty-prints specified list of strings (actually the
-% list may contain also binary strings), with default bullets.
+% Returns a plain string that pretty-prints specified list of strings (actually
+% the list may contain also binary strings), with default bullets.
 %
--spec strings_to_string( [ ustring() ] ) -> ustring().
-strings_to_string( [] ) ->
+-spec strings_to_string( [ any_string() ] ) -> ustring().
+strings_to_string( _Strings=[] ) ->
 	"(empty list)";
 
-strings_to_string( L=[ SingleString ] )
+strings_to_string( Strings=[ SingleString ] )
   when is_list( SingleString ) orelse is_binary( SingleString ) ->
 
 	% Not retained, as the single string may itself correspond to a full, nested
 	% list and no dangling final quote is desirable:
-	%io_lib:format( " '~ts'", L );
+	%io_lib:format( " '~ts'", Strings );
 
 	% No leading space, the caller is expected to have it specified by himself,
 	% like in: "foo: ~ts", not as "foo:~ts":
 
-	%io_lib:format( " ~ts", L );
-	io_lib:format( "~ts", L );
+	% To force a plain string:
+	%io_lib:format( " ~ts", Strings );
+	io_lib:format( "~ts", Strings );
 
-strings_to_string( ListOfStrings ) when is_list( ListOfStrings ) ->
+strings_to_string( Strings ) when is_list( Strings ) ->
 
-	%trace_utils:debug_fmt( "Stringifying ~p.", [ ListOfStrings ] ),
+	%trace_utils:debug_fmt( "Stringifying ~p.", [ Strings ] ),
 
 	% Leading '~n' had been removed for some unknown reason:
-	io_lib:format( "~n~ts~n", [ strings_to_string_helper( ListOfStrings,
-										  _Acc=[], get_default_bullet() ) ] );
+	io_lib:format( "~n~ts~n",
+	  [ strings_to_string_helper( Strings, _Acc=[], get_default_bullet() ) ] );
 
 strings_to_string( ErrorTerm ) ->
 	report_not_a_list( ErrorTerm ).
@@ -750,8 +772,8 @@ strings_to_string( ErrorTerm ) ->
 % with default bullets).
 %
 -spec strings_to_sorted_string( [ ustring() ] ) -> ustring().
-strings_to_sorted_string( ListOfStrings ) when is_list( ListOfStrings ) ->
-	strings_to_string( lists:sort( ListOfStrings ) );
+strings_to_sorted_string( Strings ) when is_list( Strings ) ->
+	strings_to_string( lists:sort( Strings ) );
 
 strings_to_sorted_string( ErrorTerm ) ->
 	report_not_a_list( ErrorTerm ).
@@ -760,29 +782,31 @@ strings_to_sorted_string( ErrorTerm ) ->
 
 % Returns a string that pretty-prints specified list of strings (actually, any
 % element that can be processed with ~ts will do; ex: atoms), with
-% user-specified bullets.
+% user-specified bullets or indentation level.
 %
 % This can be a solution to nest bullet lists, by specifying a bullet with an
 % offset, such as " * ".
 %
 -spec strings_to_string( [ ustring() ], indentation_level_or_bullet() ) ->
 								ustring().
-strings_to_string( _ListOfStrings=[ SingleString ], _IndentationOrBullet )
+strings_to_string( _Strings=[], _IndentationOrBullet ) ->
+	"(empty list)";
+
+strings_to_string( _Strings=[ SingleString ], _IndentationOrBullet )
 									when is_list( SingleString ) ->
 	% For a single string, no need for leading and trailing newlines, but it
 	% used to be separated (with single quotes) from the surrounding text
-	% (not done anymore, as the single may be itself a bullet list)
+	% (not done anymore, as this single element may be itself a bullet list)
 	%
-	%io_lib:format( "~ts", [ SingleString ] );
 	SingleString;
 
-strings_to_string( ListOfStrings, IndentationLevel )
+strings_to_string( Strings, IndentationLevel )
 									when is_integer( IndentationLevel ) ->
 	Bullet = get_bullet_for_level( IndentationLevel ),
-	strings_to_string( ListOfStrings, Bullet );
+	strings_to_string( Strings, Bullet );
 
-strings_to_string( ListOfStrings, Bullet )
-			when is_list( ListOfStrings ) andalso is_list( Bullet ) ->
+strings_to_string( Strings, Bullet )
+			when is_list( Strings ) andalso is_list( Bullet ) ->
 	% Leading '~n' had been removed for some unknown reason:
 
 	% Trailing '~n' was removed (as was inducing a too large final blank space),
@@ -796,12 +820,12 @@ strings_to_string( ListOfStrings, Bullet )
 	Pattern = "~n~ts",
 
 	io_lib:format( Pattern,
-		[ strings_to_string_helper( ListOfStrings, _Acc=[], Bullet ) ] );
+		[ strings_to_string_helper( Strings, _Acc=[], Bullet ) ] );
 
-strings_to_string( ListOfStrings, Bullet ) when is_list( Bullet ) ->
-	report_not_a_list( ListOfStrings );
+strings_to_string( Strings, Bullet ) when is_list( Bullet ) ->
+	report_not_a_list( Strings );
 
-strings_to_string( _ListOfStrings, IncorrectBullet ) ->
+strings_to_string( _Strings, IncorrectBullet ) ->
 	throw( { bullet_not_a_string, IncorrectBullet } ).
 
 
@@ -812,9 +836,9 @@ strings_to_string( _ListOfStrings, IncorrectBullet ) ->
 %
 -spec strings_to_sorted_string( [ ustring() ],
 								indentation_level_or_bullet() ) -> ustring().
-strings_to_sorted_string( ListOfStrings, IndentationOrBullet )
-  when is_list( ListOfStrings ) ->
-	strings_to_string( lists:sort( ListOfStrings ), IndentationOrBullet );
+strings_to_sorted_string( Strings, IndentationOrBullet )
+  when is_list( Strings ) ->
+	strings_to_string( lists:sort( Strings ), IndentationOrBullet );
 
 strings_to_sorted_string( ErrorTerm, _IndentationOrBullet ) ->
 	report_not_a_list( ErrorTerm ).
@@ -825,8 +849,8 @@ strings_to_sorted_string( ErrorTerm, _IndentationOrBullet ) ->
 % with default bullets.
 %
 -spec binaries_to_string( [ bin_string() ] ) -> ustring().
-binaries_to_string( ListOfBinaries ) ->
-	binaries_to_string( ListOfBinaries, _IndentationLevel=0 ).
+binaries_to_string( Binaries ) ->
+	binaries_to_string( Binaries, _IndentationLevel=0 ).
 
 
 
@@ -843,27 +867,27 @@ binaries_to_string( ListOfBinaries ) ->
 % used directly either, because of its guards (which should be kept, as it is
 % not supposed to support binaries). So we have to mimic it here.
 %
-binaries_to_string( _ListOfBinaries=[ SingleBinString ],
+binaries_to_string( _Binaries=[ SingleBinString ],
 					_IndentationOrBullet ) when is_binary( SingleBinString ) ->
 	%binary_to_string( SingleBinString );
 	io_lib:format( "~ts", [ SingleBinString ] );
 
-binaries_to_string( ListOfBinaries, IndentationLevel )
+binaries_to_string( Binaries, IndentationLevel )
 								when is_integer( IndentationLevel ) ->
 	Bullet = get_bullet_for_level( IndentationLevel ),
-	binaries_to_string( ListOfBinaries, Bullet );
+	binaries_to_string( Binaries, Bullet );
 
-binaries_to_string( ListOfBinaries, Bullet )
-			when is_list( ListOfBinaries ) andalso is_list( Bullet ) ->
-	Pattern = "~n~ts",
+binaries_to_string( Binaries, Bullet )
+			when is_list( Binaries ) andalso is_list( Bullet ) ->
+	Pattern = "~n~ts~n",
 	% Actually no need for a dedicated binaries_to_string_helper/3:
 	io_lib:format( Pattern,
-		[ strings_to_string_helper( ListOfBinaries, _Acc=[], Bullet ) ] );
+		[ strings_to_string_helper( Binaries, _Acc=[], Bullet ) ] );
 
-binaries_to_string( ListOfBinaries, Bullet ) when is_list( Bullet ) ->
-	report_not_a_list( ListOfBinaries );
+binaries_to_string( Binaries, Bullet ) when is_list( Bullet ) ->
+	report_not_a_list( Binaries );
 
-binaries_to_string( _ListOfBinaries, IncorrectBullet ) ->
+binaries_to_string( _Binaries, IncorrectBullet ) ->
 	throw( { bullet_not_a_string, IncorrectBullet } ).
 
 
@@ -872,8 +896,8 @@ binaries_to_string( _ListOfBinaries, IncorrectBullet ) ->
 % with default bullets.
 %
 -spec binaries_to_sorted_string( [ bin_string() ] ) -> ustring().
-binaries_to_sorted_string( ListOfBinaries ) ->
-	Strings = binaries_to_strings( ListOfBinaries ),
+binaries_to_sorted_string( Binaries ) ->
+	Strings = binaries_to_strings( Binaries ),
 	strings_to_string( lists:sort( Strings ) ).
 
 
@@ -881,13 +905,62 @@ binaries_to_sorted_string( ListOfBinaries ) ->
 % Returns a string that pretty-prints the specified list of binary strings,
 % listed directly along the text (not one item per line).
 %
-% Ex: binaries_to_listed_string( [ <<"red">>, <<"blue">>, <<"green">> ] )
+% Ex: binaries_to_listed_string([<<"red">>, <<"blue">>, <<"green">>])
 % returns "red, blue and green".
 %
 -spec binaries_to_listed_string( [ bin_string() ] ) -> ustring().
-binaries_to_listed_string( ListOfBinaries ) ->
-	strings_to_listed_string(
-	  [ binary_to_string( B ) || B <- ListOfBinaries ] ).
+binaries_to_listed_string( Binaries ) ->
+	strings_to_listed_string( [ binary_to_string( B ) || B <- Binaries ] ).
+
+
+
+% Returns a binary string that pretty-prints specified list of binary strings,
+% with default bullets.
+%
+-spec binaries_to_binary( [ bin_string() ] ) -> bin_string().
+binaries_to_binary( Binaries ) ->
+	binaries_to_binary( Binaries, get_default_bullet() ).
+
+
+
+% Returns a binary string that pretty-prints specified list of binary strings,
+% with user-specified bullets or indentation level.
+%
+-spec binaries_to_binary( [ bin_string() ], indentation_level_or_bullet() ) ->
+								bin_string().
+% Not wanting to ever convert to plain strings (to avoid any encoding mismatch):
+binaries_to_binary( _Binaries=[], _Bullet ) ->
+	<<"(empty list)">>;
+
+% Hopefully a binary:
+binaries_to_binary( _Binaries=[ SingleBin ], _Bullet ) ->
+	SingleBin;
+
+binaries_to_binary( Binaries, IndentationLevel )
+  when is_integer( IndentationLevel ) ->
+	Bullet = get_bullet_for_level( IndentationLevel ),
+	binaries_to_binary( Binaries, Bullet );
+
+binaries_to_binary( Binaries, Bullet )
+					when is_list( Binaries ) andalso is_list( Bullet ) ->
+
+	%trace_utils:debug_fmt( "Binaries: ~p, Bullet: '~p'.",
+	%					   [ Binaries, Bullet ] ),
+
+	% Operating first on a list of binaries:
+	BinNewline = <<"\n">>,
+	Inter = [ BinNewline, Bullet ],
+	L = [ [ Inter, Bin ] || Bin <- Binaries ],
+	Res = erlang:list_to_binary( L ++ [ BinNewline ] ),
+	%trace_utils:debug_fmt( "Returned binary: ~p", [ Res ] ),
+	Res;
+
+binaries_to_binary( Binaries, Bullet ) when is_list( Bullet ) ->
+	report_not_a_list( Binaries );
+
+binaries_to_binary( _Binaries, IncorrectBullet ) ->
+	throw( { bullet_not_a_string, IncorrectBullet } ).
+
 
 
 % Returns a string that pretty-prints specified list of atoms, with default
@@ -924,8 +997,8 @@ atoms_to_sorted_string( ListOfAtoms ) ->
 %
 -spec atoms_to_listed_string( [ atom() ] ) -> ustring().
 atoms_to_listed_string( ListOfAtoms ) ->
-	ListOfStrings = [ atom_to_string( A ) || A <- ListOfAtoms ],
-	strings_to_listed_string( ListOfStrings ).
+	Strings = [ atom_to_string( A ) || A <- ListOfAtoms ],
+	strings_to_listed_string( Strings ).
 
 
 % Returns a string that pretty-prints the specified list of integers, listed
@@ -935,8 +1008,8 @@ atoms_to_listed_string( ListOfAtoms ) ->
 %
 -spec integers_to_listed_string( [ integer() ] ) -> ustring().
 integers_to_listed_string( ListOfIntegers ) ->
-	ListOfStrings = [ integer_to_string( A ) || A <- ListOfIntegers ],
-	strings_to_listed_string( ListOfStrings ).
+	Strings = [ integer_to_string( A ) || A <- ListOfIntegers ],
+	strings_to_listed_string( Strings ).
 
 
 
@@ -947,12 +1020,12 @@ integers_to_listed_string( ListOfIntegers ) ->
 % Ex: strings_to_listed_string( [ "red", "blue", "green" ] ) returns "red, blue
 % and green".
 %
-%strings_to_listed_string( _ListOfStrings=[] ) ->
+%strings_to_listed_string( _Strings=[] ) ->
 %	throw( empty_list_of_strings_to_list );
 % Probably more relevant:
 -spec strings_to_listed_string( [ ustring() ] ) -> ustring().
-strings_to_listed_string( ListOfStrings ) ->
-	strings_to_listed_string( ListOfStrings, _Lang=english ).
+strings_to_listed_string( Strings ) ->
+	strings_to_listed_string( Strings, _Lang=english ).
 
 
 
@@ -963,18 +1036,18 @@ strings_to_listed_string( ListOfStrings ) ->
 % Ex: strings_to_listed_string( [ "red", "blue", "green" ] ) returns "red, blue
 % and green".
 %
-%strings_to_listed_string( _ListOfStrings=[] ) ->
+%strings_to_listed_string( _Strings=[] ) ->
 %	throw( empty_list_of_strings_to_list );
 % Probably more relevant:
 -spec strings_to_listed_string( [ ustring() ],
 								language_utils:human_language() ) -> ustring().
-strings_to_listed_string( _ListOfStrings=[], _Lang ) ->
+strings_to_listed_string( _Strings=[], _Lang ) ->
 	"";
 
-strings_to_listed_string( _ListOfStrings=[ SingleString ], _Lang ) ->
+strings_to_listed_string( _Strings=[ SingleString ], _Lang ) ->
 	SingleString;
 
-strings_to_listed_string( ListOfStrings, Lang ) ->
+strings_to_listed_string( Strings, Lang ) ->
 
 	% Here all strings shall be separated with commas, except the last, starting
 	% with "and":
@@ -984,10 +1057,10 @@ strings_to_listed_string( ListOfStrings, Lang ) ->
 	% parse transform.
 
 	%{ LastString, OtherStrings } = list_utils:extract_last_element(
-	%								 ListOfStrings ),
+	%								 Strings ),
 
 	% A somewhat inlined version of it:
-	[ LastString | RevOtherStrings ] = lists:reverse( ListOfStrings ),
+	[ LastString | RevOtherStrings ] = lists:reverse( Strings ),
 
 	OtherStrings = lists:reverse( RevOtherStrings ),
 
@@ -1808,38 +1881,59 @@ format( A, B, C ) ->
 
 % Returns a (plain) string version of the specified text-like parameter.
 %
+% Never fails because of any transcoding involved.
+%
 % Note: using such functions may be a bad practice, as it may lead to losing the
 % awareness of the types of the variables that are handled. We now output
 % warning traces whenever the specified element happens not to be a string-like
 % element. It is however convenient to define functions whose string parameters
 % may be of any possible type (plain or binary).
 %
--spec ensure_string( term() ) -> ustring().
-ensure_string( String ) when is_list( String ) ->
+-spec ensure_string( any_string() ) -> ustring().
+ensure_string( String ) ->
+	ensure_string( String, _CanFailDueToTranscoding=false ).
+
+
+% Returns a (plain) string version of the specified text-like parameter.
+%
+% CanFailDueToTranscoding tells whether, should a transcoding fail, this
+% function is allowed to fail in turn.
+%
+% Note: using such functions may be a bad practice, as it may lead to losing the
+% awareness of the types of the variables that are handled. We now output
+% warning traces whenever the specified element happens not to be a string-like
+% element. It is however convenient to define functions whose string parameters
+% may be of any possible type (plain or binary).
+%
+-spec ensure_string( any_string(), boolean() ) -> ustring().
+ensure_string( String, _CanFailDueToTranscoding ) when is_list( String ) ->
 	String;
 
-ensure_string( BinString ) when is_binary( BinString ) ->
-	binary_to_string( BinString );
+ensure_string( BinString, CanFailDueToTranscoding )
+  when is_binary( BinString ) ->
+	binary_to_string( BinString, CanFailDueToTranscoding );
 
-ensure_string( Int ) when is_integer( Int ) ->
-	trace_utils:warning_fmt( "Implicit conversion of integer (here '~B') "
-		"to plain string is now discouraged. "
-		"Use text_utils:integer_to_string/1 instead.", [ Int ] ),
-	integer_to_list( Int );
+%ensure_string( Int, _CanFailDueToTranscodin ) when is_integer( Int ) ->
+%	trace_utils:warning_fmt( "Implicit conversion of integer (here '~B') "
+%		"to plain string is now discouraged. "
+%		"Use text_utils:integer_to_string/1 instead.", [ Int ] ),
+%	integer_to_list( Int );
 
-ensure_string( F ) when is_float( F ) ->
-	trace_utils:warning_fmt( "Implicit conversion of float (here '~f') "
-		"to plain string is now discouraged. "
-		"Use text_utils:float_to_string/1 instead.", [ F ] ),
-	float_to_list( F );
+%ensure_string( F, _CanFailDueToTranscodin ) when is_float( F ) ->
+%	trace_utils:warning_fmt( "Implicit conversion of float (here '~f') "
+%		"to plain string is now discouraged. "
+%		"Use text_utils:float_to_string/1 instead.", [ F ] ),
+%	float_to_list( F );
 
-ensure_string( U ) ->
+ensure_string( U, _CanFailDueToTranscodin ) ->
 	throw( { invalid_value, U } ).
 
 
 
 % Returns a list of (plain) string versions of the string-like elements of the
 % specified list.
+%
+% Never fails because of any transcoding involved.
 %
 % Note: using such functions may be a bad practice, as it may lead to losing the
 % awareness of the types of the variables that are handled. We now output
@@ -1849,12 +1943,35 @@ ensure_string( U ) ->
 %
 -spec ensure_strings( [ term() ] ) -> [ ustring() ].
 ensure_strings( Elems ) ->
-	[ ensure_string( E ) || E <- Elems ].
+	ensure_strings( Elems, _CanFailDueToTranscoding=false ).
+
+
+
+% Returns a list of (plain) string versions of the string-like elements of the
+% specified list.
+%
+% CanFailDueToTranscoding tells whether, should a transcoding fail, this
+% function is allowed to fail in turn.
+%
+% Note: using such functions may be a bad practice, as it may lead to losing the
+% awareness of the types of the variables that are handled. We now output
+% warning traces whenever the specified element happens not to be a string-like
+% element. It is however convenient to define functions whose string parameters
+% may be of any possible type (plain or binary).
+%
+-spec ensure_strings( [ term() ], boolean() ) -> [ ustring() ].
+ensure_strings( Elems, CanFailDueToTranscoding ) ->
+	[ ensure_string( E, CanFailDueToTranscoding ) || E <- Elems ].
+
+
+
 
 
 
 % Returns a binary string version of the specified text-like parameter (binary
 % or plain string).
+%
+% Never fails because of any transcoding involved.
 %
 % Note: using such functions may be a bad practice, as it may lead to losing the
 % awareness of the types of the variables that are handled. It is however
@@ -1862,13 +1979,31 @@ ensure_strings( Elems ) ->
 % type (plain or binary).
 %
 -spec ensure_binary( any_string() ) -> bin_string().
-ensure_binary( BinString ) when is_binary( BinString ) ->
+ensure_binary( AnyString ) ->
+	ensure_binary( AnyString, _CanFailDueToTranscoding=false ).
+
+
+
+% Returns a binary string version of the specified text-like parameter (binary
+% or plain string).
+%
+% CanFailDueToTranscoding tells whether, should a transcoding fail, this
+% function is allowed to fail in turn.
+%
+% Note: using such functions may be a bad practice, as it may lead to losing the
+% awareness of the types of the variables that are handled. It is however
+% convenient to define functions whose string parameters may be of any possible
+% type (plain or binary).
+%
+-spec ensure_binary( any_string(), boolean() ) -> bin_string().
+ensure_binary( BinString, _CanFailDueToTranscoding )
+  when is_binary( BinString ) ->
 	BinString;
 
-ensure_binary( String ) when is_list( String ) ->
-	string_to_binary( String );
+ensure_binary( String, CanFailDueToTranscoding ) when is_list( String ) ->
+	string_to_binary( String, CanFailDueToTranscoding );
 
-ensure_binary( String ) ->
+ensure_binary( String, _CanFailDueToTranscoding ) ->
 	throw( { invalid_value, String } ).
 
 
@@ -1876,14 +2011,33 @@ ensure_binary( String ) ->
 % Returns a list of binary string versions of the string-like elements of the
 % specified list.
 %
+% Never fails because of any transcoding involved.
+%
 % Note: using such functions may be a bad practice, as it may lead to losing the
 % awareness of the types of the variables that are handled. It is however
 % convenient to define functions whose string parameters may be of any possible
 % type (plain or binary).
 %
--spec ensure_binaries( [ term() ] ) -> [ ustring() ].
+-spec ensure_binaries( [ term() ] ) -> [ bin_string() ].
 ensure_binaries( Elems ) ->
-	[ ensure_binary( E ) || E <- Elems ].
+	ensure_binaries( Elems, _CanFailDueToTranscoding=false ).
+
+
+
+% Returns a list of binary string versions of the string-like elements of the
+% specified list.
+%
+% CanFailDueToTranscoding tells whether, should a transcoding fail, this
+% function is allowed to fail in turn.
+%
+% Note: using such functions may be a bad practice, as it may lead to losing the
+% awareness of the types of the variables that are handled. It is however
+% convenient to define functions whose string parameters may be of any possible
+% type (plain or binary).
+%
+-spec ensure_binaries( [ term() ], boolean() ) -> [ bin_string() ].
+ensure_binaries( Elems, CanFailDueToTranscoding ) ->
+	[ ensure_binary( E, CanFailDueToTranscoding ) || E <- Elems ].
 
 
 
@@ -2022,8 +2176,22 @@ are_all_starting_with( _C, _Strings, _Acc ) ->
 
 
 % Converts a plain (list-based) string into a binary.
+%
+% Never fails because of any transcoding involved.
+%
 -spec string_to_binary( ustring() ) -> bin_string().
-string_to_binary( String ) when is_list( String ) ->
+string_to_binary( String ) ->
+	string_to_binary( String, _CanFailDueToTranscoding=false ).
+
+
+% Converts a plain (list-based) string into a binary.
+%
+% CanFailDueToTranscoding tells whether, should a transcoding fail, this
+% function is allowed to fail in turn.
+%
+-spec string_to_binary( ustring(), boolean() ) -> bin_string().
+string_to_binary( String, CanFailDueToTranscoding ) when is_list( String ) ->
+
 	%try
 	%
 	%	% No specific encoding needed:
@@ -2044,20 +2212,33 @@ string_to_binary( String ) when is_list( String ) ->
 	%end;
 
 	% Yes, encodings must be managed:
-	to_unicode_binary( String );
+	to_unicode_binary( String, CanFailDueToTranscoding );
 
-string_to_binary( Other ) ->
+string_to_binary( Other, _CanFailDueToTranscoding ) ->
 	report_not_a_string( Other ).
 
 
 
 % Converts a binary into a plain (list-based) string.
+%
+% Never fails because of any transcoding involved.
+%
 -spec binary_to_string( bin_string() ) -> ustring().
 binary_to_string( Binary ) when is_binary( Binary ) ->
-	%erlang:binary_to_list( Binary );
-	to_unicode_list( Binary );
+	binary_to_string( Binary, _CanFailDueToTranscoding=false ).
 
-binary_to_string( Other ) ->
+
+
+% Converts a binary into a plain (list-based) string.
+%
+% CanFailDueToTranscoding tells whether, should a transcoding fail, this
+% function is allowed to fail in turn.
+%
+binary_to_string( Binary, CanFailDueToTranscoding ) when is_binary( Binary ) ->
+	%erlang:binary_to_list( Binary );
+	to_unicode_list( Binary, CanFailDueToTranscoding );
+
+binary_to_string( Other, _CanFailDueToTranscoding ) ->
 	report_not_a_binary_string( Other ).
 
 
@@ -3689,17 +3870,54 @@ aggregate_word( [ H | T ], Count, Acc ) ->
 
 
 
-
+% Tries to convert specified Unicode-related datastructure into a flat, plain
+% Unicode string.
+%
 % (exported helper, for re-use)
--spec to_unicode_list( unicode:latin1_chardata() | unicode:chardata()
-					   | unicode:external_chardata() ) -> ustring().
+%
+-spec try_convert_to_unicode_list( unicode:unicode_data() ) ->
+											basic_utils:maybe( ustring() ).
+try_convert_to_unicode_list( Data ) ->
+
+	% A binary_to_list/1 would not be sufficient here.
+
+	% It seems that using io_lib:format( "~ts", [ Data ] ) could still be an
+	% option.
+
+	% Possibly a deep list:
+	case unicode:characters_to_list( Data ) of
+
+		Str when is_list( Str ) ->
+			Str;
+
+		_ ->
+			undefined
+
+	end.
+
+
+
+% Converts specified Unicode-related datastructure into a flat, plain Unicode
+% string.
+%
+% Never fails yet can return a bogus string.
+%
+% (exported helper, for re-use)
+%
+-spec to_unicode_list( unicode_data() ) -> ustring().
 to_unicode_list( Data ) ->
 	to_unicode_list( Data, _CanFail=false ).
 
 
+% Converts specified Unicode-related datastructure into a flat, plain Unicode
+% string.
+%
+% If enabled, fails if the conversion cannot be properly done, otherwise can
+% return a bogus string.
+%
 % (exported helper, for re-use)
--spec to_unicode_list( unicode:latin1_chardata() | unicode:chardata()
-					   | unicode:external_chardata(), boolean() ) -> ustring().
+%
+-spec to_unicode_list( unicode_data(), boolean() ) -> ustring().
 to_unicode_list( Data, CanFail ) ->
 
 	% A binary_to_list/1 would not be sufficient here.
@@ -3751,16 +3969,39 @@ to_unicode_list( Data, CanFail ) ->
 
 
 
+
+% Tries to convert specified Unicode-related datastructure into a Unicode binary
+% string.
+%
 % (exported helper, for re-use)
--spec to_unicode_binary( unicode:latin1_chardata() | unicode:chardata()
-						 | unicode:external_chardata() ) -> bin_string().
+%
+-spec try_convert_to_unicode_binary( unicode_data() ) ->
+											basic_utils:maybe( bin_string() ).
+try_convert_to_unicode_binary( Data ) ->
+
+	% A list_to_binary/1 would not be sufficient here.
+
+	% Possibly a deep list:
+	case unicode:characters_to_binary( Data ) of
+
+		Bin when is_binary( Bin ) ->
+			Bin;
+
+		_Other ->
+			%trace_utils:debug_fmt( "For '~p', got:~n~p", [ Data, Other ] ),
+			undefined
+
+	end.
+
+
+% (exported helper, for re-use)
+-spec to_unicode_binary( unicode_data() ) -> bin_string().
 to_unicode_binary( Data ) ->
 	to_unicode_binary( Data, _CanFail=false ).
 
 
 % (exported helper, for re-use)
--spec to_unicode_binary( unicode:latin1_chardata() | unicode:chardata()
-			| unicode:external_chardata(), boolean() ) -> bin_string().
+-spec to_unicode_binary( unicode_data(), boolean() ) -> bin_string().
 to_unicode_binary( Data, CanFail ) ->
 
 	% A list_to_binary/1 would not be sufficient here.
