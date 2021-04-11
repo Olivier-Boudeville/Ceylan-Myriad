@@ -175,7 +175,7 @@
 -record( user_state, {
 
 	% File handle (if any) to write logs:
-	log_file = undefined :: maybe( file() ) }).
+	log_file = undefined :: maybe( file() ) } ).
 
 
 % User-related state:
@@ -211,6 +211,11 @@
 -define( merge_dir, "content_from_merge" ).
 
 
+% To prevent the risk that the user interface is overwhelmed with too many
+% entries (leading to UI crash):
+%
+-define( max_message_header_len, 1500 ).
+
 % For myriad_spawn*:
 -include("spawn_utils.hrl").
 
@@ -244,8 +249,13 @@ get_usage() ->
 % may have to deal with so-called "raw filenames" that are obtained as binaries
 % and shall never be (attempted to be) converted to plain strings (as the
 % operation is bound to fail or to result in incorrect, unusable paths).
-
-
+%
+% This implementation has been intentionally slowed down to avoid risks of
+% overheat, based on following measures:
+% - less analyzers than cores are spawned (see create_analyzer_ring/1)
+% - each analyzer is further slowed down by a sleep delay (see analyze_loop/1)
+%
+% Remove these safety measures at your own risk!
 
 
 
@@ -726,8 +736,8 @@ scan( BinTreePath, AnalyzerRing, UserState ) ->
 
 				ignore ->
 					ui:display( "Ignoring existing cache file (~ts), "
-						"performing now a full scan to recreate it.",
-						[ CacheFilename ] ),
+						"performing now a full scan to recreate it... "
+						"(might be long)", [ CacheFilename ] ),
 					perform_scan( BinTreePath, AnalyzerRing, UserState );
 
 				no_check ->
@@ -752,8 +762,7 @@ scan( BinTreePath, AnalyzerRing, UserState ) ->
 
 
 		false ->
-			ui:display( "No cache file (~ts) found, performing full scan "
-						"to recreate it.", [ CacheFilename ] ),
+			display_scan_notification( CacheFilename ),
 
 			TreeData = perform_scan( BinTreePath, AnalyzerRing, UserState ),
 
@@ -856,8 +865,7 @@ rescan( BinTreePath, AnalyzerRing, UserState ) ->
 
 
 		false ->
-			ui:display( "No cache file (~ts) found, performing full scan "
-						"to recreate it.", [ CacheFilename ] ),
+			display_scan_notification( CacheFilename ),
 
 			TreeData = perform_scan( BinTreePath, AnalyzerRing, UserState ),
 
@@ -877,12 +885,8 @@ perform_rescan( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 
 	CacheTimestamp = file_utils:get_last_modification_time( CacheFilename ),
 
-	% Cache file expected to be already checked existing:
-	[ _RootInfo={ root_dir, BinCachedTreePath } | FileInfos ] =
-		file_utils:read_terms( CacheFilename ),
-
-	%trace_utils:debug_fmt( "BinUserTreePath : ~w; BinCachedTreePath: ~w.",
-	%					   [ BinUserTreePath, BinCachedTreePath ] ),
+	{ BinCachedTreePath, FileInfos } =
+		read_cache_file( CacheFilename, UserState ),
 
 	BinTreePath = case BinUserTreePath of
 
@@ -1280,8 +1284,7 @@ resync( BinTreePath, AnalyzerRing, UserState ) ->
 
 
 		false ->
-			ui:display( "No cache file (~ts) found, performing full scan "
-						"to recreate it.", [ CacheFilename ] ),
+			display_scan_notification( CacheFilename ),
 
 			TreeData = perform_scan( BinTreePath, AnalyzerRing, UserState ),
 
@@ -1299,12 +1302,8 @@ resync( BinTreePath, AnalyzerRing, UserState ) ->
 % (helper)
 perform_resync( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 
-	% Cache file expected to be already checked existing:
-	[ _RootInfo={ root_dir, BinCachedTreePath } | FileInfos ] =
-		file_utils:read_terms( CacheFilename ),
-
-	trace_utils:debug_fmt( "BinUserTreePath:    ~p~nBinCachedTreePath: ~p",
-						   [ BinUserTreePath, BinCachedTreePath ] ),
+	{ BinCachedTreePath, FileInfos } =
+		read_cache_file( CacheFilename, UserState ),
 
 	BinTreePath = case BinUserTreePath of
 
@@ -1596,7 +1595,7 @@ create_analyzer_ring( UserState ) ->
 
 	% Best, reasonable CPU usage (no CPU melting):
 	%SpawnCount = system_utils:get_core_count() + 1,
-	SpawnCount = max( 1, system_utils:get_core_count() - 2 ),
+	SpawnCount = max( 1, system_utils:get_core_count() ),
 
 	Analyzers = spawn_data_analyzers( SpawnCount, UserState ),
 
@@ -1862,7 +1861,7 @@ merge_trees( InputTree=#tree_data{ root=BinInputRootDir,
 						{ abort, "Abort merge" } ],
 
 			NewReferenceEntries = case ui:choose_designated_item(
-					text_utils:format( "~ts~nChoices are:", [ Prompt ] ),
+					text_utils:format( "~ts~n~nChoices are:", [ Prompt ] ),
 					Choices ) of
 
 				move ->
@@ -2957,7 +2956,7 @@ write_entries( File,
 		undefined ->
 			% Cannot do better to store a list of Unicode codepoints:
 			Comment = text_utils:format( "~n% Corresponds to '~ts' "
-				"(not encoded in Unicode):~n", [ RelativePath ] ),
+				"(not an Unicode filename):~n", [ RelativePath ] ),
 			{ Comment, io_lib:format( "~w", [ RelativePath ] ) };
 
 		UnicodeStr ->
@@ -2968,7 +2967,7 @@ write_entries( File,
 
 	end,
 
-	EntryToWrite = text_utils:format( "{file_info, ~ts ~s, ~B, ~B}.~n",
+	EntryToWrite = text_utils:format( "{file_info, ~ts ~ts, ~B, ~B}.~n",
 								[ SHA1Str, PathToWrite, Size, Timestamp ] ),
 
 	ToWrite = case MaybeComment of
@@ -3211,7 +3210,7 @@ analyze_loop() ->
 						 executable_utils:compute_sha1_sum( BinFilePath ) },
 
 					% To avoid overheating:
-					timer:sleep( 500 ),
+					timer:sleep( 100 ),
 
 					SenderPid ! { file_analyzed, FileData },
 					analyze_loop();
@@ -3288,8 +3287,34 @@ deduplicate_tree( TreeData=#tree_data{ root=BinRootDir,
 	% Possibly negative, should whole contents be erased:
 	RemainingDuplicateCount = DuplicateCount - RemovedCount,
 
-	ui:display( "While there were ~B duplicates detected, a total of ~B "
-				"files have been removed.", [ DuplicateCount, RemovedCount ] ),
+	DupStr = case DuplicateCount of
+
+		0 ->
+			"no duplicate was";
+
+		1 ->
+			"a single duplicate was";
+
+		_ ->
+			text_utils:format( "~B duplicates were", [ DuplicateCount ] )
+
+	end,
+
+	RemoveStr = case RemovedCount of
+
+		0 ->
+			"no file was";
+
+		1 ->
+			"a single file was";
+
+		_ ->
+			text_utils:format( "a total of ~B files were",
+							   [ RemovedCount ] )
+
+	end,
+
+	ui:display( "While ~s detected, ~s removed.", [ DupStr, RemoveStr ] ),
 
 	NewFileCount = InitialEntryCount + RemainingDuplicateCount,
 
@@ -3512,15 +3537,17 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 		% No common prefix at all here:
 		{ _Prfx= <<"">>, Tails } ->
-			Lbl = text_utils:format( "Following ~B files have the exact same "
-				"content (and thus size, of ~ts)", [ Count, SizeString ] ),
+			Lbl = text_utils:format( "Following ~B files have the "
+				"exact same content (and thus size, of ~ts)",
+				[ Count, SizeString ] ),
 			{ Lbl, _Prefix="", _TrimmedPaths=Tails };
 
 		{ Prfx, Tails } ->
 
-			Lbl = text_utils:format( "Following ~B files have the exact same "
-				"content (and thus size, of ~ts) and all start with the same "
-				"prefix, '~ts' (omitted below)", [ Count, SizeString, Prfx ] ),
+			Lbl = text_utils:format( "Following ~B files have the "
+				"exact same content (and thus size, of ~ts) and all start "
+				"with the same prefix, '~ts' (omitted below)",
+				[ Count, SizeString, Prfx ] ),
 
 			{ Lbl, Prfx, _TrimmedPaths=Tails }
 
@@ -3533,7 +3560,8 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 	%trace_bridge:debug_fmt( "DuplicateString = ~p", [ DuplicateString ] ),
 
-	FullPrompt = Prompt ++ DuplicateString,
+	FullPrompt = text_utils:format_ellipsed( "~s~s",
+						[ Prompt, DuplicateString ], ?max_message_header_len ),
 
 	Choices = [ { auto_symlink, "Auto-select shortest path as "
 				  "reference, replace other duplicates by symlinks" },
@@ -3744,14 +3772,18 @@ find_data_entry_for( FilePath, _FileEntries=[ _FD | T ] ) ->
 % kept as is, while, if requested, the others are replaced by symlinks pointing
 % to it, and returns its filename as a binary.
 %
--spec keep_shortest_path( ustring(), [ file_path() ], bin_directory_path(),
+-spec keep_shortest_path( ustring(), [ bin_file_path() ], bin_directory_path(),
 						  boolean(), user_state() ) -> bin_file_path().
 keep_shortest_path( Prefix, TrimmedPaths, BinRootDir, CreateSymlinks,
 					UserState ) ->
 
-	% They all have the same predix:
+	% They all have the same prefix; we rely here on Erlang term ordering, where
+	% 'undefined' is greater than any integer ('raw filenames' cannot even have
+	% their length determined):
+	%
 	_AscendingPairs = [ _H={ _SmallestLen, KeptFilePath } | LongerPairs ] =
-		lists:sort( [ { string:length( P ), P } || P <- TrimmedPaths ] ),
+		lists:sort( [ { text_utils:safe_length( P ), P }
+					  || P <- TrimmedPaths ] ),
 
 	ToRemovePaths = [ P || { _Len, P } <- LongerPairs ],
 
@@ -4186,6 +4218,51 @@ find_regular_files_from( TreePath ) ->
 	% Raw filenames are already binaries:
 	text_utils:ensure_binaries( AllFiles ).
 
+
+
+% Reads specified cache file and performs first checks.
+%
+% Cache file expected to be already checked existing.
+%
+-spec read_cache_file( file_path(), user_state() ) ->
+								{ bin_directory_path(), [ file_info() ] }.
+read_cache_file( CacheFilename, UserState ) ->
+
+	try file_utils:read_terms( CacheFilename ) of
+
+		[ _RootInfo={ root_dir, BinCachedTreePath } | FileInfos ] ->
+			{ BinCachedTreePath, FileInfos };
+
+		Other ->
+			trace( "Invalid cache file '~ts' (unexpected content):~n~p.",
+				   [ CacheFilename, Other ], UserState ),
+
+			ui:display_error( "Error, cache file '~ts' does not have an "
+				"expected content.~n"
+				"Consider removing this file first, and relaunching the "
+				"operation again.", [ CacheFilename ] ),
+			stop( 7 )
+
+	catch C:E ->
+
+			trace( "Error (~s), cache file '~ts' seems corrupted:~n ~p",
+				   [ C, CacheFilename, E ], UserState ),
+
+			ui:display_error( "Error, cache file '~ts' seems corrupted "
+				"(see logs for more details).~n"
+				"Consider removing this file first, and relaunching the "
+				"operation again.", [ CacheFilename ] ),
+			stop( 8 )
+
+	end.
+
+
+
+% Displays a scan notification.
+-spec display_scan_notification( bin_file_path() ) -> void().
+display_scan_notification( CacheFilePath ) ->
+	ui:display( "No cache file ('~ts') found, performing a full scan "
+				"to recreate it... (might be long)", [ CacheFilePath ] ).
 
 
 % Displays information about specified tree data, with a default prompt.
