@@ -801,7 +801,7 @@ rescan( BinTreePath, AnalyzerRing, UserState ) ->
 					 text_utils:format( "Rescan of ~ts", [ BinTreePath ] ) },
 					   { 'title', "Rescan report" } ] ),
 
-	case file_utils:is_existing_directory( BinTreePath ) of
+	case file_utils:is_existing_directory_or_link( BinTreePath ) of
 
 		true ->
 			ok;
@@ -1234,7 +1234,7 @@ resync( BinTreePath, AnalyzerRing, UserState ) ->
 					 text_utils:format( "Resync of ~ts", [ BinTreePath ] ) },
 					   { 'title', "Resync report" } ] ),
 
-	case file_utils:is_existing_directory( BinTreePath ) of
+	case file_utils:is_existing_directory_or_link( BinTreePath ) of
 
 		true ->
 			ok;
@@ -1616,7 +1616,7 @@ read_cache_file( CacheFilename ) ->
 create_analyzer_ring( UserState ) ->
 
 	% Best, reasonable CPU usage (no CPU melting):
-	SpawnCount = system_utils:get_core_count() + 1,
+	SpawnCount = system_utils:get_core_count(),
 	%SpawnCount = max( 1, system_utils:get_core_count() -1 ),
 
 	Analyzers = spawn_data_analyzers( SpawnCount, UserState ),
@@ -2601,7 +2601,7 @@ stop_user_service( UserState=#user_state{ log_file=LogFile } ) ->
 -spec check_content_trees( tree_data(), tree_data() ) -> void().
 check_content_trees( InputTree, ReferenceTreePath ) ->
 
-	case file_utils:is_existing_directory( InputTree ) of
+	case file_utils:is_existing_directory_or_link( InputTree ) of
 
 		true ->
 			ok;
@@ -2613,7 +2613,7 @@ check_content_trees( InputTree, ReferenceTreePath ) ->
 
 	end,
 
-	case file_utils:is_existing_directory( ReferenceTreePath ) of
+	case file_utils:is_existing_directory_or_link( ReferenceTreePath ) of
 
 		true ->
 			ok;
@@ -2638,7 +2638,7 @@ get_cache_path_for( BinTreePath ) ->
 -spec check_tree_path_exists( any_directory_path() ) -> void().
 check_tree_path_exists( AnyTreePath ) ->
 
-	case file_utils:is_existing_directory( AnyTreePath ) of
+	case file_utils:is_existing_directory_or_link( AnyTreePath ) of
 
 		true ->
 			ok;
@@ -3233,7 +3233,7 @@ analyze_loop() ->
 						 executable_utils:compute_sha1_sum( BinFilePath ) },
 
 					% To avoid overheating:
-					timer:sleep( 100 ),
+					timer:sleep( 50 ),
 
 					SenderPid ! { file_analyzed, FileData },
 					analyze_loop();
