@@ -687,7 +687,7 @@ scan( BinTreePath, AnalyzerRing, UserState ) ->
 	trace_debug( "Requested to scan '~ts'.", [ BinTreePath ], UserState ),
 
 	ui:set_settings( [ { 'backtitle',
-					 text_utils:format( "Scan of ~ts", [ BinTreePath ] ) },
+						 text_utils:format( "Scan of ~ts", [ BinTreePath ] ) },
 					   { 'title', "Scan report" } ] ),
 
 	CacheFilename = get_cache_path_for( BinTreePath ),
@@ -4266,9 +4266,9 @@ read_cache_file( CacheFilename, UserState ) ->
 		[ _RootInfo={ root_dir, BinCachedTreePath } | FileInfos ] ->
 			{ BinCachedTreePath, FileInfos };
 
-		Other ->
-			trace( "Invalid cache file '~ts' (unexpected content):~n~p.",
-				   [ CacheFilename, Other ], UserState ),
+		_Other ->
+			trace( "Invalid cache file '~ts' (unexpected content); "
+				"shall be removed by the user.", [ CacheFilename ], UserState ),
 
 			ui:display_error( "Error, cache file '~ts' does not have an "
 				"expected content.~n"
