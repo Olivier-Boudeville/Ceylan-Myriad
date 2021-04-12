@@ -1180,6 +1180,7 @@ is_user_executable( EntryPath ) ->
 	is_owner_executable( EntryPath ).
 
 
+
 % Returns whether the specified entry, supposedly existing, is a directory.
 %
 % If the specified entry happens not to exist, a {non_existing_entry, EntryName}
