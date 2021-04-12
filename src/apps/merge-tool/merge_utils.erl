@@ -570,9 +570,8 @@ handle_rescan_option( UserRescanTreePath, RescanArgTable, BinBaseDir ) ->
 
 	AnalyzerRing = create_analyzer_ring( UserState ),
 
-	NewTreeData = rescan( BinAbsRescanTreePath, AnalyzerRing, UserState ),
-
-	write_cache_file( NewTreeData, UserState ),
+	% Already written:
+	_NewTreeData = rescan( BinAbsRescanTreePath, AnalyzerRing, UserState ),
 
 	terminate_analyzer_ring( AnalyzerRing, UserState ),
 
@@ -593,9 +592,8 @@ handle_resync_option( UserResyncTreePath, ResyncArgTable, BinBaseDir ) ->
 
 	AnalyzerRing = create_analyzer_ring( UserState ),
 
-	NewTreeData = resync( BinAbsResyncTreePath, AnalyzerRing, UserState ),
-
-	write_cache_file( NewTreeData, UserState ),
+	% Already written:
+	_NewTreeData = resync( BinAbsResyncTreePath, AnalyzerRing, UserState ),
 
 	terminate_analyzer_ring( AnalyzerRing, UserState ),
 
@@ -817,7 +815,7 @@ rescan( BinTreePath, AnalyzerRing, UserState ) ->
 
 	CacheFilename = get_cache_path_for( BinTreePath ),
 
-	case file_utils:is_existing_file( CacheFilename ) of
+	NewTreeData = case file_utils:is_existing_file( CacheFilename ) of
 
 		true ->
 			{ TreeData, Notifications } =
@@ -830,6 +828,9 @@ rescan( BinTreePath, AnalyzerRing, UserState ) ->
 					trace_debug( "No specific rescan notification to report.",
 								 UserState );
 
+				[ Notif ] ->
+					ui:display( "A notification reported: ~ts", [ Notif ] );
+
 				_ ->
 					NotifCount = length( Notifications ),
 					NotifString = text_utils:format(
@@ -839,17 +840,18 @@ rescan( BinTreePath, AnalyzerRing, UserState ) ->
 														_Indent=1 ) ] ),
 
 					% Otherwise at least some UI backends might fail:
-					DisplayString = case NotifCount of
+					%DisplayString = case NotifCount of
+					%
+					%	L when L > 15 ->
+					%		text_utils:format( "~B notifications to report, "
+					%		   "see logs for full details.", [ L ] );
+					%
+					%	_ ->
+					%		NotifString
+					%
+					%end,
 
-						L when L > 15 ->
-							text_utils:format( "~B notifications to report, "
-							   "see logs for full details.", [ L ] );
-
-						_ ->
-							NotifString
-
-					end,
-					ui:display( DisplayString )
+					ui:display( NotifString )
 
 			end,
 
@@ -876,11 +878,21 @@ rescan( BinTreePath, AnalyzerRing, UserState ) ->
 
 			TreeData
 
-	end.
+	end,
+
+	% We now write/update in all cases a newly determined cache file:
+	write_cache_file( NewTreeData, UserState ),
+
+	NewTreeData.
 
 
 
+
+% Performs a rescan and returns {TreeData, Notifications}; does not write the
+% corresponding cache file.
+%
 % (helper)
+%
 perform_rescan( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 
 	CacheTimestamp = file_utils:get_last_modification_time( CacheFilename ),
@@ -1236,7 +1248,7 @@ resync( BinTreePath, AnalyzerRing, UserState ) ->
 
 	CacheFilename = get_cache_path_for( BinTreePath ),
 
-	case file_utils:is_existing_file( CacheFilename ) of
+	NewTreeData = case file_utils:is_existing_file( CacheFilename ) of
 
 		true ->
 			{ TreeData, Notifications } = perform_resync( BinTreePath,
@@ -1295,11 +1307,21 @@ resync( BinTreePath, AnalyzerRing, UserState ) ->
 
 			TreeData
 
-	end.
+	end,
+
+	% We now write/update in all cases a newly determined cache file:
+	write_cache_file( NewTreeData, UserState ),
+
+	NewTreeData.
 
 
 
+
+% Performs a resync and returns {TreeData, Notifications}; does not write the
+% corresponding cache file.
+%
 % (helper)
+%
 perform_resync( BinUserTreePath, CacheFilename, AnalyzerRing, UserState ) ->
 
 	{ BinCachedTreePath, FileInfos } =
@@ -1594,8 +1616,8 @@ read_cache_file( CacheFilename ) ->
 create_analyzer_ring( UserState ) ->
 
 	% Best, reasonable CPU usage (no CPU melting):
-	%SpawnCount = system_utils:get_core_count() + 1,
-	SpawnCount = max( 1, system_utils:get_core_count() ),
+	SpawnCount = system_utils:get_core_count() + 1,
+	%SpawnCount = max( 1, system_utils:get_core_count() -1 ),
 
 	Analyzers = spawn_data_analyzers( SpawnCount, UserState ),
 
@@ -1677,7 +1699,7 @@ merge( InputTreePath, ReferenceTreePath ) ->
 
 		ReferenceTreePath ->
 			ui:display_error( "The same tree ('~ts') is specified both as "
-							  "reference and input.", [ ReferenceTreePath ] ),
+				"merge reference and input.", [ ReferenceTreePath ] ),
 			throw( { merge_on_same_directory, ReferenceTreePath } );
 
 		_ ->
@@ -2819,6 +2841,7 @@ handle_newest_timestamp( NewestTimestamp, ContentFiles, CacheFilePath,
 	end.
 
 
+
 % Creates an automatically named merge cache file for specified content tree
 % (overwriting any priorly existing merge cache file), and returns that tree.
 %
@@ -3314,7 +3337,17 @@ deduplicate_tree( TreeData=#tree_data{ root=BinRootDir,
 
 	end,
 
-	ui:display( "While ~s detected, ~s removed.", [ DupStr, RemoveStr ] ),
+	case ( DuplicateCount =/= 0 ) orelse ( RemoveStr =/= 0 ) of
+
+		true ->
+			ui:display( "While ~s detected, ~s removed.",
+						[ DupStr, RemoveStr ] );
+
+		% No useless display wanted:
+		false ->
+			ok
+
+	end,
 
 	NewFileCount = InitialEntryCount + RemainingDuplicateCount,
 
@@ -3426,8 +3459,8 @@ filter_duplications( _SHA1Entries=[ SHA1Entry | T ],
 process_duplications( DuplicationCases, TotalDupCaseCount, UniqueTable,
 					  BinRootDir, UserState ) ->
 
-	trace_debug( "Pre-deduplicating unique table: ~ts",
-				 [ table:to_string( UniqueTable ) ], UserState ),
+	%trace_debug( "Pre-deduplicating unique table: ~ts",
+	%			 [ table:to_string( UniqueTable ) ], UserState ),
 
 	Acc0 = { UniqueTable, _InitialDupCount=1, _InitialRemoved=0 },
 	process_duplications_helper( DuplicationCases, TotalDupCaseCount, Acc0,
@@ -3436,13 +3469,13 @@ process_duplications( DuplicationCases, TotalDupCaseCount, UniqueTable,
 
 
 
-% Helper returning { sha1_table(), count() }:
+% Helper returning {sha1_table(), count()}:
 process_duplications_helper( _DupCases=[], _TotalDupCount,
 		_Acc={ AccTable, _AccDupCount, AccRemoveCount }, _BinRootDir,
-		UserState ) ->
+		_UserState ) ->
 
-	trace_debug( "Post-deduplication unique table: ~ts",
-				 [ table:to_string( AccTable ) ], UserState ),
+	%trace_debug( "Post-deduplication unique table: ~ts",
+	%			 [ table:to_string( AccTable ) ], UserState ),
 
 	{ AccTable, AccRemoveCount };
 
@@ -3467,7 +3500,7 @@ process_duplications_helper( _DupCases=[ { Sha1Key, DuplicateList } | T ],
 	end,
 
 	NewRemoveCount = AccRemoveCount + length( DuplicateList )
-		- length( RemainingFileEntries ),
+								- length( RemainingFileEntries ),
 
 	NewAcc = { NewAccTable, AccDupCount+1, NewRemoveCount },
 
