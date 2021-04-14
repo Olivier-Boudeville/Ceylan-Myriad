@@ -688,7 +688,7 @@ scan( BinTreePath, AnalyzerRing, UserState ) ->
 
 	ui:set_settings( [ { backtitle,
 						 text_utils:format( "Scan of ~ts", [ BinTreePath ] ) },
-					   { title, "Scan in progress" } ] ),
+					   { title, "Scan in progress..." } ] ),
 
 	CacheFilename = get_cache_path_for( BinTreePath ),
 
@@ -800,7 +800,7 @@ rescan( BinTreePath, AnalyzerRing, UserState ) ->
 
 	ui:set_settings( [ { backtitle,
 					 text_utils:format( "Rescan of ~ts", [ BinTreePath ] ) },
-					   { title, "Rescan in progress" } ] ),
+					   { title, "Rescan in progress..." } ] ),
 
 	case file_utils:is_existing_directory_or_link( BinTreePath ) of
 
@@ -825,38 +825,7 @@ rescan( BinTreePath, AnalyzerRing, UserState ) ->
 
 			ui:set_setting( title, "Rescan report" ),
 
-			case Notifications of
-
-				[] ->
-					trace_debug( "No specific rescan notification to report.",
-								 UserState );
-
-				[ Notif ] ->
-					ui:display( "A notification reported: ~ts", [ Notif ] );
-
-				_ ->
-					NotifCount = length( Notifications ),
-					NotifString = text_utils:format(
-						"~B notifications to report: ~ts",
-						[ NotifCount,
-						  text_utils:strings_to_string( Notifications,
-														_Indent=1 ) ] ),
-
-					% Otherwise at least some UI backends might fail:
-					%DisplayString = case NotifCount of
-					%
-					%	L when L > 15 ->
-					%		text_utils:format( "~B notifications to report, "
-					%		   "see logs for full details.", [ L ] );
-					%
-					%	_ ->
-					%		NotifString
-					%
-					%end,
-
-					ui:display( NotifString )
-
-			end,
+			report_notifications( Notifications, UserState ),
 
 			RescanPrompt = text_utils:format( "Rescan result for '~ts'",
 											  [ BinTreePath ] ),
@@ -1237,7 +1206,7 @@ resync( BinTreePath, AnalyzerRing, UserState ) ->
 
 	ui:set_settings( [ { backtitle,
 					 text_utils:format( "Resync of ~ts", [ BinTreePath ] ) },
-					   { title, "Resync in progress" } ] ),
+					   { title, "Resync in progress..." } ] ),
 
 	case file_utils:is_existing_directory_or_link( BinTreePath ) of
 
@@ -1261,36 +1230,7 @@ resync( BinTreePath, AnalyzerRing, UserState ) ->
 
 			ui:set_setting( title, "Resync report" ),
 
-			case Notifications of
-
-				[] ->
-					trace_debug( "No specific resync notification to report.",
-								 UserState );
-
-				_ ->
-					NotifCount = length( Notifications ),
-					NotifString = text_utils:format(
-						"~B notifications to report: ~ts",
-						[ NotifCount,
-						  text_utils:strings_to_string( Notifications,
-														_Indent=1 ) ] ),
-
-					trace_debug( NotifString, UserState ),
-
-					% Otherwise at least some UI backends might fail:
-					DisplayString = case NotifCount of
-
-						L when L > 15 ->
-							text_utils:format( "~B notifications to report, "
-							   "see logs for full details.", [ L ] );
-
-						_ ->
-							NotifString
-
-					end,
-					ui:display( DisplayString )
-
-			end,
+			report_notifications( Notifications, UserState ),
 
 			ResyncPrompt =
 				text_utils:format( "Resync result for '~ts'", [ BinTreePath ] ),
@@ -1667,7 +1607,7 @@ uniquify( TreePath ) ->
 
 	ui:set_settings( [ { backtitle,
 				text_utils:format( "Uniquification of ~ts", [ AbsTreePath ] ) },
-					   { title, "Uniquification in progress" } ] ),
+					   { title, "Uniquification in progress..." } ] ),
 
 	AnalyzerRing = create_analyzer_ring( UserState ),
 
@@ -1729,14 +1669,16 @@ merge( InputTreePath, ReferenceTreePath ) ->
 
 	ui:set_settings( [ { backtitle,
 				text_utils:format( "Merge in ~ts", [ ReferenceTreePath ] ) },
-					   { title, "Updating tree caches" } ] ),
+					   { title, "Updating cache of input tree..." } ] ),
 
 	InputTree = update_content_tree( InputTreePath, AnalyzerRing, UserState ),
+
+	ui:set_setting( title, "Updating cache of reference tree..." ),
 
 	ReferenceTree =
 		update_content_tree( ReferenceTreePath, AnalyzerRing, UserState ),
 
-	ui:set_setting( title, "Merge in progress" ),
+	ui:set_setting( title, "Merge in progress..." ),
 
 	MergeTreeData = merge_trees( InputTree, ReferenceTree, UserState ),
 
@@ -1772,7 +1714,7 @@ merge_trees( InputTree=#tree_data{ root=BinInputRootDir,
 	LackingInRefSet = set_utils:difference( InputSHA1Set, ReferenceSHA1Set ),
 
 	ui:set_setting( backtitle,
-			text_utils:format( "Merging in ~ts", [ BinReferenceRootDir ] ) ),
+			text_utils:format( "Merging in ~ts...", [ BinReferenceRootDir ] ) ),
 
 	case set_utils:size( LackingInRefSet ) of
 
@@ -1991,9 +1933,10 @@ integrate_content( _InputTree=#tree_data{ root=BinInputRootDir,
 				ReferenceEntries, BinTargetDir, UserState );
 
 		delete ->
-			% Would be surprising in a merge, and blindly:
+			% Might happen, typically for empty files:
+			% (possibly one content, multiple elements)
 			DelPrompt = text_utils:format( "Really delete the ~B "
-						"unique content elements found in the input tree "
+						"unique content element(s) found in the input tree "
 						"('~ts')?", [ ContentCount, BinInputRootDir ] ),
 
 			case ui:ask_yes_no( DelPrompt ) of
@@ -2831,7 +2774,7 @@ handle_newest_timestamp( NewestTimestamp, ContentFiles, CacheFilePath,
 
 			Prompt = text_utils:format(
 				"Timestamp of cache file (~ts) older "
-				"than most recent file timestamp in tree (~ts).~n"
+				"than most recent file timestamp in tree (~ts).~n~n"
 				"Rebuilding cache file for tree '~ts'? "
 				"(otherwise current cache file will be reused from now on)",
 				[ CacheString, NewestString, BinTreePath ] ),
@@ -3396,7 +3339,7 @@ deduplicate_tree( TreeData=#tree_data{ root=BinRootDir,
 	case ( DuplicateCount =/= 0 ) orelse ( RemoveStr =/= 0 ) of
 
 		true ->
-			ui:display( "While ~s detected, ~s removed.",
+			ui:display( "While ~ts detected, ~ts removed.",
 						[ DupStr, RemoveStr ] );
 
 		% No useless display wanted:
@@ -3654,7 +3597,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 		[ text_utils:binaries_to_binary( BinShortenPaths, ?bullet_point ) ] ),
 
 	% Otherwise might be a problem for the UI:
-	FullPrompt = text_utils:format_ellipsed( "~s~s",
+	FullPrompt = text_utils:format_ellipsed( "~ts~ts",
 						[ Prompt, DuplicateString ], ?max_message_header_len ),
 
 	Choices = [ { auto_symlink, "Auto-select shortest path as "
@@ -4339,7 +4282,7 @@ read_cache_file( CacheFilename, UserState ) ->
 
 	catch C:E ->
 
-			trace( "Error (~s), cache file '~ts' seems corrupted:~n ~p",
+			trace( "Error (~ts), cache file '~ts' seems corrupted:~n ~p",
 				   [ C, CacheFilename, E ], UserState ),
 
 			ui:display_error( "Error, cache file '~ts' seems corrupted "
@@ -4398,6 +4341,45 @@ display_tree_data( TreeData=#tree_data{ root=RootDir }, UserState ) ->
 
 
 
+% Reports specified notifications.
+-spec report_notifications( [ ustring() ], user_state() ) -> void().
+report_notifications( _Notifications=[], UserState ) ->
+	trace_debug( "No specific notification to report.", UserState );
+
+report_notifications( _Notifications=[ SingleNotifStr ], UserState ) ->
+
+	trace_debug( SingleNotifStr, UserState ),
+
+	% Added for capitalisation:
+	ui:display( "Notification: ~ts", [ SingleNotifStr ] );
+
+report_notifications( Notifications, UserState ) ->
+
+	NotifCount = length( Notifications ),
+
+	NotifString = text_utils:format( "~B notifications to report: ~ts",
+		[ NotifCount,
+		  text_utils:strings_to_string( Notifications, _Indent=1 ) ] ),
+
+	trace_debug( NotifString, UserState ),
+
+	% Otherwise at least some UI backends might fail:
+	% (prefer ellipsing if needed)
+	%DisplayString = case NotifCount of
+	%
+	%	L when L > 500 ->
+	%		text_utils:format( "~B notifications to report, "
+	%						   "see logs for full details.", [ L ] );
+	%
+	%	_ ->
+	%		NotifString
+	%
+	%end,
+
+	ui:display( NotifString ).
+
+
+
 % Displays information about specified tree data, with specified prompt.
 -spec display_tree_data( tree_data(), ui:prompt(), user_state() ) -> void().
 display_tree_data( TreeData=#tree_data{ entries=EntryTable,
@@ -4416,7 +4398,7 @@ display_tree_data( TreeData=#tree_data{ entries=EntryTable,
 
 				true ->
 					text_utils:format( "~B unique contents and ~B regular files"
-						" (hence with ~s)",
+						" (hence with ~ts)",
 						[ ContentCount, FileCount, case DupCount of
 							1 -> "a single duplicate";
 							_ -> text_utils:format( "a total of ~B duplicates",
