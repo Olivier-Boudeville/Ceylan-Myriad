@@ -53,12 +53,17 @@ test-rescan: pre-test rescan-test-tree post-test
 
 test-resync: pre-test resync-test-tree post-test
 
+
+# Shall result in 3 contents (and no duplicate):
 test-uniquify: pre-test create-test-trees
-	@$(MERGE_SCRIPT) --uniquify $(TEST_CONTENT_TREE) --use-ui-backend $(UI_BACKEND) # ; $(MAKE) -s post-test
+	@$(MERGE_SCRIPT) --uniquify $(TEST_CONTENT_TREE) --use-ui-backend $(UI_BACKEND)
+	@$(MAKE) -s post-test
 
 
+# Shall result in 4 contents (A, B, C and Unique), and no duplicate:
 test-merge: pre-test create-test-trees
-	@$(MERGE_SCRIPT) --input $(TEST_CONTENT_TREE) --reference $(TEST_REFERENCE_TREE) --use-ui-backend $(UI_BACKEND) # ; $(MAKE) -s post-test
+	@$(MERGE_SCRIPT) --input $(TEST_CONTENT_TREE) --reference $(TEST_REFERENCE_TREE) --use-ui-backend $(UI_BACKEND)
+	@$(MAKE) -s post-test
 
 
 
@@ -70,8 +75,11 @@ test-merge: pre-test create-test-trees
 #
 create-test-trees: clean-test-trees create-content-tree create-reference-tree
 
+
 # Mixing various locations, colliding filenames and content, internal and
 # external symlinks, and dead ones:
+#
+# (thus 3 different contents A, B and C; and 2+1+0=3 duplicates on 2 cases)
 #
 create-content-tree:
 	@echo " Creating test content tree (3 contents of its own)"
@@ -88,6 +96,7 @@ create-content-tree:
 	@tree $(TEST_CONTENT_TREE)
 
 
+# (thus 3 different contents A, B and Unique; and 1+1=2 duplicates on 2 cases)
 create-reference-tree:
 	@echo " Creating test reference tree (3 contents of its own, 1 unique)"
 	@mkdir -p $(TEST_REFERENCE_TREE)/wilbur $(TEST_REFERENCE_TREE)/kinabe
