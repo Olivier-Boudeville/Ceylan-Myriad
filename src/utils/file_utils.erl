@@ -1557,7 +1557,7 @@ classify_dir_elements( DirName, _Elements=[ Bin | T ], Devices, Directories,
 		Files, Symlinks, OtherFiles, ImproperEncodingAction=warn ) ->
 
 	trace_bridge:warning_fmt( "Ignoring improperly-encoded "
-		"file element found in directory '~s': '~s'.", [ DirName, Bin ] ),
+		"file element found in directory '~ts': '~ts'.", [ DirName, Bin ] ),
 
 	% Then ignore:
 	classify_dir_elements( DirName, T, Devices, Directories, Files, Symlinks,
@@ -2771,6 +2771,8 @@ remove_empty_directory( DirectoryPath ) ->
 			ok;
 
 		{ error, Reason } ->
+			trace_utils:error_fmt( "Removal of directory '~ts' failed: ~p.",
+								   [ DirectoryPath, Reason ] ),
 			% Probably not so empty:
 			throw( { remove_empty_directory_failed, Reason, DirectoryPath } )
 
@@ -2895,7 +2897,7 @@ remove_directory( DirectoryName ) ->
 
 	% All local elements:
 	{ RegularFiles, Symlinks, Directories, OtherFiles, Devices } =
-		list_dir_elements( DirectoryName ),
+		list_dir_elements( DirectoryName, _ImproperEncodingAction=include ),
 
 	case Devices of
 
@@ -2925,11 +2927,11 @@ remove_directory( DirectoryName ) ->
 	end,
 
 	% Depth-first of course:
-	[ remove_directory( join( DirectoryName, SubDir ) )
+	[ remove_directory( any_join( DirectoryName, SubDir ) )
 	  || SubDir <- Directories ],
 
 	% Then removing all local regular files and symlinks:
-	[ remove_file( join( DirectoryName, F ) )
+	[ remove_file( any_join( DirectoryName, F ) )
 	  || F <- Symlinks ++ RegularFiles ],
 
 	% Finally removing this (now empty) directory as well:

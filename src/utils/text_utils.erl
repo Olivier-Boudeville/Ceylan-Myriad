@@ -1475,7 +1475,7 @@ interpret_faulty_format( FormatString, Values ) ->
 		[] ->
 			% Avoid any infinite recursion:
 			io_lib:format( " (no control sequence detected in format "
-						   "string '~s')", [ FormatString ] );
+						   "string '~ts')", [ FormatString ] );
 
 		Seqs ->
 			% We filter out "autonomous" control sequences, i.e. the ones that
@@ -3685,8 +3685,8 @@ pad_string_left( String, Width ) ->
 
 	Len = length( String ),
 
-	trace_utils:error_fmt( "String '~s' already too long (~B characters) to be "
-		"padded (left) to width ~B.", [ String, Len, Width ] ),
+	trace_utils:error_fmt( "String '~ts' already too long (~B characters) "
+		"to be padded (left) to width ~B.", [ String, Len, Width ] ),
 
 	throw( { string_to_pad_left_too_long, String, Len, Width } ).
 
@@ -3703,7 +3703,7 @@ pad_string_right( String, Width ) ->
 
 	Len = length( String ),
 
-	trace_utils:error_fmt( "String '~s' already too long (~B characters) to be "
+	trace_utils:error_fmt( "String '~ts' already too long (~B characters) to be "
 		"padded (right) to width ~B.", [ String, Len, Width ] ),
 
 	throw( { string_to_pad_right_too_long, String, Len, Width } ).
@@ -3955,8 +3955,8 @@ to_unicode_list( Data, CanFail ) ->
 
 		{ error, Prefix, Remaining } ->
 			trace_bridge:error_fmt( "Cannot transform data '~p' into "
-				"a proper Unicode string:~nafter prefix '~s', "
-				"cannot convert '~w'.~nStacktrace was: ~s",
+				"a proper Unicode string:~nafter prefix '~ts', "
+				"cannot convert '~w'.~nStacktrace was: ~ts",
 				[ Data, Prefix, Remaining,
 				  code_utils:interpret_shortened_stacktrace( 1 ) ] ),
 			case CanFail of
@@ -3974,7 +3974,7 @@ to_unicode_list( Data, CanFail ) ->
 
 		{ incomplete, Prefix, Bin } ->
 			trace_bridge:error_fmt( "Cannot transform data '~p' into "
-				"a proper Unicode string:~nafter prefix '~s', "
+				"a proper Unicode string:~nafter prefix '~ts', "
 				"'~p' is incomplete.", [ Data, Prefix, Bin ] ),
 			case CanFail of
 
@@ -4036,7 +4036,7 @@ to_unicode_binary( Data, CanFail ) ->
 
 		{ error, Prefix, Remaining } ->
 			trace_bridge:error_fmt( "Cannot transform data '~p' into "
-				"a proper Unicode binary:~nafter prefix '~s', "
+				"a proper Unicode binary:~nafter prefix '~ts', "
 				"cannot convert '~p'.", [ Data, Prefix, Remaining ] ),
 			case CanFail of
 
@@ -4053,7 +4053,7 @@ to_unicode_binary( Data, CanFail ) ->
 
 		{ incomplete, Prefix, Bin } ->
 			trace_bridge:error_fmt( "Cannot transform data '~p' into "
-				"a proper Unicode binary:~nafter prefix '~s', "
+				"a proper Unicode binary:~nafter prefix '~ts', "
 				"'~p' is incomplete.", [ Data, Prefix, Bin ] ),
 			case CanFail of
 

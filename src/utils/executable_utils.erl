@@ -227,7 +227,7 @@ can_generate_png_from_graph() ->
 	case lookup_executable( Tool ) of
 
 		false ->
-			text_utils:format( "no '~s' tool found (to be installed on many "
+			text_utils:format( "no '~ts' tool found (to be installed on many "
 				"distributions with the 'graphviz' package)", [ Tool ] );
 
 		_Path ->
