@@ -62,6 +62,8 @@
 
 		  display_numbered_list/2,
 
+		  display_instant/1, display_instant/2,
+
 		  display_warning/1, display_warning/2,
 
 		  display_error/1, display_error/2,
@@ -245,24 +247,38 @@ unset( SettingKey ) ->
 
 
 
-% Displays specified text, as a normal message.
+% Displays specified text, as a normal modal message.
 -spec display( text() ) -> void().
 display( Text ) ->
 	display_helper( _Channel=standard_io, Text ).
 
 
-
-% Displays specified formatted text, as a normal message.
+% Displays specified formatted text, as a normal modal message.
 -spec display( format_string(), [ term() ] ) -> void().
 display( FormatString, Values ) ->
 	display_helper( _Channel=standard_io, FormatString, Values ).
 
 
-% Displays in-order the items of specified list, as a normal message.
+
+% Displays in-order the items of specified list, as a normal modal message.
 -spec display_numbered_list( label(), [ text() ] ) -> void().
 display_numbered_list( Label, Lines ) ->
 	LineStrings = text_utils:strings_to_enumerated_string( Lines ),
 	display_helper( _Channel=standard_io, "~ts~ts", [ Label, LineStrings ] ).
+
+
+
+% Displays specified text, as a normal non-modal message.
+-spec display_instant( text() ) -> void().
+display_instant( Text ) ->
+	% No modal difference for this backend:
+	display_helper( _Channel=standard_io, Text ).
+
+
+% Displays specified formatted text, as a normal non-modal message.
+-spec display_instant( format_string(), [ term() ] ) -> void().
+display_instant( FormatString, Values ) ->
+	display_helper( _Channel=standard_io, FormatString, Values ).
 
 
 

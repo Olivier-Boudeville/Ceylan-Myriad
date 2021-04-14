@@ -225,6 +225,8 @@
 
 		  display_numbered_list/2,
 
+		  display_instant/1, display_instant/2,
+
 		  display_warning/1, display_warning/2,
 
 		  display_error/1, display_error/2,
@@ -512,7 +514,7 @@ unset( SettingKey ) ->
 
 
 
-% Displays specified text, as a normal message.
+% Displays specified text, as a normal modal message.
 -spec display( text() ) -> void().
 display( Text ) ->
 
@@ -568,18 +570,80 @@ display( Text ) ->
 
 
 
-% Displays specified formatted text, as a normal message.
+% Displays specified formatted text, as a normal modal message.
 -spec display( format_string(), [ term() ] ) -> void().
 display( FormatString, Values ) ->
 	display( text_utils:format( FormatString, Values ) ).
 
 
 
-% Displays in-order the items of specified list, as a normal message.
+% Displays in-order the items of specified list, as a normal modal message.
 -spec display_numbered_list( label(), [ text() ] ) -> void().
 display_numbered_list( Label, Lines ) ->
 	LineStrings = text_utils:strings_to_enumerated_string( Lines ),
 	display( Label ++ LineStrings ).
+
+
+
+% Displays specified text, as a normal non-modal message.
+-spec display_instant( text() ) -> void().
+display_instant( Text ) ->
+
+	% Note: 'dialog' will eat the leading spaces of a line; this will be visible
+	% typically in bullet lists.
+
+	% Simplified example:
+	%Cmd = "dialog --infobox 'Hello!' 8 40",
+
+	% Single quotes induce no specific issues (as are enclosed in double ones)
+	EscapedText = text_utils:escape_double_quotes( Text ),
+
+	%trace_utils:debug_fmt( "Original text: '~ts'; once escaped: '~ts'.",
+	%					   [ Text, EscapedText ] ),
+
+	#term_ui_state{ dialog_tool_path=ToolPath,
+					settings=SettingTable } = get_state(),
+
+	%trace_utils:debug_fmt( "Dialog path: '~ts'.", [ ToolPath ] ),
+
+	{ SettingString, SuffixString } =
+		get_dialog_settings_for_return_code( SettingTable ),
+
+	%trace_utils:debug_fmt( "Setting string: '~ts'.", [ SettingString ] ),
+	%trace_utils:debug_fmt( "Suffix string: '~ts'.", [ SuffixString ] ),
+
+	DialogString = text_utils:format( "--infobox \"~ts\" ~ts",
+									  [ EscapedText, SuffixString ] ),
+
+	Cmd = text_utils:join( _Sep=" ",
+						   [ ToolPath, SettingString, DialogString ] ),
+
+	%trace_utils:debug_fmt( "term_ui display command: '~ts'.", [ Cmd ] ),
+
+	{ Env, PortOpts } = get_execution_settings(),
+
+	case system_utils:run_command( Cmd, Env, _WorkingDir=undefined,
+								   PortOpts ) of
+
+		{ _ExitStatus=0, _Output="" } ->
+			ok;
+
+		{ _ExitStatus=0, Output } ->
+			trace_utils:warning_fmt( "Unexpected output: '~ts'.", [ Output ] );
+
+		{ ExitStatus, Output } ->
+			trace_utils:error_fmt( "Display error reported for '~ts' "
+				"(exit status: ~B):~n~ts", [ EscapedText, ExitStatus, Output ] )
+			%throw( { display_error_reported, ExitStatus, Output } )
+
+	end.
+
+
+
+% Displays specified formatted text, as a normal non-modal message.
+-spec display_instant( format_string(), [ term() ] ) -> void().
+display_instant( FormatString, Values ) ->
+	display_instant( text_utils:format( FormatString, Values ) ).
 
 
 

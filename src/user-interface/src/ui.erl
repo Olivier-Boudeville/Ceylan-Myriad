@@ -109,6 +109,8 @@
 
 		  display_numbered_list/2,
 
+		  display_instant/1, display_instant/2,
+
 		  display_warning/1, display_warning/2,
 
 		  display_error/1, display_error/2,
@@ -296,7 +298,7 @@ unset( SettingElement ) ->
 
 
 
-% Displays specified text, as a normal message.
+% Displays specified text, as a normal modal message.
 %
 % Note: all types of quotes are allowed in the specified text.
 %
@@ -308,18 +310,34 @@ display( Text ) ->
 
 
 
-% Displays specified formatted text, as a normal message.
+% Displays specified formatted text, as a normal modal message.
 -spec display( format_string(), format_values() ) -> void().
 display( FormatString, Values ) ->
 	UIModule = get_backend_name(),
 	UIModule:display( FormatString, Values ).
 
 
-% Displays in-order the items of the specified list, as a normal message.
+
+% Displays in-order the items of the specified list, as a normal modal message.
 -spec display_numbered_list( label(), [ text() ] ) -> void().
 display_numbered_list( Label, Lines ) ->
 	UIModule = get_backend_name(),
 	UIModule:display_numbered_list( Label, Lines ).
+
+
+
+% Displays specified text, as a normal non-modal message.
+-spec display_instant( text() ) -> void().
+display_instant( Text ) ->
+	UIModule = get_backend_name(),
+	UIModule:display_instant( Text ).
+
+
+% Displays specified formatted text, as a normal non-modal message.
+-spec display_instant( format_string(), [ term() ] ) -> void().
+display_instant( FormatString, Values ) ->
+	UIModule = get_backend_name(),
+	UIModule:display_instant( FormatString, Values ).
 
 
 
