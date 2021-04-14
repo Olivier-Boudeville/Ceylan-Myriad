@@ -2830,7 +2830,7 @@ remove_empty_tree( DirectoryPath ) ->
 	end,
 
 	{ RegularFiles, Symlinks, Directories, OtherFiles, Devices } =
-		list_dir_elements( DirectoryPath ),
+		list_dir_elements( DirectoryPath, _ImproperEncodingAction=include ),
 
 	case RegularFiles of
 
@@ -2838,7 +2838,7 @@ remove_empty_tree( DirectoryPath ) ->
 			ok;
 
 		_ ->
-			throw( { regular_files_found, RegularFiles } )
+			throw( { regular_files_found, RegularFiles, DirectoryPath } )
 
 	end,
 
@@ -2848,7 +2848,7 @@ remove_empty_tree( DirectoryPath ) ->
 			ok;
 
 		_ ->
-			throw( { symbolic_links_found, Symlinks } )
+			throw( { symbolic_links_found, Symlinks, DirectoryPath } )
 
 	end,
 
@@ -2858,7 +2858,7 @@ remove_empty_tree( DirectoryPath ) ->
 			ok;
 
 		_ ->
-			throw( { other_files_found, OtherFiles } )
+			throw( { other_files_found, OtherFiles, DirectoryPath } )
 
 	end,
 
@@ -2868,11 +2868,11 @@ remove_empty_tree( DirectoryPath ) ->
 			ok;
 
 		_ ->
-			throw( { devices_found, Devices } )
+			throw( { devices_found, Devices, DirectoryPath } )
 
 	end,
 
-	[ remove_empty_tree( join( DirectoryPath, D ) ) || D <- Directories ],
+	[ remove_empty_tree( any_join( DirectoryPath, D ) ) || D <- Directories ],
 
 	% Now an empty directory, so:
 	remove_directory( DirectoryPath ).
@@ -2955,7 +2955,8 @@ copy_file( SourceFilename, DestinationFilename ) ->
 			ok;
 
 		{ error, Reason } ->
-			throw( { copy_file_failed, SourceFilename, Reason } )
+			throw( { copy_file_failed, SourceFilename, DestinationFilename,
+					 Reason } )
 
 	end.
 
@@ -2972,7 +2973,12 @@ copy_file( SourceFilename, DestinationFilename ) ->
 try_copy_file( SourceFilename, DestinationFilename ) ->
 
 	% First, checks the source file exists and retrieves its meta-information:
-	case file:read_file_info( SourceFilename ) of
+	%
+	% (note: not using file:read_file_info/1, as we prefer referring to symlinks
+	% themselves rather than to the element they point to; otherwise a broken
+	% link would trigger 'enoent')
+	%
+	case file:read_link_info( SourceFilename ) of
 
 		{ ok, #file_info{ mode=Mode } } ->
 
