@@ -2668,8 +2668,8 @@ update_content_tree( BinTreePath, AnalyzerRing, UserState ) ->
 			case find_newest_timestamp_from( BinTreePath, CacheFilePath ) of
 
 				{ _NoNewestTimestamp=undefined, _ContentFiles=[] } ->
-					ui:display( "Tree '~ts' is empty, creating a blank cache "
-								"file for it.", [ BinTreePath ] ),
+					ui:display_instant( "Tree '~ts' is empty, creating a blank "
+										"cache file for it.", [ BinTreePath ] ),
 					undefined;
 
 				{ NewestTimestamp, ContentFiles } ->
@@ -2678,8 +2678,8 @@ update_content_tree( BinTreePath, AnalyzerRing, UserState ) ->
 			end;
 
 		false ->
-			ui:display( "No cache file found for '~ts', creating it.",
-						[ BinTreePath ] ),
+			ui:display_instant( "No cache file found for '~ts', creating it.",
+								[ BinTreePath ] ),
 			undefined
 
 	end,
