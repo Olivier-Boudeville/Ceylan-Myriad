@@ -116,6 +116,8 @@
 
 		  list_whitespaces/0,
 
+		  single_quote_string/1, double_quote_string/1,
+		  single_quote_strings/1, double_quote_strings/1,
 		  escape_single_quotes/1, escape_double_quotes/1,
 		  escape_all_quotes/1, escape_with/3,
 		  remove_newlines/1,
@@ -2991,6 +2993,35 @@ update_with_keywords( Content, TranslationTable ) ->
 -spec list_whitespaces() -> [ char() ].
 list_whitespaces() ->
 	" \t\n".
+
+
+
+% Single-quotes specified string, i.e. returns it once single-quoted.
+-spec single_quote_string( any_string() ) -> ustring().
+single_quote_string( AnyStr ) ->
+	format( "'~ts'", [ AnyStr ] ).
+
+
+% Double-quotes specified string, i.e. returns it once double-quoted.
+-spec double_quote_string( any_string() ) -> ustring().
+double_quote_string( AnyStr ) ->
+	format( "\"~ts\"", [ AnyStr ] ).
+
+
+% Single-quotes each string in the specified list, i.e. returns them (in-order)
+% once single-quoted.
+%
+-spec single_quote_strings( [ any_string() ] ) -> [ ustring() ].
+single_quote_strings( AnyStrs ) ->
+	[ single_quote_string( S ) || S <- AnyStrs ].
+
+
+% Double-quotes each string in the specified list, i.e. returns them (in-order)
+% once double-quoted.
+%
+-spec double_quote_strings( [ any_string() ] ) -> [ ustring() ].
+double_quote_strings( AnyStrs ) ->
+	[ double_quote_string( S ) || S <- AnyStrs ].
 
 
 
