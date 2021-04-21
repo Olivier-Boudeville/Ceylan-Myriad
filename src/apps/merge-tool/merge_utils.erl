@@ -33,7 +33,7 @@
 
 
 % Version of this tool:
--define( merge_script_version, "0.0.9" ).
+-define( merge_script_version, "0.1.0" ).
 
 
 % Centralised:
@@ -63,6 +63,7 @@
 % Shorthands:
 
 -type count() :: basic_utils:count().
+-type status_code() :: basic_utils:status_code().
 
 -type ustring() :: text_utils:ustring().
 -type format_string() :: text_utils:format_string().
@@ -70,6 +71,9 @@
 
 % Thus a (large) integer:
 -type sha1() :: executable_utils:sha1_sum().
+
+-type command_line_option() :: shell_utils:command_line_option().
+-type command_line_value() :: shell_utils:command_line_value().
 
 -type byte_size() :: system_utils:byte_size().
 
@@ -200,15 +204,11 @@
 % Note: ensure it is already built first!
 
 
-% Not run anymore as an escript, as raised issues with term_ui (i.e. dialog):
-%-define( exec_name, "merge-tree.escript" ).
--define( exec_name, "merge.sh" ).
 
-
-% The subdirectory in the reference tree in which selected content will be
+% The subdirectory in a tree in which selected content to integrate will be
 % transferred:
 %
--define( merge_dir, "content_from_merge" ).
+-define( integrate_dir, <<"content_to_integrate">> ).
 
 
 % To prevent the risk that the user interface is overwhelmed with too many
@@ -220,27 +220,58 @@
 -include("spawn_utils.hrl").
 
 
+
+% Not run anymore as an escript, as raised issues with term_ui (i.e. dialog):
+%-define( exec_name, "merge-tree.escript" ).
+-define( exec_name, "merge.sh" ).
+
+
+% Must match the usage below (not easy to use a single define):
+
+-define( base_dir_opt, '-base-dir' ).
+-define( reference_opt, '-reference' ).
+-define( input_opt, '-input' ).
+-define( equalize_opt, '-equalize' ).
+-define( scan_opt, '-scan').
+-define( rescan_opt, '-rescan').
+-define( resync_opt, '-resync').
+-define( uniquify_opt, '-uniquify').
+-define( check_opt, '-check-against' ).
+-define( help_opt, '-help' ).
+
+
 % Returns the usage help message.
 -spec get_usage() -> ustring().
 get_usage() ->
-	[ " Usage: following operations can be triggered: \n"
-	  "  - '"?exec_name" --input INPUT_TREE --reference REFERENCE_TREE'\n"
-	  "  - '"?exec_name" --scan A_TREE'\n"
-	  "  - '"?exec_name" --rescan A_TREE'\n"
-	  "  - '"?exec_name" --resync A_TREE'\n"
-	  "  - '"?exec_name" --uniquify A_TREE'\n"
-	  "  - '"?exec_name" -h' or '"?exec_name" --help'\n\n"
-	  "   Ensures, for the first form, that all the changes in a possibly more up-to-date, \"newer\" tree (INPUT_TREE) are merged back to the reference tree (REFERENCE_TREE), from which the first tree may have derived. Once executed, only a refreshed, complemented reference tree will exist, as the input tree will have been removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
+	% Format string is a list:
+	text_utils:format( lists:flatten( [
+	  " Usage of "?exec_name": following operations can be triggered (details below): \n"
+	  "   (1) '"?exec_name" -~ts INPUT_TREE -~ts REFERENCE_TREE': merges input tree into reference one\n"
+	  "   (2) '"?exec_name" -~ts FIRST_TREE SECOND_TREE': ensure both trees have the same content\n"
+	  "   (3) '"?exec_name" -~ts A_TREE': references, once for all, the content in tree in its cache file\n"
+	  "   (4) '"?exec_name" -~ts A_TREE': updates the tree cache, regarding new/modified/removed files\n"
+	  "   (5) '"?exec_name" -~ts A_TREE': performs a lighter update of the tree cache\n"
+	  "   (6) '"?exec_name" -~ts A_TREE': removes duplicates from tree\n"
+	  "   (7) '"?exec_name" -~ts A_TREE A_CACHE_FILE': tells the differences in content between a tree and the cache file of another (possibly remote) one\n"
+	  "   (8) '"?exec_name" -h' or '"?exec_name" -~ts'\n\n"
+	  "   Ensures, for the first form, that all the changes in a possibly more up-to-date, \"newer\" tree (INPUT_TREE) are merged back to the reference tree (REFERENCE_TREE), whence the input tree may have derived. Once executed, only a refreshed, complemented reference tree will exist, as the input tree will have been removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
 	  "   In the reference tree, in-tree duplicated content will be either kept as it is, or removed as a whole (to keep only one copy thereof), or replaced by symbolic links in order to keep only a single reference version of each actual content.\n"
-	  "   At the root of the reference tree, a '", ?merge_cache_filename, "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they have not changed. As a result, once a merge is done, the reference tree may contain an uniquified version of the union of the two specified trees, and the input tree will not exist anymore after the merge.\n\n"
-	  "   For the second form (--scan option), the specified tree will simply be inspected for duplicates, and a corresponding '", ?merge_cache_filename, "' file will be created at its root (to be potentially reused by a later operation).\n\n"
-	  "   For the third form (--rescan option), an attempt to rebuild an updated '", ?merge_cache_filename, "' file will be performed, computing only the checksum of the files that were not already referenced, or whose timestamp or size changed.\n\n"
-	  "   For the fourth form (--resync option), a rebuild even lighter than the previous rescan of '", ?merge_cache_filename, "' will be done, checking only sizes (not timestamps), and updating these timestamps.\n\n"
-	  "   For the fifth form (--uniquify option), the specified tree will be scanned first (see the corresponding operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links), and once done a corresponding up-to-date '", ?merge_cache_filename, "' file will be created at its root (to be potentially reused by a later operation).\n\n"
-	  "   For the sixth form (-h or --help option), displays this help.\n\n"
+	  "   At the root of the reference tree, a '", ?merge_cache_filename, "' file will be stored, in order to avoid any later recomputations of the checksums of the files that it contains, should they have not changed. As a result, once a merge is done, the reference tree may contain an uniquified version of the union of the two specified trees, and the input tree will not exist anymore.\n\n"
+	  "   For the second form (-~ts option), the content of the two specified trees are equalized, meaning that they will each contain the union of their respective content? Typically useful to maintain mirrors on different disks.\n\n"
+	  "   For the third form (-~ts option), the specified tree will simply be inspected for duplicates, and a corresponding '", ?merge_cache_filename, "' file will be created at its root (to be potentially reused by a later operation).\n\n"
+	  "   For the fourth form (-~ts option), an attempt to rebuild an updated '", ?merge_cache_filename, "' file will be performed, computing only the checksum of the files that were not already referenced, or whose timestamp or size changed.\n\n"
+	  "   For the fifth form (-~ts option), a rebuild even lighter than the previous rescan of '", ?merge_cache_filename, "' will be done, checking only sizes (not timestamps), and updating these timestamps.\n\n"
+	  "   For the sixth form (-~ts option), the specified tree will be scanned first (see the corresponding operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links to a single copy per content), and once done a corresponding up-to-date '", ?merge_cache_filename, "' file will be created at its root (to be potentially reused by a later operation).\n\n"
+	  "   For the seventh form (-~ts option), the specified tree will be compared to the one referenced in the cache file, reporting content differences.\n\n"
+	  "   For the eighth form (-h or -~ts option), displays this help.\n\n"
+	  "   Note that the -~ts A_BASE_DIR option can be specified by the user to designate the base directory of all relative paths mentioned."
+	  "   When a cache file is found, it can be either ignored (and thus recreated) or re-used, either as it is or after a weak check, where only file existence, sizes and timestamps are then verified (not checksums)." ] ),
+	 [ ?input_opt, ?reference_opt, ?equalize_opt, ?scan_opt, ?rescan_opt,
+	   ?resync_opt, ?uniquify_opt, ?check_opt, ?help_opt,
+	   ?equalize_opt, ?scan_opt, ?rescan_opt, ?resync_opt, ?uniquify_opt,
+	   ?check_opt, ?help_opt, ?base_dir_opt ] ).
 
-	  "   Note that the --base-dir A_BASE_DIR option can be specified by the user to designate the base directory of all relative paths mentioned."
-	  "   When a cache file is found, it can be either ignored (and thus recreated) or re-used, either as it is or after a weak check, where only file existence, sizes and timestamps are then verified (not checksums)." ].
+
 
 
 % Implementation notes:
@@ -250,6 +281,10 @@ get_usage() ->
 % and shall never be (attempted to be) converted to plain strings (as the
 % operation is bound to fail or to result in incorrect, unusable paths).
 %
+% So, unless specified otherwise, all paths are binaries (and a Bin prefix can
+% be spared in their names), not plain strings.
+
+
 % This implementation has been intentionally slowed down to avoid risks of
 % overheat, based on following measures:
 % - less analyzers than cores are spawned (see create_analyzer_ring/1)
@@ -288,20 +323,16 @@ main( ArgTable ) ->
 	%	   [ shell_utils:argument_table_to_string( FilteredArgTable ) ] ),
 
 	case list_table:has_entry( 'h', FilteredArgTable )
-			orelse list_table:has_entry( '-help', FilteredArgTable ) of
+			orelse list_table:has_entry( ?help_opt, FilteredArgTable ) of
 
 		true ->
 			display_usage();
 
 		false ->
 			{ BaseDir, BaseArgTable } = case
-					list_table:extract_entry_with_defaults( '-base-dir',
+					list_table:extract_entry_with_defaults( ?base_dir_opt,
 						[ file_utils:get_current_directory() ],
 						FilteredArgTable ) of
-
-				{ [ [] ], _NewArgumentTable } ->
-					stop_on_option_error( "no parameter specified for "
-						"the --base-dir option", 28 );
 
 				{ [ [ InputBaseDir ] ], BaseDirArgTable } ->
 					% Implied normalisation for example removes any trailing /:
@@ -309,22 +340,15 @@ main( ArgTable ) ->
 					  BaseDirArgTable };
 
 				{ UnexpectedBaseDirOpts, _BaseDirArgumentTable } ->
-					InputString = text_utils:format(
-						"unexpected --base-dir options: ~p",
-						[ UnexpectedBaseDirOpts ] ),
-
-					stop_on_option_error( InputString, 29 )
+					stop_on_option_error( ?base_dir_opt, _ExpectedCount=1,
+										  UnexpectedBaseDirOpts, 50 )
 
 			end,
 
 			BinBaseDir = text_utils:ensure_binary( BaseDir ),
 
-			case list_table:extract_entry_with_defaults( '-reference',
-									 undefined, BaseArgTable ) of
-
-				{ [ [] ], _NoRefArgTable } ->
-					stop_on_option_error( "no parameter specified for "
-						"the --reference option", 25 );
+			case list_table:extract_entry_with_defaults( ?reference_opt,
+										undefined, BaseArgTable ) of
 
 				{ [ [ RefTreePath ] ], NoRefArgTable }
 				  when is_list( RefTreePath ) ->
@@ -336,10 +360,8 @@ main( ArgTable ) ->
 
 				% Typically more than one reference option specified:
 				{ UnexpectedRefTreeOpts, _NoRefArgTable } ->
-					RefString = text_utils:format(
-						"unexpected reference tree options: ~p",
-						[ UnexpectedRefTreeOpts ] ),
-					stop_on_option_error( RefString, 26 )
+					stop_on_option_error( ?reference_opt, _Expected=1,
+										  UnexpectedRefTreeOpts, 51 )
 
 			end
 
@@ -359,23 +381,12 @@ handle_reference_option( RefTreePath, ArgumentTable, BinBaseDir ) ->
 	% If there is a --reference option, it is a merge, and there must be a
 	% --input option as well:
 
-	case list_table:extract_entry_with_defaults( '-input', undefined,
+	case list_table:extract_entry_with_defaults( ?input_opt, undefined,
 												 ArgumentTable ) of
-
-		{ undefined, NewArgumentTable } ->
-			InputString = text_utils:format(
-			  "no input tree specified; options were: ~ts",
-			  [ shell_utils:argument_table_to_string( NewArgumentTable ) ] ),
-			stop_on_option_error( InputString, 23 );
-
-		{ [ [] ], _NewArgumentTable } ->
-			stop_on_option_error(
-			  "no parameter specified for the --input option", 25 );
 
 		% Here, an input tree was specified as well:
 		{ [ [ InputTreePath ] ], NewArgumentTable }
 		  when is_list( InputTreePath ) ->
-
 			%trace_bridge:debug_fmt( "InputTreePath: ~p", [ InputTreePath ] ),
 
 			% RefTreePath is already vetted:
@@ -384,10 +395,8 @@ handle_reference_option( RefTreePath, ArgumentTable, BinBaseDir ) ->
 
 		% Typically more than one input option specified:
 		{ UnexpectedInputTreeOpts, _NewArgumentTable } ->
-			InputString = text_utils:format( "unexpected --input options: ~p",
-											 [ UnexpectedInputTreeOpts ] ),
-			stop_on_option_error( InputString, 27 )
-
+			stop_on_option_error( ?input_opt, _ExpectedCount=1,
+								  UnexpectedInputTreeOpts, 52 )
 
 	end.
 
@@ -396,67 +405,75 @@ handle_reference_option( RefTreePath, ArgumentTable, BinBaseDir ) ->
 % Handles the command-line whenever the --reference option was not specified.
 handle_non_reference_option( ArgumentTable, BinBaseDir ) ->
 
-	% No reference, it must then be a pure scan, a rescan, a resync or a
-	% uniquify here:
+	% No reference, it must then be an equalize, a pure scan, a rescan, a resync
+	% or a uniquify here:
 	%
-	case list_table:extract_entry_with_defaults( '-scan', undefined,
+	case list_table:extract_entry_with_defaults( ?equalize_opt, undefined,
 												 ArgumentTable ) of
 
-		% Not a scan, then a rescan?
-		{ undefined, NoScanArgTable } ->
+		% Not an equalize, then a scan?
+		{ undefined, NoEqualizeArgTable } ->
 
-			case list_table:extract_entry_with_defaults( '-rescan', undefined,
-														 NoScanArgTable ) of
+			case list_table:extract_entry_with_defaults( ?scan_opt, undefined,
+														 NoEqualizeArgTable ) of
 
-				% Not a rescan either:
-				{ undefined, NoRescanArgTable } ->
-					handle_neither_scan_options( NoRescanArgTable, BinBaseDir );
+				% Not a scan, then a rescan?
+				{ undefined, NoScanArgTable } ->
 
-				{ [ [] ], _NoRescanArgTable } ->
-					stop_on_option_error(
-					  "no parameter specified for the --rescan option", 28 );
+					case list_table:extract_entry_with_defaults( ?rescan_opt,
+												undefined, NoScanArgTable ) of
 
-				% A rescan was requested:
-				{ [ [ RescanTreePath ] ], RescanArgTable }
-				  when is_list( RescanTreePath ) ->
-					handle_rescan_option( RescanTreePath, RescanArgTable,
-										  BinBaseDir );
+						% Not a rescan either:
+						{ undefined, NoRescanArgTable } ->
+							handle_neither_scan_options( NoRescanArgTable,
+														 BinBaseDir );
 
-				{ UnexpectedRescanTreeOpts, _RescanArgTable } ->
-					ScanString = text_utils:format(
-						"unexpected rescan tree options: ~p",
-						[ UnexpectedRescanTreeOpts ] ),
-					stop_on_option_error( ScanString, 29 )
+							% A rescan was requested:
+						{ [ [ RescanTreePath ] ], RescanArgTable }
+								  when is_list( RescanTreePath ) ->
+							handle_rescan_option( RescanTreePath,
+												  RescanArgTable, BinBaseDir );
+
+						{ UnexpectedRescanTreeOpts, _RescanArgTable } ->
+							stop_on_option_error( ?rescan_opt, _ExpectedCount=1,
+												  UnexpectedRescanTreeOpts, 53 )
+
+					end;
+
+				% A scan was requested:
+				{ [ [ ScanTreePath ] ], ScanArgTable }
+								when is_list( ScanTreePath ) ->
+
+					% Check no unknown option remains:
+					case list_table:is_empty( ScanArgTable ) of
+
+						true ->
+							handle_scan_option( ScanTreePath, ScanArgTable,
+												BinBaseDir );
+
+						false ->
+							Msg = text_utils:format(
+								"unexpected extra options specified: ~ts",
+								[ shell_utils:argument_table_to_string(
+										ScanArgTable ) ] ),
+							display_error_and_stop( Msg, 54 )
+
+					end;
+
+				{ UnexpectedScanTreeOpts, _ScanArgTable } ->
+					stop_on_option_error( ?scan_opt, _Expected=1,
+										  UnexpectedScanTreeOpts, 55 )
 
 			end;
 
-		{ [ [] ], _ScanArgTable } ->
-			stop_on_option_error(
-				"no parameter specified for the --scan option", 22 );
+		{ [ [ FirstTreePath, SecondTreePath ] ], EqualizeArgTable }
+		  when is_list( FirstTreePath ) andalso is_list( SecondTreePath ) ->
+			handle_equalize_option( FirstTreePath, SecondTreePath,
+									EqualizeArgTable, BinBaseDir );
 
-		% A scan was requested:
-		{ [ [ ScanTreePath ] ], ScanArgTable } when is_list( ScanTreePath ) ->
-
-			% Check no unknown option remains:
-			case list_table:is_empty( ScanArgTable ) of
-
-				true ->
-					handle_scan_option( ScanTreePath, ScanArgTable,
-										BinBaseDir );
-
-				false ->
-					Msg = text_utils:format(
-						"unexpected extra options specified: ~ts",
-						[ shell_utils:argument_table_to_string(
-							ScanArgTable ) ] ),
-					stop_on_option_error( Msg, 23 )
-
-			end;
-
-		{ UnexpectedScanTreeOpts, _ScanArgTable } ->
-			ScanString = text_utils:format( "unexpected scan tree options: ~p",
-											[ UnexpectedScanTreeOpts ] ),
-			stop_on_option_error( ScanString, 24 )
+		{ UnexpectedEqualizeOpts, _EqualizeArgTable } ->
+			stop_on_option_error( ?equalize_opt, _ExpectedC=2,
+								  UnexpectedEqualizeOpts, 56 )
 
 	end.
 
@@ -464,57 +481,63 @@ handle_non_reference_option( ArgumentTable, BinBaseDir ) ->
 
 handle_neither_scan_options( ArgTable, BinBaseDir ) ->
 
-	% Not a scan or rescan, then either a resync or a uniquify?
+	% Not a scan or rescan, then a resync, a uniquify or a check-against?
 
-	case list_table:extract_entry_with_defaults( '-resync', undefined,
+	case list_table:extract_entry_with_defaults( ?resync_opt, undefined,
 												 ArgTable ) of
 
 		{ undefined, NoResyncArgTable } ->
 
-			case list_table:extract_entry_with_defaults( '-uniquify', undefined,
-														 NoResyncArgTable ) of
+			case list_table:extract_entry_with_defaults( ?uniquify_opt,
+											undefined, NoResyncArgTable ) of
 
 				{ undefined, NoUniqArgTable } ->
 
-					AddedString = case list_table:is_empty( NoUniqArgTable ) of
+					case list_table:extract_entry_with_defaults(
+							?check_opt, undefined, NoUniqArgTable ) of
 
-						true ->
-							" (no command-line option specified)";
+						{ [ [ TreePath, MergeFilePath ] ], CheckArgTable }
+						  when is_list( TreePath )
+							   andalso is_list( MergeFilePath ) ->
+							handle_check_against_option( TreePath,
+								MergeFilePath, CheckArgTable, BinBaseDir );
 
-						false ->
-							"; instead: " ++
-							shell_utils:argument_table_to_string(
-								NoUniqArgTable )
 
-					end,
+						{ undefined, NoCheckArgTable } ->
 
-					Msg = text_utils:format( "no sensible operation "
-						"specified~ts", [ AddedString ] ),
+							AddedString = case
+									list_table:is_empty( NoCheckArgTable ) of
 
-					stop_on_option_error( Msg, 20 );
+								true ->
+									" (no command-line option specified)";
 
-				{ [ [] ], _NoUniqArgTable } ->
-					stop_on_option_error( "no parameter specified for the "
-						"--uniquify option", 21 );
+								false ->
+									"; instead " ++
+						  shell_utils:argument_table_to_string( NoUniqArgTable )
+
+							end,
+
+							Msg = text_utils:format( "no sensible operation "
+								"specified~ts", [ AddedString ] ),
+
+							display_error_and_stop( Msg, 57 );
+
+						{ UnexpectedCheckOpts, _CheckArgTable } ->
+							stop_on_option_error( ?check_opt, _ExpectedCount=2,
+												  UnexpectedCheckOpts, 58 )
+
+					end;
 
 				{ [ [ UniqTreePath ] ], NoUniqArgTable }
 				  when is_list( UniqTreePath ) ->
 					handle_uniquify_option( UniqTreePath, NoUniqArgTable,
 											BinBaseDir );
 
-
 				{ UnexpectedUniqTreeOpts, _NoUniqArgTable } ->
-					UniqString = text_utils:format(
-						"unexpected uniquify tree options: ~p",
-						[ UnexpectedUniqTreeOpts ] ),
-
-					stop_on_option_error( UniqString, 22 )
+					stop_on_option_error( ?uniquify_opt, _Expected=1,
+										  UnexpectedUniqTreeOpts, 59 )
 
 			end;
-
-		{ [ [] ], _NoResyncArgTable } ->
-			stop_on_option_error( "no parameter specified for the "
-				"--resync option", 23 );
 
 		{ [ [ ResyncTreePath ] ], NoResyncArgTable }
 		  when is_list( ResyncTreePath ) ->
@@ -522,14 +545,80 @@ handle_neither_scan_options( ArgTable, BinBaseDir ) ->
 									  BinBaseDir );
 
 		{ UnexpectedResyncTreeOpts, _NoResyncArgTable } ->
-
-			ResyncString = text_utils:format(
-				"unexpected resync tree options: ~p",
-				[ UnexpectedResyncTreeOpts ] ),
-
-			stop_on_option_error( ResyncString, 24 )
+			stop_on_option_error( ?resync_opt, _ExpectedC=1,
+								  UnexpectedResyncTreeOpts, 60 )
 
 	end.
+
+
+
+handle_equalize_option( FirstTreePath, SecondTreePath, EqualizeArgTable,
+						BinBaseDir ) ->
+
+	trace_bridge:debug_fmt( "Requested to equalize trees '~ts' and '~ts'.",
+							[ FirstTreePath, SecondTreePath ] ),
+
+	BinFirstTreePath = text_utils:ensure_binary( FirstTreePath ),
+
+	BinAbsFirstTreePath = file_utils:ensure_path_is_absolute( BinFirstTreePath,
+															  BinBaseDir ),
+
+	BinSecondTreePath = text_utils:ensure_binary( SecondTreePath ),
+
+	BinAbsSecondTreePath = file_utils:ensure_path_is_absolute(
+								BinSecondTreePath, BinBaseDir ),
+
+	% Prepare for various outputs:
+	UserState = start_user_service( ?default_log_filename ),
+
+	check_no_option_remains( EqualizeArgTable ),
+
+	% To avoid the mirroring of a tree in itself:
+	case BinAbsFirstTreePath of
+
+		BinAbsSecondTreePath ->
+			ui:display_error( "The same tree ('~ts') is specified for both "
+				"trees to equalize.", [ BinAbsFirstTreePath ] ),
+			throw( { equalize_on_same_directory, BinAbsFirstTreePath } );
+
+		_ ->
+			ok
+
+	end,
+
+	trace_debug( "Equalizing trees '~ts' and '~ts'...",
+				 [ BinAbsFirstTreePath, BinAbsSecondTreePath ], UserState ),
+
+
+	AnalyzerRing = create_analyzer_ring( UserState ),
+
+	ui:set_settings( [ { backtitle, "Equalizing trees" },
+					   { title, "Updating first tree..." } ] ),
+
+	FirstTree = update_content_tree( BinAbsFirstTreePath, AnalyzerRing,
+									 UserState ),
+
+	ui:set_setting( title, "Updating second tree..." ),
+
+	SecondTree = update_content_tree( BinAbsSecondTreePath, AnalyzerRing,
+									  UserState ),
+
+	ui:set_setting( title, "Equalizing in progress..." ),
+
+	{ FirstTreeData, SecondTreeData } =
+		equalize( FirstTree, SecondTree, UserState ),
+
+	ui:set_setting( title, "Equalize report" ),
+
+	% Should be the same:
+	display_tree_data( FirstTreeData, "Resulting equalized tree", UserState ),
+
+	write_cache_file( FirstTreeData, UserState ),
+	write_cache_file( SecondTreeData, UserState ),
+
+	terminate_analyzer_ring( AnalyzerRing, UserState ),
+
+	stop_user_service( UserState ).
 
 
 
@@ -633,6 +722,63 @@ handle_merge_option( UserInputTreePath, UserRefTreePath, MergeArgTable,
 	merge( BinAbsInputTreePath, BinAbsRefTreePath ).
 
 
+
+handle_check_against_option( UserTreePath, UserMergeFilePath, CheckArgTable,
+							 BinBaseDir ) ->
+
+	trace_bridge:debug_fmt( "Requested to check tree '~ts' against "
+		"cache file '~ts'.", [ UserTreePath, UserMergeFilePath ] ),
+
+	BinUserTreePath = text_utils:ensure_binary( UserTreePath ),
+
+	BinAbsTreePath =
+		file_utils:ensure_path_is_absolute( BinUserTreePath, BinBaseDir ),
+
+
+	BinUserMergeFilePath = text_utils:ensure_binary( UserMergeFilePath ),
+
+	BinAbsCachePath =
+		file_utils:ensure_path_is_absolute( BinUserMergeFilePath, BinBaseDir ),
+
+	% Prepare for various outputs:
+	UserState = start_user_service( ?default_log_filename ),
+
+	check_no_option_remains( CheckArgTable ),
+
+	case file_utils:is_existing_directory_or_link( BinAbsTreePath ) of
+
+		true ->
+			ok;
+
+		false ->
+			ui:display_error( "The specified tree ('~ts') does not exist.",
+							  [ BinAbsTreePath ] ),
+			throw( { non_existing_directory_to_check, BinAbsTreePath } )
+
+	end,
+
+	case file_utils:is_existing_file_or_link( BinAbsCachePath ) of
+
+		true ->
+			ok;
+
+		false ->
+			ui:display_error( "The specified merge cache file ('~ts') does "
+							  "not exist.", [ BinAbsCachePath  ] ),
+			throw( { non_existing_merge_cache_file, BinAbsCachePath } )
+
+	end,
+
+	AnalyzerRing = create_analyzer_ring( UserState ),
+
+	check_against( BinAbsTreePath, BinAbsCachePath, AnalyzerRing, UserState ),
+
+	terminate_analyzer_ring( AnalyzerRing, UserState ),
+
+	stop_user_service( UserState ).
+
+
+
 check_no_option_remains( ArgTable ) ->
 
 	case list_table:is_empty( ArgTable ) of
@@ -643,7 +789,7 @@ check_no_option_remains( ArgTable ) ->
 		false ->
 			Msg = text_utils:format( "unexpected extra options specified: ~ts",
 				[ shell_utils:argument_table_to_string( ArgTable ) ] ),
-			stop_on_option_error( Msg, 20 )
+			display_error_and_stop( Msg, 20 )
 
 	end.
 
@@ -659,7 +805,39 @@ display_usage() ->
 % Reports an error related to command-line option, reminds the usage, and stops
 % (on error).
 %
-stop_on_option_error( Message, ErrorCode ) ->
+-spec stop_on_option_error( command_line_option(), count(),
+					[ command_line_value() ], status_code() ) -> no_return().
+stop_on_option_error( Option, ExpectedParamCount, Params, ErrorCode ) ->
+
+	% Parameters are lists of strings:
+	Message = case list_utils:flatten_once( Params ) of
+
+		[] ->
+			text_utils:format( "no parameter specified for the '-~ts' option, "
+							   "whereas expecting ~B of them",
+							   [ Option, ExpectedParamCount ] );
+
+		[ Param ] ->
+			text_utils:format( "a single parameter specified for "
+				"the '~ts' option, '~ts', whereas expecting ~B of them",
+				[ Option, Param, ExpectedParamCount ] );
+
+		ParamList ->
+			text_utils:format( "~B parameters specified for the '~ts' "
+				"option (~ts), whereas expecting exactly ~B of them",
+				[ length( ParamList), Option,
+				  text_utils:strings_to_listed_string(
+					text_utils:double_quote_strings( ParamList ) ),
+				  ExpectedParamCount ] )
+
+	end,
+
+	display_error_and_stop( Message, ErrorCode ).
+
+
+
+-spec display_error_and_stop( ustring(), status_code() ) -> no_return().
+display_error_and_stop( Message, ErrorCode ) ->
 	ui:display_error( "Error, ~ts.~n~n~ts", [ Message, get_usage() ] ),
 	stop( ErrorCode ).
 
@@ -673,7 +851,6 @@ stop( StatusCode ) ->
 	%trace_utils:debug( "Direct stop." ),
 	ui:stop(),
 	basic_utils:stop( StatusCode ).
-
 
 
 
@@ -1427,10 +1604,9 @@ resync_files( FileSet, _Entries=[ { SHA1, FileDatas } | T ], TreeData,
 % cache filename).
 %
 check_file_datas_for_sync( _FileDatas=[], SHA1, FileSet,
-						   TreeData=#tree_data{ entries=PrevEntries,
-												file_count=PrevFileCount },
-						   _BinTreePath, NewFileDatas, ExtraNotifications,
-						   _UserState ) ->
+		TreeData=#tree_data{ entries=PrevEntries,
+							 file_count=PrevFileCount },
+		_BinTreePath, NewFileDatas, ExtraNotifications, _UserState ) ->
 
 	NewEntryCount = length( NewFileDatas ),
 
@@ -1701,9 +1877,9 @@ merge( InputTreePath, ReferenceTreePath ) ->
 % once updated.
 %
 -spec merge_trees( tree_data(), tree_data(), user_state() ) -> tree_data().
-merge_trees( InputTree=#tree_data{ root=BinInputRootDir,
+merge_trees( InputTree=#tree_data{ root=InputRootDir,
 								   entries=InputEntries },
-			 ReferenceTree=#tree_data{ root=BinReferenceRootDir,
+			 ReferenceTree=#tree_data{ root=ReferenceRootDir,
 									   entries=ReferenceEntries },
 			 UserState ) ->
 
@@ -1714,7 +1890,7 @@ merge_trees( InputTree=#tree_data{ root=BinInputRootDir,
 	LackingInRefSet = set_utils:difference( InputSHA1Set, ReferenceSHA1Set ),
 
 	ui:set_setting( backtitle,
-			text_utils:format( "Merging in ~ts...", [ BinReferenceRootDir ] ) ),
+			text_utils:format( "Merging in ~ts...", [ ReferenceRootDir ] ) ),
 
 	case set_utils:size( LackingInRefSet ) of
 
@@ -1723,9 +1899,9 @@ merge_trees( InputTree=#tree_data{ root=BinInputRootDir,
 			  "strictly included into the one of the reference tree ('~ts'), "
 			  "hence nothing special is to merge, removing directly "
 			  "the input tree.",
-			  [ BinInputRootDir, BinReferenceRootDir ] ),
+			  [ InputRootDir, ReferenceRootDir ] ),
 
-			remove_tree( BinInputRootDir, UserState ),
+			remove_tree( InputRootDir, UserState ),
 
 			% File count expected to be already correct:
 			ReferenceTree;
@@ -1744,7 +1920,7 @@ merge_trees( InputTree=#tree_data{ root=BinInputRootDir,
 				set_utils:intersection( InputSHA1Set, ReferenceSHA1Set ),
 
 			case clear_input_tree( InputTree, LackingCount, ContentInBothSets,
-					BinInputRootDir, BinReferenceRootDir, UserState ) of
+					InputRootDir, ReferenceRootDir, UserState ) of
 
 				% Here no content from input tree can enrich reference one:
 				undefined ->
@@ -1752,7 +1928,7 @@ merge_trees( InputTree=#tree_data{ root=BinInputRootDir,
 
 				% Input tree has original content here:
 				ClearedInputTree ->
-					integrate_content( ClearedInputTree, ReferenceTree,
+					integrate_content_to_merge( ClearedInputTree, ReferenceTree,
 									   LackingCount, UserState )
 
 			end
@@ -1809,8 +1985,8 @@ purge_helper( _SHA1s=[ SHA1 | T ], Entries, BinRootDir, RemoveCount,
 -spec clear_input_tree( tree_data(), count(), set( sha1() ),
 			bin_directory_path(), bin_directory_path(), user_state() ) ->
 								maybe( tree_data() ).
-clear_input_tree( InputTree, LackingCount, ContentToClear, BinInputRootDir,
-				  BinReferenceRootDir, UserState ) ->
+clear_input_tree( InputTree, LackingCount, ContentToClear, InputRootDir,
+				  ReferenceRootDir, UserState ) ->
 
 	PurgedInputTree = purge_tree_from( InputTree, ContentToClear, UserState ),
 
@@ -1833,7 +2009,7 @@ clear_input_tree( InputTree, LackingCount, ContentToClear, BinInputRootDir,
 				"(this is recommended, otherwise for each of these "
 				"duplicates a single of them will have to be chosen by "
 				"the user afterwards so that it can be moved)",
-				[ LackingCount, BinInputRootDir, BinReferenceRootDir ] ),
+				[ LackingCount, InputRootDir, ReferenceRootDir ] ),
 
 			case ui:ask_yes_no( UniqPrompt, _BinaryDefault=yes ) of
 
@@ -1847,9 +2023,9 @@ clear_input_tree( InputTree, LackingCount, ContentToClear, BinInputRootDir,
 							ui:display( "After uniquification, the input tree "
 								"path ('~ts') no longer contains original "
 								"content; removing directly the input tree.",
-								[ BinInputRootDir ] ),
+								[ InputRootDir ] ),
 
-							remove_tree( BinInputRootDir, UserState ),
+							remove_tree( InputRootDir, UserState ),
 							undefined;
 
 						false ->
@@ -1873,14 +2049,13 @@ clear_input_tree( InputTree, LackingCount, ContentToClear, BinInputRootDir,
 % Integrates the content of the specified input tree into the specified
 % reference one, and returns this one.
 %
--spec integrate_content( tree_data(), tree_data(), count(), user_state() ) ->
-							   tree_data().
-integrate_content( _InputTree=#tree_data{ root=BinInputRootDir,
-										  entries=InputEntries },
-				   ReferenceTree=#tree_data{ root=BinReferenceRootDir,
+-spec integrate_content_to_merge( tree_data(), tree_data(), count(),
+								  user_state() ) -> tree_data().
+integrate_content_to_merge( _InputTree=#tree_data{ root=InputRootDir,
+												   entries=InputEntries },
+				   ReferenceTree=#tree_data{ root=ReferenceRootDir,
 											 entries=ReferenceEntries },
-				   ContentCount,
-				   UserState ) ->
+				   ContentCount, UserState ) ->
 
 	% As whole contents may have been removed (by design non-empty, and of size
 	% ContentCount):
@@ -1892,12 +2067,12 @@ integrate_content( _InputTree=#tree_data{ root=BinInputRootDir,
 		1 ->
 			text_utils:format( "A single content is present in the "
 				"input tree ('~ts') but not in the reference one ('~ts').",
-				[ BinInputRootDir, BinReferenceRootDir ] );
+				[ InputRootDir, ReferenceRootDir ] );
 
 		_ ->
 			text_utils:format( "Exactly ~B contents are present in the input "
 				"tree ('~ts') but are lacking in the reference one ('~ts').",
-				[ ContentCount, BinInputRootDir, BinReferenceRootDir ] )
+				[ ContentCount, InputRootDir, ReferenceRootDir ] )
 
 	end,
 
@@ -1910,7 +2085,7 @@ integrate_content( _InputTree=#tree_data{ root=BinInputRootDir,
 				  "thus be permanently lost afterwards)" },
 				{ abort, "Abort merge" } ],
 
-	BinTargetDir = file_utils:bin_join( BinReferenceRootDir, ?merge_dir ),
+	BinTargetDir = file_utils:bin_join( ReferenceRootDir, ?integrate_dir ),
 
 	NewReferenceEntries = case ui:choose_designated_item(
 			text_utils:format( "~ts~n~nChoices are:", [ Prompt ] ), Choices ) of
@@ -1922,27 +2097,27 @@ integrate_content( _InputTree=#tree_data{ root=BinInputRootDir,
 			% and thus the unique remaining version will be moved; otherwise it
 			% will have to be selected by the user:
 			%
-			move_content_to_integrate( ToIntegrate, BinInputRootDir,
-				InputEntries, BinReferenceRootDir, ReferenceEntries,
-				BinTargetDir, _TotalCount=ContentCount, UserState );
+			move_content_to_integrate( ToIntegrate, InputRootDir,
+				InputEntries, ReferenceRootDir, ReferenceEntries,
+				BinTargetDir, ContentCount, UserState );
 
 		cherry_pick ->
 			file_utils:create_directory_if_not_existing( BinTargetDir ),
-			cherry_pick_content_to_merge( ToIntegrate, BinInputRootDir,
-				InputEntries, BinReferenceRootDir,
-				ReferenceEntries, BinTargetDir, UserState );
+			cherry_pick_content_to_merge( ToIntegrate, InputRootDir,
+				InputEntries, ReferenceRootDir, ReferenceEntries,
+				?integrate_dir, UserState );
 
 		delete ->
 			% Might happen, typically for empty files:
 			% (possibly one content, multiple elements)
 			DelPrompt = text_utils:format( "Really delete the ~B "
 						"unique content element(s) found in the input tree "
-						"('~ts')?", [ ContentCount, BinInputRootDir ] ),
+						"('~ts')?", [ ContentCount, InputRootDir ] ),
 
 			case ui:ask_yes_no( DelPrompt ) of
 
 				yes ->
-					delete_content_to_merge( ToIntegrate, BinInputRootDir,
+					delete_content_to_merge( ToIntegrate, InputRootDir,
 											 InputEntries, UserState );
 
 				no ->
@@ -1962,6 +2137,72 @@ integrate_content( _InputTree=#tree_data{ root=BinInputRootDir,
 
 	ReferenceTree#tree_data{ entries=NewReferenceEntries,
 							 file_count=FileCount }.
+
+
+
+% Copies the content, specified through its SHA1, from the source tree to the
+% target one, and returns a corresponding updated version of this target tree.
+%
+-spec copy_content( [ sha1() ], bin_directory_path(), sha1_table(), tree_data(),
+					user_state() ) -> tree_data().
+copy_content( SHA1sToCopy, SourceRootDir, SourceEntries,
+			  TargetTree=#tree_data{ root=TargetRootDir }, UserState ) ->
+
+	ContentCount = length( SHA1sToCopy ),
+
+	trace_debug( case ContentCount of
+
+		1 ->
+			text_utils:format( "A single content is to copy from the "
+				"'~ts' tree to the '~ts' one.",
+				[ SourceRootDir, TargetRootDir ] );
+
+		_ ->
+			text_utils:format( "Exactly ~B contents are to copy from the "
+				"'~ts' source tree to the '~ts' target tree.",
+				[ ContentCount, SourceRootDir, TargetRootDir ] )
+
+	end, UserState ),
+
+	% Returns an updated TargetTree:
+	copy_content_helper( SHA1sToCopy, SourceRootDir, SourceEntries,
+						 TargetTree, UserState ).
+
+
+
+% (helper)
+copy_content_helper( _SHA1sToCopy=[], _SourceRootDir, _SourceEntries,
+					 TargetTree, _UserState ) ->
+	TargetTree;
+
+copy_content_helper( _SHA1sToCopy=[ SHA1 | T ], SourceRootDir,
+		SourceEntries,
+		TargetTree=#tree_data{ root=TargetRootDir,
+							   entries=TargetEntries,
+							   file_count=FileCount }, UserState ) ->
+
+	% Selects a suitable target filename, first found one is good:
+	[ SourceFileData | _ ] = table:get_value( SHA1, SourceEntries ),
+	SourceFilePath = SourceFileData#file_data.path,
+
+	{ ActualAbsTargetPath, ActualTargetPath } = safe_copy( SourceRootDir,
+		SourceFilePath, TargetRootDir, UserState ),
+
+	TargetTimestamp =
+		file_utils:get_last_modification_time( ActualAbsTargetPath ),
+
+	% Other fields are exactly the same:
+	NewTargetFileData = SourceFileData#file_data{ path=ActualTargetPath,
+												  timestamp=TargetTimestamp },
+
+	NewTargetEntries = table:add_new_entry( SHA1, NewTargetFileData,
+											TargetEntries ),
+
+	NewTargetTree = TargetTree#tree_data{ entries=NewTargetEntries,
+										  file_count=FileCount+1 },
+
+	copy_content_helper( T, SourceRootDir, SourceEntries, NewTargetTree,
+						 UserState ).
 
 
 
@@ -2092,6 +2333,110 @@ move_content_to_integrate( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 		UserState ).
 
 
+% Equalizes specified trees.
+-spec equalize( tree_data(), tree_data(), user_state() ) ->
+						{ tree_data(), tree_data() }.
+equalize( FirstTreeData=#tree_data{ root=FirstRootPath,
+									entries=FirstEntryTable },
+		  SecondTreeData=#tree_data{ root=SecondRootPath,
+									 entries=SecondEntryTable }, UserState ) ->
+
+	IsFirstUniquified = is_uniquified( FirstTreeData ),
+	IsSecondUniquified = is_uniquified( SecondTreeData ),
+
+	FirstSHA1s = table:keys( FirstEntryTable ),
+	SecondSHA1s = table:keys( SecondEntryTable ),
+
+	case list_utils:differences( FirstSHA1s, SecondSHA1s ) of
+
+		{ _OnlyInFirstSHA1=[], _OnlyInSecondSHA1=[] } ->
+
+			ui:display( "Both trees have exactly the same ~ts (and ~ts).",
+				[ count_content( FirstSHA1s ),
+				  interpret_uniqueness( IsFirstUniquified, IsSecondUniquified,
+										FirstRootPath, SecondRootPath ) ] ),
+
+			{ FirstTreeData, SecondTreeData };
+
+
+		{ OnlyInFirstSHA1, _OnlyInSecondSHA1=[] } ->
+
+			ui:display( "The first tree ('~ts') has ~ts that the second "
+				"has not (and ~ts).",
+				[ FirstRootPath, count_content( OnlyInFirstSHA1 ),
+				  uniquified_to_string( IsFirstUniquified ) ] ),
+
+			NewSecondTreeData = copy_content( OnlyInFirstSHA1, FirstRootPath,
+				FirstEntryTable, SecondTreeData, UserState ),
+
+			{ FirstTreeData, NewSecondTreeData };
+
+
+		{ _OnlyInFirstSHA1=[], OnlyInSecondSHA1 } ->
+
+			ui:display( "The second tree ('~ts') has ~ts that the first "
+				"has not (and ~ts).",
+				[ SecondRootPath, count_content( OnlyInSecondSHA1 ),
+				  uniquified_to_string( IsSecondUniquified ) ] ),
+
+			NewFirstTreeData = copy_content( OnlyInSecondSHA1, SecondRootPath,
+				SecondEntryTable, FirstTreeData, UserState ),
+
+			{ NewFirstTreeData, SecondTreeData };
+
+
+		{ OnlyInFirstSHA1, OnlyInSecondSHA1 } ->
+
+			ui:display( "First tree has ~ts that the second has not, "
+				"and the second has ~ts that the first has not (and ~ts).",
+				[ count_content( OnlyInFirstSHA1 ),
+				  count_content( OnlyInSecondSHA1 ),
+				  interpret_uniqueness( IsFirstUniquified,
+					IsSecondUniquified, FirstRootPath, SecondRootPath ) ] ),
+
+			NewFirstTreeData = copy_content( OnlyInSecondSHA1, SecondRootPath,
+				SecondEntryTable, FirstTreeData, UserState ),
+
+			NewSecondTreeData = copy_content( OnlyInFirstSHA1, FirstRootPath,
+				NewFirstTreeData#tree_data.entries, SecondTreeData, UserState ),
+
+			{ NewFirstTreeData, NewSecondTreeData }
+
+	end.
+
+
+
+-spec interpret_uniqueness( boolean(), boolean(), bin_directory_path(),
+							bin_directory_path() ) -> ustring().
+interpret_uniqueness( _IsFirstUniquified=true, _IsSecondUniquified=true,
+					  _FirstRootPath, _SecondRootPath ) ->
+	"are uniquified";
+
+interpret_uniqueness( _IsFirstUniquified=true, _IsSecondUniquified=false,
+					  FirstRootPath, _SecondRootPath ) ->
+	text_utils:format( "only the first, '~ts', is uniquified",
+					   [ FirstRootPath ] );
+
+interpret_uniqueness( _IsFirstUniquified=false, _IsSecondUniquified=true,
+					  _FirstRootPath, SecondRootPath ) ->
+	text_utils:format( "only the second, '~ts', is uniquified",
+					   [ SecondRootPath ] );
+
+interpret_uniqueness( _IsFirstUniquified=false, _IsSecondUniquified=false,
+					  _FirstRootPath, _SecondRootPath ) ->
+	"none is uniquified".
+
+
+
+% Merges the (supposedly more up-to-date) input tree into the target, reference
+% one (both supposed to be absolute).
+%
+-spec check_against( bin_directory_path(), bin_file_path(), analyzer_ring(),
+					 user_state() ) -> void().
+check_against( _InputTreePath, _ReferenceTreePath, _AnalyzerRing,
+			   _UserState ) ->
+	exit( 0 ).
+
 
 % Preserves symlinks by moving them from input root directory to target
 % directory.
@@ -2207,36 +2552,38 @@ smart_move_to( SourceDir, SourceRelPath, TargetRootDir, UserState ) ->
 % Selects which of the specified elements among the input entries shall be
 % merged in the reference content, and how.
 %
--spec cherry_pick_content_to_merge( [ sha1() ], directory_path(), sha1_table(),
-			directory_path(), sha1_table(), directory_path(), user_state() ) ->
-											sha1_table().
-cherry_pick_content_to_merge( ToPick, InputRootDir, InputEntries,
-				  ReferenceRootDir, ReferenceEntries, TargetDir, UserState ) ->
+% Returns the updated reference entries.
+%
+-spec cherry_pick_content_to_merge( [ sha1() ], bin_directory_path(),
+	sha1_table(), bin_directory_path(), sha1_table(), bin_directory_path(),
+	user_state() ) -> sha1_table().
+cherry_pick_content_to_merge( SHA1sToPick, InputRootDir, InputEntries,
+		ReferenceRootDir, ReferenceEntries, RelTargetDir, UserState ) ->
 
-	TotalContentCount = length( ToPick ),
+	TotalContentCount = length( SHA1sToPick ),
 
 	PickChoices = [ { move, text_utils:format( "Move this content "
 								"in reference tree (in its '~ts' directory)",
-								[ ?merge_dir ] ) },
+								[ RelTargetDir ] ) },
 					{ delete, "Delete this content" },
 					{ abort, "Abort merge" } ],
 
-	cherry_pick_files( ToPick, InputRootDir, InputEntries, ReferenceRootDir,
-		ReferenceEntries, TargetDir, PickChoices, _Count=1, TotalContentCount,
-		UserState ).
+	cherry_pick_files_to_merge( SHA1sToPick, InputRootDir, InputEntries,
+		ReferenceRootDir, ReferenceEntries, RelTargetDir, PickChoices,
+		_Count=1, TotalContentCount, UserState ).
 
 
 
 % Allows the user to cherry-pick the files that shall be copied (others being
-% removed).
+% removed; so no need to update source tree).
 %
-cherry_pick_files( _ToPick=[], InputRootDir, _InputEntries, _ReferenceRootDir,
-		ReferenceEntries, TargetDir, _PickChoices, _Count,
-		_TotalContentCount, UserState ) ->
+cherry_pick_files_to_merge( _SHA1sToPick=[], InputRootDir, _InputEntries,
+		_ReferenceRootDir, ReferenceEntries, RelTargetDir, _PickChoices,
+		_Count, _TotalContentCount, UserState ) ->
 
 	% All input files expected to have been removed.
 
-	preserve_symlinks( InputRootDir, TargetDir, UserState ),
+	preserve_symlinks( InputRootDir, RelTargetDir, UserState ),
 
 	% Input tree shall be now void of content and thus can be removed as such:
 	remove_file( get_cache_path_for( InputRootDir ), UserState ),
@@ -2245,38 +2592,46 @@ cherry_pick_files( _ToPick=[], InputRootDir, _InputEntries, _ReferenceRootDir,
 	ReferenceEntries;
 
 
-cherry_pick_files( ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
-		ReferenceRootDir, ReferenceEntries, TargetDir, PickChoices,
-		Count, TotalContentCount, UserState ) ->
+cherry_pick_files_to_merge( _SHA1sToPick=[ SHA1 | T ], InputRootDir,
+		InputEntries, ReferenceRootDir, ReferenceEntries, RelTargetDir,
+		PickChoices, Count, TotalContentCount, UserState ) ->
 
 	% In all cases all files for this SHA1 shall be removed from input tree:
 
 	ui:set_setting( title, text_utils:format( "Cherry-picking content ~B/~B",
-											[ Count, TotalContentCount ] ) ),
+											  [ Count, TotalContentCount ] ) ),
 
 	NewReferenceEntries = case table:get_value( SHA1, InputEntries ) of
 
 		[ SingleFileData=#file_data{ path=ContentPath } ] ->
-			FullContentPath = file_utils:bin_join( InputRootDir, ContentPath ),
+
+			BinFullContentPath =
+				file_utils:bin_join( InputRootDir, ContentPath ),
+
 			Prompt = text_utils:format( "Regarding the input content (solely) "
-				"in the content tree '~ts', shall we:", [ FullContentPath ] ),
+				"in the content tree '~ts', shall we:",
+				[ BinFullContentPath ] ),
 
 			case ui:choose_designated_item_with_default( Prompt, PickChoices,
 					_DefaultChoiceDesignator=move ) of
 
 				move ->
-					Target = file_utils:bin_join( TargetDir, ContentPath ),
-					safe_move( FullContentPath, Target, UserState ),
+					{ MovedAbsRelPath, MovedRelPath } = safe_move(
+						InputRootDir, ContentPath,
+						ReferenceRootDir, RelTargetDir, UserState ),
 
-					% Relative to reference directory:
-					MoveRelPath =
-						file_utils:bin_join( ?merge_dir, ContentPath ),
+					NewTimestamp = file_utils:get_last_modification_time(
+										MovedAbsRelPath ),
 
-					table:add_new_entry( SHA1, [ SingleFileData#file_data{
-								path=MoveRelPath } ], ReferenceEntries );
+					NewFileData = SingleFileData#file_data{
+									path=MovedRelPath,
+									timestamp=NewTimestamp },
+
+					table:add_new_entry( SHA1, [ NewFileData ],
+										 ReferenceEntries );
 
 				delete ->
-					safe_delete( FullContentPath, UserState ),
+					safe_delete( BinFullContentPath, UserState ),
 
 					% Thus unchanged:
 					ReferenceEntries;
@@ -2308,7 +2663,7 @@ cherry_pick_files( ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 					_DefaultChoiceDesignator=move ) of
 
 				move ->
-					SelectPrompt = "Select the (single) input file that "
+					SelectPrompt = "Select the (single) input filename that "
 					  "shall be moved in the reference tree (the other "
 					  "input files with the same content being then removed):",
 
@@ -2334,31 +2689,34 @@ cherry_pick_files( ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 						  text_utils:binaries_to_string( ToRemovePaths ) ],
 						UserState ),
 
-					Source = file_utils:bin_join( InputRootDir, MovedFilePath ),
-					Target = file_utils:bin_join( TargetDir, MovedFilePath ),
-					safe_move( Source, Target, UserState ),
+					{ MovedAbsRelPath, MovedRelPath } = safe_move(
+						InputRootDir, MovedFilePath,
+						ReferenceRootDir, RelTargetDir, UserState ),
 
 					ToRemoveFullPaths = [ file_utils:bin_join( InputRootDir, P )
 											|| P <- ToRemovePaths ],
 
 					remove_files( ToRemoveFullPaths, UserState ),
 
-					% Relative to reference directory:
-					MoveRelPath =
-						file_utils:bin_join( ?merge_dir, MovedFilePath ),
+					NewTimestamp = file_utils:get_last_modification_time(
+										MovedAbsRelPath ),
 
-					% Any would do, head exists by design:
+					% Any will do:
 					FileData = hd( MultipleFileData ),
-					table:add_new_entry( SHA1,
-						[ FileData#file_data{ path=MoveRelPath } ],
-						ReferenceEntries );
+
+					NewFileData = FileData#file_data{ path=MovedRelPath,
+													  timestamp=NewTimestamp },
+
+					table:add_new_entry( SHA1, [ NewFileData ],
+										 ReferenceEntries );
 
 				delete ->
 
 					DelPrompt = text_utils:format( "Really delete following "
 						"files from input directory '~ts', losing their "
-						"(unique) corresponding content? ~ts", [ InputRootDir,
-							text_utils:binaries_to_string( ContentPaths ) ] ),
+						"(unique) corresponding content? ~ts",
+						[ InputRootDir,
+						  text_utils:binaries_to_string( ContentPaths ) ] ),
 
 					case ui:ask_yes_no( DelPrompt ) of
 
@@ -2371,10 +2729,10 @@ cherry_pick_files( ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 
 						no ->
 							% Going back to the beginning of this step:
-							cherry_pick_files( ToPick, InputRootDir,
+							cherry_pick_files_to_merge( SHA1, InputRootDir,
 								InputEntries, ReferenceRootDir,
-								ReferenceEntries, TargetDir, PickChoices, Count,
-								TotalContentCount, UserState )
+								ReferenceEntries, RelTargetDir, PickChoices,
+								Count, TotalContentCount, UserState )
 
 					end,
 					ReferenceEntries;
@@ -2389,9 +2747,10 @@ cherry_pick_files( ToPick=[ SHA1 | T ], InputRootDir, InputEntries,
 
 	end,
 
-	cherry_pick_files( T, InputRootDir, InputEntries,
-		ReferenceRootDir, NewReferenceEntries, TargetDir, PickChoices, Count+1,
-		TotalContentCount, UserState ).
+	cherry_pick_files_to_merge( T, InputRootDir, InputEntries,
+		ReferenceRootDir, NewReferenceEntries, RelTargetDir, PickChoices,
+		Count+1, TotalContentCount, UserState ).
+
 
 
 
@@ -2442,33 +2801,112 @@ delete_content_to_merge( SHA1sToDelete, InputRootDir, InputEntries,
 
 
 
-% Moves "safely" specified file.
--spec safe_move( file_path(), file_path(), user_state() ) -> void().
-safe_move( SourceFilePath, TargetFilePath, UserState ) ->
+% Moves "safely" specified file, from path RelFilePath relative to
+% SourceRootDir to the same RelFilePath path but this time relatively to
+% RelTargetDir, itself relative to TargetRootDir, by ensuring (through any
+% renaming needed) that no clash happens at target.
+%
+% Returns the path to which the file was moved, twice: as a pair made of an
+% absolute path and a relative one to TargetRootDir.
+%
+-spec safe_move( bin_directory_path(), bin_file_path(),
+			bin_directory_path(), file_path(), user_state() ) ->
+						{ bin_file_path(), bin_file_path() }.
+safe_move( SourceRootDir, RelSourcePath, TargetRootDir, RelTargetDir,
+		   UserState ) ->
 
-	AckTargetPath = case file_utils:exists( TargetFilePath ) of
+	AbsSourcePath = file_utils:bin_join( SourceRootDir, RelSourcePath ),
+
+	RelTargetPath = file_utils:bin_join( RelTargetDir, RelSourcePath ),
+
+	AbsTargetPath = file_utils:bin_join( TargetRootDir, RelTargetPath ),
+
+	{ AckAbsTargetPath, AckRelTargetPath } =
+			case file_utils:exists( AbsTargetPath ) of
 
 		true ->
-			FixTargetPath =
-				file_utils:get_non_clashing_entry_name_from( TargetFilePath ),
+			FixedAbsTargetPath =
+				file_utils:get_non_clashing_entry_name_from( AbsTargetPath ),
+
 			ui:display_warning(
 			  "File '~ts', due to a clash, had to be moved to '~ts'.",
-			  [ SourceFilePath, FixTargetPath ] ),
-			FixTargetPath;
+			  [ AbsSourcePath, FixedAbsTargetPath ] ),
+
+			% Nothing simpler than:
+			FixedRelTargetPath = file_utils:make_relative( FixedAbsTargetPath,
+											_RefDir=TargetRootDir ),
+
+			{ FixedAbsTargetPath, FixedRelTargetPath };
 
 		false ->
-			TargetFilePath
+			{ AbsTargetPath, RelTargetPath }
 
 	end,
 
 	% Ensures subdirectories exist in the target tree:
-	file_utils:create_directory( file_utils:get_base_path( AckTargetPath ),
+	file_utils:create_directory( file_utils:get_base_path( AckAbsTargetPath ),
 								 create_parents ),
 
 	trace_debug( "Moving file '~ts' to '~ts'.",
-				 [ SourceFilePath, AckTargetPath ], UserState ),
+				 [ AbsSourcePath, AckAbsTargetPath ], UserState ),
 
-	file_utils:move_file( SourceFilePath, AckTargetPath ).
+	file_utils:move_file( AbsSourcePath, AckAbsTargetPath ),
+
+	AckRelTargetPath.
+
+
+
+% Copies "safely" specified file, from path RelFilePath relative to
+% SourceRootDir to the same RelFilePath path but this time relatively to
+% TargetRootDir, by ensuring (through any renaming needed) that no clash
+% happens at target.
+%
+% Returns the path to which the file was copied, twice: as a pair made of an
+% absolute path and a relative one to TargetRootDir.
+%
+-spec safe_copy( bin_directory_path(), bin_file_path(),
+				 bin_directory_path(), user_state() ) ->
+						{ bin_file_path(), bin_file_path() }.
+safe_copy( SourceRootDir, RelSourcePath, TargetRootDir, UserState ) ->
+
+	AbsSourcePath = file_utils:bin_join( SourceRootDir, RelSourcePath ),
+
+	RelTargetPath = RelSourcePath,
+
+	AbsTargetPath = file_utils:bin_join( TargetRootDir, RelTargetPath ),
+
+	P = { AckAbsTargetPath, _AckRelTargetPath } =
+			case file_utils:exists( AbsTargetPath ) of
+
+		true ->
+			FixedAbsTargetPath =
+				file_utils:get_non_clashing_entry_name_from( AbsTargetPath ),
+
+			ui:display_warning(
+			  "File '~ts', due to a clash, had to be copied to '~ts'.",
+			  [ AbsSourcePath, FixedAbsTargetPath ] ),
+
+			% Nothing simpler than:
+			FixedRelTargetPath = file_utils:make_relative( FixedAbsTargetPath,
+											_RefDir=TargetRootDir ),
+
+			{ FixedAbsTargetPath, FixedRelTargetPath };
+
+		false ->
+			{ AbsTargetPath, RelTargetPath }
+
+	end,
+
+	% Ensures subdirectories exist in the target tree:
+	file_utils:create_directory( file_utils:get_base_path( AckAbsTargetPath ),
+								 create_parents ),
+
+	trace_debug( "Copying file '~ts' to '~ts'.",
+				 [ AbsSourcePath, AckAbsTargetPath ], UserState ),
+
+	file_utils:copy_file( AbsSourcePath, AckAbsTargetPath ),
+
+	P.
 
 
 
@@ -4295,6 +4733,49 @@ read_cache_file( CacheFilename, UserState ) ->
 
 
 
+% Tells whether the specified tree is uniquified.
+-spec is_uniquified( tree_data() ) -> boolean().
+is_uniquified( #tree_data{ entries=EntryTable } ) ->
+	FileDataLists = table:values( EntryTable ),
+	is_uniquified_helper( FileDataLists ).
+
+
+% (helper)
+is_uniquified_helper( _FileDataLists=[] ) ->
+	true;
+
+is_uniquified_helper( _FileDataLists=[ [ _SingleFileData ] | T ] ) ->
+	is_uniquified_helper( T );
+
+% Meaning a list of at least two file_data:
+is_uniquified_helper( _FileDataLists ) ->
+	false.
+
+
+
+% Returns a textual description of the specified niquification status.
+-spec uniquified_to_string( boolean() ) -> ustring().
+uniquified_to_string( true ) ->
+	"is uniquified";
+
+uniquified_to_string( false ) ->
+	"is not uniquified".
+
+
+
+% Returns a textual description of the count of the specified content.
+-spec count_content( [ sha1() ] ) -> ustring().
+count_content( [] ) ->
+	"no content";
+
+count_content( [ _ ] ) ->
+	"a single content";
+
+count_content( SHA1s ) ->
+	text_utils:format( "~B contents", [ length( SHA1s ) ] ).
+
+
+
 % Removes specified file.
 -spec remove_file( bin_file_path(), user_state() ) -> void().
 remove_file( FileToRemove, UserState ) ->
@@ -4420,6 +4901,7 @@ display_tree_data( TreeData=#tree_data{ entries=EntryTable,
 
 	ui:display( String ),
 	trace_debug( String, UserState ).
+
 
 
 
