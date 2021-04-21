@@ -1344,8 +1344,8 @@ get_size( Filename ) ->
 % modified (not counting attribute or permission changes), according to the
 % filesystem.
 %
-% Said time will be expressed as an integer number of seconds since (or before)
-% Unix time epoch, which is 1970-01-01 00:00 UTC.
+% Said timestamp will be expressed as an integer number of seconds since (or
+% before) Unix time epoch, which is 1970-01-01 00:00 UTC.
 %
 -spec get_last_modification_time( any_path() ) -> time_utils:posix_seconds().
 get_last_modification_time( Filename ) ->
@@ -2943,19 +2943,19 @@ remove_directory( DirectoryName ) ->
 % see copy_file_in/2 for that), overwriting any previous file.
 %
 % Note: content is copied and permissions are preserved (ex: the copy of an
-% executable file will be itself executable, other permissions as well, unlike
-% /bin/cp which relies on umask).
+% executable file will be itself executable, and other permissions as well,
+% unlike /bin/cp that relies on umask).
 %
--spec copy_file( file_name(), file_name() ) -> void().
-copy_file( SourceFilename, DestinationFilename ) ->
+-spec copy_file( any_file_path(), any_file_path() ) -> void().
+copy_file( SourceFilePath, DestinationFilePath ) ->
 
-	case try_copy_file( SourceFilename, DestinationFilename ) of
+	case try_copy_file( SourceFilePath, DestinationFilePath ) of
 
 		ok ->
 			ok;
 
 		{ error, Reason } ->
-			throw( { copy_file_failed, SourceFilename, DestinationFilename,
+			throw( { copy_file_failed, SourceFilePath, DestinationFilePath,
 					 Reason } )
 
 	end.
@@ -2966,11 +2966,12 @@ copy_file( SourceFilename, DestinationFilename ) ->
 % see copy_file_in/2 for that), overwriting any previous file.
 %
 % Note: content is copied and permissions are preserved (ex: the copy of an
-% executable file will be itself executable, other permissions as well, unlike
-% /bin/cp that relies on umask).
+% executable file will be itself executable, and other permissions as well,
+% unlike /bin/cp that relies on umask).
 %
--spec try_copy_file( file_name(), file_name() ) -> basic_utils:base_status().
-try_copy_file( SourceFilename, DestinationFilename ) ->
+-spec try_copy_file( any_file_path(), any_file_path() ) ->
+							basic_utils:base_status().
+try_copy_file( SourceFilePath, DestinationFilePath ) ->
 
 	% First, checks the source file exists and retrieves its meta-information:
 	%
@@ -2978,15 +2979,15 @@ try_copy_file( SourceFilename, DestinationFilename ) ->
 	% themselves rather than to the element they point to; otherwise a broken
 	% link would trigger 'enoent')
 	%
-	case file:read_link_info( SourceFilename ) of
+	case file:read_link_info( SourceFilePath ) of
 
 		{ ok, #file_info{ mode=Mode } } ->
 
-			case file:copy( SourceFilename, DestinationFilename ) of
+			case file:copy( SourceFilePath, DestinationFilePath ) of
 
 				{ ok, _ByteCount } ->
 					% Now sets the permissions of the copy:
-					case file:change_mode( DestinationFilename, Mode ) of
+					case file:change_mode( DestinationFilePath, Mode ) of
 
 						ok ->
 							ok;
