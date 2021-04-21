@@ -2,7 +2,7 @@ MYRIAD_TOP = ../../..
 
 
 .PHONY: test-local test-initial-scan test-extra-scan test-rescan test-resync \
-		test-uniquify test-merge uniquify                                    \
+		test-uniquify test-merge test-equalize test-check-against uniquify   \
 		create-test-trees create-content-tree create-reference-tree          \
 		scan-test-tree clean-test-trees                                      \
 		post-test kill-epmd process-test-log reset-keyboard-mode
@@ -33,7 +33,7 @@ UI_BACKEND := term_ui
 
 all:
 
-test-all: test-local test-uniquify test-merge
+test-all: test-local test-uniquify test-merge test-equalize test-check-against
 
 
 test-local: test-initial-scan test-extra-scan test-rescan test-resync
@@ -66,12 +66,23 @@ test-merge: pre-test create-test-trees
 	@$(MAKE) -s post-test
 
 
+test-equalize: pre-test create-test-trees
+	@$(MERGE_SCRIPT) --equalize $(TEST_CONTENT_TREE) $(TEST_REFERENCE_TREE) --use-ui-backend $(UI_BACKEND)
+
+
+test-check-against: pre-test create-test-trees
+	@$(MERGE_SCRIPT) --check-against $(TEST_CONTENT_TREE) $(TEST_REFERENCE_TREE)/.merge-tree.cache --use-ui-backend $(UI_BACKEND)
+
+
 
 # The input test tree will thus have 3 different contents in 6 regular files
 # (plus 2 symlinks).
 #
 # The reference test tree starts with 2 different contents, each with 2
 # duplicated, one of these contents being also in the input test tree.
+#
+# So first has 1 content ("Content C") that second has not, and second as 1
+# content ("Unique content") that the first has not.
 #
 create-test-trees: clean-test-trees create-content-tree create-reference-tree
 
