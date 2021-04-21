@@ -269,7 +269,7 @@ extract_element_at( _List=[ H | T ], Index, Acc ) ->
 
 % Removes the specified number first elements.
 %
-% Ex: [c, d , e  = list_utils:remove_first_elements([a, b, c, d, e], 2).
+% Ex: [c, d, e] = list_utils:remove_first_elements([a, b, c, d, e], 2).
 %
 -spec remove_first_elements( list(), count() ) -> list().
 remove_first_elements( List, _Count=0 ) ->
