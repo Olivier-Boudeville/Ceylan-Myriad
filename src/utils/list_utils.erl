@@ -97,6 +97,8 @@
 % Shorthands:
 
 -type count() :: basic_utils:count().
+
+% These indexes start at 1:
 -type positive_index() :: basic_utils:positive_index().
 
 
