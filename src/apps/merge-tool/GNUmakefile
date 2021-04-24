@@ -70,8 +70,9 @@ test-equalize: pre-test create-test-trees
 	@$(MERGE_SCRIPT) --equalize $(TEST_CONTENT_TREE) $(TEST_REFERENCE_TREE) --use-ui-backend $(UI_BACKEND)
 
 
-test-check-against: pre-test create-test-trees
-	@$(MERGE_SCRIPT) --check-against $(TEST_CONTENT_TREE) $(TEST_REFERENCE_TREE)/.merge-tree.cache --use-ui-backend $(UI_BACKEND)
+# Ensures content tree as a cache file:
+test-check-against: pre-test create-test-trees scan-test-tree
+	@$(MERGE_SCRIPT) --check-against $(TEST_REFERENCE_TREE) $(TEST_CONTENT_TREE)/.merge-tree.cache --use-ui-backend $(UI_BACKEND)
 
 
 
@@ -90,7 +91,8 @@ create-test-trees: clean-test-trees create-content-tree create-reference-tree
 # Mixing various locations, colliding filenames and content, internal and
 # external symlinks, and dead ones:
 #
-# (thus 3 different contents A, B and C; and 2+1+0=3 duplicates on 2 cases)
+# (thus 6 files with 3 different contents A, B and C; and 2+1+0=3 duplicates on
+# 2 duplication cases)
 #
 create-content-tree:
 	@echo " Creating test content tree (3 contents of its own)"
@@ -107,7 +109,8 @@ create-content-tree:
 	@tree $(TEST_CONTENT_TREE)
 
 
-# (thus 3 different contents A, B and Unique; and 1+1=2 duplicates on 2 cases)
+# (thus 3 different contents A, B and Unique; and 1+1=2 duplicates on 2
+# duplication cases)
 create-reference-tree:
 	@echo " Creating test reference tree (3 contents of its own, 1 unique)"
 	@mkdir -p $(TEST_REFERENCE_TREE)/wilbur $(TEST_REFERENCE_TREE)/kinabe
