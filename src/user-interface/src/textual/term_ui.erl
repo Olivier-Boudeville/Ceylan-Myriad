@@ -1115,6 +1115,8 @@ choose_designated_item( Prompt, Choices,
 	% <item1>...
 	%
 	% Ex: dialog --menu "Hello" 0 0 0 1 One 2 Two 3 Three
+	%
+	% (no default choice can be defined)
 
 	{ Designators, Texts } = lists:unzip( Choices ),
 
@@ -1207,8 +1209,15 @@ choose_designated_item_with_default( Choices, DefaultChoiceDesignator ) ->
 % designator and a text), with a default choix designator being specified, and
 % returns its designator.
 %
-% Note that the 'ui_cancel' designator atom can also be returned, should the
-% user prefer to cancel that operation.
+% Note that:
+%
+% - this dialog is potentially a bit misleading as, if hitting the Enter key,
+% the selected item will be the starred one, not necessarily the currently
+% selected one... (yet a menu does not support the definition of a default
+% choice)
+%
+% - the 'ui_cancel' designator atom can also be returned, should the
+% user prefer to cancel that operation
 %
 % (const)
 %
@@ -1223,11 +1232,18 @@ choose_designated_item_with_default( Prompt, Choices,
 
 % Selects, based on an explicit state, using the specified prompt, an item among
 % the specified ones (comprising, for each, a user-specified, internal,
-% designator and a text), with a default choix designator being specified, and
+% designator and a text), with a default choice designator being specified, and
 % returns its designator.
 %
-% Note that the 'ui_cancel' designator atom can also be returned, should the
-% user prefer to cancel that operation.
+% Note that:
+%
+% - this dialog is potentially a bit misleading as, if hitting the Enter key,
+% the selected item will be the starred one, not necessarily the currently
+% selected one... (yet a menu does not support the definition of a default
+% choice)
+%
+% - the 'ui_cancel' designator atom can also be returned, should the
+% user prefer to cancel that operation
 %
 % (const)
 %
