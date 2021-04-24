@@ -679,7 +679,9 @@ get_indentation_offset_for_level( N ) ->
 
 % (helper)
 %
-% Note: the caller should have already vetted the specified arguments.
+% Note:
+% - the caller should have already vetted the specified arguments
+% - binaries are welcome as well
 %
 strings_to_string_helper( _Strings=[], Acc, _Bullet ) ->
 	Acc;
@@ -716,6 +718,9 @@ strings_to_enumerated_string( Strings ) ->
 
 -spec strings_to_enumerated_string( [ ustring() ], indentation_level() ) ->
 											ustring().
+strings_to_enumerated_string( _Strings=[ Str ], _IndentationLevel ) ->
+	Str;
+
 strings_to_enumerated_string( Strings, IndentationLevel ) ->
 
 	Prefix = get_indentation_offset_for_level( IndentationLevel ),
