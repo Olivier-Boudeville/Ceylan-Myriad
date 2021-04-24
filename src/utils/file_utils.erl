@@ -90,6 +90,8 @@
 		  remove_file/1, remove_file_if_existing/1,
 		  remove_files/1, remove_files_if_existing/1,
 
+		  remove_symlink/1,
+
 		  remove_empty_directory/1, remove_empty_path/1, remove_empty_tree/1,
 		  remove_directory/1,
 
@@ -720,7 +722,7 @@ escape_path( BinPath ) ->
 	Direction = all,
 
 	DoubleQuoteEscapedBin =
-		string:replace( BinPath, _DQSearchPattern="\.", _DQReplacement="\\.",
+		string:replace( BinPath, _DQSearchPattern="\\", _DQReplacement="\\\\",
 						Direction ),
 
 	AntiSlashesEscapedBin =
@@ -732,11 +734,11 @@ escape_path( BinPath ) ->
 
 
 
-% Returns the (ordered) extension(s) of the specified filename.
+% Returns the (ordered) extension(s) of the specified file path.
 %
-% Ex: ["baz", "json"] = get_extensions("foobar.baz.json")
+% Ex: ["baz", "json"] = get_extensions("/home/joe/foobar.baz.json")
 %
--spec get_extensions( file_name() ) -> [ extension() ] | 'no_extension'.
+-spec get_extensions( file_path() ) -> [ extension() ] | 'no_extension'.
 get_extensions( Filename ) ->
 
 	case text_utils:split( Filename, _Delimiters=[ $. ] ) of
@@ -757,11 +759,11 @@ get_extensions( Filename ) ->
 
 
 
-% Returns the (last) extension of the specified filename.
+% Returns the (last) extension of the specified file path.
 %
-% Ex: "json" = get_extension( "foobar.baz.json" )
+% Ex: "json" = get_extension( "/home/joe/foobar.baz.json" )
 %
--spec get_extension( file_name() ) -> extension() | 'no_extension'.
+-spec get_extension( file_path() ) -> extension() | 'no_extension'.
 get_extension( Filename ) ->
 
 	case get_extensions( Filename ) of
@@ -776,7 +778,7 @@ get_extension( Filename ) ->
 
 
 
-% Removes the (last) extension of the specified filename.
+% Removes the (last) extension of the specified file path.
 %
 % Ex: "/home/jack/rosie.tmp" = remove_extension( "/home/jack/rosie.tmp.ttf" )
 %
@@ -800,7 +802,7 @@ remove_extension( FilePath ) ->
 
 
 
-% Returns a new filename whose extension has been updated.
+% Returns a new file path whose extension has been updated.
 %
 % Ex: replace_extension("/home/jack/rosie.ttf", ".ttf", ".wav") should return
 % "/home/jack/rosie.wav".
@@ -824,7 +826,9 @@ replace_extension( FilePath, SourceExtension, TargetExtension ) ->
 -spec exists( any_path() ) -> boolean().
 exists( EntryName ) ->
 
-	case file:read_file_info( EntryName ) of
+	% Dead symbolic links are deemed existing:
+	case file:read_link_info( EntryName ) of
+	%case file:read_file_info( EntryName ) of
 
 		{ ok, _FileInfo } ->
 			true;
@@ -838,7 +842,7 @@ exists( EntryName ) ->
 
 % Returns the type of the specified file entry.
 -spec get_type_of( any_path() ) -> entry_type().
-get_type_of( EntryName ) ->
+get_type_of( Path ) ->
 
 	% We used to rely on file:read_file_info/1, but an existing symlink pointing
 	% to a non-existing entry was triggering the enoent error, while we just
@@ -847,17 +851,17 @@ get_type_of( EntryName ) ->
 	% Some tools (e.g. emacs) used thus to get in the way, as apparently they
 	% create dead symlinks on purpose, to store information.
 
-	case file:read_link_info( EntryName ) of
+	case file:read_link_info( Path ) of
 
 		{ ok, #file_info{ type=FileType } } ->
 			FileType;
 
 		{ error, eloop } ->
 			% Probably a recursive symlink:
-			throw( { too_many_symlink_levels, EntryName } );
+			throw( { too_many_symlink_levels, Path } );
 
 		{ error, enoent } ->
-			throw( { non_existing_entry, EntryName } )
+			throw( { non_existing_entry, Path } )
 
 	end.
 
@@ -865,15 +869,15 @@ get_type_of( EntryName ) ->
 
 % Returns the user identifier (uid) of the owner of the specified file entry.
 -spec get_owner_of( any_path() ) -> system_utils:user_id().
-get_owner_of( EntryName ) ->
+get_owner_of( Path  ) ->
 
-	case file:read_file_info( EntryName ) of
+	case file:read_file_info( Path ) of
 
 		{ ok, #file_info{ uid=UID } } ->
 			UID;
 
 		{ error, Reason } ->
-			throw( { file_info_failure, Reason, EntryName } )
+			throw( { owner_inquiry_failed, Reason, Path } )
 
 	end.
 
@@ -881,15 +885,15 @@ get_owner_of( EntryName ) ->
 
 % Returns the group identifier (gid) of the group of the specified file entry.
 -spec get_group_of( any_path() ) -> system_utils:group_id().
-get_group_of( EntryName ) ->
+get_group_of( Path ) ->
 
-	case file:read_file_info( EntryName ) of
+	case file:read_file_info( Path ) of
 
 		{ ok, #file_info{ gid=GID } } ->
 			GID;
 
 		{ error, Reason } ->
-			throw( { file_info_failure, Reason, EntryName } )
+			throw( { group_inquiry_failed, Reason, Path } )
 
 	end.
 
@@ -901,9 +905,9 @@ get_group_of( EntryName ) ->
 % exception will be thrown.
 %
 -spec is_file( any_path() ) -> boolean().
-is_file( EntryName ) ->
+is_file( Path ) ->
 
-	case get_type_of( EntryName ) of
+	case get_type_of( Path ) of
 
 		regular ->
 			true ;
@@ -920,9 +924,9 @@ is_file( EntryName ) ->
 % Returns true or false, and cannot trigger an exception.
 %
 -spec is_existing_file( any_path() ) -> boolean().
-is_existing_file( EntryName ) ->
+is_existing_file( Path ) ->
 
-	case exists( EntryName ) andalso get_type_of( EntryName ) of
+	case exists( Path ) andalso get_type_of( Path ) of
 
 		regular ->
 			true ;
@@ -939,9 +943,9 @@ is_existing_file( EntryName ) ->
 % Returns true or false, and cannot trigger an exception.
 %
 -spec is_existing_link( any_path() ) -> boolean().
-is_existing_link( EntryName ) ->
+is_existing_link( Path ) ->
 
-	case exists( EntryName ) andalso get_type_of( EntryName ) of
+	case exists( Path ) andalso get_type_of( Path ) of
 
 		symlink ->
 			true ;
@@ -959,9 +963,9 @@ is_existing_link( EntryName ) ->
 % Returns true or false, and cannot trigger an exception.
 %
 -spec is_existing_file_or_link( any_path() ) -> boolean().
-is_existing_file_or_link( EntryName ) ->
+is_existing_file_or_link( Path ) ->
 
-	case exists( EntryName ) andalso get_type_of( EntryName ) of
+	case exists( Path ) andalso get_type_of( Path ) of
 
 		regular ->
 			true ;
@@ -985,9 +989,9 @@ is_existing_file_or_link( EntryName ) ->
 % See also: is_user_readable/1.
 %
 -spec is_owner_readable( any_path() ) -> boolean().
-is_owner_readable( EntryPath ) ->
+is_owner_readable( Path ) ->
 
-	case file:read_file_info( EntryPath ) of
+	case file:read_file_info( Path ) of
 
 		{ ok, FileInfo } ->
 
@@ -1032,9 +1036,9 @@ is_owner_readable( EntryPath ) ->
 % See also: is_user_writable/1.
 %
 -spec is_owner_writable( any_path() ) -> boolean().
-is_owner_writable( EntryPath ) ->
+is_owner_writable( Path ) ->
 
-	case file:read_file_info( EntryPath ) of
+	case file:read_file_info( Path ) of
 
 		{ ok, FileInfo } ->
 
@@ -1079,9 +1083,9 @@ is_owner_writable( EntryPath ) ->
 % See also: is_owner_writable/1.
 %
 -spec is_owner_executable( any_path() ) -> boolean().
-is_owner_executable( EntryPath ) ->
+is_owner_executable( Path ) ->
 
-	case file:read_file_info( EntryPath ) of
+	case file:read_file_info( Path ) of
 
 		{ ok, FileInfo } ->
 
@@ -1123,13 +1127,13 @@ is_owner_executable( EntryPath ) ->
 % Returns true or false, and cannot trigger an exception.
 %
 -spec is_user_readable( any_path() ) -> boolean().
-is_user_readable( EntryPath ) ->
+is_user_readable( Path ) ->
 
 	% Rather than using file:read_file_info/1 and having to try to fetch and
 	% filter user/group information, it is easier, maybe more efficient and
 	% reliable to try to open it for reading:
 
-	case file:open( _File=EntryPath, _Mode=[ read ] ) of
+	case file:open( _File=Path, _Mode=[ read ] ) of
 
 		{ ok, File } ->
 			file:close( File ),
@@ -1148,13 +1152,13 @@ is_user_readable( EntryPath ) ->
 % Returns true or false, and cannot trigger an exception.
 %
 -spec is_user_writable( any_path() ) -> boolean().
-is_user_writable( EntryPath ) ->
+is_user_writable( Path ) ->
 
 	% Rather than using file:read_file_info/1 and having to try to fetch and
 	% filter user/group information, it is easier, maybe more efficient and
 	% reliable to try to open it for writing:
 
-	case file:open( _File=EntryPath, _Mode=[ write ] ) of
+	case file:open( _File=Path, _Mode=[ write ] ) of
 
 		{ ok, File } ->
 			file:close( File ),
@@ -1175,21 +1179,21 @@ is_user_writable( EntryPath ) ->
 % See also: is_owner_executable/1.
 %
 -spec is_user_executable( any_path() ) -> boolean().
-is_user_executable( EntryPath ) ->
+is_user_executable( Path ) ->
 	% WARNING: not properly implemented yet.
-	is_owner_executable( EntryPath ).
+	is_owner_executable( Path ).
 
 
 
 % Returns whether the specified entry, supposedly existing, is a directory.
 %
-% If the specified entry happens not to exist, a {non_existing_entry, EntryName}
+% If the specified entry happens not to exist, a {non_existing_entry, Path}
 % exception will be thrown.
 %
 -spec is_directory( any_path() ) -> boolean().
-is_directory( EntryName ) ->
+is_directory( Path ) ->
 
-	case get_type_of( EntryName ) of
+	case get_type_of( Path ) of
 
 		directory ->
 			true ;
@@ -1206,9 +1210,9 @@ is_directory( EntryName ) ->
 % Returns true or false, and cannot trigger an exception.
 %
 -spec is_existing_directory( any_path() ) -> boolean().
-is_existing_directory( EntryName ) ->
+is_existing_directory( Path ) ->
 
-	case exists( EntryName ) andalso get_type_of( EntryName ) of
+	case exists( Path ) andalso get_type_of( Path ) of
 
 		directory ->
 			true ;
@@ -1226,9 +1230,9 @@ is_existing_directory( EntryName ) ->
 % Returns true or false, and cannot trigger an exception.
 %
 -spec is_existing_directory_or_link( any_path() ) -> boolean().
-is_existing_directory_or_link( EntryName ) ->
+is_existing_directory_or_link( Path ) ->
 
-	case exists( EntryName ) andalso get_type_of( EntryName ) of
+	case exists( Path ) andalso get_type_of( Path ) of
 
 		directory ->
 			true ;
@@ -1324,17 +1328,17 @@ list_dir_elements( DirName, ImproperEncodingAction ) ->
 
 
 
-% Returns the size, in bytes, of the specified file entry.
--spec get_size( any_file_name() ) -> system_utils:byte_size().
-get_size( Filename ) ->
+% Returns the size, in bytes, of the specified file.
+-spec get_size( any_file_path() ) -> system_utils:byte_size().
+get_size( FilePath ) ->
 
-	case file:read_file_info( Filename ) of
+	case file:read_file_info( FilePath ) of
 
 		{ ok, #file_info{ size=Size } } ->
 			Size;
 
 		{ error, Reason } ->
-			throw( { file_info_failure, Reason, Filename } )
+			throw( { size_inquiry_failed, Reason, FilePath } )
 
 	end.
 
@@ -1348,15 +1352,15 @@ get_size( Filename ) ->
 % before) Unix time epoch, which is 1970-01-01 00:00 UTC.
 %
 -spec get_last_modification_time( any_path() ) -> time_utils:posix_seconds().
-get_last_modification_time( Filename ) ->
+get_last_modification_time( Path ) ->
 
-	case file:read_file_info( Filename, [ { time, posix } ] ) of
+	case file:read_file_info( Path, [ { time, posix } ] ) of
 
 		{ ok, #file_info{ mtime=Seconds } } ->
 			Seconds;
 
 		{ error, Reason } ->
-			throw( { file_info_failure, Reason, Filename } )
+			throw( { file_info_failure, Reason, Path } )
 
 	end.
 
@@ -1372,27 +1376,27 @@ get_last_modification_time( Filename ) ->
 % See also: create_empty_file/1
 %
 -spec touch( any_path() ) -> void().
-touch( FileEntry ) ->
+touch( Path ) ->
 
-	case exists( FileEntry ) of
+	case exists( Path ) of
 
 		true ->
 			% -c: do not create any file
 			% -m: change only the modification time
 			%
 			case system_utils:run_executable( _ExecPath="/bin/touch",
-					_Args=[ "-c", "-m", FileEntry ] ) of
+					_Args=[ "-c", "-m", Path ] ) of
 
 				{ 0, _Output } ->
 					ok;
 
 				{ ErrorCode, Output } ->
-					throw( { touch_failed, Output, ErrorCode, FileEntry } )
+					throw( { touch_failed, Output, ErrorCode, Path } )
 
 			end;
 
 		false ->
-			throw( { non_existing_file_element_to_touch, FileEntry } )
+			throw( { non_existing_file_element_to_touch, Path } )
 
 	end.
 
@@ -1457,19 +1461,19 @@ get_bin_current_directory() ->
 %
 % Throws an exception on failure.
 %
--spec set_current_directory( directory_name() ) -> void().
-set_current_directory( DirName ) ->
+-spec set_current_directory( directory_path() ) -> void().
+set_current_directory( DirPath ) ->
 
 	 % For more detail of { 'error', atom() }, refer to type specifications of
 	 % erlang files: file.erl and file.hrl.
 
-	case file:set_cwd( DirName ) of
+	case file:set_cwd( DirPath ) of
 
 		ok ->
 			ok;
 
 		{ error, Error } ->
-			throw( { set_current_directory_failed, DirName, Error } )
+			throw( { set_current_directory_failed, DirPath, Error } )
 
 	end.
 
@@ -1491,7 +1495,6 @@ get_first_existing_directory_in( DirPaths ) ->
 get_first_existing_dir( _DirPaths=[], Acc ) ->
 	throw( { no_existing_directory_found_in, lists:reverse( Acc ),
 			 get_current_directory() } );
-
 
 get_first_existing_dir( _DirPaths=[ Dir | T ], Acc ) ->
 
@@ -1520,7 +1523,7 @@ classify_dir_elements( _DirName, _Elements=[], Devices, Directories, Files,
 
 classify_dir_elements( DirName, _Elements=[ Str | T ], Devices, Directories,
 					   Files, Symlinks, OtherFiles, ImproperEncodingAction )
-						   when is_list( Str ) ->
+							when is_list( Str ) ->
 
 	case get_type_of( filename:join( DirName, Str ) ) of
 
@@ -2697,18 +2700,18 @@ create_temporary_directory() ->
 % Throws an exception if any problem occurs.
 %
 -spec remove_file( any_file_path() ) -> void().
-remove_file( Filename ) ->
+remove_file( FilePath ) ->
 
-	%trace_utils:warning_fmt( "Removing file '~ts'.", [ Filename ] ),
+	%trace_utils:warning_fmt( "Removing file '~ts'.", [ FilePath ] ),
 
-	case file:delete( Filename ) of
-	%case ok of
+	case file:delete( FilePath ) of
+	% To disable side-effect: case ok of
 
 		ok ->
 			ok;
 
 		Error ->
-			throw( { remove_file_failed, Filename, Error } )
+			throw( { remove_file_failed, FilePath, Error } )
 
 	end.
 
@@ -2716,12 +2719,12 @@ remove_file( Filename ) ->
 
 % Removes (deletes) specified files, specified as a list of any kind of strings.
 -spec remove_files( [ any_file_path() ] ) -> void().
-remove_files( FilenameList ) ->
+remove_files( FilePaths ) ->
 
 	%trace_utils:warning_fmt( "Removing following files: ~ts",
-	%						 [ text_utils:strings_to_string( FilenameList ) ] ),
+	%						 [ text_utils:strings_to_string( FilePaths ) ] ),
 
-	[ remove_file( Filename ) || Filename <- FilenameList ].
+	[ remove_file( FP ) || FP <- FilePaths ].
 
 
 
@@ -2729,18 +2732,18 @@ remove_files( FilenameList ) ->
 % existing, otherwise does nothing.
 %
 -spec remove_file_if_existing( any_file_path() ) -> void().
-remove_file_if_existing( Filename ) ->
+remove_file_if_existing( FilePath ) ->
 
-	case is_existing_file( Filename ) of
+	case is_existing_file( FilePath ) of
 
 		true ->
 			%trace_bridge:debug_fmt( "Removing existing file '~ts'.",
-			%						[ Filename ] ),
-			remove_file( Filename );
+			%						[ FilePath ] ),
+			remove_file( FilePath );
 
 		false ->
 			%trace_bridge:debug_fmt( "No existing file '~ts' to remove.",
-			%						[ Filename ] ),
+			%						[ FilePath ] ),
 			ok
 
 	end.
@@ -2751,8 +2754,47 @@ remove_file_if_existing( Filename ) ->
 % is already existing.
 %
 -spec remove_files_if_existing( [ any_file_path() ] ) -> void().
-remove_files_if_existing( FilenameList ) ->
-	[ remove_file_if_existing( Filename ) || Filename <- FilenameList ].
+remove_files_if_existing( FilePaths ) ->
+	[ remove_file_if_existing( FP ) || FP <- FilePaths ].
+
+
+
+% Removes (deletes) specified symbolic link, specified as any kind
+% of string.
+%
+% Checks that the specified path designates indeed a symbolic link (dead or
+% not).
+%
+% Throws an exception if any problem occurs.
+%
+-spec remove_symlink( any_file_path() ) -> void().
+remove_symlink( SymlinkPath ) ->
+
+	%trace_utils:warning_fmt( "Removing symlink '~ts'.", [ SymlinkPath ] ),
+
+	case file:read_link_info( SymlinkPath ) of
+
+		{ ok, #file_info{ type=symlink } } ->
+			ok;
+
+		{ error, eloop } ->
+			% Probably a recursive symlink:
+			throw( { too_many_symlink_levels, SymlinkPath } );
+
+		{ error, enoent } ->
+			throw( { non_existing_entry, SymlinkPath } )
+
+	end,
+
+	case file:delete( SymlinkPath ) of
+
+		ok ->
+			ok;
+
+		Error ->
+			throw( { remove_symlink_failed, SymlinkPath, Error } )
+
+	end.
 
 
 
@@ -3013,17 +3055,17 @@ try_copy_file( SourceFilePath, DestinationFilePath ) ->
 % previous file, and returning the full path of the copied file.
 %
 % Note: content is copied and permissions are preserved (ex: the copy of an
-% executable file will be itself executable, other permissions as well, unlike
-% /bin/cp which relies on umask).
+% executable file will be itself executable, likz for the other permissions -
+% and unlike /bin/cp, which relies on umask).
 %
--spec copy_file_in( file_name(), directory_name() ) -> file_name().
-copy_file_in( SourceFilename, DestinationDirectory ) ->
+-spec copy_file_in( any_file_path(), any_directory_name() ) -> any_file_path().
+copy_file_in( SourcePath, DestinationDirectory ) ->
 
-	Filename = filename:basename( SourceFilename ),
+	Filename = filename:basename( SourcePath ),
 
-	TargetPath = join( DestinationDirectory, Filename ),
+	TargetPath = any_join( DestinationDirectory, Filename ),
 
-	copy_file( SourceFilename, TargetPath ),
+	copy_file( SourcePath, TargetPath ),
 
 	TargetPath.
 
@@ -3033,15 +3075,16 @@ copy_file_in( SourceFilename, DestinationDirectory ) ->
 % existing.
 %
 % Note: content is copied and permissions are preserved (ex: the copy of an
-% executable file will be itself executable).
+% executable file will be itself executable, likz for the other permissions -
+% and unlike /bin/cp, which relies on umask).
 %
--spec copy_file_if_existing( file_name(), file_name() ) -> void().
-copy_file_if_existing( SourceFilename, DestinationFilename ) ->
+-spec copy_file_if_existing( any_file_path(), any_file_path() ) -> void().
+copy_file_if_existing( SourceFilePath, DestinationFilePath ) ->
 
-	case is_existing_file( SourceFilename ) of
+	case is_existing_file( SourceFilePath ) of
 
 		true ->
-			copy_file( SourceFilename, DestinationFilename );
+			copy_file( SourceFilePath, DestinationFilePath );
 
 		false ->
 			ok
@@ -3051,10 +3094,10 @@ copy_file_if_existing( SourceFilename, DestinationFilename ) ->
 
 
 % Copies specified source tree in specified target directory.
--spec copy_tree( directory_path(), directory_path() ) -> void().
+-spec copy_tree( any_directory_path(), any_directory_path() ) -> void().
 copy_tree( SourceTreePath, TargetDirectory ) ->
 
-	case file_utils:is_existing_directory_or_link( SourceTreePath ) of
+	case is_existing_directory_or_link( SourceTreePath ) of
 
 		true ->
 			ok;
@@ -3064,7 +3107,7 @@ copy_tree( SourceTreePath, TargetDirectory ) ->
 
 	end,
 
-	case file_utils:is_existing_directory_or_link( TargetDirectory ) of
+	case is_existing_directory_or_link( TargetDirectory ) of
 
 		true ->
 			ok;
@@ -3089,44 +3132,50 @@ copy_tree( SourceTreePath, TargetDirectory ) ->
 	end.
 
 
+
 % Renames specified file.
 %
 % Returns, for convenience, the new name.
 %
--spec rename( file_name(), file_name() ) -> file_name().
-rename( SourceFilename, DestinationFilename ) ->
-	move_file( SourceFilename, DestinationFilename ).
+-spec rename( any_file_path(), any_file_path() ) -> any_file_path().
+rename( SourceFilePath, DestinationFilePath ) ->
+	move_file( SourceFilePath, DestinationFilePath ).
 
 
 
-% Moves specified file so that it is now designated by specified filename.
+% Moves specified file or symbolic link so that it is now designated by
+% specified path.
 %
-% Returns, for convenience, the new name.
+% Note:
+%  - no check that source is a file or symlink (ex: not a directory) is done
+%  - destination is a file path, not a directory path
 %
--spec move_file( file_name(), file_name() ) -> file_name().
-move_file( SourceFilename, DestinationFilename ) ->
+% Returns, for convenience, the new path.
+%
+-spec move_file( any_file_path(), any_file_path() ) -> any_file_path().
+move_file( SourceFilePath, DestinationFilePath ) ->
 
 	%trace_utils:warning_fmt( "## Moving file '~ts' to '~ts'.",
-	%						  [ SourceFilename, DestinationFilename ] ),
+	%						  [ SourceFilePath, DestinationFilePath ] ),
 
-	%copy_file( SourceFilename, DestinationFilename ),
-	%remove_file( SourceFilename ).
+	%copy_file( SourceFilePath, DestinationFilePath ),
+	%remove_file( SourceFilePath ).
 
 	% Simpler, better, yet does not works across filesystems:
-	case file:rename( SourceFilename, DestinationFilename ) of
+	case file:rename( SourceFilePath, DestinationFilePath ) of
 
 		ok ->
-			DestinationFilename;
+			DestinationFilePath;
 
 		{ error, exdev } ->
 			%trace_utils:info_fmt( "Moving across filesystems '~ts' to '~ts'.",
-			%					   [ SourceFilename, DestinationFilename ] ),
-			copy_file( SourceFilename, DestinationFilename ),
-			remove_file( SourceFilename );
+			%					   [ SourceFilePath, DestinationFilePath ] ),
+			copy_file( SourceFilePath, DestinationFilePath ),
+			remove_file( SourceFilePath );
 
 		Error ->
-			throw( { move_file_failed, Error, SourceFilename,
-					 DestinationFilename } )
+			throw( { move_file_failed, Error, SourceFilePath,
+					 DestinationFilePath } )
 
 	end.
 
@@ -3135,7 +3184,7 @@ move_file( SourceFilename, DestinationFilename ) ->
 % Creates a symbolic link pointing to specified target path, bearing specified
 % (link) name.
 %
--spec create_link( path(), link_name() ) -> void().
+-spec create_link( any_path(), link_name() ) -> void().
 create_link( TargetPath, LinkName ) ->
 
 	%trace_utils:debug_fmt( "Creating a link '~ts' to '~ts', while in '~ts'.",
@@ -3160,7 +3209,7 @@ create_link( TargetPath, LinkName ) ->
 % Note: of course multiple, parallel calls to this function with the same base
 % path will result in potential race conditions and risks of collisions.
 %
--spec get_non_clashing_entry_name_from( path() ) -> path().
+-spec get_non_clashing_entry_name_from( any_path() ) -> any_path().
 get_non_clashing_entry_name_from( Path ) ->
 
 	% Ex:
