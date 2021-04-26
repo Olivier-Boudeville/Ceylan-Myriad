@@ -706,31 +706,38 @@ convert_to_filename( Name ) ->
 
 
 
-% Escapes specified path so that it can safely be included as string content.
+% Escapes specified path so that it can safely be included as a seralised
+% (string) content.
 %
 % Returns the same type of string as the specified one.
 %
 -spec escape_path( any_path() ) -> any_string().
 escape_path( Path ) when is_list( Path ) ->
 	% To properly flatten:
-	text_utils:to_unicode_list(
-	  string:replace( Path, _SearchPattern="\"", _Replacement="\\\"",
-					  _Direction=all), _CanFail=true );
+	text_utils:to_unicode_list( escape_path_helper( Path ), _CanFail=true );
 
 escape_path( BinPath ) ->
+	% Not wanting for example [<<XX>>, 92, 34, <<YY>>]:
+	text_utils:to_unicode_binary( escape_path_helper( BinPath ),
+								  _CanFail=true ).
+
+
+-spec escape_path_helper( any_path() ) -> any_path().
+escape_path_helper( Path ) ->
 
 	Direction = all,
 
-	DoubleQuoteEscapedBin =
-		string:replace( BinPath, _DQSearchPattern="\\", _DQReplacement="\\\\",
-						Direction ),
+	% Order of replacements matters.
 
-	AntiSlashesEscapedBin =
-		string:replace( DoubleQuoteEscapedBin, _ASSearchPattern="\"",
-						_ASReplacement="\\\"", Direction ),
+	% Escaping first antislashes, as some filenames *might* include some of
+	% them; so:    \ -> \\
+	%
+	AntislashEscapes = string:replace( Path, _ASSearchPattern="\\",
+									   _ASReplacement="\\\\", Direction ),
 
-	% Not wanting for example [<<XX>>, 92, 34, <<YY>>]:
-	text_utils:to_unicode_binary( AntiSlashesEscapedBin, _CanFail=true ).
+	% Then do the same for double quotes; so:    " -> \"
+	string:replace( AntislashEscapes, _DQSearchPattern="\"",
+					_DQReplacement="\\\"", Direction ).
 
 
 
