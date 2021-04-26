@@ -66,7 +66,11 @@ test-merge: pre-test create-test-trees
 	@$(MAKE) -s post-test
 
 
+# Maybe a make bug: when chained after test-merge, the content tree disappears
+# yet visibly the create-test-trees target is not triggered.
+#
 test-equalize: pre-test create-test-trees
+	@$(MAKE) -s create-test-trees
 	@$(MERGE_SCRIPT) --equalize $(TEST_CONTENT_TREE) $(TEST_REFERENCE_TREE) --use-ui-backend $(UI_BACKEND)
 
 
@@ -104,6 +108,7 @@ create-content-tree:
 	@echo "Content C" > $(TEST_CONTENT_TREE)/foo/bar/c.txt
 	@echo "Content A" > $(TEST_CONTENT_TREE)/foo/baz/a.txt
 	@echo "Content B" > $(TEST_CONTENT_TREE)/foo/baz/c.txt
+	@#echo "Content Z" > $(TEST_CONTENT_TREE)/foo/baz/z.txt
 	@cd $(TEST_CONTENT_TREE)/foo && ln -s bar/c.txt && ln -s bar/a.txt d.txt && ln -s buz/non_existing_target deadlink
 	@cd $(TEST_CONTENT_TREE) && ln -s /tmp
 	@tree $(TEST_CONTENT_TREE)
@@ -119,8 +124,8 @@ create-reference-tree:
 	@echo "Content B" > $(TEST_REFERENCE_TREE)/kinabe/c.txt
 	@echo "Unique content" > $(TEST_REFERENCE_TREE)/wilbur/d.txt
 	@echo "Unique content" > $(TEST_REFERENCE_TREE)/e.txt
+	@#echo "Another unique content" > $(TEST_REFERENCE_TREE)/another.txt
 	@tree $(TEST_REFERENCE_TREE)
-
 
 
 pre-test:
