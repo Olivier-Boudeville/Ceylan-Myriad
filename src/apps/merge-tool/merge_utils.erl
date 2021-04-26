@@ -51,7 +51,10 @@
 
 -define( default_log_filename, "merge-tree.log" ).
 
--define( bullet_point, " * " ).
+-define( bullet_point, "  + " ).
+
+% To avoid UI issues for example with longer content lists:
+-define( max_text_length, 12000 ).
 
 
 -export([ create_merge_cache_file_for/3,
@@ -89,6 +92,8 @@
 -type file() :: file_utils:file().
 
 -type posix_seconds() :: time_utils:posix_seconds().
+
+-type bin_fqdn() :: net_utils:bin_fqdn().
 
 
 
@@ -138,6 +143,12 @@
 
 % Data associated to a content tree.
 -record( tree_data, {
+
+		   % The full hostname where the corresponding tree exists (as we may
+		   % check an actual, local tree against a copy of a cache file for a
+		   % remote tree)
+		   %
+		   hostname :: bin_fqdn(),
 
 		   % Base, absolute (binary) path of the root of that tree in the
 		   % filesystem:
@@ -561,9 +572,6 @@ handle_neither_scan_options( ArgTable, BinBaseDir ) ->
 handle_equalize_option( FirstTreePath, SecondTreePath, EqualizeArgTable,
 						BinBaseDir ) ->
 
-	trace_bridge:debug_fmt( "Requested to equalize trees '~ts' and '~ts'.",
-							[ FirstTreePath, SecondTreePath ] ),
-
 	BinFirstTreePath = text_utils:ensure_binary( FirstTreePath ),
 
 	BinAbsFirstTreePath = file_utils:ensure_path_is_absolute( BinFirstTreePath,
@@ -601,6 +609,9 @@ handle_equalize_option( FirstTreePath, SecondTreePath, EqualizeArgTable,
 	ui:set_settings( [ { backtitle, "Equalizing trees" },
 					   { title, "Updating first tree..." } ] ),
 
+	ui:display_instant( "Equalizing trees '~ts' and '~ts'...",
+						[ BinAbsFirstTreePath, BinAbsSecondTreePath ] ),
+
 	FirstTree = update_content_tree( BinAbsFirstTreePath, AnalyzerRing,
 									 UserState ),
 
@@ -615,22 +626,22 @@ handle_equalize_option( FirstTreePath, SecondTreePath, EqualizeArgTable,
 		equalize( FirstTree, SecondTree, UserState ),
 
 
-	ui:set_setting( title, "Equalize report for first tree" ),
+	% Relevant outputs already done:
 
-	% Should be the same content-wise, but not ncessarily paths- and/or
+	%ui:set_setting( title, "Equalize report for first tree" ),
+
+	% Should be the same content-wise, but not necessarily paths- and/or
 	% duplicates-wise:
 	%
-	display_tree_data( FirstTreeData, text_utils:format(
-							"Resulting first equalized tree '~ts'",
-							[ FirstTreeData#tree_data.root ] ),
-					   UserState ),
+	%display_tree_data( FirstTreeData, text_utils:format(
+	%						"Resulting first equalized tree '~ts'",
+	%						[ FirstTreeData#tree_data.root ] ), UserState ),
 
-	ui:set_setting( title, "Equalize report for second tree" ),
+	%ui:set_setting( title, "Equalize report for second tree" ),
 
-	display_tree_data( SecondTreeData, text_utils:format(
-							"Resulting second equalized tree '~ts'",
-							[ SecondTreeData#tree_data.root ] ),
-					   UserState ),
+	%display_tree_data( SecondTreeData, text_utils:format(
+	%						"Resulting second equalized tree '~ts'",
+	%						[ SecondTreeData#tree_data.root ] ), UserState ),
 
 	write_cache_file( FirstTreeData, UserState ),
 	write_cache_file( SecondTreeData, UserState ),
@@ -745,9 +756,6 @@ handle_merge_option( UserInputTreePath, UserRefTreePath, MergeArgTable,
 handle_check_against_option( UserTreePath, UserMergeFilePath, CheckArgTable,
 							 BinBaseDir ) ->
 
-	trace_bridge:debug_fmt( "Requested to check tree '~ts' against "
-		"cache file '~ts'.", [ UserTreePath, UserMergeFilePath ] ),
-
 	BinUserTreePath = text_utils:ensure_binary( UserTreePath ),
 
 	BinAbsTreePath =
@@ -789,6 +797,9 @@ handle_check_against_option( UserTreePath, UserMergeFilePath, CheckArgTable,
 	end,
 
 	AnalyzerRing = create_analyzer_ring( UserState ),
+
+	trace_debug( "Requested to check tree '~ts' against "
+		"cache file '~ts'.", [ UserTreePath, UserMergeFilePath ], UserState ),
 
 	check_against( BinAbsTreePath, BinAbsCachePath, AnalyzerRing, UserState ),
 
@@ -944,7 +955,7 @@ scan( BinTreePath, AnalyzerRing, UserState ) ->
 					ui:unset_setting( title ),
 					ui:display( "Scan aborted, cache file (~ts) left "
 						"as it was.", [ CacheFilename ] ),
-					%trace_debug( "(requested to abort the scan)", UserState ),
+					trace_debug( "(requested to abort the scan)", UserState ),
 					stop_user_service( UserState )
 
 			end,
@@ -985,8 +996,8 @@ perform_scan( TreePath, AnalyzerRing, UserState ) ->
 
 
 
-% Rescans specified tree (as an absolution directory), returning the
-% corresponding datastructure.
+% Rescans specified tree (as an absolute directory), returning the corresponding
+% datastructure.
 %
 -spec rescan( directory_path(), analyzer_ring(), user_state() ) -> tree_data().
 rescan( BinTreePath, AnalyzerRing, UserState ) ->
@@ -998,6 +1009,8 @@ rescan( BinTreePath, AnalyzerRing, UserState ) ->
 	ui:set_settings( [ { backtitle,
 					 text_utils:format( "Rescan of ~ts", [ BinTreePath ] ) },
 					   { title, "Rescan in progress..." } ] ),
+
+	ui:display_instant( "Rescanning '~ts'...", [ BinTreePath ] ),
 
 	case file_utils:is_existing_directory_or_link( BinTreePath ) of
 
@@ -1189,7 +1202,8 @@ rescan_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
 			ExtraNotif = text_utils:format( "following ~B extra files were "
 				"added (not referenced yet): ~ts",
 				[ length( ExtraFiles ),
-				  text_utils:binaries_to_binary( ExtraFiles, _Indent=2 ) ] ),
+				  text_utils:binaries_to_binary( ExtraFiles,
+												 _Bullet=" + " ) ] ),
 
 			% Here we have a list of data of the files that were not referenced
 			% yet; returns an updated tree:
@@ -1400,6 +1414,8 @@ resync( BinTreePath, AnalyzerRing, UserState ) ->
 	ui:set_settings( [ { backtitle,
 					 text_utils:format( "Resync of ~ts", [ BinTreePath ] ) },
 					   { title, "Resync in progress..." } ] ),
+
+	ui:display_instant( "Resynchronising '~ts'...", [ BinTreePath ] ),
 
 	case file_utils:is_existing_directory_or_link( BinTreePath ) of
 
@@ -1782,6 +1798,8 @@ uniquify( TreePath ) ->
 				text_utils:format( "Uniquification of ~ts", [ AbsTreePath ] ) },
 					   { title, "Uniquification in progress..." } ] ),
 
+	ui:display_instant( "Uniquifying '~ts'...", [ AbsTreePath ] ),
+
 	AnalyzerRing = create_analyzer_ring( UserState ),
 
 	TreeData = update_content_tree( AbsTreePath, AnalyzerRing, UserState ),
@@ -1813,9 +1831,6 @@ uniquify( TreePath ) ->
 -spec merge( bin_directory_path(), bin_directory_path() ) -> void().
 merge( InputTreePath, ReferenceTreePath ) ->
 
-	%trace_bridge:debug_fmt( "Requested to merge '~ts' into '~ts'.",
-	%						[ InputTreePath, ReferenceTreePath ] ),
-
 	% Prepare for various outputs:
 	UserState = start_user_service( ?default_log_filename ),
 
@@ -1843,6 +1858,8 @@ merge( InputTreePath, ReferenceTreePath ) ->
 	ui:set_settings( [ { backtitle,
 				text_utils:format( "Merge in ~ts", [ ReferenceTreePath ] ) },
 					   { title, "Updating cache of input tree..." } ] ),
+
+	ui:display_instant( "Merging in '~ts'...", [ ReferenceTreePath ] ),
 
 	InputTree = update_content_tree( InputTreePath, AnalyzerRing, UserState ),
 
@@ -1919,7 +1936,7 @@ merge_trees( InputTree=#tree_data{ root=InputRootDir,
 			case clear_input_tree( InputTree, LackingCount, ContentInBothSets,
 					InputRootDir, ReferenceRootDir, UserState ) of
 
-				% Here no content from input tree can enrich reference one:
+				% Here no content from input tree can enrich the reference one:
 				undefined ->
 					ReferenceTree;
 
@@ -2048,11 +2065,12 @@ clear_input_tree( InputTree, LackingCount, ContentToClear, InputRootDir,
 %
 -spec integrate_content_to_merge( tree_data(), tree_data(), count(),
 								  user_state() ) -> tree_data().
-integrate_content_to_merge( _InputTree=#tree_data{ root=InputRootDir,
-												   entries=InputEntries },
-				ReferenceTree=#tree_data{ root=ReferenceRootDir,
-										  entries=ReferenceEntries },
-				ContentCount, UserState ) ->
+integrate_content_to_merge(
+		InputTree=#tree_data{ root=InputRootDir,
+							  entries=InputEntries },
+		ReferenceTree=#tree_data{ root=ReferenceRootDir,
+								  entries=ReferenceEntries },
+		ContentCount, UserState ) ->
 
 	% As whole contents may have been removed (by design non-empty, and of size
 	% ContentCount):
@@ -2084,7 +2102,7 @@ integrate_content_to_merge( _InputTree=#tree_data{ root=InputRootDir,
 
 	TargetDir = file_utils:bin_join( ReferenceRootDir, ?integrate_dir ),
 
-	NewReferenceEntries = case ui:choose_designated_item(
+	case ui:choose_designated_item(
 			text_utils:format( "~ts~n~nChoices are:", [ Prompt ] ), Choices ) of
 
 		move ->
@@ -2094,46 +2112,55 @@ integrate_content_to_merge( _InputTree=#tree_data{ root=InputRootDir,
 			% and thus the unique remaining version will be moved; otherwise it
 			% will have to be selected by the user:
 			%
-			move_content_to_integrate( ToIntegrate, InputRootDir,
-				InputEntries, ReferenceRootDir, ReferenceEntries,
-				TargetDir, ContentCount, UserState );
+			NewReferenceEntries = move_content_to_integrate( ToIntegrate,
+				InputRootDir, InputEntries, ReferenceRootDir, ReferenceEntries,
+				TargetDir, ContentCount, UserState ),
+
+			FileCount = get_file_count_from( NewReferenceEntries ),
+
+			ReferenceTree#tree_data{ entries=NewReferenceEntries,
+									 file_count=FileCount };
 
 		cherry_pick ->
 			file_utils:create_directory_if_not_existing( TargetDir ),
-			cherry_pick_content_to_merge( ToIntegrate, InputRootDir,
-				InputEntries, ReferenceRootDir, ReferenceEntries,
-				?integrate_dir, UserState );
+			NewReferenceEntries = cherry_pick_content_to_merge( ToIntegrate,
+				InputRootDir, InputEntries, ReferenceRootDir, ReferenceEntries,
+				?integrate_dir, UserState ),
+
+			FileCount = get_file_count_from( NewReferenceEntries ),
+
+			ReferenceTree#tree_data{ entries=NewReferenceEntries,
+									 file_count=FileCount };
 
 		delete ->
 			% Might happen, typically for empty files:
 			% (possibly one content, multiple elements)
 			DelPrompt = text_utils:format( "Really delete the ~B "
-						"unique content element(s) found in the input tree "
-						"('~ts')?", [ ContentCount, InputRootDir ] ),
+				"unique content element(s) found in the input tree ('~ts')?",
+				[ ContentCount, InputRootDir ] ),
 
 			case ui:ask_yes_no( DelPrompt ) of
 
 				yes ->
 					delete_content_to_merge( ToIntegrate, InputRootDir,
-											 InputEntries, UserState );
+											 InputEntries, UserState ),
+					% Thus unchanged:
+					ReferenceTree;
 
 				no ->
-					% No deletion then.
-					ok
+					% Looping, as we cannot skip any content in input tree
+					% (otherwise its removal will fail, short of being empty):
+					%
+					integrate_content_to_merge( InputTree, ReferenceTree,
+												ContentCount, UserState )
 
-			end,
-			ReferenceEntries;
+			end;
 
 		C when C =:= abort orelse C =:= ui_cancel ->
 			trace_debug( "(requested to abort the merge)", UserState ),
 			stop( 0 )
 
-	end,
-
-	FileCount = get_file_count_from( NewReferenceEntries ),
-
-	ReferenceTree#tree_data{ entries=NewReferenceEntries,
-							 file_count=FileCount }.
+	end.
 
 
 
@@ -2226,6 +2253,7 @@ move_content_to_integrate( ToIntegrate, InputRootDir, InputEntries,
 -spec move_content_to_integrate( [ sha1() ], bin_directory_path(), sha1_table(),
 		bin_directory_path(), sha1_table(), bin_directory_path(),
 		count(), count(), user_state() ) -> sha1_table().
+% Moves finished here:
 move_content_to_integrate( _ToMove=[], InputRootDir, InputEntries,
 		ReferenceRootDir, ReferenceEntries, RelTargetDir, _ContentCount,
 		_TotalContentCount, UserState ) ->
@@ -2329,6 +2357,7 @@ move_content_to_integrate( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 		ContentCount+1, TotalContentCount, UserState ).
 
 
+
 % Equalizes specified trees.
 -spec equalize( tree_data(), tree_data(), user_state() ) ->
 						{ tree_data(), tree_data() }.
@@ -2336,6 +2365,8 @@ equalize( FirstTreeData=#tree_data{ root=FirstRootPath,
 									entries=FirstEntryTable },
 		  SecondTreeData=#tree_data{ root=SecondRootPath,
 									 entries=SecondEntryTable }, UserState ) ->
+
+	ui:set_setting( title, "Equalize report" ),
 
 	IsFirstUniquified = is_uniquified( FirstTreeData ),
 	IsSecondUniquified = is_uniquified( SecondTreeData ),
@@ -2358,9 +2389,11 @@ equalize( FirstTreeData=#tree_data{ root=FirstRootPath,
 		{ OnlyInFirstSHA1, _OnlyInSecondSHA1=[] } ->
 
 			ui:display( "The first tree ('~ts') has ~ts that the second "
-				"has not (and ~ts).",
+				"has not (and ~ts); copying this content.~n~ts",
 				[ FirstRootPath, count_content( OnlyInFirstSHA1 ),
-				  uniquified_to_string( IsFirstUniquified ) ] ),
+				  uniquified_to_string( IsFirstUniquified ),
+				  list_lacking_content( OnlyInFirstSHA1, FirstEntryTable,
+										"second" ) ] ),
 
 			NewSecondTreeData = copy_content( OnlyInFirstSHA1, FirstRootPath,
 				FirstEntryTable, SecondTreeData, UserState ),
@@ -2371,9 +2404,11 @@ equalize( FirstTreeData=#tree_data{ root=FirstRootPath,
 		{ _OnlyInFirstSHA1=[], OnlyInSecondSHA1 } ->
 
 			ui:display( "The second tree ('~ts') has ~ts that the first "
-				"has not (and ~ts).",
+				"has not (and ~ts); copying this content.~n~ts",
 				[ SecondRootPath, count_content( OnlyInSecondSHA1 ),
-				  uniquified_to_string( IsSecondUniquified ) ] ),
+				  uniquified_to_string( IsSecondUniquified ),
+				  list_lacking_content( OnlyInSecondSHA1, SecondEntryTable,
+										"first" ) ] ),
 
 			NewFirstTreeData = copy_content( OnlyInSecondSHA1, SecondRootPath,
 				SecondEntryTable, FirstTreeData, UserState ),
@@ -2384,11 +2419,17 @@ equalize( FirstTreeData=#tree_data{ root=FirstRootPath,
 		{ OnlyInFirstSHA1, OnlyInSecondSHA1 } ->
 
 			ui:display( "First tree has ~ts that the second has not, "
-				"and the second has ~ts that the first has not (and ~ts).",
+				"and the second has ~ts that the first has not (and ~ts). "
+				"~n~n~ts~n~ts~nCompleting both trees with the content "
+				"they lack.",
 				[ count_content( OnlyInFirstSHA1 ),
 				  count_content( OnlyInSecondSHA1 ),
 				  interpret_uniqueness( IsFirstUniquified,
-					IsSecondUniquified, FirstRootPath, SecondRootPath ) ] ),
+					IsSecondUniquified, FirstRootPath, SecondRootPath ),
+				  list_lacking_content( OnlyInSecondSHA1, SecondEntryTable,
+										"first" ),
+				  list_lacking_content( OnlyInFirstSHA1, FirstEntryTable,
+										"second" ) ] ),
 
 			NewFirstTreeData = copy_content( OnlyInSecondSHA1, SecondRootPath,
 				SecondEntryTable, FirstTreeData, UserState ),
@@ -2406,21 +2447,21 @@ equalize( FirstTreeData=#tree_data{ root=FirstRootPath,
 							bin_directory_path() ) -> ustring().
 interpret_uniqueness( _IsFirstUniquified=true, _IsSecondUniquified=true,
 					  _FirstRootPath, _SecondRootPath ) ->
-	"both are uniquified";
+	"both trees are uniquified";
 
 interpret_uniqueness( _IsFirstUniquified=true, _IsSecondUniquified=false,
 					  FirstRootPath, _SecondRootPath ) ->
-	text_utils:format( "only the first, '~ts', is uniquified",
+	text_utils:format( "only the first tree, '~ts', is uniquified",
 					   [ FirstRootPath ] );
 
 interpret_uniqueness( _IsFirstUniquified=false, _IsSecondUniquified=true,
 					  _FirstRootPath, SecondRootPath ) ->
-	text_utils:format( "only the second, '~ts', is uniquified",
+	text_utils:format( "only the second tree, '~ts', is uniquified",
 					   [ SecondRootPath ] );
 
 interpret_uniqueness( _IsFirstUniquified=false, _IsSecondUniquified=false,
 					  _FirstRootPath, _SecondRootPath ) ->
-	"neither is uniquified".
+	"neither tree is uniquified".
 
 
 
@@ -2431,62 +2472,83 @@ interpret_uniqueness( _IsFirstUniquified=false, _IsSecondUniquified=false,
 					 user_state() ) -> void().
 check_against( AbsTreePath, AbsCachePath, AnalyzerRing, UserState ) ->
 
-	ToCheckTreeFileData = resync( AbsTreePath, AnalyzerRing, UserState ),
-	ToCheckSHA1s = table:keys( ToCheckTreeFileData#tree_data.entries ),
-	IsToCheckUniquified = is_uniquified( ToCheckTreeFileData ),
+	ToCheckTreeData = resync( AbsTreePath, AnalyzerRing, UserState ),
+	IsToCheckUniquified = is_uniquified( ToCheckTreeData ),
+	ToCheckEntries = ToCheckTreeData#tree_data.entries,
+	ToCheckSHA1s = table:keys( ToCheckEntries ),
 
-	ReadTreeFileData = read_cache_file( AbsCachePath, UserState ),
-	ReadEntries = ReadTreeFileData#tree_data.entries,
+	ReadTreeData = read_cache_file( AbsCachePath, UserState ),
+	AbsReadTreePath = ReadTreeData#tree_data.root,
+	IsReadUniquified = is_uniquified( ReadTreeData ),
+	ReadEntries = ReadTreeData#tree_data.entries,
 	ReadSHA1s = table:keys( ReadEntries ),
 
-	AbsReadTreePath = ReadTreeFileData#tree_data.root,
+	ReadHostname = ReadTreeData#tree_data.hostname,
+
+	Title = case text_utils:string_to_binary( net_utils:localhost() ) of
+
+		ReadHostname ->
+			"Check report";
+
+		_ ->
+			text_utils:format( "Check report against tree on host '~ts'",
+							   [ ReadHostname ] )
+
+	end,
+
+	ui:set_setting( title, Title ),
+
+	InBothSHA1s = list_utils:intersection( ToCheckSHA1s, ReadSHA1s ),
+
+	UniqStr = interpret_uniqueness( IsToCheckUniquified, IsReadUniquified,
+									AbsTreePath, AbsReadTreePath ),
 
 	case list_utils:differences( ToCheckSHA1s, ReadSHA1s ) of
 
-		{ _OnlyInFirstSHA1=[], _OnlyInSecondSHA1=[] } ->
-
-			ui:display( "The checked tree '~ts' has exactly the same content "
-				"as '~ts' (as represented by its cache file '~ts'), i.e. ~ts "
-				"(and ~ts).",
+		{ _OnlyInCheckedSHA1s=[], _OnlyInCachedSHA1s=[] } ->
+			ui:display( "The checked tree '~ts' and  '~ts' "
+				"(as represented by its cache file '~ts') have exactly the "
+				"same content (~ts), and ~ts.",
 				[ AbsTreePath, AbsReadTreePath, AbsCachePath,
-				  count_content( ToCheckSHA1s ),
-				  uniquified_to_string( IsToCheckUniquified ) ] );
+				  count_content( InBothSHA1s ), UniqStr ] );
 
 
-		{ OnlyInFirstSHA1, _OnlyInSecondSHA1=[] } ->
-
-			ui:display( "The checked tree ('~ts') has all the content of '~ts' "
-				"(as represented by its cache file '~ts'), i.e. ~ts, "
-				"plus ~ts (and ~ts).",
+		{ OnlyInCheckedSHA1s, _OnlyInCachedSHA1s=[] } ->
+			ui:display( "The checked tree ('~ts') is a strict superset "
+				"of '~ts' (as represented by its cache file '~ts'); "
+				"they have in common ~ts (~ts), and checked tree has "
+				"additionally ~ts.~n~n~ts",
 				[ AbsTreePath, AbsReadTreePath, AbsCachePath,
-				  count_content( ReadSHA1s ), count_content( OnlyInFirstSHA1 ),
-				  uniquified_to_string( IsToCheckUniquified ) ] );
+				  count_content( InBothSHA1s ), UniqStr,
+				  count_content( OnlyInCheckedSHA1s ),
+				  list_lacking_content( OnlyInCheckedSHA1s, ToCheckEntries,
+										_TreeDesc="cached" ) ] );
 
 
-		{ _OnlyInFirstSHA1=[], OnlyInSecondSHA1 } ->
-
-			ui:display( "The checked tree ('~ts') contains a subset of '~ts' "
-				"(as represented by its cache file '~ts'): it has indeed ~ts "
-				"yet lacks ~ts (and ~ts).~n~n~ts",
+		{ _OnlyInCheckedSHA1s=[], OnlyInCachedSHA1s } ->
+			ui:display( "The checked tree ('~ts') is a strict subset "
+				"of '~ts' (as represented by its cache file '~ts'); "
+				"they have in common ~ts (~ts), and checked tree lacks ~ts. "
+				"~n~n~ts",
 				[ AbsTreePath, AbsReadTreePath, AbsCachePath,
-				  count_content( ToCheckSHA1s ),
-				  count_content( OnlyInSecondSHA1 ),
-				  list_lacking_content( OnlyInSecondSHA1, ReadEntries ) ] );
+				  count_content( InBothSHA1s ), UniqStr,
+				  count_content( OnlyInCachedSHA1s ),
+				  list_lacking_content( OnlyInCachedSHA1s, ReadEntries,
+										_TreeDesc="checked" ) ] );
 
 
-		{ OnlyInFirstSHA1, OnlyInSecondSHA1 } ->
-
-			Inter = list_utils:intersection( ToCheckSHA1s, ReadSHA1s ),
-
-			ui:display( "Knowing they have ~ts in common, the checked tree "
-				"('~ts') contains ~ts that '~ts' (as represented by its cache "
-				"file '~ts') does not have, but lacks ~ts (and ~ts).~n~n~ts",
-				[ count_content( Inter ),
-				  AbsTreePath, count_content( OnlyInFirstSHA1 ),
-				  AbsReadTreePath, AbsCachePath,
-				  count_content( OnlyInSecondSHA1 ),
-				  uniquified_to_string( IsToCheckUniquified ),
-				  list_lacking_content( OnlyInSecondSHA1, ReadEntries ) ] )
+		{ OnlyInCheckedSHA1s, OnlyInCachedSHA1s } ->
+			ui:display( "Knowing that they have ~ts in common (and that ~ts), "
+				"the checked tree ('~ts') contains ~ts that '~ts' "
+				"(as represented by its cache file '~ts') does not have, "
+				"but also lacks ~ts.~n~n~ts~n~ts",
+				[ count_content( InBothSHA1s ), UniqStr, AbsTreePath,
+				  count_content( OnlyInCheckedSHA1s ), AbsReadTreePath,
+				  AbsCachePath, count_content( OnlyInCachedSHA1s ),
+				  list_lacking_content( OnlyInCheckedSHA1s, ToCheckEntries,
+										_FirstTreeDesc="cached" ),
+				  list_lacking_content( OnlyInCachedSHA1s, ReadEntries,
+										_SecondTreeDesc="checked" ) ] )
 
 	end.
 
@@ -2637,8 +2699,8 @@ cherry_pick_files_to_merge( _SHA1sToPick=[ SHA1 | T ], InputRootDir,
 				C when C =:= abort orelse C =:= ui_cancel ->
 					ui:unset_setting( title ),
 					ui:display( "Merge (single) cherry-pick aborted." ),
-					%trace_debug( "(requested to abort the cherry-pick)",
-					%             UserState ),
+					trace_debug( "(requested to abort the cherry-pick)",
+								 UserState ),
 					stop_user_service( UserState )
 
 			end;
@@ -2742,8 +2804,8 @@ cherry_pick_files_to_merge( _SHA1sToPick=[ SHA1 | T ], InputRootDir,
 				C when C =:= abort orelse C =:= ui_cancel ->
 					ui:unset_setting( title ),
 					ui:display( "Merge (multiple) cherry-pick aborted." ),
-					%trace_debug( "(requested to abort the cherry-pick)",
-					%             UserState ),
+					trace_debug( "(requested to abort the cherry-pick)",
+								 UserState ),
 					stop_user_service( UserState )
 
 			end
@@ -2933,7 +2995,7 @@ safe_copy( SourceRootDir, SourceRelPath, TargetRootDir, UserState ) ->
 	file_utils:create_directory( file_utils:get_base_path( AckAbsTargetPath ),
 								 create_parents ),
 
-	trace_debug( "Copying file '~ts' to '~ts'.",
+	trace_debug( " - copying file '~ts' to '~ts'.",
 				 [ AbsSourcePath, AckAbsTargetPath ], UserState ),
 
 	file_utils:copy_file( AbsSourcePath, AckAbsTargetPath ),
@@ -3173,13 +3235,13 @@ update_content_tree( BinTreePath, AnalyzerRing, UserState ) ->
 % file (the merge cache file excluded) in specified tree, and a list of the
 % actual files (as relative paths).
 %
--spec find_newest_timestamp_from( directory_path(), file_path() ) ->
-						{ maybe( posix_seconds() ), [ file_path() ] }.
+-spec find_newest_timestamp_from( bin_directory_path(), bin_file_path() ) ->
+						{ maybe( posix_seconds() ), [ bin_file_path() ] }.
 find_newest_timestamp_from( RootPath, CacheFilePath ) ->
 
-	CacheFilePath = file_utils:get_last_path_element( CacheFilePath ),
+	CacheFilename = file_utils:get_last_path_element( CacheFilePath ),
 
-	ActualFileRelPaths = list_utils:delete_existing( CacheFilePath,
+	ActualFileRelPaths = list_utils:delete_existing( CacheFilename,
 										find_regular_files_from( RootPath ) ),
 
 	%trace_bridge:debug_fmt( "ActualFileRelPaths: ~p", [ ActualFileRelPaths ] ),
@@ -3363,13 +3425,13 @@ write_cache_header( File ) ->
 	%
 	file_utils:write_ustring( File, "%% -*- coding: utf-8 -*-~n"
 		"% Merge cache file written by '~ts' (version ~ts),~n"
-		"% on host '~ts', at ~ts.~n~n"
+		"% at ~ts.~n~n"
 		"% Structure of the cached file entries (sorted according to their "
 		"path):~n"
 		"% first the 'file_info' tag, then the SHA1 of the file of interest,~n"
 		"% its path (relative to the root entry), its size (in bytes) and~n"
 		"% finally its POSIX timestamp.~n~n" ,
-		[ ScriptName, ?merge_script_version, net_utils:localhost(),
+		[ ScriptName, ?merge_script_version,
 		  time_utils:get_textual_timestamp() ] ).
 
 
@@ -3403,8 +3465,9 @@ write_tree_data( MergeFile, #tree_data{ root=BinRootDir,
 	% we write this content by ourselves instead now:
 	%
 	%file_utils:write_direct_terms( MergeFile, lists:reverse( EntryContent ) ).
-	file_utils:write_ustring( MergeFile, "{root_dir, <<\"~ts\"/utf8>>}.~n~n",
-							  [ file_utils:escape_path( RootDir ) ] ),
+	file_utils:write_ustring( MergeFile,
+		"{hostname, <<\"~ts\"/utf8>>}.~n~n{root_dir, <<\"~ts\"/utf8>>}.~n~n",
+		[ net_utils:localhost(), file_utils:escape_path( RootDir ) ] ),
 
 	write_entries( MergeFile, lists:keysort( _PathIndex=2, EntryContent ) ).
 
@@ -3500,8 +3563,10 @@ read_cache_file( CacheFilePath, UserState ) ->
 
 	try file_utils:read_terms( CacheFilePath ) of
 
-		[ _RootInfo={ root_dir, BinCachedTreePath } | FileInfos ] ->
-			#tree_data{ root=BinCachedTreePath,
+		[ _HostInfo={ hostname, BinFQDN },
+		  _RootInfo={ root_dir, BinCachedTreePath } | FileInfos ] ->
+			#tree_data{ hostname=BinFQDN,
+						root=BinCachedTreePath,
 						entries=build_entry_table( FileInfos ),
 						file_count=length( FileInfos )
 						% Not managed (at least yet): the other counts.
@@ -3512,21 +3577,21 @@ read_cache_file( CacheFilePath, UserState ) ->
 				"shall be removed by the user.", [ CacheFilePath ], UserState ),
 
 			ui:display_error( "Error, cache file '~ts' does not have an "
-				"expected content.~n"
+				"expected content (abnormal).~n"
 				"Consider removing this file first, and relaunching the "
 				"operation again.", [ CacheFilePath ] ),
 			stop( 7 )
 
 	catch C:E ->
 
-			trace( "Error (~ts), cache file '~ts' seems corrupted:~n ~p",
-				   [ C, CacheFilePath, E ], UserState ),
+		trace( "Error (~ts), cache file '~ts' seems corrupted:~n ~p",
+			   [ C, CacheFilePath, E ], UserState ),
 
-			ui:display_error( "Error, cache file '~ts' seems corrupted "
-				"(see logs for more details).~n"
-				"Consider removing this file first, and relaunching the "
-				"operation again.", [ CacheFilePath ] ),
-			stop( 8 )
+		ui:display_error( "Error, cache file '~ts' seems corrupted "
+			"(see logs for more details).~n"
+			"Consider removing this file first, and relaunching the "
+			"operation again.", [ CacheFilePath ] ),
+		stop( 8 )
 
 	end.
 
@@ -3617,7 +3682,7 @@ scan_files( _Files=[ Filename | T ], TreeData=#tree_data{ root=BinAbsTreePath },
 	%trace_debug( "Requesting analysis of '~ts' by ~w.",
 	%			 [ FullPath, AnalyzerPid ] ),
 
-	trace_debug( "Scanning ~ts.", [ Filename ], UserState ),
+	trace_debug( " - scanning ~ts", [ Filename ], UserState ),
 
 	% WOOPER-style request:
 	AnalyzerPid ! { analyzeFile, [ BinAbsTreePath, Filename ], self() },
@@ -3906,9 +3971,19 @@ manage_duplicates( EntryTable, BinRootDir, UserState ) ->
 
 		TotalDupCaseCount ->
 
-			Prompt = text_utils:format( "~B case(s) of content duplication "
-				"detected in tree '~ts'.~n~nShall we:~n",
-				[ TotalDupCaseCount, BinRootDir ] ),
+			Prompt = case TotalDupCaseCount of
+
+				1 ->
+					text_utils:format( "a single case of content duplication "
+						"detected in tree '~ts'.~n~nShall we:~n",
+						[ BinRootDir ] );
+
+				_ ->
+					text_utils:format( "~B cases of content duplication "
+						"detected in tree '~ts'.~n~nShall we:~n",
+						[ TotalDupCaseCount, BinRootDir ] )
+
+			end,
 
 			Choices = [
 				{ resolve, "Resolve duplication cases one by one" },
@@ -4110,7 +4185,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 	%trace_bridge:debug_fmt( "BinShortenPaths = ~p", [ BinShortenPaths ] ),
 
-	% Listing the sortened path of all duplicates:
+	% Listing the shortened path of all duplicates:
 	DuplicateString = text_utils:format( ": ~ts",
 		[ text_utils:binaries_to_binary( BinShortenPaths, ?bullet_point ) ] ),
 
@@ -4233,7 +4308,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 		C when C =:= abort orelse C =:= ui_cancel ->
 			ui:unset_setting( title ),
 			ui:display( "Uniquification aborted, stopping now." ),
-			%trace_debug( "(requested to abort the merge)", UserState ),
+			trace_debug( "(requested to abort the merge)", UserState ),
 			stop_user_service( UserState )
 
 	end.
@@ -4517,9 +4592,10 @@ quick_cache_check( CacheFilePath, ContentFiles, BinTreePath, AnalyzerRing,
 
 	try file_utils:read_terms( CacheFilePath ) of
 
-		[ _RootInfo={ root_dir, BinCachedTreePath } | FileInfos ] ->
-			quick_cache_check_helper( ContentFiles, BinTreePath,
-				BinCachedTreePath, FileInfos, AnalyzerRing, UserState );
+		[ _HostInfo={ hostname, BinFQDN },
+		  _RootInfo={ root_dir, BinCachedTreePath } | FileInfos ] ->
+				quick_cache_check_helper( BinFQDN, ContentFiles, BinTreePath,
+					BinCachedTreePath, FileInfos, AnalyzerRing, UserState );
 
 		_Other ->
 			trace_debug( "Invalid cache file '~ts', removing it and "
@@ -4540,15 +4616,11 @@ quick_cache_check( CacheFilePath, ContentFiles, BinTreePath, AnalyzerRing,
 
 
 % (helper)
--spec quick_cache_check_helper( [ file_path() ], bin_directory_path(),
-		bin_directory_path(), [ file_info() ], analyzer_ring(),
-		user_state() ) -> maybe( tree_data() ).
-quick_cache_check_helper( ContentFiles, BinActualTreePath, BinCachedTreePath,
-						  FileInfos, AnalyzerRing, UserState ) ->
-
-	%trace_bridge:debug_fmt(
-	%   "BinActualTreePath = ~ts, BinCachedTreePath = ~ts.",
-	%	[ BinActualTreePath,Bin CachedTreePath ] ),
+-spec quick_cache_check_helper( bin_fqdn(), [ bin_file_path() ],
+		bin_directory_path(), bin_directory_path(), [ file_info() ],
+		analyzer_ring(), user_state() ) -> maybe( tree_data() ).
+quick_cache_check_helper( BinFQDN, ContentFiles, BinActualTreePath,
+			BinCachedTreePath, FileInfos, AnalyzerRing, UserState ) ->
 
 	BinAbsActualTreePath =
 		file_utils:ensure_path_is_absolute( BinActualTreePath ),
@@ -4681,7 +4753,8 @@ quick_cache_check_helper( ContentFiles, BinActualTreePath, BinCachedTreePath,
 					trace_debug( "All sizes of the ~B files match in '~ts'.",
 						[ CachedFileCount, BinActualTreePath ], UserState ),
 
-					#tree_data{ root=BinAbsActualTreePath,
+					#tree_data{ hostname=BinFQDN,
+								root=BinAbsActualTreePath,
 								entries=build_entry_table( FileInfos ),
 								file_count=CachedFileCount
 								% Not managed (at least yet): the other counts.
@@ -4765,15 +4838,16 @@ check_file_sizes_match( _FilePairs=[ { FilePath, FileSize } | T ], TreePath,
 
 
 % Returns a textual description of specified lacking cached content.
--spec list_lacking_content( [ sha1() ], sha1_table() ) -> ustring().
-list_lacking_content( _SHA1s=[ SHA1 ], SHA1Table ) ->
-	text_utils:format( "Lacking content is, in cached tree: ~ts.",
-					   [ describe_content( SHA1, SHA1Table ) ] );
+-spec list_lacking_content( [ sha1() ], sha1_table(), ustring() ) -> ustring().
+list_lacking_content( _SHA1s=[ SHA1 ], SHA1Table, TreeDesc ) ->
+	text_utils:format_ellipsed( "The content lacking in ~ts tree is ~ts.",
+		[ TreeDesc, describe_content( SHA1, SHA1Table ) ], ?max_text_length );
 
-list_lacking_content( SHA1s, SHA1Table ) ->
-	text_utils:format( "Lacking contents are, in cached tree: ~ts",
-		text_utils:strings_to_enumerated_string(
-			[ describe_content( S, SHA1Table ) || S <- SHA1s ] ) ).
+list_lacking_content( SHA1s, SHA1Table, TreeDesc ) ->
+	text_utils:format_ellipsed( "The contents lacking in ~ts tree are: ~ts",
+		[ TreeDesc, text_utils:strings_to_enumerated_string(
+			[ describe_content( S, SHA1Table ) || S <- SHA1s ] ) ],
+		?max_text_length ).
 
 
 % (helper)
@@ -4781,16 +4855,16 @@ describe_content( SHA1, SHA1Table ) ->
 	case table:get_value( SHA1, SHA1Table ) of
 
 		[ _SingleFileData=#file_data{ path=ContentPath } ] ->
-			text_utils:format( "in '~ts'", [ ContentPath ] );
+			text_utils:format( "(solely) in '~ts'", [ ContentPath ] );
 
 		[ FirstFileData, _SecondFileData ] ->
 			FirstContentPath = FirstFileData#file_data.path,
-			text_utils:format( "in '~ts' (and another duplicate)",
+			text_utils:format( "in '~ts' (and in another duplicate)",
 							   [ FirstContentPath ] );
 
 		[ FirstFileData| T ] ->
 			FirstContentPath = FirstFileData#file_data.path,
-			text_utils:format( "in '~ts' (and ~B other duplicates)",
+			text_utils:format( "in '~ts' (and in ~B other duplicates)",
 							   [ FirstContentPath, length( T ) ] )
 
 	end.
@@ -4855,7 +4929,7 @@ count_content( SHA1s ) ->
 % Removes specified file.
 -spec remove_file( bin_file_path(), user_state() ) -> void().
 remove_file( FileToRemove, UserState ) ->
-	trace_debug( "Removing file '~ts'.", [ FileToRemove ], UserState ),
+	trace_debug( " - removing file '~ts'", [ FileToRemove ], UserState ),
 	file_utils:remove_file( FileToRemove ).
 
 
@@ -4864,9 +4938,12 @@ remove_file( FileToRemove, UserState ) ->
 remove_files( _FilesToRemove=[], _UserState ) ->
 	ok;
 
+remove_files( _FilesToRemove=[ SingleFile ], UserState ) ->
+	remove_file( SingleFile, UserState );
+
 remove_files( FilesToRemove, UserState ) ->
 
-	trace_debug( "Removing ~B files: ~ts", [ length( FilesToRemove ),
+	trace_debug( " - removing ~B files: ~ts", [ length( FilesToRemove ),
 		text_utils:binaries_to_string( FilesToRemove ) ], UserState ),
 
 	file_utils:remove_files( FilesToRemove ).
