@@ -2114,7 +2114,7 @@ integrate_content_to_merge(
 			%
 			NewReferenceEntries = move_content_to_integrate( ToIntegrate,
 				InputRootDir, InputEntries, ReferenceRootDir, ReferenceEntries,
-				TargetDir, ContentCount, UserState ),
+				?integrate_dir, ContentCount, UserState ),
 
 			FileCount = get_file_count_from( NewReferenceEntries ),
 
@@ -2239,10 +2239,10 @@ copy_content_helper( _SHA1sToCopy=[ SHA1 | T ], SourceRootDir,
 		bin_directory_path(), sha1_table(), bin_directory_path(), count(),
 		user_state() ) -> sha1_table().
 move_content_to_integrate( ToIntegrate, InputRootDir, InputEntries,
-		ReferenceRootDir, ReferenceEntries, TargetDir, TotalContentCount,
+		ReferenceRootDir, ReferenceEntries, TargetSubPath, TotalContentCount,
 		UserState ) ->
 	move_content_to_integrate( ToIntegrate, InputRootDir, InputEntries,
-		ReferenceRootDir, ReferenceEntries, TargetDir,
+		ReferenceRootDir, ReferenceEntries, TargetSubPath,
 		_Count=1, TotalContentCount, UserState ).
 
 
@@ -2255,7 +2255,7 @@ move_content_to_integrate( ToIntegrate, InputRootDir, InputEntries,
 		count(), count(), user_state() ) -> sha1_table().
 % Moves finished here:
 move_content_to_integrate( _ToMove=[], InputRootDir, InputEntries,
-		ReferenceRootDir, ReferenceEntries, RelTargetDir, _ContentCount,
+		ReferenceRootDir, ReferenceEntries, TargetSubPath, _ContentCount,
 		_TotalContentCount, UserState ) ->
 
 	% Removing the content that has not been moved (hence that shall be
@@ -2267,10 +2267,9 @@ move_content_to_integrate( _ToMove=[], InputRootDir, InputEntries,
 
 	remove_files( ToRemove, UserState ),
 
-	TargetRefDir = file_utils:bin_join( ReferenceRootDir, RelTargetDir ),
-
 	% Copied to reference as much as possible:
-	preserve_symlinks( InputRootDir, TargetRefDir, UserState ),
+	preserve_symlinks( InputRootDir, ReferenceRootDir, TargetSubPath,
+					   UserState ),
 
 	remove_file( get_cache_path_for( InputRootDir ), UserState ),
 
@@ -2281,7 +2280,7 @@ move_content_to_integrate( _ToMove=[], InputRootDir, InputEntries,
 
 
 move_content_to_integrate( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
-		ReferenceRootDir, ReferenceEntries, RelTargetDir,
+		ReferenceRootDir, ReferenceEntries, TargetSubPath,
 		ContentCount, TotalContentCount, UserState ) ->
 
 	ui:set_setting( title, text_utils:format( "Merging content ~B/~B",
@@ -2336,11 +2335,11 @@ move_content_to_integrate( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 	% With a check:
 	SHA1 = ElectedFileData#file_data.sha1_sum,
 
-	SourceRelPath =
-		text_utils:binary_to_string( ElectedFileData#file_data.path ),
+	SourceRelPath = ElectedFileData#file_data.path,
+	%	text_utils:binary_to_string( ElectedFileData#file_data.path ),
 
 	{ NewAbsPath, NewRelPath } = safe_move( InputRootDir, SourceRelPath,
-											RelTargetDir, UserState ),
+								ReferenceRootDir, TargetSubPath, UserState ),
 
 	% Selective update:
 	NewFileData = ElectedFileData#file_data{
@@ -2353,7 +2352,7 @@ move_content_to_integrate( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 		table:add_new_entry( SHA1, [ NewFileData ], ReferenceEntries ),
 
 	move_content_to_integrate( T, InputRootDir, NewInputEntries,
-		ReferenceRootDir, NewReferenceEntries, RelTargetDir,
+		ReferenceRootDir, NewReferenceEntries, TargetSubPath,
 		ContentCount+1, TotalContentCount, UserState ).
 
 
@@ -2558,8 +2557,8 @@ check_against( AbsTreePath, AbsCachePath, AnalyzerRing, UserState ) ->
 % directory.
 %
 -spec preserve_symlinks( bin_directory_path(), bin_directory_path(),
-						 user_state() ) -> void().
-preserve_symlinks( InputRootDir, TargetRefDir, UserState ) ->
+						 bin_directory_path(), user_state() ) -> void().
+preserve_symlinks( InputRootDir, TargetRootDir, TargetSubPath, UserState ) ->
 
 	% There may still be symbolic links in the input tree (ex: that were either
 	% added the user or created by this tool when electing a reference file and
@@ -2583,16 +2582,24 @@ preserve_symlinks( InputRootDir, TargetRefDir, UserState ) ->
 			MovedLinksStr = [
 				try
 
-					{ AbsTargetPath, _RelTargetPath } =
-						safe_move( InputRootDir, Lnk, TargetRefDir, UserState ),
+					{ AbsTargetPath, _RelTargetPath } = safe_move( InputRootDir,
+						Lnk, TargetRootDir, TargetSubPath, UserState ),
 
 					AbsTargetPath
 
 				catch _AnyClass:Exception ->
 
-					text_utils:format( "error while smart moving symbolic "
+					TargetDir =
+						file_utils:bin_join( TargetRootDir, TargetSubPath ),
+
+					ErrorStr = text_utils:format(
+						"error while smart moving symbolic "
 						"link '~ts' from '~ts' to '~ts':~n  ~p",
-						[ Lnk, InputRootDir, TargetRefDir, Exception ] )
+						[ Lnk, InputRootDir, TargetDir, Exception ] ),
+
+					trace_utils:error( ErrorStr ),
+
+					ErrorStr
 
 				end || Lnk <- SymlinksToMove ],
 
@@ -2613,18 +2620,18 @@ preserve_symlinks( InputRootDir, TargetRefDir, UserState ) ->
 	sha1_table(), bin_directory_path(), sha1_table(), bin_directory_path(),
 	user_state() ) -> sha1_table().
 cherry_pick_content_to_merge( SHA1sToPick, InputRootDir, InputEntries,
-		ReferenceRootDir, ReferenceEntries, RelTargetDir, UserState ) ->
+		ReferenceRootDir, ReferenceEntries, TargetSubPath, UserState ) ->
 
 	TotalContentCount = length( SHA1sToPick ),
 
 	PickChoices = [ { move, text_utils:format( "Move this content "
 								"in reference tree (in its '~ts' directory)",
-								[ RelTargetDir ] ) },
+								[ TargetSubPath ] ) },
 					{ delete, "Delete this content" },
 					{ abort, "Abort merge" } ],
 
 	cherry_pick_files_to_merge( SHA1sToPick, InputRootDir, InputEntries,
-		ReferenceRootDir, ReferenceEntries, RelTargetDir, PickChoices,
+		ReferenceRootDir, ReferenceEntries, TargetSubPath, PickChoices,
 		_Count=1, TotalContentCount, UserState ).
 
 
@@ -2633,14 +2640,13 @@ cherry_pick_content_to_merge( SHA1sToPick, InputRootDir, InputEntries,
 % removed; so no need to update source tree).
 %
 cherry_pick_files_to_merge( _SHA1sToPick=[], InputRootDir, _InputEntries,
-		ReferenceRootDir, ReferenceEntries, RelTargetDir, _PickChoices,
+		ReferenceRootDir, ReferenceEntries, TargetSubPath, _PickChoices,
 		_Count, _TotalContentCount, UserState ) ->
 
 	% All input files expected to have been removed.
 
-	TargetRefDir = file_utils:bin_join( ReferenceRootDir, RelTargetDir ),
-
-	preserve_symlinks( InputRootDir, TargetRefDir, UserState ),
+	preserve_symlinks( InputRootDir, ReferenceRootDir, TargetSubPath,
+					   UserState ),
 
 	% Input tree shall be now void of content and thus can be removed as such:
 	remove_file( get_cache_path_for( InputRootDir ), UserState ),
@@ -2650,7 +2656,7 @@ cherry_pick_files_to_merge( _SHA1sToPick=[], InputRootDir, _InputEntries,
 
 
 cherry_pick_files_to_merge( _SHA1sToPick=[ SHA1 | T ], InputRootDir,
-		InputEntries, ReferenceRootDir, ReferenceEntries, RelTargetDir,
+		InputEntries, ReferenceRootDir, ReferenceEntries, TargetSubPath,
 		PickChoices, Count, TotalContentCount, UserState ) ->
 
 	% In all cases all files for this SHA1 shall be removed from input tree:
@@ -2678,7 +2684,7 @@ cherry_pick_files_to_merge( _SHA1sToPick=[ SHA1 | T ], InputRootDir,
 				move ->
 					{ MovedAbsRelPath, MovedRelPath } = safe_move(
 						InputRootDir, ContentPath, ReferenceRootDir,
-						RelTargetDir, UserState ),
+						TargetSubPath, UserState ),
 
 					NewTimestamp =
 					  file_utils:get_last_modification_time( MovedAbsRelPath ),
@@ -2755,7 +2761,7 @@ cherry_pick_files_to_merge( _SHA1sToPick=[ SHA1 | T ], InputRootDir,
 
 					{ MovedAbsRelPath, MovedRelPath } = safe_move(
 						InputRootDir, MovedFilePath, ReferenceRootDir,
-						RelTargetDir, UserState ),
+						TargetSubPath, UserState ),
 
 					ToRemoveFullPaths = [ file_utils:bin_join( InputRootDir, P )
 											|| P <- ToRemovePaths ],
@@ -2795,7 +2801,7 @@ cherry_pick_files_to_merge( _SHA1sToPick=[ SHA1 | T ], InputRootDir,
 							% Going back to the beginning of this step:
 							cherry_pick_files_to_merge( SHA1, InputRootDir,
 								InputEntries, ReferenceRootDir,
-								ReferenceEntries, RelTargetDir, PickChoices,
+								ReferenceEntries, TargetSubPath, PickChoices,
 								Count, TotalContentCount, UserState )
 
 					end,
@@ -2813,7 +2819,7 @@ cherry_pick_files_to_merge( _SHA1sToPick=[ SHA1 | T ], InputRootDir,
 	end,
 
 	cherry_pick_files_to_merge( T, InputRootDir, InputEntries,
-		ReferenceRootDir, NewReferenceEntries, RelTargetDir, PickChoices,
+		ReferenceRootDir, NewReferenceEntries, TargetSubPath, PickChoices,
 		Count+1, TotalContentCount, UserState ).
 
 
@@ -2866,27 +2872,10 @@ delete_content_to_merge( SHA1sToDelete, InputRootDir, InputEntries,
 
 
 
-
 % Moves "safely" specified file, from path RelFilePath relative to SourceRootDir
-% to the same RelFilePath path but this time relatively to TargetRootDir, by
-% ensuring (through any renaming needed) that no clash happens at target.
-%
-% Returns the path to which the file was moved, twice: as a pair made of an
-% absolute path and as one relative to TargetRootDir.
-%
--spec safe_move( bin_directory_path(), bin_file_path(),
-			bin_directory_path(), file_path(), user_state() ) ->
-						{ bin_file_path(), bin_file_path() }.
-safe_move( SourceRootDir, SourceRelPath, TargetRootDir, UserState ) ->
-	% As, later: file_utils:bin_join(<<"">>, <<"a/b">>) =:= <<"a/b">>
-	safe_move( SourceRootDir, SourceRelPath, TargetRootDir,
-			   _RelTargetDir= <<"">>, UserState ).
-
-
-% Moves "safely" specified file, from path RelFilePath relative to
-% SourceRootDir to the same RelFilePath path but this time relatively to
-% RelTargetDir, itself relative to TargetRootDir, by ensuring (through any
-% renaming needed) that no clash happens at target.
+% to the same RelFilePath path but this time relatively to TargetSubPath, itself
+% relative to TargetRootDir, by ensuring (through any renaming needed) that no
+% clash happens at target.
 %
 % Returns the path to which the file was moved, twice: as a pair made of an
 % absolute path and a relative one to TargetRootDir.
@@ -2894,7 +2883,7 @@ safe_move( SourceRootDir, SourceRelPath, TargetRootDir, UserState ) ->
 -spec safe_move( bin_directory_path(), bin_file_path(),
 			bin_directory_path(), file_path(), user_state() ) ->
 						{ bin_file_path(), bin_file_path() }.
-safe_move( SourceRootDir, SourceRelPath, TargetRootDir, RelTargetDir,
+safe_move( SourceRootDir, SourceRelPath, TargetRootDir, TargetSubPath,
 		   UserState ) ->
 
 	AbsSourcePath = file_utils:bin_join( SourceRootDir, SourceRelPath ),
@@ -2910,10 +2899,11 @@ safe_move( SourceRootDir, SourceRelPath, TargetRootDir, RelTargetDir,
 
 	end,
 
-	RelTargetPath = file_utils:bin_join( RelTargetDir, SourceRelPath ),
+	RelTargetPath = file_utils:bin_join( TargetSubPath, SourceRelPath ),
 
 	AbsTargetPath = file_utils:bin_join( TargetRootDir, RelTargetPath ),
 
+	% Avoid any clash:
 	P = { AckAbsTargetPath, _AckRelTargetPath } =
 			case file_utils:exists( AbsTargetPath ) of
 
@@ -3359,8 +3349,9 @@ handle_newest_timestamp( NewestTimestamp, ContentFiles, CacheFilePath,
 
 
 				TreeData ->
-					ui:display( "Cache file seems to match actual tree '~ts', "
-								"considering it legit.", [ BinTreePath ] ),
+					ui:display_instant(
+					  "Cache file seems to match actual tree '~ts', "
+					  "considering it legit.", [ BinTreePath ] ),
 					TreeData
 
 			end
