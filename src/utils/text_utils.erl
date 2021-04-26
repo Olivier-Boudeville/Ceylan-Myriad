@@ -1571,7 +1571,7 @@ requires_value( _ ) ->
 % Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected
 % Unicode inputs resulting on crashes afterwards.
 %
-%-spec format_ellipsed( format_string(), format_values() ) -> ustring().
+-spec format_ellipsed( format_string(), format_values() ) -> ustring().
 format_ellipsed( FormatString, Values ) ->
 	ellipse( format( FormatString, Values ), _MaxLen=400 ).
 
