@@ -3965,7 +3965,7 @@ manage_duplicates( EntryTable, BinRootDir, UserState ) ->
 			Prompt = case TotalDupCaseCount of
 
 				1 ->
-					text_utils:format( "a single case of content duplication "
+					text_utils:format( "A single case of content duplication "
 						"detected in tree '~ts'.~n~nShall we:~n",
 						[ BinRootDir ] );
 
