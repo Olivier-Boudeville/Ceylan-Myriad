@@ -3014,6 +3014,9 @@ copy_file( SourceFilePath, DestinationFilePath ) ->
 % Copies a specified file to a given destination filename (not a directory name,
 % see copy_file_in/2 for that), overwriting any previous file.
 %
+% Symlinks are copied as symlinks (whereas file:copy/2 would copy their target
+% as new files).
+%
 % Note: content is copied and permissions are preserved (ex: the copy of an
 % executable file will be itself executable, and other permissions as well,
 % unlike /bin/cp that relies on umask).
@@ -3030,8 +3033,44 @@ try_copy_file( SourceFilePath, DestinationFilePath ) ->
 	%
 	case file:read_link_info( SourceFilePath ) of
 
-		{ ok, #file_info{ mode=Mode } } ->
+		% Here we want to create in turn a symlink (broken or not, pointing
+		% through the exact same path definition, absolute or relative):
+		%
+		{ ok, #file_info{ type=symlink } } ->
+			case file:read_link_all( SourceFilePath ) of
 
+				% Possibly a raw file element:
+				{ ok, LinkTargetPath } ->
+					case file:make_symlink( LinkTargetPath,
+											DestinationFilePath ) of
+
+						ok ->
+							ok;
+
+						{ error, Reason } ->
+							trace_utils:error_fmt( "Cannot create symlink "
+								"'~ts' pointing to '~ts': ~p.",
+								[ DestinationFilePath, LinkTargetPath ] ),
+							throw( { symlink_creation_failed, Reason,
+									 DestinationFilePath, LinkTargetPath } )
+
+					end;
+
+				{ error, Reason } ->
+					trace_utils:error_fmt( "Cannot determine the target of "
+						"symbolic link '~ts': ~p.",
+						[ SourceFilePath, Reason ] ),
+					throw( { symlink_resolution_failed, Reason,
+							 SourceFilePath } )
+
+			end;
+
+		{ ok, #file_info{ type=regular, mode=Mode } } ->
+
+			% Yet file:copy/2 will fail (with 'enoent') if SourceFilePath is a
+			% broken symlink, as it copies the target of the link, not the link
+			% itself.
+			%
 			case file:copy( SourceFilePath, DestinationFilePath ) of
 
 				{ ok, _ByteCount } ->
