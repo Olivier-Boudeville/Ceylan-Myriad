@@ -2388,7 +2388,7 @@ equalize( FirstTreeData=#tree_data{ root=FirstRootPath,
 		{ OnlyInFirstSHA1, _OnlyInSecondSHA1=[] } ->
 
 			ui:display( "The first tree ('~ts') has ~ts that the second "
-				"has not (and ~ts); copying this content.~n~ts",
+				"has not (and ~ts); copying this content.~n~n~ts",
 				[ FirstRootPath, count_content( OnlyInFirstSHA1 ),
 				  uniquified_to_string( IsFirstUniquified ),
 				  list_lacking_content( OnlyInFirstSHA1, FirstEntryTable,
@@ -2403,7 +2403,7 @@ equalize( FirstTreeData=#tree_data{ root=FirstRootPath,
 		{ _OnlyInFirstSHA1=[], OnlyInSecondSHA1 } ->
 
 			ui:display( "The second tree ('~ts') has ~ts that the first "
-				"has not (and ~ts); copying this content.~n~ts",
+				"has not (and ~ts); copying this content.~n~n~ts",
 				[ SecondRootPath, count_content( OnlyInSecondSHA1 ),
 				  uniquified_to_string( IsSecondUniquified ),
 				  list_lacking_content( OnlyInSecondSHA1, SecondEntryTable,
@@ -4184,13 +4184,13 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 	FullPrompt = text_utils:format_ellipsed( "~ts~ts",
 						[ Prompt, DuplicateString ], ?max_message_header_len ),
 
-	Choices = [ { auto_symlink, "Auto-select shortest path as "
-				  "reference, replace other duplicates by symlinks" },
-				{ auto_remove, "Auto-select, and just remove duplicates "
+	Choices = [ { auto_remove, "Auto-select, and just remove duplicates "
 				  "(no symlink created)" },
+				{ auto_symlink, "Auto-select shortest path as "
+				  "reference, replace other duplicates by symlinks" },
+				{ keep, "Elect a reference file, remove other duplicates" },
 				{ elect, "Elect a reference file, replace other duplicates "
 				  "by symlinks" },
-				{ keep, "Elect a reference file, remove other duplicates" },
 				{ leave, "Leave them as they are" },
 				{ delete, "Delete them as a whole" },
 				{ abort, "Abort" } ],
