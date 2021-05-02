@@ -33,7 +33,7 @@
 
 
 % Version of this tool:
--define( merge_script_version, "0.1.1" ).
+-define( merge_script_version, "0.1.2" ).
 
 
 % Centralised:
@@ -263,7 +263,7 @@ get_usage() ->
 	  "   (4) '"?exec_name" -~ts A_TREE': updates the tree cache, regarding new/modified/removed files\n"
 	  "   (5) '"?exec_name" -~ts A_TREE': performs a lighter update of the tree cache\n"
 	  "   (6) '"?exec_name" -~ts A_TREE': removes duplicates from tree\n"
-	  "   (7) '"?exec_name" -~ts A_TREE A_CACHE_FILE': tells the differences in content between a tree and the cache file of another (possibly remote) one\n"
+	  "   (7) '"?exec_name" -~ts A_TREE A_CACHE_FILE': tells the differences in content between a tree and the cache file of another (possibly remote) one, generating delta files to list the contents that differ on either side\n"
 	  "   (8) '"?exec_name" -h' or '"?exec_name" -~ts'\n\n"
 	  "   Ensures, for the first form, that all the changes in a possibly more up-to-date, \"newer\" tree (INPUT_TREE) are merged back to the reference tree (REFERENCE_TREE), whence the input tree may have derived. Once executed, only a refreshed, complemented reference tree will exist, as the input tree will have been removed: all its original content (i.e. its content that was not already in the reference tree) will have been transferred in the reference tree.\n"
 	  "   In the reference tree, in-tree duplicated content will be either kept as it is, or removed as a whole (to keep only one copy thereof), or replaced by symbolic links in order to keep only a single reference version of each actual content.\n"
@@ -1485,7 +1485,7 @@ perform_resync( BinUserTreePath, CacheFilePath, AnalyzerRing, UserState ) ->
 
 	% Very similar to perform_rescan/4:
 
-	ReadTreeData=#tree_data{ root=BinCachedTreePath, entries=SHA1Table } =
+	ReadTreeData = #tree_data{ root=BinCachedTreePath, entries=SHA1Table } =
 		read_cache_file( CacheFilePath, UserState ),
 
 	ActualBinTreePath = case BinUserTreePath of
@@ -2392,7 +2392,8 @@ equalize( FirstTreeData=#tree_data{ root=FirstRootPath,
 				[ FirstRootPath, count_content( OnlyInFirstSHA1 ),
 				  uniquified_to_string( IsFirstUniquified ),
 				  list_lacking_content( OnlyInFirstSHA1, FirstEntryTable,
-										"second" ) ] ),
+					"second", _MaybeRootPath=undefined,
+					_MaybeDeltaFile=undefined ) ] ),
 
 			NewSecondTreeData = copy_content( OnlyInFirstSHA1, FirstRootPath,
 				FirstEntryTable, SecondTreeData, UserState ),
@@ -2407,7 +2408,8 @@ equalize( FirstTreeData=#tree_data{ root=FirstRootPath,
 				[ SecondRootPath, count_content( OnlyInSecondSHA1 ),
 				  uniquified_to_string( IsSecondUniquified ),
 				  list_lacking_content( OnlyInSecondSHA1, SecondEntryTable,
-										"first" ) ] ),
+					"first", _MaybeRootPath=undefined,
+					_MaybeDeltaFile=undefined ) ] ),
 
 			NewFirstTreeData = copy_content( OnlyInSecondSHA1, SecondRootPath,
 				SecondEntryTable, FirstTreeData, UserState ),
@@ -2426,9 +2428,11 @@ equalize( FirstTreeData=#tree_data{ root=FirstRootPath,
 				  interpret_uniqueness( IsFirstUniquified,
 					IsSecondUniquified, FirstRootPath, SecondRootPath ),
 				  list_lacking_content( OnlyInSecondSHA1, SecondEntryTable,
-										"first" ),
+					"first", _MaybeRootPath=undefined,
+					_MaybeDeltaFile=undefined ),
 				  list_lacking_content( OnlyInFirstSHA1, FirstEntryTable,
-										"second" ) ] ),
+					"second", _MaybeRootPath=undefined,
+					_MaybeDeltaFile=undefined ) ] ),
 
 			NewFirstTreeData = copy_content( OnlyInSecondSHA1, SecondRootPath,
 				SecondEntryTable, FirstTreeData, UserState ),
@@ -2464,18 +2468,21 @@ interpret_uniqueness( _IsFirstUniquified=false, _IsSecondUniquified=false,
 
 
 
-% Merges the (supposedly more up-to-date) input tree into the target, reference
-% one (both supposed to be absolute).
+% Checks the specified tree path against the specified cache file. Displays
+% differences, and generates corresponding delta files (if any).
 %
 -spec check_against( bin_directory_path(), bin_file_path(), analyzer_ring(),
 					 user_state() ) -> void().
 check_against( AbsTreePath, AbsCachePath, AnalyzerRing, UserState ) ->
 
+	% Local tree:
 	ToCheckTreeData = resync( AbsTreePath, AnalyzerRing, UserState ),
 	IsToCheckUniquified = is_uniquified( ToCheckTreeData ),
 	ToCheckEntries = ToCheckTreeData#tree_data.entries,
 	ToCheckSHA1s = table:keys( ToCheckEntries ),
+	LocalHostname = ToCheckTreeData#tree_data.hostname,
 
+	% Cache file:
 	ReadTreeData = read_cache_file( AbsCachePath, UserState ),
 	AbsReadTreePath = ReadTreeData#tree_data.root,
 	IsReadUniquified = is_uniquified( ReadTreeData ),
@@ -2484,7 +2491,7 @@ check_against( AbsTreePath, AbsCachePath, AnalyzerRing, UserState ) ->
 
 	ReadHostname = ReadTreeData#tree_data.hostname,
 
-	Title = case text_utils:string_to_binary( net_utils:localhost() ) of
+	Title = case net_utils:bin_localhost() of
 
 		ReadHostname ->
 			"Check report";
@@ -2513,41 +2520,65 @@ check_against( AbsTreePath, AbsCachePath, AnalyzerRing, UserState ) ->
 
 
 		{ OnlyInCheckedSHA1s, _OnlyInCachedSHA1s=[] } ->
+
+			{ DeltaFilePath, DeltaFile } = prepare_delta( LocalHostname,
+				AbsTreePath, ReadHostname, AbsReadTreePath ),
+
 			ui:display( "The checked tree ('~ts') is a strict superset "
 				"of '~ts' (as represented by its cache file '~ts'); "
 				"they have in common ~ts (~ts), and checked tree has "
-				"additionally ~ts.~n~n~ts",
+				"additionally ~ts.~n~nIts extra content will be written in "
+				"'~ts'.~n~n~ts",
 				[ AbsTreePath, AbsReadTreePath, AbsCachePath,
 				  count_content( InBothSHA1s ), UniqStr,
-				  count_content( OnlyInCheckedSHA1s ),
+				  count_content( OnlyInCheckedSHA1s ), DeltaFilePath,
 				  list_lacking_content( OnlyInCheckedSHA1s, ToCheckEntries,
-										_TreeDesc="cached" ) ] );
+					_OtherTreeDesc="cached", AbsTreePath, DeltaFile ) ] );
 
 
 		{ _OnlyInCheckedSHA1s=[], OnlyInCachedSHA1s } ->
+
+			{ DeltaFilePath, DeltaFile } = prepare_delta( ReadHostname,
+				AbsReadTreePath, LocalHostname, AbsTreePath ),
+
 			ui:display( "The checked tree ('~ts') is a strict subset "
 				"of '~ts' (as represented by its cache file '~ts'); "
-				"they have in common ~ts (~ts), and checked tree lacks ~ts. "
-				"~n~n~ts",
+				"they have in common ~ts (~ts), and checked tree lacks ~ts.~n~n"
+				"This lacking content will be written in '~ts'.~n~n~ts",
 				[ AbsTreePath, AbsReadTreePath, AbsCachePath,
 				  count_content( InBothSHA1s ), UniqStr,
-				  count_content( OnlyInCachedSHA1s ),
+				  count_content( OnlyInCachedSHA1s ), DeltaFilePath,
 				  list_lacking_content( OnlyInCachedSHA1s, ReadEntries,
-										_TreeDesc="checked" ) ] );
+					_OtherTreeDesc="checked", AbsReadTreePath, DeltaFile ) ] );
 
 
 		{ OnlyInCheckedSHA1s, OnlyInCachedSHA1s } ->
+
+			{ LackingInCacheDeltaFilePath, LackingInCacheDeltaFile } =
+				prepare_delta( LocalHostname, AbsTreePath, ReadHostname,
+							   AbsReadTreePath ),
+
+			{ LackingInCheckedDeltaFilePath, LackingInCheckedDeltaFile } =
+				prepare_delta( ReadHostname, AbsReadTreePath,
+							   LocalHostname, AbsTreePath ),
+
 			ui:display( "Knowing that they have ~ts in common (and that ~ts), "
 				"the checked tree ('~ts') contains ~ts that '~ts' "
 				"(as represented by its cache file '~ts') does not have, "
-				"but also lacks ~ts.~n~n~ts~n~ts",
+				"but also lacks ~ts.~n~n"
+				"The extra content in checked tree will be written in '~ts', "
+				"while the extra content in cached tree will be written "
+				"in '~ts'.~n~n~ts~n~ts",
 				[ count_content( InBothSHA1s ), UniqStr, AbsTreePath,
 				  count_content( OnlyInCheckedSHA1s ), AbsReadTreePath,
 				  AbsCachePath, count_content( OnlyInCachedSHA1s ),
+				  LackingInCacheDeltaFilePath, LackingInCheckedDeltaFilePath,
 				  list_lacking_content( OnlyInCheckedSHA1s, ToCheckEntries,
-										_FirstTreeDesc="cached" ),
+					_FirstTreeDesc="cached", AbsTreePath,
+					LackingInCacheDeltaFile ),
 				  list_lacking_content( OnlyInCachedSHA1s, ReadEntries,
-										_SecondTreeDesc="checked" ) ] )
+					_SecondTreeDesc="checked", AbsReadTreePath,
+					LackingInCheckedDeltaFile ) ] )
 
 	end.
 
@@ -3042,7 +3073,7 @@ start_user_service( LogFilename ) ->
 	% No more file_utils:get_default_encoding_option(), refer to the
 	% merge_file_options define for an explanation:
 	%
-	FileOpts =  [ append, raw ],
+	FileOpts = [ append, raw ],
 
 	LogFile = file_utils:open( LogFilename, FileOpts ),
 
@@ -3367,6 +3398,9 @@ handle_newest_timestamp( NewestTimestamp, ContentFiles, CacheFilePath,
 								   user_state() ) -> tree_data().
 create_merge_cache_file_for( TreePath, AnalyzerRing, UserState ) ->
 
+	ui:display_instant( "Creating merge cache file for '~ts'...",
+						[ TreePath ] ),
+
 	AbsTreePath = file_utils:ensure_path_is_absolute( TreePath ),
 
 	check_tree_path_exists( AbsTreePath ),
@@ -3648,7 +3682,8 @@ scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 				  user_state() ) -> tree_data().
 scan_files( Files, BinAbsTreePath, AnalyzerRing, UserState ) ->
 
-	InitialTreeData = #tree_data{ root=BinAbsTreePath },
+	InitialTreeData = #tree_data{ hostname=net_utils:bin_localhost(),
+								  root=BinAbsTreePath },
 
 	scan_files( Files, InitialTreeData, AnalyzerRing, _WaitedCount=0,
 				UserState ).
@@ -4828,37 +4863,133 @@ check_file_sizes_match( _FilePairs=[ { FilePath, FileSize } | T ], TreePath,
 
 
 
-% Returns a textual description of specified lacking cached content.
--spec list_lacking_content( [ sha1() ], sha1_table(), ustring() ) -> ustring().
-list_lacking_content( _SHA1s=[ SHA1 ], SHA1Table, TreeDesc ) ->
-	text_utils:format_ellipsed( "The content lacking in ~ts tree is ~ts.",
-		[ TreeDesc, describe_content( SHA1, SHA1Table ) ], ?max_text_length );
+% Returns a pair made of the path of the delta file corresponding to the content
+% in first space and not in second, and of the (opened) delta file itself.
+%
+% Any pre-existing file on the same name will be removed.
+% The returned file shall be closed by the caller.
+%
+-spec prepare_delta( bin_fqdn(), bin_directory_path(), bin_fqdn(),
+		bin_directory_path() ) -> { bin_directory_path(), file() }.
+prepare_delta( FirstHostname, FirstRootPath, SecondHostname,
+			   SecondRootPath ) ->
 
-list_lacking_content( SHA1s, SHA1Table, TreeDesc ) ->
-	text_utils:format_ellipsed( "The contents lacking in ~ts tree are: ~ts",
-		[ TreeDesc, text_utils:strings_to_enumerated_string(
-			[ describe_content( S, SHA1Table ) || S <- SHA1s ] ) ],
-		?max_text_length ).
+	% Avoidind too long FQDNs:
+	DeltaFilename = text_utils:format(
+		"merge-elements-in-~ts-on-~ts-but-not-in-~ts-on-~ts.txt",
+		[ file_utils:get_last_path_element( FirstRootPath ),
+		  file_utils:convert_to_filename(
+			net_utils:get_hostname( FirstHostname ) ),
+		  file_utils:get_last_path_element( SecondRootPath ),
+		  file_utils:convert_to_filename(
+			net_utils:get_hostname( SecondHostname ) ) ] ),
+
+	DeltaFilePath = file_utils:any_join( file_utils:get_current_directory(),
+										 DeltaFilename ),
+
+	case file_utils:is_existing_file_or_link( DeltaFilePath ) of
+
+		true ->
+			trace_utils:warning_fmt(
+			  "Overwriting preexisting delta file '~ts'.", [ DeltaFilePath ] ),
+			file_utils:remove_file( DeltaFilePath );
+
+		false ->
+			ok
+
+	end,
+
+	% Same options apply:
+	DeltaFile = file_utils:open( DeltaFilePath, ?merge_file_options ),
+
+	{ DeltaFilePath, DeltaFile }.
+
+
+
+% Returns a textual description of specified lacking cached content, and writes
+% a corresponding information in specified opened file (if any).
+%
+-spec list_lacking_content( [ sha1() ], sha1_table(), ustring(),
+			maybe( bin_directory_path() ), maybe( file() ) ) -> ustring().
+list_lacking_content( _SHA1s=[ SHA1 ], SHA1Table, OtherTreeDesc, MaybeRootPath,
+					  MaybeDeltaFile ) ->
+
+	Str = text_utils:format_ellipsed( "The content lacking in ~ts tree is ~ts.",
+		[ OtherTreeDesc,
+		  describe_content( SHA1, SHA1Table, MaybeRootPath, MaybeDeltaFile ) ],
+		?max_text_length ),
+
+	case MaybeDeltaFile of
+
+		undefined ->
+			ok;
+
+		_ ->
+			file_utils:close( MaybeDeltaFile )
+
+	end,
+
+	Str;
+
+
+list_lacking_content( SHA1s, SHA1Table, OtherTreeDesc, MaybeRootPath,
+					  MaybeDeltaFile ) ->
+
+	Str = text_utils:format_ellipsed(
+		"The contents lacking in ~ts tree are: ~ts",
+		[ OtherTreeDesc, text_utils:strings_to_enumerated_string(
+			[ describe_content( S, SHA1Table, MaybeRootPath, MaybeDeltaFile )
+			  || S <- SHA1s ] ) ], ?max_text_length ),
+
+	case MaybeDeltaFile of
+
+		undefined ->
+			ok;
+
+		DeltaFile ->
+			file_utils:close( DeltaFile )
+
+	end,
+
+	Str.
+
 
 
 % (helper)
-describe_content( SHA1, SHA1Table ) ->
-	case table:get_value( SHA1, SHA1Table ) of
+describe_content( SHA1, SHA1Table, RootPath, MaybeDeltaFile ) ->
 
-		[ _SingleFileData=#file_data{ path=ContentPath } ] ->
-			text_utils:format( "(solely) in '~ts'", [ ContentPath ] );
+	{ ContentPath, Str } = case table:get_value( SHA1, SHA1Table ) of
+
+		[ _SingleFileData=#file_data{ path=UniqContentPath } ] ->
+			{ UniqContentPath,
+			  text_utils:format( "(solely) in '~ts'", [ UniqContentPath ] ) };
 
 		[ FirstFileData, _SecondFileData ] ->
 			FirstContentPath = FirstFileData#file_data.path,
-			text_utils:format( "in '~ts' (and in another duplicate)",
-							   [ FirstContentPath ] );
+			{ FirstContentPath, text_utils:format(
+									"in '~ts' (and in another duplicate)",
+									[ FirstContentPath ] ) };
 
 		[ FirstFileData| T ] ->
 			FirstContentPath = FirstFileData#file_data.path,
-			text_utils:format( "in '~ts' (and in ~B other duplicates)",
-							   [ FirstContentPath, length( T ) ] )
+			{ FirstContentPath, text_utils:format(
+								  "in '~ts' (and in ~B other duplicates)",
+								  [ FirstContentPath, length( T ) ] ) }
 
-	end.
+	end,
+
+	case MaybeDeltaFile of
+
+		undefined ->
+			ok;
+
+		DeltaFile ->
+			AbsContentPath = file_utils:any_join( RootPath, ContentPath ),
+			file_utils:write_ustring( DeltaFile, AbsContentPath )
+
+	end,
+
+	Str.
 
 
 
