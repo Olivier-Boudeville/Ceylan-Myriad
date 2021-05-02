@@ -4880,14 +4880,20 @@ check_file_sizes_match( _FilePairs=[ { FilePath, FileSize } | T ], TreePath,
 prepare_delta( FirstHostname, FirstRootPath, SecondHostname,
 			   SecondRootPath ) ->
 
-	% Avoidind too long FQDNs:
+	% Avoiding too long FQDNs, yet maintaining them unique:
+	{ FirstShortPath, SecondShortPath } =
+		file_utils:get_shortest_unique_ending_paths( FirstRootPath,
+													 SecondRootPath ),
+
+	[ FirstDesc, SecondDesc ] = [ string:replace( P, _SearchPattern="/",
+												  _Replacement="-", _Where=all )
+								  || P <- [ FirstShortPath, SecondShortPath ] ],
+
 	DeltaFilename = text_utils:format(
 		"merge-elements-in-~ts-on-~ts-but-not-in-~ts-on-~ts.txt",
-		[ file_utils:get_last_path_element( FirstRootPath ),
-		  file_utils:convert_to_filename(
+		[ FirstDesc, file_utils:convert_to_filename(
 			net_utils:get_hostname( FirstHostname ) ),
-		  file_utils:get_last_path_element( SecondRootPath ),
-		  file_utils:convert_to_filename(
+		  SecondDesc, file_utils:convert_to_filename(
 			net_utils:get_hostname( SecondHostname ) ) ] ),
 
 	% Not wanting this file to be created in the 'merge-tool' directory,
