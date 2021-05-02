@@ -111,7 +111,7 @@
 		  is_absolute_path/1,
 		  ensure_path_is_absolute/1, ensure_path_is_absolute/2,
 		  normalise_path/1, make_relative/1, make_relative/2,
-		  get_longest_common_path/1,
+		  get_longest_common_path/1, get_shortest_unique_ending_paths/2,
 
 		  is_leaf_among/2,
 
@@ -402,6 +402,46 @@
 % yet apparently with nothing simpler than:
 
 % awk -v val=USER_ID -F ":" '$3==val{print $1}' /etc/passwd
+
+
+% Regarding tree traversals:
+%
+% In the course of a traversal, we chose not to follow the symbolic links that
+% point to a directory, in order to avoid having a traversal escape a given tree
+% and/or enter cycles and/or having symlinks pointing to symlinks etc.
+%
+% To nevertheless introduce such a feature, helpers such as find_files_from/5
+% may recurse in a Directories list augmented with the symlinks that point to
+% directories:
+%
+%	% Some symlinks may point to directories:
+%	AllDirectories = lists:foldl(
+%		fun( SymLnk, Acc ) ->
+%			case file:read_link_all( SymLnk ) of
+%
+%				{ ok, SymTarget } ->
+%					% TO-DO: might be in turn a symlink, which shall be
+%                   % fully resolved first.
+%                   %
+%					case is_existing_directory( SymTarget ) of
+%
+%						true ->
+%							[ SymTarget | Acc ];
+%
+%						false ->
+%							Acc
+%
+%					end;
+%
+%				{ error, _ } ->
+%					Acc
+%
+%			end
+%
+%		end,
+%		_Acc=Directories,
+%		_List=Symlinks ),
+
 
 
 
@@ -1807,9 +1847,12 @@ has_matching_suffix( Path, [ Suffix | T ] ) ->
 
 % Section dedicated to the look-up of files, with various variations (with or
 % without extensions, with or without excluded directories, etc.)
-
+%
+% During a tree traversal, no symbolic link is ever followed. See the 'Regarding
+% tree traversals' section at the top of this file.
+%
 % Excluded directories are all promoted to binary strings at first, so that no
-% upcoming lists:member( D, ExcludedDirs ) can fail if ever D happens to be a
+% upcoming lists:member(D, ExcludedDirs) can fail if ever D happens to be a
 % binary (because of a 'raw directory').
 
 
@@ -1908,9 +1951,9 @@ find_files_from( RootDir, CurrentRelativeDir, IncludeSymlinks,
 
 	end,
 
-	Acc ++ list_files_in_subdirs( Directories, RootDir, CurrentRelativeDir,
-							IncludeSymlinks, IfImproperEncoding, _NextAcc=[] )
-		++ prefix_files_with( CurrentRelativeDir, Files ).
+	Acc ++ list_files_in_subdirs( Directories, RootDir,
+			CurrentRelativeDir, IncludeSymlinks, IfImproperEncoding,
+			_NextAcc=[] ) ++ prefix_files_with( CurrentRelativeDir, Files ).
 
 
 
@@ -3888,6 +3931,50 @@ try_behead_with( _Elem, _Others, _Acc ) ->
 	%trace_utils:debug_fmt( "'~ts' could not be removed from ~p",
 	%					  [ Elem, Others ] ),
 	non_matching.
+
+
+
+% Returns a pair made of the shortest ending paths that allows to discriminate
+% between the specified paths (expected to be of the same string type).
+%
+% Ex: get_shortest_unique_ending_paths( "/aa/bb/foo/bar/hello.txt",
+%                                       "/tmp/buzz/frob/aa/foo/bar/hello.txt")
+%      returns: {"bb/foo/bar/hello.txt", "aa/foo/bar/hello.txt"}
+%
+-spec get_shortest_unique_ending_paths( any_path(), any_path() ) ->
+												{ any_path(), any_path() }.
+get_shortest_unique_ending_paths( Path, Path ) ->
+	throw( { same_path, Path } );
+
+get_shortest_unique_ending_paths( FirstPath, SecondPath ) ->
+
+	FirstElems = lists:reverse( filename:split( FirstPath ) ),
+	SecondElems = lists:reverse( filename:split( SecondPath ) ),
+
+	get_shorted_ending_helper( FirstElems, SecondElems, _Acc=[] ).
+
+
+% Can newer happen by design (checked first to be different):
+%get_shorted_ending_helper( _FirstElems=[], _SecondElems=[], Acc ) ->
+get_shorted_ending_helper( _FirstElems=[], _SecondElems=[ S | _T ],
+								Acc ) ->
+	RevPath = join( Acc ),
+	{ RevPath, join( S, RevPath ) };
+
+get_shorted_ending_helper( _FirstElems=[ S | _T ], _SecondElems=[], Acc ) ->
+	RevPath = join( Acc ),
+	{ join( S, RevPath ), RevPath };
+
+% Same element:
+get_shorted_ending_helper( _FirstElems=[ H | TF ], _SecondElems=[ H | TS ],
+						   Acc ) ->
+	get_shorted_ending_helper( TF, TS, [ H | Acc ] );
+
+% Different:
+get_shorted_ending_helper( _FirstElems=[ HF | _TF ], _SecondElems=[ HS | _TS ],
+						   Acc ) ->
+	RevPath = join( Acc ),
+	{ join( HF, RevPath ),  join( HS, RevPath ) }.
 
 
 
