@@ -46,6 +46,7 @@
 
 % Node-related functions:
 -export([ localnode/0, localnode_as_binary/0,
+		  set_unique_node_name/0,
 		  get_all_connected_nodes/0,
 		  check_node_availability/1, check_node_availability/2,
 		  get_node_naming_mode/0, get_naming_compliant_hostname/2,
@@ -672,6 +673,43 @@ localnode() ->
 -spec localnode_as_binary() -> bin_node_name().
 localnode_as_binary() ->
 	erlang:atom_to_binary( localnode(), _Encoding=latin1 ).
+
+
+
+% Sets the name of the current node, expected to be already a distributed one,
+% to a name expected to be unique.
+%
+% Useful to allow multiple instances of a given application to run concurrently
+% (otherwise beside the first, their node cannot be created).
+%
+% Restarts the distribution node with long names - however it is generally *not*
+% expected to succeed. Anyway an often better solution is not running a
+% networked (distributed) node at the first place (see NODE_NAMING="--nn") and
+% (iff needed) to execute enable_distribution/2 afterwards.
+%
+-spec set_unique_node_name() -> void().
+set_unique_node_name() ->
+
+	% Relying on the (UNIX) PID of the corresponding VM would be ideal.
+
+	random_utils:start_random_source( time_based_seed ),
+
+	% math:pow(10, 8) not an integer:
+	N = random_utils:get_random_value( 100000000 ),
+
+	AtomName = text_utils:string_to_atom(
+					text_utils:format( "myriad_node_~B", [ N ] ) ),
+
+	% Bound to fail with Reason=not_allowed:
+	case net_kernel:stop() of
+
+		ok ->
+			{ ok, _SomePid } = net_kernel:start( AtomName );
+
+		{ error, Reason } ->
+			throw( { cannot_stop_node, Reason } )
+
+	end.
 
 
 
