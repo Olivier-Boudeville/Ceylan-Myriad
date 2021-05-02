@@ -1010,8 +1010,6 @@ rescan( BinTreePath, AnalyzerRing, UserState ) ->
 					 text_utils:format( "Rescan of ~ts", [ BinTreePath ] ) },
 					   { title, "Rescan in progress..." } ] ),
 
-	ui:display_instant( "Rescanning '~ts'...", [ BinTreePath ] ),
-
 	case file_utils:is_existing_directory_or_link( BinTreePath ) of
 
 		true ->
@@ -1122,6 +1120,7 @@ perform_rescan( BinUserTreePath, CacheFilePath, AnalyzerRing, UserState ) ->
 
 	ObtainedTreeData = ReadTreeData#tree_data{ root=ActualBinTreePath },
 
+	ui:display_instant( "Rescanning '~ts'...", [ ActualBinTreePath ] ),
 	trace_debug( "Rescanning tree '~ts'...", [ ActualBinTreePath ], UserState ),
 
 	% Relative to specified path:
@@ -1415,8 +1414,6 @@ resync( BinTreePath, AnalyzerRing, UserState ) ->
 					 text_utils:format( "Resync of ~ts", [ BinTreePath ] ) },
 					   { title, "Resync in progress..." } ] ),
 
-	ui:display_instant( "Resynchronising '~ts'...", [ BinTreePath ] ),
-
 	case file_utils:is_existing_directory_or_link( BinTreePath ) of
 
 		true ->
@@ -1529,6 +1526,7 @@ perform_resync( BinUserTreePath, CacheFilePath, AnalyzerRing, UserState ) ->
 
 	ObtainedTreeData = ReadTreeData#tree_data{ root=ActualBinTreePath },
 
+	ui:display_instant( "Resynchronising '~ts'...", [ ActualBinTreePath ] ),
 	trace_debug( "Resynchronising tree '~ts'...", [ ActualBinTreePath ],
 				 UserState ),
 
@@ -3652,6 +3650,7 @@ terminate_analyzer_ring( AnalyzerRing, UserState ) ->
 						tree_data().
 scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 
+	ui:display_instant( "Scanning '~ts'...", [ AbsTreePath ] ),
 	trace_debug( "Scanning tree '~ts'...", [ AbsTreePath ], UserState ),
 
 	% Regular ones (symlinks not of interest), even if their filename has a
@@ -5049,15 +5048,19 @@ uniquified_to_string( false ) ->
 
 
 % Returns a textual description of the count of the specified content.
--spec count_content( [ sha1() ] ) -> ustring().
-count_content( [] ) ->
+-spec count_content( [ sha1() ] | count() ) -> ustring().
+count_content( L ) when is_list( L ) ->
+	count_content( length( L ) );
+
+count_content( _Count=0 ) ->
 	"no content";
 
-count_content( [ _ ] ) ->
-	"a single content";
+count_content( _Count=1 ) ->
+	"a single unique content";
 
-count_content( SHA1s ) ->
-	text_utils:format( "~B contents", [ length( SHA1s ) ] ).
+count_content( Count ) ->
+	text_utils:format( "~B unique contents", [ Count ] ).
+
 
 
 
@@ -5159,26 +5162,28 @@ display_tree_data( TreeData=#tree_data{ entries=EntryTable,
 	Suffix = case table:size( EntryTable ) of
 
 		FileCount ->
-			text_utils:format( "exactly ~B unique contents, and as many files, "
-				"it is therefore uniquified", [ FileCount ] );
+			text_utils:format( " ~s, and as many files, "
+				"it is therefore uniquified", [ count_content( FileCount ) ] );
 
 		ContentCount ->
 			DupCount = FileCount - ContentCount,
 			case DupCount > 0 of
 
 				true ->
-					text_utils:format( "~B unique contents and ~B regular files"
-						" (hence with ~ts)",
-						[ ContentCount, FileCount, case DupCount of
-							1 -> "a single duplicate";
-							_ -> text_utils:format( "a total of ~B duplicates",
-													[ DupCount ] )
+					text_utils:format( "~s and ~B regular files"
+						" (hence with ~ts)", [ count_content( ContentCount ),
+											   FileCount, case DupCount of
+							1 ->
+								"a single duplicate";
+							_ ->
+								text_utils:format( "a total of ~B duplicates",
+												   [ DupCount ] )
 												   end ] );
 
 				false ->
 					trace_bridge:error_fmt(
-					  "~B regular files, ~B contents, abnormal: ~ts",
-					  [ FileCount, ContentCount,
+					  "~B regular files, ~s; abnormal: ~ts",
+					  [ FileCount, count_content( ContentCount ),
 						tree_data_to_string( TreeData ) ] ),
 					throw( { inconsistency_detected, FileCount, ContentCount } )
 
