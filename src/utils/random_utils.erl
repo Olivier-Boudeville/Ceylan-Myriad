@@ -94,7 +94,7 @@
 %
 % Currently the crypto module is not used by default, as:
 %
-% - not all Erlang VM can be built with the proper SSH support
+% - not all Erlang VMs can be built with the proper SSH support
 %
 % - it is unclear whether the crypto module can be seeded like the random module
 % can be (probably it cannot be)
