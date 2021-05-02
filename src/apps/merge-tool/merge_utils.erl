@@ -4880,10 +4880,19 @@ check_file_sizes_match( _FilePairs=[ { FilePath, FileSize } | T ], TreePath,
 prepare_delta( FirstHostname, FirstRootPath, SecondHostname,
 			   SecondRootPath ) ->
 
-	% Avoiding too long FQDNs, yet maintaining them unique:
-	{ FirstShortPath, SecondShortPath } =
-		file_utils:get_shortest_unique_ending_paths( FirstRootPath,
-													 SecondRootPath ),
+	% Avoiding too long FQDNs, yet maintaining them unique if on the same host:
+	{ FirstShortPath, SecondShortPath } = case FirstHostname of
+
+		SecondHostname ->
+			file_utils:get_shortest_unique_ending_paths( FirstRootPath,
+														 SecondRootPath );
+
+		% No collision possible if different hosts:
+		_ ->
+			{ file_utils:get_last_path_element( FirstRootPath ),
+			  file_utils:get_last_path_element( SecondRootPath ) }
+
+	end,
 
 	[ FirstDesc, SecondDesc ] = [ string:replace( P, _SearchPattern="/",
 												  _Replacement="-", _Where=all )
