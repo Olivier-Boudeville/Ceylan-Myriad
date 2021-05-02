@@ -4184,17 +4184,20 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 	BinPaths = lists:sort( [ E#file_data.path || E <- FileEntries ] ),
 
 	% By design more than one path: text_utils:get_longest_common_path/1 should
-	% not be used as for example a 'foobar-new' directory could be a sibling of
-	% a 'foobar' directory, resulting in '-new/...' meaningless suffixes; so:
+	% not be used, as for example a 'foobar-new' directory could be a sibling of
+	% a 'foobar' directory, resulting in '-new/...' meaningless suffixes; so we
+	% use the path-aware file_utils version thereof:
 	%
 	{ Prompt, Prefix, BinShortenPaths } =
 			case file_utils:get_longest_common_path( BinPaths ) of
 
 		% No common prefix at all here:
 		{ _Prfx= <<"">>, Tails } ->
+
 			Lbl = text_utils:format( "Following ~B files have the "
 				"exact same content (and thus size, of ~ts)",
 				[ Count, SizeString ] ),
+
 			{ Lbl, _Prefix="", _TrimmedPaths=Tails };
 
 
@@ -4215,7 +4218,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 	DuplicateString = text_utils:format( ": ~ts",
 		[ text_utils:binaries_to_binary( BinShortenPaths, ?bullet_point ) ] ),
 
-	% Otherwise might be a problem for the UI:
+	% Shortened if too long, otherwise might be a problem for the UI:
 	FullPrompt = text_utils:format_ellipsed( "~ts~ts",
 						[ Prompt, DuplicateString ], ?max_message_header_len ),
 
@@ -4241,6 +4244,19 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 	case SelectedChoice of
 
+		auto_remove ->
+			KeptFilePath = keep_shortest_path( Prefix, BinShortenPaths,
+				BinRootDir, _CreateSymlinks=false, UserState ),
+
+			trace_debug( "Kept only auto-selected reference file '~ts', "
+				"with no symlink created.", [ KeptFilePath ], UserState ),
+
+			%trace_bridge:debug_fmt( "Entries to scan: ~p", [ FileEntries ] ),
+
+			% As this is a list of file_data:
+			[ find_data_entry_for( KeptFilePath, FileEntries ) ];
+
+
 		auto_symlink ->
 			KeptFilePath = keep_shortest_path( Prefix, BinShortenPaths,
 				BinRootDir, _CreateSymlinks=true, UserState ),
@@ -4254,12 +4270,12 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 			[ find_data_entry_for( KeptFilePath, FileEntries ) ];
 
 
-		auto_remove ->
-			KeptFilePath = keep_shortest_path( Prefix, BinShortenPaths,
-				BinRootDir, _CreateSymlinks=false, UserState ),
+		keep ->
+			KeptFilePath = keep_only_one( Prefix, BinShortenPaths, BinPaths,
+										  BinRootDir, UserState ),
 
-			trace_debug( "Kept only auto-selected reference file '~ts', "
-				"with no symlink created.", [ KeptFilePath ], UserState ),
+			trace_debug( "Kept only selected reference file '~ts'",
+						 [ KeptFilePath ], UserState ),
 
 			%trace_bridge:debug_fmt( "Entries to scan: ~p", [ FileEntries ] ),
 
@@ -4273,19 +4289,6 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 			% As this is a list of file_data:
 			[ find_data_entry_for( ElectedFilePath, FileEntries ) ];
-
-
-		keep ->
-			KeptFilePath = keep_only_one( Prefix, BinShortenPaths, BinPaths,
-										  BinRootDir, UserState ),
-
-			trace_debug( "Kept only selected reference file '~ts'",
-						 [ KeptFilePath ], UserState ),
-
-			%trace_bridge:debug_fmt( "Entries to scan: ~p", [ FileEntries ] ),
-
-			% As this is a list of file_data:
-			[ find_data_entry_for( KeptFilePath, FileEntries ) ];
 
 
 		leave ->
@@ -4436,7 +4439,9 @@ keep_shortest_path( Prefix, TrimmedPaths, BinRootDir, CreateSymlinks,
 
 	% They all have the same prefix; we rely here on Erlang term ordering, where
 	% 'undefined' is greater than any integer ('raw filenames' cannot even have
-	% their length determined):
+	% their length determined; as a result they are naturally eliminated if at
+	% least one duplicate has a "normal" filename; ties are resolved also
+	% thanks to sorting):
 	%
 	_AscendingPairs = [ _H={ _SmallestLen, KeptFilePath } | LongerPairs ] =
 		lists:sort(
@@ -4460,7 +4465,9 @@ keep_shortest_path( Prefix, TrimmedPaths, BinRootDir, CreateSymlinks,
 	case CreateSymlinks of
 
 		true ->
-			create_links_to( KeptFilePath, FutureLinkPaths, BinRootDir );
+			AbsKeptFilePath =
+				file_utils:join( [ BinRootDir, Prefix, KeptFilePath ] ),
+			create_links_to( AbsKeptFilePath, FutureLinkPaths, BinRootDir );
 
 		false ->
 			ok
