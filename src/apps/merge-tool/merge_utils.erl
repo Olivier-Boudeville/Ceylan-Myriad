@@ -4884,8 +4884,14 @@ prepare_delta( FirstHostname, FirstRootPath, SecondHostname,
 		  file_utils:convert_to_filename(
 			net_utils:get_hostname( SecondHostname ) ) ] ),
 
-	DeltaFilePath = file_utils:any_join( file_utils:get_current_directory(),
-										 DeltaFilename ),
+	% Not wanting this file to be created in the 'merge-tool' directory,
+	% preferring the root of the user account (so in neither tree paths):
+	%
+	%DeltaFilePath = file_utils:any_join( file_utils:get_current_directory(),
+	%									 DeltaFilename ),
+	%
+	DeltaFilePath = file_utils:any_join(
+		system_utils:get_user_home_directory(), DeltaFilename ),
 
 	case file_utils:is_existing_file_or_link( DeltaFilePath ) of
 
@@ -4973,8 +4979,8 @@ describe_content( SHA1, SHA1Table, RootPath, MaybeDeltaFile ) ->
 		[ FirstFileData| T ] ->
 			FirstContentPath = FirstFileData#file_data.path,
 			{ FirstContentPath, text_utils:format(
-								  "in '~ts' (and in ~B other duplicates)",
-								  [ FirstContentPath, length( T ) ] ) }
+								"in '~ts' (and in ~B other duplicates)",
+								[ FirstContentPath, length( T ) ] ) }
 
 	end,
 
@@ -4985,7 +4991,7 @@ describe_content( SHA1, SHA1Table, RootPath, MaybeDeltaFile ) ->
 
 		DeltaFile ->
 			AbsContentPath = file_utils:any_join( RootPath, ContentPath ),
-			file_utils:write_ustring( DeltaFile, AbsContentPath )
+			file_utils:write_ustring( DeltaFile, "~ts~n", [ AbsContentPath ] )
 
 	end,
 
