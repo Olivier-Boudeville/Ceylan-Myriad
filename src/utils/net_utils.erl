@@ -38,7 +38,8 @@
 
 
 % Host-related functions:
--export([ ping/1, localhost/0, localhost/1, split_fqdn/1,
+-export([ ping/1, localhost/0, bin_localhost/0, localhost/1, bin_localhost/1,
+		  split_fqdn/1, get_hostname/1,
 		  get_local_ip_addresses/0, get_local_ip_address/0,
 		  get_reverse_lookup_info/0, reverse_lookup/1, reverse_lookup/2 ]).
 
@@ -108,8 +109,11 @@
 
 
 -type atom_host_name() :: atom().
+
 -type string_host_name() :: nonempty_string().
 -type bin_host_name() :: bin_string().
+-type any_host_name() :: any_string().
+
 
 -type host_name() :: atom_host_name() | string_host_name() | bin_host_name().
 
@@ -190,8 +194,9 @@
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
-
 -type bin_string() :: text_utils:bin_string().
+-type any_string() :: text_utils:any_string().
+
 
 -type file_path() :: file_utils:file_path().
 -type directory_path() :: file_utils:directory_path().
@@ -229,8 +234,8 @@ ping( Hostname ) when is_list( Hostname ) ->
 
 
 
-% Returns an appropriate DNS name for the local host (as a string), or throws an
-% exception.
+% Returns an appropriate DNS name for the local host (as a plain string), or
+% throws an exception.
 %
 % Tries to collect a FQDN (Fully Qualified Domain Name).
 %
@@ -239,9 +244,19 @@ localhost() ->
 	localhost( fqdn ).
 
 
+% Returns an appropriate DNS name for the local host (as a binary string), or
+% throws an exception.
+%
+% Tries to collect a FQDN (Fully Qualified Domain Name).
+%
+-spec bin_localhost() -> bin_host_name().
+bin_localhost() ->
+	bin_localhost( fqdn ).
+
+
 
 % Returns an appropriate DNS name (either a FQDN - Fully Qualified Domain Name -
-% or a short host name) for the local host (as a string), or throws an
+% or a short host name) for the local host (as a plain string), or throws an
 % exception.
 %
 -spec localhost( 'fqdn' | 'short' ) -> string_host_name().
@@ -313,14 +328,49 @@ localhost_last_resort() ->
 
 
 
-% Returns, from specified FQDN, the corresponding actual host and its full
+% Returns an appropriate DNS name (either a FQDN - Fully Qualified Domain Name -
+% or a short host name) for the local host (as a binary string), or throws an
+% exception.
+%
+-spec bin_localhost( 'fqdn' | 'short' ) -> bin_host_name().
+bin_localhost( Type ) ->
+	text_utils:string_to_binary( localhost( Type ) ).
+
+
+
+% Returns, from the specified FQDN, the corresponding actual host and its full
 % domain.
 %
-% Ex: split_fqdn("garfield.baz.foobar.org") = {"garfield", "baz.foobar.org"}
+% Ex: {"garfield", "baz.foobar.org"} = split_fqdn("garfield.baz.foobar.org")
 %
 -spec split_fqdn( string_fqdn() ) -> { host_name(), domain_name() }.
 split_fqdn( FQDNStr ) ->
 	text_utils:split_at_first( _Marker=$., FQDNStr ).
+
+
+
+% Returns, from the specified arbitrary hostname (either a FQDN or just an
+% hostname), the corresponding actual "atomic" hostname (i.e. with no domain
+% involved), as a plain string.
+%
+% Ex: "garfield" = get_hostname("garfield.baz.foobar.org")
+%                = get_hostname("garfield").
+%
+-spec get_hostname( any_host_name() ) -> string_host_name().
+get_hostname( AnyHostname ) when is_list( AnyHostname )->
+	case split_fqdn( AnyHostname ) of
+
+		% Must be already just an hostname:
+		none_found ->
+			AnyHostname;
+
+		{ Hostname, _DomainName } ->
+			Hostname
+
+	end;
+
+get_hostname( BinHostname ) ->
+	get_hostname( text_utils:binary_to_string( BinHostname ) ).
 
 
 
