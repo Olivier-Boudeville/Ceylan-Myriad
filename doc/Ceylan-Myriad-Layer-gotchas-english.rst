@@ -25,12 +25,14 @@ The ``Myriad`` parse transform replaces references to the ``table`` module by re
 
 
 
-Network configuration
----------------------
+
+Enabling the Interconnection of Erlang nodes
+--------------------------------------------
 
 This is not a Myriad gotcha per se, but rather an Erlang one.
 
 Way too often, for obscure reasons Erlang nodes fail to connect to each other (especially with long names), and little to no information is available to diagnose the issue.
+
 
 
 Safety Measures
@@ -55,6 +57,7 @@ provided of course that, still in that file, you have not also a declaration suc
 (setting one's IP shall better be done in one's profile in ``/etc/netctl``, right?)
 
 
+
 Testing & Troubleshooting
 .........................
 
@@ -72,6 +75,9 @@ In the first::
 
  Chain OUTPUT (policy ACCEPT)
  target     prot opt source               destination
+
+ # Just to be on the safer side for this test:
+ $ killall beam.smp epmd
 
  # Then launch the target first node:
  $ ERL_EPMD_PORT=4032 erl -name n1 -setcookie aa
@@ -91,4 +97,4 @@ In the second terminal, try to find the previous node::
  pong
 
 
-If you see ``pang`` here, run to the nearest altar and make a sacrifice to any Distribution God you may believe in (Norse ones are presumably the most effective here), and apply the hints in the `Network configuration`_ section.
+If you see ``pang`` here, run to the nearest altar and make a sacrifice to any Distribution God you may believe in (Norse ones being presumably the most effective here), and apply the hints listed in the `Enabling the Interconnection of Erlang nodes`_ section.
