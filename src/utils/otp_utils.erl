@@ -101,11 +101,13 @@
 
 -type file_name() :: file_utils:file_name().
 -type file_path() :: file_utils:file_path().
+
 -type directory_path() :: file_utils:directory_path().
 -type bin_directory_path() :: file_utils:bin_directory_path().
 -type abs_directory_path() :: file_utils:abs_directory_path().
 
 -type ustring() :: text_utils:ustring().
+
 
 % Entries corresponding to the application specifications (see
 % https://erlang.org/doc/man/app.html) read from a .app file:
@@ -126,8 +128,8 @@
 		   ebin_dir :: bin_directory_path(),
 
 		   % If set, means that it is an active application:
-		   start_mod_args :: maybe( { module_name(),
-									  basic_utils:arguments() } ),
+		   start_mod_args ::
+				maybe( { module_name(), basic_utils:arguments() } ),
 
 		   % As contained in its .app file:
 		   spec :: app_spec() }).
@@ -453,7 +455,7 @@ generate_app_info( AppName, AbsBaseDir, AppTable ) ->
 		% Trying location #2.1, if this application is in a local checkout:
 		false ->
 			CheckBaseDir = file_utils:join(
-							 [ AbsBaseDir, "_checkouts", AppNameStr ] ),
+							[ AbsBaseDir, "_checkouts", AppNameStr ] ),
 
 			CheckLocalEBinDir = file_utils:join( CheckBaseDir, "ebin" ),
 
@@ -485,12 +487,12 @@ generate_app_info( AppName, AbsBaseDir, AppTable ) ->
 						"on '~ts'.", [ AppName, CheckBuildAppPath ] ),
 
 					case file_utils:is_existing_file_or_link(
-						   CheckBuildAppPath ) of
+							CheckBuildAppPath ) of
 
 						true ->
 							?trace_fmt( "Using, for the application '~ts', the "
-										"the _build checkout '~ts' file.",
-										[ AppName, CheckBuildAppPath ] ),
+								"the _build checkout '~ts' file.",
+								[ AppName, CheckBuildAppPath ] ),
 							{ CheckBuildAppPath, CheckBuildEBinDir,
 							  CheckBaseDir };
 
@@ -499,8 +501,8 @@ generate_app_info( AppName, AbsBaseDir, AppTable ) ->
 							DepEBinDir = get_build_ebin_from_lib( AbsBaseDir,
 																  AppNameStr ),
 
-							DepAppPath = file_utils:join( DepEBinDir,
-														  AppFilename ),
+							DepAppPath =
+								file_utils:join( DepEBinDir, AppFilename ),
 
 							?debug_fmt( "[3] Application '~ts' not found in "
 								"local checkout, trying as a local build "
@@ -565,8 +567,8 @@ try_next_locations( AppName, AppNameStr, AppFilename, DepEBinDir, DepAppPath,
 
 				true ->
 					?trace_fmt( "Using, for the application '~ts', "
-								"the local ebin sibling '~ts' file.",
-								[ AppName, SibLocalAppPath ] ),
+						"the local ebin sibling '~ts' file.",
+						[ AppName, SibLocalAppPath ] ),
 					{ SibLocalAppPath, SibLocalEbinDir, SibBaseDir };
 
 				% Trying #4.2: in the _build tree of a sibling:
@@ -586,8 +588,8 @@ try_next_locations( AppName, AppNameStr, AppFilename, DepEBinDir, DepAppPath,
 
 						true ->
 							?trace_fmt( "Using, for the application '~ts', "
-										"the _build sibling '~ts' file.",
-										[ AppName, SibBuildAppPath ] ),
+								"the _build sibling '~ts' file.",
+								[ AppName, SibBuildAppPath ] ),
 							{ SibBuildAppPath, SibBuildEbinDir, SibBaseDir };
 
 						% Trying #5, i.e. as a standard OTP application:
@@ -938,7 +940,7 @@ start_application( AppName, RestartType, BlacklistedApps ) ->
 
 				{ error, Reason } ->
 					trace_bridge:error_fmt( "Application '~ts' failed to "
-						"start: ~p", [ AppName, Reason ] ),
+											"start: ~p", [ AppName, Reason ] ),
 
 					throw( { app_start_failed, AppName, RestartType, Reason } )
 
