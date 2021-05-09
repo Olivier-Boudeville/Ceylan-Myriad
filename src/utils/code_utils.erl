@@ -57,13 +57,14 @@
 
 
 
-% The code path used by a language, i.e. a list of directories to scan for
-% runtime elements (Erlang -pa/-pz, Python sys.path with PYTHONPATH, Java
-% classpath, etc.)
+% The code path used by a language, i.e. a list of directories (as plain
+% strings) to scan for runtime elements (Erlang -pa/-pz, Python sys.path with
+% PYTHONPATH, Java classpath, etc.).
 %
 -type code_path() :: [ directory_path() ].
 
 -type code_path_position() :: 'first_position' | 'last_position'.
+
 
 %-type stack_location() :: [ { file, file_path() },
 %							 { line, meta_utils:line() } ].
@@ -99,6 +100,8 @@
 -type ustring() :: text_utils:ustring().
 
 -type directory_path() :: file_utils:directory_path().
+-type any_directory_path() :: file_utils:any_directory_path().
+
 -type file_name() :: file_utils:file_name().
 -type file_path() :: file_utils:file_path().
 
@@ -109,6 +112,7 @@
 -type time_out() :: time_utils:time_out().
 
 -type md5_sum() :: executable_utils:md5_sum().
+
 
 
 % Code-related functions.
@@ -319,7 +323,7 @@ deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
 %
 % Throws an exception if the directory does not exist.
 %
--spec declare_beam_directory( directory_path() ) -> void().
+-spec declare_beam_directory( any_directory_path() ) -> void().
 declare_beam_directory( Dir ) ->
 	declare_beam_directory( Dir, first_position ).
 
@@ -339,7 +343,7 @@ declare_beam_directory( Dir ) ->
 %
 % Throws an exception if the directory does not exist.
 %
--spec declare_beam_directory( directory_path(), code_path_position() ) ->
+-spec declare_beam_directory( any_directory_path(), code_path_position() ) ->
 									void().
 declare_beam_directory( Dir, first_position ) ->
 
@@ -347,14 +351,17 @@ declare_beam_directory( Dir, first_position ) ->
 		trace_utils:debug_fmt( "Declaring in first position BEAM directory "
 			"'~ts' in VM code path.", [ Dir ] ) ),
 
+	% Plain string needed:
+	DirStr = text_utils:ensure_string( Dir ),
+
 	% No need to check directory for existence, code:add_patha/1 will do it:
-	case code:add_patha( Dir ) of
+	case code:add_patha( DirStr ) of
 
 		true ->
 			ok;
 
 		{ error, bad_directory } ->
-			throw( { non_existing_beam_directory, Dir } )
+			throw( { non_existing_beam_directory, DirStr } )
 
 	end;
 
@@ -364,14 +371,17 @@ declare_beam_directory( Dir, last_position ) ->
 	  trace_utils:debug_fmt( "Declaring in last position BEAM directory '~ts' "
 							 "in VM code path.", [ Dir ] ) ),
 
+	% Plain string needed:
+	DirStr = text_utils:ensure_string( Dir ),
+
 	% No need to check directory for existence, code:add_pathz/1 will do it:
-	case code:add_pathz( Dir ) of
+	case code:add_pathz( DirStr ) of
 
 		true ->
 			ok;
 
 		{ error, bad_directory } ->
-			throw( { non_existing_beam_directory, Dir } )
+			throw( { non_existing_beam_directory, DirStr } )
 
 	end.
 
