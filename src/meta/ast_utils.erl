@@ -1076,9 +1076,10 @@ get_elements_with_context( Elements, Context ) ->
 
 
 % Returns the conventional virtual in-file location denoting generated code.
--spec get_generated_code_location() -> file_loc().
+-spec get_generated_code_location() -> line().
 get_generated_code_location() ->
-	{ _Line=0, _Column=0 }.
+	% Not { _Line=0, _Column=0 }:
+	_Line=0.
 
 
 
