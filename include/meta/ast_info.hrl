@@ -46,12 +46,12 @@
 %
 % For that, ASTs and forms are used, in a located version of them, as the form
 % order matters (to the actual compilation) and is a different, complementary
-% information to the original line numbers, which are kept for source reference
-% purposes.
+% information to the original in-file line and column numbers, which are kept
+% for source reference purposes.
 %
 % We store the located forms verbatim whenever possible (depending on the case,
 % either directly in the same field, or in *_def* counterpart fields), notably
-% to preserve the line numbers within.
+% to preserve the line and column numbers within.
 %
 % In the former case, a single field (ex: 'module') contains a pair of
 % information, whose first element is the higher level, syntax-free information
@@ -177,7 +177,8 @@
 		% types are recorded here.
 		%
 		% Note: it is better that way, as a type export attribute may define any
-		% number of exports, and we need to record its definition line.
+		% number of exports, and we need to record the in-file location of its
+		% definition.
 		%
 		% Note: this field must be kept synchronised with the table in the
 		% 'types' field.
@@ -226,7 +227,8 @@
 		% the exports of all functions are recorded here.
 		%
 		% Note: it is better that way, as a function export attribute may define
-		% any number of exports, and we need to record its definition line.
+		% any number of exports, and we need to record the in-file location of
+		% its definition.
 		%
 		% As empty exports are allowed (i.e. '-export([]).'), by default at the
 		% 'export_functions_marker' marker such an empty export is automatically
@@ -280,7 +282,7 @@
 		% List of all the located forms that are unhandled, which are typically
 		% errors, like:
 		%
-		% '{error,{LineNumber,erl_parse, ["syntax error before: ","')'"]}}''.
+		% '{error,{FileLoc,erl_parse, ["syntax error before: ","')'"]}}''.
 		%
 		% or forms meant to trigger errors (ex: if resulting in defining a
 		% function more than once)
@@ -300,8 +302,8 @@
 		   name = undefined :: type_utils:type_name(),
 
 
-		   % The (ordered) list of variable definitions (ex: [ { var, Line, 'X'
-		   % } ]) of this type:
+		   % The (ordered) list of variable definitions (ex: [{var, FileLoc, 'X'
+		   % }]) of this type:
 		   %
 		   % Note: set purposedly not to an empty list by default (to convey a
 		   % different meaning)
@@ -357,14 +359,14 @@
 
 
 		   % Corresponds to the in-AST sortable location of the full form for
-		   % the definition (first clause) of this function (not of the spec,
+		   % the definition (first clause) of this function (not of its spec,
 		   % which has its specific field below):
 		   %
 		   ast_location = undefined :: basic_utils:maybe( ast_info:location() ),
 
 
 		   % Corresponds to the in-file location of the first defined clause (in
-		   % its source file):
+		   % its source file) of this function:
 		   %
 		   % (this information is a priori redundant with the one in the first
 		   % clause, yet present in the forms, thus kept here; note that the
