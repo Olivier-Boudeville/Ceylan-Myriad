@@ -60,8 +60,8 @@ get_script_base_directory() ->
 -spec get_myriad_base_directory() -> file_utils:path().
 get_myriad_base_directory() ->
 
-	% We cannot use file_utils:normalise_path/1 here: Myriad not usable from
-	% that point yet.
+	% We cannot use file_utils:normalise_path/1 here, as Myriad is not usable
+	% from that point yet.
 	%
 	% Two main possibilities here: the current escript is located in src/scripts
 	% or in src/apps/SOME_APP; trying them in turn, using src/meta as an
@@ -78,16 +78,16 @@ get_myriad_base_directory() ->
 		{ ok, #file_info{ type=directory } } ->
 			FirstBaseCandidate;
 
-		{ error, _Reason } ->
+		{ error, _FirstReason } ->
 			% Maybe in src/apps/SOME_APP then:
 			SecondBaseCandidate = filename:join( FirstBaseCandidate, ".." ),
-			SecondMetaPath = filename:join(
-								[ SecondBaseCandidate, "src", "meta" ] ),
+			SecondMetaPath =
+				filename:join( [ SecondBaseCandidate, "src", "meta" ] ),
 			case file:read_file_info( SecondMetaPath ) of
 				{ ok, #file_info{ type=directory } } ->
 					SecondBaseCandidate;
 
-				{ error, _Reason } ->
+				{ error, _SecondReason } ->
 					throw( { myriad_base_directory_not_found,
 							 FirstBaseCandidate, SecondBaseCandidate } )
 

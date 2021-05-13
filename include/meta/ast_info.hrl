@@ -34,8 +34,8 @@
 
 
 % Description of a module name:
--type module_entry() :: basic_utils:maybe( { basic_utils:module_name(),
-											 ast_info:located_form() } ).
+-type module_entry() :: basic_utils:maybe(
+					{ basic_utils:module_name(), ast_info:located_form() } ).
 
 
 % A record to store and centralise information gathered about an Erlang
@@ -260,12 +260,13 @@
 		optional_callbacks_defs = [] :: [ ast_info:located_form() ],
 
 
-		% The definition of the last line in the original source file:
+		% The definition of the last in-file location in the original source
+		% file:
 		%
-		% (we keep it as a located form rather than a simple meta_utils:line()
-		% to avoid a costly addition in last position)
+		% (we keep it as a located form rather than as a simple
+		% ast_utils:file_loc() to avoid a costly addition in last position)
 		%
-		last_line :: ast_info:located_form(),
+		last_file_location :: ast_info:located_form(),
 
 
 		% Section markers, offering reference locations to AST transformations.
@@ -285,7 +286,6 @@
 		% function more than once)
 		%
 		unhandled_forms = [] :: [ ast_info:located_form() ]
-
 
 } ).
 
@@ -307,23 +307,24 @@
 		   % different meaning)
 		   %
 		   variables = undefined ::
-			 basic_utils:maybe( [ ast_type:ast_variable_pattern() ] ),
+				basic_utils:maybe( [ ast_type:ast_variable_pattern() ] ),
 
 
 		   % Tells whether this type is defined as opaque:
 		   opaque = undefined :: boolean(),
 
 
-		   % Corresponds to the location of the full form for the definition of
-		   % this type:
+		   % Corresponds to the in-AST sortable location of the full form for
+		   % the definition of this type:
 		   %
-		   location = undefined :: basic_utils:maybe( ast_info:location() ),
+		   ast_location = undefined :: basic_utils:maybe( ast_info:location() ),
 
 
-		   % Corresponds to the line where this type is defined (in its source
-		   % file):
+		   % Corresponds to the in-file location (line/column) where this type
+		   % is defined (in its source file):
 		   %
-		   line = undefined :: basic_utils:maybe( ast_base:line() ),
+		   file_location = undefined ::
+				basic_utils:maybe( ast_base:file_loc() ),
 
 
 		   % Type actual definition, a (non-located) abstract form:
@@ -355,21 +356,22 @@
 		   arity = undefined :: arity(),
 
 
-		   % Corresponds to the location of the full form for the definition
-		   % (first clause) of this function (not of the spec, which has its
-		   % specific field below):
+		   % Corresponds to the in-AST sortable location of the full form for
+		   % the definition (first clause) of this function (not of the spec,
+		   % which has its specific field below):
 		   %
-		   location = undefined :: basic_utils:maybe( ast_info:location() ),
+		   ast_location = undefined :: basic_utils:maybe( ast_info:location() ),
 
 
-		   % Corresponds to the line of the first defined clause (in its source
-		   % file):
+		   % Corresponds to the in-file location of the first defined clause (in
+		   % its source file):
 		   %
 		   % (this information is a priori redundant with the one in the first
 		   % clause, yet present in the forms, thus kept here; note that the
 		   % linter will not accept an 'undefined' value)
 		   %
-		   line = undefined :: basic_utils:maybe( ast_base:line() ),
+		   file_location = undefined ::
+				basic_utils:maybe( ast_base:file_loc() ),
 
 
 		   % Function actual definition, a (non-located) list of the abstract
@@ -382,7 +384,7 @@
 		   % form:
 		   %
 		   spec = undefined ::
-			 basic_utils:maybe( ast_info:located_function_spec() ),
+				basic_utils:maybe( ast_info:located_function_spec() ),
 
 
 		   % Tells whether the function is a callback (hence declared as such
@@ -400,9 +402,9 @@
 		   %
 		   % Note that, provided a legit location is specified here (i.e. the
 		   % location of an actual export form), this function will be
-		   % automatically declared in that export form, should it be not already)
+		   % automatically declared in that export form, should it be not
+		   % already)
 		   %
 		   exported = [] :: [ ast_info:location() ]
-
 
 } ).
