@@ -1737,7 +1737,7 @@ get_dialog_base_settings( SettingTable ) ->
 	end,
 
 	BacktitleOpt = case ?ui_table:get_value_with_defaults( 'backtitle',
-								   _Default=undefined, SettingTable ) of
+								   _BackDefault=undefined, SettingTable ) of
 
 		undefined ->
 			"";

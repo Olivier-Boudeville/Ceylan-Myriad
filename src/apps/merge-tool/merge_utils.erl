@@ -2417,6 +2417,9 @@ equalize( FirstTreeData=#tree_data{ root=FirstRootPath,
 
 		{ OnlyInFirstSHA1, OnlyInSecondSHA1 } ->
 
+			MaybeRootPath = undefined,
+			MaybeDeltaFile = undefined,
+
 			ui:display( "First tree has ~ts that the second has not, "
 				"and the second has ~ts that the first has not (and ~ts). "
 				"~n~n~ts~n~ts~nCompleting both trees with the content "
@@ -2426,11 +2429,9 @@ equalize( FirstTreeData=#tree_data{ root=FirstRootPath,
 				  interpret_uniqueness( IsFirstUniquified,
 					IsSecondUniquified, FirstRootPath, SecondRootPath ),
 				  list_lacking_content( OnlyInSecondSHA1, SecondEntryTable,
-					"first", _MaybeRootPath=undefined,
-					_MaybeDeltaFile=undefined ),
+					"first", MaybeRootPath, MaybeDeltaFile ),
 				  list_lacking_content( OnlyInFirstSHA1, FirstEntryTable,
-					"second", _MaybeRootPath=undefined,
-					_MaybeDeltaFile=undefined ) ] ),
+					"second", MaybeRootPath, MaybeDeltaFile ) ] ),
 
 			NewFirstTreeData = copy_content( OnlyInSecondSHA1, SecondRootPath,
 				SecondEntryTable, FirstTreeData, UserState ),
@@ -5177,7 +5178,7 @@ display_tree_data( TreeData=#tree_data{ entries=EntryTable,
 	Suffix = case table:size( EntryTable ) of
 
 		FileCount ->
-			text_utils:format( " ~s, and as many files, "
+			text_utils:format( " ~ts, and as many files, "
 				"it is therefore uniquified", [ count_content( FileCount ) ] );
 
 		ContentCount ->
@@ -5185,7 +5186,7 @@ display_tree_data( TreeData=#tree_data{ entries=EntryTable,
 			case DupCount > 0 of
 
 				true ->
-					text_utils:format( "~s and ~B regular files"
+					text_utils:format( "~ts and ~B regular files"
 						" (hence with ~ts)", [ count_content( ContentCount ),
 											   FileCount, case DupCount of
 							1 ->
@@ -5197,7 +5198,7 @@ display_tree_data( TreeData=#tree_data{ entries=EntryTable,
 
 				false ->
 					trace_bridge:error_fmt(
-					  "~B regular files, ~s; abnormal: ~ts",
+					  "~B regular files, ~ts; abnormal: ~ts",
 					  [ FileCount, count_content( ContentCount ),
 						tree_data_to_string( TreeData ) ] ),
 					throw( { inconsistency_detected, FileCount, ContentCount } )

@@ -447,9 +447,9 @@ split_at( InputList, _Count=MaxLen, MaxLen, AccList ) ->
 	% Max len reached, stopping here:
 	{ AccList, InputList };
 
-split_at( _InputList=[], _Count, _MaxLen, AccList ) ->
+split_at( InputList=[], _Count, _MaxLen, AccList ) ->
 	% Input list exhausted:
-	{ AccList, _InputList=[] };
+	{ AccList, InputList };
 
 
 split_at( _List=[ H | T ], Count, MaxLen, Acc ) ->

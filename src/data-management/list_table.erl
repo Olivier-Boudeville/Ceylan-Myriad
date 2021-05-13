@@ -556,17 +556,19 @@ toggle_entry( Key, Table ) ->
 
 
 % Returns a new table, which started from TableBase and was enriched with the
-% TableAdd entries whose keys where not already in TableBase (if a key is in
-% both tables, the one from TableBase will be kept).
+% TableAdd entries whose keys were not already in TableBase (if a key is in both
+% tables, the one from TableBase will be kept).
 %
 % Note: not the standard merge that one would expect, should values be lists.
 %
 -spec merge( list_table(), list_table() ) -> list_table().
 merge( TableBase, TableAdd ) ->
 
-	Base = lists:ukeysort( _N=1, TableBase ),
+	Index = 1,
 
-	Add = lists:ukeysort( _N=1, TableAdd ),
+	Base = lists:ukeysort( Index, TableBase ),
+
+	Add = lists:ukeysort( Index, TableAdd ),
 
 	lists:umerge( Base, Add ).
 

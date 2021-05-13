@@ -254,7 +254,7 @@
 
 
 % Any kind of terms that can be directly mapped to a string (typically accepted
-% by ~s in format strings):
+% by ~ts in format strings):
 %
 -type string_like() :: ustring() | unicode_string() | bin_string() | atom().
 

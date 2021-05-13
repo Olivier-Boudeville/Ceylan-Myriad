@@ -539,26 +539,26 @@ compare_helper( _FirstDate={ Yf, _Mf, _Df },
 	higher;
 
 % From here, Yf =:= Ys:
-compare_helper( _FirstDate={ _Y, Mf, _Df },
-				_SecondDate={ _Y, Ms, _Ds } )  when Ms < Mf ->
+compare_helper( _FirstDate={ _Yf, Mf, _Df },
+				_SecondDate={ _Ys, Ms, _Ds } )  when Ms < Mf ->
 	lower;
 
-compare_helper( _FirstDate={ _Y, Mf, _Df },
-				_SecondDate={ _Y, Ms, _Ds } ) when Ms > Mf ->
+compare_helper( _FirstDate={ _Yf, Mf, _Df },
+				_SecondDate={ _Ys, Ms, _Ds } ) when Ms > Mf ->
 	higher;
 
 % From here, Yf =:= Ys and Mf =:= Ms:
-compare_helper( _FirstDate={ _Y, _M, Df },
-				_SecondDate={ _Y, _M, Ds } )  when Df < Ds ->
+compare_helper( _FirstDate={ _Yf, _Mf, Df },
+				_SecondDate={ _Ys, _Ms, Ds } )  when Df < Ds ->
 	lower;
 
-compare_helper( _FirstDate={ _Y, _M, Df },
-				_SecondDate={ _Y, _M, Ds } ) when Df > Ds ->
+compare_helper( _FirstDate={ _Yf, _Mf, Df },
+				_SecondDate={ _Ys, _Ms, Ds } ) when Df > Ds ->
 	higher;
 
 % Df =:= Ds, equality:
-%compare_helper( _FirstDate={ _Y, _M, _D },
-%				_SecondDate={ _Y, _M, _D } ) ->
+%compare_helper( _FirstDate={ _Yf, _Mf, _Df },
+%				_SecondDate={ _Ys, _Ms, _Ds } ) ->
 compare_helper( _FirstDate, _SecondDate ) ->
 	equal.
 

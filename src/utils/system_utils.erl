@@ -1871,7 +1871,7 @@ get_total_physical_memory() ->
 
 	case run_command( UnitCommand ) of
 
-		 { _ExitCode=0, _Output="kB" } ->
+		 { _UnitExitCode=0, _Output="kB" } ->
 
 			% Ok, using kB indeed.
 
@@ -1883,7 +1883,7 @@ get_total_physical_memory() ->
 			%
 			case run_command( ValueCommand ) of
 
-				{ _ExitCode=0, MemSizeString } ->
+				{ _ValueExitCode=0, MemSizeString } ->
 
 					% They were probably kiB:
 					list_to_integer( MemSizeString ) * 1024;
