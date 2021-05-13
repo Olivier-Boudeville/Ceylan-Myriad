@@ -101,14 +101,14 @@
 
 
 
-% Checks that specified function name is legit.
+% Checks that the specified function name is legit.
 -spec check_function_name( term() ) -> function_name().
 check_function_name( Name ) ->
 	check_function_name( Name, _Context=undefined ).
 
 
 
-% Checks that specified function name is legit.
+% Checks that the specified function name is legit.
 -spec check_function_name( term(), form_context() ) -> function_name().
 check_function_name( Name, _Context ) when is_atom( Name ) ->
 	Name;
@@ -121,13 +121,13 @@ check_function_name( Other, Context ) ->
 
 
 
-% Checks that specified function identifier is legit.
+% Checks that the specified function identifier is legit.
 -spec check_function_id( term() ) -> function_id().
 check_function_id( Id ) ->
 	check_function_id( Id, _Context=undefined ).
 
 
-% Checks that specified function identifier is legit.
+% Checks that the specified function identifier is legit.
 -spec check_function_id( term(), form_context() ) -> function_id().
 check_function_id( FunctionId={ FunctionName, FunctionArity }, Context ) ->
 	check_function_name( FunctionName, Context ),
@@ -139,13 +139,13 @@ check_function_id( Other, Context ) ->
 
 
 
-% Checks that specified function identifiers are legit.
+% Checks that the specified function identifiers are legit.
 -spec check_function_ids( term() ) -> [ function_id() ].
 check_function_ids( Ids ) ->
 	check_function_ids( Ids, _Context=undefined ).
 
 
-% Checks that specified function identifiers are legit.
+% Checks that the specified function identifiers are legit.
 -spec check_function_ids( term(), form_context() ) -> [ function_id() ].
 check_function_ids( List, Context ) when is_list( List ) ->
 	[ check_function_id( Id, Context ) || Id <- List ];
@@ -156,13 +156,13 @@ check_function_ids( Other, Context ) ->
 
 
 
-% Checks that specified function type is legit.
+% Checks that the specified function type is legit.
 -spec check_function_type( term(), function_arity() ) -> function_type().
 check_function_type( Type, FunctionArity ) ->
 	check_function_type( Type, FunctionArity, _Context=undefined ).
 
 
-% Checks that specified function type is legit.
+% Checks that the specified function type is legit.
 -spec check_function_type( term(), function_arity(), form_context() ) ->
 									function_type().
 check_function_type( _FunctionType, _FunctionArity, _Context ) ->
@@ -176,13 +176,13 @@ check_function_type( _FunctionType, _FunctionArity, _Context ) ->
 
 
 
-% Checks that specified function types are legit.
+% Checks that the specified function types are legit.
 -spec check_function_types( term(), function_arity() ) -> [ function_type() ].
 check_function_types( Types, FunctionArity ) ->
 	check_function_types( Types, FunctionArity, _Context=undefined ).
 
 
-% Checks that specified function types are legit.
+% Checks that the specified function types are legit.
 -spec check_function_types( term(), function_arity(), form_context() ) ->
 								[ function_type() ].
 check_function_types( List, FunctionArity, Context ) when is_list( List ) ->
@@ -253,7 +253,7 @@ transform_function( FunctionInfo=#function_info{ clauses=ClauseDefs,
 		{ Loc, FunSpec } ->
 			?display_trace( "Transforming function spec." ),
 			{ NewFunSpec, NewTransforms } =
-						   transform_function_spec( FunSpec, Transforms ),
+							transform_function_spec( FunSpec, Transforms ),
 			{ { Loc, NewFunSpec }, NewTransforms }
 
 	end,
@@ -389,7 +389,7 @@ transform_function_constraint( { 'type', Line, 'constraint',
 % function table
 %
 -spec get_located_forms_for( function_export_table(), function_table() ) ->
-								   { [ located_form() ], [ located_form() ] }.
+									{ [ located_form() ], [ located_form() ] }.
 get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 
 	% Dropping the keys (the function_id(), i.e. function identifiers), focusing
@@ -404,7 +404,7 @@ get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 						% compiler will take care of that, with better, more
 						% standard messages:
 						%
-						fun( #function_info{ line=undefined,
+						fun( #function_info{ file_location=undefined,
 											 clauses=[],
 											 spec=MaybeSpec },
 							 { AccLocDefs, AccExportTable } ) ->
@@ -435,18 +435,17 @@ get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 						   % Only potentially correct configuration:
 						   ( #function_info{ name=Name,
 											 arity=Arity,
-											 location=Location,
-											 line=Line,
+											 ast_location=ASTLoc,
+											 file_location=FileLoc,
 											 clauses=Clauses,
 											 spec=MaybeSpec,
 											 exported=ExportLocs },
 							 { AccLocDefs, AccExportTable } ) ->
 
-
-								case Location of
+								case ASTLoc of
 
 									undefined ->
-										throw( { location_not_defined_for,
+										throw( { ast_location_not_defined_for,
 												 { Name, Arity } } );
 
 									_ ->
@@ -454,19 +453,19 @@ get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 
 								end,
 
-								case Line of
+								case FileLoc of
 
 									undefined ->
-										throw( { line_not_defined_for,
-												 { Name, Arity } } );
+										throw( { file_location_not_defined_for,
+													{ Name, Arity } } );
 
-									L when is_integer( L ) ->
-										ok
+									_ ->
+										ast_utils:check_file_loc( FileLoc )
 
 								end,
 
-								LocFunForm = { Location,
-								  { function, Line, Name, Arity, Clauses } },
+								LocFunForm = { ASTLoc,
+								  { function, FileLoc, Name, Arity, Clauses } },
 
 								NewAccLocDefs = case MaybeSpec of
 
@@ -534,7 +533,7 @@ update_export_table( FunctionName, Arity, _ExportLocs=[ Loc | H ],
 			end,
 
 			NewExportTable = ?table:add_entry( Loc, { Line, NewFunIds },
-											  ExportTable ),
+											   ExportTable ),
 
 			update_export_table( FunctionName, Arity, H, NewExportTable )
 
@@ -546,7 +545,7 @@ update_export_table( FunctionName, Arity, _ExportLocs=[ Loc | H ],
 % specified table.
 %
 -spec get_function_export_forms( function_export_table() ) ->
-									   [ located_form() ].
+										[ located_form() ].
 get_function_export_forms( FunctionExportTable ) ->
 
 	FunExportInfos = ?table:enumerate( FunctionExportTable ),
@@ -570,5 +569,5 @@ clauses_to_string( _Clauses=[], _IndentationLevel ) ->
 clauses_to_string( Clauses, IndentationLevel ) ->
 	text_utils:format( "~B function clauses defined: ~ts", [ length( Clauses ),
 		text_utils:strings_to_string(
-				 [ text_utils:format( "~p", [ C ] ) || C <- Clauses ],
-				 IndentationLevel ) ] ).
+			[ text_utils:format( "~p", [ C ] ) || C <- Clauses ],
+			IndentationLevel ) ] ).

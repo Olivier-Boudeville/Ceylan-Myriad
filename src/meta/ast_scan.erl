@@ -44,7 +44,7 @@
 
 % Name of any parse attribute:
 %
-% (typically in Form={ attribute, Line, AttributeName, AttributeValue })
+% (typically in Form={attribute, FileLoc, AttributeName, AttributeValue})
 %
 -type parse_attribute_name() :: atom().
 
@@ -168,10 +168,10 @@ scan( AST ) ->
 
 	InitModuleInfo = ast_info:init_module_info(),
 
-	FirstLocation = id_utils:get_initial_sortable_id(),
+	FirstASTLoc = id_utils:get_initial_sortable_id(),
 
-	FirstMarkerTable = ?table:add_new_entry( begin_marker, FirstLocation,
-										   InitModuleInfo#module_info.markers ),
+	FirstMarkerTable = ?table:add_new_entry( begin_marker, FirstASTLoc,
+										InitModuleInfo#module_info.markers ),
 
 	FirstModuleInfo = InitModuleInfo#module_info{ markers=FirstMarkerTable },
 
@@ -184,7 +184,7 @@ scan( AST ) ->
 	%
 	% So iterating in the list of forms that make for the AST:
 	%
-	case scan_forms( AST, FirstModuleInfo, _NextLocation=FirstLocation,
+	case scan_forms( AST, FirstModuleInfo, _NextASTLoc=FirstASTLoc,
 					 _CurrentFileRef=undefined ) of
 
 		M=#module_info{ errors=[] } ->
@@ -293,14 +293,15 @@ report_error( { Context, Error } ) ->
 
 % Returns a textual representation of specified compilation context.
 -spec context_to_string( scan_context() ) -> ustring().
-context_to_string( { Filename, Line } ) ->
+context_to_string( { Filename, FileLoc } ) ->
 
 	% Respects the standard formatting:
 	%
 	% (note: using file_utils:normalise_path/1 would suppose file_utils is
 	% already built...)
 	%
-	text_utils:format( "~ts:~B", [ Filename, Line ] ).
+	text_utils:format( "~ts:~ts",
+					   [ Filename, ast_utils:format_file_loc( FileLoc ) ] ).
 
 
 
@@ -357,16 +358,16 @@ context_to_string( { Filename, Line } ) ->
 % "If F is an attribute -export([Fun_1/A_1, ..., Fun_k/A_k]), then Rep(F) =
 % {attribute,LINE,export,[{Fun_1,A_1}, ..., {Fun_k,A_k}]}."
 %
-scan_forms( _AST=[ _Form={ 'attribute', Line, 'export', FunctionIds } | T ],
+scan_forms( _AST=[ _Form={ 'attribute', FileLoc, 'export', FunctionIds } | T ],
 			M=#module_info{ function_exports=ExportTable,
 							functions=FunctionTable,
 							markers=MarkerTable },
-			NextLocation, CurrentFileReference ) ->
+			NextASTLoc, CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "function export declaration for ~p",
 	% [ FunctionIds ] ),
 
-	Context = { CurrentFileReference, Line },
+	Context = { CurrentFileReference, FileLoc },
 
 	% Records this export regarding each of these functions:
 	NewFunctionTable = lists:foldl(
@@ -383,17 +384,17 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export', FunctionIds } | T ],
 					#function_info{ name=Name,
 									arity=Arity,
 									% Implicit:
-									%location=undefined
-									%line=undefined
+									%ast_location=undefined
+									%file_location=undefined
 									%clauses=[],
 									%spec=undefined,
 									%callback=undefined,
-									exported=[ NextLocation ] };
+									exported=[ NextASTLoc ] };
 
 				 % A function *might* be exported more than once:
 				 { value, FunInfo } -> % F=#function_info{ exported=[] } } ->
 					% Just add the fact that the function is exported then:
-					NewExp = [ NextLocation | FunInfo#function_info.exported ],
+					NewExp = [ NextASTLoc | FunInfo#function_info.exported ],
 					FunInfo#function_info{ exported=NewExp }
 
 			end,
@@ -405,7 +406,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export', FunctionIds } | T ],
 		_List=FunctionIds ),
 
 	% At least initially, exactly one export entry per location:
-	NewExportTable = ?table:add_new_entry( NextLocation, { Line, FunctionIds },
+	NewExportTable = ?table:add_new_entry( NextASTLoc, { FileLoc, FunctionIds },
 										   ExportTable ),
 
 	NewMarkerTable = case ?table:has_entry( export_functions_marker,
@@ -416,7 +417,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export', FunctionIds } | T ],
 			MarkerTable;
 
 		false ->
-			?table:add_entry( export_functions_marker, NextLocation,
+			?table:add_entry( export_functions_marker, NextASTLoc,
 							 MarkerTable )
 
 	end,
@@ -426,7 +427,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export', FunctionIds } | T ],
 	scan_forms( T, M#module_info{ function_exports=NewExportTable,
 								  functions=NewFunctionTable,
 								  markers=NewMarkerTable },
-				id_utils:get_next_sortable_id( NextLocation ),
+				id_utils:get_next_sortable_id( NextASTLoc ),
 				CurrentFileReference );
 
 
@@ -436,14 +437,14 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export', FunctionIds } | T ],
 % "If F is an attribute -import(Mod,[Fun_1/A_1, ..., Fun_k/A_k]), then Rep(F) =
 % {attribute,LINE,import,{Mod,[{Fun_1,A_1}, ..., {Fun_k,A_k}]}}."
 %
-scan_forms( _AST=[ Form={ 'attribute', Line, 'import',
+scan_forms( _AST=[ Form={ 'attribute', FileLoc, 'import',
 							{ ModuleName, FunIds } } | T ],
 			 M=#module_info{ function_imports=ImportTable,
 							 function_imports_defs=ImportDefs,
 							 markers=MarkerTable },
-			NextLocation, CurrentFileReference ) ->
+			NextASTLoc, CurrentFileReference ) ->
 
-	Context = { CurrentFileReference, Line },
+	Context = { CurrentFileReference, FileLoc },
 
 	ast_utils:check_module_name( ModuleName, Context ),
 	ast_function:check_function_ids( FunIds, Context ),
@@ -451,7 +452,7 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'import',
 	NewImportTable = ?table:append_list_to_entry( ModuleName, FunIds,
 												  ImportTable ),
 
-	NewImportDefs = [ { NextLocation, Form } | ImportDefs ],
+	NewImportDefs = [ { NextASTLoc, Form } | ImportDefs ],
 
 	NewMarkerTable = case ?table:has_entry( import_functions_marker,
 											MarkerTable ) of
@@ -461,7 +462,7 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'import',
 			MarkerTable;
 
 		false ->
-			?table:add_entry( import_functions_marker, NextLocation,
+			?table:add_entry( import_functions_marker, NextASTLoc,
 							  MarkerTable )
 
 	end,
@@ -469,7 +470,7 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'import',
 	scan_forms( T, M#module_info{ function_imports=NewImportTable,
 								  function_imports_defs=NewImportDefs,
 								  markers=NewMarkerTable },
-				id_utils:get_next_sortable_id( NextLocation ),
+				id_utils:get_next_sortable_id( NextASTLoc ),
 				CurrentFileReference );
 
 
@@ -479,14 +480,14 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'import',
 % "If F is an attribute -module(Mod), then Rep(F) =
 % {attribute,LINE,module,Mod}."
 %
-scan_forms( _AST=[ Form={ 'attribute', Line, 'module', ModuleName } | T ],
+scan_forms( _AST=[ Form={ 'attribute', FileLoc, 'module', ModuleName } | T ],
 			M=#module_info{ module=undefined,
 							markers=MarkerTable },
-			NextLocation, CurrentFileReference ) ->
+			NextASTLoc, CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "module declaration for ~ts", [ ModuleName ] ),
 
-	Context = { CurrentFileReference, Line },
+	Context = { CurrentFileReference, FileLoc },
 
 	ast_utils:check_module_name( ModuleName, Context ),
 
@@ -494,43 +495,43 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'module', ModuleName } | T ],
 	% {attribute,37,file,{"X.erl",37}} as they allow to report errors
 	% appropriately.
 
-	LocForm = { NextLocation, Form },
+	LocForm = { NextASTLoc, Form },
 
-	NewMarkerTable = ?table:add_new_entry( module_marker, NextLocation,
-										   MarkerTable ),
+	NewMarkerTable =
+		?table:add_new_entry( module_marker, NextASTLoc, MarkerTable ),
 
 	scan_forms( T, M#module_info{ module={ ModuleName, LocForm },
 								  markers=NewMarkerTable },
-				id_utils:get_next_sortable_id( NextLocation ),
+				id_utils:get_next_sortable_id( NextASTLoc ),
 				CurrentFileReference );
 
 
 % Any lacking, invalid or duplicated module declaration will be caught by
 % the compiler anyway.
 %
-scan_forms( _AST=[ _Form={ 'attribute', Line, 'module', ModuleName } | _T ],
+scan_forms( _AST=[ _Form={ 'attribute', FileLoc, 'module', ModuleName } | _T ],
 			 #module_info{ module={ PreviousModuleName, _PreviousLocDef } },
-			 _NextLocation, CurrentFileReference ) ->
+			 _NextASTLoc, CurrentFileReference ) ->
 	throw( { multiple_module_definitions, PreviousModuleName, ModuleName,
-			 { CurrentFileReference, Line } } );
+				{ CurrentFileReference, FileLoc } } );
 
 
 
 % 7.1.5: File reference (include) handling.
 %
-% "If F is an attribute -file(File,Line), then Rep(F) =
-% {attribute,LINE,file,{File,Line}}."
+% "If F is an attribute -file(File,FileLoc), then Rep(F) =
+% {attribute,LINE,file,{File,InFileLoc}}."
 %
 % Allows to keep track of when an included file begins and also ends, i.e. to
 % determine the current file to which any new line number corresponds.
 %
-scan_forms( _AST=[ Form={ 'attribute', _Line, 'file',
-						  { FilePath, _FileLine } } | T ],
-			 M=#module_info{ includes=Inc, include_defs=IncDefs }, NextLocation,
+scan_forms( _AST=[ Form={ 'attribute', _FileLoc, 'file',
+							{ FilePath, _InFileLoc } } | T ],
+			 M=#module_info{ includes=Inc, include_defs=IncDefs }, NextASTLoc,
 			_CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "file declaration with ~ts at #~B",
-	% [ FilePath, FileLine ] ),
+	% [ FilePath, InFileLoc ] ),
 
 	% We used to normalise paths, however then 'file_utils' would have to be
 	% bootstrapped as well, which does not seem desirable.
@@ -551,11 +552,11 @@ scan_forms( _AST=[ Form={ 'attribute', _Line, 'file',
 
 	end,
 
-	LocForm = { NextLocation, Form },
+	LocForm = { NextASTLoc, Form },
 
 	scan_forms( T, M#module_info{ includes=NewFilePaths,
 								  include_defs=[ LocForm | IncDefs ] },
-				id_utils:get_next_sortable_id( NextLocation ),
+				id_utils:get_next_sortable_id( NextASTLoc ),
 				NewCurrentFileReference );
 
 
@@ -568,12 +569,12 @@ scan_forms( _AST=[ Form={ 'attribute', _Line, 'file',
 % Rep(F) = {function,LINE,Name,Arity,[Rep(Fc_1), ...,Rep(Fc_k)]}."
 %
 scan_forms(
-  [ _Form={ 'function', Line, FunctionName, FunctionArity, Clauses } | T ],
+  [ _Form={ 'function', FileLoc, FunctionName, FunctionArity, Clauses } | T ],
   M=#module_info{ functions=FunctionTable,
 				  markers=MarkerTable,
 				  errors=Errors },
 				  %unhandled_forms=UnhandledForms },
-  NextLocation, CurrentFileReference ) ->
+  NextASTLoc, CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "function definition for ~p/~p",
 	% [ FunctionName, FunctionArity ] ),
@@ -583,7 +584,7 @@ scan_forms(
 	% (when adding a function, we may not check if ever there was a pre-existing
 	% one - multiple definitions will be rejected by the compiler anyway)
 
-	Context = { CurrentFileReference, Line },
+	Context = { CurrentFileReference, FileLoc },
 
 	ast_function:check_function_name( FunctionName, Context ),
 	ast_utils:check_arity( FunctionArity, Context ),
@@ -599,8 +600,8 @@ scan_forms(
 			% New entry then:
 			Finfo = #function_info{ name=FunctionName,
 									arity=FunctionArity,
-									location=NextLocation,
-									line=Line,
+									ast_location=NextASTLoc,
+									file_location=FileLoc,
 									clauses=Clauses
 									% Implicit:
 									%spec=undefined,
@@ -613,8 +614,8 @@ scan_forms(
 		{ value, F=#function_info{ clauses=[] } } ->
 			% Already here because of an export; just add the missing
 			% information then:
-			Finfo = F#function_info{ location=NextLocation,
-									 line=Line,
+			Finfo = F#function_info{ ast_location=NextASTLoc,
+									 file_location=FileLoc,
 									 clauses=Clauses },
 			{ Finfo, undefined };
 
@@ -634,9 +635,9 @@ scan_forms(
 		% We could crash directly, yet the error message would not be nicely
 		% integrated in an IDE (as not standard):
 
-		%{ value, #function_info{ line=PreviousLine } } ->
+		%{ value, #function_info{ file_location=PreviousFileLoc } } ->
 		%	ast_utils:raise_error( [ multiple_definitions_for, FunId,
-		%							 { previous_line, PreviousLine } ],
+		%							 { previous_line, PreviousFileLoc } ],
 		%						   Context )
 
 		% A better approach could have been to store a list of such list of
@@ -649,7 +650,7 @@ scan_forms(
 
 		{ value, F=#function_info{ name=FunctionName,
 								   arity=FunctionArity,
-								   line=SomeLine } } ->
+								   file_location=SomeFileLoc } } ->
 
 			% Note that the past error was not necessarily in the same file:
 			%
@@ -657,11 +658,11 @@ scan_forms(
 			% yet you require quite a lot of development)
 
 			Report = text_utils:format( "multiple definitions for ~ts/~B "
-				"(past definition at line ~B)",
-				[ FunctionName, FunctionArity, SomeLine ] ),
+				"(past definition at ~ts)", [ FunctionName, FunctionArity,
+					ast_utils:file_loc_to_string( SomeFileLoc ) ] ),
 
 			Error = { Context, Report },
-			%UnhandledLocForm = { NextLocation, Form },
+			%UnhandledLocForm = { NextASTLoc, Form },
 
 			{ F, Error }
 			% { F, UnhandledLocForm }
@@ -680,7 +681,7 @@ scan_forms(
 			MarkerTable;
 
 		false ->
-			?table:add_entry( definition_functions_marker, NextLocation,
+			?table:add_entry( definition_functions_marker, NextASTLoc,
 							  MarkerTable )
 
 	end,
@@ -702,7 +703,7 @@ scan_forms(
 								  markers=NewMarkerTable,
 								  errors=NewErrors },
 								  %unhandled_forms=NewUnhandledForms },
-				id_utils:get_next_sortable_id( NextLocation ),
+				id_utils:get_next_sortable_id( NextASTLoc ),
 				CurrentFileReference );
 
 
@@ -712,26 +713,26 @@ scan_forms(
 % "If F is a function specification -Spec Name Ft_1; ...; Ft_k, where Spec is
 % either the atom spec or the atom callback, and each Ft_i is a possibly
 % constrained function type with an argument sequence of the same length Arity,
-% then Rep(F) = {attribute,Line,Spec,{{Name,Arity},[Rep(Ft_1), ...,
+% then Rep(F) = {attribute,FileLoc,Spec,{{Name,Arity},[Rep(Ft_1), ...,
 % Rep(Ft_k)]}}."
 %
-scan_forms( [ Form={ 'attribute', Line, SpecType,
-					 { FunId, FunctionTypes } } | T ],
+scan_forms( [ Form={ 'attribute', FileLoc, SpecType,
+						{ FunId, FunctionTypes } } | T ],
 			M=#module_info{ functions=FunctionTable },
-			NextLocation, CurrentFileReference )
-  when SpecType == 'spec' orelse SpecType == 'callback' ->
+			NextASTLoc, CurrentFileReference )
+  when SpecType =:= 'spec' orelse SpecType =:= 'callback' ->
 
-	Context = { CurrentFileReference, Line },
+	Context = { CurrentFileReference, FileLoc },
 
-	{ FunctionName, FunctionArity } = ast_function:check_function_id( FunId,
-																	  Context ),
+	{ FunctionName, FunctionArity } =
+		ast_function:check_function_id( FunId, Context ),
 
 	ast_function:check_function_types( FunctionTypes, FunctionArity, Context ),
 
 	%ast_utils:display_debug( "~ts definition for ~p/~p",
 	% [ SpecType, FunctionName, FunctionArity ] ),
 
-	LocatedSpec = { NextLocation, Form },
+	LocatedSpec = { NextASTLoc, Form },
 
 	IsCallback = case SpecType of
 
@@ -751,8 +752,8 @@ scan_forms( [ Form={ 'attribute', Line, SpecType,
 			#function_info{ name=FunctionName,
 							arity=FunctionArity,
 							% Implicit:
-							%location=undefined,
-							%line=undefined,
+							%ast_location=undefined,
+							%file_location=undefined,
 							%clauses=[]
 							spec=LocatedSpec,
 							callback=IsCallback };
@@ -779,19 +780,18 @@ scan_forms( [ Form={ 'attribute', Line, SpecType,
 	%		   [ FunctionName, FunctionArity ] ),
 
 	scan_forms( T, M#module_info{ functions=NewFunctionTable },
-				id_utils:get_next_sortable_id( NextLocation ),
-				CurrentFileReference );
+		id_utils:get_next_sortable_id( NextASTLoc ), CurrentFileReference );
 
 
 % (optional callbacks, not specified in the spec yet known of the id parse
 % transform)
 %
-scan_forms( [ Form={ 'attribute', Line, _AttributeName='optional_callbacks',
+scan_forms( [ Form={ 'attribute', FileLoc, _AttributeName='optional_callbacks',
 					 _AttributeValue=FunIds } | T ],
 			M=#module_info{ optional_callbacks_defs=LocatedDefs },
-			NextLocation, CurrentFileReference ) ->
+			NextASTLoc, CurrentFileReference ) ->
 
-	Context = { CurrentFileReference, Line },
+	Context = { CurrentFileReference, FileLoc },
 
 	% Surprisingly, in erl_id_trans.erl, the corresponding check may fail (as is
 	% in a try/catch clause), and in this case is replaced by its original
@@ -799,31 +799,31 @@ scan_forms( [ Form={ 'attribute', Line, _AttributeName='optional_callbacks',
 	%
 	ast_function:check_function_ids( FunIds, Context ),
 
-	LocForm = { NextLocation, Form },
+	LocForm = { NextASTLoc, Form },
 
 	scan_forms( T, M#module_info{
 					 optional_callbacks_defs=[ LocForm | LocatedDefs ] },
-				id_utils:get_next_sortable_id( NextLocation ),
+				id_utils:get_next_sortable_id( NextASTLoc ),
 				CurrentFileReference );
 
 
 % (asm attribute, not specified in the spec yet known of the id parse transform;
 % checked and then treated as any wild parse attribute)
 %
-scan_forms( [ Form={ 'attribute', _Line, AttributeName='asm',
+scan_forms( [ Form={ 'attribute', _FileLoc, AttributeName='asm',
 					 Def={ 'function', _N, _A, _Code } } | T ],
 			  M=#module_info{ parse_attributes=ParseAttributeTable },
-			NextLocation, CurrentFileReference ) ->
+			NextASTLoc, CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "Asm attribute definition: '~p'.", [ Def ] ),
 
-	LocForm = { NextLocation, Form },
+	LocForm = { NextASTLoc, Form },
 
 	% Expected once:
 	scan_forms( T, M#module_info{ parse_attributes=?table:append_to_entry(
 					   AttributeName, { _AttributeValue=Def, LocForm },
 					   ParseAttributeTable ) },
-				id_utils:get_next_sortable_id( NextLocation ),
+				id_utils:get_next_sortable_id( NextASTLoc ),
 				CurrentFileReference );
 
 
@@ -833,15 +833,15 @@ scan_forms( [ Form={ 'attribute', _Line, AttributeName='asm',
 % "If F is a function specification -spec Mod:Name Ft_1; ...; Ft_k, where each
 % Ft_i is a possibly constrained function type with an argument sequence of the
 % same length Arity, then Rep(F) =
-% {attribute,Line,spec,{{Mod,Name,Arity},[Rep(Ft_1), ..., Rep(Ft_k)]}}."
+% {attribute,FileLoc,spec,{{Mod,Name,Arity},[Rep(Ft_1), ..., Rep(Ft_k)]}}."
 %
-scan_forms( [ Form={ 'attribute', Line, 'spec',
+scan_forms( [ Form={ 'attribute', FileLoc, 'spec',
 					 _MFA={ ModuleName, FunctionName, FunctionArity },
 					 FunctionTypes } | T ],
 			M=#module_info{ remote_spec_defs=RemoteSpecDefs },
-			NextLocation, CurrentFileReference ) ->
+			NextASTLoc, CurrentFileReference ) ->
 
-	Context = { CurrentFileReference, Line },
+	Context = { CurrentFileReference, FileLoc },
 
 	FunId = { FunctionName, FunctionArity },
 
@@ -854,15 +854,15 @@ scan_forms( [ Form={ 'attribute', Line, 'spec',
 
 	% Specs for remote functions not specifically processed.
 
-	LocatedSpec = { NextLocation, Form },
+	LocatedSpec = { NextASTLoc, Form },
 
 	NewRemoteSpecDefs = [ LocatedSpec | RemoteSpecDefs ],
 
 	%ast_utils:display_debug( "remote spec for function ~ts/~B registered.",
-	%		   [ FunctionName, FunctionArity ] ),
+	%			[ FunctionName, FunctionArity ] ),
 
 	scan_forms( T, M#module_info{ remote_spec_defs=NewRemoteSpecDefs },
-				id_utils:get_next_sortable_id( NextLocation ),
+				id_utils:get_next_sortable_id( NextASTLoc ),
 				CurrentFileReference );
 
 
@@ -873,12 +873,12 @@ scan_forms( [ Form={ 'attribute', Line, 'spec',
 % a record field, then Rep(F) = {attribute,LINE,record,{Name,[Rep(V_1), ...,
 % Rep(V_k)]}}. For Rep(V), see below.
 %
-scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
+scan_forms( _AST=[ _Form={ 'attribute', FileLoc, 'record',
 						   { RecordName, DescFields } } | T ],
 			M=#module_info{ records=RecordTable, markers=MarkerTable },
-			NextLocation, CurrentFileReference ) ->
+			NextASTLoc, CurrentFileReference ) ->
 
-	Context = { CurrentFileReference, Line },
+	Context = { CurrentFileReference, FileLoc },
 
 	ast_type:check_record_name( RecordName, Context ),
 
@@ -896,7 +896,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
 
 	FieldTable = scan_field_descriptions( DescFields, CurrentFileReference ),
 
-	NewRecordDef = { FieldTable, NextLocation, Line },
+	NewRecordDef = { FieldTable, NextASTLoc, FileLoc },
 
 	%ast_utils:display_debug( "Adding for record '~p' following "
 	%						 "definition:~n~p", [ RecordName, NewRecordDef ] ),
@@ -912,14 +912,14 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
 			MarkerTable;
 
 		false ->
-			?table:add_entry( definition_records_marker, NextLocation,
+			?table:add_entry( definition_records_marker, NextASTLoc,
 							  MarkerTable )
 
 	end,
 
 	scan_forms( T, M#module_info{ records=NewRecordTable,
 								  markers=NewMarkerTable },
-				id_utils:get_next_sortable_id( NextLocation ),
+				id_utils:get_next_sortable_id( NextASTLoc ),
 				CurrentFileReference );
 
 
@@ -931,16 +931,16 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'record',
 % type, then Rep(F) = {attribute,LINE,Type,{Name,Rep(T),[Rep(V_1), ...,
 % Rep(V_k)]}}."
 %
-scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
+scan_forms( _AST=[ _Form={ 'attribute', FileLoc, TypeDesignator,
 						   { TypeName, TypeDef, TypeVariables } } | T ],
 			 M=#module_info{ types=TypeTable, markers=MarkerTable },
-			 NextLocation, CurrentFileReference )
-  when TypeDesignator == 'type' orelse TypeDesignator == 'opaque' ->
+			 NextASTLoc, CurrentFileReference )
+  when TypeDesignator =:= 'type' orelse TypeDesignator =:= 'opaque' ->
 
 	%ast_utils:display_debug( "type declaration for ~p: ~p", [
 	%                        TypeName, Form ] ),
 
-	Context = { CurrentFileReference, Line },
+	Context = { CurrentFileReference, FileLoc },
 
 	ast_type:check_type_name( TypeName, Context ),
 	ast_type:check_type_definition( TypeDef, Context ),
@@ -965,7 +965,7 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 		% If a TypeInfo is found for that type name, it must be only because it
 		% has already been exported (not expected to be already defined):
 
-		{ value, #type_info{ line=LineDef, exported=[] } } ->
+		{ value, #type_info{ file_location=DefFileLoc, exported=[] } } ->
 
 			% We have to report this multiple definition, otherwise it will not
 			% be seen by the compiler afterwards (the extra type definition
@@ -975,16 +975,18 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 			% corresponds:
 			%
 			ast_utils:raise_usage_error( "type ~ts/~B defined here, whereas "
-			  "it had already been defined at (some) line #~B.",
-			  [ TypeName, TypeArity, LineDef ], CurrentFileReference, Line );
+			  "it had already been defined at (some) ~ts.",
+			  [ TypeName, TypeArity,
+				ast_utils:file_loc_to_string( DefFileLoc ) ],
+			  CurrentFileReference, FileLoc );
 
 
 		{ value, ExportTypeInfo } ->
 			ExportTypeInfo#type_info{ name=TypeName,
 									  variables=TypeVariables,
 									  opaque=IsOpaque,
-									  location=NextLocation,
-									  line=Line,
+									  ast_location=NextASTLoc,
+									  file_location=FileLoc,
 									  definition=TypeDef
 									  %exported: already set
 											   };
@@ -993,12 +995,12 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 		% Usual case:
 		key_not_found ->
 			%ast_utils:display_debug( "New type '~ts' defined (at line #~p) "
-			%						  "as:~n~p", [ TypeName, Line, TypeDef ] ),
+			%     "as:~n~p", [ TypeName, FileLoc, TypeDef ] ),
 			#type_info{ name=TypeName,
 						variables=TypeVariables,
 						opaque=IsOpaque,
-						location=NextLocation,
-						line=Line,
+						ast_location=NextASTLoc,
+						file_location=FileLoc,
 						definition=TypeDef
 						%exported=[]
 					  }
@@ -1015,14 +1017,13 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 			MarkerTable;
 
 		false ->
-			?table:add_entry( definition_types_marker, NextLocation,
-							  MarkerTable )
+			?table:add_entry( definition_types_marker, NextASTLoc, MarkerTable )
 
 	end,
 
 	scan_forms( T, M#module_info{ types=NewTypeTable,
 								  markers=NewMarkerTable },
-				id_utils:get_next_sortable_id( NextLocation ),
+				id_utils:get_next_sortable_id( NextASTLoc ),
 				CurrentFileReference );
 
 
@@ -1038,15 +1039,15 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, TypeDesignator,
 % "If F is an attribute -export_type([Type_1/A_1, ..., Type_k/A_k]), then Rep(F)
 % = {attribute,LINE,export_type,[{Type_1,A_1}, ..., {Type_k,A_k}]}."
 %
-scan_forms( _AST=[ _Form={ 'attribute', Line, 'export_type', TypeIds } | T ],
+scan_forms( _AST=[ _Form={ 'attribute', FileLoc, 'export_type', TypeIds } | T ],
 			M=#module_info{ type_exports=ExportTable,
 							types=TypeTable,
 							markers=MarkerTable },
-			NextLocation, CurrentFileReference ) ->
+			NextASTLoc, CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "Type export declaration for ~p", [ TypeIds ] ),
 
-	Context = { CurrentFileReference, Line },
+	Context = { CurrentFileReference, FileLoc },
 
 	% Records for each of these types this export:
 	NewTypeTable = lists:foldl(
@@ -1066,15 +1067,15 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export_type', TypeIds } | T ],
 								% Implicit:
 								%variables=undefined,
 								%opaque=undefined
-								%location=undefined
-								%line=undefined
+								%ast_location=undefined
+								%file_location=undefined
 								%definition=[],
-								exported=[ NextLocation ] };
+								exported=[ NextASTLoc ] };
 
 				 % A type *might* be exported more than once:
 				 { value, TypeInfo } -> % F=#type_info{ exported=[] } } ->
 					% Just add the fact that the type is exported then:
-					NewExp = [ NextLocation | TypeInfo#type_info.exported ],
+					NewExp = [ NextASTLoc | TypeInfo#type_info.exported ],
 					TypeInfo#type_info{ exported=NewExp }
 
 			end,
@@ -1086,8 +1087,8 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export_type', TypeIds } | T ],
 		_List=TypeIds ),
 
 	% Initially, exactly one export entry per location:
-	NewExportTable = ?table:add_new_entry( NextLocation, { Line, TypeIds },
-										   ExportTable ),
+	NewExportTable =
+		?table:add_new_entry( NextASTLoc, { FileLoc, TypeIds }, ExportTable ),
 
 	NewMarkerTable = case ?table:has_entry( export_types_marker,
 											MarkerTable ) of
@@ -1097,14 +1098,14 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export_type', TypeIds } | T ],
 			MarkerTable;
 
 		false ->
-			?table:add_entry( export_types_marker, NextLocation, MarkerTable )
+			?table:add_entry( export_types_marker, NextASTLoc, MarkerTable )
 
 	end,
 
 	scan_forms( T, M#module_info{ type_exports=NewExportTable,
 								  types=NewTypeTable,
 								  markers=NewMarkerTable },
-				id_utils:get_next_sortable_id( NextLocation ),
+				id_utils:get_next_sortable_id( NextASTLoc ),
 				CurrentFileReference );
 
 
@@ -1117,24 +1118,24 @@ scan_forms( _AST=[ _Form={ 'attribute', Line, 'export_type', TypeIds } | T ],
 % Note that options can also be specified through the command line (ex:
 % "-Dmyriad_debug_mode").
 %
-scan_forms( _AST=[ Form={ 'attribute', Line, 'compile', CompileInfo } | T ],
+scan_forms( _AST=[ Form={ 'attribute', FileLoc, 'compile', CompileInfo } | T ],
 			 M=#module_info{ compilation_options=CompileTable,
 							 compilation_option_defs=CompileDefs },
-			NextLocation, CurrentFileReference ) ->
+			NextASTLoc, CurrentFileReference ) ->
 
-	Context = { CurrentFileReference, Line },
+	Context = { CurrentFileReference, FileLoc },
 
 	%ast_utils:display_debug( "Registration compilation option:~n~p~n",
 	%						 [ CompileInfo ] ),
 
-	NewCompileTable = register_compile_attribute( CompileInfo, CompileTable,
-												  Context ),
+	NewCompileTable =
+		register_compile_attribute( CompileInfo, CompileTable, Context ),
 
-	NewCompileDefs = [ { NextLocation, Form } | CompileDefs ],
+	NewCompileDefs = [ { NextASTLoc, Form } | CompileDefs ],
 
 	scan_forms( T, M#module_info{ compilation_options=NewCompileTable,
 								  compilation_option_defs=NewCompileDefs },
-				id_utils:get_next_sortable_id( NextLocation ),
+				id_utils:get_next_sortable_id( NextASTLoc ),
 				CurrentFileReference );
 
 
@@ -1143,25 +1144,25 @@ scan_forms( _AST=[ Form={ 'attribute', Line, 'compile', CompileInfo } | T ],
 % (section body is here, to match iff none of the other attribute-related
 % sections matched)
 %
-scan_forms( [ Form={ 'attribute', Line, AttributeName, AttributeValue } | T ],
+scan_forms( [ Form={ 'attribute', FileLoc, AttributeName, AttributeValue } | T ],
 			M=#module_info{ parse_attributes=ParseAttributeTable },
-			NextLocation, CurrentFileReference ) ->
+			NextASTLoc, CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "Parse attribute definition for '~p': ~p",
 	%						 [ AttributeName, AttributeValue ] ),
 
-	Context = { CurrentFileReference, Line },
+	Context = { CurrentFileReference, FileLoc },
 
 	check_parse_attribute_name( AttributeName, Context ),
 
-	LocForm = { NextLocation, Form },
+	LocForm = { NextASTLoc, Form },
 
 	% As a wild attribute may be defined more than once:
 	NewParseAttributeTable = ?table:append_to_entry( AttributeName,
 					   { AttributeValue, LocForm }, ParseAttributeTable ),
 
 	scan_forms( T, M#module_info{ parse_attributes=NewParseAttributeTable },
-				id_utils:get_next_sortable_id( NextLocation ),
+				id_utils:get_next_sortable_id( NextASTLoc ),
 				CurrentFileReference );
 
 
@@ -1203,29 +1204,30 @@ scan_forms( [ Form={ 'attribute', Line, AttributeName, AttributeValue } | T ],
 
 % eep include error:
 scan_forms( _AST=[ _Form={ 'error',
-	   { Line, 'epp', { 'include', 'file', FileName } } } | _T ],
+	   { FileLoc, 'epp', { 'include', 'file', FileName } } } | _T ],
 			_M=#module_info{ errors=_Errors },
-			_NextLocation, CurrentFileReference ) ->
+			_NextASTLoc, CurrentFileReference ) ->
 
 	% Better error message if managed directly:
 	ast_utils:raise_usage_error( "include file not found: '~ts'.",
-								 [ FileName ], CurrentFileReference, Line );
+								 [ FileName ], CurrentFileReference, FileLoc );
 
 	%NewError = { Context, { include_file_not_found, FileName } },
 
 	%scan_forms( T, M#module_info{ errors=[ NewError | Errors ] },
-	%			id_utils:get_next_sortable_id( NextLocation ),
+	%			id_utils:get_next_sortable_id( NextASTLoc ),
 	%			CurrentFileReference );
 
 
 % eep undefined macro variable error:
 scan_forms( _AST=[ _Form={ 'error',
-	   { Line, 'epp', { 'undefined', VariableName, 'none' } } } | T ],
-			M=#module_info{ errors=Errors }, NextLocation,
+	   { FileLoc, 'epp', { 'undefined', VariableName, 'none' } } } | T ],
+			M=#module_info{ errors=Errors }, NextASTLoc,
 			CurrentFileReference ) ->
 
-	% Wrong: Context = { CurrentFileReference, Line-1 },
-	Context = { CurrentFileReference, Line },
+	% Wrong and now, with Line replaced by FileLoc, meaningless:
+	%Context = { CurrentFileReference, FileLoc-1 },
+	Context = { CurrentFileReference, FileLoc },
 
 	%ast_utils:raise_error( [ undefined_macro_variable, VariableName ],
 	%						Context );
@@ -1233,32 +1235,36 @@ scan_forms( _AST=[ _Form={ 'error',
 	NewError = { Context, { undefined_macro_variable, VariableName } },
 
 	scan_forms( T, M#module_info{ errors=[ NewError | Errors ] },
-				id_utils:get_next_sortable_id( NextLocation ),
+				id_utils:get_next_sortable_id( NextASTLoc ),
 				CurrentFileReference );
 
 
 % eep general errors:
-scan_forms( _AST=[ _Form={ 'error', { Line, 'epp', Reason } } | T ],
-			M=#module_info{ errors=Errors }, NextLocation,
+scan_forms( _AST=[ _Form={ 'error', { FileLoc, 'epp', Reason } } | T ],
+			M=#module_info{ errors=Errors }, NextASTLoc,
 			CurrentFileReference ) ->
 
-	Context = { CurrentFileReference, Line-1 },
+	% Wrong and now, with Line replaced by FileLoc, meaningless:
+	%Context = { CurrentFileReference, FileLoc-1 },
+	Context = { CurrentFileReference, FileLoc },
+
 	%ast_utils:raise_error( [ preprocessing_failed, Reason ], Context );
 
 	NewError = { Context, { epp_error, Reason } },
 
 	scan_forms( T, M#module_info{ errors=[ NewError | Errors ] },
-				id_utils:get_next_sortable_id( NextLocation ),
+				id_utils:get_next_sortable_id( NextASTLoc ),
 				CurrentFileReference );
 
 
 % Parser (erl_scan) errors:
-scan_forms( _AST=[ _Form={ 'error', { Line, 'erl_scan', Reason } } | T ],
-			M=#module_info{ errors=Errors }, NextLocation,
+scan_forms( _AST=[ _Form={ 'error', { FileLoc, 'erl_scan', Reason } } | T ],
+			M=#module_info{ errors=Errors }, NextASTLoc,
 			CurrentFileReference ) ->
 
-	%Context = { CurrentFileReference, Line-1 },
-	Context = { CurrentFileReference, Line },
+	% Wrong and now, with Line replaced by FileLoc, meaningless:
+	%Context = { CurrentFileReference, FileLoc-1 },
+	Context = { CurrentFileReference, FileLoc },
 
 	%ast_utils:raise_error( [ parsing_failed, io_lib:format( Reason, [] ) ],
 	%					   Context );
@@ -1266,16 +1272,17 @@ scan_forms( _AST=[ _Form={ 'error', { Line, 'erl_scan', Reason } } | T ],
 	NewError = { Context, { scan_error, Reason } },
 
 	scan_forms( T, M#module_info{ errors=[ NewError | Errors ] },
-		id_utils:get_next_sortable_id( NextLocation ), CurrentFileReference );
+		id_utils:get_next_sortable_id( NextASTLoc ), CurrentFileReference );
 
 
 % Parser (erl_parse) errors:
-scan_forms( _AST=[ _Form={ 'error', { Line, 'erl_parse', Reason } } | T ],
-			M=#module_info{ errors=Errors }, NextLocation,
+scan_forms( _AST=[ _Form={ 'error', { FileLoc, 'erl_parse', Reason } } | T ],
+			M=#module_info{ errors=Errors }, NextASTLoc,
 			CurrentFileReference ) ->
 
-	%Context = { CurrentFileReference, Line-1 },
-	Context = { CurrentFileReference, Line },
+	% Wrong and now, with Line replaced by FileLoc, meaningless:
+	%Context = { CurrentFileReference, FileLoc-1 },
+	Context = { CurrentFileReference, FileLoc },
 
 	%ast_utils:raise_error( [ parsing_failed, io_lib:format( Reason, [] ) ],
 	%					   Context );
@@ -1283,11 +1290,11 @@ scan_forms( _AST=[ _Form={ 'error', { Line, 'erl_parse', Reason } } | T ],
 	NewError = { Context, { parse_error, Reason } },
 
 	scan_forms( T, M#module_info{ errors=[ NewError | Errors ] },
-		id_utils:get_next_sortable_id( NextLocation ), CurrentFileReference );
+		id_utils:get_next_sortable_id( NextASTLoc ), CurrentFileReference );
 
 % Any kind of other error:
 scan_forms( _AST=[ _Form={ 'error', ErrorTerm } | _T ],
-			_ModuleInfo, _NextLocation, CurrentFileReference ) ->
+			_ModuleInfo, _NextASTLoc, CurrentFileReference ) ->
 
 	% No line information available, so:
 	ast_utils:raise_error( [ scan_error, ErrorTerm ],
@@ -1296,13 +1303,13 @@ scan_forms( _AST=[ _Form={ 'error', ErrorTerm } | _T ],
 
 % Any kind of warning:
 scan_forms( _AST=[ _Form={ 'warning', WarningTerm } | T ],
-			ModuleInfo, NextLocation, CurrentFileReference ) ->
+			ModuleInfo, NextASTLoc, CurrentFileReference ) ->
 
 	% No line information available, so:
 	ast_utils:notify_warning( [ scan_warning, WarningTerm ],
 							  _Context=CurrentFileReference ),
 
-	scan_forms( T, ModuleInfo, id_utils:get_next_sortable_id( NextLocation ),
+	scan_forms( T, ModuleInfo, id_utils:get_next_sortable_id( NextASTLoc ),
 				CurrentFileReference );
 
 
@@ -1313,10 +1320,10 @@ scan_forms( _AST=[ _Form={ 'warning', WarningTerm } | T ],
 % can remove its corresponding file from the includes):
 %
 % Here, no module found:
-scan_forms( _AST=[ _Form={ 'eof', Line } ],
-			M=#module_info{ module=undefined, errors=Errors }, _NextLocation,
+scan_forms( _AST=[ _Form={ 'eof', FileLoc } ],
+			M=#module_info{ module=undefined, errors=Errors }, _NextASTLoc,
 			CurrentFileReference ) ->
-	Context = { CurrentFileReference, Line },
+	Context = { CurrentFileReference, FileLoc },
 
 	NewError = { Context, "end of file reached whereas no suitable module "
 						  "declaration (ex: '-module(foobar).') found." },
@@ -1327,24 +1334,24 @@ scan_forms( _AST=[ _Form={ 'eof', Line } ],
 
 
 % Form expected to be defined once, and to be the last one:
-scan_forms( _AST=[ Form={ 'eof', _Line } ],
+scan_forms( _AST=[ Form={ 'eof', _FileLoc } ],
 			M=#module_info{ module={ ModuleName, _ModuleLocDef },
 							includes=Inc,
 							function_exports=ExportTable,
-							last_line=undefined,
+							last_file_location=undefined,
 							markers=MarkerTable },
-			NextLocation, _CurrentFileReference ) ->
+			NextASTLoc, _CurrentFileReference ) ->
 
-	%ast_utils:display_debug( "eof declaration at ~p.", [ Line ] ),
+	%ast_utils:display_debug( "eof declaration at ~p.", [ FileLoc ] ),
 
 	% Certainly better than id_utils:get_sortable_id_upper_bound(), as for
 	% example we may want to add form after that original end:
 	%
-	EndLocation = NextLocation,
+	EndLocation = NextASTLoc,
 
 	NewMarkerTable = finalize_marker_table( EndLocation, MarkerTable ),
 
-	LocForm = { NextLocation, Form },
+	LocForm = { NextASTLoc, Form },
 
 	% End of file found, doing some housekeeping.
 
@@ -1354,8 +1361,8 @@ scan_forms( _AST=[ Form={ 'eof', _Line } ],
 
 	ExportLoc = ast_info:get_default_export_function_location(),
 
-	NewExportTable = ?table:add_entry( ExportLoc, { _FirstLine=0, _Empty=[] },
-									   ExportTable ),
+	NewExportTable = ?table:add_entry( ExportLoc,
+								{ _FirstFileLoc=0, _Empty=[] }, ExportTable ),
 
 	% We just do not want to have the filename of the currently processed module
 	% among the includes:
@@ -1370,7 +1377,7 @@ scan_forms( _AST=[ Form={ 'eof', _Line } ],
 	% Only "normal", non-recursing exit of that longer function:
 	M#module_info{ includes=NoModInc,
 				   function_exports=NewExportTable,
-				   last_line=LocForm,
+				   last_file_location=LocForm,
 				   markers=NewMarkerTable };
 
 
@@ -1379,29 +1386,29 @@ scan_forms( _AST=[ Form={ 'eof', _Line } ],
 %%
 
 scan_forms( _AST=[ UnhandledForm | T ],
-			M=#module_info{ unhandled_forms=UnhandledForms }, NextLocation,
+			M=#module_info{ unhandled_forms=UnhandledForms }, NextASTLoc,
 			CurrentFileReference ) ->
 
 	ast_utils:display_error( "Unhandled form '~p' not managed.~n",
 							 [ UnhandledForm ] ),
 
-	%throw( { unhandled_form, UnhandledForm, { location, NextLocation },
+	%throw( { unhandled_form, UnhandledForm, { location, NextASTLoc },
 	%		 { file, CurrentFileReference } } ).
 
-	LocForm = { NextLocation, UnhandledForm },
+	LocForm = { NextASTLoc, UnhandledForm },
 
 	NewUnhandledForms = [ LocForm | UnhandledForms ],
 
 	scan_forms( T, M#module_info{ unhandled_forms=NewUnhandledForms },
-				id_utils:get_next_sortable_id( NextLocation ),
+				id_utils:get_next_sortable_id( NextASTLoc ),
 				CurrentFileReference );
 
 
 % The scan termination is expected to happen *only* when eof is found:
-scan_forms( _AST=[], _ModuleInfo, _NextLocation, CurrentFileReference ) ->
+scan_forms( _AST=[], _ModuleInfo, _NextASTLoc, CurrentFileReference ) ->
 	ast_utils:raise_error( [ no_eof_found ], CurrentFileReference );
 
-scan_forms( Unexpected, _ModuleInfo, _NextLocation, CurrentFileReference ) ->
+scan_forms( Unexpected, _ModuleInfo, _NextASTLoc, CurrentFileReference ) ->
 	ast_utils:raise_error( { not_an_ast, Unexpected }, CurrentFileReference ).
 
 
@@ -1498,11 +1505,12 @@ scan_field_descriptions( _FieldDescriptions=[], _CurrentFileReference,
 
 % Here no type or default value are specified for that field:
 scan_field_descriptions( _FieldDescriptions=[
-		{ 'record_field', FirstLine, { atom, SecondLine, FieldName } } | T ],
+		{ 'record_field', FirstFileLoc,
+		  { atom, SecondFileLoc, FieldName } } | T ],
 		CurrentFileReference, FieldTable ) ->
 
-	FieldDesc = { _FieldType=undefined, _DefaultValue=undefined, FirstLine,
-				  SecondLine },
+	FieldDesc = { _FieldType=undefined, _DefaultValue=undefined, FirstFileLoc,
+				  SecondFileLoc },
 
 	NewFieldTable = [ { FieldName, FieldDesc } | FieldTable ],
 
@@ -1512,10 +1520,11 @@ scan_field_descriptions( _FieldDescriptions=[
 % Here only a type is specified for that field:
 scan_field_descriptions( _FieldDescriptions=[
 	   { 'typed_record_field',
-		  { 'record_field', FirstLine, { atom, SecondLine, FieldName } },
+		  { 'record_field', FirstFileLoc, { atom, SecondFileLoc, FieldName } },
 		 FieldType } | T ], CurrentFileReference, FieldTable ) ->
 
-	FieldDesc = { FieldType, _DefaultValue=undefined, FirstLine, SecondLine },
+	FieldDesc = { FieldType, _DefaultValue=undefined, FirstFileLoc,
+				  SecondFileLoc },
 
 	NewFieldTable = [ { FieldName, FieldDesc } | FieldTable ],
 
@@ -1523,11 +1532,12 @@ scan_field_descriptions( _FieldDescriptions=[
 
 
 % Here only a default value is specified for that field:
-scan_field_descriptions( _FieldDescriptions=[ { 'record_field', FirstLine,
-			   { atom, SecondLine, FieldName }, DefaultValue } | T ],
+scan_field_descriptions( _FieldDescriptions=[ { 'record_field', FirstFileLoc,
+			   { atom, SecondFileLoc, FieldName }, DefaultValue } | T ],
 						 CurrentFileReference, FieldTable ) ->
 
-	FieldDesc = { _FieldType=undefined, DefaultValue, FirstLine, SecondLine },
+	FieldDesc = { _FieldType=undefined, DefaultValue, FirstFileLoc,
+				  SecondFileLoc },
 
 	NewFieldTable = [ { FieldName, FieldDesc } | FieldTable ],
 
@@ -1537,14 +1547,14 @@ scan_field_descriptions( _FieldDescriptions=[ { 'record_field', FirstLine,
 % Here a type and a default, immediate value are specified for that field:
 scan_field_descriptions( _FieldDescriptions=[
 	   { 'typed_record_field',
-		  { 'record_field', FirstLine, { atom, SecondLine, FieldName },
+		  { 'record_field', FirstFileLoc, { atom, SecondFileLoc, FieldName },
 			DefaultValue }, FieldType } | T ],
 						 CurrentFileReference, FieldTable ) ->
 
 	%ast_utils:display_debug( "Field default value: ~p.", [ DefaultValue ] ),
 	%ast_utils:display_debug( "Field type: ~p.", [ FieldType ] ),
 
-	FieldDesc = { FieldType, DefaultValue, FirstLine, SecondLine },
+	FieldDesc = { FieldType, DefaultValue, FirstFileLoc, SecondFileLoc },
 
 	NewFieldTable = [ { FieldName, FieldDesc } | FieldTable ],
 

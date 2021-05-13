@@ -55,12 +55,11 @@
 
 
 % Line-related location in a source file (either line() or {line(), column()}):
-%
 -type file_loc() :: erl_anno:location().
 
 
 % Context of a form:
--type form_context() :: basic_utils:maybe( line() | file_loc() ).
+-type form_context() :: basic_utils:maybe( file_loc() ).
 
 
 % In-source context (typically to report errors):
@@ -79,17 +78,14 @@
 
 
 % Most general form of an element of an AST.
-%
 -type ast_element() :: tuple().
 
 
 % Abstract form, part of an AST (ex: {attribute,40,file,{"foo.erl",40}}):
-%
 -type form() :: erl_parse:abstract_form() | erl_parse:form_info().
 
 
 % An element (a part) of a form (ex: a clause of a function definition):
-%
 -type form_element() :: any().
 
 
@@ -109,7 +105,6 @@
 
 
 % In-AST description of a value of type atom:
-%
 -type ast_atom() :: { 'atom', line(), atom() }.
 
 

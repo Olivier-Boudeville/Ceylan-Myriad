@@ -388,7 +388,7 @@
 		  records_to_string/1, records_to_string/2,
 		  function_imports_to_string/4,
 		  functions_to_string/3,
-		  last_line_to_string/1,
+		  last_file_location_to_string/1,
 		  markers_to_string/1, markers_to_string/2,
 		  errors_to_string/2,
 		  unhandled_forms_to_string/3,
@@ -615,7 +615,7 @@ init_module_info() ->
 check_module_info( #module_info{ module=undefined } ) ->
 	ast_utils:raise_error( "no '-module' define found" );
 
-check_module_info( #module_info{ last_line=undefined } ) ->
+check_module_info( #module_info{ last_file_location=undefined } ) ->
 	ast_utils:raise_error( "no last line found" );
 
 
@@ -674,19 +674,21 @@ check_module_types( #module_info{ types=Types }, Filename ) ->
 
 
 % Nothing to check for 'spec' or 'exported':
-check_type( TypeId, _TypeInfo=#type_info{ line=Line, definition=[] },
+check_type( TypeId,
+			_TypeInfo=#type_info{ file_location=FileLoc, definition=[] },
 			Filename ) ->
 	ast_utils:raise_usage_error( "no definition found for type ~ts/~B.",
-								 pair:to_list( TypeId ), Filename, Line );
+								 pair:to_list( TypeId ), Filename, FileLoc );
 
 check_type( _TypeId={ Name, Arity },
-			_TypeInfo=#type_info{ line=Line, name=Name, variables=undefined },
+			_TypeInfo=#type_info{ file_location=FileLoc, name=Name,
+								  variables=undefined },
 			Filename ) ->
 	ast_utils:raise_usage_error( "type ~ts/~B is exported yet not defined.",
-				[ Name, Arity ], Filename, Line );
+				[ Name, Arity ], Filename, FileLoc );
 
 check_type( _TypeId={ Name, Arity },
-			_TypeInfo=#type_info{ line=Line, name=Name,
+			_TypeInfo=#type_info{ file_location=FileLoc, name=Name,
 								  variables=TypeVars },
 			Filename ) ->
 
@@ -698,13 +700,13 @@ check_type( _TypeId={ Name, Arity },
 		OtherArity ->
 			ast_utils:raise_usage_error( "mismatch between the definition of "
 				"type ~ts and its export; respective arities are ~B and ~B",
-				[ Name, Arity, OtherArity ], Filename, Line )
+				[ Name, Arity, OtherArity ], Filename, FileLoc )
 
 	end;
 
 check_type( TypeId, _TypeInfo=#type_info{ name=SecondName,
 										  variables=TypeVars,
-										  line=Line },
+										  file_location=FileLoc },
 			Filename ) ->
 
 	SecondArity = length( TypeVars ),
@@ -712,7 +714,7 @@ check_type( TypeId, _TypeInfo=#type_info{ name=SecondName,
 	ast_utils:raise_usage_error(
 		"mismatch in terms of type definition, between ~ts/~B and ~ts/~B.",
 		pair:to_list( TypeId ) ++ [ SecondName, SecondArity ],
-		Filename, Line ).
+		Filename, FileLoc ).
 
 
 
@@ -723,6 +725,7 @@ check_module_functions( #module_info{ functions=Functions }, ModuleName ) ->
 
 	[ check_function( FunId, FunInfo, ModuleName )
 	  || { FunId, FunInfo } <- FunInfos ].
+
 
 
 % No definition, and neither with a spec nor exported, yet registered (strange):
@@ -815,7 +818,7 @@ recompose_ast_from_module_info( #module_info{
 
 			optional_callbacks_defs=OptCallbacksLocDefs,
 
-			last_line=LastLineLocDef,
+			last_file_location=LastLineLocDef,
 
 			markers=MarkerTable,
 
@@ -1294,7 +1297,7 @@ module_info_to_string( #module_info{
 						 function_exports=_FunctionExports,
 						 functions=FunctionTable,
 						 optional_callbacks_defs=OptCallbacksDefs,
-						 last_line=LastLineLocDef,
+						 last_file_location=LastLineLocDef,
 						 markers=MarkerTable,
 						 errors=Errors,
 						 unhandled_forms=UnhandledForms },
@@ -1341,7 +1344,7 @@ module_info_to_string( #module_info{
 			  functions_to_string( FunctionTable, DoIncludeForms,
 								   NextIndentationLevel ),
 
-			  last_line_to_string( LastLineLocDef ),
+			  last_file_location_to_string( LastLineLocDef ),
 
 			  markers_to_string( MarkerTable, NextIndentationLevel ),
 
@@ -1473,11 +1476,11 @@ optional_callbacks_to_string( OptCallbacksDefs, _DoIncludeForms=false,
 	text_utils:format( "~B lists of optional callbacks defined",
 					   [ length( OptCallbacksDefs ) ] );
 
-optional_callbacks_to_string( OptCallbacksDefs, _DoIncludeForms=true,
+optional_callbacks_to_string( OptCallbacksDefs, DoIncludeForms=true,
 							  IndentationLevel ) ->
 	optional_callbacks_to_string( OptCallbacksDefs, _DoIncForms=false,
 								  IndentationLevel )
-		++ forms_to_string( OptCallbacksDefs, _DoIncludeForms=true,
+		++ forms_to_string( OptCallbacksDefs, DoIncludeForms,
 							IndentationLevel + 1 ).
 
 
@@ -1792,12 +1795,18 @@ functions_to_string( FunctionTable, DoIncludeForms, IndentationLevel ) ->
 
 
 % Returns a textual representation of a module last line / line count.
--spec last_line_to_string( basic_utils:maybe( located_form() ) ) -> ustring().
-last_line_to_string( _LastLine=undefined ) ->
+-spec last_file_location_to_string( basic_utils:maybe( located_form() ) ) ->
+											ustring().
+last_file_location_to_string( _LastLine=undefined ) ->
 	"unknown line count";
 
-last_line_to_string( _LastLine={ _Loc, { eof, Count } } ) ->
-	text_utils:format( "~B lines of source code", [ Count ] ).
+last_file_location_to_string(
+		_LastLine={ _ASTLoc, { eof, { FinalLine, _FinalColumn } } } ) ->
+	text_utils:format( "~B lines of source code", [ FinalLine ] );
+
+last_file_location_to_string( _LastLine={ _ASTLoc, { eof, FinalLine } } ) ->
+	text_utils:format( "~B lines of source code", [ FinalLine ] ).
+
 
 
 
@@ -1864,11 +1873,11 @@ unhandled_forms_to_string( UnhandledForms, _DoIncludeForms=false,
 unhandled_forms_to_string( UnhandledForms, _DoIncludeForms=true,
 						   IndentationLevel ) ->
 	text_utils:format( "~ts: ~ts", [
-		unhandled_forms_to_string( UnhandledForms, _DoIncludeForms=false,
+		unhandled_forms_to_string( UnhandledForms, _IncludeForms=false,
 								   IndentationLevel ),
-		text_utils:strings_to_string( [ text_utils:format( "~p", [ F ] )
-										|| { _Loc, F } <- UnhandledForms ],
-									  IndentationLevel + 1 ) ] ).
+		text_utils:strings_to_string(
+		  [ text_utils:format( "~p", [ F ] ) || { _Loc, F } <- UnhandledForms ],
+		  IndentationLevel + 1 ) ] ).
 
 
 
@@ -1949,8 +1958,8 @@ function_info_to_string( FunctionInfo, DoIncludeForms ) ->
 							   indentation_level() ) -> ustring().
 function_info_to_string( #function_info{ name=Name,
 										 arity=Arity,
-										 location=_Location,
-										 line=Line,
+										 %ast_location=ASTLoc,
+										 file_location=FileLoc,
 										 clauses=Clauses,
 										 spec=LocatedSpec,
 										 callback=IsCallback,
@@ -1973,13 +1982,17 @@ function_info_to_string( #function_info{ name=Name,
 
 	end,
 
-	DefString = case Line of
+	DefString = case FileLoc of
 
 		undefined ->
 			text_utils:format( "with ~B clause(s) defined",
 							   [ length( Clauses ) ] );
 
-		_ ->
+		{ Line, _Column } ->
+			text_utils:format( "defined from line #~B, with "
+			   "~B clause(s) specified", [ Line, length( Clauses ) ] );
+
+		Line when is_integer( Line ) ->
 			text_utils:format( "defined from line #~B, with "
 			   "~B clause(s) specified", [ Line, length( Clauses ) ] )
 
@@ -2011,7 +2024,7 @@ function_info_to_string( #function_info{ name=Name,
 		true ->
 			text_utils:format( "~ts~n~ts",
 				[ BaseString, ast_function:clauses_to_string( Clauses,
-												  IndentationLevel + 1 ) ] );
+													IndentationLevel + 1 ) ] );
 
 		false ->
 			BaseString
@@ -2020,7 +2033,7 @@ function_info_to_string( #function_info{ name=Name,
 
 
 
-% Ensures that specified type is exported at the specified location(s).
+% Ensures that the specified type is exported at the specified location(s).
 -spec ensure_type_exported( type_id(), [ location() ], module_info(),
 							type_export_table() ) -> type_export_table().
 ensure_type_exported( _TypeId, _ExportLocs=[], _ModuleInfo, ExportTable ) ->
@@ -2169,8 +2182,8 @@ type_info_to_string( TypeInfo ) ->
 type_info_to_string( #type_info{ name=TypeName,
 								 variables=TypeVariables,
 								 opaque=IsOpaque,
-								 location=_Location,
-								 line=_Line,
+								 %ast_location=_ASTLoc,
+								 %file_location=_FileLoc,
 								 definition=Definition,
 								 exported=Exported },
 					 DoIncludeForms,

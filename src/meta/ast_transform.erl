@@ -89,12 +89,14 @@
 
 -type local_type_id_match() :: { type_name_match(), type_arity_match() }.
 
+
 % Either we directly set the target module and type names (using same arity), or
 % we apply an anonymous function to determine the corresponding information,
 % based on context:
+%
 -type local_type_replacement() :: type_replacement()
 			| fun( ( type_name(), type_arity(), transformation_state() ) ->
-						 { type_replacement(), transformation_state() } ).
+						{ type_replacement(), transformation_state() } ).
 
 
 % Table defining replacements of local types:
@@ -104,17 +106,17 @@
 
 % Remote subsection:
 
--type remote_type_id_match() :: { module_name_match(), type_name_match(),
-								  type_arity_match() }.
+-type remote_type_id_match() ::
+		{ module_name_match(), type_name_match(), type_arity_match() }.
 
 
 % Either we directly set the target module and type names (using same arity), or
 % we apply an anonymous function to determine the corresponding information,
 % based on context:
 -type remote_type_replacement() :: type_replacement()
-			 | fun( ( module_name(), type_name(), type_arity(),
-					  transformation_state() ) ->
-						  { type_replacement(), transformation_state() } ).
+			| fun( ( module_name(), type_name(), type_arity(),
+					 transformation_state() ) ->
+						{ type_replacement(), transformation_state() } ).
 
 
 % Table defining replacements of remote types:
@@ -153,7 +155,7 @@
 %
 -type local_call_replacement() :: call_replacement()
 			 | fun( ( function_name(), arity(), transformation_state() ) ->
-						  { call_replacement(), transformation_state() } ) .
+							{ call_replacement(), transformation_state() } ) .
 
 
 % Table defining replacements of local calls:
@@ -173,7 +175,7 @@
 -type remote_call_replacement() :: call_replacement()
 			 | fun( ( module_name(), function_name(), arity(),
 					  transformation_state() ) ->
-						  { call_replacement(), transformation_state() } ).
+							{ call_replacement(), transformation_state() } ).
 
 
 % Table defining replacements of remote calls:
@@ -191,14 +193,13 @@
 % not especially difficult.
 %
 -type transform_trigger() :: ast_expression:expression_kind()
-							 | 'clause'
-							 | 'body'.
+						   | 'clause' | 'body'.
 
 
 % User-supplied function to define how AST clauses shall be transformed:
 -type clause_transform_function() ::
 		fun( ( ast_clause(), ast_transforms() ) ->
-				   { ast_clause(), ast_transforms() } ).
+					{ ast_clause(), ast_transforms() } ).
 
 
 % User-supplied function to define how AST bodies shall be transformed:
@@ -249,7 +250,7 @@
 % ast_expression:transform_expression/2 clause).
 %
 -type transform_formatter() :: fun( ( format_string(), format_values() ) ->
-										  ustring() ).
+											ustring() ).
 
 
 
@@ -530,7 +531,7 @@ get_local_call_transform_table( Replacements ) ->
 get_local_call_repl_helper( _Replacements=[], Table ) ->
 	Table;
 
-% Replacement can be either { TargetModule, TargetFunctionName } or
+% Replacement can be either {TargetModule, TargetFunctionName} or
 % TargetModule:
 %
 get_local_call_repl_helper( _Replacements=[
@@ -663,13 +664,13 @@ get_remote_call_repl_helper( _Replacements=[
 				term_transformer(), user_data() ) -> { term(), user_data() }.
 
 % Here the term is a list and this is the type we want to intercept:
-transform_term( TargetTerm, _TypeDescription=list, TermTransformer, UserData )
+transform_term( TargetTerm, TypeDescription=list, TermTransformer, UserData )
   when is_list( TargetTerm ) ->
 
 	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
 
-	transform_transformed_term( TransformedTerm, _TypeDescription=list,
-							TermTransformer, NewUserData );
+	transform_transformed_term( TransformedTerm, TypeDescription,
+								TermTransformer, NewUserData );
 
 
 % Here the term is a list and we are not interested in them:
@@ -687,7 +688,7 @@ transform_term( TargetTerm, TypeDescription, TermTransformer, UserData )
 	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
 
 	transform_transformed_term( TransformedTerm, TypeDescription,
-						   TermTransformer, NewUserData );
+								TermTransformer, NewUserData );
 
 
 % Here the term is a tuple (or a record...), and we are not interested in them:
@@ -794,7 +795,7 @@ ast_transforms_to_string( #ast_transforms{
 
 		_ ->
 			text_utils:format( "local types transformed based on ~ts",
-				   [ ?table:to_string( MaybeLocalTypeTable, Bullet ) ] )
+					[ ?table:to_string( MaybeLocalTypeTable, Bullet ) ] )
 
 	end,
 
@@ -816,7 +817,7 @@ ast_transforms_to_string( #ast_transforms{
 
 		_ ->
 			text_utils:format( "local calls transformed based on ~ts",
-				   [ ?table:to_string( MaybeLocalCallTable, Bullet ) ] )
+					[ ?table:to_string( MaybeLocalCallTable, Bullet ) ] )
 
 	end,
 
@@ -827,7 +828,7 @@ ast_transforms_to_string( #ast_transforms{
 
 		_ ->
 			text_utils:format( "remote calls transformed based on ~ts",
-				   [ ?table:to_string( MaybeRemoteCallTable, Bullet ) ] )
+					[ ?table:to_string( MaybeRemoteCallTable, Bullet ) ] )
 
 	end,
 
@@ -859,12 +860,10 @@ ast_transforms_to_string( #ast_transforms{
 			"no AST transformation defined";
 
 		TransfoTable ->
-			text_utils:format( "AST transformations defined, "
-							   "for following ~B triggers: ~w; "
-							   "transformation state is:~n  ~p",
-							   [ ?table:size( TransfoTable ),
-								 ?table:keys( TransfoTable ),
-								 TransfoState ] )
+			text_utils:format( "AST transformations defined, for following "
+				"~B triggers: ~w; transformation state is:~n  ~p",
+				[ ?table:size( TransfoTable ), ?table:keys( TransfoTable ),
+				  TransfoState ] )
 
 	end,
 

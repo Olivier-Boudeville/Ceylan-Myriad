@@ -90,7 +90,7 @@
 % Local shorthands:
 
 -type ast() :: ast_base:ast().
--type line() :: ast_base:line().
+-type file_loc() :: ast_base:file_loc().
 
 -type module_info() :: ast_info:module_info().
 -type module_name() :: basic_utils:module_name().
@@ -256,7 +256,7 @@ apply_myriad_transform( InputAST, Options ) ->
 
 	%ast_utils:display_debug( "~n~nMyriad output AST:~n~p~n", [ OutputAST ] ),
 
-	%OutputASTFilename = text_utils:format(
+	%OutputASTFilename = io_lib:format(
 	%			"Myriad-output-AST-for-module-~ts.txt",
 	%			[ element( 1, TransformedModuleInfo#module_info.module ) ] ),
 
@@ -307,10 +307,10 @@ get_myriad_ast_transforms_for(
 	% This is just a matter of replacing 'table' (which does not exist as a
 	% module) by its counterpart in elements like:
 	%
-	% {call,Line1,
-	%             {remote,Line2,
-	%                               {atom,Line3,table},
-	%                               {atom,Line4,FunctionName}},
+	% {call,FileLoc1,
+	%             {remote,FileLoc2,
+	%                               {atom,FileLoc3,table},
+	%                               {atom,FileLoc4,FunctionName}},
 	%              ListArgs}
 
 	% The same kind of conversion for the type specifications (ex: function
@@ -320,26 +320,27 @@ get_myriad_ast_transforms_for(
 	% We also translate void() (which is not a builtin type) into
 	% basic_utils:void(), for example:
 	%
-	% {attribute,Line1,spec,
+	% {attribute,FileLoc1,spec,
 	%       { {FunctionName,Arity},
-	%         [ {type,Line2,'fun',
-	%                [{type,Line3,product,[]},
-	%                 {user_type,Line4,void,[]}]}]}},
+	%         [ {type,FileLoc2,'fun',
+	%                [{type,FileLoc3,product,[]},
+	%                 {user_type,FileLoc4,void,[]}]}]}},
 	%
 	% into:
 	%
-	% {attribute,Line1,spec,
+	% {attribute,FileLoc1,spec,
 	%       { {FunctionName,Arity},
-	%         [ {type,Line2,'fun',
-	%                [{type,Line3,product,[]},
-	%                 {remote_type,Line4,
-	%                              [{atom,Line4,basic_utils},
-	%                               {atom,Line4,void},
+	%         [ {type,FileLoc2,'fun',
+	%                [{type,FileLoc3,product,[]},
+	%                 {remote_type,FileLoc4,
+	%                              [{atom,FileLoc4,basic_utils},
+	%                               {atom,FileLoc4,void},
 	%                               []]}]}]}},
 	%
 	% which means that, in a spec, any term in the form of
-	% '{user_type,Line,void,[]}' shall be replaced with:
-	% '{remote_type,Line, [ {atom,Line,basic_utils}, {atom,Line,void}, [] ] }'
+	% '{user_type,FileLoc,void,[]}' shall be replaced with:
+	% '{remote_type,FileLoc, [ {atom,FileLoc,basic_utils},
+	%                          {atom,FileLoc,void}, [] ] }'
 
 	% We also manage maybe/1 here: if used as 'maybe(T)', translated as
 	% 'basic_utils:maybe(T)'; the same applies to fallible/{1,2} and
@@ -413,8 +414,7 @@ get_actual_table_type( ParseAttributeTable ) ->
 	end,
 
 	%ast_utils:display_debug( "Will replace references to the 'table' module "
-	%						  "and datatypes by references to '~ts'.",
-	%						  [ DesiredTableType ] ),
+	%     "and datatypes by references to '~ts'.", [ DesiredTableType ] ),
 
 	DesiredTableType.
 
@@ -522,7 +522,7 @@ get_remote_call_transforms() ->
 -spec get_ast_global_transforms( module_name() ) -> ast_transform_table() .
 get_ast_global_transforms( DesiredTableType ) ->
 
-	% Anonymous mute variables corresponding to line numbers:
+	% Anonymous mute variables corresponding to in-file locations:
 	RemoteCallTransformFun = fun
 
 		%%%%%%% Section for cond_utils:if_debug/1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -531,9 +531,9 @@ get_ast_global_transforms( DesiredTableType ) ->
 		% corresponding specified expression or by nothing at all (not even
 		% 'ok'):
 		%
-		( _LineCall,
+		( _FileLocCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils},
-						 {atom,LineFun,if_debug} },
+						 {atom,FileLocFun,if_debug} },
 		  _Params=[ ExprForm ],
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
@@ -549,7 +549,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 				%
 				{ value, _Any } ->
 					% So we will (attempt to) inject this expression:
-					inject_expression( ExprForm, Transforms, LineFun );
+					inject_expression( ExprForm, Transforms, FileLocFun );
 
 				key_not_found ->
 					%ast_utils:display_debug( "Token '~p' not defined, hence "
@@ -568,9 +568,9 @@ get_ast_global_transforms( DesiredTableType ) ->
 		% by the corresponding specified expression or by nothing at all (not
 		% even 'ok'):
 		%
-		( _LineCall,
+		( _FileLocCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,if_defined} },
-		  _Params=[ {atom,LineToken,Token}, ExprForm ],
+		  _Params=[ {atom,FileLocToken,Token}, ExprForm ],
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
 			%ast_utils:display_debug( "Call to cond_utils:if_defined/2 found, "
@@ -583,7 +583,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 				%
 				{ value, _Any } ->
 					% So we will (attempt to) inject this expression:
-					inject_expression( ExprForm, Transforms, LineToken );
+					inject_expression( ExprForm, Transforms, FileLocToken );
 
 				key_not_found ->
 					%ast_utils:display_debug( "Token '~p' not defined, hence "
@@ -593,28 +593,30 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 			end;
 
-		( _LineCall,
+		( _FileLocCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,if_defined} },
-		  _Params=[ {var,Line,VarName}, _ExprForm ],
+		  _Params=[ {var,FileLoc,VarName}, _ExprForm ],
 		  _Transforms ) ->
 			ast_utils:display_error(
 			  "A token used with cond_utils:if_defined/2 must be an immediate "
 			  "value (precisely an atom), not a (runtime) variable like '~ts' "
-			  "(at line ~B).", [ VarName, Line ] ),
+			  "(at ~ts).",
+			  [ VarName, ast_utils:file_loc_to_string( FileLoc ) ] ),
 			ast_utils:raise_error( { non_immediate_token, VarName,
-									 {line,Line} } );
+				ast_utils:file_loc_to_explicative_term( FileLoc ) } );
 
 
-		( _LineCall,
+		( _FileLocCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils},
-						 {atom,Line,if_defined} },
+						 {atom,FileLoc,if_defined} },
 		  _Params=[ _Other, _Expr ],
 		  _Transforms ) ->
 			ast_utils:display_error(
 			  "A token used with cond_utils:if_defined/2 must be an immediate "
 			  "value (precisely an atom), not a runtime construct like the one "
-			  "at line ~B.", [ Line ] ),
-			ast_utils:raise_error( { non_immediate_token, {line,Line} } );
+			  "at ~ts.", [ ast_utils:file_loc_to_string( FileLoc ) ] ),
+			ast_utils:raise_error( { non_immediate_token,
+				ast_utils:file_loc_to_explicative_term( FileLoc ) } );
 
 
 		%%%%%%% Subsection for cond_utils:if_defined/3 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -624,9 +626,10 @@ get_ast_global_transforms( DesiredTableType ) ->
 		% expressions, depending on whether the specified token has been
 		% defined:
 		%
-		( _LineCall,
+		( _FileLocCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,if_defined} },
-		  _Params=[ {atom,LineToken,Token}, ExprFormIfDef, ExprFormIfNotDef ],
+		  _Params=[ {atom,FileLocToken,Token}, ExprFormIfDef,
+					ExprFormIfNotDef ],
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
 			%ast_utils:display_debug( "Call to cond_utils:if_defined/3 found, "
@@ -641,38 +644,42 @@ get_ast_global_transforms( DesiredTableType ) ->
 					%ast_utils:display_debug( "Token '~p' defined, hence "
 					%	 "injecting the expression ~p",
 					%	 [ Token, ExprFormIfDef ] ),
-					inject_expression( ExprFormIfDef, Transforms, LineToken );
+					inject_expression( ExprFormIfDef, Transforms,
+									   FileLocToken );
 
 				key_not_found ->
 					%ast_utils:display_debug( "Token '~p' not defined, hence "
 					%	 "injecting the expression ~p",
 					%	 [ Token, ExprFormIfNotDef ] ),
-					inject_expression( ExprFormIfNotDef, Transforms, LineToken )
+					inject_expression( ExprFormIfNotDef, Transforms,
+									   FileLocToken )
 
 			end;
 
-		( _LineCall,
+		( _FileLocCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,if_defined} },
-		  _Params=[ { var,Line,VarName}, _ExprFormIfDef, _ExprFormIfNotDef ],
+		  _Params=[ { var,FileLoc,VarName}, _ExprFormIfDef, _ExprFormIfNotDef ],
 		  _Transforms ) ->
 			ast_utils:display_error(
 			  "A token used with cond_utils:if_defined/3 must be an immediate "
 			  "value (precisely an atom), not a (runtime) variable like '~ts' "
-			  "(at line ~B).", [ VarName, Line ] ),
+			  "(at ~ts).",
+			  [ VarName, ast_utils:file_loc_to_string( FileLoc ) ] ),
 			ast_utils:raise_error( { non_immediate_token, VarName,
-									 {line,Line} } );
+				ast_utils:file_loc_to_explicative_term( FileLoc ) } );
 
 
-		( _LineCall,
+		( _FileLocCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils},
-						 {atom,Line,if_defined} },
+						 {atom,FileLoc,if_defined} },
 		  _Params=[ _Other, _ExprFormIfDef, _ExprFormIfNotDef ],
 		  _Transforms ) ->
 			ast_utils:display_error(
 			  "A token used with cond_utils:if_defined/3 must be an immediate "
 			  "value (precisely an atom), not a runtime construct like the one "
-			  "at line ~B.", [ Line ] ),
-			ast_utils:raise_error( { non_immediate_token, {line,Line} } );
+			  "at ~ts.", [ ast_utils:file_loc_to_string( FileLoc ) ] ),
+			ast_utils:raise_error( { non_immediate_token,
+				ast_utils:file_loc_to_explicative_term( FileLoc ) } );
 
 
 
@@ -685,9 +692,9 @@ get_ast_global_transforms( DesiredTableType ) ->
 		% either by the corresponding specified expression or by nothing at all
 		% (not even 'ok'):
 		%
-		( _LineCall,
+		( _FileLocCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,if_set_to} },
-		  _Params=[ {atom,LineToken,Token}, ValueForm, ExprForm ],
+		  _Params=[ {atom,FileLocToken,Token}, ValueForm, ExprForm ],
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
 			%ast_utils:display_debug( "Call to cond_utils:if_set_to/3 found, "
@@ -705,7 +712,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 					%			 [ Token, RequestedValue, ExprForm ] ),
 
 					% So we will (attempt to) inject this expression:
-					inject_expression( ExprForm, Transforms, LineToken );
+					inject_expression( ExprForm, Transforms, FileLocToken );
 
 				% Another value found:
 				{ value, _OtherValue } ->
@@ -724,28 +731,30 @@ get_ast_global_transforms( DesiredTableType ) ->
 			end;
 
 
-		( _LineCall,
+		( _FileLocCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,if_set_to} },
-		  _Params=[ { var,Line,VarName}, _ValueForm, _Expr ],
+		  _Params=[ { var,FileLoc,VarName}, _ValueForm, _Expr ],
 		  _Transforms ) ->
 			ast_utils:display_error(
 			  "A token used with cond_utils:if_set_to/3 must be an immediate "
 			  "value (precisely an atom), not a (runtime) variable like '~ts' "
-			  "(at line ~B).", [ VarName, Line ] ),
+			  "(at ~ts).",
+			  [ VarName, ast_utils:file_loc_to_string( FileLoc ) ] ),
 			ast_utils:raise_error( { non_immediate_token, VarName,
-									 {line,Line} } );
+				ast_utils:file_loc_to_explicative_term( FileLoc ) } );
 
 
-		( _LineCall,
+		( _FileLocCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils},
-						 {atom,Line,if_set_to} },
+							{atom,FileLoc,if_set_to} },
 		  _Params=[ _Other, _ValueForm, _Expr ],
 		  _Transforms ) ->
 			ast_utils:display_error(
 			  "A token used with cond_utils:if_set_to/3 must be an immediate "
 			  "value (precisely an atom), not a runtime construct like the one "
-			  "at line ~B.", [ Line ] ),
-			ast_utils:raise_error( { non_immediate_token, {line,Line} } );
+			  "at ~ts.", [ ast_utils:file_loc_to_string( FileLoc ) ] ),
+			ast_utils:raise_error( { non_immediate_token,
+				ast_utils:file_loc_to_explicative_term( FileLoc ) } );
 
 
 
@@ -757,9 +766,9 @@ get_ast_global_transforms( DesiredTableType ) ->
 		% corresponding specified expressions, depending on whether the
 		% specified token has been set to the specified value:
 		%
-		( _LineCall,
+		( _FileLocCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,if_set_to} },
-		  _Params=[ {atom,LineToken,Token}, ValueForm, ExprFormIfMatching,
+		  _Params=[ {atom,FileLocToken,Token}, ValueForm, ExprFormIfMatching,
 					ExprFormIfNotMatching ],
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
@@ -779,7 +788,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 					% So we will (attempt to) inject expression:
 					inject_expression( ExprFormIfMatching, Transforms,
-									   LineToken );
+									   FileLocToken );
 
 				% Another value found:
 				{ value, _OtherValue } ->
@@ -791,40 +800,42 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 					% So we will (attempt to) inject this expression:
 					inject_expression( ExprFormIfNotMatching, Transforms,
-									   LineToken );
+									   FileLocToken );
 
 				key_not_found ->
 					%ast_utils:display_debug( "Token '~p' not defined, hence "
 					%		 "injecting the expression~n ~p",
 					%		 [ Token, ExprFormIfNotMatching ] ),
 					inject_expression( ExprFormIfNotMatching, Transforms,
-									   LineToken )
+									   FileLocToken )
 
 			end;
 
-		( _LineCall,
+		( _FileLocCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils},
 						 {atom,_,if_set_to} },
-		  _Params=[ { var,Line,VarName}, _ValueForm,_ExprFormIfMatching,
+		  _Params=[ { var,FileLoc,VarName}, _ValueForm,_ExprFormIfMatching,
 					_ExprFormIfNotMatching ], _Transforms ) ->
 			ast_utils:display_error(
 			  "A token used with cond_utils:if_set_to/4 must be an immediate "
 			  "value (precisely an atom), not a (runtime) variable like '~ts' "
-			  "(at line ~B).", [ VarName, Line ] ),
+			  "(at ~ts).",
+			  [ VarName, ast_utils:file_loc_to_string( FileLoc ) ] ),
 			ast_utils:raise_error( { non_immediate_token, VarName,
-									 {line,Line} } );
+				ast_utils:file_loc_to_explicative_term( FileLoc ) } );
 
 
-		( _LineCall,
+		( _FileLocCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils},
-						 {atom,Line,if_set_to} },
+						 {atom,FileLoc,if_set_to} },
 		  _Params=[ _Other, _ValueForm, _ExprFormIfMatching,
 					_ExprFormIfNotMatching ], _Transforms ) ->
 			ast_utils:display_error(
 			  "A token used with cond_utils:if_set_to/4 must be an immediate "
 			  "value (precisely an atom), not a runtime construct like the one "
-			  "at line ~B.", [ Line ] ),
-			ast_utils:raise_error( { non_immediate_token, {line,Line} } );
+			  "at ~ts.", [ ast_utils:file_loc_to_string( FileLoc ) ] ),
+			ast_utils:raise_error( { non_immediate_token,
+				ast_utils:file_loc_to_explicative_term( FileLoc ) } );
 
 
 
@@ -837,10 +848,10 @@ get_ast_global_transforms( DesiredTableType ) ->
 		% be replaced by the expression associated to the specified value for
 		% that token, or shall trigger a compilation-time error.
 		%
-		( _LineCall,
+		( _FileLocCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils},
 						 {atom,_,switch_set_to} },
-		  _Params=[ {atom,LineToken,Token}, TokenExprTableAsForm ],
+		  _Params=[ {atom,FileLocToken,Token}, TokenExprTableAsForm ],
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
 			%ast_utils:display_debug( "Call to cond_utils:switch_set_to/2 "
@@ -854,10 +865,12 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 				key_not_found ->
 					ast_utils:display_error( "Token '~p' not set, whereas "
-						"cond_utils:switch_set_to/2 (at line ~B) requires it.",
-						[ Token, LineToken ] ),
-					ast_utils:raise_error(
-					  { token_not_set, Token, {line,LineToken} } )
+						"cond_utils:switch_set_to/2 (at ~ts) requires it.",
+						[ Token,
+						  ast_utils:file_loc_to_string( FileLocToken ) ] ),
+					ast_utils:raise_error( { token_not_set, Token,
+						ast_utils:file_loc_to_explicative_term(
+							FileLocToken ) } )
 
 			end,
 
@@ -875,14 +888,14 @@ get_ast_global_transforms( DesiredTableType ) ->
 			%ast_utils:display_debug( "Token table as list: ~p.",
 			%						 [ TokenExprTableAsList ] ),
 
-			ExprForm = find_expression_for( TokenValue, Token, LineToken,
+			ExprForm = find_expression_for( TokenValue, Token, FileLocToken,
 											TokenExprTableAsList ),
 
 			%ast_utils:display_debug( "Resulting expression:~n  ~p",
 			%						 [ ExprForm ] ),
 
 			% So we will (attempt to) inject this expression:
-			inject_expression( ExprForm, Transforms, LineToken );
+			inject_expression( ExprForm, Transforms, FileLocToken );
 
 
 		%%%%%%% Subsection for cond_utils:switch_set_to/3 %%%%%%%%%%%%%%%%%%%%%%
@@ -894,10 +907,10 @@ get_ast_global_transforms( DesiredTableType ) ->
 		% table, the call-specified default value will be used instead as the
 		% token value is charge of selecting which expression shall be injected.
 		%
-		( _LineCall,
+		( _FileLocCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils},
 						 {atom,_,switch_set_to} },
-		  _Params=[ {atom,LineToken,Token}, TokenExprTableAsForm,
+		  _Params=[ {atom,FileLocToken,Token}, TokenExprTableAsForm,
 					DefaultValueForm ],
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
@@ -917,11 +930,11 @@ get_ast_global_transforms( DesiredTableType ) ->
 				{ value, TokenValue } ->
 					% This value may or may not be referenced:
 					find_expression_for( TokenValue, DefaultValue, Token,
-										 LineToken, TokenExprTableAsList );
+										 FileLocToken, TokenExprTableAsList );
 
 				key_not_found ->
 					% Like switch_set_to/2:
-					find_expression_for( DefaultValue, Token, LineToken,
+					find_expression_for( DefaultValue, Token, FileLocToken,
 										 TokenExprTableAsList )
 
 			end,
@@ -930,7 +943,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 			%						 [ ExprForm ] ),
 
 			% So we will (attempt to) inject this expression:
-			inject_expression( ExprForm, Transforms, LineToken );
+			inject_expression( ExprForm, Transforms, FileLocToken );
 
 
 
@@ -938,9 +951,9 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 		%%%%%%% Subsection for cond_utils:assert/1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-		( _LineCall,
+		( _FileLocCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils},
-						 {atom,LineAssert,assert} },
+						 {atom,FileLocAssert,assert} },
 		  _Params=[ ExpressionForm ],
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
@@ -959,7 +972,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 				{ value, _Any } ->
 					% So we will (attempt to) inject a match expression:
 					inject_match_expression( ExpressionForm, Transforms,
-											 LineAssert );
+											 FileLocAssert );
 
 				key_not_found ->
 					%ast_utils:display_debug( "Token '~p' not defined, hence "
@@ -972,9 +985,9 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 		%%%%%%% Subsection for cond_utils:assert/2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-		( _LineCall,
+		( _FileLocCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,assert} },
-		  _Params=[ {atom,LineToken,Token}, ExpressionForm ],
+		  _Params=[ {atom,FileLocToken,Token}, ExpressionForm ],
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
 			%ast_utils:display_debug( "Call to cond_utils:assert/2 found, "
@@ -989,7 +1002,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 				{ value, _Any } ->
 					% So we will (attempt to) inject a match expression:
 					inject_match_expression( ExpressionForm, Transforms,
-											 LineToken );
+											 FileLocToken );
 
 				key_not_found ->
 					%ast_utils:display_debug( "Token '~p' not defined, hence "
@@ -1002,9 +1015,9 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 		%%%%%%% Subsection for cond_utils:assert/3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-		( _LineCall,
+		( _FileLocCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,assert} },
-		  _Params=[ {atom,LineToken,Token}, ValueForm, ExpressionForm ],
+		  _Params=[ {atom,FileLocToken,Token}, ValueForm, ExpressionForm ],
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
 			%ast_utils:display_debug( "Call to cond_utils:assert/3 found, "
@@ -1024,7 +1037,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 					% So we will (attempt to) inject a match expression:
 					inject_match_expression( ExpressionForm, Transforms,
-											 LineToken );
+											 FileLocToken );
 
 				% Another value found:
 				{ value, _OtherValue } ->
@@ -1048,17 +1061,18 @@ get_ast_global_transforms( DesiredTableType ) ->
 		% For all function names and arities, the 'table' module shall be
 		% replaced in remote calls by the desired table type:
 		%
-		( LineCall,
-		  _FunctionRef={ remote, Line1, {atom,Line2,table}, FunNameForm },
+		( FileLocCall,
+		  _FunctionRef={ remote, FileLoc1, {atom,FileLoc2,table}, FunNameForm },
 		  Params,
 		  Transforms ) ->
 			  %ast_utils:display_debug( "replacing call to 'table' by a call "
-			  %						   "to '~p' at line #~B for parameters ~p",
-			  %						   [ DesiredTableType, Line1, Params ] ),
+			  %  "to '~p' at ~ts for parameters ~p",
+			  %  [ DesiredTableType,
+			  %	   ast_utils:file_loc_to_string( FileLoc1 ), Params ] ),
 
 			  % Just swap the 'table' module with the desired one:
-			  NewFunctionRef = { remote, Line1, {atom,Line2,DesiredTableType},
-								 FunNameForm },
+			  NewFunctionRef = { remote, FileLoc1,
+					{atom,FileLoc2,DesiredTableType}, FunNameForm },
 
 			  % We have to recurse as well in parameters, as they may themselves
 			  % contain calls to 'table' as well, like in:
@@ -1068,13 +1082,13 @@ get_ast_global_transforms( DesiredTableType ) ->
 			  { NewParams, NewTransforms } =
 					ast_expression:transform_expressions( Params, Transforms ),
 
-			  NewExpr = { call, LineCall, NewFunctionRef, NewParams },
+			  NewExpr = { call, FileLocCall, NewFunctionRef, NewParams },
 
 			 { [ NewExpr ], NewTransforms };
 
 
 		% Other calls shall go through:
-		( LineCall, FunctionRef, Params, Transforms ) ->
+		( FileLocCall, FunctionRef, Params, Transforms ) ->
 
 			%?display_trace( "(not changing function referenced as ~p "
 			%						 "whose parameters are ~p)",
@@ -1083,7 +1097,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 			{ NewParams, NewTransforms } =
 					ast_expression:transform_expressions( Params, Transforms ),
 
-			RecursedExpr = { call, LineCall, FunctionRef, NewParams },
+			RecursedExpr = { call, FileLocCall, FunctionRef, NewParams },
 			{ [ RecursedExpr ], NewTransforms }
 
 
@@ -1095,19 +1109,19 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 
 % (helper)
--spec inject_expression( ast_expression(), ast_transforms(), line() ) ->
+-spec inject_expression( ast_expression(), ast_transforms(), file_loc() ) ->
 								{ [ ast_expression() ], ast_transforms() }.
 
 % Two next clauses not used anymore as semantically ambiguous, see
 % documentation:
 
 % Nothing to inject here (empty conditional expression list):
-%inject_expression( _ExprFormList={ nil, _ }, Transforms, _Line ) ->
+%inject_expression( _ExprFormList={ nil, _ }, Transforms, _FileLoc ) ->
 %	{ _NewExprs=[], Transforms };
 
 % A list of expressions shall be injected here:
 %inject_expression( ExprFormList={ cons, _, _Head, _Tail }, Transforms,
-%					_Line ) ->
+%					_FileLoc ) ->
 %
 %	%ast_utils:display_debug( "Token '~p' defined, hence injecting expressions"
 %	%						  "corresponding to ~p", [ Token, ExprFormList ] ),
@@ -1129,13 +1143,14 @@ get_ast_global_transforms( DesiredTableType ) ->
 % been relaxed, a single expression is accepted as well (actually now it is the
 % only option):
 %
-inject_expression( ExprForm, Transforms, _Line ) ->
+inject_expression( ExprForm, Transforms, _FileLoc ) ->
 
-	% ast_utils:display_error( "Unsupported expression specified at line ~B "
-	%     "for a conditional injection (:~n~p", [ Line, OtherExprForm ] ),
+	% ast_utils:display_error( "Unsupported expression specified at ~ts "
+	%     "for a conditional injection (:~n~p", [
+	%   ast_utils:file_loc_to_string( FileLoc ), OtherExprForm ] ),
 
 	% ast_utils:raise_error( { unsupported_expression_for_conditional_injection,
-	%						 {line,Line} } ).
+	%			ast_utils:file_loc_to_explicative_term( FileLoc ) } ).
 
 	ast_expression:transform_expression( ExprForm, Transforms ).
 
@@ -1146,12 +1161,12 @@ inject_expression( ExprForm, Transforms, _Line ) ->
 %
 % (helper)
 %
--spec inject_match_expression( ast_expression(), ast_transforms(), line() ) ->
-									{ [ ast_expression() ], ast_transforms() }.
-inject_match_expression( ExpressionForm, Transforms, Line ) ->
+-spec inject_match_expression( ast_expression(), ast_transforms(),
+					file_loc() ) -> { [ ast_expression() ], ast_transforms() }.
+inject_match_expression( ExpressionForm, Transforms, FileLoc ) ->
 
 	% Was initially:
-	% NewExpr = { match, Line, {atom,Line,true}, ExpressionForm },
+	% NewExpr = { match, FileLoc, {atom,FileLoc,true}, ExpressionForm },
 	% yet the error message was not sufficiently clear: {badmatch,false}.
 
 	% Now corresponds roughly to:
@@ -1171,17 +1186,18 @@ inject_match_expression( ExpressionForm, Transforms, Line ) ->
 	% name (ex: 'Other') would be unsafe in 'case' (and of course this name
 	% should not clash with user-defined ones). So:
 	%
-	VarName = list_to_atom( io_lib:format( "Myriad_assert_var_name-~B",
-										   [ Line ] ) ),
+	VarName = list_to_atom( lists:flatten(
+								io_lib:format( "Myriad_assert_var_name-~ts",
+						[ ast_utils:format_file_loc_alt( FileLoc ) ] ) ) ),
 
-	NewExpr = { 'case', Line, ExpressionForm,
-				[ {clause,Line,[{atom,Line,true}],[],[{atom,Line,ok}]},
-				  {clause,Line,
-					 [{var,Line,VarName}], [],
-					 [{call,Line,
-						  {atom,Line,throw},
-						  [ { tuple, Line,[ {atom,Line,assertion_failed},
-											{var,Line,VarName} ] } ] }]}] },
+	NewExpr = { 'case', FileLoc, ExpressionForm,
+				[ {clause,FileLoc,[{atom,FileLoc,true}],[],[{atom,FileLoc,ok}]},
+				  {clause,FileLoc,
+					 [{var,FileLoc,VarName}], [],
+					 [{call,FileLoc,
+						  {atom,FileLoc,throw},
+						  [ { tuple, FileLoc,[ {atom,FileLoc,assertion_failed},
+											{var,FileLoc,VarName} ] } ] }]}] },
 
 	ast_expression:transform_expression( NewExpr, Transforms ).
 
@@ -1190,42 +1206,45 @@ inject_match_expression( ExpressionForm, Transforms, Line ) ->
 % Finds in specified token-expression table the expression associated to
 % specified token value, and returns it.
 %
-find_expression_for( TokenValue, Token, LineToken, _TokenExprTableAsList=[] ) ->
+find_expression_for( TokenValue, Token, FileLocToken,
+					 _TokenExprTableAsList=[] ) ->
 	ast_utils:display_error( "The current value '~p' of token '~p' could not "
-		"be found in the switch_set_to/2 table specified at line ~B.",
-		[ TokenValue, Token, LineToken ] ),
+		"be found in the switch_set_to/2 table specified at ~ts.",
+		[ TokenValue, Token, ast_utils:file_loc_to_string( FileLocToken ) ] ),
 
 	ast_utils:raise_error( { token_value_not_referenced, {value,TokenValue},
-		{token,Token}, {line,LineToken} } );
+		{token,Token},
+		ast_utils:file_loc_to_explicative_term( FileLocToken ) } );
 
 % Target value found, regardless of its type in form:
-find_expression_for( TokenValue, _Token, _LineToken,
+find_expression_for( TokenValue, _Token, _FileLocToken,
 		_TokenExprTableAsList=[ { tuple, _LTuple,
 			[ {_ValueType,_L,TokenValue}, Expr ] } | _T ] ) ->
 	Expr;
 
 % Another value:
-find_expression_for( TokenValue, Token, LineToken,
-	  _TokenExprTableAsList=[ { tuple, _LTuple,
+find_expression_for( TokenValue, Token, FileLocToken,
+	  _TokenExprTableAsList=[ { tuple, _TupleLoc,
 			[ {_ValueType,_L,_OtherTokenValue}, _Expr ] } | T ] ) ->
-	find_expression_for( TokenValue, Token, LineToken, T );
+	find_expression_for( TokenValue, Token, FileLocToken, T );
 
-find_expression_for( _TokenValue, Token, _LineToken,
-		_TokenExprTableAsList=[ { tuple, LTuple,
+find_expression_for( _TokenValue, Token, _FileLocToken,
+		_TokenExprTableAsList=[ { tuple, TupleLoc,
 			[ UnexpectedValue, _Expr ] } | _T ] ) ->
 
 	ast_utils:display_error( "Unexpected non-immediate value ('~p') "
-		"for token '~p' in cond_utils:switch_set_to table/2 (at line ~B).",
-		[ UnexpectedValue, Token, LTuple ] ),
+		"for token '~p' in cond_utils:switch_set_to table/2 (at ~ts).",
+		[ UnexpectedValue, Token, ast_utils:file_loc_to_string( TupleLoc ) ] ),
 
 	ast_utils:raise_error( { non_immediate_token_value, {value,UnexpectedValue},
-							 {token,Token}, {line,LTuple} } );
+		{token,Token}, ast_utils:file_loc_to_explicative_term( TupleLoc ) } );
 
-find_expression_for( _TokenValue, Token, LineToken,
+find_expression_for( _TokenValue, Token, FileLocToken,
 		_TokenExprTableAsList=[ UnexpectedEntryForm | _T ] ) ->
 
 	ast_utils:raise_error( { unexpected_entry_form, {form,UnexpectedEntryForm},
-		{token,Token}, {line,LineToken} } ).
+		{token,Token},
+		ast_utils:file_loc_to_explicative_term( FileLocToken ) } ).
 
 
 
@@ -1233,9 +1252,9 @@ find_expression_for( _TokenValue, Token, LineToken,
 % specified token value (if referenced, otherwise tries with the specified
 % default value), and returns it.
 %
-find_expression_for( TokenValue, DefaultValue, Token, LineToken,
+find_expression_for( TokenValue, DefaultValue, Token, FileLocToken,
 					 TokenExprTableAsList ) ->
-	find_expression_for( TokenValue, DefaultValue, Token, LineToken,
+	find_expression_for( TokenValue, DefaultValue, Token, FileLocToken,
 						 TokenExprTableAsList, _MaybeDefExpr=undefined ).
 
 
@@ -1244,59 +1263,61 @@ find_expression_for( TokenValue, DefaultValue, Token, LineToken,
 % Here we neither found the specified token value nor the default one in the
 % table:
 %
-find_expression_for( TokenValue, DefaultValue, Token, LineToken,
+find_expression_for( TokenValue, DefaultValue, Token, FileLocToken,
 					 _TokenExprTableAsList=[], _MaybeDefExpr=undefined ) ->
 
 	ast_utils:display_error( "For token '~p' in cond_utils:switch_set_to/3 "
-		"(line ~B): neither its value (~p) nor the specified default one (~p) "
+		"(~ts): neither its value (~p) nor the specified default one (~p) "
 		"are referenced in specified table.",
-		[ Token, LineToken, TokenValue, DefaultValue ] ),
+		[ Token, ast_utils:file_loc_to_string( FileLocToken ), TokenValue,
+		  DefaultValue ] ),
 
 	ast_utils:raise_error( { unreferenced_values, {token_value,TokenValue},
-		{default_value,DefaultValue}, {token,Token}, {line,LineToken} } );
+		{default_value,DefaultValue}, {token,Token},
+		ast_utils:file_loc_to_explicative_term( FileLocToken ) } );
 
 % Here the token value was not found yet the default one was, so injecting the
 % expression of this last one:
 %
-find_expression_for( _TokenValue, _DefaultValue, _Token, _LineToken,
+find_expression_for( _TokenValue, _DefaultValue, _Token, _FileLocToken,
 					  _TokenExprTableAsList=[], DefExpr ) ->
 	DefExpr;
 
 % Here the token value is directly found:
-find_expression_for( TokenValue, _DefaultValue, _Token, _LineToken,
+find_expression_for( TokenValue, _DefaultValue, _Token, _FileLocToken,
 		_TokenExprTableAsList=[ { tuple, _LTuple,
 			[ {_ValueType,_L,TokenValue}, Expr ] } | _T ], _MaybeDefExpr ) ->
 	Expr;
 
 % Storing the expressions for this default value:
-find_expression_for( TokenValue, DefaultValue, Token, LineToken,
+find_expression_for( TokenValue, DefaultValue, Token, FileLocToken,
 	  _TokenExprTableAsList=[ { tuple, _LTuple,
 			[ {_ValueType,_L,DefaultValue}, Expr ] } | T ],
 					  _MaybeDefExpr=undefined ) ->
-	find_expression_for( TokenValue, DefaultValue, Token, LineToken, T,
+	find_expression_for( TokenValue, DefaultValue, Token, FileLocToken, T,
 						 Expr );
 
 % Another value (i.e. not the token or default one):
-find_expression_for( TokenValue, DefaultValue, Token, LineToken,
+find_expression_for( TokenValue, DefaultValue, Token, FileLocToken,
 	  _TokenExprTableAsList=[ { tuple, _LTuple,
 			[ {_ValueType,_L,_OtherTokenValue}, _Expr ] } | T ],
 	  MaybeDefExpr ) ->
-	find_expression_for( TokenValue, DefaultValue, Token, LineToken, T,
+	find_expression_for( TokenValue, DefaultValue, Token, FileLocToken, T,
 						  MaybeDefExpr );
 
-find_expression_for( _TokenValue, _DefaultValue, Token, _LineToken,
-		_TokenExprTableAsList=[ { tuple, LTuple,
+find_expression_for( _TokenValue, _DefaultValue, Token, _FileLocToken,
+		_TokenExprTableAsList=[ { tuple, TupleLoc,
 			[ UnexpectedValue, _Expr ] } | _T ], _MaybeDefExpr ) ->
 
 	ast_utils:display_error( "Unexpected non-immediate value ('~p') "
-		"for token '~p' in cond_utils:switch_set_to table/3 (at line ~B).",
-		[ UnexpectedValue, Token, LTuple ] ),
+		"for token '~p' in cond_utils:switch_set_to table/3 (at ~ts).",
+		[ UnexpectedValue, Token, ast_utils:file_loc_to_string( TupleLoc ) ] ),
 
 	ast_utils:raise_error( { non_immediate_token_value, {value,UnexpectedValue},
-							 {token,Token}, {line,LTuple} } );
+		{token,Token}, ast_utils:file_loc_to_explicative_term( TupleLoc ) } );
 
-find_expression_for( _TokenValue, _DefaultValue, Token, LineToken,
+find_expression_for( _TokenValue, _DefaultValue, Token, TokenLoc,
 		_TokenExprTableAsList=[ UnexpectedEntryForm | _T ], _MaybeDefExpr ) ->
 
 	ast_utils:raise_error( { unexpected_entry_form, {form,UnexpectedEntryForm},
-		{token,Token}, {line,LineToken} } ).
+		{token,Token}, ast_utils:file_loc_to_explicative_term( TokenLoc ) } ).

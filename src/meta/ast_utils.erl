@@ -94,7 +94,7 @@
 
 % Checking:
 -export([ check_ast/1,
-		  check_line/2,
+		  check_file_loc/1, check_file_loc/2,
 		  check_module_name/1, check_module_name/2,
 		  check_inline_options/1, check_inline_options/2,
 		  check_arity/1, check_arity/2 ]).
@@ -128,13 +128,17 @@
 
 
 % Other:
--export([ write_ast_to_file/2 ]).
+-export([ format_file_loc/1, format_file_loc_alt/1,
+		  file_loc_to_string/1, file_loc_to_explicative_term/1,
+		  write_ast_to_file/2 ]).
+
 
 
 % Shorthands:
 
 -type void() :: basic_utils:void().
 -type module_name() :: basic_utils:module_name().
+-type maybe(T) :: basic_utils:maybe(T).
 
 -type ustring() :: text_utils:ustring().
 -type format_string() :: text_utils:format_string().
@@ -145,7 +149,9 @@
 -type ast() :: ast_base:ast().
 -type form() :: ast_base:form().
 -type line() :: ast_base:line().
+-type file_loc() :: ast_base:file_loc().
 -type form_context() :: ast_base:form_context().
+-type source_context() :: ast_base:source_context().
 -type ast_transforms() :: ast_transform:ast_transforms().
 
 
@@ -270,15 +276,27 @@ interpret_issue_description( IssueDescription, DectectorModule ) ->
 
 
 
+% Checks that specified source, in-file location is legit.
+-spec check_file_loc( term() ) -> file_loc().
+check_file_loc( Line ) ->
+	check_file_loc( Line, _Context=undefined ).
 
-% Checks that specified line reference is legit.
--spec check_line( term(), form_context() ) -> line().
-check_line( Line, _Context ) when is_integer( Line ) andalso Line >= 0 ->
+
+% Checks that specified source, in-file location is legit.
+-spec check_file_loc( term(), maybe( form_context() ) ) -> file_loc().
+check_file_loc( Line, _Context )
+  when is_integer( Line ) andalso Line >= 0 ->
 	Line;
 
-check_line( Other, Context ) ->
+% Since OTP 24.0:
+check_file_loc( FileLoc={ Line, Column }, _Context )
+  when is_integer( Line ) andalso Line >= 0
+	   andalso is_integer( Column) andalso Column >=0 ->
+	FileLoc;
+
+check_file_loc( Other, Context ) ->
 	% Not raise_error/2:
-	throw( { invalid_line, Other, Context } ).
+	throw( { invalid_file_location, Other, Context } ).
 
 
 
@@ -514,7 +532,7 @@ string_to_form( FormString ) ->
 % Ex: string_to_form( "f() -> hello_world.", 42 ) returns
 %   { function, 1, f, 0, [ { clause, 42, [], [], [ {atom,1,hello_world} ] } ] }
 %
--spec string_to_form( ustring(), ast_base:file_loc() ) -> form().
+-spec string_to_form( ustring(), file_loc() ) -> form().
 string_to_form( FormString, Location ) ->
 
 	% First get Erlang tokens from that string:
@@ -564,7 +582,7 @@ string_to_expressions( ExpressionString ) ->
 %   [ {cons, 42, {tuple, 42, [ {atom,42,a}, {integer,42,1} ]},
 %     {cons, 42, {atom,42,foobar}, {nil,42} }} ]
 %
--spec string_to_expressions( ustring(), ast_base:file_loc() ) -> ast().
+-spec string_to_expressions( ustring(), file_loc() ) -> ast().
 string_to_expressions( ExpressionString, Location ) ->
 
 	% First get Erlang tokens from that string:
@@ -782,8 +800,8 @@ raise_error( ErrorTerm ) ->
 % Raises an error, with specified context, thanks to the specified term (often,
 % a list of error elements), from the Myriad layer.
 %
-% Ex: raise_error( [ invalid_module_name, Other ], _Context=112 ) shall
-% result in throwing { invalid_module_name, Other, { line, 112 } }.
+% Ex: raise_error([invalid_module_name, Other], _Context=112) shall
+% result in throwing {invalid_module_name, Other, {line, 112}}.
 %
 % Note:
 % - this function is used to report errors detected by Myriad itself (not by the
@@ -791,7 +809,8 @@ raise_error( ErrorTerm ) ->
 % - prefer using raise_usage_error/* to report errors in a more standard,
 % convenient way
 %
--spec raise_error( term(), basic_utils:maybe( form_context() ) ) -> no_return().
+-spec raise_error( term(), basic_utils:maybe( source_context() ) ) ->
+						 no_return().
 raise_error( ErrorTerm, Context ) ->
 	raise_error( ErrorTerm, Context, _OriginLayer="Myriad" ).
 
@@ -800,9 +819,9 @@ raise_error( ErrorTerm, Context ) ->
 % Raises an error, with specified context, from the specified layer (expected to
 % be above Myriad).
 %
-% Ex: raise_error( [ invalid_module_name, Other ], _Context=112,
-% _OriginLayer="FooLayer" ) shall result in throwing { invalid_module_name,
-% Other, { line, 112 } }.
+% Ex: raise_error([invalid_module_name, Other], _Context=112,
+% _OriginLayer="FooLayer") shall result in throwing {invalid_module_name, Other,
+% {line, 112}}.
 %
 % Note:
 % - this function is used to report errors detected by Myriad itself (not by the
@@ -810,20 +829,24 @@ raise_error( ErrorTerm, Context ) ->
 % - prefer using raise_usage_error/* to report errors in a more standard,
 % convenient way
 %
--spec raise_error( term(), basic_utils:maybe( ast_base:source_context() ),
+-spec raise_error( term(), basic_utils:maybe( source_context() ),
 				   basic_utils:layer_name() ) -> no_return();
-				 ( ustring(), ast_transforms(), line() ) -> no_return().
+				 ( ustring(), ast_transforms(), file_loc() ) -> no_return().
 raise_error( Message, #ast_transforms{ transformed_module_name=ModName },
-			 Line ) ->
-	io:format( "~ts.erl:~B: ~ts~n", [ ModName, Line, Message ] ),
+			 FileLoc ) ->
+
+	io:format( "~ts.erl:~ts: ~ts~n",
+			   [ ModName, format_file_loc( FileLoc ), Message ] ),
+
 	halt( 5 );
 
-raise_error( Message, Context, OriginLayer ) ->
 
-	%trace_utils:debug_fmt( "Message: ~p, Context: ~p, Layer: ~p",
-	%						[ Message, Context, OriginLayer ] ),
+raise_error( Message, SourceContext, OriginLayer ) ->
 
-	Prefix = case Context of
+	%trace_utils:debug_fmt( "Message: ~p, SourceContext: ~p, Layer: ~p",
+	%						[ Message, SourceContext, OriginLayer ] ),
+
+	Prefix = case SourceContext of
 
 		undefined ->
 			"Error";
@@ -920,7 +943,7 @@ interpret_stack_trace( _StackTrace=[], Acc, _Count ) ->
 	lists:reverse( Acc );
 
 interpret_stack_trace( _StackTrace=[ { Module, FunName, Arity,
-						 _FileLoc=[ { file, Path }, { line, Line } ] } | T ],
+							_FileLoc=[ { file, Path }, { line, Line } ] } | T ],
 					   Acc, Count ) ->
 
 	Text = io_lib:format( " [~B] ~ts:~ts/~B    [~ts, line ~B]~n",
@@ -951,7 +974,7 @@ raise_usage_error( ErrorFormatString, ErrorValues, Filename ) ->
 % the actual error to the user.
 %
 -spec raise_usage_error( format_string(), format_values(), file_name(),
-						 ast_base:line() ) -> no_return().
+						 maybe( file_loc() ) ) -> no_return().
 raise_usage_error( ErrorFormatString, ErrorValues, Filename,
 				   _Line=undefined ) ->
 	raise_usage_error( ErrorFormatString, ErrorValues, Filename,
@@ -1019,8 +1042,7 @@ format_error( ErrorTerm ) ->
 %
 % (helper)
 %
--spec get_elements_with_context( [ term() ], ast_base:form_context() ) ->
-										[ term() ].
+-spec get_elements_with_context( [ term() ], form_context() ) -> [ term() ].
 get_elements_with_context( Elements, _Context=undefined ) ->
 	Elements;
 
@@ -1048,6 +1070,53 @@ get_elements_with_context( Elements, _Context=FilePath )
 get_elements_with_context( Elements, Context ) ->
 	% No list_utils module used from this module:
 	Elements ++ [ Context ].
+
+
+
+% Returns a standard textual description of specified in-file location
+% (typically to output the usual, canonical reference expected by most tools).
+%
+-spec format_file_loc( file_loc() ) -> ustring().
+format_file_loc( { Line, Column } ) ->
+	io_lib:format( "~B:~B", [ Line, Column ] );
+
+format_file_loc( Line ) ->
+	io_lib:format( "~B", [ Line ] ).
+
+
+
+% Returns an alternative textual description of specified in-file location (ex:
+% in order to name variables in AST).
+%
+-spec format_file_loc_alt( file_loc() ) -> ustring().
+format_file_loc_alt( { Line, Column } ) ->
+	io_lib:format( "~B_~B", [ Line, Column ] );
+
+format_file_loc_alt( Line ) ->
+	io_lib:format( "~B", [ Line ] ).
+
+
+
+% Returns a textual, user-friendly description of specified in-file location.
+-spec file_loc_to_string( file_loc() ) -> ustring().
+file_loc_to_string( { Line, Column } ) ->
+	io_lib:format( "line ~B, column ~B", [ Line, Column ] );
+
+file_loc_to_string( Line ) ->
+	io_lib:format( "line ~B", [ Line ] ).
+
+
+
+% Returns an explicative term (typically to be part of a thrown exception)
+% corresponding to the specified in-file location.
+%
+-spec file_loc_to_explicative_term( file_loc() ) -> term().
+file_loc_to_explicative_term( { Line, Column } ) ->
+	{ { line, Line }, { column, Column } };
+
+file_loc_to_explicative_term( Line ) ->
+	{ line, Line }.
+
 
 
 

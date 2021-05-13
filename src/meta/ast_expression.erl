@@ -1708,9 +1708,11 @@ transform_call_expression( OriginalExpr={ 'remote', LineRemote,
 
 				key_not_found ->
 
+					AnyArity = '_',
+
 					% Maybe a wildcard arity was defined then?
 					case ?table:lookup_entry(
-							{ ModuleName, FunctionName, _AnyArity='_' },
+							{ ModuleName, FunctionName, AnyArity },
 							RemoteReplaceTable ) of
 
 						{ value, E={ _NewModuleName, _NewFunctionName } } ->
@@ -1733,8 +1735,8 @@ transform_call_expression( OriginalExpr={ 'remote', LineRemote,
 							% set, actual arity is not deemed relevant)
 
 							case ?table:lookup_entry( { ModuleName,
-									   _AnyFunctionName='_', _AnyArity='_' },
-													 RemoteReplaceTable ) of
+									   _AnyFunctionName='_', AnyArity },
+													  RemoteReplaceTable ) of
 
 								{ value,
 								  { NewModuleName, _NewFunctionName='_' } } ->

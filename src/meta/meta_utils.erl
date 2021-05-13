@@ -190,7 +190,7 @@
 
 
 % The form corresponding to the definition of a clause of a function, typically
-% { clause, LINE, Rep(Ps), Rep(Gs), Rep(B) } for '( Ps ) when Gs -> B':
+% {clause, LINE, Rep(Ps), Rep(Gs), Rep(B)} for '( Ps ) when Gs -> B':
 %
 -type clause_def() :: form().
 
@@ -199,7 +199,7 @@
 % The full type specification (if any) of that function, as an abstract form;
 % typically:
 %
-% { attribute, L, spec, { {foobar,Arity}, [{type,L,'fun', [{type,L,...
+% {attribute, L, spec, { {foobar,Arity}, [{type,L,'fun', [{type,L,...
 %
 -type function_spec() :: form().
 
@@ -270,8 +270,8 @@ add_function( FunctionName, FunctionArity, Clauses,
 
 		true ->
 			CurrentFunInfo = ?table:get_value( FunId, FunTable ),
-			CurrentFunString = ast_info:function_info_to_string(
-								 CurrentFunInfo ),
+			CurrentFunString =
+				ast_info:function_info_to_string( CurrentFunInfo ),
 
 			ast_utils:display_error( "Function ~p already defined, as ~ts.",
 									 [ FunId, CurrentFunString ] ),
@@ -283,20 +283,20 @@ add_function( FunctionName, FunctionArity, Clauses,
 
 	end,
 
-	DefLoc = ?table:get_value( definition_functions_marker, MarkerTable ),
+	DefASTLoc = ?table:get_value( definition_functions_marker, MarkerTable ),
 
-	ExportLoc = ast_info:get_default_export_function_location(),
+	ExportASTLoc = ast_info:get_default_export_function_location(),
 
 	FunInfo = #function_info{ name=FunctionName,
 							  arity=FunctionArity,
-							  location=DefLoc,
-							  line=0,
+							  ast_location=DefASTLoc,
+							  file_location=0,
 							  clauses=Clauses,
 							  spec=undefined,
 							  callback=false,
 
 							  % Will be auto-exported once module is recomposed:
-							  exported=[ ExportLoc ] },
+							  exported=[ ExportASTLoc ] },
 
 	NewFunTable = ?table:add_entry( FunId, FunInfo, FunTable ),
 
@@ -507,7 +507,7 @@ get_arities_for( ModuleName, FunctionName ) ->
 % specified module.
 %
 -spec is_function_exported( module_name(), function_name(), arity() ) ->
-								  boolean().
+									boolean().
 is_function_exported( ModuleName, FunctionName, Arity ) ->
 	lists:member( { FunctionName, Arity },
 				  list_exported_functions( ModuleName ) ).
