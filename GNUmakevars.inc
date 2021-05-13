@@ -1309,14 +1309,22 @@ EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noinput
 ALL_CMD_LINE_OPTIONS := $(EXEC_INTERNAL_OPTIONS) -extra $(EXEC_EXTERNAL_OPTIONS) $(CMD_LINE_OPT)
 
 
+## Documentation section.
+
 # Available in Ceylan-Hull:
 DOC_TRACKER := $$(which track-make-automatic-source.sh)
-
 
 ifdef PROJECT_ICON
 	PROJECT_ICON_OPT := --icon-file $(PROJECT_ICON)
 endif
 
+
+ifndef API_DOC_GENERATOR
+	# Currently erldocs (see https://github.com/erldocs/erldocs):
+	API_DOC_GENERATOR := $$(which erldocs 2>/dev/null)
+endif
+
+API_DOC_ROOT := $(LAYER_TOP)/doc/api-doc
 
 
 # Release settings.

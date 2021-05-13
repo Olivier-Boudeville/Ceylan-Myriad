@@ -15,7 +15,7 @@
 
 :raw-html:`<a name="myriad_top"></a>`
 
-:raw-html:`<div class="banner"><p><em>Myriad documentation</em> <a href="http://myriad.esperide.org">browse latest</a> <a href="https://olivier-boudeville.github.io/Ceylan-Myriad/index.html">browse mirror</a> <a href="Ceylan-Myriad-Layer-technical-manual-english.pdf">get PDF</a> <a href="#myriad_top">go to top</a> <a href="#myriad_bottom">go to bottom</a> <a href="https://github.com/Olivier-Boudeville/Ceylan-Myriad">go to project</a> <a href="mailto:about(dash)myriad(at)esperide(dot)com?subject=[Ceylan-Myriad]%20Remark">email us</a></p></div>`
+:raw-html:`<div class="banner"><p><em>Myriad documentation</em> <a href="http://myriad.esperide.org">browse latest</a> <a href="https://olivier-boudeville.github.io/Ceylan-Myriad/index.html">browse mirror</a> <a href="Ceylan-Myriad-Layer-technical-manual-english.pdf">get PDF</a> <a href="#myriad_top">go to top</a> <a href="#myriad_toc">go to toc</a> <a href="#myriad_bottom">go to bottom</a> <a href="api-doc/index.html">browse API</a> <a href="https://github.com/Olivier-Boudeville/Ceylan-Myriad">go to project</a> <a href="mailto:about(dash)myriad(at)esperide(dot)com?subject=[Ceylan-Myriad]%20Remark">email us</a></p></div>`
 
 
 
@@ -32,16 +32,16 @@ Technical Manual of the ``Ceylan-Myriad`` Layer
 :Organisation: Copyright (C) 2008-2021 Olivier Boudeville
 :Contact: about (dash) myriad (at) esperide (dot) com
 :Creation date: Sunday, August 17, 2008
-:Lastly updated: Thursday, May 6, 2021
+:Lastly updated: Thursday, May 13, 2021
 :Status: Stable
-:Version: 1.2.24
+:Version: 1.2.25
 :Dedication: Users and maintainers of the ``Myriad`` layer.
 :Abstract:
 
 	The role of the `Myriad <http://myriad.esperide.org/>`_ layer (part of the `Ceylan <https://github.com/Olivier-Boudeville/Ceylan>`_ project) is to gather all `Erlang <http://erlang.org>`_ general-purpose base constructs that we found useful for (Erlang-based) developments.
 
 	We present here a short overview of these services, to introduce them to newcomers.
-	The next level of information is to read the corresponding `source files <https://github.com/Olivier-Boudeville/Ceylan-Myriad>`_, which are intensely commented and generally straightforward.
+	The next level of information is either to browse the `Myriad API documentation <api-doc/index.html>`_ or simply to read the corresponding `source files <https://github.com/Olivier-Boudeville/Ceylan-Myriad>`_, which are intensely commented and generally straightforward.
 
 
 .. meta::
@@ -51,15 +51,18 @@ Technical Manual of the ``Ceylan-Myriad`` Layer
 
 The latest version of this documentation is to be found at the `official Ceylan-Myriad website <http://myriad.esperide.org>`_ (``http://myriad.esperide.org``).
 
+
 :raw-html:`This Myriad documentation is also available in the PDF format (see <a href="Ceylan-Myriad-technical-manual-english.pdf">Ceylan-Myriad-technical-manual-english.pdf</a>), and mirrored <a href="http://olivier-boudeville.github.io/Ceylan-Myriad/">here</a>.`
 
-:raw-latex:`The documentation is also mirrored \href{https://olivier-boudeville.github.io/Ceylan-Myriad/}{here}.`
+:raw-latex:`This documentation is also mirrored \href{https://olivier-boudeville.github.io/Ceylan-Myriad/}{here}.`
 
 
 
 :raw-latex:`\pagebreak`
 
-.. contents:: Table of Contents
+:raw-html:`<a name="myriad_toc"></a>`
+
+.. contents:: **Table of Contents**
 	:depth: 32
 
 .. comment To avoid, otherwise title with a '1.':.. section-numbering::

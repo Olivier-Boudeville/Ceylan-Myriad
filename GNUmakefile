@@ -6,7 +6,7 @@ MYRIAD_TOP = .
 		add-prerequisite-plts prepare-base-plt add-erlhdf5-plt add-jsx-plt    \
 		add-sqlite3-plt link-plt clean-ast-outputs clean-local stats          \
 		info-paths info-settings info-compile info-parse-transform info-sync  \
-		info-check info-conditionals info-rebar3
+		info-check info-conditionals info-rebar3 info-doc
 
 
 #MODULES_DIRS = contrib src doc conf
@@ -189,3 +189,8 @@ info-rebar3:
 	@echo "MYRIAD_REBAR_INCS = $(MYRIAD_REBAR_INCS)"
 	@echo "MYRIAD_REBAR_FIND_SRC_EXCLUDES = $(MYRIAD_REBAR_FIND_SRC_EXCLUDES)"
 	@echo "MYRIAD_REBAR_FIND_SRC_OPT = $(MYRIAD_REBAR_FIND_SRC_OPT)"
+
+
+info-doc:
+	@echo "API_DOC_GENERATOR = $(API_DOC_GENERATOR)"
+	@echo "API_DOC_ROOT = $(API_DOC_ROOT)"

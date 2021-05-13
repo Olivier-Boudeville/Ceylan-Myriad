@@ -25,6 +25,5 @@ In future versions of this document, following topics will be discussed:
 
 Even if this document does not constitute an exhaustive walk-through, each of them is detailed in turn below.
 
-The next level of detail is to peer at the referenced source files, as they include many implementation notes, comments and typing information.
+The next level of detail is either to browse the `Myriad API documentation <api-doc/index.html>`_ or simply to peer at the referenced `source files <https://github.com/Olivier-Boudeville/Ceylan-Myriad>`_, as they include many implementation notes, comments and typing information.
 
-.. comment A more detailed view of all the corresponding code is available in the generated `API documentation for Myriad <>`_.

@@ -34,6 +34,7 @@
 			  rebar3-local-update                                              \
 			  test-hex-package                                                 \
 			  sync-to-server                                                   \
+			  generate-api-doc                                                 \
 			  generate-list-of-erlang-types generate-list-of-local-types       \
 			  generate-local-plt self-check-against-plt write-debug-key-file   \
 			  check check-hook help-erl                                        \
@@ -834,6 +835,12 @@ test-hex-package: rebar-test-clean
 sync-to-server: all
 	@echo " Synchronising the $$(basename $$(pwd)) layer to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)"
 	@if [ -n "$(WEB_SRV)" ]; then if [ -n "$(CEYLAN_SYNC_TARGET_ROOT)" ]; then $(SYNC_TOOL) $(SYNC_OPT) src include $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)/$$(basename $$(pwd)); else echo "Error, no CEYLAN_SYNC_TARGET_ROOT variable set." 1>&2 ; exit 4 ; fi ; else echo "Error, no WEB_SRV variable set." 1>&2 ; exit 5 ; fi
+
+
+generate-api-doc:
+	@echo "  Generating API documentation"
+	@$(API_DOC_GENERATOR) -o $(API_DOC_ROOT) $(LAYER_TOP) && echo "  API documentation generated in file://$$(realpath $(API_DOC_ROOT)/index.html)"
+
 
 
 # Allows to generate a file listing all the types defined in the specified

@@ -32,9 +32,9 @@ GITHUB_PAGES_BASE := $(shell basename "$(MYRIAD_WEB_MIRROR_BRANCH)")
 
 
 
-.PHONY: doc all full-doc create-links html pdf clone-mirror         \
-		export-doc export-to-official export-to-mirror              \
-		clean clean-doc clean-links info info-web                   \
+.PHONY: doc all full-doc create-links html pdf clone-mirror            \
+		export-doc export-to-official export-to-mirror                 \
+		clean clean-doc clean-links info info-web                      \
 		test uml-diagram-test
 
 
@@ -47,7 +47,7 @@ all:
 	@echo "  Run 'make full-doc' to generate the manual of the 'Myriad' layer."
 
 
-full-doc: $(DOC_GENERATED_FILES)
+full-doc: $(DOC_GENERATED_FILES) api-doc
 
 
 # This link does not need to be in version control:
