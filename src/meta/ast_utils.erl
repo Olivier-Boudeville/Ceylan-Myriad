@@ -128,7 +128,8 @@
 
 
 % Other:
--export([ format_file_loc/1, format_file_loc_alt/1,
+-export([ get_generated_code_location/0,
+		  format_file_loc/1, format_file_loc_alt/1,
 		  file_loc_to_string/1, file_loc_to_explicative_term/1,
 		  write_ast_to_file/2 ]).
 
@@ -1070,6 +1071,14 @@ get_elements_with_context( Elements, _Context=FilePath )
 get_elements_with_context( Elements, Context ) ->
 	% No list_utils module used from this module:
 	Elements ++ [ Context ].
+
+
+
+
+% Returns the conventional virtual in-file location denoting generated code.
+-spec get_generated_code_location() -> file_loc().
+get_generated_code_location() ->
+	{ _Line=0, _Column=0 }.
 
 
 
