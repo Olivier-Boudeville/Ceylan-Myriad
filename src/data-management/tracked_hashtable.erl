@@ -121,11 +121,8 @@
 
 
 % Shorthands:
-
 -type accumulator() :: basic_utils:accumulator().
-
 -type ustring() :: text_utils:ustring().
--type entries() :: hashtable:entries().
 
 
 
@@ -226,7 +223,7 @@ add_entry( Key, Value,
 % If there is already a pair with this key, then its previous value will be
 % replaced by the specified one.
 %
--spec add_entries( entries(), tracked_hashtable() )	-> tracked_hashtable().
+-spec add_entries( entries(), tracked_hashtable() ) -> tracked_hashtable().
 add_entries( EntryList,
 		_TrackedHashtable={ Hashtable, _EntryCount, NumberOfBuckets } ) ->
 
@@ -331,7 +328,7 @@ get_value( Key, _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 
 
 
-% Extracts specified entry from specified hashtable, i.e. returns the associated
+% Extracts specified entry from specified hashtable, ie returns the associated
 % value and removes that entry from the table.
 %
 % The key/value pair is expected to exist already, otherwise an exception is
@@ -435,7 +432,7 @@ get_all_values( Keys, Hashtable ) ->
 % One may request the returned hashtable to be optimised after this call.
 %
 -spec map_on_entries( fun( ( entry() ) -> entry() ), tracked_hashtable() ) ->
-						  tracked_hashtable().
+							tracked_hashtable().
 map_on_entries( Fun, _TrackedHashtable={ Hashtable, _NEnt, _NBuck }  ) ->
 
 	NewHashtable = hashtable:map_on_entries( Fun, Hashtable ),
@@ -655,10 +652,10 @@ is_empty( _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 
 
 
-% Returns the size (number of entries, i.e. of key/value pairs) of the specified
+% Returns the size (number of entries, ie of key/value pairs) of the specified
 % table.
 %
--spec size( tracked_hashtable() ) -> hashtable:entry_count().
+-spec size( tracked_hashtable() ) -> entry_count().
 size( _TrackedHashTable={ _Hashtable, NEntries, _NBuckets } ) ->
 	NEntries.
 

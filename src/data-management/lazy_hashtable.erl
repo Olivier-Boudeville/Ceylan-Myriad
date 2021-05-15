@@ -128,11 +128,10 @@
 
 
 % Shorthands:
-
 -type accumulator() :: basic_utils:accumulator().
-
 -type ustring() :: text_utils:ustring().
--type entries() :: hashtable:entries().
+-type bucket_count() :: hashtable:bucket_count().
+
 
 
 % Implementation notes:
@@ -164,7 +163,7 @@ new() ->
 % target size. This function is only defined so that we can transparently switch
 % APIs with the hashtable module.
 %
--spec new( hashtable:entry_count() | entries() ) -> lazy_hashtable().
+-spec new( entry_count() | entries() ) -> lazy_hashtable().
 new( ExpectedNumberOfEntries ) when is_integer( ExpectedNumberOfEntries ) ->
 	new();
 
@@ -180,7 +179,7 @@ new( InitialEntries ) when is_list( InitialEntries ) ->
 %
 % (helper)
 %
--spec new_with_buckets( hashtable:bucket_count() ) -> lazy_hashtable().
+-spec new_with_buckets( bucket_count() ) -> lazy_hashtable().
 new_with_buckets( _NumberOfBuckets ) ->
 	new().
 
@@ -272,7 +271,7 @@ get_value( Key, _LazyHashtable={ Hashtable, _OpCount } ) ->
 
 
 
-% Extracts specified entry from specified hashtable, i.e. returns the associated
+% Extracts specified entry from specified hashtable, ie returns the associated
 % value and removes that entry from the table.
 %
 % The key/value pair is expected to exist already, otherwise an exception is
@@ -510,9 +509,9 @@ optimise( Hashtable ) ->
 
 
 % Checks whether an optimisation of the internal hashtable is deemed potentially
-% useful, i.e. if the operation count is past a threshold.
+% useful, ie if the operation count is past a threshold.
 %
-% Returns { H, NewOpCount } (i.e. a lazy table) where H is either an optimised
+% Returns { H, NewOpCount } (ie a lazy table) where H is either an optimised
 % hashtable or the specified one, and NewOpCount is either zero or the specified
 % CurrentOpCount, depending on whether an optimisation was triggered or not.
 %
@@ -665,10 +664,10 @@ is_empty( _LazyHashtable={ Hashtable, _OpCount } ) ->
 
 
 
-% Returns the size (number of entries, i.e. of key/value pairs) of the specified
+% Returns the size (number of entries, ie of key/value pairs) of the specified
 % table.
 %
--spec size( lazy_hashtable() ) -> hashtable:entry_count().
+-spec size( lazy_hashtable() ) -> entry_count().
 size( _LazyTable={ Hashtable, _CurrentOpCount } ) ->
 	hashtable:size( Hashtable ).
 
