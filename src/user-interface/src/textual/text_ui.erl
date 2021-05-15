@@ -367,7 +367,7 @@ get_text( Prompt,
 %
 % (const)
 %
--spec get_text_as_integer( prompt(), ui_state() ) -> text().
+-spec get_text_as_integer( prompt() ) -> text().
 get_text_as_integer( Prompt ) ->
 	get_text_as_integer( Prompt, _UIState=get_state() ).
 
