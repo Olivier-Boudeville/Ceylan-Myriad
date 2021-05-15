@@ -3098,7 +3098,7 @@ escape_all_quotes_helper( _Text=[ C | T ], Acc ) ->
 % specified escaping char.
 %
 % Ex: "baz\.foobar\.org" = text_utils:escape_with( "baz.foobar.org",
-%        [ $. ], $\\ ).
+%                                                  [ $. ], $\\ ).
 %
 -spec escape_with( ustring(), [ char() ], char() ) -> ustring().
 escape_with( Text, CharsToEscape, EscapingChar ) ->
@@ -3138,19 +3138,19 @@ remove_newlines( String ) ->
 % characters or plain strings, the latter corresponding to the found quoted
 % texts, provided they were not escaped.
 %
-% For example, let's consider an input string such as (using from now @ to
+% For example, let's consider an input string such as (using from now § to
 % delimit strings):
 %
-% @This is an "example \" 'convoluted" string' with various 'quoting elements'.@
+% §This is an "example \" 'convoluted" string' with various 'quoting elements'.§
 %
 % Once parsed with this function, it shall be translated to a list containing
 % the following series of characters:
 %
-% @This is an @, then: @example " 'convoluted@, then the series of characters
-% corresponding to: @ string' with various 'quoting elements'.@
+% §This is an §, then: §example " 'convoluted§, then the series of characters
+% corresponding to: § string' with various 'quoting elements'.§
 %
-% i.e.: "This is an " ++ [ "example \" 'convoluted" | "string' with
-% various 'quoting elements' ].
+% i.e.: "This is an " ++ ["example \" 'convoluted" | "string' with
+% various 'quoting elements'].
 %
 % Note: any escaping character is to escape any of the quoting characters, and
 % only them, if being in an unquoted context (i.e. otherwise both will be added
@@ -3164,42 +3164,24 @@ parse_quoted( InputStr ) ->
 
 
 
-% Parses specified plain (non-iolist) string (i.e. a mere list of characters),
-% returning a specific kind of iolist containing either characters or plain
-% strings, the latter corresponding to the found quoted texts, provided they
-% were not escaped.
+% @doc Parses specified plain (non-iolist) string (ie a mere list of
+% characters), returning a specific kind of iolist containing either characters
+% or plain strings, the latter corresponding to the found quoted texts, provided
+% they were not escaped.
 %
 % Supports user-specified quoting characters and escaping ones.
 %
-% For example, let's consider an input string such as (using from now @ to
-% delimit strings):
+% See parse_quoted/1 regarding parsing/escaping rules, and text_utils_test.erl
+% for a full example with additional explanations.
 %
-% @This is an "example \" 'convoluted" string' with various 'quoting elements'.@
-
-% Once parsed with this function when declaring a single quoting character that
-% is the double quote (i.e. $") and a single escaping character that is the
-% backslash (i.e. $\), it shall be translated to a list containing the following
-% series of characters:
-%
-% @This is an @, then: @example " 'convoluted@, then the series of characters
-% corresponding to: @ string' with various 'quoting elements'.@
-%
-% i.e.: "This is an " ++ [ "example \" 'convoluted" | "string' with
-% various 'quoting elements' ].
-%
-% Note: any escaping character is to escape any of the quoting characters, and
-% only them (i.e. otherwise both will be added verbatim in the resulting
-% string).
-%
-% See text_utils_test.erl for a full example with additional explanations, and
-% also split_parsed/2..
+% @see parse_quoted/1
 %
 -spec parse_quoted( plain_string(), [ uchar() ], [ uchar() ] ) ->
-						  parse_string().
+								parse_string().
 parse_quoted( InputStr, QuotingChars, EscapingChars ) ->
 
-	%trace_utils:debug_fmt( "Parsing @~ts@, with quoting @~ts@ and "
-	%    "escaping @~ts@:", [ InputStr, QuotingChars, EscapingChars ] ),
+	%trace_utils:debug_fmt( "Parsing §~ts§, with quoting §~ts§ and "
+	%    "escaping §~ts§:", [ InputStr, QuotingChars, EscapingChars ] ),
 
 	parse_helper( InputStr, QuotingChars, EscapingChars,
 		_CurrentQuoteChar=undefined, _CurrentQuotedText=undefined,
@@ -3219,7 +3201,6 @@ parse_quoted( InputStr, QuotingChars, EscapingChars ) ->
 %
 parse_helper( _InputStr=[], _QuotingChars, _EscapingChars, CurrentQuoteChar,
 			  CurrentQuotedText, _PreviousChar=CurrentQuoteChar, Acc ) ->
-
 	% Closing for good then:
 	RevQuoted = lists:reverse( CurrentQuotedText ),
 	lists:reverse( [ RevQuoted | Acc ] );
@@ -3253,8 +3234,7 @@ parse_helper( _InputStr=[], _QuotingChars, _EscapingChars, CurrentQuoteChar,
 	CurrentStr = lists:reverse( [ RevQuoted | Acc ] ),
 
 	throw( { unmatched_quoting_char, CurrentQuoteChar,
-			 { still_in, RevQuoted },
-			 lists:flatten( CurrentStr ) } );
+				{ still_in, RevQuoted }, lists:flatten( CurrentStr ) } );
 
 
 % Still iterating below:
@@ -3266,8 +3246,8 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 			  CurrentQuoteChar=undefined, CurrentQuotedText=undefined,
 			  _PreviousChar=PrevC, Acc ) ->
 
-	%trace_utils:debug_fmt( "Out of quoted context, read @~ts@ "
-	%    "(previous: @~p@), while current, reversed accumulator is:~n  @~p@.",
+	%trace_utils:debug_fmt( "Out of quoted context, read §~ts§ "
+	%    "(previous: §~p§), while current, reversed accumulator is:~n  §~p§.",
 	%	[ [C], [PrevC], lists:reverse( Acc ) ] ),
 
 	% lists:member/2 not a valid guard, so:
@@ -3283,15 +3263,15 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 
 				% The quoting char is escaped, keep it (and only it).
 				%
-				% Ex: found @\"@; then just retaining @"@ verbatim (we used to
-				% drop PrevC=@\@ but it should not):
+				% Ex: found §\"§; then just retaining §"§ verbatim (we used to
+				% drop PrevC=§\§ but it should not):
 				%
 				true ->
 
 					%trace_utils:debug_fmt( "Out of quoted context, read "
-					%	 "quoting char @~ts@ while previous was an escaping "
-					%	 "one (@~p@), while current, reversed accumulator "
-					%	 "is:~n  @~p@.",
+					%   "quoting char §~ts§ while previous was an escaping "
+					%    "one (§~p§), while current, reversed accumulator "
+					%    "is:~n  §~p§.",
 					%    [ [C], [PrevC], lists:reverse( Acc ) ] ),
 
 					parse_helper( T, QuotingChars, EscapingChars,
@@ -3308,8 +3288,8 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 					NewAcc = [ PrevC | Acc ],
 
 					%trace_utils:debug_fmt( "Entering a quoting section with "
-					%	"@~ts@, while current, reversed accumulator is:~n  "
-					%   "@~p@", [ [C], lists:reverse( NewAcc ) ] ),
+					%   "§~ts§, while current, reversed accumulator is:~n  "
+					%   "§~p§", [ [C], lists:reverse( NewAcc ) ] ),
 
 					parse_helper( T, QuotingChars, EscapingChars,
 						_CurrentQuoteChar=C, _CurrentQuotedText=[],
@@ -3343,9 +3323,9 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 		CurrentQuoteChar=C, CurrentQuotedText, _PreviousChar=PrevC, Acc ) ->
 
-	%trace_utils:debug_fmt( "In quoted context, read @~ts@ (previous: @~p@) "
-	%	"while current quoted text is @~ts@",
-	%	[ [C], [PrevC], CurrentQuotedText ] ),
+	%trace_utils:debug_fmt( "In quoted context, read §~ts§ (previous: §~p§) "
+	%   "while current quoted text is §~ts§",
+	%   [ [C], [PrevC], CurrentQuotedText ] ),
 
 	% Maybe found a closing quoting char - unless it is escaped:
 	case lists:member( C, QuotingChars ) of
@@ -3353,7 +3333,7 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 		true ->
 			case lists:member( PrevC, EscapingChars ) of
 
-				% For example @\"@.
+				% For example §\"§.
 				%
 				% This quoting char is escaped, thus not counting as such:
 				% (quoting C kept in previous, escaping PrevC used to be
@@ -3361,14 +3341,14 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 				true ->
 
 					%trace_utils:debug_fmt( "Adding quoting character '~ts' as "
-					%	"such, as was escaped (by '~ts').", [ [C], [PrevC] ] ),
+					%   "such, as was escaped (by '~ts').", [ [C], [PrevC] ] ),
 
 					parse_helper( T, QuotingChars, EscapingChars,
 						%CurrentQuoteChar, CurrentQuotedText,
 						CurrentQuoteChar, [ PrevC | CurrentQuotedText ],
 						_PrevChar=C, Acc );
 
-				% For example @A"@.
+				% For example §A"§.
 				% Here, unescaped quoting char while in quoted text, thus
 				% closing a quoting section:
 				%
@@ -3421,7 +3401,7 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 		CurrentQuoteChar, CurrentQuotedText, _PreviousChar=undefined, Acc ) ->
 
 	%trace_utils:debug_fmt( "Just recording, in quoted context, "
-	%	"current char: @~ts@", [ [C] ] ),
+	%   "current char: §~ts§", [ [C] ] ),
 
 	parse_helper( T, QuotingChars, EscapingChars, CurrentQuoteChar,
 				  CurrentQuotedText, _PrevChar=C, Acc );
@@ -3431,7 +3411,7 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 			  CurrentQuoteChar, CurrentQuotedText, PreviousChar, Acc ) ->
 
 	%trace_utils:debug_fmt( "Recording, in quoted context, "
-	%	"current char: @~ts@", [ [C] ] ),
+	%   "current char: §~ts§", [ [C] ] ),
 
 	parse_helper( T, QuotingChars, EscapingChars, CurrentQuoteChar,
 				  [ PreviousChar | CurrentQuotedText ], _PrevChar=C, Acc ).
@@ -3500,10 +3480,12 @@ remove_last_characters( String, Count ) ->
 	end.
 
 
+
 % Removes all whitespaces from specified string, and returns the result.
 -spec remove_whitespaces( ustring() ) -> ustring().
 remove_whitespaces( String ) ->
 	re:replace( String, "\s", "", [ global, unicode, { return, list } ] ).
+
 
 
 % Removes all leading and trailing whitespaces from specified string, and
