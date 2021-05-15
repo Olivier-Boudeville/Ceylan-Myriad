@@ -227,11 +227,6 @@
 
 
 
-% Time in the day; used to be {hour(), minute(), second()} or calendar:time():
--type time() :: { canonical_hour(), canonical_minute(), canonical_second() }.
-
-
-
 % Returns a string corresponding to the specified date, like: "30/11/2009".
 -spec get_textual_date( date() ) -> ustring().
 get_textual_date( { Year, Month, Day } ) ->
