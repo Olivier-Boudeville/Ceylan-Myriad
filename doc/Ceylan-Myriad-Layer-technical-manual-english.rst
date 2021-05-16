@@ -32,7 +32,7 @@ Technical Manual of the ``Ceylan-Myriad`` Layer
 :Organisation: Copyright (C) 2008-2021 Olivier Boudeville
 :Contact: about (dash) myriad (at) esperide (dot) com
 :Creation date: Sunday, August 17, 2008
-:Lastly updated: Thursday, May 13, 2021
+:Lastly updated: Saturday, May 15, 2021
 :Status: Stable
 :Version: 1.2.25
 :Dedication: Users and maintainers of the ``Myriad`` layer.
@@ -62,8 +62,10 @@ The latest version of this documentation is to be found at the `official Ceylan-
 
 :raw-html:`<a name="myriad_toc"></a>`
 
+.. _`table of contents`:
+
 .. contents:: **Table of Contents**
-	:depth: 32
+	:depth: 3
 
 .. comment To avoid, otherwise title with a '1.':.. section-numbering::
 
