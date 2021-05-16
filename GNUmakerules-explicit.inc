@@ -1,4 +1,3 @@
-
 # Here are gathered explicit (immediate, static) specific rules for Myriad.
 #
 # See GNUmakerules-automatic.inc for their automatic (generic, pattern-based)
@@ -34,7 +33,8 @@
 			  rebar3-local-update                                              \
 			  test-hex-package                                                 \
 			  sync-to-server                                                   \
-			  generate-api-doc                                                 \
+			  generate-api-doc generate-api-alt-doc copy-static-content        \
+			  clean-api-doc clean-api-alt-doc                                  \
 			  generate-list-of-erlang-types generate-list-of-local-types       \
 			  generate-local-plt self-check-against-plt write-debug-key-file   \
 			  check check-hook help-erl                                        \
@@ -822,8 +822,8 @@ test-hex-package: rebar-test-clean
 # End of the longer rebar-related section.
 
 
-# Synchronises the sources of the current layer to the specified server location.
-#
+# Synchronises the sources of the current layer to the specified server
+# location.
 
 # A rebuild is triggered just before, as the BEAM files are transferred as well:
 # at arrival timestamps may not be respected and we want the right BEAMs to be
@@ -837,9 +837,41 @@ sync-to-server: all
 	@if [ -n "$(WEB_SRV)" ]; then if [ -n "$(CEYLAN_SYNC_TARGET_ROOT)" ]; then $(SYNC_TOOL) $(SYNC_OPT) src include $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)/$$(basename $$(pwd)); else echo "Error, no CEYLAN_SYNC_TARGET_ROOT variable set." 1>&2 ; exit 4 ; fi ; else echo "Error, no WEB_SRV variable set." 1>&2 ; exit 5 ; fi
 
 
-generate-api-doc:
-	@echo "  Generating API documentation"
-	@$(API_DOC_GENERATOR) -o $(API_DOC_ROOT) $(LAYER_TOP) && echo "  API documentation generated in file://$$(realpath $(API_DOC_ROOT)/index.html)"
+
+# Main doc generator, directly relying on edoc:
+generate-api-doc: overview.edoc
+	@echo "  Generating API documentation with edoc"
+	@$(ERLANG_INTERPRETER) -noshell -run edoc_run application "'$(PROJECT_NAME)'" '"."' $(EDOC_OPTS) && echo "  API documentation generated in file://$$(realpath $(API_DOC_ROOT)/index.html)"
+	@$(MAKE) -s copy-static-content
+
+
+# Alternate doc generator, relying on erldocs:
+generate-api-alt-doc: overview.edoc
+	@echo "  Generating API documentation with erldocs"
+	@$(API_DOC_GENERATOR) -o $(API_DOC_ALT_ROOT) $(LAYER_TOP) && echo "  API alternate documentation generated in file://$$(realpath $(API_DOC_ALT_ROOT)/index.html)"
+
+
+# For the main doc generator:
+copy-static-content:
+	@echo "  Copying static content for edoc"
+	-@/bin/cp -f $(LAYER_TOP)/doc/$(PROJECT_SHORT_NAME)-api.css $(LAYER_TOP)/doc/api-doc/stylesheet.css
+	@/bin/cp -f $(LAYER_TOP)/doc/$(PROJECT_SHORT_NAME)-small.png $(LAYER_TOP)/doc/api-doc/erlang.png
+
+
+# Generates a relevant overview page for edoc:
+overview.edoc: doc/overview.edoc.template
+	@echo "  Generating $@ from $<"
+	@cat $< | sed "s|PROJECT_VERSION|$(PROJECT_VERSION)|g" | sed "s|GENERATION_DATE|$$(date '+%A, %B %-e, %Y')|g" > $@
+
+
+clean-api-doc:
+	@echo "  Cleaning generated API documentation"
+	@/bin/rm -rf "$(API_DOC_ROOT)" 2>/dev/null
+
+
+clean-api-alt-doc:
+	@echo "  Cleaning alternate generated API documentation"
+	@/bin/rm -rf "$(API_DOC_ALT_ROOT)" 2>/dev/null
 
 
 
