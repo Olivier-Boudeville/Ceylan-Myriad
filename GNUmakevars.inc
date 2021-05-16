@@ -182,9 +182,15 @@ ifndef PROJECT_NAME
 endif
 
 
-# PROJECT_NAME_FOR_REBAR should be defined on a per-project basis.
+# PROJECT_SHORT_NAME should be defined on a per-project basis.
+ifndef PROJECT_SHORT_NAME
+	PROJECT_SHORT_NAME := myriad
+endif
+
+
+# PROJECT_NAME_FOR_REBAR may be defined on a per-project basis.
 ifndef PROJECT_NAME_FOR_REBAR
-	PROJECT_NAME_FOR_REBAR := myriad
+	PROJECT_NAME_FOR_REBAR := $(PROJECT_SHORT_NAME)
 endif
 
 
@@ -1319,12 +1325,27 @@ ifdef PROJECT_ICON
 endif
 
 
+# When relying directly on edoc:
+
+API_DOC_ROOT := $(LAYER_TOP)/doc/api-doc
+
+EDOC_OPTS := '[{dir,"$(API_DOC_ROOT)"}, {def,{vsn,"$(PROJECT_VERSION)"}}, {preprocess,true}, {includes,["$(LAYER_TOP)/include"]}, {overview, "$(LAYER_TOP)/overview.edoc"}]'
+
+
+# When relying directly on erldocs:
+
+API_DOC_ALT_ROOT := $(LAYER_TOP)/doc/api-doc-alt
+
+
+# We tested erldocs (see https://github.com/erldocs/erldocs), uet vanilla edoc
+# seems to generate a lot more informational content so is preferred now:
+#
 ifndef API_DOC_GENERATOR
-	# Currently erldocs (see https://github.com/erldocs/erldocs):
 	API_DOC_GENERATOR := $$(which erldocs 2>/dev/null)
 endif
 
-API_DOC_ROOT := $(LAYER_TOP)/doc/api-doc
+
+
 
 
 # Release settings.
