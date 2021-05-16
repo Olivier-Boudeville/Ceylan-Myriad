@@ -119,6 +119,7 @@ clean: clean-local
 
 clean-local:
 	-@/bin/rm -rf .rebar3
+	@/bin/rm -f overview.edoc
 
 
 stats:
@@ -194,3 +195,4 @@ info-rebar3:
 info-doc:
 	@echo "API_DOC_GENERATOR = $(API_DOC_GENERATOR)"
 	@echo "API_DOC_ROOT = $(API_DOC_ROOT)"
+	@echo "EDOC_OPTS = $(EDOC_OPTS)"
