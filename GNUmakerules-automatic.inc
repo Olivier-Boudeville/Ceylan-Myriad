@@ -256,13 +256,26 @@
 
 
 
-# Not wanting here the options for standard executions (such as -noinput or alike):
+# Not wanting here the options for standard executions (such as -noinput or
+# alike):
+#
 %_shell: %_test
 	@echo "		Launching a shell for test $@ from $^"
 	@echo "  (one may then enter: '$<:run().' to execute the test)"
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER $(INTERNAL_OPTIONS) -extra $(CMD_LINE_OPT)
 
 
+
 %.plt: %.beam
 	@echo "    Checking module '$<' against relevant PLT ($(PLT_FILE))"
 	@$(DIALYZER) $(DIALYZER_OPT) --plt $(PLT_FILE) $<
+
+
+# Generates a module-specific documentation, typically from the directory in
+#  which that module is defined.
+#
+# Ex: make ../../doc/api-doc/app_facilities.html
+#
+$(API_DOC_ROOT)/%.html: %.erl
+	@echo "    Generating edoc documentation for module '$<' in $@"
+	@$(ERLANG_INTERPRETER) -noshell -run edoc_run file '"$<"' $(EDOC_OPTS)
