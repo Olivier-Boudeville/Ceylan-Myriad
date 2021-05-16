@@ -18,10 +18,20 @@ The use of syntax highlighting is encouraged.
 
 Recommended text editors are:
 
-- emacs / xemacs
-- ErlIDE (based on Eclipse)
-- gedit
-- nedit
+- `Emacs <https://www.gnu.org/software/emacs/>`_ (see our `init.el <https://github.com/Olivier-Boudeville/Ceylan-Myriad/tree/master/conf/init.el>`_)
+- `Visual Studio Code <https://en.wikipedia.org/wiki/Visual_Studio_Code>`_ (a.k.a. Vscode)
+- `ErlIDE <https://erlide.org/>`_ (based on Eclipse)
+- Vim, IntelliJ, Gedit, Nedit, etc.
+
+
+The main editors integrate the *Language Server Protocol* (also known as LSP), so `Erlang LS <https://erlang-ls.github.io/>`_ can be used with them (`Flycheck <https://www.flycheck.org>`_ can be another option). For that we recommend the use of our `erlang_ls.config <https://github.com/Olivier-Boudeville/Ceylan-Myriad/tree/master/erlang_ls.config>`_ file.
+
+.. comment For that we recommend the use of our `erlang_ls.config <https://github.com/Olivier-Boudeville/Ceylan-Myriad/tree/master/conf/erlang_ls.config>`_ file; for example::
+
+.. $ mkdir -p ~/.config/erlang_ls && cd ~/.config/erlang_ls/
+ $ ln -sf ${CEYLAN_MYRIAD}/conf/erlang_ls.config
+
+
 
 Source files should be formatted for a 80-character width: no character should be present after the 79th column of a line.
 
