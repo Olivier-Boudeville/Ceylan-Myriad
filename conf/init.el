@@ -224,6 +224,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 
 ;; Enable logging for lsp-mode:
 ;;(setq lsp-log-io t)
+(setq lsp-log-io nil)
 
 ;; To select options, see:
 ;; https://emacs-lsp.github.io/lsp-mode/tutorials/how-to-turn-off/
@@ -237,7 +238,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (setq lsp-ui-sideline-show-diagnostics t)
 (setq lsp-ui-sideline-show-hover t)
 (setq lsp-ui-sideline-show-code-actions t)
-(setq lsp-ui-sideline-update-mode 'line)
+;;(setq lsp-ui-sideline-update-mode 'line)
 ;;(setq lsp-ui-sideline-delay ...
 
 (setq lsp-ui-sideline-enable t)
@@ -267,6 +268,9 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (package-install 'helm-lsp)
 
 (add-hook 'after-init-hook 'global-company-mode)
+
+(setq company-minimum-prefix-length 1
+	  company-idle-delay 0.0) ;; default is 0.2
 
 ;; Which-key integration:
 (package-require 'which-key)
