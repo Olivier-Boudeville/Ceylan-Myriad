@@ -1,4 +1,6 @@
 
+.. _services:
+
 ----------------------------------------
 Services offered by the ``Myriad`` Layer
 ----------------------------------------
@@ -15,6 +17,7 @@ The ``Myriad`` services are gathered into following themes:
 #. Management of units_
 #. Metaprogramming_, based on heavy use of parse transforms
 #. `SQL support`_
+
 
 In future versions of this document, following topics will be discussed:
 
