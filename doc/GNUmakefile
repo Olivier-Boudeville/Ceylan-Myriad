@@ -40,11 +40,10 @@ GITHUB_PAGES_BASE := $(shell basename "$(MYRIAD_WEB_MIRROR_BRANCH)")
 
 
 # Default do-nothing target:
-doc:
-
-
 all:
 	@echo "  Run 'make full-doc' to generate the manual of the 'Myriad' layer."
+
+doc:
 
 
 full-doc: $(DOC_GENERATED_FILES) api-doc
