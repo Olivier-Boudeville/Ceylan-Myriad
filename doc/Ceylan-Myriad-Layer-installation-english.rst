@@ -71,9 +71,12 @@ The parallel build of the whole layer (services and tests alike) shall complete 
 
 One may just run ``make`` by itself in order to list the main available options.
 
-One may run ``make create-myriad-checkout`` in order to create, based on our conventions, a suitable ``_checkouts`` directory so that rebar3 can directly take into account local, directly available (in-development) dependencies (although Myriad does not have any, beside Erlang itself).
+Note that by default our native, make-based, build system is used. Alternatively, a rebar3-based build can be done (see the `OTP Build`_ section for more details).
 
-Alternatively to using ``make`` directly, one may execute ``rebar3 compile`` instead.
+In this case one may run ``make create-myriad-checkout`` in order to create, based on our conventions, a suitable ``_checkouts`` directory so that rebar3 can directly take into account local, directly available (in-development) dependencies (although Myriad does not have any, beside Erlang itself - this make target is useful for the layers built on top of Myriad).
+
+So, alternatively to using ``make`` directly, one may execute ``rebar3 compile`` instead.
+
 
 
 .. _testing:
@@ -188,11 +191,14 @@ Despite the kind support of the rebar3 authors and much time spent on its integr
 
 Now we believe that all pending issues have been solved (rebar3 is a neat tool), yet being able to switch back to another lighter, ad-hoc, more controlled build system is sometimes a relief - at least a welcome security. Anyway the user can choose between these two (native vs rebar3) build machineries. As for us, we still prefer our native build system, even if it leaves to the developer the task of installing the needed prerequisites by him/herself.
 
+
 .. So most of the time one can choose between these two build machineries.
 
 .. Nevertheless, as of end of 2020, after insisting a lot on using rebar3, we mainly switched back and relied on our own, native build system instead, so that we could concentrate on the code itself rather than on the build.
 
 .. Since then the rebar3 support remains as it is (a priori at least mostly functional); maybe in the future we will reintroduce it as a native, possibly main, build option - but not today.
+
+One might refer to our `install-rebar3.sh <https://github.com/Olivier-Boudeville/Ceylan-Hull/blob/master/install-rebar3.sh>`_ script for the installation of rebar3.
 
 
 ..
