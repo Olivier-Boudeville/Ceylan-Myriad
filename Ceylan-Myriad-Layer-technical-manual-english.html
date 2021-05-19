@@ -34,13 +34,13 @@
 <tr class="field"><th class="field-name">Creation date:</th><td class="field-body"><p class="first">Sunday, August 17, 2008</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Lastly updated:</th><td class="field-body"><p class="first">Saturday, May 15, 2021</p>
+<tr class="field"><th class="field-name">Lastly updated:</th><td class="field-body"><p class="first">Thursday, May 6, 2021</p>
 </td>
 </tr>
 <tr class="field"><th class="field-name">Status:</th><td class="field-body"><p class="first">Stable</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Version:</th><td class="field-body"><p class="first">1.2.25</p>
+<tr class="field"><th class="field-name">Version:</th><td class="field-body"><p class="first">1.2.24</p>
 </td>
 </tr>
 <tr class="field"><th class="field-name">Dedication:</th><td class="field-body"><p class="first">Users and maintainers of the <tt class="docutils literal">Myriad</tt> layer.</p>
@@ -96,8 +96,92 @@ The next level of information is either to browse the <a class="reference extern
 <li><a class="reference internal" href="#support-for-myriad" id="id89">Support for <tt class="docutils literal">Myriad</tt></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#please-react" id="id90">Please React!</a></li>
-<li><a class="reference internal" href="#contributions-ending-word" id="id91">Contributions &amp; Ending Word</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#services-offered-by-the-myriad-layer" id="id78">Services offered by the <tt class="docutils literal">Myriad</tt> Layer</a><ul>
+<li><a class="reference internal" href="#general-build-structure" id="id79">General Build Structure</a></li>
+<li><a class="reference internal" href="#general-settings" id="id80">General Settings</a></li>
+<li><a class="reference internal" href="#maths-services" id="id81">Maths Services</a></li>
+<li><a class="reference internal" href="#data-management-services" id="id82">Data-Management Services</a></li>
+<li><a class="reference internal" href="#support-for-code-injection" id="id83">Support for Code Injection</a><ul>
+<li><a class="reference internal" href="#defining-a-token" id="id84">Defining a token</a></li>
+<li><a class="reference internal" href="#defining-the-code-to-inject" id="id85">Defining the code to inject</a></li>
+<li><a class="reference internal" href="#using-tokens-to-enable-code-injection" id="id86">Using tokens to enable code injection</a></li>
+<li><a class="reference internal" href="#controlling-assertions" id="id87">Controlling assertions</a></li>
+<li><a class="reference internal" href="#usage-hints" id="id88">Usage Hints</a></li>
+<li><a class="reference internal" href="#for-more-information" id="id89">For more information</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#helpers-for-user-interface-programming" id="id90">Helpers For User Interface Programming</a><ul>
+<li><a class="reference internal" href="#various-flavours-of-user-interfaces" id="id91">Various Flavours of User Interfaces</a></li>
+<li><a class="reference internal" href="#raw-text-user-interface-text-ui" id="id92">Raw Text User Interface: <tt class="docutils literal">text_ui</tt></a></li>
+<li><a class="reference internal" href="#terminal-text-user-interface-term-ui" id="id93">Terminal Text User Interface: <tt class="docutils literal">term_ui</tt></a></li>
+<li><a class="reference internal" href="#graphical-user-interface-gui" id="id94">Graphical User Interface: <tt class="docutils literal">gui</tt></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#myriad-s-helper-shell-scripts" id="id95">Myriad's Helper Shell Scripts</a><ul>
+<li><a class="reference internal" href="#erlang-dedicated-scripts" id="id96">Erlang-Dedicated Scripts</a><ul>
+<li><a class="reference internal" href="#searching-for-erlang-elements" id="id97">Searching for Erlang elements</a></li>
+<li><a class="reference internal" href="#regarding-typing" id="id98">Regarding Typing</a></li>
+<li><a class="reference internal" href="#regarding-basic-performance-measurement" id="id99">Regarding Basic Performance Measurement</a></li>
+<li><a class="reference internal" href="#miscellaneous" id="id100">Miscellaneous</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#more-general-scripts" id="id101">More General Scripts</a><ul>
+<li><a class="reference internal" href="#to-generate-documentation" id="id102">To generate documentation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#script-based-apps" id="id103">Script-based Apps</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#utility-toolbox" id="id104">Utility Toolbox</a></li>
+<li><a class="reference internal" href="#support-for-metaprogramming" id="id105">Support for Metaprogramming</a></li>
+<li><a class="reference internal" href="#management-of-units" id="id106">Management of Units</a><ul>
+<li><a class="reference internal" href="#motivation" id="id107">Motivation</a></li>
+<li><a class="reference internal" href="#available-support" id="id108">Available Support</a></li>
+<li><a class="reference internal" href="#specifying-units" id="id109">Specifying Units</a><ul>
+<li><a class="reference internal" href="#aliases" id="id110">Aliases</a></li>
+<li><a class="reference internal" href="#built-in-units" id="id111">Built-in Units</a></li>
+<li><a class="reference internal" href="#composing-one-s-units" id="id112">Composing One's Units</a></li>
+<li><a class="reference internal" href="#checking-units" id="id113">Checking Units</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#possible-improvements-regarding-dimensional-analysis" id="id114">Possible Improvements Regarding Dimensional Analysis</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#sql-support" id="id115">SQL support</a><ul>
+<li><a class="reference internal" href="#about-sql" id="id116">About SQL</a></li>
+<li><a class="reference internal" href="#database-back-end" id="id117">Database Back-end</a></li>
+<li><a class="reference internal" href="#erlang-sql-binding" id="id118">Erlang SQL Binding</a></li>
+<li><a class="reference internal" href="#sql-support-provided-by-the-myriad-layer" id="id119">SQL Support Provided By the <em>Myriad</em> Layer</a></li>
+<li><a class="reference internal" href="#sql-related-troubleshooting" id="id120">SQL-related Troubleshooting</a><ul>
+<li><a class="reference internal" href="#compiling-module-sql-support-erl-can-t-find-include-file-sqlite3-hrl" id="id121">Compiling module sql_support.erl : can't find include file &quot;sqlite3.hrl&quot;</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#myriad-main-conventions" id="id122"><tt class="docutils literal">Myriad</tt> Main Conventions</a><ul>
+<li><a class="reference internal" href="#text-conventions" id="id123">Text Conventions</a></li>
+<li><a class="reference internal" href="#coding-practices" id="id124">Coding Practices</a></li>
+<li><a class="reference internal" href="#execution-targets" id="id125">Execution Targets</a></li>
+<li><a class="reference internal" href="#other-conventions" id="id126">Other Conventions</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#myriad-gotchas" id="id127"><tt class="docutils literal">Myriad</tt> Gotchas</a><ul>
+<li><a class="reference internal" href="#header-dependencies" id="id128">Header dependencies</a></li>
+<li><a class="reference internal" href="#about-the-table-module" id="id129">About the <tt class="docutils literal">table</tt> module</a></li>
+<li><a class="reference internal" href="#network-configuration" id="id130">Network configuration</a><ul>
+<li><a class="reference internal" href="#safety-measures" id="id131">Safety Measures</a></li>
+<li><a class="reference internal" href="#testing-troubleshooting" id="id132">Testing &amp; Troubleshooting</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#support-for-myriad" id="id133">Support for <tt class="docutils literal">Myriad</tt></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#please-react" id="id134">Please React!</a></li>
+<li><a class="reference internal" href="#contributions-ending-word" id="id135">Contributions &amp; Ending Word</a></li>
 </ul>
 </li>
 </ul>
@@ -1567,12 +1651,12 @@ In the Erlang source code found from XXX/ceylan/myriad, we have:
 <p>This is a pseudo module, which is not meant to exist as such (no <tt class="docutils literal">table.erl</tt>, no <tt class="docutils literal">table.beam</tt>).</p>
 <p>The <tt class="docutils literal">Myriad</tt> parse transform replaces references to the <tt class="docutils literal">table</tt> module by references to the <tt class="docutils literal">map_hashtable</tt> module. See <a class="reference internal" href="#table-transformations">table transformations</a> for more information.</p>
 </div>
-<div class="section" id="enabling-the-interconnection-of-erlang-nodes">
-<h4>Enabling the Interconnection of Erlang nodes</h4>
+<div class="section" id="network-configuration">
+<h4><a class="toc-backref" href="#id130">Network configuration</a></h4>
 <p>This is not a Myriad gotcha per se, but rather an Erlang one.</p>
 <p>Way too often, for obscure reasons Erlang nodes fail to connect to each other (especially with long names), and little to no information is available to diagnose the issue.</p>
 <div class="section" id="safety-measures">
-<h5>Safety Measures</h5>
+<h5><a class="toc-backref" href="#id131">Safety Measures</a></h5>
 <p>In order to maximise the chances that nodes are able to <tt class="docutils literal">net_adm:ping/1</tt> successfully each other:</p>
 <ul class="simple">
 <li>at least for testing, run VMs spawned with preferably the same <strong>version</strong> of Erlang</li>
@@ -1592,7 +1676,7 @@ In the Erlang source code found from XXX/ceylan/myriad, we have:
 <p>(setting one's IP shall better be done in one's profile in <tt class="docutils literal">/etc/netctl</tt>, right?)</p>
 </div>
 <div class="section" id="testing-troubleshooting">
-<h5>Testing &amp; Troubleshooting</h5>
+<h5><a class="toc-backref" href="#id132">Testing &amp; Troubleshooting</a></h5>
 <p>In order to <strong>quick-check</strong> whether long-name connectivity is available and to rule out the most obvious culprits, open two terminals.</p>
 <p>In the first:</p>
 <pre class="literal-block">
@@ -1606,9 +1690,6 @@ target     prot opt source               destination
 
 Chain OUTPUT (policy ACCEPT)
 target     prot opt source               destination
-
-# Just to be on the safer side for this test:
-$ killall beam.smp epmd
 
 # Then launch the target first node:
 $ ERL_EPMD_PORT=4032 erl -name n1 -setcookie aa
@@ -1626,13 +1707,13 @@ Eshell V11.1.4  (abort with ^G)
 (n2&#64;hurricane.foobar.org)1&gt; net_adm:ping('n1&#64;hurricane.foobar.org').
 pong
 </pre>
-<p>If you see <tt class="docutils literal">pang</tt> here, run to the nearest altar and make a sacrifice to any Distribution God you may believe in (Norse ones being presumably the most effective here), and apply the hints listed in the <a class="reference internal" href="#enabling-the-interconnection-of-erlang-nodes">Enabling the Interconnection of Erlang nodes</a> section.</p>
+<p>If you see <tt class="docutils literal">pang</tt> here, run to the nearest altar and make a sacrifice to any Distribution God you may believe in (Norse ones are presumably the most effective here), and apply the hints in the <a class="reference internal" href="#network-configuration">Network configuration</a> section.</p>
 <p></p>
 </div>
 </div>
 </div>
 <div class="section" id="support-for-myriad">
-<span id="support"></span><h3><a class="toc-backref" href="#id89">Support for <tt class="docutils literal">Myriad</tt></a></h3>
+<span id="support"></span><h3><a class="toc-backref" href="#id133">Support for <tt class="docutils literal">Myriad</tt></a></h3>
 <p>So you respected the <a class="reference internal" href="#prerequisites">prerequisites</a> and <a class="reference internal" href="#build">build</a> sections, and something went wrong? Generally we made sure that any detected error is blocking and loudly reported, with as much context as possible.</p>
 <p>The simpler solution is then to <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/issues">create a relevant issue</a>.</p>
 <p>For all other needs, please drop an email to the address listed on top of document. We do our best to answer on a timely basis.</p>
@@ -1641,11 +1722,11 @@ pong
 </div>
 </div>
 <div class="section" id="please-react">
-<h2><a class="toc-backref" href="#id90">Please React!</a></h2>
+<h2><a class="toc-backref" href="#id134">Please React!</a></h2>
 <p>If you have information more detailed or more recent than those presented in this document, if you noticed errors, neglects or points insufficiently discussed, drop us a line! (for that, follow the <a class="reference internal" href="#support">Support</a> guidelines).</p>
 </div>
 <div class="section" id="contributions-ending-word">
-<h2><a class="toc-backref" href="#id91">Contributions &amp; Ending Word</a></h2>
+<h2><a class="toc-backref" href="#id135">Contributions &amp; Ending Word</a></h2>
 <p>Each time that you need a basic service that:</p>
 <ul class="simple">
 <li>seems neither provided by the Erlang <a class="reference external" href="http://erlang.org/doc/man_index.html">built-in modules</a> nor by this <tt class="docutils literal">Myriad</tt> layer</li>
