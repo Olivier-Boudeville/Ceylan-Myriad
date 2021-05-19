@@ -518,7 +518,7 @@ extract_optionless_command_arguments( ArgumentTable ) ->
 
 	% Not wanting here a list of lists of strings:
 	case ?arg_table:extract_entry_with_defaults( _K=?no_option_key,
-							DefaultValue=undefined, ArgumentTable ) of
+							_DefaultValue=undefined, ArgumentTable ) of
 
 		P={ undefined, _ArgTable } ->
 			P;
