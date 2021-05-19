@@ -27,14 +27,15 @@
 
 
 
-% Module in charge of handling patterns defined with an AST.
+% @doc Module in charge of handling <b>patterns defined with an AST</b>.
 %
-% See the "7.3 Patterns" section of http://erlang.org/doc/apps/erts/absform.html
-% for more information.
+% See the "7.3 Patterns" section of
+% [http://erlang.org/doc/apps/erts/absform.html] for more information.
 %
 -module(ast_pattern).
 
 
+-type ast_pattern() :: ast_base:ast_element().
 % The description of a pattern in an AST, with line information.
 %
 % Ex: {match,12,X,Y}.
@@ -45,17 +46,14 @@
 % some types of forms, they are to be interpreted differently (ex: their
 % sub-elements are of the same kind as they are, and at least some rules
 % differ).
-%
--type ast_pattern() :: ast_base:ast_element().
 
 
+-type ast_pattern_sequence() :: [ ast_pattern() ].
 % The description of a sequence of patterns in an AST, with line information.
 %
 % A pattern sequence is simply an (ordered) list of patterns.
 %
 % Ex: [{match,12,X,Y}].
-%
--type ast_pattern_sequence() :: [ ast_pattern() ].
 
 
 -export_type([ ast_pattern/0, ast_pattern_sequence/0 ]).
@@ -91,11 +89,9 @@
 
 
 
-% Transforms specified pattern, operating relevant AST transformations onto it
-% (e.g. call ones).
-
-
-% List of patterns found:
+% @doc Transforms specified pattern, operating relevant AST transformations onto
+% it (eg call ones).
+% @end
 %
 % (note: this clause may be removed in the future, once all AST elements will
 % have been specifically intercepted by a dedicated clause, and when the nature
@@ -542,7 +538,8 @@ transform_pattern( E, Transforms )
 
 
 
-% Transforms specified pattern sequence, operating relevant AST transformations.
+% @doc Transforms specified pattern sequence, operating relevant AST
+% transformations.
 %
 % Note: the case where the sequence is empty is managed here as well.
 %
@@ -554,8 +551,8 @@ transform_pattern_sequence( Patterns, Transforms ) ?rec_guard ->
 
 
 
-% Transforms specified variable (possibly the universal one, '_'), operating
-% relevant AST transformations.
+% @doc Transforms specified variable (possibly the universal one, '_'),
+% operating relevant AST transformations.
 %
 -spec transform_variable( meta_utils:variable_name(), line(),
 				ast_transforms() ) -> { ast_element(), ast_transforms() }.
@@ -564,7 +561,7 @@ transform_variable( VariableName, _Line, Transforms ) ?rec_guard ->
 	{ VariableName, Transforms }.
 
 
-% Transforms specified pattern fields.
+% @doc Transforms specified pattern fields.
 %
 % (note: better here than in ast_record)
 %
@@ -576,7 +573,7 @@ transform_pattern_fields( PatternFields, Transforms ) ?rec_guard ->
 
 
 
-% Transforms specified pattern field.
+% @doc Transforms specified pattern field.
 %
 % Note: according to erl_id_trans, field names are full expressions here, but
 % only atoms are allowed by the linter.

@@ -27,11 +27,11 @@
 
 
 
-% Module in charge of handling values defined within an AST, including atomic
-% literals.
+% @doc Module in charge of handling <b>values defined within an AST</b>,
+% including atomic literals.
 %
 % Refer to the "7.2 Atomic Literals" section of
-% http://erlang.org/doc/apps/erts/absform.html for more information.
+% [http://erlang.org/doc/apps/erts/absform.html for more information].
 %
 -module(ast_value).
 
@@ -50,17 +50,15 @@
 % parsed as an application of the unary negation operator."
 
 
-
-% The description of an immediate value (atomic literal) in an AST, with line
-% information.
-%
-% Ex: nil, in {nil,33} for [] at line #33.
-%
 -type ast_atomic_literal() :: { 'atom',    line(), atom() }
 							| { 'char',    line(), char() }
 							| { 'float',   line(), float() }
 							| { 'integer', line(), integer() }
 							| { 'string',  line(), text_utils:ustring() }.
+% The description of an immediate value (atomic literal) in an AST, with line
+% information.
+%
+% Ex: nil, in {nil,33} for [] at line #33.
 
 
 -type ast_compound_literal() :: { 'nil', line() }.
@@ -108,8 +106,8 @@
 % Section for value transformation.
 
 
-% Transforms specified literal value, operating relevant AST transformations
-% onto it.
+% @doc Transforms specified literal value, operating relevant AST
+% transformations onto it.
 %
 -spec transform_value( ast_atomic_literal(), ast_transforms() ) ->
 							 { ast_atomic_literal(), ast_transforms() }.
@@ -135,7 +133,7 @@ transform_value( UnexpectedLiteral, Transforms )
 
 
 
-% Returns the actual (immediate) value corresponding to the specified form
+% @doc Returns the actual (immediate) value corresponding to the specified form
 % (regardless of its actual type).
 %
 get_immediate_value( { atom, _Line, Atom } ) ->
@@ -155,8 +153,8 @@ get_immediate_value( Other ) ->
 % Section for immediate value forging.
 
 
-% Returns an AST-compliant value designating specified boolean, defined at line
-% #0 of the current source file.
+% @doc Returns an AST-compliant value designating specified boolean, defined at
+% line #0 of the current source file.
 %
 % Ex: forge_boolean_value(true) returns: {boolean,0,true}.
 %
@@ -165,7 +163,7 @@ forge_boolean_value( BooleanValue ) ->
 	forge_boolean_value( BooleanValue, _Line=0 ).
 
 
-% Returns an AST-compliant value designating specified boolean, defined at
+% @doc Returns an AST-compliant value designating specified boolean, defined at
 % specified line of the current source file.
 %
 % Ex: forge_boolean_value(false, 43) returns: {boolean,43,false}.
@@ -176,8 +174,8 @@ forge_boolean_value( BooleanValue, Line ) ->
 
 
 
-% Returns an AST-compliant value designating specified atom, defined at line #0
-% of the current source file.
+% @doc Returns an AST-compliant value designating specified atom, defined at
+% line #0 of the current source file.
 %
 % Ex: forge_atom_value(basic_utils) returns: {atom,0,basic_utils}.
 %
@@ -186,7 +184,7 @@ forge_atom_value( AtomValue ) ->
 	forge_atom_value( AtomValue, _Line=0 ).
 
 
-% Returns an AST-compliant value designating specified atom, defined at
+% @doc Returns an AST-compliant value designating specified atom, defined at
 % specified line of the current source file.
 %
 % Ex: forge_atom_value( basic_utils, 43 ) returns: {atom,43,basic_utils}.

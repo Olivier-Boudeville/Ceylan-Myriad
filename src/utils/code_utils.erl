@@ -26,8 +26,8 @@
 % Creation date: July 1, 2007.
 
 
-% Gathering of various facilities regarding the management of Erlang code
-% (typically BEAM files).
+% @doc Gathering of various facilities regarding the management of <b>Erlang
+% code</b> (typically BEAM files).
 %
 % See code_utils_test.erl for the corresponding test.
 %
@@ -50,18 +50,17 @@
 		  interpret_stacktrace/0,
 		  interpret_stacktrace/1,
 		  interpret_stacktrace/2,
-		  interpret_stack_item/2,
 		  interpret_shortened_stacktrace/1,
 		  display_stacktrace/0,
 		  interpret_undef_exception/3, stack_location_to_string/1 ]).
 
 
 
+-type code_path() :: [ directory_path() ].
 % The code path used by a language, i.e. a list of directories (as plain
 % strings) to scan for runtime elements (Erlang -pa/-pz, Python sys.path with
 % PYTHONPATH, Java classpath, etc.).
-%
--type code_path() :: [ directory_path() ].
+
 
 -type code_path_position() :: 'first_position' | 'last_position'.
 
@@ -118,9 +117,9 @@
 % Code-related functions.
 
 
-% Returns, by searching the code path, the in-file object code for specified
-% module, i.e. a {ModuleBinary, ModuleFilename} pair for the module specified as
-% an atom, or throws an exception.
+% @doc Returns, by searching the code path, the in-file object code for
+% specified module, ie a {ModuleBinary, ModuleFilename} pair for the module
+% specified as an atom, or throws an exception.
 %
 -spec get_code_for( module_name() ) -> { binary(), file_path() }.
 get_code_for( ModuleName ) ->
@@ -152,7 +151,8 @@ get_code_for( ModuleName ) ->
 
 
 
-% Returns the MD5 for the specified loaded (in-memory, used by the VM) module.
+% @doc Returns the MD5 for the specified loaded (in-memory, used by the VM)
+% module.
 %
 % Otherwise returns a undefined function exception (ModuleName:module_info/1).
 %
@@ -162,8 +162,8 @@ get_md5_for_loaded_module( ModuleName ) ->
 
 
 
-% Returns the MD5 for the specified stored (on filesystem, found through the
-% code path) module.
+% @doc Returns the MD5 for the specified stored (on filesystem, found through
+% the code path) module.
 %
 -spec get_md5_for_stored_module( module_name() ) -> md5_sum().
 get_md5_for_stored_module( ModuleName ) ->
@@ -173,8 +173,8 @@ get_md5_for_stored_module( ModuleName ) ->
 
 
 
-% Tells whether the specified (supposedly loaded) module is the same as the one
-% found through the code path.
+% @doc Tells whether the specified (supposedly loaded) module is the same as the
+% one found through the code path.
 %
 -spec is_loaded_module_same_on_filesystem( module_name() ) -> boolean().
 is_loaded_module_same_on_filesystem( ModuleName ) ->
@@ -191,7 +191,7 @@ is_loaded_module_same_on_filesystem( ModuleName ) ->
 
 
 
-% Deploys the specified list of modules on the specified list of nodes
+% @doc Deploys the specified list of modules on the specified list of nodes
 % (specified as atoms): sends them these modules (as a binary), and loads them
 % so that they are ready for future use, using a default time-out.
 %
@@ -205,7 +205,7 @@ deploy_modules( Modules, Nodes ) ->
 
 
 
-% Deploys the specified list of modules on the specified list of nodes
+% @doc Deploys the specified list of modules on the specified list of nodes
 % (specified as atoms): sends them these modules (as a binary), and loads them
 % so that they are ready for future use.
 %
@@ -315,8 +315,8 @@ deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
 
 
 
-% Declares specified directory as an additional code path where BEAM files will
-% be looked up by the VM, adding it at first position in the code path.
+% @doc Declares specified directory as an additional code path where BEAM files
+% will be looked up by the VM, adding it at first position in the code path.
 %
 % If this directory is already present in the code path, it is removed from its
 % old position and put first.
@@ -329,8 +329,8 @@ declare_beam_directory( Dir ) ->
 
 
 
-% Declares specified directory as an additional code path where BEAM files will
-% be looked up by the VM, adding it as specified, at either first or last
+% @doc Declares specified directory as an additional code path where BEAM files
+% will be looked up by the VM, adding it as specified, at either first or last
 % position in the code path.
 %
 % These functions ensure not to offset any given directory that was already in
@@ -387,8 +387,8 @@ declare_beam_directory( Dir, last_position ) ->
 
 
 
-% Declares specified directories as additional code paths where BEAM files will
-% be looked up by the VM, adding them at first position in the code path.
+% @doc Declares specified directories as additional code paths where BEAM files
+% will be looked up by the VM, adding them at first position in the code path.
 %
 % Throws an exception if at least one of the directories does not exist.
 %
@@ -398,9 +398,9 @@ declare_beam_directories( Dirs ) ->
 
 
 
-% Declares specified directories as additional code paths where BEAM files will
-% be looked up by the VM, adding them either at first or last position in the
-% code path.
+% @doc Declares specified directories as additional code paths where BEAM files
+% will be looked up by the VM, adding them either at first or last position in
+% the code path.
 %
 % Throws an exception if at least one of the directories does not exist.
 %
@@ -430,7 +430,7 @@ declare_beam_directories( Dirs, last_position ) ->
 
 
 
-% Checks that specified directories exist.
+% @doc Checks that specified directories exist.
 %
 % (helper)
 %
@@ -452,8 +452,8 @@ check_beam_dirs( _Dirs=[ D | T ] ) ->
 
 
 
-% Removes specified directory (either specified verbatim or designated as the
-% ebin directory of a specified application) from the current code path.
+% @doc Removes specified directory (either specified verbatim or designated as
+% the ebin directory of a specified application) from the current code path.
 %
 % Throws an exception if the operation failed, including if it was not already
 % set.
@@ -481,9 +481,9 @@ remove_beam_directory( NameOrDir ) ->
 
 
 
-% Removes specified directory (either specified verbatim or designated as the
-% ebin directory of a specified application) from the current code path, if it
-% was already set (otherwise does nothing).
+% @doc Removes specified directory (either specified verbatim or designated as
+% the ebin directory of a specified application) from the current code path, if
+% it was already set (otherwise does nothing).
 %
 % Throws an exception if the operation failed otherwise.
 %
@@ -510,9 +510,9 @@ remove_beam_directory_if_set( NameOrDir ) ->
 
 
 
-% Returns the (ordered) list of (absolute) runtime BEAM directories obtained
-% from the build system located in the directory designated as the value
-% associated to the specified environment variable name.
+% @doc Returns the (ordered) list of (absolute) runtime BEAM directories
+% obtained from the build system located in the directory designated as the
+% value associated to the specified environment variable name.
 %
 % Allows to obtain the code path that shall be declared to the VM so that all
 % the corresponding BEAMs become available.
@@ -562,8 +562,8 @@ get_beam_dirs_for( VariableName ) ->
 
 
 
-% Returns the (ordered) list of (absolute) runtime BEAM directories
-% corresponding to this layer (i.e. the Ceylan-Myriad one).
+% @doc Returns the (ordered) list of (absolute) runtime BEAM directories
+% corresponding to this layer (ie the Ceylan-Myriad one).
 %
 % Allows to obtain the code path that shall be declared to the VM so that all
 % the corresponding BEAMs become available.
@@ -584,9 +584,9 @@ get_beam_dirs_for_myriad() ->
 
 
 
-% Declares automatically the relevant BEAM directories in the code path so that
-% the layer whose base directory is designated as the value associated to the
-% specified environment variable name is fully usable from then on.
+% @doc Declares automatically the relevant BEAM directories in the code path so
+% that the layer whose base directory is designated as the value associated to
+% the specified environment variable name is fully usable from then on.
 %
 % Note: the determined directories are not specifically checked for existence,
 % and are added at the end of the code path.
@@ -597,8 +597,8 @@ declare_beam_dirs_for( VariableName ) ->
 
 
 
-% Declares automatically the relevant BEAM directories in the code path so that
-% Ceylan-Myriad can be fully usable from then on.
+% @doc Declares automatically the relevant BEAM directories in the code path so
+% that Ceylan-Myriad can be fully usable from then on.
 %
 % Note:
 %
@@ -614,7 +614,7 @@ declare_beam_dirs_for_myriad() ->
 
 
 
-% Returns a normalised, sorted list of directories in the current code path
+% @doc Returns a normalised, sorted list of directories in the current code path
 % (without duplicates).
 %
 -spec get_code_path() -> code_path().
@@ -627,7 +627,7 @@ get_code_path() ->
 
 
 
-% Returns a textual representation of the current code path.
+% @doc Returns a textual representation of the current code path.
 -spec get_code_path_as_string() -> ustring().
 get_code_path_as_string() ->
 	text_utils:format( "current code path is: ~ts",
@@ -635,13 +635,13 @@ get_code_path_as_string() ->
 
 
 
-% Returns a textual description of the current code path.
+% @doc Returns a textual description of the current code path.
 -spec code_path_to_string() -> ustring().
 code_path_to_string() ->
 	code_path_to_string( get_code_path() ).
 
 
-% Returns a textual description of the specified code path.
+% @doc Returns a textual description of the specified code path.
 -spec code_path_to_string( code_path() ) -> ustring().
 code_path_to_string( _CodePath=[] ) ->
 	% Initial space intended for caller-side consistency:
@@ -652,7 +652,7 @@ code_path_to_string( CodePath ) ->
 
 
 
-% Lists (in alphabetical order) all modules that exist in the current
+% @doc Lists (in alphabetical order) all modules that exist in the current
 % code path, based on the BEAM files found.
 %
 -spec list_beams_in_path() -> [ module_name() ].
@@ -669,7 +669,7 @@ list_beams_in_path() ->
 
 
 
-% Returns the filename of the BEAM file corresponding to specified module.
+% @doc Returns the filename of the BEAM file corresponding to specified module.
 -spec get_beam_filename( module_name() ) -> file_name().
 get_beam_filename( ModuleName ) when is_atom( ModuleName ) ->
 
@@ -679,8 +679,8 @@ get_beam_filename( ModuleName ) when is_atom( ModuleName ) ->
 
 
 
-
-% Tells whether specified module has its BEAM file in the current code path.
+% @doc Tells whether specified module has its BEAM file in the current code
+% path.
 %
 % Returns either a list of its absolute, canonicalised, unordered paths (if
 % being available at least once), or 'not_found' (hence: this is not a boolean
@@ -723,7 +723,7 @@ is_beam_in_path( Other ) ->
 
 
 
-% Returns the root directory of Erlang/OTP, where it is installed.
+% @doc Returns the root directory of Erlang/OTP, where it is installed.
 %
 % Ex: "/home/joe/Software/Erlang/Erlang-23.1/lib/erlang" or
 % "/usr/local/otp/lib".
@@ -734,7 +734,7 @@ get_erlang_root_path() ->
 
 
 
-% Returns (without crashing the program) the current stack trace.
+% @doc Returns (without crashing the program) the current stack trace.
 %
 % A replacement for deprecated erlang:get_stacktrace/0.
 %
@@ -744,7 +744,7 @@ get_stacktrace() ->
 
 
 
-% Returns (without crashing the program) the current stack trace, whose
+% @doc Returns (without crashing the program) the current stack trace, whose
 % SkipLastElemCount first elements have been dropped (to output a cleaner, more
 % relevant stacktrace).
 %
@@ -765,7 +765,7 @@ get_stacktrace( SkipLastElemCount ) ->
 
 
 
-% Returns a "smart" textual representation of the current stacktrace.
+% @doc Returns a "smart" textual representation of the current stacktrace.
 -spec interpret_stacktrace() -> ustring().
 interpret_stacktrace() ->
 
@@ -775,13 +775,13 @@ interpret_stacktrace() ->
 	interpret_stacktrace( StackTrace ).
 
 
-% Returns a "smart" textual representation of specified stacktrace.
+% @doc Returns a "smart" textual representation of specified stacktrace.
 -spec interpret_stacktrace( stack_trace() ) -> ustring().
 interpret_stacktrace( StackTrace ) ->
 	interpret_stacktrace( StackTrace, _FullPathsWanted=false ).
 
 
-% Returns a "smart" textual representation of specified stacktrace, listing
+% @doc Returns a "smart" textual representation of specified stacktrace, listing
 % either the full path of the corresponding source files, or just their
 % filename.
 %
@@ -797,7 +797,7 @@ interpret_stacktrace( StackTrace, FullPathsWanted ) ->
 
 
 
-% Returns a "smart" textual representation of the current stacktrace, once
+% @doc Returns a "smart" textual representation of the current stacktrace, once
 % specified extra depth has been skipped (not counting this call).
 %
 % Removing the specified number of last calls allows to skip unwanted
@@ -851,7 +851,7 @@ interpret_stack_item( I, _FullPathsWanted ) ->
 
 
 
-% Displays the current stacktrace (not stopping the execution).
+% @doc Displays the current stacktrace (not stopping the execution).
 -spec display_stacktrace() -> void().
 display_stacktrace() ->
 
@@ -863,7 +863,7 @@ display_stacktrace() ->
 
 
 
-% Interprets an undef exception, typically after it has been raised.
+% @doc Interprets an undef exception, typically after it has been raised.
 -spec interpret_undef_exception( module_name(),
 			basic_utils:function_name(), arity() ) -> ustring().
 interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
@@ -934,7 +934,7 @@ interpret_arities( ModuleName, FunctionName, Arity, Arities ) ->
 	end.
 
 
-% Returns a textual description of specified stack location.
+% @doc Returns a textual description of specified stack location.
 -spec stack_location_to_string( stack_location() ) -> ustring().
 stack_location_to_string( [ { file, Filename }, { line, Line } ] ) ->
 	text_utils:format( "in file ~ts, at line ~B", [ Filename, Line ] );

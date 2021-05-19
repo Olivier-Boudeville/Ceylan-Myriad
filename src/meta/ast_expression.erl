@@ -27,13 +27,14 @@
 
 
 
-% Module in charge of handling expressions defined with an AST.
+% @doc Module in charge of handling <b>expressions defined with an AST</b>.
 %
-% See http://erlang.org/doc/apps/erts/absform.html for more information.
+% See [http://erlang.org/doc/apps/erts/absform.html] for more information.
 %
 -module(ast_expression).
 
 
+-type ast_expression() :: ast_base:ast_element().
 % The description of an expression in an AST, with line information.
 %
 % Ex: '{integer,97,2}' or '{match,117, {var,117,'A'}, {atom,117,foobar}}', etc.
@@ -42,12 +43,11 @@
 % some types of forms, they are to be interpreted differently (ex: their
 % sub-elements are of the same kind as they are, and at least some rules
 % differ).
-%
--type ast_expression() :: ast_base:ast_element().
 
 
-% An expression that can be evaluated to an integer:
 -type ast_integer_expression() :: ast_expression().
+% An expression that can be evaluated to an integer.
+
 
 -type ast_field_init() :: ast_record:ast_untyped_record_field_definition().
 
@@ -98,27 +98,22 @@
 -type form() :: ast_base:form().
 
 
-% List-comprehension generator.
 -type lc_generator_qualifier() ::
 		{ 'generate', line(), ast_pattern:ast_pattern(), ast_expression() }.
+% List-comprehension generator.
 
 
-% Bitstring generator.
 -type bitstring_generator_qualifier() ::
 		{ 'b_generate', line(), ast_pattern:ast_pattern(), ast_expression() }.
+% Bitstring generator.
 
 
-
+-type ast_qualifier() :: ast_expression() | lc_generator_qualifier()
+							| bitstring_generator_qualifier().
 % A qualifier is one of the following: an expression-based filter, a
 % list-comprehension generator or a bitstring generator.
-%
--type ast_qualifier() :: ast_expression() | lc_generator_qualifier()
-						 | bitstring_generator_qualifier().
 
 
-
-
-% Allows to designate any kind of AST expression.
 -type expression_kind() :: 'call' | 'if' | 'case' | 'match' | 'bin'
 		| 'unary_op' | 'binary_op' | 'simple_receive' | 'receive_with_after'
 		| 'try' | 'remote' | 'catch' | 'cons' | 'lc' | 'bc' | 'tuple'
@@ -127,26 +122,19 @@
 		| 'record_field_other' | 'record_update' | 'block' | 'fun_definition'
 		| 'fun_local' | 'fun_mfa_old' | 'fun_mfa' | 'var' | 'nil' | 'named_fun'
 		| 'atomic_literal'.
+% Allows to designate any kind of AST expression.
 
 
-% Expression designating a reference to a function (local or remote):
 -type function_ref_expression() :: ast_expression().
+% Expression designating a reference to a function (local or remote).
 
 
-% List of expressions corresponding to function parameters:
 -type params_expression() :: [ ast_expression() ].
+% List of expressions corresponding to function parameters.
 
 
 -export_type([ expression_kind/0, function_ref_expression/0,
 			   params_expression/0 ]).
-
-
-% Transforms specified expression into a list of expressions.
-%
-% See section "7.4 Expressions" in http://erlang.org/doc/apps/erts/absform.html.
-%
--spec transform_expression( ast_expression(), ast_transforms() ) ->
-									{ [ ast_expression() ], ast_transforms() }.
 
 
 
@@ -189,6 +177,14 @@
 
 -endif. % log_traversal
 
+
+% @doc Transforms specified expression into a list of expressions.
+%
+% See section "7.4 Expressions" in
+% [http://erlang.org/doc/apps/erts/absform.html].
+%
+-spec transform_expression( ast_expression(), ast_transforms() ) ->
+									{ [ ast_expression() ], ast_transforms() }.
 
 
 % Function call found:
@@ -1196,7 +1192,6 @@ transform_expression( E={ 'var', _Line, _VarAtomName },
 
 
 % "If E is nil, [], then Rep(E) = {nil,LINE}."
-%
 transform_expression( E={ 'nil', _Line }, Transforms ) ?rec_guard ->
 
 	?log_enter( "Transforming nil expression with clauses ~p...", [ E ] ),
@@ -1282,8 +1277,8 @@ transform_expression( Expression, Transforms ) ->
 
 
 
-% Transforms an expression corresponding to a function call into another one
-% (exactly).
+% @doc Transforms an expression corresponding to a function call into another
+% one (exactly).
 %
 % (default traversal implementation)
 %
@@ -1315,7 +1310,8 @@ transform_call( Line, FunctionRef, Params, Transforms ) ?rec_guard ->
 
 
 
-% Transforms an expression corresponding to an 'if' into another one (exactly).
+% @doc Transforms an expression corresponding to an 'if' into another one
+% (exactly).
 %
 % (default traversal implementation)
 %
@@ -1332,7 +1328,8 @@ transform_if( Line, Clauses, Transforms ) ?rec_guard ->
 
 
 
-% Transforms an expression corresponding to a 'case' into another one (exactly).
+% @doc Transforms an expression corresponding to a 'case' into another one
+% (exactly).
 %
 % (default traversal implementation)
 %
@@ -1353,7 +1350,7 @@ transform_case( Line, TestExpression, CaseClauses, Transforms ) ?rec_guard ->
 
 
 
-% Transforms an expression corresponding to a 'match' into another one
+% @doc Transforms an expression corresponding to a 'match' into another one
 % (exactly).
 %
 % (default traversal implementation)
@@ -1380,8 +1377,8 @@ transform_match( Line, MatchPattern, MatchExpression, Transforms ) ?rec_guard ->
 
 
 
-% Transforms an expression corresponding to a simple 'receive' into another one
-% (exactly).
+% @doc Transforms an expression corresponding to a simple 'receive' into another
+% one (exactly).
 %
 % (default traversal implementation)
 %
@@ -1399,8 +1396,8 @@ transform_simple_receive( Line, ReceiveClauses, Transforms ) ?rec_guard ->
 
 
 
-% Transforms an expression corresponding to a simple 'receive' into another one
-% (exactly).
+% @doc Transforms an expression corresponding to a simple 'receive' into another
+% one (exactly).
 %
 % (default traversal implementation)
 %
@@ -1432,7 +1429,8 @@ transform_receive_with_after( Line, ReceiveClauses, AfterTest,
 
 
 
-% Transforms an expression corresponding to a 'try' into another one (exactly).
+% @doc Transforms an expression corresponding to a 'try' into another one
+% (exactly).
 %
 % (default traversal implementation)
 %
@@ -1461,7 +1459,7 @@ transform_try( Line, TryBody, TryClauses, CatchClauses, AfterBody,
 
 
 
-% Transforms an expression corresponding to a 'catch' into another one
+% @doc Transforms an expression corresponding to a 'catch' into another one
 % (exactly).
 %
 % (default traversal implementation)
@@ -1480,8 +1478,10 @@ transform_catch( Line, Expression, Transforms ) ?rec_guard ->
 
 
 
-
-% For convenience:
+% @doc Transforms specified list of expressions.
+%
+% Defined for convenience.
+%
 -spec transform_expressions( [ ast_expression() ], ast_transforms() ) ->
 									{ [ ast_expression() ], ast_transforms() }.
 transform_expressions( Expressions, Transforms ) ?rec_guard ->
@@ -1499,7 +1499,7 @@ transform_expressions( Expressions, Transforms ) ?rec_guard ->
 
 
 
-% Removes a single depth of nesting (not an arbitrary flattening) regarding
+% @doc Removes a single depth of nesting (not an arbitrary flattening) regarding
 % expressions.
 %
 % (helper)
@@ -1529,7 +1529,7 @@ merge_expression_lists( [ Unexpected | _T ], _Acc ) ->
 
 
 
-% Transforms specified qualifiers.
+% @doc Transforms specified qualifiers.
 %
 % Allows filters to be both guard tests and general expressions.
 %
@@ -1543,7 +1543,7 @@ transform_qualifiers( Qualifiers, Transforms ) ?rec_guard ->
 
 
 
-% Transforms specificied qualifier.
+% @doc Transforms specificied qualifier.
 -spec transform_qualifier( ast_qualifier(), ast_transforms() ) ->
 									{ ast_qualifier(), ast_transforms() }.
 
@@ -1579,7 +1579,6 @@ transform_qualifier( _Qualifier={ 'b_generate', Line, Pattern, Expression },
 	NewExpr = { 'b_generate', Line, NewPattern, NewExpression },
 
 	{ NewExpr, ExpTransforms };
-
 
 
 % "If Q is a filter E, where E is an expression, then Rep(Q) = Rep(E)."
@@ -1670,7 +1669,7 @@ transform_record_field_update( { 'record_field', LineField,
 
 
 
-% Remote call expression found:
+% @doc Remote call expression found.
 %
 % "If E is a function call E_m:E_0(E_1, ..., E_k), then Rep(E) =
 % {call,LINE,{remote,LINE,Rep(E_m),Rep(E_0)},[Rep(E_1), ..., Rep(E_k)]}.
@@ -1786,7 +1785,6 @@ transform_call_expression( OriginalExpr={ 'remote', LineRemote,
 	end,
 
 	{ [ NewExpr ], Transforms };
-
 
 
 % Here, at least one name (module and/or function) is not immediate in that

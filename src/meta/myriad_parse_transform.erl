@@ -27,9 +27,9 @@
 
 
 
-% Overall parse transform for the 'Ceylan-Myriad' layer.
+% @doc Overall <b>parse transform for the `Ceylan-Myriad' layer</b>.
 %
-% See meta_utils.erl and meta_utils_test.erl.
+% See `meta_utils.erl' and `meta_utils_test.erl'.
 %
 -module(myriad_parse_transform).
 
@@ -143,8 +143,8 @@
 
 
 
-% Runs the Myriad parse transform defined here in a standalone way (i.e. without
-% being triggered by the usual, integrated compile process).
+% @doc Runs the Myriad parse transform defined here in a standalone way
+% (ie without being triggered by the usual, integrated compile process).
 %
 % This allows to benefit from all compilation error and warning messages,
 % whereas they are seldom available from a code directly run as a parse
@@ -167,8 +167,8 @@ run_standalone( FileToTransform ) ->
 
 
 
-% The parse transform itself, transforming the specified (Myriad-based) Abstract
-% Format code into another (Erlang-compliant) one.
+% @doc The parse transform itself, transforming the specified (Myriad-based)
+% Abstract Format code into another (Erlang-compliant) one.
 %
 % Note: the (compile) Options variable is currently ignored, as we do not know
 % what we could do with it. There is nevertheless valuable information in it,
@@ -203,7 +203,10 @@ parse_transform( InputAST, Options ) ->
 
 
 
+% @doc Applies the Myriad parse-transform.
+%
 % Defined to be reused in multiple contexts.
+%
 -spec apply_myriad_transform( ast(), parse_transform_options() ) ->
 									{ ast(), module_info() }.
 apply_myriad_transform( InputAST, Options ) ->
@@ -269,7 +272,7 @@ apply_myriad_transform( InputAST, Options ) ->
 
 
 
-% Transforms (at the Myriad level) specified module information.
+% @doc Transforms (at the Myriad level) specified module information.
 -spec transform_module_info( module_info() ) ->
 								{ module_info(), ast_transforms() }.
 transform_module_info( ModuleInfo ) when is_record( ModuleInfo, module_info ) ->
@@ -289,8 +292,8 @@ transform_module_info( ModuleInfo ) when is_record( ModuleInfo, module_info ) ->
 
 
 
-% Returns a transforms record describing the AST changes defined by this Myriad
-% layer.
+% @doc Returns a transforms record describing the AST changes defined by this
+% Myriad layer.
 %
 % (helper)
 %
@@ -387,7 +390,7 @@ get_myriad_ast_transforms_for(
 
 
 
-% Returns the name of the actual module to use for tables.
+% @doc Returns the name of the actual module to use for tables.
 -spec get_actual_table_type( ast_info:attribute_table() ) -> module_name().
 get_actual_table_type( ParseAttributeTable ) ->
 
@@ -420,10 +423,11 @@ get_actual_table_type( ParseAttributeTable ) ->
 
 
 
-
+% @doc Returns the table specifying the transformation of the local types.
+%
 % Regarding local types, we want to replace:
 %
-% - void() with basic_utils:void() (i.e. prefixed with basic_utils)
+% - void() with basic_utils:void() (ie prefixed with basic_utils)
 %
 % - maybe(T) with basic_utils:maybe(T)
 %
@@ -472,6 +476,8 @@ get_local_type_transforms( DesiredTableType ) ->
 
 
 
+% @doc Returns the table specifying the transformation of the remote types.
+%
 % Regarding remote types, we want to replace:
 %  - table:table/N with DesiredTableType:DesiredTableType/N (N=0 or N=2)
 %  - table:T with DesiredTableType:T (ex: table:value())
@@ -496,6 +502,8 @@ get_remote_type_transforms( DesiredTableType ) ->
 
 
 
+% @doc Returns the table specifying the transformation of the local calls.
+%
 % None currently used here:
 -spec get_local_call_transforms() -> local_call_transform_table().
 get_local_call_transforms() ->
@@ -504,6 +512,8 @@ get_local_call_transforms() ->
 
 
 
+% @doc Returns the table specifying the transformation of the remote calls.
+%
 % None used anymore, superseded by a more powerful AST transform table.
 -spec get_remote_call_transforms() -> remote_call_transform_table().
 get_remote_call_transforms() ->
@@ -511,6 +521,8 @@ get_remote_call_transforms() ->
 
 
 
+% @doc Returns the table specifying the global transformations.
+%
 % We used to define a simple, direct transformation from 'table' to
 % DesiredTableType, however the addition of the cond_utils support led to have
 % to define a full-blown call transform fun (to perform a more radical
@@ -553,8 +565,8 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 				key_not_found ->
 					%ast_utils:display_debug( "Token '~p' not defined, hence "
-					%	"skipping as a whole expression~n~p",
-					%	[ Token, ExprForm ] ),
+					%   "skipping as a whole expression~n~p",
+					%   [ Token, ExprForm ] ),
 					{ _Expr=[], Transforms }
 
 			end;
@@ -574,7 +586,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
 			%ast_utils:display_debug( "Call to cond_utils:if_defined/2 found, "
-			%						 "for token '~p'.", [ Token ] ),
+			%                         "for token '~p'.", [ Token ] ),
 
 			case ?table:lookup_entry( Token, TokenTable ) of
 
@@ -587,8 +599,8 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 				key_not_found ->
 					%ast_utils:display_debug( "Token '~p' not defined, hence "
-					%	"skipping as a whole expression~n~p",
-					%	[ Token, ExprForm ] ),
+					%   "skipping as a whole expression~n~p",
+					%   [ Token, ExprForm ] ),
 					{ _Expr=[], Transforms }
 
 			end;
@@ -642,15 +654,15 @@ get_ast_global_transforms( DesiredTableType ) ->
 				%
 				{ value, _Any } ->
 					%ast_utils:display_debug( "Token '~p' defined, hence "
-					%	 "injecting the expression ~p",
-					%	 [ Token, ExprFormIfDef ] ),
+					%    "injecting the expression ~p",
+					%    [ Token, ExprFormIfDef ] ),
 					inject_expression( ExprFormIfDef, Transforms,
 									   FileLocToken );
 
 				key_not_found ->
 					%ast_utils:display_debug( "Token '~p' not defined, hence "
-					%	 "injecting the expression ~p",
-					%	 [ Token, ExprFormIfNotDef ] ),
+					%    "injecting the expression ~p",
+					%    [ Token, ExprFormIfNotDef ] ),
 					inject_expression( ExprFormIfNotDef, Transforms,
 									   FileLocToken )
 
@@ -707,9 +719,9 @@ get_ast_global_transforms( DesiredTableType ) ->
 				% Right value found matching:
 				{ value, RequestedValue } ->
 					%ast_utils:display_debug( "Token '~p' defined and set to "
-					%			 "the right value ('~p'), hence "
-					%			 "injecting the expression ~p",
-					%			 [ Token, RequestedValue, ExprForm ] ),
+					%           "the right value ('~p'), hence "
+					%           "injecting the expression ~p",
+					%           [ Token, RequestedValue, ExprForm ] ),
 
 					% So we will (attempt to) inject this expression:
 					inject_expression( ExprForm, Transforms, FileLocToken );
@@ -717,15 +729,15 @@ get_ast_global_transforms( DesiredTableType ) ->
 				% Another value found:
 				{ value, _OtherValue } ->
 					%ast_utils:display_debug( "Token '~p' defined but not set "
-					%	"to the right value (set to '~ts' instead of '~ts'), "
-					%	"hence skipping as a whole expression~n~p",
-					%	[ Token, OtherValue, RequestedValue, ExprForm ] ),
+					%   "to the right value (set to '~ts' instead of '~ts'), "
+					%   "hence skipping as a whole expression~n~p",
+					%   [ Token, OtherValue, RequestedValue, ExprForm ] ),
 					{ _Expr=[], Transforms };
 
 				key_not_found ->
 					%ast_utils:display_debug( "Token '~p' not defined, hence "
-					%	"skipping as a whole expression~n~p",
-					%	[ Token, ExprForm ] ),
+					%   "skipping as a whole expression~n~p",
+					%   [ Token, ExprForm ] ),
 					{ _Expr=[], Transforms }
 
 			end;
@@ -773,7 +785,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
 			%ast_utils:display_debug( "Call to cond_utils:if_set_to/4 found, "
-			%	 "for token '~p' and value '~p'.", [ Token, ValueForm ] ),
+			%    "for token '~p' and value '~p'.", [ Token, ValueForm ] ),
 
 			RequestedValue = ast_value:get_immediate_value( ValueForm ),
 
@@ -782,9 +794,9 @@ get_ast_global_transforms( DesiredTableType ) ->
 				% Right value found matching:
 				{ value, RequestedValue } ->
 					%ast_utils:display_debug( "Token '~p' defined and set to "
-					%	 "the right value ('~p'), hence "
-					%	 "injecting the expression ~p",
-					%	 [ Token, RequestedValue, ExprFormIfMatching ] ),
+					%   "the right value ('~p'), hence "
+					%   "injecting the expression ~p",
+					%   [ Token, RequestedValue, ExprFormIfMatching ] ),
 
 					% So we will (attempt to) inject expression:
 					inject_expression( ExprFormIfMatching, Transforms,
@@ -793,9 +805,9 @@ get_ast_global_transforms( DesiredTableType ) ->
 				% Another value found:
 				{ value, _OtherValue } ->
 					%ast_utils:display_debug( "Token '~p' defined but not set "
-					%	"to the right value (set to '~ts' instead of '~ts'), "
-					%	"hence injecting the expression~n~p",
-					%	[ Token, OtherValue, RequestedValue,
+					%   "to the right value (set to '~ts' instead of '~ts'), "
+					%   "hence injecting the expression~n~p",
+					%   [ Token, OtherValue, RequestedValue,
 					%     ExprFormIfNotMatching ] ),
 
 					% So we will (attempt to) inject this expression:
@@ -804,8 +816,8 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 				key_not_found ->
 					%ast_utils:display_debug( "Token '~p' not defined, hence "
-					%		 "injecting the expression~n ~p",
-					%		 [ Token, ExprFormIfNotMatching ] ),
+					%       "injecting the expression~n ~p",
+					%       [ Token, ExprFormIfNotMatching ] ),
 					inject_expression( ExprFormIfNotMatching, Transforms,
 									   FileLocToken )
 
@@ -827,7 +839,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 		( _FileLocCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils},
-						 {atom,FileLoc,if_set_to} },
+							{atom,FileLoc,if_set_to} },
 		  _Params=[ _Other, _ValueForm, _ExprFormIfMatching,
 					_ExprFormIfNotMatching ], _Transforms ) ->
 			ast_utils:display_error(
@@ -875,8 +887,8 @@ get_ast_global_transforms( DesiredTableType ) ->
 			end,
 
 			%ast_utils:display_debug( "Value associated to token '~p': ~p "
-			%	"(type: ~ts).",
-			%	[ Token, TokenValue, type_utils:get_type_of( TokenValue ) ] ),
+			%   "(type: ~ts).",
+			%   [ Token, TokenValue, type_utils:get_type_of( TokenValue ) ] ),
 
 			% We have to see whether TokenValue can be found among the keys of
 			% the (proplist, in AST form) TokenExprTableAsForm:
@@ -886,13 +898,13 @@ get_ast_global_transforms( DesiredTableType ) ->
 						ast_generation:form_to_list( TokenExprTableAsForm ),
 
 			%ast_utils:display_debug( "Token table as list: ~p.",
-			%						 [ TokenExprTableAsList ] ),
+			%                         [ TokenExprTableAsList ] ),
 
 			ExprForm = find_expression_for( TokenValue, Token, FileLocToken,
 											TokenExprTableAsList ),
 
 			%ast_utils:display_debug( "Resulting expression:~n  ~p",
-			%						 [ ExprForm ] ),
+			%                         [ ExprForm ] ),
 
 			% So we will (attempt to) inject this expression:
 			inject_expression( ExprForm, Transforms, FileLocToken );
@@ -940,7 +952,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 			end,
 
 			%ast_utils:display_debug( "Resulting expression:~n  ~p",
-			%						 [ ExprForm ] ),
+			%                         [ ExprForm ] ),
 
 			% So we will (attempt to) inject this expression:
 			inject_expression( ExprForm, Transforms, FileLocToken );
@@ -958,8 +970,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
 			%ast_utils:display_debug( "Call to cond_utils:assert/1 found, "
-			%						 "with expression form ~p.",
-			%						 [ ExpressionForm ] ),
+			%   "with expression form ~p.", [ ExpressionForm ] ),
 
 			% Implicit token here:
 			Token = myriad_debug_mode,
@@ -976,8 +987,8 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 				key_not_found ->
 					%ast_utils:display_debug( "Token '~p' not defined, hence "
-					%	"skipping as a whole expressions ~n~p",
-					%	[ Token, ExprForm ] ),
+					%   "skipping as a whole expressions ~n~p",
+					%   [ Token, ExprForm ] ),
 					{ _Expr=[], Transforms }
 
 			end;
@@ -991,8 +1002,8 @@ get_ast_global_transforms( DesiredTableType ) ->
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
 			%ast_utils:display_debug( "Call to cond_utils:assert/2 found, "
-			%						 "with token '~p' and expression form ~p.",
-			%						 [ Token, ExpressionForm ] ),
+			%                         "with token '~p' and expression form ~p.",
+			%                         [ Token, ExpressionForm ] ),
 
 			case ?table:lookup_entry( Token, TokenTable ) of
 
@@ -1006,8 +1017,8 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 				key_not_found ->
 					%ast_utils:display_debug( "Token '~p' not defined, hence "
-					%	"skipping as a whole expressions ~n~p",
-					%	[ Token, ExprForm ] ),
+					%   "skipping as a whole expressions ~n~p",
+					%   [ Token, ExprForm ] ),
 					{ _Expr=[], Transforms }
 
 			end;
@@ -1021,8 +1032,8 @@ get_ast_global_transforms( DesiredTableType ) ->
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
 			%ast_utils:display_debug( "Call to cond_utils:assert/3 found, "
-			%						 "with token '~p' and expression form ~p.",
-			%						 [ Token, ExpressionForm ] ),
+			%   "with token '~p' and expression form ~p.",
+			%   [ Token, ExpressionForm ] ),
 
 			RequestedValue = ast_value:get_immediate_value( ValueForm ),
 
@@ -1031,9 +1042,9 @@ get_ast_global_transforms( DesiredTableType ) ->
 				% Right value found matching:
 				{ value, RequestedValue } ->
 					%ast_utils:display_debug( "Token '~p' defined and set to "
-					%			 "the right value ('~p'), hence "
-					%			 "injecting the expressions ~p",
-					%			 [ Token, RequestedValue, ExpressionForm ] ),
+					%    "the right value ('~p'), hence "
+					%    "injecting the expressions ~p",
+					%    [ Token, RequestedValue, ExpressionForm ] ),
 
 					% So we will (attempt to) inject a match expression:
 					inject_match_expression( ExpressionForm, Transforms,
@@ -1042,15 +1053,15 @@ get_ast_global_transforms( DesiredTableType ) ->
 				% Another value found:
 				{ value, _OtherValue } ->
 					%ast_utils:display_debug( "Token '~p' defined but not set "
-					%	"to the right value (set to '~ts' instead of '~ts'), "
-					%	"hence skipping as a whole expressions ~n~p",
-					%	[ Token, OtherValue, RequestedValue, ExpressionForm ] ),
+					%   "to the right value (set to '~ts' instead of '~ts'), "
+					%   "hence skipping as a whole expressions ~n~p",
+					%   [ Token, OtherValue, RequestedValue, ExpressionForm ] ),
 					{ _Expr=[], Transforms };
 
 				key_not_found ->
 					%ast_utils:display_debug( "Token '~p' not defined, hence "
-					%	"skipping as a whole expressions ~n~p",
-					%	[ Token, ExprForm ] ),
+					%   "skipping as a whole expressions ~n~p",
+					%   [ Token, ExprForm ] ),
 					{ _Expr=[], Transforms }
 
 			end;
@@ -1068,7 +1079,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 			  %ast_utils:display_debug( "replacing call to 'table' by a call "
 			  %  "to '~p' at ~ts for parameters ~p",
 			  %  [ DesiredTableType,
-			  %	   ast_utils:file_loc_to_string( FileLoc1 ), Params ] ),
+			  %    ast_utils:file_loc_to_string( FileLoc1 ), Params ] ),
 
 			  % Just swap the 'table' module with the desired one:
 			  NewFunctionRef = { remote, FileLoc1,
@@ -1091,8 +1102,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 		( FileLocCall, FunctionRef, Params, Transforms ) ->
 
 			%?display_trace( "(not changing function referenced as ~p "
-			%						 "whose parameters are ~p)",
-			%						 [ FunctionRef, Params ] ),
+			%   "whose parameters are ~p)", [ FunctionRef, Params ] ),
 
 			{ NewParams, NewTransforms } =
 					ast_expression:transform_expressions( Params, Transforms ),
@@ -1108,7 +1118,10 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 
 
+% @doc Injects specified expression in AST.
+%
 % (helper)
+%
 -spec inject_expression( ast_expression(), ast_transforms(), file_loc() ) ->
 								{ [ ast_expression() ], ast_transforms() }.
 
@@ -1117,25 +1130,25 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 % Nothing to inject here (empty conditional expression list):
 %inject_expression( _ExprFormList={ nil, _ }, Transforms, _FileLoc ) ->
-%	{ _NewExprs=[], Transforms };
+%   { _NewExprs=[], Transforms };
 
 % A list of expressions shall be injected here:
 %inject_expression( ExprFormList={ cons, _, _Head, _Tail }, Transforms,
-%					_FileLoc ) ->
+%                   _FileLoc ) ->
 %
-%	%ast_utils:display_debug( "Token '~p' defined, hence injecting expressions"
-%	%						  "corresponding to ~p", [ Token, ExprFormList ] ),
+%   %ast_utils:display_debug( "Token '~p' defined, hence injecting expressions"
+%   %                         "corresponding to ~p", [ Token, ExprFormList ] ),
 %
-%	% The corresponding, specified code (expressions) is thus enabled; the AST
-%	% expects them as the elements of a list ({cons,_,E1, {cons,_,E2,...}),
-%	% whereas we need an actual, direct list here (i.e. [E1, E2, ...]), so:
-%	%
-%	Exprs = ast_generation:form_to_list( ExprFormList ),
+%   % The corresponding, specified code (expressions) is thus enabled; the AST
+%   % expects them as the elements of a list ({cons,_,E1, {cons,_,E2,...}),
+%   % whereas we need an actual, direct list here (ie [E1, E2, ...]), so:
+%   %
+%   Exprs = ast_generation:form_to_list( ExprFormList ),
 %
-%	% This injected code may need to be transformed (ex: if referencing the
-%	% table module), so:
-%	%
-%	ast_expression:transform_expressions( Exprs, Transforms );
+%   % This injected code may need to be transformed (ex: if referencing the
+%   % table module), so:
+%   %
+%   ast_expression:transform_expressions( Exprs, Transforms );
 
 
 % Other, non-list (ex: call, match pattern, etc.) expression parameter, which
@@ -1156,8 +1169,8 @@ inject_expression( ExprForm, Transforms, _FileLoc ) ->
 
 
 
-% Injects an expression checking whether once evaluated the corresponding form
-% matches the 'true' atom.
+% @doc Injects an expression checking whether once evaluated the corresponding
+% form matches the 'true' atom.
 %
 % (helper)
 %
@@ -1203,7 +1216,7 @@ inject_match_expression( ExpressionForm, Transforms, FileLoc ) ->
 
 
 
-% Finds in specified token-expression table the expression associated to
+% @doc Finds in specified token-expression table the expression associated to
 % specified token value, and returns it.
 %
 find_expression_for( TokenValue, Token, FileLocToken,
@@ -1248,7 +1261,7 @@ find_expression_for( _TokenValue, Token, FileLocToken,
 
 
 
-% Finds in specified token-expression table the expression associated to
+% @doc Finds in specified token-expression table the expression associated to
 % specified token value (if referenced, otherwise tries with the specified
 % default value), and returns it.
 %
@@ -1280,7 +1293,7 @@ find_expression_for( TokenValue, DefaultValue, Token, FileLocToken,
 % expression of this last one:
 %
 find_expression_for( _TokenValue, _DefaultValue, _Token, _FileLocToken,
-					  _TokenExprTableAsList=[], DefExpr ) ->
+					 _TokenExprTableAsList=[], DefExpr ) ->
 	DefExpr;
 
 % Here the token value is directly found:
@@ -1297,7 +1310,7 @@ find_expression_for( TokenValue, DefaultValue, Token, FileLocToken,
 	find_expression_for( TokenValue, DefaultValue, Token, FileLocToken, T,
 						 Expr );
 
-% Another value (i.e. not the token or default one):
+% Another value (ie not the token or default one):
 find_expression_for( TokenValue, DefaultValue, Token, FileLocToken,
 	  _TokenExprTableAsList=[ { tuple, _LTuple,
 			[ {_ValueType,_L,_OtherTokenValue}, _Expr ] } | T ],

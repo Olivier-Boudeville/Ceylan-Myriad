@@ -27,7 +27,9 @@
 
 
 
-% Module in charge of generating parts of an AST (ex: elements of forms).
+% @doc Module in charge of <b>generating parts of an AST</b> (ex: elements of
+% forms).
+%
 -module(ast_generation).
 
 
@@ -44,7 +46,7 @@
 
 
 
-% Transforms specified list (whose elements are typically themselves form
+% @doc Transforms specified list (whose elements are typically themselves form
 % elements already) into the AST version of a list.
 %
 % Ex: list_to_form( [{atom,Line,a}, {atom,Line,b}]) =
@@ -62,7 +64,7 @@ list_to_form( _List=[ E | T ] ) ->
 
 
 
-% Transforms specified AST list into the corresponding plain list.
+% @doc Transforms specified AST list into the corresponding plain list.
 %
 % Ex: form_to_list( {cons,Line,{atom,Line,a}, {cons,Line,{atom,Line,b},
 % {nil,Line} } }) = [{atom,Line,a}, {atom,Line,b}].
@@ -78,7 +80,7 @@ form_to_list( { cons, _Line, E, NestedForm } ) ->
 
 
 
-% Returns the form element corresponding to the specified list of atoms.
+% @doc Returns the form element corresponding to the specified list of atoms.
 %
 % Ex: {cons,Line,{atom,Line,a}, {cons,Line,{atom,Line,b}, {nil,Line} }} =
 %         atoms_to_form(['a', 'b']).
@@ -93,7 +95,7 @@ atoms_to_form( _AtomList=[ Atom | H ] ) ->
 
 
 
-% Returns the list of atoms corresponding to the specified form element.
+% @doc Returns the list of atoms corresponding to the specified form element.
 %
 % Ex: ['a', 'b'] = atoms_to_form( {cons,Line,{atom,Line,a},
 % {cons,Line,{atom,Line,b}, {nil,Line} } }).
@@ -107,7 +109,7 @@ form_to_atoms( { cons, _Line, {atom,_,Atom}, NestedForm } ) ->
 
 
 
-% Returns the form element corresponding a list of variables.
+% @doc Returns the form element corresponding a list of variables.
 %
 % Ex: {cons, Line, {var,Line,'A'}, { cons,Line,{var,Line,'B'}, {nil,Line}}} =
 %         enumerated_variables_to_form(2).
@@ -128,7 +130,7 @@ enumerated_variables_to_form( Count, Index ) ->
 	  enumerated_variables_to_form( Count-1, Index+1 ) }.
 
 
-% Returns, in AST form, a reference to an iterated variable.
+% @doc Returns, in AST form, a reference to an iterated variable.
 %
 % Ex: 'Myriad_Param_4' = get_iterated_param_name( 4 ).
 %
@@ -140,7 +142,7 @@ get_iterated_param_name( Count ) ->
 
 
 
-% Returns, as form elements, conventional call parameter names, as form
+% @doc Returns, as form elements, conventional call parameter names, as form
 % elements, corresponding to a function of specified arity.
 %
 % This is typically useful when generating a function form, to define its

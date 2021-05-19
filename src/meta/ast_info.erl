@@ -26,8 +26,8 @@
 % Creation date: Saturday, February 3, 2018.
 
 
-% Module centralising the management of all information that can be extracted
-% from ASTs.
+% @doc Module centralising the management of all <b>information that can be
+% extracted from ASTs</b>.
 %
 -module(ast_info).
 
@@ -47,7 +47,9 @@
 -type function_info() :: #function_info{}.
 
 
-
+-type location() :: ast_base:form_location()
+				  | { 'locate_at', section_marker() }
+				  | { 'locate_after', ast_base:form_location() }.
 % Location of a form in an AST, so that the order of forms can be recreated.
 %
 % We use sortable identifiers so that any number of new forms can be introduced
@@ -76,12 +78,9 @@
 %
 % There is no specific order enforced between the possibly several forms located
 % at a given marker or after a given form.
-%
--type location() :: ast_base:form_location()
-				  | { 'locate_at', section_marker() }
-				  | { 'locate_after', ast_base:form_location() }.
 
 
+-type located_form() :: { location(), form() }.
 % When processing an AST (ex: read from a BEAM file), the order of the forms
 % matters (for example to report compile errors, which are relative to a context
 % defined by the last '-file' attribute previously encountered, i.e. like
@@ -92,35 +91,16 @@
 % To do so, instead of managing a list of forms, we manage any sets of located
 % forms by including in each form an identifier allowing to recreate the form
 % order in the original AST.
-%
--type located_form() :: { location(), form() }.
 
 
-% An AST including location information:
 -type located_ast() :: [ located_form() ].
+% An AST including location information.
 
 
-% Located type specification of a function:
 -type located_function_spec() :: { location(), meta_utils:function_spec() }.
+% Located type specification of a function.
 
 
-
-% Known section markers (insertion points), listed in their expected order of
-% appearance in an AST stream (ex: a source file). All markers are expected to
-% be set (located) as soon as the scan of an AST into a module_info has been
-% done.
-%
-% These are, more specifically, the points, the lower locations from which
-% corresponding elements would be inserted (hence not necessarily in the exact
-% same order as inferred from an AST).
-%
-% Multiple markers may point to the same location.
-%
-% There may or may not be actual forms at such locations in the corresponding
-% AST: to preserve their order, markers may point to locations that have been
-% generated, i.e. that have not been directly obtained that the initial scan
-% (ex: inserted between an actual one and the logical end of the AST).
-%
 -type section_marker() ::
 
 		% Marker designating the beginning of the AST stream / source file:
@@ -167,65 +147,77 @@
 	  | 'definition_functions_marker'
 
 	  | 'end_marker'.       % End of the AST stream / source file
+% Known section markers (insertion points), listed in their expected order of
+% appearance in an AST stream (ex: a source file). All markers are expected to
+% be set (located) as soon as the scan of an AST into a module_info has been
+% done.
+%
+% These are, more specifically, the points, the lower locations from which
+% corresponding elements would be inserted (hence not necessarily in the exact
+% same order as inferred from an AST).
+%
+% Multiple markers may point to the same location.
+%
+% There may or may not be actual forms at such locations in the corresponding
+% AST: to preserve their order, markers may point to locations that have been
+% generated, i.e. that have not been directly obtained that the initial scan
+% (ex: inserted between an actual one and the logical end of the AST).
 
 
 
 % Tables to be found in the module_info record:
 
-
-% Ex: inline, export_all, etc.
 -type compile_option_name() :: atom().
+% Ex: inline, export_all, etc.
 
+
+-type compile_option_value() :: term().
 % In some cases (at least when it is specified from the command-line), a
 % compilation option is a triplet (ex: -Dmy_other_test_token=51 is translated,
 % in terms of a parse-transform option, as: {d,my_other_test_token,51}).
 %
 % The value associated to the option name ('d') is then:
 % {my_other_test_token,51}.
-%
--type compile_option_value() :: term().
 
 
-% As typically obtained from options fed to a parse-transform:
 -type compile_option_entry() :: compile_option_name()
 					  | { compile_option_name(), compile_option_value() }.
+% As typically obtained from options fed to a parse-transform.
 
 
+-type compile_option_table() :: ?table:?table( compile_option_name(),
+							basic_utils:maybe( [ compile_option_value() ] ) ).
 % For easy access to compilation information:
 %
 % Note that an option specified without a value (ex: -Dmy_token on the command
 % line) will be associated to the 'undefined' value.
-%
--type compile_option_table() :: ?table:?table( compile_option_name(),
-							basic_utils:maybe( [ compile_option_value() ] ) ).
 
 
-
-% The name of a (parse-level) attribute (ex: '-my_attribute( my_value ).').
 -type attribute_name() :: atom().
+% The name of a (parse-level) attribute (ex: '-my_attribute( my_value ).').
 
 
-% The value of a (parse-level) attribute (ex: '-my_attribute( my_value ).').
 -type attribute_value() :: term().
+% The value of a (parse-level) attribute (ex: '-my_attribute( my_value ).').
 
 
-
-% Parse-level attribute:
 -type attribute() :: { attribute_name(), attribute_value() }.
+% Parse-level attribute.
 
 
+
+-type attribute_table() :: ?table:?table( attribute_name(),
+					   [ { attribute_value(), located_form() } ] ).
 % For easy access to the values and AST forms associated to a parse attribute,
 % from its name.
 %
 % For example, to the 'dialyzer' key will be associated the values and located
 % forms of the various '-dialyzer( XXX ).' found in a source file.
-%
--type attribute_table() :: ?table:?table( attribute_name(),
-					   [ { attribute_value(), located_form() } ] ).
 
 
 
-
+-type type_export_table() ::
+		?table:?table( location(), { line(), [ type_id() ] } ).
 % A table associating, to a given location, the corresponding line in the source
 % file (to recreate the corresponding export form) and a list of the identifiers
 % of the types to declare exported there.
@@ -236,30 +228,25 @@
 % in a module_info'types' field; see: add_type/2 and remove_type/2
 %
 % - [ type_id() ] used, not a set, to better preserve order
-%
--type type_export_table() :: ?table:?table( location(),
-										{ line(), [ type_id() ] } ).
 
 
-
-% A table associating to each type identifier a full type information.
 -type type_table() :: ?table:?table( type_id(), type_info() ).
+% A table associating to each type identifier a full type information.
 
 
 
-
-% A table associating to each record name the description of the corresponding
-% record.
-%
 -type record_table() :: ?table:?table( basic_utils:record_name(),
 									   record_definition() ).
+% A table associating to each record name the description of the corresponding
+% record.
 
 
-% The full definition of a record.
 -type record_definition() :: { field_table(), location(), line() }.
+% The full definition of a record.
 
 
-
+-type field_table() :: [ { basic_utils:field_name(),
+						   ast_record:field_definition() } ].
 % A table associating to a given field of a record its description.
 %
 % The ?table type (usually map_hashtable) cannot be used, as it does not
@@ -268,53 +255,47 @@
 
 % Best solution here is not a list_table (which does not strictly preserve
 % element order either), but a plain (ordered) list (of pairs).
-%
--type field_table() :: [ { basic_utils:field_name(),
-						   ast_record:field_definition() } ].
 
 
 
-% A table referencing, for each module listed, a list of the functions that are
-% imported from it by the current module:
-%
 -type function_import_table() :: ?table:?table( basic_utils:module_name(),
 												[ function_id() ] ).
+% A table referencing, for each module listed, a list of the functions that are
+% imported from it by the current module.
 
 
 
-
+-type function_export_table() ::
+		?table:?table( location(), { line(), [ function_id() ] } ).
 % A table associating, to a given location, the corresponding line in the source
 % file (to recreate the corresponding export form) and a list of the identifiers
 % of the functions to declare exported there.
 %
 % Note:
+%
 % - this table must be explicitly updated whenever adding or removing a function
 % in a module_info 'functions' field; see: meta_utils:add_function/2 and
 % meta_utils:remove_function/2
+%
 % - a list of function_id() is used, not a set, to better preserve order
+%
 % - the 'export_all' compile attribute may also have been set in compile options
-%
--type function_export_table() ::
-		?table:?table( location(), { line(), [ function_id() ] } ).
 
 
-
-% A table associating to each function identifier a full function information.
 -type function_table() :: ?table:?table( function_id(), function_info() ).
+% A table associating to each function identifier a full function information.
 
 
-% A table storing the actual locations corresponding to the standard section
-% markers:
-%
 -type section_marker_table() :: ?table:?table( section_marker(), location() ).
+% A table storing the actual locations corresponding to the standard section
+% markers.
 
 
 
+-type error() :: { ast_scan:scan_context(), ast_scan:error_report() }.
 % All relevant information about an error found in an AST:
 %
 % (note: includes warnings)
-%
--type error() :: { ast_scan:scan_context(), ast_scan:error_report() }.
 
 
 -export_type([ module_info/0, type_info/0, function_info/0,
@@ -423,7 +404,9 @@
 
 
 
-% Ensures that the specified function is exported at the specified location(s).
+% @doc Ensures that the specified function is exported at the specified
+% location(s).
+%
 -spec ensure_function_exported( function_id(), [ location() ], module_info(),
 						function_export_table() ) -> function_export_table().
 ensure_function_exported( _FunId, _ExportLocs=[], _ModuleInfo, ExportTable ) ->
@@ -470,8 +453,8 @@ ensure_function_exported( FunId, _ExportLocs=[ Loc | T ], ModuleInfo,
 
 
 
-% Ensures that specified function is not exported at the specified location(s),
-% in the specified function export table (un-export said function).
+% @doc Ensures that specified function is not exported at the specified
+% location(s), in the specified function export table (un-export said function).
 %
 -spec ensure_function_not_exported( meta_utils:function_id(), [ location() ],
 						function_export_table() ) -> function_export_table().
@@ -505,7 +488,7 @@ ensure_function_not_exported( FunId, _ExportLocs=[ Loc | T ], ExportTable ) ->
 
 
 
-% Returns a textual description of the specified located AST.
+% @doc Returns a textual description of the specified located AST.
 %
 % Note: relies on text_utils.
 %
@@ -522,7 +505,7 @@ located_ast_to_string( AST ) ->
 
 
 
-% Processes the specified AST relative to a whole module, and returns the
+% @doc Processes the specified AST relative to a whole module, and returns the
 % corresponding information gathered.
 %
 % Note: the extraction will probably fail (and stop any underlying parse
@@ -590,8 +573,8 @@ extract_module_info_from_ast( AST ) ->
 
 
 
-% Returns a new, blank instance of the module_info record, typically to be fed
-% with an input AST afterwards.
+% @doc Returns a new, blank instance of the module_info record, typically to be
+% fed with an input AST afterwards.
 %
 -spec init_module_info() -> module_info().
 init_module_info() ->
@@ -610,7 +593,7 @@ init_module_info() ->
 
 
 
-% Checks the correctness of specified module information.
+% @doc Checks the correctness of specified module information.
 -spec check_module_info( module_info() ) -> basic_utils:void().
 check_module_info( #module_info{ module=undefined } ) ->
 	ast_utils:raise_error( "no '-module' define found" );
@@ -640,7 +623,7 @@ check_module_info( #module_info{ unhandled_forms=_UnhandledForms } ) ->
 
 
 
-% Helper to check module includes.
+% @doc Helper to check module includes.
 check_module_include( #module_info{ includes=Includes,
 									include_defs=IncludeDefs },
 					  ModuleName ) ->
@@ -663,7 +646,7 @@ check_module_include( #module_info{ includes=Includes,
 
 
 
-% Helper to check module types.
+% @doc Helper to check module types.
 check_module_types( #module_info{ types=Types }, Filename ) ->
 
 	TypeInfos = ?table:enumerate( Types ),
@@ -673,7 +656,7 @@ check_module_types( #module_info{ types=Types }, Filename ) ->
 
 
 
-% Nothing to check for 'spec' or 'exported':
+% @doc Nothing to check for 'spec' or 'exported':
 check_type( TypeId,
 			_TypeInfo=#type_info{ file_location=FileLoc, definition=[] },
 			Filename ) ->
@@ -718,7 +701,7 @@ check_type( TypeId, _TypeInfo=#type_info{ name=SecondName,
 
 
 
-% Helper to check module functions.
+% @doc Helper to check module functions.
 check_module_functions( #module_info{ functions=Functions }, ModuleName ) ->
 
 	FunInfos = ?table:enumerate( Functions ),
@@ -728,7 +711,11 @@ check_module_functions( #module_info{ functions=Functions }, ModuleName ) ->
 
 
 
-% No definition, and neither with a spec nor exported, yet registered (strange):
+% @doc Checks specified function information.
+%
+% No definition, and neither with a spec nor exported, yet registered
+% (strange).
+%
 check_function( FunId, _FunInfo=#function_info{ clauses=[],
 												spec=undefined,
 												exported=[] },
@@ -780,7 +767,7 @@ check_function( FunId, _FunInfo=#function_info{ name=SecondName,
 
 
 
-% Recomposes an AST from specified module information.
+% @doc Recomposes an AST from specified module information.
 -spec recompose_ast_from_module_info( module_info() ) -> ast().
 recompose_ast_from_module_info( #module_info{
 
@@ -887,7 +874,7 @@ recompose_ast_from_module_info( Unexpected ) ->
 
 
 
-% Returns an (ordered, with no location information) AST from the specified
+% @doc Returns an (ordered, with no location information) AST from the specified
 % unordered, located AST.
 %
 -spec get_ordered_ast_from( located_ast(), section_marker_table() ) -> ast().
@@ -909,9 +896,9 @@ get_ordered_ast_from( UnorderedLocatedAST, MarkerTable ) ->
 
 
 
-% Reorders specified located AST: returns an (unlocated) AST, whose form order
-% has been determined thanks to an intermediary step fully based on immediate
-% locations.
+% @doc Reorders specified located AST: returns an (unlocated) AST, whose form
+% order has been determined thanks to an intermediary step fully based on
+% immediate locations.
 %
 -spec reorder_forms_in( located_ast(), section_marker_table() ) -> ast().
 reorder_forms_in( LocatedForms, MarkerTable ) ->
@@ -969,7 +956,7 @@ reorder_forms_in( _LocatedForms=[ E | T ], MarkerTable, AccLoc, AccLocAfter ) ->
 
 
 
-% Merges the specified immediate and located-after ordered lists of forms:
+% @doc Merges the specified immediate and located-after ordered lists of forms:
 % inserts the located-after forms in a right position in the immediate-located
 % AST stream, and returns the resulting AST, once properly ordered and fully
 % unlocated.
@@ -1067,6 +1054,8 @@ insert_after_located_forms( LocAfter, LocForms,
 
 
 
+% @doc Splits the specified forms at specified location.
+%
 % Returns {RevUnlocPrefix, BaseForm, LocSuffix} so that:
 %
 % InputLocForms = (reversed, located version of RevUnlocPrefix) ++ [
@@ -1107,7 +1096,7 @@ split_at_location( _Loc, LocForms, Acc ) ->
 
 
 
-% Writes specified module_info record into specified (text) file.
+% @doc Writes specified module_info record into specified (text) file.
 %
 % Useful for example to determine faulty transformations.
 %
@@ -1128,16 +1117,16 @@ write_module_info_to_file( ModuleInfo, FilePath ) ->
 
 
 
-% Returns the conventional location designating where forms can be be added just
-% after the declaration of the module name, as an indirect location.
+% @doc Returns the conventional location designating where forms can be be added
+% just after the declaration of the module name, as an indirect location.
 %
 -spec get_default_module_location() -> location().
 get_default_module_location() ->
 	{ locate_at, module_marker }.
 
 
-% Returns the conventional location designating where forms can be be added just
-% after the declaration of the module name, as an immediate location.
+% @doc Returns the conventional location designating where forms can be be added
+% just after the declaration of the module name, as an immediate location.
 %
 -spec get_default_module_location( section_marker_table() ) -> location().
 get_default_module_location( MarkerTable ) ->
@@ -1145,16 +1134,16 @@ get_default_module_location( MarkerTable ) ->
 
 
 
-% Returns the conventional location at which new types may be exported, as an
-% indirect location.
+% @doc Returns the conventional location at which new types may be exported, as
+% an indirect location.
 %
 -spec get_default_export_type_location() -> location().
 get_default_export_type_location() ->
 	{ locate_at, export_types_marker }.
 
 
-% Returns the conventional location at which new types may be exported, as an
-% immediate location.
+% @doc Returns the conventional location at which new types may be exported, as
+% an immediate location.
 %
 -spec get_default_export_type_location( section_marker_table() ) -> location().
 get_default_export_type_location( MarkerTable)  ->
@@ -1162,16 +1151,16 @@ get_default_export_type_location( MarkerTable)  ->
 
 
 
-% Returns the conventional location at which new functions may be exported, as
-% an indirect location.
+% @doc Returns the conventional location at which new functions may be exported,
+% as an indirect location.
 %
 -spec get_default_export_function_location() -> location().
 get_default_export_function_location() ->
 	{ locate_at, export_functions_marker }.
 
 
-% Returns the conventional location at which new functions may be exported, as
-% an immediate location.
+% @doc Returns the conventional location at which new functions may be exported,
+% as an immediate location.
 %
 -spec get_default_export_function_location( section_marker_table() ) ->
 													location().
@@ -1180,16 +1169,16 @@ get_default_export_function_location( MarkerTable ) ->
 
 
 
-% Returns the conventional location at which functions may be imported, as an
-% indirect location.
+% @doc Returns the conventional location at which functions may be imported, as
+% an indirect location.
 %
 -spec get_default_import_function_location() -> location().
 get_default_import_function_location() ->
 	{ locate_at, import_functions_marker }.
 
 
-% Returns the conventional location at which functions may be imported, as an
-% immediate location.
+% @doc Returns the conventional location at which functions may be imported, as
+% an immediate location.
 %
 -spec get_default_import_function_location( section_marker_table() ) ->
 													location().
@@ -1199,16 +1188,16 @@ get_default_import_function_location( MarkerTable ) ->
 
 
 
-% Returns the conventional location at which new records may be defined, as an
-% indirect location.
+% @doc Returns the conventional location at which new records may be defined, as
+% an indirect location.
 %
 -spec get_default_definition_record_location() -> location().
 get_default_definition_record_location() ->
 	{ locate_at, definition_records_marker }.
 
 
-% Returns the conventional location at which new records may be defined, as an
-% immediate location.
+% @doc Returns the conventional location at which new records may be defined, as
+% an immediate location.
 %
 -spec get_default_definition_record_location( section_marker_table() ) ->
 													location().
@@ -1217,16 +1206,16 @@ get_default_definition_record_location( MarkerTable ) ->
 
 
 
-% Returns the conventional location at which new types may be defined, as an
-% indirect location.
+% @doc Returns the conventional location at which new types may be defined, as
+% an indirect location.
 %
 -spec get_default_definition_type_location() -> location().
 get_default_definition_type_location() ->
 	{ locate_at, definition_types_marker }.
 
 
-% Returns the conventional location at which new types may be defined, as an
-% immediate location.
+% @doc Returns the conventional location at which new types may be defined, as
+% an immediate location.
 %
 -spec get_default_definition_type_location( section_marker_table() ) ->
 													location().
@@ -1235,16 +1224,16 @@ get_default_definition_type_location( MarkerTable ) ->
 
 
 
-% Returns the conventional location at which new functions may be defined, as an
-% indirect location.
+% @doc Returns the conventional location at which new functions may be defined,
+% as an indirect location.
 %
 -spec get_default_definition_function_location() -> location().
 get_default_definition_function_location() ->
 	{ locate_at, definition_functions_marker }.
 
 
-% Returns the conventional location at which new functions may be defined, as an
-% immediate location.
+% @doc Returns the conventional location at which new functions may be defined,
+% as an immediate location.
 %
 -spec get_default_definition_function_location( section_marker_table() ) ->
 														location().
@@ -1254,8 +1243,8 @@ get_default_definition_function_location( MarkerTable ) ->
 
 
 
-% Returns a textual description of specified module information, not including
-% forms, and based on a default indentation level.
+% @doc Returns a textual description of specified module information, not
+% including forms, and based on a default indentation level.
 %
 % Note: here the location information is dropped for all located definitions.
 %
@@ -1264,8 +1253,8 @@ module_info_to_string( ModuleInfo ) ->
 	module_info_to_string( ModuleInfo, _DoIncludeForms=false ).
 
 
-% Returns a textual description of specified module information, including forms
-% if requested, and based on a default indentation level.
+% @doc Returns a textual description of specified module information, including
+% forms if requested, and based on a default indentation level.
 %
 % Note: here the location information is dropped for all located definitions.
 %
@@ -1274,8 +1263,8 @@ module_info_to_string( ModuleInfo, DoIncludeForms ) ->
 	module_info_to_string( ModuleInfo, DoIncludeForms, _IndentationLevel=0 ).
 
 
-% Returns a textual description of specified module information, including forms
-% if requested, and with specified indentation level.
+% @doc Returns a textual description of specified module information, including
+% forms if requested, and with specified indentation level.
 %
 % Note: here the location information is dropped for all located definitions.
 %
@@ -1358,8 +1347,8 @@ module_info_to_string( #module_info{
 
 
 
-% Returns a textual representation of the specified forms, if requested, and
-% using specified indentation level.
+% @doc Returns a textual representation of the specified forms, if requested,
+% and using specified indentation level.
 %
 % (helper used by the various *_to_string functions)
 %
@@ -1386,7 +1375,7 @@ forms_to_string( LocForms, _DoIncludeForms, IndentationLevel ) ->
 
 
 
-% Returns a textual representation of the specified location.
+% @doc Returns a textual representation of the specified location.
 -spec location_to_string( location() ) -> ustring().
 location_to_string( { locate_at, MarkerName } ) ->
 	text_utils:format( "at marker ~ts", [ MarkerName ] );
@@ -1400,8 +1389,8 @@ location_to_string( Location ) ->
 
 
 
-% Returns a textual representation of the name of the module corresponding to
-% specified entry, possibly with forms.
+% @doc Returns a textual representation of the name of the module corresponding
+% to specified entry, possibly with forms.
 %
 -spec module_entry_to_string( module_entry(), boolean() ) -> ustring().
 module_entry_to_string( _ModuleEntry=undefined, _DoIncludeForms ) ->
@@ -1419,8 +1408,8 @@ module_entry_to_string( _ModuleEntry={ ThisModName,
 
 
 
-% Returns a textual representation of compilation options, based on a default
-% indentation level.
+% @doc Returns a textual representation of compilation options, based on a
+% default indentation level.
 %
 -spec compilation_options_to_string( compile_option_table(), [ located_form() ],
 									 boolean() ) -> ustring().
@@ -1430,7 +1419,7 @@ compilation_options_to_string( CompileTable, CompileOptDefs, DoIncludeForms ) ->
 
 
 
-% Returns a textual representation of compilation options, with specified
+% @doc Returns a textual representation of compilation options, with specified
 % indentation level.
 %
 -spec compilation_options_to_string( compile_option_table(), [ located_form() ],
@@ -1462,8 +1451,8 @@ compilation_options_to_string( CompileTable, CompileOptDefs, DoIncludeForms,
 
 
 
-% Returns a textual representation of the specified optional callbacks, based on
-% a default indentation level.
+% @doc Returns a textual representation of the specified optional callbacks,
+% based on a default indentation level.
 %
 -spec optional_callbacks_to_string( [ located_form() ], boolean(),
 									indentation_level() ) -> ustring().
@@ -1485,8 +1474,8 @@ optional_callbacks_to_string( OptCallbacksDefs, DoIncludeForms=true,
 
 
 
-% Returns a textual representation of the specified parse-attribute table, based
-% on a default indentation level.
+% @doc Returns a textual representation of the specified parse-attribute table,
+% based on a default indentation level.
 %
 -spec parse_attribute_table_to_string( attribute_table(), boolean() ) ->
 												ustring().
@@ -1496,8 +1485,8 @@ parse_attribute_table_to_string( ParseAttributeTable, DoIncludeForms ) ->
 
 
 
-% Returns a textual representation of the specified parse-attribute table, with
-% specified indentation level.
+% @doc Returns a textual representation of the specified parse-attribute table,
+% with specified indentation level.
 %
 -spec parse_attribute_table_to_string( attribute_table(), boolean(),
 									   indentation_level() ) -> ustring().
@@ -1546,7 +1535,7 @@ parse_attribute_table_to_string( ParseAttributeTable, DoIncludeForms,
 
 
 
-% Returns a textual representation of the specified definitions of remote
+% @doc Returns a textual representation of the specified definitions of remote
 % specifications, with specified indentation level.
 %
 -spec remote_spec_definitions_to_string( [ located_form() ], boolean(),
@@ -1566,8 +1555,8 @@ remote_spec_definitions_to_string( RemoteSpecDefs, DoIncludeForms,
 
 
 
-% Returns a textual representation of the specified includes, based on a default
-% indentation level.
+% @doc Returns a textual representation of the specified includes, based on a
+% default indentation level.
 %
 -spec includes_to_string( [ file_utils:bin_file_path() ], [ located_form() ],
 						  boolean() ) -> ustring().
@@ -1576,8 +1565,8 @@ includes_to_string( Includes, IncludeDefs, DoIncludeForms ) ->
 						_IndentationLevel=0 ).
 
 
-% Returns a textual representation of the specified includes, with specified
-% indentation level.
+% @doc Returns a textual representation of the specified includes, with
+% specified indentation level.
 %
 -spec includes_to_string( [ file_utils:bin_file_path() ],
 		  [ located_form() ], boolean(),
@@ -1600,8 +1589,8 @@ includes_to_string( Includes, IncludeDefs, DoIncludeForms,
 
 
 
-% Returns a textual representation of the specified type exports, based on a
-% default indentation level.
+% @doc Returns a textual representation of the specified type exports, based on
+% a default indentation level.
 %
 -spec type_exports_to_string( type_export_table(), boolean() ) -> ustring().
 type_exports_to_string( TypeExportTable, DoIncludeForms ) ->
@@ -1609,8 +1598,8 @@ type_exports_to_string( TypeExportTable, DoIncludeForms ) ->
 							_IndentationLevel=0 ).
 
 
-% Returns a textual representation of the specified type exports, with specified
-% indentation level.
+% @doc Returns a textual representation of the specified type exports, with
+% specified indentation level.
 %
 -spec type_exports_to_string( type_export_table(), boolean(),
 							  indentation_level() ) -> ustring().
@@ -1644,8 +1633,8 @@ type_exports_to_string( TypeExportTable, _DoIncludeForms, IndentationLevel ) ->
 
 
 
-% Returns a textual representation of the specified type table, with specified
-% indentation level.
+% @doc Returns a textual representation of the specified type table, with
+% specified indentation level.
 %
 -spec types_to_string( type_table(), boolean(), indentation_level() ) ->
 								ustring().
@@ -1671,8 +1660,8 @@ types_to_string( TypeTable, DoIncludeForms, IndentationLevel ) ->
 
 
 
-% Returns a textual representation of the specified records, based on a default
-% indentation level.
+% @doc Returns a textual representation of the specified records, based on a
+% default indentation level.
 %
 -spec records_to_string( record_table() ) -> ustring().
 records_to_string( RecordTable ) ->
@@ -1680,7 +1669,7 @@ records_to_string( RecordTable ) ->
 
 
 
-% Returns a textual representation of the specified records, with specified
+% @doc Returns a textual representation of the specified records, with specified
 % indentation level.
 %
 % Note: no available form to display.
@@ -1721,7 +1710,7 @@ records_to_string( RecordTable, IndentationLevel ) ->
 
 
 
-% Returns a textual representation of the specified function imports, with
+% @doc Returns a textual representation of the specified function imports, with
 % specified indentation level.
 %
 -spec function_imports_to_string( function_import_table(), [ located_form() ],
@@ -1759,8 +1748,8 @@ function_imports_to_string( FunctionImportTable, FunctionImportDefs,
 
 
 
-% Returns a textual representation of the specified functions, with specified
-% indentation level.
+% @doc Returns a textual representation of the specified functions, with
+% specified indentation level.
 %
 -spec functions_to_string( function_table(), boolean(), indentation_level() ) ->
 								 ustring().
@@ -1794,7 +1783,7 @@ functions_to_string( FunctionTable, DoIncludeForms, IndentationLevel ) ->
 
 
 
-% Returns a textual representation of a module last line / line count.
+% @doc Returns a textual representation of a module last line / line count.
 -spec last_file_location_to_string( basic_utils:maybe( located_form() ) ) ->
 											ustring().
 last_file_location_to_string( _LastLine=undefined ) ->
@@ -1810,14 +1799,14 @@ last_file_location_to_string( _LastLine={ _ASTLoc, { eof, FinalLine } } ) ->
 
 
 
-% Returns a textual representation of the known section markers.
+% @doc Returns a textual representation of the known section markers.
 -spec markers_to_string( section_marker_table() ) -> ustring().
 markers_to_string( MarkerTable ) ->
 	markers_to_string( MarkerTable, _IndentationLevel=0 ).
 
 
 
-% Returns a textual representation of the known section markers.
+% @doc Returns a textual representation of the known section markers.
 -spec markers_to_string( section_marker_table(), indentation_level() ) ->
 							   ustring().
 markers_to_string( MarkerTable, IndentationLevel ) ->
@@ -1844,7 +1833,7 @@ markers_to_string( MarkerTable, IndentationLevel ) ->
 
 
 
-% Returns a textual representation of specified errors.
+% @doc Returns a textual representation of specified errors.
 -spec errors_to_string( [ error() ], indentation_level() ) -> ustring().
 errors_to_string( _Errors=[], _IndentationLevel ) ->
 	"no error to report";
@@ -1859,7 +1848,7 @@ errors_to_string( Errors, IndentationLevel ) ->
 
 
 
-% Returns a textual representation of specified unhandled forms.
+% @doc Returns a textual representation of specified unhandled forms.
 -spec unhandled_forms_to_string( [ located_form() ], boolean(),
 								 indentation_level() ) -> ustring().
 unhandled_forms_to_string( _UnhandledForms=[], _DoIncludeForms=false,
@@ -1882,9 +1871,8 @@ unhandled_forms_to_string( UnhandledForms, _DoIncludeForms=true,
 
 
 
-
-% Returns a list of textual representations for each of the record fields in
-% specified table.
+% @doc Returns a list of textual representations for each of the record fields
+% in specified table.
 %
 -spec fields_to_strings( field_table() ) -> [ ustring() ].
 fields_to_strings( FieldTable ) ->
@@ -1895,7 +1883,7 @@ fields_to_strings( FieldTable ) ->
 
 
 
-% Returns a textual representation of specified record field.
+% @doc Returns a textual representation of specified record field.
 %
 % (helper)
 %
@@ -1927,14 +1915,14 @@ field_to_string( FieldName, FieldType, DefaultValue ) ->
 
 
 
-% Returns a textual description of the specified function identifier.
+% @doc Returns a textual description of the specified function identifier.
 -spec function_id_to_string( function_id() ) -> ustring().
 function_id_to_string( { FunctionName, FunctionArity } ) ->
 	text_utils:format( "~ts/~B", [ FunctionName, FunctionArity ] ).
 
 
 
-% Returns a textual description of the specified function information, not
+% @doc Returns a textual description of the specified function information, not
 % including its forms (clauses), with a default indentation level.
 %
 -spec function_info_to_string( function_info() ) -> ustring().
@@ -1943,8 +1931,8 @@ function_info_to_string( FunctionInfo ) ->
 
 
 
-% Returns a textual description of the specified function information, including
-% its forms (clauses) if specified, with a default indentation level.
+% @doc Returns a textual description of the specified function information,
+% including its forms (clauses) if specified, with a default indentation level.
 %
 -spec function_info_to_string( function_info(), boolean() ) -> ustring().
 function_info_to_string( FunctionInfo, DoIncludeForms ) ->
@@ -1953,7 +1941,7 @@ function_info_to_string( FunctionInfo, DoIncludeForms ) ->
 
 
 
-% Returns a textual description of the specified function information.
+% @doc Returns a textual description of the specified function information.
 -spec function_info_to_string( function_info(), boolean(),
 							   indentation_level() ) -> ustring().
 function_info_to_string( #function_info{ name=Name,
@@ -2033,7 +2021,7 @@ function_info_to_string( #function_info{ name=Name,
 
 
 
-% Ensures that the specified type is exported at the specified location(s).
+% @doc Ensures that the specified type is exported at the specified location(s).
 -spec ensure_type_exported( type_id(), [ location() ], module_info(),
 							type_export_table() ) -> type_export_table().
 ensure_type_exported( _TypeId, _ExportLocs=[], _ModuleInfo, ExportTable ) ->
@@ -2128,7 +2116,7 @@ ensure_type_exported( TypeId, _ExportLocs=[ Loc | T ], ModuleInfo,
 
 
 
-% Ensures that specified type is not exported at the specified location(s).
+% @doc Ensures that specified type is not exported at the specified location(s).
 -spec ensure_type_not_exported( type_id(), [ location() ],
 								type_export_table() ) -> type_export_table().
 ensure_type_not_exported( _TypeId, _ExportLocs=[], ExportTable ) ->
@@ -2161,14 +2149,14 @@ ensure_type_not_exported( TypeId, _ExportLocs=[ Loc | T ], ExportTable ) ->
 
 
 
-% Returns a textual description of the specified type identifier.
+% @doc Returns a textual description of the specified type identifier.
 -spec type_id_to_string( type_id() ) -> ustring().
 type_id_to_string( { TypeName, TypeArity } ) ->
 	text_utils:format( "~ts/~B", [ TypeName, TypeArity ] ).
 
 
 
-% Returns a textual description of the specified type information.
+% @doc Returns a textual description of the specified type information.
 -spec type_info_to_string( type_info() ) -> ustring().
 type_info_to_string( TypeInfo ) ->
 	type_info_to_string( TypeInfo, _DoIncludeForms=false,
@@ -2176,7 +2164,7 @@ type_info_to_string( TypeInfo ) ->
 
 
 
-% Returns a textual description of the specified type information.
+% @doc Returns a textual description of the specified type information.
 -spec type_info_to_string( type_info(), boolean(), indentation_level() ) ->
 								 ustring().
 type_info_to_string( #type_info{ name=TypeName,
@@ -2235,8 +2223,8 @@ type_info_to_string( #type_info{ name=TypeName,
 
 
 
-% Interprets the specified compilation options, that were typically specified
-% through the command-line.
+% @doc Interprets the specified compilation options, that were typically
+% specified through the command-line.
 %
 -spec interpret_options( [ compile_option_entry() ], module_info() ) ->
 								module_info().

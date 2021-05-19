@@ -27,8 +27,8 @@
 
 
 
-% Module in charge of scanning an AST, a prerequisite notably for later
-% transformations (see ast_transform.erl for that).
+% @doc Module in charge of <b>scanning an AST</b>, a prerequisite notably for
+% later transformations (see ast_transform.erl for that).
 %
 -module(ast_scan).
 
@@ -42,11 +42,11 @@
 
 
 
-% Name of any parse attribute:
+-type parse_attribute_name() :: atom().
+% Name of any parse attribute.
 %
 % (typically in Form={attribute, FileLoc, AttributeName, AttributeValue})
-%
--type parse_attribute_name() :: atom().
+
 
 -type scan_context() :: { ast_base:file_reference(), ast_base:line() }.
 
@@ -158,8 +158,8 @@
 % be set before 'export_types_marker', it is still legit compilation-wise).
 
 
-% Scans the specified AST, expected to correspond to a module definition, and
-% returns the corresponding module_info record.
+% @doc Scans the specified AST, expected to correspond to a module definition,
+% and returns the corresponding module_info record.
 %
 -spec scan( ast() ) -> module_info().
 scan( AST ) ->
@@ -211,7 +211,7 @@ scan( AST ) ->
 
 
 
-% Reports specified error, using the same format as erlc, so that tools can
+% @doc Reports specified error, using the same format as erlc, so that tools can
 % parse these errors as well.
 %
 % Ex: foo.erl:102: can't find include file "bar.hrl"
@@ -291,7 +291,7 @@ report_error( { Context, Error } ) ->
 
 
 
-% Returns a textual representation of specified compilation context.
+% @doc Returns a textual representation of specified compilation context.
 -spec context_to_string( scan_context() ) -> ustring().
 context_to_string( { Filename, FileLoc } ) ->
 
@@ -311,7 +311,7 @@ context_to_string( { Filename, FileLoc } ) ->
 
 
 
-% Main scanning function.
+% @doc Main scanning function.
 %
 % Here all relevant parts of the specified AST (located forms) are matched in
 % turn, and stored in the specified module_info once located using
@@ -1414,7 +1414,7 @@ scan_forms( Unexpected, _ModuleInfo, _NextASTLoc, CurrentFileReference ) ->
 
 
 
-% Registers specified parse attribute regarding compilation.
+% @doc Registers specified parse attribute regarding compilation.
 -spec register_compile_attribute( term(), compile_option_table(),
 			scan_context() ) -> { compile_option_table(), [ located_form() ] }.
 % Full inlining requested:
@@ -1485,7 +1485,7 @@ register_compile_attribute( Unexpected, _CompileTable, _Context ) ->
 
 
 
-% Processes the fields of a given record definition.
+% @doc Processes the fields of a given record definition.
 %
 % Note: field names could be full expressions here, but only atoms are allowed
 % by the parser (dixit the erl_id_trans parse transform).
@@ -1569,7 +1569,7 @@ scan_field_descriptions( _FieldDescriptions=[ UnexpectedDesc | _T ],
 
 
 
-% Checks that specified parse attribute name is legit.
+% @doc Checks that specified parse attribute name is legit.
 -spec check_parse_attribute_name( term(), form_context() ) ->
 										parse_attribute_name().
 check_parse_attribute_name( Name, _Context ) when is_atom( Name ) ->
@@ -1579,7 +1579,7 @@ check_parse_attribute_name( Other, Context ) ->
 	ast_utils:raise_error( [ invalid_parse_attribute_name, Other ], Context ).
 
 
-% Checks that specified parse attribute name is legit.
+% @doc Checks that specified parse attribute name is legit.
 -spec check_parse_attribute_name( term() ) -> parse_attribute_name().
 check_parse_attribute_name( Name ) ->
 	check_parse_attribute_name( Name, _Context=undefined ).
@@ -1587,9 +1587,9 @@ check_parse_attribute_name( Name ) ->
 
 
 
-% Finalizes the marker table, to ensure that, in all cases, after a scan all
-% markers are (adequately) defined (even if no clause in the AST triggered their
-% specific setting).
+% @doc Finalizes the marker table, to ensure that, in all cases, after a scan
+% all markers are (adequately) defined (even if no clause in the AST triggered
+% their specific setting).
 %
 -spec finalize_marker_table( location(), marker_table() ) -> marker_table().
 finalize_marker_table( EndMarkerLoc, MarkerTable ) ->
@@ -1742,7 +1742,7 @@ add_missing_markers( _Markers=[ M | T ], DefaultLoc, MarkerTable ) ->
 
 
 
-% Returns a list of {MarkerName,MarkerLoc} pairs, sorted by increasing
+% @doc Returns a list of {MarkerName,MarkerLoc} pairs, sorted by increasing
 % locations.
 %
 % (helper)

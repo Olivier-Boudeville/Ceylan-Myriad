@@ -25,8 +25,8 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-% @doc This module defines a few basic facilities for applications, at the level
-% of the <b>Myriad</b> layer.
+% @doc This module defines a few basic facilities for <b>applications</b> (in
+% the Myriad sense, not OTP one).
 %
 -module(app_facilities).
 

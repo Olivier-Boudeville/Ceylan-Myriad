@@ -27,38 +27,30 @@
 
 
 
-% Module in charge of handling guards defined with an AST.
+% @doc Module in charge of handling <b>guards defined with an AST</b>.
 %
-% See the "7.6 Guards" section of http://erlang.org/doc/apps/erts/absform.html
+% See the "7.6 Guards" section of [http://erlang.org/doc/apps/erts/absform.html]
 % for more information.
 %
 -module(ast_guard).
 
 
-
+-type ast_guard_sequence() :: [ ast_guard() ].
 % The description of a sequence of guards in an AST.
 %
 % "A guard sequence Gs is a sequence of guards G_1; ...; G_k, and Rep(Gs) =
 % [Rep(G_1), ..., Rep(G_k)]. If the guard sequence is empty, then Rep(Gs) = []."
 %
-% Ex: {call,102, {atom,102,is_integer}, [{var,102,'X'}]}
-%
--type ast_guard_sequence() :: [ ast_guard() ].
+% Ex: {call,102, {atom,102,is_integer}, [{var,102,'X'}]}.
 
 
-
+-type ast_guard() :: nonempty_list( ast_guard_test() ).
 % The description of a guard in an AST.
 %
 % "A guard G is a non-empty sequence of guard tests Gt_1, ..., Gt_k, and Rep(G)
 % = [Rep(Gt_1), ..., Rep(Gt_k)]."
-%
-%
--type ast_guard() :: nonempty_list( ast_guard_test() ).
 
 
-
-% The description of a guard test in an AST.
-%
 -type ast_guard_test() ::
 		ast_bitstring:constructor( ast_guard_test() )
 	  | { 'cons', line(), ast_guard_test(), ast_guard_test() }
@@ -68,11 +60,13 @@
 		  [ ast_guard_test() ] }
 	  %| ast_map:ast_map_form( ast_guard_test() ).
 	  | ast_map:ast_map_form().
+% The description of a guard test in an AST.
 
 
-
-% "If Gt is a bitstring constructor <<Gt_1:Size_1/TSL_1, ...,
-% Gt_k:Size_k/TSL_k>>, where each Size_i is a guard test and each TSL_i is a
+-type ast_bitstring_constructor() ::
+		ast_bitstring:constructor( ast_guard_test() ).
+% "If Gt is a bitstring constructor `<<Gt_1:Size_1/TSL_1, ...,
+% Gt_k:Size_k/TSL_k>>', where each Size_i is a guard test and each TSL_i is a
 % type specificer list, then Rep(Gt) =
 % {bin,LINE,[{bin_element,LINE,Rep(Gt_1),Rep(Size_1),Rep(TSL_1)}, ...,
 % {bin_element,LINE,Rep(Gt_k),Rep(Size_k),Rep(TSL_k)}]}. For Rep(TSL), see
@@ -81,15 +75,12 @@
 % An omitted Size_i is represented by default. An omitted TSL_i is
 % represented by default."
 %
-% So apparently a guard test is a recursive type:
-%
--type ast_bitstring_constructor() ::
-		ast_bitstring:constructor( ast_guard_test() ).
+% So apparently a guard test is a recursive type.
 
 
-% Defined in the context of a guard:
 -type ast_bitstring_bin_element() ::
 		ast_bitstring:bin_element( ast_guard_test() ).
+% Defined in the context of a guard.
 
 
 
@@ -116,7 +107,8 @@
 
 
 
-% Transforms specified guard sequence, operating relevant AST transformations.
+% @doc Transforms specified guard sequence, operating relevant AST
+% transformations.
 %
 % "A guard sequence Gs is a sequence of guards G_1; ...; G_k, and Rep(Gs) =
 % [Rep(G_1), ..., Rep(G_k)]. If the guard sequence is empty, then Rep(Gs) = []."
@@ -131,7 +123,7 @@ transform_guard_sequence( Guards, Transforms ) ?rec_guard ->
 
 
 
-% Transforms specified guard, operating relevant AST transformations.
+% @doc Transforms specified guard, operating relevant AST transformations.
 %
 % "A guard G is a non-empty sequence of guard tests Gt_1, ..., Gt_k, and Rep(G)
 % = [Rep(Gt_1), ..., Rep(Gt_k)]."
@@ -153,7 +145,7 @@ transform_guard( Other, Transforms )
 
 
 
-% Transforms specified list of guard tests.
+% @doc Transforms specified list of guard tests.
 %
 % Note: unlike transform_guard/2, the list may be empty, and a direct
 % transformation is now expected to be performed.
@@ -168,7 +160,7 @@ direct_transform_guard_tests( GuardTests, Transforms ) ?rec_guard ->
 
 
 
-% (corresponds to grecord_inits/1 in erl_id_trans)
+% @doc (corresponds to grecord_inits/1 in erl_id_trans)
 %
 % (helper)
 %
@@ -178,7 +170,7 @@ transform_record_field_inits( RecordFieldInits, Transforms ) ?rec_guard ->
 
 
 
-% Field names are full expressions here, but only atoms are allowed by the
+% @doc Field names are full expressions here, but only atoms are allowed by the
 % linter.
 %
 % Note: includes the case where FieldName is '_'.
@@ -196,8 +188,9 @@ transform_record_field_init( { 'record_field', LineField,
 
 
 
-% Local call (to a builtin-only):
+% @doc Transforms specified guard test.
 %
+% Local call (to a builtin-only):
 % "If Gt is a function call A(Gt_1, ..., Gt_k), where A is an atom, then Rep(Gt)
 % = {call,LINE,Rep(A),[Rep(Gt_1), ..., Rep(Gt_k)]}."
 %
@@ -244,7 +237,7 @@ transform_guard_test( AnyOtherGuardTest, Transforms ) ?rec_guard ->
 
 
 
-% Transforms specified guard test, operating relevant AST transformations.
+% @doc Transforms specified guard test, operating relevant AST transformations.
 %
 % (see section 7.6 for complete detail)
 %
@@ -254,8 +247,8 @@ transform_guard_test( AnyOtherGuardTest, Transforms ) ?rec_guard ->
 %
 % If the guard test is a bitstring constructor:
 %
-% "If Gt is a bitstring constructor <<Gt_1:Size_1/TSL_1, ...,
-% Gt_k:Size_k/TSL_k>>, where each Size_i is a guard test and each TSL_i is a
+% "If Gt is a bitstring constructor `<<Gt_1:Size_1/TSL_1, ...,
+% Gt_k:Size_k/TSL_k>>', where each Size_i is a guard test and each TSL_i is a
 % type specificer list, then Rep(Gt) =
 % {bin,LINE,[{bin_element,LINE,Rep(Gt_1),Rep(Size_1),Rep(TSL_1)}, ...,
 % {bin_element,LINE,Rep(Gt_k),Rep(Size_k),Rep(TSL_k)}]}. For Rep(TSL), see

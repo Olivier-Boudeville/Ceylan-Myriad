@@ -28,8 +28,7 @@
 % Creation date: July 1, 2007.
 
 
-
-% Gathering of various convenient net-related facilities.
+% @doc Gathering of various convenient <b>network-related</b> facilities.
 %
 % See net_utils_test.erl for the corresponding test.
 %
@@ -89,14 +88,18 @@
 
 % Type declarations.
 
+-type count() :: basic_utils:count().
+
+-type milliseconds() :: unit_utils:milliseconds().
+
 -type ip_v4_address() :: { byte(), byte(), byte(), byte() }.
 -type ip_v6_address() :: { byte(), byte(), byte(), byte(), byte(), byte() }.
 
 -type ip_address() :: ip_v4_address() | ip_v6_address().
 
 
-% We tend to favor atom-based node names (usual in Erlang) to string-based ones:
 -type atom_node_name() :: node().
+% We tend to favor atom-based node names (usual in Erlang) to string-based ones.
 
 -type string_node_name() :: nonempty_string().
 
@@ -105,8 +108,8 @@
 -type node_name() :: atom_node_name() | string_node_name() | bin_node_name().
 
 
-% See net_kernel:monitor_nodes/2 for more information:
 -type node_type() :: 'visible' | 'hidden' | 'all'.
+% See net_kernel:monitor_nodes/2 for more information.
 
 
 -type atom_host_name() :: atom().
@@ -130,15 +133,14 @@
 -type fqdn() :: atom_fqdn() | string_fqdn() | bin_fqdn().
 
 
-% A domain name (ex: "foo.baz.org"):
 -type domain_name() :: nonempty_string().
+% A domain name (ex: "foo.baz.org").
 
 -type bin_domain_name() :: bin_string().
 
 
-
-% An element of a domain name (ex: "foo" in "bar.foo.baz.org"):
 -type subdomain() :: nonempty_string().
+% An element of a domain name (ex: "foo" in "bar.foo.baz.org").
 
 -type bin_subdomain() :: bin_string().
 
@@ -210,7 +212,7 @@
 % Host-related functions.
 
 
-% Pings specified hostname, and returns true iff it could be ping'd.
+% @doc Pings specified hostname, and returns true iff it could be ping'd.
 %
 % Note: command-line based call, used that way as there is no ICMP stack.
 %
@@ -235,8 +237,8 @@ ping( Hostname ) when is_list( Hostname ) ->
 
 
 
-% Returns an appropriate DNS name for the local host (as a plain string), or
-% throws an exception.
+% @doc Returns an appropriate DNS name for the local host (as a plain string),
+% or throws an exception.
 %
 % Tries to collect a FQDN (Fully Qualified Domain Name).
 %
@@ -245,8 +247,8 @@ localhost() ->
 	localhost( fqdn ).
 
 
-% Returns an appropriate DNS name for the local host (as a binary string), or
-% throws an exception.
+% @doc Returns an appropriate DNS name for the local host (as a binary string),
+% or throws an exception.
 %
 % Tries to collect a FQDN (Fully Qualified Domain Name).
 %
@@ -256,9 +258,9 @@ bin_localhost() ->
 
 
 
-% Returns an appropriate DNS name (either a FQDN - Fully Qualified Domain Name -
-% or a short host name) for the local host (as a plain string), or throws an
-% exception.
+% @doc Returns an appropriate DNS name (either a FQDN - Fully Qualified Domain
+% Name - or a short host name) for the local host (as a plain string), or throws
+% an exception.
 %
 -spec localhost( 'fqdn' | 'short' ) -> string_host_name().
 localhost( fqdn ) ->
@@ -303,7 +305,6 @@ localhost( short ) ->
 
 
 
-
 % (helper)
 -spec localhost_last_resort() -> string_host_name().
 localhost_last_resort() ->
@@ -329,9 +330,9 @@ localhost_last_resort() ->
 
 
 
-% Returns an appropriate DNS name (either a FQDN - Fully Qualified Domain Name -
-% or a short host name) for the local host (as a binary string), or throws an
-% exception.
+% @doc Returns an appropriate DNS name (either a FQDN - Fully Qualified Domain
+% Name - or a short host name) for the local host (as a binary string), or
+% throws an exception.
 %
 -spec bin_localhost( 'fqdn' | 'short' ) -> bin_host_name().
 bin_localhost( Type ) ->
@@ -339,8 +340,8 @@ bin_localhost( Type ) ->
 
 
 
-% Returns, from the specified FQDN, the corresponding actual host and its full
-% domain.
+% @doc Returns, from the specified FQDN, the corresponding actual host and its
+% full domain.
 %
 % Ex: {"garfield", "baz.foobar.org"} = split_fqdn("garfield.baz.foobar.org")
 %
@@ -350,8 +351,8 @@ split_fqdn( FQDNStr ) ->
 
 
 
-% Returns, from the specified arbitrary hostname (either a FQDN or just an
-% hostname), the corresponding actual "atomic" hostname (i.e. with no domain
+% @doc Returns, from the specified arbitrary hostname (either a FQDN or just an
+% hostname), the corresponding actual "atomic" hostname (that is with no domain
 % involved), as a plain string.
 %
 % Ex: "garfield" = get_hostname("garfield.baz.foobar.org")
@@ -375,8 +376,8 @@ get_hostname( BinHostname ) ->
 
 
 
-% Returns a list of the potentially usable non-local network interfaces on this
-% host, trying to put in first position the "main" one, if any.
+% @doc Returns a list of the potentially usable non-local network interfaces on
+% this host, trying to put in first position the "main" one, if any.
 %
 % Note: IPv6 support should be added.
 %
@@ -454,7 +455,6 @@ filter_interfaces( _IfList=[ _If={ Name, Options } | T ], FirstIfs, LastIfs,
 	end.
 
 
-
 % (helper)
 filter_routable_first( IfList ) ->
 	filter_routable_first( IfList, _RoutableAddrs=[], _NonRoutableAddrs=[] ).
@@ -479,7 +479,7 @@ filter_routable_first( _IfList=[ If | T ], RoutableAddrs, NonRoutableAddrs ) ->
 
 
 
-% Returns the "main" potentially usable non-local network interface on this
+% @doc Returns the "main" potentially usable non-local network interface on this
 % host.
 %
 -spec get_local_ip_address() -> ip_v4_address().
@@ -503,7 +503,7 @@ get_local_ip_address() ->
 
 
 
-% Returns information to perform a reverse DNS lookup.
+% @doc Returns information to perform a reverse DNS lookup.
 -spec get_reverse_lookup_info() -> maybe( lookup_info() ).
 get_reverse_lookup_info() ->
 
@@ -539,7 +539,7 @@ get_reverse_lookup_info() ->
 
 
 
-% Returns a string telling the DNS name corresponding to the specified IPv4
+% @doc Returns a string telling the DNS name corresponding to the specified IPv4
 % address {N1, N2, N3, N4}, or an atom describing why it failed.
 %
 -spec reverse_lookup( ip_v4_address() ) -> lookup_outcome().
@@ -547,7 +547,7 @@ reverse_lookup( IPAddress ) ->
 	reverse_lookup( IPAddress, get_reverse_lookup_info() ).
 
 
-% Returns a string telling the DNS name corresponding to the specified IPv4
+% @doc Returns a string telling the DNS name corresponding to the specified IPv4
 % address {N1, N2, N3, N4}, or an atom describing why it failed.
 %
 -spec reverse_lookup( ip_v4_address(), lookup_info() ) -> lookup_outcome().
@@ -600,7 +600,7 @@ reverse_lookup( IPAddress, _LookupInfo={ dig, DigExecPath } ) ->
 
 		{ _ExitCode, _ErrorOutput } ->
 			%throw( { reverse_lookup_failed, IPAddress, ExitCode,
-			%		   ErrorOutput } )
+			%         ErrorOutput } )
 			unknown_dns
 
 	end;
@@ -634,7 +634,7 @@ reverse_lookup( IPAddress, _LookupInfo={ host, HostExecPath } ) ->
 
 			{ _ExitCode, _ErrorOutput } ->
 				%throw( { reverse_lookup_failed, IPAddress, ExitCode,
-				%		   ErrorOutput } )
+				%         ErrorOutput } )
 				unknown_dns
 
 	end.
@@ -646,7 +646,7 @@ reverse_lookup( IPAddress, _LookupInfo={ host, HostExecPath } ) ->
 % Node-related functions.
 
 
-% Returns the name of the local node, as an atom.
+% @doc Returns the name of the local node, as an atom.
 %
 % It is either a specific node name, or the atom 'local_node' (preferred to
 % 'nonode@nohost') - which unfortunately are both atoms...
@@ -666,9 +666,9 @@ localnode() ->
 	end.
 
 
-% Returns the name of the local node, as a binary string.
+% @doc Returns the name of the local node, as a binary string.
 %
-% It is either a specific node name, or <<"local_node">>.
+% It is either a specific node name, or `<<"local_node">>'.
 %
 -spec localnode_as_binary() -> bin_node_name().
 localnode_as_binary() ->
@@ -676,8 +676,8 @@ localnode_as_binary() ->
 
 
 
-% Sets the name of the current node, expected to be already a distributed one,
-% to a name expected to be unique.
+% @doc Sets the name of the current node, expected to be already a distributed
+% one, to a name expected to be unique.
 %
 % Useful to allow multiple instances of a given application to run concurrently
 % (otherwise beside the first, their node cannot be created).
@@ -713,8 +713,8 @@ set_unique_node_name() ->
 
 
 
-% Returns the list of all connected nodes (each being designated by an atom,
-% like 'foo@bar.org'), including the local node.
+% @doc Returns the list of all connected nodes (each being designated by an
+% atom, like 'foo@bar.org'), including the local node.
 %
 -spec get_all_connected_nodes() -> [ atom_node_name() ].
 get_all_connected_nodes() ->
@@ -722,32 +722,32 @@ get_all_connected_nodes() ->
 
 
 
-% Returns immediately whether the specified Erlang node is found available.
+% @doc Returns immediately whether the specified Erlang node is found available.
 %
-% Nodename can be an atom or a string.
+% NodeName can be an atom or a string.
 %
 -spec check_node_availability( node_name() ) -> boolean().
-check_node_availability( Nodename ) when is_list( Nodename ) ->
-	check_node_availability( list_to_atom( Nodename ) );
+check_node_availability( NodeName ) when is_list( NodeName ) ->
+	check_node_availability( list_to_atom( NodeName ) );
 
-check_node_availability( Nodename ) when is_atom( Nodename ) ->
+check_node_availability( NodeName ) when is_atom( NodeName ) ->
 
 	% Useful to troubleshoot longer ping durations:
 	% (apparently this may come from badly configured DNS)
-	%trace_utils:debug_fmt( "Pinging node '~ts'...", [ Nodename ] ),
+	%trace_utils:debug_fmt( "Pinging node '~ts'...", [ NodeName ] ),
 
-	case net_adm:ping( Nodename ) of
+	case net_adm:ping( NodeName ) of
 
 		pong ->
 			%trace_utils:debug_fmt(
 			%   "... node '~ts' found available from node '~ts'.",
-			%	[ Nodename, node() ] ),
+			%   [ NodeName, node() ] ),
 			true ;
 
 		pang ->
 			%trace_utils:debug_fmt(
 			%   "... node '~ts' found NOT available from node '~ts'.",
-			%	[ Nodename, node() ] ),
+			%   [ NodeName, node() ] ),
 			false
 
 	end.
@@ -760,13 +760,13 @@ check_node_availability( Nodename ) when is_atom( Nodename ) ->
 
 
 
-% Tells whether the specified Erlang node is available: returns
+% @doc Tells whether the specified Erlang node is available: returns
 % {IsAvailable,Duration} where IsAvailable is a boolean and Duration is the
 % number of milliseconds that was used to determine it.
 %
 % Parameters:
 %
-% - Nodename is an atom or a string corresponding to the name of the target node
+% - NodeName is an atom or a string corresponding to the name of the target node
 %
 % - Timing is either 'immediate', 'with_waiting' or a positive number of
 % attempts with exponential back-off:
@@ -787,46 +787,46 @@ check_node_availability( Nodename ) when is_atom( Nodename ) ->
 %
 -spec check_node_availability( node_name(), check_node_timing() ) ->
 									{ boolean(), check_duration() }.
-check_node_availability( Nodename, Timing ) when is_list( Nodename ) ->
-	check_node_availability( list_to_atom( Nodename ), Timing ) ;
+check_node_availability( NodeName, Timing ) when is_list( NodeName ) ->
+	check_node_availability( list_to_atom( NodeName ), Timing ) ;
 
 
-check_node_availability( Nodename, _Timing=immediate ) ->
+check_node_availability( NodeName, _Timing=immediate ) ->
 
-	IsAvailable = check_node_availability( Nodename ),
+	IsAvailable = check_node_availability( NodeName ),
 	{ IsAvailable, _Duration=0 };
 
 
-check_node_availability( Nodename, _Timing=with_waiting )
-  when is_atom( Nodename ) ->
+check_node_availability( NodeName, _Timing=with_waiting )
+  when is_atom( NodeName ) ->
 
 	%trace_utils:debug_fmt( "check_node_availability of node '~ts' with "
-	%                       "default waiting.", [ Nodename ] ),
+	%                       "default waiting.", [ NodeName ] ),
 
 	% 3 seconds is a good default:
-	check_node_availability( Nodename, _Duration=3000 );
+	check_node_availability( NodeName, _Duration=3000 );
 
 
-check_node_availability( Nodename, Duration )  ->
+check_node_availability( NodeName, Duration )  ->
 
 	% In all cases, start with one immediate look-up:
-	%trace_utils:debug_fmt( "Pinging '~ts' (case A) now...", [ Nodename ] ),
-	case net_adm:ping( Nodename ) of
+	%trace_utils:debug_fmt( "Pinging '~ts' (case A) now...", [ NodeName ] ),
+	case net_adm:ping( NodeName ) of
 
 		pong ->
 
 			%trace_utils:debug_fmt( " - node '~ts' found directly available.",
-			%						[ Nodename ] ),
+			%						[ NodeName ] ),
 
 			{ true, 0 } ;
 
 		pang ->
 
 			%trace_utils:debug_fmt( " - node '~ts' not yet found available.",
-			%						[ Nodename ] ),
+			%						[ NodeName ] ),
 
 			% Hopefully too early, let's retry later:
-			check_node_availability( Nodename,
+			check_node_availability( NodeName,
 				_CurrentDurationStep=?check_node_first_waiting_step,
 				_ElapsedDuration=0, _SpecifiedMaxDuration=Duration )
 
@@ -835,7 +835,7 @@ check_node_availability( Nodename, Duration )  ->
 
 
 % Helper function for the actual waiting:
-check_node_availability( Nodename, CurrentDurationStep, ElapsedDuration,
+check_node_availability( NodeName, CurrentDurationStep, ElapsedDuration,
 						 SpecifiedMaxDuration )
   when ElapsedDuration < SpecifiedMaxDuration ->
 
@@ -855,42 +855,42 @@ check_node_availability( Nodename, CurrentDurationStep, ElapsedDuration,
 
 	NewElapsedDuration = ElapsedDuration + ActualDurationStep,
 
-	%trace_utils:debug_fmt( "Pinging '~ts' (case B) now...", [ Nodename ] ),
-	case net_adm:ping( Nodename ) of
+	%trace_utils:debug_fmt( "Pinging '~ts' (case B) now...", [ NodeName ] ),
+	case net_adm:ping( NodeName ) of
 
 		pong ->
 			%trace_utils:debug_fmt( " - node '~ts' found available '
-			%    "after ~B ms.", [ Nodename, NewElapsedDuration ] ),
+			%    "after ~B ms.", [ NodeName, NewElapsedDuration ] ),
 
 			{ true, NewElapsedDuration } ;
 
 		pang ->
 
 			%trace_utils:debug_fmt( " - node '~ts' NOT found available after "
-			%                     "~B ms.", [ Nodename, NewElapsedDuration ] ),
+			%                     "~B ms.", [ NodeName, NewElapsedDuration ] ),
 
 			% Too early, let's retry later:
 			NewCurrentDurationStep = erlang:min( 2 * CurrentDurationStep,
 												 ?check_node_max_waiting_step ),
 
-			check_node_availability( Nodename, NewCurrentDurationStep,
+			check_node_availability( NodeName, NewCurrentDurationStep,
 									 NewElapsedDuration, SpecifiedMaxDuration )
 
 	end;
 
 
 % Already too late here (ElapsedDuration >= SpecifiedMaxDuration):
-check_node_availability( _Nodename, _CurrentDurationStep, ElapsedDuration,
+check_node_availability( _NodeName, _CurrentDurationStep, ElapsedDuration,
 						 _SpecifiedMaxDuration ) ->
 
 	%trace_utils:debug_fmt( " - node '~ts' found NOT available, after ~B ms.",
-	%						[ Nodename, ElapsedDuration ] ),
+	%						[ NodeName, ElapsedDuration ] ),
 
 	{ false, ElapsedDuration }.
 
 
 
-% Returns the naming mode of this node, either 'short_name' or 'long_name'.
+% @doc Returns the naming mode of this node, either 'short_name' or 'long_name'.
 -spec get_node_naming_mode() -> node_naming_mode().
 get_node_naming_mode() ->
 
@@ -910,9 +910,9 @@ get_node_naming_mode() ->
 
 
 
-% Returns a transformed version (as a string) of the specified hostname (itself
-% specified as a string) so that it is compliant with the specified node naming
-% convention.
+% @doc Returns a transformed version (as a string) of the specified hostname
+% (itself specified as a string) so that it is compliant with the specified node
+% naming convention.
 %
 % For example, if the short_name convention is specified, then a "bar.baz.org"
 % hostname will result into "bar".
@@ -927,8 +927,8 @@ get_naming_compliant_hostname( Hostname, long_name ) ->
 
 
 
-% Returns a name (as a string) that is a legal name for an Erlang node, forged
-% from the specified name.
+% @doc Returns a name (as a string) that is a legal name for an Erlang node,
+% forged from the specified name.
 %
 -spec generate_valid_node_name_from( iolist() ) -> string_node_name().
 generate_valid_node_name_from( Name ) when is_list( Name ) ->
@@ -949,8 +949,9 @@ generate_valid_node_name_from( Name ) when is_list( Name ) ->
 
 
 
-% Returns the full name of a node (as a string), which has to be used to target
-% it from another node, with respect to the specified node naming conventions.
+% @doc Returns the full name of a node (as a string), which has to be used to
+% target it from another node, with respect to the specified node naming
+% conventions.
 %
 % Ex: for a node name "foo", a hostname "bar.org", with short names, we may
 % specify "foo@bar" to target the corresponding node with these conventions (not
@@ -967,7 +968,7 @@ get_fully_qualified_node_name( NodeName, Hostname, NodeNamingMode ) ->
 
 
 
-% Launches as a daemon (in the background) an EPMD instance on the Erlang
+% @doc Launches as a daemon (in the background) an EPMD instance on the Erlang
 % standard port, if needed.
 %
 % If an EPMD instance is already launched for that port, no extra instance will
@@ -980,8 +981,8 @@ launch_epmd() ->
 
 
 
-% Launches as a daemon (in the background) an EPMD instance on the specified
-% port, if needed.
+% @doc Launches as a daemon (in the background) an EPMD instance on the
+% specified port, if needed.
 %
 % If an EPMD instance is already launched for that port, no extra instance will
 % be launched, the former one remaining the active one; there is up to one EPMD
@@ -1007,7 +1008,7 @@ launch_epmd( Port ) when is_integer( Port ) ->
 
 
 
-% Enables the distribution on the current node, supposedly not already
+% @doc Enables the distribution on the current node, supposedly not already
 % distributed (otherwise the operation will fail).
 %
 % Note: an EPMD instance is expected to be already running; see
@@ -1047,7 +1048,6 @@ enable_distribution( NodeName, NamingMode=short_name )
   when is_atom( NodeName ) ->
 	enable_distribution_helper( NodeName, shortnames, NamingMode,
 								_RemainingAttempts=5 ).
-
 
 
 % NamingMode kept for error message.
@@ -1102,8 +1102,8 @@ enable_distribution_helper( NodeName, NameType, NamingMode,
 
 
 
-% Returns the Erlang cookie of the current node if that node is alive, otherwise
-% the 'nocookie' atom.
+% @doc Returns the Erlang cookie of the current node if that node is alive,
+% otherwise the 'nocookie' atom.
 %
 -spec get_cookie() -> cookie() | 'nocookie'.
 get_cookie() ->
@@ -1111,8 +1111,8 @@ get_cookie() ->
 
 
 
-% Sets the Erlang cookie for the current node, as well as for the one of all
-% unknown nodes.
+% @doc Sets the Erlang cookie for the current node, as well as for the one of
+% all unknown nodes.
 %
 -spec set_cookie( cookie() ) -> void().
 set_cookie( Cookie ) ->
@@ -1129,14 +1129,14 @@ set_cookie( Cookie ) ->
 
 
 
-% Sets the Erlang cookie for the specified node.
+% @doc Sets the Erlang cookie for the specified node.
 -spec set_cookie( cookie(), atom_node_name() ) -> void().
 set_cookie( Cookie, Node ) ->
 	erlang:set_cookie( Node, Cookie ).
 
 
 
-% Shutdowns current node, and never returns (unlike init:stop/0): it is a
+% @doc Shutdowns current node, and never returns (unlike init:stop/0): it is a
 % reliable and synchronous operation.
 %
 % Throws an exception if not able to terminate it.
@@ -1152,59 +1152,65 @@ shutdown_node() ->
 
 
 
-% Shutdowns specified node (specified as a string or an atom), and returns only
-% when it cannot be ping'ed anymore: it is a reliable and synchronous operation.
+% @doc Shutdowns specified node (specified as a string or an atom), and returns
+% only when it cannot be ping'ed anymore: it is a reliable and synchronous
+% operation.
 %
 % Throws an exception if not able to terminate it.
 %
 -spec shutdown_node( node_name() ) -> void().
-shutdown_node( Nodename ) when is_list( Nodename ) ->
-	shutdown_node( list_to_atom( Nodename ) );
+shutdown_node( NodeName ) when is_list( NodeName ) ->
+	shutdown_node( list_to_atom( NodeName ) );
 
-shutdown_node( Nodename ) when is_atom( Nodename ) ->
+shutdown_node( NodeName ) when is_atom( NodeName ) ->
 
 	%trace_utils:debug_fmt( "Request to shut down node '~ts' from node '~ts'.",
-	%						[ Nodename, node() ] ),
+	%						[ NodeName, node() ] ),
 
-	case lists:member( Nodename, nodes() ) of
+	case lists:member( NodeName, nodes() ) of
 
 		true ->
 
 			try
 
 				%trace_utils:debug_fmt( "Sending shutdown command for '~ts'.",
-				%                       [ Nodename ] )
+				%                       [ NodeName ] )
 
-				%rpc:cast( Nodename, erlang, halt, [] )
+				%rpc:cast( NodeName, erlang, halt, [] )
 
 				% Longer yet smoother:
-				rpc:cast( Nodename, init, stop, [] )
+				rpc:cast( NodeName, init, stop, [] )
 
 			catch
 
 				_T:E ->
 					trace_utils:error_fmt(
 					  "Error while shutting down node '~ts': ~p.",
-					  [ Nodename, E ] )
+					  [ NodeName, E ] )
 
 			end,
 
-			wait_unavailable( Nodename, _AttemptCount=10, _Duration=150 );
+			wait_unavailable( NodeName, _AttemptCount=10, _Duration=150 );
 			%ok;
 
 		false ->
 			%trace_utils:debug_fmt( "Node '~ts' apparently not connected.",
-			%                       [ Nodename ] ),
+			%                       [ NodeName ] ),
 			ok
 
 	end.
 
 
 
-wait_unavailable( Nodename, _AttemptCount=0, _Duration ) ->
-	throw( { node_not_terminating, Nodename } );
+% @doc Waits until specified node is unavailable, for the specified number of
+% attempts between which the specified duration will be waited .
+%
+-spec wait_unavailable( atom_node_name(), count(), milliseconds() ) -> void().
+wait_unavailable( NodeName, _AttemptCount=0, _Duration )
+  when is_atom( NodeName ) ->
+	throw( { node_not_terminating, NodeName } );
 
-wait_unavailable( Nodename, AttemptCount, Duration ) ->
+wait_unavailable( NodeName, AttemptCount, Duration ) when is_atom( NodeName ) ->
 
 	% We used to rely on net_adm:ping/1 (see below), but apparently
 	% 'noconnection' can be raised and does not seem to be catchable.
@@ -1212,11 +1218,11 @@ wait_unavailable( Nodename, AttemptCount, Duration ) ->
 	% So we finally just wait until the target node disappears from the list
 	% returned by nodes():
 	%
-	case lists:member( Nodename, nodes() ) of
+	case lists:member( NodeName, nodes() ) of
 
 		true ->
 			timer:sleep( Duration ),
-			wait_unavailable( Nodename, AttemptCount-1, 2*Duration );
+			wait_unavailable( NodeName, AttemptCount-1, 2*Duration );
 
 		false ->
 			% Additional safety delay to ensure the node had time to fully shut
@@ -1226,11 +1232,11 @@ wait_unavailable( Nodename, AttemptCount, Duration ) ->
 
 	end.
 
-	%try net_adm:ping( Nodename ) of
+	%try net_adm:ping( NodeName ) of
 
 	%	pong ->
 	%		timer:sleep( Duration ),
-	%		wait_unavailable( Nodename, AttemptCount-1, 2*Duration );
+	%		wait_unavailable( NodeName, AttemptCount-1, 2*Duration );
 
 	%	pang ->
 			% Safety delay to ensure the node had time to fully shut down and to
@@ -1243,7 +1249,7 @@ wait_unavailable( Nodename, AttemptCount, Duration ) ->
 	%	_T:E ->
 
 	%		trace_utils:debug_fmt( "Error while pinging node '~ts': "
-	%           "exception '~p'.", [ Nodename, E ] )
+	%           "exception '~p'.", [ NodeName, E ] )
 
 	%end.
 
@@ -1253,7 +1259,7 @@ wait_unavailable( Nodename, AttemptCount, Duration ) ->
 % Net-related command line options.
 
 
-% Returns the command-line option (a plain string) to be used to run a new
+% @doc Returns the command-line option (a plain string) to be used to run a new
 % Erlang node with the same cookie as the current node, whether or not it is
 % alive.
 %
@@ -1271,9 +1277,9 @@ get_cookie_option() ->
 
 
 
-% Returns the default Erlang-level EPMD TCP port (not necessarily the one being
-% currently used, not necessarily the one in the default Myriad settings either;
-% refer to the EPMD_PORT variable in myriad/GNUmakevars.inc).
+% @doc Returns the default Erlang-level EPMD TCP port (not necessarily the one
+% being currently used, not necessarily the one in the default Myriad settings
+% either; refer to the EPMD_PORT variable in myriad/GNUmakevars.inc).
 %
 -spec get_default_epmd_port() -> tcp_port().
 get_default_epmd_port() ->
@@ -1281,7 +1287,7 @@ get_default_epmd_port() ->
 
 
 
-% Returns the command-line option (a plain string) to be used to run a new
+% @doc Returns the command-line option (a plain string) to be used to run a new
 % Erlang node with the specified EPMD port specification, which can be either
 % the 'undefined' atom or the TCP port number.
 %
@@ -1304,9 +1310,10 @@ get_epmd_environment( EpmdPort ) when is_integer( EpmdPort ) ->
 
 
 
-% Returns the command-line option (a plain string) to be used to run a new
+% @doc Returns the command-line option (a plain string) to be used to run a new
 % Erlang node with the node name (specified as a string) and node naming mode
 % (short or long name, specified thanks to atoms).
+%
 -spec get_node_name_option( string_node_name(), node_naming_mode() ) ->
 								ustring().
 get_node_name_option( NodeName, NodeNamingMode ) ->
@@ -1325,7 +1332,7 @@ get_node_name_option( NodeName, NodeNamingMode ) ->
 
 
 
-% Returns the command-line option (a plain string) to be used to run a new
+% @doc Returns the command-line option (a plain string) to be used to run a new
 % Erlang node with the specified TCP port restriction, which can be either the
 % 'no_restriction' atom or a pair of integers {MinTCPPort,MaxTCPPort}.
 %
@@ -1348,8 +1355,9 @@ get_tcp_port_range_option( { MinTCPPort, MaxTCPPort } )
 
 
 
-% Returns a basic command line (as a plain string) and its related environment
-% in order to launch an Erlang node (interpreter) with the specified settings.
+% @doc Returns a basic command line (as a plain string) and its related
+% environment in order to launch an Erlang node (interpreter) with the specified
+% settings.
 %
 -spec get_basic_node_launching_command( string_node_name(), node_naming_mode(),
 	   maybe( tcp_port() ), 'no_restriction' | tcp_port_range(), ustring() ) ->
@@ -1408,8 +1416,8 @@ get_basic_node_launching_command( NodeName, NodeNamingMode, EpmdSettings,
 -define( send_file_listen_opts, [ binary, { active, false }, { packet,0 } ] ).
 
 
-% Sends specified file (probably over the network) to the specified recipient
-% PID, supposed to have already called one of the receive_file/{1,2,3}
+% @doc Sends specified file (probably over the network) to the specified
+% recipient PID, supposed to have already called one of the receive_file/{1,2,3}
 % functions.
 %
 -spec send_file( file_path(), pid() ) -> void().
@@ -1451,7 +1459,7 @@ send_file( FilePath, RecipientPid ) ->
 			% Hostname = text_utils:binary_to_string( BinHostname ),
 
 			%trace_utils:debug_fmt( "~w connecting to ~ts:~B to send '~ts'.",
-			%		   [ self(), ipv4_to_string( RemoteIP ), Port, FilePath ] ),
+			%     [ self(), ipv4_to_string( RemoteIP ), Port, FilePath ] ),
 
 			DataSocket = case gen_tcp:connect( RemoteIP, Port,
 						[ binary, { packet, 0 }, { active, false } ] ) of
@@ -1517,9 +1525,7 @@ send_file( FilePath, RecipientPid ) ->
 
 
 
-
-
-% Receives specified file out of band (through a dedicated TCP socket, not
+% @doc Receives specified file out of band (through a dedicated TCP socket, not
 % thanks to Erlang messages), the emitter being supposed to use send_file/2.
 %
 % The file will be written in current directory, and the default TCP port will
@@ -1533,7 +1539,7 @@ receive_file( EmitterPid ) ->
 
 
 
-% Receives specified file out of band (through a dedicated TCP socket, not
+% @doc Receives specified file out of band (through a dedicated TCP socket, not
 % thanks to Erlang messages) into specified pre-existing directory, the emitter
 % being supposed to use send_file/2.
 %
@@ -1547,7 +1553,7 @@ receive_file( EmitterPid, TargetDir ) ->
 
 
 
-% Receives specified file out of band (through a dedicated TCP socket, not
+% @doc Receives specified file out of band (through a dedicated TCP socket, not
 % thanks to Erlang messages) into specified pre-existing directory, the emitter
 % being supposed to use send_file/2.
 %
@@ -1588,7 +1594,7 @@ receive_file( EmitterPid, TargetDir, TCPPort ) ->
 
 
 
-% Receives specified file out of band (through a dedicated TCP socket - not
+% @doc Receives specified file out of band (through a dedicated TCP socket - not
 % thanks to Erlang messages) into specified pre-existing directory, the emitter
 % being supposed to use send_file/2.
 %
@@ -1617,7 +1623,7 @@ receive_file( EmitterPid, TargetDir, MinTCPPort, MaxTCPPort )
 									 MinTCPPort, MinTCPPort, MaxTCPPort ),
 
 			%trace_utils:debug_fmt( "File '~ts' will be received through "
-			%	"local TCP port ~p.", [ BinFilename, ActualTCPPort ] ),
+			%   "local TCP port ~p.", [ BinFilename, ActualTCPPort ] ),
 
 			accept_remote_content( ListenSock, ActualTCPPort, LocalIP,
 					TargetDir, BinFilename, Permissions, EmitterPid )
@@ -1678,7 +1684,7 @@ accept_remote_content( ListenSock, ActualTCPPort, LocalIP, TargetDir,
 
 		{ ok, DataSocket } ->
 			%trace_utils:debug_fmt( "Connection to ~p:~p accepted",
-			%					   [ LocalIP, ActualTCPPort ] ),
+			%                       [ LocalIP, ActualTCPPort ] ),
 			receive_file_chunk( DataSocket, OutputFile ),
 			ok = gen_tcp:close( ListenSock );
 
@@ -1724,8 +1730,8 @@ receive_file_chunk( DataSocket, OutputFile ) ->
 
 
 
-% Tells whether a service (socket) is running on the local host at specified
-% TCP port.
+% @doc Tells whether a service (socket) is running on the local host at
+% specified TCP port.
 %
 -spec is_service_running_at( tcp_port() ) -> boolean().
 is_service_running_at( TCPPort ) ->
@@ -1755,7 +1761,7 @@ is_service_running_at( TCPPort ) ->
 % Address-related functions.
 
 
-% Tells whether the specified IPv4 address is routable.
+% @doc Tells whether the specified IPv4 address is routable.
 %
 % Note: the loopback ({127,0,0,1}, or {0,0,0,0,0,0,0,1}) is deemed routable.
 %
@@ -1774,26 +1780,26 @@ is_routable( _ ) ->
 
 
 
-% Returns a string describing the specified IPv4 address.
+% @doc Returns a string describing the specified IPv4 address.
 -spec ipv4_to_string( ip_v4_address() ) -> ustring().
 ipv4_to_string( { N1, N2, N3, N4 } ) ->
 	text_utils:format( "~B.~B.~B.~B", [ N1, N2, N3, N4 ] ).
 
 
-% Returns a string describing the specified IPv4 address and port.
+% @doc Returns a string describing the specified IPv4 address and port.
 -spec ipv4_to_string( ip_v4_address(), net_port() ) -> ustring().
 ipv4_to_string( { N1, N2, N3, N4 }, Port ) ->
 	text_utils:format( "~B.~B.~B.~B:~B", [ N1, N2, N3, N4, Port ] ).
 
 
 
-% Returns a string describing the specified IPv6 address.
+% @doc Returns a string describing the specified IPv6 address.
 -spec ipv6_to_string( ip_v6_address() ) -> ustring().
 ipv6_to_string( { N1, N2, N3, N4, N5, N6 } ) ->
 	text_utils:format( "~B.~B.~B.~B", [ N1, N2, N3, N4, N5, N6 ] ).
 
 
-% Returns a string describing the specified IPv6 address and port.
+% @doc Returns a string describing the specified IPv6 address and port.
 -spec ipv6_to_string( ip_v6_address(), net_port() ) -> ustring().
 ipv6_to_string( Ipv6={ _N1, _N2, _N3, _N4, _N5, _N6 }, Port ) ->
 	text_utils:format( "~ts:~B", [ ipv6_to_string( Ipv6 ), Port ] ).
@@ -1801,7 +1807,7 @@ ipv6_to_string( Ipv6={ _N1, _N2, _N3, _N4, _N5, _N6 }, Port ) ->
 
 
 
-% Returns a string describing the specified host.
+% @doc Returns a string describing the specified host.
 -spec host_to_string( host_identifier() ) -> ustring().
 host_to_string( IPv4={ _N1, _N2, _N3, _N4 } ) ->
 	ipv4_to_string( IPv4 );

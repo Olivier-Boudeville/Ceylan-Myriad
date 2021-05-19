@@ -7,6 +7,14 @@
 %
 % Released as LGPL software.
 %
+
+
+% @doc Module in charge of providing the actual support for the <b>management of
+% filesystem trees</b> (merging, unifiquation, comparison, etc).
+%
+% Note that it is currently architectured mostly as a program rather than as a
+% library (most services of interest are not exported currently).
+%
 -module(merge_utils).
 
 
@@ -97,7 +105,7 @@
 
 
 
-% Data associated (in-memory)to a given file-like element.
+% Data associated (in-memory) to a given file-like element.
 %
 % Note: these records are typically values stored in tables, whose associated
 % key is potentially duplicating their path (not a problem).
@@ -125,20 +133,22 @@
 		   sha1_sum :: sha1() } ).
 
 -type file_data() :: #file_data{}.
+% Data associated (in-memory) to a given file-like element.
 
 
 
-% Table referencing file entries based on their SHA1:
+-type sha1_table() :: table( sha1(), [ file_data() ] ).
+% Table referencing file entries based on their SHA1.
 %
 % (a list of exactly one file_data record per SHA1 key, once the tree is
 % uniquified)
-%
--type sha1_table() :: table( sha1(), [ file_data() ] ).
+
+
 
 %-type sha1_set() :: set( sha1() ).
 
-% Pair entries of a sha1_table/0:
 -type sha1_entry() :: { sha1(), [ file_data() ] }.
+% Pair entries of a sha1_table/0.
 
 
 % Data associated to a content tree.
@@ -177,6 +187,7 @@
 		   other_count = 0 :: count() } ).
 
 -type tree_data() :: #tree_data{}.
+% Data associated to a content tree.
 
 
 -export_type([ file_data/0, tree_data/0 ]).
@@ -193,8 +204,8 @@
 	log_file = undefined :: maybe( file() ) } ).
 
 
-% User-related state:
 -type user_state() :: #user_state{}.
+% User-related state.
 
 
 
@@ -202,12 +213,12 @@
 -export([ run/0, scan/3, main/1 ]).
 
 
-% The PID of an analyzer process:
 -type analyzer_pid() :: pid().
+% The PID of an analyzer process.
 
 
-% Ring of analyzer processes:
 -type analyzer_ring() :: ring_utils:ring( analyzer_pid() ).
+% Ring of analyzer processes.
 
 
 % This script depends on the 'Myriad' layer, and only on that code.
@@ -251,7 +262,7 @@
 -define( help_opt, '-help' ).
 
 
-% Returns the usage help message.
+% @doc Returns the usage help message.
 -spec get_usage() -> ustring().
 get_usage() ->
 	% Format string is a list:
@@ -311,7 +322,7 @@ get_usage() ->
 
 
 
-% Typically for testing:
+% @doc Typically for testing.
 -spec run() -> void().
 run() ->
 	ArgTable = shell_utils:get_argument_table(),
@@ -319,8 +330,8 @@ run() ->
 
 
 
-% Sole entry point for this merge service, either triggered by run/0 or by the
-% associated escript.
+% @doc Sole entry point for this merge service, either triggered by `run/0' or
+% by the associated escript.
 %
 -spec main( shell_utils:argument_table() ) -> void().
 main( ArgTable ) ->
@@ -387,8 +398,8 @@ main( ArgTable ) ->
 
 
 
-% Handles the command-line whenever the --reference option was specified, with a
-% single corresponding parameter, of type list.
+% @doc Handles the command-line whenever the --reference option was specified,
+% with a single corresponding parameter, of type list.
 %
 handle_reference_option( RefTreePath, ArgumentTable, BinBaseDir ) ->
 
@@ -419,7 +430,9 @@ handle_reference_option( RefTreePath, ArgumentTable, BinBaseDir ) ->
 
 
 
-% Handles the command-line whenever the --reference option was not specified.
+% @doc Handles the command-line whenever the --reference option was not
+% specified.
+%
 handle_non_reference_option( ArgumentTable, BinBaseDir ) ->
 
 	% No reference, it must then be an equalize, a pure scan, a rescan, a resync
@@ -873,9 +886,10 @@ display_error_and_stop( Message, ErrorCode ) ->
 
 
 
-% Stops whereas no user state is available.
+% @doc Stops whereas no user state is available.
 %
 % (helper)
+%
 -spec stop( basic_utils:status_code() ) -> no_return().
 stop( StatusCode ) ->
 	%trace_utils:debug( "Direct stop." ),
@@ -884,7 +898,7 @@ stop( StatusCode ) ->
 
 
 
-% Scans specified tree, returning the corresponding datastructure.
+% @doc Scans specified tree, returning the corresponding datastructure.
 -spec scan( bin_directory_path(), analyzer_ring(), user_state() ) ->
 					tree_data().
 scan( BinTreePath, AnalyzerRing, UserState ) ->
@@ -996,8 +1010,8 @@ perform_scan( TreePath, AnalyzerRing, UserState ) ->
 
 
 
-% Rescans specified tree (as an absolute directory), returning the corresponding
-% datastructure.
+% @doc Rescans specified tree (as an absolute directory), returning the
+% corresponding datastructure.
 %
 -spec rescan( directory_path(), analyzer_ring(), user_state() ) -> tree_data().
 rescan( BinTreePath, AnalyzerRing, UserState ) ->
@@ -1070,8 +1084,8 @@ rescan( BinTreePath, AnalyzerRing, UserState ) ->
 
 
 
-% Performs a rescan and returns {TreeData, Notifications}; does not write the
-% corresponding cache file.
+% @doc Performs a rescan and returns {TreeData, Notifications}; does not write
+% the corresponding cache file.
 %
 % (helper)
 %
@@ -1145,7 +1159,7 @@ perform_rescan( BinUserTreePath, CacheFilePath, AnalyzerRing, UserState ) ->
 
 
 
-% Rescans specified content files, using for that the specified analyzers,
+% @doc Rescans specified content files, using for that the specified analyzers,
 % returning the corresponding tree data.
 %
 -spec rescan_files( set( bin_file_path() ), [ sha1_entry() ],
@@ -1226,7 +1240,7 @@ rescan_files( FileSet, _Entries=[ { SHA1, FileDatas } | T ], TreeData,
 
 
 
-% Integrates specified file entries into specified tree data.
+% @doc Integrates specified file entries into specified tree data.
 -spec integrate_extra_files( [ file_data() ], tree_data(), user_state() ) ->
 									tree_data().
 integrate_extra_files( _ExtraFileDatas=[], TreeData, _UserState ) ->
@@ -1262,8 +1276,8 @@ integrate_extra_files(
 
 
 
-% Checks whether the file data elements seem up to date: still existing, not
-% more recent than cache filename, and of the same size as referenced.
+% @doc Checks whether the file data elements seem up to date: still existing,
+% not more recent than cache filename, and of the same size as referenced.
 %
 check_file_datas_for_scan( _FileDatas=[], SHA1, FileSet,
 		TreeData=#tree_data{ entries=PrevEntries,
@@ -1399,8 +1413,8 @@ check_file_datas_for_scan( _FileDatas=[
 
 
 
-% Resyncs specified tree (as an absolute directory), returning the corresponding
-% datastructure.
+% @doc Resyncs specified tree (as an absolute directory), returning the
+% corresponding datastructure.
 %
 -spec resync( bin_directory_path(), analyzer_ring(), user_state() ) ->
 					tree_data().
@@ -1473,8 +1487,8 @@ resync( BinTreePath, AnalyzerRing, UserState ) ->
 
 
 
-% Performs a resync and returns {TreeData, Notifications}; does not write the
-% corresponding cache file.
+% @doc Performs a resync and returns {TreeData, Notifications}; does not write
+% the corresponding cache file.
 %
 % (helper)
 %
@@ -1551,7 +1565,7 @@ perform_resync( BinUserTreePath, CacheFilePath, AnalyzerRing, UserState ) ->
 
 
 
-% Resyncs specified content files, using for that the specified analyzers,
+% @doc Resyncs specified content files, using for that the specified analyzers,
 % returning the corresponding tree data.
 %
 -spec resync_files( set( bin_file_path() ), [ sha1_entry() ],
@@ -1628,8 +1642,8 @@ resync_files( FileSet, _Entries=[ { SHA1, FileDatas } | T ], TreeData,
 
 
 
-% Checks whether the file data elements seem up to date: still existing and of
-% the same size as referenced (timestamp ignored on purpose, not compared to
+% @doc Checks whether the file data elements seem up to date: still existing and
+% of the same size as referenced (timestamp ignored on purpose, not compared to
 % cache filename).
 %
 check_file_datas_for_sync( _FileDatas=[], SHA1, FileSet,
@@ -1766,7 +1780,7 @@ create_analyzer_ring( UserState ) ->
 
 
 
-% Actual scanning of specified path, producing specified cache file from
+% @doc Actual scanning of specified path, producing specified cache file from
 % scratch.
 %
 scan_helper( TreePath, AnalyzerRing, UserState ) ->
@@ -1781,7 +1795,7 @@ scan_helper( TreePath, AnalyzerRing, UserState ) ->
 
 
 
-% Uniquifies specified tree.
+% @doc Uniquifies specified tree.
 -spec uniquify( directory_path() ) -> void().
 uniquify( TreePath ) ->
 
@@ -1823,8 +1837,8 @@ uniquify( TreePath ) ->
 
 
 
-% Merges the (supposedly more up-to-date) input tree into the target, reference
-% one (both supposed to be absolute).
+% @doc Merges the (supposedly more up-to-date) input tree into the target,
+% reference one (both supposed to be absolute).
 %
 -spec merge( bin_directory_path(), bin_directory_path() ) -> void().
 merge( InputTreePath, ReferenceTreePath ) ->
@@ -1885,8 +1899,8 @@ merge( InputTreePath, ReferenceTreePath ) ->
 
 
 
-% Merges the specified input tree into the reference one, returning the latter
-% once updated.
+% @doc Merges the specified input tree into the reference one, returning the
+% latter once updated.
 %
 -spec merge_trees( tree_data(), tree_data(), user_state() ) -> tree_data().
 merge_trees( InputTree=#tree_data{ root=InputRootDir,
@@ -1949,8 +1963,8 @@ merge_trees( InputTree=#tree_data{ root=InputRootDir,
 
 
 
-% Purges specified tree from specified content, removing it from the filesystem
-% and returning the corresponding, updated, tree data.
+% @doc Purges specified tree from specified content, removing it from the
+% filesystem and returning the corresponding, updated, tree data.
 %
 -spec purge_tree_from( tree_data(), set( sha1() ), user_state() ) ->
 								tree_data().
@@ -1991,8 +2005,8 @@ purge_helper( _SHA1s=[ SHA1 | T ], Entries, BinRootDir, RemoveCount,
 
 
 
-% Removes specified content from specified input tree. Returns the resulting
-% tree, or 'undefined' if it became empty.
+% @doc Removes specified content from specified input tree. Returns the
+% resulting tree, or 'undefined' if it became empty.
 %
 -spec clear_input_tree( tree_data(), count(), set( sha1() ),
 			bin_directory_path(), bin_directory_path(), user_state() ) ->
@@ -2058,7 +2072,7 @@ clear_input_tree( InputTree, LackingCount, ContentToClear, InputRootDir,
 
 
 
-% Integrates the content of the specified input tree into the specified
+% @doc Integrates the content of the specified input tree into the specified
 % reference one, and returns this one.
 %
 -spec integrate_content_to_merge( tree_data(), tree_data(), count(),
@@ -2162,8 +2176,9 @@ integrate_content_to_merge(
 
 
 
-% Copies the contents, specified through their SHA1, from the source tree to the
-% target one, and returns a corresponding updated version of this target tree.
+% @doc Copies the contents, specified through their SHA1, from the source tree
+% to the target one, and returns a corresponding updated version of this target
+% tree.
 %
 % Note: this SHA1 is not expected to already exist in the target tree.
 %
@@ -2230,8 +2245,8 @@ copy_content_helper( _SHA1sToCopy=[ SHA1 | T ], SourceRootDir,
 
 
 
-% Moves, in the context of a merge, all specified content in the reference tree,
-% and returns an updated view thereof.
+% @doc Moves, in the context of a merge, all specified content in the reference
+% tree, and returns an updated view thereof.
 %
 -spec move_content_to_integrate( [ sha1() ], bin_directory_path(), sha1_table(),
 		bin_directory_path(), sha1_table(), bin_directory_path(), count(),
@@ -2245,8 +2260,8 @@ move_content_to_integrate( ToIntegrate, InputRootDir, InputEntries,
 
 
 
-% Moves as a whole all specified content in the reference tree, and returns an
-% updated view thereof.
+% @doc Moves as a whole all specified content in the reference tree, and returns
+% an updated view thereof.
 %
 -spec move_content_to_integrate( [ sha1() ], bin_directory_path(), sha1_table(),
 		bin_directory_path(), sha1_table(), bin_directory_path(),
@@ -2355,7 +2370,7 @@ move_content_to_integrate( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 
 
 
-% Equalizes specified trees.
+% @doc Equalizes specified trees.
 -spec equalize( tree_data(), tree_data(), user_state() ) ->
 						{ tree_data(), tree_data() }.
 equalize( FirstTreeData=#tree_data{ root=FirstRootPath,
@@ -2467,7 +2482,7 @@ interpret_uniqueness( _IsFirstUniquified=false, _IsSecondUniquified=false,
 
 
 
-% Checks the specified tree path against the specified cache file. Displays
+% @doc Checks the specified tree path against the specified cache file. Displays
 % differences, and generates corresponding delta files (if any).
 %
 -spec check_against( bin_directory_path(), bin_file_path(), analyzer_ring(),
@@ -2583,7 +2598,7 @@ check_against( AbsTreePath, AbsCachePath, AnalyzerRing, UserState ) ->
 
 
 
-% Preserves symlinks by moving them from input root directory to target
+% @doc Preserves symlinks by moving them from input root directory to target
 % directory.
 %
 -spec preserve_symlinks( bin_directory_path(), bin_directory_path(),
@@ -2641,7 +2656,7 @@ preserve_symlinks( InputRootDir, TargetRootDir, TargetSubPath, UserState ) ->
 
 
 
-% Selects which of the specified elements among the input entries shall be
+% @doc Selects which of the specified elements among the input entries shall be
 % merged in the reference content, and how.
 %
 % Returns the updated reference entries.
@@ -2666,8 +2681,8 @@ cherry_pick_content_to_merge( SHA1sToPick, InputRootDir, InputEntries,
 
 
 
-% Allows the user to cherry-pick the files that shall be copied (others being
-% removed; so no need to update source tree).
+% @doc Allows the user to cherry-pick the files that shall be copied (others
+% being removed; so no need to update source tree).
 %
 cherry_pick_files_to_merge( _SHA1sToPick=[], InputRootDir, _InputEntries,
 		ReferenceRootDir, ReferenceEntries, TargetSubPath, _PickChoices,
@@ -2855,7 +2870,7 @@ cherry_pick_files_to_merge( _SHA1sToPick=[ SHA1 | T ], InputRootDir,
 
 
 
-% Deletes all specified content.
+% @doc Deletes all specified content.
 %
 % Does it on a per-content basic rather than doing nothing before the input tree
 % is removed as whole, as more control is preferred (to check that the final
@@ -2902,10 +2917,10 @@ delete_content_to_merge( SHA1sToDelete, InputRootDir, InputEntries,
 
 
 
-% Moves "safely" specified file, from path RelFilePath relative to SourceRootDir
-% to the same RelFilePath path but this time relatively to TargetSubPath, itself
-% relative to TargetRootDir, by ensuring (through any renaming needed) that no
-% clash happens at target.
+% @doc Moves "safely" specified file, from path RelFilePath relative to
+% SourceRootDir to the same RelFilePath path but this time relatively to
+% TargetSubPath, itself relative to TargetRootDir, by ensuring (through any
+% renaming needed) that no clash happens at target.
 %
 % Returns the path to which the file was moved, twice: as a pair made of an
 % absolute path and a relative one to TargetRootDir.
@@ -2970,10 +2985,10 @@ safe_move( SourceRootDir, SourceRelPath, TargetRootDir, TargetSubPath,
 
 
 
-% Copies "safely" specified file, from path RelFilePath relative to
+% @doc Copies "safely" specified file, from path RelFilePath relative to
 % SourceRootDir to the same RelFilePath path but this time relatively to
-% TargetRootDir, by ensuring (through any renaming needed) that no clash
-% happens at target.
+% TargetRootDir, by ensuring (through any renaming needed) that no clash happens
+% at target.
 %
 % Returns the path to which the file was copied, twice: as a pair made of an
 % absolute path and as one relative to TargetRootDir.
@@ -3024,7 +3039,7 @@ safe_copy( SourceRootDir, SourceRelPath, TargetRootDir, UserState ) ->
 
 
 
-% Deletes "safely" specified file.
+% @doc Deletes "safely" specified file.
 -spec safe_delete( file_path(), user_state() ) -> void().
 safe_delete( FilePath, UserState ) ->
 
@@ -3043,7 +3058,7 @@ safe_delete( FilePath, UserState ) ->
 
 
 
-% Returns the number of files referenced in specified table.
+% @doc Returns the number of files referenced in specified table.
 -spec get_file_count_from( sha1_table() ) -> count().
 get_file_count_from( SHA1Table ) ->
 
@@ -3059,7 +3074,7 @@ get_file_count_from( SHA1Table ) ->
 % Helpers.
 
 
-% Starts user-related services.
+% @doc Starts user-related services.
 -spec start_user_service( file_path() ) -> user_state().
 start_user_service( LogFilename ) ->
 
@@ -3086,7 +3101,7 @@ start_user_service( LogFilename ) ->
 
 
 
-% Displays (if set so) and logs specified text.
+% @doc Displays (if set so) and logs specified text.
 -spec trace( ustring(), user_state() ) -> user_state().
 trace( Message, UserState=#user_state{ log_file=LogFile } ) ->
 	file_utils:write_ustring( LogFile, Message ++ "\n" ),
@@ -3095,7 +3110,7 @@ trace( Message, UserState=#user_state{ log_file=LogFile } ) ->
 
 
 
-% Displays (if set so) and logs specified formatted text.
+% @doc Displays (if set so) and logs specified formatted text.
 -spec trace( format_string(), [ term() ], user_state() ) -> user_state().
 trace( FormatString, Values, UserState=#user_state{ log_file=LogFile } ) ->
 	Msg = text_utils:format( FormatString, Values ),
@@ -3105,14 +3120,14 @@ trace( FormatString, Values, UserState=#user_state{ log_file=LogFile } ) ->
 
 
 
-% Logs specified debug text.
+% @doc Logs specified debug text.
 -spec trace_debug( ustring(), user_state() ) -> user_state().
 trace_debug( Message, UserState=#user_state{ log_file=LogFile } ) ->
 	file_utils:write_ustring( LogFile, Message ++ "\n" ),
 	UserState.
 
 
-% Logs specified debug formatted text.
+% @doc Logs specified debug formatted text.
 -spec trace_debug( format_string(), [ term() ], user_state() ) -> user_state().
 trace_debug( FormatString, Values,
 			 UserState=#user_state{ log_file=LogFile } ) ->
@@ -3122,7 +3137,7 @@ trace_debug( FormatString, Values,
 
 
 
-% Stops user-related services (normal exit).
+% @doc Stops user-related services (normal exit).
 -spec stop_user_service( user_state() ) -> void().
 stop_user_service( UserState=#user_state{ log_file=LogFile } ) ->
 
@@ -3142,7 +3157,7 @@ stop_user_service( UserState=#user_state{ log_file=LogFile } ) ->
 
 
 
-% Checks that the source and target (absolute) directories exist.
+% @doc Checks that the source and target (absolute) directories exist.
 -spec check_content_trees( bin_directory_path(), bin_directory_path() ) ->
 									void().
 check_content_trees( InputTreePath, ReferenceTreePath ) ->
@@ -3173,14 +3188,16 @@ check_content_trees( InputTreePath, ReferenceTreePath ) ->
 
 
 
-% Returns the path of the cache file corresponding to the specified tree path.
+% @doc Returns the path of the cache file corresponding to the specified tree
+% path.
+%
 -spec get_cache_path_for( bin_directory_path() ) -> bin_file_path().
 get_cache_path_for( BinTreePath ) ->
 	file_utils:bin_join( BinTreePath, ?merge_cache_filename ).
 
 
 
-% Ensures that specified tree path exists.
+% @doc Ensures that specified tree path exists.
 -spec check_tree_path_exists( any_directory_path() ) -> void().
 check_tree_path_exists( AnyTreePath ) ->
 
@@ -3198,9 +3215,9 @@ check_tree_path_exists( AnyTreePath ) ->
 
 
 
-% Updates specified content tree (based on a "weak" check): verifies that it
-% exists, that a merge cache file exists and is up to date (otherwise rebuilds
-% it), and returns the corresponding tree datastructure.
+% @doc Updates specified content tree (based on a "weak" check): verifies that
+% it exists, that a merge cache file exists and is up to date (otherwise
+% rebuilds it), and returns the corresponding tree datastructure.
 %
 -spec update_content_tree( bin_directory_path(), analyzer_ring(),
 						   user_state() ) -> tree_data().
@@ -3251,9 +3268,9 @@ update_content_tree( BinTreePath, AnalyzerRing, UserState ) ->
 
 
 
-% Returns the last content modification timestamp of the most recently modified
-% file (the merge cache file excluded) in specified tree, and a list of the
-% actual files (as relative paths).
+% @doc Returns the last content modification timestamp of the most recently
+% modified file (the merge cache file excluded) in specified tree, and a list of
+% the actual files (as relative paths).
 %
 -spec find_newest_timestamp_from( bin_directory_path(), bin_file_path() ) ->
 						{ maybe( posix_seconds() ), [ bin_file_path() ] }.
@@ -3286,7 +3303,7 @@ find_newest_timestamp_from( RootPath, CacheFilePath ) ->
 
 
 
-% Returns the lastest modification timestamp among the specified files.
+% @doc Returns the lastest modification timestamp among the specified files.
 get_newest_timestamp( _ContentFiles=[], _RootPath, MostRecentTimestamp ) ->
 	MostRecentTimestamp;
 
@@ -3390,8 +3407,9 @@ handle_newest_timestamp( NewestTimestamp, ContentFiles, CacheFilePath,
 
 
 
-% Creates an automatically named merge cache file for specified content tree
-% (overwriting any priorly existing merge cache file), and returns that tree.
+% @doc Creates an automatically named merge cache file for specified content
+% tree (overwriting any priorly existing merge cache file), and returns that
+% tree.
 %
 -spec create_merge_cache_file_for( directory_path(), analyzer_ring(),
 								   user_state() ) -> tree_data().
@@ -3415,7 +3433,7 @@ create_merge_cache_file_for( TreePath, AnalyzerRing, UserState ) ->
 
 
 
-% Performs the actual writing of a cache file.
+% @doc Performs the actual writing of a cache file.
 -spec write_cache_file( tree_data(), user_state() ) -> void().
 write_cache_file( TreeData=#tree_data{ root=BinRootDir }, UserState ) ->
 
@@ -3436,7 +3454,7 @@ write_cache_file( TreeData=#tree_data{ root=BinRootDir }, UserState ) ->
 
 
 
-% Writes the header of specified cache file.
+% @doc Writes the header of specified cache file.
 -spec write_cache_header( file() ) -> void().
 write_cache_header( File ) ->
 
@@ -3460,7 +3478,7 @@ write_cache_header( File ) ->
 
 
 
-% Writes the footer of specified cache file.
+% @doc Writes the footer of specified cache file.
 -spec write_cache_footer( file() ) -> void().
 write_cache_footer( File ) ->
 	file_utils:write_ustring( File, "~n% End of merge cache file (at ~ts).",
@@ -3468,7 +3486,7 @@ write_cache_footer( File ) ->
 
 
 
-% Writes the specified tree data into specified file.
+% @doc Writes the specified tree data into specified file.
 write_tree_data( MergeFile, #tree_data{ root=BinRootDir,
 										entries=Entries }, _UserState ) ->
 
@@ -3561,7 +3579,7 @@ write_entries( File,
 
 
 
-% Checking on the SHA1:
+% @doc Checking on the SHA1:
 get_file_content_for( SHA1, FileDataElems ) ->
 	% Storage format a bit different from working one:
 	[ { SHA1, RelativePath, Size, Timestamp }
@@ -3575,8 +3593,8 @@ get_file_content_for( SHA1, FileDataElems ) ->
 
 
 
-% Reads as it is specified cache file, performs first checks and returns the
-% corresponding tree data.
+% @doc Reads as it is specified cache file, performs first checks and returns
+% the corresponding tree data.
 %
 % Cache file expected to be already checked existing.
 %
@@ -3621,8 +3639,8 @@ read_cache_file( CacheFilePath, UserState ) ->
 
 
 
-% Spawns the specified number of data analyzers, and returns a list of their
-% PID.
+% @doc Spawns the specified number of data analyzers, and returns a list of
+% their PID.
 %
 -spec spawn_data_analyzers( count(), user_state() ) -> [ analyzer_pid() ].
 spawn_data_analyzers( Count, _UserState ) ->
@@ -3632,7 +3650,7 @@ spawn_data_analyzers( Count, _UserState ) ->
 
 
 
-% Terminates specified data analyzers.
+% @doc Terminates specified data analyzers.
 -spec terminate_analyzer_ring( ring_utils:ring( analyzer_pid() ),
 							   user_state() ) -> void().
 terminate_analyzer_ring( AnalyzerRing, UserState ) ->
@@ -3646,7 +3664,7 @@ terminate_analyzer_ring( AnalyzerRing, UserState ) ->
 
 
 
-% Scans for good the specified tree, whose path is expected to exist.
+% @doc Scans for good the specified tree, whose path is expected to exist.
 -spec scan_tree( directory_path(), analyzer_ring(), user_state() ) ->
 						tree_data().
 scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
@@ -3675,7 +3693,7 @@ scan_tree( AbsTreePath, AnalyzerRing, UserState ) ->
 
 
 
-% Scans specified content files, using for that the specified analyzers,
+% @doc Scans specified content files, using for that the specified analyzers,
 % returning the corresponding tree data.
 %
 -spec scan_files( [ bin_file_path() ], bin_directory_path(), analyzer_ring(),
@@ -3734,7 +3752,7 @@ scan_files( _Files=[ Filename | T ], TreeData=#tree_data{ root=BinAbsTreePath },
 
 
 
-% Manages specified received file data, and returns an updated tree data.
+% @doc Manages specified received file data, and returns an updated tree data.
 -spec manage_received_data( file_data(), tree_data() ) -> tree_data().
 manage_received_data( FileData=#file_data{ type=Type, sha1_sum=Sum },
 					  TreeData=#tree_data{ entries=Entries,
@@ -3781,7 +3799,7 @@ manage_received_data( FileData=#file_data{ type=Type, sha1_sum=Sum },
 
 
 
-% Waits for the remaining file entries to be analyzed.
+% @doc Waits for the remaining file entries to be analyzed.
 wait_entries( TreeData, _WaitedCount=0 ) ->
 	%trace_debug( "All file entries waited for finally obtained." ),
 	TreeData;
@@ -3805,7 +3823,7 @@ wait_entries( TreeData, WaitedCount ) ->
 
 
 
-% The loop run by each analyzer process.
+% @doc The loop run by each analyzer process.
 -spec analyze_loop() -> void().
 analyze_loop() ->
 
@@ -3892,7 +3910,7 @@ analyze_loop() ->
 
 
 
-% Interacts with the user so that the specified tree can be deduplicated
+% @doc Interacts with the user so that the specified tree can be deduplicated
 % ("uniquified").
 %
 -spec deduplicate_tree( tree_data(), user_state() ) -> tree_data().
@@ -3964,8 +3982,8 @@ deduplicate_tree( TreeData=#tree_data{ root=BinRootDir,
 
 
 
-% Manages all duplicates found in specified table, returns an updated table and
-% the number of files (usually only extra duplicates, sometimes *all* files
+% @doc Manages all duplicates found in specified table, returns an updated table
+% and the number of files (usually only extra duplicates, sometimes *all* files
 % corresponding to a given content) that have been removed.
 %
 -spec manage_duplicates( sha1_table(), bin_directory_path(), user_state() ) ->
@@ -4041,8 +4059,8 @@ manage_duplicates( EntryTable, BinRootDir, UserState ) ->
 
 
 
-% Filters the duplications from specified content entries: returns the actual
-% duplications in a list, put the unique files in a new table.
+% @doc Filters the duplications from specified content entries: returns the
+% actual duplications in a list, put the unique files in a new table.
 %
 -spec filter_duplications( [ sha1_entry() ] ) ->
 									{ [ sha1_entry() ], sha1_table() }.
@@ -4071,7 +4089,7 @@ filter_duplications( _SHA1Entries=[ SHA1Entry | T ],
 
 
 
-% Processes the spotted duplications by asking the user.
+% @doc Processes the spotted duplications by asking the user.
 -spec process_duplications( [ sha1_entry() ], count(), sha1_table(),
 			bin_directory_path(), user_state() ) -> { sha1_table(), count() }.
 process_duplications( DuplicationCases, TotalDupCaseCount, UniqueTable,
@@ -4130,9 +4148,9 @@ process_duplications_helper( _DupCases=[ { Sha1Key, DuplicateList } | T ],
 
 
 
-% Checks a duplication set: same SHA1 sum and also size must be found for all
-% file entries (would most probably detect any SHA1 collision, however unlikely
-% it maybe); returns the (common) size.
+% @doc Checks a duplication set: same SHA1 sum and also size must be found for
+% all file entries (would most probably detect any SHA1 collision, however
+% unlikely it maybe); returns the (common) size.
 %
 -spec check_duplicates( sha1(), [ file_data() ] ) -> byte_size().
 % Not possible: check_duplicates( _SHA1Sum, _DuplicateList=[] ) ->
@@ -4161,7 +4179,7 @@ check_duplicates( SHA1Sum, FirstPath, Size, _DuplicateList=[
 
 
 
-% Manages specified duplicated entries.
+% @doc Manages specified duplicated entries.
 %
 % Returns the (regular) files that remain for that content.
 %
@@ -4344,7 +4362,7 @@ manage_duplication_case( FileEntries, DuplicationCaseCount, TotalDupCaseCount,
 
 
 
-% Deduplicates automatically the specified cases.
+% @doc Deduplicates automatically the specified cases.
 %
 % Here we resolve automatically all cases, by selecting the shortest of the
 % duplicate filenames and by transforming the others into symlinks pointing to
@@ -4411,8 +4429,8 @@ auto_dedup( _DuplicationCases=[ { Sha1Key, DuplicateList } | T ], AccTable,
 
 
 
-% Returns the file_data record in the specified list that corresponds to the
-% specified path.
+% @doc Returns the file_data record in the specified list that corresponds to
+% the specified path.
 %
 -spec find_data_entry_for( file_path(), [ file_data() ] ) -> file_data().
 find_data_entry_for( FilePath, _FileEntries=[] ) ->
@@ -4428,9 +4446,9 @@ find_data_entry_for( FilePath, _FileEntries=[ _FD | T ] ) ->
 
 
 
-% Selects among the specified files the one with the shortest path, which is
-% kept as is, while, if requested, the others are replaced by symlinks pointing
-% to it, and returns its filename as a binary.
+% @doc Selects among the specified files the one with the shortest path, which
+% is kept as is, while, if requested, the others are replaced by symlinks
+% pointing to it, and returns its filename as a binary.
 %
 -spec keep_shortest_path( ustring(), [ bin_file_path() ], bin_directory_path(),
 						  boolean(), user_state() ) -> bin_file_path().
@@ -4479,8 +4497,8 @@ keep_shortest_path( Prefix, TrimmedPaths, BinRootDir, CreateSymlinks,
 
 
 
-% Selects among the specified files the single one that shall be kept while the
-% others are removed, and returns its filename as a binary.
+% @doc Selects among the specified files the single one that shall be kept while
+% the others are removed, and returns its filename as a binary.
 %
 -spec keep_only_one( ustring(), [ bin_file_path() ], [ bin_file_path() ],
 					 bin_directory_path(), user_state() ) -> bin_file_path().
@@ -4534,9 +4552,9 @@ keep_only_one( Prefix, TrimmedPaths, PathStrings, BinRootDir, UserState ) ->
 
 
 
-% Selects among the specified files the single one that shall be elected and
-% kept, while the others are removed and replaced by symlinks pointing to that
-% file, and returns it as a binary.
+% @doc Selects among the specified files the single one that shall be elected
+% and kept, while the others are removed and replaced by symlinks pointing to
+% that file, and returns it as a binary.
 %
 -spec elect_and_link( ustring(), [ bin_file_path() ], [ bin_file_path() ],
 					  bin_directory_path(), user_state() ) -> bin_file_path().
@@ -4613,10 +4631,10 @@ create_links_to( TargetFilePath, _LinkPaths= [ Link | T ], BinRootDir ) ->
 
 
 
-% Performs a quick check (i.e. with no checksum computed of the file contents)
-% of the specified tree, against the specified cache file: check that both file
-% sets match (no extra element on either size) and that the cached and actual
-% file sizes match as well.
+% @doc Performs a quick check (i.e. with no checksum computed of the file
+% contents) of the specified tree, against the specified cache file: check that
+% both file sets match (no extra element on either size) and that the cached and
+% actual file sizes match as well.
 %
 -spec quick_cache_check( file_path(), [ file_path() ], bin_directory_path(),
 					analyzer_ring(), user_state() ) -> maybe( tree_data() ).
@@ -4805,7 +4823,7 @@ quick_cache_check_helper( BinFQDN, ContentFiles, BinActualTreePath,
 
 
 
-% Builds the entry table from specified terms.
+% @doc Builds the entry table from specified terms.
 -spec build_entry_table( [ file_info() ] ) -> sha1_table().
 build_entry_table( FileInfos ) ->
 
@@ -4841,7 +4859,7 @@ build_entry_table( _FileInfos=[ Unexpected | _T ], _EntryTable ) ->
 
 
 
-% Checks that the actual file sizes match the specified ones.
+% @doc Checks that the actual file sizes match the specified ones.
 -spec check_file_sizes_match( [ { file_path(), byte_size() } ],
 							  directory_path(), user_state() ) -> boolean().
 check_file_sizes_match( _FilePairs=[], _TreePath, _UserState ) ->
@@ -4870,8 +4888,9 @@ check_file_sizes_match( _FilePairs=[ { FilePath, FileSize } | T ], TreePath,
 
 
 
-% Returns a pair made of the path of the delta file corresponding to the content
-% in first space and not in second, and of the (opened) delta file itself.
+% @doc Returns a pair made of the path of the delta file corresponding to the
+% content in first space and not in second, and of the (opened) delta file
+% itself.
 %
 % Any pre-existing file on the same name will be removed.
 % The returned file shall be closed by the caller.
@@ -4934,8 +4953,8 @@ prepare_delta( FirstHostname, FirstRootPath, SecondHostname,
 
 
 
-% Returns a textual description of specified lacking cached content, and writes
-% a corresponding information in specified opened file (if any).
+% @doc Returns a textual description of specified lacking cached content, and
+% writes a corresponding information in specified opened file (if any).
 %
 -spec list_lacking_content( [ sha1() ], sha1_table(), ustring(),
 			maybe( bin_directory_path() ), maybe( file() ) ) -> ustring().
@@ -5033,7 +5052,7 @@ find_regular_files_from( TreePath ) ->
 
 
 
-% Tells whether the specified tree is uniquified.
+% @doc Tells whether the specified tree is uniquified.
 -spec is_uniquified( tree_data() ) -> boolean().
 is_uniquified( #tree_data{ entries=EntryTable } ) ->
 	FileDataLists = table:values( EntryTable ),
@@ -5053,7 +5072,7 @@ is_uniquified_helper( _FileDataLists ) ->
 
 
 
-% Returns a textual description of the specified niquification status.
+% @doc Returns a textual description of the specified niquification status.
 -spec uniquified_to_string( boolean() ) -> ustring().
 uniquified_to_string( true ) ->
 	"is uniquified";
@@ -5063,7 +5082,7 @@ uniquified_to_string( false ) ->
 
 
 
-% Returns a textual description of the count of the specified content.
+% @doc Returns a textual description of the count of the specified content.
 -spec count_content( [ sha1() ] | count() ) -> ustring().
 count_content( L ) when is_list( L ) ->
 	count_content( length( L ) );
@@ -5080,14 +5099,14 @@ count_content( Count ) ->
 
 
 
-% Removes specified file.
+% @doc Removes specified file.
 -spec remove_file( bin_file_path(), user_state() ) -> void().
 remove_file( FileToRemove, UserState ) ->
 	trace_debug( " - removing file '~ts'", [ FileToRemove ], UserState ),
 	file_utils:remove_file( FileToRemove ).
 
 
-% Removes specified files.
+% @doc Removes specified files.
 -spec remove_files( [ bin_file_path() ], user_state() ) -> void().
 remove_files( _FilesToRemove=[], _UserState ) ->
 	ok;
@@ -5104,7 +5123,7 @@ remove_files( FilesToRemove, UserState ) ->
 
 
 
-% Removes specified tree as a whole.
+% @doc Removes specified tree as a whole.
 -spec remove_tree( bin_directory_path(), user_state() ) -> void().
 remove_tree( BinTreePath, UserState ) ->
 	% Recursive removal, beware!
@@ -5113,7 +5132,7 @@ remove_tree( BinTreePath, UserState ) ->
 
 
 
-% Reports specified notifications.
+% @doc Reports specified notifications.
 -spec report_notifications( [ ustring() ], user_state() ) -> void().
 report_notifications( _Notifications=[], UserState ) ->
 	trace_debug( "No specific notification to report.", UserState );
@@ -5152,14 +5171,14 @@ report_notifications( Notifications, UserState ) ->
 
 
 
-% Displays a scan notification.
+% @doc Displays a scan notification.
 -spec display_scan_notification( bin_file_path() ) -> void().
 display_scan_notification( CacheFilePath ) ->
 	ui:display_instant( "No cache file ('~ts') found, performing a full scan "
 		"to recreate it... (might be long)", [ CacheFilePath ] ).
 
 
-% Displays information about specified tree data, with a default prompt.
+% @doc Displays information about specified tree data, with a default prompt.
 -spec display_tree_data( tree_data(), user_state() ) -> void().
 display_tree_data( TreeData=#tree_data{ root=RootDir }, UserState ) ->
 
@@ -5169,7 +5188,7 @@ display_tree_data( TreeData=#tree_data{ root=RootDir }, UserState ) ->
 
 
 
-% Displays information about specified tree data, with specified prompt.
+% @doc Displays information about specified tree data, with specified prompt.
 -spec display_tree_data( tree_data(), ui:prompt(), user_state() ) -> void().
 display_tree_data( TreeData=#tree_data{ entries=EntryTable,
 										file_count=FileCount },
@@ -5216,14 +5235,14 @@ display_tree_data( TreeData=#tree_data{ entries=EntryTable,
 
 
 
-% Returns a textual description of specified tree data.
+% @doc Returns a textual description of specified tree data.
 -spec tree_data_to_string( tree_data() ) -> ustring().
 tree_data_to_string( TreeData ) ->
 	tree_data_to_string( TreeData, _Verbose=false ).
 
 
 
-% Returns a textual description of specified tree data, with specified
+% @doc Returns a textual description of specified tree data, with specified
 % verbosity.
 %
 -spec tree_data_to_string( tree_data(), boolean() ) -> ustring().
@@ -5277,7 +5296,7 @@ tree_data_to_string( TreeData, _Verbose=true ) ->
 
 
 
-% Returns a textual description of specified file data.
+% @doc Returns a textual description of specified file data.
 -spec file_data_to_string( file_data() ) -> ustring().
 file_data_to_string( #file_data{ path=Path,
 								 size=Size,
@@ -5290,7 +5309,7 @@ file_data_to_string( #file_data{ path=Path,
 		"timestamp is ~p", [ Path, SizeString, Sum, Timestamp ] ).
 
 
-% Returns a textual description of specified SHA1.
+% @doc Returns a textual description of specified SHA1.
 -spec sha1_to_string( sha1() ) -> ustring().
 sha1_to_string( SHA1 ) ->
 	% Mimics the output of the sha1sum executable:
