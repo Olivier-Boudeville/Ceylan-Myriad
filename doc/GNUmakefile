@@ -25,7 +25,8 @@ PROJECT_CSS := pygments-default.css,myriad.css
 
 PROJECT_ICON := myriad-icon.png
 
-WEB_CONTENT = *.html *.css *.png *.pdf
+WEB_CONTENT = *.html *.css *.png *.pdf api-doc
+
 
 # Read from the user's environment:
 GITHUB_PAGES_BASE := $(shell basename "$(MYRIAD_WEB_MIRROR_BRANCH)")
@@ -33,7 +34,7 @@ GITHUB_PAGES_BASE := $(shell basename "$(MYRIAD_WEB_MIRROR_BRANCH)")
 
 
 .PHONY: doc all full-doc create-links html pdf clone-mirror            \
-		export-doc export-to-official export-to-mirror                 \
+		export-doc export-doc-to-official export-doc-to-mirror         \
 		clean clean-doc clean-links info info-web                      \
 		test uml-diagram-test
 
@@ -42,6 +43,7 @@ GITHUB_PAGES_BASE := $(shell basename "$(MYRIAD_WEB_MIRROR_BRANCH)")
 # Default do-nothing target:
 all:
 	@echo "  Run 'make full-doc' to generate the manual of the 'Myriad' layer."
+
 
 doc:
 
@@ -58,6 +60,10 @@ html: clean-doc $(HTML_TARGET)
 
 pdf: clean-doc $(PDF_TARGET)
 
+api:
+	@cd $(LAYER_TOP) && $(MAKE) -s generate-api-doc
+
+
 
 # Creates a separate repository for the GitHub pages branch:
 # (please then remove all initial content of that branch)
@@ -66,7 +72,7 @@ clone-mirror:
 	@cd ../../ && git clone https://github.com/Olivier-Boudeville/Ceylan-Myriad.git $(GITHUB_PAGES_BASE) && cd $(GITHUB_PAGES_BASE) && git checkout -b gh-pages
 
 
-export-doc: clean-doc full-doc export-to-official export-to-mirror
+export-doc: clean-doc full-doc export-doc-to-official export-doc-to-mirror
 
 
 # Drawback: scp will not preserve symlinks, it will duplicate files instead.
@@ -75,14 +81,14 @@ export-doc: clean-doc full-doc export-to-official export-to-mirror
 # not a set of files), so currently not used:
 # rsync -avze "ssh $(SP)" $(SOME_WEB_TREE) $(WEB_SRV):$(WEB_ROOT)/Myriad/
 #
-export-to-official: create-links $(DOC_GENERATED_FILES)
+export-doc-to-official: create-links $(DOC_GENERATED_FILES)
 	@echo "   Exporting Myriad documentation to official website ($(WEB_SRV))"
-	@/bin/scp $(SP) $(WEB_CONTENT) $(WEB_SRV):$(WEB_ROOT)/Myriad/
+	@/bin/scp $(SP) -r $(WEB_CONTENT) $(WEB_SRV):$(WEB_ROOT)/Myriad/
 
 
-export-to-mirror: create-links $(DOC_GENERATED_FILES)
+export-doc-to-mirror: create-links $(DOC_GENERATED_FILES)
 	@echo "   Exporting Myriad documentation to mirror website in $(MYRIAD_WEB_MIRROR_BRANCH)"
-	@/bin/cp -f $(WEB_CONTENT) $(MYRIAD_WEB_MIRROR_BRANCH) && cd $(MYRIAD_WEB_MIRROR_BRANCH) && git add . && git merge -s ours && git commit -m "Myriad doc updated." && git push && git pull --ff-only
+	@/bin/cp -rf $(WEB_CONTENT) $(MYRIAD_WEB_MIRROR_BRANCH) && cd $(MYRIAD_WEB_MIRROR_BRANCH) && git add . && git merge -s ours && git commit -m "Myriad doc updated." && git push && git pull --ff-only
 
 
 
@@ -92,6 +98,7 @@ clean: clean-doc
 clean-doc: clean-links
 	@echo "     Cleaning documentation"
 	-@/bin/rm -f *.aux *.log *.maf *.mtc* *.stc* *.tex *.toc $(DOC_GENERATED_FILES)
+	-@/bin/rm -rf api-doc
 
 
 clean-links:
