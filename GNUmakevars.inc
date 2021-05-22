@@ -1327,9 +1327,14 @@ endif
 
 # When relying directly on edoc:
 
-API_DOC_ROOT := $(LAYER_TOP)/doc/api-doc
+ifndef
+	API_DOC_ROOT := $(LAYER_TOP)/doc/api-doc
+endif
 
-EDOC_OPTS := '[{dir,"$(API_DOC_ROOT)"}, {def,{vsn,"$(PROJECT_VERSION)"}}, {preprocess,true}, {macros,[{use_crypto_module, false}]}, {includes,["$(LAYER_TOP)/include"]}, {overview, "$(LAYER_TOP)/overview.edoc"}]'
+
+ifndef EDOC_OPTS
+	EDOC_OPTS = '[{dir,"$(API_DOC_ROOT)"}, {def,{vsn,"$(PROJECT_VERSION)"}}, {preprocess,true}, {macros,[{use_crypto_module, false}]}, {includes,["$(LAYER_TOP)/include"]}, {overview, "$(LAYER_TOP)/overview.edoc"}]'
+endif
 
 
 # When relying directly on erldocs:
@@ -1337,12 +1342,13 @@ EDOC_OPTS := '[{dir,"$(API_DOC_ROOT)"}, {def,{vsn,"$(PROJECT_VERSION)"}}, {prepr
 API_DOC_ALT_ROOT := $(LAYER_TOP)/doc/api-doc-alt
 
 
-# We tested erldocs (see https://github.com/erldocs/erldocs), uet vanilla edoc
+# We tested erldocs (see https://github.com/erldocs/erldocs), yet vanilla edoc
 # seems to generate a lot more informational content so is preferred now:
 #
-ifndef API_DOC_GENERATOR
-	API_DOC_GENERATOR := $$(which erldocs 2>/dev/null)
-endif
+# (commented out as was misleading)
+#ifndef API_DOC_GENERATOR
+#	API_DOC_GENERATOR := $$(which erldocs 2>/dev/null)
+#endif
 
 
 
