@@ -867,6 +867,7 @@ overview.edoc: doc/overview.edoc.template
 clean-api-doc:
 	@echo "  Cleaning generated API documentation"
 	@/bin/rm -rf "$(API_DOC_ROOT)" 2>/dev/null
+	@/bin/rm -f overview.edoc 2>/dev/null
 
 
 clean-api-alt-doc:
