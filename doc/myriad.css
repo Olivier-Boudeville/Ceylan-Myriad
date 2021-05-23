@@ -42,6 +42,12 @@ div.centered {
 }
 
 
+div.contents {
+	border: solid;
+	border-width: thin;
+}
+
+
 body {
   color: #122155;
   background: #FFFFFF;
@@ -424,7 +430,7 @@ td a {
 
 
 a:link {
-  color:#053CCA;
+  color:#053CDA;
   background: transparent;
   font-weight: bold;
   text-decoration: none;
@@ -433,7 +439,7 @@ a:link {
 
 
 a:visited {
-  color: #345ddf;
+  color: #487df4;
   background: transparent;
   font-weight: bold;
   text-decoration: none;
