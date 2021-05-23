@@ -60,12 +60,11 @@ html: clean-doc $(HTML_TARGET)
 
 pdf: clean-doc $(PDF_TARGET)
 
-
 api:
 	@cd $(LAYER_TOP) && $(MAKE) -s generate-api-doc
 
 
-# Generation of the actual tree:
+# To generate the actual API documentation tree:
 api-doc: api
 
 
