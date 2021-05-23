@@ -20,7 +20,7 @@ body {
   color: #122155;
   background-color: #ffffff;
   font-family: Verdana, Arial, Helvetica, sans-serif;
-  font-size: 14px;
+  font-size: 15px;
   margin-left: 3%;
 }
 
@@ -270,6 +270,27 @@ a.index {
   text-decoration: underline;
 }
 
+
+a:link {
+  color:#053CDA;
+  background: transparent;
+  font-weight: bold;
+  text-decoration: none;
+  /*font-size: 110%;  */
+}
+
+
+a:visited {
+  color: #487df4;
+  background: transparent;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+
+a:hover {
+  text-decoration: underline;
+}
 
 a.module {
 	text-decoration:none
