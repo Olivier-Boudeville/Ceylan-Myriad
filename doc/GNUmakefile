@@ -33,7 +33,7 @@ GITHUB_PAGES_BASE := $(shell basename "$(MYRIAD_WEB_MIRROR_BRANCH)")
 
 
 
-.PHONY: doc all full-doc create-links html pdf clone-mirror            \
+.PHONY: doc all full-doc create-links html pdf api clone-mirror        \
 		export-doc export-doc-to-official export-doc-to-mirror         \
 		clean clean-doc clean-links info info-web                      \
 		test uml-diagram-test
@@ -60,9 +60,13 @@ html: clean-doc $(HTML_TARGET)
 
 pdf: clean-doc $(PDF_TARGET)
 
+
 api:
 	@cd $(LAYER_TOP) && $(MAKE) -s generate-api-doc
 
+
+# Generation of the actual tree:
+api-doc: api
 
 
 # Creates a separate repository for the GitHub pages branch:
