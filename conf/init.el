@@ -86,6 +86,7 @@
 (setq auto-mode-alist
 	  (append '(("\\.txt$"  . rst-mode)
 				("\\.rst$"  . rst-mode)
+				("\\.rst.template$"  . rst-mode)
 				("\\.rest$" . rst-mode)) auto-mode-alist))
 
 
