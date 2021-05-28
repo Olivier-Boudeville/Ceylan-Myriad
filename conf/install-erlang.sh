@@ -132,7 +132,7 @@ For Debian-based distributions, you should preferably run beforehand, as root: '
 #
 # Another related problem is that libtinfo.so might not be found. A solution is
 # to create a symlink to libncurses, which include it:
-# cd /usr/lib ; ln -s libncurses.so.5 -T libtinfo.so.5
+# cd /usr/lib; ln -s libncurses.so.5 -T libtinfo.so.5
 #
 # For Arch display-less servers:
 # pacman -S gcc make openssl
@@ -509,7 +509,7 @@ else
 	if [ "${computed_md5}" = "${erlang_md5}" ]; then
 		echo "MD5 sum for Erlang source archive matches."
 	else
-		echo "Error, MD5 sums not matching for Erlang source archive: expected '${erlang_md5}', computed '${computed_md5}'." 1>&2
+		echo "Error, MD5 sums not matching for Erlang source archive '${erlang_src_archive}': expected '${erlang_md5}', computed '${computed_md5}'." 1>&2
 		exit 25
 	fi
 
