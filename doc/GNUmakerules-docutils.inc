@@ -163,6 +163,14 @@ RST_GENERATOR := $$(PATH=$(MYRIAD_TOP)/src/scripts:$$PATH which generate-docutil
 PDF_VIEWER := $$(which evince)
 
 
+# Generates the actual, up-to-date HTML page corresponding to the specified
+# template (typically useful for the documentation main pages).
+#
+%.rst: %.rst.template
+	@echo "  Generating $@ from $<"
+	@cat $< | sed "s|PROJECT_VERSION|$(PROJECT_VERSION)|g" | sed "s|GENERATION_DATE|$$(date '+%A, %B %-e, %Y')|g" > $@
+
+
 # To trigger the automatic rendering of a created PDF, add 'VIEW_PDF='
 # at the end of the command line (ex : 'make MyDoc.pdf VIEW_PDF=')
 #VIEW_PDF := yes
@@ -183,6 +191,16 @@ VIEW_PDF := no
 	@echo "     Generating PDF report $@ from $<"
 	@if $(RST_GENERATOR) $< --pdf ; then if [ "$(VIEW_PDF)" != "no" ]; then $(PDF_VIEWER) $@ & fi; else exit 15 ; fi
 
+
+
+# Generates a module-specific documentation, typically from the directory in
+# which that module is defined.
+#
+# Ex: make ../../doc/api-doc/app_facilities.html
+#
+$(API_DOC_ROOT)/%.html: %.erl
+	@echo "    Generating edoc documentation for module '$<' in $@"
+	@$(ERLANG_INTERPRETER) -noshell -run edoc_run file '"$<"' $(EDOC_OPTS)
 
 
 
@@ -214,7 +232,6 @@ info-doc-tools:
 	@echo "RST_GENERATOR = $(RST_GENERATOR)"
 
 
-
 # Centralization of documentation sources is necessary, as the LaTeX generator
 # from docutils will not find images in directories otherwise.
 #
@@ -233,11 +250,13 @@ create-doc: regenerate-doc clean-doc-repository make-doc-repository
 # As no Makefile in TMP_RST_REPOSITORY:
 
 create-html-doc:
+	@echo "  Generating $(TMP_RST_REPOSITORY)/$(OVERALL_DOCUMENT_HTML_TARGET)"
 	@$(MAKE) -s $(TMP_RST_REPOSITORY)/$(OVERALL_DOCUMENT_HTML_TARGET) 2>&1 | \
 	tee $(GENERATOR_LOG_FILE)
 
 
 create-pdf-doc:
+	@echo "  Generating $(TMP_RST_REPOSITORY)/$(OVERALL_DOCUMENT_PDF_TARGET)"
 	@$(MAKE) -s $(TMP_RST_REPOSITORY)/$(OVERALL_DOCUMENT_PDF_TARGET) 2>&1 | \
 	tee $(GENERATOR_LOG_FILE)
 
