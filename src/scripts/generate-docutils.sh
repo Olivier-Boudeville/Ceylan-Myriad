@@ -10,7 +10,6 @@
 # layers upward, and we do not want to introduce an extra dependency to
 # Ceylan-Hull.
 
-
 # Notes:
 #
 #  - docutils has been finally preferred to txt2tags
@@ -297,6 +296,7 @@ manage_rst_to_pdf()
 
 	# Input extension is generally '.rst' (allows to remove only the final
 	# extension, even if there were dots in the base name):
+	#
 	tex_file=$(echo ${source} | sed 's|\.[^\.]*$|.tex|1')
 
 
@@ -373,6 +373,18 @@ manage_rst_to_pdf()
 			fi
 
 		fi
+
+	fi
+
+	echo "target = ${target}"
+
+	if [ -f "${target}" ]; then
+
+		echo "PDF ready, in '${target}'."
+
+	else
+
+		echo "Error, no PDF obtained (no '${target}')."
 
 	fi
 
