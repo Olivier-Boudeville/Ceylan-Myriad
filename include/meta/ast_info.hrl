@@ -33,9 +33,10 @@
 
 
 
-% Description of a module name:
--type module_entry() :: basic_utils:maybe(
-					{ basic_utils:module_name(), ast_info:located_form() } ).
+-type module_entry() ::
+	basic_utils:maybe( { basic_utils:module_name(), ast_info:located_form() } ).
+% Description of a module name.
+
 
 
 % A record to store and centralise information gathered about an Erlang
