@@ -240,9 +240,12 @@ info-doc-tools:
 full-doc: create-doc
 
 
-create-doc: regenerate-doc clean-doc-repository make-doc-repository
+# The documentation source is also listed among the prerequisites, as this X.rst
+# might be generated from a X.rst.template file:
+#
+create-doc: $(OVERALL_DOCUMENT_SOURCE) regenerate-doc clean-doc-repository make-doc-repository
 	@echo "     Generating full documentation from \
-	$(OVERALL_DOCUMENT_SOURCE) in $(TMP_RST_REPOSITORY)  \
+	$(OVERALL_DOCUMENT_SOURCE) in $(TMP_RST_REPOSITORY) \
 	(log in $(GENERATOR_LOG_FILE))"
 	@$(MAKE) -s create-html-doc create-pdf-doc
 
