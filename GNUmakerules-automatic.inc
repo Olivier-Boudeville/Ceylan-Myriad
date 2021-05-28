@@ -265,25 +265,6 @@
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER $(INTERNAL_OPTIONS) -extra $(CMD_LINE_OPT)
 
 
-
 %.plt: %.beam
 	@echo "    Checking module '$<' against relevant PLT ($(PLT_FILE))"
 	@$(DIALYZER) $(DIALYZER_OPT) --plt $(PLT_FILE) $<
-
-
-# Generates a module-specific documentation, typically from the directory in
-# which that module is defined.
-#
-# Ex: make ../../doc/api-doc/app_facilities.html
-#
-$(API_DOC_ROOT)/%.html: %.erl
-	@echo "    Generating edoc documentation for module '$<' in $@"
-	@$(ERLANG_INTERPRETER) -noshell -run edoc_run file '"$<"' $(EDOC_OPTS)
-
-
-# Generates the actual, up-to-date HTML page corresponding to the specified
-# template (typically useful for the documentation main pages.
-#
-%.rst: %.rst.template
-	@echo "  Generating $@ from $<"
-	@cat $< | sed "s|PROJECT_VERSION|$(PROJECT_VERSION)|g" | sed "s|GENERATION_DATE|$$(date '+%A, %B %-e, %Y')|g" > $@
