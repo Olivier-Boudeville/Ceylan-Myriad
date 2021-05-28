@@ -376,15 +376,15 @@ manage_rst_to_pdf()
 
 	fi
 
-	echo "target = ${target}"
+	#echo "target = ${target}"
 
 	if [ -f "${target}" ]; then
 
-		echo "PDF ready, in '${target}'."
+		echo "PDF ready, in '$(pwd)/${target}'."
 
 	else
 
-		echo "Error, no PDF obtained (no '${target}')."
+		echo "Error, no PDF obtained (no '$(pwd)/${target}')."
 
 	fi
 
