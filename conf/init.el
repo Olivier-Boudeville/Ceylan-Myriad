@@ -238,7 +238,10 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;; Regarding sideline:
 (setq lsp-ui-sideline-show-diagnostics t)
 (setq lsp-ui-sideline-show-hover t)
-(setq lsp-ui-sideline-show-code-actions t)
+
+;;(setq lsp-ui-sideline-show-code-actions t)
+(setq lsp-ui-sideline-show-code-actions nil)
+
 ;;(setq lsp-ui-sideline-update-mode 'line)
 ;;(setq lsp-ui-sideline-delay ...
 
