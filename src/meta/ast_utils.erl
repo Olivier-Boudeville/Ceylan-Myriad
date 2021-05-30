@@ -975,18 +975,19 @@ raise_usage_error( ErrorFormatString, ErrorValues, Filename ) ->
 raise_usage_error( ErrorFormatString, ErrorValues, Filename,
 				   _Line=undefined ) ->
 	raise_usage_error( ErrorFormatString, ErrorValues, Filename,
-					   _ActualLine=0 );
+					   _ActualFileLoc=0 );
 
-raise_usage_error( ErrorFormatString, ErrorValues, ModuleName, Line )
+raise_usage_error( ErrorFormatString, ErrorValues, ModuleName, FileLoc )
   when is_atom( ModuleName ) ->
 	Filename = io_lib:format( "~ts.erl", [ ModuleName ] ),
-	raise_usage_error( ErrorFormatString, ErrorValues, Filename, Line );
+	raise_usage_error( ErrorFormatString, ErrorValues, Filename, FileLoc );
 
-raise_usage_error( ErrorFormatString, ErrorValues, Filename, Line ) ->
+raise_usage_error( ErrorFormatString, ErrorValues, Filename, FileLoc ) ->
 
 	ErrorString = io_lib:format( ErrorFormatString, ErrorValues ),
 
-	io:format( "~ts:~B: ~ts~n", [ Filename, Line, ErrorString ] ),
+	io:format( "~ts:~ts: ~ts~n",
+			   [ Filename,format_file_loc( FileLoc ), ErrorString ] ),
 
 	% Almost the only way to stop the processing of the AST:
 	halt( 5 ).
@@ -1082,7 +1083,8 @@ get_generated_code_location() ->
 
 
 % @doc Returns a standard textual description of specified in-file location
-% (typically to output the usual, canonical reference expected by most tools).
+% (typically to output the usual, canonical reference expected by most tools,
+% often to report compilation issues).
 %
 -spec format_file_loc( file_loc() ) -> ustring().
 format_file_loc( { Line, Column } ) ->
