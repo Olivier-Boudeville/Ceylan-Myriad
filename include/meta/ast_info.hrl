@@ -130,7 +130,8 @@
 		% given attribute name may be used multiple times).
 		%
 		% Such attributes, also named "wild attributes", mostly correspond to
-		% user-defined ones.
+		% user-defined ones (yet they include also for example 'behaviour'
+		% attributes).
 		%
 		parse_attributes :: ast_info:attribute_table(),
 

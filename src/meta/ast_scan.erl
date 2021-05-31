@@ -1139,12 +1139,14 @@ scan_forms( _AST=[ Form={ 'attribute', FileLoc, 'compile', CompileInfo } | T ],
 				CurrentFileReference );
 
 
-% 7.1.11: Other, "wild" parse attributes.
+% 7.1.11: Other, "wild" parse attributes (includes not-so-wild ones, such as
+% 'behaviour').
 %
 % (section body is here, to match iff none of the other attribute-related
 % sections matched)
 %
-scan_forms( [ Form={ 'attribute', FileLoc, AttributeName, AttributeValue } | T ],
+scan_forms(
+  [ Form={ 'attribute', FileLoc, AttributeName, AttributeValue } | T ],
 			M=#module_info{ parse_attributes=ParseAttributeTable },
 			NextASTLoc, CurrentFileReference ) ->
 
@@ -1159,7 +1161,7 @@ scan_forms( [ Form={ 'attribute', FileLoc, AttributeName, AttributeValue } | T ]
 
 	% As a wild attribute may be defined more than once:
 	NewParseAttributeTable = ?table:append_to_entry( AttributeName,
-					   { AttributeValue, LocForm }, ParseAttributeTable ),
+					{ AttributeValue, LocForm }, ParseAttributeTable ),
 
 	scan_forms( T, M#module_info{ parse_attributes=NewParseAttributeTable },
 				id_utils:get_next_sortable_id( NextASTLoc ),

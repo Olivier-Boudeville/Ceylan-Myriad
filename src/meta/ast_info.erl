@@ -813,8 +813,8 @@ recompose_ast_from_module_info( #module_info{
 
 			unhandled_forms=UnhandledLocForms } ) ->
 
-	ParseAttributeLocDefs = [ LocForm
-			   || { _Value, LocForm } <- ?table:values( ParseAttributeTable ) ],
+	ParseAttributeLocDefs =
+		get_parse_attributes_located_definitions( ParseAttributeTable ),
 
 	{ TypeExportLocDefs, TypeLocDefs } =
 		ast_type:get_located_forms_for( TypeExportTable, TypeTable ),
@@ -822,8 +822,8 @@ recompose_ast_from_module_info( #module_info{
 	RecordLocDefs = ast_record:get_located_forms_for( RecordTable ),
 
 	% Auto-exports functions if relevant:
-	{ FunExportLocDefs, FunctionLocDefs } = ast_function:get_located_forms_for(
-										FunctionExportTable, FunctionTable ),
+	{ FunExportLocDefs, FunctionLocDefs } =
+	  ast_function:get_located_forms_for( FunctionExportTable, FunctionTable ),
 
 
 	% We used to start from a sensible order so that inserted forms do not end
@@ -1242,6 +1242,45 @@ get_default_definition_function_location( MarkerTable ) ->
 
 
 
+% Defined to avoid that a list comprehension silently ignores unexpected
+% elements.
+%
+-spec get_parse_attributes_located_definitions( attribute_table() ) ->
+													[ ast_info:located_form() ].
+get_parse_attributes_located_definitions( ParseAttributeTable ) ->
+
+	% Faulty, as we have a *list* of {Value,LocForm} pairs:
+	%ParseAttributeLocDefs = [ LocForm
+	%		|| { _Value, LocForm } <- ?table:values( ParseAttributeTable ) ],
+
+	ParseAttributeLocDefs = get_parse_attr_loc_defs(
+								?table:values( ParseAttributeTable ), _Acc=[] ),
+
+	%trace_utils:debug_fmt( "For ParseAttributeTable: ~ts, returning "
+	%	"ParseAttributeLocDefs = ~p",
+	%   [ ?table:to_string( ParseAttributeTable ), ParseAttributeLocDefs ] ),
+
+	ParseAttributeLocDefs.
+
+
+% (helper)
+get_parse_attr_loc_defs( _Values=[], Acc ) ->
+	Acc;
+
+get_parse_attr_loc_defs( _Values=[ Pairs | T ], Acc ) ->
+	LocDefs = get_loc_defs_from( Pairs, _AccP=[] ),
+	get_parse_attr_loc_defs( T, LocDefs ++ Acc ).
+
+
+% To force a case clause if an element was not a pair:
+get_loc_defs_from( _Pairs=[], Acc ) ->
+	Acc;
+
+get_loc_defs_from( _Pairs=[ { _Value, LocForm } | T ], Acc ) ->
+	NewAcc = [ LocForm | Acc ],
+	get_loc_defs_from( T, NewAcc ).
+
+
 
 % @doc Returns a textual description of specified module information, not
 % including forms, and based on a default indentation level.
@@ -1617,12 +1656,12 @@ type_exports_to_string( TypeExportTable, _DoIncludeForms, IndentationLevel ) ->
 			% with an extra indentation level then:
 			%
 			TypeExpString = text_utils:strings_to_sorted_string(
-				[ text_utils:format( "at line #~B, export of: ~ts",
-									 [ Line, text_utils:strings_to_string(
-											   [ type_id_to_string( TypeId )
-												 || TypeId <- TypeIds ],
-											   IndentationLevel + 2 ) ] )
-				  || { _Loc, { Line, TypeIds } } <- TypeExportEntries ],
+				[ text_utils:format( "at ~ts, export of: ~ts",
+					[ ast_utils:file_loc_to_string( FileLoc ),
+					  text_utils:strings_to_string(
+						[ type_id_to_string( TypeId ) || TypeId <- TypeIds ],
+						IndentationLevel + 2 ) ] )
+				  || { _ASTLoc, { FileLoc, TypeIds } } <- TypeExportEntries ],
 				IndentationLevel + 1 ),
 
 			% No form to represent, as none stored:
