@@ -41,7 +41,7 @@
 
 
 % Version of this tool:
--define( merge_script_version, "0.1.2" ).
+-define( merge_script_version, "0.1.3" ).
 
 
 % Centralised:
@@ -286,7 +286,7 @@ get_usage() ->
 	  "   For the sixth form (-~ts option), the specified tree will be scanned first (see the corresponding operation), and then the user will be offered various actions regarding found duplicates (being kept as are, or removed, or replaced with symbolic links to a single copy per content), and once done a corresponding up-to-date '", ?merge_cache_filename, "' file will be created at its root (to be potentially reused by a later operation).\n\n"
 	  "   For the seventh form (-~ts option), the specified tree will be compared to the one referenced in the cache file, reporting content differences.\n\n"
 	  "   For the eighth form (-h or -~ts option), displays this help.\n\n"
-	  "   Note that the -~ts A_BASE_DIR option can be specified by the user to designate the base directory of all relative paths mentioned."
+	  "   Note that the -~ts A_BASE_DIR option can be specified by the user to designate the base directory of all relative paths mentioned.\n"
 	  "   When a cache file is found, it can be either ignored (and thus recreated) or re-used, either as it is or after a weak check, where only file existence, sizes and timestamps are then verified (not checksums)." ] ),
 	 [ ?input_opt, ?reference_opt, ?equalize_opt, ?scan_opt, ?rescan_opt,
 	   ?resync_opt, ?uniquify_opt, ?check_opt, ?help_opt,
