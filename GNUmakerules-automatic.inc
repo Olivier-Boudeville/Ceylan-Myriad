@@ -93,7 +93,7 @@
 
 %_exec: %_app.beam %.beam
 	@echo "		Executing application $^ (first form)"
-	#$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
+	@#echo $(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
 
 
