@@ -1092,15 +1092,20 @@ ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED = $(ERLANG_COMPILER_OPT_FOR_PT) \
 									   $(BOOTSTRAP_INCLUDES)
 
 
-
-# Conditionally defined so that upper layers may update these settings (ex:
-# adding pz directories):
+# Conditionally defined so that upper layers may update (ex: adding pz
+# directories) or redefine these settings as a whole.
+#
+# As for ERLANG_COMPILER_EXTRA_OPTS, this variable is useful for mere additions,
+# for example in order to add compilation flags or to declare extra ebin paths
+# so that modules introducing behaviours can be found when compiling modules of
+# interest.
 #
 ifndef ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES
 
 	ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES =                          \
 		$(ERLANG_COMPILER_OPT_BASE)                                     \
-		$(ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_STANDARD_MODULES)
+		$(ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_STANDARD_MODULES)     \
+		$(ERLANG_COMPILER_EXTRA_OPTS)
 
 endif
 
