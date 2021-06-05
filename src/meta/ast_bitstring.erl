@@ -49,7 +49,7 @@
 % then Rep(TS) = {A,Value}.
 %
 % Actual type maybe be omitted.
-%
+
 
 
 -type type_specifier_list() :: [ type_specifier() ].
@@ -69,7 +69,7 @@
 
 
 -type constructor( ContentType ) ::
-		{ 'bin', line(), [ bin_element( ContentType ) ] }.
+		{ 'bin', file_loc(), [ bin_element( ContentType ) ] }.
 % General form of a bitstring constructor, as a polymorphic type so that it can
 % be specialized for dedicated contexts (ex: in guards, expressions, etc).
 
@@ -79,8 +79,8 @@
 % A binary element within a bitstring constructor.
 
 
--type bin_element( ContentType ) :: { 'bin_element', ast_base:line(),
-					 ContentType, maybe_size(), maybe_type_specifier_list() }.
+-type bin_element( ContentType ) :: { 'bin_element', ast_base:file_loc(),
+					ContentType, maybe_size(), maybe_type_specifier_list() }.
 % A binary element within a bitstring constructor, with a specific content type.
 
 
@@ -99,7 +99,7 @@
 
 
 % Shorthands:
--type line() :: ast_base:line().
+-type file_loc() :: ast_base:file_loc().
 -type ast_transforms() :: ast_transform:ast_transforms().
 
 
@@ -140,7 +140,7 @@ transform_bin_elements( BinElements, Transforms ) ?rec_guard ->
 -spec transform_bin_element( bin_element(), ast_transforms() ) ->
 									{ bin_element(), ast_transforms() }.
 transform_bin_element(
-  _BinElem={ 'bin_element', Line, Element, Size, TypeSpecifierList },
+  _BinElem={ 'bin_element', FileLoc, Element, Size, TypeSpecifierList },
   Transforms ) ?rec_guard ->
 
 	{ [ NewElement ], ElemTransforms } =
@@ -171,7 +171,7 @@ transform_bin_element(
 	end,
 
 	NewExpr =
-		{ 'bin_element', Line, NewElement, NewSize,	NewTypeSpecifierList },
+		{ 'bin_element', FileLoc, NewElement, NewSize, NewTypeSpecifierList },
 
 	{ NewExpr, TypeTransforms };
 
@@ -188,7 +188,7 @@ transform_bin_element( Unexpected, Transforms )
 % guard, in an expression, etc).
 %
 -spec transform_bin_elements( [ bin_element() ], ast_transforms(),
-		  element_transform_fun() ) -> { [ bin_element() ], ast_transforms() }.
+		element_transform_fun() ) -> { [ bin_element() ], ast_transforms() }.
 
 transform_bin_elements( BinElements, Transforms, TransformFun ) ?rec_guard ->
 
@@ -210,7 +210,7 @@ transform_bin_elements( BinElements, Transforms, TransformFun ) ?rec_guard ->
 -spec transform_bin_element( bin_element(), ast_transforms(),
 			element_transform_fun() ) -> { bin_element(), ast_transforms() }.
 transform_bin_element(
-  _BinElem={ 'bin_element', Line, Element, Size, TypeSpecifierList },
+  _BinElem={ 'bin_element', FileLoc, Element, Size, TypeSpecifierList },
   Transforms, TransformFun ) ?rec_guard ->
 
 	{ NewElement, ElemTransforms } = TransformFun( Element, Transforms ),
@@ -237,7 +237,7 @@ transform_bin_element(
 
 	end,
 
-	NewExpr = { 'bin_element', Line, NewElement, NewSize,
+	NewExpr = { 'bin_element', FileLoc, NewElement, NewSize,
 				NewTypeSpecifierList },
 
 	{ NewExpr, TypeTransforms };

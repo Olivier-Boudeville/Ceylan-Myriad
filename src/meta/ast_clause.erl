@@ -49,7 +49,7 @@
 % One may note they actually all obey the same structure (same quintuplet).
 
 
--type ast_generic_clause() :: { 'clause', line(),
+-type ast_generic_clause() :: { 'clause', file_loc(),
 								ast_pattern:ast_pattern_sequence(),
 								ast_guard:ast_guard_sequence(), ast_body() }.
 % Describes a generic (most general) clause in an AST.
@@ -60,20 +60,20 @@
 % Describes a function clause in an AST:
 %
 % "If C is a function clause ( Ps ) -> B, where Ps is a pattern sequence and B
-% is a body, then Rep(C) = {clause,LINE,Rep(Ps),[],Rep(B)}.
+% is a body, then Rep(C) = {clause, FILE_LOC, Rep(Ps), [], Rep(B)}.
 %
 % If C is a function clause ( Ps ) when Gs -> B, where Ps is a pattern sequence,
 % Gs is a guard sequence and B is a body, then Rep(C) =
-% {clause,LINE,Rep(Ps),Rep(Gs),Rep(B)}."
+% {clause, FILE_LOC, Rep(Ps), Rep(Gs), Rep(B)}."
 
 
 
--type ast_if_clause() :: { 'clause', line(), [], ast_guard:ast_guard_sequence(),
-						   ast_body() }.
-% Describes an if clause in an AST:
+-type ast_if_clause() :: { 'clause', file_loc(), [],
+						   ast_guard:ast_guard_sequence(), ast_body() }.
+% Describes an 'if' clause in an AST:
 %
 % "If C is an if clause Gs -> B, where Gs is a guard sequence and B is a body,
-% then Rep(C) = {clause,LINE,[],Rep(Gs),Rep(B)}."
+% then Rep(C) = {clause, FILE_LOC, [], Rep(Gs), Rep(B)}."
 %
 % (special case of ast_generic_clause/0, no pattern sequence)
 
@@ -133,7 +133,7 @@
 -type function_name() :: meta_utils:function_name().
 -type function_arity() :: meta_utils:function_arity().
 -type ast_expression() :: ast_expression:ast_expression().
--type line() :: ast_base:line().
+-type file_loc() :: ast_base:file_loc().
 -type form_context() :: ast_base:form_context().
 -type ast_transforms() :: ast_transform:ast_transforms().
 
@@ -153,7 +153,7 @@
 
 
 % Apparently, for all (4) kinds of clauses, according to erl_id_trans the same
-% structure applies: {clause,Line,H,G,B}, where:
+% structure applies: {clause, FileLoc, H, G, B}, where:
 %
 % - H is Head, a list of patterns (a pattern sequence)
 %
@@ -190,7 +190,7 @@ transform_clauses_generic( Clauses, Transforms ) ?rec_guard ->
 
 % @doc Transforms a single clause, generic version.
 -spec transform_clause_generic( ast_clause(), ast_transforms() ) ->
-									  { ast_clause(), ast_transforms() }.
+										{ ast_clause(), ast_transforms() }.
 transform_clause_generic( Clause, Transforms ) ?rec_guard ->
 
 	?display_trace( "Transforming clause:~n~p~n", [ Clause ] ),
@@ -217,14 +217,13 @@ transform_clause_generic( Clause, Transforms ) ?rec_guard ->
 															  Transforms ),
 
 					%ast_utils:display_debug( "returning directly transformed "
-					%                         "clause pair (case 2):~n~p",
-					%                         [ NewClausePair ] ),
+					%    "clause pair (case 2):~n~p", [ NewClausePair ] ),
 
 					NewClausePair;
 
 				{ value, ClauseTransformFun } ->
 
-					% Returns directly { NewClause, NewTransforms }:
+					% Returns directly {NewClause, NewTransforms}:
 					NewClausePair = ClauseTransformFun( Clause, Transforms ),
 
 					%ast_utils:display_debug(
@@ -241,7 +240,7 @@ transform_clause_generic( Clause, Transforms ) ?rec_guard ->
 
 % @doc Default transformation applied to function clauses.
 transform_clause_default(
-  _Clause={ 'clause', Line, HeadPatternSequence, GuardSequence, BodyExprs },
+  _Clause={ 'clause', FileLoc, HeadPatternSequence, GuardSequence, BodyExprs },
   Transforms ) ->
 
 	?display_trace( "Transforming head patterns." ),
@@ -265,11 +264,11 @@ transform_clause_default(
 
 	?display_trace( "Transformed body:~n~p", [ NewBodyExprs ] ),
 
-	NewExpr = { 'clause', Line, NewHeadPatternSequence, NewGuardSequence,
+	NewExpr = { 'clause', FileLoc, NewHeadPatternSequence, NewGuardSequence,
 				NewBodyExprs },
 
 	%ast_utils:display_debug( "... returning generic clause:~n~p~n~n"
-	%						 "and state:~n~p", [ NewExpr, BodyTransforms ] ),
+	%						  "and state:~n~p", [ NewExpr, BodyTransforms ] ),
 
 	{ NewExpr, BodyTransforms }.
 
@@ -292,14 +291,15 @@ transform_function_clauses( FunctionClauses, Transforms ) ?rec_guard ->
 % Handled the same, with or without guard(s), as a guard sequence may be empty:
 %
 % - without: "If C is a function clause ( Ps ) -> B, where Ps is a pattern
-% sequence and B is a body, then Rep(C) = {clause,LINE,Rep(Ps),[],Rep(B)}."
+% sequence and B is a body, then Rep(C) = {clause, FILE_LOC, Rep(Ps), [],
+% Rep(B)}."
 %
 % - with: "If C is a function clause ( Ps ) when Gs -> B, where Ps is a pattern
-% sequence, Gs is a guard sequence and B is a body, then Rep(C) =
-% {clause,LINE,Rep(Ps),Rep(Gs),Rep(B)}."
+% sequence, Gs is a guard sequence and B is a body, then Rep(C) = {clause,
+% FILE_LOC, Rep(Ps), Rep(Gs), Rep(B)}."
 %
 -spec transform_function_clause( ast_function_clause(), ast_transforms() ) ->
-								   { ast_function_clause(), ast_transforms() }.
+									{ ast_function_clause(), ast_transforms() }.
 transform_function_clause( Clause, Transforms ) ?rec_guard ->
 	transform_clause_generic( Clause, Transforms ).
 
@@ -310,14 +310,14 @@ transform_function_clause( Clause, Transforms ) ?rec_guard ->
 
 % @doc Transforms specified list of try clauses.
 -spec transform_try_clauses( [ ast_try_clause() ], ast_transforms() ) ->
-								   { [ ast_try_clause() ], ast_transforms() }.
+									{ [ ast_try_clause() ], ast_transforms() }.
 transform_try_clauses( TryClauses, Transforms ) ?rec_guard ->
 	transform_clauses_generic( TryClauses, Transforms ).
 
 
 % @doc Transforms specified try clause.
 -spec transform_try_clause( ast_try_clause(), ast_transforms() ) ->
-								   { [ ast_try_clause() ], ast_transforms() }.
+									{ [ ast_try_clause() ], ast_transforms() }.
 transform_try_clause( TryClause, Transforms ) ?rec_guard ->
 	transform_clause_generic( TryClause, Transforms ).
 
@@ -333,7 +333,7 @@ transform_try_clause( TryClause, Transforms ) ?rec_guard ->
 
 % @doc Transforms specified list of 'catch' clauses.
 -spec transform_catch_clauses( [ ast_catch_clause() ], ast_transforms() ) ->
-								 { [ ast_catch_clause() ], ast_transforms() }.
+						{ [ ast_catch_clause() ], ast_transforms() }.
 transform_catch_clauses( CatchClauses, Transforms ) ?rec_guard ->
 	lists:mapfoldl( fun transform_catch_clause/2, _Acc0=Transforms,
 					_List=CatchClauses ).
@@ -344,20 +344,20 @@ transform_catch_clauses( CatchClauses, Transforms ) ?rec_guard ->
 % Catch clause with no variable, with or without a guard sequence (1/4 and 3/4):
 %
 % - "If C is a catch clause P -> B, where P is a pattern and B is a body, then
-% Rep(C) = {clause,LINE,[Rep({throw,P,_})],[],Rep(B)}."
+% Rep(C) = {clause, FILE_LOC, [Rep({throw,P,_})], [], Rep(B)}."
 %
 % - "If C is a catch clause P when Gs -> B, where P is a pattern, Gs is a guard
-% sequence, and B is a body, then Rep(C) =
-% {clause,LINE,[Rep({throw,P,_})],Rep(Gs),Rep(B)}."
+% sequence, and B is a body, then Rep(C) = {clause, FILE_LOC,
+% [Rep({throw,P,_})], Rep(Gs), Rep(B)}."
 %
 -spec transform_catch_clause( ast_catch_clause(), ast_transforms() ) ->
 									{ ast_catch_clause(), ast_transforms() }.
 transform_catch_clause(
-  _Clause={ 'clause', Line, [ { throw, Pattern, Any } ], GuardSequence,
+  _Clause={ 'clause', FileLoc, [ { throw, Pattern, Any } ], GuardSequence,
 			BodyExprs },
   Transforms ) ?rec_guard ->
 
-	ast_utils:display_warning( "transform_catch_clause: Any= ~p", [ Any ] ),
+	%ast_utils:display_warning( "transform_catch_clause: Any= ~p", [ Any ] ),
 
 	%ast_utils:display_debug( "Intercepting catch clause ~p...", [ Clause ] ),
 
@@ -370,7 +370,7 @@ transform_catch_clause(
 	{ NewBodyExprs, BodyTransforms } =
 		transform_body( BodyExprs, GuardTransforms ),
 
-	NewExpr = { 'clause', Line, [ { 'throw', NewPattern, Any } ],
+	NewExpr = { 'clause', FileLoc, [ { 'throw', NewPattern, Any } ],
 				NewGuardSequence, NewBodyExprs },
 
 	Res = { NewExpr, BodyTransforms },
@@ -384,15 +384,15 @@ transform_catch_clause(
 % Catch clause with X variable, with or without a guard sequence (2/4 and 4/4):
 %
 % - "If C is a catch clause X : P -> B, where X is an atomic literal or a
-% variable pattern, P is a pattern, and B is a body, then Rep(C) =
-% {clause,LINE,[Rep({X,P,_})],[],Rep(B)}."
+% variable pattern, P is a pattern, and B is a body, then Rep(C) = {clause,
+% FILE_LOC, [Rep({X,P,_})], [], Rep(B)}."
 %
 % - "If C is a catch clause X : P when Gs -> B, where X is an atomic literal or
 % a variable pattern, P is a pattern, Gs is a guard sequence, and B is a body,
-% then Rep(C) = {clause,LINE,[Rep({X,P,_})],Rep(Gs),Rep(B)}."
+% then Rep(C) = {clause, FILE_LOC, [Rep({X,P,_})], Rep(Gs), Rep(B)}."
 %
 transform_catch_clause(
-  _Clause={ 'clause', Line, [ HeadPattern={ _X, _P, _Any } ], GuardSequence,
+  _Clause={ 'clause', FileLoc, [ HeadPattern={ _X, _P, _Any } ], GuardSequence,
 			BodyExprs },
   Transforms ) ?rec_guard ->
 
@@ -400,7 +400,7 @@ transform_catch_clause(
 	%						  [ X, P, Any ] ),
 
 	%ast_utils:display_debug( "Intercepting catch clause with variable ~p...",
-	%						 [ Clause ] ),
+	%						  [ Clause ] ),
 
 	% Includes atomic literals:
 	{ NewHeadPattern, HeadTransforms } =
@@ -412,7 +412,7 @@ transform_catch_clause(
 	{ NewBodyExprs, BodyTransforms } =
 		transform_body( BodyExprs, GuardTransforms ),
 
-	NewExpr = { 'clause', Line, [ NewHeadPattern ], NewGuardSequence,
+	NewExpr = { 'clause', FileLoc, [ NewHeadPattern ], NewGuardSequence,
 				NewBodyExprs },
 
 	Res = { NewExpr, BodyTransforms },
@@ -441,15 +441,15 @@ transform_if_clauses( IfClauses, Transforms ) ?rec_guard ->
 % @doc Transforms specified 'if' clause.
 %
 % "If C is an if clause Gs -> B, where Gs is a guard sequence and B is a body,
-% then Rep(C) = {clause,LINE,[],Rep(Gs),Rep(B)}."
+% then Rep(C) = {clause, FILE_LOC, [], Rep(Gs), Rep(B)}."
 %
 % (no pattern sequence allowed)
 %
 -spec transform_if_clause( ast_if_clause(), ast_transforms() ) ->
 								{ ast_if_clause(), ast_transforms() }.
-transform_if_clause(
-  _Clause={ 'clause', Line, HeadPatternSequence=[], GuardSequence, BodyExprs },
-  Transforms ) ?rec_guard ->
+transform_if_clause( _Clause={ 'clause', FileLoc, HeadPatternSequence=[],
+							   GuardSequence, BodyExprs },
+					 Transforms ) ?rec_guard ->
 
 	%ast_utils:display_debug( "Intercepting if clause ~p...", [ Clause ] ),
 
@@ -459,7 +459,7 @@ transform_if_clause(
 	{ NewBodyExprs, BodyTransforms } =
 		transform_body( BodyExprs, GuardTransforms ),
 
-	NewExpr = { 'clause', Line, HeadPatternSequence, NewGuardSequence,
+	NewExpr = { 'clause', FileLoc, HeadPatternSequence, NewGuardSequence,
 				NewBodyExprs },
 
 	Res = { NewExpr, BodyTransforms },
@@ -485,18 +485,18 @@ transform_case_clauses( CaseClauses, Transforms ) ?rec_guard ->
 % @doc Transforms specified 'case' clause.
 %
 % "If C is a case clause P -> B, where P is a pattern and B is a body, then
-% Rep(C) = {clause,LINE,[Rep(P)],[],Rep(B)}.
+% Rep(C) = {clause, FILE_LOC, [Rep(P)], [], Rep(B)}.
 %
 % If C is a case clause P when Gs -> B, where P is a pattern, Gs is a guard
 % sequence, and B is a body, then Rep(C) =
-% {clause,LINE,[Rep(P)],Rep(Gs),Rep(B)}."
+% {clause, FILE_LOC, [Rep(P)], Rep(Gs), Rep(B)}."
 %
 % (a single pattern allowed)
 %
 -spec transform_case_clause( ast_case_clause(), ast_transforms() ) ->
 									{ [ ast_case_clause() ], ast_transforms() }.
 transform_case_clause(
-  _Clause={ 'clause', Line, [ Pattern ], GuardSequence, BodyExprs },
+  _Clause={ 'clause', FileLoc, [ Pattern ], GuardSequence, BodyExprs },
   Transforms ) ?rec_guard ->
 
 	%ast_utils:display_debug( "Intercepting case clause ~p...", [ Clause ] ),
@@ -510,7 +510,7 @@ transform_case_clause(
 	{ NewBodyExprs, BodyTransforms } =
 		transform_body( BodyExprs, GuardTransforms ),
 
-	NewExpr = { 'clause', Line, [ NewPattern ], NewGuardSequence,
+	NewExpr = { 'clause', FileLoc, [ NewPattern ], NewGuardSequence,
 				NewBodyExprs },
 
 	Res = { NewExpr, BodyTransforms },
@@ -602,9 +602,9 @@ transform_body( Other, _Transforms ) ->
 % {call,102,{atom,102,some_fun},[{atom,102,a},{atom,102,b}]}.
 %
 -spec forge_local_call( function_name(), [ ast_expression() ],
-						line() ) -> ast_expression().
-forge_local_call( FunctionName, Params, Line ) ->
-	forge_local_call( FunctionName, Params, Line, Line ).
+						file_loc() ) -> ast_expression().
+forge_local_call( FunctionName, Params, FileLoc ) ->
+	forge_local_call( FunctionName, Params, FileLoc, FileLoc ).
 
 
 % @doc Returns an AST-compliant representation of specified local call.
@@ -613,10 +613,10 @@ forge_local_call( FunctionName, Params, Line ) ->
 % forge_local_call(some_fun, ParamDefs, 102) - which returns:
 % {call,102,{atom,102,some_fun},[{atom,102,a},{atom,102,b}]}.
 %
--spec forge_local_call( function_name(), [ ast_expression() ], line(),
-						line() ) -> ast_expression().
-forge_local_call( FunctionName, Params, Line1, Line2 ) ->
-	{ 'call', Line1, ast_value:forge_atom_value( FunctionName, Line2 ),
+-spec forge_local_call( function_name(), [ ast_expression() ], file_loc(),
+						file_loc() ) -> ast_expression().
+forge_local_call( FunctionName, Params, FileLoc1, FileLoc2 ) ->
+	{ 'call', FileLoc1, ast_value:forge_atom_value( FunctionName, FileLoc2 ),
 	  Params }.
 
 
@@ -630,9 +630,9 @@ forge_local_call( FunctionName, Params, Line1, Line2 ) ->
 %              [{atom,102,a},{atom,102,b}]}.
 %
 -spec forge_remote_call( module_name(), function_name(), [ ast_expression() ],
-						 line() ) -> ast_expression().
-forge_remote_call( ModuleName, FunctionName, Params, Line ) ->
-	forge_remote_call( ModuleName, FunctionName, Params, Line, Line ).
+						 file_loc() ) -> ast_expression().
+forge_remote_call( ModuleName, FunctionName, Params, FileLoc ) ->
+	forge_remote_call( ModuleName, FunctionName, Params, FileLoc, FileLoc ).
 
 
 
@@ -645,11 +645,11 @@ forge_remote_call( ModuleName, FunctionName, Params, Line ) ->
 %              [{atom,102,a},{atom,102,b}]}.
 %
 -spec forge_remote_call( module_name(), function_name(), [ ast_expression() ],
-						 line(), line() ) -> ast_expression().
-forge_remote_call( ModuleName, FunctionName, Params, Line1, Line2 ) ->
-	{ 'call', Line1, { remote, Line2,
-					   ast_value:forge_atom_value( ModuleName, Line2 ),
-					   ast_value:forge_atom_value( FunctionName, Line2 ) },
+						 file_loc(), file_loc() ) -> ast_expression().
+forge_remote_call( ModuleName, FunctionName, Params, FileLoc1, FileLoc2 ) ->
+	{ 'call', FileLoc1, { remote, FileLoc2,
+					   ast_value:forge_atom_value( ModuleName, FileLoc2 ),
+					   ast_value:forge_atom_value( FunctionName, FileLoc2 ) },
 	  Params }.
 
 

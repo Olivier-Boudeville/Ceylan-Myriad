@@ -114,9 +114,10 @@
 % Order of the forms in the AST
 %
 % A parse transform receives an (ordered) list of forms as input AST: forms are
-% ordered only by their position in that list (line numbers are contextual to
-% the last file declared as included, hence form order matters, and a form
-% cannot be ordered by itself), stored in a module_info record.
+% ordered only by their position in that list (file locations, i.e. line/column
+% numbers, are contextual to the last file declared as included, hence form
+% order matters, and a form cannot be ordered by itself), stored in a
+% module_info record.
 %
 % Knowing that forms may have to be added, moved, updated, removed, etc. during
 % the transformation of an AST, positioning forms at specified points in an AST
@@ -356,7 +357,7 @@ context_to_string( { Filename, FileLoc } ) ->
 % 7.1.2: Function export handling.
 %
 % "If F is an attribute -export([Fun_1/A_1, ..., Fun_k/A_k]), then Rep(F) =
-% {attribute,LINE,export,[{Fun_1,A_1}, ..., {Fun_k,A_k}]}."
+% {attribute, FILE_LOC, export, [{Fun_1,A_1}, ..., {Fun_k,A_k}]}."
 %
 scan_forms( _AST=[ _Form={ 'attribute', FileLoc, 'export', FunctionIds } | T ],
 			M=#module_info{ function_exports=ExportTable,
@@ -435,7 +436,7 @@ scan_forms( _AST=[ _Form={ 'attribute', FileLoc, 'export', FunctionIds } | T ],
 % 7.1.3: Function import handling.
 %
 % "If F is an attribute -import(Mod,[Fun_1/A_1, ..., Fun_k/A_k]), then Rep(F) =
-% {attribute,LINE,import,{Mod,[{Fun_1,A_1}, ..., {Fun_k,A_k}]}}."
+% {attribute, FILE_LOC, import, {Mod, [{Fun_1,A_1}, ..., {Fun_k,A_k}]}}."
 %
 scan_forms( _AST=[ Form={ 'attribute', FileLoc, 'import',
 							{ ModuleName, FunIds } } | T ],
@@ -477,8 +478,8 @@ scan_forms( _AST=[ Form={ 'attribute', FileLoc, 'import',
 
 % 7.1.4: Module handling.
 %
-% "If F is an attribute -module(Mod), then Rep(F) =
-% {attribute,LINE,module,Mod}."
+% "If F is an attribute -module(Mod), then Rep(F) = {attribute, FILE_LOC,
+% module, Mod}."
 %
 scan_forms( _AST=[ Form={ 'attribute', FileLoc, 'module', ModuleName } | T ],
 			M=#module_info{ module=undefined,
@@ -519,8 +520,8 @@ scan_forms( _AST=[ _Form={ 'attribute', FileLoc, 'module', ModuleName } | _T ],
 
 % 7.1.5: File reference (include) handling.
 %
-% "If F is an attribute -file(File,FileLoc), then Rep(F) =
-% {attribute,LINE,file,{File,InFileLoc}}."
+% "If F is an attribute -file(File,FileLoc), then Rep(F) = {attribute, FILE_LOC,
+% file, {File,InFileLoc}}."
 %
 % Allows to keep track of when an included file begins and also ends, i.e. to
 % determine the current file to which any new line number corresponds.
@@ -530,8 +531,8 @@ scan_forms( _AST=[ Form={ 'attribute', _FileLoc, 'file',
 			 M=#module_info{ includes=Inc, include_defs=IncDefs }, NextASTLoc,
 			_CurrentFileReference ) ->
 
-	%ast_utils:display_debug( "file declaration with ~ts at #~B",
-	% [ FilePath, InFileLoc ] ),
+	%ast_utils:display_debug( "file declaration with ~ts at ~ts",
+	% [ FilePath, ast_utils:file_loc_to_string( InFileLoc ) ] ),
 
 	% We used to normalise paths, however then 'file_utils' would have to be
 	% bootstrapped as well, which does not seem desirable.
@@ -566,7 +567,7 @@ scan_forms( _AST=[ Form={ 'attribute', _FileLoc, 'file',
 %
 % "If F is a function declaration Name Fc_1 ; ... ; Name Fc_k, where each Fc_i
 % is a function clause with a pattern sequence of the same length Arity, then
-% Rep(F) = {function,LINE,Name,Arity,[Rep(Fc_1), ...,Rep(Fc_k)]}."
+% Rep(F) = {function, FILE_LOC, Name, Arity, [Rep(Fc_1), ...,Rep(Fc_k)]}."
 %
 scan_forms(
   [ _Form={ 'function', FileLoc, FunctionName, FunctionArity, Clauses } | T ],
@@ -645,7 +646,7 @@ scan_forms(
 		% that the compiler sees them and complains in a standard manner
 		% afterwards; but then it triggers a warning of ours (that we want to
 		% keep) about unhandled forms, and the standard message is less
-		% informative than ours (only "FILE:LINE: function foo/1 already
+		% informative than ours (only "FILE:FILE_LOC: function foo/1 already
 		% defined"), so we finally prefer ours:
 
 		{ value, F=#function_info{ name=FunctionName,
@@ -697,7 +698,7 @@ scan_forms(
 	end,
 
 	%ast_utils:display_debug( "function ~ts/~B with ~B clauses registered.",
-	%			[ FunctionName, FunctionArity, length( Clauses ) ] ),
+	%   [ FunctionName, FunctionArity, length( Clauses ) ] ),
 
 	scan_forms( T, M#module_info{ functions=NewFunctionTable,
 								  markers=NewMarkerTable,
@@ -777,7 +778,7 @@ scan_forms( [ Form={ 'attribute', FileLoc, SpecType,
 	NewFunctionTable = ?table:add_entry( _K=FunId, _V=FunInfo, FunctionTable ),
 
 	%ast_utils:display_debug( "spec for function ~ts/~B registered.",
-	%		   [ FunctionName, FunctionArity ] ),
+	%   [ FunctionName, FunctionArity ] ),
 
 	scan_forms( T, M#module_info{ functions=NewFunctionTable },
 		id_utils:get_next_sortable_id( NextASTLoc ), CurrentFileReference );
@@ -859,7 +860,7 @@ scan_forms( [ Form={ 'attribute', FileLoc, 'spec',
 	NewRemoteSpecDefs = [ LocatedSpec | RemoteSpecDefs ],
 
 	%ast_utils:display_debug( "remote spec for function ~ts/~B registered.",
-	%			[ FunctionName, FunctionArity ] ),
+	%   [ FunctionName, FunctionArity ] ),
 
 	scan_forms( T, M#module_info{ remote_spec_defs=NewRemoteSpecDefs },
 				id_utils:get_next_sortable_id( NextASTLoc ),
@@ -870,8 +871,8 @@ scan_forms( [ Form={ 'attribute', FileLoc, 'spec',
 % 7.1.9: Record definition handling.
 %
 % "If F is a record declaration -record(Name,{V_1, ..., V_k}), where each V_i is
-% a record field, then Rep(F) = {attribute,LINE,record,{Name,[Rep(V_1), ...,
-% Rep(V_k)]}}. For Rep(V), see below.
+% a record field, then Rep(F) = {attribute, FILE_LOC, record, {Name,[Rep(V_1),
+% ..., Rep(V_k)]}}. For Rep(V), see below.
 %
 scan_forms( _AST=[ _Form={ 'attribute', FileLoc, 'record',
 						   { RecordName, DescFields } } | T ],
@@ -928,7 +929,7 @@ scan_forms( _AST=[ _Form={ 'attribute', FileLoc, 'record',
 %
 % "If F is a type declaration -Type Name(V_1, ..., V_k) :: T, where Type is
 % either the atom type or the atom opaque, each V_i is a variable, and T is a
-% type, then Rep(F) = {attribute,LINE,Type,{Name,Rep(T),[Rep(V_1), ...,
+% type, then Rep(F) = {attribute, FILE_LOC, Type, {Name, Rep(T), [Rep(V_1), ...,
 % Rep(V_k)]}}."
 %
 scan_forms( _AST=[ _Form={ 'attribute', FileLoc, TypeDesignator,
@@ -1037,7 +1038,7 @@ scan_forms( _AST=[ _Form={ 'attribute', FileLoc, TypeDesignator,
 % Supposedly:
 %
 % "If F is an attribute -export_type([Type_1/A_1, ..., Type_k/A_k]), then Rep(F)
-% = {attribute,LINE,export_type,[{Type_1,A_1}, ..., {Type_k,A_k}]}."
+% = {attribute, FILE_LOC, export_type, [{Type_1,A_1}, ..., {Type_k,A_k}]}."
 %
 scan_forms( _AST=[ _Form={ 'attribute', FileLoc, 'export_type', TypeIds } | T ],
 			M=#module_info{ type_exports=ExportTable,
@@ -1361,10 +1362,11 @@ scan_forms( _AST=[ Form={ 'eof', _FileLoc } ],
 	% interpretation; it will start empty but may be enriched by parse
 	% transforms, when they need to export functions that they just added.
 
-	ExportLoc = ast_info:get_default_export_function_location(),
+	ExportASTLoc = ast_info:get_default_export_function_location(),
 
-	NewExportTable = ?table:add_entry( ExportLoc,
-								{ _FirstFileLoc=0, _Empty=[] }, ExportTable ),
+	NewExportTable = ?table:add_entry( ExportASTLoc,
+		{ _FirstFileLoc=ast_utils:get_generated_code_location(), _Empty=[] },
+		ExportTable ),
 
 	% We just do not want to have the filename of the currently processed module
 	% among the includes:

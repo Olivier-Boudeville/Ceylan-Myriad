@@ -74,7 +74,7 @@
 % Description of a compilation-related issue (error or warning).
 
 
--type issue_info() :: { line(), module(), issue_description() }.
+-type issue_info() :: { file_loc(), module(), issue_description() }.
 % Full information about a compilation-related issue.
 %
 % The module is the one emitting that issue (ex: erl_lint).
@@ -131,7 +131,6 @@
 		  write_ast_to_file/2 ]).
 
 
-
 % Shorthands:
 
 -type void() :: basic_utils:void().
@@ -146,11 +145,14 @@
 
 -type ast() :: ast_base:ast().
 -type form() :: ast_base:form().
--type line() :: ast_base:line().
 -type file_loc() :: ast_base:file_loc().
 -type form_context() :: ast_base:form_context().
 -type source_context() :: ast_base:source_context().
 -type ast_transforms() :: ast_transform:ast_transforms().
+
+
+% The default in-file location for generated forms:
+-define( default_generation_location, {0,1} ).
 
 
 
@@ -250,17 +252,18 @@ interpret_issue_report( _IssueReport={ Filename, IssueInfos } ) ->
 % @doc Interprets specific error description.
 -spec interpret_issue_info( file_name(), issue_info() ) -> void().
 interpret_issue_info( Filename,
-					  _IssueInfo={ Line, DetectorModule, IssueDesc } ) ->
+					  _IssueInfo={ FileLoc, DetectorModule, IssueDesc } ) ->
 
 	% Module is the detecting one, typically erl_lint:
-	%text_utils:format( "line #~B, module '~p', ~ts", [ Line, Module,
-	%						interpret_issue_description( IssueDesc ) ] ).
+	%text_utils:format( "~ts, module '~p', ~ts", [
+	%   file_loc_to_string( FileLoc ), Module,
+	%   interpret_issue_description( IssueDesc ) ] ).
 
-	%text_utils:format( "line #~B: ~ts", [ Line,
-	%		interpret_issue_description( IssueDesc, DetectorModule ) ] ).
+	%text_utils:format( "~ts: ~ts", [ file_loc_to_string( FileLoc ),
+	%   interpret_issue_description( IssueDesc, DetectorModule ) ] ).
 
-	io:format( "~ts:~B: ~ts~n", [ Filename, Line,
-			interpret_issue_description( IssueDesc, DetectorModule ) ] ).
+	io:format( "~ts:~ts: ~ts~n", [ Filename, file_loc_to_string( FileLoc ),
+		interpret_issue_description( IssueDesc, DetectorModule ) ] ).
 
 
 
@@ -473,7 +476,7 @@ beam_to_ast( BeamFilename ) ->
 
 
 % @doc Converts the specified Erlang term (ex: the float '42.0') into a
-% corresponding form (ex: '{ float, _Line=0, 42.0 }').
+% corresponding form (ex: '{float, _FileLoc={0,1}, 42.0}').
 %
 -spec term_to_form( term() ) -> form().
 term_to_form( Term ) ->
@@ -484,7 +487,7 @@ term_to_form( Term ) ->
 		% incorrect:
 
 		%badarg ->
-		%	throw( { term_abstraction_failed, Term } );
+		%   throw( { term_abstraction_failed, Term } );
 
 		SyntaxTree ->
 
@@ -496,49 +499,54 @@ term_to_form( Term ) ->
 
 
 
-% @doc Converts a list of names of variables into the corresponding AST.
+% @doc Converts a list of names of variables into the corresponding AST, at
+% the specified in-file location.
 %
 % Ex: if wanting to specify '[V1, Alpha, A]', we have: variable_names_to_ast(
-% ["V1", "Alpha", "A"], _Line=0) = [ {cons,0, {var,0,'V1'},
-% {cons,0,{var,0,'Alpha'}, {cons,0,{var,0,'A'}, {nil,0} } } } ]
+% ["V1", "Alpha", "A"], _FileLoc=0) = [ {cons,0, {var,0,'V1'},
+% {cons,0,{var,0,'Alpha'}, {cons,0,{var,0,'A'}, {nil,0}}}}]
 %
--spec variable_names_to_ast( [ ustring() ], line() ) -> ast().
-variable_names_to_ast( VariableNames, Line ) ->
+-spec variable_names_to_ast( [ ustring() ], file_loc() ) -> ast().
+variable_names_to_ast( VariableNames, FileLoc ) ->
 
 	% Could be done directly recursively by incrementally 'consing' reversed
 	% list.
 
 	NameListString = "[ " ++ text_utils:join( ", ",  VariableNames ) ++ " ].",
 
-	string_to_expressions( NameListString, Line ).
+	string_to_expressions( NameListString, FileLoc ).
 
 
 
 % @doc Converts the specified source code of a form (as a string) into its
-% corresponding abstract form (assuming being in line #1).
+% corresponding abstract form (using the default in-file location applying to
+% generated code).
 %
-% Ex: string_to_form( "f() -> hello_world." ) returns
-%   { function, 1, f, 0, [ { clause, 1, [], [], [ {atom,1,hello_world} ] } ] }
+% Ex: string_to_form("f() -> hello_world.") may return
+%   {function,  {0,1}, f, 0, [{clause,  {0,1}, [], [],
+%       [ {atom,  {0,1}, hello_world} ] } ] }
 %
 -spec string_to_form( ustring() ) -> form().
 string_to_form( FormString ) ->
-	string_to_form( FormString, _Loc=1 ).
+	string_to_form( FormString, _FileLoc=?default_generation_location ).
 
 
 
-% @doc Converts the specified source code of a form (ie, a string) into its
-% corresponding abstract form.
+% @doc Converts the specified source code of a form (that is, a string) into its
+% corresponding abstract form, at the specified in-file location.
 %
-% Ex: string_to_form( "f() -> hello_world.", 42 ) returns
-%   { function, 1, f, 0, [ { clause, 42, [], [], [ {atom,1,hello_world} ] } ] }
+% Ex: string_to_form("f() -> hello_world.", 42) may return
+%   {function, 42, f, 0, [{clause, 42, [], [], [{atom,42,hello_world}]}]}
 %
 -spec string_to_form( ustring(), file_loc() ) -> form().
-string_to_form( FormString, Location ) ->
+string_to_form( FormString, FileLoc ) ->
 
 	% First get Erlang tokens from that string:
-	Tokens = case erl_scan:string( FormString, Location ) of
+	Tokens = case erl_scan:string( FormString, FileLoc ) of
 
-		% Ex: [{atom,1,f},{'(',1},{')',1},{'->',1},{atom,1,hello_world},{dot,1}]
+		% Ex: [{atom,1,f}, {'(',1},{')',1}, {'->',1}, {atom,1,hello_world},
+		%      {dot,1}].
+		%
 		{ ok, Toks, _EndLocation } ->
 			%display_debug( "Tokens: ~p", [ Toks ] ),
 			Toks;
@@ -562,36 +570,40 @@ string_to_form( FormString, Location ) ->
 
 
 
-% @doc Converts the specified source code of a list of expressions (ie, a
-% string) into its corresponding AST (assuming being in line #1).
+% @doc Converts the specified source code of a list of expressions (that is, a
+% string) into its corresponding AST (using the default in-file location
+% applying to generated code).
 %
-% Ex: string_to_expressions( "[{a, 1}, foobar ]" ) returns
-%   [ {cons, 1, {tuple, 1, [ {atom,1,a}, {integer,1,1} ]},
-%     {cons, 1, {atom,1,foobar}, {nil,1}} } ]
+% Ex: string_to_expressions("[{a, 1}, foobar]") may return:
+%   [{cons,  {0,1}, {tuple,  {0,1}, [{atom, {0,1},a}, {integer, {0,1},1}]},
+%    {cons,  {0,1}, {atom, {0,1},foobar}, {nil, {0,1}}}}]
 %
 -spec string_to_expressions( ustring() ) -> ast().
 string_to_expressions( ExpressionString ) ->
-	string_to_expressions( ExpressionString, _Loc=1 ).
+	string_to_expressions( ExpressionString,
+						   _FileLoc=?default_generation_location ).
 
 
 
-% @doc Converts the specified source code of a term (ie, a string) and a
+% @doc Converts the specified source code of a term (that is, a string) and a
 % location into the corresponding abstract form.
 %
-% Ex: string_to_expressions( "[{a, 1}, foobar]", _Loc=42 ) returns
+% Ex: string_to_expressions("[{a, 1}, foobar]", _Loc=42) may return
 %   [ {cons, 42, {tuple, 42, [ {atom,42,a}, {integer,42,1} ]},
-%     {cons, 42, {atom,42,foobar}, {nil,42} }} ]
+%     {cons, 42, {atom,42,foobar}, {nil,42} }}]
 %
+% Note: at least with OTP24, apparently FileLoc cannot include a column
 -spec string_to_expressions( ustring(), file_loc() ) -> ast().
-string_to_expressions( ExpressionString, Location ) ->
+string_to_expressions( ExpressionString, FileLoc ) ->
 
 	% First get Erlang tokens from that string:
-	Tokens = case erl_scan:string( ExpressionString, Location ) of
+	Tokens = case erl_scan:string( ExpressionString, FileLoc ) of
 
 		% Ex: [ {'[',42}, {'{',42}, {atom,42,a}, {',',42}, {integer,42,1},
-		% {'}',42}, {',',42}, {atom,42,foobar}, {']',42} ]
-		{ ok, Toks, _EndLocation } ->
-			%display_debug( "Tokens: ~p", [ Toks ] ),
+		% {'}',42}, {',',42}, {atom,42,foobar}, {']',42}]
+		%
+		{ ok, Toks, _EndFileLoc } ->
+			%display_debug( "Tokens: ~p (at ~p)", [ Toks, EndFileLoc ] ),
 			Toks;
 
 		ErrorTok ->
@@ -613,11 +625,11 @@ string_to_expressions( ExpressionString, Location ) ->
 
 
 
-% @doc Converts the specified source code of a term (ie, a string) into its
+% @doc Converts the specified source code of a term (that is, a string) into its
 % corresponding value.
 %
-% Ex: string_to_value( "[ {tiger,[lion,leopard]} ]" ) returns the
-% [{tiger,[lion,leopard]}] term.
+% Ex: string_to_value("[{tiger,[lion,leopard]}]") returns the
+% [{tiger, [lion,leopard]}] term.
 %
 -spec string_to_value( ustring() ) -> term().
 string_to_value( ExpressionString ) ->
@@ -642,8 +654,7 @@ display_debug( String ) ->
 
 
 % @doc Displays specified formatted text as debug.
--spec display_debug( format_string(), [ term() ] ) ->
-						  void().
+-spec display_debug( format_string(), [ term() ] ) -> void().
 display_debug( FormatString, Values ) ->
 	display_debug( io_lib:format( FormatString, Values ) ).
 
@@ -802,13 +813,14 @@ raise_error( ErrorTerm ) ->
 % result in throwing {invalid_module_name, Other, {line, 112}}.
 %
 % Note:
+%
 % - this function is used to report errors detected by Myriad itself (not by the
 % Erlang toolchain)
+%
 % - prefer using raise_usage_error/* to report errors in a more standard,
 % convenient way
 %
--spec raise_error( term(), basic_utils:maybe( source_context() ) ) ->
-						 no_return().
+-spec raise_error( term(), maybe( source_context() ) ) -> no_return().
 raise_error( ErrorTerm, Context ) ->
 	raise_error( ErrorTerm, Context, _OriginLayer="Myriad" ).
 
@@ -827,7 +839,7 @@ raise_error( ErrorTerm, Context ) ->
 % - prefer using raise_usage_error/* to report errors in a more standard,
 % convenient way
 %
--spec raise_error( term(), basic_utils:maybe( source_context() ),
+-spec raise_error( term(), maybe( source_context() ),
 				   basic_utils:layer_name() ) -> no_return();
 				 ( ustring(), ast_transforms(), file_loc() ) -> no_return().
 raise_error( Message, #ast_transforms{ transformed_module_name=ModName },
@@ -849,20 +861,25 @@ raise_error( Message, SourceContext, OriginLayer ) ->
 		undefined ->
 			"Error";
 
-		{ Filename, Line } ->
-			io_lib:format( "~ts:~B: error", [ Filename, Line ] );
+		{ Filename, FileLoc } ->
+			io_lib:format( "~ts:~ts: error", [ Filename,
+				file_loc_to_string( FileLoc ) ] );
 
 		Filename when is_binary( Filename ) ->
 			io_lib:format( "Error in ~ts", [ Filename ] );
 
+		{ Line, Column } when is_integer( Line ) andalso
+							  is_integer( Column ) ->
+			io_lib:format( "Error at line #~B, column ~B",
+						   [ Line, Column ] );
+
 		Line when is_integer( Line ) ->
-			io_lib:format( "Error at line ~B", [ Line ] );
+			io_lib:format( "Error at line #~B", [ Line ] );
 
 		Other ->
 			io_lib:format( "Error in unexpected context ~p", [ Other ] )
 
 	end,
-
 
 	% Used to rely on display_error/1, yet we want to respect the standard error
 	% report format, so:
@@ -879,8 +896,8 @@ raise_error( Message, SourceContext, OriginLayer ) ->
 
 	end,
 
-	DisplayStacktrace = true,
-	%DisplayStacktrace = false,
+	%DisplayStacktrace = true,
+	DisplayStacktrace = false,
 
 	try
 
@@ -948,6 +965,15 @@ interpret_stack_trace( _StackTrace=[ { Module, FunName, Arity,
 
 	interpret_stack_trace( T, [ Text | Acc ], Count+1 );
 
+interpret_stack_trace( _StackTrace=[ { Module, FunName, Arity,
+		_FileLoc=[ { file, Path }, { line, Line }, { column, Column } ] } | T ],
+					   Acc, Count ) ->
+
+	Text = io_lib:format( " [~B] ~ts:~ts/~B    [~ts, line ~B, column ~B]~n",
+		[ Count, Module, FunName, Arity, Path, Line, Column ] ),
+
+	interpret_stack_trace( T, [ Text | Acc ], Count+1 );
+
 interpret_stack_trace( _StackTrace=[ H | T ], Acc, Count ) ->
 	Text = io_lib:format( "~p~n", [ H ] ),
 	interpret_stack_trace( T, [ Text | Acc ], Count+1 ).
@@ -962,7 +988,8 @@ interpret_stack_trace( _StackTrace=[ H | T ], Acc, Count ) ->
 -spec raise_usage_error( format_string(), format_values(), file_name() ) ->
 								no_return().
 raise_usage_error( ErrorFormatString, ErrorValues, Filename ) ->
-	raise_usage_error( ErrorFormatString, ErrorValues, Filename, _Line=0 ).
+	raise_usage_error( ErrorFormatString, ErrorValues, Filename,
+					   _ActualFileLoc=?default_generation_location ).
 
 
 
@@ -975,7 +1002,7 @@ raise_usage_error( ErrorFormatString, ErrorValues, Filename ) ->
 raise_usage_error( ErrorFormatString, ErrorValues, Filename,
 				   _Line=undefined ) ->
 	raise_usage_error( ErrorFormatString, ErrorValues, Filename,
-					   _ActualFileLoc=0 );
+					   _ActualFileLoc=?default_generation_location );
 
 raise_usage_error( ErrorFormatString, ErrorValues, ModuleName, FileLoc )
   when is_atom( ModuleName ) ->
@@ -987,7 +1014,7 @@ raise_usage_error( ErrorFormatString, ErrorValues, Filename, FileLoc ) ->
 	ErrorString = io_lib:format( ErrorFormatString, ErrorValues ),
 
 	io:format( "~ts:~ts: ~ts~n",
-			   [ Filename,format_file_loc( FileLoc ), ErrorString ] ),
+			   [ Filename, format_file_loc( FileLoc ), ErrorString ] ),
 
 	% Almost the only way to stop the processing of the AST:
 	halt( 5 ).
@@ -1000,12 +1027,12 @@ raise_usage_error( ErrorFormatString, ErrorValues, Filename, FileLoc ) ->
 %
 % The specified error term will be transformed by the specified module into a
 % (textual) error message (see format_error/1), and then will be reported as
-% originating from the specified line in the source file of the module being
+% originating from the specified location in the source file of the module being
 % compiled.
 %
--spec get_error_form( basic_utils:error_reason(), module_name(), line() ) ->
+-spec get_error_form( basic_utils:error_reason(), module_name(), file_loc() ) ->
 							form().
-get_error_form( ErrorTerm, FormatErrorModule, Line ) ->
+get_error_form( ErrorTerm, FormatErrorModule, FileLoc ) ->
 
 	% Actually the most standard way of reporting an error seems to insert a
 	% dedicated form in the AST.
@@ -1015,12 +1042,12 @@ get_error_form( ErrorTerm, FormatErrorModule, Line ) ->
 	%
 	% - Line is 15
 	%
-	% - 'apply( FormatErrorModule, format_error, [ ErrorTerm ] )' is "my error
+	% - 'apply(FormatErrorModule, format_error, [ErrorTerm])' is "my error
 	% message":
 	%
 	% the following error message: "foobar:15: my error message".
 	%
-	{ error, { Line, FormatErrorModule, ErrorTerm } }.
+	{ error, { FileLoc, FormatErrorModule, ErrorTerm } }.
 
 
 
@@ -1040,24 +1067,37 @@ format_error( ErrorTerm ) ->
 %
 % (helper)
 %
--spec get_elements_with_context( [ term() ], form_context() ) -> [ term() ].
+-spec get_elements_with_context( [ term() ], maybe( source_context() ) ) ->
+										[ term() ].
 get_elements_with_context( Elements, _Context=undefined ) ->
 	Elements;
 
-get_elements_with_context( Elements, _Context={ FilePath, Line } )
-  when is_binary( FilePath ) andalso is_integer( Line ) ->
-	%Elements ++ [ { file, text_utils:binary_to_string( FilePath ) },
-	%			  { line, Line } ];
+% Tricky matching, as FilePath may be either a plain or binary string, and
+% FileLoc, if not undefined, may be either a line or a {Line,Column} pair - but
+% Context may be also directly such a pair (thus with no FilePath).
+%
+get_elements_with_context( Elements, _Context=FileLoc={ L, C } )
+		when is_integer( L ) andalso is_integer( C ) ->
+	Prefix = io_lib:format( "~ts: ", [ file_loc_to_string( FileLoc ) ] ),
+	[ Prefix | Elements ];
+	%Elements ++ [ file_loc_to_explicative_term( FileLoc ) ];
+
+% FilePath is a string, plain or binary:
+get_elements_with_context( Elements, _Context={ FilePath, FileLoc } ) ->
+	% Was: Elements ++ [ { file, text_utils:binary_to_string( FilePath ) },
+	%					 { line, Line } ];
 
 	% We mimic the default error formatting so that tools (like IDE) have a
 	% chance to automatically point to the right location in the sources:
 	%
-	Prefix = io_lib:format( "~ts:~B: ",
-							[ text_utils:binary_to_string( FilePath ), Line ] ),
+	Prefix = io_lib:format( "~ts:~ts: ",
+							[ FilePath, file_loc_to_string( FileLoc ) ] ),
+
 	[ Prefix | Elements ];
 
+
 get_elements_with_context( Elements, _Context=Line ) when is_integer( Line ) ->
-	Elements ++ [ { line, Line } ];
+	Elements ++ [ file_loc_to_explicative_term( Line ) ];
 
 get_elements_with_context( Elements, _Context=FilePath )
   when is_binary( FilePath ) ->
@@ -1066,19 +1106,23 @@ get_elements_with_context( Elements, _Context=FilePath )
 	[ Prefix | Elements ];
 
 get_elements_with_context( Elements, Context ) ->
-	% No list_utils module used from this module:
+	% No list_utils module used from this module, direct append:
 	Elements ++ [ Context ].
 
 
 
 
-% @doc Returns the conventional virtual in-file location denoting generated
-% code.
+% @doc Returns the conventional virtual in-file (not AST) location denoting
+% generated code.
 %
--spec get_generated_code_location() -> line().
+-spec get_generated_code_location() -> file_loc().
 get_generated_code_location() ->
-	% Not { _Line=0, _Column=0 }:
-	_Line=0.
+	% Preferring currently not returning { _Line=0, _Column=1 }, for pre-OTP24
+	% compliance:
+	%
+	%_Line=0.
+	%{ _Line=0, _Column=1 }.
+	?default_generation_location.
 
 
 

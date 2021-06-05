@@ -48,7 +48,13 @@
 
 
 -type line() :: erl_anno:line().
-% Line location (ie line number) of a form in a source file.
+% Line location (that is: line number, starting at 0) of a form in a source
+% file.
+
+
+-type column() :: erl_anno:column().
+% Column location (that is: column number, starting at 1) of a form in a source
+% file.
 
 
 -type file_loc() :: erl_anno:location().
@@ -61,11 +67,11 @@
 
 
 -type source_context() ::
-		{ file_utils:filename(), basic_utils:maybe( line() ) }.
-% In-source context (typically to report errors); ex: `{"foo.erl",112}'.
+		{ file_utils:filename(), basic_utils:maybe( file_loc() ) }.
+% In-source context (typically to report errors); ex: `{"foo.erl",{112,4}}'.
 
 
--export_type([ form_location/0, file_reference/0, line/0, file_loc/0,
+-export_type([ form_location/0, file_reference/0, line/0, column/0, file_loc/0,
 			   form_context/0, source_context/0 ]).
 
 
@@ -101,7 +107,7 @@
 % [http://erlang.org/doc/apps/erts/absform.html]
 
 
--type ast_atom() :: { 'atom', line(), atom() }.
+-type ast_atom() :: { 'atom', file_loc(), atom() }.
 % In-AST description of a value of type atom.
 
 
