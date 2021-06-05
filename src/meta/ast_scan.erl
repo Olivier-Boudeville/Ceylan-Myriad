@@ -68,7 +68,7 @@
 -type compile_option_table() :: ast_info:compile_option_table().
 -type located_form() :: ast_info:located_form().
 -type marker_table() :: ast_info:section_marker_table().
--type location() :: ast_info:location().
+-type ast_location() :: ast_info:ast_location().
 
 -type ustring() :: text_utils:ustring().
 
@@ -1595,7 +1595,7 @@ check_parse_attribute_name( Name ) ->
 % all markers are (adequately) defined (even if no clause in the AST triggered
 % their specific setting).
 %
--spec finalize_marker_table( location(), marker_table() ) -> marker_table().
+-spec finalize_marker_table( ast_location(), marker_table() ) -> marker_table().
 finalize_marker_table( EndMarkerLoc, MarkerTable ) ->
 
 	% Useful for a later stack-based placement; we obtain a list of
@@ -1752,6 +1752,6 @@ add_missing_markers( _Markers=[ M | T ], DefaultLoc, MarkerTable ) ->
 % (helper)
 %
 -spec get_ordered_marker_location_pairs( marker_table() ) ->
-					[ { ast_info:section_marker(), location() } ].
+					[ { ast_info:section_marker(), ast_location() } ].
 get_ordered_marker_location_pairs( MarkerTable ) ->
 	lists:keysort( _Index=2, ?table:enumerate( MarkerTable ) ).
