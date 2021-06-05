@@ -298,8 +298,19 @@
 
 
 
+% Miscellaneous section.
+
+-type rpm() :: float().
+% Revolutions per minute (also known as RPM, rev/min, r/min, or with the
+% notation min−1) is the number of turns in one minute; a unit of rotational
+% speed or the frequency of rotation around a fixed axis.
+
+-type misc_units() :: rpm().
+
+
+
 -type units() :: time_units() | length_units() | volume_units() | mass_units()
-			   | energy_units() | angle_units().
+			   | energy_units() | angle_units() | misc_units().
 % All kinds of units.
 
 
