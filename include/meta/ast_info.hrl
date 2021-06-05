@@ -321,7 +321,8 @@
 		   % Corresponds to the in-AST sortable location of the full form for
 		   % the definition of this type:
 		   %
-		   ast_location = undefined :: basic_utils:maybe( ast_info:location() ),
+		   ast_location = undefined ::
+				basic_utils:maybe( ast_info:ast_location() ),
 
 
 		   % Corresponds to the in-file location (line/column) where this type
@@ -339,7 +340,7 @@
 		   % empty) list of the location(s) of its actual export(s), knowing
 		   % that a type can be exported more than once, or never:
 		   %
-		   exported = [] :: [ ast_info:location() ]
+		   exported = [] :: [ ast_info:ast_location() ]
 
 } ).
 
@@ -364,7 +365,8 @@
 		   % the definition (first clause) of this function (not of its spec,
 		   % which has its specific field below):
 		   %
-		   ast_location = undefined :: basic_utils:maybe( ast_info:location() ),
+		   ast_location = undefined ::
+				basic_utils:maybe( ast_info:ast_location() ),
 
 
 		   % Corresponds to the in-file location of the first defined clause (in
@@ -409,6 +411,6 @@
 		   % automatically declared in that export form, should it be not
 		   % already)
 		   %
-		   exported = [] :: [ ast_info:location() ]
+		   exported = [] :: [ ast_info:ast_location() ]
 
 } ).

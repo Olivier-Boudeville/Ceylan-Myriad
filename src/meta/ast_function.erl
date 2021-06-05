@@ -507,8 +507,9 @@ get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 % @doc Ensures that the specified function is as expected exported in the
 % specified (supposedly export) locations.
 %
--spec update_export_table( function_name(), arity(), [ ast_info:location() ],
-						   function_export_table() ) -> function_export_table().
+-spec update_export_table( function_name(), arity(),
+		[ ast_info:ast_location() ], function_export_table() ) ->
+									function_export_table().
 update_export_table( _FunctionName, _Arity, _ExportLocs=[], ExportTable ) ->
 	ExportTable;
 
