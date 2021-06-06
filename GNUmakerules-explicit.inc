@@ -1092,16 +1092,16 @@ info-hardware:
 
 # cat /etc/lsb-release would not work everywhere
 info-software:
-	@echo "OS: $$(lsb_release --all)"
+	@echo "OS: $$(lsb_release --all 2>/dev/null)"
 	@echo "Rebar: $$(rebar3 version)"
 	@echo "Erlang: $$(erl -eval '{ok, Version} = file:read_file(filename:join([code:root_dir(), "releases", erlang:system_info(otp_release), "OTP_VERSION"])), io:fwrite(Version), halt().' -noshell)"
 
 
 info-source-layout:
 	@echo " - building from: $$(pwd)"
-	@echo " - content of parent directory: $$(ls .. | tr '\n' ' ')"
-	@echo " - content of _checkouts directory: $$(ls _checkouts)"
-	@echo " - content of _build/default/lib directory: $$(ls _build/default/lib)"
+	@echo " - content of parent directory: $$(ls .. 2>/dev/null | tr '\n' ' ')"
+	@echo " - content of _checkouts directory: $$(ls _checkouts 2>/dev/null)"
+	@echo " - content of _build/default/lib directory: $$(ls _build/default/lib 2>/dev/null)"
 
 
 info: info-files
