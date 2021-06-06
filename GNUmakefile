@@ -5,8 +5,9 @@ MYRIAD_TOP = .
 		register-version-in-header register-myriad list-beam-dirs             \
 		add-prerequisite-plts prepare-base-plt add-erlhdf5-plt add-jsx-plt    \
 		add-sqlite3-plt link-plt clean-ast-outputs clean-local stats          \
-		info-paths info-settings info-compile info-parse-transform info-sync  \
-		info-check info-conditionals info-rebar3 info-doc
+		info-context info-versions info-paths info-settings info-compile      \
+		info-parse-transform info-sync info-check info-conditionals           \
+		info-rebar3 info-doc
 
 
 #MODULES_DIRS = contrib src doc conf
@@ -124,6 +125,14 @@ clean-local:
 
 stats:
 	@$(MAKE_CODE_STATS) $(MYRIAD_TOP)
+
+
+# Typically useful to know the software context for continuous integration:
+info-context: info-platform info-versions
+
+
+info-versions:
+	@echo "MYRIAD_VERSION = $(MYRIAD_VERSION)"
 
 
 info-paths:

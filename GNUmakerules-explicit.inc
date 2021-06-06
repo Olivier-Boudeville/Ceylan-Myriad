@@ -1077,6 +1077,23 @@ track:
 	@$(DOC_TRACKER) $(OVERALL_DOCUMENT_SOURCE)
 
 
+# Typically useful to know the software context for continuous integration:
+info-platform: info-hardware info-software
+
+
+info-hardware:
+	@echo "Kernel: $$(uname -a)"
+	@echo "CPU type: $$(cat /proc/cpuinfo | grep 'model name' | head -n 1), core count: $$(cat /proc/cpuinfo | grep 'core id'| wc -l)"
+	@echo -e "RAM:\n$$(free --total --human)"
+
+
+info-software:
+	@echo "OS: $$(cat /etc/lsb-release)"
+	@echo "Rebar: $$(rebar3 version)"
+	@echo "Erlang: $$(erl -eval '{ok, Version} = file:read_file(filename:join([code:root_dir(), "releases", erlang:system_info(otp_release), "OTP_VERSION"])), io:fwrite(Version), halt().' -noshell)"
+
+
+
 info: info-files
 	@echo "FQDN                   = $(FQDN)"
 	@echo "BEAM_DIRS              = $(BEAM_DIRS)"
