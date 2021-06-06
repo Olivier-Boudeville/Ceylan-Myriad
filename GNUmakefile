@@ -6,8 +6,7 @@ MYRIAD_TOP = .
 		add-prerequisite-plts prepare-base-plt add-erlhdf5-plt add-jsx-plt    \
 		add-sqlite3-plt link-plt clean-ast-outputs clean-local stats          \
 		info-context info-versions info-paths info-settings info-compile      \
-		info-parse-transform info-sync info-check info-conditionals           \
-		info-rebar3 info-doc
+		info-parse-transform info-conditionals
 
 
 #MODULES_DIRS = contrib src doc conf
@@ -128,7 +127,7 @@ stats:
 
 
 # Typically useful to know the software context for continuous integration:
-info-context: info-platform info-versions
+info-context: info-platform info-versions info-source-layout
 
 
 info-versions:
@@ -176,32 +175,3 @@ info-parse-transform:
 info-conditionals:
 	@echo "MYRIAD_DEBUG_FLAGS = $(MYRIAD_DEBUG_FLAGS)"
 	@echo "MYRIAD_CHECK_FLAGS = $(MYRIAD_CHECK_FLAGS)"
-
-
-info-sync:
-	@echo "SYNC_TOOL = $(SYNC_TOOL)"
-	@echo "SSH_PORT = $(SSH_PORT)"
-	@echo "SSH_OPT = $(SSH_OPT)"
-	@echo "SYNC_OPT = $(SYNC_OPT)"
-	@echo "WEB_SRV = $(WEB_SRV)"
-	@echo "CEYLAN_SYNC_TARGET_ROOT = $(CEYLAN_SYNC_TARGET_ROOT)"
-
-
-info-check:
-	@echo "DIALYZER = $(DIALYZER)"
-	@echo "DIALYZER_OPT = $(DIALYZER_OPT)"
-
-
-# Useful to extract information to be specified in a parallel rebar.config:
-info-rebar3:
-	@echo "BOOTSTRAP_MODULES = $(BOOTSTRAP_MODULES)"
-	@echo "INC = $(INC)"
-	@echo "MYRIAD_REBAR_INCS = $(MYRIAD_REBAR_INCS)"
-	@echo "MYRIAD_REBAR_FIND_SRC_EXCLUDES = $(MYRIAD_REBAR_FIND_SRC_EXCLUDES)"
-	@echo "MYRIAD_REBAR_FIND_SRC_OPT = $(MYRIAD_REBAR_FIND_SRC_OPT)"
-
-
-info-doc:
-	@echo "API_DOC_GENERATOR = $(API_DOC_GENERATOR)"
-	@echo "API_DOC_ROOT = $(API_DOC_ROOT)"
-	@echo "EDOC_OPTS = $(EDOC_OPTS)"

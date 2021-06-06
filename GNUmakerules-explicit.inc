@@ -40,7 +40,9 @@
 			  check check-hook help-erl                                        \
 			  clean clean-erlang clean-layer-ebin clean-python clean-database  \
 			  clean-recurse clean-outputs clean-ast-debug real-clean track     \
-			  info info-files info-meta info-erlang info-python info-java
+			  info-platform info-hardware info-software info-source-layout     \
+			  info info-files info-meta info-erlang info-python info-java      \
+			  info-sync info-check info-rebar3 info-doc
 
 
 #dummy:
@@ -1056,7 +1058,6 @@ clean-ast-debug-myriad:
 
 
 
-
 clean-outputs:
 
 
@@ -1077,6 +1078,7 @@ track:
 	@$(DOC_TRACKER) $(OVERALL_DOCUMENT_SOURCE)
 
 
+
 # Typically useful to know the software context for continuous integration:
 info-platform: info-hardware info-software
 
@@ -1094,6 +1096,12 @@ info-software:
 	@echo "Rebar: $$(rebar3 version)"
 	@echo "Erlang: $$(erl -eval '{ok, Version} = file:read_file(filename:join([code:root_dir(), "releases", erlang:system_info(otp_release), "OTP_VERSION"])), io:fwrite(Version), halt().' -noshell)"
 
+
+info-source-layout:
+	@echo " - building from: $$(pwd)"
+	@echo " - content of parent directory: $$(ls .. | tr '\n' ' ')"
+	@echo " - content of _checkouts directory: $$(ls _checkouts)"
+	@echo " - content of _build/default/lib directory: $$(ls _build/default/lib)"
 
 
 info: info-files
@@ -1143,6 +1151,36 @@ info-java:
 	@echo "JAVA_CLASS_FILES = $(JAVA_CLASS_FILES)"
 	@echo "JINTERFACE_ROOT = $(JINTERFACE_ROOT)"
 	@echo "JAVAC_OPT = $(JAVAC_OPT)"
+
+
+
+info-sync:
+	@echo "SYNC_TOOL = $(SYNC_TOOL)"
+	@echo "SSH_PORT = $(SSH_PORT)"
+	@echo "SSH_OPT = $(SSH_OPT)"
+	@echo "SYNC_OPT = $(SYNC_OPT)"
+	@echo "WEB_SRV = $(WEB_SRV)"
+	@echo "CEYLAN_SYNC_TARGET_ROOT = $(CEYLAN_SYNC_TARGET_ROOT)"
+
+
+info-check:
+	@echo "DIALYZER = $(DIALYZER)"
+	@echo "DIALYZER_OPT = $(DIALYZER_OPT)"
+
+
+# Useful to extract information to be specified in a parallel rebar.config:
+info-rebar3:
+	@echo "BOOTSTRAP_MODULES = $(BOOTSTRAP_MODULES)"
+	@echo "INC = $(INC)"
+	@echo "MYRIAD_REBAR_INCS = $(MYRIAD_REBAR_INCS)"
+	@echo "MYRIAD_REBAR_FIND_SRC_EXCLUDES = $(MYRIAD_REBAR_FIND_SRC_EXCLUDES)"
+	@echo "MYRIAD_REBAR_FIND_SRC_OPT = $(MYRIAD_REBAR_FIND_SRC_OPT)"
+
+
+info-doc:
+	@echo "API_DOC_GENERATOR = $(API_DOC_GENERATOR)"
+	@echo "API_DOC_ROOT = $(API_DOC_ROOT)"
+	@echo "EDOC_OPTS = $(EDOC_OPTS)"
 
 
 # Put here, as defining explicit targets:
