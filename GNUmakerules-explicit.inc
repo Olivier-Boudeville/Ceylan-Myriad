@@ -1084,13 +1084,13 @@ info-platform: info-hardware info-software
 info-hardware:
 	@echo "Kernel: $$(uname -a)"
 	@echo "CPU type: $$(cat /proc/cpuinfo | grep 'model name' | head -n 1), core count: $$(cat /proc/cpuinfo | grep 'core id'| wc -l)"
-	@echo"RAM:"
+	@echo "RAM:"
 	@echo $$(free --total --human)
 
 
 # cat /etc/lsb-release would not work everywhere
 info-software:
-	@echo "OS: $$(lsb-release --all)"
+	@echo "OS: $$(lsb_release --all)"
 	@echo "Rebar: $$(rebar3 version)"
 	@echo "Erlang: $$(erl -eval '{ok, Version} = file:read_file(filename:join([code:root_dir(), "releases", erlang:system_info(otp_release), "OTP_VERSION"])), io:fwrite(Version), halt().' -noshell)"
 
