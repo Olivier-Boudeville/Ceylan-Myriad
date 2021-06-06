@@ -224,12 +224,13 @@ info-doc-local:
 
 
 info-doc-tools:
+	@echo "RST_GENERATOR = $(RST_GENERATOR)"
+	@echo "DOC_TRACKER = $(DOC_TRACKER)"
 	@echo "DOT = $(DOT)"
 	@echo "GNUPLOT = $(GNUPLOT)"
 	@echo "IMG_VIEWER = $(IMG_VIEWER)"
 	@echo "IMAGE_MAGICK = $(IMAGE_MAGICK)"
 	@echo "PDF_VIEWER = $(PDF_VIEWER)"
-	@echo "RST_GENERATOR = $(RST_GENERATOR)"
 
 
 # Centralization of documentation sources is necessary, as the LaTeX generator
