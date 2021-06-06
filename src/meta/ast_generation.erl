@@ -33,12 +33,6 @@
 -module(ast_generation).
 
 
-% The default in-file location for generated forms:
--define( default_generation_location, ast_utils:get_generated_code_location() ).
-% Later inlined:
-%-define( default_generation_location, {0,1} ).
-
-
 -export([ list_to_form/1, form_to_list/1,
 		  atoms_to_form/1, form_to_atoms/1,
 		  enumerated_variables_to_form/1,
@@ -49,6 +43,10 @@
 
 -type count() :: basic_utils:count().
 -type form_element() :: ast_base:form_element().
+
+
+% For the default_generation_location define:
+-include("ast_utils.hrl").
 
 
 

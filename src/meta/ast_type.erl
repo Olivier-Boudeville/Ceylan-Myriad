@@ -36,10 +36,17 @@
 -module(ast_type).
 
 
-% The default in-file location for generated forms:
--define( default_generation_location, ast_utils:get_generated_code_location() ).
-% Later inlined:
-%-define( default_generation_location, {0,1} ).
+% For the table macro:
+-include("meta_utils.hrl").
+
+% For the type_info record:
+-include("ast_info.hrl").
+
+% For the ast_transforms record:
+-include("ast_transform.hrl").
+
+% For the rec_guard and default_generation_location defines:
+-include("ast_utils.hrl").
 
 
 % Section for types about types.
@@ -238,19 +245,6 @@
 
 -type ast_transforms() :: ast_transform:ast_transforms().
 
-
-
-% For the table macro:
--include("meta_utils.hrl").
-
-% For the type_info record:
--include("ast_info.hrl").
-
-% For the ast_transforms record:
--include("ast_transform.hrl").
-
-% For the rec_guard define:
--include("ast_utils.hrl").
 
 
 % Implementation notes:

@@ -67,6 +67,11 @@
 -include("ast_transform.hrl").
 
 
+% For the default_generation_location defines:
+-include("ast_utils.hrl").
+
+
+
 % Directly inspired from erl_lint:
 
 
@@ -149,10 +154,6 @@
 -type form_context() :: ast_base:form_context().
 -type source_context() :: ast_base:source_context().
 -type ast_transforms() :: ast_transform:ast_transforms().
-
-
-% The default in-file location for generated forms:
--define( default_generation_location, {0,1} ).
 
 
 

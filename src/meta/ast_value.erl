@@ -36,12 +36,6 @@
 -module(ast_value).
 
 
-% The default in-file location for generated forms:
--define( default_generation_location, ast_utils:get_generated_code_location() ).
-% Later inlined:
-%-define( default_generation_location, {0,1} ).
-
-
 
 % "There are five kinds of atomic literals, which are represented in the same
 % way in patterns, expressions, and guards:
@@ -107,7 +101,7 @@
 % For the ast_transforms record:
 -include("ast_transform.hrl").
 
-% For rec_guard-related defines:
+% For rec_guard-related and default_generation_location defines:
 -include("ast_utils.hrl").
 
 
