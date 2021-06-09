@@ -10,39 +10,40 @@
 .PHONY: .PHONY-myriad-explicit
 
 .PHONY-myriad-explicit:  all all-pre-hook all-parallel-recurse all-recurse     \
-			  all-parse-transforms bootstrap-modules make-all-parse-transforms \
-			  build-debug rebuild test test-recurse doc-recurse build-tests    \
-			  launch shell                                                     \
-			  install-all install-announce install-ebin install-bin            \
-			  install-src install-include install-examples install-test        \
-			  install-doc info-install info-install-locations                  \
-			  info-install-content create-myriad-checkout                      \
-			  rebar3-application set-rebar-conf set-rebar-conf-for-hex         \
-			  rebar3-make-include-links rebar3-clean-include-links             \
-			  rebar3-release rebar3-development-release                        \
-			  rebar3-production-release rebar3-hide-unsupported-sources        \
-			  rebar3-restore-unsupported-sources                               \
-			  rebar3-compile-pre-hook rebar3-compile-post-hook                 \
-			  rebar3-bulletproof-compile-pre-hook                              \
-			  rebar3-bulletproof-compile-post-hook                             \
-			  rebar3-update rebar3-compile rebar3-create-tree                  \
-			  rebar3-populate-build-tree rebar3-create-app-file                \
-			  rebar3-copy-beams rebar3-clean rebar3-real-clean                 \
-			  rebar-test-clean                                                 \
-			  rebar3-cache-clean rebar3-info rebar3-hex-publish                \
-			  rebar3-local-update                                              \
-			  test-hex-package                                                 \
-			  sync-to-server                                                   \
-			  generate-api-doc generate-api-alt-doc copy-static-content        \
-			  clean-api-doc clean-api-alt-doc                                  \
-			  generate-list-of-erlang-types generate-list-of-local-types       \
-			  generate-local-plt self-check-against-plt write-debug-key-file   \
-			  check check-hook help-erl                                        \
-			  clean clean-erlang clean-layer-ebin clean-python clean-database  \
-			  clean-recurse clean-outputs clean-ast-debug real-clean track     \
-			  info-platform info-hardware info-software info-source-layout     \
-			  info info-files info-meta info-erlang info-python info-java      \
-			  info-sync info-check info-rebar3 info-doc
+			all-parse-transforms bootstrap-modules make-all-parse-transforms \
+			build-debug rebuild test test-recurse doc-recurse build-tests    \
+			launch shell                                                     \
+			install-all install-announce install-ebin install-bin            \
+			install-src install-include install-examples install-test        \
+			install-doc info-install info-install-locations                  \
+			info-install-content create-myriad-checkout                      \
+			rebar3-application set-rebar-conf set-rebar-conf-for-hex         \
+			rebar3-make-include-links rebar3-clean-include-links             \
+			rebar3-release rebar3-development-release                        \
+			rebar3-production-release rebar3-hide-unsupported-sources        \
+			rebar3-restore-unsupported-sources                               \
+			rebar3-compile-pre-hook rebar3-compile-post-hook                 \
+			rebar3-bulletproof-compile-pre-hook                              \
+			rebar3-bulletproof-compile-post-hook                             \
+			rebar3-update rebar3-compile rebar3-create-tree                  \
+			rebar3-populate-build-tree rebar3-create-app-file                \
+			rebar3-copy-beams rebar3-clean rebar3-real-clean                 \
+			rebar-test-clean                                                 \
+			rebar3-cache-clean rebar3-info rebar3-hex-publish                \
+			rebar3-local-update                                              \
+			test-hex-package                                                 \
+			sync-to-server                                                   \
+			generate-api-doc generate-api-alt-doc copy-static-content        \
+			clean-api-doc clean-api-alt-doc                                  \
+			generate-list-of-erlang-types generate-list-of-local-types       \
+			generate-local-plt self-check-against-plt write-debug-key-file   \
+			check check-hook help-erl                                        \
+			clean clean-erlang clean-layer-ebin clean-python clean-database  \
+			clean-recurse clean-outputs clean-ast-debug real-clean track     \
+			info-platform info-hardware info-software info-source-layout     \
+			info info-files info-meta info-erlang info-python info-java      \
+			info-sync info-check info-rebar3 info-compile                    \
+			info-parse-transforminfo-doc
 
 
 #dummy:
@@ -65,9 +66,9 @@ ifeq ($(BASE_MAKEFILE),true)
 #
 all: all-pre-hook all-parse-transforms rebar3-make-include-links
 	@echo "  Building all, in parallel over $(CORE_COUNT) core(s), from $(PWD)"
-	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && \
-		$(MAKE) -s all-recurse -j $(CORE_COUNT) && cd .. ; else echo "     (directory $$m skipped)" ; \
-	fi ) ; then exit 1; fi ; done
+	@for m in $(MODULES_DIRS); do if ! (if [ -d $$m ]; then cd $$m && \
+		$(MAKE) -s all-recurse -j $(CORE_COUNT) && cd ..; else echo "     (directory $$m skipped)"; \
+	fi); then exit 1; fi; done
 
 
 # Not removing rebar.config anymore, to avoid that GIT considers it deleted on
@@ -82,7 +83,7 @@ all: all-pre-hook all-parse-transforms rebar3-make-include-links
 #  _build-like directories)
 #
 clean: clean-layer-ebin
-	-@if [ -d doc ] ; then cd doc && $(MAKE) -s clean ; fi
+	-@if [ -d doc ]; then cd doc && $(MAKE) -s clean; fi
 
 else
 
@@ -98,8 +99,8 @@ bootstrap-modules: $(BOOTSTRAP_MODULES)
 
 make-all-parse-transforms:
 	@echo "  Building first all layer-specific parse transforms"
-	@for d in $(PARSE_TRANSFORM_DIRS) ; do ( cd $$d && \
-	$(MAKE) -s local-parse-transforms ) ; done
+	@for d in $(PARSE_TRANSFORM_DIRS); do (cd $$d && \
+	$(MAKE) -s local-parse-transforms); done
 
 
 LOCAL_TRANSFORM_SRC = $(wildcard *_parse_transform.erl)
@@ -134,7 +135,7 @@ all-recurse-pre-hook:
 # makefile, letting then 'make' use its job server for that task:
 all-parallel-recurse:
 	@echo "  Building all on parallel over $(CORE_COUNT) cores (in "$(PWD) #$$(basename $(PWD))
-	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s all -j $(CORE_COUNT) CMD_LINE_OPT="${CMD_LINE_OPT}" && cd .. ; else echo "    (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
+	@for m in $(MODULES_DIRS); do if ! (if [ -d $$m ]; then cd $$m && $(MAKE) -s all -j $(CORE_COUNT) CMD_LINE_OPT="${CMD_LINE_OPT}" && cd ..; else echo "    (directory $$m skipped)"; fi); then exit 1; fi; done
 
 
 
@@ -147,7 +148,7 @@ all-parallel-recurse:
 #
 all-recurse: $(BEAM_FILES)
 	@echo "  Building all in "$(PWD) #$$(basename $(PWD))
-	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s all CMD_LINE_OPT="${CMD_LINE_OPT}" USE_HDF5=$(USE_HDF5) USE_JSON=$(USE_JSON) USE_REST=$(USE_REST) USE_SQLITE=$(USE_SQLITE) && cd .. ; else echo "  (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
+	@for m in $(MODULES_DIRS); do if ! (if [ -d $$m ]; then cd $$m && $(MAKE) -s all CMD_LINE_OPT="${CMD_LINE_OPT}" USE_HDF5=$(USE_HDF5) USE_JSON=$(USE_JSON) USE_REST=$(USE_REST) USE_SQLITE=$(USE_SQLITE) && cd ..; else echo "  (directory $$m skipped)"; fi); then exit 1; fi; done
 
 
 
@@ -197,17 +198,17 @@ rebuild: clean all
 
 $(MYRIAD_TOP)/src/utils/basic_utils.beam: $(MYRIAD_TOP)/src/utils/basic_utils.erl $(MYRIAD_TOP)/include/utils/basic_utils.hrl
 	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+	@beam_file=$$(basename $@); cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$(echo $$beam_file | sed 's|.beam$$|.erl|1')
 
 
 $(MYRIAD_TOP)/src/utils/text_utils.beam: $(MYRIAD_TOP)/src/utils/text_utils.erl
 	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+	@beam_file=$$(basename $@); cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$(echo $$beam_file | sed 's|.beam$$|.erl|1')
 
 
 $(MYRIAD_TOP)/src/utils/id_utils.beam: $(MYRIAD_TOP)/src/utils/id_utils.erl
 	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+	@beam_file=$$(basename $@); cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$(echo $$beam_file | sed 's|.beam$$|.erl|1')
 
 
 
@@ -218,7 +219,7 @@ $(MYRIAD_TOP)/src/utils/id_utils.beam: $(MYRIAD_TOP)/src/utils/id_utils.erl
 #
 $(MYRIAD_TOP)/src/meta/%.beam: $(MYRIAD_TOP)/src/meta/%.erl
 	@echo "		Compiling bootstrap meta module $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+	@beam_file=$$(basename $@); cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$(echo $$beam_file | sed 's|.beam$$|.erl|1')
 
 
 
@@ -226,23 +227,23 @@ $(MYRIAD_TOP)/src/meta/%.beam: $(MYRIAD_TOP)/src/meta/%.erl
 
 #$(MYRIAD_TOP)/src/data-management/list_table.beam: $(MYRIAD_TOP)/src/data-management/list_table.erl
 #	@echo "		Compiling bootstrap module $<"
-#	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+#	@beam_file=$$(basename $@); cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$(echo $$beam_file | sed 's|.beam$$|.erl|1')
 
 
 $(MYRIAD_TOP)/src/data-management/map_hashtable.beam: $(MYRIAD_TOP)/src/data-management/map_hashtable.erl
 	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@) ; cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$( echo $$beam_file | sed 's|.beam$$|.erl|1' )
+	@beam_file=$$(basename $@); cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$(echo $$beam_file | sed 's|.beam$$|.erl|1')
 
 
 
 
 test: all test-recurse
-	@for t in $(TEST_TARGETS); do if ! $(MAKE) -s $$(echo $$t|sed 's|_test$$|_run|1') CMD_LINE_OPT="${CMD_LINE_OPT} --batch"; then echo "Test failed." 1>&2 ; exit 1; else echo ; fi ; done
+	@for t in $(TEST_TARGETS); do if ! $(MAKE) -s $$(echo $$t|sed 's|_test$$|_run|1') CMD_LINE_OPT="${CMD_LINE_OPT} --batch"; then echo "Test failed." 1>&2; exit 1; else echo; fi; done
 
 
 test-recurse:
 	@echo "   Testing all in $$(basename $(PWD))"
-	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s test CMD_LINE_OPT="${CMD_LINE_OPT}" && cd .. ; else echo "	  (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
+	@for m in $(MODULES_DIRS); do if ! (if [ -d $$m ]; then cd $$m && $(MAKE) -s test CMD_LINE_OPT="${CMD_LINE_OPT}" && cd ..; else echo "	  (directory $$m skipped)"; fi); then exit 1; fi; done
 
 
 # Best placed here rather than in GNUmakerules-docutils.inc:
@@ -250,7 +251,7 @@ doc: doc-recurse
 
 doc-recurse:
 	@echo "   Preparing documentation in "$(PWD) #$$(basename $(PWD))
-	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then cd $$m && $(MAKE) -s doc CMD_LINE_OPT="${CMD_LINE_OPT}" && cd .. ; else echo "	 (directory $$m skipped)" ; fi ) ; then exit 1; fi ; done
+	@for m in $(MODULES_DIRS); do if ! (if [ -d $$m ]; then cd $$m && $(MAKE) -s doc CMD_LINE_OPT="${CMD_LINE_OPT}" && cd ..; else echo "	 (directory $$m skipped)"; fi); then exit 1; fi; done
 
 
 
@@ -331,57 +332,57 @@ install-prod-announce:
 
 
 install-bin:
-	@if [ -n "$(EXEC_TO_INSTALL)" ] ; then \
-	mkdir -p $(BIN_INSTALLATION_PREFIX) ; \
-	/bin/cp $(EXEC_TO_INSTALL) $(BIN_INSTALLATION_PREFIX) ; fi
+	@if [ -n "$(EXEC_TO_INSTALL)" ]; then \
+	mkdir -p $(BIN_INSTALLATION_PREFIX); \
+	/bin/cp $(EXEC_TO_INSTALL) $(BIN_INSTALLATION_PREFIX); fi
 
 
 install-ebin:
 	@echo "  Installing BEAM files in $(EBIN_INSTALLATION_PREFIX)"
-	@if [ -n "$(BEAMS_TO_INSTALL)" ] ; then \
-	mkdir -p $(EBIN_INSTALLATION_PREFIX) ; \
-	/bin/cp -L $(BEAMS_TO_INSTALL) $(EBIN_INSTALLATION_PREFIX) ; fi
+	@if [ -n "$(BEAMS_TO_INSTALL)" ]; then \
+	mkdir -p $(EBIN_INSTALLATION_PREFIX); \
+	/bin/cp -L $(BEAMS_TO_INSTALL) $(EBIN_INSTALLATION_PREFIX); fi
 
 
 install-src:
-	@if [ -n "$(SOURCES_TO_INSTALL)" ] ; then \
-	mkdir -p $(SRC_INSTALLATION_PREFIX) ; \
-	/bin/cp -L $(SOURCES_TO_INSTALL) $(SRC_INSTALLATION_PREFIX) ; fi
+	@if [ -n "$(SOURCES_TO_INSTALL)" ]; then \
+	mkdir -p $(SRC_INSTALLATION_PREFIX); \
+	/bin/cp -L $(SOURCES_TO_INSTALL) $(SRC_INSTALLATION_PREFIX); fi
 
 
 install-include:
-	@if [ -n "$(INCLUDES_TO_INSTALL)" ] ; then \
-	mkdir -p $(INCLUDE_INSTALLATION_PREFIX) ; \
+	@if [ -n "$(INCLUDES_TO_INSTALL)" ]; then \
+	mkdir -p $(INCLUDE_INSTALLATION_PREFIX); \
 	/bin/cp -L $(INCLUDES_TO_INSTALL) \
-	$(INCLUDE_INSTALLATION_PREFIX) ; fi
+	$(INCLUDE_INSTALLATION_PREFIX); fi
 
 
 install-examples:
-	@if [ -n "$(EXAMPLES_TO_INSTALL_BEAMS)" ] ; then \
-	mkdir -p $(EXAMPLES_INSTALLATION_PREFIX)/ebin ; \
+	@if [ -n "$(EXAMPLES_TO_INSTALL_BEAMS)" ]; then \
+	mkdir -p $(EXAMPLES_INSTALLATION_PREFIX)/ebin; \
 	/bin/cp -L $(EXAMPLES_TO_INSTALL_BEAMS) \
-	$(EXAMPLES_INSTALLATION_PREFIX)/ebin ; fi
-	@if [ -n "$(EXAMPLES_TO_INSTALL_SRC)" ] ; then \
-	mkdir -p $(EXAMPLES_INSTALLATION_PREFIX)/src ; \
+	$(EXAMPLES_INSTALLATION_PREFIX)/ebin; fi
+	@if [ -n "$(EXAMPLES_TO_INSTALL_SRC)" ]; then \
+	mkdir -p $(EXAMPLES_INSTALLATION_PREFIX)/src; \
 	/bin/cp -L $(EXAMPLES_TO_INSTALL_SRC) \
-	$(EXAMPLES_INSTALLATION_PREFIX)/src ; fi
+	$(EXAMPLES_INSTALLATION_PREFIX)/src; fi
 
 
 install-test:
-	@if [ -n "$(TESTS_TO_INSTALL_BEAMS)" ] ; then \
-	mkdir -p $(TEST_INSTALLATION_PREFIX)/ebin ; \
+	@if [ -n "$(TESTS_TO_INSTALL_BEAMS)" ]; then \
+	mkdir -p $(TEST_INSTALLATION_PREFIX)/ebin; \
 	cp -L $(TESTS_TO_INSTALL_BEAMS) \
-	$(TEST_INSTALLATION_PREFIX)/ebin ; fi
-	@if [ -n "$(TESTS_TO_INSTALL_SRC)" ] ; then \
-	mkdir -p $(TEST_INSTALLATION_PREFIX)/src ; \
+	$(TEST_INSTALLATION_PREFIX)/ebin; fi
+	@if [ -n "$(TESTS_TO_INSTALL_SRC)" ]; then \
+	mkdir -p $(TEST_INSTALLATION_PREFIX)/src; \
 	cp -L $(TESTS_TO_INSTALL_SRC) \
-	$(TEST_INSTALLATION_PREFIX)/src ; fi
+	$(TEST_INSTALLATION_PREFIX)/src; fi
 
 
 install-doc:
-	@if [ -n "$(DOC_TO_INSTALL)" ] ; then \
-	mkdir -p $(DOC_INSTALLATION_PREFIX) ; \
-	/bin/cp -r -L $(DOC_TO_INSTALL) $(DOC_INSTALLATION_PREFIX) ; fi
+	@if [ -n "$(DOC_TO_INSTALL)" ]; then \
+	mkdir -p $(DOC_INSTALLATION_PREFIX); \
+	/bin/cp -r -L $(DOC_TO_INSTALL) $(DOC_INSTALLATION_PREFIX); fi
 
 
 
@@ -389,15 +390,15 @@ info-install: info-install-locations info-install-content
 
 
 info-install-locations:
-	@echo   "PACKAGE_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)"
-	@echo   "BIN_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)/bin"
-	@echo   "EBIN_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)/ebin"
-	@echo   "SRC_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)/src"
-	@echo   "INCLUDE_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)/include"
-	@echo   "EXAMPLES_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)/examples"
-	@echo   "TEST_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)/test"
-	@echo   "DOC_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)/doc"
-	@echo   "DEFAULT_PRODUCTION_INSTALLATION_PREFIX = $(DEFAULT_PRODUCTION_INSTALLATION_PREFIX)"
+	@echo "PACKAGE_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)"
+	@echo "BIN_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)/bin"
+	@echo "EBIN_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)/ebin"
+	@echo "SRC_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)/src"
+	@echo "INCLUDE_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)/include"
+	@echo "EXAMPLES_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)/examples"
+	@echo "TEST_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)/test"
+	@echo "DOC_INSTALLATION_PREFIX = $(PACKAGE_INSTALLATION_PREFIX)/doc"
+	@echo "DEFAULT_PRODUCTION_INSTALLATION_PREFIX = $(DEFAULT_PRODUCTION_INSTALLATION_PREFIX)"
 
 
 info-install-content:
@@ -480,7 +481,7 @@ set-rebar-conf-for-hex:
 #
 rebar3-make-include-links:
 	@echo "  Populating the include symlinks"
-	@cd include && for d in $$(find * -type d 2>/dev/null); do for h in $$(/bin/ls $$d/*.hrl 2>/dev/null) ; do ln -sf $$h ; done ; done
+	@cd include && for d in $$(find * -type d 2>/dev/null); do for h in $$(/bin/ls $$d/*.hrl 2>/dev/null); do ln -sf $$h; done; done
 
 
 
@@ -501,12 +502,12 @@ remove-rebar-conf:
 # Apparently no way of telling rebar to exclude some source files, so:
 rebar3-hide-unsupported-sources:
 	@echo "  Hiding unsupported sources"
-	@for f in $(UNSUPPORTED_SOURCES); do /bin/mv -f $$f $$f-hidden ; done 2>/dev/null || true
+	@for f in $(UNSUPPORTED_SOURCES); do /bin/mv -f $$f $$f-hidden; done 2>/dev/null || true
 
 
 rebar3-restore-unsupported-sources:
 	@echo "  Restoring unsupported sources"
-	-@for f in $(UNSUPPORTED_SOURCES); do /bin/mv -f $$f-hidden $$f ; done 2>/dev/null || true
+	-@for f in $(UNSUPPORTED_SOURCES); do /bin/mv -f $$f-hidden $$f; done 2>/dev/null || true
 
 
 
@@ -606,7 +607,7 @@ rebar3-update:
 #
 rebar3-compile:
 	@echo "  Preparing $(PROJECT_NAME) for a rebar3-compliant build (in $(MYRIAD_REBAR_BUILD_DIR))"
-	@$(MAKE) -s set-rebar-conf rebar3-clean rebar3-create-tree \
+	@$(MAKE) -s set-rebar-conf rebar3-clean rebar3-create-tree              \
 	rebar3-populate-build-tree rebar3-create-app-file all rebar3-copy-beams \
 	MYRIAD_REBAR_PROFILE=$(MYRIAD_REBAR_PROFILE) MYRIAD_REBAR_BUILD_DIR=$(MYRIAD_REBAR_BUILD_DIR)
 
@@ -691,9 +692,9 @@ rebar3-create-app-file:
 	@echo "  Generating rebar3 $(PROJECT_NAME_FOR_REBAR).app file"
 	@# This target may be called for hex for example:
 	@mkdir -p $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_REBAR)/ebin $(LAYER_TOP)/ebin
-	@all_modules=$$(find src -name '*.erl' -a ! -name '*_test.erl' $(MYRIAD_REBAR_FIND_SRC_OPT) -exec echo '{}' ';' | sed 's|.*/||1' | sed 's|.erl$$||1' | sort | tr '\n' ','| sed 's|,|, |g' | sed 's|, $$||1' ) ; cat conf/$(PROJECT_NAME_FOR_REBAR).app.src | sed "s|VERSION_FOR_REBAR|$(VERSION_FOR_REBAR)|1" | sed "s|MODULES_FOR_REBAR|$$all_modules|1" > $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_REBAR)/ebin/$(PROJECT_NAME_FOR_REBAR).app
+	@all_modules=$$(find src -name '*.erl' -a ! -name '*_test.erl' $(MYRIAD_REBAR_FIND_SRC_OPT) -exec echo '{}' ';' | sed 's|.*/||1' | sed 's|.erl$$||1' | sort | tr '\n' ','| sed 's|,|, |g' | sed 's|, $$||1'); cat conf/$(PROJECT_NAME_FOR_REBAR).app.src | sed "s|VERSION_FOR_REBAR|$(VERSION_FOR_REBAR)|1" | sed "s|MODULES_FOR_REBAR|$$all_modules|1" > $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_REBAR)/ebin/$(PROJECT_NAME_FOR_REBAR).app
 	@/bin/cp -f $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_REBAR)/ebin/$(PROJECT_NAME_FOR_REBAR).app $(LAYER_TOP)/ebin/
-	@cd $(LAYER_TOP)/src ; ln -sf ../ebin/$(PROJECT_NAME_FOR_REBAR).app $(PROJECT_NAME_FOR_REBAR).app.src
+	@cd $(LAYER_TOP)/src; ln -sf ../ebin/$(PROJECT_NAME_FOR_REBAR).app $(PROJECT_NAME_FOR_REBAR).app.src
 
 
 # Currently excluding test BEAMs, for a smaller size:
@@ -798,14 +799,14 @@ rebar3-info:
 rebar3-hex-publish: rebar3-clean clean set-rebar-conf-for-hex rebar3-create-app-file
 	@/bin/cp -f $(MYRIAD_REBAR_BUILD_BASE)/ebin/$(PROJECT_NAME_FOR_REBAR).app src/$(PROJECT_NAME_FOR_REBAR).app.src
 	@cd include && find * -mindepth 1 -a -name '*.hrl' -exec ln -sf '{}' ';'
-	@cd src && for f in $(EXCLUDED_SOURCES); do find . -name "$$f" -exec /bin/mv -f '{}' "{}-hidden" ';' ; done
+	@cd src && for f in $(EXCLUDED_SOURCES); do find . -name "$$f" -exec /bin/mv -f '{}' "{}-hidden" ';'; done
 	@#mkdir -p priv/hex-packaging/{root,doc}
 	@#/bin/cp -f $(MYRIAD_TOP)/conf/hex-compile-hook-script.sh priv/hex-packaging/
 	@#/bin/cp -f GNUmake* priv/hex-packaging/root
 	@#/bin/cp -f doc/GNUmake* priv/hex-packaging/doc
 	-@/bin/rm -f rebar.lock 2>/dev/null
 	@$(REBAR_DEBUG) rebar3 hex publish
-	@cd src && to_rename=$$(for f in $(EXCLUDED_SOURCES); do find . -name "$$f-hidden" ; done) && for f in $$to_rename ; do /bin/mv -f $$f $$(echo $$f | sed 's|-hidden||1')  ; done
+	@cd src && to_rename=$$(for f in $(EXCLUDED_SOURCES); do find . -name "$$f-hidden"; done) && for f in $$to_rename; do /bin/mv -f $$f $$(echo $$f | sed 's|-hidden||1') ; done
 	@#/bin/rm -rf priv/
 	@/bin/rm -f src/$(PROJECT_NAME_FOR_REBAR).app.src
 	@$(MAKE) -s rebar3-clean rebar3-create-app-file set-rebar-conf
@@ -836,7 +837,7 @@ test-hex-package: rebar-test-clean
 #
 sync-to-server: all
 	@echo " Synchronising the $$(basename $$(pwd)) layer to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)"
-	@if [ -n "$(WEB_SRV)" ]; then if [ -n "$(CEYLAN_SYNC_TARGET_ROOT)" ]; then $(SYNC_TOOL) $(SYNC_OPT) src include $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)/$$(basename $$(pwd)); else echo "Error, no CEYLAN_SYNC_TARGET_ROOT variable set." 1>&2 ; exit 4 ; fi ; else echo "Error, no WEB_SRV variable set." 1>&2 ; exit 5 ; fi
+	@if [ -n "$(WEB_SRV)" ]; then if [ -n "$(CEYLAN_SYNC_TARGET_ROOT)" ]; then $(SYNC_TOOL) $(SYNC_OPT) src include $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)/$$(basename $$(pwd)); else echo "Error, no CEYLAN_SYNC_TARGET_ROOT variable set." 1>&2; exit 4; fi; else echo "Error, no WEB_SRV variable set." 1>&2; exit 5; fi
 
 
 
@@ -884,7 +885,7 @@ clean-api-alt-doc:
 # Ex: 'make generate-list-of-erlang-types ERLANG_SOURCE_ROOT=~/otp_src_R15B/'
 #
 generate-list-of-erlang-types:
-	@if [ -z "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, no ERLANG_SOURCE_ROOT variable specified." ; exit 15 ; fi ; if [ ! -d "$$ERLANG_SOURCE_ROOT" ] ; then echo "  Error, specified directory (ERLANG_SOURCE_ROOT=$$ERLANG_SOURCE_ROOT) does not exist." ; exit 16 ; fi ; target_file="declared-types-in-Erlang.txt" ; erl="$(ERLANG_INTERPRETER)" ; target_path=$$(echo $$erl|sed "s|/bin/erl$$|/$$target_file|1") ; echo "  Generating the list of types declared in the Erlang runtime..." &&  $(MYRIAD_TOP)/src/scripts/list-available-types.sh "$$ERLANG_SOURCE_ROOT" > $$target_path && echo "  Types have been collected in '$$target_path'."
+	@if [ -z "$$ERLANG_SOURCE_ROOT" ]; then echo "  Error, no ERLANG_SOURCE_ROOT variable specified."; exit 15; fi; if [ ! -d "$$ERLANG_SOURCE_ROOT" ]; then echo "  Error, specified directory (ERLANG_SOURCE_ROOT=$$ERLANG_SOURCE_ROOT) does not exist."; exit 16; fi; target_file="declared-types-in-Erlang.txt"; erl="$(ERLANG_INTERPRETER)"; target_path=$$(echo $$erl|sed "s|/bin/erl$$|/$$target_file|1"); echo "  Generating the list of types declared in the Erlang runtime..." &&  $(MYRIAD_TOP)/src/scripts/list-available-types.sh "$$ERLANG_SOURCE_ROOT" > $$target_path && echo "  Types have been collected in '$$target_path'."
 
 
 FAKE_OTP_ROOT := /tmp/ceylan-fake-otp-projects/$(PROJECT_NAME_FOR_REBAR)
@@ -936,7 +937,7 @@ $(PLT_FILE): generate-local-plt
 #
 generate-local-plt: add-prerequisite-plts
 	@echo "    Generating PLT for $(PACKAGE_NAME) ($(PLT_FILE)), based on $(BASE_PLT)"
-	@$(DIALYZER) --add_to_plt --output_plt $(PLT_FILE) -r $(PACKAGE_TOP)/src $(PACKAGE_TOP)/test --plt $(BASE_PLT); if [ $$? -eq 1 ] ; then exit 1 ; else exit 0 ; fi
+	@$(DIALYZER) --add_to_plt --output_plt $(PLT_FILE) -r $(PACKAGE_TOP)/src $(PACKAGE_TOP)/test --plt $(BASE_PLT); if [ $$? -eq 1 ]; then exit 1; else exit 0; fi
 
 
 # Made to be enriched (with child targets) on a per-layer basis:
@@ -1033,19 +1034,19 @@ ifeq ($(ROOT_MAKEFILE),true)
 
 # Just more talkative:
 clean-recurse:
-	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then      \
-	echo "  Cleaning in '$$(basename $$m)' layer" ; cd $$m &&      \
+	@for m in $(MODULES_DIRS); do if ! (if [ -d $$m ]; then        \
+	echo "  Cleaning in '$$(basename $$m)' layer"; cd $$m &&       \
 	$(MAKE) -s clean CMD_LINE_OPT="${CMD_LINE_OPT}" &&             \
-	cd .. ; else echo "    (directory $$m skipped)" ; fi ) ; then  \
-	exit 1; fi ; done
+	cd ..; else echo "    (directory $$m skipped)"; fi); then      \
+	exit 1; fi; done
 
 else
 
 clean-recurse:
-	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then      \
+	@for m in $(MODULES_DIRS); do if ! (if [ -d $$m ]; then        \
 	cd $$m && $(MAKE) -s clean CMD_LINE_OPT="${CMD_LINE_OPT}" &&   \
-	cd .. ; else echo "    (directory $$m skipped)" ; fi ) ; then  \
-	exit 1; fi ; done
+	cd ..; else echo "    (directory $$m skipped)"; fi); then      \
+	exit 1; fi; done
 
 endif
 
@@ -1067,10 +1068,10 @@ real-clean: clean clean-ast-debug real-clean-recurse
 
 #	@echo "real-clean-recurse in $$(pwd)"
 real-clean-recurse:
-	@for m in $(MODULES_DIRS); do if ! ( if [ -d $$m ] ; then      \
+	@for m in $(MODULES_DIRS); do if ! (if [ -d $$m ]; then             \
 	cd $$m && $(MAKE) -s real-clean CMD_LINE_OPT="${CMD_LINE_OPT}" &&   \
-	cd .. ; else echo "     (directory $$m skipped)" ; fi ) ; then \
-	exit 1; fi ; done
+	cd ..; else echo "     (directory $$m skipped)"; fi); then          \
+	exit 1; fi; done
 
 
 # We prefer tracking the HTML version thereof (rather than the PDF one):
@@ -1175,6 +1176,32 @@ info-rebar3:
 	@echo "MYRIAD_REBAR_INCS = $(MYRIAD_REBAR_INCS)"
 	@echo "MYRIAD_REBAR_FIND_SRC_EXCLUDES = $(MYRIAD_REBAR_FIND_SRC_EXCLUDES)"
 	@echo "MYRIAD_REBAR_FIND_SRC_OPT = $(MYRIAD_REBAR_FIND_SRC_OPT)"
+
+
+info-compile:
+	@echo "ERLANG_COMPILER_BASE_OPT = $(ERLANG_COMPILER_BASE_OPT)"
+	@echo "ABS_BEAM_DIRS = $(ABS_BEAM_DIRS)"
+	@echo "BEAM_DIRS = $(BEAM_DIRS)"
+	@echo "BEAM_PATH_OPT = $(BEAM_PATH_OPT)"
+	@echo "INC = $(INC)"
+	@echo "ERLANG_COMPILER_EXEC_TARGET_OPT = $(ERLANG_COMPILER_EXEC_TARGET_OPT)"
+	@echo "ERLANG_COMPILER_DEBUG_OPT = $(ERLANG_COMPILER_DEBUG_OPT)"
+	@echo "ERLANG_COMPILER_NATIVE_COMPILATION_OPT = $(ERLANG_COMPILER_NATIVE_COMPILATION_OPT)"
+	@echo "ERLANG_COMPILER_WARNING_OPT = $(ERLANG_COMPILER_WARNING_OPT)"
+	@echo "ERLANG_COMPILER_OPT_BASE = $(ERLANG_COMPILER_OPT_BASE)"
+	@echo "OVERALL_PZ_OPT = $(OVERALL_PZ_OPT)"
+	@echo "ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES = $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES)"
+	@echo "EXECUTION_TARGET = $(EXECUTION_TARGET)"
+	@echo "ENABLE_DEBUG = $(ENABLE_DEBUG)"
+	@echo "ERLANG_INTERPRETER = $(ERLANG_INTERPRETER)"
+	@echo "UNSUPPORTED_SOURCES = $(UNSUPPORTED_SOURCES)"
+	@echo "NOTIFIER_TOOL = $(NOTIFIER_TOOL)"
+
+
+info-parse-transform:
+	@echo "BOOTSTRAP_MODULES = $(BOOTSTRAP_MODULES)"
+	@echo "ERLANG_COMPILER_OPT_FOR_PT = $(ERLANG_COMPILER_OPT_FOR_PT)"
+	@echo "ERLANG_COMPILER_PARSE_TRANSFORM_OPT = $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT)"
 
 
 info-doc:

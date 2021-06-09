@@ -5,8 +5,8 @@ MYRIAD_TOP = .
 		register-version-in-header register-myriad list-beam-dirs             \
 		add-prerequisite-plts prepare-base-plt add-erlhdf5-plt add-jsx-plt    \
 		add-sqlite3-plt link-plt clean-ast-outputs clean-local stats          \
-		info-context info-versions info-paths info-settings info-compile      \
-		info-parse-transform info-conditionals
+		info-context info-versions info-paths info-settings                   \
+		info-parse-transform-local info-conditionals
 
 
 #MODULES_DIRS = contrib src doc conf
@@ -129,7 +129,6 @@ stats:
 # Typically useful to know the software context for continuous integration:
 info-context: info-platform info-versions info-source-layout
 
-
 info-versions:
 	@echo "MYRIAD_VERSION = $(MYRIAD_VERSION)"
 
@@ -147,30 +146,10 @@ info-settings:
 	@echo "USE_SQLITE = $(USE_SQLITE)"
 
 
-info-compile:
-	@echo "ERLANG_COMPILER_BASE_OPT = $(ERLANG_COMPILER_BASE_OPT)"
-	@echo "ABS_BEAM_DIRS = $(ABS_BEAM_DIRS)"
-	@echo "BEAM_DIRS = $(BEAM_DIRS)"
-	@echo "BEAM_PATH_OPT = $(BEAM_PATH_OPT)"
-	@echo "INC = $(INC)"
-	@echo "ERLANG_COMPILER_EXEC_TARGET_OPT = $(ERLANG_COMPILER_EXEC_TARGET_OPT)"
-	@echo "ERLANG_COMPILER_DEBUG_OPT = $(ERLANG_COMPILER_DEBUG_OPT)"
-	@echo "ERLANG_COMPILER_NATIVE_COMPILATION_OPT = $(ERLANG_COMPILER_NATIVE_COMPILATION_OPT)"
-	@echo "ERLANG_COMPILER_WARNING_OPT = $(ERLANG_COMPILER_WARNING_OPT)"
-	@echo "ERLANG_COMPILER_OPT_BASE = $(ERLANG_COMPILER_OPT_BASE)"
-	@echo "OVERALL_PZ_OPT = $(OVERALL_PZ_OPT)"
-	@echo "ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES = $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES)"
-	@echo "ERLANG_INTERPRETER = $(ERLANG_INTERPRETER)"
-	@echo "UNSUPPORTED_SOURCES = $(UNSUPPORTED_SOURCES)"
-	@echo "NOTIFIER_TOOL = $(NOTIFIER_TOOL)"
+info-parse-transform: info-parse-transform-local
 
-
-info-parse-transform:
-	@echo "BOOTSTRAP_MODULES = $(BOOTSTRAP_MODULES)"
-	@echo "ERLANG_COMPILER_OPT_FOR_PT = $(ERLANG_COMPILER_OPT_FOR_PT)"
+info-parse-transform-local:
 	@echo "META_BEAM_FILES = $(META_BEAM_FILES)"
-	@echo "ERLANG_COMPILER_PARSE_TRANSFORM_OPT = $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT)"
-
 
 info-conditionals:
 	@echo "MYRIAD_DEBUG_FLAGS = $(MYRIAD_DEBUG_FLAGS)"
