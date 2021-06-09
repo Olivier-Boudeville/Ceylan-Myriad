@@ -188,25 +188,43 @@ scan( AST ) ->
 	case scan_forms( AST, FirstModuleInfo, _NextASTLoc=FirstASTLoc,
 					 _CurrentFileRef=undefined ) of
 
-		M=#module_info{ errors=[] } ->
+		ModInfo=#module_info{ errors=[] } ->
 			%ast_utils:display_trace( "no error to report" ),
 			% No error, let's continue:
-			M;
+			ModInfo;
 
-		_M=#module_info{ errors=Errors } ->
+		_ModInfo=#module_info{ errors=Errors } ->
 			ReorderedErrors = lists:reverse( Errors ),
 			%ast_utils:display_debug( "reporting errors: ~p",
 			%						 [ ReorderedErrors ] ),
 			[ report_error( E ) || E <- ReorderedErrors ],
 
-			% No need to be that violent:
-			%erlang:halt( 1 )
 			%exit( Errors )
 			%exit( errors_reported )
-			exit( "fix your code :)" )
+			%exit( "fix your code :)" )
+			%io:format( "fix your code :)" ),
 
-			% If wanting instead to ignore errors, at least at this step:
-			%M
+			% We added back a call to halt/1, as otherwise, with just 'exit(
+			% "fix your code :)" )', the following undesirable stacktrace is
+			% returned:
+			%
+			% """
+			% *** Internal compiler error ***
+			% exception exit: "fix your code :)"
+			% in function  ast_scan:scan/1 (ast_scan.erl, line 206)
+			% in call from ast_info:extract_module_info_from_ast/1
+			% [...]
+
+			% So now:
+			erlang:halt( 20 )
+
+			% If wanting instead to ignore errors, at least at this step, no
+			% halting could be done, and this module info be returned; however
+			% bogus error are bound to be reported afterwards (ex: injected
+			% functions with no clause), so not halting the compilation would
+			% have little interest:
+			%
+			%ModInfo
 
 	end.
 
