@@ -35,6 +35,7 @@ GITHUB_PAGES_BASE := $(shell basename "$(MYRIAD_WEB_MIRROR_BRANCH)")
 
 .PHONY: doc all full-doc create-links html pdf api clone-mirror        \
 		export-doc export-doc-to-official export-doc-to-mirror         \
+		create-local-referential                                       \
 		clean clean-doc clean-links info info-web                      \
 		test uml-diagram-test
 
@@ -93,6 +94,12 @@ export-doc-to-mirror: create-links $(DOC_GENERATED_FILES)
 	@echo "   Exporting Myriad documentation to mirror website in $(MYRIAD_WEB_MIRROR_BRANCH)"
 	@/bin/cp -rf $(WEB_CONTENT) $(MYRIAD_WEB_MIRROR_BRANCH) && cd $(MYRIAD_WEB_MIRROR_BRANCH) && git add . && git merge -s ours && git commit -m "Myriad doc updated." && git push && git pull --ff-only
 
+
+create-local-referential: clean-doc full-doc create-links $(DOC_GENERATED_FILES)
+	@echo "   Creating a local Myriad documentation referential in $(DOC_TARGET_DIR)"
+	@if [ -z "$(DOC_TARGET_DIR)" ]; then echo "  Error, documentation target directory (DOC_TARGET_DIR) not set." 1>&2 ; exit 15 ; fi
+	@if [ ! -d "$(DOC_TARGET_DIR)" ]; then echo "  Error, documentation target directory '$(DOC_TARGET_DIR)' does not exist." 1>&2 ; exit 20 ; fi
+	@/bin/cp -rf $(WEB_CONTENT) $(DOC_TARGET_DIR)
 
 
 clean: clean-doc

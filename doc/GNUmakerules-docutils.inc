@@ -233,7 +233,7 @@ info-doc-tools:
 	@echo "PDF_VIEWER = $(PDF_VIEWER)"
 
 
-# Centralization of documentation sources is necessary, as the LaTeX generator
+# Centralisation of documentation sources is necessary, as the LaTeX generator
 # from docutils will not find images in directories otherwise.
 #
 # Note: cannot use a 'doc' target, as it would result in an infinite recursion.
@@ -249,6 +249,20 @@ create-doc: $(OVERALL_DOCUMENT_SOURCE) regenerate-doc clean-doc-repository make-
 	$(OVERALL_DOCUMENT_SOURCE) in $(TMP_RST_REPOSITORY) \
 	(log in $(GENERATOR_LOG_FILE))"
 	@$(MAKE) -s create-html-doc create-pdf-doc
+
+
+
+# Centralisation for lighter documentation that can be generated from the
+# current tree only:
+#
+local-doc: local-html local-pdf
+
+local-html:
+	@$(RST_GENERATOR) $(OVERALL_DOCUMENT_SOURCE)
+
+local-pdf:
+	@$(RST_GENERATOR) $(OVERALL_DOCUMENT_SOURCE) --pdf
+
 
 
 # As no Makefile in TMP_RST_REPOSITORY:
