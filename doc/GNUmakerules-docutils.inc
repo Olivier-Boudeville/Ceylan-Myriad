@@ -5,11 +5,15 @@
 
 .PHONY: doc doc-recurse info info-doc-local full-doc                           \
  create-doc create-html-doc create-pdf-doc full-html full-pdf regenerate-doc   \
- make-doc-repository view-doc to-print check-dot                               \
+ local-doc local-html local-pdf                                                \
+ make-doc-repository create-local-referential view-doc to-print check-dot      \
  info-doc-local info-doc-tools                                                 \
  clean clean-doc-repository clean-generated clean-dot clean-doc-logs           \
  clean-gnuplot clean-png clean-rst
 
+
+# Content typically to be deployed to webservers:
+WEB_CONTENT = *.html *.css *.png *.pdf api-doc
 
 
 # Generic rules.
@@ -79,7 +83,7 @@ VIEW_GRAPH := no
 %.png: %.graph
 	@echo "     Generating $@ from graph $<"
 	@$(MAKE) -s check-dot
-	@if $(DOT) $(DOT_OPT) -o$@ -Tpng $< ; then if [ "$(VIEW_GRAPH)" != "no" ]; then $(IMG_VIEWER) $@; fi ; fi
+	@if $(DOT) $(DOT_OPT) -o$@ -Tpng $<; then if [ "$(VIEW_GRAPH)" != "no" ]; then $(IMG_VIEWER) $@; fi; fi
 
 
 GRAPH_SRC = $(wildcard *.graph)
@@ -164,7 +168,7 @@ PDF_VIEWER := $$(which evince)
 
 
 # Generates the actual, up-to-date HTML page corresponding to the specified
-# template (typically useful for the documentation main pages).
+# template (typically useful for the documentation main pages):
 #
 %.rst: %.rst.template
 	@echo "  Generating $@ from $<"
@@ -179,7 +183,7 @@ VIEW_PDF := no
 
 %.pdf: %.rst
 	@echo "     Generating PDF documentation $@"
-	@if $(RST_GENERATOR) $< --pdf ; then if [ "$(VIEW_PDF)" != "no" ]; then $(PDF_VIEWER) $@ & fi; else exit 5 ; fi
+	@if $(RST_GENERATOR) $< --pdf; then if [ "$(VIEW_PDF)" != "no" ]; then $(PDF_VIEWER) $@ & fi; else exit 5; fi
 
 
 %.html: %.rst
@@ -188,8 +192,8 @@ VIEW_PDF := no
 
 
 %.pdf: %.traces
-	@echo "     Generating PDF report $@ from $<"
-	@if $(RST_GENERATOR) $< --pdf ; then if [ "$(VIEW_PDF)" != "no" ]; then $(PDF_VIEWER) $@ & fi; else exit 15 ; fi
+	@echo "     Generating PDF documentation $@ from $<"
+	@if $(RST_GENERATOR) $< --pdf; then if [ "$(VIEW_PDF)" != "no" ]; then $(PDF_VIEWER) $@ & fi; else exit 15; fi
 
 
 
@@ -211,6 +215,16 @@ $(API_DOC_ROOT)/%.html: %.erl
 doc: $(GRAPH_PNG) $(PNG_FROM_PYTHON) $(PNG_FROM_PYTHON_NEGATED) doc-recurse #$(PDF_GENERATED_FILES)
 
 
+clean: clean-doc
+
+clean-doc: clean-links clean-doc-repository
+	@echo "     Cleaning documentation elements"
+	-@/bin/rm -f *.aux *.log *.maf *.mtc* *.stc* *.tex *.toc $(RST_GENERATED_FILES)
+	-@/bin/rm -rf api-doc
+
+
+clean-links:
+	-@/bin/rm -f index.html
 
 
 info: info-doc-local info-doc-tools
@@ -231,6 +245,7 @@ info-doc-tools:
 	@echo "IMG_VIEWER = $(IMG_VIEWER)"
 	@echo "IMAGE_MAGICK = $(IMAGE_MAGICK)"
 	@echo "PDF_VIEWER = $(PDF_VIEWER)"
+
 
 
 # Centralisation of documentation sources is necessary, as the LaTeX generator
@@ -255,14 +270,25 @@ create-doc: $(OVERALL_DOCUMENT_SOURCE) regenerate-doc clean-doc-repository make-
 # Centralisation for lighter documentation that can be generated from the
 # current tree only:
 #
+# (better not define generically html/pdf, but only {local,full}-{html,pdf} so
+#  that, on a per-document basis, each makefile may select local or full rules)
+#
 local-doc: local-html local-pdf
 
-local-html:
-	@$(RST_GENERATOR) $(OVERALL_DOCUMENT_SOURCE)
 
-local-pdf:
-	@$(RST_GENERATOR) $(OVERALL_DOCUMENT_SOURCE) --pdf
+local-html: $(OVERALL_DOCUMENT_SOURCE)
+	@echo "     Generating HTML documentation from $(OVERALL_DOCUMENT_SOURCE)"
+	@$(RST_GENERATOR) $(OVERALL_DOCUMENT_SOURCE) $(PROJECT_CSS) $(PROJECT_ICON_OPT)
 
+
+local-pdf: $(OVERALL_DOCUMENT_SOURCE)
+	@echo "     Generating PDF documentation from $(OVERALL_DOCUMENT_SOURCE)"
+	@if $(RST_GENERATOR) $(OVERALL_DOCUMENT_SOURCE) --pdf; then if [ "$(VIEW_PDF)" != "no" ]; then $(PDF_VIEWER) $(OVERALL_DOCUMENT_PDF_TARGET) & fi; else exit 15; fi
+
+
+# To generate an actual API documentation tree:
+api-doc:
+	@cd $(LAYER_TOP) && $(MAKE) -s generate-api-doc
 
 
 # As no Makefile in TMP_RST_REPOSITORY:
@@ -301,7 +327,16 @@ regenerate-doc:
 make-doc-repository:
 	@echo "     Copying documentation sources to $(TMP_RST_REPOSITORY)"
 	@mkdir -p $(TMP_RST_REPOSITORY)
-	@find $(DOCUTILS_TOP) -name $(TMP_RST_REPOSITORY) -prune -o \( -name '*.rst' -o -name '*.png' \) -exec /bin/cp -f '{}' $(TMP_RST_REPOSITORY) ';'
+	@find $(DOCUTILS_TOP) -name $(TMP_RST_REPOSITORY) -prune -o \( -name '*.rst.template' -o -name '*.rst' -o -name '*.png' -o -name '*.css' \) -exec /bin/cp -f '{}' $(TMP_RST_REPOSITORY) ';'
+
+
+
+create-local-referential: clean-doc create-links doc
+	@echo "   Creating a local $(PROJECT_NAME) documentation referential in $(DOC_TARGET_DIR)"
+	@if [ -z "$(DOC_TARGET_DIR)" ]; then echo "  Error, documentation target directory (DOC_TARGET_DIR) not set." 1>&2; exit 15; fi
+	@if [ ! -d "$(DOC_TARGET_DIR)" ]; then echo "  Error, documentation target directory '$(DOC_TARGET_DIR)' does not exist." 1>&2; exit 20; fi
+	@/bin/cp -rf $(WEB_CONTENT) "$(DOC_TARGET_DIR)"
+
 
 
 view-doc:
@@ -317,7 +352,7 @@ to-print: create-doc
 
 
 check-dot:
-		@if [ ! -x "$(DOT)" ]; then echo "  Error, 'dot' tool, from graphviz, not found." 1>&2 ; exit 5 ; fi
+		@if [ ! -x "$(DOT)" ]; then echo "  Error, 'dot' tool, from graphviz, not found." 1>&2; exit 5; fi
 
 
 clean: clean-doc-repository clean-generated clean-dot clean-doc-logs \
@@ -360,4 +395,4 @@ clean-png:
 
 clean-rst:
 	-@/bin/rm -f $(RST_GENERATED_FILES)
-	@if [ -d "$(TMP_RST_REPOSITORY)" ]; then $(MAKE) clean-doc-repository; fi
+	@if [ -d "$(TMP_RST_REPOSITORY)" ]; then $(MAKE) -s clean-doc-repository; fi

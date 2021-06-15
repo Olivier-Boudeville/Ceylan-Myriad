@@ -44,7 +44,7 @@
 			info-platform info-hardware info-software info-source-layout     \
 			info info-files info-meta info-erlang info-python info-java      \
 			info-sync info-check info-rebar3 info-compile                    \
-			info-parse-transforminfo-doc
+			info-parse-transform info-doc
 
 
 #dummy:

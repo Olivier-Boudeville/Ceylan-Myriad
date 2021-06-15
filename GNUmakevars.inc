@@ -1325,14 +1325,16 @@ ALL_CMD_LINE_OPTIONS := $(EXEC_INTERNAL_OPTIONS) -extra $(EXEC_EXTERNAL_OPTIONS)
 # Available in Ceylan-Hull:
 DOC_TRACKER := $$(which track-make-automatic-source.sh)
 
+
+# PROJECT_ICON is a path to an icon file that will be copied on HTML generation:
 ifdef PROJECT_ICON
 	PROJECT_ICON_OPT := --icon-file $(PROJECT_ICON)
 endif
 
 
-# When relying directly on edoc:
+# When relying directly on edoc (the default):
 
-ifndef
+ifndef API_DOC_ROOT
 	API_DOC_ROOT := $(LAYER_TOP)/doc/api-doc
 endif
 
