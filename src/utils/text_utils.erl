@@ -291,11 +291,21 @@
 % string into the other.
 
 
--type float_option() :: { 'decimals', 0..253 }
-					  | { 'scientific', 0..249 }
-					  | 'compact'.
+-type float_option() ::
+
+		% At most Decimals number of digits past the decimal point:
+		{ 'decimals', 0..253 }
+
+		% Scientific notation with Decimals digits of precision:
+	  | { 'scientific', 0..249 }
+
+		% Trailing zeros at the end of the list are truncated (if using
+		% 'decimals'):
+		%
+	  | 'compact'.
 % See [https://erlang.org/doc/man/erlang.html#float_to_list-2] for more
 % information.
+
 
 
 -export_type([ format_string/0, format_values/0,
@@ -619,7 +629,7 @@ pid_to_core_string( Pid ) ->
 % Apparently, as records are compile-time structures only, there is no simple
 % way of determining the name of their fields at runtime.
 %
--spec record_to_string( _ ) -> none().
+-spec record_to_string( _ ) -> ustring().
 record_to_string( _Record ) -> % No 'when is_record( Record, Tag ) ->' here.
 
 	throw( { not_implemented, record_to_string } ).
@@ -2611,7 +2621,7 @@ join( Separator, _ListToJoin=[ H | T ], Acc ) ->
 split( String, Delimiters ) ->
 
 	%trace_utils:debug_fmt( "Splitting '~ts' with '~ts'.",
-	%					   [ String, Delimiters ] ),
+	%						[ String, Delimiters ] ),
 
 	% Note: string:tokens/2 is now deprecated in favor of string:lexemes/2, and
 	% and anyway both treat two or more adjacent separator graphemes clusters as
