@@ -616,6 +616,12 @@
 
 
 
+% Stringification section.
+
+-export([ temperature_to_string/1, maybe_temperature_to_string/1 ]).
+
+
+
 % Internal types.
 
 
@@ -666,6 +672,23 @@ human_time_to_milliseconds( Day, Hour, Minute, Second, Millisecond ) ->
 		+ Millisecond.
 
 
+
+% Stringification section.
+
+
+% Returns a textual description of the specified temperature.
+-spec temperature_to_string( celsius() ) -> ustring().
+temperature_to_string( Temp ) ->
+	text_utils:float_to_string( Temp, [ { decimals, 1 }, compact ] ) ++ " °C".
+
+
+% Returns a textual description of the specified temperature (if any).
+-spec maybe_temperature_to_string( maybe( celsius() ) ) -> ustring().
+maybe_temperature_to_string( _Temp=undefined ) ->
+	"undefined";
+
+maybe_temperature_to_string( Temp ) ->
+	temperature_to_string( Temp ).
 
 
 
