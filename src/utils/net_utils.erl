@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Authors: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-%		   Samuel Thiriot [samuel (dot) thiriot (at) edf (dot) fr]
+%          Samuel Thiriot [samuel (dot) thiriot (at) edf (dot) fr]
 %
 % Creation date: July 1, 2007.
 
