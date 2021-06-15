@@ -19,7 +19,7 @@
 
 
 
-:raw-html:`<center><img src="myriad-title.png" width="40%"></img></center>`
+:raw-html:`<center><img src="myriad-title.png" id="responsive-image-small"></img></center>`
 :raw-latex:`\centering \includegraphics[scale=0.15]{myriad-title.png}`
 
 
@@ -145,7 +145,7 @@ In such a case, we would prefer that, in contributed code, the Myriad `Text Conv
 
 Thanks in advance, and have fun with Ceylan-Myriad!
 
-:raw-html:`<center><img src="myriad-title.png" width="35%"></img></center>`
+:raw-html:`<center><img src="myriad-title.png" id="responsive-image-small"></img></center>`
 :raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.1]{myriad-title.png} \end{figure}`
 
 
