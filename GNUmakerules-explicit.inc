@@ -9,10 +9,11 @@
 
 .PHONY: .PHONY-myriad-explicit
 
-.PHONY-myriad-explicit:  all all-pre-hook all-parallel-recurse all-recurse     \
+.PHONY-myriad-explicit:  all all-pre-hook all-parallel-recurse all-recurse   \
 			all-parse-transforms bootstrap-modules make-all-parse-transforms \
 			build-debug rebuild test test-recurse doc-recurse build-tests    \
 			launch shell                                                     \
+			copy-beams-to-ebin                                               \
 			install-all install-announce install-ebin install-bin            \
 			install-src install-include install-examples install-test        \
 			install-doc info-install info-install-locations                  \
@@ -281,6 +282,12 @@ shell:
 ifeq ($(BASE_MAKEFILE),true)
 
 
+# For a better compliance to OTP conventions:
+copy-beams-to-ebin:
+	@echo "  Copying BEAM files to local ebin"
+	@mkdir -p ebin ; find src -name '*.beam' -exec /bin/cp -f '{}' ebin ';'
+
+
 # Installation section (in an ad-hoc way).
 
 
@@ -529,12 +536,11 @@ rebar3-restore-unsupported-sources:
 rebar3-compile-pre-hook: rebar3-hide-unsupported-sources \
 						 rebar3-make-include-links
 	@echo "  rebar3 pre-compile hook executed in $$(pwd), with the '$(MYRIAD_REBAR_PROFILE)' profile"
-	@$(MAKE) -s all
+	@$(MAKE) -s all copy-beams-to-ebin
 
 
 rebar3-compile-post-hook:
 	@echo "  rebar3 post-compile hook executed in $$(pwd), with the '$(MYRIAD_REBAR_PROFILE)' profile"
-
 
 
 # In some cases, notably when parse transforms are involved, reasonable, lighter
