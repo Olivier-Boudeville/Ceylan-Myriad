@@ -32,6 +32,8 @@
 % See executable_utils_test.erl for the corresponding test, and shell_utils.erl
 % for the management of the shells and command lines.
 %
+% See system_utils.erl for the actual execution of programs.
+%
 -module(executable_utils).
 
 
