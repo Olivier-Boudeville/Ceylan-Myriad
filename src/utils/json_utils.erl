@@ -131,14 +131,16 @@
 % The known, and potentially supported, backends in terms of JSON parsers.
 
 
--type parser_state() :: { parser_backend_name(),
-						  InternalBackendState :: maybe( term() ) }.
+-type parser_state() ::
+		{ parser_backend_name(), InternalBackendState :: maybe( term() ) }.
 % Often no internal state is really needed.
 
 
 -type string_json() :: ustring().
+% A (plain) string containing JSON content.
 
 -type bin_json() :: text_utils:bin_string().
+% A binary string containing JSON content.
 
 
 -type json() :: bin_json() | string_json().
@@ -146,7 +148,8 @@
 
 
 -type decoded_json() :: term().
-% A term obtained from a decoded JSON document.
+% A term obtained from a decoded JSON document (often a map whose keys are
+% binaries).
 
 
 -type json_encoding_option() :: any().
@@ -310,7 +313,7 @@ is_parser_backend_available( BackendName ) ->
 %
 -spec get_parser_backend_name( parser_state() ) -> parser_backend_name().
 get_parser_backend_name(
-  _ParserState={ BackendName, _InternalBackendState } ) ->
+					_ParserState={ BackendName, _InternalBackendState } ) ->
 	BackendName.
 
 
@@ -332,7 +335,7 @@ get_available_parser_backend_name() ->
 
 		ParserName ->
 			%trace_utils:info_fmt( "Selected JSON parser: ~ts.",
-			%					   ParserName ] ),
+			%                      ParserName ] ),
 			ParserName
 
 	end.
