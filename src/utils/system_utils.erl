@@ -78,6 +78,10 @@
 
 		  get_environment_prefix/1, get_actual_expression/2,
 		  get_environment_variable/1, set_environment_variable/2,
+
+		  get_environment_variable_for_executable_lookup/0,
+		  get_environment_variable_for_library_lookup/0,
+
 		  add_path_for_executable_lookup/1, add_paths_for_executable_lookup/1,
 		  add_path_for_library_lookup/1, add_paths_for_library_lookup/1,
 		  get_environment/0, environment_to_string/0, environment_to_string/1,
@@ -115,6 +119,12 @@
 		  get_system_description/0,
 
 		  has_graphical_output/0 ]).
+
+
+-define( executable_search_path_variable, "PATH" ).
+
+-define( library_search_path_variable, "LD_LIBRARY_PATH" ).
+
 
 
 % Prerequisite-related section.
@@ -211,6 +221,14 @@
 % Describes a (single) command-line argument.
 
 
+
+-type execution_pair() ::
+		{ bin_executable_path(), [ command_line_argument() ] }.
+% A pair specifying a complete command-line ready to be executed by
+% run_executable/n (convenient to store once for all if needing to launch it
+% repeatedly).
+
+
 -type port_option() :: { 'packet', 1 | 2 | 4 }
 					 | 'stream'
 					 | { 'line', count() }
@@ -298,7 +316,8 @@
 			   actual_filesystem_type/0, pseudo_filesystem_type/0,
 			   filesystem_type/0, fs_info/0,
 
-			   command/0, command_line_argument/0, port_option/0,
+			   command/0, command_line_argument/0, execution_pair/0,
+			   port_option/0,
 			   return_code/0, command_output/0, execution_outcome/0,
 
 			   shell_expression/0, expression_outcome/0,
@@ -325,6 +344,7 @@
 -type directory_path() :: file_utils:directory_path().
 -type any_directory_path() :: file_utils:any_directory_path().
 -type executable_path() :: file_utils:executable_path().
+-type bin_executable_path() :: file_utils:bin_executable_path().
 
 -type percent() :: math_utils:percent().
 
@@ -890,7 +910,7 @@ run_executable( ExecPath, Arguments, Environment, MaybeWorkingDir,
 	Port = open_port( { spawn_executable, ExecPath }, PortOptsWithPath ),
 
 	%trace_utils:debug_fmt( "Spawned port ~p for executable '~ts'.",
-	%					   [ Port, ExecPath ] ),
+	%						[ Port, ExecPath ] ),
 
 	read_port( Port, _Data=[] ).
 
@@ -1388,6 +1408,26 @@ set_environment_variable( VarName, VarValue ) ->
 
 
 
+% @doc Returns the environment variable (if any) used by the system for the
+% lookup of executables.
+%
+-spec get_environment_variable_for_executable_lookup() ->
+									maybe( env_variable_name() ).
+get_environment_variable_for_executable_lookup() ->
+	?executable_search_path_variable.
+
+
+% @doc Returns the environment variable (if any) used by the system for the
+% lookup of (shared) libraries.
+%
+-spec get_environment_variable_for_library_lookup() ->
+									maybe( env_variable_name() ).
+get_environment_variable_for_library_lookup() ->
+	?library_search_path_variable.
+
+
+
+
 % @doc Adds the specified directory to the system's executable search paths
 % (typically the PATH environment variable), in first position.
 %
@@ -1413,7 +1453,7 @@ add_paths_for_executable_lookup( Paths ) ->
 
 add_paths_for_executable_lookup( _Paths=[], Acc ) ->
 
-	ExecOptVarName = "PATH",
+	ExecOptVarName = ?executable_search_path_variable,
 
 	BaseExecOpt = case get_environment_variable( ExecOptVarName ) of
 
@@ -1465,7 +1505,7 @@ add_paths_for_library_lookup( Paths ) ->
 
 add_paths_for_library_lookup( _Paths=[], Acc ) ->
 
-	LibOptVarName = "LD_LIBRARY_PATH",
+	LibOptVarName = ?library_search_path_variable,
 
 	BaseLibOpt = case get_environment_variable( LibOptVarName ) of
 
@@ -1517,14 +1557,14 @@ environment_to_string( _Environment=[] ) ->
 environment_to_string( Environment ) ->
 
 	{ SetVars, UnsetVars } = lists:partition(
-							   fun( { _Name, _Value=false } ) ->
-									   false;
+		fun( { _Name, _Value=false } ) ->
+			false;
 
-								  ( _ ) ->
-									   true
+		   ( _ ) ->
+			true
 
-							   end,
-							   Environment ),
+		end,
+		Environment ),
 
 	VariableStrings = [ text_utils:format( "~ts = ~ts", [ Name, Value ] )
 						|| { Name, Value } <- SetVars ],
@@ -3011,7 +3051,7 @@ get_json_unavailability_hint() ->
 get_json_unavailability_hint( _Backend=undefined ) ->
 	% Note: the hints are *not* truncated here, this is normal:
 	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_JSON and "
-	"*_BASE variables, knowing that the "
+	"JSX_BASE / JIFFY_BASE variables, knowing that the "
 		++ code_utils:get_code_path_as_string();
 
 get_json_unavailability_hint( _Backend=jsx ) ->
