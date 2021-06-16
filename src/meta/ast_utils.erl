@@ -131,7 +131,7 @@
 
 % Other:
 -export([ get_generated_code_location/0,
-		  format_file_loc/1, format_file_loc_alt/1,
+		  format_file_loc/1, file_loc_to_line_string/1, format_file_loc_alt/1,
 		  file_loc_to_string/1, file_loc_to_explicative_term/1,
 		  write_ast_to_file/2 ]).
 
@@ -775,17 +775,20 @@ notify_warning( Elements, Context ) ->
 % Used to be a simple throw, but then for parse transforms the error message was
 % garbled in messages like:
 %
-% """
+% ```
 % internal error in lint_module;
 % crash reason: function_clause
 %
 %  in function  erl_lint:'-compiler_options/1-lc$^0/1-0-'/1
 %     called as erl_lint:'-compiler_options/1-lc$^0/1-0-'({
 % table_type_defined_more_than_once,{line,12},foo_hashtable,bar_hashtable})
+% '''
 %
 % Note:
+%
 % - this function is used to report errors detected by Myriad itself (not by the
 % Erlang toolchain)
+%
 % - prefer using raise_usage_error/* to report errors in a more standard,
 % convenient way
 %
@@ -835,8 +838,10 @@ raise_error( ErrorTerm, Context ) ->
 % {line, 112}}.
 %
 % Note:
+%
 % - this function is used to report errors detected by Myriad itself (not by the
 % Erlang toolchain)
+%
 % - prefer using raise_usage_error/* to report errors in a more standard,
 % convenient way
 %
@@ -1001,7 +1006,7 @@ raise_usage_error( ErrorFormatString, ErrorValues, Filename ) ->
 -spec raise_usage_error( format_string(), format_values(), file_name(),
 						 maybe( file_loc() ) ) -> no_return().
 raise_usage_error( ErrorFormatString, ErrorValues, Filename,
-				   _Line=undefined ) ->
+				   _FileLoc=undefined ) ->
 	raise_usage_error( ErrorFormatString, ErrorValues, Filename,
 					   _ActualFileLoc=?default_generation_location );
 
@@ -1162,6 +1167,17 @@ file_loc_to_string( { Line, Column } ) ->
 file_loc_to_string( Line ) ->
 	io_lib:format( "line ~B", [ Line ] ).
 
+
+% @doc Returns a textual, user-friendly description of specified in-file
+% location, just specifying the line (defined for the cases where a column would
+% not be especially useful, like when referencing a clause).
+%
+-spec file_loc_to_line_string( file_loc() ) -> ustring().
+file_loc_to_line_string( { Line, _Column } ) ->
+	io_lib:format( "line ~B", [ Line ] );
+
+file_loc_to_line_string( Line ) ->
+	io_lib:format( "line ~B", [ Line ] ).
 
 
 % @doc Returns an explicative term (typically to be part of a thrown exception)
