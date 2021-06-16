@@ -311,6 +311,10 @@ here</p>
 <p><tt>minutes() = integer()</tt></p>
 
 
+<h3 class="typedecl"><a name="type-misc_units">misc_units()</a></h3>
+<p><tt>misc_units() = <a href="#type-rpm">rpm()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-month">month()</a></h3>
 <p><tt>month() = integer()</tt></p>
 
@@ -343,6 +347,12 @@ here</p>
 <h3 class="typedecl"><a name="type-radians">radians()</a></h3>
 <p><tt>radians() = float()</tt></p>
 
+
+<h3 class="typedecl"><a name="type-rpm">rpm()</a></h3>
+<p><tt>rpm() = float()</tt></p>
+<p> Revolutions per minute (also known as RPM, rev/min, r/min, or with the
+ notation min−1) is the number of turns in one minute; a unit of rotational
+ speed or the frequency of rotation around a fixed axis.</p>
 
 <h3 class="typedecl"><a name="type-second">second()</a></h3>
 <p><tt>second() = integer()</tt></p>
@@ -407,7 +417,7 @@ clearer than m/m)</p>
 <p> All unit symbols (actually not used as such).</p>
 
 <h3 class="typedecl"><a name="type-units">units()</a></h3>
-<p><tt>units() = <a href="#type-time_units">time_units()</a> | <a href="#type-length_units">length_units()</a> | <a href="#type-volume_units">volume_units()</a> | <a href="#type-mass_units">mass_units()</a> | <a href="#type-energy_units">energy_units()</a> | <a href="#type-angle_units">angle_units()</a></tt></p>
+<p><tt>units() = <a href="#type-time_units">time_units()</a> | <a href="#type-length_units">length_units()</a> | <a href="#type-volume_units">volume_units()</a> | <a href="#type-mass_units">mass_units()</a> | <a href="#type-energy_units">energy_units()</a> | <a href="#type-angle_units">angle_units()</a> | <a href="#type-misc_units">misc_units()</a></tt></p>
 <p> All kinds of units.</p>
 
 <h3 class="typedecl"><a name="type-ustring">ustring()</a></h3>
@@ -467,6 +477,7 @@ humans, typically obtained from time_utils:duration_to_string/1) into an
 integer number of milliseconds.</td></tr>
 <tr><td valign="top"><a href="#is_canonical_unit-1">is_canonical_unit/1</a></td><td>Tells whether specified term is an actual, canonical unit.</td></tr>
 <tr><td valign="top"><a href="#km_per_hour_to_meters_per_second-1">km_per_hour_to_meters_per_second/1</a></td><td>Converts km/h to m/s.</td></tr>
+<tr><td valign="top"><a href="#maybe_temperature_to_string-1">maybe_temperature_to_string/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#meters_per_second_to_km_per_hour-1">meters_per_second_to_km_per_hour/1</a></td><td>Converts m/s to km/h.</td></tr>
 <tr><td valign="top"><a href="#parse_unit-1">parse_unit/1</a></td><td>Parses specified string, expected to contain a unit (ex: "kW.m/h^2"), and
  returns a canonical unit.</td></tr>
@@ -476,6 +487,7 @@ program-tractable form, that is a pair made of the value (as a float) and the
 corresponding unit, in canonical form.</td></tr>
 <tr><td valign="top"><a href="#pure_unit_to_string-1">pure_unit_to_string/1</a></td><td>Returns a textual representation of the raw unit only (factor and order 
 ignored) for the specified canonical unit.</td></tr>
+<tr><td valign="top"><a href="#temperature_to_string-1">temperature_to_string/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#unit_to_string-1">unit_to_string/1</a></td><td>Returns a textual representation of the specified canonical unit.</td></tr>
 <tr><td valign="top"><a href="#value_with_unit_to_string-2">value_with_unit_to_string/2</a></td><td>Returns a textual description of specified unit with a value.</td></tr>
 </table>
@@ -558,6 +570,12 @@ integer number of milliseconds.</p>
 <p> </p>
 </div><p>Converts km/h to m/s.</p>
 
+<h3 class="function"><a name="maybe_temperature_to_string-1">maybe_temperature_to_string/1</a></h3>
+<div class="spec">
+<p><tt>maybe_temperature_to_string(Temp::<a href="#type-maybe">maybe</a>(<a href="#type-celsius">celsius()</a>)) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p> </p>
+</div>
+
 <h3 class="function"><a name="meters_per_second_to_km_per_hour-1">meters_per_second_to_km_per_hour/1</a></h3>
 <div class="spec">
 <p><tt>meters_per_second_to_km_per_hour(M::<a href="#type-meters_per_second">meters_per_second()</a>) -&gt; <a href="#type-km_per_hour">km_per_hour()</a></tt><br></p>
@@ -613,6 +631,12 @@ ignored) for the specified canonical unit.</p>
 
  Note: unit_to_string/1 shall be the relevant function for most uses.
 </p>
+
+<h3 class="function"><a name="temperature_to_string-1">temperature_to_string/1</a></h3>
+<div class="spec">
+<p><tt>temperature_to_string(Temp::<a href="#type-celsius">celsius()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p> </p>
+</div>
 
 <h3 class="function"><a name="unit_to_string-1">unit_to_string/1</a></h3>
 <div class="spec">

@@ -190,9 +190,9 @@ are described in the specified function export table</p>
 <p> </p>
 </div><p><p>Transforms specified function constraint.</p>
 
- "If C is a constraint V :: T, where V is a type variable and T is a type,
- then Rep(C) =
- {type,LINE,constraint,[{atom,LINE,is_subtype},[Rep(V),Rep(T)]]}."
+ "If C is a constraint V :: T, where V is a type variable and T is a type, then
+ Rep(C) = {type, FILE_LOC, constraint,[{atom, FILE_LOC, is_subtype},[Rep(V),
+ Rep(T)]]}."
 </p>
 
 <h3 class="function"><a name="transform_function_constraints-2">transform_function_constraints/2</a></h3>
@@ -216,7 +216,7 @@ are described in the specified function export table</p>
  "If F is a function specification -Spec Name Ft_1; ...; Ft_k, where Spec is
  either the atom spec or the atom callback, and each Ft_i is a possibly
  constrained function type with an argument sequence of the same length Arity,
- then Rep(F) = {attribute,Line,Spec,{{Name,Arity},[Rep(Ft_1), ...,
+ then Rep(F) = {attribute, FileLoc, Spec, {{Name,Arity}, [Rep(Ft_1), ...,
  Rep(Ft_k)]}}.
 </p>
 
@@ -229,8 +229,8 @@ are described in the specified function export table</p>
  <p>(helper, corresponding to function_type/1 in erl_id_trans)</p>
 
  "If Ft is a function type (T_1, ..., T_n) -&gt; T_0, where each T_i is a type,
- then Rep(Ft) = {type,LINE,'fun',[{type,LINE,product,[Rep(T_1), ...,
- Rep(T_n)]},Rep(T_0)]}."
+ then Rep(Ft) = {type, FILE_LOC, 'fun', [{type, FILE_LOC, product, [Rep(T_1),
+ ..., Rep(T_n)]}, Rep(T_0)]}."
 </p>
 
 <h3 class="function"><a name="transform_functions-2">transform_functions/2</a></h3>
@@ -250,8 +250,8 @@ are described in the specified function export table</p>
  <p>(corresponds to function_type_list/1 in erl_id_trans)</p>
 
  "If Ft is a constrained function type Ft_1 when Fc, where Ft_1 is a function
- type and Fc is a function constraint, then Rep(T) =
- {type,LINE,bounded_fun,[Rep(Ft_1),Rep(Fc)]}."
+ type and Fc is a function constraint, then Rep(T) = {type, FILE_LOC,
+ bounded_fun, [Rep(Ft_1), Rep(Fc)]}."
 </p>
 <hr>
 

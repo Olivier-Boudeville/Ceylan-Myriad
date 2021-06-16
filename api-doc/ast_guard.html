@@ -28,10 +28,9 @@
 <p><tt>ast_bitstring_constructor() = <a href="ast_bitstring.html#type-constructor">ast_bitstring:constructor</a>(<a href="#type-ast_guard_test">ast_guard_test()</a>)</tt></p>
 <p><p> "If Gt is a bitstring constructor <code>&lt;&lt;Gt_1:Size_1/TSL_1, ...,
  Gt_k:Size_k/TSL_k&gt;&gt;</code>, where each Size_i is a guard test and each TSL_i is a 
-type specificer list, then Rep(Gt) = 
-{bin,LINE,[{bin_element,LINE,Rep(Gt_1),Rep(Size_1),Rep(TSL_1)}, ..., 
-{bin_element,LINE,Rep(Gt_k),Rep(Size_k),Rep(TSL_k)}]}. For Rep(TSL), see 
-above.</p>
+type specificer list, then Rep(Gt) = {bin, FILE_LOC, [{bin_element, FILE_LOC, 
+Rep(Gt_1), Rep(Size_1), Rep(TSL_1)}, ..., {bin_element, FILE_LOC, Rep(Gt_k), 
+Rep(Size_k), Rep(TSL_k)}]}. For Rep(TSL), see above.</p>
 
  <p>An omitted Size_i is represented by default. An omitted TSL_i is 
 represented by default."</p>
@@ -52,18 +51,18 @@ represented by default."</p>
  <p>"A guard sequence Gs is a sequence of guards G_1; ...; G_k, and Rep(Gs) = 
 [Rep(G_1), ..., Rep(G_k)]. If the guard sequence is empty, then Rep(Gs) = []."</p>
 
- Ex: {call,102, {atom,102,is_integer}, [{var,102,'X'}]}.</p>
+ Ex: {call, 102, {atom,102,is_integer}, [{var,102,'X'}]}.</p>
 
 <h3 class="typedecl"><a name="type-ast_guard_test">ast_guard_test()</a></h3>
-<p><tt>ast_guard_test() = <a href="ast_bitstring.html#type-constructor">ast_bitstring:constructor</a>(<a href="#type-ast_guard_test">ast_guard_test()</a>) | {cons, <a href="#type-line">line()</a>, <a href="#type-ast_guard_test">ast_guard_test()</a>, <a href="#type-ast_guard_test">ast_guard_test()</a>} | {call, <a href="#type-line">line()</a>, {remote, <a href="#type-line">line()</a>, <a href="ast_base.html#type-ast_element">ast_base:ast_element()</a>, <a href="ast_base.html#type-ast_atom">ast_base:ast_atom()</a>} | <a href="ast_base.html#type-ast_atom">ast_base:ast_atom()</a>, [<a href="#type-ast_guard_test">ast_guard_test()</a>]} | <a href="ast_map.html#type-ast_map_form">ast_map:ast_map_form()</a></tt></p>
+<p><tt>ast_guard_test() = <a href="ast_bitstring.html#type-constructor">ast_bitstring:constructor</a>(<a href="#type-ast_guard_test">ast_guard_test()</a>) | {cons, <a href="#type-file_loc">file_loc()</a>, <a href="#type-ast_guard_test">ast_guard_test()</a>, <a href="#type-ast_guard_test">ast_guard_test()</a>} | {call, <a href="#type-file_loc">file_loc()</a>, {remote, <a href="#type-file_loc">file_loc()</a>, <a href="ast_base.html#type-ast_element">ast_base:ast_element()</a>, <a href="ast_base.html#type-ast_atom">ast_base:ast_atom()</a>} | <a href="ast_base.html#type-ast_atom">ast_base:ast_atom()</a>, [<a href="#type-ast_guard_test">ast_guard_test()</a>]} | <a href="ast_map.html#type-ast_map_form">ast_map:ast_map_form()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-ast_transforms">ast_transforms()</a></h3>
 <p><tt>ast_transforms() = <a href="ast_transform.html#type-ast_transforms">ast_transform:ast_transforms()</a></tt></p>
 
 
-<h3 class="typedecl"><a name="type-line">line()</a></h3>
-<p><tt>line() = <a href="ast_base.html#type-line">ast_base:line()</a></tt></p>
+<h3 class="typedecl"><a name="type-file_loc">file_loc()</a></h3>
+<p><tt>file_loc() = <a href="ast_base.html#type-file_loc">ast_base:file_loc()</a></tt></p>
 
 
 <h2><a name="index">Function Index</a></h2>
@@ -106,9 +105,9 @@ transformations.</p>
 
  <p>Local call (to a builtin-only): 
 "If Gt is a function call A(Gt_1, ..., Gt_k), where A is an atom, then Rep(Gt) 
-= {call,LINE,Rep(A),[Rep(Gt_1), ..., Rep(Gt_k)]}."</p>
+= {call, FILE_LOC, Rep(A), [Rep(Gt_1), ..., Rep(Gt_k)]}."</p>
 
- <p>Ex: {call,102, {atom,102,is_integer}, [{var,102,'X'}]}</p>
+ <p>Ex: {call, 102, {atom,102,is_integer}, [{var,102,'X'}]}</p>
 
  Note: the subject of a special case in erl_id_trans (guard_test/1), delegated
  appropriately to the direct counterpart.

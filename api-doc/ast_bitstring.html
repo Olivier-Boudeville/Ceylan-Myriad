@@ -26,7 +26,7 @@
 
 
 <h3 class="typedecl"><a name="type-bin_element">bin_element()</a></h3>
-<p><tt>bin_element(ContentType) = {bin_element, <a href="ast_base.html#type-line">ast_base:line()</a>, ContentType, <a href="#type-maybe_size">maybe_size()</a>, <a href="#type-maybe_type_specifier_list">maybe_type_specifier_list()</a>}</tt></p>
+<p><tt>bin_element(ContentType) = {bin_element, <a href="ast_base.html#type-file_loc">ast_base:file_loc()</a>, ContentType, <a href="#type-maybe_size">maybe_size()</a>, <a href="#type-maybe_type_specifier_list">maybe_type_specifier_list()</a>}</tt></p>
 <p> A binary element within a bitstring constructor, with a specific content type.</p>
 
 <h3 class="typedecl"><a name="type-bin_element">bin_element()</a></h3>
@@ -34,7 +34,7 @@
 <p> A binary element within a bitstring constructor.</p>
 
 <h3 class="typedecl"><a name="type-constructor">constructor()</a></h3>
-<p><tt>constructor(ContentType) = {bin, <a href="#type-line">line()</a>, [<a href="#type-bin_element">bin_element</a>(ContentType)]}</tt></p>
+<p><tt>constructor(ContentType) = {bin, <a href="#type-file_loc">file_loc()</a>, [<a href="#type-bin_element">bin_element</a>(ContentType)]}</tt></p>
 <p> General form of a bitstring constructor, as a polymorphic type so that it can
  be specialized for dedicated contexts (ex: in guards, expressions, etc).</p>
 
@@ -42,8 +42,8 @@
 <p><tt>element_transform_fun() = <a href="ast_transform.html#type-transform_fun">ast_transform:transform_fun</a>(<a href="#type-bin_element">bin_element()</a>)</tt></p>
 
 
-<h3 class="typedecl"><a name="type-line">line()</a></h3>
-<p><tt>line() = <a href="ast_base.html#type-line">ast_base:line()</a></tt></p>
+<h3 class="typedecl"><a name="type-file_loc">file_loc()</a></h3>
+<p><tt>file_loc() = <a href="ast_base.html#type-file_loc">ast_base:file_loc()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-maybe_size">maybe_size()</a></h3>
@@ -67,8 +67,7 @@
  <p>If TS is a type specifier A:Value, where A is an atom and Value is an integer, 
 then Rep(TS) = {A,Value}.</p>
 
- Actual type maybe be omitted.
-</p>
+ Actual type maybe be omitted.</p>
 
 <h3 class="typedecl"><a name="type-type_specifier_list">type_specifier_list()</a></h3>
 <p><tt>type_specifier_list() = [<a href="#type-type_specifier">type_specifier()</a>]</tt></p>

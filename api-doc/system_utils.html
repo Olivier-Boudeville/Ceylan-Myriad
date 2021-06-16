@@ -33,6 +33,10 @@ facilities.</p>
 <p><tt>basic_credential() = {<a href="#type-user_name">user_name()</a>, <a href="#type-password">password()</a>}</tt></p>
 
 
+<h3 class="typedecl"><a name="type-bin_executable_path">bin_executable_path()</a></h3>
+<p><tt>bin_executable_path() = <a href="file_utils.html#type-bin_executable_path">file_utils:bin_executable_path()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-byte_size">byte_size()</a></h3>
 <p><tt>byte_size() = integer()</tt></p>
 <p> Size, as a number of bytes.</p>
@@ -98,6 +102,12 @@ facilities.</p>
 <h3 class="typedecl"><a name="type-execution_outcome">execution_outcome()</a></h3>
 <p><tt>execution_outcome() = {<a href="#type-return_code">return_code()</a>, <a href="#type-command_output">command_output()</a>}</tt></p>
 <p> All information returned by a shell command.</p>
+
+<h3 class="typedecl"><a name="type-execution_pair">execution_pair()</a></h3>
+<p><tt>execution_pair() = {<a href="#type-bin_executable_path">bin_executable_path()</a>, [<a href="#type-command_line_argument">command_line_argument()</a>]}</tt></p>
+<p> A pair specifying a complete command-line ready to be executed by
+ run_executable/n (convenient to store once for all if needing to launch it
+ repeatedly).</p>
 
 <h3 class="typedecl"><a name="type-expression_outcome">expression_outcome()</a></h3>
 <p><tt>expression_outcome() = <a href="#type-ustring">ustring()</a></tt></p>
@@ -248,6 +258,10 @@ needing to open a file for writing - should such an option be used.</td></tr>
  on specified environment.</td></tr>
 <tr><td valign="top"><a href="#get_environment_variable-1">get_environment_variable/1</a></td><td>Returns the value associated to the specified environment variable (if
  any), otherwise 'false'.</td></tr>
+<tr><td valign="top"><a href="#get_environment_variable_for_executable_lookup-0">get_environment_variable_for_executable_lookup/0</a></td><td>Returns the environment variable (if any) used by the system for the
+ lookup of executables.</td></tr>
+<tr><td valign="top"><a href="#get_environment_variable_for_library_lookup-0">get_environment_variable_for_library_lookup/0</a></td><td>Returns the environment variable (if any) used by the system for the
+ lookup of (shared) libraries.</td></tr>
 <tr><td valign="top"><a href="#get_filesystem_info-1">get_filesystem_info/1</a></td><td>Returns information about the specified filesystem.</td></tr>
 <tr><td valign="top"><a href="#get_group_id-0">get_group_id/0</a></td><td>Returns the (system) group identifier of the current user.</td></tr>
 <tr><td valign="top"><a href="#get_group_name-0">get_group_name/0</a></td><td>Returns the name of the current group, as a plain string.</td></tr>
@@ -758,6 +772,22 @@ needing to open a file for writing - should such an option be used.</p>
 <p> </p>
 </div><p>Returns the value associated to the specified environment variable (if
  any), otherwise 'false'.
+</p>
+
+<h3 class="function"><a name="get_environment_variable_for_executable_lookup-0">get_environment_variable_for_executable_lookup/0</a></h3>
+<div class="spec">
+<p><tt>get_environment_variable_for_executable_lookup() -&gt; <a href="#type-maybe">maybe</a>(<a href="#type-env_variable_name">env_variable_name()</a>)</tt><br></p>
+<p> </p>
+</div><p>Returns the environment variable (if any) used by the system for the
+ lookup of executables.
+</p>
+
+<h3 class="function"><a name="get_environment_variable_for_library_lookup-0">get_environment_variable_for_library_lookup/0</a></h3>
+<div class="spec">
+<p><tt>get_environment_variable_for_library_lookup() -&gt; <a href="#type-maybe">maybe</a>(<a href="#type-env_variable_name">env_variable_name()</a>)</tt><br></p>
+<p> </p>
+</div><p>Returns the environment variable (if any) used by the system for the
+ lookup of (shared) libraries.
 </p>
 
 <h3 class="function"><a name="get_filesystem_info-1">get_filesystem_info/1</a></h3>

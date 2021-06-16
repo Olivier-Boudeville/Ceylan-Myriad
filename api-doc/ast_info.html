@@ -23,6 +23,37 @@
 <p><tt>ast() = <a href="ast_base.html#type-ast">ast_base:ast()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-ast_location">ast_location()</a></h3>
+<p><tt>ast_location() = <a href="ast_base.html#type-form_location">ast_base:form_location()</a> | {locate_at, <a href="#type-section_marker">section_marker()</a>} | {locate_after, <a href="ast_base.html#type-form_location">ast_base:form_location()</a>}</tt></p>
+<p><p> Location of a form in an AST, so that the order of forms can be recreated.</p>
+
+ <p>We use sortable identifiers so that any number of new forms can be introduced 
+between any two of them, if needed.</p>
+
+ <p>Location is relative to the position of a form in a given AST, while the 
+line/column information embedded in forms is relative to the file in which 
+they are defined.</p>
+
+ <p>Thanks to locations (which order forms appropriately, including the ones 
+regarding file references), once forms have been recomposed, by design stored 
+lines and columns are always relative to the current file.</p>
+
+ <p>'locate_at' means that the corresponding form is yet to be located just after 
+the location pointed at by the specified marker in the AST stream (thus a 
+transformation pass is still to be applied before it becomes an actual 
+sortable identifier). Such a relative location allows for example to place 
+forms just after (and never, for example, just before) a module declaration.</p>
+
+ <p>We try to translate section markers in actual locations rather sooner than 
+later, as markers are not expected to move, and it would probably be more 
+difficult to recreate a consistency at later stages.</p>
+
+ <p>Similarly, 'locate_after' means that a form is yet to be located after the 
+specified form.</p>
+
+ There is no specific order enforced between the possibly several forms located
+ at a given marker or after a given form.</p>
+
 <h3 class="typedecl"><a name="type-attribute">attribute()</a></h3>
 <p><tt>attribute() = {<a href="#type-attribute_name">attribute_name()</a>, <a href="#type-attribute_value">attribute_value()</a>}</tt></p>
 <p> Parse-level attribute.</p>
@@ -52,7 +83,7 @@ from its name.</p>
 <p> Ex: inline, export_all, etc.</p>
 
 <h3 class="typedecl"><a name="type-compile_option_table">compile_option_table()</a></h3>
-<p><tt>compile_option_table() = <a href="map_hashtable.html#type-map_hashtable">map_hashtable:map_hashtable</a>(<a href="#type-compile_option_name">compile_option_name()</a>, <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>([<a href="#type-compile_option_value">compile_option_value()</a>]))</tt></p>
+<p><tt>compile_option_table() = <a href="map_hashtable.html#type-map_hashtable">map_hashtable:map_hashtable</a>(<a href="#type-compile_option_name">compile_option_name()</a>, <a href="#type-maybe">maybe</a>([<a href="#type-compile_option_value">compile_option_value()</a>]))</tt></p>
 <p><p> For easy access to compilation information:</p>
 
  Note that an option specified without a value (ex: -Dmy_token on the command
@@ -81,15 +112,19 @@ in terms of a parse-transform option, as: {d,my_other_test_token,51}).</p>
  preserve the order of its entries, whereas the fields are indexed in
  tuple-records according to their rank in the corresponding list.</p>
 
+<h3 class="typedecl"><a name="type-file_loc">file_loc()</a></h3>
+<p><tt>file_loc() = <a href="ast_base.html#type-file_loc">ast_base:file_loc()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-form">form()</a></h3>
 <p><tt>form() = <a href="ast_base.html#type-form">ast_base:form()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-function_export_table">function_export_table()</a></h3>
-<p><tt>function_export_table() = <a href="map_hashtable.html#type-map_hashtable">map_hashtable:map_hashtable</a>(<a href="#type-location">location()</a>, {<a href="#type-line">line()</a>, [<a href="#type-function_id">function_id()</a>]})</tt></p>
-<p><p> A table associating, to a given location, the corresponding line in the source 
-file (to recreate the corresponding export form) and a list of the identifiers 
-of the functions to declare exported there.</p>
+<p><tt>function_export_table() = <a href="map_hashtable.html#type-map_hashtable">map_hashtable:map_hashtable</a>(<a href="#type-ast_location">ast_location()</a>, {<a href="#type-file_loc">file_loc()</a>, [<a href="#type-function_id">function_id()</a>]})</tt></p>
+<p><p> A table associating, to a given AST location, the corresponding line/column in 
+the source file (to recreate the corresponding export form) and a list of the 
+identifiers of the functions to declare exported there.</p>
 
  <p>Note:</p>
 
@@ -111,7 +146,7 @@ meta_utils:remove_function/2</p>
  imported from it by the current module.</p>
 
 <h3 class="typedecl"><a name="type-function_info">function_info()</a></h3>
-<p><tt>function_info() = #function_info{name = <a href="meta_utils.html#type-function_name">meta_utils:function_name()</a>, arity = arity(), ast_location = <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(<a href="ast_info.html#type-location">ast_info:location()</a>), file_location = <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(<a href="ast_base.html#type-file_loc">ast_base:file_loc()</a>), clauses = [<a href="meta_utils.html#type-clause_def">meta_utils:clause_def()</a>], spec = <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(<a href="ast_info.html#type-located_function_spec">ast_info:located_function_spec()</a>), callback = boolean(), exported = [<a href="ast_info.html#type-location">ast_info:location()</a>]}</tt></p>
+<p><tt>function_info() = #function_info{name = <a href="meta_utils.html#type-function_name">meta_utils:function_name()</a>, arity = arity(), ast_location = <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(<a href="ast_info.html#type-ast_location">ast_info:ast_location()</a>), file_location = <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(<a href="ast_base.html#type-file_loc">ast_base:file_loc()</a>), clauses = [<a href="meta_utils.html#type-clause_def">meta_utils:clause_def()</a>], spec = <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(<a href="ast_info.html#type-located_function_spec">ast_info:located_function_spec()</a>), callback = boolean(), exported = [<a href="ast_info.html#type-ast_location">ast_info:ast_location()</a>]}</tt></p>
 
 
 <h3 class="typedecl"><a name="type-function_table">function_table()</a></h3>
@@ -122,16 +157,12 @@ meta_utils:remove_function/2</p>
 <p><tt>indentation_level() = <a href="text_utils.html#type-indentation_level">text_utils:indentation_level()</a></tt></p>
 
 
-<h3 class="typedecl"><a name="type-line">line()</a></h3>
-<p><tt>line() = <a href="ast_base.html#type-line">ast_base:line()</a></tt></p>
-
-
 <h3 class="typedecl"><a name="type-located_ast">located_ast()</a></h3>
 <p><tt>located_ast() = [<a href="#type-located_form">located_form()</a>]</tt></p>
 <p> An AST including location information.</p>
 
 <h3 class="typedecl"><a name="type-located_form">located_form()</a></h3>
-<p><tt>located_form() = {<a href="#type-location">location()</a>, <a href="#type-form">form()</a>}</tt></p>
+<p><tt>located_form() = {<a href="#type-ast_location">ast_location()</a>, <a href="#type-form">form()</a>}</tt></p>
 <p><p> When processing an AST (ex: read from a BEAM file), the order of the forms 
 matters (for example to report compile errors, which are relative to a context 
 defined by the last '-file' attribute previously encountered, i.e. like 
@@ -144,39 +175,12 @@ same order.</p>
  order in the original AST.</p>
 
 <h3 class="typedecl"><a name="type-located_function_spec">located_function_spec()</a></h3>
-<p><tt>located_function_spec() = {<a href="#type-location">location()</a>, <a href="meta_utils.html#type-function_spec">meta_utils:function_spec()</a>}</tt></p>
+<p><tt>located_function_spec() = {<a href="#type-ast_location">ast_location()</a>, <a href="meta_utils.html#type-function_spec">meta_utils:function_spec()</a>}</tt></p>
 <p> Located type specification of a function.</p>
 
-<h3 class="typedecl"><a name="type-location">location()</a></h3>
-<p><tt>location() = <a href="ast_base.html#type-form_location">ast_base:form_location()</a> | {locate_at, <a href="#type-section_marker">section_marker()</a>} | {locate_after, <a href="ast_base.html#type-form_location">ast_base:form_location()</a>}</tt></p>
-<p><p> Location of a form in an AST, so that the order of forms can be recreated.</p>
+<h3 class="typedecl"><a name="type-maybe">maybe()</a></h3>
+<p><tt>maybe(T) = <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(T)</tt></p>
 
- <p>We use sortable identifiers so that any number of new forms can be introduced 
-between any two of them, if needed.</p>
-
- <p>Location is relative to the position of a form in a given AST, while the line 
-information embedded in forms is relative to the file in which they are 
-defined.</p>
-
- <p>Thanks to locations (which order forms appropriately, including the ones 
-regarding file references), once forms have been recomposed, by design a 
-stored line is always relative to the current file.</p>
-
- <p>'locate_at' means that the corresponding form is yet to be located just after 
-the location pointed at by the specified marker in the AST stream (thus a 
-transformation pass is still to be applied before it becomes an actual 
-sortable identifier). Such a relative location allows for example to place 
-forms just after (and never, for example, just before) a module declaration.</p>
-
- <p>We try to translate section markers in actual locations rather sooner than 
-later, as markers are not expected to move, and it would probably be more 
-difficult to recreate a consistency at later stages.</p>
-
- <p>Similarly, 'locate_after' means that a form is yet to be located after the 
-specified form.</p>
-
- There is no specific order enforced between the possibly several forms located
- at a given marker or after a given form.</p>
 
 <h3 class="typedecl"><a name="type-module_entry">module_entry()</a></h3>
 <p><tt>module_entry() = <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>({<a href="basic_utils.html#type-module_name">basic_utils:module_name()</a>, <a href="ast_info.html#type-located_form">ast_info:located_form()</a>})</tt></p>
@@ -187,7 +191,7 @@ specified form.</p>
 
 
 <h3 class="typedecl"><a name="type-record_definition">record_definition()</a></h3>
-<p><tt>record_definition() = {<a href="#type-field_table">field_table()</a>, <a href="#type-location">location()</a>, <a href="#type-line">line()</a>}</tt></p>
+<p><tt>record_definition() = {<a href="#type-field_table">field_table()</a>, <a href="#type-ast_location">ast_location()</a>, <a href="#type-file_loc">file_loc()</a>}</tt></p>
 <p> The full definition of a record.</p>
 
 <h3 class="typedecl"><a name="type-record_table">record_table()</a></h3>
@@ -200,15 +204,15 @@ specified form.</p>
 
 
 <h3 class="typedecl"><a name="type-section_marker_table">section_marker_table()</a></h3>
-<p><tt>section_marker_table() = <a href="map_hashtable.html#type-map_hashtable">map_hashtable:map_hashtable</a>(<a href="#type-section_marker">section_marker()</a>, <a href="#type-location">location()</a>)</tt></p>
+<p><tt>section_marker_table() = <a href="map_hashtable.html#type-map_hashtable">map_hashtable:map_hashtable</a>(<a href="#type-section_marker">section_marker()</a>, <a href="#type-ast_location">ast_location()</a>)</tt></p>
 <p> A table storing the actual locations corresponding to the standard section
  markers.</p>
 
 <h3 class="typedecl"><a name="type-type_export_table">type_export_table()</a></h3>
-<p><tt>type_export_table() = <a href="map_hashtable.html#type-map_hashtable">map_hashtable:map_hashtable</a>(<a href="#type-location">location()</a>, {<a href="#type-line">line()</a>, [<a href="#type-type_id">type_id()</a>]})</tt></p>
-<p><p> A table associating, to a given location, the corresponding line in the source 
-file (to recreate the corresponding export form) and a list of the identifiers 
-of the types to declare exported there.</p>
+<p><tt>type_export_table() = <a href="map_hashtable.html#type-map_hashtable">map_hashtable:map_hashtable</a>(<a href="#type-ast_location">ast_location()</a>, {<a href="#type-file_loc">file_loc()</a>, [<a href="#type-type_id">type_id()</a>]})</tt></p>
+<p><p> A table associating, to a given location, the corresponding line/column in the 
+source file (to recreate the corresponding export form) and a list of the 
+identifiers of the types to declare exported there.</p>
 
  <p>Note:</p>
 
@@ -222,7 +226,7 @@ in a module_info'types' field; see: add_type/2 and remove_type/2</p>
 
 
 <h3 class="typedecl"><a name="type-type_info">type_info()</a></h3>
-<p><tt>type_info() = #type_info{name = <a href="type_utils.html#type-type_name">type_utils:type_name()</a>, variables = <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>([<a href="ast_type.html#type-ast_variable_pattern">ast_type:ast_variable_pattern()</a>]), opaque = boolean(), ast_location = <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(<a href="ast_info.html#type-location">ast_info:location()</a>), file_location = <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(<a href="ast_base.html#type-file_loc">ast_base:file_loc()</a>), definition = <a href="ast_type.html#type-ast_type">ast_type:ast_type()</a>, exported = [<a href="ast_info.html#type-location">ast_info:location()</a>]}</tt></p>
+<p><tt>type_info() = #type_info{name = <a href="type_utils.html#type-type_name">type_utils:type_name()</a>, variables = <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>([<a href="ast_type.html#type-ast_variable_pattern">ast_type:ast_variable_pattern()</a>]), opaque = boolean(), ast_location = <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(<a href="ast_info.html#type-ast_location">ast_info:ast_location()</a>), file_location = <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(<a href="ast_base.html#type-file_loc">ast_base:file_loc()</a>), definition = <a href="ast_type.html#type-ast_type">ast_type:ast_type()</a>, exported = [<a href="ast_info.html#type-ast_location">ast_info:ast_location()</a>]}</tt></p>
 
 
 <h3 class="typedecl"><a name="type-type_table">type_table()</a></h3>
@@ -240,11 +244,12 @@ in a module_info'types' field; see: add_type/2 and remove_type/2</p>
 <tr><td valign="top"><a href="#compilation_options_to_string-4">compilation_options_to_string/4</a></td><td>Returns a textual representation of compilation options, with specified
  indentation level.</td></tr>
 <tr><td valign="top"><a href="#ensure_function_exported-4">ensure_function_exported/4</a></td><td>Ensures that the specified function is exported at the specified
- location(s).</td></tr>
-<tr><td valign="top"><a href="#ensure_function_not_exported-3">ensure_function_not_exported/3</a></td><td>Ensures that specified function is not exported at the specified
+ AST location(s).</td></tr>
+<tr><td valign="top"><a href="#ensure_function_not_exported-3">ensure_function_not_exported/3</a></td><td>Ensures that specified function is not exported at the specified AST
  location(s), in the specified function export table (un-export said function).</td></tr>
 <tr><td valign="top"><a href="#ensure_type_exported-4">ensure_type_exported/4</a></td><td>Ensures that the specified type is exported at the specified location(s).</td></tr>
-<tr><td valign="top"><a href="#ensure_type_not_exported-3">ensure_type_not_exported/3</a></td><td>Ensures that specified type is not exported at the specified location(s).</td></tr>
+<tr><td valign="top"><a href="#ensure_type_not_exported-3">ensure_type_not_exported/3</a></td><td>Ensures that specified type is not exported at the specified AST
+ location(s).</td></tr>
 <tr><td valign="top"><a href="#errors_to_string-2">errors_to_string/2</a></td><td>Returns a textual representation of specified errors.</td></tr>
 <tr><td valign="top"><a href="#extract_module_info_from_ast-1">extract_module_info_from_ast/1</a></td><td>Processes the specified AST relative to a whole module, and returns the 
 corresponding information gathered.</td></tr>
@@ -263,34 +268,34 @@ and using specified indentation level.</td></tr>
 <tr><td valign="top"><a href="#function_info_to_string-3">function_info_to_string/3</a></td><td>Returns a textual description of the specified function information.</td></tr>
 <tr><td valign="top"><a href="#functions_to_string-3">functions_to_string/3</a></td><td>Returns a textual representation of the specified functions, with
  specified indentation level.</td></tr>
-<tr><td valign="top"><a href="#get_default_definition_function_location-0">get_default_definition_function_location/0</a></td><td>Returns the conventional location at which new functions may be defined,
+<tr><td valign="top"><a href="#get_default_definition_function_location-0">get_default_definition_function_location/0</a></td><td>Returns the conventional AST location at which new functions may be
+ defined, as an indirect location.</td></tr>
+<tr><td valign="top"><a href="#get_default_definition_function_location-1">get_default_definition_function_location/1</a></td><td>Returns the conventional AST location at which new functions may be
+ defined, as an immediate location.</td></tr>
+<tr><td valign="top"><a href="#get_default_definition_record_location-0">get_default_definition_record_location/0</a></td><td>Returns the conventional AST location at which new records may be
+ defined, as an indirect location.</td></tr>
+<tr><td valign="top"><a href="#get_default_definition_record_location-1">get_default_definition_record_location/1</a></td><td>Returns the conventional AST location at which new records may be
+ defined, as an immediate location.</td></tr>
+<tr><td valign="top"><a href="#get_default_definition_type_location-0">get_default_definition_type_location/0</a></td><td>Returns the conventional AST location at which new types may be defined,
  as an indirect location.</td></tr>
-<tr><td valign="top"><a href="#get_default_definition_function_location-1">get_default_definition_function_location/1</a></td><td>Returns the conventional location at which new functions may be defined,
+<tr><td valign="top"><a href="#get_default_definition_type_location-1">get_default_definition_type_location/1</a></td><td>Returns the conventional AST location at which new types may be defined,
  as an immediate location.</td></tr>
-<tr><td valign="top"><a href="#get_default_definition_record_location-0">get_default_definition_record_location/0</a></td><td>Returns the conventional location at which new records may be defined, as
- an indirect location.</td></tr>
-<tr><td valign="top"><a href="#get_default_definition_record_location-1">get_default_definition_record_location/1</a></td><td>Returns the conventional location at which new records may be defined, as
- an immediate location.</td></tr>
-<tr><td valign="top"><a href="#get_default_definition_type_location-0">get_default_definition_type_location/0</a></td><td>Returns the conventional location at which new types may be defined, as
- an indirect location.</td></tr>
-<tr><td valign="top"><a href="#get_default_definition_type_location-1">get_default_definition_type_location/1</a></td><td>Returns the conventional location at which new types may be defined, as
- an immediate location.</td></tr>
-<tr><td valign="top"><a href="#get_default_export_function_location-0">get_default_export_function_location/0</a></td><td>Returns the conventional location at which new functions may be exported,
+<tr><td valign="top"><a href="#get_default_export_function_location-0">get_default_export_function_location/0</a></td><td>Returns the conventional AST location at which new functions may be
+ exported, as an indirect location.</td></tr>
+<tr><td valign="top"><a href="#get_default_export_function_location-1">get_default_export_function_location/1</a></td><td>Returns the conventional AST location at which new functions may be
+ exported, as an immediate location.</td></tr>
+<tr><td valign="top"><a href="#get_default_export_type_location-0">get_default_export_type_location/0</a></td><td>Returns the conventional AST location at which new types may be exported,
  as an indirect location.</td></tr>
-<tr><td valign="top"><a href="#get_default_export_function_location-1">get_default_export_function_location/1</a></td><td>Returns the conventional location at which new functions may be exported,
+<tr><td valign="top"><a href="#get_default_export_type_location-1">get_default_export_type_location/1</a></td><td>Returns the conventional AST location at which new types may be exported,
  as an immediate location.</td></tr>
-<tr><td valign="top"><a href="#get_default_export_type_location-0">get_default_export_type_location/0</a></td><td>Returns the conventional location at which new types may be exported, as
- an indirect location.</td></tr>
-<tr><td valign="top"><a href="#get_default_export_type_location-1">get_default_export_type_location/1</a></td><td>Returns the conventional location at which new types may be exported, as
- an immediate location.</td></tr>
-<tr><td valign="top"><a href="#get_default_import_function_location-0">get_default_import_function_location/0</a></td><td>Returns the conventional location at which functions may be imported, as
- an indirect location.</td></tr>
-<tr><td valign="top"><a href="#get_default_import_function_location-1">get_default_import_function_location/1</a></td><td>Returns the conventional location at which functions may be imported, as
- an immediate location.</td></tr>
-<tr><td valign="top"><a href="#get_default_module_location-0">get_default_module_location/0</a></td><td>Returns the conventional location designating where forms can be be added
- just after the declaration of the module name, as an indirect location.</td></tr>
-<tr><td valign="top"><a href="#get_default_module_location-1">get_default_module_location/1</a></td><td>Returns the conventional location designating where forms can be be added
- just after the declaration of the module name, as an immediate location.</td></tr>
+<tr><td valign="top"><a href="#get_default_import_function_location-0">get_default_import_function_location/0</a></td><td>Returns the conventional AST location at which functions may be imported,
+ as an indirect location.</td></tr>
+<tr><td valign="top"><a href="#get_default_import_function_location-1">get_default_import_function_location/1</a></td><td>Returns the conventional AST location at which functions may be imported,
+ as an immediate location.</td></tr>
+<tr><td valign="top"><a href="#get_default_module_location-0">get_default_module_location/0</a></td><td>Returns the conventional AST location designating where forms can be be
+ added just after the declaration of the module name, as an indirect location.</td></tr>
+<tr><td valign="top"><a href="#get_default_module_location-1">get_default_module_location/1</a></td><td>Returns the conventional AST location designating where forms can be be
+ added just after the declaration of the module name, as an immediate location.</td></tr>
 <tr><td valign="top"><a href="#includes_to_string-3">includes_to_string/3</a></td><td>Returns a textual representation of the specified includes, based on a
  default indentation level.</td></tr>
 <tr><td valign="top"><a href="#includes_to_string-4">includes_to_string/4</a></td><td>Returns a textual representation of the specified includes, with
@@ -299,7 +304,7 @@ and using specified indentation level.</td></tr>
  fed with an input AST afterwards.</td></tr>
 <tr><td valign="top"><a href="#interpret_options-2">interpret_options/2</a></td><td>Interprets the specified compilation options, that were typically
  specified through the command-line.</td></tr>
-<tr><td valign="top"><a href="#last_file_location_to_string-1">last_file_location_to_string/1</a></td><td>Returns a textual representation of a module last line / line count.</td></tr>
+<tr><td valign="top"><a href="#last_file_loc_to_string-1">last_file_loc_to_string/1</a></td><td>Returns a textual representation of a module last line / line count.</td></tr>
 <tr><td valign="top"><a href="#located_ast_to_string-1">located_ast_to_string/1</a></td><td>Returns a textual description of the specified located AST.</td></tr>
 <tr><td valign="top"><a href="#location_to_string-1">location_to_string/1</a></td><td>Returns a textual representation of the specified location.</td></tr>
 <tr><td valign="top"><a href="#markers_to_string-1">markers_to_string/1</a></td><td>Returns a textual representation of the known section markers.</td></tr>
@@ -364,31 +369,33 @@ indentation level.</td></tr>
 
 <h3 class="function"><a name="ensure_function_exported-4">ensure_function_exported/4</a></h3>
 <div class="spec">
-<p><tt>ensure_function_exported(FunId::<a href="#type-function_id">function_id()</a>, ExportLocs::[<a href="#type-location">location()</a>], ModuleInfo::<a href="#type-module_info">module_info()</a>, ExportTable::<a href="#type-function_export_table">function_export_table()</a>) -&gt; <a href="#type-function_export_table">function_export_table()</a></tt><br></p>
+<p><tt>ensure_function_exported(FunId::<a href="#type-function_id">function_id()</a>, ExportLocs::[<a href="#type-ast_location">ast_location()</a>], ModuleInfo::<a href="#type-module_info">module_info()</a>, ExportTable::<a href="#type-function_export_table">function_export_table()</a>) -&gt; <a href="#type-function_export_table">function_export_table()</a></tt><br></p>
 <p> </p>
 </div><p>Ensures that the specified function is exported at the specified
- location(s).
+ AST location(s).
 </p>
 
 <h3 class="function"><a name="ensure_function_not_exported-3">ensure_function_not_exported/3</a></h3>
 <div class="spec">
-<p><tt>ensure_function_not_exported(FunId::<a href="meta_utils.html#type-function_id">meta_utils:function_id()</a>, ExportLocs::[<a href="#type-location">location()</a>], ExportTable::<a href="#type-function_export_table">function_export_table()</a>) -&gt; <a href="#type-function_export_table">function_export_table()</a></tt><br></p>
+<p><tt>ensure_function_not_exported(FunId::<a href="meta_utils.html#type-function_id">meta_utils:function_id()</a>, ExportLocs::[<a href="#type-ast_location">ast_location()</a>], ExportTable::<a href="#type-function_export_table">function_export_table()</a>) -&gt; <a href="#type-function_export_table">function_export_table()</a></tt><br></p>
 <p> </p>
-</div><p>Ensures that specified function is not exported at the specified
+</div><p>Ensures that specified function is not exported at the specified AST
  location(s), in the specified function export table (un-export said function).
 </p>
 
 <h3 class="function"><a name="ensure_type_exported-4">ensure_type_exported/4</a></h3>
 <div class="spec">
-<p><tt>ensure_type_exported(TypeId::<a href="#type-type_id">type_id()</a>, ExportLocs::[<a href="#type-location">location()</a>], ModuleInfo::<a href="#type-module_info">module_info()</a>, ExportTable::<a href="#type-type_export_table">type_export_table()</a>) -&gt; <a href="#type-type_export_table">type_export_table()</a></tt><br></p>
+<p><tt>ensure_type_exported(TypeId::<a href="#type-type_id">type_id()</a>, ExportLocs::[<a href="#type-ast_location">ast_location()</a>], ModuleInfo::<a href="#type-module_info">module_info()</a>, ExportTable::<a href="#type-type_export_table">type_export_table()</a>) -&gt; <a href="#type-type_export_table">type_export_table()</a></tt><br></p>
 <p> </p>
 </div><p>Ensures that the specified type is exported at the specified location(s).</p>
 
 <h3 class="function"><a name="ensure_type_not_exported-3">ensure_type_not_exported/3</a></h3>
 <div class="spec">
-<p><tt>ensure_type_not_exported(TypeId::<a href="#type-type_id">type_id()</a>, ExportLocs::[<a href="#type-location">location()</a>], ExportTable::<a href="#type-type_export_table">type_export_table()</a>) -&gt; <a href="#type-type_export_table">type_export_table()</a></tt><br></p>
+<p><tt>ensure_type_not_exported(TypeId::<a href="#type-type_id">type_id()</a>, ExportLocs::[<a href="#type-ast_location">ast_location()</a>], ExportTable::<a href="#type-type_export_table">type_export_table()</a>) -&gt; <a href="#type-type_export_table">type_export_table()</a></tt><br></p>
 <p> </p>
-</div><p>Ensures that specified type is not exported at the specified location(s).</p>
+</div><p>Ensures that specified type is not exported at the specified AST
+ location(s).
+</p>
 
 <h3 class="function"><a name="errors_to_string-2">errors_to_string/2</a></h3>
 <div class="spec">
@@ -481,114 +488,114 @@ and using specified indentation level.</p>
 
 <h3 class="function"><a name="get_default_definition_function_location-0">get_default_definition_function_location/0</a></h3>
 <div class="spec">
-<p><tt>get_default_definition_function_location() -&gt; <a href="#type-location">location()</a></tt><br></p>
+<p><tt>get_default_definition_function_location() -&gt; <a href="#type-ast_location">ast_location()</a></tt><br></p>
 <p> </p>
-</div><p>Returns the conventional location at which new functions may be defined,
- as an indirect location.
+</div><p>Returns the conventional AST location at which new functions may be
+ defined, as an indirect location.
 </p>
 
 <h3 class="function"><a name="get_default_definition_function_location-1">get_default_definition_function_location/1</a></h3>
 <div class="spec">
-<p><tt>get_default_definition_function_location(MarkerTable::<a href="#type-section_marker_table">section_marker_table()</a>) -&gt; <a href="#type-location">location()</a></tt><br></p>
+<p><tt>get_default_definition_function_location(MarkerTable::<a href="#type-section_marker_table">section_marker_table()</a>) -&gt; <a href="#type-ast_location">ast_location()</a></tt><br></p>
 <p> </p>
-</div><p>Returns the conventional location at which new functions may be defined,
- as an immediate location.
+</div><p>Returns the conventional AST location at which new functions may be
+ defined, as an immediate location.
 </p>
 
 <h3 class="function"><a name="get_default_definition_record_location-0">get_default_definition_record_location/0</a></h3>
 <div class="spec">
-<p><tt>get_default_definition_record_location() -&gt; <a href="#type-location">location()</a></tt><br></p>
+<p><tt>get_default_definition_record_location() -&gt; <a href="#type-ast_location">ast_location()</a></tt><br></p>
 <p> </p>
-</div><p>Returns the conventional location at which new records may be defined, as
- an indirect location.
+</div><p>Returns the conventional AST location at which new records may be
+ defined, as an indirect location.
 </p>
 
 <h3 class="function"><a name="get_default_definition_record_location-1">get_default_definition_record_location/1</a></h3>
 <div class="spec">
-<p><tt>get_default_definition_record_location(MarkerTable::<a href="#type-section_marker_table">section_marker_table()</a>) -&gt; <a href="#type-location">location()</a></tt><br></p>
+<p><tt>get_default_definition_record_location(MarkerTable::<a href="#type-section_marker_table">section_marker_table()</a>) -&gt; <a href="#type-ast_location">ast_location()</a></tt><br></p>
 <p> </p>
-</div><p>Returns the conventional location at which new records may be defined, as
- an immediate location.
+</div><p>Returns the conventional AST location at which new records may be
+ defined, as an immediate location.
 </p>
 
 <h3 class="function"><a name="get_default_definition_type_location-0">get_default_definition_type_location/0</a></h3>
 <div class="spec">
-<p><tt>get_default_definition_type_location() -&gt; <a href="#type-location">location()</a></tt><br></p>
+<p><tt>get_default_definition_type_location() -&gt; <a href="#type-ast_location">ast_location()</a></tt><br></p>
 <p> </p>
-</div><p>Returns the conventional location at which new types may be defined, as
- an indirect location.
+</div><p>Returns the conventional AST location at which new types may be defined,
+ as an indirect location.
 </p>
 
 <h3 class="function"><a name="get_default_definition_type_location-1">get_default_definition_type_location/1</a></h3>
 <div class="spec">
-<p><tt>get_default_definition_type_location(MarkerTable::<a href="#type-section_marker_table">section_marker_table()</a>) -&gt; <a href="#type-location">location()</a></tt><br></p>
+<p><tt>get_default_definition_type_location(MarkerTable::<a href="#type-section_marker_table">section_marker_table()</a>) -&gt; <a href="#type-ast_location">ast_location()</a></tt><br></p>
 <p> </p>
-</div><p>Returns the conventional location at which new types may be defined, as
- an immediate location.
+</div><p>Returns the conventional AST location at which new types may be defined,
+ as an immediate location.
 </p>
 
 <h3 class="function"><a name="get_default_export_function_location-0">get_default_export_function_location/0</a></h3>
 <div class="spec">
-<p><tt>get_default_export_function_location() -&gt; <a href="#type-location">location()</a></tt><br></p>
+<p><tt>get_default_export_function_location() -&gt; <a href="#type-ast_location">ast_location()</a></tt><br></p>
 <p> </p>
-</div><p>Returns the conventional location at which new functions may be exported,
- as an indirect location.
+</div><p>Returns the conventional AST location at which new functions may be
+ exported, as an indirect location.
 </p>
 
 <h3 class="function"><a name="get_default_export_function_location-1">get_default_export_function_location/1</a></h3>
 <div class="spec">
-<p><tt>get_default_export_function_location(MarkerTable::<a href="#type-section_marker_table">section_marker_table()</a>) -&gt; <a href="#type-location">location()</a></tt><br></p>
+<p><tt>get_default_export_function_location(MarkerTable::<a href="#type-section_marker_table">section_marker_table()</a>) -&gt; <a href="#type-ast_location">ast_location()</a></tt><br></p>
 <p> </p>
-</div><p>Returns the conventional location at which new functions may be exported,
- as an immediate location.
+</div><p>Returns the conventional AST location at which new functions may be
+ exported, as an immediate location.
 </p>
 
 <h3 class="function"><a name="get_default_export_type_location-0">get_default_export_type_location/0</a></h3>
 <div class="spec">
-<p><tt>get_default_export_type_location() -&gt; <a href="#type-location">location()</a></tt><br></p>
+<p><tt>get_default_export_type_location() -&gt; <a href="#type-ast_location">ast_location()</a></tt><br></p>
 <p> </p>
-</div><p>Returns the conventional location at which new types may be exported, as
- an indirect location.
+</div><p>Returns the conventional AST location at which new types may be exported,
+ as an indirect location.
 </p>
 
 <h3 class="function"><a name="get_default_export_type_location-1">get_default_export_type_location/1</a></h3>
 <div class="spec">
-<p><tt>get_default_export_type_location(MarkerTable::<a href="#type-section_marker_table">section_marker_table()</a>) -&gt; <a href="#type-location">location()</a></tt><br></p>
+<p><tt>get_default_export_type_location(MarkerTable::<a href="#type-section_marker_table">section_marker_table()</a>) -&gt; <a href="#type-ast_location">ast_location()</a></tt><br></p>
 <p> </p>
-</div><p>Returns the conventional location at which new types may be exported, as
- an immediate location.
+</div><p>Returns the conventional AST location at which new types may be exported,
+ as an immediate location.
 </p>
 
 <h3 class="function"><a name="get_default_import_function_location-0">get_default_import_function_location/0</a></h3>
 <div class="spec">
-<p><tt>get_default_import_function_location() -&gt; <a href="#type-location">location()</a></tt><br></p>
+<p><tt>get_default_import_function_location() -&gt; <a href="#type-ast_location">ast_location()</a></tt><br></p>
 <p> </p>
-</div><p>Returns the conventional location at which functions may be imported, as
- an indirect location.
+</div><p>Returns the conventional AST location at which functions may be imported,
+ as an indirect location.
 </p>
 
 <h3 class="function"><a name="get_default_import_function_location-1">get_default_import_function_location/1</a></h3>
 <div class="spec">
-<p><tt>get_default_import_function_location(MarkerTable::<a href="#type-section_marker_table">section_marker_table()</a>) -&gt; <a href="#type-location">location()</a></tt><br></p>
+<p><tt>get_default_import_function_location(MarkerTable::<a href="#type-section_marker_table">section_marker_table()</a>) -&gt; <a href="#type-ast_location">ast_location()</a></tt><br></p>
 <p> </p>
-</div><p>Returns the conventional location at which functions may be imported, as
- an immediate location.
+</div><p>Returns the conventional AST location at which functions may be imported,
+ as an immediate location.
 </p>
 
 <h3 class="function"><a name="get_default_module_location-0">get_default_module_location/0</a></h3>
 <div class="spec">
-<p><tt>get_default_module_location() -&gt; <a href="#type-location">location()</a></tt><br></p>
+<p><tt>get_default_module_location() -&gt; <a href="#type-ast_location">ast_location()</a></tt><br></p>
 <p> </p>
-</div><p>Returns the conventional location designating where forms can be be added
- just after the declaration of the module name, as an indirect location.
+</div><p>Returns the conventional AST location designating where forms can be be
+ added just after the declaration of the module name, as an indirect location.
 </p>
 
 <h3 class="function"><a name="get_default_module_location-1">get_default_module_location/1</a></h3>
 <div class="spec">
-<p><tt>get_default_module_location(MarkerTable::<a href="#type-section_marker_table">section_marker_table()</a>) -&gt; <a href="#type-location">location()</a></tt><br></p>
+<p><tt>get_default_module_location(MarkerTable::<a href="#type-section_marker_table">section_marker_table()</a>) -&gt; <a href="#type-ast_location">ast_location()</a></tt><br></p>
 <p> </p>
-</div><p>Returns the conventional location designating where forms can be be added
- just after the declaration of the module name, as an immediate location.
+</div><p>Returns the conventional AST location designating where forms can be be
+ added just after the declaration of the module name, as an immediate location.
 </p>
 
 <h3 class="function"><a name="includes_to_string-3">includes_to_string/3</a></h3>
@@ -623,9 +630,9 @@ and using specified indentation level.</p>
  specified through the command-line.
 </p>
 
-<h3 class="function"><a name="last_file_location_to_string-1">last_file_location_to_string/1</a></h3>
+<h3 class="function"><a name="last_file_loc_to_string-1">last_file_loc_to_string/1</a></h3>
 <div class="spec">
-<p><tt>last_file_location_to_string(LastLine::<a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(<a href="#type-located_form">located_form()</a>)) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p><tt>last_file_loc_to_string(LastFileLoc::<a href="#type-maybe">maybe</a>(<a href="#type-located_form">located_form()</a>)) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
 </div><p>Returns a textual representation of a module last line / line count.</p>
 
@@ -640,7 +647,7 @@ and using specified indentation level.</p>
 
 <h3 class="function"><a name="location_to_string-1">location_to_string/1</a></h3>
 <div class="spec">
-<p><tt>location_to_string(Location::<a href="#type-location">location()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p><tt>location_to_string(Location::<a href="#type-ast_location">ast_location()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
 </div><p>Returns a textual representation of the specified location.</p>
 

@@ -26,7 +26,7 @@
 
 
 <h3 class="typedecl"><a name="type-ast_pattern_field">ast_pattern_field()</a></h3>
-<p><tt>ast_pattern_field() = {record_field, <a href="#type-line">line()</a>, <a href="#type-ast_field_id">ast_field_id()</a> | {var, <a href="#type-line">line()</a>, '_'}, <a href="ast_pattern.html#type-ast_pattern">ast_pattern:ast_pattern()</a>}</tt></p>
+<p><tt>ast_pattern_field() = {record_field, <a href="#type-file_loc">file_loc()</a>, <a href="#type-ast_field_id">ast_field_id()</a> | {var, <a href="#type-file_loc">file_loc()</a>, '_'}, <a href="ast_pattern.html#type-ast_pattern">ast_pattern:ast_pattern()</a>}</tt></p>
 <p> Typically used in ast_pattern.</p>
 
 <h3 class="typedecl"><a name="type-ast_record_field_definition">ast_record_field_definition()</a></h3>
@@ -46,7 +46,7 @@
 
 
 <h3 class="typedecl"><a name="type-ast_typed_record_field_definition">ast_typed_record_field_definition()</a></h3>
-<p><tt>ast_typed_record_field_definition(ValueType) = {typed_record_field, <a href="#type-line">line()</a>, <a href="#type-ast_untyped_record_field_definition">ast_untyped_record_field_definition</a>(ValueType), <a href="#type-ast_type">ast_type()</a>}</tt></p>
+<p><tt>ast_typed_record_field_definition(ValueType) = {typed_record_field, <a href="#type-file_loc">file_loc()</a>, <a href="#type-ast_untyped_record_field_definition">ast_untyped_record_field_definition</a>(ValueType), <a href="#type-ast_type">ast_type()</a>}</tt></p>
 
 
 <h3 class="typedecl"><a name="type-ast_untyped_record_field_definition">ast_untyped_record_field_definition()</a></h3>
@@ -54,14 +54,14 @@
 
 
 <h3 class="typedecl"><a name="type-ast_untyped_record_field_definition">ast_untyped_record_field_definition()</a></h3>
-<p><tt>ast_untyped_record_field_definition(ValueType) = {record_field, <a href="#type-line">line()</a>, <a href="#type-ast_field_id">ast_field_id()</a>, ValueType}</tt></p>
+<p><tt>ast_untyped_record_field_definition(ValueType) = {record_field, <a href="#type-file_loc">file_loc()</a>, <a href="#type-ast_field_id">ast_field_id()</a>, ValueType}</tt></p>
 <p><p> AST definition for a field of a record, when creating it.</p>
 
- {record_field,LINE,Rep(Field_1),Rep(ValueType)}
+ Precisely: {record_field, FILE_LOC, Rep(Field_1), Rep(ValueType)}
 </p>
 
 <h3 class="typedecl"><a name="type-field_definition">field_definition()</a></h3>
-<p><tt>field_definition() = {<a href="#type-maybe_ast_type">maybe_ast_type()</a>, <a href="#type-maybe_ast_immediate_value">maybe_ast_immediate_value()</a>, <a href="#type-line">line()</a>, <a href="#type-line">line()</a>}</tt></p>
+<p><tt>field_definition() = {<a href="#type-maybe_ast_type">maybe_ast_type()</a>, <a href="#type-maybe_ast_immediate_value">maybe_ast_immediate_value()</a>, <a href="#type-file_loc">file_loc()</a>, <a href="#type-file_loc">file_loc()</a>}</tt></p>
 <p> Defines the field of a type of record (type and default value, if specified;
  lines are also stored so that the full, actual form can be recreated - far
  clearer to interpret afterwards).</p>
@@ -78,8 +78,8 @@
 <p><tt>field_pair() = {<a href="#type-field_name">field_name()</a>, <a href="#type-field_definition">field_definition()</a>}</tt></p>
 
 
-<h3 class="typedecl"><a name="type-line">line()</a></h3>
-<p><tt>line() = <a href="ast_base.html#type-line">ast_base:line()</a></tt></p>
+<h3 class="typedecl"><a name="type-file_loc">file_loc()</a></h3>
+<p><tt>file_loc() = <a href="ast_base.html#type-file_loc">ast_base:file_loc()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-located_form">located_form()</a></h3>
@@ -117,7 +117,7 @@
 <tr><td valign="top"><a href="#transform_record_field_definition-2">transform_record_field_definition/2</a></td><td>Transforms specified record field definition.</td></tr>
 <tr><td valign="top"><a href="#transform_record_field_definitions-2">transform_record_field_definitions/2</a></td><td>Transforms specified record fields, at creation, applying to each record 
 field the specified function to perform the relevant transformations (that 
-depends on the context; ex: if being in a guard, in an expression, etc.).</td></tr>
+depends on the context; ex: if being in a guard, in an expression).</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
@@ -142,7 +142,7 @@ depends on the context; ex: if being in a guard, in an expression, etc.).</td></
 <p> </p>
 </div><p><p>Transforms specified record field definition.</p>
 
- Ex: {record_field,LINE,Rep(Field_k),Rep(Gt_k)}.
+ Ex: {record_field, FILE_LOC, Rep(Field_k), Rep(Gt_k)}.
 </p>
 
 <h3 class="function"><a name="transform_record_field_definitions-2">transform_record_field_definitions/2</a></h3>
@@ -151,7 +151,7 @@ depends on the context; ex: if being in a guard, in an expression, etc.).</td></
 <p> </p>
 </div><p><p>Transforms specified record fields, at creation, applying to each record 
 field the specified function to perform the relevant transformations (that 
-depends on the context; ex: if being in a guard, in an expression, etc.).</p>
+depends on the context; ex: if being in a guard, in an expression).</p>
 
  (counterpart of record_inits/1 in erl_id_trans)
 </p>

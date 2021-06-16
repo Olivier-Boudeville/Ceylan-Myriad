@@ -28,7 +28,7 @@
 
 
 <h3 class="typedecl"><a name="type-ast_map_association">ast_map_association()</a></h3>
-<p><tt>ast_map_association(KeyType, ValueType) = {<a href="#type-map_field_association_type">map_field_association_type()</a>, <a href="#type-line">line()</a>, KeyType, ValueType}</tt></p>
+<p><tt>ast_map_association(KeyType, ValueType) = {<a href="#type-map_field_association_type">map_field_association_type()</a>, <a href="#type-file_loc">file_loc()</a>, KeyType, ValueType}</tt></p>
 
 
 <h3 class="typedecl"><a name="type-ast_map_association">ast_map_association()</a></h3>
@@ -36,7 +36,7 @@
 
 
 <h3 class="typedecl"><a name="type-ast_map_creation_form">ast_map_creation_form()</a></h3>
-<p><tt>ast_map_creation_form(KeyType, ValueType) = {map, <a href="#type-line">line()</a>, [<a href="#type-ast_map_association">ast_map_association</a>(KeyType, ValueType)]}</tt></p>
+<p><tt>ast_map_creation_form(KeyType, ValueType) = {map, <a href="#type-file_loc">file_loc()</a>, [<a href="#type-ast_map_association">ast_map_association</a>(KeyType, ValueType)]}</tt></p>
 
 
 <h3 class="typedecl"><a name="type-ast_map_creation_form">ast_map_creation_form()</a></h3>
@@ -48,7 +48,7 @@
 <p> Possibly not relevant.</p>
 
 <h3 class="typedecl"><a name="type-ast_map_update_form">ast_map_update_form()</a></h3>
-<p><tt>ast_map_update_form(KeyType, ValueType) = {map, <a href="#type-line">line()</a>, <a href="#type-ast_map">ast_map</a>(KeyType, ValueType), [<a href="#type-ast_map_association">ast_map_association</a>(KeyType, ValueType)]}</tt></p>
+<p><tt>ast_map_update_form(KeyType, ValueType) = {map, <a href="#type-file_loc">file_loc()</a>, <a href="#type-ast_map">ast_map</a>(KeyType, ValueType), [<a href="#type-ast_map_association">ast_map_association</a>(KeyType, ValueType)]}</tt></p>
 
 
 <h3 class="typedecl"><a name="type-ast_map_update_form">ast_map_update_form()</a></h3>
@@ -59,8 +59,8 @@
 <p><tt>ast_transforms() = <a href="ast_transform.html#type-ast_transforms">ast_transform:ast_transforms()</a></tt></p>
 
 
-<h3 class="typedecl"><a name="type-line">line()</a></h3>
-<p><tt>line() = <a href="ast_base.html#type-line">ast_base:line()</a></tt></p>
+<h3 class="typedecl"><a name="type-file_loc">file_loc()</a></h3>
+<p><tt>file_loc() = <a href="ast_base.html#type-file_loc">ast_base:file_loc()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-map_field_association_type">map_field_association_type()</a></h3>
@@ -74,7 +74,7 @@ operation.</td></tr>
 <tr><td valign="top"><a href="#transform_map_associations-3">transform_map_associations/3</a></td><td>Transforms specified list of map associations involved in a map
  operation, applying to each association the specified function to perform the
  relevant transformations (that depends on the context; ex: if being in a
- guard, in an expression, etc.).</td></tr>
+ guard, in an expression).</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
@@ -85,11 +85,13 @@ operation.</td></tr>
 <p> </p>
 </div><p><p>Transforms specified map association involved in a map operation.</p>
 
- "An association A is one of the following:
-    If A is an association K =&gt; V, then
-       Rep(A) = {map_field_assoc,LINE,Rep(K),Rep(V)}.
+ <p>"An association A is one of the following:</p>
+
+    <p>If A is an association K =&gt; V, then       
+Rep(A) = {map_field_assoc, FILE_LOC, Rep(K), Rep(V)}.</p>
+
     If A is an association K := V, then
-       Rep(A) = {map_field_exact,LINE,Rep(K),Rep(V)}."
+       Rep(A) = {map_field_exact, FILE_LOC, Rep(K), Rep(V)}."
 </p>
 
 <h3 class="function"><a name="transform_map_associations-2">transform_map_associations/2</a></h3>
@@ -110,7 +112,7 @@ operation.</p>
 </div><p>Transforms specified list of map associations involved in a map
  operation, applying to each association the specified function to perform the
  relevant transformations (that depends on the context; ex: if being in a
- guard, in an expression, etc.).
+ guard, in an expression).
 </p>
 <hr>
 

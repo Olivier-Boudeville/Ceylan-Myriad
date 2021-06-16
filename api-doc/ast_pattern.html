@@ -22,7 +22,8 @@
 
 <h3 class="typedecl"><a name="type-ast_pattern">ast_pattern()</a></h3>
 <p><tt>ast_pattern() = <a href="ast_base.html#type-ast_element">ast_base:ast_element()</a></tt></p>
-<p><p> The description of a pattern in an AST, with line information.</p>
+<p><p> The description of a pattern in an AST, with in-file location 
+(line/column) information.</p>
 
  <p>Ex: {match,12,X,Y}.</p>
 
@@ -35,7 +36,8 @@
 
 <h3 class="typedecl"><a name="type-ast_pattern_sequence">ast_pattern_sequence()</a></h3>
 <p><tt>ast_pattern_sequence() = [<a href="#type-ast_pattern">ast_pattern()</a>]</tt></p>
-<p><p> The description of a sequence of patterns in an AST, with line information.</p>
+<p><p> The description of a sequence of patterns in an AST, with in-file location 
+information.</p>
 
  <p>A pattern sequence is simply an (ordered) list of patterns.</p>
 

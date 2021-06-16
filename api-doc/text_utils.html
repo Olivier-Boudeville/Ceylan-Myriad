@@ -51,8 +51,7 @@
 
 <h3 class="typedecl"><a name="type-float_option">float_option()</a></h3>
 <p><tt>float_option() = {decimals, 0..253} | {scientific, 0..249} | compact</tt></p>
-<p> See <a href="https://erlang.org/doc/man/erlang.html#float_to_list-2" target="_top"><tt>https://erlang.org/doc/man/erlang.html#float_to_list-2</tt></a> for more
- information.</p>
+
 
 <h3 class="typedecl"><a name="type-format_string">format_string()</a></h3>
 <p><tt>format_string() = <a href="#type-ustring">ustring()</a></tt></p>
@@ -1345,7 +1344,7 @@ string or atom) / value pairs, with bullets, after having been sorted.</p>
 
 <h3 class="function"><a name="record_to_string-1">record_to_string/1</a></h3>
 <div class="spec">
-<p><tt>record_to_string(Record::term()) -&gt; none()</tt><br></p>
+<p><tt>record_to_string(Record::term()) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
 </div><p><p>Returns a string describing the specified record.</p>
 

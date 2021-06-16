@@ -21,12 +21,13 @@
 
 <h3 class="typedecl"><a name="type-ast_expression">ast_expression()</a></h3>
 <p><tt>ast_expression() = <a href="ast_base.html#type-ast_element">ast_base:ast_element()</a></tt></p>
-<p><p> The description of an expression in an AST, with line information.</p>
+<p><p> The description of an expression in an AST, with in-file location information.</p>
 
- <p>Ex: '{integer,97,2}' or '{match,117, {var,117,'A'}, {atom,117,foobar}}', etc.</p>
+ <p>Ex: '{integer, {97,1}, 2}' or '{match, 117, {var,117,'A'}, {atom, 117, 
+foobar}}', etc.</p>
 
- Note: an expression is different from a pattern: even if they share at least
- some types of forms, they are to be interpreted differently (ex: their
+ Note that an expression is different from a pattern: even if they share at
+ least some types of forms, they are to be interpreted differently (ex: their
  sub-elements are of the same kind as they are, and at least some rules
  differ).</p>
 

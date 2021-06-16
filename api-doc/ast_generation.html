@@ -29,7 +29,8 @@
 
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#atoms_to_form-1">atoms_to_form/1</a></td><td>Returns the form element corresponding to the specified list of atoms.</td></tr>
-<tr><td valign="top"><a href="#enumerated_variables_to_form-1">enumerated_variables_to_form/1</a></td><td>Returns the form element corresponding a list of variables.</td></tr>
+<tr><td valign="top"><a href="#enumerated_variables_to_form-1">enumerated_variables_to_form/1</a></td><td>Returns the form element corresponding to the list of variables 
+corresponding to the specified number of such variables.</td></tr>
 <tr><td valign="top"><a href="#form_to_atoms-1">form_to_atoms/1</a></td><td>Returns the list of atoms corresponding to the specified form element.</td></tr>
 <tr><td valign="top"><a href="#form_to_list-1">form_to_list/1</a></td><td>Transforms specified AST list into the corresponding plain list.</td></tr>
 <tr><td valign="top"><a href="#get_header_params-1">get_header_params/1</a></td><td>Returns, as form elements, conventional call parameter names, as form 
@@ -47,18 +48,20 @@ elements already) into the AST version of a list.</td></tr>
 <p> </p>
 </div><p><p>Returns the form element corresponding to the specified list of atoms.</p>
 
- Ex: {cons,Line,{atom,Line,a}, {cons,Line,{atom,Line,b}, {nil,Line} }} =
-         atoms_to_form(['a', 'b']).
+ Ex: {cons, FileLoc, {atom,FileLoc,a}, {cons, FileLoc, {atom,FileLoc,b}, {nil,
+ FileLoc} }} = atoms_to_form(['a', 'b']).
 </p>
 
 <h3 class="function"><a name="enumerated_variables_to_form-1">enumerated_variables_to_form/1</a></h3>
 <div class="spec">
 <p><tt>enumerated_variables_to_form(Count::<a href="#type-count">count()</a>) -&gt; <a href="#type-form_element">form_element()</a></tt><br></p>
 <p> </p>
-</div><p><p>Returns the form element corresponding a list of variables.</p>
+</div><p><p>Returns the form element corresponding to the list of variables 
+corresponding to the specified number of such variables.</p>
 
- <p>Ex: {cons, Line, {var,Line,'A'}, { cons,Line,{var,Line,'B'}, {nil,Line}}} =         
-enumerated_variables_to_form(2).</p>
+ <p>Ex: {cons, FileLoc, {var,FileLoc,'Myriad_Param_1'}, { cons, FileLoc, 
+{var,FileLoc,'Myriad_Param_2'}, {nil,FileLoc}}} = 
+enumerated_variables_to_form( 2 ).</p>
 
  See also: get_header_params/1.
 </p>
@@ -69,8 +72,8 @@ enumerated_variables_to_form(2).</p>
 <p> </p>
 </div><p><p>Returns the list of atoms corresponding to the specified form element.</p>
 
- Ex: ['a', 'b'] = atoms_to_form( {cons,Line,{atom,Line,a},
- {cons,Line,{atom,Line,b}, {nil,Line} } }).
+ Ex: ['a', 'b'] = atoms_to_form( {cons, FileLoc, {atom,FileLoc,a}, {cons,
+ FileLoc, {atom,FileLoc,b}, {nil,FileLoc}}}).
 </p>
 
 <h3 class="function"><a name="form_to_list-1">form_to_list/1</a></h3>
@@ -79,8 +82,8 @@ enumerated_variables_to_form(2).</p>
 <p> </p>
 </div><p><p>Transforms specified AST list into the corresponding plain list.</p>
 
- <p>Ex: form_to_list( {cons,Line,{atom,Line,a}, {cons,Line,{atom,Line,b}, 
-{nil,Line} } }) = [{atom,Line,a}, {atom,Line,b}].</p>
+ <p>Ex: form_to_list( {cons, FileLoc, {atom,FileLoc,a}, {cons, FileLoc, 
+{atom,FileLoc,b}, {nil,FileLoc} }}) = [{atom,FileLoc,a}, {atom,FileLoc,b}].</p>
 
  See list_to_form/1 for the reciprocal function.
 </p>
@@ -95,7 +98,8 @@ elements, corresponding to a function of specified arity.</p>
  <p>This is typically useful when generating a function form, to define its 
 header, like in 'f(A,B)-&gt;...'.</p>
 
- <p>Ex: [{var,Line,'A'}, {var,Line,'B'}] = get_header_params(2).</p>
+ <p>Ex: [{var,FileLoc,'Myriad_Param_1'}, {var,FileLoc,'Myriad_Param_2'}] = 
+get_header_params( 2 ).</p>
 
  See also: enumerated_variables_to_form/1.
 </p>
@@ -116,8 +120,8 @@ header, like in 'f(A,B)-&gt;...'.</p>
 </div><p><p>Transforms specified list (whose elements are typically themselves form 
 elements already) into the AST version of a list.</p>
 
- <p>Ex: list_to_form( [{atom,Line,a}, {atom,Line,b}]) = 
-{cons,Line,{atom,Line,a}, {cons,Line,{atom,Line,b}, {nil,Line} }}.</p>
+ <p>Ex: list_to_form( [{atom,FileLoc,a}, {atom,FileLoc,b}]) = {cons, FileLoc, 
+{atom,FileLoc,a}, {cons, FileLoc, {atom,FileLoc,b}, {nil,FileLoc}}}.</p>
 
  See form_to_list/1 for the reciprocal function.
 </p>
