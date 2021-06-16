@@ -110,7 +110,7 @@
 
 		  find_substring_index/2, find_substring_index/3,
 
-		  substitute/3, filter/2, split_after_prefix/2,
+		  substitute/3, filter/2, split_after_prefix/2, split_before_suffix/2,
 		  update_with_keywords/2,
 
 		  list_whitespaces/0,
@@ -2971,6 +2971,27 @@ split_after_prefix( _Prefix=[ C | T ], _String=[ C | StringT ] ) ->
 
 split_after_prefix( _Prefix, _String ) ->
 	no_prefix.
+
+
+
+% @doc Splits the specified string before specified suffix and returns the
+% leading part, otherwise returns that the suffix was not found.
+%
+% Ex: split_before_suffix("baz.", "Foobar is baz.") returns "Foobar is ";
+% split_before_suffix("ABC", "Foobar is baz.") returns 'no_suffix'.
+%
+-spec split_before_suffix( ustring(), ustring() ) -> ustring() | 'no_suffix'.
+split_before_suffix( Suffix, String ) ->
+	case split_after_prefix( lists:reverse( Suffix ),
+							 lists:reverse( String ) ) of
+
+		no_prefix ->
+			no_suffix;
+
+		RevTrailing ->
+			lists:reverse( RevTrailing )
+
+	end.
 
 
 
