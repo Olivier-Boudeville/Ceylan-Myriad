@@ -83,7 +83,7 @@ all: all-pre-hook all-parse-transforms rebar3-make-include-links
 # (thus use the rebar3-real-clean target instead, if wanting to remove
 #  _build-like directories)
 #
-clean: clean-layer-ebin
+clean: clean-layer-ebin clean-api-doc
 	-@if [ -d doc ]; then cd doc && $(MAKE) -s clean; fi
 
 else
@@ -876,7 +876,7 @@ overview.edoc: doc/overview.edoc.template
 clean-api-doc:
 	@echo "  Cleaning generated API documentation"
 	@/bin/rm -rf "$(API_DOC_ROOT)" 2>/dev/null
-	@/bin/rm -f overview.edoc 2>/dev/null
+	@/bin/rm -f $(LAYER_TOP)/overview.edoc 2>/dev/null
 
 
 clean-api-alt-doc:

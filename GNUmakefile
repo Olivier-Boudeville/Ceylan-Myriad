@@ -119,7 +119,6 @@ clean: clean-local
 
 clean-local:
 	-@/bin/rm -rf .rebar3
-	@/bin/rm -f overview.edoc
 
 
 stats:
