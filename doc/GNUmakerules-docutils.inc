@@ -176,7 +176,7 @@ PDF_VIEWER := $$(which evince)
 #
 %.rst: %.rst.template
 	@echo "  Generating $@ from $<"
-	@cat $< | sed "s|PROJECT_VERSION|$(PROJECT_VERSION)|g" | sed "s|GENERATION_DATE|$$(date '+%A, %B %-e, %Y')|g" > $@
+	@cat $< | sed "s|PROJECT_VERSION_TAG|$(PROJECT_VERSION)|g" | sed "s|GENERATION_DATE_TAG|$$(date '+%A, %B %-e, %Y')|g" | sed "s|GENERATION_YEAR_TAG|$$(date '+%Y')|g" > $@
 
 
 # To trigger the automatic rendering of a created PDF, add 'VIEW_PDF='
