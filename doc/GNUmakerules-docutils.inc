@@ -7,13 +7,17 @@
  create-doc create-html-doc create-pdf-doc full-html full-pdf regenerate-doc   \
  local-doc local-html local-pdf                                                \
  make-doc-repository create-local-referential view-doc to-print check-dot      \
- info-doc-local info-doc-tools                                                 \
+ info-doc info-doc-local info-doc-tools                                        \
  clean clean-doc-repository clean-generated clean-dot clean-doc-logs           \
  clean-gnuplot clean-png clean-rst
 
 
 # Content typically to be deployed to webservers:
-WEB_CONTENT = *.html *.css *.png *.pdf api-doc
+#
+# /bin/ls is used so that any lacking element in a layer (ex: no api-doc
+# generated) does not trigger an error.
+#
+WEB_CONTENT = $$(/bin/ls -d *.html *.css *.png *.pdf api-doc 2>/dev/null)
 
 
 # Generic rules.
@@ -227,7 +231,7 @@ clean-links:
 	-@/bin/rm -f index.html
 
 
-info: info-doc-local info-doc-tools
+info-doc: info-doc-local info-doc-tools
 
 
 info-doc-local:
@@ -235,6 +239,7 @@ info-doc-local:
 	@echo "OVERALL_DOCUMENT_HTML_TARGET = $(OVERALL_DOCUMENT_HTML_TARGET)"
 	@echo "OVERALL_DOCUMENT_PDF_TARGET = $(OVERALL_DOCUMENT_PDF_TARGET)"
 	@echo "PRINT_SERVER = $(PRINT_SERVER)"
+	@echo "WEB_CONTENT = $(WEB_CONTENT)"
 
 
 info-doc-tools:
