@@ -368,6 +368,7 @@ clean-doc-repository:
 clean-generated:
 	@#echo "     Cleaning generated files"
 	-@/bin/rm -f $(RST_GENERATED_FILES)
+	-@for f in $$(/bin/ls *.template 2>/dev/null); do /bin/rm -f $$(echo $$f | sed 's|\.template$$||1'); done
 
 
 
