@@ -17,8 +17,8 @@ usage="Usage: $(basename $0) PROJECT_NAME [VERBOSE_MODE:0|1]"
 project_name="$1"
 
 # Not verbose by default (1):
-verbose=1
-#verbose=0
+#verbose=1
+verbose=0
 
 if [ -n "$2" ]; then
 	verbose="$2"
@@ -35,6 +35,9 @@ fi
 
 echo "Fixing rebar pre-build for ${project_name}: building all first, from $(pwd)."
 
+
+[ $verbose -eq 1 ] || make -s info-context
+
 # 'tree' may not be available:
 [ $verbose -eq 1 ] || tree
 
@@ -42,10 +45,10 @@ echo "Fixing rebar pre-build for ${project_name}: building all first, from $(pwd
 make -s all 2>/dev/null
 
 
-# Do not fix anything by default:
-fix_src=1
-fix_hdr=1
-fix_beam=1
+# We used not fix anything by default, now we do the opposite:
+fix_src=0
+fix_hdr=0
+fix_beam=0
 
 
 # Element locations vary depending on whether this project is the main target to
@@ -89,6 +92,7 @@ else
 	# rebar3:
 	#
 	fix_src=0
+
 	fix_hdr=0
 
 fi
@@ -97,7 +101,7 @@ echo "Copying build-related elements in the '${target_base_dir}' target tree."
 
 
 # Transforming a potentially nested hierarchy (tree) into a flat directory:
-# (operation order allows proper timestamp ordering)
+# (operation order matters, as it allows proper timestamp ordering)
 #
 # Note that 'ebin' is bound to be an actual directory, yet (probably if dev_mode
 # has been set to true in rebar.config), 'include', 'priv' and 'src' may be

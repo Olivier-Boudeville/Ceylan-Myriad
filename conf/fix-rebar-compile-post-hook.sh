@@ -5,8 +5,8 @@ usage="Usage: $(basename $0) PROJECT_NAME [VERBOSE_MODE:0|1]"
 project_name="$1"
 
 # Not verbose by default (1):
-verbose=1
-#verbose=0
+#verbose=1
+verbose=0
 
 if [ -n "$2" ]; then
 	verbose="$2"
@@ -37,5 +37,22 @@ for f in ${to_rename}; do
 	/bin/mv -f $f ${corrected_f}
 
 done
+
+
+if [ $verbose -eq 0 ]; then
+
+	echo "Result from $(pwd):"
+
+	# To list paths:
+	for d in $(/bin/ls -d _build/default/lib/*); do
+
+		echo " - in $d: "
+		/bin/ls -l "$d"
+		echo
+
+	done
+
+fi
+
 
 echo "Rebar post-build fixed for ${project_name}."
