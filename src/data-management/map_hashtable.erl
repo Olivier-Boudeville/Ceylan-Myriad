@@ -447,11 +447,11 @@ has_entry( Key, MapHashtable ) ->
 
 
 
-% @doc Retrieves the value corresponding to specified (existing) key and returns
-% it directly.
+% @doc Retrieves the value corresponding to the specified (existing) key, and
+% returns it directly.
 %
-% The key/value pair is expected to exist already, otherwise an exception
-% ({bad_key, Key}) is triggered.
+% The key/value pair is expected to exist already in the table, otherwise an
+% exception ({bad_key, Key}) is raised.
 %
 -spec get_value( key(), map_hashtable() ) -> value().
 %get_value( Key,  #{ Key := Value } ) ->
@@ -475,8 +475,8 @@ get_value( Key, MapHashtable ) ->
 % @doc Returns the (ordered) list of values that correspond to the specified
 % (ordered) list of keys of this table.
 %
-% The key/value pairs are expected to exist already, otherwise an exception is
-% raised.
+% The key/value pairs are expected to exist already in the table, otherwise an
+% exception is raised.
 %
 % Ex: [Color, Age, Mass] = map_hashtable:get_values( [color, age, mass],
 %                                                    MyMapTable ] )
