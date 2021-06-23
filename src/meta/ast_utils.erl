@@ -867,20 +867,19 @@ raise_error( Message, SourceContext, OriginLayer ) ->
 		undefined ->
 			"Error";
 
-		{ Filename, FileLoc } ->
-			io_lib:format( "~ts:~ts: error", [ Filename,
-				file_loc_to_string( FileLoc ) ] );
-
 		Filename when is_binary( Filename ) ->
 			io_lib:format( "Error in ~ts", [ Filename ] );
 
 		{ Line, Column } when is_integer( Line ) andalso
 							  is_integer( Column ) ->
-			io_lib:format( "Error at line #~B, column ~B",
-						   [ Line, Column ] );
+			io_lib:format( "Error at line #~B, column ~B", [ Line, Column ] );
 
 		Line when is_integer( Line ) ->
 			io_lib:format( "Error at line #~B", [ Line ] );
+
+		{ Filename, FileLoc } ->
+			io_lib:format( "~ts:~ts: error",
+						   [ Filename, file_loc_to_string( FileLoc ) ] );
 
 		Other ->
 			io_lib:format( "Error in unexpected context ~p", [ Other ] )
