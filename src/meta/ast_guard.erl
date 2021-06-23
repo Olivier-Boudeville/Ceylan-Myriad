@@ -205,8 +205,25 @@ transform_guard_test(
 	%ast_utils:display_debug( "Intercepting guard test local call ~p...",
 	%						  [ GuardTest ] ),
 
-	{ atom, _FileLoc, FunctionName } =
-		ast_type:check_ast_atom( FunctionASTName, FileLoc ),
+	% Better error diagnosis than:
+	%    ast_type:check_ast_atom( FunctionASTName, FileLoc )
+
+	FunctionName = case FunctionASTName of
+
+		{ atom, _FileLoc, FunName } ->
+			FunName;
+
+		_Other ->
+			%ast_utils:raise_usage_error( "invalid guard: expecting an atom "
+			%   "designating one of the BIFs allowed in guards, but got "
+			%   "instead, in an AST form:~n  ~p",
+			%   [ Other ],
+			%   Transforms#ast_transforms.transformed_module_name, FileLoc )
+			ast_utils:raise_usage_error( "invalid guard: expecting one of the "
+				"BIFs allowed in guards, whereas term is not even a atom.",
+				[], Transforms#ast_transforms.transformed_module_name, FileLoc )
+
+	end,
 
 	% Here we check whether FunctionName designates an Erlang BIF that is
 	% allowed in guards:
