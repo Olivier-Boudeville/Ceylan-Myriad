@@ -869,6 +869,12 @@ MYRIAD_BEAM_DIRS := $(MYRIAD_BEAM)/apps/generate-password       \
 # system yet from a rebar3 context can nevertheless find the Myriad BEAMs they
 # rely on.
 #
+# Note however that, if relying on our build system after a rebar3-based build
+# was done (thus populating the layer's ebin), the BEAMs there will eclipse the
+# BEAMs directly in the source tree - whereas the latter ones may have been
+# updated since then. So use the 'clean-layer-ebin' target to wipe the former
+# one in ebin first, in order to avoid sticking to obsolete BEAMs.
+#
 BEAM_DIRS += $(MYRIAD_BEAM_DIRS) $(MYRIAD_TOP)/.. $(MYRIAD_TOP)/ebin
 
 
