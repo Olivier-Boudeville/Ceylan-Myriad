@@ -139,7 +139,7 @@
 -type string_json() :: ustring().
 % A (plain) string containing JSON content.
 
--type bin_json() :: text_utils:bin_string().
+-type bin_json() :: bin_string().
 % A binary string containing JSON content.
 
 
@@ -147,9 +147,22 @@
 % JSON document.
 
 
--type decoded_json() :: term().
-% A term obtained from a decoded JSON document (often a map whose keys are
-% binaries).
+-type decode_json_key() :: bin_string().
+% A key in a decoded JSON table.
+
+-type decode_json_value() :: integer() | float() | binary() | atom()
+						   | decoded_json().
+% A value in a decoded JSON table.
+
+
+-type decode_json_pair() :: { decode_json_key(), decode_json_value() }.
+
+
+-type decoded_json() :: map_hashtable:map_hashtable( decode_json_key(),
+													 decode_json_value() ).
+% A term obtained from a decoded JSON document, at least often a map whose keys
+% are binary strings and whose values are decoded_json() or basic types such as
+% integers, floats, strings, etc.).
 
 
 -type json_encoding_option() :: any().
@@ -162,9 +175,12 @@
 % transparently with all supported backends).
 
 
+
 -export_type([ parser_backend_name/0, parser_state/0,
 
 			   string_json/0, bin_json/0, json/0,
+
+			   decode_json_key/0, decode_json_value/0, decode_json_pair/0,
 			   decoded_json/0,
 
 			   json_encoding_option/0, json_decoding_option/0 ]).
@@ -173,6 +189,7 @@
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
+-type bin_string() :: text_utils:bin_string().
 -type any_file_path() :: file_utils:any_file_path().
 -type directory_path() :: file_utils:directory_path().
 
