@@ -1598,6 +1598,10 @@ check_ast_atom( ASTAtom={ atom, _FileLoc, Atom }, _Context )
 	ASTAtom;
 
 check_ast_atom( Other, Context ) ->
+
+	%trace_utils:debug_fmt( "AST non-atom: ~p (context: ~p)",
+	%					   [ Other, Context ] ),
+
 	ast_utils:raise_error( [ invalid_ast_atom, Other ], Context ).
 
 
