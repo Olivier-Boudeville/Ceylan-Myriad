@@ -144,25 +144,25 @@
 
 
 -type json() :: bin_json() | string_json().
-% JSON document.
+% A JSON document.
 
 
--type decode_json_key() :: bin_string().
+-type decoded_json_key() :: bin_string().
 % A key in a decoded JSON table.
 
--type decode_json_value() :: integer() | float() | binary() | atom()
-						   | decoded_json().
+-type decoded_json_value() :: decoded_json().
 % A value in a decoded JSON table.
 
 
--type decode_json_pair() :: { decode_json_key(), decode_json_value() }.
+-type decoded_json_pair() :: { decoded_json_key(), decoded_json_value() }.
 
 
--type decoded_json() :: map_hashtable:map_hashtable( decode_json_key(),
-													 decode_json_value() ).
-% A term obtained from a decoded JSON document, at least often a map whose keys
-% are binary strings and whose values are decoded_json() or basic types such as
-% integers, floats, strings, etc.).
+-type decoded_json() :: map_hashtable:map_hashtable( decoded_json_key(),
+													 decoded_json_value() )
+						| integer() | float() | binary() | atom() | term().
+% An (Erlang) term obtained from a decoded JSON document, at least often a map
+% whose keys are binary strings and whose values are decoded_json() or basic
+% types such as integers, floats, strings, etc.).
 
 
 -type json_encoding_option() :: any().
@@ -180,7 +180,7 @@
 
 			   string_json/0, bin_json/0, json/0,
 
-			   decode_json_key/0, decode_json_value/0, decode_json_pair/0,
+			   decoded_json_key/0, decoded_json_value/0, decoded_json_pair/0,
 			   decoded_json/0,
 
 			   json_encoding_option/0, json_decoding_option/0 ]).
@@ -431,14 +431,14 @@ check_parser_operational( ParserState={ jiffy, _InternalBackendState } ) ->
 % Encoding section.
 
 
-% @doc Converts (encodes) specified Erlang term into a JSON counterpart element,
-% using the looked-up default JSON backend for that.
+% @doc Converts (encodes) specified JSON-compliant Erlang term into a JSON
+% counterpart element, using the looked-up default JSON backend for that.
 %
 % Ex: `json_utils:to_json( #{ <<"protected">> => Protected,
-%							 <<"payload">> => Payload,
-%							 <<"signature">> => EncSigned } )'.
+%							  <<"payload">> => Payload,
+%							  <<"signature">> => EncSigned } )'.
 %
--spec to_json( term() ) -> json().
+-spec to_json( decoded_json() ) -> json().
 to_json( Term ) ->
 
 	% The call that would be spared if using an explicit parser state:
@@ -451,11 +451,12 @@ to_json( Term ) ->
 % @doc Converts (encodes) specified Erlang term into a JSON counterpart element,
 % using directly the JSON backend designated by the specified parser state.
 %
-% Ex: `json_utils:to_json( #{ <<"protected">> => Protected,
-%							 <<"payload">> => Payload,
-%							 <<"signature">> => EncSigned }, _ParserName=jsx )'.
+% Ex: `json_utils:to_json( #{
+%     <<"protected">> => Protected,
+%     <<"payload">> => Payload,
+%     <<"signature">> => EncSigned }, _ParserName=jsx )'.
 %
--spec to_json( term(), parser_state() ) -> json().
+-spec to_json( decoded_json(), parser_state() ) -> json().
 to_json( Term, _ParserState={ jsx, _UndefinedInternalBackendState } ) ->
 
 	Opts = get_base_json_encoding_options( jsx ),
@@ -504,13 +505,13 @@ get_base_json_encoding_options( _BackendName=jiffy ) ->
 
 
 % @doc Converts (decodes) specified JSON element into an Erlang term
-% counterpart, recursively so that it returns a table containing tables,
+% counterpart, recursively so that it cab return a table containing tables,
 % themselves containing potentially tables, and so on.
 %
 % Note that if in a given scope a key is present more than once, only one of its
 % values will be retained (actually the lastly defined one).
 %
--spec from_json( json() ) -> term().
+-spec from_json( json() ) -> decoded_json().
 from_json( Json ) ->
 
 	ParserState = get_parser_backend_state(),
@@ -526,7 +527,7 @@ from_json( Json ) ->
 % Note that if in a given scope a key is present more than once, only one of its
 % values will be retained (actually the lastly defined one).
 %
--spec from_json( json(), parser_state() ) -> term().
+-spec from_json( json(), parser_state() ) -> decoded_json().
 from_json( Json, _ParserState={ jsx, _UndefinedInternalBackendState } ) ->
 
 	BinJson = case is_binary( Json ) of
@@ -582,13 +583,14 @@ get_base_json_decoding_options( _BackendName=jiffy ) ->
 
 
 % @doc Converts (decodes) specified JSON file recursively into an Erlang term
-% counterpart, so that it returns a table containing tables, themselves
-% containing potentially tables, and so on, with specified parser state.
+% counterpart, so that it returns typically a table containing tables,
+% themselves containing potentially tables, and so on, with specified parser
+% state.
 %
 % Note that if in a given scope a key is present more than once, only one of its
 % values will be retained (actually the lastly defined one).
 %
--spec from_json_file( any_file_path() ) -> term().
+-spec from_json_file( any_file_path() ) -> decoded_json().
 from_json_file( JsonFilePath ) ->
 	BinJson = file_utils:read_whole( JsonFilePath ),
 	from_json( BinJson ).
@@ -596,13 +598,14 @@ from_json_file( JsonFilePath ) ->
 
 
 % @doc Converts (decodes) specified JSON file recursively into an Erlang term
-% counterpart, so that it returns a table containing tables, themselves
-% containing potentially tables, and so on, with specified parser state.
+% counterpart, so that it returns typically a table containing tables,
+% themselves containing potentially tables, and so on, with specified parser
+% state.
 %
 % Note that if in a given scope a key is present more than once, only one of its
 % values will be retained (actually the lastly defined one).
 %
--spec from_json_file( any_file_path(), parser_state() ) -> term().
+-spec from_json_file( any_file_path(), parser_state() ) -> decoded_json().
 from_json_file( JsonFilePath, ParserState ) ->
 	BinJson = file_utils:read_whole( JsonFilePath ),
 	from_json( BinJson, ParserState ).
