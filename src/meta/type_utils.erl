@@ -492,7 +492,9 @@
 
 
 % Checking:
--export([ check_atom/1, check_boolean/1, check_pid/1, check_list/1,
+-export([ check_atom/1, check_boolean/1, check_pid/1,
+		  check_integer/1, check_float/1,
+		  check_list/1,
 		  check_binary/1, check_binaries/1, check_tuple/1 ]).
 
 
@@ -1099,7 +1101,7 @@ are_types_identical( _FirstType, _SecondType ) ->
 
 
 
-% @doc Ensures that specified term is an integer, and returns it.
+% @doc Ensures that the specified term is an integer, and returns it.
 %
 % If it is a float, will return a truncated (integer) version of it.
 %
@@ -1115,7 +1117,7 @@ ensure_integer( N ) ->
 
 
 
-% @doc Ensures that specified term is a float, and returns it.
+% @doc Ensures that the specified term is a float, and returns it.
 %
 % If it is an integer, will return a floating-point version of it.
 %
@@ -1131,7 +1133,7 @@ ensure_float( N ) ->
 
 
 
-% @doc Ensures that specified term is a number, and returns it.
+% @doc Ensures that the specified term is a number, and returns it.
 -spec ensure_number( number() ) -> number().
 ensure_number( N ) when is_number( N ) ->
 	N;
@@ -1141,7 +1143,7 @@ ensure_number( N ) ->
 
 
 
-% @doc Ensures that specified term is a boolean, and returns it.
+% @doc Ensures that the specified term is a boolean, and returns it.
 -spec ensure_boolean( term() ) -> boolean().
 ensure_boolean( B ) when is_boolean( B ) ->
 	B;
@@ -1151,21 +1153,21 @@ ensure_boolean( B ) ->
 
 
 
-% @doc Ensures that specified term is a string, and returns it.
+% @doc Ensures that the specified term is a string, and returns it.
 -spec ensure_string( term() ) -> ustring().
 ensure_string( S ) ->
 	text_utils:ensure_string( S ).
 
 
 
-% @doc Ensures that specified term is a binary string, and returns it.
+% @doc Ensures that the specified term is a binary string, and returns it.
 -spec ensure_binary( term() ) -> ustring().
 ensure_binary( S ) ->
 	text_utils:ensure_binary( S ).
 
 
 
-% @doc Checks that specified term is an atom indeed, and returns it.
+% @doc Checks that the specified term is an atom indeed, and returns it.
 -spec check_atom( term() ) -> atom().
 check_atom( Atom ) when is_atom( Atom ) ->
 	Atom;
@@ -1175,7 +1177,7 @@ check_atom( Other ) ->
 
 
 
-% @doc Checks that specified term is a boolean indeed, and returns it.
+% @doc Checks that the specified term is a boolean indeed, and returns it.
 -spec check_boolean( term() ) -> atom().
 check_boolean( true ) ->
 	true;
@@ -1188,7 +1190,7 @@ check_boolean( Other ) ->
 
 
 
-% @doc Checks that specified term is a PID indeed, and returns it.
+% @doc Checks that the specified term is a PID indeed, and returns it.
 -spec check_pid( term() ) -> pid().
 check_pid( Pid ) when is_pid( Pid ) ->
 	Pid;
@@ -1197,8 +1199,27 @@ check_pid( Other ) ->
 	throw( { not_pid, Other } ).
 
 
+% @doc Checks that the specified term is an integer indeed, and returns it.
+-spec check_integer( term() ) -> integer().
+check_integer( Int ) when is_integer( Int ) ->
+	Int;
 
-% @doc Checks that specified term is a list indeed, and returns it.
+check_integer( Other ) ->
+	throw( { not_integer, Other } ).
+
+
+
+% @doc Checks that the specified term is a float indeed, and returns it.
+-spec check_float( term() ) -> float().
+check_float( Float ) when is_float( Float ) ->
+	Float;
+
+check_float( Other ) ->
+	throw( { not_float, Other } ).
+
+
+
+% @doc Checks that the specified term is a list indeed, and returns it.
 -spec check_list( term() ) -> list().
 check_list( List ) when is_list( List ) ->
 	List;
@@ -1208,7 +1229,7 @@ check_list( Other ) ->
 
 
 
-% @doc Checks that specified term is a binary indeed, and returns it.
+% @doc Checks that the specified term is a binary indeed, and returns it.
 -spec check_binary( term() ) -> binary().
 check_binary( Binary ) when is_binary( Binary ) ->
 	Binary;
@@ -1217,14 +1238,16 @@ check_binary( Other ) ->
 	throw( { not_binary, Other } ).
 
 
-% @doc Checks that specified term is a list of binaries indeed, and returns it.
+% @doc Checks that the specified term is a list of binaries indeed, and returns
+% it.
+%
 -spec check_binaries( term() ) -> [ binary() ].
 check_binaries( Binaries ) ->
 	[ check_binary( B ) || B <- Binaries ].
 
 
 
-% @doc Checks that specified term is a tuple indeed, and returns it.
+% @doc Checks that the specified term is a tuple indeed, and returns it.
 -spec check_tuple( term() ) -> tuple().
 check_tuple( Tuple ) when is_tuple( Tuple ) ->
 	Tuple;
