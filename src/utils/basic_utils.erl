@@ -175,8 +175,8 @@
 % An error with its diagnosis.
 
 
--type error_term() :: { 'error', error_reason() }.
-% A (tagged) error term.
+-type error_term() :: { 'error', error_reason() } | term().
+% A (possibly tagged) error term. Ex: 'badarg'.
 
 
 -type diagnosed_error_term() :: { 'error', diagnosed_error_reason() }.
@@ -320,6 +320,11 @@
 % The exception classes that can be raised.
 
 
+-type exception_term() :: term().
+% Exception term corresponding to a corresponding bound pattern, as in:
+%    catch ExceptionClass:ExceptionPattern:StackTrace ->
+
+
 % i.e. byte():
 -type status_code() :: 0..255.
 % The status code returned by a shell command.
@@ -333,7 +338,8 @@
 -export_type([ void/0, count/0, non_null_count/0, level/0,
 			   bit_mask/0, message/0, pid_or_port/0, atom_key/0,
 			   reason/0, exit_reason/0,
-			   error_reason/0, error_type/0, error_tuploid/0, error_message/0,
+			   error_reason/0, error_type/0, error_tuploid/0,
+			   error_message/0,
 			   diagnosed_error_reason/0, error_term/0, diagnosed_error_term/0,
 			   base_status/0, maybe/1, wildcardable/1,
 			   fallible/1, fallible/2,
@@ -346,7 +352,7 @@
 			   command_spec/0, layer_name/0, record_name/0, field_name/0,
 			   user_name/0, atom_user_name/0,
 			   comparison_result/0, execution_target/0, execution_context/0,
-			   exception_class/0, status_code/0,
+			   exception_class/0, exception_term/0, status_code/0,
 			   fixme/0 ]).
 
 
