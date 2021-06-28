@@ -23,20 +23,28 @@ fi
 
 # Removes the side effects in source tree of conf/fix-rebar-compile-pre-hook.sh.
 
+echo
 echo "Fixing rebar post-build for ${project_name}, from $(pwd)."
 
-to_rename=$(find src test -name '*.erl-hidden')
 
-# Applies only if needed:
+#do_name_back=0
+do_name_back=1
 
-[ $verbose -eq 1 ] || echo "Renaming back ${to_rename}"
+# Renames back hidden sources only if requested:
+if [ $do_name_back -eq 0 ]; then
 
-for f in ${to_rename}; do
+	to_rename=$(find src test -name '*.erl-hidden')
 
-	corrected_f=$(echo $f|sed 's|\.erl-hidden$|.erl|1')
-	/bin/mv -f $f ${corrected_f}
+	[ $verbose -eq 1 ] || echo "Renaming back ${to_rename}"
 
-done
+	for f in ${to_rename}; do
+
+		corrected_f="$(echo $f | sed 's|\.erl-hidden$|.erl|1')"
+		/bin/mv -f $f "${corrected_f}"
+
+	done
+
+fi
 
 
 if [ $verbose -eq 0 ]; then
