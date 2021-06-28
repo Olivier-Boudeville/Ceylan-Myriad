@@ -52,7 +52,8 @@
 		  interpret_stacktrace/2,
 		  interpret_shortened_stacktrace/1,
 		  display_stacktrace/0,
-		  interpret_undef_exception/3, stack_location_to_string/1 ]).
+		  interpret_error/2, interpret_undef_exception/3,
+		  stack_info_to_string/1 ]).
 
 
 
@@ -65,21 +66,31 @@
 -type code_path_position() :: 'first_position' | 'last_position'.
 
 
-%-type stack_location() :: [ { file, file_path() },
-%							 { line, meta_utils:line() } ].
-
--type stack_location() :: [ { atom(), any() } ].
+-type stack_info() :: map_hashtable:map_hashtable( atom(), term() )
+					  | list_table:list_table( atom(), term() ).
+% The last element of a stack item.
+%
+% Ex: [ { file, file_path() }, { line, meta_utils:line() } ].
 
 
 -type stack_item() :: { module_name(), function_name(), arity(),
-						stack_location() }.
+						stack_info() }.
 
 
 -type stack_trace() :: [ stack_item() ].
 
 
+
+-type error_map() :: map_hashtable:map_hashtable( count(), ustring() ).
+% Argument-level error information in a stacktrace, typicially associated to the
+% 'error_info' key in an error_info() term.
+%
+% Defined as #{pos_integer() => unicode:chardata()} by the erl_erts_errors
+% module.
+
+
 -export_type([ code_path/0, code_path_position/0,
-			   stack_location/0, stack_item/0, stack_trace/0 ]).
+			   stack_info/0, stack_item/0, stack_trace/0, error_map/0 ]).
 
 
 % The file extension of a BEAM file:
@@ -95,6 +106,8 @@
 -type module_name() :: basic_utils:module_name().
 -type function_name() :: basic_utils:function_name().
 -type count() :: basic_utils:count().
+-type error_reason() :: basic_utils:error_reason().
+-type error_term() :: basic_utils:error_term().
 
 -type ustring() :: text_utils:ustring().
 
@@ -703,10 +716,10 @@ is_beam_in_path( ModuleName ) when is_atom( ModuleName ) ->
 	% Includes normalisation:
 	VetPaths = list_utils:uniquify( [ file_utils:ensure_path_is_absolute(
 		file_utils:join( P, ModuleFilename ), _BasePath=CurDirPath )
-									  || P <- code:get_path() ] ),
+										|| P <- code:get_path() ] ),
 
-	ExistingFilePaths = [ P || P <- VetPaths,
-							   file_utils:is_existing_file_or_link( P ) ],
+	ExistingFilePaths =
+		[ P || P <- VetPaths, file_utils:is_existing_file_or_link( P ) ],
 
 	case ExistingFilePaths of
 
@@ -754,12 +767,12 @@ get_stacktrace( SkipLastElemCount ) ->
 
 		throw( generate_stacktrace )
 
-	catch throw:generate_stacktrace:StackTrace ->
+	catch throw:generate_stacktrace:Stacktrace ->
 
 		% To remove the initial code_utils:get_stacktrace/0, by design at the
 		% top of the stack:
 		%
-		list_utils:remove_first_elements( StackTrace, SkipLastElemCount+1 )
+		list_utils:remove_first_elements( Stacktrace, SkipLastElemCount+1 )
 
 	end.
 
@@ -770,28 +783,57 @@ get_stacktrace( SkipLastElemCount ) ->
 interpret_stacktrace() ->
 
 	% We do not want to include interpret_stacktrace/0 in the stack:
-	StackTrace = get_stacktrace( _SkipLastElemCount=1 ),
+	Stacktrace = get_stacktrace( _SkipLastElemCount=1 ),
 
-	interpret_stacktrace( StackTrace ).
+	interpret_stacktrace( Stacktrace ).
+
 
 
 % @doc Returns a "smart" textual representation of specified stacktrace.
 -spec interpret_stacktrace( stack_trace() ) -> ustring().
-interpret_stacktrace( StackTrace ) ->
-	interpret_stacktrace( StackTrace, _FullPathsWanted=false ).
+interpret_stacktrace( Stacktrace ) ->
+	interpret_stacktrace( Stacktrace, _ErrorTerm=undefined ).
 
 
-% @doc Returns a "smart" textual representation of specified stacktrace, listing
+
+
+% @doc Returns a "smart", complete textual description of the specified error
+% stacktrace, including any argument-level analysis of the failure, listing just
+% the filename of the corresponding source files (no full path wanted).
+%
+-spec interpret_stacktrace( stack_trace(), maybe( error_term() ) ) -> ustring().
+interpret_stacktrace( Stacktrace, MaybeErrorTerm ) ->
+	interpret_stacktrace( Stacktrace, MaybeErrorTerm, _FullPathsWanted=false ).
+
+
+
+% @doc Returns a "smart", complete textual description of the specified error
+% stacktrace, including any argument-level analysis of the failure, listing
 % either the full path of the corresponding source files, or just their
 % filename.
 %
--spec interpret_stacktrace( stack_trace(), boolean() ) -> ustring().
-interpret_stacktrace( StackTrace, FullPathsWanted ) ->
+-spec interpret_stacktrace( stack_trace(), maybe( error_term() ), boolean() ) ->
+									ustring().
+% At least one stack item expected:
+interpret_stacktrace( Stacktrace=[ FirstStackItem | OtherStackItems ],
+					  MaybeErrorTerm, FullPathsWanted ) ->
 
-	%io:format( "Interpreting stack trace:~n~p~n", [ StackTrace ] ),
+	% Use any error diagnosis regarding top-level stack item:
+	ErrorStr = interpret_stack_item( FirstStackItem, FullPathsWanted )
+		++ case MaybeErrorTerm of
 
-	StringItems = [ interpret_stack_item( I, FullPathsWanted )
-					|| I <- StackTrace ],
+			   undefined ->
+				   "";
+
+			   ErrorTerm ->
+				   interpret_error( ErrorTerm, Stacktrace )
+
+		   end,
+
+	OtherItemStrs = [ interpret_stack_item( I, FullPathsWanted )
+							|| I <- OtherStackItems ],
+
+	StringItems = [ ErrorStr | OtherItemStrs ],
 
 	text_utils:strings_to_enumerated_string( StringItems ).
 
@@ -810,44 +852,96 @@ interpret_shortened_stacktrace( SkipLastElemCount ) ->
 
 
 % Helper:
-interpret_stack_item( { Module, Function, Arity,
-						[ { file, FilePath }, { line, Line } ] },
-					  _FullPathsWanted=true ) when is_integer( Arity ) ->
-	text_utils:format( "~ts:~ts/~B   [defined in ~ts (line ~B)]",
-		[ Module, Function, Arity, file_utils:normalise_path( FilePath ),
-		  Line ] );
+interpret_stack_item( { Module, Function, Arity, StackInfo },
+					  FullPathsWanted ) when is_integer( Arity ) ->
+	text_utils:format( "~ts:~ts/~B~ts", [ Module, Function, Arity,
+				get_location_from( StackInfo, FullPathsWanted ) ] );
 
-interpret_stack_item( { Module, Function, Arity,
-						[ { file, FilePath }, { line, Line } ] },
-					  _FullPathsWanted=false ) when is_integer( Arity ) ->
-	text_utils:format( "~ts:~ts/~B   [defined in ~ts (line ~B)]",
-		[ Module, Function, Arity, filename:basename( FilePath ), Line ] );
-
-interpret_stack_item( { Module, Function, Args,
-						[ { file, FilePath }, { line, Line } ] },
-					  _FullPathsWanted=false ) when is_list( Args ) ->
-	text_utils:format( "~ts:~ts/~B   [defined in ~ts (line ~B)]",
-		[ Module, Function, length( Args ), filename:basename( FilePath ),
-		  Line ] );
-
-interpret_stack_item( { Module, Function, Arity, Location },
-					  _FullPathsWanted ) when is_integer( Arity ) ->
-	text_utils:format( "~ts:~ts/~B located in ~p",
-					   [ Module, Function, Arity, Location ] );
-
-interpret_stack_item( { Module, Function, Arguments, _Location=[] },
-					  _FullPathsWanted ) when is_list( Arguments ) ->
-	text_utils:format( "~ts:~ts/~B",
-					   [ Module, Function, length( Arguments ) ] );
-
-interpret_stack_item( { Module, Function, Arguments, Location },
-					  _FullPathsWanted ) when is_list( Arguments ) ->
-	text_utils:format( "~ts:~ts/~B located in ~p",
-					   [ Module, Function, length( Arguments ), Location ] );
+% Here we have not a raw arity, but the list of actual arguments (thus a lot
+% more informative):
+%
+interpret_stack_item( { Module, Function, Args, StackInfo }, FullPathsWanted )
+  when is_list( Args ) ->
+	text_utils:format( "~ts:~ts/~B called with following arguments:"
+					   "~n  ~p~ts",
+		[ Module, Function, length( Args ), Args,
+		  get_location_from( StackInfo, FullPathsWanted ) ] );
 
 % Never fail:
 interpret_stack_item( I, _FullPathsWanted ) ->
-	text_utils:format( "~p", [ I ] ).
+	text_utils:format( "~p (error: unexpected stack item)", [ I ] ).
+
+
+
+% @doc Returns a textual description of the location (if any) found from
+% specified error information.
+%
+-spec get_location_from( stack_info(), boolean() ) -> ustring().
+get_location_from( StackInfo, FullPathsWanted )
+  when is_map( StackInfo ) ->
+	get_location_from( map_hashtable:enumerate( StackInfo ), FullPathsWanted );
+
+get_location_from( StackInfo, FullPathsWanted ) ->
+
+	%trace_utils:format( "get_location_from: StackInfo is ~p", [ StackInfo ] ).
+
+	% Not wanted here (succeeds even if key not found):
+	NoErrInfo = list_table:remove_entry( error_info, StackInfo ),
+
+	{ MaybeFilePath, FileLessInfo } =
+		case list_table:extract_entry_with_defaults( file, undefined,
+													 NoErrInfo ) of
+
+			P={ undefined, _SInfo } ->
+				P;
+
+			{ SetFilePath, SInfo } ->
+				Path = case FullPathsWanted of
+
+					true ->
+						file_utils:normalise_path( SetFilePath );
+
+					false ->
+						filename:basename( SetFilePath )
+
+				end,
+				{ Path, SInfo }
+
+		end,
+
+	{ MaybeLine, LineLessInfo } = list_table:extract_entry_with_defaults( line,
+									undefined, FileLessInfo ),
+
+	ExtraStr = case LineLessInfo of
+
+		[] ->
+			"";
+
+		_ ->
+			text_utils:format( " (warning: following stack information were "
+							   "ignored: ~p)", [ LineLessInfo ] )
+
+	end,
+
+	case { MaybeFilePath, MaybeLine } of
+
+		{ undefined, undefined } ->
+			text_utils:format( "~ts", [ ExtraStr ] );
+
+		{ FilePath, undefined } ->
+			text_utils:format( "   [defined in ~ts]", [ FilePath ] );
+
+		{ undefined, Line } ->
+			text_utils:format( "   [defined at line ~B]", [ Line ] );
+
+		{ FilePath, Line } ->
+			text_utils:format( "   [defined in ~ts (line ~B)]",
+							   [ FilePath, Line ] )
+
+	end.
+
+
+
 
 
 
@@ -856,10 +950,95 @@ interpret_stack_item( I, _FullPathsWanted ) ->
 display_stacktrace() ->
 
 	% We do not want to include display_stacktrace/0 in the stack:
-	StackTrace = get_stacktrace( _SkipLastElemCount=1 ),
+	Stacktrace = get_stacktrace( _SkipLastElemCount=1 ),
 
 	trace_utils:info_fmt( "Current stacktrace is (latest calls first): ~ts~n",
-						  [ interpret_stacktrace( StackTrace ) ] ).
+						  [ interpret_stacktrace( Stacktrace ) ] ).
+
+
+
+% @doc Interprets specified error.
+-spec interpret_error( error_term(), stack_trace() ) -> ustring().
+interpret_error( ErrorTerm, Stacktrace=[
+		StackInfo={ _Module, _Function, _Arguments, InfoListTable } | _ ] ) ->
+
+	%trace_utils:debug_fmt( "interpret_error: Reason=~p, Stacktrace=~n ~p",
+	%					   [ Reason, Stacktrace ] ),
+
+	case list_table:lookup_entry( error_info, InfoListTable ) of
+
+		{ value, ErrorInfoMap } ->
+			case map_hashtable:lookup_entry( module, ErrorInfoMap ) of
+
+				% Typically erl_erts_errors for BIFs:
+				{ value, ErrorInfoModule } ->
+					DiagnoseMap =
+						ErrorInfoModule:format_error( ErrorTerm, Stacktrace ),
+					error_map_to_string( DiagnoseMap, ErrorTerm );
+
+				key_not_found ->
+					"(no module set for error_info) "
+						++ stack_info_to_string( StackInfo )
+
+			end;
+
+		key_not_found ->
+			"(no error_info set) " ++ stack_info_to_string( StackInfo )
+
+	end.
+
+
+
+% @doc Returns a textual description of specified stack information.
+-spec stack_info_to_string( stack_info() ) -> ustring().
+stack_info_to_string( [ { file, Filename }, { line, Line } ] ) ->
+	text_utils:format( "in file ~ts, at line ~B", [ Filename, Line ] );
+
+% Catch-all:
+stack_info_to_string( StackInfo ) ->
+
+	% We could look up here also any error_info entry, yet any error module
+	% found there would require to have its format_error/2 function be called
+	% with the error reason and the full stacktrace, both of which are
+	% unavailable in this context.
+
+	text_utils:format( "~p", [ StackInfo ] ).
+
+
+
+% @doc Returns a textual description of the specified error map.
+-spec error_map_to_string( error_map(), error_reason() ) -> ustring().
+error_map_to_string( ErrorMap, Reason ) ->
+
+	case lists:sort( map_hashtable:enumerate( ErrorMap ) ) of
+
+		[] ->
+			text_utils:format( "~ts (whereas no error listed - abnormal)",
+				[ error_reason_to_string( Reason ), ErrorMap ] );
+
+		% Special case as with the next one two ':' in the same sentence would
+		% be used:
+		%
+		[ { N, Diag } ] ->
+			text_utils:format( "~ts due to invalid argument #~B: ~ts",
+							   [ error_reason_to_string( Reason ), N, Diag ] );
+
+		NumberedErrors ->
+			ErrorStrs = [ text_utils:format( "invalid argument #~B: ~ts",
+							 [ N, Diag ] ) || { N, Diag } <- NumberedErrors ],
+
+			text_utils:format( "~ts due to: ~ts",
+				[ error_reason_to_string( Reason ),
+				  text_utils:strings_to_string( ErrorStrs, _IndentLevel=1 ) ] )
+
+	end.
+
+
+
+% @doc Returns a textual description of the specified error reason.
+-spec error_reason_to_string( error_reason() ) -> ustring().
+error_reason_to_string( Reason ) ->
+	text_utils:format( " that failed with ~p", [ Reason ] ).
 
 
 
@@ -932,13 +1111,3 @@ interpret_arities( ModuleName, FunctionName, Arity, Arities ) ->
 				[ ModuleName, FunctionName, Arity, ArStr ] )
 
 	end.
-
-
-% @doc Returns a textual description of specified stack location.
--spec stack_location_to_string( stack_location() ) -> ustring().
-stack_location_to_string( [ { file, Filename }, { line, Line } ] ) ->
-	text_utils:format( "in file ~ts, at line ~B", [ Filename, Line ] );
-
-% Catch-all:
-stack_location_to_string( OtherLoc ) ->
-	text_utils:format( "~p", [ OtherLoc ] ).
