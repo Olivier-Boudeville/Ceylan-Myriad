@@ -33,6 +33,7 @@ if [ -z "${project_name}" ]; then
 
 fi
 
+echo
 echo "Fixing rebar pre-build for ${project_name}: building all first, from $(pwd)."
 
 
@@ -42,7 +43,7 @@ echo "Fixing rebar pre-build for ${project_name}: building all first, from $(pwd
 [ $verbose -eq 1 ] || tree
 
 
-make -s all 2>/dev/null
+make -s all 1>/dev/null
 
 
 # We used not fix anything by default, now we do the opposite:
