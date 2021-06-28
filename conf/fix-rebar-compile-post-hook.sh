@@ -31,6 +31,11 @@ echo "Fixing rebar post-build for ${project_name}, from $(pwd)."
 do_name_back=1
 
 # Renames back hidden sources only if requested:
+#
+# (probably not a good idea, knowing that the timestamps of the source files
+# will become by design more recent than their BEAM files, leading to rebar3
+# probably triggering another unexpected attempt of building them)
+#
 if [ $do_name_back -eq 0 ]; then
 
 	to_rename=$(find src test -name '*.erl-hidden')
