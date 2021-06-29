@@ -547,12 +547,12 @@ rebar3-compile-post-hook:
 # bypass the rebar3 logic as a whole (as much as possible):
 #
 rebar3-bulletproof-compile-pre-hook:
-	@echo "  rebar3 bullet-proof pre-compile hook executed in $$(pwd), with the '$(MYRIAD_REBAR_PROFILE)' profile, for $(PROJECT_NAME_FOR_REBAR)"
+	@echo "  Executing rebar3 bullet-proof pre-compile hook in $$(pwd), with the '$(MYRIAD_REBAR_PROFILE)' profile, for $(PROJECT_NAME_FOR_REBAR)"
 	@$(MYRIAD_TOP)/conf/fix-rebar-compile-pre-hook.sh $(PROJECT_NAME_FOR_REBAR)
 
 
 rebar3-bulletproof-compile-post-hook:
-	@echo "  rebar3 bullet-proof post-compile hook executed in $$(pwd), with the '$(MYRIAD_REBAR_PROFILE)' profile, for $(PROJECT_NAME_FOR_REBAR)"
+	@echo "  Executing rebar3 bullet-proof post-compile hook in $$(pwd), with the '$(MYRIAD_REBAR_PROFILE)' profile, for $(PROJECT_NAME_FOR_REBAR)"
 	@$(MYRIAD_TOP)/conf/fix-rebar-compile-post-hook.sh $(PROJECT_NAME_FOR_REBAR)
 
 
