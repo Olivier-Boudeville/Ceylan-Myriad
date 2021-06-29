@@ -2,6 +2,9 @@
 
 usage="Usage: $(basename $0) PROJECT_NAME [VERBOSE_MODE:0|1]"
 
+# Removes the side effects in source tree of counterpart script
+# conf/fix-rebar-compile-pre-hook.sh.
+
 project_name="$1"
 
 # Not verbose by default (1):
@@ -21,33 +24,85 @@ if [ -z "${project_name}" ]; then
 
 fi
 
-# Removes the side effects in source tree of conf/fix-rebar-compile-pre-hook.sh.
 
 echo
 echo "Fixing rebar post-build for ${project_name}, from $(pwd)."
 
 
-#do_name_back=0
-do_name_back=1
+helper_script="$(dirname $0)/fix-rebar-hook-helper.sh"
+
+if [ ! -f "${helper_script}" ]; then
+
+	echo "  Error, helper script ('${helper_script}') not found." 1>&2
+
+	exit 8
+
+fi
+
+. "${helper_script}"
+
+
+do_name_back=0
+#do_name_back=1
 
 # Renames back hidden sources only if requested:
 #
 # (probably not a good idea, knowing that the timestamps of the source files
 # will become by design more recent than their BEAM files, leading to rebar3
-# probably triggering another unexpected attempt of building them)
+# probably triggering another unexpected attempt of building them; yet otherwise
+# we have: "make: *** No rule to make target 'src/X.erl', needed by
+# 'src/X.beam'.  Stop."; so we have to set back the erl files and thus recreate
+# their BEAM counterpart files - even if currently it results in a double build
+# of them)
 #
 if [ $do_name_back -eq 0 ]; then
 
-	to_rename=$(find src test -name '*.erl-hidden')
+	# Order matters again:
 
-	[ $verbose -eq 1 ] || echo "Renaming back ${to_rename}"
+	headers_to_rename=$(find src test include -name '*.hrl-hidden')
 
-	for f in ${to_rename}; do
+	[ $verbose -eq 1 ] || echo "Renaming back headers ${headers_to_rename}"
 
-		corrected_f="$(echo $f | sed 's|\.erl-hidden$|.erl|1')"
-		/bin/mv -f $f "${corrected_f}"
+	for f in ${headers_to_rename}; do
+
+		corrected_f="$(echo $f | sed 's|\.hrl-hidden$|.hrl|1')"
+		/bin/mv -f "$f" "${corrected_f}"
 
 	done
+
+
+	sources_to_rename=$(find src test -name '*.erl-hidden')
+
+	[ $verbose -eq 1 ] || echo "Renaming back sources ${sources_to_rename}"
+
+	for f in ${sources_to_rename}; do
+
+		corrected_f="$(echo $f | sed 's|\.erl-hidden$|.erl|1')"
+		/bin/mv -f "$f" "${corrected_f}"
+
+	done
+
+
+	beams_to_rename=$(find ebin -name '*.beam-hidden')
+
+	[ $verbose -eq 1 ] || echo "Renaming back BEAMs ${beams_to_rename}"
+
+	for f in ${beams_to_rename}; do
+
+		corrected_f="$(echo $f | sed 's|\.beam-hidden$|.erl|1')"
+		/bin/mv -f "$f" "${corrected_f}"
+
+	done
+
+
+	echo "Rebuilding the whole again"
+	make -s all 1>/dev/null
+
+	# Update our local ebin accordingly:
+	make -s copy-beams-to-ebin
+
+	# Do the same for rebar3 conventions; hopefully sufficient:
+	/bin/cp -f ebin/* ${target_base_dir}/ebin
 
 fi
 

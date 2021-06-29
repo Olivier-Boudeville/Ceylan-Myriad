@@ -33,9 +33,39 @@ if [ -z "${project_name}" ]; then
 
 fi
 
-echo
-echo "Fixing rebar pre-build for ${project_name}: building all first, from $(pwd)."
 
+echo
+echo "Fixing rebar pre-build for ${project_name}"
+
+
+
+helper_script="$(dirname $0)/fix-rebar-hook-helper.sh"
+
+if [ ! -f "${helper_script}" ]; then
+
+	echo "  Error, helper script ('${helper_script}') not found." 1>&2
+
+	exit 8
+
+fi
+
+. "${helper_script}"
+
+
+
+# Sets following variables depending on context, project being either the actual
+# build target or just a (direct or not) dependency thereof:
+#
+# - target_base_dir: the target base project directory where elements (notably
+# BEAM files) shall be produced
+#
+# - role: tells whether this project is the actual build target, a normal
+#  dependency or a checkout
+#
+determine_build_context
+
+
+echo "For ${project_name}, building all first, from $(pwd) (role: ${role}):"
 
 [ $verbose -eq 1 ] || make -s info-context
 
@@ -43,66 +73,30 @@ echo "Fixing rebar pre-build for ${project_name}: building all first, from $(pwd
 [ $verbose -eq 1 ] || tree
 
 
-make -s all 1>/dev/null
+make -s all #1>/dev/null
 
 
-# We used not fix anything by default, now we do the opposite:
-fix_src=0
-fix_hdr=0
-fix_beam=0
+# We used not to fix anything by default; now we do the opposite, and in all
+# cases (for all roles: build target or dependency):
 
 
-# Element locations vary depending on whether this project is the main target to
-# build, or a mere dependency, or in a checkout.
+# Actually needed apparently (even if they just copy a file onto itself, they at
+# least update its timestamp in the process, like a touch), otherwise another
+# silly attempt of rebuild will be done by rebar3:
+#
+fix_sources=0
 
-target_base_dir="./_build/default/lib/${project_name}"
+fix_headers=0
 
-if [ -d "${target_base_dir}" ]; then
+# To copy ebin content:
+fix_beams=0
 
-	# We are the main application (not a dependency), so:
-	echo "Detected as being a direct build (not as a dependency)."
 
-	fix_src=0
-	fix_hdr=0
-	fix_beam=0
-
-else
-
-	#echo "(project base directory is not '${target_base_dir}')"
-
-	target_base_dir="../${project_name}"
-
-	if [ ! -d "${target_base_dir}" ]; then
-
-		echo "(project based directory is not '${target_base_dir}')"
-
-		echo "  Error, target directory not found for ${project_name}." 1>&2
-
-		exit 10
-
-	fi
-
-	echo "Detected as being built as a dependency."
-
-	# In which case the only need is to copy ebin:
-	fix_beam=0
-
-	# Actually we nevertheless need them apparently (even if they just copy a
-	# file onto itself, they at least update its timestamp in the process, like
-	# a touch), otherwise another silly attempt of rebuild will be done by
-	# rebar3:
-	#
-	fix_src=0
-
-	fix_hdr=0
-
-fi
 
 echo "Copying build-related elements in the '${target_base_dir}' target tree."
 
-
 # Transforming a potentially nested hierarchy (tree) into a flat directory:
-# (operation order matters, as it allows proper timestamp ordering)
+# (operation order matters, as it allows proper timestamp ordering for make)
 #
 # Note that 'ebin' is bound to be an actual directory, yet (probably if dev_mode
 # has been set to true in rebar.config), 'include', 'priv' and 'src' may be
@@ -112,47 +106,49 @@ echo "Copying build-related elements in the '${target_base_dir}' target tree."
 # any pre-existing target directory and replace it with a flat copy of our own.
 
 
-if [ $fix_hdr -eq 0 ]; then
+if [ $fix_headers -eq 0 ]; then
 
-	target_hdr_dir="${target_base_dir}/include"
+	target_header_dir="${target_base_dir}/include"
 
-	if [ -L "${target_hdr_dir}" ]; then
+	if [ -L "${target_header_dir}" ]; then
 
-		echo "Replacing the ${target_hdr_dir} symlink by an actual directory."
-		/bin/rm -f "${target_hdr_dir}"
-		mkdir "${target_hdr_dir}"
+		echo "Replacing the ${target_header_dir} symlink by an actual directory."
+		/bin/rm -f "${target_header_dir}"
+		mkdir "${target_header_dir}"
 
-	elif [ ! -d "${target_hdr_dir}" ]; then
+	elif [ ! -d "${target_header_dir}" ]; then
 
-		echo "Creating the non-existing ${target_hdr_dir} directory."
-		mkdir "${target_hdr_dir}"
+		echo "Creating the non-existing ${target_header_dir} directory."
+		mkdir "${target_header_dir}"
 
 	else
 
 		# This may happen when multiple attempts of build are performed:
-		#echo "(${target_hdr_dir} directory already existing)"
+		echo "(${target_header_dir} directory already existing)"
 
-		#echo "Unexpected target ${target_hdr_dir}: $(ls -l ${target_hdr_dir})" 1>&2
+		echo "Warning: unexpected target ${target_header_dir}: $(ls -l ${target_header_dir})" 1>&2
+
 		#exit 5
 
-		# So no-op finally:
-		:
-
 	fi
 
-	all_hdrs=$(find src test include -name '*.hrl' 2>/dev/null)
+	all_headers=$(find src test include -name '*.hrl' 2>/dev/null)
 
 	if [ $verbose -eq 0 ]; then
-		echo "  Copying all headers to ${target_hdr_dir}: ${all_hdrs}"
+		echo "  Copying all headers to ${target_header_dir}: ${all_headers}"
 	else
-		echo "  Copying all headers to ${target_hdr_dir}"
+		echo "  Copying all headers to ${target_header_dir}"
 	fi
 
-	for f in ${all_hdrs}; do
+	for f in ${all_headers}; do
+
 		# We do not care if it is a copy of a file onto itself, a touch-like
-		# operation is anyway strictly needed:
+		# operation is anyway strictly needed (however a copy of a file to
+		# itself does not update its timestamp):
 		#
-		/bin/cp -f $f ${target_hdr_dir} 2>/dev/null
+		/bin/cp -f $f "${target_header_dir}/" #2>/dev/null
+		/bin/mv -f $f $f-hidden
+
 	done
 
 else
@@ -163,7 +159,7 @@ fi
 
 
 
-if [ $fix_src -eq 0 ]; then
+if [ $fix_sources -eq 0 ]; then
 
 	target_src_dir="${target_base_dir}/src"
 
@@ -178,6 +174,15 @@ if [ $fix_src -eq 0 ]; then
 		echo "Creating the non-existing ${target_src_dir} directory."
 		mkdir "${target_src_dir}"
 
+	else
+
+		# This may happen when multiple attempts of build are performed:
+		echo "(${target_src_dir} directory already existing)"
+
+		echo "Warning: unexpected target ${target_src_dir}: $(ls -l ${target_src_dir})" 1>&2
+
+		#exit 6
+
 	fi
 
 	all_srcs=$(find src test -name '*.erl' 2>/dev/null)
@@ -189,11 +194,13 @@ if [ $fix_src -eq 0 ]; then
 	fi
 
 	for f in ${all_srcs}; do
+
 		# We do not care if it is a copy of a file onto itself, a touch-like
 		# operation is anyway strictly needed:
 		#
-		/bin/cp -f $f ${target_src_dir} 2>/dev/null
+		/bin/cp -f $f "${target_src_dir}/" #2>/dev/null
 		/bin/mv -f $f $f-hidden
+
 	done
 
 else
@@ -203,9 +210,10 @@ else
 fi
 
 
-if [ $fix_beam -eq 0 ]; then
+if [ $fix_beams -eq 0 ]; then
 
 	target_beam_dir="${target_base_dir}/ebin"
+
 
 	if [ -L "${target_beam_dir}" ]; then
 
@@ -218,7 +226,17 @@ if [ $fix_beam -eq 0 ]; then
 		echo "Creating the non-existing ${target_beam_dir} directory."
 		mkdir "${target_beam_dir}"
 
+	else
+
+		# This may happen when multiple attempts of build are performed:
+		echo "(${target_beam_dir} directory already existing)"
+
+		echo "Warning: unexpected target ${target_beam_dir}: $(ls -l ${target_beam_dir})" 1>&2
+
+		exit 7
+
 	fi
+
 
 	all_beams=$(find src test -name '*.beam' 2>/dev/null)
 
@@ -230,6 +248,7 @@ if [ $fix_beam -eq 0 ]; then
 
 	for f in ${all_beams}; do
 		/bin/cp -f $f ${target_beam_dir}
+		/bin/mv -f $f $f-hidden
 	done
 
 else
@@ -239,7 +258,7 @@ else
 fi
 
 
-[ $verbose -eq 1 ] || (echo "Final content for ${project_name} from $(pwd):" ; tree ${target_base_dir})
+[ $verbose -eq 1 ] || (echo "Final content for ${project_name} from $(pwd):"; tree "${target_base_dir}")
 
 
 echo "Rebar pre-build fixed for ${project_name}."
