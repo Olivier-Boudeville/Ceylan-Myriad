@@ -73,9 +73,8 @@ all: all-pre-hook all-parse-transforms rebar3-make-include-links
 
 
 # Not removing rebar.config anymore, to avoid that GIT considers it deleted on
-# purpose:
+# purpose.
 #
-
 # Also deactivated, as any dependency in _build would then be lost, whereas we
 # might use on our native build system while still relying on them (ex: for
 # LEEC): -@/bin/rm -rf $(MYRIAD_REBAR_BUILD_ROOT)
@@ -284,7 +283,7 @@ ifeq ($(BASE_MAKEFILE),true)
 
 # For a better compliance to OTP conventions:
 copy-beams-to-ebin:
-	@echo "  Copying BEAM files to local ebin"
+	@echo "  Copying BEAM files to local ebin ($(pwd)/ebin)"
 	@mkdir -p ebin ; find src -name '*.beam' -exec /bin/cp -f '{}' ebin ';'
 
 
