@@ -9,10 +9,9 @@ usage="Usage: $(basename $0) PROJECT_NAME [VERBOSE_MODE:0|1]"
 # are.
 
 
-# Even if copying the relevant header/source/BEAM files with relevant
-# timestamps, in some cases, for some reason, rebar will still find it relevant
-# to try to rebuild some of them. So we have to hide the corresponding sources
-# as well...
+# Even if copying the right header/source/BEAM files with relevant timestamps,
+# in some cases, for some reason, rebar will still find it appropriate to try to
+# rebuild some of them. So we have to hide the corresponding sources as well...
 
 project_name="$1"
 
@@ -36,7 +35,6 @@ fi
 
 echo
 echo "Fixing rebar pre-build for ${project_name}"
-
 
 
 helper_script="$(dirname $0)/fix-rebar-hook-helper.sh"
@@ -108,25 +106,25 @@ echo "Copying build-related elements in the '${target_base_dir}' target tree."
 
 if [ $fix_headers -eq 0 ]; then
 
-	target_header_dir="${target_base_dir}/include"
+	target_inc_dir="${target_base_dir}/include"
 
-	if [ -L "${target_header_dir}" ]; then
+	if [ -L "${target_inc_dir}" ]; then
 
-		echo "Replacing the ${target_header_dir} symlink by an actual directory."
-		/bin/rm -f "${target_header_dir}"
-		mkdir "${target_header_dir}"
+		echo "Replacing the ${target_inc_dir} symlink by an actual directory."
+		/bin/rm -f "${target_inc_dir}"
+		mkdir "${target_inc_dir}"
 
-	elif [ ! -d "${target_header_dir}" ]; then
+	elif [ ! -d "${target_inc_dir}" ]; then
 
-		echo "Creating the non-existing ${target_header_dir} directory."
-		mkdir "${target_header_dir}"
+		echo "Creating the non-existing ${target_inc_dir} directory."
+		mkdir "${target_inc_dir}"
 
 	else
 
 		# This may happen when multiple attempts of build are performed:
-		echo "(${target_header_dir} directory already existing)"
+		echo "(${target_inc_dir} directory already existing)"
 
-		echo "Warning: unexpected target ${target_header_dir}: $(ls -l ${target_header_dir})" 1>&2
+		echo "Warning: unexpected target ${target_inc_dir}: $(ls -l ${target_inc_dir})" 1>&2
 
 		#exit 5
 
@@ -135,9 +133,9 @@ if [ $fix_headers -eq 0 ]; then
 	all_headers=$(find src test include -name '*.hrl' 2>/dev/null)
 
 	if [ $verbose -eq 0 ]; then
-		echo "  Copying all headers to ${target_header_dir}: ${all_headers}"
+		echo "  Copying all headers to ${target_inc_dir}: ${all_headers}"
 	else
-		echo "  Copying all headers to ${target_header_dir}"
+		echo "  Copying all headers to ${target_inc_dir}"
 	fi
 
 	for f in ${all_headers}; do
@@ -146,8 +144,8 @@ if [ $fix_headers -eq 0 ]; then
 		# operation is anyway strictly needed (however a copy of a file to
 		# itself does not update its timestamp):
 		#
-		/bin/cp -f $f "${target_header_dir}/" #2>/dev/null
-		/bin/mv -f $f $f-hidden
+		/bin/cp -f "$f" "${target_inc_dir}/" #2>/dev/null
+		/bin/mv -f "$f" "$f-hidden"
 
 	done
 
@@ -198,8 +196,8 @@ if [ $fix_sources -eq 0 ]; then
 		# We do not care if it is a copy of a file onto itself, a touch-like
 		# operation is anyway strictly needed:
 		#
-		/bin/cp -f $f "${target_src_dir}/" #2>/dev/null
-		/bin/mv -f $f $f-hidden
+		/bin/cp -f "$f" "${target_src_dir}/" #2>/dev/null
+		/bin/mv -f "$f" "$f-hidden"
 
 	done
 
@@ -212,26 +210,26 @@ fi
 
 if [ $fix_beams -eq 0 ]; then
 
-	target_beam_dir="${target_base_dir}/ebin"
+	target_ebin_dir="${target_base_dir}/ebin"
 
 
-	if [ -L "${target_beam_dir}" ]; then
+	if [ -L "${target_ebin_dir}" ]; then
 
-		echo "Replacing the ${target_beam_dir} symlink by an actual directory."
-		/bin/rm -f "${target_beam_dir}"
-		mkdir "${target_beam_dir}"
+		echo "Replacing the ${target_ebin_dir} symlink by an actual directory."
+		/bin/rm -f "${target_ebin_dir}"
+		mkdir "${target_ebin_dir}"
 
-	elif [ ! -d "${target_beam_dir}" ]; then
+	elif [ ! -d "${target_ebin_dir}" ]; then
 
-		echo "Creating the non-existing ${target_beam_dir} directory."
-		mkdir "${target_beam_dir}"
+		echo "Creating the non-existing ${target_ebin_dir} directory."
+		mkdir "${target_ebin_dir}"
 
 	else
 
 		# This may happen when multiple attempts of build are performed:
-		echo "(${target_beam_dir} directory already existing)"
+		echo "(${target_ebin_dir} directory already existing)"
 
-		echo "Warning: unexpected target ${target_beam_dir}: $(ls -l ${target_beam_dir})" 1>&2
+		echo "Warning: unexpected target ${target_ebin_dir}: $(ls -l ${target_ebin_dir})" 1>&2
 
 		exit 7
 
@@ -241,14 +239,14 @@ if [ $fix_beams -eq 0 ]; then
 	all_beams=$(find src test -name '*.beam' 2>/dev/null)
 
 	if [ $verbose -eq 0 ]; then
-		echo "  Copying all BEAM files to ${target_beam_dir}: ${all_beams}"
+		echo "  Copying all BEAM files to ${target_ebin_dir}: ${all_beams}"
 	else
-		echo "  Copying all BEAM files to ${target_beam_dir}"
+		echo "  Copying all BEAM files to ${target_ebin_dir}"
 	fi
 
 	for f in ${all_beams}; do
-		/bin/cp -f $f ${target_beam_dir}
-		/bin/mv -f $f $f-hidden
+		/bin/cp -f "$f" "${target_ebin_dir}/" #2>/dev/null
+		/bin/mv -f "$f" "$f-hidden"
 	done
 
 else
