@@ -63,7 +63,7 @@ fi
 determine_build_context
 
 
-echo "For ${project_name}, building all first, from $(pwd) (role: ${role}):"
+echo "  For ${project_name}, building all first, from $(pwd) (role: ${role}):"
 
 [ $verbose -eq 1 ] || make -s info-context
 
@@ -91,7 +91,7 @@ fix_beams=0
 
 
 
-echo "Copying build-related elements in the '${target_base_dir}' target tree."
+echo "  Copying relevant build-related elements in the '${target_base_dir}' target tree."
 
 # Transforming a potentially nested hierarchy (tree) into a flat directory:
 # (operation order matters, as it allows proper timestamp ordering for make)
@@ -106,17 +106,19 @@ echo "Copying build-related elements in the '${target_base_dir}' target tree."
 
 if [ $fix_headers -eq 0 ]; then
 
+	echo "   Fixing headers"
+
 	target_inc_dir="${target_base_dir}/include"
 
 	if [ -L "${target_inc_dir}" ]; then
 
-		echo "Replacing the ${target_inc_dir} symlink by an actual directory."
+		echo "    Replacing the ${target_inc_dir} symlink by an actual directory."
 		/bin/rm -f "${target_inc_dir}"
 		mkdir "${target_inc_dir}"
 
 	elif [ ! -d "${target_inc_dir}" ]; then
 
-		echo "Creating the non-existing ${target_inc_dir} directory."
+		echo "    Creating the non-existing ${target_inc_dir} directory."
 		mkdir "${target_inc_dir}"
 
 	else
@@ -130,12 +132,23 @@ if [ $fix_headers -eq 0 ]; then
 
 	fi
 
-	all_headers=$(find src test include -name '*.hrl' 2>/dev/null)
+	# Due to symlinks to all actual headers having been already created in local
+	# 'include', we just copy *these* symlinks (i.e. their actual target) to the
+	# target rebar include directory - not *all* headers including the actual
+	# headers, as these will be hidden too, resulting in said symlinks to be
+	# dead and their copy to fail, with for example:
+	#
+	# /bin/cp: cannot stat 'include/lazy_hashtable.hrl': No such file or
+	# directory
+
+	# So:
+	#all_headers=$(find src test include -name '*.hrl' 2>/dev/null)
+	all_headers=$(/bin/ls include/*.hrl 2>/dev/null)
 
 	if [ $verbose -eq 0 ]; then
-		echo "  Copying all headers to ${target_inc_dir}: ${all_headers}"
+		echo "    Copying all headers to ${target_inc_dir}: ${all_headers}"
 	else
-		echo "  Copying all headers to ${target_inc_dir}"
+		echo "    Copying all headers to ${target_inc_dir}"
 	fi
 
 	for f in ${all_headers}; do
@@ -151,7 +164,7 @@ if [ $fix_headers -eq 0 ]; then
 
 else
 
-	echo "(not fixing headers)"
+	echo "   (not fixing headers)"
 
 fi
 
@@ -159,17 +172,19 @@ fi
 
 if [ $fix_sources -eq 0 ]; then
 
+	echo "   Fixing sources"
+
 	target_src_dir="${target_base_dir}/src"
 
 	if [ -L "${target_src_dir}" ]; then
 
-		echo "Replacing the ${target_src_dir} symlink by an actual directory."
+		echo "    Replacing the ${target_src_dir} symlink by an actual directory."
 		/bin/rm -f "${target_src_dir}"
 		mkdir "${target_src_dir}"
 
 	elif [ ! -d "${target_src_dir}" ]; then
 
-		echo "Creating the non-existing ${target_src_dir} directory."
+		echo "    Creating the non-existing ${target_src_dir} directory."
 		mkdir "${target_src_dir}"
 
 	else
@@ -186,9 +201,9 @@ if [ $fix_sources -eq 0 ]; then
 	all_srcs=$(find src test -name '*.erl' 2>/dev/null)
 
 	if [ $verbose -eq 0 ]; then
-		echo "  Copying all sources to ${target_src_dir} then hiding the original ones: ${all_srcs}"
+		echo "   Copying all sources to ${target_src_dir} then hiding the original ones: ${all_srcs}"
 	else
-		echo "  Copying all sources to ${target_src_dir} then hiding the original ones"
+		echo "   Copying all sources to ${target_src_dir} then hiding the original ones"
 	fi
 
 	for f in ${all_srcs}; do
@@ -203,35 +218,41 @@ if [ $fix_sources -eq 0 ]; then
 
 else
 
-	echo "(not fixing sources)"
+	echo "   (not fixing sources)"
 
 fi
 
 
 if [ $fix_beams -eq 0 ]; then
 
+	echo "   Fixing BEAMs"
+
 	target_ebin_dir="${target_base_dir}/ebin"
 
 
 	if [ -L "${target_ebin_dir}" ]; then
 
-		echo "Replacing the ${target_ebin_dir} symlink by an actual directory."
+		echo "    Replacing the ${target_ebin_dir} symlink by an actual directory."
 		/bin/rm -f "${target_ebin_dir}"
 		mkdir "${target_ebin_dir}"
 
 	elif [ ! -d "${target_ebin_dir}" ]; then
 
-		echo "Creating the non-existing ${target_ebin_dir} directory."
+		echo "    Creating the non-existing ${target_ebin_dir} directory."
 		mkdir "${target_ebin_dir}"
 
 	else
 
 		# This may happen when multiple attempts of build are performed:
-		echo "(${target_ebin_dir} directory already existing)"
+		# (actually normal for ebin directories)
 
-		echo "Warning: unexpected target ${target_ebin_dir}: $(ls -l ${target_ebin_dir})" 1>&2
+		#echo "(${target_ebin_dir} directory already existing)"
 
-		exit 7
+		#echo "Warning: unexpected target ${target_ebin_dir}: $(ls -l ${target_ebin_dir})" 1>&2
+
+		#exit 7
+
+		:
 
 	fi
 
@@ -239,9 +260,9 @@ if [ $fix_beams -eq 0 ]; then
 	all_beams=$(find src test -name '*.beam' 2>/dev/null)
 
 	if [ $verbose -eq 0 ]; then
-		echo "  Copying all BEAM files to ${target_ebin_dir}: ${all_beams}"
+		echo "    Copying all BEAM files to ${target_ebin_dir}: ${all_beams}"
 	else
-		echo "  Copying all BEAM files to ${target_ebin_dir}"
+		echo "    Copying all BEAM files to ${target_ebin_dir}"
 	fi
 
 	for f in ${all_beams}; do
@@ -251,7 +272,7 @@ if [ $fix_beams -eq 0 ]; then
 
 else
 
-	echo "(not fixing BEAM files)"
+	echo "   (not fixing BEAM files)"
 
 fi
 
