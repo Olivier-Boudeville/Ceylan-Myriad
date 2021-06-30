@@ -73,7 +73,7 @@ if [ $do_name_back -eq 0 ]; then
 
 	headers_to_rename=$(find src test include -name '*.hrl-hidden')
 
-	[ $verbose -eq 1 ] || echo "  Renaming back headers ${headers_to_rename}"
+	[ $verbose -eq 1 ] || echo "  Renaming back headers: ${headers_to_rename}"
 
 	for f in ${headers_to_rename}; do
 
@@ -85,7 +85,7 @@ if [ $do_name_back -eq 0 ]; then
 
 	sources_to_rename=$(find src test -name '*.erl-hidden')
 
-	[ $verbose -eq 1 ] || echo "  Renaming back sources ${sources_to_rename}"
+	[ $verbose -eq 1 ] || echo "  Renaming back sources: ${sources_to_rename}"
 
 	for f in ${sources_to_rename}; do
 
@@ -97,7 +97,7 @@ if [ $do_name_back -eq 0 ]; then
 
 	beams_to_rename=$(find ebin -name '*.beam-hidden')
 
-	[ $verbose -eq 1 ] || echo "  Renaming back BEAMs ${beams_to_rename}"
+	[ $verbose -eq 1 ] || echo "  Renaming back BEAMs: ${beams_to_rename}"
 
 	for f in ${beams_to_rename}; do
 
@@ -110,11 +110,15 @@ if [ $do_name_back -eq 0 ]; then
 	echo "Rebuilding the whole again"
 	make -s all 1>/dev/null
 
-	# Update our local ebin accordingly:
+	# Updating our local ebin accordingly:
 	make -s copy-beams-to-ebin
 
 	# Do the same for rebar3 conventions; hopefully sufficient:
-	/bin/cp -f ebin/* "${target_base_dir}/ebin"
+	#
+	# (checking first the target ebin is not the local one)
+	if [ ${role} -eq ${build_target_role} ]; then
+		/bin/cp -f ebin/* "${target_base_dir}/ebin"
+	fi
 
 fi
 
