@@ -442,9 +442,9 @@ if [ $fix_beams -eq 0 ]; then
 		#
 		# (hiding BEAMs is most probably not really a good idea though)
 		#
-		if [ $do_hide -eq 0 ]; then
-			/bin/mv -f "$f" "$f-hidden"
-		fi
+		#if [ $do_hide -eq 0 ]; then
+		#	/bin/mv -f "$f" "$f-hidden"
+		#fi
 
 	done
 
