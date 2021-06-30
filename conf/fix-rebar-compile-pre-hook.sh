@@ -50,7 +50,6 @@ fi
 . "${helper_script}"
 
 
-
 # Sets following variables depending on context, project being either the actual
 # build target or just a (direct or not) dependency thereof:
 #
