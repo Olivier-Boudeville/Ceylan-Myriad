@@ -28,8 +28,8 @@ verbose=0
 # dependency (actually Myriad itself) that was common to two higher-level
 # prerequisites of the target project:
 #
-#do_hide=0
-do_hide=1
+do_hide=0
+#do_hide=1
 
 
 if [ -n "$2" ]; then
