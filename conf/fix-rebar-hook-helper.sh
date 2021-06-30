@@ -13,6 +13,7 @@ normal_dependency_role=2
 checkout_role=3
 
 
+echo "Helper arguments: $*"
 
 
 # Automatic setting of options.
@@ -35,7 +36,7 @@ shift
 do_hide=0
 #do_hide=1
 
-# Not verbose by default (1):
+# Verbose by default (0):
 #verbose=1
 verbose=0
 

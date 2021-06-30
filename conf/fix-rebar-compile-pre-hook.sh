@@ -26,6 +26,7 @@ usage="Usage: $(basename $0) PROJECT_NAME [--hiding-for-rebar|--no-hiding-for-re
 # So now hiding shall be selected on a per-project basis. See HIDING_OPT in
 # GNUmakevars.inc for that.
 
+echo "Script arguments: $*"
 
 helper_script="$(dirname $0)/fix-rebar-hook-helper.sh"
 
