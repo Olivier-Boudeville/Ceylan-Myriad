@@ -357,6 +357,7 @@ if [ $fix_sources -eq 0 ]; then
 
 			# To prevent rebar from even seeing them afterwards:
 			#/bin/mv -f "$f" "$f-hidden"
+			:
 
 		done
 
