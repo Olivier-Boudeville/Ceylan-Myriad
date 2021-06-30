@@ -21,6 +21,17 @@ project_name="$1"
 #verbose=1
 verbose=0
 
+
+# Not hiding anymore build elements (notably hiding the BEAM files that were
+# directly produced in the build tree was probably a bad idea), as it triggered
+# rebar3 errors: "no rule to make target '. 'X.erl', needed by 'X.beam'", in a
+# dependency (actually Myriad itself) that was common to two higher-level
+# prerequisites of the target project:
+#
+#do_hide=0
+do_hide=1
+
+
 if [ -n "$2" ]; then
 	verbose="$2"
 fi
@@ -203,7 +214,9 @@ if [ $fix_headers -eq 0 ]; then
 			/bin/cp -f "$f" "${target_inc_dir}/" #2>/dev/null
 
 			# To prevent rebar from even seeing them afterwards:
-			#/bin/mv -f "$f" "$f-hidden"
+			if [ $do_hide -eq 0 ]; then
+				/bin/mv -f "$f" "$f-hidden"
+			fi
 
 	   done
 
@@ -332,7 +345,9 @@ if [ $fix_sources -eq 0 ]; then
 			/bin/cp -f "$f" "${target_src_dir}/" #2>/dev/null
 
 			# To prevent rebar from even seeing them afterwards:
-			#/bin/mv -f "$f" "$f-hidden"
+			if [ $do_hide -eq 0 ]; then
+				/bin/mv -f "$f" "$f-hidden"
+			fi
 
 		done
 
@@ -356,8 +371,9 @@ if [ $fix_sources -eq 0 ]; then
 		for f in ${all_srcs}; do
 
 			# To prevent rebar from even seeing them afterwards:
-			#/bin/mv -f "$f" "$f-hidden"
-			:
+			if [ $do_hide -eq 0 ]; then
+				/bin/mv -f "$f" "$f-hidden"
+			fi
 
 		done
 
@@ -423,7 +439,12 @@ if [ $fix_beams -eq 0 ]; then
 		/bin/cp -f "$f" "${target_ebin_dir}/" #2>/dev/null
 
 		# To prevent rebar from even seeing them afterwards:
-		#/bin/mv -f "$f" "$f-hidden"
+		#
+		# (hiding BEAMs is most probably not really a good idea though)
+		#
+		if [ $do_hide -eq 0 ]; then
+			/bin/mv -f "$f" "$f-hidden"
+		fi
 
 	done
 
