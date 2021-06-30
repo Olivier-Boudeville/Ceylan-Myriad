@@ -1,6 +1,6 @@
 #!/bin/sh
 
-usage="Usage: $(basename $0) PROJECT_NAME [VERBOSE_MODE:0|1]"
+usage="Usage: $(basename $0) PROJECT_NAME PERFORM_HIDING:0|1 [VERBOSE_MODE:0|1]"
 
 # Script defined for convenience and reliability.
 
@@ -8,34 +8,46 @@ usage="Usage: $(basename $0) PROJECT_NAME [VERBOSE_MODE:0|1]"
 # not attempt (and fail) to recreate BEAM files that are already correct as they
 # are.
 
-
 # Even if copying the right header/source/BEAM files with relevant timestamps,
 # in some cases, for some reason, rebar will still find it appropriate to try to
 # rebuild at least some of them (ex: if a given project is a dependency common
-# to two other prerequisites). So we have to hide the corresponding sources as
-# well...
+# to two other prerequisites), and when rebar does that it does pass the
+# relevant options, leading to a failing build. So the goal is to prevent rebar
+# from rebuilding anything.
+#
+
+# Hiding elements, i.e. erl/hrl files (most probably that hiding BEAM files is a
+# bad idea in all cases), could be a solution, as it fixes some builds (some
+# spurious rebuilds being avoided), however it makes other correct ones
+# incorrect (unexpected rebuilds are triggered, leading to compilation failures
+# because of X.beam files from a dependency being found not having their X.erl
+# counterpart due to hiding).
+#
+# So now hiding shall be selected on a per-project basis.
+
 
 project_name="$1"
+
+
+# Hiding enabled by default (0):
+do_hide=0
+#do_hide=1
+
+if [ -n "$2" ]; then
+	do_hide="$2"
+fi
+
 
 # Not verbose by default (1):
 #verbose=1
 verbose=0
 
-
-# Not hiding anymore build elements (notably hiding the BEAM files that were
-# directly produced in the build tree was probably a bad idea), as it triggered
-# rebar3 errors: "no rule to make target '. 'X.erl', needed by 'X.beam'", in a
-# dependency (actually Myriad itself) that was common to two higher-level
-# prerequisites of the target project:
-#
-do_hide=0
-#do_hide=1
-
-
-if [ -n "$2" ]; then
-	verbose="$2"
+if [ -n "$3" ]; then
+	verbose="$3"
 fi
 
+
+# Checking now:
 
 if [ -z "${project_name}" ]; then
 
@@ -44,6 +56,25 @@ if [ -z "${project_name}" ]; then
 	exit 5
 
 fi
+
+
+# Voluntary string check (user input):
+if [ ${do_hide} = "0" ]; then
+
+	echo "(hiding of build elements enabled)"
+
+elif [ ${do_hide} = "1" ]; then
+
+	echo "(hiding of build elements disabled)"
+
+else
+
+	echo "  Error, invalid hiding option specified (${do_hide})." 1>&2
+
+	exit 60
+
+fi
+
 
 
 echo
@@ -440,11 +471,11 @@ if [ $fix_beams -eq 0 ]; then
 
 		# To prevent rebar from even seeing them afterwards:
 		#
-		# (hiding BEAMs is most probably not really a good idea though)
+		# (hiding BEAMs is most probably never a good idea)
 		#
 		#if [ $do_hide -eq 0 ]; then
 		#	/bin/mv -f "$f" "$f-hidden"
-		#fi
+		# fi
 
 	done
 
