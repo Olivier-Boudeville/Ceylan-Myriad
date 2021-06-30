@@ -14,6 +14,71 @@ checkout_role=3
 
 
 
+
+# Automatic setting of options.
+
+
+project_name="$1"
+
+if [ -z "${project_name}" ]; then
+
+	echo "  Error, project name not set." 1>&2
+
+	exit 5
+
+fi
+
+shift
+
+
+# Hiding enabled by default (0):
+do_hide=0
+#do_hide=1
+
+# Not verbose by default (1):
+#verbose=1
+verbose=0
+
+if [ -n "$1" ]; then
+
+	if [ "$1" = "--hiding-for-rebar" ]; then
+		do_hide=0
+	elif [ "$1" = "--no-hiding-for-rebar" ]; then
+		do_hide=1
+	else
+		echo "  Error, invalid hiding option specified ('$1')." 1>&2
+		exit 10
+	fi
+
+	shift
+
+	if [ -n "$1" ]; then
+
+		if [ "$1" = "--verbose" ]; then
+			verbose=0
+		elif [ "$1" = "--no-verbose" ]; then
+			verbose=1
+		else
+			echo "  Error, invalid verbosity option specified ('$1')." 1>&2
+			exit 15
+		fi
+
+	fi
+
+fi
+
+
+if [ $do_hide -eq 0 ]; then
+
+	echo "(hiding of erl/hrl files will be performed to prevent spurious rebuilds by rebar)"
+
+elif [ $do_hide -eq 1 ]; then
+
+	echo "(no hiding of erl/hrl files will be performed to prevent spurious rebuilds by rebar)"
+
+fi
+
+
 # Sets following variables depending on context, project being either the actual
 # build target or just a (direct or not) dependency thereof:
 #

@@ -1,28 +1,28 @@
 #!/bin/sh
 
-usage="Usage: $(basename $0) PROJECT_NAME [VERBOSE_MODE:0|1]"
+usage="Usage: $(basename $0) PROJECT_NAME [--hiding-for-rebar|--no-hiding-for-rebar] [--verbose|--no-verbose]"
 
 # Removes the side effects in source tree of counterpart script
-# conf/fix-rebar-compile-pre-hook.sh.
-
-project_name="$1"
-
-# Not verbose by default (1):
-#verbose=1
-verbose=0
-
-if [ -n "$2" ]; then
-	verbose="$2"
-fi
+# conf/fix-rebar-compile-pre-hook.sh (refer to this script for most
+# information).
 
 
-if [ -z "${project_name}" ]; then
+helper_script="$(dirname $0)/fix-rebar-hook-helper.sh"
 
-	echo "  Error, project name not set." 1>&2
+if [ ! -f "${helper_script}" ]; then
 
-	exit 5
+	echo "  Error, helper script ('${helper_script}') not found." 1>&2
+
+	exit 8
 
 fi
+
+
+# Sets options:
+. "${helper_script}"
+
+
+# Hiding not relevant for post-hooks, do_hide currently ignored.
 
 
 echo

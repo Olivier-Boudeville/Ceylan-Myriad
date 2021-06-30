@@ -1,6 +1,6 @@
 #!/bin/sh
 
-usage="Usage: $(basename $0) PROJECT_NAME PERFORM_HIDING:0|1 [VERBOSE_MODE:0|1]"
+usage="Usage: $(basename $0) PROJECT_NAME [--hiding-for-rebar|--no-hiding-for-rebar] [--verbose|--no-verbose]"
 
 # Script defined for convenience and reliability.
 
@@ -23,62 +23,8 @@ usage="Usage: $(basename $0) PROJECT_NAME PERFORM_HIDING:0|1 [VERBOSE_MODE:0|1]"
 # because of X.beam files from a dependency being found not having their X.erl
 # counterpart due to hiding).
 #
-# So now hiding shall be selected on a per-project basis.
-
-
-project_name="$1"
-
-
-# Hiding enabled by default (0):
-do_hide=0
-#do_hide=1
-
-if [ -n "$2" ]; then
-	do_hide="$2"
-fi
-
-
-# Not verbose by default (1):
-#verbose=1
-verbose=0
-
-if [ -n "$3" ]; then
-	verbose="$3"
-fi
-
-
-# Checking now:
-
-if [ -z "${project_name}" ]; then
-
-	echo "  Error, project name not set." 1>&2
-
-	exit 5
-
-fi
-
-
-# Voluntary string check (user input):
-if [ ${do_hide} = "0" ]; then
-
-	echo "(hiding of build elements enabled)"
-
-elif [ ${do_hide} = "1" ]; then
-
-	echo "(hiding of build elements disabled)"
-
-else
-
-	echo "  Error, invalid hiding option specified (${do_hide})." 1>&2
-
-	exit 60
-
-fi
-
-
-
-echo
-echo "Fixing rebar pre-build for ${project_name}"
+# So now hiding shall be selected on a per-project basis. See HIDING_OPT in
+# GNUmakevars.inc for that.
 
 
 helper_script="$(dirname $0)/fix-rebar-hook-helper.sh"
@@ -91,7 +37,13 @@ if [ ! -f "${helper_script}" ]; then
 
 fi
 
+
+# Sets options:
 . "${helper_script}"
+
+
+echo
+echo "Fixing rebar pre-build for ${project_name}"
 
 
 # Sets following variables depending on context, project being either the actual

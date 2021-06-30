@@ -1386,6 +1386,17 @@ REBAR_DEBUG =
 #REBAR_DEBUG = DEBUG=1
 
 
+# See the 'rebar3-bulletproof-compile-pre-hook' for details:
+ifndef REBAR_HOOK_EXTRA_OPTS
+
+	# Default is to hide erl/hrl files once built, to avoid at least some
+	# spurious rebuilds done by rebar:
+	#
+	REBAR_HOOK_EXTRA_OPTS := --hiding-for-rebar --verbose
+
+endif
+
+
 # Relative to the usual root of this layer:
 ifndef MYRIAD_REBAR_BUILD_ROOT
 	MYRIAD_REBAR_BUILD_ROOT := _build
