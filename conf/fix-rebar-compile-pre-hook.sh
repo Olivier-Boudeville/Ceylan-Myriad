@@ -64,11 +64,24 @@ determine_build_context
 
 echo "  For ${project_name}, building all first, from $(pwd) (role: ${role}):"
 
-[ $verbose -eq 1 ] || make -s info-context
-
 # 'tree' may not be available:
-[ $verbose -eq 1 ] || tree ${tree_opts}
+if [ $verbose -eq 0 ]; then
 
+	make -s info-context
+
+	#echo "Pre-'make all' tree from $(pwd): "
+	#tree ${tree_opts}
+
+	if [ ${role} -eq ${normal_dependency_role} ]; then
+
+		#echo "Content of sibling ebin directories: $(/bin/ls ../*/ebin/*)"
+		dep_base_dir="$(realpath ..)"
+		echo "Full content found from the root of all sibling dependencies, ${dep_base_dir}, prior to the build of ${project_name}: "
+		tree ${tree_opts} "${dep_base_dir}"
+
+	fi
+
+fi
 
 make -s all #1>/dev/null
 
