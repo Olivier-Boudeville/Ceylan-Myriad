@@ -88,7 +88,7 @@ if ! make -s all; then
 
 	echo "  Error, build of ${project_name} failed." 1>&2
 
-	make info
+	make -s info
 
 	exit 10
 
