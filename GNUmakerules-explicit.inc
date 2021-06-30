@@ -283,8 +283,8 @@ ifeq ($(BASE_MAKEFILE),true)
 
 # For a better compliance to OTP conventions:
 copy-beams-to-ebin:
-	@echo "  Copying BEAM files to local ebin ($(pwd)/ebin)"
-	@mkdir -p ebin ; find src -name '*.beam' -exec /bin/cp -f '{}' ebin ';'
+	@echo "  Copying BEAM files to local ebin ($$(pwd)/ebin)"
+	@mkdir -p ebin; find src -name '*.beam' -exec /bin/cp -f '{}' ebin ';'
 
 
 # Installation section (in an ad-hoc way).
@@ -811,7 +811,7 @@ rebar3-hex-publish: rebar3-clean clean set-rebar-conf-for-hex rebar3-create-app-
 	@#/bin/cp -f doc/GNUmake* priv/hex-packaging/doc
 	-@/bin/rm -f rebar.lock 2>/dev/null
 	@$(REBAR_DEBUG) rebar3 hex publish
-	@cd src && to_rename=$$(for f in $(EXCLUDED_SOURCES); do find . -name "$$f-hidden"; done) && for f in $$to_rename; do /bin/mv -f $$f $$(echo $$f | sed 's|-hidden||1') ; done
+	@cd src && to_rename=$$(for f in $(EXCLUDED_SOURCES); do find . -name "$$f-hidden"; done) && for f in $$to_rename; do /bin/mv -f $$f $$(echo $$f | sed 's|-hidden||1'); done
 	@#/bin/rm -rf priv/
 	@/bin/rm -f src/$(PROJECT_NAME_FOR_REBAR).app.src
 	@$(MAKE) -s rebar3-clean rebar3-create-app-file set-rebar-conf
