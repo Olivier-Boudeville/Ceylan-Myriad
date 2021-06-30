@@ -141,7 +141,7 @@ if [ $fix_headers -eq 0 ]; then
 	# in that _build target tree (ex: just "updating then timestamps", for an
 	# increased safety):
 	#
-	if [ $role -eq $build_target_role ]; then
+	if [ ${role} -eq ${build_target_role} ]; then
 
 		# Due to symlinks to all actual headers having possibly been already
 		# created in local 'include' (projects not defining nested includes have
@@ -183,7 +183,7 @@ if [ $fix_headers -eq 0 ]; then
 
 	   done
 
-	elif [ $role -eq $normal_dependency_role ]; then
+	elif [ ${role} -eq ${normal_dependency_role} ]; then
 
 		# Here we are within the _build tree.
 
@@ -244,7 +244,7 @@ if [ $fix_headers -eq 0 ]; then
 
 	else
 
-		echo "(for role $role, nothing done with headers)"
+		echo "(for role ${role}, nothing done with headers)"
 
 	fi
 
@@ -292,7 +292,7 @@ if [ $fix_sources -eq 0 ]; then
 
 	all_srcs=$(find src test -name '*.erl' 2>/dev/null)
 
-	if [ $role -eq $build_target_role ]; then
+	if [ ${role} -eq ${build_target_role} ]; then
 
 		if [ $verbose -eq 0 ]; then
 			echo "   Copying all sources to ${target_src_dir} then hiding the original ones: ${all_srcs}"
@@ -312,7 +312,7 @@ if [ $fix_sources -eq 0 ]; then
 
 		done
 
-	elif [ $role -eq $normal_dependency_role ]; then
+	elif [ ${role} -eq ${normal_dependency_role} ]; then
 
 		# Preferring hiding to touching:
 		#if [ $verbose -eq 0 ]; then
@@ -327,6 +327,8 @@ if [ $fix_sources -eq 0 ]; then
 		#
 		#done
 
+		echo "   Hiding all sources from $(pwd): ${all_srcs}"
+
 		for f in ${all_srcs}; do
 
 			# To prevent rebar from even seeing them afterwards:
@@ -336,7 +338,7 @@ if [ $fix_sources -eq 0 ]; then
 
 	else
 
-		echo "(for role $role, nothing done with sources)"
+		echo "(for role ${role}, nothing done with sources)"
 
 	fi
 
