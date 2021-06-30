@@ -11,7 +11,9 @@ usage="Usage: $(basename $0) PROJECT_NAME [VERBOSE_MODE:0|1]"
 
 # Even if copying the right header/source/BEAM files with relevant timestamps,
 # in some cases, for some reason, rebar will still find it appropriate to try to
-# rebuild some of them. So we have to hide the corresponding sources as well...
+# rebuild at least some of them (ex: if a given project is a dependency common
+# to two other prerequisites). So we have to hide the corresponding sources as
+# well...
 
 project_name="$1"
 
@@ -201,7 +203,7 @@ if [ $fix_headers -eq 0 ]; then
 			/bin/cp -f "$f" "${target_inc_dir}/" #2>/dev/null
 
 			# To prevent rebar from even seeing them afterwards:
-			/bin/mv -f "$f" "$f-hidden"
+			#/bin/mv -f "$f" "$f-hidden"
 
 	   done
 
@@ -330,7 +332,7 @@ if [ $fix_sources -eq 0 ]; then
 			/bin/cp -f "$f" "${target_src_dir}/" #2>/dev/null
 
 			# To prevent rebar from even seeing them afterwards:
-			/bin/mv -f "$f" "$f-hidden"
+			#/bin/mv -f "$f" "$f-hidden"
 
 		done
 
@@ -354,7 +356,7 @@ if [ $fix_sources -eq 0 ]; then
 		for f in ${all_srcs}; do
 
 			# To prevent rebar from even seeing them afterwards:
-			/bin/mv -f "$f" "$f-hidden"
+			#/bin/mv -f "$f" "$f-hidden"
 
 		done
 
@@ -420,7 +422,7 @@ if [ $fix_beams -eq 0 ]; then
 		/bin/cp -f "$f" "${target_ebin_dir}/" #2>/dev/null
 
 		# To prevent rebar from even seeing them afterwards:
-		/bin/mv -f "$f" "$f-hidden"
+		#/bin/mv -f "$f" "$f-hidden"
 
 	done
 
