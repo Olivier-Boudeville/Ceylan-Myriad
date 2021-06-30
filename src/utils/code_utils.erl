@@ -696,8 +696,15 @@ get_beam_filename( ModuleName ) when is_atom( ModuleName ) ->
 % path.
 %
 % Returns either a list of its absolute, canonicalised, unordered paths (if
-% being available at least once), or 'not_found' (hence: this is not a boolean
-% return!).
+% being available at least once), or 'not_found'.
+%
+% Note:
+%
+%  - hence this function does not return a boolean
+%
+%  - the returned list (if any) of paths respects the order in the code path; as
+%  a result, its first element corresponds to the path containing the BEAM file
+%  that would be loaded for the specified module
 %
 -spec is_beam_in_path( module_name() ) -> 'not_found' | [ directory_path() ].
 is_beam_in_path( ModuleName ) when is_atom( ModuleName ) ->
@@ -918,7 +925,7 @@ get_location_from( StackInfo, FullPathsWanted ) ->
 			"";
 
 		_ ->
-			text_utils:format( " (warning: following stack information were "
+			text_utils:format( " (warning: following stack information was "
 							   "ignored: ~p)", [ LineLessInfo ] )
 
 	end,
@@ -963,7 +970,7 @@ interpret_error( ErrorTerm, Stacktrace=[
 		StackInfo={ _Module, _Function, _Arguments, InfoListTable } | _ ] ) ->
 
 	%trace_utils:debug_fmt( "interpret_error: Reason=~p, Stacktrace=~n ~p",
-	%					   [ Reason, Stacktrace ] ),
+	%						[ Reason, Stacktrace ] ),
 
 	case list_table:lookup_entry( error_info, InfoListTable ) of
 
@@ -983,7 +990,9 @@ interpret_error( ErrorTerm, Stacktrace=[
 			end;
 
 		key_not_found ->
-			"(no error_info set) " ++ stack_info_to_string( StackInfo )
+			% No extra information lies here:
+			%"(no error_info set) " ++ stack_info_to_string( StackInfo )
+			""
 
 	end.
 
@@ -1025,7 +1034,7 @@ error_map_to_string( ErrorMap, Reason ) ->
 
 		NumberedErrors ->
 			ErrorStrs = [ text_utils:format( "invalid argument #~B: ~ts",
-							 [ N, Diag ] ) || { N, Diag } <- NumberedErrors ],
+							[ N, Diag ] ) || { N, Diag } <- NumberedErrors ],
 
 			text_utils:format( "~ts due to: ~ts",
 				[ error_reason_to_string( Reason ),
