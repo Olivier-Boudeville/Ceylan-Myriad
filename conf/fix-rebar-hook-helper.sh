@@ -3,10 +3,15 @@
 #
 # As such it is not executable, as it is only meant to be sourced.
 
+tree_opts="-anh"
+
 
 build_target_role=1
 normal_dependency_role=2
+
+# Not used, at least currently:
 checkout_role=3
+
 
 
 # Sets following variables depending on context, project being either the actual

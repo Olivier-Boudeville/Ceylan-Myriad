@@ -123,7 +123,7 @@ if [ $verbose -eq 0 ]; then
 
 	echo "Final build result for ${project_name} from $(pwd):"
 
-	tree
+	tree ${tree_opts}
 
 	# To list paths:
 	#for d in $(/bin/ls -d _build/default/lib/*); do

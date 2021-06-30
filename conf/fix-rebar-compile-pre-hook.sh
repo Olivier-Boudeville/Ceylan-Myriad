@@ -67,19 +67,19 @@ echo "  For ${project_name}, building all first, from $(pwd) (role: ${role}):"
 [ $verbose -eq 1 ] || make -s info-context
 
 # 'tree' may not be available:
-[ $verbose -eq 1 ] || tree
+[ $verbose -eq 1 ] || tree ${tree_opts}
 
 
 make -s all #1>/dev/null
 
 
 # We used not to fix anything by default; now we do the opposite, and in all
-# cases (for all roles: build target or dependency):
+# cases (for all build roles: as the build target or as a dependency):
 
 
 # Actually needed apparently (even if they just copy a file onto itself, they at
 # least update its timestamp in the process, like a touch), otherwise another
-# silly attempt of rebuild will be done by rebar3:
+# unwise attempt of rebuild will be done by rebar3:
 #
 fix_sources=0
 
@@ -90,7 +90,8 @@ fix_beams=0
 
 
 
-echo "  Copying relevant build-related elements in the '${target_base_dir}' target tree."
+echo "  Securing relevant build-related elements in the '${target_base_dir}' target tree."
+
 
 # Transforming a potentially nested hierarchy (tree) into a flat directory:
 # (operation order matters, as it allows proper timestamp ordering for make)
@@ -103,10 +104,12 @@ echo "  Copying relevant build-related elements in the '${target_base_dir}' targ
 # any pre-existing target directory and replace it with a flat copy of our own.
 
 
+
 if [ $fix_headers -eq 0 ]; then
 
-	echo "   Fixing headers"
+	echo "   Fixing first headers"
 
+	# Either in _build tree or local:
 	target_inc_dir="${target_base_dir}/include"
 
 	if [ -L "${target_inc_dir}" ]; then
@@ -122,44 +125,103 @@ if [ $fix_headers -eq 0 ]; then
 
 	else
 
-		# This may happen when multiple attempts of build are performed:
+		# This may happen when multiple attempts of build are performed for a
+		# direct-build, or when being built as a dependency:
+		#
 		echo "(${target_inc_dir} directory already existing)"
 
-		echo "Warning: unexpected target ${target_inc_dir}: $(ls -l ${target_inc_dir})" 1>&2
+		#echo "Warning: unexpected target ${target_inc_dir}: $(ls -l ${target_inc_dir})" 1>&2
 
 		#exit 5
 
 	fi
 
-	# Due to symlinks to all actual headers having been already created in local
-	# 'include', we just copy *these* symlinks (i.e. their actual target) to the
-	# target rebar include directory - not *all* headers including the actual
-	# headers, as these will be hidden too, resulting in said symlinks to be
-	# dead and their copy to fail, with for example:
+	# For a direct build, we have to fix the _build/default/lib/ tree (i.e. to
+	# perform copies), but for a build-as-a-dependency, we are already located
+	# in that _build target tree (ex: just "updating then timestamps", for an
+	# increased safety):
 	#
-	# /bin/cp: cannot stat 'include/lazy_hashtable.hrl': No such file or
-	# directory
+	if [ $role -eq $build_target_role ]; then
 
-	# So:
-	#all_headers=$(find src test include -name '*.hrl' 2>/dev/null)
-	all_headers=$(/bin/ls include/*.hrl 2>/dev/null)
-
-	if [ $verbose -eq 0 ]; then
-		echo "    Copying all headers to ${target_inc_dir}: ${all_headers}"
-	else
-		echo "    Copying all headers to ${target_inc_dir}"
-	fi
-
-	for f in ${all_headers}; do
-
-		# We do not care if it is a copy of a file onto itself, a touch-like
-		# operation is anyway strictly needed (however a copy of a file to
-		# itself does not update its timestamp):
+		# Due to symlinks to all actual headers having possibly been already
+		# created in local 'include' (projects not defining nested includes have
+		# already their actual headers directly in the 'include' directory), we
+		# just copy *these* symlinks (i.e. their actual target) / these actual
+		# headers to the target rebar include directory - not *all* headers
+		# found from the local include, as this would include both versions
+		# (symlink and actual one being hidden) of headers, resulting in said
+		# symlinks to be dead and their copy to fail, with for example:
 		#
-		/bin/cp -f "$f" "${target_inc_dir}/" #2>/dev/null
-		/bin/mv -f "$f" "$f-hidden"
+		# /bin/cp: cannot stat 'include/lazy_hashtable.hrl': No such file or
+		# directory
 
-	done
+		# So:
+		#all_headers=$(find src test include -name '*.hrl' 2>/dev/null)
+		all_headers=$(/bin/ls include/*.hrl 2>/dev/null)
+
+		if [ $verbose -eq 0 ]; then
+			echo "    Copying all headers to ${target_inc_dir}: ${all_headers}"
+		else
+			echo "    Copying all headers to ${target_inc_dir}"
+		fi
+
+		for f in ${all_headers}; do
+
+			# We do not care if it is a copy of a file onto itself (should not
+			# be the case anymore), a touch-like operation is anyway strictly
+			# needed (however a copy of a file to itself does not update its
+			# timestamp).
+			#
+			# (copying a symlink this way copies the actual content that it
+			# references - we thus end up with a regular file in target
+			# directory - not a symlink)
+			#
+			/bin/cp -f "$f" "${target_inc_dir}/" #2>/dev/null
+
+			# To prevent rebar from even seeing them afterwards:
+			/bin/mv -f "$f" "$f-hidden"
+
+	   done
+
+	elif [ $role -eq $normal_dependency_role ]; then
+
+		# Here we are within the _build tree.
+
+		# Two possibilities:
+		#
+		# - just touching the headers already in place in this
+		# _build/[...]/include (yet touching a symlink touches the file it
+		# references, not the symlink itself whose timestamp remains)
+		#
+		# - or copying the actual ones found blindly (however, depending on the
+		# projects, some like Myriad define a nested include hierarchy with
+		# symlinks referencing them from 'include', whereas others just directly
+		# put all their headers directly in 'include')
+
+		# In this bulletproof version, we prefer copying to touching, and
+		# managing all cases (nested includes with symlinks / direct includes)
+		# by *copying* directly any nested includes found in 'include', then
+		# touching all headers directly in 'include' (whether they are new or
+		# not). So:
+
+		# Overwrite any symlinked header found directly in 'include' by its
+		# actual referenced content found in this tree:
+		#
+		all_nested_headers=$(find include/* -mindepth 1 -a -name '*.hrl')
+
+		# Possibly overwriting symlinks, or doing nothing:
+		echo "    Copying in $(pwd)/include all nested headers found: ${all_nested_headers}"
+		for f in ${all_nested_headers}; do /bin/cp -f "$f" include/; done
+
+		all_direct_headers=$(/bin/ls include/*.hrl 2>/dev/null)
+		echo "    Touching in $(pwd)/include all nested headers found: ${all_direct_headers}"
+		for f in ${all_direct_headers}; do touch "$f"; done
+
+	else
+
+		echo "(for role $role, nothing done with headers)"
+
+	fi
 
 else
 
@@ -171,7 +233,7 @@ fi
 
 if [ $fix_sources -eq 0 ]; then
 
-	echo "   Fixing sources"
+	echo "   Fixing then sources"
 
 	target_src_dir="${target_base_dir}/src"
 
@@ -197,23 +259,60 @@ if [ $fix_sources -eq 0 ]; then
 
 	fi
 
+	# For a direct build, we have to fix the _build/default/lib tree (i.e. to
+	# perform copies), but for a build-as-a-dependency, we are already in that
+	# target tree (just updating timestamps for an increased safety):
+
 	all_srcs=$(find src test -name '*.erl' 2>/dev/null)
 
-	if [ $verbose -eq 0 ]; then
-		echo "   Copying all sources to ${target_src_dir} then hiding the original ones: ${all_srcs}"
+	if [ $role -eq $build_target_role ]; then
+
+		if [ $verbose -eq 0 ]; then
+			echo "   Copying all sources to ${target_src_dir} then hiding the original ones: ${all_srcs}"
+		else
+			echo "   Copying all sources to ${target_src_dir} then hiding the original ones"
+		fi
+
+		for f in ${all_srcs}; do
+
+			# We do not care if it is a copy of a file onto itself, a touch-like
+			# operation is anyway strictly needed:
+			#
+			/bin/cp -f "$f" "${target_src_dir}/" #2>/dev/null
+
+			# To prevent rebar from even seeing them afterwards:
+			/bin/mv -f "$f" "$f-hidden"
+
+		done
+
+	elif [ $role -eq $normal_dependency_role ]; then
+
+		# Preferring hiding to touching:
+		#if [ $verbose -eq 0 ]; then
+		#    echo "    Touching all sources from $(pwd): ${all_srcs}"
+		#else
+		#    echo "    Touching all sources from $(pwd)"
+		#fi
+
+		#for f in ${all_srcs}; do
+		#
+		#    touch "$f"
+		#
+		#done
+
+		for f in ${all_srcs}; do
+
+			# To prevent rebar from even seeing them afterwards:
+			/bin/mv -f "$f" "$f-hidden"
+
+		done
+
 	else
-		echo "   Copying all sources to ${target_src_dir} then hiding the original ones"
+
+		echo "(for role $role, nothing done with sources)"
+
 	fi
 
-	for f in ${all_srcs}; do
-
-		# We do not care if it is a copy of a file onto itself, a touch-like
-		# operation is anyway strictly needed:
-		#
-		/bin/cp -f "$f" "${target_src_dir}/" #2>/dev/null
-		/bin/mv -f "$f" "$f-hidden"
-
-	done
 
 else
 
@@ -224,7 +323,7 @@ fi
 
 if [ $fix_beams -eq 0 ]; then
 
-	echo "   Fixing BEAMs"
+	echo "   Fixing finally BEAMs"
 
 	target_ebin_dir="${target_base_dir}/ebin"
 
@@ -245,16 +344,16 @@ if [ $fix_beams -eq 0 ]; then
 		# This may happen when multiple attempts of build are performed:
 		# (actually normal for ebin directories)
 
-		#echo "(${target_ebin_dir} directory already existing)"
+		echo "(${target_ebin_dir} directory already existing)"
 
 		#echo "Warning: unexpected target ${target_ebin_dir}: $(ls -l ${target_ebin_dir})" 1>&2
 
 		#exit 7
 
-		:
-
 	fi
 
+	# For BEAM files, the build role has not to be specifically managed
+	# (provided that target_ebin_dir is correct):
 
 	all_beams=$(find src test -name '*.beam' 2>/dev/null)
 
@@ -264,9 +363,14 @@ if [ $fix_beams -eq 0 ]; then
 		echo "    Copying all BEAM files to ${target_ebin_dir}"
 	fi
 
+	# target_ebin_dir always right here, always a copy (not a touch):
+
 	for f in ${all_beams}; do
 		/bin/cp -f "$f" "${target_ebin_dir}/" #2>/dev/null
+
+		# To prevent rebar from even seeing them afterwards:
 		/bin/mv -f "$f" "$f-hidden"
+
 	done
 
 else
@@ -276,7 +380,7 @@ else
 fi
 
 
-[ $verbose -eq 1 ] || (echo "Final content for ${project_name} from $(pwd):"; tree "${target_base_dir}")
+[ $verbose -eq 1 ] || (echo "Final content for ${project_name} from $(pwd):"; tree ${tree_opts} "${target_base_dir}")
 
 
 echo "Rebar pre-build fixed for ${project_name}."
