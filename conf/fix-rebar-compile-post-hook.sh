@@ -29,19 +29,6 @@ echo
 echo "Fixing rebar post-build for ${project_name}, from $(pwd)."
 
 
-helper_script="$(dirname $0)/fix-rebar-hook-helper.sh"
-
-if [ ! -f "${helper_script}" ]; then
-
-	echo "  Error, helper script ('${helper_script}') not found." 1>&2
-
-	exit 8
-
-fi
-
-. "${helper_script}"
-
-
 # Sets following variables depending on context, project being either the actual
 # build target or just a (direct or not) dependency thereof:
 #

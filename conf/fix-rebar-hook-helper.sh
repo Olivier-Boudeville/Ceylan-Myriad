@@ -13,7 +13,7 @@ normal_dependency_role=2
 checkout_role=3
 
 
-echo "Helper arguments: $*"
+#echo "Helper arguments: $*"
 
 
 # Automatic setting of options.
