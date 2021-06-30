@@ -101,7 +101,7 @@ if [ $do_name_back -eq 0 ]; then
 
 	for f in ${beams_to_rename}; do
 
-		corrected_f="$(echo $f | sed 's|\.beam-hidden$|.erl|1')"
+		corrected_f="$(echo $f | sed 's|\.beam-hidden$|.beam|1')"
 		/bin/mv -f "$f" "${corrected_f}"
 
 	done
