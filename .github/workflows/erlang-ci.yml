@@ -23,7 +23,7 @@ jobs:
         echo "Checking distribution and version"
         cat /etc/*-release
         # Actually does not look as an Ubuntu but a Debian:
-        #echo "## Listing repositories: $(cat /etc/apt/sources.list)"
+        echo "## Listing repositories: $(cat /etc/apt/sources.list)"
         #echo "## Updating packages (1/2)"
         #apt-get update
         #echo "## Installing add-apt-repository"
