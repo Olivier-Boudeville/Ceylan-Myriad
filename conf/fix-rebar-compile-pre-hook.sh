@@ -83,7 +83,16 @@ if [ $verbose -eq 0 ]; then
 
 fi
 
-make -s all #1>/dev/null
+
+if ! make -s all; then
+
+	echo "  Error, build of ${project_name} failed." 1>&2
+
+	make info
+
+	exit 10
+
+fi
 
 
 # We used not to fix anything by default; now we do the opposite, and in all
