@@ -42,6 +42,18 @@ fi
 . "${helper_script}"
 
 
+# Sets following variables depending on context, project being either the actual
+# build target or just a (direct or not) dependency thereof:
+#
+# - target_base_dir: the target base project directory where elements (notably
+# BEAM files) shall be produced
+#
+# - role: tells whether this project is the actual build target, a normal
+#  dependency or a checkout
+#
+determine_build_context
+
+
 do_name_back=0
 #do_name_back=1
 
@@ -61,7 +73,7 @@ if [ $do_name_back -eq 0 ]; then
 
 	headers_to_rename=$(find src test include -name '*.hrl-hidden')
 
-	[ $verbose -eq 1 ] || echo "Renaming back headers ${headers_to_rename}"
+	[ $verbose -eq 1 ] || echo "  Renaming back headers ${headers_to_rename}"
 
 	for f in ${headers_to_rename}; do
 
@@ -73,7 +85,7 @@ if [ $do_name_back -eq 0 ]; then
 
 	sources_to_rename=$(find src test -name '*.erl-hidden')
 
-	[ $verbose -eq 1 ] || echo "Renaming back sources ${sources_to_rename}"
+	[ $verbose -eq 1 ] || echo "  Renaming back sources ${sources_to_rename}"
 
 	for f in ${sources_to_rename}; do
 
@@ -85,7 +97,7 @@ if [ $do_name_back -eq 0 ]; then
 
 	beams_to_rename=$(find ebin -name '*.beam-hidden')
 
-	[ $verbose -eq 1 ] || echo "Renaming back BEAMs ${beams_to_rename}"
+	[ $verbose -eq 1 ] || echo "  Renaming back BEAMs ${beams_to_rename}"
 
 	for f in ${beams_to_rename}; do
 
@@ -102,23 +114,25 @@ if [ $do_name_back -eq 0 ]; then
 	make -s copy-beams-to-ebin
 
 	# Do the same for rebar3 conventions; hopefully sufficient:
-	/bin/cp -f ebin/* ${target_base_dir}/ebin
+	/bin/cp -f ebin/* "${target_base_dir}/ebin"
 
 fi
 
 
 if [ $verbose -eq 0 ]; then
 
-	echo "Result from $(pwd):"
+	echo "Final build result for ${project_name} from $(pwd):"
+
+	tree
 
 	# To list paths:
-	for d in $(/bin/ls -d _build/default/lib/*); do
+	#for d in $(/bin/ls -d _build/default/lib/*); do
 
-		echo " - in $d: "
-		/bin/ls -l "$d"
-		echo
+	#   echo " - in $d: "
+	#   /bin/ls -l "$d"
+	#   echo
 
-	done
+	#done
 
 fi
 
