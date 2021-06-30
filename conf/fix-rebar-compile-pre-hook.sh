@@ -125,7 +125,7 @@ if [ $fix_headers -eq 0 ]; then
 
 	else
 
-		# This may happen when multiple attempts of build are performed for a
+		# This may happen when multiple attempts of builds are performed for a
 		# direct-build, or when being built as a dependency:
 		#
 		echo "(${target_inc_dir} directory already existing)"
@@ -204,18 +204,43 @@ if [ $fix_headers -eq 0 ]; then
 		# touching all headers directly in 'include' (whether they are new or
 		# not). So:
 
+		cd include
+
 		# Overwrite any symlinked header found directly in 'include' by its
 		# actual referenced content found in this tree:
 		#
-		all_nested_headers=$(find include/* -mindepth 1 -a -name '*.hrl')
+		all_nested_headers=$(find * -mindepth 1 -a -name '*.hrl')
 
 		# Possibly overwriting symlinks, or doing nothing:
-		echo "    Copying in $(pwd)/include all nested headers found: ${all_nested_headers}"
-		for f in ${all_nested_headers}; do /bin/cp -f "$f" include/; done
+		echo "    Copying in $(pwd) all nested headers found: ${all_nested_headers}"
 
-		all_direct_headers=$(/bin/ls include/*.hrl 2>/dev/null)
-		echo "    Touching in $(pwd)/include all nested headers found: ${all_direct_headers}"
-		for f in ${all_direct_headers}; do touch "$f"; done
+		for f in ${all_nested_headers}; do
+
+			# To avoid errors like: "/bin/cp: 'maths/linear_2D.hrl' and
+			# 'linear_2D.hrl' are the same file", overwrite any symlink located
+			# at target path:
+
+			symlink_at_target="$(basename $f)"
+
+			if [ -h "${symlink_at_target}" ]; then
+				echo " (removing previously-existing include symlink ${symlink_at_target} at target)"
+				/bin/rm -f "${symlink_at_target}"
+
+			fi
+
+			/bin/cp -f "$f" .
+
+		done
+
+		all_direct_headers=$(/bin/ls *.hrl 2>/dev/null)
+		echo "    Touching in $(pwd) all nested headers found: ${all_direct_headers}"
+		for f in ${all_direct_headers}; do
+
+			touch "$f"
+
+		done
+
+		cd ..
 
 	else
 
@@ -250,10 +275,12 @@ if [ $fix_sources -eq 0 ]; then
 
 	else
 
-		# This may happen when multiple attempts of build are performed:
+		# This may happen when multiple attempts of builds are performed for a
+		# direct-build, or when being built as a dependency:
+		#
 		echo "(${target_src_dir} directory already existing)"
 
-		echo "Warning: unexpected target ${target_src_dir}: $(ls -l ${target_src_dir})" 1>&2
+		#echo "Warning: unexpected target ${target_src_dir}: $(ls -l ${target_src_dir})" 1>&2
 
 		#exit 6
 
