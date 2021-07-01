@@ -75,7 +75,7 @@
 % hooks rebar3 started to attempt such a failing rebuild, whereas with the base
 % hooks not).
 %
-% Now enabling them back to force in all cases fully correct hooks:
+% Not hiding Myriad build elements seems the way to go:
 {pre_hooks,  [ {compile, "make -s rebar3-bulletproof-compile-pre-hook REBAR_HOOK_EXTRA_OPTS='--no-hiding-for-rebar --verbose'"} ]}.
 {post_hooks, [ {compile, "make -s rebar3-bulletproof-compile-post-hook REBAR_HOOK_EXTRA_OPTS='--no-hiding-for-rebar --verbose'"} ]}.
 
