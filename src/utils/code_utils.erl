@@ -627,8 +627,11 @@ declare_beam_dirs_for_myriad() ->
 
 
 
-% @doc Returns a normalised, sorted list of directories in the current code path
-% (without duplicates).
+% @doc Returns a normalised, representation of the current code path, sorted in
+% alphabetical order (without duplicates).
+%
+% Note that the sorting is more convenient for inspection yet implies that the
+% actual lookup order through these directories is most probably different.
 %
 -spec get_code_path() -> code_path().
 get_code_path() ->
@@ -640,15 +643,25 @@ get_code_path() ->
 
 
 
-% @doc Returns a textual representation of the current code path.
+% @doc Returns a textual representation of the current code path, sorted in
+% alphabetical order.
+%
+% Note that the sorting is more convenient for inspection yet implies that the
+% actual lookup order through these directories is most probably different.
+%
 -spec get_code_path_as_string() -> ustring().
 get_code_path_as_string() ->
-	text_utils:format( "current code path is: ~ts",
+	text_utils:format( "current code path (in alphabetical order) is: ~ts",
 					   [ text_utils:strings_to_string( get_code_path() ) ] ).
 
 
 
-% @doc Returns a textual description of the current code path.
+% @doc Returns a textual description of the current code path, sorted in
+% alphabetical order.
+%
+% Note that the sorting is more convenient for inspection yet implies that the
+% actual lookup order through these directories is most probably different.
+%
 -spec code_path_to_string() -> ustring().
 code_path_to_string() ->
 	code_path_to_string( get_code_path() ).
@@ -668,6 +681,11 @@ code_path_to_string( CodePath ) ->
 % @doc Lists (in alphabetical order) all modules that exist in the current
 % code path, based on the BEAM files found.
 %
+% Note that the sorting is more convenient for inspection yet implies that,
+% should a BEAM file be listed more than once (then being available in multiple
+% paths), the actual version that would be selected by the VM cannot be
+% determined. See is_beam_in_path/1 for that.
+%
 -spec list_beams_in_path() -> [ module_name() ].
 list_beams_in_path() ->
 
@@ -682,7 +700,9 @@ list_beams_in_path() ->
 
 
 
-% @doc Returns the filename of the BEAM file corresponding to specified module.
+% @doc Returns the filename of the BEAM file corresponding to the specified
+% module.
+%
 -spec get_beam_filename( module_name() ) -> file_name().
 get_beam_filename( ModuleName ) when is_atom( ModuleName ) ->
 
@@ -775,6 +795,8 @@ get_stacktrace( SkipLastElemCount ) ->
 		throw( generate_stacktrace )
 
 	catch throw:generate_stacktrace:Stacktrace ->
+
+		%trace_utils:debug_fmt( "Got stacktrace: ~p", [ Stacktrace ] ),
 
 		% To remove the initial code_utils:get_stacktrace/0, by design at the
 		% top of the stack:
