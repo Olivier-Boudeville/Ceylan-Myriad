@@ -29,7 +29,7 @@
 
 % @doc Gathering of various facilities for <b>polygon</b> management.
 %
-% Coordinates are expected to be often integers, when used for rendering.
+% When used for rendering, coordinates are expected to be often integers.
 %
 % See `polygon_test.erl' for the corresponding test.
 %
@@ -160,7 +160,7 @@ get_smallest_enclosing_rectangle( Polygon ) ->
 
 
 
-% @doc Returns the area enclosed of the polygon, supposed to be
+% @doc Returns the (unsigned) area enclosed of the polygon, supposed to be
 % non-self-intersecting and having at least two vertices.
 %
 % Vertices can be listed clockwise or counter-clockwise.
@@ -217,7 +217,7 @@ is_convex( [ P={X,Y} | T ], _Previous={Xp,Yp}, _Sign=undefined ) ->
 
 	% Setting the first sign:
 	%trace_utils:debug_fmt( "initial: previous= ~w, next= ~w, sum=~w.~n",
-	%		   [ {Xp,Yp}, P, Xp*Y-X*Y ] ),
+	%						[ {Xp,Yp}, P, Xp*Y-X*Y ] ),
 
 	FirstSign = case Xp*Y-X*Yp of
 
@@ -234,22 +234,22 @@ is_convex( [ P={X,Y} | T ], _Previous={Xp,Yp}, _Sign=undefined ) ->
 
 is_convex( [ P={X,Y} | T ], _Previous={Xp,Yp}, Sign ) ->
 
-	%io:format( "iterated: previous= ~w, next= ~w, sum=~w.~n",
-	%		   [ {Xp,Yp}, P, Xp*Y-X*Yp ] ),
+	%trace_utils:debug_fmt( "Iteration points: previous= ~w, next= ~w, "
+	%                       "sum=~w.~n", [ {Xp,Yp}, P, Xp*Y-X*Yp ] ),
 
 	% Checking if still obtaining the same sign:
 	NewSign = case Xp*Y-X*Yp of
 
-				  PositiveSum when PositiveSum > 0 ->
-					  positive;
+		PositiveSum when PositiveSum > 0 ->
+			positive;
 
-				  _NegativeSum ->
-					  negative
+		 _NegativeSum ->
+			negative
 
-			  end,
+	end,
 
 	%trace_utils:debug_fmt( "Current sign: ~ts, new one: ~ts.~n",
-	%    [ Sign, NewSign ] ),
+	%                       [ Sign, NewSign ] ),
 
 	case NewSign of
 
@@ -361,7 +361,6 @@ render( Polygon, Canvas ) ->
 			end,
 
 			gui:draw_polygon( Canvas, Vertices ),
-
 
 			case Polygon#polygon.bounding_box of
 
