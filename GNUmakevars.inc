@@ -453,16 +453,24 @@ ifeq ($(USE_JSON),true)
 		# Actually not used, as decided at runtime rather than at compile time:
 		#JSON_OPT = -Duse_jsx_json_backend
 
-		JSX_BASE := $$HOME/Software/jsx/jsx-current-install
 
-		JSX_INSTALL_BASE := $(JSX_BASE)/_build/default/lib/jsx
+		# A rebar convention, if jsx is listed in rebar.config (and then is a
+		# sibling prerequisite of Myriad):
+		#
+		JSX_REBAR_BASE := $(MYRIAD_TOP)/../jsx
+		JSX_REBAR_INSTALL_BASE := $(JSX_REBAR_BASE)
+
+		# A convention of our own that one may want to respect:
+		JSX_SOFTWARE_BASE := $$HOME/Software/jsx/jsx-current-install
+		JSX_SOFTWARE_INSTALL_BASE := $(JSX_SOFTWARE_BASE)/_build/default/lib/jsx
 
 		# No includes for JSX:
-		#INC += -I$(JSX_INSTALL_BASE)/include
+		#INC += -I$(JSX_REBAR_INSTALL_BASE)/include -I$(JSX_SOFTWARE_INSTALL_BASE)/include
 
-		# ($(JSX_INSTALL_BASE)/ebin/*.beam found at runtime)
+		# ($(JSX_*_INSTALL_BASE)/ebin/*.beam found at runtime)
 
-		ABS_BEAM_DIRS += $(JSX_INSTALL_BASE)/ebin
+		BEAM_DIRS += $(JSX_REBAR_INSTALL_BASE)/ebin
+		ABS_BEAM_DIRS += $(JSX_SOFTWARE_INSTALL_BASE)/ebin
 
 	endif
 
@@ -528,7 +536,7 @@ ifeq ($(USE_SQLITE),true)
 
 	# ($(SQLITE3_BASE)/ebin/*.beam found at runtime)
 
-	ABS_BEAM_DIRS += $(SQLITE3_BASE)/ebin/
+	ABS_BEAM_DIRS += $(SQLITE3_BASE)/ebin
 
 endif
 
