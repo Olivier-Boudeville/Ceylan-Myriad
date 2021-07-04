@@ -345,6 +345,8 @@ all characters strictly before and strictly after the first occurrence of the
 marker (which thus is not kept).</td></tr>
 <tr><td valign="top"><a href="#split_at_whitespaces-1">split_at_whitespaces/1</a></td><td>Splits the specified string into a list of strings, using whitespaces as
  delimiters.</td></tr>
+<tr><td valign="top"><a href="#split_before_suffix-2">split_before_suffix/2</a></td><td>Splits the specified string before specified suffix and returns the 
+leading part, otherwise returns that the suffix was not found.</td></tr>
 <tr><td valign="top"><a href="#split_camel_case-1">split_camel_case/1</a></td><td>Splits the specified string, expected to be containing a word in 
 CamelCase, into a list of strings, based on the internal words (delimited by 
 uppercases, knowing a series of uppercase letters, except the last one, is 
@@ -1478,6 +1480,17 @@ marker (which thus is not kept).</p>
 <p> </p>
 </div><p>Splits the specified string into a list of strings, using whitespaces as
  delimiters.
+</p>
+
+<h3 class="function"><a name="split_before_suffix-2">split_before_suffix/2</a></h3>
+<div class="spec">
+<p><tt>split_before_suffix(Suffix::<a href="#type-ustring">ustring()</a>, String::<a href="#type-ustring">ustring()</a>) -&gt; <a href="#type-ustring">ustring()</a> | no_suffix</tt><br></p>
+<p> </p>
+</div><p><p>Splits the specified string before specified suffix and returns the 
+leading part, otherwise returns that the suffix was not found.</p>
+
+ Ex: split_before_suffix("baz.", "Foobar is baz.") returns "Foobar is ";
+ split_before_suffix("ABC", "Foobar is baz.") returns 'no_suffix'.
 </p>
 
 <h3 class="function"><a name="split_camel_case-1">split_camel_case/1</a></h3>

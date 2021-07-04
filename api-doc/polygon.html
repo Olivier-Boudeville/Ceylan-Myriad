@@ -15,7 +15,7 @@
 
 <h2><a name="description">Description</a></h2><p>Gathering of various facilities for <b>polygon</b> management.</p>
 
- <p>Coordinates are expected to be often integers, when used for rendering.</p>
+ <p>When used for rendering, coordinates are expected to be often integers.</p>
 
  See <code>polygon_test.erl</code> for the corresponding test.
 
@@ -34,7 +34,7 @@
 
 
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_area-1">get_area/1</a></td><td>Returns the area enclosed of the polygon, supposed to be 
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_area-1">get_area/1</a></td><td>Returns the (unsigned) area enclosed of the polygon, supposed to be 
 non-self-intersecting and having at least two vertices.</td></tr>
 <tr><td valign="top"><a href="#get_diameter-1">get_diameter/1</a></td><td>Returns a polygon diameter, ie two points in the polygon which are at the 
 maximum distance one of the other.</td></tr>
@@ -67,7 +67,7 @@ regard to the specified bounding-box request.</td></tr>
 <div class="spec">
 <p><tt>get_area(Polygon::<a href="#type-polygon">polygon()</a>) -&gt; <a href="linear.html#type-area">linear:area()</a></tt><br></p>
 <p> </p>
-</div><p><p>Returns the area enclosed of the polygon, supposed to be 
+</div><p><p>Returns the (unsigned) area enclosed of the polygon, supposed to be 
 non-self-intersecting and having at least two vertices.</p>
 
  <p>Vertices can be listed clockwise or counter-clockwise.</p>

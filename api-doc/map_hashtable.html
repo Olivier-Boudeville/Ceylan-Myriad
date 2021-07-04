@@ -136,8 +136,8 @@ hashtable.</td></tr>
 <tr><td valign="top"><a href="#get_all_values-2">get_all_values/2</a></td><td>Returns the (ordered) list of values that correspond to the specified 
 (ordered) list of keys of this table, ensuring that all entries in the 
 specified table have been read, otherwise throwing an exception.</td></tr>
-<tr><td valign="top"><a href="#get_value-2">get_value/2</a></td><td>Retrieves the value corresponding to specified (existing) key and returns 
-it directly.</td></tr>
+<tr><td valign="top"><a href="#get_value-2">get_value/2</a></td><td>Retrieves the value corresponding to the specified (existing) key, and 
+returns it directly.</td></tr>
 <tr><td valign="top"><a href="#get_value_with_defaults-3">get_value_with_defaults/3</a></td><td>Looks for specified entry in specified table and, if found, returns the
  associated value; otherwise returns the specified default value.</td></tr>
 <tr><td valign="top"><a href="#get_values-2">get_values/2</a></td><td>Returns the (ordered) list of values that correspond to the specified 
@@ -466,11 +466,11 @@ raised.</p>
 <div class="spec">
 <p><tt>get_value(Key::<a href="#type-key">key()</a>, MapHashtable::<a href="#type-map_hashtable">map_hashtable()</a>) -&gt; <a href="#type-value">value()</a></tt><br></p>
 <p> </p>
-</div><p><p>Retrieves the value corresponding to specified (existing) key and returns 
-it directly.</p>
+</div><p><p>Retrieves the value corresponding to the specified (existing) key, and 
+returns it directly.</p>
 
- The key/value pair is expected to exist already, otherwise an exception
- ({bad_key, Key}) is triggered.
+ The key/value pair is expected to exist already in the table, otherwise an
+ exception ({bad_key, Key}) is raised.
 </p>
 
 <h3 class="function"><a name="get_value_with_defaults-3">get_value_with_defaults/3</a></h3>
@@ -488,8 +488,8 @@ it directly.</p>
 </div><p><p>Returns the (ordered) list of values that correspond to the specified 
 (ordered) list of keys of this table.</p>
 
- <p>The key/value pairs are expected to exist already, otherwise an exception is 
-raised.</p>
+ <p>The key/value pairs are expected to exist already in the table, otherwise an 
+exception is raised.</p>
 
  Ex: [Color, Age, Mass] = map_hashtable:get_values( [color, age, mass],
                                                     MyMapTable ] )

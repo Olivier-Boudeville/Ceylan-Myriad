@@ -104,8 +104,8 @@ operations.</p>
 
 
 <h3 class="typedecl"><a name="type-error_term">error_term()</a></h3>
-<p><tt>error_term() = {error, <a href="#type-error_reason">error_reason()</a>}</tt></p>
-<p> A (tagged) error term.</p>
+<p><tt>error_term() = {error, <a href="#type-error_reason">error_reason()</a>} | term()</tt></p>
+<p> A (possibly tagged) error term. Ex: 'badarg'.</p>
 
 <h3 class="typedecl"><a name="type-error_tuploid">error_tuploid()</a></h3>
 <p><tt>error_tuploid(T) = <a href="type_utils.html#type-tuploid">type_utils:tuploid</a>(T)</tt></p>
@@ -127,6 +127,11 @@ atom (like 'invalid_password').</p>
 <h3 class="typedecl"><a name="type-exception_class">exception_class()</a></h3>
 <p><tt>exception_class() = throw | exit | error</tt></p>
 <p> The exception classes that can be raised.</p>
+
+<h3 class="typedecl"><a name="type-exception_term">exception_term()</a></h3>
+<p><tt>exception_term() = term()</tt></p>
+<p> Exception term corresponding to a corresponding bound pattern, as in:
+    catch ExceptionClass:ExceptionPattern:StackTrace -&gt;</p>
 
 <h3 class="typedecl"><a name="type-execution_context">execution_context()</a></h3>
 <p><tt>execution_context() = development | production</tt></p>

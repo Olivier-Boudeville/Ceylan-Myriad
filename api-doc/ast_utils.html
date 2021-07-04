@@ -146,6 +146,9 @@ AST, based on default preprocessor options.</td></tr>
 AST, based on specified preprocessor (eep) options.</td></tr>
 <tr><td valign="top"><a href="#file_loc_to_explicative_term-1">file_loc_to_explicative_term/1</a></td><td>Returns an explicative term (typically to be part of a thrown exception)
  corresponding to the specified in-file location.</td></tr>
+<tr><td valign="top"><a href="#file_loc_to_line_string-1">file_loc_to_line_string/1</a></td><td>Returns a textual, user-friendly description of specified in-file
+ location, just specifying the line (defined for the cases where a column would
+ not be especially useful, like when referencing a clause).</td></tr>
 <tr><td valign="top"><a href="#file_loc_to_string-1">file_loc_to_string/1</a></td><td>Returns a textual, user-friendly description of specified in-file
  location.</td></tr>
 <tr><td valign="top"><a href="#format_error-1">format_error/1</a></td><td>This function (whose name is standard, conventional) is to be defined on
@@ -392,6 +395,15 @@ AST, based on specified preprocessor (eep) options.</p>
  corresponding to the specified in-file location.
 </p>
 
+<h3 class="function"><a name="file_loc_to_line_string-1">file_loc_to_line_string/1</a></h3>
+<div class="spec">
+<p><tt>file_loc_to_line_string(Line::<a href="#type-file_loc">file_loc()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p> </p>
+</div><p>Returns a textual, user-friendly description of specified in-file
+ location, just specifying the line (defined for the cases where a column would
+ not be especially useful, like when referencing a clause).
+</p>
+
 <h3 class="function"><a name="file_loc_to_string-1">file_loc_to_string/1</a></h3>
 <div class="spec">
 <p><tt>file_loc_to_string(Line::<a href="#type-file_loc">file_loc()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
@@ -466,17 +478,18 @@ the specified term (often, a list of error elements).</p>
  <p>Used to be a simple throw, but then for parse transforms the error message was 
 garbled in messages like:</p>
 
- <p>""" 
-internal error in lint_module; 
-crash reason: function_clause</p>
+ <pre> internal error in lint_module;
+ crash reason: function_clause
 
-  <p>in function  erl_lint:'-compiler_options/1-lc$^0/1-0-'/1     
-called as erl_lint:'-compiler_options/1-lc$^0/1-0-'({ 
-table_type_defined_more_than_once,{line,12},foo_hashtable,bar_hashtable})</p>
+  in function  erl_lint:'-compiler_options/1-lc$^0/1-0-'/1
+     called as erl_lint:'-compiler_options/1-lc$^0/1-0-'({
+ table_type_defined_more_than_once,{line,12},foo_hashtable,bar_hashtable})</pre>
 
- Note:
- - this function is used to report errors detected by Myriad itself (not by the
- Erlang toolchain)
+ <p>Note:</p>
+
+ <p>- this function is used to report errors detected by Myriad itself (not by the 
+Erlang toolchain)</p>
+
  - prefer using raise_usage_error/* to report errors in a more standard,
  convenient way
 </p>
@@ -512,9 +525,11 @@ Erlang toolchain)</p>
 _OriginLayer="FooLayer") shall result in throwing {invalid_module_name, Other, 
 {line, 112}}.</p>
 
- Note:
- - this function is used to report errors detected by Myriad itself (not by the
- Erlang toolchain)
+ <p>Note:</p>
+
+ <p>- this function is used to report errors detected by Myriad itself (not by the 
+Erlang toolchain)</p>
+
  - prefer using raise_usage_error/* to report errors in a more standard,
  convenient way
 </p>
@@ -530,7 +545,7 @@ _OriginLayer="FooLayer") shall result in throwing {invalid_module_name, Other,
 
 <h3 class="function"><a name="raise_usage_error-4">raise_usage_error/4</a></h3>
 <div class="spec">
-<p><tt>raise_usage_error(ErrorFormatString::<a href="#type-format_string">format_string()</a>, ErrorValues::<a href="#type-format_values">format_values()</a>, Filename::<a href="#type-file_name">file_name()</a>, Line::<a href="#type-maybe">maybe</a>(<a href="#type-file_loc">file_loc()</a>)) -&gt; no_return()</tt><br></p>
+<p><tt>raise_usage_error(ErrorFormatString::<a href="#type-format_string">format_string()</a>, ErrorValues::<a href="#type-format_values">format_values()</a>, Filename::<a href="#type-file_name">file_name()</a>, FileLoc::<a href="#type-maybe">maybe</a>(<a href="#type-file_loc">file_loc()</a>)) -&gt; no_return()</tt><br></p>
 <p> </p>
 </div><p>Raises a (compile-time, relatively standard) user-related error, with
  specified source context, to stop the build on failure and report adequately

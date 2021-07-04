@@ -200,21 +200,24 @@ for polymorphic ones).</p>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#are_types_identical-2">are_types_identical/2</a></td><td>Tells whether the two specified types are the same (ie designate the same
  actual type, are aliases).</td></tr>
 <tr><td valign="top"><a href="#augment_tuploid-2">augment_tuploid/2</a></td><td>Augments the specified tuploid with specified term.</td></tr>
-<tr><td valign="top"><a href="#check_atom-1">check_atom/1</a></td><td>Checks that specified term is an atom indeed, and returns it.</td></tr>
-<tr><td valign="top"><a href="#check_binaries-1">check_binaries/1</a></td><td>Checks that specified term is a list of binaries indeed, and returns it.</td></tr>
-<tr><td valign="top"><a href="#check_binary-1">check_binary/1</a></td><td>Checks that specified term is a binary indeed, and returns it.</td></tr>
-<tr><td valign="top"><a href="#check_boolean-1">check_boolean/1</a></td><td>Checks that specified term is a boolean indeed, and returns it.</td></tr>
-<tr><td valign="top"><a href="#check_list-1">check_list/1</a></td><td>Checks that specified term is a list indeed, and returns it.</td></tr>
-<tr><td valign="top"><a href="#check_pid-1">check_pid/1</a></td><td>Checks that specified term is a PID indeed, and returns it.</td></tr>
-<tr><td valign="top"><a href="#check_tuple-1">check_tuple/1</a></td><td>Checks that specified term is a tuple indeed, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_atom-1">check_atom/1</a></td><td>Checks that the specified term is an atom indeed, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_binaries-1">check_binaries/1</a></td><td>Checks that the specified term is a list of binaries indeed, and returns
+ it.</td></tr>
+<tr><td valign="top"><a href="#check_binary-1">check_binary/1</a></td><td>Checks that the specified term is a binary indeed, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_boolean-1">check_boolean/1</a></td><td>Checks that the specified term is a boolean indeed, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_float-1">check_float/1</a></td><td>Checks that the specified term is a float indeed, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_integer-1">check_integer/1</a></td><td>Checks that the specified term is an integer indeed, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_list-1">check_list/1</a></td><td>Checks that the specified term is a list indeed, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_pid-1">check_pid/1</a></td><td>Checks that the specified term is a PID indeed, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_tuple-1">check_tuple/1</a></td><td>Checks that the specified term is a tuple indeed, and returns it.</td></tr>
 <tr><td valign="top"><a href="#description_to_type-1">description_to_type/1</a></td><td>Returns the actual type corresponding to specified type description: 
 parses the specified string to determine the type described therein.</td></tr>
-<tr><td valign="top"><a href="#ensure_binary-1">ensure_binary/1</a></td><td>Ensures that specified term is a binary string, and returns it.</td></tr>
-<tr><td valign="top"><a href="#ensure_boolean-1">ensure_boolean/1</a></td><td>Ensures that specified term is a boolean, and returns it.</td></tr>
-<tr><td valign="top"><a href="#ensure_float-1">ensure_float/1</a></td><td>Ensures that specified term is a float, and returns it.</td></tr>
-<tr><td valign="top"><a href="#ensure_integer-1">ensure_integer/1</a></td><td>Ensures that specified term is an integer, and returns it.</td></tr>
-<tr><td valign="top"><a href="#ensure_number-1">ensure_number/1</a></td><td>Ensures that specified term is a number, and returns it.</td></tr>
-<tr><td valign="top"><a href="#ensure_string-1">ensure_string/1</a></td><td>Ensures that specified term is a string, and returns it.</td></tr>
+<tr><td valign="top"><a href="#ensure_binary-1">ensure_binary/1</a></td><td>Ensures that the specified term is a binary string, and returns it.</td></tr>
+<tr><td valign="top"><a href="#ensure_boolean-1">ensure_boolean/1</a></td><td>Ensures that the specified term is a boolean, and returns it.</td></tr>
+<tr><td valign="top"><a href="#ensure_float-1">ensure_float/1</a></td><td>Ensures that the specified term is a float, and returns it.</td></tr>
+<tr><td valign="top"><a href="#ensure_integer-1">ensure_integer/1</a></td><td>Ensures that the specified term is an integer, and returns it.</td></tr>
+<tr><td valign="top"><a href="#ensure_number-1">ensure_number/1</a></td><td>Ensures that the specified term is a number, and returns it.</td></tr>
+<tr><td valign="top"><a href="#ensure_string-1">ensure_string/1</a></td><td>Ensures that the specified term is a string, and returns it.</td></tr>
 <tr><td valign="top"><a href="#get_ast_simple_builtin_types-0">get_ast_simple_builtin_types/0</a></td><td>Returns a list of the possible types for immediate values (typically 
 found in an AST like, like 'undefined' in: {atom,42,undefined}).</td></tr>
 <tr><td valign="top"><a href="#get_elementary_types-0">get_elementary_types/0</a></td><td>Returns a list of the elementary, "atomic" types.</td></tr>
@@ -273,43 +276,57 @@ augment_tuploid({foo, 42}, 2.0) = {foo, 42, 2.0}</p>
 <div class="spec">
 <p><tt>check_atom(Atom::term()) -&gt; atom()</tt><br></p>
 <p> </p>
-</div><p>Checks that specified term is an atom indeed, and returns it.</p>
+</div><p>Checks that the specified term is an atom indeed, and returns it.</p>
 
 <h3 class="function"><a name="check_binaries-1">check_binaries/1</a></h3>
 <div class="spec">
 <p><tt>check_binaries(Binaries::term()) -&gt; [binary()]</tt><br></p>
 <p> </p>
-</div><p>Checks that specified term is a list of binaries indeed, and returns it.</p>
+</div><p>Checks that the specified term is a list of binaries indeed, and returns
+ it.
+</p>
 
 <h3 class="function"><a name="check_binary-1">check_binary/1</a></h3>
 <div class="spec">
 <p><tt>check_binary(Binary::term()) -&gt; binary()</tt><br></p>
 <p> </p>
-</div><p>Checks that specified term is a binary indeed, and returns it.</p>
+</div><p>Checks that the specified term is a binary indeed, and returns it.</p>
 
 <h3 class="function"><a name="check_boolean-1">check_boolean/1</a></h3>
 <div class="spec">
 <p><tt>check_boolean(Other::term()) -&gt; atom()</tt><br></p>
 <p> </p>
-</div><p>Checks that specified term is a boolean indeed, and returns it.</p>
+</div><p>Checks that the specified term is a boolean indeed, and returns it.</p>
+
+<h3 class="function"><a name="check_float-1">check_float/1</a></h3>
+<div class="spec">
+<p><tt>check_float(Float::term()) -&gt; float()</tt><br></p>
+<p> </p>
+</div><p>Checks that the specified term is a float indeed, and returns it.</p>
+
+<h3 class="function"><a name="check_integer-1">check_integer/1</a></h3>
+<div class="spec">
+<p><tt>check_integer(Int::term()) -&gt; integer()</tt><br></p>
+<p> </p>
+</div><p>Checks that the specified term is an integer indeed, and returns it.</p>
 
 <h3 class="function"><a name="check_list-1">check_list/1</a></h3>
 <div class="spec">
 <p><tt>check_list(List::term()) -&gt; list()</tt><br></p>
 <p> </p>
-</div><p>Checks that specified term is a list indeed, and returns it.</p>
+</div><p>Checks that the specified term is a list indeed, and returns it.</p>
 
 <h3 class="function"><a name="check_pid-1">check_pid/1</a></h3>
 <div class="spec">
 <p><tt>check_pid(Pid::term()) -&gt; pid()</tt><br></p>
 <p> </p>
-</div><p>Checks that specified term is a PID indeed, and returns it.</p>
+</div><p>Checks that the specified term is a PID indeed, and returns it.</p>
 
 <h3 class="function"><a name="check_tuple-1">check_tuple/1</a></h3>
 <div class="spec">
 <p><tt>check_tuple(Tuple::term()) -&gt; tuple()</tt><br></p>
 <p> </p>
-</div><p>Checks that specified term is a tuple indeed, and returns it.</p>
+</div><p>Checks that the specified term is a tuple indeed, and returns it.</p>
 
 <h3 class="function"><a name="description_to_type-1">description_to_type/1</a></h3>
 <div class="spec">
@@ -326,19 +343,19 @@ parses the specified string to determine the type described therein.</p>
 <div class="spec">
 <p><tt>ensure_binary(S::term()) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
-</div><p>Ensures that specified term is a binary string, and returns it.</p>
+</div><p>Ensures that the specified term is a binary string, and returns it.</p>
 
 <h3 class="function"><a name="ensure_boolean-1">ensure_boolean/1</a></h3>
 <div class="spec">
 <p><tt>ensure_boolean(B::term()) -&gt; boolean()</tt><br></p>
 <p> </p>
-</div><p>Ensures that specified term is a boolean, and returns it.</p>
+</div><p>Ensures that the specified term is a boolean, and returns it.</p>
 
 <h3 class="function"><a name="ensure_float-1">ensure_float/1</a></h3>
 <div class="spec">
 <p><tt>ensure_float(N::number()) -&gt; float()</tt><br></p>
 <p> </p>
-</div><p><p>Ensures that specified term is a float, and returns it.</p>
+</div><p><p>Ensures that the specified term is a float, and returns it.</p>
 
  If it is an integer, will return a floating-point version of it.
 </p>
@@ -347,7 +364,7 @@ parses the specified string to determine the type described therein.</p>
 <div class="spec">
 <p><tt>ensure_integer(N::number()) -&gt; integer()</tt><br></p>
 <p> </p>
-</div><p><p>Ensures that specified term is an integer, and returns it.</p>
+</div><p><p>Ensures that the specified term is an integer, and returns it.</p>
 
  If it is a float, will return a truncated (integer) version of it.
 </p>
@@ -356,13 +373,13 @@ parses the specified string to determine the type described therein.</p>
 <div class="spec">
 <p><tt>ensure_number(N::number()) -&gt; number()</tt><br></p>
 <p> </p>
-</div><p>Ensures that specified term is a number, and returns it.</p>
+</div><p>Ensures that the specified term is a number, and returns it.</p>
 
 <h3 class="function"><a name="ensure_string-1">ensure_string/1</a></h3>
 <div class="spec">
 <p><tt>ensure_string(S::term()) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
-</div><p>Ensures that specified term is a string, and returns it.</p>
+</div><p>Ensures that the specified term is a string, and returns it.</p>
 
 <h3 class="function"><a name="get_ast_simple_builtin_types-0">get_ast_simple_builtin_types/0</a></h3>
 <div class="spec">
