@@ -46,6 +46,9 @@
 # Standard general rules:
 
 
+# We consider that, for tests, header files are to lie in the same (test)
+# directory as the corresponding sources:
+#
 %_test.beam: %_test.erl %_test.hrl
 	@echo "		Compiling test module with header $<"
 	@#echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) $(ERLANG_COMPILER_OPT_FOR_TESTS) -o $@ $<
@@ -59,7 +62,7 @@
 
 
 # You probably want to uncomment the next rule, not this one.
-%.beam: %.erl %.hrl
+%.beam: %.erl $(LAYER_TOP)/%.hrl
 	@echo "		Compiling standard module with header $<"
 	@#echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
 	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
