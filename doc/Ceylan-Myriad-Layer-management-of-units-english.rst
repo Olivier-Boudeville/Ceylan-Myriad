@@ -121,9 +121,9 @@ So one may use the following **built-in units**, whose symbol [#]_ is specified 
   - yocto, i.e. 10\ :superscript:`-24`\  [``y``]
 
 
- .. [#] To avoid requesting the user to type specific Unicode characters, we transliterated some of the symbols. For example, instead of using the capital Omega letter, we used ``Ohm``.
+.. [#] To avoid requesting the user to type specific Unicode characters, we transliterated some of the symbols. For example, instead of using the capital Omega letter, we used ``Ohm``.
 
- .. [#] We preferred here deviating a bit from the SI system, by using this non-prefixed unit (the *gram*) instead of the SI standard one, which happens to be the *kilogram*.
+.. [#] We preferred here deviating a bit from the SI system, by using this non-prefixed unit (the *gram*) instead of the SI standard one, which happens to be the *kilogram*.
 
 
 .. Note::
