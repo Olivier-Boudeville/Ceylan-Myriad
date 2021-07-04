@@ -361,7 +361,9 @@ BOOTSTRAP_INCLUDES := -I$(MYRIAD_TOP)/../../include/meta      \
 #
 # (for them, we do not force the corresponding variable here, in order to let
 # the upper layers be able to decide; if not, the defaults apply)
-
+#
+# We chose the USE_* variables to be set with '=' rather than with ':=' yet it
+# is not believed to really matter in this case.
 
 # For the reading and writing of large, often scientific-oriented data:
 #USE_HDF5 = false
@@ -429,12 +431,12 @@ ifeq ($(USE_JSON),true)
 
 	 # At least one parser backend shall then be selected:
 
-	# Default choice:
-	USE_JSX := true
-	#USE_JSX := false
+	# Default choice, should the JSON support be enabled:
+	USE_JSX = true
+	#USE_JSX = false
 
-	#USE_JIFFY := true
-	USE_JIFFY := false
+	#USE_JIFFY = true
+	USE_JIFFY = false
 
 	ifeq ($(USE_JSX),true)
 
@@ -507,7 +509,7 @@ ifeq ($(USE_JSON),true)
 	endif
 
 	ifeq ($(USE_JSX),false)
-		 ifeq ($(USE_JIFFY),false)
+		ifeq ($(USE_JIFFY),false)
 			$(error JSON use enabled, yet no corresponding backend selected.)
 		endif
 	endif
