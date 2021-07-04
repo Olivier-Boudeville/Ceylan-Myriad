@@ -106,7 +106,7 @@ h2 {
   font-size: 27px;
   background: transparent;
   text-align: left;
-  margin-top: 1%;
+  margin-top: 2%;
   margin-bottom: 1%;
 }
 
@@ -212,7 +212,7 @@ p {
 
 
 ul {
-  color: #353535;
+  /*color: #353535;*/
   margin-top: 0%;
   margin-bottom: 0%;
   margin-left: 1%;
@@ -223,7 +223,7 @@ ul {
 
 
 ol {
-  color: #353535;
+  /*color: #353535;*/
   margin-top: 0%;
   margin-left: 1%;
   text-align: left;
@@ -233,7 +233,7 @@ ol {
 
 
 ul li {
-  color: #333333;
+  /*color: #333333;*/
   margin-top: 0%;
   margin-bottom: 0%;
   margin-left: 0%;
@@ -242,7 +242,7 @@ ul li {
 
 
 ol li {
-  color: #333333;
+  /*color: #333333;*/
   margin-top: 0%;
   margin-bottom: 0%;
   margin-left: 0%;
