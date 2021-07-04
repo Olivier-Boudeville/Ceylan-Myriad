@@ -1,12 +1,12 @@
 :raw-latex:`\pagebreak`
 
+-------------------
 ``Myriad`` Gotchas
-==================
-
+-------------------
 
 
 Header dependencies
--------------------
+==================
 
 Only a very basic dependency between header files (``*.hrl``) and implementation files (``*.erl``) is managed.
 
@@ -17,7 +17,7 @@ Typically, when in doubt after having modified a record in a header file, just r
 
 
 About the ``table`` module
---------------------------
+==========================
 
 This is a pseudo module, which is not meant to exist as such (no ``table.erl``, no ``table.beam``).
 
@@ -27,7 +27,7 @@ The ``Myriad`` parse transform replaces references to the ``table`` module by re
 
 
 Enabling the Interconnection of Erlang nodes
---------------------------------------------
+============================================
 
 This is not a Myriad gotcha per se, but rather an Erlang one.
 
@@ -36,7 +36,7 @@ Way too often, for obscure reasons Erlang nodes fail to connect to each other (e
 
 
 Safety Measures
-...............
+---------------
 
 In order to maximise the chances that nodes are able to ``net_adm:ping/1`` successfully each other:
 
@@ -59,7 +59,7 @@ provided of course that, still in that file, you have not also a declaration suc
 
 
 Testing & Troubleshooting
-.........................
+-------------------------
 
 In order to **quick-check** whether long-name connectivity is available and to rule out the most obvious culprits, open two terminals.
 

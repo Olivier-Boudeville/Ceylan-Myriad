@@ -249,9 +249,11 @@ Then, from the root of a Myriad clone, to obtain the Ceylan-Myriad library *appl
 
  $ make rebar3-application
 
-It will trigger ``rebar3``, resulting [#]_ in a full, OTP-compliant build tree created in ``_build`` (including a properly-generated ``_build/default/lib/myriad/ebin/myriad.app`` file), and more generally in a proper OTP application.
+It will trigger ``rebar3``, resulting in a full, OTP-compliant build tree created in ``_build`` (including a properly-generated ``_build/default/lib/myriad/ebin/myriad.app`` file), and more generally in a proper OTP application [#]_.
 
-.. [#] The operation was previously done through a rebar pre-compile hook, so that the our native build system could be relied upon before injecting the produced BEAMs into rebar's ``_build`` tree. Because of extraneous, failing recompilations being triggered by rebar, now we rely on a build system parallel to - and directly inspired by - our native one, directly done from within rebar (once properly triggered by our user-oriented Make targets).
+A full, autonomous, functional by design build procedure can be also found in Myriad's `continuous integration <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/.github/workflows/erlang-ci.yml>`_ script.
+
+.. [#] The rebar-based build relies, thanks to {pre,post}-compile hooks, on our native build system. Because of extraneous, failing recompilations being nevertheless triggered by rebar, we had to introduce bullet-proof hooks (refer to `1 <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/fix-rebar-compile-pre-hook.sh>`_, `2 <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/fix-rebar-compile-post-hook.sh>`_).
 
 
 Testing Ceylan-Myriad

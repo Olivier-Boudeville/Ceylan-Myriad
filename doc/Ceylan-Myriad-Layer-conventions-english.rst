@@ -2,13 +2,15 @@
 
 .. _`main conventions`:
 
-
+---------------------------
 ``Myriad`` Main Conventions
-===========================
+---------------------------
+
+We list here the conventions of all sorts that the Myriad code (base or contributed one) - and also code in the software stack based on it - shall obey.
 
 
 Text Conventions
-----------------
+================
 
 The purpose here is to ensure a sufficient **code homogeneity**; for example in all source files are in such a "canonical form", analysing their differences (``diff``) is made simpler.
 
@@ -48,7 +50,7 @@ All elements of documentation should be written in English, possibly translated 
 
 
 Coding Practices
-----------------
+================
 
 In terms of coding style, we would like that the sources remain as uniform as possible, regarding naming, spacing, code/comments/blank line ratios.
 
@@ -115,12 +117,12 @@ The most obvious conventions are:
 
 - regarding the in-code management of **text**:
 
- - if a text is to be rather static (constant) and/or if it is to be exchanged between processes, then it should be a UTF8 ``binary``, and its type shall be declared as ``text_utils:bin_string()``
- - other, a plain string (``text_utils:ustring()``) shall be used
+  - if a text is to be rather static (constant) and/or if it is to be exchanged between processes, then it should be a UTF8 ``binary``, and its type shall be declared as ``text_utils:bin_string()``
+  - other, a plain string (``text_utils:ustring()``) shall be used
 
 - when defining a non-trivial datastructure, a **record** shall be used (rather than, say, a mere ad-hoc tuple or a map of undocumented structure...), a corresponding **type** should be then defined (ex: a ``foobar`` record leading to a ``foobar()`` type), and a **function to describe it** as text shall be provided (ex: ``-spec foobar_to_string(foobar()) -> text_utils:string()``)
 
- - **mute variables** should be used as well to document actual parameters; for example ``f(3,7,10)`` could preferably be written as a clearer ``f(_Min=3,_Max=7,_Deviation=10)``
+  - **mute variables** should be used as well to document actual parameters; for example ``f(3,7,10)`` could preferably be written as a clearer ``f(_Min=3,_Max=7,_Deviation=10)``
 
 
 .. Note:: Mute variables are however actually bound, thus if for example there is in the same scope ``_Min=3`` and later ``_Min=4``, then a badmatch will be triggered at runtime; therefore names of mute variables should be generally kept unique in a given scope.
@@ -132,7 +134,7 @@ As not all typos may be detected at compilation-time (ex: wrong spelling for a m
 
 
 Execution Targets
------------------
+=================
 
 Two execution target modes have been defined:
 
@@ -151,8 +153,29 @@ This function shall be compiled once per layer to be accurate, in one of its mod
 
 
 
+Geometric Conventions
+=====================
+
+:raw-html:`<center><img src="myriad-space-time-referential.png" id="responsive-image-tiny"></img></center>`
+:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=1]{myriad-space-time-referential.png} \end{figure}`
+
+For **space** coordinates, three axes are defined for a global referential:
+
+- abscissa: X axis (in red, ``#FF0000``)
+- ordinate: Y axis (in green, ``#008000``)
+- depth: Z axis (in blue, ``#0000FF``)
+
+For each of them, generally ``1.0`` corresponds to 1 meter, otherwise to 1 `light-second <https://en.wikipedia.org/wiki/Light-second>`_ (i.e. roughly 300 000 km [#]_).
+
+.. [#] Then for more human-sized distances, a scale of one light-nanosecond (10^-9 second) might be more convenient, as it corresponds almost to 30 cm.
+
+For **time** coordinate, a single axis is defined for a global referential: the T axis (in yellow, ``#F6DE2D``), for which ``1.0`` corresponds to 1 second.
+
+
+
+
 Other Conventions
------------------
+=================
 
 - for clarity, we tend to use longer variable names, in CamelCase
 - we tend to use mute variables to clarify meanings and intents, as in ``_Acc=[]`` (beware, despite being muted, any variable in scope that bears the same name will be matched), ``Acc`` designating accumulators

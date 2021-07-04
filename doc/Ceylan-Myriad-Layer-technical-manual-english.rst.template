@@ -6,6 +6,12 @@
 .. comment stylesheet specified through GNUmakefile
 
 
+
+===============================================
+Technical Manual of the ``Ceylan-Myriad`` Layer
+===============================================
+
+
 .. role:: raw-html(raw)
    :format: html
 
@@ -22,11 +28,6 @@
 :raw-html:`<center><img src="myriad-title.png" id="responsive-image-small"></img></center>`
 :raw-latex:`\centering \includegraphics[scale=0.15]{myriad-title.png}`
 
-
-
-===============================================
-Technical Manual of the ``Ceylan-Myriad`` Layer
-===============================================
 
 
 :Organisation: Copyright (C) 2008-GENERATION_YEAR_TAG Olivier Boudeville
