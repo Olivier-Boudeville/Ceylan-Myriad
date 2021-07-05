@@ -25,7 +25,7 @@ Technical Manual of the ``Ceylan-Myriad`` Layer
 
 
 
-:raw-html:`<center><img src="myriad-title.png" id="responsive-image-small"></img></center>`
+:raw-html:`<center><img src="myriad-title.png" id="responsive-image-small"></img>`
 :raw-latex:`\centering \includegraphics[scale=0.15]{myriad-title.png}`
 
 
@@ -48,6 +48,7 @@ Technical Manual of the ``Ceylan-Myriad`` Layer
 .. meta::
    :keywords: Myriad, generic, general-purpose, helper code, library, layer
 
+:raw-html:`</center>`
 
 
 The latest version of this documentation is to be found at the `official Ceylan-Myriad website <http://myriad.esperide.org>`_ (``http://myriad.esperide.org``).
