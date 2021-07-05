@@ -435,6 +435,12 @@ blockquote pre {
 }
 
 
+#responsive-image-reduced {
+	width: 32%;
+	height: auto;
+}
+
+
 #responsive-image-small {
 	width: 25%;
 	height: auto;
@@ -506,8 +512,8 @@ code {
 	font-size: 17px;
 	font-weight: normal;
 	font-family: Courier, serif;
-	background: #00FF00;
 	/* disabled:
+	background: #00FF00;
 	border-left-style: solid;
 	border-left-width: 3px;
 	border-right-style: none;
@@ -529,7 +535,7 @@ b {
 div.banner {
 	background: #00FF00;
 	margin: 0;
-	font-size: 65%;
+	font-size: 70%;
 	font-weight: bold;
 	line-height: 1.0;
 	text-align: center;
