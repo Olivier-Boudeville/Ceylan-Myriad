@@ -359,7 +359,7 @@ div.sidebar {
 tr {
 	font-family: arial, helvetica, sans-serif;
 	font-size: 15px;
-	border:thin;
+	border: thin;
 }
 
 
@@ -397,6 +397,7 @@ blockquote pre {
 	margin-right: 1%;
 }
 
+
 /* For code snippets in blockquotes: */
 
 .line {
@@ -431,6 +432,12 @@ blockquote pre {
 
 #responsive-image-medium {
 	width: 40%;
+	height: auto;
+}
+
+
+#responsive-image-reduced {
+	width: 32%;
 	height: auto;
 }
 
@@ -506,8 +513,8 @@ code {
 	font-size: 17px;
 	font-weight: normal;
 	font-family: Courier, serif;
-	background: #00FF00;
 	/* disabled:
+	background: #00FF00;
 	border-left-style: solid;
 	border-left-width: 3px;
 	border-right-style: none;
@@ -527,7 +534,7 @@ b {
 /* Taken from http://www.w3.org/Style/Examples/007/menus.html */
 
 div.banner {
-	background: #00FF00;
+	/*background: #00FF00;*/
 	margin: 0;
 	font-size: 65%;
 	font-weight: bold;
@@ -542,10 +549,10 @@ div.banner {
 
 
 div.banner p {
-	color: #00FF00;
+	/*color: #00FF00;*/
 	background: #33488a;
 	margin-left: 0em;
-	padding:    0em;
+	padding: 0em;
 	font-family: Arial, sans-serif;
 	border: thin outset #000000;
 	margin-top: 0%;
@@ -555,11 +562,11 @@ div.banner p {
 }
 
 
-div.banner a, div.banner em { display: block; margin: 0em; }
+div.banner a, div.banner em { display: block; margin-top: 1px; margin-bottom: 1px; }
 div.banner a, div.banner em { border-top: 1px groove #EEEEEE; text-indent: 10px; } /* separator */
 div.banner a:first-child { border-top: none; }
 div.banner em { color: #FFFFFF; font-weight: bold; } /* head of column */
 
-div.banner a:link { color: #EEEEEE; text-decoration: none;    }
-div.banner a:visited { color: #CCCCCC; text-decoration: none;    }
-div.banner a:hover { color: #000000; background: #FFFFFF;    }
+div.banner a:link { color: #EEEEEE; text-decoration: none; }
+div.banner a:visited { color: #CCCCCC; text-decoration: none; }
+div.banner a:hover { color: #000000; background: #FFFFFF; }
