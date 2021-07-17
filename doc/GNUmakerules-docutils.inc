@@ -3,7 +3,7 @@
 
 
 
-.PHONY: doc doc-recurse info info-doc-local full-doc                           \
+.PHONY: doc doc-recurse info info-doc-tools info-doc-settings local full-doc   \
  create-doc create-html-doc create-pdf-doc full-html full-pdf regenerate-doc   \
  local-doc local-html local-pdf                                                \
  make-doc-repository create-local-referential view-doc to-print check-dot      \
@@ -231,16 +231,8 @@ clean-links:
 	-@/bin/rm -f index.html
 
 
-info-doc: info-doc-local info-doc-tools
-
-
-info-doc-local:
-	@echo "OVERALL_DOCUMENT_SOURCE = $(OVERALL_DOCUMENT_SOURCE)"
-	@echo "OVERALL_DOCUMENT_HTML_TARGET = $(OVERALL_DOCUMENT_HTML_TARGET)"
-	@echo "OVERALL_DOCUMENT_PDF_TARGET = $(OVERALL_DOCUMENT_PDF_TARGET)"
-	@echo "PRINT_SERVER = $(PRINT_SERVER)"
-	@echo "WEB_CONTENT = $(WEB_CONTENT)"
-
+# Not info-doc-local, as always left blank so that it can be defined:
+info-doc: info-doc-tools info-doc-settings
 
 info-doc-tools:
 	@echo "RST_GENERATOR = $(RST_GENERATOR)"
@@ -250,6 +242,14 @@ info-doc-tools:
 	@echo "IMG_VIEWER = $(IMG_VIEWER)"
 	@echo "IMAGE_MAGICK = $(IMAGE_MAGICK)"
 	@echo "PDF_VIEWER = $(PDF_VIEWER)"
+
+
+info-doc-settings:
+	@echo "OVERALL_DOCUMENT_SOURCE = $(OVERALL_DOCUMENT_SOURCE)"
+	@echo "OVERALL_DOCUMENT_HTML_TARGET = $(OVERALL_DOCUMENT_HTML_TARGET)"
+	@echo "OVERALL_DOCUMENT_PDF_TARGET = $(OVERALL_DOCUMENT_PDF_TARGET)"
+	@echo "PRINT_SERVER = $(PRINT_SERVER)"
+	@echo "WEB_CONTENT = $(WEB_CONTENT)"
 
 
 
