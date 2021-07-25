@@ -867,14 +867,14 @@ is_timestamp( _Other ) ->
 
 
 
-% @doc Checks that specified term is a timestamp indeed.
--spec check_timestamp( timestamp() ) -> void().
+% @doc Checks that specified term is a timestamp indeed, and returns it.
+-spec check_timestamp( timestamp() ) -> timestamp().
 check_timestamp( Term ) ->
 
 	case is_timestamp( Term ) of
 
 		true ->
-			ok;
+			Term;
 
 		false ->
 			throw( { not_a_timestamp, Term } )
@@ -884,16 +884,16 @@ check_timestamp( Term ) ->
 
 
 % @doc Checks that specified term is a maybe-timestamp indeed.
--spec check_maybe_timestamp( maybe( timestamp() ) ) -> void().
-check_maybe_timestamp( _Term=undefined ) ->
-	ok;
+-spec check_maybe_timestamp( maybe( timestamp() ) ) -> maybe( timestamp() ).
+check_maybe_timestamp( Term=undefined ) ->
+	Term;
 
 check_maybe_timestamp( Term ) ->
 
 	case is_timestamp( Term ) of
 
 		true ->
-			ok;
+			Term;
 
 		false ->
 			throw( { not_a_maybe_timestamp, Term } )
@@ -1298,15 +1298,16 @@ get_duration_since( StartTimestamp ) ->
 
 
 
-% @doc Returns an (english) textual description of the duration between the two
-% specified timestamps.
+% @doc Returns an (english), smart textual description of the duration between
+% the two specified timestamps, using the first one as starting time and the
+% second one as stopping time.
 %
 -spec get_textual_duration( timestamp(), timestamp() ) -> ustring().
 get_textual_duration( FirstTimestamp, SecondTimestamp ) ->
 
 	% As duration_to_string/1 is smarter:
-	% { Days, { Hour, Minute, Second } } = calendar:seconds_to_daystime(
-	%   get_duration( FirstTimestamp, SecondTimestamp ) ),
+	% {Days, {Hour, Minute, Second}} = calendar:seconds_to_daystime(
+	%   get_duration(FirstTimestamp, SecondTimestamp)),
 
 	%lists:flatten( io_lib:format( "~B day(s), ~B hour(s), ~B minute(s) "
 	%  "and ~B second(s)", [ Days, Hour, Minute, Second ] ) ).
@@ -1319,7 +1320,8 @@ get_textual_duration( FirstTimestamp, SecondTimestamp ) ->
 
 
 % @doc Returns a textual description, in French, of the duration between the two
-% specified timestamps.
+% specified timestamps, using the first one as starting time and the
+% second one as stopping time.
 %
 -spec get_french_textual_duration( timestamp(), timestamp() ) -> ustring().
 get_french_textual_duration( FirstTimestamp, SecondTimestamp ) ->
