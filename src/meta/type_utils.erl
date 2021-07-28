@@ -524,7 +524,7 @@
 % (cannot use our extended types here)
 -type maybe( T ) :: T | 'undefined'.
 
- 
+
 
 % @doc Returns the actual type corresponding to specified type description:
 % parses the specified string to determine the type described therein.
