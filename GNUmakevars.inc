@@ -125,12 +125,15 @@ endif
 #	 handled
 #  - web_exchanges: http/https exchanges
 #  - strings: notably for mismatches between plain and binary ones
+#  - registration: regarding naming registering
 #
 # Defining debug flags (at least the most verbose are by default commented-out):
 ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_code_path
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_otp_integration
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_web_exchanges
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_strings
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_registration
 endif
 
 # Defining check flags:
