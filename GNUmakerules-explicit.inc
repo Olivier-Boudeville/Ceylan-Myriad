@@ -1111,7 +1111,7 @@ info-source-layout:
 
 
 info: info-files
-	@echo "HOSTNAME               = $(HOSTNAME)"
+	@echo "HOSTNAME_FOR_NODE      = $(HOSTNAME_FOR_NODE)"
 	@echo "BEAM_DIRS              = $(BEAM_DIRS)"
 	@echo "BEAM_PATH_OPT          = $(BEAM_PATH_OPT)"
 	@echo "ARCHIVE_FILE           = $(ARCHIVE_FILE)"
