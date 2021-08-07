@@ -380,6 +380,14 @@ directly along the text (not one item per line), according to specified
 <tr><td valign="top"><a href="#strings_to_sorted_string-2">strings_to_sorted_string/2</a></td><td>Returns a string that pretty-prints specified list of strings (actually,
  any element that can be processed with ~ts will do; ex: atoms) once reordered,
  with user-specified indentation level or bullet.</td></tr>
+<tr><td valign="top"><a href="#strings_to_spaced_string-1">strings_to_spaced_string/1</a></td><td>Returns a plain string that pretty-prints specified list of strings
+ (actually the list may contain also binary strings), with default bullets and
+ a blank line before each top-level entry in order to better space them, for an
+ increased readability.</td></tr>
+<tr><td valign="top"><a href="#strings_to_spaced_string-2">strings_to_spaced_string/2</a></td><td>Returns a string that pretty-prints specified list of strings (actually, 
+any element that can be processed with ~ts will do; ex: atoms), with 
+user-specified bullets or indentation level, and a blank line before each 
+top-level entry in order to better space them, for an increased readability.</td></tr>
 <tr><td valign="top"><a href="#strings_to_string-1">strings_to_string/1</a></td><td>Returns a plain string that pretty-prints specified list of strings
  (actually the list may contain also binary strings), with default bullets.</td></tr>
 <tr><td valign="top"><a href="#strings_to_string-2">strings_to_string/2</a></td><td>Returns a string that pretty-prints specified list of strings (actually, 
@@ -1681,6 +1689,29 @@ strings_to_listed_string( _Strings=[] ) -&gt;
 </div><p>Returns a string that pretty-prints specified list of strings (actually,
  any element that can be processed with ~ts will do; ex: atoms) once reordered,
  with user-specified indentation level or bullet.
+</p>
+
+<h3 class="function"><a name="strings_to_spaced_string-1">strings_to_spaced_string/1</a></h3>
+<div class="spec">
+<p><tt>strings_to_spaced_string(Strings::[<a href="#type-any_string">any_string()</a>]) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p> </p>
+</div><p>Returns a plain string that pretty-prints specified list of strings
+ (actually the list may contain also binary strings), with default bullets and
+ a blank line before each top-level entry in order to better space them, for an
+ increased readability.
+</p>
+
+<h3 class="function"><a name="strings_to_spaced_string-2">strings_to_spaced_string/2</a></h3>
+<div class="spec">
+<p><tt>strings_to_spaced_string(Strings::[<a href="#type-ustring">ustring()</a>], IndentationOrBullet::<a href="#type-indentation_level_or_bullet">indentation_level_or_bullet()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns a string that pretty-prints specified list of strings (actually, 
+any element that can be processed with ~ts will do; ex: atoms), with 
+user-specified bullets or indentation level, and a blank line before each 
+top-level entry in order to better space them, for an increased readability.</p>
+
+ This can be a solution to nest bullet lists, by specifying a bullet with an
+ offset, such as " * ".
 </p>
 
 <h3 class="function"><a name="strings_to_string-1">strings_to_string/1</a></h3>

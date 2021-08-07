@@ -96,7 +96,9 @@ external viewer.</td></tr>
 <tr><td valign="top"><a href="#generate_png_from_graph_file-3">generate_png_from_graph_file/3</a></td><td>Generates a PNG image file from specified graph file, that must respect 
 the dot (graphviz) syntax.</td></tr>
 <tr><td valign="top"><a href="#get_current_gnuplot_version-0">get_current_gnuplot_version/0</a></td><td>Returns, as a tuple (ex: {4,2} for the 4.2 version), the gnuplot version
- actually available on the computer.</td></tr>
+ actually available by default (in the PATH) on this computer.</td></tr>
+<tr><td valign="top"><a href="#get_current_gnuplot_version-1">get_current_gnuplot_version/1</a></td><td>Returns, as a tuple (ex: {4,2} for the 4.2 version), the gnuplot version
+ actually available on this computer.</td></tr>
 <tr><td valign="top"><a href="#get_default_bzip2_compress_tool-0">get_default_bzip2_compress_tool/0</a></td><td>Returns the default tool to use to decompress in the BZIP2 format.</td></tr>
 <tr><td valign="top"><a href="#get_default_bzip2_decompress_tool-0">get_default_bzip2_decompress_tool/0</a></td><td>Returns the default tool to use to decompress in the BZIP2 format.</td></tr>
 <tr><td valign="top"><a href="#get_default_erlang_interpreter_name-0">get_default_erlang_interpreter_name/0</a></td><td>Returns the name of the default Erlang interpreter.</td></tr>
@@ -285,7 +287,15 @@ dot output an error or a warning</p>
 <p><tt>get_current_gnuplot_version() -&gt; <a href="basic_utils.html#type-two_digit_version">basic_utils:two_digit_version()</a></tt><br></p>
 <p> </p>
 </div><p>Returns, as a tuple (ex: {4,2} for the 4.2 version), the gnuplot version
- actually available on the computer.
+ actually available by default (in the PATH) on this computer.
+</p>
+
+<h3 class="function"><a name="get_current_gnuplot_version-1">get_current_gnuplot_version/1</a></h3>
+<div class="spec">
+<p><tt>get_current_gnuplot_version(GnuplotPath::<a href="#type-executable_path">executable_path()</a>) -&gt; <a href="basic_utils.html#type-two_digit_version">basic_utils:two_digit_version()</a></tt><br></p>
+<p> </p>
+</div><p>Returns, as a tuple (ex: {4,2} for the 4.2 version), the gnuplot version
+ actually available on this computer.
 </p>
 
 <h3 class="function"><a name="get_default_bzip2_compress_tool-0">get_default_bzip2_compress_tool/0</a></h3>

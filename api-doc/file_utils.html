@@ -406,8 +406,12 @@ exclusive, raw, etc).</td></tr>
 './media/test.txt') into a variable name licit in most programming languages 
 (ex: C/C++), based on specified prefix.</td></tr>
 <tr><td valign="top"><a href="#read-2">read/2</a></td><td>Reads specified number of bytes/characters from the specified file.</td></tr>
-<tr><td valign="top"><a href="#read_terms-1">read_terms/1</a></td><td>Reads specified file, tries to parse a list of terms from it (as 
-file:consult/1 does), and returns it.</td></tr>
+<tr><td valign="top"><a href="#read_etf_file-1">read_etf_file/1</a></td><td>Reads specified file supposedly in ETF format (Erlang Term Format): tries 
+to parse a list of terms (one per line, terminating with a dot) from it 
+(as file:consult/1 does), and returns it.</td></tr>
+<tr><td valign="top"><a href="#read_terms-1">read_terms/1</a></td><td>Reads specified file supposedly in ETF format (Erlang Term Format): tries 
+to parse a list of terms (one per line, terminating with a dot) from it 
+(as file:consult/1 does), and returns it.</td></tr>
 <tr><td valign="top"><a href="#read_whole-1">read_whole/1</a></td><td>Reads the content of the specified file, based on its filename specified 
 as any kind of string (plain, binary, atom, etc), and returns the 
 corresponding binary, or throws an exception on failure.</td></tr>
@@ -456,11 +460,16 @@ with the specified encoding), in which all the specified keywords (the keys of
 the translation table) have been replaced with their associated value 
 (i.e.</td></tr>
 <tr><td valign="top"><a href="#write-2">write/2</a></td><td>Writes specified byte-oriented content in the specified file.</td></tr>
-<tr><td valign="top"><a href="#write_direct_terms-2">write_direct_terms/2</a></td><td>Writes directly specified terms into specified already opened file.</td></tr>
-<tr><td valign="top"><a href="#write_terms-2">write_terms/2</a></td><td>Writes specified terms into specified file, with no specific header or 
-footer.</td></tr>
-<tr><td valign="top"><a href="#write_terms-4">write_terms/4</a></td><td>Writes specified terms into specified file, with specified header and 
-footer.</td></tr>
+<tr><td valign="top"><a href="#write_direct_terms-2">write_direct_terms/2</a></td><td>Writes directly specified terms into specified already opened file, in 
+the ETF format.</td></tr>
+<tr><td valign="top"><a href="#write_etf_file-2">write_etf_file/2</a></td><td>Writes specified terms into specified file, in the ETF format, with no 
+specific header or footer.</td></tr>
+<tr><td valign="top"><a href="#write_etf_file-4">write_etf_file/4</a></td><td>Writes specified terms into specified file, in the ETF format, with 
+specified header and footer.</td></tr>
+<tr><td valign="top"><a href="#write_terms-2">write_terms/2</a></td><td>Writes specified terms into specified file, in the ETF format, with no 
+specific header or footer.</td></tr>
+<tr><td valign="top"><a href="#write_terms-4">write_terms/4</a></td><td>Writes specified terms into specified file, in the ETF format, with 
+specified header and footer.</td></tr>
 <tr><td valign="top"><a href="#write_ustring-2">write_ustring/2</a></td><td>Writes specified Unicode string in the specified file.</td></tr>
 <tr><td valign="top"><a href="#write_ustring-3">write_ustring/3</a></td><td>Writes specified formatted content in the specified file.</td></tr>
 <tr><td valign="top"><a href="#write_whole-2">write_whole/2</a></td><td>Writes the specified content in specified file, whose filename is 
@@ -1789,20 +1798,46 @@ all could be read.</p>
  Throws an exception on failure.
 </p>
 
-<h3 class="function"><a name="read_terms-1">read_terms/1</a></h3>
+<h3 class="function"><a name="read_etf_file-1">read_etf_file/1</a></h3>
 <div class="spec">
-<p><tt>read_terms(Filename::<a href="#type-file_path">file_path()</a>) -&gt; [term()]</tt><br></p>
+<p><tt>read_etf_file(Filename::<a href="#type-file_path">file_path()</a>) -&gt; [term()]</tt><br></p>
 <p> </p>
-</div><p><p>Reads specified file, tries to parse a list of terms from it (as 
-file:consult/1 does), and returns it.</p>
+</div><p><p>Reads specified file supposedly in ETF format (Erlang Term Format): tries 
+to parse a list of terms (one per line, terminating with a dot) from it 
+(as file:consult/1 does), and returns it. Lines starting with '%' are ignored 
+(just considered as comments).</p>
 
  <p>If expecting to read UTF-8 content from a file, it should:</p>
 
   <p>- have been then opened for writing typically while including the {encoding,  
 utf8} option, or have been written with content already properly encoded  
-(maybe more reliable that way)</p>
+(it may be more reliable that way)</p>
 
   <p>- start with a '%% -*- coding: utf-8 -*-' header</p>
+
+ <p>See http://myriad.esperide.org/#etf for more details.</p>
+
+ Throws an exception on error.
+</p>
+
+<h3 class="function"><a name="read_terms-1">read_terms/1</a></h3>
+<div class="spec">
+<p><tt>read_terms(Filename::<a href="#type-file_path">file_path()</a>) -&gt; [term()]</tt><br></p>
+<p> </p>
+</div><p><p>Reads specified file supposedly in ETF format (Erlang Term Format): tries 
+to parse a list of terms (one per line, terminating with a dot) from it 
+(as file:consult/1 does), and returns it. Lines starting with '%' are ignored 
+(just considered as comments).</p>
+
+ <p>If expecting to read UTF-8 content from a file, it should:</p>
+
+  <p>- have been then opened for writing typically while including the {encoding,  
+utf8} option, or have been written with content already properly encoded  
+(it may be more reliable that way)</p>
+
+  <p>- start with a '%% -*- coding: utf-8 -*-' header</p>
+
+ <p>See http://myriad.esperide.org/#etf for more details.</p>
 
  Throws an exception on error.
 </p>
@@ -2041,7 +2076,28 @@ normal mode as well).</p>
 <div class="spec">
 <p><tt>write_direct_terms(File::<a href="#type-file">file()</a>, Terms::[term()]) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p><p>Writes directly specified terms into specified already opened file.</p>
+</div><p><p>Writes directly specified terms into specified already opened file, in 
+the ETF format.</p>
+
+ Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
+</p>
+
+<h3 class="function"><a name="write_etf_file-2">write_etf_file/2</a></h3>
+<div class="spec">
+<p><tt>write_etf_file(Terms::[term()], Filename::<a href="#type-file_path">file_path()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p> </p>
+</div><p><p>Writes specified terms into specified file, in the ETF format, with no 
+specific header or footer.</p>
+
+ Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
+</p>
+
+<h3 class="function"><a name="write_etf_file-4">write_etf_file/4</a></h3>
+<div class="spec">
+<p><tt>write_etf_file(Terms::[term()], Header::<a href="#type-maybe">maybe</a>(<a href="#type-ustring">ustring()</a>), Footer::<a href="#type-maybe">maybe</a>(<a href="#type-ustring">ustring()</a>), Filename::<a href="#type-file_path">file_path()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p> </p>
+</div><p><p>Writes specified terms into specified file, in the ETF format, with 
+specified header and footer.</p>
 
  Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
 </p>
@@ -2050,8 +2106,8 @@ normal mode as well).</p>
 <div class="spec">
 <p><tt>write_terms(Terms::[term()], Filename::<a href="#type-file_path">file_path()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p><p>Writes specified terms into specified file, with no specific header or 
-footer.</p>
+</div><p><p>Writes specified terms into specified file, in the ETF format, with no 
+specific header or footer.</p>
 
  Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
 </p>
@@ -2060,8 +2116,8 @@ footer.</p>
 <div class="spec">
 <p><tt>write_terms(Terms::[term()], Header::<a href="#type-maybe">maybe</a>(<a href="#type-ustring">ustring()</a>), Footer::<a href="#type-maybe">maybe</a>(<a href="#type-ustring">ustring()</a>), Filename::<a href="#type-file_path">file_path()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p><p>Writes specified terms into specified file, with specified header and 
-footer.</p>
+</div><p><p>Writes specified terms into specified file, in the ETF format, with 
+specified header and footer.</p>
 
  Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
 </p>

@@ -27,18 +27,18 @@ value.</p>
 
  More precisely, a module name (ex: 'foobar') and a <code>table:table(atom(),
  any())</code> are provided to <code>const_table:generate/2</code>; for each key/value pair in
- the specified table (ex: <code>{</code>foo', 42.0}'), a 0-arity function is generated and
+ the specified table (ex: <code>{</code>baz', 42.0}'), a 0-arity function is generated and
  exported in that module, as if we had:<pre> -module(foobar).
 
  [...]
 
- -export( [ foo/0 ] ).
+ -export([baz/0]).
 
- -spec foo() -&gt; term().
- foo() -&gt;
+ -spec baz() -&gt; term().
+ baz() -&gt;
     42.0.</pre>
 
- <p>Then third-party code can call for example <code>foobar:foo()</code> and have <code>42.0</code> 
+ <p>Then third-party code can call for example <code>foobar:baz()</code> and have <code>42.0</code> 
 returned. This is presumably the most efficient way of sharing constants in 
 Erlang.</p>
 

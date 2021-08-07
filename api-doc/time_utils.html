@@ -174,7 +174,7 @@ one.</td></tr>
 <tr><td valign="top"><a href="#check_month_canonical-1">check_month_canonical/1</a></td><td>Checks that specified month is a canonical one.</td></tr>
 <tr><td valign="top"><a href="#check_month_order-2">check_month_order/2</a></td><td>Ensures that the starting canonical month is strictly before the stopping
  one.</td></tr>
-<tr><td valign="top"><a href="#check_timestamp-1">check_timestamp/1</a></td><td>Checks that specified term is a timestamp indeed.</td></tr>
+<tr><td valign="top"><a href="#check_timestamp-1">check_timestamp/1</a></td><td>Checks that specified term is a timestamp indeed, and returns it.</td></tr>
 <tr><td valign="top"><a href="#compare_dates-2">compare_dates/2</a></td><td>Compares the specified two dates: tells whether the first date is 
 strictly before, after or the same as the second one.</td></tr>
 <tr><td valign="top"><a href="#date_to_weekday-1">date_to_weekday/1</a></td><td>Returns the week day (ex: 'Tuesday') corresponding to specified date.</td></tr>
@@ -215,7 +215,8 @@ holidays, for specified year and country.</td></tr>
 <tr><td valign="top"><a href="#get_epoch_timestamp-0">get_epoch_timestamp/0</a></td><td>Returns the timestamp of the (UNIX) Epoch, defined to be 00:00:00 UTC,
  1970-01-01.</td></tr>
 <tr><td valign="top"><a href="#get_french_textual_duration-2">get_french_textual_duration/2</a></td><td>Returns a textual description, in French, of the duration between the two
- specified timestamps.</td></tr>
+ specified timestamps, using the first one as starting time and the
+ second one as stopping time.</td></tr>
 <tr><td valign="top"><a href="#get_french_textual_timestamp-1">get_french_textual_timestamp/1</a></td><td>Returns a string corresponding to the specified timestamp expressed in
  French, like: "le 1/9/2009, à 11h46m53".</td></tr>
 <tr><td valign="top"><a href="#get_intertime_duration-2">get_intertime_duration/2</a></td><td>Returns the signed duration, in integer seconds, between the two 
@@ -233,8 +234,9 @@ Secs, MicroSecs}.</td></tr>
 <tr><td valign="top"><a href="#get_system_time-0">get_system_time/0</a></td><td>Returns the (VM) system time (that is monotonic + time offset), in
  milliseconds since the Epoch.</td></tr>
 <tr><td valign="top"><a href="#get_textual_date-1">get_textual_date/1</a></td><td>Returns a string corresponding to the specified date, like: "30/11/2009".</td></tr>
-<tr><td valign="top"><a href="#get_textual_duration-2">get_textual_duration/2</a></td><td>Returns an (english) textual description of the duration between the two
- specified timestamps.</td></tr>
+<tr><td valign="top"><a href="#get_textual_duration-2">get_textual_duration/2</a></td><td>Returns an (english), smart textual description of the duration between
+ the two specified timestamps, using the first one as starting time and the
+ second one as stopping time.</td></tr>
 <tr><td valign="top"><a href="#get_textual_timestamp-0">get_textual_timestamp/0</a></td><td>Returns a string corresponding to the current timestamp, like: 
 "2009/9/1 11:46:53".</td></tr>
 <tr><td valign="top"><a href="#get_textual_timestamp-1">get_textual_timestamp/1</a></td><td>Returns a (clear, non-ambiguous) string corresponding to the specified
@@ -331,7 +333,7 @@ one.</p>
 
 <h3 class="function"><a name="check_maybe_timestamp-1">check_maybe_timestamp/1</a></h3>
 <div class="spec">
-<p><tt>check_maybe_timestamp(Term::<a href="#type-maybe">maybe</a>(<a href="#type-timestamp">timestamp()</a>)) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>check_maybe_timestamp(Term::<a href="#type-maybe">maybe</a>(<a href="#type-timestamp">timestamp()</a>)) -&gt; <a href="#type-maybe">maybe</a>(<a href="#type-timestamp">timestamp()</a>)</tt><br></p>
 <p> </p>
 </div><p>Checks that specified term is a maybe-timestamp indeed.</p>
 
@@ -351,9 +353,9 @@ one.</p>
 
 <h3 class="function"><a name="check_timestamp-1">check_timestamp/1</a></h3>
 <div class="spec">
-<p><tt>check_timestamp(Term::<a href="#type-timestamp">timestamp()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>check_timestamp(Term::<a href="#type-timestamp">timestamp()</a>) -&gt; <a href="#type-timestamp">timestamp()</a></tt><br></p>
 <p> </p>
-</div><p>Checks that specified term is a timestamp indeed.</p>
+</div><p>Checks that specified term is a timestamp indeed, and returns it.</p>
 
 <h3 class="function"><a name="compare_dates-2">compare_dates/2</a></h3>
 <div class="spec">
@@ -525,7 +527,8 @@ holidays, for specified year and country.</p>
 <p><tt>get_french_textual_duration(FirstTimestamp::<a href="#type-timestamp">timestamp()</a>, SecondTimestamp::<a href="#type-timestamp">timestamp()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
 </div><p>Returns a textual description, in French, of the duration between the two
- specified timestamps.
+ specified timestamps, using the first one as starting time and the
+ second one as stopping time.
 </p>
 
 <h3 class="function"><a name="get_french_textual_timestamp-1">get_french_textual_timestamp/1</a></h3>
@@ -613,8 +616,9 @@ Secs, MicroSecs}.</p>
 <div class="spec">
 <p><tt>get_textual_duration(FirstTimestamp::<a href="#type-timestamp">timestamp()</a>, SecondTimestamp::<a href="#type-timestamp">timestamp()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
-</div><p>Returns an (english) textual description of the duration between the two
- specified timestamps.
+</div><p>Returns an (english), smart textual description of the duration between
+ the two specified timestamps, using the first one as starting time and the
+ second one as stopping time.
 </p>
 
 <h3 class="function"><a name="get_textual_timestamp-0">get_textual_timestamp/0</a></h3>
