@@ -446,7 +446,8 @@ ifeq ($(USE_JSON),true)
 		# The JSX JSON parser is available at
 		# https://github.com/talentdeficit/jsx.
 
-		# Install obtained thanks to:
+		# Install obtained thanks to (see also
+		# https://myriad.esperide.org/#file-formats)
 		#
 		# $ mkdir -p ~/Software/jsx
 		# $ cd ~/Software/jsx
