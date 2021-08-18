@@ -60,7 +60,8 @@
 
 
 % Date support:
--export([ compare_dates/2, check_date_order/2, get_date_difference/2 ]).
+-export([ is_canonical_date/1, check_canonical_date/1, compare_dates/2,
+		  check_date_order/2, get_date_difference/2 ]).
 
 
 -type day_index() :: 1..7.
@@ -77,7 +78,7 @@
 
 
 -type date() :: { year(), canonical_month(), canonical_day() }.
-% Calendar date; used instrad of less precise calendar:date().
+% Calendar date; used instead of the less precise calendar:date/0 type.
 
 
 -type date_in_year() :: { canonical_month(), canonical_day() }.
@@ -496,17 +497,31 @@ week_day_to_string( DayIndex ) ->
 % Date section.
 
 
+% @doc Tells whether the specified term is a canonical date.
+-spec is_canonical_date( term() ) -> boolean().
+is_canonical_date( _Date={ Year, Month, Day } ) when
+		is_integer( Year ) andalso is_integer( Month ) andalso
+		is_integer( Day ) andalso Month >= 1 andalso Month =< 12
+		andalso Day >= 1 andalso Day =< 31 ->
+	true;
+
+is_canonical_date( _Other ) ->
+	false.
+
+
+
 % @doc Checks that specified date is a canonical one.
--spec check_date_canonical( date() ) -> void().
-check_date_canonical( _Date={ Year, Month, Day } ) when
-	  is_integer( Year ) andalso is_integer( Month ) andalso
-	  is_integer( Day ) andalso Month >= 1 andalso Month =< 12
-	  andalso Day >= 1 andalso Day =< 31 ->
-	ok;
+-spec check_canonical_date( date() ) -> void().
+check_canonical_date( Date ) ->
+	case is_canonical_date( Date) of
 
-check_date_canonical( Date ) ->
-	throw( { non_canonical_date, Date } ).
+		true ->
+			ok;
 
+		false ->
+			throw( { non_canonical_date, Date } )
+
+	end.
 
 
 
@@ -519,8 +534,8 @@ check_date_canonical( Date ) ->
 -spec compare_dates( date(), date() ) -> basic_utils:comparison_result().
 compare_dates( FirstDate, SecondDate ) ->
 
-	check_date_canonical( FirstDate ),
-	check_date_canonical( SecondDate ),
+	check_canonical_date( FirstDate ),
+	check_canonical_date( SecondDate ),
 
 	compare_helper( FirstDate, SecondDate ).
 
