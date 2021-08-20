@@ -5,7 +5,7 @@
 
 .PHONY: doc doc-recurse info info-doc-tools info-doc-settings local full-doc   \
  create-doc create-html-doc create-pdf-doc full-html full-pdf regenerate-doc   \
- local-doc local-html local-pdf                                                \
+ local-doc local-html local-pdf create-api-doc                                 \
  make-doc-repository create-local-referential view-doc to-print check-dot      \
  info-doc info-doc-local info-doc-tools                                        \
  clean clean-doc-repository clean-generated clean-dot clean-doc-logs           \
@@ -292,7 +292,7 @@ local-pdf: $(OVERALL_DOCUMENT_SOURCE)
 
 
 # To generate an actual API documentation tree:
-api-doc:
+create-api-doc:
 	@cd $(LAYER_TOP) && $(MAKE) -s generate-api-doc
 
 
