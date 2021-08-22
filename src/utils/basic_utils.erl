@@ -145,6 +145,14 @@
 
 -type error_reason() :: reason().
 
+-type error_diagnosis() :: ustring().
+% Designates a plain string explaning an error.
+
+
+-type error_bin_diagnosis() :: bin_string().
+% Designates a binary string explaning an error.
+
+
 
 -type error_type() :: atom().
 % Designates an error type (a specific, simple error reason), when we know it is
@@ -154,25 +162,25 @@
 -type error_tuploid() :: error_tuploid( error_reason() ).
 % An error pseudo-tuple, i.e. an error tuple (ex: {invalid_name,1.0}) or a
 % single error term (instead of a tuple with a single element), preferably an
-% atom (like 'invalid_password').
+% atom (like 'invalid_password'). Typically to be thrown.
 %
 % See also: throw_diagnosed/{1,2}.
 
 
 -type error_tuploid( T ) :: type_utils:tuploid( T ).
-% To specify at least some information about the error type.
+% To specify at least some information about the error type of a tuploid.
 
 
--type error_message() :: ustring().
+-type error_message() :: error_diagnosis() | error_bin_diagnosis().
 % A textual description associated to an error (typically for richer traces).
 
 
 -type diagnosed_error_reason() :: { error_tuploid(), error_message() }.
-% An error with its diagnosis.
+% An error with its textual diagnosis.
 
 
 -type diagnosed_error_reason( T ) :: { error_tuploid( T ), error_message() }.
-% An error with its diagnosis.
+% An error with its textual diagnosis.
 
 
 -type error_term() :: { 'error', error_reason() } | error_reason().
@@ -219,7 +227,7 @@
 
 -type diagnosed_fallible( TSuccess, TFailure ) ::
 		fallible( TSuccess, diagnosed_error_term( TFailure ) ).
-% Thus either {ok,T} or {error,{ErrorTuploid,ErrorMsg}}.
+% Thus either {ok,TSuccess} or {error,{TuploidTFailure,ErrorMsg}}.
 
 
 -type external_data() :: term().
@@ -337,9 +345,9 @@
 
 -export_type([ void/0, count/0, non_null_count/0, level/0,
 			   bit_mask/0, message/0, pid_or_port/0, atom_key/0,
-			   reason/0, exit_reason/0,
-			   error_reason/0, error_type/0, error_tuploid/0,
-			   error_message/0,
+			   reason/0, exit_reason/0, error_reason/0,
+			   error_diagnosis/0, error_bin_diagnosis/0,
+			   error_type/0, error_tuploid/0, error_message/0,
 			   diagnosed_error_reason/0, error_term/0, diagnosed_error_term/0,
 			   base_status/0, maybe/1, wildcardable/1,
 			   fallible/1, fallible/2,
@@ -370,7 +378,9 @@
 
 -type format_string() :: text_utils:format_string().
 -type format_values() :: text_utils: format_values().
+
 -type ustring() :: text_utils:ustring().
+-type bin_string() :: text_utils:bin_string().
 
 -type atom_node_name() :: net_utils:atom_node_name().
 
