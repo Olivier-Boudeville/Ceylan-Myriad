@@ -159,7 +159,7 @@ endif
 #
 # (useful in contexts where stacktraces tend to vanish)
 #
-MYRIAD_DEBUG_FLAGS += -Dmyriad_add_stacktraces
+#MYRIAD_DEBUG_FLAGS += -Dmyriad_add_stacktraces
 
 
 ERLANG_COMPILER_OPT_BASE += $(MYRIAD_DEBUG_FLAGS)             \
