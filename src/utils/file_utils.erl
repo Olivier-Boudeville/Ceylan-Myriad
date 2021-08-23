@@ -4461,7 +4461,7 @@ close( File, _FailureMode=overcome_failure ) ->
 
 % @doc Reads specified number of bytes/characters from the specified file.
 %
-% Returns either { ok, Data } if at least some data could be read, or eof if at
+% Returns either {ok, Data} if at least some data could be read, or eof if at
 % least one element was to read and end of file was reached before anything at
 % all could be read.
 %
@@ -4530,7 +4530,7 @@ write_ustring( File, Str ) ->
 	Bin = text_utils:to_unicode_binary( Str ),
 	%trace_utils:debug_fmt( " - Bin: ~p.", [ Bin ] ),
 
-	%BinStr = io_lib:format("~ts", [ Bin ] ),
+	%BinStr = io_lib:format( "~ts", [ Bin ] ),
 	%trace_utils:debug_fmt( " - BinStr: ~p.", [ BinStr ] ),
 
 	% Using current encoding (i.e. the one that file was opened with):
@@ -4564,7 +4564,7 @@ write_ustring( File, FormatString, Values ) ->
 % as any kind of string (plain, binary, atom, etc), and returns the
 % corresponding binary, or throws an exception on failure.
 %
-% See also: read_terms/1 to read directly Erlang terms.
+% See also: read_terms/1 to read directly Erlang terms instead.
 %
 -spec read_whole( any_file_name() ) -> binary().
 read_whole( Filename ) ->
