@@ -199,7 +199,7 @@ if [ $fix_headers -eq 0 ]; then
 
 			# To prevent rebar from even seeing them afterwards:
 			if [ $do_hide -eq 0 ]; then
-				/bin/mv -f "$f" "$f-hidden"
+				/bin/mv -f "$f" "$f-hidden-for-rebar3"
 			fi
 
 	   done
@@ -330,7 +330,7 @@ if [ $fix_sources -eq 0 ]; then
 
 			# To prevent rebar from even seeing them afterwards:
 			if [ $do_hide -eq 0 ]; then
-				/bin/mv -f "$f" "$f-hidden"
+				/bin/mv -f "$f" "$f-hidden-for-rebar3"
 			fi
 
 		done
@@ -356,7 +356,7 @@ if [ $fix_sources -eq 0 ]; then
 
 			# To prevent rebar from even seeing them afterwards:
 			if [ $do_hide -eq 0 ]; then
-				/bin/mv -f "$f" "$f-hidden"
+				/bin/mv -f "$f" "$f-hidden-for-rebar3"
 			fi
 
 		done
@@ -427,7 +427,7 @@ if [ $fix_beams -eq 0 ]; then
 		# (hiding BEAMs is most probably never a good idea)
 		#
 		#if [ $do_hide -eq 0 ]; then
-		#	/bin/mv -f "$f" "$f-hidden"
+		#	/bin/mv -f "$f" "$f-hidden-for-rebar3"
 		# fi
 
 	done
