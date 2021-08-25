@@ -1443,6 +1443,7 @@ add_path_for_executable_lookup( PathName ) ->
 	add_paths_for_executable_lookup( [ PathName ] ).
 
 
+
 % @doc Adds the specified directories to the system's executable search paths
 % (typically (typically the PATH environment variable), in first position,
 % respecting the specified path order.
