@@ -44,7 +44,7 @@
 
 
 -type bin_email_address() :: bin_string().
-% Binary email address (ex: <<"john@hello.org">>).
+% Binary email address (ex: `<<"john@hello.org">>').
 
 
 % Shorthands:
