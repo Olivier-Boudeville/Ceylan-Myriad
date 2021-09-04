@@ -782,6 +782,10 @@ interpret_http_status_code_helper( _StatusCode ) ->
 
 
 % @doc Starts the HTTP support, with default settings.
+%
+% Does not fail if already started, throws an exception in case of unrecoverable
+% error.
+%
 -spec start() -> void().
 start() ->
 	start( no_ssl ).
@@ -1076,16 +1080,41 @@ to_httpc_options( HttpOptionMap ) when is_map( HttpOptionMap ) ->
 
 
 % @doc Downloads the file designated by specified URL, in the specified
-% directory (under its name in URL), and returns the corresponding full path of
-% that file.
+% directory (under its name in URL), with no specific HTTP options, and returns
+% the corresponding full path of that file.
 %
 % Ex: web_utils:download_file( _Url="https://foobar.org/baz.txt",
-%                    _TargetDir="/tmp" ) shall result in a "/tmp/baz.txt" file.
+%    _TargetDir="/tmp" ) shall result in a "/tmp/baz.txt" file.
 %
 % Starts the HTTP support as a side effect.
 %
 -spec download_file( url(), any_directory_path() ) -> file_path().
 download_file( Url, TargetDir ) ->
+	download_file( Url, TargetDir, _HttpOptions=[] ).
+
+
+
+% @doc Downloads the file designated by specified URL, in the specified
+% directory (under its name in URL), with specified HTTP options, and returns
+% the corresponding full path of that file.
+%
+% Popular settings are HttpOptions = [{ssl,[verify, verify_none]}]; if it allows
+% to disable a warning ('Authenticity is not established by certificate path
+% validation'), it results in losing Man-in-the-Middle protection (but TLS still
+% provides protection against "casual" eavesdroppers).
+%
+% verify_peer could be used instead of verify_none, yet a specific, preferably
+% ordered, list of the trusted DER-encoded certificates would then have to be
+% specified, see https://erlang.org/doc/man/ssl.html#type-cert.
+%
+% Ex: web_utils:download_file( _Url="https://foobar.org/baz.txt",
+%   _TargetDir="/tmp", HttpOptions ) shall result in a "/tmp/baz.txt" file.
+%
+% Starts, if needed, the HTTP support as a side effect.
+%
+-spec download_file( url(), any_directory_path(), http_options() ) ->
+							file_path().
+download_file( Url, TargetDir, HttpOptions ) ->
 
 	% Using only built-in modules:
 
@@ -1119,9 +1148,9 @@ download_file( Url, TargetDir ) ->
 	FilePath = file_utils:join( TargetDir, Filename ),
 
 	%trace_bridge:debug_fmt( "Downloading '~ts' from '~ts'.",
-	%						[ FilePath, Url ] ),
+	%                        [ FilePath, Url ] ),
 
-	case httpc:request( get, { Url, _Headers=[] }, _HTTPOptions=[],
+	case httpc:request( get, { Url, _Headers=[] }, HttpOptions,
 						_Opts=[ { stream, FilePath } ] ) of
 
 		{ ok, saved_to_file } ->
