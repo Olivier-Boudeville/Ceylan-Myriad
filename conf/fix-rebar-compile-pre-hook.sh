@@ -147,7 +147,7 @@ if [ $fix_headers -eq 0 ]; then
 		# This may happen when multiple attempts of builds are performed for a
 		# direct-build, or when being built as a dependency:
 		#
-		echo "(${target_inc_dir} directory already existing)"
+		[ $verbose -eq 1 ] || echo "(${target_inc_dir} directory already existing)"
 
 		#echo "Warning: unexpected target ${target_inc_dir}: $(ls -l ${target_inc_dir})" 1>&2
 
@@ -299,7 +299,7 @@ if [ $fix_sources -eq 0 ]; then
 		# This may happen when multiple attempts of builds are performed for a
 		# direct-build, or when being built as a dependency:
 		#
-		echo "(${target_src_dir} directory already existing)"
+		[ $verbose -eq 1 ] || echo "(${target_src_dir} directory already existing)"
 
 		#echo "Warning: unexpected target ${target_src_dir}: $(ls -l ${target_src_dir})" 1>&2
 
@@ -398,7 +398,7 @@ if [ $fix_beams -eq 0 ]; then
 		# This may happen when multiple attempts of build are performed:
 		# (actually normal for ebin directories)
 
-		echo "(${target_ebin_dir} directory already existing)"
+		[ $verbose -eq 1 ] || echo "(${target_ebin_dir} directory already existing)"
 
 		#echo "Warning: unexpected target ${target_ebin_dir}: $(ls -l ${target_ebin_dir})" 1>&2
 
