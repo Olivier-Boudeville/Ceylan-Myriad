@@ -1046,7 +1046,6 @@ to_httpc_headers( Headers ) when is_map( Headers ) ->
 	  || { K, V } <- maps:to_list( Headers ) ].
 
 
-
 % @doc Converts httpc headers into map-based ones.
 -spec from_httpc_headers( headers_httpc_style() ) -> headers_as_maps().
 from_httpc_headers( Headers ) ->
@@ -1055,13 +1054,23 @@ from_httpc_headers( Headers ) ->
 					  || { K, V } <- Headers ] ).
 
 
+
 % @doc Returns http options suitable for httpc.
 -spec to_httpc_options( http_options() ) -> options_for_httpc().
 to_httpc_options( HttpOptions ) when is_list( HttpOptions ) ->
 	HttpOptions;
 
 to_httpc_options( HttpOptionMap ) when is_map( HttpOptionMap ) ->
-	maps:to_list( HttpOptionMap ).
+	% We have to recursively transform maps into lists (ex: for {ssl,Opts}):
+	[ { K, case is_map( V ) of
+
+			   true ->
+				   maps:to_list( V );
+
+			   false ->
+				   V
+
+		   end } || { K, V } <- maps:to_list( HttpOptionMap ) ].
 
 
 
