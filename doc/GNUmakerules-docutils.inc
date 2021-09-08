@@ -222,7 +222,7 @@ doc: $(GRAPH_PNG) $(PNG_FROM_PYTHON) $(PNG_FROM_PYTHON_NEGATED) doc-recurse #$(P
 clean: clean-doc
 
 clean-doc: clean-links clean-doc-repository
-	@echo "     Cleaning documentation elements"
+	@echo "     Cleaning documentation elements in $$(basename $$(pwd))"
 	-@/bin/rm -f *.aux *.log *.maf *.mtc* *.stc* *.tex *.toc $(RST_GENERATED_FILES)
 	-@/bin/rm -rf api-doc
 
