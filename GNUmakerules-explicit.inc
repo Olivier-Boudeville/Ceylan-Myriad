@@ -82,7 +82,10 @@ all: all-pre-hook all-parse-transforms create-include-links
 #  _build-like directories)
 #
 clean: clean-layer-ebin clean-api-doc
-	-@if [ -d doc ]; then cd doc && $(MAKE) -s clean; fi
+
+# Most probably redundant:
+# clean:
+#-@if [ -d "doc" ]; then cd doc && $(MAKE) -s clean; fi
 
 else
 
