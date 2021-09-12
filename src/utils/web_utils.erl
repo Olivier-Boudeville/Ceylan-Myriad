@@ -113,11 +113,12 @@
 
 -type options_for_httpc() :: [ http_option() ].
 
+-type list_options() :: [ { atom(), term() } ].
 -type map_options() :: maps:maps( atom(), term() ).
 
 -type http_options() :: options_for_httpc() | map_options().
 
--type ssl_options() :: map_options().
+-type ssl_options() :: list_options(). % map_options().
 
 
 -type request_result() :: { http_status_code(), headers_as_maps(), body() }
@@ -1095,11 +1096,12 @@ to_httpc_options( HttpOptionMap ) when is_map( HttpOptionMap ) ->
 % Ex: web_utils:download_file( _Url="https://foobar.org/baz.txt",
 %            _TargetDir="/tmp" ) shall result in a "/tmp/baz.txt" file.
 %
-% Starts the HTTP support as a side effect.
+% Starts, if needed, the HTTP and SSL supports as a side effect.
 %
 -spec download_file( url(), any_directory_path() ) -> file_path().
 download_file( Url, TargetDir ) ->
-	download_file( Url, TargetDir, _HttpOptions=[] ).
+	download_file( Url, TargetDir,
+				   _HttpOptions=[ { ssl, get_ssl_verify_options() } ] ).
 
 
 
@@ -1107,19 +1109,14 @@ download_file( Url, TargetDir ) ->
 % directory (under its name in URL), with specified HTTP options, and returns
 % the corresponding full path of that file.
 %
-% Popular settings are HttpOptions = [{ssl,[verify, verify_none]}]; if it allows
-% to disable a warning ('Authenticity is not established by certificate path
-% validation'), it results in losing Man-in-the-Middle protection (but TLS still
-% provides protection against "casual" eavesdroppers).
-%
-% verify_peer could be used instead of verify_none, yet a specific, preferably
-% ordered, list of the trusted DER-encoded certificates would then have to be
-% specified, see https://erlang.org/doc/man/ssl.html#type-cert.
+% Popular settings are HttpOptions = [{ssl,get_ssl_verify_options()}] to avoid
+% any Man-in-the-Middle attack about any target HTTPS server (in addition to TLS
+% protection against "casual" eavesdroppers).
 %
 % Ex: web_utils:download_file( _Url="https://foobar.org/baz.txt",
 %   _TargetDir="/tmp", HttpOptions ) shall result in a "/tmp/baz.txt" file.
 %
-% Starts, if needed, the HTTP support as a side effect.
+% Starts, if needed, the HTTP and SSL supports as a side effect.
 %
 -spec download_file( url(), any_directory_path(), http_options() ) ->
 							file_path().
@@ -1223,10 +1220,17 @@ get_ssl_verify_options( enable ) ->
 
   MatchFun = public_key:pkix_verify_hostname_match_fun( https ),
 
-  #{ verify => verify_peer,
-	 cacertfile => "/etc/ssl/certs/ca-certificates.crt",
-	 depth => 3,
-	 customize_hostname_check => [ { match_fun, MatchFun } ] };
+  % Apparently httpc expects list_options(), not map_options():
+
+  %#{ verify => verify_peer,
+  %   cacertfile => "/etc/ssl/certs/ca-certificates.crt",
+  %   depth => 3,
+  %   customize_hostname_check => [ { match_fun, MatchFun } ] };
+
+  [ { verify, verify_peer },
+	{ cacertfile, "/etc/ssl/certs/ca-certificates.crt" },
+	{ depth, 3 },
+	{ customize_hostname_check, [ { match_fun, MatchFun } ] } ];
 
 
 get_ssl_verify_options( disable ) ->
@@ -1235,5 +1239,6 @@ get_ssl_verify_options( disable ) ->
 	% option specified) the following warning: 'Authenticity is not established
 	% by certificate path validation' (however, for unspecified reasons, it is
 	% still output).
-	%
-	#{ verify => verify_none }.
+
+	%#{ verify => verify_none }.
+	[ { verify, verify_none } ].
