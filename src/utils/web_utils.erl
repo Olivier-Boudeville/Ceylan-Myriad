@@ -113,10 +113,13 @@
 
 -type options_for_httpc() :: [ http_option() ].
 
--type http_options() :: options_for_httpc() | maps:maps( atom(), term() ).
+-type map_options() :: maps:maps( atom(), term() ).
+
+-type http_options() :: options_for_httpc() | map_options().
+
+-type ssl_options() :: map_options().
 
 
-%-type _result() :: maps:map( atom(), term() ).
 -type request_result() :: { http_status_code(), headers_as_maps(), body() }
 						| { 'error', basic_utils:error_reason() }.
 % Keys:
@@ -168,8 +171,9 @@
 			   uri/0, bin_uri/0, any_uri/0,
 			   protocol_type/0, path/0, url_info/0,
 
-			   body/0, json_body/0, headers/0, http_option/0, location/0,
-			   nonce/0,
+			   body/0, json_body/0, headers/0, map_options/0,
+			   http_option/0, http_options/0, ssl_options/0,
+			   location/0, nonce/0,
 
 			   html_element/0, http_status_class/0, http_status_code/0 ]).
 
@@ -193,11 +197,16 @@
 		  interpret_http_status_code/1 ]).
 
 
-% http-related operations:
+% HTTP-related operations:
 -export([ start/0, start/1,
 		  request/6, get/3, post/3, post/4, post/5,
 		  download_file/2,
 		  stop/0 ]).
+
+
+% SSL-related operations:
+-export([ get_ssl_verify_options/0, get_ssl_verify_options/1 ]).
+
 
 -define( default_content_type, "text/html; charset=UTF-8" ).
 
@@ -778,7 +787,7 @@ interpret_http_status_code_helper( _StatusCode ) ->
 
 
 
-% http-related operations.
+% HTTP-related operations.
 
 
 % @doc Starts the HTTP support, with default settings.
@@ -1047,7 +1056,7 @@ to_httpc_headers( Headers ) when is_list( Headers ) ->
 
 to_httpc_headers( Headers ) when is_map( Headers ) ->
 	[ { text_utils:binary_to_string( K ), text_utils:binary_to_string( V ) }
-	  || { K, V } <- maps:to_list( Headers ) ].
+		|| { K, V } <- maps:to_list( Headers ) ].
 
 
 % @doc Converts httpc headers into map-based ones.
@@ -1084,7 +1093,7 @@ to_httpc_options( HttpOptionMap ) when is_map( HttpOptionMap ) ->
 % the corresponding full path of that file.
 %
 % Ex: web_utils:download_file( _Url="https://foobar.org/baz.txt",
-%    _TargetDir="/tmp" ) shall result in a "/tmp/baz.txt" file.
+%            _TargetDir="/tmp" ) shall result in a "/tmp/baz.txt" file.
 %
 % Starts the HTTP support as a side effect.
 %
@@ -1179,3 +1188,52 @@ stop() ->
 	ssl:stop(),
 
 	ok = inets:stop().
+
+
+
+% SSL-related operations.
+
+
+% @doc Returns default SSL options regarding the verification of the remote
+% peer.
+%
+% See get_ssl_verify_options/1 for more information.
+%
+-spec get_ssl_verify_options() -> ssl_options().
+get_ssl_verify_options() ->
+	get_ssl_verify_options( enable ).
+
+
+
+% @doc Returns SSL options regarding the verification of the remote peer
+% for HTTPS connections:
+%
+% - if the switch is 'disable', this peer will not be verified (exposing the
+% program to a man-in-the-middle attack)
+%
+% - if the switch is 'enabled', the system DER-encoded certificates are trusted
+% (see https://erlang.org/doc/man/ssl.html#type-cert) to check that peer, so
+% that not only the TLS protection against "casual" eavesdroppers is enjoyed,
+% but also, here, the one against Man-in-the-Middle (so we check that we
+% indeed interact with the expected server)
+%
+-spec get_ssl_verify_options( basic_utils:activation_switch() ) ->
+									ssl_options().
+get_ssl_verify_options( enable ) ->
+
+  MatchFun = public_key:pkix_verify_hostname_match_fun( https ),
+
+  #{ verify => verify_peer,
+	 cacertfile => "/etc/ssl/certs/ca-certificates.crt",
+	 depth => 3,
+	 customize_hostname_check => [ { match_fun, MatchFun } ] };
+
+
+get_ssl_verify_options( disable ) ->
+
+	% Was expected to suppress (compared to the same call done without that
+	% option specified) the following warning: 'Authenticity is not established
+	% by certificate path validation' (however, for unspecified reasons, it is
+	% still output).
+	%
+	#{ verify => verify_none }.
