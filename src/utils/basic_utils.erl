@@ -311,6 +311,10 @@
 % To store (UNIX-like) user names.
 
 
+-type activation_switch() :: 'enable' | 'disable'.
+% To specify whether a given feature shall be enabled or not.
+
+
 -type comparison_result() :: 'lower' | 'equal' | 'higher'.
 % Possible outcome of a partial-order comparison of two elements.
 
@@ -359,6 +363,7 @@
 			   module_name/0, function_name/0, argument/0, arguments/0,
 			   command_spec/0, layer_name/0, record_name/0, field_name/0,
 			   user_name/0, atom_user_name/0,
+			   activation_switch/0,
 			   comparison_result/0, execution_target/0, execution_context/0,
 			   exception_class/0, exception_term/0, status_code/0,
 			   fixme/0 ]).
