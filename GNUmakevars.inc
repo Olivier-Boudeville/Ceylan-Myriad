@@ -883,6 +883,9 @@ BEAM_DIRS += $(MYRIAD_BEAM_DIRS) $(MYRIAD_TOP)/.. $(MYRIAD_TOP)/ebin
 ERL_LAUNCHER = $(MYRIAD_SRC)/scripts/launch-erl.sh
 
 
+# If wanting to specify (Erlang) configuration file(s):
+# INTERNAL_OPTIONS += --config my-traces-test.config
+
 
 # Compiler section.
 
