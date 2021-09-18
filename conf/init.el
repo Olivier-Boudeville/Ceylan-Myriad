@@ -81,7 +81,7 @@
 ;; or complaints about free variables:
 ;;(byte-recompile-directory "~/.emacs.d" 0)
 
-(package-require 'flycheck)
+;;(package-require 'flycheck)
 
 (add-hook 'after-init-hook #'global-flycheck-mode)
 
@@ -217,7 +217,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;; Then add ${HOME}/Software/erlang_ls/bin to your PATH.
 
 ;; Include the Language Server Protocol Clients:
-(package-require 'lsp-mode)
+;;(package-require 'lsp-mode)
 
 ;; Customize prefix for key-bindings:
 ;; (would clash with "Go to line")
@@ -225,9 +225,9 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 
 ;; Enable LSP for Erlang files:
 ;;
-;; (to be disabled if too many usability concerns)
+;; (disabled due too many usability concerns)
 ;;
-(add-hook 'erlang-mode-hook #'lsp)
+;;(add-hook 'erlang-mode-hook #'lsp)
 
 ;; Require and enable the Yasnippet templating system:
 ;;(package-require 'yasnippet)
