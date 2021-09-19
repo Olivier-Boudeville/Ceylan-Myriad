@@ -113,15 +113,15 @@ An optional support (as it depends on third-party prerequisites) is proposed for
 Refer to the `Myriad-level Third-Party Dependencies`_ section for further information.
 
 
-.. _etf:
 
+.. _etf:
 
 For Pure Erlang uses: the ETF File Format
 .........................................
 
-For many needs in terms of Erlang internal data storage (ex: regarding configuration settings), we recommend the use of the file format that `file:consult/1 <https://erlang.org/doc/man/file.html#consult-1>`_  can directly read, that we named, for reference purpose, ``ETF`` (for *Erlang Term Format*).
+For many needs in terms of Erlang internal data storage (ex: regarding configuration settings), we recommend the use of the file format that `file:consult/1 <https://erlang.org/doc/man/file.html#consult-1>`_  can directly read, that we named, for reference purpose, ``ETF`` (for *Erlang Term Format*). We recommend that ETF files have for extension ``.etf``, like in: ``~/.ceylan-settings.etf`` (see also our support for `user preferences`_).
 
-This is just a text format for which:
+ETF is just a text format for which:
 
 - a line starting with a ``%`` character is considered to be a comment, and is thus ignored
 - other lines are terminated by a dot, and correspond each to an Erlang term (ex: ``{base_log_dir, "/var/log"}.``)
@@ -130,7 +130,6 @@ See `this example <https://github.com/Olivier-Boudeville/us-common/blob/master/p
 
 A basic support for these ETF files is available in ``file_utils:{read,write}_etf_file/*``.
 
-
 If expecting to read UTF-8 content from such a file, it should:
 
 - have been then opened for writing typically while including the ``{encoding,utf8}`` option, or have been written with content already properly encoded (maybe more reliable that way)
@@ -138,3 +137,11 @@ If expecting to read UTF-8 content from such a file, it should:
 - start with a ``%% -*- coding: utf-8 -*-`` header
 
 
+ETF files are notably used as **configuration files**. In this case following extra conventions apply:
+
+- their extension is preferably changed from ``.etf`` to ``.config``
+- before each entry, a comment describing it in general terms shall be available, with typing information
+- entries are pairs:
+
+  - whose first element is an atom
+  - their second element can be any value, typically of algebraic types; if a string value is included, for readability purpose it shall preferably be specified as a plain one (ex: ``"James Bond"``) rather than a binary one (ex: ``<<"James Bond">>``); it is up to the reading logic to accommodate both forms; it is tolerated to reference, in the comments of these configuration files, types that actually include *binary* strings (not plain ones, even though plain ones are used in the configuration files)

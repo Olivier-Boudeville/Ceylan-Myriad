@@ -47,6 +47,10 @@ These helpers (code and typing information) are thematically aggregated in modul
 - support for **JSON** documents (``json_utils.erl``), based on any available parser backend (see the `Myriad-level Third-Party Dependencies`_ section for more details)
 - basic services for **trace emission** (a.k.a logging - not related to Erlang tracing), either directly through ``trace_utils.erl``, or thanks to ``trace_bridge.erl`` - typically to rely on more advanced trace systems such as `Ceylan-Traces <http://traces.esperide.org/>`_; now compliant with newer OTP logger and Syslog protocol as defined in `RFC 5424 <https://www.ietf.org/rfc/rfc5424.txt>`_, collecting bother userland traces and VM-level logs
 - very basic facilities for **applications** (not in the sense of OTP ones), in ``app_facilities.{e,h}rl`` with an example (``most_basic_example_app.erl``)
+
+.. _`user preferences`:
+
+- a basic support for **user-defined preferences**; this service relies on our `preferences <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/data-management/preferences.erl>`_ module to make available any user preferences expressed in the `ETF format <#etf>`_, and typically defined in a ``~/.ceylan-settings.etf`` file (possibly a symlink pointing to an actual file in VCS)
 - a bit of **locale management**, in ``locale_utils.erl``
 - minor services about the **monitoring of Erlang processes**, in ``monitor_utils.erl`` and their **registering** in naming services, in ``naming_utils.erl``
 - facilities to better **interface Erlang to other languages**, in ``language_utils.erl`` and ``{python,java}_utils.erl``; nothing as advanced as `Ceylan-Seaplus <http://seaplus.esperide.org/>`_, though
