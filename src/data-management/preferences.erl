@@ -32,14 +32,13 @@
 % A preferences element is designated by a key (an atom), associated to a value
 % (that can be any term).
 %
-% Preferences can be stored in file(s).
-%
 % This is typically a way of storing durable information in one's user account
 % in a transverse way compared to programs and versions thereof, and of sharing
 % them conveniently (ex: for passwords, settings).
 %
-% The format of preferences is a series of Erlang terms as strings, each ended
-% with a dot (ie the format understood by `file:consult/1').
+% Preferences can be stored in file(s), in the ETF format. This format of
+% preferences is a series of Erlang terms as strings, each ended with a dot
+% (i.e. it is the basic, standard format understood by `file:consult/1').
 %
 % Example of content of a preferences file:
 % ```
@@ -47,6 +46,8 @@
 % {myheight, 1.80}.
 % {myName, "Sylvester the cat"}.
 % '''
+%
+% Refer to https://myriad.esperide.org/#etf for more information.
 %
 -module(preferences).
 
@@ -110,10 +111,10 @@
 %-define( default_preferences_server_name, ceylan_preferences_server ).
 
 
-% Name of the default preferences file (searched at the root of the user
+% Name of the default preferences ETF file (searched at the root of the user
 % account):
 %
--define( default_preferences_filename, ".ceylan-settings.txt" ).
+-define( default_preferences_filename, ".ceylan-settings.etf" ).
 
 
 
@@ -164,7 +165,7 @@ start( FileName ) ->
 			% crash of this server:
 			%
 			?myriad_spawn( fun() ->
-					   server_main_run( CallerPid, RegistrationName, FileName )
+					    server_main_run( CallerPid, RegistrationName, FileName )
 						   end ),
 
 			receive
@@ -269,7 +270,6 @@ set( Key, Value, FilePath ) ->
 	ServerPid = start( FilePath ),
 
 	ServerPid ! { set_preference, Key, Value }.
-
 
 
 
@@ -519,7 +519,7 @@ add_preferences_from( FilePath, Table ) ->
 					%    [ PrefFilePath, table:to_string( NewTable ) ] ),
 
 				   %trace_bridge:debug_fmt( "Preferences file '~ts' loaded.",
-				   %						[ FilePath ] ),
+				   %                        [ FilePath ] ),
 
 				   NewTable;
 
@@ -536,7 +536,7 @@ add_preferences_from( FilePath, Table ) ->
 			FlattenError = text_utils:format( "~p", [ Term ] ),
 			trace_bridge:error_fmt( "Error in preferences file '~ts' "
 				"at line ~B (~ts), no preferences read.",
-					   [ FilePath, Line, FlattenError ] ),
+					    [ FilePath, Line, FlattenError ] ),
 			Table;
 
 
