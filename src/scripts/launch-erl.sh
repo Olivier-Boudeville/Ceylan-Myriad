@@ -253,6 +253,7 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ]; do
 			exit 12
 		fi
 		#echo "Adding configuration filename '$1'."
+		# Order respected, if it matters:
 		config_opts="${config_opts} -config $1"
 		token_eaten=0
 	fi
