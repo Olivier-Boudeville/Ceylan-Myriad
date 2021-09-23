@@ -88,7 +88,7 @@
 
 		  stop_application/1, stop_applications/1, stop_user_applications/1,
 
-		  get_supervisor_settings/2,
+		  get_supervisor_settings/2, get_restart_setting/1,
 
 		  check_application_run_context/1, application_run_context_to_string/1,
 
@@ -102,6 +102,7 @@
 % Shorthands:
 
 -type module_name() :: basic_utils:module_name().
+-type execution_target() :: basic_utils:execution_target().
 
 -type file_name() :: file_utils:file_name().
 -type file_path() :: file_utils:file_path().
@@ -1107,13 +1108,13 @@ stop_user_applications( AppNames ) ->
 % Note that the execution context must be explicitly specified (typically by
 % calling a get_execution_target/0 function defined in a key module of that
 % layer, based on Myriad's basic_utils.hrl), otherwise the one that would apply
-% is the one of Myriad, not the one of the calling layer.
+% is the one of Myriad - not the one of the calling layer.
 %
 % See [https://erlang.org/doc/design_principles/sup_princ.html#supervisor-flags]
 % for further information.
 %
--spec get_supervisor_settings( supervisor:strategy(),
-					basic_utils:execution_target() ) -> supervisor:sup_flags().
+-spec get_supervisor_settings( supervisor:strategy(), execution_target() ) ->
+			supervisor:sup_flags().
 get_supervisor_settings( RestartStrategy, _ExecutionTarget=development ) ->
 
 	% No restart wanted in development mode; we do not want the supervisor to
@@ -1134,6 +1135,27 @@ get_supervisor_settings( RestartStrategy, _ExecutionTarget=production ) ->
 	   intensity     => _MaxRestarts=4,
 	   period        => _WithinSeconds=3600,
 	   auto_shutdown => never }.
+
+
+
+% @doc Returns default, base restart settings depending on the specified
+% execution target.
+%
+% Note that the execution context must be explicitly specified (typically by
+% calling a get_execution_target/0 function defined in a key module of that
+% layer, based on Myriad's basic_utils.hrl), otherwise the one that would apply
+% is the one of Myriad - not the one of the calling layer.
+%
+-spec get_restart_setting( execution_target() ) -> supervisor:restart().
+get_restart_setting( _ExecutionTarget=development ) ->
+	% In development, failing as clearly as possible; here at least so that
+	% tests fail in case of problem (ex: if no configuration file is found):
+	%
+	_NeverRestarted=temporary;
+
+get_restart_setting( _ExecutionTarget=production ) ->
+	% In production, as reliable as possible:
+	_AlwaysRestarted=permanent.
 
 
 
