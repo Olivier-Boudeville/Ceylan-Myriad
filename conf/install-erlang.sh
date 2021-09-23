@@ -18,6 +18,7 @@ LANG=C; export LANG
 # Now we keep the MD5 sums of the sources of former Erlang/OTP versions, in
 # order to be able to switch back and forth more easily:
 
+erlang_md5_for_24_1="e740b90a20c0f63108f879ce1f228582"
 erlang_md5_for_24_0="7227024b8619e4d97a7af4f4cf98d4db"
 erlang_md5_for_23_3="d6660705f01afbe3466c0a5de21ab361"
 erlang_md5_for_23_2="e315f59eb9e420a0e469c09649f4303f"
@@ -34,15 +35,15 @@ erlang_md5_for_20_1="4c9eb112cd0e56f17c474218825060ee"
 
 
 # Current stable (an update of the next two lines is needed):
-erlang_version="24.0"
-erlang_md5="${erlang_md5_for_24_0}"
+erlang_version="24.1"
+erlang_md5="${erlang_md5_for_24_1}"
 
 
 # Candidate version (ex: either cutting-edge or, most probably, the previous
 # version that we deem stable enough, should the current introduce regressions):
 #
-erlang_version_candidate="23.3"
-erlang_md5_candidate="${erlang_md5_for_23_3}"
+erlang_version_candidate="24.0"
+erlang_md5_candidate="${erlang_md5_for_24_0}"
 
 base_install_dir="${HOME}/Software/Erlang"
 
