@@ -1,7 +1,6 @@
 ;; This is an initialization script written in elisp.
 ;; Refer to https://www.gnu.org/software/emacs/manual/html_node/elisp/
 
-
 ;; Section for package management with straight.el
 
 ; straight.el is a replacement for package.el (not use-package).
@@ -496,27 +495,6 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (setq buffers-menu-max-size nil)
 
 
-;; Taken from
-;; https://stackoverflow.com/questions/11043004/emacs-compile-buffer-auto-close:
-
-(defun bury-compile-buffer-if-successful (buffer string)
- "Bury a compilation buffer if succeeded without warnings "
- (when (and
-		 (buffer-live-p buffer)
-		 (string-match "compilation" (buffer-name buffer))
-		 (string-match "finished" string)
-		 (not
-		  (with-current-buffer buffer
-			(goto-char (point-min))
-			(search-forward "warning" nil t))))
-	(run-with-timer 1 nil
-					(lambda (buf)
-					  (bury-buffer buf)
-					  (switch-to-prev-buffer (get-buffer-window buf) 'kill))
-					buffer)))
-
-(add-hook 'compilation-finish-functions 'bury-compile-buffer-if-successful)
-
 
 ;; Indenting buffers as a whole:
 ;; more info: https://www.emacswiki.org/emacs/DeletingWhitespace#h5o-11
@@ -790,19 +768,43 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;; Compilation section.
 ;; Mostly taken from http://ensiwiki.ensimag.fr/index.php/Dot_Emacs
 
-;; make compile window disappear after successful compilation:
-(setq compilation-finish-function
-	  (lambda (buf str)
-		(if (string-match "*Compilation*" (buffer-name buf))
-			(if (string-match "abnormally" str)
-				(message "There were errors :-(")
-			  ;; No errors, make the compilation window go away in 2 seconds:
-			  (run-at-time 2 nil
-						   (lambda (buf)
-							 (delete-windows-on buf)
-							 (bury-buffer buf))
-						   buf)
-			  (message "No errors :-)")))))
+;; Taken from
+;; https://stackoverflow.com/questions/11043004/emacs-compile-buffer-auto-close:
+;; and https://www.emacswiki.org/emacs/ModeCompile
+
+ (defun bury-compile-buffer-if-successful (buffer string)
+  "Bury a compilation buffer if succeeded without warnings "
+  (when (and
+		;; (buffer-live-p buffer)
+		 (string-match "compilation" (buffer-name buffer))
+		 (string-match "finished" string)
+		 (not
+		  (with-current-buffer buffer
+			(goto-char (point-min))
+			(search-forward "warning" nil t))))
+	(run-with-timer 1 nil
+					(lambda (buf)
+					  (bury-buffer buf)
+					  (switch-to-prev-buffer (get-buffer-window buf) 'kill))
+					buffer)))
+
+(add-hook 'compilation-finish-functions 'bury-compile-buffer-if-successful)
+
+
+;; ;; make compile window disappear after successful compilation:
+;; (setq compilation-finish-function
+;;	  (lambda (buf str)
+;;		(if (string-match "*Compilation*" (buffer-name buf))
+;;			(if (string-match "abnormally" str)
+;;				(message "There were errors :-(")
+;;			  ;; No errors, make the compilation window go away in 2 seconds:
+;;			  (run-at-time 2 nil
+;;						   (lambda (buf)
+;;							 (delete-windows-on buf)
+;;							 (bury-buffer buf))
+;;						   buf)
+;;			  (message "No errors :-)")))))
+
 
 ;;my-compile is smarter about how to display the new buffer
 (defun display-buffer-by-splitting-largest (buffer force-other-window)
@@ -821,6 +823,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
   (let ((display-buffer-function 'display-buffer-by-splitting-largest))
 	(call-interactively 'compile)))
 
+
 ;; Misc compilation settings:
 (setq-default
  compile-command "make"
@@ -828,8 +831,9 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
  compilation-scroll-output 'first-error
  compilation-ask-about-save nil
  compilation-window-height 10
- compilation-skip-threshold 0
- compilation-auto-jump-to-first-error 1)
+ ;; Bad jump location if enabled: compilation-skip-threshold 0
+ compilation-auto-jump-to-first-error 1
+ )
 
 
 
@@ -929,5 +933,6 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (setq backup-directory-alist (list (cons "." backup-dir)))
 
 (message "<<<<<<######### init.el version 1.1 #########>>>>>>")
+
 
 (delete-other-windows)
