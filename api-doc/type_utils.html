@@ -35,6 +35,10 @@
 <p><tt>level() = <a href="basic_utils.html#type-level">basic_utils:level()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-maybe">maybe()</a></h3>
+<p><tt>maybe(T) = T | undefined</tt></p>
+
+
 <h3 class="typedecl"><a name="type-nesting_depth">nesting_depth()</a></h3>
 <p><tt>nesting_depth() = {<a href="#type-count">count()</a>, <a href="#type-count">count()</a>}</tt></p>
 <p><p> Description of a nesting depth reached when parsing a type description.</p>
@@ -66,12 +70,11 @@ datatype.</p>
 
 <h3 class="typedecl"><a name="type-tuploid">tuploid()</a></h3>
 <p><tt>tuploid() = <a href="#type-tuploid">tuploid</a>(term())</tt></p>
-<p><p> We name tuploid a pseudo-tuple, ie a value that is either an actual tuple or 
+<p><p> We name tuploid a pseudo-tuple, i.e. a value that is either an actual tuple or 
 a single, standalone term, designated as a "basic tuploid".</p>
 
  That is, a tuploid is a tuple of any size, except that the tuploid of size 1
- is MyTerm, not {MYterm}.
-</p>
+ is MyTerm, not {MYterm}.</p>
 
 <h3 class="typedecl"><a name="type-type">type()</a></h3>
 <p><tt>type() = term()</tt></p>
@@ -206,8 +209,18 @@ for polymorphic ones).</p>
 <tr><td valign="top"><a href="#check_binary-1">check_binary/1</a></td><td>Checks that the specified term is a binary indeed, and returns it.</td></tr>
 <tr><td valign="top"><a href="#check_boolean-1">check_boolean/1</a></td><td>Checks that the specified term is a boolean indeed, and returns it.</td></tr>
 <tr><td valign="top"><a href="#check_float-1">check_float/1</a></td><td>Checks that the specified term is a float indeed, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_floats-1">check_floats/1</a></td><td>Checks that the specified term is a list of floats indeed, and returns
+ it.</td></tr>
 <tr><td valign="top"><a href="#check_integer-1">check_integer/1</a></td><td>Checks that the specified term is an integer indeed, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_integers-1">check_integers/1</a></td><td>Checks that the specified term is a list of integers indeed, and returns
+ it.</td></tr>
 <tr><td valign="top"><a href="#check_list-1">check_list/1</a></td><td>Checks that the specified term is a list indeed, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_maybe_float-1">check_maybe_float/1</a></td><td>Checks that the specified term is a maybe-float indeed, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_maybe_floats-1">check_maybe_floats/1</a></td><td>Checks that the specified term is a list of maybe-floats indeed, and
+ returns it.</td></tr>
+<tr><td valign="top"><a href="#check_maybe_integer-1">check_maybe_integer/1</a></td><td>Checks that the specified term is a maybe-integer indeed, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_maybe_integers-1">check_maybe_integers/1</a></td><td>Checks that the specified term is a list of maybe-integers indeed, and
+ returns it.</td></tr>
 <tr><td valign="top"><a href="#check_pid-1">check_pid/1</a></td><td>Checks that the specified term is a PID indeed, and returns it.</td></tr>
 <tr><td valign="top"><a href="#check_tuple-1">check_tuple/1</a></td><td>Checks that the specified term is a tuple indeed, and returns it.</td></tr>
 <tr><td valign="top"><a href="#description_to_type-1">description_to_type/1</a></td><td>Returns the actual type corresponding to specified type description: 
@@ -304,17 +317,61 @@ augment_tuploid({foo, 42}, 2.0) = {foo, 42, 2.0}</p>
 <p> </p>
 </div><p>Checks that the specified term is a float indeed, and returns it.</p>
 
+<h3 class="function"><a name="check_floats-1">check_floats/1</a></h3>
+<div class="spec">
+<p><tt>check_floats(Floats::term()) -&gt; [float()]</tt><br></p>
+<p> </p>
+</div><p>Checks that the specified term is a list of floats indeed, and returns
+ it.
+</p>
+
 <h3 class="function"><a name="check_integer-1">check_integer/1</a></h3>
 <div class="spec">
 <p><tt>check_integer(Int::term()) -&gt; integer()</tt><br></p>
 <p> </p>
 </div><p>Checks that the specified term is an integer indeed, and returns it.</p>
 
+<h3 class="function"><a name="check_integers-1">check_integers/1</a></h3>
+<div class="spec">
+<p><tt>check_integers(Integers::term()) -&gt; [integer()]</tt><br></p>
+<p> </p>
+</div><p>Checks that the specified term is a list of integers indeed, and returns
+ it.
+</p>
+
 <h3 class="function"><a name="check_list-1">check_list/1</a></h3>
 <div class="spec">
 <p><tt>check_list(List::term()) -&gt; list()</tt><br></p>
 <p> </p>
 </div><p>Checks that the specified term is a list indeed, and returns it.</p>
+
+<h3 class="function"><a name="check_maybe_float-1">check_maybe_float/1</a></h3>
+<div class="spec">
+<p><tt>check_maybe_float(F::term()) -&gt; <a href="#type-maybe">maybe</a>(float())</tt><br></p>
+<p> </p>
+</div><p>Checks that the specified term is a maybe-float indeed, and returns it.</p>
+
+<h3 class="function"><a name="check_maybe_floats-1">check_maybe_floats/1</a></h3>
+<div class="spec">
+<p><tt>check_maybe_floats(MaybeFloats::term()) -&gt; [<a href="#type-maybe">maybe</a>(float())]</tt><br></p>
+<p> </p>
+</div><p>Checks that the specified term is a list of maybe-floats indeed, and
+ returns it.
+</p>
+
+<h3 class="function"><a name="check_maybe_integer-1">check_maybe_integer/1</a></h3>
+<div class="spec">
+<p><tt>check_maybe_integer(Int::term()) -&gt; <a href="#type-maybe">maybe</a>(integer())</tt><br></p>
+<p> </p>
+</div><p>Checks that the specified term is a maybe-integer indeed, and returns it.</p>
+
+<h3 class="function"><a name="check_maybe_integers-1">check_maybe_integers/1</a></h3>
+<div class="spec">
+<p><tt>check_maybe_integers(MaybeIntegers::term()) -&gt; [<a href="#type-maybe">maybe</a>(integer())]</tt><br></p>
+<p> </p>
+</div><p>Checks that the specified term is a list of maybe-integers indeed, and
+ returns it.
+</p>
 
 <h3 class="function"><a name="check_pid-1">check_pid/1</a></h3>
 <div class="spec">

@@ -75,6 +75,10 @@
 <p><tt>indentation_level_or_bullet() = <a href="#type-indentation_level">indentation_level()</a> | <a href="#type-bullet">bullet()</a></tt></p>
 <p> Either an indentation level, or directly a bullet.</p>
 
+<h3 class="typedecl"><a name="type-integer_id">integer_id()</a></h3>
+<p><tt>integer_id() = <a href="id_utils.html#type-integer_id">id_utils:integer_id()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-label">label()</a></h3>
 <p><tt>label() = <a href="#type-ustring">ustring()</a></tt></p>
 <p> A string that describes a label.</p>
@@ -158,7 +162,9 @@ badly formatted log cannot crash anymore its emitter process).</td></tr>
 <tr><td valign="top"><a href="#atom_to_binary-1">atom_to_binary/1</a></td><td>Returns a binary string corresponding to the specified atom.</td></tr>
 <tr><td valign="top"><a href="#atom_to_string-1">atom_to_string/1</a></td><td>Returns a plain string corresponding to the specified atom.</td></tr>
 <tr><td valign="top"><a href="#atoms_to_listed_string-1">atoms_to_listed_string/1</a></td><td>Returns a string that pretty-prints the specified list of atoms, listed 
-directly in the returned text.</td></tr>
+directly (in an unquoted form) in the returned text.</td></tr>
+<tr><td valign="top"><a href="#atoms_to_quoted_listed_string-1">atoms_to_quoted_listed_string/1</a></td><td>Returns a string that pretty-prints the specified list of atoms, listed 
+directly, in a quoted form, in the returned text.</td></tr>
 <tr><td valign="top"><a href="#atoms_to_sorted_string-1">atoms_to_sorted_string/1</a></td><td>Returns a string that pretty-prints the specified list of atoms once
  ordered, with default bullets.</td></tr>
 <tr><td valign="top"><a href="#atoms_to_string-1">atoms_to_string/1</a></td><td>Returns a string that pretty-prints specified list of atoms, with default
@@ -192,12 +198,12 @@ be first rounded to nearest integer.</td></tr>
 <tr><td valign="top"><a href="#double_quote_string-1">double_quote_string/1</a></td><td>Double-quotes specified string, that is returns it once double-quoted.</td></tr>
 <tr><td valign="top"><a href="#double_quote_strings-1">double_quote_strings/1</a></td><td>Double-quotes each string in the specified list, that is returns them
  (in-order) once double-quoted.</td></tr>
-<tr><td valign="top"><a href="#ellipse-1">ellipse/1</a></td><td>Ellipses (shortens) the specified string, so that its total length
- remains up to the default threshold.</td></tr>
-<tr><td valign="top"><a href="#ellipse-2">ellipse/2</a></td><td>Ellipses (shortens) the specified string, so that its total length
- remains up to specified threshold.</td></tr>
-<tr><td valign="top"><a href="#ellipse_fmt-2">ellipse_fmt/2</a></td><td>Ellipses (shortens) specified string to format, so that its total length
- remains up to specified threshold.</td></tr>
+<tr><td valign="top"><a href="#ellipse-1">ellipse/1</a></td><td>Ellipses (shortens by removing the end of) the specified string, so that 
+its total length remains up to the default threshold.</td></tr>
+<tr><td valign="top"><a href="#ellipse-2">ellipse/2</a></td><td>Ellipses (shortens by removing the end of) the specified string, so that 
+its total length remains up to specified threshold.</td></tr>
+<tr><td valign="top"><a href="#ellipse_fmt-2">ellipse_fmt/2</a></td><td>Ellipses (shortens) specified string to format, so that its total length 
+remains up to specified threshold.</td></tr>
 <tr><td valign="top"><a href="#ensure_binaries-1">ensure_binaries/1</a></td><td>Returns a list of binary string versions of the string-like elements of 
 the specified list.</td></tr>
 <tr><td valign="top"><a href="#ensure_binaries-2">ensure_binaries/2</a></td><td>Returns a list of binary string versions of the string-like elements of 
@@ -272,6 +278,8 @@ hexadecimal number as a text, and expected to start with a "0x" prefix.</td></tr
 <tr><td valign="top"><a href="#hexastring_to_integer-2">hexastring_to_integer/2</a></td><td>Returns an integer corresponding to the specified string containing an 
 hexadecimal number as a text, expected to start with a "0x" prefix if 
 specified.</td></tr>
+<tr><td valign="top"><a href="#integer_ids_to_listed_string-1">integer_ids_to_listed_string/1</a></td><td>Returns a string that pretty-prints the specified list of integer 
+identifiers, listed directly in the returned text.</td></tr>
 <tr><td valign="top"><a href="#integer_to_hexastring-1">integer_to_hexastring/1</a></td><td>Returns a plain string corresponding to the specified integer, in 
 hexadecimal form, with a "0x" prefix.</td></tr>
 <tr><td valign="top"><a href="#integer_to_hexastring-2">integer_to_hexastring/2</a></td><td>Returns a plain string corresponding to the specified integer, in 
@@ -380,6 +388,14 @@ directly along the text (not one item per line), according to specified
 <tr><td valign="top"><a href="#strings_to_sorted_string-2">strings_to_sorted_string/2</a></td><td>Returns a string that pretty-prints specified list of strings (actually,
  any element that can be processed with ~ts will do; ex: atoms) once reordered,
  with user-specified indentation level or bullet.</td></tr>
+<tr><td valign="top"><a href="#strings_to_spaced_string-1">strings_to_spaced_string/1</a></td><td>Returns a plain string that pretty-prints specified list of strings
+ (actually the list may contain also binary strings), with default bullets and
+ a blank line before each top-level entry in order to better space them, for an
+ increased readability.</td></tr>
+<tr><td valign="top"><a href="#strings_to_spaced_string-2">strings_to_spaced_string/2</a></td><td>Returns a string that pretty-prints specified list of strings (actually, 
+any element that can be processed with ~ts will do; ex: atoms), with 
+user-specified bullets or indentation level, and a blank line before each 
+top-level entry in order to better space them, for an increased readability.</td></tr>
 <tr><td valign="top"><a href="#strings_to_string-1">strings_to_string/1</a></td><td>Returns a plain string that pretty-prints specified list of strings
  (actually the list may contain also binary strings), with default bullets.</td></tr>
 <tr><td valign="top"><a href="#strings_to_string-2">strings_to_string/2</a></td><td>Returns a string that pretty-prints specified list of strings (actually, 
@@ -387,6 +403,10 @@ any element that can be processed with ~ts will do; ex: atoms), with
 user-specified bullets or indentation level.</td></tr>
 <tr><td valign="top"><a href="#substitute-3">substitute/3</a></td><td>Substitutes in specified string the source character with the target one 
 (all occurrences thereof).</td></tr>
+<tr><td valign="top"><a href="#tail-1">tail/1</a></td><td>Tails (shortens by removing the beginning of) the specified string, so 
+that its total length remains up to the default threshold.</td></tr>
+<tr><td valign="top"><a href="#tail-2">tail/2</a></td><td>Tails (shortens by removing the beginning of) the specified string, so 
+that its total length remains up to specified threshold.</td></tr>
 <tr><td valign="top"><a href="#term_to_binary-1">term_to_binary/1</a></td><td>Returns a human-readable binary string describing specified term.</td></tr>
 <tr><td valign="top"><a href="#term_to_bounded_string-1">term_to_bounded_string/1</a></td><td>Returns a human-readable string describing specified term, within a
  bounded, default length.</td></tr>
@@ -501,10 +521,20 @@ badly formatted log cannot crash anymore its emitter process).</p>
 <p><tt>atoms_to_listed_string(ListOfAtoms::[atom()]) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
 </div><p><p>Returns a string that pretty-prints the specified list of atoms, listed 
-directly in the returned text.</p>
+directly (in an unquoted form) in the returned text.</p>
 
- Ex: atoms_to_listed_string( [ red, blue, green ] ) returns "red, blue and
- green".
+ Ex: atoms_to_listed_string([red, blue, green]) returns "red, blue and green".
+</p>
+
+<h3 class="function"><a name="atoms_to_quoted_listed_string-1">atoms_to_quoted_listed_string/1</a></h3>
+<div class="spec">
+<p><tt>atoms_to_quoted_listed_string(ListOfAtoms::[atom()]) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns a string that pretty-prints the specified list of atoms, listed 
+directly, in a quoted form, in the returned text.</p>
+
+ Ex: atoms_to_quoted_listed_string([red, blue, green]) returns "'red', 'blue'
+ and 'green'".
 </p>
 
 <h3 class="function"><a name="atoms_to_sorted_string-1">atoms_to_sorted_string/1</a></h3>
@@ -668,24 +698,32 @@ be first rounded to nearest integer.</p>
 <div class="spec">
 <p><tt>ellipse(String::<a href="#type-ustring">ustring()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
-</div><p>Ellipses (shortens) the specified string, so that its total length
- remains up to the default threshold.
+</div><p><p>Ellipses (shortens by removing the end of) the specified string, so that 
+its total length remains up to the default threshold.</p>
+
+ <p>Note: the specified threshold is expected to be equal at least to 6.</p>
+
+ See also: tail/1.
 </p>
 
 <h3 class="function"><a name="ellipse-2">ellipse/2</a></h3>
 <div class="spec">
 <p><tt>ellipse(String::<a href="#type-ustring">ustring()</a>, MaxLen::<a href="#type-length">length()</a> | unlimited) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
-</div><p>Ellipses (shortens) the specified string, so that its total length
- remains up to specified threshold.
+</div><p><p>Ellipses (shortens by removing the end of) the specified string, so that 
+its total length remains up to specified threshold.</p>
+
+ Note: the specified threshold is expected to be equal at least to 6.
 </p>
 
 <h3 class="function"><a name="ellipse_fmt-2">ellipse_fmt/2</a></h3>
 <div class="spec">
 <p><tt>ellipse_fmt(FormatString::<a href="#type-format_string">format_string()</a>, Values::<a href="#type-format_values">format_values()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
-</div><p>Ellipses (shortens) specified string to format, so that its total length
- remains up to specified threshold.
+</div><p><p>Ellipses (shortens) specified string to format, so that its total length 
+remains up to specified threshold.</p>
+
+ Note: the specified threshold is expected to be equal at least to 6.
 </p>
 
 <h3 class="function"><a name="ensure_binaries-1">ensure_binaries/1</a></h3>
@@ -1072,6 +1110,16 @@ specified.</p>
  Note: both uppercase and lowercase letters are supported.
 </p>
 
+<h3 class="function"><a name="integer_ids_to_listed_string-1">integer_ids_to_listed_string/1</a></h3>
+<div class="spec">
+<p><tt>integer_ids_to_listed_string(IntegerIds::[<a href="#type-integer_id">integer_id()</a>]) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns a string that pretty-prints the specified list of integer 
+identifiers, listed directly in the returned text.</p>
+
+ Ex: integer_ids_to_listed_string([1, 13, 8]) returns "#1, #13 and #8".
+</p>
+
 <h3 class="function"><a name="integer_to_hexastring-1">integer_to_hexastring/1</a></h3>
 <div class="spec">
 <p><tt>integer_to_hexastring(IntegerValue::integer()) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
@@ -1108,7 +1156,7 @@ hexadecimal form, with a "0x" prefix if requested.</p>
 </div><p><p>Returns a string that pretty-prints the specified list of integers, 
 listed directly in the returned text.</p>
 
- Ex: integers_to_listed_string( [ 1, 13, 8 ] ) returns "1, 13 and 8".
+ Ex: integers_to_listed_string([1, 13, 8]) returns "1, 13 and 8".
 </p>
 
 <h3 class="function"><a name="is_bin_string-1">is_bin_string/1</a></h3>
@@ -1683,6 +1731,29 @@ strings_to_listed_string( _Strings=[] ) -&gt;
  with user-specified indentation level or bullet.
 </p>
 
+<h3 class="function"><a name="strings_to_spaced_string-1">strings_to_spaced_string/1</a></h3>
+<div class="spec">
+<p><tt>strings_to_spaced_string(Strings::[<a href="#type-any_string">any_string()</a>]) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p> </p>
+</div><p>Returns a plain string that pretty-prints specified list of strings
+ (actually the list may contain also binary strings), with default bullets and
+ a blank line before each top-level entry in order to better space them, for an
+ increased readability.
+</p>
+
+<h3 class="function"><a name="strings_to_spaced_string-2">strings_to_spaced_string/2</a></h3>
+<div class="spec">
+<p><tt>strings_to_spaced_string(Strings::[<a href="#type-ustring">ustring()</a>], IndentationOrBullet::<a href="#type-indentation_level_or_bullet">indentation_level_or_bullet()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns a string that pretty-prints specified list of strings (actually, 
+any element that can be processed with ~ts will do; ex: atoms), with 
+user-specified bullets or indentation level, and a blank line before each 
+top-level entry in order to better space them, for an increased readability.</p>
+
+ This can be a solution to nest bullet lists, by specifying a bullet with an
+ offset, such as " * ".
+</p>
+
 <h3 class="function"><a name="strings_to_string-1">strings_to_string/1</a></h3>
 <div class="spec">
 <p><tt>strings_to_string(Strings::[<a href="#type-any_string">any_string()</a>]) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
@@ -1711,6 +1782,30 @@ user-specified bullets or indentation level.</p>
 (all occurrences thereof).</p>
 
  Note: simpler and probably more efficient that a regular expression.
+</p>
+
+<h3 class="function"><a name="tail-1">tail/1</a></h3>
+<div class="spec">
+<p><tt>tail(String::<a href="#type-ustring">ustring()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p> </p>
+</div><p><p>Tails (shortens by removing the beginning of) the specified string, so 
+that its total length remains up to the default threshold.</p>
+
+ <p>Note: the specified threshold is expected to be equal at least to 6.</p>
+
+ See also: ellipse/1.
+</p>
+
+<h3 class="function"><a name="tail-2">tail/2</a></h3>
+<div class="spec">
+<p><tt>tail(String::<a href="#type-ustring">ustring()</a>, MaxLen::<a href="#type-length">length()</a> | unlimited) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p> </p>
+</div><p><p>Tails (shortens by removing the beginning of) the specified string, so 
+that its total length remains up to specified threshold.</p>
+
+ <p>Note: the specified threshold is expected to be equal at least to 6.</p>
+
+ See also: ellipse/2.
 </p>
 
 <h3 class="function"><a name="term_to_binary-1">term_to_binary/1</a></h3>

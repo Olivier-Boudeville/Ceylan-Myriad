@@ -31,6 +31,10 @@ any two of them.</p>
 <p><tt>identifier_table() = <a href="map_hashtable.html#type-map_hashtable">map_hashtable:map_hashtable</a>(<a href="#type-identifiable_element">identifiable_element()</a>, <a href="#type-sortable_id">sortable_id()</a>)</tt></p>
 <p> A table associating, to an element, its sortable identifier.</p>
 
+<h3 class="typedecl"><a name="type-integer_id">integer_id()</a></h3>
+<p><tt>integer_id() = non_neg_integer()</tt></p>
+<p> Integer identifiers start at 1.</p>
+
 <h3 class="typedecl"><a name="type-sortable_id">sortable_id()</a></h3>
 <p><tt>sortable_id() = [integer()] | <a href="text_utils.html#type-bin_string">text_utils:bin_string()</a></tt></p>
 <p><p> Corresponds to smart (sortable, insertion-friendly) identifiers, typically 
@@ -58,8 +62,12 @@ always be introduced).</p>
  <p>Example: <code>lists:sort([[7,3], [7,2,1], [7,2,2], [7,2]]) =
    [[7,2], [7,2,1], [7,2,2], [7,3]]</code>.</p>
 
- <p>The maximum lower bound is conventionally chosen to be [0] - which is not a 
-valid sortable identifier (as it terminates with zero).</p>
+ <p>The maximum lower bound is conventionally chosen to be ?lower_bound_id, 
+i.e. [0] - which is not a valid sortable identifier (as it terminates with 
+zero).</p>
+
+ <p>The minimum upper bound is conventionally chosen to be ?upper_bound_id, i.e. a 
+binary string.</p>
 
  <p>Designed to be efficiently compared/ordered, at the cost of more expensive 
 insertions.</p>

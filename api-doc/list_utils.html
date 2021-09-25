@@ -42,11 +42,14 @@
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#append_at_end-2">append_at_end/2</a></td><td>Appends specified element at the end of specified list, without changing 
 the order of the list.</td></tr>
+<tr><td valign="top"><a href="#are_atoms-1">are_atoms/1</a></td><td>Returns whether the specified list contains only atoms.</td></tr>
 <tr><td valign="top"><a href="#are_integers-1">are_integers/1</a></td><td>Returns whether the specified list contains only integers.</td></tr>
 <tr><td valign="top"><a href="#are_pids-1">are_pids/1</a></td><td>Returns whether the specified list contains only PIDs.</td></tr>
 <tr><td valign="top"><a href="#cartesian_product-1">cartesian_product/1</a></td><td>Returns the cartesian product of the specified lists (collected in a 
 top-level list).</td></tr>
 <tr><td valign="top"><a href="#check_integers-1">check_integers/1</a></td><td>Checks that specified argument is a list of integers.</td></tr>
+<tr><td valign="top"><a href="#check_strictly_ascending-1">check_strictly_ascending/1</a></td><td>Checks that the terms in the specified list are in strict (no duplicates) 
+ascending (Erlang) term order.</td></tr>
 <tr><td valign="top"><a href="#count_occurrences-1">count_occurrences/1</a></td><td>Counts the number of occurences of all elements in the specified list:
  returns an (unordered) list of {Term,Count} pairs, where each term is
  associated to the total number of its occurrences (1 or above) in the
@@ -169,17 +172,32 @@ the order of the list.</p>
  costlier than adding them at head.
 </p>
 
+<h3 class="function"><a name="are_atoms-1">are_atoms/1</a></h3>
+<div class="spec">
+<p><tt>are_atoms(T::term()) -&gt; boolean()</tt><br></p>
+<p> </p>
+</div><p><p>Returns whether the specified list contains only atoms.</p>
+
+ Considers that an empty list complies.
+</p>
+
 <h3 class="function"><a name="are_integers-1">are_integers/1</a></h3>
 <div class="spec">
 <p><tt>are_integers(T::term()) -&gt; boolean()</tt><br></p>
 <p> </p>
-</div><p>Returns whether the specified list contains only integers.</p>
+</div><p><p>Returns whether the specified list contains only integers.</p>
+
+ Considers that an empty list complies.
+</p>
 
 <h3 class="function"><a name="are_pids-1">are_pids/1</a></h3>
 <div class="spec">
 <p><tt>are_pids(T::term()) -&gt; boolean()</tt><br></p>
 <p> </p>
-</div><p>Returns whether the specified list contains only PIDs.</p>
+</div><p><p>Returns whether the specified list contains only PIDs.</p>
+
+ Considers that an empty list complies.
+</p>
 
 <h3 class="function"><a name="cartesian_product-1">cartesian_product/1</a></h3>
 <div class="spec">
@@ -196,7 +214,22 @@ top-level list).</p>
 <div class="spec">
 <p><tt>check_integers(Any::term()) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Checks that specified argument is a list of integers.</p>
+</div><p><p>Checks that specified argument is a list of integers.</p>
+
+ See also type_utils:check_integers/1.
+</p>
+
+<h3 class="function"><a name="check_strictly_ascending-1">check_strictly_ascending/1</a></h3>
+<div class="spec">
+<p><tt>check_strictly_ascending(List::list()) -&gt; boolean()</tt><br></p>
+<p> </p>
+</div><p><p>Checks that the terms in the specified list are in strict (no duplicates) 
+ascending (Erlang) term order.</p>
+
+ In many cases, the actual type of these elements shall be checked beforehand
+ (ex: see type_utils:check_{integers,floats}/1) to ensure that comparisons make
+ sense (ex: float versus atom).
+</p>
 
 <h3 class="function"><a name="count_occurrences-1">count_occurrences/1</a></h3>
 <div class="spec">
@@ -466,11 +499,11 @@ algorithms are a lot more effective, when applicable.</p>
 
  <p>Not tail recursive version:</p>
 
-  <p>get_element_at( List, 1 ) -&gt;	 
+ <p>get_element_at( List, 1 ) -&gt;   
 hd(List);</p>
 
-  get_element_at( [ _H | T ], Index ) -&gt;
- 	get_element_at( T, Index-1 ).
+ get_element_at( [ _H | T ], Index ) -&gt;
+   get_element_at( T, Index-1 ).
 </p>
 
 <h3 class="function"><a name="get_index_of-2">get_index_of/2</a></h3>

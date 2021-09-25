@@ -95,6 +95,10 @@
 <p><tt>environment() = <a href="system_utils.html#type-environment">system_utils:environment()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-erlang_naming_type">erlang_naming_type()</a></h3>
+<p><tt>erlang_naming_type() = shortnames | longnames</tt></p>
+<p> No standard definition of NameType found in net_kernel or elsewhere.</p>
+
 <h3 class="typedecl"><a name="type-file_path">file_path()</a></h3>
 <p><tt>file_path() = <a href="file_utils.html#type-file_path">file_utils:file_path()</a></tt></p>
 
@@ -149,7 +153,8 @@
 
 <h3 class="typedecl"><a name="type-node_naming_mode">node_naming_mode()</a></h3>
 <p><tt>node_naming_mode() = long_name | short_name</tt></p>
-
+<p> How Erlang nodes are to be named to locate each other, according to our
+ conventions.</p>
 
 <h3 class="typedecl"><a name="type-node_type">node_type()</a></h3>
 <p><tt>node_type() = visible | hidden | all</tt></p>
@@ -205,8 +210,11 @@ or throws an exception.</td></tr>
 <tr><td valign="top"><a href="#check_node_availability-2">check_node_availability/2</a></td><td>Tells whether the specified Erlang node is available: returns 
 {IsAvailable,Duration} where IsAvailable is a boolean and Duration is the 
 number of milliseconds that was used to determine it.</td></tr>
-<tr><td valign="top"><a href="#enable_distribution-2">enable_distribution/2</a></td><td>Enables the distribution on the current node, supposedly not already 
+<tr><td valign="top"><a href="#enable_distribution_mode-2">enable_distribution_mode/2</a></td><td>Enables the distribution on the current node, supposedly not already 
 distributed (otherwise the operation will fail).</td></tr>
+<tr><td valign="top"><a href="#enable_preferred_distribution_mode-2">enable_preferred_distribution_mode/2</a></td><td>Returns the distribution naming mode that could be enabled (if any) on 
+the current node, based on the mode(s) that were specified in decreasing order 
+of interest, or returns an error.</td></tr>
 <tr><td valign="top"><a href="#generate_valid_node_name_from-1">generate_valid_node_name_from/1</a></td><td>Returns a name (as a string) that is a legal name for an Erlang node,
  forged from the specified name.</td></tr>
 <tr><td valign="top"><a href="#get_all_connected_nodes-0">get_all_connected_nodes/0</a></td><td>Returns the list of all connected nodes (each being designated by an
@@ -214,6 +222,12 @@ distributed (otherwise the operation will fail).</td></tr>
 <tr><td valign="top"><a href="#get_basic_node_launching_command-5">get_basic_node_launching_command/5</a></td><td>Returns a basic command line (as a plain string) and its related
  environment in order to launch an Erlang node (interpreter) with the specified
  settings.</td></tr>
+<tr><td valign="top"><a href="#get_complete_node_name-1">get_complete_node_name/1</a></td><td>Returns the complete name of the specified node (as a string), which has 
+to be used to target it from another node, with respect to the local hostname 
+and node naming conventions.</td></tr>
+<tr><td valign="top"><a href="#get_complete_node_name-3">get_complete_node_name/3</a></td><td>Returns the complete name of the specified node (as a string), which has 
+to be used to target it from another node, with respect to the specified node 
+naming conventions.</td></tr>
 <tr><td valign="top"><a href="#get_cookie-0">get_cookie/0</a></td><td>Returns the Erlang cookie of the current node if that node is alive,
  otherwise the 'nocookie' atom.</td></tr>
 <tr><td valign="top"><a href="#get_cookie_option-0">get_cookie_option/0</a></td><td>Returns the command-line option (a plain string) to be used to run a new
@@ -225,23 +239,25 @@ distributed (otherwise the operation will fail).</td></tr>
 <tr><td valign="top"><a href="#get_epmd_environment-1">get_epmd_environment/1</a></td><td>Returns the command-line option (a plain string) to be used to run a new 
 Erlang node with the specified EPMD port specification, which can be either 
 the 'undefined' atom or the TCP port number.</td></tr>
-<tr><td valign="top"><a href="#get_fully_qualified_node_name-3">get_fully_qualified_node_name/3</a></td><td>Returns the full name of a node (as a string), which has to be used to 
-target it from another node, with respect to the specified node naming 
-conventions.</td></tr>
 <tr><td valign="top"><a href="#get_hostname-1">get_hostname/1</a></td><td>Returns, from the specified arbitrary hostname (either a FQDN or just an 
 hostname), the corresponding actual "atomic" hostname (that is with no domain 
 involved), as a plain string.</td></tr>
+<tr><td valign="top"><a href="#get_hostname_from_node_name-1">get_hostname_from_node_name/1</a></td><td>Returns the hostname (as a plain string) that corresponds to the
+ specified node name (as an atom).</td></tr>
 <tr><td valign="top"><a href="#get_local_ip_address-0">get_local_ip_address/0</a></td><td>Returns the "main" potentially usable non-local network interface on this
  host.</td></tr>
 <tr><td valign="top"><a href="#get_local_ip_addresses-0">get_local_ip_addresses/0</a></td><td>Returns a list of the potentially usable non-local network interfaces on 
 this host, trying to put in first position the "main" one, if any.</td></tr>
-<tr><td valign="top"><a href="#get_naming_compliant_hostname-2">get_naming_compliant_hostname/2</a></td><td>Returns a transformed version (as a string) of the specified hostname 
-(itself specified as a string) so that it is compliant with the specified node 
-naming convention.</td></tr>
+<tr><td valign="top"><a href="#get_naming_compliant_hostname-1">get_naming_compliant_hostname/1</a></td><td>Returns a transformed version (as a string) of the local hostname, so 
+that it is compliant with the specified node naming convention.</td></tr>
+<tr><td valign="top"><a href="#get_naming_compliant_hostname-2">get_naming_compliant_hostname/2</a></td><td>Returns a transformed version (as a string) of the specified FQDN 
+hostname (itself specified as a string) so that it is compliant with the 
+specified node naming convention.</td></tr>
 <tr><td valign="top"><a href="#get_node_name_option-2">get_node_name_option/2</a></td><td>Returns the command-line option (a plain string) to be used to run a new
  Erlang node with the node name (specified as a string) and node naming mode
  (short or long name, specified thanks to atoms).</td></tr>
-<tr><td valign="top"><a href="#get_node_naming_mode-0">get_node_naming_mode/0</a></td><td>Returns the naming mode of this node, either 'short_name' or 'long_name'.</td></tr>
+<tr><td valign="top"><a href="#get_node_naming_mode-0">get_node_naming_mode/0</a></td><td>Returns the naming mode of this node, either 'short_name' or 'long_name',
+ provided that the current node is a distributed one.</td></tr>
 <tr><td valign="top"><a href="#get_reverse_lookup_info-0">get_reverse_lookup_info/0</a></td><td>Returns information to perform a reverse DNS lookup.</td></tr>
 <tr><td valign="top"><a href="#get_tcp_port_range_option-1">get_tcp_port_range_option/1</a></td><td>Returns the command-line option (a plain string) to be used to run a new 
 Erlang node with the specified TCP port restriction, which can be either the 
@@ -263,6 +279,9 @@ or throws an exception.</td></tr>
 <tr><td valign="top"><a href="#localhost-1">localhost/1</a></td><td>Returns an appropriate DNS name (either a FQDN - Fully Qualified Domain
  Name - or a short host name) for the local host (as a plain string), or throws
  an exception.</td></tr>
+<tr><td valign="top"><a href="#localhost_for_node_name-0">localhost_for_node_name/0</a></td><td>Returns a hostname of the local host that is suitable to be included in a 
+node name (in compliance with the current short/long name setting), assuming 
+the current node is a distributed one.</td></tr>
 <tr><td valign="top"><a href="#localnode-0">localnode/0</a></td><td>Returns the name of the local node, as an atom.</td></tr>
 <tr><td valign="top"><a href="#localnode_as_binary-0">localnode_as_binary/0</a></td><td>Returns the name of the local node, as a binary string.</td></tr>
 <tr><td valign="top"><a href="#ping-1">ping/1</a></td><td>Pings specified hostname, and returns true iff it could be ping'd.</td></tr>
@@ -281,6 +300,10 @@ being supposed to use send_file/2.</td></tr>
  address {N1, N2, N3, N4}, or an atom describing why it failed.</td></tr>
 <tr><td valign="top"><a href="#reverse_lookup-2">reverse_lookup/2</a></td><td>Returns a string telling the DNS name corresponding to the specified IPv4
  address {N1, N2, N3, N4}, or an atom describing why it failed.</td></tr>
+<tr><td valign="top"><a href="#secure_distribution-1">secure_distribution/1</a></td><td>Tries to enable the distribution on the current node, trying first to use 
+long names, otherwise short names, doing its best to avoid that the operation 
+fails; in case of success returns the enabled naming mode, otherwise throws an 
+exception.</td></tr>
 <tr><td valign="top"><a href="#send_file-2">send_file/2</a></td><td>Sends specified file (probably over the network) to the specified
  recipient PID, supposed to have already called one of the receive_file/{1,2,3}
  functions.</td></tr>
@@ -360,9 +383,9 @@ should last no less than the specified duration, and not much more</p>
  waited for while returning as soon as possible.
 </p>
 
-<h3 class="function"><a name="enable_distribution-2">enable_distribution/2</a></h3>
+<h3 class="function"><a name="enable_distribution_mode-2">enable_distribution_mode/2</a></h3>
 <div class="spec">
-<p><tt>enable_distribution(NodeName::<a href="#type-node_name">node_name()</a>, NamingMode::<a href="#type-node_naming_mode">node_naming_mode()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>enable_distribution_mode(NodeName::<a href="#type-node_name">node_name()</a>, NamingMode::<a href="#type-node_naming_mode">node_naming_mode()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
 </div><p><p>Enables the distribution on the current node, supposedly not already 
 distributed (otherwise the operation will fail).</p>
@@ -391,6 +414,20 @@ and re-running the program does not fail anymore.</p>
  So a (tiny) second-chance mechanism has been introduced.
 </p>
 
+<h3 class="function"><a name="enable_preferred_distribution_mode-2">enable_preferred_distribution_mode/2</a></h3>
+<div class="spec">
+<p><tt>enable_preferred_distribution_mode(NodeName::<a href="#type-node_name">node_name()</a>, NamingModes::[<a href="#type-node_naming_mode">node_naming_mode()</a>]) -&gt; <a href="#type-fallible">fallible</a>(<a href="#type-node_naming_mode">node_naming_mode()</a>)</tt><br></p>
+<p> </p>
+</div><p><p>Returns the distribution naming mode that could be enabled (if any) on 
+the current node, based on the mode(s) that were specified in decreasing order 
+of interest, or returns an error.</p>
+
+ <p>The current node is supposedly not already distributed (otherwise the 
+operation will fail).</p>
+
+ See enable_distribution_mode/2 for more information.
+</p>
+
 <h3 class="function"><a name="generate_valid_node_name_from-1">generate_valid_node_name_from/1</a></h3>
 <div class="spec">
 <p><tt>generate_valid_node_name_from(Name::iolist()) -&gt; <a href="#type-string_node_name">string_node_name()</a></tt><br></p>
@@ -409,11 +446,38 @@ and re-running the program does not fail anymore.</p>
 
 <h3 class="function"><a name="get_basic_node_launching_command-5">get_basic_node_launching_command/5</a></h3>
 <div class="spec">
-<p><tt>get_basic_node_launching_command(NodeName::<a href="#type-string_node_name">string_node_name()</a>, NodeNamingMode::<a href="#type-node_naming_mode">node_naming_mode()</a>, EpmdSettings::<a href="#type-maybe">maybe</a>(<a href="#type-tcp_port">tcp_port()</a>), TCPSettings::no_restriction | <a href="#type-tcp_port_range">tcp_port_range()</a>, AdditionalOptions::<a href="#type-ustring">ustring()</a>) -&gt; {<a href="#type-command">command()</a>, <a href="#type-environment">environment()</a>}</tt><br></p>
+<p><tt>get_basic_node_launching_command(NodeName::<a href="#type-node_name">node_name()</a>, NodeNamingMode::<a href="#type-node_naming_mode">node_naming_mode()</a>, EpmdSettings::<a href="#type-maybe">maybe</a>(<a href="#type-tcp_port">tcp_port()</a>), TCPSettings::no_restriction | <a href="#type-tcp_port_range">tcp_port_range()</a>, AdditionalOptions::<a href="#type-ustring">ustring()</a>) -&gt; {<a href="#type-command">command()</a>, <a href="#type-environment">environment()</a>}</tt><br></p>
 <p> </p>
 </div><p>Returns a basic command line (as a plain string) and its related
  environment in order to launch an Erlang node (interpreter) with the specified
  settings.
+</p>
+
+<h3 class="function"><a name="get_complete_node_name-1">get_complete_node_name/1</a></h3>
+<div class="spec">
+<p><tt>get_complete_node_name(NodeName::<a href="#type-string_node_name">string_node_name()</a>) -&gt; <a href="#type-atom_node_name">atom_node_name()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns the complete name of the specified node (as a string), which has 
+to be used to target it from another node, with respect to the local hostname 
+and node naming conventions.</p>
+
+ Ex: for a node name "foo", the local hostname may be determined as "bar.org",
+ and with short names, we may specify "foo@bar" to target the corresponding
+ node with these conventions (neither with a mere "foo" nor with
+ "foo@bar.org").
+</p>
+
+<h3 class="function"><a name="get_complete_node_name-3">get_complete_node_name/3</a></h3>
+<div class="spec">
+<p><tt>get_complete_node_name(NodeName::<a href="#type-string_node_name">string_node_name()</a>, Hostname::<a href="#type-string_host_name">string_host_name()</a>, NodeNamingMode::<a href="#type-node_naming_mode">node_naming_mode()</a>) -&gt; <a href="#type-atom_node_name">atom_node_name()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns the complete name of the specified node (as a string), which has 
+to be used to target it from another node, with respect to the specified node 
+naming conventions.</p>
+
+ Ex: for a node name "foo", a hostname "bar.org", with short names, we may
+ specify "foo@bar" to target the corresponding node with these conventions (not
+ a mere "foo", neither "foo@bar.org").
 </p>
 
 <h3 class="function"><a name="get_cookie-0">get_cookie/0</a></h3>
@@ -456,19 +520,6 @@ the 'undefined' atom or the TCP port number.</p>
  otherwise available nodes will not be found.
 </p>
 
-<h3 class="function"><a name="get_fully_qualified_node_name-3">get_fully_qualified_node_name/3</a></h3>
-<div class="spec">
-<p><tt>get_fully_qualified_node_name(NodeName::<a href="#type-string_node_name">string_node_name()</a>, Hostname::<a href="#type-string_host_name">string_host_name()</a>, NodeNamingMode::<a href="#type-node_naming_mode">node_naming_mode()</a>) -&gt; <a href="#type-atom_node_name">atom_node_name()</a></tt><br></p>
-<p> </p>
-</div><p><p>Returns the full name of a node (as a string), which has to be used to 
-target it from another node, with respect to the specified node naming 
-conventions.</p>
-
- Ex: for a node name "foo", a hostname "bar.org", with short names, we may
- specify "foo@bar" to target the corresponding node with these conventions (not
- a mere "foo", neither "foo@bar.org").
-</p>
-
 <h3 class="function"><a name="get_hostname-1">get_hostname/1</a></h3>
 <div class="spec">
 <p><tt>get_hostname(AnyHostname::<a href="#type-any_host_name">any_host_name()</a>) -&gt; <a href="#type-string_host_name">string_host_name()</a></tt><br></p>
@@ -479,6 +530,14 @@ involved), as a plain string.</p>
 
  Ex: "garfield" = get_hostname("garfield.baz.foobar.org")
                 = get_hostname("garfield").
+</p>
+
+<h3 class="function"><a name="get_hostname_from_node_name-1">get_hostname_from_node_name/1</a></h3>
+<div class="spec">
+<p><tt>get_hostname_from_node_name(NodeName::<a href="#type-atom_node_name">atom_node_name()</a>) -&gt; <a href="#type-string_host_name">string_host_name()</a></tt><br></p>
+<p> </p>
+</div><p>Returns the hostname (as a plain string) that corresponds to the
+ specified node name (as an atom).
 </p>
 
 <h3 class="function"><a name="get_local_ip_address-0">get_local_ip_address/0</a></h3>
@@ -499,13 +558,24 @@ this host, trying to put in first position the "main" one, if any.</p>
  Note: IPv6 support should be added.
 </p>
 
+<h3 class="function"><a name="get_naming_compliant_hostname-1">get_naming_compliant_hostname/1</a></h3>
+<div class="spec">
+<p><tt>get_naming_compliant_hostname(NamingMode::<a href="#type-node_naming_mode">node_naming_mode()</a>) -&gt; <a href="#type-string_host_name">string_host_name()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns a transformed version (as a string) of the local hostname, so 
+that it is compliant with the specified node naming convention.</p>
+
+ For example, if the short_name convention is specified, then a "bar.baz.org"
+ local hostname will result into "bar".
+</p>
+
 <h3 class="function"><a name="get_naming_compliant_hostname-2">get_naming_compliant_hostname/2</a></h3>
 <div class="spec">
-<p><tt>get_naming_compliant_hostname(Hostname::<a href="#type-string_host_name">string_host_name()</a>, X2::<a href="#type-node_naming_mode">node_naming_mode()</a>) -&gt; <a href="#type-string_host_name">string_host_name()</a></tt><br></p>
+<p><tt>get_naming_compliant_hostname(Hostname::<a href="#type-string_host_name">string_host_name()</a>, NamingMode::<a href="#type-node_naming_mode">node_naming_mode()</a>) -&gt; <a href="#type-string_host_name">string_host_name()</a></tt><br></p>
 <p> </p>
-</div><p><p>Returns a transformed version (as a string) of the specified hostname 
-(itself specified as a string) so that it is compliant with the specified node 
-naming convention.</p>
+</div><p><p>Returns a transformed version (as a string) of the specified FQDN 
+hostname (itself specified as a string) so that it is compliant with the 
+specified node naming convention.</p>
 
  For example, if the short_name convention is specified, then a "bar.baz.org"
  hostname will result into "bar".
@@ -522,9 +592,11 @@ naming convention.</p>
 
 <h3 class="function"><a name="get_node_naming_mode-0">get_node_naming_mode/0</a></h3>
 <div class="spec">
-<p><tt>get_node_naming_mode() -&gt; <a href="#type-node_naming_mode">node_naming_mode()</a></tt><br></p>
+<p><tt>get_node_naming_mode() -&gt; <a href="#type-maybe">maybe</a>(<a href="#type-node_naming_mode">node_naming_mode()</a>)</tt><br></p>
 <p> </p>
-</div><p>Returns the naming mode of this node, either 'short_name' or 'long_name'.</p>
+</div><p>Returns the naming mode of this node, either 'short_name' or 'long_name',
+ provided that the current node is a distributed one.
+</p>
 
 <h3 class="function"><a name="get_reverse_lookup_info-0">get_reverse_lookup_info/0</a></h3>
 <div class="spec">
@@ -635,6 +707,18 @@ or throws an exception.</p>
  an exception.
 </p>
 
+<h3 class="function"><a name="localhost_for_node_name-0">localhost_for_node_name/0</a></h3>
+<div class="spec">
+<p><tt>localhost_for_node_name() -&gt; <a href="#type-string_host_name">string_host_name()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns a hostname of the local host that is suitable to be included in a 
+node name (in compliance with the current short/long name setting), assuming 
+the current node is a distributed one.</p>
+
+ We have had our deal of problems regarding systems whose local hostnames
+ resolved in varied, sometimes variable, potentially unresolvable values.
+</p>
+
 <h3 class="function"><a name="localnode-0">localnode/0</a></h3>
 <div class="spec">
 <p><tt>localnode() -&gt; <a href="#type-atom_node_name">atom_node_name()</a> | local_node</tt><br></p>
@@ -730,6 +814,22 @@ being supposed to use send_file/2.</p>
  address {N1, N2, N3, N4}, or an atom describing why it failed.
 </p>
 
+<h3 class="function"><a name="secure_distribution-1">secure_distribution/1</a></h3>
+<div class="spec">
+<p><tt>secure_distribution(UserNodeName::<a href="#type-node_name">node_name()</a>) -&gt; <a href="#type-node_naming_mode">node_naming_mode()</a></tt><br></p>
+<p> </p>
+</div><p><p>Tries to enable the distribution on the current node, trying first to use 
+long names, otherwise short names, doing its best to avoid that the operation 
+fails; in case of success returns the enabled naming mode, otherwise throws an 
+exception.</p>
+
+ <p>Especially useful in context of continuous integration and/or from within a 
+container facility such as Docker or Singularity, where enabling the 
+distribution of nodes may fail for varied reasons.</p>
+
+ See enable_distribution_mode/2 for more details.
+</p>
+
 <h3 class="function"><a name="send_file-2">send_file/2</a></h3>
 <div class="spec">
 <p><tt>send_file(FilePath::<a href="#type-file_path">file_path()</a>, RecipientPid::pid()) -&gt; <a href="#type-void">void()</a></tt><br></p>
@@ -766,7 +866,7 @@ one, to a name expected to be unique.</p>
  Restarts the distribution node with long names - however it is generally *not*
  expected to succeed. Anyway an often better solution is not running a
  networked (distributed) node at the first place (see NODE_NAMING="--nn") and
- (iff needed) to execute enable_distribution/2 afterwards.
+ (iff needed) to execute enable_distribution_mode/2 afterwards.
 </p>
 
 <h3 class="function"><a name="shutdown_node-0">shutdown_node/0</a></h3>
