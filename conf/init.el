@@ -53,7 +53,9 @@
 (add-hook 'isearch-mode-hook #'jrh-isearch-with-region)
 
 (progn
+
   ;; set arrow keys in isearch. left/right is backward/forward, up/down is history. press Return to exit
+
   (define-key isearch-mode-map (kbd "<up>") 'isearch-ring-retreat )
   (define-key isearch-mode-map (kbd "<down>") 'isearch-ring-advance )
 
@@ -168,7 +170,7 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:inherit nil :stipple nil :background "black" :foreground "white" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 105 :width normal :foundry "unknown" :family "DejaVu Sans Mono"))))
+ '(default ((t (:inherit nil :stipple nil :background "black" :foreground "white" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :width normal :foundry "unknown" :family "DejaVu Sans Mono"))))
  '(rst-level-1-face ((t (:background "#00f" :foreground "#fff"))) t)
  '(rst-level-2-face ((t (:background "#00a" :foreground "#ddd"))) t)
  '(rst-level-3-face ((t (:background "#003" :foreground "#bbb"))) t)
@@ -553,7 +555,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;; some place. Selecting 88 instead to leave some room to the ... sign
 ;; used to show a block was folded (anyway the 80-limit is shown by
 ;; background color).
-(add-to-list 'default-frame-alist (cons 'width  88))
+(add-to-list 'default-frame-alist (cons 'width  88))8
 
 ;; Depends on the screen height:
 
@@ -561,8 +563,25 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;;(add-to-list 'default-frame-alist (cons 'height 36))
 
 ;; For a normal screen:
-(add-to-list 'default-frame-alist (cons 'height 56))
+;;(add-to-list 'default-frame-alist (cons 'height 56))
 
+
+(setq my-preferred-font
+	  (cond ((eq system-type 'windows-nt) "consolas")
+			((eq system-type 'gnu/linux) "mono")
+			(t nil)))
+
+(setq my-preferred-height
+	  (cond ((eq system-type 'windows-nt) 47)
+			((eq system-type 'gnu/linux) 56)
+			(t nil)))
+
+
+(when my-preferred-font
+  (set-frame-font my-preferred-font nil t))
+
+(when my-preferred-height
+  (set-frame-height (selected-frame) my-preferred-height))
 
 
 ;; Key section:
