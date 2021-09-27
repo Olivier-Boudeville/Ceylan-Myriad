@@ -170,7 +170,7 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:inherit nil :stipple nil :background "black" :foreground "white" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :width normal :foundry "unknown" :family "DejaVu Sans Mono"))))
+ '(default ((t (:inherit nil :stipple nil :background "black" :foreground "white" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 105 :width normal :foundry "unknown" :family "DejaVu Sans Mono"))))
  '(rst-level-1-face ((t (:background "#00f" :foreground "#fff"))) t)
  '(rst-level-2-face ((t (:background "#00a" :foreground "#ddd"))) t)
  '(rst-level-3-face ((t (:background "#003" :foreground "#bbb"))) t)
@@ -226,7 +226,7 @@
 
 
 (defun fix-behaviours-for-text-modes ()
-  (message "############## Fixing behaviours for text modes ###########")
+  ;;(message "############## Fixing behaviours for text modes ###########")
 
   ;; Advanced automatic indentation not adapted to text modes:
   (remove-hook 'find-file-hooks 'set-advanced-ret-behaviour)
@@ -568,7 +568,8 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 
 (setq my-preferred-font
 	  (cond ((eq system-type 'windows-nt) "consolas")
-			((eq system-type 'gnu/linux) "mono")
+			;;((eq system-type 'gnu/linux) "mono")
+			((eq system-type 'gnu/linux) "DejaVu Sans Mono")
 			(t nil)))
 
 (setq my-preferred-height
