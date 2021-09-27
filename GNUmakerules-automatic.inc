@@ -39,7 +39,7 @@
 %_parse_transform.beam: %_parse_transform.erl
 	@echo "		Compiling parse transform $<"
 	@#echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $@ $<
-	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $@ $<
+	@"$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_PT) -o $@ $<
 
 
 
@@ -52,27 +52,27 @@
 %_test.beam: %_test.erl %_test.hrl
 	@echo "		Compiling test module with header $<"
 	@#echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) $(ERLANG_COMPILER_OPT_FOR_TESTS) -o $@ $<
-	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) $(ERLANG_COMPILER_OPT_FOR_TESTS) -o $@ $<
+	@"$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) $(ERLANG_COMPILER_OPT_FOR_TESTS) -o $@ $<
 
 
 %_test.beam: %_test.erl
 	@echo "		Compiling test module $<"
 	@#echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) $(ERLANG_COMPILER_OPT_FOR_TESTS) -o $@ $<
-	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) $(ERLANG_COMPILER_OPT_FOR_TESTS) -o $@ $<
+	@"$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) $(ERLANG_COMPILER_OPT_FOR_TESTS) -o $@ $<
 
 
 # You probably want to uncomment the next rule, not this one.
 %.beam: %.erl $(LAYER_TOP)/%.hrl
 	@echo "		Compiling standard module with header $<"
 	@#echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
-	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
+	@"$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
 
 
 # The main, most usual rule, with its most useful printout:
 %.beam: %.erl
 	@echo "		Compiling standard module $<"
-	@#echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
-	@$(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
+	#@echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
+	@"$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
 
 
 
@@ -84,7 +84,7 @@
 
 %.class: %.java
 	@echo "		Compiling the $< Java class"
-	@$(JAVAC) $(JAVAC_OPT) $<
+	@"$(JAVAC)" $(JAVAC_OPT) $<
 
 
 
@@ -178,33 +178,33 @@
 
 #%_test: %.beam %_test.beam
 #	@echo "    Running test function $(STARTUP_FUNCTION) in module $@"
-#	@$(ERLANG_INTERPRETER) $(ERLANG_INTERPRETER_OPT) -run $@ $(STARTUP_FUNCTION)
+#	@"$(ERLANG_INTERPRETER)" $(ERLANG_INTERPRETER_OPT) -run $@ $(STARTUP_FUNCTION)
 
 
 #%_test: %_test.beam
 #	@echo "    Running test function $(STARTUP_FUNCTION) in module $@"
-#	@$(ERLANG_INTERPRETER) $(ERLANG_INTERPRETER_OPT) -run $@ $(STARTUP_FUNCTION)
+#	@"$(ERLANG_INTERPRETER)" $(ERLANG_INTERPRETER_OPT) -run $@ $(STARTUP_FUNCTION)
 
 
 
 %_test: %.beam %_test.beam
-		@# Even just a comment is needed here, to force rebuild.
+	@# Even just a comment is needed here, to force rebuild.
 
 
 %_test: %_test.beam
-		@# Even just a comment is needed here, to force rebuild.
+	@# Even just a comment is needed here, to force rebuild.
 
 
 %_interactive_test: %.beam %_interactive_test.beam
 	@echo "		Executing interactively test function "
 	"$(STARTUP_FUNCTION) in module $@"
-	@$(ERLANG_INTERPRETER) $(ERLANG_INTERPRETER_OPT) -run $@ $(STARTUP_FUNCTION) $(ALL_CMD_LINE_OPTIONS)
+	@"$(ERLANG_INTERPRETER)" $(ERLANG_INTERPRETER_OPT) -run $@ $(STARTUP_FUNCTION) $(ALL_CMD_LINE_OPTIONS)
 
 
 %_batch_test: %.beam %_batch_test.beam
 	@echo "		Executing non-interactively test function "
 	"$(STARTUP_FUNCTION) in module $@"
-	@$(ERLANG_INTERPRETER) $(ERLANG_INTERPRETER_OPT) -run $@ $(STARTUP_FUNCTION) $(ALL_CMD_LINE_OPTIONS)
+	@"$(ERLANG_INTERPRETER)" $(ERLANG_INTERPRETER_OPT) -run $@ $(STARTUP_FUNCTION) $(ALL_CMD_LINE_OPTIONS)
 
 
 
@@ -270,4 +270,4 @@
 
 %.plt: %.beam
 	@echo "    Checking module '$<' against relevant PLT ($(PLT_FILE))"
-	@$(DIALYZER) $(DIALYZER_OPT) --plt $(PLT_FILE) $<
+	@"$(DIALYZER)" $(DIALYZER_OPT) --plt $(PLT_FILE) $<
