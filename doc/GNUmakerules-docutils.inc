@@ -150,6 +150,7 @@ OVERALL_DOCUMENT_HTML_TARGET = $(patsubst %.rst,%.html,$(OVERALL_DOCUMENT_SOURCE
 OVERALL_DOCUMENT_PDF_TARGET = $(patsubst %.rst,%.pdf,$(OVERALL_DOCUMENT_SOURCE))
 
 
+RST_TEMPLATE_FILES = $(wildcard *.rst.template)
 RST_FILES = $(wildcard *.rst)
 
 AUX_GENERATED_FILES  = $(patsubst %.rst,%.aux,$(RST_FILES))
@@ -157,8 +158,12 @@ TEX_GENERATED_FILES  = $(patsubst %.rst,%.tex,$(RST_FILES))
 OUT_GENERATED_FILES  = $(patsubst %.rst,%.out,$(RST_FILES))
 LOG_GENERATED_FILES  = $(patsubst %.rst,%.log,$(RST_FILES))
 TOC_GENERATED_FILES  = $(patsubst %.rst,%.toc,$(RST_FILES))
-HTML_GENERATED_FILES = $(patsubst %.rst,%.html,$(RST_FILES))
-PDF_GENERATED_FILES  = $(patsubst %.rst,%.pdf,$(RST_FILES))
+
+HTML_GENERATED_FILES = $(patsubst %.rst,%.html,$(RST_FILES)) \
+					   $(patsubst %.rst.template,%.html,$(RST_TEMPLATE_FILES))
+
+PDF_GENERATED_FILES  = $(patsubst %.rst,%.pdf,$(RST_FILES)) \
+					   $(patsubst %.rst.template,%.pdf,$(RST_TEMPLATE_FILES))
 
 
 RST_GENERATED_FILES =  $(AUX_GENERATED_FILES) $(TEX_GENERATED_FILES)      \
