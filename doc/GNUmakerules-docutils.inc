@@ -160,7 +160,8 @@ TOC_GENERATED_FILES  = $(patsubst %.rst,%.toc,$(RST_FILES))
 HTML_GENERATED_FILES = $(patsubst %.rst,%.html,$(RST_FILES)) \
 					   $(patsubst %.rst.template,%.html,$(RST_TEMPLATE_FILES))
 
-PDF_GENERATED_FILES  = $(patsubst %.rst,%.pdf,$(RST_FILES))
+PDF_GENERATED_FILES  = $(patsubst %.rst,%.pdf,$(RST_FILES)) \
+					   $(patsubst %.rst.template,%.pdf,$(RST_TEMPLATE_FILES))
 
 
 RST_GENERATED_FILES =  $(AUX_GENERATED_FILES) $(TEX_GENERATED_FILES)      \
