@@ -1,6 +1,7 @@
 ;; This is an initialization script written in elisp.
 ;; Refer to https://www.gnu.org/software/emacs/manual/html_node/elisp/
 
+
 ;; Section for package management with straight.el
 
 ; straight.el is a replacement for package.el (not use-package).
@@ -54,7 +55,8 @@
 
 (progn
 
-  ;; set arrow keys in isearch. left/right is backward/forward, up/down is history. press Return to exit
+  ;; set arrow keys in isearch. left/right is backward/forward, up/down is
+  ;; history. press Return to exit
 
   (define-key isearch-mode-map (kbd "<up>") 'isearch-ring-retreat )
   (define-key isearch-mode-map (kbd "<down>") 'isearch-ring-advance )
@@ -63,6 +65,10 @@
   (define-key isearch-mode-map (kbd "<right>") 'isearch-repeat-forward)
 
   (define-key isearch-mode-map [(mouse-3)] 'isearch-repeat-forward)
+
+  ;; Only drawback: as the mark is at the end of the expression, we have to
+  ;; request each previous occurrence twice:
+  ;;
   (define-key isearch-mode-map [(shift mouse-3)] 'isearch-repeat-backward)
 
   (define-key minibuffer-local-isearch-map (kbd "<left>") 'isearch-reverse-exit-minibuffer)
@@ -226,7 +232,7 @@
 
 
 (defun fix-behaviours-for-text-modes ()
-  (message "############## Fixing behaviours for text modes ###########")
+  ;;(message "############## Fixing behaviours for text modes ###########")
 
   ;; Advanced automatic indentation not adapted to text modes:
   (remove-hook 'find-file-hooks 'set-advanced-ret-behaviour)
@@ -555,7 +561,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;; some place. Selecting 88 instead to leave some room to the ... sign
 ;; used to show a block was folded (anyway the 80-limit is shown by
 ;; background color).
-(add-to-list 'default-frame-alist (cons 'width  88))8
+(add-to-list 'default-frame-alist (cons 'width  88))
 
 ;; Depends on the screen height:
 
@@ -851,8 +857,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
  compilation-ask-about-save nil
  compilation-window-height 10
  ;; Bad jump location if enabled: compilation-skip-threshold 0
- compilation-auto-jump-to-first-error 1
- )
+ compilation-auto-jump-to-first-error 1)
 
 
 
@@ -951,7 +956,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (defvar backup-dir (concat "/tmp/emacs_backups/" (user-login-name) "/"))
 (setq backup-directory-alist (list (cons "." backup-dir)))
 
-(message "<<<<<<######### init.el version 1.1 #########>>>>>>")
+(message "<<<<<<######### init.el version 1.2 #########>>>>>>")
 
 
 (delete-other-windows)
