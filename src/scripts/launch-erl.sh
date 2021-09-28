@@ -14,7 +14,7 @@
 
 # Previously the specified code was run with 'erl -eval [...]'. This was simple,
 # however none of the execution facilities offered by the 'init' module ("-s",
-# "-eval" and "-run") allows to run a VM which would resist exceptions (ex: the
+# "-eval" and "-run") allows to run a VM that would resist exceptions (ex: the
 # first remote node to crash would trigger a 'noconnection' exception that would
 # make the launched node crash).
 #
@@ -121,11 +121,11 @@ cmd_file="launch-erl-input-command.sh"
 #echo "$0 $*" > ${cmd_file} && chmod +x ${cmd_file} && echo "(input launch command stored in ${cmd_file})"
 
 
-#erl=/usr/bin/erl
-erl=$(which erl)
+#erl="/usr/bin/erl"
+erl="$(which erl 2>/dev/null)"
 
-run_erl=$(which run_erl)
-to_erl=$(which to_erl)
+run_erl="$(which run_erl 2>/dev/null)"
+to_erl="$(which to_erl 2>/dev/null)"
 
 
 #CEYLAN_MYRIAD_ROOT=$(dirname $0)/../..
@@ -567,6 +567,12 @@ else
 fi
 
 
+# Needed to adapt to the platform at hand (ex: at least on Windows with MSYS,
+# some command like hostname accept different options):
+#
+os_short_name="$(uname |cut -c 1-4)"
+
+
 # Not using '-smp auto' anymore, as the SMP mode is needed even with a single
 # core if GUI (WxWindows) is to be used:
 #
@@ -633,7 +639,16 @@ if [ -n "${short_name}" ]; then
 
 		if [ -z "${hostname}" ]; then
 
-			hostname="$(hostname -s)"
+			if [ "${os_short_name}" = "MSYS" ]; then
+
+				# As the -s option is not supported there:
+				hostname="$(hostname)"
+
+			else
+				hostname="$(hostname -s)"
+
+			fi
+
 			#echo "Guessed (short) hostname is '${hostname}'."
 
 		fi
@@ -795,7 +810,7 @@ else
 	fi
 
 	#echo "Launching a VM, using direct command-line execution."
-	final_command="${erl} ${to_eval} ${command}"
+	#final_command="${erl} ${to_eval} ${command}"
 
 fi
 
@@ -807,7 +822,7 @@ fi
 #echo "$0 running final command: ${final_command}, with use_run_erl = $use_run_erl" > launch-erl-command.txt
 
 # Log to console:
-#echo; echo "##### $0 running final command: '${final_command}', with use_run_erl = $use_run_erl"
+#echo; echo "##### $0 running final command: '${final_command}', with use_run_erl = $use_run_erl"csc
 
 
 if [ $use_run_erl -eq 0 ]; then
@@ -845,6 +860,12 @@ else
 
 	# Not using run_erl here, direct launch (the current default):
 
+	# We used to define above a final_command variable that comprised ${erl},
+	# yet on Windows, no matter the quoting that we tried, we did not succeed in
+	# having the shell see '/c/Program Files/erl-XXX/bin/erl' as a single path
+	# (it was then looking up a '/c/Program' executable). Now this is fixed by
+	# having a separate ${erl} command:
+
 	#echo "direct command: ${final_command}"
 
 	if [ $be_verbose -eq 0 ]; then
@@ -853,7 +874,8 @@ else
 
 	fi
 
-	${final_command}
+	#${final_command}
+	"${erl}" ${to_eval} ${command}
 
 fi
 
@@ -872,7 +894,6 @@ elif [ $use_run_erl -eq 1 ]; then
 	echo "(command success reported)"
 
 fi
-
 
 #pid=$!
 

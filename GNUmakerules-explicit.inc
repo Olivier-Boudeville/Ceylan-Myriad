@@ -179,10 +179,10 @@ rebuild: clean all
 # in 'src/meta', which are then built generically.
 
 # A difficulty is that we have to generate each BEAM file in the same directory
-# as their source (hence the 'cd $$(dirname $@)'), however the automatically-set
-# MYRIAD_TOP variable points only to the root of Myriad. As a result, paths
-# (typically include ones) will not be correct, so we added BOOTSTRAP_INCLUDES
-# to insert the correct ones.
+# as their source (hence the 'cd "$$(dirname $@)"'), however the
+# automatically-set MYRIAD_TOP variable points only to the root of Myriad. As a
+# result, paths (typically include ones) will not be correct, so we added
+# BOOTSTRAP_INCLUDES to insert the correct ones.
 
 
 # Note:
@@ -200,17 +200,17 @@ rebuild: clean all
 
 $(MYRIAD_TOP)/src/utils/basic_utils.beam: $(MYRIAD_TOP)/src/utils/basic_utils.erl $(MYRIAD_TOP)/include/utils/basic_utils.hrl
 	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@); cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$(echo $$beam_file | sed 's|.beam$$|.erl|1')
+	@beam_file=$$(basename $@); cd "$$(dirname $@)" && "$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$(echo $$beam_file | sed 's|.beam$$|.erl|1')
 
 
 $(MYRIAD_TOP)/src/utils/text_utils.beam: $(MYRIAD_TOP)/src/utils/text_utils.erl
 	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@); cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$(echo $$beam_file | sed 's|.beam$$|.erl|1')
+	@beam_file=$$(basename $@); cd "$$(dirname $@)" && "$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$(echo $$beam_file | sed 's|.beam$$|.erl|1')
 
 
 $(MYRIAD_TOP)/src/utils/id_utils.beam: $(MYRIAD_TOP)/src/utils/id_utils.erl
 	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@); cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$(echo $$beam_file | sed 's|.beam$$|.erl|1')
+	@beam_file=$$(basename $@); cd "$$(dirname $@)" && "$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$(echo $$beam_file | sed 's|.beam$$|.erl|1')
 
 
 
@@ -221,7 +221,7 @@ $(MYRIAD_TOP)/src/utils/id_utils.beam: $(MYRIAD_TOP)/src/utils/id_utils.erl
 #
 $(MYRIAD_TOP)/src/meta/%.beam: $(MYRIAD_TOP)/src/meta/%.erl
 	@echo "		Compiling bootstrap meta module $<"
-	@beam_file=$$(basename $@); cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$(echo $$beam_file | sed 's|.beam$$|.erl|1')
+	@beam_file=$$(basename $@); cd "$$(dirname $@)" && "$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$(echo $$beam_file | sed 's|.beam$$|.erl|1')
 
 
 
@@ -229,12 +229,12 @@ $(MYRIAD_TOP)/src/meta/%.beam: $(MYRIAD_TOP)/src/meta/%.erl
 
 #$(MYRIAD_TOP)/src/data-management/list_table.beam: $(MYRIAD_TOP)/src/data-management/list_table.erl
 #	@echo "		Compiling bootstrap module $<"
-#	@beam_file=$$(basename $@); cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$(echo $$beam_file | sed 's|.beam$$|.erl|1')
+#	@beam_file=$$(basename $@); cd "$$(dirname $@)" && "$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$(echo $$beam_file | sed 's|.beam$$|.erl|1')
 
 
 $(MYRIAD_TOP)/src/data-management/map_hashtable.beam: $(MYRIAD_TOP)/src/data-management/map_hashtable.erl
 	@echo "		Compiling bootstrap module $<"
-	@beam_file=$$(basename $@); cd $$(dirname $@) && $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$(echo $$beam_file | sed 's|.beam$$|.erl|1')
+	@beam_file=$$(basename $@); cd "$$(dirname $@)" && "$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED) -o $$beam_file $$(echo $$beam_file | sed 's|.beam$$|.erl|1')
 
 
 
@@ -264,7 +264,7 @@ build-tests: $(BEAM_FILES)
 
 launch: Emakefile
 	@echo "		Launching interpreter with default Ceylan settings"
-	@${ERL_PARAMETERIZED_LAUNCHER} $(NODE_NAMING) test_shell-$$USER $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	@"${ERL_PARAMETERIZED_LAUNCHER}" $(NODE_NAMING) test_shell-$$USER $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
 
 
 # To have an Erlang shell with the right configuration to rely on Myriad (ex:
@@ -272,7 +272,7 @@ launch: Emakefile
 #
 shell:
 	@echo "		Launching an Erlang shell enabled for $(PROJECT_NAME)"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) shell-for-$$USER $(INTERNAL_OPTIONS)
+	@"$(ERL_PARAMETERIZED_LAUNCHER)" $(NODE_NAMING) shell-for-$$USER $(INTERNAL_OPTIONS)
 
 
 
@@ -1144,6 +1144,8 @@ info-meta:
 
 
 info-erlang:
+	@echo "ERLANG_COMPILER        = $(ERLANG_COMPILER)"
+	@echo "ERLANG_COMPILER_OPT    = $(ERLANG_COMPILER_OPT)"
 	@echo "ERLANG_INTERPRETER     = $(ERLANG_INTERPRETER)"
 	@echo "ERLANG_INTERPRETER_OPT = $(ERLANG_INTERPRETER_OPT)"
 	@echo "ERLANG_ROOT            = $(ERLANG_ROOT)"
