@@ -25,7 +25,7 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-% Unit tests for the JSON services.
+% Unit tests for the <b>JSON services</b>.
 %
 % For a more proper testing, each JSON backend shall be tested separately.
 %
@@ -43,18 +43,18 @@
 
 
 
-% Returns a term-to-encode and its expected JSON-encoded form.
+% @doc Returns a term-to-encode and its expected JSON-encoded form.
 -spec get_encoding_sample() -> { term(), json_utils:bin_json() }.
 get_encoding_sample() ->
 	get_encoding_sample( as_map ).
 
 
 -spec get_encoding_sample( 'as_list' | 'as_map' ) ->
-								 { term(), json_utils:bin_json() }.
+									{ term(), json_utils:bin_json() }.
 get_encoding_sample( as_list ) ->
 
 	TermToEncode = { [ { foo, [ <<"bing">>, 2.3, true ] } ] },
-	JsonEncoded =  <<"{\"foo\":[\"bing\",2.3,true]}">>,
+	JsonEncoded = <<"{\"foo\":[\"bing\",2.3,true]}">>,
 
 	{ TermToEncode, JsonEncoded };
 
@@ -67,14 +67,14 @@ get_encoding_sample( as_map ) ->
 
 
 
-% Returns the local test JSON file:
+% @doc Returns the local test JSON file.
 -spec get_test_file_path() -> file_utils:file_path().
 get_test_file_path() ->
 	"example.json".
 
 
 
-% Returns a term decoded from JSON test file, if a parser is available.
+% @doc Returns a term decoded from JSON test file, if a parser is available.
 -spec run_stateless_testing() -> maybe( json_utils:decoded_json() ).
 run_stateless_testing() ->
 
@@ -107,8 +107,8 @@ run_stateless_testing() ->
 
 				OtherJsonEncoded ->
 					throw( { unexpected_encoding_of, TermToEncode,
-							 { expected, ExpectedJsonEncoded },
-							 { got, OtherJsonEncoded } } )
+								{ expected, ExpectedJsonEncoded },
+								{ got, OtherJsonEncoded } } )
 
 			end,
 
@@ -119,7 +119,7 @@ run_stateless_testing() ->
 
 				OtherTerm ->
 					throw( { unexpected_decoding_of, ExpectedJsonEncoded,
-							 { expected, TermToEncode }, { got, OtherTerm } } )
+							{ expected, TermToEncode }, { got, OtherTerm } } )
 
 
 			end,
@@ -134,8 +134,8 @@ run_stateless_testing() ->
 			Type = type_utils:get_type_of( ReadTestTerm ),
 
 			test_facilities:display(
-			  "Test file read, type of corresponding term is: '~ts'.",
-			  [ Type ] ),
+				"Test file read, type of corresponding term is: '~ts'.",
+				[ Type ] ),
 
 			test_facilities:display( "The read term is:~n ~p",
 									 [ ReadTestTerm ] ),
@@ -154,7 +154,7 @@ run_stateless_testing() ->
 
 % Returns a term decoded from JSON test file.
 -spec run_stateful_testing( json_utils:parser_state() ) ->
-								  json_utils:decoded_json().
+									json_utils:decoded_json().
 run_stateful_testing( ParserState ) ->
 
 	BackendName = json_utils:get_parser_backend_name( ParserState ),
@@ -182,7 +182,7 @@ run_stateful_testing( ParserState ) ->
 					% Too strong, encoding may still depend on the parser:
 					%
 					%throw( { unexpected_encoding_of, TermToEncode,
-					%	{ expected, ExpectedJsonEncoded },
+					%   { expected, ExpectedJsonEncoded },
 					%   { got, OtherJsonEncoded } } )
 
 					test_facilities:display_fmt( "Note that the encoding of ~p "
@@ -223,8 +223,8 @@ run_stateful_testing( ParserState ) ->
 			Type = type_utils:get_type_of( ReadTestTerm ),
 
 			test_facilities:display(
-			  "Test file read, type of corresponding term is: '~ts'.",
-			  [ Type ] ),
+				"Test file read, type of corresponding term is: '~ts'.",
+				[ Type ] ),
 
 			test_facilities:display( "The read term is:~n ~p",
 									 [ ReadTestTerm ] ),
@@ -243,7 +243,9 @@ run_stateful_testing( ParserState ) ->
 
 
 
-% Compares the decoding done by specified parser with the expected decoded term.
+% @doc Compares the decoding done by specified parser with the expected decoded
+% term.
+%
 -spec compare_with_if_available( json_utils:decoded_json(),
 					json_utils:parser_backend_name() ) -> void().
 compare_with_if_available( JsonDecodedTerm, BackendName ) ->
@@ -252,7 +254,7 @@ compare_with_if_available( JsonDecodedTerm, BackendName ) ->
 
 			false ->
 				test_facilities:display_fmt( "No comparison done with backend "
-					"'~ts' (not found available).", [ BackendName ] ),
+					"'~ts' (as not found available).", [ BackendName ] ),
 				ok;
 
 			_ ->
@@ -268,16 +270,15 @@ compare_with_if_available( JsonDecodedTerm, BackendName ) ->
 					% one:
 					%
 					test_facilities:display_fmt( "Comparison success with "
-						"backend '~ts' (not found available).",
-						[ BackendName ] ),
+						"backend '~ts'.", [ BackendName ] ),
 
 					ok;
 
 				_ ->
 					% Might be a too strong property:
 					throw( { non_matching_decoded_terms,
-							 { default, JsonDecodedTerm },
-							 { BackendName, BackendJsonDecodedTerm } } )
+								{ default, JsonDecodedTerm },
+								{ BackendName, BackendJsonDecodedTerm } } )
 
 			end
 
@@ -303,7 +304,10 @@ run() ->
 
 		undefined ->
 			test_facilities:display( "No JSON parser backend found, "
-				"not testing further stateful support." ),
+				"not testing further stateful support.~n  Note: refer to "
+				"GNUmakevars.inc in order to install and enable a "
+				"suitable parser.~n  Then, to trigger an actual testing "
+				"thereof, run: 'make json_utils_run USE_JSON=false'." ),
 			ok;
 
 		_ ->
