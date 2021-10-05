@@ -375,6 +375,8 @@ start( Options ) ->
 	DialogUIState = case lookup_dialog_tool() of
 
 		undefined ->
+			trace_utils:error( "No dialog tool found: neither "
+				"'dialog' nor 'whiptail' is available." ),
 			throw( no_dialog_tool_available );
 
 		{ Tool, ToolPath } ->
@@ -400,7 +402,7 @@ start_helper( _Options=[], UIState ) ->
 	end,
 
 	%trace_utils:debug_fmt( "Storing following initial UI state: ~ts",
-	%					   [ to_string( UIState ) ] ),
+	%                       [ to_string( UIState ) ] ),
 
 	% No prior state expected:
 	case process_dictionary:put( ?ui_state_key, UIState ) of
@@ -1640,12 +1642,12 @@ lookup_dialog_tool() ->
 	case executable_utils:lookup_executable( "dialog" ) of
 
 		false ->
-			% Maybe in the future:
+			% Maybe in the future (currently not supported):
 			%AcceptWhiptail = true,
 			AcceptWhiptail = false,
 
-			case AcceptWhiptail andalso
-				executable_utils:lookup_executable( "whiptail" ) of
+			case AcceptWhiptail
+					andalso executable_utils:lookup_executable( "whiptail" ) of
 
 				false ->
 					undefined;
