@@ -71,7 +71,7 @@
 # The main, most usual rule, with its most useful printout:
 %.beam: %.erl
 	@echo "		Compiling standard module $<"
-	#@echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
+	@#echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
 	@"$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
 
 
