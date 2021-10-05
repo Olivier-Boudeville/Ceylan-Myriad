@@ -109,6 +109,7 @@
 		  join/2,
 		  split/2, split_per_element/2, split_parsed/2, split_at_whitespaces/1,
 		  split_at_first/2, split_camel_case/1, tokenizable_to_camel_case/2,
+		  duplicate/2,
 
 		  find_substring_index/2, find_substring_index/3,
 
@@ -153,6 +154,7 @@
 % To report properly (i.e. with a location) at runtime type errors:
 -export([ report_not_a_string/1, report_not_a_binary_string/1,
 		  report_not_a_list/1, report_not_a_number/1 ]).
+
 
 % Miscellaneous functions.
 -export([ generate_text_name_from/1, match_types/3 ]).
@@ -321,6 +323,9 @@
 
 
 % Shorthands:
+
+-type count() :: basic_utils:count().
+
 -type integer_id() :: id_utils:integer_id().
 
 
@@ -1593,6 +1598,9 @@ format( FormatString, Values ) ->
 -spec interpret_faulty_format( format_string(), format_values() ) -> ustring().
 interpret_faulty_format( FormatString, Values ) ->
 
+	%trace_utils:debug_fmt( "FormatString: ~p;~nValues: ~p.",
+	%                       [ FormatString, Values ] ),
+
 	ValueCount = length( Values ),
 
 	% The always-existing prefix before the first ~ is of no interest:
@@ -1602,7 +1610,7 @@ interpret_faulty_format( FormatString, Values ) ->
 
 	% Rough, but sufficient for at least many cases:
 	Delimited = [ _AsStringWanted=[ strip_modifiers( FullSeq ) ]
-				  || FullSeq <- SplitSeqs ],
+					|| FullSeq <- SplitSeqs ],
 
 	%trace_utils:debug_fmt( "Delimited = ~p", [ Delimited ] ),
 
@@ -1669,7 +1677,11 @@ strip_modifiers( [ $t, Next | _T ] ) ->
 	Next;
 
 strip_modifiers( [ H | _T ] ) ->
-	H.
+	H;
+
+strip_modifiers( [] ) ->
+	[].
+
 
 
 % @doc Tells whether specified control sequence (without its ~ prefix) requires
@@ -2989,6 +3001,17 @@ tokenizable_to_camel_case( String, SeparatorsList ) ->
 
 	% Concatenates the capitalized tokens:
 	lists:concat( CamelCaseTokens ).
+
+
+
+% @doc Duplicates specified string as many times as specified; returns a plain
+% (flattened once) string, not an iolist.
+%
+% Ex: duplicate(3, "abc") = "abcabcabc".
+%
+-spec duplicate( count(), ustring() ) -> ustring().
+duplicate( Count, Str ) ->
+	list_utils:flatten_once( lists:duplicate( Count, Str ) ).
 
 
 
