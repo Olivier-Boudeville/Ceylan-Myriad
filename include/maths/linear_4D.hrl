@@ -22,17 +22,19 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Author: Olivier Boudeville |olivier (dot) boudeville (at) esperide (dot) com|
 
 
 % The classical, canonical 4x4 matrix representation is:
 %
-% M = [ M11, M12, M13, M14 ]
-%     [ M21, M22, M23, M24 ]
-%     [ M31, M32, M33, M34 ]
-%     [ M41, M42, M43, M44 ]
+%     | M11 M12 M13 M14 |
+%     | M21 M22 M23 M24 |
+% M = | M31 M32 M33 M34 |
+%     | M41 M42 M43 M44 |
 %
--record( mat4, {
+% A shorthand for these record and corresponding type could be mat4.
+%
+-record( matrix4, {
 
   m11 :: linear:coordinate(),
   m12 :: linear:coordinate(),
@@ -52,37 +54,37 @@
   m41 :: linear:coordinate(),
   m42 :: linear:coordinate(),
   m43 :: linear:coordinate(),
-  m44 :: linear:coordinate()
-
-} ).
+  m44 :: linear:coordinate() } ).
 
 
 
 % A 4x4 compact matrix is a 3x4 canonical matrix, or, said otherwise, a 3x3
 % matrix M3 and a vector T, as:
 %
-% M3 = [ M11, M12, M13 ]
-%      [ M21, M22, M23 ]
-%      [ M31, M32, M33 ]
+%      | M11 M12 M13 |
+% M3 = | M21 M22 M23 |
+%      | M31 M32 M33 |
 %
-% and T = [ Tx, Ty, Tz ].
+% and T = | Tx Ty Tz |.
 %
 % This corresponds to, by blocks:
 %
-% M = [ M3, T ]
-%     [  0, 1 ]
+% M = | M3 T |
+%     |  0 1 |
 %
-%   = [ M11, M12, M13, Tx ]
-%     [ M21, M22, M23, Ty ]
-%     [ M31, M32, M33, Tz ]
-%     [   0,   0,   0,  1 ]
+%     | M11 M12 M13 Tx |
+%     | M21 M22 M23 Ty |
+%   = | M31 M32 M33 Tz |
+%     |   0   0   0  1 |
 %
 %
 % Could have been, with more indirections:
 %
-% { linear_3D:canonical_matrix(), linear_3D:vector() }
+% {linear_3D:canonical_matrix(), linear_3D:vector()}
 %
--record( cpt_mat4, {
+% A shorthand for these record and corresponding type could be cpt_mat4.
+%
+-record( compact_matrix4, {
 
   m11 :: linear:coordinate(),
   m12 :: linear:coordinate(),
@@ -97,6 +99,4 @@
   m31 :: linear:coordinate(),
   m32 :: linear:coordinate(),
   m33 :: linear:coordinate(),
-  tz  :: linear:coordinate()
-
-} ).
+  tz  :: linear:coordinate() } ).

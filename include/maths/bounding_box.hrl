@@ -35,13 +35,11 @@
 % Circle-based 2D bounding box.
 -record( circle, {
 
-			% The center of the circle:
-			center :: linear_2D:point(),
+	% The center of the circle:
+	center :: linear_2D:point(),
 
-			% The square of the radius (R^2) of this circle:
-			square_radius :: linear:square_distance()
-
-} ).
+	% The square of the radius (R^2) of this circle:
+	square_radius :: linear:square_distance() } ).
 
 
 
@@ -64,16 +62,14 @@
 %
 -record( right_cuboid, {
 
-			% A vertex of the cuboid:
-			base_vertex :: linear_3D:point(),
+	% A vertex of the cuboid:
+	base_vertex :: linear_3D:point(),
 
-			% The length along the abscissa axis (X):
-			abscissa_length :: linear:distance(),
+	% The length along the abscissa axis (X):
+	abscissa_length :: linear:distance(),
 
-			% The length along the ordinate axis (Y):
-			ordinate_length :: linear:distance(),
+	% The length along the ordinate axis (Y):
+	ordinate_length :: linear:distance(),
 
-			% The length along the elevation axis (Z):
-			elevation_length :: linear:distance()
-
-							}).
+	% The length along the elevation axis (Z):
+	elevation_length :: linear:distance() } ).

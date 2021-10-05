@@ -26,3 +26,21 @@
 
 
 % A 2D point is simply a pair of numbers, often integers, like in: P = {3,45}.
+
+
+% The classical, canonical 2x2 matrix representation is:
+%
+% M = | M11 M12 |
+%     | M21 M22 |
+%
+% This corresponds to this record specialised for 2D.
+%
+% A shorthand for these record and corresponding type could be mat2.
+%
+-record( matrix2, {
+
+  m11 :: linear:coordinate(),
+  m12 :: linear:coordinate(),
+
+  m21 :: linear:coordinate(),
+  m22 :: linear:coordinate() } ).
