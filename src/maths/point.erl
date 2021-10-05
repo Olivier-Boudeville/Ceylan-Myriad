@@ -84,7 +84,7 @@
 
 
 -export([ new/1, null/1, from_vector/1, to_vector/1, to_any_vector/1,
-		  to_string/1, to_short_string/1, to_fixed_width_string/1,
+		  to_string/1, to_short_string/1, to_basic_string/1,
 		  to_user_string/1 ] ).
 
 
@@ -156,7 +156,7 @@ to_any_vector( P ) ->
 % @doc Returns a textual representation of the specified point.
 -spec to_string( any_point() ) -> ustring().
 to_string( Point ) ->
-	to_short_string( Point ).
+	to_user_string( Point ).
 
 
 
@@ -169,11 +169,11 @@ to_short_string( Point ) ->
 
 
 
-% @doc Returns a fixed-width (see linear.hrl for width and precision)
-% representation of the specified point.
+% @doc Returns a basic, not even fixed-width for floating-point coordinates (see
+% linear.hrl for width and precision) representation of the specified point.
 %
--spec to_fixed_width_string( any_point() ) -> ustring().
-to_fixed_width_string( Point ) ->
+-spec to_basic_string( any_point() ) -> ustring().
+to_basic_string( Point ) ->
 
 	CoordList = tuple_to_list( Point ),
 
@@ -188,12 +188,12 @@ to_fixed_width_string( Point ) ->
 
 	end,
 
-	ElemFormatStr = "{" ++ CoordFmt ++ " }~n",
+	ElemFormatStr = "{ " ++ CoordFmt ++ " }~n",
 
 	FormatStr = text_utils:duplicate( length( CoordList ), ElemFormatStr ),
 
-	trace_utils:debug_fmt( "FormatStr: ~ts; CoordList: ~w.",
-						   [ FormatStr, CoordList ] ),
+	%trace_utils:debug_fmt( "FormatStr: ~ts; CoordList: ~w.",
+	%                       [ FormatStr, CoordList ] ),
 
 	text_utils:format( FormatStr, CoordList ).
 
@@ -201,6 +201,8 @@ to_fixed_width_string( Point ) ->
 
 % @doc Returns a textual, more user-friendly representation of the specified
 % point.
+%
+% This is the recommended representation.
 %
 -spec to_user_string( any_point() ) -> ustring().
 to_user_string( Point ) ->
@@ -214,7 +216,7 @@ to_user_string( Point ) ->
 
 	FormatStr = text_utils:duplicate( length( CoordList ), ElemFormatStr ),
 
-	trace_utils:debug_fmt( "FormatStr: ~ts; Strs: ~p.",
-						   [ FormatStr, Strs ] ),
+	%trace_utils:debug_fmt( "FormatStr: ~ts; Strs: ~p.",
+	%                       [ FormatStr, Strs ] ),
 
 	text_utils:format( FormatStr, Strs ).

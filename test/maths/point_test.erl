@@ -58,6 +58,8 @@ run() ->
 
 	P2 = point:new( { 1/3, 2.0, 3330.0 } ),
 
+	P3 = point:new( { 0, 222, 456789 } ),
+
 	test_facilities:display( "Basic textual representation for ~w: ~ts",
 							 [ P2, point:to_string( P2 ) ] ),
 
@@ -65,9 +67,12 @@ run() ->
 							 [ P2, point:to_short_string( P2 ) ] ),
 
 	test_facilities:display( "Fixed-width representation for ~w:~n~ts",
-							 [ P2, point:to_fixed_width_string( P2 ) ] ),
+							 [ P2, point:to_basic_string( P2 ) ] ),
 
 	test_facilities:display( "User-friendly representation for ~w:~n~ts",
 							 [ P2, point:to_user_string( P2 ) ] ),
+
+	test_facilities:display( "User-friendly representation for ~w:~n~ts",
+							 [ P3, point:to_user_string( P3 ) ] ),
 
 	test_facilities:stop().

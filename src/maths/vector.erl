@@ -81,7 +81,8 @@
 
 
 -export([ new/1, null/1, from_point/1, to_point/1,
-		  to_string/1, to_short_string/1, to_formal_string/1 ] ).
+		  to_string/1, to_short_string/1, to_basic_string/1,
+		  to_user_string/1 ] ).
 
 
 
@@ -135,8 +136,8 @@ to_point( V ) ->
 
 % @doc Returns a textual representation of the specified vector.
 -spec to_string( vector() ) -> ustring().
-to_string( Coords ) ->
-	to_short_string( Coords ).
+to_string( Vector ) ->
+	to_user_string( Vector ).
 
 
 
@@ -144,23 +145,51 @@ to_string( Coords ) ->
 % vector.
 %
 -spec to_short_string( vector() ) -> ustring().
-to_short_string( Coords ) ->
+to_short_string( Vector ) ->
 
-	Ws = [ "~w" || _ <- Coords ],
+	%Ws = [ "~w" || _ <- Vector ],
+	%FormatStr = "[ " ++ text_utils:join( _Sep=", ", Ws ) ++ " ]",
+	%text_utils:format( FormatStr, Vector ).
 
-	FormatStr = "[ " ++ text_utils:join( _Sep=", ", Ws ) ++ " ]",
-
-	text_utils:format( FormatStr, Coords ).
+	text_utils:format( "~w", [ Vector ] ).
 
 
-% @doc Returns a textual, more formal representation of the specified
+
+% @doc Returns a basic, not even fixed-width for floating-vector coordinates
+% (see linear.hrl for width and precision) representation of the specified
 % vector.
 %
--spec to_formal_string( vector() ) -> ustring().
-to_formal_string( Coords ) ->
+-spec to_basic_string( any_vector() ) -> ustring().
+to_basic_string( Vector ) ->
 
-	ElemFormatStr = "[" ++ ?coord_float_format ++ " ]~n",
+	% Vectors supposed to be lists of floats:
+	ElemFormatStr = "[ " ++ ?coord_float_format ++ " ]~n",
 
-	FormatStr = text_utils:duplicate( length( Coords ), ElemFormatStr ),
+	FormatStr = text_utils:duplicate( length( Vector ), ElemFormatStr ),
 
-	text_utils:format( FormatStr, Coords ).
+	%trace_utils:debug_fmt( "FormatStr: ~ts; CoordList: ~w.",
+	%                       [ FormatStr, CoordList ] ),
+
+	text_utils:format( FormatStr, Vector ).
+
+
+
+% @doc Returns a textual, more user-friendly representation of the specified
+% vector.
+%
+% This is the recommended representation.
+%
+-spec to_user_string( vector() ) -> ustring().
+to_user_string( Vector ) ->
+
+	Strs = linear:coords_to_best_width_strings( Vector ),
+
+	% No need for ~ts here:
+	ElemFormatStr = "[ ~s ]~n",
+
+	FormatStr = text_utils:duplicate( length( Vector ), ElemFormatStr ),
+
+	%trace_utils:debug_fmt( "FormatStr: ~ts; Strs: ~p.",
+	%                       [ FormatStr, Strs ] ),
+
+	text_utils:format( FormatStr, Strs ).

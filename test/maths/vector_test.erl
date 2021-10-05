@@ -58,8 +58,9 @@ run() ->
 	V = [ 10.0, 25.0 ],
 	V = vector:from_point( IntP ),
 
-	FloatP = { 10.0, 25.0 },
-	FloatP = vector:to_point( V ),
+	FloatP = { 1/3, 17.0 },
+	VecP = tuple_to_list( FloatP ),
+	FloatP = vector:to_point( VecP ),
 
 	test_facilities:display( "Basic textual representation for ~w: ~ts",
 							 [ V3D, vector:to_string( V3D ) ] ),
@@ -67,7 +68,10 @@ run() ->
 	test_facilities:display( "Short textual representation for ~w: ~ts",
 							 [ V3D, vector:to_short_string( V3D ) ] ),
 
-	test_facilities:display( "Formal textual representation for ~w:~n~ts",
-							 [ V3D, vector:to_formal_string( V3D ) ] ),
+	test_facilities:display( "User-friendly textual representation "
+		"for ~w:~n~ts", [ V3D, vector:to_user_string( V3D ) ] ),
+
+	test_facilities:display( "User-friendly textual representation "
+		"for ~w:~n~ts", [ VecP, vector:to_user_string( VecP ) ] ),
 
 	test_facilities:stop().

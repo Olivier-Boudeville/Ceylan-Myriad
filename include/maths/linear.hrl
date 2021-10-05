@@ -26,16 +26,32 @@
 
 
 % To properly format (as text), typically coordinates:
--define( printout_width, "13" ).
-%-define( printout_width, "14" ).
-
--define( printout_precision, "10" ).
+-define( printout_width, "14" ).
 
 
+% For floats, precision is the number of digits after the decimal point. The
+% default precision is 6.
+%
+-define( printout_precision, "8" ).
+
+
+% Finally we do not set a maximum width, we let the necessary one happen and
+% adjust accordingly; otherwise, depending on the precision and the part of the
+% float before/after the decimal, it may not be correctly represented as a
+% string (resulting in "****").
+%
 % Hopefully these format strings are resolved at compile-time:
 
--define( coord_float_format,
-		 "~" ++ ?printout_width ++ "." ++ ?printout_precision ++ ". f" ).
+%-define( coord_float_format,
+%         "~" ++ ?printout_width ++ "." ++ ?printout_precision ++ ". f" ).
 
--define( coord_integer_format,
-		 "~" ++ ?printout_width ++ "." ++ ?printout_precision ++ ". B" ).
+-define( coord_float_format, "~." ++ ?printout_precision ++ ". f" ).
+
+
+% For integer, the precision corresponds to the base, not of interest here (we
+% use of course the default, 10):
+%
+%-define( coord_integer_format,
+%         "~" ++ ?printout_width ++ "." ++ ?printout_precision ++ ". B" ).
+
+-define( coord_integer_format, "~" ++ ?printout_width ++ ".. B" ).
