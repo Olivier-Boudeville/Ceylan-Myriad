@@ -267,7 +267,8 @@
 
 
 -type positive_index() :: pos_integer().
-% For all non-null index (i.e. the ones that start at 1).
+% For all non-null indices (i.e. the ones that start at 1). This is the
+% convention that Myriad enforces as much as possible.
 
 
 -type module_name() :: atom().
