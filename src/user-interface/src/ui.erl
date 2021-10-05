@@ -165,7 +165,10 @@
 -type ui_state() :: any().
 
 
+
 % Shorthands:
+
+-type module_name() :: basic_utils:module_name().
 
 -type argument_table() :: shell_utils:argument_table().
 
@@ -207,8 +210,9 @@ start( Options ) ->
 -spec start( ui_options(), argument_table() ) -> argument_table().
 start( Options, ArgumentTable ) ->
 
-	%trace_utils:debug_fmt( "UI got following full argument(s): ~ts",
-	%	   [ shell_utils:argument_table_to_string( ArgumentTable ) ] ),
+	cond_utils:if_defined( myriad_debug_user_interface, trace_utils:debug_fmt(
+		"UI got following full argument(s): ~ts",
+		[ shell_utils:argument_table_to_string( ArgumentTable ) ] ) ),
 
 	% Just a check:
 	case process_dictionary:get( ?ui_name_key ) of
@@ -229,14 +233,18 @@ start( Options, ArgumentTable ) ->
 												ArgumentTable ) of
 
 		{ undefined, ArgTable } ->
-			%trace_utils:debug( "No backend specified, determining it." ),
+
+			cond_utils:if_defined( myriad_debug_user_interface,
+				trace_utils:debug( "No backend specified, determining it." ) ),
+
 			{ get_best_ui_backend(), ArgTable };
 
 
 		{ [ [ BackendName ] ], OtherArgTable } ->
 
-			%trace_utils:debug_fmt( "Following backend was specified: '~ts'.",
-			%					   [ BackendName ] ),
+			cond_utils:if_defined( myriad_debug_user_interface,
+				trace_utils:debug_fmt( "Following backend was specified: "
+					"'~ts'.", [ BackendName ] ) ),
 
 			BackendModName = text_utils:string_to_atom( BackendName ),
 
@@ -248,9 +256,11 @@ start( Options, ArgumentTable ) ->
 						[ BackendModName ] ),
 					throw( { ui_backend_module_not_found, BackendModName } );
 
-				[ _SinglePath ] ->
-					%trace_utils:debug_fmt( "UI backend module found as '~ts'.",
-					%					   [ SinglePath ] ),
+				[ SinglePath ] ->
+					cond_utils:if_defined( myriad_debug_user_interface,
+						trace_utils:debug_fmt( "UI backend module found "
+							"as '~ts'.", [ SinglePath ] ),
+						basic_utils:ignore_unused( SinglePath ) ),
 					{ BackendModName, OtherArgTable };
 
 				MultiplePaths ->
@@ -264,8 +274,9 @@ start( Options, ArgumentTable ) ->
 
 	end,
 
-	%trace_utils:debug_fmt( "The '~ts' backend module has been selected.",
-	%					   [ BackendModuleName ] ),
+	cond_utils:if_defined( myriad_debug_user_interface, trace_utils:debug_fmt(
+		"The '~ts' backend module has been selected.",
+		[ BackendModuleName ] ) ),
 
 	% Expects this backend to register its name and state in the process
 	% dictionary:
@@ -870,7 +881,7 @@ stop() ->
 %
 % (helper)
 %
--spec get_backend_name() -> basic_utils:module_name().
+-spec get_backend_name() -> module_name().
 get_backend_name() ->
 
 	case process_dictionary:get( ?ui_name_key ) of
@@ -889,21 +900,29 @@ get_backend_name() ->
 %
 % By decreasing order of preference: gui, term_ui and text_ui.
 %
--spec get_best_ui_backend() -> basic_utils:module_name().
+-spec get_best_ui_backend() -> module_name().
 get_best_ui_backend() ->
 
 	_RightResult = case gui:is_available() of
 
 		true ->
+			%cond_utils:if_defined( myriad_debug_user_interface,
+			%	trace_utils:debug( "GUI backend found available, using it." ) ),
 			gui;
 
 		false ->
 			case term_ui:is_available() of
 
 				true ->
+					cond_utils:if_defined( myriad_debug_user_interface,
+						trace_utils:debug( "No graphical backend available, "
+							"but terminal UI is available, using it." ) ),
 					term_ui;
 
 				false ->
+					cond_utils:if_defined( myriad_debug_user_interface,
+						trace_utils:debug( "No graphical or terminal UI "
+							"using textual one." ) ),
 					text_ui
 
 			end
@@ -917,6 +936,7 @@ get_best_ui_backend() ->
 	%trace_utils:warning_fmt( "Selecting '~ts', as currently hardcoded "
 	%   "(should have been '~ts').", [ RiggedResult, RightResult ] ),
 
+	%RightResult.
 	RiggedResult.
 
 
