@@ -126,6 +126,7 @@ endif
 #  - web_exchanges: http/https exchanges
 #  - strings: notably for mismatches between plain and binary ones
 #  - registration: regarding naming registering
+#  - user_interface: all support regarding user interfaces of all sorts
 #
 # Defining debug flags (at least the most verbose are by default commented-out):
 ifeq ($(ENABLE_DEBUG),true)
@@ -134,6 +135,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_web_exchanges
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_strings
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_registration
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
 endif
 
 # Defining check flags:
@@ -451,10 +453,17 @@ ifeq ($(USE_JSON),true)
 		#
 		# $ mkdir -p ~/Software/jsx
 		# $ cd ~/Software/jsx
+
 		# $ git clone git@github.com:talentdeficit/jsx.git
+		#  - or -
+		# $ git clone https://github.com/talentdeficit/jsx.git
+
 		# $ ln -s jsx jsx-current-install
-		# $ cd jsx/
-		# $ rebar3 compile && rebar3 eunit
+
+		# Rebar3 must be already available (otherwise see Ceylan-Hull's
+		# install-rebar3.sh script):
+		#
+		# $ cd jsx/ && rebar3 compile && rebar3 eunit
 
 		# Actually not used, as decided at runtime rather than at compile time:
 		#JSON_OPT = -Duse_jsx_json_backend
