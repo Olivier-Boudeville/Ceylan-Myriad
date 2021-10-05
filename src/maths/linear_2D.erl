@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2021 Olivier Boudeville
+% Copyright (C) 2010-2021 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -80,11 +80,15 @@
 
 -type ustring() :: text_utils:ustring().
 
+-type int_degrees() :: unit_utils:int_degrees().
+-type radians() :: unit_utils:radians().
+
 -type coordinate() :: linear:coordinate().
 -type integer_coordinate() :: linear:integer_coordinate().
 -type factor() :: linear:factor().
 -type distance() :: linear:distance().
 -type square_distance() :: linear:square_distance().
+
 
 
 % Implementation notes:
@@ -523,7 +527,6 @@ reverse_and_drop_angle( [ {_Tangent,Point} | T ], Acc ) ->
 
 
 
-
 % Vector section.
 
 
@@ -726,7 +729,7 @@ is_strictly_on_the_right( P, P1, P2 ) ->
 
 
 % @doc Returns whether specified angle (in degrees, canonical form) is obtuse.
--spec is_obtuse( unit_utils:int_degrees() ) -> boolean().
+-spec is_obtuse( int_degrees() ) -> boolean().
 is_obtuse( AngleInDegrees ) ->
 	AngleInDegrees > 90 andalso AngleInDegrees < 180.
 
@@ -738,7 +741,7 @@ is_obtuse( AngleInDegrees ) ->
 % other, ie if we should use the returned angle or its opposite to go from AB
 % to AC.
 %
--spec abs_angle_rad( point(), point(), point() ) -> unit_utils:radians().
+-spec abs_angle_rad( point(), point(), point() ) -> radians().
 abs_angle_rad( A, B, C ) ->
 
 	AB = vectorize( A, B ),
@@ -768,7 +771,7 @@ abs_angle_rad( A, B, C ) ->
 
 	end,
 
-	%io:format( "AB=~w, AC=~w, M1=~f, M2=~f.~n", [AB,AC,M1,M2] ),
+	%trace_utils:debug_fmt( "AB=~w, AC=~w, M1=~f, M2=~f.~n", [AB,AC,M1,M2] ),
 	math:acos( dot_product( AB, AC ) / ( magnitude( AB ) * magnitude( AC ) ) ).
 
 
@@ -779,7 +782,7 @@ abs_angle_rad( A, B, C ) ->
 % Note: with this function we can tell that we must rotate counter-clockwise of
 % the returned angle to go from AB to AC.
 %
--spec angle_rad( point(), point(), point() ) -> unit_utils:radians().
+-spec angle_rad( point(), point(), point() ) -> radians().
 angle_rad( A, B, C ) ->
 
 	{ X1, Y1 } = vectorize( A, B ),
@@ -796,10 +799,10 @@ angle_rad( A, B, C ) ->
 % other, ie if we should use the returned angle or its opposite to go from AB
 % to AC.
 %
--spec abs_angle_deg( point(), point(), point() ) -> unit_utils:int_degrees().
+-spec abs_angle_deg( point(), point(), point() ) -> int_degrees().
 abs_angle_deg( A, B, C ) ->
-	 math_utils:canonify(
-	   math_utils:radian_to_degree( abs_angle_rad( A, B, C ) ) ).
+	math_utils:canonify(
+		math_utils:radian_to_degree( abs_angle_rad( A, B, C ) ) ).
 
 
 
@@ -809,10 +812,10 @@ abs_angle_deg( A, B, C ) ->
 % Note: with this function we can tell that we must rotate counter-clockwise of
 % the returned angle to go from AB to AC.
 %
--spec angle_deg( point(), point(), point() ) -> unit_utils:int_degrees().
+-spec angle_deg( point(), point(), point() ) -> int_degrees().
 angle_deg( A, B, C ) ->
-	 math_utils:canonify(
-	   math_utils:radian_to_degree(	angle_rad( A, B, C ) ) ).
+	math_utils:canonify(
+		math_utils:radian_to_degree( angle_rad( A, B, C ) ) ).
 
 
 
@@ -837,8 +840,8 @@ compute_convex_hull( Points ) ->
 
 		_Other ->
 			% We have at least 2 points in addition to the pivot.
-			%io:format( "Pivot is ~w, remaining points: ~w.~n",
-			%		   [Pivot,RemainingPoints] ),
+			%trace_utils:debug_fmt( "Pivot is ~w, remaining points: ~w.~n",
+			%    [ Pivot, RemainingPoints ] ),
 
 			[ P1, P2 | T ] = sort_by_angle( Pivot, RemainingPoints ),
 
@@ -848,7 +851,7 @@ compute_convex_hull( Points ) ->
 			% We also add the pivot to the end of the NextPoints list, so that
 			% the hull can be closed.
 			compute_graham_scan_hull( _ToValidate=[ P1, Pivot ],
-							  _NewPoint=P2, _NextPoints=( T++ [ Pivot ] ) )
+				_NewPoint=P2, _NextPoints=( T++ [ Pivot ] ) )
 
 	end.
 
@@ -868,8 +871,8 @@ compute_convex_hull( Points ) ->
 compute_graham_scan_hull( ToValidate, _Pivot, _NextPoints=[] ) ->
 	% Last new point is by construction always to pivot.
 
-	%io:format( "compute_graham_scan_hull: "
-	%		   "exhausted input points, returning: ~w.~n", [ ToValidate ] ),
+	%trace_utils:debug_fmt( "compute_graham_scan_hull: "
+	%    "exhausted input points, returning: ~w.~n", [ ToValidate ] ),
 
 	ToValidate;
 
@@ -891,9 +894,9 @@ compute_graham_scan_hull( ToValidate=[ P2, P1 | T ], NewPoint,
 
 		false ->
 
-			%io:format( "compute_graham_scan_hull: point ~w is on the right of "
-			%			"segment from ~w to ~w, keeping ~w.~n",
-			%			[ P2, P1, NewPoint, P2 ] ),
+			%trace_utils:debug_fmt( "compute_graham_scan_hull: point ~w "
+			%   "is on the right of segment from ~w to ~w, keeping ~w.~n",
+			%   [ P2, P1, NewPoint, P2 ] ),
 
 			% Here, the point P2 is on the right of the segment going from P1 to
 			% the Next point, thus P2 can be kept and we can continue with the
@@ -903,9 +906,9 @@ compute_graham_scan_hull( ToValidate=[ P2, P1 | T ], NewPoint,
 
 		true ->
 
-			%io:format( "compute_graham_scan_hull: point ~w is on the left of "
-			%			"segment from ~w to ~w, eliminating ~w.~n",
-			%			[ P2, P1, NewPoint, P2 ] ),
+			%trace_utils:debug_fmtio:format( "compute_graham_scan_hull: "
+			%   [ "point ~w is on the left of segment from ~w to ~w, "
+			%     "eliminating ~w.~n", [ P2, P1, NewPoint, P2 ] ),
 
 			% Here, the point P2 is on the left of (or in) the segment going
 			% from P1 to the Next point, thus P2 is to be discarded, and will
@@ -929,7 +932,7 @@ compute_graham_scan_hull( ToValidate=[ P2, P1 | T ], NewPoint,
 % intermediate point, we accept directly the next point (Next), knowing it will
 % be checked at the next recursion:
 %compute_graham_scan_hull( [ Pivot ], NewPoint, [ Next | OtherNext ] ) ->
-%	compute_graham_scan_hull( [ NewPoint, Pivot ], Next, OtherNext ).
+%    compute_graham_scan_hull( [ NewPoint, Pivot ], Next, OtherNext ).
 % A bit faster as we know L is actually [ Pivot ]:
 %
 compute_graham_scan_hull( L, NewPoint, [ Next | OtherNext ] ) ->
@@ -941,7 +944,7 @@ compute_graham_scan_hull( L, NewPoint, [ Next | OtherNext ] ) ->
 % Textual conversion section.
 
 
-% @doc Returns a precise textual representation of specified point.
+% @doc Returns a precise textual representation of the specified point.
 -spec to_string( point() ) -> ustring().
 to_string( { X, Y } ) ->
 	text_utils:format( "[ ~w, ~w ]", [ X, Y ] ).

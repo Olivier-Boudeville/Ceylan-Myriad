@@ -67,12 +67,13 @@
 
 % Shorthands:
 
+-type ustring() :: text_utils:ustring().
+
 -type coordinate() :: linear:coordinate().
 -type integer_coordinate() :: linear:integer_coordinate().
 -type factor() :: linear:factor().
 -type distance() :: linear:distance().
 -type square_distance() :: linear:square_distance().
--type ustring() :: text_utils:ustring().
 
 
 
@@ -105,10 +106,10 @@
 % Defined for documentation purpose.
 
 
+-type normal() :: vector().
 % A 3D vector normal to a plane.
 %
 % Defined for documentation purpose.
--type normal() :: vector().
 
 
 -type unit_normal() :: unit_vector().
@@ -166,20 +167,20 @@
 % Section about matrices.
 
 % Alias for 3x3 canonical matrices:
--type mat3() :: #mat3{}.
--type canonical_matrix() :: mat3().
+-type matrix3() :: #matrix3{}.
+-type canonical_matrix() :: matrix3().
 
 
 % Aliases for 3x3 compact matrices:
--type cpt_mat3() :: #cpt_mat3{}.
--type compact_matrix() :: cpt_mat3().
+-type compact_matrix3() :: #compact_matrix3{}.
+-type compact_matrix() :: compact_matrix3().
 
 
 -type matrix() :: 'identity_3' | canonical_matrix() | compact_matrix().
 
 
--export_type([ mat3/0, canonical_matrix/0,
-			   cpt_mat3/0, compact_matrix/0, matrix/0 ]).
+-export_type([ matrix3/0, canonical_matrix/0,
+			   compact_matrix3/0, compact_matrix/0, matrix/0 ]).
 
 
 

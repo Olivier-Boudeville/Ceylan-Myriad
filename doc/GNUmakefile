@@ -64,23 +64,25 @@ clone-mirror:
 	@echo "Please remove all initial content in that selected 'gh-pages' branch."
 
 
-export-doc: clean-doc doc export-doc-to-official export-doc-to-mirror
+export-doc: export-doc-to-official export-doc-to-mirror
 
 
-# Drawback: scp will not preserve symlinks, it will duplicate files instead.
+# Drawback: scp will not preserve symlinks, it will duplicate files instead
+# (which may be useful though, for example for MathJax).
 #
 # rsync would not, but requires a different source layout (copies a full tree,
 # not a set of files), so currently not used:
 # rsync -avze "ssh $(SP)" $(SOME_WEB_TREE) $(WEB_SRV):$(WEB_ROOT)/Myriad/
 #
-export-doc-to-official: clean-doc create-links doc
+export-doc-to-official: check-mathjax clean-doc create-links doc
 	@echo "   Exporting Myriad documentation to official website ($(WEB_SRV))"
 	@/bin/scp $(SP) -r $(WEB_CONTENT) $(WEB_SRV):$(WEB_ROOT)/Myriad/
 
 
-export-doc-to-mirror: clean-doc create-links doc
+# H option for cp so that a local MathJax is copied in target branch:
+export-doc-to-mirror: check-mathjax clean-doc create-links doc
 	@echo "   Exporting Myriad documentation to mirror website in $(MYRIAD_WEB_MIRROR_BRANCH)"
-	@/bin/cp -rf $(WEB_CONTENT) $(MYRIAD_WEB_MIRROR_BRANCH) && cd $(MYRIAD_WEB_MIRROR_BRANCH) && git add . && git merge -s ours && git commit -m "Myriad doc updated." && git push && git pull --ff-only
+	@/bin/cp -rfH $(WEB_CONTENT) $(MYRIAD_WEB_MIRROR_BRANCH) && cd $(MYRIAD_WEB_MIRROR_BRANCH) && git add . && git merge -s ours && git commit -m "Myriad doc updated." && git push && git pull --ff-only
 
 
 

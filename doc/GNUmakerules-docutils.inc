@@ -6,7 +6,9 @@
 .PHONY: doc doc-recurse info info-doc-tools info-doc-settings local full-doc   \
  create-doc create-html-doc create-pdf-doc full-html full-pdf regenerate-doc   \
  local-doc local-html local-pdf create-api-doc                                 \
- make-doc-repository create-local-referential view-doc to-print check-dot      \
+ make-doc-repository create-local-referential                                  \
+ create-mathjax-symlink check-mathjax                                          \
+ view-doc to-print check-dot                                                   \
  info-doc info-doc-local info-doc-tools                                        \
  clean clean-doc-repository clean-generated clean-dot clean-doc-logs           \
  clean-gnuplot clean-png clean-rst
@@ -15,9 +17,9 @@
 # Content typically to be deployed to webservers:
 #
 # /bin/ls is used so that any lacking element in a layer (ex: no api-doc
-# generated) does not trigger an error.
+# generatedn, no MathJax available) does not trigger an error.
 #
-WEB_CONTENT = $$(/bin/ls -d *.html *.css *.png *.pdf api-doc 2>/dev/null)
+WEB_CONTENT = $$(/bin/ls -d *.html *.css *.png *.pdf api-doc mathjax 2>/dev/null)
 
 
 # Generic rules.
@@ -269,7 +271,8 @@ full-doc: create-doc
 # The documentation source is also listed among the prerequisites, as this X.rst
 # might be generated from a X.rst.template file:
 #
-create-doc: $(OVERALL_DOCUMENT_SOURCE) regenerate-doc clean-doc-repository make-doc-repository
+create-doc: $(OVERALL_DOCUMENT_SOURCE) regenerate-doc clean-doc-repository \
+		make-doc-repository
 	@echo "     Generating full documentation from \
 	$(OVERALL_DOCUMENT_SOURCE) in $(TMP_RST_REPOSITORY) \
 	(log in $(GENERATOR_LOG_FILE))"
@@ -338,6 +341,22 @@ make-doc-repository:
 	@echo "     Copying documentation sources to $(TMP_RST_REPOSITORY)"
 	@mkdir -p $(TMP_RST_REPOSITORY)
 	@find $(DOCUTILS_TOP) -name $(TMP_RST_REPOSITORY) -prune -o \( -name '*.rst.template' -o -name '*.rst' -o -name '*.png' -o -name '*.css' \) -exec /bin/cp -f '{}' $(TMP_RST_REPOSITORY) ';'
+
+
+
+MATHJAX_ROOT="/usr/share/mathjax"
+
+# In order to generate beautiful math formulas for the HTML output; here a local
+# MathJax install is expected.
+#
+# See myriad/src/scripts/generate-docutils.sh for more details.
+#
+create-mathjax-symlink:
+	@if [ -e "${MATHJAX_ROOT}" ]; then ln -sf "${MATHJAX_ROOT}"; else echo "Error, no pre-existing MathJax install found (no '${MATHJAX_ROOT}'; consider installation with 'pacman -Sy mathjax' or alike)." 1>&2 ; exit 75; fi
+
+
+check-mathjax:
+	@if [ ! -e "${MATHJAX_ROOT}" ]; then echo "Error, no MathJax install found (no '${MATHJAX_ROOT}'; consider installation with 'pacman -Sy mathjax' or alike)." 1>&2 ; exit 75; fi
 
 
 

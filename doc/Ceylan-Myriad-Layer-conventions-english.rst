@@ -20,7 +20,7 @@ The use of syntax highlighting is encouraged.
 
 Recommended text editors are:
 
-- `Emacs <https://www.gnu.org/software/emacs/>`_ (see our `init.el <https://github.com/Olivier-Boudeville/Ceylan-Myriad/tree/master/conf/init.el>`_)
+- `Emacs <#emacs-settings>`_
 - `Visual Studio Code <https://en.wikipedia.org/wiki/Visual_Studio_Code>`_ (a.k.a. Vscode)
 - `ErlIDE <https://erlide.org/>`_ (based on Eclipse)
 - Vim, IntelliJ, Gedit, Nedit, etc.
@@ -107,6 +107,10 @@ The most obvious conventions are:
 
 - some conventional variable names are, and may be, extensively used: ``Res`` for result, ``H`` and ``T`` for respectively the head and tail of a list on which we recursively iterate
 
+.. _indices:
+
+- indices shall, as much as possible, start at index ``1`` (rather than 0); this is a general Erlang convention (`for lists <https://erlang.org/doc/man/lists.html#description>`_, like with ``lists:nth/2``, for tuples, etc. - unlike `arrays <https://erlang.org/doc/man/array.html#description>`_, though); see ``basic_utils:positive_index/0``
+
 - when needing an **associative table**, use the ``table`` pseudo-module; a key/value pair shall be designated as a table *entry* (ex: variable named as ``RoadEntry``)
 
 - regarding the in-code management of **text**:
@@ -146,24 +150,6 @@ This function shall be compiled once per layer to be accurate, in one of its mod
  -include_lib("myriad/utils/basic_utils.hrl").
 
 
-
-Geometric Conventions
-=====================
-
-:raw-html:`<center><img src="myriad-space-time-referential.png" id="responsive-image-tiny"></img></center>`
-:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=1]{myriad-space-time-referential.png} \end{figure}`
-
-For **space** coordinates, three axes are defined for a global referential:
-
-- abscissa: X axis (in red, ``#FF0000``)
-- ordinate: Y axis (in green, ``#008000``)
-- depth: Z axis (in blue, ``#0000FF``)
-
-For each of them, generally ``1.0`` corresponds to 1 meter, otherwise to 1 `light-second <https://en.wikipedia.org/wiki/Light-second>`_ (i.e. roughly 300 000 km [#]_).
-
-.. [#] Then for more human-sized distances, a scale of one light-nanosecond (10^-9 second) might be more convenient, as it corresponds almost to 30 cm.
-
-For **time** coordinate, a single axis is defined for a global referential: the T axis (in yellow, ``#F6DE2D``), for which ``1.0`` corresponds to 1 second.
 
 
 Tooling Conventions

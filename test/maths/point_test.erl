@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2021 Olivier Boudeville
+% Copyright (C) 2021-2021 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,24 +23,51 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: Monday, October 4, 2021.
 
 
-% A 2D point is simply a pair of numbers, often integers, like in: P = {3,45}.
-
-
-% The classical, canonical 2x2 matrix representation is:
+% @doc Unit tests for the <b>arbitrary vector</b> facilities.
 %
-% M = | M11 M12 |
-%     | M21 M22 |
+% See the vector tested module.
 %
-% This corresponds to this record specialised for 2D.
-%
-% A shorthand for these record and corresponding type could be mat2.
-%
--record( matrix2, {
+-module(point_test).
 
-  m11 :: linear:coordinate(),
-  m12 :: linear:coordinate(),
 
-  m21 :: linear:coordinate(),
-  m22 :: linear:coordinate() } ).
+% For run/0 export and al:
+-include("test_facilities.hrl").
+
+
+
+-spec run() -> no_return().
+run() ->
+
+	test_facilities:start( ?MODULE ),
+
+	Null2D = point:null( _Dim=2 ),
+
+	Null2D = point:new( { 0.0, 0.0 } ),
+	Null2D = point:new( [ 0.0, 0.0 ] ),
+
+	Vec1 = [ 0.0, 1.0, 2.0 ],
+
+	P1 = list_to_tuple( Vec1 ),
+
+	P1 = point:from_vector( Vec1 ),
+
+	Vec1 = point:to_vector( P1 ),
+
+	P2 = point:new( { 1/3, 2.0, 3330.0 } ),
+
+	test_facilities:display( "Basic textual representation for ~w: ~ts",
+							 [ P2, point:to_string( P2 ) ] ),
+
+	test_facilities:display( "Short textual representation for ~w: ~ts",
+							 [ P2, point:to_short_string( P2 ) ] ),
+
+	test_facilities:display( "Fixed-width representation for ~w:~n~ts",
+							 [ P2, point:to_fixed_width_string( P2 ) ] ),
+
+	test_facilities:display( "User-friendly representation for ~w:~n~ts",
+							 [ P2, point:to_user_string( P2 ) ] ),
+
+	test_facilities:stop().

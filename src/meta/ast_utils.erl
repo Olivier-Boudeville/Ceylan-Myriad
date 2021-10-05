@@ -35,9 +35,7 @@
 % a different set of conventions).
 %
 % See also:
-%
 % - the meta_utils module, for meta primitives less directly linked with syntax
-%
 % - the ast_scan module, to perform a full, strict traversal of an AST
 %
 -module(ast_utils).

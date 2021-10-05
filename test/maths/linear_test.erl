@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2021 Olivier Boudeville
+% Copyright (C) 2021-2021 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,24 +23,24 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: Sunday, October 3, 2021.
 
 
-% A 2D point is simply a pair of numbers, often integers, like in: P = {3,45}.
-
-
-% The classical, canonical 2x2 matrix representation is:
+% Unit tests for the <b>linear facilities</b>.
 %
-% M = | M11 M12 |
-%     | M21 M22 |
+% See the linear tested module.
 %
-% This corresponds to this record specialised for 2D.
-%
-% A shorthand for these record and corresponding type could be mat2.
-%
--record( matrix2, {
+-module(linear_test).
 
-  m11 :: linear:coordinate(),
-  m12 :: linear:coordinate(),
 
-  m21 :: linear:coordinate(),
-  m22 :: linear:coordinate() } ).
+% For run/0 export and al:
+-include("test_facilities.hrl").
+
+
+
+-spec run() -> no_return().
+run() ->
+
+	test_facilities:start( ?MODULE ),
+
+	test_facilities:stop().

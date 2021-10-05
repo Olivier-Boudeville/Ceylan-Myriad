@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2021 Olivier Boudeville
+% Copyright (C) 2010-2021 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -25,7 +25,7 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-% Unit tests for the linear 2D facilities.
+% Unit tests for the <b>linear 2D facilities</b>.
 %
 % See the linear_2D tested module.
 %
@@ -43,7 +43,7 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	V={9,1},
+	V = {9,1},
 
 	NL = linear_2D:normal_left( V ),
 	NR = linear_2D:normal_right( V ),
@@ -52,7 +52,7 @@ run() ->
 	0 = linear_2D:dot_product( V, NR ),
 
 	test_facilities:display( "~p is a (non-unit) left normal for vector ~p, "
-			   "and ~p is a right normal.", [NL,V,NR] ),
+		"and ~p is a right normal.", [NL,V,NR] ),
 
 	true  = linear_2D:is_strictly_on_the_right( NR, {0,0}, V ),
 	false = linear_2D:is_strictly_on_the_right( NL, {0,0}, V ),
@@ -72,22 +72,21 @@ run() ->
 
 	false = linear_2D:is_strictly_on_the_right( Pa, Pivot, Pb ),
 
-	A={0,0},
+	A = {0,0},
 
-	B1={1,0},
-	B2={3,3},
-	B3={-5,3},
+	B1 = {1,0},
+	B2 = {3,3},
+	B3 = {-5,3},
 
-	C1={0,1},
-	C2={-2,-1},
-	C3={1,-4},
+	C1 = {0,1},
+	C2 = {-2,-1},
+	C3 = {1,-4},
 
 	[ test_facilities:display( "Unoriented angle between the vertex ~w and ~w, "
-				 "~w is ~f degrees, oriented angle is ~f degrees.",
-				 [ P1, P2, P3, linear_2D:abs_angle_deg( P1, P2, P3 ),
-					 linear_2D:angle_deg( P1, P2, P3 ) ] ) || P1 <- [A],
-														P2 <- [B1,B2,B3],
-														P3 <- [C1,C2,C3] ],
+		"~w is ~f degrees, oriented angle is ~f degrees.",
+		[ P1, P2, P3, linear_2D:abs_angle_deg( P1, P2, P3 ),
+		  linear_2D:angle_deg( P1, P2, P3 ) ] )
+				|| P1 <- [A], P2 <- [B1,B2,B3], P3 <- [C1,C2,C3] ],
 
 	true  = linear_2D:are_close( B1, linear_2D:translate(B1,{0.000001,0} )),
 	false = linear_2D:are_close( B1, A ),

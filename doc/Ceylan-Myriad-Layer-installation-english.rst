@@ -10,18 +10,30 @@ Getting Myriad
 Prerequisites
 =============
 
-The **operating system** is supposed to be any not-so-old ``GNU/Linux`` distribution [#]_.
+
+Supported Platforms
+-------------------
+
+The **operating system** is supposed to be most Unices, in particular any not-so-old ``GNU/Linux`` distribution [#]_.
+
+.. [#] For what it is worth, we prefer `Arch Linux <https://www.archlinux.org/>`_, but this does not really matter here.
+
+
+.. _Windows:
+
+Myriad can be built and tested successfully on the ``Windows`` platform; for that we rely on `MSYS2 <https://www.msys2.org/>`_. Refer to `this section <http://hull.esperide.org#windows-support>`_ of Ceylan-Hull for information regarding our recommended Windows developer settings in terms of shells and general environment.
 
 People reported uses of Myriad on ``macOS``, yet no extensive testing has been done there.
 
-Whereas Erlang supports ``Windows`` and we tried to be as cross-platform as possible, even with tools like ``MSYS2`` / ``MinGW-w64`` we suppose that quite a lot of special cases would have to be addressed (patches welcome, though!).
-
-.. [#] For what it is worth, we prefer `Arch Linux <https://www.archlinux.org/>`_, but this does not really matter here.
 
 .. _`getting-erlang`:
 
 .. _`getting erlang`:
 
+
+
+Software Prerequisites
+----------------------
 
 
 The main tool prerequisite is of course having the `Erlang <http://erlang.org>`_ environment available, in its ``24.0`` version [#]_ or more recent.

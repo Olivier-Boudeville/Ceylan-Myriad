@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2021 Olivier Boudeville
+% Copyright (C) 2021-2021 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -25,22 +25,49 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-% A 2D point is simply a pair of numbers, often integers, like in: P = {3,45}.
+% @doc Unit tests for the <b>arbitrary vector</b> facilities.
+%
+% See the vector tested module.
+%
+-module(vector_test).
 
 
-% The classical, canonical 2x2 matrix representation is:
-%
-% M = | M11 M12 |
-%     | M21 M22 |
-%
-% This corresponds to this record specialised for 2D.
-%
-% A shorthand for these record and corresponding type could be mat2.
-%
--record( matrix2, {
+% For run/0 export and al:
+-include("test_facilities.hrl").
 
-  m11 :: linear:coordinate(),
-  m12 :: linear:coordinate(),
 
-  m21 :: linear:coordinate(),
-  m22 :: linear:coordinate() } ).
+
+-spec run() -> no_return().
+run() ->
+
+	test_facilities:start( ?MODULE ),
+
+	Null2D = [ 0.0, 0.0 ],
+
+	Null2D = vector:null( _Dim=2 ),
+
+	X1 = [ 1.0, 0.0, 0.0 ],
+	X2 = [ 1, 0.0, 0 ],
+
+	V3D = vector:new( X1 ),
+
+	[ V3D = vector:new( X ) || X <- [ X1, X2 ] ],
+
+	IntP = { 10, 25 },
+
+	V = [ 10.0, 25.0 ],
+	V = vector:from_point( IntP ),
+
+	FloatP = { 10.0, 25.0 },
+	FloatP = vector:to_point( V ),
+
+	test_facilities:display( "Basic textual representation for ~w: ~ts",
+							 [ V3D, vector:to_string( V3D ) ] ),
+
+	test_facilities:display( "Short textual representation for ~w: ~ts",
+							 [ V3D, vector:to_short_string( V3D ) ] ),
+
+	test_facilities:display( "Formal textual representation for ~w:~n~ts",
+							 [ V3D, vector:to_formal_string( V3D ) ] ),
+
+	test_facilities:stop().

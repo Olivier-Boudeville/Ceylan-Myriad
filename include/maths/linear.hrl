@@ -25,14 +25,17 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-% A threshold to denote unbounded values:
-%
-% (corresponds to the maximum value of 32-bit floats, i.e. the maximum
-% representable IEEE 754 floating-point value)
-%
--define( infinity, 3.402823e+38 ).
-
-
 % To properly format (as text), typically coordinates:
--define( printout_width, "14" ).
+-define( printout_width, "13" ).
+%-define( printout_width, "14" ).
+
 -define( printout_precision, "10" ).
+
+
+% Hopefully these format strings are resolved at compile-time:
+
+-define( coord_float_format,
+		 "~" ++ ?printout_width ++ "." ++ ?printout_precision ++ ". f" ).
+
+-define( coord_integer_format,
+		 "~" ++ ?printout_width ++ "." ++ ?printout_precision ++ ". B" ).

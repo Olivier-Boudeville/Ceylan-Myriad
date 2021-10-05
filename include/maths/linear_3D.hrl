@@ -27,11 +27,15 @@
 
 % The classical, canonical 3x3 matrix representation is:
 %
-% M = [ M11, M12, M13 ]
-%     [ M21, M22, M23 ]
-%     [ M31, M32, M33 ]
+%     | M11 M12 M13 |
+% M = | M21 M22 M23 |
+%     | M31 M32 M33 |
 %
--record( mat3, {
+% This corresponds to this record specialised for 3D.
+%
+% A shorthand for these record and corresponding type could be mat3.
+%
+-record( matrix3, {
 
   m11 :: linear:coordinate(),
   m12 :: linear:coordinate(),
@@ -43,35 +47,35 @@
 
   m31 :: linear:coordinate(),
   m32 :: linear:coordinate(),
-  m33 :: linear:coordinate()
-
-} ).
+  m33 :: linear:coordinate() } ).
 
 
 
 % A 3x3 compact matrix is a 2x3 canonical matrix, or, said otherwise, a 2x2
 % matrix M2 and a vector T, as:
 %
-% M2 = [ M11, M12 ]
-%      [ M21, M22 ]
+% M2 = | M11 M12 |
+%      | M21 M22 |
 %
-% and T = [ Tx, Ty ].
+% and T = | Tx Ty |.
 %
 % This corresponds to, by blocks:
 %
-% M = [ M2, T ]
-%     [  0, 1 ]
+% M = | M2 T |
+%     |  0 1 |
 %
-%   = [ M11, M12, Tx ]
-%     [ M21, M22, Ty ]
-%     [   0,   0,  1 ]
+%   = | M11 M12 Tx |
+%     | M21 M22 Ty |
+%     |   0   0  1 |
 %
 %
 % Could have been, with more indirections:
 %
-% { linear_2D:canonical_matrix(), linear_2D:vector() }
+% {linear_2D:canonical_matrix(), linear_2D:vector()}
 %
--record( cpt_mat3, {
+% A shorthand for these record and corresponding type could be cpt_mat3.
+%
+-record( compact_matrix3, {
 
   m11 :: linear:coordinate(),
   m12 :: linear:coordinate(),
@@ -79,6 +83,4 @@
 
   m21 :: linear:coordinate(),
   m22 :: linear:coordinate(),
-  ty  :: linear:coordinate()
-
-} ).
+  ty  :: linear:coordinate() } ).
