@@ -104,7 +104,6 @@
 
 
 
-
 % General section.
 
 
@@ -172,7 +171,7 @@ ceiling( X ) ->
 % @doc Rounds the specified floating-point number at specified offset after the
 % decimal point.
 %
-% Ex: round_after( 12.3456, 3 ) = 12.346.
+% Ex: round_after(12.3456, _DigitCount3) = 12.346.
 %
 -spec round_after( float(), basic_utils:count() ) -> float().
 round_after( F, DigitCount ) ->
@@ -190,8 +189,7 @@ round_after( F, DigitCount ) ->
 %
 % The float must exactly match the integer value.
 %
-% Ex: float_to_integer( 5.0 ) = 5, while float_to_integer( 5.0000001 ) will
-% crash.
+% Ex: float_to_integer(5.0) = 5, while float_to_integer(5.0000001) will crash.
 %
 -spec float_to_integer( float() ) -> integer().
 float_to_integer( F ) ->
@@ -358,10 +356,11 @@ are_relatively_close( X, Y, Epsilon ) ->
 			% X+Y=0, okay; they will be relatively close iff absolutely close
 			% (between them, and to zero) here (think for example to X=3 and
 			% Y=-3):
+			%
 			are_close( X, Y, Epsilon );
 
 		_ ->
-			%io:format( "X= ~p, Y= ~p~n", [ X, Y ] ),
+			%trace_utils:debug_fmt( "X= ~p, Y= ~p~n", [ X, Y ] ),
 			2 * erlang:abs( ( X - Y ) / ( X + Y ) ) < Epsilon
 
 	end.
@@ -374,7 +373,7 @@ are_relatively_close( X, Y, Epsilon ) ->
 % also null.
 %
 -spec get_relative_difference( number(), number() ) ->
-									 float() | 'difference_not_computable'.
+										float() | 'difference_not_computable'.
 get_relative_difference( X, Y ) ->
 
 	% Previously was:

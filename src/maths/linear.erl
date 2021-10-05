@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2021 Olivier Boudeville
+% Copyright (C) 2010-2021 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -39,7 +39,6 @@
 -include("linear.hrl").
 
 
-
 % These type names are too general to be defined in the hrl file (i.e. in the
 % root namespace).
 
@@ -54,6 +53,10 @@
 % numbers.
 
 
+-type dimension() :: basic_utils:count().
+% The dimension of a space (ex: number of rows or columns for a matrix).
+
+
 -type coordinate() :: float().
 % Cartesian (floating-point) coordinates in a referential.
 
@@ -64,6 +67,7 @@
 
 -type any_coordinate() :: number().
 % Cartesian coordinates in a referential.
+
 
 
 -type factor() :: float().
@@ -130,20 +134,24 @@
 % Area of a surface.
 
 
--export_type([ coordinate/0, integer_coordinate/0, any_coordinate/0,
+-export_type([ dimension/0,
+			   coordinate/0, integer_coordinate/0, any_coordinate/0,
 			   factor/0, integer_factor/0, any_factor/0,
 			   distance/0, integer_distance/0, any_distance/0,
 			   radius/0, integer_radius/0, any_radius/0,
 			   square_distance/0, integer_square_distance/0,
 			   any_square_distance/0,
-			   area/0 ]).
+			   area/0  ]).
 
 
--export([ coord_to_string/1 ] ).
+-export([ coord_to_string/1, coords_to_best_width_strings/1 ] ).
 
 
 % Shorthands:
+
 -type ustring() :: text_utils:ustring().
+
+%-type count() :: basic_utils:count().
 
 
 
@@ -154,12 +162,18 @@ coord_to_string( Coord ) when is_float( Coord ) ->
 	% For testing:
 	%text_utils:format( "XX~*.*.*fXX~n", [ 14, 12, $a, 1/3 ] ).
 
-	% Hopefully the format string is resolved at compile-time:
-	%text_utils:format( "~" ++ ?printout_width ++ "." ++ ?printout_precision
-	%				   ++ ". p", [ Coord ] ).
-	text_utils:format( "~" ++ ?printout_width ++ "." ++ ?printout_precision
-					   ++ ". f", [ Coord ] );
+	text_utils:format( ?coord_float_format, [ Coord ] );
 
 coord_to_string( Coord ) when is_integer( Coord ) ->
-	text_utils:format( "~" ++ ?printout_width ++ "." ++ ?printout_precision
-					   ++ ". B", [ Coord ] ).
+	text_utils:format( ?coord_integer_format, [ Coord ] ).
+
+
+
+% @doc Returns textual representations of the specified coordinates of a common,
+% best (maximal) width.
+%
+-spec coords_to_best_width_strings( [ any_coordinate() ] ) -> [ ustring() ].
+coords_to_best_width_strings( Coords ) ->
+	Strs = [ text_utils:format( "~w", [ C ] ) || C <- Coords ],
+	Len = lists:max( [ length( S ) || S <- Strs ] ),
+	[ text_utils:pad_string_right( S, Len ) || S <- Strs ].

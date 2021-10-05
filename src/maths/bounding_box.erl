@@ -55,9 +55,11 @@
 
 
 -type circle() :: #circle{}.
+% A bounding box defined based on a circle.
 
 
 -type right_cuboid() :: #right_cuboid{}.
+% A bounding box defined based on a right cuboid.
 
 
 -type bounding_box() :: circle() | right_cuboid().
@@ -69,7 +71,13 @@
 
 % Shorthands:
 
+-type ustring() :: text_utils:ustring().
+
+-type int_degrees() :: unit_utils:int_degrees().
+
 -type point() :: linear_2D:point().
+-type integer_point() :: linear_2D:integer_point().
+-type square_distance() :: linear:square_distance().
 
 
 
@@ -82,7 +90,7 @@
 % Returns the disc information: {Center, SquareRadius}.
 %
 -spec get_lazy_circle_box( [ point() ] ) ->
-		{ linear_2D:integer_point(), linear:square_distance() }.
+			{ integer_point(), square_distance() }.
 get_lazy_circle_box( PointList ) ->
 
 	{ TopLeft, BottomRight } =
@@ -108,7 +116,7 @@ get_lazy_circle_box( PointList ) ->
 % function.
 %
 -spec get_minimal_enclosing_circle_box( [ point() ] ) ->
-		{ point(), linear:square_distance() }.
+							{ point(), square_distance() }.
 get_minimal_enclosing_circle_box( _PointList=[] ) ->
 	throw( no_point_to_enclose );
 
@@ -161,7 +169,8 @@ get_minimal_enclosing_circle_box( PointList ) ->
 	% Here we have at least three points, let's work an the hull instead:
 	% See http://www.cs.mcgill.ca/~cs507/projects/1998/jacob/solutions.html
 	% for the solution.
-	%io:format( "MEC for ~w.~n", [ PointList ] ),
+
+	%trace_utils:debug_fmt( "MEC for ~w.~n", [ PointList ] ),
 
 	case linear_2D:compute_convex_hull( PointList ) of
 
@@ -177,18 +186,18 @@ get_minimal_enclosing_circle_box( PointList ) ->
 
 
 
-% @doc Returns {MinAngle, MinVertex}, the minimum angle subtended by the segment
-% [P1, P2] among points in the Points list.
+% @doc Returns {MinAngle, MinVertex}, the minimum angle (in canonical degrees)
+% subtended by the segment [P1, P2] among points in the Points list.
 %
 -spec find_minimal_angle( point(), point(), [ point() ] ) ->
-		{ number(), 'undefined' } | { integer(), point() }.
+							  { int_degrees(), point() }.
 find_minimal_angle( _P1, _P2, _Points=[] ) ->
 	throw( { find_minimal_angle, not_enough_points } );
 
 find_minimal_angle( P1, P2, _Points=[ Pfirst | OtherPoints ] ) ->
 
-	%io:format( "Trying to find minimal angle in ~w for ~w and ~w.~n",
-	%		   [ Points, P1, P2 ] ),
+	%trace_utils:debug_fmt( "Trying to find minimal angle in ~w for ~w "
+	%    "and ~w.~n", [ Points, P1, P2 ] ),
 
 	BootstrapAngle = linear_2D:abs_angle_deg( Pfirst, P1, P2 ),
 
@@ -221,14 +230,15 @@ try_side( P1, P2, H ) ->
 
 	{ MinAngle, MinVertex } = find_minimal_angle( P1, P2, H ),
 
-	%io:format( "Trying side [ ~w, ~w ], min vertex: ~w.~n", [ P1, P2, MinVertex
-	%] ),
+	%trace_utils:debug_fmt( "Trying side [ ~w, ~w ], min vertex: ~w.~n",
+	%    [ P1, P2, MinVertex ] ),
 
 	case MinAngle of
 
 		FirstAngle when FirstAngle > 90 ->
 			% Finished, P1 and P2 determine the diametric circle, reusing the
 			% code for that:
+			%
 			get_minimal_enclosing_circle_box( [ P1, P2 ] );
 
 		_FirstAngleTooSmall ->
@@ -276,7 +286,7 @@ try_side( P1, P2, H ) ->
 
 
 % @doc Returns a textual description of the specified bounding box.
--spec to_string( bounding_box() ) -> text_utils:ustring().
+-spec to_string( bounding_box() ) -> ustring().
 to_string( #circle{ center=Center, square_radius=SquareRadius } ) ->
 	text_utils:format( "circle whose center is ~w and square radius is ~w",
 					   [ Center, SquareRadius ] );
