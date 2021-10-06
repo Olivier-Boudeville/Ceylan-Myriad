@@ -53,25 +53,38 @@ run() ->
 
 	[ V3D = vector:new( X ) || X <- [ X1, X2 ] ],
 
-	IntP = { 10, 25 },
+	IntP = { 10, 25, -7 },
 
-	V = [ 10.0, 25.0 ],
-	V = vector:from_point( IntP ),
+	V1 = [ 10.0, 25.0, -7.0 ],
+	V1 = vector:from_point( IntP ),
+	3 = vector:dimension( V1 ),
 
 	FloatP = { 1/3, 17.0 },
 	VecP = tuple_to_list( FloatP ),
 	FloatP = vector:to_point( VecP ),
 
-	test_facilities:display( "Basic textual representation for ~w: ~ts",
+	test_facilities:display( "Base textual representation for V3D = ~w: ~ts",
 							 [ V3D, vector:to_string( V3D ) ] ),
 
-	test_facilities:display( "Short textual representation for ~w: ~ts",
-							 [ V3D, vector:to_short_string( V3D ) ] ),
+	test_facilities:display( "Compact textual representation for V3D = ~w: ~ts",
+							 [ V3D, vector:to_compact_string( V3D ) ] ),
 
 	test_facilities:display( "User-friendly textual representation "
-		"for ~w:~n~ts", [ V3D, vector:to_user_string( V3D ) ] ),
+		"for V3D = ~w:~n~ts", [ V3D, vector:to_user_string( V3D ) ] ),
 
 	test_facilities:display( "User-friendly textual representation "
-		"for ~w:~n~ts", [ VecP, vector:to_user_string( VecP ) ] ),
+		"for VecP = ~w:~n~ts", [ VecP, vector:to_user_string( VecP ) ] ),
+
+	test_facilities:display( "V1 =~n~ts", [ vector:to_string( V1 ) ] ),
+
+	V2 = [ 1.0, 2.0, 3.0 ],
+	test_facilities:display( "V2 =~n~ts", [ vector:to_string( V2 ) ] ),
+
+	V3 = [ 11.0, 27.0, -4.0 ],
+
+	V3 = vector:add( V1, V2 ),
+
+	test_facilities:display( "V3 = V1 + V2 =~n~ts",
+							 [ vector:to_string( V3 ) ] ),
 
 	test_facilities:stop().

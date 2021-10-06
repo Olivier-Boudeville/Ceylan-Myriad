@@ -84,7 +84,9 @@
 
 
 -export([ new/1, null/1, from_vector/1, to_vector/1, to_any_vector/1,
-		  to_string/1, to_short_string/1, to_basic_string/1,
+		  dimension/1,
+		  check/1, 
+		  to_string/1, to_compact_string/1, to_basic_string/1,
 		  to_user_string/1 ] ).
 
 
@@ -152,19 +154,44 @@ to_any_vector( P ) ->
 	tuple_to_list( P ).
 
 
+% @doc Returns the dimension of the specified point.
+-spec dimension( any_point() ) -> dimension().
+dimension( P ) ->
+	size( P ).
 
-% @doc Returns a textual representation of the specified point.
+
+
+% @doc Checks that the specified point is legit, and returns it.
+-spec check( point() ) -> point().
+check( P ) ->
+	CoordList = [ C | T ] = tuple_to_list( P ),
+	case is_integer( C ) of
+
+		true ->
+			vector:check_integer( T );
+
+		false ->
+			vector:check_integer( T )
+
+	end,
+	CoordList.
+
+
+
+% @doc Returns a textual representation of the specified point; full float
+% precision is shown.
+%
 -spec to_string( any_point() ) -> ustring().
 to_string( Point ) ->
 	to_user_string( Point ).
 
 
 
-% @doc Returns a short, textual, informal representation of the specified
+% @doc Returns a compact, textual, informal representation of the specified
 % point.
 %
--spec to_short_string( any_point() ) -> ustring().
-to_short_string( Point ) ->
+-spec to_compact_string( any_point() ) -> ustring().
+to_compact_string( Point ) ->
 	text_utils:format( "~w", [ Point ] ).
 
 
@@ -200,7 +227,7 @@ to_basic_string( Point ) ->
 
 
 % @doc Returns a textual, more user-friendly representation of the specified
-% point.
+% point; full float precision is shown.
 %
 % This is the recommended representation.
 %

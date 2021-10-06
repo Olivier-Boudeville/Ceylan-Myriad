@@ -80,8 +80,12 @@
 			   specialised_vector/0 ]).
 
 
--export([ new/1, null/1, from_point/1, to_point/1,
-		  to_string/1, to_short_string/1, to_basic_string/1,
+-export([ new/1, null/1,
+		  from_point/1, to_point/1,
+		  dimension/1,
+		  add/2,
+		  check/1, check_integer/1,
+		  to_string/1, to_compact_string/1, to_basic_string/1,
 		  to_user_string/1 ] ).
 
 
@@ -118,7 +122,6 @@ null( Dim ) ->
 	lists:duplicate( Dim, 0.0 ).
 
 
-
 % @doc Returns an (arbitrary) vector corresponding to the specified point.
 -spec from_point( any_point() ) -> vector().
 from_point( P ) ->
@@ -134,18 +137,52 @@ to_point( V ) ->
 
 
 
-% @doc Returns a textual representation of the specified vector.
+% @doc Returns the dimension of the specified vector.
+-spec dimension( any_vector() ) -> dimension().
+dimension( V ) ->
+	length( V ).
+
+
+
+% @doc Returns the sum of the two specified vectors (supposedly of the same
+% dimension).
+%
+-spec add( vector(), vector() ) -> vector().
+add( V1, V2 ) ->
+	lists:zipwith( fun( C1, C2 ) ->
+					   C1 + C2
+				   end,
+				   V1, V2 ).
+
+
+
+% @doc Checks that the specified vector is legit, and returns it.
+-spec check( vector() ) -> vector().
+check( V ) ->
+	type_utils:check_floats( V ).
+
+
+% @doc Checks that the specified integer vector is legit, and returns it.
+-spec check_integer( integer_vector() ) -> integer_vector().
+check_integer( V ) ->
+	type_utils:check_integers( V ).
+
+
+
+% @doc Returns a textual representation of the specified vector; full float
+% precision is shown.
+%
 -spec to_string( vector() ) -> ustring().
 to_string( Vector ) ->
 	to_user_string( Vector ).
 
 
 
-% @doc Returns a short, textual, informal representation of the specified
+% @doc Returns a compact, textual, informal representation of the specified
 % vector.
 %
--spec to_short_string( vector() ) -> ustring().
-to_short_string( Vector ) ->
+-spec to_compact_string( vector() ) -> ustring().
+to_compact_string( Vector ) ->
 
 	%Ws = [ "~w" || _ <- Vector ],
 	%FormatStr = "[ " ++ text_utils:join( _Sep=", ", Ws ) ++ " ]",
@@ -175,7 +212,7 @@ to_basic_string( Vector ) ->
 
 
 % @doc Returns a textual, more user-friendly representation of the specified
-% vector.
+% vector; full float precision is shown.
 %
 % This is the recommended representation.
 %

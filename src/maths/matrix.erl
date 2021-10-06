@@ -43,18 +43,31 @@
 
 % Implementation notes:
 %
-% No dependent types, not able to declare a mat(M,N) type.
+% No dependent types, not able to declare a matrix(M,N) type.
 %
+% A matrix having M rows and N columns (indices starting at 1) are usually
+% iterated through based on variables named R (thus in [1..M]) and C (in
+% [1..N]).
+
 
 % For printout_*:
 -include("linear.hrl").
 
 
+-type user_row() :: user_vector().
+% Matrix user-specified elements, left to right.
+
 -type row() :: vector().
 % Matrix elements, left to right.
 
+
 -type column() :: vector().
 % Matrix elements, top to bottom.
+
+
+-type user_matrix() :: [ user_row() ].
+% A user-specified matrix, as a list a rows comprising integer or floating-point
+% coordinates.
 
 
 -type matrix() :: [ row() ].
@@ -68,25 +81,33 @@
 % Regroups all types of specialised matrices.
 
 
--export_type([ row/0, column/0, matrix/0, specialised_matrix/0 ]).
+-type dimensions() :: { dimension(), dimension() }.
+% Number of rows and columns of a matrix.
+
+
+-export_type([ user_row/0, row/0, column/0,
+			   user_matrix/0, matrix/0, specialised_matrix/0,
+			   dimensions/0 ]).
 
 
 -export([ new/1, null/1, null/2,
-%identity/0,
+		  identity/1,
+		  dimensions/1, row/2, column/2, get_element/3, set_element/4,
+		  add/2,
 		  get_specialised_module/1, specialise/1, unspecialise/1,
-		  to_string/1 ] ).
+		  check/1,
+		  to_string/1, to_basic_string/1, to_user_string/1 ] ).
 
 
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
 
-%-type any_coordinate() :: linear:any_coordinate().
-%-type coordinate() :: linear:coordinate().
+-type coordinate() :: linear:coordinate().
 -type dimension() :: linear:dimension().
 
 -type vector() :: vector:vector().
-
+-type user_vector() :: vector:user_vector().
 
 
 % @doc Returns an (arbitrary) matrix corresponding to the user-specified one.
@@ -95,22 +116,11 @@
 % of dimensions could correspond.
 %
 -spec new( matrix() ) -> matrix().
-new( UserMatrixVector ) ->
+new( UserMatrix ) ->
 
-	% Just checking:
-	cond_utils:if_defined( myriad_check_linear,
-		begin
-			[ FirstRow | OtherRows ] = UserMatrixVector,
-			type_utils:check_floats( FirstRow ),
-			RowElemCount = length( FirstRow ),
-			[ begin
-				RowElemCount = length( R ),
-				type_utils:check_floats( R )
-			  end || R <- OtherRows ]
+	M = [ vector:new( UR ) || UR <- UserMatrix ],
 
-		end ),
-
-	UserMatrixVector.
+	cond_utils:if_defined( myriad_check_linear, check( M ), M ).
 
 
 
@@ -126,6 +136,64 @@ null( SquareDim ) ->
 null( RowCount, ColumnCount ) ->
 	NullRow = lists:duplicate( ColumnCount, 0.0 ),
 	lists:duplicate( RowCount, NullRow ).
+
+
+
+% @doc Returns the identity matrix of the specified dimension.
+-spec identity( dimension() ) -> matrix().
+identity( Dim ) ->
+	[ [ case R of C -> 1.0; _ -> 0.0 end
+		  || C <- lists:seq( 1, Dim ) ] || R <- lists:seq( 1, Dim ) ].
+
+
+
+% @doc Returns the dimensions of the specified matrix.
+-spec dimensions( matrix() ) -> dimensions().
+dimensions( M ) ->
+	{ length( M ), length( hd( M ) ) }.
+
+
+
+% @doc Returns the specified row of the specified matrix.
+-spec row( dimension(), matrix() ) -> vector().
+row( RowCount, Matrix ) ->
+	lists:nth( RowCount, Matrix ).
+
+
+% @doc Returns the specified column of the specified matrix.
+-spec column( dimension(), matrix() ) -> vector().
+column( ColCount, Matrix ) ->
+	[ lists:nth( ColCount, R ) || R <- Matrix ].
+
+
+
+% @doc Returns the element at specified row and column of the specified matrix.
+-spec get_element( dimension(), dimension(), matrix() ) -> coordinate().
+get_element( R, C, Matrix ) ->
+	lists:nth( C, row( R, Matrix ) ).
+
+
+
+% @doc Returns a matrix identical to the specified one except that its specified
+% element at specied location has been set to the specified value.
+%
+-spec set_element( dimension(), dimension(), coordinate(), matrix() ) ->
+									matrix().
+set_element( R, C, Value, Matrix ) ->
+	NewRow = list_utils:set_element_at( Value, row( R, Matrix ), _Index=C ),
+	list_utils:set_element_at( NewRow, Matrix, R ).
+
+
+
+% @doc Returns the sum of the two specified matrices, supposedly of the same
+% dimensions.
+%
+-spec add( matrix(), matrix() ) -> matrix().
+add( M1, M2 ) ->
+	lists:zipwith( fun( R1, R2 ) ->
+						vector:add( R1, R2 )
+				   end,
+				   M1, M2 ).
 
 
 
@@ -187,24 +255,77 @@ get_specialised_module( M ) ->
 
 
 
-% @doc Returns a textual representation of the specified (arbitrary) matrix.
+% @doc Checks that the specified matrix is legit, and returns it.
+-spec check( matrix() ) -> matrix().
+check( M=[ FirstRow | OtherRows ] ) ->
+	vector:check( FirstRow ),
+	RowElemCount = length( FirstRow ),
+	[ begin
+			RowElemCount = length( R ),
+			vector:check( R )
+	  end || R <- OtherRows ],
+	M.
+
+
+
+% @doc Returns a textual representation of the specified (arbitrary) matrix;
+% full float precision is shown.
+%
 -spec to_string( matrix() ) -> ustring().
-to_string( M ) ->
+to_string( Matrix ) ->
+	to_user_string( Matrix ).
 
-	RowElemCount = length( hd( M ) ),
 
-	ElemFormatStr = "~" ++ ?printout_width ++ "." ++ ?printout_precision
-						  ++ ". f ",
+% @doc Returns a basic, not even fixed-width for floating-vector coordinates
+% (see linear.hrl for width and precision) representation of the specified
+% vector.
+%
+% Note: not a convincing representation, prefer the more expensive, truer
+% to_user_string/1.
+%
+-spec to_basic_string( matrix() ) -> ustring().
+to_basic_string( Matrix ) ->
 
-	RowFormatStr = "[" ++ text_utils:duplicate( RowElemCount, ElemFormatStr )
-						 ++ " ]~n",
+	RowElemCount = length( hd( Matrix ) ),
+
+	RowFormatStr = "[" ++
+		text_utils:duplicate( RowElemCount, ?coord_float_format ) ++ " ]~n",
 
 	%trace_utils:debug_fmt( "RowFormatStr = '~w'.", [ RowFormatStr ] ),
 
-	RowCount = length( M ),
+	RowCount = length( Matrix ),
 
 	FormatStr = text_utils:duplicate( RowCount, RowFormatStr ),
 
-	Elems = list_utils:flatten_once( M ),
+	Elems = list_utils:flatten_once( Matrix ),
 
 	text_utils:format( FormatStr, Elems ).
+
+
+
+% @doc Returns a textual, more user-friendly representation of the specified
+% (arbitrary) matrix; full float precision is shown; all coordinates occupy the
+% same space (the one with the longest representation).
+%
+% This is the recommended representation.
+%
+% Another version where minimal widths would be determined per-column.
+%
+-spec to_user_string( matrix() ) -> ustring().
+to_user_string( Matrix ) ->
+
+	%  Here we ensure that all coordinates use the same width:
+	AllCoords = list_utils:flatten_once( Matrix ),
+
+	Strs = linear:coords_to_best_width_strings( AllCoords ),
+
+	RowLen = length( hd( Matrix ) ),
+
+	% No need for ~ts here:
+	RowFormatStr = "[ " ++ text_utils:duplicate( RowLen, "~s " ) ++ "]~n",
+
+	RowCount = length( Matrix ),
+
+	FormatStr = text_utils:duplicate( RowCount, RowFormatStr ),
+
+	text_utils:format( FormatStr, Strs ).

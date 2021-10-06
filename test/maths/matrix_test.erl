@@ -43,13 +43,49 @@ run() ->
 	test_facilities:start( ?MODULE ),
 
 	Null3x2 = [ [ 0.0, 0.0 ], [ 0.0, 0.0 ], [ 0.0, 0.0 ] ],
+	{ 3, 2 } = matrix:dimensions( Null3x2 ),
 
 	Null3x2 = matrix:null( _RowCount=3, _ColumnCount=2 ),
 
+	M = matrix:new( [ [ 0.0, 1.0, 2.0 ], [ 7777.0, 0.0, 1/3 ] ] ),
 
-	M = Null3x2,
-
-	test_facilities:display( "Textual representation from ~w:~n~ts",
+	test_facilities:display( "Base textual representation for ~w:~n~ts",
 							 [ M, matrix:to_string( M ) ] ),
+
+	test_facilities:display( "Basic textual representation for ~w:~n~ts",
+							 [ M, matrix:to_basic_string( M ) ] ),
+
+	test_facilities:display( "User-friendly textual representation "
+		"for ~w:~n~ts", [ M, matrix:to_user_string( M ) ] ),
+
+	Dim = 5,
+
+	Id = matrix:identity( Dim ),
+
+	test_facilities:display( "Id(~B) =~n~ts", [ Dim, matrix:to_string( Id ) ] ),
+
+	M1 = matrix:new( [ [ 1, 2, 3 ], [ 4, 5, 6 ], [ 7, 8, 9 ] ] ),
+
+	8.0 = matrix:get_element( 3, 2, M1 ),
+
+	NewM1 = matrix:set_element( 3, 2, 10.0, M1 ),
+	test_facilities:display( "M1 =~n~ts", [ matrix:to_string( M1 ) ] ),
+
+	10.0 = matrix:get_element( 3, 2, NewM1 ),
+
+	test_facilities:display( "NewM1 =~n~ts", [ matrix:to_string( NewM1 ) ] ),
+
+	M2 = matrix:identity( 3 ),
+
+	M3 = matrix:add( M1, M2 ),
+
+	[ 7.0, 8.0, 10.0 ] = matrix:row( 3, M3 ),
+
+	[ 2.0, 6.0, 8.0 ] = matrix:column( 2, M3 ),
+
+
+	test_facilities:display( "M1 =~n~ts~nM2 =~n~ts~nM3 = M1 + M2 =~n~ts~n",
+		[ matrix:to_string( M1 ), matrix:to_string( M2 ),
+		  matrix:to_string( M3 ) ] ),
 
 	test_facilities:stop().

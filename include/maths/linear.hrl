@@ -32,7 +32,7 @@
 % For floats, precision is the number of digits after the decimal point. The
 % default precision is 6.
 %
--define( printout_precision, "8" ).
+-define( printout_precision, "2" ).
 
 
 % Finally we do not set a maximum width, we let the necessary one happen and
@@ -42,10 +42,11 @@
 %
 % Hopefully these format strings are resolved at compile-time:
 
-%-define( coord_float_format,
-%         "~" ++ ?printout_width ++ "." ++ ?printout_precision ++ ". f" ).
+-define( coord_float_format,
+		 "~" ++ ?printout_width ++ "." ++ ?printout_precision ++ ". f" ).
 
--define( coord_float_format, "~." ++ ?printout_precision ++ ". f" ).
+% Not fixed-width:
+%-define( coord_float_format, "~." ++ ?printout_precision ++ ". f" ).
 
 
 % For integer, the precision corresponds to the base, not of interest here (we

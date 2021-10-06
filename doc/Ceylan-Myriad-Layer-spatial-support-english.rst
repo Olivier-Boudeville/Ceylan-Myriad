@@ -32,6 +32,8 @@ Conventions
 Linear Conventions
 ..................
 
+Dimensions are non-null (a zero dimension has little interest). Dimension 1 corresponds to scalar and is not special-cased (hence one shall preferably use directly scalars if able to determine that using a single dimension).
+
 A linear-related **index** (ex: of a coordinate of a point, a vector or a matrix) starts at ``1`` (not 0), as all indices_ in Myriad.
 
 .. Coordinates can be specified as ``linear:any_coordinate/0``, i.e. either ``linear:integer_coordinate/0`` (meaning ``integer/0``) or, more often ``linear:coordinate/0``, i.e. ``float/0`` (hence double-precision floating point values); internally all coordinates are ``float/0``.
@@ -120,7 +122,12 @@ In practice the actual, internal terms corresponding to all these matrices would
 Note that:
 
 - we call a container *type-homogeneous* iff all the coordinates that it gathers are all either integer or floating-point ones
-- by default coordinates are displayed once rounded (refer to the ``printout_{width,precision}`` defines in ``linear.hrl``)
+- newer elements (ex: matrices, vectors, points) may be:
+
+  - either literally specified, with a term directly corresponding to their internal form
+  - or based on a ``new`` operator (ex: ``matrix:new/1``), in which case with a higher-level user-term (ex: a matrix with integer coordinates, in which case they will be automatically converted to floats)
+
+- by default, for least surprise, coordinates are displayed *not* rounded (refer to the ``printout_{width,precision}`` defines in ``linear.hrl``)
 - extra runtime checks can be enabled by setting the ``myriad_check_linear`` flag (refer to ``GNUmakevars.inc``)
 - for `homogeneous coordinates <https://en.wikipedia.org/wiki/Homogeneous_coordinates#Use_in_computer_graphics_and_computer_vision>`_: any implicit homogeneous `w` coordinate is ``1.0``
 

@@ -170,10 +170,19 @@ coord_to_string( Coord ) when is_integer( Coord ) ->
 
 
 % @doc Returns textual representations of the specified coordinates of a common,
-% best (maximal) width.
+% best (maximal) width; full float precision is shown in returned strings.
 %
 -spec coords_to_best_width_strings( [ any_coordinate() ] ) -> [ ustring() ].
 coords_to_best_width_strings( Coords ) ->
+
+	% No need to force a specific precision or width here; floats are printed
+	% accurately as the shortest, correctly rounded string (WYSIWYG):
+	%
 	Strs = [ text_utils:format( "~w", [ C ] ) || C <- Coords ],
+
 	Len = lists:max( [ length( S ) || S <- Strs ] ),
-	[ text_utils:pad_string_right( S, Len ) || S <- Strs ].
+
+	% To test:
+	%[ text_utils:center_string( S, Len, _PaddingChar=$+ ) || S <- Strs ].
+
+	[ text_utils:center_string( S, Len ) || S <- Strs ].

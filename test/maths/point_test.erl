@@ -57,16 +57,17 @@ run() ->
 	Vec1 = point:to_vector( P1 ),
 
 	P2 = point:new( { 1/3, 2.0, 3330.0 } ),
+	3 = point:dimension( P2 ),
 
 	P3 = point:new( { 0, 222, 456789 } ),
 
-	test_facilities:display( "Basic textual representation for ~w: ~ts",
+	test_facilities:display( "Base textual representation for ~w: ~ts",
 							 [ P2, point:to_string( P2 ) ] ),
 
-	test_facilities:display( "Short textual representation for ~w: ~ts",
-							 [ P2, point:to_short_string( P2 ) ] ),
+	test_facilities:display( "Compact textual representation for ~w: ~ts",
+							 [ P2, point:to_compact_string( P2 ) ] ),
 
-	test_facilities:display( "Fixed-width representation for ~w:~n~ts",
+	test_facilities:display( "Basic representation for ~w:~n~ts",
 							 [ P2, point:to_basic_string( P2 ) ] ),
 
 	test_facilities:display( "User-friendly representation for ~w:~n~ts",
