@@ -138,7 +138,8 @@
 
 		  get_default_bullet/0, get_bullet_for_level/1,
 		  format_text_for_width/2,
-		  pad_string/2, pad_string_left/2, pad_string_right/2, center_string/2,
+		  pad_string/2, pad_string_left/2, pad_string_right/2,
+		  center_string/2, center_string/3,
 		  is_string/1, is_non_empty_string/1, are_strings/1,
 		  is_bin_string/1, are_binaries/1,
 		  are_of_same_string_type/2,
@@ -3985,6 +3986,15 @@ pad_string_right( String, Width ) ->
 %
 -spec center_string( ustring(), width() ) -> ustring().
 center_string( String, Width ) ->
+	center_string( String, Width, _PaddingChar=$  ).
+
+
+% @doc Returns the specified string once padded with specified character on its
+% left and right, in order that it is centered within specified width (expected
+% of course to be larger than the length of the specified string).
+%
+-spec center_string( ustring(), width() , char() ) -> ustring().
+center_string( String, Width, PaddingChar ) ->
 
 	case Width - length( String ) of
 
@@ -4006,9 +4016,6 @@ center_string( String, Width ) ->
 					{ BaseCount, BaseCount+1 }
 
 			end,
-
-			% Padding with spaces:
-			PaddingChar = $ ,
 
 			lists:flatten( lists:duplicate( LeftPadCount, PaddingChar )
 				++ String ++ lists:duplicate( RightPadCount, PaddingChar ) )
