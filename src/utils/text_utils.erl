@@ -109,7 +109,7 @@
 		  join/2,
 		  split/2, split_per_element/2, split_parsed/2, split_at_whitespaces/1,
 		  split_at_first/2, split_camel_case/1, tokenizable_to_camel_case/2,
-		  duplicate/2,
+		  duplicate/2, concatenate/1,
 
 		  find_substring_index/2, find_substring_index/3,
 
@@ -138,7 +138,7 @@
 
 		  get_default_bullet/0, get_bullet_for_level/1,
 		  format_text_for_width/2,
-		  pad_string/2, pad_string_left/2, pad_string_right/2,
+		  pad_string/2, pad_string_left/2, pad_string_right/2, center_string/2,
 		  is_string/1, is_non_empty_string/1, are_strings/1,
 		  is_bin_string/1, are_binaries/1,
 		  are_of_same_string_type/2,
@@ -435,16 +435,18 @@ term_to_string( Term, MaxDepthCount ) ->
 % specified nesting depth, and up to specified string length (at least 3, so
 % that the "..." marker can be inserted).
 %
+% A plain string is returned (not an iolist/0 for example).
+%
 % See also term_to_bounded_string/{1,2}.
 %
--spec term_to_string( term(), depth(), basic_utils:count() )-> ustring().
+-spec term_to_string( term(), depth(), count() )-> ustring().
 term_to_string( _Term=[], _MaxDepthCount, _MaxLength ) ->
 	% Otherwise would be an empty string:
 	"[]";
 
 term_to_string( Term, MaxDepthCount, MaxLength ) when MaxLength >= 3 ->
 
-	% First limit the depth (beware of IO-lists!):
+	% First limit the depth (beware of iolists!):
 	FullString = case io_lib:printable_list( Term ) of
 
 		true ->
@@ -471,7 +473,7 @@ term_to_string( Term, MaxDepthCount, MaxLength ) when MaxLength >= 3 ->
 
 
 
-% @doc Avoids to have to use lists:flatten when converting an integer to a
+% @doc Avoids to have to use lists:flatten/1 when converting an integer to a
 % string. Useless when using functions like io:format, that accept iolists as
 % parameters.
 %
@@ -561,7 +563,7 @@ pids_to_string( PidList ) ->
 %
 -spec pid_to_short_string( pid() ) -> ustring().
 pid_to_short_string( Pid ) ->
-	% Could be used: list_utils:flatten_once/1:
+	% concatenate/1 could be used:
 	%[ $< | pid_to_core_string( Pid ) ] ++ ">".
 	[ $| | pid_to_core_string( Pid ) ] ++ "|".
 
@@ -573,7 +575,7 @@ pid_to_short_string( Pid ) ->
 %
 -spec pids_to_short_string( [ pid() ] ) -> ustring().
 pids_to_short_string( PidList ) ->
-	% Could be used: list_utils:flatten_once/1:
+	% concatenate/1 could be used:
 
 	% Preferring an extra character, as better allowing to break longer lines:
 	%Sep = ",",
@@ -592,7 +594,7 @@ pid_to_core_string( Pid ) ->
 
 	% A PID is akin to <X.Y.Z>.
 
-	% Needed otherwise returans ["<0.78.0>"], not "<0.78.0>":
+	% Needed otherwise returns ["<0.78.0>"], not "<0.78.0>":
 	PidAsText = lists:flatten( io_lib:format( "~w", [ Pid ] ) ),
 
 	%trace_utils:debug_fmt( "PidAsText = '~p'.", [ PidAsText ] ),
@@ -1514,7 +1516,7 @@ format( FormatString, Values ) ->
 
 		end,
 
-	% Using 'flatten' allows for example to have clearer string outputs in case
+	% Using flatten/1 allows for example to have clearer string outputs in case
 	% of error (at a rather low cost):
 	%
 	lists:flatten( String ).
@@ -1583,7 +1585,7 @@ format( FormatString, Values ) ->
 
 	end,
 
-	% Using 'flatten' allows for example to have clearer string outputs in case
+	% Using flatten/1 allows for example to have clearer string outputs in case
 	% of error (at an acceptable cost):
 	%
 	lists:flatten( String ).
@@ -1747,8 +1749,8 @@ format_ellipsed( FormatString, Values, MaxLen ) ->
 % in the output sequence, as it has to be escaped a number of times that
 % depended on how many io*:format/* it was to go through (fragile at best).
 %
--spec match_types( [ control_sequence() ], format_values(),
-				   basic_utils:count() ) -> ustring().
+-spec match_types( [ control_sequence() ], format_values(), count() ) ->
+			ustring().
 match_types( _Seqs=[], _Values=[], _Count ) ->
 	"yet no mismatch detected";
 
@@ -2785,7 +2787,7 @@ split_helper( _Delimiters=[], Acc ) ->
 split_helper( _Delimiters=[ D | T ], Acc ) ->
 	SplitStrs = [ string:split( S, _SearchPattern=[ D ], _Where=all )
 				  || S <- Acc ],
-	NewAcc = list_utils:flatten_once( SplitStrs ),
+	NewAcc = concatenate( SplitStrs ),
 	split_helper( T, NewAcc ).
 
 
@@ -3011,7 +3013,19 @@ tokenizable_to_camel_case( String, SeparatorsList ) ->
 %
 -spec duplicate( count(), ustring() ) -> ustring().
 duplicate( Count, Str ) ->
-	list_utils:flatten_once( lists:duplicate( Count, Str ) ).
+	concatenate( lists:duplicate( Count, Str ) ).
+
+
+
+% @doc Concatenates all elements (string-like ones or numbers) in the specified
+% list into a single (plain) string.
+%
+% More general and convenient defined here rather than only in
+% list_utils:flatten_once/1.
+%
+-spec concatenate( [ string_like() | number() ] ) -> ustring().
+concatenate( Elements ) ->
+	lists:concat( Elements ).
 
 
 
@@ -3643,7 +3657,7 @@ remove_ending_carriage_return( String ) when is_list( String ) ->
 % @doc Removes the last Count characters from specified string, and returns the
 % result.
 %
--spec remove_last_characters( ustring(), basic_utils:count() ) -> ustring().
+-spec remove_last_characters( ustring(), count() ) -> ustring().
 remove_last_characters( String, Count ) ->
 
 	% Not necessarily the most efficient, but at least it is not an illegal
@@ -3802,8 +3816,8 @@ tail( String, MaxLen ) ->
 
 
 
-% @doc Formats specified text according to specified width, expressed in
-% characters.
+% @doc Formats (word-wraps) specified text according to specified line width,
+% expressed in characters.
 %
 % Returns a list of strings, each of which having Width characters.
 %
@@ -3890,7 +3904,7 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 					% inserting it on new line instead:
 					PaddedCurrentLine = pad_string( CurrentLine, Width ),
 					%io:format( "Inserting line '~ts'.~n",
-					%    [ PaddedCurrentLine ] ),
+					%           [ PaddedCurrentLine ] ),
 					join_words( RemainingWords, Width,
 					  [ PaddedCurrentLine | AccLines ], Word, CompatibleWidth )
 
@@ -3901,7 +3915,7 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 
 			% Will break words as many times as needed:
 			%io:format( "Word '~ts' is too large (len=~B), breaking it.~n",
-			%	[ Word, length( Word ) ] ),
+			%           [ Word, length( Word ) ] ),
 			Subwords = break_word( Word, Width ),
 
 			PaddedCurrentLine = pad_string( CurrentLine, Width ),
@@ -3962,6 +3976,44 @@ pad_string_right( String, Width ) ->
 		"to be padded (right) to width ~B.", [ String, Len, Width ] ),
 
 	throw( { string_to_pad_right_too_long, String, Len, Width } ).
+
+
+
+% @doc Returns the specified string once padded with spaces on its left and
+% right, in order that it is centered within specified width (expected of course
+% to be larger than the length of the specified string).
+%
+-spec center_string( ustring(), width() ) -> ustring().
+center_string( String, Width ) ->
+
+	case Width - length( String ) of
+
+		Offset when Offset < 0 ->
+			throw( { string_to_center_too_long, String, -Offset } );
+
+		Offset ->
+			BaseCount = Offset div 2,
+			{ LeftPadCount, RightPadCount } = case Offset rem 2 of
+
+				0 ->
+					{ BaseCount, BaseCount };
+
+				1 ->
+					% When not able to center perfectly, we prefer here being
+					% the string to be a little on the left rather than a litlle
+					% on the right:
+					%
+					{ BaseCount, BaseCount+1 }
+
+			end,
+
+			% Padding with spaces:
+			PaddingChar = $ ,
+
+			lists:flatten( lists:duplicate( LeftPadCount, PaddingChar )
+				++ String ++ lists:duplicate( RightPadCount, PaddingChar ) )
+
+	end.
 
 
 
@@ -4401,7 +4453,8 @@ get_title_rendering_for( 9 ) ->
 % Ex: get_line_of($+, 5) = "+++++".
 %
 get_line_of( Character, Length ) ->
-	lists:flatten( [ Character || _X <- lists:seq( 1, Length ) ] ).
+	%lists:flatten( [ Character || _X <- lists:seq( 1, Length ) ] ).
+	lists:duplicate( Length, Character ).
 
 
 
@@ -4423,21 +4476,24 @@ generate_text_name_from( Term ) ->
 
 % Non-exported helper functions.
 
+% Ensures that no undesirable character (space or single quote) remains in the
+% returned string.
+%
 fix_characters( String ) ->
-	lists:reverse( fix_characters( lists:flatten( String ), [] ) ).
+	lists:reverse( fix_characters( lists:flatten( String ), _Acc=[] ) ).
 
 
-fix_characters( [], Acc ) ->
+fix_characters( _S=[], Acc ) ->
 	Acc;
 
 % 32 corresponds to space ('$ '):
-fix_characters( [ 32 | T ], Acc ) ->
+fix_characters( _S=[ 32 | T ], Acc ) ->
 	fix_characters( T, [ "_" | Acc ] );
 
-fix_characters( [ $' | T ], Acc ) ->
+fix_characters( _S=[ $' | T ], Acc ) ->
 	fix_characters( T, [ "_" | Acc ] );
 
-fix_characters( [ H | T ], Acc ) ->
+fix_characters( _S=[ H | T ], Acc ) ->
 	fix_characters( T, [ H | Acc ] ).
 
 
