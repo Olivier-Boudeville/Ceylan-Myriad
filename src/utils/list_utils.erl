@@ -53,7 +53,8 @@
 
 
 % Basic list operations:
--export([ get_element_at/2, insert_element_at/3, extract_element_at/2,
+-export([ get_element_at/2, set_element_at/3, insert_element_at/3,
+		  extract_element_at/2,
 		  remove_first_elements/2, remove_element_at/2, remove_last_element/1,
 		  get_last_element/1, extract_last_element/1,
 		  get_index_of/2, get_maybe_index_of/2, split_at/2,
@@ -192,7 +193,8 @@ ensure_pids( Other ) ->
 % Section for basic list operations.
 
 
-% Index start at position #1, not #0.
+% As usual in Myriad, indices start at position #1, not #0.
+
 
 % @doc Returns the element in the list at the specified index, in
 % `[1..length(List)]'.
@@ -217,9 +219,26 @@ get_element_at( List, Index ) ->
 
 
 
-% @doc Inserts specified element at specified position in specified list.
+% @doc Returns the specified list with the element at specified index replaced
+% by the specified element.
 %
-% For example, insert_element_at(foo, [a,b,c,d], 3) will return
+-spec set_element_at( element(), list(), positive_index() ) -> list().
+set_element_at( Element, List, Index ) ->
+	set_element_at( Element, List, Index, _Acc=[] ).
+
+
+% (helper)
+set_element_at( Element, _List=[ _H | T ], _Index=1, Acc ) ->
+	lists:reverse( Acc ) ++ [ Element | T ];
+
+set_element_at( Element, _List=[ H | T ], Index, Acc ) ->
+	set_element_at( Element, T, Index-1, [ H | Acc ] ).
+
+
+
+% @doc Inserts specified element at specified position in the specified list.
+%
+% For example, insert_element_at(foo, [a, b, c, d], 3) will return
 % [a, b, foo, c, d].
 %
 -spec insert_element_at( element(), list(), positive_index() ) -> list().
@@ -377,15 +396,15 @@ extract_last_element( List ) ->
 
 % Variant:
 %extract_last_element( List ) ->
-%	extract_last_element( List, _Acc=[] ).
+%  extract_last_element( List, _Acc=[] ).
 
 
 % (helper)
 %extract_last_element( _List=[ LastElement ], Acc ) ->
-%	{ LastElement, lists:reverse( Acc ) };
+%  { LastElement, lists:reverse( Acc ) };
 %
 %extract_last_element( _List=[ H | T ], Acc ) ->
-%	extract_last_element( T, [ H | Acc ] ).
+%  extract_last_element( T, [ H | Acc ] ).
 
 
 
@@ -899,6 +918,8 @@ unordered_compare( L1, L2 ) ->
 %
 % Ex: if L=[ [1], [2,[3,4]] ], lists:flatten(L) yields [1,2,3,4] whereas
 % list_utils:flatten_once(L) should yield [1,2,[3,4]].
+%
+% @see text_utils:concatenate/1 for string-related operations.
 %
 -spec flatten_once( [ list() ] ) -> list().
 flatten_once( List ) ->
