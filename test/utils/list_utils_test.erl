@@ -45,21 +45,24 @@ run() ->
 	% Testing list management:
 	L = [ 12, 4, 13, 2, 56, 0 ],
 
-	GetIndex = 3,
+	TestIndex = 3,
 
-	GetValue = list_utils:get_element_at( L, GetIndex ),
+	GetValue = list_utils:get_element_at( L, TestIndex ),
 
 	test_facilities:display( "Getting item #~B of list ~w: ~B.",
-							 [ GetIndex, L, GetValue ] ),
+							 [ TestIndex, L, GetValue ] ),
 
 	13 = GetValue,
 
+	NewL = list_utils:set_element_at( 17, L, TestIndex ),
+
+	17 = list_utils:get_element_at( NewL, TestIndex ),
 
 	%OutOfBoundsIndex = 0,
 	%OutOfBoundsIndex = 100,
 	%test_facilities:display( "   Getting item #~B of list ~w: ~B.",
 	% [ OutOfBoundsIndex, L,
-	%	list_utils:get_element_at( L, OutOfBoundsIndex ) ] ),
+	%   list_utils:get_element_at( L, OutOfBoundsIndex ) ] ),
 
 	{ a, [] } = list_utils:extract_element_at( [ a ], 1 ),
 
@@ -186,43 +189,44 @@ run() ->
 
 	DupList1 = [],
 	Dup1 = list_utils:get_duplicates( DupList1 ),
-	io:format( "Duplicates in ~w are ~w.~n", [ DupList1, Dup1 ] ),
+	test_facilities:display( "Duplicates in ~w are ~w.~n", [ DupList1, Dup1 ] ),
 	[] = Dup1,
 	false = list_utils:has_duplicates( DupList1 ),
 
 	DupList2 = [ a, b, c ],
 	Dup2 = list_utils:get_duplicates( DupList2 ),
-	io:format( "Duplicates in ~w are ~w.~n", [ DupList2, Dup2 ] ),
+	test_facilities:display( "Duplicates in ~w are ~w.~n", [ DupList2, Dup2 ] ),
 	[] = Dup2,
 	false = list_utils:has_duplicates( DupList2 ),
 
 	DupList3 = [ a, a, b, b, b, c, c, c ],
 	Dup3 = list_utils:get_duplicates( DupList3 ),
-	io:format( "Duplicates in ~w are ~w.~n", [ DupList3, Dup3 ] ),
+	test_facilities:display( "Duplicates in ~w are ~w.~n", [ DupList3, Dup3 ] ),
 	[ {b,3}, {c,3}, {a,2} ] = Dup3,
 	true = list_utils:has_duplicates( DupList3 ),
 
 	DupList4 = [ a, b, a, a, c ],
 	Dup4 = list_utils:get_duplicates( DupList4 ),
-	io:format( "Duplicates in ~w are ~w.~n", [ DupList4, Dup4 ] ),
+	test_facilities:display( "Duplicates in ~w are ~w.~n", [ DupList4, Dup4 ] ),
 	[ {a,3} ] = Dup4,
 	true = list_utils:has_duplicates( DupList4 ),
 
 	DupList5 = [ a, b, c, d, b, d, a, b, e, f, f ],
 	Dup5 = list_utils:get_duplicates( DupList5 ),
-	io:format( "Duplicates in ~w are ~w.~n", [ DupList5, Dup5 ] ),
+	test_facilities:display( "Duplicates in ~w are ~w.~n", [ DupList5, Dup5 ] ),
 	[ {d,2}, {b,3}, {f,2}, {a,2} ] = Dup5,
 	true = list_utils:has_duplicates( DupList5 ),
 
 	DupList6 = [ a, b, c, b, a, a ],
 
 	Dup6 = list_utils:get_duplicates( DupList6 ),
-	io:format( "Duplicates in ~w are ~w.~n", [ DupList6, Dup6 ] ),
+	test_facilities:display( "Duplicates in ~w are ~w.~n", [ DupList6, Dup6 ] ),
 	[ {b,2}, {a,3} ] = Dup6,
 	true = list_utils:has_duplicates( DupList6 ),
 
 	Occur6 = list_utils:count_occurrences( DupList6 ),
-	io:format( "Occurences in ~w are ~w.~n", [ DupList6, Occur6 ] ),
+	test_facilities:display( "Occurences in ~w are ~w.~n",
+							 [ DupList6, Occur6 ] ),
 	[ {c,1}, {b,2}, {a,3} ] = Occur6,
 
 	List1 = [ a, b, 1, c, 14 ],
