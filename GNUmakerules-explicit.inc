@@ -264,7 +264,7 @@ build-tests: $(BEAM_FILES)
 
 launch: Emakefile
 	@echo "		Launching interpreter with default Ceylan settings"
-	@"${ERL_PARAMETERIZED_LAUNCHER}" $(NODE_NAMING) test_shell-$$USER $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) test_shell-$$USER $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
 
 
 # To have an Erlang shell with the right configuration to rely on Myriad (ex:
@@ -272,7 +272,7 @@ launch: Emakefile
 #
 shell:
 	@echo "		Launching an Erlang shell enabled for $(PROJECT_NAME)"
-	@"$(ERL_PARAMETERIZED_LAUNCHER)" $(NODE_NAMING) shell-for-$$USER $(INTERNAL_OPTIONS)
+	@${ERL_PARAMETERIZED_LAUNCHER} $(NODE_NAMING) shell-for-$$USER $(INTERNAL_OPTIONS)
 
 
 

@@ -892,7 +892,7 @@ MYRIAD_BEAM_DIRS := $(MYRIAD_BEAM)/apps/generate-password       \
 BEAM_DIRS += $(MYRIAD_BEAM_DIRS) $(MYRIAD_TOP)/.. $(MYRIAD_TOP)/ebin
 
 
-ERL_LAUNCHER = $(MYRIAD_SRC)/scripts/launch-erl.sh
+ERL_LAUNCHER = "$(MYRIAD_SRC)/scripts/launch-erl.sh"
 
 
 # If wanting to specify (Erlang) configuration file(s):
