@@ -145,8 +145,12 @@
 
 
 
--type byte_size() :: integer().
-% Size, as a number of bytes.
+-type byte_size() :: non_neg_integer().
+% Size, as a positive number of bytes.
+
+
+-type byte_offset() :: integer().
+% A (signed) offset expressed in bytes.
 
 
 -opaque cpu_usage_info() ::
@@ -314,7 +318,8 @@
 % identifier).
 
 
--export_type([ byte_size/0, cpu_usage_info/0, cpu_usage_percentages/0,
+-export_type([ byte_size/0, byte_offset/0,
+			   cpu_usage_info/0, cpu_usage_percentages/0,
 			   host_static_info/0, host_dynamic_info/0,
 
 			   actual_filesystem_type/0, pseudo_filesystem_type/0,
@@ -3056,17 +3061,17 @@ get_json_unavailability_hint() ->
 get_json_unavailability_hint( _Backend=undefined ) ->
 	% Note: the hints are *not* truncated here, this is normal:
 	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_JSON and "
-	"JSX_BASE / JIFFY_BASE variables, knowing that the "
+	"JSX_BASE / JIFFY_BASE runtime variables, knowing that the "
 		++ code_utils:get_code_path_as_string();
 
 get_json_unavailability_hint( _Backend=jsx ) ->
 	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_JSON and "
-	"JSX_BASE variables, knowing that the "
+	"JSX_BASE runtime variables, knowing that the "
 		++ code_utils:get_code_path_as_string();
 
 get_json_unavailability_hint( _Backend=jiffy ) ->
 	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_JSON and "
-	"JIFFY_BASE variables, knowing that the "
+	"JIFFY_BASE runtime variables, knowing that the "
 		++ code_utils:get_code_path_as_string().
 
 
