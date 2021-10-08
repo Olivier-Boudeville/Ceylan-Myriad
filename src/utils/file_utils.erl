@@ -136,6 +136,7 @@
 		  open/2, open/3, close/1, close/2,
 		  read/2, write/2, write_ustring/2, write_ustring/3,
 		  read_whole/1, write_whole/2, write_whole/3,
+		  read_lines/1,
 		  read_etf_file/1, read_terms/1,
 		  write_etf_file/2, write_etf_file/4,
 		  write_terms/2, write_terms/4,
@@ -365,6 +366,9 @@
 -type any_string() :: text_utils:any_string().
 
 -type format_string() :: text_utils:format_string().
+
+
+-define( default_read_ahead_size, 2000 ).
 
 
 
@@ -4566,22 +4570,78 @@ write_ustring( File, FormatString, Values ) ->
 %
 % See also: read_terms/1 to read directly Erlang terms instead.
 %
--spec read_whole( any_file_name() ) -> binary().
-read_whole( Filename ) ->
+-spec read_whole( any_file_path() ) -> binary().
+read_whole( FilePath ) ->
 
-	%trace_utils:debug_fmt( "Reading as a whole '~ts'.", [ Filename ] ),
+	%trace_utils:debug_fmt( "Reading as a whole '~ts'.", [ FilePath ] ),
 
-	case file:read_file( Filename ) of
+	case file:read_file( FilePath ) of
 
 		{ ok, Binary } ->
 			Binary;
 
 		{ error, eacces } ->
-			throw( { read_whole_failed, Filename, access_denied,
-					 get_access_denied_info( Filename ) } );
+			throw( { read_whole_failed, FilePath, access_denied,
+					 get_access_denied_info( FilePath ) } );
 
 		{ error, Error } ->
-			throw( { read_whole_failed, Filename, Error } )
+			throw( { read_whole_failed, FilePath, Error } )
+
+	end.
+
+
+
+% @doc Reads the content of the specified file, expected to be a text one, based
+% on its filename specified as any kind of string (plain, binary, atom, etc) and
+% returns its content as a list of plain strings, or throws an exception on
+% failure.
+%
+% Each returned line has any (trailing) newline(s) removed (knowing that the
+% last one may or may not have a newline). See
+% [https://erlang.org/doc/man/file.html#read_line-1] for more details regarding
+% end-of-line characters.
+%
+-spec read_lines( any_file_path() ) -> [ ustring() ].
+read_lines( FilePath ) ->
+
+	%trace_utils:debug_fmt( "Reading all lines from '~ts'.", [ FilePath ] ),
+
+	Modes = [ read, raw, { read_ahead, ?default_read_ahead_size } ],
+
+	File = case file:open( FilePath, Modes ) of
+
+		{ ok, F } ->
+			F;
+
+		{ error, eacces } ->
+			throw( { read_lines_failed, FilePath, access_denied,
+					 get_access_denied_info( FilePath ) } );
+
+		{ error, Error } ->
+			throw( { read_lines_failed, FilePath, opening, Error } )
+
+	end,
+
+	read_lines( File, FilePath, _Acc=[] ).
+
+
+
+% (helper)
+read_lines( File, FilePath, Acc ) ->
+	case file:read_line( File ) of
+
+		{ ok, Line } ->
+			% If any, are removed:
+			CleanedLine = text_utils:remove_ending_carriage_return( Line ),
+			read_lines( File, FilePath, [ CleanedLine | Acc ] );
+
+		eof ->
+			file:close( File ),
+			lists:reverse( Acc );
+
+		{ error, Error } ->
+			% No 'file:close( File )'?
+			throw( { read_lines_failed, FilePath, reading, Error } )
 
 	end.
 
