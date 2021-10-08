@@ -110,6 +110,45 @@ An optional support (as it depends on third-party prerequisites) is proposed for
 - HDF5
 - SQLite
 
+
+.. _`JSON use`:
+
+Some useful information for JSON use:
+
+- the nesting of elements shall be done thanks to (Erlang) maps, whose keys are binary strings (``text_utils:bin_string/0``); their order should not matter
+- it may thus be convenient to add ``-define(table_type, map_hashtable).`` in a user module, so that the ``table`` pseudo-module can be relied upon when building a ``json_term``, while being sure that the JSON parser at hand will be fed afterwards with the relevant datastructure
+- no comments shall be specified (even though some parsers may be configured to support them)
+- strings shall be specified as binary ones
+
+Example:
+
+.. code:: erlang
+
+ MyJSONTerm = table:add_entries([
+   {<<"asset">>, #{<<"generator">> => <<"My Generator">>,
+				   <<"version">> => <<"2.0">>}},
+   {<<"other">>, 42}
+								], table:new()),
+
+ JSONString = json_utils:to_json(MyJSONTerm)
+
+
+shall result in a JSON document like:
+
+
+.. code:: json
+
+ {
+   "asset": {
+	 "generator": "My Generator",
+	 "version": "2.0"
+   },
+   "other": 42
+ }
+
+
+Hint: the `jq <https://stedolan.github.io/jq/>`_ command-line tool may be very convenient in JSON contexts.
+
 Refer to the `Myriad-level Third-Party Dependencies`_ section for further information.
 
 
