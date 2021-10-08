@@ -3644,7 +3644,9 @@ is_figure( Char ) when is_integer( Char ) ->
 
 
 
-% @doc Removes the ending "\n" character(s) of specified string.
+% @doc Removes any ending "\n" character(s) - zero or more thereof - from the
+% specified string.
+%
 -spec remove_ending_carriage_return( ustring() ) -> ustring().
 remove_ending_carriage_return( String ) when is_list( String ) ->
 
