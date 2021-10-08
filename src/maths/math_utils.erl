@@ -69,6 +69,10 @@
 -type non_zero_integer() :: pos_integer() | neg_integer().
 
 
+-type factor() :: float().
+% A factor, typically in [0.0,1.0].
+
+
 -type standard_deviation() :: float().
 % Standard deviation, as used to describe a Gaussian curve.
 
@@ -98,7 +102,7 @@
 % user-defined one.
 
 
--export_type([ non_zero_integer/0, standard_deviation/0, variance/0,
+-export_type([ factor/0, non_zero_integer/0, standard_deviation/0, variance/0,
 			   percent/0, integer_percent/0, probability/0 ]).
 
 
