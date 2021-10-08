@@ -60,9 +60,23 @@
 -type color() :: color_by_name() | color_by_decimal().
 
 
+-type color_coordinate() :: float().
+% Color coordinate, in [0,1].
+
+
+-type render_color() :: { color_coordinate(), color_coordinate(),
+						  color_coordinate() }
+						| { color_coordinate(), color_coordinate(),
+							color_coordinate(), color_coordinate() }.
+
+
+% The first three components (RGB) shall be encoded with the sRGB transfer
+% function.
+
+
 -export_type ([ color_by_name/0,
 				color_by_decimal/0, color_by_decimal_with_alpha/0,
-				color/0 ]).
+				color/0, render_color/0 ]).
 
 
 % Shorthands:
