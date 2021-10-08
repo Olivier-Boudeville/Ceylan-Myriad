@@ -75,7 +75,7 @@ get_test_file_path() ->
 
 
 % @doc Returns a term decoded from JSON test file, if a parser is available.
--spec run_stateless_testing() -> maybe( json_utils:decoded_json() ).
+-spec run_stateless_testing() -> maybe( json_utils:json_term() ).
 run_stateless_testing() ->
 
 	BackendName = json_utils:get_parser_backend_name(),
@@ -154,7 +154,7 @@ run_stateless_testing() ->
 
 % Returns a term decoded from JSON test file.
 -spec run_stateful_testing( json_utils:parser_state() ) ->
-									json_utils:decoded_json().
+									json_utils:json_term().
 run_stateful_testing( ParserState ) ->
 
 	BackendName = json_utils:get_parser_backend_name( ParserState ),
@@ -246,7 +246,7 @@ run_stateful_testing( ParserState ) ->
 % @doc Compares the decoding done by specified parser with the expected decoded
 % term.
 %
--spec compare_with_if_available( json_utils:decoded_json(),
+-spec compare_with_if_available( json_utils:json_term(),
 					json_utils:parser_backend_name() ) -> void().
 compare_with_if_available( JsonDecodedTerm, BackendName ) ->
 
