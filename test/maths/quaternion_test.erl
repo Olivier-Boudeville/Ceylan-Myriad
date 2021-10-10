@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2021 Olivier Boudeville
+% Copyright (C) 2021-2021 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,24 +23,41 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: Friday, October 8, 2021.
 
 
-% A 2D point is simply a pair of numbers, often integers, like in: P = {3,45}.
-
-
-% The classical, canonical 2x2 matrix representation is:
+% @doc Unit tests for the <b>quaternion</b> facilities.
 %
-% M = | M11 M12 |
-%     | M21 M22 |
+% See the quaternion tested module.
 %
-% This corresponds to this record specialised for 2D.
-%
-% A shorthand for these record and corresponding type could be mat2.
-%
--record( matrix2, {
+-module(quaternion_test).
 
-  m11 :: linear:coordinate(),
-  m12 :: linear:coordinate(),
 
-  m21 :: linear:coordinate(),
-  m22 :: linear:coordinate() } ).
+% For run/0 export and al:
+-include("test_facilities.hrl").
+
+
+
+-spec run() -> no_return().
+run() ->
+
+	test_facilities:start( ?MODULE ),
+
+	NullQ = quaternion:null(),
+
+	Q = quaternion:new( 1, 2, 3, 4 ),
+
+	test_facilities:display( "Base textual representation for Q = ~w: ~ts",
+							 [ Q, quaternion:to_string( Q ) ] ),
+
+	test_facilities:display( "Base textual representation for NullQ = ~w: ~ts",
+							 [ NullQ, quaternion:to_string( NullQ ) ] ),
+
+	test_facilities:display( "Compact textual representation for Q = ~w: ~ts",
+							 [ Q, quaternion:to_compact_string( Q ) ] ),
+
+	test_facilities:display( "User-friendly textual representation "
+		"for Q = ~w:~n~ts", [ Q, quaternion:to_user_string( Q ) ] ),
+
+
+	test_facilities:stop().

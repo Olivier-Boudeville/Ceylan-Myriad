@@ -36,9 +36,15 @@
 -module(point).
 
 
-% Relatively aggressive inlining for basic operations:
+% For printout_*, inline_size, etc.:
+-include("linear.hrl").
+
 -compile( inline ).
--compile( { inline_size, 48 } ).
+-compile( { inline_size, ?inline_size } ).
+
+
+% For the epsilon define:
+-include("math_utils.hrl").
 
 
 % Implementation notes:
@@ -47,10 +53,6 @@
 %
 % We call a container type-homogenous if all the coordinates that it gathers are
 % all either integer or floating-point ones.
-
-
-% For printout_*:
--include("linear.hrl").
 
 
 
@@ -73,10 +75,10 @@
 % A point of any dimension, with any numerical coordinates.
 
 
--type specialised_point() :: linear_2D:point2()
-						   | linear_3D:point3()
-						   | linear_4D:point4().
-% A specialised point that is of one of the specifically supported dimensions.
+-type specialised_point() :: point2:point2()
+						   | point3:point3()
+						   | point4:point4().
+% A specialised point that is of one of the specifically-supported dimensions.
 
 
 -export_type([ user_point/0, point/0, integer_point/0, any_point/0,
@@ -84,8 +86,12 @@
 
 
 -export([ new/1, null/1, from_vector/1, to_vector/1, to_any_vector/1,
+		  roundify/1,
+		  translate/2, vectorize/2,
 		  dimension/1,
-		  check/1, 
+		  are_close/2, is_within/3, is_within_square/3,
+		  square_distance/2, distance/2,
+		  check/1,
 		  to_string/1, to_compact_string/1, to_basic_string/1,
 		  to_user_string/1 ] ).
 
@@ -99,6 +105,9 @@
 %-type coordinate() :: linear:coordinate().
 %-type integer_coordinate() :: linear:integer_coordinate().
 -type any_coordinate() :: linear:any_coordinate().
+
+-type distance() :: linear:distance().
+-type square_distance() :: linear:square_distance().
 
 -type vector() :: vector:vector().
 -type any_vector() :: vector:any_vector().
@@ -154,24 +163,134 @@ to_any_vector( P ) ->
 	tuple_to_list( P ).
 
 
+
+% @doc Returns a point whose floating-point coordinates have been rounded to the
+% respective nearest integers.
+%
+-spec roundify( point() ) -> integer_point().
+roundify( {X,Y,Z} ) ->
+	{ erlang:round(X), erlang:round(Y), erlang:round(Z) }.
+
+
+
+% @doc Returns a point corresponding to the specified point translated by the
+% specified vector.
+%
+-spec translate( point(), vector() ) -> point().
+translate( P, V ) ->
+	translate( tuple_to_list( P ), V, _AccP=[] ).
+
+
+% (helper)
+translate( _P=[], _V=[], AccP ) ->
+	list_to_tuple( lists:reverse( AccP ) );
+
+translate( _P=[ CP | TP ], _V=[ CV | TV ], AccP ) ->
+	translate( TP, TV, [ CP+CV | AccP ] ).
+
+
+
+% @doc Returns a vector V made from the specified two points: V=P2-P1.
+-spec vectorize( point(), point() ) -> vector().
+vectorize( P1, P2 ) ->
+	vectorize( tuple_to_list( P1 ), tuple_to_list( P2 ), _AccV=[] ).
+
+
+% (helper)
+vectorize( _P1=[], _P2=[], AccV ) ->
+	lists:reverse( AccV );
+
+vectorize( _P1=[ C1 | T1 ], _V=[ C2 | T2 ], AccV ) ->
+	vectorize( T1, T2, [ C2-C1 | AccV ] ).
+
+
+
+
 % @doc Returns the dimension of the specified point.
 -spec dimension( any_point() ) -> dimension().
 dimension( P ) ->
 	size( P ).
 
 
+% @doc Returns whether the two specified points are close, ie if they could be
+% considered as representing the same point (equality operator on points).
+%
+-spec are_close( point(), point() ) -> boolean().
+are_close( _P1=[], _P2=[] ) ->
+	true;
+
+are_close( _P1=[ C1 | T1 ], _P2=[ C2 | T2 ] ) ->
+	case math_utils:are_close( C1, C2 ) of
+
+		true ->
+			are_close( T1, T2 );
+
+		false ->
+			false
+
+	end.
+
+
+
+% @doc Tells whether point P1 is within a distance D from point P2, using some
+% margin to overcome numerical errors.
+%
+-spec is_within( point(), point(), distance() ) -> boolean().
+is_within( P1, P2, D ) ->
+	% "Taylor series", square(epsilon) is negligible here:
+	square_distance( P1, P2 ) < D * ( D + ?epsilon ).
+
+
+% @doc Tells whether point P1 is within a square distance SquareD from point P2.
+-spec is_within_square( point(), point(), square_distance() ) -> boolean().
+is_within_square( P1, P2, SquareD ) ->
+	square_distance( P1, P2 ) < SquareD.
+
+
+
+% @doc Returns the square of the distance between the two specified points.
+%
+% For comparison purposes, computing the square root is useless.
+%
+% Could rely on vectorize and square_magnitude as well.
+%
+-spec square_distance( point(), point() ) -> square_distance().
+square_distance( P1, P2 ) ->
+	square_distance( P1, P2, _Acc=0.0 ).
+
+
+% (helper)
+square_distance( _P1=[], _P2=[], Acc ) ->
+	Acc;
+
+square_distance( _P1=[ C1 | T1 ], _P2=[ C2 | T2 ], Acc ) ->
+	CDiff = C2 - C1,
+	NewAcc = Acc + CDiff*CDiff,
+	square_distance( T1, T2, NewAcc ).
+
+
+
+% @doc Returns the distance between the two specified points.
+%
+% Note: just for comparison purposes, computing the square root is useless.
+%
+-spec distance( point(), point() ) -> distance().
+distance( P1, P2 ) ->
+	math:sqrt( square_distance( P1, P2 ) ).
+
+
 
 % @doc Checks that the specified point is legit, and returns it.
--spec check( point() ) -> point().
+-spec check( any_point() ) -> any_point().
 check( P ) ->
 	CoordList = [ C | T ] = tuple_to_list( P ),
 	case is_integer( C ) of
 
 		true ->
-			vector:check_integer( T );
+			vector:check_integers( T );
 
 		false ->
-			vector:check_integer( T )
+			vector:check_integers( T )
 
 	end,
 	CoordList.

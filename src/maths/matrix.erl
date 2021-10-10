@@ -36,9 +36,12 @@
 -module(matrix).
 
 
-% Relatively aggressive inlining for basic operations:
+% For printout_*, inline_size, etc.:
+-include("linear.hrl").
+
 -compile( inline ).
--compile( { inline_size, 48 } ).
+-compile( { inline_size, ?inline_size } ).
+
 
 
 % Implementation notes:
@@ -49,9 +52,6 @@
 % iterated through based on variables named R (thus in [1..M]) and C (in
 % [1..N]).
 
-
-% For printout_*:
--include("linear.hrl").
 
 
 -type user_row() :: user_vector().
@@ -72,7 +72,7 @@
 
 -type matrix() :: [ row() ].
 % A matrix of arbitrary dimensions (at least one row), stored in row-major
-% order.
+% order (all rows shall contain the same number of elements).
 
 
 -type specialised_matrix() :: linear_2D:matrix()
@@ -93,6 +93,7 @@
 -export([ new/1, null/1, null/2,
 		  identity/1,
 		  dimensions/1, row/2, column/2, get_element/3, set_element/4,
+		  transpose/1,
 		  add/2,
 		  get_specialised_module/1, specialise/1, unspecialise/1,
 		  check/1,
@@ -182,6 +183,45 @@ get_element( R, C, Matrix ) ->
 set_element( R, C, Value, Matrix ) ->
 	NewRow = list_utils:set_element_at( Value, row( R, Matrix ), _Index=C ),
 	list_utils:set_element_at( NewRow, Matrix, R ).
+
+
+% @doc Returns the transpose of the specified matrix.
+%
+% We proceed recursively, iterating in turn through all the elements of the
+% first row (which will end up being the first column, i.e. each being the first
+% element of the rows of the transpose matrix).
+%
+-spec transpose( matrix() ) -> matrix().
+%transpose( _M=[ _FirstRow=[ FirstElem | OtherElems ] | OtherRows ] ) ->
+%	[ [ E | || E <- FirstRow ].
+transpose( M ) ->
+	transpose( M, _AccTranspose=[] ).
+
+
+% (helper)
+%
+% We proceed recursively, chopping all rows of one element (hence chopping a
+% column as a whole), the resulting list being the row of the transpose.
+%
+% Here we exhausted all elements of the first row (and thus of all other rows as
+% well)
+%
+transpose( _Rows=[ [] | _T ], AccTranspose ) ->
+	% So that rows are enumerated in the right FIFO order:
+	lists:reverse( AccTranspose );
+
+transpose( NonExhaustedRows, AccTranspose ) ->
+	{ TransposeRow, ChoppedRows } =
+		extract_first_elements( NonExhaustedRows, _AccElems=[], _AccRows=[] ),
+	transpose( ChoppedRows, [ TransposeRow | AccTranspose ] ).
+
+
+% (helper)
+extract_first_elements( _Rows=[], AccElems, AccRows ) ->
+	{ lists:reverse( AccElems ), lists:reverse( AccRows ) };
+
+extract_first_elements( _Rows=[ [ H | T ] | OtherRows ], AccElems, AccRows ) ->
+	extract_first_elements( OtherRows, [ H | AccElems ], [ T | AccRows ] ).
 
 
 

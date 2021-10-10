@@ -33,9 +33,12 @@
 -module(linear_2D).
 
 
-% Relatively aggressive inlining for basic operations:
+% For printout_*, inline_size, etc.:
+-include("linear.hrl").
+
 -compile( inline ).
--compile( { inline_size, 48 } ).
+-compile( { inline_size, ?inline_size } ).
+
 
 
 % Operations on points:

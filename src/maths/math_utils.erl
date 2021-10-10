@@ -70,7 +70,17 @@
 
 
 -type factor() :: float().
-% A factor, typically in [0.0,1.0].
+% A floating-point factor, typically in [0.0,1.0], that is a multiplier involved
+% in an equation.
+
+-type integer_factor() :: integer().
+% An integer factor, typically in [0.0,1.0], that is a multiplier involved in an
+% equation.
+
+-type any_factor() :: number().
+% A factor, typically in [0.0,1.0], that is a multiplier involved in an
+% equation.
+
 
 
 -type standard_deviation() :: float().
@@ -102,7 +112,8 @@
 % user-defined one.
 
 
--export_type([ factor/0, non_zero_integer/0, standard_deviation/0, variance/0,
+-export_type([ factor/0, integer_factor/0, any_factor/0,
+			   non_zero_integer/0, standard_deviation/0, variance/0,
 			   percent/0, integer_percent/0, probability/0 ]).
 
 
