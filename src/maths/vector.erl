@@ -37,18 +37,25 @@
 -module(vector).
 
 
-% Relatively aggressive inlining for basic operations:
+% For printout_*, inline_size, etc.:
+-include("linear.hrl").
+
 -compile( inline ).
--compile( { inline_size, 48 } ).
+-compile( { inline_size, ?inline_size } ).
+
+
+% For the epsilon define:
+-include("math_utils.hrl").
+
 
 
 % Implementation notes:
 %
 % No dependent types, not able to declare a vector(D) type.
-
-
-% For printout_*:
--include("linear.hrl").
+%
+% Arbitrary vectors and specialised ones have the same form (they are list of
+% floats) and therefore do not need conversion primitives between these two
+% kinds of types.
 
 
 -type user_vector() :: [ any_coordinate() ].
@@ -62,28 +69,47 @@
 
 
 -type integer_vector() :: [ integer_coordinate() ].
-% A vector of arbitrary dimension, with integer coordinates (ex: on-screen
-% ones).
+% A vector of arbitrary dimension, with integer coordinates.
 
 
 -type any_vector() :: vector() | integer_vector().
-% A vector of any dimension, with any numerical coordinates.
+% A vector of any dimension, with any types of numerical coordinates.
 
 
--type specialised_vector() :: linear_2D:vector2()
-							| linear_3D:vector3()
-							| linear_4D:vector4().
+-type unit_vector() :: vector().
+% A unit vector, that is a vector of magnitude 1.0.
+%
+% Defined for documentation purpose.
+
+
+-type normal() :: vector().
+% A vector orthogonal to a plane.
+%
+% Defined for documentation purpose.
+
+
+-type unit_normal() :: unit_vector().
+% A unit vector orthogonal to a plane.
+%
+% Defined for documentation purpose.
+
+
+-type specialised_vector() :: vector2:vector2()
+							| vector3:vector3()
+							| vector4:vector4().
 % A specialised vector that is of one of the specifically supported dimensions.
 
 
 -export_type([ user_vector/0, vector/0, integer_vector/0, any_vector/0,
-			   specialised_vector/0 ]).
+			   unit_vector/0, normal/0, unit_normal/0, specialised_vector/0 ]).
 
 
 -export([ new/1, null/1,
 		  from_point/1, to_point/1,
 		  dimension/1,
-		  add/2,
+		  add/2, add/1,
+		  square_magnitude/1, magnitude/1, scale/2, make_unit/1,
+		  dot_product/2,
 		  check/1, check_integer/1,
 		  to_string/1, to_compact_string/1, to_basic_string/1,
 		  to_user_string/1 ] ).
@@ -94,10 +120,15 @@
 
 -type ustring() :: text_utils:ustring().
 
+-type factor() :: math_utils:factor().
+
 -type dimension() :: linear:dimension().
 -type coordinate() :: linear:coordinate().
 -type integer_coordinate() :: linear:integer_coordinate().
 -type any_coordinate() :: linear:any_coordinate().
+
+-type distance() :: linear:distance().
+-type square_distance() :: linear:square_distance().
 
 -type point() :: linear:point().
 -type any_point() :: linear:any_point().
@@ -153,6 +184,81 @@ add( V1, V2 ) ->
 					   C1 + C2
 				   end,
 				   V1, V2 ).
+
+
+
+% @doc Returns the sum of all vectors (supposedly of the same dimension) in the
+% specified (supposedly non-empty) list.
+%
+-spec add( [ vector() ] ) -> vector().
+% Just to avoid using null() as Acc0 and thus having to compute the dimension:
+add( _Vectors=[ VFirst | VOthers ] ) ->
+	lists:foldl( fun( V, AccV ) ->
+					add( V, AccV )
+				 end,
+				 _InitialAcc=VFirst,
+				 _List=VOthers ).
+
+
+
+% @doc Returns the square of the magnitude of the specified vector.
+-spec square_magnitude( vector() ) -> square_distance().
+square_magnitude( V ) ->
+	square_magnitude( V, _Acc=0.0 ).
+
+
+% (helper)
+square_magnitude( _V=[], Acc ) ->
+	Acc;
+
+square_magnitude( _V=[ C | T ], Acc ) ->
+	square_magnitude( T, Acc + C*C ).
+
+
+
+% @doc Returns the magnitude of the specified vector.
+-spec magnitude( vector() ) -> distance().
+magnitude( V ) ->
+	math:sqrt( square_magnitude( V ) ).
+
+
+
+% @doc Scales the specified vector of the specified factor.
+-spec scale( vector(), factor() ) -> vector().
+scale( V, Factor ) ->
+	[ Factor*C || C <- V ].
+
+
+
+% @doc Returns the specified vector with an unit length (whose magnitude is thus
+% 1.0).
+%
+-spec make_unit( vector() ) -> unit_vector().
+make_unit( V ) ->
+	case magnitude( V ) of
+
+		M when M < ?epsilon ->
+			throw( cannot_make_null_vector_unit );
+
+		M ->
+			scale( V, 1.0 / M )
+
+	end.
+
+
+
+% @doc Returns the dot-product of the two specified vectors.
+-spec dot_product( vector(), vector() ) -> float().
+dot_product( V1, V2 ) ->
+	dot_product( V1, V2, _Acc=0.0 ).
+
+
+% (helper)
+dot_product( _V1=[], _V2=[], Acc ) ->
+	Acc;
+
+dot_product( _V1=[ H1 | T1 ], _V2=[ H2 | T2 ], Acc ) ->
+	dot_product( T1, T2, Acc + H1*H2 ).
 
 
 

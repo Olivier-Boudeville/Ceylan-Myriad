@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2021 Olivier Boudeville
+% Copyright (C) 2021-2021 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,15 +23,22 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Monday, February 15, 2010.
+% Creation date: Friday, October 8, 2021.
 
 
-% @doc Gathering of various <b>four dimensional linear</b> facilities, mostly
-% dealing with homogeneous matrices for 3D.
+% @doc Module implementing the support for <b>3x3 matrices</b>.
 %
-% See `linear_4D_test.erl' for the corresponding test.
+% See also:
+% - the corresponding (3D) vectors, in vector3.erl
+% - the (unspecialised) matrices of arbitrary dimensions, in matrix.erl
 %
--module(linear_4D).
+-module(matrix3).
+
+
+
+
+% Implementation notes:
+%
 
 
 % For printout_*, inline_size, etc.:
@@ -41,5 +48,45 @@
 -compile( { inline_size, ?inline_size } ).
 
 
--export([]).
+% For records like matrix3:
+-include("matrix3.hrl").
 
+
+% Alias for 3x3 canonical matrices:
+-type matrix3() :: #matrix3{}.
+-type canonical_matrix() :: matrix3().
+
+
+% Aliases for 3x3 compact matrices:
+-type compact_matrix3() :: #compact_matrix3{}.
+-type compact_matrix() :: compact_matrix3().
+
+
+-type matrix() :: 'identity_3' | canonical_matrix() | compact_matrix().
+
+
+-export_type([ matrix3/0, canonical_matrix/0,
+			   compact_matrix3/0, compact_matrix/0, matrix/0 ]).
+
+
+%-export_type([ matrix3/0 ]).
+
+
+-export([
+		  %new/1, null/0, identity/1,
+		  %dimensions/1, row/2, column/2,
+		  %get_element/3, set_element/4,
+		  %transpose/1,
+		  %add/2,
+		  %unspecialise/1,
+		  %to_string/1, to_basic_string/1, to_user_string/1
+ ] ).
+
+
+% Shorthands:
+
+%-type ustring() :: text_utils:ustring().
+
+%-type coordinate() :: linear:coordinate().
+
+%-type vector3() :: vector3:vector3().

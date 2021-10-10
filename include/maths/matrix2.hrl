@@ -25,38 +25,23 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-% To properly format (as text), typically coordinates:
--define( printout_width, "14" ).
-
-
-% For floats, precision is the number of digits after the decimal point. The
-% default precision is 6.
+% The classical, canonical 2x2 matrix representation is:
 %
--define( printout_precision, "2" ).
-
-
-% Finally we do not set a maximum width, we let the necessary one happen and
-% adjust accordingly; otherwise, depending on the precision and the part of the
-% float before/after the decimal, it may not be correctly represented as a
-% string (resulting in "****").
+% M = | M11 M12 |
+%     | M21 M22 |
 %
-% Hopefully these format strings are resolved at compile-time:
-
--define( coord_float_format,
-		 "~" ++ ?printout_width ++ "." ++ ?printout_precision ++ ". f" ).
-
-% Not fixed-width:
-%-define( coord_float_format, "~." ++ ?printout_precision ++ ". f" ).
-
-
-% For integer, the precision corresponds to the base, not of interest here (we
-% use of course the default, 10):
+% This corresponds to this record specialised for 2D. Coordinates are listed row
+% per row.
 %
-%-define( coord_integer_format,
-%         "~" ++ ?printout_width ++ "." ++ ?printout_precision ++ ". B" ).
+% A shorthand for these record and corresponding type could be m2.
+%
+-record( matrix2, {
 
--define( coord_integer_format, "~" ++ ?printout_width ++ ".. B" ).
+  m11 :: linear:coordinate(),
+  m12 :: linear:coordinate(),
+
+  m21 :: linear:coordinate(),
+  m22 :: linear:coordinate() } ).
 
 
-% Relatively aggressive inlining for basic operations:
--define( inline_size, 48 ).
+% No relevant compact_matrix2 to be defined.

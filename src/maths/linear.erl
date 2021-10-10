@@ -30,13 +30,12 @@
 -module(linear).
 
 
-% Relatively aggressive inlining for basic operations:
--compile( inline ).
--compile( { inline_size, 48 } ).
-
-
-% For printout_*:
+% For printout_*, inline_size, etc.:
 -include("linear.hrl").
+
+-compile( inline ).
+-compile( { inline_size, ?inline_size } ).
+
 
 
 % These type names are too general to be defined in the hrl file (i.e. in the
@@ -69,18 +68,8 @@
 % Cartesian coordinates in a referential.
 
 
-
--type factor() :: float().
-% Usually (floating-point) multipliers involved in equations.
-
-
--type integer_factor() :: integer().
-% Usually multipliers involved in equations.
-
-
--type any_factor() :: number().
-% Usually multipliers involved in equations.
-
+-type user_coordinate() :: number().
+% User-specified coordinates in a referential.
 
 
 % Distance (as floating-point) between two points (ex: to express lengths):
@@ -136,7 +125,7 @@
 
 -export_type([ dimension/0,
 			   coordinate/0, integer_coordinate/0, any_coordinate/0,
-			   factor/0, integer_factor/0, any_factor/0,
+			   user_coordinate/0,
 			   distance/0, integer_distance/0, any_distance/0,
 			   radius/0, integer_radius/0, any_radius/0,
 			   square_distance/0, integer_square_distance/0,

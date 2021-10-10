@@ -22,65 +22,83 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Author: Olivier Boudeville |olivier (dot) boudeville (at) esperide (dot) com|
 
 
-% The classical, canonical 3x3 matrix representation is:
+% The classical, canonical 4x4 matrix representation is:
 %
-%     | M11 M12 M13 |
-% M = | M21 M22 M23 |
-%     | M31 M32 M33 |
+%     | M11 M12 M13 M14 |
+%     | M21 M22 M23 M24 |
+% M = | M31 M32 M33 M34 |
+%     | M41 M42 M43 M44 |
 %
-% This corresponds to this record specialised for 3D.
+% This corresponds to this record specialised for 4D. Coordinates are listed row
+% per row.
 %
-% A shorthand for these record and corresponding type could be mat3.
+% A shorthand for these record and corresponding type could be m4.
 %
--record( matrix3, {
+-record( matrix4, {
 
   m11 :: linear:coordinate(),
   m12 :: linear:coordinate(),
   m13 :: linear:coordinate(),
+  m14 :: linear:coordinate(),
 
   m21 :: linear:coordinate(),
   m22 :: linear:coordinate(),
   m23 :: linear:coordinate(),
+  m24 :: linear:coordinate(),
 
   m31 :: linear:coordinate(),
   m32 :: linear:coordinate(),
-  m33 :: linear:coordinate() } ).
+  m33 :: linear:coordinate(),
+  m34 :: linear:coordinate(),
+
+  m41 :: linear:coordinate(),
+  m42 :: linear:coordinate(),
+  m43 :: linear:coordinate(),
+  m44 :: linear:coordinate() } ).
 
 
 
-% A 3x3 compact matrix is a 2x3 canonical matrix, or, said otherwise, a 2x2
-% matrix M2 and a vector T, as:
+% A 4x4 compact matrix is a 3x4 canonical matrix, or, said otherwise, a 3x3
+% matrix M3 and a 3D vector T, as:
 %
-% M2 = | M11 M12 |
-%      | M21 M22 |
+%      | M11 M12 M13 |
+% M3 = | M21 M22 M23 |
+%      | M31 M32 M33 |
 %
-% and T = | Tx Ty |.
+% and T = transpose(| Tx Ty Tz |).
 %
 % This corresponds to, by blocks:
 %
-% M = | M2 T |
+% M = | M3 T |
 %     |  0 1 |
 %
-%   = | M11 M12 Tx |
-%     | M21 M22 Ty |
-%     |   0   0  1 |
+%     | M11 M12 M13 Tx |
+%     | M21 M22 M23 Ty |
+%   = | M31 M32 M33 Tz |
+%     |   0   0   0  1 |
 %
 %
-% Could have been, with more indirections:
+% Could have been, with more indirections, a {matrix3:matrix3(),
+% vector3:vector3()} pair.
 %
-% {linear_2D:canonical_matrix(), linear_2D:vector()}
+% A shorthand for these record and corresponding type could be cpt_m4.
 %
-% A shorthand for these record and corresponding type could be cpt_mat3.
-%
--record( compact_matrix3, {
+-record( compact_matrix4, {
 
   m11 :: linear:coordinate(),
   m12 :: linear:coordinate(),
+  m13 :: linear:coordinate(),
   tx  :: linear:coordinate(),
 
   m21 :: linear:coordinate(),
   m22 :: linear:coordinate(),
-  ty  :: linear:coordinate() } ).
+  m23 :: linear:coordinate(),
+  ty  :: linear:coordinate(),
+
+  m31 :: linear:coordinate(),
+  m32 :: linear:coordinate(),
+  m33 :: linear:coordinate(),
+  tz  :: linear:coordinate() } ).
