@@ -29,17 +29,15 @@
 % @doc Gathering of various facilities for <b>bounding box</b> management.
 %
 % Currently the types of supported bounding boxes are:
-%
-% - circle, either obtained from the 'lazy' algorithm or the 'mec' algorithm
-%
+% - circle, either obtain
 % - <a href="http://en.wikipedia.org/wiki/Cuboid">cuboid</a>
 %
 % With the lazy algorithm, circle parameters are simply deduced from the
-% smallest enclosing rectangle; it is fast and easy, yet less precis than MEC.
+% smallest enclosing rectangle; it is fast and easy, yet less precise than the
+% <em>Minimal Enclosing Circle</em> (MEC).
 %
-% MEC leads to determine the <em>Minimal Enclosing Circle</em>. The operation
-% involves computing the convex hull of the points. It is expensive, but not a
-% problem when precomputing.
+% Determining the MEC involves computing the convex hull of the points. It is
+% expensive, but not a problem when precomputing.
 %
 % See `bounding_box_test.erl' for the corresponding test.
 %
@@ -69,39 +67,44 @@
 -export_type([ circle/0, right_cuboid/0, bounding_box/0 ]).
 
 
+% Implementation notes:
+%
+% Bounding-boxes at least here rely on floating-point coordinates and distances
+% (rather than on integer ones).
+
+
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
 
 -type int_degrees() :: unit_utils:int_degrees().
 
--type point() :: linear_2D:point().
--type integer_point() :: linear_2D:integer_point().
--type square_distance() :: linear:square_distance().
+-type point2() :: point2:point2().
+-type integer_point2() :: point2:integer_point2().
 
 
 
-% @doc Returns a disc which is a bounding-box for the specified list of points,
+
+% @doc Returns a circle that is a bounding-box for the specified list of points,
 % which must not be empty.
 %
 % Note: this bounding box is not the smallest one, but is very lightweight to
 % compute.
 %
-% Returns the disc information: {Center, SquareRadius}.
+% Returns the circle information: {Center, SquareRadius}.
 %
--spec get_lazy_circle_box( [ point() ] ) ->
-			{ integer_point(), square_distance() }.
-get_lazy_circle_box( PointList ) ->
+-spec get_lazy_circle_box( [ point2() ] ) -> circle().
+get_lazy_circle_box( Points ) ->
 
-	{ TopLeft, BottomRight } =
-		linear_2D:compute_smallest_enclosing_rectangle( PointList ),
+	{ TopLeftP, BottomRightP } =
+		linear_2D:compute_smallest_enclosing_rectangle( Points ),
 
-	Center = linear_2D:get_integer_center( TopLeft, BottomRight ),
+	Center = point2:get_center( TopLeftP, BottomRightP ),
 
 	% We divide by 4, as we are dealing with squared quantities:
-	SquareRadius = linear_2D:square_distance( TopLeft, BottomRight ) / 4,
+	SquareRadius = point2:square_distance( TopLeftP, BottomRightP ) / 4,
 
-	{ Center, SquareRadius }.
+	#circle{ center=Center, square_radius=SquareRadius }.
 
 
 
@@ -115,30 +118,30 @@ get_lazy_circle_box( PointList ) ->
 % recomputing everything from scratch. So we do not rely on an 'updateMEC'
 % function.
 %
--spec get_minimal_enclosing_circle_box( [ point() ] ) ->
-							{ point(), square_distance() }.
-get_minimal_enclosing_circle_box( _PointList=[] ) ->
+-spec get_minimal_enclosing_circle_box( [ point2() ] ) -> circle().
+get_minimal_enclosing_circle_box( _Points=[] ) ->
 	throw( no_point_to_enclose );
 
-get_minimal_enclosing_circle_box( _PointList=[ P ] ) ->
+get_minimal_enclosing_circle_box( _Points=[ P ] ) ->
 	% Only one point, epsilon-based comparison allows for a null radius:
-	{ _Center=P, _SquareRadius=0 };
+	{ _Center=P, _SquareRadius=0.0 };
 
-get_minimal_enclosing_circle_box( _PointList=[ P1, P2 ] ) ->
+get_minimal_enclosing_circle_box( _Points=[ P1, P2 ] ) ->
 
-	% Here we have two points, which defines the circle:
-	Center = linear_2D:get_center( P1, P2 ),
+	% Here we have two points; this defines the circle:
+	CenterP = point2:get_center( P1, P2 ),
 
 	% Division by 4, not 2, as we deal with square quantities:
 	SquareRadius = linear_2D:square_distance( P1, P2 ) / 4,
 
-	{ Center, SquareRadius };
+	#circle{ center=CenterP, square_radius=SquareRadius };
 
 
-get_minimal_enclosing_circle_box( _PointList=[ P1, P2, P3 ] ) ->
+get_minimal_enclosing_circle_box( _Points=[ P1, P2, P3 ] ) ->
 
-	%io:format( "get_minimal_enclosing_circle_box for 3 points: "
-	%		   "~w, ~w and ~w.~n", [ P1, P2, P3 ] ),
+	cond_utils:if_defined( bounding_boxes, trace_utils:debug_fmt(
+		"get_minimal_enclosing_circle_box for 3 points: "
+		"~w, ~w and ~w.", [ P1, P2, P3 ] ) ),
 
 	% Here we have three points, a triangle, which defines the circumscribed
 	% circle, whose center is the intersection of the three perpendicular
@@ -158,21 +161,22 @@ get_minimal_enclosing_circle_box( _PointList=[ P1, P2, P3 ] ) ->
 			%
 			throw( flat_triangle );
 
-		Center ->
-			{ Center, linear_2D:square_distance( Center, P1 ) }
+		CenterP ->
+			#circle{ center=CenterP,
+					 square_radius=linear_2D:square_distance( CenterP, P1 ) }
 
 	end;
 
 
-get_minimal_enclosing_circle_box( PointList ) ->
+get_minimal_enclosing_circle_box( Points ) ->
 
 	% Here we have at least three points, let's work an the hull instead:
 	% See http://www.cs.mcgill.ca/~cs507/projects/1998/jacob/solutions.html
 	% for the solution.
 
-	%trace_utils:debug_fmt( "MEC for ~w.~n", [ PointList ] ),
+	%trace_utils:debug_fmt( "MEC for ~w.~n", [ Points ] ),
 
-	case linear_2D:compute_convex_hull( PointList ) of
+	case linear_2D:compute_convex_hull( Points ) of
 
 		[ P1, P2 | H ] ->
 			% We start with a side S defined by P1 and P2 here:
@@ -189,8 +193,8 @@ get_minimal_enclosing_circle_box( PointList ) ->
 % @doc Returns {MinAngle, MinVertex}, the minimum angle (in canonical degrees)
 % subtended by the segment [P1, P2] among points in the Points list.
 %
--spec find_minimal_angle( point(), point(), [ point() ] ) ->
-							  { int_degrees(), point() }.
+-spec find_minimal_angle( integer_point2(), integer_point2(),
+				[ integer_point2() ] ) -> { int_degrees(), integer_point2() }.
 find_minimal_angle( _P1, _P2, _Points=[] ) ->
 	throw( { find_minimal_angle, not_enough_points } );
 
