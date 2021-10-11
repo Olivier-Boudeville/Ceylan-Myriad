@@ -128,6 +128,7 @@ endif
 #  - registration: regarding naming registering
 #  - user_interface: all support regarding user interfaces of all sorts
 #  - linear: for operations on vectors, matrices, etc.
+#  - bounding_boxes: for computations of bounding boxes
 #
 # Defining debug flags (at least the most verbose are by default commented-out):
 ifeq ($(ENABLE_DEBUG),true)
