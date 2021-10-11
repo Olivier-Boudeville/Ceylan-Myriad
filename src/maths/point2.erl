@@ -57,7 +57,7 @@
 % A point in a 2D space, with (exactly) 2 floating-point coordinates.
 
 
--type integer_point2() :: { X :: integer_coordinate(), 
+-type integer_point2() :: { X :: integer_coordinate(),
 							Y :: integer_coordinate() }.
  % A point in a 2D space, with (exactly) 2 integer coordinates.
 
@@ -77,7 +77,7 @@
 		  are_close/2, is_within/3, square_distance/2, distance/2,
 		  check/1,
 		  to_string/1, to_compact_string/1, to_basic_string/1,
-		  to_user_string/1 ] ).
+		  to_user_string/1, to_string/2 ] ).
 
 
 
@@ -121,8 +121,8 @@ new( X, Y ) ->
 
 
 % @doc Returns an integer 2D point corresponding to the user-specified one.
--spec new_integer( integer_coordinate(), integer_coordinate() ) -> 
-		    integer_point2().
+-spec new_integer( integer_coordinate(), integer_coordinate() ) ->
+			integer_point2().
 new_integer( X, Y ) when is_integer( X ) andalso is_integer( Y ) ->
 	{ X, Y }.
 
@@ -327,3 +327,46 @@ to_user_string( _Point={ X, Y } ) ->
 	%                       [ FormatStr, Strs ] ),
 
 	text_utils:format( FormatStr, Strs ).
+
+
+
+
+% @doc Returns a human-friendly, approximated textual representation of
+% specified point, based on specified print-out precision (number of digits
+% after the comma).
+%
+-spec to_string( point2(), basic_utils:count() ) -> ustring().
+to_string( { X, Y }, DigitCountAfterComma ) ->
+
+	% We want to avoid displaying larger texts for coordinates, like
+	% 0.10000000000000009:
+
+	%XRounded = math_utils:round_after( X, DigitCountAfterComma ),
+
+	%YRounded = math_utils:round_after( Y, DigitCountAfterComma ),
+
+	%text_utils:format( "{ ~.*w, ~.*w }", [ Precision, X, Precision, Y ] ).
+
+	XString = case is_float( X ) of
+
+		true ->
+			text_utils:format( "~.*f", [ DigitCountAfterComma, X ] );
+
+		false ->
+			% Integer:
+			text_utils:format( "~B", [ X ] )
+
+	end,
+
+	YString = case is_float( Y ) of
+
+		true ->
+			text_utils:format( "~.*f", [ DigitCountAfterComma, Y ] );
+
+		false ->
+			% Integer:
+			text_utils:format( "~B", [ Y ] )
+
+	end,
+
+	text_utils:format( "[ ~ts, ~ts ]", [ XString, YString ] ).

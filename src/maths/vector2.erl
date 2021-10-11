@@ -92,8 +92,9 @@
 
 -export([ new/1, new/2, new_integer/2, null/0,
 		  from_point/1, to_point/1,
-		  add/2, add/1,
+		  add/2, add/1, cross_product/2,
 		  square_magnitude/1, magnitude/1, scale/2, make_unit/1,
+		  normal_left/1, normal_right/1,
 		  dot_product/2,
 		  check/1, check_integer/1,
 		  to_string/1, to_compact_string/1, to_basic_string/1,
@@ -186,7 +187,15 @@ add( _Vectors=[ VFirst | VOthers ]  ) ->
 				 _List=VOthers ).
 
 
-% No cross_product/2 for dimensions different from 3.
+
+% @doc Returns the cross-product of the two specified 2D points, that is the
+% square magnitude of the vector that would result from a regular 3D cross
+% product of the input vectors, taking their Z values implicitly as 0.
+%
+-spec cross_product( vector2(), vector2() ) -> square_distance().
+cross_product( [X1,Y1], [X2,Y2] ) ->
+	abs( X1*Y2 - Y1*X2 ).
+
 
 
 % @doc Returns the square of the magnitude of the 2D specified vector.
@@ -223,6 +232,23 @@ make_unit( V ) ->
 			scale( V, 1.0 / M )
 
 	end.
+
+
+
+% @doc Returns a (non-unit) vector that is normal to the specified vector V, and
+% is on the left of V in the standard basis.
+%
+-spec normal_left( vector2() ) -> vector2().
+normal_left( _V=[X,Y] ) ->
+	[ -Y, X ].
+
+
+% @doc Returns a (non-unit) vector that is normal to the specified vector V, and
+% is on the right of V in the standard basis.
+%
+-spec normal_right( vector2() ) -> vector2().
+normal_right( _V=[X,Y] ) ->
+	[ Y, -X ].
 
 
 
