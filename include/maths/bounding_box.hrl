@@ -36,7 +36,7 @@
 -record( circle, {
 
 	% The center of the circle:
-	center :: linear_2D:point(),
+	center :: point2:point2(),
 
 	% The square of the radius (R^2) of this circle:
 	square_radius :: linear:square_distance() } ).
@@ -49,21 +49,18 @@
 % axes.
 %
 % If base_vertex={X,Y,Z}, abscissa_length is A, ordinate_length is B,
-% elevation_length is C, then cuboid is made of all points {Xp,Yp,Zp} where:
-%
+% elevation_length is C, then this cuboid is made of all points {Xp,Yp,Zp}
+% where:
 %  - X <= Xp < X + A
-%
 %  - Y <= Yp < X + B
-%
 %  - Z <= Zp < Z + C
-%
 %
 % See http://en.wikipedia.org/wiki/Cuboid
 %
 -record( right_cuboid, {
 
 	% A vertex of the cuboid:
-	base_vertex :: linear_3D:point(),
+	base_vertex :: point3:point3(),
 
 	% The length along the abscissa axis (X):
 	abscissa_length :: linear:distance(),
