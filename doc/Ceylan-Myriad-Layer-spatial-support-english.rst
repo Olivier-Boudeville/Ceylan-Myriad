@@ -38,7 +38,7 @@ A linear-related **index** (ex: of a coordinate of a point, a vector or a matrix
 
 .. Coordinates can be specified as ``linear:any_coordinate/0``, i.e. either ``linear:integer_coordinate/0`` (meaning ``integer/0``) or, more often ``linear:coordinate/0``, i.e. ``float/0`` (hence double-precision floating point values); internally all coordinates are ``float/0``.
 
-**Points** are to be specified by the user as *tuples* (preferably to lists) whose coordinates are either integer ones (for example :math:`P = \begin{pmatrix} 10 \\ 45\end{pmatrix}` translating to ``P={10,45}`` for 2D on-screen coordinates) or floating-point ones (``{0.0, -1.0, 0.0}`` for a point in 3D space). This is the most natural term mapping, and their internal representation is an homogeneous tuple (i.e. whose elements are all of the corresponding type): either ``integer_point/0`` or ``point/0``.
+**Points** are to be specified by the user as *tuples* (preferably to lists) whose coordinates are either integer ones (for example :math:`P = \begin{pmatrix} 10 \\ 45\end{pmatrix}` translating to ``P={10,45}``, typically for GUI-related processing of on-screen coordinates) or floating-point ones (``{0.0, -1.0, 0.0}`` for a point in 3D space). This is the most natural term mapping, and their internal representation is an homogeneous tuple (i.e. whose elements are all of the corresponding type): either ``integer_point/0`` or ``point/0``.
 
 Points can be of arbitrary dimension (then they are taken in charge by the ``point`` module), or can be specialised for 2D, 3D or 4D (then they belong to the ``point{2,3,4}`` modules).
 
