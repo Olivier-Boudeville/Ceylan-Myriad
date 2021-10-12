@@ -176,9 +176,11 @@
 	buffer_view :: basic_utils:maybe( gltf_support:buffer_view_index() ),
 
 	% Specifies if the accessor’s elements are scalars, vectors, or matrices:
+	% (ex: 'vector4')
+	%
 	type :: gltf_support:element_type(),
 
-	% The datatype of a component of an accessor.
+	% The datatype of a component of an accessor (ex: 'uint8').
 	component_type :: gltf_support:component_type(),
 
 	% The number of elements referenced by this accessor:
