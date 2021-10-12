@@ -65,6 +65,7 @@
 % Mostly the same API as the one of hashtable (but richer):
 -export([ new/0, new/1, new_from_unique_entries/1,
 		  add_entry/3, add_entries/2, add_new_entry/3, add_new_entries/2,
+		  add_maybe_entry/3, add_maybe_entries/2,
 		  update_entry/3, update_entries/2,
 		  swap_value/3,
 		  remove_entry/2, remove_existing_entry/2,
@@ -95,6 +96,11 @@
 
 -type entry() :: hashtable:entry().
 
+-type maybe_entry() :: hashtable:maybe_entry().
+
+-type maybe_entries() :: hashtable:maybe_entries().
+
+
 -type entries() :: hashtable:entries().
 
 -type entry_count() :: basic_utils:count().
@@ -107,9 +113,15 @@
 -opaque map_hashtable( _K, _V ) :: map().
 
 
--export_type([ key/0, value/0, entry/0, entries/0, entry_count/0,
+-export_type([ key/0, value/0, entry/0, entries/0,
+			   entry_count/0, maybe_entry/0, maybe_entries/0,
 			   map_hashtable/0, map_hashtable/2 ]).
 
+
+% Shorthands:
+
+% As this module is not parse-transformed:
+-type maybe( T ) :: T | 'undefined'.
 
 
 % Implementation notes:
@@ -230,13 +242,47 @@ add_entry( Key, Value, MapHashtable ) ->
 %
 -spec add_entries( entries(), map_hashtable() ) -> map_hashtable().
 add_entries( EntryList, MapHashtable ) ->
-
 	lists:foldl( fun( { K, V }, Map ) ->
 					%Map#{ K => V }
 					maps:put( K, V, Map )
 				 end,
 				 _Acc0=MapHashtable,
 				 _List=EntryList ).
+
+
+
+% @doc Adds specified key/value pair into the specified map hashtable, provided
+% the value is not undefined. Useful to add a maybe-entry to a map.
+%
+% If there is already a pair with this key, then its previous value will be
+% replaced by the specified one (hence does not check whether or not the key
+% already exist in this table).
+%
+-spec add_maybe_entry( key(), maybe( value() ), map_hashtable() ) ->
+			map_hashtable().
+add_maybe_entry( _Key, _MaybeValue=undefined, MapHashtable ) ->
+	MapHashtable;
+
+add_maybe_entry( Key, MaybeValue, MapHashtable ) ->
+	add_entry( Key, MaybeValue, MapHashtable ).
+
+
+
+% @doc Adds specified list of key/value pairs into the specified map table, each
+% entry being added iff its value is not undefined. Useful to add maybe-entries
+% to a map.
+%
+% If there is already a pair with this key, then its previous value will be
+% replaced by the specified one (hence does not check whether or not keys
+% already exist in this table).
+%
+-spec add_maybe_entries( maybe_entries(), map_hashtable() ) -> map_hashtable().
+add_maybe_entries( MaybeEntryList, MapHashtable ) ->
+	lists:foldl( fun( { K, MV }, Map ) ->
+					add_maybe_entry( K, MV, Map )
+				 end,
+				 _Acc0=MapHashtable,
+				 _List=MaybeEntryList ).
 
 
 
