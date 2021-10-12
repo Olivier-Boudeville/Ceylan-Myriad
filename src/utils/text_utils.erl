@@ -76,7 +76,7 @@
 		  proplist_to_string/1, version_to_string/1,
 		  atom_to_binary/1,
 
-		  string_to_binary/1, string_to_binary/2,
+		  string_to_binary/1, string_to_binary/2, maybe_string_to_binary/1,
 		  binary_to_string/1, binary_to_string/2,
 		  strings_to_binaries/1, binaries_to_strings/1,
 		  string_to_integer/1, try_string_to_integer/1, try_string_to_integer/2,
@@ -2374,7 +2374,7 @@ string_to_binary( String, CanFailDueToTranscoding ) when is_list( String ) ->
 	%	%Bin = erlang:list_to_binary( String ),
 	%
 	%	%io:format( "String '~ts' converted to binary '~ts'.",
-	%	%		   [ String, Bin ] ),
+	%	%           [ String, Bin ] ),
 	%
 	%	Bin
 	%
@@ -2392,6 +2392,22 @@ string_to_binary( String, CanFailDueToTranscoding ) when is_list( String ) ->
 
 string_to_binary( Other, _CanFailDueToTranscoding ) ->
 	report_not_a_string( Other ).
+
+
+
+% @doc Converts a plain (list-based) maybe-string into a binary. Returns
+% undefined if the argument string is itself undefined.
+%
+% CanFailDueToTranscoding tells whether, should a transcoding fail, this
+% function is allowed to fail in turn.
+%
+-spec maybe_string_to_binary( basic_utils:maybe( ustring() ) ) ->
+									basic_utils:maybe( bin_string() ).
+maybe_string_to_binary( _MaybeString=undefined ) ->
+	undefined;
+
+maybe_string_to_binary( MaybeString ) ->
+	string_to_binary( MaybeString ).
 
 
 
