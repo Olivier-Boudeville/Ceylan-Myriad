@@ -119,6 +119,7 @@ Some useful information for JSON use:
 - it may thus be convenient to add ``-define(table_type, map_hashtable).`` in a user module, so that the ``table`` pseudo-module can be relied upon when building a ``json_term``, while being sure that the JSON parser at hand will be fed afterwards with the relevant datastructure
 - no comments shall be specified (even though some parsers may be configured to support them)
 - strings shall be specified as binary ones
+- the actual JSON backend used are either `jsx <https://github.com/talentdeficit/jsx/>`_ or `jiffy <https://github.com/davisp/jiffy>`_; to better understand their (mostly common) mapping between Erlang and JSON, one may refer to the `this section <https://github.com/talentdeficit/jsx/#json---erlang-mapping>`_ of the jsx documentation  and to `this one <https://github.com/davisp/jiffy#data-format>`_ regarding jiffy
 
 Example:
 
@@ -184,3 +185,14 @@ ETF files are notably used as **configuration files**. In this case following ex
 
   - whose first element is an atom
   - their second element can be any value, typically of algebraic types; if a string value is included, for readability purpose it shall preferably be specified as a plain one (ex: ``"James Bond"``) rather than a binary one (ex: ``<<"James Bond">>``); it is up to the reading logic to accommodate both forms; it is tolerated to reference, in the comments of these configuration files, types that actually include *binary* strings (not plain ones, even though plain ones are used in the configuration files)
+
+
+
+.. _`glTf file format`:
+
+To Export 3D Scenes
+...................
+
+Elements of `glTf <https://en.wikipedia.org/wiki/GlTF>`_ (*Graphics Language Transmission Format*) version 2.0 have been implemented in ``gltf_support.{hrl,erl}``.
+
+See the `glTf 2.0 Reference Guide <https://www.khronos.org/files/gltf20-reference-guide.pdf>`_ and the `glTF 2.0 Specification <https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html>`_ for more information.
