@@ -153,9 +153,10 @@ For each of these dimensions, generally ``1.0`` corresponds to 1 meter, otherwis
 
 .. [#] Then for more human-sized distances, a scale of one light-nanosecond (10^-9 second) might be more convenient, as it corresponds almost to 30 cm.
 
+For **all angles**, the default unit is the radians, and the positive rotation is counterclockwise.
 
 
-For face culling, front-facing is determined by relying on a counter-clockwise order winding order of triangles (like default OpenGL's `GL_CCW <https://www.khronos.org/opengl/wiki/Face_Culling>`_):
+For **face culling**, front-facing is determined by relying on a counter-clockwise order winding order of triangles (like default OpenGL's `GL_CCW <https://www.khronos.org/opengl/wiki/Face_Culling>`_):
 
 :raw-html:`<center><img src="myriad-culling-conventions.png" id="responsive-image-medium"></img></center>`
 :raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.4]{myriad-culling-conventions.png} \end{figure}`
@@ -172,9 +173,20 @@ If :math:`\vec{V}\cdot\vec{N}` (i.e. the dot-product of the view direction vecto
 - strictly negative: then the face is front-facing
 - positive: then the face is rear-facing
 
-Said otherwise, front-facing polygons are the ones whose signed area is strictly positive; see also: ``polygon:{get_area,get_signed_area}/1`
+Said otherwise, front-facing polygons are the ones whose signed area is strictly positive; see also: ``polygon:{get_area,get_signed_area}/1``
 
 For **time** coordinate, a single axis is defined for a global referential: the T axis (in yellow, ``#F6DE2D``), for which ``1.0`` corresponds to 1 second.
+
+
+
+Related Services
+................
+
+Elements of interest can be:
+
+- some support of polygons, in ``polygon.erl``
+- a basic support for 2D bounding-boxes (including rectangles, circles and Minimal Enclosing Circle , see ``bounding_boxes.{hrl,erl}``
+- elements to export 3D scenes with the `glTf file format`_
 
 
 
