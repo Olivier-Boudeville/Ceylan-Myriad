@@ -186,7 +186,7 @@ check_ast( AST ) ->
 		{ ok, Warnings } ->
 			%display_error(
 			%  "Warnings, reported as errors: ~p~n",
-			%		   [ Warnings ] ),
+			%  [ Warnings ] ),
 			interpret_issue_reports( Warnings ),
 			%exit( warning_reported );
 			warning_reported;
