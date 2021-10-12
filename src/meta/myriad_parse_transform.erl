@@ -130,6 +130,12 @@
 %     reserved, "builtin" type)
 
 
+% Errors raised by a failing compilation are apparently reported (1) one by one
+% (i.e. only one at each compilation) and (2) from the last one in the sources
+% to the first one; this does not seem related to Myriad but to the (current)
+% Erlang compiler (tested with 24.0), yet using directly erlc does not exhibit
+% that (possibly that this relates to its support of parse transform then).
+
 
 % The default actual implementation to which 'table' will be wired:
 %
@@ -199,6 +205,9 @@ parse_transform( InputAST, Options ) ->
 	{ MyriadAST, _MyriadModuleInfo } =
 		apply_myriad_transform( InputAST, Options ),
 
+	%ast_utils:display_debug( "MyriadAST: ~p~n", [ MyriadAST ] ),
+	%ast_utils:display_debug( "MyriadModuleInfo: ~p~n", [ MyriadModuleInfo ] ),
+
 	MyriadAST.
 
 
@@ -250,9 +259,9 @@ apply_myriad_transform( InputAST, Options ) ->
 
 	%ast_utils:display_debug( "~n## OUTPUT #################################" ),
 	%ast_utils:display_debug( "Output module info: ~ts",
-	%		   [ ast_info:module_info_to_string( TransformedModuleInfo ) ] ),
+	%       [ ast_info:module_info_to_string( TransformedModuleInfo ) ] ),
 	%ast_utils:display_debug( "Output module info: ~ts~n~n",
-	%		   [ ast_info:module_info_to_string( TransformedModuleInfo ) ] ),
+	%       [ ast_info:module_info_to_string( TransformedModuleInfo ) ] ),
 
 	OutputAST =
 		ast_info:recompose_ast_from_module_info( TransformedModuleInfo ),
@@ -545,7 +554,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 		%
 		( _FileLocCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils},
-						   {atom,FileLocFun,if_debug} },
+							{atom,FileLocFun,if_debug} },
 		  _Params=[ ExprForm ],
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
@@ -933,9 +942,9 @@ get_ast_global_transforms( DesiredTableType ) ->
 						ast_generation:form_to_list( TokenExprTableAsForm ),
 
 			%ast_utils:display_debug( "Call to cond_utils:switch_set_to/3 "
-			%	"found, for token '~p', default value '~p' and "
+			%   "found, for token '~p', default value '~p' and "
 			%   "token-expression table (as form):~n  ~p.",
-			%	[ Token, DefaultValue, TokenExprTableAsForm ] ),
+			%   [ Token, DefaultValue, TokenExprTableAsForm ] ),
 
 			ExprForm = case ?table:lookup_entry( Token, TokenTable ) of
 
