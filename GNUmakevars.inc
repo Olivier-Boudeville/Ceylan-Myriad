@@ -779,9 +779,9 @@ ERLANG_COMPILER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which erlc 2>/dev/nul
 #ERLANG_COMPILER := echo "COMPILE OPTIONS:"
 
 
-ERLANG_BIN_ROOT := $(shell dirname "$(ERLANG_COMPILER)" )
+ERLANG_BIN_ROOT := $(shell dirname "$(ERLANG_COMPILER)")
 
-ERLANG_ROOT := $(shell dirname "$(ERLANG_BIN_ROOT)" )
+ERLANG_ROOT := $(shell dirname "$(ERLANG_BIN_ROOT)")
 
 
 # Note that at least some versions of dialyzer (ex: the one shipped with 17.1)
