@@ -44,28 +44,24 @@
 
 -type factor() :: maths_utils:factor().
 
--type normal() :: vector:normal().
--type unit_normal() :: vector:unit_normal().
+-type normal3() :: vector3:normal3().
+-type unit_normal3() :: vector3:unit_normal3().
 
 
 
 % Section about lines and planes.
 
 
--type line() :: { A :: factor(), B :: factor(), C :: factor(), D :: factor() }.
-% A 3D line, whose equation A.x+B.y+C.z+D=0, can be defined from these four
+-type line3() :: { A :: factor(), B :: factor(), C :: factor(), D :: factor() }.
+% A 3D line, whose equation A.x + B.y + C.z + D = 0, can be defined by its four
 % factors {A,B,C,D}.
 
 
--type plane() :: { normal(), factor() }.
+-type plane3() :: { normal3(), factor() }.
 % A plane, whose general equation is: A.x + B.y + C.z + D = 0, where:
 %
-% - P=(x,y,z) is a point belonging to this plane
-%
-% - N=(A,B,C) is a (non-necessarily unit) normal vector to this plane
-%
-% - P0=(x0,y0,z0) is a point of that plane
-%
+% - P={x,y,z} is a point belonging to this plane
+% - N=[A,B,C] is a (non-necessarily unit) normal vector to this plane
 % - D= -A.x0 - B.y0 - C.z0
 %
 % See [http://mathworld.wolfram.com/Plane.html].
@@ -73,13 +69,13 @@
 % So a plane may be described as (N,D).
 
 
--type hessian_plane() :: { unit_normal(), factor() }.
+-type hessian_plane3() :: { unit_normal3(), factor() }.
 % A plane in Hessian normal form.
 %
 % See [http://mathworld.wolfram.com/HessianNormalForm.html].
 
 
--export_type([ line/0, plane/0, hessian_plane/0 ]).
+-export_type([ line3/0, plane3/0, hessian_plane3/0 ]).
 
 
 
