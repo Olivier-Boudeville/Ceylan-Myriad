@@ -137,6 +137,10 @@
 -type entries() :: [ entry() ].
 -type entries( K, V ) :: [ { K, V } ].
 
+-type maybe_entry() :: { key(), maybe( value() ) }.
+-type maybe_entries() :: [ maybe_entry() ].
+
+
 -type entry_count() :: basic_utils:count().
 
 -type bucket_count() :: pos_integer().
@@ -161,6 +165,7 @@
 
 
 -export_type([ key/0, value/0, entry/0, entry/2, entries/0, entries/2,
+			   maybe_entry/0, maybe_entries/0,
 			   entry_count/0, bucket/0, bucket/2, bucket_count/0,
 			   hashtable/0, bullet/0, description_type/0 ]).
 
