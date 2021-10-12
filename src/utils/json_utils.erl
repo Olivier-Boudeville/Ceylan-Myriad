@@ -675,6 +675,6 @@ stop_parser() ->
 
 
 % @doc Stops the specified JSON parser.
--spec stop_parser(  parser_state() ) -> void().
+-spec stop_parser( parser_state() ) -> void().
 stop_parser( _ParserState ) ->
 	ok.
