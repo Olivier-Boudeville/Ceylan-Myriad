@@ -443,6 +443,22 @@
 % constructs; it is thus autonomous, self-standing.
 
 
+-type low_level_type() :: 'uint8'  | 'sint8'
+						| 'uint16' | 'sint16'
+						| 'uint32' | 'sint32'
+						| 'uint64' | 'sint64'
+						| 'float32'
+						| 'float64'.
+% Designates lower-level types, with a prefix and a size in bits.
+%
+% Following prefixes are defined:
+% - u for unsigned
+% - s for signed
+%
+% Datatypes are 'int' (for integer) and 'float' (for standard IEEE signed,
+% floating-point values).
+
+
 
 % Tuploids. See also augment_tuploid/2.
 
@@ -462,6 +478,7 @@
 -export_type([ type_name/0, type_arity/0, type_id/0,
 			   primitive_type_description/0,
 			   type_description/0, nesting_depth/0, type/0, explicit_type/0,
+			   low_level_type/0,
 			   tuploid/0, tuploid/1 ]).
 
 
