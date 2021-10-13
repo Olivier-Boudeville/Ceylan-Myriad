@@ -57,7 +57,7 @@ run() ->
 							 [ Q, quaternion:to_compact_string( Q ) ] ),
 
 	test_facilities:display( "User-friendly textual representation "
-		"for Q = ~w:~n~ts", [ Q, quaternion:to_user_string( Q ) ] ),
+		"for Q = ~w: ~ts", [ Q, quaternion:to_user_string( Q ) ] ),
 
 
 	test_facilities:stop().

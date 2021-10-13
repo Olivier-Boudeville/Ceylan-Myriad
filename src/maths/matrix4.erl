@@ -74,7 +74,7 @@
 
 
 -export([ new/1, null/0, identity/0, from_columns/4, from_rows/4,
-		  from_coordinates/16, from_3D/2,
+		  from_coordinates/16, from_compact_coordinates/12, from_3D/2,
 		  to_canonical/1, to_compact/1,
 		  scale/2, mult/2,
 		  are_equal/2,
@@ -171,19 +171,38 @@ from_rows( _Va=[Xa,Ya,Za,Wa], _Vb=[Xb,Yb,Zb,Wb],
 
 
 % @doc Returns the (4x4, canonical) matrix whose (16) coordinates are the
-% specified ones, specified rows after rows.
+% specified ones, as listed row after row.
 %
 -spec from_coordinates( coordinate(), coordinate(), coordinate(), coordinate(),
 						coordinate(), coordinate(), coordinate(), coordinate(),
 						coordinate(), coordinate(), coordinate(), coordinate(),
 						coordinate(), coordinate(), coordinate(), coordinate() )
 											-> canonical_matrix4().
-from_coordinates( A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14,
-				  A15, A16 ) ->
-	#matrix4{ m11=A1,  m12=A2,  m13=A3,  m14=A4,
-			  m21=A5,  m22=A6,  m23=A7,  m24=A8,
-			  m31=A9,  m32=A10, m33=A11, m34=A12,
-			  m41=A13, m42=A14, m43=A15, m44=A16 }.
+from_coordinates( M11, M12, M13, M14,
+				  M21, M22, M23, M24,
+				  M31, M32, M33, M34,
+				  M41, M42, M43, M44 ) ->
+	#matrix4{ m11=M11, m12=M12, m13=M13, m14=M14,
+			  m21=M21, m22=M22, m23=M23, m24=M24,
+			  m31=M31, m32=M32, m33=M33, m34=M34,
+			  m41=M41, m42=M42, m43=M43, m44=M44 }.
+
+
+
+% @doc Returns the "4x4" (actually 3x4) compact matrix whose 12 actual
+% coordinates are the specified ones, as listed row after row.
+%
+-spec from_compact_coordinates(
+					coordinate(), coordinate(), coordinate(), coordinate(),
+					coordinate(), coordinate(), coordinate(), coordinate(),
+					coordinate(), coordinate(), coordinate(), coordinate() )
+											-> compact_matrix4().
+from_compact_coordinates( M11, M12, M13, Tx,
+						  M21, M22, M23, Ty,
+						  M31, M32, M33, Tz ) ->
+	#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
+					  m21=M21, m22=M22, m23=M23, ty=Ty,
+					  m31=M31, m32=M32, m33=M33, tz=Tz }.
 
 
 
@@ -507,7 +526,7 @@ to_string( _Matrix=#matrix4{ m11=M11, m12=M12, m13=M13, m14=M14,
 	% No need for ~ts here:
 	RowFormatStr = "[ " ++ text_utils:duplicate( Dim, "~s " ) ++ "]~n",
 
-	FormatStr = text_utils:duplicate( Dim, RowFormatStr ),
+	FormatStr = "~n" ++ text_utils:duplicate( Dim, RowFormatStr ),
 
 	text_utils:format( FormatStr, Strs );
 
@@ -527,6 +546,6 @@ to_string( _Matrix=#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
 	% No need for ~ts here:
 	RowFormatStr = "[ " ++ text_utils:duplicate( Dim, "~s " ) ++ "]~n",
 
-	FormatStr = text_utils:duplicate( Dim, RowFormatStr ),
+	FormatStr = "~n" ++ text_utils:duplicate( Dim, RowFormatStr ),
 
 	text_utils:format( FormatStr, Strs ).

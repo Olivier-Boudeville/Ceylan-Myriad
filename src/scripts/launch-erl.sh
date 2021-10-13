@@ -26,6 +26,8 @@
 # may terminate in an open shell. So the default is still not using run_erl,
 # unless the --daemon option is specified (in which case the log directory will
 # be the one from which this script is run):
+#
+# (then such VM may be stopped with echo "init:stop()." > "${write_pipe}")
 
 # Default is false (1):
 use_run_erl=1

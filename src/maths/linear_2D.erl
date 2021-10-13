@@ -224,7 +224,7 @@ compute_max_distance_between( P, _Points=[ Pnew | OtherPoints ],
 							  _Info=undefined ) ->
 	% The first point examined is (at first) by construction the first best:
 	compute_max_distance_between( P, OtherPoints,
-		_NewInfo={ Pnew, linear_2D:square_distance( P, Pnew ) } );
+		_NewInfo={ Pnew, point2:square_distance( P, Pnew ) } );
 
 compute_max_distance_between( P, _Points=[ Pnew | OtherPoints ],
 							  Info={ _Pmax, LongestSquareDistance } ) ->

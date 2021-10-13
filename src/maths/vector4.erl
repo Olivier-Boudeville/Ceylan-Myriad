@@ -283,7 +283,7 @@ to_basic_string( Vector ) ->
 	% Vectors supposed to be lists of floats:
 	ElemFormatStr = "[ " ++ ?coord_float_format ++ " ]~n",
 
-	FormatStr = text_utils:duplicate( 4, ElemFormatStr ),
+	FormatStr = "~n" ++ text_utils:duplicate( 4, ElemFormatStr ),
 
 	%trace_utils:debug_fmt( "FormatStr: ~ts; CoordList: ~w.",
 	%                       [ FormatStr, CoordList ] ),
@@ -305,7 +305,7 @@ to_user_string( Vector ) ->
 	% No need for ~ts here:
 	ElemFormatStr = "[ ~s ]~n",
 
-	FormatStr = text_utils:duplicate( 4, ElemFormatStr ),
+	FormatStr = "~n" ++ text_utils:duplicate( 4, ElemFormatStr ),
 
 	%trace_utils:debug_fmt( "FormatStr: ~ts; Strs: ~p.",
 	%                       [ FormatStr, Strs ] ),

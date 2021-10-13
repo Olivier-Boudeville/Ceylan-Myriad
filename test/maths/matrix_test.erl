@@ -49,36 +49,36 @@ run() ->
 
 	M = matrix:new( [ [ 0.0, 1.0, 2.0 ], [ 7777.0, 0.0, 1/3 ] ] ),
 
-	test_facilities:display( "Base textual representation for ~w:~n~ts",
+	test_facilities:display( "Base textual representation for ~w: ~ts",
 							 [ M, matrix:to_string( M ) ] ),
 
-	test_facilities:display( "Basic textual representation for ~w:~n~ts",
+	test_facilities:display( "Basic textual representation for ~w: ~ts",
 							 [ M, matrix:to_basic_string( M ) ] ),
 
 	test_facilities:display( "User-friendly textual representation "
-		"for ~w:~n~ts", [ M, matrix:to_user_string( M ) ] ),
+		"for ~w: ~ts", [ M, matrix:to_user_string( M ) ] ),
 
 	Dim = 5,
 
 	Id = matrix:identity( Dim ),
 
-	test_facilities:display( "Id(~B) =~n~ts", [ Dim, matrix:to_string( Id ) ] ),
+	test_facilities:display( "Id(~B) = ~ts", [ Dim, matrix:to_string( Id ) ] ),
 
 	M1 = matrix:new( [ [ 1, 2, 3 ], [ 4, 5, 6 ], [ 7, 8, 9 ] ] ),
 
 	8.0 = matrix:get_element( 3, 2, M1 ),
 
 	NewM1 = matrix:set_element( 3, 2, 10.0, M1 ),
-	test_facilities:display( "M1 =~n~ts", [ matrix:to_string( M1 ) ] ),
+	test_facilities:display( "M1 = ~ts", [ matrix:to_string( M1 ) ] ),
 
 	10.0 = matrix:get_element( 3, 2, NewM1 ),
 
-	test_facilities:display( "NewM1 =~n~ts", [ matrix:to_string( NewM1 ) ] ),
+	test_facilities:display( "NewM1 = ~ts", [ matrix:to_string( NewM1 ) ] ),
 
 	TransposeM = [ [ 0.0, 7777.0 ], [ 1.0, 0.0 ], [2.0, 1/3 ] ],
 	TransposeM = matrix:transpose( M ),
 
-	test_facilities:display( "Transpose of M =~n~ts is:~n~ts",
+	test_facilities:display( "Transpose of M = ~ts is: ~ts",
 		[ matrix:to_string( M ), matrix:to_string( TransposeM )] ),
 
 	M2 = matrix:identity( 3 ),
@@ -90,7 +90,7 @@ run() ->
 	[ 2.0, 6.0, 8.0 ] = matrix:column( 2, M3 ),
 
 
-	test_facilities:display( "M1 =~n~ts~nM2 =~n~ts~nM3 = M1 + M2 =~n~ts~n",
+	test_facilities:display( "M1 = ~tsM2 = ~tsM3 = M1 + M2 = ~ts",
 		[ matrix:to_string( M1 ), matrix:to_string( M2 ),
 		  matrix:to_string( M3 ) ] ),
 

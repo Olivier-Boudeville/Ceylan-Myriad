@@ -71,21 +71,21 @@ run() ->
 							 [ V3D, vector:to_compact_string( V3D ) ] ),
 
 	test_facilities:display( "User-friendly textual representation "
-		"for V3D = ~w:~n~ts", [ V3D, vector:to_user_string( V3D ) ] ),
+		"for V3D = ~w: ~ts", [ V3D, vector:to_user_string( V3D ) ] ),
 
 	test_facilities:display( "User-friendly textual representation "
-		"for VecP = ~w:~n~ts", [ VecP, vector:to_user_string( VecP ) ] ),
+		"for VecP = ~w: ~ts", [ VecP, vector:to_user_string( VecP ) ] ),
 
-	test_facilities:display( "V1 =~n~ts", [ vector:to_string( V1 ) ] ),
+	test_facilities:display( "V1 = ~ts", [ vector:to_string( V1 ) ] ),
 
 	V2 = [ 1.0, 2.0, 3.0 ],
-	test_facilities:display( "V2 =~n~ts", [ vector:to_string( V2 ) ] ),
+	test_facilities:display( "V2 = ~ts", [ vector:to_string( V2 ) ] ),
 
 	V3 = [ 11.0, 27.0, -4.0 ],
 
 	V3 = vector:add( V1, V2 ),
 
-	test_facilities:display( "V3 = V1 + V2 =~n~ts",
+	test_facilities:display( "V3 = V1 + V2 = ~ts",
 							 [ vector:to_string( V3 ) ] ),
 
 	DP = vector:dot_product( V1, V2 ),

@@ -97,7 +97,7 @@
 		  dot_product/2,
 		  check/1, check_integer/1,
 		  to_string/1, to_compact_string/1, to_basic_string/1,
-		  to_user_string/1 ] ).
+		  to_user_string/1, list_to_string/1 ] ).
 
 
 
@@ -290,7 +290,7 @@ to_basic_string( Vector ) ->
 	% Vectors supposed to be lists of floats:
 	ElemFormatStr = "[ " ++ ?coord_float_format ++ " ]~n",
 
-	FormatStr = text_utils:duplicate( 3, ElemFormatStr ),
+	FormatStr = "~n" ++ text_utils:duplicate( 3, ElemFormatStr ),
 
 	%trace_utils:debug_fmt( "FormatStr: ~ts; CoordList: ~w.",
 	%                       [ FormatStr, CoordList ] ),
@@ -312,9 +312,19 @@ to_user_string( Vector ) ->
 	% No need for ~ts here:
 	ElemFormatStr = "[ ~s ]~n",
 
-	FormatStr = text_utils:duplicate( 3, ElemFormatStr ),
+	FormatStr = "~n" ++ text_utils:duplicate( 3, ElemFormatStr ),
 
 	%trace_utils:debug_fmt( "FormatStr: ~ts; Strs: ~p.",
 	%                       [ FormatStr, Strs ] ),
 
 	text_utils:format( FormatStr, Strs ).
+
+
+
+% @doc Returns a textual representation of the specified list of 3D vectors;
+% full float precision is shown.
+%
+-spec list_to_string( [ vector3() ] ) -> ustring().
+list_to_string( Vectors ) ->
+	VecStrs = [ to_string( V ) || V <- Vectors ],
+	"~n" ++ text_utils:join( _Sep=",\n", VecStrs ).

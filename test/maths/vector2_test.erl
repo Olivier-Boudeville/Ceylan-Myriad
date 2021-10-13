@@ -37,6 +37,7 @@
 -include("test_facilities.hrl").
 
 
+
 % Comparisons are made of this specialised vector2 implementation with the one
 % for arbitrary vectors (see vector.erl).
 %
@@ -67,28 +68,28 @@ run() ->
 
 	FloatP = vector2:to_point( VecP ),
 
-	test_facilities:display( "Base textual representation for V2D = ~w:~n~ts",
+	test_facilities:display( "Base textual representation for V2D = ~w: ~ts",
 							 [ V2D, vector2:to_string( V2D ) ] ),
 
 	test_facilities:display( "Compact textual representation for V2D = ~w: ~ts",
 							 [ V2D, vector2:to_compact_string( V2D ) ] ),
 
 	test_facilities:display( "User-friendly textual representation "
-		"for V2D = ~w:~n~ts", [ V2D, vector2:to_user_string( V2D ) ] ),
+		"for V2D = ~w: ~ts", [ V2D, vector2:to_user_string( V2D ) ] ),
 
 	test_facilities:display( "User-friendly textual representation "
-		"for VecP = ~w:~n~ts", [ VecP, vector2:to_user_string( VecP ) ] ),
+		"for VecP = ~w: ~ts", [ VecP, vector2:to_user_string( VecP ) ] ),
 
-	test_facilities:display( "V1 =~n~ts", [ vector2:to_string( V1 ) ] ),
+	test_facilities:display( "V1 = ~ts", [ vector2:to_string( V1 ) ] ),
 
 	V2 = [ 1.0, 2.0 ],
-	test_facilities:display( "V2 =~n~ts", [ vector2:to_string( V2 ) ] ),
+	test_facilities:display( "V2 = ~ts", [ vector2:to_string( V2 ) ] ),
 
 	V3 = [ 11.0, 27.0 ],
 
 	V3 = vector2:add( V1, V2 ),
 
-	test_facilities:display( "V3 = V1 + V2 =~n~ts",
+	test_facilities:display( "V3 = V1 + V2 = ~ts",
 							 [ vector2:to_string( V3 ) ] ),
 
 	Sum = vector2:add( [ V1, V2, V3 ] ),
@@ -110,7 +111,7 @@ run() ->
 
 	UnitV3 = vector2:make_unit( V3 ),
 
-	test_facilities:display( "Unit V3 = ~n~ts", [ vector2:to_string( V3 ) ] ),
+	test_facilities:display( "Unit V3 = ~ts", [ vector2:to_string( V3 ) ] ),
 
 	true = math_utils:are_close( 1.0, vector2:magnitude( UnitV3 ) ),
 
@@ -118,5 +119,20 @@ run() ->
 	DP = vector:dot_product( V1, V2 ),
 	test_facilities:display( "V1.V2 = ~w", [ DP ] ),
 	DP = 60.0,
+
+	V = [9,1],
+
+	NL = vector2:normal_left( V ),
+	NR = vector2:normal_right( V ),
+
+	0 = vector2:dot_product( V, NL ),
+	0 = vector2:dot_product( V, NR ),
+
+	test_facilities:display( "The vector ~ts is a (non-unit) left normal "
+		"for vector~ts, and ~ts is a (non-unit) right normal.",
+		[ vector2:to_string( NL ), vector2:to_string( V ),
+		  vector2:to_string( NR ) ] ),
+
+	% See also linear_2D_test.erl for a longer test.
 
 	test_facilities:stop().

@@ -25,54 +25,54 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-% Unit tests for the <b>linear 2D facilities</b>.
+% @doc Unit tests for the <b>linear 2D facilities</b>.
 %
 % See the linear_2D tested module.
 %
 -module(linear_2D_test).
 
 
-
 % For run/0 export and al:
 -include("test_facilities.hrl").
 
 
+test_normal() ->
 
--spec run() -> no_return().
-run() ->
+	Ve = [9,1],
 
-	test_facilities:start( ?MODULE ),
+	NL = vector2:normal_left( Ve ),
+	NR = vector2:normal_right( Ve ),
 
-	V = {9,1},
+	[ PVe, PNL, PNR ] = [ point2:from_vector( V ) || V <- [ Ve, NL, NR ] ],
 
-	NL = linear_2D:normal_left( V ),
-	NR = linear_2D:normal_right( V ),
+	POrigin = point2:null(),
 
-	0 = linear_2D:dot_product( V, NL ),
-	0 = linear_2D:dot_product( V, NR ),
+	true  = linear_2D:is_strictly_on_the_right( PNR, POrigin, PVe ),
+	false = linear_2D:is_strictly_on_the_right( PNL, POrigin, PVe ),
+	false = linear_2D:is_strictly_on_the_right( PVe,  POrigin, PVe ),
 
-	test_facilities:display( "~p is a (non-unit) left normal for vector ~p, "
-		"and ~p is a right normal.", [NL,V,NR] ),
+	true  = linear_2D:is_strictly_on_the_right( PVe, POrigin, PNL ),
+	false = linear_2D:is_strictly_on_the_right( PVe, POrigin, PNR ),
 
-	true  = linear_2D:is_strictly_on_the_right( NR, {0,0}, V ),
-	false = linear_2D:is_strictly_on_the_right( NL, {0,0}, V ),
-	false = linear_2D:is_strictly_on_the_right( V,  {0,0}, V ),
+	NonVe = vector2:scale( Ve, -1 ),
+	PNonVe = point2:from_vector( NonVe ),
 
-	true  = linear_2D:is_strictly_on_the_right( V, {0,0}, NL ),
-	false = linear_2D:is_strictly_on_the_right( V, {0,0}, NR ),
+	true  = linear_2D:is_strictly_on_the_right( PNL, POrigin, PNonVe ),
+	false = linear_2D:is_strictly_on_the_right( PNR, POrigin, PNonVe ).
 
-	NonV = linear_2D:scale( V, -1 ),
 
-	true  = linear_2D:is_strictly_on_the_right( NL, {0,0}, NonV ),
-	false = linear_2D:is_strictly_on_the_right( NR, {0,0}, NonV ),
 
+test_pivot() ->
 	Pa    = {469,243},
 	Pivot = {348,268},
 	Pb    = {421,193},
+	false = linear_2D:is_strictly_on_the_right( Pa, Pivot, Pb ).
 
-	false = linear_2D:is_strictly_on_the_right( Pa, Pivot, Pb ),
 
-	A = {0,0},
+
+test_angle() ->
+
+	A = point2:null(),
 
 	B1 = {1,0},
 	B2 = {3,3},
@@ -82,17 +82,29 @@ run() ->
 	C2 = {-2,-1},
 	C3 = {1,-4},
 
-	[ test_facilities:display( "Unoriented angle between the vertex ~w and ~w, "
-		"~w is ~f degrees, oriented angle is ~f degrees.",
-		[ P1, P2, P3, linear_2D:abs_angle_deg( P1, P2, P3 ),
+	[ test_facilities:display( "Unoriented angle between point ~ts and "
+		"~ts / ~ts is ~f degrees, oriented angle is ~f degrees.~n",
+		[ point2:to_string( P1 ), point2:to_string( P2 ),
+		  point2:to_string( P3 ), linear_2D:abs_angle_deg( P1, P2, P3 ),
 		  linear_2D:angle_deg( P1, P2, P3 ) ] )
 				|| P1 <- [A], P2 <- [B1,B2,B3], P3 <- [C1,C2,C3] ],
 
-	true  = linear_2D:are_close( B1, linear_2D:translate(B1,{0.000001,0} )),
-	false = linear_2D:are_close( B1, A ),
+	true  = point2:are_close( B1, point2:translate(B1,[0.000001,0]) ),
+	false = point2:are_close( B1, A ),
 
-	true  = linear_2D:is_within( A, C1, 1 ),
-	true  = linear_2D:is_within( A, B1, 1-0.0000001 ),
-	false = linear_2D:is_within( A, B2, 2 ),
+	true  = point2:is_within( A, C1, 1 ),
+	true  = point2:is_within( A, B1, 1-0.0000001 ),
+	false = point2:is_within( A, B2, 2 ).
+
+
+
+-spec run() -> no_return().
+run() ->
+
+	test_facilities:start( ?MODULE ),
+
+	test_normal(),
+	test_pivot(),
+	test_angle(),
 
 	test_facilities:stop().

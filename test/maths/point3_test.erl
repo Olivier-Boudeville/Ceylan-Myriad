@@ -61,19 +61,19 @@ run() ->
 
 	P3 = point3:new( { 0, 222, 456789 } ),
 
-	test_facilities:display( "Base textual representation for ~w:~n~ts",
+	test_facilities:display( "Base textual representation for ~w: ~ts",
 							 [ P2, point3:to_string( P2 ) ] ),
 
 	test_facilities:display( "Compact textual representation for ~w: ~ts",
 							 [ P2, point3:to_compact_string( P2 ) ] ),
 
-	test_facilities:display( "Basic representation for ~w:~n~ts",
+	test_facilities:display( "Basic representation for ~w: ~ts",
 							 [ P2, point3:to_basic_string( P2 ) ] ),
 
-	test_facilities:display( "User-friendly representation for ~w:~n~ts",
+	test_facilities:display( "User-friendly representation for ~w: ~ts",
 							 [ P2, point3:to_user_string( P2 ) ] ),
 
-	test_facilities:display( "User-friendly representation for ~w:~n~ts",
+	test_facilities:display( "User-friendly representation for ~w: ~ts",
 							 [ P3, point3:to_user_string( P3 ) ] ),
 
 	test_facilities:stop().

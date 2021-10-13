@@ -68,9 +68,19 @@
 
 
 % Shorthands:
--type point() :: linear_2D:point().
--type color() :: gui_color:color().
 
+-type option_list() :: option_list:option_list().
+
+-type ustring() :: text_utils:ustring().
+
+-type integer_point2() :: vector2:integer_point2().
+
+-type color() :: gui_color:color().
+-type canvas() :: gui:canvas().
+
+-type distance() :: linear:distance().
+-type square_distance() :: linear:square_distance().
+-type area() :: linear:area().
 
 
 % Construction-related section.
@@ -79,16 +89,17 @@
 % @doc Returns a triangle (defined as a polygon) corresponding to the specified
 % three vertices.
 %
--spec get_triangle( point(), point(), point() ) -> polygon().
-get_triangle( V1, V2, V3 ) ->
-	#polygon{ vertices=[ V1, V2, V3 ] }.
+-spec get_triangle( integer_point2(), integer_point2(), integer_point2() ) ->
+			polygon().
+get_triangle( P1, P2, P3 ) ->
+	#polygon{ vertices=[ P1, P2, P3 ] }.
 
 
 
 % @doc Returns an upright square corresponding to the specified center and edge
 % length.
 %
--spec get_upright_square( point(), linear:distance() ) -> polygon().
+-spec get_upright_square( integer_point2(), distance() ) -> polygon().
 get_upright_square( _Center={Xc,Yc}, EdgeLength ) ->
 	Offset = erlang:round( EdgeLength / 2 ),
 	X1 = Xc - Offset,
@@ -100,7 +111,7 @@ get_upright_square( _Center={Xc,Yc}, EdgeLength ) ->
 
 
 % @doc Returns a new polygon whose vertices are the specified ones.
--spec get_polygon( [ point() ] ) -> polygon().
+-spec get_polygon( [ integer_point2() ] ) -> polygon().
 get_polygon( Vertices ) ->
 	#polygon{ vertices=Vertices }.
 
@@ -109,14 +120,14 @@ get_polygon( Vertices ) ->
 % Operations on polygons.
 
 
-% @doc Returns a polygon diameter, ie two points in the polygon which are at the
-% maximum distance one of the other.
+% @doc Returns a polygon diameter, that is two points in the polygon that are at
+% the maximum distance one of the other.
 %
-% Returns {V1,V2,D} when V1 and V2 are the endpoints of a diameter and D is its
-% square length: `D = square_distance(V1, V2)'.
+% Returns {P1,P2,D} when P1 and P2 are the endpoints of a diameter and SquareD
+% is its square length: `SquareD = square_distance(P1, P2)'.
 %
 -spec get_diameter( polygon() ) ->
-							{ point(), point(), linear:square_distance() }.
+				{ integer_point2(), integer_point2(), square_distance() }.
 get_diameter( Polygon ) ->
 
 	case Polygon#polygon.vertices of
@@ -135,13 +146,14 @@ get_diameter( Polygon ) ->
 
 
 
-% @doc Returns the smallest upright rectangle which encompasses the specified
+% @doc Returns the smallest upright rectangle that encompasses the specified
 % polygon.
 %
-% More precisely, {TopLeftCorner, BottomRightCorner} is returned, which defines
-% the rectangle from two opposite points.
+% More precisely a {TopLeftCorner, BottomRightCorner} pair is returned, which
+% defines the rectangle from two opposite points.
 %
--spec get_smallest_enclosing_rectangle( polygon() ) -> { point(), point() }.
+-spec get_smallest_enclosing_rectangle( polygon() ) ->
+			{ integer_point2(), integer_point2() }.
 get_smallest_enclosing_rectangle( Polygon ) ->
 
 	case Polygon#polygon.vertices of
@@ -165,13 +177,13 @@ get_smallest_enclosing_rectangle( Polygon ) ->
 %
 % Vertices can be listed clockwise or counter-clockwise.
 %
-% Should there be no absolute value computed, and if the polygon was convex,
+% Should there be no absolute value computed, and should the polygon be convex,
 % then the area would be positive iff vertices were listed in counter-clockwise
 % order.
 %
 % See [http://en.wikipedia.org/wiki/Polygon#Area_and_centroid].
 %
--spec get_area( polygon() ) -> linear:area().
+-spec get_area( polygon() ) -> area().
 get_area( Polygon ) ->
 	erlang:abs( get_signed_area( Polygon#polygon.vertices ) ).
 
@@ -199,8 +211,6 @@ is_in_clockwise_order( Polygon ) ->
 %
 % Polygon must have at least one vertex.
 %
-% Sign is either 'undefined' (initially), or 'positive', or 'negative'.
-%
 -spec is_convex( polygon() ) -> boolean().
 is_convex( Polygon ) ->
 	[ First | T ] = Polygon#polygon.vertices,
@@ -209,6 +219,8 @@ is_convex( Polygon ) ->
 
 
 % (helper)
+%
+% Sign is either 'undefined' (initially), or 'positive', or 'negative'.
 is_convex( [], _Previous, _Sign ) ->
 	% Not interrupted, thus convex (includes polygon having only one vertex):
 	true;
@@ -216,8 +228,8 @@ is_convex( [], _Previous, _Sign ) ->
 is_convex( [ P={X,Y} | T ], _Previous={Xp,Yp}, _Sign=undefined ) ->
 
 	% Setting the first sign:
-	%trace_utils:debug_fmt( "initial: previous= ~w, next= ~w, sum=~w.~n",
-	%						[ {Xp,Yp}, P, Xp*Y-X*Y ] ),
+	%trace_utils:debug_fmt( "initial: previous= ~w, next= ~w, sum=~w.",
+	%                       [ {Xp,Yp}, P, Xp*Y-X*Y ] ),
 
 	FirstSign = case Xp*Y-X*Yp of
 
@@ -235,7 +247,7 @@ is_convex( [ P={X,Y} | T ], _Previous={Xp,Yp}, _Sign=undefined ) ->
 is_convex( [ P={X,Y} | T ], _Previous={Xp,Yp}, Sign ) ->
 
 	%trace_utils:debug_fmt( "Iteration points: previous= ~w, next= ~w, "
-	%                       "sum=~w.~n", [ {Xp,Yp}, P, Xp*Y-X*Yp ] ),
+	%                       "sum=~w.", [ {Xp,Yp}, P, Xp*Y-X*Yp ] ),
 
 	% Checking if still obtaining the same sign:
 	NewSign = case Xp*Y-X*Yp of
@@ -248,7 +260,7 @@ is_convex( [ P={X,Y} | T ], _Previous={Xp,Yp}, Sign ) ->
 
 	end,
 
-	%trace_utils:debug_fmt( "Current sign: ~ts, new one: ~ts.~n",
+	%trace_utils:debug_fmt( "Current sign: ~ts, new one: ~ts.",
 	%                       [ Sign, NewSign ] ),
 
 	case NewSign of
@@ -273,8 +285,8 @@ is_convex( [ P={X,Y} | T ], _Previous={Xp,Yp}, Sign ) ->
 -spec set_edge_color( color(), polygon() ) -> polygon().
 set_edge_color( Color, Polygon ) ->
 	Polygon#polygon{ rendering=option_list:set(
-			{ edge_color, gui_color:get_color( Color ) },
-			Polygon#polygon.rendering ) }.
+			_Entry={ edge_color, gui_color:get_color( Color ) },
+			_OptionList=Polygon#polygon.rendering ) }.
 
 
 
@@ -287,15 +299,15 @@ get_edge_color( Polygon ) ->
 
 
 
-% @doc Sets the fill color of specified polygon.
+% @doc Sets the fill color of the specified polygon.
 %
 % Use 'none' to disable filling.
 %
 -spec set_fill_color( color(), polygon() ) -> polygon().
 set_fill_color( Color, Polygon ) ->
 	Polygon#polygon{ rendering=option_list:set(
-			{ fill_color, gui_color:get_color( Color ) },
-			Polygon#polygon.rendering ) }.
+			_Entry={ fill_color, gui_color:get_color( Color ) },
+			_OptionList=Polygon#polygon.rendering ) }.
 
 
 
@@ -304,14 +316,14 @@ set_fill_color( Color, Polygon ) ->
 %
 -spec get_fill_color( polygon() ) -> maybe( color() ).
 get_fill_color( Polygon ) ->
-	option_list:lookup( fill, Polygon#polygon.rendering ).
+	option_list:lookup( _Key=fill, _OptionList=Polygon#polygon.rendering ).
 
 
 
 % @doc Returns options for the rendering of this polygon that can be directly
 % passed to the graphical back-end.
 %
--spec get_rendering_options( polygon() ) -> option_list:option_list().
+-spec get_rendering_options( polygon() ) -> option_list().
 get_rendering_options( Polygon ) ->
 	Polygon#polygon.rendering.
 
@@ -321,11 +333,11 @@ get_rendering_options( Polygon ) ->
 %
 % Throws an exception if the polygon is not valid.
 %
--spec render( polygon(), gui:canvas() ) -> void().
+-spec render( polygon(), canvas() ) -> void().
 render( Polygon, Canvas ) ->
 
 	%trace_utils:debug_fmt( "Rendering polygon:~n~ts.",
-	% [ to_string( Polygon ) ] ),
+	%                       [ to_string( Polygon ) ] ),
 
 	case Polygon#polygon.vertices of
 
@@ -339,7 +351,7 @@ render( Polygon, Canvas ) ->
 
 			Opts = get_rendering_options( Polygon ),
 
-			case option_list:lookup( edge_color, Opts ) of
+			case option_list:lookup( _K=edge_color, Opts ) of
 
 				undefined ->
 					ok;
@@ -364,7 +376,7 @@ render( Polygon, Canvas ) ->
 
 			case Polygon#polygon.bounding_box of
 
-				{ circle, Center, SquareRadius } ->
+				#circle{ center=Center, square_radius=SquareRadius } ->
 					gui:draw_circle( Canvas, Center,
 									 round( math:sqrt( SquareRadius ) ) ),
 					gui:draw_cross( Canvas, Center, _EdgeLength=4 );
@@ -379,7 +391,7 @@ render( Polygon, Canvas ) ->
 
 
 % @doc Returns a textual description of the specified polygon.
--spec to_string( polygon() ) -> text_utils:ustring().
+-spec to_string( polygon() ) -> ustring().
 to_string( Polygon ) ->
 
 	BBText = case Polygon#polygon.bounding_box of
@@ -392,13 +404,11 @@ to_string( Polygon ) ->
 
 	end,
 
-	io_lib:format(        "  + vertices: ~w~n", [ Polygon#polygon.vertices ] )
-		++ io_lib:format( "  + edge color: ~w~n",
-						  [ get_edge_color( Polygon ) ] )
-		++ io_lib:format( "  + fill color: ~w~n",
-						  [ get_fill_color( Polygon ) ] )
-		++ io_lib:format( "  + bounding-box: ~ts~n", [ BBText ] ).
-
+	text_utils:format(
+	  "  + vertices: ~w~n  + edge color: ~w~n  + fill color: ~w~n"
+	  "  + bounding-box: ~ts~n",
+	  [ Polygon#polygon.vertices, get_edge_color( Polygon ),
+		get_fill_color( Polygon ), BBText ] ).
 
 
 
@@ -416,11 +426,9 @@ to_string( Polygon ) ->
 -spec update_bounding_box( 'lazy_circle', polygon() ) -> polygon().
 update_bounding_box( lazy_circle, Polygon ) ->
 
-	{ Center, SquareRadius } =
-		bounding_box:get_lazy_circle_box( Polygon#polygon.vertices ),
+	CircleBBox = bounding_box:get_lazy_circle_box( Polygon#polygon.vertices ),
 
-	Polygon#polygon{ bounding_box=#circle{ center=Center,
-										   square_radius=SquareRadius } }.
+	Polygon#polygon{ bounding_box=CircleBBox }.
 
 
 
@@ -433,7 +441,7 @@ update_bounding_box( lazy_circle, Polygon ) ->
 %
 % Vertices can be listed clockwise or counter-clockwise.
 %
--spec get_signed_area( [ point() ] ) -> linear:area().
+-spec get_signed_area( [ integer_point2() ] ) -> area().
 get_signed_area( _Vertices=[ First | T ] ) ->
 
 	% We will start from the second point, as we always deal with the current

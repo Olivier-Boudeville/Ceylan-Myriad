@@ -203,7 +203,7 @@ translate( _P={X,Y}, _V=[Vx,Vy] ) ->
 % @doc Returns a vector V made from the specified two points: V=P2-P1.
 -spec vectorize( point2(), point2() ) -> vector2().
 vectorize( _P1={X1,Y1}, _P2={X2,Y2} ) ->
-	{ X2-X1, Y2-Y1 }.
+	[ X2-X1, Y2-Y1 ].
 
 
 
@@ -297,7 +297,7 @@ to_basic_string( _Point={ X, Y } ) ->
 
 	ElemFormatStr = "{ " ++ CoordFmt ++ " }~n",
 
-	FormatStr = ElemFormatStr ++ ElemFormatStr,
+	FormatStr = "~n" ++ ElemFormatStr ++ ElemFormatStr,
 
 	CoordList = [ X, Y ],
 
@@ -321,7 +321,7 @@ to_user_string( _Point={ X, Y } ) ->
 	% No need for ~ts here:
 	ElemFormatStr = "{ ~s }~n",
 
-	FormatStr = ElemFormatStr ++ ElemFormatStr,
+	FormatStr = "~n" ++ ElemFormatStr ++ ElemFormatStr,
 
 	%trace_utils:debug_fmt( "FormatStr: ~ts; Strs: ~p.",
 	%                       [ FormatStr, Strs ] ),
@@ -369,4 +369,4 @@ to_string( { X, Y }, DigitCountAfterComma ) ->
 
 	end,
 
-	text_utils:format( "[ ~ts, ~ts ]", [ XString, YString ] ).
+	text_utils:format( "~n{ ~ts, ~ts }", [ XString, YString ] ).

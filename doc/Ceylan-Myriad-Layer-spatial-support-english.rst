@@ -7,13 +7,10 @@ Spatial Support
 ===============
 
 
-.. Note:: Work in progress only. Stay tuned!
-
-
 Motivation
 ----------
 
-The purpose of this section is to describe the Myriad-provided operations for various spatial operations, notably for 3D support.
+The purpose of this section is to describe the Myriad-provided operations for various **spatial operations**, notably for 3D support.
 
 We introduced these elements mostly for convenience, to have them readily available in a simple, controllable form, pure Erlang, easy to enrich and without involving extra dependencies.
 
@@ -23,6 +20,10 @@ This support is by no means expected to be complete, battle-tested or efficient.
 - in the Erlang community: `Wings 3D <http://www.wings3d.com/>`_, an open-source modeller `whose sources <https://github.com/dgud/wings/tree/master/src>`_ of course implement many spatial operations
 
 - integrating advanced, non-Erlang libraries such as ones for linear operations implementing the `BLAS <https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms>`_ specification; using the C binding (*CBLAS interface*) of a renown implementation (optimised at length and making use of processor-specific extensions, such as `LAPACK <https://en.wikipedia.org/wiki/LAPACK>`_) and making it available to Erlang typically thanks to either NIFs (most suitable approach here) or a C-node (possibly thanks to `Ceylan-Seaplus <http://seaplus.esperide.org>`_) would certainly be an option - all the more relevant that a bulk of linear operations could be offset to it; some Erlang projects target similar objectives, like `linalg <https://github.com/sklassen/erlang-linalg-native>`_ or `matrex <https://github.com/versilov/matrex>`_; more generally a library such as `GSL <https://www.gnu.org/software/gsl/>`_ (the GNU Scientific Library) ideally could be integrated as a whole to Erlang
+
+
+In order to check the functional services and the correctness of operations, we recommend the use of `Scilab <https://www.scilab.org/>`_ (example on Arch: ``yay -Sy scilab``). `GNU Octave <https://www.gnu.org/software/octave/>`_ could be another good choice (example on Arch: ``pacman -Sy octave``).
+
 
 
 Conventions

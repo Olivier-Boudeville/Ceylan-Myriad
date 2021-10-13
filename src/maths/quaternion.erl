@@ -100,7 +100,7 @@ to_user_string( Q ) ->
 	% No need for ~ts here (different representation from vector):
 	ElemFormatStr = "| ~s |~n",
 
-	FormatStr = text_utils:duplicate( length( Coords ), ElemFormatStr ),
+	FormatStr = "~n" ++ text_utils:duplicate( length( Coords ), ElemFormatStr ),
 
 	%trace_utils:debug_fmt( "FormatStr: ~ts; Strs: ~p.",
 	%                       [ FormatStr, Strs ] ),

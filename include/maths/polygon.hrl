@@ -30,7 +30,7 @@
 -record( polygon, {
 
 	% List of points:
-	vertices = [] :: [ linear_2D:point() ],
+	vertices = [] :: [ point2:integer_point2() ],
 
 
 	% Rendering information, if any, as an option list.

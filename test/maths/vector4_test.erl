@@ -67,33 +67,39 @@ run() ->
 
 	FloatP = vector4:to_point( VecP ),
 
-	test_facilities:display( "Base textual representation for V4D = ~w:~n~ts",
+	test_facilities:display( "Base textual representation for V4D = ~w: ~ts",
 							 [ V4D, vector4:to_string( V4D ) ] ),
 
 	test_facilities:display( "Compact textual representation for V4D = ~w: ~ts",
 							 [ V4D, vector4:to_compact_string( V4D ) ] ),
 
 	test_facilities:display( "User-friendly textual representation "
-		"for V4D = ~w:~n~ts", [ V4D, vector4:to_user_string( V4D ) ] ),
+		"for V4D = ~w: ~ts", [ V4D, vector4:to_user_string( V4D ) ] ),
 
 	test_facilities:display( "User-friendly textual representation "
-		"for VecP = ~w:~n~ts", [ VecP, vector4:to_user_string( VecP ) ] ),
+		"for VecP = ~w: ~ts", [ VecP, vector4:to_user_string( VecP ) ] ),
 
-	test_facilities:display( "V1 =~n~ts", [ vector4:to_string( V1 ) ] ),
+	test_facilities:display( "V1 = ~ts", [ vector4:to_string( V1 ) ] ),
 
 	V2 = [ 1.0, 2.0, 4.0, 8.71 ],
-	test_facilities:display( "V2 =~n~ts", [ vector4:to_string( V2 ) ] ),
+	test_facilities:display( "V2 = ~ts", [ vector4:to_string( V2 ) ] ),
+
+	V3 = [ 0.0, 0.0, 0.0, 3.0 ],
 
 	V4 = [ 11.0, 27.0, -3.0, 10.71 ],
 
 	V4 = vector4:add( V1, V2 ),
 
-	test_facilities:display( "V4 = V1 + V2 =~n~ts",
+	test_facilities:display( "V4 = V1 + V2 = ~ts",
 							 [ vector4:to_string( V4 ) ] ),
 
 	Sum = vector4:add( [ V1, V2, V4 ] ),
 	Sum = vector:add( [ V1, V2, V4 ] ),
 	Sum = vector4:scale( V4, 2.0 ),
+
+	Vectors = [ V1, V2, V3, V4 ],
+
+	[ 20.0, 13.0, 8.0, 10.0 ] = Sum = vector4:add( Vectors ),
 
 	Y1 = [ 0.0, 1.0, 0.0, 0.0 ],
 	vector4:check( Y1 ),
@@ -103,22 +109,23 @@ run() ->
 
 	% Not defined for 4D: Y1 = vector4:cross_product( Z1, X1 ),
 
-	MinusV4 = [ -11.0, -27.0, 4.0, -10.71 ],
+	MinusV4 = [ -11.0, -27.0, 3.0, -10.71 ],
 	MinusV4 = vector4:scale( V4, -1.0 ),
 
-	true = math_utils:are_close( 980.7041, vector3:square_magnitude( V4 ) ),
+	true = math_utils:are_close( 973.7041, vector4:square_magnitude( V4 ) ),
 
+	% Expected to be exact:
 	1.0 = vector4:magnitude( X1 ),
 
 	UnitV4 = vector4:make_unit( V4 ),
 
-	test_facilities:display( "Unit V4 = ~n~ts", [ vector4:to_string( V4 ) ] ),
+	test_facilities:display( "Unit V4 = ~ts", [ vector4:to_string( V4 ) ] ),
 
 	true = math_utils:are_close( 1.0, vector4:magnitude( UnitV4 ) ),
 
 	DP = vector4:dot_product( V1, V2 ),
 	DP = vector:dot_product( V1, V2 ),
 	test_facilities:display( "V1.V2 = ~w", [ DP ] ),
-	DP = 49.0,
+	DP = 49.42,
 
 	test_facilities:stop().
