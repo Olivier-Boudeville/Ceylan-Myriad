@@ -86,7 +86,7 @@ new( Entries ) ->
 
 
 
-% @doc Sets, in specified option list, the specified entry.
+% @doc Sets, in the specified option list, the specified entry.
 %
 % Returns an updated option list.
 %
