@@ -61,7 +61,7 @@ run() ->
 
 	P3 = point:new( { 0, 222, 456789 } ),
 
-	test_facilities:display( "Base textual representation for ~w: ~ts",
+	test_facilities:display( "Base textual representation for ~w:~n~ts",
 							 [ P2, point:to_string( P2 ) ] ),
 
 	test_facilities:display( "Compact textual representation for ~w: ~ts",

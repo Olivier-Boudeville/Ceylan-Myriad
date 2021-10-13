@@ -81,6 +81,12 @@ run() ->
 	test_facilities:display( "Transpose of M = ~ts is: ~ts",
 		[ matrix:to_string( M ), matrix:to_string( TransposeM )] ),
 
+	TransposeM = [ [ 0.0, 7777.0 ], [ 1.0, 0.0 ], [2.0, 1/3 ] ],
+	TransposeM = matrix:transpose( M ),
+
+	test_facilities:display( "Transpose of M =~n~ts is:~n~ts",
+		[ matrix:to_string( M ), matrix:to_string( TransposeM )] ),
+
 	M2 = matrix:identity( 3 ),
 
 	M3 = matrix:add( M1, M2 ),
