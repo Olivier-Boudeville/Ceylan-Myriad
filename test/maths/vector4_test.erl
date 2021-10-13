@@ -99,7 +99,7 @@ run() ->
 
 	Vectors = [ V1, V2, V3, V4 ],
 
-	[ 20.0, 13.0, 8.0, 10.0 ] = Sum = vector4:add( Vectors ),
+	[ 22.0, 54.0, -6.0, 24.42 ] = Sum = vector4:add( Vectors ),
 
 	Y1 = [ 0.0, 1.0, 0.0, 0.0 ],
 	vector4:check( Y1 ),
