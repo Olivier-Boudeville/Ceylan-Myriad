@@ -88,6 +88,8 @@ run() ->
 	test_facilities:display( "V3 = V1 + V2 = ~ts",
 							 [ vector:to_string( V3 ) ] ),
 
+	[ 11.0, 54.0, -12.0 ] = vector:mult( V2, V3 ),
+
 	DP = vector:dot_product( V1, V2 ),
 	test_facilities:display( "V1.V2 = ~w", [ DP ] ),
 	DP = 39.0,

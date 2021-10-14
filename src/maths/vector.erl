@@ -107,7 +107,7 @@
 -export([ new/1, null/1,
 		  from_point/1, to_point/1,
 		  dimension/1,
-		  add/2, add/1,
+		  add/2, add/1, mult/2,
 		  square_magnitude/1, magnitude/1, scale/2, make_unit/1,
 		  dot_product/2,
 		  check/1, check_integer/1,
@@ -181,9 +181,27 @@ dimension( V ) ->
 -spec add( vector(), vector() ) -> vector().
 add( V1, V2 ) ->
 	lists:zipwith( fun( C1, C2 ) ->
-					   C1 + C2
+						C1 + C2
 				   end,
 				   V1, V2 ).
+
+
+
+% @doc Returns the Hadamard product of the two specified vectors.
+%
+% Each coordinate of the result vector is the product of the coordinates of the
+% same ranks in the two input vectors.
+%
+-spec mult( vector(), vector() ) -> vector().
+mult( V1, V2 ) ->
+	mult( V1, V2, _Acc=[] ).
+
+
+mult( _V1=[], _V2=[], Acc ) ->
+	lists:reverse( Acc );
+
+mult( _V1=[ C1 | T1 ], _V2=[ C2 | T2 ], Acc ) ->
+	mult( T1, T2, [ C1*C2 | Acc ] ).
 
 
 
@@ -308,7 +326,7 @@ to_basic_string( Vector ) ->
 	% Vectors supposed to be lists of floats:
 	ElemFormatStr = "[ " ++ ?coord_float_format ++ " ]~n",
 
-	FormatStr = text_utils:duplicate( length( Vector ), ElemFormatStr ),
+	FormatStr = "~n" ++ text_utils:duplicate( length( Vector ), ElemFormatStr ),
 
 	%trace_utils:debug_fmt( "FormatStr: ~ts; CoordList: ~w.",
 	%                       [ FormatStr, CoordList ] ),
@@ -330,7 +348,7 @@ to_user_string( Vector ) ->
 	% No need for ~ts here:
 	ElemFormatStr = "[ ~s ]~n",
 
-	FormatStr = text_utils:duplicate( length( Vector ), ElemFormatStr ),
+	FormatStr = "~n" ++ text_utils:duplicate( length( Vector ), ElemFormatStr ),
 
 	%trace_utils:debug_fmt( "FormatStr: ~ts; Strs: ~p.",
 	%                       [ FormatStr, Strs ] ),

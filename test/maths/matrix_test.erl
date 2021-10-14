@@ -64,6 +64,7 @@ run() ->
 
 	test_facilities:display( "Id(~B) = ~ts", [ Dim, matrix:to_string( Id ) ] ),
 
+	% Octave: M1 = [ 1, 2, 3; 4, 5, 6; 7, 8, 9 ]
 	M1 = matrix:new( [ [ 1, 2, 3 ], [ 4, 5, 6 ], [ 7, 8, 9 ] ] ),
 
 	8.0 = matrix:get_element( 3, 2, M1 ),
@@ -99,5 +100,20 @@ run() ->
 	test_facilities:display( "M1 = ~tsM2 = ~tsM3 = M1 + M2 = ~ts",
 		[ matrix:to_string( M1 ), matrix:to_string( M2 ),
 		  matrix:to_string( M3 ) ] ),
+
+
+	M1M2 = matrix:mult( M1, M2 ),
+
+	M1 = M1M2,
+
+
+	% M4 = [ 11, -2, 5; 4, 8, 0; -7, 10, 1 ]
+	M4 = matrix:new( [ [ 11, -2, 5 ], [ 4, 8, 0 ], [ -7, 10, 1 ] ] ),
+	test_facilities:display( "M4 = ~ts", [ matrix:to_string( M4 ) ] ),
+
+	M5 = matrix:new( [ [ -2, 44, 8 ], [ 22, 92, 26 ], [ 46, 140, 44 ] ] ),
+
+	M5 = matrix:mult( M1, M4 ),
+	test_facilities:display( "M5 = M1*M4 = ~ts", [ matrix:to_string( M5 ) ] ),
 
 	test_facilities:stop().

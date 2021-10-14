@@ -48,7 +48,7 @@
 %
 % No dependent types, not able to declare a matrix(M,N) type.
 %
-% A matrix having M rows and N columns (indices starting at 1) are usually
+% A matrix having M rows and N columns (indices starting at 1) is usually
 % iterated through based on variables named R (thus in [1..M]) and C (in
 % [1..N]).
 
@@ -75,13 +75,13 @@
 % order (all rows shall contain the same number of elements).
 
 
--type specialised_matrix() :: linear_2D:matrix()
-							| linear_3D:matrix()
-							| linear_4D:matrix().
+-type specialised_matrix() :: matrix2:matrix()
+							| matrix3:matrix()
+							| matrix4:matrix().
 % Regroups all types of specialised matrices.
 
 
--type dimensions() :: { dimension(), dimension() }.
+-type dimensions() :: { RowCount:: dimension(), ColumnCount :: dimension() }.
 % Number of rows and columns of a matrix.
 
 
@@ -94,13 +94,16 @@
 		  identity/1,
 		  dimensions/1, row/2, column/2, get_element/3, set_element/4,
 		  transpose/1,
-		  add/2,
-		  get_specialised_module/1, specialise/1, unspecialise/1,
+		  add/2, mult/2,
+		  get_specialised_module_of/1, get_specialised_module_for/1,
+		  specialise/1, unspecialise/1,
 		  check/1,
 		  to_string/1, to_basic_string/1, to_user_string/1 ] ).
 
 
 % Shorthands:
+
+-type module_name() :: basic_utils:module_name().
 
 -type ustring() :: text_utils:ustring().
 
@@ -109,6 +112,7 @@
 
 -type vector() :: vector:vector().
 -type user_vector() :: vector:user_vector().
+
 
 
 % @doc Returns an (arbitrary) matrix corresponding to the user-specified one.
@@ -144,7 +148,7 @@ null( RowCount, ColumnCount ) ->
 -spec identity( dimension() ) -> matrix().
 identity( Dim ) ->
 	[ [ case R of C -> 1.0; _ -> 0.0 end
-		  || C <- lists:seq( 1, Dim ) ] || R <- lists:seq( 1, Dim ) ].
+			|| C <- lists:seq( 1, Dim ) ] || R <- lists:seq( 1, Dim ) ].
 
 
 
@@ -211,12 +215,19 @@ transpose( _Rows=[ [] | _T ], AccTranspose ) ->
 	lists:reverse( AccTranspose );
 
 transpose( NonExhaustedRows, AccTranspose ) ->
-	{ TransposeRow, ChoppedRows } =
-		extract_first_elements( NonExhaustedRows, _AccElems=[], _AccRows=[] ),
+	{ TransposeRow, ChoppedRows } = extract_first_elements( NonExhaustedRows ),
 	transpose( ChoppedRows, [ TransposeRow | AccTranspose ] ).
 
 
+
+% Extracts the first element of each row, returning a pair made of all the
+% extracted elements and of the shrunk rows: {ExtractedElements, ChoppedRows}.
+%
 % (helper)
+extract_first_elements( Rows ) ->
+	extract_first_elements( Rows, _AccElems=[], _AccRows=[] ).
+
+
 extract_first_elements( _Rows=[], AccElems, AccRows ) ->
 	{ lists:reverse( AccElems ), lists:reverse( AccRows ) };
 
@@ -237,13 +248,44 @@ add( M1, M2 ) ->
 
 
 
+% @doc Returns the multiplication of the two specified matrices, supposedly of
+% the right dimensions (the number of rows of one being equal to the number of
+% columns of the other, and reciprocally).
+%
+-spec mult( matrix(), matrix() ) -> matrix().
+mult( M1, M2 ) ->
+	TranspM2 = transpose( M2 ),
+	mult( M1, TranspM2, _AccRows=[] ).
+
+
+% (helper)
+mult( _M1=[], _M2, AccRows ) ->
+	lists:reverse( AccRows );
+
+mult( _M1=[ R1 | T1 ], TranspM2, AccRows ) ->
+	MultRow = apply_columns( R1, TranspM2, _Acc=[] ),
+	mult( T1, TranspM2, [ MultRow | AccRows ] ).
+
+
+% Computes the dot products between the specified row and each column of the
+% transposed matrix.
+%
+apply_columns( _R, _Columns=[], Acc ) ->
+	lists:reverse( Acc );
+
+apply_columns( R, _Columns=[ Col | T ], Acc ) ->
+	Coord = vector:dot_product( R, Col ),
+	apply_columns( R, T, [ Coord | Acc ] ).
+
+
+
 % @doc Returns a specialised matrix corresponding to the specified arbitrary
 % matrix.
 %
 -spec specialise( matrix() ) -> specialised_matrix().
 specialise( M ) ->
 
-	MatMod = get_specialised_module( M ),
+	MatMod = get_specialised_module_for( M ),
 
 	MatMod:from_matrix( M ).
 
@@ -256,43 +298,39 @@ specialise( M ) ->
 unspecialise( M ) ->
 
 	% Gets the record tag:
-	MatMod = case element( _RecordTagIndex=1, M ) of
-
-		matrix2 ->
-			linear_2D;
-
-		matrix3 ->
-			linear_3D;
-
-		matrix4 ->
-			linear_4D;
-
-		Other ->
-			throw( { unexpected_specialised_record, Other } )
-
-	end,
+	MatMod = element( _RecordTagIndex=1, M ),
 
 	MatMod:to_arbitrary( M ).
+
+
+
+% @doc Returns the module corresponding to the specified specialised matrix.
+-spec get_specialised_module_of( matrix() ) -> module_name().
+get_specialised_module_of( M )  ->
+	element( _RecordTagIndex=1, M ).
 
 
 
 % @doc Returns the module corresponding to the specialised matrix version that
 % would apply to specified (arbitrary) matrix.
 %
--spec get_specialised_module( matrix() ) -> basic_utils:module_name().
+-spec get_specialised_module_for( matrix() ) -> module_name().
 % Determines row count:
-get_specialised_module( M ) when length( M ) == 2 ->
-	linear_2D;
+get_specialised_module_for( M ) when length( M ) == 2 ->
+   matrix2;
 
-get_specialised_module( M ) when length( M ) == 2 ->
-	linear_3D;
+get_specialised_module_for( M ) when length( M ) == 2 ->
+   matrix3;
 
-get_specialised_module( M ) when length( M ) == 3 ->
-	linear_4D;
+get_specialised_module_for( M ) when length( M ) == 3 ->
+   matrix4;
 
-get_specialised_module( M ) ->
-	throw( { unsupported_dimension, length( M ) } ).
+get_specialised_module_for( M ) ->
+   throw( { unsupported_dimension, length( M ) } ).
 
+
+
+% Determines row count:
 
 
 % @doc Checks that the specified matrix is legit, and returns it.
@@ -335,7 +373,7 @@ to_basic_string( Matrix ) ->
 
 	RowCount = length( Matrix ),
 
-	FormatStr = text_utils:duplicate( RowCount, RowFormatStr ),
+	FormatStr = "~n" ++ text_utils:duplicate( RowCount, RowFormatStr ),
 
 	Elems = list_utils:flatten_once( Matrix ),
 
@@ -366,6 +404,6 @@ to_user_string( Matrix ) ->
 
 	RowCount = length( Matrix ),
 
-	FormatStr = text_utils:duplicate( RowCount, RowFormatStr ),
+	FormatStr = "~n" ++ text_utils:duplicate( RowCount, RowFormatStr ),
 
 	text_utils:format( FormatStr, Strs ).
