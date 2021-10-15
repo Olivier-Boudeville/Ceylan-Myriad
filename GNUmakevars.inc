@@ -129,6 +129,7 @@ endif
 #  - user_interface: all support regarding user interfaces of all sorts
 #  - linear: for operations on vectors, matrices, etc.
 #  - bounding_boxes: for computations of bounding boxes
+#  - gltf_support: for the support of the glTf 2.0 format
 #
 # Defining debug flags (at least the most verbose are by default commented-out):
 ifeq ($(ENABLE_DEBUG),true)
@@ -139,6 +140,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_registration
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gltf_support
 endif
 
 # Defining check flags:
