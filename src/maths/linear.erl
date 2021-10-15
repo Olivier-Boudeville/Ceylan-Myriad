@@ -157,6 +157,10 @@
 % The indice/index of an element (ex: of a vertex in an array thereof).
 
 
+-type indexed_triangle() :: { indice(), indice(), indice() }.
+% A definition of a triangle, based on the indices of its three vertices.
+
+
 -export_type([ dimension/0,
 			   coordinate/0, integer_coordinate/0, any_coordinate/0,
 			   user_coordinate/0,
@@ -168,7 +172,7 @@
 			   scalar/0, specialised_point/0, specialised_vector/0,
 			   specialised_matrix/0, specialised_type/0,
 			   specialised_vertex/0, specialised_texture_coordinates/0,
-			   indice/0 ]).
+			   indice/0, indexed_triangle/0 ]).
 
 
 -export([ coord_to_string/1, coords_to_best_width_strings/1 ] ).

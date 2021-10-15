@@ -34,8 +34,7 @@
 -record( gltf_content, {
 
 	% The index of the default scene (if any) of this content:
-	default_scene = undefined ::
-			basic_utils:maybe( gltf_support:scene_index() ),
+	default_scene = undefined :: maybe( gltf_support:scene_index() ),
 
 	% The in-order definition of all known scenes:
 	scenes = [] :: [ gltf_support:scene() ],
@@ -64,7 +63,7 @@
 -record( gltf_scene, {
 
 	% The name (if any) of this scene:
-	name :: basic_utils:maybe( text_utils:bin_string() ),
+	name :: maybe( text_utils:bin_string() ),
 
 	% The indices of the nodes of this scene:
 	nodes :: [ gltf_support:node_index() ] } ).
@@ -75,16 +74,16 @@
 -record( gltf_scene_node, {
 
 	% The name (if any) of this node:
-	name :: basic_utils:maybe( text_utils:bin_string() ),
+	name :: maybe( text_utils:bin_string() ),
 
 	% The index of the mesh (if any) associated to this node:
-	mesh :: basic_utils:maybe( gltf_support:mesh_index() ),
+	mesh :: maybe( gltf_support:mesh_index() ),
 
 	% The quaternion (if any) defining the rotation associated to this node:
-	rotation :: basic_utils:maybe( quaternion:quaternion() ),
+	rotation :: maybe( quaternion:quaternion() ),
 
 	% The translation (if any) associated to this node:
-	translation :: basic_utils:maybe( vector3:vector3() ) } ).
+	translation :: maybe( vector3:vector3() ) } ).
 
 
 
@@ -99,7 +98,7 @@
 -record( gltf_mesh, {
 
 	% The name (if any) of this mesh:
-	name :: basic_utils:maybe( text_utils:bin_string() ),
+	name :: maybe( text_utils:bin_string() ),
 
 	primitives :: [ gltf_support:primitive() ] } ).
 
@@ -118,9 +117,12 @@
 
 	attributes :: gltf_support:attributes(),
 
-	indices :: basic_utils:maybe( gltf_support:accessor_index() ),
+	indices :: maybe( gltf_support:accessor_index() ),
 
-	material :: basic_utils:maybe( gltf_support:accessor_index() ) } ).
+	material :: maybe( gltf_support:accessor_index() ),
+
+	% The topology type of primitives to render:
+	mode :: maybe( gltf_support:topology_type() ) } ).
 
 
 
@@ -129,10 +131,10 @@
 %
 -record( gltf_attributes, {
 
-	position   :: basic_utils:maybe( gltf_support:accessor_index() ),
-	normal     :: basic_utils:maybe( gltf_support:accessor_index() ),
-	tangent    :: basic_utils:maybe( gltf_support:accessor_index() ),
-	texcoord_0 :: basic_utils:maybe( gltf_support:accessor_index() )
+	position   :: gltf_support:accessor_index(),
+	normal     :: maybe( gltf_support:accessor_index() ),
+	tangent    :: maybe( gltf_support:accessor_index() ),
+	texcoord_0 :: maybe( gltf_support:accessor_index() )
 
 	% Also: TEXCOORD_n, COLOR_n, JOINTS_n, WEIGHTS_n.
 
@@ -144,14 +146,14 @@
 -record( gltf_material, {
 
 	% The name (if any) of this material:
-	name :: basic_utils:maybe( text_utils:bin_string() ),
+	name :: maybe( text_utils:bin_string() ),
 
 	% Tells whether this mesh is double-sided:
-	double_sided :: basic_utils:maybe( boolean() ),
+	double_sided :: maybe( boolean() ),
 
 	% The Physically-Based Rendering (PBR) metallic roughness of this material:
 	pbr_metallic_roughness ::
-					basic_utils:maybe( gltf_support:pbr_metallic_roughness() )
+					maybe( gltf_support:pbr_metallic_roughness() )
 
 						} ).
 
@@ -176,7 +178,7 @@
 %
 -record( gltf_accessor, {
 
-	buffer_view :: basic_utils:maybe( gltf_support:buffer_view_index() ),
+	buffer_view :: maybe( gltf_support:buffer_view_index() ),
 
 	% Specifies if the accessor’s elements are scalars, vectors, or matrices:
 	% (ex: 'vector4')
@@ -190,10 +192,10 @@
 	count :: basic_utils:count(),
 
 	% The maximum value (if any) of each component in this accessor:
-	max :: basic_utils:maybe( [ gltf_support:component_value() ] ),
+	max :: maybe( [ gltf_support:component_value() ] ),
 
 	% The minimum value (if any) of each component in this accessor:
-	min :: basic_utils:maybe( [ gltf_support:component_value() ] ) } ).
+	min :: maybe( [ gltf_support:component_value() ] ) } ).
 
 
 
@@ -225,7 +227,7 @@
 	% The byte offset of the beginning of this view compared to the beginning of
 	% its buffer:
 	%
-	offset  :: basic_utils:maybe( system_utils:byte_offset() ),
+	offset  :: maybe( system_utils:byte_offset() ),
 
 	% The size of this view into its buffer:
 	size :: system_utils:byte_size() } ).

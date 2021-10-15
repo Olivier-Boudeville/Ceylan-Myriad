@@ -153,6 +153,20 @@
 % The value of a component of an accessor.
 
 
+-type topology_type() :: 'points' | 'lines' | 'line_loop' | 'line_strip'
+						| 'triangles' | 'triangle_strip' | 'triangle_fan'.
+% The (Myriad-defined) topology type of a primitive to render.
+% Default is 'triangles'.
+
+
+-type gltf_topology_type() :: enum().
+% Lower-level glTf specification of the datatype of a component.
+
+
+-type topology() :: [ indexed_triangle() ].
+% An index-based actual topology of a mesh.
+
+
 -type buffer_view_target() :: 'array_buffer' | 'element_array_buffer'.
 % The hint representing the intended GPU buffer type to use with this buffer
 % view.
@@ -181,12 +195,15 @@
 			   element_type/0, gltf_element_type/0,
 			   component_type/0, gltf_component_type/0,
 			   component_value/0,
+			   topology_type/0, gltf_topology_type/0, topology/0,
 			   buffer_view_target/0, gltf_buffer_view_target/0,
 			   generator_name/0 ]).
 
 
--export([ write_gltf_content/3, write_gltf_content/4,
+-export([ get_blank_content/0, write_gltf_content/3, write_gltf_content/4,
 		  read_gltf_content/2,
+
+		  add_primitive/6,
 		  decode_primitive/4,
 		  decode_vertices/5,
 
@@ -203,8 +220,13 @@
 		  get_component_type_associations/0,
 		  component_type_to_gltf/1, gltf_to_component_type/1,
 
+		  get_topology_type_associations/0,
+		  topology_type_to_gltf/1, gltf_to_topology_type/1,
+
 		  get_buffer_view_target_associations/0,
-		  buffer_view_target_to_gltf/1, gltf_to_buffer_view_target/1 ]).
+		  buffer_view_target_to_gltf/1, gltf_to_buffer_view_target/1,
+
+		  indices_to_triangles/1 ]).
 
 
 
@@ -228,6 +250,7 @@
 
 -type dimension() :: linear:dimension().
 -type indice() :: linear:indice().
+-type indexed_triangle() :: linear:indexed_triangle().
 
 
 -type specialised_point() :: linear:specialised_point().
@@ -307,6 +330,14 @@
 
 
 -define( default_generator_name, "Ceylan-Myriad glTf exporter" ).
+
+
+
+% @doc Returns a blank glTf content.
+-spec get_blank_content() -> content().
+get_blank_content() ->
+	#gltf_content{}.
+
 
 
 % @doc Writes the specified glTF content in the specified file, which is
@@ -765,6 +796,39 @@ gltf_to_component_type( GltfComponentType ) ->
 
 
 
+
+% @doc Returns the two-way associations regarding Myriad/glTf topology types.
+%
+% Refer to
+% https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#_mesh_primitive_mode
+%
+-spec get_topology_type_associations() ->
+			bijective_table( topology_type(), gltf_topology_type() ).
+get_topology_type_associations() ->
+	bijective_table:new( [ { points, 0 },
+						   { lines, 1 },
+						   { line_loop, 2 },
+						   { line_strip, 3 },
+						   { triangles, 4 },
+						   { triangle_strip, 5 },
+						   { triangle_fan, 6 } ] ).
+
+
+% @doc Converts a (Myriad-level) topology type into a (lower-level) glTf one.
+-spec topology_type_to_gltf( topology_type() ) -> gltf_topology_type().
+topology_type_to_gltf( TopologyType ) ->
+	bijective_table:get_second_for( TopologyType,
+									get_topology_type_associations() ).
+
+
+% @doc Converts a (lower-level) glTf component type into a Myriad-level one.
+-spec gltf_to_topology_type( gltf_topology_type() ) -> topology_type().
+gltf_to_topology_type( GltfTopologyTypeType ) ->
+	bijective_table:get_first_for( GltfTopologyTypeType,
+								   get_topology_type_associations() ).
+
+
+
 % @doc Returns the two-way associations regarding Myriad/glTf buffer-view
 % targets.
 %
@@ -829,7 +893,7 @@ decode_primitive( MeshIndex, PrimitiveIndex, #gltf_content{
 		PositionAccessorIndex ->
 			{ Vertices, VertBuffTable } = decode_vertices(
 				PositionAccessorIndex, Accessors, Buffers, BufferViews,
-				 BufferTable ),
+				BufferTable ),
 
 			trace_utils:debug_fmt( "The ~B extracted vertices are:~n~p",
 								   [ length( Vertices ), Vertices ] ),
@@ -927,7 +991,7 @@ decode_vertices( AccessorIndex, Accessors, Buffers, BufferViews,
 		BufferViewIndex, BufferViews, Buffers, BufferTable ),
 
 	%trace_utils:debug_fmt( "Binary content of view is:~n~p",
-	%					   [ BinViewContent ] ),
+	%                       [ BinViewContent ] ),
 
 	{ extract_points( BinViewContent, PointCount, AccessorElemType,
 					  AccessorComponentType ), NewBufferTable }.
@@ -959,7 +1023,7 @@ decode_normals( AccessorIndex, Accessors, Buffers, BufferViews,
 		BufferViewIndex, BufferViews, Buffers, BufferTable ),
 
 	%trace_utils:debug_fmt( "Binary content of view is:~n~p",
-	%					   [ BinViewContent ] ),
+	%                       [ BinViewContent ] ),
 
 	{ extract_vectors( BinViewContent, VectorCount, AccessorElemType,
 					   AccessorComponentType ), NewBufferTable }.
@@ -992,10 +1056,56 @@ decode_texture_coordinates( AccessorIndex, Accessors, Buffers, BufferViews,
 		BufferViewIndex, BufferViews, Buffers, BufferTable ),
 
 	%trace_utils:debug_fmt( "Binary content of view is:~n~p",
-	%					   [ BinViewContent ] ),
+	%                       [ BinViewContent ] ),
 
 	{ extract_vectors( BinViewContent, CoordCount, AccessorElemType,
 					   AccessorComponentType ), NewBufferTable }.
+
+
+
+% @doc Decodes the indices defined in the specified glTf content.
+-spec decode_indices( accessor_index(), [ accessor() ], [ buffer() ],
+	[ buffer_view() ], buffer_table() ) -> { [ indice() ], buffer_table() }.
+decode_indices( AccessorIndex, Accessors, Buffers, BufferViews,
+				BufferTable ) ->
+
+	_PositionAccessor = #gltf_accessor{
+							buffer_view=BufferViewIndex,
+							element_type=AccessorElemType,
+							component_type=AccessorComponentType,
+							count=PointCount,
+							max=IMax,
+							min=IMin } =
+		list_utils:get_element_at( Accessors, AccessorIndex+1 ),
+
+	trace_utils:debug_fmt( "To decode indices, expecting ~B ~ts elements "
+		"of component type ~ts, whose minimum is ~ts and maximum is ~ts.",
+		[ PointCount, AccessorElemType, AccessorComponentType, IMin, IMax ] ),
+
+	{ BinViewContent, NewBufferTable } = get_buffer_view_binary(
+		BufferViewIndex, BufferViews, Buffers, BufferTable ),
+
+	%trace_utils:debug_fmt( "Binary content of view is:~n~p",
+	%                       [ BinViewContent ] ),
+
+	% Check:
+	AccessorElemType = scalar,
+
+	{ extract_indices( BinViewContent, PointCount, AccessorComponentType ),
+	  NewBufferTable }.
+
+
+
+% @doc Encodes specified primitive information into specified glTF content.
+%
+% Directly embeds the resulting buffer.
+%
+-spec add_primitive( [ specialised_vertex() ], [ specialised_normal() ],
+		[ specialised_texture_coordinates() ], topology_type(), topology(),
+		content() ) -> content().
+add_primitive( _Vertices, _Normals, _TexCoords, _TopologyType=triangles,
+			   _IndexedTriangles, #gltf_content{} ) ->
+	throw( todo ).
 
 
 
@@ -1030,44 +1140,10 @@ get_buffer_view_binary( BufferViewIndex, BufferViews, Buffers,
 	%					   [ BinBufferContent ] ),
 
 	% No stride managed:
-	BinViewContent = binary:part( BinBufferContent, _Pos=ViewOffset,
-								  _Len=ViewSize ),
+	BinViewContent =
+		binary:part( BinBufferContent, _Pos=ViewOffset, _Len=ViewSize ),
 
 	{ BinViewContent, NewBufferTable }.
-
-
-
-% @doc Decodes the indices defined in the specified glTf content.
--spec decode_indices( accessor_index(), [ accessor() ], [ buffer() ],
-					   [ buffer_view() ], buffer_table() ) ->
-			{ [ specialised_vertex() ], buffer_table() }.
-decode_indices( AccessorIndex, Accessors, Buffers, BufferViews,
-				 BufferTable ) ->
-
-	_PositionAccessor = #gltf_accessor{
-							buffer_view=BufferViewIndex,
-							element_type=AccessorElemType,
-							component_type=AccessorComponentType,
-							count=PointCount,
-							max=IMax,
-							min=IMin } =
-		list_utils:get_element_at( Accessors, AccessorIndex+1 ),
-
-	trace_utils:debug_fmt( "To decode indices, expecting ~B ~ts elements "
-		"of component type ~ts, whose minimum is ~ts and maximum is ~ts.",
-		[ PointCount, AccessorElemType, AccessorComponentType, IMin, IMax ] ),
-
-	{ BinViewContent, NewBufferTable } = get_buffer_view_binary(
-		BufferViewIndex, BufferViews, Buffers, BufferTable ),
-
-	%trace_utils:debug_fmt( "Binary content of view is:~n~p",
-	%					   [ BinViewContent ] ),
-
-	% Check:
-	AccessorElemType = scalar,
-
-	{ extract_indices( BinViewContent, PointCount, AccessorComponentType ),
-	  NewBufferTable }.
 
 
 
@@ -1239,3 +1315,21 @@ gather_as( FinalType, Dim, Components, Acc ) ->
 	end,
 
 	gather_as( FinalType, Dim, Rest, [ Element | Acc ] ).
+
+
+
+% @doc Returns the list of (indexed) triangles corresponding to the specified
+% flat list of vertex indices.
+%
+-spec indices_to_triangles( [ indice() ] ) -> [ indexed_triangle() ].
+indices_to_triangles( Indices ) ->
+	indices_to_triangles( Indices, _Acc=[] ).
+
+
+% (helper)
+indices_to_triangles( _Indices=[], Acc ) ->
+	lists:reverse( Acc );
+
+indices_to_triangles( _Indices=[ I1, I2, I3 | T ], Acc ) ->
+	Triangle = { I1, I2, I3 },
+	indices_to_triangles( T, [ Triangle | Acc ] ).
