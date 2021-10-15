@@ -214,7 +214,7 @@ ensure_pids( Other ) ->
 %
 -spec get_element_at( list(), positive_index() ) -> element().
 get_element_at( List, Index ) ->
-	%io:format( " - getting element #~B of ~w~n", [ Index, List ] ),
+	%trace_utils:debug_fmt( " - getting element #~B of ~w", [ Index, List ] ),
 	lists:nth( Index, List ).
 
 
