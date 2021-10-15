@@ -52,7 +52,7 @@
 % numbers.
 
 
--type dimension() :: basic_utils:count().
+-type dimension() :: count().
 % The dimension of a space (ex: number of rows or columns for a matrix).
 
 
@@ -123,6 +123,40 @@
 % Area of a surface.
 
 
+
+-type scalar() :: coordinate().
+% A scalar, that is a 1-D vector or square matrix.
+
+-type specialised_point() :: point2() | point3() | point4().
+% Any kind of specialised (fixed-size - not of arbitrary dimension) point.
+
+-type specialised_vector() :: vector2() | vector3() | vector4().
+% Any kind of specialised (fixed-size - not of arbitrary dimension) vector.
+% Any kind of basic, fixed-size (not of arbitrary dimension) vector.
+
+-type specialised_matrix() :: matrix2() | matrix3() | matrix4().
+% Any kind of specialised (fixed-size - not of arbitrary dimension) matrix.
+
+
+-type specialised_type() :: scalar() | specialised_point()
+						  | specialised_vector() | specialised_matrix().
+% The well-known specialised (fixed-size) linear types that are of use when
+% performing geometry.
+
+
+-type specialised_vertex() :: specialised_point().
+% Any kind of specialised (fixed-size - not of arbitrary dimension) vertex.
+
+
+-type specialised_texture_coordinates() :: specialised_point().
+% Any kind of specialised (fixed-size - not of arbitrary dimension) texture
+% coordinates.
+
+
+-type indice() :: basic_utils:zero_index().
+% The indice/index of an element (ex: of a vertex in an array thereof).
+
+
 -export_type([ dimension/0,
 			   coordinate/0, integer_coordinate/0, any_coordinate/0,
 			   user_coordinate/0,
@@ -130,7 +164,11 @@
 			   radius/0, integer_radius/0, any_radius/0,
 			   square_distance/0, integer_square_distance/0,
 			   any_square_distance/0,
-			   area/0  ]).
+			   area/0,
+			   scalar/0, specialised_point/0, specialised_vector/0,
+			   specialised_matrix/0, specialised_type/0,
+			   specialised_vertex/0, specialised_texture_coordinates/0,
+			   indice/0 ]).
 
 
 -export([ coord_to_string/1, coords_to_best_width_strings/1 ] ).
@@ -140,7 +178,19 @@
 
 -type ustring() :: text_utils:ustring().
 
-%-type count() :: basic_utils:count().
+-type count() :: specialised_utils:count().
+
+-type point2() :: point2:point2().
+-type point3() :: point3:point3().
+-type point4() :: point4:point4().
+
+-type vector2() :: vector2:vector2().
+-type vector3() :: vector3:vector3().
+-type vector4() :: vector4:vector4().
+
+-type matrix2() :: matrix2:matrix2().
+-type matrix3() :: matrix3:matrix3().
+-type matrix4() :: matrix4:matrix4().
 
 
 

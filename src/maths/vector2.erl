@@ -86,8 +86,12 @@
 % Defined for documentation purpose.
 
 
+-type texture_vector2() :: vector2().
+% A 2D vector containing texture coordinates.
+
+
 -export_type([ user_vector2/0, vector2/0, integer_vector2/0, any_vector2/0,
-			   unit_vector2/0, normal2/0, unit_normal2/0 ]).
+			   unit_vector2/0, normal2/0, unit_normal2/0, texture_vector2/0 ]).
 
 
 -export([ new/1, new/2, new_integer/2, null/0,

@@ -69,7 +69,15 @@
 % A point in a 4D space, with any numerical coordinates (4 of them).
 
 
--export_type([ user_point4/0, point4/0, integer_point4/0, any_point4/0 ]).
+-type vertex4() :: point4().
+% A 4D (floating-point) vertex of a mesh.
+
+-type integer_vertex4() :: point4().
+% A 4D integer vertex of a mesh.
+
+
+-export_type([ user_point4/0, point4/0, integer_point4/0, any_point4/0,
+			   vertex4/0, integer_vertex4/0 ]).
 
 
 -export([ new/1, new/4, new_integer/4, null/0,

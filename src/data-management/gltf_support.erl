@@ -34,6 +34,10 @@
 -module(gltf_support).
 
 
+-type enum() :: pos_integer().
+% An enumeration, in the glTf sense.
+
+
 % For the various gltf_* records:
 -include("gltf_support.hrl").
 
@@ -123,16 +127,25 @@
 % A typed view into a buffer view that contains raw binary data.
 
 
--type element_type() :: 'scalar' | 'vector2' | 'vector3'.
-% Specifies if the elements of an accessor are scalars, vectors, or matrices.
-% The datatype of a component of that element is to be specified with
-% component_type/0.
+
+-type element_type() :: 'scalar' | 'vector2' | 'vector3' | 'vector4'
+					  | 'matrix2' | 'matrix3' | 'matrix4'.
+% Specifies if the glTf elements of an accessor are scalars, vectors, or
+% matrices.
+%
+% The (Myriad-defined) datatype of a component of that element is to be
+% specified with component_type/0.
+
+
+-type gltf_element_type() :: bin_string().
+% Lower-level glTf specification of the datatype of a component.
+
 
 
 -type component_type() :: type_utils:low_level_type().
 % The datatype of a component of an accessor, for instance 'uint16'.
 
--type gltf_component_type() :: pos_integer().
+-type gltf_component_type() :: enum().
 % A glTf lower-level type identifier. Ex: '5120' for sint8.
 
 
@@ -140,11 +153,21 @@
 % The value of a component of an accessor.
 
 
+-type buffer_view_target() :: 'array_buffer' | 'element_array_buffer'.
+% The hint representing the intended GPU buffer type to use with this buffer
+% view.
+
+
+-type gltf_buffer_view_target() :: enum().
+% The glTf lower-level hint representing the intended GPU buffer type to use
+% with this buffer view.
+
+
 -type generator_name() :: ustring().
 % The name chosen for this glTf generator.
 
 
--export_type([ content/0,
+-export_type([ enum/0, content/0,
 			   scene_index/0, scene/0,
 			   node_index/0, scene_node/0,
 			   mesh_index/0, mesh/0,
@@ -155,18 +178,39 @@
 			   buffer_index/0, buffer/0,
 			   buffer_view_index/0, buffer_view/0,
 			   accessor_index/0, accessor/0,
+			   element_type/0, gltf_element_type/0,
 			   component_type/0, gltf_component_type/0,
 			   component_value/0,
+			   buffer_view_target/0, gltf_buffer_view_target/0,
 			   generator_name/0 ]).
 
 
 -export([ write_gltf_content/3, write_gltf_content/4,
+		  read_gltf_content/2,
+		  decode_primitive/4,
+		  decode_vertices/5,
+
+		  extract_points/4, extract_vectors/4,
+
 		  file_to_gltf_buffer_embedded/1, bin_to_gltf_buffer_embedded/1,
-		  element_type_to_gltf/1, component_type_to_gltf/1 ]).
+		  gltf_buffer_embedded_to_bin/1,
+
+		  gltf_content_to_json/3, json_to_gltf_content/2,
+
+		  get_element_type_associations/0,
+		  element_type_to_gltf/1, gltf_to_element_type/1,
+
+		  get_component_type_associations/0,
+		  component_type_to_gltf/1, gltf_to_component_type/1,
+
+		  get_buffer_view_target_associations/0,
+		  buffer_view_target_to_gltf/1, gltf_to_buffer_view_target/1 ]).
 
 
 
 % Shorthands:
+
+-type count() :: basic_utils:count().
 
 -type zero_index() :: basic_utils:zero_index().
 
@@ -175,15 +219,62 @@
 
 -type any_file_path() :: file_utils:any_file_path().
 
+-type bijective_table( F, S ) :: bijective_table:bijective_table( F, S ).
+
 -type json() :: json_utils:json().
 -type json_term() :: json_utils:json_term().
 -type parser_state() :: json_utils:parser_state().
 
 
-%-type vector3() :: vector3:vector3().
+-type dimension() :: linear:dimension().
+-type indice() :: linear:indice().
+
+
+-type specialised_point() :: linear:specialised_point().
+-type specialised_vector() :: linear:specialised_vector().
+
+-type specialised_vertex() :: linear:specialised_vertex().
+
+-type specialised_normal() :: linear:specialised_normal().
+
+-type specialised_texture_coordinates() ::
+		linear:specialised_texture_coordinates().
+
+
+
+-type scalar() :: linear:scalar().
+
+-type point2() :: point2:point2().
+-type point3() :: point3:point3().
+-type point4() :: point4:point4().
+
+-type vector2() :: vector2:vector2().
+-type vector3() :: vector3:vector3().
+-type vector4() :: vector4:vector4().
+
+-type matrix2() :: matrix2:matrix2().
+-type matrix3() :: matrix3:matrix3().
+-type matrix4() :: matrix4:matrix4().
+
 %-type quaternion() :: quaternion:quaternion().
 
-%-type render_color() :: gui_color:render_color().
+
+% Local types:
+
+-type final_type() :: 'point' | 'vector'.
+% As, when decoding, we prefer discriminating points (ex: vertices) and vectors
+% (ex: normals).
+
+
+-type extractable_elements() :: scalar()
+							  | point2() | point3() | point4()
+							  | vector2() | vector3() | vector4()
+							  | matrix2() | matrix3() | matrix4().
+% The elements that can be extracted from a buffer-view.
+
+-type buffer_table() :: table( buffer_index(), binary() ).
+% A table associating to a given buffer index its in-memory, decoded,
+% readily-usable binary.
 
 
 % Design notes:
@@ -195,6 +286,20 @@
 
 % Implementation notes:
 %
+% https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#binary-data-storage
+%
+% All buffer data MUST use little endian byte order.
+%
+% Floating-point data MUST use IEEE-754 single (not double) precision format,
+% hence on 32 bit.
+%
+% Values of NaN, +Infinity, and -Infinity MUST NOT be present.
+
+% In order to encode/decode, we study each primitive defined a given mesh. A
+% primitive defines in its attributes typically where position, normal and
+% texture coordinates can be found, by designating for each the index of an
+% accessor.
+
 
 % So that we can use the 'table' pseudo-module, as JSON parsers rely on maps:
 -define( table_type, map_hashtable ).
@@ -204,9 +309,9 @@
 -define( default_generator_name, "Ceylan-Myriad glTf exporter" ).
 
 
-
-% @doc Writes the specified glTF scene in the specified file, which is expected
-% not to exist, using a default generator name.
+% @doc Writes the specified glTF content in the specified file, which is
+% expected not to exist, using a default generator name and the specified state
+% of the JSON parser.
 %
 -spec write_gltf_content( content(), any_file_path(), parser_state() ) ->
 			void().
@@ -216,27 +321,47 @@ write_gltf_content( GlTfContent, OutputFilePath, ParserState ) ->
 
 
 
-% @doc Writes the specified glTF scene in the specified file, which is expected
-% not to exist, using specified generator name.
+% @doc Writes the specified glTF content in the specified file, which is
+% expected not to exist, using specified generator name and the specified state
+% of the JSON parser.
 %
 -spec write_gltf_content( content(), any_file_path(), generator_name(),
 						  parser_state() ) -> void().
 write_gltf_content( GlTfContent, OutputFilePath, GeneratorName,
 					ParserState ) ->
 
-	cond_utils:if_defined( gltf_exporter_verbose, trace_utils:debug_fmt(
-		"Writing glTf scene in '~ts' as '~ts'.",
+	cond_utils:if_defined( myriad_debug_gltf_support, trace_utils:debug_fmt(
+		"Writing glTf content in '~ts' as '~ts'.",
 		[ OutputFilePath, GeneratorName ] ) ),
 
-	JsonContent = gltf_content_to_json( GlTfContent, GeneratorName,
-										ParserState ),
+	BinJsonContent = gltf_content_to_json( GlTfContent, GeneratorName,
+										   ParserState ),
 
-	% Already JSON-encoded:
-	%json_utils:to_json_file( JsonContent, OutputFilePath, ParserState ).
-
-	file_utils:write_whole( OutputFilePath, JsonContent ).
+	file_utils:write_whole( OutputFilePath, BinJsonContent ).
 
 
+
+% @doc Reads the glTf content defined in the specified file.
+-spec read_gltf_content( any_file_path(), parser_state() ) -> content().
+read_gltf_content( InputFilePath, ParserState ) ->
+
+	cond_utils:if_defined( myriad_debug_gltf_support, trace_utils:debug_fmt(
+		"Reading glTf content from '~ts'.", [ InputFilePath ] ) ),
+
+	case file_utils:is_existing_file_or_link( InputFilePath ) of
+
+		true ->
+			ok;
+
+		false ->
+			trace_utils:error_fmt( "Error, input glTf file '~ts' not found.",
+								   [ InputFilePath ] )
+
+	end,
+
+	BinJsonFContent = file_utils:read_whole( InputFilePath ),
+
+	json_to_gltf_content( BinJsonFContent, ParserState ).
 
 
 
@@ -248,7 +373,7 @@ file_to_gltf_buffer_embedded( FilePath ) ->
 
 	BinContent = file_utils:read_whole( FilePath ),
 
-	cond_utils:if_defined( gltf_exporter_verbose, trace_utils:debug_fmt(
+	cond_utils:if_defined( myriad_debug_gltf_support, trace_utils:debug_fmt(
 		"Embedding file '~ts' (size: ~B bytes) in a glTf buffer.",
 		[ FilePath, size( BinContent ) ] ) ),
 
@@ -270,6 +395,37 @@ bin_to_gltf_buffer_embedded( BinContent ) ->
 	#gltf_buffer{ uri=Base64Uri,
 				  size=ByteCount }.
 
+
+
+% @doc Returns a binary corresponding to the specified glTf buffer.
+-spec gltf_buffer_embedded_to_bin( buffer() ) -> binary().
+gltf_buffer_embedded_to_bin( #gltf_buffer{ uri=Base64Uri,
+										   size=ByteCount } ) ->
+
+	case Base64Uri of
+
+		"data:application/octet-stream;base64," ++ Base64Content ->
+			Bin = base64:decode( Base64Content ),
+
+			case size( Bin ) of
+
+				ByteCount ->
+					Bin;
+
+				OtherCount ->
+					throw( { binary_decoding_failed, wrong_size,
+						{ expected, ByteCount }, { got, OtherCount } } )
+
+			end;
+
+		_ ->
+			throw( { mime_prefix_not_found, Base64Uri } )
+
+	end.
+
+
+
+% Subsection to convert from internal (glTf) representation to JSON.
 
 
 % @doc Converts the specified glTf content into a JSON counterpart.
@@ -314,7 +470,7 @@ gltf_content_to_json( #gltf_content{ default_scene=DefaultSceneId,
 	% Thus from json_term() to json():
 	JsonContent = json_utils:to_json( BaseTable, ParserState ),
 
-	cond_utils:if_defined( gltf_exporter_verbose, trace_utils:debug_fmt(
+	cond_utils:if_defined( myriad_debug_gltf_support, trace_utils:debug_fmt(
 		"Converted glTf content in following JSON:~n~p", [ JsonContent ] ) ),
 
 	JsonContent.
@@ -449,14 +605,14 @@ gltf_accessors_to_json( Accessors ) ->
 
 
 gltf_accessor_to_json( #gltf_accessor{ buffer_view=MaybeBufferViewIndex,
-									   type=ElemType,
+									   element_type=ElemType,
 									   component_type=ComponentType,
 									   count=ElemCount,
 									   max=MaybeMax,
 									   min=MaybeMin } ) ->
 	BaseTable = table:new( [
 		{ <<"type">>, element_type_to_gltf( ElemType ) },
-		{ <<"component_type">>, ComponentType },
+		{ <<"componentType">>, component_type_to_gltf( ComponentType ) },
 		{ <<"count">>, ElemCount } ] ),
 
 	table:add_maybe_entries( [
@@ -465,61 +621,6 @@ gltf_accessor_to_json( #gltf_accessor{ buffer_view=MaybeBufferViewIndex,
 		{ <<"min">>, MaybeMin } ], BaseTable ).
 
 
-
-% @doc Converts a component type into a (lower-level) glTf one.
-%
-% Refer to
-% https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#accessor-data-types
-%
--spec element_type_to_gltf( element_type() ) -> bin_string().
-element_type_to_gltf( scalar ) ->
-	<<"SCALAR">>;
-
-element_type_to_gltf( vector2 ) ->
-	<<"VEC2">>;
-
-element_type_to_gltf( vector3 ) ->
-	<<"VEC3">>;
-
-element_type_to_gltf( vector4 ) ->
-	<<"VEC4">>;
-
-element_type_to_gltf( matrix2 ) ->
-	<<"MAT2">>;
-
-element_type_to_gltf( matrix3 ) ->
-	<<"MAT3">>;
-
-element_type_to_gltf( matrix4 ) ->
-	<<"MAT4">>.
-
-
-
-% @doc Converts a component type into a (lower-level) glTf one.
-%
-% Refer to
-% https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#accessor-data-types
-%
--spec component_type_to_gltf( component_type() ) -> gltf_component_type().
-component_type_to_gltf( uint8 ) ->
-	5121;
-
-component_type_to_gltf( sint8 ) ->
-	5120;
-
-component_type_to_gltf( uint16 ) ->
-	5123;
-
-component_type_to_gltf( sint16 ) ->
-	5122;
-
-% No sint32 supported by glTf.
-
-component_type_to_gltf( uint32 ) ->
-	5125;
-
-component_type_to_gltf( float ) ->
-	5126.
 
 
 
@@ -559,3 +660,582 @@ gltf_buffer_to_json( #gltf_buffer{ uri=UriStr,
 							 { <<"uri">>, BinUri } ] ),
 
 	table:add_maybe_entries( [], BaseTable ).
+
+
+
+
+% Subsection to convert from JSON to internal (glTf) representation.
+
+
+% @doc Converts the specified JSON content into an (internal) glTf counterpart.
+-spec json_to_gltf_content( json(), parser_state() ) -> content().
+json_to_gltf_content( _JSonContent, _ParserState ) ->
+
+	% Use gltf_to_*
+
+	DefaultSceneId = fixme,
+	Scenes  = fixme,
+	Nodes = fixme,
+	Materials = fixme,
+	Meshes = fixme,
+	Accessors = fixme,
+	BufferViews = fixme,
+	Buffers  = fixme,
+
+	throw( not_implemented_yet ),
+
+	#gltf_content{ default_scene=DefaultSceneId,
+				   scenes=Scenes,
+				   nodes=Nodes,
+				   materials=Materials,
+				   meshes=Meshes,
+				   accessors=Accessors,
+				   buffer_views=BufferViews,
+				   buffers=Buffers }.
+
+
+
+% Conversions between lower-level (glTf) and higher-level (Myriad) symbols.
+%
+% They are done through bijective tables whose first entries are Myriad ones,
+% and whose second ones are glTf ones.
+
+
+
+% @doc Returns the two-way associations regarding Myriad/glTf element types.
+%
+% Refer to
+% https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#accessor-data-types
+%
+-spec get_element_type_associations() ->
+			bijective_table( element_type(), gltf_element_type() ).
+get_element_type_associations() ->
+	bijective_table:new( [ { scalar, <<"SCALAR">> },
+						   { vector2, <<"VEC2">> },
+						   { vector3, <<"VEC3">> },
+						   { vector4, <<"VEC4">> },
+						   { matrix2, <<"MAT2">> },
+						   { matrix3, <<"MAT3">> },
+						   { matrix4, <<"MAT4">> } ] ).
+
+
+% @doc Converts a (Myriad-level) component type into a (lower-level) glTf one.
+-spec element_type_to_gltf( element_type() ) -> gltf_element_type().
+element_type_to_gltf( ElemType ) ->
+	bijective_table:get_second_for( ElemType, get_element_type_associations() ).
+
+
+% @doc Converts a (lower-level) glTf component type into a Myriad-level one.
+-spec gltf_to_element_type( gltf_element_type() ) -> element_type().
+gltf_to_element_type( GltfElemType ) ->
+	bijective_table:get_first_for( GltfElemType,
+								   get_element_type_associations() ).
+
+
+
+% @doc Returns the two-way associations regarding Myriad/glTf component types.
+%
+% Refer to
+% https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#accessor-data-types
+%
+-spec get_component_type_associations() ->
+			bijective_table( component_type(), gltf_component_type() ).
+get_component_type_associations() ->
+	bijective_table:new( [ { uint8, 5121 },
+						   { sint8, 5120 },
+						   { uint16, 5123 },
+						   { sint16, 5122 },
+						   % No sint32 supported by glTf.
+						   { uint32,5125 },
+						   { float, 5126} ] ).
+
+
+% @doc Converts a (Myriad-level) component type into a (lower-level) glTf one.
+-spec component_type_to_gltf( component_type() ) -> gltf_component_type().
+component_type_to_gltf( ComponentType ) ->
+	bijective_table:get_second_for( ComponentType,
+									get_component_type_associations() ).
+
+
+% @doc Converts a (lower-level) glTf component type into a Myriad-level one.
+-spec gltf_to_component_type( gltf_component_type() ) -> component_type().
+gltf_to_component_type( GltfComponentType ) ->
+	bijective_table:get_first_for( GltfComponentType,
+								   get_component_type_associations() ).
+
+
+
+% @doc Returns the two-way associations regarding Myriad/glTf buffer-view
+% targets.
+%
+% Refer to
+% https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#_buffer_view_target
+%
+-spec get_buffer_view_target_associations() ->
+			bijective_table( buffer_view_target(), gltf_buffer_view_target() ).
+get_buffer_view_target_associations() ->
+	bijective_table:new( [ { array_buffer, 34962 },
+						   { element_array_buffer, 34963 } ] ).
+
+
+% @doc Converts a (Myriad-level) buffer-view target into a (lower-level) glTf
+% one.
+%
+-spec buffer_view_target_to_gltf( buffer_view_target() ) ->
+			gltf_buffer_view_target().
+buffer_view_target_to_gltf( BufferViewTarget ) ->
+	bijective_table:get_second_for( BufferViewTarget,
+									get_buffer_view_target_associations() ).
+
+
+% @doc Converts a (lower-level) glTf buffer-view target into a Myriad-level one.
+-spec gltf_to_buffer_view_target( gltf_buffer_view_target() ) ->
+			buffer_view_target().
+gltf_to_buffer_view_target( GltfBufferViewTarget ) ->
+	bijective_table:get_first_for( GltfBufferViewTarget,
+								   get_buffer_view_target_associations() ).
+
+
+
+
+% @doc Decodes the specified primitive of the specified mesh, as defined in the
+% specified glTf content: returns its vertices, normals and texture coordinates.
+%
+-spec decode_primitive( mesh_index(), primitive_index(), content(),
+						buffer_table() ) ->
+			{ [ specialised_vertex() ], [ specialised_normal() ],
+			  [ specialised_texture_coordinates() ] }.
+decode_primitive( MeshIndex, PrimitiveIndex, #gltf_content{
+											 meshes=Meshes,
+											 accessors=Accessors,
+											 buffers=Buffers,
+											 buffer_views=BufferViews },
+				  BufferTable ) ->
+
+	trace_utils:debug_fmt( "Decoding primitive ~B of mesh ~B.",
+						   [ PrimitiveIndex, MeshIndex ] ),
+
+	_Mesh = #gltf_mesh{ primitives=Primitives } =
+					list_utils:get_element_at( Meshes, MeshIndex+1 ),
+
+	Prim = #gltf_primitive{ attributes=Attributes } =
+		list_utils:get_element_at( Primitives, PrimitiveIndex+1 ),
+
+	VertBufferTable = case Attributes#gltf_attributes.position of
+
+		undefined ->
+			BufferTable;
+
+		PositionAccessorIndex ->
+			{ Vertices, VertBuffTable } = decode_vertices(
+				PositionAccessorIndex, Accessors, Buffers, BufferViews,
+				 BufferTable ),
+
+			trace_utils:debug_fmt( "The ~B extracted vertices are:~n~p",
+								   [ length( Vertices ), Vertices ] ),
+
+			VertBuffTable
+
+	end,
+
+
+	NormBufferTable = case Attributes#gltf_attributes.normal of
+
+		undefined ->
+			VertBufferTable;
+
+		NormalPositionAccessorIndex ->
+
+			{ Normals, NormBuffTable } = decode_normals(
+				NormalPositionAccessorIndex, Accessors, Buffers, BufferViews,
+				VertBufferTable ),
+
+			trace_utils:debug_fmt( "The ~B extracted normals are:~n~p",
+								   [ length( Normals ), Normals ] ),
+
+			NormBuffTable
+
+	end,
+
+
+	% No gltf_attributes.tangent managed here.
+
+
+	Tex0BufferTable = case Attributes#gltf_attributes.texcoord_0 of
+
+		undefined ->
+			NormBufferTable;
+
+		TexCoord0AccessorIndex ->
+
+			{ TexCoords, Tex0BuffTable } = decode_texture_coordinates(
+				TexCoord0AccessorIndex, Accessors, Buffers, BufferViews,
+				NormBufferTable ),
+
+			trace_utils:debug_fmt( "The ~B extracted texture coordinates "
+				"are:~n~p", [ length( TexCoords ), TexCoords ] ),
+
+			Tex0BuffTable
+
+	end,
+
+
+	_IndicesBufferTable = case Prim#gltf_primitive.indices of
+
+		undefined ->
+			Tex0BufferTable;
+
+		IndicesPositionAccessorIndex ->
+
+			{ Indices, IndicesBuffTable } = decode_indices(
+				IndicesPositionAccessorIndex, Accessors, Buffers, BufferViews,
+				Tex0BufferTable ),
+
+			trace_utils:debug_fmt( "The ~B extracted vertex indices are:~n~p",
+								   [ length( Indices ), Indices ] ),
+
+			IndicesBuffTable
+
+	end.
+
+
+
+
+% @doc Decodes the vertices defined in the specified glTf content.
+-spec decode_vertices( accessor_index(), [ accessor() ], [ buffer() ],
+					   [ buffer_view() ], buffer_table() ) ->
+			{ [ specialised_vertex() ], buffer_table() }.
+decode_vertices( AccessorIndex, Accessors, Buffers, BufferViews,
+				 BufferTable ) ->
+
+	_PositionAccessor = #gltf_accessor{
+							buffer_view=BufferViewIndex,
+							element_type=AccessorElemType,
+							component_type=AccessorComponentType,
+							count=PointCount,
+							max=PMax,
+							min=PMin } =
+		list_utils:get_element_at( Accessors, AccessorIndex+1 ),
+
+	trace_utils:debug_fmt( "To decode vertices, expecting ~B ~ts elements "
+		"of component type ~ts, whose minimum is ~ts and maximum is ~ts.",
+		[ PointCount, AccessorElemType, AccessorComponentType,
+		  point3:to_string( point3:from_vector( PMin ) ),
+		  point3:to_string( point3:from_vector( PMax ) ) ] ),
+
+	{ BinViewContent, NewBufferTable } = get_buffer_view_binary(
+		BufferViewIndex, BufferViews, Buffers, BufferTable ),
+
+	%trace_utils:debug_fmt( "Binary content of view is:~n~p",
+	%					   [ BinViewContent ] ),
+
+	{ extract_points( BinViewContent, PointCount, AccessorElemType,
+					  AccessorComponentType ), NewBufferTable }.
+
+
+
+% @doc Decodes the normals defined in the specified glTf content.
+-spec decode_normals( accessor_index(), [ accessor() ], [ buffer() ],
+					   [ buffer_view() ], buffer_table() ) ->
+			{ [ specialised_vertex() ], buffer_table() }.
+decode_normals( AccessorIndex, Accessors, Buffers, BufferViews,
+				BufferTable ) ->
+
+	_NormalAccessor = #gltf_accessor{
+							buffer_view=BufferViewIndex,
+							element_type=AccessorElemType,
+							component_type=AccessorComponentType,
+							count=VectorCount,
+							max=NMax,
+							min=NMin } =
+		list_utils:get_element_at( Accessors, AccessorIndex+1 ),
+
+	trace_utils:debug_fmt( "To decode normals, expecting ~B ~ts elements "
+		"of component type ~ts, whose minimum is ~w and maximum is ~w.",
+		[ VectorCount, AccessorElemType, AccessorComponentType,
+		  NMin, NMax ] ),
+
+	{ BinViewContent, NewBufferTable } = get_buffer_view_binary(
+		BufferViewIndex, BufferViews, Buffers, BufferTable ),
+
+	%trace_utils:debug_fmt( "Binary content of view is:~n~p",
+	%					   [ BinViewContent ] ),
+
+	{ extract_vectors( BinViewContent, VectorCount, AccessorElemType,
+					   AccessorComponentType ), NewBufferTable }.
+
+
+
+% @doc Decodes the texture coordinates defined in the specified glTf content.
+-spec decode_texture_coordinates( accessor_index(), [ accessor() ],
+						[ buffer() ], [ buffer_view() ], buffer_table() ) ->
+			{ [ specialised_texture_coordinates() ], buffer_table() }.
+decode_texture_coordinates( AccessorIndex, Accessors, Buffers, BufferViews,
+							BufferTable ) ->
+
+	_TexCoordAccessor = #gltf_accessor{
+							buffer_view=BufferViewIndex,
+							element_type=AccessorElemType,
+							component_type=AccessorComponentType,
+							count=CoordCount,
+							max=TCMax,
+							min=TCMin } =
+		list_utils:get_element_at( Accessors, AccessorIndex+1 ),
+
+	trace_utils:debug_fmt( "To decode texture coordinates, expecting ~B ~ts "
+		"elements of component type ~ts, whose minimum is ~w "
+		"and maximum is ~w.",
+		[ CoordCount, AccessorElemType, AccessorComponentType,
+		  TCMin, TCMax ] ),
+
+	{ BinViewContent, NewBufferTable } = get_buffer_view_binary(
+		BufferViewIndex, BufferViews, Buffers, BufferTable ),
+
+	%trace_utils:debug_fmt( "Binary content of view is:~n~p",
+	%					   [ BinViewContent ] ),
+
+	{ extract_vectors( BinViewContent, CoordCount, AccessorElemType,
+					   AccessorComponentType ), NewBufferTable }.
+
+
+
+% @doc Returns a binary corresponding to the specified buffer-view.
+-spec get_buffer_view_binary( buffer_view_index(), [ buffer_view() ],
+			[ buffer() ], buffer_table() ) -> { binary(), buffer_table() }.
+get_buffer_view_binary( BufferViewIndex, BufferViews, Buffers,
+						BufferTable ) ->
+
+	_BufferView = #gltf_buffer_view{ buffer=BufferIndex,
+									 offset=MaybeViewOffset,
+									 size=ViewSize }
+		= list_utils:get_element_at( BufferViews, BufferViewIndex+1 ),
+
+	ViewOffset = case MaybeViewOffset of
+
+		undefined ->
+			0;
+
+		Offset ->
+			Offset
+
+	end,
+
+	trace_utils:debug_fmt( "Buffer view to access buffer ~B with offset ~B, "
+		"of view size ~B bytes.", [ BufferIndex, ViewOffset, ViewSize ] ),
+
+	{ BinBufferContent, NewBufferTable } =
+		get_buffer( BufferIndex, Buffers, BufferTable ),
+
+	%trace_utils:debug_fmt( "Buffer content decoded from base-64 is:~n~p",
+	%					   [ BinBufferContent ] ),
+
+	% No stride managed:
+	BinViewContent = binary:part( BinBufferContent, _Pos=ViewOffset,
+								  _Len=ViewSize ),
+
+	{ BinViewContent, NewBufferTable }.
+
+
+
+% @doc Decodes the indices defined in the specified glTf content.
+-spec decode_indices( accessor_index(), [ accessor() ], [ buffer() ],
+					   [ buffer_view() ], buffer_table() ) ->
+			{ [ specialised_vertex() ], buffer_table() }.
+decode_indices( AccessorIndex, Accessors, Buffers, BufferViews,
+				 BufferTable ) ->
+
+	_PositionAccessor = #gltf_accessor{
+							buffer_view=BufferViewIndex,
+							element_type=AccessorElemType,
+							component_type=AccessorComponentType,
+							count=PointCount,
+							max=IMax,
+							min=IMin } =
+		list_utils:get_element_at( Accessors, AccessorIndex+1 ),
+
+	trace_utils:debug_fmt( "To decode indices, expecting ~B ~ts elements "
+		"of component type ~ts, whose minimum is ~ts and maximum is ~ts.",
+		[ PointCount, AccessorElemType, AccessorComponentType, IMin, IMax ] ),
+
+	{ BinViewContent, NewBufferTable } = get_buffer_view_binary(
+		BufferViewIndex, BufferViews, Buffers, BufferTable ),
+
+	%trace_utils:debug_fmt( "Binary content of view is:~n~p",
+	%					   [ BinViewContent ] ),
+
+	% Check:
+	AccessorElemType = scalar,
+
+	{ extract_indices( BinViewContent, PointCount, AccessorComponentType ),
+	  NewBufferTable }.
+
+
+
+% @doc Returns the binary context of specified buffer, either cached, or decoded
+% and cached once for all.
+%
+-spec get_buffer( buffer_index(), [ buffer() ], buffer_table() ) ->
+			{ binary(), buffer_table() }.
+get_buffer( BufferIndex, Buffers, BufferTable ) ->
+	case table:lookup_entry( _K=BufferIndex, BufferTable ) of
+
+		key_not_found ->
+			Buffer = #gltf_buffer{ uri=Uri,
+								   size=BufferSize }
+				= list_utils:get_element_at( Buffers, BufferIndex+1 ),
+
+			trace_utils:debug_fmt( "Caching, as entry ~B, buffer "
+				"of size ~B bytes, whose URI is:~n~ts.",
+				[ BufferIndex, BufferSize, Uri ] ),
+
+			BinBufferContent = gltf_buffer_embedded_to_bin( Buffer ),
+
+			% Check:
+			BufferSize = size( BinBufferContent ),
+
+			NewBufferTable = table:add_entry( BufferIndex, BinBufferContent,
+											  BufferTable ),
+
+			{ BinBufferContent, NewBufferTable };
+
+		{ value, BinBufferContent } ->
+			trace_utils:debug_fmt( "Returning buffer cached as entry ~B.",
+								   [ BufferIndex ] ),
+			{ BinBufferContent, BufferTable }
+
+	end.
+
+
+
+% @doc Extracts specified points from specified binary (typically obtained from
+% a buffer view).
+%
+-spec extract_points( binary(), count(), element_type(), component_type() ) ->
+			[ specialised_point() ].
+extract_points( Bin, ElementCount, ElemType, ComponentType ) ->
+	extract_elements( Bin, ElementCount, ElemType, ComponentType,
+					  _FinalType=point ).
+
+
+% @doc Extracts specified vectors from specified binary (typically obtained from
+% a buffer view).
+%
+-spec extract_vectors( binary(), count(), element_type(), component_type() ) ->
+			[ specialised_vector() ].
+extract_vectors( Bin, ElementCount, ElemType, ComponentType ) ->
+	extract_elements( Bin, ElementCount, ElemType, ComponentType,
+					  _FinalType=vector ).
+
+
+% @doc Extracts specified indices from specified binary (typically obtained from
+% a buffer view).
+%
+-spec extract_indices( binary(), count(), component_type() ) -> [ indice() ].
+extract_indices( Bin, ElementCount, ComponentType ) ->
+	extract_elements( Bin, ElementCount, _ElemType=scalar, ComponentType,
+					  _FinalType=undefined ).
+
+
+
+% @doc Extracts specified elements from specified binary (typically obtained
+% from a buffer view).
+%
+-spec extract_elements( binary(), count(), element_type(), component_type(),
+						final_type() ) -> [ extractable_elements() ].
+extract_elements( Bin, ElementCount, _ElemType=scalar,
+				  _ComponentType=uint16, _FinalType ) ->
+
+	ComponentInts = extract_all_uint16_little( Bin ),
+
+	% Check:
+	ElementCount = length( ComponentInts ),
+
+	ComponentInts;
+
+
+extract_elements( Bin, ElementCount, _ElemType=vector2,
+				  _ComponentType=float, FinalType ) ->
+
+	ComponentFloats = extract_all_float32_little( Bin ),
+
+	Elems = gather_as( FinalType, _Dim=2, ComponentFloats ),
+
+	% Check:
+	ElementCount = length( Elems ),
+
+	Elems;
+
+
+extract_elements( Bin, ElementCount, _ElemType=vector3,
+				  _ComponentType=float, FinalType ) ->
+
+	ComponentFloats = extract_all_float32_little( Bin ),
+
+	Elems = gather_as( FinalType, _Dim=3, ComponentFloats ),
+
+	% Check:
+	ElementCount = length( Elems ),
+
+	Elems.
+
+
+% @doc Extracts from the specified binary all 16 bit unsigned integers, supposed
+% encoded in little-endian.
+%
+-spec extract_all_uint16_little( binary() ) -> [ integer() ].
+extract_all_uint16_little( Bin ) ->
+	extract_all_uint16_little( Bin, _Acc=[] ).
+
+
+extract_all_uint16_little( _Bin= <<>>, Acc ) ->
+	lists:reverse( Acc );
+
+extract_all_uint16_little( _Bin= <<UI:16/little-unsigned-integer,Rest/binary>>,
+						   Acc ) ->
+	extract_all_uint16_little( Rest, [ UI | Acc ] ).
+
+
+
+% @doc Extracts from the specified binary all single-precision (32 bit) floats,
+% supposed encoded in little-endian.
+%
+-spec extract_all_float32_little( binary() ) -> [ float() ].
+extract_all_float32_little( Bin ) ->
+	extract_all_float32_little( Bin, _Acc=[] ).
+
+
+extract_all_float32_little( _Bin= <<>>, Acc ) ->
+	lists:reverse( Acc );
+
+extract_all_float32_little( _Bin= <<F:32/float-little,Rest/binary>>, Acc ) ->
+	extract_all_float32_little( Rest, [ F | Acc ] ).
+
+
+
+% @doc Gathers specified components as a list of the elements of specified
+% dimension of the specifed final type.
+%
+-spec gather_as( final_type(), dimension(), [ number() ] ) -> [ term() ].
+gather_as( FinalType, Dim, Components ) ->
+	gather_as( FinalType, Dim, Components, _Acc=[] ).
+
+
+% (helper)
+gather_as( _FinalType, _Dim, _Components=[], Acc ) ->
+	lists:reverse( Acc );
+
+gather_as( FinalType, Dim, Components, Acc ) ->
+
+	{ Coords, Rest } = lists:split( _PrefixLen=Dim, Components ),
+
+	Element = case FinalType of
+
+		point ->
+			list_to_tuple( Coords );
+
+		vector ->
+			Coords
+
+	end,
+
+	gather_as( FinalType, Dim, Rest, [ Element | Acc ] ).

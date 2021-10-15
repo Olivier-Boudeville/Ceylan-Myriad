@@ -86,8 +86,12 @@
 % Defined for documentation purpose.
 
 
+-type texture_vector3() :: vector3().
+% A 3D vector containing texture coordinates.
+
+
 -export_type([ user_vector3/0, vector3/0, integer_vector3/0, any_vector3/0,
-			   unit_vector3/0, normal3/0, unit_normal3/0 ]).
+			   unit_vector3/0, normal3/0, unit_normal3/0, texture_vector3/0 ]).
 
 
 -export([ new/1, new/3, new_integer/3, null/0,

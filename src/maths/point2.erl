@@ -66,7 +66,15 @@
 % A point in a 2D space, with any numerical coordinates (2 of them).
 
 
--export_type([ user_point2/0, point2/0, integer_point2/0, any_point2/0 ]).
+-type vertex2() :: point2().
+% A 2D (floating-point) vertex of a polygon.
+
+-type integer_vertex2() :: point2().
+% A 2D integer vertex of a polygon.
+
+
+-export_type([ user_point2/0, point2/0, integer_point2/0, any_point2/0,
+			   vertex2/0, integer_vertex2/0 ]).
 
 
 -export([ new/1, new/2, new_integer/2, null/0,

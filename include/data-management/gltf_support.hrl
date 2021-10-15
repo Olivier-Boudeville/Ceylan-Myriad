@@ -90,6 +90,9 @@
 
 % A mesh defined in a glTf content.
 %
+% Meshes are defined as arrays of primitives. Primitives correspond to the data
+% required for GPU draw calls.
+%
 % Refer to
 % https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#meshes-overview
 %
@@ -178,7 +181,7 @@
 	% Specifies if the accessor’s elements are scalars, vectors, or matrices:
 	% (ex: 'vector4')
 	%
-	type :: gltf_support:element_type(),
+	element_type :: gltf_support:element_type(),
 
 	% The datatype of a component of an accessor (ex: 'uint8').
 	component_type :: gltf_support:component_type(),
