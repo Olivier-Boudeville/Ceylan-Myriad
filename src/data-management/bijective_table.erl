@@ -26,7 +26,6 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-
 % @doc Datastructure allowing to perform <b>bidirectional conversions between
 % two sets</b>.
 %
@@ -57,6 +56,10 @@
 
 -export_type([ bijective_table/0, bijective_table/2 ]).
 
+
+% Shorthands:
+
+-type ustring() :: text_utils:ustring().
 
 
 
@@ -110,7 +113,7 @@ get_second_for( First,
 
 
 % @doc Returns a textual description of the specified bijective table.
--spec to_string( bijective_table() ) -> text_utils:ustring().
+-spec to_string( bijective_table() ) -> ustring().
 to_string( _BijTable={ FirstToSecondTable, _SecondToFirstTable } ) ->
 
 	case lists:sort( table:enumerate( FirstToSecondTable ) ) of
@@ -123,7 +126,7 @@ to_string( _BijTable={ FirstToSecondTable, _SecondToFirstTable } ) ->
 				[ table:size( FirstToSecondTable ),
 				  text_utils:strings_to_string(
 					[ text_utils:format( "~p <-> ~p", [ F, S ] )
-					  || { F, S } <- Elems ] ) ] )
+									|| { F, S } <- Elems ] ) ] )
 
 
 	end.
