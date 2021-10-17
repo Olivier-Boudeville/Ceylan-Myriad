@@ -636,15 +636,19 @@ are_equal( Ma=identity_3, Mb ) ->
 
 % @doc Returns the determinant of the specified matrix.
 -spec determinant( matrix3() ) -> scalar().
-determinant( _M=#matrix3{} ) ->
-	throw( fixme );
+determinant( _M=#matrix3{ m11=M11, m12=M12, m13=M13,
+						  m21=M21, m22=M22, m23=M23,
+						  m31=M31, m32=M32, m33=M33 } ) ->
+	M11*M22*M33 + M12*M23*M31 + M13*M21*M32
+		- M13*M22*M31 - M12*M21*M33 - M11*M23*M32;
+
+determinant( _M=#compact_matrix3{ m11=M11, m12=M12, tx=_Tx,
+								  m21=M21, m22=M22, ty=_Ty } )->
+	% Thanks to the mostly-zero last row, a 2x2 determinant:
+	M11*M22 - M12*M21;
 
 determinant( _M=identity_3 ) ->
-	1;
-
-determinant( M ) ->
-	% Could be simplified a lot for compact matrices thanks to their zeros:
-	determinant( to_canonical( M ) ).
+	1.
 
 
 

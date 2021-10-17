@@ -385,11 +385,12 @@ are_equal( Ma=identity_2, Mb ) ->
 
 % @doc Returns the determinant of the specified matrix.
 -spec determinant( matrix2() ) -> scalar().
-determinant( _M=#matrix2{} ) ->
-	throw( fixme );
+determinant( _M=#matrix2{ m11=M11, m12=M12,
+						  m21=M21, m22=M22 } ) ->
+	M11 * M22 - M12 * M21;
 
 determinant( _M=identity_2 ) ->
-	1.
+	1.0.
 
 
 

@@ -777,8 +777,23 @@ are_equal( Ma=identity_4, Mb ) ->
 
 % @doc Returns the determinant of the specified matrix.
 -spec determinant( matrix4() ) -> scalar().
-determinant( _M=#matrix4{} ) ->
-	throw( fixme );
+determinant( _M=#matrix4{ m11=M11, m12=M12, m13=M13, m14=M14,
+						  m21=M21, m22=M22, m23=M23, m24=M24,
+						  m31=M31, m32=M32, m33=M33, m34=M34,
+						  m41=M41, m42=M42, m43=M43, m44=M44 } ) ->
+		  M11*M22*M33*M44 - M11*M22*M34*M43 - M11*M23*M32*M44 + M11*M23*M34*M42
+		+ M11*M24*M32*M43 - M11*M24*M33*M42 - M12*M21*M33*M44 + M12*M21*M34*M43
+		+ M12*M23*M31*M44 - M12*M23*M34*M41 - M12*M24*M31*M43 + M12*M24*M33*M41
+		+ M13*M21*M32*M44 - M13*M21*M34*M42 - M13*M22*M31*M44 + M13*M22*M34*M41
+		+ M13*M24*M31*M42 - M13*M24*M32*M41 - M14*M21*M32*M43 + M14*M21*M33*M42
+		+ M14*M22*M31*M43 - M14*M22*M33*M41 - M14*M23*M31*M42 + M14*M23*M32*M41;
+
+determinant( _M=#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=_Mx,
+								  m21=M21, m22=M22, m23=M23, ty=_My,
+								  m31=M31, m32=M32, m33=M33, tz=_Mz } ) ->
+	M11*M22*M33 - M11*M23*M32 - M12*M21*M33 + M12*M23*M31
+		+ M13*M21*M32 - M13*M22*M31 ;
+
 
 determinant( _M=identity_4 ) ->
 	1;

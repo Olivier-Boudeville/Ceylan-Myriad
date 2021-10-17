@@ -67,6 +67,7 @@ run() ->
 	V2 = [ 1.0, 2.0, 4.0 ],
 	V3 = [ 0.0, 0.0, 5.0 ],
 
+	% Octave: ColMatrix = [ 10, 25, -7; 1, 2, 4; 0, 0, 5 ]
 	ColMatrix = matrix3:from_columns( V1, V2, V3 ),
 	V2 = matrix3:column( 2, ColMatrix ),
 
@@ -143,24 +144,24 @@ run() ->
 	% ScaledMatrix = 2.0 * CoordMatrix
 	% RowMatrix = [ 10, 25, -7; 1, 2 4; 0, 0, 5 ]
 
-	MultCanCanMatrix = matrix3:from_coordinates(  24.0,  58.0, 32.0,
+	MultCanMatrix = matrix3:from_coordinates(  24.0,  58.0, 32.0,
 												 112.0, 274.0, 48.0,
 												 200.0, 490.0, 64.0 ),
 
-	MultCanCanMatrix = matrix3:mult( ScaledMatrix, RowMatrix ),
+	MultCanMatrix = matrix3:mult( ScaledMatrix, RowMatrix ),
 
-	[ ArbitraryScaledMatrix, ArbitraryRowMatrix, ArbitraryMultCanCanMatrix ] =
+	[ ArbitraryScaledMatrix, ArbitraryRowMatrix, ArbitraryMultCanMatrix ] =
 		[ matrix:unspecialise( M )
-			|| M <- [ ScaledMatrix, RowMatrix, MultCanCanMatrix ] ],
+			|| M <- [ ScaledMatrix, RowMatrix, MultCanMatrix ] ],
 
-	ArbitraryMultCanCanMatrix =
+	ArbitraryMultCanMatrix =
 		matrix:mult( ArbitraryScaledMatrix, ArbitraryRowMatrix ),
 
 	test_facilities:display( "The multiplication of matrix ~ts "
 		"by matrix ~ts yields: ~ts",
 		[ matrix3:to_string( ScaledMatrix ),
 		  matrix3:to_string( RowMatrix ),
-		  matrix3:to_string( MultCanCanMatrix ) ] ),
+		  matrix3:to_string( MultCanMatrix ) ] ),
 
 
 	% Octave:
@@ -177,12 +178,12 @@ run() ->
 							59.0,  44.0, 24.0,
 							97.0,   4.0, 56.0 ),
 
-	% MultCptCptMatrix = [ 2934, 1368, 1407; 7732, 2896, 3890; 0, 0, 1 ]
-	MultCptCptMatrix = matrix3:from_compact_coordinates(
+	% MultCptMatrix = [ 2934, 1368, 1407; 7732, 2896, 3890; 0, 0, 1 ]
+	MultCptMatrix = matrix3:from_compact_coordinates(
 							2934.0, 1368.0, 1407.0,
 							7732.0, 2896.0, 3890.0 ),
 
-	true = matrix3:are_equal( MultCptCptMatrix,
+	true = matrix3:are_equal( MultCptMatrix,
 					matrix3:mult( FirstCompactMatrix, SecondCompactMatrix ) ),
 
 	% Octave:
@@ -217,5 +218,10 @@ run() ->
 		  matrix3:to_string( SecondMult ) ] ),
 
 	true = matrix3:are_equal( MultCanCptMatrix, SecondMult ),
+
+	% Knowing that CoordMatrix is not inversible (its determinant is epsilon):
+	-25.0 = matrix3:determinant( ColMatrix ),
+
+	516.0 = matrix3:determinant( FirstCompactMatrix ),
 
 	test_facilities:stop().

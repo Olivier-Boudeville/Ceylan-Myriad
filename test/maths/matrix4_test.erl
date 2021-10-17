@@ -70,6 +70,9 @@ run() ->
 	V3 = [ 0.0, 0.0, 0.0, 3.0 ],
 	V4 = [ 11.0, 27.0, -3.0, 10.71 ],
 
+	% Octave: ColMatrix = [ 10, 1, 0, 11; 25, 2, 0, 27;
+	%                       -7, 4, 0, -3; 2, 8.71, 3, 10.71 ]
+	%
 	ColMatrix = matrix4:from_columns( V1, V2, V3, V4 ),
 	V2 = matrix4:column( 2, ColMatrix ),
 
@@ -83,6 +86,9 @@ run() ->
 							 "is: ~ts", [ matrix4:to_string( RowMatrix ) ] ),
 
 
+	% Octave: CoordMatrix = [ 1, 2, 3, 4; 5, 6, 7, 8; 9, 10, 11, 12;
+	% 13, 14, 15, 16 ]
+	%
 	CoordMatrix = matrix4:from_coordinates( 1.0,   2.0,  3.0,  4.0,
 											5.0,   6.0,  7.0,  8.0,
 											9.0,  10.0, 11.0, 12.0,
@@ -136,6 +142,9 @@ run() ->
 	SubSetMatrix = matrix4:set_element( RwC=4, ClC=3, 21.0, SubMatrix ),
 	21.0 = matrix4:get_element( RwC, ClC, SubSetMatrix ),
 
+	% Octave: TransposedCoordMatrix = [ 1, 5, 9, 13; 2, 6, 10, 14;
+	%                                   3, 7, 11, 15; 4, 8, 12, 16 ]
+	%
 	TransposedCoordMatrix = matrix4:from_coordinates( 1.0, 5.0,  9.0, 13.0,
 													  2.0, 6.0, 10.0, 14.0,
 													  3.0, 7.0, 11.0, 15.0,
@@ -184,6 +193,8 @@ run() ->
 	%test_facilities:display( "FirstCompactMatrix = ~ts",
 	%                         [ matrix4:to_string( FirstCompactMatrix ) ] ),
 
+	% Octave: SecondCompactMatrix = [ 59, 44, 24, 12; 97, 4, 56, 1;
+	%                                 110, -4, 23, 9; 0, 0, 0, 1 ]
 	SecondCompactMatrix = matrix4:from_compact_coordinates(
 							59.0,  44.0, 24.0, 12.0,
 							97.0,   4.0, 56.0,  1.0,
@@ -233,5 +244,25 @@ run() ->
 		  matrix4:to_string( SecondMult ) ] ),
 
 	true = matrix4:are_equal( MultCanCptMatrix, SecondMult ),
+
+	% As FirstCompactMatrix, ColMatrix, TransposedCoordMatrix and
+	% MultCanCptMatrix are not inversible either (!):
+	%
+	% InversibleCanMatrix4 = [4,3,7,4;1,9,7,3;17,5,19,77;16,6,19,83]
+	InversibleCanMatrix4 = matrix4:from_coordinates( 4.0,  3.0,  7.0,  4.0,
+													 1.0,  9.0,  7.0,  3.0,
+													 17.0, 5.0, 19.0, 77.0,
+													 16.0, 6.0, 19.0, 83.0 ),
+
+	-2562.0 = matrix4:determinant( InversibleCanMatrix4 ),
+
+	% InversibleCptMatrix4 = [ 7, 11, 13, 17; 25, 2, 0, 27;
+	%                         -7, 4, 0, -3; 0, 0, 0, 1 ]
+	InversibleCptMatrix4 = matrix4:from_compact_coordinates(
+								 7.0, 11.0, 13.0, 17.0,
+								25.0,  2.0,  0.0, 27.0,
+								-7.0,  4.0,  0.0, -3.0 ),
+
+	1482.0 = matrix4:determinant( InversibleCptMatrix4 ),
 
 	test_facilities:stop().

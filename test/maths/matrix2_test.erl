@@ -123,22 +123,24 @@ run() ->
 	% ScaledMatrix = 2.0 * CoordMatrix
 	% RowMatrix = [ 10, 25, -7; 1, 2 4; 0, 0, 5 ]
 
-	MultCanCanMatrix = matrix2:from_coordinates(  240.0,  580.0,
+	MultCanMatrix = matrix2:from_coordinates(  240.0,  580.0,
 												  680.0, 1660.0 ),
 
-	MultCanCanMatrix = matrix2:mult( ScaledMatrix, RowMatrix ),
+	MultCanMatrix = matrix2:mult( ScaledMatrix, RowMatrix ),
 
-	[ ArbitraryScaledMatrix, ArbitraryRowMatrix, ArbitraryMultCanCanMatrix ] =
+	[ ArbitraryScaledMatrix, ArbitraryRowMatrix, ArbitraryMultCanMatrix ] =
 		[ matrix:unspecialise( M )
-			|| M <- [ ScaledMatrix, RowMatrix, MultCanCanMatrix ] ],
+			|| M <- [ ScaledMatrix, RowMatrix, MultCanMatrix ] ],
 
-	ArbitraryMultCanCanMatrix =
+	ArbitraryMultCanMatrix =
 		matrix:mult( ArbitraryScaledMatrix, ArbitraryRowMatrix ),
+
+	-200.0 = matrix2:determinant( CoordMatrix ),
 
 	test_facilities:display( "The multiplication of matrix ~ts "
 		"by matrix ~ts yields: ~ts",
 		[ matrix2:to_string( ScaledMatrix ),
 		  matrix2:to_string( RowMatrix ),
-		  matrix2:to_string( MultCanCanMatrix ) ] ),
+		  matrix2:to_string( MultCanMatrix ) ] ),
 
 	test_facilities:stop().
