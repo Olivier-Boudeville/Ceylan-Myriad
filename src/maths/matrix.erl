@@ -51,7 +51,9 @@
 % A matrix having M rows and N columns (indices starting at 1) is usually
 % iterated through based on variables named R (thus in [1..M]) and C (in
 % [1..N]).
-
+%
+% Integer coordinates are not specifically managed, they are only useful for
+% mock values for testing.
 
 
 -type user_row() :: user_vector().
@@ -75,10 +77,14 @@
 % order (all rows shall contain the same number of elements).
 
 
--type specialised_matrix() :: matrix2:matrix()
-							| matrix3:matrix()
-							| matrix4:matrix().
+-type specialised_matrix() :: matrix2:matrix2()
+							| matrix3:matrix3()
+							| matrix4:matrix4().
 % Regroups all types of specialised matrices.
+
+
+-type specialised_module() :: 'matrix2' | 'matrix3' | 'matrix4'.
+% The modules implementing specialised matrices.
 
 
 -type dimensions() :: { RowCount:: dimension(), ColumnCount :: dimension() }.
@@ -86,15 +92,22 @@
 
 
 -export_type([ user_row/0, row/0, column/0,
-			   user_matrix/0, matrix/0, specialised_matrix/0,
+			   user_matrix/0, matrix/0,
+			   specialised_matrix/0, specialised_module/0,
 			   dimensions/0 ]).
 
 
--export([ new/1, null/1, null/2,
-		  identity/1,
-		  dimensions/1, row/2, column/2, get_element/3, set_element/4,
+-export([ new/1, null/1, null/2, identity/1,
+		  from_columns/1, from_rows/1,
+		  from_coordinates/2, to_coordinates/1,
+		  dimensions/1,
+		  row/2, column/2,
+		  get_element/3, set_element/4,
 		  transpose/1,
-		  add/2, mult/2,
+		  scale/2,
+		  add/2, sub/2, mult/2,
+		  are_equal/2,
+		  determinant/1,
 		  get_specialised_module_of/1, get_specialised_module_for/1,
 		  specialise/1, unspecialise/1,
 		  check/1,
@@ -103,12 +116,13 @@
 
 % Shorthands:
 
--type module_name() :: basic_utils:module_name().
-
 -type ustring() :: text_utils:ustring().
+
+-type factor() :: math_utils:factor().
 
 -type coordinate() :: linear:coordinate().
 -type dimension() :: linear:dimension().
+-type scalar() :: linear:scalar().
 
 -type vector() :: vector:vector().
 -type user_vector() :: vector:user_vector().
@@ -117,8 +131,10 @@
 
 % @doc Returns an (arbitrary) matrix corresponding to the user-specified one.
 %
+% Coordinates must already be floating-point ones.
+%
 % No clause just based on a list of coordinates exists, as multiple combinations
-% of dimensions could correspond.
+% of dimensions could correspond. See from_coordinates/2.
 %
 -spec new( matrix() ) -> matrix().
 new( UserMatrix ) ->
@@ -144,11 +160,76 @@ null( RowCount, ColumnCount ) ->
 
 
 
-% @doc Returns the identity matrix of the specified dimension.
+% @doc Returns the identity (square) matrix of the specified dimension.
 -spec identity( dimension() ) -> matrix().
 identity( Dim ) ->
 	[ [ case R of C -> 1.0; _ -> 0.0 end
 			|| C <- lists:seq( 1, Dim ) ] || R <- lists:seq( 1, Dim ) ].
+
+
+
+% @doc Returns the matrix whose columns correspond to the specified vectors.
+%
+% Returns thus:
+%  ```
+%  [ Va Vb Vc ... Vn ]
+%  [ |  |  |  ... |  ]
+%  [ |  |  |  ... |  ]
+%  [ |  |  |  ... |  ]
+%  '''
+%
+-spec from_columns( [ vector() ] ) -> matrix().
+from_columns( Columns ) ->
+	M = transpose( Columns ),
+	cond_utils:if_defined( myriad_check_linear, check( M ), M ).
+
+
+
+% @doc Returns the matrix whose rows correspond to the specified vectors.
+%
+% Returns thus:
+%  ```
+% [ Va - - - ]
+% [ Vb - - - ]
+% [ Vc - - - ]
+% ...
+% [ Vn - - - ]
+% '''
+%
+-spec from_rows( [ vector() ] ) -> matrix().
+from_rows( M=_Rows ) ->
+	cond_utils:if_defined( myriad_check_linear, check( M ), M ).
+
+
+
+% @doc Returns the matrix of the specified dimensions having the specified
+% coordinates, as listed row after row.
+%
+% Row count is implicit.
+%
+-spec from_coordinates( [ coordinate() ], dimension() ) -> matrix().
+from_coordinates( Coords, ColumnCount ) ->
+	from_coordinates( Coords, ColumnCount, _AccM=[] ).
+
+
+% (helper)
+from_coordinates( _Coords=[], _ColumnCount, AccM ) ->
+	lists:reverse( AccM );
+
+from_coordinates( Coords, ColumnCount, AccM ) ->
+	{ Row, RestCoords } = lists:split( _N=ColumnCount, Coords ),
+	from_coordinates( RestCoords, ColumnCount, [ Row | AccM ] ).
+
+
+
+% @doc Returns the list of coordinates contained in the specified matrix, row
+% after row.
+%
+% Dimensions are not specifically reported.
+%
+-spec to_coordinates( matrix() ) -> [ coordinate() ].
+to_coordinates( Matrix ) ->
+	list_utils:flatten_once( Matrix ).
 
 
 
@@ -180,7 +261,7 @@ get_element( R, C, Matrix ) ->
 
 
 % @doc Returns a matrix identical to the specified one except that its specified
-% element at specied location has been set to the specified value.
+% element at specified location has been set to the specified value.
 %
 -spec set_element( dimension(), dimension(), coordinate(), matrix() ) ->
 									matrix().
@@ -236,6 +317,13 @@ extract_first_elements( _Rows=[ [ H | T ] | OtherRows ], AccElems, AccRows ) ->
 
 
 
+% @doc Scales each coordinate of the specified matrix of the specified factor.
+-spec scale( matrix(), factor() ) -> matrix().
+scale( Matrix, Factor ) ->
+	[ vector:scale( R, Factor ) || R <- Matrix ].
+
+
+
 % @doc Returns the sum of the two specified matrices, supposedly of the same
 % dimensions.
 %
@@ -243,6 +331,18 @@ extract_first_elements( _Rows=[ [ H | T ] | OtherRows ], AccElems, AccRows ) ->
 add( M1, M2 ) ->
 	lists:zipwith( fun( R1, R2 ) ->
 						vector:add( R1, R2 )
+				   end,
+				   M1, M2 ).
+
+
+
+% @doc Returns the subtraction of the two specified matrices (supposedly of the
+% same dimensions: M = M1 - M2.
+%
+-spec sub( matrix(), matrix() ) -> matrix().
+sub( M1, M2 ) ->
+	lists:zipwith( fun( R1, R2 ) ->
+						vector:sub( R1, R2 )
 				   end,
 				   M1, M2 ).
 
@@ -267,6 +367,7 @@ mult( _M1=[ R1 | T1 ], TranspM2, AccRows ) ->
 	mult( T1, TranspM2, [ MultRow | AccRows ] ).
 
 
+
 % Computes the dot products between the specified row and each column of the
 % transposed matrix.
 %
@@ -279,6 +380,31 @@ apply_columns( R, _Columns=[ Col | T ], Acc ) ->
 
 
 
+% @doc Returns true iff the two specified matrices are considered equal.
+-spec are_equal( matrix(), matrix() ) -> boolean().
+are_equal( _M1=[], _M2=[] ) ->
+	true;
+
+are_equal( _M1=[ R1 | T1 ], _M2=[ R2 | T2 ] ) ->
+	case vector:are_equal( R1, R2 ) of
+
+		true ->
+			are_equal( T1, T2 );
+
+		false ->
+			false
+
+	end.
+
+
+
+% @doc Returns the determinant of the specified matrix.
+-spec determinant( matrix() ) -> scalar().
+determinant( _M ) ->
+	throw( fixme ).
+
+
+
 % @doc Returns a specialised matrix corresponding to the specified arbitrary
 % matrix.
 %
@@ -287,7 +413,7 @@ specialise( M ) ->
 
 	MatMod = get_specialised_module_for( M ),
 
-	MatMod:from_matrix( M ).
+	MatMod:from_arbitrary( M ).
 
 
 
@@ -295,17 +421,40 @@ specialise( M ) ->
 % matrix.
 %
 -spec unspecialise( specialised_matrix() ) -> matrix().
-unspecialise( M ) ->
+%
+% Trying to test first the most likely clauses.
+%
+% Allows also to avoid including the various headers to access the corresponding
+% records:
+%
+unspecialise( M ) when is_tuple( M ) ->
+	% Fetch the tag:
+	case element( _RecordTagIndex=1, M ) of
 
-	% Gets the record tag:
-	MatMod = element( _RecordTagIndex=1, M ),
+		Dim4 when Dim4 =:= matrix4 orelse Dim4 =:= compact_matrix4 ->
+			matrix4:to_arbitrary( M );
 
-	MatMod:to_arbitrary( M ).
+		Dim3 when Dim3 =:= matrix3 orelse Dim3 =:= compact_matrix3 ->
+			matrix3:to_arbitrary( M );
+
+		Dim2 when Dim2 =:= matrix2 orelse Dim2 =:= compact_matrix2 ->
+			matrix2:to_arbitrary( M )
+
+	end;
+
+unspecialise( _M=identity_4 ) ->
+	identity( 4 );
+
+unspecialise( _M=identity_3 ) ->
+	identity( 3 );
+
+unspecialise( _M=identity_2 ) ->
+	identity( 2 ).
 
 
 
 % @doc Returns the module corresponding to the specified specialised matrix.
--spec get_specialised_module_of( matrix() ) -> module_name().
+-spec get_specialised_module_of( specialised_matrix() ) -> specialised_module().
 get_specialised_module_of( M )  ->
 	element( _RecordTagIndex=1, M ).
 
@@ -314,23 +463,20 @@ get_specialised_module_of( M )  ->
 % @doc Returns the module corresponding to the specialised matrix version that
 % would apply to specified (arbitrary) matrix.
 %
--spec get_specialised_module_for( matrix() ) -> module_name().
+-spec get_specialised_module_for( matrix() ) -> specialised_module().
 % Determines row count:
 get_specialised_module_for( M ) when length( M ) == 2 ->
    matrix2;
 
-get_specialised_module_for( M ) when length( M ) == 2 ->
+get_specialised_module_for( M ) when length( M ) == 3 ->
    matrix3;
 
-get_specialised_module_for( M ) when length( M ) == 3 ->
+get_specialised_module_for( M ) when length( M ) == 4 ->
    matrix4;
 
 get_specialised_module_for( M ) ->
    throw( { unsupported_dimension, length( M ) } ).
 
-
-
-% Determines row count:
 
 
 % @doc Checks that the specified matrix is legit, and returns it.
@@ -375,9 +521,9 @@ to_basic_string( Matrix ) ->
 
 	FormatStr = "~n" ++ text_utils:duplicate( RowCount, RowFormatStr ),
 
-	Elems = list_utils:flatten_once( Matrix ),
+	AllCoords = to_coordinates( Matrix ),
 
-	text_utils:format( FormatStr, Elems ).
+	text_utils:format( FormatStr, AllCoords ).
 
 
 
@@ -393,7 +539,7 @@ to_basic_string( Matrix ) ->
 to_user_string( Matrix ) ->
 
 	%  Here we ensure that all coordinates use the same width:
-	AllCoords = list_utils:flatten_once( Matrix ),
+	AllCoords = to_coordinates( Matrix ),
 
 	Strs = linear:coords_to_best_width_strings( AllCoords ),
 

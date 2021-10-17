@@ -85,7 +85,7 @@
 		  roundify/1,
 		  get_center/2, get_integer_center/2,
 		  translate/2, vectorize/2,
-		  are_close/2, is_within/3, square_distance/2, distance/2,
+		  are_close/2, are_equal/2, is_within/3, square_distance/2, distance/2,
 		  check/1,
 		  to_string/1, to_compact_string/1, to_basic_string/1,
 		  to_user_string/1 ] ).
@@ -227,7 +227,16 @@ vectorize( _P1={X1,Y1,Z1,W1}, _P2={X2,Y2,Z2,W2} ) ->
 % points).
 %
 -spec are_close( point4(), point4() ) -> boolean().
-are_close( _P1={X1,Y1,Z1,W1}, _P2={X2,Y2,Z2,W2} ) ->
+are_close( P1, P2 ) ->
+	are_equal( P1, P2 ).
+
+
+% @doc Returns whether the two specified 3D points are equal, that is if they
+% could be considered as representing the same point (equality operator on
+% points).
+%
+-spec are_equal( point4(), point4() ) -> boolean().
+are_equal( _P1={X1,Y1,Z1,W1}, _P2={X2,Y2,Z2,W2} ) ->
 	math_utils:are_close( X1, X2 ) andalso math_utils:are_close( Y1, Y2 )
 		andalso math_utils:are_close( Z1, Z2 )
 		andalso math_utils:are_close( W1, W2 ).

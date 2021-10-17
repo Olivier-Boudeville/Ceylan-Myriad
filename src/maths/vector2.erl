@@ -97,6 +97,7 @@
 -export([ new/1, new/2, new_integer/2, null/0,
 		  from_point/1, to_point/1,
 		  add/2, add/1, cross_product/2,
+		  are_close/2, are_equal/2,
 		  square_magnitude/1, magnitude/1, scale/2, make_unit/1,
 		  normal_left/1, normal_right/1,
 		  dot_product/2,
@@ -199,6 +200,25 @@ add( _Vectors=[ VFirst | VOthers ]  ) ->
 -spec cross_product( vector2(), vector2() ) -> square_distance().
 cross_product( [X1,Y1], [X2,Y2] ) ->
 	abs( X1*Y2 - Y1*X2 ).
+
+
+
+% @doc Returns whether the two specified 2D vectors are close, that is if they
+% could be considered as representing the same vector (equality operator on
+% vectors).
+%
+-spec are_close( vector2(), vector2() ) -> boolean().
+are_close( V1, V2 ) ->
+	are_equal( V1, V2 ).
+
+
+% @doc Returns whether the two specified 2D vectors are equal, that is if they
+% could be considered as representing the same vector (equality operator on
+% vectors).
+%
+-spec are_equal( vector2(), vector2() ) -> boolean().
+are_equal( _V1=[X1,Y1], _V2=[X2,Y2] ) ->
+	math_utils:are_close( X1, X2 ) andalso math_utils:are_close( Y1, Y2 ).
 
 
 

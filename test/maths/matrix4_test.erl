@@ -26,9 +26,9 @@
 % Creation date: Wednesday, October 13, 2021.
 
 
-% @doc Unit tests for the <b>arbitrary matrix</b> facilities.
+% @doc Unit tests for the <b>specialised 4x4 matrix</b> facilities.
 %
-% See the matrix tested module.
+% See the matrix4 tested module.
 %
 -module(matrix4_test).
 
@@ -50,7 +50,17 @@ run() ->
 	test_facilities:display( "Null matrix is: ~ts",
 							 [ matrix4:to_string( NullMatrix ) ] ),
 
+	Dim = 4,
+
 	Id = matrix4:identity(),
+	true = matrix:are_equal( matrix:unspecialise( Id ),
+							 matrix:identity( Dim ) ),
+
+	% Compact matrix:
+	true = matrix4:are_equal( Id, matrix4:new(
+									[ 1.0, 0.0, 0.0, 0.0 ],
+									[ 0.0, 1.0, 0.0, 0.0 ],
+									[ 0.0, 0.0, 1.0, 0.0 ] ) ),
 
 	test_facilities:display( "Identity matrix is: ~ts",
 							 [ matrix4:to_string( Id ) ] ),
@@ -61,21 +71,42 @@ run() ->
 	V4 = [ 11.0, 27.0, -3.0, 10.71 ],
 
 	ColMatrix = matrix4:from_columns( V1, V2, V3, V4 ),
+	V2 = matrix4:column( 2, ColMatrix ),
 
 	test_facilities:display( "Matrix whose columns are V1, V2, V3 and V4 "
 							 "is: ~ts", [ matrix4:to_string( ColMatrix ) ] ),
 
 	RowMatrix = matrix4:from_rows( V1, V2, V3, V4 ),
+	V3 = matrix4:row( 3, RowMatrix ),
 
 	test_facilities:display( "Matrix whose rows are V1, V2, V3 and V4 "
 							 "is: ~ts", [ matrix4:to_string( RowMatrix ) ] ),
 
 
-	CoordMatrix = matrix4:from_coordinates( 1, 2, 3, 4, 5, 6, 7, 8,
-											9, 10, 11, 12, 13, 14, 15, 16 ),
+	CoordMatrix = matrix4:from_coordinates( 1.0,   2.0,  3.0,  4.0,
+											5.0,   6.0,  7.0,  8.0,
+											9.0,  10.0, 11.0, 12.0,
+											13.0, 14.0, 15.0, 16.0 ),
 
 	test_facilities:display( "Matrix explicitly set from coordinates is: ~ts",
 							 [ matrix4:to_string( CoordMatrix ) ] ),
+
+
+	CompactMatrix = matrix4:from_compact_coordinates( 1.0,  2.0,  3.0,  4.0,
+													  5.0,  6.0,  7.0,  8.0,
+													  9.0, 10.0, 11.0, 12.0 ),
+
+	test_facilities:display( "Compact matrix explicitly set from coordinates "
+		"is: ~ts", [ matrix4:to_string( CompactMatrix ) ] ),
+
+	Matrix3 = matrix3:new( [ [ 1.0,  2.0,  3.0 ],
+							 [ 5.0,  6.0,  7.0 ],
+							 [ 9.0, 10.0, 11.0 ] ] ),
+
+	Vec3 = [ 4.0, 8.0, 12.0 ],
+
+	CompactMatrix = matrix4:from_3D( Matrix3, Vec3 ),
+
 
 	ScaleFactor = 2.0,
 
@@ -91,15 +122,49 @@ run() ->
 	test_facilities:display( "Compact version of identity is: ~ts",
 							 [ matrix4:to_string( CompactIdMatrix ) ] ),
 
+	SubMatrix = matrix4:new( [ [ 0.0,   0.0,  0.0,  0.0 ],
+							   [ 0.0,   0.0,  0.0,  0.0 ],
+							   [ 0.0,   0.0,  0.0,  0.0 ],
+							   [ 13.0, 14.0, 15.0, 15.0 ] ] ),
+
+	% Tests scale/2 and add/2 as well:
+	true = matrix4:are_equal( matrix4:sub( CoordMatrix, CompactMatrix ),
+							  SubMatrix ),
+
+
+	14.0 = matrix4:get_element( _RowC=4, _ColC=2, SubMatrix ),
+	SubSetMatrix = matrix4:set_element( RwC=4, ClC=3, 21.0, SubMatrix ),
+	21.0 = matrix4:get_element( RwC, ClC, SubSetMatrix ),
+
+	TransposedCoordMatrix = matrix4:from_coordinates( 1.0, 5.0,  9.0, 13.0,
+													  2.0, 6.0, 10.0, 14.0,
+													  3.0, 7.0, 11.0, 15.0,
+													  4.0, 8.0, 12.0, 16.0 ),
+
+	TransposedCoordMatrix = matrix4:transpose( CoordMatrix ),
+	true = matrix4:are_equal( TransposedCoordMatrix, TransposedCoordMatrix ),
+
+
 	% Checked with octave, for example:
 	%
 	% CoordMatrix = [ 1, 2, 3, 4 ; 5, 6, 7, 8 ; 9, 10, 11, 12 ; 13, 14, 15, 16 ]
 	% ScaledMatrix = 2.0 * CoordMatrix
-	% RowMatrix = [ 9, 1, 0, 1 ; 10, 10, 5, 2 ; 0, 0, 0, 3 ; 1, 2, 3, 4 ]
-	% ScaledMatrix*RowMatrix
-	% - [66,58,44,60;226,162,108,140;386,266,172,220;546,370,236,300]
+	% RowMatrix = [ 10, 25, -7, 2; 1, 2, 4, 8.71; 0, 0, 0, 0;
+	%  11, 27, -3, 10.71 ]
+
+	MultCanCanMatrix = matrix4:from_coordinates( 112.0,  274.0,  -22.0, 142.52,
+												 288.0,  706.0,  -70.0, 337.88,
+												 464.0, 1138.0, -118.0, 533.24,
+												 640.0, 1570.0, -166.0, 728.6 ),
 
 	MultCanCanMatrix = matrix4:mult( ScaledMatrix, RowMatrix ),
+
+	[ ArbitraryScaledMatrix, ArbitraryRowMatrix, ArbitraryMultCanCanMatrix ] =
+		[ matrix:unspecialise( M )
+			|| M <- [ ScaledMatrix, RowMatrix, MultCanCanMatrix ] ],
+
+	ArbitraryMultCanCanMatrix =
+		matrix:mult( ArbitraryScaledMatrix, ArbitraryRowMatrix ),
 
 	test_facilities:display( "The multiplication of matrix ~ts "
 		"by matrix ~ts yields: ~ts",
@@ -111,17 +176,23 @@ run() ->
 	% Octave:
 	% FirstCompactMatrix = [ 30, 12, 15, 55; 62, 42, 50, 11;
 	%                        11, 39, 21, 19; 0, 0, 0, 1 ]
-	FirstCompactMatrix = matrix4:from_compact_coordinates( 30, 12, 15, 55,
-								62, 42, 50, 11, 11, 39, 21, 19 ),
+	FirstCompactMatrix = matrix4:from_compact_coordinates(
+							30.0, 12.0, 15.0, 55.0,
+							62.0, 42.0, 50.0, 11.0,
+							11.0, 39.0, 21.0, 19.0 ),
 
 	%test_facilities:display( "FirstCompactMatrix = ~ts",
-	%						  [ matrix4:to_string( FirstCompactMatrix ) ] ),
+	%                         [ matrix4:to_string( FirstCompactMatrix ) ] ),
 
-	SecondCompactMatrix = matrix4:from_compact_coordinates( 59, 44, 24, 12,
-								97, 4, 56, 1, 110, -4, 23, 9 ),
+	SecondCompactMatrix = matrix4:from_compact_coordinates(
+							59.0,  44.0, 24.0, 12.0,
+							97.0,   4.0, 56.0,  1.0,
+							110.0, -4.0, 23.0,  9.0 ),
 
-	MultCptCptMatrix = matrix4:from_compact_coordinates( 4584, 1308, 1737, 562,
-							13232, 2696, 4990, 1247, 6742, 556, 2931, 379 ),
+	MultCptCptMatrix = matrix4:from_compact_coordinates(
+							4584.0,  1308.0, 1737.0,  562.0,
+						   13232.0,  2696.0, 4990.0, 1247.0,
+							6742.0,   556.0, 2931.0,  379.0 ),
 
 	true = matrix4:are_equal( MultCptCptMatrix,
 					matrix4:mult( FirstCompactMatrix, SecondCompactMatrix ) ),
@@ -129,8 +200,11 @@ run() ->
 	% Octave:
 	% MultCptCanMatrix = [ 1880, 2104, 2328, 2552; 1730, 2060, 2390, 2720;
 	%                      1284, 1464, 1644, 1824; 26, 28, 30, 32 ]
-	MultCptCanMatrix = matrix4:from_coordinates( 1880, 2104, 2328, 2552,
-		1730, 2060, 2390, 2720, 1284, 1464, 1644, 1824, 26, 28, 30, 32 ),
+	MultCptCanMatrix = matrix4:from_coordinates(
+							1880.0, 2104.0, 2328.0, 2552.0,
+							1730.0, 2060.0, 2390.0, 2720.0,
+							1284.0, 1464.0, 1644.0, 1824.0,
+							  26.0,   28.0,   30.0,   32.0 ),
 
 	%test_facilities:display( "ScaledMatrix = ~ts",
 	%						  [ matrix4:to_string( ScaledMatrix ) ] ),
@@ -146,8 +220,11 @@ run() ->
 
 	% MultCanCptMatrix = [ 374, 426, 356, 276; 1198, 1170, 1044, 964;
 	%                      2022, 1914, 1732, 1652; 2846, 2658, 2420, 2340 ]
-	MultCanCptMatrix = matrix4:from_coordinates( 374, 426, 356, 276,
-		1198, 1170, 1044, 964, 2022, 1914, 1732, 1652, 2846, 2658, 2420, 2340 ),
+	MultCanCptMatrix = matrix4:from_coordinates(
+							 374.0,  426.0,  356.0,  276.0,
+							1198.0, 1170.0, 1044.0,  964.0,
+							2022.0, 1914.0, 1732.0, 1652.0,
+							2846.0, 2658.0, 2420.0, 2340.0 ),
 
 	SecondMult = matrix4:mult( ScaledMatrix, FirstCompactMatrix ),
 

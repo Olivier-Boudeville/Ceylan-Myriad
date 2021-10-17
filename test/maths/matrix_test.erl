@@ -42,11 +42,6 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	Null3x2 = [ [ 0.0, 0.0 ], [ 0.0, 0.0 ], [ 0.0, 0.0 ] ],
-	{ 3, 2 } = matrix:dimensions( Null3x2 ),
-
-	Null3x2 = matrix:null( _RowCount=3, _ColumnCount=2 ),
-
 	M = matrix:new( [ [ 0.0, 1.0, 2.0 ], [ 7777.0, 0.0, 1/3 ] ] ),
 
 	test_facilities:display( "Base textual representation for ~w: ~ts",
@@ -58,6 +53,14 @@ run() ->
 	test_facilities:display( "User-friendly textual representation "
 		"for ~w: ~ts", [ M, matrix:to_user_string( M ) ] ),
 
+	Null3x2 = [ [ 0.0, 0.0 ], [ 0.0, 0.0 ], [ 0.0, 0.0 ] ],
+
+	Null3x2 = matrix:null( _RowCount=3, _ColumnCount=2 ),
+
+	[ [ 1.0, 0.0 ], [ 0.0, 1.0 ] ] = matrix:identity( 2 ),
+
+	{ 3, 2 } = matrix:dimensions( Null3x2 ),
+
 	Dim = 5,
 
 	Id = matrix:identity( Dim ),
@@ -65,7 +68,25 @@ run() ->
 	test_facilities:display( "Id(~B) = ~ts", [ Dim, matrix:to_string( Id ) ] ),
 
 	% Octave: M1 = [ 1, 2, 3; 4, 5, 6; 7, 8, 9 ]
-	M1 = matrix:new( [ [ 1, 2, 3 ], [ 4, 5, 6 ], [ 7, 8, 9 ] ] ),
+
+	M1 = matrix:new( [ [ 1.0, 2.0, 3.0 ], [ 4.0, 5.0, 6.0 ],
+					   [ 7.0, 8.0, 9.0 ] ] ),
+
+	Columns = [ [ 1.0, 4.0, 7.0 ], [ 2.0, 5.0, 8.0 ], [ 3.0, 6.0, 9.0 ] ],
+	M1 = matrix:from_columns( Columns ),
+
+	Rows = M1,
+	M1 = matrix:from_rows( Rows ),
+
+	Coords = list_utils:flatten_once( Rows ),
+	M1 = matrix:from_coordinates( Coords, _ColCount=3 ),
+	Coords = matrix:to_coordinates( M1 ),
+
+	Row = hd( Rows ),
+	Row = matrix:row( 1, M1 ),
+
+	Col = hd( Columns ),
+	Col = matrix:column( 1, M1 ),
 
 	8.0 = matrix:get_element( 3, 2, M1 ),
 
@@ -85,9 +106,15 @@ run() ->
 	TransposeM = [ [ 0.0, 7777.0 ], [ 1.0, 0.0 ], [2.0, 1/3 ] ],
 	TransposeM = matrix:transpose( M ),
 
-	test_facilities:display( "Transpose of M =~n~ts is:~n~ts",
+	test_facilities:display( "Transpose of M = ~ts is: ~ts",
 		[ matrix:to_string( M ), matrix:to_string( TransposeM )] ),
 
+	DoubleM1 = matrix:new( [ [ 2.0, 4.0, 6.0 ], [ 8.0, 10.0, 12.0 ],
+							 [ 14, 16, 18 ] ] ),
+
+	DoubleM1 = matrix:scale( M1, 2.0 ),
+
+	% Octave: M2 = [ 1, 0, 0; 0, 1, 0; 0, 0, 1 ]
 	M2 = matrix:identity( 3 ),
 
 	M3 = matrix:add( M1, M2 ),
@@ -96,24 +123,44 @@ run() ->
 
 	[ 2.0, 6.0, 8.0 ] = matrix:column( 2, M3 ),
 
+	M1Minus6M2 = matrix:sub( M1, matrix:scale( M2, 6.0 ) ),
+	M1Minus6M2 = [ [ -5.0, 2.0, 3.0 ], [ 4.0, -1.0, 6.0 ],
+				   [ 7.0, 8.0, 3.0 ] ],
 
-	test_facilities:display( "M1 = ~tsM2 = ~tsM3 = M1 + M2 = ~ts",
+	test_facilities:display( "M1 = ~tsM2 = ~tsM3 = M1 + M2 = ~ts"
+							 "M1 - 6.M2 = ~ts",
 		[ matrix:to_string( M1 ), matrix:to_string( M2 ),
-		  matrix:to_string( M3 ) ] ),
+		  matrix:to_string( M3 ), matrix:to_string( M1Minus6M2 ) ] ),
 
 
 	M1M2 = matrix:mult( M1, M2 ),
 
 	M1 = M1M2,
+	true = matrix:are_equal( M1, M1M2 ),
 
-
-	% M4 = [ 11, -2, 5; 4, 8, 0; -7, 10, 1 ]
-	M4 = matrix:new( [ [ 11, -2, 5 ], [ 4, 8, 0 ], [ -7, 10, 1 ] ] ),
+	% Octave: M4 = [ 11, -2, 5; 4, 8, 0; -7, 10, 1 ]
+	M4 = matrix:new( [ [ 11.0, -2.0, 5.0 ], [ 4.0, 8.0, 0.0 ],
+					   [ -7.0, 10.0, 1.0 ] ] ),
 	test_facilities:display( "M4 = ~ts", [ matrix:to_string( M4 ) ] ),
 
-	M5 = matrix:new( [ [ -2, 44, 8 ], [ 22, 92, 26 ], [ 46, 140, 44 ] ] ),
+	M5 = matrix:new( [ [ -2.0, 44.0, 8.0 ], [ 22.0, 92.0, 26.0 ],
+					   [ 46.0, 140.0, 44.0 ] ] ),
 
 	M5 = matrix:mult( M1, M4 ),
 	test_facilities:display( "M5 = M1*M4 = ~ts", [ matrix:to_string( M5 ) ] ),
+
+	UserCoords = [ [ 1.0, 9.0, 4.0, 5.0 ], [ 1.0, 8.0, 2.0, 7.0 ],
+				   [ 4.0, 3.0, 7.0, 5.0 ], [ 6.0, 8.0, 2.0, 8.0 ] ],
+
+	M6 = matrix:new( UserCoords ),
+	matrix4 = matrix:get_specialised_module_for( M6 ),
+
+	M7 = matrix4:new( UserCoords ),
+	matrix4 = matrix:get_specialised_module_of( M7 ),
+
+	M7 = matrix:specialise( M6 ),
+	M6 = matrix:unspecialise( M7 ),
+
+	matrix:check( M6 ),
 
 	test_facilities:stop().

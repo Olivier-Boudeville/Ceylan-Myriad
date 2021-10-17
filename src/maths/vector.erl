@@ -107,7 +107,8 @@
 -export([ new/1, null/1,
 		  from_point/1, to_point/1,
 		  dimension/1,
-		  add/2, add/1, mult/2,
+		  add/2, add/1, sub/2, mult/2,
+		  are_equal/2,
 		  square_magnitude/1, magnitude/1, scale/2, make_unit/1,
 		  dot_product/2,
 		  check/1, check_integer/1,
@@ -186,6 +187,31 @@ add( V1, V2 ) ->
 				   V1, V2 ).
 
 
+% @doc Returns the sum of all vectors (supposedly of the same dimension) in the
+% specified (supposedly non-empty) list.
+%
+-spec add( [ vector() ] ) -> vector().
+% Just to avoid using null() as Acc0 and thus having to compute the dimension:
+add( _Vectors=[ VFirst | VOthers ] ) ->
+	lists:foldl( fun( V, AccV ) ->
+					add( V, AccV )
+				 end,
+				 _InitialAcc=VFirst,
+				 _List=VOthers ).
+
+
+
+% @doc Returns the subtraction of the two specified vectors (supposedly of the
+% same dimension): V = V1 - V2.
+%
+-spec sub( vector(), vector() ) -> vector().
+sub( V1, V2 ) ->
+	lists:zipwith( fun( C1, C2 ) ->
+						C1 - C2
+				   end,
+				   V1, V2 ).
+
+
 
 % @doc Returns the Hadamard product of the two specified vectors.
 %
@@ -205,17 +231,24 @@ mult( _V1=[ C1 | T1 ], _V2=[ C2 | T2 ], Acc ) ->
 
 
 
-% @doc Returns the sum of all vectors (supposedly of the same dimension) in the
-% specified (supposedly non-empty) list.
-%
--spec add( [ vector() ] ) -> vector().
-% Just to avoid using null() as Acc0 and thus having to compute the dimension:
-add( _Vectors=[ VFirst | VOthers ] ) ->
-	lists:foldl( fun( V, AccV ) ->
-					add( V, AccV )
-				 end,
-				 _InitialAcc=VFirst,
-				 _List=VOthers ).
+% No need for an are_close/2 alias.
+
+
+% @doc Returns true iff the two specified vectors are considered equal.
+-spec are_equal( vector(), vector() ) -> boolean().
+are_equal( _V1=[], _V2=[] ) ->
+	true;
+
+are_equal( _V1=[ C1 | T1 ], _V2=[ C2 | T2 ] ) ->
+	case math_utils:are_close( C1, C2 ) of
+
+		true ->
+			are_equal( T1, T2 );
+
+		false ->
+			false
+
+	end.
 
 
 

@@ -38,6 +38,14 @@
 
 % Implementation notes:
 %
+% These 4x4 matrices come in various forms:
+%
+% - the canonical one (4x4 coordinates)
+%
+% - the compact one (3x4) where the last row is (implicitly) [0.0, 0.0, 0.0,
+% 1.0], typical of transformations (translation+rotation) in 3D
+%
+% - special ones, at least the identity matrix
 
 
 % For printout_*, inline_size, etc.:
@@ -53,9 +61,10 @@
 % For records like matrix4:
 -include("matrix4.hrl").
 
+
 -type user_matrix4() :: user_matrix().
-% A matrix4 can be specified as a list of same-size rows containing any kind of
-% numerical coordinates.
+% A matrix4 can be specified as a list of same-size rows (akin to a user
+% arbitrary matrix) containing any kind of numerical coordinates.
 
 
 -type matrix4() :: 'identity_4' | canonical_matrix4() | compact_matrix4().
@@ -73,15 +82,26 @@
 			   compact_matrix4/0 ]).
 
 
--export([ new/1, null/0, identity/0, from_columns/4, from_rows/4,
-		  from_coordinates/16, from_compact_coordinates/12, from_3D/2,
+-export([ new/1, new/3, null/0, identity/0,
+		  from_columns/4, from_rows/4,
+		  from_coordinates/16, from_compact_coordinates/12,
+		  from_3D/2,
+		  from_arbitrary/1, to_arbitrary/1,
+		  dimension/0, dimensions/0,
+		  row/2, column/2,
+		  get_element/3, set_element/4,
+		  transpose/1,
+		  scale/2,
+		  add/2, sub/2, mult/2,
+		  are_equal/2, determinant/1,
 		  to_canonical/1, to_compact/1,
-		  scale/2, mult/2,
-		  are_equal/2,
+		  check/1,
 		  to_string/1 ] ).
 
 
 -import( math_utils, [ is_null/1, are_close/2 ] ).
+
+-define( dim, 4 ).
 
 
 % Shorthands:
@@ -90,23 +110,51 @@
 
 -type coordinate() :: linear:coordinate().
 -type factor() :: linear:factor().
+-type dimension() :: linear:dimension().
+-type scalar() :: linear:scalar().
 
 -type vector3() :: vector3:vector3().
+
+-type user_vector4() :: user_vector4:vector4().
 -type vector4() :: vector4:vector4().
+
+-type dimensions() :: matrix:dimensions().
 
 -type matrix3() :: matrix3:matrix3().
 
 -type user_matrix() :: user_matrix().
+-type matrix() :: matrix().
 
 
 
-% @doc Returns a 4D matrix corresponding to the user-specified one.
--spec new( user_matrix4() ) -> matrix4().
+% @doc Returns a 4D (canonical) matrix corresponding to the user-specified
+% matrix.
+%
+-spec new( user_matrix4() ) -> canonical_matrix4().
 new( UserMatrix ) ->
-	matrix:check( UserMatrix ),
-	CoordList = list_utils:flatten_once( UserMatrix ),
-	% Returns a #matrix4 record (i.e. tagged tuple):
+
+	CoordList = [ type_utils:ensure_float( C )
+					|| C <- list_utils:flatten_once( UserMatrix ) ],
+
+	% Returns a #matrix4 record (i.e. a tagged tuple):
 	list_to_tuple( [ 'matrix4' | CoordList ] ).
+
+
+
+% @doc Returns a 4D compact matrix corresponding to the user-specified
+% row vectors.
+%
+-spec new( user_vector4(), user_vector4(), user_vector4() ) ->
+			compact_matrix4().
+new( UserVecRow1, UserVecRow2, UserVecRow3 ) ->
+
+	Rows = [ vector4:new( UVR )
+			 || UVR <- [ UserVecRow1, UserVecRow2, UserVecRow3 ] ],
+
+	CoordList = list_utils:flatten_once( Rows ),
+
+	% Returns a #compact_matrix4 record (i.e. a tagged tuple):
+	list_to_tuple( [ 'compact_matrix4' | CoordList ] ).
 
 
 
@@ -114,7 +162,7 @@ new( UserMatrix ) ->
 -spec null() -> canonical_matrix4().
 null() ->
 	Zero = 0.0,
-	CoordList = lists:duplicate( _N=4*4, Zero ),
+	CoordList = lists:duplicate( _N=?dim * ?dim, Zero ),
 	list_to_tuple( [ 'matrix4' | CoordList ] ).
 
 
@@ -160,7 +208,7 @@ from_columns( _Va=[Xa,Ya,Za,Wa], _Vb=[Xb,Yb,Zb,Wb],
 %  '''
 %
 -spec from_rows( vector4(), vector4(), vector4(), vector4() ) ->
-						 canonical_matrix4().
+							canonical_matrix4().
 from_rows( _Va=[Xa,Ya,Za,Wa], _Vb=[Xb,Yb,Zb,Wb],
 		   _Vc=[Xc,Yc,Zc,Wc], _Vd=[Xd,Yd,Zd,Wd] ) ->
 	#matrix4{ m11=Xa, m12=Ya, m13=Za, m14=Wa,
@@ -195,8 +243,8 @@ from_coordinates( M11, M12, M13, M14,
 -spec from_compact_coordinates(
 					coordinate(), coordinate(), coordinate(), coordinate(),
 					coordinate(), coordinate(), coordinate(), coordinate(),
-					coordinate(), coordinate(), coordinate(), coordinate() )
-											-> compact_matrix4().
+					coordinate(), coordinate(), coordinate(), coordinate() ) ->
+						 compact_matrix4().
 from_compact_coordinates( M11, M12, M13, Tx,
 						  M21, M22, M23, Ty,
 						  M31, M32, M33, Tz ) ->
@@ -206,8 +254,27 @@ from_compact_coordinates( M11, M12, M13, Tx,
 
 
 
+% @doc Returns the 4x4 matrix corresponding to the specified
+% arbitrary-dimensioned matrix.
+%
+-spec from_arbitrary( matrix() ) -> matrix4().
+from_arbitrary( Matrix ) ->
+	apply( fun from_rows/?dim, Matrix ).
+
+
+% @doc Returns the arbitrary-dimensioned matrix corresponding to the specified
+% 4x4 matrix.
+%
+-spec to_arbitrary( matrix4() ) -> matrix().
+to_arbitrary( Matrix4 ) ->
+	M = to_canonical( Matrix4 ),
+	[ _RecordTag | Coords ] = tuple_to_list( M ),
+	matrix:from_coordinates( Coords, _ColumCount=?dim ).
+
+
+
 % @doc Returns the 4x4 compact matrix obtained from specified 3x3 matrix and
-% 3D vector.
+% 3D (translation) vector.
 %
 -spec from_3D( matrix3(), vector3() ) -> compact_matrix4().
 from_3D( #matrix3{ m11=M11, m12=M12, m13=M13,
@@ -220,96 +287,298 @@ from_3D( #matrix3{ m11=M11, m12=M12, m13=M13,
 
 
 
-% @doc Returns the canonical form of the specified 4x4 matrix.
--spec to_canonical( matrix4() ) -> canonical_matrix4().
-to_canonical( #compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
-								m21=M21, m22=M22, m23=M23, ty=Ty,
-								m31=M31, m32=M32, m33=M33, tz=Tz } ) ->
-	Zero = 0.0,
-	#matrix4{ m11=M11,  m12=M12,  m13=M13,  m14=Tx,
-			  m21=M21,  m22=M22,  m23=M23,  m24=Ty,
-			  m31=M31,  m32=M32,  m33=M33,  m34=Tz,
-			  m41=Zero, m42=Zero, m43=Zero, m44=1.0 };
-
-to_canonical( identity_4 ) ->
-	#matrix4{ m11=1.0, m12=0.0, m13=0.0, m14=0.0,
-			  m21=0.0, m22=1.0, m23=0.0, m24=0.0,
-			  m31=0.0, m32=0.0, m33=1.0, m34=0.0,
-			  m41=0.0, m42=0.0, m43=0.0, m44=1.0 };
-
-to_canonical( M ) when is_record( M, matrix4 ) ->
-	M.
-
-
-
-% @doc Returns the compact form of specified (4x4) matrix.
+% @doc Returns the dimension of these matrices.
 %
-% Throws an exception if the specified matrix cannot be expressed as a compact
-% one.
+% Not useless, when using polymorphism based on module name.
 %
--spec to_compact( matrix4() ) -> compact_matrix4().
-to_compact( M=#matrix4{ m11=M11, m12=M12, m13=M13, m14=M14,
-						m21=M21, m22=M22, m23=M23, m24=M24,
-						m31=M31, m32=M32, m33=M33, m34=M34,
-						m41=M41, m42=M42, m43=M43, m44=M44 }) ->
-	case is_null( M41 ) andalso is_null( M42 ) andalso is_null( M43 )
-			andalso are_close( M44, 1.0 ) of
-
-		true ->
-			% Just drop the last row then:
-			#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=M14,
-							  m21=M21, m22=M22, m23=M23, ty=M24,
-							  m31=M31, m32=M32, m33=M33, tz=M34 };
-
-		false ->
-			trace_utils:error_fmt( "Canonical 4D matrix~n~ts~ncannot be "
-				"expressed as a compact one.", [ to_string( M ) ] ),
-
-			throw( { not_compactable, M } )
-
-	end;
-
-to_compact( identity_4 ) ->
-	#compact_matrix4{ m11=1.0, m12=0.0, m13=0.0, tx=0.0,
-					  m21=0.0, m22=1.0, m23=0.0, ty=0.0,
-					  m31=0.0, m32=0.0, m33=1.0, tz=0.0 };
-
-to_compact( CM ) when is_record( CM, compact_matrix4 ) ->
-	CM.
+-spec dimension() -> dimension().
+dimension() ->
+	?dim.
 
 
 
-% @doc Scales specified (4D) matrix of specified factor.
+% @doc Returns the dimensions of these matrices.
+%
+% Not useless, when using polymorphism based on module name.
+%
+-spec dimensions() -> dimensions().
+dimensions() ->
+	{ ?dim, ?dim }.
+
+
+
+% @doc Returns the specified row of the specified matrix.
+-spec row( dimension(), matrix4() ) -> vector4().
+row( _RowCount=1, #matrix4{ m11=M11, m12=M12, m13=M13, m14=M14 } ) ->
+	[ M11, M12, M13, M14 ];
+
+row( _RowCount=2, #matrix4{ m21=M21, m22=M22, m23=M23, m24=M24 } ) ->
+	[ M21, M22, M23, M24 ];
+
+row( _RowCount=3, #matrix4{ m31=M31, m32=M32, m33=M33, m34=M34 } ) ->
+	[ M31, M32, M33, M34 ];
+
+row( _RowCount=4, #matrix4{ m41=M41, m32=M42, m33=M43, m34=M44 } ) ->
+	[ M41, M42, M43, M44 ];
+
+row( RowCount, OtherMatrix ) ->
+	row( RowCount, to_canonical( OtherMatrix ) ).
+
+
+
+% @doc Returns the specified column of the specified matrix.
+-spec column( dimension(), matrix4() ) -> vector4().
+column( _ColumnCount=1, #matrix4{ m11=M11, m21=M21, m31=M31, m41=M41 } ) ->
+	[ M11, M21, M31, M41 ];
+
+column( _ColumnCount=2, #matrix4{ m12=M12, m22=M22, m32=M32, m42=M42 } ) ->
+	[ M12, M22, M32, M42 ];
+
+column( _ColumnCount=3, #matrix4{ m13=M13, m23=M23, m33=M33, m43=M43 } ) ->
+	[ M13, M23, M33, M43 ];
+
+column( _ColumnCount=4, #matrix4{ m14=M14, m24=M24, m34=M34, m44=M44 } ) ->
+	[ M14, M24, M34, M44 ];
+
+column( ColCount, OtherMatrix ) ->
+	column( ColCount, to_canonical( OtherMatrix ) ).
+
+
+
+% @doc Returns the element at specified row and column of the specified matrix.
+-spec get_element( dimension(), dimension(), matrix4() ) -> coordinate().
+get_element( _R=1, _C=1, #matrix4{ m11=M11 } ) ->
+	M11;
+
+get_element( _R=1, _C=2, #matrix4{ m12=M12 } ) ->
+	M12;
+
+get_element( _R=1, _C=3, #matrix4{ m13=M13 } ) ->
+	M13;
+
+get_element( _R=1, _C=4, #matrix4{ m14=M14 } ) ->
+	M14;
+
+
+get_element( _R=2, _C=1, #matrix4{ m21=M21 } ) ->
+	M21;
+
+get_element( _R=2, _C=2, #matrix4{ m22=M22 } ) ->
+	M22;
+
+get_element( _R=2, _C=3, #matrix4{ m23=M23 } ) ->
+	M23;
+
+get_element( _R=2, _C=4, #matrix4{ m24=M24 } ) ->
+	M24;
+
+
+get_element( _R=3, _C=1, #matrix4{ m31=M31 } ) ->
+	M31;
+
+get_element( _R=3, _C=2, #matrix4{ m32=M32 } ) ->
+	M32;
+
+get_element( _R=3, _C=3, #matrix4{ m33=M33 } ) ->
+	M33;
+
+get_element( _R=3, _C=4, #matrix4{ m34=M34 } ) ->
+	M34;
+
+
+get_element( _R=4, _C=1, #matrix4{ m41=M41 } ) ->
+	M41;
+
+get_element( _R=4, _C=2, #matrix4{ m42=M42 } ) ->
+	M42;
+
+get_element( _R=4, _C=3, #matrix4{ m43=M43 } ) ->
+	M43;
+
+get_element( _R=4, _C=4, #matrix4{ m44=M44 } ) ->
+	M44;
+
+get_element( R, C, OtherMatrix ) ->
+	get_element( R, C, to_canonical( OtherMatrix ) ).
+
+
+
+% @doc Returns a matrix identical to the specified one except that its specified
+% element at specified location has been set to the specified value.
+%
+-spec set_element( dimension(), dimension(), coordinate(), matrix4() ) ->
+									matrix4().
+set_element( _R=1, _C=1, Value, Matrix=#matrix4{} ) ->
+	Matrix#matrix4{ m11=Value };
+
+set_element( _R=1, _C=2, Value, Matrix=#matrix4{} ) ->
+	Matrix#matrix4{ m12=Value };
+
+set_element( _R=1, _C=3, Value, Matrix=#matrix4{} ) ->
+	Matrix#matrix4{ m13=Value };
+
+set_element( _R=1, _C=4, Value, Matrix=#matrix4{} ) ->
+	Matrix#matrix4{ m14=Value };
+
+
+set_element( _R=2, _C=1, Value, Matrix=#matrix4{} ) ->
+	Matrix#matrix4{ m21=Value };
+
+set_element( _R=2, _C=2, Value, Matrix=#matrix4{} ) ->
+	Matrix#matrix4{ m22=Value };
+
+set_element( _R=2, _C=3, Value, Matrix=#matrix4{} ) ->
+	Matrix#matrix4{ m23=Value };
+
+set_element( _R=2, _C=4, Value, Matrix=#matrix4{} ) ->
+	Matrix#matrix4{ m24=Value };
+
+
+set_element( _R=3, _C=1, Value, Matrix=#matrix4{} ) ->
+	Matrix#matrix4{ m31=Value };
+
+set_element( _R=3, _C=2, Value, Matrix=#matrix4{} ) ->
+	Matrix#matrix4{ m32=Value };
+
+set_element( _R=3, _C=3, Value, Matrix=#matrix4{} ) ->
+	Matrix#matrix4{ m33=Value };
+
+set_element( _R=3, _C=4, Value, Matrix=#matrix4{} ) ->
+	Matrix#matrix4{ m34=Value };
+
+
+set_element( _R=4, _C=1, Value, Matrix=#matrix4{} ) ->
+	Matrix#matrix4{ m41=Value };
+
+set_element( _R=4, _C=2, Value, Matrix=#matrix4{} ) ->
+	Matrix#matrix4{ m42=Value };
+
+set_element( _R=4, _C=3, Value, Matrix=#matrix4{} ) ->
+	Matrix#matrix4{ m43=Value };
+
+set_element( _R=4, _C=4, Value, Matrix=#matrix4{} ) ->
+	Matrix#matrix4{ m44=Value };
+
+set_element( R, C, Value, OtherMatrix ) ->
+	set_element( R, C, Value, to_canonical( OtherMatrix ) ).
+
+
+
+% @doc Returns the transpose of the specified matrix.
+-spec transpose( matrix4() ) -> matrix4().
+% Diagonal untouched:
+transpose( M=#matrix4{ m12=M12, m13=M13, m14=M14,
+					   m21=M21, m23=M23, m24=M24,
+					   m31=M31, m32=M32, m34=M34,
+					   m41=M41, m42=M42, m43=M43 } ) ->
+	M#matrix4{ m12=M21, m13=M31, m14=M41,
+			   m21=M12, m23=M32, m24=M42,
+			   m31=M13, m32=M23, m34=M43,
+			   m41=M14, m42=M24, m43=M34 };
+
+transpose( M=identity_4 ) ->
+	M;
+
+% A compact matrix is not anymore compact:
+transpose( CompactMatrix ) ->
+	transpose( to_canonical( CompactMatrix ) ).
+
+
+
+% @doc Scales specified (4D) matrix of the specified factor.
 -spec scale( matrix4(), factor() ) -> matrix4().
 scale( #compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
 						 m21=M21, m22=M22, m23=M23, ty=Ty,
 						 m31=M31, m32=M32, m33=M33, tz=Tz }, Factor ) ->
-	#compact_matrix4{
-		 m11=Factor*M11, m12=Factor*M12, m13=Factor*M13, tx=Factor*Tx,
-		 m21=Factor*M21, m22=Factor*M22, m23=Factor*M23, ty=Factor*Ty,
-		 m31=Factor*M31, m32=Factor*M32, m33=Factor*M33, tz=Factor*Tz };
+	% Not anymore a compact matrix, as last (bottom-right) implicit coordinate
+	% (1.0) must be scaled as well:
+	%
+	#matrix4{
+		m11=Factor*M11, m12=Factor*M12, m13=Factor*M13, m14=Factor*Tx,
+		m21=Factor*M21, m22=Factor*M22, m23=Factor*M23, m24=Factor*Ty,
+		m31=Factor*M31, m32=Factor*M32, m33=Factor*M33, m34=Factor*Tz,
+		m41=0.0,        m42=0.0,        m43=0.0,        m44=Factor      };
 
-scale( #matrix4{ m11=M11, m12=M12, m13=M13, m14=Tx,
-				 m21=M21, m22=M22, m23=M23, m24=Ty,
-				 m31=M31, m32=M32, m33=M33, m34=Tz,
-				 m41=M41, m42=M42, m43=M43, m44=Tw }, Factor ) ->
-	#matrix4{ m11=Factor*M11, m12=Factor*M12, m13=Factor*M13, m14=Factor*Tx,
-			  m21=Factor*M21, m22=Factor*M22, m23=Factor*M23, m24=Factor*Ty,
-			  m31=Factor*M31, m32=Factor*M32, m33=Factor*M33, m34=Factor*Tz,
-			  m41=Factor*M41, m42=Factor*M42, m43=Factor*M43, m44=Factor*Tw };
+scale( #matrix4{ m11=M11, m12=M12, m13=M13, m14=M14,
+				 m21=M21, m22=M22, m23=M23, m24=M24,
+				 m31=M31, m32=M32, m33=M33, m34=M34,
+				 m41=M41, m42=M42, m43=M43, m44=M44 }, Factor ) ->
+	#matrix4{ m11=Factor*M11, m12=Factor*M12, m13=Factor*M13, m14=Factor*M14,
+			  m21=Factor*M21, m22=Factor*M22, m23=Factor*M23, m24=Factor*M24,
+			  m31=Factor*M31, m32=Factor*M32, m33=Factor*M33, m34=Factor*M34,
+			  m41=Factor*M41, m42=Factor*M42, m43=Factor*M43, m44=Factor*M44 };
 
-scale( identity_4, Factor ) ->
-	scale( to_canonical( identity_4 ), Factor ).
+scale( M=identity_4, Factor ) ->
+	scale( to_canonical( M ), Factor ).
+
+
+
+% @doc Returns the sum of the two specified matrices: M = Ma + Mb.
+-spec add( matrix4(), matrix4() ) -> matrix4().
+add( _Ma=#matrix4{ m11=A11, m12=A12, m13=A13, m14=A14,
+				   m21=A21, m22=A22, m23=A23, m24=A24,
+				   m31=A31, m32=A32, m33=A33, m34=A34,
+				   m41=A41, m42=A42, m43=A43, m44=A44 },
+	 _Mb=#matrix4{ m11=B11, m12=B12, m13=B13, m14=B14,
+				   m21=B21, m22=B22, m23=B23, m24=B24,
+				   m31=B31, m32=B32, m33=B33, m34=B34,
+				   m41=B41, m42=B42, m43=B43, m44=B44 } ) ->
+
+	#matrix4{ m11=A11+B11, m12=A12+B12, m13=A13+B13, m14=A14+B14,
+			  m21=A21+B21, m22=A22+B22, m23=A23+B23, m24=A24+B24,
+			  m31=A31+B31, m32=A32+B32, m33=A33+B33, m34=A34+B34,
+			  m41=A41+B41, m42=A42+B42, m43=A43+B43, m44=A44+B44 };
+
+
+add( _Ma=#compact_matrix4{ m11=A11, m12=A12, m13=A13, tx=Tx,
+						   m21=A21, m22=A22, m23=A23, ty=Ty,
+						   m31=A31, m32=A32, m33=A33, tz=Tz },
+	 _Mb=#matrix4{ m11=B11, m12=B12, m13=B13, m14=B14,
+				   m21=B21, m22=B22, m23=B23, m24=B24,
+				   m31=B31, m32=B32, m33=B33, m34=B34,
+				   m41=B41, m42=B42, m43=B43, m44=B44 } ) ->
+	#matrix4{ m11=A11+B11, m12=A12+B12, m13=A13+B13, m14=Tx+B14,
+			  m21=A21+B21, m22=A22+B22, m23=A23+B23, m24=Ty+B24,
+			  m31=A31+B31, m32=A32+B32, m33=A33+B33, m34=Tz+B34,
+			  m41=B41,     m42=B42,     m43=B43,     m44=1.0+B44 };
+
+
+add( Ma=#matrix4{}, Mb=#compact_matrix4{} ) ->
+	add( Mb, Ma );
+
+
+add( _Ma=#compact_matrix4{ m11=A11, m12=A12, m13=A13, tx=Ax,
+						   m21=A21, m22=A22, m23=A23, ty=Ay,
+						   m31=A31, m32=A32, m33=A33, tz=Az },
+	 _Mb=#compact_matrix4{ m11=B11, m12=B12, m13=B13, tx=Bx,
+						   m21=B21, m22=B22, m23=B23, ty=By,
+						   m31=B31, m32=B32, m33=B33, tz=Bz } ) ->
+
+	#compact_matrix4{ m11=A11+B11, m12=A12+B12, m13=A13+B13, tx=Ax+Bx,
+					  m21=A21+B21, m22=A22+B22, m23=A23+B23, ty=Ay+By,
+					  m31=A31+B31, m32=A32+B32, m33=A33+B33, tz=Az+Bz };
+
+add( Ma, Mb ) ->
+	add( to_canonical( Ma ), to_canonical( Mb ) ).
+
+
+
+% @doc Returns the subtraction of the two specified matrices: M = Ma - Mb.
+-spec sub( matrix4(), matrix4() ) -> matrix4().
+sub( Ma, Mb ) ->
+	% Quick and dirty:
+	MinusMb = scale( Mb, -1.0 ),
+	add( Ma, MinusMb ).
 
 
 
 % @doc Multiplies the first matrix by the second one: returns Mc = Ma.Mb.
--spec mult( matrix4(), matrix4() ) -> matrix4().
-mult( identity_4, M ) ->
-	M;
+-spec mult( Ma:: matrix4(), Mb :: matrix4() ) -> matrix4().
+mult( _Ma=identity_4, Mb ) ->
+	Mb;
 
-mult( M, identity_4 ) ->
-	M;
+mult( Ma, _Mb=identity_4 ) ->
+	Ma;
 
 mult( _Ma=#matrix4{ m11=A11, m12=A12, m13=A13, m14=A14,
 					m21=A21, m22=A22, m23=A23, m24=A24,
@@ -319,6 +588,9 @@ mult( _Ma=#matrix4{ m11=A11, m12=A12, m13=A13, m14=A14,
 					m21=B21, m22=B22, m23=B23, m24=B24,
 					m31=B31, m32=B32, m33=B33, m34=B34,
 					m41=B41, m42=B42, m43=B43, m44=B44 } ) ->
+
+	%trace_utils:debug_fmt( "Multiplying Ma = ~ts by Mb = ~ts",
+	%					   [ to_string( Ma ), to_string( Mb ) ] ),
 
 	C11 = A11*B11 + A12*B21 + A13*B31 + A14*B41,
 	C12 = A11*B12 + A12*B22 + A13*B32 + A14*B42,
@@ -352,7 +624,6 @@ mult( _Ma=#compact_matrix4{ m11=A11, m12=A12, m13=A13, tx=Tx,
 					m21=B21, m22=B22, m23=B23, m24=B24,
 					m31=B31, m32=B32, m33=B33, m34=B34,
 					m41=B41, m42=B42, m43=B43, m44=B44 } ) ->
-
 
 	C11 = A11*B11 + A12*B21 + A13*B31 + Tx*B41,
 	C12 = A11*B12 + A12*B22 + A13*B32 + Tx*B42,
@@ -455,7 +726,7 @@ are_equal( _Ma=#matrix4{ m11=A11, m12=A12, m13=A13, m14=A14,
 						 m21=B21, m22=B22, m23=B23, m24=B24,
 						 m31=B31, m32=B32, m33=B33, m34=B34,
 						 m41=B41, m42=B42, m43=B43, m44=B44 } ) ->
-				are_close( A11, B11 ) andalso are_close( A12, B12 )
+	are_close( A11, B11 ) andalso are_close( A12, B12 )
 		andalso are_close( A13, B13 ) andalso are_close( A14, B14 )
 		andalso are_close( A21, B21 ) andalso are_close( A22, B22 )
 		andalso are_close( A23, B23 ) andalso are_close( A24, B24 )
@@ -470,7 +741,7 @@ are_equal( _Ma=#compact_matrix4{ m11=A11, m12=A12, m13=A13, tx=Ax,
 		   _Mb=#compact_matrix4{ m11=B11, m12=B12, m13=B13, tx=Bx,
 								 m21=B21, m22=B22, m23=B23, ty=By,
 								 m31=B31, m32=B32, m33=B33, tz=Bz } ) ->
-				are_close( A11, B11 ) andalso are_close( A12, B12 )
+	are_close( A11, B11 ) andalso are_close( A12, B12 )
 		andalso are_close( A13, B13 ) andalso are_close( Ax,  Bx )
 		andalso are_close( A21, B21 ) andalso are_close( A22, B22 )
 		andalso are_close( A23, B23 ) andalso are_close( Ay,  By )
@@ -484,7 +755,7 @@ are_equal( _Ma=#matrix4{ m11=A11, m12=A12, m13=A13, m14=A14,
 		   _Mb=#compact_matrix4{ m11=B11, m12=B12, m13=B13, tx=Bx,
 								 m21=B21, m22=B22, m23=B23, ty=By,
 								 m31=B31, m32=B32, m33=B33, tz=Bz } ) ->
-				are_close( A11, B11 ) andalso are_close( A12, B12 )
+	are_close( A11, B11 ) andalso are_close( A12, B12 )
 		andalso are_close( A13, B13 ) andalso are_close( A14, Bx  )
 		andalso are_close( A21, B21 ) andalso are_close( A22, B22 )
 		andalso are_close( A23, B23 ) andalso are_close( A24, By  )
@@ -496,56 +767,143 @@ are_equal( _Ma=#matrix4{ m11=A11, m12=A12, m13=A13, m14=A14,
 are_equal( Ma=#compact_matrix4{}, Mb=#matrix4{} ) ->
 	are_equal( Mb, Ma );
 
-are_equal( Ma, _Mb=identity_4 ) ->
-	are_equal( Ma, to_compact( identity_4 ) );
+are_equal( Ma, Mb=identity_4 ) ->
+	are_equal( Ma, to_canonical( Mb ) );
 
-are_equal( _Ma=identity_4, Mb ) ->
-	are_equal( Mb, identity_4 ).
+are_equal( Ma=identity_4, Mb ) ->
+	are_equal( Mb, Ma ).
 
 
 
-% @doc Returns a textual representation of specified (4x4) matrix.
+% @doc Returns the determinant of the specified matrix.
+-spec determinant( matrix4() ) -> scalar().
+determinant( _M=#matrix4{} ) ->
+	throw( fixme );
+
+determinant( _M=identity_4 ) ->
+	1;
+
+determinant( M ) ->
+	% Could be simplified a lot for compact matrices thanks to their zeros:
+	determinant( to_canonical( M ) ).
+
+
+
+% @doc Returns the canonical form of the specified 4x4 matrix.
+-spec to_canonical( matrix4() ) -> canonical_matrix4().
+to_canonical( #compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
+								m21=M21, m22=M22, m23=M23, ty=Ty,
+								m31=M31, m32=M32, m33=M33, tz=Tz } ) ->
+	Zero = 0.0,
+	#matrix4{ m11=M11,  m12=M12,  m13=M13,  m14=Tx,
+			  m21=M21,  m22=M22,  m23=M23,  m24=Ty,
+			  m31=M31,  m32=M32,  m33=M33,  m34=Tz,
+			  m41=Zero, m42=Zero, m43=Zero, m44=1.0 };
+
+to_canonical( identity_4 ) ->
+	Zero = 0.0,
+	One = 1.0,
+	#matrix4{ m11=One,  m12=Zero, m13=Zero, m14=Zero,
+			  m21=Zero, m22=One,  m23=Zero, m24=Zero,
+			  m31=Zero, m32=Zero, m33=One,  m34=Zero,
+			  m41=Zero, m42=Zero, m43=Zero, m44=One };
+
+to_canonical( M ) when is_record( M, matrix4 ) ->
+	M.
+
+
+
+% @doc Returns the compact form of specified (4x4) matrix.
+%
+% Throws an exception if the specified matrix cannot be expressed as a compact
+% one.
+%
+-spec to_compact( matrix4() ) -> compact_matrix4().
+to_compact( M=#matrix4{ m11=M11, m12=M12, m13=M13, m14=M14,
+						m21=M21, m22=M22, m23=M23, m24=M24,
+						m31=M31, m32=M32, m33=M33, m34=M34,
+						m41=M41, m42=M42, m43=M43, m44=M44 } ) ->
+	case is_null( M41 ) andalso is_null( M42 ) andalso is_null( M43 )
+			andalso are_close( M44, 1.0 ) of
+
+		true ->
+			% Just drop the last row then:
+			#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=M14,
+							  m21=M21, m22=M22, m23=M23, ty=M24,
+							  m31=M31, m32=M32, m33=M33, tz=M34 };
+
+		false ->
+			trace_utils:error_fmt( "Canonical 4D matrix ~ts cannot be "
+				"expressed as a compact one.", [ to_string( M ) ] ),
+
+			throw( { not_compactable, M } )
+
+	end;
+
+to_compact( identity_4 ) ->
+	Zero = 0.0,
+	One = 1.0,
+	#compact_matrix4{ m11=One,  m12=Zero, m13=Zero, tx=Zero,
+					  m21=Zero, m22=One,  m23=Zero, ty=Zero,
+					  m31=Zero, m32=Zero, m33=One,  tz=Zero };
+
+to_compact( CM ) when is_record( CM, compact_matrix4 ) ->
+	CM.
+
+
+
+% @doc Checks that the specified matrix is legit, and returns it.
+-spec check( matrix4() ) -> matrix4().
+check( M=identity_4 ) ->
+	M;
+
+check( M ) ->
+	Coords = case tuple_to_list( M ) of
+
+		[ matrix4 | Cs ] ->
+			Cs;
+
+		[ compact_matrix4 | Cs ] ->
+			Cs
+
+	end,
+
+	[ type_utils:check_float( C ) || C <- Coords ],
+
+	M.
+
+
+
+% @doc Returns a textual representation of the specified (4x4) matrix.
 -spec to_string( matrix4() ) -> ustring().
 to_string( _Matrix=identity_4 ) ->
 	"4x4 identity";
 
-to_string( _Matrix=#matrix4{ m11=M11, m12=M12, m13=M13, m14=M14,
-							 m21=M21, m22=M22, m23=M23, m24=M24,
-							 m31=M31, m32=M32, m33=M33, m34=M34,
-							 m41=M41, m42=M42, m43=M43, m44=M44 } ) ->
-	% tuple_to_list could be relevant as well:
-	AllCoords = [ M11, M12, M13, M14,
-				  M21, M22, M23, M24,
-				  M31, M32, M33, M34,
-				  M41, M42, M43, M44 ],
+to_string( Matrix4=#matrix4{} ) ->
+
+	[ _AtomMatrix4 | AllCoords ] = tuple_to_list( Matrix4 ),
 
 	Strs = linear:coords_to_best_width_strings( AllCoords ),
 
-	Dim = 4,
-
 	% No need for ~ts here:
-	RowFormatStr = "[ " ++ text_utils:duplicate( Dim, "~s " ) ++ "]~n",
+	RowFormatStr = "[ " ++ text_utils:duplicate( ?dim, "~s " ) ++ "]~n",
 
-	FormatStr = "~n" ++ text_utils:duplicate( Dim, RowFormatStr ),
+	FormatStr = "~n" ++ text_utils:duplicate( ?dim, RowFormatStr ),
 
 	text_utils:format( FormatStr, Strs );
 
 
-to_string( _Matrix=#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
-									 m21=M21, m22=M22, m23=M23, ty=Ty,
-									 m31=M31, m32=M32, m33=M33, tz=Tz } ) ->
-	AllCoords = [ M11, M12, M13, Tx,
-				  M21, M22, M23, Ty,
-				  M31, M32, M33, Tz,
-				  0.0, 0.0, 0.0, 1.0 ],
+to_string( CptMatrix=#compact_matrix4{} ) ->
+
+	[ _AtomCompactMatrix4 | CompactCoords ] = tuple_to_list( CptMatrix ),
+
+	AllCoords = CompactCoords ++ [ 0.0, 0.0, 0.0, 1.0 ],
 
 	Strs = linear:coords_to_best_width_strings( AllCoords ),
 
-	Dim = 4,
-
 	% No need for ~ts here:
-	RowFormatStr = "[ " ++ text_utils:duplicate( Dim, "~s " ) ++ "]~n",
+	RowFormatStr = "[ " ++ text_utils:duplicate( ?dim, "~s " ) ++ "]~n",
 
-	FormatStr = "~n" ++ text_utils:duplicate( Dim, RowFormatStr ),
+	FormatStr = "~n" ++ text_utils:duplicate( ?dim, RowFormatStr ),
 
 	text_utils:format( FormatStr, Strs ).

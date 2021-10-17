@@ -88,8 +88,8 @@
 -export([ new/1, null/1, from_vector/1, to_vector/1, to_any_vector/1,
 		  roundify/1,
 		  translate/2, vectorize/2,
-		  dimension/1,
-		  are_close/2, is_within/3, is_within_square/3,
+		  dimension/1, are_close/2, are_equal/2,
+		  is_within/3, is_within_square/3,
 		  square_distance/2, distance/2,
 		  check/1,
 		  to_string/1, to_compact_string/1, to_basic_string/1,
@@ -205,30 +205,29 @@ vectorize( _P1=[ C1 | T1 ], _V=[ C2 | T2 ], AccV ) ->
 
 
 
-
 % @doc Returns the dimension of the specified point.
 -spec dimension( any_point() ) -> dimension().
 dimension( P ) ->
 	size( P ).
 
 
-% @doc Returns whether the two specified points are close, ie if they could be
+
+% @doc Returns whether the two specified points are close, that if they could be
 % considered as representing the same point (equality operator on points).
 %
+% Alias for are_equal/2.
+%
 -spec are_close( point(), point() ) -> boolean().
-are_close( _P1=[], _P2=[] ) ->
-	true;
+are_close( P1, P2 ) ->
+	are_equal( P1, P2 ).
 
-are_close( _P1=[ C1 | T1 ], _P2=[ C2 | T2 ] ) ->
-	case math_utils:are_close( C1, C2 ) of
 
-		true ->
-			are_close( T1, T2 );
-
-		false ->
-			false
-
-	end.
+% @doc Returns whether the two specified points are equal, that if they could be
+% considered as representing the same point (equality operator on points).
+%
+-spec are_equal( point(), point() ) -> boolean().
+are_equal( P1, P2 ) ->
+	vector:are_equal( tuple_to_list( P1 ), tuple_to_list( P2 ) ).
 
 
 

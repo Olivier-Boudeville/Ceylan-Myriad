@@ -57,6 +57,8 @@
 
 
 -type coordinate() :: float().
+
+
 % Cartesian (floating-point) coordinates in a referential.
 
 
@@ -123,9 +125,9 @@
 % Area of a surface.
 
 
+-type scalar() :: float().
+% A scalar, that is a 1-D vector / square matrix.
 
--type scalar() :: coordinate().
-% A scalar, that is a 1-D vector or square matrix.
 
 -type specialised_point() :: point2() | point3() | point4().
 % Any kind of specialised (fixed-size - not of arbitrary dimension) point.

@@ -93,6 +93,7 @@
 -export([ new/1, new/4, new_integer/4, null/0,
 		  from_point/1, to_point/1,
 		  add/2, add/1,
+		  are_close/2, are_equal/2,
 		  square_magnitude/1, magnitude/1, scale/2, make_unit/1,
 		  dot_product/2,
 		  check/1, check_integer/1,
@@ -187,6 +188,28 @@ add( _Vectors=[ VFirst | VOthers ]  ) ->
 				 end,
 				 _InitialAcc=VFirst,
 				 _List=VOthers ).
+
+
+
+% @doc Returns whether the two specified 4D vectors are close, that is if they
+% could be considered as representing the same vector (equality operator on
+% vectors).
+%
+-spec are_close( vector4(), vector4() ) -> boolean().
+are_close( V1, V2 ) ->
+	are_equal( V1, V2 ).
+
+
+% @doc Returns whether the two specified 4D vectors are equal, that is if they
+% could be considered as representing the same vector (equality operator on
+% vectors).
+%
+-spec are_equal( vector4(), vector4() ) -> boolean().
+are_equal( _V1=[X1,Y1,Z1,W1], _V2=[X2,Y2,Z2,W2] ) ->
+	math_utils:are_close( X1, X2 ) andalso math_utils:are_close( Y1, Y2 )
+		andalso math_utils:are_close( Z1, Z2 )
+		andalso math_utils:are_close( W1, W2 ).
+
 
 
 % No cross_product/2 for dimensions different from 3.
