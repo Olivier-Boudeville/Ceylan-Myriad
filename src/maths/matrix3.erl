@@ -93,7 +93,8 @@
 		  transpose/1,
 		  scale/2,
 		  add/2, sub/2, mult/2,
-		  are_equal/2, determinant/1,
+		  are_equal/2,
+		  determinant/1, comatrix/1, inverse/1,
 		  to_canonical/1, to_compact/1,
 		  check/1,
 		  to_string/1 ] ).
@@ -649,6 +650,87 @@ determinant( _M=#compact_matrix3{ m11=M11, m12=M12, tx=_Tx,
 
 determinant( _M=identity_3 ) ->
 	1.
+
+
+
+% @doc Returns the comatrix of the specified matrix (that is the matrix of its
+% cofactors).
+%
+-spec comatrix( matrix3() ) -> matrix3().
+comatrix( identity_3 ) ->
+	identity_3;
+
+comatrix( _M=#matrix3{ m11=M11, m12=M12, m13=M13,
+					   m21=M21, m22=M22, m23=M23,
+					   m31=M31, m32=M32, m33=M33 } ) ->
+
+	CM11 = M22*M33 - M23*M32,
+
+	% - ( M21*M33 - M23*M31 )
+	CM12 = M23*M31 - M21*M33,
+
+	CM13 = M21*M32 - M22*M31,
+
+	% - ( M12*M33 - M13*M32 )
+	CM21 = M13*M32 - M12*M33,
+
+	CM22 = M11*M33 - M13*M31,
+
+	% - (M11*M32 - M12*M31 ) XXX
+	CM23 = M12*M31 - M11*M32,
+
+	CM31 = M12*M23 - M13*M22,
+
+	% - (M11*M23 - M13*M21 )
+	CM32 = M13*M21 - M11*M23,
+
+	CM33 = M11*M22 - M12*M21,
+
+	#matrix3{ m11=CM11, m12=CM12, m13=CM13,
+			  m21=CM21, m22=CM22, m23=CM23,
+			  m31=CM31, m32=CM32, m33=CM33 };
+
+comatrix( _M=#compact_matrix3{ m11=M11, m12=M12, tx=Tx,
+							   m21=M21, m22=M22, ty=Ty } ) ->
+	CM11 = M22,
+
+	CM12 = -M21,
+
+	CM13 = 0.0,
+
+	CM21 = -M12,
+
+	CM22 = M11,
+
+	CM23 = 0.0,
+
+	CM31 = M12*Ty - Tx*M22,
+
+	CM32 = Tx*M21 - M11*Ty,
+
+	CM33 = M11*M22 - M12*M21,
+
+	#matrix3{ m11=CM11, m12=CM12, m13=CM13,
+			  m21=CM21, m22=CM22, m23=CM23,
+			  m31=CM31, m32=CM32, m33=CM33 }.
+
+
+
+% @doc Returns the inverse of the specified matrix, if it is inversible (that is
+% iff its determinant is non-null), otherwise returns undefined.
+%
+-spec inverse( matrix3() ) -> maybe( matrix3() ).
+inverse( M ) ->
+	Det = determinant( M ),
+	case math_utils:is_null( Det ) of
+
+		true ->
+			undefined;
+
+		false ->
+			scale( transpose( comatrix( M ) ), 1/Det )
+
+	end.
 
 
 

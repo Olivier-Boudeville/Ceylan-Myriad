@@ -128,6 +128,12 @@ run() ->
 
 	MultCanMatrix = matrix2:mult( ScaledMatrix, RowMatrix ),
 
+	test_facilities:display( "The multiplication of matrix ~ts "
+		"by matrix ~ts yields: ~ts",
+		[ matrix2:to_string( ScaledMatrix ),
+		  matrix2:to_string( RowMatrix ),
+		  matrix2:to_string( MultCanMatrix ) ] ),
+
 	[ ArbitraryScaledMatrix, ArbitraryRowMatrix, ArbitraryMultCanMatrix ] =
 		[ matrix:unspecialise( M )
 			|| M <- [ ScaledMatrix, RowMatrix, MultCanMatrix ] ],
@@ -137,10 +143,16 @@ run() ->
 
 	-200.0 = matrix2:determinant( CoordMatrix ),
 
-	test_facilities:display( "The multiplication of matrix ~ts "
-		"by matrix ~ts yields: ~ts",
-		[ matrix2:to_string( ScaledMatrix ),
-		  matrix2:to_string( RowMatrix ),
-		  matrix2:to_string( MultCanMatrix ) ] ),
+	InvCoordMatrix = matrix2:inverse( CoordMatrix ),
+
+	test_facilities:display( "The inverse of matrix ~ts is: ~ts",
+		[ matrix2:to_string( CoordMatrix ),
+		  matrix2:to_string( InvCoordMatrix ) ] ),
+
+	true = matrix2:are_equal( Id,
+		matrix2:mult( CoordMatrix, InvCoordMatrix ) ),
+
+	true = matrix2:are_equal( Id,
+		matrix2:mult( InvCoordMatrix, CoordMatrix ) ),
 
 	test_facilities:stop().

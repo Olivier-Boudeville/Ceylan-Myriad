@@ -82,7 +82,8 @@
 		  transpose/1,
 		  scale/2,
 		  add/2, sub/2, mult/2,
-		  are_equal/2, determinant/1,
+		  are_equal/2,
+		  determinant/1, comatrix/1, inverse/1,
 		  to_canonical/1,
 		  check/1,
 		  to_string/1 ] ).
@@ -391,6 +392,47 @@ determinant( _M=#matrix2{ m11=M11, m12=M12,
 
 determinant( _M=identity_2 ) ->
 	1.0.
+
+
+
+% @doc Returns the comatrix of the specified matrix (that is the matrix of its
+% cofactors).
+%
+-spec comatrix( matrix2() ) -> matrix2().
+comatrix( identity_2 ) ->
+	identity_2;
+
+comatrix( _M=#matrix2{ m11=M11, m12=M12,
+					   m21=M21, m22=M22 } ) ->
+	#matrix2{ m11=M22,  m12=-M21,
+			  m21=-M12, m22=M11 }.
+
+
+
+% @doc Returns the inverse of the specified matrix, if it is inversible (that is
+% iff its determinant is non-null), otherwise returns undefined.
+%
+% Note: often the inverse can be obtained differently (ex: by applying reverse
+% operations starting from identity) or computed differently (ex: by Gaussian
+% elimination), or can be replaced by a mere lower–upper (LU) decomposition.
+%
+-spec inverse( matrix2() ) -> maybe( matrix2() ).
+inverse( identity_2 ) ->
+	identity_2;
+
+inverse( M=#matrix2{ m11=M11, m12=M12,
+					 m21=M21, m22=M22 } ) ->
+	Det = determinant( M ),
+	case math_utils:is_null( Det ) of
+
+		true ->
+			undefined;
+
+		false ->
+			#matrix2{ m11=M22/Det,  m12=-M12/Det,
+					  m21=-M21/Det, m22=M11/Det }
+
+	end.
 
 
 

@@ -22,7 +22,7 @@ This support is by no means expected to be complete, battle-tested or efficient.
 - integrating advanced, non-Erlang libraries such as ones for linear operations implementing the `BLAS <https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms>`_ specification; using the C binding (*CBLAS interface*) of a renown implementation (optimised at length and making use of processor-specific extensions, such as `LAPACK <https://en.wikipedia.org/wiki/LAPACK>`_) and making it available to Erlang typically thanks to either NIFs (most suitable approach here) or a C-node (possibly thanks to `Ceylan-Seaplus <http://seaplus.esperide.org>`_) would certainly be an option - all the more relevant that a bulk of linear operations could be offset to it; some Erlang projects target similar objectives, like `linalg <https://github.com/sklassen/erlang-linalg-native>`_ or `matrex <https://github.com/versilov/matrex>`_; more generally a library such as `GSL <https://www.gnu.org/software/gsl/>`_ (the GNU Scientific Library) ideally could be integrated as a whole to Erlang
 
 
-In order to check the functional services and the correctness of operations, we recommend the use of `Scilab <https://www.scilab.org/>`_ (example on Arch: ``yay -Sy scilab``). `GNU Octave <https://www.gnu.org/software/octave/>`_ could be another good choice (example on Arch: ``pacman -Sy octave``).
+In order to check the functional services and the correctness of operations, we recommend the use of `Scilab <https://www.scilab.org/>`_ (example on Arch: ``yay -Sy scilab``). `GNU Octave <https://www.gnu.org/software/octave/>`_ could be another good choice (example on Arch: ``pacman -Sy octave``). Beware to the lower-precision of their textual outputs (ex: use ``format long`` with Octave for 15 significant figures).
 
 
 
@@ -130,6 +130,13 @@ Note that:
   - or based on a ``new`` operator (ex: ``matrix:new/1``), in which case with a higher-level user-term (ex: a matrix with integer coordinates, in which case they will be automatically converted to floats)
 - for clarity and in order to provide them with specified operations (like dot product), we preferred defining vectors as a separate type from the matrix one (even if a vector could be represented as a 1-column matrix)
 - by default, for least surprise, coordinates are displayed *not* rounded (refer to the ``printout_{width,precision}`` defines in ``linear.hrl``)
+- the procedure to check the validity of computations is the following:
+
+  - first implement the arbitrary version
+  - validate it, by internal operations and by comparison with a tool like Scilab/Octave
+  - implement the specialised versions
+  - validate them against the arbitrary version
+
 - operations are not implemented defensively, in the sense that a base runtime error will be triggered if a type or a size does not match, rather than being special-cased (anyway generally no useful context could be specifically reported)
 - extra runtime checks can be enabled by setting the ``myriad_check_linear`` flag (refer to ``GNUmakevars.inc``)
 - for `homogeneous coordinates <https://en.wikipedia.org/wiki/Homogeneous_coordinates#Use_in_computer_graphics_and_computer_vision>`_: any implicit homogeneous `w` coordinate is ``1.0``

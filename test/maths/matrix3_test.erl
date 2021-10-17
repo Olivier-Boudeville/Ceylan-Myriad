@@ -222,6 +222,27 @@ run() ->
 	% Knowing that CoordMatrix is not inversible (its determinant is epsilon):
 	-25.0 = matrix3:determinant( ColMatrix ),
 
+	InvColMatrix = matrix3:inverse( ColMatrix ),
+
+	test_facilities:display( "The inverse of matrix ~ts is: ~ts",
+		[ matrix3:to_string( ColMatrix ),
+		  matrix3:to_string( InvColMatrix ) ] ),
+
+	true = matrix3:are_equal( Id,
+		matrix3:mult( ColMatrix, InvColMatrix ) ),
+
+	true = matrix3:are_equal( Id,
+		matrix3:mult( InvColMatrix, ColMatrix ) ),
+
+
 	516.0 = matrix3:determinant( FirstCompactMatrix ),
+
+	InvFirstCompactMatrix = matrix3:inverse( FirstCompactMatrix ),
+
+	true = matrix3:are_equal( Id,
+		matrix3:mult( FirstCompactMatrix, InvFirstCompactMatrix ) ),
+
+	true = matrix3:are_equal( Id,
+		matrix3:mult( InvFirstCompactMatrix, FirstCompactMatrix ) ),
 
 	test_facilities:stop().

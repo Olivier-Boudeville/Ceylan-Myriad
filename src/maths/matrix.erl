@@ -55,6 +55,17 @@
 % Integer coordinates are not specifically managed, they are only useful for
 % mock values for testing.
 
+% The adjugate (a.k.a. classical adjoint) of M is the transpose of its comatrix
+% (a.k.a. cofactor matrix).
+
+% The inverse of M is the transpose of the cofactor matrix times the reciprocal
+% of the determinant of A:
+
+% InverseM = transpose( comatrix(M) / determinant(M) )
+
+% No adjugate in Octave apparently.
+
+
 
 -type user_row() :: user_vector().
 % Matrix user-specified elements, left to right.
@@ -77,23 +88,44 @@
 % order (all rows shall contain the same number of elements).
 
 
+-type square_matrix() :: matrix().
+% A square matrix, that is whose number of rows is equal to its number of
+% columns.
+
+
 -type specialised_matrix() :: matrix2:matrix2()
 							| matrix3:matrix3()
 							| matrix4:matrix4().
-% Regroups all types of specialised matrices.
+% Regroups all types of specialised (square) matrices.
 
 
 -type specialised_module() :: 'matrix2' | 'matrix3' | 'matrix4'.
 % The modules implementing specialised matrices.
 
 
--type dimensions() :: { RowCount:: dimension(), ColumnCount :: dimension() }.
+-type row_index() :: dimension().
+% A row index.
+
+-type column_index() :: dimension().
+ % A column index.
+
+
+-type row_count() :: dimension().
+% A number of rows.
+
+-type column_count() :: dimension().
+ % A number of columns.
+
+
+-type dimensions() :: { row_count(), column_count() }.
 % Number of rows and columns of a matrix.
 
 
 -export_type([ user_row/0, row/0, column/0,
-			   user_matrix/0, matrix/0,
+			   user_matrix/0, matrix/0, square_matrix/0,
 			   specialised_matrix/0, specialised_module/0,
+			   row_index/0, column_index/0,
+			   row_count/0, column_count/0,
 			   dimensions/0 ]).
 
 
@@ -107,7 +139,7 @@
 		  scale/2,
 		  add/2, sub/2, mult/2,
 		  are_equal/2,
-		  determinant/1,
+		  determinant/1, comatrix/1, inverse/1,
 		  get_specialised_module_of/1, get_specialised_module_for/1,
 		  specialise/1, unspecialise/1,
 		  check/1,
@@ -146,7 +178,7 @@ new( UserMatrix ) ->
 
 
 % @doc Returns a null, square (arbitrary) matrix of the specified dimension.
--spec null( dimension() ) -> matrix().
+-spec null( dimension() ) -> square_matrix().
 null( SquareDim ) ->
 	null( SquareDim, SquareDim ).
 
@@ -161,7 +193,7 @@ null( RowCount, ColumnCount ) ->
 
 
 % @doc Returns the identity (square) matrix of the specified dimension.
--spec identity( dimension() ) -> matrix().
+-spec identity( dimension() ) -> square_matrix().
 identity( Dim ) ->
 	[ [ case R of C -> 1.0; _ -> 0.0 end
 			|| C <- lists:seq( 1, Dim ) ] || R <- lists:seq( 1, Dim ) ].
@@ -380,6 +412,152 @@ apply_columns( R, _Columns=[ Col | T ], Acc ) ->
 
 
 
+% @doc Returns the determinant of the specified (square) matrix.
+%
+% Relies on https://en.wikipedia.org/wiki/Laplace_expansion for which we choose
+% i=1 (first row) and iterate on j, so:
+%      det(M) = sum(j=1..n, (-1)^(j+1).M1j.Minor1j)
+%
+-spec determinant( square_matrix() ) -> scalar().
+% Final base cases; shamelessly extracted from matrix{2,3,4}:
+determinant( _M=[ FirstRow | OtherRows ] ) ->
+	case length( FirstRow ) of
+
+		0 ->
+			1.0;
+
+		1 ->
+			hd( FirstRow );
+
+		2 ->
+			[ M11, M12] = FirstRow,
+			[ [ M21, M22 ] ] = OtherRows,
+			M11 * M22 - M12 * M21;
+
+		3 ->
+			[ M11, M12, M13 ] = FirstRow,
+			[ [ M21, M22, M23 ],
+			  [ M31, M32, M33 ] ] = OtherRows,
+			M11*M22*M33 + M12*M23*M31 + M13*M21*M32
+				- M13*M22*M31 - M12*M21*M33 - M11*M23*M32;
+
+		4 ->
+			[ M11, M12, M13, M14 ] = FirstRow,
+			[ [ M21, M22, M23, M24 ],
+			  [ M31, M32, M33, M34 ],
+			  [ M41, M42, M43, M44 ] ] = OtherRows,
+			M11*M22*M33*M44 - M11*M22*M34*M43 - M11*M23*M32*M44
+				+ M11*M23*M34*M42 + M11*M24*M32*M43 - M11*M24*M33*M42
+				- M12*M21*M33*M44 + M12*M21*M34*M43 + M12*M23*M31*M44
+				- M12*M23*M34*M41 - M12*M24*M31*M43 + M12*M24*M33*M41
+				+ M13*M21*M32*M44 - M13*M21*M34*M42 - M13*M22*M31*M44
+				+ M13*M22*M34*M41 + M13*M24*M31*M42 - M13*M24*M32*M41
+				- M14*M21*M32*M43 + M14*M21*M33*M42 + M14*M22*M31*M43
+				- M14*M22*M33*M41 - M14*M23*M31*M42 + M14*M23*M32*M41;
+
+		_ ->
+			determinant( FirstRow, OtherRows, _ColIndexJ=1, _InitialSign=1,
+						 _Acc=0 )
+
+	end.
+
+
+% (helper)
+determinant( _FirstRow=[], _OtherRows, _ColIndexJ, _CurrentSign, Acc ) ->
+	Acc;
+
+determinant( _FirstRow=[ M1J | T ], OtherRows, ColIndexJ, CurrentSign, Acc ) ->
+	% Square again, as was already lacking its first row:
+	SubMatrix = remove_column( ColIndexJ, OtherRows ),
+	NewAcc = Acc + CurrentSign * M1J * determinant( SubMatrix ),
+	determinant( T, OtherRows, ColIndexJ+1, -CurrentSign, NewAcc ).
+
+
+
+% @doc Returns the comatrix of the specified matrix (that is the matrix of its
+% cofactors).
+%
+-spec comatrix( matrix() ) -> matrix().
+comatrix( M ) ->
+	comatrix( M, _Rows=M, _CurrentRowIndex=1, _InitialSign=1, _Acc=[] ).
+
+
+% (helper)
+comatrix( _M, _Rows=[], _CurrentRowIndex, _CurrentSign, Acc ) ->
+	lists:reverse( Acc );
+
+comatrix( M, _Rows=[ Row | T ], CurrentRowIndex, CurrentSign, Acc ) ->
+	Cofactors = compute_row_cofactors( M, Row, CurrentRowIndex, CurrentSign ),
+	comatrix( M, T, CurrentRowIndex+1, -CurrentSign, [ Cofactors | Acc ] ).
+
+
+% (helper)
+compute_row_cofactors( M, Row, CurrentRowIndex, CurrentSign ) ->
+	compute_row_cofactors( M, Row, CurrentRowIndex, _CurrentColumnIndex=1,
+						   CurrentSign, _Acc=[] ).
+
+
+compute_row_cofactors( _M, _Row=[], _CurrentRowIndex, _CurrentColumnIndex,
+					   _CurrentSign, Acc ) ->
+	lists:reverse( Acc );
+
+compute_row_cofactors( M, _Row=[ _C | T ], CurrentRowIndex, CurrentColumnIndex,
+					   CurrentSign, Acc ) ->
+	RowShrunkM = remove_row( CurrentRowIndex, M ),
+	ShrunkM = remove_column( CurrentColumnIndex, RowShrunkM ),
+	Cofactor = CurrentSign * determinant( ShrunkM ),
+	compute_row_cofactors( M, T, CurrentRowIndex, CurrentColumnIndex+1,
+						   -CurrentSign, [ Cofactor | Acc ] ).
+
+
+
+% @doc Returns the inverse of the specified (square) matrix, iff it is
+% inversible (that is iff its determinant is non-null), otherwise returns
+% undefined.
+%
+% Note: often the inverse can be obtained differently (ex: by applying reverse
+% operations starting from identity) or computed differently (ex: by Gaussian
+% elimination), or can be replaced by a mere lower–upper (LU) decomposition.
+%
+-spec inverse( square_matrix() ) -> maybe( square_matrix() ).
+inverse( M ) ->
+	Det = determinant( M ),
+
+	case math_utils:is_null( Det ) of
+
+		true ->
+			undefined;
+
+		false ->
+			% See 'Implementation notes' for further details:
+			scale( transpose( comatrix( M ) ), 1/Det )
+
+	end.
+
+
+
+% @doc Returns the specified matrix once its row of specified index has been
+% removed.
+%
+-spec remove_row( row_index(), matrix() ) -> matrix().
+remove_row( RowIndex, Matrix ) ->
+	{ _Row, OtherRows } = list_utils:extract_element_at( Matrix, RowIndex ),
+	OtherRows.
+
+
+
+% @doc Returns the specified matrix once its column of specified index has been
+% removed.
+%
+-spec remove_column( column_index(), matrix() ) -> matrix().
+remove_column( ColumnIndex, Matrix ) ->
+	[ begin
+		  { _Coord, ShrunkRow } =
+				list_utils:extract_element_at( R, ColumnIndex ),
+		  ShrunkRow
+	  end || R <- Matrix ].
+
+
 % @doc Returns true iff the two specified matrices are considered equal.
 -spec are_equal( matrix(), matrix() ) -> boolean().
 are_equal( _M1=[], _M2=[] ) ->
@@ -395,13 +573,6 @@ are_equal( _M1=[ R1 | T1 ], _M2=[ R2 | T2 ] ) ->
 			false
 
 	end.
-
-
-
-% @doc Returns the determinant of the specified matrix.
--spec determinant( matrix() ) -> scalar().
-determinant( _M ) ->
-	throw( fixme ).
 
 
 

@@ -273,20 +273,24 @@ insert_element_at( Element, _List=[ H | T ], Index, Acc ) ->
 %
 -spec extract_element_at( list(), positive_index() ) -> { element(), list() }.
 extract_element_at( List, Index ) ->
-	% Nothing relevant found in the lists module, so:
-	extract_element_at( List, Index, _Acc=[] ).
+	% Relying now on lists:split/2:
+	{ Left, [ Elem | Right ] } = lists:split( Index-1, List ),
+	{ Elem, Left ++ Right }.
+
+	% Before: nothing relevant found in the lists module, so:
+	%extract_element_at( List, Index, _Acc=[] ).
 
 
 % (helper)
-extract_element_at( _List=[ H | T ], _Index=1, Acc ) ->
-	{ H, lists:reverse( Acc ) ++ T };
+%extract_element_at( _List=[ H | T ], _Index=1, Acc ) ->
+%   { H, lists:reverse( Acc ) ++ T };
 
-extract_element_at( _List=[], Index, Acc ) ->
-	throw( { index_out_of_range, Index + length( Acc ),
-			 lists:reverse( Acc ) } );
+%extract_element_at( _List=[], Index, Acc ) ->
+%   throw( { index_out_of_range, Index + length( Acc ),
+%            lists:reverse( Acc ) } );
 
-extract_element_at( _List=[ H | T ], Index, Acc ) ->
-	extract_element_at( T, Index-1, [ H | Acc ] ).
+%extract_element_at( _List=[ H | T ], Index, Acc ) ->
+%   extract_element_at( T, Index-1, [ H | Acc ] ).
 
 
 

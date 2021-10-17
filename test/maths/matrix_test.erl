@@ -163,4 +163,47 @@ run() ->
 
 	matrix:check( M6 ),
 
+	% Octave: InversibleCanMatrix4 = [  4, 3,  7,  4; 1,  9,  7,  3;
+	%                                  17, 5, 19, 77; 16, 6, 19, 83 ]
+	InversibleCanMatrix4 = matrix:new( [ [ 4.0,  3.0,  7.0,  4.0 ],
+										 [ 1.0,  9.0,  7.0,  3.0 ],
+										 [ 17.0, 5.0, 19.0, 77.0 ],
+										 [ 16.0, 6.0, 19.0, 83.0 ] ] ),
+
+	-2562.0 = matrix:determinant( InversibleCanMatrix4 ),
+
+	InversedCanMatrix4 = matrix:inverse( InversibleCanMatrix4 ),
+
+	test_facilities:display( "Inverse of ~ts is: ~ts",
+		[ matrix:to_string( InversibleCanMatrix4),
+		  matrix:to_string( InversedCanMatrix4 ) ] ),
+
+	Id4 = matrix:identity( 4 ),
+
+	true = matrix:are_equal( Id4,
+		matrix:mult( InversibleCanMatrix4, InversedCanMatrix4 ) ),
+
+	true = matrix:are_equal( Id4,
+		matrix:mult( InversedCanMatrix4, InversibleCanMatrix4 ) ),
+
+	% Octave: inv( InversibleCanMatrix4 ) returns (provided 'format long' has
+	% been selected, otherwise matrices will not be equal):
+	%
+	OctaveInversedCanMatrix4 = [
+		[ -5.066354410616709e-01, 2.322404371584700e-01,
+		  1.176814988290398e+00, -1.075722092115535e+00 ],
+		[ -4.223263075722095e-01, 2.814207650273225e-01,
+		  5.772833723653399e-01, -5.253708040593289e-01 ],
+		[ 6.213895394223266e-01, -2.486338797814208e-01,
+		  -8.817330210772836e-01, 7.970335675253709e-01 ],
+		[ -1.405152224824354e-02, -8.196721311475415e-03,
+		  -6.674473067915693e-02, 7.494145199063233e-02 ] ],
+
+	DiffInv = matrix:sub( InversedCanMatrix4, OctaveInversedCanMatrix4 ),
+
+	test_facilities:display( "Differences between inverses is: ~ts",
+							 [ matrix:to_string( DiffInv ) ] ),
+
+	true = matrix:are_equal( InversedCanMatrix4, OctaveInversedCanMatrix4 ),
+
 	test_facilities:stop().
