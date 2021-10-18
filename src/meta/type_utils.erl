@@ -498,7 +498,8 @@
 		  get_elementary_types/0, get_simple_builtin_types/0,
 		  is_type/1, is_of_type/2,
 		  is_of_described_type/2, is_homogeneous/1, is_homogeneous/2,
-		  are_types_identical/2 ]).
+		  are_types_identical/2,
+		  get_low_level_type_size/1 ]).
 
 
 
@@ -536,6 +537,7 @@
 
 -type ustring() :: text_utils:ustring().
 
+-type byte_size() :: system_utils:byte_size().
 
 % (cannot use our extended types here)
 -type maybe( T ) :: T | 'undefined'.
@@ -1115,6 +1117,26 @@ are_types_identical( Type, Type ) ->
 are_types_identical( _FirstType, _SecondType ) ->
 	false.
 
+
+
+% @doc Returns the number of bytes used by each value of the specified low-level
+% type.
+%
+-spec get_low_level_type_size( low_level_type() ) -> byte_size().
+get_low_level_type_size( uint8 ) -> 1;
+get_low_level_type_size( sint8 ) -> 1
+;
+get_low_level_type_size( uint16 ) -> 2;
+get_low_level_type_size( sint16 ) -> 2;
+
+get_low_level_type_size( uint32 ) -> 4;
+get_low_level_type_size( sint32 ) -> 4;
+
+get_low_level_type_size( uint64 ) -> 8;
+get_low_level_type_size( sint64 ) -> 8;
+
+get_low_level_type_size( float32 ) -> 4;
+get_low_level_type_size( float64 ) -> 8.
 
 
 
