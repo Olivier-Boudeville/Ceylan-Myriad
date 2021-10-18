@@ -69,9 +69,10 @@
 -type non_zero_integer() :: pos_integer() | neg_integer().
 
 
--type factor() :: float().
+-type factor() :: unit_utils:dimensionless().
 % A floating-point factor, typically in [0.0,1.0], that is a multiplier involved
 % in an equation.
+
 
 -type integer_factor() :: integer().
 % An integer factor, typically in [0.0,1.0], that is a multiplier involved in an
@@ -80,6 +81,14 @@
 -type any_factor() :: number().
 % A factor, typically in [0.0,1.0], that is a multiplier involved in an
 % equation.
+
+
+-type positive_factor() :: factor().
+% A factor expected to be strictly positive.
+
+
+-type non_negative_factor() :: factor().
+% A factor expected to be positive or null.
 
 
 
@@ -91,7 +100,11 @@
 % Variance, the square of a standard deviation.
 
 
--type percent() :: float().
+-type ratio() :: unit_utils:dimensionless().
+% A ration between two values.
+
+
+-type percent() :: ratio().
 % For percentages (1.0 corresponding to 100%).
 %
 % See also: text_utils:percent_to_string/{1,2}.
@@ -113,8 +126,9 @@
 
 
 -export_type([ factor/0, integer_factor/0, any_factor/0,
+			   positive_factor/0, non_negative_factor/0,
 			   non_zero_integer/0, standard_deviation/0, variance/0,
-			   percent/0, integer_percent/0, probability/0 ]).
+			   ratio/0, percent/0, integer_percent/0, probability/0 ]).
 
 
 
