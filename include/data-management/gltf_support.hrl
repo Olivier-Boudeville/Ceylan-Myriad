@@ -45,6 +45,9 @@
 	% The in-order definition of all known materials:
 	materials = [] :: [ gltf_support:material() ],
 
+	% The in-order definition of all known types of cameras:
+	camera_types = [] :: [ gltf_support:camera_type() ],
+
 	% The in-order definition of all known meshes:
 	meshes = [] :: [ gltf_support:mesh() ],
 
@@ -83,7 +86,17 @@
 	rotation :: maybe( quaternion:quaternion() ),
 
 	% The translation (if any) associated to this node:
-	translation :: maybe( vector3:vector3() ) } ).
+	translation :: maybe( vector3:vector3() ),
+
+	% The type of camera (if any) attached to this node:
+	camera :: maybe( gltf_support:camera_type_index() ) } ).
+
+
+
+% A light defined in a glTf content.
+%
+% Note that the core glTf format does not define lights (there are just
+% represented as nodes); so no gltf_light.
 
 
 
@@ -169,6 +182,47 @@
 	metallic_factor :: math_utils:factor(),
 
 	roughness_factor :: math_utils:factor() } ).
+
+
+
+% No gltf_light exist (they are just nodes).
+
+
+
+% A type of orthographic camera, from which, based on a node, actual camera
+% instances can be derived.
+%
+-record( gltf_orthographic_camera, {
+
+	x_magnification :: math_utils:positive_factor(),
+
+	y_magnification :: math_utils:positive_factor(),
+
+	z_near_distance :: linear:distance(),
+
+	% Must be greater than z_near_distance:
+	z_far_distance :: linear:distance() } ).
+
+
+
+
+% A type of perspective camera, from which, based on a node, actual camera
+% instances can be derived.
+%
+-record( gltf_perspective_camera, {
+
+	% The aspect ratio of the field of view:
+	aspect_ratio :: maybe( math_utils:ratio() ),
+
+	% The floating-point vertical field of view:
+	y_field_of_view  :: unit_utils:radians(),
+
+	z_near_distance :: linear:distance(),
+
+	% Must be greater than z_near_distance:
+	z_far_distance :: maybe( linear:distance() ) } ).
+
+
 
 
 

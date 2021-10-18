@@ -101,6 +101,34 @@
 
 
 
+-type light_index() :: zero_index().
+% Index of a light (actually: a node, as no specific type exists for light) in a
+% glTf content.
+
+
+-type light() :: #gltf_scene_node{}.
+% A light defined in a glTf content.
+%
+% As no specific type exists for light, it is a mere glTf node.
+
+
+
+-type camera_type_index() :: zero_index().
+% Index of a camera type in a glTf content.
+
+
+-type camera_type() :: #gltf_orthographic_camera{} | #gltf_perspective_camera{}.
+% A type of camera defined in a glTf content.
+%
+% This corresponds to a camera type rather than a camera instance, as the actual
+% cameras are created based on nodes referring to a camera type.
+
+
+-type camera_node_index() :: node_index().
+% Index of a node of a camera in a glTf content.
+
+
+
 -type buffer_index() :: zero_index().
 % Index of a buffer in a glTf content.
 
@@ -117,6 +145,7 @@
 
 -type buffer_view() :: #gltf_buffer_view{}.
 % A view onto a given buffer.
+
 
 
 -type accessor_index() :: zero_index().
@@ -153,12 +182,6 @@
 % The value of a component of an accessor.
 
 
--type topology_type() :: 'points' | 'lines' | 'line_loop' | 'line_strip'
-						| 'triangles' | 'triangle_strip' | 'triangle_fan'.
-% The (Myriad-defined) topology type of a primitive to render.
-% Default is 'triangles'.
-
-
 -type gltf_topology_type() :: enum().
 % Lower-level glTf specification of the datatype of a component.
 
@@ -181,6 +204,11 @@
 % The name chosen for this glTf generator.
 
 
+-type basic_content_settings() :: { scene_index(), material_index(),
+		light_index(), camera_type_index(), camera_node_index(), content() }.
+% All settings corresponding to a basic content.
+
+
 -export_type([ enum/0, content/0,
 			   scene_index/0, scene/0,
 			   node_index/0, scene_node/0,
@@ -189,24 +217,40 @@
 			   attributes/0,
 			   material_index/0, material/0,
 			   pbr_metallic_roughness/0,
+			   light_index/0, light/0,
+			   camera_type_index/0, camera_type/0, camera_node_index/0,
 			   buffer_index/0, buffer/0,
 			   buffer_view_index/0, buffer_view/0,
 			   accessor_index/0, accessor/0,
 			   element_type/0, gltf_element_type/0,
 			   component_type/0, gltf_component_type/0,
 			   component_value/0,
-			   topology_type/0, gltf_topology_type/0, topology/0,
+			   gltf_topology_type/0, topology/0,
 			   buffer_view_target/0, gltf_buffer_view_target/0,
-			   generator_name/0 ]).
+			   generator_name/0, basic_content_settings/0 ]).
 
 
--export([ get_blank_content/0, write_gltf_content/3, write_gltf_content/4,
+-export([ get_blank_content/0, get_basic_content/0, add_basics_to_content/1,
+
+		  add_metallic_material_to_content/1,
+		  add_basic_light_to_content/1, add_light_to_content/2,
+		  add_basic_camera_to_content/1, add_camera_to_content/3,
+		  add_full_scene_to_content/1, set_default_scene/2,
+
+		  get_metallic_material/0,
+		  get_basic_camera_settings/0, get_basic_camera_type/0,
+		  get_basic_orthographic_camera_type/0,
+		  get_basic_perspective_camera_type/0,
+		  get_basic_camera_node/0,
+
+		  write_gltf_content/3, write_gltf_content/4,
 		  read_gltf_content/2,
 
-		  add_primitive/6,
+		  add_primitive/7,
 		  decode_primitive/4,
 		  decode_vertices/5,
 
+		  generate_buffer/3,
 		  extract_points/4, extract_vectors/4,
 
 		  file_to_gltf_buffer_embedded/1, bin_to_gltf_buffer_embedded/1,
@@ -226,7 +270,7 @@
 		  get_buffer_view_target_associations/0,
 		  buffer_view_target_to_gltf/1, gltf_to_buffer_view_target/1,
 
-		  indices_to_triangles/1 ]).
+		  triangles_to_indices/1, indices_to_triangles/1 ]).
 
 
 
@@ -241,6 +285,8 @@
 
 -type any_file_path() :: file_utils:any_file_path().
 
+-type byte_size() :: system_utils:byte_size().
+
 -type bijective_table( F, S ) :: bijective_table:bijective_table( F, S ).
 
 -type json() :: json_utils:json().
@@ -252,6 +298,11 @@
 -type indice() :: linear:indice().
 -type indexed_triangle() :: linear:indexed_triangle().
 
+% Default is 'triangles':
+-type topology_type() :: linear_2D:topology_type().
+
+
+-type coordinate() :: linear:coordinate().
 
 -type specialised_point() :: linear:specialised_point().
 -type specialised_vector() :: linear:specialised_vector().
@@ -263,6 +314,7 @@
 -type specialised_texture_coordinates() ::
 		linear:specialised_texture_coordinates().
 
+-type specialised_type() :: linear:specialised_type().
 
 
 -type scalar() :: linear:scalar().
@@ -289,11 +341,13 @@
 % (ex: normals).
 
 
--type extractable_elements() :: scalar()
-							  | point2() | point3() | point4()
-							  | vector2() | vector3() | vector4()
-							  | matrix2() | matrix3() | matrix4().
-% The elements that can be extracted from a buffer-view.
+% No indice() here (they are uint16 scalar()):
+-type buffer_elements() :: scalar()
+						 | point2() | point3() | point4()
+						 | vector2() | vector3() | vector4()
+						 | matrix2() | matrix3() | matrix4().
+% The elements that can be written to or extracted from a buffer-view.
+
 
 -type buffer_table() :: table( buffer_index(), binary() ).
 % A table associating to a given buffer index its in-memory, decoded,
@@ -324,6 +378,7 @@
 % accessor.
 
 
+
 % So that we can use the 'table' pseudo-module, as JSON parsers rely on maps:
 -define( table_type, map_hashtable ).
 
@@ -337,6 +392,264 @@
 -spec get_blank_content() -> content().
 get_blank_content() ->
 	#gltf_content{}.
+
+
+
+% @doc Returns all settings regarding a basic glTf content, with defaults in
+% terms of scene, material, light, camera, etc.
+%
+-spec get_basic_content() -> basic_content_settings().
+get_basic_content() ->
+	add_basics_to_content( get_blank_content() ).
+
+
+
+% @doc Adds the basics to the specified glTf content: default scene, material,
+% light, camera, etc.
+%
+-spec add_basics_to_content( content() ) -> basic_content_settings().
+add_basics_to_content( Content ) ->
+
+	{ MaterialIndex, MatContent } = add_metallic_material_to_content( Content ),
+
+	{ LightNodeIndex, LightContent } = add_basic_light_to_content( MatContent ),
+
+	{ CameraTypeIndex, CameraNodeIndex, CamContent } =
+		add_basic_camera_to_content( LightContent ),
+
+	{ SceneIndex, SceneContent } = add_full_scene_to_content( CamContent ),
+
+	DefContent = set_default_scene( SceneIndex, SceneContent ),
+
+	{ SceneIndex, MaterialIndex, LightNodeIndex,
+	  CameraTypeIndex, CameraNodeIndex, DefContent }.
+
+
+
+
+% @doc Adds a basic, metallic material to the specified glTf content; returns
+% the index of that material and the updated content.
+%
+-spec add_metallic_material_to_content( content() ) ->
+			{ material_index(), content() }.
+add_metallic_material_to_content( Content ) ->
+	add_material_to_content( get_metallic_material(), Content ).
+
+
+
+% @doc Adds specified material to the specified glTf content; returns the index
+% of that material and the updated content.
+%
+-spec add_material_to_content( material(), content() ) ->
+			{ material_index(), content() }.
+add_material_to_content( Material=#gltf_material{},
+						 Content=#gltf_content{ materials=Materials } ) ->
+
+	% As these indices start at 0:
+	MatIndex = length( Materials ),
+
+	NewMaterials = list_utils:append_at_end( Material, Materials ),
+
+	{ MatIndex, Content#gltf_content{ materials=NewMaterials } }.
+
+
+
+
+% @doc Adds a basic light to the specified glTf content; returns the index of
+% that light and the updated content.
+%
+-spec add_basic_light_to_content( content() ) -> { light_index(), content() }.
+add_basic_light_to_content( Content ) ->
+	add_light_to_content( get_basic_light(), Content ).
+
+
+
+% @doc Adds specified light to the specified glTf content; returns the index
+% of that light and the updated content.
+%
+% Note that lights do not exist per se for glTf: they are mere nodes.
+%
+-spec add_light_to_content( light(), content() ) ->
+			{ light_index(), content() }.
+add_light_to_content( Light=#gltf_scene_node{},
+					  Content=#gltf_content{ nodes=Nodes } ) ->
+
+	% As these indices start at 0:
+	LightNodeIndex = length( Nodes ),
+
+	NewNodes = list_utils:append_at_end( Light, Nodes ),
+
+	{ LightNodeIndex, Content#gltf_content{ nodes=NewNodes } }.
+
+
+
+
+% @doc Adds a basic camera to the specified glTf content; returns the index of
+% that camera type and node, and the updated content.
+%
+-spec add_basic_camera_to_content( content() ) ->
+			{ camera_type_index(), camera_node_index(), content() }.
+add_basic_camera_to_content( Content ) ->
+	{ BasicCamType, BasicCamNode } = get_basic_camera_settings(),
+	add_camera_to_content( BasicCamType, BasicCamNode, Content ).
+
+
+
+% @doc Adds specified camera to the specified glTf content; returns the index of
+% that camera type and of a node instantiating it, and the updated content.
+%
+% Updates the specified node so that it references this camera type (hence
+% creating an instance thereof); any previous camera is replaced.
+%
+-spec add_camera_to_content( camera_type(), scene_node(), content() ) ->
+			{ camera_type_index(), node_index(), content() }.
+add_camera_to_content( CameraType, CameraNode=#gltf_scene_node{},
+					   Content=#gltf_content{ nodes=Nodes,
+											  camera_types=CameraTypes } )
+  when is_record( CameraType, gltf_orthographic_camera )
+	   orelse is_record( CameraType, gltf_perspective_camera ) ->
+
+	% As these indices start at 0:
+	CameraTypeIndex = length( CameraTypes ),
+
+	NewCameraTypes = list_utils:append_at_end( CameraType, CameraTypes ),
+
+
+	CameraNodeIndex = length( Nodes ),
+
+	UpdatedCameraNode = CameraNode#gltf_scene_node{ camera=CameraTypeIndex },
+
+	NewNodes = list_utils:append_at_end( UpdatedCameraNode, Nodes ),
+
+	{ CameraTypeIndex, CameraNodeIndex, Content#gltf_content{ nodes=NewNodes,
+												camera_types=NewCameraTypes } }.
+
+
+
+% @doc Adds a full scene to the specified glTf content, that is a scene
+% comprising all known nodes.
+%
+-spec add_full_scene_to_content( content() ) -> { scene_index(), content() }.
+add_full_scene_to_content( Content=#gltf_content{ scenes=Scenes,
+												  nodes=Nodes } ) ->
+
+	% As these indices start at 0:
+	FullSceneIndex = length( Scenes ),
+
+	% Amm content nodes selected:
+	FullScene = #gltf_scene{ name="Basic Myriad full scene",
+							 nodes=Nodes },
+
+	NewScenes = list_utils:append_at_end( FullScene, Scenes ),
+
+	{ FullSceneIndex, Content#gltf_content{ scenes=NewScenes } }.
+
+
+
+% @doc Sets the specified scene as the default one (overriding any prior).
+-spec set_default_scene( scene_index(), content() ) -> content().
+set_default_scene( SceneIndex, Content ) ->
+	Content#gltf_content{ default_scene=SceneIndex }.
+
+
+
+
+% Section for basic, default glTf elements.
+
+
+% @doc Returns a basic, metallic, double-sided material.
+-spec get_metallic_material() -> material().
+get_metallic_material() ->
+
+	ColorCoord = 0.800000011920929,
+
+	MetalRoughness = #gltf_pbr_metallic_roughness{
+		base_color_factor={ ColorCoord, ColorCoord, ColorCoord, 1.0 },
+		metallic_factor=0.0,
+		roughness_factor=0.4000000059604645 },
+
+	#gltf_material{ name="Basic Myriad metallic material",
+					double_sided=true,
+					pbr_metallic_roughness=MetalRoughness }.
+
+
+
+% @doc Returns a basic light.
+-spec get_basic_light() -> light().
+get_basic_light() ->
+
+	% In glTf, a light is nothing but a node:
+
+	LightRotQuaternion = [ 0.16907575726509094,
+						   0.7558803558349609,
+						   -0.27217137813568115,
+						   0.570947527885437 ],
+
+	LightPosition = [ 4.076245307922363,
+					  5.903861999511719,
+					  -1.0054539442062378 ],
+
+	#gltf_scene_node{ name="Basic Myriad light",
+					  rotation=LightRotQuaternion,
+					  translation=LightPosition }.
+
+
+
+% @doc Returns basic camera settings: a (perspective) camera type and a node
+% (not yet referencing it, as the camera type has not an index yet).
+%
+-spec get_basic_camera_settings() -> { camera_type(), scene_node() }.
+get_basic_camera_settings() ->
+	{ get_basic_camera_type(), get_basic_camera_node() }.
+
+
+
+% @doc Returns a basic (perspective) camera type.
+-spec get_basic_camera_type() -> camera_type().
+get_basic_camera_type() ->
+	get_basic_perspective_camera_type().
+
+
+
+
+% @doc Returns a basic orthographic camera type.
+-spec get_basic_orthographic_camera_type() -> camera_type().
+get_basic_orthographic_camera_type() ->
+	#gltf_orthographic_camera{ x_magnification=1.0,
+							   y_magnification=1.0,
+							   z_near_distance=0.01,
+							   z_far_distance=1000.0 }.
+
+
+
+% @doc Returns a basic perspective camera type.
+-spec get_basic_perspective_camera_type() -> camera_type().
+get_basic_perspective_camera_type() ->
+	#gltf_perspective_camera{ aspect_ratio=1.5,
+							  % About 37.8°:
+							  y_field_of_view=0.660593,
+							  z_near_distance=0.0,
+							  % Preferring here infinite perspective:
+							  z_far_distance=undefined }.
+
+
+
+% @doc Returns a basic perspective camera node.
+-spec get_basic_camera_node() -> scene_node().
+get_basic_camera_node() ->
+
+	CameraRotQuaternion = [ 0.483536034822464,
+							0.33687159419059753,
+							-0.20870360732078552,
+							0.7804827094078064 ],
+
+	CameraPosition = [ 7.358891487121582,
+					   4.958309173583984,
+					   6.925790786743164 ],
+
+	#gltf_scene_node{ name="Basic camera node",
+					  rotation=CameraRotQuaternion,
+					  translation=CameraPosition }.
 
 
 
@@ -466,6 +779,7 @@ gltf_content_to_json( #gltf_content{ default_scene=DefaultSceneId,
 									 scenes=Scenes,
 									 nodes=Nodes,
 									 materials=Materials,
+									 camera_types=CameraTypes,
 									 meshes=Meshes,
 									 accessors=Accessors,
 									 buffer_views=BufferViews,
@@ -489,6 +803,8 @@ gltf_content_to_json( #gltf_content{ default_scene=DefaultSceneId,
 		{ <<"nodes">>, gltf_nodes_to_json( Nodes ) },
 
 		{ <<"materials">>, gltf_materials_to_json( Materials ) },
+
+		{ <<"cameras">>, gltf_camera_types_to_json( CameraTypes ) },
 
 		{ <<"meshes">>, gltf_meshes_to_json( Meshes ) },
 
@@ -534,7 +850,8 @@ gltf_nodes_to_json( Nodes ) ->
 gltf_node_to_json( #gltf_scene_node{ name=MaybeName,
 									 mesh=MaybeMeshId,
 									 rotation=MaybeRotQuat,
-									 translation=MaybeTransVec } ) ->
+									 translation=MaybeTransVec,
+									 camera=MaybeCamId } ) ->
 
 	BaseTable = table:new(),
 
@@ -542,7 +859,8 @@ gltf_node_to_json( #gltf_scene_node{ name=MaybeName,
 		{ <<"name">>, text_utils:maybe_string_to_binary( MaybeName ) },
 		{ <<"mesh">>, MaybeMeshId },
 		{ <<"rotation">>, MaybeRotQuat },
-		{ <<"translation">>, MaybeTransVec } ], BaseTable ).
+		{ <<"translation">>, MaybeTransVec },
+		{ <<"camera">>, MaybeCamId } ], BaseTable ).
 
 
 
@@ -574,6 +892,46 @@ gltf_roughness_to_json( #gltf_pbr_metallic_roughness{
 	table:new( [ { <<"baseColorFactor">>, tuple_to_list( BaseRenderColor ) },
 				 { <<"metallicFactor">>, MetalF },
 				 { <<"roughnessFactor">>, RoughF } ] ).
+
+
+
+-spec gltf_camera_types_to_json( [ camera_type() ] ) -> json_term().
+gltf_camera_types_to_json( CameraTypes ) ->
+	[ gltf_camera_type_to_json( CT ) || CT <- CameraTypes ].
+
+
+-spec gltf_camera_type_to_json( camera_type() ) -> json_term().
+gltf_camera_type_to_json( #gltf_orthographic_camera{
+								x_magnification=XMag,
+								y_magnification=YMag,
+								z_near_distance=ZNear,
+								z_far_distance=ZFar } ) ->
+
+	OrthoTable = table:new( [ { <<"xmag">>, XMag },
+							  { <<"ymag">>, YMag },
+							  { <<"znear">>, ZNear },
+							  { <<"zfar">>, ZFar } ] ),
+
+	table:new( [ { <<"type">>, <<"orthographic">> },
+				 { <<"orthographic">>, OrthoTable } ] );
+
+
+gltf_camera_type_to_json( #gltf_perspective_camera{
+								aspect_ratio=MaybeAspectRatio,
+								y_field_of_view=YFoV,
+								z_near_distance=ZNear,
+								z_far_distance=MaybeZFar } ) ->
+
+	BasePerspTable = table:new( [ { <<"yfov">>, YFoV },
+								  { <<"znear">>, ZNear } ] ),
+
+	PerspTable = table:add_maybe_entries( [
+					{ <<"aspectRatio">>, MaybeAspectRatio },
+					{ <<"zfar">>, MaybeZFar } ], BasePerspTable ),
+
+	table:new( [ { <<"type">>, <<"perspective">> },
+				 { <<"perspective">>, PerspTable } ] ).
+
 
 
 
@@ -777,8 +1135,8 @@ get_component_type_associations() ->
 						   { uint16, 5123 },
 						   { sint16, 5122 },
 						   % No sint32 supported by glTf.
-						   { uint32,5125 },
-						   { float, 5126} ] ).
+						   { uint32, 5125 },
+						   { float32, 5126} ] ).
 
 
 % @doc Converts a (Myriad-level) component type into a (lower-level) glTf one.
@@ -868,7 +1226,8 @@ gltf_to_buffer_view_target( GltfBufferViewTarget ) ->
 -spec decode_primitive( mesh_index(), primitive_index(), content(),
 						buffer_table() ) ->
 			{ [ specialised_vertex() ], [ specialised_normal() ],
-			  [ specialised_texture_coordinates() ] }.
+			  [ specialised_texture_coordinates() ], [ indice() ],
+			  buffer_table() }.
 decode_primitive( MeshIndex, PrimitiveIndex, #gltf_content{
 											 meshes=Meshes,
 											 accessors=Accessors,
@@ -885,39 +1244,40 @@ decode_primitive( MeshIndex, PrimitiveIndex, #gltf_content{
 	Prim = #gltf_primitive{ attributes=Attributes } =
 		list_utils:get_element_at( Primitives, PrimitiveIndex+1 ),
 
-	VertBufferTable = case Attributes#gltf_attributes.position of
+
+	{ Vertices, VertBufferTable } = case Attributes#gltf_attributes.position of
 
 		undefined ->
 			BufferTable;
 
 		PositionAccessorIndex ->
-			{ Vertices, VertBuffTable } = decode_vertices(
+			VertP = { Verts, _VertBuffTable } = decode_vertices(
 				PositionAccessorIndex, Accessors, Buffers, BufferViews,
 				BufferTable ),
 
 			trace_utils:debug_fmt( "The ~B extracted vertices are:~n~p",
-								   [ length( Vertices ), Vertices ] ),
+								   [ length( Verts ), Verts ] ),
 
-			VertBuffTable
+			VertP
 
 	end,
 
 
-	NormBufferTable = case Attributes#gltf_attributes.normal of
+	{ Normals, NormBufferTable } = case Attributes#gltf_attributes.normal of
 
 		undefined ->
 			VertBufferTable;
 
 		NormalPositionAccessorIndex ->
 
-			{ Normals, NormBuffTable } = decode_normals(
+			NormP = { Norms, _NormBuffTable } = decode_normals(
 				NormalPositionAccessorIndex, Accessors, Buffers, BufferViews,
 				VertBufferTable ),
 
 			trace_utils:debug_fmt( "The ~B extracted normals are:~n~p",
-								   [ length( Normals ), Normals ] ),
+								   [ length( Norms ), Norms ] ),
 
-			NormBuffTable
+			NormP
 
 	end,
 
@@ -925,43 +1285,45 @@ decode_primitive( MeshIndex, PrimitiveIndex, #gltf_content{
 	% No gltf_attributes.tangent managed here.
 
 
-	Tex0BufferTable = case Attributes#gltf_attributes.texcoord_0 of
+	{ TexCoords, Tex0BufferTable } =
+			case Attributes#gltf_attributes.texcoord_0 of
 
 		undefined ->
 			NormBufferTable;
 
 		TexCoord0AccessorIndex ->
 
-			{ TexCoords, Tex0BuffTable } = decode_texture_coordinates(
+			TexP = { TexCs, _Tex0BuffTable } = decode_texture_coordinates(
 				TexCoord0AccessorIndex, Accessors, Buffers, BufferViews,
 				NormBufferTable ),
 
 			trace_utils:debug_fmt( "The ~B extracted texture coordinates "
-				"are:~n~p", [ length( TexCoords ), TexCoords ] ),
+				"are:~n~p", [ length( TexCs ), TexCs ] ),
 
-			Tex0BuffTable
+			TexP
 
 	end,
 
 
-	_IndicesBufferTable = case Prim#gltf_primitive.indices of
+	{ Indices, IndicesBufferTable } = case Prim#gltf_primitive.indices of
 
 		undefined ->
 			Tex0BufferTable;
 
 		IndicesPositionAccessorIndex ->
 
-			{ Indices, IndicesBuffTable } = decode_indices(
+			InP = { Inds, _IndicesBuffTable } = decode_indices(
 				IndicesPositionAccessorIndex, Accessors, Buffers, BufferViews,
 				Tex0BufferTable ),
 
 			trace_utils:debug_fmt( "The ~B extracted vertex indices are:~n~p",
-								   [ length( Indices ), Indices ] ),
+								   [ length( Inds ), Inds ] ),
 
-			IndicesBuffTable
+			InP
 
-	end.
+	end,
 
+	{ Vertices, Normals, TexCoords, Indices, IndicesBufferTable }.
 
 
 
@@ -1096,16 +1458,277 @@ decode_indices( AccessorIndex, Accessors, Buffers, BufferViews,
 
 
 
-% @doc Encodes specified primitive information into specified glTF content.
+% To be added later: add_pritimive( primitive(), content() ) -> content().
+
+
+% @doc Encodes the specified primitive information as a new mesh into the
+% specified glTF content.
 %
-% Directly embeds the resulting buffer.
+% Directly embeds the resulting buffer; returns the index of the new mesh, the
+% index of the new primitive and an updated glTf content.
+%
+% Does not create any node referencing that mesh.
 %
 -spec add_primitive( [ specialised_vertex() ], [ specialised_normal() ],
 		[ specialised_texture_coordinates() ], topology_type(), topology(),
-		content() ) -> content().
-add_primitive( _Vertices, _Normals, _TexCoords, _TopologyType=triangles,
-			   _IndexedTriangles, #gltf_content{} ) ->
-	throw( todo ).
+		material_index(), content() ) ->
+			{ mesh_index(), primitive_index(), content() }.
+add_primitive( Vertices, Normals, TexCoords, TopologyType=triangles,
+			   IndexedTriangles, MaterialAccessorIndex,
+			   Content=#gltf_content{ meshes=Meshes,
+									  accessors=Accessors,
+									  buffers=Buffers,
+									  buffer_views=BufferViews } ) ->
+
+	% Here, we rely on the following conventions:
+
+	% - in the final buffer, first all positions are listed, then all normal,
+	% then all texture coordinates, then all indices
+
+	% As these indices start at 0:
+	PrimBufferIndex = length( Buffers ),
+
+	% - positions are referenced through PositionAccessor, referencing
+	% PositionBufferView, whose elements are vector3() (hence components are
+	% float())
+
+	PositionAccessorIndex = length( Accessors ),
+	PositionBufferViewIndex = length( BufferViews ),
+
+	{ MinVec, MaxVec } = compute_gltf_extremas( Vertices ),
+
+	PositionElementType = vector3,
+	PositionComponentType = float32,
+
+	PositionCount = length( Vertices ),
+
+	PositionAccessor = #gltf_accessor{ buffer_view=PositionBufferViewIndex,
+									   element_type=PositionElementType,
+									   component_type=PositionComponentType,
+									   count=PositionCount,
+									   min=MinVec,
+									   max=MaxVec },
+
+	PositionSize = get_size( PositionElementType, PositionComponentType,
+							 PositionCount ),
+
+	PositionOffset = 0,
+
+	PositionBufferView = #gltf_buffer_view{ buffer=PrimBufferIndex,
+											offset=PositionOffset,
+											size=PositionSize },
+
+	PositionBuffer = generate_buffer( PositionElementType,
+									  PositionComponentType, Vertices ),
+
+
+	% - normals are referenced through NormalAccessor, referencing
+	% NormalBufferView, whose elements are vector3() (hence components are
+	% float())
+
+	NormalAccessorIndex = PositionAccessorIndex+1,
+	NormalBufferViewIndex = PositionBufferViewIndex+1,
+
+	NormalElementType = vector3,
+	NormalComponentType = float32,
+
+	NormalCount = length( Normals ),
+
+	NormalAccessor = #gltf_accessor{ buffer_view=NormalBufferViewIndex,
+									 element_type=NormalElementType,
+									 component_type=NormalComponentType,
+									 count=NormalCount },
+
+	NormalSize = get_size( NormalElementType, NormalComponentType,
+						   NormalCount ),
+
+	NormalOffset = PositionSize,
+
+	NormalBufferView = #gltf_buffer_view{ buffer=PrimBufferIndex,
+										  offset=NormalOffset,
+										  size=NormalSize },
+
+	NormalBuffer = append_to_buffer( NormalElementType, NormalComponentType,
+									 Normals, PositionBuffer ),
+
+
+
+	% - texture coordinates are referenced through TexCoordAccessor,
+	% referencing TexCoordBufferView, whose elements are vector2() (hence
+	% components are float())
+
+	TexCoordAccessorIndex = NormalAccessorIndex+1,
+	TexCoordBufferViewIndex = NormalBufferViewIndex+1,
+
+	TexCoordElementType = vector2,
+	TexCoordComponentType = float32,
+
+	TexCoordCount = length( TexCoords ),
+
+	TexCoordAccessor = #gltf_accessor{ buffer_view=TexCoordBufferViewIndex,
+									   element_type=TexCoordElementType,
+									   component_type=TexCoordComponentType,
+									   count=TexCoordCount },
+
+	TexCoordSize = get_size( TexCoordElementType, TexCoordComponentType,
+							 TexCoordCount ),
+
+	TexCoordOffset = NormalOffset + NormalSize,
+
+	TexCoordBufferView = #gltf_buffer_view{ buffer=PrimBufferIndex,
+											offset=TexCoordOffset,
+											size=TexCoordSize },
+
+	TexCoordBuffer = append_to_buffer( TexCoordElementType,
+						TexCoordComponentType, TexCoords, NormalBuffer ),
+
+
+	% - indices are referenced through IndicesAccessor, referencing
+	% IndicesBufferView, whose elements are scalar() (components are uint16)
+
+	IndicesAccessorIndex = TexCoordAccessorIndex+1,
+	IndicesBufferViewIndex = TexCoordBufferViewIndex+1,
+
+	IndicesElementType = scalar,
+	IndicesComponentType = uint16,
+
+	Indices = triangles_to_indices( IndexedTriangles ),
+
+	IndicesCount = length( Indices ),
+
+	IndicesAccessor = #gltf_accessor{ buffer_view=IndicesBufferViewIndex,
+									  element_type=IndicesElementType,
+									  component_type=IndicesComponentType,
+									  count=IndicesCount },
+
+	IndicesSize = get_size( IndicesElementType, IndicesComponentType,
+							IndicesCount ),
+
+	IndicesOffset = TexCoordOffset + TexCoordSize,
+
+	IndicesBufferView = #gltf_buffer_view{ buffer=PrimBufferIndex,
+										   offset=IndicesOffset,
+										   size=IndicesSize },
+
+	IndicesBuffer = append_to_buffer( IndicesElementType, IndicesComponentType,
+									  Indices, TexCoordBuffer ),
+
+	NewBuffers = list_utils:append_at_end( IndicesBuffer, Buffers ),
+
+	Attributes = #gltf_attributes{ position=PositionAccessorIndex,
+								   normal=NormalAccessorIndex,
+								   texcoord_0=TexCoordAccessorIndex },
+
+	Primitive = #gltf_primitive{ attributes=Attributes,
+								 indices=IndicesAccessorIndex,
+								 material=MaterialAccessorIndex,
+								 mode=TopologyType },
+
+	% No name given, a single primitive:
+	Mesh = #gltf_mesh{ primitives=[ Primitive ] },
+
+	MeshIndex = length( Meshes ),
+
+	NewMeshes = list_utils:append_at_end( Mesh, Meshes ),
+
+	ExtraAccessors = [ PositionAccessor, NormalAccessor, TexCoordAccessor,
+					   IndicesAccessor ],
+
+	NewAccessors = Accessors ++ ExtraAccessors,
+
+
+	ExtraBufferViews = [PositionBufferView, NormalBufferView,
+						TexCoordBufferView, IndicesBufferView ],
+
+	NewBufferViews = BufferViews ++ ExtraBufferViews,
+
+
+	NewContent = Content#gltf_content{ meshes=NewMeshes,
+									   accessors=NewAccessors,
+									   buffers=NewBuffers,
+									   buffer_views=NewBufferViews },
+
+	{ MeshIndex, _PrimitiveIndex=0, NewContent }.
+
+
+
+
+
+% @doc Returns a pair of vectors whose coordinates reflect the overall minimum
+% and maximum values found in the specified list of points.
+%
+-spec compute_gltf_extremas( [ point3() ] ) -> { point3(), point3() }.
+% No wanting to let 'undefined' go through:
+compute_gltf_extremas( _Points=[] )->
+	throw( no_points );
+
+compute_gltf_extremas( Points )->
+
+	% Cannot rely on term order, as number() is already the smallest.
+
+	Undef3 = { undefined, undefined, undefined },
+
+	compute_gltf_extremas( Points, Undef3, Undef3 ).
+
+
+
+% (helper)
+compute_gltf_extremas( _Points=[], MinP, MaxP ) ->
+	{ tuple_to_list( MinP ), tuple_to_list( MaxP ) };
+
+
+compute_gltf_extremas( _Points=[ {X,Y,Z} | T ], _MinP={ XMin, YMin, ZMin },
+					   _MaxP={ XMax, YMax, ZMax } ) ->
+
+	{ NewXMin, NewXMax } = update_coord( X, XMin, XMax ),
+	{ NewYMin, NewYMax } = update_coord( Y, YMin, YMax ),
+	{ NewZMin, NewZMax } = update_coord( Z, ZMin, ZMax ),
+
+	NewMinP = { NewXMin, NewYMin, NewZMin },
+	NewMaxP = { NewXMax, NewYMax, NewZMax },
+
+	compute_gltf_extremas( T, NewMinP, NewMaxP ).
+
+
+
+% (helper)
+update_coord( C, Min, Max ) ->
+
+	NewMin = case Min of
+
+		undefined ->
+			C;
+
+		Min when C < Min ->
+			C;
+
+		_ ->
+			Min
+
+	end,
+
+	NewMax = case Max of
+
+		undefined ->
+			C;
+
+		Max when C > Max ->
+			C;
+
+		_ ->
+			Max
+
+	end,
+
+	{ NewMin, NewMax }.
+
+
+
+% @doc Returns the size in bytes of the specified array of elements.
+-spec get_size( element_type(), component_type(), count() ) -> byte_size().
+get_size( ElementType, ComponentType, Count ) ->
+	linear:get_element_count( ElementType ) *
+		type_utils:get_low_level_type_size( ComponentType ) * Count.
 
 
 
@@ -1183,6 +1806,124 @@ get_buffer( BufferIndex, Buffers, BufferTable ) ->
 
 
 
+% @doc Generates a binary buffer corresponding to the specified elements.
+-spec generate_buffer( element_type(), component_type(),
+					   [ specialised_type() ] ) -> binary().
+generate_buffer( ElementType, ComponentType, Elements ) ->
+	append_to_buffer( ElementType, ComponentType, Elements, _AccBin= <<>> ).
+
+
+
+% @doc Appends the binary version of the specified elements to the specified
+% binary buffer.
+%
+-spec append_to_buffer( element_type(), component_type(),
+						[ specialised_type() ], binary() ) -> binary().
+append_to_buffer( _ElementType=scalar, _ComponentType=uint16, Elements,
+				  Bin ) ->
+	append_all_uint16_little( Elements, Bin );
+
+
+append_to_buffer( ElementType, _ComponentType=float32, Elements,
+				  Bin ) when ElementType =:= vector2
+							 orelse ElementType =:= vector3
+							 orelse ElementType =:= vector4 ->
+	ComponentFloats = list_utils:flatten_once( Elements ),
+	append_all_float32_little( ComponentFloats, Bin );
+
+append_to_buffer( _ElementType=point4, _ComponentType=float32, Elements,
+				  Bin ) ->
+	ComponentFloats = get_point4( Elements ),
+	append_all_float32_little( ComponentFloats, Bin );
+
+
+append_to_buffer( _ElementType=point3, _ComponentType=float32, Elements,
+				  Bin ) ->
+	ComponentFloats = get_point3( Elements ),
+	append_all_float32_little( ComponentFloats, Bin );
+
+append_to_buffer( _ElementType=point2, _ComponentType=float32, Elements,
+				  Bin ) ->
+	ComponentFloats = get_point2( Elements ),
+	append_all_float32_little( ComponentFloats, Bin ).
+
+
+
+
+% @doc Returns a list of all, in-order coordinates of the specified points.
+-spec get_point4( [ point4() ] ) -> [ coordinate() ].
+get_point4( Elements ) ->
+	get_point4( Elements, _Acc=[]  ).
+
+
+% (helper)
+get_point4( _Elements=[], Acc ) ->
+	Acc;
+
+get_point4( _Elements=[ {X,Y,Z,W} | T ], Acc ) ->
+	% Will be reversed:
+	get_point4( T, [ W, Z, Y, X | Acc ] ).
+
+
+
+% @doc Returns a list of all, in-order coordinates of the specified points.
+-spec get_point3( [ point3() ] ) -> [ coordinate() ].
+get_point3( Elements ) ->
+	get_point3( Elements, _Acc=[] ).
+
+
+% (helper)
+get_point3( _Elements=[], Acc ) ->
+	Acc;
+
+get_point3( _Elements=[ {X,Y,Z} | T ], Acc ) ->
+	% Will be reversed:
+	get_point3( T, [ Z, Y, X | Acc ] ).
+
+
+
+% @doc Returns a list of all, in-order coordinates of the specified points.
+-spec get_point2( [ point2() ] ) -> [ coordinate() ].
+get_point2( Elements ) ->
+	get_point2( Elements, _Acc=[] ).
+
+
+% (helper)
+get_point2( _Elements=[], Acc ) ->
+	Acc;
+
+get_point2( _Elements=[ {X,Y} | T ], Acc ) ->
+	% Will be reversed:
+	get_point2( T, [ Y, X | Acc ] ).
+
+
+
+% @doc Appends to the specified binary all 16 bit unsigned integers specified,
+% and returns the resulting binary.
+%
+-spec append_all_uint16_little( [ integer() ], binary() ) -> binary().
+append_all_uint16_little( _Elements=[], Bin ) ->
+	Bin;
+
+append_all_uint16_little( _Elements=[ UI | T ], Bin ) ->
+	NewBin = <<Bin/binary,UI/little-unsigned-integer>>,
+	append_all_uint16_little( T, NewBin ).
+
+
+
+% @doc Appends to the specified binary all single-precision (32 bit) floats
+% specified, and returns the resulting binary.
+%
+-spec append_all_float32_little( [ float() ], binary() ) -> binary().
+append_all_float32_little( _Elements=[], Bin ) ->
+	Bin;
+
+append_all_float32_little( _Elements=[ F | T ], Bin ) ->
+	NewBin = <<Bin/binary,F/float-little>>,
+	append_all_float32_little( T, NewBin ).
+
+
+
 % @doc Extracts specified points from specified binary (typically obtained from
 % a buffer view).
 %
@@ -1217,7 +1958,7 @@ extract_indices( Bin, ElementCount, ComponentType ) ->
 % from a buffer view).
 %
 -spec extract_elements( binary(), count(), element_type(), component_type(),
-						final_type() ) -> [ extractable_elements() ].
+						final_type() ) -> [ buffer_elements() ].
 extract_elements( Bin, ElementCount, _ElemType=scalar,
 				  _ComponentType=uint16, _FinalType ) ->
 
@@ -1229,8 +1970,19 @@ extract_elements( Bin, ElementCount, _ElemType=scalar,
 	ComponentInts;
 
 
+extract_elements( Bin, ElementCount, _ElemType=scalar,
+				  _ComponentType=float32, _FinalType ) ->
+
+	ComponentInts = extract_all_float32_little( Bin ),
+
+	% Check:
+	ElementCount = length( ComponentInts ),
+
+	ComponentInts;
+
+
 extract_elements( Bin, ElementCount, _ElemType=vector2,
-				  _ComponentType=float, FinalType ) ->
+				  _ComponentType=float32, FinalType ) ->
 
 	ComponentFloats = extract_all_float32_little( Bin ),
 
@@ -1243,7 +1995,7 @@ extract_elements( Bin, ElementCount, _ElemType=vector2,
 
 
 extract_elements( Bin, ElementCount, _ElemType=vector3,
-				  _ComponentType=float, FinalType ) ->
+				  _ComponentType=float32, FinalType ) ->
 
 	ComponentFloats = extract_all_float32_little( Bin ),
 
@@ -1315,6 +2067,25 @@ gather_as( FinalType, Dim, Components, Acc ) ->
 	end,
 
 	gather_as( FinalType, Dim, Rest, [ Element | Acc ] ).
+
+
+
+% @doc Returns a flat list of vertex indices corresponding to the specified list
+% of (indexed) triangles.
+%
+-spec triangles_to_indices( [ indexed_triangle() ] ) -> [ indice() ].
+triangles_to_indices( Triangles ) ->
+	triangles_to_indices( Triangles, _Acc=[] ).
+
+
+% (helper)
+triangles_to_indices( _Triangles=[], Acc ) ->
+	lists:reverse( Acc );
+
+
+triangles_to_indices( _Triangles=[ { I1, I2, I3 } | T ], Acc ) ->
+	% As indices will be reversed as a whole:
+	triangles_to_indices( T, [ I3, I2, I1 | Acc ] ).
 
 
 
