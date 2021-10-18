@@ -98,8 +98,13 @@
 % A collection of 2D shapes.
 
 
+-type topology_type() :: 'points' | 'lines' | 'line_loop' | 'line_strip'
+						| 'triangles' | 'triangle_strip' | 'triangle_fan'.
+% A 2D topology type, typically of a primitive to render.
+
+
 -export_type([ rect_dimensions/0, integer_rect_dimensions/0,
-			   line2/0, shape/0 ]).
+			   line2/0, shape/0, topology_type/0 ]).
 
 
 
