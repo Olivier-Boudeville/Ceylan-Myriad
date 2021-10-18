@@ -273,6 +273,9 @@
 % Angle section.
 
 -type radians() :: float().
+% Angle in radians.
+%
+% Preferably to be kept in [0.0,2.Pi[.
 
 
 -type degrees() :: float().
@@ -300,13 +303,16 @@
 
 % Miscellaneous section.
 
+-type dimensionless() :: float().
+
 -type rpm() :: float().
 % Revolutions per minute (also known as RPM, rev/min, r/min, or with the
 % notation min^-1) is a number of turns made per minute; a unit of rotational
 % speed or the frequency of rotation around a fixed axis.
 
+-export_type([ dimensionless/0, rpm/0 ]).
 
--type misc_units() :: rpm().
+-type misc_units() :: dimensionless() | rpm().
 
 
 
