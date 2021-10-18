@@ -177,14 +177,15 @@
 			   indice/0, indexed_triangle/0 ]).
 
 
--export([ coord_to_string/1, coords_to_best_width_strings/1 ] ).
+-export([ get_element_count/1,
+		  coord_to_string/1, coords_to_best_width_strings/1 ] ).
 
 
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
 
--type count() :: specialised_utils:count().
+-type count() :: basic_utils:count().
 
 -type point2() :: point2:point2().
 -type point3() :: point3:point3().
@@ -197,6 +198,26 @@
 -type matrix2() :: matrix2:matrix2().
 -type matrix3() :: matrix3:matrix3().
 -type matrix4() :: matrix4:matrix4().
+
+
+
+% @doc Returns the number of elements (coordinates) stored in the specified
+% specialised type.
+%
+-spec get_element_count( specialised_type() ) -> count().
+get_element_count( _Type=scalar ) -> 1;
+
+get_element_count( _Type=point2 ) -> 2;
+get_element_count( _Type=point3 ) -> 3;
+get_element_count( _Type=point4 ) -> 4;
+
+get_element_count( _Type=vector2 ) -> 2;
+get_element_count( _Type=vector3 ) -> 3;
+get_element_count( _Type=vector4 ) -> 4;
+
+get_element_count( _Type=matrix2 ) -> 4;
+get_element_count( _Type=matrix3 ) -> 9;
+get_element_count( _Type=matrix4 ) -> 16.
 
 
 
