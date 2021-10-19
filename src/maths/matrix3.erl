@@ -266,7 +266,11 @@ from_2D( #matrix2{ m11=M11, m12=M12,
 				   m21=M21, m22=M22 },
 		 _Vec2=[ X, Y ] ) ->
 	#compact_matrix3{ m11=M11, m12=M12, tx=X,
-					  m21=M21, m22=M22, ty=Y }.
+					  m21=M21, m22=M22, ty=Y };
+
+from_2D( OtherMatrix2, Vec2 ) ->
+	CanOtherMatrix2 = matrix2:to_canonical( OtherMatrix2 ),
+	from_2D( CanOtherMatrix2, Vec2 ).
 
 
 
@@ -470,6 +474,7 @@ add( Ma=#matrix3{}, Mb=#compact_matrix3{} ) ->
 	add( Mb, Ma );
 
 
+% Preserve compactness:
 add( _Ma=#compact_matrix3{ m11=A11, m12=A12, tx=Ax,
 						   m21=A21, m22=A22, ty=Ay },
 	 _Mb=#compact_matrix3{ m11=B11, m12=B12, tx=Bx,
@@ -485,10 +490,54 @@ add( Ma, Mb ) ->
 
 % @doc Returns the subtraction of the two specified matrices: M = Ma - Mb.
 -spec sub( matrix3(), matrix3() ) -> matrix3().
+%sub( Ma, Mb ) ->
+	%MinusMb = scale( Mb, -1.0 ),
+	%add( Ma, MinusMb ).
+sub( _Ma=#matrix3{ m11=A11, m12=A12, m13=A13,
+				   m21=A21, m22=A22, m23=A23,
+				   m31=A31, m32=A32, m33=A33 },
+	 _Mb=#matrix3{ m11=B11, m12=B12, m13=B13,
+				   m21=B21, m22=B22, m23=B23,
+				   m31=B31, m32=B32, m33=B33 } ) ->
+
+	#matrix3{ m11=A11-B11, m12=A12-B12, m13=A13-B13,
+			  m21=A21-B21, m22=A22-B22, m23=A23-B23,
+			  m31=A31-B31, m32=A32-B32, m33=A33-B33 };
+
+
+sub( _Ma=#compact_matrix3{ m11=A11, m12=A12, tx=Ax,
+						   m21=A21, m22=A22, ty=Ay },
+	 _Mb=#matrix3{ m11=B11, m12=B12, m13=B13,
+				   m21=B21, m22=B22, m23=B23,
+				   m31=B31, m32=B32, m33=B33 } ) ->
+	#matrix3{ m11=A11-B11, m12=A12-B12, m13=Ax-B13,
+			  m21=A21-B21, m22=A22-B22, m23=Ay-B23,
+			  m31=-B31, m32=-B32, m33=1.0-B33 };
+
+
+sub( _Ma=#matrix3{ m11=A11, m12=A12, m13=A13,
+				   m21=A21, m22=A22, m23=A23,
+				   m31=A31, m32=A32, m33=A33 },
+	 _Mb=#compact_matrix3{ m11=B11, m12=B12, tx=Bx,
+						   m21=B21, m22=B22, ty=By } ) ->
+	#matrix3{ m11=A11-B11, m12=A12-B12, m13=A13-Bx,
+			  m21=A21-B21, m22=A22-B22, m23=A23-By,
+			  m31=A31,     m32=A32,     m33=A33-1.0 };
+
+
+% Preserve compactness:
+sub( _Ma=#compact_matrix3{ m11=A11, m12=A12, tx=Ax,
+						   m21=A21, m22=A22, ty=Ay },
+	 _Mb=#compact_matrix3{ m11=B11, m12=B12, tx=Bx,
+						   m21=B21, m22=B22, ty=By } ) ->
+
+	#compact_matrix3{ m11=A11-B11, m12=A12-B12, tx=Ax-Bx,
+					  m21=A21-B21, m22=A22-B22, ty=Ay-By };
+
+
+% At least one identity:
 sub( Ma, Mb ) ->
-	% Quick and dirty:
-	MinusMb = scale( Mb, -1.0 ),
-	add( Ma, MinusMb ).
+	sub( to_canonical( Ma ), to_canonical( Mb ) ).
 
 
 
@@ -589,9 +638,6 @@ mult( _Ma=#compact_matrix3{ m11=A11, m12=A12, tx=Ax,
 
 % @doc Tells whether the two specified (3x3) matrices are equal.
 -spec are_equal( matrix3(), matrix3() ) -> boolean().
-are_equal( _Ma=identity_3, _Mb=identity_3 ) ->
-	true;
-
 are_equal( _Ma=#matrix3{ m11=A11, m12=A12, m13=A13,
 						 m21=A21, m22=A22, m23=A23,
 						 m31=A31, m32=A32, m33=A33 },
@@ -627,6 +673,9 @@ are_equal( _Ma=#matrix3{ m11=A11, m12=A12, m13=A13,
 are_equal( Ma=#compact_matrix3{}, Mb=#matrix3{} ) ->
 	are_equal( Mb, Ma );
 
+are_equal( _Ma=identity_3, _Mb=identity_3 ) ->
+	true;
+
 are_equal( Ma, Mb=identity_3 ) ->
 	are_equal( Ma, to_canonical( Mb ) );
 
@@ -649,7 +698,7 @@ determinant( _M=#compact_matrix3{ m11=M11, m12=M12, tx=_Tx,
 	M11*M22 - M12*M21;
 
 determinant( _M=identity_3 ) ->
-	1.
+	1.0.
 
 
 
@@ -676,7 +725,7 @@ comatrix( _M=#matrix3{ m11=M11, m12=M12, m13=M13,
 
 	CM22 = M11*M33 - M13*M31,
 
-	% - (M11*M32 - M12*M31 ) XXX
+	% - (M11*M32 - M12*M31 )
 	CM23 = M12*M31 - M11*M32,
 
 	CM31 = M12*M23 - M13*M22,
@@ -692,6 +741,10 @@ comatrix( _M=#matrix3{ m11=M11, m12=M12, m13=M13,
 
 comatrix( _M=#compact_matrix3{ m11=M11, m12=M12, tx=Tx,
 							   m21=M21, m22=M22, ty=Ty } ) ->
+
+	% Large simplification; yet not even the transpose of a compact matrix, as
+	% the last coordinate (M33) is not necessarily 1.0 (being the determinant):
+
 	CM11 = M22,
 
 	CM12 = -M21,
@@ -708,6 +761,7 @@ comatrix( _M=#compact_matrix3{ m11=M11, m12=M12, tx=Tx,
 
 	CM32 = Tx*M21 - M11*Ty,
 
+	% Not necessarily 1.0:
 	CM33 = M11*M22 - M12*M21,
 
 	#matrix3{ m11=CM11, m12=CM12, m13=CM13,
@@ -720,7 +774,7 @@ comatrix( _M=#compact_matrix3{ m11=M11, m12=M12, tx=Tx,
 % iff its determinant is non-null), otherwise returns undefined.
 %
 -spec inverse( matrix3() ) -> maybe( matrix3() ).
-inverse( M ) ->
+inverse( M ) when is_record( M, matrix3 ) ->
 	Det = determinant( M ),
 	case math_utils:is_null( Det ) of
 
@@ -729,6 +783,28 @@ inverse( M ) ->
 
 		false ->
 			scale( transpose( comatrix( M ) ), 1/Det )
+
+	end;
+
+% Special-cased as performs less operations, and returns a compact form:
+inverse( M ) when is_record( M, compact_matrix3 ) ->
+	Det = determinant( M ),
+	case math_utils:is_null( Det ) of
+
+		true ->
+			undefined;
+
+		false ->
+			% We take advantage of the fact that the comatrix of a compact
+			% matrix requires less computations, and/but it returns a canonical
+			% matrix:
+			%
+			InvCan = scale( transpose( comatrix( M ) ), 1/Det ),
+
+			% As expected to be ultimately a compact matrix:
+			% (to_compact/1 must come last)
+			%
+			to_compact( InvCan )
 
 	end.
 

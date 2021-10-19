@@ -256,6 +256,33 @@ run() ->
 
 	-2562.0 = matrix4:determinant( InversibleCanMatrix4 ),
 
+	InversedCanMatrix4 = matrix4:inverse( InversibleCanMatrix4 ),
+
+	test_facilities:display( "The inverse of canonical matrix ~ts is: ~ts",
+		[ matrix4:to_string( InversibleCanMatrix4 ),
+		  matrix4:to_string( InversedCanMatrix4 ) ] ),
+
+	true = matrix4:are_equal( Id,
+		matrix4:mult( InversibleCanMatrix4, InversedCanMatrix4 ) ),
+
+	true = matrix4:are_equal( Id,
+		matrix4:mult( InversedCanMatrix4, InversibleCanMatrix4 ) ),
+
+	% From octave: inv(InversibleCanMatrix4)
+	InversedCanMatrix4Octave = matrix4:new( [
+						   [ -0.5066354410616709, 0.2322404371584700,
+							 1.176814988290398,  -1.075722092115535 ],
+						   [ -0.4223263075722095, 0.2814207650273225,
+							 0.5772833723653399, -0.5253708040593289 ],
+						   [ 0.6213895394223266, -0.2486338797814208,
+							 -0.8817330210772836, 0.7970335675253709 ],
+						   [ -0.01405152224824354, -0.008196721311475415,
+							 -0.06674473067915693, 0.07494145199063233 ] ] ),
+
+	true = matrix4:are_equal( InversedCanMatrix4, InversedCanMatrix4Octave ),
+
+
+
 	% InversibleCptMatrix4 = [ 7, 11, 13, 17; 25, 2, 0, 27;
 	%                         -7, 4, 0, -3; 0, 0, 0, 1 ]
 	InversibleCptMatrix4 = matrix4:from_compact_coordinates(
@@ -264,5 +291,27 @@ run() ->
 								-7.0,  4.0,  0.0, -3.0 ),
 
 	1482.0 = matrix4:determinant( InversibleCptMatrix4 ),
+
+	InversedCptMatrix4 = matrix4:inverse( InversibleCptMatrix4 ),
+
+	test_facilities:display( "The inverse of compact matrix ~ts is: ~ts",
+		[ matrix4:to_string( InversibleCptMatrix4 ),
+		  matrix4:to_string( InversedCptMatrix4 ) ] ),
+
+	true = matrix4:are_equal( Id,
+		matrix4:mult( InversibleCptMatrix4, InversedCptMatrix4 ) ),
+
+	true = matrix4:are_equal( Id,
+		matrix4:mult( InversedCptMatrix4, InversibleCptMatrix4 ) ),
+
+	% From octave: inv(InversibleCptMatrix4)
+	InversedCptMatrix4Octave = matrix4:from_compact_coordinates(
+		0.0, 0.035087719298246, -0.017543859649123, -1.0,
+		0.0, 0.061403508771930,  0.219298245614035, -1.0,
+		0.076923076923077,      -0.070850202429150, -0.176113360323887,
+														0.076923076923077 ),
+
+	true = matrix4:are_equal( InversedCptMatrix4, InversedCptMatrix4Octave ),
+
 
 	test_facilities:stop().

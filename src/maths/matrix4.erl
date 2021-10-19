@@ -93,7 +93,8 @@
 		  transpose/1,
 		  scale/2,
 		  add/2, sub/2, mult/2,
-		  are_equal/2, determinant/1,
+		  are_equal/2,
+		  determinant/1, comatrix/1, inverse/1,
 		  to_canonical/1, to_compact/1,
 		  check/1,
 		  to_string/1 ] ).
@@ -244,7 +245,7 @@ from_coordinates( M11, M12, M13, M14,
 					coordinate(), coordinate(), coordinate(), coordinate(),
 					coordinate(), coordinate(), coordinate(), coordinate(),
 					coordinate(), coordinate(), coordinate(), coordinate() ) ->
-						 compact_matrix4().
+							compact_matrix4().
 from_compact_coordinates( M11, M12, M13, Tx,
 						  M21, M22, M23, Ty,
 						  M31, M32, M33, Tz ) ->
@@ -283,7 +284,11 @@ from_3D( #matrix3{ m11=M11, m12=M12, m13=M13,
 		 _Vec3=[ X, Y, Z ] ) ->
 	#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=X,
 					  m21=M21, m22=M22, m23=M23, ty=Y,
-					  m31=M31, m32=M32, m33=M33, tz=Z }.
+					  m31=M31, m32=M32, m33=M33, tz=Z };
+
+from_3D( OtherMatrix3, Vec3 ) ->
+	CanOtherMatrix3 = matrix3:to_canonical( OtherMatrix3 ),
+	from_3D( CanOtherMatrix3, Vec3 ).
 
 
 
@@ -547,6 +552,7 @@ add( Ma=#matrix4{}, Mb=#compact_matrix4{} ) ->
 	add( Mb, Ma );
 
 
+% Preserve compactness:
 add( _Ma=#compact_matrix4{ m11=A11, m12=A12, m13=A13, tx=Ax,
 						   m21=A21, m22=A22, m23=A23, ty=Ay,
 						   m31=A31, m32=A32, m33=A33, tz=Az },
@@ -565,10 +571,66 @@ add( Ma, Mb ) ->
 
 % @doc Returns the subtraction of the two specified matrices: M = Ma - Mb.
 -spec sub( matrix4(), matrix4() ) -> matrix4().
+% Quick and dirty, yet not satisfactory as expands compact matrices:
+%sub( Ma, Mb ) ->
+	%MinusMb = scale( Mb, -1.0 ),
+	%add( Ma, MinusMb ).
+sub( _Ma=#matrix4{ m11=A11, m12=A12, m13=A13, m14=A14,
+				   m21=A21, m22=A22, m23=A23, m24=A24,
+				   m31=A31, m32=A32, m33=A33, m34=A34,
+				   m41=A41, m42=A42, m43=A43, m44=A44 },
+	 _Mb=#matrix4{ m11=B11, m12=B12, m13=B13, m14=B14,
+				   m21=B21, m22=B22, m23=B23, m24=B24,
+				   m31=B31, m32=B32, m33=B33, m34=B34,
+				   m41=B41, m42=B42, m43=B43, m44=B44 } ) ->
+
+	#matrix4{ m11=A11-B11, m12=A12-B12, m13=A13-B13, m14=A14-B14,
+			  m21=A21-B21, m22=A22-B22, m23=A23-B23, m24=A24-B24,
+			  m31=A31-B31, m32=A32-B32, m33=A33-B33, m34=A34-B34,
+			  m41=A41-B41, m42=A42-B42, m43=A43-B43, m44=A44-B44 };
+
+
+sub( _Ma=#compact_matrix4{ m11=A11, m12=A12, m13=A13, tx=Tx,
+						   m21=A21, m22=A22, m23=A23, ty=Ty,
+						   m31=A31, m32=A32, m33=A33, tz=Tz },
+	 _Mb=#matrix4{ m11=B11, m12=B12, m13=B13, m14=B14,
+				   m21=B21, m22=B22, m23=B23, m24=B24,
+				   m31=B31, m32=B32, m33=B33, m34=B34,
+				   m41=B41, m42=B42, m43=B43, m44=B44 } ) ->
+	#matrix4{ m11=A11-B11, m12=A12-B12, m13=A13-B13, m14=Tx-B14,
+			  m21=A21-B21, m22=A22-B22, m23=A23-B23, m24=Ty-B24,
+			  m31=A31-B31, m32=A32-B32, m33=A33-B33, m34=Tz-B34,
+			  m41=-B41,    m42=-B42,    m43=-B43,    m44=1.0-B44 };
+
+
+sub( _Ma=#matrix4{ m11=A11, m12=A12, m13=A13, m14=A14,
+				   m21=A21, m22=A22, m23=A23, m24=A24,
+				   m31=A31, m32=A32, m33=A33, m34=A34,
+				   m41=A41, m42=A42, m43=A43, m44=A44 },
+	 _Mb=#compact_matrix4{ m11=B11, m12=B12, m13=B13, tx=Bx,
+						   m21=B21, m22=B22, m23=B23, ty=By,
+						   m31=B31, m32=B32, m33=B33, tz=Bz } ) ->
+	#matrix4{ m11=A11-B11, m12=A12-B12, m13=A13-B13, m14=A14-Bx,
+			  m21=A21-B21, m22=A22-B22, m23=A23-B23, m24=A24-By,
+			  m31=A31-B31, m32=A32-B32, m33=A33-B33, m34=A34-Bz,
+			  m41=A41,     m42=A42,     m43=A43,     m44=A44-1.0 };
+
+
+% Preserve compactness:
+sub( _Ma=#compact_matrix4{ m11=A11, m12=A12, m13=A13, tx=Ax,
+						   m21=A21, m22=A22, m23=A23, ty=Ay,
+						   m31=A31, m32=A32, m33=A33, tz=Az },
+	 _Mb=#compact_matrix4{ m11=B11, m12=B12, m13=B13, tx=Bx,
+						   m21=B21, m22=B22, m23=B23, ty=By,
+						   m31=B31, m32=B32, m33=B33, tz=Bz } ) ->
+
+	#compact_matrix4{ m11=A11-B11, m12=A12-B12, m13=A13-B13, tx=Ax-Bx,
+					  m21=A21-B21, m22=A22-B22, m23=A23-B23, ty=Ay-By,
+					  m31=A31-B31, m32=A32-B32, m33=A33-B33, tz=Az-Bz };
+
+% At least one identity:
 sub( Ma, Mb ) ->
-	% Quick and dirty:
-	MinusMb = scale( Mb, -1.0 ),
-	add( Ma, MinusMb ).
+	sub( to_canonical( Ma ), to_canonical( Mb ) ).
 
 
 
@@ -590,7 +652,7 @@ mult( _Ma=#matrix4{ m11=A11, m12=A12, m13=A13, m14=A14,
 					m41=B41, m42=B42, m43=B43, m44=B44 } ) ->
 
 	%trace_utils:debug_fmt( "Multiplying Ma = ~ts by Mb = ~ts",
-	%					   [ to_string( Ma ), to_string( Mb ) ] ),
+	%                       [ to_string( Ma ), to_string( Mb ) ] ),
 
 	C11 = A11*B11 + A12*B21 + A13*B31 + A14*B41,
 	C12 = A11*B12 + A12*B22 + A13*B32 + A14*B42,
@@ -715,9 +777,6 @@ mult( _Ma=#compact_matrix4{ m11=A11, m12=A12, m13=A13, tx=Ax,
 
 % @doc Tells whether the two specified (4x4) matrices are equal.
 -spec are_equal( matrix4(), matrix4() ) -> boolean().
-are_equal( _Ma=identity_4, _Mb=identity_4 ) ->
-	true;
-
 are_equal( _Ma=#matrix4{ m11=A11, m12=A12, m13=A13, m14=A14,
 						 m21=A21, m22=A22, m23=A23, m24=A24,
 						 m31=A31, m32=A32, m33=A33, m34=A34,
@@ -767,6 +826,9 @@ are_equal( _Ma=#matrix4{ m11=A11, m12=A12, m13=A13, m14=A14,
 are_equal( Ma=#compact_matrix4{}, Mb=#matrix4{} ) ->
 	are_equal( Mb, Ma );
 
+are_equal( _Ma=identity_4, _Mb=identity_4 ) ->
+	true;
+
 are_equal( Ma, Mb=identity_4 ) ->
 	are_equal( Ma, to_canonical( Mb ) );
 
@@ -796,11 +858,185 @@ determinant( _M=#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=_Mx,
 
 
 determinant( _M=identity_4 ) ->
-	1;
+	1.0;
 
 determinant( M ) ->
 	% Could be simplified a lot for compact matrices thanks to their zeros:
 	determinant( to_canonical( M ) ).
+
+
+
+% @doc Returns the comatrix of the specified matrix (that is the matrix of its
+% cofactors).
+%
+-spec comatrix( matrix4() ) -> matrix4().
+comatrix( identity_4 ) ->
+	identity_4;
+
+comatrix( _M=#matrix4{ m11=M11, m12=M12, m13=M13, m14=M14,
+					   m21=M21, m22=M22, m23=M23, m24=M24,
+					   m31=M31, m32=M32, m33=M33, m34=M34,
+					   m41=M41, m42=M42, m43=M43, m44=M44 } ) ->
+
+	% Term reordering done in order to possibly remove extra negations: '-A + B'
+	% translated to 'B - A'.
+
+	CM11 = M22*M33*M44 + M23*M34*M42 + M24*M32*M43
+		- M24*M33*M42 - M23*M32*M44 - M22*M34*M43,
+
+	CM12 = M24*M33*M41 + M23*M31*M44 + M21*M34*M43
+		- M21*M33*M44 - M23*M34*M41 - M24*M31*M43,
+
+	CM13 = M21*M32*M44 + M22*M34*M41 + M24*M31*M42
+		- M24*M32*M41 - M22*M31*M44 - M21*M34*M42,
+
+	CM14 = M23*M32*M41 + M22*M31*M43 + M21*M33*M42
+		- M21*M32*M43 - M22*M33*M41 - M23*M31*M42,
+
+
+	CM21 = M14*M33*M42 + M13*M32*M44 + M12*M34*M43
+		- M12*M33*M44 - M13*M34*M42 - M14*M32*M43,
+
+	CM22 = M11*M33*M44 + M13*M34*M41 + M14*M31*M43
+		- M14*M33*M41 - M13*M31*M44 - M11*M34*M43,
+
+	CM23 = M14*M32*M41 + M12*M31*M44 + M11*M34*M42
+		- M11*M32*M44 - M12*M34*M41 - M14*M31*M42,
+
+	CM24 = M11*M32*M43 + M12*M33*M41 + M13*M31*M42
+		- M13*M32*M41 - M12*M31*M43 - M11*M33*M42,
+
+
+	CM31 = M12*M23*M44 + M13*M24*M42 + M14*M22*M43
+		- M14*M23*M42 - M13*M22*M44 - M12*M24*M43,
+
+	CM32 = M14*M23*M41 + M13*M21*M44 + M11*M24*M43
+		- M11*M23*M44 - M13*M24*M41 - M14*M21*M43,
+
+	CM33 = M11*M22*M44 + M12*M24*M41 + M14*M21*M42
+		- M14*M22*M41 - M12*M21*M44 - M11*M24*M42,
+
+	CM34 = M13*M22*M41 + M12*M21*M43 + M11*M23*M42
+		- M11*M22*M43 - M12*M23*M41 - M13*M21*M42,
+
+
+	CM41 =  M14*M23*M32 + M13*M22*M34 + M12*M24*M33
+		- M12*M23*M34 - M13*M24*M32 - M14*M22*M33,
+
+	CM42 = M11*M23*M34 + M13*M24*M31 + M14*M21*M33
+		- M14*M23*M31 - M13*M21*M34 - M11*M24*M33,
+
+	CM43 = M14*M22*M31 + M12*M21*M34 + M11*M24*M32
+		- M11*M22*M34 - M12*M24*M31 - M14*M21*M32,
+
+	CM44 = M11*M22*M33 + M12*M23*M31 + M13*M21*M32
+		- M13*M22*M31 - M12*M21*M33 - M11*M23*M32,
+
+	#matrix4{ m11=CM11, m12=CM12, m13=CM13, m14=CM14,
+			  m21=CM21, m22=CM22, m23=CM23, m24=CM24,
+			  m31=CM31, m32=CM32, m33=CM33, m34=CM34,
+			  m41=CM41, m42=CM42, m43=CM43, m44=CM44 };
+
+
+comatrix( _M=#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
+							   m21=M21, m22=M22, m23=M23, ty=Ty,
+							   m31=M31, m32=M32, m33=M33, tz=Tz } ) ->
+
+	% Huge simplification; yet not even the transpose of a compact matrix, as
+	% the last coordinate (M44) is not necessarily 1.0 (being the determinant):
+
+	% Term reordering done in order to possibly remove extra negations: '-A + B'
+	% translated to 'B - A'.
+
+	CM11 = M22*M33 - M23*M32,
+
+	CM12 = M23*M31 - M21*M33,
+
+	CM13 = M21*M32 - M22*M31,
+
+	CM14 = 0.0,
+
+
+	CM21 = M13*M32 - M12*M33 ,
+
+	CM22 = M11*M33 - M13*M31,
+
+	CM23 = M12*M31 - M11*M32 ,
+
+	CM24 = 0.0,
+
+
+	CM31 = M12*M23 - M13*M22,
+
+	CM32 = M13*M21 - M11*M23,
+
+	CM33 = M11*M22 - M12*M21,
+
+	CM34 = 0.0,
+
+
+	CM41 = Tx*M23*M32 + M13*M22*Tz + M12*Ty*M33
+		- M12*M23*Tz - M13*Ty*M32 - Tx*M22*M33,
+
+	CM42 =  M11*M23*Tz + M13*Ty*M31 + Tx*M21*M33
+		- Tx*M23*M31 - M13*M21*Tz - M11*Ty*M33,
+
+	CM43 = Tx*M22*M31 + M12*M21*Tz + M11*Ty*M32
+		- M11*M22*Tz - M12*Ty*M31 - Tx*M21*M32,
+
+	CM44 = M11*M22*M33 + M12*M23*M31 + M13*M21*M32
+		- M13*M22*M31 - M12*M21*M33 - M11*M23*M32,
+
+	#matrix4{ m11=CM11, m12=CM12, m13=CM13, m14=CM14,
+			  m21=CM21, m22=CM22, m23=CM23, m24=CM24,
+			  m31=CM31, m32=CM32, m33=CM33, m34=CM34,
+			  m41=CM41, m42=CM42, m43=CM43, m44=CM44 }.
+
+
+
+% @doc Returns the inverse of the specified matrix, if it is inversible (that is
+% iff its determinant is non-null), otherwise returns undefined.
+%
+-spec inverse( matrix4() ) -> maybe( matrix4() ).
+% Special cases as the inverse of a compact_matrix is another one (even if the
+% intermediary comatrix is generally not one):
+%
+inverse( M=identity_4 ) ->
+	M;
+
+inverse( M ) when is_record( M, matrix4 ) ->
+	Det = determinant( M ),
+	case math_utils:is_null( Det ) of
+
+		true ->
+			undefined;
+
+		false ->
+			scale( transpose( comatrix( M ) ), 1/Det )
+
+	end;
+
+% Special-cased as performs less operations, and returns a compact form:
+inverse( M ) when is_record( M, compact_matrix4 ) ->
+	Det = determinant( M ),
+	case math_utils:is_null( Det ) of
+
+		true ->
+			undefined;
+
+		false ->
+			% We take advantage of the fact that the comatrix of a compact
+			% matrix requires less computations, and/but it returns a canonical
+			% matrix:
+			%
+			InvCan = scale( transpose( comatrix( M ) ), 1/Det ),
+
+			% As expected to be ultimately a compact matrix:
+			% (to_compact/1 must come last)
+			%
+			to_compact( InvCan )
+
+	end.
 
 
 

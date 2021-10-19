@@ -333,6 +333,14 @@ add( Ma, Mb ) ->
 
 % @doc Returns the subtraction of the two specified matrices: M = Ma - Mb.
 -spec sub( matrix2(), matrix2() ) -> matrix2().
+sub( _Ma=#matrix2{ m11=A11, m12=A12,
+				   m21=A21, m22=A22 },
+	 _Mb=#matrix2{ m11=B11, m12=B12,
+				   m21=B21, m22=B22 } ) ->
+
+	#matrix2{ m11=A11-B11, m12=A12-B12,
+			  m21=A21-B21, m22=A22-B22 };
+
 sub( Ma, Mb ) ->
 	% Quick and dirty:
 	MinusMb = scale( Mb, -1.0 ),
@@ -366,15 +374,15 @@ mult( _Ma=#matrix2{ m11=A11, m12=A12,
 
 % @doc Tells whether the two specified (2x2) matrices are equal.
 -spec are_equal( matrix2(), matrix2() ) -> boolean().
-are_equal( _Ma=identity_2, _Mb=identity_2 ) ->
-	true;
-
 are_equal( _Ma=#matrix2{ m11=A11, m12=A12,
 						 m21=A21, m22=A22 },
 		   _Mb=#matrix2{ m11=B11, m12=B12,
 						 m21=B21, m22=B22 } ) ->
 	are_close( A11, B11 ) andalso are_close( A12, B12 )
 		andalso are_close( A21, B21 ) andalso are_close( A22, B22 );
+
+are_equal( _Ma=identity_2, _Mb=identity_2 ) ->
+	true;
 
 are_equal( Ma, Mb=identity_2 ) ->
 	are_equal( Ma, to_canonical( Mb ) );

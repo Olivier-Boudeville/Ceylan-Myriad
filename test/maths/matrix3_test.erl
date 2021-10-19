@@ -67,7 +67,7 @@ run() ->
 	V2 = [ 1.0, 2.0, 4.0 ],
 	V3 = [ 0.0, 0.0, 5.0 ],
 
-	% Octave: ColMatrix = [ 10, 25, -7; 1, 2, 4; 0, 0, 5 ]
+	% Octave: ColMatrix = [ 10, 1, 0; 25, 2, 0; -7, 4, 5 ]
 	ColMatrix = matrix3:from_columns( V1, V2, V3 ),
 	V2 = matrix3:column( 2, ColMatrix ),
 
@@ -224,7 +224,7 @@ run() ->
 
 	InvColMatrix = matrix3:inverse( ColMatrix ),
 
-	test_facilities:display( "The inverse of matrix ~ts is: ~ts",
+	test_facilities:display( "The inverse of canonical matrix ~ts is: ~ts",
 		[ matrix3:to_string( ColMatrix ),
 		  matrix3:to_string( InvColMatrix ) ] ),
 
@@ -234,15 +234,34 @@ run() ->
 	true = matrix3:are_equal( Id,
 		matrix3:mult( InvColMatrix, ColMatrix ) ),
 
+	% From octave: inv(ColMatrix)
+	InvColMatrixOctave = matrix3:new( [ [ -0.4,   0.2, 0.0 ],
+										[  5.0,  -2.0, 0.0 ],
+										[ -4.56, 1.88, 0.2 ] ] ),
+
+	true = matrix3:are_equal( InvColMatrix, InvColMatrixOctave ),
+
+
 
 	516.0 = matrix3:determinant( FirstCompactMatrix ),
 
 	InvFirstCompactMatrix = matrix3:inverse( FirstCompactMatrix ),
+
+	test_facilities:display( "The inverse of compact matrix ~ts is: ~ts",
+		[ matrix3:to_string( FirstCompactMatrix ),
+		  matrix3:to_string( InvFirstCompactMatrix ) ] ),
 
 	true = matrix3:are_equal( Id,
 		matrix3:mult( FirstCompactMatrix, InvFirstCompactMatrix ) ),
 
 	true = matrix3:are_equal( Id,
 		matrix3:mult( InvFirstCompactMatrix, FirstCompactMatrix ) ),
+
+	InvFirstCompactMatrixOctave = matrix3:from_compact_coordinates(
+		 0.081395348837209, -0.023255813953488, -0.058139534883721,
+		-0.120155038759690,  0.058139534883721, -1.104651162790698 ),
+
+	true = matrix3:are_equal( InvFirstCompactMatrix,
+							  InvFirstCompactMatrixOctave ),
 
 	test_facilities:stop().
