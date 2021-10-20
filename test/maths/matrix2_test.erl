@@ -124,7 +124,7 @@ run() ->
 	% RowMatrix = [ 10, 25, -7; 1, 2 4; 0, 0, 5 ]
 
 	MultCanMatrix = matrix2:from_coordinates(  240.0,  580.0,
-												  680.0, 1660.0 ),
+											   680.0, 1660.0 ),
 
 	MultCanMatrix = matrix2:mult( ScaledMatrix, RowMatrix ),
 
@@ -154,5 +154,10 @@ run() ->
 
 	true = matrix2:are_equal( Id,
 		matrix2:mult( InvCoordMatrix, CoordMatrix ) ),
+
+	% Octave: inv(CoordMatrix) = [ 1, 2 ; 5, 6 ]
+	InvCoordMatrixOctave = matrix2:from_coordinates( -0.2, 0.1, 0.15, -0.05 ),
+
+	true = matrix2:are_equal( InvCoordMatrix, InvCoordMatrixOctave ),
 
 	test_facilities:stop().
