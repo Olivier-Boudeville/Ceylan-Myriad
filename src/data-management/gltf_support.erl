@@ -74,7 +74,7 @@
 
 
 -type primitive_index() :: zero_index().
-% Index of a primitive in a glTf content.
+% Index of a primitive in a glTf mesh.
 
 
 -type primitive() :: #gltf_primitive{}.
@@ -230,13 +230,34 @@
 			   generator_name/0, basic_content_settings/0 ]).
 
 
--export([ get_blank_content/0, get_basic_content/0, add_basics_to_content/1,
+-export([ get_blank_content/0, get_basic_content/0,
 
+		  % Basic additions:
+
+		  add_basics_to_content/1,
+
+		  add_basic_mesh_to_content/2,
 		  add_metallic_material_to_content/1,
-		  add_basic_light_to_content/1, add_light_to_content/2,
+		  add_basic_light_to_content/1,
 		  add_basic_camera_to_content/1, add_camera_to_content/3,
-		  add_full_scene_to_content/1, set_default_scene/2,
+		  add_full_scene_to_content/1,
 
+
+		  % Generic setters:
+
+		  set_default_scene/2,
+
+		  add_scene_to_content/2,
+		  add_node_to_content/2, add_light_to_content/2,
+		  add_mesh_to_content/2, add_primitive_to_mesh/2,
+		  add_material_to_content/2, add_camera_type_to_content/2,
+		  add_accessor_to_content/2,
+		  add_buffer_to_content/2, add_buffer_view_to_content/2,
+
+
+		  % Basic, default glTf elements:
+
+		  get_basic_mesh/0,
 		  get_metallic_material/0,
 		  get_basic_camera_settings/0, get_basic_camera_type/0,
 		  get_basic_orthographic_camera_type/0,
@@ -426,32 +447,39 @@ add_basics_to_content( Content ) ->
 
 
 
+% @doc Adds a basic mesh, based on specified primitive, to the specified glTf
+% content, by creating a dedicated basic node; returns the index of that mesh,
+% and the updated content.
+%
+-spec add_basic_mesh_to_content( primitive(), content() ) ->
+		{ node_index(), mesh_index(), primitive_index(), content() }.
+add_basic_mesh_to_content( Primitive, Content ) ->
+
+	% By design PrimIndex=0:
+	{ PrimIndex, MeshWithPrim } =
+		add_primitive_to_mesh( Primitive, get_basic_mesh() ),
+
+	% Registers this new mesh:
+	{ MeshIndex, ContentWithMesh } =
+		add_mesh_to_content( MeshWithPrim, Content ),
+
+	% Creates a suitable node referencing that new mesh:
+	NodeWithMesh = set_node_mesh( MeshIndex, get_basic_node() ),
+
+	{ NodeIndex, ContentWithNode } =
+		add_node_to_content( NodeWithMesh, ContentWithMesh ),
+
+	{ NodeIndex, MeshIndex, PrimIndex, ContentWithNode }.
+
+
 
 % @doc Adds a basic, metallic material to the specified glTf content; returns
 % the index of that material and the updated content.
 %
 -spec add_metallic_material_to_content( content() ) ->
-			{ material_index(), content() }.
+								{ material_index(), content() }.
 add_metallic_material_to_content( Content ) ->
 	add_material_to_content( get_metallic_material(), Content ).
-
-
-
-% @doc Adds specified material to the specified glTf content; returns the index
-% of that material and the updated content.
-%
--spec add_material_to_content( material(), content() ) ->
-			{ material_index(), content() }.
-add_material_to_content( Material=#gltf_material{},
-						 Content=#gltf_content{ materials=Materials } ) ->
-
-	% As these indices start at 0:
-	MatIndex = length( Materials ),
-
-	NewMaterials = list_utils:append_at_end( Material, Materials ),
-
-	{ MatIndex, Content#gltf_content{ materials=NewMaterials } }.
-
 
 
 
@@ -461,26 +489,6 @@ add_material_to_content( Material=#gltf_material{},
 -spec add_basic_light_to_content( content() ) -> { light_index(), content() }.
 add_basic_light_to_content( Content ) ->
 	add_light_to_content( get_basic_light(), Content ).
-
-
-
-% @doc Adds specified light to the specified glTf content; returns the index
-% of that light and the updated content.
-%
-% Note that lights do not exist per se for glTf: they are mere nodes.
-%
--spec add_light_to_content( light(), content() ) ->
-			{ light_index(), content() }.
-add_light_to_content( Light=#gltf_scene_node{},
-					  Content=#gltf_content{ nodes=Nodes } ) ->
-
-	% As these indices start at 0:
-	LightNodeIndex = length( Nodes ),
-
-	NewNodes = list_utils:append_at_end( Light, Nodes ),
-
-	{ LightNodeIndex, Content#gltf_content{ nodes=NewNodes } }.
-
 
 
 
@@ -503,11 +511,12 @@ add_basic_camera_to_content( Content ) ->
 %
 -spec add_camera_to_content( camera_type(), scene_node(), content() ) ->
 			{ camera_type_index(), node_index(), content() }.
-add_camera_to_content( CameraType, CameraNode=#gltf_scene_node{},
+add_camera_to_content( CameraType, CameraNode,
 					   Content=#gltf_content{ nodes=Nodes,
 											  camera_types=CameraTypes } )
-  when is_record( CameraType, gltf_orthographic_camera )
-	   orelse is_record( CameraType, gltf_perspective_camera ) ->
+  when ( is_record( CameraType, gltf_orthographic_camera )
+		 orelse is_record( CameraType, gltf_perspective_camera ) )
+	   andalso is_record( CameraNode, gltf_scene_node ) ->
 
 	% As these indices start at 0:
 	CameraTypeIndex = length( CameraTypes ),
@@ -530,20 +539,21 @@ add_camera_to_content( CameraType, CameraNode=#gltf_scene_node{},
 % comprising all known nodes.
 %
 -spec add_full_scene_to_content( content() ) -> { scene_index(), content() }.
-add_full_scene_to_content( Content=#gltf_content{ scenes=Scenes,
-												  nodes=Nodes } ) ->
+add_full_scene_to_content( Content=#gltf_content{ nodes=Nodes } ) ->
 
-	% As these indices start at 0:
-	FullSceneIndex = length( Scenes ),
+	% Enumerate all nodes:
+	NodeIndices = lists:seq( _From=0, _To=length( Nodes )-1 ),
 
-	% Amm content nodes selected:
+	% All content nodes selected:
 	FullScene = #gltf_scene{ name="Basic Myriad full scene",
-							 nodes=Nodes },
+							 nodes=NodeIndices },
 
-	NewScenes = list_utils:append_at_end( FullScene, Scenes ),
+	add_scene_to_content( FullScene, Content ).
 
-	{ FullSceneIndex, Content#gltf_content{ scenes=NewScenes } }.
 
+
+
+% Section for generic setters of glTf elements.
 
 
 % @doc Sets the specified scene as the default one (overriding any prior).
@@ -553,8 +563,205 @@ set_default_scene( SceneIndex, Content ) ->
 
 
 
+% @doc Sets the specified mesh index of the specified glTf node; returns the
+% updated node.
+%
+-spec set_node_mesh( mesh_index(), scene_node() ) -> scene_node().
+set_node_mesh( MeshIndex, Node ) ->
+	Node#gltf_scene_node{ mesh=MeshIndex }.
+
+
+
+% @doc Adds specified scene to the specified glTf content; returns the index of
+% that scene, and the updated content.
+%
+-spec add_scene_to_content( scene(), content() ) ->
+								{ scene_index(), content() }.
+add_scene_to_content( Scene,
+					  Content=#gltf_content{ scenes=Scenes } )
+							when is_record( Scene, gltf_scene ) ->
+
+	SceneIndex = length( Scenes ),
+
+	NewScenes = list_utils:append_at_end( Scene, Scenes ),
+
+	{ SceneIndex, Content#gltf_content{ scenes=NewScenes } }.
+
+
+
+% @doc Adds specified node to the specified glTf content; returns the index of
+% that node, and the updated content.
+%
+-spec add_node_to_content( scene_node(), content() ) ->
+							{ node_index(), content() }.
+add_node_to_content( Node,
+					 Content=#gltf_content{ nodes=Nodes } )
+						when is_record( Node, gltf_scene_node ) ->
+
+	NodeIndex = length( Nodes ),
+
+	NewNodes = list_utils:append_at_end( Node, Nodes ),
+
+	{ NodeIndex, Content#gltf_content{ nodes=NewNodes } }.
+
+
+
+% @doc Adds specified light to the specified glTf content; returns the index of
+% that light and the updated content.
+%
+% Note that lights do not exist per se for glTf: they are mere nodes.
+%
+-spec add_light_to_content( light(), content() ) ->
+			{ light_index(), content() }.
+add_light_to_content( Light,
+					  Content=#gltf_content{ nodes=Nodes } )
+							when is_record( Light, gltf_scene_node )->
+
+	% As these indices start at 0:
+	LightNodeIndex = length( Nodes ),
+
+	NewNodes = list_utils:append_at_end( Light, Nodes ),
+
+	{ LightNodeIndex, Content#gltf_content{ nodes=NewNodes } }.
+
+
+
+% @doc Adds specified material to the specified glTf content; returns the index
+% of that material, and the updated content.
+%
+-spec add_material_to_content( material(), content() ) ->
+									{ material_index(), content() }.
+add_material_to_content( Material,
+						 Content=#gltf_content{ materials=Materials } )
+		when is_record( Material, gltf_material ) ->
+
+	MaterialIndex = length( Materials ),
+
+	NewMaterials = list_utils:append_at_end( Material, Materials ),
+
+	{ MaterialIndex, Content#gltf_content{ materials=NewMaterials } }.
+
+
+
+% @doc Adds specified camera type to the specified glTf content; returns the
+% index of that camera type, and the updated content.
+%
+-spec add_camera_type_to_content( camera_type(), content() ) ->
+									{ camera_type_index(), content() }.
+add_camera_type_to_content( CameraType,
+		Content=#gltf_content{ camera_types=CameraTypes } )
+  when is_record( CameraType, gltf_orthographic_camera )
+	   orelse is_record( CameraType, gltf_perspective_camera ) ->
+
+	CameraTypeIndex = length( CameraTypes ),
+
+	NewCameraTypes = list_utils:append_at_end( CameraType, CameraTypes ),
+
+	{ CameraTypeIndex, Content#gltf_content{ camera_types=NewCameraTypes } }.
+
+
+
+
+% @doc Adds specified mesh to the specified glTf content; returns the index of
+% that mesh, and the updated content.
+%
+-spec add_mesh_to_content( mesh(), content() ) -> { mesh_index(), content() }.
+add_mesh_to_content( Mesh, Content=#gltf_content{ meshes=Meshes } )
+								when is_record( Mesh, gltf_mesh ) ->
+
+	MeshIndex = length( Meshes ),
+
+	NewMeshes = list_utils:append_at_end( Mesh, Meshes ),
+
+	{ MeshIndex, Content#gltf_content{ meshes=NewMeshes } }.
+
+
+
+% @doc Adds specified primitive to the specified glTf mesh; returns the index of
+% that primitive, and the updated mesh.
+%
+-spec add_primitive_to_mesh( primitive(), mesh() ) ->
+									{ primitive_index(), mesh() }.
+add_primitive_to_mesh( Primitive,
+					   Mesh=#gltf_mesh{ primitives=Primitives } )
+								when is_record( Primitive, gltf_primitive ) ->
+
+	PrimitiveIndex = length( Primitives ),
+
+	NewPrimitives = list_utils:append_at_end( Primitive, Primitives ),
+
+	{ PrimitiveIndex, Mesh#gltf_mesh{ primitives=NewPrimitives } }.
+
+
+
+% @doc Adds specified accessor to the specified glTf content; returns the index
+% of that accessor, and the updated content.
+%
+-spec add_accessor_to_content( accessor(), content() ) ->
+											{ accessor_index(), content() }.
+add_accessor_to_content( Accessor,
+						 Content=#gltf_content{ accessors=Accessors } )
+					when is_record( Accessor, gltf_accessor ) ->
+
+	AccessorIndex = length( Accessors ),
+
+	NewAccessors = list_utils:append_at_end( Accessor, Accessors ),
+
+	{ AccessorIndex, Content#gltf_content{ accessors=NewAccessors } }.
+
+
+
+% @doc Adds specified buffer to the specified glTf content; returns the index of
+% that buffer, and the updated content.
+%
+-spec add_buffer_to_content( buffer(), content() ) ->
+										{ buffer_index(), content() }.
+add_buffer_to_content( Buffer,
+					   Content=#gltf_content{ buffers=Buffers } )
+					when is_record( Buffer, gltf_buffer ) ->
+
+	BufferIndex = length( Buffers ),
+
+	NewBuffers = list_utils:append_at_end( Buffer, Buffers ),
+
+	{ BufferIndex, Content#gltf_content{ buffers=NewBuffers } }.
+
+
+
+% @doc Adds specified buffer-view to the specified glTf content; returns the
+% index of that buffer-view, and the updated content.
+%
+-spec add_buffer_view_to_content( buffer_view(), content() ) ->
+							{ buffer_view_index(), content() }.
+add_buffer_view_to_content( BufferView,
+							Content=#gltf_content{ buffer_views=BufferViews } )
+				when is_record( BufferView, gltf_buffer_view ) ->
+
+	BufferViewIndex = length( BufferViews ),
+
+	NewBufferViews = list_utils:append_at_end( BufferView, BufferViews ),
+
+	{ BufferViewIndex, Content#gltf_content{ buffer_views=NewBufferViews } }.
+
+
+
 
 % Section for basic, default glTf elements.
+
+
+
+% @doc Returns a basic, empty, unregistered scene node.
+-spec get_basic_node() -> scene_node().
+get_basic_node() ->
+	#gltf_scene_node{ name="Basic Myriad node" }.
+
+
+
+% @doc Returns a basic, empty mesh.
+-spec get_basic_mesh() -> mesh().
+get_basic_mesh() ->
+	#gltf_mesh{ name="Basic Myriad mesh" }.
+
 
 
 % @doc Returns a basic, metallic, double-sided material.
@@ -647,7 +854,7 @@ get_basic_camera_node() ->
 					   4.958309173583984,
 					   6.925790786743164 ],
 
-	#gltf_scene_node{ name="Basic camera node",
+	#gltf_scene_node{ name="Basic Myriad camera node",
 					  rotation=CameraRotQuaternion,
 					  translation=CameraPosition }.
 

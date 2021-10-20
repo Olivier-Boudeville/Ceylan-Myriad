@@ -69,7 +69,7 @@
 	name :: maybe( text_utils:bin_string() ),
 
 	% The indices of the nodes of this scene:
-	nodes :: [ gltf_support:node_index() ] } ).
+	nodes = [] :: [ gltf_support:node_index() ] } ).
 
 
 
@@ -113,7 +113,7 @@
 	% The name (if any) of this mesh:
 	name :: maybe( text_utils:bin_string() ),
 
-	primitives :: [ gltf_support:primitive() ] } ).
+	primitives = [] :: [ gltf_support:primitive() ] } ).
 
 
 
@@ -166,9 +166,7 @@
 
 	% The Physically-Based Rendering (PBR) metallic roughness of this material:
 	pbr_metallic_roughness ::
-					maybe( gltf_support:pbr_metallic_roughness() )
-
-						} ).
+					maybe( gltf_support:pbr_metallic_roughness() ) } ).
 
 
 
