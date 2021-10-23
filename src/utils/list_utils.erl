@@ -923,7 +923,7 @@ unordered_compare( L1, L2 ) ->
 % Ex: if L=[ [1], [2,[3,4]] ], lists:flatten(L) yields [1,2,3,4] whereas
 % list_utils:flatten_once(L) should yield [1,2,[3,4]].
 %
-% @see text_utils:concatenate/1 for string-related operations.
+% See text_utils:concatenate/1 for string-related operations.
 %
 -spec flatten_once( [ list() ] ) -> list().
 flatten_once( List ) ->
