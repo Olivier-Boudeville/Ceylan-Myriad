@@ -19,29 +19,56 @@
 
 <h2><a name="types">Data Types</a></h2>
 
+<h3 class="typedecl"><a name="type-any_factor">any_factor()</a></h3>
+<p><tt>any_factor() = number()</tt></p>
+<p> A factor, typically in [0.0,1.0], that is a multiplier involved in an
+ equation.</p>
+
 <h3 class="typedecl"><a name="type-conversion_type">conversion_type()</a></h3>
 <p><tt>conversion_type() = exact | absolute | {absolute, float()} | relative | {relative, float()}</tt></p>
 <p> Describes a desired conversion, which is either exact or approximate, based on
  an absolute or relative comparison, with a default epsilon threshold or a
  user-defined one.</p>
 
+<h3 class="typedecl"><a name="type-factor">factor()</a></h3>
+<p><tt>factor() = <a href="unit_utils.html#type-dimensionless">unit_utils:dimensionless()</a></tt></p>
+<p> A floating-point factor, typically in [0.0,1.0], that is a multiplier involved
+ in an equation.</p>
+
+<h3 class="typedecl"><a name="type-integer_factor">integer_factor()</a></h3>
+<p><tt>integer_factor() = integer()</tt></p>
+<p> An integer factor, typically in [0.0,1.0], that is a multiplier involved in an
+ equation.</p>
+
 <h3 class="typedecl"><a name="type-integer_percent">integer_percent()</a></h3>
 <p><tt>integer_percent() = integer()</tt></p>
 <p> For integer percentages (in [0..100] generally).</p>
+
+<h3 class="typedecl"><a name="type-non_negative_factor">non_negative_factor()</a></h3>
+<p><tt>non_negative_factor() = <a href="#type-factor">factor()</a></tt></p>
+<p> A factor expected to be positive or null.</p>
 
 <h3 class="typedecl"><a name="type-non_zero_integer">non_zero_integer()</a></h3>
 <p><tt>non_zero_integer() = pos_integer() | neg_integer()</tt></p>
 
 
 <h3 class="typedecl"><a name="type-percent">percent()</a></h3>
-<p><tt>percent() = float()</tt></p>
+<p><tt>percent() = <a href="#type-ratio">ratio()</a></tt></p>
 <p><p> For percentages (1.0 corresponding to 100%).</p>
 
  See also: text_utils:percent_to_string/{1,2}.</p>
 
+<h3 class="typedecl"><a name="type-positive_factor">positive_factor()</a></h3>
+<p><tt>positive_factor() = <a href="#type-factor">factor()</a></tt></p>
+<p> A factor expected to be strictly positive.</p>
+
 <h3 class="typedecl"><a name="type-probability">probability()</a></h3>
 <p><tt>probability() = float()</tt></p>
 <p> For probabilities.</p>
+
+<h3 class="typedecl"><a name="type-ratio">ratio()</a></h3>
+<p><tt>ratio() = <a href="unit_utils.html#type-dimensionless">unit_utils:dimensionless()</a></tt></p>
+<p> A ration between two values.</p>
 
 <h3 class="typedecl"><a name="type-standard_deviation">standard_deviation()</a></h3>
 <p><tt>standard_deviation() = float()</tt></p>
@@ -167,8 +194,7 @@ in [Min, Max].</p>
 
  <p>The float must exactly match the integer value.</p>
 
- Ex: float_to_integer( 5.0 ) = 5, while float_to_integer( 5.0000001 ) will
- crash.
+ Ex: float_to_integer(5.0) = 5, while float_to_integer(5.0000001) will crash.
 </p>
 
 <h3 class="function"><a name="float_to_integer-2">float_to_integer/2</a></h3>
@@ -235,7 +261,7 @@ floating-point value.</p>
 </div><p><p>Rounds the specified floating-point number at specified offset after the 
 decimal point.</p>
 
- Ex: round_after( 12.3456, 3 ) = 12.346.
+ Ex: round_after(12.3456, _DigitCount3) = 12.346.
 </p>
 
 <h3 class="function"><a name="squarify-1">squarify/1</a></h3>

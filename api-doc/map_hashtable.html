@@ -76,6 +76,18 @@ only them)</p>
 <p><b>abstract datatype</b>: <tt>map_hashtable()</tt></p>
 
 
+<h3 class="typedecl"><a name="type-maybe">maybe()</a></h3>
+<p><tt>maybe(T) = T | undefined</tt></p>
+
+
+<h3 class="typedecl"><a name="type-maybe_entries">maybe_entries()</a></h3>
+<p><tt>maybe_entries() = <a href="hashtable.html#type-maybe_entries">hashtable:maybe_entries()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-maybe_entry">maybe_entry()</a></h3>
+<p><tt>maybe_entry() = <a href="hashtable.html#type-maybe_entry">hashtable:maybe_entry()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-ustring">ustring()</a></h3>
 <p><tt>ustring() = <a href="text_utils.html#type-ustring">text_utils:ustring()</a></tt></p>
 
@@ -91,6 +103,10 @@ only them)</p>
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add_entries-2">add_entries/2</a></td><td>Adds specified list of key/value pairs into the specified map table.</td></tr>
 <tr><td valign="top"><a href="#add_entry-3">add_entry/3</a></td><td>Adds specified key/value pair into the specified map hashtable.</td></tr>
+<tr><td valign="top"><a href="#add_maybe_entries-2">add_maybe_entries/2</a></td><td>Adds specified list of key/value pairs into the specified map table, each 
+entry being added iff its value is not undefined.</td></tr>
+<tr><td valign="top"><a href="#add_maybe_entry-3">add_maybe_entry/3</a></td><td>Adds specified key/value pair into the specified map hashtable, provided 
+the value is not undefined.</td></tr>
 <tr><td valign="top"><a href="#add_new_entries-2">add_new_entries/2</a></td><td>Adds specified list of key/value pairs into the specified map table,
  expecting that none of these keys is already defined in this table (otherwise
  an exception is thrown).</td></tr>
@@ -219,6 +235,31 @@ hashtable.</td></tr>
 <p><tt>add_entry(Key::<a href="#type-key">key()</a>, Value::<a href="#type-value">value()</a>, MapHashtable::<a href="#type-map_hashtable">map_hashtable()</a>) -&gt; <a href="#type-map_hashtable">map_hashtable()</a></tt><br></p>
 <p> </p>
 </div><p><p>Adds specified key/value pair into the specified map hashtable.</p>
+
+ If there is already a pair with this key, then its previous value will be
+ replaced by the specified one (hence does not check whether or not the key
+ already exist in this table).
+</p>
+
+<h3 class="function"><a name="add_maybe_entries-2">add_maybe_entries/2</a></h3>
+<div class="spec">
+<p><tt>add_maybe_entries(MaybeEntryList::<a href="#type-maybe_entries">maybe_entries()</a>, MapHashtable::<a href="#type-map_hashtable">map_hashtable()</a>) -&gt; <a href="#type-map_hashtable">map_hashtable()</a></tt><br></p>
+<p> </p>
+</div><p><p>Adds specified list of key/value pairs into the specified map table, each 
+entry being added iff its value is not undefined. Useful to add maybe-entries 
+to a map.</p>
+
+ If there is already a pair with this key, then its previous value will be
+ replaced by the specified one (hence does not check whether or not keys
+ already exist in this table).
+</p>
+
+<h3 class="function"><a name="add_maybe_entry-3">add_maybe_entry/3</a></h3>
+<div class="spec">
+<p><tt>add_maybe_entry(Key::<a href="#type-key">key()</a>, MaybeValue::<a href="#type-maybe">maybe</a>(<a href="#type-value">value()</a>), MapHashtable::<a href="#type-map_hashtable">map_hashtable()</a>) -&gt; <a href="#type-map_hashtable">map_hashtable()</a></tt><br></p>
+<p> </p>
+</div><p><p>Adds specified key/value pair into the specified map hashtable, provided 
+the value is not undefined. Useful to add a maybe-entry to a map.</p>
 
  If there is already a pair with this key, then its previous value will be
  replaced by the specified one (hence does not check whether or not the key

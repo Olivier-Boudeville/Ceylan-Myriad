@@ -42,6 +42,7 @@
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#append_at_end-2">append_at_end/2</a></td><td>Appends specified element at the end of specified list, without changing 
 the order of the list.</td></tr>
+<tr><td valign="top"><a href="#are_atoms-1">are_atoms/1</a></td><td>Returns whether the specified list contains only atoms.</td></tr>
 <tr><td valign="top"><a href="#are_integers-1">are_integers/1</a></td><td>Returns whether the specified list contains only integers.</td></tr>
 <tr><td valign="top"><a href="#are_pids-1">are_pids/1</a></td><td>Returns whether the specified list contains only PIDs.</td></tr>
 <tr><td valign="top"><a href="#cartesian_product-1">cartesian_product/1</a></td><td>Returns the cartesian product of the specified lists (collected in a 
@@ -127,7 +128,7 @@ the) specified element in the specified list, or 'undefined' if the element is
 not found.</td></tr>
 <tr><td valign="top"><a href="#has_duplicates-1">has_duplicates/1</a></td><td>Tells whether there are in the specified list elements that are present
  more than once.</td></tr>
-<tr><td valign="top"><a href="#insert_element_at-3">insert_element_at/3</a></td><td>Inserts specified element at specified position in specified list.</td></tr>
+<tr><td valign="top"><a href="#insert_element_at-3">insert_element_at/3</a></td><td>Inserts specified element at specified position in the specified list.</td></tr>
 <tr><td valign="top"><a href="#intersection-2">intersection/2</a></td><td>Returns the intersection of the two specified lists, that is the list of 
 all elements that are in both lists.</td></tr>
 <tr><td valign="top"><a href="#random_permute-1">random_permute/1</a></td><td>Returns a random uniform permutation of the specified list.</td></tr>
@@ -139,6 +140,8 @@ list.</td></tr>
 specified index removed.</td></tr>
 <tr><td valign="top"><a href="#remove_first_elements-2">remove_first_elements/2</a></td><td>Removes the specified number first elements.</td></tr>
 <tr><td valign="top"><a href="#remove_last_element-1">remove_last_element/1</a></td><td>Removes the last element of the specified list.</td></tr>
+<tr><td valign="top"><a href="#set_element_at-3">set_element_at/3</a></td><td>Returns the specified list with the element at specified index replaced
+ by the specified element.</td></tr>
 <tr><td valign="top"><a href="#split_at-2">split_at/2</a></td><td>Splits the specified (plain) list in two parts (two plain lists, that are 
 returned): the first contains the first elements, up to MaxLen included (in 
 reverse order), and the second the others (if any).</td></tr>
@@ -171,17 +174,32 @@ the order of the list.</p>
  costlier than adding them at head.
 </p>
 
+<h3 class="function"><a name="are_atoms-1">are_atoms/1</a></h3>
+<div class="spec">
+<p><tt>are_atoms(T::term()) -&gt; boolean()</tt><br></p>
+<p> </p>
+</div><p><p>Returns whether the specified list contains only atoms.</p>
+
+ Considers that an empty list complies.
+</p>
+
 <h3 class="function"><a name="are_integers-1">are_integers/1</a></h3>
 <div class="spec">
 <p><tt>are_integers(T::term()) -&gt; boolean()</tt><br></p>
 <p> </p>
-</div><p>Returns whether the specified list contains only integers.</p>
+</div><p><p>Returns whether the specified list contains only integers.</p>
+
+ Considers that an empty list complies.
+</p>
 
 <h3 class="function"><a name="are_pids-1">are_pids/1</a></h3>
 <div class="spec">
 <p><tt>are_pids(T::term()) -&gt; boolean()</tt><br></p>
 <p> </p>
-</div><p>Returns whether the specified list contains only PIDs.</p>
+</div><p><p>Returns whether the specified list contains only PIDs.</p>
+
+ Considers that an empty list complies.
+</p>
 
 <h3 class="function"><a name="cartesian_product-1">cartesian_product/1</a></h3>
 <div class="spec">
@@ -438,8 +456,10 @@ provides more control than a recursive counterpart.</p>
 
  <p>Element order is preserved.</p>
 
- Ex: if L=[ [1], [2,[3,4]] ], lists:flatten(L) yields [1,2,3,4] whereas
- list_utils:flatten_once(L) should yield [1,2,[3,4]].
+ <p>Ex: if L=[ [1], [2,[3,4]] ], lists:flatten(L) yields [1,2,3,4] whereas 
+list_utils:flatten_once(L) should yield [1,2,[3,4]].</p>
+
+ See text_utils:concatenate/1 for string-related operations.
 </p>
 
 <h3 class="function"><a name="flatten_tuples-1">flatten_tuples/1</a></h3>
@@ -539,9 +559,9 @@ not found.</p>
 <div class="spec">
 <p><tt>insert_element_at(Element::<a href="#type-element">element()</a>, List::list(), Index::<a href="#type-positive_index">positive_index()</a>) -&gt; list()</tt><br></p>
 <p> </p>
-</div><p><p>Inserts specified element at specified position in specified list.</p>
+</div><p><p>Inserts specified element at specified position in the specified list.</p>
 
- For example, insert_element_at(foo, [a,b,c,d], 3) will return
+ For example, insert_element_at(foo, [a, b, c, d], 3) will return
  [a, b, foo, c, d].
 </p>
 
@@ -637,6 +657,14 @@ T;</p>
 
  Note: not computationnally efficient, usually removing the last element
  suggests a bad code design.
+</p>
+
+<h3 class="function"><a name="set_element_at-3">set_element_at/3</a></h3>
+<div class="spec">
+<p><tt>set_element_at(Element::<a href="#type-element">element()</a>, List::list(), Index::<a href="#type-positive_index">positive_index()</a>) -&gt; list()</tt><br></p>
+<p> </p>
+</div><p>Returns the specified list with the element at specified index replaced
+ by the specified element.
 </p>
 
 <h3 class="function"><a name="split_at-2">split_at/2</a></h3>

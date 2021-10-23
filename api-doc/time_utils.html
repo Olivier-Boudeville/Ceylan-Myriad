@@ -49,7 +49,8 @@
 
 <h3 class="typedecl"><a name="type-date">date()</a></h3>
 <p><tt>date() = {<a href="#type-year">year()</a>, <a href="#type-canonical_month">canonical_month()</a>, <a href="#type-canonical_day">canonical_day()</a>}</tt></p>
-<p> Calendar date; used instrad of less precise calendar:date().</p>
+<p> Canonical calendar date; used instead of the less precise calendar:date/0
+ type. See also: user_date/0.</p>
 
 <h3 class="typedecl"><a name="type-date_in_year">date_in_year()</a></h3>
 <p><tt>date_in_year() = {<a href="#type-canonical_month">canonical_month()</a>, <a href="#type-canonical_day">canonical_day()</a>}</tt></p>
@@ -146,6 +147,11 @@
 <p><tt>timestamp() = {<a href="#type-date">date()</a>, <a href="#type-time">time()</a>}</tt></p>
 <p> Used to be calendar:datetime(), now uses our types.</p>
 
+<h3 class="typedecl"><a name="type-user_date">user_date()</a></h3>
+<p><tt>user_date() = {<a href="#type-canonical_day">canonical_day()</a>, <a href="#type-canonical_month">canonical_month()</a>, <a href="#type-year">year()</a>}</tt></p>
+<p> Date in a format that is considered common to most users.
+ See also: date/0.</p>
+
 <h3 class="typedecl"><a name="type-ustring">ustring()</a></h3>
 <p><tt>ustring() = <a href="text_utils.html#type-ustring">text_utils:ustring()</a></tt></p>
 
@@ -167,7 +173,9 @@
 
 
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#canonicalise_month-1">canonicalise_month/1</a></td><td>Canonicalises specified month.</td></tr>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#canonical_to_user_date-1">canonical_to_user_date/1</a></td><td>Converts specified canonical date into a user one.</td></tr>
+<tr><td valign="top"><a href="#canonicalise_month-1">canonicalise_month/1</a></td><td>Canonicalises specified month.</td></tr>
+<tr><td valign="top"><a href="#check_canonical_date-1">check_canonical_date/1</a></td><td>Checks that the specified date is a canonical one.</td></tr>
 <tr><td valign="top"><a href="#check_date_order-2">check_date_order/2</a></td><td>Ensures that the starting canonical date is strictly before the stopping 
 one.</td></tr>
 <tr><td valign="top"><a href="#check_maybe_timestamp-1">check_maybe_timestamp/1</a></td><td>Checks that specified term is a maybe-timestamp indeed.</td></tr>
@@ -175,6 +183,7 @@ one.</td></tr>
 <tr><td valign="top"><a href="#check_month_order-2">check_month_order/2</a></td><td>Ensures that the starting canonical month is strictly before the stopping
  one.</td></tr>
 <tr><td valign="top"><a href="#check_timestamp-1">check_timestamp/1</a></td><td>Checks that specified term is a timestamp indeed, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_user_date-1">check_user_date/1</a></td><td>Checks that the specified date is a user one.</td></tr>
 <tr><td valign="top"><a href="#compare_dates-2">compare_dates/2</a></td><td>Compares the specified two dates: tells whether the first date is 
 strictly before, after or the same as the second one.</td></tr>
 <tr><td valign="top"><a href="#date_to_weekday-1">date_to_weekday/1</a></td><td>Returns the week day (ex: 'Tuesday') corresponding to specified date.</td></tr>
@@ -263,8 +272,10 @@ time zone and Daylight Saving Time correction depending on the underlying OS.</t
 <tr><td valign="top"><a href="#hours_to_seconds-1">hours_to_seconds/1</a></td><td>Converts a duration in hours into a duration in seconds.</td></tr>
 <tr><td valign="top"><a href="#is_bank_holiday-2">is_bank_holiday/2</a></td><td>Tells whether, for specified country, the specified date is a bank
  holiday.</td></tr>
+<tr><td valign="top"><a href="#is_canonical_date-1">is_canonical_date/1</a></td><td>Tells whether the specified term is a canonical date.</td></tr>
 <tr><td valign="top"><a href="#is_dhms_duration-1">is_dhms_duration/1</a></td><td>Tells whether specified term is a DHMS duration.</td></tr>
 <tr><td valign="top"><a href="#is_timestamp-1">is_timestamp/1</a></td><td>Returns whether specified term is a legit timestamp.</td></tr>
+<tr><td valign="top"><a href="#is_user_date-1">is_user_date/1</a></td><td>Tells whether the specified term is a user date.</td></tr>
 <tr><td valign="top"><a href="#local_to_universal_time-1">local_to_universal_time/1</a></td><td>Converts specified timestamp expressed in local time (thus with time zone 
 and Daylight Saving Time) into a timestamp expressed in universal time (UTC).</td></tr>
 <tr><td valign="top"><a href="#month_to_string-1">month_to_string/1</a></td><td>Converts a month (an integer in [1,12] or a 12-multiple thereof, like 23)
@@ -304,6 +315,7 @@ timestamp.</td></tr>
 <tr><td valign="top"><a href="#universal_to_local_time-1">universal_to_local_time/1</a></td><td>Converts specified timestamp expressed in universal time (UTC) into a
  timestamp expressedin local time (thus with time zone and Daylight Saving
  Time).</td></tr>
+<tr><td valign="top"><a href="#user_to_canonical_date-1">user_to_canonical_date/1</a></td><td>Converts specified user date into a canonical one.</td></tr>
 <tr><td valign="top"><a href="#week_day_to_string-1">week_day_to_string/1</a></td><td>Returns the common name of a week day (ex: "Tuesday") based on the
  specified date or on the specified index in the week.</td></tr>
 <tr><td valign="top"><a href="#weeks_to_seconds-1">weeks_to_seconds/1</a></td><td>Converts a duration in weeks into a duration in seconds.</td></tr>
@@ -314,11 +326,23 @@ timestamp.</td></tr>
 
 <h2><a name="functions">Function Details</a></h2>
 
+<h3 class="function"><a name="canonical_to_user_date-1">canonical_to_user_date/1</a></h3>
+<div class="spec">
+<p><tt>canonical_to_user_date(X1::<a href="#type-date">date()</a>) -&gt; <a href="#type-user_date">user_date()</a></tt><br></p>
+<p> </p>
+</div><p>Converts specified canonical date into a user one.</p>
+
 <h3 class="function"><a name="canonicalise_month-1">canonicalise_month/1</a></h3>
 <div class="spec">
 <p><tt>canonicalise_month(M::<a href="#type-month">month()</a>) -&gt; <a href="#type-canonical_month">canonical_month()</a></tt><br></p>
 <p> </p>
 </div><p>Canonicalises specified month.</p>
+
+<h3 class="function"><a name="check_canonical_date-1">check_canonical_date/1</a></h3>
+<div class="spec">
+<p><tt>check_canonical_date(Date::<a href="#type-date">date()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p> </p>
+</div><p>Checks that the specified date is a canonical one.</p>
 
 <h3 class="function"><a name="check_date_order-2">check_date_order/2</a></h3>
 <div class="spec">
@@ -356,6 +380,12 @@ one.</p>
 <p><tt>check_timestamp(Term::<a href="#type-timestamp">timestamp()</a>) -&gt; <a href="#type-timestamp">timestamp()</a></tt><br></p>
 <p> </p>
 </div><p>Checks that specified term is a timestamp indeed, and returns it.</p>
+
+<h3 class="function"><a name="check_user_date-1">check_user_date/1</a></h3>
+<div class="spec">
+<p><tt>check_user_date(Date::<a href="#type-user_date">user_date()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p> </p>
+</div><p>Checks that the specified date is a user one.</p>
 
 <h3 class="function"><a name="compare_dates-2">compare_dates/2</a></h3>
 <div class="spec">
@@ -737,6 +767,12 @@ time zone and Daylight Saving Time correction depending on the underlying OS.</p
  holiday.
 </p>
 
+<h3 class="function"><a name="is_canonical_date-1">is_canonical_date/1</a></h3>
+<div class="spec">
+<p><tt>is_canonical_date(Date::term()) -&gt; boolean()</tt><br></p>
+<p> </p>
+</div><p>Tells whether the specified term is a canonical date.</p>
+
 <h3 class="function"><a name="is_dhms_duration-1">is_dhms_duration/1</a></h3>
 <div class="spec">
 <p><tt>is_dhms_duration(Other::term()) -&gt; boolean()</tt><br></p>
@@ -755,6 +791,12 @@ time zone and Daylight Saving Time correction depending on the underlying OS.</p
 
  Useful to vet user-specified timestamps.
 </p>
+
+<h3 class="function"><a name="is_user_date-1">is_user_date/1</a></h3>
+<div class="spec">
+<p><tt>is_user_date(Date::term()) -&gt; boolean()</tt><br></p>
+<p> </p>
+</div><p>Tells whether the specified term is a user date.</p>
 
 <h3 class="function"><a name="local_to_universal_time-1">local_to_universal_time/1</a></h3>
 <div class="spec">
@@ -923,6 +965,12 @@ timestamp.</p>
  timestamp expressedin local time (thus with time zone and Daylight Saving
  Time).
 </p>
+
+<h3 class="function"><a name="user_to_canonical_date-1">user_to_canonical_date/1</a></h3>
+<div class="spec">
+<p><tt>user_to_canonical_date(X1::<a href="#type-user_date">user_date()</a>) -&gt; <a href="#type-date">date()</a></tt><br></p>
+<p> </p>
+</div><p>Converts specified user date into a canonical one.</p>
 
 <h3 class="function"><a name="week_day_to_string-1">week_day_to_string/1</a></h3>
 <div class="spec">

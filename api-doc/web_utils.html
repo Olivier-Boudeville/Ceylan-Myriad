@@ -88,7 +88,7 @@
 
 
 <h3 class="typedecl"><a name="type-http_options">http_options()</a></h3>
-<p><tt>http_options() = <a href="#type-options_for_httpc">options_for_httpc()</a> | <a href="http://www.erlang.org/edoc/doc/stdlib/doc/maps.html#type-maps">maps:maps</a>(atom(), term())</tt></p>
+<p><tt>http_options() = <a href="#type-options_for_httpc">options_for_httpc()</a> | <a href="#type-map_options">map_options()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-http_status_class">http_status_class()</a></h3>
@@ -103,8 +103,16 @@
 <p><tt>json_body() = <a href="#type-body">body()</a></tt></p>
 <p> Encoded in JSON.</p>
 
+<h3 class="typedecl"><a name="type-list_options">list_options()</a></h3>
+<p><tt>list_options() = [{atom(), term()}]</tt></p>
+
+
 <h3 class="typedecl"><a name="type-location">location()</a></h3>
 <p><tt>location() = atom()</tt></p>
+
+
+<h3 class="typedecl"><a name="type-map_options">map_options()</a></h3>
+<p><tt>map_options() = <a href="http://www.erlang.org/edoc/doc/stdlib/doc/maps.html#type-maps">maps:maps</a>(atom(), term())</tt></p>
 
 
 <h3 class="typedecl"><a name="type-method">method()</a></h3>
@@ -154,6 +162,10 @@
 <p><tt>ssl_opt() = no_ssl | ssl</tt></p>
 <p> Tells whether the SSL support is needed (typically for https).</p>
 
+<h3 class="typedecl"><a name="type-ssl_options">ssl_options()</a></h3>
+<p><tt>ssl_options() = <a href="#type-list_options">list_options()</a></tt></p>
+<p> map_options().</p>
+
 <h3 class="typedecl"><a name="type-uri">uri()</a></h3>
 <p><tt>uri() = <a href="#type-ustring">ustring()</a></tt></p>
 
@@ -172,8 +184,8 @@
 
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#download_file-2">download_file/2</a></td><td>Downloads the file designated by specified URL, in the specified 
-directory (under its name in URL), and returns the corresponding full path of 
-that file.</td></tr>
+directory (under its name in URL), with no specific HTTP options, and returns 
+the corresponding full path of that file.</td></tr>
 <tr><td valign="top"><a href="#encode_as_url-1">encode_as_url/1</a></td><td>Encodes specified list of {Key, Value} pairs so that it can used into an 
 URL.</td></tr>
 <tr><td valign="top"><a href="#encode_element_as_url-1">encode_element_as_url/1</a></td><td>Encodes specified element so that it can be used in an URL.</td></tr>
@@ -190,6 +202,10 @@ URL.</td></tr>
 URL.</td></tr>
 <tr><td valign="top"><a href="#get_ordered_list-1">get_ordered_list/1</a></td><td>Returns the HTML code of an ordered (numbered bullets) list corresponding
  to specified list of elements.</td></tr>
+<tr><td valign="top"><a href="#get_ssl_verify_options-0">get_ssl_verify_options/0</a></td><td>Returns default SSL options regarding the verification of the remote 
+peer.</td></tr>
+<tr><td valign="top"><a href="#get_ssl_verify_options-1">get_ssl_verify_options/1</a></td><td>Returns SSL options regarding the verification of the remote peer 
+for HTTPS connections:.</td></tr>
 <tr><td valign="top"><a href="#get_unordered_list-1">get_unordered_list/1</a></td><td>Returns the HTML code of an unordered list corresponding to specified
  list of elements.</td></tr>
 <tr><td valign="top"><a href="#http_status_class_to_string-1">http_status_class_to_string/1</a></td><td>Returns a textual description of specified HTTP status class.</td></tr>
@@ -216,13 +232,13 @@ fragment.</td></tr>
 <p><tt>download_file(Url::<a href="#type-url">url()</a>, TargetDir::<a href="#type-any_directory_path">any_directory_path()</a>) -&gt; <a href="#type-file_path">file_path()</a></tt><br></p>
 <p> </p>
 </div><p><p>Downloads the file designated by specified URL, in the specified 
-directory (under its name in URL), and returns the corresponding full path of 
-that file.</p>
+directory (under its name in URL), with no specific HTTP options, and returns 
+the corresponding full path of that file.</p>
 
- <p>Ex: web_utils:download_file( _Url="https://foobar.org/baz.txt",                    
+ <p>Ex: web_utils:download_file( _Url="https://foobar.org/baz.txt",            
 _TargetDir="/tmp" ) shall result in a "/tmp/baz.txt" file.</p>
 
- Starts the HTTP support as a side effect.
+ Starts, if needed, the HTTP and SSL supports as a side effect.
 </p>
 
 <h3 class="function"><a name="encode_as_url-1">encode_as_url/1</a></h3>
@@ -317,6 +333,33 @@ URL.</p>
  to specified list of elements.
 </p>
 
+<h3 class="function"><a name="get_ssl_verify_options-0">get_ssl_verify_options/0</a></h3>
+<div class="spec">
+<p><tt>get_ssl_verify_options() -&gt; <a href="#type-ssl_options">ssl_options()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns default SSL options regarding the verification of the remote 
+peer.</p>
+
+ See get_ssl_verify_options/1 for more information.
+</p>
+
+<h3 class="function"><a name="get_ssl_verify_options-1">get_ssl_verify_options/1</a></h3>
+<div class="spec">
+<p><tt>get_ssl_verify_options(X1::<a href="basic_utils.html#type-activation_switch">basic_utils:activation_switch()</a>) -&gt; <a href="#type-ssl_options">ssl_options()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns SSL options regarding the verification of the remote peer 
+for HTTPS connections:</p>
+
+ <p>- if the switch is 'disable', this peer will not be verified (exposing the 
+program to a man-in-the-middle attack)</p>
+
+ - if the switch is 'enabled', the system DER-encoded certificates are trusted
+ (see https://erlang.org/doc/man/ssl.html#type-cert) to check that peer, so
+ that not only the TLS protection against "casual" eavesdroppers is enjoyed,
+ but also, here, the one against Man-in-the-Middle (so we check that we
+ indeed interact with the expected server)
+</p>
+
 <h3 class="function"><a name="get_unordered_list-1">get_unordered_list/1</a></h3>
 <div class="spec">
 <p><tt>get_unordered_list(Elements::[<a href="#type-html_element">html_element()</a>]) -&gt; <a href="#type-html_element">html_element()</a></tt><br></p>
@@ -397,7 +440,11 @@ be used.</p>
 <div class="spec">
 <p><tt>start() -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Starts the HTTP support, with default settings.</p>
+</div><p><p>Starts the HTTP support, with default settings.</p>
+
+ Does not fail if already started, throws an exception in case of unrecoverable
+ error.
+</p>
 
 <h3 class="function"><a name="start-1">start/1</a></h3>
 <div class="spec">

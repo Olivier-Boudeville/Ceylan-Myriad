@@ -37,9 +37,13 @@ facilities.</p>
 <p><tt>bin_executable_path() = <a href="file_utils.html#type-bin_executable_path">file_utils:bin_executable_path()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-byte_offset">byte_offset()</a></h3>
+<p><tt>byte_offset() = integer()</tt></p>
+<p> A (signed) offset expressed in bytes.</p>
+
 <h3 class="typedecl"><a name="type-byte_size">byte_size()</a></h3>
-<p><tt>byte_size() = integer()</tt></p>
-<p> Size, as a number of bytes.</p>
+<p><tt>byte_size() = non_neg_integer()</tt></p>
+<p> Size, as a positive number of bytes.</p>
 
 <h3 class="typedecl"><a name="type-command">command()</a></h3>
 <p><tt>command() = <a href="text_utils.html#type-any_string">text_utils:any_string()</a></tt></p>
@@ -138,6 +142,11 @@ facilities.</p>
 <h3 class="typedecl"><a name="type-host_static_info">host_static_info()</a></h3>
 <p><tt>host_static_info() = #host_static_info{total_ram = <a href="basic_utils.html#type-count">basic_utils:count()</a>, total_swap = <a href="basic_utils.html#type-count">basic_utils:count()</a>, core_count = <a href="basic_utils.html#type-count">basic_utils:count()</a>, erlang_version = <a href="text_utils.html#type-ustring">text_utils:ustring()</a>}</tt></p>
 <p> Describes the static information about a computing host.</p>
+
+<h3 class="typedecl"><a name="type-os_pid">os_pid()</a></h3>
+<p><tt>os_pid() = <a href="#type-count">count()</a></tt></p>
+<p> The PID of an operating-system process (OS-level, not Erlang-level, process
+ identifier).</p>
 
 <h3 class="typedecl"><a name="type-package_name">package_name()</a></h3>
 <p><tt>package_name() = <a href="#type-ustring">ustring()</a></tt></p>

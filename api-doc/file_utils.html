@@ -58,11 +58,11 @@
 <p> The suffix (final part) in a path element.</p>
 
 <h3 class="typedecl"><a name="type-bin_directory_name">bin_directory_name()</a></h3>
-<p><tt>bin_directory_name() = binary()</tt></p>
+<p><tt>bin_directory_name() = <a href="#type-bin_string">bin_string()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-bin_directory_path">bin_directory_path()</a></h3>
-<p><tt>bin_directory_path() = binary()</tt></p>
+<p><tt>bin_directory_path() = <a href="#type-bin_string">bin_string()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-bin_executable_path">bin_executable_path()</a></h3>
@@ -70,15 +70,15 @@
 <p> Designates a path to an executable, as a binary.</p>
 
 <h3 class="typedecl"><a name="type-bin_file_name">bin_file_name()</a></h3>
-<p><tt>bin_file_name() = binary()</tt></p>
+<p><tt>bin_file_name() = <a href="#type-bin_string">bin_string()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-bin_file_path">bin_file_path()</a></h3>
-<p><tt>bin_file_path() = binary()</tt></p>
+<p><tt>bin_file_path() = <a href="#type-bin_string">bin_string()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-bin_path">bin_path()</a></h3>
-<p><tt>bin_path() = binary()</tt></p>
+<p><tt>bin_path() = <a href="#type-bin_string">bin_string()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-bin_path_element">bin_path_element()</a></h3>
@@ -88,6 +88,10 @@
 <h3 class="typedecl"><a name="type-bin_script_path">bin_script_path()</a></h3>
 <p><tt>bin_script_path() = <a href="#type-bin_file_path">bin_file_path()</a></tt></p>
 <p> Designates a path to an (executable) script, as a binary.</p>
+
+<h3 class="typedecl"><a name="type-bin_string">bin_string()</a></h3>
+<p><tt>bin_string() = <a href="text_utils.html#type-bin_string">text_utils:bin_string()</a></tt></p>
+
 
 <h3 class="typedecl"><a name="type-compression_format">compression_format()</a></h3>
 <p><tt>compression_format() = zip | bzip2 | xz</tt></p>
@@ -409,6 +413,10 @@ exclusive, raw, etc).</td></tr>
 <tr><td valign="top"><a href="#read_etf_file-1">read_etf_file/1</a></td><td>Reads specified file supposedly in ETF format (Erlang Term Format): tries 
 to parse a list of terms (one per line, terminating with a dot) from it 
 (as file:consult/1 does), and returns it.</td></tr>
+<tr><td valign="top"><a href="#read_lines-1">read_lines/1</a></td><td>Reads the content of the specified file, expected to be a text one, based 
+on its filename specified as any kind of string (plain, binary, atom, etc) and 
+returns its content as a list of plain strings, or throws an exception on 
+failure.</td></tr>
 <tr><td valign="top"><a href="#read_terms-1">read_terms/1</a></td><td>Reads specified file supposedly in ETF format (Erlang Term Format): tries 
 to parse a list of terms (one per line, terminating with a dot) from it 
 (as file:consult/1 does), and returns it.</td></tr>
@@ -1791,7 +1799,7 @@ statement) system_utils:force_unicode_support/0.</p>
 <p> </p>
 </div><p><p>Reads specified number of bytes/characters from the specified file.</p>
 
- <p>Returns either { ok, Data } if at least some data could be read, or eof if at 
+ <p>Returns either {ok, Data} if at least some data could be read, or eof if at 
 least one element was to read and end of file was reached before anything at 
 all could be read.</p>
 
@@ -1820,6 +1828,21 @@ utf8} option, or have been written with content already properly encoded
  Throws an exception on error.
 </p>
 
+<h3 class="function"><a name="read_lines-1">read_lines/1</a></h3>
+<div class="spec">
+<p><tt>read_lines(FilePath::<a href="#type-any_file_path">any_file_path()</a>) -&gt; [<a href="#type-ustring">ustring()</a>]</tt><br></p>
+<p> </p>
+</div><p><p>Reads the content of the specified file, expected to be a text one, based 
+on its filename specified as any kind of string (plain, binary, atom, etc) and 
+returns its content as a list of plain strings, or throws an exception on 
+failure.</p>
+
+ Each returned line has any (trailing) newline(s) removed (knowing that the
+ last one may or may not have a newline). See
+ <a href="https://erlang.org/doc/man/file.html#read_line-1" target="_top"><tt>https://erlang.org/doc/man/file.html#read_line-1</tt></a> for more details regarding
+ end-of-line characters.
+</p>
+
 <h3 class="function"><a name="read_terms-1">read_terms/1</a></h3>
 <div class="spec">
 <p><tt>read_terms(Filename::<a href="#type-file_path">file_path()</a>) -&gt; [term()]</tt><br></p>
@@ -1844,13 +1867,13 @@ utf8} option, or have been written with content already properly encoded
 
 <h3 class="function"><a name="read_whole-1">read_whole/1</a></h3>
 <div class="spec">
-<p><tt>read_whole(Filename::<a href="#type-any_file_name">any_file_name()</a>) -&gt; binary()</tt><br></p>
+<p><tt>read_whole(FilePath::<a href="#type-any_file_path">any_file_path()</a>) -&gt; binary()</tt><br></p>
 <p> </p>
 </div><p><p>Reads the content of the specified file, based on its filename specified 
 as any kind of string (plain, binary, atom, etc), and returns the 
 corresponding binary, or throws an exception on failure.</p>
 
- See also: read_terms/1 to read directly Erlang terms.
+ See also: read_terms/1 to read directly Erlang terms instead.
 </p>
 
 <h3 class="function"><a name="remove_directory-1">remove_directory/1</a></h3>
@@ -2079,6 +2102,8 @@ normal mode as well).</p>
 </div><p><p>Writes directly specified terms into specified already opened file, in 
 the ETF format.</p>
 
+ <p>See http://myriad.esperide.org/#etf for more details.</p>
+
  Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
 </p>
 
@@ -2088,6 +2113,8 @@ the ETF format.</p>
 <p> </p>
 </div><p><p>Writes specified terms into specified file, in the ETF format, with no 
 specific header or footer.</p>
+
+ <p>See http://myriad.esperide.org/#etf for more details.</p>
 
  Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
 </p>
@@ -2099,6 +2126,8 @@ specific header or footer.</p>
 </div><p><p>Writes specified terms into specified file, in the ETF format, with 
 specified header and footer.</p>
 
+ <p>See http://myriad.esperide.org/#etf for more details.</p>
+
  Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
 </p>
 
@@ -2108,6 +2137,8 @@ specified header and footer.</p>
 <p> </p>
 </div><p><p>Writes specified terms into specified file, in the ETF format, with no 
 specific header or footer.</p>
+
+ <p>See http://myriad.esperide.org/#etf for more details.</p>
 
  Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
 </p>
