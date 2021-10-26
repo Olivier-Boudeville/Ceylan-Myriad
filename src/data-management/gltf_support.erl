@@ -1317,6 +1317,12 @@ get_element_type_associations() ->
 
 % @doc Converts a (Myriad-level) component type into a (lower-level) glTf one.
 -spec element_type_to_gltf( element_type() ) -> gltf_element_type().
+element_type_to_gltf( _ElemType=point2 ) ->
+	vector2;
+
+element_type_to_gltf( _ElemType=point3 ) ->
+	vector3;
+
 element_type_to_gltf( ElemType ) ->
 	bijective_table:get_second_for( ElemType, get_element_type_associations() ).
 
@@ -1436,10 +1442,10 @@ gltf_to_buffer_view_target( GltfBufferViewTarget ) ->
 			  [ specialised_texture_coordinates() ], [ indice() ],
 			  buffer_table() }.
 decode_primitive( MeshIndex, PrimitiveIndex, #gltf_content{
-											 meshes=Meshes,
-											 accessors=Accessors,
-											 buffers=Buffers,
-											 buffer_views=BufferViews },
+												meshes=Meshes,
+												accessors=Accessors,
+												buffers=Buffers,
+												buffer_views=BufferViews },
 				  BufferTable ) ->
 
 	trace_utils:debug_fmt( "Decoding primitive ~B of mesh ~B.",
@@ -1704,7 +1710,7 @@ add_primitive( Vertices, Normals, TexCoords, TopologyType=triangles,
 
 	{ MinVec, MaxVec } = compute_gltf_extremas( Vertices ),
 
-	PositionElementType = vector3,
+	PositionElementType = point3,
 	PositionComponentType = float32,
 
 	PositionCount = length( Vertices ),
@@ -1725,8 +1731,8 @@ add_primitive( Vertices, Normals, TexCoords, TopologyType=triangles,
 											offset=PositionOffset,
 											size=PositionSize },
 
-	PositionBuffer = generate_buffer( PositionElementType,
-									  PositionComponentType, Vertices ),
+	PositionBin = generate_buffer( PositionElementType,
+								   PositionComponentType, Vertices ),
 
 
 	% - normals are referenced through NormalAccessor, referencing
@@ -1755,8 +1761,8 @@ add_primitive( Vertices, Normals, TexCoords, TopologyType=triangles,
 										  offset=NormalOffset,
 										  size=NormalSize },
 
-	NormalBuffer = append_to_buffer( NormalElementType, NormalComponentType,
-									 Normals, PositionBuffer ),
+	NormalBin = append_to_buffer( NormalElementType, NormalComponentType,
+								  Normals, PositionBin ),
 
 
 
@@ -1786,8 +1792,8 @@ add_primitive( Vertices, Normals, TexCoords, TopologyType=triangles,
 											offset=TexCoordOffset,
 											size=TexCoordSize },
 
-	TexCoordBuffer = append_to_buffer( TexCoordElementType,
-						TexCoordComponentType, TexCoords, NormalBuffer ),
+	TexCoordBin = append_to_buffer( TexCoordElementType, TexCoordComponentType,
+									TexCoords, NormalBin ),
 
 
 	% - indices are referenced through IndicesAccessor, referencing
@@ -1817,10 +1823,12 @@ add_primitive( Vertices, Normals, TexCoords, TopologyType=triangles,
 										   offset=IndicesOffset,
 										   size=IndicesSize },
 
-	IndicesBuffer = append_to_buffer( IndicesElementType, IndicesComponentType,
-									  Indices, TexCoordBuffer ),
+	IndicesBin = append_to_buffer( IndicesElementType, IndicesComponentType,
+								   Indices, TexCoordBin ),
 
-	NewBuffers = list_utils:append_at_end( IndicesBuffer, Buffers ),
+	ResultingBuffer = gltf_support:bin_to_gltf_buffer_embedded( IndicesBin ),
+
+	NewBuffers = list_utils:append_at_end( ResultingBuffer, Buffers ),
 
 	Attributes = #gltf_attributes{ position=PositionAccessorIndex,
 								   normal=NormalAccessorIndex,
@@ -1844,11 +1852,10 @@ add_primitive( Vertices, Normals, TexCoords, TopologyType=triangles,
 	NewAccessors = Accessors ++ ExtraAccessors,
 
 
-	ExtraBufferViews = [PositionBufferView, NormalBufferView,
-						TexCoordBufferView, IndicesBufferView ],
+	ExtraBufferViews = [ PositionBufferView, NormalBufferView,
+						 TexCoordBufferView, IndicesBufferView ],
 
 	NewBufferViews = BufferViews ++ ExtraBufferViews,
-
 
 	NewContent = Content#gltf_content{ meshes=NewMeshes,
 									   accessors=NewAccessors,
@@ -2033,8 +2040,8 @@ append_to_buffer( _ElementType=scalar, _ComponentType=uint16, Elements,
 
 append_to_buffer( ElementType, _ComponentType=float32, Elements,
 				  Bin ) when ElementType =:= vector2
-							 orelse ElementType =:= vector3
-							 orelse ElementType =:= vector4 ->
+					  orelse ElementType =:= vector3
+					  orelse ElementType =:= vector4 ->
 	ComponentFloats = list_utils:flatten_once( Elements ),
 	append_all_float32_little( ComponentFloats, Bin );
 
